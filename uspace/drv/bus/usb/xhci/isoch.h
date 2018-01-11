@@ -80,6 +80,9 @@ typedef struct {
 	/** Defers handing buffers to the HC. */
 	fibril_timer_t *feeding_timer;
 
+	/** Resets endpoint if there is no traffic. */
+	fibril_timer_t *reset_timer;
+
 	/** The maximum size of an isochronous transfer and therefore the size of buffers */
 	size_t max_size;
 

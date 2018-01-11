@@ -83,6 +83,39 @@ static void isoch_reset(xhci_endpoint_t *ep)
 	usb_log_info("[isoch] Endpoint" XHCI_EP_FMT ": Data flow reset.", XHCI_EP_ARGS(*ep));
 }
 
+static void isoch_reset_no_timer(xhci_endpoint_t *ep)
+{
+	xhci_isoch_t * const isoch = ep->isoch;
+	assert(fibril_mutex_is_locked(&isoch->guard));
+	/*
+	 * As we cannot clear timer when we are triggered by it,
+	 * we have to avoid doing it in common method.
+	 */
+	fibril_timer_clear_locked(isoch->reset_timer);
+	isoch_reset(ep);
+}
+
+static void isoch_reset_timer(void *ep) {
+	xhci_isoch_t * const isoch = xhci_endpoint_get(ep)->isoch;
+	fibril_mutex_lock(&isoch->guard);
+	isoch_reset(ep);
+	fibril_mutex_unlock(&isoch->guard);
+}
+
+/*
+ * Fast transfers could trigger the reset timer before the data is processed,
+ * leading into false reset.
+ */
+#define RESET_TIMER_DELAY 100000
+static void timer_schedule_reset(xhci_endpoint_t *ep) {
+	xhci_isoch_t * const isoch = ep->isoch;
+	const suseconds_t delay = isoch->buffer_count * ep->interval * 125 + RESET_TIMER_DELAY;
+
+	fibril_timer_clear_locked(isoch->reset_timer);
+	fibril_timer_set_locked(isoch->reset_timer, delay,
+		isoch_reset_timer, ep);
+}
+
 void isoch_fini(xhci_endpoint_t *ep)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
@@ -91,6 +124,8 @@ void isoch_fini(xhci_endpoint_t *ep)
 	if (isoch->feeding_timer) {
 		fibril_timer_clear(isoch->feeding_timer);
 		fibril_timer_destroy(isoch->feeding_timer);
+		fibril_timer_clear(isoch->reset_timer);
+		fibril_timer_destroy(isoch->reset_timer);
 	}
 
 	if (isoch->transfers) {
@@ -108,13 +143,14 @@ int isoch_alloc_transfers(xhci_endpoint_t *ep) {
 	xhci_isoch_t * const isoch = ep->isoch;
 
 	isoch->feeding_timer = fibril_timer_create(&isoch->guard);
+	isoch->reset_timer = fibril_timer_create(&isoch->guard);
 	if (!isoch->feeding_timer)
 		return ENOMEM;
 
 	isoch->transfers = calloc(isoch->buffer_count, sizeof(xhci_isoch_transfer_t));
 	if(!isoch->transfers)
 		goto err;
- 
+
 	for (size_t i = 0; i < isoch->buffer_count; ++i) {
 		xhci_isoch_transfer_t *transfer = &isoch->transfers[i];
 		if (dma_buffer_alloc(&transfer->data, ep->base.max_transfer_size)) {
@@ -123,7 +159,7 @@ int isoch_alloc_transfers(xhci_endpoint_t *ep) {
 	}
 
 	fibril_mutex_lock(&isoch->guard);
-	isoch_reset(ep);
+	isoch_reset_no_timer(ep);
 	fibril_mutex_unlock(&isoch->guard);
 
 	return EOK;
@@ -225,7 +261,7 @@ static inline void window_decide(window_decision_t *res, xhci_hc_t *hc, uint32_t
 	 * TODO: The "size" of the clock is too low. We have to scale it a bit
 	 * to ensure correct scheduling of transfers, that are
 	 * buffer_count * interval away from now.
-	 * Maximum interval is 8 seconds, which means we need a size of 
+	 * Maximum interval is 8 seconds, which means we need a size of
 	 * 16 seconds. The size of MFIINDEX is 2 seconds only.
 	 *
 	 * A plan is to create a thin abstraction at HC, which would return
@@ -300,12 +336,14 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 			break;
 		}
 	}
-out:
 
+out:
 	if (fed) {
 		const uint8_t slot_id = xhci_device_get(ep->base.device)->slot_id;
 		const uint8_t target = xhci_endpoint_index(ep) + 1; /* EP Doorbells start at 1 */
 		hc_ring_doorbell(hc, slot_id, target);
+		/* The ring may be dead. If no event happens until the delay, reset the endpoint. */
+		timer_schedule_reset(ep);
 	}
 
 }
@@ -393,6 +431,8 @@ out:
 		const uint8_t slot_id = xhci_device_get(ep->base.device)->slot_id;
 		const uint8_t target = xhci_endpoint_index(ep) + 1; /* EP Doorbells start at 1 */
 		hc_ring_doorbell(hc, slot_id, target);
+		/* The ring may be dead. If no event happens until the delay, reset the endpoint. */
+		timer_schedule_reset(ep);
 	}
 }
 
@@ -540,7 +580,7 @@ int isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *
 			/* For OUT, there was nothing to process */
 			/* For IN, the buffer has overfilled, we empty the buffers and readd TRBs */
 			usb_log_warning("Ring over/underrun.");
-			isoch_reset(ep);
+			isoch_reset_no_timer(ep);
 			fibril_condvar_broadcast(&ep->isoch->avail);
 			fibril_mutex_unlock(&ep->isoch->guard);
 			return EOK;
@@ -554,35 +594,28 @@ int isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *
 			break;
 	}
 
-	bool found_mine = false;
-	bool found_incomplete = false;
-
 	/*
 	 * The order of delivering events is not necessarily the one we would
-	 * expect. It is safer to walk the list of our 4 transfers and check
+	 * expect. It is safer to walk the list of our transfers and check
 	 * which one it is.
+	 * To minimize the amount of transfers checked, we start at dequeue pointer
+	 * and exit the loop as soon as the transfer is found.
 	 */
-	for (size_t i = 0; i < isoch->buffer_count; ++i) {
-		xhci_isoch_transfer_t * const it = &isoch->transfers[i];
+	bool found_mine = false;
+	for (size_t i = 0, di = isoch->dequeue; i < isoch->buffer_count; ++i, ++di) {
+		/* Wrap it back to 0, don't use modulo every loop traversal */
+		if (di == isoch->buffer_count) {
+			di = 0;
+		}
 
-		switch (it->state) {
-		case ISOCH_FILLED:
-			found_incomplete = true;
-			break;
+		xhci_isoch_transfer_t * const it = &isoch->transfers[di];
 
-		case ISOCH_FED:
-			if (it->interrupt_trb_phys != trb->parameter) {
-				found_incomplete = true;
-				break;
-			}
-
+		if (it->state == ISOCH_FED && it->interrupt_trb_phys == trb->parameter) {
 			usb_log_debug2("[isoch] buffer %zu completed", it - isoch->transfers);
 			it->state = ISOCH_COMPLETE;
 			it->size -= TRB_TRANSFER_LENGTH(*trb);
 			it->error = err;
 			found_mine = true;
-			break;
-		default:
 			break;
 		}
 	}
@@ -594,14 +627,11 @@ int isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *
 	/*
 	 * It may happen that the driver already stopped reading (writing),
 	 * and our buffers are filled (empty). As QEMU (and possibly others)
-	 * does not send RING_UNDERRUN (OVERRUN) event, detect it here.
+	 * does not send RING_UNDERRUN (OVERRUN) event, we set a timer to
+	 * reset it after the buffers should have been consumed. If there
+	 * is no issue, the timer will get restarted often enough.
 	 */
-	if (!found_incomplete) {
-		usb_log_warning("[isoch] Endpoint" XHCI_EP_FMT ": Detected "
-		    "isochronous ring %s.", XHCI_EP_ARGS(*ep),
-		    (ep->base.direction == USB_DIRECTION_IN) ? "underrun" : "overrun");
-		isoch_reset(ep);
-	}
+	timer_schedule_reset(ep);
 
 	fibril_condvar_broadcast(&ep->isoch->avail);
 	fibril_mutex_unlock(&ep->isoch->guard);
