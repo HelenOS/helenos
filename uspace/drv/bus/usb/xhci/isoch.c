@@ -292,7 +292,12 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 
 	bool fed = false;
 
-	while (isoch->hw_enqueue != isoch->enqueue) {
+	/*
+	 * There might be a case, where no transfer can't be put on the ring immediately
+	 * (for endpoints with interval >= 500ms). In that case, the transfer buffers could fill
+	 * and the first condition wouldn't be enough to enter the loop.
+	 */
+	while (isoch->hw_enqueue != isoch->enqueue || isoch->transfers[isoch->hw_enqueue].state == ISOCH_FILLED) {
 		xhci_isoch_transfer_t * const it = &isoch->transfers[isoch->hw_enqueue];
 
 		assert(it->state == ISOCH_FILLED);
