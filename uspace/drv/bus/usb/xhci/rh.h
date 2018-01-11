@@ -74,12 +74,20 @@ typedef struct {
 
 	/* Device pointers connected to RH ports or NULL. (size is `max_ports`) */
 	xhci_device_t **devices_by_port;
+
+	/* Roothub events. */
+	fibril_mutex_t event_guard;
+	fibril_condvar_t event_ready, event_handled;
+	unsigned event_readers_waiting, event_readers_to_go;
+	struct {
+		uint8_t port_id;
+		uint32_t events;
+	} event;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
 int xhci_rh_fini(xhci_rh_t *);
 const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *, uint8_t);
-int xhci_rh_reset_port(xhci_rh_t *, uint8_t);
 
 int xhci_rh_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
 void xhci_rh_handle_port_change(xhci_rh_t *);

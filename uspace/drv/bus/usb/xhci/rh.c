@@ -80,6 +80,10 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 	rh->device.route_str = 0;
 	rh->device.tier = 0;
 
+	fibril_mutex_initialize(&rh->event_guard);
+	fibril_condvar_initialize(&rh->event_ready);
+	fibril_condvar_initialize(&rh->event_handled);
+
 	return EOK;
 }
 
@@ -91,6 +95,30 @@ int xhci_rh_fini(xhci_rh_t *rh)
 	assert(rh);
 	free(rh->devices_by_port);
 	return EOK;
+}
+
+static int rh_event_wait_timeout(xhci_rh_t *rh, suseconds_t timeout)
+{
+	assert(fibril_mutex_is_locked(&rh->event_guard));
+
+	++rh->event_readers_waiting;
+	const int r = fibril_condvar_wait_timeout(&rh->event_ready, &rh->event_guard, timeout);
+	--rh->event_readers_waiting;
+	if (--rh->event_readers_to_go == 0)
+		fibril_condvar_broadcast(&rh->event_handled);
+	return r;
+}
+
+static void rh_event_run_handlers(xhci_rh_t *rh)
+{
+	fibril_mutex_lock(&rh->event_guard);
+	assert(rh->event_readers_to_go == 0);
+
+	rh->event_readers_to_go = rh->event_readers_waiting;
+	fibril_condvar_broadcast(&rh->event_ready);
+	while (rh->event_readers_to_go)
+		fibril_condvar_wait(&rh->event_handled, &rh->event_guard);
+	fibril_mutex_unlock(&rh->event_guard);
 }
 
 /**
@@ -146,6 +174,28 @@ err_usb_dev:
 	return err;
 }
 
+
+static int rh_port_reset_sync(xhci_rh_t *rh, uint8_t port_id)
+{
+	int r;
+	xhci_port_regs_t *regs = &rh->hc->op_regs->portrs[port_id - 1];
+
+	fibril_mutex_lock(&rh->event_guard);
+	XHCI_REG_SET(regs, XHCI_PORT_PR, 1);
+
+	while (true) {
+		r = rh_event_wait_timeout(rh, 0);
+		if (r != EOK)
+			break;
+		if (rh->event.port_id == port_id
+		    && rh->event.events & XHCI_REG_MASK(XHCI_PORT_PRC))
+			break;
+	}
+	fibril_mutex_unlock(&rh->event_guard);
+
+	return r;
+}
+
 /**
  * Handle a device connection. USB 3+ devices are set up directly, USB 2 and
  * below first need to have their port reset.
@@ -176,7 +226,11 @@ static int handle_connected_device(xhci_rh_t *rh, uint8_t port_id)
 	}
 	else {
 		usb_log_debug("USB 2 device attached, issuing reset.");
-		xhci_rh_reset_port(rh, port_id);
+		const int err = rh_port_reset_sync(rh, port_id);
+		if (err)
+			return err;
+
+		rh_setup_device(rh, port_id);
 		return EOK;
 	}
 }
@@ -228,6 +282,39 @@ int xhci_rh_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	return EOK;
 }
 
+typedef int (*rh_event_handler_t)(xhci_rh_t *, uint8_t);
+
+typedef struct rh_event_args {
+	xhci_rh_t *rh;
+	uint8_t port_id;
+	rh_event_handler_t handler;
+} rh_event_args_t;
+
+static int rh_event_handler_fibril(void *arg) {
+	rh_event_args_t *rh_args = arg;
+	xhci_rh_t *rh = rh_args->rh;
+	uint8_t port_id = rh_args->port_id;
+	rh_event_handler_t handler = rh_args->handler;
+
+	free(rh_args);
+
+	return handler(rh, port_id);
+}
+
+static fid_t handle_in_fibril(xhci_rh_t *rh, uint8_t port_id, rh_event_handler_t handler)
+{
+	rh_event_args_t *args = malloc(sizeof(*args));
+	*args = (rh_event_args_t) {
+		.rh = rh,
+		.port_id = port_id,
+		.handler = handler,
+	};
+
+	const fid_t fid = fibril_create(rh_event_handler_fibril, args);
+	fibril_add_ready(fid);
+	return fid;
+}
+
 /**
  * Handle all changes on all ports.
  */
@@ -247,52 +334,16 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh)
 
 			bool connected = XHCI_REG_RD(regs, XHCI_PORT_CCS);
 			if (connected) {
-				handle_connected_device(rh, i);
+				handle_in_fibril(rh, i, handle_connected_device);
 			} else {
-				handle_disconnected_device(rh, i);
+				handle_in_fibril(rh, i, handle_disconnected_device);
 			}
 		}
 
-		if (events & XHCI_REG_MASK(XHCI_PORT_PEC)) {
-			usb_log_info("Port enabled changed on port %u.", i);
-			events &= ~XHCI_REG_MASK(XHCI_PORT_PEC);
-		}
-
-		if (events & XHCI_REG_MASK(XHCI_PORT_WRC)) {
-			usb_log_info("Warm port reset on port %u completed.", i);
-			events &= ~XHCI_REG_MASK(XHCI_PORT_WRC);
-		}
-
-		if (events & XHCI_REG_MASK(XHCI_PORT_OCC)) {
-			usb_log_info("Over-current change on port %u.", i);
-			events &= ~XHCI_REG_MASK(XHCI_PORT_OCC);
-		}
-
-		if (events & XHCI_REG_MASK(XHCI_PORT_PRC)) {
-			usb_log_info("Port reset on port %u completed.", i);
-			events &= ~XHCI_REG_MASK(XHCI_PORT_PRC);
-
-			const xhci_port_speed_t *speed = xhci_rh_get_port_speed(rh, i);
-			if (speed->major != 3) {
-				/* FIXME: We probably don't want to do this
-				 * every time USB2 port is reset. This is a
-				 * temporary workaround. */
-				rh_setup_device(rh, i);
-			}
-		}
-
-		if (events & XHCI_REG_MASK(XHCI_PORT_PLC)) {
-			usb_log_info("Port link state changed on port %u.", i);
-			events &= ~XHCI_REG_MASK(XHCI_PORT_PLC);
-		}
-
-		if (events & XHCI_REG_MASK(XHCI_PORT_CEC)) {
-			usb_log_info("Port %u failed to configure link.", i);
-			events &= ~XHCI_REG_MASK(XHCI_PORT_CEC);
-		}
-
-		if (events) {
-			usb_log_warning("Port change (0x%08x) ignored on port %u.", events, i);
+		if (events != 0) {
+			rh->event.port_id = i;
+			rh->event.events = events;
+			rh_event_run_handlers(rh);
 		}
 	}
 
@@ -332,8 +383,6 @@ const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *rh, uint8_t port)
 int xhci_rh_reset_port(xhci_rh_t* rh, uint8_t port)
 {
 	usb_log_debug2("Resetting port %u.", port);
-	xhci_port_regs_t *regs = &rh->hc->op_regs->portrs[port-1];
-	XHCI_REG_SET(regs, XHCI_PORT_PR, 1);
 
 	return EOK;
 }
