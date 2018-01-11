@@ -129,7 +129,10 @@ void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t timeout)
 {
 	assert(fibril_mutex_is_locked(&ep->guard));
 
-	while (ep->active_batch != NULL)
+	if (ep->active_batch != NULL)
+		fibril_condvar_wait_timeout(&ep->avail, &ep->guard, timeout);
+
+	while (timeout == 0 && ep->active_batch != NULL)
 		fibril_condvar_wait_timeout(&ep->avail, &ep->guard, timeout);
 }
 
