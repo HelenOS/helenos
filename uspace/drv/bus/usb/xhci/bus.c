@@ -322,6 +322,42 @@ static int endpoint_register(endpoint_t *ep_base)
 }
 
 /**
+ * Abort a transfer on an endpoint.
+ */
+static int endpoint_abort(endpoint_t *ep)
+{
+	xhci_bus_t *bus = bus_to_xhci_bus(endpoint_get_bus(ep));
+	xhci_device_t *dev = xhci_device_get(ep->device);
+
+	usb_transfer_batch_t *batch = NULL;
+	fibril_mutex_lock(&ep->guard);
+	if (ep->active_batch) {
+		if (dev->slot_id) {
+			const int err = hc_stop_endpoint(bus->hc, dev->slot_id, xhci_endpoint_dci(xhci_endpoint_get(ep)));
+			if (err) {
+				usb_log_warning("Failed to stop endpoint %u of device " XHCI_DEV_FMT ": %s",
+				    ep->endpoint, XHCI_DEV_ARGS(*dev), str_error(err));
+			}
+
+			endpoint_wait_timeout_locked(ep, 2000);
+		}
+
+		batch = ep->active_batch;
+		if (batch) {
+			endpoint_deactivate_locked(ep);
+		}
+	}
+	fibril_mutex_unlock(&ep->guard);
+
+	if (batch) {
+		batch->error = EINTR;
+		batch->transfered_size = 0;
+		usb_transfer_batch_finish(batch);
+	}
+	return EOK;
+}
+
+/**
  * Unregister an endpoint. If the device is still available, inform the xHC
  * about it.
  *
@@ -334,8 +370,11 @@ static void endpoint_unregister(endpoint_t *ep_base)
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
+	endpoint_abort(ep_base);
+
 	/* If device slot is still available, drop the endpoint. */
 	if (dev->slot_id) {
+
 		if ((err = hc_drop_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep)))) {
 			usb_log_error("Failed to drop endpoint " XHCI_EP_FMT ": %s", XHCI_EP_ARGS(*ep), str_error(err));
 		}

@@ -352,12 +352,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	case XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD:
 	case XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD:
 	case XHCI_TRB_TYPE_RESET_ENDPOINT_CMD:
-		break;
 	case XHCI_TRB_TYPE_STOP_ENDPOINT_CMD:
-		// Note: If the endpoint was in the middle of a transfer, then the xHC
-		//       will add a Transfer TRB before the Event TRB, research that and
-		//       handle it appropriately!
-		break;
 	case XHCI_TRB_TYPE_RESET_DEVICE_CMD:
 		break;
 	default:
