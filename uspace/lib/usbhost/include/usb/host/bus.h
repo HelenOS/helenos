@@ -104,7 +104,7 @@ struct bus_ops {
 	int (*device_enumerate)(device_t *);
 	void (*device_remove)(device_t *);
 	int (*device_online)(device_t *);			/**< Optional */
-	int (*device_offline)(device_t *);			/**< Optional */
+	void (*device_offline)(device_t *);			/**< Optional */
 	endpoint_t *(*endpoint_create)(device_t *, const usb_endpoint_descriptors_t *);
 
 	/* Operations on endpoint */

@@ -127,17 +127,5 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 }
 
 /**
- * Finish a transfer batch as an aborted one.
- */
-void usb_transfer_batch_abort(usb_transfer_batch_t *batch)
-{
-	assert(batch);
-	assert(batch->ep);
-
-	batch->error = EAGAIN;
-	usb_transfer_batch_finish(batch);
-}
-
-/**
  * @}
  */

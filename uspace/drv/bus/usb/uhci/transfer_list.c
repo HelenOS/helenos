@@ -193,34 +193,8 @@ void transfer_list_abort_all(transfer_list_t *instance)
 	fibril_mutex_lock(&instance->guard);
 	while (!list_empty(&instance->batch_list)) {
 		link_t * const current = list_first(&instance->batch_list);
-		uhci_transfer_batch_t *batch =
-		    uhci_transfer_batch_from_link(current);
+		uhci_transfer_batch_t *batch = uhci_transfer_batch_from_link(current);
 		transfer_list_remove_batch(instance, batch);
-		endpoint_abort(batch->base.ep);
-	}
-	fibril_mutex_unlock(&instance->guard);
-}
-
-/** Walk the list and finish all batches of a specified device with EINTR.
- *
- * @param[in] instance List to use.
- * @param[in] address Address of the specified device. Other addresses are skipped.
- */
-void transfer_list_abort_device(transfer_list_t *instance, usb_address_t address)
-{
-	fibril_mutex_lock(&instance->guard);
-	link_t *current = list_first(&instance->batch_list);
-	while (current && current != &instance->batch_list.head && !list_empty(&instance->batch_list)) {
-		link_t * const next = current->next;
-		uhci_transfer_batch_t *batch =
-		    uhci_transfer_batch_from_link(current);
-
-		if (batch->base.target.address == address) {
-			transfer_list_remove_batch(instance, batch);
-			endpoint_abort(batch->base.ep);
-		}
-
-		current = next;
 	}
 	fibril_mutex_unlock(&instance->guard);
 }

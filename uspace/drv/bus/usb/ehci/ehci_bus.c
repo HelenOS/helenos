@@ -134,47 +134,6 @@ static void ehci_destroy_batch(usb_transfer_batch_t *batch)
 	ehci_transfer_batch_destroy(ehci_transfer_batch_get(batch));
 }
 
-static int ehci_device_online(device_t *device)
-{
-	int err;
-
-	/* Allow creation of new endpoints and transfers. */
-	usb_log_info("Device(%d): Going online.", device->address);
-	fibril_mutex_lock(&device->guard);
-	device->online = true;
-	fibril_mutex_unlock(&device->guard);
-
-	if ((err = ddf_fun_online(device->fun))) {
-		return err;
-	}
-
-	return EOK;
-}
-
-static int ehci_device_offline(device_t *device)
-{
-	int err;
-
-	/* Tear down all drivers working with the device. */
-	if ((err = ddf_fun_offline(device->fun))) {
-		return err;
-	}
-
-	/* At this point, all drivers are assumed to have already terminated
-	 * in a consistent way. The following code just cleans up hanging
-	 * transfers if there are any. */
-
-	/* Block creation of new endpoints and transfers. */
-	usb_log_info("Device(%d): Going offline.", device->address);
-	fibril_mutex_lock(&device->guard);
-	device->online = false;
-	fibril_mutex_unlock(&device->guard);
-
-	/* FIXME: Abort all transfers to all endpoints. */
-
-	return EOK;
-}
-
 static const bus_ops_t ehci_bus_ops = {
 	.parent = &usb2_bus_ops,
 
@@ -189,8 +148,6 @@ static const bus_ops_t ehci_bus_ops = {
 	.batch_create = ehci_create_batch,
 	.batch_destroy = ehci_destroy_batch,
 	.batch_schedule = ehci_hc_schedule,
-	.device_online = ehci_device_online,
-	.device_offline = ehci_device_offline,
 };
 
 int ehci_bus_init(ehci_bus_t *bus, hc_t *hc)

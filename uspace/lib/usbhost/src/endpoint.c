@@ -123,6 +123,17 @@ void endpoint_del_ref(endpoint_t *ep)
 static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode);
 
 /**
+ * Wait until the endpoint have no transfer scheduled.
+ */
+void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t timeout)
+{
+	assert(fibril_mutex_is_locked(&ep->guard));
+
+	while (ep->active_batch != NULL)
+		fibril_condvar_wait_timeout(&ep->avail, &ep->guard, timeout);
+}
+
+/**
  * Mark the endpoint as active and block access for further fibrils. If the
  * endpoint is already active, it will block on ep->avail condvar.
  *
@@ -137,10 +148,8 @@ void endpoint_activate_locked(endpoint_t *ep, usb_transfer_batch_t *batch)
 	assert(ep);
 	assert(batch);
 	assert(batch->ep == ep);
-	assert(fibril_mutex_is_locked(&ep->guard));
 
-	while (ep->active_batch != NULL)
-		fibril_condvar_wait(&ep->avail, &ep->guard);
+	endpoint_wait_timeout_locked(ep, 0);
 	ep->active_batch = batch;
 }
 
@@ -159,24 +168,6 @@ void endpoint_deactivate_locked(endpoint_t *ep)
 
 	ep->active_batch = NULL;
 	fibril_condvar_signal(&ep->avail);
-}
-
-/**
- * Abort an active batch on endpoint, if any.
- *
- * @param[in] ep endpoint_t structure.
- */
-void endpoint_abort(endpoint_t *ep)
-{
-	assert(ep);
-
-	fibril_mutex_lock(&ep->guard);
-	usb_transfer_batch_t *batch = ep->active_batch;
-	endpoint_deactivate_locked(ep);
-	fibril_mutex_unlock(&ep->guard);
-
-	if (batch)
-		usb_transfer_batch_abort(batch);
 }
 
 /**

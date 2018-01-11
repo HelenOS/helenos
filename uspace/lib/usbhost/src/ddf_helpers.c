@@ -335,38 +335,26 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub,
 {
 	assert(device);
 
-	hc_device_t *hcd = dev_to_hcd(device);
-	assert(hcd);
-	assert(hcd->bus);
-
-	fibril_mutex_lock(&hub->guard);
-
 	device_t *victim = NULL;
 
+	fibril_mutex_lock(&hub->guard);
 	list_foreach(hub->devices, link, device_t, it) {
 		if (it->port == port) {
 			victim = it;
 			break;
 		}
 	}
-	if (victim) {
-		assert(victim->fun);
-		assert(victim->port == port);
-		assert(victim->hub == hub);
-		list_remove(&victim->link);
-		fibril_mutex_unlock(&hub->guard);
-		const int ret = ddf_fun_unbind(victim->fun);
-		if (ret == EOK) {
-			bus_device_remove(victim);
-			ddf_fun_destroy(victim->fun);
-		} else {
-			usb_log_warning("Failed to unbind device `%s': %s\n",
-			    ddf_fun_get_name(victim->fun), str_error(ret));
-		}
-		return EOK;
-	}
 	fibril_mutex_unlock(&hub->guard);
-	return ENOENT;
+
+	if (!victim)
+		return ENOENT;
+
+	assert(victim->fun);
+	assert(victim->port == port);
+	assert(victim->hub == hub);
+
+	bus_device_remove(victim);
+	return EOK;
 }
 
 device_t *hcd_ddf_fun_create(hc_device_t *hc)
@@ -475,10 +463,6 @@ static int hcd_ddf_new_device(hc_device_t *hcd, ddf_dev_t *hc, device_t *hub, un
 		usb_log_error("Device(%d): Failed to register: %s.", dev->address, str_error(err));
 		goto err_usb_dev;
 	}
-
-	fibril_mutex_lock(&hub->guard);
-	list_append(&dev->link, &hub->devices);
-	fibril_mutex_unlock(&hub->guard);
 
 	return EOK;
 

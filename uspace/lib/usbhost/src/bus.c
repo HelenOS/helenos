@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <mem.h>
 #include <stdio.h>
+#include <str_error.h>
 #include <usb/debug.h>
 
 #include "endpoint.h"
@@ -96,6 +97,8 @@ int bus_device_set_default_name(device_t *dev)
 
 /**
  * Invoke the device_enumerate bus operation.
+ *
+ * There's no need to synchronize here, because no one knows the device yet.
  */
 int bus_device_enumerate(device_t *dev)
 {
@@ -105,48 +108,191 @@ int bus_device_enumerate(device_t *dev)
 	if (!ops)
 		return ENOTSUP;
 
-	return ops->device_enumerate(dev);
+	if (dev->online) {
+		fibril_mutex_unlock(&dev->guard);
+		return EINVAL;
+	}
+
+	const int r = ops->device_enumerate(dev);
+	if (!r) {
+		dev->online = true;
+
+		fibril_mutex_lock(&dev->hub->guard);
+		list_append(&dev->link, &dev->hub->devices);
+		fibril_mutex_unlock(&dev->hub->guard);
+	}
+
+	return r;
 }
 
 /**
- * Invoke the device_remove bus operation.
+ * Clean endpoints and children that could have been left behind after
+ * asking the driver of device to offline/remove a device.
+ *
+ * Note that EP0's lifetime is shared with the device, and as such is not
+ * touched.
+ */
+static void device_clean_ep_children(device_t *dev, const char *op)
+{
+	assert(fibril_mutex_is_locked(&dev->guard));
+
+	/* Unregister endpoints left behind. */
+	for (usb_endpoint_t i = 1; i < USB_ENDPOINT_MAX; ++i) {
+		if (!dev->endpoints[i])
+			continue;
+
+		usb_log_warning("USB device '%s' driver left endpoint %u registered after %s.",
+		    ddf_fun_get_name(dev->fun), i, op);
+
+		endpoint_t * const ep = dev->endpoints[i];
+		endpoint_add_ref(ep);
+		
+		fibril_mutex_unlock(&dev->guard);
+		bus_endpoint_remove(ep);
+		fibril_mutex_lock(&dev->guard);
+
+		assert(dev->endpoints[i] == NULL);
+	}
+
+	/* Remove also orphaned children. */
+	while (!list_empty(&dev->devices)) {
+		device_t * const child = list_get_instance(list_first(&dev->devices), device_t, link);
+
+		usb_log_warning("USB device '%s' driver left device '%s' behind after %s.",
+		    ddf_fun_get_name(dev->fun), ddf_fun_get_name(child->fun), op);
+		/*
+		 * The child node won't disappear, because its parent's driver
+		 * is already dead. And the child will need the guard to remove
+		 * itself from the list.
+		 */
+		fibril_mutex_unlock(&dev->guard);
+		bus_device_remove(child);
+		fibril_mutex_lock(&dev->guard);
+	}
+	assert(list_empty(&dev->devices));
+}
+
+/**
+ * Resolve a USB device that is gone.
  */
 void bus_device_remove(device_t *dev)
 {
 	assert(dev);
+	assert(dev->fun == NULL);
 
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_remove);
 	assert(ops);
 
-	return ops->device_remove(dev);
+	/* First, block new transfers and operations. */
+	fibril_mutex_lock(&dev->guard);
+	dev->online = false;
+
+	/* Unbinding will need guard unlocked. */
+	fibril_mutex_unlock(&dev->guard);
+
+	/* Remove our device from our hub's children. */
+	fibril_mutex_lock(&dev->hub->guard);
+	list_remove(&dev->link);
+	fibril_mutex_unlock(&dev->hub->guard);
+
+	/*
+	 * Unbind the DDF function. That will result in dev_gone called in
+	 * driver, which shall destroy its pipes and remove its children.
+	 */
+	const int err = ddf_fun_unbind(dev->fun);
+	if (err) {
+		usb_log_error("Failed to unbind USB device '%s': %s",
+		    ddf_fun_get_name(dev->fun), str_error(err));
+		return;
+	}
+
+	/* Remove what driver left behind */
+	fibril_mutex_lock(&dev->guard);
+	device_clean_ep_children(dev, "removing");
+
+	/* Tell the HC to release its resources. */
+	ops->device_remove(dev);
+
+	/* Release the EP0 bus reference */
+	endpoint_del_ref(dev->endpoints[0]);
+
+	/* Destroy the function, freeing also the device, unlocking mutex. */
+	ddf_fun_destroy(dev->fun);
 }
 
 /**
- * Invoke the device_online bus operation.
+ * The user wants this device back online.
  */
 int bus_device_online(device_t *dev)
 {
+	int err;
 	assert(dev);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_online);
-	if (!ops)
-		return ENOTSUP;
+	fibril_mutex_lock(&dev->guard);
+	if (dev->online) {
+		fibril_mutex_unlock(&dev->guard);
+		return EINVAL;
+	}
 
-	return ops->device_online(dev);
+	/* First, tell the HC driver. */
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_online);
+	if (ops && (err = ops->device_online(dev))) {
+		usb_log_warning("Host controller refused to make device '%s' online: %s",
+		    ddf_fun_get_name(dev->fun), str_error(err));
+		return err;
+	}
+
+	/* Allow creation of new endpoints and communication with the device. */
+	dev->online = true;
+
+	/* Onlining will need the guard */
+	fibril_mutex_unlock(&dev->guard);
+
+	if ((err = ddf_fun_online(dev->fun))) {
+		usb_log_warning("Failed to take device '%s' online: %s",
+		    ddf_fun_get_name(dev->fun), str_error(err));
+		return err;
+	}
+
+	usb_log_info("USB Device '%s' offlined.", ddf_fun_get_name(dev->fun));
+	return EOK;
 }
 
 /**
- * Invoke the device_offline bus operation.
+ * The user requested to take this device offline.
  */
 int bus_device_offline(device_t *dev)
 {
+	int err;
 	assert(dev);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_offline);
-	if (!ops)
-		return ENOTSUP;
+	/* Make sure we're the one who offlines this device */
+	if (!dev->online)
+		return ENOENT;
 
-	return ops->device_offline(dev);
+	/*
+	 * XXX: If the device is removed/offlined just now, this can fail on
+	 * assertion. We most probably need some kind of enum status field to
+	 * make the synchronization work.
+	 */
+	
+	/* Tear down all drivers working with the device. */
+	if ((err = ddf_fun_offline(dev->fun))) {
+		return err;
+	}
+
+	fibril_mutex_lock(&dev->guard);
+	dev->online = false;
+	device_clean_ep_children(dev, "offlining");
+
+	/* Tell also the HC driver. */
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_offline);
+	if (ops)
+		ops->device_offline(dev);
+
+	fibril_mutex_unlock(&dev->guard);
+	usb_log_info("USB Device '%s' offlined.", ddf_fun_get_name(dev->fun));
+	return EOK;
 }
 
 /**
@@ -267,9 +413,6 @@ int bus_endpoint_remove(endpoint_t *ep)
 	ops->endpoint_unregister(ep);
 	device->endpoints[ep->endpoint] = NULL;
 	fibril_mutex_unlock(&device->guard);
-
-	/* Abort a transfer batch, if there was any */
-	endpoint_abort(ep);
 
 	/* Bus reference */
 	endpoint_del_ref(ep);

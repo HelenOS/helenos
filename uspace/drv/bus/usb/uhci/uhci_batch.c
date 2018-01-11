@@ -63,6 +63,47 @@ void uhci_transfer_batch_destroy(uhci_transfer_batch_t *uhci_batch)
 	free(uhci_batch);
 }
 
+/**
+ * Abort a transfer that is currently running.
+ * Call with endpoint guard locked.
+ */
+void uhci_transfer_batch_abort(uhci_transfer_batch_t *batch)
+{
+	assert(batch);
+
+	endpoint_t *ep = batch->base.ep;
+	assert(ep);
+	assert(fibril_mutex_is_locked(&ep->guard));
+	assert(ep->active_batch == &batch->base);
+
+	/*
+	 * TODO: Do some magic here to remove the batch from schedule.
+	 */
+
+	/*
+	 * Wait for 2 frames. If the transfer was being processed,
+	 * it shall be marked as finished already after 1ms.
+	 */
+	endpoint_wait_timeout_locked(ep, 2000);
+	if (ep->active_batch != &batch->base)
+		return;
+
+	/*
+	 * Now, we can be sure the transfer is not scheduled,
+	 * and as such will not be completed. We now own the batch.
+	 */
+	endpoint_deactivate_locked(ep);
+
+	/* Leave the critical section for finishing the batch. */
+	fibril_mutex_unlock(&ep->guard);
+
+	batch->base.error = EINTR;
+	batch->base.transfered_size = 0;
+	usb_transfer_batch_finish(&batch->base);
+
+	fibril_mutex_lock(&ep->guard);
+}
+
 /** Allocate memory and initialize internal data structure.
  *
  * @param[in] usb_batch Pointer to generic USB batch structure.

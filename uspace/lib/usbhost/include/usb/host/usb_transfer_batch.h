@@ -111,7 +111,6 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
 void usb_transfer_batch_init(usb_transfer_batch_t *, endpoint_t *);
 
 /** Batch finalization. */
-void usb_transfer_batch_abort(usb_transfer_batch_t *);
 void usb_transfer_batch_finish(usb_transfer_batch_t *);
 
 /** To be called from outside only when the transfer is not going to be finished

@@ -43,6 +43,7 @@
 #include <atomic.h>
 #include <fibril_synch.h>
 #include <stdbool.h>
+#include <sys/time.h>
 #include <usb/usb.h>
 #include <usb/host/bus.h>
 #include <usbhc_iface.h>
@@ -92,19 +93,9 @@ extern void endpoint_init(endpoint_t *, device_t *, const usb_endpoint_descripto
 extern void endpoint_add_ref(endpoint_t *);
 extern void endpoint_del_ref(endpoint_t *);
 
-/* Pay atention to synchronization of batch access wrt to aborting & finishing from another fibril. */
-
-/* Set currently active batch. The common case is to activate in the same
- * critical section as scheduling to HW.
- */
+extern void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t);
 extern void endpoint_activate_locked(endpoint_t *, usb_transfer_batch_t *);
-
-/* Deactivate the endpoint, allowing others to activate it again. Batch shall
- * already have an error set. */
 extern void endpoint_deactivate_locked(endpoint_t *);
-
-/* Abort the currenty active batch. */
-void endpoint_abort(endpoint_t *);
 
 /* Calculate bandwidth */
 ssize_t endpoint_count_bw(endpoint_t *, size_t);
