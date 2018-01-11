@@ -282,8 +282,6 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	const xhci_trb_completion_code_t completion_code = TRB_COMPLETION_CODE(*trb);
 	switch (completion_code) {
 		case XHCI_TRBC_SHORT_PACKET:
-			usb_log_debug("Short transfer.");
-			/* fallthrough */
 		case XHCI_TRBC_SUCCESS:
 			batch->error = EOK;
 			batch->transfered_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
