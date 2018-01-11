@@ -80,6 +80,9 @@ typedef struct xhci_hc {
 	/* Bus bookkeeping */
 	xhci_bus_t bus;
 
+	/* Fibril that is currently hanling events */
+	fid_t event_handler;
+
 	/* Cached capabilities */
 	unsigned max_slots;
 	bool ac64;

@@ -510,38 +510,21 @@ static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_regs
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci_interrupter_regs_t *intr)
 {
 	int err;
-	ssize_t size = 16;
-	xhci_trb_t *queue = malloc(sizeof(xhci_trb_t) * size);
-	if (!queue) {
-		usb_log_error("Not enough memory to run the event ring.");
-		return;
-	}
 
-	xhci_trb_t *head = queue;
+	xhci_trb_t trb;
+	hc->event_handler = fibril_get_id();
 
-	while ((err = xhci_event_ring_dequeue(event_ring, head)) != ENOENT) {
-		if (err != EOK) {
-			usb_log_warning("Error while accessing event ring: %s", str_error(err));
-			break;
-		}
-
-		usb_log_debug2("Dequeued trb from event ring: %s", xhci_trb_str_type(TRB_TYPE(*head)));
-		head++;
-
-		/* Expand the array if needed. */
-		if (head - queue >= size) {
-			size *= 2;
-			xhci_trb_t *new_queue = realloc(queue, size);
-			if (new_queue == NULL)
-				break; /* Will process only those TRBs we have memory for. */
-
-			head = new_queue + (head - queue);
+	while ((err = xhci_event_ring_dequeue(event_ring, &trb)) != ENOENT) {
+		if ((err = hc_handle_event(hc, &trb, intr)) != EOK) {
+			usb_log_error("Failed to handle event: %s", str_error(err));
 		}
 
 		uint64_t erdp = hc->event_ring.dequeue_ptr;
 		XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
 		XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
 	}
+
+	hc->event_handler = 0;
 
 	/* Update the ERDP to make room in the ring. */
 	usb_log_debug2("Copying from ring finished, updating ERDP.");
@@ -550,17 +533,6 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
 
-	/* Handle all of the collected events if possible. */
-	if (head == queue)
-		usb_log_warning("No events to be handled!");
-
-	for (xhci_trb_t *tail = queue; tail != head; tail++) {
-		if ((err = hc_handle_event(hc, tail, intr)) != EOK) {
-			usb_log_error("Failed to handle event: %s", str_error(err));
-		}
-	}
-
-	free(queue);
 	usb_log_debug2("Event ring run finished.");
 }
 

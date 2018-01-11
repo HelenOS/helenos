@@ -665,6 +665,11 @@ static int wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	int rv = EOK;
 
+	if (fibril_get_id() == hc->event_handler) {
+		usb_log_error("Deadlock detected in waiting for command.");
+		abort();
+	}
+
 	fibril_mutex_lock(&cmd->_header.completed_mtx);
 	while (!cmd->_header.completed) {
 
