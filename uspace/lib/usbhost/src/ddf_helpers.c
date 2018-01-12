@@ -503,12 +503,14 @@ int hcd_setup_virtual_root_hub(hc_device_t *hcd)
 
 	if ((err = ddf_fun_bind(dev->fun))) {
 		usb_log_error("Failed to register roothub: %s.", str_error(err));
-		goto err_usb_dev;
+		goto err_enumerated;
 	}
 
 	bus_release_default_address(hcd->bus);
 	return EOK;
 
+err_enumerated:
+	bus_device_gone(dev);
 err_usb_dev:
 	hcd_ddf_fun_destroy(dev);
 err_default_address:
