@@ -136,6 +136,25 @@ static int usb_hid_device_remove(usb_device_t *dev)
 	return EOK;
 }
 
+static int join_and_clean(usb_device_t *dev)
+{
+	assert(dev);
+	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
+	assert(hid_dev);
+
+	/* Join polling fibril. */
+	fibril_mutex_lock(&hid_dev->guard);
+	while (hid_dev->running)
+		fibril_condvar_wait(&hid_dev->poll_end, &hid_dev->guard);
+	fibril_mutex_unlock(&hid_dev->guard);
+
+	/* Clean up. */
+	usb_hid_deinit(hid_dev);
+	usb_log_info("%s destruction complete.\n", usb_device_get_name(dev));
+
+	return EOK;
+}
+
 /**
  * Callback for when a device has just been from the driver.
  *
@@ -149,18 +168,7 @@ static int usb_hid_device_removed(usb_device_t *dev)
 	assert(hid_dev);
 
 	usb_log_info("%s endpoints unregistered, joining polling fibril.\n", usb_device_get_name(dev));
-
-	/* Join polling fibril. */
-	fibril_mutex_lock(&hid_dev->guard);
-	while (hid_dev->running)
-		fibril_condvar_wait(&hid_dev->poll_end, &hid_dev->guard);
-	fibril_mutex_unlock(&hid_dev->guard);
-
-	/* Clean up. */
-	usb_hid_deinit(hid_dev);
-	usb_log_info("%s destruction complete.\n", usb_device_get_name(dev));
-
-	return EOK;
+	return join_and_clean(dev);
 }
 
 /**
@@ -177,21 +185,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 
 	usb_log_info("Device %s gone, joining the polling fibril.\n", usb_device_get_name(dev));
 	usb_hid_prepare_deinit(hid_dev);
-
-	unsigned tries = 100;
-	/* Wait for fail. */
-	while (hid_dev->running && tries--) {
-		async_usleep(100000);
-	}
-	if (hid_dev->running) {
-		usb_log_error("Can't remove hid, still running.\n");
-		return EBUSY;
-	}
-
-	usb_hid_deinit(hid_dev);
-	usb_log_info("%s destruction complete.\n", usb_device_get_name(dev));
-
-	return EOK;
+	return join_and_clean(dev);
 }
 
 /** USB generic driver callbacks */
