@@ -175,7 +175,14 @@ int usb_hub_device_add(usb_device_t *usb_dev)
  */
 int usb_hub_device_remove(usb_device_t *usb_dev)
 {
-	return ENOTSUP;
+	/* TODO: Implement me! */
+	return EOK;
+}
+
+int usb_hub_device_removed(usb_device_t *usb_dev)
+{
+	/* TODO: Implement me! */
+	return EOK;
 }
 
 /**

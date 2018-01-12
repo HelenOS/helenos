@@ -47,7 +47,8 @@
 /** USB hub driver operations. */
 static const usb_driver_ops_t usb_hub_driver_ops = {
 	.device_add = usb_hub_device_add,
-//	.device_remove = usb_hub_device_remove,
+	.device_remove = usb_hub_device_remove,
+	.device_removed = usb_hub_device_removed,
 	.device_gone = usb_hub_device_gone,
 };
 
