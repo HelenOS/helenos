@@ -104,6 +104,12 @@ static int usbmid_device_remove(usb_device_t *dev)
 	return ret;
 }
 
+static int usbmid_device_removed(usb_device_t *dev)
+{
+	// TODO: Implement me!
+	return EOK;
+}
+
 /** Callback when a MID device was removed from the host.
  *
  * @param dev USB device representing the removed device.
@@ -162,6 +168,7 @@ static int usbmid_function_offline(ddf_fun_t *fun)
 static const usb_driver_ops_t mid_driver_ops = {
 	.device_add = usbmid_device_add,
 	.device_remove = usbmid_device_remove,
+	.device_removed = usbmid_device_removed,
 	.device_gone = usbmid_device_gone,
 	.function_online = usbmid_function_online,
 	.function_offline = usbmid_function_offline
