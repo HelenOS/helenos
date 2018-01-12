@@ -709,7 +709,7 @@ bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 	usb_kbd_process_data(hid_dev, kbd_dev);
 
 	/* Continue polling until the device is about to be removed. */
-	return !hid_dev->will_deinit;
+	return !hid_dev->poll_stop;
 }
 
 int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev)

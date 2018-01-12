@@ -131,9 +131,12 @@ struct usb_hid_dev {
 	int report_nr;
 	volatile bool running;
 
-	volatile bool will_deinit;
-	fibril_mutex_t guard;
-	fibril_condvar_t poll_end;
+	/** True if polling should stop as soon as possible */
+	volatile bool poll_stop;
+
+	/** Synchronization primitives for joining polling end. */
+	fibril_mutex_t poll_guard;
+	fibril_condvar_t poll_cv;
 };
 
 extern const usb_endpoint_description_t *usb_hid_endpoints[];

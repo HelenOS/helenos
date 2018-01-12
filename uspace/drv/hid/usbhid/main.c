@@ -143,10 +143,10 @@ static int join_and_clean(usb_device_t *dev)
 	assert(hid_dev);
 
 	/* Join polling fibril. */
-	fibril_mutex_lock(&hid_dev->guard);
+	fibril_mutex_lock(&hid_dev->poll_guard);
 	while (hid_dev->running)
-		fibril_condvar_wait(&hid_dev->poll_end, &hid_dev->guard);
-	fibril_mutex_unlock(&hid_dev->guard);
+		fibril_condvar_wait(&hid_dev->poll_cv, &hid_dev->poll_guard);
+	fibril_mutex_unlock(&hid_dev->poll_guard);
 
 	/* Clean up. */
 	usb_hid_deinit(hid_dev);

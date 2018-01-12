@@ -354,9 +354,9 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	hid_dev->usb_dev = dev;
 	hid_dev->poll_pipe_mapping = NULL;
 
-	hid_dev->will_deinit = false;
-	fibril_mutex_initialize(&hid_dev->guard);
-	fibril_condvar_initialize(&hid_dev->poll_end);
+	hid_dev->poll_stop = false;
+	fibril_mutex_initialize(&hid_dev->poll_guard);
+	fibril_condvar_initialize(&hid_dev->poll_cv);
 
 	int rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {
@@ -505,7 +505,7 @@ bool usb_hid_polling_error_callback(usb_device_t *dev, int err_code, void *arg)
 	    str_error(err_code));
 
 	/* Continue polling until the device is about to be removed. */
-	return hid_dev->running && !hid_dev->will_deinit;
+	return hid_dev->running && !hid_dev->poll_stop;
 }
 
 void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
@@ -525,9 +525,9 @@ void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
 	hid_dev->running = false;
 
 	/* Signal polling end to joining thread. */
-	fibril_mutex_lock(&hid_dev->guard);
-	fibril_condvar_signal(&hid_dev->poll_end);
-	fibril_mutex_unlock(&hid_dev->guard);
+	fibril_mutex_lock(&hid_dev->poll_guard);
+	fibril_condvar_signal(&hid_dev->poll_cv);
+	fibril_mutex_unlock(&hid_dev->poll_guard);
 }
 
 void usb_hid_new_report(usb_hid_dev_t *hid_dev)
@@ -543,7 +543,7 @@ int usb_hid_report_number(const usb_hid_dev_t *hid_dev)
 void usb_hid_prepare_deinit(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev);
-	hid_dev->will_deinit = true;
+	hid_dev->poll_stop = true;
 }
 
 void usb_hid_deinit(usb_hid_dev_t *hid_dev)
