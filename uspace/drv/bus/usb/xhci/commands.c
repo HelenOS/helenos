@@ -719,7 +719,14 @@ int xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
 		return err;
 	}
 
-	return cmd->status == XHCI_TRBC_SUCCESS ? EOK : EINVAL;
+	switch (cmd->status) {
+	case XHCI_TRBC_SUCCESS:
+		return EOK;
+	case XHCI_TRBC_USB_TRANSACTION_ERROR:
+		return ESTALL;
+	default:
+		return EINVAL;
+	}
 }
 
 /**
