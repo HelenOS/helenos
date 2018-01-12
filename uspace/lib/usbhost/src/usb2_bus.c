@@ -221,6 +221,11 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	return EOK;
 }
 
+static void usb2_bus_device_gone(device_t *dev)
+{
+	// TODO: Implement me!
+}
+
 /**
  * Register an endpoint to the bus. Reserves bandwidth.
  */
@@ -252,6 +257,7 @@ static void usb2_bus_unregister_ep(endpoint_t *ep)
 
 const bus_ops_t usb2_bus_ops = {
 	.device_enumerate = usb2_bus_device_enumerate,
+	.device_gone = usb2_bus_device_gone,
 	.endpoint_register = usb2_bus_register_ep,
 	.endpoint_unregister = usb2_bus_unregister_ep,
 };
