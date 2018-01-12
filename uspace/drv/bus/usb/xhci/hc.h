@@ -91,7 +91,6 @@ typedef struct xhci_hc {
 
 	/** Port speed mapping */
 	xhci_port_speed_t speeds [16];
-	uint8_t speed_to_psiv [USB_SPEED_MAX];
 } xhci_hc_t;
 
 static inline xhci_hc_t *bus_to_hc(bus_t *bus)

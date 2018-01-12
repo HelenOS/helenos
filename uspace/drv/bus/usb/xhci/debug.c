@@ -312,12 +312,13 @@ void xhci_dump_extcap(const xhci_extcap_t *ec)
 			name.packed = host2uint32_t_le(XHCI_REG_RD(ec, XHCI_EC_SP_NAME));
 			ports_from = XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF);
 			ports_to = ports_from + XHCI_REG_RD(ec, XHCI_EC_SP_CP_COUNT) - 1;
-			usb_log_debug("\tProtocol %.4s%u.%u, ports %u-%u", name.str,
+			unsigned psic = XHCI_REG_RD(ec, XHCI_EC_SP_PSIC);
+
+			usb_log_debug("\tProtocol %.4s%u.%u, ports %u-%u, %u protocol speeds", name.str,
 			    XHCI_REG_RD(ec, XHCI_EC_SP_MAJOR),
 			    XHCI_REG_RD(ec, XHCI_EC_SP_MINOR),
-			    ports_from, ports_to);
+			    ports_from, ports_to, psic);
 
-			unsigned psic = XHCI_REG_RD(ec, XHCI_EC_SP_PSIC);
 			for (unsigned i = 0; i < psic; i++)
 				xhci_dump_psi(xhci_extcap_psi(ec, i));
 			break;

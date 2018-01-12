@@ -58,10 +58,20 @@
 	.rx_bps = PSI_TO_BPS(psie, psim), \
 	.tx_bps = PSI_TO_BPS(psie, psim) \
 }
-static const xhci_port_speed_t ps_default_full  = PORT_SPEED(FULL, 2, 2, 12);
-static const xhci_port_speed_t ps_default_low   = PORT_SPEED(LOW, 2, 1, 1500);
-static const xhci_port_speed_t ps_default_high  = PORT_SPEED(HIGH, 2, 2, 480);
-static const xhci_port_speed_t ps_default_super = PORT_SPEED(SUPER, 3, 3, 5);
+
+static const xhci_port_speed_t default_psiv_to_port_speed [] = {
+	[1] = PORT_SPEED(FULL, 2, 2, 12),
+	[2] = PORT_SPEED(LOW, 2, 1, 1500),
+	[3] = PORT_SPEED(HIGH, 2, 2, 480),
+	[4] = PORT_SPEED(SUPER, 3, 3, 5),
+};
+
+static const unsigned usb_speed_to_psiv [] = {
+	[USB_SPEED_FULL] = 1,
+	[USB_SPEED_LOW] = 2,
+	[USB_SPEED_HIGH] = 3,
+	[USB_SPEED_SUPER] = 4,
+};
 
 /**
  * Walk the list of extended capabilities.
@@ -104,16 +114,11 @@ static int hc_parse_ec(xhci_hc_t *hc)
 				assert(minor == 0);
 
 				if (major == 2) {
-					speeds[1] = ps_default_full;
-					speeds[2] = ps_default_low;
-					speeds[3] = ps_default_high;
-
-					hc->speed_to_psiv[USB_SPEED_FULL] = 1;
-					hc->speed_to_psiv[USB_SPEED_LOW] = 2;
-					hc->speed_to_psiv[USB_SPEED_HIGH] = 3;
+					speeds[1] = default_psiv_to_port_speed[1];
+					speeds[2] = default_psiv_to_port_speed[2];
+					speeds[3] = default_psiv_to_port_speed[3];
 				} else if (major == 3) {
-					speeds[4] = ps_default_super;
-					hc->speed_to_psiv[USB_SPEED_SUPER] = 4;
+					speeds[4] = default_psiv_to_port_speed[4];
 				} else {
 					return EINVAL;
 				}
@@ -126,13 +131,36 @@ static int hc_parse_ec(xhci_hc_t *hc)
 					unsigned psiv = XHCI_REG_RD(psi, XHCI_PSI_PSIV);
 					unsigned psie = XHCI_REG_RD(psi, XHCI_PSI_PSIE);
 					unsigned psim = XHCI_REG_RD(psi, XHCI_PSI_PSIM);
+					uint64_t bps = PSI_TO_BPS(psie, psim);
 
+					/*
+					 * Speed is not implied, but using one of default PSIV. This is
+					 * not clearly stated in xHCI spec. There is a clear intention
+					 * to allow xHCI to specify its own speed parameters, but
+					 * throughout the document, they used fixed values for e.g.
+					 * High-speed (3), without stating the controller shall have
+					 * implied default speeds - and for instance Intel controllers
+					 * do not. So let's check if the values match and if so, accept
+					 * the implied USB speed too.
+					 *
+					 * The main reason we need this is the usb_speed to have
+					 * mapping also for devices connected to hubs.
+					 */
+					if (psiv < ARRAY_SIZE(default_psiv_to_port_speed)
+					   && default_psiv_to_port_speed[psiv].major == major
+					   && default_psiv_to_port_speed[psiv].minor == minor
+					   && default_psiv_to_port_speed[psiv].rx_bps == bps
+					   && default_psiv_to_port_speed[psiv].tx_bps == bps) {
+						speeds[psiv] = default_psiv_to_port_speed[psiv];
+						usb_log_debug2("Assumed default %s speed of USB %u.", usb_str_speed(speeds[psiv].usb_speed), major);
+						continue;
+					}
+
+					// Custom speed
 					speeds[psiv].major = major;
 					speeds[psiv].minor = minor;
 					str_ncpy(speeds[psiv].name, 4, name.str, 4);
 					speeds[psiv].usb_speed = USB_SPEED_MAX;
-
-					uint64_t bps = PSI_TO_BPS(psie, psim);
 
 					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_RX)
 						speeds[psiv].rx_bps = bps;
@@ -683,8 +711,8 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 
 	/* Although we have the precise PSIV value on devices of tier 1,
 	 * we have to rely on reverse mapping on others. */
-	if (!hc->speed_to_psiv[dev->base.speed]) {
-		usb_log_error("Device reported an USB speed that cannot be mapped to HC port speed.");
+	if (!usb_speed_to_psiv[dev->base.speed]) {
+		usb_log_error("Device reported an USB speed (%s) that cannot be mapped to HC port speed.", usb_str_speed(dev->base.speed));
 		return EINVAL;
 	}
 
@@ -706,7 +734,7 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, dev->rh_port);
 	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
 	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, dev->route_str);
-	XHCI_SLOT_SPEED_SET(ictx->slot_ctx, hc->speed_to_psiv[dev->base.speed]);
+	XHCI_SLOT_SPEED_SET(ictx->slot_ctx, usb_speed_to_psiv[dev->base.speed]);
 
 	/* In a very specific case, we have to set also these. But before that,
 	 * we need to refactor how TT is handled in libusbhost. */
