@@ -1855,25 +1855,22 @@ void async_forget(aid_t amsgid)
  */
 void async_usleep(suseconds_t timeout)
 {
-	amsg_t *msg = amsg_create();
-	if (!msg)
-		return;
+	awaiter_t awaiter;
+	awaiter_initialize(&awaiter);
 	
-	msg->wdata.fid = fibril_get_id();
+	awaiter.fid = fibril_get_id();
 	
-	getuptime(&msg->wdata.to_event.expires);
-	tv_add_diff(&msg->wdata.to_event.expires, timeout);
+	getuptime(&awaiter.to_event.expires);
+	tv_add_diff(&awaiter.to_event.expires, timeout);
 	
 	futex_down(&async_futex);
 	
-	async_insert_timeout(&msg->wdata);
+	async_insert_timeout(&awaiter);
 	
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
 	
 	/* Futex is up automatically after fibril_switch() */
-	
-	amsg_destroy(msg);
 }
 
 /** Delay execution for the specified number of seconds
