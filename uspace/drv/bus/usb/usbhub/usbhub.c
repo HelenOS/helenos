@@ -262,17 +262,13 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	hub->poll_stop = true;
 	usb_log_info("(%p) USB hub gone, joining polling fibril.", hub);
 
-	// TODO: Join the polling fibril in a better way?
-	unsigned tries = 10;
-	while (hub->running) {
-		async_usleep(100000);
-		if (!tries--) {
-			usb_log_error("(%p): Can't remove hub, still running.",
-			    hub);
-			return EBUSY;
-		}
-	}
+	/* Join polling fibril. */
+	fibril_mutex_lock(&hub->poll_guard);
+	while (hub->running)
+		fibril_condvar_wait(&hub->poll_cv, &hub->poll_guard);
+	fibril_mutex_unlock(&hub->poll_guard);
 
+	/* Destroy hub. */
 	return usb_hub_cleanup(hub);
 }
 
