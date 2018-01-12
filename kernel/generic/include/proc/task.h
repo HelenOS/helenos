@@ -57,6 +57,7 @@
 #include <proc/scheduler.h>
 #include <udebug/udebug.h>
 #include <mm/as.h>
+#include <abi/proc/task.h>
 #include <abi/sysinfo.h>
 #include <arch.h>
 #include <cap/cap.h>
