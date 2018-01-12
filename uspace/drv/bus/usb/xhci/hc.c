@@ -475,7 +475,8 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	/* The reset changed status of all ports, and SW originated reason does
 	 * not cause an interrupt.
 	 */
-	xhci_rh_handle_port_change(&hc->rh);
+	for (uint8_t port = 1; port <= hc->rh.max_ports; ++port)
+		xhci_rh_handle_port_change(&hc->rh, port);
 
 	return EOK;
 }
@@ -507,11 +508,19 @@ static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	return EOK;
 }
 
+static int handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
+{
+	uint8_t port_id = XHCI_QWORD_EXTRACT(trb->parameter, 31, 24);
+	usb_log_debug("Port status change event detected for port %u.", port_id);
+	xhci_rh_handle_port_change(&hc->rh, port_id);
+	return EOK;
+}
+
 typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
 
 static event_handler event_handlers [] = {
 	[XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT] = &xhci_handle_command_completion,
-	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &xhci_rh_handle_port_status_change_event,
+	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &handle_port_status_change_event,
 	[XHCI_TRB_TYPE_TRANSFER_EVENT] = &xhci_handle_transfer_event,
 	[XHCI_TRB_TYPE_MFINDEX_WRAP_EVENT] = &xhci_handle_mfindex_wrap_event,
 };
@@ -577,12 +586,6 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 	xhci_hc_t *hc = bus_to_hc(bus);
 	status = xhci2host(32, status);
 
-	if (status & XHCI_REG_MASK(XHCI_OP_PCD)) {
-		usb_log_debug2("Root hub interrupt.");
-		xhci_rh_handle_port_change(&hc->rh);
-		status &= ~XHCI_REG_MASK(XHCI_OP_PCD);
-	}
-
 	if (status & XHCI_REG_MASK(XHCI_OP_HSE)) {
 		usb_log_error("Host controller error occured. Bad things gonna happen...");
 		status &= ~XHCI_REG_MASK(XHCI_OP_HSE);
@@ -598,6 +601,9 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 		usb_log_error("Save/Restore error occured. WTF, S/R mechanism not implemented!");
 		status &= ~XHCI_REG_MASK(XHCI_OP_SRE);
 	}
+
+	/* According to Note on p. 302, we may safely ignore the PCD bit. */
+	status &= ~XHCI_REG_MASK(XHCI_OP_PCD);
 
 	if (status) {
 		usb_log_error("Non-zero status after interrupt handling (%08x) - missing something?", status);

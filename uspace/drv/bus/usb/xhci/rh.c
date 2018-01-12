@@ -97,28 +97,38 @@ int xhci_rh_fini(xhci_rh_t *rh)
 	return EOK;
 }
 
-static int rh_event_wait_timeout(xhci_rh_t *rh, suseconds_t timeout)
+static int rh_event_wait_timeout(xhci_rh_t *rh, uint8_t port_id, uint32_t mask, suseconds_t timeout)
 {
+	int r;
 	assert(fibril_mutex_is_locked(&rh->event_guard));
 
 	++rh->event_readers_waiting;
-	const int r = fibril_condvar_wait_timeout(&rh->event_ready, &rh->event_guard, timeout);
+
+	do {
+		r = fibril_condvar_wait_timeout(&rh->event_ready, &rh->event_guard, timeout);
+		if (r != EOK)
+			break;
+	} while (rh->event.port_id != port_id || (rh->event.events & mask) != mask);
+
+	if (r == EOK)
+		rh->event.events &= ~mask;
+
 	--rh->event_readers_waiting;
 	if (--rh->event_readers_to_go == 0)
 		fibril_condvar_broadcast(&rh->event_handled);
+
 	return r;
 }
 
 static void rh_event_run_handlers(xhci_rh_t *rh)
 {
-	fibril_mutex_lock(&rh->event_guard);
+	assert(fibril_mutex_is_locked(&rh->event_guard));
 	assert(rh->event_readers_to_go == 0);
 
 	rh->event_readers_to_go = rh->event_readers_waiting;
 	fibril_condvar_broadcast(&rh->event_ready);
 	while (rh->event_readers_to_go)
 		fibril_condvar_wait(&rh->event_handled, &rh->event_guard);
-	fibril_mutex_unlock(&rh->event_guard);
 }
 
 /**
@@ -177,20 +187,11 @@ err_usb_dev:
 
 static int rh_port_reset_sync(xhci_rh_t *rh, uint8_t port_id)
 {
-	int r;
 	xhci_port_regs_t *regs = &rh->hc->op_regs->portrs[port_id - 1];
 
 	fibril_mutex_lock(&rh->event_guard);
 	XHCI_REG_SET(regs, XHCI_PORT_PR, 1);
-
-	while (true) {
-		r = rh_event_wait_timeout(rh, 0);
-		if (r != EOK)
-			break;
-		if (rh->event.port_id == port_id
-		    && rh->event.events & XHCI_REG_MASK(XHCI_PORT_PRC))
-			break;
-	}
+	const int r = rh_event_wait_timeout(rh, port_id, XHCI_REG_MASK(XHCI_PORT_PRC), 0);
 	fibril_mutex_unlock(&rh->event_guard);
 
 	return r;
@@ -264,24 +265,6 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	return EOK;
 }
 
-/**
- * Handle an incoming Port Change Detected Event.
- */
-int xhci_rh_handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
-{
-	uint8_t port_id = XHCI_QWORD_EXTRACT(trb->parameter, 31, 24);
-	usb_log_debug("Port status change event detected for port %u.", port_id);
-
-	/**
-	 * We can't be sure that the port change this event announces is the
-	 * only port change that happened (see section 4.19.2 of the xHCI
-	 * specification). Therefore, we just check all ports for changes.
-	 */
-	xhci_rh_handle_port_change(&hc->rh);
-
-	return EOK;
-}
-
 typedef int (*rh_event_handler_t)(xhci_rh_t *, uint8_t);
 
 typedef struct rh_event_args {
@@ -316,54 +299,44 @@ static fid_t handle_in_fibril(xhci_rh_t *rh, uint8_t port_id, rh_event_handler_t
 }
 
 /**
- * Handle all changes on all ports.
+ * Handle all changes on specified port.
  */
-void xhci_rh_handle_port_change(xhci_rh_t *rh)
+void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 {
-	for (uint8_t i = 1; i <= rh->max_ports; ++i) {
-		xhci_port_regs_t *regs = &rh->hc->op_regs->portrs[i - 1];
+	fibril_mutex_lock(&rh->event_guard);
+	xhci_port_regs_t * const regs = &rh->hc->op_regs->portrs[port_id - 1];
 
-		uint32_t events = XHCI_REG_RD_FIELD(&regs->portsc, 32);
-		XHCI_REG_WR_FIELD(&regs->portsc, events, 32);
+	uint32_t events = XHCI_REG_RD_FIELD(&regs->portsc, 32) & port_change_mask;
 
-		events &= port_change_mask;
+	while (events) {
+		XHCI_REG_SET_FIELD(&regs->portsc, events, 32);
 
 		if (events & XHCI_REG_MASK(XHCI_PORT_CSC)) {
-			usb_log_info("Connected state changed on port %u.", i);
+			usb_log_info("Connected state changed on port %u.", port_id);
 			events &= ~XHCI_REG_MASK(XHCI_PORT_CSC);
 
 			bool connected = XHCI_REG_RD(regs, XHCI_PORT_CCS);
 			if (connected) {
-				handle_in_fibril(rh, i, handle_connected_device);
+				handle_in_fibril(rh, port_id, handle_connected_device);
 			} else {
-				handle_in_fibril(rh, i, handle_disconnected_device);
+				handle_in_fibril(rh, port_id, handle_disconnected_device);
 			}
 		}
 
 		if (events != 0) {
-			rh->event.port_id = i;
+			rh->event.port_id = port_id;
 			rh->event.events = events;
 			rh_event_run_handlers(rh);
 		}
+
+		if (rh->event.events != 0)
+			usb_log_debug("RH port %u change not handled: 0x%x", port_id, rh->event.events);
+		
+		/* Make sure that PSCEG is 0 before exiting the loop. */
+		events = XHCI_REG_RD_FIELD(&regs->portsc, 32) & port_change_mask;
 	}
 
-	/**
-	 * Theory:
-	 *
-	 * Although more events could have happened while processing, the PCD
-	 * bit in USBSTS will be set on every change. Because the PCD is
-	 * cleared even before the interrupt is cleared, it is safe to assume
-	 * that this handler will be called again.
-	 *
-	 * But because we could have handled the event in previous run of this
-	 * handler, it is not an error when no event is detected.
-	 *
-	 * Reality:
-	 *
-	 * The PCD bit is never set. TODO Check why the interrupt never carries
-	 * the PCD flag. Possibly repeat the checking until we're sure the
-	 * PSCEG is 0 - check section 4.19.2 of the xHCI spec.
-	 */
+	fibril_mutex_unlock(&rh->event_guard);
 }
 
 /**

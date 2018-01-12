@@ -89,10 +89,7 @@ int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
 int xhci_rh_fini(xhci_rh_t *);
 const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *, uint8_t);
 
-int xhci_rh_handle_port_status_change_event(xhci_hc_t *, xhci_trb_t *);
-void xhci_rh_handle_port_change(xhci_rh_t *);
-
-int xhci_rh_address_device(xhci_rh_t *rh, device_t *dev, xhci_bus_t *bus);
+void xhci_rh_handle_port_change(xhci_rh_t *, uint8_t);
 
 #endif
 
