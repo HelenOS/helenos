@@ -179,7 +179,7 @@ static void device_clean_ep_children(device_t *dev, const char *op)
 void bus_device_gone(device_t *dev)
 {
 	assert(dev);
-	assert(dev->fun == NULL);
+	assert(dev->fun != NULL);
 
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_gone);
 	assert(ops);
