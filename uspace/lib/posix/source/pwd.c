@@ -39,7 +39,7 @@
 #include "posix/pwd.h"
 #include "posix/string.h"
 #include <errno.h>
-#include "posix/assert.h"
+#include <assert.h>
 
 static bool entry_read = false;
 

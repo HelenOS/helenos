@@ -39,7 +39,7 @@
 #include "internal/common.h"
 #include "posix/string.h"
 
-#include "posix/assert.h"
+#include <assert.h>
 
 #include <errno.h>
 

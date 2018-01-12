@@ -33,6 +33,8 @@
 /** @file
  */
 
+#define _HELENOS_SOURCE
+
 #include <malloc.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -195,22 +197,7 @@ static heap_block_head_t *next_fit = NULL;
 /** Futex for thread-safe heap manipulation */
 static futex_t malloc_futex = FUTEX_INITIALIZER;
 
-#ifndef NDEBUG
-
-#define malloc_assert(expr) \
-	do { \
-		if (!(expr)) {\
-			heap_unlock(); \
-			assert_abort(#expr, __FILE__, __LINE__); \
-		} \
-	} while (0)
-
-#else /* NDEBUG */
-
-#define malloc_assert(expr)
-
-#endif /* NDEBUG */
-
+#define malloc_assert(expr) safe_assert(expr)
 
 #ifdef FUTEX_UPGRADABLE
 /** True if the heap may be accessed from multiple threads. */
