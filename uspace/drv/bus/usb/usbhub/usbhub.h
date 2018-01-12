@@ -73,11 +73,15 @@ struct usb_hub_dev {
 	/** Pointer to usbhub function. */
 	ddf_fun_t *hub_fun;
 	/** Status indicator */
-	bool running;
+	volatile bool running;
 	/** Hub supports port power switching. */
 	bool power_switched;
 	/** Each port is switched individually. */
 	bool per_port_power;
+	/** True if the device should stop running as soon as possible. */
+	volatile bool poll_stop;
+	fibril_mutex_t poll_guard;
+	fibril_condvar_t poll_cv;
 };
 
 extern const usb_endpoint_description_t hub_status_change_endpoint_description;
