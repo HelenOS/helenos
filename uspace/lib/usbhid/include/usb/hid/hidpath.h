@@ -35,6 +35,7 @@
 #ifndef LIBUSB_HIDPATH_H_
 #define LIBUSB_HIDPATH_H_
 
+#include <errno.h>
 #include <usb/hid/hidparser.h>
 #include <stdint.h>
 #include <adt/list.h>

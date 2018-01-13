@@ -35,6 +35,8 @@
 #ifndef LIBC_ARG_PARSE_H_
 #define LIBC_ARG_PARSE_H_
 
+#include <errno.h>
+
 typedef int (*arg_parser)(const char *, int *);
 
 extern int arg_parse_short_long(const char *, const char *, const char *);

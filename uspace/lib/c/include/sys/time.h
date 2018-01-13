@@ -37,6 +37,7 @@
 #ifndef LIBC_SYS_TIME_H_
 #define LIBC_SYS_TIME_H_
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 
