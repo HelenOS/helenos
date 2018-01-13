@@ -101,8 +101,10 @@ typedef struct usb_device_polling_config {
 	void *arg;
 } usb_device_polling_config_t;
 
-extern int usb_device_poll(usb_device_t *, usb_endpoint_mapping_t *,
+int usb_device_poll(usb_device_t *, usb_endpoint_mapping_t *,
     const usb_device_polling_config_t *, size_t, usb_device_polling_t **);
+
+int usb_device_poll_join(usb_device_polling_t *);
 
 #endif
 /**

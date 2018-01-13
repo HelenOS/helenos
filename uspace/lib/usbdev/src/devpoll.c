@@ -46,6 +46,7 @@
 #include <async.h>
 #include <errno.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <str_error.h>
@@ -61,14 +62,32 @@ struct usb_device_polling {
 	usb_device_t *dev;
 
 	/** Device enpoint mapping to use for polling. */
-	usb_endpoint_mapping_t *polling_mapping;
+	usb_endpoint_mapping_t *ep_mapping;
 
 	/** Size of the recieved data. */
 	size_t request_size;
 
 	/** Data buffer. */
 	uint8_t *buffer;
+
+	/** True if polling is currently in operation. */
+	volatile bool running;
+
+	/** True if polling should terminate as soon as possible. */
+	volatile bool joining;
+
+	/** Synchronization primitives for joining polling end. */
+	fibril_mutex_t guard;
+	fibril_condvar_t cv;
 };
+
+
+static void polling_fini(usb_device_polling_t *polling)
+{
+	/* Free the allocated memory. */
+	free(polling->buffer);
+	free(polling);
+}
 
 
 /** Polling fibril.
@@ -79,16 +98,17 @@ struct usb_device_polling {
 static int polling_fibril(void *arg)
 {
 	assert(arg);
-	const usb_device_polling_t *data = arg;
+	usb_device_polling_t *data = arg;
+	data->running = true;
 
 	/* Helper to reduce typing. */
 	const usb_device_polling_config_t *params = &data->config;
 
-	usb_pipe_t *pipe = &data->polling_mapping->pipe;
+	usb_pipe_t *pipe = &data->ep_mapping->pipe;
 
 	if (params->debug > 0) {
 		const usb_endpoint_mapping_t *mapping =
-		    data->polling_mapping;
+		    data->ep_mapping;
 		usb_log_debug("Poll (%p): started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
 		    data, usb_device_get_name(data->dev),
@@ -135,7 +155,7 @@ static int polling_fibril(void *arg)
 			++failed_attempts;
 			const bool cont = (params->on_error == NULL) ? true :
 			    params->on_error(data->dev, rc, params->arg);
-			if (!cont) {
+			if (!cont || data->joining) {
 				/* This is user requested abort, erases failures. */
 				failed_attempts = 0;
 				break;
@@ -183,9 +203,16 @@ static int polling_fibril(void *arg)
 		}
 	}
 
-	/* Free the allocated memory. */
-	free(data->buffer);
-	free(data);
+	data->running = false;
+
+	if (data->joining) {
+		/* Notify joiners, if any. */
+		fibril_mutex_lock(&data->guard);
+		fibril_condvar_signal(&data->cv);
+		fibril_mutex_unlock(&data->guard);
+	} else {
+		polling_fini(data);
+	}
 
 	return EOK;
 }
@@ -234,7 +261,10 @@ int usb_device_poll(usb_device_t *dev, usb_endpoint_mapping_t *epm,
 	}
 	instance->request_size = req_size;
 	instance->dev = dev;
-	instance->polling_mapping = epm;
+	instance->ep_mapping = epm;
+	instance->joining = false;
+	fibril_mutex_initialize(&instance->guard);
+	fibril_condvar_initialize(&instance->cv);
 
 	/* Copy provided settings. */
 	instance->config = *config;
@@ -262,6 +292,32 @@ err_buffer:
 err_instance:
 	free(instance);
 	return rc;
+}
+
+int usb_device_poll_join(usb_device_polling_t *polling)
+{
+	int rc;
+	if (!polling)
+		return EBADMEM;
+
+	/* Set the flag */
+	polling->joining = true;
+
+	/* Unregister the pipe. */
+	if ((rc = usb_device_unmap_ep(polling->ep_mapping))) {
+		return rc;
+	}
+
+	/* Wait for the fibril to terminate. */
+	fibril_mutex_lock(&polling->guard);
+	while (polling->running)
+		fibril_condvar_wait(&polling->cv, &polling->guard);
+	fibril_mutex_unlock(&polling->guard);
+
+	/* Free the instance. */
+	polling_fini(polling);
+
+	return EOK;
 }
 
 /**
