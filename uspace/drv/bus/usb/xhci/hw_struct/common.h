@@ -41,8 +41,9 @@
 
 #include <assert.h>
 #include <bitops.h>
-#include <ddi.h>
 #include <byteorder.h>
+#include <ddi.h>
+#include <errno.h>
 
 #define host2xhci(size, val) host2uint##size##_t_le((val))
 #define xhci2host(size, val) uint##size##_t_le2host((val))
@@ -85,6 +86,22 @@ static inline void xhci_qword_set_bits(xhci_qword_t *storage, uint64_t value, un
 	const uint64_t mask = host2xhci(64, BIT_RANGE(uint64_t, hi, lo));
 	const uint64_t set = host2xhci(64, value << lo);
 	*storage = (*storage & ~mask) | set;
+}
+
+static inline int xhci_reg_wait(xhci_dword_t *reg, uint32_t mask, uint32_t expected)
+{
+	mask = host2xhci(32, mask);
+	expected = host2xhci(32, expected);
+
+	unsigned retries = 100;
+	uint32_t value = *reg & mask;
+
+	for (; retries > 0 && value != expected; --retries) {
+		async_usleep(10000);
+		value = *reg & mask;
+	}
+
+	return value == expected ? EOK : ETIMEOUT;
 }
 
 #endif

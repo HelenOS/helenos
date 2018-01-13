@@ -386,16 +386,17 @@ int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 	if (!hc->legsup)
 		return EOK;
 
-	/* TODO: Test this with USB3-aware BIOS */
+	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_CNR), 0))
+		return ETIMEOUT;
+
 	usb_log_debug2("LEGSUP: bios: %x, os: %x", hc->legsup->sem_bios, hc->legsup->sem_os);
-	XHCI_REG_WR(hc->legsup, XHCI_LEGSUP_SEM_OS, 1);
+	XHCI_REG_SET(hc->legsup, XHCI_LEGSUP_SEM_OS, 1);
 	for (int i = 0; i <= (XHCI_LEGSUP_BIOS_TIMEOUT_US / XHCI_LEGSUP_POLLING_DELAY_1MS); i++) {
 		usb_log_debug2("LEGSUP: elapsed: %i ms, bios: %x, os: %x", i,
 			XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS),
 			XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS));
 		if (XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS) == 0) {
-			assert(XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS) == 1);
-			return EOK;
+			return XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS) == 1 ? EOK : EIO;
 		}
 		async_usleep(XHCI_LEGSUP_POLLING_DELAY_1MS);
 	}
@@ -409,19 +410,22 @@ int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
  */
 static int hc_reset(xhci_hc_t *hc)
 {
+	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_CNR), 0))
+		return ETIMEOUT;
+
 	/* Stop the HC: set R/S to 0 */
 	XHCI_REG_CLR(hc->op_regs, XHCI_OP_RS, 1);
 
-	/* Wait 16 ms until the HC is halted */
-	async_usleep(16000);
-	assert(XHCI_REG_RD(hc->op_regs, XHCI_OP_HCH));
+	/* Wait until the HC is halted - it shall take at most 16 ms */
+	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_HCH), XHCI_REG_MASK(XHCI_OP_HCH)))
+		return ETIMEOUT;
 
 	/* Reset */
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_HCRST, 1);
 
 	/* Wait until the reset is complete */
-	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_HCRST))
-		async_usleep(1000);
+	if (xhci_reg_wait(&hc->op_regs->usbcmd, XHCI_REG_MASK(XHCI_OP_HCRST), 0))
+		return ETIMEOUT;
 
 	return EOK;
 }
@@ -436,9 +440,8 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	if ((err = hc_reset(hc)))
 		return err;
 
-	// FIXME: Waiting forever.
-	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_CNR))
-		async_usleep(1000);
+	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_CNR), 0))
+		return ETIMEOUT;
 
 	uint64_t dcbaaptr = hc->dcbaa_dma.phys;
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_LO, LOWER32(dcbaaptr));
