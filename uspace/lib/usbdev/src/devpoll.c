@@ -52,36 +52,37 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/** Maximum number of failed consecutive requests before announcing failure. */
-#define MAX_FAILED_ATTEMPTS 3
-
-/** Data needed for polling. */
-typedef struct {
+/** Private automated polling instance data. */
+struct usb_device_polling {
 	/** Parameters for automated polling. */
-	usb_device_auto_polling_t auto_polling;
+	usb_device_polling_config_t config;
 
 	/** USB device to poll. */
 	usb_device_t *dev;
+
 	/** Device enpoint mapping to use for polling. */
 	usb_endpoint_mapping_t *polling_mapping;
+
 	/** Size of the recieved data. */
 	size_t request_size;
+
 	/** Data buffer. */
 	uint8_t *buffer;
-} polling_data_t;
+};
 
 
 /** Polling fibril.
  *
- * @param arg Pointer to polling_data_t.
+ * @param arg Pointer to usb_device_polling_t.
  * @return Always EOK.
  */
 static int polling_fibril(void *arg)
 {
 	assert(arg);
-	const polling_data_t *data = arg;
+	const usb_device_polling_t *data = arg;
+
 	/* Helper to reduce typing. */
-	const usb_device_auto_polling_t *params = &data->auto_polling;
+	const usb_device_polling_config_t *params = &data->config;
 
 	usb_pipe_t *pipe = &data->polling_mapping->pipe;
 
@@ -201,16 +202,17 @@ static int polling_fibril(void *arg)
  *
  * @param dev Device to be periodically polled.
  * @param epm Endpoint mapping to use.
- * @param polling Polling settings.
+ * @param config Polling settings.
  * @param req_size How many bytes to ask for in each request.
  * @return Error code.
  * @retval EOK New fibril polling the device was already started.
  */
-int usb_device_auto_polling(usb_device_t *dev, usb_endpoint_mapping_t *epm,
-    const usb_device_auto_polling_t *polling, size_t req_size)
+int usb_device_poll(usb_device_t *dev, usb_endpoint_mapping_t *epm,
+    const usb_device_polling_config_t *config, size_t req_size,
+    usb_device_polling_t **handle)
 {
 	int rc;
-	if (!dev || !polling || !polling->on_data)
+	if (!dev || !config || !config->on_data)
 		return EBADMEM;
 
 	if (!req_size)
@@ -220,43 +222,45 @@ int usb_device_auto_polling(usb_device_t *dev, usb_endpoint_mapping_t *epm,
 	    (epm->pipe.desc.direction != USB_DIRECTION_IN))
 		return EINVAL;
 
-	polling_data_t *polling_data = malloc(sizeof(polling_data_t));
-	if (!polling_data)
+	usb_device_polling_t *instance = malloc(sizeof(usb_device_polling_t));
+	if (!instance)
 		return ENOMEM;
 
 	/* Fill-in the data. */
-	polling_data->buffer = malloc(req_size);
-	if (polling_data->buffer == NULL) {
+	instance->buffer = malloc(req_size);
+	if (!instance->buffer) {
 		rc = ENOMEM;
-		goto err_polling_data;
+		goto err_instance;
 	}
-	polling_data->request_size = req_size;
-	polling_data->dev = dev;
-	polling_data->polling_mapping = epm;
+	instance->request_size = req_size;
+	instance->dev = dev;
+	instance->polling_mapping = epm;
 
 	/* Copy provided settings. */
-	polling_data->auto_polling = *polling;
+	instance->config = *config;
 
 	/* Negative value means use descriptor provided value. */
-	if (polling->delay < 0) {
-		polling_data->auto_polling.delay =
-		    epm->descriptor->poll_interval;
+	if (config->delay < 0) {
+		instance->config.delay = epm->descriptor->poll_interval;
 	}
 
-	fid_t fibril = fibril_create(polling_fibril, polling_data);
+	fid_t fibril = fibril_create(polling_fibril, instance);
 	if (!fibril) {
 		rc = ENOMEM;
 		goto err_buffer;
 	}
 	fibril_add_ready(fibril);
 
+	if (handle)
+		*handle = instance;
+
 	/* Fibril launched. That fibril will free the allocated data. */
 	return EOK;
 
 err_buffer:
-	free(polling_data->buffer);
-err_polling_data:
-	free(polling_data);
+	free(instance->buffer);
+err_instance:
+	free(instance);
 	return rc;
 }
 

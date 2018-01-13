@@ -43,6 +43,7 @@
 
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
+#include <usb/dev/poll.h>
 
 #include <fibril_synch.h>
 
@@ -58,7 +59,8 @@ struct usb_hub_dev {
 	usb_hub_port_t *ports;
 	/** Generic usb device data*/
 	usb_device_t *usb_device;
-
+	/** Data polling handle. */
+	usb_device_polling_t *polling;
 	/** Number of pending operations on the mutex to prevent shooting
 	 * ourselves in the foot.
 	 * When the hub is disconnected but we are in the middle of some

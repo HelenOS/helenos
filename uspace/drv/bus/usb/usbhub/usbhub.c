@@ -163,7 +163,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 
 	/* Start hub operation. */
-	const usb_device_auto_polling_t auto_polling = {
+	const usb_device_polling_config_t config = {
 		.debug = 1,
 		.auto_clear_halt = true,
 		.delay = -1,
@@ -177,8 +177,8 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	usb_endpoint_mapping_t *epm =
 	    usb_device_get_mapped_ep_desc(hub_dev->usb_device,
 	    &hub_status_change_endpoint_description);
-	opResult = usb_device_auto_polling(hub_dev->usb_device, epm,
-	    &auto_polling, ((hub_dev->port_count + 1 + 7) / 8));
+	opResult = usb_device_poll(hub_dev->usb_device, epm, &config,
+	    ((hub_dev->port_count + 1 + 7) / 8), &hub_dev->polling);
 	
 	if (opResult != EOK) {
 		/* Function is already bound */

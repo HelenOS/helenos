@@ -42,6 +42,7 @@
 #include <ddf/driver.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
+#include <usb/dev/poll.h>
 #include <usb/hid/hid.h>
 #include <stdbool.h>
 #include <fibril_synch.h>
@@ -105,6 +106,9 @@ struct usb_hid_dev {
 
 	/** Endpont mapping of the polling pipe. */
 	usb_endpoint_mapping_t *poll_pipe_mapping;
+
+	/** Device polling handle. */
+	usb_device_polling_t *polling;
 
 	/** Subdrivers. */
 	usb_hid_subdriver_t *subdrivers;

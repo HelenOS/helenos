@@ -43,24 +43,31 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/** Automated polling instance. */
+typedef struct usb_device_polling usb_device_polling_t;
+
 /** Parameters and callbacks for automated polling. */
-typedef struct {
+typedef struct usb_device_polling_config {
 	/** Level of debugging messages from auto polling.
 	 * 0 - nothing
 	 * 1 - inform about errors and polling start/end
 	 * 2 - also dump every retrieved buffer
 	 */
 	int debug;
+
 	/** Maximum number of consecutive errors before polling termination. */
 	size_t max_failures;
+
 	/** Delay between poll requests in milliseconds.
 	 * Set to negative value to use value from endpoint descriptor.
 	 */
 	int delay;
+
 	/** Whether to automatically try to clear the HALT feature after
 	 * the endpoint stalls.
 	 */
 	bool auto_clear_halt;
+
 	/** Callback when data arrives.
 	 *
 	 * @param dev Device that was polled.
@@ -71,6 +78,7 @@ typedef struct {
 	 */
 	bool (*on_data)(usb_device_t *dev, uint8_t *data, size_t data_size,
 	    void *arg);
+
 	/** Callback when polling is terminated.
 	 *
 	 * @param dev Device where the polling was terminated.
@@ -79,6 +87,7 @@ typedef struct {
 	 */
 	void (*on_polling_end)(usb_device_t *dev, bool due_to_errors,
 	    void *arg);
+
 	/** Callback when error occurs.
 	 *
 	 * @param dev Device where error occurred.
@@ -87,16 +96,13 @@ typedef struct {
 	 * @return Whether to continue in polling.
 	 */
 	bool (*on_error)(usb_device_t *dev, int err_code, void *arg);
+
 	/** Argument to pass to callbacks. */
 	void *arg;
-} usb_device_auto_polling_t;
+} usb_device_polling_config_t;
 
-typedef bool (*usb_polling_callback_t)(usb_device_t *, uint8_t *, size_t, void *);
-typedef bool (*usb_polling_error_callback_t)(usb_device_t *, int, void *);
-typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
-
-extern int usb_device_auto_polling(usb_device_t *, usb_endpoint_mapping_t *,
-    const usb_device_auto_polling_t *, size_t);
+extern int usb_device_poll(usb_device_t *, usb_endpoint_mapping_t *,
+    const usb_device_polling_config_t *, size_t, usb_device_polling_t **);
 
 #endif
 /**
