@@ -168,62 +168,62 @@ struct mfs_node {
 extern vfs_out_ops_t mfs_ops;
 extern libfs_ops_t mfs_libfs_ops;
 
-extern int
+extern errno_t
 mfs_global_init(void);
 
 /* mfs_inode.c */
-extern int
+extern errno_t
 mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
     fs_index_t index);
 
-extern int
+extern errno_t
 mfs_put_inode(struct mfs_node *mnode);
 
-extern int
+extern errno_t
 mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink);
 
 /* mfs_rw.c */
-extern int
+extern errno_t
 mfs_read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
 
-extern int
+extern errno_t
 mfs_write_map(struct mfs_node *mnode, uint32_t pos, uint32_t new_zone,
     uint32_t *old_zone);
 
-extern int
+extern errno_t
 mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size);
 
 /* mfs_dentry.c */
-extern int
+extern errno_t
 mfs_read_dentry(struct mfs_node *mnode,
     struct mfs_dentry_info *d_info, unsigned index);
 
-extern int
+extern errno_t
 mfs_write_dentry(struct mfs_dentry_info *d_info);
 
-extern int
+extern errno_t
 mfs_remove_dentry(struct mfs_node *mnode, const char *d_name);
 
-extern int
+extern errno_t
 mfs_insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum);
 
 /* mfs_balloc.c */
-extern int
+extern errno_t
 mfs_alloc_inode(struct mfs_instance *inst, uint32_t *inum);
 
-extern int
+extern errno_t
 mfs_free_inode(struct mfs_instance *inst, uint32_t inum);
 
-extern int
+extern errno_t
 mfs_alloc_zone(struct mfs_instance *inst, uint32_t *zone);
 
-extern int
+extern errno_t
 mfs_free_zone(struct mfs_instance *inst, uint32_t zone);
 
-extern int
+extern errno_t
 mfs_count_free_zones(struct mfs_instance *inst, uint32_t *zones);
 
-extern int
+extern errno_t
 mfs_count_free_inodes(struct mfs_instance *inst, uint32_t *inodes);
 
 

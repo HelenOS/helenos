@@ -55,12 +55,12 @@ static FIBRIL_MUTEX_INITIALIZE(assoc_list_lock);
 static amap_t *amap;
 
 static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *);
-static int udp_assoc_queue_msg(udp_assoc_t *, inet_ep2_t *, udp_msg_t *);
+static errno_t udp_assoc_queue_msg(udp_assoc_t *, inet_ep2_t *, udp_msg_t *);
 
 /** Initialize associations. */
-int udp_assocs_init(void)
+errno_t udp_assocs_init(void)
 {
-	int rc;
+	errno_t rc;
 
 	rc = amap_create(&amap);
 	if (rc != EOK) {
@@ -181,10 +181,10 @@ void udp_assoc_delete(udp_assoc_t *assoc)
  *
  * Add association to the association map.
  */
-int udp_assoc_add(udp_assoc_t *assoc)
+errno_t udp_assoc_add(udp_assoc_t *assoc)
 {
 	inet_ep2_t aepp;
-	int rc;
+	errno_t rc;
 
 	udp_assoc_addref(assoc);
 	fibril_mutex_lock(&assoc_list_lock);
@@ -241,11 +241,11 @@ void udp_assoc_set_iplink(udp_assoc_t *assoc, service_id_t iplink)
  *			ENOMEM if out of resources
  *			EIO if no route to destination exists
  */
-int udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
+errno_t udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
 {
 	udp_pdu_t *pdu;
 	inet_ep2_t epp;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_send(%p, %p, %p)",
 	    assoc, remote, msg);
@@ -301,7 +301,7 @@ int udp_assoc_send(udp_assoc_t *assoc, inet_ep_t *remote, udp_msg_t *msg)
  *
  * Pull one message from the association's receive queue.
  */
-int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, inet_ep_t *remote)
+errno_t udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, inet_ep_t *remote)
 {
 	link_t *link;
 	udp_rcv_queue_entry_t *rqe;
@@ -340,7 +340,7 @@ int udp_assoc_recv(udp_assoc_t *assoc, udp_msg_t **msg, inet_ep_t *remote)
 void udp_assoc_received(inet_ep2_t *repp, udp_msg_t *msg)
 {
 	udp_assoc_t *assoc;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_assoc_received(%p, %p)", repp, msg);
 
@@ -379,7 +379,7 @@ void udp_assoc_reset(udp_assoc_t *assoc)
 	fibril_mutex_unlock(&assoc->lock);
 }
 
-static int udp_assoc_queue_msg(udp_assoc_t *assoc, inet_ep2_t *epp,
+static errno_t udp_assoc_queue_msg(udp_assoc_t *assoc, inet_ep2_t *epp,
     udp_msg_t *msg)
 {
 	udp_rcv_queue_entry_t *rqe;
@@ -415,7 +415,7 @@ static int udp_assoc_queue_msg(udp_assoc_t *assoc, inet_ep2_t *epp,
  */
 static udp_assoc_t *udp_assoc_find_ref(inet_ep2_t *epp)
 {
-	int rc;
+	errno_t rc;
 	void *arg;
 	udp_assoc_t *assoc;
 

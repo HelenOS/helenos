@@ -256,7 +256,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	}
 
 	// TODO: what about the Report ID?
-	int rc = usb_hid_report_output_translate(&hid_dev->report, 0,
+	errno_t rc = usb_hid_report_output_translate(&hid_dev->report, 0,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 
 	if (rc != EOK) {
@@ -434,7 +434,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		return;
 	}
 
-	int ret =
+	errno_t ret =
 	   usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	if (ret != EOK) {
 		usb_log_error("Failed to append to hid/kbd report path.\n");
@@ -479,7 +479,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 /* HID/KBD structure manipulation                                             */
 
-static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
+static errno_t kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 {
 	assert(kbd_dev);
 	assert(hid_dev);
@@ -506,7 +506,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 		return ENOMEM;
 	}
 
-	int ret =
+	errno_t ret =
 	    usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	if (ret != EOK) {
 		usb_log_error("Failed to append item to kbd report path.\n");
@@ -615,7 +615,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
  * @retval EINVAL if some parameter is not given.
  * @return Other value inherited from function usbhid_dev_init().
  */
-int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
+errno_t usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_log_debug("Initializing HID/KBD structure...\n");
 
@@ -641,7 +641,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 		return ENOMEM;
 	}
 
-	int ret = kbd_dev_init(kbd_dev, hid_dev);
+	errno_t ret = kbd_dev_init(kbd_dev, hid_dev);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize KBD device  structure.\n");
 		ddf_fun_destroy(fun);
@@ -774,10 +774,10 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 	}
 }
 
-int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
+errno_t usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev);
-	int rc = usb_hid_parse_report_descriptor(
+	errno_t rc = usb_hid_parse_report_descriptor(
 	    &hid_dev->report, USB_KBD_BOOT_REPORT_DESCRIPTOR,
 	    sizeof(USB_KBD_BOOT_REPORT_DESCRIPTOR));
 

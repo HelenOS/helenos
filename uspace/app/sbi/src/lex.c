@@ -256,7 +256,7 @@ void lem_print_coords(lem_t *lem)
  */
 void lex_init(lex_t *lex, struct input *input)
 {
-	int rc;
+	errno_t rc;
 
 	lex->input = input;
 
@@ -716,7 +716,7 @@ static void lex_skip_comment(lex_t *lex)
 static void lex_skip_ws(lex_t *lex)
 {
 	char *bp;
-	int rc;
+	errno_t rc;
 
 	bp = lex->ibp;
 

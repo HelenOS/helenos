@@ -42,7 +42,7 @@
 #include "ddf/interrupt.h"
 #include "private/driver.h"
 
-int register_interrupt_handler(ddf_dev_t *dev, int irq,
+errno_t register_interrupt_handler(ddf_dev_t *dev, int irq,
     interrupt_handler_t *handler, const irq_code_t *irq_code,
     cap_handle_t *handle)
 {
@@ -50,7 +50,7 @@ int register_interrupt_handler(ddf_dev_t *dev, int irq,
 	    dev, irq_code, handle);
 }
 
-int unregister_interrupt_handler(ddf_dev_t *dev, cap_handle_t cap)
+errno_t unregister_interrupt_handler(ddf_dev_t *dev, cap_handle_t cap)
 {
 	return async_irq_unsubscribe(cap);
 }

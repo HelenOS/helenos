@@ -66,7 +66,7 @@ static void dnsr_exchange_end(async_exch_t *exch)
 	async_exchange_end(exch);
 }
 
-int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
+errno_t dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 {
 	async_exch_t *exch = dnsr_exchange_begin();
 	
@@ -74,7 +74,7 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 	aid_t req = async_send_1(exch, DNSR_NAME2HOST, (sysarg_t) ver,
 	    &answer);
 	
-	int rc = async_data_write_start(exch, name, str_size(name));
+	errno_t rc = async_data_write_start(exch, name, str_size(name));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -89,7 +89,7 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 	aid_t req_addr = async_data_read(exch, &info->addr,
 	    sizeof(inet_addr_t), &answer_addr);
 	
-	int retval_addr;
+	errno_t retval_addr;
 	async_wait_for(req_addr, &retval_addr);
 	
 	if (retval_addr != EOK) {
@@ -106,7 +106,7 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 	
 	dnsr_exchange_end(exch);
 	
-	int retval_cname;
+	errno_t retval_cname;
 	async_wait_for(req_cname, &retval_cname);
 	
 	if (retval_cname != EOK) {
@@ -115,7 +115,7 @@ int dnsr_name2host(const char *name, dnsr_hostinfo_t **rinfo, ip_ver_t ver)
 		return retval_cname;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK) {
@@ -149,13 +149,13 @@ void dnsr_hostinfo_destroy(dnsr_hostinfo_t *info)
 	free(info);
 }
 
-int dnsr_get_srvaddr(inet_addr_t *srvaddr)
+errno_t dnsr_get_srvaddr(inet_addr_t *srvaddr)
 {
 	async_exch_t *exch = dnsr_exchange_begin();
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, DNSR_GET_SRVADDR, &answer);
-	int rc = async_data_read_start(exch, srvaddr, sizeof(inet_addr_t));
+	errno_t rc = async_data_read_start(exch, srvaddr, sizeof(inet_addr_t));
 	
 	loc_exchange_end(exch);
 	
@@ -164,19 +164,19 @@ int dnsr_get_srvaddr(inet_addr_t *srvaddr)
 		return rc;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	
 	return retval;
 }
 
-int dnsr_set_srvaddr(inet_addr_t *srvaddr)
+errno_t dnsr_set_srvaddr(inet_addr_t *srvaddr)
 {
 	async_exch_t *exch = dnsr_exchange_begin();
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, DNSR_SET_SRVADDR, &answer);
-	int rc = async_data_write_start(exch, srvaddr, sizeof(inet_addr_t));
+	errno_t rc = async_data_write_start(exch, srvaddr, sizeof(inet_addr_t));
 	
 	loc_exchange_end(exch);
 	
@@ -185,7 +185,7 @@ int dnsr_set_srvaddr(inet_addr_t *srvaddr)
 		return rc;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	
 	return retval;

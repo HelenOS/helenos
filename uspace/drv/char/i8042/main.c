@@ -54,7 +54,7 @@
  * @return Error code.
  *
  */
-static int get_my_registers(ddf_dev_t *dev, addr_range_t *p_io_reg,
+static errno_t get_my_registers(ddf_dev_t *dev, addr_range_t *p_io_reg,
     int *kbd_irq, int *mouse_irq)
 {
 	assert(dev);
@@ -65,7 +65,7 @@ static int get_my_registers(ddf_dev_t *dev, addr_range_t *p_io_reg,
 	
 	hw_res_list_parsed_t hw_resources;
 	hw_res_list_parsed_init(&hw_resources);
-	const int ret = hw_res_get_list_parsed(parent_sess, &hw_resources, 0);
+	const errno_t ret = hw_res_get_list_parsed(parent_sess, &hw_resources, 0);
 	if (ret != EOK)
 		return ret;
 	
@@ -95,12 +95,12 @@ static int get_my_registers(ddf_dev_t *dev, addr_range_t *p_io_reg,
  * @return Error code.
  *
  */
-static int i8042_dev_add(ddf_dev_t *device)
+static errno_t i8042_dev_add(ddf_dev_t *device)
 {
 	addr_range_t io_regs;
 	int kbd = 0;
 	int mouse = 0;
-	int rc;
+	errno_t rc;
 	
 	if (!device)
 		return EINVAL;

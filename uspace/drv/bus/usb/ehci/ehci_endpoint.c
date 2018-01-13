@@ -76,7 +76,7 @@ static int ehci_ep_toggle_get(void *ehci_ep)
  * @param[in] ep USBD endpoint structure
  * @return Error code.
  */
-int ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
+errno_t ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep)
 {
 	assert(ep);
 	hc_t *hc = hcd_get_driver_data(hcd);

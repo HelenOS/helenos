@@ -50,7 +50,7 @@ static void print_levels(async_exch_t *exch)
 {
 	const char* name = NULL;
 	unsigned count = 0;
-	int ret = audio_mixer_get_info(exch, &name, &count);
+	errno_t ret = audio_mixer_get_info(exch, &name, &count);
 	if (ret != EOK) {
 		printf("Failed to get mixer info: %s.\n", str_error(ret));
 		return;
@@ -60,7 +60,7 @@ static void print_levels(async_exch_t *exch)
 	for (unsigned i = 0; i < count; ++i) {
 		const char *name = NULL;
 		unsigned levels = 0, current = 0;
-		int ret =
+		errno_t ret =
 		    audio_mixer_get_item_info(exch, i, &name, &levels);
 		if (ret != EOK) {
 			printf("Failed to get item %u info: %s.\n",
@@ -98,7 +98,7 @@ static void set_level(async_exch_t *exch, int argc, char *argv[])
 	unsigned params = argc == 5 ? 3 : 2;
 	const unsigned item = get_number(argv[params++]);
 	const unsigned value = get_number(argv[params]);
-	int ret = audio_mixer_set_item_level(exch, item, value);
+	errno_t ret = audio_mixer_set_item_level(exch, item, value);
 	if (ret != EOK) {
 		printf("Failed to set item level: %s.\n", str_error(ret));
 		return;
@@ -117,7 +117,7 @@ static void get_level(async_exch_t *exch, int argc, char *argv[])
 	const unsigned item = get_number(argv[params++]);
 	unsigned value = 0;
 
-	int ret = audio_mixer_get_item_level(exch, item, &value);
+	errno_t ret = audio_mixer_get_item_level(exch, item, &value);
 	if (ret != EOK) {
 		printf("Failed to get item level: %s.\n", str_error(ret));
 		return;
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 
 
 	service_id_t mixer_sid;
-	int rc = loc_service_get_id(service, &mixer_sid, 0);
+	errno_t rc = loc_service_get_id(service, &mixer_sid, 0);
 	if (rc != EOK) {
 		printf("Failed to resolve service '%s': %s.\n",
 		    service, str_error(rc));

@@ -77,7 +77,7 @@ static usbvirt_device_ops_t ops;
  * @param name device name, passed to virthub init
  * @return Error code, EOK on success.
  */
-int uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name)
+errno_t uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name)
 {
 	assert(instance);
 	instance->ports[0] = ports;
@@ -97,7 +97,7 @@ int uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name)
  * The result of scheduling is always EOK. The result of communication does
  * not have to be.
  */
-int uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
+errno_t uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
@@ -192,7 +192,7 @@ do { \
  * Do not confuse with port status. Port state reports data line states,
  * it is usefull for debuging purposes only.
  */
-static int req_get_port_state(usbvirt_device_t *device,
+static errno_t req_get_port_state(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -227,7 +227,7 @@ static int req_get_port_state(usbvirt_device_t *device,
  * Converts status reported via ioport to USB format.
  * @note: reset change status needs to be handled in sw.
  */
-static int req_get_port_status(usbvirt_device_t *device,
+static errno_t req_get_port_status(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -266,7 +266,7 @@ static int req_get_port_status(usbvirt_device_t *device,
  * @param[out] act_size Sized of the valid response part of the buffer.
  * @return Error code.
  */
-static int req_clear_port_feature(usbvirt_device_t *device,
+static errno_t req_clear_port_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -339,7 +339,7 @@ static int req_clear_port_feature(usbvirt_device_t *device,
  * @param[out] act_size Sized of the valid response part of the buffer.
  * @return Error code.
  */
-static int req_set_port_feature(usbvirt_device_t *device,
+static errno_t req_set_port_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -401,7 +401,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
  * represent port status change. Endian does not matter as UHCI root hubs
  * only need 1 byte.
  */
-static int req_status_change_handler(usbvirt_device_t *device,
+static errno_t req_status_change_handler(usbvirt_device_t *device,
     usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
     void *buffer, size_t buffer_size, size_t *actual_size)
 {

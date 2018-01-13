@@ -151,7 +151,7 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
  * @param endpoint Endpoint descriptor.
  * @return Error code.
  */
-static int process_endpoint(
+static errno_t process_endpoint(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     usb_standard_interface_descriptor_t *interface,
     usb_standard_endpoint_descriptor_t *endpoint_desc,
@@ -193,7 +193,7 @@ static int process_endpoint(
 		return EEXIST;
 	}
 
-	int rc = usb_pipe_initialize(&ep_mapping->pipe,
+	errno_t rc = usb_pipe_initialize(&ep_mapping->pipe,
 	    ep_no, description.transfer_type,
 	    ED_MPS_PACKET_SIZE_GET(
 	        uint16_usb2host(endpoint_desc->max_packet_size)),
@@ -220,7 +220,7 @@ static int process_endpoint(
  * @param interface_descriptor Interface descriptor.
  * @return Error code.
  */
-static int process_interface(
+static errno_t process_interface(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     const usb_dp_parser_t *parser, const usb_dp_parser_data_t *parser_data,
     const uint8_t *interface_descriptor, usb_dev_session_t *bus_session)
@@ -280,7 +280,7 @@ static int process_interface(
  * @param connection Connection backing the endpoint pipes.
  * @return Error code.
  */
-int usb_pipe_initialize_from_configuration(
+errno_t usb_pipe_initialize_from_configuration(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     const uint8_t *config_descriptor, size_t config_descriptor_size,
     usb_dev_session_t *bus_session)
@@ -337,7 +337,7 @@ int usb_pipe_initialize_from_configuration(
  * @param pipe Default control pipe.
  * @return Error code.
  */
-int usb_pipe_probe_default_control(usb_pipe_t *pipe)
+errno_t usb_pipe_probe_default_control(usb_pipe_t *pipe)
 {
 	assert(pipe);
 	static_assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
@@ -350,7 +350,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 
 	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
 	size_t transferred_size;
-	int rc;
+	errno_t rc;
 	for (size_t attempt_var = 0; attempt_var < 3; ++attempt_var) {
 		rc = usb_request_get_descriptor(pipe, USB_REQUEST_TYPE_STANDARD,
 		    USB_REQUEST_RECIPIENT_DEVICE, USB_DESCTYPE_DEVICE,

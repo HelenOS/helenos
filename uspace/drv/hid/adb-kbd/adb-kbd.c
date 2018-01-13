@@ -47,9 +47,9 @@ static void adb_kbd_reg0_data(adb_kbd_t *, uint16_t);
 static void adb_kbd_conn(ipc_callid_t, ipc_call_t *, void *);
 
 /** Add ADB keyboard device */
-int adb_kbd_add(adb_kbd_t *kbd)
+errno_t adb_kbd_add(adb_kbd_t *kbd)
 {
-	int rc;
+	errno_t rc;
 	bool bound = false;
 
 	kbd->fun = ddf_fun_create(kbd->dev, fun_exposed, "a");
@@ -118,13 +118,13 @@ error:
 }
 
 /** Remove ADB keyboard device */
-int adb_kbd_remove(adb_kbd_t *con)
+errno_t adb_kbd_remove(adb_kbd_t *con)
 {
 	return ENOTSUP;
 }
 
 /** ADB keyboard device gone */
-int adb_kbd_gone(adb_kbd_t *con)
+errno_t adb_kbd_gone(adb_kbd_t *con)
 {
 	return ENOTSUP;
 }
@@ -139,7 +139,7 @@ static void adb_kbd_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 
-		int retval = EOK;
+		errno_t retval = EOK;
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -161,7 +161,7 @@ static void adb_kbd_data(adb_kbd_t *kbd, uint8_t b)
 {
 	kbd_event_type_t etype;
 	unsigned int key;
-	int rc;
+	errno_t rc;
 
 	rc = adb_kbd_key_translate(b, &etype, &key);
 	if (rc != EOK)

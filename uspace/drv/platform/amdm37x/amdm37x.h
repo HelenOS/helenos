@@ -65,8 +65,8 @@ typedef struct {
 	} prm;
 } amdm37x_t;
 
-int amdm37x_init(amdm37x_t *device, bool trace_io);
-int amdm37x_usb_tll_init(amdm37x_t *device);
+errno_t amdm37x_init(amdm37x_t *device, bool trace_io);
+errno_t amdm37x_usb_tll_init(amdm37x_t *device);
 void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device);
 void amdm37x_usb_clocks_set(amdm37x_t *device, bool enabled);
 

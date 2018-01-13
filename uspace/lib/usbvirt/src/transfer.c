@@ -49,7 +49,7 @@
  *	(only used for READ transfers).
  * @return Error code.
  */
-static int usbvirt_control_transfer(usbvirt_device_t *dev,
+static errno_t usbvirt_control_transfer(usbvirt_device_t *dev,
     const void *setup, size_t setup_size,
     void *data, size_t data_size, size_t *data_size_sent)
 {
@@ -64,7 +64,7 @@ static int usbvirt_control_transfer(usbvirt_device_t *dev,
 		return ESTALL;
 	}
 
-	int rc;
+	errno_t rc;
 
 	/* Run user handler first. */
 	rc = process_control_transfer(dev, dev->ops->control,
@@ -99,7 +99,7 @@ static int usbvirt_control_transfer(usbvirt_device_t *dev,
  * @param data_size Size of extra data buffer in bytes.
  * @return Error code.
  */
-int usbvirt_control_write(usbvirt_device_t *dev, const void *setup,
+errno_t usbvirt_control_write(usbvirt_device_t *dev, const void *setup,
     size_t setup_size, void *data, size_t data_size)
 {
 	return usbvirt_control_transfer(dev, setup, setup_size,
@@ -118,7 +118,7 @@ int usbvirt_control_write(usbvirt_device_t *dev, const void *setup,
  * @param data_size_sent Number of actually send bytes during the transfer.
  * @return Error code.
  */
-int usbvirt_control_read(usbvirt_device_t *dev, const void *setup, size_t setup_size,
+errno_t usbvirt_control_read(usbvirt_device_t *dev, const void *setup, size_t setup_size,
     void *data, size_t data_size, size_t *data_size_sent)
 {
 	return usbvirt_control_transfer(dev, setup, setup_size,
@@ -134,7 +134,7 @@ int usbvirt_control_read(usbvirt_device_t *dev, const void *setup, size_t setup_
  * @param data_size Size of the @p data buffer in bytes.
  * @return Error code.
  */
-int usbvirt_data_out(usbvirt_device_t *dev, usb_transfer_type_t transf_type,
+errno_t usbvirt_data_out(usbvirt_device_t *dev, usb_transfer_type_t transf_type,
     usb_endpoint_t endpoint, const void *data, size_t data_size)
 {
 	if ((endpoint <= 0) || (endpoint >= USBVIRT_ENDPOINT_MAX)) {
@@ -144,7 +144,7 @@ int usbvirt_data_out(usbvirt_device_t *dev, usb_transfer_type_t transf_type,
 		return ENOTSUP;
 	}
 
-	int rc = dev->ops->data_out[endpoint](dev, endpoint, transf_type,
+	errno_t rc = dev->ops->data_out[endpoint](dev, endpoint, transf_type,
 	    data, data_size);
 
 	return rc;
@@ -160,7 +160,7 @@ int usbvirt_data_out(usbvirt_device_t *dev, usb_transfer_type_t transf_type,
  * @param data_size_sent Number of actually written bytes.
  * @return Error code.
  */
-int usbvirt_data_in(usbvirt_device_t *dev, usb_transfer_type_t transf_type,
+errno_t usbvirt_data_in(usbvirt_device_t *dev, usb_transfer_type_t transf_type,
     usb_endpoint_t endpoint, void *data, size_t data_size, size_t *data_size_sent)
 {
 	if ((endpoint <= 0) || (endpoint >= USBVIRT_ENDPOINT_MAX)) {
@@ -171,7 +171,7 @@ int usbvirt_data_in(usbvirt_device_t *dev, usb_transfer_type_t transf_type,
 	}
 
 	size_t data_size_sent_tmp;
-	int rc = dev->ops->data_in[endpoint](dev, endpoint, transf_type,
+	errno_t rc = dev->ops->data_in[endpoint](dev, endpoint, transf_type,
 	    data, data_size, &data_size_sent_tmp);
 
 	if (rc != EOK) {

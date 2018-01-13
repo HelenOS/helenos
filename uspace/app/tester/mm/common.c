@@ -370,7 +370,7 @@ void unmap_area(mem_area_t *area)
 	list_remove(&area->link);
 	
 	/* Free the memory */
-	int ret = as_area_destroy(area->addr);
+	errno_t ret = as_area_destroy(area->addr);
 	if (ret != EOK)
 		error_flag = true;
 	

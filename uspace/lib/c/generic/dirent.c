@@ -54,7 +54,7 @@ DIR *opendir(const char *dirname)
 	}
 	
 	int fd;
-	int rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
+	errno_t rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
 	if (rc != EOK) {
 		free(dirp);
 		errno = rc;
@@ -82,7 +82,7 @@ DIR *opendir(const char *dirname)
  */
 struct dirent *readdir(DIR *dirp)
 {
-	int rc;
+	errno_t rc;
 	ssize_t len = 0;
 	
 	rc = vfs_read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
@@ -113,7 +113,7 @@ void rewinddir(DIR *dirp)
  */
 int closedir(DIR *dirp)
 {
-	int rc = vfs_put(dirp->fd);
+	errno_t rc = vfs_put(dirp->fd);
 	free(dirp);
 
 	if (rc == EOK) {

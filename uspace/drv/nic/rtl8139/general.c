@@ -82,7 +82,7 @@ void* rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
  *
  *  @return EOK if succeed, error code otherwise
  */
-int rtl8139_timer_act_init(rtl8139_timer_act_t * ta, uint32_t timer_freq,
+errno_t rtl8139_timer_act_init(rtl8139_timer_act_t * ta, uint32_t timer_freq,
     const struct timeval *time) 
 {
 	if (!ta || timer_freq == 0 || !time)

@@ -38,11 +38,11 @@
 
 #include "ddf/driver.h"
 
-extern int usbhid_dev_get_event_length(async_sess_t *, size_t *);
-extern int usbhid_dev_get_event(async_sess_t *, uint8_t *, size_t, size_t *,
+extern errno_t usbhid_dev_get_event_length(async_sess_t *, size_t *);
+extern errno_t usbhid_dev_get_event(async_sess_t *, uint8_t *, size_t, size_t *,
     int *, unsigned int);
-extern int usbhid_dev_get_report_descriptor_length(async_sess_t *, size_t *);
-extern int usbhid_dev_get_report_descriptor(async_sess_t *, uint8_t *, size_t,
+extern errno_t usbhid_dev_get_report_descriptor_length(async_sess_t *, size_t *);
+extern errno_t usbhid_dev_get_report_descriptor(async_sess_t *, uint8_t *, size_t,
     size_t *);
 
 /** USB HID device communication interface. */
@@ -62,7 +62,7 @@ typedef struct {
 	 * @param[in] flags Flags (see USBHID_IFACE_FLAG_*).
 	 * @return Error code.
 	 */
-	int (*get_event)(ddf_fun_t *fun, uint8_t *buffer, size_t size,
+	errno_t (*get_event)(ddf_fun_t *fun, uint8_t *buffer, size_t size,
 	    size_t *act_size, int *event_nr, unsigned int flags);
 	
 	/** Get size of the report descriptor in bytes.
@@ -80,7 +80,7 @@ typedef struct {
 	 * @param[out] act_size Actual size of the report descriptor returned.
 	 * @return Error code.
 	 */
-	int (*get_report_descriptor)(ddf_fun_t *fun, uint8_t *desc, 
+	errno_t (*get_report_descriptor)(ddf_fun_t *fun, uint8_t *desc, 
 	    size_t size, size_t *act_size);
 } usbhid_iface_t;
 

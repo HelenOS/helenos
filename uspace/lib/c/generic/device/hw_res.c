@@ -37,14 +37,14 @@
 #include <async.h>
 #include <stdlib.h>
 
-int hw_res_get_resource_list(async_sess_t *sess,
+errno_t hw_res_get_resource_list(async_sess_t *sess,
     hw_resource_list_t *hw_resources)
 {
 	sysarg_t count = 0;
 	
 	async_exch_t *exch = async_exchange_begin(sess);
 	
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_GET_RESOURCE_LIST, &count);
 	
 	if (rc != EOK) {
@@ -74,33 +74,33 @@ int hw_res_get_resource_list(async_sess_t *sess,
 	return EOK;
 }
 
-int hw_res_enable_interrupt(async_sess_t *sess, int irq)
+errno_t hw_res_enable_interrupt(async_sess_t *sess, int irq)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_ENABLE_INTERRUPT, irq);
 	async_exchange_end(exch);
 	
 	return rc;
 }
 
-int hw_res_disable_interrupt(async_sess_t *sess, int irq)
+errno_t hw_res_disable_interrupt(async_sess_t *sess, int irq)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_DISABLE_INTERRUPT, irq);
 	async_exchange_end(exch);
 	
 	return rc;
 }
 
-int hw_res_clear_interrupt(async_sess_t *sess, int irq)
+errno_t hw_res_clear_interrupt(async_sess_t *sess, int irq)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
-	int rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_CLEAR_INTERRUPT, irq);
 	async_exchange_end(exch);
 	
@@ -121,13 +121,13 @@ int hw_res_clear_interrupt(async_sess_t *sess, int irq)
  * @return Error code.
  *
  */
-int hw_res_dma_channel_setup(async_sess_t *sess,
+errno_t hw_res_dma_channel_setup(async_sess_t *sess,
     unsigned channel, uint32_t pa, uint32_t size, uint8_t mode)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
 	const uint32_t packed = (channel & 0xffff) | (mode << 16);
-	const int ret = async_req_4_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	const errno_t ret = async_req_4_0(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_DMA_CHANNEL_SETUP, packed, pa, size);
 	
 	async_exchange_end(exch);
@@ -144,12 +144,12 @@ int hw_res_dma_channel_setup(async_sess_t *sess,
  * @return Error code.
  *
  */
-int hw_res_dma_channel_remain(async_sess_t *sess, unsigned channel, size_t *rem)
+errno_t hw_res_dma_channel_remain(async_sess_t *sess, unsigned channel, size_t *rem)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	
 	sysarg_t remain;
-	const int ret = async_req_2_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	const errno_t ret = async_req_2_1(exch, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    HW_RES_DMA_CHANNEL_REMAIN, channel, &remain);
 	
 	async_exchange_end(exch);

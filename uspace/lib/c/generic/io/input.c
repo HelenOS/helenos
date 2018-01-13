@@ -44,7 +44,7 @@
 
 static void input_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
-int input_open(async_sess_t *sess, input_ev_ops_t *ev_ops,
+errno_t input_open(async_sess_t *sess, input_ev_ops_t *ev_ops,
     void *arg, input_t **rinput)
 {
 	input_t *input = calloc(1, sizeof(input_t));
@@ -58,7 +58,7 @@ int input_open(async_sess_t *sess, input_ev_ops_t *ev_ops,
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	port_id_t port;
-	int rc = async_create_callback_port(exch, INTERFACE_INPUT_CB, 0, 0,
+	errno_t rc = async_create_callback_port(exch, INTERFACE_INPUT_CB, 0, 0,
 	    input_cb_conn, input, &port);
 	
 	async_exchange_end(exch);
@@ -82,10 +82,10 @@ void input_close(input_t *input)
 	free(input);
 }
 
-int input_activate(input_t *input)
+errno_t input_activate(input_t *input)
 {
 	async_exch_t *exch = async_exchange_begin(input->sess);
-	int rc = async_req_0_0(exch, INPUT_ACTIVATE);
+	errno_t rc = async_req_0_0(exch, INPUT_ACTIVATE);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -94,14 +94,14 @@ int input_activate(input_t *input)
 static void input_ev_active(input_t *input, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc = input->ev_ops->active(input);
+	errno_t rc = input->ev_ops->active(input);
 	async_answer_0(callid, rc);
 }
 
 static void input_ev_deactive(input_t *input, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc = input->ev_ops->deactive(input);
+	errno_t rc = input->ev_ops->deactive(input);
 	async_answer_0(callid, rc);
 }
 
@@ -112,7 +112,7 @@ static void input_ev_key(input_t *input, ipc_callid_t callid,
 	keycode_t key;
 	keymod_t mods;
 	wchar_t c;
-	int rc;
+	errno_t rc;
 
 	type = IPC_GET_ARG1(*call);
 	key = IPC_GET_ARG2(*call);
@@ -128,7 +128,7 @@ static void input_ev_move(input_t *input, ipc_callid_t callid,
 {
 	int dx;
 	int dy;
-	int rc;
+	errno_t rc;
 
 	dx = IPC_GET_ARG1(*call);
 	dy = IPC_GET_ARG2(*call);
@@ -144,7 +144,7 @@ static void input_ev_abs_move(input_t *input, ipc_callid_t callid,
 	unsigned y;
 	unsigned max_x;
 	unsigned max_y;
-	int rc;
+	errno_t rc;
 
 	x = IPC_GET_ARG1(*call);
 	y = IPC_GET_ARG2(*call);
@@ -160,7 +160,7 @@ static void input_ev_button(input_t *input, ipc_callid_t callid,
 {
 	int bnum;
 	int press;
-	int rc;
+	errno_t rc;
 
 	bnum = IPC_GET_ARG1(*call);
 	press = IPC_GET_ARG2(*call);

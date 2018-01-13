@@ -52,7 +52,7 @@ static tcp_tqueue_cb_t tqueue_test_cb = {
 
 PCUT_TEST_BEFORE
 {
-	int rc;
+	errno_t rc;
 
 	/* We will be calling functions that perform logging */
 	rc = log_init("test-tcp");

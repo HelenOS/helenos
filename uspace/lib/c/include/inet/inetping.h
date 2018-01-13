@@ -39,12 +39,12 @@
 #include <types/inetping.h>
 
 typedef struct inetping_ev_ops {
-	int (*recv)(inetping_sdu_t *);
+	errno_t (*recv)(inetping_sdu_t *);
 } inetping_ev_ops_t;
 
-extern int inetping_init(inetping_ev_ops_t *);
-extern int inetping_send(inetping_sdu_t *);
-extern int inetping_get_srcaddr(const inet_addr_t *, inet_addr_t *);
+extern errno_t inetping_init(inetping_ev_ops_t *);
+extern errno_t inetping_send(inetping_sdu_t *);
+extern errno_t inetping_get_srcaddr(const inet_addr_t *, inet_addr_t *);
 
 #endif
 

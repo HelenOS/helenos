@@ -39,11 +39,11 @@
 
 #define NAME  "sun4v-con"
 
-static int sun4v_con_dev_add(ddf_dev_t *dev);
-static int sun4v_con_dev_remove(ddf_dev_t *dev);
-static int sun4v_con_dev_gone(ddf_dev_t *dev);
-static int sun4v_con_fun_online(ddf_fun_t *fun);
-static int sun4v_con_fun_offline(ddf_fun_t *fun);
+static errno_t sun4v_con_dev_add(ddf_dev_t *dev);
+static errno_t sun4v_con_dev_remove(ddf_dev_t *dev);
+static errno_t sun4v_con_dev_gone(ddf_dev_t *dev);
+static errno_t sun4v_con_fun_online(ddf_fun_t *fun);
+static errno_t sun4v_con_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.dev_add = sun4v_con_dev_add,
@@ -58,11 +58,11 @@ static driver_t sun4v_con_driver = {
 	.driver_ops = &driver_ops
 };
 
-static int sun4v_con_get_res(ddf_dev_t *dev, sun4v_con_res_t *res)
+static errno_t sun4v_con_get_res(ddf_dev_t *dev, sun4v_con_res_t *res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
-	int rc;
+	errno_t rc;
 
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
@@ -87,11 +87,11 @@ error:
 }
 
 
-static int sun4v_con_dev_add(ddf_dev_t *dev)
+static errno_t sun4v_con_dev_add(ddf_dev_t *dev)
 {
 	sun4v_con_t *sun4v_con;
 	sun4v_con_res_t res;
-	int rc;
+	errno_t rc;
 
         ddf_msg(LVL_DEBUG, "sun4v_con_dev_add(%p)", dev);
 	sun4v_con = ddf_dev_data_alloc(dev, sizeof(sun4v_con_t));
@@ -111,7 +111,7 @@ static int sun4v_con_dev_add(ddf_dev_t *dev)
 	return sun4v_con_add(sun4v_con, &res);
 }
 
-static int sun4v_con_dev_remove(ddf_dev_t *dev)
+static errno_t sun4v_con_dev_remove(ddf_dev_t *dev)
 {
         sun4v_con_t *sun4v_con = (sun4v_con_t *)ddf_dev_data_get(dev);
 
@@ -120,7 +120,7 @@ static int sun4v_con_dev_remove(ddf_dev_t *dev)
         return sun4v_con_remove(sun4v_con);
 }
 
-static int sun4v_con_dev_gone(ddf_dev_t *dev)
+static errno_t sun4v_con_dev_gone(ddf_dev_t *dev)
 {
         sun4v_con_t *sun4v_con = (sun4v_con_t *)ddf_dev_data_get(dev);
 
@@ -129,13 +129,13 @@ static int sun4v_con_dev_gone(ddf_dev_t *dev)
         return sun4v_con_gone(sun4v_con);
 }
 
-static int sun4v_con_fun_online(ddf_fun_t *fun)
+static errno_t sun4v_con_fun_online(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "sun4v_con_fun_online()");
         return ddf_fun_online(fun);
 }
 
-static int sun4v_con_fun_offline(ddf_fun_t *fun)
+static errno_t sun4v_con_fun_offline(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "sun4v_con_fun_offline()");
         return ddf_fun_offline(fun);

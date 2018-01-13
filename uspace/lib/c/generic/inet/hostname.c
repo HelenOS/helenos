@@ -57,7 +57,7 @@
  *         host name or if @a endptr is @c NULL and @a str contains
  *         extra characters at the end. ENOMEM if out of memory
  */
-int inet_hostname_parse(const char *str, char **rname, char **endptr)
+errno_t inet_hostname_parse(const char *str, char **rname, char **endptr)
 {
 	const char *c;
 	const char *dstart = NULL;

@@ -48,7 +48,7 @@
  * @param nrecv number of bytes actually received
  * @return EOK on success or an error code
  */
-typedef int (*receive_func_t)(void *, void *, size_t, size_t *);
+typedef errno_t (*receive_func_t)(void *, void *, size_t, size_t *);
 
 typedef struct {
 	size_t size;
@@ -69,24 +69,24 @@ typedef struct {
 
 typedef bool (*char_class_func_t)(char);
 
-extern int recv_buffer_init(receive_buffer_t *, size_t, receive_func_t, void *);
-extern int recv_buffer_init_const(receive_buffer_t *, void *, size_t);
+extern errno_t recv_buffer_init(receive_buffer_t *, size_t, receive_func_t, void *);
+extern errno_t recv_buffer_init_const(receive_buffer_t *, void *, size_t);
 extern void recv_buffer_fini(receive_buffer_t *);
 extern void recv_reset(receive_buffer_t *);
 extern void recv_mark(receive_buffer_t *, receive_buffer_mark_t *);
 extern void recv_unmark(receive_buffer_t *, receive_buffer_mark_t *);
 extern void recv_mark_update(receive_buffer_t *, receive_buffer_mark_t *);
-extern int recv_cut(receive_buffer_t *, receive_buffer_mark_t *,
+extern errno_t recv_cut(receive_buffer_t *, receive_buffer_mark_t *,
     receive_buffer_mark_t *, void **, size_t *);
-extern int recv_cut_str(receive_buffer_t *, receive_buffer_mark_t *,
+extern errno_t recv_cut_str(receive_buffer_t *, receive_buffer_mark_t *,
     receive_buffer_mark_t *, char **);
-extern int recv_char(receive_buffer_t *, char *, bool);
-extern int recv_buffer(receive_buffer_t *, char *, size_t, size_t *);
-extern int recv_discard(receive_buffer_t *, char, size_t *);
-extern int recv_discard_str(receive_buffer_t *, const char *, size_t *);
-extern int recv_while(receive_buffer_t *, char_class_func_t);
-extern int recv_eol(receive_buffer_t *, size_t *);
-extern int recv_line(receive_buffer_t *, char *, size_t, size_t *);
+extern errno_t recv_char(receive_buffer_t *, char *, bool);
+extern errno_t recv_buffer(receive_buffer_t *, char *, size_t, size_t *);
+extern errno_t recv_discard(receive_buffer_t *, char, size_t *);
+extern errno_t recv_discard_str(receive_buffer_t *, const char *, size_t *);
+extern errno_t recv_while(receive_buffer_t *, char_class_func_t);
+extern errno_t recv_eol(receive_buffer_t *, size_t *);
+extern errno_t recv_line(receive_buffer_t *, char *, size_t, size_t *);
 
 #endif
 

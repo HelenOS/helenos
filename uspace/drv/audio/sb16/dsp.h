@@ -75,23 +75,23 @@ typedef struct sb_dsp {
 	ddf_dev_t *sb_dev;
 } sb_dsp_t;
 
-int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
+errno_t sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
     int dma8, int dma16);
 void sb_dsp_interrupt(sb_dsp_t *dsp);
 unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap);
-int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *size);
-int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
+errno_t sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *size);
+errno_t sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
   pcm_sample_format_t *format);
-int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size);
-int sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session);
+errno_t sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size);
+errno_t sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session);
 async_sess_t * sb_dsp_get_event_session(sb_dsp_t *dsp);
-int sb_dsp_release_buffer(sb_dsp_t *dsp);
-int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
+errno_t sb_dsp_release_buffer(sb_dsp_t *dsp);
+errno_t sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
-int sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate);
-int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
+errno_t sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate);
+errno_t sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);
-int sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate);
+errno_t sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate);
 
 #endif
 /**

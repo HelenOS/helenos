@@ -35,7 +35,7 @@
 
 #include "ext4/types.h"
 
-extern int ext4_hash_string(ext4_hash_info_t *, int, const char *);
+extern errno_t ext4_hash_string(ext4_hash_info_t *, int, const char *);
 
 #endif
 

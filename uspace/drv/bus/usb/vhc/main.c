@@ -48,7 +48,7 @@ static ddf_dev_ops_t vhc_ops = {
 	.default_handler = default_connection_handler
 };
 
-static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
+static errno_t vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 {
 	assert(dev);
 	assert(fun);
@@ -62,7 +62,7 @@ static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 		ddf_fun_destroy(*fun);
 	}
 	ddf_fun_set_ops(*fun, &vhc_ops);
-	const int ret = ddf_fun_bind(*fun);
+	const errno_t ret = ddf_fun_bind(*fun);
 	if (ret != EOK) {
 		ddf_fun_destroy(*fun);
 		*fun = NULL;
@@ -76,11 +76,11 @@ hcd_ops_t vhc_hc_ops = {
 	.schedule = vhc_schedule,
 };
 
-static int vhc_dev_add(ddf_dev_t *dev)
+static errno_t vhc_dev_add(ddf_dev_t *dev)
 {
 	/* Initialize virtual structure */
 	ddf_fun_t *ctl_fun = NULL;
-	int ret = vhc_control_node(dev, &ctl_fun);
+	errno_t ret = vhc_control_node(dev, &ctl_fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup control node.\n");
 		return ret;

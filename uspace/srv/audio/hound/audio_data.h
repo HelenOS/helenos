@@ -74,7 +74,7 @@ void audio_data_unref(audio_data_t *adata);
 void audio_pipe_init(audio_pipe_t *pipe);
 void audio_pipe_fini(audio_pipe_t *pipe);
 
-int audio_pipe_push(audio_pipe_t *pipe, audio_data_t *data);
+errno_t audio_pipe_push(audio_pipe_t *pipe, audio_data_t *data);
 audio_data_t *audio_pipe_pop(audio_pipe_t *pipe);
 
 size_t audio_pipe_mix_data(audio_pipe_t *pipe, void *buffer, size_t size,
@@ -112,12 +112,12 @@ static inline size_t audio_pipe_frames(audio_pipe_t *pipe)
  *
  * Reference counted buffer is created automatically.
  */
-static inline int audio_pipe_push_data(audio_pipe_t *pipe,
+static inline errno_t audio_pipe_push_data(audio_pipe_t *pipe,
     const void *data, size_t size, pcm_format_t f)
 {
 	audio_data_t *adata = audio_data_create(data, size, f);
 	if (adata) {
-		const int ret = audio_pipe_push(pipe, adata);
+		const errno_t ret = audio_pipe_push(pipe, adata);
 		audio_data_unref(adata);
 		return ret;
 	}

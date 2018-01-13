@@ -79,9 +79,9 @@ typedef struct {
 extern usbvirt_device_ops_t hub_ops;
 extern hub_descriptor_t hub_descriptor;
 
-int virthub_init(usbvirt_device_t *, const char *name);
+errno_t virthub_init(usbvirt_device_t *, const char *name);
 int virthub_connect_device(usbvirt_device_t *, vhc_virtdev_t *);
-int virthub_disconnect_device(usbvirt_device_t *, vhc_virtdev_t *);
+errno_t virthub_disconnect_device(usbvirt_device_t *, vhc_virtdev_t *);
 bool virthub_is_device_enabled(usbvirt_device_t *, vhc_virtdev_t *);
 void virthub_get_status(usbvirt_device_t *, char *, size_t);
 

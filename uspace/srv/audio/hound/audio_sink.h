@@ -59,11 +59,11 @@ struct audio_sink {
 	/** Backend data */
 	void *private_data;
 	/** Connect/disconnect callback */
-	int (*connection_change)(audio_sink_t *, bool);
+	errno_t (*connection_change)(audio_sink_t *, bool);
 	/** Backend callback to check data */
-	int (*check_format)(audio_sink_t *);
+	errno_t (*check_format)(audio_sink_t *);
 	/** new data notifier */
-	int (*data_available)(audio_sink_t *);
+	errno_t (*data_available)(audio_sink_t *);
 };
 
 /**
@@ -76,13 +76,13 @@ static inline audio_sink_t * audio_sink_list_instance(link_t *l)
 	return l ? list_get_instance(l, audio_sink_t, link) : NULL;
 }
 
-int audio_sink_init(audio_sink_t *sink, const char *name, void *private_data,
-    int (*connection_change)(audio_sink_t *, bool),
-    int (*check_format)(audio_sink_t *), int (*data_available)(audio_sink_t *),
+errno_t audio_sink_init(audio_sink_t *sink, const char *name, void *private_data,
+    errno_t (*connection_change)(audio_sink_t *, bool),
+    errno_t (*check_format)(audio_sink_t *), errno_t (*data_available)(audio_sink_t *),
     const pcm_format_t *f);
 
 void audio_sink_fini(audio_sink_t *sink);
-int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format);
+errno_t audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format);
 void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size);
 
 #endif

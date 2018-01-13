@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 
 		/* The initialization is here only to make compiler happy. */
 		devman_handle_t handle = 0;
-		int rc = usb_resolve_device_handle(devpath, &handle);
+		errno_t rc = usb_resolve_device_handle(devpath, &handle);
 		if (rc != EOK) {
 			fprintf(stderr, NAME ": device `%s' not found "
 			    "or not of USB kind, skipping.\n",

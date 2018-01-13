@@ -133,7 +133,7 @@ static const char *msg_not_implemented =
     "</html>\r\n";
 
 
-static int recv_create(tcp_conn_t *conn, recv_t **rrecv)
+static errno_t recv_create(tcp_conn_t *conn, recv_t **rrecv)
 {
 	recv_t *recv;
 	
@@ -156,10 +156,10 @@ static void recv_destroy(recv_t *recv)
 }
 
 /** Receive one character (with buffering) */
-static int recv_char(recv_t *recv, char *c)
+static errno_t recv_char(recv_t *recv, char *c)
 {
 	size_t nrecv;
-	int rc;
+	errno_t rc;
 	
 	if (recv->rbuf_out == recv->rbuf_in) {
 		recv->rbuf_out = 0;
@@ -179,14 +179,14 @@ static int recv_char(recv_t *recv, char *c)
 }
 
 /** Receive one line with length limit */
-static int recv_line(recv_t *recv, char **rbuf)
+static errno_t recv_line(recv_t *recv, char **rbuf)
 {
 	char *bp = recv->lbuf;
 	char c = '\0';
 	
 	while (bp < recv->lbuf + BUFFER_SIZE) {
 		char prev = c;
-		int rc = recv_char(recv, &c);
+		errno_t rc = recv_char(recv, &c);
 		
 		if (rc != EOK)
 			return rc;
@@ -225,14 +225,14 @@ static bool uri_is_valid(char *uri)
 	return true;
 }
 
-static int send_response(tcp_conn_t *conn, const char *msg)
+static errno_t send_response(tcp_conn_t *conn, const char *msg)
 {
 	size_t response_size = str_size(msg);
 	
 	if (verbose)
 	    fprintf(stderr, "Sending response\n");
 	
-	int rc = tcp_conn_send(conn, (void *) msg, response_size);
+	errno_t rc = tcp_conn_send(conn, (void *) msg, response_size);
 	if (rc != EOK) {
 		fprintf(stderr, "tcp_conn_send() failed\n");
 		return rc;
@@ -241,11 +241,11 @@ static int send_response(tcp_conn_t *conn, const char *msg)
 	return EOK;
 }
 
-static int uri_get(const char *uri, tcp_conn_t *conn)
+static errno_t uri_get(const char *uri, tcp_conn_t *conn)
 {
 	char *fbuf = NULL;
 	char *fname = NULL;
-	int rc;
+	errno_t rc;
 	size_t nr;
 	int fd = -1;
 	
@@ -301,11 +301,11 @@ out:
 	return rc;
 }
 
-static int req_process(tcp_conn_t *conn, recv_t *recv)
+static errno_t req_process(tcp_conn_t *conn, recv_t *recv)
 {
 	char *reqline = NULL;
 
-	int rc = recv_line(recv, &reqline);
+	errno_t rc = recv_line(recv, &reqline);
 	if (rc != EOK) {
 		fprintf(stderr, "recv_line() failed\n");
 		return rc;
@@ -354,10 +354,10 @@ static void usage(void)
 	    "\tVerbose mode\n");
 }
 
-static int parse_option(int argc, char *argv[], int *index)
+static errno_t parse_option(int argc, char *argv[], int *index)
 {
 	int value;
-	int rc;
+	errno_t rc;
 	
 	switch (argv[*index][1]) {
 	case 'h':
@@ -402,7 +402,7 @@ static int parse_option(int argc, char *argv[], int *index)
 
 static void websrv_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 {
-	int rc;
+	errno_t rc;
 	recv_t *recv = NULL;
 	
 	if (verbose)
@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
 	inet_ep_t ep;
 	tcp_listener_t *lst;
 	tcp_t *tcp;
-	int rc;
+	errno_t rc;
 	
 	/* Parse command line arguments */
 	for (int i = 1; i < argc; i++) {

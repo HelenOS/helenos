@@ -250,7 +250,7 @@ static void ns8250_write_8(ns8250_regs_t *regs, uint8_t c)
  *
  * @return		EOK on success or non-zero error code
  */
-static int ns8250_read(chardev_srv_t *srv, void *buf, size_t count, size_t *nread)
+static errno_t ns8250_read(chardev_srv_t *srv, void *buf, size_t count, size_t *nread)
 {
 	ns8250_t *ns = srv_ns8250(srv);
 	char *bp = (char *) buf;
@@ -294,7 +294,7 @@ static inline void ns8250_putchar(ns8250_t *ns, uint8_t c)
  * @param nwritten	Place to store number of bytes successfully written
  * @return		EOK on success or non-zero error code
  */
-static int ns8250_write(chardev_srv_t *srv, const void *buf, size_t count,
+static errno_t ns8250_write(chardev_srv_t *srv, const void *buf, size_t count,
     size_t *nwritten)
 {
 	ns8250_t *ns = srv_ns8250(srv);
@@ -308,8 +308,8 @@ static int ns8250_write(chardev_srv_t *srv, const void *buf, size_t count,
 	return EOK;
 }
 
-static int ns8250_open(chardev_srvs_t *, chardev_srv_t *);
-static int ns8250_close(chardev_srv_t *);
+static errno_t ns8250_open(chardev_srvs_t *, chardev_srv_t *);
+static errno_t ns8250_close(chardev_srv_t *);
 static void ns8250_default_handler(chardev_srv_t *, ipc_callid_t, ipc_call_t *);
 
 /** The character interface's callbacks. */
@@ -323,8 +323,8 @@ static chardev_ops_t ns8250_chardev_ops = {
 
 static void ns8250_char_conn(ipc_callid_t, ipc_call_t *, void *);
 
-static int ns8250_dev_add(ddf_dev_t *dev);
-static int ns8250_dev_remove(ddf_dev_t *dev);
+static errno_t ns8250_dev_add(ddf_dev_t *dev);
+static errno_t ns8250_dev_remove(ddf_dev_t *dev);
 
 /** The serial port device driver's standard operations. */
 static driver_ops_t ns8250_ops = {
@@ -406,9 +406,9 @@ static bool ns8250_dev_probe(ns8250_t *ns)
  * @param ns		Serial port device
  * @return		Zero on success, error number otherwise
  */
-static int ns8250_dev_initialize(ns8250_t *ns)
+static errno_t ns8250_dev_initialize(ns8250_t *ns)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 	
 	ddf_msg(LVL_DEBUG, "ns8250_dev_initialize %s", ddf_dev_get_name(ns->dev));
 	
@@ -500,10 +500,10 @@ static inline void ns8250_port_interrupts_disable(ns8250_regs_t *regs)
  * @param ns		Serial port device
  * @return		Zero on success, error number otherwise
  */
-static int ns8250_interrupt_enable(ns8250_t *ns)
+static errno_t ns8250_interrupt_enable(ns8250_t *ns)
 {
 	/* Enable interrupt using IRC service. */
-	int rc = hw_res_enable_interrupt(ns->parent_sess, ns->irq);
+	errno_t rc = hw_res_enable_interrupt(ns->parent_sess, ns->irq);
 	if (rc != EOK)
 		return EIO;
 	
@@ -546,7 +546,7 @@ static inline void clear_dlab(ns8250_regs_t *regs)
  * @return		Zero on success, error number otherwise (EINVAL
  *			if the specified baud_rate is not valid).
  */
-static int ns8250_port_set_baud_rate(ns8250_regs_t *regs, unsigned int baud_rate)
+static errno_t ns8250_port_set_baud_rate(ns8250_regs_t *regs, unsigned int baud_rate)
 {
 	uint16_t divisor;
 	uint8_t div_low, div_high;
@@ -645,7 +645,7 @@ static void ns8250_port_get_com_props(ns8250_regs_t *regs, unsigned int *parity,
  * @return		Zero on success, EINVAL if some of the specified values
  *			is invalid.
  */
-static int ns8250_port_set_com_props(ns8250_regs_t *regs, unsigned int parity,
+static errno_t ns8250_port_set_com_props(ns8250_regs_t *regs, unsigned int parity,
     unsigned int word_length, unsigned int stop_bits)
 {
 	uint8_t val;
@@ -802,7 +802,7 @@ static inline void ns8250_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
  *
  * @param ns		Serial port device
  */
-static inline int ns8250_register_interrupt_handler(ns8250_t *ns,
+static inline errno_t ns8250_register_interrupt_handler(ns8250_t *ns,
     cap_handle_t *handle)
 {
 	return register_interrupt_handler(ns->dev, ns->irq,
@@ -813,7 +813,7 @@ static inline int ns8250_register_interrupt_handler(ns8250_t *ns,
  *
  * @param ns		Serial port device
  */
-static inline int ns8250_unregister_interrupt_handler(ns8250_t *ns)
+static inline errno_t ns8250_unregister_interrupt_handler(ns8250_t *ns)
 {
 	return unregister_interrupt_handler(ns->dev, ns->irq_cap);
 }
@@ -824,13 +824,13 @@ static inline int ns8250_unregister_interrupt_handler(ns8250_t *ns)
  *
  * @param dev		The serial port device.
  */
-static int ns8250_dev_add(ddf_dev_t *dev)
+static errno_t ns8250_dev_add(ddf_dev_t *dev)
 {
 	ns8250_t *ns = NULL;
 	ddf_fun_t *fun = NULL;
 	bool need_cleanup = false;
 	bool need_unreg_intr_handler = false;
-	int rc;
+	errno_t rc;
 	
 	ddf_msg(LVL_DEBUG, "ns8250_dev_add %s (handle = %d)",
 	    ddf_dev_get_name(dev), (int) ddf_dev_get_handle(dev));
@@ -927,10 +927,10 @@ fail:
 	return rc;
 }
 
-static int ns8250_dev_remove(ddf_dev_t *dev)
+static errno_t ns8250_dev_remove(ddf_dev_t *dev)
 {
 	ns8250_t *ns = dev_ns8250(dev);
-	int rc;
+	errno_t rc;
 	
 	fibril_mutex_lock(&ns->mutex);
 	if (ns->client_connections > 0) {
@@ -962,10 +962,10 @@ static int ns8250_dev_remove(ddf_dev_t *dev)
  * @param srvs		Service structure
  * @param srv		Server-side connection structure
  */
-static int ns8250_open(chardev_srvs_t *srvs, chardev_srv_t *srv)
+static errno_t ns8250_open(chardev_srvs_t *srvs, chardev_srv_t *srv)
 {
 	ns8250_t *ns = srv_ns8250(srv);
-	int res;
+	errno_t res;
 	
 	fibril_mutex_lock(&ns->mutex);
 	if (ns->removed) {
@@ -986,7 +986,7 @@ static int ns8250_open(chardev_srvs_t *srvs, chardev_srv_t *srv)
  *
  * @param srv		Server-side connection structure
  */
-static int ns8250_close(chardev_srv_t *srv)
+static errno_t ns8250_close(chardev_srv_t *srv)
 {
 	ns8250_t *data = srv_ns8250(srv);
 	
@@ -1039,7 +1039,7 @@ ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate, unsigned int *parity,
  * @param word_length	The size of one data unit in bits.
  * @param stop_bits	The number of stop bits to be used.
  */
-static int ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
+static errno_t ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
     unsigned int parity, unsigned int word_length, unsigned int stop_bits)
 {
 	ddf_msg(LVL_DEBUG, "ns8250_set_props: baud rate %d, parity 0x%x, word "
@@ -1048,7 +1048,7 @@ static int ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
 	
 	ns8250_t *data = dev_ns8250(dev);
 	ns8250_regs_t *regs = data->regs;
-	int ret;
+	errno_t ret;
 	
 	fibril_mutex_lock(&data->mutex);
 	ns8250_port_interrupts_disable(regs);
@@ -1071,7 +1071,7 @@ static void ns8250_default_handler(chardev_srv_t *srv, ipc_callid_t callid,
 {
 	ns8250_t *ns8250 = srv_ns8250(srv);
 	sysarg_t method = IPC_GET_IMETHOD(*call);
-	int ret;
+	errno_t ret;
 	unsigned int baud_rate, parity, word_length, stop_bits;
 	
 	switch (method) {

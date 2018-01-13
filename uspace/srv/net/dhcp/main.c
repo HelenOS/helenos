@@ -51,9 +51,9 @@
 
 static void dhcp_client_conn(ipc_callid_t, ipc_call_t *, void *);
 
-static int dhcp_init(void)
+static errno_t dhcp_init(void)
 {
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_init()");
 
@@ -86,7 +86,7 @@ static int dhcp_init(void)
 static void dhcp_link_add_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	sysarg_t link_id;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_link_add_srv()");
 
@@ -99,7 +99,7 @@ static void dhcp_link_add_srv(ipc_callid_t callid, ipc_call_t *call)
 static void dhcp_link_remove_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	sysarg_t link_id;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_link_remove_srv()");
 
@@ -112,7 +112,7 @@ static void dhcp_link_remove_srv(ipc_callid_t callid, ipc_call_t *call)
 static void dhcp_discover_srv(ipc_callid_t callid, ipc_call_t *call)
 {
 	sysarg_t link_id;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_discover_srv()");
 
@@ -158,7 +158,7 @@ static void dhcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf("%s: DHCP Service\n", NAME);
 

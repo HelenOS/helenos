@@ -66,9 +66,9 @@ const char *tar_type_str(tar_type_t type) {
 	}
 }
 
-int tar_header_parse(tar_header_t *parsed, const tar_header_raw_t *raw)
+errno_t tar_header_parse(tar_header_t *parsed, const tar_header_raw_t *raw)
 {
-	int rc;
+	errno_t rc;
 
 	if (str_length(raw->filename) == 0) {
 		return EEMPTY;

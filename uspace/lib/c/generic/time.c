@@ -584,7 +584,7 @@ void gettimeofday(struct timeval *tv, struct timezone *tz)
 	
 	if (clock_conn == NULL) {
 		category_id_t cat_id;
-		int rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
+		errno_t rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
 		if (rc != EOK)
 			goto fallback;
 		
@@ -616,7 +616,7 @@ void gettimeofday(struct timeval *tv, struct timezone *tz)
 	}
 	
 	struct tm time;
-	int rc = clock_dev_time_get(clock_conn, &time);
+	errno_t rc = clock_dev_time_get(clock_conn, &time);
 	if (rc != EOK)
 		goto fallback;
 	
@@ -633,7 +633,7 @@ void getuptime(struct timeval *tv)
 {
 	if (ktime == NULL) {
 		uintptr_t faddr;
-		int rc = sysinfo_get_value("clock.faddr", &faddr);
+		errno_t rc = sysinfo_get_value("clock.faddr", &faddr);
 		if (rc != EOK) {
 			errno = rc;
 			goto fallback;
@@ -956,7 +956,7 @@ size_t strftime(char *restrict s, size_t maxsize,
  * @return EOK or an error code
  *
  */
-int time_utc2tm(const time_t time, struct tm *restrict result)
+errno_t time_utc2tm(const time_t time, struct tm *restrict result)
 {
 	assert(result != NULL);
 	
@@ -986,10 +986,10 @@ int time_utc2tm(const time_t time, struct tm *restrict result)
  * @return EOK or an error code.
  *
  */
-int time_utc2str(const time_t time, char *restrict buf)
+errno_t time_utc2str(const time_t time, char *restrict buf)
 {
 	struct tm tm;
-	int ret = time_utc2tm(time, &tm);
+	errno_t ret = time_utc2tm(time, &tm);
 	if (ret != EOK)
 		return ret;
 	
@@ -1038,7 +1038,7 @@ void time_tm2str(const struct tm *restrict timeptr, char *restrict buf)
  * @return EOK on success or an error code.
  *
  */
-int time_tv2tm(const struct timeval *tv, struct tm *restrict result)
+errno_t time_tv2tm(const struct timeval *tv, struct tm *restrict result)
 {
 	// TODO: Deal with timezones.
 	//       Currently assumes system and all times are in UTC
@@ -1068,7 +1068,7 @@ int time_tv2tm(const struct timeval *tv, struct tm *restrict result)
  * @return EOK on success or an error code.
  *
  */
-int time_local2tm(const time_t time, struct tm *restrict result)
+errno_t time_local2tm(const time_t time, struct tm *restrict result)
 {
 	struct timeval tv = {
 		.tv_sec = time,
@@ -1090,10 +1090,10 @@ int time_local2tm(const time_t time, struct tm *restrict result)
  * @return EOK on success or an error code.
  *
  */
-int time_local2str(const time_t time, char *buf)
+errno_t time_local2str(const time_t time, char *buf)
 {
 	struct tm loctime;
-	int ret = time_local2tm(time, &loctime);
+	errno_t ret = time_local2tm(time, &loctime);
 	if (ret != EOK)
 		return ret;
 	

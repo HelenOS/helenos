@@ -169,7 +169,7 @@ do { \
  * @param f Pointer to the format descriptor.
  * @return Error code.
  */
-int pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *f)
+errno_t pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *f)
 {
 	return pcm_format_convert_and_mix(dst, size, src, size, f, f);
 }
@@ -187,7 +187,7 @@ int pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *
  * Buffers must contain entire frames. Destination buffer is always filled.
  * If there are not enough data in the source buffer silent data is assumed.
  */
-int pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
+errno_t pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
     size_t src_size, const pcm_format_t *sf, const pcm_format_t *df)
 {
 	if (!dst || !src || !sf || !df)

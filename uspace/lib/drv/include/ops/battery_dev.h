@@ -39,8 +39,8 @@
 #include "battery_iface.h"
 
 typedef struct {
-	int (*battery_status_get)(ddf_fun_t *, battery_status_t *);
-	int (*battery_charge_level_get)(ddf_fun_t *, int *);
+	errno_t (*battery_status_get)(ddf_fun_t *, battery_status_t *);
+	errno_t (*battery_charge_level_get)(ddf_fun_t *, int *);
 } battery_dev_ops_t;
 
 #endif

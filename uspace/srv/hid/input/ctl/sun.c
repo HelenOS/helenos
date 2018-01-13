@@ -43,7 +43,7 @@
 #include "../kbd_ctl.h"
 
 static void sun_ctl_parse(sysarg_t);
-static int sun_ctl_init(kbd_dev_t *);
+static errno_t sun_ctl_init(kbd_dev_t *);
 static void sun_ctl_set_ind(kbd_dev_t *, unsigned int);
 
 kbd_ctl_ops_t sun_ctl = {
@@ -59,7 +59,7 @@ static kbd_dev_t *kbd_dev;
 
 static int scanmap_simple[];
 
-static int sun_ctl_init(kbd_dev_t *kdev)
+static errno_t sun_ctl_init(kbd_dev_t *kdev)
 {
 	kbd_dev = kdev;
 	return 0;

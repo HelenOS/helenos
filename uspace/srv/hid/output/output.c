@@ -79,12 +79,12 @@ outdev_t *outdev_register(outdev_ops_t *ops, void *data)
 
 static void srv_yield(ipc_callid_t iid, ipc_call_t *icall)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 	
 	list_foreach(outdevs, link, outdev_t, dev) {
 		assert(dev->ops.yield);
 		
-		int rc = dev->ops.yield(dev);
+		errno_t rc = dev->ops.yield(dev);
 		if (rc != EOK)
 			ret = rc;
 	}
@@ -94,12 +94,12 @@ static void srv_yield(ipc_callid_t iid, ipc_call_t *icall)
 
 static void srv_claim(ipc_callid_t iid, ipc_call_t *icall)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 	
 	list_foreach(outdevs, link, outdev_t, dev) {
 		assert(dev->ops.claim);
 		
-		int rc = dev->ops.claim(dev);
+		errno_t rc = dev->ops.claim(dev);
 		if (rc != EOK)
 			ret = rc;
 	}
@@ -169,7 +169,7 @@ static void srv_frontbuf_create(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	int rc = async_share_out_finalize(callid, &frontbuf->data);
+	errno_t rc = async_share_out_finalize(callid, &frontbuf->data);
 	if ((rc != EOK) || (frontbuf->data == AS_MAP_FAILED)) {
 		free(frontbuf);
 		async_answer_0(iid, ENOMEM);
@@ -466,7 +466,7 @@ int main(int argc, char *argv[])
 	
 	/* Register server */
 	async_set_fallback_port_handler(client_connection, NULL);
-	int rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver\n", NAME);
 		return rc;

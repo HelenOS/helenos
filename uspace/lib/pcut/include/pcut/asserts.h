@@ -76,7 +76,7 @@ int pcut_str_equals(const char *a, const char *b);
  * @param buffer Where to store the error description.
  * @param size Size of the buffer.
  */
-void pcut_str_error(int error, char *buffer, int size);
+void pcut_str_error(errno_t error, char *buffer, int size);
 
 /** Raise assertion error (internal version).
  *
@@ -263,8 +263,8 @@ void pcut_str_error(int error, char *buffer, int size);
  */
 #define PCUT_ASSERT_ERRNO_VAL_WITH_NAME(expected_value, expected_quoted, actual_value) \
 	do {\
-		int pcut_expected_eval = (expected_value); \
-		int pcut_actual_eval = (actual_value); \
+		errno_t pcut_expected_eval = (expected_value); \
+		errno_t pcut_actual_eval = (actual_value); \
 		if (pcut_expected_eval != pcut_actual_eval) { \
 			char pcut_expected_description[100]; \
 			char pcut_actual_description[100]; \

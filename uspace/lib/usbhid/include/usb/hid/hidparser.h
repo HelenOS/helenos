@@ -46,7 +46,7 @@
 /*
  * Input report parser functions
  */
-int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
+errno_t usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
 		size_t size, uint8_t *report_id);
 
 /*
@@ -64,7 +64,7 @@ size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
 		usb_hid_report_type_t type);
 
 
-int usb_hid_report_output_translate(usb_hid_report_t *report, 
+errno_t usb_hid_report_output_translate(usb_hid_report_t *report, 
 		uint8_t report_id, uint8_t *buffer, size_t size);
 
 

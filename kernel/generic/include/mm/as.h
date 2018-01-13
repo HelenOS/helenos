@@ -267,11 +267,11 @@ extern int as_page_fault(uintptr_t, pf_access_t, istate_t *);
 
 extern as_area_t *as_area_create(as_t *, unsigned int, size_t, unsigned int,
     mem_backend_t *, mem_backend_data_t *, uintptr_t *, uintptr_t);
-extern int as_area_destroy(as_t *, uintptr_t);
-extern int as_area_resize(as_t *, uintptr_t, size_t, unsigned int);
-extern int as_area_share(as_t *, uintptr_t, size_t, as_t *, unsigned int,
+extern errno_t as_area_destroy(as_t *, uintptr_t);
+extern errno_t as_area_resize(as_t *, uintptr_t, size_t, unsigned int);
+extern errno_t as_area_share(as_t *, uintptr_t, size_t, as_t *, unsigned int,
     uintptr_t *, uintptr_t);
-extern int as_area_change_flags(as_t *, unsigned int, uintptr_t);
+extern errno_t as_area_change_flags(as_t *, unsigned int, uintptr_t);
 
 extern unsigned int as_area_get_flags(as_area_t *);
 extern bool as_area_check_access(as_area_t *, pf_access_t);
@@ -282,7 +282,7 @@ extern bool used_space_remove(as_area_t *, uintptr_t, size_t);
 /* Interface to be implemented by architectures. */
 
 #ifndef as_constructor_arch
-extern int as_constructor_arch(as_t *, unsigned int);
+extern errno_t as_constructor_arch(as_t *, unsigned int);
 #endif /* !def as_constructor_arch */
 
 #ifndef as_destructor_arch
@@ -290,7 +290,7 @@ extern int as_destructor_arch(as_t *);
 #endif /* !def as_destructor_arch */
 
 #ifndef as_create_arch
-extern int as_create_arch(as_t *, unsigned int);
+extern errno_t as_create_arch(as_t *, unsigned int);
 #endif /* !def as_create_arch */
 
 #ifndef as_install_arch
@@ -310,9 +310,9 @@ extern mem_backend_t user_backend;
 /* Address space area related syscalls. */
 extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int, uintptr_t,
     as_area_pager_info_t *);
-extern sysarg_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
-extern sysarg_t sys_as_area_change_flags(uintptr_t, unsigned int);
-extern sysarg_t sys_as_area_destroy(uintptr_t);
+extern sys_errno_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
+extern sys_errno_t sys_as_area_change_flags(uintptr_t, unsigned int);
+extern sys_errno_t sys_as_area_destroy(uintptr_t);
 
 /* Introspection functions. */
 extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);

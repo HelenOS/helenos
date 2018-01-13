@@ -39,11 +39,11 @@
 #include <stdbool.h>
 #include "tcp_type.h"
 
-extern int tcp_conns_init(void);
+extern errno_t tcp_conns_init(void);
 extern void tcp_conns_fini(void);
 extern tcp_conn_t *tcp_conn_new(inet_ep2_t *);
 extern void tcp_conn_delete(tcp_conn_t *);
-extern int tcp_conn_add(tcp_conn_t *);
+extern errno_t tcp_conn_add(tcp_conn_t *);
 extern void tcp_conn_reset(tcp_conn_t *conn);
 extern void tcp_conn_sync(tcp_conn_t *);
 extern void tcp_conn_fin_sent(tcp_conn_t *);

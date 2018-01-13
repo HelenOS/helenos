@@ -40,11 +40,11 @@
 #include <loc.h>
 
 typedef void (*dev_change_callback_t)(void);
-typedef int (*device_callback_t)(service_id_t, const char *);
+typedef errno_t (*device_callback_t)(service_id_t, const char *);
 
-int hound_server_register(const char *name, service_id_t *id);
+errno_t hound_server_register(const char *name, service_id_t *id);
 void hound_server_unregister(service_id_t id);
-int hound_server_set_device_change_callback(dev_change_callback_t cb);
-int hound_server_devices_iterate(device_callback_t callback);
+errno_t hound_server_set_device_change_callback(dev_change_callback_t cb);
+errno_t hound_server_devices_iterate(device_callback_t callback);
 
 #endif

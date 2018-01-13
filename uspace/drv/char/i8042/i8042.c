@@ -67,8 +67,8 @@
 #define i8042_KBD_TRANSLATE  0x40  /* Use this to switch to XT scancodes */
 
 static void i8042_char_conn(ipc_callid_t, ipc_call_t *, void *);
-static int i8042_read(chardev_srv_t *, void *, size_t, size_t *);
-static int i8042_write(chardev_srv_t *, const void *, size_t, size_t *);
+static errno_t i8042_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t i8042_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t i8042_chardev_ops = {
 	.read = i8042_read,
@@ -128,7 +128,7 @@ static void wait_ready(i8042_t *dev)
 static void i8042_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 {
 	i8042_t *controller = ddf_dev_data_get(dev);
-	int rc;
+	errno_t rc;
 	
 	const uint8_t status = IPC_GET_ARG1(*call);
 	const uint8_t data = IPC_GET_ARG2(*call);
@@ -157,7 +157,7 @@ static void i8042_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
  * @return Error code.
  *
  */
-int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
+errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
     int irq_mouse, ddf_dev_t *ddf_dev)
 {
 	const size_t range_count = sizeof(i8042_ranges) /
@@ -169,7 +169,7 @@ int i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	ddf_fun_t *aux_fun;
 	i8042_regs_t *ar;
 	
-	int rc;
+	errno_t rc;
 	bool kbd_bound = false;
 	bool aux_bound = false;
 	
@@ -349,7 +349,7 @@ error:
  * @return EOK on success or non-zero error code
  *
  */
-static int i8042_write(chardev_srv_t *srv, const void *data, size_t size,
+static errno_t i8042_write(chardev_srv_t *srv, const void *data, size_t size,
     size_t *nwr)
 {
 	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
@@ -384,13 +384,13 @@ static int i8042_write(chardev_srv_t *srv, const void *data, size_t size,
  * @return EOK on success or non-zero error code
  *
  */
-static int i8042_read(chardev_srv_t *srv, void *dest, size_t size,
+static errno_t i8042_read(chardev_srv_t *srv, void *dest, size_t size,
     size_t *nread)
 {
 	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
 	size_t p;
 	uint8_t *destp = (uint8_t *)dest;
-	int rc;
+	errno_t rc;
 	
 	fibril_mutex_lock(&port->buf_lock);
 	

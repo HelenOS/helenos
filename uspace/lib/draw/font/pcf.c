@@ -145,7 +145,7 @@ static int16_t compressed2int(uint8_t compressed)
 	return ret;
 }
 
-static int pcf_resolve_glyph(void *opaque_data, const wchar_t chr,
+static errno_t pcf_resolve_glyph(void *opaque_data, const wchar_t chr,
     glyph_id_t *glyph_id)
 {
 	pcf_data_t *data = (pcf_data_t *) opaque_data;
@@ -182,7 +182,7 @@ static int pcf_resolve_glyph(void *opaque_data, const wchar_t chr,
 	return EOK;
 }
 
-static int load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
+static errno_t load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
     pcf_toc_entry_t *table, pcf_default_metrics_t *metrics)
 {
 	aoff64_t offset;
@@ -252,14 +252,14 @@ static int load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
 	return EOK;
 }
 
-static int pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
+static errno_t pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
     surface_t **out_surface)
 {
 	pcf_data_t *data = (pcf_data_t *) opaque_data;
 	
 	pcf_default_metrics_t pcf_metrics;
 	memset(&pcf_metrics, 0, sizeof(pcf_default_metrics_t));
-	int rc = load_glyph_metrics(data, glyph_id, &data->metrics_table,
+	errno_t rc = load_glyph_metrics(data, glyph_id, &data->metrics_table,
 	    &pcf_metrics);
 	if (rc != EOK)
 		return rc;
@@ -338,14 +338,14 @@ static int pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
 	return EOK;
 }
 
-static int pcf_load_glyph_metrics(void *opaque_data, glyph_id_t glyph_id,
+static errno_t pcf_load_glyph_metrics(void *opaque_data, glyph_id_t glyph_id,
     glyph_metrics_t *gm)
 {
 	pcf_data_t *data = (pcf_data_t *) opaque_data;
 	
 	pcf_default_metrics_t pcf_metrics;
 	memset(&pcf_metrics, 0, sizeof(pcf_default_metrics_t));
-	int rc = load_glyph_metrics(data, glyph_id, &data->metrics_table,
+	errno_t rc = load_glyph_metrics(data, glyph_id, &data->metrics_table,
 	    &pcf_metrics);
 	if (rc != EOK)
 		return rc;
@@ -376,7 +376,7 @@ bitmap_font_decoder_t fd_pcf = {
 	.release = pcf_release
 };
 
-static int pcf_read_toc(pcf_data_t *data)
+static errno_t pcf_read_toc(pcf_data_t *data)
 {
 	int rc = fseek(data->file, 0, SEEK_END);
 	if (rc != 0)
@@ -459,7 +459,7 @@ static int pcf_read_toc(pcf_data_t *data)
 	return EOK;
 }
 
-static int pcf_seek_table_header(pcf_data_t *data, pcf_toc_entry_t *table)
+static errno_t pcf_seek_table_header(pcf_data_t *data, pcf_toc_entry_t *table)
 {
 	uint32_t format;
 	int rc = fseek(data->file, table->offset, SEEK_SET);
@@ -477,9 +477,9 @@ static int pcf_seek_table_header(pcf_data_t *data, pcf_toc_entry_t *table)
 	return EOK;
 }
 
-static int pcf_read_bitmap_table_header(pcf_data_t *data)
+static errno_t pcf_read_bitmap_table_header(pcf_data_t *data)
 {
-	int rc = pcf_seek_table_header(data, &data->bitmap_table);
+	errno_t rc = pcf_seek_table_header(data, &data->bitmap_table);
 	if (rc != EOK)
 		return rc;
 	
@@ -497,9 +497,9 @@ static int pcf_read_bitmap_table_header(pcf_data_t *data)
 	return EOK;
 }
 
-static int pcf_read_metrics_table_header(pcf_data_t *data)
+static errno_t pcf_read_metrics_table_header(pcf_data_t *data)
 {
-	int rc = pcf_seek_table_header(data, &data->metrics_table);
+	errno_t rc = pcf_seek_table_header(data, &data->metrics_table);
 	if (rc != EOK)
 		return rc;
 	
@@ -530,9 +530,9 @@ static int pcf_read_metrics_table_header(pcf_data_t *data)
 	return EOK;
 }
 
-static int pcf_read_encodings_table_header(pcf_data_t *data)
+static errno_t pcf_read_encodings_table_header(pcf_data_t *data)
 {
-	int rc = pcf_seek_table_header(data, &data->encodings_table);
+	errno_t rc = pcf_seek_table_header(data, &data->encodings_table);
 	if (rc != EOK)
 		return rc;
 	
@@ -557,9 +557,9 @@ static int pcf_read_encodings_table_header(pcf_data_t *data)
 	return EOK;
 }
 
-static int pcf_read_accelerators_table(pcf_data_t *data)
+static errno_t pcf_read_accelerators_table(pcf_data_t *data)
 {
-	int rc = pcf_seek_table_header(data, &data->accelerators_table);
+	errno_t rc = pcf_seek_table_header(data, &data->accelerators_table);
 	if (rc != EOK)
 		return rc;
 	
@@ -578,9 +578,9 @@ static int pcf_read_accelerators_table(pcf_data_t *data)
 	return EOK;
 }
 
-int pcf_font_create(font_t **font, char *filename, uint16_t points)
+errno_t pcf_font_create(font_t **font, char *filename, uint16_t points)
 {
-	int rc;
+	errno_t rc;
 	pcf_data_t *data = malloc(sizeof(pcf_data_t));
 	if (data == NULL)
 		return ENOMEM;

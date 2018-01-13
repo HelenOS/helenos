@@ -43,7 +43,7 @@ static size_t get_block_count(size_t bytes) {
 	return (bytes + TAR_BLOCK_SIZE - 1) / TAR_BLOCK_SIZE;
 }
 
-static int skip_blocks(FILE *tarfile, size_t valid_data_size)
+static errno_t skip_blocks(FILE *tarfile, size_t valid_data_size)
 {
 	size_t blocks_to_read = get_block_count(valid_data_size);
 	while (blocks_to_read > 0) {
@@ -57,7 +57,7 @@ static int skip_blocks(FILE *tarfile, size_t valid_data_size)
 	return EOK;
 }
 
-static int handle_normal_file(const tar_header_t *header, FILE *tarfile)
+static errno_t handle_normal_file(const tar_header_t *header, FILE *tarfile)
 {
 	// FIXME: create the directory first
 
@@ -68,7 +68,7 @@ static int handle_normal_file(const tar_header_t *header, FILE *tarfile)
 		return errno;
 	}
 
-	int rc = EOK;
+	errno_t rc = EOK;
 	size_t bytes_remaining = header->size;
 	size_t blocks = get_block_count(bytes_remaining);
 	while (blocks > 0) {
@@ -100,9 +100,9 @@ static int handle_normal_file(const tar_header_t *header, FILE *tarfile)
 	return rc;
 }
 
-static int handle_directory(const tar_header_t *header, FILE *tarfile)
+static errno_t handle_directory(const tar_header_t *header, FILE *tarfile)
 {
-	int rc;
+	errno_t rc;
 
 	rc = vfs_link_path(header->filename, KIND_DIRECTORY, NULL);
 	if (rc != EOK) {
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 		if (header_ok != 1) {
 			break;
 		}
-		int rc = tar_header_parse(&header, &header_raw);
+		errno_t rc = tar_header_parse(&header, &header_raw);
 		if (rc == EEMPTY) {
 			continue;
 		}

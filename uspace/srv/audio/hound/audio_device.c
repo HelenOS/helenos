@@ -50,12 +50,12 @@
 /* hardwired to provide ~21ms per fragment */
 #define BUFFER_PARTS   16
 
-static int device_sink_connection_callback(audio_sink_t *sink, bool new);
-static int device_source_connection_callback(audio_source_t *source, bool new);
+static errno_t device_sink_connection_callback(audio_sink_t *sink, bool new);
+static errno_t device_source_connection_callback(audio_source_t *source, bool new);
 static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg);
-static int device_check_format(audio_sink_t* sink);
-static int get_buffer(audio_device_t *dev);
-static int release_buffer(audio_device_t *dev);
+static errno_t device_check_format(audio_sink_t* sink);
+static errno_t get_buffer(audio_device_t *dev);
+static errno_t release_buffer(audio_device_t *dev);
 static void advance_buffer(audio_device_t *dev, size_t size);
 static inline bool is_running(audio_device_t *dev)
 {
@@ -71,7 +71,7 @@ static inline bool is_running(audio_device_t *dev)
  * @param name Name of the device.
  * @return Error code.
  */
-int audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
+errno_t audio_device_init(audio_device_t *dev, service_id_t id, const char *name)
 {
 	assert(dev);
 	link_initialize(&dev->link);
@@ -121,7 +121,7 @@ audio_source_t * audio_device_get_source(audio_device_t *dev)
 {
 	assert(dev);
 	sysarg_t val;
-	int rc = audio_pcm_query_cap(dev->sess, AUDIO_CAP_CAPTURE, &val);
+	errno_t rc = audio_pcm_query_cap(dev->sess, AUDIO_CAP_CAPTURE, &val);
 	if (rc == EOK && val)
 		return &dev->source;
 	return NULL;
@@ -137,7 +137,7 @@ audio_sink_t * audio_device_get_sink(audio_device_t *dev)
 {
 	assert(dev);
 	sysarg_t val;
-	int rc = audio_pcm_query_cap(dev->sess, AUDIO_CAP_PLAYBACK, &val);
+	errno_t rc = audio_pcm_query_cap(dev->sess, AUDIO_CAP_PLAYBACK, &val);
 	if (rc == EOK && val)
 		return &dev->sink;
 	return NULL;
@@ -152,14 +152,14 @@ audio_sink_t * audio_device_get_sink(audio_device_t *dev)
  * Starts playback on first connection. Stops playback when there are no
  * connections.
  */
-static int device_sink_connection_callback(audio_sink_t* sink, bool new)
+static errno_t device_sink_connection_callback(audio_sink_t* sink, bool new)
 {
 	assert(sink);
 	audio_device_t *dev = sink->private_data;
 	if (new && list_count(&sink->connections) == 1) {
 		log_verbose("First connection on device sink '%s'", sink->name);
 
-		int ret = get_buffer(dev);
+		errno_t ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
 			    str_error(ret));
@@ -195,7 +195,7 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
 		assert(!new);
 		log_verbose("Removed last connection on device sink '%s'",
 		    sink->name);
-		int ret = audio_pcm_stop_playback(dev->sess);
+		errno_t ret = audio_pcm_stop_playback(dev->sess);
 		if (ret != EOK) {
 			log_error("Failed to stop playback: %s",
 			    str_error(ret));
@@ -214,12 +214,12 @@ static int device_sink_connection_callback(audio_sink_t* sink, bool new)
  * Starts capture on first connection. Stops capture when there are no
  * connections.
  */
-static int device_source_connection_callback(audio_source_t *source, bool new)
+static errno_t device_source_connection_callback(audio_source_t *source, bool new)
 {
 	assert(source);
 	audio_device_t *dev = source->private_data;
 	if (new && list_count(&source->connections) == 1) {
-		int ret = get_buffer(dev);
+		errno_t ret = get_buffer(dev);
 		if (ret != EOK) {
 			log_error("Failed to get device buffer: %s",
 			    str_error(ret));
@@ -243,7 +243,7 @@ static int device_source_connection_callback(audio_source_t *source, bool new)
 	}
 	if (list_count(&source->connections) == 0) { /* Disconnected */
 		assert(!new);
-		int ret = audio_pcm_stop_capture_immediate(dev->sess);
+		errno_t ret = audio_pcm_stop_capture_immediate(dev->sess);
 		if (ret != EOK) {
 			log_error("Failed to start recording: %s",
 			    str_error(ret));
@@ -288,7 +288,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		case PCM_EVENT_CAPTURE_TERMINATED: {
 			log_verbose("Capture terminated");
 			dev->source.format = AUDIO_FORMAT_ANY;
-			const int ret = release_buffer(dev);
+			const errno_t ret = release_buffer(dev);
 			if (ret != EOK) {
 				log_error("Failed to release buffer: %s",
 				    str_error(ret));
@@ -299,7 +299,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		case PCM_EVENT_PLAYBACK_TERMINATED: {
 			log_verbose("Playback Terminated");
 			dev->sink.format = AUDIO_FORMAT_ANY;
-			const int ret = release_buffer(dev);
+			const errno_t ret = release_buffer(dev);
 			if (ret != EOK) {
 				log_error("Failed to release buffer: %s",
 				    str_error(ret));
@@ -308,7 +308,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 			break;
 		}
 		case PCM_EVENT_FRAMES_CAPTURED: {
-			const int ret = audio_source_push_data(&dev->source,
+			const errno_t ret = audio_source_push_data(&dev->source,
 			    dev->buffer.position, dev->buffer.fragment_size);
 			advance_buffer(dev, dev->buffer.fragment_size);
 			if (ret != EOK)
@@ -328,7 +328,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
  * @param sink audio playback device.
  * @return Error code.
  */
-static int device_check_format(audio_sink_t* sink)
+static errno_t device_check_format(audio_sink_t* sink)
 {
 	assert(sink);
 	audio_device_t *dev = sink->private_data;
@@ -346,7 +346,7 @@ static int device_check_format(audio_sink_t* sink)
  * @param dev Audio device.
  * @return Error code.
  */
-static int get_buffer(audio_device_t *dev)
+static errno_t get_buffer(audio_device_t *dev)
 {
 	assert(dev);
 	if (!dev->sess) {
@@ -361,7 +361,7 @@ static int get_buffer(audio_device_t *dev)
 	/* Ask for largest buffer possible */
 	size_t preferred_size = 0;
 
-	const int ret = audio_pcm_get_buffer(dev->sess, &dev->buffer.base,
+	const errno_t ret = audio_pcm_get_buffer(dev->sess, &dev->buffer.base,
 	    &preferred_size);
 	if (ret == EOK) {
 		dev->buffer.size = preferred_size;
@@ -377,12 +377,12 @@ static int get_buffer(audio_device_t *dev)
  * @param dev Audio device.
  * @return Error code.
  */
-static int release_buffer(audio_device_t *dev)
+static errno_t release_buffer(audio_device_t *dev)
 {
 	assert(dev);
 	assert(dev->buffer.base);
 
-	const int ret = audio_pcm_release_buffer(dev->sess);
+	const errno_t ret = audio_pcm_release_buffer(dev->sess);
 	if (ret == EOK) {
 		as_area_destroy(dev->buffer.base);
 		dev->buffer.base = NULL;

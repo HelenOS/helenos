@@ -73,9 +73,9 @@ void *as_area_create(void *base, size_t size, unsigned int flags,
  * @return zero on success or a code from @ref errno.h on failure.
  *
  */
-int as_area_resize(void *address, size_t size, unsigned int flags)
+errno_t as_area_resize(void *address, size_t size, unsigned int flags)
 {
-	return (int) __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t) address,
+	return (errno_t) __SYSCALL3(SYS_AS_AREA_RESIZE, (sysarg_t) address,
 	    (sysarg_t) size, (sysarg_t) flags);
 }
 
@@ -87,9 +87,9 @@ int as_area_resize(void *address, size_t size, unsigned int flags)
  * @return zero on success or a code from @ref errno.h on failure.
  *
  */
-int as_area_destroy(void *address)
+errno_t as_area_destroy(void *address)
 {
-	return (int) __SYSCALL1(SYS_AS_AREA_DESTROY, (sysarg_t) address);
+	return (errno_t) __SYSCALL1(SYS_AS_AREA_DESTROY, (sysarg_t) address);
 }
 
 /** Change address-space area flags.
@@ -101,9 +101,9 @@ int as_area_destroy(void *address)
  * @return zero on success or a code from @ref errno.h on failure.
  *
  */
-int as_area_change_flags(void *address, unsigned int flags)
+errno_t as_area_change_flags(void *address, unsigned int flags)
 {
-	return (int) __SYSCALL2(SYS_AS_AREA_CHANGE_FLAGS, (sysarg_t) address,
+	return (errno_t) __SYSCALL2(SYS_AS_AREA_CHANGE_FLAGS, (sysarg_t) address,
 	    (sysarg_t) flags);
 }
 
@@ -116,9 +116,9 @@ int as_area_change_flags(void *address, unsigned int flags)
  * @retval ENOENT if no mapping was found.
  *
  */
-int as_get_physical_mapping(const void *virt, uintptr_t *phys)
+errno_t as_get_physical_mapping(const void *virt, uintptr_t *phys)
 {
-	return (int) __SYSCALL2(SYS_PAGE_FIND_MAPPING, (sysarg_t) virt,
+	return (errno_t) __SYSCALL2(SYS_PAGE_FIND_MAPPING, (sysarg_t) virt,
 	    (sysarg_t) phys);
 }
 

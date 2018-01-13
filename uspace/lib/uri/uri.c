@@ -142,7 +142,7 @@ uri_t *uri_parse(const char *str)
  *               is stored there.
  * @return EOK on success
  */
-int uri_scheme_parse(const char *str, const char **endptr)
+errno_t uri_scheme_parse(const char *str, const char **endptr)
 {
 	if (*str == 0) {
 		*endptr = str;
@@ -174,7 +174,7 @@ bool uri_scheme_validate(const char *str)
 	return *endptr == 0;
 }
 
-int uri_percent_parse(const char *str, const char **endptr,
+errno_t uri_percent_parse(const char *str, const char **endptr,
     uint8_t *decoded)
 {
 	*endptr = str;
@@ -185,7 +185,7 @@ int uri_percent_parse(const char *str, const char **endptr,
 		return EINVAL;
 	
 	if (decoded != NULL) {
-		int rc = str_uint8_t(str + 1, NULL, 16, true, decoded);
+		errno_t rc = str_uint8_t(str + 1, NULL, 16, true, decoded);
 		if (rc != EOK)
 			return rc;
 	}
@@ -194,13 +194,13 @@ int uri_percent_parse(const char *str, const char **endptr,
 	return EOK;
 }
 
-int uri_user_info_parse(const char *str, const char **endptr)
+errno_t uri_user_info_parse(const char *str, const char **endptr)
 {
 	while (*str != 0) {
 		while (is_unreserved(*str) || is_subdelim(*str) || *str == ':') str++;
 		if (*str == 0)
 			break;
-		int rc = uri_percent_parse(str, &str, NULL);
+		errno_t rc = uri_percent_parse(str, &str, NULL);
 		if (rc != EOK) {
 			*endptr = str;
 			return rc;
@@ -219,7 +219,7 @@ bool uri_user_info_validate(const char *str)
 	return *endptr == 0;
 }
 
-int uri_port_parse(const char *str, const char **endptr)
+errno_t uri_port_parse(const char *str, const char **endptr)
 {
 	if (*str == 0)
 		return ELIMIT;

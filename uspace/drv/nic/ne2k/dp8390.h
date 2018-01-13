@@ -264,8 +264,8 @@ typedef struct {
 	uint64_t overruns;   /**< FIFO overruns */
 } ne2k_t;
 
-extern int ne2k_probe(ne2k_t *);
-extern int ne2k_up(ne2k_t *);
+extern errno_t ne2k_probe(ne2k_t *);
+extern errno_t ne2k_up(ne2k_t *);
 extern void ne2k_down(ne2k_t *);
 extern void ne2k_send(nic_t *, void *, size_t);
 extern void ne2k_interrupt(nic_t *, uint8_t, uint8_t);

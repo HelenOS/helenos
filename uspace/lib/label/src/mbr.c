@@ -42,33 +42,33 @@
 #include "std/mbr.h"
 #include "mbr.h"
 
-static int mbr_open(label_bd_t *, label_t **);
-static int mbr_open_ext(label_t *);
-static int mbr_create(label_bd_t *, label_t **);
+static errno_t mbr_open(label_bd_t *, label_t **);
+static errno_t mbr_open_ext(label_t *);
+static errno_t mbr_create(label_bd_t *, label_t **);
 static void mbr_close(label_t *);
-static int mbr_destroy(label_t *);
-static int mbr_get_info(label_t *, label_info_t *);
+static errno_t mbr_destroy(label_t *);
+static errno_t mbr_get_info(label_t *, label_info_t *);
 static label_part_t *mbr_part_first(label_t *);
 static label_part_t *mbr_part_next(label_part_t *);
 static void mbr_part_get_info(label_part_t *, label_part_info_t *);
-static int mbr_part_create(label_t *, label_part_spec_t *, label_part_t **);
-static int mbr_part_destroy(label_part_t *);
-static int mbr_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
+static errno_t mbr_part_create(label_t *, label_part_spec_t *, label_part_t **);
+static errno_t mbr_part_destroy(label_part_t *);
+static errno_t mbr_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
 
-static int mbr_check_free_idx(label_t *, int);
-static int mbr_check_free_pri_range(label_t *, uint64_t, uint64_t);
-static int mbr_check_free_log_range(label_t *, uint64_t, uint64_t, uint64_t);
+static errno_t mbr_check_free_idx(label_t *, int);
+static errno_t mbr_check_free_pri_range(label_t *, uint64_t, uint64_t);
+static errno_t mbr_check_free_log_range(label_t *, uint64_t, uint64_t, uint64_t);
 
 static void mbr_unused_pte(mbr_pte_t *);
-static int mbr_part_to_pte(label_part_t *, mbr_pte_t *);
-static int mbr_pte_to_part(label_t *, mbr_pte_t *, int);
-static int mbr_pte_to_log_part(label_t *, uint64_t, mbr_pte_t *);
+static errno_t mbr_part_to_pte(label_part_t *, mbr_pte_t *);
+static errno_t mbr_pte_to_part(label_t *, mbr_pte_t *, int);
+static errno_t mbr_pte_to_log_part(label_t *, uint64_t, mbr_pte_t *);
 static void mbr_log_part_to_ptes(label_part_t *, mbr_pte_t *, mbr_pte_t *);
-static int mbr_pte_update(label_t *, mbr_pte_t *, int);
-static int mbr_log_part_insert(label_t *, label_part_t *);
-static int mbr_ebr_create(label_t *, label_part_t *);
-static int mbr_ebr_delete(label_t *, label_part_t *);
-static int mbr_ebr_update_next(label_t *, label_part_t *);
+static errno_t mbr_pte_update(label_t *, mbr_pte_t *, int);
+static errno_t mbr_log_part_insert(label_t *, label_part_t *);
+static errno_t mbr_ebr_create(label_t *, label_part_t *);
+static errno_t mbr_ebr_delete(label_t *, label_part_t *);
+static errno_t mbr_ebr_update_next(label_t *, label_part_t *);
 static void mbr_update_log_indices(label_t *);
 
 label_ops_t mbr_label_ops = {
@@ -85,7 +85,7 @@ label_ops_t mbr_label_ops = {
 	.suggest_ptype = mbr_suggest_ptype
 };
 
-static int mbr_open(label_bd_t *bd, label_t **rlabel)
+static errno_t mbr_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	mbr_br_block_t *mbr = NULL;
@@ -95,7 +95,7 @@ static int mbr_open(label_bd_t *bd, label_t **rlabel)
 	size_t bsize;
 	aoff64_t nblocks;
 	uint32_t entry;
-	int rc;
+	errno_t rc;
 
 	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
@@ -201,7 +201,7 @@ error:
 }
 
 /** Open extended partition */
-static int mbr_open_ext(label_t *label)
+static errno_t mbr_open_ext(label_t *label)
 {
 	mbr_br_block_t *ebr = NULL;
 	mbr_pte_t *ethis;
@@ -214,7 +214,7 @@ static int mbr_open_ext(label_t *label)
 	uint64_t pb0;
 	uint64_t pnblocks;
 	uint64_t ep_b0;
-	int rc;
+	errno_t rc;
 
 	ebr = calloc(1, label->block_size);
 	if (ebr == NULL) {
@@ -299,14 +299,14 @@ error:
 	return rc;
 }
 
-static int mbr_create(label_bd_t *bd, label_t **rlabel)
+static errno_t mbr_create(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	mbr_br_block_t *mbr = NULL;
 	aoff64_t nblocks;
 	size_t bsize;
 	int i;
-	int rc;
+	errno_t rc;
 
 	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
@@ -388,11 +388,11 @@ static void mbr_close(label_t *label)
 	free(label);
 }
 
-static int mbr_destroy(label_t *label)
+static errno_t mbr_destroy(label_t *label)
 {
 	mbr_br_block_t *mbr = NULL;
 	label_part_t *part;
-	int rc;
+	errno_t rc;
 
 	part = mbr_part_first(label);
 	if (part != NULL) {
@@ -427,7 +427,7 @@ static bool mbr_can_delete_part(label_t *label)
 	return list_count(&label->parts) > 0;
 }
 
-static int mbr_get_info(label_t *label, label_info_t *linfo)
+static errno_t mbr_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
 	linfo->ltype = lt_mbr;
@@ -545,14 +545,14 @@ static void mbr_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 		pinfo->pkind = lpk_primary;
 }
 
-static int mbr_part_create(label_t *label, label_part_spec_t *pspec,
+static errno_t mbr_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
 	label_part_t *part;
 	label_part_t *prev;
 	label_part_t *next;
 	mbr_pte_t pte;
-	int rc;
+	errno_t rc;
 
 	if (pspec->ptype.fmt != lptf_num)
 		return EINVAL;
@@ -693,13 +693,13 @@ error:
 	return rc;
 }
 
-static int mbr_part_destroy(label_part_t *part)
+static errno_t mbr_part_destroy(label_part_t *part)
 {
 	mbr_pte_t pte;
 	label_part_t *prev;
 	label_part_t *next;
 	uint64_t ep_b0;
-	int rc;
+	errno_t rc;
 
 	if (link_used(&part->lpri)) {
 		/* Primary/extended partition */
@@ -775,7 +775,7 @@ static int mbr_part_destroy(label_part_t *part)
 	return EOK;
 }
 
-static int mbr_suggest_ptype(label_t *label, label_pcnt_t pcnt,
+static errno_t mbr_suggest_ptype(label_t *label, label_pcnt_t pcnt,
     label_ptype_t *ptype)
 {
 	ptype->fmt = lptf_num;
@@ -812,7 +812,7 @@ static bool mbr_overlap(uint64_t a0, uint64_t an, uint64_t b0, uint64_t bn)
 }
 
 /** Verify that the specified index is valid and free. */
-static int mbr_check_free_idx(label_t *label, int index)
+static errno_t mbr_check_free_idx(label_t *label, int index)
 {
 	label_part_t *part;
 
@@ -829,7 +829,7 @@ static int mbr_check_free_idx(label_t *label, int index)
 	return EOK;
 }
 
-static int mbr_check_free_pri_range(label_t *label, uint64_t block0,
+static errno_t mbr_check_free_pri_range(label_t *label, uint64_t block0,
     uint64_t nblocks)
 {
 	label_part_t *part;
@@ -849,7 +849,7 @@ static int mbr_check_free_pri_range(label_t *label, uint64_t block0,
 	return EOK;
 }
 
-static int mbr_check_free_log_range(label_t *label, uint64_t hdr_blocks,
+static errno_t mbr_check_free_log_range(label_t *label, uint64_t hdr_blocks,
     uint64_t block0, uint64_t nblocks)
 {
 	label_part_t *part;
@@ -876,7 +876,7 @@ static void mbr_unused_pte(mbr_pte_t *pte)
 	memset(pte, 0, sizeof(mbr_pte_t));
 }
 
-static int mbr_part_to_pte(label_part_t *part, mbr_pte_t *pte)
+static errno_t mbr_part_to_pte(label_part_t *part, mbr_pte_t *pte)
 {
 	if ((part->block0 >> 32) != 0)
 		return EINVAL;
@@ -892,7 +892,7 @@ static int mbr_part_to_pte(label_part_t *part, mbr_pte_t *pte)
 	return EOK;
 }
 
-static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
+static errno_t mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
 {
 	label_part_t *part;
 	uint32_t block0;
@@ -930,7 +930,7 @@ static int mbr_pte_to_part(label_t *label, mbr_pte_t *pte, int index)
 	return EOK;
 }
 
-static int mbr_pte_to_log_part(label_t *label, uint64_t ebr_b0,
+static errno_t mbr_pte_to_log_part(label_t *label, uint64_t ebr_b0,
     mbr_pte_t *pte)
 {
 	label_part_t *part;
@@ -1008,10 +1008,10 @@ static void mbr_log_part_to_ptes(label_part_t *part, mbr_pte_t *pthis,
  * Replace partition entry at index @a index with the contents of
  * @a pte.
  */
-static int mbr_pte_update(label_t *label, mbr_pte_t *pte, int index)
+static errno_t mbr_pte_update(label_t *label, mbr_pte_t *pte, int index)
 {
 	mbr_br_block_t *br;
-	int rc;
+	errno_t rc;
 
 	br = calloc(1, label->block_size);
 	if (br == NULL)
@@ -1039,7 +1039,7 @@ error:
 }
 
 /** Insert logical partition into logical partition list. */
-static int mbr_log_part_insert(label_t *label, label_part_t *part)
+static errno_t mbr_log_part_insert(label_t *label, label_part_t *part)
 {
 	label_part_t *cur;
 
@@ -1065,11 +1065,11 @@ static int mbr_log_part_insert(label_t *label, label_part_t *part)
  *        EBR for empty partition chain
  * @return EOK on success or non-zero error code
  */
-static int mbr_ebr_create(label_t *label, label_part_t *part)
+static errno_t mbr_ebr_create(label_t *label, label_part_t *part)
 {
 	mbr_br_block_t *br;
 	uint64_t ba;
-	int rc;
+	errno_t rc;
 
 	br = calloc(1, label->block_size);
 	if (br == NULL)
@@ -1098,11 +1098,11 @@ error:
 	return rc;
 }
 
-static int mbr_ebr_delete(label_t *label, label_part_t *part)
+static errno_t mbr_ebr_delete(label_t *label, label_part_t *part)
 {
 	mbr_br_block_t *br;
 	uint64_t ba;
-	int rc;
+	errno_t rc;
 
 	br = calloc(1, label->block_size);
 	if (br == NULL)
@@ -1124,12 +1124,12 @@ error:
 }
 
 /** Update 'next' PTE in EBR of partition. */
-static int mbr_ebr_update_next(label_t *label, label_part_t *part)
+static errno_t mbr_ebr_update_next(label_t *label, label_part_t *part)
 {
 	mbr_br_block_t *br;
 	uint64_t ba;
 	uint16_t sgn;
-	int rc;
+	errno_t rc;
 
 	ba = part->block0 - part->hdr_blocks;
 

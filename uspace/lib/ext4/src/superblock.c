@@ -1126,7 +1126,7 @@ bool ext4_superblock_has_feature_read_only(ext4_superblock_t *sb,
  * @return Eerror code.
  *
  */
-int ext4_superblock_read_direct(service_id_t service_id, ext4_superblock_t **sb)
+errno_t ext4_superblock_read_direct(service_id_t service_id, ext4_superblock_t **sb)
 {
 	/* Allocated memory for superblock structure */
 	void *data = malloc(EXT4_SUPERBLOCK_SIZE);
@@ -1134,7 +1134,7 @@ int ext4_superblock_read_direct(service_id_t service_id, ext4_superblock_t **sb)
 		return ENOMEM;
 	
 	/* Read data from block device */
-	int rc = block_read_bytes_direct(service_id, EXT4_SUPERBLOCK_OFFSET,
+	errno_t rc = block_read_bytes_direct(service_id, EXT4_SUPERBLOCK_OFFSET,
 	    EXT4_SUPERBLOCK_SIZE, data);
 	
 	if (rc != EOK) {
@@ -1156,11 +1156,11 @@ int ext4_superblock_read_direct(service_id_t service_id, ext4_superblock_t **sb)
  * @return Error code
  *
  */
-int ext4_superblock_write_direct(service_id_t service_id, ext4_superblock_t *sb)
+errno_t ext4_superblock_write_direct(service_id_t service_id, ext4_superblock_t *sb)
 {
 	/* Load physical block size from block device */
 	size_t phys_block_size;
-	int rc = block_get_bsize(service_id, &phys_block_size);
+	errno_t rc = block_get_bsize(service_id, &phys_block_size);
 	if (rc != EOK)
 		return rc;
 	
@@ -1198,7 +1198,7 @@ void ext4_superblock_release(ext4_superblock_t *sb)
  * @return Error code
  *
  */
-int ext4_superblock_check_sanity(ext4_superblock_t *sb)
+errno_t ext4_superblock_check_sanity(ext4_superblock_t *sb)
 {
 	if (ext4_superblock_get_magic(sb) != EXT4_SUPERBLOCK_MAGIC)
 		return ENOTSUP;

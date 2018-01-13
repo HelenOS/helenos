@@ -186,7 +186,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	size_t offset = 0, copied_bytes = 0;
 	off64_t file_size = 0, length = 0;
 	aoff64_t pos = 0;
-	int rc;
+	errno_t rc;
 
 	bool reading_stdin = dash_represents_stdin && (str_cmp(fname, "-") == 0);
 	
@@ -195,7 +195,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		/* Allow storing the whole UTF-8 character. */
 		blen = STR_BOUNDS(1);
 	} else {
-		int rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
+		errno_t rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
 		if (rc != EOK) {
 			fd = -1;
 		}
@@ -315,7 +315,7 @@ int cmd_cat(char **argv)
 	bool more = false;
 	bool tailFirst = false;
 	sysarg_t rows, cols;
-	int rc;
+	errno_t rc;
 	
 	/*
 	 * reset global state

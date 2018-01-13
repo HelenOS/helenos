@@ -59,12 +59,12 @@
 static sata_bd_dev_t disk[MAXDISKS];
 static int disk_count;
 
-static int sata_bd_open(bd_srvs_t *, bd_srv_t *);
-static int sata_bd_close(bd_srv_t *);
-static int sata_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
-static int sata_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
-static int sata_bd_get_block_size(bd_srv_t *, size_t *);
-static int sata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t sata_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t sata_bd_close(bd_srv_t *);
+static errno_t sata_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static errno_t sata_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static errno_t sata_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t sata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 static bd_ops_t sata_bd_ops = {
 	.open = sata_bd_open,
@@ -87,12 +87,12 @@ static sata_bd_dev_t *bd_srv_sata(bd_srv_t *bd)
  *  @return EOK if succeed, error code otherwise.
  *
  */
-static int scan_device_tree(devman_handle_t funh)
+static errno_t scan_device_tree(devman_handle_t funh)
 {
 	devman_handle_t devh;
 	devman_handle_t *cfuns;
 	size_t count, i;
-	int rc;
+	errno_t rc;
 		
 	/* If device is SATA, add device to the disk array. */
 	disk[disk_count].sess = ahci_get_sess(funh, &disk[disk_count].dev_name);
@@ -147,10 +147,10 @@ static int scan_device_tree(devman_handle_t funh)
  *  @return EOK if succeed, error code otherwise.
  *
  */
-static int get_sata_disks(void)
+static errno_t get_sata_disks(void)
 {
 	devman_handle_t root_fun;
-	int rc;
+	errno_t rc;
 	
 	disk_count = 0;
 
@@ -189,19 +189,19 @@ static void sata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Open device. */
-static int sata_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+static errno_t sata_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Close device. */
-static int sata_bd_close(bd_srv_t *bd)
+static errno_t sata_bd_close(bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Read blocks from partition. */
-static int sata_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+static errno_t sata_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
     size_t size)
 {
 	sata_bd_dev_t *sbd = bd_srv_sata(bd);
@@ -213,7 +213,7 @@ static int sata_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
 }
 
 /** Write blocks to partition. */
-static int sata_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+static errno_t sata_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	sata_bd_dev_t *sbd = bd_srv_sata(bd);
@@ -225,7 +225,7 @@ static int sata_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 }
 
 /** Get device block size. */
-static int sata_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+static errno_t sata_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	sata_bd_dev_t *sbd = bd_srv_sata(bd);
 
@@ -234,7 +234,7 @@ static int sata_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 }
 
 /** Get number of blocks on device. */
-static int sata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+static errno_t sata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	sata_bd_dev_t *sbd = bd_srv_sata(bd);
 
@@ -245,7 +245,7 @@ static int sata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 
 int main(int argc, char **argv)
 {
-	int rc;
+	errno_t rc;
 	category_id_t disk_cat;
 	
 	async_set_fallback_port_handler(sata_bd_connection, NULL);

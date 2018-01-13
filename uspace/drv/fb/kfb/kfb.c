@@ -39,7 +39,7 @@
 #include "port.h"
 #include "kfb.h"
 
-static int kgraph_dev_add(ddf_dev_t *dev)
+static errno_t kgraph_dev_add(ddf_dev_t *dev)
 {
 	port_init(dev);
 	printf("%s: Accepting connections\n", NAME);

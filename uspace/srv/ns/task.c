@@ -150,7 +150,7 @@ typedef struct {
 
 static list_t pending_wait;
 
-int task_init(void)
+errno_t task_init(void)
 {
 	if (!hash_table_create(&task_hash_table, 0, 0, &task_hash_table_ops)) {
 		printf(NAME ": No memory available for tasks\n");
@@ -224,7 +224,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 	list_append(&pr->link, &pending_wait);
 }
 
-int ns_task_id_intro(ipc_call_t *call)
+errno_t ns_task_id_intro(ipc_call_t *call)
 {
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 	
@@ -263,7 +263,7 @@ int ns_task_id_intro(ipc_call_t *call)
 	return EOK;
 }
 
-static int get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
+static errno_t get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
 {
 	ht_link_t *link = hash_table_find(&phone_to_id, &phone_hash);
 	if (link == NULL)
@@ -275,7 +275,7 @@ static int get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
 	return EOK;
 }
 
-int ns_task_retval(ipc_call_t *call)
+errno_t ns_task_retval(ipc_call_t *call)
 {
 	task_id_t id = call->in_task_id;
 	
@@ -295,10 +295,10 @@ int ns_task_retval(ipc_call_t *call)
 	return EOK;
 }
 
-int ns_task_disconnect(ipc_call_t *call)
+errno_t ns_task_disconnect(ipc_call_t *call)
 {
 	task_id_t id;
-	int rc = get_id_by_phone(call->in_phone_hash, &id);
+	errno_t rc = get_id_by_phone(call->in_phone_hash, &id);
 	if (rc != EOK)
 		return rc;
 	

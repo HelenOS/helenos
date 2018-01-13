@@ -113,7 +113,7 @@ char *os_str_aslice(const char *str, size_t start, size_t length)
  * @param b	Second string
  * @return	Zero if equal, nonzero if not equal
  */
-int os_str_cmp(const char *a, const char *b)
+errno_t os_str_cmp(const char *a, const char *b)
 {
 	return strcmp(a, b);
 }
@@ -146,7 +146,7 @@ char *os_str_dup(const char *str)
  * @return		EOK on success, EINVAL if index is out of bounds,
  *			EIO on decoding error.
  */
-int os_str_get_char(const char *str, int index, int *out_char)
+errno_t os_str_get_char(const char *str, int index, int *out_char)
 {
 	size_t len;
 
@@ -192,7 +192,7 @@ void os_input_disp_help(void)
  *
  * @param ptr	Place to store pointer to new string.
  */
-int os_input_line(const char *prompt, char **ptr)
+errno_t os_input_line(const char *prompt, char **ptr)
 {
 	printf("%s", prompt);
 
@@ -213,7 +213,7 @@ int os_input_line(const char *prompt, char **ptr)
  * @param cmd	Command and arguments (NULL-terminated list of strings.)
  *		Command is present just one, not duplicated.
  */
-int os_exec(char *const cmd[])
+errno_t os_exec(char *const cmd[])
 {
 	pid_t pid;
 	int status;

@@ -93,10 +93,10 @@ static const irq_cmd_t uhci_irq_commands[] = {
 };
 
 static void hc_init_hw(const hc_t *instance);
-static int hc_init_mem_structures(hc_t *instance);
-static int hc_init_transfer_lists(hc_t *instance);
+static errno_t hc_init_mem_structures(hc_t *instance);
+static errno_t hc_init_transfer_lists(hc_t *instance);
 
-static int hc_debug_checker(void *arg);
+static errno_t hc_debug_checker(void *arg);
 
 
 /** Generate IRQ code.
@@ -106,7 +106,7 @@ static int hc_debug_checker(void *arg);
  *
  * @return Error code.
  */
-int uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq)
+errno_t uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -215,7 +215,7 @@ void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
+errno_t hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 {
 	assert(instance);
 	assert(hw_res);
@@ -227,7 +227,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
-	int ret = pio_enable_range(&hw_res->io_ranges.ranges[0],
+	errno_t ret = pio_enable_range(&hw_res->io_ranges.ranges[0],
 	    (void **) &instance->registers);
 	if (ret != EOK) {
 		usb_log_error("Failed to gain access to registers: %s.\n",
@@ -317,7 +317,7 @@ void hc_init_hw(const hc_t *instance)
  *  - transfer lists (queue heads need to be accessible by the hw)
  *  - frame list page (needs to be one UHCI hw accessible 4K page)
  */
-int hc_init_mem_structures(hc_t *instance)
+errno_t hc_init_mem_structures(hc_t *instance)
 {
 	assert(instance);
 
@@ -329,7 +329,7 @@ int hc_init_mem_structures(hc_t *instance)
 	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
 
 	/* Init transfer lists */
-	int ret = hc_init_transfer_lists(instance);
+	errno_t ret = hc_init_transfer_lists(instance);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize transfer lists.\n");
 		return_page(instance->frame_list);
@@ -358,12 +358,12 @@ int hc_init_mem_structures(hc_t *instance)
  * Initializes transfer lists and sets them in one chain to support proper
  * USB scheduling. Sets pointer table for quick access.
  */
-int hc_init_transfer_lists(hc_t *instance)
+errno_t hc_init_transfer_lists(hc_t *instance)
 {
 	assert(instance);
 #define SETUP_TRANSFER_LIST(type, name) \
 do { \
-	int ret = transfer_list_init(&instance->transfers_##type, name); \
+	errno_t ret = transfer_list_init(&instance->transfers_##type, name); \
 	if (ret != EOK) { \
 		usb_log_error("Failed to setup %s transfer list: %s.\n", \
 		    name, str_error(ret)); \
@@ -410,7 +410,7 @@ do { \
 	return EOK;
 }
 
-int uhci_hc_status(hcd_t *hcd, uint32_t *status)
+errno_t uhci_hc_status(hcd_t *hcd, uint32_t *status)
 {
 	assert(hcd);
 	assert(status);
@@ -434,7 +434,7 @@ int uhci_hc_status(hcd_t *hcd, uint32_t *status)
  *
  * Checks for bandwidth availability and appends the batch to the proper queue.
  */
-int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+errno_t uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
 	hc_t *instance = hcd_get_driver_data(hcd);
@@ -463,7 +463,7 @@ int uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
  * @param[in] arg UHCI structure to use.
  * @return EOK (should never return)
  */
-int hc_debug_checker(void *arg)
+errno_t hc_debug_checker(void *arg)
 {
 	hc_t *instance = arg;
 	assert(instance);

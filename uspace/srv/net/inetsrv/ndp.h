@@ -62,7 +62,7 @@ typedef struct {
 	addr128_t solicited_ip;
 } ndp_packet_t;
 
-extern int ndp_received(inet_dgram_t *);
-extern int ndp_translate(addr128_t, addr128_t, addr48_t, inet_link_t *);
+extern errno_t ndp_received(inet_dgram_t *);
+extern errno_t ndp_translate(addr128_t, addr128_t, addr48_t, inet_link_t *);
 
 #endif

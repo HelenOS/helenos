@@ -145,8 +145,8 @@ extern aid_t async_send_fast(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
 extern aid_t async_send_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
-extern void async_wait_for(aid_t, int *);
-extern int async_wait_timeout(aid_t, int *, suseconds_t);
+extern void async_wait_for(aid_t, errno_t *);
+extern errno_t async_wait_timeout(aid_t, errno_t *, suseconds_t);
 extern void async_forget(aid_t);
 
 extern void async_usleep(suseconds_t);
@@ -161,24 +161,24 @@ extern void *async_get_client_data(void);
 extern void *async_get_client_data_by_id(task_id_t);
 extern void async_put_client_data_by_id(task_id_t);
 
-extern int async_create_port(iface_t, async_port_handler_t, void *,
+extern errno_t async_create_port(iface_t, async_port_handler_t, void *,
     port_id_t *);
 extern void async_set_fallback_port_handler(async_port_handler_t, void *);
-extern int async_create_callback_port(async_exch_t *, iface_t, sysarg_t,
+extern errno_t async_create_callback_port(async_exch_t *, iface_t, sysarg_t,
     sysarg_t, async_port_handler_t, void *, port_id_t *);
 
-extern int async_irq_subscribe(int, async_notification_handler_t, void *,
+extern errno_t async_irq_subscribe(int, async_notification_handler_t, void *,
     const irq_code_t *, cap_handle_t *);
-extern int async_irq_unsubscribe(cap_handle_t);
+extern errno_t async_irq_unsubscribe(cap_handle_t);
 
-extern int async_event_subscribe(event_type_t, async_notification_handler_t,
+extern errno_t async_event_subscribe(event_type_t, async_notification_handler_t,
     void *);
-extern int async_event_task_subscribe(event_task_type_t,
+extern errno_t async_event_task_subscribe(event_task_type_t,
     async_notification_handler_t, void *);
-extern int async_event_unsubscribe(event_type_t);
-extern int async_event_task_unsubscribe(event_task_type_t);
-extern int async_event_unmask(event_type_t);
-extern int async_event_task_unmask(event_task_type_t);
+extern errno_t async_event_unsubscribe(event_type_t);
+extern errno_t async_event_task_unsubscribe(event_task_type_t);
+extern errno_t async_event_unmask(event_type_t);
+extern errno_t async_event_task_unmask(event_task_type_t);
 
 /*
  * Wrappers for simple communication.
@@ -197,23 +197,23 @@ extern void async_msg_5(async_exch_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
  * Wrappers for answer routines.
  */
 
-extern int async_answer_0(cap_handle_t, int);
-extern int async_answer_1(cap_handle_t, int, sysarg_t);
-extern int async_answer_2(cap_handle_t, int, sysarg_t, sysarg_t);
-extern int async_answer_3(cap_handle_t, int, sysarg_t, sysarg_t,
+extern errno_t async_answer_0(cap_handle_t, errno_t);
+extern errno_t async_answer_1(cap_handle_t, errno_t, sysarg_t);
+extern errno_t async_answer_2(cap_handle_t, errno_t, sysarg_t, sysarg_t);
+extern errno_t async_answer_3(cap_handle_t, errno_t, sysarg_t, sysarg_t,
     sysarg_t);
-extern int async_answer_4(cap_handle_t, int, sysarg_t, sysarg_t,
+extern errno_t async_answer_4(cap_handle_t, errno_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
-extern int async_answer_5(cap_handle_t, int, sysarg_t, sysarg_t,
+extern errno_t async_answer_5(cap_handle_t, errno_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
 /*
  * Wrappers for forwarding routines.
  */
 
-extern int async_forward_fast(cap_handle_t, async_exch_t *, sysarg_t, sysarg_t,
+extern errno_t async_forward_fast(cap_handle_t, async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, unsigned int);
-extern int async_forward_slow(cap_handle_t, async_exch_t *, sysarg_t, sysarg_t,
+extern errno_t async_forward_slow(cap_handle_t, async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
 /*
@@ -337,10 +337,10 @@ extern int async_forward_slow(cap_handle_t, async_exch_t *, sysarg_t, sysarg_t,
 	async_req_slow(exch, method, arg1, arg2, arg3, arg4, arg5, rc1, rc2, \
 	    rc3, rc4, rc5)
 
-extern int async_req_fast(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+extern errno_t async_req_fast(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *);
-extern int async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
+extern errno_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *, sysarg_t *);
 
@@ -354,9 +354,9 @@ extern async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *, iface_t,
     sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_kbox(task_id_t);
 
-extern int async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t);
+extern errno_t async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t);
 
-extern int async_hangup(async_sess_t *);
+extern errno_t async_hangup(async_sess_t *);
 extern void async_poke(void);
 
 extern async_exch_t *async_exchange_begin(async_sess_t *);
@@ -381,14 +381,14 @@ void async_sess_args_set(async_sess_t *sess, sysarg_t, sysarg_t, sysarg_t);
 #define async_share_in_start_1_1(exch, size, arg, flags, dst) \
 	async_share_in_start(exch, size, arg, flags, dst)
 
-extern int async_share_in_start(async_exch_t *, size_t, sysarg_t,
+extern errno_t async_share_in_start(async_exch_t *, size_t, sysarg_t,
     unsigned int *, void **);
 extern bool async_share_in_receive(cap_handle_t *, size_t *);
-extern int async_share_in_finalize(cap_handle_t, void *, unsigned int);
+extern errno_t async_share_in_finalize(cap_handle_t, void *, unsigned int);
 
-extern int async_share_out_start(async_exch_t *, void *, unsigned int);
+extern errno_t async_share_out_start(async_exch_t *, void *, unsigned int);
 extern bool async_share_out_receive(cap_handle_t *, size_t *, unsigned int *);
-extern int async_share_out_finalize(cap_handle_t, void **);
+extern errno_t async_share_out_finalize(cap_handle_t, void **);
 
 /*
  * User-friendly wrappers for async_data_read_forward_fast().
@@ -421,12 +421,12 @@ extern int async_share_out_finalize(cap_handle_t, void **);
 	    answer)
 
 extern aid_t async_data_read(async_exch_t *, void *, size_t, ipc_call_t *);
-extern int async_data_read_start(async_exch_t *, void *, size_t);
+extern errno_t async_data_read_start(async_exch_t *, void *, size_t);
 extern bool async_data_read_receive(cap_handle_t *, size_t *);
 extern bool async_data_read_receive_call(cap_handle_t *, ipc_call_t *, size_t *);
-extern int async_data_read_finalize(cap_handle_t, const void *, size_t);
+extern errno_t async_data_read_finalize(cap_handle_t, const void *, size_t);
 
-extern int async_data_read_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
+extern errno_t async_data_read_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
 /*
@@ -460,26 +460,26 @@ extern int async_data_read_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
 	async_data_write_forward_fast(exch, method, arg1, arg2, arg3, arg4, \
 	    answer)
 
-extern int async_data_write_start(async_exch_t *, const void *, size_t);
+extern errno_t async_data_write_start(async_exch_t *, const void *, size_t);
 extern bool async_data_write_receive(cap_handle_t *, size_t *);
 extern bool async_data_write_receive_call(cap_handle_t *, ipc_call_t *, size_t *);
-extern int async_data_write_finalize(cap_handle_t, void *, size_t);
+extern errno_t async_data_write_finalize(cap_handle_t, void *, size_t);
 
-extern int async_data_write_accept(void **, const bool, const size_t,
+extern errno_t async_data_write_accept(void **, const bool, const size_t,
     const size_t, const size_t, size_t *);
-extern void async_data_write_void(int);
+extern void async_data_write_void(errno_t);
 
-extern int async_data_write_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
+extern errno_t async_data_write_forward_fast(async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
 extern async_sess_t *async_callback_receive(exch_mgmt_t);
 extern async_sess_t *async_callback_receive_start(exch_mgmt_t, ipc_call_t *);
 
-extern int async_state_change_start(async_exch_t *, sysarg_t, sysarg_t,
+extern errno_t async_state_change_start(async_exch_t *, sysarg_t, sysarg_t,
     sysarg_t, async_exch_t *);
 extern bool async_state_change_receive(cap_handle_t *, sysarg_t *, sysarg_t *,
     sysarg_t *);
-extern int async_state_change_finalize(cap_handle_t, async_exch_t *);
+extern errno_t async_state_change_finalize(cap_handle_t, async_exch_t *);
 
 extern void *async_remote_state_acquire(async_sess_t *);
 extern void async_remote_state_update(async_sess_t *, void *);

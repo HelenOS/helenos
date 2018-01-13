@@ -52,7 +52,7 @@
 static void print_usb_device(devman_handle_t handle)
 {
 	char path[MAX_PATH_LENGTH];
-	int rc = devman_fun_get_path(handle, path, MAX_PATH_LENGTH);
+	errno_t rc = devman_fun_get_path(handle, path, MAX_PATH_LENGTH);
 	if (rc != EOK) {
 		printf(NAME "Failed to get path for device %"PRIun"\n", handle);
 		return;
@@ -63,7 +63,7 @@ static void print_usb_device(devman_handle_t handle)
 static void print_usb_bus(service_id_t svc)
 {
 	devman_handle_t hc_handle = 0;
-	int rc = devman_fun_sid_to_handle(svc, &hc_handle);
+	errno_t rc = devman_fun_sid_to_handle(svc, &hc_handle);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving handle of HC with SID %"
 		    PRIun ", skipping.\n", svc);
@@ -132,7 +132,7 @@ void list(void)
 	category_id_t usbhc_cat;
 	service_id_t *svcs;
 	size_t count;
-	int rc;
+	errno_t rc;
 
 	rc = loc_category_get_id(USB_HC_CATEGORY, &usbhc_cat, 0);
 	if (rc != EOK) {

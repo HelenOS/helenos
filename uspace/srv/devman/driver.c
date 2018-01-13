@@ -282,7 +282,7 @@ void detach_driver(dev_tree_t *tree, dev_node_t *dev)
  */
 bool start_driver(driver_t *drv)
 {
-	int rc;
+	errno_t rc;
 
 	assert(fibril_mutex_is_locked(&drv->driver_mutex));
 	
@@ -305,10 +305,10 @@ bool start_driver(driver_t *drv)
  * @return		True if the driver's task is successfully spawned, false
  *			otherwise.
  */
-int stop_driver(driver_t *drv)
+errno_t stop_driver(driver_t *drv)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "stop_driver(drv=\"%s\")", drv->name);
 
@@ -590,7 +590,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	    parent_handle, &answer);
 	
 	/* Send the device name to the driver. */
-	int rc = async_data_write_start(exch, dev->pfun->name,
+	errno_t rc = async_data_write_start(exch, dev->pfun->name,
 	    str_size(dev->pfun->name) + 1);
 	
 	async_exchange_end(exch);
@@ -617,10 +617,10 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	dev->passed_to_driver = true;
 }
 
-int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
+errno_t driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	driver_t *drv;
 	devman_handle_t handle;
 	
@@ -640,10 +640,10 @@ int driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 	return retval;
 }
 
-int driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
+errno_t driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	driver_t *drv;
 	devman_handle_t handle;
 	
@@ -663,10 +663,10 @@ int driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
 	return retval;
 }
 
-int driver_fun_online(dev_tree_t *tree, fun_node_t *fun)
+errno_t driver_fun_online(dev_tree_t *tree, fun_node_t *fun)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	driver_t *drv;
 	devman_handle_t handle;
 	
@@ -691,10 +691,10 @@ int driver_fun_online(dev_tree_t *tree, fun_node_t *fun)
 	return retval;
 }
 
-int driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
+errno_t driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	driver_t *drv;
 	devman_handle_t handle;
 	
@@ -720,7 +720,7 @@ int driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
 }
 
 /** Get list of registered drivers. */
-int driver_get_list(driver_list_t *driver_list, devman_handle_t *hdl_buf,
+errno_t driver_get_list(driver_list_t *driver_list, devman_handle_t *hdl_buf,
     size_t buf_size, size_t *act_size)
 {
 	size_t act_cnt;
@@ -752,7 +752,7 @@ int driver_get_list(driver_list_t *driver_list, devman_handle_t *hdl_buf,
 }
 
 /** Get list of device functions. */
-int driver_get_devices(driver_t *driver, devman_handle_t *hdl_buf,
+errno_t driver_get_devices(driver_t *driver, devman_handle_t *hdl_buf,
     size_t buf_size, size_t *act_size)
 {
 	size_t act_cnt;

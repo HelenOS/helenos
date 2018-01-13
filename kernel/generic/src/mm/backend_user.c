@@ -125,7 +125,7 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	IPC_SET_ARG4(data, pager_info->id2);
 	IPC_SET_ARG5(data, pager_info->id3);
 
-	int rc = ipc_req_internal(pager_info->pager, &data, (sysarg_t) true);
+	errno_t rc = ipc_req_internal(pager_info->pager, &data, (sysarg_t) true);
 
 	if (rc != EOK) {
 		log(LF_USPACE, LVL_FATAL,

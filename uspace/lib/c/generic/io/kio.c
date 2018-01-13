@@ -42,9 +42,9 @@
 #include <io/kio.h>
 #include <io/printf_core.h>
 
-int kio_write(const void *buf, size_t size, size_t *nwritten)
+errno_t kio_write(const void *buf, size_t size, size_t *nwritten)
 {
-	int rc = (int) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) buf, size);
+	errno_t rc = (errno_t) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) buf, size);
 	
 	if (rc == EOK)
 		*nwritten = size;

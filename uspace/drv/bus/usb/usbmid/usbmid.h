@@ -61,12 +61,12 @@ typedef struct usb_mid {
 	list_t interface_list;
 } usb_mid_t;
 
-extern int usbmid_explore_device(usb_device_t *);
-extern int usbmid_spawn_interface_child(usb_device_t *, usbmid_interface_t **,
+extern errno_t usbmid_explore_device(usb_device_t *);
+extern errno_t usbmid_spawn_interface_child(usb_device_t *, usbmid_interface_t **,
     const usb_standard_device_descriptor_t *,
     const usb_standard_interface_descriptor_t *);
 extern void usbmid_dump_descriptors(uint8_t *, size_t);
-extern int usbmid_interface_destroy(usbmid_interface_t *mid_iface);
+extern errno_t usbmid_interface_destroy(usbmid_interface_t *mid_iface);
 
 static inline usbmid_interface_t * usbmid_interface_from_link(link_t *item)
 {

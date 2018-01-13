@@ -47,11 +47,11 @@
  * @return     EOK on success, ENOMEM if out of memory, EIO if service
  *             cannot be contacted.
  */
-int vol_create(vol_t **rvol)
+errno_t vol_create(vol_t **rvol)
 {
 	vol_t *vol;
 	service_id_t vol_svcid;
-	int rc;
+	errno_t rc;
 
 	vol = calloc(1, sizeof(vol_t));
 	if (vol == NULL) {
@@ -102,14 +102,14 @@ void vol_destroy(vol_t *vol)
  *
  * @return EOK on success or an error code.
  */
-static int vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
+static errno_t vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
     sysarg_t *id_buf, size_t buf_size, size_t *act_size)
 {
 	async_exch_t *exch = async_exchange_begin(vol->sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, arg1, &answer);
-	int rc = async_data_read_start(exch, id_buf, buf_size);
+	errno_t rc = async_data_read_start(exch, id_buf, buf_size);
 
 	async_exchange_end(exch);
 
@@ -118,7 +118,7 @@ static int vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
@@ -140,14 +140,14 @@ static int vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
  * @param count  Place to store number of IDs
  * @return       EOK on success or an error code
  */
-static int vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
+static errno_t vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
     sysarg_t **data, size_t *count)
 {
 	*data = NULL;
 	*count = 0;
 
 	size_t act_size = 0;
-	int rc = vol_get_ids_once(vol, method, arg1, NULL, 0, &act_size);
+	errno_t rc = vol_get_ids_once(vol, method, arg1, NULL, 0, &act_size);
 	if (rc != EOK)
 		return rc;
 
@@ -184,7 +184,7 @@ static int vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
  *
  * @return EOK on success or an error code
  */
-int vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
+errno_t vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
 {
 	return vol_get_ids_internal(vol, VOL_GET_PARTS, 0, data, count);
 }
@@ -195,10 +195,10 @@ int vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
  * the dummy partition is created), it can take some (unknown) time
  * until it is discovered.
  */
-int vol_part_add(vol_t *vol, service_id_t sid)
+errno_t vol_part_add(vol_t *vol, service_id_t sid)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 
 	exch = async_exchange_begin(vol->sess);
 	retval = async_req_1_0(exch, VOL_PART_ADD, sid);
@@ -211,15 +211,15 @@ int vol_part_add(vol_t *vol, service_id_t sid)
 }
 
 /** Get partition information. */
-int vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
+errno_t vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(vol->sess);
 	aid_t req = async_send_1(exch, VOL_PART_INFO, sid, &answer);
-	int rc = async_data_read_start(exch, vinfo, sizeof(vol_part_info_t));
+	errno_t rc = async_data_read_start(exch, vinfo, sizeof(vol_part_info_t));
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -236,10 +236,10 @@ int vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 
 /** Erase partition (to the extent where we will consider it not containing
  * a file system. */
-int vol_part_empty(vol_t *vol, service_id_t sid)
+errno_t vol_part_empty(vol_t *vol, service_id_t sid)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 
 	exch = async_exchange_begin(vol->sess);
 	retval = async_req_1_0(exch, VOL_PART_EMPTY, sid);
@@ -252,16 +252,16 @@ int vol_part_empty(vol_t *vol, service_id_t sid)
 }
 
 /** Get volume label support. */
-int vol_part_get_lsupp(vol_t *vol, vol_fstype_t fstype,
+errno_t vol_part_get_lsupp(vol_t *vol, vol_fstype_t fstype,
     vol_label_supp_t *vlsupp)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(vol->sess);
 	aid_t req = async_send_1(exch, VOL_PART_LSUPP, fstype, &answer);
-	int rc = async_data_read_start(exch, vlsupp, sizeof(vol_label_supp_t));
+	errno_t rc = async_data_read_start(exch, vlsupp, sizeof(vol_label_supp_t));
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -277,12 +277,12 @@ int vol_part_get_lsupp(vol_t *vol, vol_fstype_t fstype,
 }
 
 /** Create file system. */
-int vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
+errno_t vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
     const char *label)
 {
 	async_exch_t *exch;
 	ipc_call_t answer;
-	int retval;
+	errno_t retval;
 
 	exch = async_exchange_begin(vol->sess);
 	aid_t req = async_send_2(exch, VOL_PART_MKFS, sid, fstype, &answer);

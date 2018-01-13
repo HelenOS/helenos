@@ -35,11 +35,11 @@
 
 #include "udf.h"
 
-extern int udf_idx_init(void);
-extern int udf_idx_fini(void);
-extern int udf_idx_get(udf_node_t **, udf_instance_t *, fs_index_t);
-extern int udf_idx_add(udf_node_t **, udf_instance_t *, fs_index_t);
-extern int udf_idx_del(udf_node_t *);
+extern errno_t udf_idx_init(void);
+extern errno_t udf_idx_fini(void);
+extern errno_t udf_idx_get(udf_node_t **, udf_instance_t *, fs_index_t);
+extern errno_t udf_idx_add(udf_node_t **, udf_instance_t *, fs_index_t);
+extern errno_t udf_idx_del(udf_node_t *);
 
 #endif /* UDF_IDX_H_ */
 

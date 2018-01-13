@@ -116,7 +116,7 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
  * @retval EOK if the routine has finished.
  * @retval EINVAL if no argument is supplied.
  */
-int usb_kbd_repeat_fibril(void *arg)
+errno_t usb_kbd_repeat_fibril(void *arg)
 {
 	usb_log_debug("Autorepeat fibril spawned.\n");
 

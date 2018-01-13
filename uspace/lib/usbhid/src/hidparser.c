@@ -126,7 +126,7 @@ size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
  * @param data Data for the report.
  * @return Error code.
  */ 
-int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, 
+errno_t usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, 
     size_t size, uint8_t *report_id)
 {
 	usb_hid_report_description_t *report_des;
@@ -333,7 +333,7 @@ void usb_hid_report_output_free(uint8_t *output)
  * @param size Size of output buffer
  * @return Error code
  */
-int usb_hid_report_output_translate(usb_hid_report_t *report, 
+errno_t usb_hid_report_output_translate(usb_hid_report_t *report, 
     uint8_t report_id, uint8_t *buffer, size_t size)
 {
 	int32_t value = 0;

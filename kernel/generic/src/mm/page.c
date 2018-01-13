@@ -189,7 +189,7 @@ void page_mapping_make_global(uintptr_t base, size_t size)
 	return page_mapping_operations->mapping_make_global(base, size);
 }
 
-int page_find_mapping(uintptr_t virt, uintptr_t *phys)
+errno_t page_find_mapping(uintptr_t virt, uintptr_t *phys)
 {
 	page_table_lock(AS, true);
 	
@@ -214,15 +214,15 @@ int page_find_mapping(uintptr_t virt, uintptr_t *phys)
  * @return ENOENT if no virtual address mapping found.
  *
  */
-sysarg_t sys_page_find_mapping(uintptr_t virt, uintptr_t *phys_ptr)
+sys_errno_t sys_page_find_mapping(uintptr_t virt, uintptr_t *phys_ptr)
 {
 	uintptr_t phys;
-	int rc = page_find_mapping(virt, &phys);
+	errno_t rc = page_find_mapping(virt, &phys);
 	if (rc != EOK)
 		return rc;
 	
 	rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
-	return (sysarg_t) rc;
+	return (sys_errno_t) rc;
 }
 
 /** @}

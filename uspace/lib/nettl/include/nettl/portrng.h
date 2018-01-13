@@ -57,11 +57,11 @@ typedef enum {
 	pf_allow_system = 0x1
 } portrng_flags_t;
 
-extern int portrng_create(portrng_t **);
+extern errno_t portrng_create(portrng_t **);
 extern void portrng_destroy(portrng_t *);
-extern int portrng_alloc(portrng_t *, uint16_t, void *,
+extern errno_t portrng_alloc(portrng_t *, uint16_t, void *,
     portrng_flags_t, uint16_t *);
-extern int portrng_find_port(portrng_t *, uint16_t, void **);
+extern errno_t portrng_find_port(portrng_t *, uint16_t, void **);
 extern void portrng_free_port(portrng_t *, uint16_t);
 extern bool portrng_empty(portrng_t *);
 

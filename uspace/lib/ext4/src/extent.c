@@ -371,10 +371,10 @@ static void ext4_extent_binsearch(ext4_extent_header_t *header,
  * @return Error code
  *
  */
-int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock,
+errno_t ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock,
     uint32_t *fblock)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	/* Compute bound defined by i-node size */
 	uint64_t inode_size =
 	    ext4_inode_get_size(inode_ref->fs->superblock, inode_ref->inode);
@@ -453,7 +453,7 @@ int ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock,
  * @return Error code
  *
  */
-static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref, uint32_t iblock,
+static errno_t ext4_extent_find_extent(ext4_inode_ref_t *inode_ref, uint32_t iblock,
     ext4_extent_path_t **ret_path)
 {
 	ext4_extent_header_t *eh =
@@ -474,7 +474,7 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref, uint32_t iblock,
 	
 	/* Walk through the extent tree */
 	uint16_t pos = 0;
-	int rc;
+	errno_t rc;
 	while (ext4_extent_header_get_depth(eh) != 0) {
 		/* Search index in index node by iblock */
 		ext4_extent_binsearch_idx(tmp_path[pos].header,
@@ -514,7 +514,7 @@ static int ext4_extent_find_extent(ext4_inode_ref_t *inode_ref, uint32_t iblock,
 cleanup:
 	;
 
-	int rc2 = EOK;
+	errno_t rc2 = EOK;
 
 	/*
 	 * Put loaded blocks
@@ -542,7 +542,7 @@ cleanup:
  * @return Error code
  *
  */
-static int ext4_extent_release(ext4_inode_ref_t *inode_ref,
+static errno_t ext4_extent_release(ext4_inode_ref_t *inode_ref,
     ext4_extent_t *extent)
 {
 	/* Compute number of the first physical block to release */
@@ -564,13 +564,13 @@ static int ext4_extent_release(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
+static errno_t ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
 		ext4_extent_index_t *index)
 {
 	uint32_t fblock = ext4_extent_index_get_leaf(index);
 	
 	block_t* block;
-	int rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NONE);
+	errno_t rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
 	
@@ -617,12 +617,12 @@ static int ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
  * @param iblock_from First logical block to release
  *
  */
-int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
+errno_t ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
     uint32_t iblock_from)
 {
 	/* Find the first extent to modify */
 	ext4_extent_path_t *path;
-	int rc = ext4_extent_find_extent(inode_ref, iblock_from, &path);
+	errno_t rc = ext4_extent_find_extent(inode_ref, iblock_from, &path);
 	if (rc != EOK)
 		return rc;
 	
@@ -735,7 +735,7 @@ int ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 cleanup:
 	;
 
-	int rc2 = EOK;
+	errno_t rc2 = EOK;
 
 	/*
 	 * Put loaded blocks
@@ -766,7 +766,7 @@ cleanup:
  * @return Error code
  *
  */
-static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
+static errno_t ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
     ext4_extent_path_t *path, uint32_t iblock)
 {
 	ext4_extent_path_t *path_ptr = path + path->depth;
@@ -784,7 +784,7 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 		if (entries == limit) {
 			/* Full node - allocate block for new one */
 			uint32_t fblock;
-			int rc = ext4_balloc_alloc_block(inode_ref, &fblock);
+			errno_t rc = ext4_balloc_alloc_block(inode_ref, &fblock);
 			if (rc != EOK)
 				return rc;
 			
@@ -862,7 +862,7 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
 	
 	if (entries == limit) {
 		uint32_t new_fblock;
-		int rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
+		errno_t rc = ext4_balloc_alloc_block(inode_ref, &new_fblock);
 		if (rc != EOK)
 			return rc;
 		
@@ -963,7 +963,7 @@ static int ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-int ext4_extent_append_block(ext4_inode_ref_t *inode_ref, uint32_t *iblock,
+errno_t ext4_extent_append_block(ext4_inode_ref_t *inode_ref, uint32_t *iblock,
     uint32_t *fblock, bool update_size)
 {
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
@@ -981,7 +981,7 @@ int ext4_extent_append_block(ext4_inode_ref_t *inode_ref, uint32_t *iblock,
 	
 	/* Load the nearest leaf (with extent) */
 	ext4_extent_path_t *path;
-	int rc = ext4_extent_find_extent(inode_ref, new_block_idx, &path);
+	errno_t rc = ext4_extent_find_extent(inode_ref, new_block_idx, &path);
 	if (rc != EOK)
 		return rc;
 	
@@ -1087,7 +1087,7 @@ append_extent:
 finish:
 	;
 
-	int rc2 = EOK;
+	errno_t rc2 = EOK;
 
 	/* Set return values */
 	*iblock = new_block_idx;

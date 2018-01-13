@@ -42,12 +42,12 @@
 static int request_process(call_t *call, answerbox_t *box)
 {
 	cap_handle_t phone_handle;
-	int rc = phone_alloc(TASK, &phone_handle);
+	errno_t rc = phone_alloc(TASK, &phone_handle);
 	IPC_SET_ARG5(call->data, (rc == EOK) ? phone_handle : -1);
 	return 0;
 }
 
-static int answer_cleanup(call_t *answer, ipc_data_t *olddata)
+static errno_t answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
 	cap_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
 
@@ -57,7 +57,7 @@ static int answer_cleanup(call_t *answer, ipc_data_t *olddata)
 	return EOK;
 }
 
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	cap_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
 

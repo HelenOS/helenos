@@ -215,7 +215,7 @@ int main(int argc, char * argv[])
 
 	/* Determine which interfaces to initialize. */
 	for (int i = optind; i < argc; i++) {
-		int rc = add_interface_by_id(available_hid_interfaces, argv[i],
+		errno_t rc = add_interface_by_id(available_hid_interfaces, argv[i],
 		    &hid_dev);
 		if (rc != EOK) {
 			fprintf(stderr, "Failed to add device `%s': %s.\n",
@@ -233,7 +233,7 @@ int main(int argc, char * argv[])
 		        0));
 	}
 
-	const int rc = usbvirt_device_plug(&hid_dev, controller);
+	const errno_t rc = usbvirt_device_plug(&hid_dev, controller);
 	if (rc != EOK) {
 		printf("Unable to start communication with VHCD `%s': %s.\n",
 		    controller, str_error(rc));

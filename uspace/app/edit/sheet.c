@@ -66,7 +66,7 @@ enum {
 };
 
 /** Initialize an empty sheet. */
-int sheet_create(sheet_t **rsh)
+errno_t sheet_create(sheet_t **rsh)
 {
 	sheet_t *sh;
 
@@ -100,7 +100,7 @@ int sheet_create(sheet_t **rsh)
  * 		move. If @a dir is @c dir_before, the tags will move forward
  *		and vice versa.
  */
-int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
+errno_t sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
 {
 	char *ipp;
 	size_t sz;
@@ -146,7 +146,7 @@ int sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
  *
  * @return	EOK on success or an error code.
  **/
-int sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
+errno_t sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 {
 	char *spp;
 	size_t sz;

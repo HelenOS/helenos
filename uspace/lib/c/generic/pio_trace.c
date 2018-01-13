@@ -105,7 +105,7 @@ void pio_trace_log(const volatile void *r, uint64_t val, bool write)
 	fibril_rwlock_read_unlock(&regions->guard);
 }
 
-int pio_trace_enable(void *base, size_t size, trace_fnc log, void *data)
+errno_t pio_trace_enable(void *base, size_t size, trace_fnc log, void *data)
 {
 	pio_regions_t *regions = get_regions();
 	assert(regions);

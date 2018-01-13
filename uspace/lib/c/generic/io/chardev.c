@@ -49,7 +49,7 @@
  *
  * @return EOK on success, ENOMEM if out of memory, EIO on I/O error
  */
-int chardev_open(async_sess_t *sess, chardev_t **rchardev)
+errno_t chardev_open(async_sess_t *sess, chardev_t **rchardev)
 {
 	chardev_t *chardev;
 
@@ -93,7 +93,7 @@ void chardev_close(chardev_t *chardev)
  *
  * @return EOK on success or non-zero error code
  */
-int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
+errno_t chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 {
 	async_exch_t *exch = async_exchange_begin(chardev->sess);
 
@@ -104,7 +104,7 @@ int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, CHARDEV_READ, &answer);
-	int rc = async_data_read_start(exch, buf, size);
+	errno_t rc = async_data_read_start(exch, buf, size);
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -113,7 +113,7 @@ int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
@@ -123,7 +123,7 @@ int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
 
 	*nread = IPC_GET_ARG2(answer);
 	/* In case of partial success, ARG1 contains the error code */
-	return (int) IPC_GET_ARG1(answer);
+	return (errno_t) IPC_GET_ARG1(answer);
 
 }
 
@@ -143,13 +143,13 @@ int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
  *
  * @return EOK on success or non-zero error code
  */
-static int chardev_write_once(chardev_t *chardev, const void *data,
+static errno_t chardev_write_once(chardev_t *chardev, const void *data,
     size_t size, size_t *nwritten)
 {
 	async_exch_t *exch = async_exchange_begin(chardev->sess);
 	ipc_call_t answer;
 	aid_t req;
-	int rc;
+	errno_t rc;
 
 	/* Break down large transfers */
 	if (size > DATA_XFER_LIMIT)
@@ -165,7 +165,7 @@ static int chardev_write_once(chardev_t *chardev, const void *data,
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK) {
 		*nwritten = 0;
@@ -174,7 +174,7 @@ static int chardev_write_once(chardev_t *chardev, const void *data,
 
 	*nwritten = IPC_GET_ARG2(answer);
 	/* In case of partial success, ARG1 contains the error code */
-	return (int) IPC_GET_ARG1(answer);
+	return (errno_t) IPC_GET_ARG1(answer);
 }
 
 /** Write to character device.
@@ -192,12 +192,12 @@ static int chardev_write_once(chardev_t *chardev, const void *data,
  *
  * @return EOK on success or non-zero error code
  */
-int chardev_write(chardev_t *chardev, const void *data, size_t size,
+errno_t chardev_write(chardev_t *chardev, const void *data, size_t size,
     size_t *nwritten)
 {
 	size_t nw;
 	size_t p;
-	int rc;
+	errno_t rc;
 
 	p = 0;
 	while (p < size) {

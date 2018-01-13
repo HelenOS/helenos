@@ -60,14 +60,14 @@ static inline bithenge_blob_t *block_as_blob(block_blob_t *blob)
 	return &blob->base;
 }
 
-static int block_size(bithenge_blob_t *base, aoff64_t *size)
+static errno_t block_size(bithenge_blob_t *base, aoff64_t *size)
 {
 	block_blob_t *self = blob_as_block(base);
 	*size = self->size;
 	return EOK;
 }
 
-static int block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
+static errno_t block_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
     aoff64_t *size)
 {
 	block_blob_t *self = blob_as_block(base);
@@ -95,12 +95,12 @@ static const bithenge_random_access_blob_ops_t block_ops = {
  * @param[out] out Stores the created blob.
  * @param service_id The service ID of the block device.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_block_blob(bithenge_node_t **out, service_id_t service_id)
+errno_t bithenge_new_block_blob(bithenge_node_t **out, service_id_t service_id)
 {
 	assert(out);
 
 	// Initialize libblock
-	int rc;
+	errno_t rc;
 	rc = block_init(service_id, 2048);
 	if (rc != EOK)
 		return rc;

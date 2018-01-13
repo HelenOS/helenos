@@ -94,20 +94,20 @@ typedef struct {
 
 typedef sysarg_t vbd_part_id_t;
 
-extern int vbd_create(vbd_t **);
+extern errno_t vbd_create(vbd_t **);
 extern void vbd_destroy(vbd_t *);
-extern int vbd_get_disks(vbd_t *, service_id_t **, size_t *);
-extern int vbd_disk_info(vbd_t *, service_id_t, vbd_disk_info_t *);
-extern int vbd_label_create(vbd_t *, service_id_t, label_type_t);
-extern int vbd_label_delete(vbd_t *, service_id_t);
-extern int vbd_label_get_parts(vbd_t *, service_id_t, service_id_t **,
+extern errno_t vbd_get_disks(vbd_t *, service_id_t **, size_t *);
+extern errno_t vbd_disk_info(vbd_t *, service_id_t, vbd_disk_info_t *);
+extern errno_t vbd_label_create(vbd_t *, service_id_t, label_type_t);
+extern errno_t vbd_label_delete(vbd_t *, service_id_t);
+extern errno_t vbd_label_get_parts(vbd_t *, service_id_t, service_id_t **,
     size_t *);
-extern int vbd_part_get_info(vbd_t *, vbd_part_id_t, vbd_part_info_t *);
-extern int vbd_part_create(vbd_t *, service_id_t, vbd_part_spec_t *,
+extern errno_t vbd_part_get_info(vbd_t *, vbd_part_id_t, vbd_part_info_t *);
+extern errno_t vbd_part_create(vbd_t *, service_id_t, vbd_part_spec_t *,
     vbd_part_id_t *);
-extern int vbd_part_delete(vbd_t *, vbd_part_id_t);
+extern errno_t vbd_part_delete(vbd_t *, vbd_part_id_t);
 extern void vbd_pspec_init(vbd_part_spec_t *);
-extern int vbd_suggest_ptype(vbd_t *, service_id_t, label_pcnt_t,
+extern errno_t vbd_suggest_ptype(vbd_t *, service_id_t, label_pcnt_t,
     label_ptype_t *);
 
 #endif

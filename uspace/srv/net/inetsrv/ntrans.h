@@ -47,10 +47,10 @@ typedef struct {
 	addr48_t mac_addr;
 } inet_ntrans_t;
 
-extern int ntrans_add(addr128_t, addr48_t);
-extern int ntrans_remove(addr128_t);
-extern int ntrans_lookup(addr128_t, addr48_t);
-extern int ntrans_wait_timeout(suseconds_t);
+extern errno_t ntrans_add(addr128_t, addr48_t);
+extern errno_t ntrans_remove(addr128_t);
+extern errno_t ntrans_lookup(addr128_t, addr48_t);
+extern errno_t ntrans_wait_timeout(suseconds_t);
 
 #endif
 

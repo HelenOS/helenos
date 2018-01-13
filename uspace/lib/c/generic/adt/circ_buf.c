@@ -81,7 +81,7 @@ size_t circ_buf_nused(circ_buf_t *cbuf)
  * @param data Pointer to entry data
  * @return EOK on success, EAGAIN if circular buffer is full
  */
-int circ_buf_push(circ_buf_t *cbuf, const void *data)
+errno_t circ_buf_push(circ_buf_t *cbuf, const void *data)
 {
 	if (circ_buf_nfree(cbuf) == 0)
 		return EAGAIN;
@@ -98,7 +98,7 @@ int circ_buf_push(circ_buf_t *cbuf, const void *data)
  * @param datab Pointer to data buffer for storing entry
  * @return EOK on success, EAGAIN if circular buffer is full
  */
-int circ_buf_pop(circ_buf_t *cbuf, void *datab)
+errno_t circ_buf_pop(circ_buf_t *cbuf, void *datab)
 {
 	if (cbuf->nused == 0)
 		return EAGAIN;

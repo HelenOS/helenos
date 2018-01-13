@@ -89,7 +89,7 @@ static const irq_cmd_t ehci_irq_commands[] = {
 };
 
 static void hc_start(hc_t *instance);
-static int hc_init_memory(hc_t *instance);
+static errno_t hc_init_memory(hc_t *instance);
 
 /** Generate IRQ code.
  * @param[out] ranges PIO ranges buffer.
@@ -99,7 +99,7 @@ static int hc_init_memory(hc_t *instance);
  *
  * @return Error code.
  */
-int ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq)
+errno_t ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -131,7 +131,7 @@ int ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, i
 	memcpy(code->cmds, ehci_irq_commands, sizeof(ehci_irq_commands));
 	ehci_caps_regs_t *caps = NULL;
 
-	int ret = pio_enable_range(&regs, (void**)&caps);
+	errno_t ret = pio_enable_range(&regs, (void**)&caps);
 	if (ret != EOK) {
 		free(code->ranges);
 		free(code->cmds);
@@ -158,7 +158,7 @@ int ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, i
  * @param[in] interrupts True if w interrupts should be used
  * @return Error code
  */
-int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
+errno_t hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 {
 	assert(instance);
 	assert(hw_res);
@@ -167,7 +167,7 @@ int hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
 	        (sizeof(ehci_caps_regs_t) + sizeof(ehci_regs_t)))
 	    return EINVAL;
 
-	int ret = pio_enable_range(&hw_res->mem_ranges.ranges[0],
+	errno_t ret = pio_enable_range(&hw_res->mem_ranges.ranges[0],
 	    (void **)&instance->caps);
 	if (ret != EOK) {
 		usb_log_error("HC(%p): Failed to gain access to device "
@@ -272,7 +272,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	fibril_mutex_unlock(&instance->guard);
 }
 
-int ehci_hc_status(hcd_t *hcd, uint32_t *status)
+errno_t ehci_hc_status(hcd_t *hcd, uint32_t *status)
 {
 	assert(hcd);
 	hc_t *instance = hcd_get_driver_data(hcd);
@@ -293,7 +293,7 @@ int ehci_hc_status(hcd_t *hcd, uint32_t *status)
  * @param[in] batch Batch representing the transfer.
  * @return Error code.
  */
-int ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+errno_t ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
 {
 	assert(hcd);
 	hc_t *instance = hcd_get_driver_data(hcd);
@@ -444,12 +444,12 @@ void hc_start(hc_t *instance)
  * @param[in] instance EHCI hc driver structure.
  * @return Error code.
  */
-int hc_init_memory(hc_t *instance)
+errno_t hc_init_memory(hc_t *instance)
 {
 	assert(instance);
 	usb_log_debug2("HC(%p): Initializing Async list(%p).", instance,
 	    &instance->async_list);
-	int ret = endpoint_list_init(&instance->async_list, "ASYNC");
+	errno_t ret = endpoint_list_init(&instance->async_list, "ASYNC");
 	if (ret != EOK) {
 		usb_log_error("HC(%p): Failed to setup ASYNC list: %s",
 		    instance, str_error(ret));

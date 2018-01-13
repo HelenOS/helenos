@@ -88,7 +88,7 @@ static inline void dsp_change_state(sb_dsp_t *dsp, dsp_state_t state)
 	dsp->state = state;
 }
 
-static inline int dsp_read(sb_dsp_t *dsp, uint8_t *data)
+static inline errno_t dsp_read(sb_dsp_t *dsp, uint8_t *data)
 {
 	assert(data);
 	assert(dsp);
@@ -105,7 +105,7 @@ static inline int dsp_read(sb_dsp_t *dsp, uint8_t *data)
 	return EOK;
 }
 
-static inline int dsp_write(sb_dsp_t *dsp, uint8_t data)
+static inline errno_t dsp_write(sb_dsp_t *dsp, uint8_t data)
 {
 	assert(dsp);
 	uint8_t status;
@@ -158,7 +158,7 @@ static inline void dsp_report_event(sb_dsp_t *dsp, pcm_event_t event)
 	async_msg_1(dsp->event_exchange, event, dsp->active.frame_count);
 }
 
-static inline int setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
+static inline errno_t setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 {
 	async_sess_t *sess = ddf_dev_parent_sess_get(dsp->sb_dev);
 
@@ -167,7 +167,7 @@ static inline int setup_dma(sb_dsp_t *dsp, uintptr_t pa, size_t size)
 	    DMA_MODE_READ | DMA_MODE_AUTO | DMA_MODE_ON_DEMAND);
 }
 
-static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
+static inline errno_t setup_buffer(sb_dsp_t *dsp, size_t size)
 {
 	assert(dsp);
 	
@@ -177,7 +177,7 @@ static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
 	uintptr_t pa = 0;
 	void *buffer = AS_AREA_ANY;
 	
-	int ret = dmamem_map_anonymous(size, DMAMEM_16MiB | 0x0000ffff,
+	errno_t ret = dmamem_map_anonymous(size, DMAMEM_16MiB | 0x0000ffff,
 	    AS_AREA_WRITE | AS_AREA_READ, 0, &pa, &buffer);
 	if (ret != EOK) {
 		ddf_log_error("Failed to allocate DMA buffer.");
@@ -201,7 +201,7 @@ static inline int setup_buffer(sb_dsp_t *dsp, size_t size)
 	return ret;
 }
 
-int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
+errno_t sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
     int dma8, int dma16)
 {
 	assert(dsp);
@@ -214,7 +214,7 @@ int sb_dsp_init(sb_dsp_t *dsp, sb16_regs_t *regs, ddf_dev_t *dev,
 	dsp->state = DSP_NO_BUFFER;
 	dsp_reset(dsp);
 	uint8_t response;
-	const int ret = dsp_read(dsp, &response);
+	const errno_t ret = dsp_read(dsp, &response);
 	if (ret != EOK) {
 		ddf_log_error("Failed to read DSP reset response value.");
 		return ret;
@@ -293,7 +293,7 @@ unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 	}
 }
 
-int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
+errno_t sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 {
 	if (dsp->state == DSP_NO_BUFFER)
 		return ENOENT;
@@ -303,17 +303,17 @@ int sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 
 	// TODO: Assumes DMA 16
 	size_t remain;
-	int rc = hw_res_dma_channel_remain(sess, dsp->dma16_channel, &remain);
+	errno_t rc = hw_res_dma_channel_remain(sess, dsp->dma16_channel, &remain);
 	if (rc == EOK) {
 		*pos = dsp->buffer.size - remain;
 	}
 	return rc;
 }
 
-int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
+errno_t sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
   pcm_sample_format_t *format)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 	if (*channels == 0 || *channels > 2) {
 		*channels = 2;
 		ret = ELIMIT;
@@ -335,7 +335,7 @@ int sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
 	return ret;
 }
 
-int sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session)
+errno_t sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session)
 {
 	assert(dsp);
 	if (dsp->event_session && session)
@@ -352,7 +352,7 @@ async_sess_t * sb_dsp_get_event_session(sb_dsp_t *dsp)
 	return dsp->event_session;
 }
 
-int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
+errno_t sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
 {
 	assert(dsp);
 	assert(size);
@@ -363,7 +363,7 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
 		return EBUSY;
 	assert(dsp->buffer.data == NULL);
 
-	const int ret = setup_buffer(dsp, *size);
+	const errno_t ret = setup_buffer(dsp, *size);
 	if (ret == EOK) {
 		ddf_log_debug("Providing buffer: %p, %zu B.",
 		    dsp->buffer.data, dsp->buffer.size);
@@ -377,7 +377,7 @@ int sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
 	return ret;
 }
 
-int sb_dsp_release_buffer(sb_dsp_t *dsp)
+errno_t sb_dsp_release_buffer(sb_dsp_t *dsp)
 {
 	assert(dsp);
 	if (dsp->state != DSP_READY)
@@ -391,7 +391,7 @@ int sb_dsp_release_buffer(sb_dsp_t *dsp)
 	return EOK;
 }
 
-int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
+errno_t sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
@@ -440,7 +440,7 @@ int sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 	return EOK;
 }
 
-int sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate)
+errno_t sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate)
 {
 	assert(dsp);
 	if ((dsp->state == DSP_PLAYBACK_NOEVENTS ||
@@ -470,7 +470,7 @@ int sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate)
 	return EINVAL;
 }
 
-int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
+errno_t sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sampling_rate, pcm_sample_format_t format)
 {
 	assert(dsp);
@@ -516,7 +516,7 @@ int sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 	return EOK;
 }
 
-int sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate)
+errno_t sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate)
 {
 	assert(dsp);
 	if ((dsp->state == DSP_CAPTURE_NOEVENTS ||

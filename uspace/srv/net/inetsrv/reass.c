@@ -69,10 +69,10 @@ static FIBRIL_MUTEX_INITIALIZE(reass_dgram_map_lock);
 
 static reass_dgram_t *reass_dgram_new(void);
 static reass_dgram_t *reass_dgram_get(inet_packet_t *);
-static int reass_dgram_insert_frag(reass_dgram_t *, inet_packet_t *);
+static errno_t reass_dgram_insert_frag(reass_dgram_t *, inet_packet_t *);
 static bool reass_dgram_complete(reass_dgram_t *);
 static void reass_dgram_remove(reass_dgram_t *);
-static int reass_dgram_deliver(reass_dgram_t *);
+static errno_t reass_dgram_deliver(reass_dgram_t *);
 static void reass_dgram_destroy(reass_dgram_t *);
 
 /** Queue packet for datagram reassembly.
@@ -80,10 +80,10 @@ static void reass_dgram_destroy(reass_dgram_t *);
  * @param packet	Packet
  * @return		EOK on success or ENOMEM.
  */
-int inet_reass_queue_packet(inet_packet_t *packet)
+errno_t inet_reass_queue_packet(inet_packet_t *packet)
 {
 	reass_dgram_t *rdg;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_reass_queue_packet()");
 
@@ -179,7 +179,7 @@ static reass_frag_t *reass_frag_new(void)
 	return frag;
 }
 
-static int reass_dgram_insert_frag(reass_dgram_t *rdg, inet_packet_t *packet)
+static errno_t reass_dgram_insert_frag(reass_dgram_t *rdg, inet_packet_t *packet)
 {
 	reass_frag_t *frag;
 	void *data_copy;
@@ -289,14 +289,14 @@ static void reass_dgram_remove(reass_dgram_t *rdg)
  *
  * @param rdg		Datagram reassembly structure.
  */
-static int reass_dgram_deliver(reass_dgram_t *rdg)
+static errno_t reass_dgram_deliver(reass_dgram_t *rdg)
 {
 	size_t dgram_size;
 	size_t fragoff_limit;
 	inet_dgram_t dgram;
 	uint8_t proto;
 	reass_frag_t *frag;
-	int rc;
+	errno_t rc;
 
 	/*
 	 * Potentially there could be something beyond the first packet

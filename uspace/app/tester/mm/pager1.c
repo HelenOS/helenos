@@ -44,7 +44,7 @@ int fd;
 static void *create_paged_area(size_t size)
 {
 	size_t nwr;
-	int rc;
+	errno_t rc;
 
 	TPRINTF("Creating temporary file...\n");
 

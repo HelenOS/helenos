@@ -90,12 +90,12 @@ typedef enum {
 	af_allow_system = 0x1
 } amap_flags_t;
 
-extern int amap_create(amap_t **);
+extern errno_t amap_create(amap_t **);
 extern void amap_destroy(amap_t *);
-extern int amap_insert(amap_t *, inet_ep2_t *, void *, amap_flags_t,
+extern errno_t amap_insert(amap_t *, inet_ep2_t *, void *, amap_flags_t,
     inet_ep2_t *);
 extern void amap_remove(amap_t *, inet_ep2_t *);
-extern int amap_find_match(amap_t *, inet_ep2_t *, void **);
+extern errno_t amap_find_match(amap_t *, inet_ep2_t *, void **);
 
 #endif
 

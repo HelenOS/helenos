@@ -93,12 +93,12 @@ typedef enum {
  * @param[out] items Number of items controlled by the mixer.
  * @return Error code.
  */
-int audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
+errno_t audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
 {
 	if (!exch)
 		return EINVAL;
 	sysarg_t name_size, itemc;
-	const int ret = async_req_1_2(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
+	const errno_t ret = async_req_1_2(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
 	    IPC_M_AUDIO_MIXER_GET_INFO, &name_size, &itemc);
 	if (ret == EOK && name) {
 		char *name_place = calloc(1, name_size);
@@ -108,7 +108,7 @@ int audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
 			async_data_read_start(exch, (void*)-1, 0);
 			return ENOMEM;
 		}
-		const int ret =
+		const errno_t ret =
 		    async_data_read_start(exch, name_place, name_size);
 		if (ret != EOK) {
 			free(name_place);
@@ -129,13 +129,13 @@ int audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
  * @param[out] channles Number of channels associated with this control item.
  * @return Error code.
  */
-int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
+errno_t audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
     const char **name, unsigned *levels)
 {
 	if (!exch)
 		return EINVAL;
 	sysarg_t name_size, lvls;
-	const int ret = async_req_2_2(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
+	const errno_t ret = async_req_2_2(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
 	    IPC_M_AUDIO_MIXER_GET_ITEM_INFO, item, &name_size, &lvls);
 	if (ret == EOK && name) {
 		char *name_place = calloc(1, name_size);
@@ -145,7 +145,7 @@ int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
 			async_data_read_start(exch, (void*)-1, 0);
 			return ENOMEM;
 		}
-		const int ret =
+		const errno_t ret =
 		    async_data_read_start(exch, name_place, name_size);
 		if (ret != EOK) {
 			free(name_place);
@@ -165,7 +165,7 @@ int audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
  * @param[in] level The new value.
  * @return Error code.
  */
-int audio_mixer_set_item_level(async_exch_t *exch, unsigned item,
+errno_t audio_mixer_set_item_level(async_exch_t *exch, unsigned item,
     unsigned level)
 {
 	if (!exch)
@@ -182,13 +182,13 @@ int audio_mixer_set_item_level(async_exch_t *exch, unsigned item,
  * @param[out] level Currently set value.
  * @return Error code.
  */
-int audio_mixer_get_item_level(async_exch_t *exch, unsigned item,
+errno_t audio_mixer_get_item_level(async_exch_t *exch, unsigned item,
     unsigned *level)
 {
 	if (!exch)
 		return EINVAL;
 	sysarg_t current;
-	const int ret = async_req_2_1(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
+	const errno_t ret = async_req_2_1(exch, DEV_IFACE_ID(AUDIO_MIXER_IFACE),
 	    IPC_M_AUDIO_MIXER_GET_ITEM_LEVEL, item, &current);
 	if (ret == EOK && level)
 		*level = current;
@@ -228,7 +228,7 @@ void remote_audio_mixer_get_info(
 	}
 	const char *name = NULL;
 	unsigned items = 0;
-	const int ret = mixer_iface->get_info(fun, &name, &items);
+	const errno_t ret = mixer_iface->get_info(fun, &name, &items);
 	const size_t name_size = name ? str_size(name) + 1 : 0;
 	async_answer_2(callid, ret, name_size, items);
 	/* Send the name. */
@@ -260,7 +260,7 @@ void remote_audio_mixer_get_item_info(
 	const unsigned item = DEV_IPC_GET_ARG1(*call);
 	const char *name = NULL;
 	unsigned values = 0;
-	const int ret = mixer_iface->get_item_info(fun, item, &name, &values);
+	const errno_t ret = mixer_iface->get_item_info(fun, item, &name, &values);
 	const size_t name_size = name ? str_size(name) + 1 : 0;
 	async_answer_2(callid, ret, name_size, values);
 	/* Send the name. */
@@ -290,7 +290,7 @@ void remote_audio_mixer_set_item_level(
 	}
 	const unsigned item = DEV_IPC_GET_ARG1(*call);
 	const unsigned value = DEV_IPC_GET_ARG2(*call);
-	const int ret = mixer_iface->set_item_level(fun, item, value);
+	const errno_t ret = mixer_iface->set_item_level(fun, item, value);
 	async_answer_0(callid, ret);
 }
 
@@ -305,7 +305,7 @@ void remote_audio_mixer_get_item_level(
 	}
 	const unsigned item = DEV_IPC_GET_ARG1(*call);
 	unsigned current = 0;
-	const int ret =
+	const errno_t ret =
 	    mixer_iface->get_item_level(fun, item, &current);
 	async_answer_1(callid, ret, current);
 }

@@ -59,7 +59,7 @@ static void print_syntax(void)
 	printf("  %s list-link\n", NAME);
 }
 
-static int addr_create_static(int argc, char *argv[])
+static errno_t addr_create_static(int argc, char *argv[])
 {
 	char *aobj_name;
 	char *addr_spec;
@@ -68,7 +68,7 @@ static int addr_create_static(int argc, char *argv[])
 	inet_naddr_t naddr;
 	sysarg_t link_id;
 	sysarg_t addr_id;
-	int rc;
+	errno_t rc;
 
 	if (argc < 3) {
 		printf(NAME ": Missing arguments.\n");
@@ -109,13 +109,13 @@ static int addr_create_static(int argc, char *argv[])
 	return EOK;
 }
 
-static int addr_delete(int argc, char *argv[])
+static errno_t addr_delete(int argc, char *argv[])
 {
 	char *aobj_name;
 	char *link_name;
 	sysarg_t link_id;
 	sysarg_t addr_id;
-	int rc;
+	errno_t rc;
 
 	if (argc < 2) {
 		printf(NAME ": Missing arguments.\n");
@@ -156,7 +156,7 @@ static int addr_delete(int argc, char *argv[])
 	return EOK;
 }
 
-static int sroute_create(int argc, char *argv[])
+static errno_t sroute_create(int argc, char *argv[])
 {
 	char *dest_str;
 	char *router_str;
@@ -165,7 +165,7 @@ static int sroute_create(int argc, char *argv[])
 	inet_naddr_t dest;
 	inet_addr_t router;
 	sysarg_t sroute_id;
-	int rc;
+	errno_t rc;
 
 	if (argc < 3) {
 		printf(NAME ": Missing arguments.\n");
@@ -206,11 +206,11 @@ static int sroute_create(int argc, char *argv[])
 	return EOK;
 }
 
-static int sroute_delete(int argc, char *argv[])
+static errno_t sroute_delete(int argc, char *argv[])
 {
 	char *route_name;
 	sysarg_t sroute_id;
-	int rc;
+	errno_t rc;
 
 	if (argc < 1) {
 		printf(NAME ": Missing arguments.\n");
@@ -243,7 +243,7 @@ static int sroute_delete(int argc, char *argv[])
 	return EOK;
 }
 
-static int addr_list(void)
+static errno_t addr_list(void)
 {
 	sysarg_t *addr_list;
 	inet_addr_info_t ainfo;
@@ -252,7 +252,7 @@ static int addr_list(void)
 
 	size_t count;
 	size_t i;
-	int rc;
+	errno_t rc;
 	char *astr = NULL;
 
 	ainfo.name = NULL;
@@ -333,7 +333,7 @@ out:
 	return rc;
 }
 
-static int link_list(void)
+static errno_t link_list(void)
 {
 	sysarg_t *link_list = NULL;
 	inet_link_info_t linfo;
@@ -341,7 +341,7 @@ static int link_list(void)
 
 	size_t count;
 	size_t i;
-	int rc;
+	errno_t rc;
 
 	rc = inetcfg_get_link_list(&link_list, &count);
 	if (rc != EOK) {
@@ -394,7 +394,7 @@ out:
 	return rc;
 }
 
-static int sroute_list(void)
+static errno_t sroute_list(void)
 {
 	sysarg_t *sroute_list = NULL;
 	inet_sroute_info_t srinfo;
@@ -402,7 +402,7 @@ static int sroute_list(void)
 
 	size_t count;
 	size_t i;
-	int rc;
+	errno_t rc;
 	char *dest_str = NULL;
 	char *router_str = NULL;
 
@@ -483,7 +483,7 @@ out:
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	rc = inetcfg_init();
 	if (rc != EOK) {

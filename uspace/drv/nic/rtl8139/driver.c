@@ -279,34 +279,34 @@ inline static void rtl8139_hw_reg_rem_8(rtl8139_t * rtl8139, size_t reg_offset,
 	pio_write_8(rtl8139->io_port + reg_offset, value);
 }
 
-static int rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *);
-static int rtl8139_get_device_info(ddf_fun_t *fun, nic_device_info_t *info);
-static int rtl8139_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state);
-static int rtl8139_get_operation_mode(ddf_fun_t *fun, int *speed,
+static errno_t rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *);
+static errno_t rtl8139_get_device_info(ddf_fun_t *fun, nic_device_info_t *info);
+static errno_t rtl8139_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state);
+static errno_t rtl8139_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role);
-static int rtl8139_set_operation_mode(ddf_fun_t *fun, int speed,
+static errno_t rtl8139_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t);
 
-static int rtl8139_pause_get(ddf_fun_t*, nic_result_t*, nic_result_t*, 
+static errno_t rtl8139_pause_get(ddf_fun_t*, nic_result_t*, nic_result_t*, 
     uint16_t *);
-static int rtl8139_pause_set(ddf_fun_t*, int, int, uint16_t);
+static errno_t rtl8139_pause_set(ddf_fun_t*, int, int, uint16_t);
 
-static int rtl8139_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement);
-static int rtl8139_autoneg_disable(ddf_fun_t *fun);
-static int rtl8139_autoneg_probe(ddf_fun_t *fun, uint32_t *our_advertisement,
+static errno_t rtl8139_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement);
+static errno_t rtl8139_autoneg_disable(ddf_fun_t *fun);
+static errno_t rtl8139_autoneg_probe(ddf_fun_t *fun, uint32_t *our_advertisement,
     uint32_t *their_advertisement, nic_result_t *result, 
     nic_result_t *their_result);
-static int rtl8139_autoneg_restart(ddf_fun_t *fun);
+static errno_t rtl8139_autoneg_restart(ddf_fun_t *fun);
 
-static int rtl8139_defective_get_mode(ddf_fun_t *fun, uint32_t *mode);
-static int rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode);
+static errno_t rtl8139_defective_get_mode(ddf_fun_t *fun, uint32_t *mode);
+static errno_t rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode);
 
-static int rtl8139_wol_virtue_add(nic_t *nic_data,
+static errno_t rtl8139_wol_virtue_add(nic_t *nic_data,
 	const nic_wol_virtue_t *virtue);
 static void rtl8139_wol_virtue_rem(nic_t *nic_data,
 	const nic_wol_virtue_t *virtue);
 
-static int rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
+static errno_t rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
     const struct timeval *period);
 static void rtl8139_poll(nic_t *nic_data);
 
@@ -333,7 +333,7 @@ static nic_iface_t rtl8139_nic_iface = {
 /** Basic device operations for RTL8139 driver */
 static ddf_dev_ops_t rtl8139_dev_ops;
 
-static int rtl8139_dev_add(ddf_dev_t *dev);
+static errno_t rtl8139_dev_add(ddf_dev_t *dev);
 
 /** Basic driver operations for RTL8139 driver */
 static driver_ops_t rtl8139_driver_ops = {
@@ -347,8 +347,8 @@ static driver_t rtl8139_driver = {
 };
 
 /* The default implementation callbacks */
-static int rtl8139_on_activated(nic_t *nic_data);
-static int rtl8139_on_stopped(nic_t *nic_data);
+static errno_t rtl8139_on_activated(nic_t *nic_data);
+static errno_t rtl8139_on_stopped(nic_t *nic_data);
 static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size);
 
 /** Check if the transmit buffer is busy */
@@ -845,7 +845,7 @@ static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
  *
  *  @return An error code otherwise.
  */
-inline static int rtl8139_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
+inline static errno_t rtl8139_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
 {
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 
@@ -856,7 +856,7 @@ inline static int rtl8139_register_int_handler(nic_t *nic_data, cap_handle_t *ha
 	rtl8139_irq_code.cmds[0].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[2].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[3].addr = rtl8139->io_addr + IMR;
-	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
+	errno_t rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
 	    rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code, handle);
 
 	RTL8139_IRQ_STRUCT_UNLOCK();
@@ -903,7 +903,7 @@ inline static void rtl8139_card_up(rtl8139_t *rtl8139)
  *
  *  @return EOK if activated successfully, error code otherwise
  */
-static int rtl8139_on_activated(nic_t *nic_data)
+static errno_t rtl8139_on_activated(nic_t *nic_data)
 {
 	assert(nic_data);
 	ddf_msg(LVL_NOTE, "Activating device");
@@ -918,7 +918,7 @@ static int rtl8139_on_activated(nic_t *nic_data)
 	rtl8139->int_mask = RTL_DEFAULT_INTERRUPTS;
 	rtl8139_hw_int_set(rtl8139);
 
-	int rc = hw_res_enable_interrupt(rtl8139->parent_sess, rtl8139->irq);
+	errno_t rc = hw_res_enable_interrupt(rtl8139->parent_sess, rtl8139->irq);
 	if (rc != EOK) {
 		rtl8139_on_stopped(nic_data);
 		return rc;
@@ -934,7 +934,7 @@ static int rtl8139_on_activated(nic_t *nic_data)
  *
  *  @return EOK if succeed, error code otherwise
  */
-static int rtl8139_on_stopped(nic_t *nic_data)
+static errno_t rtl8139_on_stopped(nic_t *nic_data)
 {
 	assert(nic_data);
 
@@ -954,11 +954,11 @@ static int rtl8139_on_stopped(nic_t *nic_data)
 }
 
 
-static int rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
+static errno_t rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
     const nic_address_t *, size_t);
-static int rtl8139_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
+static errno_t rtl8139_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count);
-static int rtl8139_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode);
+static errno_t rtl8139_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode);
 
 
 /** Create driver data structure
@@ -1026,7 +1026,7 @@ static void rtl8139_dev_cleanup(ddf_dev_t *dev)
  *
  *  @return EOK if succeed, error code otherwise
  */
-static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
+static errno_t rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
     *hw_resources)
 {
 	assert(dev);
@@ -1066,7 +1066,7 @@ static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
  *
  *  @return EOK if succeed, error code otherwise
  */
-static int rtl8139_get_resource_info(ddf_dev_t *dev)
+static errno_t rtl8139_get_resource_info(ddf_dev_t *dev)
 {
 	assert(dev);
 
@@ -1077,12 +1077,12 @@ static int rtl8139_get_resource_info(ddf_dev_t *dev)
 	hw_res_list_parsed_init(&hw_res_parsed);
 
 	/* Get hw resources form parent driver */
-	int rc = nic_get_resources(nic_data, &hw_res_parsed);
+	errno_t rc = nic_get_resources(nic_data, &hw_res_parsed);
 	if (rc != EOK)
 		return rc;
 
 	/* Fill resources information to the device */
-	int ret = rtl8139_fill_resource_info(dev, &hw_res_parsed);
+	errno_t ret = rtl8139_fill_resource_info(dev, &hw_res_parsed);
 	hw_res_list_parsed_clean(&hw_res_parsed);
 
 	return ret;
@@ -1097,10 +1097,10 @@ static int rtl8139_get_resource_info(ddf_dev_t *dev)
  *
  * @return EOK in the case of success, error code otherwise
  */
-static int rtl8139_buffers_create(rtl8139_t *rtl8139)
+static errno_t rtl8139_buffers_create(rtl8139_t *rtl8139)
 {
 	size_t i = 0;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "Creating buffers");
 	
@@ -1148,11 +1148,11 @@ err_tx_alloc:
  *
  *  @return EOK if succeed, error code otherwise
  */
-static int rtl8139_device_initialize(ddf_dev_t *dev)
+static errno_t rtl8139_device_initialize(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "rtl8139_dev_initialize %s", ddf_dev_get_name(dev));
 
-	int ret = EOK;
+	errno_t ret = EOK;
 
 	ddf_msg(LVL_DEBUG, "rtl8139: creating device data");
 
@@ -1207,7 +1207,7 @@ failed:
  *
  * @return EOK if successed, error code otherwise
  */
-static int rtl8139_pio_enable(ddf_dev_t *dev)
+static errno_t rtl8139_pio_enable(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, NAME ": rtl8139_pio_enable %s", ddf_dev_get_name(dev));
 
@@ -1257,7 +1257,7 @@ static void rtl8139_data_init(rtl8139_t *rtl8139)
  *
  * @return EOK if added successfully, error code otherwise
  */
-int rtl8139_dev_add(ddf_dev_t *dev)
+errno_t rtl8139_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
 
@@ -1265,7 +1265,7 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
 
 	/* Init device structure for rtl8139 */
-	int rc = rtl8139_device_initialize(dev);
+	errno_t rc = rtl8139_device_initialize(dev);
 	if (rc != EOK)
 		return rc;
 
@@ -1340,7 +1340,7 @@ err_destroy:
  *
  *  @return EOK if succeed, error code otherwise
  */
-static int rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
+static errno_t rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {
 	assert(fun);
 	assert(addr);
@@ -1351,7 +1351,7 @@ static int rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 
 	rtl8139_lock_all(rtl8139);
 
-	int rc = nic_report_address(nic_data, addr);
+	errno_t rc = nic_report_address(nic_data, addr);
 	if ( rc != EOK) {
 		rtl8139_unlock_all(rtl8139);
 		return rc;
@@ -1370,7 +1370,7 @@ static int rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
  *
  *  @return EOK
  */
-static int rtl8139_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
+static errno_t rtl8139_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 {
 	assert(fun);
 	assert(info);
@@ -1405,7 +1405,7 @@ static int rtl8139_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
  *
  *  @return EOK
  */
-static int rtl8139_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
+static errno_t rtl8139_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 {
 	assert(fun);
 	assert(state);
@@ -1424,7 +1424,7 @@ static int rtl8139_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 
 /** Get operation mode of the device
  */
-static int rtl8139_get_operation_mode(ddf_fun_t *fun, int *speed,
+static errno_t rtl8139_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role)
 {
 	assert(fun);
@@ -1501,7 +1501,7 @@ static int rtl8139_pause_is_valid(rtl8139_t *rtl8139)
  *
  *  @return EOK if succeed
  */
-static int rtl8139_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
+static errno_t rtl8139_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
     nic_result_t *we_receive, uint16_t *time)
 {
 	assert(fun);
@@ -1536,7 +1536,7 @@ static int rtl8139_pause_get(ddf_fun_t *fun, nic_result_t *we_send,
  *
  *  @return EOK if succeed, INVAL if the pause frame has no sence
  */
-static int rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
+static errno_t rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
     uint16_t time)
 {
 	assert(fun);
@@ -1566,7 +1566,7 @@ static int rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive,
 /** Set operation mode of the device
  *
  */
-static int rtl8139_set_operation_mode(ddf_fun_t *fun, int speed,
+static errno_t rtl8139_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t role)
 {
 	assert(fun);
@@ -1610,7 +1610,7 @@ static int rtl8139_set_operation_mode(ddf_fun_t *fun, int speed,
  *  @returns EINVAL if the advertisement mode is not supproted
  *  @returns EOK if advertisement mode set successfully
  */
-static int rtl8139_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
+static errno_t rtl8139_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 {
 	assert(fun);
 
@@ -1656,7 +1656,7 @@ static int rtl8139_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
  *
  *  @returns EOK
  */
-static int rtl8139_autoneg_disable(ddf_fun_t *fun)
+static errno_t rtl8139_autoneg_disable(ddf_fun_t *fun)
 {
 	assert(fun);
 
@@ -1707,7 +1707,7 @@ static void rtl8139_get_anar_state(uint16_t anar, uint32_t *advertisement)
  *
  *  @returns EOK
  */
-static int rtl8139_autoneg_probe(ddf_fun_t *fun, uint32_t *advertisement,
+static errno_t rtl8139_autoneg_probe(ddf_fun_t *fun, uint32_t *advertisement,
     uint32_t *their_adv, nic_result_t *result, nic_result_t *their_result)
 {
 	assert(fun);
@@ -1744,7 +1744,7 @@ static int rtl8139_autoneg_probe(ddf_fun_t *fun, uint32_t *advertisement,
  *
  *  @returns EOK
  */
-static int rtl8139_autoneg_restart(ddf_fun_t *fun)
+static errno_t rtl8139_autoneg_restart(ddf_fun_t *fun)
 {
 	assert(fun);
 
@@ -1792,7 +1792,7 @@ inline static void rtl8139_rcx_promics_rem(nic_t *nic_data,
  *
  *  @returns EOK
  */
-static int rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
+static errno_t rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
     const nic_address_t *addr, size_t addr_cnt)
 {
 	assert(nic_data);
@@ -1850,7 +1850,7 @@ static int rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
  *
  *  @returns EOK
  */
-static int rtl8139_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
+static errno_t rtl8139_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count)
 {
 	assert(nic_data);
@@ -1893,7 +1893,7 @@ static int rtl8139_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
  *
  *  @returns EOK
  */
-static int rtl8139_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
+static errno_t rtl8139_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
 {
 	assert(nic_data);
 
@@ -1921,7 +1921,7 @@ static int rtl8139_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
  *  @param[in]  device  The device to check
  *  @param[out] mode    The current mode
  */
-static int rtl8139_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
+static errno_t rtl8139_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
 {
 	assert(fun);
 	assert(mode);
@@ -1946,7 +1946,7 @@ static int rtl8139_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
  *  @returns ENOTSUP if the mode is not supported
  *  @returns EOK of mode was set
  */
-static int rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
+static errno_t rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
 {
 	assert(fun);
 
@@ -1978,7 +1978,7 @@ static int rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
  *  @returns EOK if succeed
  *  @returns ELIMIT if no more methods of this kind can be enabled
  */
-static int rtl8139_wol_virtue_add(nic_t *nic_data,
+static errno_t rtl8139_wol_virtue_add(nic_t *nic_data,
 	const nic_wol_virtue_t *virtue)
 {
 	assert(nic_data);
@@ -2057,11 +2057,11 @@ static void rtl8139_wol_virtue_rem(nic_t *nic_data,
  *  @returns EOK if succeed
  *  @returns ENOTSUP if the mode is not supported
  */
-static int rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
+static errno_t rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
     const struct timeval *period)
 {
 	assert(nic_data);
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 	assert(rtl8139);
@@ -2142,7 +2142,7 @@ int main(void)
 {
 	printf("%s: HelenOS RTL8139 network adapter driver\n", NAME);
 
-	int rc = nic_driver_init(NAME);
+	errno_t rc = nic_driver_init(NAME);
 	if (rc != EOK)
 		return rc;
 

@@ -61,7 +61,7 @@ typedef struct icp_fun {
 	hw_resource_list_t hw_resources;
 } icp_fun_t;
 
-static int icp_dev_add(ddf_dev_t *dev);
+static errno_t icp_dev_add(ddf_dev_t *dev);
 
 static driver_ops_t icp_ops = {
 	.dev_add = &icp_dev_add
@@ -177,7 +177,7 @@ static bool icp_fun_owns_interrupt(icp_fun_t *fun, int irq)
 	return false;
 }
 
-static int icp_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t icp_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
 {
 	icp_fun_t *fun = icp_fun(fnode);
 
@@ -187,7 +187,7 @@ static int icp_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_enable_interrupt(irq);
 }
 
-static int icp_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t icp_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
 {
 	icp_fun_t *fun = icp_fun(fnode);
 
@@ -197,7 +197,7 @@ static int icp_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_disable_interrupt(irq);
 }
 
-static int icp_fun_clear_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t icp_fun_clear_interrupt(ddf_fun_t *fnode, int irq)
 {
 	icp_fun_t *fun = icp_fun(fnode);
 
@@ -230,13 +230,13 @@ static ddf_dev_ops_t icp_fun_ops = {
 	}
 };
 
-static int icp_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
+static errno_t icp_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
     icp_fun_t *fun_proto)
 {
 	ddf_msg(LVL_NOTE, "Adding function '%s'.", name);
 
 	ddf_fun_t *fnode = NULL;
-	int rc;
+	errno_t rc;
 
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
@@ -274,9 +274,9 @@ error:
 	return rc;
 }
 
-static int icp_add_functions(ddf_dev_t *dev)
+static errno_t icp_add_functions(ddf_dev_t *dev)
 {
-	int rc;
+	errno_t rc;
 
 	rc = icp_add_fun(dev, "intctl", "integratorcp/intctl",
 	    &icp_ic_fun_proto);
@@ -295,7 +295,7 @@ static int icp_add_functions(ddf_dev_t *dev)
 }
 
 /** Add device. */
-static int icp_dev_add(ddf_dev_t *dev)
+static errno_t icp_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_NOTE, "icp_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));
@@ -310,7 +310,7 @@ static int icp_dev_add(ddf_dev_t *dev)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": HelenOS IntegratorCP platform driver\n");
 

@@ -50,12 +50,12 @@ enum {
 	buffer_size = 64
 };
 
-static int pl050_dev_add(ddf_dev_t *);
-static int pl050_fun_online(ddf_fun_t *);
-static int pl050_fun_offline(ddf_fun_t *);
+static errno_t pl050_dev_add(ddf_dev_t *);
+static errno_t pl050_fun_online(ddf_fun_t *);
+static errno_t pl050_fun_offline(ddf_fun_t *);
 static void pl050_char_conn(ipc_callid_t, ipc_call_t *, void *);
-static int pl050_read(chardev_srv_t *, void *, size_t, size_t *);
-static int pl050_write(chardev_srv_t *, const void *, size_t, size_t *);
+static errno_t pl050_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t pl050_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &pl050_dev_add,
@@ -157,11 +157,11 @@ static void pl050_interrupt(ipc_call_t *call, ddf_dev_t *dev)
 	fibril_mutex_unlock(&pl050->buf_lock);
 }
 
-static int pl050_init(pl050_t *pl050)
+static errno_t pl050_init(pl050_t *pl050)
 {
 	hw_res_list_parsed_t res;
 	void *regs;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_initialize(&pl050->buf_lock);
 	fibril_condvar_initialize(&pl050->buf_cv);
@@ -236,7 +236,7 @@ error:
 	return rc;
 }
 
-static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size,
+static errno_t pl050_read(chardev_srv_t *srv, void *buffer, size_t size,
     size_t *nread)
 {
 	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
@@ -262,7 +262,7 @@ static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size,
 	return EOK;
 }
 
-static int pl050_write(chardev_srv_t *srv, const void *data, size_t size,
+static errno_t pl050_write(chardev_srv_t *srv, const void *data, size_t size,
     size_t *nwritten)
 {
 	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
@@ -293,12 +293,12 @@ void pl050_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Add device. */
-static int pl050_dev_add(ddf_dev_t *dev)
+static errno_t pl050_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_a;
 	pl050_t *pl050 = NULL;
 	const char *mname;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "pl050_dev_add()");
 
@@ -362,13 +362,13 @@ error:
 	return rc;
 }
 
-static int pl050_fun_online(ddf_fun_t *fun)
+static errno_t pl050_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "pl050_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int pl050_fun_offline(ddf_fun_t *fun)
+static errno_t pl050_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "pl050_fun_offline()");
 	return ddf_fun_offline(fun);
@@ -376,7 +376,7 @@ static int pl050_fun_offline(ddf_fun_t *fun)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": HelenOS pl050 serial device driver\n");
 	rc = ddf_log_init(NAME);

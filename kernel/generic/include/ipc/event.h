@@ -94,14 +94,14 @@ extern void event_task_set_unmask_callback(struct task *, event_task_type_t,
 #define event_task_notify_5(t, e, m, a1, a2, a3, a4, a5) \
 	event_task_notify((t), (e), (m), (a1), (a2), (a3), (a4), (a5))
 
-extern int event_notify(event_type_t, bool, sysarg_t, sysarg_t, sysarg_t,
+extern errno_t event_notify(event_type_t, bool, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
-extern int event_task_notify(struct task *, event_task_type_t, bool, sysarg_t, sysarg_t,
+extern errno_t event_task_notify(struct task *, event_task_type_t, bool, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
-extern sysarg_t sys_ipc_event_subscribe(sysarg_t, sysarg_t);
-extern sysarg_t sys_ipc_event_unsubscribe(sysarg_t);
-extern sysarg_t sys_ipc_event_unmask(sysarg_t);
+extern sys_errno_t sys_ipc_event_subscribe(sysarg_t, sysarg_t);
+extern sys_errno_t sys_ipc_event_unsubscribe(sysarg_t);
+extern sys_errno_t sys_ipc_event_unmask(sysarg_t);
 
 #endif
 

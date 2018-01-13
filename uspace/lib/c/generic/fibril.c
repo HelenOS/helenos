@@ -267,7 +267,7 @@ int fibril_switch(fibril_switch_type_t stype)
  * @return 0 on failure or TLS of the new fibril.
  *
  */
-fid_t fibril_create_generic(int (*func)(void *), void *arg, size_t stksz)
+fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 {
 	fibril_t *fibril;
 	

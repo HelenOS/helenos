@@ -61,7 +61,7 @@ extern odlink_t *odict_find_geq(odict_t *, void *, odlink_t *);
 extern odlink_t *odict_find_gt(odict_t *, void *, odlink_t *);
 extern odlink_t *odict_find_leq(odict_t *, void *, odlink_t *);
 extern odlink_t *odict_find_lt(odict_t *, void *, odlink_t *);
-extern int odict_validate(odict_t *);
+extern errno_t odict_validate(odict_t *);
 
 #endif
 

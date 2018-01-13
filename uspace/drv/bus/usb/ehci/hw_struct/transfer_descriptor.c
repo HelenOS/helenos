@@ -44,7 +44,7 @@
 #include "transfer_descriptor.h"
 
 
-int td_error(const td_t *td)
+errno_t td_error(const td_t *td)
 {
 	assert(td);
 	const uint32_t status = EHCI_MEM32_RD(td->status);

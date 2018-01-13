@@ -38,10 +38,10 @@
 
 #include <stddef.h>
 
-extern int comm_open_listen(const char *);
-extern int comm_open_talkto(const char *);
+extern errno_t comm_open_listen(const char *);
+extern errno_t comm_open_talkto(const char *);
 extern void comm_close(void);
-extern int comm_send(void *, size_t);
+extern errno_t comm_send(void *, size_t);
 
 #endif
 

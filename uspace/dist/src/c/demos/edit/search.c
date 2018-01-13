@@ -103,12 +103,12 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 	return search;
 }
 
-int search_next_match(search_t *s, match_t *match)
+errno_t search_next_match(search_t *s, match_t *match)
 {
 	search_equals_fn eq = s->ops.equals;
 	
 	wchar_t cur_char;
-	int rc = EOK;
+	errno_t rc = EOK;
 	while ((rc = s->ops.producer(s->client_data, &cur_char)) == EOK && cur_char > 0) {
 		/* Deal with mismatches */
 		while (s->pattern_pos > 0 && !eq(cur_char, s->pattern[s->pattern_pos])) {

@@ -104,7 +104,7 @@ void tcp_rqueue_insert_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 }
 
 /** Receive queue handler fibril. */
-static int tcp_rqueue_fibril(void *arg)
+static errno_t tcp_rqueue_fibril(void *arg)
 {
 	link_t *link;
 	tcp_rqueue_entry_t *rqe;

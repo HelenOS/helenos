@@ -56,7 +56,7 @@ void help_cmd_unmount(unsigned int level)
 int cmd_unmount(char **argv)
 {
 	unsigned int argc;
-	int rc;
+	errno_t rc;
 
 	argc = cli_count_args(argv);
 

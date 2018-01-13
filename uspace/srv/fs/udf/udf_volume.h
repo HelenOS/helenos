@@ -211,10 +211,10 @@ typedef struct udf_partition_header_descriptor {
 	uint8_t reserved[88];
 } __attribute__((packed)) udf_partition_header_descriptor_t;
 
-extern int udf_volume_recongnition(service_id_t);
-extern int udf_get_anchor_volume_descriptor(service_id_t,
+extern errno_t udf_volume_recongnition(service_id_t);
+extern errno_t udf_get_anchor_volume_descriptor(service_id_t,
     udf_anchor_volume_descriptor_t *);
-extern int udf_read_volume_descriptor_sequence(service_id_t, udf_extent_t);
+extern errno_t udf_read_volume_descriptor_sequence(service_id_t, udf_extent_t);
 extern fs_index_t udf_long_ad_to_pos(udf_instance_t *, udf_long_ad_t *);
 
 #endif

@@ -68,7 +68,7 @@ tcp_error_t tcp_uc_open(inet_ep2_t *epp, acpass_t acpass,
     tcp_open_flags_t oflags, tcp_conn_t **conn)
 {
 	tcp_conn_t *nconn;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_uc_open(%p, %s, %s, %p)",
 	    epp, acpass == ap_active ? "active" : "passive",

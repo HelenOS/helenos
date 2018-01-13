@@ -134,7 +134,7 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 	int alloc_blocks = 20;
 	int i;
 	int nbdirs = 0;
-	int rc;
+	errno_t rc;
 	int len;
 	char *buff;
 	struct dir_elem_t *tmp;

@@ -49,11 +49,11 @@ typedef struct {
 	inet_addr_t addr;
 } dnsr_hostinfo_t;
 
-extern int dnsr_init(void);
-extern int dnsr_name2host(const char *, dnsr_hostinfo_t **, ip_ver_t);
+extern errno_t dnsr_init(void);
+extern errno_t dnsr_name2host(const char *, dnsr_hostinfo_t **, ip_ver_t);
 extern void dnsr_hostinfo_destroy(dnsr_hostinfo_t *);
-extern int dnsr_get_srvaddr(inet_addr_t *);
-extern int dnsr_set_srvaddr(inet_addr_t *);
+extern errno_t dnsr_get_srvaddr(inet_addr_t *);
+extern errno_t dnsr_set_srvaddr(inet_addr_t *);
 
 #endif
 

@@ -42,7 +42,7 @@
 #include <synch/smc.h>
 #include <mm/as.h>
 
-sysarg_t sys_smc_coherence(uintptr_t va, size_t size)
+sys_errno_t sys_smc_coherence(uintptr_t va, size_t size)
 {
 	if (overlaps(va, size, (uintptr_t) NULL, PAGE_SIZE))
 		return EINVAL;

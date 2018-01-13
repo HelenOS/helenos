@@ -76,7 +76,7 @@ static void remote_led_color_set(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 		return;
 	}
 	
-	int rc = (*led_dev_ops->color_set)(fun, color);
+	errno_t rc = (*led_dev_ops->color_set)(fun, color);
 	async_answer_0(callid, rc);
 }
 

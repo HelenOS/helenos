@@ -66,9 +66,9 @@ void loc_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 	free(loc_pathname);
 }
 
-int loc_unregister_tree_function(fun_node_t *fun, dev_tree_t *tree)
+errno_t loc_unregister_tree_function(fun_node_t *fun, dev_tree_t *tree)
 {
-	int rc = loc_service_unregister(fun->service_id);
+	errno_t rc = loc_service_unregister(fun->service_id);
 	tree_rem_loc_function(tree, fun);
 	return rc;
 }

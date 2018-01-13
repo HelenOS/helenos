@@ -41,7 +41,7 @@
 #include <abi/errno.h>
 #include <arch.h>
 
-static int request_preprocess(call_t *call, phone_t *phone)
+static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
 	size_t size = as_area_get_size(IPC_GET_ARG1(call->data));
 
@@ -52,9 +52,9 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	if (!IPC_GET_RETVAL(answer->data)) {
 		/* Accepted, handle as_area receipt */

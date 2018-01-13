@@ -42,43 +42,43 @@
 #include <taskdump.h>
 #include <udebug.h>
 
-static int fibrildump_read_uintptr(void *, uintptr_t, uintptr_t *);
+static errno_t fibrildump_read_uintptr(void *, uintptr_t, uintptr_t *);
 
 static stacktrace_ops_t fibrildump_st_ops = {
 	.read_uintptr = fibrildump_read_uintptr
 }; 
 
-static int fibrildump_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data)
+static errno_t fibrildump_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data)
 {
 	async_sess_t *sess = (async_sess_t *)arg;
 
 	return udebug_mem_read(sess, data, addr, sizeof(uintptr_t));
 }
 
-static int read_link(async_sess_t *sess, uintptr_t addr, link_t *link)
+static errno_t read_link(async_sess_t *sess, uintptr_t addr, link_t *link)
 {
-	int rc;
+	errno_t rc;
 
 	rc = udebug_mem_read(sess, (void *)link, addr, sizeof(link_t));
 	return rc;
 }
 
-static int read_fibril(async_sess_t *sess, uintptr_t addr, fibril_t *fibril)
+static errno_t read_fibril(async_sess_t *sess, uintptr_t addr, fibril_t *fibril)
 {
-	int rc;
+	errno_t rc;
 
 	rc = udebug_mem_read(sess, (void *)fibril, addr, sizeof(fibril_t));
 	return rc;
 }
 
-int fibrils_dump(symtab_t *symtab, async_sess_t *sess)
+errno_t fibrils_dump(symtab_t *symtab, async_sess_t *sess)
 {
 	uintptr_t fibril_list_addr;
 	link_t link;
 	fibril_t fibril;
 	uintptr_t addr, fibril_addr;
 	uintptr_t pc, fp;
-	int rc;
+	errno_t rc;
 
 	/* 
 	 * If we for whatever reason could not obtain symbols table from the binary,

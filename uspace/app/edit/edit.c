@@ -131,10 +131,10 @@ static void key_handle_movement(unsigned int key, bool shift);
 
 static void pos_handle(pos_event_t *ev);
 
-static int file_save(char const *fname);
+static errno_t file_save(char const *fname);
 static void file_save_as(void);
-static int file_insert(char *fname);
-static int file_save_range(char const *fname, spt_t const *spos,
+static errno_t file_insert(char *fname);
+static errno_t file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
 static char *range_get_str(spt_t const *spos, spt_t const *epos);
 
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 {
 	cons_event_t ev;
 	bool new_file;
-	int rc;
+	errno_t rc;
 
 	con = console_init(stdin, stdout);
 	console_clear(con);
@@ -577,10 +577,10 @@ static void key_handle_movement(unsigned int key, bool select)
 }
 
 /** Save the document. */
-static int file_save(char const *fname)
+static errno_t file_save(char const *fname)
 {
 	spt_t sp, ep;
-	int rc;
+	errno_t rc;
 
 	status_display("Saving...");
 	pt_get_sof(&sp);
@@ -615,7 +615,7 @@ static void file_save_as(void)
 		return;
 	}
 
-	int rc = file_save(fname);
+	errno_t rc = file_save(fname);
 	if (rc != EOK)
 		return;
 
@@ -696,7 +696,7 @@ static char *prompt(char const *prompt, char const *init_value)
  * Reads in the contents of a file and inserts them at the current position
  * of the caret.
  */
-static int file_insert(char *fname)
+static errno_t file_insert(char *fname)
 {
 	FILE *f;
 	wchar_t c;
@@ -734,7 +734,7 @@ static int file_insert(char *fname)
 }
 
 /** Save a range of text into a file. */
-static int file_save_range(char const *fname, spt_t const *spos,
+static errno_t file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos)
 {
 	FILE *f;
@@ -1282,7 +1282,7 @@ static void caret_go_to_line_ask(void)
 }
 
 /* Search operations */
-static int search_spt_producer(void *data, wchar_t *ret)
+static errno_t search_spt_producer(void *data, wchar_t *ret)
 {
 	assert(data != NULL);
 	assert(ret != NULL);
@@ -1291,7 +1291,7 @@ static int search_spt_producer(void *data, wchar_t *ret)
 	return EOK;
 }
 
-static int search_spt_reverse_producer(void *data, wchar_t *ret)
+static errno_t search_spt_reverse_producer(void *data, wchar_t *ret)
 {
 	assert(data != NULL);
 	assert(ret != NULL);
@@ -1300,7 +1300,7 @@ static int search_spt_reverse_producer(void *data, wchar_t *ret)
 	return EOK;
 }
 
-static int search_spt_mark(void *data, void **mark)
+static errno_t search_spt_mark(void *data, void **mark)
 {
 	assert(data != NULL);
 	assert(mark != NULL);
@@ -1396,7 +1396,7 @@ static void search(char *pattern, bool reverse)
 	}
 	
 	match_t match;
-	int rc = search_next_match(search, &match);
+	errno_t rc = search_next_match(search, &match);
 	if (rc != EOK) {
 		status_display("Failed searching.");
 		search_fini(search);
@@ -1514,7 +1514,7 @@ static void insert_clipboard_data(void)
 	char *str;
 	size_t off;
 	wchar_t c;
-	int rc;
+	errno_t rc;
 
 	rc = clipboard_get_str(&str);
 	if (rc != EOK || str == NULL)

@@ -123,7 +123,7 @@ void caps_init(void)
  *
  * @param task  Task for which to allocate the info structure.
  */
-int caps_task_alloc(task_t *task)
+errno_t caps_task_alloc(task_t *task)
 {
 	task->cap_info = (cap_info_t *) malloc(sizeof(cap_info_t),
 	    FRAME_ATOMIC);
@@ -260,7 +260,7 @@ static bool cap_reclaimer(ht_link_t *link, void *arg)
  *
  * @return An error code in case of error.
  */
-int cap_alloc(task_t *task, cap_handle_t *handle)
+errno_t cap_alloc(task_t *task, cap_handle_t *handle)
 {
 	cap_t *cap = NULL;
 

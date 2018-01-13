@@ -42,8 +42,8 @@
 struct search;
 typedef struct search search_t;
 typedef bool (*search_equals_fn)(const wchar_t, const wchar_t);
-typedef int (*search_producer_fn)(void *, wchar_t *);
-typedef int (*search_mark_fn)(void *, void **);
+typedef errno_t (*search_producer_fn)(void *, wchar_t *);
+typedef errno_t (*search_mark_fn)(void *, void **);
 typedef void (*search_mark_free_fn)(void *);
 
 typedef struct match {
@@ -60,7 +60,7 @@ typedef struct search_ops {
 
 extern bool char_exact_equals(const wchar_t, const wchar_t);
 extern search_t *search_init(const char *, void *, search_ops_t, bool);
-extern int search_next_match(search_t *, match_t *);
+extern errno_t search_next_match(search_t *, match_t *);
 extern void search_fini(search_t *);
 
 #endif

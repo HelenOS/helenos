@@ -39,7 +39,7 @@
 #include "../input.h"
 #include "../layout.h"
 
-static int cz_create(layout_t *);
+static errno_t cz_create(layout_t *);
 static void cz_destroy(layout_t *);
 static wchar_t cz_parse_ev(layout_t *, kbd_event_t *ev);
 
@@ -384,7 +384,7 @@ static bool key_is_mod(unsigned key)
 	}
 }
 
-static int cz_create(layout_t *state)
+static errno_t cz_create(layout_t *state)
 {
 	layout_cz_t *cz_state;
 

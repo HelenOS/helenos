@@ -49,8 +49,8 @@ typedef enum {
 	BITHENGE_PRINT_JSON,
 } bithenge_print_type_t;
 
-int bithenge_print_node(bithenge_print_type_t, bithenge_node_t *);
-int bithenge_print_node_to_string(char **, size_t *, bithenge_print_type_t,
+errno_t bithenge_print_node(bithenge_print_type_t, bithenge_node_t *);
+errno_t bithenge_print_node_to_string(char **, size_t *, bithenge_print_type_t,
     bithenge_node_t *);
 
 #endif

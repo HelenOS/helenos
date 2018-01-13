@@ -167,9 +167,9 @@ static size_t next_rand(size_t seed)
 }
 
 
-typedef int (*fibril_func_t)(void *);
+typedef errno_t (*fibril_func_t)(void *);
 
-static bool create_fibril(int (*func)(void*), void *arg)
+static bool create_fibril(errno_t (*func)(void*), void *arg)
 {
 	fid_t fid = fibril_create(func, arg);
 	
@@ -307,7 +307,7 @@ typedef struct one_reader_info {
 } one_reader_info_t;
 
 
-static int sleeping_reader(one_reader_info_t *arg)
+static errno_t sleeping_reader(one_reader_info_t *arg)
 {
 	rcu_register_fibril();
 	
@@ -389,7 +389,7 @@ typedef struct two_reader_info {
 } two_reader_info_t;
 
 
-static int preexisting_reader(two_reader_info_t *arg)
+static errno_t preexisting_reader(two_reader_info_t *arg)
 {
 	rcu_register_fibril();
 	
@@ -429,7 +429,7 @@ static int preexisting_reader(two_reader_info_t *arg)
 	return 0;
 }
 
-static int new_reader(two_reader_info_t *arg)
+static errno_t new_reader(two_reader_info_t *arg)
 {
 	rcu_register_fibril();
 	
@@ -550,7 +550,7 @@ typedef struct exit_reader_info {
 } exit_reader_info_t;
 
 
-static int exiting_locked_reader(exit_reader_info_t *arg)
+static errno_t exiting_locked_reader(exit_reader_info_t *arg)
 {
 	rcu_register_fibril();
 	
@@ -646,7 +646,7 @@ static void signal_seq_fibril_done(seq_test_info_t *arg, size_t *cnt)
 	fibril_mutex_unlock(&arg->done_cnt_mtx);
 }
 
-static int seq_reader(seq_test_info_t *arg)
+static errno_t seq_reader(seq_test_info_t *arg)
 {
 	rcu_register_fibril();
 	
@@ -689,7 +689,7 @@ static int seq_reader(seq_test_info_t *arg)
 	return 0;
 }
 
-static int seq_updater(seq_test_info_t *arg)
+static errno_t seq_updater(seq_test_info_t *arg)
 {
 	rcu_register_fibril();
 	
@@ -778,7 +778,7 @@ static bool create_threads(size_t cnt)
 	for (size_t k = 0; k < cnt; ++k) {
 		thread_id_t tid;
 		
-		int ret = thread_create(dummy_fibril, NULL, "urcu-test-worker", &tid);
+		errno_t ret = thread_create(dummy_fibril, NULL, "urcu-test-worker", &tid);
 		if (EOK != ret) {
 			printf("Failed to create thread '%zu' (error: %s)\n", k + 1, str_error_name(ret));
 			return false;
@@ -861,7 +861,7 @@ static bool parse_cmd_line(int argc, char **argv, test_info_t *info)
 	
 	if (argc == 3) {
 		uint32_t thread_cnt = 0;
-		int ret = str_uint32_t(argv[2], NULL, 0, true, &thread_cnt);
+		errno_t ret = str_uint32_t(argv[2], NULL, 0, true, &thread_cnt);
 		
 		if (ret == EOK && 1 <= thread_cnt && thread_cnt <= 64) {
 			info->thread_cnt = thread_cnt;

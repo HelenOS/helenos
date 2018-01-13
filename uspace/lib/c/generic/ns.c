@@ -45,9 +45,9 @@
  */
 static async_sess_t *sess_ns = NULL;
 
-int service_register(service_t service)
+errno_t service_register(service_t service)
 {
-	int retval;
+	errno_t retval;
 	ipc_call_t answer;
 	
 	async_sess_t *sess = ns_session_get();
@@ -56,7 +56,7 @@ int service_register(service_t service)
 	
 	async_exch_t *exch = async_exchange_begin(sess);
 	aid_t req = async_send_1(exch, NS_REGISTER, service, &answer);
-	int rc = async_connect_to_me(exch, 0, service, 0);
+	errno_t rc = async_connect_to_me(exch, 0, service, 0);
 	
 	async_exchange_end(exch);
 	
@@ -122,20 +122,20 @@ async_sess_t *service_connect_blocking(service_t service, iface_t iface,
 }
 
 
-int ns_ping(void)
+errno_t ns_ping(void)
 {
 	async_sess_t *sess = ns_session_get();
 	if (sess == NULL)
 		return EIO;
 	
 	async_exch_t *exch = async_exchange_begin(sess);
-	int rc = async_req_0_0(exch, NS_PING);
+	errno_t rc = async_req_0_0(exch, NS_PING);
 	async_exchange_end(exch);
 	
 	return rc;
 }
 
-int ns_intro(task_id_t id)
+errno_t ns_intro(task_id_t id)
 {
 	async_exch_t *exch;
 	async_sess_t *sess = ns_session_get();
@@ -143,7 +143,7 @@ int ns_intro(task_id_t id)
 		return EIO;
 	
 	exch = async_exchange_begin(sess);
-	int rc = async_req_2_0(exch, NS_ID_INTRO, LOWER32(id), UPPER32(id));
+	errno_t rc = async_req_2_0(exch, NS_ID_INTRO, LOWER32(id), UPPER32(id));
 	async_exchange_end(exch);
 	
 	return rc;

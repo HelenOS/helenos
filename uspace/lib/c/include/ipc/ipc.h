@@ -45,16 +45,16 @@
 #include <abi/proc/task.h>
 #include <abi/cap.h>
 
-typedef void (*ipc_async_callback_t)(void *, int, ipc_call_t *);
+typedef void (*ipc_async_callback_t)(void *, errno_t, ipc_call_t *);
 
-extern int ipc_wait_cycle(ipc_call_t *, sysarg_t, unsigned int);
+extern errno_t ipc_wait_cycle(ipc_call_t *, sysarg_t, unsigned int);
 extern void ipc_poke(void);
 
 #define ipc_wait_for_call(data) \
 	ipc_wait_for_call_timeout(data, SYNCH_NO_TIMEOUT);
 
-extern int ipc_wait_for_call_timeout(ipc_call_t *, sysarg_t);
-extern int ipc_trywait_for_call(ipc_call_t *);
+extern errno_t ipc_wait_for_call_timeout(ipc_call_t *, sysarg_t);
+extern errno_t ipc_trywait_for_call(ipc_call_t *);
 
 /*
  * User-friendly wrappers for ipc_answer_fast() and ipc_answer_slow().
@@ -77,9 +77,9 @@ extern int ipc_trywait_for_call(ipc_call_t *);
 	ipc_answer_slow((chandle), (retval), (arg1), (arg2), (arg3), (arg4), \
 	    (arg5))
 
-extern int ipc_answer_fast(cap_handle_t, int, sysarg_t, sysarg_t,
+extern errno_t ipc_answer_fast(cap_handle_t, errno_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
-extern int ipc_answer_slow(cap_handle_t, int, sysarg_t, sysarg_t,
+extern errno_t ipc_answer_slow(cap_handle_t, errno_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
 /*
@@ -114,14 +114,14 @@ extern void ipc_call_async_fast(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
 extern void ipc_call_async_slow(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, void *, ipc_async_callback_t);
 
-extern int ipc_hangup(cap_handle_t);
+extern errno_t ipc_hangup(cap_handle_t);
 
-extern int ipc_forward_fast(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
+extern errno_t ipc_forward_fast(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
     sysarg_t, unsigned int);
-extern int ipc_forward_slow(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
+extern errno_t ipc_forward_slow(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
-extern int ipc_connect_kbox(task_id_t, cap_handle_t *);
+extern errno_t ipc_connect_kbox(task_id_t, cap_handle_t *);
 
 #endif
 

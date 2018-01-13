@@ -123,14 +123,14 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
-extern int hc_init(hc_t *, const hw_res_list_parsed_t *, bool);
+extern errno_t hc_init(hc_t *, const hw_res_list_parsed_t *, bool);
 extern void hc_fini(hc_t *);
 
-extern int uhci_hc_gen_irq_code(irq_code_t *, const hw_res_list_parsed_t *, int *);
+extern errno_t uhci_hc_gen_irq_code(irq_code_t *, const hw_res_list_parsed_t *, int *);
 
 extern void uhci_hc_interrupt(hcd_t *, uint32_t);
-extern int uhci_hc_status(hcd_t *, uint32_t *);
-extern int uhci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
+extern errno_t uhci_hc_status(hcd_t *, uint32_t *);
+extern errno_t uhci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
 
 #endif
 

@@ -235,11 +235,11 @@ void ext4_directory_dx_entry_set_block(ext4_directory_dx_entry_t *entry,
  * @return Error code
  *
  */
-int ext4_directory_dx_init(ext4_inode_ref_t *dir)
+errno_t ext4_directory_dx_init(ext4_inode_ref_t *dir)
 {
 	/* Load block 0, where will be index root located */
 	uint32_t fblock;
-	int rc = ext4_filesystem_get_inode_data_block_index(dir, 0,
+	errno_t rc = ext4_filesystem_get_inode_data_block_index(dir, 0,
 	    &fblock);
 	if (rc != EOK)
 		return rc;
@@ -321,7 +321,7 @@ int ext4_directory_dx_init(ext4_inode_ref_t *dir)
  * @return Error code
  *
  */
-static int ext4_directory_hinfo_init(ext4_hash_info_t *hinfo,
+static errno_t ext4_directory_hinfo_init(ext4_hash_info_t *hinfo,
     block_t *root_block, ext4_superblock_t *sb, size_t name_len,
     const char *name)
 {
@@ -383,7 +383,7 @@ static int ext4_directory_hinfo_init(ext4_hash_info_t *hinfo,
  * @return Error code
  *
  */
-static int ext4_directory_dx_get_leaf(ext4_hash_info_t *hinfo,
+static errno_t ext4_directory_dx_get_leaf(ext4_hash_info_t *hinfo,
     ext4_inode_ref_t *inode_ref, block_t *root_block,
     ext4_directory_dx_block_t **dx_block, ext4_directory_dx_block_t *dx_blocks)
 {
@@ -442,7 +442,7 @@ static int ext4_directory_dx_get_leaf(ext4_hash_info_t *hinfo,
 		indirect_level--;
 		
 		uint32_t fblock;
-		int rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
+		errno_t rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
 		    next_block, &fblock);
 		if (rc != EOK)
 			return rc;
@@ -483,7 +483,7 @@ static int ext4_directory_dx_get_leaf(ext4_hash_info_t *hinfo,
  * @return Error code
  *
  */
-static int ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref,
+static errno_t ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref,
     uint32_t hash, ext4_directory_dx_block_t *dx_block,
     ext4_directory_dx_block_t *dx_blocks)
 {
@@ -519,7 +519,7 @@ static int ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref,
 		    ext4_directory_dx_entry_get_block(p->position);
 		uint32_t block_addr;
 		
-		int rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
+		errno_t rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
 		    block_idx, &block_addr);
 		if (rc != EOK)
 			return rc;
@@ -555,13 +555,13 @@ static int ext4_directory_dx_next_block(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-int ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
+errno_t ext4_directory_dx_find_entry(ext4_directory_search_result_t *result,
     ext4_inode_ref_t *inode_ref, size_t name_len, const char *name)
 {
 	/* Load direct block 0 (index root) */
 	uint32_t root_block_addr;
-	int rc2;
-	int rc = ext4_filesystem_get_inode_data_block_index(inode_ref, 0,
+	errno_t rc2;
+	errno_t rc = ext4_filesystem_get_inode_data_block_index(inode_ref, 0,
 	    &root_block_addr);
 	if (rc != EOK)
 		return rc;
@@ -727,11 +727,11 @@ static void ext4_directory_dx_insert_entry(
  * @param new_data_block Output value for newly allocated data block
  *
  */
-static int ext4_directory_dx_split_data(ext4_inode_ref_t *inode_ref,
+static errno_t ext4_directory_dx_split_data(ext4_inode_ref_t *inode_ref,
     ext4_hash_info_t *hinfo, block_t *old_data_block,
     ext4_directory_dx_block_t *index_block, block_t **new_data_block)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	/* Allocate buffer for directory entries */
 	uint32_t block_size =
@@ -896,7 +896,7 @@ static int ext4_directory_dx_split_data(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-static int ext4_directory_dx_split_index(ext4_inode_ref_t *inode_ref,
+static errno_t ext4_directory_dx_split_index(ext4_inode_ref_t *inode_ref,
 		ext4_directory_dx_block_t *dx_blocks, ext4_directory_dx_block_t *dx_block)
 {
 	ext4_directory_dx_entry_t *entries;
@@ -936,7 +936,7 @@ static int ext4_directory_dx_split_index(ext4_inode_ref_t *inode_ref,
 		/* Add new block to directory */
 		uint32_t new_fblock;
 		uint32_t new_iblock;
-		int rc = ext4_filesystem_append_inode_block(inode_ref,
+		errno_t rc = ext4_filesystem_append_inode_block(inode_ref,
 		    &new_fblock, &new_iblock);
 		if (rc != EOK)
 			return rc;
@@ -1044,14 +1044,14 @@ static int ext4_directory_dx_split_index(ext4_inode_ref_t *inode_ref,
  * @return Error code
  *
  */
-int ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
+errno_t ext4_directory_dx_add_entry(ext4_inode_ref_t *parent,
     ext4_inode_ref_t *child, const char *name)
 {
-	int rc2 = EOK;
+	errno_t rc2 = EOK;
 	
 	/* Get direct block 0 (index root) */
 	uint32_t root_block_addr;
-	int rc = ext4_filesystem_get_inode_data_block_index(parent, 0,
+	errno_t rc = ext4_filesystem_get_inode_data_block_index(parent, 0,
 	    &root_block_addr);
 	if (rc != EOK)
 		return rc;

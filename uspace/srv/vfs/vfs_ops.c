@@ -51,7 +51,7 @@
 #include <vfs/canonify.h>
 
 /* Forward declarations of static functions. */
-static int vfs_truncate_internal(fs_handle_t, service_id_t, fs_index_t,
+static errno_t vfs_truncate_internal(fs_handle_t, service_id_t, fs_index_t,
     aoff64_t);
 
 /**
@@ -85,9 +85,9 @@ static void out_destroy(vfs_triplet_t *file)
 	vfs_exchange_release(exch);
 }
 
-int vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
+errno_t vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
 {
-	int rc;
+	errno_t rc;
 
 	/* If the file descriptors are the same, do nothing. */
 	if (oldfd == newfd)
@@ -120,12 +120,12 @@ int vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
 	return rc;
 }
 
-int vfs_op_put(int fd)
+errno_t vfs_op_put(int fd)
 {
 	return vfs_fd_free(fd);
 }
 
-static int vfs_connect_internal(service_id_t service_id, unsigned flags,
+static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
     unsigned instance, const char *options, const char *fsname,
     vfs_node_t **root)
 {
@@ -151,7 +151,7 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags,
 	aid_t msg = async_send_1(exch, VFS_OUT_MOUNTED, (sysarg_t) service_id,
 	    &answer);
 	/* Send the mount options */
-	int rc = async_data_write_start(exch, options, str_size(options));
+	errno_t rc = async_data_write_start(exch, options, str_size(options));
 	if (rc != EOK) {
 		async_forget(msg);
 		vfs_exchange_release(exch);
@@ -187,12 +187,12 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags,
 	return EOK;
 }
 
-int vfs_op_fsprobe(const char *fs_name, service_id_t sid,
+errno_t vfs_op_fsprobe(const char *fs_name, service_id_t sid,
     vfs_fs_probe_info_t *info)
 {
 	fs_handle_t fs_handle = 0;
-	int rc;
-	int retval;
+	errno_t rc;
+	errno_t retval;
 	
 	fibril_mutex_lock(&fs_list_lock);
 	fs_handle = fs_name_to_handle(0, fs_name, false);
@@ -221,10 +221,10 @@ int vfs_op_fsprobe(const char *fs_name, service_id_t sid,
 	return rc;
 }
 
-int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
+errno_t vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
     unsigned instance, const char *opts, const char *fs_name, int *out_fd)
 {
-	int rc;
+	errno_t rc;
 	vfs_file_t *mp = NULL;
 	vfs_file_t *file = NULL;
 	*out_fd = -1;
@@ -301,7 +301,7 @@ out:
 	return rc;
 }
 
-int vfs_op_open(int fd, int mode)
+errno_t vfs_op_open(int fd, int mode)
 {
 	if (mode == 0)
 		return EINVAL;
@@ -335,7 +335,7 @@ int vfs_op_open(int fd, int mode)
 		return EINVAL;
 	}
 	
-	int rc = vfs_open_node_remote(file->node);
+	errno_t rc = vfs_open_node_remote(file->node);
 	if (rc != EOK) {
 		file->open_read = file->open_write = false;
 		vfs_file_put(file);
@@ -346,14 +346,14 @@ int vfs_op_open(int fd, int mode)
 	return EOK;
 }
 
-typedef int (* rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, aoff64_t,
+typedef errno_t (* rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, aoff64_t,
     ipc_call_t *, bool, void *);
 
-static int rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
+static errno_t rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
     ipc_call_t *answer, bool read, void *data)
 {
 	size_t *bytes = (size_t *) data;
-	int rc;
+	errno_t rc;
 
 	/*
 	 * Make a VFS_READ/VFS_WRITE request at the destination FS server
@@ -377,7 +377,7 @@ static int rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
 	return rc;
 }
 
-static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
+static errno_t rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
     ipc_call_t *answer, bool read, void *data)
 {
 	rdwr_io_chunk_t *chunk = (rdwr_io_chunk_t *) data;
@@ -391,21 +391,21 @@ static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
 	if (msg == 0)
 		return EINVAL;
 
-	int retval = async_data_read_start(exch, chunk->buffer, chunk->size);
+	errno_t retval = async_data_read_start(exch, chunk->buffer, chunk->size);
 	if (retval != EOK) {
 		async_forget(msg);
 		return retval;
 	}
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(msg, &rc);
 	
 	chunk->size = IPC_GET_ARG1(*answer); 
 
-	return (int) rc;
+	return (errno_t) rc;
 }
 
-static int vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
+static errno_t vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
     void *ipc_cb_data)
 {
 	/*
@@ -474,7 +474,7 @@ static int vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
 	 * Handle communication with the endpoint FS.
 	 */
 	ipc_call_t answer;
-	int rc = ipc_cb(fs_exch, file, pos, &answer, read, ipc_cb_data);
+	errno_t rc = ipc_cb(fs_exch, file, pos, &answer, read, ipc_cb_data);
 	
 	vfs_exchange_release(fs_exch);
 	
@@ -498,17 +498,17 @@ static int vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
 	return rc;
 }
 
-int vfs_rdwr_internal(int fd, aoff64_t pos, bool read, rdwr_io_chunk_t *chunk)
+errno_t vfs_rdwr_internal(int fd, aoff64_t pos, bool read, rdwr_io_chunk_t *chunk)
 {
 	return vfs_rdwr(fd, pos, read, rdwr_ipc_internal, chunk);
 }
 
-int vfs_op_read(int fd, aoff64_t pos, size_t *out_bytes)
+errno_t vfs_op_read(int fd, aoff64_t pos, size_t *out_bytes)
 {
 	return vfs_rdwr(fd, pos, true, rdwr_ipc_client, out_bytes);
 }
 
-int vfs_op_rename(int basefd, char *old, char *new)
+errno_t vfs_op_rename(int basefd, char *old, char *new)
 {
 	vfs_file_t *base_file = vfs_file_get(basefd);
 	if (!base_file)
@@ -523,7 +523,7 @@ int vfs_op_rename(int basefd, char *old, char *new)
 	vfs_lookup_res_t new_lr_orig;
 	bool orig_unlinked = false;
 	
-	int rc;
+	errno_t rc;
 	
 	size_t shared = shared_path(old, new);
 	
@@ -609,7 +609,7 @@ int vfs_op_rename(int basefd, char *old, char *new)
 	return EOK;
 }
 
-int vfs_op_resize(int fd, int64_t size)
+errno_t vfs_op_resize(int fd, int64_t size)
 {
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
@@ -617,7 +617,7 @@ int vfs_op_resize(int fd, int64_t size)
 
 	fibril_rwlock_write_lock(&file->node->contents_rwlock);
 	
-	int rc = vfs_truncate_internal(file->node->fs_handle,
+	errno_t rc = vfs_truncate_internal(file->node->fs_handle,
 	    file->node->service_id, file->node->index, size);
 	if (rc == EOK)
 		file->node->size = size;
@@ -627,7 +627,7 @@ int vfs_op_resize(int fd, int64_t size)
 	return rc;
 }
 
-int vfs_op_stat(int fd)
+errno_t vfs_op_stat(int fd)
 {
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
@@ -636,7 +636,7 @@ int vfs_op_stat(int fd)
 	vfs_node_t *node = file->node;
 
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-	int rc = async_data_read_forward_fast(exch, VFS_OUT_STAT,
+	errno_t rc = async_data_read_forward_fast(exch, VFS_OUT_STAT,
 	    node->service_id, node->index, true, 0, NULL);
 	vfs_exchange_release(exch);
 	
@@ -644,7 +644,7 @@ int vfs_op_stat(int fd)
 	return rc;
 }
 
-int vfs_op_statfs(int fd)
+errno_t vfs_op_statfs(int fd)
 {
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
@@ -653,7 +653,7 @@ int vfs_op_statfs(int fd)
 	vfs_node_t *node = file->node;
 
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-	int rc = async_data_read_forward_fast(exch, VFS_OUT_STATFS,
+	errno_t rc = async_data_read_forward_fast(exch, VFS_OUT_STATFS,
 	    node->service_id, node->index, false, 0, NULL);
 	vfs_exchange_release(exch);
 
@@ -661,7 +661,7 @@ int vfs_op_statfs(int fd)
 	return rc;
 }
 
-int vfs_op_sync(int fd)
+errno_t vfs_op_sync(int fd)
 {
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
@@ -676,7 +676,7 @@ int vfs_op_sync(int fd)
 	
 	vfs_exchange_release(fs_exch);
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(msg, &rc);
 	
 	vfs_file_put(file);
@@ -684,21 +684,21 @@ int vfs_op_sync(int fd)
 	
 }
 
-static int vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service_id,
+static errno_t vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service_id,
     fs_index_t index, aoff64_t size)
 {
 	async_exch_t *exch = vfs_exchange_grab(fs_handle);
-	int rc = async_req_4_0(exch, VFS_OUT_TRUNCATE,
+	errno_t rc = async_req_4_0(exch, VFS_OUT_TRUNCATE,
 	    (sysarg_t) service_id, (sysarg_t) index, LOWER32(size),
 	    UPPER32(size));
 	vfs_exchange_release(exch);
 	
-	return (int) rc;
+	return (errno_t) rc;
 }
 
-int vfs_op_unlink(int parentfd, int expectfd, char *path)
+errno_t vfs_op_unlink(int parentfd, int expectfd, char *path)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	vfs_file_t *parent = NULL;
 	vfs_file_t *expect = NULL;
 	
@@ -777,7 +777,7 @@ exit:
 	return rc;
 }
 
-int vfs_op_unmount(int mpfd)
+errno_t vfs_op_unmount(int mpfd)
 {
 	vfs_file_t *mp = vfs_file_get(mpfd);
 	if (mp == NULL)
@@ -805,7 +805,7 @@ int vfs_op_unmount(int mpfd)
 	}
 	
 	async_exch_t *exch = vfs_exchange_grab(mp->node->mount->fs_handle);
-	int rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED,
+	errno_t rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED,
 	    mp->node->mount->service_id);
 	vfs_exchange_release(exch);
 	
@@ -825,7 +825,7 @@ int vfs_op_unmount(int mpfd)
 	return EOK;
 }
 
-int vfs_op_wait_handle(bool high_fd, int *out_fd)
+errno_t vfs_op_wait_handle(bool high_fd, int *out_fd)
 {
 	return vfs_wait_handle_internal(high_fd, out_fd);
 }
@@ -861,7 +861,7 @@ static inline int walk_lookup_flags(int flags)
 	return lflags;
 }
 
-int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
+errno_t vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 {
 	if (!walk_flags_valid(flags))
 		return EINVAL;
@@ -873,7 +873,7 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	fibril_rwlock_read_lock(&namespace_rwlock);
 	
 	vfs_lookup_res_t lr;
-	int rc = vfs_lookup_internal(parent->node, path,
+	errno_t rc = vfs_lookup_internal(parent->node, path,
 	    walk_lookup_flags(flags), &lr);
 	if (rc != EOK) {
 		fibril_rwlock_read_unlock(&namespace_rwlock);
@@ -910,7 +910,7 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	return EOK;
 }
 
-int vfs_op_write(int fd, aoff64_t pos, size_t *out_bytes)
+errno_t vfs_op_write(int fd, aoff64_t pos, size_t *out_bytes)
 {
 	return vfs_rdwr(fd, pos, false, rdwr_ipc_client, out_bytes);
 }

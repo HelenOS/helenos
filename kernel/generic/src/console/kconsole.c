@@ -562,7 +562,7 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 		str_ncpy(symname, MAX_SYMBOL_NAME, text, len + 1);
 		
 		uintptr_t symaddr;
-		int rc = symtab_addr_lookup(symname, &symaddr);
+		errno_t rc = symtab_addr_lookup(symname, &symaddr);
 		switch (rc) {
 		case ENOENT:
 			printf("Symbol %s not found.\n", symname);
@@ -590,7 +590,7 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 		/* It's a number - convert it */
 		uint64_t value;
 		char *end;
-		int rc = str_uint64_t(text, &end, 0, false, &value);
+		errno_t rc = str_uint64_t(text, &end, 0, false, &value);
 		if (end != text + len)
 			rc = EINVAL;
 		switch (rc) {

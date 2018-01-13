@@ -90,7 +90,7 @@ static hash_table_ops_t udf_idx_ops = {
  * @return EOK on success or an error code.
  *
  */
-int udf_idx_init(void)
+errno_t udf_idx_init(void)
 {
 	if (!hash_table_create(&udf_idx, 0, 0, &udf_idx_ops))
 		return ENOMEM;
@@ -103,7 +103,7 @@ int udf_idx_init(void)
  * @return EOK on success or an error code.
  *
  */
-int udf_idx_fini(void)
+errno_t udf_idx_fini(void)
 {
 	hash_table_destroy(&udf_idx);
 	return EOK;
@@ -118,7 +118,7 @@ int udf_idx_fini(void)
  * @return EOK on success or an error code.
  *
  */
-int udf_idx_get(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
+errno_t udf_idx_get(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
 {
 	fibril_mutex_lock(&udf_idx_lock);
 
@@ -152,7 +152,7 @@ int udf_idx_get(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
  * @return EOK on success or an error code.
  *
  */
-int udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
+errno_t udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
 {
 	fibril_mutex_lock(&udf_idx_lock);
 	
@@ -198,7 +198,7 @@ int udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
  * @return EOK on success or an error code.
  *
  */
-int udf_idx_del(udf_node_t *node)
+errno_t udf_idx_del(udf_node_t *node)
 {
 	assert(node->ref_cnt == 0);
 	

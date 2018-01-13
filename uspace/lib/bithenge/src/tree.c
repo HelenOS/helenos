@@ -85,12 +85,12 @@ typedef struct {
 	bithenge_node_t **out;
 } get_for_each_data_t;
 
-static int get_for_each_func(bithenge_node_t *key, bithenge_node_t *value,
+static errno_t get_for_each_func(bithenge_node_t *key, bithenge_node_t *value,
     void *raw_data)
 {
 	get_for_each_data_t *data = (get_for_each_data_t *)raw_data;
 	bool equal;
-	int rc = bithenge_node_equal(&equal, key, data->key);
+	errno_t rc = bithenge_node_equal(&equal, key, data->key);
 	bithenge_node_dec_ref(key);
 	if (rc != EOK)
 		return rc;
@@ -112,7 +112,7 @@ static int get_for_each_func(bithenge_node_t *key, bithenge_node_t *value,
  * @param[out] out Holds the found node.
  * @return EOK on success, ENOENT if not found, or another error code from
  * errno.h. */
-int bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
+errno_t bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
     bithenge_node_t **out)
 {
 	if (self->type == BITHENGE_NODE_BLOB) {
@@ -124,7 +124,7 @@ int bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
 		bithenge_node_dec_ref(key);
 		uint8_t byte;
 		aoff64_t size = 1;
-		int rc = bithenge_blob_read(bithenge_node_as_blob(self),
+		errno_t rc = bithenge_blob_read(bithenge_node_as_blob(self),
 		    offset, (char *)&byte, &size);
 		if (rc != EOK)
 			return rc;
@@ -139,7 +139,7 @@ int bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
 		return self->internal_ops->get(self, key, out);
 	*out = NULL;
 	get_for_each_data_t data = {key, out};
-	int rc = bithenge_node_for_each(self, get_for_each_func, &data);
+	errno_t rc = bithenge_node_for_each(self, get_for_each_func, &data);
 	bithenge_node_dec_ref(key);
 	if (rc == EEXIST && *out)
 		return EOK;
@@ -154,7 +154,7 @@ int bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
  * @param[out] self The node.
  * @param[in] ops The operations provided.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_init_internal_node(bithenge_node_t *self,
+errno_t bithenge_init_internal_node(bithenge_node_t *self,
     const bithenge_internal_node_ops_t *ops)
 {
 	self->type = BITHENGE_NODE_INTERNAL;
@@ -168,13 +168,13 @@ static void internal_node_indestructible(bithenge_node_t *self)
 	assert(false);
 }
 
-static int empty_internal_node_for_each(bithenge_node_t *base,
+static errno_t empty_internal_node_for_each(bithenge_node_t *base,
     bithenge_for_each_func_t func, void *data)
 {
 	return EOK;
 }
 
-static int empty_internal_node_get(bithenge_node_t *self, bithenge_node_t *key,
+static errno_t empty_internal_node_get(bithenge_node_t *self, bithenge_node_t *key,
     bithenge_node_t **out)
 {
 	return ENOENT;
@@ -195,7 +195,7 @@ static bithenge_node_t empty_internal_node = {
 /** Create an empty internal node.
  * @param[out] out Holds the created node.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_empty_internal_node(bithenge_node_t **out)
+errno_t bithenge_new_empty_internal_node(bithenge_node_t **out)
 {
 	if (bithenge_should_fail())
 		return ENOMEM;
@@ -222,10 +222,10 @@ static bithenge_node_t *simple_as_node(simple_internal_node_t *node)
 	return &node->base;
 }
 
-static int simple_internal_node_for_each(bithenge_node_t *base,
+static errno_t simple_internal_node_for_each(bithenge_node_t *base,
     bithenge_for_each_func_t func, void *data)
 {
-	int rc;
+	errno_t rc;
 	simple_internal_node_t *self = node_as_simple(base);
 	for (bithenge_int_t i = 0; i < self->len; i++) {
 		bithenge_node_inc_ref(self->nodes[2*i+0]);
@@ -263,10 +263,10 @@ static bithenge_internal_node_ops_t simple_internal_node_ops = {
  * @param needs_free If true, when the internal node is destroyed it will free
  * the nodes array rather than just dereferencing each node inside it.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_simple_internal_node(bithenge_node_t **out,
+errno_t bithenge_new_simple_internal_node(bithenge_node_t **out,
     bithenge_node_t **nodes, bithenge_int_t len, bool needs_free)
 {
-	int rc;
+	errno_t rc;
 	assert(out);
 	simple_internal_node_t *self = malloc(sizeof(*self));
 	if (!self) {
@@ -299,7 +299,7 @@ static bithenge_node_t true_node = { BITHENGE_NODE_BOOLEAN, 1, .boolean_value = 
  * @param[out] out Stores the created boolean node.
  * @param value The value for the node to hold.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_boolean_node(bithenge_node_t **out, bool value)
+errno_t bithenge_new_boolean_node(bithenge_node_t **out, bool value)
 {
 	assert(out);
 	if (bithenge_should_fail())
@@ -314,7 +314,7 @@ int bithenge_new_boolean_node(bithenge_node_t **out, bool value)
  * @param[out] out Stores the created integer node.
  * @param value The value for the node to hold.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
+errno_t bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
 {
 	assert(out);
 	bithenge_node_t *self = malloc(sizeof(*self));
@@ -334,7 +334,7 @@ int bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
  * @param needs_free Whether the string should be freed when the node is
  * destroyed.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool needs_free)
+errno_t bithenge_new_string_node(bithenge_node_t **out, const char *value, bool needs_free)
 {
 	assert(out);
 	bithenge_node_t *self = malloc(sizeof(*self));
@@ -358,7 +358,7 @@ int bithenge_new_string_node(bithenge_node_t **out, const char *value, bool need
  * @param a, b Nodes to compare.
  * @return EOK on success or an error code from errno.h.
  * @todo Add support for internal nodes. */
-int bithenge_node_equal(bool *out, bithenge_node_t *a, bithenge_node_t *b)
+errno_t bithenge_node_equal(bool *out, bithenge_node_t *a, bithenge_node_t *b)
 {
 	if (a->type != b->type) {
 		*out = false;

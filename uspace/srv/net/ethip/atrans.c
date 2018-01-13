@@ -58,7 +58,7 @@ static ethip_atrans_t *atrans_find(addr32_t ip_addr)
 	return NULL;
 }
 
-int atrans_add(addr32_t ip_addr, addr48_t mac_addr)
+errno_t atrans_add(addr32_t ip_addr, addr48_t mac_addr)
 {
 	ethip_atrans_t *atrans;
 	ethip_atrans_t *prev;
@@ -84,7 +84,7 @@ int atrans_add(addr32_t ip_addr, addr48_t mac_addr)
 	return EOK;
 }
 
-int atrans_remove(addr32_t ip_addr)
+errno_t atrans_remove(addr32_t ip_addr)
 {
 	ethip_atrans_t *atrans;
 
@@ -102,7 +102,7 @@ int atrans_remove(addr32_t ip_addr)
 	return EOK;
 }
 
-static int atrans_lookup_locked(addr32_t ip_addr, addr48_t mac_addr)
+static errno_t atrans_lookup_locked(addr32_t ip_addr, addr48_t mac_addr)
 {
 	ethip_atrans_t *atrans = atrans_find(ip_addr);
 	if (atrans == NULL)
@@ -112,9 +112,9 @@ static int atrans_lookup_locked(addr32_t ip_addr, addr48_t mac_addr)
 	return EOK;
 }
 
-int atrans_lookup(addr32_t ip_addr, addr48_t mac_addr)
+errno_t atrans_lookup(addr32_t ip_addr, addr48_t mac_addr)
 {
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&atrans_list_lock);
 	rc = atrans_lookup_locked(ip_addr, mac_addr);
@@ -133,12 +133,12 @@ static void atrans_lookup_timeout_handler(void *arg)
 	fibril_condvar_broadcast(&atrans_cv);
 }
 
-int atrans_lookup_timeout(addr32_t ip_addr, suseconds_t timeout,
+errno_t atrans_lookup_timeout(addr32_t ip_addr, suseconds_t timeout,
     addr48_t mac_addr)
 {
 	fibril_timer_t *t;
 	bool timedout;
-	int rc;
+	errno_t rc;
 
 	t = fibril_timer_create(NULL);
 	if (t == NULL)

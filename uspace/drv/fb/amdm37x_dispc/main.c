@@ -53,7 +53,7 @@ static void graph_vsl_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	graph_visualizer_connection(vsl, iid, icall, NULL);
 }
 
-static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
+static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)
 {
 	assert(dev);
 	/* Visualizer part */
@@ -83,7 +83,7 @@ static int amdm37x_dispc_dev_add(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 
-	int ret = amdm37x_dispc_init(dispc, vis);
+	errno_t ret = amdm37x_dispc_init(dispc, vis);
 	if (ret != EOK) {
 		ddf_log_error("Failed to init dispc: %s\n", str_error(ret));
 		ddf_fun_destroy(fun);

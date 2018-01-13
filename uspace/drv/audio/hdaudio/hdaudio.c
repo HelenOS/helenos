@@ -51,11 +51,11 @@
 
 #define NAME "hdaudio"
 
-static int hda_dev_add(ddf_dev_t *dev);
-static int hda_dev_remove(ddf_dev_t *dev);
-static int hda_dev_gone(ddf_dev_t *dev);
-static int hda_fun_online(ddf_fun_t *fun);
-static int hda_fun_offline(ddf_fun_t *fun);
+static errno_t hda_dev_add(ddf_dev_t *dev);
+static errno_t hda_dev_remove(ddf_dev_t *dev);
+static errno_t hda_dev_gone(ddf_dev_t *dev);
+static errno_t hda_fun_online(ddf_fun_t *fun);
+static errno_t hda_fun_offline(ddf_fun_t *fun);
 
 static void hdaudio_interrupt(ipc_call_t *, ddf_dev_t *);
 
@@ -147,7 +147,7 @@ irq_cmd_t hdaudio_irq_commands_sdesc[] = {
 	}
 };
 
-static int hda_dev_add(ddf_dev_t *dev)
+static errno_t hda_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_pcm = NULL;
 	hda_t *hda = NULL;
@@ -159,7 +159,7 @@ static int hda_dev_add(ddf_dev_t *dev)
 	size_t ncmds;
 	int i;
 	void *regs = NULL;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_NOTE, "hda_dev_add()");
 	hw_res_list_parsed_init(&res);
@@ -317,10 +317,10 @@ error:
 	return rc;
 }
 
-static int hda_dev_remove(ddf_dev_t *dev)
+static errno_t hda_dev_remove(ddf_dev_t *dev)
 {
 	hda_t *hda = (hda_t *)ddf_dev_data_get(dev);
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "hda_dev_remove(%p)", dev);
 
@@ -339,10 +339,10 @@ static int hda_dev_remove(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int hda_dev_gone(ddf_dev_t *dev)
+static errno_t hda_dev_gone(ddf_dev_t *dev)
 {
 	hda_t *hda = (hda_t *)ddf_dev_data_get(dev);
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "hda_dev_remove(%p)", dev);
 
@@ -355,13 +355,13 @@ static int hda_dev_gone(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int hda_fun_online(ddf_fun_t *fun)
+static errno_t hda_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "hda_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int hda_fun_offline(ddf_fun_t *fun)
+static errno_t hda_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "hda_fun_offline()");
 	return ddf_fun_offline(fun);

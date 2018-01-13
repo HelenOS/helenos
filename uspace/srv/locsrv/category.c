@@ -55,7 +55,7 @@ void categ_dir_add_cat(categ_dir_t *cdir, category_t *cat)
 }
 
 /** Get list of categories. */
-int categ_dir_get_categories(categ_dir_t *cdir, category_id_t *id_buf,
+errno_t categ_dir_get_categories(categ_dir_t *cdir, category_id_t *id_buf,
     size_t buf_size, size_t *act_size)
 {
 	size_t act_cnt;
@@ -106,7 +106,7 @@ category_t *category_new(const char *name)
 }
 
 /** Add service to category. */
-int category_add_service(category_t *cat, loc_service_t *svc)
+errno_t category_add_service(category_t *cat, loc_service_t *svc)
 {
 	assert(fibril_mutex_is_locked(&cat->mutex));
 	assert(fibril_mutex_is_locked(&services_list_mutex));
@@ -170,7 +170,7 @@ category_t *category_find_by_name(categ_dir_t *cdir, const char *name)
 }
 
 /** Get list of services in category. */
-int category_get_services(category_t *cat, service_id_t *id_buf,
+errno_t category_get_services(category_t *cat, service_id_t *id_buf,
     size_t buf_size, size_t *act_size)
 {
 	size_t act_cnt;

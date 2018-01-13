@@ -84,7 +84,7 @@ typedef struct {
  * @return ENOMEM on output buffer overrun.
  *
  */
-int gzip_expand(void *src, size_t srclen, void **dest, size_t *destlen)
+errno_t gzip_expand(void *src, size_t srclen, void **dest, size_t *destlen)
 {
 	gzip_header_t header;
 	gzip_footer_t footer;
@@ -173,7 +173,7 @@ int gzip_expand(void *src, size_t srclen, void **dest, size_t *destlen)
 	if (*dest == NULL)
 		return ENOMEM;
 	
-	int ret = inflate(stream, stream_length, *dest, *destlen);
+	errno_t ret = inflate(stream, stream_length, *dest, *destlen);
 	if (ret != EOK) {
 		free(dest);
 		return ret;

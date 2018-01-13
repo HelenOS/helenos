@@ -49,14 +49,14 @@
 /** Time to wait for ARP reply in microseconds */
 #define ARP_REQUEST_TIMEOUT (3 * 1000 * 1000)
 
-static int arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet);
+static errno_t arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet);
 
 void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "arp_received()");
 	
 	arp_eth_packet_t packet;
-	int rc = arp_pdu_decode(frame->data, frame->size, &packet);
+	errno_t rc = arp_pdu_decode(frame->data, frame->size, &packet);
 	if (rc != EOK)
 		return;
 	
@@ -93,7 +93,7 @@ void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 	}
 }
 
-int arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
+errno_t arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
     addr48_t mac_addr)
 {
 	/* Broadcast address */
@@ -102,7 +102,7 @@ int arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
 		return EOK;
 	}
 
-	int rc = atrans_lookup(ip_addr, mac_addr);
+	errno_t rc = atrans_lookup(ip_addr, mac_addr);
 	if (rc == EOK)
 		return EOK;
 	
@@ -121,9 +121,9 @@ int arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
 	return atrans_lookup_timeout(ip_addr, ARP_REQUEST_TIMEOUT, mac_addr);
 }
 
-static int arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet)
+static errno_t arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet)
 {
-	int rc;
+	errno_t rc;
 	void *pdata;
 	size_t psize;
 

@@ -59,7 +59,7 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, int mode,
 	*stream = NULL;
 	
 	int oldfd;
-	int rc = vfs_lookup_open(path, WALK_REGULAR | flags, mode, &oldfd);
+	errno_t rc = vfs_lookup_open(path, WALK_REGULAR | flags, mode, &oldfd);
 	if (rc != EOK)
 		return;
 	
@@ -81,7 +81,7 @@ static task_id_t spawn(task_wait_t *wait, int argc, char *argv[])
 {
 	const char **args;
 	task_id_t id = 0;
-	int rc;
+	errno_t rc;
 
 	args = (const char **) calloc(argc + 1, sizeof(char *));
 	if (!args) {

@@ -63,7 +63,7 @@
 
 #define PIC_MAX_IRQ  15
 
-static int pic_enable_irq(i8259_t *i8259, sysarg_t irq)
+static errno_t pic_enable_irq(i8259_t *i8259, sysarg_t irq)
 {
 	if (irq > PIC_MAX_IRQ)
 		return ENOENT;
@@ -135,13 +135,13 @@ static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Add i8259 device. */
-int i8259_add(i8259_t *i8259, i8259_res_t *res)
+errno_t i8259_add(i8259_t *i8259, i8259_res_t *res)
 {
 	sysarg_t have_i8259;
 	ioport8_t *regs0;
 	ioport8_t *regs1;
 	ddf_fun_t *fun_a = NULL;
-	int rc;
+	errno_t rc;
 	
 	if ((sysinfo_get_value("i8259", &have_i8259) != EOK) || (!have_i8259)) {
 		printf("%s: No i8259 found\n", NAME);
@@ -186,13 +186,13 @@ error:
 }
 
 /** Remove i8259 device */
-int i8259_remove(i8259_t *i8259)
+errno_t i8259_remove(i8259_t *i8259)
 {
 	return ENOTSUP;
 }
 
 /** i8259 device gone */
-int i8259_gone(i8259_t *i8259)
+errno_t i8259_gone(i8259_t *i8259)
 {
 	return ENOTSUP;
 }

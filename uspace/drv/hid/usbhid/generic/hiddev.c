@@ -59,11 +59,11 @@ const char *HID_GENERIC_CATEGORY = "hid";
 
 
 static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun);
-static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
+static errno_t usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
     size_t size, size_t *act_size, int *event_nr, unsigned int flags);
-static int usb_generic_hid_client_connected(ddf_fun_t *fun);
+static errno_t usb_generic_hid_client_connected(ddf_fun_t *fun);
 static size_t usb_generic_get_report_descriptor_length(ddf_fun_t *fun);
-static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
+static errno_t usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
     size_t size, size_t *actual_size);
 
 static usbhid_iface_t usb_generic_iface = {
@@ -101,7 +101,7 @@ static size_t usb_generic_hid_get_event_length(ddf_fun_t *fun)
 	return hid_dev->max_input_report_size;
 }
 
-static int usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
+static errno_t usb_generic_hid_get_event(ddf_fun_t *fun, uint8_t *buffer,
     size_t size, size_t *act_size, int *event_nr, unsigned int flags)
 {
 	usb_log_debug2("Generic HID: Get event.\n");
@@ -142,7 +142,7 @@ static size_t usb_generic_get_report_descriptor_length(ddf_fun_t *fun)
 	return hid_dev->report_desc_size;
 }
 
-static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
+static errno_t usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
     size_t size, size_t *actual_size)
 {
 	usb_log_debug2("Generic HID: Get report descriptor.\n");
@@ -159,7 +159,7 @@ static int usb_generic_get_report_descriptor(ddf_fun_t *fun, uint8_t *desc,
 	return EOK;
 }
 
-static int usb_generic_hid_client_connected(ddf_fun_t *fun)
+static errno_t usb_generic_hid_client_connected(ddf_fun_t *fun)
 {
 	usb_log_debug("Generic HID: Client connected.\n");
 	return EOK;
@@ -179,7 +179,7 @@ void usb_generic_hid_deinit(usb_hid_dev_t *hid_dev, void *data)
 	ddf_fun_destroy(fun);
 }
 
-int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
+errno_t usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_hid_gen_fun_t *hid_fun;
 
@@ -201,7 +201,7 @@ int usb_generic_hid_init(usb_hid_dev_t *hid_dev, void **data)
 	hid_fun->hid_dev = hid_dev;
 	ddf_fun_set_ops(fun, &usb_generic_hid_ops);
 
-	int rc = ddf_fun_bind(fun);
+	errno_t rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));

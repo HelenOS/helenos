@@ -131,7 +131,7 @@ static bool mac_add_fun(ddf_dev_t *dev, const char *name,
 	printf("mac: Adding new function '%s'.\n", name);
 	
 	ddf_fun_t *fnode = NULL;
-	int rc;
+	errno_t rc;
 	
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
@@ -175,9 +175,9 @@ failure:
  * @return Zero on success, error number otherwise.
  *
  */
-static int mac_dev_add(ddf_dev_t *dev)
+static errno_t mac_dev_add(ddf_dev_t *dev)
 {
-	int rc;
+	errno_t rc;
 	uintptr_t cuda_physical;
 	sysarg_t cuda_inr;
 #if 0
@@ -226,7 +226,7 @@ static hw_resource_list_t *mac_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static int mac_enable_interrupt(ddf_fun_t *fun, int irq)
+static errno_t mac_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	/* TODO */
 	

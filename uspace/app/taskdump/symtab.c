@@ -45,10 +45,10 @@
 
 #include "include/symtab.h"
 
-static int elf_hdr_check(elf_header_t *hdr);
-static int section_hdr_load(int fd, const elf_header_t *ehdr, int idx,
+static errno_t elf_hdr_check(elf_header_t *hdr);
+static errno_t section_hdr_load(int fd, const elf_header_t *ehdr, int idx,
     elf_section_header_t *shdr);
-static int chunk_load(int fd, off64_t start, size_t size, void **ptr);
+static errno_t chunk_load(int fd, off64_t start, size_t size, void **ptr);
 
 /** Load symbol table from an ELF file.
  *
@@ -58,7 +58,7 @@ static int chunk_load(int fd, off64_t start, size_t size, void **ptr);
  * @return		EOK on success, ENOENT if file could not be open,
  *			ENOTSUP if file parsing failed.
  */
-int symtab_load(const char *file_name, symtab_t **symtab)
+errno_t symtab_load(const char *file_name, symtab_t **symtab)
 {
 	symtab_t *stab;
 	elf_header_t elf_hdr;
@@ -70,7 +70,7 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 	aoff64_t pos = 0;
 
 	int fd;
-	int rc;
+	errno_t rc;
 	size_t nread;
 	int i;
 
@@ -203,7 +203,7 @@ void symtab_delete(symtab_t *st)
  *
  * @return	EOK on success, ENOENT if no such symbol was found.
  */
-int symtab_name_to_addr(symtab_t *st, const char *name, uintptr_t *addr)
+errno_t symtab_name_to_addr(symtab_t *st, const char *name, uintptr_t *addr)
 {
 	size_t i;
 	char *sname;
@@ -240,7 +240,7 @@ int symtab_name_to_addr(symtab_t *st, const char *name, uintptr_t *addr)
  *
  * @return	EOK on success or ENOENT if no matching symbol was found.
  */
-int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
+errno_t symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
     size_t *offs)
 {
 	size_t i;
@@ -286,7 +286,7 @@ int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
  *
  * @return	EOK on success or an error code.
  */
-static int elf_hdr_check(elf_header_t *ehdr)
+static errno_t elf_hdr_check(elf_header_t *ehdr)
 {
 	/* TODO */
 	return EOK;
@@ -301,10 +301,10 @@ static int elf_hdr_check(elf_header_t *ehdr)
  *
  * @return		EOK on success or EIO if I/O failed.
  */
-static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
+static errno_t section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
     elf_section_header_t *sec_hdr)
 {
-	int rc;
+	errno_t rc;
 	size_t nread;
 	aoff64_t pos = elf_hdr->e_shoff + idx * sizeof(elf_section_header_t);
 
@@ -326,9 +326,9 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
  *
  * @return		EOK on success or EIO on failure.
  */
-static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
+static errno_t chunk_load(int fd, off64_t start, size_t size, void **ptr)
 {
-	int rc;
+	errno_t rc;
 	size_t nread;
 	aoff64_t pos = start;
 

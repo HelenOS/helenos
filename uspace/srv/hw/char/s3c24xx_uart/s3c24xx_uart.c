@@ -68,8 +68,8 @@ static void s3c24xx_uart_irq_handler(ipc_call_t *, void *);
 static int s3c24xx_uart_init(s3c24xx_uart_t *);
 static void s3c24xx_uart_sendb(s3c24xx_uart_t *, uint8_t);
 
-static int s3c24xx_uart_read(chardev_srv_t *, void *, size_t, size_t *);
-static int s3c24xx_uart_write(chardev_srv_t *, const void *, size_t, size_t *);
+static errno_t s3c24xx_uart_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t s3c24xx_uart_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t s3c24xx_uart_chardev_ops = {
 	.read = s3c24xx_uart_read,
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 	printf("%s: S3C24xx on-chip UART driver\n", NAME);
 	
 	async_set_fallback_port_handler(s3c24xx_uart_connection, uart);
-	int rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server.\n", NAME);
 		return rc;
@@ -123,7 +123,7 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall,
 
 static void s3c24xx_uart_irq_handler(ipc_call_t *call, void *arg)
 {
-	int rc;
+	errno_t rc;
 
 	(void) call;
 	(void) arg;
@@ -199,13 +199,13 @@ static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte)
 	pio_write_32(&uart->io->utxh, byte);
 }
 
-static int s3c24xx_uart_read(chardev_srv_t *srv, void *buf, size_t size,
+static errno_t s3c24xx_uart_read(chardev_srv_t *srv, void *buf, size_t size,
     size_t *nread)
 {
 	s3c24xx_uart_t *uart = (s3c24xx_uart_t *) srv->srvs->sarg;
 	size_t p;
 	uint8_t *bp = (uint8_t *) buf;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&uart->buf_lock);
 
@@ -226,7 +226,7 @@ static int s3c24xx_uart_read(chardev_srv_t *srv, void *buf, size_t size,
 	return EOK;
 }
 
-static int s3c24xx_uart_write(chardev_srv_t *srv, const void *data, size_t size,
+static errno_t s3c24xx_uart_write(chardev_srv_t *srv, const void *data, size_t size,
     size_t *nwr)
 {
 	s3c24xx_uart_t *uart = (s3c24xx_uart_t *) srv->srvs->sarg;

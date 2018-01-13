@@ -51,7 +51,7 @@
  *
  * Does sanity checks and endian conversion.
  */
-int wav_parse_header(const void *hdata, const void **data, size_t *data_size,
+errno_t wav_parse_header(const void *hdata, const void **data, size_t *data_size,
     unsigned *channels, unsigned *sampling_rate, pcm_sample_format_t *format,
     const char **error)
 {

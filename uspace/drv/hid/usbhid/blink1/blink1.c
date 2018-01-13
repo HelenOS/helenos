@@ -59,7 +59,7 @@ typedef struct {
 	uint8_t arg5;
 } blink1_report_t;
 
-static int usb_blink1_color_set(ddf_fun_t *fun, pixel_t pixel)
+static errno_t usb_blink1_color_set(ddf_fun_t *fun, pixel_t pixel)
 {
 	usb_blink1_t *blink1_dev = (usb_blink1_t *) ddf_fun_data_get(fun);
 	if (blink1_dev == NULL) {
@@ -92,7 +92,7 @@ static ddf_dev_ops_t blink1_ops = {
 	.interfaces[LED_DEV_IFACE] = &usb_blink1_iface
 };
 
-int usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
+errno_t usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	if (hid_dev == NULL) {
 		usb_log_error("Failed to init blink(1) structure: no structure "
@@ -120,7 +120,7 @@ int usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 	
 	ddf_fun_set_ops(fun, &blink1_ops);
 	
-	int rc = ddf_fun_bind(fun);
+	errno_t rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function `%s': %s.\n",
 		    ddf_fun_get_name(fun), str_error(rc));
@@ -158,7 +158,7 @@ void usb_blink1_deinit(usb_hid_dev_t *hid_dev, void *data)
 	
 	usb_blink1_t *blink1_dev = (usb_blink1_t *) data;
 	
-	int rc = ddf_fun_unbind(blink1_dev->fun);
+	errno_t rc = ddf_fun_unbind(blink1_dev->fun);
 	if (rc != EOK) {
 		usb_log_error("Could not unbind function `%s', it "
 		    "will not be destroyed.\n", ddf_fun_get_name(blink1_dev->fun));

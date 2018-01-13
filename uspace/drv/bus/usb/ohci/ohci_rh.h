@@ -64,9 +64,9 @@ typedef struct {
 	usb_transfer_batch_t *unfinished_interrupt_transfer;
 } ohci_rh_t;
 
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name);
-int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch);
-int ohci_rh_interrupt(ohci_rh_t *instance);
+errno_t ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name);
+errno_t ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch);
+errno_t ohci_rh_interrupt(ohci_rh_t *instance);
 
 /** Get OHCI rh address.
  *

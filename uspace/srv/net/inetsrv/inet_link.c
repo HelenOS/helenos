@@ -54,8 +54,8 @@ static bool first_link6 = true;
 static FIBRIL_MUTEX_INITIALIZE(ip_ident_lock);
 static uint16_t ip_ident = 0;
 
-static int inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, ip_ver_t);
-static int inet_iplink_change_addr(iplink_t *, addr48_t);
+static errno_t inet_iplink_recv(iplink_t *, iplink_recv_sdu_t *, ip_ver_t);
+static errno_t inet_iplink_change_addr(iplink_t *, addr48_t);
 static inet_link_t *inet_link_get_by_id_locked(sysarg_t);
 
 static iplink_ev_ops_t inet_iplink_ev_ops = {
@@ -82,11 +82,11 @@ static void inet_link_local_node_ip(addr48_t mac_addr,
 	ip_addr[15] = mac_addr[5];
 }
 
-static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t ver)
+static errno_t inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t ver)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_recv()");
 
-	int rc;
+	errno_t rc;
 	inet_packet_t packet;
 	inet_link_t *ilink;
 
@@ -120,7 +120,7 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t v
 	return rc;
 }
 
-static int inet_iplink_change_addr(iplink_t *iplink, addr48_t mac)
+static errno_t inet_iplink_change_addr(iplink_t *iplink, addr48_t mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_change_addr(): "
 	    "new addr=%02x:%02x:%02x:%02x:%02x:%02x",
@@ -157,11 +157,11 @@ static void inet_link_delete(inet_link_t *ilink)
 	free(ilink);
 }
 
-int inet_link_open(service_id_t sid)
+errno_t inet_link_open(service_id_t sid)
 {
 	inet_link_t *ilink;
 	inet_addr_t iaddr;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_link_open()");
 	ilink = inet_link_new();
@@ -311,7 +311,7 @@ error:
  * @return ENOTSUP if networking mode is not supported
  *
  */
-int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
+errno_t inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	addr32_t src_v4;
@@ -351,7 +351,7 @@ int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
 	packet.data = dgram->data;
 	packet.size = dgram->size;
 	
-	int rc;
+	errno_t rc;
 	size_t offs = 0;
 	
 	do {
@@ -386,7 +386,7 @@ int inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
  * @return ENOMEM when not enough memory to create the datagram
  *
  */
-int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
+errno_t inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
     inet_dgram_t *dgram, uint8_t proto, uint8_t ttl, int df)
 {
 	addr128_t src_v6;
@@ -424,7 +424,7 @@ int inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
 	packet.data = dgram->data;
 	packet.size = dgram->size;
 	
-	int rc;
+	errno_t rc;
 	size_t offs = 0;
 	
 	do {
@@ -470,7 +470,7 @@ inet_link_t *inet_link_get_by_id(sysarg_t link_id)
 }
 
 /** Get IDs of all links. */
-int inet_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
+errno_t inet_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
 {
 	sysarg_t *id_list;
 	size_t count, i;

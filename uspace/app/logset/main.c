@@ -41,7 +41,7 @@
 static log_level_t parse_log_level_or_die(const char *log_level)
 {
 	log_level_t result;
-	int rc = log_level_from_str(log_level, &result);
+	errno_t rc = log_level_from_str(log_level, &result);
 	if (rc != EOK) {
 		fprintf(stderr, "Unrecognised log level '%s': %s.\n",
 		    log_level, str_error(rc));
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 {
 	if (argc == 2) {
 		log_level_t new_default_level = parse_log_level_or_die(argv[1]);
-		int rc = logctl_set_default_level(new_default_level);
+		errno_t rc = logctl_set_default_level(new_default_level);
 
 		if (rc != EOK) {
 			fprintf(stderr, "Failed to change default logging level: %s.\n",
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 	} else if (argc == 3) {
 		log_level_t new_level = parse_log_level_or_die(argv[2]);
 		const char *logname = argv[1];
-		int rc = logctl_set_log_level(logname, new_level);
+		errno_t rc = logctl_set_log_level(logname, new_level);
 
 		if (rc != EOK) {
 			fprintf(stderr, "Failed to change logging level: %s.\n",

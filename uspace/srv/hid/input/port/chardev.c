@@ -44,9 +44,9 @@
 #include "../kbd_port.h"
 #include "../kbd.h"
 
-static int kbd_port_fibril(void *);
+static errno_t kbd_port_fibril(void *);
 
-static int chardev_port_init(kbd_dev_t *);
+static errno_t chardev_port_init(kbd_dev_t *);
 static void chardev_port_write(uint8_t);
 
 kbd_port_ops_t chardev_port = {
@@ -68,12 +68,12 @@ static const char *in_devs[] = {
 
 static const unsigned int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);
 
-static int chardev_port_init(kbd_dev_t *kdev)
+static errno_t chardev_port_init(kbd_dev_t *kdev)
 {
 	service_id_t service_id;
 	unsigned int i;
 	fid_t fid;
-	int rc;
+	errno_t rc;
 	
 	kbd_dev = kdev;
 again:
@@ -120,7 +120,7 @@ again:
 
 static void chardev_port_write(uint8_t data)
 {
-	int rc;
+	errno_t rc;
 	size_t nwr;
 
 	rc = chardev_write(chardev, &data, sizeof(data), &nwr);
@@ -130,9 +130,9 @@ static void chardev_port_write(uint8_t data)
 	}
 }
 
-static int kbd_port_fibril(void *arg)
+static errno_t kbd_port_fibril(void *arg)
 {
-	int rc;
+	errno_t rc;
 	size_t nread;
 	uint8_t b;
 

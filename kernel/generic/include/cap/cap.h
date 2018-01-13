@@ -114,13 +114,13 @@ typedef struct cap_info {
 } cap_info_t;
 
 extern void caps_init(void);
-extern int caps_task_alloc(struct task *);
+extern errno_t caps_task_alloc(struct task *);
 extern void caps_task_free(struct task *);
 extern void caps_task_init(struct task *);
 extern bool caps_apply_to_kobject_type(struct task *, kobject_type_t,
     bool (*)(cap_t *, void *), void *);
 
-extern int cap_alloc(struct task *, cap_handle_t *);
+extern errno_t cap_alloc(struct task *, cap_handle_t *);
 extern void cap_publish(struct task *, cap_handle_t, kobject_t *);
 extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
 extern void cap_free(struct task *, cap_handle_t);

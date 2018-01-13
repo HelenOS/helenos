@@ -38,36 +38,36 @@
 #include <ipc/graph.h>
 #include <io/visualizer.h>
 
-int visualizer_claim(async_sess_t *sess, sysarg_t notif_callback_id)
+errno_t visualizer_claim(async_sess_t *sess, sysarg_t notif_callback_id)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_1_0(exch, VISUALIZER_CLAIM, notif_callback_id);
+	errno_t ret = async_req_1_0(exch, VISUALIZER_CLAIM, notif_callback_id);
 	async_exchange_end(exch);
 
 	return ret;
 }
 
-int visualizer_yield(async_sess_t *sess)
+errno_t visualizer_yield(async_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_0(exch, VISUALIZER_YIELD);
+	errno_t ret = async_req_0_0(exch, VISUALIZER_YIELD);
 	async_exchange_end(exch);
 
 	return ret;
 }
 
-int visualizer_enumerate_modes(async_sess_t *sess, vslmode_t *mode, sysarg_t nth)
+errno_t visualizer_enumerate_modes(async_sess_t *sess, vslmode_t *mode, sysarg_t nth)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, VISUALIZER_ENUMERATE_MODES, nth, &answer);
 
-	int rc = async_data_read_start(exch, mode, sizeof(vslmode_t));
+	errno_t rc = async_data_read_start(exch, mode, sizeof(vslmode_t));
 
 	async_exchange_end(exch);
 
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -79,18 +79,18 @@ int visualizer_enumerate_modes(async_sess_t *sess, vslmode_t *mode, sysarg_t nth
 	}
 }
 
-int visualizer_get_default_mode(async_sess_t *sess, vslmode_t *mode)
+errno_t visualizer_get_default_mode(async_sess_t *sess, vslmode_t *mode)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, VISUALIZER_GET_DEFAULT_MODE, &answer);
 
-	int rc = async_data_read_start(exch, mode, sizeof(vslmode_t));
+	errno_t rc = async_data_read_start(exch, mode, sizeof(vslmode_t));
 
 	async_exchange_end(exch);
 
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -102,18 +102,18 @@ int visualizer_get_default_mode(async_sess_t *sess, vslmode_t *mode)
 	}
 }
 
-int visualizer_get_current_mode(async_sess_t *sess, vslmode_t *mode)
+errno_t visualizer_get_current_mode(async_sess_t *sess, vslmode_t *mode)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, VISUALIZER_GET_CURRENT_MODE, &answer);
 
-	int rc = async_data_read_start(exch, mode, sizeof(vslmode_t));
+	errno_t rc = async_data_read_start(exch, mode, sizeof(vslmode_t));
 
 	async_exchange_end(exch);
 
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -125,18 +125,18 @@ int visualizer_get_current_mode(async_sess_t *sess, vslmode_t *mode)
 	}
 }
 
-int visualizer_get_mode(async_sess_t *sess, vslmode_t *mode, sysarg_t index)
+errno_t visualizer_get_mode(async_sess_t *sess, vslmode_t *mode, sysarg_t index)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, VISUALIZER_GET_MODE, index, &answer);
 
-	int rc = async_data_read_start(exch, mode, sizeof(vslmode_t));
+	errno_t rc = async_data_read_start(exch, mode, sizeof(vslmode_t));
 
 	async_exchange_end(exch);
 
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -148,18 +148,18 @@ int visualizer_get_mode(async_sess_t *sess, vslmode_t *mode, sysarg_t index)
 	}
 }
 
-int visualizer_set_mode(async_sess_t *sess, sysarg_t index, sysarg_t version, void *cells)
+errno_t visualizer_set_mode(async_sess_t *sess, sysarg_t index, sysarg_t version, void *cells)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, VISUALIZER_SET_MODE, index, version, &answer);
 
-	int rc = async_share_out_start(exch, cells, AS_AREA_READ | AS_AREA_CACHEABLE);
+	errno_t rc = async_share_out_start(exch, cells, AS_AREA_READ | AS_AREA_CACHEABLE);
 
 	async_exchange_end(exch);
 
-	int ret;
+	errno_t ret;
 	async_wait_for(req, &ret);
 
 	if (rc != EOK) {
@@ -171,7 +171,7 @@ int visualizer_set_mode(async_sess_t *sess, sysarg_t index, sysarg_t version, vo
 	}
 }
 
-int visualizer_update_damaged_region(async_sess_t *sess,
+errno_t visualizer_update_damaged_region(async_sess_t *sess,
     sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height,
 	sysarg_t x_offset, sysarg_t y_offset)
 {
@@ -181,26 +181,26 @@ int visualizer_update_damaged_region(async_sess_t *sess,
 	sysarg_t offsets = ((x_offset << 16) | (y_offset & 0x0000ffff));
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_5_0(exch, VISUALIZER_UPDATE_DAMAGED_REGION,
+	errno_t ret = async_req_5_0(exch, VISUALIZER_UPDATE_DAMAGED_REGION,
 	    x, y, width, height, offsets);
 	async_exchange_end(exch);
 
 	return ret;
 }
 
-int visualizer_suspend(async_sess_t *sess)
+errno_t visualizer_suspend(async_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_0(exch, VISUALIZER_SUSPEND);
+	errno_t ret = async_req_0_0(exch, VISUALIZER_SUSPEND);
 	async_exchange_end(exch);
 
 	return ret;
 }
 
-int visualizer_wakeup(async_sess_t *sess)
+errno_t visualizer_wakeup(async_sess_t *sess)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	int ret = async_req_0_0(exch, VISUALIZER_WAKE_UP);
+	errno_t ret = async_req_0_0(exch, VISUALIZER_WAKE_UP);
 	async_exchange_end(exch);
 
 	return ret;

@@ -51,9 +51,9 @@ typedef struct {
 	ddf_dev_t *dev;
 } obio_t;
 
-extern int obio_add(obio_t *, obio_res_t *);
-extern int obio_remove(obio_t *);
-extern int obio_gone(obio_t *);
+extern errno_t obio_add(obio_t *, obio_res_t *);
+extern errno_t obio_remove(obio_t *);
+extern errno_t obio_gone(obio_t *);
 
 #endif
 

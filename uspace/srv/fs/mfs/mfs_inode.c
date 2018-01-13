@@ -33,17 +33,17 @@
 #include <stdlib.h>
 #include "mfs.h"
 
-static int
+static errno_t
 mfs_write_inode_raw(struct mfs_node *mnode);
 
-static int
+static errno_t
 mfs2_write_inode_raw(struct mfs_node *mnode);
 
-static int
+static errno_t
 mfs_read_inode_raw(const struct mfs_instance *instance,
     struct mfs_ino_info **ino_ptr, uint16_t inum);
 
-static int
+static errno_t
 mfs2_read_inode_raw(const struct mfs_instance *instance,
     struct mfs_ino_info **ino_ptr, uint32_t inum);
 
@@ -56,12 +56,12 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
     fs_index_t index)
 {
 	struct mfs_sb_info *sbi = inst->sbi;
-	int r;
+	errno_t r;
 
 	if (sbi->fs_version == MFS_VERSION_V1) {
 		/* Read a MFS V1 inode */
@@ -74,7 +74,7 @@ mfs_get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
 	return r;
 }
 
-static int
+static errno_t
 mfs_read_inode_raw(const struct mfs_instance *instance,
     struct mfs_ino_info **ino_ptr, uint16_t inum)
 {
@@ -83,7 +83,7 @@ mfs_read_inode_raw(const struct mfs_instance *instance,
 	struct mfs_sb_info *sbi;
 	block_t *b;
 	int i;
-	int r;
+	errno_t r;
 
 	sbi = instance->sbi;
 
@@ -134,7 +134,7 @@ out_err:
 	return EOK;
 }
 
-static int
+static errno_t
 mfs2_read_inode_raw(const struct mfs_instance *instance,
     struct mfs_ino_info **ino_ptr, uint32_t inum)
 {
@@ -143,7 +143,7 @@ mfs2_read_inode_raw(const struct mfs_instance *instance,
 	struct mfs_sb_info *sbi;
 	block_t *b;
 	int i;
-	int r;
+	errno_t r;
 
 	ino_i = malloc(sizeof(*ino_i));
 
@@ -202,10 +202,10 @@ out_err:
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 mfs_put_inode(struct mfs_node *mnode)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	if (!mnode->ino_i->dirty)
 		goto out;
@@ -222,11 +222,11 @@ out:
 	return rc;
 }
 
-static int
+static errno_t
 mfs_write_inode_raw(struct mfs_node *mnode)
 {
 	int i;
-	int r;
+	errno_t r;
 	block_t *b;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
@@ -266,14 +266,14 @@ out:
 	return r;
 }
 
-static int
+static errno_t
 mfs2_write_inode_raw(struct mfs_node *mnode)
 {
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	block_t *b;
 	int i;
-	int r;
+	errno_t r;
 
 	const uint32_t inum = ino_i->index - 1;
 	const int itable_off = sbi->itable_off;
@@ -320,13 +320,13 @@ out:
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 mfs_inode_shrink(struct mfs_node *mnode, size_t size_shrink)
 {
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	const size_t bs = sbi->block_size;
-	int r;
+	errno_t r;
 
 	if (size_shrink == 0) {
 		/* Nothing to be done */

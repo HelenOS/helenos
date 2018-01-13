@@ -61,7 +61,7 @@ static void process_mp(const char *path, struct stat *stat, list_t *mtab_list)
 	list_append(&ent->link, mtab_list);
 }
 
-static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
+static errno_t vfs_get_mtab_visit(const char *path, list_t *mtab_list,
     fs_handle_t fs_handle, service_id_t service_id)
 {
 	DIR *dir;
@@ -74,7 +74,7 @@ static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
 	while ((dirent = readdir(dir)) != NULL) {
 		char *child;
 		struct stat st;
-		int rc;
+		errno_t rc;
 		int ret;
 
 		ret = asprintf(&child, "%s/%s", path, dirent->d_name);
@@ -119,11 +119,11 @@ static int vfs_get_mtab_visit(const char *path, list_t *mtab_list,
 	return EOK;
 }
 
-int vfs_get_mtab_list(list_t *mtab_list)
+errno_t vfs_get_mtab_list(list_t *mtab_list)
 {
 	struct stat st;
 
-	int rc = vfs_stat_path("/", &st);
+	errno_t rc = vfs_stat_path("/", &st);
 	if (rc != 0)
 		return rc;
 

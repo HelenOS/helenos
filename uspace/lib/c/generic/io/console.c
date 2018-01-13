@@ -89,10 +89,10 @@ void console_clear(console_ctrl_t *ctrl)
 	async_exchange_end(exch);
 }
 
-int console_get_size(console_ctrl_t *ctrl, sysarg_t *cols, sysarg_t *rows)
+errno_t console_get_size(console_ctrl_t *ctrl, sysarg_t *cols, sysarg_t *rows)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	int rc = async_req_0_2(exch, CONSOLE_GET_SIZE, cols, rows);
+	errno_t rc = async_req_0_2(exch, CONSOLE_GET_SIZE, cols, rows);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -128,19 +128,19 @@ void console_cursor_visibility(console_ctrl_t *ctrl, bool show)
 	async_exchange_end(exch);
 }
 
-int console_get_color_cap(console_ctrl_t *ctrl, sysarg_t *ccap)
+errno_t console_get_color_cap(console_ctrl_t *ctrl, sysarg_t *ccap)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	int rc = async_req_0_1(exch, CONSOLE_GET_COLOR_CAP, ccap);
+	errno_t rc = async_req_0_1(exch, CONSOLE_GET_COLOR_CAP, ccap);
 	async_exchange_end(exch);
 	
 	return rc;
 }
 
-int console_get_pos(console_ctrl_t *ctrl, sysarg_t *col, sysarg_t *row)
+errno_t console_get_pos(console_ctrl_t *ctrl, sysarg_t *col, sysarg_t *row)
 {
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
-	int rc = async_req_0_2(exch, CONSOLE_GET_POS, col, row);
+	errno_t rc = async_req_0_2(exch, CONSOLE_GET_POS, col, row);
 	async_exchange_end(exch);
 	
 	return rc;
@@ -153,7 +153,7 @@ void console_set_pos(console_ctrl_t *ctrl, sysarg_t col, sysarg_t row)
 	async_exchange_end(exch);
 }
 
-static int console_ev_decode(ipc_call_t *call, cons_event_t *event)
+static errno_t console_ev_decode(ipc_call_t *call, cons_event_t *event)
 {
 	event->type = IPC_GET_ARG1(*call);
 
@@ -187,7 +187,7 @@ bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 		aid_t aid = async_send_0(exch, CONSOLE_GET_EVENT, &result);
 		async_exchange_end(exch);
 		
-		int rc;
+		errno_t rc;
 		async_wait_for(aid, &rc);
 		
 		if (rc != EOK) {
@@ -201,7 +201,7 @@ bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 			return false;
 		}
 	} else {
-		int retval;
+		errno_t retval;
 		async_wait_for(ctrl->input_aid, &retval);
 		
 		ctrl->input_aid = 0;
@@ -211,7 +211,7 @@ bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 			return false;
 		}
 		
-		int rc = console_ev_decode(&ctrl->input_call, event);
+		errno_t rc = console_ev_decode(&ctrl->input_call, event);
 		if (rc != EOK) {
 			errno = rc;
 			return false;
@@ -234,8 +234,8 @@ bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
 		async_exchange_end(exch);
 	}
 	
-	int retval;
-	int rc = async_wait_timeout(ctrl->input_aid, &retval, *timeout);
+	errno_t retval;
+	errno_t rc = async_wait_timeout(ctrl->input_aid, &retval, *timeout);
 	if (rc != EOK) {
 		*timeout = 0;
 		errno = rc;

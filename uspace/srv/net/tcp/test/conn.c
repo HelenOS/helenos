@@ -45,7 +45,7 @@ static tcp_rqueue_cb_t test_rqueue_cb = {
 
 PCUT_TEST_BEFORE
 {
-	int rc;
+	errno_t rc;
 
 	/* We will be calling functions that perform logging */
 	rc = log_init("test-tcp");
@@ -88,7 +88,7 @@ PCUT_TEST(add_find_delete)
 {
 	tcp_conn_t *conn, *cfound;
 	inet_ep2_t epp;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 
@@ -118,7 +118,7 @@ PCUT_TEST(connect_rst)
 {
 	tcp_conn_t *conn;
 	inet_ep2_t epp;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 	inet_addr(&epp.local.addr, 127, 0, 0, 1);
@@ -151,7 +151,7 @@ PCUT_TEST(conn_establish)
 {
 	tcp_conn_t *cconn, *sconn;
 	inet_ep2_t cepp, sepp;
-	int rc;
+	errno_t rc;
 
 	/* Client EPP */
 	inet_ep2_init(&cepp);

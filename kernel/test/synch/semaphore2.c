@@ -59,7 +59,7 @@ static uint32_t random(uint32_t max)
 
 static void consumer(void *arg)
 {
-	int rc;
+	errno_t rc;
 	int to;
 	
 	thread_detach(THREAD);

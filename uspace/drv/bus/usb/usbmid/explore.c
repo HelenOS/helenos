@@ -65,7 +65,7 @@ static bool interface_in_list(const list_t *list, int interface_no)
  * @param config_descriptor_size Size of configuration descriptor in bytes.
  * @param list List where to add the interfaces.
  */
-static int create_interfaces(const uint8_t *config_descriptor,
+static errno_t create_interfaces(const uint8_t *config_descriptor,
     size_t config_descriptor_size, list_t *list, usb_device_t *usb_dev)
 {
 	assert(config_descriptor);
@@ -110,7 +110,7 @@ static int create_interfaces(const uint8_t *config_descriptor,
 		    usb_str_class(interface->interface_class));
 
 		usbmid_interface_t *iface = NULL;
-		const int rc = usbmid_spawn_interface_child(usb_dev, &iface,
+		const errno_t rc = usbmid_spawn_interface_child(usb_dev, &iface,
 			&usb_device_descriptors(usb_dev)->device, interface);
 		if (rc != EOK) {
 			//TODO: Do something about that failure.
@@ -133,7 +133,7 @@ static int create_interfaces(const uint8_t *config_descriptor,
  * @param dev Device to be explored.
  * @return Whether to accept this device.
  */
-int usbmid_explore_device(usb_device_t *dev)
+errno_t usbmid_explore_device(usb_device_t *dev)
 {
 	assert(dev);
 	const unsigned dev_class =
@@ -156,7 +156,7 @@ int usbmid_explore_device(usb_device_t *dev)
 	    config_descriptor_raw;
 
 	/* Select the first configuration */
-	int rc = usb_request_set_configuration(usb_device_get_default_pipe(dev),
+	errno_t rc = usb_request_set_configuration(usb_device_get_default_pipe(dev),
 	    config_descriptor->configuration_number);
 	if (rc != EOK) {
 		usb_log_error("Failed to set device configuration: %s.\n",

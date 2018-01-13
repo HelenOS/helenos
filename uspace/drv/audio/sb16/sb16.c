@@ -93,13 +93,13 @@ void sb16_irq_code(addr_range_t *regs, int dma8, int dma16, irq_cmd_t cmds[],
 	}
 }
 
-int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
+errno_t sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
     int dma16)
 {
 	assert(sb);
 
 	/* Setup registers */
-	int ret = pio_enable_range(regs, (void **) &sb->regs);
+	errno_t ret = pio_enable_range(regs, (void **) &sb->regs);
 	if (ret != EOK)
 		return ret;
 	ddf_log_note("PIO registers at %p accessible.", sb->regs);
@@ -178,7 +178,7 @@ int sb16_init_sb16(sb16_t *sb, addr_range_t *regs, ddf_dev_t *dev, int dma8,
 	return EOK;
 }
 
-int sb16_init_mpu(sb16_t *sb, addr_range_t *regs)
+errno_t sb16_init_mpu(sb16_t *sb, addr_range_t *regs)
 {
 	sb->mpu_regs = NULL;
 	return ENOTSUP;

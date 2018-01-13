@@ -105,7 +105,7 @@ typedef struct {
 	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
-	int (*start)(struct ieee80211_dev *);
+	errno_t (*start)(struct ieee80211_dev *);
 	
 	/** Scan neighborhood for networks.
 	 *
@@ -117,7 +117,7 @@ typedef struct {
 	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
-	int (*scan)(struct ieee80211_dev *);
+	errno_t (*scan)(struct ieee80211_dev *);
 	
 	/** Handler for TX frames to be send from device.
 	 *
@@ -131,7 +131,7 @@ typedef struct {
 	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
-	int (*tx_handler)(struct ieee80211_dev *, void *, size_t);
+	errno_t (*tx_handler)(struct ieee80211_dev *, void *, size_t);
 	
 	/** Set device operating frequency to given value.
 	 *
@@ -141,7 +141,7 @@ typedef struct {
 	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
-	int (*set_freq)(struct ieee80211_dev *, uint16_t);
+	errno_t (*set_freq)(struct ieee80211_dev *, uint16_t);
 	
 	/** Callback to inform device about BSSID change.
 	 *
@@ -151,7 +151,7 @@ typedef struct {
 	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
-	int (*bssid_change)(struct ieee80211_dev *, bool);
+	errno_t (*bssid_change)(struct ieee80211_dev *, bool);
 	
 	/** Callback to setup encryption key in IEEE 802.11 device.
 	 *
@@ -163,14 +163,14 @@ typedef struct {
 	 * @return EOK if succeed, error code otherwise.
 	 *
 	 */
-	int (*key_config)(struct ieee80211_dev *,
+	errno_t (*key_config)(struct ieee80211_dev *,
 	    ieee80211_key_config_t *key_conf, bool);
 } ieee80211_ops_t;
 
 /* Initialization functions. */
 extern ieee80211_dev_t *ieee80211_device_create(void);
-extern int ieee80211_device_init(ieee80211_dev_t *, ddf_dev_t *);
-extern int ieee80211_init(ieee80211_dev_t *, ieee80211_ops_t *,
+extern errno_t ieee80211_device_init(ieee80211_dev_t *, ddf_dev_t *);
+extern errno_t ieee80211_init(ieee80211_dev_t *, ieee80211_ops_t *,
     ieee80211_iface_t *, nic_iface_t *, ddf_dev_ops_t *);
 
 /* Getters & setters, queries & reports. */
@@ -200,7 +200,7 @@ extern bool ieee80211_is_auth_frame(uint16_t);
 extern bool ieee80211_is_assoc_response_frame(uint16_t);
 
 /* Worker functions. */
-extern int ieee80211_rx_handler(ieee80211_dev_t *, void *, size_t);
+extern errno_t ieee80211_rx_handler(ieee80211_dev_t *, void *, size_t);
 
 #endif
 

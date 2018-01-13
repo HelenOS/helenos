@@ -31,11 +31,11 @@
 
 #include "mytypes.h"
 
-int input_new_file(input_t **input, const char *fname);
-int input_new_interactive(input_t **input);
-int input_new_string(input_t **input, const char *str);
+errno_t input_new_file(input_t **input, const char *fname);
+errno_t input_new_interactive(input_t **input);
+errno_t input_new_string(input_t **input, const char *str);
 
-int input_get_line(input_t *input, char **line);
+errno_t input_get_line(input_t *input, char **line);
 int input_get_line_no(input_t *input);
 
 #endif

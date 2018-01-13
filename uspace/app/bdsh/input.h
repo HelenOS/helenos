@@ -34,7 +34,7 @@
 /* prototypes */
 
 extern void get_input(cliuser_t *);
-extern int process_input(cliuser_t *);
+extern errno_t process_input(cliuser_t *);
 extern int input_init(void);
 
 #endif

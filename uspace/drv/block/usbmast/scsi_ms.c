@@ -71,11 +71,11 @@ static void usbmast_dump_sense(scsi_sense_data_t *sense_buf)
 	    sense_buf->additional_cqual);
 }
 
-static int usb_massstor_unit_ready(usbmast_fun_t *mfun)
+static errno_t usb_massstor_unit_ready(usbmast_fun_t *mfun)
 {
 	scsi_cmd_t cmd;
 	scsi_cdb_test_unit_ready_t cdb;
-	int rc;
+	errno_t rc;
 
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_TEST_UNIT_READY;
@@ -106,11 +106,11 @@ static int usb_massstor_unit_ready(usbmast_fun_t *mfun)
  * Run command and repeat in case of unit attention.
  * XXX This is too simplified.
  */
-static int usbmast_run_cmd(usbmast_fun_t *mfun, scsi_cmd_t *cmd)
+static errno_t usbmast_run_cmd(usbmast_fun_t *mfun, scsi_cmd_t *cmd)
 {
 	uint8_t sense_key;
 	scsi_sense_data_t sense_buf;
-	int rc;
+	errno_t rc;
 
 	do {
 		rc = usb_massstor_unit_ready(mfun);
@@ -161,12 +161,12 @@ static int usbmast_run_cmd(usbmast_fun_t *mfun, scsi_cmd_t *cmd)
  * @param inquiry_result Where to store parsed inquiry result
  * @return		Error code
  */
-int usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
+errno_t usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
 {
 	scsi_std_inquiry_data_t inq_data;
 	scsi_cmd_t cmd;
 	scsi_cdb_inquiry_t cdb;
-	int rc;
+	errno_t rc;
 
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_INQUIRY;
@@ -230,11 +230,11 @@ int usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
  *
  * @return		Error code.
  */
-int usbmast_request_sense(usbmast_fun_t *mfun, void *buf, size_t size)
+errno_t usbmast_request_sense(usbmast_fun_t *mfun, void *buf, size_t size)
 {
 	scsi_cmd_t cmd;
 	scsi_cdb_request_sense_t cdb;
-	int rc;
+	errno_t rc;
 
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_REQUEST_SENSE;
@@ -271,13 +271,13 @@ int usbmast_request_sense(usbmast_fun_t *mfun, void *buf, size_t size)
  *
  * @return		Error code.
  */
-int usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
+errno_t usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
     uint32_t *block_size)
 {
 	scsi_cmd_t cmd;
 	scsi_cdb_read_capacity_10_t cdb;
 	scsi_read_capacity_10_data_t data;
-	int rc;
+	errno_t rc;
 
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_READ_CAPACITY_10;
@@ -322,11 +322,11 @@ int usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
  *
  * @return		Error code
  */
-int usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf)
+errno_t usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf)
 {
 	scsi_cmd_t cmd;
 	scsi_cdb_read_10_t cdb;
-	int rc;
+	errno_t rc;
 
 	if (ba > UINT32_MAX)
 		return ELIMIT;
@@ -377,12 +377,12 @@ int usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf)
  *
  * @return		Error code
  */
-int usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
+errno_t usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
     const void *data)
 {
 	scsi_cmd_t cmd;
 	scsi_cdb_write_10_t cdb;
-	int rc;
+	errno_t rc;
 
 	if (ba > UINT32_MAX)
 		return ELIMIT;
@@ -427,7 +427,7 @@ int usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
  *
  * @return		Error code
  */
-int usbmast_sync_cache(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks)
+errno_t usbmast_sync_cache(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks)
 {
 	if (ba > UINT32_MAX)
 		return ELIMIT;
@@ -446,7 +446,7 @@ int usbmast_sync_cache(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks)
 		.cdb_size = sizeof(cdb),
 	};
 
-	const int rc = usbmast_run_cmd(mfun, &cmd);
+	const errno_t rc = usbmast_run_cmd(mfun, &cmd);
 
         if (rc != EOK) {
 		usb_log_error("Synchronize Cache (10) transport failed, device %s: %s.\n",

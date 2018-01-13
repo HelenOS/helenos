@@ -44,7 +44,7 @@
 #include "udp_inet.h"
 #include "udp_type.h"
 
-static int udp_inet_ev_recv(inet_dgram_t *dgram);
+static errno_t udp_inet_ev_recv(inet_dgram_t *dgram);
 static void udp_received_pdu(udp_pdu_t *pdu);
 
 static inet_ev_ops_t udp_inet_ev_ops = {
@@ -52,7 +52,7 @@ static inet_ev_ops_t udp_inet_ev_ops = {
 };
 
 /** Received datagram callback */
-static int udp_inet_ev_recv(inet_dgram_t *dgram)
+static errno_t udp_inet_ev_recv(inet_dgram_t *dgram)
 {
 	udp_pdu_t *pdu;
 
@@ -76,9 +76,9 @@ static int udp_inet_ev_recv(inet_dgram_t *dgram)
 }
 
 /** Transmit PDU over network layer. */
-int udp_transmit_pdu(udp_pdu_t *pdu)
+errno_t udp_transmit_pdu(udp_pdu_t *pdu)
 {
-	int rc;
+	errno_t rc;
 	inet_dgram_t dgram;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_transmit_pdu()");
@@ -118,9 +118,9 @@ static void udp_received_pdu(udp_pdu_t *pdu)
 	udp_assoc_received(&rident, dmsg);
 }
 
-int udp_inet_init(void)
+errno_t udp_inet_init(void)
 {
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_inet_init()");
 

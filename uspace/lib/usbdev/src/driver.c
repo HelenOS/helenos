@@ -51,7 +51,7 @@ static const usb_driver_t *driver = NULL;
  * @param gen_dev Device structure as prepared by DDF.
  * @return Error code.
  */
-static int generic_device_add(ddf_dev_t *gen_dev)
+static errno_t generic_device_add(ddf_dev_t *gen_dev)
 {
 	assert(driver);
 	assert(driver->ops);
@@ -59,7 +59,7 @@ static int generic_device_add(ddf_dev_t *gen_dev)
 
 	/* Initialize generic USB driver data. */
 	const char *err_msg = NULL;
-	int rc = usb_device_create_ddf(gen_dev, driver->endpoints, &err_msg);
+	errno_t rc = usb_device_create_ddf(gen_dev, driver->endpoints, &err_msg);
 	if (rc != EOK) {
 		usb_log_error("USB device `%s' init failed (%s): %s.\n",
 		    ddf_dev_get_name(gen_dev), err_msg, str_error(rc));
@@ -80,7 +80,7 @@ static int generic_device_add(ddf_dev_t *gen_dev)
  * @param gen_dev Device structure as prepared by DDF.
  * @return Error code.
  */
-static int generic_device_remove(ddf_dev_t *gen_dev)
+static errno_t generic_device_remove(ddf_dev_t *gen_dev)
 {
 	assert(driver);
 	assert(driver->ops);
@@ -88,7 +88,7 @@ static int generic_device_remove(ddf_dev_t *gen_dev)
 		return ENOTSUP;
 	/* Just tell the driver to stop whatever it is doing */
 	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
-	const int ret = driver->ops->device_rem(usb_dev);
+	const errno_t ret = driver->ops->device_rem(usb_dev);
 	if (ret != EOK)
 		return ret;
 	usb_device_destroy_ddf(gen_dev);
@@ -102,14 +102,14 @@ static int generic_device_remove(ddf_dev_t *gen_dev)
  * @param gen_dev Device structure as prepared by DDF.
  * @return Error code.
  */
-static int generic_device_gone(ddf_dev_t *gen_dev)
+static errno_t generic_device_gone(ddf_dev_t *gen_dev)
 {
 	assert(driver);
 	assert(driver->ops);
 	if (driver->ops->device_gone == NULL)
 		return ENOTSUP;
 	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
-	const int ret = driver->ops->device_gone(usb_dev);
+	const errno_t ret = driver->ops->device_gone(usb_dev);
 	if (ret == EOK)
 		usb_device_destroy_ddf(gen_dev);
 

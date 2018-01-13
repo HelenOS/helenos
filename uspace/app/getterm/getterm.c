@@ -65,7 +65,7 @@ static void reopen(FILE **stream, int fd, const char *path, int mode,
 	*stream = NULL;
 	
 	int oldfd;
-	int rc = vfs_lookup_open(path, WALK_REGULAR, mode, &oldfd);
+	errno_t rc = vfs_lookup_open(path, WALK_REGULAR, mode, &oldfd);
 	if (rc != EOK)
 		return;
 	
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 	if (wait) {
 		/* Wait for the terminal service to be ready */
 		service_id_t service_id;
-		int rc = loc_service_get_id(term, &service_id, IPC_FLAG_BLOCKING);
+		errno_t rc = loc_service_get_id(term, &service_id, IPC_FLAG_BLOCKING);
 		if (rc != EOK) {
 			printf("%s: Error waiting on %s (%s)\n", APP_NAME, term,
 			    str_error(rc));
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
 	task_id_t id;
 	task_wait_t twait;
 	
-	int rc = task_spawnv(&id, &twait, cmd, (const char * const *) args);
+	errno_t rc = task_spawnv(&id, &twait, cmd, (const char * const *) args);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));

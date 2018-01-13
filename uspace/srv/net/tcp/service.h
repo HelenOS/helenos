@@ -35,7 +35,7 @@
 #ifndef SERVICE_H
 #define SERVICE_H
 
-extern int tcp_service_init(void);
+extern errno_t tcp_service_init(void);
 
 #endif
 

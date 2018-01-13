@@ -72,7 +72,7 @@
  * @param usage Usage constant
  * @return Error code
  */
-int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
+errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
                                     int32_t usage_page, int32_t usage)
 {	
 	usb_hid_report_usage_path_t *item
@@ -422,7 +422,7 @@ usb_hid_report_path_t *usb_hid_report_path_clone(
  * @param report_id Report id to set
  * @return Error code
  */
-int usb_hid_report_path_set_report_id(usb_hid_report_path_t *path, 
+errno_t usb_hid_report_path_set_report_id(usb_hid_report_path_t *path, 
 	uint8_t report_id)
 {
 	if(path == NULL){

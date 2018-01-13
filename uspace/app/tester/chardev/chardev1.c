@@ -46,7 +46,7 @@ static const char *test_chardev1_smallx(void)
 	service_id_t sid;
 	async_sess_t *sess;
 	size_t nbytes;
-	int rc;
+	errno_t rc;
 
 	TPRINTF("Test small transfer character device operations\n");
 
@@ -98,7 +98,7 @@ static const char *test_chardev1_largex(void)
 	service_id_t sid;
 	async_sess_t *sess;
 	size_t nbytes;
-	int rc;
+	errno_t rc;
 
 	TPRINTF("Test large transfer character device operations\n");
 
@@ -150,7 +150,7 @@ static const char *test_chardev1_partialx(void)
 	service_id_t sid;
 	async_sess_t *sess;
 	size_t nbytes;
-	int rc;
+	errno_t rc;
 
 	TPRINTF("Test partially-successful character device operations\n");
 

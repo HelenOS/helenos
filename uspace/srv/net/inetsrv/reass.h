@@ -39,7 +39,7 @@
 
 #include "inetsrv.h"
 
-extern int inet_reass_queue_packet(inet_packet_t *);
+extern errno_t inet_reass_queue_packet(inet_packet_t *);
 
 #endif
 

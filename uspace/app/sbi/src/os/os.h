@@ -34,11 +34,11 @@ char *os_str_aslice(const char *str, size_t start, size_t length);
 int os_str_cmp(const char *a, const char *b);
 char *os_str_dup(const char *str);
 size_t os_str_length(const char *str);
-int os_str_get_char(const char *str, int index, int *out_char);
+errno_t os_str_get_char(const char *str, int index, int *out_char);
 char *os_chr_to_astr(wchar_t chr);
 void os_input_disp_help(void);
-int os_input_line(const char *prompt, char **ptr);
-int os_exec(char * const cmd[]);
+errno_t os_input_line(const char *prompt, char **ptr);
+errno_t os_exec(char * const cmd[]);
 
 void os_store_ef_path(char *path);
 char *os_get_lib_path(void);

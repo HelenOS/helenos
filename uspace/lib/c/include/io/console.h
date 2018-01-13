@@ -72,8 +72,8 @@ extern bool console_kcon(void);
 extern void console_flush(console_ctrl_t *);
 extern void console_clear(console_ctrl_t *);
 
-extern int console_get_size(console_ctrl_t *, sysarg_t *, sysarg_t *);
-extern int console_get_pos(console_ctrl_t *, sysarg_t *, sysarg_t *);
+extern errno_t console_get_size(console_ctrl_t *, sysarg_t *, sysarg_t *);
+extern errno_t console_get_pos(console_ctrl_t *, sysarg_t *, sysarg_t *);
 extern void console_set_pos(console_ctrl_t *, sysarg_t, sysarg_t);
 
 extern void console_set_style(console_ctrl_t *, uint8_t);
@@ -81,7 +81,7 @@ extern void console_set_color(console_ctrl_t *, uint8_t, uint8_t, uint8_t);
 extern void console_set_rgb_color(console_ctrl_t *, uint32_t, uint32_t);
 
 extern void console_cursor_visibility(console_ctrl_t *, bool);
-extern int console_get_color_cap(console_ctrl_t *, sysarg_t *);
+extern errno_t console_get_color_cap(console_ctrl_t *, sysarg_t *);
 extern bool console_get_event(console_ctrl_t *, cons_event_t *);
 extern bool console_get_event_timeout(console_ctrl_t *, cons_event_t *,
     suseconds_t *);

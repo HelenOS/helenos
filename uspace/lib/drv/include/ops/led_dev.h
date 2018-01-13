@@ -39,7 +39,7 @@
 #include "../ddf/driver.h"
 
 typedef struct {
-	int (*color_set)(ddf_fun_t *, pixel_t);
+	errno_t (*color_set)(ddf_fun_t *, pixel_t);
 } led_dev_ops_t;
 
 #endif

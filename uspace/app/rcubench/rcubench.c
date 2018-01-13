@@ -125,7 +125,7 @@ static void run_threads_and_wait(bench_t *bench)
 	for (size_t k = 1; k < bench->nthreads; ++k) {
 		thread_id_t tid;
 		/* Also sets up a fibril for the thread. */
-		int ret = thread_create(thread_func, bench, "rcubench-t", &tid);
+		errno_t ret = thread_create(thread_func, bench, "rcubench-t", &tid);
 		if (ret != EOK) {
 			printf("Error: Failed to create benchmark thread.\n");
 			abort();
@@ -216,7 +216,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 	
 	/* Determine iteration count. */
 	uint32_t iter_cnt = 0;
-	int ret = str_uint32_t(argv[2], NULL, 0, true, &iter_cnt);
+	errno_t ret = str_uint32_t(argv[2], NULL, 0, true, &iter_cnt);
 
 	if (ret == EOK && 1 <= iter_cnt) {
 		bench->iters = iter_cnt;

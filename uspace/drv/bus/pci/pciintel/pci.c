@@ -113,7 +113,7 @@ static bool pciintel_fun_owns_interrupt(pci_fun_t *fun, int irq)
 	return false;
 }
 
-static int pciintel_enable_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t pciintel_enable_interrupt(ddf_fun_t *fnode, int irq)
 {
 	pci_fun_t *fun = pci_fun(fnode);
 	
@@ -123,7 +123,7 @@ static int pciintel_enable_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_enable_interrupt(irq);
 }
 
-static int pciintel_disable_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t pciintel_disable_interrupt(ddf_fun_t *fnode, int irq)
 {
 	pci_fun_t *fun = pci_fun(fnode);
 	
@@ -133,7 +133,7 @@ static int pciintel_disable_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_disable_interrupt(irq);
 }
 
-static int pciintel_clear_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t pciintel_clear_interrupt(ddf_fun_t *fnode, int irq)
 {
 	pci_fun_t *fun = pci_fun(fnode);
 	
@@ -153,7 +153,7 @@ static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)
 }
 
 
-static int config_space_write_32(ddf_fun_t *fun, uint32_t address,
+static errno_t config_space_write_32(ddf_fun_t *fun, uint32_t address,
     uint32_t data)
 {
 	if (address > 252)
@@ -162,7 +162,7 @@ static int config_space_write_32(ddf_fun_t *fun, uint32_t address,
 	return EOK;
 }
 
-static int config_space_write_16(
+static errno_t config_space_write_16(
     ddf_fun_t *fun, uint32_t address, uint16_t data)
 {
 	if (address > 254)
@@ -171,7 +171,7 @@ static int config_space_write_16(
 	return EOK;
 }
 
-static int config_space_write_8(
+static errno_t config_space_write_8(
     ddf_fun_t *fun, uint32_t address, uint8_t data)
 {
 	if (address > 255)
@@ -180,7 +180,7 @@ static int config_space_write_8(
 	return EOK;
 }
 
-static int config_space_read_32(
+static errno_t config_space_read_32(
     ddf_fun_t *fun, uint32_t address, uint32_t *data)
 {
 	if (address > 252)
@@ -189,7 +189,7 @@ static int config_space_read_32(
 	return EOK;
 }
 
-static int config_space_read_16(
+static errno_t config_space_read_16(
     ddf_fun_t *fun, uint32_t address, uint16_t *data)
 {
 	if (address > 254)
@@ -198,7 +198,7 @@ static int config_space_read_16(
 	return EOK;
 }
 
-static int config_space_read_8(
+static errno_t config_space_read_8(
     ddf_fun_t *fun, uint32_t address, uint8_t *data)
 {
 	if (address > 255)
@@ -233,9 +233,9 @@ static ddf_dev_ops_t pci_fun_ops = {
 	.interfaces[PCI_DEV_IFACE] = &pci_dev_ops
 };
 
-static int pci_dev_add(ddf_dev_t *);
-static int pci_fun_online(ddf_fun_t *);
-static int pci_fun_offline(ddf_fun_t *);
+static errno_t pci_dev_add(ddf_dev_t *);
+static errno_t pci_fun_online(ddf_fun_t *);
+static errno_t pci_fun_offline(ddf_fun_t *);
 
 /** PCI bus driver standard operations */
 static driver_ops_t pci_ops = {
@@ -381,7 +381,7 @@ void pci_conf_write_32(pci_fun_t *fun, int reg, uint32_t val)
 
 void pci_fun_create_match_ids(pci_fun_t *fun)
 {
-	int rc;
+	errno_t rc;
 	int ret;
 	char match_id_str[ID_MAX_STR_LEN];
 
@@ -601,7 +601,7 @@ void pci_read_interrupt(pci_fun_t *fun)
 void pci_bus_scan(pci_bus_t *bus, int bus_num) 
 {
 	pci_fun_t *fun;
-	int rc;
+	errno_t rc;
 	
 	int child_bus = 0;
 	int dnum, fnum;
@@ -683,14 +683,14 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 	}
 }
 
-static int pci_dev_add(ddf_dev_t *dnode)
+static errno_t pci_dev_add(ddf_dev_t *dnode)
 {
 	hw_resource_list_t hw_resources;
 	pci_bus_t *bus = NULL;
 	ddf_fun_t *ctl = NULL;
 	bool got_res = false;
 	async_sess_t *sess;
-	int rc;
+	errno_t rc;
 	
 	ddf_msg(LVL_DEBUG, "pci_dev_add");
 	
@@ -809,13 +809,13 @@ fail:
 	return rc;
 }
 
-static int pci_fun_online(ddf_fun_t *fun)
+static errno_t pci_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "pci_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int pci_fun_offline(ddf_fun_t *fun)
+static errno_t pci_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "pci_fun_offline()");
 	return ddf_fun_offline(fun);

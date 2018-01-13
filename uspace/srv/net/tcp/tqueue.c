@@ -62,7 +62,7 @@ static void tcp_conn_transmit_segment(tcp_conn_t *, tcp_segment_t *);
 static void tcp_prepare_transmit_segment(tcp_conn_t *, tcp_segment_t *);
 static void tcp_tqueue_send_immed(tcp_conn_t *, tcp_segment_t *);
 
-int tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn,
+errno_t tcp_tqueue_init(tcp_tqueue_t *tqueue, tcp_conn_t *conn,
     tcp_tqueue_cb_t *cb)
 {
 	tqueue->conn = conn;

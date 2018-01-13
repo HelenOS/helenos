@@ -90,16 +90,16 @@ typedef struct udp {
 	bool cb_done;
 } udp_t;
 
-extern int udp_create(udp_t **);
+extern errno_t udp_create(udp_t **);
 extern void udp_destroy(udp_t *);
-extern int udp_assoc_create(udp_t *, inet_ep2_t *, udp_cb_t *, void *,
+extern errno_t udp_assoc_create(udp_t *, inet_ep2_t *, udp_cb_t *, void *,
     udp_assoc_t **);
-extern int udp_assoc_set_nolocal(udp_assoc_t *);
+extern errno_t udp_assoc_set_nolocal(udp_assoc_t *);
 extern void udp_assoc_destroy(udp_assoc_t *);
-extern int udp_assoc_send_msg(udp_assoc_t *, inet_ep_t *, void *, size_t);
+extern errno_t udp_assoc_send_msg(udp_assoc_t *, inet_ep_t *, void *, size_t);
 extern void *udp_assoc_userptr(udp_assoc_t *);
 extern size_t udp_rmsg_size(udp_rmsg_t *);
-extern int udp_rmsg_read(udp_rmsg_t *, size_t, void *, size_t);
+extern errno_t udp_rmsg_read(udp_rmsg_t *, size_t, void *, size_t);
 extern void udp_rmsg_remote_ep(udp_rmsg_t *, inet_ep_t *);
 extern uint8_t udp_rerr_type(udp_rerr_t *);
 extern uint8_t udp_rerr_code(udp_rerr_t *);

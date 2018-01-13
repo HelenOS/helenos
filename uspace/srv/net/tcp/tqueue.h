@@ -39,7 +39,7 @@
 #include "std.h"
 #include "tcp_type.h"
 
-extern int tcp_tqueue_init(tcp_tqueue_t *, tcp_conn_t *,
+extern errno_t tcp_tqueue_init(tcp_tqueue_t *, tcp_conn_t *,
     tcp_tqueue_cb_t *);
 extern void tcp_tqueue_clear(tcp_tqueue_t *);
 extern void tcp_tqueue_fini(tcp_tqueue_t *);

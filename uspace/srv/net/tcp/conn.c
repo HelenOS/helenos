@@ -83,9 +83,9 @@ static tcp_tqueue_cb_t tcp_conn_tqueue_cb = {
 };
 
 /** Initialize connections. */
-int tcp_conns_init(void)
+errno_t tcp_conns_init(void)
 {
-	int rc;
+	errno_t rc;
 
 	rc = amap_create(&amap);
 	if (rc != EOK) {
@@ -302,10 +302,10 @@ void tcp_conn_delete(tcp_conn_t *conn)
  *
  * Add connection to the connection map.
  */
-int tcp_conn_add(tcp_conn_t *conn)
+errno_t tcp_conn_add(tcp_conn_t *conn)
 {
 	inet_ep2_t aepp;
-	int rc;
+	errno_t rc;
 
 	tcp_conn_addref(conn);
 	fibril_mutex_lock(&amap_lock);
@@ -424,7 +424,7 @@ void tcp_conn_fin_sent(tcp_conn_t *conn)
  */
 tcp_conn_t *tcp_conn_find_ref(inet_ep2_t *epp)
 {
-	int rc;
+	errno_t rc;
 	void *arg;
 	tcp_conn_t *conn;
 
@@ -1241,7 +1241,7 @@ void tcp_conn_segment_arrived(tcp_conn_t *conn, inet_ep2_t *epp,
 {
 	inet_ep2_t aepp;
 	inet_ep2_t oldepp;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: tcp_conn_segment_arrived(%p)",
 	    conn->name, seg);

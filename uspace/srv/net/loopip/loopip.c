@@ -48,14 +48,14 @@
 
 #define NAME  "loopip"
 
-static int loopip_open(iplink_srv_t *srv);
-static int loopip_close(iplink_srv_t *srv);
-static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
-static int loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
-static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu);
-static int loopip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
-static int loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
-static int loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
+static errno_t loopip_open(iplink_srv_t *srv);
+static errno_t loopip_close(iplink_srv_t *srv);
+static errno_t loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu);
+static errno_t loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu);
+static errno_t loopip_get_mtu(iplink_srv_t *srv, size_t *mtu);
+static errno_t loopip_get_mac48(iplink_srv_t *srv, addr48_t *mac);
+static errno_t loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
+static errno_t loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
 static void loopip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
@@ -81,7 +81,7 @@ typedef struct {
 	iplink_recv_sdu_t sdu;
 } rqueue_entry_t;
 
-static int loopip_recv_fibril(void *arg)
+static errno_t loopip_recv_fibril(void *arg)
 {
 	while (true) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_recv_fibril(): Wait for one item");
@@ -98,11 +98,11 @@ static int loopip_recv_fibril(void *arg)
 	return 0;
 }
 
-static int loopip_init(void)
+static errno_t loopip_init(void)
 {
 	async_set_fallback_port_handler(loopip_client_conn, NULL);
 	
-	int rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
@@ -152,19 +152,19 @@ static void loopip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	iplink_conn(iid, icall, &loopip_iplink);
 }
 
-static int loopip_open(iplink_srv_t *srv)
+static errno_t loopip_open(iplink_srv_t *srv)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_open()");
 	return EOK;
 }
 
-static int loopip_close(iplink_srv_t *srv)
+static errno_t loopip_close(iplink_srv_t *srv)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_close()");
 	return EOK;
 }
 
-static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
+static errno_t loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_send()");
 	
@@ -193,7 +193,7 @@ static int loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	return EOK;
 }
 
-static int loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
+static errno_t loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip6_send()");
 	
@@ -222,25 +222,25 @@ static int loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 	return EOK;
 }
 
-static int loopip_get_mtu(iplink_srv_t *srv, size_t *mtu)
+static errno_t loopip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_get_mtu()");
 	*mtu = 1500;
 	return EOK;
 }
 
-static int loopip_get_mac48(iplink_srv_t *src, addr48_t *mac)
+static errno_t loopip_get_mac48(iplink_srv_t *src, addr48_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_get_mac48()");
 	return ENOTSUP;
 }
 
-static int loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)
+static errno_t loopip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)
 {
 	return EOK;
 }
 
-static int loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
+static errno_t loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
 {
 	return EOK;
 }
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS loopback IP link provider\n", NAME);
 	
-	int rc = log_init(NAME);
+	errno_t rc = log_init(NAME);
 	if (rc != EOK) {
 		printf("%s: Failed to initialize logging: %s.\n", NAME, str_error(rc));
 		return rc;

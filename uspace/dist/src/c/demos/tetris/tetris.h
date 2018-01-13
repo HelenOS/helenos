@@ -193,7 +193,7 @@ extern char key_msg[100];
 extern int showpreview;
 extern int classic;
 
-extern int fits_in(const struct shape *, int);
+extern errno_t fits_in(const struct shape *, int);
 extern void place(const struct shape *, int, int);
 extern void stop(const char *);
 

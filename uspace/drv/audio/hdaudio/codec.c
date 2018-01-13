@@ -45,7 +45,7 @@
 #include "spec/fmt.h"
 #include "stream.h"
 
-static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload,
+static errno_t hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload,
     uint32_t *resp)
 {
 	uint32_t verb;
@@ -65,7 +65,7 @@ static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload
 		    ((vid & 0xf) << 16) |
 		    (payload & 0xffff);
 	}
-	int rc = hda_cmd(codec->hda, verb, resp);
+	errno_t rc = hda_cmd(codec->hda, verb, resp);
 /*
 	if (resp != NULL) {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
@@ -77,16 +77,16 @@ static int hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t payload
 	return rc;
 }
 
-static int hda_get_parameter(hda_codec_t *codec, int node, hda_param_id_t param,
+static errno_t hda_get_parameter(hda_codec_t *codec, int node, hda_param_id_t param,
     uint32_t *resp)
 {
 	return hda_ccmd(codec, node, hda_param_get, param, resp);
 }
 
-static int hda_get_subnc(hda_codec_t *codec, int node, int *startnode,
+static errno_t hda_get_subnc(hda_codec_t *codec, int node, int *startnode,
     int *nodecount)
 {
-	int rc;
+	errno_t rc;
 	uint32_t resp;
 
 	rc = hda_get_parameter(codec, node, hda_sub_nc, &resp);
@@ -102,10 +102,10 @@ static int hda_get_subnc(hda_codec_t *codec, int node, int *startnode,
 }
 
 /** Get Function Group Type */
-static int hda_get_fgrp_type(hda_codec_t *codec, int node, bool *unsol,
+static errno_t hda_get_fgrp_type(hda_codec_t *codec, int node, bool *unsol,
     hda_fgrp_type_t *type)
 {
-	int rc;
+	errno_t rc;
 	uint32_t resp;
 
 	rc = hda_get_parameter(codec, node, hda_fgrp_type, &resp);
@@ -118,10 +118,10 @@ static int hda_get_fgrp_type(hda_codec_t *codec, int node, bool *unsol,
 	return EOK;
 }
 
-static int hda_get_clist_len(hda_codec_t *codec, int node, bool *longform,
+static errno_t hda_get_clist_len(hda_codec_t *codec, int node, bool *longform,
     int *items)
 {
-	int rc;
+	errno_t rc;
 	uint32_t resp;
 
 	rc = hda_get_parameter(codec, node, hda_clist_len, &resp);
@@ -134,39 +134,39 @@ static int hda_get_clist_len(hda_codec_t *codec, int node, bool *longform,
 	return EOK;
 }
 
-static int hda_get_clist_entry(hda_codec_t *codec, int node, int n, uint32_t *resp)
+static errno_t hda_get_clist_entry(hda_codec_t *codec, int node, int n, uint32_t *resp)
 {
 	return hda_ccmd(codec, node, hda_clist_entry_get, n, resp);
 }
 
-static int hda_get_eapd_btl_enable(hda_codec_t *codec, int node, uint32_t *resp)
+static errno_t hda_get_eapd_btl_enable(hda_codec_t *codec, int node, uint32_t *resp)
 {
 	return hda_ccmd(codec, node, hda_eapd_btl_enable_get, 0, resp);
 }
 
-static int hda_set_eapd_btl_enable(hda_codec_t *codec, int node, uint8_t payload)
+static errno_t hda_set_eapd_btl_enable(hda_codec_t *codec, int node, uint8_t payload)
 {
 	return hda_ccmd(codec, node, hda_eapd_btl_enable_set, payload, NULL);
 }
 
 /** Get Suppported PCM Size, Rates */
-static int hda_get_supp_rates(hda_codec_t *codec, int node, uint32_t *rates)
+static errno_t hda_get_supp_rates(hda_codec_t *codec, int node, uint32_t *rates)
 {
 	return hda_get_parameter(codec, node, hda_supp_rates, rates);
 }
 
 /** Get Suppported Stream Formats */
-static int hda_get_supp_formats(hda_codec_t *codec, int node, uint32_t *fmts)
+static errno_t hda_get_supp_formats(hda_codec_t *codec, int node, uint32_t *fmts)
 {
 	return hda_get_parameter(codec, node, hda_supp_formats, fmts);
 }
 
-static int hda_set_converter_fmt(hda_codec_t *codec, int node, uint16_t fmt)
+static errno_t hda_set_converter_fmt(hda_codec_t *codec, int node, uint16_t fmt)
 {
 	return hda_ccmd(codec, node, hda_converter_fmt_set, fmt, NULL);
 }
 
-static int hda_set_converter_ctl(hda_codec_t *codec, int node, uint8_t stream,
+static errno_t hda_set_converter_ctl(hda_codec_t *codec, int node, uint8_t stream,
     uint8_t channel)
 {
 	uint32_t ctl;
@@ -175,14 +175,14 @@ static int hda_set_converter_ctl(hda_codec_t *codec, int node, uint8_t stream,
 	return hda_ccmd(codec, node, hda_converter_ctl_set, ctl, NULL);
 }
 
-static int hda_set_pin_ctl(hda_codec_t *codec, int node, uint8_t pctl)
+static errno_t hda_set_pin_ctl(hda_codec_t *codec, int node, uint8_t pctl)
 {
 	return hda_ccmd(codec, node, hda_pin_ctl_set, pctl, NULL);
 }
 
-static int hda_get_pin_ctl(hda_codec_t *codec, int node, uint8_t *pctl)
+static errno_t hda_get_pin_ctl(hda_codec_t *codec, int node, uint8_t *pctl)
 {
-	int rc;
+	errno_t rc;
 	uint32_t resp;
 
 	rc = hda_ccmd(codec, node, hda_pin_ctl_get, 0, &resp);
@@ -194,10 +194,10 @@ static int hda_get_pin_ctl(hda_codec_t *codec, int node, uint8_t *pctl)
 }
 
 /** Get Audio Widget Capabilities */
-static int hda_get_aw_caps(hda_codec_t *codec, int node,
+static errno_t hda_get_aw_caps(hda_codec_t *codec, int node,
     hda_awidget_type_t *type, uint32_t *caps)
 {
-	int rc;
+	errno_t rc;
 	uint32_t resp;
 
 	rc = hda_get_parameter(codec, node, hda_aw_caps, &resp);
@@ -211,59 +211,59 @@ static int hda_get_aw_caps(hda_codec_t *codec, int node,
 }
 
 /** Get Pin Capabilities */
-static int hda_get_pin_caps(hda_codec_t *codec, int node, uint32_t *caps)
+static errno_t hda_get_pin_caps(hda_codec_t *codec, int node, uint32_t *caps)
 {
 	return hda_get_parameter(codec, node, hda_pin_caps, caps);
 }
 
 /** Get Power State */
-static int hda_get_power_state(hda_codec_t *codec, int node, uint32_t *pstate)
+static errno_t hda_get_power_state(hda_codec_t *codec, int node, uint32_t *pstate)
 {
 	return hda_ccmd(codec, node, hda_power_state_get, 0, pstate);
 }
 
 /** Get Configuration Default */
-static int hda_get_cfg_def(hda_codec_t *codec, int node, uint32_t *cfgdef)
+static errno_t hda_get_cfg_def(hda_codec_t *codec, int node, uint32_t *cfgdef)
 {
 	return hda_ccmd(codec, node, hda_cfg_def_get, 0, cfgdef);
 }
 
-static int hda_get_conn_sel(hda_codec_t *codec, int node, uint32_t *conn)
+static errno_t hda_get_conn_sel(hda_codec_t *codec, int node, uint32_t *conn)
 {
 	return hda_ccmd(codec, node, hda_conn_sel_get, 0, conn);
 }
 
 /** Get Amplifier Gain / Mute  */
-static int hda_get_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload,
+static errno_t hda_get_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload,
     uint32_t *resp)
 {
 //	ddf_msg(LVL_NOTE, "hda_get_amp_gain_mute(codec, %d, %x)",
 //	    node, payload);
-	int rc = hda_ccmd(codec, node, hda_amp_gain_mute_get, payload, resp);
+	errno_t rc = hda_ccmd(codec, node, hda_amp_gain_mute_get, payload, resp);
 //	ddf_msg(LVL_NOTE, "hda_get_amp_gain_mute(codec, %d, %x, resp=%x)",
 //	    node, payload, *resp);
 	return rc;
 }
 
 /** Get GP I/O Count */
-static int hda_get_gpio_cnt(hda_codec_t *codec, int node, uint32_t *resp)
+static errno_t hda_get_gpio_cnt(hda_codec_t *codec, int node, uint32_t *resp)
 {
 	return hda_get_parameter(codec, node, hda_gpio_cnt, resp);
 }
 
-static int hda_set_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload)
+static errno_t hda_set_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload)
 {
 //	ddf_msg(LVL_NOTE, "hda_set_amp_gain_mute(codec, %d, %x)",
 //	    node, payload);
 	return hda_ccmd(codec, node, hda_amp_gain_mute_set, payload, NULL);
 }
 
-static int hda_set_out_amp_max(hda_codec_t *codec, uint8_t aw)
+static errno_t hda_set_out_amp_max(hda_codec_t *codec, uint8_t aw)
 {
 	uint32_t ampcaps;
 	uint32_t gmleft, gmright;
 	uint32_t offset;
-	int rc;
+	errno_t rc;
 
 	rc = hda_get_parameter(codec, aw,
 	    hda_out_amp_caps, &ampcaps);
@@ -293,13 +293,13 @@ error:
 	return rc;
 }
 
-static int hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
+static errno_t hda_set_in_amp_max(hda_codec_t *codec, uint8_t aw)
 {
 	uint32_t ampcaps;
 	uint32_t gmleft, gmright;
 	uint32_t offset;
 	int i;
-	int rc;
+	errno_t rc;
 
 	rc = hda_get_parameter(codec, aw,
 	    hda_out_amp_caps, &ampcaps);
@@ -331,9 +331,9 @@ error:
 	return rc;
 }
 
-static int hda_clist_dump(hda_codec_t *codec, uint8_t aw)
+static errno_t hda_clist_dump(hda_codec_t *codec, uint8_t aw)
 {
-	int rc;
+	errno_t rc;
 	bool longform;
 	int len;
 	uint32_t resp;
@@ -393,9 +393,9 @@ static int hda_clist_dump(hda_codec_t *codec, uint8_t aw)
 	return rc;
 }
 
-static int hda_pin_init(hda_codec_t *codec, uint8_t aw)
+static errno_t hda_pin_init(hda_codec_t *codec, uint8_t aw)
 {
-	int rc;
+	errno_t rc;
 	uint32_t cfgdef;
 	uint32_t pcaps;
 	uint32_t eapd;
@@ -470,9 +470,9 @@ error:
 }
 
 /** Init power-control in wiget capable of doing so. */
-static int hda_power_ctl_init(hda_codec_t *codec, uint8_t aw)
+static errno_t hda_power_ctl_init(hda_codec_t *codec, uint8_t aw)
 {
-	int rc;
+	errno_t rc;
 	uint32_t pwrstate;
 
 	ddf_msg(LVL_NOTE, "aw %d is power control-capable", aw);
@@ -490,7 +490,7 @@ error:
 hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 {
 	hda_codec_t *codec;
-	int rc;
+	errno_t rc;
 	int sfg, nfg;
 	int saw, naw;
 	int fg, aw;
@@ -638,9 +638,9 @@ void hda_codec_fini(hda_codec_t *codec)
 	free(codec);
 }
 
-int hda_out_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
+errno_t hda_out_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
 {
-	int rc;
+	errno_t rc;
 	int out_aw;
 	int i;
 
@@ -665,9 +665,9 @@ error:
 	return rc;
 }
 
-int hda_in_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
+errno_t hda_in_converter_setup(hda_codec_t *codec, hda_stream_t *stream)
 {
-	int rc;
+	errno_t rc;
 
 	/* Configure converter */
 

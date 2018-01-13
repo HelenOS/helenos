@@ -39,11 +39,11 @@
 
 #include "test1.h"
 
-static int test1_dev_add(ddf_dev_t *dev);
-static int test1_dev_remove(ddf_dev_t *dev);
-static int test1_dev_gone(ddf_dev_t *dev);
-static int test1_fun_online(ddf_fun_t *fun);
-static int test1_fun_offline(ddf_fun_t *fun);
+static errno_t test1_dev_add(ddf_dev_t *dev);
+static errno_t test1_dev_remove(ddf_dev_t *dev);
+static errno_t test1_dev_gone(ddf_dev_t *dev);
+static errno_t test1_fun_online(ddf_fun_t *fun);
+static errno_t test1_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &test1_dev_add,
@@ -72,12 +72,12 @@ typedef struct {
  * @param match_id Device match id.
  * @param score Device match score.
  */
-static int register_fun_verbose(ddf_dev_t *parent, const char *message,
+static errno_t register_fun_verbose(ddf_dev_t *parent, const char *message,
     const char *name, const char *match_id, int match_score,
-    int expected_rc, ddf_fun_t **pfun)
+    errno_t expected_rc, ddf_fun_t **pfun)
 {
 	ddf_fun_t *fun = NULL;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "Registering function `%s': %s.", name, message);
 
@@ -140,12 +140,12 @@ leave:
  * @param dev New device.
  * @return Error code reporting success of the operation.
  */
-static int test1_dev_add(ddf_dev_t *dev)
+static errno_t test1_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun_a;
 	test1_t *test1;
 	const char *dev_name;
-	int rc;
+	errno_t rc;
 
 	dev_name = ddf_dev_get_name(dev);
 	ddf_msg(LVL_DEBUG, "dev_add(name=\"%s\", handle=%d)",
@@ -195,9 +195,9 @@ error:
 	return rc;
 }
 
-static int fun_remove(ddf_fun_t *fun, const char *name)
+static errno_t fun_remove(ddf_fun_t *fun, const char *name)
 {
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "fun_remove(%p, '%s')", fun, name);
 	rc = ddf_fun_offline(fun);
@@ -216,9 +216,9 @@ static int fun_remove(ddf_fun_t *fun, const char *name)
 	return EOK;
 }
 
-static int fun_unbind(ddf_fun_t *fun, const char *name)
+static errno_t fun_unbind(ddf_fun_t *fun, const char *name)
 {
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "fun_unbind(%p, '%s')", fun, name);
 	rc = ddf_fun_unbind(fun);
@@ -231,10 +231,10 @@ static int fun_unbind(ddf_fun_t *fun, const char *name)
 	return EOK;
 }
 
-static int test1_dev_remove(ddf_dev_t *dev)
+static errno_t test1_dev_remove(ddf_dev_t *dev)
 {
 	test1_t *test1 = (test1_t *)ddf_dev_data_get(dev);
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "test1_dev_remove(%p)", dev);
 
@@ -259,10 +259,10 @@ static int test1_dev_remove(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int test1_dev_gone(ddf_dev_t *dev)
+static errno_t test1_dev_gone(ddf_dev_t *dev)
 {
 	test1_t *test1 = (test1_t *)ddf_dev_data_get(dev);
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "test1_dev_remove(%p)", dev);
 
@@ -287,13 +287,13 @@ static int test1_dev_gone(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int test1_fun_online(ddf_fun_t *fun)
+static errno_t test1_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "test1_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int test1_fun_offline(ddf_fun_t *fun)
+static errno_t test1_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "test1_fun_offline()");
 	return ddf_fun_offline(fun);

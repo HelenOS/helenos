@@ -100,7 +100,7 @@ static log_t facility_ctx[facility_len];
 static void producer(void)
 {
 	size_t len = 0;
-	int rc = klog_read(buffer, BUFFER_SIZE, &len);
+	errno_t rc = klog_read(buffer, BUFFER_SIZE, &len);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "klog_read failed, rc = %s",
 		    str_error_name(rc));
@@ -145,7 +145,7 @@ static void producer(void)
  * @return Always EOK (unreachable).
  *
  */
-static int consumer(void *data)
+static errno_t consumer(void *data)
 {
 	
 	while (true) {
@@ -209,7 +209,7 @@ static void klog_notification_received(ipc_call_t *call, void *arg)
 
 int main(int argc, char *argv[])
 {
-	int rc = log_init(NAME);
+	errno_t rc = log_init(NAME);
 	if (rc != EOK) {
 		fprintf(stderr, "%s: Unable to initialize log\n", NAME);
 		return rc;

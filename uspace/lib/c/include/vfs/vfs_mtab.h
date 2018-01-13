@@ -45,7 +45,7 @@ typedef struct mtab_ent {
 	service_id_t service_id;
 } mtab_ent_t;
 
-extern int vfs_get_mtab_list(list_t *);
+extern errno_t vfs_get_mtab_list(list_t *);
 
 #endif
 

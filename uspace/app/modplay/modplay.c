@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 	pcm_format_t format;
 	void *buffer;
 	size_t buffer_size;
-	int rc;
+	errno_t rc;
 
 	if (argc != 2) {
 		printf("syntax: modplay <filename.mod>\n");

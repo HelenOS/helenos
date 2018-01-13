@@ -44,7 +44,7 @@ PCUT_TEST(empty_queue)
 	tcp_iqueue_t iqueue;
 	inet_ep2_t epp;
 	tcp_segment_t *rseg;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 	conn = tcp_conn_new(&epp);
@@ -70,7 +70,7 @@ PCUT_TEST(one_segment)
 	tcp_segment_t *seg;
 	void *data;
 	size_t dsize;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 	conn = tcp_conn_new(&epp);
@@ -116,7 +116,7 @@ PCUT_TEST(two_segments)
 	tcp_segment_t *seg1, *seg2;
 	void *data;
 	size_t dsize;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 	conn = tcp_conn_new(&epp);

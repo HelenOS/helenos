@@ -51,27 +51,27 @@ static vslmode_list_element_t pixel_mode;
 static visualizer_t *vis;
 static rfb_t rfb;
 
-static int rfb_claim(visualizer_t *vs)
+static errno_t rfb_claim(visualizer_t *vs)
 {
 	return EOK;
 }
 
-static int rfb_yield(visualizer_t *vs)
+static errno_t rfb_yield(visualizer_t *vs)
 {
 	return EOK;
 }
 
-static int rfb_suspend(visualizer_t *vs)
+static errno_t rfb_suspend(visualizer_t *vs)
 {
 	return EOK;
 }
 
-static int rfb_wakeup(visualizer_t *vs)
+static errno_t rfb_wakeup(visualizer_t *vs)
 {
 	return EOK;
 }
 
-static int rfb_handle_damage_pixels(visualizer_t *vs,
+static errno_t rfb_handle_damage_pixels(visualizer_t *vs,
     sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
     sysarg_t x_offset, sysarg_t y_offset)
 {
@@ -125,7 +125,7 @@ static int rfb_handle_damage_pixels(visualizer_t *vs,
 	return EOK;
 }
 
-static int rfb_change_mode(visualizer_t *vs, vslmode_t new_mode)
+static errno_t rfb_change_mode(visualizer_t *vs, vslmode_t new_mode)
 {
 	return EOK;
 }
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
 
 	async_set_fallback_port_handler(client_connection, NULL);
 
-	int rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server.\n", NAME);
 		return rc;

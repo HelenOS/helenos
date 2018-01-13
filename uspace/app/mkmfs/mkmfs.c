@@ -81,17 +81,17 @@ struct mfs_sb_info {
 
 static void	help_cmd_mkmfs(help_level_t level);
 static bool	is_power_of_two(uint32_t n);
-static int	init_superblock(struct mfs_sb_info *sb);
-static int	write_superblock(const struct mfs_sb_info *sbi);
-static int	write_superblock3(const struct mfs_sb_info *sbi);
-static int	init_bitmaps(const struct mfs_sb_info *sb);
-static int	init_inode_table(const struct mfs_sb_info *sb);
-static int	make_root_ino(const struct mfs_sb_info *sb);
-static int	make_root_ino2(const struct mfs_sb_info *sb);
+static errno_t	init_superblock(struct mfs_sb_info *sb);
+static errno_t	write_superblock(const struct mfs_sb_info *sbi);
+static errno_t	write_superblock3(const struct mfs_sb_info *sbi);
+static errno_t	init_bitmaps(const struct mfs_sb_info *sb);
+static errno_t	init_inode_table(const struct mfs_sb_info *sb);
+static errno_t	make_root_ino(const struct mfs_sb_info *sb);
+static errno_t	make_root_ino2(const struct mfs_sb_info *sb);
 static void	mark_bmap(uint32_t *bmap, int idx, int v);
-static int	insert_dentries(const struct mfs_sb_info *sb);
+static errno_t	insert_dentries(const struct mfs_sb_info *sb);
 
-static inline int write_block(aoff64_t off, size_t size, const void *data);
+static inline errno_t write_block(aoff64_t off, size_t size, const void *data);
 
 static service_id_t service_id;
 static int shift;
@@ -108,7 +108,7 @@ static struct option const long_options[] = {
 
 int main (int argc, char **argv)
 {
-	int rc;
+	errno_t rc;
 	int c, opt_ind;
 	char *device_name;
 	size_t devblock_size;
@@ -291,11 +291,11 @@ int main (int argc, char **argv)
  *
  * @return		EOK on success or an error code.
  */
-static int insert_dentries(const struct mfs_sb_info *sb)
+static errno_t insert_dentries(const struct mfs_sb_info *sb)
 {
 	void *root_block;
 	uint8_t *dentry_ptr;
-	int rc;
+	errno_t rc;
 	const long root_dblock = sb->first_data_zone;
 
 	root_block = malloc(sb->block_size);
@@ -344,11 +344,11 @@ static int insert_dentries(const struct mfs_sb_info *sb)
  *
  * @return		EOK on success or an error code.
  */
-static int init_inode_table(const struct mfs_sb_info *sb)
+static errno_t init_inode_table(const struct mfs_sb_info *sb)
 {
 	unsigned int i;
 	uint8_t *itable_buf;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	long itable_off = sb->zbmap_blocks + sb->ibmap_blocks + 2;
 	unsigned long itable_size = sb->itable_size;
@@ -377,10 +377,10 @@ static int init_inode_table(const struct mfs_sb_info *sb)
  *
  * @return		EOK on success or an error code.
  */
-static int make_root_ino(const struct mfs_sb_info *sb)
+static errno_t make_root_ino(const struct mfs_sb_info *sb)
 {
 	struct mfs_inode *ino_buf;
-	int rc;
+	errno_t rc;
 
 	const long itable_off = sb->zbmap_blocks + sb->ibmap_blocks + 2;
 
@@ -414,10 +414,10 @@ static int make_root_ino(const struct mfs_sb_info *sb)
  *
  * @return		EOK on success or an error code.
  */
-static int make_root_ino2(const struct mfs_sb_info *sb)
+static errno_t make_root_ino2(const struct mfs_sb_info *sb)
 {
 	struct mfs2_inode *ino_buf;
-	int rc;
+	errno_t rc;
 
 	/* Compute offset of the first inode table block */
 	const long itable_off = sb->zbmap_blocks + sb->ibmap_blocks + 2;
@@ -453,13 +453,13 @@ static int make_root_ino2(const struct mfs_sb_info *sb)
  *
  * @return		EOK on success or an error code.
  */
-static int init_superblock(struct mfs_sb_info *sb)
+static errno_t init_superblock(struct mfs_sb_info *sb)
 {
 	aoff64_t inodes;
 	unsigned long ind;
 	unsigned long ind2;
 	unsigned long zones;
-	int rc;
+	errno_t rc;
 
 	if (sb->longnames)
 		sb->magic = sb->fs_version == 1 ? MFS_MAGIC_V1L :
@@ -560,10 +560,10 @@ static int init_superblock(struct mfs_sb_info *sb)
  *
  * @return		EOK on success or an error code.
  */
-static int write_superblock(const struct mfs_sb_info *sbi)
+static errno_t write_superblock(const struct mfs_sb_info *sbi)
 {
 	struct mfs_superblock *sb;
-	int rc;
+	errno_t rc;
 
 	sb = malloc(MFS_SUPERBLOCK_SIZE);;
 
@@ -593,10 +593,10 @@ static int write_superblock(const struct mfs_sb_info *sbi)
  *
  * @return		EOK on success or an error code.
  */
-static int write_superblock3(const struct mfs_sb_info *sbi)
+static errno_t write_superblock3(const struct mfs_sb_info *sbi)
 {
 	struct mfs3_superblock *sb;
-	int rc;
+	errno_t rc;
 
 	sb = malloc(MFS_SUPERBLOCK_SIZE);
 
@@ -626,14 +626,14 @@ static int write_superblock3(const struct mfs_sb_info *sbi)
  *
  * @return		EOK on success or an error code.
  */
-static int init_bitmaps(const struct mfs_sb_info *sb)
+static errno_t init_bitmaps(const struct mfs_sb_info *sb)
 {
 	uint32_t *ibmap_buf, *zbmap_buf;
 	uint8_t *ibmap_buf8, *zbmap_buf8;
 	const unsigned int ibmap_nblocks = sb->ibmap_blocks;
 	const unsigned int zbmap_nblocks = sb->zbmap_blocks;
 	unsigned int i;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	ibmap_buf = malloc(ibmap_nblocks * sb->block_size);
 	zbmap_buf = malloc(zbmap_nblocks * sb->block_size);
@@ -700,10 +700,10 @@ static void mark_bmap(uint32_t *bmap, int idx, int v)
  *
  * @return		EOK on success or a error number.
  */
-static inline int write_block(aoff64_t off, size_t size, const void *data)
+static inline errno_t write_block(aoff64_t off, size_t size, const void *data)
 {
 	if (shift == 3) {
-		int rc;
+		errno_t rc;
 		aoff64_t tmp_off = off << 1;
 		uint8_t *data_ptr = (uint8_t *) data;
 

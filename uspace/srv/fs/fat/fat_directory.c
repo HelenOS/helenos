@@ -45,7 +45,7 @@
 #include <align.h>
 #include <stdio.h>
 
-int fat_directory_open(fat_node_t *nodep, fat_directory_t *di)
+errno_t fat_directory_open(fat_node_t *nodep, fat_directory_t *di)
 {
 	di->b = NULL;
 	di->nodep = nodep;	
@@ -61,9 +61,9 @@ int fat_directory_open(fat_node_t *nodep, fat_directory_t *di)
 	return EOK;
 }
 
-int fat_directory_close(fat_directory_t *di)
+errno_t fat_directory_close(fat_directory_t *di)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	if (di->b)
 		rc = block_put(di->b);
@@ -71,10 +71,10 @@ int fat_directory_close(fat_directory_t *di)
 	return rc;
 }
 
-static int fat_directory_block_load(fat_directory_t *di)
+static errno_t fat_directory_block_load(fat_directory_t *di)
 {
 	uint32_t i;
-	int rc;
+	errno_t rc;
 
 	i = (di->pos * sizeof(fat_dentry_t)) / BPS(di->bs);
 	if (i < di->blocks) {
@@ -97,9 +97,9 @@ static int fat_directory_block_load(fat_directory_t *di)
 	return ENOENT;
 }
 
-int fat_directory_next(fat_directory_t *di)
+errno_t fat_directory_next(fat_directory_t *di)
 {
-	int rc;
+	errno_t rc;
 
 	di->pos += 1;
 	rc = fat_directory_block_load(di);
@@ -109,9 +109,9 @@ int fat_directory_next(fat_directory_t *di)
 	return rc;
 }
 
-int fat_directory_prev(fat_directory_t *di)
+errno_t fat_directory_prev(fat_directory_t *di)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	if (di->pos > 0) {
 		di->pos -= 1;
@@ -125,10 +125,10 @@ int fat_directory_prev(fat_directory_t *di)
 	return rc;
 }
 
-int fat_directory_seek(fat_directory_t *di, aoff64_t pos)
+errno_t fat_directory_seek(fat_directory_t *di, aoff64_t pos)
 {
 	aoff64_t _pos = di->pos;
-	int rc;
+	errno_t rc;
 
 	di->pos = pos;
 	rc = fat_directory_block_load(di);
@@ -138,9 +138,9 @@ int fat_directory_seek(fat_directory_t *di, aoff64_t pos)
 	return rc;
 }
 
-int fat_directory_get(fat_directory_t *di, fat_dentry_t **d)
+errno_t fat_directory_get(fat_directory_t *di, fat_dentry_t **d)
 {
-	int rc;
+	errno_t rc;
 	
 	rc = fat_directory_block_load(di);
 	if (rc == EOK) {
@@ -151,7 +151,7 @@ int fat_directory_get(fat_directory_t *di, fat_dentry_t **d)
 	return rc;
 }
 
-int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
+errno_t fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 {
 	fat_dentry_t *d = NULL;
 	uint16_t wname[FAT_LFN_NAME_LEN];
@@ -159,7 +159,7 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 	bool long_entry = false;
 	int long_entry_count = 0;
 	uint8_t checksum = 0;
-	int rc;
+	errno_t rc;
 
 	void *data;
 	fat_instance_t *instance;
@@ -235,9 +235,9 @@ int fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 	return ENOENT;
 }
 
-int fat_directory_erase(fat_directory_t *di)
+errno_t fat_directory_erase(fat_directory_t *di)
 {
-	int rc;
+	errno_t rc;
 	fat_dentry_t *d;
 	bool flag = false;
 	uint8_t checksum;
@@ -266,9 +266,9 @@ int fat_directory_erase(fat_directory_t *di)
 	return EOK;
 }
 
-int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
+errno_t fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 {
-	int rc;
+	errno_t rc;
 	void *data;
 	fat_instance_t *instance;
 
@@ -347,7 +347,7 @@ int fat_directory_write(fat_directory_t *di, const char *name, fat_dentry_t *de)
 	return ENOTSUP;
 }
 
-int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de,
+errno_t fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de,
     const char *lname)
 {
 	char name[FAT_NAME_LEN + 1];
@@ -397,10 +397,10 @@ int fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de,
 	return ERANGE;
 }
 
-int fat_directory_write_dentry(fat_directory_t *di, fat_dentry_t *de)
+errno_t fat_directory_write_dentry(fat_directory_t *di, fat_dentry_t *de)
 {
 	fat_dentry_t *d;
-	int rc;
+	errno_t rc;
 
 	rc = fat_directory_get(di, &d);
 	if (rc != EOK)
@@ -411,9 +411,9 @@ int fat_directory_write_dentry(fat_directory_t *di, fat_dentry_t *de)
 	return EOK;
 }
 
-int fat_directory_expand(fat_directory_t *di)
+errno_t fat_directory_expand(fat_directory_t *di)
 {
-	int rc;
+	errno_t rc;
 	fat_cluster_t mcl, lcl;
 
 	if (!FAT_IS_FAT32(di->bs) && di->nodep->firstc == FAT_CLST_ROOT) {
@@ -443,12 +443,12 @@ int fat_directory_expand(fat_directory_t *di)
 	return EOK;
 }
 
-int fat_directory_lookup_free(fat_directory_t *di, size_t count)
+errno_t fat_directory_lookup_free(fat_directory_t *di, size_t count)
 {
 	fat_dentry_t *d;
 	size_t found;
 	aoff64_t pos;
-	int rc;
+	errno_t rc;
 	
 	do {
 		found = 0;
@@ -484,7 +484,7 @@ int fat_directory_lookup_free(fat_directory_t *di, size_t count)
 	return ENOSPC;
 }
 
-int fat_directory_lookup_name(fat_directory_t *di, const char *name,
+errno_t fat_directory_lookup_name(fat_directory_t *di, const char *name,
     fat_dentry_t **de)
 {
 	char entry[FAT_LFN_NAME_SIZE];
@@ -505,7 +505,7 @@ int fat_directory_lookup_name(fat_directory_t *di, const char *name,
 bool fat_directory_is_sfn_exist(fat_directory_t *di, fat_dentry_t *de)
 {
 	fat_dentry_t *d;
-	int rc;
+	errno_t rc;
 
 	fat_directory_seek(di, 0);
 	do {
@@ -537,10 +537,10 @@ bool fat_directory_is_sfn_exist(fat_directory_t *di, fat_dentry_t *de)
  *
  * @return EOK on success, ENOENT if not found, EIO on I/O error
  */
-int fat_directory_vollabel_get(fat_directory_t *di, char *label)
+errno_t fat_directory_vollabel_get(fat_directory_t *di, char *label)
 {
 	fat_dentry_t *d;
-	int rc;
+	errno_t rc;
 
 	fat_directory_seek(di, 0);
 	do {

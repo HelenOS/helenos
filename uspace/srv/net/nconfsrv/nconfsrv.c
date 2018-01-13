@@ -55,10 +55,10 @@
 
 static void ncs_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
-static int ncs_init(void)
+static errno_t ncs_init(void)
 {
 	service_id_t sid;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ncs_init()");
 
@@ -104,7 +104,7 @@ static void ncs_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": HelenOS Network configuration service\n");
 

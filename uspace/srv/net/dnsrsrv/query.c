@@ -46,7 +46,7 @@
 
 static uint16_t msg_id;
 
-static int dns_name_query(const char *name, dns_qtype_t qtype,
+static errno_t dns_name_query(const char *name, dns_qtype_t qtype,
     dns_host_info_t *info)
 {
 	/* Start with the caller-provided name */
@@ -91,7 +91,7 @@ static int dns_name_query(const char *name, dns_qtype_t qtype,
 	
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_name_query: send DNS request");
 	dns_message_t *amsg;
-	int rc = dns_request(msg, &amsg);
+	errno_t rc = dns_request(msg, &amsg);
 	if (rc != EOK) {
 		dns_message_destroy(msg);
 		free(sname);
@@ -189,13 +189,13 @@ static int dns_name_query(const char *name, dns_qtype_t qtype,
 	return EIO;
 }
 
-int dns_name2host(const char *name, dns_host_info_t **rinfo, ip_ver_t ver)
+errno_t dns_name2host(const char *name, dns_host_info_t **rinfo, ip_ver_t ver)
 {
 	dns_host_info_t *info = calloc(1, sizeof(dns_host_info_t));
 	if (info == NULL)
 		return ENOMEM;
 	
-	int rc;
+	errno_t rc;
 	
 	switch (ver) {
 	case ip_any:

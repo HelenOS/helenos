@@ -54,7 +54,7 @@ typedef struct {
 /** List of clonable-service connection requests. */
 static list_t cs_req;
 
-int clonable_init(void)
+errno_t clonable_init(void)
 {
 	list_initialize(&cs_req);
 	return EOK;
@@ -127,7 +127,7 @@ void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
 	}
 	
 	/* Spawn a loader. */
-	int rc = loader_spawn("loader");
+	errno_t rc = loader_spawn("loader");
 	
 	if (rc != EOK) {
 		free(csr);

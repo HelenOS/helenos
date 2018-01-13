@@ -39,10 +39,10 @@ struct ath;
 
 /** Atheros wifi operations. */
 typedef struct {
-	int (*send_ctrl_message)(struct ath *, void *, size_t);
-	int (*read_ctrl_message)(struct ath *, void *, size_t, size_t *);
-	int (*send_data_message)(struct ath *, void *, size_t);
-	int (*read_data_message)(struct ath *, void *, size_t, size_t *);
+	errno_t (*send_ctrl_message)(struct ath *, void *, size_t);
+	errno_t (*read_ctrl_message)(struct ath *, void *, size_t, size_t *);
+	errno_t (*send_data_message)(struct ath *, void *, size_t);
+	errno_t (*read_data_message)(struct ath *, void *, size_t, size_t *);
 } ath_ops_t;
 
 /** Atheros wifi device structure */

@@ -74,15 +74,15 @@ typedef uint32_t perm_t;
 
 #ifdef __32_BITS__
 
-extern sysarg_t sys_perm_grant(sysarg64_t *, perm_t);
-extern sysarg_t sys_perm_revoke(sysarg64_t *, perm_t);
+extern sys_errno_t sys_perm_grant(sysarg64_t *, perm_t);
+extern sys_errno_t sys_perm_revoke(sysarg64_t *, perm_t);
 
 #endif  /* __32_BITS__ */
 
 #ifdef __64_BITS__
 
-extern sysarg_t sys_perm_grant(sysarg_t, perm_t);
-extern sysarg_t sys_perm_revoke(sysarg_t, perm_t);
+extern sys_errno_t sys_perm_grant(sysarg_t, perm_t);
+extern sys_errno_t sys_perm_revoke(sysarg_t, perm_t);
 
 #endif  /* __64_BITS__ */
 

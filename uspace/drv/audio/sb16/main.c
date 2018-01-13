@@ -46,10 +46,10 @@
 
 #define NAME "sb16"
 
-static int sb_add_device(ddf_dev_t *device);
-static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
+static errno_t sb_add_device(ddf_dev_t *device);
+static errno_t sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
     addr_range_t **pp_mpu_regs, int *irq, int *dma8, int *dma16);
-static int sb_enable_interrupt(ddf_dev_t *device, int irq);
+static errno_t sb_enable_interrupt(ddf_dev_t *device, int irq);
 
 static driver_ops_t sb_driver_ops = {
 	.dev_add = sb_add_device,
@@ -86,7 +86,7 @@ static void irq_handler(ipc_call_t *call, ddf_dev_t *dev)
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-static int sb_add_device(ddf_dev_t *device)
+static errno_t sb_add_device(ddf_dev_t *device)
 {
 	bool handler_regd = false;
 	const size_t irq_cmd_count = sb16_irq_code_size();
@@ -95,7 +95,7 @@ static int sb_add_device(ddf_dev_t *device)
 	int irq_cap;
 
 	sb16_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_t));
-	int rc = soft_state ? EOK : ENOMEM;
+	errno_t rc = soft_state ? EOK : ENOMEM;
 	if (rc != EOK) {
 		ddf_log_error("Failed to allocate sb16 structure.");
 		goto error;
@@ -172,7 +172,7 @@ error:
 	return rc;
 }
 
-static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
+static errno_t sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
     addr_range_t **pp_mpu_regs, int *irq, int *dma8, int *dma16)
 {
 	assert(device);
@@ -183,7 +183,7 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 
 	hw_res_list_parsed_t hw_res;
 	hw_res_list_parsed_init(&hw_res);
-	const int ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
+	const errno_t ret = hw_res_get_list_parsed(parent_sess, &hw_res, 0);
 	if (ret != EOK) {
 		return ret;
 	}
@@ -240,7 +240,7 @@ static int sb_get_res(ddf_dev_t *device, addr_range_t **pp_sb_regs,
 	return EOK;
 }
 
-static int sb_enable_interrupt(ddf_dev_t *device, int irq)
+static errno_t sb_enable_interrupt(ddf_dev_t *device, int irq)
 {
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
 	if (parent_sess == NULL)

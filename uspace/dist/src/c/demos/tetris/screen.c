@@ -146,7 +146,7 @@ static int get_display_size(winsize_t *ws)
 static bool get_display_color_sup(void)
 {
 	sysarg_t ccap;
-	int rc = console_get_color_cap(console, &ccap);
+	errno_t rc = console_get_color_cap(console, &ccap);
 	
 	if (rc != 0)
 		return false;
@@ -352,7 +352,7 @@ void tsleep(void)
 /** Get char with timeout
  *
  */
-int tgetchar(void)
+errno_t tgetchar(void)
 {
 	/*
 	 * Reset timeleft to fallrate whenever it is not positive
@@ -391,7 +391,7 @@ int tgetchar(void)
 /** Get char without timeout
  *
  */
-int twait(void)
+errno_t twait(void)
 {
 	wchar_t c = 0;
 	

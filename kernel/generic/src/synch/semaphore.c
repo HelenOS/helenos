@@ -70,7 +70,7 @@ void semaphore_initialize(semaphore_t *sem, int val)
  * @return See comment for waitq_sleep_timeout().
  *
  */
-int _semaphore_down_timeout(semaphore_t *sem, uint32_t usec, unsigned int flags)
+errno_t _semaphore_down_timeout(semaphore_t *sem, uint32_t usec, unsigned int flags)
 {
 	return waitq_sleep_timeout(&sem->wq, usec, flags, NULL);
 }

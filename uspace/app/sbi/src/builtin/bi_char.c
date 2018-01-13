@@ -72,7 +72,7 @@ static void bi_char_get_as_string(run_t *run)
         bigint_t *cval;
         char *str;
         int char_val;
-        int rc;
+        errno_t rc;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Convert char to string.\n");

@@ -135,7 +135,7 @@ static void retrieve_and_dump_hid_report(hid_dump_type_t dump_type,
 	}
 
 	size_t actual_report_size;
-	int rc = usb_request_get_descriptor(ctrl_pipe,
+	errno_t rc = usb_request_get_descriptor(ctrl_pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_DESCTYPE_HID_REPORT, 0, iface_no,
 	    raw_report, report_size, &actual_report_size);

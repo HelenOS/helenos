@@ -48,7 +48,7 @@
  * @param arg hcd_t in disguise.
  * @return Error code.
  */
-static int register_helper(endpoint_t *ep, void *arg)
+static errno_t register_helper(endpoint_t *ep, void *arg)
 {
 	hcd_t *hcd = arg;
 	assert(ep);
@@ -101,27 +101,27 @@ void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
 	hcd_set_implementation(hcd, NULL, NULL);
 }
 
-int hcd_request_address(hcd_t *hcd, usb_speed_t speed, usb_address_t *address)
+errno_t hcd_request_address(hcd_t *hcd, usb_speed_t speed, usb_address_t *address)
 {
 	assert(hcd);
 	return usb_bus_request_address(&hcd->bus, address, false, speed);
 }
 
-int hcd_release_address(hcd_t *hcd, usb_address_t address)
+errno_t hcd_release_address(hcd_t *hcd, usb_address_t address)
 {
 	assert(hcd);
 	return usb_bus_remove_address(&hcd->bus, address,
 	    unregister_helper_warn, hcd);
 }
 
-int hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
+errno_t hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
 {
 	assert(hcd);
 	usb_address_t address = 0;
 	return usb_bus_request_address(&hcd->bus, &address, true, speed);
 }
 
-int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
+errno_t hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
     usb_transfer_type_t type, size_t max_packet_size, unsigned packets,
     size_t size, usb_address_t tt_address, unsigned tt_port)
 {
@@ -131,7 +131,7 @@ int hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
 	    register_helper, hcd, tt_address, tt_port);
 }
 
-int hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir)
+errno_t hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir)
 {
 	assert(hcd);
 	return usb_bus_remove_ep(&hcd->bus, target.address,
@@ -146,7 +146,7 @@ typedef struct {
 	hcd_t *hcd;
 } toggle_t;
 
-static void toggle_reset_callback(int retval, void *arg)
+static void toggle_reset_callback(errno_t retval, void *arg)
 {
 	assert(arg);
 	toggle_t *toggle = arg;
@@ -171,7 +171,7 @@ static void toggle_reset_callback(int retval, void *arg)
  * @param name Communication identifier (for nicer output).
  * @return Error code.
  */
-int hcd_send_batch(
+errno_t hcd_send_batch(
     hcd_t *hcd, usb_target_t target, usb_direction_t direction,
     void *data, size_t size, uint64_t setup_data,
     usbhc_iface_transfer_in_callback_t in,
@@ -231,7 +231,7 @@ int hcd_send_batch(
 		return ENOMEM;
 	}
 
-	const int ret = hcd->ops.schedule(hcd, batch);
+	const errno_t ret = hcd->ops.schedule(hcd, batch);
 	if (ret != EOK)
 		usb_transfer_batch_destroy(batch);
 
@@ -243,11 +243,11 @@ int hcd_send_batch(
 
 typedef struct {
 	volatile unsigned done;
-	int ret;
+	errno_t ret;
 	size_t size;
 } sync_data_t;
 
-static void transfer_in_cb(int ret, size_t size, void* data)
+static void transfer_in_cb(errno_t ret, size_t size, void* data)
 {
 	sync_data_t *d = data;
 	assert(d);
@@ -256,7 +256,7 @@ static void transfer_in_cb(int ret, size_t size, void* data)
 	d->size = size;
 }
 
-static void transfer_out_cb(int ret, void* data)
+static void transfer_out_cb(errno_t ret, void* data)
 {
 	sync_data_t *d = data;
 	assert(data);
@@ -265,14 +265,14 @@ static void transfer_out_cb(int ret, void* data)
 }
 
 /** this is really ugly version of sync usb communication */
-int hcd_send_batch_sync(
+errno_t hcd_send_batch_sync(
     hcd_t *hcd, usb_target_t target, usb_direction_t dir,
     void *data, size_t size, uint64_t setup_data, const char* name, size_t *out_size)
 {
 	assert(hcd);
 	sync_data_t sd = { .done = 0, .ret = EBUSY, .size = size };
 
-	const int ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
+	const errno_t ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
 	    dir == USB_DIRECTION_IN ? transfer_in_cb : NULL,
 	    dir == USB_DIRECTION_OUT ? transfer_out_cb : NULL, &sd, name);
 	if (ret != EOK)

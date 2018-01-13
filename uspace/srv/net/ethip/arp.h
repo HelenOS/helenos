@@ -42,7 +42,7 @@
 #include "ethip.h"
 
 extern void arp_received(ethip_nic_t *, eth_frame_t *);
-extern int arp_translate(ethip_nic_t *, addr32_t, addr32_t, addr48_t);
+extern errno_t arp_translate(ethip_nic_t *, addr32_t, addr32_t, addr48_t);
 
 #endif
 

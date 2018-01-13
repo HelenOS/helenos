@@ -39,10 +39,10 @@
 #include <abi/errno.h>
 #include <arch.h>
 
-static int request_preprocess(call_t *call, phone_t *phone)
+static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
 	cap_handle_t phone_handle;
-	int rc = phone_alloc(TASK, &phone_handle);
+	errno_t rc = phone_alloc(TASK, &phone_handle);
 
 	/* Remember the phone capability or that an error occured. */
 	call->priv = (rc == EOK) ? phone_handle : -1;
@@ -60,7 +60,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
-static int request_forget(call_t *call)
+static errno_t request_forget(call_t *call)
 {
 	cap_handle_t phone_handle = (cap_handle_t) call->priv;
 
@@ -76,7 +76,7 @@ static int request_forget(call_t *call)
 	return EOK;
 }
 
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	/* Hand over reference from ARG5 to phone */
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
@@ -92,7 +92,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	return EOK;
 }
 
-static int answer_process(call_t *answer)
+static errno_t answer_process(call_t *answer)
 {
 	cap_handle_t phone_handle = (cap_handle_t) answer->priv;
 

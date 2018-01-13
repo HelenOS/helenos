@@ -63,7 +63,7 @@ typedef struct {
 	int permissions;
 } vfs_boxed_handle_t;
 
-static int _vfs_fd_free(vfs_client_data_t *, int);
+static errno_t _vfs_fd_free(vfs_client_data_t *, int);
 
 /** Initialize the table of open files. */
 static bool vfs_files_init(vfs_client_data_t *vfs_data)
@@ -132,7 +132,7 @@ void vfs_client_data_destroy(void *data)
 }
 
 /** Close the file in the endpoint FS server. */
-static int vfs_file_close_remote(vfs_file_t *file)
+static errno_t vfs_file_close_remote(vfs_file_t *file)
 {
 	assert(!file->refcnt);
 	
@@ -144,7 +144,7 @@ static int vfs_file_close_remote(vfs_file_t *file)
 	
 	vfs_exchange_release(exch);
 	
-	int rc;
+	errno_t rc;
 	async_wait_for(msg, &rc);
 	
 	return IPC_GET_RETVAL(answer);
@@ -167,9 +167,9 @@ static void vfs_file_addref(vfs_client_data_t *vfs_data, vfs_file_t *file)
  * @param file		File structure that will have reference count
  *			decremented.
  */
-static int vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
+static errno_t vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	assert(fibril_mutex_is_locked(&vfs_data->lock));
 
@@ -191,7 +191,7 @@ static int vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 	return rc;
 }
 
-static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, bool desc, int *out_fd)
+static errno_t _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, bool desc, int *out_fd)
 {
 	if (!vfs_files_init(vfs_data))
 		return ENOMEM;
@@ -253,25 +253,25 @@ static int _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, bool de
  *
  * @return Error code.
  */
-int vfs_fd_alloc(vfs_file_t **file, bool desc, int *out_fd)
+errno_t vfs_fd_alloc(vfs_file_t **file, bool desc, int *out_fd)
 {
 	return _vfs_fd_alloc(VFS_DATA, file, desc, out_fd);
 }
 
-static int _vfs_fd_free_locked(vfs_client_data_t *vfs_data, int fd)
+static errno_t _vfs_fd_free_locked(vfs_client_data_t *vfs_data, int fd)
 {
 	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || !vfs_data->files[fd]) {
 		return EBADF;
 	}
 
-	int rc = vfs_file_delref(vfs_data, vfs_data->files[fd]);
+	errno_t rc = vfs_file_delref(vfs_data, vfs_data->files[fd]);
 	vfs_data->files[fd] = NULL;
 	return rc;
 }
 
-static int _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
+static errno_t _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
 {
-	int rc;
+	errno_t rc;
 
 	if (!vfs_files_init(vfs_data))
 		return ENOMEM;
@@ -290,7 +290,7 @@ static int _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
  * @return		EOK on success or EBADF if fd is an invalid file
  *			descriptor.
  */
-int vfs_fd_free(int fd)
+errno_t vfs_fd_free(int fd)
 {
 	return _vfs_fd_free(VFS_DATA, fd);
 }
@@ -304,7 +304,7 @@ int vfs_fd_free(int fd)
  *         used file descriptor.
  *
  */
-int vfs_fd_assign(vfs_file_t *file, int fd)
+errno_t vfs_fd_assign(vfs_file_t *file, int fd)
 {
 	if (!vfs_files_init(VFS_DATA))
 		return ENOMEM;
@@ -428,7 +428,7 @@ out:
 		_vfs_file_put(donor_data, donor_file);
 }
 
-int vfs_wait_handle_internal(bool high_fd, int *out_fd)
+errno_t vfs_wait_handle_internal(bool high_fd, int *out_fd)
 {
 	vfs_client_data_t *vfs_data = VFS_DATA;	
 	
@@ -442,7 +442,7 @@ int vfs_wait_handle_internal(bool high_fd, int *out_fd)
 	vfs_boxed_handle_t *bh = list_get_instance(lnk, vfs_boxed_handle_t, link);
 
 	vfs_file_t *file;
-	int rc = _vfs_fd_alloc(vfs_data, &file, high_fd, out_fd);
+	errno_t rc = _vfs_fd_alloc(vfs_data, &file, high_fd, out_fd);
 	if (rc != EOK) {
 		vfs_node_delref(bh->node);
 		free(bh);

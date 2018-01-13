@@ -36,9 +36,9 @@
 #include <stddef.h>
 #include <smc.h>
 
-int smc_coherence(void *address, size_t size)
+errno_t smc_coherence(void *address, size_t size)
 {
-	return (int) __SYSCALL2(SYS_SMC_COHERENCE, (sysarg_t) address,
+	return (errno_t) __SYSCALL2(SYS_SMC_COHERENCE, (sysarg_t) address,
 	    (sysarg_t) size);
 }
 

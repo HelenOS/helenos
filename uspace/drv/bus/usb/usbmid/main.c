@@ -48,7 +48,7 @@
  * @param gen_dev Generic DDF device representing the new device.
  * @return Error code.
  */
-static int usbmid_device_add(usb_device_t *dev)
+static errno_t usbmid_device_add(usb_device_t *dev)
 {
 	usb_log_info("Taking care of new MID `%s'.\n", usb_device_get_name(dev));
 
@@ -60,14 +60,14 @@ static int usbmid_device_add(usb_device_t *dev)
  * @param dev USB device representing the removed device.
  * @return Error code.
  */
-static int usbmid_device_remove(usb_device_t *dev)
+static errno_t usbmid_device_remove(usb_device_t *dev)
 {
 	assert(dev);
 	usb_mid_t *usb_mid = usb_device_data_get(dev);
 	assert(usb_mid);
 
 	/* Remove ctl function */
-	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
+	errno_t ret = ddf_fun_unbind(usb_mid->ctl_fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to unbind USB MID ctl function: %s.\n",
 		    str_error(ret));
@@ -86,7 +86,7 @@ static int usbmid_device_remove(usb_device_t *dev)
 		    ddf_fun_get_name(iface->fun));
 
 		/* Tell the child to go off-line. */
-		int pret = ddf_fun_offline(iface->fun);
+		errno_t pret = ddf_fun_offline(iface->fun);
 		if (pret != EOK) {
 			usb_log_warning("Failed to turn off child `%s': %s\n",
 			    ddf_fun_get_name(iface->fun), str_error(pret));
@@ -109,7 +109,7 @@ static int usbmid_device_remove(usb_device_t *dev)
  * @param dev USB device representing the removed device.
  * @return Error code.
  */
-static int usbmid_device_gone(usb_device_t *dev)
+static errno_t usbmid_device_gone(usb_device_t *dev)
 {
 	assert(dev);
 	usb_mid_t *usb_mid = usb_device_data_get(dev);
@@ -118,7 +118,7 @@ static int usbmid_device_gone(usb_device_t *dev)
 	usb_log_info("USB MID gone: `%s'.\n", usb_device_get_name(dev));
 
 	/* Remove ctl function */
-	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
+	errno_t ret = ddf_fun_unbind(usb_mid->ctl_fun);
 	if (ret != EOK) {
 		usb_log_error("Failed to unbind USB MID ctl function: %s.\n",
 		    str_error(ret));
@@ -136,7 +136,7 @@ static int usbmid_device_gone(usb_device_t *dev)
 		usb_log_info("Child `%s' is gone.\n",
 		    ddf_fun_get_name(iface->fun));
 
-		const int pret = usbmid_interface_destroy(iface);
+		const errno_t pret = usbmid_interface_destroy(iface);
 		if (pret != EOK) {
 			usb_log_error("Failed to remove child `%s': %s\n",
 			    ddf_fun_get_name(iface->fun), str_error(pret));

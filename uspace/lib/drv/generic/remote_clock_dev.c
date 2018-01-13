@@ -74,7 +74,7 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
 	ipc_callid_t cid;
 	struct tm t;
-	int rc;
+	errno_t rc;
 	size_t len;
 
 	if (!async_data_read_receive(&cid, &len)) {
@@ -113,7 +113,7 @@ static void remote_clock_time_set(ddf_fun_t *fun, void *ops,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
-	int          rc;
+	errno_t      rc;
 	struct tm    t;
 	ipc_callid_t cid;
 	size_t       len;

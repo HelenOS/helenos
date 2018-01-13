@@ -92,7 +92,7 @@ const struct shape shapes[] = {
  * Return true iff the given shape fits in the given position,
  * taking the current board into account.
  */
-int fits_in(const struct shape *shape, int pos)
+errno_t fits_in(const struct shape *shape, int pos)
 {
 	const int *o = shape->off;
 	

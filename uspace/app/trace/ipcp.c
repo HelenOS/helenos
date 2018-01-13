@@ -249,7 +249,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	sysarg_t phone;
 	sysarg_t method;
 	sysarg_t service;
-	int retval;
+	errno_t retval;
 	proto_t *proto;
 	int cphone;
 	
@@ -344,7 +344,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	free(pcall);
 }
 
-void ipcp_hangup(int phone, int rc)
+void ipcp_hangup(int phone, errno_t rc)
 {
 	if ((display_mask & DM_SYSTEM) != 0) {
 		printf("Hang phone %d up -> %s\n", phone, str_error_name(rc));

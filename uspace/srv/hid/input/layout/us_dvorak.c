@@ -37,7 +37,7 @@
 #include "../layout.h"
 #include "../kbd.h"
 
-static int us_dvorak_create(layout_t *);
+static errno_t us_dvorak_create(layout_t *);
 static void us_dvorak_destroy(layout_t *);
 static wchar_t us_dvorak_parse_ev(layout_t *, kbd_event_t *ev);
 
@@ -208,7 +208,7 @@ static wchar_t translate(unsigned int key, wchar_t *map, size_t map_length)
 	return map[key];
 }
 
-static int us_dvorak_create(layout_t *state)
+static errno_t us_dvorak_create(layout_t *state)
 {
 	return EOK;
 }

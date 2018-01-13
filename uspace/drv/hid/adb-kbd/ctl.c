@@ -178,7 +178,7 @@ static unsigned int scanmap[] = {
  *
  * @return EOK on success, ENOENT if no translation exists
  */
-int adb_kbd_key_translate(sysarg_t scancode, kbd_event_type_t *rtype,
+errno_t adb_kbd_key_translate(sysarg_t scancode, kbd_event_type_t *rtype,
     unsigned int *rkey)
 {
 	kbd_event_type_t etype;

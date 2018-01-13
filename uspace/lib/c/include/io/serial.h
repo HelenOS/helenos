@@ -42,11 +42,11 @@ typedef struct {
 	async_sess_t *sess;
 } serial_t;
 
-extern int serial_open(async_sess_t *, serial_t **);
+extern errno_t serial_open(async_sess_t *, serial_t **);
 extern void serial_close(serial_t *);
-extern int serial_set_comm_props(serial_t *, unsigned, serial_parity_t,
+extern errno_t serial_set_comm_props(serial_t *, unsigned, serial_parity_t,
     unsigned, unsigned);
-extern int serial_get_comm_props(serial_t *, unsigned *, serial_parity_t *,
+extern errno_t serial_get_comm_props(serial_t *, unsigned *, serial_parity_t *,
     unsigned *, unsigned *);
 
 #endif

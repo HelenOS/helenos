@@ -38,7 +38,7 @@
 
 #include "../font.h"
 
-extern int embedded_font_create(font_t **, uint16_t points);
+extern errno_t embedded_font_create(font_t **, uint16_t points);
 
 #endif
 

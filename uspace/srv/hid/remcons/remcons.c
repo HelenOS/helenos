@@ -69,16 +69,16 @@ static const telnet_cmd_t telnet_force_character_mode_command[] = {
 static const size_t telnet_force_character_mode_command_count =
     sizeof(telnet_force_character_mode_command) / sizeof(telnet_cmd_t);
 
-static int remcons_open(con_srvs_t *, con_srv_t *);
-static int remcons_close(con_srv_t *);
-static int remcons_write(con_srv_t *, void *, size_t, size_t *);
+static errno_t remcons_open(con_srvs_t *, con_srv_t *);
+static errno_t remcons_close(con_srv_t *);
+static errno_t remcons_write(con_srv_t *, void *, size_t, size_t *);
 static void remcons_sync(con_srv_t *);
 static void remcons_clear(con_srv_t *);
 static void remcons_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
-static int remcons_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
-static int remcons_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
-static int remcons_get_color_cap(con_srv_t *, console_caps_t *);
-static int remcons_get_event(con_srv_t *, cons_event_t *);
+static errno_t remcons_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
+static errno_t remcons_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
+static errno_t remcons_get_color_cap(con_srv_t *, console_caps_t *);
+static errno_t remcons_get_event(con_srv_t *, cons_event_t *);
 
 static con_ops_t con_ops = {
 	.open = remcons_open,
@@ -113,7 +113,7 @@ static telnet_user_t *srv_to_user(con_srv_t *srv)
 	return srv->srvs->sarg;
 }
 
-static int remcons_open(con_srvs_t *srvs, con_srv_t *srv)
+static errno_t remcons_open(con_srvs_t *srvs, con_srv_t *srv)
 {
 	telnet_user_t *user = srv_to_user(srv);
 
@@ -126,7 +126,7 @@ static int remcons_open(con_srvs_t *srvs, con_srv_t *srv)
 	return EOK;
 }
 
-static int remcons_close(con_srv_t *srv)
+static errno_t remcons_close(con_srv_t *srv)
 {
 	telnet_user_t *user = srv_to_user(srv);
 
@@ -136,10 +136,10 @@ static int remcons_close(con_srv_t *srv)
 	return EOK;
 }
 
-static int remcons_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
+static errno_t remcons_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	telnet_user_t *user = srv_to_user(srv);
-	int rc;
+	errno_t rc;
 
 	rc = telnet_user_send_data(user, data, size);
 	if (rc != EOK)
@@ -166,7 +166,7 @@ static void remcons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 	telnet_user_update_cursor_x(user, col);
 }
 
-static int remcons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
+static errno_t remcons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 {
 	telnet_user_t *user = srv_to_user(srv);
 
@@ -176,7 +176,7 @@ static int remcons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 	return EOK;
 }
 
-static int remcons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
+static errno_t remcons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 {
 	(void) srv;
 
@@ -186,7 +186,7 @@ static int remcons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 	return EOK;
 }
 
-static int remcons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
+static errno_t remcons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
 {
 	(void) srv;
 	*ccaps = CONSOLE_CAP_NONE;
@@ -194,11 +194,11 @@ static int remcons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
 	return EOK;
 }
 
-static int remcons_get_event(con_srv_t *srv, cons_event_t *event)
+static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	telnet_user_t *user = srv_to_user(srv);
 	kbd_event_t kevent;
-	int rc;
+	errno_t rc;
 
 	rc = telnet_user_get_next_keyboard_event(user, &kevent);
 	if (rc != EOK) {
@@ -231,13 +231,13 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
  *
  * @param arg Corresponding @c telnet_user_t structure.
  */
-static int spawn_task_fibril(void *arg)
+static errno_t spawn_task_fibril(void *arg)
 {
 	telnet_user_t *user = arg;
 	
 	task_id_t task;
 	task_wait_t wait;
-	int rc = task_spawnl(&task, &wait, APP_GETTERM, APP_GETTERM, user->service_name,
+	errno_t rc = task_spawnl(&task, &wait, APP_GETTERM, APP_GETTERM, user->service_name,
 	    "/loc", "--msg", "--", APP_SHELL, NULL);
 	if (rc != EOK) {
 		telnet_user_error(user, "Spawning `%s %s /loc --msg -- %s' "
@@ -299,7 +299,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 
 	telnet_user_add(user);
 
-	int rc = loc_service_register(user->service_name, &user->service_id);
+	errno_t rc = loc_service_register(user->service_name, &user->service_id);
 	if (rc != EOK) {
 		telnet_user_error(user, "Unable to register %s with loc: %s.",
 		    user->service_name, str_error(rc));
@@ -343,7 +343,7 @@ static void remcons_new_conn(tcp_listener_t *lst, tcp_conn_t *conn)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 	tcp_listener_t *lst;
 	tcp_t *tcp;
 	inet_ep_t ep;

@@ -168,22 +168,22 @@ typedef struct exfat_node {
 extern vfs_out_ops_t exfat_ops;
 extern libfs_ops_t exfat_libfs_ops;
 
-extern int exfat_idx_get_new(exfat_idx_t **, service_id_t);
+extern errno_t exfat_idx_get_new(exfat_idx_t **, service_id_t);
 extern exfat_idx_t *exfat_idx_get_by_pos(service_id_t, exfat_cluster_t, unsigned);
 extern exfat_idx_t *exfat_idx_get_by_index(service_id_t, fs_index_t);
 extern void exfat_idx_destroy(exfat_idx_t *);
 extern void exfat_idx_hashin(exfat_idx_t *);
 extern void exfat_idx_hashout(exfat_idx_t *);
 
-extern int exfat_idx_init(void);
+extern errno_t exfat_idx_init(void);
 extern void exfat_idx_fini(void);
-extern int exfat_idx_init_by_service_id(service_id_t);
+extern errno_t exfat_idx_init_by_service_id(service_id_t);
 extern void exfat_idx_fini_by_service_id(service_id_t);
 
-extern int exfat_node_expand(service_id_t, exfat_node_t *, exfat_cluster_t);
-extern int exfat_node_put(fs_node_t *);
-extern int exfat_bitmap_get(fs_node_t **, service_id_t);
-extern int exfat_uctable_get(fs_node_t **, service_id_t);
+extern errno_t exfat_node_expand(service_id_t, exfat_node_t *, exfat_cluster_t);
+extern errno_t exfat_node_put(fs_node_t *);
+extern errno_t exfat_bitmap_get(fs_node_t **, service_id_t);
+extern errno_t exfat_uctable_get(fs_node_t **, service_id_t);
 
 
 #endif

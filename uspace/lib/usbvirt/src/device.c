@@ -81,13 +81,13 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
  * @param vhc_path Devman path to the virtual host controller.
  * @return Error code.
  */
-int usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
+errno_t usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 {
 	if (DEV != NULL)
 		return ELIMIT;
 	
 	devman_handle_t handle;
-	int rc = devman_fun_get_handle(vhc_path, &handle, 0);
+	errno_t rc = devman_fun_get_handle(vhc_path, &handle, 0);
 	if (rc != EOK)
 		return rc;
 	

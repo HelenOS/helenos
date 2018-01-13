@@ -80,7 +80,7 @@ void cap_from_blocks(uint64_t nblocks, size_t block_size, cap_spec_t *cap)
  * the nominal (middle) value, @c cv_min gives the minimum value
  * and @c cv_max gives the maximum value.
  */
-int cap_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
+errno_t cap_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
     uint64_t *rblocks)
 {
 	int exp;
@@ -89,7 +89,7 @@ int cap_to_blocks(cap_spec_t *cap, cap_vsel_t cvsel, size_t block_size,
 	uint64_t adj;
 	uint64_t blocks;
 	uint64_t rem;
-	int rc;
+	errno_t rc;
 
 	exp = cap->cunit * 3 - cap->dp;
 	if (exp < 0) {
@@ -143,7 +143,7 @@ void cap_simplify(cap_spec_t *cap)
 	uint64_t maxv;
 	unsigned sdig;
 	unsigned rdig;
-	int rc;
+	errno_t rc;
 
 	/* Change units so that we have at most @c scap_max_idig integer digits */
 	rc = ipow10_u64(scap_max_idig, &maxv);
@@ -174,9 +174,9 @@ void cap_simplify(cap_spec_t *cap)
 	}
 }
 
-int cap_format(cap_spec_t *cap, char **rstr)
+errno_t cap_format(cap_spec_t *cap, char **rstr)
 {
-	int rc;
+	errno_t rc;
 	int ret;
 	const char *sunit;
 	uint64_t ipart;
@@ -207,7 +207,7 @@ int cap_format(cap_spec_t *cap, char **rstr)
 	return EOK;
 }
 
-static int cap_digit_val(char c, int *val)
+static errno_t cap_digit_val(char c, int *val)
 {
 	switch (c) {
 	case '0': *val = 0; break;
@@ -227,7 +227,7 @@ static int cap_digit_val(char c, int *val)
 	return EOK;
 }
 
-int cap_parse(const char *str, cap_spec_t *cap)
+errno_t cap_parse(const char *str, cap_spec_t *cap)
 {
 	const char *eptr;
 	const char *p;

@@ -78,7 +78,7 @@ static smptag_desc_t smp_tags[] = {
  * @param channels Place to store number or channels.
  * @return         EOK on success, EINVAL if tag is not recognized.
  */
-static int smp_tag_decode(uint8_t *tag, size_t *channels)
+static errno_t smp_tag_decode(uint8_t *tag, size_t *channels)
 {
 	size_t nentries = sizeof(smp_tags) / sizeof(smptag_desc_t);
 	size_t i;
@@ -137,11 +137,11 @@ static void protracker_decode_cell(uint32_t cdata, trackmod_cell_t *cell)
  * @param module Module being loaded to
  * @return       EOK on success, ENOMEM if out of memory, EIO on I/O error.
  */
-static int protracker_load_patterns(FILE *f, trackmod_module_t *module)
+static errno_t protracker_load_patterns(FILE *f, trackmod_module_t *module)
 {
 	size_t cells;
 	size_t i, j;
-	int rc;
+	errno_t rc;
 	size_t nread;
 	uint32_t *buf = NULL;
 
@@ -190,10 +190,10 @@ error:
  * @param module Module being loaded to
  * @return       EOk on success, ENOMEM if out of memory, EIO on I/O error.
  */
-static int protracker_load_samples(FILE *f, protracker_smp_t *smp,
+static errno_t protracker_load_samples(FILE *f, protracker_smp_t *smp,
     trackmod_module_t *module)
 {
-	int rc;
+	errno_t rc;
 	size_t i;
 	uint8_t ftval;
 	size_t nread;
@@ -255,7 +255,7 @@ error:
  * @return        EOK on success, ENONEM if out of memory, EIO on I/O error
  *                or if any error is found in the format of the file.
  */
-int trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
+errno_t trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 {
 	FILE *f = NULL;
 	trackmod_module_t *module = NULL;
@@ -268,7 +268,7 @@ int trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 	size_t patterns;
 	size_t i;
 	size_t nread;
-	int rc;
+	errno_t rc;
 
 	f = fopen(fname, "rb");
 	if (f == NULL) {

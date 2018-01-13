@@ -93,7 +93,7 @@ create_directory(const char *user_path, bool create_parents)
 	}
 
 	int ret = 0;
-	int rc;
+	errno_t rc;
 
 	if (!create_parents) {
 		rc = vfs_link_path(path, KIND_DIRECTORY, NULL);

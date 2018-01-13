@@ -52,9 +52,9 @@ static char xm_id_text[] = "Extended Module: ";
  * @param module Module
  * @return EOK on success, EIO on format error, ENOMEM if out of memory.
  */
-static int trackmod_xm_load_order_list(xm_hdr_t *xm_hdr, trackmod_module_t *module)
+static errno_t trackmod_xm_load_order_list(xm_hdr_t *xm_hdr, trackmod_module_t *module)
 {
-	int rc;
+	errno_t rc;
 	size_t i;
 
 	/* Order list */
@@ -93,7 +93,7 @@ error:
  * @param pattern Pattern to load to
  * @return	  EOK on success, EINVAL if there is error in the coded data.
  */
-static int trackmod_xm_decode_pattern(uint8_t *data, size_t dsize,
+static errno_t trackmod_xm_decode_pattern(uint8_t *data, size_t dsize,
     trackmod_pattern_t *pattern)
 {
 	size_t cells;
@@ -161,7 +161,7 @@ static int trackmod_xm_decode_pattern(uint8_t *data, size_t dsize,
  * @param module Module
  * @return EOK on success, EIO on format error, ENOMEM if out of memory.
  */
-static int trackmod_xm_load_patterns(FILE *f, trackmod_module_t *module)
+static errno_t trackmod_xm_load_patterns(FILE *f, trackmod_module_t *module)
 {
 	size_t i;
 	size_t hdr_size;
@@ -172,7 +172,7 @@ static int trackmod_xm_load_patterns(FILE *f, trackmod_module_t *module)
 	xm_pattern_t pattern;
 	uint8_t *buf = NULL;
 	long seek_amount;
-	int rc;
+	errno_t rc;
 	int ret;
 
 	module->pattern = calloc(sizeof(trackmod_pattern_t), module->patterns);
@@ -280,7 +280,7 @@ static void trackmod_xm_decode_sample_data(trackmod_sample_t *sample)
  * @param module Module
  * @return EOK on success, EIO on format error, ENOMEM if out of memory.
  */
-static int trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
+static errno_t trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
     trackmod_module_t *module)
 {
 	size_t i, j;
@@ -296,7 +296,7 @@ static int trackmod_xm_load_instruments(xm_hdr_t *xm_hdr, FILE *f,
 	trackmod_sample_t *sample;
 	void *smp_data;
 	long pos;
-	int rc;
+	errno_t rc;
 	int ret;
 
 	module->instrs = uint16_t_le2host(xm_hdr->instruments);
@@ -421,14 +421,14 @@ error:
  * @return        EOK on success, ENONEM if out of memory, EIO on I/O error
  *                or if any error is found in the format of the file.
  */
-int trackmod_xm_load(char *fname, trackmod_module_t **rmodule)
+errno_t trackmod_xm_load(char *fname, trackmod_module_t **rmodule)
 {
 	FILE *f = NULL;
 	trackmod_module_t *module = NULL;
 	xm_hdr_t xm_hdr;
 	size_t nread;
 	size_t hdr_size;
-	int rc;
+	errno_t rc;
 
 	f = fopen(fname, "rb");
 	if (f == NULL) {

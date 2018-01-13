@@ -61,10 +61,10 @@ static compose_transform_t *transform_as_compose(bithenge_transform_t *xform)
 	return (compose_transform_t *)xform;
 }
 
-static int compose_apply(bithenge_transform_t *base, bithenge_scope_t *scope,
+static errno_t compose_apply(bithenge_transform_t *base, bithenge_scope_t *scope,
     bithenge_node_t *in, bithenge_node_t **out)
 {
-	int rc;
+	errno_t rc;
 	compose_transform_t *self = transform_as_compose(base);
 	bithenge_node_inc_ref(in);
 
@@ -83,7 +83,7 @@ static int compose_apply(bithenge_transform_t *base, bithenge_scope_t *scope,
 	return EOK;
 }
 
-static int compose_prefix_length(bithenge_transform_t *base,
+static errno_t compose_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
 	compose_transform_t *self = transform_as_compose(base);
@@ -114,7 +114,7 @@ static const bithenge_transform_ops_t compose_transform_ops = {
  * @param[in] xforms The transforms to apply.
  * @param num The number of transforms.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_composed_transform(bithenge_transform_t **out,
+errno_t bithenge_new_composed_transform(bithenge_transform_t **out,
     bithenge_transform_t **xforms, size_t num)
 {
 	if (num == 0) {
@@ -125,7 +125,7 @@ int bithenge_new_composed_transform(bithenge_transform_t **out,
 		return EOK;
 	}
 
-	int rc;
+	errno_t rc;
 	compose_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -167,11 +167,11 @@ static inline if_transform_t *transform_as_if(bithenge_transform_t *base)
 	return (if_transform_t *)base;
 }
 
-static int if_transform_choose(if_transform_t *self, bithenge_scope_t *scope,
+static errno_t if_transform_choose(if_transform_t *self, bithenge_scope_t *scope,
     bool *out)
 {
 	bithenge_node_t *cond_node;
-	int rc = bithenge_expression_evaluate(self->expr, scope, &cond_node);
+	errno_t rc = bithenge_expression_evaluate(self->expr, scope, &cond_node);
 	if (rc != EOK)
 		return rc;
 	if (bithenge_node_type(cond_node) != BITHENGE_NODE_BOOLEAN) {
@@ -183,24 +183,24 @@ static int if_transform_choose(if_transform_t *self, bithenge_scope_t *scope,
 	return EOK;
 }
 
-static int if_transform_apply(bithenge_transform_t *base,
+static errno_t if_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	if_transform_t *self = transform_as_if(base);
 	bool cond;
-	int rc = if_transform_choose(self, scope, &cond);
+	errno_t rc = if_transform_choose(self, scope, &cond);
 	if (rc != EOK)
 		return rc;
 	return bithenge_transform_apply(
 	    cond ? self->true_xform : self->false_xform, scope, in, out);
 }
 
-static int if_transform_prefix_length(bithenge_transform_t *base,
+static errno_t if_transform_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *in, aoff64_t *out)
 {
 	if_transform_t *self = transform_as_if(base);
 	bool cond;
-	int rc = if_transform_choose(self, scope, &cond);
+	errno_t rc = if_transform_choose(self, scope, &cond);
 	if (rc != EOK)
 		return rc;
 	return bithenge_transform_prefix_length(
@@ -230,11 +230,11 @@ static const bithenge_transform_ops_t if_transform_ops = {
  * @param true_xform The transform to apply if the expression is true.
  * @param false_xform The transform to apply if the expression is false.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_if_transform(bithenge_transform_t **out,
+errno_t bithenge_if_transform(bithenge_transform_t **out,
     bithenge_expression_t *expr, bithenge_transform_t *true_xform,
     bithenge_transform_t *false_xform)
 {
-	int rc;
+	errno_t rc;
 	if_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -281,7 +281,7 @@ static inline partial_transform_t *transform_as_partial(
 	return (partial_transform_t *)base;
 }
 
-static int partial_transform_apply(bithenge_transform_t *base,
+static errno_t partial_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	partial_transform_t *self = transform_as_partial(base);
@@ -308,10 +308,10 @@ static const bithenge_transform_ops_t partial_transform_ops = {
  * @param[out] out Holds the new transform.
  * @param xform The subtransform to apply.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_partial_transform(bithenge_transform_t **out,
+errno_t bithenge_partial_transform(bithenge_transform_t **out,
     bithenge_transform_t *xform)
 {
-	int rc;
+	errno_t rc;
 	partial_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;

@@ -39,9 +39,9 @@ extern void ext4_bitmap_free_bit(uint8_t *, uint32_t);
 extern void ext4_bitmap_free_bits(uint8_t *, uint32_t, uint32_t);
 extern void ext4_bitmap_set_bit(uint8_t *, uint32_t);
 extern bool ext4_bitmap_is_free_bit(uint8_t *, uint32_t);
-extern int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *, uint32_t,
+extern errno_t ext4_bitmap_find_free_byte_and_set_bit(uint8_t *, uint32_t,
     uint32_t *, uint32_t);
-extern int ext4_bitmap_find_free_bit_and_set(uint8_t *, uint32_t, uint32_t *,
+extern errno_t ext4_bitmap_find_free_bit_and_set(uint8_t *, uint32_t, uint32_t *,
     uint32_t);
 
 #endif

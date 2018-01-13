@@ -55,9 +55,9 @@
  * @param f sink format
  * @return Error code.
  */
-int audio_sink_init(audio_sink_t *sink, const char *name, void *private_data,
-    int (*connection_change)(audio_sink_t *, bool),
-    int (*check_format)(audio_sink_t *), int (*data_available)(audio_sink_t *),
+errno_t audio_sink_init(audio_sink_t *sink, const char *name, void *private_data,
+    errno_t (*connection_change)(audio_sink_t *, bool),
+    errno_t (*check_format)(audio_sink_t *), errno_t (*data_available)(audio_sink_t *),
     const pcm_format_t *f)
 {
 	assert(sink);
@@ -96,7 +96,7 @@ void audio_sink_fini(audio_sink_t *sink)
  * @param format Th new format.
  * @return Error code.
  */
-int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
+errno_t audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 {
 	assert(sink);
 	assert(format);
@@ -113,7 +113,7 @@ int audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
 		sink->format = *format;
 	}
 	if (sink->check_format) {
-		const int ret = sink->check_format(sink);
+		const errno_t ret = sink->check_format(sink);
 		if (ret != EOK && ret != ELIMIT) {
 			log_debug("Format check failed on sink %s", sink->name);
 			sink->format = old_format;
@@ -140,7 +140,7 @@ void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
 
 	pcm_format_silence(dest, size, &sink->format);
 	list_foreach(sink->connections, sink_link, connection_t, conn) {
-		const int ret = connection_add_source_data(
+		const errno_t ret = connection_add_source_data(
 		    conn, dest, size, sink->format);
 		if (ret != EOK) {
 			log_warning("Failed to mix source %s: %s",

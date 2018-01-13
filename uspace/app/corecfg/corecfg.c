@@ -49,7 +49,7 @@ static void print_syntax(void)
 static int corecfg_print(void)
 {
 	bool enable;
-	int rc;
+	errno_t rc;
 
 	rc = corecfg_get_enable(&enable);
 	if (rc != EOK) {
@@ -64,7 +64,7 @@ static int corecfg_print(void)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	rc = corecfg_init();
 	if (rc != EOK) {

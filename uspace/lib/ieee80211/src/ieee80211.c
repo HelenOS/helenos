@@ -495,7 +495,7 @@ void ieee80211_setup_key_confirm(ieee80211_dev_t *ieee80211_dev,
 	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
 }
 
-static int ieee80211_scan(void *arg)
+static errno_t ieee80211_scan(void *arg)
 {
 	assert(arg);
 	
@@ -516,7 +516,7 @@ static int ieee80211_scan(void *arg)
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ieee80211_open(ddf_fun_t *fun)
+static errno_t ieee80211_open(ddf_fun_t *fun)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	ieee80211_dev_t *ieee80211_dev = nic_get_specific(nic_data);
@@ -526,7 +526,7 @@ static int ieee80211_open(ddf_fun_t *fun)
 	
 	ieee80211_dev->started = true;
 	
-	int rc = ieee80211_dev->ops->start(ieee80211_dev);
+	errno_t rc = ieee80211_dev->ops->start(ieee80211_dev);
 	if (rc != EOK)
 		return rc;
 	
@@ -654,7 +654,7 @@ static void ieee80211_send_frame(nic_t *nic, void *data, size_t size)
  *         or ieee80211_iface, otherwise EOK.
  *
  */
-static int ieee80211_implement(ieee80211_dev_t *ieee80211_dev,
+static errno_t ieee80211_implement(ieee80211_dev_t *ieee80211_dev,
     ieee80211_ops_t *ieee80211_ops, ieee80211_iface_t *ieee80211_iface,
     nic_iface_t *nic_iface, ddf_dev_ops_t *nic_dev_ops)
 {
@@ -730,7 +730,7 @@ ieee80211_dev_t *ieee80211_device_create(void)
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, ddf_dev_t *ddf_dev)
+errno_t ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, ddf_dev_t *ddf_dev)
 {
 	ieee80211_dev->ddf_dev = ddf_dev;
 	ieee80211_dev->started = false;
@@ -770,11 +770,11 @@ int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, ddf_dev_t *ddf_dev)
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ieee80211_init(ieee80211_dev_t *ieee80211_dev,
+errno_t ieee80211_init(ieee80211_dev_t *ieee80211_dev,
     ieee80211_ops_t *ieee80211_ops, ieee80211_iface_t *ieee80211_iface,
     nic_iface_t *ieee80211_nic_iface, ddf_dev_ops_t *ieee80211_nic_dev_ops)
 {
-	int rc = ieee80211_implement(ieee80211_dev,
+	errno_t rc = ieee80211_implement(ieee80211_dev,
 	    ieee80211_ops, ieee80211_iface,
 	    ieee80211_nic_iface, ieee80211_nic_dev_ops);
 	if (rc != EOK)
@@ -849,7 +849,7 @@ static void ieee80211_prepare_ie_header(void **ie_header,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, char *ssid)
+errno_t ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, char *ssid)
 {
 	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
 	nic_address_t nic_address;
@@ -916,7 +916,7 @@ int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, char *ssid)
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ieee80211_authenticate(ieee80211_dev_t *ieee80211_dev)
+errno_t ieee80211_authenticate(ieee80211_dev_t *ieee80211_dev)
 {
 	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
 	nic_address_t nic_address;
@@ -966,7 +966,7 @@ int ieee80211_authenticate(ieee80211_dev_t *ieee80211_dev)
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
+errno_t ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
 {
 	nic_t *nic = nic_get_from_ddf_dev(ieee80211_dev->ddf_dev);
 	nic_address_t nic_address;
@@ -1056,7 +1056,7 @@ int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ieee80211_deauthenticate(ieee80211_dev_t *ieee80211_dev)
+errno_t ieee80211_deauthenticate(ieee80211_dev_t *ieee80211_dev)
 {
 	ieee80211_scan_result_t *auth_data =
 	    &ieee80211_dev->bssid_info.res_link->scan_result;
@@ -1240,7 +1240,7 @@ static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
+static errno_t ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
     ieee80211_mgmt_header_t *mgmt_header, size_t buffer_size)
 {
 	ieee80211_beacon_start_t *beacon_body = (ieee80211_beacon_start_t *)
@@ -1326,7 +1326,7 @@ static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ieee80211_process_auth_response(ieee80211_dev_t *ieee80211_dev,
+static errno_t ieee80211_process_auth_response(ieee80211_dev_t *ieee80211_dev,
     ieee80211_mgmt_header_t *mgmt_header)
 {
 	ieee80211_auth_body_t *auth_body =
@@ -1355,7 +1355,7 @@ static int ieee80211_process_auth_response(ieee80211_dev_t *ieee80211_dev,
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ieee80211_process_assoc_response(ieee80211_dev_t *ieee80211_dev,
+static errno_t ieee80211_process_assoc_response(ieee80211_dev_t *ieee80211_dev,
     ieee80211_mgmt_header_t *mgmt_header)
 {
 	ieee80211_assoc_resp_body_t *assoc_resp =
@@ -1380,7 +1380,7 @@ static int ieee80211_process_assoc_response(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
-static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
+static errno_t ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
     void *buffer, size_t buffer_size)
 {
 	ieee80211_eapol_key_frame_t *key_frame =
@@ -1490,7 +1490,7 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 			uint8_t *data_ptr = (uint8_t *)
 			    (buffer + sizeof(ieee80211_eapol_key_frame_t));
 			
-			int rc;
+			errno_t rc;
 			uint8_t work_key[32];
 			
 			if (ccmp_used) {
@@ -1609,7 +1609,7 @@ static int ieee80211_process_4way_handshake(ieee80211_dev_t *ieee80211_dev,
 	return EOK;
 }
 
-static int ieee80211_process_eapol_frame(ieee80211_dev_t *ieee80211_dev,
+static errno_t ieee80211_process_eapol_frame(ieee80211_dev_t *ieee80211_dev,
     void *buffer, size_t buffer_size)
 {
 	ieee80211_eapol_key_frame_t *key_frame =
@@ -1631,7 +1631,7 @@ static int ieee80211_process_eapol_frame(ieee80211_dev_t *ieee80211_dev,
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ieee80211_process_data(ieee80211_dev_t *ieee80211_dev,
+static errno_t ieee80211_process_data(ieee80211_dev_t *ieee80211_dev,
     void *buffer, size_t buffer_size)
 {
 	ieee80211_data_header_t *data_header =
@@ -1695,7 +1695,7 @@ static int ieee80211_process_data(ieee80211_dev_t *ieee80211_dev,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ieee80211_rx_handler(ieee80211_dev_t *ieee80211_dev, void *buffer,
+errno_t ieee80211_rx_handler(ieee80211_dev_t *ieee80211_dev, void *buffer,
     size_t buffer_size)
 {
 	uint16_t frame_ctrl = *((uint16_t *) buffer);

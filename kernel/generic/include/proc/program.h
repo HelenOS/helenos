@@ -54,12 +54,12 @@ typedef struct program {
 
 extern void *program_loader;
 
-extern int program_create(as_t *, uintptr_t, char *, program_t *);
-extern int program_create_from_image(void *, char *, program_t *);
-extern int program_create_loader(program_t *, char *);
+extern errno_t program_create(as_t *, uintptr_t, char *, program_t *);
+extern errno_t program_create_from_image(void *, char *, program_t *);
+extern errno_t program_create_loader(program_t *, char *);
 extern void program_ready(program_t *);
 
-extern sysarg_t sys_program_spawn_loader(char *, size_t);
+extern sys_errno_t sys_program_spawn_loader(char *, size_t);
 
 #endif
 

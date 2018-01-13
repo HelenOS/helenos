@@ -77,7 +77,7 @@ extern void window_resize(window_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     window_placement_flags_t);
 
 /** Change window caption. */
-extern int window_set_caption(window_t *, const char *);
+extern errno_t window_set_caption(window_t *, const char *);
 
 /**
  * Post refresh event into event loop. Widget tree is traversed and all widgets

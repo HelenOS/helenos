@@ -48,11 +48,11 @@
 
 typedef struct hcd hcd_t;
 
-typedef int (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
-typedef int (*ep_add_hook_t)(hcd_t *, endpoint_t *);
+typedef errno_t (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
+typedef errno_t (*ep_add_hook_t)(hcd_t *, endpoint_t *);
 typedef void (*ep_remove_hook_t)(hcd_t *, endpoint_t *);
 typedef void (*interrupt_hook_t)(hcd_t *, uint32_t);
-typedef int (*status_hook_t)(hcd_t *, uint32_t *);
+typedef errno_t (*status_hook_t)(hcd_t *, uint32_t *);
 
 typedef struct {
 	/** Transfer scheduling, implement in device driver. */
@@ -101,28 +101,28 @@ static inline void * hcd_get_driver_data(hcd_t *hcd)
 	return hcd->driver_data;
 }
 
-extern int hcd_request_address(hcd_t *, usb_speed_t, usb_address_t *);
+extern errno_t hcd_request_address(hcd_t *, usb_speed_t, usb_address_t *);
 
-extern int hcd_release_address(hcd_t *, usb_address_t);
+extern errno_t hcd_release_address(hcd_t *, usb_address_t);
 
-extern int hcd_reserve_default_address(hcd_t *, usb_speed_t);
+extern errno_t hcd_reserve_default_address(hcd_t *, usb_speed_t);
 
-static inline int hcd_release_default_address(hcd_t *hcd)
+static inline errno_t hcd_release_default_address(hcd_t *hcd)
 {
 	return hcd_release_address(hcd, USB_ADDRESS_DEFAULT);
 }
 
-extern int hcd_add_ep(hcd_t *, usb_target_t, usb_direction_t,
+extern errno_t hcd_add_ep(hcd_t *, usb_target_t, usb_direction_t,
     usb_transfer_type_t, size_t, unsigned int, size_t, usb_address_t,
     unsigned int);
 
-extern int hcd_remove_ep(hcd_t *, usb_target_t, usb_direction_t);
+extern errno_t hcd_remove_ep(hcd_t *, usb_target_t, usb_direction_t);
 
-extern int hcd_send_batch(hcd_t *, usb_target_t, usb_direction_t, void *,
+extern errno_t hcd_send_batch(hcd_t *, usb_target_t, usb_direction_t, void *,
     size_t, uint64_t, usbhc_iface_transfer_in_callback_t,
     usbhc_iface_transfer_out_callback_t, void *, const char *);
 
-extern int hcd_send_batch_sync(hcd_t *, usb_target_t, usb_direction_t,
+extern errno_t hcd_send_batch_sync(hcd_t *, usb_target_t, usb_direction_t,
     void *, size_t, uint64_t, const char *, size_t *);
 
 #endif

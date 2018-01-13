@@ -54,7 +54,7 @@
  * @return Error code.
  *
  */
-int usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
+errno_t usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
     size_t setup_buffer_size, void *data_buffer, size_t data_buffer_size,
     size_t *data_transfered_size)
 {
@@ -76,7 +76,7 @@ int usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 		return ENOMEM;
 	}
 	
-	int rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
+	errno_t rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(opening_request);
@@ -94,21 +94,21 @@ int usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 		return ENOMEM;
 	}
 	
-	int data_request_rc;
-	int opening_request_rc;
+	errno_t data_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	
 	if (data_request_rc != EOK) {
 		/* Prefer the return code of the opening request. */
 		if (opening_request_rc != EOK)
-			return (int) opening_request_rc;
+			return (errno_t) opening_request_rc;
 		else
-			return (int) data_request_rc;
+			return (errno_t) data_request_rc;
 	}
 	
 	if (opening_request_rc != EOK)
-		return (int) opening_request_rc;
+		return (errno_t) opening_request_rc;
 	
 	if (data_transfered_size != NULL)
 		*data_transfered_size = IPC_GET_ARG2(data_request_call);
@@ -128,7 +128,7 @@ int usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
  * @return Error code.
  *
  */
-int usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
+errno_t usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
     size_t setup_buffer_size, void *data_buffer, size_t data_buffer_size)
 {
 	if (!sess)
@@ -149,7 +149,7 @@ int usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 		return ENOMEM;
 	}
 	
-	int rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
+	errno_t rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(opening_request);
@@ -167,10 +167,10 @@ int usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 	
 	async_exchange_end(exch);
 	
-	int opening_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 	
-	return (int) opening_request_rc;
+	return (errno_t) opening_request_rc;
 }
 
 /** Request data transfer from virtual USB device.
@@ -185,7 +185,7 @@ int usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
  * @return Error code.
  *
  */
-int usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
+errno_t usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
     usb_transfer_type_t tr_type, void *data, size_t data_size, size_t *act_size)
 {
 	if (!sess)
@@ -229,21 +229,21 @@ int usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
 		return ENOMEM;
 	}
 	
-	int data_request_rc;
-	int opening_request_rc;
+	errno_t data_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	
 	if (data_request_rc != EOK) {
 		/* Prefer the return code of the opening request. */
 		if (opening_request_rc != EOK)
-			return (int) opening_request_rc;
+			return (errno_t) opening_request_rc;
 		else
-			return (int) data_request_rc;
+			return (errno_t) data_request_rc;
 	}
 	
 	if (opening_request_rc != EOK)
-		return (int) opening_request_rc;
+		return (errno_t) opening_request_rc;
 	
 	if (act_size != NULL)
 		*act_size = IPC_GET_ARG2(data_request_call);
@@ -262,7 +262,7 @@ int usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
  * @return Error code.
  *
  */
-int usbvirt_ipc_send_data_out(async_sess_t *sess, usb_endpoint_t ep,
+errno_t usbvirt_ipc_send_data_out(async_sess_t *sess, usb_endpoint_t ep,
     usb_transfer_type_t tr_type, void *data, size_t data_size)
 {
 	if (!sess)
@@ -295,7 +295,7 @@ int usbvirt_ipc_send_data_out(async_sess_t *sess, usb_endpoint_t ep,
 		return ENOMEM;
 	}
 	
-	int rc = async_data_write_start(exch, data, data_size);
+	errno_t rc = async_data_write_start(exch, data, data_size);
 	
 	async_exchange_end(exch);
 	
@@ -304,10 +304,10 @@ int usbvirt_ipc_send_data_out(async_sess_t *sess, usb_endpoint_t ep,
 		return rc;
 	}
 	
-	int opening_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 	
-	return (int) opening_request_rc;
+	return (errno_t) opening_request_rc;
 }
 
 /**

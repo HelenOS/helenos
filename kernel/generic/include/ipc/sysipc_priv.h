@@ -37,7 +37,7 @@
 
 #include <ipc/ipc.h>
 
-extern int answer_preprocess(call_t *, ipc_data_t *);
+extern errno_t answer_preprocess(call_t *, ipc_data_t *);
 
 #endif
 

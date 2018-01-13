@@ -52,9 +52,9 @@ typedef struct {
 	ddf_dev_t *dev;
 } icpic_t;
 
-extern int icpic_add(icpic_t *, icpic_res_t *);
-extern int icpic_remove(icpic_t *);
-extern int icpic_gone(icpic_t *);
+extern errno_t icpic_add(icpic_t *, icpic_res_t *);
+extern errno_t icpic_remove(icpic_t *);
+extern errno_t icpic_gone(icpic_t *);
 
 #endif
 

@@ -72,7 +72,7 @@ static inet_ntrans_t *ntrans_find(addr128_t ip_addr)
  * @return ENOMEM if not enough memory
  *
  */
-int ntrans_add(addr128_t ip_addr, addr48_t mac_addr)
+errno_t ntrans_add(addr128_t ip_addr, addr48_t mac_addr)
 {
 	inet_ntrans_t *ntrans;
 	inet_ntrans_t *prev;
@@ -106,7 +106,7 @@ int ntrans_add(addr128_t ip_addr, addr48_t mac_addr)
  * @return ENOENT when no such address found
  *
  */
-int ntrans_remove(addr128_t ip_addr)
+errno_t ntrans_remove(addr128_t ip_addr)
 {
 	inet_ntrans_t *ntrans;
 
@@ -133,7 +133,7 @@ int ntrans_remove(addr128_t ip_addr)
  * @return ENOENT when no such address found
  *
  */
-int ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
+errno_t ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
 {
 	fibril_mutex_lock(&ntrans_list_lock);
 	inet_ntrans_t *ntrans = ntrans_find(ip_addr);
@@ -155,10 +155,10 @@ int ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
  * @return ETIMEOUT if timed out
  *
  */
-int ntrans_wait_timeout(suseconds_t timeout)
+errno_t ntrans_wait_timeout(suseconds_t timeout)
 {
 	fibril_mutex_lock(&ntrans_list_lock);
-	int rc = fibril_condvar_wait_timeout(&ntrans_cv, &ntrans_list_lock,
+	errno_t rc = fibril_condvar_wait_timeout(&ntrans_cv, &ntrans_list_lock,
 	    timeout);
 	fibril_mutex_unlock(&ntrans_list_lock);
 	

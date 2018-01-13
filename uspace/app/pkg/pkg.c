@@ -48,7 +48,7 @@ static void print_syntax(void)
 	fprintf(stderr, "syntax: " NAME " install <package-name>\n");
 }
 
-static int cmd_runl(const char *path, ...)
+static errno_t cmd_runl(const char *path, ...)
 {
 	va_list ap;
 	const char *arg;
@@ -64,7 +64,7 @@ static int cmd_runl(const char *path, ...)
 	va_start(ap, path);
 	task_id_t id;
 	task_wait_t wait;
-	int rc = task_spawn(&id, &wait, path, cnt, ap);
+	errno_t rc = task_spawn(&id, &wait, path, cnt, ap);
 	va_end(ap);
 
 	if (rc != EOK) {
@@ -99,13 +99,13 @@ static int cmd_runl(const char *path, ...)
 }
 
 
-static int pkg_install(int argc, char *argv[])
+static errno_t pkg_install(int argc, char *argv[])
 {
 	char *pkg_name;
 	char *src_uri;
 	char *fname;
 	char *fnunpack;
-	int rc;
+	errno_t rc;
 	int ret;
 
 	if (argc != 3) {
@@ -180,7 +180,7 @@ static int pkg_install(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	char *cmd;
-	int rc;
+	errno_t rc;
 
 	if (argc < 2) {
 		fprintf(stderr, "Arguments missing.\n");

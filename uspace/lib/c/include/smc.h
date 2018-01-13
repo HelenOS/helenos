@@ -37,7 +37,7 @@
 
 #include <stddef.h>
 
-extern int smc_coherence(void *address, size_t size);
+extern errno_t smc_coherence(void *address, size_t size);
 
 #endif
 

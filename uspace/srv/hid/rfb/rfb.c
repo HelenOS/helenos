@@ -61,10 +61,10 @@ static size_t rbuf_in;
 
 
 /** Receive one character (with buffering) */
-static int recv_char(tcp_conn_t *conn, char *c)
+static errno_t recv_char(tcp_conn_t *conn, char *c)
 {
 	size_t nrecv;
-	int rc;
+	errno_t rc;
 
 	if (rbuf_out == rbuf_in) {
 		rbuf_out = 0;
@@ -82,10 +82,10 @@ static int recv_char(tcp_conn_t *conn, char *c)
 }
 
 /** Receive count characters (with buffering) */
-static int recv_chars(tcp_conn_t *conn, char *c, size_t count)
+static errno_t recv_chars(tcp_conn_t *conn, char *c, size_t count)
 {
 	for (size_t i = 0; i < count; i++) {
-		int rc = recv_char(conn, c);
+		errno_t rc = recv_char(conn, c);
 		if (rc != EOK)
 			return rc;
 		c++;
@@ -93,11 +93,11 @@ static int recv_chars(tcp_conn_t *conn, char *c, size_t count)
 	return EOK;
 }
 
-static int recv_skip_chars(tcp_conn_t *conn, size_t count)
+static errno_t recv_skip_chars(tcp_conn_t *conn, size_t count)
 {
 	for (size_t i = 0; i < count; i++) {
 		char c;
-		int rc = recv_char(conn, &c);
+		errno_t rc = recv_char(conn, &c);
 		if (rc != EOK)
 			return rc;
 	}
@@ -172,7 +172,7 @@ static void rfb_client_cut_text_to_host(rfb_client_cut_text_t *src,
 	dst->length = uint32_t_be2host(src->length);
 }
 
-int rfb_init(rfb_t *rfb, uint16_t width, uint16_t height, const char *name)
+errno_t rfb_init(rfb_t *rfb, uint16_t width, uint16_t height, const char *name)
 {
 	memset(rfb, 0, sizeof(rfb_t));
 	fibril_mutex_initialize(&rfb->lock);
@@ -195,7 +195,7 @@ int rfb_init(rfb_t *rfb, uint16_t width, uint16_t height, const char *name)
 	return rfb_set_size(rfb, width, height);
 }
 
-int rfb_set_size(rfb_t *rfb, uint16_t width, uint16_t height)
+errno_t rfb_set_size(rfb_t *rfb, uint16_t width, uint16_t height)
 {
 	size_t new_size = width * height * sizeof(pixel_t);
 	void *pixbuf = malloc(new_size);
@@ -215,7 +215,7 @@ int rfb_set_size(rfb_t *rfb, uint16_t width, uint16_t height)
 	return EOK;
 }
 
-static int recv_message(tcp_conn_t *conn, char type, void *buf, size_t size)
+static errno_t recv_message(tcp_conn_t *conn, char type, void *buf, size_t size)
 {
 	memcpy(buf, &type, 1);
 	return recv_chars(conn, ((char *) buf) + 1, size -1);
@@ -434,7 +434,7 @@ static size_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
 	return size;
 }
 
-static int rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
+static errno_t rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
     rfb_rectangle_t *tile, void *buf, size_t *size)
 {
 	/* Check if it is single color */
@@ -475,7 +475,7 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 			
 			uint8_t tile_enctype = RFB_TILE_ENCODING_SOLID;
 			size_t tile_size;
-			int rc = rfb_tile_encode_solid(rfb, &cpixel, &tile, buf,
+			errno_t rc = rfb_tile_encode_solid(rfb, &cpixel, &tile, buf,
 			    &tile_size);
 			if (rc != EOK) {
 				tile_size = rfb_tile_encode_raw(rfb, &cpixel, &tile, buf);
@@ -491,7 +491,7 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 	return size;
 }
 
-static int rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
+static errno_t rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
     bool incremental)
 {
 	fibril_mutex_lock(&rfb->lock);
@@ -555,20 +555,20 @@ static int rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
 	fibril_mutex_unlock(&rfb->lock);
 	
 	if (!rfb->pixel_format.true_color) {
-		int rc = tcp_conn_send(conn, send_palette, send_palette_size);
+		errno_t rc = tcp_conn_send(conn, send_palette, send_palette_size);
 		if (rc != EOK) {
 			free(buf);
 			return rc;
 		}
 	}
 	
-	int rc = tcp_conn_send(conn, buf, buf_size);
+	errno_t rc = tcp_conn_send(conn, buf, buf_size);
 	free(buf);
 	
 	return rc;
 }
 
-static int rfb_set_pixel_format(rfb_t *rfb, rfb_pixel_format_t *pixel_format)
+static errno_t rfb_set_pixel_format(rfb_t *rfb, rfb_pixel_format_t *pixel_format)
 {
 	rfb->pixel_format = *pixel_format;
 	if (rfb->pixel_format.true_color) {
@@ -598,7 +598,7 @@ static int rfb_set_pixel_format(rfb_t *rfb, rfb_pixel_format_t *pixel_format)
 static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 {
 	/* Version handshake */
-	int rc = tcp_conn_send(conn, "RFB 003.008\n", 12);
+	errno_t rc = tcp_conn_send(conn, "RFB 003.008\n", 12);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server version: %s",
 		    str_error(rc));
@@ -758,12 +758,12 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	}
 }
 
-int rfb_listen(rfb_t *rfb, uint16_t port)
+errno_t rfb_listen(rfb_t *rfb, uint16_t port)
 {
 	tcp_t *tcp = NULL;
 	tcp_listener_t *lst = NULL;
 	inet_ep_t ep;
-	int rc;
+	errno_t rc;
 	
 	rc = tcp_create(&tcp);
 	if (rc != EOK) {

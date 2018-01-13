@@ -36,10 +36,10 @@ PCUT_INIT
 
 PCUT_TEST_SUITE(label);
 
-static int label_test_get_bsize(void *, size_t *);
-static int label_test_get_nblocks(void *, aoff64_t *);
-static int label_test_read(void *, aoff64_t, size_t, void *);
-static int label_test_write(void *, aoff64_t, size_t, const void *);
+static errno_t label_test_get_bsize(void *, size_t *);
+static errno_t label_test_get_nblocks(void *, aoff64_t *);
+static errno_t label_test_read(void *, aoff64_t, size_t, void *);
+static errno_t label_test_write(void *, aoff64_t, size_t, const void *);
 
 label_bd_ops_t label_test_ops = {
 	.get_bsize = label_test_get_bsize,
@@ -66,7 +66,7 @@ enum {
  * @param nblocks Number of blocks
  * @param rbd Place to store pointer to new pretended block device
  */
-static int test_bd_create(size_t bsize, aoff64_t nblocks, test_bd_t **rbd)
+static errno_t test_bd_create(size_t bsize, aoff64_t nblocks, test_bd_t **rbd)
 {
 	test_bd_t *bd;
 
@@ -98,7 +98,7 @@ static void test_bd_destroy(test_bd_t *bd)
 }
 
 /** Get block size wrapper for liblabel */
-static int label_test_get_bsize(void *arg, size_t *bsize)
+static errno_t label_test_get_bsize(void *arg, size_t *bsize)
 {
 	test_bd_t *bd = (test_bd_t *)arg;
 
@@ -107,7 +107,7 @@ static int label_test_get_bsize(void *arg, size_t *bsize)
 }
 
 /** Get number of blocks wrapper for liblabel */
-static int label_test_get_nblocks(void *arg, aoff64_t *nblocks)
+static errno_t label_test_get_nblocks(void *arg, aoff64_t *nblocks)
 {
 	test_bd_t *bd = (test_bd_t *)arg;
 
@@ -116,7 +116,7 @@ static int label_test_get_nblocks(void *arg, aoff64_t *nblocks)
 }
 
 /** Read blocks wrapper for liblabel */
-static int label_test_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
+static errno_t label_test_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
 {
 	test_bd_t *bd = (test_bd_t *)arg;
 
@@ -128,7 +128,7 @@ static int label_test_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
 }
 
 /** Write blocks wrapper for liblabel */
-static int label_test_write(void *arg, aoff64_t ba, size_t cnt, const void *data)
+static errno_t label_test_write(void *arg, aoff64_t ba, size_t cnt, const void *data)
 {
 	test_bd_t *bd = (test_bd_t *)arg;
 
@@ -145,7 +145,7 @@ PCUT_TEST(open_empty) {
 	label_info_t linfo;
 	label_part_t *part;
 	test_bd_t *bd = NULL;
-	int rc;
+	errno_t rc;
 
 	rc = test_bd_create(test_block_size, test_nblocks, &bd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -180,7 +180,7 @@ PCUT_TEST(create_destroy_mbr) {
 	label_info_t linfo;
 	label_part_t *part;
 	test_bd_t *bd = NULL;
-	int rc;
+	errno_t rc;
 
 	rc = test_bd_create(test_block_size, test_nblocks, &bd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -241,7 +241,7 @@ PCUT_TEST(create_destroy_gpt) {
 	label_info_t linfo;
 	label_part_t *part;
 	test_bd_t *bd = NULL;
-	int rc;
+	errno_t rc;
 
 	rc = test_bd_create(test_block_size, test_nblocks, &bd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -303,7 +303,7 @@ PCUT_TEST(mbr_primary_part) {
 	label_part_info_t pinfo;
 	label_ptype_t ptype;
 	test_bd_t *bd = NULL;
-	int rc;
+	errno_t rc;
 
 	rc = test_bd_create(test_block_size, test_nblocks, &bd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -392,7 +392,7 @@ PCUT_TEST(mbr_logical_part) {
 	label_ptype_t ptype;
 	label_part_info_t pinfo, lpinfo, epinfo;
 	test_bd_t *bd = NULL;
-	int rc;
+	errno_t rc;
 
 	rc = test_bd_create(test_block_size, test_nblocks, &bd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
@@ -530,7 +530,7 @@ PCUT_TEST(gpt_part) {
 	label_part_info_t pinfo;
 	label_ptype_t ptype;
 	test_bd_t *bd = NULL;
-	int rc;
+	errno_t rc;
 
 	rc = test_bd_create(test_block_size, test_nblocks, &bd);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);

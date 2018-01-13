@@ -49,7 +49,7 @@
 
 #include <usb/hid/hidreport.h>
 
-static int usb_hid_get_report_descriptor(usb_device_t *dev,
+static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
     uint8_t **report_desc, size_t *size)
 {
 	assert(report_desc != NULL);
@@ -134,7 +134,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	/*
 	 * Get the descriptor from the device.
 	 */
-	int rc = usb_request_get_descriptor(usb_device_get_default_pipe(dev),
+	errno_t rc = usb_request_get_descriptor(usb_device_get_default_pipe(dev),
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_DESCTYPE_HID_REPORT, 0, usb_device_get_iface_number(dev),
 	    *report_desc, length, &actual_size);
@@ -162,7 +162,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 
 
 
-int usb_hid_process_report_descriptor(usb_device_t *dev, 
+errno_t usb_hid_process_report_descriptor(usb_device_t *dev, 
     usb_hid_report_t *report, uint8_t **report_desc, size_t *report_size)
 {
 	if (dev == NULL || report == NULL) {
@@ -174,7 +174,7 @@ int usb_hid_process_report_descriptor(usb_device_t *dev,
 //	uint8_t *report_desc = NULL;
 //	size_t report_size;
 	
-	int rc = usb_hid_get_report_descriptor(dev, report_desc, report_size);
+	errno_t rc = usb_hid_get_report_descriptor(dev, report_desc, report_size);
 	
 	if (rc != EOK) {
 		usb_log_error("Problem with getting Report descriptor: %s.\n",

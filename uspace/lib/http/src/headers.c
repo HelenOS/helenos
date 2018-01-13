@@ -93,7 +93,7 @@ ssize_t http_header_encode(http_header_t *header, char *buf, size_t buf_size)
 	}
 }
 
-int http_header_receive_name(receive_buffer_t *rb,
+errno_t http_header_receive_name(receive_buffer_t *rb,
     receive_buffer_mark_t *name_end)
 {
 	char c = 0;
@@ -101,7 +101,7 @@ int http_header_receive_name(receive_buffer_t *rb,
 		if (name_end)
 			recv_mark_update(rb, name_end);
 		
-		int rc = recv_char(rb, &c, true);
+		errno_t rc = recv_char(rb, &c, true);
 		if (rc != EOK)
 			return rc;
 	} while (is_token(c));
@@ -112,10 +112,10 @@ int http_header_receive_name(receive_buffer_t *rb,
 	return EOK;
 }
 
-int http_header_receive_value(receive_buffer_t *rb,
+errno_t http_header_receive_value(receive_buffer_t *rb,
     receive_buffer_mark_t *value_start, receive_buffer_mark_t *value_end)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	char c = 0;
 	
 	/* Ignore any inline LWS */
@@ -166,7 +166,7 @@ int http_header_receive_value(receive_buffer_t *rb,
 	return EOK;
 }
 
-int http_header_receive(receive_buffer_t *rb, http_header_t *header,
+errno_t http_header_receive(receive_buffer_t *rb, http_header_t *header,
     size_t size_limit, size_t *out_bytes_used)
 {
 	receive_buffer_mark_t mark_start;
@@ -175,7 +175,7 @@ int http_header_receive(receive_buffer_t *rb, http_header_t *header,
 	recv_mark(rb, &mark_start);
 	recv_mark(rb, &mark_end);
 	
-	int rc = http_header_receive_name(rb, &mark_end);
+	errno_t rc = http_header_receive_name(rb, &mark_end);
 	if (rc != EOK)
 		goto end;
 	
@@ -258,7 +258,7 @@ void http_headers_init(http_headers_t *headers) {
 	list_initialize(&headers->list);
 }
 
-int http_headers_find_single(http_headers_t *headers, const char *name,
+errno_t http_headers_find_single(http_headers_t *headers, const char *name,
     http_header_t **out_header)
 {
 	http_header_t *found = NULL;
@@ -281,7 +281,7 @@ int http_headers_find_single(http_headers_t *headers, const char *name,
 	return EOK;
 }
 
-int http_headers_append(http_headers_t *headers, const char *name,
+errno_t http_headers_append(http_headers_t *headers, const char *name,
     const char *value)
 {
 	http_header_t *header = http_header_create(name, value);
@@ -292,11 +292,11 @@ int http_headers_append(http_headers_t *headers, const char *name,
 	return EOK;
 }
 
-int http_headers_set(http_headers_t *headers, const char *name,
+errno_t http_headers_set(http_headers_t *headers, const char *name,
     const char *value)
 {
 	http_header_t *header = NULL;
-	int rc = http_headers_find_single(headers, name, &header);
+	errno_t rc = http_headers_find_single(headers, name, &header);
 	if (rc != EOK && rc != HTTP_EMISSING_HEADER)
 		return rc;
 	
@@ -312,10 +312,10 @@ int http_headers_set(http_headers_t *headers, const char *name,
 	return EOK;
 }
 
-int http_headers_get(http_headers_t *headers, const char *name, char **value)
+errno_t http_headers_get(http_headers_t *headers, const char *name, char **value)
 {
 	http_header_t *header = NULL;
-	int rc = http_headers_find_single(headers, name, &header);
+	errno_t rc = http_headers_find_single(headers, name, &header);
 	if (rc != EOK)
 		return rc;
 	
@@ -323,10 +323,10 @@ int http_headers_get(http_headers_t *headers, const char *name, char **value)
 	return EOK;
 }
 
-int http_headers_receive(receive_buffer_t *rb, http_headers_t *headers,
+errno_t http_headers_receive(receive_buffer_t *rb, http_headers_t *headers,
     size_t limit_alloc, unsigned limit_count)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	unsigned added = 0;
 	
 	while (true) {

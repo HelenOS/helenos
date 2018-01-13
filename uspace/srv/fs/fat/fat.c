@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	int rc = fat_idx_init();
+	errno_t rc = fat_idx_init();
 	if (rc != EOK)
 		goto err;
 	

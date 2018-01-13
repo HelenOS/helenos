@@ -205,11 +205,11 @@ void initscores(void)
 	}
 }
 
-int loadscores(void)
+errno_t loadscores(void)
 {
 	FILE *f;
 	size_t cnt;
-	int rc;
+	errno_t rc;
 
 	f = fopen("/data/tetris.sco", "rb");
 	if (f == NULL)
@@ -228,7 +228,7 @@ void savescores(void)
 {
 	FILE *f;
 	size_t cnt;
-	int rc;
+	errno_t rc;
 
 	f = fopen("/data/tetris.sco", "wb");
 	if (f == NULL) {

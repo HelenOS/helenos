@@ -48,7 +48,7 @@ log_level_t get_default_logging_level(void)
 	return result;
 }
 
-int set_default_logging_level(log_level_t new_level)
+errno_t set_default_logging_level(log_level_t new_level)
 {
 	if (new_level >= LVL_LIMIT)
 		return ERANGE;

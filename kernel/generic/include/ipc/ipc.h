@@ -185,21 +185,21 @@ extern void ipc_call_free(call_t *);
 extern void ipc_call_hold(call_t *);
 extern void ipc_call_release(call_t *);
 
-extern int ipc_call_sync(phone_t *, call_t *);
-extern int ipc_call(phone_t *, call_t *);
+extern errno_t ipc_call_sync(phone_t *, call_t *);
+extern errno_t ipc_call(phone_t *, call_t *);
 extern call_t *ipc_wait_for_call(answerbox_t *, uint32_t, unsigned int);
-extern int ipc_forward(call_t *, phone_t *, answerbox_t *, unsigned int);
+extern errno_t ipc_forward(call_t *, phone_t *, answerbox_t *, unsigned int);
 extern void ipc_answer(answerbox_t *, call_t *);
 extern void _ipc_answer_free_call(call_t *, bool);
 
 extern void ipc_phone_init(phone_t *, struct task *);
 extern bool ipc_phone_connect(phone_t *, answerbox_t *);
-extern int ipc_phone_hangup(phone_t *);
+extern errno_t ipc_phone_hangup(phone_t *);
 
 extern void ipc_answerbox_init(answerbox_t *, struct task *);
 
 extern void ipc_cleanup(void);
-extern void ipc_backsend_err(phone_t *, call_t *, int);
+extern void ipc_backsend_err(phone_t *, call_t *, errno_t);
 extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
 extern void ipc_cleanup_call_list(answerbox_t *, list_t *);
 

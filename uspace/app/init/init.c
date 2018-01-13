@@ -78,7 +78,7 @@ static void info_print(void)
 
 /** Report mount operation success */
 static bool mount_report(const char *desc, const char *mntpt,
-    const char *fstype, const char *dev, int rc)
+    const char *fstype, const char *dev, errno_t rc)
 {
 	switch (rc) {
 	case EOK:
@@ -124,7 +124,7 @@ static bool mount_root(const char *fstype)
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
 	
-	int rc = vfs_mount_path(ROOT_MOUNT_POINT, fstype, ROOT_DEVICE, opts,
+	errno_t rc = vfs_mount_path(ROOT_MOUNT_POINT, fstype, ROOT_DEVICE, opts,
 	    IPC_FLAG_BLOCKING, 0);
 	if (rc == EOK)
 		logctl_set_root();
@@ -143,13 +143,13 @@ static bool mount_root(const char *fstype)
  */
 static bool mount_locfs(void)
 {
-	int rc = vfs_mount_path(LOCFS_MOUNT_POINT, LOCFS_FS_TYPE, "", "",
+	errno_t rc = vfs_mount_path(LOCFS_MOUNT_POINT, LOCFS_FS_TYPE, "", "",
 	    IPC_FLAG_BLOCKING, 0);
 	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
 	    LOCFS_FS_TYPE, NULL, rc);
 }
 
-static int srv_startl(const char *path, ...)
+static errno_t srv_startl(const char *path, ...)
 {
 	struct stat s;
 	if (vfs_stat_path(path, &s) != EOK) {
@@ -173,7 +173,7 @@ static int srv_startl(const char *path, ...)
 	va_start(ap, path);
 	task_id_t id;
 	task_wait_t wait;
-	int rc = task_spawn(&id, &wait, path, cnt, ap);
+	errno_t rc = task_spawn(&id, &wait, path, cnt, ap);
 	va_end(ap);
 	
 	if (rc != EOK) {
@@ -210,11 +210,11 @@ static int srv_startl(const char *path, ...)
 	return retval == 0 ? EOK : EPARTY;
 }
 
-static int console(const char *isvc, const char *osvc)
+static errno_t console(const char *isvc, const char *osvc)
 {
 	/* Wait for the input service to be ready */
 	service_id_t service_id;
-	int rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
+	errno_t rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, isvc,
 		    str_error(rc));
@@ -232,11 +232,11 @@ static int console(const char *isvc, const char *osvc)
 	return srv_start(SRV_CONSOLE, isvc, osvc);
 }
 
-static int compositor(const char *isvc, const char *name)
+static errno_t compositor(const char *isvc, const char *name)
 {
 	/* Wait for the input service to be ready */
 	service_id_t service_id;
-	int rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
+	errno_t rc = loc_service_get_id(isvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, isvc,
 		    str_error(rc));
@@ -255,7 +255,7 @@ static int gui_start(const char *app, const char *srv_name)
 	
 	task_id_t id;
 	task_wait_t wait;
-	int rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
+	errno_t rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s %s (%s)\n", NAME, app,
 		    winreg, str_error(rc));
@@ -280,7 +280,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 		printf("%s: Spawning %s %s %s --msg --wait -- %s\n", NAME,
 		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 		
-		int rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
+		errno_t rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
 		    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
 		if (rc != EOK)
 			printf("%s: Error spawning %s %s %s --msg --wait -- %s\n",
@@ -289,7 +289,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 		printf("%s: Spawning %s %s %s --wait -- %s\n", NAME,
 		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
 		
-		int rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
+		errno_t rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
 		    LOCFS_MOUNT_POINT, "--wait", "--", app, NULL);
 		if (rc != EOK)
 			printf("%s: Error spawning %s %s %s --wait -- %s\n",
@@ -299,14 +299,14 @@ static void getterm(const char *svc, const char *app, bool msg)
 
 static bool mount_tmpfs(void)
 {
-	int rc = vfs_mount_path(TMPFS_MOUNT_POINT, TMPFS_FS_TYPE, "", "", 0, 0);
+	errno_t rc = vfs_mount_path(TMPFS_MOUNT_POINT, TMPFS_FS_TYPE, "", "", 0, 0);
 	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
 	    TMPFS_FS_TYPE, NULL, rc);
 }
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	info_print();
 	

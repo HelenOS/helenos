@@ -50,7 +50,7 @@
  *
  * Allocates memory for internal ed_t structure.
  */
-int endpoint_list_init(endpoint_list_t *instance, const char *name)
+errno_t endpoint_list_init(endpoint_list_t *instance, const char *name)
 {
 	assert(instance);
 	instance->name = name;

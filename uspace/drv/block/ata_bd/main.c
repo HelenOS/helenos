@@ -40,11 +40,11 @@
 #include "ata_bd.h"
 #include "main.h"
 
-static int ata_dev_add(ddf_dev_t *dev);
-static int ata_dev_remove(ddf_dev_t *dev);
-static int ata_dev_gone(ddf_dev_t *dev);
-static int ata_fun_online(ddf_fun_t *fun);
-static int ata_fun_offline(ddf_fun_t *fun);
+static errno_t ata_dev_add(ddf_dev_t *dev);
+static errno_t ata_dev_remove(ddf_dev_t *dev);
+static errno_t ata_dev_gone(ddf_dev_t *dev);
+static errno_t ata_fun_online(ddf_fun_t *fun);
+static errno_t ata_fun_offline(ddf_fun_t *fun);
 
 static void ata_bd_connection(ipc_callid_t, ipc_call_t *, void *);
 
@@ -61,11 +61,11 @@ static driver_t ata_driver = {
 	.driver_ops = &driver_ops
 };
 
-static int ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
+static errno_t ata_get_res(ddf_dev_t *dev, ata_base_t *ata_res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
-	int rc;
+	errno_t rc;
 
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
@@ -107,11 +107,11 @@ error:
  * @param  dev New device
  * @return     EOK on success or an error code.
  */
-static int ata_dev_add(ddf_dev_t *dev)
+static errno_t ata_dev_add(ddf_dev_t *dev)
 {
 	ata_ctrl_t *ctrl;
 	ata_base_t res;
-	int rc;
+	errno_t rc;
 
 	rc = ata_get_res(dev, &res);
 	if (rc != EOK) {
@@ -150,10 +150,10 @@ static char *ata_fun_name(disk_t *disk)
 	return fun_name;
 }
 
-int ata_fun_create(disk_t *disk)
+errno_t ata_fun_create(disk_t *disk)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
-	int rc;
+	errno_t rc;
 	char *fun_name = NULL;
 	ddf_fun_t *fun = NULL;
 	ata_fun_t *afun = NULL;
@@ -211,9 +211,9 @@ error:
 	return rc;
 }
 
-int ata_fun_remove(disk_t *disk)
+errno_t ata_fun_remove(disk_t *disk)
 {
-	int rc;
+	errno_t rc;
 	char *fun_name;
 
 	if (disk->afun == NULL)
@@ -249,9 +249,9 @@ error:
 	return rc;
 }
 
-int ata_fun_unbind(disk_t *disk)
+errno_t ata_fun_unbind(disk_t *disk)
 {
-	int rc;
+	errno_t rc;
 	char *fun_name;
 
 	if (disk->afun == NULL)
@@ -281,7 +281,7 @@ error:
 	return rc;
 }
 
-static int ata_dev_remove(ddf_dev_t *dev)
+static errno_t ata_dev_remove(ddf_dev_t *dev)
 {
 	ata_ctrl_t *ctrl = (ata_ctrl_t *)ddf_dev_data_get(dev);
 
@@ -290,7 +290,7 @@ static int ata_dev_remove(ddf_dev_t *dev)
 	return ata_ctrl_remove(ctrl);
 }
 
-static int ata_dev_gone(ddf_dev_t *dev)
+static errno_t ata_dev_gone(ddf_dev_t *dev)
 {
 	ata_ctrl_t *ctrl = (ata_ctrl_t *)ddf_dev_data_get(dev);
 
@@ -299,13 +299,13 @@ static int ata_dev_gone(ddf_dev_t *dev)
 	return ata_ctrl_gone(ctrl);
 }
 
-static int ata_fun_online(ddf_fun_t *fun)
+static errno_t ata_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "ata_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int ata_fun_offline(ddf_fun_t *fun)
+static errno_t ata_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "ata_fun_offline()");
 	return ddf_fun_offline(fun);

@@ -55,11 +55,11 @@
 #define DDISK_CMD_WRITE		0x2
 #define DDISK_CMD_IRQ_DEASSERT	0x4
 
-static int ddisk_dev_add(ddf_dev_t *);
-static int ddisk_dev_remove(ddf_dev_t *);
-static int ddisk_dev_gone(ddf_dev_t *);
-static int ddisk_fun_online(ddf_fun_t *);
-static int ddisk_fun_offline(ddf_fun_t *);
+static errno_t ddisk_dev_add(ddf_dev_t *);
+static errno_t ddisk_dev_remove(ddf_dev_t *);
+static errno_t ddisk_dev_gone(ddf_dev_t *);
+static errno_t ddisk_fun_online(ddf_fun_t *);
+static errno_t ddisk_fun_offline(ddf_fun_t *);
 
 static void ddisk_bd_connection(ipc_callid_t, ipc_call_t *, void *);
 
@@ -116,13 +116,13 @@ typedef struct {
 	bd_srvs_t bds;
 } ddisk_t;
 
-static int ddisk_bd_open(bd_srvs_t *, bd_srv_t *);
-static int ddisk_bd_close(bd_srv_t *);
-static int ddisk_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
-static int ddisk_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *,
+static errno_t ddisk_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t ddisk_bd_close(bd_srv_t *);
+static errno_t ddisk_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static errno_t ddisk_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *,
     size_t);
-static int ddisk_bd_get_block_size(bd_srv_t *, size_t *);
-static int ddisk_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t ddisk_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t ddisk_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 bd_ops_t ddisk_bd_ops = {
 	.open = ddisk_bd_open,
@@ -187,18 +187,18 @@ void ddisk_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 	fibril_mutex_unlock(&ddisk->lock);
 }
 
-int ddisk_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+errno_t ddisk_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
 
-int ddisk_bd_close(bd_srv_t *bd)
+errno_t ddisk_bd_close(bd_srv_t *bd)
 {
 	return EOK;
 }
 
 static
-int ddisk_rw_block(ddisk_t *ddisk, bool read, aoff64_t ba, void *buf)
+errno_t ddisk_rw_block(ddisk_t *ddisk, bool read, aoff64_t ba, void *buf)
 {
 	fibril_mutex_lock(&ddisk->lock);
 
@@ -235,12 +235,12 @@ int ddisk_rw_block(ddisk_t *ddisk, bool read, aoff64_t ba, void *buf)
 }
 
 static
-int ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+errno_t ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
     size_t size, bool is_read)
 {
 	ddisk_t *ddisk = (ddisk_t *) bd->srvs->sarg;
 	aoff64_t i;
-	int rc;
+	errno_t rc;
 
 	if (size < cnt * DDISK_BLOCK_SIZE)
 		return EINVAL;		
@@ -255,25 +255,25 @@ int ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
 	return EOK;
 }
 
-int ddisk_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
+errno_t ddisk_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
     size_t size)
 {
 	return ddisk_bd_rw_blocks(bd, ba, cnt, buf, size, true);
 }
 
-int ddisk_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+errno_t ddisk_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	return ddisk_bd_rw_blocks(bd, ba, cnt, (void *) buf, size, false);
 }
 
-int ddisk_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+errno_t ddisk_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	*rsize = DDISK_BLOCK_SIZE; 
 	return EOK;
 }
 
-int ddisk_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+errno_t ddisk_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	ddisk_t *ddisk = (ddisk_t *) bd->srvs->sarg;
 
@@ -281,11 +281,11 @@ int ddisk_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;	
 }
 
-static int ddisk_get_res(ddf_dev_t *dev, ddisk_res_t *ddisk_res)
+static errno_t ddisk_get_res(ddf_dev_t *dev, ddisk_res_t *ddisk_res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
-	int rc;
+	errno_t rc;
 
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
@@ -316,9 +316,9 @@ error:
 	return rc;
 }
 
-static int ddisk_fun_create(ddisk_t *ddisk)
+static errno_t ddisk_fun_create(ddisk_t *ddisk)
 {
-	int rc;
+	errno_t rc;
 	ddf_fun_t *fun = NULL;
 
 	fun = ddf_fun_create(ddisk->dev, fun_exposed, DDISK_FUN_NAME);
@@ -349,9 +349,9 @@ error:
 	return rc;
 }
 
-static int ddisk_fun_remove(ddisk_t *ddisk)
+static errno_t ddisk_fun_remove(ddisk_t *ddisk)
 {
-	int rc;
+	errno_t rc;
 
 	if (ddisk->fun == NULL)
 		return EOK;
@@ -380,9 +380,9 @@ error:
 	return rc;
 }
 
-static int ddisk_fun_unbind(ddisk_t *ddisk)
+static errno_t ddisk_fun_unbind(ddisk_t *ddisk)
 {
-	int rc;
+	errno_t rc;
 
 	if (ddisk->fun == NULL)
 		return EOK;
@@ -409,11 +409,11 @@ error:
  * @param  dev New device
  * @return     EOK on success or an error code.
  */
-static int ddisk_dev_add(ddf_dev_t *dev)
+static errno_t ddisk_dev_add(ddf_dev_t *dev)
 {
 	ddisk_t *ddisk;
 	ddisk_res_t res;
-	int rc;
+	errno_t rc;
 
 	/*
 	 * Get our resources.
@@ -529,9 +529,9 @@ error:
 }
 
 
-static int ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
+static errno_t ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
 {
-	int rc;
+	errno_t rc;
 
 	if (!surprise)
 		rc = ddisk_fun_remove(ddisk);
@@ -557,7 +557,7 @@ static int ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
 	return EOK;
 }
 
-static int ddisk_dev_remove(ddf_dev_t *dev)
+static errno_t ddisk_dev_remove(ddf_dev_t *dev)
 {
 	ddisk_t *ddisk = (ddisk_t *) ddf_dev_data_get(dev);
 
@@ -565,7 +565,7 @@ static int ddisk_dev_remove(ddf_dev_t *dev)
 	return ddisk_dev_remove_common(ddisk, false);
 }
 
-static int ddisk_dev_gone(ddf_dev_t *dev)
+static errno_t ddisk_dev_gone(ddf_dev_t *dev)
 {
 	ddisk_t *ddisk = (ddisk_t *) ddf_dev_data_get(dev);
 
@@ -573,13 +573,13 @@ static int ddisk_dev_gone(ddf_dev_t *dev)
 	return ddisk_dev_remove_common(ddisk, true);
 }
 
-static int ddisk_fun_online(ddf_fun_t *fun)
+static errno_t ddisk_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "ddisk_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int ddisk_fun_offline(ddf_fun_t *fun)
+static errno_t ddisk_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "ddisk_fun_offline()");
 	return ddf_fun_offline(fun);

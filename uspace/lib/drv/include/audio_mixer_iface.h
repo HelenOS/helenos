@@ -42,19 +42,19 @@
 
 #include "ddf/driver.h"
 
-int audio_mixer_get_info(async_exch_t *, const char **, unsigned *);
-int audio_mixer_get_item_info(async_exch_t *, unsigned,
+errno_t audio_mixer_get_info(async_exch_t *, const char **, unsigned *);
+errno_t audio_mixer_get_item_info(async_exch_t *, unsigned,
     const char **, unsigned *);
-int audio_mixer_get_item_level(async_exch_t *, unsigned, unsigned *);
-int audio_mixer_set_item_level(async_exch_t *, unsigned, unsigned);
+errno_t audio_mixer_get_item_level(async_exch_t *, unsigned, unsigned *);
+errno_t audio_mixer_set_item_level(async_exch_t *, unsigned, unsigned);
 
 
 /** Audio mixer communication interface. */
 typedef struct {
-	int (*get_info)(ddf_fun_t *, const char **, unsigned *);
-	int (*get_item_info)(ddf_fun_t *, unsigned, const char **, unsigned *);
-	int (*get_item_level)(ddf_fun_t *, unsigned, unsigned *);
-	int (*set_item_level)(ddf_fun_t *, unsigned, unsigned);
+	errno_t (*get_info)(ddf_fun_t *, const char **, unsigned *);
+	errno_t (*get_item_info)(ddf_fun_t *, unsigned, const char **, unsigned *);
+	errno_t (*get_item_level)(ddf_fun_t *, unsigned, unsigned *);
+	errno_t (*set_item_level)(ddf_fun_t *, unsigned, unsigned);
 } audio_mixer_iface_t;
 
 #endif

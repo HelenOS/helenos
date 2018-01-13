@@ -55,7 +55,7 @@
 #define NAME  "cuda_adb"
 
 static void cuda_dev_connection(ipc_callid_t, ipc_call_t *, void *);
-static int cuda_init(cuda_t *);
+static errno_t cuda_init(cuda_t *);
 static void cuda_irq_handler(ipc_call_t *, void *);
 
 static void cuda_irq_listen(cuda_t *);
@@ -107,12 +107,12 @@ static irq_code_t cuda_irq_code = {
 	cuda_cmds
 };
 
-static int cuda_dev_create(cuda_t *cuda, const char *name, const char *id,
+static errno_t cuda_dev_create(cuda_t *cuda, const char *name, const char *id,
     adb_dev_t **rdev)
 {
 	adb_dev_t *dev = NULL;
 	ddf_fun_t *fun;
-	int rc;
+	errno_t rc;
 
 	fun = ddf_fun_create(cuda->dev, fun_inner, name);
 	if (fun == NULL) {
@@ -154,11 +154,11 @@ error:
 	return rc;
 }
 
-int cuda_add(cuda_t *cuda, cuda_res_t *res)
+errno_t cuda_add(cuda_t *cuda, cuda_res_t *res)
 {
 	adb_dev_t *kbd = NULL;
 	adb_dev_t *mouse = NULL;
-	int rc;
+	errno_t rc;
 
 	cuda->phys_base = res->base;
 
@@ -186,12 +186,12 @@ error:
 	return rc;
 }
 
-int cuda_remove(cuda_t *cuda)
+errno_t cuda_remove(cuda_t *cuda)
 {
 	return ENOTSUP;
 }
 
-int cuda_gone(cuda_t *cuda)
+errno_t cuda_gone(cuda_t *cuda)
 {
 	return ENOTSUP;
 }
@@ -228,9 +228,9 @@ static void cuda_dev_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static int cuda_init(cuda_t *cuda)
+static errno_t cuda_init(cuda_t *cuda)
 {
-	int rc;
+	errno_t rc;
 
 	void *vaddr;
 	rc = pio_enable((void *) cuda->phys_base, sizeof(cuda_regs_t),

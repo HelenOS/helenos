@@ -150,7 +150,7 @@ char *os_str_dup(const char *str)
  * @return		EOK on success, EINVAL if index is out of bounds,
  *			EIO on decoding error.
  */
-int os_str_get_char(const char *str, int index, int *out_char)
+errno_t os_str_get_char(const char *str, int index, int *out_char)
 {
 	size_t offset;
 	int i;
@@ -209,10 +209,10 @@ void os_input_disp_help(void)
  *
  * @param ptr	Place to store pointer to new string.
  */
-int os_input_line(const char *prompt, char **ptr)
+errno_t os_input_line(const char *prompt, char **ptr)
 {
 	char *line;
-	int rc;
+	errno_t rc;
 
 	if (tinput == NULL) {
 		tinput = tinput_new();
@@ -246,12 +246,12 @@ int os_input_line(const char *prompt, char **ptr)
  * @param cmd	Command and arguments (NULL-terminated list of strings.)
  *		Command is present just one, not duplicated.
  */
-int os_exec(char *const cmd[])
+errno_t os_exec(char *const cmd[])
 {
 	task_id_t tid;
 	task_wait_t twait;
 	task_exit_t texit;
-	int rc;
+	errno_t rc;
 	int retval;
 
 	rc = task_spawnv(&tid, &twait, cmd[0], (char const * const *) cmd);

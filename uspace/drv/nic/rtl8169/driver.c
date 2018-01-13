@@ -51,42 +51,42 @@
 /** Global mutex for work with shared irq structure */
 FIBRIL_MUTEX_INITIALIZE(irq_reg_lock);
 
-static int rtl8169_set_addr(ddf_fun_t *fun, const nic_address_t *addr);
-static int rtl8169_get_device_info(ddf_fun_t *fun, nic_device_info_t *info);
-static int rtl8169_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state);
-static int rtl8169_get_operation_mode(ddf_fun_t *fun, int *speed,
+static errno_t rtl8169_set_addr(ddf_fun_t *fun, const nic_address_t *addr);
+static errno_t rtl8169_get_device_info(ddf_fun_t *fun, nic_device_info_t *info);
+static errno_t rtl8169_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state);
+static errno_t rtl8169_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role);
-static int rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
+static errno_t rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t role);
-static int rtl8169_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
+static errno_t rtl8169_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
     nic_result_t *we_receive, uint16_t *time);
-static int rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
+static errno_t rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
     uint16_t time);
-static int rtl8169_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement);
-static int rtl8169_autoneg_disable(ddf_fun_t *fun);
-static int rtl8169_autoneg_probe(ddf_fun_t *fun, uint32_t *advertisement,
+static errno_t rtl8169_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement);
+static errno_t rtl8169_autoneg_disable(ddf_fun_t *fun);
+static errno_t rtl8169_autoneg_probe(ddf_fun_t *fun, uint32_t *advertisement,
     uint32_t *their_adv, nic_result_t *result, nic_result_t *their_result);
-static int rtl8169_autoneg_restart(ddf_fun_t *fun);
-static int rtl8169_defective_get_mode(ddf_fun_t *fun, uint32_t *mode);
-static int rtl8169_defective_set_mode(ddf_fun_t *fun, uint32_t mode);
-static int rtl8169_on_activated(nic_t *nic_data);
-static int rtl8169_on_stopped(nic_t *nic_data);
+static errno_t rtl8169_autoneg_restart(ddf_fun_t *fun);
+static errno_t rtl8169_defective_get_mode(ddf_fun_t *fun, uint32_t *mode);
+static errno_t rtl8169_defective_set_mode(ddf_fun_t *fun, uint32_t mode);
+static errno_t rtl8169_on_activated(nic_t *nic_data);
+static errno_t rtl8169_on_stopped(nic_t *nic_data);
 static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size);
 static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev);
-static inline int rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle);
+static inline errno_t rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle);
 static inline void rtl8169_get_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr);
 static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, const nic_address_t *addr);
 
 static void rtl8169_reset(rtl8169_t *rtl8169);
-static int rtl8169_get_resource_info(ddf_dev_t *dev);
-static int rtl8169_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t *hw_resources);
+static errno_t rtl8169_get_resource_info(ddf_dev_t *dev);
+static errno_t rtl8169_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t *hw_resources);
 static rtl8169_t *rtl8169_create_dev_data(ddf_dev_t *dev);
 
-static int rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
+static errno_t rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
     const nic_address_t *, size_t);
-static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
+static errno_t rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count);
-static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode);
+static errno_t rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode);
 
 static uint16_t rtl8169_mii_read(rtl8169_t *rtl8169, uint8_t addr);
 static void rtl8169_mii_write(rtl8169_t *rtl8169, uint8_t addr, uint16_t value);
@@ -160,7 +160,7 @@ irq_code_t rtl8169_irq_code = {
 /** Basic device operations for RTL8169 driver */
 static ddf_dev_ops_t rtl8169_dev_ops;
 
-static int rtl8169_dev_add(ddf_dev_t *dev);
+static errno_t rtl8169_dev_add(ddf_dev_t *dev);
 
 /** Basic driver operations for RTL8169 driver */
 static driver_ops_t rtl8169_driver_ops = {
@@ -173,7 +173,7 @@ static driver_t rtl8169_driver = {
 	.driver_ops = &rtl8169_driver_ops
 };
 
-static int rtl8169_get_resource_info(ddf_dev_t *dev)
+static errno_t rtl8169_get_resource_info(ddf_dev_t *dev)
 {
 	assert(dev);
 
@@ -184,18 +184,18 @@ static int rtl8169_get_resource_info(ddf_dev_t *dev)
 	hw_res_list_parsed_init(&hw_res_parsed);
 
 	/* Get hw resources form parent driver */
-	int rc = nic_get_resources(nic_data, &hw_res_parsed);
+	errno_t rc = nic_get_resources(nic_data, &hw_res_parsed);
 	if (rc != EOK)
 		return rc;
 
 	/* Fill resources information to the device */
-	int ret = rtl8169_fill_resource_info(dev, &hw_res_parsed);
+	errno_t ret = rtl8169_fill_resource_info(dev, &hw_res_parsed);
 	hw_res_list_parsed_clean(&hw_res_parsed);
 
 	return ret;
 }
 
-static int rtl8169_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
+static errno_t rtl8169_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
     *hw_resources)
 {
 	assert(dev);
@@ -228,9 +228,9 @@ static int rtl8169_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
 	return EOK;
 }
 
-static int rtl8169_allocate_buffers(rtl8169_t *rtl8169)
+static errno_t rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 {
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "Allocating DMA buffer rings");
 
@@ -333,9 +333,9 @@ static void rtl8169_dev_cleanup(ddf_dev_t *dev)
 		nic_unbind_and_destroy(dev);
 }
 
-static int rtl8169_dev_initialize(ddf_dev_t *dev)
+static errno_t rtl8169_dev_initialize(ddf_dev_t *dev)
 {
-	int ret;
+	errno_t ret;
 
 	rtl8169_t *rtl8169 = rtl8169_create_dev_data(dev);
 	if (rtl8169 == NULL) {
@@ -359,7 +359,7 @@ failed:
 
 }
 
-inline static int rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
+inline static errno_t rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
@@ -367,17 +367,17 @@ inline static int rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *ha
 	rtl8169_irq_code.cmds[0].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[2].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[3].addr = rtl8169->regs + IMR;
-	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
+	errno_t rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
 	    rtl8169->irq, rtl8169_irq_handler, &rtl8169_irq_code, handle);
 
 	return rc;
 }
 
-static int rtl8169_dev_add(ddf_dev_t *dev)
+static errno_t rtl8169_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
 	nic_address_t nic_addr;
-	int rc;
+	errno_t rc;
 
 	assert(dev);
 	ddf_msg(LVL_NOTE, "RTL8169_dev_add %s (handle = %zu)",
@@ -480,11 +480,11 @@ err_destroy:
 	return EOK;
 }
 
-static int rtl8169_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
+static errno_t rtl8169_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&rtl8169->rx_lock);
 	fibril_mutex_lock(&rtl8169->tx_lock);
@@ -501,7 +501,7 @@ static int rtl8169_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 	return EOK;
 }
 
-static int rtl8169_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
+static errno_t rtl8169_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
@@ -527,7 +527,7 @@ static int rtl8169_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 	return EOK;
 }
 
-static int rtl8169_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
+static errno_t rtl8169_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
 	uint8_t phystatus = pio_read_8(rtl8169->regs + PHYSTATUS);
@@ -540,7 +540,7 @@ static int rtl8169_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 	return EOK;
 }
 
-static int rtl8169_get_operation_mode(ddf_fun_t *fun, int *speed,
+static errno_t rtl8169_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
@@ -562,7 +562,7 @@ static int rtl8169_get_operation_mode(ddf_fun_t *fun, int *speed,
 	return EOK;
 }
 
-static int rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
+static errno_t rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t role)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
@@ -593,19 +593,19 @@ static int rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
 	return EOK;
 }
 
-static int rtl8169_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
+static errno_t rtl8169_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
     nic_result_t *we_receive, uint16_t *time)
 {
 	return EOK;
 }
 
-static int rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
+static errno_t rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
     uint16_t time)
 {
 	return EOK;
 }
 
-static int rtl8169_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
+static errno_t rtl8169_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
 	uint16_t bmcr = rtl8169_mii_read(rtl8169, MII_BMCR);
@@ -629,7 +629,7 @@ static int rtl8169_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 	return EOK;
 }
 
-static int rtl8169_autoneg_disable(ddf_fun_t *fun)
+static errno_t rtl8169_autoneg_disable(ddf_fun_t *fun)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
 	uint16_t bmcr = rtl8169_mii_read(rtl8169, MII_BMCR);
@@ -640,13 +640,13 @@ static int rtl8169_autoneg_disable(ddf_fun_t *fun)
 	return EOK;
 }
 
-static int rtl8169_autoneg_probe(ddf_fun_t *fun, uint32_t *advertisement,
+static errno_t rtl8169_autoneg_probe(ddf_fun_t *fun, uint32_t *advertisement,
     uint32_t *their_adv, nic_result_t *result, nic_result_t *their_result)
 {
 	return EOK;
 }
 
-static int rtl8169_autoneg_restart(ddf_fun_t *fun)
+static errno_t rtl8169_autoneg_restart(ddf_fun_t *fun)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_get_from_ddf_fun(fun));
 	uint16_t bmcr = rtl8169_mii_read(rtl8169, MII_BMCR);
@@ -656,12 +656,12 @@ static int rtl8169_autoneg_restart(ddf_fun_t *fun)
 	return EOK;
 }
 
-static int rtl8169_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
+static errno_t rtl8169_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
 {
 	return EOK;
 }
 
-static int rtl8169_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
+static errno_t rtl8169_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
 {
 	return EOK;
 }
@@ -690,9 +690,9 @@ static void rtl8169_rx_ring_refill(rtl8169_t *rtl8169, unsigned int first,
 	}
 }
 
-static int rtl8169_on_activated(nic_t *nic_data)
+static errno_t rtl8169_on_activated(nic_t *nic_data)
 {
-	int rc;
+	errno_t rc;
 	uint64_t tmp;
 
 	ddf_msg(LVL_NOTE, "Activating device");
@@ -752,7 +752,7 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	return EOK;
 }
 
-static int rtl8169_on_stopped(nic_t *nic_data)
+static errno_t rtl8169_on_stopped(nic_t *nic_data)
 {
 	ddf_msg(LVL_NOTE, "Stopping device");
 	return EOK;
@@ -818,7 +818,7 @@ inline static void rtl8169_rcx_promics_rem(nic_t *nic_data,
 	}
 }
 
-static int rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
+static errno_t rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
@@ -870,7 +870,7 @@ static int rtl8169_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
 	return EOK;
 }
 
-static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
+static errno_t rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_count)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
@@ -914,7 +914,7 @@ static int rtl8169_multicast_set(nic_t *nic_data, nic_multicast_mode_t mode,
 	return EOK;
 }
 
-static int rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
+static errno_t rtl8169_broadcast_set(nic_t *nic_data, nic_broadcast_mode_t mode)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 	
@@ -1207,7 +1207,7 @@ static void rtl8169_mii_write(rtl8169_t *rtl8169, uint8_t addr, uint16_t value)
  */
 int main(void)
 {
-	int rc = nic_driver_init(NAME);
+	errno_t rc = nic_driver_init(NAME);
 	if (rc != EOK)
 		return rc;
 	nic_driver_implement(

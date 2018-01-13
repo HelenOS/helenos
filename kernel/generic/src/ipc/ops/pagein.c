@@ -43,7 +43,7 @@
 #include <abi/errno.h>
 #include <arch.h>
 
-static int pagein_request_preprocess(call_t *call, phone_t *phone)
+static errno_t pagein_request_preprocess(call_t *call, phone_t *phone)
 {
 	/*
 	 * Allow only requests from numerically higher task IDs to
@@ -57,7 +57,7 @@ static int pagein_request_preprocess(call_t *call, phone_t *phone)
 		return EOK;
 }
 
-static int pagein_answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static errno_t pagein_answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	/*
 	 * We only do the special handling below if the call was initiated by

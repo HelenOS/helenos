@@ -89,7 +89,7 @@ static inline size_t td_remain_size(const td_t *td)
 	    TD_STATUS_TOTAL_MASK;
 }
 
-int td_error(const td_t *td);
+errno_t td_error(const td_t *td);
 
 void td_init(td_t *td, const td_t *next, usb_direction_t dir, const void * buf,
     size_t buf_size, int toggle, bool ioc);

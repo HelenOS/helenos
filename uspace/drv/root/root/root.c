@@ -63,9 +63,9 @@
 #define VIRTUAL_FUN_MATCH_ID "virt"
 #define VIRTUAL_FUN_MATCH_SCORE 100
 
-static int root_dev_add(ddf_dev_t *dev);
-static int root_fun_online(ddf_fun_t *fun);
-static int root_fun_offline(ddf_fun_t *fun);
+static errno_t root_dev_add(ddf_dev_t *dev);
+static errno_t root_fun_online(ddf_fun_t *fun);
+static errno_t root_fun_offline(ddf_fun_t *fun);
 
 /** The root device driver's standard operations. */
 static driver_ops_t root_ops = {
@@ -85,11 +85,11 @@ static driver_t root_driver = {
  * @param dev	Device
  * @return	EOK on success or an error code
  */
-static int add_virtual_root_fun(ddf_dev_t *dev)
+static errno_t add_virtual_root_fun(ddf_dev_t *dev)
 {
 	const char *name = VIRTUAL_FUN_NAME;
 	ddf_fun_t *fun;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "Adding new function for virtual devices. "
 	    "Function node is `%s' (%d %s)", name,
@@ -126,7 +126,7 @@ static int add_virtual_root_fun(ddf_dev_t *dev)
  * @param dev	Device
  * @return	EOK on success or an error code
  */
-static int add_platform_fun(ddf_dev_t *dev)
+static errno_t add_platform_fun(ddf_dev_t *dev)
 {
 	char *match_id;
 	char *platform;
@@ -134,7 +134,7 @@ static int add_platform_fun(ddf_dev_t *dev)
 
 	const char *name = PLATFORM_FUN_NAME;
 	ddf_fun_t *fun;
-	int rc;
+	errno_t rc;
 
 	/* Get platform name from sysinfo. */
 	platform = sysinfo_get_data("platform", &platform_size);
@@ -200,7 +200,7 @@ static int add_platform_fun(ddf_dev_t *dev)
  * @param dev		The device which is root of the whole device tree (both
  *			of HW and pseudo devices).
  */
-static int root_dev_add(ddf_dev_t *dev)
+static errno_t root_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "root_dev_add, device handle=%" PRIun,
 	    ddf_dev_get_handle(dev));
@@ -210,7 +210,7 @@ static int root_dev_add(ddf_dev_t *dev)
 	 * We warn on error occurrence because virtual devices shall not be
 	 * vital for the system.
 	 */
-	int res = add_virtual_root_fun(dev);
+	errno_t res = add_virtual_root_fun(dev);
 	if (res != EOK)
 		ddf_msg(LVL_WARN, "Failed to add virtual child.");
 
@@ -222,13 +222,13 @@ static int root_dev_add(ddf_dev_t *dev)
 	return res;
 }
 
-static int root_fun_online(ddf_fun_t *fun)
+static errno_t root_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "root_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int root_fun_offline(ddf_fun_t *fun)
+static errno_t root_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "root_fun_offline()");
 	return ddf_fun_offline(fun);

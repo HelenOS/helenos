@@ -64,7 +64,7 @@ static void print_pipe_usage(void);
 /* Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
  * the handler */
-int process_input(cliuser_t *usr)
+errno_t process_input(cliuser_t *usr)
 {
 	token_t *tokens_buf = calloc(WORD_MAX, sizeof(token_t));
 	if (tokens_buf == NULL)
@@ -72,7 +72,7 @@ int process_input(cliuser_t *usr)
 	token_t *tokens = tokens_buf;
 	
 	char *cmd[WORD_MAX];
-	int rc = EOK;
+	errno_t rc = EOK;
 	tokenizer_t tok;
 	unsigned int i, pipe_count, processed_pipes;
 	unsigned int pipe_pos[2];
@@ -258,7 +258,7 @@ int run_command(char **cmd, cliuser_t *usr, iostate_t *new_iostate)
 void get_input(cliuser_t *usr)
 {
 	char *str;
-	int rc;
+	errno_t rc;
 	
 	tinput_set_prompt(tinput, usr->prompt);
 

@@ -60,7 +60,7 @@ typedef struct {
 
 extern void *rtl8139_memcpy_wrapped(void *, const void *, size_t, size_t,
     size_t);
-extern int rtl8139_timer_act_init(rtl8139_timer_act_t *, uint32_t,
+extern errno_t rtl8139_timer_act_init(rtl8139_timer_act_t *, uint32_t,
     const struct timeval *);
 extern int rtl8139_timer_act_step(rtl8139_timer_act_t *, uint32_t *);
 

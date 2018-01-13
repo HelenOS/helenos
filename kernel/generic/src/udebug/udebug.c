@@ -396,7 +396,7 @@ void udebug_thread_e_event(void)
  * @return Zero on success or an error code.
  *
  */
-int udebug_task_cleanup(struct task *task)
+errno_t udebug_task_cleanup(struct task *task)
 {
 	assert(mutex_locked(&task->udebug.lock));
 

@@ -44,10 +44,10 @@
 #include <ddf/interrupt.h>
 #include <device/hw_res_parsed.h>
 
-typedef int (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *, bool);
+typedef errno_t (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *, bool);
 typedef void (*driver_fini_t)(hcd_t *);
-typedef int (*claim_t)(ddf_dev_t *);
-typedef int (*irq_code_gen_t)(irq_code_t *, const hw_res_list_parsed_t *, int *);
+typedef errno_t (*claim_t)(ddf_dev_t *);
+typedef errno_t (*irq_code_gen_t)(irq_code_t *, const hw_res_list_parsed_t *, int *);
 
 typedef struct {
 	hcd_ops_t ops;
@@ -60,21 +60,21 @@ typedef struct {
 	const char *name;
 } ddf_hc_driver_t;
 
-int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver);
+errno_t hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver);
 
-int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
+errno_t hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
     size_t bw, bw_count_func_t bw_count);
 void hcd_ddf_clean_hc(ddf_dev_t *device);
-int hcd_ddf_setup_root_hub(ddf_dev_t *device);
+errno_t hcd_ddf_setup_root_hub(ddf_dev_t *device);
 
 hcd_t *dev_to_hcd(ddf_dev_t *dev);
 
-int hcd_ddf_enable_interrupt(ddf_dev_t *device, int);
-int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res);
-int hcd_ddf_setup_interrupts(ddf_dev_t *device,
+errno_t hcd_ddf_enable_interrupt(ddf_dev_t *device, int);
+errno_t hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res);
+errno_t hcd_ddf_setup_interrupts(ddf_dev_t *device,
     const hw_res_list_parsed_t *hw_res,
     interrupt_handler_t handler,
-    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *, int *),
+    errno_t (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *, int *),
     cap_handle_t *handle);
 void ddf_hcd_gen_irq_handler(ipc_call_t *call, ddf_dev_t *dev);
 

@@ -42,9 +42,9 @@
 #include <nic/nic.h>
 #include <stddef.h>
 
-extern int nic_ev_addr_changed(async_sess_t *, const nic_address_t *);
-extern int nic_ev_device_state(async_sess_t *, sysarg_t);
-extern int nic_ev_received(async_sess_t *, void *, size_t);
+extern errno_t nic_ev_addr_changed(async_sess_t *, const nic_address_t *);
+extern errno_t nic_ev_device_state(async_sess_t *, sysarg_t);
+extern errno_t nic_ev_received(async_sess_t *, void *, size_t);
 
 #endif
 

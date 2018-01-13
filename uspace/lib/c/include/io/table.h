@@ -82,7 +82,7 @@ typedef struct table {
 	/** @c true if the first row is a header row */
 	bool header_row;
 	/** Encountered error while writing to table */
-	int error;
+	errno_t error;
 	/** Table rows */
 	list_t rows; /* of table_row_t */
 	/** Table columns */
@@ -97,12 +97,12 @@ typedef struct table {
 	table_metrics_t metrics;
 } table_t;
 
-extern int table_create(table_t **);
+extern errno_t table_create(table_t **);
 extern void table_destroy(table_t *);
-extern int table_print_out(table_t *, FILE *);
+extern errno_t table_print_out(table_t *, FILE *);
 extern void table_header_row(table_t *);
-extern int table_printf(table_t *, const char *, ...);
-extern int table_get_error(table_t *);
+extern errno_t table_printf(table_t *, const char *, ...);
+extern errno_t table_get_error(table_t *);
 extern void table_set_margin_left(table_t *, size_t);
 
 #endif

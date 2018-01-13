@@ -203,7 +203,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		usb_log_warning("Failed to create USB HID report path.\n");
 		return true;
 	}
-	int ret =
+	errno_t ret =
 	   usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
 	if (ret != EOK) {
 		usb_hid_report_path_free(path);
@@ -295,7 +295,7 @@ static size_t usb_mouse_get_highest_button(usb_hid_report_t *report, uint8_t rep
 	return highest_button;
 }
 
-static int mouse_dev_init(usb_mouse_t *mouse_dev, usb_hid_dev_t *hid_dev)
+static errno_t mouse_dev_init(usb_mouse_t *mouse_dev, usb_hid_dev_t *hid_dev)
 {
 	// FIXME: This may not be optimal since stupid hardware vendor may
 	// use buttons 1, 2, 3 and 6000 and we would allocate array of
@@ -319,7 +319,7 @@ static int mouse_dev_init(usb_mouse_t *mouse_dev, usb_hid_dev_t *hid_dev)
 	return EOK;
 }
 
-int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
+errno_t usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 {
 	usb_log_debug("Initializing HID/Mouse structure...\n");
 
@@ -346,7 +346,7 @@ int usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 		return ENOMEM;
 	}
 
-	int ret = mouse_dev_init(mouse_dev, hid_dev);
+	errno_t ret = mouse_dev_init(mouse_dev, hid_dev);
 	if (ret != EOK) {
 		usb_log_error("Failed to init HID mouse device structure.\n");
 		return ret;
@@ -402,7 +402,7 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 
 	/* Hangup session to the console */
 	if (mouse_dev->mouse_sess != NULL) {
-		const int ret = async_hangup(mouse_dev->mouse_sess);
+		const errno_t ret = async_hangup(mouse_dev->mouse_sess);
 		if (ret != EOK)
 			usb_log_warning("Failed to hang up mouse session: "
 			    "%p, %s.\n", mouse_dev->mouse_sess, str_error(ret));
@@ -412,9 +412,9 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
 	FUN_UNBIND_DESTROY(mouse_dev->mouse_fun);
 }
 
-int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
+errno_t usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
-	int rc = usb_hid_parse_report_descriptor(
+	errno_t rc = usb_hid_parse_report_descriptor(
 	    &hid_dev->report, USB_MOUSE_BOOT_REPORT_DESCRIPTOR,
 	    sizeof(USB_MOUSE_BOOT_REPORT_DESCRIPTOR));
 

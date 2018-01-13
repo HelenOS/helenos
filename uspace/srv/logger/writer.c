@@ -52,7 +52,7 @@
 static logger_log_t *handle_create_log(sysarg_t parent)
 {
 	void *name;
-	int rc = async_data_write_accept(&name, true, 1, 0, 0, NULL);
+	errno_t rc = async_data_write_accept(&name, true, 1, 0, 0, NULL);
 	if (rc != EOK)
 		return NULL;
 
@@ -63,14 +63,14 @@ static logger_log_t *handle_create_log(sysarg_t parent)
 	return log;
 }
 
-static int handle_receive_message(sysarg_t log_id, sysarg_t level)
+static errno_t handle_receive_message(sysarg_t log_id, sysarg_t level)
 {
 	logger_log_t *log = find_log_by_id_and_lock(log_id);
 	if (log == NULL)
 		return ENOENT;
 
 	void *message = NULL;
-	int rc = async_data_write_accept(&message, true, 1, 0, 0, NULL);
+	errno_t rc = async_data_write_accept(&message, true, 1, 0, 0, NULL);
 	if (rc != EOK)
 		goto leave;
 
@@ -127,7 +127,7 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 			break;
 		}
 		case LOGGER_WRITER_MESSAGE: {
-			int rc = handle_receive_message(IPC_GET_ARG1(call),
+			errno_t rc = handle_receive_message(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
 			async_answer_0(callid, rc);
 			break;

@@ -58,7 +58,7 @@ extern uint16_t ext4_inode_get_links_count(ext4_inode_t *);
 extern void ext4_inode_set_links_count(ext4_inode_t *, uint16_t);
 extern uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *,
     ext4_inode_t *);
-extern int ext4_inode_set_blocks_count(ext4_superblock_t *, ext4_inode_t *,
+extern errno_t ext4_inode_set_blocks_count(ext4_superblock_t *, ext4_inode_t *,
     uint64_t);
 extern uint32_t ext4_inode_get_flags(ext4_inode_t *);
 extern void ext4_inode_set_flags(ext4_inode_t *, uint32_t);

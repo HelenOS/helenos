@@ -47,10 +47,10 @@ typedef struct {
 	size_t strtab_size;
 } symtab_t;
 
-extern int symtab_load(const char *file_name, symtab_t **symtab);
+extern errno_t symtab_load(const char *file_name, symtab_t **symtab);
 extern void symtab_delete(symtab_t *st);
-extern int symtab_name_to_addr(symtab_t *st, const char *name, uintptr_t *addr);
-extern int symtab_addr_to_name(symtab_t *symtab, uintptr_t addr, char **name,
+extern errno_t symtab_name_to_addr(symtab_t *st, const char *name, uintptr_t *addr);
+extern errno_t symtab_addr_to_name(symtab_t *symtab, uintptr_t addr, char **name,
     size_t *offs);
 
 #endif

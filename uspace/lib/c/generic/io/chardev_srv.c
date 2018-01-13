@@ -48,7 +48,7 @@ static void chardev_read_srv(chardev_srv_t *srv, ipc_callid_t callid,
 	void *buf;
 	size_t size;
 	size_t nread;
-	int rc;
+	errno_t rc;
 	ipc_callid_t rcallid;
 
 	if (!async_data_read_receive(&rcallid, &size)) {
@@ -90,7 +90,7 @@ static void chardev_write_srv(chardev_srv_t *srv, ipc_callid_t callid,
 	void *data;
 	size_t size;
 	size_t nwr;
-	int rc;
+	errno_t rc;
 
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
@@ -131,10 +131,10 @@ void chardev_srvs_init(chardev_srvs_t *srvs)
 	srvs->sarg = NULL;
 }
 
-int chardev_conn(ipc_callid_t iid, ipc_call_t *icall, chardev_srvs_t *srvs)
+errno_t chardev_conn(ipc_callid_t iid, ipc_call_t *icall, chardev_srvs_t *srvs)
 {
 	chardev_srv_t *srv;
-	int rc;
+	errno_t rc;
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);

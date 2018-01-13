@@ -264,7 +264,7 @@ vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, service_id_t service_id)
  * @return EOK on success or an error code from errno.h.
  *
  */
-int vfs_open_node_remote(vfs_node_t *node)
+errno_t vfs_open_node_remote(vfs_node_t *node)
 {
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
 	
@@ -274,7 +274,7 @@ int vfs_open_node_remote(vfs_node_t *node)
 	
 	vfs_exchange_release(exch);
 
-	int rc;
+	errno_t rc;
 	async_wait_for(req, &rc);
 	
 	return rc;
@@ -317,7 +317,7 @@ static inline vfs_triplet_t node_triplet(vfs_node_t *node)
 bool vfs_node_has_children(vfs_node_t *node)
 {
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-	int rc = async_req_2_0(exch, VFS_OUT_IS_EMPTY, node->service_id,
+	errno_t rc = async_req_2_0(exch, VFS_OUT_IS_EMPTY, node->service_id,
 	    node->index);
 	vfs_exchange_release(exch);
 	return rc == ENOTEMPTY;

@@ -90,8 +90,8 @@ hcd_t *dev_to_hcd(ddf_dev_t *dev)
 }
 
 
-static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
-static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
+static errno_t hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
+static errno_t hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port);
 
 
 /* DDF INTERFACE */
@@ -106,7 +106,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub, unsigned por
  * @param interval Preferred timeout between communication.
  * @return Error code.
  */
-static int register_endpoint(
+static errno_t register_endpoint(
     ddf_fun_t *fun, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned packets, unsigned interval)
@@ -135,7 +135,7 @@ static int register_endpoint(
  * @param direction Communication direction of the enpdoint to unregister.
  * @return Error code.
  */
-static int unregister_endpoint(
+static errno_t unregister_endpoint(
     ddf_fun_t *fun, usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(fun);
@@ -150,7 +150,7 @@ static int unregister_endpoint(
 	return hcd_remove_ep(hcd, target, direction);
 }
 
-static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
+static errno_t reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
 	assert(fun);
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -163,7 +163,7 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 	return hcd_reserve_default_address(hcd, speed);
 }
 
-static int release_default_address(ddf_fun_t *fun)
+static errno_t release_default_address(ddf_fun_t *fun)
 {
 	assert(fun);
 	hcd_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -175,7 +175,7 @@ static int release_default_address(ddf_fun_t *fun)
 	return hcd_release_default_address(hcd);
 }
 
-static int device_enumerate(ddf_fun_t *fun, unsigned port)
+static errno_t device_enumerate(ddf_fun_t *fun, unsigned port)
 {
 	assert(fun);
 	ddf_dev_t *ddf_dev = ddf_fun_get_dev(fun);
@@ -187,7 +187,7 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port)
 	return hcd_ddf_new_device(ddf_dev, dev, port);
 }
 
-static int device_remove(ddf_fun_t *fun, unsigned port)
+static errno_t device_remove(ddf_fun_t *fun, unsigned port)
 {
 	assert(fun);
 	ddf_dev_t *ddf_dev = ddf_fun_get_dev(fun);
@@ -205,7 +205,7 @@ static int device_remove(ddf_fun_t *fun, unsigned port)
  * @param[out] handle Place to write the handle.
  * @return Error code.
  */
-static int get_my_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
+static errno_t get_my_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
 	if (handle)
@@ -223,7 +223,7 @@ static int get_my_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static int dev_read(ddf_fun_t *fun, usb_endpoint_t endpoint,
+static errno_t dev_read(ddf_fun_t *fun, usb_endpoint_t endpoint,
     uint64_t setup_data, uint8_t *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
@@ -249,7 +249,7 @@ static int dev_read(ddf_fun_t *fun, usb_endpoint_t endpoint,
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static int dev_write(ddf_fun_t *fun, usb_endpoint_t endpoint,
+static errno_t dev_write(ddf_fun_t *fun, usb_endpoint_t endpoint,
     uint64_t setup_data, const uint8_t *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -312,7 +312,7 @@ static ddf_dev_ops_t usb_ops = {
 	.length = uint16_host2usb(0), \
 };
 
-static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
+static errno_t hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
     unsigned port, usb_address_t address, usb_speed_t speed, const char *name,
     const match_id_list_t *mids)
 {
@@ -350,7 +350,7 @@ static int hcd_ddf_add_device(ddf_dev_t *parent, usb_dev_t *hub_dev,
 		ddf_fun_add_match_id(fun, mid->id, mid->score);
 	}
 
-	int ret = ddf_fun_bind(fun);
+	errno_t ret = ddf_fun_bind(fun);
 	if (ret != EOK) {
 		ddf_fun_destroy(fun);
 		return ret;
@@ -388,7 +388,7 @@ do { \
 } while (0)
 
 /* This is a copy of lib/usbdev/src/recognise.c */
-static int create_match_ids(match_id_list_t *l,
+static errno_t create_match_ids(match_id_list_t *l,
     usb_standard_device_descriptor_t *d)
 {
 	assert(l);
@@ -417,7 +417,7 @@ static int create_match_ids(match_id_list_t *l,
 
 }
 
-static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
+static errno_t hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
     unsigned port)
 {
 	assert(device);
@@ -442,7 +442,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 		assert(victim->port == port);
 		list_remove(&victim->link);
 		fibril_mutex_unlock(&hub->guard);
-		const int ret = ddf_fun_unbind(victim->fun);
+		const errno_t ret = ddf_fun_unbind(victim->fun);
 		if (ret == EOK) {
 			usb_address_t address = victim->address;
 			ddf_fun_destroy(victim->fun);
@@ -457,7 +457,7 @@ static int hcd_ddf_remove_device(ddf_dev_t *device, usb_dev_t *hub,
 	return ENOENT;
 }
 
-static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
+static errno_t hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 {
 	assert(device);
 
@@ -467,7 +467,7 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
 	usb_speed_t speed = USB_SPEED_MAX;
 
 	/* This checks whether the default address is reserved and gets speed */
-	int ret = usb_bus_get_speed(&hcd->bus, USB_ADDRESS_DEFAULT, &speed);
+	errno_t ret = usb_bus_get_speed(&hcd->bus, USB_ADDRESS_DEFAULT, &speed);
 	if (ret != EOK) {
 		usb_log_error("Failed to verify speed: %s.", str_error(ret));
 		return ret;
@@ -620,14 +620,14 @@ static int hcd_ddf_new_device(ddf_dev_t *device, usb_dev_t *hub, unsigned port)
  * @param[in] device Host controller ddf device
  * @return Error code
  */
-int hcd_ddf_setup_root_hub(ddf_dev_t *device)
+errno_t hcd_ddf_setup_root_hub(ddf_dev_t *device)
 {
 	assert(device);
 	hcd_t *hcd = dev_to_hcd(device);
 	assert(hcd);
 
 	hcd_reserve_default_address(hcd, hcd->bus.max_speed);
-	const int ret = hcd_ddf_new_device(device, NULL, 0);
+	const errno_t ret = hcd_ddf_new_device(device, NULL, 0);
 	hcd_release_default_address(hcd);
 	return ret;
 }
@@ -642,7 +642,7 @@ int hcd_ddf_setup_root_hub(ddf_dev_t *device)
  * @return Error code.
  * This function does all the ddf work for hc driver.
  */
-int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
+errno_t hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
     size_t bw, bw_count_func_t bw_count)
 {
 	assert(device);
@@ -655,7 +655,7 @@ int hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
 	instance->root_hub = NULL;
 	hcd_init(&instance->hcd, max_speed, bw, bw_count);
 
-	int ret = ENOMEM;
+	errno_t ret = ENOMEM;
 	instance->ctl_fun = ddf_fun_create(device, fun_exposed, "ctl");
 	if (!instance->ctl_fun) {
 		usb_log_error("Failed to create HCD ddf fun.\n");
@@ -690,7 +690,7 @@ void hcd_ddf_clean_hc(ddf_dev_t *device)
 	assert(device);
 	hc_dev_t *hc = dev_to_hc_dev(device);
 	assert(hc);
-	const int ret = ddf_fun_unbind(hc->ctl_fun);
+	const errno_t ret = ddf_fun_unbind(hc->ctl_fun);
 	if (ret == EOK)
 		ddf_fun_destroy(hc->ctl_fun);
 }
@@ -702,7 +702,7 @@ void hcd_ddf_clean_hc(ddf_dev_t *device)
  * @param[in] inum Interrupt number
  * @return Error code.
  */
-int hcd_ddf_enable_interrupt(ddf_dev_t *device, int inum)
+errno_t hcd_ddf_enable_interrupt(ddf_dev_t *device, int inum)
 {
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
 	if (parent_sess == NULL)
@@ -712,14 +712,14 @@ int hcd_ddf_enable_interrupt(ddf_dev_t *device, int inum)
 }
 
 //TODO: Cache parent session in HCD
-int hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
+errno_t hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res)
 {
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(device);
 	if (parent_sess == NULL)
 		return EIO;
 
 	hw_res_list_parsed_init(hw_res);
-	const int ret = hw_res_get_list_parsed(parent_sess, hw_res, 0);
+	const errno_t ret = hw_res_get_list_parsed(parent_sess, hw_res, 0);
 	if (ret != EOK)
 		hw_res_list_parsed_clean(hw_res);
 	return ret;
@@ -750,10 +750,10 @@ static inline void irq_code_clean(irq_code_t *code)
  *
  * @return Error code.
  */
-int hcd_ddf_setup_interrupts(ddf_dev_t *device,
+errno_t hcd_ddf_setup_interrupts(ddf_dev_t *device,
     const hw_res_list_parsed_t *hw_res,
     interrupt_handler_t handler,
-    int (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *, int *),
+    errno_t (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *, int *),
     cap_handle_t *handle)
 {
 
@@ -764,7 +764,7 @@ int hcd_ddf_setup_interrupts(ddf_dev_t *device,
 	irq_code_t irq_code = {0};
 
 	int irq;
-	int ret = gen_irq_code(&irq_code, hw_res, &irq);
+	errno_t ret = gen_irq_code(&irq_code, hw_res, &irq);
 	if (ret != EOK) {
 		usb_log_error("Failed to generate IRQ code: %s.\n",
 		    str_error(ret));
@@ -808,7 +808,7 @@ void ddf_hcd_gen_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 	hcd->ops.irq_hook(hcd, status);
 }
 
-static int interrupt_polling(void *arg)
+static errno_t interrupt_polling(void *arg)
 {
 	hcd_t *hcd = arg;
 	assert(hcd);
@@ -846,7 +846,7 @@ static int interrupt_polling(void *arg)
  *  - calls driver specific initialization
  *  - registers root hub
  */
-int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
+errno_t hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 {
 	assert(driver);
 	static const struct { size_t bw; bw_count_func_t bw_count; }bw[] = {
@@ -856,7 +856,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	                         .bw_count = bandwidth_count_usb11 },
 	};
 
-	int ret = EOK;
+	errno_t ret = EOK;
 	const usb_speed_t speed = driver->hc_speed;
 	if (speed >= ARRAY_SIZE(bw) || bw[speed].bw == 0) {
 		usb_log_error("Driver `%s' reported unsupported speed: %s",
@@ -883,7 +883,7 @@ int hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver)
 	interrupt_handler_t *irq_handler =
 	    driver->irq_handler ? driver->irq_handler : ddf_hcd_gen_irq_handler;
 	int irq_cap;
-	int irq_ret = hcd_ddf_setup_interrupts(device, &hw_res,
+	errno_t irq_ret = hcd_ddf_setup_interrupts(device, &hw_res,
 	    irq_handler, driver->irq_code_gen, &irq_cap);
 	bool irqs_enabled = (irq_ret == EOK);
 	if (irqs_enabled) {

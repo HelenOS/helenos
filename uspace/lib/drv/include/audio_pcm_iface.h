@@ -79,53 +79,53 @@ audio_pcm_sess_t *audio_pcm_open_default(void);
 audio_pcm_sess_t *audio_pcm_open_service(service_id_t service);
 void audio_pcm_close(audio_pcm_sess_t *);
 
-int audio_pcm_get_info_str(audio_pcm_sess_t *, const char **);
-int audio_pcm_test_format(audio_pcm_sess_t *, unsigned *, unsigned *,
+errno_t audio_pcm_get_info_str(audio_pcm_sess_t *, const char **);
+errno_t audio_pcm_test_format(audio_pcm_sess_t *, unsigned *, unsigned *,
     pcm_sample_format_t *);
-int audio_pcm_query_cap(audio_pcm_sess_t *, audio_cap_t, sysarg_t *);
-int audio_pcm_register_event_callback(audio_pcm_sess_t *,
+errno_t audio_pcm_query_cap(audio_pcm_sess_t *, audio_cap_t, sysarg_t *);
+errno_t audio_pcm_register_event_callback(audio_pcm_sess_t *,
     async_port_handler_t, void *);
-int audio_pcm_unregister_event_callback(audio_pcm_sess_t *);
+errno_t audio_pcm_unregister_event_callback(audio_pcm_sess_t *);
 
-int audio_pcm_get_buffer(audio_pcm_sess_t *, void **, size_t *);
-int audio_pcm_get_buffer_pos(audio_pcm_sess_t *, size_t *);
-int audio_pcm_release_buffer(audio_pcm_sess_t *);
+errno_t audio_pcm_get_buffer(audio_pcm_sess_t *, void **, size_t *);
+errno_t audio_pcm_get_buffer_pos(audio_pcm_sess_t *, size_t *);
+errno_t audio_pcm_release_buffer(audio_pcm_sess_t *);
 
-int audio_pcm_start_playback_fragment(audio_pcm_sess_t *, unsigned,
+errno_t audio_pcm_start_playback_fragment(audio_pcm_sess_t *, unsigned,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_last_playback_fragment(audio_pcm_sess_t *);
+errno_t audio_pcm_last_playback_fragment(audio_pcm_sess_t *);
 
-int audio_pcm_start_playback(audio_pcm_sess_t *,
+errno_t audio_pcm_start_playback(audio_pcm_sess_t *,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_stop_playback_immediate(audio_pcm_sess_t *);
-int audio_pcm_stop_playback(audio_pcm_sess_t *);
+errno_t audio_pcm_stop_playback_immediate(audio_pcm_sess_t *);
+errno_t audio_pcm_stop_playback(audio_pcm_sess_t *);
 
-int audio_pcm_start_capture_fragment(audio_pcm_sess_t *, unsigned,
+errno_t audio_pcm_start_capture_fragment(audio_pcm_sess_t *, unsigned,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_last_capture_fragment(audio_pcm_sess_t *);
+errno_t audio_pcm_last_capture_fragment(audio_pcm_sess_t *);
 
-int audio_pcm_start_capture(audio_pcm_sess_t *,
+errno_t audio_pcm_start_capture(audio_pcm_sess_t *,
     unsigned, unsigned, pcm_sample_format_t);
-int audio_pcm_stop_capture_immediate(audio_pcm_sess_t *);
-int audio_pcm_stop_capture(audio_pcm_sess_t *);
+errno_t audio_pcm_stop_capture_immediate(audio_pcm_sess_t *);
+errno_t audio_pcm_stop_capture(audio_pcm_sess_t *);
 
 /** Audio pcm communication interface. */
 typedef struct {
-	int (*get_info_str)(ddf_fun_t *, const char **);
-	int (*test_format)(ddf_fun_t *, unsigned *, unsigned *,
+	errno_t (*get_info_str)(ddf_fun_t *, const char **);
+	errno_t (*test_format)(ddf_fun_t *, unsigned *, unsigned *,
 	    pcm_sample_format_t *);
 	unsigned (*query_cap)(ddf_fun_t *, audio_cap_t);
-	int (*get_buffer_pos)(ddf_fun_t *, size_t *);
-	int (*get_buffer)(ddf_fun_t *, void **, size_t *);
-	int (*release_buffer)(ddf_fun_t *);
-	int (*set_event_session)(ddf_fun_t *, async_sess_t *);
+	errno_t (*get_buffer_pos)(ddf_fun_t *, size_t *);
+	errno_t (*get_buffer)(ddf_fun_t *, void **, size_t *);
+	errno_t (*release_buffer)(ddf_fun_t *);
+	errno_t (*set_event_session)(ddf_fun_t *, async_sess_t *);
 	async_sess_t * (*get_event_session)(ddf_fun_t *);
-	int (*start_playback)(ddf_fun_t *, unsigned,
+	errno_t (*start_playback)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
-	int (*stop_playback)(ddf_fun_t *, bool);
-	int (*start_capture)(ddf_fun_t *, unsigned,
+	errno_t (*stop_playback)(ddf_fun_t *, bool);
+	errno_t (*start_capture)(ddf_fun_t *, unsigned,
 	    unsigned, unsigned, pcm_sample_format_t);
-	int (*stop_capture)(ddf_fun_t *, bool);
+	errno_t (*stop_capture)(ddf_fun_t *, bool);
 } audio_pcm_iface_t;
 
 #endif

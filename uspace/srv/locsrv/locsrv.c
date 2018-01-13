@@ -355,7 +355,7 @@ static loc_server_t *loc_server_register(void)
 	/*
 	 * Get server name
 	 */
-	int rc = async_data_write_accept((void **) &server->name, true, 0,
+	errno_t rc = async_data_write_accept((void **) &server->name, true, 0,
 	    LOC_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		free(server);
@@ -409,7 +409,7 @@ static loc_server_t *loc_server_register(void)
  * structure.
  *
  */
-static int loc_server_unregister(loc_server_t *server)
+static errno_t loc_server_unregister(loc_server_t *server)
 {
 	if (server == NULL)
 		return EEXIST;
@@ -470,7 +470,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 	
 	/* Get fqsn */
 	char *fqsn;
-	int rc = async_data_write_accept((void **) &fqsn, true, 0,
+	errno_t rc = async_data_write_accept((void **) &fqsn, true, 0,
 	    LOC_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		free(service);
@@ -598,7 +598,7 @@ static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	int retval = async_data_read_finalize(callid, cat->name,
+	errno_t retval = async_data_read_finalize(callid, cat->name,
 	    min(size, act_size));
 	
 	fibril_mutex_unlock(&cdir.mutex);
@@ -646,7 +646,7 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	int retval = async_data_read_finalize(callid, fqn,
+	errno_t retval = async_data_read_finalize(callid, fqn,
 	    min(size, act_size));
 	free(fqn);
 	
@@ -693,7 +693,7 @@ static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	int retval = async_data_read_finalize(callid, svc->server->name,
+	errno_t retval = async_data_read_finalize(callid, svc->server->name,
 	    min(size, act_size));
 	
 	fibril_mutex_unlock(&services_list_mutex);
@@ -742,7 +742,7 @@ static void loc_service_get_id(ipc_callid_t iid, ipc_call_t *icall)
 	char *fqsn;
 	
 	/* Get fqsn */
-	int rc = async_data_write_accept((void **) &fqsn, true, 0,
+	errno_t rc = async_data_write_accept((void **) &fqsn, true, 0,
 	    LOC_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
@@ -805,7 +805,7 @@ static void loc_namespace_get_id(ipc_callid_t iid, ipc_call_t *icall)
 	char *name;
 	
 	/* Get service name */
-	int rc = async_data_write_accept((void **) &name, true, 0,
+	errno_t rc = async_data_write_accept((void **) &name, true, 0,
 	    LOC_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
@@ -850,7 +850,7 @@ recheck:
  * Create callback connection which will be used to send category change
  * events.
  *
- * On success, answer will contain EOK int retval.
+ * On success, answer will contain EOK errno_t retval.
  * On failure, error code will be sent in retval.
  *
  */
@@ -894,7 +894,7 @@ void loc_category_change_event(void)
 
 /** Find ID for category specified by name.
  *
- * On success, answer will contain EOK int retval and service ID in arg1.
+ * On success, answer will contain EOK errno_t retval and service ID in arg1.
  * On failure, error code will be sent in retval.
  *
  */
@@ -904,7 +904,7 @@ static void loc_category_get_id(ipc_callid_t iid, ipc_call_t *icall)
 	category_t *cat;
 	
 	/* Get service name */
-	int rc = async_data_write_accept((void **) &name, true, 0,
+	errno_t rc = async_data_write_accept((void **) &name, true, 0,
 	    LOC_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
@@ -971,7 +971,7 @@ static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	size_t size;
 	size_t act_size;
-	int rc;
+	errno_t rc;
 	
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -999,7 +999,7 @@ static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
 	
 	fibril_mutex_unlock(&cdir.mutex);
 	
-	int retval = async_data_read_finalize(callid, id_buf, size);
+	errno_t retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 	
 	async_answer_1(iid, retval, act_size);
@@ -1046,7 +1046,7 @@ static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 		pos++;
 	}
 	
-	int retval = async_data_read_finalize(callid, desc, size);
+	errno_t retval = async_data_read_finalize(callid, desc, size);
 	
 	free(desc);
 	fibril_mutex_unlock(&services_list_mutex);
@@ -1109,7 +1109,7 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 		}
 	}
 	
-	int retval = async_data_read_finalize(callid, desc, size);
+	errno_t retval = async_data_read_finalize(callid, desc, size);
 	
 	free(desc);
 	fibril_mutex_unlock(&services_list_mutex);
@@ -1122,7 +1122,7 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	size_t size;
 	size_t act_size;
-	int rc;
+	errno_t rc;
 	
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -1162,7 +1162,7 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&cat->mutex);
 	fibril_mutex_unlock(&cdir.mutex);
 	
-	int retval = async_data_read_finalize(callid, id_buf, size);
+	errno_t retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 	
 	async_answer_1(iid, retval, act_size);
@@ -1277,7 +1277,7 @@ static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
 	loc_service_t *svc;
 	catid_t cat_id;
 	service_id_t svc_id;
-	int retval;
+	errno_t retval;
 	
 	svc_id = IPC_GET_ARG1(*icall);
 	cat_id = IPC_GET_ARG2(*icall);
@@ -1527,7 +1527,7 @@ int main(int argc, char *argv[])
 	}
 	
 	port_id_t port;
-	int rc = async_create_port(INTERFACE_LOC_SUPPLIER,
+	errno_t rc = async_create_port(INTERFACE_LOC_SUPPLIER,
 	    loc_connection_supplier, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error while creating supplier port: %s\n", NAME, str_error(rc));

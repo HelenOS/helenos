@@ -194,7 +194,7 @@ static unsigned int rm_recursive_not_empty_dirs(const char *path)
 
 static unsigned int rm_recursive(const char *path)
 {
-	int rc;
+	errno_t rc;
 	unsigned int ret = 0;
 
 	/* First see if it will just go away */

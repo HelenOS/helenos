@@ -55,7 +55,7 @@
  *         host:port or if @a endptr is @c NULL and @a str contains
  *         extra characters at the end. ENOMEM if out of memory
  */
-int inet_hostport_parse(const char *str, inet_hostport_t **rhp,
+errno_t inet_hostport_parse(const char *str, inet_hostport_t **rhp,
     char **endptr)
 {
 	inet_hostport_t *hp;
@@ -64,7 +64,7 @@ int inet_hostport_parse(const char *str, inet_hostport_t **rhp,
 	char *name;
 	char *aend;
 	const char *pend;
-	int rc;
+	errno_t rc;
 
 	hp = calloc(1, sizeof(inet_hostport_t));
 	if (hp == NULL)
@@ -136,9 +136,9 @@ have_host:
  * @param rstr Place to store pointer to new string
  * @return EOK on success, ENOMEM if out of memory
  */
-int inet_hostport_format(inet_hostport_t *hp, char **rstr)
+errno_t inet_hostport_format(inet_hostport_t *hp, char **rstr)
 {
-	int rc;
+	errno_t rc;
 	int ret;
 	char *astr, *str;
 	char *hstr = NULL;
@@ -210,11 +210,11 @@ void inet_hostport_destroy(inet_hostport_t *hp)
  *
  * @return EOK on success, ENOENT on resolution failure
  */
-int inet_hostport_lookup_one(inet_hostport_t *hp, ip_ver_t version,
+errno_t inet_hostport_lookup_one(inet_hostport_t *hp, ip_ver_t version,
     inet_ep_t *ep)
 {
 	dnsr_hostinfo_t *hinfo = NULL;
-	int rc;
+	errno_t rc;
 
 	inet_ep_init(ep);
 
@@ -254,12 +254,12 @@ int inet_hostport_lookup_one(inet_hostport_t *hp, ip_ver_t version,
  *         the end. ENOENT if host was not found during resolution,
  *         ENOMEM if out of memory
  */
-int inet_hostport_plookup_one(const char *str, ip_ver_t version, inet_ep_t *ep,
+errno_t inet_hostport_plookup_one(const char *str, ip_ver_t version, inet_ep_t *ep,
     char **endptr, const char **errmsg)
 {
 	inet_hostport_t *hp = NULL;
 	char *eptr;
-	int rc;
+	errno_t rc;
 
 	rc = inet_hostport_parse(str, &hp, endptr != NULL ? &eptr : NULL);
 	if (rc != EOK) {

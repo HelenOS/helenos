@@ -39,7 +39,7 @@
 
 #include "transform.h"
 
-int bithenge_parse_script(const char *, bithenge_transform_t **);
+errno_t bithenge_parse_script(const char *, bithenge_transform_t **);
 
 #endif
 

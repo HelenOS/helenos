@@ -38,8 +38,8 @@
 
 #include <stddef.h>
 
-extern int conn_open(const char *);
-extern int conn_send(void *, size_t);
+extern errno_t conn_open(const char *);
+extern errno_t conn_send(void *, size_t);
 
 #endif
 

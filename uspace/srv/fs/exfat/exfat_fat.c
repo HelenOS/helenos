@@ -72,14 +72,14 @@ static FIBRIL_MUTEX_INITIALIZE(exfat_alloc_lock);
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 exfat_cluster_walk(exfat_bs_t *bs, service_id_t service_id, 
     exfat_cluster_t firstc, exfat_cluster_t *lastc, uint32_t *numc,
     uint32_t max_clusters)
 {
 	uint32_t clusters = 0;
 	exfat_cluster_t clst = firstc;
-	int rc;
+	errno_t rc;
 
 	if (firstc < EXFAT_CLST_FIRST) {
 		/* No space allocated to the file. */
@@ -121,14 +121,14 @@ exfat_cluster_walk(exfat_bs_t *bs, service_id_t service_id,
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
     aoff64_t bn, int flags)
 {
 	exfat_cluster_t firstc = nodep->firstc;
 	exfat_cluster_t currc = 0;
 	aoff64_t relbn = bn;
-	int rc;
+	errno_t rc;
 
 	if (!nodep->size)
 		return ELIMIT;
@@ -185,7 +185,7 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs, 
     service_id_t service_id, bool fragmented, exfat_cluster_t fcl,
     exfat_cluster_t *clp, aoff64_t bn, int flags)
@@ -193,7 +193,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 	uint32_t clusters;
 	uint32_t max_clusters;
 	exfat_cluster_t c = EXFAT_CLST_FIRST;
-	int rc;
+	errno_t rc;
 
 	if (fcl < EXFAT_CLST_FIRST || fcl > DATA_CNT(bs) + 2)
 		return ELIMIT;
@@ -228,13 +228,13 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
  *
  * @return		EOK or an error code.
  */
-int
+errno_t
 exfat_get_cluster(exfat_bs_t *bs, service_id_t service_id,
     exfat_cluster_t clst, exfat_cluster_t *value)
 {
 	block_t *b;
 	aoff64_t offset;
-	int rc;
+	errno_t rc;
 
 	offset = clst * sizeof(exfat_cluster_t);
 
@@ -258,13 +258,13 @@ exfat_get_cluster(exfat_bs_t *bs, service_id_t service_id,
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 exfat_set_cluster(exfat_bs_t *bs, service_id_t service_id,
     exfat_cluster_t clst, exfat_cluster_t value)
 {
 	block_t *b;
 	aoff64_t offset;
-	int rc;
+	errno_t rc;
 
 	offset = clst * sizeof(exfat_cluster_t);
 
@@ -296,14 +296,14 @@ exfat_set_cluster(exfat_bs_t *bs, service_id_t service_id,
  *
  * @return		EOK on success, an error code otherwise.
  */
-int
+errno_t
 exfat_alloc_clusters(exfat_bs_t *bs, service_id_t service_id, unsigned nclsts,
     exfat_cluster_t *mcl, exfat_cluster_t *lcl)
 {
 	exfat_cluster_t *lifo;    /* stack for storing free cluster numbers */
 	unsigned found = 0;     /* top of the free cluster number stack */
 	exfat_cluster_t clst;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	lifo = (exfat_cluster_t *) malloc(nclsts * sizeof(exfat_cluster_t));
 	if (!lifo)
@@ -362,11 +362,11 @@ exit_error:
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 exfat_free_clusters(exfat_bs_t *bs, service_id_t service_id, exfat_cluster_t firstc)
 {
 	exfat_cluster_t nextc;
-	int rc;
+	errno_t rc;
 
 	/* Mark all clusters in the chain as free */
 	while (firstc != EXFAT_CLST_EOF) {
@@ -395,13 +395,13 @@ exfat_free_clusters(exfat_bs_t *bs, service_id_t service_id, exfat_cluster_t fir
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 exfat_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t mcl,
     exfat_cluster_t lcl)
 {
 	service_id_t service_id = nodep->idx->service_id;
 	exfat_cluster_t lastc = 0;
-	int rc;
+	errno_t rc;
 
 	if (nodep->firstc == 0) {
 		/* No clusters allocated to the node yet. */
@@ -439,9 +439,9 @@ exfat_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t mcl,
  *
  * @return		EOK on success or an error code.
  */
-int exfat_chop_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t lcl)
+errno_t exfat_chop_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t lcl)
 {
-	int rc;
+	errno_t rc;
 	service_id_t service_id = nodep->idx->service_id;
 
 	/*
@@ -485,12 +485,12 @@ int exfat_chop_clusters(exfat_bs_t *bs, exfat_node_t *nodep, exfat_cluster_t lcl
 	return EOK;
 }
 
-int
+errno_t
 exfat_zero_cluster(exfat_bs_t *bs, service_id_t service_id, exfat_cluster_t c)
 {
 	size_t i;
 	block_t *b;
-	int rc;
+	errno_t rc;
 
 	for (i = 0; i < SPC(bs); i++) {
 		rc = exfat_block_get_by_clst(&b, bs, service_id, false, c, NULL,
@@ -507,12 +507,12 @@ exfat_zero_cluster(exfat_bs_t *bs, service_id_t service_id, exfat_cluster_t c)
 	return EOK;
 }
 
-int
+errno_t
 exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
 {
 	size_t i, blocks, count;
 	block_t *b;
-	int rc;
+	errno_t rc;
 	blocks = ROUND_UP(nodep->size, BPS(bs))/BPS(bs);
 	count = BPS(bs);
 	
@@ -539,7 +539,7 @@ exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
  * descriptor. This is used to rule out cases when a device obviously
  * does not contain a exfat file system.
  */
-int exfat_sanity_check(exfat_bs_t *bs)
+errno_t exfat_sanity_check(exfat_bs_t *bs)
 {
 	if (str_cmp((char const *)bs->oem_name, "EXFAT   "))
 		return ENOTSUP;

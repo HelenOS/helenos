@@ -53,17 +53,17 @@ typedef struct label_bd_ops label_bd_ops_t;
 
 /** Ops for individual label type */
 typedef struct {
-	int (*open)(label_bd_t *, label_t **);
-	int (*create)(label_bd_t *, label_t **);
+	errno_t (*open)(label_bd_t *, label_t **);
+	errno_t (*create)(label_bd_t *, label_t **);
 	void (*close)(label_t *);
-	int (*destroy)(label_t *);
-	int (*get_info)(label_t *, label_info_t *);
+	errno_t (*destroy)(label_t *);
+	errno_t (*get_info)(label_t *, label_info_t *);
 	label_part_t *(*part_first)(label_t *);
 	label_part_t *(*part_next)(label_part_t *);
 	void (*part_get_info)(label_part_t *, label_part_info_t *);
-	int (*part_create)(label_t *, label_part_spec_t *, label_part_t **);
-	int (*part_destroy)(label_part_t *);
-	int (*suggest_ptype)(label_t *, label_pcnt_t, label_ptype_t *);
+	errno_t (*part_create)(label_t *, label_part_spec_t *, label_part_t **);
+	errno_t (*part_destroy)(label_part_t *);
+	errno_t (*suggest_ptype)(label_t *, label_pcnt_t, label_ptype_t *);
 } label_ops_t;
 
 struct label_info {
@@ -143,13 +143,13 @@ typedef struct {
 /** Block device operations */
 struct label_bd_ops {
 	/** Get block size */
-	int (*get_bsize)(void *, size_t *);
+	errno_t (*get_bsize)(void *, size_t *);
 	/** Get number of blocks */
-	int (*get_nblocks)(void *, aoff64_t *);
+	errno_t (*get_nblocks)(void *, aoff64_t *);
 	/** Read blocks */
-	int (*read)(void *, aoff64_t, size_t, void *);
+	errno_t (*read)(void *, aoff64_t, size_t, void *);
 	/** Write blocks */
-	int (*write)(void *, aoff64_t, size_t, const void *);
+	errno_t (*write)(void *, aoff64_t, size_t, const void *);
 };
 
 /** Block device */
