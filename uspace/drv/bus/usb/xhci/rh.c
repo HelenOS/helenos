@@ -148,6 +148,9 @@ static void rh_event_run_handlers(xhci_rh_t *rh, uint8_t port_id, uint32_t *even
 		fibril_condvar_wait(&rh->event_handled, &rh->event_guard);
 	*events = event.events;
 	rh->event = NULL;
+
+	/* Wake other threads potentially waiting to post their event */
+	fibril_condvar_broadcast(&rh->event_handled);
 }
 
 /**
