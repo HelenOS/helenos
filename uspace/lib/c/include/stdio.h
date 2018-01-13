@@ -57,14 +57,6 @@
 /** Default size for stream I/O buffers */
 #define BUFSIZ  4096
 
-#define DEBUG(fmt, ...) \
-	{ \
-		char _buf[256]; \
-		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
-		if (_n > 0) \
-			(void) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) _buf, str_size(_buf)); \
-	}
-
 enum _buffer_type {
 	/** No buffering */
 	_IONBF,

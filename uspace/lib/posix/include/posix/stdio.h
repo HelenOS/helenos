@@ -38,11 +38,6 @@
 
 #ifndef __POSIX_DEF__
 #define __POSIX_DEF__(x) x
-/* DEBUG macro does not belong to POSIX stdio.h. Its unconditional
- * definition in the native stdio.h causes unexpected behaviour of
- * applications which uses their own DEBUG macro (e.g. debugging
- * output is printed even if not desirable). */
-#undef DEBUG
 #endif
 
 #include "stddef.h"
