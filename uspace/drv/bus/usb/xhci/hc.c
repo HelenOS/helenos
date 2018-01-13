@@ -219,7 +219,12 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 
 	hc->ac64 = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_AC64);
 	hc->max_slots = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_SLOTS);
+
+	struct timeval tv;
+	getuptime(&tv);
+	hc->wrap_time = tv.tv_sec * 1000000 + tv.tv_usec;
 	hc->wrap_count = 0;
+
 	unsigned ist = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_IST);
 	hc->ist = (ist & 0x10 >> 1) * (ist & 0xf);
 
@@ -507,6 +512,9 @@ int hc_status(bus_t *bus, uint32_t *status)
 
 static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
+	struct timeval tv;
+	getuptime(&tv);
+	hc->wrap_time = ((uint64_t) tv.tv_sec) * 1000000 + ((uint64_t) tv.tv_usec);
 	++hc->wrap_count;
 	return EOK;
 }

@@ -61,7 +61,7 @@ typedef struct {
 	xhci_isoch_transfer_state_t state;
 
 	/** Microframe to which to schedule */
-	uint32_t mfindex;
+	uint64_t mfindex;
 
 	/** Physical address of enqueued TRB */
 	uintptr_t interrupt_trb_phys;
@@ -86,8 +86,8 @@ typedef struct {
 	/** The maximum size of an isochronous transfer and therefore the size of buffers */
 	size_t max_size;
 
-	/** The MFINDEX at which the last TRB was scheduled. */
-	uint32_t last_mfindex;
+	/** The microframe at which the last TRB was scheduled. */
+	uint64_t last_mf;
 
 	/** The number of transfer buffers allocated */
 	size_t buffer_count;

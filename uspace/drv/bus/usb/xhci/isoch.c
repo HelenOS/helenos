@@ -79,7 +79,7 @@ static void isoch_reset(xhci_endpoint_t *ep)
 	}
 
 	fibril_timer_clear_locked(isoch->feeding_timer);
-	isoch->last_mfindex = -1U;
+	isoch->last_mf = -1U;
 	usb_log_info("[isoch] Endpoint" XHCI_EP_FMT ": Data flow reset.", XHCI_EP_ARGS(*ep));
 }
 
@@ -194,24 +194,50 @@ static int schedule_isochronous_trb(xhci_endpoint_t *ep, xhci_isoch_transfer_t *
 	return err;
 }
 
+/** The number of bits the MFINDEX is stored in at HW */
+#define EPOCH_BITS 14
+/** The delay in usec for the epoch wrap */
+#define EPOCH_DELAY 500000
+/** The amount of microframes the epoch is checked for a delay */
+#define EPOCH_LOW_MFINDEX 8 * 100
+
+static inline uint64_t get_system_time()
+{
+	struct timeval tv;
+	getuptime(&tv);
+	return ((uint64_t) tv.tv_sec) * 1000000 + ((uint64_t) tv.tv_usec);
+}
+
+static inline uint64_t get_current_microframe(const xhci_hc_t *hc)
+{
+	const uint32_t reg_mfindex = XHCI_REG_RD(hc->rt_regs, XHCI_RT_MFINDEX);
+	/*
+	 * If the mfindex is low and the time passed since last mfindex wrap
+	 * is too high, we have entered the new epoch already (and haven't received event yet).
+	 */
+	uint64_t epoch = hc->wrap_count;
+	if (reg_mfindex < EPOCH_LOW_MFINDEX && get_system_time() - hc->wrap_time > EPOCH_DELAY) {
+		++epoch;
+	}
+	return (epoch << EPOCH_BITS) + reg_mfindex;
+}
+
 static inline void calc_next_mfindex(xhci_endpoint_t *ep, xhci_isoch_transfer_t *it)
 {
 	xhci_isoch_t * const isoch = ep->isoch;
-	if (isoch->last_mfindex == -1U) {
+	if (isoch->last_mf == -1U) {
 		const xhci_bus_t *bus = bus_to_xhci_bus(ep->base.device->bus);
 		const xhci_hc_t *hc = bus->hc;
 
-		/* Choose some number, give us a little time to prepare the
-		 * buffers */
-		it->mfindex = XHCI_REG_RD(hc->rt_regs, XHCI_RT_MFINDEX) + 1
-		       + isoch->buffer_count * ep->interval
-		       + hc->ist;
+		/* Delay the first frame by some time to fill the buffer, but at most 10 miliseconds. */
+		const uint64_t delay = min(isoch->buffer_count * ep->interval, 10 * 8);
+		it->mfindex = get_current_microframe(hc) + 1 + delay + hc->ist;
 
 		// Align to ESIT start boundary
 		it->mfindex += ep->interval - 1;
 		it->mfindex &= ~(ep->interval - 1);
 	} else {
-		it->mfindex = (isoch->last_mfindex + ep->interval) % XHCI_MFINDEX_MAX;
+		it->mfindex = isoch->last_mf + ep->interval;
 	}
 }
 
@@ -226,7 +252,7 @@ typedef enum {
 
 typedef struct {
 	window_position_t position;
-	uint32_t offset;
+	uint64_t offset;
 } window_decision_t;
 
 /**
@@ -235,40 +261,21 @@ typedef struct {
  * decision, and in case of the mfindex being outside, also the number of
  * uframes it's off.
  */
-static inline void window_decide(window_decision_t *res, xhci_hc_t *hc, uint32_t mfindex)
+static inline void window_decide(window_decision_t *res, xhci_hc_t *hc, uint64_t mfindex)
 {
-	uint32_t current_mfindex = XHCI_REG_RD(hc->rt_regs, XHCI_RT_MFINDEX) + 1;
+	const uint64_t current_mf = get_current_microframe(hc);
+	const uint64_t start = current_mf + hc->ist + 1;
+	const uint64_t end = current_mf + END_FRAME_DELAY;
 
-	/*
-	 * In your mind, rotate the clock so the window is at its beginning.
-	 * The length of the window is always the same, and by rotating the
-	 * mfindex too, we can decide by the value of it easily.
-	 */
-	mfindex = (mfindex - current_mfindex - hc->ist + XHCI_MFINDEX_MAX) % XHCI_MFINDEX_MAX;
-	const uint32_t end = END_FRAME_DELAY - hc->ist;
-	const uint32_t threshold = (XHCI_MFINDEX_MAX + end) / 2;
-
-	if (mfindex <= end) {
-		res->position = WINDOW_INSIDE;
-	} else if (mfindex > threshold) {
+	if (mfindex < start) {
 		res->position = WINDOW_TOO_LATE;
-		res->offset = XHCI_MFINDEX_MAX - mfindex;
+		res->offset = start - mfindex;
+	} else if (mfindex <= end) {
+		res->position = WINDOW_INSIDE;
 	} else {
 		res->position = WINDOW_TOO_SOON;
 		res->offset = mfindex - end;
 	}
-	/*
-	 * TODO: The "size" of the clock is too low. We have to scale it a bit
-	 * to ensure correct scheduling of transfers, that are
-	 * buffer_count * interval away from now.
-	 * Maximum interval is 8 seconds, which means we need a size of
-	 * 16 seconds. The size of MFIINDEX is 2 seconds only.
-	 *
-	 * A plan is to create a thin abstraction at HC, which would return
-	 * a time from 32-bit clock, having its high bits updated by the
-	 * MFINDEX Wrap Event, and low bits from the MFINDEX register. Using
-	 * this 32-bit clock, one can plan 6 days ahead.
-	 */
 }
 
 static void isoch_feed_out_timer(void *);
@@ -292,12 +299,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 
 	bool fed = false;
 
-	/*
-	 * There might be a case, where no transfer can't be put on the ring immediately
-	 * (for endpoints with interval >= 500ms). In that case, the transfer buffers could fill
-	 * and the first condition wouldn't be enough to enter the loop.
-	 */
-	while (isoch->hw_enqueue != isoch->enqueue || isoch->transfers[isoch->hw_enqueue].state == ISOCH_FILLED) {
+	while (isoch->transfers[isoch->hw_enqueue].state == ISOCH_FILLED) {
 		xhci_isoch_transfer_t * const it = &isoch->transfers[isoch->hw_enqueue];
 
 		assert(it->state == ISOCH_FILLED);
@@ -316,7 +318,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 		}
 
 		case WINDOW_INSIDE:
-			usb_log_debug2("[isoch] feeding buffer %lu at 0x%x",
+			usb_log_debug2("[isoch] feeding buffer %lu at 0x%llx",
 			    it - isoch->transfers, it->mfindex);
 			it->error = schedule_isochronous_trb(ep, it);
 			if (it->error) {
@@ -331,7 +333,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 
 		case WINDOW_TOO_LATE:
 			/* Missed the opportunity to schedule. Just mark this transfer as skipped. */
-			usb_log_debug2("[isoch] missed feeding buffer %lu at 0x%x by %u uframes",
+			usb_log_debug2("[isoch] missed feeding buffer %lu at 0x%llx by %llu uframes",
 			    it - isoch->transfers, it->mfindex, wd.offset);
 			it->state = ISOCH_COMPLETE;
 			it->error = EOK;
@@ -404,7 +406,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 		}
 
 		case WINDOW_TOO_LATE:
-			usb_log_debug2("[isoch] missed feeding buffer %lu at 0x%x by %u uframes",
+			usb_log_debug2("[isoch] missed feeding buffer %lu at 0x%llx by %llu uframes",
 			    it - isoch->transfers, it->mfindex, wd.offset);
 			/* Missed the opportunity to schedule. Schedule ASAP. */
 			it->mfindex += wd.offset;
@@ -415,9 +417,9 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 			/* fallthrough */
 		case WINDOW_INSIDE:
 			isoch->enqueue = (isoch->enqueue + 1) % isoch->buffer_count;
-			isoch->last_mfindex = it->mfindex;
+			isoch->last_mf = it->mfindex;
 
-			usb_log_debug2("[isoch] feeding buffer %lu at 0x%x",
+			usb_log_debug2("[isoch] feeding buffer %lu at 0x%llx",
 			    it - isoch->transfers, it->mfindex);
 
 			it->error = schedule_isochronous_trb(ep, it);
@@ -502,8 +504,8 @@ int isoch_schedule_out(xhci_transfer_t *transfer)
 
 	/* Calculate when to schedule next transfer */
 	calc_next_mfindex(ep, it);
-	isoch->last_mfindex = it->mfindex;
-	usb_log_debug2("[isoch] buffer %zu will be on schedule at 0x%x", it - isoch->transfers, it->mfindex);
+	isoch->last_mf = it->mfindex;
+	usb_log_debug2("[isoch] buffer %zu will be on schedule at 0x%llx", it - isoch->transfers, it->mfindex);
 
 	/* Prepare the transfer. */
 	it->size = transfer->batch.buffer_size;
