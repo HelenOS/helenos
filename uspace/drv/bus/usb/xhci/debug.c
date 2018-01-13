@@ -340,6 +340,68 @@ void xhci_dump_extcap(const xhci_extcap_t *ec)
 	}
 }
 
+static void xhci_dump_slot_ctx(const struct xhci_slot_ctx *ctx)
+{
+#define SLOT_DUMP(name)	usb_log_debug("\t" #name ":\t0x%x", XHCI_SLOT_##name(*ctx))
+	SLOT_DUMP(ROUTE_STRING);
+	SLOT_DUMP(SPEED);
+	SLOT_DUMP(MTT);
+	SLOT_DUMP(CTX_ENTRIES);
+	SLOT_DUMP(MAX_EXIT_LATENCY);
+	SLOT_DUMP(ROOT_HUB_PORT);
+	SLOT_DUMP(NUM_OF_PORTS);
+	SLOT_DUMP(TT_HUB_SLOT_ID);
+	SLOT_DUMP(TT_PORT_NUM);
+	SLOT_DUMP(TT_THINK_TIME);
+	SLOT_DUMP(INTERRUPTER);
+	SLOT_DUMP(DEVICE_ADDRESS);
+	SLOT_DUMP(SLOT_STATE);
+#undef SLOT_DUMP
+}
+
+static void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *ctx)
+{
+#define EP_DUMP_DW(name)	usb_log_debug("\t" #name ":\t0x%x", XHCI_EP_##name(*ctx))
+#define EP_DUMP_QW(name)	usb_log_debug("\t" #name ":\t0x%llx", XHCI_EP_##name(*ctx))
+	EP_DUMP_DW(STATE);
+	EP_DUMP_DW(MULT);
+	EP_DUMP_DW(MAX_P_STREAMS);
+	EP_DUMP_DW(LSA);
+	EP_DUMP_DW(INTERVAL);
+	EP_DUMP_DW(ERROR_COUNT);
+	EP_DUMP_DW(TYPE);
+	EP_DUMP_DW(HID);
+	EP_DUMP_DW(MAX_BURST_SIZE);
+	EP_DUMP_DW(MAX_PACKET_SIZE);
+	EP_DUMP_QW(DCS);
+	EP_DUMP_QW(TR_DPTR);
+	EP_DUMP_DW(MAX_ESIT_PAYLOAD_LO);
+	EP_DUMP_DW(MAX_ESIT_PAYLOAD_HI);
+#undef EP_DUMP_DW
+#undef EP_DUMP_QW
+}
+
+void xhci_dump_input_ctx(const struct xhci_input_ctx *ctx)
+{
+	usb_log_debug("Input control context:");
+	usb_log_debug("\tDrop:\t0x%08x", xhci2host(32, ctx->ctrl_ctx.data[0]));
+	usb_log_debug("\tAdd:\t0x%08x", xhci2host(32, ctx->ctrl_ctx.data[1]));
+
+	usb_log_debug("\tConfig:\t0x%02x", XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(ctx->ctrl_ctx));
+	usb_log_debug("\tIface:\t0x%02x", XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(ctx->ctrl_ctx));
+	usb_log_debug("\tAlternate:\t0x%02x", XHCI_INPUT_CTRL_CTX_ALTER_SETTING(ctx->ctrl_ctx));
+
+	usb_log_debug("Slot context:");
+	xhci_dump_slot_ctx(&ctx->slot_ctx);
+
+	for (uint8_t dci = 1; dci <= XHCI_EP_COUNT; dci++)
+		if (XHCI_INPUT_CTRL_CTX_DROP(ctx->ctrl_ctx, dci)
+		    || XHCI_INPUT_CTRL_CTX_ADD(ctx->ctrl_ctx, dci)) {
+			usb_log_debug("Endpoint context DCI %u:", dci);
+			xhci_dump_endpoint_ctx(&ctx->endpoint_ctx[dci - 1]);
+		}
+}
+
 /**
  * @}
  */
