@@ -161,7 +161,7 @@ sys_errno_t sys_perm_grant(sysarg64_t *uspace_taskid, perm_t perms)
 {
 	sysarg64_t taskid;
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 	
 	return perm_grant((task_id_t) taskid, perms);
@@ -182,7 +182,7 @@ sys_errno_t sys_perm_revoke(sysarg64_t *uspace_taskid, perm_t perms)
 {
 	sysarg64_t taskid;
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 	
 	return perm_revoke((task_id_t) taskid, perms);

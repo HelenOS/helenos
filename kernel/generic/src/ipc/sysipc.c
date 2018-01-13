@@ -423,7 +423,7 @@ sys_errno_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data,
 	call_t *call = ipc_call_alloc(0);
 	errno_t rc = copy_from_uspace(&call->data.args, &data->args,
 	    sizeof(call->data.args));
-	if (rc != 0) {
+	if (rc != EOK) {
 		kobject_put(call->kobject);
 		kobject_put(kobj);
 		return (sys_errno_t) rc;
@@ -606,7 +606,7 @@ sys_errno_t sys_ipc_forward_slow(sysarg_t chandle, sysarg_t phandle,
 	ipc_data_t newdata;
 	errno_t rc = copy_from_uspace(&newdata.args, &data->args,
 	    sizeof(newdata.args));
-	if (rc != 0)
+	if (rc != EOK)
 		return (sys_errno_t) rc;
 	
 	return sys_ipc_forward_common(chandle, phandle,
@@ -696,7 +696,7 @@ sys_errno_t sys_ipc_answer_slow(sysarg_t chandle, ipc_data_t *data)
 	
 	errno_t rc = copy_from_uspace(&call->data.args, &data->args, 
 	    sizeof(call->data.args));
-	if (rc != 0) {
+	if (rc != EOK) {
 		/*
 		 * Republish the capability so that the call does not get lost.
 		 */

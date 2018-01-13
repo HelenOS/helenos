@@ -147,7 +147,7 @@ static bool get_display_color_sup(void)
 	sysarg_t ccap;
 	errno_t rc = console_get_color_cap(console, &ccap);
 	
-	if (rc != 0)
+	if (rc != EOK)
 		return false;
 	
 	return ((ccap & CONSOLE_CAP_RGB) == CONSOLE_CAP_RGB);

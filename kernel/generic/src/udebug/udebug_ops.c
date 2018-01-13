@@ -555,7 +555,7 @@ errno_t udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 	errno_t rc = copy_from_uspace(data_buffer, (void *) uspace_addr, n);
 	mutex_unlock(&TASK->udebug.lock);
 	
-	if (rc != 0)
+	if (rc != EOK)
 		return rc;
 	
 	*buffer = data_buffer;

@@ -353,7 +353,7 @@ async_sess_t *vfs_fd_session(int file, iface_t iface)
 {
 	struct stat stat;
 	errno_t rc = vfs_stat(file, &stat);
-	if (rc != 0)
+	if (rc != EOK)
 		return NULL;
 	
 	if (stat.service == 0)

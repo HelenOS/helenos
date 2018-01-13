@@ -117,7 +117,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	    file_handles[0], file_handles[1], file_handles[2]);
 	free(tmp);
 
-	if (rc != 0) {
+	if (rc != EOK) {
 		cli_error(CL_EEXEC, "%s: Cannot spawn `%s' (%s)", progname, cmd,
 		    str_error(rc));
 		return 1;

@@ -94,7 +94,7 @@ static errno_t vfs_get_mtab_visit(const char *path, list_t *mtab_list,
 		child = pa;
 
 		rc = vfs_stat_path(child, &st);
-		if (rc != 0) {
+		if (rc != EOK) {
 			free(child);
 			closedir(dir);
 			return rc;
@@ -124,7 +124,7 @@ errno_t vfs_get_mtab_list(list_t *mtab_list)
 	struct stat st;
 
 	errno_t rc = vfs_stat_path("/", &st);
-	if (rc != 0)
+	if (rc != EOK)
 		return rc;
 
 	process_mp("/", &st, mtab_list);
