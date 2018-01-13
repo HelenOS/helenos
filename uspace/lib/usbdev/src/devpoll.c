@@ -205,12 +205,11 @@ static int polling_fibril(void *arg)
 
 	data->running = false;
 
-	if (data->joining) {
-		/* Notify joiners, if any. */
-		fibril_mutex_lock(&data->guard);
-		fibril_condvar_signal(&data->cv);
-		fibril_mutex_unlock(&data->guard);
-	} else {
+	/* Notify joiners, if any. */
+	fibril_condvar_broadcast(&data->cv);
+
+	/* Free allocated memory. */
+	if (!data->joining) {
 		polling_fini(data);
 	}
 
