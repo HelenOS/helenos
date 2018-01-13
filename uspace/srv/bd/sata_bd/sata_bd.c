@@ -257,7 +257,7 @@ int main(int argc, char **argv)
 	
 	rc = get_sata_disks();
 	if (rc != EOK) {
-		// TODO: log the error
+		printf(NAME ": Cannot find SATA disks: %s.\n", str_error(rc));
 		return rc;
 	}
 

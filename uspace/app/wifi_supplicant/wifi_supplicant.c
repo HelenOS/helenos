@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
 	
 	print_syntax();
 	
-	return EOK;
+	return 0;
 }
 
 /** @}

@@ -39,6 +39,7 @@
 #include <libfs.h>
 #include <ns.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <task.h>
 #include <ipc/services.h>
 #include "ext4/ops.h"

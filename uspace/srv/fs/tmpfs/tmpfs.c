@@ -47,6 +47,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <task.h>
 #include <libfs.h>
 #include "../../vfs/vfs.h"

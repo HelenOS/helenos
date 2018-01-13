@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	if (uart == NULL)
 		return -1;
 
-	if (s3c24xx_uart_init(uart) != EOK)
+	if (s3c24xx_uart_init(uart) != 0)
 		return -1;
 
 	rc = loc_service_register(NAMESPACE "/" NAME, &uart->service_id);
@@ -186,7 +186,7 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 	uart->cds.ops = &s3c24xx_uart_chardev_ops;
 	uart->cds.sarg = uart;
 
-	return EOK;
+	return 0;
 }
 
 /** Send a byte to the UART. */

@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
 		return EIO;
 	}
 
-	return EOK;
+	return 0;
 error:
 	free(buf);
 	if (http != NULL)

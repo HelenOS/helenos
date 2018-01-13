@@ -41,6 +41,7 @@
 #include <ipc/services.h>
 #include <abi/ipc/interfaces.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <macros.h>
 #include "ns.h"

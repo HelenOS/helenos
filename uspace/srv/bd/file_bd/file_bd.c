@@ -46,6 +46,7 @@
 #include <loc.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <str_error.h>
 #include <stdbool.h>

@@ -39,6 +39,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ipc/services.h>
 #include <ns.h>
 #include <async.h>

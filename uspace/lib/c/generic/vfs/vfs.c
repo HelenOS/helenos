@@ -1278,6 +1278,9 @@ errno_t vfs_walk(int parent, const char *path, int flags, int *handle)
 	errno_t rc_orig;
 	async_wait_for(req, &rc_orig);
 
+	// XXX: Workaround for GCC diagnostics.
+	*handle = -1;
+
 	if (rc_orig != EOK)
 		return (errno_t) rc_orig;
 		

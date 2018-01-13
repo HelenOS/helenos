@@ -49,7 +49,7 @@
  */
 errno_t ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
-	return 0;
+	return EOK;
 }
 
 /** Disable I/O space range for task.
@@ -64,7 +64,7 @@ errno_t ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
  */
 errno_t ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
-	return 0;
+	return EOK;
 }
 
 /** @}

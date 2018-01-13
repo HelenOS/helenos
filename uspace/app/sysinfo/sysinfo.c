@@ -89,7 +89,7 @@ static int print_item_data(char *ipath)
 	dump_bytes_text(data, size);
 	fputs("')\n", stdout);
 	
-	return EOK;
+	return 0;
 }
 
 static int print_item_property(char *ipath, char *iprop)
@@ -108,7 +108,7 @@ static int print_item_property(char *ipath, char *iprop)
 	dump_bytes_text(data, size);
 	fputs("')\n", stdout);
 	
-	return EOK;
+	return 0;
 }
 
 static void print_spaces(size_t spaces)

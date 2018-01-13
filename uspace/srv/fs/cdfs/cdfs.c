@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <libfs.h>
 #include "cdfs.h"
 #include "cdfs_ops.h"

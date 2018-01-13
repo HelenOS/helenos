@@ -319,10 +319,9 @@ int main(int argc, char **argv)
 
 	service_id_t service_id;
 	char *service_name;
-	rc = asprintf(&service_name, "mouse/isdv4-%" PRIun, svc_id);
-	if (rc < 0) {
+	if (asprintf(&service_name, "mouse/isdv4-%" PRIun, svc_id) < 0) {
 		printf(NAME ": Unable to create service name\n");
-		return rc;
+		return ENOMEM;
 	}
 
 	rc = loc_service_register(service_name, &service_id);

@@ -223,10 +223,9 @@ int main(int argc, char **argv)
 	}
 
 	char *service_name;
-	rc = asprintf(&service_name, "rfb/%s", rfb_name);
-	if (rc < 0) {
+	if (asprintf(&service_name, "rfb/%s", rfb_name) < 0) {
 		printf(NAME ": Unable to create service name\n");
-		return rc;
+		return ENOMEM;
 	}
 
 	service_id_t service_id;

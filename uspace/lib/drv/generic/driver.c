@@ -1008,7 +1008,7 @@ int ddf_driver_main(const driver_t *drv)
 	async_manager();
 	
 	/* Never reached. */
-	return EOK;
+	return 0;
 }
 
 /**

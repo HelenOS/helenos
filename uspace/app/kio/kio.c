@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 	if (rc == ENOENT)
 		rc = EOK;
 
-	return EOK;
+	return rc;
 }
 
 /** @}

@@ -36,6 +36,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <task.h>
 #include <str_error.h>
 #include <errno.h>
