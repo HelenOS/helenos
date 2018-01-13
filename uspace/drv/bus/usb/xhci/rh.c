@@ -194,9 +194,7 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 		goto err_usb_dev;
 	}
 
-	fibril_mutex_lock(&rh->device.base.guard);
 	rh->devices_by_port[port_id - 1] = xhci_dev;
-	fibril_mutex_unlock(&rh->device.base.guard);
 
 	return EOK;
 
@@ -274,9 +272,7 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 	    XHCI_DEV_ARGS(*dev), port_id);
 
 	/* Mark the device as detached. */
-	fibril_mutex_lock(&rh->device.base.guard);
 	rh->devices_by_port[port_id - 1] = NULL;
-	fibril_mutex_unlock(&rh->device.base.guard);
 
 	/* Remove device from XHCI bus. */
 	bus_device_gone(&dev->base);
