@@ -38,6 +38,7 @@
 #define BITHENGE_TREE_H_
 
 #include <assert.h>
+#include <stdbool.h>
 #include "os.h"
 
 /** Indicates the type of a tree node. */

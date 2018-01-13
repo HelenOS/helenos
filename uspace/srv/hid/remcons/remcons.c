@@ -48,6 +48,7 @@
 #include <inet/tcp.h>
 #include <io/console.h>
 #include <inttypes.h>
+#include <str.h>
 #include "telnet.h"
 #include "user.h"
 

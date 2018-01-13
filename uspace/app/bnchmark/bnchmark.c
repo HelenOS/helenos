@@ -48,6 +48,7 @@
 #include <errno.h>
 #include <time.h>
 #include <dirent.h>
+#include <str.h>
 
 #define NAME	"bnchmark"
 #define BUFSIZE 8096

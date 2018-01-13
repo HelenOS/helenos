@@ -36,9 +36,9 @@
 #define LIBC_STDIO_H_
 
 #include <stdarg.h>
-#include <str.h>
 #include <io/verify.h>
-#include <abi/kio.h>
+#include <_bits/size_t.h>
+#include <_bits/wchar_t.h>
 
 #define EOF  (-1)
 

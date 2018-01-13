@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <errno.h>
+#include <str.h>
 #include <str_error.h>
 #include <vfs/vfs.h>
 

@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <inttypes.h>
+#include <str.h>
 
 #include <rtld/elf_dyn.h>
 #include <rtld/dynamic.h>

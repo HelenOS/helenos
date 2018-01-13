@@ -43,6 +43,7 @@
 #include <surface.h>
 #include <codec/tga.h>
 #include <task.h>
+#include <str.h>
 
 #define NAME  "viewer"
 

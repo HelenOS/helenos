@@ -35,6 +35,7 @@
 #include <fibril_synch.h>
 #include <ddf/log.h>
 #include <usb/debug.h>
+#include <str.h>
 
 #define REMAINDER_STR_FMT " (%zu)..."
 /* string + terminator + number width (enough for 4GB)*/

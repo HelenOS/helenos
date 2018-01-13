@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <str.h>
 
 #define NAME   "date"
 

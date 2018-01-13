@@ -27,6 +27,7 @@
  */
 
 #include <stdio.h>
+#include <str.h>
 #include <pcut/pcut.h>
 
 #define BUFFER_SIZE 8192

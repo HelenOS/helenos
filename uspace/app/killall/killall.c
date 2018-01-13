@@ -39,6 +39,7 @@
 #include <stats.h>
 #include <str_error.h>
 #include <stdlib.h>
+#include <str.h>
 
 #define NAME  "killall"
 

@@ -34,6 +34,7 @@
 #include <stddef.h>
 #include <ddf/log.h>
 #include <assert.h>
+#include <str.h>
 
 /** Formatting string for printing number of not-printed items. */
 #define REMAINDER_STR_FMT " (%zu)..."

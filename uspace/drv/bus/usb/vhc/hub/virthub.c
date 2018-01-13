@@ -41,6 +41,7 @@
 #include <str_error.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 #include <ddf/driver.h>
 
 #include "virthub.h"

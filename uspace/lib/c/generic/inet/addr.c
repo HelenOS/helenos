@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <bitops.h>
 #include <inttypes.h>
+#include <str.h>
 
 #define INET_PREFIXSTRSIZE  5
 

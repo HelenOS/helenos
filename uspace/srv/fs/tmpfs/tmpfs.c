@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <task.h>
 #include <libfs.h>
+#include <str.h>
 #include "../../vfs/vfs.h"
 
 #define NAME "tmpfs"

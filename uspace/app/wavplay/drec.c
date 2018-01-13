@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <as.h>
 #include <inttypes.h>
+#include <str.h>
 
 #include "wave.h"
 #include "drec.h"

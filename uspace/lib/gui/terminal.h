@@ -44,6 +44,7 @@
 #include <adt/list.h>
 #include <adt/prodcons.h>
 #include <atomic.h>
+#include <str.h>
 #include "widget.h"
 
 #define UTF8_CHAR_BUFFER_SIZE  (STR_BOUNDS(1) + 1)

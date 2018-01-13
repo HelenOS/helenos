@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <loc.h>
 #include <vfs/vfs.h>
+#include <str.h>
 #include "version.h"
 #include "welcome.h"
 

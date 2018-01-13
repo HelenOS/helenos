@@ -50,6 +50,8 @@
 
 #include "posix/float.h"
 
+#include "libc/str.h"
+
 #ifndef HUGE_VALL
 	#define HUGE_VALL (+1.0l / +0.0l)
 #endif

@@ -36,6 +36,7 @@
 #include <str_error.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
+#include <str.h>
 
 #include "test1.h"
 

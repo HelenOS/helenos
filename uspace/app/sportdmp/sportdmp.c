@@ -32,6 +32,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 
 #define BUF_SIZE 1
 

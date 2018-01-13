@@ -36,6 +36,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <str.h>
 
 #include "hound.h"
 #include "audio_device.h"

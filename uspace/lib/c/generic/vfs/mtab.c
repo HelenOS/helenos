@@ -39,6 +39,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <assert.h>
+#include <str.h>
 
 static void process_mp(const char *path, struct stat *stat, list_t *mtab_list)
 {

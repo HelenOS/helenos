@@ -41,6 +41,7 @@
 #include <align.h>
 #include <offset.h>
 #include <stdlib.h>
+#include <str.h>
 
 #include "pcf.h"
 #include "../drawctx.h"

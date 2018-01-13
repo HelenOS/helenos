@@ -47,6 +47,7 @@
 #include "posix/stdlib.h"
 #include "posix/signal.h"
 
+#include "libc/str.h"
 #include "libc/str_error.h"
 
 /**

@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <macros.h>
+#include <str.h>
 #include "ahci_iface.h"
 #include "ddf/driver.h"
 

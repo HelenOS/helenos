@@ -43,6 +43,7 @@
 #include <str_error.h>
 #include <stdio.h>
 #include <libfs.h>
+#include <str.h>
 #include "cdfs.h"
 #include "cdfs_ops.h"
 

@@ -42,6 +42,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <gsort.h>
+#include <str.h>
 #include "screen.h"
 #include "top.h"
 

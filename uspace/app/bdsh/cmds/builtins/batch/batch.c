@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <errno.h>
+#include <str.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"

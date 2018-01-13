@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 
 #include <elf/elf.h>
 #include <rtld/module.h>

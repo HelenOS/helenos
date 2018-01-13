@@ -33,6 +33,7 @@
 #include <macros.h>
 #include <stdlib.h>
 #include <vfs/vfs.h>
+#include <str.h>
 
 #include "cmds/cmds.h"
 #include "compl.h"

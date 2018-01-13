@@ -43,6 +43,7 @@
 #include "posix/ctype.h"
 
 #include "libc/mem.h"
+#include "libc/str.h"
 
 /**
  * Find first set bit (beginning with the least significant bit).

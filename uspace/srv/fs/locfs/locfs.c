@@ -46,6 +46,7 @@
 #include <str_error.h>
 #include <task.h>
 #include <libfs.h>
+#include <str.h>
 #include "locfs.h"
 #include "locfs_ops.h"
 

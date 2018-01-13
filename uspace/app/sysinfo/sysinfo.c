@@ -39,6 +39,7 @@
 #include <stdint.h>
 #include <sysinfo.h>
 #include <stdlib.h>
+#include <str.h>
 
 static void dump_bytes_hex(char *data, size_t size)
 {

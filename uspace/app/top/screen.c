@@ -44,6 +44,7 @@
 #include <stats.h>
 #include <inttypes.h>
 #include <macros.h>
+#include <str.h>
 #include "screen.h"
 #include "top.h"
 
