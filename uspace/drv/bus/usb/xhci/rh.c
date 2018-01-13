@@ -51,7 +51,7 @@
 #include "transfers.h"
 
 /* This mask only lists registers, which imply port change. */
-static const uint32_t port_change_mask =
+static const uint32_t port_events_mask =
 	XHCI_REG_MASK(XHCI_PORT_CSC) |
 	XHCI_REG_MASK(XHCI_PORT_PEC) |
 	XHCI_REG_MASK(XHCI_PORT_WRC) |
@@ -161,8 +161,12 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 {
 	int err;
 	assert(rh);
-
 	assert(rh->devices_by_port[port_id - 1] == NULL);
+
+	if (!XHCI_REG_RD(&rh->hc->op_regs->portrs[port_id - 1], XHCI_PORT_PED)) {
+		usb_log_error("Cannot setup RH device: port is disabled.");
+		return EIO;
+	}
 
 	device_t *dev = hcd_ddf_fun_create(&rh->hc->base);
 	if (!dev) {
@@ -321,10 +325,18 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 	fibril_mutex_lock(&rh->event_guard);
 	xhci_port_regs_t * const regs = &rh->hc->op_regs->portrs[port_id - 1];
 
-	uint32_t events = XHCI_REG_RD_FIELD(&regs->portsc, 32) & port_change_mask;
+	uint32_t events = XHCI_REG_RD_FIELD(&regs->portsc, 32) & port_events_mask;
 
 	while (events) {
-		XHCI_REG_SET_FIELD(&regs->portsc, events, 32);
+		/*
+		 * The PED bit in xHCI has RW1C semantics, which means that
+		 * writing 1 to it will disable the port. Which means all
+		 * standard mechanisms of register handling fails here.
+		 */
+		uint32_t portsc = XHCI_REG_RD_FIELD(&regs->portsc, 32);
+		portsc &= ~(port_events_mask | XHCI_REG_MASK(XHCI_PORT_PED)); // Clear events + PED
+		portsc |= events; // Add back events to assert them
+		XHCI_REG_WR_FIELD(&regs->portsc, portsc, 32);
 
 		if (events & XHCI_REG_MASK(XHCI_PORT_CSC)) {
 			usb_log_info("Connected state changed on port %u.", port_id);
@@ -345,7 +357,7 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 			usb_log_debug("RH port %u change not handled: 0x%x", port_id, events);
 		
 		/* Make sure that PSCEG is 0 before exiting the loop. */
-		events = XHCI_REG_RD_FIELD(&regs->portsc, 32) & port_change_mask;
+		events = XHCI_REG_RD_FIELD(&regs->portsc, 32) & port_events_mask;
 	}
 
 	fibril_mutex_unlock(&rh->event_guard);

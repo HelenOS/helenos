@@ -299,8 +299,8 @@ typedef struct xhci_port_regs {
 #define XHCI_PORT_WCE           portsc, 32,  FLAG, 25
 #define XHCI_PORT_WDE           portsc, 32,  FLAG, 26
 #define XHCI_PORT_WOE           portsc, 32,  FLAG, 27
-#define XHCI_PORT_DR            portsc, 32,  FLAG, 28
-#define XHCI_PORT_WPR           portsc, 32,  FLAG, 29
+#define XHCI_PORT_DR            portsc, 32,  FLAG, 30
+#define XHCI_PORT_WPR           portsc, 32,  FLAG, 31
 
 #define XHCI_PORT_USB3_U1TO   portpmsc, 32, RANGE,  7,  0
 #define XHCI_PORT_USB3_U2TO   portpmsc, 32, RANGE, 15,  8
@@ -315,9 +315,9 @@ typedef struct xhci_port_regs {
 #define XHCI_PORT_USB2_L1DS   portpmsc, 32, RANGE, 15,  8
 #define XHCI_PORT_USB2_HLE    portpmsc, 32,  FLAG, 16
 #define XHCI_PORT_USB2_TM     portpmsc, 32, RANGE, 31, 28
-#define XHCI_PORT_USB2_HIRDM porthlmpc, 32, RANGE,  1,  0
-#define XHCI_PORT_USB2_L1TO  porthlmpc, 32, RANGE,  9,  2
-#define XHCI_PORT_USB2_BESLD porthlmpc, 32, RANGE, 13, 10
+#define XHCI_PORT_USB2_HIRDM porthlpmc, 32, RANGE,  1,  0
+#define XHCI_PORT_USB2_L1TO  porthlpmc, 32, RANGE,  9,  2
+#define XHCI_PORT_USB2_BESLD porthlpmc, 32, RANGE, 13, 10
 
 /**
  * XHCI Operational Registers: section 5.4
