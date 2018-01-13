@@ -506,12 +506,13 @@ int hc_status(bus_t *bus, uint32_t *status)
 		*status = host2xhci(32, *status);
 	}
 
-	usb_log_debug2("HC(%p): Polled status: %x", hc, *status);
+	usb_log_debug2("Polled status: %x", hc, *status);
 	return EOK;
 }
 
 static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
+	usb_log_debug2("Microframe index wrapped.", hc, *status);
 	struct timeval tv;
 	getuptime(&tv);
 	hc->wrap_time = ((uint64_t) tv.tv_sec) * 1000000 + ((uint64_t) tv.tv_usec);
@@ -633,7 +634,7 @@ void hc_fini(xhci_hc_t *hc)
 	xhci_fini_commands(hc);
 	xhci_rh_fini(&hc->rh);
 	pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
-	usb_log_info("HC(%p): Finalized.", hc);
+	usb_log_info("Finalized.");
 }
 
 /**

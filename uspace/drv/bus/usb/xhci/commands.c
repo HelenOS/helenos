@@ -186,8 +186,7 @@ static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 		return ENAK;
 	}
 
-	usb_log_debug2("HC(%p): Sending command:", hc);
-	xhci_dump_trb(&cmd->_header.trb);
+	usb_log_debug("Sending command %s", xhci_trb_str_type(TRB_TYPE(cmd->_header.trb)));
 
 	list_append(&cmd->_header.link, &cr->cmd_list);
 
@@ -296,8 +295,6 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
 	assert(trb);
 
-	usb_log_debug2("HC(%p) Command completed.", hc);
-
 	fibril_mutex_lock(&cr->guard);
 
 	int code = TRB_GET_CODE(*trb);
@@ -313,6 +310,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		 * Note that we need to hold mutex, because we must be sure the
 		 * requesting thread is waiting inside the CV.
 		 */
+		usb_log_debug2("Command ring stopped.");
 		fibril_condvar_broadcast(&cr->stopped_cv);
 		fibril_mutex_unlock(&cr->guard);
 		return EOK;
@@ -320,7 +318,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 
 	xhci_cmd_t *command = find_command(hc, phys);
 	if (command == NULL) {
-		usb_log_error("No command struct for this completion event found.");
+		usb_log_error("No command struct for completion event found.");
 
 		if (code != XHCI_TRBC_SUCCESS)
 			report_error(code);
@@ -337,27 +335,11 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	command->status = code;
 	command->slot_id = TRB_GET_SLOT(*trb);
 
-	usb_log_debug2("Completed command trb: %s", xhci_trb_str_type(TRB_TYPE(command->_header.trb)));
+	usb_log_debug("Completed command %s", xhci_trb_str_type(TRB_TYPE(command->_header.trb)));
 
 	if (code != XHCI_TRBC_SUCCESS) {
 		report_error(code);
 		xhci_dump_trb(&command->_header.trb);
-	}
-
-	switch (TRB_TYPE(command->_header.trb)) {
-	case XHCI_TRB_TYPE_NO_OP_CMD:
-	case XHCI_TRB_TYPE_ENABLE_SLOT_CMD:
-	case XHCI_TRB_TYPE_DISABLE_SLOT_CMD:
-	case XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD:
-	case XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD:
-	case XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD:
-	case XHCI_TRB_TYPE_RESET_ENDPOINT_CMD:
-	case XHCI_TRB_TYPE_STOP_ENDPOINT_CMD:
-	case XHCI_TRB_TYPE_RESET_DEVICE_CMD:
-		break;
-	default:
-		usb_log_debug2("Unsupported command trb: %s", xhci_trb_str_type(TRB_TYPE(command->_header.trb)));
-		return ENAK;
 	}
 
 	fibril_mutex_unlock(&cr->guard);
@@ -612,11 +594,12 @@ static int try_abort_current_command(xhci_hc_t *hc)
 	if (cr->state != XHCI_CR_STATE_OPEN) {
 		// The CR is either stopped, or different fibril is already
 		// restarting it.
+		usb_log_debug2("Command ring already being stopped.");
 		fibril_mutex_unlock(&cr->guard);
 		return EOK;
 	}
 
-	usb_log_error("HC(%p): Timeout while waiting for command: aborting current command.", hc);
+	usb_log_error("Timeout while waiting for command: aborting current command.");
 
 	cr->state = XHCI_CR_STATE_CHANGING;
 	fibril_condvar_broadcast(&cr->state_cv);
@@ -630,7 +613,7 @@ static int try_abort_current_command(xhci_hc_t *hc)
 		 * Assume there are larger problems with HC and
 		 * reset it.
 		 */
-		usb_log_error("HC(%p): Command didn't abort.", hc);
+		usb_log_error("Command didn't abort.");
 
 		cr->state = XHCI_CR_STATE_CLOSED;
 		fibril_condvar_broadcast(&cr->state_cv);
@@ -642,7 +625,7 @@ static int try_abort_current_command(xhci_hc_t *hc)
 		return ENAK;
 	}
 
-	usb_log_error("HC(%p): Command ring stopped. Starting again.", hc);
+	usb_log_error("Command ring stopped. Starting again.");
 	hc_ring_doorbell(hc, 0, 0);
 
 	cr->state = XHCI_CR_STATE_OPEN;
