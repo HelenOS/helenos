@@ -110,7 +110,7 @@ static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_desc)
 	assert(hcd->bus);
 	assert(dev);
 
-	endpoint_t *ep = bus_find_endpoint(dev, pipe_desc->endpoint_no);
+	endpoint_t *ep = bus_find_endpoint(dev, pipe_desc->endpoint_no, pipe_desc->direction);
 	if (!ep)
 		return ENOENT;
 

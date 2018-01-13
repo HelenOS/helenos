@@ -138,8 +138,6 @@ uint8_t xhci_endpoint_index(xhci_endpoint_t *);
 
 void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
 
-xhci_endpoint_t * xhci_device_get_endpoint(xhci_device_t *, usb_endpoint_t);
-
 static inline xhci_device_t * xhci_device_get(device_t *dev)
 {
 	assert(dev);

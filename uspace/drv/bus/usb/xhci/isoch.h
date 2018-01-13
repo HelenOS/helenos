@@ -122,7 +122,7 @@ int isoch_alloc_transfers(xhci_endpoint_t *);
 
 int isoch_schedule_out(xhci_transfer_t *);
 int isoch_schedule_in(xhci_transfer_t *);
-int isoch_handle_transfer_event(xhci_hc_t *, xhci_endpoint_t *, xhci_trb_t *);
+void isoch_handle_transfer_event(xhci_hc_t *, xhci_endpoint_t *, xhci_trb_t *);
 
 #endif
 

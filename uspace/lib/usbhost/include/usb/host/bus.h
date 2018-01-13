@@ -75,7 +75,7 @@ typedef struct device {
 	/* The following are not set by the library */
 	usb_speed_t speed;
 	usb_address_t address;
-	endpoint_t *endpoints [USB_ENDPOINT_MAX];
+	endpoint_t *endpoints [2 * USB_ENDPOINT_MAX];
 
 	/* Managing bus */
 	bus_t *bus;
@@ -162,7 +162,7 @@ ssize_t bus_device_send_batch_sync(device_t *, usb_target_t,
     const char *);
 
 int bus_endpoint_add(device_t *, const usb_endpoint_descriptors_t *, endpoint_t **);
-endpoint_t *bus_find_endpoint(device_t *, usb_endpoint_t);
+endpoint_t *bus_find_endpoint(device_t *, usb_endpoint_t, usb_direction_t);
 int bus_endpoint_remove(endpoint_t *);
 
 int bus_reserve_default_address(bus_t *, usb_speed_t);

@@ -309,6 +309,16 @@ err:
 }
 
 /**
+ * Calculate an index to the endpoint array.
+ * For the default control endpoint 0, it must return 0.
+ * For different arguments, the result is stable but not defined.
+ */
+static int bus_endpoint_index(usb_endpoint_t ep, usb_direction_t dir)
+{
+	return 2 * ep + (dir == USB_DIRECTION_OUT);
+}
+
+/**
  * Create and register new endpoint to the bus.
  *
  * @param[in] device The device of which the endpoint shall be created
@@ -356,15 +366,17 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	    usb_str_direction(ep->direction),
 	    ep->max_transfer_size);
 
+	const int idx = bus_endpoint_index(ep->endpoint, ep->direction);
+
 	fibril_mutex_lock(&device->guard);
 	if (!device->online && ep->endpoint != 0) {
 		err = EAGAIN;
-	} else if (device->endpoints[ep->endpoint] != NULL) {
+	} else if (device->endpoints[idx] != NULL) {
 		err = EEXIST;
 	} else {
 		err = register_ops->endpoint_register(ep);
 		if (!err)
-			device->endpoints[ep->endpoint] = ep;
+			device->endpoints[idx] = ep;
 	}
 	fibril_mutex_unlock(&device->guard);
 	if (err) {
@@ -384,12 +396,24 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 /**
  * Search for an endpoint. Returns a reference.
  */
-endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint)
+endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint, usb_direction_t dir)
 {
 	assert(device);
 
+	const int idx = bus_endpoint_index(endpoint, dir);
+	const int ctrl_idx = bus_endpoint_index(endpoint, USB_DIRECTION_BOTH);
+
 	fibril_mutex_lock(&device->guard);
-	endpoint_t *ep = device->endpoints[endpoint];
+	endpoint_t *ep = device->endpoints[idx];
+	/*
+	 * If the endpoint was not found, it's still possible it is a control
+	 * endpoint having direction BOTH.
+	 */
+	if (!ep) {
+		ep = device->endpoints[ctrl_idx];
+		if (ep && ep->transfer_type != USB_TRANSFER_CONTROL)
+			ep = NULL;
+	}
 	if (ep) {
 		/* Exporting reference */
 		endpoint_add_ref(ep);
@@ -422,9 +446,11 @@ int bus_endpoint_remove(endpoint_t *ep)
 	    usb_str_direction(ep->direction),
 	    ep->max_transfer_size);
 
+	const int idx = bus_endpoint_index(ep->endpoint, ep->direction);
+
 	fibril_mutex_lock(&device->guard);
 	ops->endpoint_unregister(ep);
-	device->endpoints[ep->endpoint] = NULL;
+	device->endpoints[idx] = NULL;
 	fibril_mutex_unlock(&device->guard);
 
 	/* Bus reference */
@@ -488,7 +514,7 @@ int bus_device_send_batch(device_t *device, usb_target_t target,
 	assert(device->address == target.address);
 
 	/* Temporary reference */
-	endpoint_t *ep = bus_find_endpoint(device, target.endpoint);
+	endpoint_t *ep = bus_find_endpoint(device, target.endpoint, direction);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
 		    device->address, target.endpoint, name);

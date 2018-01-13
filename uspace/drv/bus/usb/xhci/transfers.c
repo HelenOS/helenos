@@ -257,25 +257,29 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	}
 
 	const usb_endpoint_t ep_num = ep_dci / 2;
-	xhci_endpoint_t *ep = xhci_device_get_endpoint(dev, ep_num);
-	if (!ep) {
-		usb_log_error("Transfer event on dropped endpoint %u of device "
-		    XHCI_DEV_FMT, ep_num, XHCI_DEV_ARGS(*dev));
+	const usb_endpoint_t dir = ep_dci % 2 ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+	endpoint_t *ep_base = bus_find_endpoint(&dev->base, ep_num, dir);
+	if (!ep_base) {
+		usb_log_error("Transfer event on dropped endpoint %u %s of device "
+		    XHCI_DEV_FMT, ep_num, usb_str_direction(dir), XHCI_DEV_ARGS(*dev));
 		return ENOENT;
 	}
-	// No need to add reference for endpoint, it is held by the transfer batch.
+	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 
 	/* FIXME: This is racy. Do we care? */
 	ep->ring.dequeue = addr;
 
 	if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		return isoch_handle_transfer_event(hc, ep, trb);
+		isoch_handle_transfer_event(hc, ep, trb);
+		endpoint_del_ref(&ep->base);
+		return EOK;
 	}
 
 	fibril_mutex_lock(&ep->base.guard);
 	usb_transfer_batch_t *batch = ep->base.active_batch;
 	if (!batch) {
 		fibril_mutex_unlock(&ep->base.guard);
+		endpoint_del_ref(&ep->base);
 		return ENOENT;
 	}
 
@@ -304,6 +308,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	}
 
 	usb_transfer_batch_finish(batch);
+	endpoint_del_ref(&ep->base);
 	return EOK;
 }
 

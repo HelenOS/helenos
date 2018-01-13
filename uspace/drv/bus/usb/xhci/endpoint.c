@@ -442,21 +442,6 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 	setup_ep_ctx_helpers[tt](ep, ep_ctx);
 }
 
-/** Retrieve XHCI endpoint from a device by the endpoint number.
- * @param[in] dev XHCI device to query.
- * @param[in] ep Endpoint number identifying the endpoint to retrieve.
- *
- * @return XHCI endpoint with the specified number or NULL if no such endpoint exists.
- */
-xhci_endpoint_t *xhci_device_get_endpoint(xhci_device_t *dev, usb_endpoint_t ep)
-{
-	endpoint_t *ep_base = dev->base.endpoints[ep];
-	if (!ep_base)
-		return NULL;
-
-	return xhci_endpoint_get(ep_base);
-}
-
 /**
  * @}
  */

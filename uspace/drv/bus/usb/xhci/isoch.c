@@ -571,7 +571,7 @@ int isoch_schedule_in(xhci_transfer_t *transfer)
 	return EOK;
 }
 
-int isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *trb)
+void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *trb)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
 	xhci_isoch_t * const isoch = ep->isoch;
@@ -590,7 +590,7 @@ int isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *
 			isoch_reset_no_timer(ep);
 			fibril_condvar_broadcast(&ep->isoch->avail);
 			fibril_mutex_unlock(&ep->isoch->guard);
-			return EOK;
+			goto out;
 		case XHCI_TRBC_SHORT_PACKET:
 		case XHCI_TRBC_SUCCESS:
 			err = EOK;
@@ -640,9 +640,9 @@ int isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *
 	 */
 	timer_schedule_reset(ep);
 
+out:
 	fibril_condvar_broadcast(&ep->isoch->avail);
 	fibril_mutex_unlock(&ep->isoch->guard);
-	return EOK;
 }
 
 /**

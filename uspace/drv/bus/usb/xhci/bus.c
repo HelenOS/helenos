@@ -115,7 +115,7 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, (bus_t *) &hc->bus, &dev->base)))
 		return err;
 
-	xhci_endpoint_t *ep0 = xhci_device_get_endpoint(dev, 0);
+	xhci_endpoint_t *ep0 = xhci_endpoint_get(dev->base.endpoints[0]);
 	assert(ep0);
 
 	if (ep0->base.max_packet_size == max_packet_size)
