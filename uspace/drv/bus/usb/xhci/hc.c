@@ -713,6 +713,9 @@ static int create_configure_ep_input_ctx(dma_buffer_t *dma_buf)
 	// Quoting sec. 4.6.5 and 4.6.6: A1, D0, D1 are down (already zeroed), A0 is up.
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
 
+	// As we always allocate space for whole input context, we can set this to maximum
+	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 31);
+
 	return EOK;
 }
 
@@ -828,6 +831,7 @@ int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
 	memcpy(&ictx->endpoint_ctx[ep_idx], ep_ctx, sizeof(xhci_ep_ctx_t));
+
 	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
 	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
