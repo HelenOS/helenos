@@ -68,13 +68,6 @@ static int usbfallback_device_gone(usb_device_t *dev)
 static int usbfallback_device_remove(usb_device_t *dev)
 {
 	assert(dev);
-	usb_log_info("Device '%s' will be removed.", usb_device_get_name(dev));
-	return EOK;
-}
-
-static int usbfallback_device_removed(usb_device_t *dev)
-{
-	assert(dev);
 	usb_log_info("Device '%s' removed.", usb_device_get_name(dev));
 	return EOK;
 }
@@ -83,7 +76,6 @@ static int usbfallback_device_removed(usb_device_t *dev)
 static const usb_driver_ops_t usbfallback_driver_ops = {
 	.device_add = usbfallback_device_add,
 	.device_remove = usbfallback_device_remove,
-	.device_removed = usbfallback_device_removed,
 	.device_gone = usbfallback_device_gone,
 };
 

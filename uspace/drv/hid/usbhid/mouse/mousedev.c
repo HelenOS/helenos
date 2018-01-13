@@ -414,7 +414,7 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 	usb_mouse_process_report(hid_dev, mouse_dev);
 
 	/* Continue polling until the device is about to be removed. */
-	return !hid_dev->poll_stop;
+	return true;
 }
 
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)

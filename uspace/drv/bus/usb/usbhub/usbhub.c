@@ -98,7 +98,7 @@ static bool usb_hub_polling_error_callback(usb_device_t *dev, int err_code, void
 	    str_error(err_code));
 
 	/* Continue polling until the device is about to be removed. */
-	return hub->running && !hub->poll_stop;
+	return hub->running;
 }
 
 /**
@@ -122,11 +122,8 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	hub_dev->usb_device = usb_dev;
 	hub_dev->pending_ops_count = 0;
 	hub_dev->running = false;
-	hub_dev->poll_stop = false;
 	fibril_mutex_initialize(&hub_dev->pending_ops_mutex);
-	fibril_mutex_initialize(&hub_dev->poll_guard);
 	fibril_condvar_initialize(&hub_dev->pending_ops_cv);
-	fibril_condvar_initialize(&hub_dev->poll_cv);
 
 	/* Set hub's first configuration. (There should be only one) */
 	int opResult = usb_set_first_configuration(usb_dev);
@@ -196,25 +193,6 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	return EOK;
 }
 
-/**
- * Turn off power to all ports.
- *
- * @param usb_dev generic usb device information
- * @return error code
- */
-int usb_hub_device_remove(usb_device_t *usb_dev)
-{
-	assert(usb_dev);
-	usb_hub_dev_t *hub = usb_device_data_get(usb_dev);
-	assert(hub);
-
-	usb_log_info("(%p) USB hub will be removed.", hub);
-
-	/* Instruct the hub to stop once endpoints are unregistered. */
-	hub->poll_stop = true;
-	return EOK;
-}
-
 static int usb_hub_cleanup(usb_hub_dev_t *hub)
 {
 	assert(!hub->running);
@@ -240,20 +218,22 @@ static int usb_hub_cleanup(usb_hub_dev_t *hub)
 	return EOK;
 }
 
-int usb_hub_device_removed(usb_device_t *usb_dev)
+/**
+ * Turn off power to all ports.
+ *
+ * @param usb_dev generic usb device information
+ * @return error code
+ */
+int usb_hub_device_remove(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	usb_hub_dev_t *hub = usb_device_data_get(usb_dev);
 	assert(hub);
 
-	usb_log_info("(%p) USB hub was removed, joining polling fibril.", hub);
+	usb_log_info("(%p) USB hub removed, joining polling fibril.", hub);
 
 	/* Join polling fibril. */
-	fibril_mutex_lock(&hub->poll_guard);
-	while (hub->running)
-		fibril_condvar_wait(&hub->poll_cv, &hub->poll_guard);
-	fibril_mutex_unlock(&hub->poll_guard);
-
+	usb_device_poll_join(hub->polling);
 	usb_log_info("(%p) USB hub polling stopped, freeing memory.", hub);
 
 	/* Destroy hub. */
@@ -271,14 +251,11 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	usb_hub_dev_t *hub = usb_device_data_get(usb_dev);
 	assert(hub);
 
-	hub->poll_stop = true;
 	usb_log_info("(%p) USB hub gone, joining polling fibril.", hub);
 
 	/* Join polling fibril. */
-	fibril_mutex_lock(&hub->poll_guard);
-	while (hub->running)
-		fibril_condvar_wait(&hub->poll_cv, &hub->poll_guard);
-	fibril_mutex_unlock(&hub->poll_guard);
+	usb_device_poll_join(hub->polling);
+	usb_log_info("(%p) USB hub polling stopped, freeing memory.", hub);
 
 	/* Destroy hub. */
 	return usb_hub_cleanup(hub);
@@ -591,12 +568,8 @@ static void usb_hub_polling_terminated_callback(usb_device_t *device,
 	}
 	fibril_mutex_unlock(&hub->pending_ops_mutex);
 	hub->running = false;
-
-	/* Signal polling end to joining thread. */
-	fibril_mutex_lock(&hub->poll_guard);
-	fibril_condvar_signal(&hub->poll_cv);
-	fibril_mutex_unlock(&hub->poll_guard);
 }
+
 /**
  * @}
  */

@@ -39,7 +39,6 @@
 #include <usb/debug.h>
 #include <errno.h>
 #include <str_error.h>
-#include <fibril_synch.h>
 
 #include <usb/dev/driver.h>
 #include <usb/dev/poll.h>
@@ -116,6 +115,22 @@ static int usb_hid_device_add(usb_device_t *dev)
 	return EOK;
 }
 
+static int join_and_clean(usb_device_t *dev)
+{
+	assert(dev);
+	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
+	assert(hid_dev);
+
+	/* Join polling fibril. */
+	usb_device_poll_join(hid_dev->polling);
+
+	/* Clean up. */
+	usb_hid_deinit(hid_dev);
+	usb_log_info("%s destruction complete.\n", usb_device_get_name(dev));
+
+	return EOK;
+}
+
 /**
  * Callback for a device about to be removed from the driver.
  *
@@ -128,44 +143,7 @@ static int usb_hid_device_remove(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
 
-	usb_log_info("%s will be removed, setting remove flag.\n", usb_device_get_name(dev));
-	usb_hid_prepare_deinit(hid_dev);
-
-	return EOK;
-}
-
-static int join_and_clean(usb_device_t *dev)
-{
-	assert(dev);
-	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
-	assert(hid_dev);
-
-	/* Join polling fibril. */
-	fibril_mutex_lock(&hid_dev->poll_guard);
-	while (hid_dev->running)
-		fibril_condvar_wait(&hid_dev->poll_cv, &hid_dev->poll_guard);
-	fibril_mutex_unlock(&hid_dev->poll_guard);
-
-	/* Clean up. */
-	usb_hid_deinit(hid_dev);
-	usb_log_info("%s destruction complete.\n", usb_device_get_name(dev));
-
-	return EOK;
-}
-
-/**
- * Callback for when a device has just been from the driver.
- *
- * @param dev Structure representing the device.
- * @return Error code.
- */
-static int usb_hid_device_removed(usb_device_t *dev)
-{
-	assert(dev);
-	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
-	assert(hid_dev);
-
-	usb_log_info("%s endpoints unregistered, joining polling fibril.\n", usb_device_get_name(dev));
+	usb_log_info("Device %s removed.\n", usb_device_get_name(dev));
 	return join_and_clean(dev);
 }
 
@@ -181,8 +159,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
 
-	usb_log_info("Device %s gone, joining the polling fibril.\n", usb_device_get_name(dev));
-	usb_hid_prepare_deinit(hid_dev);
+	usb_log_info("Device %s gone.\n", usb_device_get_name(dev));
 	return join_and_clean(dev);
 }
 
@@ -190,7 +167,6 @@ static int usb_hid_device_gone(usb_device_t *dev)
 static const usb_driver_ops_t usb_hid_driver_ops = {
 	.device_add = usb_hid_device_add,
 	.device_remove = usb_hid_device_remove,
-	.device_removed = usb_hid_device_removed,
 	.device_gone = usb_hid_device_gone,
 };
 

@@ -139,12 +139,6 @@ static int usbmast_device_remove(usb_device_t *dev)
 	return ENOTSUP;
 }
 
-static int usbmast_device_removed(usb_device_t *dev)
-{
-	// TODO: Implement me!
-	return EOK;
-}
-
 /** Callback when new device is attached and recognized as a mass storage.
  *
  * @param dev Representation of USB device.
@@ -396,7 +390,6 @@ static int usbmast_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 static const usb_driver_ops_t usbmast_driver_ops = {
 	.device_add = usbmast_device_add,
 	.device_remove = usbmast_device_remove,
-	.device_removed = usbmast_device_removed,
 	.device_gone = usbmast_device_gone,
 };
 

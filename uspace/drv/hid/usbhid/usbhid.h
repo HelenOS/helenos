@@ -45,7 +45,6 @@
 #include <usb/dev/poll.h>
 #include <usb/hid/hid.h>
 #include <stdbool.h>
-#include <fibril_synch.h>
 
 typedef struct usb_hid_dev usb_hid_dev_t;
 typedef struct usb_hid_subdriver usb_hid_subdriver_t;
@@ -134,20 +133,11 @@ struct usb_hid_dev {
 
 	int report_nr;
 	volatile bool running;
-
-	/** True if polling should stop as soon as possible */
-	volatile bool poll_stop;
-
-	/** Synchronization primitives for joining polling end. */
-	fibril_mutex_t poll_guard;
-	fibril_condvar_t poll_cv;
 };
 
 extern const usb_endpoint_description_t *usb_hid_endpoints[];
 
 int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
-
-void usb_hid_prepare_deinit(usb_hid_dev_t *hid_dev);
 
 void usb_hid_deinit(usb_hid_dev_t *hid_dev);
 

@@ -55,6 +55,27 @@ static int usbmid_device_add(usb_device_t *dev)
 	return usbmid_explore_device(dev);
 }
 
+static int destroy_interfaces(usb_mid_t *usb_mid)
+{
+	int ret = EOK;
+
+	while (!list_empty(&usb_mid->interface_list)) {
+		link_t *item = list_first(&usb_mid->interface_list);
+		list_remove(item);
+
+		usbmid_interface_t *iface = usbmid_interface_from_link(item);
+
+		const int pret = usbmid_interface_destroy(iface);
+		if (pret != EOK) {
+			usb_log_error("Failed to remove child `%s': %s\n",
+			    ddf_fun_get_name(iface->fun), str_error(pret));
+			ret = pret;
+		}
+	}
+
+	return ret;
+}
+
 /** Callback when a MID device is about to be removed from the host.
  *
  * @param dev USB device representing the removed device.
@@ -89,37 +110,6 @@ static int usbmid_device_remove(usb_device_t *dev)
 		}
 	}
 
-	return ret;
-}
-
-static int destroy_interfaces(usb_mid_t *usb_mid)
-{
-	int ret = EOK;
-
-	while (!list_empty(&usb_mid->interface_list)) {
-		link_t *item = list_first(&usb_mid->interface_list);
-		list_remove(item);
-
-		usbmid_interface_t *iface = usbmid_interface_from_link(item);
-
-		const int pret = usbmid_interface_destroy(iface);
-		if (pret != EOK) {
-			usb_log_error("Failed to remove child `%s': %s\n",
-			    ddf_fun_get_name(iface->fun), str_error(pret));
-			ret = pret;
-		}
-	}
-
-	return ret;
-}
-
-static int usbmid_device_removed(usb_device_t *dev)
-{
-	assert(dev);
-	usb_mid_t *usb_mid = usb_device_data_get(dev);
-	assert(usb_mid);
-
-	/* Children are offline. Destroy them now. */
 	return destroy_interfaces(usb_mid);
 }
 
@@ -165,7 +155,6 @@ static int usbmid_function_offline(ddf_fun_t *fun)
 static const usb_driver_ops_t mid_driver_ops = {
 	.device_add = usbmid_device_add,
 	.device_remove = usbmid_device_remove,
-	.device_removed = usbmid_device_removed,
 	.device_gone = usbmid_device_gone,
 	.function_online = usbmid_function_online,
 	.function_offline = usbmid_function_offline

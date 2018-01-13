@@ -93,14 +93,6 @@ static int generic_device_remove(ddf_dev_t *gen_dev)
 	if (ret != EOK)
 		return ret;
 
-	/* Notify the driver after endpoints were unregistered. */
-	usb_device_destroy_pipes(usb_dev);
-	if (driver->ops->device_removed != NULL) {
-		ret = driver->ops->device_removed(usb_dev);
-		if (ret != EOK)
-			return ret;
-	}
-
 	usb_device_destroy_ddf(gen_dev);
 	return EOK;
 }

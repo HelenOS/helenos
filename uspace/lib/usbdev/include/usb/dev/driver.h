@@ -45,8 +45,6 @@ typedef struct {
 	int (*device_add)(usb_device_t *);
 	/** Callback when a device is about to be removed from the system. */
 	int (*device_remove)(usb_device_t *);
-	/** Callback when a device has just been removed from the system (optional). */
-	int (*device_removed)(usb_device_t *);
 	/** Callback when a device was removed from the system. */
 	int (*device_gone)(usb_device_t *);
 	/** Callback asking the driver to online a specific function. */

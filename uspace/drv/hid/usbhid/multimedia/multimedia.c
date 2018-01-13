@@ -245,13 +245,13 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL)
-		return !hid_dev->poll_stop; /* This might be a temporary failure. */
+		return true; /* This might be a temporary failure. */
 
 	int ret =
 	    usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
 	if (ret != EOK) {
 		usb_hid_report_path_free(path);
-		return !hid_dev->poll_stop; /* This might be a temporary failure. */
+		return true; /* This might be a temporary failure. */
 	}
 
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
@@ -283,7 +283,7 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 
 	usb_hid_report_path_free(path);
 
-	return !hid_dev->poll_stop;
+	return true;
 }
 /**
  * @}

@@ -38,14 +38,13 @@
 #define DRV_USBHUB_USBHUB_H
 
 #include <ddf/driver.h>
+#include <fibril_synch.h>
 
 #include <usb/classes/hub.h>
 
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
 #include <usb/dev/poll.h>
-
-#include <fibril_synch.h>
 
 #define NAME "usbhub"
 
@@ -80,17 +79,12 @@ struct usb_hub_dev {
 	bool power_switched;
 	/** Each port is switched individually. */
 	bool per_port_power;
-	/** True if the device should stop running as soon as possible. */
-	volatile bool poll_stop;
-	fibril_mutex_t poll_guard;
-	fibril_condvar_t poll_cv;
 };
 
 extern const usb_endpoint_description_t hub_status_change_endpoint_description;
 
 extern int usb_hub_device_add(usb_device_t *);
 extern int usb_hub_device_remove(usb_device_t *);
-extern int usb_hub_device_removed(usb_device_t *);
 extern int usb_hub_device_gone(usb_device_t *);
 
 extern bool hub_port_changes_callback(usb_device_t *, uint8_t *, size_t,
