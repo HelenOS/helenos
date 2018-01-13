@@ -97,6 +97,12 @@ int xhci_rh_fini(xhci_rh_t *rh)
 	return EOK;
 }
 
+typedef struct rh_event {
+	uint8_t port_id;
+	uint32_t events;
+	unsigned readers_to_go;
+} rh_event_t;
+
 static int rh_event_wait_timeout(xhci_rh_t *rh, uint8_t port_id, uint32_t mask, suseconds_t timeout)
 {
 	int r;
@@ -108,27 +114,40 @@ static int rh_event_wait_timeout(xhci_rh_t *rh, uint8_t port_id, uint32_t mask, 
 		r = fibril_condvar_wait_timeout(&rh->event_ready, &rh->event_guard, timeout);
 		if (r != EOK)
 			break;
-	} while (rh->event.port_id != port_id || (rh->event.events & mask) != mask);
+
+		assert(rh->event);
+		if (--rh->event->readers_to_go == 0)
+			fibril_condvar_broadcast(&rh->event_handled);
+	} while (rh->event->port_id != port_id || (rh->event->events & mask) != mask);
 
 	if (r == EOK)
-		rh->event.events &= ~mask;
+		rh->event->events &= ~mask;
 
 	--rh->event_readers_waiting;
-	if (--rh->event_readers_to_go == 0)
-		fibril_condvar_broadcast(&rh->event_handled);
 
 	return r;
 }
 
-static void rh_event_run_handlers(xhci_rh_t *rh)
+static void rh_event_run_handlers(xhci_rh_t *rh, uint8_t port_id, uint32_t *events)
 {
 	assert(fibril_mutex_is_locked(&rh->event_guard));
-	assert(rh->event_readers_to_go == 0);
 
-	rh->event_readers_to_go = rh->event_readers_waiting;
-	fibril_condvar_broadcast(&rh->event_ready);
-	while (rh->event_readers_to_go)
+	/* There can be different event running already */
+	while (rh->event)
 		fibril_condvar_wait(&rh->event_handled, &rh->event_guard);
+
+	rh_event_t event = {
+		.port_id = port_id,
+		.events = *events,
+		.readers_to_go = rh->event_readers_waiting,
+	};
+
+	rh->event = &event;
+	fibril_condvar_broadcast(&rh->event_ready);
+	while (event.readers_to_go)
+		fibril_condvar_wait(&rh->event_handled, &rh->event_guard);
+	*events = event.events;
+	rh->event = NULL;
 }
 
 /**
@@ -193,7 +212,6 @@ static int rh_port_reset_sync(xhci_rh_t *rh, uint8_t port_id)
 	XHCI_REG_SET(regs, XHCI_PORT_PR, 1);
 	const int r = rh_event_wait_timeout(rh, port_id, XHCI_REG_MASK(XHCI_PORT_PRC), 0);
 	fibril_mutex_unlock(&rh->event_guard);
-
 	return r;
 }
 
@@ -323,14 +341,11 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 			}
 		}
 
-		if (events != 0) {
-			rh->event.port_id = port_id;
-			rh->event.events = events;
-			rh_event_run_handlers(rh);
-		}
+		if (events != 0)
+			rh_event_run_handlers(rh, port_id, &events);
 
-		if (rh->event.events != 0)
-			usb_log_debug("RH port %u change not handled: 0x%x", port_id, rh->event.events);
+		if (events != 0)
+			usb_log_debug("RH port %u change not handled: 0x%x", port_id, events);
 		
 		/* Make sure that PSCEG is 0 before exiting the loop. */
 		events = XHCI_REG_RD_FIELD(&regs->portsc, 32) & port_change_mask;

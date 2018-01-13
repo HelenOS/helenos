@@ -57,6 +57,7 @@ typedef struct xhci_port_speed {
 
 typedef struct hcd_roothub hcd_roothub_t;
 typedef struct xhci_bus xhci_bus_t;
+typedef struct rh_event rh_event_t;
 
 /* XHCI root hub instance */
 typedef struct {
@@ -78,11 +79,8 @@ typedef struct {
 	/* Roothub events. */
 	fibril_mutex_t event_guard;
 	fibril_condvar_t event_ready, event_handled;
-	unsigned event_readers_waiting, event_readers_to_go;
-	struct {
-		uint8_t port_id;
-		uint32_t events;
-	} event;
+	unsigned event_readers_waiting;
+	rh_event_t *event;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
