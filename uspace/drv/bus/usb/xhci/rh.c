@@ -195,7 +195,6 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 	}
 
 	fibril_mutex_lock(&rh->device.base.guard);
-	list_append(&dev->link, &rh->device.base.devices);
 	rh->devices_by_port[port_id - 1] = xhci_dev;
 	fibril_mutex_unlock(&rh->device.base.guard);
 
@@ -276,7 +275,6 @@ static int handle_disconnected_device(xhci_rh_t *rh, uint8_t port_id)
 
 	/* Mark the device as detached. */
 	fibril_mutex_lock(&rh->device.base.guard);
-	list_remove(&dev->base.link);
 	rh->devices_by_port[port_id - 1] = NULL;
 	fibril_mutex_unlock(&rh->device.base.guard);
 
