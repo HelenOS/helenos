@@ -59,7 +59,7 @@ extern errno_t log_init(const char *);
 extern log_t log_create(const char *, log_t);
 
 extern void log_msg(log_t, log_level_t, const char *, ...)
-    PRINTF_ATTRIBUTE(3, 4);
+    _HELENOS_PRINTF_ATTRIBUTE(3, 4);
 extern void log_msgv(log_t, log_level_t, const char *, va_list);
 
 #endif

@@ -36,7 +36,7 @@
  * positives.
  *
  */
-#define NVERIFY_PRINTF
+#define _HELENOS_NVERIFY_PRINTF
 
 #include <stdio.h>
 #include <stddef.h>

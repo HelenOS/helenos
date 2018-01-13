@@ -138,7 +138,7 @@ static void horizontal_line(drawctx_t *drawctx, surface_coord_t y,
 }
 
 static int text(drawctx_t *, font_t *, source_t *, surface_coord_t x,
-    surface_coord_t , const char *, ...) PRINTF_ATTRIBUTE(6, 7);
+    surface_coord_t , const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(6, 7);
 static int text(drawctx_t *drawctx, font_t *font, source_t *source,
     surface_coord_t x, surface_coord_t y, const char *fmt, ...)
 {

@@ -40,7 +40,7 @@
 
 extern int puts(const char *);
 extern int printf(const char *, ...)
-    PRINTF_ATTRIBUTE(1, 2);
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int vprintf(const char *, va_list);
 
 #endif

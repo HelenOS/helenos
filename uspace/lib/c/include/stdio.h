@@ -111,22 +111,22 @@ extern int ungetc(int, FILE *);
 
 /* Formatted string output functions */
 extern int fprintf(FILE *, const char*, ...)
-    PRINTF_ATTRIBUTE(2, 3);
+    _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vfprintf(FILE *, const char *, va_list);
 
 extern int printf(const char *, ...)
-    PRINTF_ATTRIBUTE(1, 2);
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int vprintf(const char *, va_list);
 
 extern int snprintf(char *, size_t , const char *, ...)
-    PRINTF_ATTRIBUTE(3, 4);
+    _HELENOS_PRINTF_ATTRIBUTE(3, 4);
 extern int vasprintf(char **, const char *, va_list);
 extern int asprintf(char **, const char *, ...)
-    PRINTF_ATTRIBUTE(2, 3);
+    _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
 extern int printf_size(const char *, ...)
-    PRINTF_ATTRIBUTE(1, 2);
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int vprintf_size(const char *, va_list);
 
 /* File stream functions */
