@@ -47,6 +47,7 @@
 #include <async.h>
 #include <devman.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdlib.h>
 
 #include <ddf/driver.h>
@@ -298,11 +299,14 @@ void usb_device_destroy_pipes(usb_device_t *usb_dev)
 	assert(usb_dev->pipes || usb_dev->pipes_count == 0);
 
 	/* Destroy the pipes. */
+	int rc;
 	for (size_t i = 0; i < usb_dev->pipes_count; ++i) {
 		usb_log_debug2("Unregistering pipe %zu: %spresent.\n",
 		    i, usb_dev->pipes[i].present ? "" : "not ");
-		if (usb_dev->pipes[i].present)
-			usb_pipe_unregister(&usb_dev->pipes[i].pipe);
+
+		rc = usb_device_unmap_ep(usb_dev->pipes + i);
+		if (rc != EOK && rc != ENOENT)
+			usb_log_warning("Unregistering pipe %zu failed: %s", i, str_error(rc));
 	}
 
 	free(usb_dev->pipes);
@@ -336,6 +340,21 @@ usb_endpoint_mapping_t * usb_device_get_mapped_ep(
 			return &usb_dev->pipes[i];
 	}
 	return NULL;
+}
+
+int usb_device_unmap_ep(usb_endpoint_mapping_t *epm)
+{
+	assert(epm);
+
+	if (!epm->present)
+		return ENOENT;
+
+	const int rc = usb_pipe_unregister(&epm->pipe);
+	if (rc != EOK)
+		return rc;
+
+	epm->present = false;
+	return EOK;
 }
 
 int usb_device_get_iface_number(usb_device_t *usb_dev)
