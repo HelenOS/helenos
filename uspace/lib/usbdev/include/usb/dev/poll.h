@@ -95,19 +95,8 @@ typedef bool (*usb_polling_callback_t)(usb_device_t *, uint8_t *, size_t, void *
 typedef bool (*usb_polling_error_callback_t)(usb_device_t *, int, void *);
 typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
 
-extern int usb_device_auto_polling(usb_device_t *, usb_endpoint_t,
+extern int usb_device_auto_polling(usb_device_t *, usb_endpoint_mapping_t *,
     const usb_device_auto_polling_t *, size_t);
-
-extern int usb_device_auto_poll(usb_device_t *, usb_endpoint_t,
-    usb_polling_callback_t, size_t, int, usb_polling_terminted_callback_t, void *);
-
-extern int usb_device_auto_polling_desc(usb_device_t *,
-    const usb_endpoint_description_t *, const usb_device_auto_polling_t *,
-    size_t);
-
-extern int usb_device_auto_poll_desc(usb_device_t *,
-    const usb_endpoint_description_t *, usb_polling_callback_t, size_t, int,
-    usb_polling_error_callback_t, usb_polling_terminted_callback_t, void *);
 
 #endif
 /**

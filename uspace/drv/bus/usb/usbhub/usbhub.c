@@ -163,11 +163,23 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 
 	/* Start hub operation. */
-	opResult = usb_device_auto_poll_desc(hub_dev->usb_device,
-	    &hub_status_change_endpoint_description,
-	    hub_port_changes_callback, ((hub_dev->port_count + 1 + 7) / 8),
-	    -1, usb_hub_polling_error_callback,
-	    usb_hub_polling_terminated_callback, hub_dev);
+	const usb_device_auto_polling_t auto_polling = {
+		.debug = 1,
+		.auto_clear_halt = true,
+		.delay = -1,
+		.max_failures = 3,
+		.on_data = hub_port_changes_callback,
+		.on_polling_end = usb_hub_polling_terminated_callback,
+		.on_error = usb_hub_polling_error_callback,
+		.arg = hub_dev,
+	};
+
+	usb_endpoint_mapping_t *epm =
+	    usb_device_get_mapped_ep_desc(hub_dev->usb_device,
+	    &hub_status_change_endpoint_description);
+	opResult = usb_device_auto_polling(hub_dev->usb_device, epm,
+	    &auto_polling, ((hub_dev->port_count + 1 + 7) / 8));
+	
 	if (opResult != EOK) {
 		/* Function is already bound */
 		ddf_fun_unbind(hub_dev->hub_fun);
