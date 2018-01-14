@@ -444,6 +444,20 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 			usb_log_error("Failed to initialize input report buffer"
 			    ".\n");
 		}
+
+		usb_polling_t *polling = &hid_dev->polling;
+		if ((rc = usb_polling_init(polling))) {
+			// FIXME
+		}
+
+		polling->device = hid_dev->usb_dev;
+		polling->ep_mapping = hid_dev->poll_pipe_mapping;
+		polling->request_size = hid_dev->poll_pipe_mapping->pipe.desc.max_transfer_size;
+		polling->buffer = malloc(polling->request_size);
+		polling->on_data = usb_hid_polling_callback,
+		polling->on_polling_end = usb_hid_polling_ended_callback,
+		polling->on_error = usb_hid_polling_error_callback,
+		polling->arg = hid_dev;
 	}
 
 	return rc;
@@ -535,6 +549,9 @@ void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 {
 	assert(hid_dev);
 	assert(hid_dev->subdrivers != NULL || hid_dev->subdriver_count == 0);
+
+	free(hid_dev->polling.buffer);
+	usb_polling_fini(&hid_dev->polling);
 
 	usb_log_debug("Subdrivers: %p, subdriver count: %d\n",
 	    hid_dev->subdrivers, hid_dev->subdriver_count);

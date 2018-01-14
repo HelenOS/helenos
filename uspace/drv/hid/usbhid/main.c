@@ -88,19 +88,7 @@ static int usb_hid_device_add(usb_device_t *dev)
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
 	 * for the data continuously. */
-	const usb_device_polling_config_t config = {
-		.debug = 1,
-		.auto_clear_halt = true,
-		.delay = -1,
-		.max_failures = 3,
-		.on_data = usb_hid_polling_callback,
-		.on_polling_end = usb_hid_polling_ended_callback,
-		.on_error = usb_hid_polling_error_callback,
-		.arg = hid_dev,
-	};
-
-	rc = usb_device_poll(dev, hid_dev->poll_pipe_mapping, &config,
-	    hid_dev->poll_pipe_mapping->pipe.desc.max_transfer_size, &hid_dev->polling);
+	rc = usb_polling_start(&hid_dev->polling);
 
 	if (rc != EOK) {
 		usb_log_error("Failed to start polling fibril for `%s'.\n",
@@ -121,8 +109,8 @@ static int join_and_clean(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
 
-	/* Join polling fibril. */
-	usb_device_poll_join(hid_dev->polling);
+	/* Join polling fibril (ignoring error code). */
+	usb_polling_join(&hid_dev->polling);
 
 	/* Clean up. */
 	usb_hid_deinit(hid_dev);

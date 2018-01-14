@@ -160,31 +160,37 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 
 	/* Start hub operation. */
-	const usb_device_polling_config_t config = {
-		.debug = 1,
-		.auto_clear_halt = true,
-		.delay = -1,
-		.max_failures = 3,
-		.on_data = hub_port_changes_callback,
-		.on_polling_end = usb_hub_polling_terminated_callback,
-		.on_error = usb_hub_polling_error_callback,
-		.arg = hub_dev,
-	};
+	usb_polling_t *polling = &hub_dev->polling;
+	opResult = usb_polling_init(polling);
+	if (opResult != EOK) {
+		ddf_fun_unbind(hub_dev->hub_fun);
+		ddf_fun_destroy(hub_dev->hub_fun);
+		usb_log_error("Failed to initialize polling fibril: %s.\n",
+		    str_error(opResult));
+		return opResult;
+	}
 
-	usb_endpoint_mapping_t *epm =
-	    usb_device_get_mapped_ep_desc(hub_dev->usb_device,
+	polling->device = hub_dev->usb_device;
+	polling->ep_mapping = usb_device_get_mapped_ep_desc(hub_dev->usb_device,
 	    &hub_status_change_endpoint_description);
-	opResult = usb_device_poll(hub_dev->usb_device, epm, &config,
-	    ((hub_dev->port_count + 1 + 7) / 8), &hub_dev->polling);
-	
+	polling->request_size = ((hub_dev->port_count + 1 + 7) / 8);
+	polling->buffer = malloc(polling->request_size);
+	polling->on_data = hub_port_changes_callback;
+	polling->on_polling_end = usb_hub_polling_terminated_callback;
+	polling->on_error = usb_hub_polling_error_callback;
+	polling->arg = hub_dev;
+
+	opResult = usb_polling_start(polling);
 	if (opResult != EOK) {
 		/* Function is already bound */
+		free(polling->buffer);
 		ddf_fun_unbind(hub_dev->hub_fun);
 		ddf_fun_destroy(hub_dev->hub_fun);
 		usb_log_error("Failed to create polling fibril: %s.\n",
 		    str_error(opResult));
 		return opResult;
 	}
+
 	hub_dev->running = true;
 	usb_log_info("Controlling hub '%s' (%p: %zu ports).\n",
 	    usb_device_get_name(hub_dev->usb_device), hub_dev,
@@ -196,6 +202,9 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 static int usb_hub_cleanup(usb_hub_dev_t *hub)
 {
 	assert(!hub->running);
+
+	free(hub->polling.buffer);
+	usb_polling_fini(&hub->polling);
 
 	for (size_t port = 0; port < hub->port_count; ++port) {
 		const int ret = usb_hub_port_fini(&hub->ports[port], hub);
@@ -232,8 +241,8 @@ int usb_hub_device_remove(usb_device_t *usb_dev)
 
 	usb_log_info("(%p) USB hub removed, joining polling fibril.", hub);
 
-	/* Join polling fibril. */
-	usb_device_poll_join(hub->polling);
+	/* Join polling fibril (ignoring error code). */
+	usb_polling_join(&hub->polling);
 	usb_log_info("(%p) USB hub polling stopped, freeing memory.", hub);
 
 	/* Destroy hub. */
@@ -253,8 +262,8 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 
 	usb_log_info("(%p) USB hub gone, joining polling fibril.", hub);
 
-	/* Join polling fibril. */
-	usb_device_poll_join(hub->polling);
+	/* Join polling fibril (ignoring error code). */
+	usb_polling_join(&hub->polling);
 	usb_log_info("(%p) USB hub polling stopped, freeing memory.", hub);
 
 	/* Destroy hub. */

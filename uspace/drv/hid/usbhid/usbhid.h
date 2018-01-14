@@ -106,8 +106,8 @@ struct usb_hid_dev {
 	/** Endpont mapping of the polling pipe. */
 	usb_endpoint_mapping_t *poll_pipe_mapping;
 
-	/** Device polling handle. */
-	usb_device_polling_t *polling;
+	/** Device polling structure. */
+	usb_polling_t polling;
 
 	/** Subdrivers. */
 	usb_hid_subdriver_t *subdrivers;

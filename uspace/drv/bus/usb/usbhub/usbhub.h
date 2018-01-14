@@ -59,7 +59,7 @@ struct usb_hub_dev {
 	/** Generic usb device data*/
 	usb_device_t *usb_device;
 	/** Data polling handle. */
-	usb_device_polling_t *polling;
+	usb_polling_t polling;
 	/** Number of pending operations on the mutex to prevent shooting
 	 * ourselves in the foot.
 	 * When the hub is disconnected but we are in the middle of some

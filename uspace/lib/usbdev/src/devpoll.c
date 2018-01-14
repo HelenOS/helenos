@@ -53,109 +53,113 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/** Private automated polling instance data. */
-struct usb_device_polling {
-	/** Parameters for automated polling. */
-	usb_device_polling_config_t config;
 
-	/** USB device to poll. */
-	usb_device_t *dev;
-
-	/** Device enpoint mapping to use for polling. */
-	usb_endpoint_mapping_t *ep_mapping;
-
-	/** Size of the recieved data. */
-	size_t request_size;
-
-	/** Data buffer. */
-	uint8_t *buffer;
-
-	/** True if polling is currently in operation. */
-	volatile bool running;
-
-	/** True if polling should terminate as soon as possible. */
-	volatile bool joining;
-
-	/** Synchronization primitives for joining polling end. */
-	fibril_mutex_t guard;
-	fibril_condvar_t cv;
-};
-
-
-static void polling_fini(usb_device_polling_t *polling)
+/** Initialize the polling data structure, its internals and configuration
+ *  with default values.
+ *
+ * @param polling Valid polling data structure.
+ * @return Error code.
+ * @retval EOK Polling data structure is ready to be used.
+ */
+int usb_polling_init(usb_polling_t *polling)
 {
-	/* Free the allocated memory. */
-	free(polling->buffer);
-	free(polling);
+	if (!polling)
+		return EBADMEM;
+
+	/* Zero out everything */
+	memset(polling, 0, sizeof(usb_polling_t));
+
+	/* Internal initializers. */
+	fibril_mutex_initialize(&polling->guard);
+	fibril_condvar_initialize(&polling->cv);
+
+	/* Default configuration. */
+	polling->auto_clear_halt = true;
+	polling->delay = -1;
+	polling->max_failures = 3;
+
+	return EOK;
+}
+
+
+/** Destroy the polling data structure.
+ *  This function does nothing but a safety check whether the polling
+ *  was joined successfully.
+ *
+ * @param polling Polling data structure.
+ */
+void usb_polling_fini(usb_polling_t *polling)
+{
+	/* Nothing done at the moment. */
+	assert(polling);
+	assert(!polling->running);
 }
 
 
 /** Polling fibril.
  *
- * @param arg Pointer to usb_device_polling_t.
+ * @param arg Pointer to usb_polling_t.
  * @return Always EOK.
  */
 static int polling_fibril(void *arg)
 {
 	assert(arg);
-	usb_device_polling_t *data = arg;
-	data->running = true;
+	usb_polling_t *polling = arg;
+	polling->running = true;
 
-	/* Helper to reduce typing. */
-	const usb_device_polling_config_t *params = &data->config;
+	usb_pipe_t *pipe = &polling->ep_mapping->pipe;
 
-	usb_pipe_t *pipe = &data->ep_mapping->pipe;
-
-	if (params->debug > 0) {
+	if (polling->debug > 0) {
 		const usb_endpoint_mapping_t *mapping =
-		    data->ep_mapping;
+		    polling->ep_mapping;
 		usb_log_debug("Poll (%p): started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
-		    data, usb_device_get_name(data->dev),
+		    polling, usb_device_get_name(polling->device),
 		    (int) mapping->interface->interface_number,
 		    usb_str_class(mapping->interface->interface_class),
 		    (int) mapping->interface->interface_subclass,
 		    (int) mapping->interface->interface_protocol,
-		    data->request_size, pipe->desc.max_transfer_size);
+		    polling->request_size, pipe->desc.max_transfer_size);
 	}
 
 	size_t failed_attempts = 0;
-	while (failed_attempts <= params->max_failures) {
+	while (failed_attempts <= polling->max_failures) {
 		size_t actual_size;
-		const int rc = usb_pipe_read(pipe, data->buffer,
-		    data->request_size, &actual_size);
+		const int rc = usb_pipe_read(pipe, polling->buffer,
+		    polling->request_size, &actual_size);
 
 		if (rc == EOK) {
-			if (params->debug > 1) {
+			if (polling->debug > 1) {
 				usb_log_debug(
 				    "Poll%p: received: '%s' (%zuB).\n",
-				    data,
-				    usb_debug_str_buffer(data->buffer,
+				    polling,
+				    usb_debug_str_buffer(polling->buffer,
 				        actual_size, 16),
 				    actual_size);
 			}
 		} else {
 				usb_log_debug(
 				    "Poll%p: polling failed: %s.\n",
-				    data, str_error(rc));
+				    polling, str_error(rc));
 		}
 
 		/* If the pipe stalled, we can try to reset the stall. */
-		if ((rc == ESTALL) && (params->auto_clear_halt)) {
+		if (rc == ESTALL && polling->auto_clear_halt) {
 			/*
 			 * We ignore error here as this is usually a futile
 			 * attempt anyway.
 			 */
 			usb_request_clear_endpoint_halt(
-			    usb_device_get_default_pipe(data->dev),
+			    usb_device_get_default_pipe(polling->device),
 			    pipe->desc.endpoint_no);
 		}
 
 		if (rc != EOK) {
 			++failed_attempts;
-			const bool cont = (params->on_error == NULL) ? true :
-			    params->on_error(data->dev, rc, params->arg);
-			if (!cont || data->joining) {
+			const bool carry_on = !polling->on_error ? true :
+			    polling->on_error(polling->device, rc, polling->arg);
+
+			if (!carry_on || polling->joining) {
 				/* This is user requested abort, erases failures. */
 				failed_attempts = 0;
 				break;
@@ -164,9 +168,9 @@ static int polling_fibril(void *arg)
 		}
 
 		/* We have the data, execute the callback now. */
-		assert(params->on_data);
-		const bool carry_on = params->on_data(
-		    data->dev, data->buffer, actual_size, params->arg);
+		assert(polling->on_data);
+		const bool carry_on = polling->on_data(polling->device,
+		    polling->buffer, actual_size, polling->arg);
 
 		if (!carry_on) {
 			/* This is user requested abort, erases failures. */
@@ -182,37 +186,30 @@ static int polling_fibril(void *arg)
 		// FIXME TODO: This is broken, the time is in ms not us.
 		// but first we need to fix drivers to actually stop using this,
 		// since polling delay should be implemented in HC schedule
-		async_usleep(params->delay);
+		async_usleep(polling->delay);
 	}
 
 	const bool failed = failed_attempts > 0;
 
-	if (params->on_polling_end != NULL) {
-		params->on_polling_end(data->dev, failed, params->arg);
-	}
+	if (polling->on_polling_end)
+		polling->on_polling_end(polling->device, failed, polling->arg);
 
-	if (params->debug > 0) {
+	if (polling->debug > 0) {
 		if (failed) {
 			usb_log_error("Polling of device `%s' terminated: "
 			    "recurring failures.\n",
-			    usb_device_get_name(data->dev));
+			    usb_device_get_name(polling->device));
 		} else {
 			usb_log_debug("Polling of device `%s' terminated: "
 			    "driver request.\n",
-			    usb_device_get_name(data->dev));
+			    usb_device_get_name(polling->device));
 		}
 	}
 
-	data->running = false;
+	polling->running = false;
 
 	/* Notify joiners, if any. */
-	fibril_condvar_broadcast(&data->cv);
-
-	/* Free allocated memory. */
-	if (!data->joining) {
-		polling_fini(data);
-	}
-
+	fibril_condvar_broadcast(&polling->cv);
 	return EOK;
 }
 
@@ -226,95 +223,71 @@ static int polling_fibril(void *arg)
  * will be sent for the first time (it is possible that this
  * first request would be executed prior to return from this function).
  *
- * @param dev Device to be periodically polled.
- * @param epm Endpoint mapping to use.
- * @param config Polling settings.
- * @param req_size How many bytes to ask for in each request.
+ * @param polling Polling data structure.
  * @return Error code.
  * @retval EOK New fibril polling the device was already started.
  */
-int usb_device_poll(usb_device_t *dev, usb_endpoint_mapping_t *epm,
-    const usb_device_polling_config_t *config, size_t req_size,
-    usb_device_polling_t **handle)
+int usb_polling_start(usb_polling_t *polling)
 {
-	int rc;
-	if (!dev || !config || !config->on_data)
+	if (!polling || !polling->device || !polling->ep_mapping || !polling->on_data)
 		return EBADMEM;
 
-	if (!req_size)
+	if (!polling->request_size)
 		return EINVAL;
 
-	if (!epm || (epm->pipe.desc.transfer_type != USB_TRANSFER_INTERRUPT) ||
-	    (epm->pipe.desc.direction != USB_DIRECTION_IN))
+	if (!polling->ep_mapping || (polling->ep_mapping->pipe.desc.transfer_type != USB_TRANSFER_INTERRUPT)
+	    || (polling->ep_mapping->pipe.desc.direction != USB_DIRECTION_IN))
 		return EINVAL;
-
-	usb_device_polling_t *instance = malloc(sizeof(usb_device_polling_t));
-	if (!instance)
-		return ENOMEM;
-
-	/* Fill-in the data. */
-	instance->buffer = malloc(req_size);
-	if (!instance->buffer) {
-		rc = ENOMEM;
-		goto err_instance;
-	}
-	instance->request_size = req_size;
-	instance->dev = dev;
-	instance->ep_mapping = epm;
-	instance->joining = false;
-	fibril_mutex_initialize(&instance->guard);
-	fibril_condvar_initialize(&instance->cv);
-
-	/* Copy provided settings. */
-	instance->config = *config;
 
 	/* Negative value means use descriptor provided value. */
-	if (config->delay < 0) {
-		instance->config.delay = epm->descriptor->poll_interval;
-	}
+	if (polling->delay < 0)
+		polling->delay = polling->ep_mapping->descriptor->poll_interval;
 
-	fid_t fibril = fibril_create(polling_fibril, instance);
-	if (!fibril) {
-		rc = ENOMEM;
-		goto err_buffer;
-	}
-	fibril_add_ready(fibril);
+	polling->fibril = fibril_create(polling_fibril, polling);
+	if (!polling->fibril)
+		return ENOMEM;
 
-	if (handle)
-		*handle = instance;
+	fibril_add_ready(polling->fibril);
 
 	/* Fibril launched. That fibril will free the allocated data. */
 	return EOK;
-
-err_buffer:
-	free(instance->buffer);
-err_instance:
-	free(instance);
-	return rc;
 }
 
-int usb_device_poll_join(usb_device_polling_t *polling)
+/** Close the polling pipe permanently and synchronously wait
+ *  until the automatic polling fibril terminates.
+ *
+ *  It is safe to deallocate the polling data structure (and its
+ *  data buffer) only after a successful call to this function.
+ *
+ *  @warning Call to this function will trigger execution of the
+ *  on_error() callback with EINTR error code.
+ *
+ *  @parram polling Polling data structure.
+ *  @return Error code.
+ *  @retval EOK Polling fibril has been successfully terminated.
+ */
+int usb_polling_join(usb_polling_t *polling)
 {
 	int rc;
 	if (!polling)
 		return EBADMEM;
 
+	/* Check if the fibril already terminated. */
+	if (!polling->running)
+		return EOK;
+
 	/* Set the flag */
 	polling->joining = true;
 
 	/* Unregister the pipe. */
-	if ((rc = usb_device_unmap_ep(polling->ep_mapping))) {
+	if ((rc = usb_device_unmap_ep(polling->ep_mapping)))
 		return rc;
-	}
 
 	/* Wait for the fibril to terminate. */
 	fibril_mutex_lock(&polling->guard);
 	while (polling->running)
 		fibril_condvar_wait(&polling->cv, &polling->guard);
 	fibril_mutex_unlock(&polling->guard);
-
-	/* Free the instance. */
-	polling_fini(polling);
 
 	return EOK;
 }

@@ -42,31 +42,24 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <fibril_synch.h>
 
-/** Automated polling instance. */
-typedef struct usb_device_polling usb_device_polling_t;
 
-/** Parameters and callbacks for automated polling. */
-typedef struct usb_device_polling_config {
-	/** Level of debugging messages from auto polling.
-	 * 0 - nothing
-	 * 1 - inform about errors and polling start/end
-	 * 2 - also dump every retrieved buffer
-	 */
-	int debug;
+/** USB automated polling. */
+typedef struct usb_polling {
+	/** Mandatory parameters - user is expected to configure these. */
 
-	/** Maximum number of consecutive errors before polling termination. */
-	size_t max_failures;
+	/** USB device to poll. */
+	usb_device_t *device;
 
-	/** Delay between poll requests in milliseconds.
-	 * Set to negative value to use value from endpoint descriptor.
-	 */
-	int delay;
+	/** Device enpoint mapping to use for polling. */
+	usb_endpoint_mapping_t *ep_mapping;
 
-	/** Whether to automatically try to clear the HALT feature after
-	 * the endpoint stalls.
-	 */
-	bool auto_clear_halt;
+	/** Size of the recieved data. */
+	size_t request_size;
+
+	/** Data buffer of at least `request_size`. User is responsible for its allocation. */
+	uint8_t *buffer;
 
 	/** Callback when data arrives.
 	 *
@@ -78,6 +71,34 @@ typedef struct usb_device_polling_config {
 	 */
 	bool (*on_data)(usb_device_t *dev, uint8_t *data, size_t data_size,
 	    void *arg);
+
+
+	/** Optional parameters - user can customize them, but they are defaulted to
+	 *  some reasonable values.
+	 */
+
+	/** Level of debugging messages from auto polling.
+	 * 0 - nothing (default)
+	 * 1 - inform about errors and polling start/end
+	 * 2 - also dump every retrieved buffer
+	 */
+	int debug;
+
+	/** Maximum number of consecutive errors before polling termination (default 3). */
+	size_t max_failures;
+
+	/** Delay between poll requests in milliseconds.
+	 * By default, value from endpoint descriptor used.
+	 */
+	int delay;
+
+	/** Whether to automatically try to clear the HALT feature after
+	 * the endpoint stalls (true by default).
+	 */
+	bool auto_clear_halt;
+
+	/** Argument to pass to callbacks (default NULL). */
+	void *arg;
 
 	/** Callback when polling is terminated.
 	 *
@@ -97,14 +118,30 @@ typedef struct usb_device_polling_config {
 	 */
 	bool (*on_error)(usb_device_t *dev, int err_code, void *arg);
 
-	/** Argument to pass to callbacks. */
-	void *arg;
-} usb_device_polling_config_t;
 
-int usb_device_poll(usb_device_t *, usb_endpoint_mapping_t *,
-    const usb_device_polling_config_t *, size_t, usb_device_polling_t **);
+	/** Internal parameters - user is not expected to set them. Messing with them
+	 *  can result in unexpected behavior if you do not know what you are doing.
+	 */
 
-int usb_device_poll_join(usb_device_polling_t *);
+	/** Fibril used for polling. */
+	fid_t fibril;
+
+	/** True if polling is currently in operation. */
+	volatile bool running;
+
+	/** True if polling should terminate as soon as possible. */
+	volatile bool joining;
+
+	/** Synchronization primitives for joining polling end. */
+	fibril_mutex_t guard;
+	fibril_condvar_t cv;
+} usb_polling_t;
+
+int usb_polling_init(usb_polling_t *);
+void usb_polling_fini(usb_polling_t *);
+
+int usb_polling_start(usb_polling_t *);
+int usb_polling_join(usb_polling_t *);
 
 #endif
 /**
