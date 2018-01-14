@@ -141,13 +141,6 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
 
 void usb_hid_deinit(usb_hid_dev_t *hid_dev);
 
-bool usb_hid_polling_callback(usb_device_t *dev,
-    uint8_t *buffer, size_t buffer_size, void *arg);
-
-bool usb_hid_polling_error_callback(usb_device_t *dev, int err_code, void *arg);
-
-void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg);
-
 void usb_hid_new_report(usb_hid_dev_t *hid_dev);
 
 int usb_hid_report_number(const usb_hid_dev_t *hid_dev);

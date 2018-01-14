@@ -324,6 +324,78 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 	return EOK;
 }
 
+static bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
+    size_t buffer_size, void *arg)
+{
+	if (dev == NULL || arg == NULL || buffer == NULL) {
+		usb_log_error("Missing arguments to polling callback.\n");
+		return false;
+	}
+	usb_hid_dev_t *hid_dev = arg;
+
+	assert(hid_dev->input_report != NULL);
+
+	usb_log_debug("New data [%zu/%zu]: %s\n", buffer_size,
+	    hid_dev->max_input_report_size,
+	    usb_debug_str_buffer(buffer, buffer_size, 0));
+
+	if (hid_dev->max_input_report_size >= buffer_size) {
+		/*! @todo This should probably be atomic. */
+		memcpy(hid_dev->input_report, buffer, buffer_size);
+		hid_dev->input_report_size = buffer_size;
+		usb_hid_new_report(hid_dev);
+	}
+
+	/* Parse the input report */
+	const int rc = usb_hid_parse_report(
+	    &hid_dev->report, buffer, buffer_size, &hid_dev->report_id);
+	if (rc != EOK) {
+		usb_log_warning("Failure in usb_hid_parse_report():"
+		    "%s\n", str_error(rc));
+	}
+
+	bool cont = false;
+	/* Continue if at least one of the subdrivers want to continue */
+	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
+		if (hid_dev->subdrivers[i].poll != NULL) {
+			cont = cont || hid_dev->subdrivers[i].poll(
+			    hid_dev, hid_dev->subdrivers[i].data);
+		}
+	}
+
+	return cont;
+}
+
+static bool usb_hid_polling_error_callback(usb_device_t *dev, int err_code, void *arg)
+{
+	assert(dev);
+	assert(arg);
+	usb_hid_dev_t *hid_dev = arg;
+
+	usb_log_error("Device %s polling error: %s", usb_device_get_name(dev),
+	    str_error(err_code));
+
+	/* Continue polling until the device is about to be removed. */
+	return hid_dev->running;
+}
+
+static void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
+{
+	assert(dev);
+	assert(arg);
+
+	usb_hid_dev_t *hid_dev = arg;
+
+	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
+		if (hid_dev->subdrivers[i].poll_end != NULL) {
+			hid_dev->subdrivers[i].poll_end(
+			    hid_dev, hid_dev->subdrivers[i].data, reason);
+		}
+	}
+
+	hid_dev->running = false;
+}
+
 /*
  * This functions initializes required structures from the device's descriptors
  * and starts new fibril for polling the keyboard for events and another one for
@@ -461,78 +533,6 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	}
 
 	return rc;
-}
-
-bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
-    size_t buffer_size, void *arg)
-{
-	if (dev == NULL || arg == NULL || buffer == NULL) {
-		usb_log_error("Missing arguments to polling callback.\n");
-		return false;
-	}
-	usb_hid_dev_t *hid_dev = arg;
-
-	assert(hid_dev->input_report != NULL);
-
-	usb_log_debug("New data [%zu/%zu]: %s\n", buffer_size,
-	    hid_dev->max_input_report_size,
-	    usb_debug_str_buffer(buffer, buffer_size, 0));
-
-	if (hid_dev->max_input_report_size >= buffer_size) {
-		/*! @todo This should probably be atomic. */
-		memcpy(hid_dev->input_report, buffer, buffer_size);
-		hid_dev->input_report_size = buffer_size;
-		usb_hid_new_report(hid_dev);
-	}
-
-	/* Parse the input report */
-	const int rc = usb_hid_parse_report(
-	    &hid_dev->report, buffer, buffer_size, &hid_dev->report_id);
-	if (rc != EOK) {
-		usb_log_warning("Failure in usb_hid_parse_report():"
-		    "%s\n", str_error(rc));
-	}
-
-	bool cont = false;
-	/* Continue if at least one of the subdrivers want to continue */
-	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
-		if (hid_dev->subdrivers[i].poll != NULL) {
-			cont = cont || hid_dev->subdrivers[i].poll(
-			    hid_dev, hid_dev->subdrivers[i].data);
-		}
-	}
-
-	return cont;
-}
-
-bool usb_hid_polling_error_callback(usb_device_t *dev, int err_code, void *arg)
-{
-	assert(dev);
-	assert(arg);
-	usb_hid_dev_t *hid_dev = arg;
-
-	usb_log_error("Device %s polling error: %s", usb_device_get_name(dev),
-	    str_error(err_code));
-
-	/* Continue polling until the device is about to be removed. */
-	return hid_dev->running;
-}
-
-void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg)
-{
-	assert(dev);
-	assert(arg);
-
-	usb_hid_dev_t *hid_dev = arg;
-
-	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
-		if (hid_dev->subdrivers[i].poll_end != NULL) {
-			hid_dev->subdrivers[i].poll_end(
-			    hid_dev, hid_dev->subdrivers[i].data, reason);
-		}
-	}
-
-	hid_dev->running = false;
 }
 
 void usb_hid_new_report(usb_hid_dev_t *hid_dev)
