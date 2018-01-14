@@ -163,6 +163,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	usb_polling_t *polling = &hub_dev->polling;
 	opResult = usb_polling_init(polling);
 	if (opResult != EOK) {
+		/* Function is already bound */
 		ddf_fun_unbind(hub_dev->hub_fun);
 		ddf_fun_destroy(hub_dev->hub_fun);
 		usb_log_error("Failed to initialize polling fibril: %s.\n",
@@ -182,8 +183,9 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 
 	opResult = usb_polling_start(polling);
 	if (opResult != EOK) {
-		/* Function is already bound */
+		/* Polling is already initialized. */
 		free(polling->buffer);
+		usb_polling_fini(polling);
 		ddf_fun_unbind(hub_dev->hub_fun);
 		ddf_fun_destroy(hub_dev->hub_fun);
 		usb_log_error("Failed to create polling fibril: %s.\n",
