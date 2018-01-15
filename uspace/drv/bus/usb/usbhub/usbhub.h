@@ -49,6 +49,7 @@
 #define NAME "usbhub"
 
 #include "port.h"
+#include "status.h"
 
 /** Information about attached hub. */
 struct usb_hub_dev {
@@ -60,21 +61,10 @@ struct usb_hub_dev {
 	usb_device_t *usb_device;
 	/** Data polling handle. */
 	usb_polling_t polling;
-	/** Number of pending operations on the mutex to prevent shooting
-	 * ourselves in the foot.
-	 * When the hub is disconnected but we are in the middle of some
-	 * operation, we cannot destroy this structure right away because
-	 * the pending operation might use it.
-	 */
-	size_t pending_ops_count;
-	/** Guard for pending_ops_count. */
-	fibril_mutex_t pending_ops_mutex;
-	/** Condition variable for pending_ops_count. */
-	fibril_condvar_t pending_ops_cv;
 	/** Pointer to usbhub function. */
 	ddf_fun_t *hub_fun;
-	/** Status indicator */
-	volatile bool running;
+	/** Device communication pipe. */
+	usb_pipe_t *control_pipe;
 	/** Hub supports port power switching. */
 	bool power_switched;
 	/** Each port is switched individually. */
@@ -83,12 +73,15 @@ struct usb_hub_dev {
 
 extern const usb_endpoint_description_t hub_status_change_endpoint_description;
 
-extern int usb_hub_device_add(usb_device_t *);
-extern int usb_hub_device_remove(usb_device_t *);
-extern int usb_hub_device_gone(usb_device_t *);
+int usb_hub_device_add(usb_device_t *);
+int usb_hub_device_remove(usb_device_t *);
+int usb_hub_device_gone(usb_device_t *);
 
-extern bool hub_port_changes_callback(usb_device_t *, uint8_t *, size_t,
-    void *);
+int usb_hub_get_port_status(const usb_hub_dev_t *, size_t, usb_port_status_t *);
+int usb_hub_set_port_feature(const usb_hub_dev_t *, size_t, usb_hub_class_feature_t);
+int usb_hub_clear_port_feature(const usb_hub_dev_t *, size_t, usb_hub_class_feature_t);
+
+bool hub_port_changes_callback(usb_device_t *, uint8_t *, size_t, void *);
 
 #endif
 
