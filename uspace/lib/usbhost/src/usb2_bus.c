@@ -265,6 +265,13 @@ void usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
 	bus->base.ops = &usb2_bus_ops;
 
 	bus->free_bw = available_bandwidth;
+
+	/*
+	 * The first address allocated is for the roothub. This way, its
+	 * address will be 127, and the first connected USB device will have
+	 * address 1.
+	 */
+	bus->last_address = USB_ADDRESS_COUNT - 2;
 }
 
 /**
