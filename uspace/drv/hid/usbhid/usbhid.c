@@ -513,22 +513,23 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		 * allocate space for the report */
 		rc = usb_hid_init_report(hid_dev);
 		if (rc != EOK) {
-			usb_log_error("Failed to initialize input report buffer"
-			    ".\n");
+			usb_log_error("Failed to initialize input report buffer: %s\n", str_error(rc));
+			// FIXME: What happens now?
 		}
 
 		usb_polling_t *polling = &hid_dev->polling;
 		if ((rc = usb_polling_init(polling))) {
-			// FIXME
+			usb_log_error("Failed to initialize polling: %s\n", str_error(rc));
+			// FIXME: What happens now?
 		}
 
 		polling->device = hid_dev->usb_dev;
 		polling->ep_mapping = hid_dev->poll_pipe_mapping;
 		polling->request_size = hid_dev->poll_pipe_mapping->pipe.desc.max_transfer_size;
 		polling->buffer = malloc(polling->request_size);
-		polling->on_data = usb_hid_polling_callback,
-		polling->on_polling_end = usb_hid_polling_ended_callback,
-		polling->on_error = usb_hid_polling_error_callback,
+		polling->on_data = usb_hid_polling_callback;
+		polling->on_polling_end = usb_hid_polling_ended_callback;
+		polling->on_error = usb_hid_polling_error_callback;
 		polling->arg = hid_dev;
 	}
 
