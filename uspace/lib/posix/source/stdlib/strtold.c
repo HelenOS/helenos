@@ -346,7 +346,7 @@ static long double parse_hexadecimal(const char **sptr)
 	int parsed_bits = 0;
 	bool after_decimal = false;
 	
-	while (posix_isxdigit(*str) || (!after_decimal && *str == DECIMAL_POINT)) {
+	while (isxdigit(*str) || (!after_decimal && *str == DECIMAL_POINT)) {
 		if (*str == DECIMAL_POINT) {
 			after_decimal = true;
 			str++;
@@ -458,8 +458,8 @@ long double posix_strtold(const char *restrict nptr, char **restrict endptr)
 
 	/* check for a hex number */
 	if (nptr[i] == '0' && tolower(nptr[i + 1]) == 'x' &&
-	    (posix_isxdigit(nptr[i + 2]) ||
-	    (nptr[i + 2] == RADIX && posix_isxdigit(nptr[i + 3])))) {
+	    (isxdigit(nptr[i + 2]) ||
+	    (nptr[i + 2] == RADIX && isxdigit(nptr[i + 3])))) {
 		i += 2;
 		
 		const char *ptr = &nptr[i];

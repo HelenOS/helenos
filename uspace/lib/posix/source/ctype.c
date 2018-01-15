@@ -33,78 +33,7 @@
 /** @file Character classification.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "posix/ctype.h"
-
-/**
- * Checks whether character is a hexadecimal digit.
- *
- * @param c Character to inspect.
- * @return Non-zero if character match the definition, zero otherwise.
- */
-int posix_isxdigit(int c)
-{
-	return isdigit(c) ||
-	    (c >= 'a' && c <= 'f') ||
-	    (c >= 'A' && c <= 'F');
-}
-
-/**
- * Checks whether character is a word separator.
- *
- * @param c Character to inspect.
- * @return Non-zero if character match the definition, zero otherwise.
- */
-int posix_isblank(int c)
-{
-	return c == ' ' || c == '\t';
-}
-
-/**
- * Checks whether character is a control character.
- *
- * @param c Character to inspect.
- * @return Non-zero if character match the definition, zero otherwise.
- */
-int posix_iscntrl(int c)
-{
-	return c < 0x20 || c == 0x7E;
-}
-
-/**
- * Checks whether character is any printing character except space.
- *
- * @param c Character to inspect.
- * @return Non-zero if character match the definition, zero otherwise.
- */
-int posix_isgraph(int c)
-{
-	return posix_isprint(c) && c != ' ';
-}
-
-/**
- * Checks whether character is a printing character.
- *
- * @param c Character to inspect.
- * @return Non-zero if character match the definition, zero otherwise.
- */
-int posix_isprint(int c)
-{
-	return posix_isascii(c) && !posix_iscntrl(c);
-}
-
-/**
- * Checks whether character is a punctuation.
- *
- * @param c Character to inspect.
- * @return Non-zero if character match the definition, zero otherwise.
- */
-int posix_ispunct(int c)
-{
-	return !isspace(c) && !isalnum(c) && posix_isprint(c);
-}
 
 /**
  * Checks whether character is ASCII. (obsolete)
@@ -112,7 +41,7 @@ int posix_ispunct(int c)
  * @param c Character to inspect.
  * @return Non-zero if character match the definition, zero otherwise.
  */
-int posix_isascii(int c)
+int isascii(int c)
 {
 	return c >= 0 && c < 128;
 }
@@ -123,7 +52,7 @@ int posix_isascii(int c)
  * @param c Character to convert.
  * @return Coverted character.
  */
-int posix_toascii(int c)
+int toascii(int c)
 {
 	return c & 0x7F;
 }

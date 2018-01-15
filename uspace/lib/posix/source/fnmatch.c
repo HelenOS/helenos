@@ -182,16 +182,16 @@ struct _char_class {
 static const struct _char_class _char_classes[] = {
 	{ "alnum", isalnum },
 	{ "alpha", isalpha },
-	{ "blank", posix_isblank },
-	{ "cntrl", posix_iscntrl },
+	{ "blank", isblank },
+	{ "cntrl", iscntrl },
 	{ "digit", isdigit },
-	{ "graph", posix_isgraph },
+	{ "graph", isgraph },
 	{ "lower", islower },
-	{ "print", posix_isprint },
-	{ "punct", posix_ispunct },
+	{ "print", isprint },
+	{ "punct", ispunct },
 	{ "space", isspace },
 	{ "upper", isupper },
-	{ "xdigit", posix_isxdigit }
+	{ "xdigit", isxdigit }
 };
 
 /**
