@@ -33,8 +33,6 @@
 /** @file
  */
 
-#define _HELENOS_SOURCE
-
 #include <malloc.h>
 #include <stdbool.h>
 #include <stddef.h>
