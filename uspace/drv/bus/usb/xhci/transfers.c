@@ -266,8 +266,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	}
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 
-	/* FIXME: This is racy. Do we care? */
-	ep->ring.dequeue = addr;
+	xhci_trb_ring_update_dequeue(&ep->ring, addr);
 
 	if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
 		isoch_handle_transfer_event(hc, ep, trb);
