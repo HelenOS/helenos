@@ -56,7 +56,7 @@ struct option {
 };
 
 /* HelenOS Port - These need to be exposed for legacy getopt() */
-extern const char *optarg;
+extern char *optarg;
 extern int optind, opterr, optopt;
 extern int optreset;
 

@@ -48,7 +48,7 @@ int	opterr = 1;		/* if error message should be printed */
 int	optind = 1;		/* index into parent argv vector */
 int	optopt = '?';		/* character checked for validity */
 int	optreset;		/* reset getopt */
-const char *optarg;		/* argument associated with option */
+char	*optarg;		/* argument associated with option */
 
 
 #define IGNORE_FIRST	(*options == '-' || *options == '+')
@@ -66,13 +66,13 @@ const char *optarg;		/* argument associated with option */
 			 || (*options == ':') ? (int)':' : (int)'?')
 #define INORDER (int)1
 
-#define	EMSG	""
+static char EMSG[] = "";
 
 static int getopt_internal(int, char **, const char *);
 static int gcd(int, int);
 static void permute_args(int, int, int, char **);
 
-static const char *place = EMSG; /* option letter processing */
+static char *place = EMSG; /* option letter processing */
 
 /* XXX: set optreset to 1 rather than these two */
 static int nonopt_start = -1; /* first non option argument (for permute) */
@@ -335,7 +335,7 @@ int getopt_long(int nargc, char * const *nargv, const char *options,
 	retval = getopt_internal(nargc, (char **)nargv, options);
 	if (retval == -2) {
 		char *current_argv;
-		const char *has_equal;
+		char *has_equal;
 		size_t current_argv_len;
 		int i, ambiguous, match;
 
