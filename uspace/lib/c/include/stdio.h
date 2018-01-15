@@ -57,26 +57,6 @@
 /** Default size for stream I/O buffers */
 #define BUFSIZ  4096
 
-enum _buffer_type {
-	/** No buffering */
-	_IONBF,
-	/** Line buffering */
-	_IOLBF,
-	/** Full buffering */
-	_IOFBF
-};
-
-enum _buffer_state {
-	/** Buffer is empty */
-	_bs_empty,
-
-	/** Buffer contains data to be written */
-	_bs_write,
-
-	/** Buffer contains prefetched data for reading */
-	_bs_read
-};
-
 /** Forward declaration */
 struct _IO_FILE;
 typedef struct _IO_FILE FILE;
@@ -90,7 +70,6 @@ extern int fgetc(FILE *);
 extern char *fgets(char *, int, FILE *);
 
 extern int getchar(void);
-extern char *gets(char *, size_t);
 
 /* Character and string output functions */
 extern int fputc(wchar_t, FILE *);
@@ -117,13 +96,8 @@ extern int asprintf(char **, const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
-extern int printf_size(const char *, ...)
-    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
-extern int vprintf_size(const char *, va_list);
-
 /* File stream functions */
 extern FILE *fopen(const char *, const char *);
-extern FILE *fdopen(int, const char *);
 extern FILE *freopen(const char *, const char *, FILE *);
 extern int fclose(FILE *);
 
@@ -134,7 +108,6 @@ extern int fseek(FILE *, long, int);
 extern void rewind(FILE *);
 extern long ftell(FILE *);
 extern int feof(FILE *);
-extern int fileno(FILE *);
 
 extern int fflush(FILE *);
 extern int ferror(FILE *);
@@ -146,6 +119,46 @@ extern void setbuf(FILE *, void *);
 /* Misc file functions */
 extern int rename(const char *, const char *);
 extern int remove(const char *);
+
+#ifndef _HELENOS_SOURCE
+#define _IONBF 0
+#define _IOLBF 1
+#define _IOFBF 2
+#endif
+
+#ifdef _HELENOS_SOURCE
+
+/* Nonstandard extensions. */
+
+enum _buffer_type {
+	/** No buffering */
+	_IONBF,
+	/** Line buffering */
+	_IOLBF,
+	/** Full buffering */
+	_IOFBF
+};
+
+enum _buffer_state {
+	/** Buffer is empty */
+	_bs_empty,
+
+	/** Buffer contains data to be written */
+	_bs_write,
+
+	/** Buffer contains prefetched data for reading */
+	_bs_read
+};
+
+extern int vprintf_size(const char *, va_list);
+extern int printf_size(const char *, ...)
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
+extern FILE *fdopen(int, const char *);
+extern int fileno(FILE *);
+extern char *gets(char *, size_t);
+
+#endif
+
 
 #endif
 
