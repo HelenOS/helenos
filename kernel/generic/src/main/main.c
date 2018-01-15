@@ -66,6 +66,7 @@
 #include <cpu.h>
 #include <align.h>
 #include <interrupt.h>
+#include <str.h>
 #include <mm/frame.h>
 #include <mm/page.h>
 #include <genarch/mm/page_pt.h>
