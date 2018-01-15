@@ -388,6 +388,8 @@ int add_device_phase1_worker_fibril(void *arg)
 	struct add_device_phase1 *params = arg;
 	assert(params);
 
+	bool release_default_address = false;
+
 	int ret = EOK;
 	usb_hub_dev_t *hub = params->hub;
 	usb_hub_port_t *port = params->port;
@@ -409,51 +411,40 @@ int add_device_phase1_worker_fibril(void *arg)
 		async_usleep(1000000);
 	}
 	if (ret != EOK) {
-		usb_log_error("(%p-%u): Failed to reserve default address: %s",
-		    hub, port->port_number, str_error(ret));
+		usb_log_error("(%p-%u): Failed to reserve default address: %s", hub, port->port_number, str_error(ret));
 		goto out;
 	}
+	release_default_address = true;
 
-	usb_log_debug("(%p-%u): Got default address reseting port.", hub,
-	    port->port_number);
+	usb_log_debug("(%p-%u): Got default address. Reseting port.", hub, port->port_number);
+
 	/* Reset port */
-	ret = port_enable(port, hub, true);
-	if (ret != EOK) {
-		usb_log_error("(%p-%u): Failed to reset port.", hub,
-		    port->port_number);
-		if (usbhc_release_default_address(exch) != EOK)
-			usb_log_warning("(%p-%u): Failed to release default "
-			    "address.", hub, port->port_number);
+	if ((ret = port_enable(port, hub, true))) {
+		usb_log_error("(%p-%u): Failed to reset port.", hub, port->port_number);
 		ret = EIO;
-		goto out;
+		goto out_address;
 	}
-	usb_log_debug("(%p-%u): Port reset, enumerating device", hub,
-	    port->port_number);
 
-	ret = usbhc_device_enumerate(exch, port->port_number);
-	if (ret != EOK) {
-		usb_log_error("(%p-%u): Failed to enumerate device: %s", hub,
-		    port->port_number, str_error(ret));
-		const int ret = port_enable(port, hub, false);
-		if (ret != EOK) {
-			usb_log_warning("(%p-%u)Failed to disable port (%s), "
-			    "NOT releasing default address.", hub,
-			    port->port_number, str_error(ret));
-		} else {
-			const int ret = usbhc_release_default_address(exch);
-			if (ret != EOK)
-				usb_log_warning("(%p-%u): Failed to release "
-				    "default address: %s", hub,
-				    port->port_number, str_error(ret));
-		}
-	} else {
-		usb_log_debug("(%p-%u): Device enumerated", hub,
-		    port->port_number);
-		port->device_attached = true;
-		if (usbhc_release_default_address(exch) != EOK)
-			usb_log_warning("(%p-%u): Failed to release default "
-			    "address", hub, port->port_number);
+	usb_log_debug("(%p-%u): Port reset, enumerating device", hub, port->port_number);
+
+	if ((ret = usbhc_device_enumerate(exch, port->port_number))) {
+		usb_log_error("(%p-%u): Failed to enumerate device: %s", hub, port->port_number, str_error(ret));
+		goto out_port;
 	}
+
+	usb_log_debug("(%p-%u): Device enumerated", hub, port->port_number);
+	port->device_attached = true;
+
+out_port:
+	if (!port->device_attached && (ret = port_enable(port, hub, false))) {
+		usb_log_warning("(%p-%u)Failed to disable port (%s), NOT releasing default address.", hub, port->port_number, str_error(ret));
+		release_default_address = false;
+	}
+
+out_address:
+	if (release_default_address && (ret = usbhc_release_default_address(exch)))
+		usb_log_warning("(%p-%u): Failed to release default address: %s", hub, port->port_number, str_error(ret));
+
 out:
 	usb_device_bus_exchange_end(exch);
 
