@@ -33,6 +33,7 @@
  * @file Signed and unsigned comparisons.
  */
 
+#include <alias.h>
 #include <comparison.h>
 #include <lltype.h>
 
@@ -40,7 +41,7 @@
 #define EQUAL   1;
 #define GREATER 2;
 
-int __cmpdi2 (long long a, long long b)
+int __cmpti2 (long long a, long long b)
 {
 	union lltype lla;
 	union lltype llb;
@@ -63,7 +64,7 @@ int __cmpdi2 (long long a, long long b)
 	}
 }
 
-int __ucmpdi2 (unsigned long long a, unsigned long long b)
+int __ucmpti2 (unsigned long long a, unsigned long long b)
 {
 	union lltype lla;
 	union lltype llb;
@@ -85,6 +86,11 @@ int __ucmpdi2 (unsigned long long a, unsigned long long b)
 		}
 	}
 }
+
+#if LONG_MAX == LLONG_MAX
+int ALIAS(__cmp, i2);
+int ALIAS(__ucmp, i2);
+#endif
 
 /** @}
  */

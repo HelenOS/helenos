@@ -29,20 +29,19 @@
 /** @addtogroup softint
  * @{
  */
-/**
- * @file Signed and unsigned comparisons.
- */
 
-#ifndef __SOFTINT_COMPARISON_H__
-#define __SOFTINT_COMPARISON_H__
+#ifndef __SOFTINT_ALIAS_H__
+#define __SOFTINT_ALIAS_H__
 
-/* Signed comparison (a < b => 0, a == b => 1, a > b => 2). */
-extern int __cmpdi2(long, long);
-extern int __cmpti2(long long, long long);
+#include <limits.h>
 
-/* Unsigned comparison (a < b => 0, a == b => 1, a > b => 2). */
-extern int __ucmpdi2(unsigned long, unsigned long);
-extern int __ucmpti2(unsigned long long, unsigned long long);
+/* A utility macro for creating aliases for type `long`. */
+
+#if LONG_MAX == LLONG_MAX
+#define ALIAS(pre, post) pre##d##post() __attribute__((alias(#pre "t" #post)))
+#else
+#define ALIAS(pre, post) pre##d##post() __attribute__((alias(#pre "s" #post)))
+#endif
 
 #endif
 

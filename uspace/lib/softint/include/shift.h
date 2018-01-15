@@ -37,13 +37,16 @@
 #define __SOFTINT_SHIFT_H__
 
 /* Arithmetic/logical shift left. */
-extern long long __ashldi3(long long, int);
+extern long __ashldi3(long, int);
+extern long long __ashlti3(long long, int);
 
 /* Arithmetic shift right. */
-extern long long __ashrdi3(long long, int);
+extern long __ashrdi3(long, int);
+extern long long __ashrti3(long long, int);
 
 /* Logical shift right. */
-extern long long __lshrdi3(long long, int);
+extern long __lshrdi3(long, int);
+extern long long __lshrti3(long long, int);
 
 
 /* ARM EABI */

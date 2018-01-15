@@ -33,10 +33,11 @@
  * @file Logical and arithmetic shifts.
  */
 
+#include <alias.h>
 #include <shift.h>
 #include <lltype.h>
 
-long long __ashldi3 (long long val, int shift)
+long long __ashlti3 (long long val, int shift)
 {
 	union lltype ll;
 
@@ -64,7 +65,7 @@ long long __ashldi3 (long long val, int shift)
 	return ll.s_whole;
 }
 
-long long __ashrdi3 (long long val, int shift)
+long long __ashrti3 (long long val, int shift)
 {
 	union lltype ll;
 
@@ -94,7 +95,7 @@ long long __ashrdi3 (long long val, int shift)
 	return ll.s_whole;
 }
 
-long long __lshrdi3 (long long val, int shift)
+long long __lshrti3 (long long val, int shift)
 {
 	union lltype ll;
 
@@ -131,6 +132,12 @@ long long __aeabi_llsr(long long val, int shift)
 {
 	return __lshrdi3(val, shift);
 }
+
+#if LONG_MAX == LLONG_MAX
+long ALIAS(__ashl, i3);
+long ALIAS(__ashr, i3);
+long ALIAS(__lshr, i3);
+#endif
 
 /** @}
  */

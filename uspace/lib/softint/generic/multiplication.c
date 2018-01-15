@@ -34,6 +34,7 @@
  * SW implementation of 32 and 64 bit multiplication.
  */
 
+#include <alias.h>
 #include <multiplication.h>
 #include <stdint.h>
 
@@ -66,7 +67,7 @@ static unsigned long long mul(unsigned int a, unsigned int b) {
 /** Emulate multiplication of two 64-bit long long integers.
  *
  */
-long long __muldi3 (long long a, long long b)
+long long __multi3 (long long a, long long b)
 {
 	char neg = 0;
 	
@@ -118,6 +119,10 @@ long long __muldi3 (long long a, long long b)
 	
 	return result;
 }
+
+#if LONG_MAX == LLONG_MAX
+long ALIAS(__mul, i3);
+#endif
 
 /** @}
  */
