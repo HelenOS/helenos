@@ -72,7 +72,8 @@ typedef enum {
 	XHCI_CR_STATE_CLOSED,		/**< Commands are rejected with ENAK. */
 	XHCI_CR_STATE_OPEN,		/**< Commands are enqueued normally. */
 	XHCI_CR_STATE_CHANGING,		/**< Commands wait until state changes. */
-} xhci_cr_state;
+	XHCI_CR_STATE_FULL,		/**< Commands wait until something completes. */
+} xhci_cr_state_t;
 
 typedef struct xhci_command_ring {
 	xhci_trb_ring_t trb_ring;
@@ -80,7 +81,7 @@ typedef struct xhci_command_ring {
 	fibril_mutex_t guard;		/**< Guard access to this structure. */
 	list_t cmd_list;
 
-	xhci_cr_state state;		/**< Whether commands are allowed to be
+	xhci_cr_state_t state;		/**< Whether commands are allowed to be
 					     added. */
 	fibril_condvar_t state_cv;	/**< For waiting on CR state change. */
 

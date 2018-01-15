@@ -167,6 +167,34 @@ static inline xhci_cmd_t *find_command(xhci_hc_t *hc, uint64_t phys)
 		: NULL;
 }
 
+static void cr_set_state(xhci_cmd_ring_t *cr, xhci_cr_state_t state)
+{
+	assert(fibril_mutex_is_locked(&cr->guard));
+
+	cr->state = state;
+	if (state == XHCI_CR_STATE_OPEN
+	    || state == XHCI_CR_STATE_CLOSED)
+		fibril_condvar_broadcast(&cr->state_cv);
+}
+
+static int wait_for_ring_open(xhci_cmd_ring_t *cr)
+{
+	assert(fibril_mutex_is_locked(&cr->guard));
+
+	while (true) {
+		switch (cr->state) {
+		case XHCI_CR_STATE_CHANGING:
+		case XHCI_CR_STATE_FULL:
+			fibril_condvar_wait(&cr->state_cv, &cr->guard);
+			break;
+		case XHCI_CR_STATE_OPEN:
+			return EOK;
+		case XHCI_CR_STATE_CLOSED:
+			return ENAK;
+		}
+	}
+}
+
 /**
  * Enqueue a command on the TRB ring. Ring the doorbell to initiate processing.
  * Register the command as waiting for completion inside the command list.
@@ -178,10 +206,7 @@ static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	fibril_mutex_lock(&cr->guard);
 
-	while (cr->state == XHCI_CR_STATE_CHANGING)
-		fibril_condvar_wait(&cr->state_cv, &cr->guard);
-
-	if (cr->state != XHCI_CR_STATE_OPEN) {
+	if (wait_for_ring_open(cr)) {
 		fibril_mutex_unlock(&cr->guard);
 		return ENAK;
 	}
@@ -190,12 +215,23 @@ static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	list_append(&cmd->_header.link, &cr->cmd_list);
 
-	xhci_trb_ring_enqueue(&cr->trb_ring, &cmd->_header.trb, &cmd->_header.trb_phys);
-	hc_ring_doorbell(hc, 0, 0);
+	int err = EOK;
+	while (err == EOK) {
+		err = xhci_trb_ring_enqueue(&cr->trb_ring,
+		    &cmd->_header.trb, &cmd->_header.trb_phys);
+		if (err != EAGAIN)
+			break;
+
+		cr_set_state(cr, XHCI_CR_STATE_FULL);
+		err = wait_for_ring_open(cr);
+	}
+
+	if (err == EOK)
+		hc_ring_doorbell(hc, 0, 0);
 
 	fibril_mutex_unlock(&cr->guard);
 
-	return EOK;
+	return err;
 }
 
 /**
@@ -209,8 +245,7 @@ void xhci_stop_command_ring(xhci_hc_t *hc)
 	fibril_mutex_lock(&cr->guard);
 
 	// Prevent others from starting CR again.
-	cr->state = XHCI_CR_STATE_CLOSED;
-	fibril_condvar_broadcast(&cr->state_cv);
+	cr_set_state(cr, XHCI_CR_STATE_CLOSED);
 
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_CS, 1);
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0); // Some systems (incl. QEMU) require 64-bit write
@@ -298,9 +333,6 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	fibril_mutex_lock(&cr->guard);
 
 	int code = TRB_GET_CODE(*trb);
-	const uint64_t phys = TRB_GET_PHYS(*trb);
-
-	xhci_trb_ring_update_dequeue(&cr->trb_ring, phys);
 
 	if (code == XHCI_TRBC_COMMAND_RING_STOPPED) {
 		/* This can either mean that the ring is being stopped, or
@@ -315,6 +347,12 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		fibril_mutex_unlock(&cr->guard);
 		return EOK;
 	}
+
+	const uint64_t phys = TRB_GET_PHYS(*trb);
+	xhci_trb_ring_update_dequeue(&cr->trb_ring, phys);
+
+	if (cr->state == XHCI_CR_STATE_FULL)
+		cr_set_state(cr, XHCI_CR_STATE_OPEN);
 
 	xhci_cmd_t *command = find_command(hc, phys);
 	if (command == NULL) {
@@ -591,18 +629,19 @@ static int try_abort_current_command(xhci_hc_t *hc)
 
 	fibril_mutex_lock(&cr->guard);
 
-	if (cr->state != XHCI_CR_STATE_OPEN) {
-		// The CR is either stopped, or different fibril is already
-		// restarting it.
-		usb_log_debug2("Command ring already being stopped.");
+	if (cr->state == XHCI_CR_STATE_CLOSED) {
+		fibril_mutex_unlock(&cr->guard);
+		return ENAK;
+	}
+
+	if (cr->state == XHCI_CR_STATE_CHANGING) {
 		fibril_mutex_unlock(&cr->guard);
 		return EOK;
 	}
 
 	usb_log_error("Timeout while waiting for command: aborting current command.");
 
-	cr->state = XHCI_CR_STATE_CHANGING;
-	fibril_condvar_broadcast(&cr->state_cv);
+	cr_set_state(cr, XHCI_CR_STATE_CHANGING);
 
 	abort_command_ring(hc);
 
@@ -615,8 +654,7 @@ static int try_abort_current_command(xhci_hc_t *hc)
 		 */
 		usb_log_error("Command didn't abort.");
 
-		cr->state = XHCI_CR_STATE_CLOSED;
-		fibril_condvar_broadcast(&cr->state_cv);
+		cr_set_state(cr, XHCI_CR_STATE_CLOSED);
 
 		// TODO: Reset HC completely.
 		// Don't forget to somehow complete all commands with error.
@@ -625,13 +663,13 @@ static int try_abort_current_command(xhci_hc_t *hc)
 		return ENAK;
 	}
 
+	cr_set_state(cr, XHCI_CR_STATE_OPEN);
+
+	fibril_mutex_unlock(&cr->guard);
+
 	usb_log_error("Command ring stopped. Starting again.");
 	hc_ring_doorbell(hc, 0, 0);
 
-	cr->state = XHCI_CR_STATE_OPEN;
-	fibril_condvar_broadcast(&cr->state_cv);
-
-	fibril_mutex_unlock(&cr->guard);
 	return EOK;
 }
 
