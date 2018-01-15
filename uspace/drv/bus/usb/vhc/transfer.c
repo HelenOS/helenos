@@ -206,7 +206,7 @@ int vhc_schedule(usb_transfer_batch_t *batch)
 	fibril_mutex_unlock(&vhc->guard);
 	
 	if (targets > 1)
-		usb_log_warning("Transfer would be accepted by more devices!\n");
+		usb_log_warning("Transfer would be accepted by more devices!");
 
 	return targets ? EOK : ENOENT;
 }
@@ -235,11 +235,11 @@ int vhc_transfer_queue_processor(void *arg)
 			rc = process_transfer_local(&transfer->batch,
 			    dev->dev_local, &data_transfer_size);
 		} else {
-			usb_log_warning("Device has no remote phone nor local node.\n");
+			usb_log_warning("Device has no remote phone nor local node.");
 			rc = ESTALL;
 		}
 
-		usb_log_debug2("Transfer %p processed: %s.\n",
+		usb_log_debug2("Transfer %p processed: %s.",
 		    transfer, str_error(rc));
 
 		fibril_mutex_lock(&dev->guard);
@@ -248,7 +248,7 @@ int vhc_transfer_queue_processor(void *arg)
 				usb_device_request_setup_packet_t *setup =
 				    (void*) transfer->batch.setup.buffer;
 				dev->address = setup->value;
-				usb_log_debug2("Address changed to %d\n",
+				usb_log_debug2("Address changed to %d",
 				    dev->address);
 			}
 		}

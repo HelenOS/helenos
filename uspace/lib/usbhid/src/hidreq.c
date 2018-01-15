@@ -61,7 +61,7 @@ int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
 	
@@ -81,7 +81,7 @@ int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	uint16_t value = 0;
 	value |= (type << 8);
 
-	usb_log_debug("Sending Set Report request to the device.\n");
+	usb_log_debug("Sending Set Report request to the device.");
 	
 	rc = usb_control_request_set(ctrl_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
@@ -111,7 +111,7 @@ int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_protocol_t protocol)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
 	
@@ -159,7 +159,7 @@ int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
 	
@@ -214,7 +214,7 @@ int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
     size_t *actual_size)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
 	
@@ -234,7 +234,7 @@ int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	uint16_t value = 0;
 	value |= (type << 8);
 	
-	usb_log_debug("Sending Get Report request to the device.\n");
+	usb_log_debug("Sending Get Report request to the device.");
 	
 	rc = usb_control_request_get(ctrl_pipe, 
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
@@ -265,7 +265,7 @@ int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_protocol_t *protocol)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
 	
@@ -299,7 +299,7 @@ int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 	}
 	
 	if (actual_size != 1) {
-		usb_log_warning("Wrong data size: %zu, expected: 1.\n",
+		usb_log_warning("Wrong data size: %zu, expected: 1.",
 			actual_size);
 		return ELIMIT;
 	}
@@ -326,7 +326,7 @@ int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
 	
@@ -362,7 +362,7 @@ int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
 	}
 	
 	if (actual_size != 1) {
-		usb_log_warning("Wrong data size: %zu, expected: 1.\n",
+		usb_log_warning("Wrong data size: %zu, expected: 1.",
 			actual_size);
 		return ELIMIT;
 	}

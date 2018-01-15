@@ -230,7 +230,7 @@ void hub_set_port_state(hub_t *hub, size_t port_index, hub_port_state_t state)
 		return;
 	}
 
-	usb_log_debug("Setting port %zu to state %d.\n", port_index, state);
+	usb_log_debug("Setting port %zu to state %d.", port_index, state);
 
 	switch (state) {
 		case HUB_PORT_STATE_POWERED_OFF:
@@ -422,7 +422,7 @@ static void set_port_status_change(hub_port_t *port,
 	assert(port != NULL);
 	uint16_t old_value = port->status_change;
 	port->status_change |= change;
-	usb_log_debug("Changing status change on %zu: %04x => %04x\n",
+	usb_log_debug("Changing status change on %zu: %04x => %04x",
 	    port->index,
 	    (unsigned int) old_value, (unsigned int) port->status_change);
 	port->hub->signal_changes = true;
@@ -509,7 +509,7 @@ static void set_port_state_delayed(hub_t *hub, size_t port_index,
 	change->new_state = new_state;
 	fid_t fibril = fibril_create(set_port_state_delayed_fibril, change);
 	if (fibril == 0) {
-		printf("Failed to create fibril\n");
+		usb_log_error("Failed to create fibril.");
 		free(change);
 		return;
 	}

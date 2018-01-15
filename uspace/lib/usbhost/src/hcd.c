@@ -168,7 +168,7 @@ static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t
 
 	const int irq = hc_driver->irq_code_gen(&irq_code, hcd, hw_res);
 	if (irq < 0) {
-		usb_log_error("Failed to generate IRQ code: %s.\n",
+		usb_log_error("Failed to generate IRQ code: %s.",
 		    str_error(irq));
 		return irq;
 	}
@@ -177,7 +177,7 @@ static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t
 	const int irq_cap = register_interrupt_handler(hcd->ddf_dev, irq, irq_handler, &irq_code);
 	irq_code_clean(&irq_code);
 	if (irq_cap < 0) {
-		usb_log_error("Failed to register interrupt handler: %s.\n",
+		usb_log_error("Failed to register interrupt handler: %s.",
 		    str_error(irq_cap));
 		return irq_cap;
 	}
@@ -185,7 +185,7 @@ static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t
 	/* Enable interrupts */
 	int ret = hcd_ddf_enable_interrupt(hcd, irq);
 	if (ret != EOK) {
-		usb_log_error("Failed to enable interrupts: %s.\n",
+		usb_log_error("Failed to enable interrupts: %s.",
 		    str_error(ret));
 		unregister_interrupt_handler(hcd->ddf_dev, irq_cap);
 		return ret;
@@ -218,7 +218,7 @@ int hc_dev_add(ddf_dev_t *device)
 
 	ret = hcd_ddf_setup_hc(device, hc_driver->hc_device_size);
 	if (ret != EOK) {
-		usb_log_error("Failed to setup HC device.\n");
+		usb_log_error("Failed to setup HC device.");
 		return ret;
 	}
 
@@ -228,14 +228,14 @@ int hc_dev_add(ddf_dev_t *device)
 	ret = hcd_ddf_get_registers(hcd, &hw_res);
 	if (ret != EOK) {
 		usb_log_error("Failed to get register memory addresses "
-		    "for `%s': %s.\n", ddf_dev_get_name(device),
+		    "for `%s': %s.", ddf_dev_get_name(device),
 		    str_error(ret));
 		goto err_hcd;
 	}
 
 	ret = hc_driver->hc_add(hcd, &hw_res);
 	if (ret != EOK) {
-		usb_log_error("Failed to init HCD.\n");
+		usb_log_error("Failed to init HCD.");
 		goto err_hw_res;
 	}
 
@@ -244,7 +244,7 @@ int hc_dev_add(ddf_dev_t *device)
 	/* Setup interrupts  */
 	hcd->irq_cap = hcd_ddf_setup_interrupts(hcd, &hw_res);
 	if (hcd->irq_cap >= 0) {
-		usb_log_debug("Hw interrupts enabled.\n");
+		usb_log_debug("Hw interrupts enabled.");
 	}
 
 	/* Claim the device from BIOS */
@@ -260,7 +260,7 @@ int hc_dev_add(ddf_dev_t *device)
 	if (hc_driver->start)
 		ret = hc_driver->start(hcd);
 	if (ret != EOK) {
-		usb_log_error("Failed to start HCD: %s.\n", str_error(ret));
+		usb_log_error("Failed to start HCD: %s.", str_error(ret));
 		goto err_irq;
 	}
 
@@ -270,13 +270,13 @@ int hc_dev_add(ddf_dev_t *device)
 	if (hcd->irq_cap < 0 && ops) {
 		hcd->polling_fibril = fibril_create(interrupt_polling, hcd->bus);
 		if (!hcd->polling_fibril) {
-			usb_log_error("Failed to create polling fibril\n");
+			usb_log_error("Failed to create polling fibril");
 			ret = ENOMEM;
 			goto err_started;
 		}
 		fibril_add_ready(hcd->polling_fibril);
 		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling.\n", str_error(hcd->irq_cap));
+		    " Falling back to polling.", str_error(hcd->irq_cap));
 	}
 
 	/*
@@ -286,12 +286,12 @@ int hc_dev_add(ddf_dev_t *device)
 	if (hc_driver->setup_root_hub)
 		ret = hc_driver->setup_root_hub(hcd);
 	if (ret != EOK) {
-		usb_log_error("Failed to setup HC root hub: %s.\n",
+		usb_log_error("Failed to setup HC root hub: %s.",
 		    str_error(ret));
 		goto err_polling;
 	}
 
-	usb_log_info("Controlling new `%s' device `%s'.\n",
+	usb_log_info("Controlling new `%s' device `%s'.",
 	   hc_driver->name, ddf_dev_get_name(device));
 	return EOK;
 

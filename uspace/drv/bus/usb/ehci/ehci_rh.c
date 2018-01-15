@@ -106,9 +106,9 @@ int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,
 	instance->port_count =
 	    (EHCI_RD(caps->hcsparams) >> EHCI_CAPS_HCS_N_PORTS_SHIFT) &
 	    EHCI_CAPS_HCS_N_PORTS_MASK;
-	usb_log_debug2("RH(%p): hcsparams: %x.\n", instance,
+	usb_log_debug2("RH(%p): hcsparams: %x.", instance,
 	    EHCI_RD(caps->hcsparams));
-	usb_log_info("RH(%p): Found %u ports.\n", instance,
+	usb_log_info("RH(%p): Found %u ports.", instance,
 	    instance->port_count);
 
 	if (EHCI_RD(caps->hcsparams) & EHCI_CAPS_HCS_PPC_FLAG) {

@@ -184,17 +184,17 @@ static void default_connection_handler(ddf_fun_t *fun,
 		}
 		if (kbd_dev->client_sess == NULL) {
 			kbd_dev->client_sess = sess;
-			usb_log_debug("%s: OK\n", __FUNCTION__);
+			usb_log_debug("%s: OK", __FUNCTION__);
 			async_answer_0(icallid, EOK);
 		} else {
-			usb_log_error("%s: console session already set\n",
+			usb_log_error("%s: console session already set",
 			   __FUNCTION__);
 			async_answer_0(icallid, ELIMIT);
 		}
 		break;
 	}
 	default:
-			usb_log_error("%s: Unknown method: %d.\n",
+			usb_log_error("%s: Unknown method: %d.",
 			    __FUNCTION__, (int) method);
 			async_answer_0(icallid, EINVAL);
 			break;
@@ -225,7 +225,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 	/* Reset the LED data. */
 	memset(kbd_dev->led_data, 0, kbd_dev->led_output_size * sizeof(int32_t));
-	usb_log_debug("Creating output report:\n");
+	usb_log_debug("Creating output report:");
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    &hid_dev->report, NULL, kbd_dev->led_path,
@@ -265,7 +265,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		return;
 	}
 
-	usb_log_debug("Output report buffer: %s\n",
+	usb_log_debug("Output report buffer: %s",
 	    usb_debug_str_buffer(kbd_dev->output_buffer, kbd_dev->output_size,
 	        0));
 
@@ -275,7 +275,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	    USB_HID_REPORT_TYPE_OUTPUT,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 	if (rc != EOK) {
-		usb_log_warning("Failed to set kbd indicators.\n");
+		usb_log_warning("Failed to set kbd indicators.");
 	}
 }
 
@@ -288,7 +288,7 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
  */
 void usb_kbd_push_ev(usb_kbd_t *kbd_dev, int type, unsigned key)
 {
-	usb_log_debug2("Sending kbdev event %d/%d to the console\n", type, key);
+	usb_log_debug2("Sending kbdev event %d/%d to the console", type, key);
 	if (kbd_dev->client_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
@@ -300,7 +300,7 @@ void usb_kbd_push_ev(usb_kbd_t *kbd_dev, int type, unsigned key)
 		async_msg_2(exch, KBDEV_EVENT, type, key);
 		async_exchange_end(exch);
 	} else {
-		usb_log_warning("Failed to send key to console.\n");
+		usb_log_warning("Failed to send key to console.");
 	}
 }
 
@@ -352,7 +352,7 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 	size_t i = find_in_array_int32(ERROR_ROLLOVER, kbd_dev->keys,
 	    kbd_dev->key_count);
 	if (i != (size_t) -1) {
-		usb_log_error("Detected phantom state.\n");
+		usb_log_error("Detected phantom state.");
 		return;
 	}
 
@@ -402,7 +402,7 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 	char key_buffer[512];
 	ddf_dump_buffer(key_buffer, 512,
 	    kbd_dev->keys_old, 4, kbd_dev->key_count, 0);
-	usb_log_debug2("Stored keys %s.\n", key_buffer);
+	usb_log_debug2("Stored keys %s.", key_buffer);
 }
 
 /* General kbd functions                                                      */
@@ -430,14 +430,14 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL) {
-		usb_log_error("Failed to create hid/kbd report path.\n");
+		usb_log_error("Failed to create hid/kbd report path.");
 		return;
 	}
 
 	int ret =
 	   usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	if (ret != EOK) {
-		usb_log_error("Failed to append to hid/kbd report path.\n");
+		usb_log_error("Failed to append to hid/kbd report path.");
 		return;
 	}
 
@@ -451,7 +451,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	unsigned i = 0;
 
 	while (field != NULL) {
-		usb_log_debug2("FIELD (%p) - VALUE(%d) USAGE(%u)\n",
+		usb_log_debug2("FIELD (%p) - VALUE(%d) USAGE(%u)",
 		    field, field->value, field->usage);
 
 		assert(i < kbd_dev->key_count);
@@ -463,7 +463,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		else {
 			kbd_dev->keys[i] = 0;
 		}
-		usb_log_debug2("Saved %u. key usage %d\n", i, kbd_dev->keys[i]);
+		usb_log_debug2("Saved %u. key usage %d", i, kbd_dev->keys[i]);
 
 		++i;
 		field = usb_hid_report_get_sibling(
@@ -501,7 +501,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 	// TODO: make more general
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL) {
-		usb_log_error("Failed to create kbd report path.\n");
+		usb_log_error("Failed to create kbd report path.");
 		usb_kbd_destroy(kbd_dev);
 		return ENOMEM;
 	}
@@ -509,7 +509,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 	int ret =
 	    usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	if (ret != EOK) {
-		usb_log_error("Failed to append item to kbd report path.\n");
+		usb_log_error("Failed to append item to kbd report path.");
 		usb_hid_report_path_free(path);
 		usb_kbd_destroy(kbd_dev);
 		return ret;
@@ -522,18 +522,18 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 
 	usb_hid_report_path_free(path);
 
-	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
+	usb_log_debug("Size of the input report: %zu", kbd_dev->key_count);
 
 	kbd_dev->keys = calloc(kbd_dev->key_count, sizeof(int32_t));
 	if (kbd_dev->keys == NULL) {
-		usb_log_error("Failed to allocate key buffer.\n");
+		usb_log_error("Failed to allocate key buffer.");
 		usb_kbd_destroy(kbd_dev);
 		return ENOMEM;
 	}
 
 	kbd_dev->keys_old = calloc(kbd_dev->key_count, sizeof(int32_t));
 	if (kbd_dev->keys_old == NULL) {
-		usb_log_error("Failed to allocate old_key buffer.\n");
+		usb_log_error("Failed to allocate old_key buffer.");
 		usb_kbd_destroy(kbd_dev);
 		return ENOMEM;
 	}
@@ -543,16 +543,16 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 	kbd_dev->output_buffer = usb_hid_report_output(&hid_dev->report,
 	    &kbd_dev->output_size, 0);
 	if (kbd_dev->output_buffer == NULL) {
-		usb_log_error("Error creating output report buffer.\n");
+		usb_log_error("Error creating output report buffer.");
 		usb_kbd_destroy(kbd_dev);
 		return ENOMEM;
 	}
 
-	usb_log_debug("Output buffer size: %zu\n", kbd_dev->output_size);
+	usb_log_debug("Output buffer size: %zu", kbd_dev->output_size);
 
 	kbd_dev->led_path = usb_hid_report_path();
 	if (kbd_dev->led_path == NULL) {
-		usb_log_error("Failed to create kbd led report path.\n");
+		usb_log_error("Failed to create kbd led report path.");
 		usb_kbd_destroy(kbd_dev);
 		return ENOMEM;
 	}
@@ -560,7 +560,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 	ret = usb_hid_report_path_append_item(
 	    kbd_dev->led_path, USB_HIDUT_PAGE_LED, 0);
 	if (ret != EOK) {
-		usb_log_error("Failed to append to kbd/led report path.\n");
+		usb_log_error("Failed to append to kbd/led report path.");
 		usb_kbd_destroy(kbd_dev);
 		return ret;
 	}
@@ -568,12 +568,12 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 	kbd_dev->led_output_size = usb_hid_report_size(
 	    &hid_dev->report, 0, USB_HID_REPORT_TYPE_OUTPUT);
 
-	usb_log_debug("Output report size (in items): %zu\n",
+	usb_log_debug("Output report size (in items): %zu",
 	    kbd_dev->led_output_size);
 
 	kbd_dev->led_data = calloc(kbd_dev->led_output_size, sizeof(int32_t));
 	if (kbd_dev->led_data == NULL) {
-		usb_log_error("Error creating buffer for LED output report.\n");
+		usb_log_error("Error creating buffer for LED output report.");
 		usb_kbd_destroy(kbd_dev);
 		return ENOMEM;
 	}
@@ -587,7 +587,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 
 
 	kbd_dev->initialized = USB_KBD_STATUS_INITIALIZED;
-	usb_log_debug("HID/KBD device structure initialized.\n");
+	usb_log_debug("HID/KBD device structure initialized.");
 
 	return EOK;
 }
@@ -617,7 +617,7 @@ static int kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
  */
 int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 {
-	usb_log_debug("Initializing HID/KBD structure...\n");
+	usb_log_debug("Initializing HID/KBD structure...");
 
 	if (hid_dev == NULL) {
 		usb_log_error(
@@ -626,24 +626,24 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 	}
 
 	/* Create the exposed function. */
-	usb_log_debug("Creating DDF function %s...\n", HID_KBD_FUN_NAME);
+	usb_log_debug("Creating DDF function %s...", HID_KBD_FUN_NAME);
 	ddf_fun_t *fun = usb_device_ddf_fun_create(hid_dev->usb_dev,
 	    fun_exposed, HID_KBD_FUN_NAME);
 	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node.\n");
+		usb_log_error("Could not create DDF function node.");
 		return ENOMEM;
 	}
 
 	usb_kbd_t *kbd_dev = ddf_fun_data_alloc(fun, sizeof(usb_kbd_t));
 	if (kbd_dev == NULL) {
-		usb_log_error("Failed to allocate KBD device structure.\n");
+		usb_log_error("Failed to allocate KBD device structure.");
 		ddf_fun_destroy(fun);
 		return ENOMEM;
 	}
 
 	int ret = kbd_dev_init(kbd_dev, hid_dev);
 	if (ret != EOK) {
-		usb_log_error("Failed to initialize KBD device  structure.\n");
+		usb_log_error("Failed to initialize KBD device  structure.");
 		ddf_fun_destroy(fun);
 		return ret;
 	}
@@ -654,17 +654,17 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 
 	ret = ddf_fun_bind(fun);
 	if (ret != EOK) {
-		usb_log_error("Could not bind DDF function: %s.\n",
+		usb_log_error("Could not bind DDF function: %s.",
 		    str_error(ret));
 		usb_kbd_destroy(kbd_dev);
 		ddf_fun_destroy(fun);
 		return ret;
 	}
 
-	usb_log_debug("%s function created. Handle: %" PRIun "\n",
+	usb_log_debug("%s function created. Handle: %" PRIun "",
 	    HID_KBD_FUN_NAME, ddf_fun_get_handle(fun));
 
-	usb_log_debug("Adding DDF function to category %s...\n",
+	usb_log_debug("Adding DDF function to category %s...",
 	    HID_KBD_CATEGORY_NAME);
 	ret = ddf_fun_add_to_category(fun, HID_KBD_CATEGORY_NAME);
 	if (ret != EOK) {
@@ -752,10 +752,10 @@ void usb_kbd_destroy(usb_kbd_t *kbd_dev)
 
 	if (kbd_dev->fun) {
 		if (ddf_fun_unbind(kbd_dev->fun) != EOK) {
-			usb_log_warning("Failed to unbind %s.\n",
+			usb_log_warning("Failed to unbind %s.",
 			    ddf_fun_get_name(kbd_dev->fun));
 		} else {
-			usb_log_debug2("%s unbound.\n",
+			usb_log_debug2("%s unbound.",
 			    ddf_fun_get_name(kbd_dev->fun));
 			ddf_fun_destroy(kbd_dev->fun);
 		}
@@ -783,7 +783,7 @@ int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 	    sizeof(USB_KBD_BOOT_REPORT_DESCRIPTOR));
 
 	if (rc != EOK) {
-		usb_log_error("Failed to parse boot report descriptor: %s\n",
+		usb_log_error("Failed to parse boot report descriptor: %s",
 		    str_error(rc));
 		return rc;
 	}

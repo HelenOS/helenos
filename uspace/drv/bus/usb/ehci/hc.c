@@ -133,7 +133,7 @@ int hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed
 	code->cmds[3].addr = (void *) &registers->usbsts;
 	EHCI_WR(code->cmds[1].value, EHCI_USED_INTERRUPTS);
 
-	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
+	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.",
 	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
 
 	return hw_res->irqs.irqs[0];
@@ -159,7 +159,7 @@ int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	    (void **)&instance->caps);
 	if (ret != EOK) {
 		usb_log_error("HC(%p): Failed to gain access to device "
-		    "registers: %s.\n", instance, str_error(ret));
+		    "registers: %s.", instance, str_error(ret));
 		return ret;
 	}
 
@@ -210,7 +210,7 @@ void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 	assert(instance);
 	assert(ep);
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
-	usb_log_debug("HC(%p) enqueue EP(%d:%d:%s:%s)\n", instance,
+	usb_log_debug("HC(%p) enqueue EP(%d:%d:%s:%s)", instance,
 	    ep->device->address, ep->endpoint,
 	    usb_str_transfer_type_short(ep->transfer_type),
 	    usb_str_direction(ep->direction));
@@ -234,7 +234,7 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	assert(instance);
 	assert(ep);
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
-	usb_log_debug("HC(%p) dequeue EP(?:%d:%s:%s)\n", instance,
+	usb_log_debug("HC(%p) dequeue EP(?:%d:%s:%s)", instance,
 	    ep->endpoint,
 	    usb_str_transfer_type_short(ep->transfer_type),
 	    usb_str_direction(ep->direction));
@@ -422,11 +422,11 @@ int hc_start(hc_device_t *hcd)
 	EHCI_SET(instance->registers->configflag, USB_CONFIG_FLAG_FLAG);
 	usb_log_debug("HC(%p): HW started.", instance);
 
-	usb_log_debug2("HC(%p): Registers: \n"
-	    "\tUSBCMD(%p): %x(0x00080000 = at least 1ms between interrupts)\n"
-	    "\tUSBSTS(%p): %x(0x00001000 = HC halted)\n"
-	    "\tUSBINT(%p): %x(0x0 = no interrupts).\n"
-	    "\tCONFIG(%p): %x(0x0 = ports controlled by companion hc).\n",
+	usb_log_debug2("HC(%p): Registers: "
+	    "\tUSBCMD(%p): %x(0x00080000 = at least 1ms between interrupts)"
+	    "\tUSBSTS(%p): %x(0x00001000 = HC halted)"
+	    "\tUSBINT(%p): %x(0x0 = no interrupts)."
+	    "\tCONFIG(%p): %x(0x0 = ports controlled by companion hc).",
 	    instance,
 	    &instance->registers->usbcmd, EHCI_RD(instance->registers->usbcmd),
 	    &instance->registers->usbsts, EHCI_RD(instance->registers->usbsts),

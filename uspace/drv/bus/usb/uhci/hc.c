@@ -140,7 +140,7 @@ int hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed
 	code->cmds[0].addr = (void*)&registers->usbsts;
 	code->cmds[3].addr = (void*)&registers->usbsts;
 
-	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.\n",
+	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.",
 	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
 
 	return hw_res->irqs.irqs[0];
@@ -181,12 +181,12 @@ static void hc_interrupt(bus_t *bus, uint32_t status)
 	}
 	/* Resume interrupts are not supported */
 	if (status & UHCI_STATUS_RESUME) {
-		usb_log_error("Resume interrupt!\n");
+		usb_log_error("Resume interrupt!");
 	}
 
 	/* Bits 4 and 5 indicate hc error */
 	if (status & (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)) {
-		usb_log_error("UHCI hardware failure!.\n");
+		usb_log_error("UHCI hardware failure!.");
 		++instance->hw_failures;
 		transfer_list_abort_all(&instance->transfers_interrupt);
 		transfer_list_abort_all(&instance->transfers_control_slow);
@@ -197,7 +197,7 @@ static void hc_interrupt(bus_t *bus, uint32_t status)
 			/* reinitialize hw, this triggers virtual disconnect*/
 			hc_init_hw(instance);
 		} else {
-			usb_log_fatal("Too many UHCI hardware failures!.\n");
+			usb_log_fatal("Too many UHCI hardware failures!.");
 			hc_gone(&instance->base);
 		}
 	}
@@ -228,18 +228,18 @@ int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	int ret = pio_enable_range(&hw_res->io_ranges.ranges[0],
 	    (void **) &instance->registers);
 	if (ret != EOK) {
-		usb_log_error("Failed to gain access to registers: %s.\n",
+		usb_log_error("Failed to gain access to registers: %s.",
 	            str_error(ret));
 		return ret;
 	}
 
-	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.\n",
+	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.",
 	    hw_res->io_ranges.ranges[0].address.absolute,
 	    hw_res->io_ranges.ranges[0].size);
 
 	ret = hc_init_mem_structures(instance, hcd);
 	if (ret != EOK) {
-		usb_log_error("Failed to init UHCI memory structures: %s.\n",
+		usb_log_error("Failed to init UHCI memory structures: %s.",
 		    str_error(ret));
 		// TODO: we should disable pio here
 		return ret;
@@ -303,7 +303,7 @@ void hc_init_hw(const hc_t *instance)
 
 	const uint16_t cmd = pio_read_16(&registers->usbcmd);
 	if (cmd != 0)
-		usb_log_warning("Previous command value: %x.\n", cmd);
+		usb_log_warning("Previous command value: %x.", cmd);
 
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&registers->usbcmd,
@@ -398,16 +398,16 @@ int hc_init_mem_structures(hc_t *instance, hc_device_t *hcd)
 	if (!instance->frame_list) {
 		return ENOMEM;
 	}
-	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
+	usb_log_debug("Initialized frame list at %p.", instance->frame_list);
 
 	/* Init transfer lists */
 	int ret = hc_init_transfer_lists(instance);
 	if (ret != EOK) {
-		usb_log_error("Failed to initialize transfer lists.\n");
+		usb_log_error("Failed to initialize transfer lists.");
 		return_page(instance->frame_list);
 		return ENOMEM;
 	}
-	usb_log_debug("Initialized transfer lists.\n");
+	usb_log_debug("Initialized transfer lists.");
 
 
 	/* Set all frames to point to the first queue head */
@@ -437,7 +437,7 @@ int hc_init_transfer_lists(hc_t *instance)
 do { \
 	int ret = transfer_list_init(&instance->transfers_##type, name); \
 	if (ret != EOK) { \
-		usb_log_error("Failed to setup %s transfer list: %s.\n", \
+		usb_log_error("Failed to setup %s transfer list: %s.", \
 		    name, str_error(ret)); \
 		transfer_list_fini(&instance->transfers_bulk_full); \
 		transfer_list_fini(&instance->transfers_control_full); \
@@ -551,14 +551,14 @@ int hc_debug_checker(void *arg)
 		    pio_read_16(&instance->registers->usbintr);
 
 		if (((cmd & UHCI_CMD_RUN_STOP) != 1) || (sts != 0)) {
-			usb_log_debug2("Command: %X Status: %X Intr: %x\n",
+			usb_log_debug2("Command: %X Status: %X Intr: %x",
 			    cmd, sts, intr);
 		}
 
 		const uintptr_t frame_list =
 		    pio_read_32(&instance->registers->flbaseadd) & ~0xfff;
 		if (frame_list != addr_to_phys(instance->frame_list)) {
-			usb_log_debug("Framelist address: %p vs. %p.\n",
+			usb_log_debug("Framelist address: %p vs. %p.",
 			    (void *) frame_list,
 			    (void *) addr_to_phys(instance->frame_list));
 		}
@@ -569,28 +569,28 @@ int hc_debug_checker(void *arg)
 		    & LINK_POINTER_ADDRESS_MASK;
 		uintptr_t real_pa = addr_to_phys(QH(interrupt));
 		if (expected_pa != real_pa) {
-			usb_log_debug("Interrupt QH: %p (frame %d) vs. %p.\n",
+			usb_log_debug("Interrupt QH: %p (frame %d) vs. %p.",
 			    (void *) expected_pa, frnum, (void *) real_pa);
 		}
 
 		expected_pa = QH(interrupt)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(control_slow));
 		if (expected_pa != real_pa) {
-			usb_log_debug("Control Slow QH: %p vs. %p.\n",
+			usb_log_debug("Control Slow QH: %p vs. %p.",
 			    (void *) expected_pa, (void *) real_pa);
 		}
 
 		expected_pa = QH(control_slow)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(control_full));
 		if (expected_pa != real_pa) {
-			usb_log_debug("Control Full QH: %p vs. %p.\n",
+			usb_log_debug("Control Full QH: %p vs. %p.",
 			    (void *) expected_pa, (void *) real_pa);
 		}
 
 		expected_pa = QH(control_full)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(bulk_full));
 		if (expected_pa != real_pa ) {
-			usb_log_debug("Bulk QH: %p vs. %p.\n",
+			usb_log_debug("Bulk QH: %p vs. %p.",
 			    (void *) expected_pa, (void *) real_pa);
 		}
 		async_usleep(UHCI_DEBUGER_TIMEOUT);

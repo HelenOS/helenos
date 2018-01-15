@@ -47,7 +47,7 @@
  */
 static int usbfallback_device_add(usb_device_t *dev)
 {
-	usb_log_info("Pretending to control %s `%s'.\n",
+	usb_log_info("Pretending to control %s `%s'.",
 	    usb_device_get_iface_number(dev) < 0 ? "device" : "interface",
 	    usb_device_get_name(dev));
 	return EOK;

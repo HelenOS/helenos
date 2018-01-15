@@ -61,7 +61,7 @@ static int generic_device_add(ddf_dev_t *gen_dev)
 	const char *err_msg = NULL;
 	int rc = usb_device_create_ddf(gen_dev, driver->endpoints, &err_msg);
 	if (rc != EOK) {
-		usb_log_error("USB device `%s' init failed (%s): %s.\n",
+		usb_log_error("USB device `%s' init failed (%s): %s.",
 		    ddf_dev_get_name(gen_dev), err_msg, str_error(rc));
 		return rc;
 	}

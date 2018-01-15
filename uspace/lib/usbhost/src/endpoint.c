@@ -238,7 +238,7 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
     usbhc_iface_transfer_callback_t on_complete, void *arg, const char *name)
 {
-	usb_log_debug2("%s %d:%d %zu(%zu).\n",
+	usb_log_debug2("%s %d:%d %zu(%zu).",
 	    name, target.address, target.endpoint, size, ep->max_packet_size);
 
 	device_t * const device = ep->device;
@@ -249,7 +249,7 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(device->bus->ops, batch_schedule);
 	if (!ops) {
-		usb_log_error("HCD does not implement scheduler.\n");
+		usb_log_error("HCD does not implement scheduler.");
 		return ENOTSUP;
 	}
 
@@ -269,7 +269,7 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 
 	usb_transfer_batch_t *batch = usb_transfer_batch_create(ep);
 	if (!batch) {
-		usb_log_error("Failed to create transfer batch.\n");
+		usb_log_error("Failed to create transfer batch.");
 		return ENOMEM;
 	}
 

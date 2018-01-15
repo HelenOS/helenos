@@ -50,7 +50,7 @@
  */
 static int usbmid_device_add(usb_device_t *dev)
 {
-	usb_log_info("Taking care of new MID `%s'.\n", usb_device_get_name(dev));
+	usb_log_info("Taking care of new MID `%s'.", usb_device_get_name(dev));
 
 	return usbmid_explore_device(dev);
 }
@@ -67,7 +67,7 @@ static int destroy_interfaces(usb_mid_t *usb_mid)
 
 		const int pret = usbmid_interface_destroy(iface);
 		if (pret != EOK) {
-			usb_log_error("Failed to remove child `%s': %s\n",
+			usb_log_error("Failed to remove child `%s': %s",
 			    ddf_fun_get_name(iface->fun), str_error(pret));
 			ret = pret;
 		}
@@ -90,7 +90,7 @@ static int usbmid_device_remove(usb_device_t *dev)
 	/* Remove ctl function */
 	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
 	if (ret != EOK) {
-		usb_log_error("Failed to unbind USB MID ctl function: %s.\n",
+		usb_log_error("Failed to unbind USB MID ctl function: %s.",
 		    str_error(ret));
 		return ret;
 	}
@@ -98,13 +98,13 @@ static int usbmid_device_remove(usb_device_t *dev)
 
 	/* Remove all children */
 	list_foreach(usb_mid->interface_list, link, usbmid_interface_t, iface) {
-		usb_log_info("Removing child `%s'.\n",
+		usb_log_info("Removing child `%s'.",
 		    ddf_fun_get_name(iface->fun));
 
 		/* Tell the child to go offline. */
 		int pret = ddf_fun_offline(iface->fun);
 		if (pret != EOK) {
-			usb_log_warning("Failed to turn off child `%s': %s\n",
+			usb_log_warning("Failed to turn off child `%s': %s",
 			    ddf_fun_get_name(iface->fun), str_error(pret));
 			ret = pret;
 		}
@@ -124,12 +124,12 @@ static int usbmid_device_gone(usb_device_t *dev)
 	usb_mid_t *usb_mid = usb_device_data_get(dev);
 	assert(usb_mid);
 
-	usb_log_info("USB MID gone: `%s'.\n", usb_device_get_name(dev));
+	usb_log_info("USB MID gone: `%s'.", usb_device_get_name(dev));
 
 	/* Remove ctl function */
 	int ret = ddf_fun_unbind(usb_mid->ctl_fun);
 	if (ret != EOK) {
-		usb_log_error("Failed to unbind USB MID ctl function: %s.\n",
+		usb_log_error("Failed to unbind USB MID ctl function: %s.",
 		    str_error(ret));
 		return ret;
 	}

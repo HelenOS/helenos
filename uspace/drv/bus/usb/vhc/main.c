@@ -76,7 +76,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	/* Initialize generic structures */
 	int ret = hcd_ddf_setup_hc(dev, sizeof(vhc_data_t));
 	if (ret != EOK) {
-		usb_log_error("Failed to init HCD structures: %s.\n",
+		usb_log_error("Failed to init HCD structures: %s.",
 		   str_error(ret));
 		return ret;
 	}
@@ -89,14 +89,14 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	ddf_fun_t *ctl_fun = NULL;
 	ret = vhc_control_node(dev, &ctl_fun);
 	if (ret != EOK) {
-		usb_log_error("Failed to setup control node.\n");
+		usb_log_error("Failed to setup control node.");
 		return ret;
 	}
 
 	/* Add virtual hub device */
 	ret = vhc_virtdev_plug_hub(vhc, &vhc->hub, NULL, 0);
 	if (ret != EOK) {
-		usb_log_error("Failed to plug root hub: %s.\n", str_error(ret));
+		usb_log_error("Failed to plug root hub: %s.", str_error(ret));
 		ddf_fun_destroy(ctl_fun);
 		return ret;
 	}
@@ -107,7 +107,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	 */
 	ret = hcd_setup_virtual_root_hub(&vhc->base);
 	if (ret != EOK) {
-		usb_log_error("Failed to init VHC root hub: %s\n",
+		usb_log_error("Failed to init VHC root hub: %s",
 			str_error(ret));
 		// TODO do something here...
 	}

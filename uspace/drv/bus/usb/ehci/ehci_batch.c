@@ -142,7 +142,7 @@ int ehci_transfer_batch_prepare(ehci_transfer_batch_t *ehci_batch)
 	assert(batch_setup[ehci_batch->base.ep->transfer_type]);
 	batch_setup[ehci_batch->base.ep->transfer_type](ehci_batch);
 
-	usb_log_debug("Batch %p %s " USB_TRANSFER_BATCH_FMT " initialized.\n",
+	usb_log_debug("Batch %p %s " USB_TRANSFER_BATCH_FMT " initialized.",
 	    ehci_batch, usb_str_direction(ehci_batch->base.dir),
 	    USB_TRANSFER_BATCH_ARGS(ehci_batch->base));
 
@@ -162,10 +162,10 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 {
 	assert(ehci_batch);
 
-	usb_log_debug("Batch %p: checking %zu td(s) for completion.\n",
+	usb_log_debug("Batch %p: checking %zu td(s) for completion.",
 	    ehci_batch, ehci_batch->td_count);
 
-	usb_log_debug2("Batch %p: QH: %08x:%08x:%08x:%08x:%08x:%08x.\n",
+	usb_log_debug2("Batch %p: QH: %08x:%08x:%08x:%08x:%08x:%08x.",
 	    ehci_batch,
 	    ehci_batch->qh->ep_char, ehci_batch->qh->ep_cap,
 	    ehci_batch->qh->status, ehci_batch->qh->current,

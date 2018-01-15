@@ -92,12 +92,12 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 	endpoint_del_ref(batch->ep);
 
 	if (ops) {
-		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " destroying.\n",
+		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " destroying.",
 		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 		ops->batch_destroy(batch);
 	}
 	else {
-		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.\n",
+		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.",
 		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 		free(batch);
 	}
@@ -113,7 +113,7 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 	assert(batch);
 	assert(batch->ep);
 
-	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " finishing.\n",
+	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " finishing.",
 	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 
 	if (batch->on_complete) {

@@ -58,11 +58,11 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 	instance->name = name;
 	instance->queue_head = malloc32(sizeof(qh_t));
 	if (!instance->queue_head) {
-		usb_log_error("Failed to allocate queue head.\n");
+		usb_log_error("Failed to allocate queue head.");
 		return ENOMEM;
 	}
 	const uint32_t queue_head_pa = addr_to_phys(instance->queue_head);
-	usb_log_debug2("Transfer list %s setup with QH: %p (%#" PRIx32" ).\n",
+	usb_log_debug2("Transfer list %s setup with QH: %p (%#" PRIx32" ).",
 	    name, instance->queue_head, queue_head_pa);
 
 	qh_init(instance->queue_head);
@@ -119,7 +119,7 @@ void transfer_list_add_batch(
 	endpoint_activate_locked(ep, &uhci_batch->base);
 	fibril_mutex_unlock(&ep->guard);
 
-	usb_log_debug2("Batch %p adding to queue %s.\n",
+	usb_log_debug2("Batch %p adding to queue %s.",
 	    uhci_batch, instance->name);
 
 	fibril_mutex_lock(&instance->guard);
@@ -149,7 +149,7 @@ void transfer_list_add_batch(
 	list_append(&uhci_batch->link, &instance->batch_list);
 
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
-	    " scheduled in queue %s.\n", uhci_batch,
+	    " scheduled in queue %s.", uhci_batch,
 	    USB_TRANSFER_BATCH_ARGS(uhci_batch->base), instance->name);
 	fibril_mutex_unlock(&instance->guard);
 }
@@ -212,7 +212,7 @@ void transfer_list_remove_batch(
 	assert(uhci_batch->qh);
 	assert(fibril_mutex_is_locked(&instance->guard));
 
-	usb_log_debug2("Batch %p removing from queue %s.\n",
+	usb_log_debug2("Batch %p removing from queue %s.",
 	    uhci_batch, instance->name);
 
 	/* Assume I'm the first */
@@ -235,7 +235,7 @@ void transfer_list_remove_batch(
 	/* Remove from the batch list */
 	list_remove(&uhci_batch->link);
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " removed (%s) "
-	    "from %s, next: %x.\n", uhci_batch,
+	    "from %s, next: %x.", uhci_batch,
 	    USB_TRANSFER_BATCH_ARGS(uhci_batch->base),
 	    qpos, instance->name, uhci_batch->qh->next);
 }

@@ -301,7 +301,7 @@ void usb_device_destroy_pipes(usb_device_t *usb_dev)
 	/* Destroy the pipes. */
 	int rc;
 	for (size_t i = 0; i < usb_dev->pipes_count; ++i) {
-		usb_log_debug2("Unregistering pipe %zu: %spresent.\n",
+		usb_log_debug2("Unregistering pipe %zu: %spresent.",
 		    i, usb_dev->pipes[i].present ? "" : "not ");
 
 		rc = usb_device_unmap_ep(usb_dev->pipes + i);

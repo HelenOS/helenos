@@ -74,7 +74,7 @@ uhci_transfer_batch_t * uhci_transfer_batch_create(endpoint_t *ep)
 	uhci_transfer_batch_t *uhci_batch =
 	    calloc(1, sizeof(uhci_transfer_batch_t));
 	if (!uhci_batch) {
-		usb_log_error("Failed to allocate UHCI batch.\n");
+		usb_log_error("Failed to allocate UHCI batch.");
 		return NULL;
 	}
 
@@ -111,7 +111,7 @@ int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 	    + sizeof(qh_t) + setup_size + usb_batch->buffer_size;
 	uhci_batch->device_buffer = malloc32(total_size);
 	if (!uhci_batch->device_buffer) {
-		usb_log_error("Failed to allocate UHCI buffer.\n");
+		usb_log_error("Failed to allocate UHCI buffer.");
 		return ENOMEM;
 	}
 	memset(uhci_batch->device_buffer, 0, total_size);
@@ -134,7 +134,7 @@ int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 		memcpy(dest, usb_batch->buffer, usb_batch->buffer_size);
 	}
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
-	    " memory structures ready.\n", usb_batch,
+	    " memory structures ready.", usb_batch,
 	    USB_TRANSFER_BATCH_ARGS(*usb_batch));
 
 	assert(batch_setup[usb_batch->ep->transfer_type]);
@@ -158,7 +158,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 	usb_transfer_batch_t *batch = &uhci_batch->base;
 
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
-	    " checking %zu transfer(s) for completion.\n",
+	    " checking %zu transfer(s) for completion.",
 	    uhci_batch, USB_TRANSFER_BATCH_ARGS(*batch),
 	    uhci_batch->td_count);
 	batch->transfered_size = 0;
@@ -173,7 +173,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 			assert(batch->ep != NULL);
 
 			usb_log_debug("Batch %p found error TD(%zu->%p):%"
-			    PRIx32 ".\n", uhci_batch, i,
+			    PRIx32 ".", uhci_batch, i,
 			    &uhci_batch->tds[i], uhci_batch->tds[i].status);
 			td_print_status(&uhci_batch->tds[i]);
 
@@ -259,7 +259,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	td_set_ioc(&uhci_batch->tds[td - 1]);
 	uhci_batch->base.ep->toggle = toggle;
 	usb_log_debug2(
-	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.\n", \
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.", \
 	    uhci_batch,
 	    usb_str_transfer_type(uhci_batch->base.ep->transfer_type),
 	    usb_str_direction(uhci_batch->base.ep->direction),
@@ -332,7 +332,7 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch)
 	    target, status_stage_pid, NULL, NULL);
 	td_set_ioc(&uhci_batch->tds[td]);
 
-	usb_log_debug2("Control last TD status: %x.\n",
+	usb_log_debug2("Control last TD status: %x.",
 	    uhci_batch->tds[td].status);
 }
 

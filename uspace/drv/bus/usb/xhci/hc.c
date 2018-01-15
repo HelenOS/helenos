@@ -189,7 +189,7 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 
 	hc->mmio_range = hw_res->mem_ranges.ranges[0];
 
-	usb_log_debug("MMIO area at %p (size %zu), IRQ %d.\n",
+	usb_log_debug("MMIO area at %p (size %zu), IRQ %d.",
 	    RNGABSPTR(hc->mmio_range), RNGSZ(hc->mmio_range), hw_res->irqs.irqs[0]);
 
 	if (RNGSZ(hc->mmio_range) < sizeof(xhci_cap_regs_t))
@@ -405,7 +405,7 @@ int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 		}
 		async_usleep(XHCI_LEGSUP_POLLING_DELAY_1MS);
 	}
-	usb_log_error("BIOS did not release XHCI legacy hold!\n");
+	usb_log_error("BIOS did not release XHCI legacy hold!");
 
 	return ENOTSUP;
 }
@@ -775,7 +775,7 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 
 	xhci_device_ctx_t *dev_ctx = dev->dev_ctx.virt;
 	dev->base.address = XHCI_SLOT_DEVICE_ADDRESS(dev_ctx->slot_ctx);
-	usb_log_debug2("Obtained USB address: %d.\n", dev->base.address);
+	usb_log_debug2("Obtained USB address: %d.", dev->base.address);
 
 	return EOK;
 

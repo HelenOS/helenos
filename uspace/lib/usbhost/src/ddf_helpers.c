@@ -132,7 +132,7 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 	assert(hcd->bus);
 	assert(dev);
 
-	usb_log_debug("Device %d requested default address at %s speed\n",
+	usb_log_debug("Device %d requested default address at %s speed",
 	    dev->address, usb_str_speed(speed));
 	return bus_reserve_default_address(hcd->bus, speed);
 }
@@ -151,7 +151,7 @@ static int release_default_address(ddf_fun_t *fun)
 	assert(hcd->bus);
 	assert(dev);
 
-	usb_log_debug("Device %d released default address\n", dev->address);
+	usb_log_debug("Device %d released default address", dev->address);
 	bus_release_default_address(hcd->bus);
 
 	return EOK;
@@ -172,7 +172,7 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port)
 	device_t *hub = ddf_fun_data_get(fun);
 	assert(hub);
 
-	usb_log_debug("Hub %d reported a new USB device on port: %u\n",
+	usb_log_debug("Hub %d reported a new USB device on port: %u",
 	    hub->address, port);
 	return hcd_ddf_new_device(hcd, hc, hub, port);
 }
@@ -184,7 +184,7 @@ static int device_remove(ddf_fun_t *fun, unsigned port)
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(ddf_dev);
 	assert(dev);
-	usb_log_debug("Hub `%s' reported removal of device on port %u\n",
+	usb_log_debug("Hub `%s' reported removal of device on port %u",
 	    ddf_fun_get_name(fun), port);
 	return hcd_ddf_remove_device(ddf_dev, dev, port);
 }
@@ -534,7 +534,7 @@ int hcd_ddf_setup_hc(ddf_dev_t *device, size_t size)
 
 	hc_device_t *instance = ddf_dev_data_alloc(device, size);
 	if (instance == NULL) {
-		usb_log_error("Failed to allocate HCD ddf structure.\n");
+		usb_log_error("Failed to allocate HCD ddf structure.");
 		return ENOMEM;
 	}
 	instance->ddf_dev = device;
@@ -542,19 +542,19 @@ int hcd_ddf_setup_hc(ddf_dev_t *device, size_t size)
 	int ret = ENOMEM;
 	instance->ctl_fun = ddf_fun_create(device, fun_exposed, "ctl");
 	if (!instance->ctl_fun) {
-		usb_log_error("Failed to create HCD ddf fun.\n");
+		usb_log_error("Failed to create HCD ddf fun.");
 		goto err_destroy_fun;
 	}
 
 	ret = ddf_fun_bind(instance->ctl_fun);
 	if (ret != EOK) {
-		usb_log_error("Failed to bind ctl_fun: %s.\n", str_error(ret));
+		usb_log_error("Failed to bind ctl_fun: %s.", str_error(ret));
 		goto err_destroy_fun;
 	}
 
 	ret = ddf_fun_add_to_category(instance->ctl_fun, USB_HC_CATEGORY);
 	if (ret != EOK) {
-		usb_log_error("Failed to add fun to category: %s.\n",
+		usb_log_error("Failed to add fun to category: %s.",
 		    str_error(ret));
 		ddf_fun_unbind(instance->ctl_fun);
 		goto err_destroy_fun;

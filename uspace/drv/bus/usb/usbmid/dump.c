@@ -55,7 +55,7 @@ static void dump_tree_descriptor(const uint8_t *data, size_t depth)
 	if (type == USB_DESCTYPE_INTERFACE) {
 		usb_standard_interface_descriptor_t *descriptor
 		    = (usb_standard_interface_descriptor_t *) data;
-		usb_log_info("Found interface: %s (0x%02x/0x%02x/0x%02x).\n",
+		usb_log_info("Found interface: %s (0x%02x/0x%02x/0x%02x).",
 		    usb_str_class(descriptor->interface_class),
 		    (int) descriptor->interface_class,
 		    (int) descriptor->interface_subclass,

@@ -72,7 +72,7 @@ static int address_device(xhci_bus_t *bus, xhci_device_t *dev)
 	/* Enable new slot. */
 	if ((err = hc_enable_slot(bus->hc, &dev->slot_id)) != EOK)
 		return err;
-	usb_log_debug2("Obtained slot ID: %u.\n", dev->slot_id);
+	usb_log_debug2("Obtained slot ID: %u.", dev->slot_id);
 
 	/* Create and configure control endpoint. */
 	endpoint_t *ep0_base = endpoint_create(&dev->base, &ep0_initial_desc);

@@ -352,7 +352,7 @@ int usb_hid_report_output_translate(usb_hid_report_t *report,
 		offset = report_des->bit_length - report_item->offset - 1;
 		length = report_item->size;
 		
-		usb_log_debug("\ttranslated value: %x\n", value);
+		usb_log_debug("\ttranslated value: %x", value);
 
 		if ((offset / 8) == ((offset + length - 1) / 8)) {
 			if (((size_t) (offset / 8) >= size) || 

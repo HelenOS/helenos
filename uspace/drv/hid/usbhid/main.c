@@ -57,10 +57,10 @@
  */
 static int usb_hid_device_add(usb_device_t *dev)
 {
-	usb_log_debug("%s\n", __FUNCTION__);
+	usb_log_debug("%s", __FUNCTION__);
 
 	if (dev == NULL) {
-		usb_log_error("Wrong parameter given for add_device().\n");
+		usb_log_error("Wrong parameter given for add_device().");
 		return EINVAL;
 	}
 
@@ -72,18 +72,18 @@ static int usb_hid_device_add(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev =
 	    usb_device_data_alloc(dev, sizeof(usb_hid_dev_t));
 	if (hid_dev == NULL) {
-		usb_log_error("Failed to create USB/HID device structure.\n");
+		usb_log_error("Failed to create USB/HID device structure.");
 		return ENOMEM;
 	}
 
 	int rc = usb_hid_init(hid_dev, dev);
 	if (rc != EOK) {
-		usb_log_error("Failed to initialize USB/HID device.\n");
+		usb_log_error("Failed to initialize USB/HID device.");
 		usb_hid_deinit(hid_dev);
 		return rc;
 	}
 
-	usb_log_debug("USB/HID device structure initialized.\n");
+	usb_log_debug("USB/HID device structure initialized.");
 
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
@@ -91,14 +91,14 @@ static int usb_hid_device_add(usb_device_t *dev)
 	rc = usb_polling_start(&hid_dev->polling);
 
 	if (rc != EOK) {
-		usb_log_error("Failed to start polling fibril for `%s'.\n",
+		usb_log_error("Failed to start polling fibril for `%s'.",
 		    usb_device_get_name(dev));
 		usb_hid_deinit(hid_dev);
 		return rc;
 	}
 	hid_dev->running = true;
 
-	usb_log_info("HID device `%s' ready.\n", usb_device_get_name(dev));
+	usb_log_info("HID device `%s' ready.", usb_device_get_name(dev));
 
 	return EOK;
 }
@@ -114,7 +114,7 @@ static int join_and_clean(usb_device_t *dev)
 
 	/* Clean up. */
 	usb_hid_deinit(hid_dev);
-	usb_log_info("%s destruction complete.\n", usb_device_get_name(dev));
+	usb_log_info("%s destruction complete.", usb_device_get_name(dev));
 
 	return EOK;
 }
@@ -131,7 +131,7 @@ static int usb_hid_device_remove(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
 
-	usb_log_info("Device %s removed.\n", usb_device_get_name(dev));
+	usb_log_info("Device %s removed.", usb_device_get_name(dev));
 	return join_and_clean(dev);
 }
 
@@ -147,7 +147,7 @@ static int usb_hid_device_gone(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
 
-	usb_log_info("Device %s gone.\n", usb_device_get_name(dev));
+	usb_log_info("Device %s gone.", usb_device_get_name(dev));
 	return join_and_clean(dev);
 }
 

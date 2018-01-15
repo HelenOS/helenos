@@ -133,7 +133,7 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 
 	usb_hid_report_path_t *usage_path = usb_hid_report_path();
 	if (usage_path == NULL) {
-		usb_log_debug("Failed to create usage path.\n");
+		usb_log_debug("Failed to create usage path.");
 		return false;
 	}
 
@@ -142,19 +142,19 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		if (usb_hid_report_path_append_item(usage_path,
 		    mapping->usage_path[i].usage_page,
 		    mapping->usage_path[i].usage) != EOK) {
-			usb_log_debug("Failed to append to usage path.\n");
+			usb_log_debug("Failed to append to usage path.");
 			usb_hid_report_path_free(usage_path);
 			return false;
 		}
 	}
 
-	usb_log_debug("Compare flags: %d\n", mapping->compare);
+	usb_log_debug("Compare flags: %d", mapping->compare);
 
 	bool matches = false;
 	uint8_t report_id = mapping->report_id;
 
 	do {
-		usb_log_debug("Trying report id %u\n", report_id);
+		usb_log_debug("Trying report id %u", report_id);
 		if (report_id != 0) {
 			usb_hid_report_path_set_report_id(usage_path,
 				report_id);
@@ -165,7 +165,7 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		        &hid_dev->report, NULL, usage_path, mapping->compare,
 		        USB_HID_REPORT_TYPE_INPUT);
 
-		usb_log_debug("Field: %p\n", field);
+		usb_log_debug("Field: %p", field);
 
 		if (field != NULL) {
 			matches = true;
@@ -242,14 +242,14 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 			    " and product ID %u.\n", mapping->vendor_id,
 			    mapping->product_id);
 			if (usb_hid_ids_match(hid_dev, mapping)) {
-				usb_log_debug("IDs matched.\n");
+				usb_log_debug("IDs matched.");
 				matched = true;
 			}
 		}
 
 		/* Check usage match. */
 		if (mapping->usage_path != NULL) {
-			usb_log_debug("Comparing device against usage path.\n");
+			usb_log_debug("Comparing device against usage path.");
 			if (usb_hid_path_matches(hid_dev, mapping)) {
 				/* Does not matter if IDs were matched. */
 				matched = true;
@@ -257,7 +257,7 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		}
 
 		if (matched) {
-			usb_log_debug("Subdriver matched.\n");
+			usb_log_debug("Subdriver matched.");
 			subdrivers[count++] = &mapping->subdriver;
 		}
 	}
@@ -284,7 +284,7 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		usb_endpoint_mapping_t *epm =
 		    usb_device_get_mapped_ep_desc(dev, endpoints[i].desc);
 		if (epm && epm->present) {
-			usb_log_debug("Found: %s.\n", endpoints[i].description);
+			usb_log_debug("Found: %s.", endpoints[i].description);
 			hid_dev->poll_pipe_mapping = epm;
 			return EOK;
 		}
@@ -300,18 +300,18 @@ static int usb_hid_init_report(usb_hid_dev_t *hid_dev)
 	size_t max_size = 0;
 
 	do {
-		usb_log_debug("Getting size of the report.\n");
+		usb_log_debug("Getting size of the report.");
 		const size_t size =
 		    usb_hid_report_byte_size(&hid_dev->report, report_id,
 		        USB_HID_REPORT_TYPE_INPUT);
-		usb_log_debug("Report ID: %u, size: %zu\n", report_id, size);
+		usb_log_debug("Report ID: %u, size: %zu", report_id, size);
 		max_size = (size > max_size) ? size : max_size;
-		usb_log_debug("Getting next report ID\n");
+		usb_log_debug("Getting next report ID");
 		report_id = usb_hid_get_next_report_id(&hid_dev->report,
 		    report_id, USB_HID_REPORT_TYPE_INPUT);
 	} while (report_id != 0);
 
-	usb_log_debug("Max size of input report: %zu\n", max_size);
+	usb_log_debug("Max size of input report: %zu", max_size);
 
 	assert(hid_dev->input_report == NULL);
 
@@ -328,14 +328,14 @@ static bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
     size_t buffer_size, void *arg)
 {
 	if (dev == NULL || arg == NULL || buffer == NULL) {
-		usb_log_error("Missing arguments to polling callback.\n");
+		usb_log_error("Missing arguments to polling callback.");
 		return false;
 	}
 	usb_hid_dev_t *hid_dev = arg;
 
 	assert(hid_dev->input_report != NULL);
 
-	usb_log_debug("New data [%zu/%zu]: %s\n", buffer_size,
+	usb_log_debug("New data [%zu/%zu]: %s", buffer_size,
 	    hid_dev->max_input_report_size,
 	    usb_debug_str_buffer(buffer, buffer_size, 0));
 
@@ -418,7 +418,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	assert(hid_dev);
 	assert(dev);
 
-	usb_log_debug("Initializing HID structure...\n");
+	usb_log_debug("Initializing HID structure...");
 
 	usb_hid_report_init(&hid_dev->report);
 
@@ -440,12 +440,12 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	if (rc == EOK) {
 		usb_hid_find_subdrivers(hid_dev);
 	} else {
-		usb_log_error("Failed to parse report descriptor: fallback.\n");
+		usb_log_error("Failed to parse report descriptor: fallback.");
 		hid_dev->subdrivers = NULL;
 		hid_dev->subdriver_count = 0;
 	}
 
-	usb_log_debug("Subdriver count(before trying boot protocol): %d\n",
+	usb_log_debug("Subdriver count(before trying boot protocol): %d",
 	    hid_dev->subdriver_count);
 
 	/* No subdrivers, fall back to the boot protocol if available. */
@@ -456,26 +456,26 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 
 		switch (hid_dev->poll_pipe_mapping->interface->interface_protocol) {
 		case USB_HID_PROTOCOL_KEYBOARD:
-			usb_log_info("Falling back to kbd boot protocol.\n");
+			usb_log_info("Falling back to kbd boot protocol.");
 			rc = usb_kbd_set_boot_protocol(hid_dev);
 			if (rc == EOK) {
 				usb_hid_set_boot_kbd_subdriver(hid_dev);
 			}
 			break;
 		case USB_HID_PROTOCOL_MOUSE:
-			usb_log_info("Falling back to mouse boot protocol.\n");
+			usb_log_info("Falling back to mouse boot protocol.");
 			rc = usb_mouse_set_boot_protocol(hid_dev);
 			if (rc == EOK) {
 				usb_hid_set_boot_mouse_subdriver(hid_dev);
 			}
 			break;
 		default:
-			usb_log_info("Falling back to generic HID driver.\n");
+			usb_log_info("Falling back to generic HID driver.");
 			usb_hid_set_generic_hid_subdriver(hid_dev);
 		}
 	}
 
-	usb_log_debug("Subdriver count(after trying boot protocol): %d\n",
+	usb_log_debug("Subdriver count(after trying boot protocol): %d",
 	    hid_dev->subdriver_count);
 
 	/* Still no subdrivers? */
@@ -490,7 +490,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	bool ok = false;
 	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].init != NULL) {
-			usb_log_debug("Initializing subdriver %d.\n",i);
+			usb_log_debug("Initializing subdriver %d.",i);
 			const int pret = hid_dev->subdrivers[i].init(hid_dev,
 			    &hid_dev->subdrivers[i].data);
 			if (pret != EOK) {
@@ -513,13 +513,13 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		 * allocate space for the report */
 		rc = usb_hid_init_report(hid_dev);
 		if (rc != EOK) {
-			usb_log_error("Failed to initialize input report buffer: %s\n", str_error(rc));
+			usb_log_error("Failed to initialize input report buffer: %s", str_error(rc));
 			// FIXME: What happens now?
 		}
 
 		usb_polling_t *polling = &hid_dev->polling;
 		if ((rc = usb_polling_init(polling))) {
-			usb_log_error("Failed to initialize polling: %s\n", str_error(rc));
+			usb_log_error("Failed to initialize polling: %s", str_error(rc));
 			// FIXME: What happens now?
 		}
 
@@ -554,7 +554,7 @@ void usb_hid_deinit(usb_hid_dev_t *hid_dev)
 	free(hid_dev->polling.buffer);
 	usb_polling_fini(&hid_dev->polling);
 
-	usb_log_debug("Subdrivers: %p, subdriver count: %d\n",
+	usb_log_debug("Subdrivers: %p, subdriver count: %d",
 	    hid_dev->subdrivers, hid_dev->subdriver_count);
 
 	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {

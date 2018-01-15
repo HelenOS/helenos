@@ -172,15 +172,15 @@ void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path,
  */
 void usb_hid_print_usage_path(usb_hid_report_path_t *path)
 {
-	usb_log_debug("USAGE_PATH FOR RId(%d):\n", path->report_id);
-	usb_log_debug("\tLENGTH: %d\n", path->depth);
+	usb_log_debug("USAGE_PATH FOR RId(%d):", path->report_id);
+	usb_log_debug("\tLENGTH: %d", path->depth);
 
 	list_foreach(path->items, rpath_items_link,
 	    usb_hid_report_usage_path_t, path_item) {
 
-		usb_log_debug("\tUSAGE_PAGE: %X\n", path_item->usage_page);
-		usb_log_debug("\tUSAGE: %X\n", path_item->usage);
-		usb_log_debug("\tFLAGS: %d\n", path_item->flags);
+		usb_log_debug("\tUSAGE_PAGE: %X", path_item->usage_page);
+		usb_log_debug("\tUSAGE: %X", path_item->usage);
+		usb_log_debug("\tFLAGS: %d", path_item->flags);
 	}
 }
 

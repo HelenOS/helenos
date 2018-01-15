@@ -67,12 +67,12 @@ static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 
 		while (remaining > 0) {
 			if ((rc = usb_pipe_read(pipe, buffer + size - remaining, remaining, &transferred))) {
-				usb_log_error("Read of %s IN endpoint failed with error: %s\n", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
+				usb_log_error("Read of %s IN endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 				break;
 			}
 
 			if (transferred > remaining) {
-				usb_log_error("Read of %s IN endpoint returned more data than expected.\n", usb_str_transfer_type(pipe->desc.transfer_type));
+				usb_log_error("Read of %s IN endpoint returned more data than expected.", usb_str_transfer_type(pipe->desc.transfer_type));
 				rc = EINVAL;
 				break;
 			}
@@ -120,7 +120,7 @@ static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur
 	for (int i = 0; i < cycles; ++i) {
 		// Write buffer to device.
 		if ((rc = usb_pipe_write(pipe, buffer, size))) {
-			usb_log_error("Write to %s OUT endpoint failed with error: %s\n", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
+			usb_log_error("Write to %s OUT endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 			break;
 		}
 	}
@@ -168,12 +168,12 @@ static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t
 
 		while (remaining > 0) {
 			if ((rc = usb_pipe_read(pipe, buffer + size - remaining, remaining, &transferred))) {
-				usb_log_error("Read of %s IN endpoint failed with error: %s\n", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
+				usb_log_error("Read of %s IN endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 				break;
 			}
 
 			if (transferred > remaining) {
-				usb_log_error("Read of %s IN endpoint returned more data than expected.\n", usb_str_transfer_type(pipe->desc.transfer_type));
+				usb_log_error("Read of %s IN endpoint returned more data than expected.", usb_str_transfer_type(pipe->desc.transfer_type));
 				rc = EINVAL;
 				break;
 			}
@@ -186,7 +186,7 @@ static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t
 
 		for (size_t i = 0; i < size; i += sizeof(test_data)) {
 			if (*(uint32_t *)(buffer + i) != test_data) {
-				usb_log_error("Read of %s IN endpoint returned invald data at address %lu.\n", usb_str_transfer_type(pipe->desc.transfer_type), i);
+				usb_log_error("Read of %s IN endpoint returned invald data at address %lu.", usb_str_transfer_type(pipe->desc.transfer_type), i);
 				rc = EINVAL;
 				break;
 			}
@@ -237,7 +237,7 @@ static int data_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 	for (int i = 0; i < cycles; ++i) {
 		// Write buffer to device.
 		if ((rc = usb_pipe_write(pipe, buffer, size))) {
-			usb_log_error("Write to %s OUT endpoint failed with error: %s\n", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
+			usb_log_error("Write to %s OUT endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 			break;
 		}
 	}

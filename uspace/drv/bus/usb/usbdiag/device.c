@@ -78,7 +78,7 @@ static int device_init(usbdiag_dev_t *dev)
 #define _MAP_EP(target, ep_no) do {\
 	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep(dev->usb_dev, USBDIAG_EP_##ep_no);\
 	if (!epm || !epm->present) {\
-		usb_log_error("Failed to map endpoint: " #ep_no ".\n");\
+		usb_log_error("Failed to map endpoint: " #ep_no ".");\
 		rc = ENOENT;\
 		goto err_fun;\
 	}\

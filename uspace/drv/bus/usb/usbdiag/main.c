@@ -51,12 +51,12 @@ static int device_add(usb_device_t *dev)
 
 	usbdiag_dev_t *diag_dev;
 	if ((rc = usbdiag_dev_create(dev, &diag_dev))) {
-		usb_log_error("Failed create device: %s.\n", str_error(rc));
+		usb_log_error("Failed create device: %s.", str_error(rc));
 		goto err;
 	}
 
 	if ((rc = ddf_fun_bind(diag_dev->fun))) {
-		usb_log_error("Failed to bind DDF function: %s.\n", str_error(rc));
+		usb_log_error("Failed to bind DDF function: %s.", str_error(rc));
 		goto err_create;
 	}
 
@@ -95,7 +95,7 @@ static int device_remove(usb_device_t *dev)
 	/* TODO: Make sure nothing is going on with the device. */
 
 	if ((rc = ddf_fun_unbind(diag_dev->fun))) {
-		usb_log_error("Failed to unbind DDF function: %s\n", str_error(rc));
+		usb_log_error("Failed to unbind DDF function: %s", str_error(rc));
 		goto err;
 	}
 
@@ -116,7 +116,7 @@ static int device_gone(usb_device_t *dev)
 	/* TODO: Make sure nothing is going on with the device. */
 
 	if ((rc = ddf_fun_unbind(diag_dev->fun))) {
-		usb_log_error("Failed to unbind DDF function: %s\n", str_error(rc));
+		usb_log_error("Failed to unbind DDF function: %s", str_error(rc));
 		goto err;
 	}
 

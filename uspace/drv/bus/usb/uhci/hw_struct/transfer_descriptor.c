@@ -103,12 +103,12 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 
 	instance->buffer_ptr = addr_to_phys(buffer);
 
-	usb_log_debug2("Created TD(%p): %X:%X:%X:%X(%p).\n",
+	usb_log_debug2("Created TD(%p): %X:%X:%X:%X(%p).",
 	    instance, instance->next, instance->status, instance->device,
 	    instance->buffer_ptr, buffer);
 	td_print_status(instance);
 	if (pid == USB_PID_SETUP) {
-		usb_log_debug2("SETUP BUFFER: %s\n",
+		usb_log_debug2("SETUP BUFFER: %s",
 		    usb_debug_str_buffer(buffer, 8, 8));
 	}
 }
@@ -159,7 +159,7 @@ void td_print_status(const td_t *instance)
 {
 	assert(instance);
 	const uint32_t s = instance->status;
-	usb_log_debug2("TD(%p) status(%#" PRIx32 "):%s %d,%s%s%s%s%s%s%s%s%s%s%s %zu.\n",
+	usb_log_debug2("TD(%p) status(%#" PRIx32 "):%s %d,%s%s%s%s%s%s%s%s%s%s%s %zu.",
 	    instance, instance->status,
 	    (s & TD_STATUS_SPD_FLAG) ? " SPD," : "",
 	    (s >> TD_STATUS_ERROR_COUNT_POS) & TD_STATUS_ERROR_COUNT_MASK,

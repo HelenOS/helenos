@@ -140,12 +140,12 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 {
 	assert(port);
 	assert(hub);
-	usb_log_debug2("(%p-%u): Interrupt.\n", hub, port->port_number);
+	usb_log_debug2("(%p-%u): Interrupt.", hub, port->port_number);
 
 	usb_port_status_t status = 0;
 	const int opResult = get_port_status(port, &status);
 	if (opResult != EOK) {
-		usb_log_error("(%p-%u): Failed to get port status: %s.\n", hub,
+		usb_log_error("(%p-%u): Failed to get port status: %s.", hub,
 		    port->port_number, str_error(opResult));
 		return;
 	}
@@ -154,7 +154,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	if (status & USB_HUB_PORT_C_STATUS_CONNECTION) {
 		const bool connected =
 		    (status & USB_HUB_PORT_STATUS_CONNECTION) != 0;
-		usb_log_debug("(%p-%u): Connection change: device %s.\n", hub,
+		usb_log_debug("(%p-%u): Connection change: device %s.", hub,
 		    port->port_number, connected ? "attached" : "removed");
 
 		/* ACK the change */
@@ -188,7 +188,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
 	/* Enable change, ports are automatically disabled on errors. */
 	if (status & USB_HUB_PORT_C_STATUS_ENABLED) {
 		// TODO: maybe HS reset failed?
-		usb_log_info("(%p-%u): Port disabled because of errors.\n", hub,
+		usb_log_info("(%p-%u): Port disabled because of errors.", hub,
 		   port->port_number);
 		usb_hub_port_device_gone(port, hub);
 		const int rc = usb_hub_port_clear_feature(port,
@@ -293,7 +293,7 @@ void usb_hub_port_reset_completed(usb_hub_port_t *port, usb_hub_dev_t *hub,
 
 	if (enabled) {
 		port->reset_status = RESET_OK;
-		usb_log_debug("(%p-%u): Port reset complete.\n", hub,
+		usb_log_debug("(%p-%u): Port reset complete.", hub,
 		    port->port_number);
 	} else {
 		port->reset_status = RESET_FAIL;

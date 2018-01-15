@@ -113,17 +113,17 @@ int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 	assert(instance);
 	instance->registers = regs;
 	instance->port_count = OHCI_RD(regs->rh_desc_a) & RHDA_NDS_MASK;
-	usb_log_debug2("rh_desc_a: %x.\n", OHCI_RD(regs->rh_desc_a));
+	usb_log_debug2("rh_desc_a: %x.", OHCI_RD(regs->rh_desc_a));
 	if (instance->port_count > OHCI_MAX_PORTS) {
 		usb_log_warning("OHCI specification does not allow %d ports. "
-		    "Max %d ports will be used.\n", instance->port_count,
+		    "Max %d ports will be used.", instance->port_count,
 		    OHCI_MAX_PORTS);
 		instance->port_count = OHCI_MAX_PORTS;
 	}
-	usb_log_info("%s: Found %u ports.\n", name, instance->port_count);
+	usb_log_info("%s: Found %u ports.", name, instance->port_count);
 
 #if defined OHCI_POWER_SWITCH_no
-	usb_log_info("%s: Set power mode to no power switching.\n", name);
+	usb_log_info("%s: Set power mode to no power switching.", name);
 	/* Set port power mode to no power-switching. (always on) */
 	OHCI_SET(regs->rh_desc_a, RHDA_NPS_FLAG);
 
@@ -131,7 +131,7 @@ int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 	OHCI_SET(regs->rh_desc_a, RHDA_NOCP_FLAG);
 
 #elif defined OHCI_POWER_SWITCH_ganged
-	usb_log_info("%s: Set power mode to ganged power switching.\n", name);
+	usb_log_info("%s: Set power mode to ganged power switching.", name);
 	/* Set port power mode to ganged power-switching. */
 	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
 	OHCI_CLR(regs->rh_desc_a, RHDA_PSM_FLAG);
@@ -143,7 +143,7 @@ int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 	OHCI_CLR(regs->rh_desc_a, RHDA_NOCP_FLAG);
 	OHCI_CLR(regs->rh_desc_a, RHDA_OCPM_FLAG);
 #else
-	usb_log_info("%s: Set power mode to per-port power switching.\n", name);
+	usb_log_info("%s: Set power mode to per-port power switching.", name);
 	/* Set port power mode to per port power-switching. */
 	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
 	OHCI_SET(regs->rh_desc_a, RHDA_PSM_FLAG);
@@ -355,7 +355,7 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
 	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
 		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
-		    "C_SUSPEND, C_OC or C_RESET on port %u.\n", port);
+		    "C_SUSPEND, C_OC or C_RESET on port %u.", port);
 		/* Bit offsets correspond to the feature number */
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    1 << feature);
@@ -404,7 +404,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
 		usb_log_debug2("Setting port POWER, ENABLE, SUSPEND or RESET "
-		    "on port %u.\n", port);
+		    "on port %u.", port);
 		/* Bit offsets correspond to the feature number */
 		OHCI_WR(hub->registers->rh_port_status[port], 1 << feature);
 		return EOK;
@@ -450,7 +450,7 @@ static int req_status_change_handler(usbvirt_device_t *device,
 		}
 	}
 
-	usb_log_debug2("OHCI root hub interrupt mask: %hx.\n", mask);
+	usb_log_debug2("OHCI root hub interrupt mask: %hx.", mask);
 
 	if (mask == 0)
 		return ENAK;

@@ -386,7 +386,7 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 		return EINVAL;
 	}
 
-	usb_log_debug("Register endpoint %d:%d %s-%s %zuB.\n",
+	usb_log_debug("Register endpoint %d:%d %s-%s %zuB.",
 	    device->address, ep->endpoint,
 	    usb_str_transfer_type(ep->transfer_type),
 	    usb_str_direction(ep->direction),
@@ -466,7 +466,7 @@ int bus_endpoint_remove(endpoint_t *ep)
 	if (!ops)
 		return ENOTSUP;
 
-	usb_log_debug("Unregister endpoint %d:%d %s-%s %zuB.\n",
+	usb_log_debug("Unregister endpoint %d:%d %s-%s %zuB.",
 	    device->address, ep->endpoint,
 	    usb_str_transfer_type(ep->transfer_type),
 	    usb_str_direction(ep->direction),
@@ -542,7 +542,7 @@ int bus_device_send_batch(device_t *device, usb_target_t target,
 	/* Temporary reference */
 	endpoint_t *ep = bus_find_endpoint(device, target.endpoint, direction);
 	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
+		usb_log_error("Endpoint(%d:%d) not registered for %s.",
 		    device->address, target.endpoint, name);
 		return ENOENT;
 	}

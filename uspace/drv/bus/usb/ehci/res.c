@@ -73,18 +73,18 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	int ret = pci_config_space_read_32(parent_sess,
 	    eecp + USBLEGSUP_OFFSET, &usblegsup);
 	if (ret != EOK) {
-		usb_log_error("Failed to read USBLEGSUP: %s.\n", str_error(ret));
+		usb_log_error("Failed to read USBLEGSUP: %s.", str_error(ret));
 		return ret;
 	}
-	usb_log_debug2("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
+	usb_log_debug2("USBLEGSUP: %" PRIx32 ".", usblegsup);
 
 	/* Request control from firmware/BIOS by writing 1 to highest
 	 * byte. (OS Control semaphore)*/
-	usb_log_debug("Requesting OS control.\n");
+	usb_log_debug("Requesting OS control.");
 	ret = pci_config_space_write_8(parent_sess,
 	    eecp + USBLEGSUP_OFFSET + 3, 1);
 	if (ret != EOK) {
-		usb_log_error("Failed to request OS EHCI control: %s.\n",
+		usb_log_error("Failed to request OS EHCI control: %s.",
 		    str_error(ret));
 		return ret;
 	}
@@ -102,17 +102,17 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	}
 
 	if ((usblegsup & USBLEGSUP_BIOS_CONTROL) == 0) {
-		usb_log_info("BIOS released control after %zu usec.\n", wait);
+		usb_log_info("BIOS released control after %zu usec.", wait);
 		return EOK;
 	}
 
 	/* BIOS failed to hand over control, this should not happen. */
 	usb_log_warning( "BIOS failed to release control after "
-	    "%zu usecs, force it.\n", wait);
+	    "%zu usecs, force it.", wait);
 	ret = pci_config_space_write_32(parent_sess,
 	    eecp + USBLEGSUP_OFFSET, USBLEGSUP_OS_CONTROL);
 	if (ret != EOK) {
-		usb_log_error("Failed to force OS control: %s.\n",
+		usb_log_error("Failed to force OS control: %s.",
 		    str_error(ret));
 		return ret;
 	}
@@ -129,11 +129,11 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 		ret = pci_config_space_read_32(parent_sess,
 		    eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
 		if (ret != EOK) {
-			usb_log_error("Failed to get USBLEGCTLSTS: %s.\n",
+			usb_log_error("Failed to get USBLEGCTLSTS: %s.",
 			    str_error(ret));
 			return ret;
 		}
-		usb_log_debug2("USBLEGCTLSTS: %" PRIx32 ".\n", usblegctlsts);
+		usb_log_debug2("USBLEGCTLSTS: %" PRIx32 ".", usblegctlsts);
 		/*
 		 * Zero SMI enables in legacy control register.
 		 * It should prevent pre-OS code from
@@ -142,7 +142,7 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 		ret = pci_config_space_write_32(parent_sess,
 		    eecp + USBLEGCTLSTS_OFFSET, 0xe0000000);
 		if (ret != EOK) {
-			usb_log_error("Failed to zero USBLEGCTLSTS: %s\n",
+			usb_log_error("Failed to zero USBLEGCTLSTS: %s",
 			    str_error(ret));
 			return ret;
 		}
@@ -152,11 +152,11 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 		ret = pci_config_space_read_32(parent_sess,
 		    eecp + USBLEGCTLSTS_OFFSET, &usblegctlsts);
 		if (ret != EOK) {
-			usb_log_error("Failed to get USBLEGCTLSTS 2: %s.\n",
+			usb_log_error("Failed to get USBLEGCTLSTS 2: %s.",
 			    str_error(ret));
 			return ret;
 		}
-		usb_log_debug2("Zeroed USBLEGCTLSTS: %" PRIx32 ".\n",
+		usb_log_debug2("Zeroed USBLEGCTLSTS: %" PRIx32 ".",
 		    usblegctlsts);
 	}
 
@@ -164,11 +164,11 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	ret = pci_config_space_read_32(parent_sess,
 	    eecp + USBLEGSUP_OFFSET, &usblegsup);
 	if (ret != EOK) {
-		usb_log_error("Failed to read USBLEGSUP: %s.\n",
+		usb_log_error("Failed to read USBLEGSUP: %s.",
 		    str_error(ret));
 		return ret;
 	}
-	usb_log_debug2("USBLEGSUP: %" PRIx32 ".\n", usblegsup);
+	usb_log_debug2("USBLEGSUP: %" PRIx32 ".", usblegsup);
 	return ret;
 }
 
@@ -180,21 +180,21 @@ int disable_legacy(hc_device_t *hcd)
 	if (parent_sess == NULL)
 		return ENOMEM;
 
-	usb_log_debug("Disabling EHCI legacy support.\n");
+	usb_log_debug("Disabling EHCI legacy support.");
 
 
 	const uint32_t hcc_params = EHCI_RD(hc->caps->hccparams);
-	usb_log_debug2("Value of hcc params register: %x.\n", hcc_params);
+	usb_log_debug2("Value of hcc params register: %x.", hcc_params);
 
 	/* Read value of EHCI Extended Capabilities Pointer
 	 * position of EEC registers (points to PCI config space) */
 	const uint32_t eecp =
 	    (hcc_params >> EHCI_CAPS_HCC_EECP_SHIFT) & EHCI_CAPS_HCC_EECP_MASK;
-	usb_log_debug2("Value of EECP: %x.\n", eecp);
+	usb_log_debug2("Value of EECP: %x.", eecp);
 
 	int ret = disable_extended_caps(parent_sess, eecp);
 	if (ret != EOK) {
-		usb_log_error("Failed to disable extended capabilities: %s.\n",
+		usb_log_error("Failed to disable extended capabilities: %s.",
 		    str_error(ret));
 		    goto clean;
 	}

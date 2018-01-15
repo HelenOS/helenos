@@ -116,7 +116,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	usb_hub_dev_t *hub_dev =
 	    usb_device_data_alloc(usb_dev, sizeof(usb_hub_dev_t));
 	if (hub_dev == NULL) {
-		usb_log_error("Failed to create hub driver structure.\n");
+		usb_log_error("Failed to create hub driver structure.");
 		return ENOMEM;
 	}
 	hub_dev->usb_device = usb_dev;
@@ -128,7 +128,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	/* Set hub's first configuration. (There should be only one) */
 	int opResult = usb_set_first_configuration(usb_dev);
 	if (opResult != EOK) {
-		usb_log_error("Could not set hub configuration: %s\n",
+		usb_log_error("Could not set hub configuration: %s",
 		    str_error(opResult));
 		return opResult;
 	}
@@ -136,24 +136,24 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	/* Get port count and create attached_devices. */
 	opResult = usb_hub_process_hub_specific_info(hub_dev);
 	if (opResult != EOK) {
-		usb_log_error("Could process hub specific info, %s\n",
+		usb_log_error("Could process hub specific info, %s",
 		    str_error(opResult));
 		return opResult;
 	}
 
 	/* Create hub control function. */
-	usb_log_debug("Creating DDF function '" HUB_FNC_NAME "'.\n");
+	usb_log_debug("Creating DDF function '" HUB_FNC_NAME "'.");
 	hub_dev->hub_fun = usb_device_ddf_fun_create(hub_dev->usb_device,
 	    fun_exposed, HUB_FNC_NAME);
 	if (hub_dev->hub_fun == NULL) {
-		usb_log_error("Failed to create hub function.\n");
+		usb_log_error("Failed to create hub function.");
 		return ENOMEM;
 	}
 
 	/* Bind hub control function. */
 	opResult = ddf_fun_bind(hub_dev->hub_fun);
 	if (opResult != EOK) {
-		usb_log_error("Failed to bind hub function: %s.\n",
+		usb_log_error("Failed to bind hub function: %s.",
 		   str_error(opResult));
 		ddf_fun_destroy(hub_dev->hub_fun);
 		return opResult;
@@ -166,7 +166,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 		/* Function is already bound */
 		ddf_fun_unbind(hub_dev->hub_fun);
 		ddf_fun_destroy(hub_dev->hub_fun);
-		usb_log_error("Failed to initialize polling fibril: %s.\n",
+		usb_log_error("Failed to initialize polling fibril: %s.",
 		    str_error(opResult));
 		return opResult;
 	}
@@ -188,13 +188,13 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 		usb_polling_fini(polling);
 		ddf_fun_unbind(hub_dev->hub_fun);
 		ddf_fun_destroy(hub_dev->hub_fun);
-		usb_log_error("Failed to create polling fibril: %s.\n",
+		usb_log_error("Failed to create polling fibril: %s.",
 		    str_error(opResult));
 		return opResult;
 	}
 
 	hub_dev->running = true;
-	usb_log_info("Controlling hub '%s' (%p: %zu ports).\n",
+	usb_log_info("Controlling hub '%s' (%p: %zu ports).",
 	    usb_device_get_name(hub_dev->usb_device), hub_dev,
 	    hub_dev->port_count);
 
@@ -334,12 +334,12 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	    USB_DESCTYPE_HUB, 0, 0, &descriptor,
 	    sizeof(usb_hub_descriptor_header_t), &received_size);
 	if (opResult != EOK) {
-		usb_log_error("(%p): Failed to receive hub descriptor: %s.\n",
+		usb_log_error("(%p): Failed to receive hub descriptor: %s.",
 		    hub_dev, str_error(opResult));
 		return opResult;
 	}
 
-	usb_log_debug("(%p): Setting port count to %d.\n", hub_dev,
+	usb_log_debug("(%p): Setting port count to %d.", hub_dev,
 	    descriptor.port_count);
 	hub_dev->port_count = descriptor.port_count;
 
@@ -364,7 +364,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 		return EOK;
 	}
 
-	usb_log_info("(%p): Hub port power switching enabled (%s).\n", hub_dev,
+	usb_log_info("(%p): Hub port power switching enabled (%s).", hub_dev,
 	    hub_dev->per_port_power ? "per port" : "ganged");
 
 	for (unsigned int port = 0; port < hub_dev->port_count; ++port) {
@@ -373,7 +373,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 		    &hub_dev->ports[port], USB_HUB_FEATURE_PORT_POWER);
 
 		if (ret != EOK) {
-			usb_log_error("(%p-%u): Cannot power on port: %s.\n",
+			usb_log_error("(%p-%u): Cannot power on port: %s.",
 			    hub_dev, hub_dev->ports[port].port_number,
 			    str_error(ret));
 		} else {
@@ -401,10 +401,10 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	/* Get number of possible configurations from device descriptor */
 	const size_t configuration_count =
 	    usb_device_descriptors(usb_device)->device.configuration_count;
-	usb_log_debug("Hub has %zu configurations.\n", configuration_count);
+	usb_log_debug("Hub has %zu configurations.", configuration_count);
 
 	if (configuration_count < 1) {
-		usb_log_error("There are no configurations available\n");
+		usb_log_error("There are no configurations available");
 		return EINVAL;
 	}
 
@@ -425,10 +425,10 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	    usb_device_get_default_pipe(usb_device),
 	    config_descriptor->configuration_number);
 	if (opResult != EOK) {
-		usb_log_error("Failed to set hub configuration: %s.\n",
+		usb_log_error("Failed to set hub configuration: %s.",
 		    str_error(opResult));
 	} else {
-		usb_log_debug("\tUsed configuration %d\n",
+		usb_log_debug("\tUsed configuration %d",
 		    config_descriptor->configuration_number);
 	}
 	return opResult;
