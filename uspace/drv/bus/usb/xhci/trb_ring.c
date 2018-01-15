@@ -193,6 +193,7 @@ static bool trb_generates_interrupt(xhci_trb_t *trb)
 int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	size_t trbs, uintptr_t *phys)
 {
+	int err;
 	assert(trbs > 0);
 	fibril_mutex_lock(&ring->guard);
 
@@ -208,8 +209,10 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	xhci_trb_t *trb = first_trb;
 	for (size_t i = 0; i < trbs; ++i, ++trb) {
 		if (phys && trb_generates_interrupt(trb)) {
-			if (*phys)
-				return ENOTSUP;
+			if (*phys) {
+				err = ENOTSUP;
+				goto err;
+			}
 			*phys = trb_ring_enqueue_phys(ring);
 		}
 
@@ -218,8 +221,10 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 		if (TRB_TYPE(*ring->enqueue_trb) == XHCI_TRB_TYPE_LINK)
 			trb_ring_resolve_link(ring);
 
-		if (trb_ring_enqueue_phys(ring) == ring->dequeue)
-			goto err_again;
+		if (trb_ring_enqueue_phys(ring) == ring->dequeue) {
+			err = EAGAIN;
+			goto err;
+		}
 	}
 
 	ring->enqueue_segment = saved_enqueue_segment;
@@ -251,11 +256,11 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	fibril_mutex_unlock(&ring->guard);
 	return EOK;
 
-err_again:
+err:
 	ring->enqueue_segment = saved_enqueue_segment;
 	ring->enqueue_trb = saved_enqueue_trb;
 	fibril_mutex_unlock(&ring->guard);
-	return EAGAIN;
+	return err;
 }
 
 /**
