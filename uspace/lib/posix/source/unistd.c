@@ -244,7 +244,7 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
  */
 posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
 {
-	struct stat st;
+	vfs_stat_t st;
 
 	switch (whence) {
 	case SEEK_SET:

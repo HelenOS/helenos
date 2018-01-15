@@ -359,7 +359,7 @@ static errno_t compl_get_next(void *state, char **compl)
 				/* Construct pathname */
 				char *ent_path;
 				asprintf(&ent_path, "%s/%s", *cs->path, dent->d_name);
-				struct stat ent_stat;
+				vfs_stat_t ent_stat;
 				if (vfs_stat_path(ent_path, &ent_stat) != EOK) {
 					/* Error */
 					free(ent_path);

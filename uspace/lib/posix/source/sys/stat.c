@@ -51,7 +51,7 @@
  *
  * @return 0 on success, -1 on error.
  */
-static int stat_to_posix(struct posix_stat *dest, struct stat *src)
+static int stat_to_posix(struct posix_stat *dest, vfs_stat_t *src)
 {
 	memset(dest, 0, sizeof(struct posix_stat));
 	
@@ -87,7 +87,7 @@ static int stat_to_posix(struct posix_stat *dest, struct stat *src)
  */
 int posix_fstat(int fd, struct posix_stat *st)
 {
-	struct stat hst;
+	vfs_stat_t hst;
 	if (failed(vfs_stat(fd, &hst)))
 		return -1;
 	return stat_to_posix(st, &hst);
@@ -115,7 +115,7 @@ int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
  */
 int posix_stat(const char *restrict path, struct posix_stat *restrict st)
 {
-	struct stat hst;
+	vfs_stat_t hst;
 	if (failed(vfs_stat_path(path, &hst)))
 		return -1;
 	return stat_to_posix(st, &hst);

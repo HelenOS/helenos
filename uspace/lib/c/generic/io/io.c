@@ -813,7 +813,7 @@ int fseek(FILE *stream, long offset, int whence)
 
 	stream->ungetc_chars = 0;
 
-	struct stat st;
+	vfs_stat_t st;
 	switch (whence) {
 	case SEEK_SET:
 		stream->pos = offset;

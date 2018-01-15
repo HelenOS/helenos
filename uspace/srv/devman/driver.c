@@ -139,7 +139,7 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 		goto cleanup;
 	
 	/* Check whether the driver's binary exists. */
-	struct stat s;
+	vfs_stat_t s;
 	if (vfs_stat_path(drv->binary_path, &s) != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Driver not found at path `%s'.",
 		    drv->binary_path);

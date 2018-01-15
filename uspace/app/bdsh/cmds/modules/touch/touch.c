@@ -81,7 +81,7 @@ int cmd_touch(char **argv)
 	int c;
 	int longind;
 	bool no_create = false;
-	struct stat file_stat;
+	vfs_stat_t file_stat;
 	int fd = -1;
 	char *buff = NULL;
 	

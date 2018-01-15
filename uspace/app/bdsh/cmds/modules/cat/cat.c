@@ -214,7 +214,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	}
 
 	if (tail != CAT_FULL_FILE) {
-		struct stat st;
+		vfs_stat_t st;
 
 		if (vfs_stat(fd, &st) != EOK) {
 			vfs_put(fd);

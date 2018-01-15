@@ -151,7 +151,7 @@ static bool mount_locfs(void)
 
 static errno_t srv_startl(const char *path, ...)
 {
-	struct stat s;
+	vfs_stat_t s;
 	if (vfs_stat_path(path, &s) != EOK) {
 		printf("%s: Unable to stat %s\n", NAME, path);
 		return ENOENT;

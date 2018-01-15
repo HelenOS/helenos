@@ -107,7 +107,7 @@ errno_t futil_rcopy_contents(const char *srcdir, const char *destdir)
 {
 	DIR *dir;
 	struct dirent *de;
-	struct stat s;
+	vfs_stat_t s;
 	char *srcp, *destp;
 	errno_t rc;
 
@@ -164,7 +164,7 @@ errno_t futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 	errno_t rc;
 	size_t fsize;
 	char *data;
-	struct stat st;
+	vfs_stat_t st;
 
 	rc = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ, &sf);
 	if (rc != EOK)
