@@ -41,11 +41,8 @@
 
 #define RAND_MAX  714025
 
-#define rand()       random()
-#define srand(seed)  srandom(seed)
-
-extern long int random(void);
-extern void srandom(unsigned int seed);
+extern int rand(void);
+extern void srand(unsigned int seed);
 
 extern void abort(void) __attribute__((noreturn));
 extern void exit(int) __attribute__((noreturn));

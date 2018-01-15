@@ -376,7 +376,7 @@ void posix_free(void *ptr)
  */
 int posix_rand(void)
 {
-	return (int) random();
+	return (int) rand();
 }
 
 /**
@@ -386,7 +386,7 @@ int posix_rand(void)
  */
 void posix_srand(unsigned int seed)
 {
-	srandom(seed);
+	srand(seed);
 }
 
 /**

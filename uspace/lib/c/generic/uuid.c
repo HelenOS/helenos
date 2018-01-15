@@ -51,10 +51,10 @@ errno_t uuid_generate(uuid_t *uuid)
 
 	/* XXX This is a rather poor way of generating random numbers */
 	gettimeofday(&tv, NULL);
-	srandom(tv.tv_sec ^ tv.tv_usec);
+	srand(tv.tv_sec ^ tv.tv_usec);
 
 	for (i = 0; i < uuid_bytes; i++)
-		uuid->b[i] = random();
+		uuid->b[i] = rand();
 
 	/* Version 4 UUID from random or pseudo-random numbers */
 	uuid->b[8] = (uuid->b[8] & ~0xc0) | 0x40;
