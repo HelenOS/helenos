@@ -756,11 +756,13 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, dev->route_str);
 	XHCI_SLOT_SPEED_SET(ictx->slot_ctx, usb_speed_to_psiv[dev->base.speed]);
 
-	/* In a very specific case, we have to set also these. But before that,
-	 * we need to refactor how TT is handled in libusbhost. */
-	XHCI_SLOT_TT_HUB_SLOT_ID_SET(ictx->slot_ctx, 0);
-	XHCI_SLOT_TT_HUB_PORT_SET(ictx->slot_ctx, 0);
-	XHCI_SLOT_MTT_SET(ictx->slot_ctx, 0);
+	/* Setup Transaction Translation. TODO: Test this with HS hub. */
+	if (dev->base.tt.dev != NULL) {
+		xhci_device_t *hub = xhci_device_get(dev->base.tt.dev);
+		XHCI_SLOT_TT_HUB_SLOT_ID_SET(ictx->slot_ctx, hub->slot_id);
+		XHCI_SLOT_TT_HUB_PORT_SET(ictx->slot_ctx, dev->base.tt.port);
+		XHCI_SLOT_MTT_SET(ictx->slot_ctx, 0); // MTT not supported yet
+	}
 
 	/* Copy endpoint 0 context and set A1 flag. */
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
