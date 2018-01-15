@@ -875,6 +875,11 @@ void *memalign(const size_t align, const size_t size)
  */
 void *realloc(const void *addr, const size_t size)
 {
+	if (size == 0) {
+		free(addr);
+		return NULL;
+	}
+
 	if (addr == NULL)
 		return malloc(size);
 	
