@@ -82,10 +82,11 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	}
 	uint32_t ep_cap = QH_EP_CAP_C_MASK_SET(3 << 2) |
 		    QH_EP_CAP_MULTI_SET(ep->packets_per_uframe);
-	if (ep->device->speed != USB_SPEED_HIGH) {
+	if (usb_speed_is_11(ep->device->speed)) {
+		assert(ep->device->tt.dev != NULL);
 		ep_cap |=
 		    QH_EP_CAP_TT_PORT_SET(ep->device->tt.port) |
-		    QH_EP_CAP_TT_ADDR_SET(ep->device->tt.address);
+		    QH_EP_CAP_TT_ADDR_SET(ep->device->tt.dev->address);
 	}
 	if (ep->transfer_type == USB_TRANSFER_INTERRUPT) {
 		ep_cap |= QH_EP_CAP_S_MASK_SET(3);

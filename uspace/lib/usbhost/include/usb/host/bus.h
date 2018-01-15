@@ -70,7 +70,10 @@ typedef struct device {
 	struct device *hub;
 
 	/* Transaction translator */
-	usb_tt_address_t tt;
+	struct {
+		device_t *dev;
+		unsigned port;
+	} tt;
 
 	/* The following are not set by the library */
 	usb_speed_t speed;

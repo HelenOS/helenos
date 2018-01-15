@@ -148,8 +148,6 @@ static int device_enumerate(device_t *dev)
 	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
-	hcd_setup_device_tt(dev);
-
 	/* Calculate route string */
 	xhci_device_t *xhci_hub = xhci_device_get(dev->hub);
 	xhci_dev->tier = xhci_hub->tier + 1;

@@ -113,7 +113,6 @@ int hc_driver_main(const hc_driver_t *);
  * somewhere else.
  */
 extern int hcd_get_ep0_max_packet_size(uint16_t *, bus_t *, device_t *);
-extern void hcd_setup_device_tt(device_t *);
 
 /** How many toggles need to be reset */
 typedef enum {

@@ -96,6 +96,30 @@ int bus_device_set_default_name(device_t *dev)
 }
 
 /**
+ * Setup devices Transaction Translation.
+ *
+ * This applies for Low/Full speed devices under High speed hub only. Other
+ * devices just inherit TT from the hub.
+ *
+ * Roothub must be handled specially.
+ */
+static void device_setup_tt(device_t *dev)
+{
+	if (!dev->hub)
+		return;
+
+	if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
+		/* For LS devices under HS hub */
+		dev->tt.dev = dev->hub;
+		dev->tt.port = dev->port;
+	}
+	else {
+		/* Inherit hub's TT */
+		dev->tt = dev->hub->tt;
+	}
+}
+
+/**
  * Invoke the device_enumerate bus operation.
  *
  * There's no need to synchronize here, because no one knows the device yet.
@@ -110,6 +134,8 @@ int bus_device_enumerate(device_t *dev)
 
 	if (dev->online)
 		return EINVAL;
+
+	device_setup_tt(dev);
 
 	const int r = ops->device_enumerate(dev);
 	if (r)

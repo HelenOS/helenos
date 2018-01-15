@@ -195,16 +195,6 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	dev->speed = bus->base.default_address_speed;
 	usb_log_debug("Found new %s speed USB device.", usb_str_speed(dev->speed));
 
-	if (!dev->hub) {
-		/* The device is the roothub */
-		dev->tt = (usb_tt_address_t) {
-			.address = -1,
-			.port = 0,
-		};
-	} else {
-		hcd_setup_device_tt(dev);
-	}
-
 	/* Assign an address to the device */
 	if ((err = address_device(dev))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));

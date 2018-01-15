@@ -427,30 +427,6 @@ int hcd_get_ep0_max_packet_size(uint16_t *mps, bus_t *bus, device_t *dev)
 	return EOK;
 }
 
-/**
- * Setup devices Transaction Translation.
- *
- * This applies for Low/Full speed devices under High speed hub only. Other
- * devices just inherit TT from the hub.
- *
- * Roothub must be handled specially.
- */
-void hcd_setup_device_tt(device_t *dev)
-{
-	if (!dev->hub)
-		return;
-
-	if (dev->hub->speed == USB_SPEED_HIGH && usb_speed_is_11(dev->speed)) {
-		/* For LS devices under HS hub */
-		dev->tt.address = dev->hub->address;
-		dev->tt.port = dev->port;
-	}
-	else {
-		/* Inherit hub's TT */
-		dev->tt = dev->hub->tt;
-	}
-}
-
 /** Check setup packet data for signs of toggle reset.
  *
  * @param[in] requst Setup requst data.

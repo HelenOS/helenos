@@ -66,13 +66,6 @@ typedef int16_t usb_endpoint_t;
  */
 typedef int16_t usb_address_t;
 
-/** USB address for the purposes of Transaction Translation.
- */
-typedef struct {
-	usb_address_t address;
-	unsigned port;
-} usb_tt_address_t;
-
 /** USB transfer type. */
 typedef enum {
 	USB_TRANSFER_CONTROL = 0,
