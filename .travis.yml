@@ -1,35 +1,62 @@
-language: c
+#
+# Travis CI configuration notes
+# -----------------------------
+#
+# * HelenOS is always built for all architectures
+#   * that is done using matrix environmental variables
+#   * the list of architectures has to be kept manually in sync with
+#     HelenOS.config
+#   * the actual architecture is specified via H_ARCH variable
+#
+# * ported software is built when H_HARBOURS is set to true for given
+#   configuration
+#   * building ported software takes a lot of time, it is thus impossible
+#     to build for all architectures
+#   * some ports are known to fail for certain architectures: because that
+#     would make the whole build failing, we currently build only for ia32
+#     that seems to be in the best condition with respect to ported software
+#   * list of harbours is also maintained manually, look for a variable
+#     H_DEFAULT_HARBOURS_LIST to allow overriding from within this file
+#
+# * since the setup is rather complicated we use a dedicated shell script to
+#   run the actual build process and installation of the cross-compiler
+#   toolchain
+#
+# * if you have enabled Travis in your feature branch you may want to change
+#   some of the settings to better suite your needs
+#   * reduce number of built architectures (probably not needed)
+#   * built ported software for a different architecture
+#     * specify H_HARBOURS=true
+#     * optionally specify H_HARBOUR_LIST="..." to a list of harbours to be
+#       built
+#     * optionally specify H_HARBOURS_REPOSITORY="..." to point to your repo
+#       with HARBOUR files
+#
 
+language: c
+sudo: required
 env:
   global:
     - CROSS_PREFIX=/usr/local/cross-static/
   matrix:
-    - HELENOS_ARCH=amd64 HELENOS_TARGET=amd64-unknown-elf HELENOS_OUTPUT=image.iso
-    - HELENOS_ARCH=arm32/beagleboardxm HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=uImage.bin
-    - HELENOS_ARCH=arm32/beaglebone HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=uImage.bin
-    - HELENOS_ARCH=arm32/gta02 HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=uImage.bin
-    - HELENOS_ARCH=arm32/integratorcp HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=image.boot
-    - HELENOS_ARCH=arm32/raspberrypi HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=uImage.bin
-    - HELENOS_ARCH=ia32 HELENOS_TARGET=i686-pc-linux-gnu HELENOS_OUTPUT=image.iso
-    - HELENOS_ARCH=ia64/i460GX HELENOS_TARGET=ia64-pc-linux-gnu HELENOS_OUTPUT=image.boot
-    - HELENOS_ARCH=ia64/ski HELENOS_TARGET=ia64-pc-linux-gnu HELENOS_OUTPUT=image.boot
-    - HELENOS_ARCH=mips32/malta-be HELENOS_TARGET=mips-linux-gnu HELENOS_OUTPUT=image.boot
-    - HELENOS_ARCH=mips32/malta-le HELENOS_TARGET=mipsel-linux-gnu HELENOS_OUTPUT=image.boot
-    - HELENOS_ARCH=mips32/msim HELENOS_TARGET=mipsel-linux-gnu HELENOS_OUTPUT=image.boot
-    - HELENOS_ARCH=ppc32 HELENOS_TARGET=ppc-linux-gnu HELENOS_OUTPUT=image.iso
-    - HELENOS_ARCH=sparc64/niagara HELENOS_TARGET=sparc64-linux-gnu HELENOS_OUTPUT=image.iso
-    - HELENOS_ARCH=sparc64/ultra HELENOS_TARGET=sparc64-linux-gnu HELENOS_OUTPUT=image.iso
-
+    - H_ARCH=amd64
+    - H_ARCH=arm32/beagleboardxm
+    - H_ARCH=arm32/beaglebone
+    - H_ARCH=arm32/gta02
+    - H_ARCH=arm32/integratorcp
+    - H_ARCH=arm32/raspberrypi
+    - H_ARCH=ia32 H_HARBOURS=true
+    - H_ARCH=ia64/i460GX
+    - H_ARCH=ia64/ski
+    - H_ARCH=mips32/malta-be
+    - H_ARCH=mips32/malta-le
+    - H_ARCH=mips32/msim
+    - H_ARCH=ppc32
+    - H_ARCH=sparc64/niagara
+    - H_ARCH=sparc64/ultra
 before_install:
- - sudo apt-get -qq update
- - sudo apt-get install -y genisoimage 
- - wget http://ci.helenos.org/download/helenos-cross-$HELENOS_TARGET.static.tar.xz -O /tmp/cross-$HELENOS_TARGET.static.tar.xz
- - sudo mkdir -p /usr/local/cross-static/
- - sudo tar -xJ -C /usr/local/cross-static/ -f /tmp/cross-$HELENOS_TARGET.static.tar.xz
-
+ - ./tools/travis.sh install
 script:
- - make PROFILE=$HELENOS_ARCH HANDS_OFF=y
- - test -s $HELENOS_OUTPUT
-
+ - ./tools/travis.sh run
 os:
-- linux
+ - linux
