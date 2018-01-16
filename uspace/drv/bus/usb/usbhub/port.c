@@ -242,19 +242,18 @@ static void setup_device(usb_hub_port_t *port)
 		goto out;
 	}
 
-	/* Reserve default address
-	 * TODO: Make the request synchronous.
-	 */
-	while ((err = usbhc_reserve_default_address(exch)) == EAGAIN) {
-		fibril_condvar_wait_timeout(&port->state_cv, &port->guard, 500000);
-		if (port->state != PORT_CONNECTED) {
-			assert(port->state == PORT_ERROR);
-			port_change_state(port, PORT_DISABLED);
-			goto out_exch;
-		}
-	}
+	/* Reserve default address */
+	err = usb_hub_reserve_default_address(port->hub, exch, &port->guard);
 	if (err != EOK) {
 		port_log(error, port, "Failed to reserve default address: %s", str_error(err));
+		port_change_state(port, PORT_DISABLED);
+		goto out_exch;
+	}
+
+	/* Reservation of default address could have blocked */
+	if (port->state != PORT_CONNECTED) {
+		assert(port->state == PORT_ERROR);
+		port_change_state(port, PORT_DISABLED);
 		goto out_exch;
 	}
 
@@ -281,14 +280,10 @@ static void setup_device(usb_hub_port_t *port)
 out_port:
 	if (port->state != PORT_ENABLED)
 		usb_hub_clear_port_feature(port->hub, port->port_number, USB_HUB_FEATURE_C_PORT_ENABLE);
-
 out_address:
-	if ((err = usbhc_release_default_address(exch)))
-		port_log(error, port, "Failed to release default address: %s", str_error(err));
-
+	usb_hub_release_default_address(port->hub, exch);
 out_exch:
 	usb_device_bus_exchange_end(exch);
-
 out:
 	assert(port->state == PORT_ENABLED || port->state == PORT_DISABLED);
 	fibril_mutex_unlock(&port->guard);
