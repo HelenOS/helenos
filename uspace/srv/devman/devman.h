@@ -79,7 +79,7 @@ typedef struct driver {
 	/** Name of the device driver. */
 	char *name;
 	/** Path to the driver's binary. */
-	const char *binary_path;
+	char *binary_path;
 	/** List of device ids for device-to-driver matching. */
 	match_id_list_t match_ids;
 	/** List of devices controlled by this driver. */

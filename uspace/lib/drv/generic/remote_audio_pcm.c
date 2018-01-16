@@ -183,7 +183,7 @@ void audio_pcm_close(audio_pcm_sess_t *sess)
  *
  * @note Caller is responsible for freeing newly allocated memory.
  */
-errno_t audio_pcm_get_info_str(audio_pcm_sess_t *sess, const char **name)
+errno_t audio_pcm_get_info_str(audio_pcm_sess_t *sess, char **name)
 {
 	if (!name)
 		return EINVAL;

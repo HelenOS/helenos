@@ -413,7 +413,7 @@ errno_t hound_remove_sink(hound_t *hound, audio_sink_t *sink)
  * @param[out] size Number of identifiers int he @p list.
  * @return Error code.
  */
-errno_t hound_list_sources(hound_t *hound, const char ***list, size_t *size)
+errno_t hound_list_sources(hound_t *hound, char ***list, size_t *size)
 {
 	assert(hound);
 	if (!list || !size)
@@ -427,7 +427,7 @@ errno_t hound_list_sources(hound_t *hound, const char ***list, size_t *size)
 		fibril_mutex_unlock(&hound->list_guard);
 		return EOK;
 	}
-	const char **names = calloc(count, sizeof(char *));
+	char **names = calloc(count, sizeof(char *));
 	errno_t ret = names ? EOK : ENOMEM;
 	for (unsigned long i = 0; i < count && ret == EOK; ++i) {
 		link_t *slink = list_nth(&hound->sources, i);
@@ -455,7 +455,7 @@ errno_t hound_list_sources(hound_t *hound, const char ***list, size_t *size)
  * @param[out] size Number of identifiers int he @p list.
  * @return Error code.
  */
-errno_t hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
+errno_t hound_list_sinks(hound_t *hound, char ***list, size_t *size)
 {
 	assert(hound);
 	if (!list || !size)
@@ -469,7 +469,7 @@ errno_t hound_list_sinks(hound_t *hound, const char ***list, size_t *size)
 		fibril_mutex_unlock(&hound->list_guard);
 		return EOK;
 	}
-	const char **names = calloc(count, sizeof(char *));
+	char **names = calloc(count, sizeof(char *));
 	errno_t ret = names ? EOK : ENOMEM;
 	for (size_t i = 0; i < count && ret == EOK; ++i) {
 		link_t *slink = list_nth(&hound->sinks, i);

@@ -93,7 +93,7 @@ typedef enum {
  * @param[out] items Number of items controlled by the mixer.
  * @return Error code.
  */
-errno_t audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *items)
+errno_t audio_mixer_get_info(async_exch_t *exch, char **name, unsigned *items)
 {
 	if (!exch)
 		return EINVAL;
@@ -130,7 +130,7 @@ errno_t audio_mixer_get_info(async_exch_t *exch, const char **name, unsigned *it
  * @return Error code.
  */
 errno_t audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
-    const char **name, unsigned *levels)
+    char **name, unsigned *levels)
 {
 	if (!exch)
 		return EINVAL;

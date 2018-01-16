@@ -56,9 +56,9 @@ errno_t hound_context_set_main_stream_params(hound_context_t *hound,
     pcm_format_t format, size_t bsize);
 
 errno_t hound_context_get_available_targets(hound_context_t *hound,
-    const char ***names, size_t *count);
+    char ***names, size_t *count);
 errno_t hound_context_get_connected_targets(hound_context_t *hound,
-    const char ***names, size_t *count);
+    char ***names, size_t *count);
 
 errno_t hound_context_connect_target(hound_context_t *hound, const char* target);
 errno_t hound_context_disconnect_target(hound_context_t *hound, const char* target);

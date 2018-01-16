@@ -48,7 +48,7 @@ struct audio_source {
 	/** List of connections */
 	list_t connections;
 	/** String identifier */
-	const char *name;
+	char *name;
 	/** audio data format */
 	pcm_format_t format;
 	/** backend data */
@@ -74,7 +74,7 @@ errno_t audio_source_init(audio_source_t *source, const char *name, void *data,
     errno_t (*update_available_data)(audio_source_t *, size_t),
     const pcm_format_t *f);
 void audio_source_fini(audio_source_t *source);
-errno_t audio_source_push_data(audio_source_t *source, const void *data,
+errno_t audio_source_push_data(audio_source_t *source, void *data,
     size_t size);
 static inline const pcm_format_t *audio_source_format(const audio_source_t *s)
 {

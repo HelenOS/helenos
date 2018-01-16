@@ -53,7 +53,7 @@ struct audio_sink {
 	/** List of all related connections */
 	list_t connections;
 	/** Sink's name */
-	const char *name;
+	char *name;
 	/** Consumes data in this format */
 	pcm_format_t format;
 	/** Backend data */

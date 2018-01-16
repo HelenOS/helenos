@@ -50,7 +50,7 @@ typedef struct {
 	/** Standard device descriptor. */
 	usb_standard_device_descriptor_t device;
 	/** Full configuration descriptor of current configuration. */
-	const void *full_config;
+	void *full_config;
 	size_t full_config_size;
 } usb_device_descriptors_t;
 

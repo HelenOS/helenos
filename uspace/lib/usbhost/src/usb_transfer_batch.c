@@ -93,7 +93,7 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep, char *buffer,
  *
  * @param[in] instance Batch structure to use.
  */
-void usb_transfer_batch_destroy(const usb_transfer_batch_t *instance)
+void usb_transfer_batch_destroy(usb_transfer_batch_t *instance)
 {
 	if (!instance)
 		return;

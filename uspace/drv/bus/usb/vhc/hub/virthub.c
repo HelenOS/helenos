@@ -155,16 +155,18 @@ errno_t virthub_init(usbvirt_device_t *dev, const char* name)
 	dev->ops = &hub_ops;
 	dev->descriptors = &descriptors;
 	dev->address = 0;
-	dev->name = str_dup(name);
-	if (!dev->name)
+
+	char *n = str_dup(name);
+	if (!n)
 		return ENOMEM;
 
 	hub_t *hub = malloc(sizeof(hub_t));
 	if (hub == NULL) {
-		free(dev->name);
+		free(n);
 		return ENOMEM;
 	}
 
+	dev->name = n;
 	hub_init(hub);
 	dev->device_data = hub;
 

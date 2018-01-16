@@ -352,7 +352,7 @@ int dplay(const char *device, const char *file)
 		goto close_session;
 	}
 
-	const char* info = NULL;
+	char* info = NULL;
 	ret = audio_pcm_get_info_str(session, &info);
 	if (ret != EOK) {
 		printf("Failed to get PCM info: %s.\n", str_error(ret));

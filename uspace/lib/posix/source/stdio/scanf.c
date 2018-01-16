@@ -624,8 +624,9 @@ static inline int _internal_scanf(
 				}
 
 				const char *cur_borrowed = NULL;
+				char *cur_duplicated = NULL;
 				const char *cur_limited = NULL;
-				char *cur_updated = NULL;
+				const char *cur_updated = NULL;
 
 				/* Borrow the cursor. Until it is returned to the provider
 				 * we cannot jump from the cycle, because it would leave
@@ -636,30 +637,32 @@ static inline int _internal_scanf(
 				 * decreased accordingly. Otherwise the strtol could read more
 				 * than allowed by width. */
 				if (width != -1) {
-					cur_limited = posix_strndup(cur_borrowed, width);
+					cur_duplicated = posix_strndup(cur_borrowed, width);
+					cur_limited = cur_duplicated;
 				} else {
 					cur_limited = cur_borrowed;
 				}
-				cur_updated = (char *) cur_limited;
+				cur_updated = cur_limited;
 
 				long long sres = 0;
 				unsigned long long ures = 0;
 				errno = 0; /* Reset errno to recognize error later. */
 				/* Try to convert the integer. */
 				if (int_conv_unsigned) {
-					ures = strtoull(cur_limited, &cur_updated, int_conv_base);
+					ures = strtoull(cur_limited, (char **) &cur_updated, int_conv_base);
 				} else {
-					sres = strtoll(cur_limited, &cur_updated, int_conv_base);
+					sres = strtoll(cur_limited, (char **) &cur_updated, int_conv_base);
 				}
 
 				/* Update the cursor so it can be returned to the provider. */
 				cur_borrowed += cur_updated - cur_limited;
-				if (width != -1 && cur_limited != NULL) {
+				if (cur_duplicated != NULL) {
 					/* Deallocate duplicated part of the cursor view. */
-					free(cur_limited);
+					free(cur_duplicated);
 				}
 				cur_limited = NULL;
 				cur_updated = NULL;
+				cur_duplicated = NULL;
 				/* Return the cursor to the provider. Input consistency is again
 				 * the job of the provider, so we can report errors from
 				 * now on. */
@@ -796,7 +799,8 @@ static inline int _internal_scanf(
 
 				const char *cur_borrowed = NULL;
 				const char *cur_limited = NULL;
-				char *cur_updated = NULL;
+				char *cur_duplicated = NULL;
+				const char *cur_updated = NULL;
 
 				/* Borrow the cursor. Until it is returned to the provider
 				 * we cannot jump from the cycle, because it would leave
@@ -807,11 +811,12 @@ static inline int _internal_scanf(
 				 * decreased accordingly. Otherwise the strtof could read more
 				 * than allowed by width. */
 				if (width != -1) {
-					cur_limited = posix_strndup(cur_borrowed, width);
+					cur_duplicated = posix_strndup(cur_borrowed, width);
+					cur_limited = cur_duplicated;
 				} else {
 					cur_limited = cur_borrowed;
 				}
-				cur_updated = (char *) cur_limited;
+				cur_updated = cur_limited;
 
 				float fres = 0.0;
 				double dres = 0.0;
@@ -820,13 +825,13 @@ static inline int _internal_scanf(
 				/* Try to convert the floating point nubmer. */
 				switch (length_mod) {
 				case LMOD_NONE:
-					fres = posix_strtof(cur_limited, &cur_updated);
+					fres = posix_strtof(cur_limited, (char **) &cur_updated);
 					break;
 				case LMOD_l:
-					dres = posix_strtod(cur_limited, &cur_updated);
+					dres = posix_strtod(cur_limited, (char **) &cur_updated);
 					break;
 				case LMOD_L:
-					ldres = posix_strtold(cur_limited, &cur_updated);
+					ldres = posix_strtold(cur_limited, (char **) &cur_updated);
 					break;
 				default:
 					assert(false);
@@ -834,9 +839,9 @@ static inline int _internal_scanf(
 
 				/* Update the cursor so it can be returned to the provider. */
 				cur_borrowed += cur_updated - cur_limited;
-				if (width != -1 && cur_limited != NULL) {
+				if (cur_duplicated != NULL) {
 					/* Deallocate duplicated part of the cursor view. */
-					free(cur_limited);
+					free(cur_duplicated);
 				}
 				cur_limited = NULL;
 				cur_updated = NULL;

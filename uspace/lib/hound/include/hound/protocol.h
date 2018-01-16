@@ -64,7 +64,7 @@ errno_t hound_service_register_context(hound_sess_t *sess,
     const char *name, bool record, hound_context_id_t *id);
 errno_t hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id);
 
-errno_t hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
+errno_t hound_service_get_list(hound_sess_t *sess, char ***ids, size_t *count,
     int flags, const char *connection);
 
 /**
@@ -76,7 +76,7 @@ errno_t hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *co
  * @return Error code.
  */
 static inline errno_t hound_service_get_list_all(hound_sess_t *sess,
-    const char ***ids, size_t *count, int flags)
+    char ***ids, size_t *count, int flags)
 {
 	return hound_service_get_list(sess, ids, count, flags, NULL);
 }
@@ -105,7 +105,7 @@ typedef struct hound_server_iface {
 	/** Query context direction */
 	bool (*is_record_context)(void *, hound_context_id_t);
 	/** Get string identifiers of specified objects */
-	errno_t (*get_list)(void *, const char ***, size_t *, const char *, int);
+	errno_t (*get_list)(void *, char ***, size_t *, const char *, int);
 	/** Create connection between source and sink */
 	errno_t (*connect)(void *, const char *, const char *);
 	/** Destroy connection between source and sink */

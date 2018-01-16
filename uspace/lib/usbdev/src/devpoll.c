@@ -79,7 +79,7 @@ typedef struct {
 static errno_t polling_fibril(void *arg)
 {
 	assert(arg);
-	const polling_data_t *data = arg;
+	polling_data_t *data = arg;
 	/* Helper to reduce typing. */
 	const usb_device_auto_polling_t *params = &data->auto_polling;
 

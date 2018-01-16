@@ -69,7 +69,7 @@ errno_t usb_request_get_bare_configuration_descriptor(usb_pipe_t *, int,
 errno_t usb_request_get_full_configuration_descriptor(usb_pipe_t *, int,
     void *, size_t, size_t *);
 errno_t usb_request_get_full_configuration_descriptor_alloc(usb_pipe_t *,
-    int, const void **, size_t *);
+    int, void **, size_t *);
 errno_t usb_request_set_descriptor(usb_pipe_t *, usb_request_type_t,
     usb_request_recipient_t, uint8_t, uint8_t, uint16_t, const void *, size_t);
 

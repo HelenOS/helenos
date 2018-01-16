@@ -153,7 +153,7 @@ typedef struct {
 	/** Standard configuration descriptor. */
 	usb_standard_configuration_descriptor_t *descriptor;
 	/** Array of extra data. */
-	const usbvirt_device_configuration_extras_t *extra;
+	usbvirt_device_configuration_extras_t *extra;
 	/** Length of @c extra array. */
 	size_t extra_count;
 } usbvirt_device_configuration_t;

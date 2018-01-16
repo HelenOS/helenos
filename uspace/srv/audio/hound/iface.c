@@ -85,7 +85,7 @@ static bool iface_is_record_context(void *server, hound_context_id_t id)
 	return hound_ctx_is_record(ctx);
 }
 
-static errno_t iface_get_list(void *server, const char ***list, size_t *size,
+static errno_t iface_get_list(void *server, char ***list, size_t *size,
     const char *connection, int flags)
 {
 	log_info("%s: %p, %zu, %s, %#x\n", __FUNCTION__, server, *size,

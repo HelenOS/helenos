@@ -172,7 +172,7 @@ errno_t hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t 
  *            contain connected actors.
  * @retval Error code.
  */
-errno_t hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
+errno_t hound_service_get_list(hound_sess_t *sess, char ***ids, size_t *count,
     int flags, const char *connection)
 {
 	assert(sess);
@@ -205,7 +205,7 @@ errno_t hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *co
 	unsigned name_count = IPC_GET_ARG1(res_call);
 
 	/* Start receiving names */
-	const char **names = NULL;
+	char **names = NULL;
 	if (name_count) {
 		size_t *sizes = calloc(name_count, sizeof(size_t));
 		names = calloc(name_count, sizeof(char *));
@@ -445,7 +445,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				break;
 			}
 
-			const char **list = NULL;
+			char **list = NULL;
 			const int flags = IPC_GET_ARG1(call);
 			size_t count = IPC_GET_ARG2(call);
 			const bool conn = IPC_GET_ARG3(call);
