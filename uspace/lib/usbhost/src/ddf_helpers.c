@@ -53,11 +53,6 @@
 
 #include "ddf_helpers.h"
 
-
-static int hcd_ddf_new_device(hc_device_t *hcd, ddf_dev_t *hc, device_t *hub_dev, unsigned port);
-static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub, unsigned port);
-
-
 /**
  * DDF usbhc_iface callback. Passes the endpoint descriptors, fills the pipe
  * descriptor according to the contents of the endpoint.
@@ -172,21 +167,75 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port)
 	device_t *hub = ddf_fun_data_get(fun);
 	assert(hub);
 
+	int err;
+
 	usb_log_debug("Hub %d reported a new USB device on port: %u",
 	    hub->address, port);
-	return hcd_ddf_new_device(hcd, hc, hub, port);
+
+	device_t *dev = hcd_ddf_fun_create(hcd);
+	if (!dev) {
+		usb_log_error("Failed to create USB device function.");
+		return ENOMEM;
+	}
+
+	dev->hub = hub;
+	dev->port = port;
+
+	if ((err = bus_device_enumerate(dev))) {
+		usb_log_error("Failed to initialize USB dev memory structures.");
+		goto err_usb_dev;
+	}
+
+	/* If the driver didn't name the dev when enumerating,
+	 * do it in some generic way.
+	 */
+	if (!ddf_fun_get_name(dev->fun)) {
+		bus_device_set_default_name(dev);
+	}
+
+	if ((err = ddf_fun_bind(dev->fun))) {
+		usb_log_error("Device(%d): Failed to register: %s.", dev->address, str_error(err));
+		goto err_usb_dev;
+	}
+
+	return EOK;
+
+err_usb_dev:
+	hcd_ddf_fun_destroy(dev);
+	return err;
 }
 
 static int device_remove(ddf_fun_t *fun, unsigned port)
 {
 	assert(fun);
-	ddf_dev_t *ddf_dev = ddf_fun_get_dev(fun);
-	device_t *dev = ddf_fun_data_get(fun);
-	assert(ddf_dev);
-	assert(dev);
+	device_t *hub = ddf_fun_data_get(fun);
+	assert(hub);
 	usb_log_debug("Hub `%s' reported removal of device on port %u",
 	    ddf_fun_get_name(fun), port);
-	return hcd_ddf_remove_device(ddf_dev, dev, port);
+
+	device_t *victim = NULL;
+
+	fibril_mutex_lock(&hub->guard);
+	list_foreach(hub->devices, link, device_t, it) {
+		if (it->port == port) {
+			victim = it;
+			break;
+		}
+	}
+	fibril_mutex_unlock(&hub->guard);
+
+	if (!victim) {
+		usb_log_warning("Hub '%s' tried to remove non-existant"
+		    " device.", ddf_fun_get_name(fun));
+		return ENOENT;
+	}
+
+	assert(victim->fun);
+	assert(victim->port == port);
+	assert(victim->hub == hub);
+
+	bus_device_gone(victim);
+	return EOK;
 }
 
 /** Gets handle of the respective device.
@@ -330,33 +379,6 @@ static int create_match_ids(match_id_list_t *l,
 	return EOK;
 }
 
-static int hcd_ddf_remove_device(ddf_dev_t *device, device_t *hub,
-    unsigned port)
-{
-	assert(device);
-
-	device_t *victim = NULL;
-
-	fibril_mutex_lock(&hub->guard);
-	list_foreach(hub->devices, link, device_t, it) {
-		if (it->port == port) {
-			victim = it;
-			break;
-		}
-	}
-	fibril_mutex_unlock(&hub->guard);
-
-	if (!victim)
-		return ENOENT;
-
-	assert(victim->fun);
-	assert(victim->port == port);
-	assert(victim->hub == hub);
-
-	bus_device_gone(victim);
-	return EOK;
-}
-
 device_t *hcd_ddf_fun_create(hc_device_t *hc)
 {
 	/* Create DDF function for the new device */
@@ -427,47 +449,6 @@ int hcd_device_explore(device_t *device)
 
 out:
 	clean_match_ids(&mids);
-	return err;
-}
-
-static int hcd_ddf_new_device(hc_device_t *hcd, ddf_dev_t *hc, device_t *hub, unsigned port)
-{
-	int err;
-	assert(hcd);
-	assert(hcd->bus);
-	assert(hub);
-	assert(hc);
-
-	device_t *dev = hcd_ddf_fun_create(hcd);
-	if (!dev) {
-		usb_log_error("Failed to create USB device function.");
-		return ENOMEM;
-	}
-
-	dev->hub = hub;
-	dev->port = port;
-
-	if ((err = bus_device_enumerate(dev))) {
-		usb_log_error("Failed to initialize USB dev memory structures.");
-		return err;
-	}
-
-	/* If the driver didn't name the dev when enumerating,
-	 * do it in some generic way.
-	 */
-	if (!ddf_fun_get_name(dev->fun)) {
-		bus_device_set_default_name(dev);
-	}
-
-	if ((err = ddf_fun_bind(dev->fun))) {
-		usb_log_error("Device(%d): Failed to register: %s.", dev->address, str_error(err));
-		goto err_usb_dev;
-	}
-
-	return EOK;
-
-err_usb_dev:
-	hcd_ddf_fun_destroy(dev);
 	return err;
 }
 
