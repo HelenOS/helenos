@@ -166,7 +166,7 @@ typedef struct xhci_stream_ctx {
 	uint64_t data [2];
 #define XHCI_STREAM_DCS(ctx)       XHCI_QWORD_EXTRACT((ctx).data[0],  0, 0)
 #define XHCI_STREAM_SCT(ctx)       XHCI_QWORD_EXTRACT((ctx).data[0],  3, 1)
-#define XHCI_STREAM_DEQ_PTR(ctx)   XHCI_QWORD_EXTRACT((ctx).data[0], 63, 4)
+#define XHCI_STREAM_DEQ_PTR(ctx)   (XHCI_QWORD_EXTRACT((ctx).data[0], 63, 4) << 4)
 #define XHCI_STREAM_EDTLA(ctx)     XHCI_QWORD_EXTRACT((ctx).data[1], 24, 0)
 
 #define XHCI_STREAM_SCT_SET(ctx, val) \

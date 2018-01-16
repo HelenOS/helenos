@@ -42,6 +42,7 @@ SOURCES = \
 	main.c \
 	rh.c \
 	scratchpad.c \
+	streams.c \
 	transfers.c \
 	trb_ring.c
 

@@ -101,6 +101,7 @@ typedef struct xhci_trb {
 #define TRB_CYCLE(trb)          XHCI_DWORD_EXTRACT((trb).control, 0, 0)
 #define TRB_LINK_TC(trb)        XHCI_DWORD_EXTRACT((trb).control, 1, 1)
 #define TRB_IOC(trb)            XHCI_DWORD_EXTRACT((trb).control, 5, 5)
+#define TRB_EVENT_DATA(trb)		XHCI_DWORD_EXTRACT((trb).control, 2, 2)
 
 #define TRB_TRANSFER_LENGTH(trb)	XHCI_DWORD_EXTRACT((trb).status, 23, 0)
 #define TRB_COMPLETION_CODE(trb)	XHCI_DWORD_EXTRACT((trb).status, 31, 24)

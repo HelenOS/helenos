@@ -43,6 +43,7 @@
 #include "bus.h"
 #include "commands.h"
 #include "endpoint.h"
+#include "streams.h"
 
 static int alloc_transfer_ds(xhci_endpoint_t *);
 static void free_transfer_ds(xhci_endpoint_t *);
@@ -130,7 +131,7 @@ void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
  *
  * @return EP_TYPE_[CONTROL|ISOCH|BULK|INTERRUPT]_[IN|OUT]
  */
-static int xhci_endpoint_type(xhci_endpoint_t *ep)
+int xhci_endpoint_type(xhci_endpoint_t *ep)
 {
 	const bool in = ep->base.direction == USB_DIRECTION_IN;
 
@@ -152,119 +153,6 @@ static int xhci_endpoint_type(xhci_endpoint_t *ep)
 	}
 
 	return EP_TYPE_INVALID;
-}
-
-/**
- * Test whether an XHCI endpoint uses streams.
- * @param[in] xhci_ep XHCI endpoint to query.
- *
- * @return True if the endpoint uses streams.
- */
-static bool endpoint_using_streams(xhci_endpoint_t *xhci_ep)
-{
-	return xhci_ep->primary_stream_ctx_array != NULL;
-}
-
-// static bool primary_stream_ctx_has_secondary_array(xhci_stream_ctx_t *primary_ctx) {
-// 	/* Section 6.2.4.1, SCT values */
-// 	return XHCI_STREAM_SCT(*primary_ctx) >= 2;
-// }
-//
-// static size_t secondary_stream_ctx_array_size(xhci_stream_ctx_t *primary_ctx) {
-// 	if (XHCI_STREAM_SCT(*primary_ctx) < 2) return 0;
-// 	return 2 << XHCI_STREAM_SCT(*primary_ctx);
-// }
-
-/** Initialize primary streams of XHCI bulk endpoint.
- * @param[in] hc Host controller of the endpoint.
- * @param[in] xhci_epi XHCI bulk endpoint to use.
- * @param[in] count Number of primary streams to initialize.
- */
-static void initialize_primary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, unsigned count) {
-	for (size_t index = 0; index < count; ++index) {
-		xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[index];
-		xhci_trb_ring_t *ring = &xhci_ep->primary_stream_rings[index];
-
-		/* Init and register TRB ring for every primary stream */
-		xhci_trb_ring_init(ring); // FIXME: Not checking error code?
-		XHCI_STREAM_DEQ_PTR_SET(*ctx, ring->dequeue);
-
-		/* Set to linear stream array */
-		XHCI_STREAM_SCT_SET(*ctx, 1);
-	}
-}
-
-/** Configure XHCI bulk endpoint's stream context.
- * @param[in] xhci_ep Associated XHCI bulk endpoint.
- * @param[in] ctx Endpoint context to configure.
- * @param[in] pstreams The value of MaxPStreams.
- */
-static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, unsigned pstreams) {
-	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(xhci_ep));
-	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, xhci_ep->base.max_packet_size);
-	XHCI_EP_MAX_BURST_SIZE_SET(*ctx, xhci_ep->max_burst - 1);
-	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
-
-	XHCI_EP_MAX_P_STREAMS_SET(*ctx, pstreams);
-	XHCI_EP_TR_DPTR_SET(*ctx, xhci_ep->primary_stream_ctx_dma.phys);
-	// TODO: set HID?
-	XHCI_EP_LSA_SET(*ctx, 1);
-}
-
-/** TODO document this
- */
-int xhci_endpoint_request_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *xhci_ep, unsigned count) {
-	if (xhci_ep->base.transfer_type != USB_TRANSFER_BULK
-		|| dev->base.speed != USB_SPEED_SUPER) {
-		usb_log_error("Streams are only supported by superspeed bulk endpoints.");
-		return EINVAL;
-	}
-
-	if (xhci_ep->max_streams == 1) {
-		usb_log_error("Streams are not supported by endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
-		return EINVAL;
-	}
-
-	uint8_t max_psa_size = 2 << XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PSA_SIZE);
-	if (count > max_psa_size) {
-		// FIXME: We don't support secondary stream arrays yet, so we just give up for this
-		return ENOTSUP;
-	}
-
-	if (count > xhci_ep->max_streams) {
-		usb_log_error("Endpoint " XHCI_EP_FMT " supports only %" PRIu32 " streams.",
-			XHCI_EP_ARGS(*xhci_ep), xhci_ep->max_streams);
-		return EINVAL;
-	}
-
-	if (count <= 1024) {
-		usb_log_debug2("Allocating primary stream context array of size %u for endpoint " XHCI_EP_FMT,
-			count, XHCI_EP_ARGS(*xhci_ep));
-		if ((dma_buffer_alloc(&xhci_ep->primary_stream_ctx_dma, count * sizeof(xhci_stream_ctx_t))))
-			return ENOMEM;
-		xhci_ep->primary_stream_ctx_array = xhci_ep->primary_stream_ctx_dma.virt;
-
-		xhci_ep->primary_stream_rings = calloc(count, sizeof(xhci_trb_ring_t));
-		if (!xhci_ep->primary_stream_rings) {
-			dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
-			return ENOMEM;
-		}
-
-		// FIXME: count should be rounded to nearest power of 2 for xHC, workaround for now
-		count = 1024;
-		// FIXME: pstreams are "log2(count) - 1"
-		const size_t pstreams = 9;
-		xhci_ep->primary_stream_ctx_array_size = count;
-
-		memset(xhci_ep->primary_stream_ctx_array, 0, count * sizeof(xhci_stream_ctx_t));
-		initialize_primary_streams(hc, xhci_ep, count);
-
-		xhci_ep_ctx_t ep_ctx;
-		setup_stream_context(xhci_ep, &ep_ctx, pstreams);
-		return hc_add_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
-	}
-	// FIXME: Complex stuff not supported yet
-	return ENOTSUP;
 }
 
 /** Allocate transfer data structures for XHCI endpoint.
@@ -299,25 +187,10 @@ static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
  */
 static void free_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
-	if (endpoint_using_streams(xhci_ep)) {
-		usb_log_debug2("Freeing primary stream context array of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
-
-		// maybe check if LSA, then skip?
-		// for (size_t index = 0; index < primary_stream_ctx_array_size(xhci_ep); ++index) {
-		// 	xhci_stream_ctx_t *primary_ctx = xhci_ep->primary_stream_ctx_array + index;
-		// 	if (primary_stream_ctx_has_secondary_array(primary_ctx)) {
-		// 		// uintptr_t phys = XHCI_STREAM_DEQ_PTR(*primary_ctx);
-		// 		/* size_t size = */ secondary_stream_ctx_array_size(primary_ctx);
-		// 		// TODO: somehow map the address to virtual and free the secondary array
-		// 	}
-		// }
-		for (size_t index = 0; index < xhci_ep->primary_stream_ctx_array_size; ++index) {
-			// FIXME: Get the trb ring associated with stream [index] and fini it
-		}
-		dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
+	if (xhci_ep->primary_stream_data_size) {
+		xhci_stream_free_ds(xhci_ep);
 	} else {
 		usb_log_debug2("Freeing main transfer ring of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
-
 		xhci_trb_ring_fini(&xhci_ep->ring);
 	}
 

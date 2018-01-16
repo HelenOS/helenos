@@ -88,8 +88,9 @@ typedef union {
 	struct {
 		usb_address_t address;
 		usb_endpoint_t endpoint;
+		uint32_t stream;
 	} __attribute__((packed));
-	uint32_t packed;
+	uint64_t packed;
 } usb_target_t;
 
 extern usb_dev_session_t *usb_dev_connect(devman_handle_t);

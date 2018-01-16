@@ -38,6 +38,7 @@
 #include "endpoint.h"
 #include "hc.h"
 #include "hw_struct/trb.h"
+#include "streams.h"
 #include "transfers.h"
 #include "trb_ring.h"
 
@@ -120,7 +121,17 @@ void xhci_transfer_destroy(usb_transfer_batch_t* batch)
 
 static xhci_trb_ring_t *get_ring(xhci_hc_t *hc, xhci_transfer_t *transfer)
 {
-	return &xhci_endpoint_get(transfer->batch.ep)->ring;
+	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
+	if (ep->primary_stream_data_size == 0) return &ep->ring;
+	uint32_t stream_id = transfer->batch.target.stream;
+
+	xhci_stream_data_t *stream_data = xhci_get_stream_ctx_data(ep, stream_id);
+	if (stream_data == NULL) {
+		usb_log_warning("No transfer ring was found for stream %u.", stream_id);
+		return NULL;
+	}
+
+	return &stream_data->ring;
 }
 
 static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
@@ -201,17 +212,40 @@ static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 
 	// data size (sent for OUT, or buffer size)
 	TRB_CTRL_SET_XFER_LEN(trb, transfer->batch.buffer_size);
-	// FIXME: TD size 4.11.2.4
-	TRB_CTRL_SET_TD_SIZE(trb, 1);
 
-	// we want an interrupt after this td is done
-	TRB_CTRL_SET_IOC(trb, 1);
+	/* The stream-enabled endpoints need to chain ED trb */
+	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
+	if (!ep->primary_stream_data_size) {
+		// FIXME: TD size 4.11.2.4
+		TRB_CTRL_SET_TD_SIZE(trb, 1);
 
-	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
+		// we want an interrupt after this td is done
+		TRB_CTRL_SET_IOC(trb, 1);
+		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
 
-	xhci_trb_ring_t* ring = get_ring(hc, transfer);
+		xhci_trb_ring_t* ring = get_ring(hc, transfer);
+		return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+	}
+	else {
+		TRB_CTRL_SET_TD_SIZE(trb, 2);
+		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
+		TRB_CTRL_SET_CHAIN(trb, 1);
+		TRB_CTRL_SET_ENT(trb, 1);
 
-	return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+		xhci_trb_ring_t* ring = get_ring(hc, transfer);
+		int err = xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+
+		if (err) {
+			return err;
+		}
+
+		xhci_trb_clean(&trb);
+		trb.parameter = host2xhci(64, (uintptr_t) transfer);
+		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_EVENT_DATA);
+		TRB_CTRL_SET_IOC(trb, 1);
+
+		return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+	}
 }
 
 static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
@@ -266,20 +300,42 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	}
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 
-	xhci_trb_ring_update_dequeue(&ep->ring, addr);
+	usb_transfer_batch_t *batch;
+	xhci_transfer_t *transfer;
 
-	if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		isoch_handle_transfer_event(hc, ep, trb);
-		endpoint_del_ref(&ep->base);
-		return EOK;
-	}
+	if (TRB_EVENT_DATA(*trb)) {
+		assert(ep->base.transfer_type != USB_TRANSFER_ISOCHRONOUS);
+		/* We are received transfer pointer instead - work with that */
+		transfer = (xhci_transfer_t *) addr;
+		xhci_trb_ring_t * ring = get_ring(hc, transfer);
+		xhci_trb_ring_update_dequeue(ring, transfer->interrupt_trb_phys);
+		batch = &transfer->batch;
 
-	fibril_mutex_lock(&ep->base.guard);
-	usb_transfer_batch_t *batch = ep->base.active_batch;
-	if (!batch) {
+		fibril_mutex_lock(&ep->base.guard);
+		endpoint_deactivate_locked(&ep->base);
 		fibril_mutex_unlock(&ep->base.guard);
-		endpoint_del_ref(&ep->base);
-		return ENOENT;
+	}
+	else {
+		xhci_trb_ring_update_dequeue(&ep->ring, addr);
+
+		if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+			isoch_handle_transfer_event(hc, ep, trb);
+			endpoint_del_ref(&ep->base);
+			return EOK;
+		}
+
+		fibril_mutex_lock(&ep->base.guard);
+		batch = ep->base.active_batch;
+		if (!batch) {
+			fibril_mutex_unlock(&ep->base.guard);
+			endpoint_del_ref(&ep->base);
+			return ENOENT;
+		}
+
+		transfer = xhci_transfer_from_batch(batch);
+
+		endpoint_deactivate_locked(&ep->base);
+		fibril_mutex_unlock(&ep->base.guard);
 	}
 
 	const xhci_trb_completion_code_t completion_code = TRB_COMPLETION_CODE(*trb);
@@ -294,11 +350,6 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 			usb_log_warning("Transfer not successfull: %u", completion_code);
 			batch->error = EIO;
 	}
-
-	endpoint_deactivate_locked(&ep->base);
-	fibril_mutex_unlock(&ep->base.guard);
-
-	xhci_transfer_t *transfer = xhci_transfer_from_batch(batch);
 
 	if (batch->dir == USB_DIRECTION_IN) {
 		assert(batch->buffer);
@@ -369,7 +420,8 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 	fibril_mutex_unlock(&ep->guard);
 
 	const uint8_t slot_id = xhci_dev->slot_id;
-	const uint8_t target = xhci_endpoint_index(xhci_ep) + 1; /* EP Doorbells start at 1 */
+	/* EP Doorbells start at 1 */
+	const uint8_t target = (xhci_endpoint_index(xhci_ep) + 1) | (batch->target.stream << 16);
 	hc_ring_doorbell(hc, slot_id, target);
 	return EOK;
 }

@@ -50,6 +50,7 @@
 
 typedef struct xhci_device xhci_device_t;
 typedef struct xhci_endpoint xhci_endpoint_t;
+typedef struct xhci_stream_data xhci_stream_data_t;
 typedef struct xhci_bus xhci_bus_t;
 
 enum {
@@ -70,15 +71,15 @@ typedef struct xhci_endpoint {
 	/** Main transfer ring (unused if streams are enabled) */
 	xhci_trb_ring_t ring;
 
-	/** Primary stream context array (or NULL if endpoint doesn't use streams). */
+	/** Primary stream context data array (or NULL if endpoint doesn't use streams). */
+	xhci_stream_data_t *primary_stream_data_array;
+
+	/** Primary stream context array - allocated for xHC hardware. */
 	xhci_stream_ctx_t *primary_stream_ctx_array;
 	dma_buffer_t primary_stream_ctx_dma;
 
-	/** Primary stream ring array (or NULL if endpoint doesn't use streams). */
-	xhci_trb_ring_t *primary_stream_rings;
-
-	/** Size of the allocated primary stream context array (and ring array). */
-	uint16_t primary_stream_ctx_array_size;
+	/** Size of the allocated primary stream data array (and context array). */
+	uint16_t primary_stream_data_size;
 
 	/* Maximum number of primary streams (0 - 2^16). */
 	uint32_t max_streams;
@@ -128,10 +129,10 @@ typedef struct xhci_device {
 #define XHCI_DEV_FMT  "(%s, slot %d)"
 #define XHCI_DEV_ARGS(dev)		 ddf_fun_get_name((dev).base.fun), (dev).slot_id
 
+int xhci_endpoint_type(xhci_endpoint_t *ep);
+
 int xhci_endpoint_init(xhci_endpoint_t *, device_t *, const usb_endpoint_descriptors_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
-
-int xhci_endpoint_request_streams(xhci_hc_t *, xhci_device_t *, xhci_endpoint_t *, unsigned);
 
 uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
 uint8_t xhci_endpoint_index(xhci_endpoint_t *);
