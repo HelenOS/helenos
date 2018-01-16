@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2017 Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -280,7 +281,8 @@ int usb_polling_join(usb_polling_t *polling)
 	polling->joining = true;
 
 	/* Unregister the pipe. */
-	if ((rc = usb_device_unmap_ep(polling->ep_mapping)))
+	rc = usb_device_unmap_ep(polling->ep_mapping);
+	if (rc != EOK && rc != ENOENT)
 		return rc;
 
 	/* Wait for the fibril to terminate. */

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2017 Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
