@@ -44,8 +44,7 @@
 
 
 typedef enum {
-	IPC_M_USB_RESERVE_DEFAULT_ADDRESS,
-	IPC_M_USB_RELEASE_DEFAULT_ADDRESS,
+	IPC_M_USB_DEFAULT_ADDRESS_RESERVATION,
 	IPC_M_USB_DEVICE_ENUMERATE,
 	IPC_M_USB_DEVICE_REMOVE,
 	IPC_M_USB_REGISTER_ENDPOINT,
@@ -62,7 +61,7 @@ int usbhc_reserve_default_address(async_exch_t *exch)
 {
 	if (!exch)
 		return EBADMEM;
-	return async_req_1_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_RESERVE_DEFAULT_ADDRESS);
+	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_DEFAULT_ADDRESS_RESERVATION, true);
 }
 
 /** Release default USB address.
@@ -75,7 +74,7 @@ int usbhc_release_default_address(async_exch_t *exch)
 {
 	if (!exch)
 		return EBADMEM;
-	return async_req_1_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_RELEASE_DEFAULT_ADDRESS);
+	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_DEFAULT_ADDRESS_RESERVATION, false);
 }
 
 /**
@@ -262,8 +261,7 @@ int usbhc_write(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
 	return (int) opening_request_rc;
 }
 
-static void remote_usbhc_reserve_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_release_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_default_address_reservation(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_device_enumerate(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_device_remove(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_register_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -273,8 +271,7 @@ static void remote_usbhc_write(ddf_fun_t *fun, void *iface, ipc_callid_t callid,
 
 /** Remote USB interface operations. */
 static const remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
-	[IPC_M_USB_RESERVE_DEFAULT_ADDRESS] = remote_usbhc_reserve_default_address,
-	[IPC_M_USB_RELEASE_DEFAULT_ADDRESS] = remote_usbhc_release_default_address,
+	[IPC_M_USB_DEFAULT_ADDRESS_RESERVATION] = remote_usbhc_default_address_reservation,
 	[IPC_M_USB_DEVICE_ENUMERATE] = remote_usbhc_device_enumerate,
 	[IPC_M_USB_DEVICE_REMOVE] = remote_usbhc_device_remove,
 	[IPC_M_USB_REGISTER_ENDPOINT] = remote_usbhc_register_endpoint,
@@ -296,33 +293,21 @@ typedef struct {
 	void *buffer;
 } async_transaction_t;
 
-void remote_usbhc_reserve_default_address(ddf_fun_t *fun, void *iface,
+void remote_usbhc_default_address_reservation(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	const usbhc_iface_t *usbhc_iface = (usbhc_iface_t *) iface;
 
-	if (usbhc_iface->reserve_default_address == NULL) {
+	if (usbhc_iface->default_address_reservation == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
-	const int ret = usbhc_iface->reserve_default_address(fun);
+	const bool reserve = IPC_GET_ARG2(*call);
+	const int ret = usbhc_iface->default_address_reservation(fun, reserve);
 	async_answer_0(callid, ret);
 }
 
-void remote_usbhc_release_default_address(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	const usbhc_iface_t *usbhc_iface = (usbhc_iface_t *) iface;
-
-	if (usbhc_iface->release_default_address == NULL) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	const int ret = usbhc_iface->release_default_address(fun);
-	async_answer_0(callid, ret);
-}
 
 static void remote_usbhc_device_enumerate(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)

@@ -98,8 +98,7 @@ typedef int (*usbhc_iface_transfer_callback_t)(void *, int, size_t);
 
 /** USB device communication interface. */
 typedef struct {
-	int (*reserve_default_address)(ddf_fun_t *);
-	int (*release_default_address)(ddf_fun_t *);
+	int (*default_address_reservation)(ddf_fun_t *, bool);
 
 	int (*device_enumerate)(ddf_fun_t *, unsigned, usb_speed_t);
 	int (*device_remove)(ddf_fun_t *, unsigned);

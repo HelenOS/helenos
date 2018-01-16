@@ -518,7 +518,8 @@ void bus_release_default_address(bus_t *bus, device_t *dev)
 
 	fibril_mutex_lock(&bus->guard);
 	if (bus->default_address_owner != dev) {
-		usb_log_error("Device %d tried to release address, which is not reserved for it.", dev->address);
+		usb_log_error("Device %d tried to release default address, "
+		    "which is not reserved for it.", dev->address);
 	} else {
 		bus->default_address_owner = NULL;
 	}

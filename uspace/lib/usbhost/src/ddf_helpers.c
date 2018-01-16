@@ -113,11 +113,11 @@ static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_desc)
 }
 
 /**
- * DDF usbhc_iface callback. Calls the bus operation directly.
+ * DDF usbhc_iface callback. Calls the respective bus operation directly.
  *
  * @param fun DDF function of the device (hub) requesting the address.
  */
-static int reserve_default_address(ddf_fun_t *fun)
+static int default_address_reservation(ddf_fun_t *fun, bool reserve)
 {
 	assert(fun);
 	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -126,28 +126,13 @@ static int reserve_default_address(ddf_fun_t *fun)
 	assert(hcd->bus);
 	assert(dev);
 
-	usb_log_debug("Device %d requested default address", dev->address);
-	return bus_reserve_default_address(hcd->bus, dev);
-}
-
-/**
- * DDF usbhc_iface callback. Calls the bus operation directly.
- *
- * @param fun DDF function of the device (hub) releasing the address.
- */
-static int release_default_address(ddf_fun_t *fun)
-{
-	assert(fun);
-	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
-	device_t *dev = ddf_fun_data_get(fun);
-	assert(hcd);
-	assert(hcd->bus);
-	assert(dev);
-
-	usb_log_debug("Device %d released default address", dev->address);
-	bus_release_default_address(hcd->bus, dev);
-
-	return EOK;
+	usb_log_debug("Device %d %s default address", dev->address, reserve ? "requested" : "releasing");
+	if (reserve) {
+		return bus_reserve_default_address(hcd->bus, dev);
+	} else {
+		bus_release_default_address(hcd->bus, dev);
+		return EOK;
+	}
 }
 
 /**
@@ -168,7 +153,7 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port, usb_speed_t speed)
 
 	int err;
 
-	usb_log_debug("Hub %d reported a new %s device on port: %u",
+	usb_log_debug("Hub %d reported a new %s speed device on port: %u",
 	    hub->address, usb_str_speed(speed), port);
 
 	device_t *dev = hcd_ddf_fun_create(hcd, speed);
@@ -309,8 +294,7 @@ static usb_iface_t usb_iface = {
 
 /** USB host controller interface */
 static usbhc_iface_t usbhc_iface = {
-	.reserve_default_address = reserve_default_address,
-	.release_default_address = release_default_address,
+	.default_address_reservation = default_address_reservation,
 
 	.device_enumerate = device_enumerate,
 	.device_remove = device_remove,
