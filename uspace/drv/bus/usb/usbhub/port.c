@@ -152,8 +152,34 @@ static void port_make_disabled(usb_hub_port_t *port)
 void usb_hub_port_fini(usb_hub_port_t *port)
 {
 	assert(port);
+
 	fibril_mutex_lock(&port->guard);
-	port_make_disabled(port);
+	switch (port->state) {
+	case PORT_ENABLED:
+		/*
+		 * We shall inform the HC that the device is gone.
+		 * However, we can't wait for it, because if the device is hub,
+		 * it would have to use the same IPC handling fibril as we do.
+		 * But we cannot even defer it to another fibril, because then
+		 * the HC would assume our driver didn't cleanup properly, and
+		 * will remove those devices by himself.
+		 *
+		 * So the solutions seems to behave like a bad driver and leave
+		 * the work for HC.
+		 */
+		port_change_state(port, PORT_DISABLED);
+		break;
+
+	case PORT_CONNECTED:
+	case PORT_IN_RESET:
+		port_change_state(port, PORT_ERROR);
+		/* fallthrough */
+	case PORT_ERROR:
+		port_wait_state(port, PORT_DISABLED);
+		/* fallthrough */
+	case PORT_DISABLED:
+		break;
+	}
 	port_log(debug, port, "Finalized.");
 	fibril_mutex_unlock(&port->guard);
 }
