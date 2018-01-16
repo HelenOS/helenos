@@ -172,8 +172,13 @@ void transfer_list_remove_finished(transfer_list_t *instance, list_t *done)
 		    uhci_transfer_batch_from_link(current);
 
 		if (uhci_transfer_batch_check_completed(batch)) {
-			/* Save for processing */
+			/* Remove from schedule, save for processing */
+			fibril_mutex_lock(&batch->base.ep->guard);
+			assert(batch->base.ep->active_batch == &batch->base);
+			endpoint_deactivate_locked(batch->base.ep);
 			transfer_list_remove_batch(instance, batch);
+			fibril_mutex_unlock(&batch->base.ep->guard);
+
 			list_append(current, done);
 		}
 		current = next;
@@ -211,6 +216,7 @@ void transfer_list_remove_batch(
 	assert(uhci_batch);
 	assert(uhci_batch->qh);
 	assert(fibril_mutex_is_locked(&instance->guard));
+	assert(!list_empty(&instance->batch_list));
 
 	usb_log_debug2("Batch %p removing from queue %s.",
 	    uhci_batch, instance->name);

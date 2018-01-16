@@ -328,27 +328,32 @@ static void endpoint_unregister(endpoint_t *ep)
 
 	uhci_transfer_batch_t *batch = NULL;
 
+	// Check for the roothub, as it does not schedule into lists
+	if (ep->device->speed == USB_SPEED_MAX) {
+		// FIXME: We shall check the roothub for active transfer. But
+		// as it is polling, there is no way to make it stop doing so.
+		// Return after rewriting uhci rh.
+		return;
+	}
+
+	transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
+	assert(list);
+
+	// To avoid ABBA deadlock, we need to take the list first
+	fibril_mutex_lock(&list->guard);
 	fibril_mutex_lock(&ep->guard);
 	if (ep->active_batch) {
 		batch = uhci_transfer_batch_get(ep->active_batch);
-
-		transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
-		assert(list);
-
-		fibril_mutex_lock(&list->guard);
+		endpoint_deactivate_locked(ep);
 		transfer_list_remove_batch(list, batch);
-		fibril_mutex_unlock(&list->guard);
-
-		endpoint_wait_timeout_locked(ep, 2000);
-
-		batch = uhci_transfer_batch_get(ep->active_batch);
-		if (ep->active_batch) {
-			endpoint_deactivate_locked(ep);
-		}
 	}
 	fibril_mutex_unlock(&ep->guard);
+	fibril_mutex_unlock(&list->guard);
 
 	if (batch) {
+		// The HW could have been looking at the batch.
+		// Better wait two frames before we release the buffers.
+		endpoint_wait_timeout_locked(ep, 2000);
 		batch->base.error = EINTR;
 		batch->base.transfered_size = 0;
 		usb_transfer_batch_finish(&batch->base);

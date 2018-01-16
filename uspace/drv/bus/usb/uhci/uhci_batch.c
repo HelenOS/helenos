@@ -178,9 +178,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 			td_print_status(&uhci_batch->tds[i]);
 
 			batch->ep->toggle = td_toggle(&uhci_batch->tds[i]);
-			if (i > 0)
-				goto substract_ret;
-			return true;
+			goto substract_ret;
 		}
 
 		batch->transfered_size
@@ -189,12 +187,10 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 			goto substract_ret;
 	}
 substract_ret:
-	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL)
+	if (batch->transfered_size > 0 && batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
+		assert(batch->transfered_size >= USB_SETUP_PACKET_SIZE);
 		batch->transfered_size -= USB_SETUP_PACKET_SIZE;
-
-	fibril_mutex_lock(&batch->ep->guard);
-	endpoint_deactivate_locked(batch->ep);
-	fibril_mutex_unlock(&batch->ep->guard);
+	}
 
 	if (batch->dir == USB_DIRECTION_IN) {
 		assert(batch->transfered_size <= batch->buffer_size);
