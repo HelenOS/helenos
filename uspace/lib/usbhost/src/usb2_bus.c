@@ -189,10 +189,6 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	int err;
 	usb2_bus_t *bus = bus_to_usb2_bus(dev->bus);
 
-	/* The speed of the new device was reported by the hub when reserving
-	 * default address.
-	 */
-	dev->speed = bus->base.default_address_speed;
 	usb_log_debug("Found new %s speed USB device.", usb_str_speed(dev->speed));
 
 	/* Assign an address to the device */

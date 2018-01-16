@@ -79,11 +79,11 @@ typedef struct usb_endpoint_descriptors {
 	} companion;
 } usb_endpoint_descriptors_t;
 
-extern int usbhc_reserve_default_address(async_exch_t *, usb_speed_t);
+extern int usbhc_reserve_default_address(async_exch_t *);
 extern int usbhc_release_default_address(async_exch_t *);
 
-extern int usbhc_device_enumerate(async_exch_t *, unsigned port);
-extern int usbhc_device_remove(async_exch_t *, unsigned port);
+extern int usbhc_device_enumerate(async_exch_t *, unsigned, usb_speed_t);
+extern int usbhc_device_remove(async_exch_t *, unsigned);
 
 extern int usbhc_register_endpoint(async_exch_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
 extern int usbhc_unregister_endpoint(async_exch_t *, const usb_pipe_desc_t *);
@@ -98,10 +98,10 @@ typedef int (*usbhc_iface_transfer_callback_t)(void *, int, size_t);
 
 /** USB device communication interface. */
 typedef struct {
-	int (*reserve_default_address)(ddf_fun_t *, usb_speed_t);
+	int (*reserve_default_address)(ddf_fun_t *);
 	int (*release_default_address)(ddf_fun_t *);
 
-	int (*device_enumerate)(ddf_fun_t *, unsigned);
+	int (*device_enumerate)(ddf_fun_t *, unsigned, usb_speed_t);
 	int (*device_remove)(ddf_fun_t *, unsigned);
 
 	int (*register_endpoint)(ddf_fun_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);

@@ -56,15 +56,13 @@ typedef enum {
 
 /** Reserve default USB address.
  * @param[in] exch IPC communication exchange
- * @param[in] speed Communication speed of the newly attached device
  * @return Error code.
  */
-int usbhc_reserve_default_address(async_exch_t *exch, usb_speed_t speed)
+int usbhc_reserve_default_address(async_exch_t *exch)
 {
 	if (!exch)
 		return EBADMEM;
-	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USB_RESERVE_DEFAULT_ADDRESS, speed);
+	return async_req_1_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_RESERVE_DEFAULT_ADDRESS);
 }
 
 /** Release default USB address.
@@ -72,30 +70,29 @@ int usbhc_reserve_default_address(async_exch_t *exch, usb_speed_t speed)
  * @param[in] exch IPC communication exchange
  *
  * @return Error code.
- *
  */
 int usbhc_release_default_address(async_exch_t *exch)
 {
 	if (!exch)
 		return EBADMEM;
-	return async_req_1_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USB_RELEASE_DEFAULT_ADDRESS);
+	return async_req_1_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_RELEASE_DEFAULT_ADDRESS);
 }
 
-/** Trigger USB device enumeration
+/**
+ * Trigger USB device enumeration
  *
- * @param[in]  exch   IPC communication exchange
- * @param[out] handle Identifier of the newly added device (if successful)
+ * @param[in] exch IPC communication exchange
+ * @param[in] port Port number at which the device is attached
+ * @param[in] speed Communication speed of the newly attached device
  *
  * @return Error code.
- *
  */
-int usbhc_device_enumerate(async_exch_t *exch, unsigned port)
+int usbhc_device_enumerate(async_exch_t *exch, unsigned port, usb_speed_t speed)
 {
 	if (!exch)
 		return EBADMEM;
-	const int ret = async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USB_DEVICE_ENUMERATE, port);
+	const int ret = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USB_DEVICE_ENUMERATE, port, speed);
 	return ret;
 }
 
@@ -309,8 +306,7 @@ void remote_usbhc_reserve_default_address(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	usb_speed_t speed = DEV_IPC_GET_ARG1(*call);
-	const int ret = usbhc_iface->reserve_default_address(fun, speed);
+	const int ret = usbhc_iface->reserve_default_address(fun);
 	async_answer_0(callid, ret);
 }
 
@@ -339,7 +335,8 @@ static void remote_usbhc_device_enumerate(ddf_fun_t *fun, void *iface,
 	}
 
 	const unsigned port = DEV_IPC_GET_ARG1(*call);
-	const int ret = usbhc_iface->device_enumerate(fun, port);
+	usb_speed_t speed = DEV_IPC_GET_ARG2(*call);
+	const int ret = usbhc_iface->device_enumerate(fun, port, speed);
 	async_answer_0(callid, ret);
 }
 

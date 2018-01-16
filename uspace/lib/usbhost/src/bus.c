@@ -59,7 +59,6 @@ void bus_init(bus_t *bus, size_t device_size)
 
 	fibril_mutex_initialize(&bus->guard);
 	bus->device_size = device_size;
-	bus->default_address_speed = USB_SPEED_MAX;
 }
 
 /**
@@ -494,28 +493,36 @@ int bus_endpoint_remove(endpoint_t *ep)
  *
  * The speed is then used for devices enumerated while the address is reserved.
  */
-int bus_reserve_default_address(bus_t *bus, usb_speed_t speed)
+int bus_reserve_default_address(bus_t *bus, device_t *dev)
 {
 	assert(bus);
 
+	int err;
 	fibril_mutex_lock(&bus->guard);
-	if (bus->default_address_speed != USB_SPEED_MAX) {
-		fibril_mutex_unlock(&bus->guard);
-		return EAGAIN;
+	if (bus->default_address_owner != NULL) {
+		err = (bus->default_address_owner == dev) ? EINVAL : EAGAIN;
 	} else {
-		bus->default_address_speed = speed;
-		fibril_mutex_unlock(&bus->guard);
-		return EOK;
+		bus->default_address_owner = dev;
+		err = EOK;
 	}
+	fibril_mutex_unlock(&bus->guard);
+	return err;
 }
 
 /**
  * Release the default address.
  */
-void bus_release_default_address(bus_t *bus)
+void bus_release_default_address(bus_t *bus, device_t *dev)
 {
 	assert(bus);
-	bus->default_address_speed = USB_SPEED_MAX;
+
+	fibril_mutex_lock(&bus->guard);
+	if (bus->default_address_owner != dev) {
+		usb_log_error("Device %d tried to release address, which is not reserved for it.", dev->address);
+	} else {
+		bus->default_address_owner = NULL;
+	}
+	fibril_mutex_unlock(&bus->guard);
 }
 
 /**

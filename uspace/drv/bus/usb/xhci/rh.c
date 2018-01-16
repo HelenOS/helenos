@@ -168,20 +168,20 @@ static int rh_setup_device(xhci_rh_t *rh, uint8_t port_id)
 		return EIO;
 	}
 
-	device_t *dev = hcd_ddf_fun_create(&rh->hc->base);
+	const xhci_port_speed_t *port_speed = xhci_rh_get_port_speed(rh, port_id);
+
+	device_t *dev = hcd_ddf_fun_create(&rh->hc->base, port_speed->usb_speed);
 	if (!dev) {
 		usb_log_error("Failed to create USB device function.");
 		return ENOMEM;
 	}
 
-	const xhci_port_speed_t *port_speed = xhci_rh_get_port_speed(rh, port_id);
+	dev->hub = &rh->device.base;
+	dev->port = port_id;
+
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 	xhci_dev->usb3 = port_speed->major == 3;
 	xhci_dev->rh_port = port_id;
-
-	dev->hub = &rh->device.base;
-	dev->port = port_id;
-	dev->speed = port_speed->usb_speed;
 
 	if ((err = bus_device_enumerate(dev))) {
 		usb_log_error("Failed to enumerate USB device: %s", str_error(err));

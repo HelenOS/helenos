@@ -116,9 +116,8 @@ static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_desc)
  * DDF usbhc_iface callback. Calls the bus operation directly.
  *
  * @param fun DDF function of the device (hub) requesting the address.
- * @param speed An USB speed of the device for which the address is reserved.
  */
-static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
+static int reserve_default_address(ddf_fun_t *fun)
 {
 	assert(fun);
 	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -127,9 +126,8 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 	assert(hcd->bus);
 	assert(dev);
 
-	usb_log_debug("Device %d requested default address at %s speed",
-	    dev->address, usb_str_speed(speed));
-	return bus_reserve_default_address(hcd->bus, speed);
+	usb_log_debug("Device %d requested default address", dev->address);
+	return bus_reserve_default_address(hcd->bus, dev);
 }
 
 /**
@@ -147,7 +145,7 @@ static int release_default_address(ddf_fun_t *fun)
 	assert(dev);
 
 	usb_log_debug("Device %d released default address", dev->address);
-	bus_release_default_address(hcd->bus);
+	bus_release_default_address(hcd->bus, dev);
 
 	return EOK;
 }
@@ -156,8 +154,9 @@ static int release_default_address(ddf_fun_t *fun)
  * DDF usbhc_iface callback. Calls the bus operation directly.
  *
  * @param fun DDF function of the device (hub) requesting the address.
+ * @param speed USB speed of the new device
  */
-static int device_enumerate(ddf_fun_t *fun, unsigned port)
+static int device_enumerate(ddf_fun_t *fun, unsigned port, usb_speed_t speed)
 {
 	assert(fun);
 	ddf_dev_t *hc = ddf_fun_get_dev(fun);
@@ -169,10 +168,10 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port)
 
 	int err;
 
-	usb_log_debug("Hub %d reported a new USB device on port: %u",
-	    hub->address, port);
+	usb_log_debug("Hub %d reported a new %s device on port: %u",
+	    hub->address, usb_str_speed(speed), port);
 
-	device_t *dev = hcd_ddf_fun_create(hcd);
+	device_t *dev = hcd_ddf_fun_create(hcd, speed);
 	if (!dev) {
 		usb_log_error("Failed to create USB device function.");
 		return ENOMEM;
@@ -180,6 +179,7 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port)
 
 	dev->hub = hub;
 	dev->port = port;
+	dev->speed = speed;
 
 	if ((err = bus_device_enumerate(dev))) {
 		usb_log_error("Failed to initialize USB dev memory structures.");
@@ -379,7 +379,7 @@ static int create_match_ids(match_id_list_t *l,
 	return EOK;
 }
 
-device_t *hcd_ddf_fun_create(hc_device_t *hc)
+device_t *hcd_ddf_fun_create(hc_device_t *hc, usb_speed_t speed)
 {
 	/* Create DDF function for the new device */
 	ddf_fun_t *fun = ddf_fun_create(hc->ddf_dev, fun_inner, NULL);
@@ -397,6 +397,7 @@ device_t *hcd_ddf_fun_create(hc_device_t *hc)
 
 	bus_device_init(dev, hc->bus);
 	dev->fun = fun;
+	dev->speed = speed;
 	return dev;
 }
 
@@ -463,15 +464,10 @@ int hcd_setup_virtual_root_hub(hc_device_t *hcd)
 
 	assert(hcd);
 
-	if ((err = bus_reserve_default_address(hcd->bus, USB_SPEED_MAX))) {
-		usb_log_error("Failed to reserve default address for roothub setup: %s", str_error(err));
-		return err;
-	}
-
-	device_t *dev = hcd_ddf_fun_create(hcd);
+	device_t *dev = hcd_ddf_fun_create(hcd, USB_SPEED_MAX);
 	if (!dev) {
 		usb_log_error("Failed to create function for the root hub.");
-		goto err_default_address;
+		return ENOMEM;
 	}
 
 	ddf_fun_set_name(dev->fun, "roothub");
@@ -487,15 +483,12 @@ int hcd_setup_virtual_root_hub(hc_device_t *hcd)
 		goto err_enumerated;
 	}
 
-	bus_release_default_address(hcd->bus);
 	return EOK;
 
 err_enumerated:
 	bus_device_gone(dev);
 err_usb_dev:
 	hcd_ddf_fun_destroy(dev);
-err_default_address:
-	bus_release_default_address(hcd->bus);
 	return err;
 }
 

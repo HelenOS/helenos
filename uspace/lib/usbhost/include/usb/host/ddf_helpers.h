@@ -47,7 +47,7 @@ void hcd_ddf_clean_hc(hc_device_t *);
 
 int hcd_setup_virtual_root_hub(hc_device_t *);
 
-device_t *hcd_ddf_fun_create(hc_device_t *);
+device_t *hcd_ddf_fun_create(hc_device_t *, usb_speed_t);
 void hcd_ddf_fun_destroy(device_t *);
 
 int hcd_device_explore(device_t *);

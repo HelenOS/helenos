@@ -245,7 +245,7 @@ static void setup_device(usb_hub_port_t *port)
 	/* Reserve default address
 	 * TODO: Make the request synchronous.
 	 */
-	while ((err = usbhc_reserve_default_address(exch, port->speed)) == EAGAIN) {
+	while ((err = usbhc_reserve_default_address(exch)) == EAGAIN) {
 		fibril_condvar_wait_timeout(&port->state_cv, &port->guard, 500000);
 		if (port->state != PORT_CONNECTED) {
 			assert(port->state == PORT_ERROR);
@@ -270,7 +270,7 @@ static void setup_device(usb_hub_port_t *port)
 
 	port_log(debug, port, "Port reset, enumerating device.");
 
-	if ((err = usbhc_device_enumerate(exch, port->port_number))) {
+	if ((err = usbhc_device_enumerate(exch, port->port_number, port->speed))) {
 		port_log(error, port, "Failed to enumerate device: %s", str_error(err));
 		port_change_state(port, PORT_DISABLED);
 		goto out_port;

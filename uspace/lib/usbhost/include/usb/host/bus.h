@@ -139,8 +139,9 @@ typedef struct bus {
 	/* Do not call directly, ops are synchronized. */
 	const bus_ops_t *ops;
 
-	/* Reserving default address - USB_SPEED_MAX when free. */
-	usb_speed_t default_address_speed;
+	/* Reserving default address */
+	device_t *default_address_owner;
+	fibril_condvar_t default_address_cv;
 
 	/* This structure is meant to be extended by overriding. */
 } bus_t;
@@ -168,8 +169,8 @@ int bus_endpoint_add(device_t *, const usb_endpoint_descriptors_t *, endpoint_t 
 endpoint_t *bus_find_endpoint(device_t *, usb_endpoint_t, usb_direction_t);
 int bus_endpoint_remove(endpoint_t *);
 
-int bus_reserve_default_address(bus_t *, usb_speed_t);
-void bus_release_default_address(bus_t *);
+int bus_reserve_default_address(bus_t *, device_t *);
+void bus_release_default_address(bus_t *, device_t *);
 
 #endif
 /**
