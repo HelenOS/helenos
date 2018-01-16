@@ -42,12 +42,6 @@
 #include "stdint.h"
 #include "libc/inttypes.h"
 
-extern intmax_t __POSIX_DEF__(strtoimax)(const char *__restrict__ nptr,
-    char **__restrict__ endptr, int base);
-extern uintmax_t __POSIX_DEF__(strtoumax)(const char *__restrict__ nptr,
-    char **__restrict__ endptr, int base);
-
-
 #endif /* POSIX_INTTYPES_H_ */
 
 /** @}

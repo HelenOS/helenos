@@ -84,6 +84,7 @@ GENERIC_SOURCES = \
 	generic/mem.c \
 	generic/str.c \
 	generic/str_error.c \
+	generic/strtol.c \
 	generic/l18n/langs.c \
 	generic/fibril.c \
 	generic/fibril_synch.c \

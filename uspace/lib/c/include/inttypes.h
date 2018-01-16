@@ -37,6 +37,13 @@
 
 #include <_bits/inttypes.h>
 
+#ifndef __HELENOS_DISABLE_INTMAX__
+intmax_t strtoimax(const char *__restrict__ nptr,
+    char **__restrict__ endptr, int base);
+uintmax_t strtoumax(const char *__restrict__ nptr,
+    char **__restrict__ endptr, int base);
+#endif
+
 #endif
 
 /** @}

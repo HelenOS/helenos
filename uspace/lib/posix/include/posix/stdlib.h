@@ -100,16 +100,16 @@ extern double __POSIX_DEF__(strtod)(const char *__restrict__ nptr, char **__rest
 extern long double __POSIX_DEF__(strtold)(const char *__restrict__ nptr, char **__restrict__ endptr);
 
 /* Integer Conversion */
-extern int __POSIX_DEF__(atoi)(const char *nptr);
-extern long int __POSIX_DEF__(atol)(const char *nptr);
-extern long long int __POSIX_DEF__(atoll)(const char *nptr);
-extern long int __POSIX_DEF__(strtol)(const char *__restrict__ nptr,
+extern int atoi(const char *nptr);
+extern long int atol(const char *nptr);
+extern long long int atoll(const char *nptr);
+extern long int strtol(const char *__restrict__ nptr,
     char **__restrict__ endptr, int base);
-extern long long int __POSIX_DEF__(strtoll)(const char *__restrict__ nptr,
+extern long long int strtoll(const char *__restrict__ nptr,
     char **__restrict__ endptr, int base);
-extern unsigned long int __POSIX_DEF__(strtoul)(const char *__restrict__ nptr,
+extern unsigned long int strtoul(const char *__restrict__ nptr,
     char **__restrict__ endptr, int base);
-extern unsigned long long int __POSIX_DEF__(strtoull)(
+extern unsigned long long int strtoull(
     const char *__restrict__ nptr, char **__restrict__ endptr, int base);
 
 /* Memory Allocation */

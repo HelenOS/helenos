@@ -562,7 +562,7 @@ static inline int _internal_scanf(
 					break;
 				}
 				char *fmt_new = NULL;
-				width = posix_strtol(fmt, &fmt_new, 10);
+				width = strtol(fmt, &fmt_new, 10);
 				if (width != 0) {
 					fmt = fmt_new;
 				} else {
@@ -647,9 +647,9 @@ static inline int _internal_scanf(
 				errno = 0; /* Reset errno to recognize error later. */
 				/* Try to convert the integer. */
 				if (int_conv_unsigned) {
-					ures = posix_strtoull(cur_limited, &cur_updated, int_conv_base);
+					ures = strtoull(cur_limited, &cur_updated, int_conv_base);
 				} else {
-					sres = posix_strtoll(cur_limited, &cur_updated, int_conv_base);
+					sres = strtoll(cur_limited, &cur_updated, int_conv_base);
 				}
 
 				/* Update the cursor so it can be returned to the provider. */

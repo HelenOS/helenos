@@ -75,7 +75,6 @@ SOURCES = \
 	source/stdio.c \
 	source/stdio/scanf.c \
 	source/stdlib.c \
-	source/stdlib/strtol.c \
 	source/stdlib/strtold.c \
 	source/string.c \
 	source/strings.c \
