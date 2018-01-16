@@ -64,7 +64,7 @@ void isoch_init(xhci_endpoint_t *ep, const usb_endpoint_descriptors_t *desc)
 	/* 2 buffers are the very minimum. */
 	isoch->buffer_count = max(2, isoch->buffer_count);
 
-	usb_log_error("[isoch] isoch setup with %zu buffers", isoch->buffer_count);
+	usb_log_debug2("[isoch] isoch setup with %zu buffers", isoch->buffer_count);
 }
 
 static void isoch_reset(xhci_endpoint_t *ep)
