@@ -90,6 +90,30 @@ int __ucmpti2 (unsigned long long a, unsigned long long b)
 #if LONG_MAX == LLONG_MAX
 int ALIAS(__cmp, i2);
 int ALIAS(__ucmp, i2);
+#else
+
+int __cmpdi2(long a, long b)
+{
+	if ((int)a < (int)b) {
+		return LESSER;
+	} else if ((int)a > (int)b) {
+		return GREATER;
+	} else {
+		return EQUAL;
+	}
+}
+
+int __ucmpdi2(unsigned long a, unsigned long b)
+{
+	if ((int)a < (int)b) {
+		return LESSER;
+	} else if ((int)a > (int)b) {
+		return GREATER;
+	} else {
+		return EQUAL;
+	}
+}
+
 #endif
 
 /** @}

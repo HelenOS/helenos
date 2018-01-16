@@ -122,6 +122,11 @@ long long __multi3 (long long a, long long b)
 
 #if LONG_MAX == LLONG_MAX
 long ALIAS(__mul, i3);
+#else
+long __muldi3(long a, long b)
+{
+	return (int)a * (int)b;
+}
 #endif
 
 /** @}
