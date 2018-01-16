@@ -106,7 +106,10 @@ static int polling_fibril(void *arg)
 {
 	assert(arg);
 	usb_polling_t *polling = arg;
+
+	fibril_mutex_lock(&polling->guard);
 	polling->running = true;
+	fibril_mutex_unlock(&polling->guard);
 
 	usb_pipe_t *pipe = &polling->ep_mapping->pipe;
 
@@ -207,7 +210,9 @@ static int polling_fibril(void *arg)
 		}
 	}
 
+	fibril_mutex_lock(&polling->guard);
 	polling->running = false;
+	fibril_mutex_unlock(&polling->guard);
 
 	/* Notify joiners, if any. */
 	fibril_condvar_broadcast(&polling->cv);
