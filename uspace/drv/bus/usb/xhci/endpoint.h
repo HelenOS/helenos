@@ -134,6 +134,8 @@ int xhci_endpoint_type(xhci_endpoint_t *ep);
 int xhci_endpoint_init(xhci_endpoint_t *, device_t *, const usb_endpoint_descriptors_t *);
 void xhci_endpoint_fini(xhci_endpoint_t *);
 
+void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep);
+
 uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
 uint8_t xhci_endpoint_index(xhci_endpoint_t *);
 

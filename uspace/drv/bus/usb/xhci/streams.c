@@ -109,6 +109,9 @@ static void clear_primary_structures(xhci_endpoint_t *xhci_ep)
 
 	dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
 	free(xhci_ep->primary_stream_data_array);
+
+	xhci_ep->primary_stream_data_array = NULL;
+	xhci_ep->primary_stream_data_size = 0;
 }
 
 static void clear_secondary_streams(xhci_endpoint_t *xhci_ep, unsigned index)
@@ -311,6 +314,34 @@ static int verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
 	return EOK;
 }
 
+/** Cancels streams and reconfigures endpoint back to single ring no stream endpoint.
+ * @param[in] hc Host controller of the endpoint.
+ * @param[in] dev Used device.
+ * @param[in] xhci_ep Associated XHCI bulk endpoint.
+ */
+int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *xhci_ep)
+{
+	if (!xhci_ep->primary_stream_data_size) {
+		usb_log_warning("There are no streams enabled on the endpoint, doing nothing.");
+		return EOK;
+	}
+
+	hc_stop_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep));
+	xhci_endpoint_free_transfer_ds(xhci_ep);
+
+	/* Streams are now removed, proceed with reconfiguring endpoint. */
+	int err;
+	if ((err = xhci_trb_ring_init(&xhci_ep->ring))) {
+		usb_log_error("Failed to initialize a transfer ring.");
+		return err;
+	}
+
+	xhci_ep_ctx_t ep_ctx;
+	memset(&ep_ctx, 0, sizeof(ep_ctx));
+	xhci_setup_endpoint_context(xhci_ep, &ep_ctx);
+	return hc_update_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
+}
+
 /** Initialize, setup and register primary streams.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] dev Used device.
@@ -324,6 +355,13 @@ int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	if (err) {
 		return err;
 	}
+
+	/*
+	 * We have passed the checks.
+	 * Stop the endpoint, destroy the ring, and transition to streams.
+	 */
+	hc_stop_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep));
+	xhci_endpoint_free_transfer_ds(xhci_ep);
 
 	err = initialize_primary_structures(xhci_ep, count);
 	if (err) {
@@ -342,8 +380,7 @@ int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	const size_t pstreams = fnzb32(count) - 1;
 	setup_stream_context(xhci_ep, &ep_ctx, pstreams, 1);
 
-	// FIXME: do we add endpoint? do we need to destroy previous configuration?
-	return hc_add_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
+	return hc_update_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
 }
 
 /** Initialize, setup and register secondary streams.
@@ -392,6 +429,13 @@ int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 		return EINVAL;
 	}
 
+	/*
+	 * We have passed all checks.
+	 * Stop the endpoint, destroy the ring, and transition to streams.
+	 */
+	hc_stop_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep));
+	xhci_endpoint_free_transfer_ds(xhci_ep);
+
 	err = initialize_primary_structures(xhci_ep, count);
 	if (err) {
 		return err;
@@ -410,8 +454,7 @@ int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	const size_t pstreams = fnzb32(count) - 1;
 	setup_stream_context(xhci_ep, &ep_ctx, pstreams, 0);
 
-	// FIXME: do we add endpoint? do we need to destroy previous configuration?
-	return hc_add_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
+	return hc_update_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
 
 err_init:
 	for (size_t i = 0; i < index; ++i) {

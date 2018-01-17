@@ -46,7 +46,6 @@
 #include "streams.h"
 
 static int alloc_transfer_ds(xhci_endpoint_t *);
-static void free_transfer_ds(xhci_endpoint_t *);
 
 /**
  * Initialize new XHCI endpoint.
@@ -120,7 +119,7 @@ void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 {
 	assert(xhci_ep);
 
-	free_transfer_ds(xhci_ep);
+	xhci_endpoint_free_transfer_ds(xhci_ep);
 
 	// TODO: Something missed?
 }
@@ -155,7 +154,7 @@ int xhci_endpoint_type(xhci_endpoint_t *ep)
 	return EP_TYPE_INVALID;
 }
 
-/** Allocate transfer data structures for XHCI endpoint.
+/** Allocate transfer data structures for XHCI endpoint not using streams.
  * @param[in] xhci_ep XHCI endpoint to allocate data structures for.
  *
  * @return Error code.
@@ -165,7 +164,8 @@ static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	/* Can't use XHCI_EP_FMT because the endpoint may not have device. */
 	usb_log_debug2("Allocating main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
-	xhci_ep->primary_stream_ctx_array = NULL;
+	xhci_ep->primary_stream_data_array = NULL;
+	xhci_ep->primary_stream_data_size = 0;
 
 	int err;
 	if ((err = xhci_trb_ring_init(&xhci_ep->ring))) {
@@ -185,7 +185,7 @@ static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 /** Free transfer data structures for XHCI endpoint.
  * @param[in] xhci_ep XHCI endpoint to free data structures for.
  */
-static void free_transfer_ds(xhci_endpoint_t *xhci_ep)
+void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	if (xhci_ep->primary_stream_data_size) {
 		xhci_stream_free_ds(xhci_ep);

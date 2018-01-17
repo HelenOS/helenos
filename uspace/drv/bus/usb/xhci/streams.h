@@ -63,6 +63,7 @@ typedef struct xhci_stream_data {
 xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *ep, uint32_t stream_id);
 void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep);
 
+int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *xhci_ep);
 int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	xhci_endpoint_t *xhci_ep, unsigned count);
 int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
