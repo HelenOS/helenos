@@ -287,7 +287,7 @@ int usb_polling_join(usb_polling_t *polling)
 
 	/* Unregister the pipe. */
 	rc = usb_device_unmap_ep(polling->ep_mapping);
-	if (rc != EOK && rc != ENOENT)
+	if (rc != EOK && rc != ENOENT && rc != EHANGUP)
 		return rc;
 
 	/* Wait for the fibril to terminate. */
