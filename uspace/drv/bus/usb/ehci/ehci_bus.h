@@ -52,8 +52,12 @@ typedef struct ehci_endpoint {
 	qh_t *qh;
 	
 	dma_buffer_t dma_buffer;
-	/** Linked list used by driver software */
-	link_t link;
+
+	/** Link in endpoint_list */
+	link_t eplist_link;
+
+	/** Link in pending_endpoints */
+	link_t pending_link;
 } ehci_endpoint_t;
 
 typedef struct hc hc_t;
@@ -79,7 +83,7 @@ static inline ehci_endpoint_t * ehci_endpoint_get(const endpoint_t *ep)
 
 static inline ehci_endpoint_t * ehci_endpoint_list_instance(link_t *l)
 {
-	return list_get_instance(l, ehci_endpoint_t, link);
+	return list_get_instance(l, ehci_endpoint_t, eplist_link);
 }
 
 #endif

@@ -83,7 +83,6 @@ ehci_transfer_batch_t * ehci_transfer_batch_create(endpoint_t *ep)
 	}
 
 	usb_transfer_batch_init(&ehci_batch->base, ep);
-	link_initialize(&ehci_batch->link);
 
 	return ehci_batch;
 }

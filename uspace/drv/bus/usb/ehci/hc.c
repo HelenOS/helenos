@@ -172,7 +172,7 @@ int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	    hw_res->mem_ranges.ranges[0].address.absolute
 	    + EHCI_RD8(instance->caps->caplength));
 
-	list_initialize(&instance->pending_batches);
+	list_initialize(&instance->pending_endpoints);
 	fibril_mutex_initialize(&instance->guard);
 	fibril_condvar_initialize(&instance->async_doorbell);
 
@@ -298,19 +298,37 @@ int ehci_hc_schedule(usb_transfer_batch_t *batch)
 		return ehci_rh_schedule(&hc->rh, batch);
 	}
 
+	endpoint_t * const ep = batch->ep;
+	ehci_endpoint_t * const ehci_ep = ehci_endpoint_get(ep);
+
+	/* creating local reference */
+	endpoint_add_ref(ep);
+
+	fibril_mutex_lock(&ep->guard);
+	endpoint_activate_locked(ep, batch);
+
 	ehci_transfer_batch_t *ehci_batch = ehci_transfer_batch_get(batch);
-
 	const int err = ehci_transfer_batch_prepare(ehci_batch);
-	if (err)
+	if (err) {
+		endpoint_deactivate_locked(ep);
+		fibril_mutex_unlock(&ep->guard);
+		/* dropping local reference */
+		endpoint_del_ref(ep);
 		return err;
+	}
 
-	fibril_mutex_lock(&hc->guard);
-	usb_log_debug2("HC(%p): Appending BATCH(%p)", hc, batch);
-	list_append(&ehci_batch->link, &hc->pending_batches);
 	usb_log_debug("HC(%p): Committing BATCH(%p)", hc, batch);
 	ehci_transfer_batch_commit(ehci_batch);
+	fibril_mutex_unlock(&ep->guard);
 
+	/* Enqueue endpoint to the checked list */
+	fibril_mutex_lock(&hc->guard);
+	usb_log_debug2("HC(%p): Appending BATCH(%p)", hc, batch);
+
+	/* local reference -> pending list reference */
+	list_append(&ehci_ep->pending_link, &hc->pending_endpoints);
 	fibril_mutex_unlock(&hc->guard);
+
 	return EOK;
 }
 
@@ -340,20 +358,33 @@ void ehci_hc_interrupt(bus_t *bus_base, uint32_t status)
 	}
 
 	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
+
+		LIST_INITIALIZE(completed);
+
 		fibril_mutex_lock(&hc->guard);
 
-		usb_log_debug2("HC(%p): Scanning %lu pending batches", hc,
-			list_count(&hc->pending_batches));
-		list_foreach_safe(hc->pending_batches, current, next) {
-			ehci_transfer_batch_t *batch =
-			    ehci_transfer_batch_from_link(current);
+		usb_log_debug2("HC(%p): Scanning %lu pending endpoints", hc,
+			list_count(&hc->pending_endpoints));
+		list_foreach_safe(hc->pending_endpoints, current, next) {
+			ehci_endpoint_t *ep
+				= list_get_instance(current, ehci_endpoint_t, pending_link);
+
+			fibril_mutex_lock(&ep->base.guard);
+			ehci_transfer_batch_t *batch
+				= ehci_transfer_batch_get(ep->base.active_batch);
+			assert(batch);
 
 			if (ehci_transfer_batch_check_completed(batch)) {
+				endpoint_deactivate_locked(&ep->base);
 				list_remove(current);
+				endpoint_del_ref(&ep->base);
 				usb_transfer_batch_finish(&batch->base);
 			}
+			fibril_mutex_unlock(&ep->base.guard);
 		}
 		fibril_mutex_unlock(&hc->guard);
+
+
 	}
 
 	if (status & USB_STS_HOST_ERROR_FLAG) {

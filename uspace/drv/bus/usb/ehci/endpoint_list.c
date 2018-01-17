@@ -123,7 +123,7 @@ void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	/* Make sure QH is updated */
 	write_barrier();
 	/* Add to the sw list */
-	list_append(&ep->link, &instance->endpoint_list);
+	list_append(&ep->eplist_link, &instance->endpoint_list);
 
 	ehci_endpoint_t *first = ehci_endpoint_list_instance(
 	    list_first(&instance->endpoint_list));
@@ -158,12 +158,12 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	const char *qpos = NULL;
 	qh_t *prev_qh;
 	/* Remove from the hardware queue */
-	if (list_first(&instance->endpoint_list) == &ep->link) {
+	if (list_first(&instance->endpoint_list) == &ep->eplist_link) {
 		/* I'm the first one here */
 		prev_qh = instance->list_head;
 		qpos = "FIRST";
 	} else {
-		prev_qh = ehci_endpoint_list_instance(ep->link.prev)->qh;
+		prev_qh = ehci_endpoint_list_instance(ep->eplist_link.prev)->qh;
 		qpos = "NOT FIRST";
 	}
 	assert(qh_next(prev_qh) == addr_to_phys(ep->qh));
@@ -175,7 +175,7 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	    instance, instance->name,  ep, qpos, ep->qh->horizontal);
 
 	/* Remove from the endpoint list */
-	list_remove(&ep->link);
+	list_remove(&ep->eplist_link);
 	fibril_mutex_unlock(&instance->guard);
 }
 /**

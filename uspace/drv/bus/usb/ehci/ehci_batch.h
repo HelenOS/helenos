@@ -48,8 +48,6 @@ typedef struct ehci_transfer_batch {
 	usb_transfer_batch_t base;
 	/** Number of TDs used by the transfer */
 	size_t td_count;
-	/** Link */
-	link_t link;
 	/** Endpoint descriptor of the target endpoint. */
 	qh_t *qh;
 	/** Data buffer, must be accessible by the EHCI hw. */
@@ -68,12 +66,6 @@ int ehci_transfer_batch_prepare(ehci_transfer_batch_t *batch);
 void ehci_transfer_batch_commit(const ehci_transfer_batch_t *batch);
 bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *batch);
 void ehci_transfer_batch_destroy(ehci_transfer_batch_t *batch);
-
-static inline ehci_transfer_batch_t *ehci_transfer_batch_from_link(link_t *l)
-{
-	assert(l);
-	return list_get_instance(l, ehci_transfer_batch_t, link);
-}
 
 static inline ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
 {
