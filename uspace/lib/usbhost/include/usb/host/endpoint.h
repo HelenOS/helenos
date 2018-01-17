@@ -54,8 +54,6 @@ typedef struct usb_transfer_batch usb_transfer_batch_t;
 
 /** Host controller side endpoint structure. */
 typedef struct endpoint {
-	/** Part of linked list. */
-	link_t link;
 	/** USB device */
 	device_t *device;
 	/** Reference count. */
@@ -108,18 +106,6 @@ static inline bus_t *endpoint_get_bus(endpoint_t *ep)
 {
 	device_t * const device = ep->device;
 	return device ? device->bus : NULL;
-}
-
-/** list_get_instance wrapper.
- *
- * @param item Pointer to link member.
- *
- * @return Pointer to endpoint_t structure.
- *
- */
-static inline endpoint_t * endpoint_get_instance(link_t *item)
-{
-	return item ? list_get_instance(item, endpoint_t, link) : NULL;
 }
 
 #endif

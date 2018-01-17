@@ -59,7 +59,6 @@ void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors
 	ep->device = dev;
 
 	atomic_set(&ep->refcnt, 0);
-	link_initialize(&ep->link);
 	fibril_mutex_initialize(&ep->guard);
 	fibril_condvar_initialize(&ep->avail);
 
