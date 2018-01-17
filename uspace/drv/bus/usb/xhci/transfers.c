@@ -233,6 +233,10 @@ static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 		TRB_CTRL_SET_ENT(trb, 1);
 
 		xhci_trb_ring_t* ring = get_ring(hc, transfer);
+		if (!ring) {
+			return EINVAL;
+		}
+
 		int err = xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 
 		if (err) {
