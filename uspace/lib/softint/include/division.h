@@ -37,39 +37,25 @@
 #define __SOFTINT_DIVISION_H__
 
 extern int __divsi3(int, int);
-extern long __divdi3(long, long);
-extern long long __divti3(long long, long long);
+extern long long __divdi3(long long, long long);
 
 extern unsigned int __udivsi3(unsigned int, unsigned int);
-extern unsigned long __udivdi3(unsigned long, unsigned long);
-extern unsigned long long __udivti3(unsigned long long, unsigned long long);
+extern unsigned long long __udivdi3(unsigned long long, unsigned long long);
 
 extern int __modsi3(int, int);
-extern long __moddi3(long, long);
-extern long long __modti3(long long, long long);
+extern long long __moddi3(long long, long long);
 
 extern unsigned int __umodsi3(unsigned int, unsigned int);
-extern unsigned long __umoddi3(unsigned long, unsigned long);
-extern unsigned long long __umodti3(unsigned long long, unsigned long long);
+extern unsigned long long __umoddi3(unsigned long long, unsigned long long);
 
 extern int __divmodsi3(int, int, int *);
-extern long __divmoddi3(long, long, long *);
-extern long long __divmodti3(long long, long long, long long *);
-
 extern unsigned int __udivmodsi3(unsigned int, unsigned int, unsigned int *);
-extern unsigned long __udivmoddi3(unsigned long, unsigned long,
-    unsigned long *);
-extern unsigned long long __udivmodti3(unsigned long long, unsigned long long,
+
+extern long long __divmoddi3(long long, long long, long long *);
+extern long long __divmoddi4(long long, long long, long long *);
+extern unsigned long long __udivmoddi3(unsigned long long, unsigned long long,
     unsigned long long *);
-
-extern int __divmodsi4(int, int, int *);
-extern long __divmoddi4(long, long, long *);
-extern long long __divmodti4(long long, long long, long long *);
-
-extern unsigned int __udivmodsi4(unsigned int, unsigned int, unsigned int *);
-extern unsigned long __udivmoddi4(unsigned long, unsigned long,
-    unsigned long *);
-extern unsigned long long __udivmodti4(unsigned long long, unsigned long long,
+extern unsigned long long __udivmoddi4(unsigned long long, unsigned long long,
     unsigned long long *);
 
 #endif

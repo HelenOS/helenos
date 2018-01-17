@@ -34,7 +34,6 @@
  * SW implementation of 32 and 64 bit division and modulo.
  */
 
-#include <alias.h>
 #include <division.h>
 
 #define ABSVAL(x)  ((x) > 0 ? (x) : -(x))
@@ -121,7 +120,7 @@ int __divsi3(int a, int b)
 }
 
 /* 64bit integer division */
-long long __divti3(long long a, long long b)
+long long __divdi3(long long a, long long b)
 {
 	unsigned long long rem;
 	long long result = (long long) divandmod64(ABSVAL(a), ABSVAL(b), &rem);
@@ -140,7 +139,7 @@ unsigned int __udivsi3(unsigned int a, unsigned int b)
 }
 
 /* 64bit unsigned integer division */
-unsigned long long __udivti3(unsigned long long a, unsigned long long b)
+unsigned long long __udivdi3(unsigned long long a, unsigned long long b)
 {
 	unsigned long long rem;
 	return divandmod64(a, b, &rem);
@@ -160,7 +159,7 @@ int __modsi3(int a, int b)
 }
 
 /* 64bit remainder of the signed division */
-long long __modti3(long long a, long long b)
+long long __moddi3(long long a, long long b)
 {
 	unsigned long long rem;
 	divandmod64(a, b, &rem);
@@ -181,7 +180,7 @@ unsigned int __umodsi3(unsigned int a, unsigned int b)
 }
 
 /* 64bit remainder of the unsigned division */
-unsigned long long __umodti3(unsigned long long a, unsigned long long b)
+unsigned long long __umoddi3(unsigned long long a, unsigned long long b)
 {
 	unsigned long long rem;
 	divandmod64(a, b, &rem);
@@ -202,24 +201,13 @@ int __divmodsi3(int a, int b, int *c)
 	return -result;
 }
 
-int __divmodsi4(int a, int b, int *c)
-{
-	return __divmodsi3(a, b, c);
-}
-
 unsigned int __udivmodsi3(unsigned int a, unsigned int b,
     unsigned int *c)
 {
 	return divandmod32(a, b, c);
 }
 
-unsigned int __udivmodsi4(unsigned int a, unsigned int b,
-    unsigned int *c)
-{
-	return divandmod32(a, b, c);
-}
-
-long long __divmodti3(long long a, long long b, long long *c)
+long long __divmoddi3(long long a, long long b, long long *c)
 {
 	unsigned long long rem;
 	long long result = (int) divandmod64(ABSVAL(a), ABSVAL(b), &rem);
@@ -233,8 +221,7 @@ long long __divmodti3(long long a, long long b, long long *c)
 	return -result;
 }
 
-
-long long __divmodti4(long long a, long long b, long long *c)
+long long __divmoddi4(long long a, long long b, long long *c)
 {
 	unsigned long long rem;
 	long long result = (int) divandmod64(ABSVAL(a), ABSVAL(b), &rem);
@@ -248,26 +235,17 @@ long long __divmodti4(long long a, long long b, long long *c)
 	return -result;
 }
 
-unsigned long long __udivmodti3(unsigned long long a, unsigned long long b,
+unsigned long long __udivmoddi3(unsigned long long a, unsigned long long b,
     unsigned long long *c)
 {
 	return divandmod64(a, b, c);
 }
 
-unsigned long long __udivmodti4(unsigned long long a, unsigned long long b,
+unsigned long long __udivmoddi4(unsigned long long a, unsigned long long b,
     unsigned long long *c)
 {
 	return divandmod64(a, b, c);
 }
-
-long ALIAS(__div, i3);
-long ALIAS(__mod, i3);
-long ALIAS(__divmod, i3);
-long ALIAS(__divmod, i4);
-unsigned long ALIAS(__udiv, i3);
-unsigned long ALIAS(__umod, i3);
-unsigned long ALIAS(__udivmod, i3);
-unsigned long ALIAS(__udivmod, i4);
 
 /** @}
  */
