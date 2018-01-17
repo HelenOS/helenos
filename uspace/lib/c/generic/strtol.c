@@ -56,6 +56,15 @@ static inline int _digit_value(int c)
 	return INT_MAX;
 }
 
+/* FIXME: workaround for GCC "optimizing" the overflow check
+ * into soft-emulated 128b multiplication using `__multi3`,
+ * which we don't currently implement.
+ */
+__attribute__((noinline)) static uintmax_t _max_value(int base)
+{
+	return UINTMAX_MAX / base;
+}
+
 static inline uintmax_t _strtoumax(
     const char *restrict nptr, char **restrict endptr, int base,
     bool *restrict sgn)
@@ -110,12 +119,13 @@ static inline uintmax_t _strtoumax(
 	/* Read the value. */
 
 	uintmax_t result = 0;
+	uintmax_t max = _max_value(base);
 	int digit;
 
 	while (digit = _digit_value(*nptr), digit < base) {
 
-		if (__builtin_mul_overflow(result, base, &result) ||
-		    __builtin_add_overflow(result, digit, &result)) {
+		if (result > max ||
+		    __builtin_add_overflow(result * base, digit, &result)) {
 
 			errno = ERANGE;
 			result = UINTMAX_MAX;
