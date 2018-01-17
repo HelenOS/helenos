@@ -69,30 +69,65 @@ xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *ep, uint32_t strea
 	return &secondary_data[secondary_stream_id];
 }
 
+static int initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned count)
+{
+	usb_log_debug2("Allocating primary stream context array of size %u for endpoint " XHCI_EP_FMT,
+		count, XHCI_EP_ARGS(*xhci_ep));
+
+	if ((dma_buffer_alloc(&xhci_ep->primary_stream_ctx_dma, count * sizeof(xhci_stream_ctx_t)))) {
+		return ENOMEM;
+	}
+
+	xhci_ep->primary_stream_ctx_array = xhci_ep->primary_stream_ctx_dma.virt;
+	xhci_ep->primary_stream_data_array = calloc(count, sizeof(xhci_stream_data_t));
+	if (!xhci_ep->primary_stream_data_array) {
+		dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
+		return ENOMEM;
+	}
+
+	xhci_ep->primary_stream_data_size = count;
+
+	return EOK;
+}
+
+static void clear_primary_structures(xhci_endpoint_t *xhci_ep)
+{
+	usb_log_debug2("Deallocating primary stream structures for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+
+	dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
+	free(xhci_ep->primary_stream_data_array);
+}
+
+static void clear_secondary_streams(xhci_endpoint_t *xhci_ep, unsigned index)
+{
+	xhci_stream_data_t *data = &xhci_ep->primary_stream_data_array[index];
+	if (!data->secondary_size) {
+		xhci_trb_ring_fini(&data->ring);
+		return;
+	}
+
+	for (size_t i = 0; i < data->secondary_size; ++i) {
+		xhci_trb_ring_fini(&data->secondary_data[i].ring);
+	}
+
+	dma_buffer_free(&data->secondary_stream_ctx_dma);
+	free(data->secondary_data);
+}
+
 void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep)
 {
 	usb_log_debug2("Freeing stream rings and context arrays of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	for (size_t index = 0; index < xhci_ep->primary_stream_data_size; ++index) {
-		xhci_stream_data_t *primary_data = xhci_ep->primary_stream_data_array + index;
-		if (primary_data->secondary_size > 0) {
-			for (size_t index2 = 0; index2 < primary_data->secondary_size; ++index2) {
-				xhci_stream_data_t *secondary_data = primary_data->secondary_data + index2;
-				xhci_trb_ring_fini(&secondary_data->ring);
-			}
-			dma_buffer_free(&primary_data->secondary_stream_ctx_dma);
-		}
-		else {
-			xhci_trb_ring_fini(&primary_data->ring);
-		}
+		clear_secondary_streams(xhci_ep, index);
 	}
-	dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
+	clear_primary_structures(xhci_ep);
 }
 
-/** Initialize secondary streams of XHCI bulk endpoint.
+/** Initialize primary stream structure with given index.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] xhci_epi XHCI bulk endpoint to use.
- * @param[in] index Index to primary stream array
+ * @param[in] index index of the initialized stream structure.
  */
 static int initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, unsigned index) {
 	xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[index];
@@ -115,33 +150,38 @@ static int initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, un
 
 /** Initialize primary streams of XHCI bulk endpoint.
  * @param[in] hc Host controller of the endpoint.
- * @param[in] xhci_epi XHCI bulk endpoint to use.
+ * @param[in] xhci_ep XHCI bulk endpoint to use.
  */
 static int initialize_primary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep)
 {
 	int err = EOK;
-	for (size_t index = 0; index < xhci_ep->primary_stream_data_size; ++index) {
+	size_t index;
+	for (index = 0; index < xhci_ep->primary_stream_data_size; ++index) {
 		err = initialize_primary_stream(hc, xhci_ep, index);
 		if (err) {
-			return err;
+			goto err_clean;
 		}
 	}
 
-	// TODO: deinitialize if we got stuck in the middle
-
 	return EOK;
+
+err_clean:
+	for (size_t i = 0; i < index; ++i) {
+		xhci_trb_ring_fini(&xhci_ep->primary_stream_data_array[i].ring);
+	}
+	return err;
 }
 
 /** Initialize secondary streams of XHCI bulk endpoint.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] xhci_epi XHCI bulk endpoint to use.
- * @param[in] index Index to primary stream array
+ * @param[in] idx Index to primary stream array
  * @param[in] count Number of secondary streams to initialize.
  */
-static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, unsigned index, unsigned count)
+static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, unsigned idx, unsigned count)
 {
 	if (count == 0) {
-		return initialize_primary_stream(hc, xhci_ep, index);
+		return initialize_primary_stream(hc, xhci_ep, idx);
 	}
 
 	if ((count & (count - 1)) != 0 || count < 8 || count > 256) {
@@ -149,8 +189,8 @@ static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
 		return EINVAL;
 	}
 
-	xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[index];
-	xhci_stream_data_t *data = &xhci_ep->primary_stream_data_array[index];
+	xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[idx];
+	xhci_stream_data_t *data = &xhci_ep->primary_stream_data_array[idx];
 	memset(data, 0, sizeof(xhci_stream_data_t));
 
 	data->secondary_size = count;
@@ -160,6 +200,7 @@ static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
 	}
 
 	if ((dma_buffer_alloc(&data->secondary_stream_ctx_dma, count * sizeof(xhci_stream_ctx_t)))) {
+		free(data->secondary_data);
 		return ENOMEM;
 	}
 	data->secondary_stream_ctx_array = data->secondary_stream_ctx_dma.virt;
@@ -168,24 +209,27 @@ static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
 	XHCI_STREAM_SCT_SET(*ctx, fnzb32(count) + 1);
 
 	int err = EOK;
-
-	for (size_t i = 0; i < count; ++i) {
-		xhci_stream_ctx_t *secondary_ctx = &data->secondary_stream_ctx_array[i];
-		xhci_stream_data_t *secondary_data = &data->secondary_data[i];
+	size_t index;
+	for (index = 0; index < count; ++index) {
+		xhci_stream_ctx_t *secondary_ctx = &data->secondary_stream_ctx_array[index];
+		xhci_stream_data_t *secondary_data = &data->secondary_data[index];
 		/* Init and register TRB ring for every secondary stream */
 		if ((err = xhci_trb_ring_init(&secondary_data->ring))) {
-			return err;
+			goto err_init;
 		}
 
 		XHCI_STREAM_DEQ_PTR_SET(*secondary_ctx, secondary_data->ring.dequeue);
-
-		/* Set to linear stream array */
+		/* Set to secondary stream array */
 		XHCI_STREAM_SCT_SET(*secondary_ctx, 0);
 	}
 
-	// TODO: deinitialize if we got stuck in the middle
-
 	return EOK;
+
+err_init:
+	for (size_t i = 0; i < index; ++i) {
+		xhci_trb_ring_fini(&data->secondary_data[i].ring);
+	}
+	return err;
 }
 
 /** Configure XHCI bulk endpoint's stream context.
@@ -245,27 +289,6 @@ static int verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
 	return EOK;
 }
 
-static int initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned count)
-{
-	usb_log_debug2("Allocating primary stream context array of size %u for endpoint " XHCI_EP_FMT,
-		count, XHCI_EP_ARGS(*xhci_ep));
-
-	if ((dma_buffer_alloc(&xhci_ep->primary_stream_ctx_dma, count * sizeof(xhci_stream_ctx_t)))) {
-		return ENOMEM;
-	}
-
-	xhci_ep->primary_stream_ctx_array = xhci_ep->primary_stream_ctx_dma.virt;
-	xhci_ep->primary_stream_data_array = calloc(count, sizeof(xhci_stream_data_t));
-	if (!xhci_ep->primary_stream_data_array) {
-		dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
-		return ENOMEM;
-	}
-
-	xhci_ep->primary_stream_data_size = count;
-
-	return EOK;
-}
-
 /** Initialize primary streams
  */
 int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
@@ -282,7 +305,11 @@ int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	}
 
 	memset(xhci_ep->primary_stream_ctx_array, 0, count * sizeof(xhci_stream_ctx_t));
-	initialize_primary_streams(hc, xhci_ep);
+	err = initialize_primary_streams(hc, xhci_ep);
+	if (err) {
+		clear_primary_structures(xhci_ep);
+		return err;
+	}
 
 	xhci_ep_ctx_t ep_ctx;
 	const size_t pstreams = fnzb32(count) - 1;
@@ -339,8 +366,12 @@ int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	}
 
 	memset(xhci_ep->primary_stream_ctx_array, 0, count * sizeof(xhci_stream_ctx_t));
-	for (size_t index = 0; index < count; ++index) {
-		initialize_secondary_streams(hc, xhci_ep, index, *(sizes + index));
+	size_t index;
+	for (index = 0; index < count; ++index) {
+		err = initialize_secondary_streams(hc, xhci_ep, index, *(sizes + index));
+		if (err) {
+			goto err_init;
+		}
 	}
 
 	xhci_ep_ctx_t ep_ctx;
@@ -349,4 +380,11 @@ int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 
 	// FIXME: do we add endpoint? do we need to destroy previous configuration?
 	return hc_add_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
+
+err_init:
+	for (size_t i = 0; i < index; ++i) {
+		clear_secondary_streams(xhci_ep, i);
+	}
+	clear_primary_structures(xhci_ep);
+	return err;
 }
