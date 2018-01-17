@@ -81,7 +81,8 @@ static endpoint_t *ohci_endpoint_create(device_t *dev, const usb_endpoint_descri
 		return NULL;
 	}
 
-	link_initialize(&ohci_ep->link);
+	link_initialize(&ohci_ep->eplist_link);
+	link_initialize(&ohci_ep->pending_link);
 	return &ohci_ep->base;
 }
 
@@ -119,11 +120,40 @@ static int ohci_register_ep(endpoint_t *ep)
 
 static void ohci_unregister_ep(endpoint_t *ep)
 {
-	ohci_bus_t *bus = (ohci_bus_t *) endpoint_get_bus(ep);
+	ohci_bus_t * const bus = (ohci_bus_t *) endpoint_get_bus(ep);
+	hc_t * const hc = bus->hc;
 	assert(ep);
 
 	usb2_bus_ops.endpoint_unregister(ep);
 	hc_dequeue_endpoint(bus->hc, ep);
+
+	ohci_endpoint_t * const ohci_ep = ohci_endpoint_get(ep);
+
+	/*
+	 * Now we can be sure the active transfer will not be completed. But first,
+	 * make sure that the handling fibril won't use its link in pending list.
+	 */
+	fibril_mutex_lock(&hc->guard);
+	if (link_in_use(&ohci_ep->pending_link))
+		/* pending list reference */
+		endpoint_del_ref(ep);
+	list_remove(&ohci_ep->pending_link);
+	fibril_mutex_unlock(&hc->guard);
+
+	/*
+	 * Finally, the endpoint shall not be used anywhere else. Finish the
+	 * pending batch.
+	 */
+	fibril_mutex_lock(&ep->guard);
+	usb_transfer_batch_t * const batch = ep->active_batch;
+	endpoint_deactivate_locked(ep);
+	fibril_mutex_unlock(&ep->guard);
+
+	if (batch) {
+		batch->error = EINTR;
+		batch->transfered_size = 0;
+		usb_transfer_batch_finish(batch);
+	}
 }
 
 static usb_transfer_batch_t *ohci_create_batch(endpoint_t *ep)

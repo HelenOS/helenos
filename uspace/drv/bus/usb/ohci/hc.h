@@ -69,8 +69,8 @@ typedef struct hc {
 	/** Transfer schedules */
 	endpoint_list_t lists[4];
 
-	/** List of active transfers */
-	list_t pending_batches;
+	/** List of active endpoints */
+	list_t pending_endpoints;
 
 	/** Guards schedule and endpoint manipulation */
 	fibril_mutex_t guard;

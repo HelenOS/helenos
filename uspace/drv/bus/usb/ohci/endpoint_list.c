@@ -107,7 +107,7 @@ void endpoint_list_add_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	} else {
 		/* There are active EDs, get the last one */
 		ohci_endpoint_t *last = list_get_instance(
-		    list_last(&instance->endpoint_list), ohci_endpoint_t, link);
+		    list_last(&instance->endpoint_list), ohci_endpoint_t, eplist_link);
 		last_ed = last->ed;
 	}
 	/* Keep link */
@@ -121,10 +121,10 @@ void endpoint_list_add_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	write_barrier();
 
 	/* Add to the sw list */
-	list_append(&ep->link, &instance->endpoint_list);
+	list_append(&ep->eplist_link, &instance->endpoint_list);
 
 	ohci_endpoint_t *first = list_get_instance(
-	    list_first(&instance->endpoint_list), ohci_endpoint_t, link);
+	    list_first(&instance->endpoint_list), ohci_endpoint_t, eplist_link);
 	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).",
 		ep, instance->name, first, first->ed);
 	if (last_ed == instance->list_head) {
@@ -155,13 +155,13 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	const char *qpos = NULL;
 	ed_t *prev_ed;
 	/* Remove from the hardware queue */
-	if (list_first(&instance->endpoint_list) == &ep->link) {
+	if (list_first(&instance->endpoint_list) == &ep->eplist_link) {
 		/* I'm the first one here */
 		prev_ed = instance->list_head;
 		qpos = "FIRST";
 	} else {
 		ohci_endpoint_t *prev =
-		    list_get_instance(ep->link.prev, ohci_endpoint_t, link);
+		    list_get_instance(ep->eplist_link.prev, ohci_endpoint_t, eplist_link);
 		prev_ed = prev->ed;
 		qpos = "NOT FIRST";
 	}
@@ -174,7 +174,7 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	    ep, qpos, instance->name, ep->ed->next);
 
 	/* Remove from the endpoint list */
-	list_remove(&ep->link);
+	list_remove(&ep->eplist_link);
 	fibril_mutex_unlock(&instance->guard);
 }
 /**

@@ -167,7 +167,7 @@ int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	    hw_res->mem_ranges.ranges[0].address.absolute,
 	    hw_res->mem_ranges.ranges[0].size);
 
-	list_initialize(&instance->pending_batches);
+	list_initialize(&instance->pending_endpoints);
 	fibril_mutex_initialize(&instance->guard);
 
 	ret = hc_init_memory(instance);
@@ -303,9 +303,16 @@ int ohci_hc_schedule(usb_transfer_batch_t *batch)
 	if (err)
 		return err;
 
-	fibril_mutex_lock(&hc->guard);
-	list_append(&ohci_batch->link, &hc->pending_batches);
+	endpoint_t *ep = batch->ep;
+	ohci_endpoint_t * const ohci_ep = ohci_endpoint_get(ep);
+
+	/* creating local reference */
+	endpoint_add_ref(ep);
+
+	fibril_mutex_lock(&ep->guard);
+	endpoint_activate_locked(ep, batch);
 	ohci_transfer_batch_commit(ohci_batch);
+	fibril_mutex_unlock(&ep->guard);
 
 	/* Control and bulk schedules need a kick to start working */
 	switch (batch->ep->transfer_type)
@@ -319,7 +326,11 @@ int ohci_hc_schedule(usb_transfer_batch_t *batch)
 	default:
 		break;
 	}
+
+	fibril_mutex_lock(&hc->guard);
+	list_append(&ohci_ep->pending_link, &hc->pending_endpoints);
 	fibril_mutex_unlock(&hc->guard);
+
 	return EOK;
 }
 
@@ -352,18 +363,22 @@ void ohci_hc_interrupt(bus_t *bus_base, uint32_t status)
 		usb_log_debug2("Periodic current: %#" PRIx32 ".",
 		    OHCI_RD(hc->registers->periodic_current));
 
-		link_t *current = list_first(&hc->pending_batches);
-		while (current && current != &hc->pending_batches.head) {
-			link_t *next = current->next;
-			ohci_transfer_batch_t *batch =
-			    ohci_transfer_batch_from_link(current);
+		list_foreach_safe(hc->pending_endpoints, current, next) {
+			ohci_endpoint_t *ep
+				= list_get_instance(current, ohci_endpoint_t, pending_link);
+
+			fibril_mutex_lock(&ep->base.guard);
+			ohci_transfer_batch_t *batch
+				= ohci_transfer_batch_get(ep->base.active_batch);
+			assert(batch);
 
 			if (ohci_transfer_batch_check_completed(batch)) {
+				endpoint_deactivate_locked(&ep->base);
 				list_remove(current);
+				endpoint_del_ref(&ep->base);
 				usb_transfer_batch_finish(&batch->base);
 			}
-
-			current = next;
+			fibril_mutex_unlock(&ep->base.guard);
 		}
 		fibril_mutex_unlock(&hc->guard);
 	}

@@ -50,8 +50,10 @@ typedef struct ohci_endpoint {
 	ed_t *ed;
 	/** Currently enqueued transfer descriptor */
 	td_t *td;
-	/** Linked list used by driver software */
-	link_t link;
+	/** Link in endpoint_list*/
+	link_t eplist_link;
+	/** Link in pending_endpoints */
+	link_t pending_link;
 } ohci_endpoint_t;
 
 typedef struct hc hc_t;

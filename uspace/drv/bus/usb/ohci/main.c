@@ -38,6 +38,7 @@
 #include <ddf/driver.h>
 #include <errno.h>
 #include <io/log.h>
+#include <io/logctl.h>
 #include <str_error.h>
 
 #include <usb/debug.h>
@@ -71,6 +72,7 @@ static const hc_driver_t ohci_driver = {
 int main(int argc, char *argv[])
 {
 	log_init(NAME);
+	logctl_set_log_level(NAME, LVL_DEBUG2);
 	return hc_driver_main(&ohci_driver);
 }
 
