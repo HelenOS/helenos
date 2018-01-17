@@ -119,6 +119,7 @@ int hc_add_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
 int hc_drop_endpoint(xhci_hc_t *, uint32_t, uint8_t);
 int hc_update_endpoint(xhci_hc_t *, uint32_t, uint8_t, xhci_ep_ctx_t *);
 int hc_stop_endpoint(xhci_hc_t *, uint32_t , uint8_t);
+int hc_reset_endpoint(xhci_hc_t *, uint32_t , uint8_t);
 
 int hc_status(bus_t *, uint32_t *);
 void hc_interrupt(bus_t *, uint32_t);

@@ -892,8 +892,18 @@ int hc_update_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_
  */
 int hc_stop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
 {
-
 	return xhci_cmd_sync_inline(hc, STOP_ENDPOINT, .slot_id = slot_id, .endpoint_id = ep_idx);
+}
+
+/**
+ * Instruct xHC to reset halted endpoint.
+ *
+ * @param slot_id Slot ID assigned to the device.
+ * @param ep_idx Endpoint index (number + direction) in question
+ */
+int hc_reset_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
+{
+	return xhci_cmd_sync_inline(hc, RESET_ENDPOINT, .slot_id = slot_id, .endpoint_id = ep_idx);
 }
 
 /**

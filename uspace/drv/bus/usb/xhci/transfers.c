@@ -350,6 +350,44 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 			batch->transfered_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
 			break;
 
+		case XHCI_TRBC_DATA_BUFFER_ERROR:
+			usb_log_warning("Transfer ended with data buffer error.");
+			batch->error = EAGAIN;
+			batch->transfered_size = 0;
+			break;
+
+		case XHCI_TRBC_BABBLE_DETECTED_ERROR:
+			usb_log_warning("Babble detected during the transfer. Resetting endpoint.");
+			batch->error = EAGAIN;
+			batch->transfered_size = 0;
+			hc_reset_endpoint(hc, slot_id, ep_dci);
+			break;
+
+		case XHCI_TRBC_USB_TRANSACTION_ERROR:
+			usb_log_warning("USB Transaction error. Resetting endpoint.");
+			batch->error = ESTALL;
+			batch->transfered_size = 0;
+			hc_reset_endpoint(hc, slot_id, ep_dci);
+			break;
+
+		case XHCI_TRBC_TRB_ERROR:
+			usb_log_error("Invalid transfer parameters.");
+			batch->error = EINVAL;
+			batch->transfered_size = 0;
+			break;
+
+		case XHCI_TRBC_STALL_ERROR:
+			usb_log_warning("Stall condition detected.");
+			batch->error = ESTALL;
+			batch->transfered_size = 0;
+			break;
+
+		case XHCI_TRBC_SPLIT_TRANSACTION_ERROR:
+			usb_log_error("Split transcation error detected.");
+			batch->error = EAGAIN;
+			batch->transfered_size = 0;
+			break;
+
 		default:
 			usb_log_warning("Transfer not successfull: %u", completion_code);
 			batch->error = EIO;

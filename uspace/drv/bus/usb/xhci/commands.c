@@ -745,6 +745,12 @@ int xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
 		return EOK;
 	case XHCI_TRBC_USB_TRANSACTION_ERROR:
 		return ESTALL;
+	case XHCI_TRBC_RESOURCE_ERROR:
+	case XHCI_TRBC_BANDWIDTH_ERROR:
+	case XHCI_TRBC_NO_SLOTS_ERROR:
+		return ELIMIT;
+	case XHCI_TRBC_SLOT_NOT_ENABLED_ERROR:
+		return ENOENT;
 	default:
 		return EINVAL;
 	}
