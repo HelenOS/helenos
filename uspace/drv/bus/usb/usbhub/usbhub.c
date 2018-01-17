@@ -626,7 +626,6 @@ int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch, fibr
 			fibril_mutex_unlock(guard);
 			async_usleep(500000);
 			fibril_mutex_lock(guard);
-			err = usbhc_reserve_default_address(exch);
 		}
 		return err;
 	} else {
@@ -648,15 +647,19 @@ int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch, fibr
  */
 int usb_hub_release_default_address(usb_hub_dev_t *hub, async_exch_t *exch)
 {
+	int ret = EOK;
+
 	fibril_mutex_lock(&hub->default_address_guard);
 	if (--hub->default_address_requests == 0) {
-		fibril_mutex_unlock(&hub->default_address_guard);
-		return usbhc_release_default_address(exch);
+		// We must do it in critical section to prevent other fibril
+		// from requesting the address before we release
+		ret = usbhc_release_default_address(exch);
 	} else {
 		fibril_condvar_signal(&hub->default_address_cv);
-		fibril_mutex_unlock(&hub->default_address_guard);
-		return EOK;
 	}
+	fibril_mutex_unlock(&hub->default_address_guard);
+
+	return ret;
 }
 
 /**
