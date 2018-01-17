@@ -192,6 +192,7 @@ static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
  * @param[in] ctx Endpoint context to configure.
  * @param[in] pstreams The value of MaxPStreams.
+ * @param[in] lsa Specifies if the stream IDs point to primary stream array.
  */
 static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, unsigned pstreams, unsigned lsa)
 {
@@ -202,7 +203,6 @@ static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, u
 
 	XHCI_EP_MAX_P_STREAMS_SET(*ctx, pstreams);
 	XHCI_EP_TR_DPTR_SET(*ctx, xhci_ep->primary_stream_ctx_dma.phys);
-	// TODO: set HID?
 	XHCI_EP_LSA_SET(*ctx, lsa);
 }
 
@@ -215,8 +215,13 @@ static int verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
 		return EINVAL;
 	}
 
-	if (xhci_ep->max_streams == 1) {
+	if (xhci_ep->max_streams <= 1) {
 		usb_log_error("Streams are not supported by endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+		return EINVAL;
+	}
+
+	if (count < 2) {
+		usb_log_error("The minumum amount of primary streams is 2.");
 		return EINVAL;
 	}
 
@@ -294,13 +299,35 @@ int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	xhci_endpoint_t *xhci_ep, unsigned *sizes, unsigned count)
 {
+	/* Check if HC supports secondary indexing */
+	if (XHCI_REG_RD(hc->cap_regs, XHCI_CAP_NSS)) {
+		usb_log_error("The host controller doesn't support secondary streams.");
+		return ENOTSUP;
+	}
+
 	int err = verify_stream_conditions(hc, dev, xhci_ep, count);
 	if (err) {
 		return err;
 	}
 
-	// TODO: determine if count * secondary streams <= max_streams
-	if (count > xhci_ep->max_streams) {
+	if (count > 256) {
+		usb_log_error("The amount of primary streams cannot be higher than 256.");
+		return EINVAL;
+	}
+
+	/*
+	 * Find the largest requested secondary stream size,
+	 * that one is the maximum ID that device can receive.
+	 * We need to make sure the device can handle that ID.
+	 */
+	unsigned max = 0;
+	for (size_t index = 0; index < count; ++index) {
+		if (sizes[count] > max) {
+			max = sizes[count];
+		}
+	}
+
+	if (max * count > xhci_ep->max_streams) {
 		usb_log_error("Endpoint " XHCI_EP_FMT " supports only %" PRIu32 " streams.",
 			XHCI_EP_ARGS(*xhci_ep), xhci_ep->max_streams);
 		return EINVAL;

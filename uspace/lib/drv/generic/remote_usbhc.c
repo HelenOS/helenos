@@ -557,6 +557,8 @@ void remote_usbhc_write(
 	const usb_target_t target = {{
 		/* .address is initialized by write itself */
 		.endpoint = ep,
+		/* streams are not given by the API call yet */
+		.stream = 0,
 	}};
 
 	const int rc = usbhc_iface->write(
