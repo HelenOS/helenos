@@ -247,6 +247,8 @@ err_pio:
 	return err;
 }
 
+static int event_worker(void *arg);
+
 /**
  * Initialize structures kept in allocated memory.
  */
@@ -270,8 +272,23 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 	if ((err = xhci_bus_init(&hc->bus, hc)))
 		goto err_cmd;
 
+	fid_t fid = fibril_create(&event_worker, hc);
+	if (!fid)
+		goto err_bus;
+
+	// TODO: completion_reset
+	hc->event_fibril_completion.active = true;
+	fibril_mutex_initialize(&hc->event_fibril_completion.guard);
+	fibril_condvar_initialize(&hc->event_fibril_completion.cv);
+
+	xhci_sw_ring_init(&hc->sw_ring, PAGE_SIZE / sizeof(xhci_trb_t));
+
+	fibril_add_ready(fid);
+
 	return EOK;
 
+err_bus:
+	xhci_bus_fini(&hc->bus);
 err_cmd:
 	xhci_fini_commands(hc);
 err_scratch:
@@ -536,20 +553,57 @@ static int handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
 
 typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
 
+/**
+ * These events are handled by separate event handling fibril.
+ */
 static event_handler event_handlers [] = {
-	[XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT] = &xhci_handle_command_completion,
 	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &handle_port_status_change_event,
 	[XHCI_TRB_TYPE_TRANSFER_EVENT] = &xhci_handle_transfer_event,
+};
+
+/**
+ * These events are handled directly in the interrupt handler, thus they must
+ * not block waiting for another interrupt.
+ */
+static event_handler event_handlers_fast [] = {
+	[XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT] = &xhci_handle_command_completion,
 	[XHCI_TRB_TYPE_MFINDEX_WRAP_EVENT] = &xhci_handle_mfindex_wrap_event,
 };
 
-static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb, xhci_interrupter_regs_t *intr)
+static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
-	unsigned type = TRB_TYPE(*trb);
-	if (type >= ARRAY_SIZE(event_handlers) || !event_handlers[type])
-		return ENOTSUP;
+	const unsigned type = TRB_TYPE(*trb);
 
-	return event_handlers[type](hc, trb);
+	if (type <= ARRAY_SIZE(event_handlers_fast) && event_handlers_fast[type])
+		return event_handlers_fast[type](hc, trb);
+
+	if (type <= ARRAY_SIZE(event_handlers) && event_handlers[type])
+		return xhci_sw_ring_enqueue(&hc->sw_ring, trb);
+
+	return ENOTSUP;
+}
+
+static int event_worker(void *arg)
+{
+	int err;
+	xhci_trb_t trb;
+	xhci_hc_t * const hc = arg;
+	assert(hc);
+
+	while (xhci_sw_ring_dequeue(&hc->sw_ring, &trb) != EINTR) {
+		const unsigned type = TRB_TYPE(trb);
+
+		if ((err = event_handlers[type](hc, &trb)))
+			usb_log_error("Failed to handle event: %s", str_error(err));
+	}
+
+	// TODO: completion_complete
+	fibril_mutex_lock(&hc->event_fibril_completion.guard);
+	hc->event_fibril_completion.active = false;
+	fibril_condvar_wait(&hc->event_fibril_completion.cv, &hc->event_fibril_completion.guard);
+	fibril_mutex_unlock(&hc->event_fibril_completion.guard);
+
+	return EOK;
 }
 
 /**
@@ -570,8 +624,8 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci
 	hc->event_handler = fibril_get_id();
 
 	while ((err = xhci_event_ring_dequeue(event_ring, &trb)) != ENOENT) {
-		if ((err = hc_handle_event(hc, &trb, intr)) != EOK) {
-			usb_log_error("Failed to handle event: %s", str_error(err));
+		if ((err = hc_handle_event(hc, &trb)) != EOK) {
+			usb_log_error("Failed to handle event in interrupt: %s", str_error(err));
 		}
 
 		uint64_t erdp = hc->event_ring.dequeue_ptr;
@@ -633,6 +687,15 @@ void hc_interrupt(bus_t *bus, uint32_t status)
  */
 void hc_fini(xhci_hc_t *hc)
 {
+	xhci_sw_ring_stop(&hc->sw_ring);
+
+	// TODO: completion_wait
+	fibril_mutex_lock(&hc->event_fibril_completion.guard);
+	while (hc->event_fibril_completion.active)
+		fibril_condvar_wait(&hc->event_fibril_completion.cv, &hc->event_fibril_completion.guard);
+	fibril_mutex_unlock(&hc->event_fibril_completion.guard);
+	xhci_sw_ring_fini(&hc->sw_ring);
+
 	xhci_bus_fini(&hc->bus);
 	xhci_event_ring_fini(&hc->event_ring);
 	xhci_scratchpad_free(hc);

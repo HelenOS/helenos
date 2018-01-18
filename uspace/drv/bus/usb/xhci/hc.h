@@ -74,6 +74,15 @@ typedef struct xhci_hc {
 	/* Command ring management */
 	xhci_cmd_ring_t cr;
 
+	/* Buffer for events */
+	xhci_sw_ring_t sw_ring;
+
+	struct {
+		fibril_mutex_t guard;
+		fibril_condvar_t cv;
+		bool active;
+	} event_fibril_completion;
+
 	/* Root hub emulation */
 	xhci_rh_t rh;
 
