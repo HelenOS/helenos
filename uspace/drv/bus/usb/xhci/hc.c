@@ -503,11 +503,7 @@ int hc_start(xhci_hc_t *hc, bool irq)
 
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_RS, 1);
 
-	/* The reset changed status of all ports, and SW originated reason does
-	 * not cause an interrupt.
-	 */
-	for (uint8_t port = 1; port <= hc->rh.max_ports; ++port)
-		xhci_rh_handle_port_change(&hc->rh, port);
+	xhci_rh_startup(&hc->rh);
 
 	return EOK;
 }

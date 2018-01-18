@@ -79,6 +79,7 @@ int xhci_rh_fini(xhci_rh_t *);
 
 void xhci_rh_handle_port_change(xhci_rh_t *, uint8_t);
 void xhci_rh_set_ports_protocol(xhci_rh_t *, unsigned, unsigned, unsigned);
+void xhci_rh_startup(xhci_rh_t *);
 
 #endif
 
