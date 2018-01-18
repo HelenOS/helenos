@@ -545,10 +545,6 @@ static int set_tr_dequeue_pointer_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 	TRB_SET_DEQUEUE_PTR(cmd->_header.trb, cmd->dequeue_ptr);
 
-	/**
-	 * TODO: Set DCS (see section 4.6.10).
-	 */
-
 	return enqueue_command(hc, cmd);
 }
 

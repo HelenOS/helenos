@@ -78,13 +78,7 @@ void xhci_trb_ring_fini(xhci_trb_ring_t *);
 int xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *, uintptr_t *);
 int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *, xhci_trb_t *, size_t, uintptr_t *);
 
-/**
- * Get the initial value to fill into CRCR.
- */
-static inline uintptr_t xhci_trb_ring_get_dequeue_ptr(xhci_trb_ring_t *ring)
-{
-	return ring->dequeue;
-}
+void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr);
 
 /**
  * When an event is received by the upper layer, it needs to update the dequeue
@@ -93,8 +87,6 @@ static inline uintptr_t xhci_trb_ring_get_dequeue_ptr(xhci_trb_ring_t *ring)
 static inline void xhci_trb_ring_update_dequeue(xhci_trb_ring_t *ring, uintptr_t phys) {
 	ring->dequeue = phys;
 }
-
-uintptr_t xhci_trb_ring_get_dequeue_ptr(xhci_trb_ring_t *);
 
 /**
  * A TRB ring of which the software is a consumer (event rings).

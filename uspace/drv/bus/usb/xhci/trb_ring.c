@@ -271,6 +271,16 @@ int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys
 	return xhci_trb_ring_enqueue_multiple(ring, td, 1, phys);
 }
 
+void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr)
+{
+	assert(ring);
+
+	ring->dequeue = trb_ring_enqueue_phys(ring);
+
+	if (addr)
+		*addr = ring->dequeue | ring->pcs;
+}
+
 /**
  * Initializes an event ring.
  */
