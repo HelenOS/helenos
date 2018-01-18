@@ -116,7 +116,7 @@ typedef struct xhci_command {
 	dma_buffer_t input_ctx, bandwidth_ctx;
 	uintptr_t dequeue_ptr;
 
-	uint8_t tcs;
+	bool tsp;
 	uint8_t susp;
 	uint8_t device_speed;
 	uint32_t status;

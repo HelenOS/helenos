@@ -42,7 +42,7 @@
 #include "hw_struct/context.h"
 #include "hw_struct/trb.h"
 
-#define TRB_SET_TCS(trb, tcs)   (trb).control |= host2xhci(32, ((tcs &0x1) << 9))
+#define TRB_SET_TSP(trb, tsp)   (trb).control |= host2xhci(32, (((tsp) & 0x1) << 9))
 #define TRB_SET_TYPE(trb, type) (trb).control |= host2xhci(32, (type) << 10)
 #define TRB_SET_DC(trb, dc)     (trb).control |= host2xhci(32, (dc) << 9)
 #define TRB_SET_EP(trb, ep)     (trb).control |= host2xhci(32, ((ep) & 0x5) << 16)
@@ -50,10 +50,6 @@
 #define TRB_SET_SUSP(trb, susp) (trb).control |= host2xhci(32, ((susp) & 0x1) << 23)
 #define TRB_SET_SLOT(trb, slot) (trb).control |= host2xhci(32, (slot) << 24)
 #define TRB_SET_DEV_SPEED(trb, speed)	(trb).control |= host2xhci(32, (speed & 0xF) << 16)
-
-/**
- * TODO: Not sure about SCT and DCS (see section 6.4.3.9).
- */
 #define TRB_SET_DEQUEUE_PTR(trb, dptr) (trb).parameter |= host2xhci(64, (dptr))
 #define TRB_SET_ICTX(trb, phys) (trb).parameter |= host2xhci(64, (phys) & (~0xF))
 
@@ -511,14 +507,10 @@ static int reset_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	assert(hc);
 	assert(cmd);
 
-	/**
-	 * Note: TCS can have values 0 or 1. If it is set to 0, see sectuon 4.5.8 for
-	 *       information about this flag.
-	 */
 	xhci_trb_clean(&cmd->_header.trb);
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_RESET_ENDPOINT_CMD);
-	TRB_SET_TCS(cmd->_header.trb, cmd->tcs);
+	TRB_SET_TSP(cmd->_header.trb, cmd->tsp);
 	TRB_SET_EP(cmd->_header.trb, cmd->endpoint_id);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
 
