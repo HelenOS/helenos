@@ -315,6 +315,54 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 	setup_ep_ctx_helpers[tt](ep, ep_ctx);
 }
 
+uint8_t xhci_endpoint_get_state(xhci_endpoint_t *ep)
+{
+	assert(ep);
+
+	xhci_device_t *dev = xhci_device_get(ep->base.device);
+	if (!dev->slot_id)
+		return EP_STATE_DISABLED;
+
+	unsigned idx = xhci_endpoint_index(ep);
+	xhci_device_ctx_t *ctx = dev->dev_ctx.virt;
+	xhci_ep_ctx_t *ep_ctx = &ctx->endpoint_ctx[idx];
+
+	return XHCI_EP_STATE(*ep_ctx);
+}
+
+/**
+ * Clear endpoint halt condition by resetting the endpoint and skipping the
+ * offending transfer.
+ */
+int xhci_endpoint_clear_halt(xhci_endpoint_t *ep, unsigned stream_id)
+{
+	int err;
+
+	xhci_device_t * const dev = xhci_device_get(ep->base.device);
+	xhci_bus_t * const bus = bus_to_xhci_bus(dev->base.bus);
+	xhci_hc_t * const hc = bus->hc;
+
+	const unsigned slot_id = dev->slot_id;
+	const unsigned dci = xhci_endpoint_dci(ep);
+
+	if ((err = hc_reset_endpoint(hc, slot_id, dci)))
+		return err;
+
+	uintptr_t addr;
+
+	xhci_trb_ring_reset_dequeue_state(&ep->ring, &addr);
+
+	if ((err = xhci_cmd_sync_inline(hc, SET_TR_DEQUEUE_POINTER,
+			    .slot_id = slot_id,
+			    .endpoint_id = dci,
+			    .stream_id = stream_id,
+			    .dequeue_ptr = addr,
+			)))
+		return err;
+
+	return EOK;
+}
+
 /**
  * @}
  */

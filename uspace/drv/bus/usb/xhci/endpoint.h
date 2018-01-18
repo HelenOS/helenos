@@ -64,6 +64,14 @@ enum {
 	EP_TYPE_INTERRUPT_IN = 7
 };
 
+enum {
+	EP_STATE_DISABLED = 0,
+	EP_STATE_RUNNING = 1,
+	EP_STATE_HALTED = 2,
+	EP_STATE_STOPPED = 3,
+	EP_STATE_ERROR = 4,
+};
+
 /** Connector structure linking endpoint context to the endpoint. */
 typedef struct xhci_endpoint {
 	endpoint_t base;	/**< Inheritance. Keep this first. */
@@ -140,6 +148,7 @@ uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
 uint8_t xhci_endpoint_index(xhci_endpoint_t *);
 
 void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
+int xhci_endpoint_clear_halt(xhci_endpoint_t *, unsigned);
 
 static inline xhci_device_t * xhci_device_get(device_t *dev)
 {
@@ -158,6 +167,8 @@ static inline xhci_device_t * xhci_ep_to_dev(xhci_endpoint_t *ep)
 	assert(ep);
 	return xhci_device_get(ep->base.device);
 }
+
+uint8_t xhci_endpoint_get_state(xhci_endpoint_t *ep);
 
 #endif
 

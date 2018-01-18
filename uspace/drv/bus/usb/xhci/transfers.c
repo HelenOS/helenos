@@ -357,17 +357,15 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 			break;
 
 		case XHCI_TRBC_BABBLE_DETECTED_ERROR:
-			usb_log_warning("Babble detected during the transfer. Resetting endpoint.");
+			usb_log_warning("Babble detected during the transfer.");
 			batch->error = EAGAIN;
 			batch->transfered_size = 0;
-			hc_reset_endpoint(hc, slot_id, ep_dci);
 			break;
 
 		case XHCI_TRBC_USB_TRANSACTION_ERROR:
-			usb_log_warning("USB Transaction error. Resetting endpoint.");
+			usb_log_warning("USB Transaction error.");
 			batch->error = ESTALL;
 			batch->transfered_size = 0;
-			hc_reset_endpoint(hc, slot_id, ep_dci);
 			break;
 
 		case XHCI_TRBC_TRB_ERROR:
@@ -391,6 +389,13 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		default:
 			usb_log_warning("Transfer not successfull: %u", completion_code);
 			batch->error = EIO;
+	}
+
+	
+	if (xhci_endpoint_get_state(ep) == EP_STATE_HALTED) {
+		usb_log_debug("Endpoint halted, resetting endpoint.");
+		xhci_endpoint_clear_halt(ep, batch->target.stream);
+		
 	}
 
 	if (batch->dir == USB_DIRECTION_IN) {
