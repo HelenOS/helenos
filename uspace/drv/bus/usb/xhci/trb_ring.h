@@ -118,4 +118,30 @@ int xhci_event_ring_init(xhci_event_ring_t *);
 void xhci_event_ring_fini(xhci_event_ring_t *);
 int xhci_event_ring_dequeue(xhci_event_ring_t *, xhci_trb_t *);
 
+/**
+ * A TRB ring of which the software is both consumer and provider.
+ */
+typedef struct xhci_sw_ring {
+	xhci_trb_t *begin, *end;
+	xhci_trb_t *enqueue, *dequeue;
+
+	fibril_mutex_t guard;
+	fibril_condvar_t enqueued_cv, dequeued_cv;
+
+	bool running;
+} xhci_sw_ring_t;
+
+void xhci_sw_ring_init(xhci_sw_ring_t *, size_t);
+
+/* Both may block if the ring is full/empty. */
+int xhci_sw_ring_enqueue(xhci_sw_ring_t *, xhci_trb_t *);
+int xhci_sw_ring_dequeue(xhci_sw_ring_t *, xhci_trb_t *);
+
+void xhci_sw_ring_stop(xhci_sw_ring_t *);
+void xhci_sw_ring_fini(xhci_sw_ring_t *);
+
 #endif
+
+/**
+ * @}
+ */

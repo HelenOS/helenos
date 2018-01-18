@@ -375,3 +375,71 @@ int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
 	fibril_mutex_unlock(&ring->guard);
 	return EOK;
 }
+
+void xhci_sw_ring_init(xhci_sw_ring_t *ring, size_t size)
+{
+	ring->begin = calloc(size, sizeof(xhci_trb_t));
+	ring->end = ring->begin + size;
+
+	ring->enqueue = ring->dequeue = ring->begin;
+
+	fibril_mutex_initialize(&ring->guard);
+	fibril_condvar_initialize(&ring->enqueued_cv);
+	fibril_condvar_initialize(&ring->dequeued_cv);
+
+	ring->running = true;
+}
+
+int xhci_sw_ring_enqueue(xhci_sw_ring_t *ring, xhci_trb_t *trb)
+{
+	assert(ring);
+	assert(trb);
+
+	fibril_mutex_lock(&ring->guard);
+	while (ring->running && TRB_CYCLE(*ring->enqueue))
+		fibril_condvar_wait(&ring->dequeued_cv, &ring->guard);
+
+	*ring->enqueue = *trb;
+	TRB_SET_CYCLE(*ring->enqueue, 1);
+	if (++ring->enqueue == ring->end)
+		ring->enqueue = ring->begin;
+	fibril_condvar_signal(&ring->enqueued_cv);
+	fibril_mutex_unlock(&ring->guard);
+
+	return ring->running ? EOK : EINTR;
+}
+
+int xhci_sw_ring_dequeue(xhci_sw_ring_t *ring, xhci_trb_t *trb)
+{
+	assert(ring);
+	assert(trb);
+
+	fibril_mutex_lock(&ring->guard);
+	while (ring->running && !TRB_CYCLE(*ring->dequeue))
+		fibril_condvar_wait(&ring->enqueued_cv, &ring->guard);
+
+	*trb = *ring->dequeue;
+	TRB_SET_CYCLE(*ring->dequeue, 0);
+	if (++ring->dequeue == ring->end)
+		ring->dequeue = ring->begin;
+	fibril_condvar_signal(&ring->dequeued_cv);
+	fibril_mutex_unlock(&ring->guard);
+
+	return ring->running ? EOK : EINTR;
+}
+
+void xhci_sw_ring_stop(xhci_sw_ring_t *ring)
+{
+	ring->running = false;
+	fibril_condvar_broadcast(&ring->enqueued_cv);
+	fibril_condvar_broadcast(&ring->dequeued_cv);
+}
+
+void xhci_sw_ring_fini(xhci_sw_ring_t *ring)
+{
+	free(ring->begin);
+}
+
+/**
+ * @}
+ */
