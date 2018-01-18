@@ -40,8 +40,8 @@
  * by launching separate fibril for taking the port up.
  *
  * This subsystem abstracts the rather complicated state machine, and offers
- * a simple call interface to announce events, and a callback structure for
- * implementations to supply the hardware-dependent part.
+ * a simple interface to announce events and leave the fibril management on the
+ * library.
  */
 
 #include <stdlib.h>
@@ -126,12 +126,11 @@ out:
 	return ret;
 }
 
-void usb_port_enabled(usb_port_t *port, usb_speed_t speed)
+void usb_port_enabled(usb_port_t *port)
 {
 	assert(port);
 
 	fibril_mutex_lock(&port->guard);
-	port->speed = speed;
 	fibril_condvar_broadcast(&port->enabled_cv);
 	fibril_mutex_unlock(&port->guard);
 }

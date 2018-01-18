@@ -51,6 +51,8 @@ typedef struct {
 	usb_hub_dev_t *hub;
 	/** Port number as reported in descriptors. */
 	unsigned int port_number;
+	/** Speed at the time of enabling the port */
+	usb_speed_t speed;
 } usb_hub_port_t;
 
 void usb_hub_port_init(usb_hub_port_t *, usb_hub_dev_t *, unsigned int);

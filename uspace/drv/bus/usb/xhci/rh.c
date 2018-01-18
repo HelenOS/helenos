@@ -135,7 +135,21 @@ static int rh_enumerate_device(usb_port_t *usb_port)
 			return err;
 	}
 
-	device_t *dev = hcd_ddf_fun_create(&port->rh->hc->base, port->base.speed);
+	/*
+	 * We cannot know in advance, whether the speed in the status register
+	 * is valid - it depends on the protocol. So we read it later, but then
+	 * we have to check if the port is still enabled.
+	 */
+	uint32_t status = XHCI_REG_RD_FIELD(&port->regs->portsc, 32);
+
+	bool enabled = !!(status & XHCI_REG_MASK(XHCI_PORT_PED));
+	if (!enabled)
+		return ENOENT;
+
+	unsigned psiv = (status & XHCI_REG_MASK(XHCI_PORT_PS)) >> XHCI_REG_SHIFT(XHCI_PORT_PS);
+	const usb_speed_t speed = port->rh->hc->speeds[psiv].usb_speed;
+
+	device_t *dev = hcd_ddf_fun_create(&port->rh->hc->base, speed);
 	if (!dev) {
 		usb_log_error("Failed to create USB device function.");
 		return ENOMEM;
@@ -222,9 +236,7 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 			bool enabled = !!(status & XHCI_REG_MASK(XHCI_PORT_PED));
 
 			if (enabled) {
-				unsigned psiv = (status & XHCI_REG_MASK(XHCI_PORT_PS)) >> XHCI_REG_SHIFT(XHCI_PORT_PS);
-				const usb_speed_t speed = rh->hc->speeds[psiv].usb_speed;
-				usb_port_enabled(&port->base, speed);
+				usb_port_enabled(&port->base);
 			} else {
 				usb_port_disabled(&port->base, &rh_remove_device);
 			}

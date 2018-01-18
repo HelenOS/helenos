@@ -133,7 +133,7 @@ static int enumerate_device(usb_port_t *port_base)
 
 	port_log(debug, port, "Port reset, enumerating device.");
 
-	if ((err = usbhc_device_enumerate(exch, port->port_number, port->base.speed))) {
+	if ((err = usbhc_device_enumerate(exch, port->port_number, port->speed))) {
 		port_log(error, port, "Failed to enumerate device: %s", str_error(err));
 		/* Disable the port */
 		usb_hub_clear_port_feature(port->hub, port->port_number, USB_HUB_FEATURE_PORT_ENABLE);
@@ -199,9 +199,12 @@ static void port_changed_reset(usb_hub_port_t *port, usb_port_status_t status)
 {
 	const bool enabled = !!(status & USB_HUB_PORT_STATUS_ENABLED);
 
-	if (enabled)
-		usb_port_enabled(&port->base, usb_port_speed(status));
-	else
+	if (enabled) {
+		// The connecting fibril do not touch speed until the port is enabled,
+		// so we do not have to lock
+		port->speed = usb_port_speed(status);
+		usb_port_enabled(&port->base);
+	} else
 		usb_port_disabled(&port->base, &remove_device);
 }
 

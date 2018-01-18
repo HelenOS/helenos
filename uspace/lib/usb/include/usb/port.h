@@ -40,8 +40,8 @@
  * by launching separate fibril for taking the port up.
  *
  * This subsystem abstracts the rather complicated state machine, and offers
- * a simple call interface to announce events, and a callback structure for
- * implementations to supply the hardware-dependent part.
+ * a simple interface to announce events and leave the fibril management on the
+ * library.
  */
 
 #ifndef LIB_USB_PORT_H
@@ -64,8 +64,6 @@ typedef struct usb_port {
 	fibril_mutex_t guard;
 	/** Current state of the port */
 	usb_port_state_t state;
-	/** A speed of the device connected (if any). Valid unless state == PORT_DISABLED. */
-	usb_speed_t speed;
 	/** CV signalled on fibril exit. */
 	fibril_condvar_t finished_cv;
 	/** CV signalled on enabled event. */
@@ -86,7 +84,7 @@ typedef void (*usb_port_remove_t)(usb_port_t *);
 /* Following methods are intended to be called "from outside". */
 void usb_port_init(usb_port_t *);
 int usb_port_connected(usb_port_t *, usb_port_enumerate_t);
-void usb_port_enabled(usb_port_t *, usb_speed_t);
+void usb_port_enabled(usb_port_t *);
 void usb_port_disabled(usb_port_t *, usb_port_remove_t);
 void usb_port_fini(usb_port_t *);
 
