@@ -55,6 +55,7 @@ typedef enum {
 	PORT_DISABLED,	/* No device connected. Fibril not running. */
 	PORT_ENUMERATED,/* Device enumerated. Fibril finished succesfully. */
 	PORT_CONNECTING,/* A connected event received, fibril running. */
+	PORT_DISCONNECTING,/* A disconnected event received, fibril running. */
 	PORT_ERROR,	/* An error "in-progress". Fibril still running. */
 } usb_port_state_t;
 

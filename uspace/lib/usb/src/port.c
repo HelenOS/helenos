@@ -101,7 +101,7 @@ int usb_port_connected(usb_port_t *port, usb_port_enumerate_t handler)
 	fibril_mutex_lock(&port->guard);
 
 	if (port->state != PORT_DISABLED) {
-		usb_log_warning("A connected event come for port that is not disabled.");
+		usb_log_warning("a connected event come for port that is not disabled.");
 		ret = EINVAL;
 		goto out;
 	}
@@ -136,6 +136,48 @@ void usb_port_enabled(usb_port_t *port, usb_speed_t speed)
 	fibril_mutex_unlock(&port->guard);
 }
 
+struct remove_worker_args {
+	usb_port_t *port;
+	usb_port_remove_t handler;
+};
+
+static int remove_worker(void *arg)
+{
+	struct remove_worker_args * const args = arg;
+	usb_port_t *port = args->port;
+	usb_port_remove_t handler = args->handler;
+	free(args);
+
+	fibril_mutex_lock(&port->guard);
+	assert(port->state == PORT_DISCONNECTING);
+
+	handler(port);
+
+	port->state = PORT_DISABLED;
+	fibril_condvar_broadcast(&port->finished_cv);
+	fibril_mutex_unlock(&port->guard);
+	return EOK;
+}
+
+static void fork_remove_worker(usb_port_t *port, usb_port_remove_t handler)
+{
+	struct remove_worker_args *args = malloc(sizeof(*args));
+	if (!args)
+		return;
+
+	fid_t fibril = fibril_create(&remove_worker, args);
+	if (!fibril) {
+		free(args);
+		return;
+	}
+
+	args->port = port;
+	args->handler = handler;
+
+	port->state = PORT_DISCONNECTING;
+	fibril_add_ready(fibril);
+}
+
 void usb_port_disabled(usb_port_t *port, usb_port_remove_t handler)
 {
 	assert(port);
@@ -143,8 +185,7 @@ void usb_port_disabled(usb_port_t *port, usb_port_remove_t handler)
 
 	switch (port->state) {
 	case PORT_ENUMERATED:
-		handler(port);
-		port->state = PORT_DISABLED;
+		fork_remove_worker(port, handler);
 		break;
 
 	case PORT_CONNECTING:
@@ -153,11 +194,12 @@ void usb_port_disabled(usb_port_t *port, usb_port_remove_t handler)
 	case PORT_ERROR:
 		fibril_condvar_wait(&port->finished_cv, &port->guard);
 		/* fallthrough */
+	case PORT_DISCONNECTING:
 	case PORT_DISABLED:
 		break;
 	}
 
-	assert(port->state == PORT_DISABLED);
+	assert(port->state == PORT_DISABLED || port->state == PORT_DISCONNECTING);
 	fibril_mutex_unlock(&port->guard);
 }
 
@@ -189,6 +231,7 @@ void usb_port_fini(usb_port_t *port)
 		port->state = PORT_ERROR;
 		/* fallthrough */
 	case PORT_ERROR:
+	case PORT_DISCONNECTING:
 		fibril_condvar_wait(&port->finished_cv, &port->guard);
 		break;
 	}
