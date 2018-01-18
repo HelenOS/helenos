@@ -45,6 +45,8 @@ struct xhci_cap_regs;
 struct xhci_port_regs;
 struct xhci_trb;
 struct xhci_extcap;
+struct xhci_slot_ctx;
+struct xhci_endpoint_ctx;
 struct xhci_input_ctx;
 
 void xhci_dump_cap_regs(const struct xhci_cap_regs *);
@@ -58,6 +60,8 @@ void xhci_dump_trb(const struct xhci_trb *trb);
 const char *xhci_ec_str_id(unsigned);
 void xhci_dump_extcap(const struct xhci_extcap *);
 
+void xhci_dump_slot_ctx(const struct xhci_slot_ctx *);
+void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *);
 void xhci_dump_input_ctx(const struct xhci_input_ctx *);
 
 #endif

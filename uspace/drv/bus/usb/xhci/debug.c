@@ -263,7 +263,7 @@ const char *xhci_trb_str_type(unsigned type)
  */
 void xhci_dump_trb(const xhci_trb_t *trb)
 {
-	usb_log_debug2("TRB(%p): type %s, cycle %u", trb, xhci_trb_str_type(TRB_TYPE(*trb)), TRB_CYCLE(*trb));
+	usb_log_debug2("TRB(%p): type %s, cycle %u, status 0x%#08" PRIx32 ", parameter 0x%#016" PRIx64, trb, xhci_trb_str_type(TRB_TYPE(*trb)), TRB_CYCLE(*trb), trb->status, trb->parameter);
 }
 
 static const char *ec_ids [] = {
@@ -340,7 +340,7 @@ void xhci_dump_extcap(const xhci_extcap_t *ec)
 	}
 }
 
-static void xhci_dump_slot_ctx(const struct xhci_slot_ctx *ctx)
+void xhci_dump_slot_ctx(const struct xhci_slot_ctx *ctx)
 {
 #define SLOT_DUMP(name)	usb_log_debug("\t" #name ":\t0x%x", XHCI_SLOT_##name(*ctx))
 	SLOT_DUMP(ROUTE_STRING);
@@ -355,11 +355,11 @@ static void xhci_dump_slot_ctx(const struct xhci_slot_ctx *ctx)
 	SLOT_DUMP(TT_THINK_TIME);
 	SLOT_DUMP(INTERRUPTER);
 	SLOT_DUMP(DEVICE_ADDRESS);
-	SLOT_DUMP(SLOT_STATE);
+	SLOT_DUMP(STATE);
 #undef SLOT_DUMP
 }
 
-static void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *ctx)
+void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *ctx)
 {
 #define EP_DUMP_DW(name)	usb_log_debug("\t" #name ":\t0x%x", XHCI_EP_##name(*ctx))
 #define EP_DUMP_QW(name)	usb_log_debug("\t" #name ":\t0x%llx", XHCI_EP_##name(*ctx))

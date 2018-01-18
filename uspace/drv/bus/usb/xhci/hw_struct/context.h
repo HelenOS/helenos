@@ -108,6 +108,14 @@ typedef struct xhci_endpoint_ctx {
 
 } __attribute__((packed)) xhci_ep_ctx_t;
 
+enum {
+	EP_STATE_DISABLED = 0,
+	EP_STATE_RUNNING = 1,
+	EP_STATE_HALTED = 2,
+	EP_STATE_STOPPED = 3,
+	EP_STATE_ERROR = 4,
+};
+
 /**
  * Slot context: section 6.2.2
  */
@@ -147,9 +155,16 @@ typedef struct xhci_slot_ctx {
 #define XHCI_SLOT_INTERRUPTER(ctx)      XHCI_DWORD_EXTRACT((ctx).data[2], 31, 22)
 
 #define XHCI_SLOT_DEVICE_ADDRESS(ctx)   XHCI_DWORD_EXTRACT((ctx).data[3],  7,  0)
-#define XHCI_SLOT_SLOT_STATE(ctx)       XHCI_DWORD_EXTRACT((ctx).data[3], 31, 27)
+#define XHCI_SLOT_STATE(ctx)       XHCI_DWORD_EXTRACT((ctx).data[3], 31, 27)
 
 } __attribute__((packed)) xhci_slot_ctx_t;
+
+enum {
+	SLOT_STATE_DISABLED = 0,
+	SLOT_STATE_DEFAULT = 1,
+	SLOT_STATE_ADDRESS = 2,
+	SLOT_STATE_CONFIGURED = 3,
+};
 
 /**
  * Device context: section 6.2.1

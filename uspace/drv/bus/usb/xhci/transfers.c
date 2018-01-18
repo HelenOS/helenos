@@ -296,6 +296,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 
 	const usb_endpoint_t ep_num = ep_dci / 2;
 	const usb_endpoint_t dir = ep_dci % 2 ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+	/* Creating temporary reference */
 	endpoint_t *ep_base = bus_find_endpoint(&dev->base, ep_num, dir);
 	if (!ep_base) {
 		usb_log_error("Transfer event on dropped endpoint %u %s of device "
@@ -324,6 +325,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 
 		if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
 			isoch_handle_transfer_event(hc, ep, trb);
+			/* Dropping temporary reference */
 			endpoint_del_ref(&ep->base);
 			return EOK;
 		}
@@ -332,6 +334,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		batch = ep->base.active_batch;
 		if (!batch) {
 			fibril_mutex_unlock(&ep->base.guard);
+			/* Dropping temporary reference */
 			endpoint_del_ref(&ep->base);
 			return ENOENT;
 		}
@@ -394,8 +397,11 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	
 	if (xhci_endpoint_get_state(ep) == EP_STATE_HALTED) {
 		usb_log_debug("Endpoint halted, resetting endpoint.");
-		xhci_endpoint_clear_halt(ep, batch->target.stream);
-		
+		const int err = xhci_endpoint_clear_halt(ep, batch->target.stream);
+		if (err)
+			usb_log_error("Failed to clear halted condition on "
+			    "endpoint " XHCI_EP_FMT ". Unexpected results "
+			    "coming.", XHCI_EP_ARGS(*ep));
 	}
 
 	if (batch->dir == USB_DIRECTION_IN) {
@@ -405,6 +411,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	}
 
 	usb_transfer_batch_finish(batch);
+	/* Dropping temporary reference */
 	endpoint_del_ref(&ep->base);
 	return EOK;
 }

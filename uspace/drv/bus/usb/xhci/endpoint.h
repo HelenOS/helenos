@@ -64,14 +64,6 @@ enum {
 	EP_TYPE_INTERRUPT_IN = 7
 };
 
-enum {
-	EP_STATE_DISABLED = 0,
-	EP_STATE_RUNNING = 1,
-	EP_STATE_HALTED = 2,
-	EP_STATE_STOPPED = 3,
-	EP_STATE_ERROR = 4,
-};
-
 /** Connector structure linking endpoint context to the endpoint. */
 typedef struct xhci_endpoint {
 	endpoint_t base;	/**< Inheritance. Keep this first. */
