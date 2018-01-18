@@ -353,7 +353,7 @@ static void endpoint_unregister(endpoint_t *ep)
 	if (batch) {
 		// The HW could have been looking at the batch.
 		// Better wait two frames before we release the buffers.
-		endpoint_wait_timeout_locked(ep, 2000);
+		async_usleep(2000);
 		batch->base.error = EINTR;
 		batch->base.transfered_size = 0;
 		usb_transfer_batch_finish(&batch->base);
