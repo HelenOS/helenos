@@ -109,6 +109,10 @@ static int hc_parse_ec(xhci_hc_t *hc)
 				return ENOTSUP;
 			}
 
+			unsigned offset = XHCI_REG_RD(ec, XHCI_EC_SP_CP_OFF);
+			unsigned count = XHCI_REG_RD(ec, XHCI_EC_SP_CP_COUNT);
+			xhci_rh_set_ports_protocol(&hc->rh, offset, count, major);
+
 			// "Implied" speed
 			if (psic == 0) {
 				assert(minor == 0);
@@ -228,12 +232,19 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 	unsigned ist = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_IST);
 	hc->ist = (ist & 0x10 >> 1) * (ist & 0xf);
 
-	if ((err = hc_parse_ec(hc))) {
-		pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
-		return err;
-	}
+	if ((err = xhci_rh_init(&hc->rh, hc)))
+		goto err_pio;
+
+	if ((err = hc_parse_ec(hc)))
+		goto err_rh;
 
 	return EOK;
+
+err_rh:
+	xhci_rh_fini(&hc->rh);
+err_pio:
+	pio_disable(hc->reg_base, RNGSZ(hc->mmio_range));
+	return err;
 }
 
 /**
@@ -259,13 +270,8 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 	if ((err = xhci_bus_init(&hc->bus, hc)))
 		goto err_cmd;
 
-	if ((err = xhci_rh_init(&hc->rh, hc)))
-		goto err_bus;
-
 	return EOK;
 
-err_bus:
-	xhci_bus_fini(&hc->bus);
 err_cmd:
 	xhci_fini_commands(hc);
 err_scratch:

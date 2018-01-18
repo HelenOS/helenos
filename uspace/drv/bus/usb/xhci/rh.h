@@ -57,7 +57,7 @@ typedef struct xhci_port_speed {
 
 typedef struct hcd_roothub hcd_roothub_t;
 typedef struct xhci_bus xhci_bus_t;
-typedef struct rh_event rh_event_t;
+typedef struct rh_port rh_port_t;
 
 /* XHCI root hub instance */
 typedef struct {
@@ -67,27 +67,18 @@ typedef struct {
 	/* Root for the device tree */
 	xhci_device_t device;
 
-	/** Interrupt transfer waiting for an actual interrupt to occur */
-	usb_transfer_batch_t *unfinished_interrupt_transfer;
-
 	/* Number of hub ports. */
-	uint8_t max_ports;
+	size_t max_ports;
 
-	/* Device pointers connected to RH ports or NULL. (size is `max_ports`) */
-	xhci_device_t **devices_by_port;
-
-	/* Roothub events. */
-	fibril_mutex_t event_guard;
-	fibril_condvar_t event_ready, event_handled;
-	unsigned event_readers_waiting;
-	rh_event_t *event;
+	/* Array of port structures. (size is `max_ports`) */
+	rh_port_t *ports;
 } xhci_rh_t;
 
 int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
 int xhci_rh_fini(xhci_rh_t *);
-const xhci_port_speed_t *xhci_rh_get_port_speed(xhci_rh_t *, uint8_t);
 
 void xhci_rh_handle_port_change(xhci_rh_t *, uint8_t);
+void xhci_rh_set_ports_protocol(xhci_rh_t *, unsigned, unsigned, unsigned);
 
 #endif
 
