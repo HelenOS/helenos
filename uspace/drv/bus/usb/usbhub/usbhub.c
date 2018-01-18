@@ -199,7 +199,7 @@ static int usb_hub_cleanup(usb_hub_dev_t *hub)
 	usb_polling_fini(&hub->polling);
 
 	for (size_t port = 0; port < hub->port_count; ++port) {
-		usb_hub_port_fini(&hub->ports[port]);
+		usb_port_fini(&hub->ports[port].base);
 	}
 	free(hub->ports);
 
@@ -290,7 +290,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 		const size_t bit = port + 1;
 		const bool change = (change_bitmap[bit / 8] >> (bit % 8)) & 1;
 		if (change) {
-			usb_hub_port_process_interrupt(&hub->ports[port], hub);
+			usb_hub_port_process_interrupt(&hub->ports[port]);
 		}
 	}
 	return true;
@@ -604,18 +604,20 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 	}
 }
 
+static FIBRIL_CONDVAR_INITIALIZE(global_hub_default_address_cv);
+
 /**
  * Reserve a default address for a port across all other devices connected to
  * the bus. We aggregate requests for ports to minimize delays between
  * connecting multiple devices from one hub - which happens e.g. when the hub
  * is connected with already attached devices.
  */
-int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch, fibril_mutex_t *guard)
+int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch, usb_port_t *port)
 {
 	assert(hub);
 	assert(exch);
-	assert(guard);
-	assert(fibril_mutex_is_locked(guard));
+	assert(port);
+	assert(fibril_mutex_is_locked(&port->guard));
 
 	fibril_mutex_lock(&hub->default_address_guard);
 	if (hub->default_address_requests++ == 0) {
@@ -623,21 +625,20 @@ int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch, fibr
 		fibril_mutex_unlock(&hub->default_address_guard);
 		int err;
 		while ((err = usbhc_reserve_default_address(exch)) == EAGAIN) {
-			fibril_mutex_unlock(guard);
-			async_usleep(500000);
-			fibril_mutex_lock(guard);
+			// We ignore the return value here, as we cannot give up now.
+			usb_port_condvar_wait_timeout(port, &global_hub_default_address_cv, 500000);
 		}
 		return err;
 	} else {
 		/* Drop the port guard, we're going to wait */
-		fibril_mutex_unlock(guard);
+		fibril_mutex_unlock(&port->guard);
 
 		/* Wait for a signal */
 		fibril_condvar_wait(&hub->default_address_cv, &hub->default_address_guard);
 
 		/* Remember ABBA, first drop the hub guard */
 		fibril_mutex_unlock(&hub->default_address_guard);
-		fibril_mutex_lock(guard);
+		fibril_mutex_lock(&port->guard);
 		return EOK;
 	}
 }
@@ -654,6 +655,8 @@ int usb_hub_release_default_address(usb_hub_dev_t *hub, async_exch_t *exch)
 		// We must do it in critical section to prevent other fibril
 		// from requesting the address before we release
 		ret = usbhc_release_default_address(exch);
+		// This is optimistic optimization - it may wake one hub from polling sleep
+		fibril_condvar_signal(&global_hub_default_address_cv);
 	} else {
 		fibril_condvar_signal(&hub->default_address_cv);
 	}

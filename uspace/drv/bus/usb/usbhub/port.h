@@ -32,7 +32,7 @@
  * @{
  */
 /** @file
- * Hub port state machine.
+ * Hub port handling.
  */
 
 #ifndef DRV_USBHUB_PORT_H
@@ -40,37 +40,22 @@
 
 #include <usb/dev/driver.h>
 #include <usb/classes/hub.h>
+#include <usb/port.h>
 
 typedef struct usb_hub_dev usb_hub_dev_t;
 
-typedef enum {
-	PORT_DISABLED,	/* No device connected. */
-	PORT_CONNECTED,	/* A device connected, not yet initialized. */
-	PORT_IN_RESET,	/* An initial port reset in progress. */
-	PORT_ENABLED,	/* Port reset complete, port enabled. Device announced to the HC. */
-	PORT_ERROR,	/* An error occured. There is still a fibril that needs to know it. */
-} port_state_t;
-
 /** Information about single port on a hub. */
 typedef struct {
+	usb_port_t base;
 	/* Parenting hub */
 	usb_hub_dev_t *hub;
-	/** Guarding all fields */
-	fibril_mutex_t guard;
-	/** Current state of the port */
-	port_state_t state;
-	/** A speed of the device connected (if any). Valid unless state == PORT_DISABLED. */
-	usb_speed_t speed;
 	/** Port number as reported in descriptors. */
 	unsigned int port_number;
-	/** CV for waiting to port reset completion. */
-	fibril_condvar_t state_cv;
 } usb_hub_port_t;
 
 void usb_hub_port_init(usb_hub_port_t *, usb_hub_dev_t *, unsigned int);
-void usb_hub_port_fini(usb_hub_port_t *);
 
-void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub);
+void usb_hub_port_process_interrupt(usb_hub_port_t *port);
 
 #endif
 
