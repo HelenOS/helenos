@@ -36,8 +36,6 @@
 #ifndef XHCI_DEBUG_H
 #define XHCI_DEBUG_H
 
-#include "hc.h"
-
 /**
  * As the debug header is likely to be included in every file, avoid including
  * all headers of xhci to support "include what you use".
@@ -64,7 +62,7 @@ void xhci_dump_extcap(const struct xhci_extcap *);
 
 void xhci_dump_slot_ctx(const struct xhci_slot_ctx *);
 void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *);
-void xhci_dump_input_ctx(const xhci_hc_t *, const struct xhci_input_ctx *);
+void xhci_dump_input_ctx(const struct xhci_hc *, const struct xhci_input_ctx *);
 
 #endif
 /**
