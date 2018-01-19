@@ -392,14 +392,8 @@ void hcd_ddf_fun_destroy(device_t *dev)
 	ddf_fun_destroy(dev->fun);
 }
 
-int hcd_device_explore(device_t *device)
+int hcd_get_device_desc(device_t *device, usb_standard_device_descriptor_t *desc)
 {
-	int err;
-	match_id_list_t mids;
-	usb_standard_device_descriptor_t desc = { 0 };
-
-	init_match_ids(&mids);
-
 	const usb_target_t control_ep = {{
 		.address = device->address,
 		.endpoint = 0,
@@ -407,34 +401,58 @@ int hcd_device_explore(device_t *device)
 
 	/* Get std device descriptor */
 	const usb_device_request_setup_packet_t get_device_desc =
-	    GET_DEVICE_DESC(sizeof(desc));
+	    GET_DEVICE_DESC(sizeof(*desc));
 
 	usb_log_debug("Device(%d): Requesting full device descriptor.",
 	    device->address);
 	ssize_t got = bus_device_send_batch_sync(device, control_ep, USB_DIRECTION_IN,
-	    (char *) &desc, sizeof(desc), *(uint64_t *)&get_device_desc,
+	    (char *) desc, sizeof(*desc), *(uint64_t *)&get_device_desc,
 	    "read device descriptor");
-	if (got < 0) {
-		err = got < 0 ? got : EOVERFLOW;
-		usb_log_error("Device(%d): Failed to set get dev descriptor: %s",
-		    device->address, str_error(err));
-		goto out;
-	}
+
+	if (got < 0)
+		return got;
+
+	return got == sizeof(*desc) ? EOK : EOVERFLOW;
+}
+
+int hcd_setup_match_ids(device_t *device, usb_standard_device_descriptor_t *desc)
+{
+	int err;
+	match_id_list_t mids;
+
+	init_match_ids(&mids);
 
 	/* Create match ids from the device descriptor */
 	usb_log_debug("Device(%d): Creating match IDs.", device->address);
-	if ((err = create_match_ids(&mids, &desc))) {
-		usb_log_error("Device(%d): Failed to create match ids: %s", device->address, str_error(err));
-		goto out;
+	if ((err = create_match_ids(&mids, desc))) {
+		return err;
 	}
 
 	list_foreach(mids.ids, link, const match_id_t, mid) {
 		ddf_fun_add_match_id(device->fun, mid->id, mid->score);
 	}
 
-out:
-	clean_match_ids(&mids);
-	return err;
+	return EOK;
+}
+
+
+int hcd_device_explore(device_t *device)
+{
+	int err;
+	usb_standard_device_descriptor_t desc = { 0 };
+
+	if ((err = hcd_get_device_desc(device, &desc))) {
+		usb_log_error("Device(%d): Failed to get dev descriptor: %s",
+		    device->address, str_error(err));
+		return err;
+	}
+
+	if ((err = hcd_setup_match_ids(device, &desc))) {
+		usb_log_error("Device(%d): Failed to setup match ids: %s", device->address, str_error(err));
+		return err;
+	}
+
+	return EOK;
 }
 
 /** Announce root hub to the DDF
