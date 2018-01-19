@@ -842,8 +842,10 @@ int usb_pipe_clear_halt(usb_pipe_t *ctrl_pipe, usb_pipe_t *target_pipe)
 	if ((ctrl_pipe == NULL) || (target_pipe == NULL)) {
 		return EINVAL;
 	}
-	return usb_request_clear_endpoint_halt(ctrl_pipe,
-	    target_pipe->desc.endpoint_no);
+
+	uint16_t index = target_pipe->desc.endpoint_no;
+	index |= (target_pipe->desc.direction == USB_DIRECTION_IN) << 7;
+	return usb_request_clear_endpoint_halt(ctrl_pipe, index);
 }
 
 /** Get endpoint status.

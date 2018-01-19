@@ -232,12 +232,17 @@ void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t
 		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
 		if ((request->request_type == 0x2) &&
 		    (request->value == USB_FEATURE_ENDPOINT_HALT)) {
-			const unsigned index = uint16_usb2host(request->index);
-			const unsigned ep_num = index & 0xf;
+			const uint16_t index = uint16_usb2host(request->index);
+			const usb_endpoint_t ep_num = index & 0xf;
 			const usb_direction_t dir = (index >> 7) ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
 
 			endpoint_t *ep = bus_find_endpoint(dev, ep_num, dir);
-			reset_cb(ep);
+			if (ep) {
+				reset_cb(ep);
+				endpoint_del_ref(ep);
+			} else {
+				usb_log_warning("Device(%u): Resetting unregistered endpoint %u %s.", dev->address, ep_num, usb_str_direction(dir));
+			}
 		}
 		break;
 	case USB_DEVREQ_SET_CONFIGURATION:
