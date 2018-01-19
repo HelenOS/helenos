@@ -29,6 +29,12 @@
 
 ccheck=tools/sycek/ccheck
 
+if [ ."$1" == .--fix ] ; then
+	opt=--fix
+else
+	opt=
+fi
+
 srepcnt=0
 snorepcnt=0
 fcnt=0
@@ -36,7 +42,7 @@ fcnt=0
 find abi kernel boot uspace -type f -regex '^.*\.[ch]$' | (
 while read fname; do
 	outfile="$(mktemp)"
-	$ccheck $fname >"$outfile" 2>&1
+	$ccheck $opt $fname >"$outfile" 2>&1
 	rc=$?
 	if [ .$rc == .0 ]; then
 		if [ -s "$outfile" ] ; then
