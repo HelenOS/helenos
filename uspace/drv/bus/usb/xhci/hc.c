@@ -713,40 +713,43 @@ void hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 }
 
 /**
- * Issue an Enable Slot command, returning the obtained Slot ID.
- *
- * @param slot_id Pointer where to store the obtained Slot ID.
+ * Issue an Enable Slot command. Allocate memory for the slot and fill the
+ * DCBAA with the newly created slot.
  */
-int hc_enable_slot(xhci_hc_t *hc, uint32_t *slot_id)
+int hc_enable_slot(xhci_device_t *dev)
 {
-	assert(hc);
-
 	int err;
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+
+	/* Prepare memory for the context */
+	if ((err = dma_buffer_alloc(&dev->dev_ctx, sizeof(xhci_device_ctx_t))))
+		return err;
+	memset(dev->dev_ctx.virt, 0, sizeof(xhci_device_ctx_t));
+
+	/* Get the slot number */
 	xhci_cmd_t cmd;
 	xhci_cmd_init(&cmd, XHCI_CMD_ENABLE_SLOT);
 
-	if ((err = xhci_cmd_sync(hc, &cmd))) {
-		goto end;
+	err = xhci_cmd_sync(hc, &cmd);
+
+	/* Link them together */
+	if (err == EOK) {
+		dev->slot_id = cmd.slot_id;
+		hc->dcbaa[dev->slot_id] = host2xhci(64, dev->dev_ctx.phys);
 	}
 
-	if (slot_id) {
-		*slot_id = cmd.slot_id;
-	}
-
-end:
 	xhci_cmd_fini(&cmd);
 	return err;
 }
 
 /**
  * Issue a Disable Slot command for a slot occupied by device.
- *
- * Frees the device context
+ * Frees the device context.
  */
-int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
+int hc_disable_slot(xhci_device_t *dev)
 {
 	int err;
-	assert(hc);
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
 	if ((err = xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = dev->slot_id))) {
 		return err;
@@ -836,18 +839,10 @@ int hc_address_device(xhci_device_t *dev, xhci_endpoint_t *ep0)
 		return EINVAL;
 	}
 
-	/* Setup and register device context */
-	if (dma_buffer_alloc(&dev->dev_ctx, sizeof(xhci_device_ctx_t)))
-		goto err;
-	memset(dev->dev_ctx.virt, 0, sizeof(xhci_device_ctx_t));
-
-	hc->dcbaa[dev->slot_id] = host2xhci(64, dev->dev_ctx.phys);
-
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	if ((err = create_configure_ep_input_ctx(dev, &ictx_dma_buf))) {
-		goto err_dev_ctx;
-	}
+	if ((err = create_configure_ep_input_ctx(dev, &ictx_dma_buf)))
+		return err;
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 
 	/* Copy endpoint 0 context and set A1 flag. */
@@ -855,21 +850,14 @@ int hc_address_device(xhci_device_t *dev, xhci_endpoint_t *ep0)
 	xhci_setup_endpoint_context(ep0, &ictx->endpoint_ctx[0]);
 
 	/* Issue Address Device command. */
-	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf))) {
-		goto err_dev_ctx;
-	}
+	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf)))
+		return err;
 
 	xhci_device_ctx_t *dev_ctx = dev->dev_ctx.virt;
 	dev->base.address = XHCI_SLOT_DEVICE_ADDRESS(dev_ctx->slot_ctx);
 	usb_log_debug2("Obtained USB address: %d.", dev->base.address);
 
 	return EOK;
-
-err_dev_ctx:
-	hc->dcbaa[dev->slot_id] = 0;
-	dma_buffer_free(&dev->dev_ctx);
-err:
-	return err;
 }
 
 /**

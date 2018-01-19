@@ -68,12 +68,12 @@ static endpoint_t *endpoint_create(device_t *, const usb_endpoint_descriptors_t 
  * @param[in] dev New device to address and configure./e
  * @return Error code.
  */
-static int address_device(xhci_bus_t *bus, xhci_device_t *dev)
+static int address_device(xhci_device_t *dev)
 {
 	int err;
 
 	/* Enable new slot. */
-	if ((err = hc_enable_slot(bus->hc, &dev->slot_id)) != EOK)
+	if ((err = hc_enable_slot(dev)) != EOK)
 		return err;
 	usb_log_debug2("Obtained slot ID: %u.", dev->slot_id);
 
@@ -99,7 +99,7 @@ err_added:
 	endpoint_del_ref(ep0_base);
 	dev->base.endpoints[0] = NULL;
 err_slot:
-	hc_disable_slot(bus->hc, dev);
+	hc_disable_slot(dev);
 	return err;
 }
 
@@ -192,7 +192,7 @@ static int device_enumerate(device_t *dev)
 	int retries = 3;
 	do {
 		/* Assign an address to the device */
-		err = address_device(bus, xhci_dev);
+		err = address_device(xhci_dev);
 	} while (err == ESTALL && --retries > 0);
 
 	if (err) {
@@ -252,7 +252,7 @@ static void device_gone(device_t *dev)
 
 	/* Disable the slot, dropping all endpoints. */
 	const uint32_t slot_id = xhci_dev->slot_id;
-	if ((err = hc_disable_slot(bus->hc, xhci_dev))) {
+	if ((err = hc_disable_slot(xhci_dev))) {
 		usb_log_warning("Failed to disable slot of device " XHCI_DEV_FMT ": %s",
 		    XHCI_DEV_ARGS(*xhci_dev), str_error(err));
 	}
