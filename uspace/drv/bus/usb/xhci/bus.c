@@ -86,7 +86,7 @@ static int address_device(xhci_bus_t *bus, xhci_device_t *dev)
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
 
 	/* Address device */
-	if ((err = hc_address_device(bus->hc, dev, ep0)))
+	if ((err = hc_address_device(dev, ep0)))
 		goto err_added;
 
 	return EOK;
@@ -127,7 +127,7 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	xhci_ep_ctx_t ep_ctx;
 	xhci_setup_endpoint_context(ep0, &ep_ctx);
 
-	if ((err = hc_update_endpoint(hc, dev->slot_id, 0, &ep_ctx)))
+	if ((err = hc_update_endpoint(dev, 0, &ep_ctx)))
 		return err;
 
 	return EOK;
@@ -237,7 +237,7 @@ static int device_online(device_t *dev_base)
 	assert(dev);
 
 	/* Transition the device from the Addressed to the Configured state. */
-	if ((err = hc_configure_device(bus->hc, dev->slot_id))) {
+	if ((err = hc_configure_device(dev))) {
 		usb_log_warning("Failed to configure device " XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*dev));
 		return err;
 	}
@@ -262,7 +262,7 @@ static void device_offline(device_t *dev_base)
 	assert(dev);
 
 	/* Issue one HC command to simultaneously drop all endpoints except zero. */
-	if ((err = hc_deconfigure_device(bus->hc, dev->slot_id))) {
+	if ((err = hc_deconfigure_device(dev))) {
 		usb_log_warning("Failed to deconfigure device " XHCI_DEV_FMT ".",
 		    XHCI_DEV_ARGS(*dev));
 	}
@@ -311,14 +311,13 @@ static void endpoint_destroy(endpoint_t *ep)
 static int endpoint_register(endpoint_t *ep_base)
 {
 	int err;
-	xhci_bus_t *bus = bus_to_xhci_bus(endpoint_get_bus(ep_base));
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
 	xhci_ep_ctx_t ep_ctx;
 	xhci_setup_endpoint_context(ep, &ep_ctx);
 
-	if ((err = hc_add_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep), &ep_ctx)))
+	if ((err = hc_add_endpoint(dev, xhci_endpoint_index(ep), &ep_ctx)))
 		return err;
 
 	return EOK;
@@ -329,14 +328,13 @@ static int endpoint_register(endpoint_t *ep_base)
  */
 static int endpoint_abort(endpoint_t *ep)
 {
-	xhci_bus_t *bus = bus_to_xhci_bus(endpoint_get_bus(ep));
 	xhci_device_t *dev = xhci_device_get(ep->device);
 
 	usb_transfer_batch_t *batch = NULL;
 	fibril_mutex_lock(&ep->guard);
 	if (ep->active_batch) {
 		if (dev->slot_id) {
-			const int err = hc_stop_endpoint(bus->hc, dev->slot_id, xhci_endpoint_dci(xhci_endpoint_get(ep)));
+			const int err = hc_stop_endpoint(dev, xhci_endpoint_dci(xhci_endpoint_get(ep)));
 			if (err) {
 				usb_log_warning("Failed to stop endpoint %u of device " XHCI_DEV_FMT ": %s",
 				    ep->endpoint, XHCI_DEV_ARGS(*dev), str_error(err));
@@ -369,7 +367,6 @@ static int endpoint_abort(endpoint_t *ep)
 static void endpoint_unregister(endpoint_t *ep_base)
 {
 	int err;
-	xhci_bus_t *bus = bus_to_xhci_bus(endpoint_get_bus(ep_base));
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
@@ -378,7 +375,7 @@ static void endpoint_unregister(endpoint_t *ep_base)
 	/* If device slot is still available, drop the endpoint. */
 	if (dev->slot_id) {
 
-		if ((err = hc_drop_endpoint(bus->hc, dev->slot_id, xhci_endpoint_index(ep)))) {
+		if ((err = hc_drop_endpoint(dev, xhci_endpoint_index(ep)))) {
 			usb_log_error("Failed to drop endpoint " XHCI_EP_FMT ": %s", XHCI_EP_ARGS(*ep), str_error(err));
 		}
 	} else {

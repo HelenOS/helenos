@@ -326,7 +326,7 @@ int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoin
 		return EOK;
 	}
 
-	hc_stop_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep));
+	hc_stop_endpoint(dev, xhci_endpoint_index(xhci_ep));
 	xhci_endpoint_free_transfer_ds(xhci_ep);
 
 	/* Streams are now removed, proceed with reconfiguring endpoint. */
@@ -339,7 +339,7 @@ int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoin
 	xhci_ep_ctx_t ep_ctx;
 	memset(&ep_ctx, 0, sizeof(ep_ctx));
 	xhci_setup_endpoint_context(xhci_ep, &ep_ctx);
-	return hc_update_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
+	return hc_update_endpoint(dev, xhci_endpoint_index(xhci_ep), &ep_ctx);
 }
 
 /** Initialize, setup and register primary streams.
@@ -360,7 +360,7 @@ int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	 * We have passed the checks.
 	 * Stop the endpoint, destroy the ring, and transition to streams.
 	 */
-	hc_stop_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep));
+	hc_stop_endpoint(dev, xhci_endpoint_index(xhci_ep));
 	xhci_endpoint_free_transfer_ds(xhci_ep);
 
 	err = initialize_primary_structures(xhci_ep, count);
@@ -380,7 +380,7 @@ int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	const size_t pstreams = fnzb32(count) - 1;
 	setup_stream_context(xhci_ep, &ep_ctx, pstreams, 1);
 
-	return hc_update_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
+	return hc_update_endpoint(dev, xhci_endpoint_index(xhci_ep), &ep_ctx);
 }
 
 /** Initialize, setup and register secondary streams.
@@ -433,7 +433,7 @@ int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	 * We have passed all checks.
 	 * Stop the endpoint, destroy the ring, and transition to streams.
 	 */
-	hc_stop_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep));
+	hc_stop_endpoint(dev, xhci_endpoint_index(xhci_ep));
 	xhci_endpoint_free_transfer_ds(xhci_ep);
 
 	err = initialize_primary_structures(xhci_ep, count);
@@ -454,7 +454,7 @@ int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	const size_t pstreams = fnzb32(count) - 1;
 	setup_stream_context(xhci_ep, &ep_ctx, pstreams, 0);
 
-	return hc_update_endpoint(hc, dev->slot_id, xhci_endpoint_index(xhci_ep), &ep_ctx);
+	return hc_update_endpoint(dev, xhci_endpoint_index(xhci_ep), &ep_ctx);
 
 err_init:
 	for (size_t i = 0; i < index; ++i) {

@@ -763,9 +763,34 @@ int hc_disable_slot(xhci_hc_t *hc, xhci_device_t *dev)
 }
 
 /**
+ * Fill a slot context that is part of an Input Context with appropriate
+ * values.
+ *
+ * @param ctx Slot context, zeroed out.
+ */
+static void xhci_setup_slot_context(xhci_device_t *dev, xhci_slot_ctx_t *ctx)
+{
+	/* Initialize slot_ctx according to section 4.3.3 point 3. */
+	XHCI_SLOT_ROOT_HUB_PORT_SET(*ctx, dev->rh_port);
+	XHCI_SLOT_CTX_ENTRIES_SET(*ctx, 1);
+	XHCI_SLOT_ROUTE_STRING_SET(*ctx, dev->route_str);
+	XHCI_SLOT_SPEED_SET(*ctx, usb_speed_to_psiv[dev->base.speed]);
+
+	/* Setup Transaction Translation. TODO: Test this with HS hub. */
+	if (dev->base.tt.dev != NULL) {
+		xhci_device_t *hub = xhci_device_get(dev->base.tt.dev);
+		XHCI_SLOT_TT_HUB_SLOT_ID_SET(*ctx, hub->slot_id);
+		XHCI_SLOT_TT_HUB_PORT_SET(*ctx, dev->base.tt.port);
+	}
+
+	// As we always allocate space for whole input context, we can set this to maximum
+	XHCI_SLOT_CTX_ENTRIES_SET(*ctx, 31);
+}
+
+/**
  * Prepare an empty Endpoint Input Context inside a dma buffer.
  */
-static int create_configure_ep_input_ctx(dma_buffer_t *dma_buf)
+static int create_configure_ep_input_ctx(xhci_device_t *dev, dma_buffer_t *dma_buf)
 {
 	const int err = dma_buffer_alloc(dma_buf, sizeof(xhci_input_ctx_t));
 	if (err)
@@ -776,9 +801,7 @@ static int create_configure_ep_input_ctx(dma_buffer_t *dma_buf)
 
 	// Quoting sec. 4.6.5 and 4.6.6: A1, D0, D1 are down (already zeroed), A0 is up.
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 0);
-
-	// As we always allocate space for whole input context, we can set this to maximum
-	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 31);
+	xhci_setup_slot_context(dev, &ictx->slot_ctx);
 
 	return EOK;
 }
@@ -789,9 +812,10 @@ static int create_configure_ep_input_ctx(dma_buffer_t *dma_buf)
  * @param dev Device to assing an address (unconfigured yet)
  * @param ep0 EP0 of device TODO remove, can be fetched from dev
  */
-int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
+int hc_address_device(xhci_device_t *dev, xhci_endpoint_t *ep0)
 {
 	int err = ENOMEM;
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
 	/* Although we have the precise PSIV value on devices of tier 1,
 	 * we have to rely on reverse mapping on others. */
@@ -809,24 +833,10 @@ int hc_address_device(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *ep0)
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	if ((err = create_configure_ep_input_ctx(&ictx_dma_buf))) {
+	if ((err = create_configure_ep_input_ctx(dev, &ictx_dma_buf))) {
 		goto err_dev_ctx;
 	}
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
-
-	/* Initialize slot_ctx according to section 4.3.3 point 3. */
-	XHCI_SLOT_ROOT_HUB_PORT_SET(ictx->slot_ctx, dev->rh_port);
-	XHCI_SLOT_CTX_ENTRIES_SET(ictx->slot_ctx, 1);
-	XHCI_SLOT_ROUTE_STRING_SET(ictx->slot_ctx, dev->route_str);
-	XHCI_SLOT_SPEED_SET(ictx->slot_ctx, usb_speed_to_psiv[dev->base.speed]);
-
-	/* Setup Transaction Translation. TODO: Test this with HS hub. */
-	if (dev->base.tt.dev != NULL) {
-		xhci_device_t *hub = xhci_device_get(dev->base.tt.dev);
-		XHCI_SLOT_TT_HUB_SLOT_ID_SET(ictx->slot_ctx, hub->slot_id);
-		XHCI_SLOT_TT_HUB_PORT_SET(ictx->slot_ctx, dev->base.tt.port);
-		XHCI_SLOT_MTT_SET(ictx->slot_ctx, 0); // MTT not supported yet
-	}
 
 	/* Copy endpoint 0 context and set A1 flag. */
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
@@ -855,42 +865,44 @@ err:
  *
  * @param slot_id Slot ID assigned to the device.
  */
-int hc_configure_device(xhci_hc_t *hc, uint32_t slot_id)
+int hc_configure_device(xhci_device_t *dev)
 {
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_configure_ep_input_ctx(&ictx_dma_buf);
+	const int err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err)
 		return err;
 
-	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
-
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf);
 }
 
 /**
  * Issue a Deconfigure Device command for a device in slot.
  *
- * @param slot_id Slot ID assigned to the device.
+ * @param dev The owner of the device
  */
-int hc_deconfigure_device(xhci_hc_t *hc, uint32_t slot_id)
+int hc_deconfigure_device(xhci_device_t *dev)
 {
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+
 	/* Issue configure endpoint command (sec 4.3.5) with the DC flag. */
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .deconfigure = true);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = dev->slot_id, .deconfigure = true);
 }
 
 /**
  * Instruct xHC to add an endpoint with supplied endpoint context.
  *
- * @param slot_id Slot ID assigned to the device.
- * @param ep_idx Endpoint index (number + direction) in question
+ * @param dev The owner of the device
+ * @param ep_idx Endpoint DCI in question
  * @param ep_ctx Endpoint context of the endpoint
  */
-int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
+int hc_add_endpoint(xhci_device_t *dev, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_configure_ep_input_ctx(&ictx_dma_buf);
+	const int err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err)
 		return err;
 
@@ -898,41 +910,40 @@ int hc_add_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
 	memcpy(&ictx->endpoint_ctx[ep_idx], ep_ctx, sizeof(xhci_ep_ctx_t));
 
-	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
-
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf);
 }
 
 /**
  * Instruct xHC to drop an endpoint.
  *
- * @param slot_id Slot ID assigned to the device.
- * @param ep_idx Endpoint index (number + direction) in question
+ * @param dev The owner of the endpoint
+ * @param ep_idx Endpoint DCI in question
  */
-int hc_drop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
+int hc_drop_endpoint(xhci_device_t *dev, uint8_t ep_idx)
 {
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_configure_ep_input_ctx(&ictx_dma_buf);
+	const int err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err)
 		return err;
 
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 	XHCI_INPUT_CTRL_CTX_DROP_SET(ictx->ctrl_ctx, ep_idx + 1); /* Preceded by slot ctx */
-	// TODO: Set slot context and other flags. (probably forgot a lot of 'em)
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf);
 }
 
 /**
  * Instruct xHC to update information about an endpoint, using supplied
  * endpoint context.
  *
- * @param slot_id Slot ID assigned to the device.
- * @param ep_idx Endpoint index (number + direction) in question
+ * @param dev The owner of the endpoint
+ * @param ep_idx Endpoint DCI in question
  * @param ep_ctx Endpoint context of the endpoint
  */
-int hc_update_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
+int hc_update_endpoint(xhci_device_t *dev, uint8_t ep_idx, xhci_ep_ctx_t *ep_ctx)
 {
 	dma_buffer_t ictx_dma_buf;
 	const int err = dma_buffer_alloc(&ictx_dma_buf, sizeof(xhci_input_ctx_t));
@@ -945,29 +956,32 @@ int hc_update_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx, xhci_ep_
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, ep_idx + 1);
 	memcpy(&ictx->endpoint_ctx[ep_idx], ep_ctx, sizeof(xhci_ep_ctx_t));
 
-	return xhci_cmd_sync_inline(hc, EVALUATE_CONTEXT, .slot_id = slot_id, .input_ctx = ictx_dma_buf);
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	return xhci_cmd_sync_inline(hc, EVALUATE_CONTEXT, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf);
 }
 
 /**
  * Instruct xHC to stop running a transfer ring on an endpoint.
  *
- * @param slot_id Slot ID assigned to the device.
- * @param ep_idx Endpoint index (number + direction) in question
+ * @param dev The owner of the endpoint
+ * @param ep_idx Endpoint DCI in question
  */
-int hc_stop_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
+int hc_stop_endpoint(xhci_device_t *dev, uint8_t ep_idx)
 {
-	return xhci_cmd_sync_inline(hc, STOP_ENDPOINT, .slot_id = slot_id, .endpoint_id = ep_idx);
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	return xhci_cmd_sync_inline(hc, STOP_ENDPOINT, .slot_id = dev->slot_id, .endpoint_id = ep_idx);
 }
 
 /**
  * Instruct xHC to reset halted endpoint.
  *
- * @param slot_id Slot ID assigned to the device.
- * @param ep_idx Endpoint index (number + direction) in question
+ * @param dev The owner of the endpoint
+ * @param ep_idx Endpoint DCI in question
  */
-int hc_reset_endpoint(xhci_hc_t *hc, uint32_t slot_id, uint8_t ep_idx)
+int hc_reset_endpoint(xhci_device_t *dev, uint8_t ep_idx)
 {
-	return xhci_cmd_sync_inline(hc, RESET_ENDPOINT, .slot_id = slot_id, .endpoint_id = ep_idx);
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	return xhci_cmd_sync_inline(hc, RESET_ENDPOINT, .slot_id = dev->slot_id, .endpoint_id = ep_idx);
 }
 
 /**

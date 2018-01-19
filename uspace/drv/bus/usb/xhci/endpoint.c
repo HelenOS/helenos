@@ -345,7 +345,7 @@ int xhci_endpoint_clear_halt(xhci_endpoint_t *ep, unsigned stream_id)
 	const unsigned slot_id = dev->slot_id;
 	const unsigned dci = xhci_endpoint_dci(ep);
 
-	if ((err = hc_reset_endpoint(hc, slot_id, dci)))
+	if ((err = hc_reset_endpoint(dev, dci)))
 		return err;
 
 	uintptr_t addr;

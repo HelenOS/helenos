@@ -196,7 +196,7 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 
 	// Issue a Configure Endpoint command, if needed.
 	if (configure_endpoint_needed(setup)) {
-		const int err = hc_configure_device(hc, xhci_ep_to_dev(xhci_ep)->slot_id);
+		const int err = hc_configure_device(xhci_ep_to_dev(xhci_ep));
 		if (err)
 			return err;
 	}
