@@ -198,7 +198,6 @@ void usb_port_disabled(usb_port_t *port, usb_port_remove_t handler)
 		break;
 	}
 
-	assert(port->state == PORT_DISABLED || port->state == PORT_DISCONNECTING);
 	fibril_mutex_unlock(&port->guard);
 }
 
