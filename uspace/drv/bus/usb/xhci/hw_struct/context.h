@@ -155,7 +155,7 @@ typedef struct xhci_slot_ctx {
 #define XHCI_SLOT_INTERRUPTER(ctx)      XHCI_DWORD_EXTRACT((ctx).data[2], 31, 22)
 
 #define XHCI_SLOT_DEVICE_ADDRESS(ctx)   XHCI_DWORD_EXTRACT((ctx).data[3],  7,  0)
-#define XHCI_SLOT_STATE(ctx)       XHCI_DWORD_EXTRACT((ctx).data[3], 31, 27)
+#define XHCI_SLOT_STATE(ctx)            XHCI_DWORD_EXTRACT((ctx).data[3], 31, 27)
 
 } __attribute__((packed)) xhci_slot_ctx_t;
 
