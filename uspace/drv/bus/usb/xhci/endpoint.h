@@ -122,8 +122,10 @@ typedef struct xhci_device {
 	/** Place to store the allocated context */
 	dma_buffer_t dev_ctx;
 
-	/** Flag indicating whether the device is USB3 (it's USB2 otherwise). */
-	bool usb3;
+	/** Hub specific information. Valid only if the device is_hub. */
+	bool is_hub;
+	uint8_t num_ports;
+	uint8_t tt_think_time;
 } xhci_device_t;
 
 #define XHCI_DEV_FMT  "(%s, slot %d)"

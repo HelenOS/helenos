@@ -161,6 +161,34 @@ int hc_get_device_desc(device_t *device, usb_standard_device_descriptor_t *desc)
 	return got == sizeof(*desc) ? EOK : EOVERFLOW;
 }
 
+int hc_get_hub_desc(device_t *device, usb_hub_descriptor_header_t *desc)
+{
+	const usb_target_t control_ep = {{
+		.address = device->address,
+		.endpoint = 0,
+	}};
+
+	const usb_device_request_setup_packet_t get_hub_desc = {
+		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
+		    | (USB_REQUEST_TYPE_CLASS << 5)
+		    | USB_REQUEST_RECIPIENT_DEVICE,
+		.request = USB_DEVREQ_GET_DESCRIPTOR, \
+		.value = uint16_host2usb(USB_DESCTYPE_HUB << 8), \
+		.length = sizeof(*desc),
+	};
+
+	usb_log_debug("Device(%d): Requesting hub descriptor.",
+	    device->address);
+	ssize_t got = bus_device_send_batch_sync(device, control_ep, USB_DIRECTION_IN,
+	    (char *) desc, sizeof(*desc), *(uint64_t *)&get_hub_desc,
+	    "get hub descriptor");
+
+	if (got < 0)
+		return got;
+
+	return got == sizeof(*desc) ? EOK : EOVERFLOW;
+}
+
 int hc_device_explore(device_t *device)
 {
 	int err;

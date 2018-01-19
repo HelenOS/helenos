@@ -129,25 +129,32 @@ typedef struct xhci_slot_ctx {
 	xhci_dword_set_bits(&(ctx).data[0], (val & 0xF), 23, 20)
 #define XHCI_SLOT_MTT_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], !!val, 25, 25)
+#define XHCI_SLOT_HUB_SET(ctx, val) \
+	xhci_dword_set_bits(&(ctx).data[0], !!val, 25, 25)
 #define XHCI_SLOT_CTX_ENTRIES_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], val, 31, 27)
 
 #define XHCI_SLOT_ROOT_HUB_PORT_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[1], val, 23, 16)
+#define XHCI_SLOT_NUM_PORTS_SET(ctx, val) \
+	xhci_dword_set_bits(&(ctx).data[1], val, 31, 24)
 
 #define XHCI_SLOT_TT_HUB_SLOT_ID_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[2], (val & 0xFF), 7, 0)
 #define XHCI_SLOT_TT_HUB_PORT_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[2], (val & 0xFF), 15, 8)
+#define XHCI_SLOT_TT_THINK_TIME_SET(ctx, val) \
+	xhci_dword_set_bits(&(ctx).data[2], (val & 0xFF), 17, 16)
 
 #define XHCI_SLOT_ROUTE_STRING(ctx)     XHCI_DWORD_EXTRACT((ctx).data[0], 19,  0)
 #define XHCI_SLOT_SPEED(ctx)            XHCI_DWORD_EXTRACT((ctx).data[0], 23, 20)
 #define XHCI_SLOT_MTT(ctx)              XHCI_DWORD_EXTRACT((ctx).data[0], 25, 25)
+#define XHCI_SLOT_HUB(ctx)              XHCI_DWORD_EXTRACT((ctx).data[0], 26, 26)
 #define XHCI_SLOT_CTX_ENTRIES(ctx)      XHCI_DWORD_EXTRACT((ctx).data[0], 31, 27)
 
 #define XHCI_SLOT_MAX_EXIT_LATENCY(ctx) XHCI_DWORD_EXTRACT((ctx).data[1], 15,  0)
 #define XHCI_SLOT_ROOT_HUB_PORT(ctx)    XHCI_DWORD_EXTRACT((ctx).data[1], 23, 16)
-#define XHCI_SLOT_NUM_OF_PORTS(ctx)     XHCI_DWORD_EXTRACT((ctx).data[1], 31, 24)
+#define XHCI_SLOT_NUM_PORTS(ctx)        XHCI_DWORD_EXTRACT((ctx).data[1], 31, 24)
 
 #define XHCI_SLOT_TT_HUB_SLOT_ID(ctx)   XHCI_DWORD_EXTRACT((ctx).data[2],  7,  0)
 #define XHCI_SLOT_TT_PORT_NUM(ctx)      XHCI_DWORD_EXTRACT((ctx).data[2], 15,  8)

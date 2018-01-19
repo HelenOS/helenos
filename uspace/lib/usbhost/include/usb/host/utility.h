@@ -40,12 +40,14 @@
 #include <usb/host/bus.h>
 #include <usb/host/usb_transfer_batch.h>
 #include <usb/descriptor.h>
+#include <usb/classes/hub.h>
 #include <usb/request.h>
 
 int hc_get_ep0_max_packet_size(uint16_t *, bus_t *, device_t *);
 toggle_reset_mode_t hc_get_request_toggle_reset_mode(const usb_device_request_setup_packet_t *request);
 int hc_setup_virtual_root_hub(hc_device_t *);
 int hc_get_device_desc(device_t *, usb_standard_device_descriptor_t *);
+int hc_get_hub_desc(device_t *, usb_hub_descriptor_header_t *);
 int hc_device_explore(device_t *);
 
 #endif

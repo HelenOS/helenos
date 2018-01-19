@@ -776,6 +776,18 @@ static void xhci_setup_slot_context(xhci_device_t *dev, xhci_slot_ctx_t *ctx)
 	XHCI_SLOT_ROUTE_STRING_SET(*ctx, dev->route_str);
 	XHCI_SLOT_SPEED_SET(*ctx, usb_speed_to_psiv[dev->base.speed]);
 
+	/*
+	 * Note: This function is used even before this flag can be set, to
+	 *       issue the address device command. It is OK, because these
+	 *       flags are not required to be valid for that command.
+	 */
+	if (dev->is_hub) {
+		XHCI_SLOT_HUB_SET(*ctx, 1);
+		XHCI_SLOT_NUM_PORTS_SET(*ctx, dev->num_ports);
+		XHCI_SLOT_TT_THINK_TIME_SET(*ctx, dev->tt_think_time);
+		XHCI_SLOT_MTT_SET(*ctx, 0); // MTT not supported yet
+	}
+
 	/* Setup Transaction Translation. TODO: Test this with HS hub. */
 	if (dev->base.tt.dev != NULL) {
 		xhci_device_t *hub = xhci_device_get(dev->base.tt.dev);

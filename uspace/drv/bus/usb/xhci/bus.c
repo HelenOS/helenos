@@ -36,6 +36,8 @@
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 #include <usb/host/utility.h>
+#include <usb/classes/classes.h>
+#include <usb/classes/hub.h>
 #include <usb/descriptor.h>
 #include <usb/debug.h>
 
@@ -135,6 +137,32 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 }
 
 /**
+ * Check whether the device is a hub and if so, fill its characterstics.
+ *
+ * If this fails, it does not necessarily mean the device is unusable.
+ * Just the TT will not work correctly.
+ */
+static int setup_hub(xhci_device_t *dev, usb_standard_device_descriptor_t *desc)
+{
+	if (desc->device_class != USB_CLASS_HUB)
+		return EOK;
+
+	usb_hub_descriptor_header_t hub_desc = { 0 };
+	const int err = hc_get_hub_desc(&dev->base, &hub_desc);
+	if (err)
+		return err;
+
+	dev->is_hub = 1;
+	dev->num_ports = hub_desc.port_count;
+	dev->tt_think_time = 8 +
+		8  * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_8) +
+		16 * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_16);
+
+	usb_log_debug2("Device(%u): recognised USB hub with %u ports", dev->base.address, dev->num_ports);
+	return EOK;
+}
+
+/**
  * Respond to a new device on the XHCI bus. Address it, negotiate packet size
  * and retrieve USB descriptors.
  *
@@ -183,9 +211,19 @@ static int device_enumerate(device_t *dev)
 		goto err_address;
 	}
 
-	/* Read the device descriptor, derive the match ids */
-	if ((err = hc_device_explore(dev))) {
-		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
+	usb_standard_device_descriptor_t desc = { 0 };
+
+	if ((err = hc_get_device_desc(dev, &desc))) {
+		usb_log_error("Device(%d): failed to get devices descriptor: %s", dev->address, str_error(err));
+		goto err_address;
+	}
+
+	if ((err = setup_hub(xhci_dev, &desc)))
+		usb_log_warning("Device(%d): failed to setup hub characteristics: %s. "
+		    " Continuing anyway.", dev->address, str_error(err));
+
+	if ((err = hcd_ddf_setup_match_ids(dev, &desc))) {
+		usb_log_error("Device(%d): failed to setup match IDs: %s", dev->address, str_error(err));
 		goto err_address;
 	}
 
