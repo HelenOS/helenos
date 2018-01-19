@@ -47,14 +47,11 @@
 int hcd_ddf_setup_hc(ddf_dev_t *, size_t);
 void hcd_ddf_clean_hc(hc_device_t *);
 
-int hcd_setup_virtual_root_hub(hc_device_t *);
 
 device_t *hcd_ddf_fun_create(hc_device_t *, usb_speed_t);
 void hcd_ddf_fun_destroy(device_t *);
 
-int hcd_get_device_desc(device_t *, usb_standard_device_descriptor_t *);
-int hcd_setup_match_ids(device_t *, usb_standard_device_descriptor_t *);
-int hcd_device_explore(device_t *);
+int hcd_ddf_setup_match_ids(device_t *, usb_standard_device_descriptor_t *);
 
 int hcd_ddf_enable_interrupt(hc_device_t *hcd, int);
 int hcd_ddf_get_registers(hc_device_t *hcd, hw_res_list_parsed_t *hw_res);

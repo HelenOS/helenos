@@ -109,21 +109,6 @@ static inline hc_device_t *dev_to_hcd(ddf_dev_t *dev)
 
 int hc_driver_main(const hc_driver_t *);
 
-/* TODO: These are a kind of utility functions, they should probably go
- * somewhere else.
- */
-extern int hcd_get_ep0_max_packet_size(uint16_t *, bus_t *, device_t *);
-
-/** How many toggles need to be reset */
-typedef enum {
-	RESET_NONE,
-	RESET_EP,
-	RESET_ALL
-} toggle_reset_mode_t;
-
-extern toggle_reset_mode_t hcd_get_request_toggle_reset_mode(
-    const usb_device_request_setup_packet_t *request);
-
 #endif
 
 /**

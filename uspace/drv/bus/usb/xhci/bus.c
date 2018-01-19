@@ -35,6 +35,7 @@
 #include <usb/host/ddf_helpers.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
+#include <usb/host/utility.h>
 #include <usb/descriptor.h>
 #include <usb/debug.h>
 
@@ -112,7 +113,7 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	int err;
 
 	uint16_t max_packet_size;
-	if ((err = hcd_get_ep0_max_packet_size(&max_packet_size, (bus_t *) &hc->bus, &dev->base)))
+	if ((err = hc_get_ep0_max_packet_size(&max_packet_size, (bus_t *) &hc->bus, &dev->base)))
 		return err;
 
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(dev->base.endpoints[0]);
@@ -183,7 +184,7 @@ static int device_enumerate(device_t *dev)
 	}
 
 	/* Read the device descriptor, derive the match ids */
-	if ((err = hcd_device_explore(dev))) {
+	if ((err = hc_device_explore(dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
 		goto err_address;
 	}

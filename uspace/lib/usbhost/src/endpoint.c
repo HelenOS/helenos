@@ -42,6 +42,7 @@
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/host/hcd.h>
+#include <usb/host/utility.h>
 
 #include "usb_transfer_batch.h"
 #include "bus.h"
@@ -283,7 +284,7 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 	/* Check for commands that reset toggle bit */
 	if (ep->transfer_type == USB_TRANSFER_CONTROL)
 		batch->toggle_reset_mode
-			= hcd_get_request_toggle_reset_mode(&batch->setup.packet);
+			= hc_get_request_toggle_reset_mode(&batch->setup.packet);
 
 	const int ret = ops->batch_schedule(batch);
 	if (ret != EOK) {

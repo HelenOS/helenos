@@ -39,6 +39,7 @@
 #include <ddf/driver.h>
 
 #include <usb/host/ddf_helpers.h>
+#include <usb/host/utility.h>
 
 #include <usb/debug.h>
 #include "vhcd.h"
@@ -105,7 +106,7 @@ static int vhc_dev_add(ddf_dev_t *dev)
 	 * Creating root hub registers a new USB device so HC
 	 * needs to be ready at this time.
 	 */
-	ret = hcd_setup_virtual_root_hub(&vhc->base);
+	ret = hc_setup_virtual_root_hub(&vhc->base);
 	if (ret != EOK) {
 		usb_log_error("Failed to init VHC root hub: %s",
 			str_error(ret));

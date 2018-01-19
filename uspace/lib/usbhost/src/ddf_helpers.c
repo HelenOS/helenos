@@ -392,30 +392,7 @@ void hcd_ddf_fun_destroy(device_t *dev)
 	ddf_fun_destroy(dev->fun);
 }
 
-int hcd_get_device_desc(device_t *device, usb_standard_device_descriptor_t *desc)
-{
-	const usb_target_t control_ep = {{
-		.address = device->address,
-		.endpoint = 0,
-	}};
-
-	/* Get std device descriptor */
-	const usb_device_request_setup_packet_t get_device_desc =
-	    GET_DEVICE_DESC(sizeof(*desc));
-
-	usb_log_debug("Device(%d): Requesting full device descriptor.",
-	    device->address);
-	ssize_t got = bus_device_send_batch_sync(device, control_ep, USB_DIRECTION_IN,
-	    (char *) desc, sizeof(*desc), *(uint64_t *)&get_device_desc,
-	    "read device descriptor");
-
-	if (got < 0)
-		return got;
-
-	return got == sizeof(*desc) ? EOK : EOVERFLOW;
-}
-
-int hcd_setup_match_ids(device_t *device, usb_standard_device_descriptor_t *desc)
+int hcd_ddf_setup_match_ids(device_t *device, usb_standard_device_descriptor_t *desc)
 {
 	int err;
 	match_id_list_t mids;
@@ -433,65 +410,6 @@ int hcd_setup_match_ids(device_t *device, usb_standard_device_descriptor_t *desc
 	}
 
 	return EOK;
-}
-
-
-int hcd_device_explore(device_t *device)
-{
-	int err;
-	usb_standard_device_descriptor_t desc = { 0 };
-
-	if ((err = hcd_get_device_desc(device, &desc))) {
-		usb_log_error("Device(%d): Failed to get dev descriptor: %s",
-		    device->address, str_error(err));
-		return err;
-	}
-
-	if ((err = hcd_setup_match_ids(device, &desc))) {
-		usb_log_error("Device(%d): Failed to setup match ids: %s", device->address, str_error(err));
-		return err;
-	}
-
-	return EOK;
-}
-
-/** Announce root hub to the DDF
- *
- * @param[in] device Host controller ddf device
- * @return Error code
- */
-int hcd_setup_virtual_root_hub(hc_device_t *hcd)
-{
-	int err;
-
-	assert(hcd);
-
-	device_t *dev = hcd_ddf_fun_create(hcd, USB_SPEED_MAX);
-	if (!dev) {
-		usb_log_error("Failed to create function for the root hub.");
-		return ENOMEM;
-	}
-
-	ddf_fun_set_name(dev->fun, "roothub");
-
-	/* Assign an address to the device */
-	if ((err = bus_device_enumerate(dev))) {
-		usb_log_error("Failed to enumerate roothub device: %s", str_error(err));
-		goto err_usb_dev;
-	}
-
-	if ((err = ddf_fun_bind(dev->fun))) {
-		usb_log_error("Failed to register roothub: %s.", str_error(err));
-		goto err_enumerated;
-	}
-
-	return EOK;
-
-err_enumerated:
-	bus_device_gone(dev);
-err_usb_dev:
-	hcd_ddf_fun_destroy(dev);
-	return err;
 }
 
 /** Initialize hc structures.

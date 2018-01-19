@@ -44,6 +44,7 @@
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/request.h>
+#include <usb/host/utility.h>
 #include <usb/usb.h>
 
 #include "endpoint.h"
@@ -139,7 +140,7 @@ static int address_device(device_t *dev)
 		goto err_address;
 	}
 
-	if ((err = hcd_get_ep0_max_packet_size(&ep0_desc.endpoint.max_packet_size, &bus->base, dev)))
+	if ((err = hc_get_ep0_max_packet_size(&ep0_desc.endpoint.max_packet_size, &bus->base, dev)))
 		goto err_address;
 
 	/* Set new address */
@@ -198,7 +199,7 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	}
 
 	/* Read the device descriptor, derive the match ids */
-	if ((err = hcd_device_explore(dev))) {
+	if ((err = hc_device_explore(dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
 		release_address(bus, dev->address);
 		return err;

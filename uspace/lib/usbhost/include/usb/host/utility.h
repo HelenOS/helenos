@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2017 Ondrej Hlavaty <aearsis@eideo.cz>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,56 +25,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbohci
+/** @addtogroup drvusbehci
  * @{
  */
 /** @file
- * Main routines of OHCI driver.
- */
-
-#include <assert.h>
-#include <ddf/driver.h>
-#include <errno.h>
-#include <io/log.h>
-#include <io/logctl.h>
-#include <str_error.h>
-
-#include <usb/debug.h>
-#include <usb/host/utility.h>
-
-#include "hc.h"
-#include "ohci_bus.h"
-
-#define NAME "ohci"
-
-static const hc_driver_t ohci_driver = {
-	.name = NAME,
-	.hc_device_size = sizeof(hc_t),
-
-	.hc_add = hc_add,
-	.irq_code_gen = hc_gen_irq_code,
-	.claim = hc_gain_control,
-	.start = hc_start,
-	.setup_root_hub = hc_setup_virtual_root_hub,
-	.hc_gone = hc_gone,
-};
-
-/** Initializes global driver structures (NONE).
+ * @brief USB host controller library: Utility functions.
  *
- * @param[in] argc Nmber of arguments in argv vector (ignored).
- * @param[in] argv Cmdline argument vector (ignored).
- * @return Error code.
- *
- * Driver debug level is set here.
+ * A mix of various functions that makes life of USB HC driver developers
+ * easier.
  */
-int main(int argc, char *argv[])
-{
-	log_init(NAME);
-	logctl_set_log_level(NAME, LVL_DEBUG2);
-	return hc_driver_main(&ohci_driver);
-}
+#ifndef LIB_USBHOST_UTILITY
+#define LIB_USBHOST_UTILITY
 
+#include <usb/host/bus.h>
+#include <usb/host/usb_transfer_batch.h>
+#include <usb/descriptor.h>
+#include <usb/request.h>
+
+int hc_get_ep0_max_packet_size(uint16_t *, bus_t *, device_t *);
+toggle_reset_mode_t hc_get_request_toggle_reset_mode(const usb_device_request_setup_packet_t *request);
+int hc_setup_virtual_root_hub(hc_device_t *);
+int hc_get_device_desc(device_t *, usb_standard_device_descriptor_t *);
+int hc_device_explore(device_t *);
+
+#endif
 /**
  * @}
  */

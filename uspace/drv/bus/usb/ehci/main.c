@@ -36,7 +36,7 @@
 
 #include <io/logctl.h>
 #include <usb/host/hcd.h>
-#include <usb/host/ddf_helpers.h>
+#include <usb/host/utility.h>
 
 #include "res.h"
 #include "hc.h"
@@ -51,7 +51,7 @@ static const hc_driver_t ehci_driver = {
 	.irq_code_gen = hc_gen_irq_code,
 	.claim = disable_legacy,
 	.start = hc_start,
-	.setup_root_hub = hcd_setup_virtual_root_hub,
+	.setup_root_hub = hc_setup_virtual_root_hub,
 	.hc_gone = hc_gone,
 };
 

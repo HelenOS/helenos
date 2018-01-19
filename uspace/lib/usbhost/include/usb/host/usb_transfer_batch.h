@@ -51,6 +51,13 @@
 typedef struct endpoint endpoint_t;
 typedef struct bus bus_t;
 
+/** How many toggles need to be reset */
+typedef enum {
+	RESET_NONE,
+	RESET_EP,
+	RESET_ALL
+} toggle_reset_mode_t;
+
 /** Structure stores additional data needed for communication with EP */
 typedef struct usb_transfer_batch {
 	/** Target for communication */
