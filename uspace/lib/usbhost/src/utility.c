@@ -210,25 +210,20 @@ err_usb_dev:
 	return err;
 }
 
-/** How many toggles need to be reset */
-typedef enum {
-	RESET_NONE,
-	RESET_EP,
-	RESET_ALL
-} toggle_reset_mode_t;
-
 /**
  * Check setup packet data for signs of toggle reset.
  *
  * @param[in] batch USB batch
+ * @param[in] reset_cb Callback to reset an endpoint
  */
-static toggle_reset_mode_t get_request_toggle_reset_mode(const usb_transfer_batch_t *batch)
+void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t reset_cb)
 {
 	if (batch->ep->transfer_type != USB_TRANSFER_CONTROL
 	    || batch->dir != USB_DIRECTION_OUT)
-		return RESET_NONE;
+		return;
 
 	const usb_device_request_setup_packet_t *request = &batch->setup.packet;
+	device_t * const dev = batch->ep->device;
 
 	switch (request->request)
 	{
@@ -236,8 +231,14 @@ static toggle_reset_mode_t get_request_toggle_reset_mode(const usb_transfer_batc
 	case USB_DEVREQ_CLEAR_FEATURE: /*resets only cleared ep */
 		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
 		if ((request->request_type == 0x2) &&
-		    (request->value == USB_FEATURE_ENDPOINT_HALT))
-			return RESET_EP;
+		    (request->value == USB_FEATURE_ENDPOINT_HALT)) {
+			const unsigned index = uint16_usb2host(request->index);
+			const unsigned ep_num = index & 0xf;
+			const usb_direction_t dir = (index >> 7) ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+
+			endpoint_t *ep = bus_find_endpoint(dev, ep_num, dir);
+			reset_cb(ep);
+		}
 		break;
 	case USB_DEVREQ_SET_CONFIGURATION:
 	case USB_DEVREQ_SET_INTERFACE:
@@ -247,37 +248,12 @@ static toggle_reset_mode_t get_request_toggle_reset_mode(const usb_transfer_batc
 		 * unless you're changing configuration or alternative
 		 * interface of an already setup device. */
 		if (!(request->request_type & SETUP_REQUEST_TYPE_DEVICE_TO_HOST))
-			return RESET_ALL;
+			for (usb_endpoint_t i = 0; i < 2 * USB_ENDPOINT_MAX; ++i)
+				if (dev->endpoints[i])
+					reset_cb(dev->endpoints[i]);
 		break;
 	default:
 		break;
-	}
-
-	return RESET_NONE;
-}
-
-void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t reset_cb)
-{
-	assert(reset_cb);
-	assert(batch->ep);
-	assert(batch->ep->device);
-
-	if (batch->error != EOK)
-		return;
-
-	toggle_reset_mode_t mode = get_request_toggle_reset_mode(batch);
-
-	if (mode == RESET_NONE)
-		return;
-
-	if (mode == RESET_ALL) {
-		const device_t *dev = batch->ep->device;
-		for (usb_endpoint_t i = 0; i < 2 * USB_ENDPOINT_MAX; ++i) {
-			if (dev->endpoints[i])
-				reset_cb(dev->endpoints[i]);
-		}
-	} else {
-		reset_cb(batch->ep);
 	}
 }
 
