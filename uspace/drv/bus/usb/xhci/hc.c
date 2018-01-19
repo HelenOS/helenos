@@ -775,7 +775,6 @@ static void xhci_setup_slot_context(xhci_device_t *dev, xhci_slot_ctx_t *ctx)
 {
 	/* Initialize slot_ctx according to section 4.3.3 point 3. */
 	XHCI_SLOT_ROOT_HUB_PORT_SET(*ctx, dev->rh_port);
-	XHCI_SLOT_CTX_ENTRIES_SET(*ctx, 1);
 	XHCI_SLOT_ROUTE_STRING_SET(*ctx, dev->route_str);
 	XHCI_SLOT_SPEED_SET(*ctx, usb_speed_to_psiv[dev->base.speed]);
 
@@ -848,6 +847,10 @@ int hc_address_device(xhci_device_t *dev, xhci_endpoint_t *ep0)
 	/* Copy endpoint 0 context and set A1 flag. */
 	XHCI_INPUT_CTRL_CTX_ADD_SET(ictx->ctrl_ctx, 1);
 	xhci_setup_endpoint_context(ep0, &ictx->endpoint_ctx[0]);
+
+	/* Address device needs Ctx entries set to 1 only */
+	xhci_slot_ctx_t *slot_ctx = &ictx->slot_ctx;
+	XHCI_SLOT_CTX_ENTRIES_SET(*slot_ctx, 1);
 
 	/* Issue Address Device command. */
 	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf)))
