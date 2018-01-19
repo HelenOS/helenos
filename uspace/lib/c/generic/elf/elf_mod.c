@@ -419,7 +419,9 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	seg_addr = entry->p_vaddr + bias;
 	seg_ptr = (void *) seg_addr;
 
-	DPRINTF("Load segment at addr %p, size 0x%zx, flags %c%c%c\n", (void *) seg_addr,
+	DPRINTF("Load segment v_addr=0x%zx at addr %p, size 0x%zx, flags %c%c%c\n",
+	    entry->p_vaddr,
+	    (void *) seg_addr,
 	    entry->p_memsz,
 	    (entry->p_flags & PF_R) ? 'r' : '-',
 	    (entry->p_flags & PF_W) ? 'w' : '-',
@@ -429,9 +431,9 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		if ((entry->p_offset % entry->p_align) !=
 		    (seg_addr % entry->p_align)) {
 			DPRINTF("Align check 1 failed offset%%align=0x%zx, "
-			    "vaddr%%align=0x%zx\n",
+			    "vaddr%%align=0x%zx align=0x%zx\n",
 			    entry->p_offset % entry->p_align,
-			    seg_addr % entry->p_align);
+			    seg_addr % entry->p_align, entry->p_align);
 			return EE_INVALID;
 		}
 	}

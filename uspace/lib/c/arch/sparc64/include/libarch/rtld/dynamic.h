@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_SMC_H_
-#define LIBC_SMC_H_
+#ifndef LIBC_sparc64_RTLD_DYNAMIC_H_
+#define LIBC_sparc64_RTLD_DYNAMIC_H_
 
-#include <errno.h>
-#include <stddef.h>
-
-extern errno_t smc_coherence(void *address, size_t size);
+typedef struct {
+	/* Empty. */
+} dyn_info_arch_t;
 
 #endif
 

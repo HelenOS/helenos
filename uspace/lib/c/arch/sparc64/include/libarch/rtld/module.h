@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,13 +32,13 @@
 /** @file
  */
 
-#ifndef LIBC_SMC_H_
-#define LIBC_SMC_H_
+#ifndef LIBC_sparc64_RTLD_MODULE_H_
+#define LIBC_sparc64_RTLD_MODULE_H_
 
-#include <errno.h>
-#include <stddef.h>
+#include <elf/elf_mod.h>
 
-extern errno_t smc_coherence(void *address, size_t size);
+/** ELF module load flags */
+#define RTLD_MODULE_LDF 0
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup generic
  * @{
  */
-/** @file
+/** @file sparc64 dynamic relocation types
  */
 
-#ifndef LIBC_SMC_H_
-#define LIBC_SMC_H_
+#ifndef LIBC_sparc64_RTLD_ELF_DYN_H_
+#define LIBC_sparc64_RTLD_ELF_DYN_H_
 
-#include <errno.h>
-#include <stddef.h>
-
-extern errno_t smc_coherence(void *address, size_t size);
+#define R_SPARC_COPY		19
+#define R_SPARC_GLOB_DAT	20
+#define R_SPARC_JMP_SLOT	21
+#define R_SPARC_RELATIVE	22
+#define R_SPARC_64		32
+#define R_SPARC_TLS_DTPMOD64	75
+#define R_SPARC_TLS_DTPOFF64	77
+#define R_SPARC_TLS_TPOFF64	79
 
 #endif
 

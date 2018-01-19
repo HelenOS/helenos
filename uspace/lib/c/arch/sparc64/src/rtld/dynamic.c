@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2019 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libcsparc64
+ * @brief
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef LIBC_SMC_H_
-#define LIBC_SMC_H_
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <errno.h>
-#include <stddef.h>
+#include <rtld/elf_dyn.h>
+#include <rtld/dynamic.h>
 
-extern errno_t smc_coherence(void *address, size_t size);
-
-#endif
+void dyn_parse_arch(elf_dyn_t *dp, size_t bias, dyn_info_t *info)
+{
+	(void) dp;
+	(void) bias;
+	(void) info;
+}
 
 /** @}
  */
