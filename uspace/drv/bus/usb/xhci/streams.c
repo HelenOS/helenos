@@ -337,7 +337,7 @@ int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoin
 	}
 
 	xhci_ep_ctx_t ep_ctx;
-	memset(&ep_ctx, 0, sizeof(ep_ctx));
+	memset(&ep_ctx, 0, XHCI_ONE_CTX_SIZE(hc));
 	xhci_setup_endpoint_context(xhci_ep, &ep_ctx);
 	return hc_update_endpoint(dev, xhci_endpoint_index(xhci_ep), &ep_ctx);
 }

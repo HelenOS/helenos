@@ -325,7 +325,8 @@ uint8_t xhci_endpoint_get_state(xhci_endpoint_t *ep)
 
 	unsigned idx = xhci_endpoint_index(ep);
 	xhci_device_ctx_t *ctx = dev->dev_ctx.virt;
-	xhci_ep_ctx_t *ep_ctx = &ctx->endpoint_ctx[idx];
+	const xhci_hc_t * hc = bus_to_hc(dev->base.bus);
+	xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(ctx, hc, idx);
 
 	return XHCI_EP_STATE(*ep_ctx);
 }

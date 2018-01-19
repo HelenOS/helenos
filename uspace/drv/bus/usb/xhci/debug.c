@@ -382,24 +382,29 @@ void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *ctx)
 #undef EP_DUMP_QW
 }
 
-void xhci_dump_input_ctx(const struct xhci_input_ctx *ctx)
+void xhci_dump_input_ctx(const xhci_hc_t * hc, const struct xhci_input_ctx *ictx)
 {
-	usb_log_debug("Input control context:");
-	usb_log_debug("\tDrop:\t0x%08x", xhci2host(32, ctx->ctrl_ctx.data[0]));
-	usb_log_debug("\tAdd:\t0x%08x", xhci2host(32, ctx->ctrl_ctx.data[1]));
+	xhci_device_ctx_t *device_ctx = XHCI_GET_DEVICE_CTX(ictx, hc);
+	xhci_slot_ctx_t *slot_ctx = XHCI_GET_SLOT_CTX(device_ctx, hc);
+	xhci_input_ctrl_ctx_t *ctrl_ctx = XHCI_GET_CTRL_CTX(ictx, hc);
 
-	usb_log_debug("\tConfig:\t0x%02x", XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(ctx->ctrl_ctx));
-	usb_log_debug("\tIface:\t0x%02x", XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(ctx->ctrl_ctx));
-	usb_log_debug("\tAlternate:\t0x%02x", XHCI_INPUT_CTRL_CTX_ALTER_SETTING(ctx->ctrl_ctx));
+	usb_log_debug("Input control context:");
+	usb_log_debug("\tDrop:\t0x%08x", xhci2host(32, ctrl_ctx->data[0]));
+	usb_log_debug("\tAdd:\t0x%08x", xhci2host(32, ctrl_ctx->data[1]));
+
+	usb_log_debug("\tConfig:\t0x%02x", XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(*ctrl_ctx));
+	usb_log_debug("\tIface:\t0x%02x", XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(*ctrl_ctx));
+	usb_log_debug("\tAlternate:\t0x%02x", XHCI_INPUT_CTRL_CTX_ALTER_SETTING(*ctrl_ctx));
 
 	usb_log_debug("Slot context:");
-	xhci_dump_slot_ctx(&ctx->slot_ctx);
+	xhci_dump_slot_ctx(slot_ctx);
 
 	for (uint8_t dci = 1; dci <= XHCI_EP_COUNT; dci++)
-		if (XHCI_INPUT_CTRL_CTX_DROP(ctx->ctrl_ctx, dci)
-		    || XHCI_INPUT_CTRL_CTX_ADD(ctx->ctrl_ctx, dci)) {
+		if (XHCI_INPUT_CTRL_CTX_DROP(*ctrl_ctx, dci)
+		    || XHCI_INPUT_CTRL_CTX_ADD(*ctrl_ctx, dci)) {
 			usb_log_debug("Endpoint context DCI %u:", dci);
-			xhci_dump_endpoint_ctx(&ctx->endpoint_ctx[dci - 1]);
+			xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(device_ctx, hc, dci - 1);
+			xhci_dump_endpoint_ctx(ep_ctx);
 		}
 }
 
