@@ -40,9 +40,11 @@
 #include <usb/debug.h>
 #include <usb/host/usb_transfer_batch.h>
 #include <usb/host/utils/malloc32.h>
+#include <usb/host/utility.h>
 
 #include "hw_struct/link_pointer.h"
 #include "transfer_list.h"
+#include "hc.h"
 
 /** Initialize transfer list structures.
  *
@@ -154,6 +156,15 @@ void transfer_list_add_batch(
 	fibril_mutex_unlock(&instance->guard);
 }
 
+/**
+ * Reset toggle on endpoint callback.
+ */
+static void uhci_reset_toggle(endpoint_t *ep)
+{
+	uhci_endpoint_t *uhci_ep = (uhci_endpoint_t *) ep;
+	uhci_ep->toggle = 0;
+}
+
 /** Add completed batches to the provided list.
  *
  * @param[in] instance List to use.
@@ -175,6 +186,7 @@ void transfer_list_remove_finished(transfer_list_t *instance, list_t *done)
 			/* Remove from schedule, save for processing */
 			fibril_mutex_lock(&batch->base.ep->guard);
 			assert(batch->base.ep->active_batch == &batch->base);
+			hc_reset_toggles(&batch->base, &uhci_reset_toggle);
 			endpoint_deactivate_locked(batch->base.ep);
 			transfer_list_remove_batch(instance, batch);
 			fibril_mutex_unlock(&batch->base.ep->guard);

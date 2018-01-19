@@ -44,6 +44,7 @@
 #include <stdint.h>
 
 #include <usb/debug.h>
+#include <usb/host/utility.h>
 #include <usb/usb.h>
 
 #include "ohci_bus.h"
@@ -376,6 +377,7 @@ void ohci_hc_interrupt(bus_t *bus_base, uint32_t status)
 				endpoint_deactivate_locked(&ep->base);
 				list_remove(current);
 				endpoint_del_ref(&ep->base);
+				hc_reset_toggles(&batch->base, &ohci_ep_toggle_reset);
 				usb_transfer_batch_finish(&batch->base);
 			}
 			fibril_mutex_unlock(&ep->base.guard);

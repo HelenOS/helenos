@@ -43,8 +43,10 @@
 #include <usb/classes/hub.h>
 #include <usb/request.h>
 
+typedef void (*endpoint_reset_toggle_t)(endpoint_t *);
+
 int hc_get_ep0_max_packet_size(uint16_t *, bus_t *, device_t *);
-toggle_reset_mode_t hc_get_request_toggle_reset_mode(const usb_device_request_setup_packet_t *request);
+void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t);
 int hc_setup_virtual_root_hub(hc_device_t *);
 int hc_get_device_desc(device_t *, usb_standard_device_descriptor_t *);
 int hc_get_hub_desc(device_t *, usb_hub_descriptor_header_t *);

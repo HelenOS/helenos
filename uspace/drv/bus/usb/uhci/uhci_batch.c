@@ -45,6 +45,7 @@
 #include <usb/host/utils/malloc32.h>
 
 #include "uhci_batch.h"
+#include "hc.h"
 #include "hw_struct/transfer_descriptor.h"
 
 #define DEFAULT_ERROR_COUNT 3
@@ -163,6 +164,8 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 	    uhci_batch->td_count);
 	batch->transfered_size = 0;
 
+	uhci_endpoint_t *uhci_ep = (uhci_endpoint_t *) batch->ep;
+
 	for (size_t i = 0;i < uhci_batch->td_count; ++i) {
 		if (td_is_active(&uhci_batch->tds[i])) {
 			return false;
@@ -177,7 +180,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 			    &uhci_batch->tds[i], uhci_batch->tds[i].status);
 			td_print_status(&uhci_batch->tds[i]);
 
-			batch->ep->toggle = td_toggle(&uhci_batch->tds[i]);
+			uhci_ep->toggle = td_toggle(&uhci_batch->tds[i]);
 			goto substract_ret;
 		}
 
@@ -229,7 +232,9 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	    uhci_batch->base.ep->device->speed == USB_SPEED_LOW;
 	const size_t mps = uhci_batch->base.ep->max_packet_size;
 
-	int toggle = uhci_batch->base.ep->toggle;
+	uhci_endpoint_t *uhci_ep = (uhci_endpoint_t *) uhci_batch->base.ep;
+
+	int toggle = uhci_ep->toggle;
 	assert(toggle == 0 || toggle == 1);
 
 	size_t td = 0;
@@ -253,7 +258,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 		remain_size -= packet_size;
 	}
 	td_set_ioc(&uhci_batch->tds[td - 1]);
-	uhci_batch->base.ep->toggle = toggle;
+	uhci_ep->toggle = toggle;
 	usb_log_debug2(
 	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.", \
 	    uhci_batch,

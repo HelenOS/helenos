@@ -42,17 +42,17 @@
 #include "ohci_batch.h"
 #include "hc.h"
 
-/** Callback to reset toggle on ED.
+/**
+ * Callback to reset toggle on ED.
  *
  * @param[in] hcd_ep hcd endpoint structure
  * @param[in] toggle new value of toggle bit
  */
-static void ohci_ep_toggle_reset(endpoint_t *ep)
+void ohci_ep_toggle_reset(endpoint_t *ep)
 {
 	ohci_endpoint_t *instance = ohci_endpoint_get(ep);
 	assert(instance);
 	assert(instance->ed);
-	ep->toggle = 0;
 	ed_toggle_set(instance->ed, 0);
 }
 
@@ -178,7 +178,7 @@ static const bus_ops_t ohci_bus_ops = {
 	.endpoint_register = ohci_register_ep,
 	.endpoint_unregister = ohci_unregister_ep,
 	.endpoint_count_bw = bandwidth_count_usb11,
-	.endpoint_toggle_reset = ohci_ep_toggle_reset,
+
 	.batch_create = ohci_create_batch,
 	.batch_destroy = ohci_destroy_batch,
 	.batch_schedule = ohci_hc_schedule,

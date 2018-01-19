@@ -126,6 +126,12 @@ typedef struct hc {
 	unsigned hw_failures;
 } hc_t;
 
+typedef struct uhci_endpoint {
+	endpoint_t base;
+
+	bool toggle;
+} uhci_endpoint_t;
+
 static inline hc_t *hcd_to_hc(hc_device_t *hcd)
 {
 	assert(hcd);

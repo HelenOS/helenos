@@ -42,18 +42,18 @@
 #include "ehci_batch.h"
 #include "hc.h"
 
-/** Callback to set toggle on ED.
+/**
+ * Callback to set toggle on ED.
  *
  * @param[in] hcd_ep hcd endpoint structure
  * @param[in] toggle new value of toggle bit
  */
-static void ehci_ep_toggle_reset(endpoint_t *ep)
+void ehci_ep_toggle_reset(endpoint_t *ep)
 {
 	ehci_endpoint_t *instance = ehci_endpoint_get(ep);
 	if (qh_toggle_from_td(instance->qh))
 		usb_log_warning("EP(%p): Resetting toggle bit for transfer directed EP", instance);
 	qh_toggle_set(instance->qh, 0);
-	ep->toggle = 0;
 }
 
 
@@ -168,12 +168,13 @@ static const bus_ops_t ehci_bus_ops = {
 
 	.interrupt = ehci_hc_interrupt,
 	.status = ehci_hc_status,
+
 	.endpoint_destroy = ehci_endpoint_destroy,
 	.endpoint_create = ehci_endpoint_create,
 	.endpoint_register = ehci_register_ep,
 	.endpoint_unregister = ehci_unregister_ep,
-	.endpoint_toggle_reset = ehci_ep_toggle_reset,
 	.endpoint_count_bw = bandwidth_count_usb20,
+
 	.batch_create = ehci_create_batch,
 	.batch_destroy = ehci_destroy_batch,
 	.batch_schedule = ehci_hc_schedule,

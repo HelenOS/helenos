@@ -120,8 +120,6 @@ void endpoint_del_ref(endpoint_t *ep)
 	}
 }
 
-static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode);
-
 /**
  * Wait until the endpoint have no transfer scheduled.
  */
@@ -165,42 +163,8 @@ void endpoint_deactivate_locked(endpoint_t *ep)
 {
 	assert(ep);
 	assert(fibril_mutex_is_locked(&ep->guard));
-
-	if (ep->active_batch && ep->active_batch->error == EOK)
-		endpoint_toggle_reset(ep, ep->active_batch->toggle_reset_mode);
-
 	ep->active_batch = NULL;
 	fibril_condvar_signal(&ep->avail);
-}
-
-/**
- * The transfer on an endpoint can trigger a reset of the toggle bit. This
- * function calls the respective bus callbacks to resolve it.
- *
- * @param ep The endpoint that triggered the reset
- * @param mode Whether to reset no, one or all endpoints on a device.
- */
-static void endpoint_toggle_reset(endpoint_t *ep, toggle_reset_mode_t mode)
-{
-	assert(ep);
-
-	if (mode == RESET_NONE)
-		return;
-
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_toggle_reset);
-	if (!ops)
-		return;
-
-
-	if (mode == RESET_ALL) {
-		const device_t *dev = ep->device;
-		for (usb_endpoint_t i = 0; i < USB_ENDPOINT_MAX; ++i) {
-			if (dev->endpoints[i])
-				ops->endpoint_toggle_reset(dev->endpoints[i]);
-		}
-	} else {
-		ops->endpoint_toggle_reset(ep);
-	}
 }
 
 /**
@@ -280,11 +244,6 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 	batch->dir = direction;
 	batch->on_complete = on_complete;
 	batch->on_complete_data = arg;
-
-	/* Check for commands that reset toggle bit */
-	if (ep->transfer_type == USB_TRANSFER_CONTROL)
-		batch->toggle_reset_mode
-			= hc_get_request_toggle_reset_mode(&batch->setup.packet);
 
 	const int ret = ops->batch_schedule(batch);
 	if (ret != EOK) {

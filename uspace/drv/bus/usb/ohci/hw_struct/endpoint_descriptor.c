@@ -99,11 +99,6 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 	const uintptr_t pa = addr_to_phys(td);
 	OHCI_MEM32_WR(instance->td_head, pa & ED_TDHEAD_PTR_MASK);
 	OHCI_MEM32_WR(instance->td_tail, pa & ED_TDTAIL_PTR_MASK);
-
-	/* Set toggle bit */
-	if (ep->toggle)
-		OHCI_MEM32_SET(instance->td_head, ED_TDHEAD_TOGGLE_CARRY);
-
 }
 /**
  * @}

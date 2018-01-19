@@ -36,6 +36,7 @@
 #include <str_error.h>
 #include <usb/debug.h>
 #include <usb/descriptor.h>
+#include <usb/request.h>
 
 #include "ddf_helpers.h"
 #include "utility.h"
@@ -98,44 +99,6 @@ int hc_get_ep0_max_packet_size(uint16_t *mps, bus_t *bus, device_t *dev)
 		*mps = (1 << desc.max_packet_size);
 	}
 	return EOK;
-}
-
-/** Check setup packet data for signs of toggle reset.
- *
- * @param[in] requst Setup requst data.
- *
- * @retval -1 No endpoints need reset.
- * @retval 0 All endpoints need reset.
- * @retval >0 Specified endpoint needs reset.
- *
- */
-toggle_reset_mode_t hc_get_request_toggle_reset_mode(const usb_device_request_setup_packet_t *request)
-{
-	assert(request);
-	switch (request->request)
-	{
-	/* Clear Feature ENPOINT_STALL */
-	case USB_DEVREQ_CLEAR_FEATURE: /*resets only cleared ep */
-		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
-		if ((request->request_type == 0x2) &&
-		    (request->value == USB_FEATURE_ENDPOINT_HALT))
-			return RESET_EP;
-		break;
-	case USB_DEVREQ_SET_CONFIGURATION:
-	case USB_DEVREQ_SET_INTERFACE:
-		/* Recipient must be device, this resets all endpoints,
-		 * In fact there should be no endpoints but EP 0 registered
-		 * as different interfaces use different endpoints,
-		 * unless you're changing configuration or alternative
-		 * interface of an already setup device. */
-		if (!(request->request_type & SETUP_REQUEST_TYPE_DEVICE_TO_HOST))
-			return RESET_ALL;
-		break;
-	default:
-		break;
-	}
-
-	return RESET_NONE;
 }
 
 int hc_get_device_desc(device_t *device, usb_standard_device_descriptor_t *desc)
@@ -245,6 +208,77 @@ err_enumerated:
 err_usb_dev:
 	hcd_ddf_fun_destroy(dev);
 	return err;
+}
+
+/** How many toggles need to be reset */
+typedef enum {
+	RESET_NONE,
+	RESET_EP,
+	RESET_ALL
+} toggle_reset_mode_t;
+
+/**
+ * Check setup packet data for signs of toggle reset.
+ *
+ * @param[in] batch USB batch
+ */
+static toggle_reset_mode_t get_request_toggle_reset_mode(const usb_transfer_batch_t *batch)
+{
+	if (batch->ep->transfer_type != USB_TRANSFER_CONTROL
+	    || batch->dir != USB_DIRECTION_OUT)
+		return RESET_NONE;
+
+	const usb_device_request_setup_packet_t *request = &batch->setup.packet;
+
+	switch (request->request)
+	{
+	/* Clear Feature ENPOINT_STALL */
+	case USB_DEVREQ_CLEAR_FEATURE: /*resets only cleared ep */
+		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
+		if ((request->request_type == 0x2) &&
+		    (request->value == USB_FEATURE_ENDPOINT_HALT))
+			return RESET_EP;
+		break;
+	case USB_DEVREQ_SET_CONFIGURATION:
+	case USB_DEVREQ_SET_INTERFACE:
+		/* Recipient must be device, this resets all endpoints,
+		 * In fact there should be no endpoints but EP 0 registered
+		 * as different interfaces use different endpoints,
+		 * unless you're changing configuration or alternative
+		 * interface of an already setup device. */
+		if (!(request->request_type & SETUP_REQUEST_TYPE_DEVICE_TO_HOST))
+			return RESET_ALL;
+		break;
+	default:
+		break;
+	}
+
+	return RESET_NONE;
+}
+
+void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t reset_cb)
+{
+	assert(reset_cb);
+	assert(batch->ep);
+	assert(batch->ep->device);
+
+	if (batch->error != EOK)
+		return;
+
+	toggle_reset_mode_t mode = get_request_toggle_reset_mode(batch);
+
+	if (mode == RESET_NONE)
+		return;
+
+	if (mode == RESET_ALL) {
+		const device_t *dev = batch->ep->device;
+		for (usb_endpoint_t i = 0; i < 2 * USB_ENDPOINT_MAX; ++i) {
+			if (dev->endpoints[i])
+				reset_cb(dev->endpoints[i]);
+		}
+	} else {
+		reset_cb(batch->ep);
+	}
 }
 
 /**
