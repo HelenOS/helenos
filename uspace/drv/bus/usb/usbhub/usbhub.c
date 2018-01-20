@@ -337,6 +337,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	hub_dev->port_count = descriptor.port_count;
 	hub_dev->control_pipe = control_pipe;
 
+	usb_log_debug("(%p): Setting hub depth to %u.", hub_dev,
+	    usb_device_get_depth(hub_dev->usb_device));
 	if ((opResult = usb_hub_set_depth(hub_dev))) {
 		usb_log_error("(%p): Failed to set hub depth: %s.",
 		    hub_dev, str_error(opResult));
@@ -485,7 +487,7 @@ int usb_hub_set_depth(const usb_hub_dev_t *hub)
 	const usb_device_request_setup_packet_t set_request = {
 		.request_type = USB_HUB_REQ_TYPE_SET_HUB_DEPTH,
 		.request = USB_HUB_REQUEST_SET_HUB_DEPTH,
-		.value = uint16_host2usb(usb_device_get_depth(hub->usb_device)),
+		.value = uint16_host2usb(usb_device_get_depth(hub->usb_device) - 1),
 		.index = 0,
 		.length = 0,
 	};
