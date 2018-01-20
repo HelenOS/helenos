@@ -394,16 +394,6 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 			batch->error = EIO;
 	}
 
-	
-	if (xhci_endpoint_get_state(ep) == EP_STATE_HALTED) {
-		usb_log_debug("Endpoint halted, resetting endpoint.");
-		const int err = xhci_endpoint_clear_halt(ep, batch->target.stream);
-		if (err)
-			usb_log_error("Failed to clear halted condition on "
-			    "endpoint " XHCI_EP_FMT ". Unexpected results "
-			    "coming.", XHCI_EP_ARGS(*ep));
-	}
-
 	if (batch->dir == USB_DIRECTION_IN) {
 		assert(batch->buffer);
 		assert(batch->transfered_size <= batch->buffer_size);
@@ -458,6 +448,33 @@ int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
 		// Sending stuff from host to device, we need to copy the actual data.
 		memcpy(transfer->hc_buffer.virt, batch->buffer, batch->buffer_size);
 	}
+
+	/*
+	 * If this is a ClearFeature(ENDPOINT_HALT) request, we have to issue
+	 * the Reset Endpoint command.
+	 */
+	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL && batch->dir == USB_DIRECTION_OUT) {
+		const usb_device_request_setup_packet_t *request = &batch->setup.packet;
+		if (request->request == USB_DEVREQ_CLEAR_FEATURE
+		    && request->request_type == USB_REQUEST_RECIPIENT_ENDPOINT
+		    && request->value == USB_FEATURE_ENDPOINT_HALT) {
+			const uint16_t index = uint16_usb2host(request->index);
+			const usb_endpoint_t ep_num = index & 0xf;
+			const usb_direction_t dir = (index >> 7) ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+			endpoint_t *halted_ep = bus_find_endpoint(&xhci_dev->base, ep_num, dir);
+			if (halted_ep) {
+				/*
+				 * TODO: Find out how to come up with stream_id. It
+				 * might be possible that we have to clear all of them.
+				 */
+				xhci_endpoint_clear_halt(xhci_endpoint_get(halted_ep), 0);
+				endpoint_del_ref(halted_ep);
+			} else {
+				usb_log_warning("Device(%u): Resetting unregistered endpoint %u %s.", xhci_dev->base.address, ep_num, usb_str_direction(dir));
+			}
+		}
+	}
+
 
 	fibril_mutex_lock(&ep->guard);
 	endpoint_activate_locked(ep, batch);
