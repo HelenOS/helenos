@@ -30,34 +30,50 @@
  */
 /** @file
  *
- * An implementation of bus keeper for xHCI. The (physical) HC itself takes
- * care about addressing devices, so this implementation is actually simpler
- * than those of [OUE]HCI.
  */
-#ifndef XHCI_BUS_H
-#define XHCI_BUS_H
+#ifndef XHCI_DEVICE_H
+#define XHCI_DEVICE_H
 
 #include <usb/host/bus.h>
+#include <usb/host/dma_buffer.h>
 
-typedef struct xhci_hc xhci_hc_t;
-typedef struct xhci_device xhci_device_t;
+typedef struct xhci_device {
+	device_t base;		/**< Inheritance. Keep this first. */
 
-/** Endpoint management structure */
-typedef struct xhci_bus {
-	bus_t base;		/**< Inheritance. Keep this first. */
+	/** Slot ID assigned to the device by xHC. */
+	uint32_t slot_id;
 
-	xhci_hc_t *hc;				/**< Pointer to managing HC (to issue commands) */
+	/** Corresponding port on RH */
+	uint8_t rh_port;
 
-	xhci_device_t **devices_by_slot;	/**< Devices by Slot ID */
-} xhci_bus_t;
+	/** USB Tier of the device */
+	uint8_t tier;
 
-int xhci_bus_init(xhci_bus_t *, xhci_hc_t *);
-void xhci_bus_fini(xhci_bus_t *);
+	/** Route string */
+	uint32_t route_str;
 
-static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)
+	/** Place to store the allocated context */
+	dma_buffer_t dev_ctx;
+
+	/** Hub specific information. Valid only if the device is_hub. */
+	bool is_hub;
+	uint8_t num_ports;
+	uint8_t tt_think_time;
+} xhci_device_t;
+
+#define XHCI_DEV_FMT  "(%s, slot %d)"
+#define XHCI_DEV_ARGS(dev)		 ddf_fun_get_name((dev).base.fun), (dev).slot_id
+
+/* Bus callbacks */
+int xhci_device_enumerate(device_t *);
+void xhci_device_offline(device_t *);
+int xhci_device_online(device_t *);
+void xhci_device_gone(device_t *);
+
+static inline xhci_device_t * xhci_device_get(device_t *dev)
 {
-	assert(bus_base);
-	return (xhci_bus_t *) bus_base;
+	assert(dev);
+	return (xhci_device_t *) dev;
 }
 
 #endif

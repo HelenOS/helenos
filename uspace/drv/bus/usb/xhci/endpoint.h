@@ -44,6 +44,7 @@
 #include <usb/host/hcd.h>
 #include <ddf/driver.h>
 
+#include "device.h"
 #include "isoch.h"
 #include "transfers.h"
 #include "trb_ring.h"
@@ -104,37 +105,12 @@ typedef struct xhci_endpoint {
 	((ep).base.endpoint),		\
 	(usb_str_transfer_type((ep).base.transfer_type))
 
-typedef struct xhci_device {
-	device_t base;		/**< Inheritance. Keep this first. */
-
-	/** Slot ID assigned to the device by xHC. */
-	uint32_t slot_id;
-
-	/** Corresponding port on RH */
-	uint8_t rh_port;
-
-	/** USB Tier of the device */
-	uint8_t tier;
-
-	/** Route string */
-	uint32_t route_str;
-
-	/** Place to store the allocated context */
-	dma_buffer_t dev_ctx;
-
-	/** Hub specific information. Valid only if the device is_hub. */
-	bool is_hub;
-	uint8_t num_ports;
-	uint8_t tt_think_time;
-} xhci_device_t;
-
-#define XHCI_DEV_FMT  "(%s, slot %d)"
-#define XHCI_DEV_ARGS(dev)		 ddf_fun_get_name((dev).base.fun), (dev).slot_id
-
 int xhci_endpoint_type(xhci_endpoint_t *ep);
 
-int xhci_endpoint_init(xhci_endpoint_t *, device_t *, const usb_endpoint_descriptors_t *);
-void xhci_endpoint_fini(xhci_endpoint_t *);
+endpoint_t *xhci_endpoint_create(device_t *, const usb_endpoint_descriptors_t *);
+int xhci_endpoint_register(endpoint_t *);
+void xhci_endpoint_unregister(endpoint_t *);
+void xhci_endpoint_destroy(endpoint_t *);
 
 void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep);
 
@@ -143,12 +119,6 @@ uint8_t xhci_endpoint_index(xhci_endpoint_t *);
 
 void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
 int xhci_endpoint_clear_halt(xhci_endpoint_t *, unsigned);
-
-static inline xhci_device_t * xhci_device_get(device_t *dev)
-{
-	assert(dev);
-	return (xhci_device_t *) dev;
-}
 
 static inline xhci_endpoint_t * xhci_endpoint_get(endpoint_t *ep)
 {

@@ -415,14 +415,24 @@ static const transfer_handler transfer_handlers[] = {
 	[USB_TRANSFER_INTERRUPT] = schedule_interrupt,
 };
 
-int xhci_transfer_schedule(xhci_hc_t *hc, usb_transfer_batch_t *batch)
+/**
+ * Schedule a batch for xHC.
+ *
+ * Bus callback.
+ */
+int xhci_transfer_schedule(usb_transfer_batch_t *batch)
 {
-	assert(hc);
 	endpoint_t *ep = batch->ep;
 
+	xhci_hc_t *hc = bus_to_hc(endpoint_get_bus(batch->ep));
 	xhci_transfer_t *transfer = xhci_transfer_from_batch(batch);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
 	xhci_device_t *xhci_dev = xhci_ep_to_dev(xhci_ep);
+
+	if (!batch->target.address) {
+		usb_log_error("Attempted to schedule transfer to address 0.");
+		return EINVAL;
+	}
 
 	// FIXME: find a better way to check if the ring is not initialized
 	if (!xhci_ep->ring.segment_count) {

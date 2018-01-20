@@ -38,10 +38,12 @@
 
 #include <errno.h>
 #include <macros.h>
+#include <str_error.h>
 
 #include "hc.h"
 #include "bus.h"
 #include "commands.h"
+#include "device.h"
 #include "endpoint.h"
 #include "streams.h"
 
@@ -55,7 +57,7 @@ static int alloc_transfer_ds(xhci_endpoint_t *);
  *
  * @return Error code.
  */
-int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoint_descriptors_t *desc)
+static int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
 	int rc;
 	assert(xhci_ep);
@@ -112,16 +114,133 @@ err:
 }
 
 /**
+ * Create a new xHCI endpoint structure.
+ *
+ * Bus callback.
+ */
+endpoint_t *xhci_endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
+{
+	const usb_transfer_type_t type = USB_ED_GET_TRANSFER_TYPE(desc->endpoint);
+
+	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t)
+		+ (type == USB_TRANSFER_ISOCHRONOUS) * sizeof(*ep->isoch));
+	if (!ep)
+		return NULL;
+
+	if (xhci_endpoint_init(ep, dev, desc)) {
+		free(ep);
+		return NULL;
+	}
+
+	return &ep->base;
+}
+
+/**
  * Finalize XHCI endpoint.
  * @param[in] xhci_ep XHCI endpoint to finalize.
  */
-void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
+static void xhci_endpoint_fini(xhci_endpoint_t *xhci_ep)
 {
 	assert(xhci_ep);
 
 	xhci_endpoint_free_transfer_ds(xhci_ep);
 
 	// TODO: Something missed?
+}
+
+/**
+ * Destroy given xHCI endpoint structure.
+ *
+ * Bus callback.
+ */
+void xhci_endpoint_destroy(endpoint_t *ep)
+{
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
+
+	xhci_endpoint_fini(xhci_ep);
+	free(xhci_ep);
+}
+
+
+/**
+ * Register an andpoint to the xHC.
+ *
+ * Bus callback.
+ */
+int xhci_endpoint_register(endpoint_t *ep_base)
+{
+	int err;
+	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
+	xhci_device_t *dev = xhci_device_get(ep_base->device);
+
+	xhci_ep_ctx_t ep_ctx;
+	xhci_setup_endpoint_context(ep, &ep_ctx);
+
+	if ((err = hc_add_endpoint(dev, xhci_endpoint_index(ep), &ep_ctx)))
+		return err;
+
+	return EOK;
+}
+
+/**
+ * Abort a transfer on an endpoint.
+ */
+static int endpoint_abort(endpoint_t *ep)
+{
+	xhci_device_t *dev = xhci_device_get(ep->device);
+
+	usb_transfer_batch_t *batch = NULL;
+	fibril_mutex_lock(&ep->guard);
+	if (ep->active_batch) {
+		if (dev->slot_id) {
+			const int err = hc_stop_endpoint(dev, xhci_endpoint_dci(xhci_endpoint_get(ep)));
+			if (err) {
+				usb_log_warning("Failed to stop endpoint %u of device " XHCI_DEV_FMT ": %s",
+				    ep->endpoint, XHCI_DEV_ARGS(*dev), str_error(err));
+			}
+
+			endpoint_wait_timeout_locked(ep, 2000);
+		}
+
+		batch = ep->active_batch;
+		if (batch) {
+			endpoint_deactivate_locked(ep);
+		}
+	}
+	fibril_mutex_unlock(&ep->guard);
+
+	if (batch) {
+		batch->error = EINTR;
+		batch->transfered_size = 0;
+		usb_transfer_batch_finish(batch);
+	}
+	return EOK;
+}
+
+/**
+ * Unregister an endpoint. If the device is still available, inform the xHC
+ * about it.
+ *
+ * Bus callback.
+ */
+void xhci_endpoint_unregister(endpoint_t *ep_base)
+{
+	int err;
+	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
+	xhci_device_t *dev = xhci_device_get(ep_base->device);
+
+	endpoint_abort(ep_base);
+
+	/* If device slot is still available, drop the endpoint. */
+	if (dev->slot_id) {
+
+		if ((err = hc_drop_endpoint(dev, xhci_endpoint_index(ep)))) {
+			usb_log_error("Failed to drop endpoint " XHCI_EP_FMT ": %s", XHCI_EP_ARGS(*ep), str_error(err));
+		}
+	} else {
+		usb_log_debug("Not going to drop endpoint " XHCI_EP_FMT " because"
+		    " the slot has already been disabled.", XHCI_EP_ARGS(*ep));
+	}
 }
 
 /**

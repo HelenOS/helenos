@@ -36,6 +36,7 @@ SOURCES = \
 	bus.c \
 	commands.c \
 	debug.c \
+	device.c \
 	endpoint.c \
 	hc.c \
 	isoch.c \
