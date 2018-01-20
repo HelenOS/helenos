@@ -317,11 +317,14 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	usb_pipe_t *control_pipe =
 	    usb_device_get_default_pipe(hub_dev->usb_device);
 
+	usb_descriptor_type_t desc_type = hub_dev->speed >= USB_SPEED_SUPER
+		? USB_DESCTYPE_SSPEED_HUB : USB_DESCTYPE_HUB;
+
 	usb_hub_descriptor_header_t descriptor;
 	size_t received_size;
 	int opResult = usb_request_get_descriptor(control_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
-	    USB_DESCTYPE_HUB, 0, 0, &descriptor,
+	    desc_type, 0, 0, &descriptor,
 	    sizeof(usb_hub_descriptor_header_t), &received_size);
 	if (opResult != EOK) {
 		usb_log_error("(%p): Failed to receive hub descriptor: %s.",
@@ -333,6 +336,12 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	    descriptor.port_count);
 	hub_dev->port_count = descriptor.port_count;
 	hub_dev->control_pipe = control_pipe;
+
+	if ((opResult = usb_hub_set_depth(hub_dev))) {
+		usb_log_error("(%p): Failed to set hub depth: %s.",
+		    hub_dev, str_error(opResult));
+		return opResult;
+	}
 
 	hub_dev->ports = calloc(hub_dev->port_count, sizeof(usb_hub_port_t));
 	if (!hub_dev->ports) {
@@ -457,6 +466,31 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
 				return;
 		}
 	}
+}
+
+/**
+ * Set feature on the real hub port.
+ *
+ * @param port Port structure.
+ * @param feature Feature selector.
+ */
+int usb_hub_set_depth(const usb_hub_dev_t *hub)
+{
+	assert(hub);
+
+	/* Slower hubs do not care about depth */
+	if (hub->speed < USB_SPEED_SUPER)
+		return EOK;
+
+	const usb_device_request_setup_packet_t set_request = {
+		.request_type = USB_HUB_REQ_TYPE_SET_HUB_DEPTH,
+		.request = USB_HUB_REQUEST_SET_HUB_DEPTH,
+		.value = uint16_host2usb(usb_device_get_depth(hub->usb_device)),
+		.index = 0,
+		.length = 0,
+	};
+	return usb_pipe_control_write(hub->control_pipe, &set_request,
+	    sizeof(set_request), NULL, 0);
 }
 
 /**

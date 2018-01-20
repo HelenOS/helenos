@@ -76,6 +76,9 @@ struct usb_device {
 	/** USB address of this device */
 	usb_address_t address;
 
+	/** Depth in the USB hub hiearchy */
+	unsigned depth;
+
 	/** USB speed of this device */
 	usb_speed_t speed;
 
@@ -363,19 +366,31 @@ int usb_device_unmap_ep(usb_endpoint_mapping_t *epm)
 	return EOK;
 }
 
-usb_speed_t usb_device_get_speed(usb_device_t *usb_dev)
+usb_address_t usb_device_get_address(const usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->depth;
+}
+
+unsigned usb_device_get_depth(const usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->depth;
+}
+
+usb_speed_t usb_device_get_speed(const usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_dev->speed;
 }
 
-int usb_device_get_iface_number(usb_device_t *usb_dev)
+int usb_device_get_iface_number(const usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_dev->interface_no;
 }
 
-devman_handle_t usb_device_get_devman_handle(usb_device_t *usb_dev)
+devman_handle_t usb_device_get_devman_handle(const usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_dev->handle;
@@ -497,6 +512,7 @@ static int usb_device_get_info(async_sess_t *sess, usb_device_t *dev)
 
 	if (ret == EOK) {
 		dev->address = dev_desc.address;
+		dev->depth = dev_desc.depth;
 		dev->speed = dev_desc.speed;
 		dev->handle = dev_desc.handle;
 		dev->interface_no = dev_desc.iface;

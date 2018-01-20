@@ -41,6 +41,7 @@
 #include <usb/descriptor.h>
 #include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/pipes.h>
+#include <usbhc_iface.h>
 
 #include <assert.h>
 #include <async.h>
@@ -89,9 +90,11 @@ usb_endpoint_mapping_t * usb_device_get_mapped_ep(usb_device_t *,
     usb_endpoint_t);
 int usb_device_unmap_ep(usb_endpoint_mapping_t *);
 
-usb_speed_t usb_device_get_speed(usb_device_t *);
-int usb_device_get_iface_number(usb_device_t *);
-devman_handle_t usb_device_get_devman_handle(usb_device_t *);
+usb_address_t usb_device_get_address(const usb_device_t *);
+usb_speed_t usb_device_get_depth(const usb_device_t *);
+usb_speed_t usb_device_get_speed(const usb_device_t *);
+int usb_device_get_iface_number(const usb_device_t *);
+devman_handle_t usb_device_get_devman_handle(const usb_device_t *);
 
 const usb_device_descriptors_t * usb_device_descriptors(usb_device_t *);
 
