@@ -70,7 +70,7 @@ typedef struct {
 	/** Descriptor length. */
 	uint8_t length;
 
-	/** Descriptor type (0x29). */
+	/** Descriptor type (0x29 or 0x2a for superspeed hub). */
 	uint8_t descriptor_type;
 
 	/** Number of downstream ports. */
@@ -115,6 +115,8 @@ typedef struct {
 #define HUB_CHAR_COMPOUND_DEVICE        (1 << 2)
 #define HUB_CHAR_OC_PER_PORT_FLAG       (1 << 3)
 #define HUB_CHAR_NO_OC_FLAG             (1 << 4)
+
+/* These are invalid for superspeed hub */
 #define HUB_CHAR_TT_THINK_16            (1 << 5)
 #define HUB_CHAR_TT_THINK_8             (1 << 6)
 #define HUB_CHAR_INDICATORS_FLAG        (1 << 7)
@@ -163,8 +165,10 @@ typedef enum {
     USB_HUB_REQ_TYPE_SET_DESCRIPTOR = 0x20,
     /** This request sets a value reported in the hub status. */
     USB_HUB_REQ_TYPE_SET_HUB_FEATURE = 0x20,
+    /** This request sets the value that the hub uses to determine the index into the Route String Index for the hub. */
+    USB_HUB_REQ_TYPE_SET_HUB_DEPTH = 0x20,
     /** This request sets a value reported in the port status. */
-    USB_HUB_REQ_TYPE_SET_PORT_FEATURE = 0x23
+    USB_HUB_REQ_TYPE_SET_PORT_FEATURE = 0x23,
 } usb_hub_bm_request_type_t;
 
 /** @brief hub class request codes*/
@@ -190,6 +194,8 @@ typedef enum {
     USB_HUB_GET_TT_STATE = 10,
     /** */
     USB_HUB_STOP_TT = 11,
+    /** USB 3+ only */
+    USB_HUB_REQUEST_SET_HUB_DEPTH = 12,
 } usb_hub_request_t;
 
 /**

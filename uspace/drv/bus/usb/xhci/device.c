@@ -152,9 +152,12 @@ static int setup_hub(xhci_device_t *dev, usb_standard_device_descriptor_t *desc)
 
 	dev->is_hub = 1;
 	dev->num_ports = hub_desc.port_count;
-	dev->tt_think_time = 8 +
-		8  * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_8) +
-		16 * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_16);
+
+	if (dev->base.speed == USB_SPEED_HIGH) {
+		dev->tt_think_time = 8 +
+			8  * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_8) +
+			16 * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_16);
+	}
 
 	usb_log_debug2("Device(%u): recognised USB hub with %u ports", dev->base.address, dev->num_ports);
 	return EOK;

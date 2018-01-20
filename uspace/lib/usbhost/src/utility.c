@@ -149,12 +149,15 @@ int hc_get_hub_desc(device_t *device, usb_hub_descriptor_header_t *desc)
 		.endpoint = 0,
 	}};
 
+	const usb_descriptor_type_t type = device->speed >= USB_SPEED_SUPER
+		? USB_DESCTYPE_SSPEED_HUB : USB_DESCTYPE_HUB;
+
 	const usb_device_request_setup_packet_t get_hub_desc = {
 		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
 		    | (USB_REQUEST_TYPE_CLASS << 5)
 		    | USB_REQUEST_RECIPIENT_DEVICE,
 		.request = USB_DEVREQ_GET_DESCRIPTOR, \
-		.value = uint16_host2usb(USB_DESCTYPE_HUB << 8), \
+		.value = uint16_host2usb(type << 8), \
 		.length = sizeof(*desc),
 	};
 
