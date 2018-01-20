@@ -740,6 +740,10 @@ int hc_enable_slot(xhci_device_t *dev)
 	}
 
 	xhci_cmd_fini(&cmd);
+
+	if (err)
+		dma_buffer_free(&dev->dev_ctx);
+
 	return err;
 }
 
