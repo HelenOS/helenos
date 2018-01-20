@@ -141,13 +141,21 @@ static int usbmid_device_gone(usb_device_t *dev)
 
 static int usbmid_function_online(ddf_fun_t *fun)
 {
-	/* TODO: What if this is the control function? */
+	usb_device_t *usb_dev = ddf_dev_data_get(ddf_fun_get_dev(fun));
+	usb_mid_t *usb_mid = usb_device_data_get(usb_dev);
+	if (fun == usb_mid->ctl_fun)
+		return ENOTSUP;
+
 	return ddf_fun_online(fun);
 }
 
 static int usbmid_function_offline(ddf_fun_t *fun)
 {
-	/* TODO: What if this is the control function? */
+	usb_device_t *usb_dev = ddf_dev_data_get(ddf_fun_get_dev(fun));
+	usb_mid_t *usb_mid = usb_device_data_get(usb_dev);
+	if (fun == usb_mid->ctl_fun)
+		return ENOTSUP;
+
 	return ddf_fun_offline(fun);
 }
 
