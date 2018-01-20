@@ -188,6 +188,12 @@ enum {
 #define XHCI_GET_SLOT_CTX(dev_ctx, hc) (xhci_slot_ctx_t *)((char*)dev_ctx + XHCI_SLOT_CTX_OFFSET * XHCI_ONE_CTX_SIZE(hc))
 #define XHCI_GET_EP_CTX(dev_ctx, hc, dci) (xhci_ep_ctx_t *)((char*)dev_ctx + (dci + XHCI_EP_ARRAY_OFFSET) * XHCI_ONE_CTX_SIZE(hc))
 
+/**
+ * As control, slot and endpoint contexts differ in size on different HCs,
+ * we need to use macros to access them at the correct offsets. The following
+ * empty structs (xhci_device_ctx_t and xhci_input_ctx_t) are used only as
+ * void pointers for type-checking.
+ */
 typedef struct xhci_device_ctx {
 } xhci_device_ctx_t;
 
