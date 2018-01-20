@@ -189,6 +189,7 @@ void usb_port_disabled(usb_port_t *port, usb_port_remove_t handler)
 
 	case PORT_CONNECTING:
 		port->state = PORT_ERROR;
+		fibril_condvar_broadcast(&port->enabled_cv);
 		/* fallthrough */
 	case PORT_ERROR:
 		fibril_condvar_wait(&port->finished_cv, &port->guard);
@@ -227,6 +228,7 @@ void usb_port_fini(usb_port_t *port)
 	/* We first have to stop the fibril in progress. */
 	case PORT_CONNECTING:
 		port->state = PORT_ERROR;
+		fibril_condvar_broadcast(&port->enabled_cv);
 		/* fallthrough */
 	case PORT_ERROR:
 	case PORT_DISCONNECTING:
