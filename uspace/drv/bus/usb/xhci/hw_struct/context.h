@@ -130,7 +130,7 @@ typedef struct xhci_slot_ctx {
 #define XHCI_SLOT_MTT_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], !!val, 25, 25)
 #define XHCI_SLOT_HUB_SET(ctx, val) \
-	xhci_dword_set_bits(&(ctx).data[0], !!val, 25, 25)
+	xhci_dword_set_bits(&(ctx).data[0], !!val, 26, 26)
 #define XHCI_SLOT_CTX_ENTRIES_SET(ctx, val) \
 	xhci_dword_set_bits(&(ctx).data[0], val, 31, 27)
 
