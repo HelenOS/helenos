@@ -308,6 +308,7 @@ int usb_pipe_initialize_default_control(usb_pipe_t *pipe, usb_dev_session_t *bus
 		return ret;
 
 	pipe->desc = default_control_pipe;
+	pipe->auto_reset_halt = true;
 
 	return EOK;
 }
