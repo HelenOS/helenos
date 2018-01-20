@@ -115,6 +115,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 		return ENOMEM;
 	}
 	hub_dev->usb_device = usb_dev;
+	hub_dev->speed = usb_device_get_speed(usb_dev);
 
 	fibril_mutex_initialize(&hub_dev->default_address_guard);
 	fibril_condvar_initialize(&hub_dev->default_address_cv);
@@ -186,7 +187,8 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 		return opResult;
 	}
 
-	usb_log_info("Controlling hub '%s' (%p: %zu ports).",
+	usb_log_info("Controlling %s-speed hub '%s' (%p: %zu ports).",
+	    usb_str_speed(hub_dev->speed),
 	    usb_device_get_name(hub_dev->usb_device), hub_dev,
 	    hub_dev->port_count);
 

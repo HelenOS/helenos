@@ -89,6 +89,7 @@ usb_endpoint_mapping_t * usb_device_get_mapped_ep(usb_device_t *,
     usb_endpoint_t);
 int usb_device_unmap_ep(usb_endpoint_mapping_t *);
 
+usb_speed_t usb_device_get_speed(usb_device_t *);
 int usb_device_get_iface_number(usb_device_t *);
 devman_handle_t usb_device_get_devman_handle(usb_device_t *);
 

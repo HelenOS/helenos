@@ -363,6 +363,12 @@ int usb_device_unmap_ep(usb_endpoint_mapping_t *epm)
 	return EOK;
 }
 
+usb_speed_t usb_device_get_speed(usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->speed;
+}
+
 int usb_device_get_iface_number(usb_device_t *usb_dev)
 {
 	assert(usb_dev);

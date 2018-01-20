@@ -57,7 +57,7 @@ static const hc_driver_t uhci_driver = {
 	.irq_code_gen = hc_gen_irq_code,
 	.hc_add = hc_add,
 	.start = hc_start,
-	.setup_root_hub = hc_setup_virtual_root_hub,
+	.setup_root_hub = hc_setup_roothub,
 	.hc_gone = hc_gone,
 };
 

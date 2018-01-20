@@ -50,6 +50,7 @@
 #include <usb/usb.h>
 #include <usb/host/utils/malloc32.h>
 #include <usb/host/bandwidth.h>
+#include <usb/host/utility.h>
 
 #include "uhci_batch.h"
 #include "transfer_list.h"
@@ -257,6 +258,11 @@ int hc_start(hc_device_t *hcd)
 	return uhci_rh_init(&instance->rh, instance->registers->ports, "uhci");
 }
 
+int hc_setup_roothub(hc_device_t *hcd)
+{
+	return hc_setup_virtual_root_hub(hcd, USB_SPEED_FULL);
+}
+
 /** Safely dispose host controller internal structures
  *
  * @param[in] instance Host controller structure to use.
@@ -329,7 +335,7 @@ static void endpoint_unregister(endpoint_t *ep)
 	uhci_transfer_batch_t *batch = NULL;
 
 	// Check for the roothub, as it does not schedule into lists
-	if (ep->device->speed == USB_SPEED_MAX) {
+	if (ep->device->address == uhci_rh_get_address(&hc->rh)) {
 		// FIXME: We shall check the roothub for active transfer. But
 		// as it is polling, there is no way to make it stop doing so.
 		// Return after rewriting uhci rh.

@@ -176,13 +176,13 @@ int hc_device_explore(device_t *device)
  * @param[in] device Host controller ddf device
  * @return Error code
  */
-int hc_setup_virtual_root_hub(hc_device_t *hcd)
+int hc_setup_virtual_root_hub(hc_device_t *hcd, usb_speed_t rh_speed)
 {
 	int err;
 
 	assert(hcd);
 
-	device_t *dev = hcd_ddf_fun_create(hcd, USB_SPEED_MAX);
+	device_t *dev = hcd_ddf_fun_create(hcd, rh_speed);
 	if (!dev) {
 		usb_log_error("Failed to create function for the root hub.");
 		return ENOMEM;

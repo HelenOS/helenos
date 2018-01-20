@@ -539,6 +539,14 @@ int hc_start(hc_device_t *hcd)
 	return EOK;
 }
 
+/**
+ * Setup roothub as a virtual hub.
+ */
+int hc_setup_roothub(hc_device_t *hcd)
+{
+	return hc_setup_virtual_root_hub(hcd, USB_SPEED_FULL);
+}
+
 /** Initialize schedule queues
  *
  * @param[in] instance OHCI hc driver structure

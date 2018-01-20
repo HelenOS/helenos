@@ -42,7 +42,6 @@
 #include <str_error.h>
 
 #include <usb/debug.h>
-#include <usb/host/utility.h>
 
 #include "hc.h"
 #include "ohci_bus.h"
@@ -57,7 +56,7 @@ static const hc_driver_t ohci_driver = {
 	.irq_code_gen = hc_gen_irq_code,
 	.claim = hc_gain_control,
 	.start = hc_start,
-	.setup_root_hub = hc_setup_virtual_root_hub,
+	.setup_root_hub = hc_setup_roothub,
 	.hc_gone = hc_gone,
 };
 

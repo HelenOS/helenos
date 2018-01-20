@@ -45,9 +45,6 @@ static const uint32_t speed[] = {
 	[USB_SPEED_LOW] = QH_EP_CHAR_EPS_LS,
 	[USB_SPEED_FULL] = QH_EP_CHAR_EPS_FS,
 	[USB_SPEED_HIGH] = QH_EP_CHAR_EPS_HS,
-
-	/* Solely for the roothub */
-	[USB_SPEED_MAX] = 0,
 };
 
 void qh_init(qh_t *instance, const endpoint_t *ep)

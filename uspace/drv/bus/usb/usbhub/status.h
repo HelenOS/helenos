@@ -96,20 +96,14 @@ typedef uint32_t usb_hub_status_t;
 #define USB_HUB_STATUS_C_LOCAL_POWER \
     (uint32_usb2host(1 << (16 + USB_HUB_FEATURE_C_HUB_LOCAL_POWER)))
 
-
-/**
- * speed getter for port status
- *
- * @param status
- * @return speed of usb device (for more see usb specification)
- */
-static inline usb_speed_t usb_port_speed(usb_port_status_t status)
+static inline usb_speed_t usb_port_speed(usb_speed_t hub_speed, uint32_t status)
 {
+	if (hub_speed == USB_SPEED_SUPER)
+		return USB_SPEED_SUPER;
+	if (hub_speed == USB_SPEED_HIGH && (status & USB_HUB_PORT_STATUS_HIGH_SPEED))
+		return USB_SPEED_HIGH;
 	if ((status & USB_HUB_PORT_STATUS_LOW_SPEED) != 0)
 		return USB_SPEED_LOW;
-	if ((status & USB_HUB_PORT_STATUS_HIGH_SPEED) != 0)
-		return USB_SPEED_HIGH;
-	/* TODO: add super speed */
 	return USB_SPEED_FULL;
 }
 

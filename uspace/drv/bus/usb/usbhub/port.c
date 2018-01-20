@@ -88,6 +88,15 @@ static void remove_device(usb_port_t *port_base)
 	usb_device_bus_exchange_end(exch);
 }
 
+
+static usb_speed_t get_port_speed(usb_hub_port_t *port, uint32_t status)
+{
+	assert(port);
+	assert(port->hub);
+
+	return usb_port_speed(port->hub->speed, status);
+}
+
 /**
  * Routine for adding a new device.
  *
@@ -202,7 +211,7 @@ static void port_changed_reset(usb_hub_port_t *port, usb_port_status_t status)
 	if (enabled) {
 		// The connecting fibril do not touch speed until the port is enabled,
 		// so we do not have to lock
-		port->speed = usb_port_speed(status);
+		port->speed = get_port_speed(port, status);
 		usb_port_enabled(&port->base);
 	} else
 		usb_port_disabled(&port->base, &remove_device);
