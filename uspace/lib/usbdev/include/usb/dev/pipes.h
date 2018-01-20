@@ -36,7 +36,7 @@
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usbhc_iface.h>
+#include <usb_iface.h>
 
 #include <stdbool.h>
 #include <stddef.h>

@@ -38,7 +38,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <types/common.h>
-#include <usb_iface.h>
+#include <usbhc_iface.h>
 
 /** Convert 16bit value from native (host) endianness to USB endianness. */
 #define uint16_host2usb(n) host2uint16_t_le((n))

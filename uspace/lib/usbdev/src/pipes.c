@@ -35,7 +35,6 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
 #include <usb/usb.h>
-#include <usbhc_iface.h>
 
 #include <assert.h>
 #include <async.h>

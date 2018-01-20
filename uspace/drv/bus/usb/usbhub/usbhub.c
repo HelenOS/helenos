@@ -50,7 +50,7 @@
 #include <usb/dev/request.h>
 #include <usb/classes/hub.h>
 #include <usb/dev/poll.h>
-#include <usb_iface.h>
+#include <usbhc_iface.h>
 
 #include "usbhub.h"
 #include "status.h"
