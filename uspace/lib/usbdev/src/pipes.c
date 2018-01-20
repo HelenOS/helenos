@@ -247,22 +247,13 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
  * @return Error code.
  */
 static int usb_isoch_session_initialize(usb_pipe_t *pipe) {
-	devman_handle_t handle;
 
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	if (!exch)
-		return EPARTY;
-
-	int ret = usb_get_my_device_handle(exch, &handle);
-
-	async_exchange_end(exch);
-	if (ret != EOK)
-		return ret;
-
-	pipe->isoch_session = usb_dev_connect(handle);
-	if (!pipe->isoch_session)
-		return ENAK;
-
+	/*
+	 * XXX: As parallel exhanges are implemented by using parallel sessions,
+	 * it is safe to just take the same session. Once this won't be true,
+	 * just use session cloning to clone the bus session.
+	 */
+	pipe->isoch_session = pipe->bus_session;
 	return EOK;
 }
 

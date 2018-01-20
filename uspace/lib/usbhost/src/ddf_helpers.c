@@ -223,17 +223,28 @@ static int device_remove(ddf_fun_t *fun, unsigned port)
 	return EOK;
 }
 
-/** Gets handle of the respective device.
+/**
+ * Gets description of the device that is calling.
  *
  * @param[in] fun Device function.
- * @param[out] handle Place to write the handle.
+ * @param[out] desc Device descriptor to be filled.
  * @return Error code.
  */
-static int get_my_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
+static int get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
 {
 	assert(fun);
-	if (handle)
-		*handle = ddf_fun_get_handle(fun);
+	device_t *dev = ddf_fun_data_get(fun);
+	assert(dev);
+
+	if (!desc)
+		return EOK;
+
+	*desc = (usb_device_desc_t) {
+		.address = dev->address,
+		.speed = dev->speed,
+		.handle = ddf_fun_get_handle(fun),
+		.iface = -1,
+	};
 	return EOK;
 }
 
@@ -289,7 +300,7 @@ static int dev_write(ddf_fun_t *fun, usb_target_t target,
 
 /** USB device interface */
 static usb_iface_t usb_iface = {
-	.get_my_device_handle = get_my_device_handle,
+	.get_my_description = get_device_description,
 };
 
 /** USB host controller interface */
