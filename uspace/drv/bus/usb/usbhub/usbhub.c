@@ -367,8 +367,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	    hub_dev->per_port_power ? "per port" : "ganged");
 
 	for (unsigned int port = 0; port < hub_dev->port_count; ++port) {
-		usb_log_debug("(%p): Powering port %u.", hub_dev, port);
-		const int ret = usb_hub_set_port_feature(hub_dev, port, USB_HUB_FEATURE_PORT_POWER);
+		usb_log_debug("(%p): Powering port %u.", hub_dev, port + 1);
+		const int ret = usb_hub_set_port_feature(hub_dev, port + 1, USB_HUB_FEATURE_PORT_POWER);
 
 		if (ret != EOK) {
 			usb_log_error("(%p-%u): Cannot power on port: %s.",
