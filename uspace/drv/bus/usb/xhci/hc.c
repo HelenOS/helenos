@@ -127,7 +127,7 @@ static int hc_parse_ec(xhci_hc_t *hc)
 					return EINVAL;
 				}
 
-				usb_log_debug2("Implied speed of USB %u.0 set up.", major);
+				usb_log_debug("Implied speed of USB %u.0 set up.", major);
 			} else {
 				for (unsigned i = 0; i < psic; i++) {
 					xhci_psi_t *psi = xhci_extcap_psi(ec, i);
@@ -156,7 +156,7 @@ static int hc_parse_ec(xhci_hc_t *hc)
 					   && default_psiv_to_port_speed[psiv].rx_bps == bps
 					   && default_psiv_to_port_speed[psiv].tx_bps == bps) {
 						speeds[psiv] = default_psiv_to_port_speed[psiv];
-						usb_log_debug2("Assumed default %s speed of USB %u.", usb_str_speed(speeds[psiv].usb_speed), major);
+						usb_log_debug("Assumed default %s speed of USB %u.", usb_str_speed(speeds[psiv].usb_speed), major);
 						continue;
 					}
 
@@ -170,7 +170,7 @@ static int hc_parse_ec(xhci_hc_t *hc)
 						speeds[psiv].rx_bps = bps;
 					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_TX) {
 						speeds[psiv].tx_bps = bps;
-						usb_log_debug2("Speed %u set up for bps %" PRIu64 " / %" PRIu64 ".", psiv, speeds[psiv].rx_bps, speeds[psiv].tx_bps);
+						usb_log_debug("Speed %u set up for bps %" PRIu64 " / %" PRIu64 ".", psiv, speeds[psiv].rx_bps, speeds[psiv].tx_bps);
 					}
 				}
 			}
@@ -213,11 +213,11 @@ int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 	if (xec_offset > 0)
 		hc->xecp = (xhci_extcap_t *) (base + xec_offset);
 
-	usb_log_debug2("Initialized MMIO reg areas:");
-	usb_log_debug2("\tCapability regs: %p", hc->cap_regs);
-	usb_log_debug2("\tOperational regs: %p", hc->op_regs);
-	usb_log_debug2("\tRuntime regs: %p", hc->rt_regs);
-	usb_log_debug2("\tDoorbell array base: %p", hc->db_arry);
+	usb_log_debug("Initialized MMIO reg areas:");
+	usb_log_debug("\tCapability regs: %p", hc->cap_regs);
+	usb_log_debug("\tOperational regs: %p", hc->op_regs);
+	usb_log_debug("\tRuntime regs: %p", hc->rt_regs);
+	usb_log_debug("\tDoorbell array base: %p", hc->db_arry);
 
 	xhci_dump_cap_regs(hc->cap_regs);
 
@@ -418,10 +418,10 @@ int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_CNR), 0))
 		return ETIMEOUT;
 
-	usb_log_debug2("LEGSUP: bios: %x, os: %x", hc->legsup->sem_bios, hc->legsup->sem_os);
+	usb_log_debug("LEGSUP: bios: %x, os: %x", hc->legsup->sem_bios, hc->legsup->sem_os);
 	XHCI_REG_SET(hc->legsup, XHCI_LEGSUP_SEM_OS, 1);
 	for (int i = 0; i <= (XHCI_LEGSUP_BIOS_TIMEOUT_US / XHCI_LEGSUP_POLLING_DELAY_1MS); i++) {
-		usb_log_debug2("LEGSUP: elapsed: %i ms, bios: %x, os: %x", i,
+		usb_log_debug("LEGSUP: elapsed: %i ms, bios: %x, os: %x", i,
 			XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS),
 			XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS));
 		if (XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS) == 0) {
@@ -525,7 +525,7 @@ int hc_status(bus_t *bus, uint32_t *status)
 		*status = host2xhci(32, *status);
 	}
 
-	usb_log_debug2("Polled status: %x", *status);
+	usb_log_debug("Polled status: %x", *status);
 	return EOK;
 }
 
@@ -533,7 +533,7 @@ static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	struct timeval tv;
 	getuptime(&tv);
-	usb_log_debug2("Microframe index wrapped (@%lu.%li, %"PRIu64" total).", tv.tv_sec, tv.tv_usec, hc->wrap_count);
+	usb_log_debug("Microframe index wrapped (@%lu.%li, %"PRIu64" total).", tv.tv_sec, tv.tv_usec, hc->wrap_count);
 	hc->wrap_time = ((uint64_t) tv.tv_sec) * 1000000 + ((uint64_t) tv.tv_usec);
 	++hc->wrap_count;
 	return EOK;
@@ -855,7 +855,7 @@ int hc_address_device(xhci_device_t *dev)
 
 	xhci_device_ctx_t *device_ctx = dev->dev_ctx.virt;
 	dev->base.address = XHCI_SLOT_DEVICE_ADDRESS(*XHCI_GET_SLOT_CTX(device_ctx, hc));
-	usb_log_debug2("Obtained USB address: %d.", dev->base.address);
+	usb_log_debug("Obtained USB address: %d.", dev->base.address);
 
 	return EOK;
 }

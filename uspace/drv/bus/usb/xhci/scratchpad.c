@@ -79,7 +79,7 @@ int xhci_scratchpad_alloc(xhci_hc_t *hc)
 
 	hc->dcbaa[0] = host2xhci(64, hc->scratchpad_array.phys);
 
-	usb_log_debug2("Allocated %d scratchpad buffers.", num_bufs);
+	usb_log_debug("Allocated %d scratchpad buffers.", num_bufs);
 
 	return EOK;
 }

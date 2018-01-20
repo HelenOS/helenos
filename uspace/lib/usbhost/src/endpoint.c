@@ -202,8 +202,17 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
     usbhc_iface_transfer_callback_t on_complete, void *arg, const char *name)
 {
-	usb_log_debug2("%s %d:%d %zu(%zu).",
-	    name, target.address, target.endpoint, size, ep->max_packet_size);
+	if (!ep)
+		return EBADMEM;
+
+	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
+		usb_log_debug("%s %d:%d %zu/%zuB, setup %#016" PRIx64, name,
+		    target.address, target.endpoint, size, ep->max_packet_size,
+		    setup_data);
+	} else {
+		usb_log_debug("%s %d:%d %zu/%zuB", name, target.address,
+		    target.endpoint, size, ep->max_packet_size);
+	}
 
 	device_t * const device = ep->device;
 	if (!device) {

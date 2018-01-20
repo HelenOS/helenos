@@ -64,7 +64,7 @@ void isoch_init(xhci_endpoint_t *ep, const usb_endpoint_descriptors_t *desc)
 	/* 2 buffers are the very minimum. */
 	isoch->buffer_count = max(2, isoch->buffer_count);
 
-	usb_log_debug2("[isoch] isoch setup with %zu buffers", isoch->buffer_count);
+	usb_log_debug("[isoch] isoch setup with %zu buffers", isoch->buffer_count);
 }
 
 static void isoch_reset(xhci_endpoint_t *ep)
@@ -310,7 +310,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 		switch (wd.position) {
 		case WINDOW_TOO_SOON: {
 			const suseconds_t delay = wd.offset * 125;
-			usb_log_debug2("[isoch] delaying feeding buffer %lu for %ldus",
+			usb_log_debug("[isoch] delaying feeding buffer %lu for %ldus",
 				it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_out_timer, ep);
@@ -318,7 +318,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 		}
 
 		case WINDOW_INSIDE:
-			usb_log_debug2("[isoch] feeding buffer %lu at 0x%llx",
+			usb_log_debug("[isoch] feeding buffer %lu at 0x%llx",
 			    it - isoch->transfers, it->mfindex);
 			it->error = schedule_isochronous_trb(ep, it);
 			if (it->error) {
@@ -333,7 +333,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 
 		case WINDOW_TOO_LATE:
 			/* Missed the opportunity to schedule. Just mark this transfer as skipped. */
-			usb_log_debug2("[isoch] missed feeding buffer %lu at 0x%llx by %llu uframes",
+			usb_log_debug("[isoch] missed feeding buffer %lu at 0x%llx by %llu uframes",
 			    it - isoch->transfers, it->mfindex, wd.offset);
 			it->state = ISOCH_COMPLETE;
 			it->error = EOK;
@@ -396,7 +396,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 		case WINDOW_TOO_SOON: {
 			/* Not allowed to feed yet. Defer to later. */
 			const suseconds_t delay = wd.offset * 125;
-			usb_log_debug2("[isoch] delaying feeding buffer %lu for %ldus",
+			usb_log_debug("[isoch] delaying feeding buffer %lu for %ldus",
 			    it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_in_timer, ep);
@@ -404,7 +404,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 		}
 
 		case WINDOW_TOO_LATE:
-			usb_log_debug2("[isoch] missed feeding buffer %lu at 0x%llx by %llu uframes",
+			usb_log_debug("[isoch] missed feeding buffer %lu at 0x%llx by %llu uframes",
 			    it - isoch->transfers, it->mfindex, wd.offset);
 			/* Missed the opportunity to schedule. Schedule ASAP. */
 			it->mfindex += wd.offset;
@@ -417,7 +417,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 			isoch->enqueue = (isoch->enqueue + 1) % isoch->buffer_count;
 			isoch->last_mf = it->mfindex;
 
-			usb_log_debug2("[isoch] feeding buffer %lu at 0x%llx",
+			usb_log_debug("[isoch] feeding buffer %lu at 0x%llx",
 			    it - isoch->transfers, it->mfindex);
 
 			it->error = schedule_isochronous_trb(ep, it);
@@ -501,7 +501,7 @@ int isoch_schedule_out(xhci_transfer_t *transfer)
 	/* Calculate when to schedule next transfer */
 	calc_next_mfindex(ep, it);
 	isoch->last_mf = it->mfindex;
-	usb_log_debug2("[isoch] buffer %zu will be on schedule at 0x%llx", it - isoch->transfers, it->mfindex);
+	usb_log_debug("[isoch] buffer %zu will be on schedule at 0x%llx", it - isoch->transfers, it->mfindex);
 
 	/* Prepare the transfer. */
 	it->size = transfer->batch.buffer_size;
@@ -542,7 +542,7 @@ int isoch_schedule_in(xhci_transfer_t *transfer)
 		fibril_timer_clear_locked(isoch->feeding_timer);
 		isoch_feed_in(ep);
 
-		usb_log_debug2("[isoch] waiting for buffer %zu to be completed", it - isoch->transfers);
+		usb_log_debug("[isoch] waiting for buffer %zu to be completed", it - isoch->transfers);
 		fibril_condvar_wait(&isoch->avail, &isoch->guard);
 
 		/* The enqueue ptr may have changed while sleeping */
@@ -614,7 +614,7 @@ void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t 
 		xhci_isoch_transfer_t * const it = &isoch->transfers[di];
 
 		if (it->state == ISOCH_FED && it->interrupt_trb_phys == trb->parameter) {
-			usb_log_debug2("[isoch] buffer %zu completed", it - isoch->transfers);
+			usb_log_debug("[isoch] buffer %zu completed", it - isoch->transfers);
 			it->state = ISOCH_COMPLETE;
 			it->size -= TRB_TRANSFER_LENGTH(*trb);
 			it->error = err;

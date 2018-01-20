@@ -278,7 +278,7 @@ int xhci_endpoint_type(xhci_endpoint_t *ep)
 static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	/* Can't use XHCI_EP_FMT because the endpoint may not have device. */
-	usb_log_debug2("Allocating main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	usb_log_debug("Allocating main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	xhci_ep->primary_stream_data_array = NULL;
 	xhci_ep->primary_stream_data_size = 0;
@@ -306,7 +306,7 @@ void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 	if (xhci_ep->primary_stream_data_size) {
 		xhci_stream_free_ds(xhci_ep);
 	} else {
-		usb_log_debug2("Freeing main transfer ring of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+		usb_log_debug("Freeing main transfer ring of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 		xhci_trb_ring_fini(&xhci_ep->ring);
 	}
 

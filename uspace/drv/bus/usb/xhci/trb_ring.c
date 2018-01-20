@@ -84,7 +84,7 @@ static int trb_segment_alloc(trb_segment_t **segment)
 	*segment = dbuf.virt;
 	memset(*segment, 0, PAGE_SIZE);
 	(*segment)->phys = dbuf.phys;
-	usb_log_debug2("Allocated new ring segment.");
+	usb_log_debug("Allocated new ring segment.");
 	return EOK;
 }
 
@@ -246,7 +246,7 @@ int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 
 			if (TRB_LINK_TC(*ring->enqueue_trb)) {
 				ring->pcs = !ring->pcs;
-				usb_log_debug2("TRB ring(%p): PCS toggled", ring);
+				usb_log_debug("TRB ring(%p): PCS toggled", ring);
 			}
 
 			trb_ring_resolve_link(ring);

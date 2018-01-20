@@ -338,7 +338,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 		 * Note that we need to hold mutex, because we must be sure the
 		 * requesting thread is waiting inside the CV.
 		 */
-		usb_log_debug2("Command ring stopped.");
+		usb_log_debug("Command ring stopped.");
 		fibril_condvar_broadcast(&cr->stopped_cv);
 		fibril_mutex_unlock(&cr->guard);
 		return EOK;

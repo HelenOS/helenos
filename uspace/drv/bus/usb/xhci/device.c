@@ -75,7 +75,7 @@ static int address_device(xhci_device_t *dev)
 	/* Enable new slot. */
 	if ((err = hc_enable_slot(dev)) != EOK)
 		return err;
-	usb_log_debug2("Obtained slot ID: %u.", dev->slot_id);
+	usb_log_debug("Obtained slot ID: %u.", dev->slot_id);
 
 	/* Create and configure control endpoint. */
 	endpoint_t *ep0_base = xhci_endpoint_create(&dev->base, &ep0_initial_desc);
@@ -86,7 +86,7 @@ static int address_device(xhci_device_t *dev)
 	endpoint_add_ref(ep0_base);
 	dev->base.endpoints[0] = ep0_base;
 
-	usb_log_debug2("Looking up new device initial speed: %i", dev->base.speed);
+	usb_log_debug("Looking up new device initial MPS: %s", usb_str_speed(dev->base.speed));
 	ep0_base->max_packet_size = hc_get_ep0_initial_mps(dev->base.speed);
 
 	/* Address device */
@@ -159,7 +159,7 @@ static int setup_hub(xhci_device_t *dev, usb_standard_device_descriptor_t *desc)
 			16 * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_16);
 	}
 
-	usb_log_debug2("Device(%u): recognised USB hub with %u ports", dev->base.address, dev->num_ports);
+	usb_log_debug("Device(%u): recognised USB hub with %u ports", dev->base.address, dev->num_ports);
 	return EOK;
 }
 

@@ -81,7 +81,7 @@ xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *ep, uint32_t strea
  */
 static int initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned count)
 {
-	usb_log_debug2("Allocating primary stream context array of size %u for endpoint " XHCI_EP_FMT,
+	usb_log_debug("Allocating primary stream context array of size %u for endpoint " XHCI_EP_FMT,
 		count, XHCI_EP_ARGS(*xhci_ep));
 
 	if ((dma_buffer_alloc(&xhci_ep->primary_stream_ctx_dma, count * sizeof(xhci_stream_ctx_t)))) {
@@ -105,7 +105,7 @@ static int initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned coun
  */
 static void clear_primary_structures(xhci_endpoint_t *xhci_ep)
 {
-	usb_log_debug2("Deallocating primary stream structures for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	usb_log_debug("Deallocating primary stream structures for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
 	free(xhci_ep->primary_stream_data_array);
@@ -132,7 +132,7 @@ static void clear_secondary_streams(xhci_endpoint_t *xhci_ep, unsigned index)
 
 void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep)
 {
-	usb_log_debug2("Freeing stream rings and context arrays of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	usb_log_debug("Freeing stream rings and context arrays of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	for (size_t index = 0; index < xhci_ep->primary_stream_data_size; ++index) {
 		clear_secondary_streams(xhci_ep, index);

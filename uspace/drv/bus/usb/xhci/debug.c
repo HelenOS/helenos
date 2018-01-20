@@ -44,13 +44,13 @@
 #define PX "\t%-21s = "
 
 #define DUMP_REG_FIELD(ptr, title, size, ...) \
-	usb_log_debug2(PX "%" PRIu##size, title, XHCI_REG_RD_FIELD(ptr, size, ##__VA_ARGS__))
+	usb_log_debug(PX "%" PRIu##size, title, XHCI_REG_RD_FIELD(ptr, size, ##__VA_ARGS__))
 
 #define DUMP_REG_RANGE(ptr, title, size, ...) \
-	usb_log_debug2(PX "%" PRIu##size, title, XHCI_REG_RD_RANGE(ptr, size, ##__VA_ARGS__))
+	usb_log_debug(PX "%" PRIu##size, title, XHCI_REG_RD_RANGE(ptr, size, ##__VA_ARGS__))
 
 #define DUMP_REG_FLAG(ptr, title, size, ...) \
-	usb_log_debug2(PX "%s", title, XHCI_REG_RD_FLAG(ptr, size, ##__VA_ARGS__) ? "true" : "false")
+	usb_log_debug(PX "%s", title, XHCI_REG_RD_FLAG(ptr, size, ##__VA_ARGS__) ? "true" : "false")
 
 #define DUMP_REG_INNER(set, title, field, size, type, ...) \
 	DUMP_REG_##type(&(set)->field, title, size, ##__VA_ARGS__)
@@ -62,7 +62,7 @@
  */
 void xhci_dump_cap_regs(const xhci_cap_regs_t *cap)
 {
-	usb_log_debug2("Capabilities:");
+	usb_log_debug("Capabilities:");
 
 	DUMP_REG(cap, XHCI_CAP_LENGTH);
 	DUMP_REG(cap, XHCI_CAP_VERSION);
@@ -71,7 +71,7 @@ void xhci_dump_cap_regs(const xhci_cap_regs_t *cap)
 	DUMP_REG(cap, XHCI_CAP_MAX_PORTS);
 	DUMP_REG(cap, XHCI_CAP_IST);
 	DUMP_REG(cap, XHCI_CAP_ERST_MAX);
-	usb_log_debug2(PX "%u", "Max Scratchpad bufs", xhci_get_max_spbuf(cap));
+	usb_log_debug(PX "%u", "Max Scratchpad bufs", xhci_get_max_spbuf(cap));
 	DUMP_REG(cap, XHCI_CAP_SPR);
 	DUMP_REG(cap, XHCI_CAP_U1EL);
 	DUMP_REG(cap, XHCI_CAP_U2EL);
@@ -148,7 +148,7 @@ void xhci_dump_port(const xhci_port_regs_t *port)
  */
 void xhci_dump_state(const xhci_hc_t *hc)
 {
-	usb_log_debug2("Operational registers:");
+	usb_log_debug("Operational registers:");
 
 	DUMP_REG(hc->op_regs, XHCI_OP_RS);
 	DUMP_REG(hc->op_regs, XHCI_OP_HCRST);
@@ -181,7 +181,7 @@ void xhci_dump_state(const xhci_hc_t *hc)
 	DUMP_REG(hc->op_regs, XHCI_OP_DCBAAP_HI);
 	DUMP_REG(hc->rt_regs, XHCI_RT_MFINDEX);
 
-	usb_log_debug2("Interrupter 0 state:");
+	usb_log_debug("Interrupter 0 state:");
 	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IP);
 	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IE);
 	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IMI);
@@ -200,7 +200,7 @@ void xhci_dump_ports(const xhci_hc_t *hc)
 {
 	const size_t num_ports = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PORTS);
 	for (size_t i = 0; i < num_ports; i++) {
-		usb_log_debug2("Port %zu state:", i);
+		usb_log_debug("Port %zu state:", i);
 
 		xhci_dump_port(&hc->op_regs->portrs[i]);
 	}
@@ -263,7 +263,7 @@ const char *xhci_trb_str_type(unsigned type)
  */
 void xhci_dump_trb(const xhci_trb_t *trb)
 {
-	usb_log_debug2("TRB(%p): type %s, cycle %u, status 0x%#08" PRIx32 ", parameter 0x%#016" PRIx64, trb, xhci_trb_str_type(TRB_TYPE(*trb)), TRB_CYCLE(*trb), trb->status, trb->parameter);
+	usb_log_debug("TRB(%p): type %s, cycle %u, status 0x%#08" PRIx32 ", parameter 0x%#016" PRIx64, trb, xhci_trb_str_type(TRB_TYPE(*trb)), TRB_CYCLE(*trb), trb->status, trb->parameter);
 }
 
 static const char *ec_ids [] = {
