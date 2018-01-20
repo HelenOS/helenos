@@ -61,6 +61,10 @@ static const uint32_t port_events_mask =
 	XHCI_REG_MASK(XHCI_PORT_PLC) |
 	XHCI_REG_MASK(XHCI_PORT_CEC);
 
+static const uint32_t port_reset_mask =
+	XHCI_REG_MASK(XHCI_PORT_WRC) |
+	XHCI_REG_MASK(XHCI_PORT_PRC);
+
 typedef struct rh_port {
 	usb_port_t base;
 	xhci_rh_t *rh;
@@ -130,6 +134,11 @@ static int rh_enumerate_device(usb_port_t *usb_port)
 	if (port->major <= 2) {
 		/* USB ports for lower speeds needs their port reset first. */
 		XHCI_REG_SET(port->regs, XHCI_PORT_PR, 1);
+		if ((err = usb_port_wait_for_enabled(&port->base)))
+			return err;
+	} else {
+		/* Do the Warm reset to ensure the state is clear. */
+		XHCI_REG_SET(port->regs, XHCI_PORT_WPR, 1);
 		if ((err = usb_port_wait_for_enabled(&port->base)))
 			return err;
 	}
@@ -219,11 +228,13 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 		 */
 		XHCI_REG_WR_FIELD(&port->regs->portsc, status & ~XHCI_REG_MASK(XHCI_PORT_PED), 32);
 
+		const bool connected = !!(status & XHCI_REG_MASK(XHCI_PORT_CCS));
+		const bool enabled = !!(status & XHCI_REG_MASK(XHCI_PORT_PED));
+
 		if (status & XHCI_REG_MASK(XHCI_PORT_CSC)) {
 			usb_log_info("Connected state changed on port %u.", port_id);
 			status &= ~XHCI_REG_MASK(XHCI_PORT_CSC);
 
-			const bool connected = !!(status & XHCI_REG_MASK(XHCI_PORT_CCS));
 			if (connected) {
 				usb_port_connected(&port->base, &rh_enumerate_device);
 			} else {
@@ -231,10 +242,9 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 			}
 		}
 
-		if (status & XHCI_REG_MASK(XHCI_PORT_PRC)) {
-			status &= ~XHCI_REG_MASK(XHCI_PORT_PRC);
+		if (status & port_reset_mask) {
+			status &= ~port_reset_mask;
 
-			const bool enabled = !!(status & XHCI_REG_MASK(XHCI_PORT_PED));
 			if (enabled) {
 				usb_port_enabled(&port->base);
 			} else {
