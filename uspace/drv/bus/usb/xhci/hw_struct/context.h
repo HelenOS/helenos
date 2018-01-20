@@ -178,14 +178,14 @@ enum {
  */
 #define XHCI_CTX_SIZE_SMALL 32
 #define XHCI_ONE_CTX_SIZE(hc) (XHCI_CTX_SIZE_SMALL << hc->csz)
-#define XHCI_DEVICE_CTX_SIZE(hc) ((1 + XHCI_EP_COUNT) * XHCI_ONE_CTX_SIZE(hc))
+#define XHCI_GET_CTX_FIELD(type, ctx, hc, ci) (xhci_##type##_ctx_to_charptr(ctx) + (ci) * XHCI_ONE_CTX_SIZE(hc))
 
 /**
  * Device context: section 6.2.1
  */
-#define XHCI_GET_DC_FIELD(dev_ctx, hc, dci) ((char*)dev_ctx + (dci) * XHCI_ONE_CTX_SIZE(hc))
-#define XHCI_GET_EP_CTX(dev_ctx, hc, dci) ((xhci_ep_ctx_t *)   XHCI_GET_DC_FIELD(dev_ctx, hc, dci))
-#define XHCI_GET_SLOT_CTX(dev_ctx, hc)    ((xhci_slot_ctx_t *) XHCI_GET_DC_FIELD(dev_ctx, hc, 0))
+#define XHCI_DEVICE_CTX_SIZE(hc) ((1 + XHCI_EP_COUNT) * XHCI_ONE_CTX_SIZE(hc))
+#define XHCI_GET_EP_CTX(dev_ctx, hc, dci) ((xhci_ep_ctx_t *)   XHCI_GET_CTX_FIELD(device, (dev_ctx), (hc), (dci)))
+#define XHCI_GET_SLOT_CTX(dev_ctx, hc)    ((xhci_slot_ctx_t *) XHCI_GET_CTX_FIELD(device, (dev_ctx), (hc), 0))
 
 /**
  * As control, slot and endpoint contexts differ in size on different HCs,
@@ -195,6 +195,14 @@ enum {
  */
 typedef struct xhci_device_ctx {
 } xhci_device_ctx_t;
+
+/**
+ * Force type checking.
+ */
+static inline char *xhci_device_ctx_to_charptr(const xhci_device_ctx_t *ctx)
+{
+	return (char *) ctx;
+}
 
 /**
  * Stream context: section 6.2.4 {
@@ -242,15 +250,20 @@ typedef struct xhci_input_ctrl_ctx {
 /**
  * Input context: section 6.2.5
  */
-
-#define XHCI_CTRL_CTX_OFFSET 0
-#define XHCI_DEVICE_CTX_OFFSET 1
-#define XHCI_INPUT_CTX_SIZE(hc) (XHCI_DEVICE_CTX_OFFSET * XHCI_ONE_CTX_SIZE(hc) + XHCI_DEVICE_CTX_SIZE(hc))
-#define XHCI_GET_CTRL_CTX(ictx, hc) (xhci_input_ctrl_ctx_t*)((char*)ictx + XHCI_CTRL_CTX_OFFSET * XHCI_ONE_CTX_SIZE(hc))
-#define XHCI_GET_DEVICE_CTX(ictx, hc) (xhci_device_ctx_t *)((char*)ictx + XHCI_DEVICE_CTX_OFFSET * XHCI_ONE_CTX_SIZE(hc))
+#define XHCI_INPUT_CTX_SIZE(hc) (XHCI_ONE_CTX_SIZE(hc) + XHCI_DEVICE_CTX_SIZE(hc))
+#define XHCI_GET_CTRL_CTX(ictx, hc)  ((xhci_input_ctrl_ctx_t *) XHCI_GET_CTX_FIELD(input, (ictx), (hc), 0))
+#define XHCI_GET_DEVICE_CTX(dev_ctx, hc) ((xhci_device_ctx_t *) XHCI_GET_CTX_FIELD(input, (ictx), (hc), 1))
 
 typedef struct xhci_input_ctx {
 } xhci_input_ctx_t;
+
+/**
+ * Force type checking.
+ */
+static inline char *xhci_input_ctx_to_charptr(const xhci_input_ctx_t *ctx)
+{
+	return (char *) ctx;
+}
 
 /**
  * Port bandwidth context: section 6.2.6
