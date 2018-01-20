@@ -254,23 +254,28 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port)
 		return;
 	}
 
-	for (uint32_t feature = 0; feature < sizeof(usb_port_status_t) * 8; ++feature) {
+	for (uint32_t feature = 16; feature < sizeof(usb_port_status_t) * 8; ++feature) {
 		uint32_t mask = 1 << feature;
 
 		if ((status & mask) == 0)
 			continue;
+
+		/* Clear the change so it won't come again */
+		usb_hub_clear_port_feature(port->hub, port->port_number, feature);
 
 		if (!port_change_handlers[feature])
 			continue;
 
 		/* ACK this change */
 		status &= ~mask;
-		usb_hub_clear_port_feature(port->hub, port->port_number, feature);
 
 		port_change_handlers[feature](port, status);
 	}
 
-	port_log(debug2, port, "Port status after handling: %#08" PRIx32, status);
+	/* Check for changes we ignored */
+	if (status & 0xffff0000) {
+		port_log(debug, port, "Port status change igored. Status: %#08" PRIx32, status);
+	}
 }
 
 

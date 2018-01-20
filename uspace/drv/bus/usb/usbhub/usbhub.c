@@ -559,15 +559,17 @@ int usb_hub_get_port_status(const usb_hub_dev_t *hub, size_t port_number, usb_po
 	};
 	size_t recv_size;
 
+	uint32_t buffer;
 	const int rc = usb_pipe_control_read(hub->control_pipe,
 	    &request, sizeof(usb_device_request_setup_packet_t),
-	    status, sizeof(*status), &recv_size);
+	    &buffer, sizeof(buffer), &recv_size);
 	if (rc != EOK)
 		return rc;
 
 	if (recv_size != sizeof(*status))
 		return ELIMIT;
 
+	*status = uint32_usb2host(buffer);
 	return EOK;
 }
 
