@@ -86,6 +86,9 @@ static int address_device(xhci_device_t *dev)
 	endpoint_add_ref(ep0_base);
 	dev->base.endpoints[0] = ep0_base;
 
+	usb_log_debug2("Looking up new device initial speed: %i", dev->base.speed);
+	ep0_base->max_packet_size = hc_get_ep0_initial_mps(dev->base.speed);
+
 	/* Address device */
 	if ((err = hc_address_device(dev)))
 		goto err_added;

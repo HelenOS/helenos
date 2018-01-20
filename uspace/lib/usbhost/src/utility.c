@@ -41,27 +41,45 @@
 #include "ddf_helpers.h"
 #include "utility.h"
 
-
 /**
- * Get max packet size for the control endpoint 0.
+ * Get initial max packet size for the control endpoint 0.
  *
- * For LS, HS, and SS devices this value is fixed. For FS devices we must fetch
- * the first 8B of the device descriptor to determine it.
+ * For LS, HS, and SS devices this value is final and fixed.
+ * For FS devices, the default value of 8 is returned. The caller needs
+ * to fetch the first 8B of the device descriptor later in the initialization
+ * process and determine whether it should be increased.
  *
- * @return Max packet size for EP 0
+ * @return Max packet size for EP 0 (in bytes)
  */
-int hc_get_ep0_max_packet_size(uint16_t *mps, bus_t *bus, device_t *dev)
+uint16_t hc_get_ep0_initial_mps(usb_speed_t speed)
 {
-	assert(mps);
-
 	static const uint16_t mps_fixed [] = {
 		[USB_SPEED_LOW] = 8,
 		[USB_SPEED_HIGH] = 64,
 		[USB_SPEED_SUPER] = 512,
 	};
 
-	if (dev->speed < ARRAY_SIZE(mps_fixed) && mps_fixed[dev->speed] != 0) {
-		*mps = mps_fixed[dev->speed];
+	if (speed < ARRAY_SIZE(mps_fixed) && mps_fixed[speed] != 0) {
+		return mps_fixed[speed];
+	}
+	return 8; // USB_SPEED_FULL default
+}
+
+/**
+ * Get max packet size for the control endpoint 0.
+ *
+ * For LS, HS, and SS devices the corresponding fixed value is obtained.
+ * For FS devices the first 8B of the device descriptor are fetched to
+ * determine it.
+ *
+ * @return Max packet size for EP 0 (in bytes)
+ */
+int hc_get_ep0_max_packet_size(uint16_t *mps, bus_t *bus, device_t *dev)
+{
+	assert(mps);
+
+	*mps = hc_get_ep0_initial_mps(dev->speed);
+	if (dev->speed != USB_SPEED_FULL) {
 		return EOK;
 	}
 
