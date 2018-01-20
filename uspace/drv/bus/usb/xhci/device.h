@@ -37,6 +37,8 @@
 #include <usb/host/bus.h>
 #include <usb/host/dma_buffer.h>
 
+typedef struct xhci_slot_ctx xhci_slot_ctx_t;
+
 typedef struct xhci_device {
 	device_t base;		/**< Inheritance. Keep this first. */
 
@@ -69,6 +71,8 @@ int xhci_device_enumerate(device_t *);
 void xhci_device_offline(device_t *);
 int xhci_device_online(device_t *);
 void xhci_device_gone(device_t *);
+
+void xhci_setup_slot_context(xhci_device_t *, xhci_slot_ctx_t *);
 
 static inline xhci_device_t * xhci_device_get(device_t *dev)
 {

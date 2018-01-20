@@ -112,10 +112,8 @@ int xhci_endpoint_register(endpoint_t *);
 void xhci_endpoint_unregister(endpoint_t *);
 void xhci_endpoint_destroy(endpoint_t *);
 
-void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep);
-
-uint8_t xhci_endpoint_dci(xhci_endpoint_t *);
-uint8_t xhci_endpoint_index(xhci_endpoint_t *);
+void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
+xhci_trb_ring_t *xhci_endpoint_get_ring(xhci_endpoint_t *, uint32_t);
 
 void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
 int xhci_endpoint_clear_halt(xhci_endpoint_t *, unsigned);
@@ -131,8 +129,6 @@ static inline xhci_device_t * xhci_ep_to_dev(xhci_endpoint_t *ep)
 	assert(ep);
 	return xhci_device_get(ep->base.device);
 }
-
-uint8_t xhci_endpoint_get_state(xhci_endpoint_t *ep);
 
 #endif
 

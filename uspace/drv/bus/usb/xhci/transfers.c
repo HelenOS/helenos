@@ -119,25 +119,15 @@ void xhci_transfer_destroy(usb_transfer_batch_t* batch)
 	free(transfer);
 }
 
-static xhci_trb_ring_t *get_ring(xhci_hc_t *hc, xhci_transfer_t *transfer)
+static xhci_trb_ring_t *get_ring(xhci_transfer_t *transfer)
 {
-	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
-	if (ep->primary_stream_data_size == 0) return &ep->ring;
-	uint32_t stream_id = transfer->batch.target.stream;
-
-	xhci_stream_data_t *stream_data = xhci_get_stream_ctx_data(ep, stream_id);
-	if (stream_data == NULL) {
-		usb_log_warning("No transfer ring was found for stream %u.", stream_id);
-		return NULL;
-	}
-
-	return &stream_data->ring;
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(transfer->batch.ep);
+	return xhci_endpoint_get_ring(xhci_ep, transfer->batch.target.stream);
 }
 
 static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
 	usb_transfer_batch_t *batch = &transfer->batch;
-	xhci_trb_ring_t *ring = get_ring(hc, transfer);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(transfer->batch.ep);
 
 	usb_device_request_setup_packet_t* setup = &batch->setup.packet;
@@ -201,7 +191,7 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 			return err;
 	}
 
-	return xhci_trb_ring_enqueue_multiple(ring, trbs, trbs_used, &transfer->interrupt_trb_phys);
+	return xhci_trb_ring_enqueue_multiple(get_ring(transfer), trbs, trbs_used, &transfer->interrupt_trb_phys);
 }
 
 static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
@@ -223,7 +213,7 @@ static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 		TRB_CTRL_SET_IOC(trb, 1);
 		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
 
-		xhci_trb_ring_t* ring = get_ring(hc, transfer);
+		xhci_trb_ring_t* ring = get_ring(transfer);
 		return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 	}
 	else {
@@ -232,7 +222,7 @@ static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 		TRB_CTRL_SET_CHAIN(trb, 1);
 		TRB_CTRL_SET_ENT(trb, 1);
 
-		xhci_trb_ring_t* ring = get_ring(hc, transfer);
+		xhci_trb_ring_t* ring = get_ring(transfer);
 		if (!ring) {
 			return EINVAL;
 		}
@@ -268,7 +258,7 @@ static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 
 	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
 
-	xhci_trb_ring_t* ring = get_ring(hc, transfer);
+	xhci_trb_ring_t* ring = get_ring(transfer);
 
 	return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
 }
@@ -312,8 +302,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		assert(ep->base.transfer_type != USB_TRANSFER_ISOCHRONOUS);
 		/* We are received transfer pointer instead - work with that */
 		transfer = (xhci_transfer_t *) addr;
-		xhci_trb_ring_t * ring = get_ring(hc, transfer);
-		xhci_trb_ring_update_dequeue(ring, transfer->interrupt_trb_phys);
+		xhci_trb_ring_update_dequeue(get_ring(transfer), transfer->interrupt_trb_phys);
 		batch = &transfer->batch;
 
 		fibril_mutex_lock(&ep->base.guard);
@@ -496,13 +485,10 @@ int xhci_transfer_schedule(usb_transfer_batch_t *batch)
 		return err;
 	}
 
+	hc_ring_ep_doorbell(xhci_ep, batch->target.stream);
+
 	/* After the critical section, the transfer can already be finished or aborted. */
 	transfer = NULL; batch = NULL;
 	fibril_mutex_unlock(&ep->guard);
-
-	const uint8_t slot_id = xhci_dev->slot_id;
-	/* EP Doorbells start at 1 */
-	const uint8_t target = (xhci_endpoint_index(xhci_ep) + 1) | (batch->target.stream << 16);
-	hc_ring_doorbell(hc, slot_id, target);
 	return EOK;
 }

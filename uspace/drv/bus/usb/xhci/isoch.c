@@ -346,9 +346,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 
 out:
 	if (fed) {
-		const uint8_t slot_id = xhci_device_get(ep->base.device)->slot_id;
-		const uint8_t target = xhci_endpoint_index(ep) + 1; /* EP Doorbells start at 1 */
-		hc_ring_doorbell(hc, slot_id, target);
+		hc_ring_ep_doorbell(ep, 0);
 		/* The ring may be dead. If no event happens until the delay, reset the endpoint. */
 		timer_schedule_reset(ep);
 	}
@@ -435,9 +433,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 out:
 
 	if (fed) {
-		const uint8_t slot_id = xhci_device_get(ep->base.device)->slot_id;
-		const uint8_t target = xhci_endpoint_index(ep) + 1; /* EP Doorbells start at 1 */
-		hc_ring_doorbell(hc, slot_id, target);
+		hc_ring_ep_doorbell(ep, 0);
 		/* The ring may be dead. If no event happens until the delay, reset the endpoint. */
 		timer_schedule_reset(ep);
 	}

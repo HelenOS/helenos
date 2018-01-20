@@ -51,6 +51,7 @@
 #include "hc.h"
 #include "bus.h"
 #include "endpoint.h"
+#include "hw_struct/context.h"
 
 #include "device.h"
 
@@ -85,10 +86,8 @@ static int address_device(xhci_device_t *dev)
 	endpoint_add_ref(ep0_base);
 	dev->base.endpoints[0] = ep0_base;
 
-	xhci_endpoint_t *ep0 = xhci_endpoint_get(ep0_base);
-
 	/* Address device */
-	if ((err = hc_address_device(dev, ep0)))
+	if ((err = hc_address_device(dev)))
 		goto err_added;
 
 	return EOK;
@@ -126,10 +125,7 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	ep0->base.max_packet_size = max_packet_size;
 	ep0->base.max_transfer_size = max_packet_size * ep0->base.packets_per_uframe;
 
-	xhci_ep_ctx_t ep_ctx;
-	xhci_setup_endpoint_context(ep0, &ep_ctx);
-
-	if ((err = hc_update_endpoint(dev, 0, &ep_ctx)))
+	if ((err = hc_update_endpoint(ep0)))
 		return err;
 
 	return EOK;
@@ -303,6 +299,42 @@ void xhci_device_offline(device_t *dev_base)
 		usb_log_warning("Failed to deconfigure device " XHCI_DEV_FMT ".",
 		    XHCI_DEV_ARGS(*dev));
 	}
+}
+
+/**
+ * Fill a slot context that is part of an Input Context with appropriate
+ * values.
+ *
+ * @param ctx Slot context, zeroed out.
+ */
+void xhci_setup_slot_context(xhci_device_t *dev, xhci_slot_ctx_t *ctx)
+{
+	/* Initialize slot_ctx according to section 4.3.3 point 3. */
+	XHCI_SLOT_ROOT_HUB_PORT_SET(*ctx, dev->rh_port);
+	XHCI_SLOT_ROUTE_STRING_SET(*ctx, dev->route_str);
+	XHCI_SLOT_SPEED_SET(*ctx, hc_speed_to_psiv(dev->base.speed));
+
+	/*
+	 * Note: This function is used even before this flag can be set, to
+	 *       issue the address device command. It is OK, because these
+	 *       flags are not required to be valid for that command.
+	 */
+	if (dev->is_hub) {
+		XHCI_SLOT_HUB_SET(*ctx, 1);
+		XHCI_SLOT_NUM_PORTS_SET(*ctx, dev->num_ports);
+		XHCI_SLOT_TT_THINK_TIME_SET(*ctx, dev->tt_think_time);
+		XHCI_SLOT_MTT_SET(*ctx, 0); // MTT not supported yet
+	}
+
+	/* Setup Transaction Translation. TODO: Test this with HS hub. */
+	if (dev->base.tt.dev != NULL) {
+		xhci_device_t *hub = xhci_device_get(dev->base.tt.dev);
+		XHCI_SLOT_TT_HUB_SLOT_ID_SET(*ctx, hub->slot_id);
+		XHCI_SLOT_TT_HUB_PORT_SET(*ctx, dev->base.tt.port);
+	}
+
+	// As we always allocate space for whole input context, we can set this to maximum
+	XHCI_SLOT_CTX_ENTRIES_SET(*ctx, 31);
 }
 
 

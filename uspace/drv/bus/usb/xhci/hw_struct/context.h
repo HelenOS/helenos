@@ -178,15 +178,14 @@ enum {
  */
 #define XHCI_CTX_SIZE_SMALL 32
 #define XHCI_ONE_CTX_SIZE(hc) (XHCI_CTX_SIZE_SMALL << hc->csz)
-#define XHCI_SLOT_CTX_OFFSET 0
-#define XHCI_EP_ARRAY_OFFSET 1
-#define XHCI_DEVICE_CTX_SIZE(hc) ((XHCI_EP_ARRAY_OFFSET + XHCI_EP_COUNT) * XHCI_ONE_CTX_SIZE(hc))
+#define XHCI_DEVICE_CTX_SIZE(hc) ((1 + XHCI_EP_COUNT) * XHCI_ONE_CTX_SIZE(hc))
 
 /**
  * Device context: section 6.2.1
  */
-#define XHCI_GET_SLOT_CTX(dev_ctx, hc) (xhci_slot_ctx_t *)((char*)dev_ctx + XHCI_SLOT_CTX_OFFSET * XHCI_ONE_CTX_SIZE(hc))
-#define XHCI_GET_EP_CTX(dev_ctx, hc, dci) (xhci_ep_ctx_t *)((char*)dev_ctx + (dci + XHCI_EP_ARRAY_OFFSET) * XHCI_ONE_CTX_SIZE(hc))
+#define XHCI_GET_DC_FIELD(dev_ctx, hc, dci) ((char*)dev_ctx + (dci) * XHCI_ONE_CTX_SIZE(hc))
+#define XHCI_GET_EP_CTX(dev_ctx, hc, dci) ((xhci_ep_ctx_t *)   XHCI_GET_DC_FIELD(dev_ctx, hc, dci))
+#define XHCI_GET_SLOT_CTX(dev_ctx, hc)    ((xhci_slot_ctx_t *) XHCI_GET_DC_FIELD(dev_ctx, hc, 0))
 
 /**
  * As control, slot and endpoint contexts differ in size on different HCs,

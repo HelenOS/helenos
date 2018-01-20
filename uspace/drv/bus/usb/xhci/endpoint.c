@@ -171,12 +171,8 @@ int xhci_endpoint_register(endpoint_t *ep_base)
 {
 	int err;
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
-	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
-	xhci_ep_ctx_t ep_ctx;
-	xhci_setup_endpoint_context(ep, &ep_ctx);
-
-	if ((err = hc_add_endpoint(dev, xhci_endpoint_index(ep), &ep_ctx)))
+	if ((err = hc_add_endpoint(ep)))
 		return err;
 
 	return EOK;
@@ -188,12 +184,13 @@ int xhci_endpoint_register(endpoint_t *ep_base)
 static int endpoint_abort(endpoint_t *ep)
 {
 	xhci_device_t *dev = xhci_device_get(ep->device);
+	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
 
 	usb_transfer_batch_t *batch = NULL;
 	fibril_mutex_lock(&ep->guard);
 	if (ep->active_batch) {
 		if (dev->slot_id) {
-			const int err = hc_stop_endpoint(dev, xhci_endpoint_dci(xhci_endpoint_get(ep)));
+			const int err = hc_stop_endpoint(xhci_ep);
 			if (err) {
 				usb_log_warning("Failed to stop endpoint %u of device " XHCI_DEV_FMT ": %s",
 				    ep->endpoint, XHCI_DEV_ARGS(*dev), str_error(err));
@@ -234,7 +231,7 @@ void xhci_endpoint_unregister(endpoint_t *ep_base)
 	/* If device slot is still available, drop the endpoint. */
 	if (dev->slot_id) {
 
-		if ((err = hc_drop_endpoint(dev, xhci_endpoint_index(ep)))) {
+		if ((err = hc_drop_endpoint(ep))) {
 			usb_log_error("Failed to drop endpoint " XHCI_EP_FMT ": %s", XHCI_EP_ARGS(*ep), str_error(err));
 		}
 	} else {
@@ -317,28 +314,18 @@ void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 		isoch_fini(xhci_ep);
 }
 
-/** See section 4.5.1 of the xHCI spec.
- */
-uint8_t xhci_endpoint_dci(xhci_endpoint_t *ep)
+xhci_trb_ring_t *xhci_endpoint_get_ring(xhci_endpoint_t *ep, uint32_t stream_id)
 {
-	return (2 * ep->base.endpoint) +
-		(ep->base.transfer_type == USB_TRANSFER_CONTROL
-		 || ep->base.direction == USB_DIRECTION_IN);
-}
+	if (ep->primary_stream_data_size == 0)
+		return stream_id == 0 ? &ep->ring : NULL;
 
-/** Return an index to the endpoint array. The indices are assigned as follows:
- * 0	EP0 BOTH
- * 1	EP1 OUT
- * 2	EP1 IN
- *
- * For control endpoints >0, the IN endpoint index is used.
- *
- * The index returned must be usually offset by a number of contexts preceding
- * the endpoint contexts themselves.
- */
-uint8_t xhci_endpoint_index(xhci_endpoint_t *ep)
-{
-	return xhci_endpoint_dci(ep) - 1;
+	xhci_stream_data_t *stream_data = xhci_get_stream_ctx_data(ep, stream_id);
+	if (stream_data == NULL) {
+		usb_log_warning("No transfer ring was found for stream %u.", stream_id);
+		return NULL;
+	}
+
+	return &stream_data->ring;
 }
 
 /** Configure endpoint context of a control endpoint.
@@ -434,50 +421,18 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
 	setup_ep_ctx_helpers[tt](ep, ep_ctx);
 }
 
-uint8_t xhci_endpoint_get_state(xhci_endpoint_t *ep)
-{
-	assert(ep);
-
-	xhci_device_t *dev = xhci_device_get(ep->base.device);
-	if (!dev->slot_id)
-		return EP_STATE_DISABLED;
-
-	unsigned idx = xhci_endpoint_index(ep);
-	xhci_device_ctx_t *ctx = dev->dev_ctx.virt;
-	const xhci_hc_t * hc = bus_to_hc(dev->base.bus);
-	xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(ctx, hc, idx);
-
-	return XHCI_EP_STATE(*ep_ctx);
-}
-
 /**
  * Clear endpoint halt condition by resetting the endpoint and skipping the
  * offending transfer.
  */
-int xhci_endpoint_clear_halt(xhci_endpoint_t *ep, unsigned stream_id)
+int xhci_endpoint_clear_halt(xhci_endpoint_t *ep, uint32_t stream_id)
 {
 	int err;
 
-	xhci_device_t * const dev = xhci_device_get(ep->base.device);
-	xhci_bus_t * const bus = bus_to_xhci_bus(dev->base.bus);
-	xhci_hc_t * const hc = bus->hc;
-
-	const unsigned slot_id = dev->slot_id;
-	const unsigned dci = xhci_endpoint_dci(ep);
-
-	if ((err = hc_reset_endpoint(dev, dci)))
+	if ((err = hc_reset_endpoint(ep)))
 		return err;
 
-	uintptr_t addr;
-
-	xhci_trb_ring_reset_dequeue_state(&ep->ring, &addr);
-
-	if ((err = xhci_cmd_sync_inline(hc, SET_TR_DEQUEUE_POINTER,
-			    .slot_id = slot_id,
-			    .endpoint_id = dci,
-			    .stream_id = stream_id,
-			    .dequeue_ptr = addr,
-			)))
+	if ((err = hc_reset_ring(ep, stream_id)))
 		return err;
 
 	return EOK;
