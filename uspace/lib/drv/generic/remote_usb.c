@@ -76,9 +76,10 @@ int usb_get_my_description(async_exch_t *exch, usb_device_desc_t *desc)
 
 	usb_device_desc_t tmp_desc;
 
-	const int ret = async_req_1_4(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	const int ret = async_req_1_5(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_MY_DESCRIPTION,
 	    (sysarg_t *) &tmp_desc.address,
+	    (sysarg_t *) &tmp_desc.depth,
 	    (sysarg_t *) &tmp_desc.speed,
 	    &tmp_desc.handle,
 	    (sysarg_t *) &tmp_desc.iface);
@@ -116,8 +117,9 @@ void remote_usb_get_my_description(ddf_fun_t *fun, void *iface,
 	if (ret != EOK) {
 		async_answer_0(callid, ret);
 	} else {
-		async_answer_4(callid, EOK,
+		async_answer_5(callid, EOK,
 		    (sysarg_t) desc.address,
+		    (sysarg_t) desc.depth,
 		    (sysarg_t) desc.speed,
 		    desc.handle,
 		    desc.iface);

@@ -163,6 +163,7 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port, usb_speed_t speed)
 	}
 
 	dev->hub = hub;
+	dev->tier = hub->tier + 1;
 	dev->port = port;
 	dev->speed = speed;
 
@@ -241,6 +242,7 @@ static int get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
 
 	*desc = (usb_device_desc_t) {
 		.address = dev->address,
+		.depth = dev->tier,
 		.speed = dev->speed,
 		.handle = ddf_fun_get_handle(fun),
 		.iface = -1,

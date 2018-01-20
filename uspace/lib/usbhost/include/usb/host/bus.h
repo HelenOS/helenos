@@ -67,7 +67,12 @@ typedef struct device {
 
 	/* Invalid for the roothub device */
 	unsigned port;
+
+	/** Hub under which this device is connected */
 	struct device *hub;
+
+	/** USB Tier of the device */
+	uint8_t tier;
 
 	/* Transaction translator */
 	struct {

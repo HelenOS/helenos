@@ -44,10 +44,11 @@
 typedef async_sess_t usb_dev_session_t;
 
 typedef struct {
-	usb_address_t address;
-	usb_speed_t speed;
-	devman_handle_t handle;
-	int iface;
+	usb_address_t address;		/** Current USB address */
+	uint8_t depth;			/** Depth in the hub hiearchy */
+	usb_speed_t speed;		/** Speed of the device */
+	devman_handle_t handle;		/** Handle to DDF function of the HC driver */
+	int iface;			/** Interface set by multi interface driver, -1 if none */
 } usb_device_desc_t;
 
 extern usb_dev_session_t *usb_dev_connect(devman_handle_t);

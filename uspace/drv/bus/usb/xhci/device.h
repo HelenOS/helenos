@@ -48,9 +48,6 @@ typedef struct xhci_device {
 	/** Corresponding port on RH */
 	uint8_t rh_port;
 
-	/** USB Tier of the device */
-	uint8_t tier;
-
 	/** Route string */
 	uint32_t route_str;
 

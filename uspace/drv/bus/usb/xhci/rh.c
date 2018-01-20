@@ -97,7 +97,6 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 
 	/* Initialize route string */
 	rh->device.route_str = 0;
-	rh->device.tier = 0;
 
 	return EOK;
 }
@@ -156,6 +155,7 @@ static int rh_enumerate_device(usb_port_t *usb_port)
 	}
 
 	dev->hub = &port->rh->device.base;
+	dev->tier = 1;
 	dev->port = port - port->rh->ports + 1;
 
 	port->device = xhci_device_get(dev);

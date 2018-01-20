@@ -177,12 +177,11 @@ int xhci_device_enumerate(device_t *dev)
 
 	/* Calculate route string */
 	xhci_device_t *xhci_hub = xhci_device_get(dev->hub);
-	xhci_dev->tier = xhci_hub->tier + 1;
 	xhci_dev->route_str = xhci_hub->route_str;
 
 	/* Roothub port is not part of the route string */
-	if (xhci_dev->tier >= 2) {
-		const unsigned offset = 4 * (xhci_dev->tier - 2);
+	if (dev->tier >= 2) {
+		const unsigned offset = 4 * (dev->tier - 2);
 		xhci_dev->route_str |= (dev->port & 0xf) << offset;
 		xhci_dev->rh_port = xhci_hub->rh_port;
 	}
