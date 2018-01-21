@@ -217,12 +217,6 @@ static void port_changed_reset(usb_hub_port_t *port, usb_port_status_t status)
 		usb_port_disabled(&port->base, &remove_device);
 }
 
-static void port_changed_link_state(usb_hub_port_t *port, usb_port_status_t status)
-{
-	port_log(debug2, port, "Port link state changed.");
-}
-
-
 typedef void (*change_handler_t)(usb_hub_port_t *, usb_port_status_t);
 
 static const change_handler_t port_change_handlers [] = {
@@ -231,7 +225,6 @@ static const change_handler_t port_change_handlers [] = {
 	[USB_HUB_FEATURE_C_PORT_SUSPEND] = &port_changed_suspend,
 	[USB_HUB_FEATURE_C_PORT_OVER_CURRENT] = &port_changed_overcurrent,
 	[USB_HUB_FEATURE_C_PORT_RESET] = &port_changed_reset,
-	[USB_HUB_FEATURE_C_PORT_LINK_STATE] = &port_changed_link_state,
 	[sizeof(usb_port_status_t) * 8] = NULL,
 };
 
@@ -253,6 +246,10 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port)
 		port_log(error, port, "Failed to get port status: %s.", str_error(err));
 		return;
 	}
+
+	if (port->hub->speed == USB_SPEED_SUPER)
+		/* Link state change is not a change we shall clear, nor we care about it */
+		status &= ~(1 << USB_HUB_FEATURE_C_PORT_LINK_STATE);
 
 	for (uint32_t feature = 16; feature < sizeof(usb_port_status_t) * 8; ++feature) {
 		uint32_t mask = 1 << feature;
