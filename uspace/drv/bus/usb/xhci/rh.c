@@ -170,6 +170,8 @@ static int rh_enumerate_device(usb_port_t *usb_port)
 	port->device = xhci_device_get(dev);
 	port->device->rh_port = dev->port;
 
+	usb_log_debug("Enumerating new %s-speed device on port %u.", usb_str_speed(dev->speed), dev->port);
+
 	if ((err = bus_device_enumerate(dev))) {
 		usb_log_error("Failed to enumerate USB device: %s", str_error(err));
 		return err;

@@ -300,7 +300,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 
 static void usb_hub_power_ports(usb_hub_dev_t *hub_dev)
 {
-	if (hub_dev->power_switched) {
+	if (!hub_dev->power_switched) {
 		usb_log_info("(%p): Power switching not supported, "
 		    "ports always powered.", hub_dev);
 		return;
