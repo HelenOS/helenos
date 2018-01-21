@@ -403,7 +403,7 @@ void xhci_dump_input_ctx(const xhci_hc_t * hc, const struct xhci_input_ctx *ictx
 		if (XHCI_INPUT_CTRL_CTX_DROP(*ctrl_ctx, dci)
 		    || XHCI_INPUT_CTRL_CTX_ADD(*ctrl_ctx, dci)) {
 			usb_log_debug("Endpoint context DCI %u:", dci);
-			xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(device_ctx, hc, dci - 1);
+			xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(device_ctx, hc, dci);
 			xhci_dump_endpoint_ctx(ep_ctx);
 		}
 }
