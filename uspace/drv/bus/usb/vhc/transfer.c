@@ -152,7 +152,6 @@ static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
 	transfer->batch.error = outcome;
 	transfer->batch.transfered_size = data_transfer_size;
 	usb_transfer_batch_finish(&transfer->batch);
-	free(transfer);
 }
 
 static usb_transfer_batch_t *batch_create(endpoint_t *ep)
