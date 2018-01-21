@@ -664,7 +664,7 @@ static int ar9271_ieee80211_start(ieee80211_dev_t *ieee80211_dev)
 	return EOK;
 }
 
-static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
+static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device, const usb_endpoint_description_t **endpoints)
 {
 	ar9271->starting_up = true;
 	ar9271->usb_device = usb_device;
@@ -678,7 +678,7 @@ static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device)
 		return ENOMEM;
 	}
 	
-	int rc = ath_usb_init(ar9271->ath_device, usb_device);
+	int rc = ath_usb_init(ar9271->ath_device, usb_device, endpoints);
 	if (rc != EOK) {
 		free(ar9271->ath_device);
 		usb_log_error("Failed to initialize ath device.\n");
@@ -849,7 +849,7 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	
 	ar9271->ddf_dev = dev;
 	
-	rc = ar9271_init(ar9271, usb_device_get(dev));
+	rc = ar9271_init(ar9271, usb_device_get(dev), endpoints);
 	if (rc != EOK) {
 		free(ar9271);
 		usb_log_error("Failed to initialize AR9271 structure: %d\n",

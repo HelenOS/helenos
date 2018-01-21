@@ -44,13 +44,15 @@
 
 #define NAME "usbdiag"
 
+static const usb_endpoint_description_t *diag_endpoints[];
+
 static int device_add(usb_device_t *dev)
 {
 	int rc;
 	usb_log_info("Adding device '%s'", usb_device_get_name(dev));
 
 	usbdiag_dev_t *diag_dev;
-	if ((rc = usbdiag_dev_create(dev, &diag_dev))) {
+	if ((rc = usbdiag_dev_create(dev, &diag_dev, diag_endpoints))) {
 		usb_log_error("Failed create device: %s.", str_error(rc));
 		goto err;
 	}

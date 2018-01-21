@@ -37,6 +37,7 @@
 #define USBDIAG_DEVICE_H_
 
 #include <usb/dev/device.h>
+#include <usb/dev/driver.h>
 
 #define USBDIAG_EP_INTR_IN    1
 #define USBDIAG_EP_INTR_OUT   2
@@ -59,7 +60,7 @@ typedef struct usbdiag_dev {
 	usb_pipe_t *isoch_out;
 } usbdiag_dev_t;
 
-int usbdiag_dev_create(usb_device_t *, usbdiag_dev_t **);
+int usbdiag_dev_create(usb_device_t *, usbdiag_dev_t **, const usb_endpoint_description_t **);
 void usbdiag_dev_destroy(usbdiag_dev_t *);
 
 static inline usbdiag_dev_t * usb_device_to_usbdiag_dev(usb_device_t *usb_dev)

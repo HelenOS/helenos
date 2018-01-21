@@ -63,7 +63,7 @@ static ddf_dev_ops_t diag_ops = {
 	.interfaces[USBDIAG_DEV_IFACE] = &diag_interface
 };
 
-static int device_init(usbdiag_dev_t *dev)
+static int device_init(usbdiag_dev_t *dev, const usb_endpoint_description_t **endpoints)
 {
 	int rc;
 	ddf_fun_t *fun = usb_device_ddf_fun_create(dev->usb_dev, fun_exposed, "tmon");
@@ -76,7 +76,7 @@ static int device_init(usbdiag_dev_t *dev)
 	dev->fun = fun;
 
 #define _MAP_EP(target, ep_no) do {\
-	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep(dev->usb_dev, USBDIAG_EP_##ep_no);\
+	usb_endpoint_mapping_t *epm = usb_device_get_mapped_ep_desc(dev->usb_dev, endpoints[USBDIAG_EP_##ep_no]);\
 	if (!epm || !epm->present) {\
 		usb_log_error("Failed to map endpoint: " #ep_no ".");\
 		rc = ENOENT;\
@@ -107,7 +107,7 @@ static void device_fini(usbdiag_dev_t *dev)
 	ddf_fun_destroy(dev->fun);
 }
 
-int usbdiag_dev_create(usb_device_t *dev, usbdiag_dev_t **out_diag_dev)
+int usbdiag_dev_create(usb_device_t *dev, usbdiag_dev_t **out_diag_dev, const usb_endpoint_description_t **endpoints)
 {
 	assert(dev);
 	assert(out_diag_dev);
@@ -119,7 +119,7 @@ int usbdiag_dev_create(usb_device_t *dev, usbdiag_dev_t **out_diag_dev)
 	diag_dev->usb_dev = dev;
 
 	int err;
-	if ((err = device_init(diag_dev)))
+	if ((err = device_init(diag_dev, endpoints)))
 		goto err_init;
 
 	*out_diag_dev = diag_dev;

@@ -340,17 +340,6 @@ usb_endpoint_mapping_t *usb_device_get_mapped_ep_desc(usb_device_t *usb_dev,
 	return NULL;
 }
 
-usb_endpoint_mapping_t * usb_device_get_mapped_ep(
-    usb_device_t *usb_dev, usb_endpoint_t ep)
-{
-	assert(usb_dev);
-	for (unsigned i = 0; i < usb_dev->pipes_count; ++i) {
-		if (usb_dev->pipes[i].pipe.desc.endpoint_no == ep)
-			return &usb_dev->pipes[i];
-	}
-	return NULL;
-}
-
 int usb_device_unmap_ep(usb_endpoint_mapping_t *epm)
 {
 	assert(epm);
