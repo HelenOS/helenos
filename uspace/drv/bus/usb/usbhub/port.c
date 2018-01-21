@@ -144,8 +144,9 @@ static int enumerate_device(usb_port_t *port_base)
 
 	if ((err = usbhc_device_enumerate(exch, port->port_number, port->speed))) {
 		port_log(error, port, "Failed to enumerate device: %s", str_error(err));
-		/* Disable the port */
-		usb_hub_clear_port_feature(port->hub, port->port_number, USB_HUB_FEATURE_PORT_ENABLE);
+		/* Disable the port in USB 2 (impossible in USB3) */
+		if (port->speed <= USB_SPEED_HIGH)
+			usb_hub_clear_port_feature(port->hub, port->port_number, USB2_HUB_FEATURE_PORT_ENABLE);
 		goto out_address;
 	}
 
@@ -172,17 +173,12 @@ static void port_changed_connection(usb_hub_port_t *port, usb_port_status_t stat
 
 static void port_changed_enabled(usb_hub_port_t *port, usb_port_status_t status)
 {
-	const bool enabled = !!(status & USB_HUB_PORT_STATUS_ENABLED);
+	const bool enabled = !!(status & USB_HUB_PORT_STATUS_ENABLE);
 	if (enabled) {
 		port_log(warning, port, "Port unexpectedly changed to enabled.");
 	} else {
 		usb_port_disabled(&port->base, &remove_device);
 	}
-}
-
-static void port_changed_suspend(usb_hub_port_t *port, usb_port_status_t status)
-{
-	port_log(error, port, "Port unexpectedly suspend. Weird, we do not support suspending!");
 }
 
 static void port_changed_overcurrent(usb_hub_port_t *port, usb_port_status_t status)
@@ -206,7 +202,7 @@ static void port_changed_overcurrent(usb_hub_port_t *port, usb_port_status_t sta
 
 static void port_changed_reset(usb_hub_port_t *port, usb_port_status_t status)
 {
-	const bool enabled = !!(status & USB_HUB_PORT_STATUS_ENABLED);
+	const bool enabled = !!(status & USB_HUB_PORT_STATUS_ENABLE);
 
 	if (enabled) {
 		// The connecting fibril do not touch speed until the port is enabled,
@@ -219,14 +215,21 @@ static void port_changed_reset(usb_hub_port_t *port, usb_port_status_t status)
 
 typedef void (*change_handler_t)(usb_hub_port_t *, usb_port_status_t);
 
-static const change_handler_t port_change_handlers [] = {
-	[USB_HUB_FEATURE_C_PORT_CONNECTION] = &port_changed_connection,
-	[USB_HUB_FEATURE_C_PORT_ENABLE] = &port_changed_enabled,
-	[USB_HUB_FEATURE_C_PORT_SUSPEND] = &port_changed_suspend,
-	[USB_HUB_FEATURE_C_PORT_OVER_CURRENT] = &port_changed_overcurrent,
-	[USB_HUB_FEATURE_C_PORT_RESET] = &port_changed_reset,
-	[sizeof(usb_port_status_t) * 8] = NULL,
-};
+static void check_port_change(usb_hub_port_t *port, usb_port_status_t *status,
+    change_handler_t handler, usb_port_status_t mask, usb_hub_class_feature_t feature)
+{
+	if ((*status & mask) == 0)
+		return;
+
+	/* Clear the change so it won't come again */
+	usb_hub_clear_port_feature(port->hub, port->port_number, feature);
+
+	if (handler)
+		handler(port, *status);
+
+	/* Mark the change as resolved */
+	*status &= ~mask;
+}
 
 /**
  * Process interrupts on given port
@@ -247,26 +250,24 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port)
 		return;
 	}
 
-	if (port->hub->speed == USB_SPEED_SUPER)
-		/* Link state change is not a change we shall clear, nor we care about it */
-		status &= ~(1 << USB_HUB_FEATURE_C_PORT_LINK_STATE);
+	check_port_change(port, &status, &port_changed_connection,
+	    USB_HUB_PORT_STATUS_C_CONNECTION, USB_HUB_FEATURE_C_PORT_CONNECTION);
 
-	for (uint32_t feature = 16; feature < sizeof(usb_port_status_t) * 8; ++feature) {
-		uint32_t mask = 1 << feature;
+	check_port_change(port, &status, &port_changed_overcurrent,
+	    USB_HUB_PORT_STATUS_C_OC, USB_HUB_FEATURE_C_PORT_OVER_CURRENT);
 
-		if ((status & mask) == 0)
-			continue;
+	check_port_change(port, &status, &port_changed_reset,
+	    USB_HUB_PORT_STATUS_C_RESET, USB_HUB_FEATURE_C_PORT_RESET);
 
-		/* Clear the change so it won't come again */
-		usb_hub_clear_port_feature(port->hub, port->port_number, feature);
+	if (port->hub->speed <= USB_SPEED_HIGH) {
+		check_port_change(port, &status, &port_changed_enabled,
+		    USB2_HUB_PORT_STATUS_C_ENABLE, USB2_HUB_FEATURE_C_PORT_ENABLE);
+	} else {
+		check_port_change(port, &status, &port_changed_reset,
+		    USB3_HUB_PORT_STATUS_C_BH_RESET, USB3_HUB_FEATURE_C_BH_PORT_RESET);
 
-		if (!port_change_handlers[feature])
-			continue;
-
-		/* ACK this change */
-		status &= ~mask;
-
-		port_change_handlers[feature](port, status);
+		check_port_change(port, &status, NULL,
+		    USB3_HUB_PORT_STATUS_C_LINK_STATE, USB3_HUB_FEATURE_C_PORT_LINK_STATE);
 	}
 
 	/* Check for changes we ignored */

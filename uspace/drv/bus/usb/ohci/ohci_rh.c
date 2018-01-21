@@ -339,19 +339,19 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 			return EOK;
 		}
 
-	case USB_HUB_FEATURE_PORT_ENABLE:         /*1*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:         /*1*/
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    RHPS_CLEAR_PORT_ENABLE);
 		return EOK;
 
-	case USB_HUB_FEATURE_PORT_SUSPEND:        /*2*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND:        /*2*/
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    RHPS_CLEAR_PORT_SUSPEND);
 		return EOK;
 
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
-	case USB_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
 	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
 		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
@@ -400,8 +400,8 @@ static int req_set_port_feature(usbvirt_device_t *device,
 		}
 		/* Fall through, for per port power */
 		/* Fallthrough */
-	case USB_HUB_FEATURE_PORT_ENABLE:  /*1*/
-	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:  /*1*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND: /*2*/
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
 		usb_log_debug2("Setting port POWER, ENABLE, SUSPEND or RESET "
 		    "on port %u.", port);

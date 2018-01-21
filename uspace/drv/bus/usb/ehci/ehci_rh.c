@@ -246,7 +246,7 @@ static int req_clear_hub_feature(usbvirt_device_t *device,
 }
 
 #define BIT_VAL(val, bit)   ((val & bit) ? 1 : 0)
-#define EHCI2USB(val, bit, feat)   (BIT_VAL(val, bit) << feat)
+#define EHCI2USB(val, bit, mask)   (BIT_VAL(val, bit) ? mask : 0)
 
 /** Port status request handler.
  * @param device Virtual hub device
@@ -268,22 +268,22 @@ static int req_get_port_status(usbvirt_device_t *device,
 
 	const uint32_t reg = EHCI_RD(hub->registers->portsc[port]);
 	const uint32_t status = uint32_host2usb(
-	    EHCI2USB(reg, USB_PORTSC_CONNECT_FLAG, USB_HUB_FEATURE_PORT_CONNECTION) |
-	    EHCI2USB(reg, USB_PORTSC_ENABLED_FLAG, USB_HUB_FEATURE_PORT_ENABLE) |
-	    EHCI2USB(reg, USB_PORTSC_SUSPEND_FLAG, USB_HUB_FEATURE_PORT_SUSPEND) |
-	    EHCI2USB(reg, USB_PORTSC_OC_ACTIVE_FLAG, USB_HUB_FEATURE_PORT_OVER_CURRENT) |
-	    EHCI2USB(reg, USB_PORTSC_PORT_RESET_FLAG, USB_HUB_FEATURE_PORT_RESET) |
-	    EHCI2USB(reg, USB_PORTSC_PORT_POWER_FLAG, USB_HUB_FEATURE_PORT_POWER) |
+	    EHCI2USB(reg, USB_PORTSC_CONNECT_FLAG, USB_HUB_PORT_STATUS_CONNECTION) |
+	    EHCI2USB(reg, USB_PORTSC_ENABLED_FLAG, USB_HUB_PORT_STATUS_ENABLE) |
+	    EHCI2USB(reg, USB_PORTSC_SUSPEND_FLAG, USB2_HUB_PORT_STATUS_SUSPEND) |
+	    EHCI2USB(reg, USB_PORTSC_OC_ACTIVE_FLAG, USB_HUB_PORT_STATUS_OC) |
+	    EHCI2USB(reg, USB_PORTSC_PORT_RESET_FLAG, USB_HUB_PORT_STATUS_RESET) |
+	    EHCI2USB(reg, USB_PORTSC_PORT_POWER_FLAG, USB2_HUB_PORT_STATUS_POWER) |
 	    (((reg & USB_PORTSC_LINE_STATUS_MASK) == USB_PORTSC_LINE_STATUS_K) ?
-	        (1 << USB_HUB_FEATURE_PORT_LOW_SPEED) : 0) |
-	    ((reg & USB_PORTSC_PORT_OWNER_FLAG) ? 0 : (1 << USB_HUB_FEATURE_PORT_HIGH_SPEED)) |
-	    EHCI2USB(reg, USB_PORTSC_PORT_TEST_MASK, 11) |
-	    EHCI2USB(reg, USB_PORTSC_INDICATOR_MASK, 12) |
-	    EHCI2USB(reg, USB_PORTSC_CONNECT_CH_FLAG, USB_HUB_FEATURE_C_PORT_CONNECTION) |
-	    EHCI2USB(reg, USB_PORTSC_EN_CHANGE_FLAG, USB_HUB_FEATURE_C_PORT_ENABLE) |
-	    (hub->resume_flag[port] ? (1 << USB_HUB_FEATURE_C_PORT_SUSPEND) : 0) |
-	    EHCI2USB(reg, USB_PORTSC_OC_CHANGE_FLAG, USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
-	    (hub->reset_flag[port] ? (1 << USB_HUB_FEATURE_C_PORT_RESET): 0)
+	        (USB2_HUB_PORT_STATUS_LOW_SPEED) : 0) |
+	    ((reg & USB_PORTSC_PORT_OWNER_FLAG) ? 0 : USB2_HUB_PORT_STATUS_HIGH_SPEED) |
+	    EHCI2USB(reg, USB_PORTSC_PORT_TEST_MASK, USB2_HUB_PORT_STATUS_TEST) |
+	    EHCI2USB(reg, USB_PORTSC_INDICATOR_MASK, USB2_HUB_PORT_STATUS_INDICATOR) |
+	    EHCI2USB(reg, USB_PORTSC_CONNECT_CH_FLAG, USB_HUB_PORT_STATUS_C_CONNECTION) |
+	    EHCI2USB(reg, USB_PORTSC_EN_CHANGE_FLAG, USB2_HUB_PORT_STATUS_C_ENABLE) |
+	    (hub->resume_flag[port] ? USB2_HUB_PORT_STATUS_C_SUSPEND : 0) |
+	    EHCI2USB(reg, USB_PORTSC_OC_CHANGE_FLAG, USB_HUB_PORT_STATUS_C_OC) |
+	    (hub->reset_flag[port] ? USB_HUB_PORT_STATUS_C_RESET: 0)
 	);
 	/* Note feature numbers for test and indicator feature do not
 	 * correspond to the port status bit locations */
@@ -384,13 +384,13 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		    USB_PORTSC_PORT_POWER_FLAG);
 		return EOK;
 
-	case USB_HUB_FEATURE_PORT_ENABLE:         /*1*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:         /*1*/
 		usb_log_debug2("RH(%p-%u): Clear port enable.", hub, port);
 		EHCI_CLR(hub->registers->portsc[port],
 		    USB_PORTSC_ENABLED_FLAG);
 		return EOK;
 
-	case USB_HUB_FEATURE_PORT_SUSPEND:        /*2*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND:        /*2*/
 		usb_log_debug2("RH(%p-%u): Clear port suspend.", hub, port);
 		/* If not in suspend it's noop */
 		if ((EHCI_RD(hub->registers->portsc[port]) &
@@ -408,7 +408,7 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_CONNECT_CH_FLAG);
 		return EOK;
-	case USB_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
 		usb_log_debug2("RH(%p-%u): Clear port enable change.",
 		    hub, port);
 		EHCI_SET(hub->registers->portsc[port],
@@ -420,7 +420,7 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_OC_CHANGE_FLAG);
 		return EOK;
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
 		usb_log_debug2("RH(%p-%u): Clear port suspend change.",
 		    hub, port);
 		hub->resume_flag[port] = false;
@@ -455,12 +455,12 @@ static int req_set_port_feature(usbvirt_device_t *device,
 	TEST_SIZE_INIT(0, port, hub);
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	switch (feature) {
-	case USB_HUB_FEATURE_PORT_ENABLE:  /*1*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:  /*1*/
 		usb_log_debug2("RH(%p-%u): Set port enable.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_ENABLED_FLAG);
 		return EOK;
-	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND: /*2*/
 		usb_log_debug2("RH(%p-%u): Set port suspend.", hub, port);
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_SUSPEND_FLAG);

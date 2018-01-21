@@ -209,8 +209,8 @@ static int req_get_port_state(usbvirt_device_t *device,
 
 #define BIT_VAL(val, bit) \
 	((val & bit) ? 1 : 0)
-#define UHCI2USB(val, bit, feat) \
-	(BIT_VAL(val, bit) << feat)
+#define UHCI2USB(val, bit, mask) \
+	(BIT_VAL(val, bit) ? (mask) : 0)
 
 /** Port status request handler.
  * @param device Virtual hub device
@@ -235,16 +235,16 @@ static int req_get_port_status(usbvirt_device_t *device,
 
 	const uint16_t val = pio_read_16(hub->ports[port]);
 	const uint32_t status = uint32_host2usb(
-	    UHCI2USB(val, STATUS_CONNECTED, USB_HUB_FEATURE_PORT_CONNECTION) |
-	    UHCI2USB(val, STATUS_ENABLED, USB_HUB_FEATURE_PORT_ENABLE) |
-	    UHCI2USB(val, STATUS_SUSPEND, USB_HUB_FEATURE_PORT_SUSPEND) |
-	    UHCI2USB(val, STATUS_IN_RESET, USB_HUB_FEATURE_PORT_RESET) |
-	    UHCI2USB(val, STATUS_ALWAYS_ONE, USB_HUB_FEATURE_PORT_POWER) |
-	    UHCI2USB(val, STATUS_LOW_SPEED, USB_HUB_FEATURE_PORT_LOW_SPEED) |
-	    UHCI2USB(val, STATUS_CONNECTED_CHANGED, USB_HUB_FEATURE_C_PORT_CONNECTION) |
-	    UHCI2USB(val, STATUS_ENABLED_CHANGED, USB_HUB_FEATURE_C_PORT_ENABLE) |
-//	    UHCI2USB(val, STATUS_SUSPEND, USB_HUB_FEATURE_C_PORT_SUSPEND) |
-	    ((hub->reset_changed[port] ? 1 : 0) << USB_HUB_FEATURE_C_PORT_RESET)
+	    UHCI2USB(val, STATUS_CONNECTED, USB_HUB_PORT_STATUS_CONNECTION) |
+	    UHCI2USB(val, STATUS_ENABLED, USB_HUB_PORT_STATUS_ENABLE) |
+	    UHCI2USB(val, STATUS_SUSPEND, USB2_HUB_PORT_STATUS_SUSPEND) |
+	    UHCI2USB(val, STATUS_IN_RESET, USB_HUB_PORT_STATUS_RESET) |
+	    UHCI2USB(val, STATUS_ALWAYS_ONE, USB2_HUB_PORT_STATUS_POWER) |
+	    UHCI2USB(val, STATUS_LOW_SPEED, USB2_HUB_PORT_STATUS_LOW_SPEED) |
+	    UHCI2USB(val, STATUS_CONNECTED_CHANGED, USB_HUB_PORT_STATUS_C_CONNECTION) |
+	    UHCI2USB(val, STATUS_ENABLED_CHANGED, USB2_HUB_PORT_STATUS_C_ENABLE) |
+//	    UHCI2USB(val, STATUS_SUSPEND, USB2_HUB_PORT_STATUS_C_SUSPEND) |
+	    (hub->reset_changed[port] ?  USB_HUB_PORT_STATUS_C_RESET : 0)
 	);
 	RH_DEBUG(hub, port, "Port status %" PRIx32 " (source %" PRIx16
 	    "%s)", uint32_usb2host(status), val,
@@ -273,12 +273,12 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 	const uint16_t status = pio_read_16(hub->ports[port]);
 	const uint16_t val = status & (~STATUS_WC_BITS);
 	switch (feature) {
-	case USB_HUB_FEATURE_PORT_ENABLE:
+	case USB2_HUB_FEATURE_PORT_ENABLE:
 		RH_DEBUG(hub, port, "Clear port enable (status %"
 		    PRIx16 ")", status);
 		pio_write_16(hub->ports[port], val & ~STATUS_ENABLED);
 		break;
-	case USB_HUB_FEATURE_PORT_SUSPEND:
+	case USB2_HUB_FEATURE_PORT_SUSPEND:
 		RH_DEBUG(hub, port, "Clear port suspend (status %"
 		    PRIx16 ")", status);
 		pio_write_16(hub->ports[port], val & ~STATUS_SUSPEND);
@@ -301,12 +301,12 @@ static int req_clear_port_feature(usbvirt_device_t *device,
 		    PRIx16 ")", status);
 		hub->reset_changed[port] = false;
 		break;
-	case USB_HUB_FEATURE_C_PORT_ENABLE:
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:
 		RH_DEBUG(hub, port, "Clear port enable change (status %"
 		    PRIx16 ")", status);
 		pio_write_16(hub->ports[port], status | STATUS_ENABLED_CHANGED);
 		break;
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:
 		RH_DEBUG(hub, port, "Clear port suspend change (status %"
 		    PRIx16 ")", status);
 		//TODO
@@ -353,7 +353,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
 		RH_DEBUG(hub, port, "Set port reset after (status %" PRIx16
 		    ")", pio_read_16(hub->ports[port]));
 		break;
-	case USB_HUB_FEATURE_PORT_SUSPEND:
+	case USB2_HUB_FEATURE_PORT_SUSPEND:
 		RH_DEBUG(hub, port, "Set port suspend (status %" PRIx16
 		    ")", status);
 		pio_write_16(hub->ports[port],
@@ -367,8 +367,8 @@ static int req_set_port_feature(usbvirt_device_t *device,
 		usb_log_warning("Tried to power port %u", port);
 		break;
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:
-	case USB_HUB_FEATURE_C_PORT_ENABLE:
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
 		RH_DEBUG(hub, port, "Set port change flag (status %" PRIx16
 		    ")", status);
