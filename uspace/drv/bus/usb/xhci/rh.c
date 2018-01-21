@@ -274,7 +274,7 @@ void xhci_rh_startup(xhci_rh_t *rh)
 	/* The reset changed status of all ports, and SW originated reason does
 	 * not cause an interrupt.
 	 */
-	for (uint8_t i = 1; i < rh->max_ports; ++i) {
+	for (uint8_t i = 0; i < rh->max_ports; ++i) {
 		xhci_rh_handle_port_change(rh, i + 1);
 
 		rh_port_t * const port = &rh->ports[i];
