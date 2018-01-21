@@ -298,6 +298,30 @@ bool hub_port_changes_callback(usb_device_t *dev,
 	return true;
 }
 
+static void usb_hub_power_ports(usb_hub_dev_t *hub_dev)
+{
+	if (hub_dev->power_switched) {
+		usb_log_info("(%p): Power switching not supported, "
+		    "ports always powered.", hub_dev);
+		return;
+	}
+
+	usb_log_info("(%p): Hub port power switching enabled (%s).", hub_dev,
+	    hub_dev->per_port_power ? "per port" : "ganged");
+
+	for (unsigned int port = 0; port < hub_dev->port_count; ++port) {
+		usb_log_debug("(%p): Powering port %u.", hub_dev, port + 1);
+		const int ret = usb_hub_set_port_feature(hub_dev, port + 1, USB_HUB_FEATURE_PORT_POWER);
+
+		if (ret != EOK) {
+			usb_log_error("(%p-%u): Cannot power on port: %s.",
+			    hub_dev, hub_dev->ports[port].port_number,
+			    str_error(ret));
+			/* Continue to try at least other ports */
+		}
+	}
+}
+
 /**
  * Load hub-specific information into hub_dev structure and process if needed
  *
@@ -359,31 +383,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	hub_dev->per_port_power =
 	    descriptor.characteristics & HUB_CHAR_POWER_PER_PORT_FLAG;
 
-	if (!hub_dev->power_switched) {
-		usb_log_info("(%p): Power switching not supported, "
-		    "ports always powered.", hub_dev);
-		return EOK;
-	}
+	usb_hub_power_ports(hub_dev);
 
-	usb_log_info("(%p): Hub port power switching enabled (%s).", hub_dev,
-	    hub_dev->per_port_power ? "per port" : "ganged");
-
-	for (unsigned int port = 0; port < hub_dev->port_count; ++port) {
-		usb_log_debug("(%p): Powering port %u.", hub_dev, port + 1);
-		const int ret = usb_hub_set_port_feature(hub_dev, port + 1, USB_HUB_FEATURE_PORT_POWER);
-
-		if (ret != EOK) {
-			usb_log_error("(%p-%u): Cannot power on port: %s.",
-			    hub_dev, hub_dev->ports[port].port_number,
-			    str_error(ret));
-		} else {
-			if (!hub_dev->per_port_power) {
-				usb_log_debug("(%p) Ganged power switching, port %u is probably already powered.", hub_dev, port + 1);
-			} else {
-				usb_log_warning("(%p): Failed to power port %u.", hub_dev, port + 1);
-			}
-		}
-	}
 	return EOK;
 }
 
