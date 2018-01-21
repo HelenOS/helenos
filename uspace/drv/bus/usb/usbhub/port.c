@@ -98,40 +98,26 @@ static usb_speed_t get_port_speed(usb_hub_port_t *port, uint32_t status)
 }
 
 /**
- * Routine for adding a new device.
- *
- * Separate fibril is needed because the operation blocks on waiting for
- * requesting default address and resetting port, and we must not block the
- * control pipe.
+ * Routine for adding a new device in USB2.
  */
-static int enumerate_device(usb_port_t *port_base)
+static int enumerate_device_usb2(usb_hub_port_t *port, async_exch_t *exch)
 {
 	int err;
-	usb_hub_port_t *port = get_hub_port(port_base);
 
-	port_log(debug, port, "Setting up new device.");
-
-	async_exch_t *exch = usb_device_bus_exchange_begin(port->hub->usb_device);
-	if (!exch) {
-		port_log(error, port, "Failed to create exchange.");
-		return ENOMEM;
-	}
-
-	/* Reserve default address */
+	port_log(debug, port, "Requesting default address.");
 	err = usb_hub_reserve_default_address(port->hub, exch, &port->base);
 	if (err != EOK) {
 		port_log(error, port, "Failed to reserve default address: %s", str_error(err));
-		goto out_exch;
+		return err;
 	}
 
 	/* Reservation of default address could have blocked */
 	if (port->base.state != PORT_CONNECTING)
 		goto out_address;
 
-	port_log(debug, port, "Got default address. Resetting port.");
-	int rc = usb_hub_set_port_feature(port->hub, port->port_number, USB_HUB_FEATURE_PORT_RESET);
-	if (rc != EOK) {
-		port_log(warning, port, "Port reset request failed: %s", str_error(rc));
+	port_log(debug, port, "Resetting port.");
+	if ((err = usb_hub_set_port_feature(port->hub, port->port_number, USB_HUB_FEATURE_PORT_RESET))) {
+		port_log(warning, port, "Port reset request failed: %s", str_error(err));
 		goto out_address;
 	}
 
@@ -140,13 +126,11 @@ static int enumerate_device(usb_port_t *port_base)
 		goto out_address;
 	}
 
-	port_log(debug, port, "Port reset, enumerating device.");
-
+	port_log(debug, port, "Enumerating device.");
 	if ((err = usbhc_device_enumerate(exch, port->port_number, port->speed))) {
 		port_log(error, port, "Failed to enumerate device: %s", str_error(err));
-		/* Disable the port in USB 2 (impossible in USB3) */
-		if (port->speed <= USB_SPEED_HIGH)
-			usb_hub_clear_port_feature(port->hub, port->port_number, USB2_HUB_FEATURE_PORT_ENABLE);
+		/* Disable the port */
+		usb_hub_clear_port_feature(port->hub, port->port_number, USB2_HUB_FEATURE_PORT_ENABLE);
 		goto out_address;
 	}
 
@@ -154,7 +138,52 @@ static int enumerate_device(usb_port_t *port_base)
 
 out_address:
 	usb_hub_release_default_address(port->hub, exch);
-out_exch:
+	return err;
+}
+
+/**
+ * Routine for adding a new device in USB 3.
+ */
+static int enumerate_device_usb3(usb_hub_port_t *port, async_exch_t *exch)
+{
+	int err;
+
+	port_log(debug, port, "Issuing a warm reset.");
+	if ((err = usb_hub_set_port_feature(port->hub, port->port_number, USB3_HUB_FEATURE_BH_PORT_RESET))) {
+		port_log(warning, port, "Port reset request failed: %s", str_error(err));
+		return err;
+	}
+
+	if ((err = usb_port_wait_for_enabled(&port->base))) {
+		port_log(error, port, "Failed to reset port: %s", str_error(err));
+		return err;
+	}
+
+	port_log(debug, port, "Enumerating device.");
+	if ((err = usbhc_device_enumerate(exch, port->port_number, port->speed))) {
+		port_log(error, port, "Failed to enumerate device: %s", str_error(err));
+		return err;
+	}
+
+	port_log(debug, port, "Device enumerated");
+	return EOK;
+}
+
+static int enumerate_device(usb_port_t *port_base)
+{
+	usb_hub_port_t *port = get_hub_port(port_base);
+
+	port_log(debug, port, "Setting up new device.");
+	async_exch_t *exch = usb_device_bus_exchange_begin(port->hub->usb_device);
+	if (!exch) {
+		port_log(error, port, "Failed to create exchange.");
+		return ENOMEM;
+	}
+
+	const int err = port->hub->speed == USB_SPEED_SUPER
+		? enumerate_device_usb3(port, exch)
+		: enumerate_device_usb2(port, exch);
+
 	usb_device_bus_exchange_end(exch);
 	return err;
 }
@@ -164,7 +193,7 @@ static void port_changed_connection(usb_hub_port_t *port, usb_port_status_t stat
 	const bool connected = !!(status & USB_HUB_PORT_STATUS_CONNECTION);
 	port_log(debug, port, "Connection change: device %s.", connected ? "attached" : "removed");
 
-	if (connected) {
+	if (connected && port->hub->speed == USB_SPEED_SUPER) {
 		usb_port_connected(&port->base, &enumerate_device);
 	} else {
 		usb_port_disabled(&port->base, &remove_device);
@@ -205,8 +234,6 @@ static void port_changed_reset(usb_hub_port_t *port, usb_port_status_t status)
 	const bool enabled = !!(status & USB_HUB_PORT_STATUS_ENABLE);
 
 	if (enabled) {
-		// The connecting fibril do not touch speed until the port is enabled,
-		// so we do not have to lock
 		port->speed = get_port_speed(port, status);
 		usb_port_enabled(&port->base);
 	} else
