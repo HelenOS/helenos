@@ -193,7 +193,7 @@ static void port_changed_connection(usb_hub_port_t *port, usb_port_status_t stat
 	const bool connected = !!(status & USB_HUB_PORT_STATUS_CONNECTION);
 	port_log(debug, port, "Connection change: device %s.", connected ? "attached" : "removed");
 
-	if (connected && port->hub->speed == USB_SPEED_SUPER) {
+	if (connected) {
 		usb_port_connected(&port->base, &enumerate_device);
 	} else {
 		usb_port_disabled(&port->base, &remove_device);

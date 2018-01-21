@@ -378,9 +378,9 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 			    str_error(ret));
 		} else {
 			if (!hub_dev->per_port_power) {
-				usb_log_debug("(%p) Ganged power switching, "
-				    "one port is enough.", hub_dev);
-				break;
+				usb_log_debug("(%p) Ganged power switching, port %u is probably already powered.", hub_dev, port + 1);
+			} else {
+				usb_log_warning("(%p): Failed to power port %u.", hub_dev, port + 1);
 			}
 		}
 	}
