@@ -73,11 +73,6 @@ struct usb_hub_dev {
 	bool per_port_power;
 	/** Whether MTT is available */
 	bool mtt_available;
-
-	/** Default address management */
-	unsigned default_address_requests;
-	fibril_mutex_t default_address_guard;
-	fibril_condvar_t default_address_cv;
 };
 
 extern const usb_endpoint_description_t *usb_hub_endpoints [];

@@ -66,9 +66,19 @@
 	.flags = 0 \
 }
 
-/** Hub status-change endpoint description.
+/**
+ * Hub status-change endpoint description.
  *
- * For more information see section 11.15.1 of USB 1.1 specification.
+ * According to USB 2.0 specification, there are two possible arrangements of
+ * endpoints, depending on whether the hub has a MTT or not.
+ *
+ * Under any circumstances, there shall be exactly one endpoint descriptor.
+ * Though to be sure, let's map the protocol precisely. The possible
+ * combinations are:
+ *	                      | bDeviceProtocol | bInterfaceProtocol
+ *	Only single TT        |       0         |         0
+ *	MTT in Single-TT mode |       2         |         1
+ *	MTT in MTT mode       |       2         |         2     (iface alt. 1)
  */
 static const usb_endpoint_description_t
 	status_change_single_tt_only = HUB_STATUS_CHANGE_EP(0),
@@ -79,7 +89,6 @@ const usb_endpoint_description_t *usb_hub_endpoints [] = {
 	&status_change_mtt_available,
 };
 
-
 /** Standard get hub global status request */
 static const usb_device_request_setup_packet_t get_hub_status_request = {
 	.request_type = USB_HUB_REQ_TYPE_GET_HUB_STATUS,
@@ -89,18 +98,20 @@ static const usb_device_request_setup_packet_t get_hub_status_request = {
 	.length = sizeof(usb_hub_status_t),
 };
 
-static int usb_set_first_configuration(usb_device_t *usb_device);
-static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev);
-static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
-    usb_hub_status_t status);
-static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev);
+static int usb_set_first_configuration(usb_device_t *);
+static int usb_hub_process_hub_specific_info(usb_hub_dev_t *);
+static void usb_hub_over_current(const usb_hub_dev_t *, usb_hub_status_t);
+static int usb_hub_polling_init(usb_hub_dev_t *, usb_endpoint_mapping_t *);
+static void usb_hub_global_interrupt(const usb_hub_dev_t *);
 
-static bool usb_hub_polling_error_callback(usb_device_t *dev, int err_code, void *arg)
+static bool usb_hub_polling_error_callback(usb_device_t *dev,
+	int err_code, void *arg)
 {
 	assert(dev);
 	assert(arg);
 
-	usb_log_error("Device %s polling error: %s", usb_device_get_name(dev), str_error(err_code));
+	usb_log_error("Device %s polling error: %s",
+		usb_device_get_name(dev), str_error(err_code));
 
 	return true;
 }
@@ -115,7 +126,9 @@ static bool usb_hub_polling_error_callback(usb_device_t *dev, int err_code, void
  */
 int usb_hub_device_add(usb_device_t *usb_dev)
 {
+	int err;
 	assert(usb_dev);
+
 	/* Create driver soft-state structure */
 	usb_hub_dev_t *hub_dev =
 	    usb_device_data_alloc(usb_dev, sizeof(usb_hub_dev_t));
@@ -126,23 +139,16 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	hub_dev->usb_device = usb_dev;
 	hub_dev->speed = usb_device_get_speed(usb_dev);
 
-	fibril_mutex_initialize(&hub_dev->default_address_guard);
-	fibril_condvar_initialize(&hub_dev->default_address_cv);
-
 	/* Set hub's first configuration. (There should be only one) */
-	int opResult = usb_set_first_configuration(usb_dev);
-	if (opResult != EOK) {
-		usb_log_error("Could not set hub configuration: %s",
-		    str_error(opResult));
-		return opResult;
+	if ((err = usb_set_first_configuration(usb_dev))) {
+		usb_log_error("Could not set hub configuration: %s", str_error(err));
+		return err;
 	}
 
 	/* Get port count and create attached_devices. */
-	opResult = usb_hub_process_hub_specific_info(hub_dev);
-	if (opResult != EOK) {
-		usb_log_error("Could process hub specific info, %s",
-		    str_error(opResult));
-		return opResult;
+	if ((err = usb_hub_process_hub_specific_info(hub_dev))) {
+		usb_log_error("Could process hub specific info, %s", str_error(err));
+		return err;
 	}
 
 	const usb_endpoint_description_t *status_change = hub_dev->mtt_available
@@ -166,44 +172,15 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 
 	/* Bind hub control function. */
-	opResult = ddf_fun_bind(hub_dev->hub_fun);
-	if (opResult != EOK) {
-		usb_log_error("Failed to bind hub function: %s.",
-		   str_error(opResult));
-		ddf_fun_destroy(hub_dev->hub_fun);
-		return opResult;
+	if ((err = ddf_fun_bind(hub_dev->hub_fun))) {
+		usb_log_error("Failed to bind hub function: %s.", str_error(err));
+		goto err_ddf_fun;
 	}
 
 	/* Start hub operation. */
-	usb_polling_t *polling = &hub_dev->polling;
-	opResult = usb_polling_init(polling);
-	if (opResult != EOK) {
-		/* Function is already bound */
-		ddf_fun_unbind(hub_dev->hub_fun);
-		ddf_fun_destroy(hub_dev->hub_fun);
-		usb_log_error("Failed to initialize polling fibril: %s.",
-		    str_error(opResult));
-		return opResult;
-	}
-
-	polling->device = hub_dev->usb_device;
-	polling->ep_mapping = status_change_mapping;
-	polling->request_size = ((hub_dev->port_count + 1 + 7) / 8);
-	polling->buffer = malloc(polling->request_size);
-	polling->on_data = hub_port_changes_callback;
-	polling->on_error = usb_hub_polling_error_callback;
-	polling->arg = hub_dev;
-
-	opResult = usb_polling_start(polling);
-	if (opResult != EOK) {
-		/* Polling is already initialized. */
-		free(polling->buffer);
-		usb_polling_fini(polling);
-		ddf_fun_unbind(hub_dev->hub_fun);
-		ddf_fun_destroy(hub_dev->hub_fun);
-		usb_log_error("Failed to create polling fibril: %s.",
-		    str_error(opResult));
-		return opResult;
+	if ((err = usb_hub_polling_init(hub_dev, status_change_mapping))) {
+		usb_log_error("Failed to start polling: %s.", str_error(err));
+		goto err_bound;
 	}
 
 	usb_log_info("Controlling %s-speed hub '%s' (%p: %zu ports).",
@@ -212,6 +189,12 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	    hub_dev->port_count);
 
 	return EOK;
+
+err_bound:
+	ddf_fun_unbind(hub_dev->hub_fun);
+err_ddf_fun:
+	ddf_fun_destroy(hub_dev->hub_fun);
+	return err;
 }
 
 static int usb_hub_cleanup(usb_hub_dev_t *hub)
@@ -281,7 +264,40 @@ int usb_hub_device_gone(usb_device_t *usb_dev)
 	return usb_hub_cleanup(hub);
 }
 
-/** Callback for polling hub for changes.
+/**
+ * Initialize and start the polling of the Status Change Endpoint.
+ *
+ * @param mapping The mapping of Status Change Endpoint
+ */
+static int usb_hub_polling_init(usb_hub_dev_t *hub_dev,
+	usb_endpoint_mapping_t *mapping)
+{
+	int err;
+	usb_polling_t *polling = &hub_dev->polling;
+
+	if ((err = usb_polling_init(polling)))
+		return err;
+
+	polling->device = hub_dev->usb_device;
+	polling->ep_mapping = mapping;
+	polling->request_size = ((hub_dev->port_count + 1 + 7) / 8);
+	polling->buffer = malloc(polling->request_size);
+	polling->on_data = hub_port_changes_callback;
+	polling->on_error = usb_hub_polling_error_callback;
+	polling->arg = hub_dev;
+
+	if ((err = usb_polling_start(polling))) {
+		/* Polling is already initialized. */
+		free(polling->buffer);
+		usb_polling_fini(polling);
+		return err;
+	}
+
+	return EOK;
+}
+
+/**
+ * Callback for polling hub for changes.
  *
  * @param dev Device where the change occured.
  * @param change_bitmap Bitmap of changed ports.
@@ -306,7 +322,7 @@ bool hub_port_changes_callback(usb_device_t *dev,
 		usb_hub_global_interrupt(hub);
 	}
 
-	/* N + 1 bit indicates change on port N */
+	/* Nth bit indicates change on port N */
 	for (size_t port = 0; port < hub->port_count; ++port) {
 		const size_t bit = port + 1;
 		const bool change = (change_bitmap[bit / 8] >> (bit % 8)) & 1;
@@ -330,7 +346,8 @@ static void usb_hub_power_ports(usb_hub_dev_t *hub_dev)
 
 	for (unsigned int port = 0; port < hub_dev->port_count; ++port) {
 		usb_log_debug("(%p): Powering port %u.", hub_dev, port + 1);
-		const int ret = usb_hub_set_port_feature(hub_dev, port + 1, USB_HUB_FEATURE_PORT_POWER);
+		const int ret = usb_hub_set_port_feature(hub_dev, port + 1,
+		    USB_HUB_FEATURE_PORT_POWER);
 
 		if (ret != EOK) {
 			usb_log_error("(%p-%u): Cannot power on port: %s.",
@@ -355,13 +372,13 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 {
 	assert(hub_dev);
 
-	/* Get hub descriptor. */
 	usb_log_debug("(%p): Retrieving descriptor.", hub_dev);
 	usb_pipe_t *control_pipe = usb_device_get_default_pipe(hub_dev->usb_device);
 
 	usb_descriptor_type_t desc_type = hub_dev->speed >= USB_SPEED_SUPER
 		? USB_DESCTYPE_SSPEED_HUB : USB_DESCTYPE_HUB;
 
+	/* Get hub descriptor. */
 	usb_hub_descriptor_header_t descriptor;
 	size_t received_size;
 	int opResult = usb_request_get_descriptor(control_pipe,
@@ -482,7 +499,8 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
 
 	/* Over-current condition is gone, it is safe to turn the ports on. */
 	for (size_t port = 0; port < hub_dev->port_count; ++port) {
-		const int ret = usb_hub_set_port_feature(hub_dev, port, USB_HUB_FEATURE_PORT_POWER);
+		const int ret = usb_hub_set_port_feature(hub_dev, port,
+		    USB_HUB_FEATURE_PORT_POWER);
 		if (ret != EOK) {
 			usb_log_warning("(%p-%u): HUB OVER-CURRENT GONE: Cannot"
 			    " power on port: %s\n", hub_dev,
@@ -525,7 +543,8 @@ int usb_hub_set_depth(const usb_hub_dev_t *hub)
  * @param port Port structure.
  * @param feature Feature selector.
  */
-int usb_hub_set_port_feature(const usb_hub_dev_t *hub, size_t port_number, usb_hub_class_feature_t feature)
+int usb_hub_set_port_feature(const usb_hub_dev_t *hub, size_t port_number,
+    usb_hub_class_feature_t feature)
 {
 	assert(hub);
 	const usb_device_request_setup_packet_t clear_request = {
@@ -545,7 +564,8 @@ int usb_hub_set_port_feature(const usb_hub_dev_t *hub, size_t port_number, usb_h
  * @param port Port structure.
  * @param feature Feature selector.
  */
-int usb_hub_clear_port_feature(const usb_hub_dev_t *hub, size_t port_number, usb_hub_class_feature_t feature)
+int usb_hub_clear_port_feature(const usb_hub_dev_t *hub, size_t port_number,
+    usb_hub_class_feature_t feature)
 {
 	assert(hub);
 	const usb_device_request_setup_packet_t clear_request = {
@@ -566,7 +586,8 @@ int usb_hub_clear_port_feature(const usb_hub_dev_t *hub, size_t port_number, usb
  * @param[out] status Where to store the port status.
  * @return Error code.
  */
-int usb_hub_get_port_status(const usb_hub_dev_t *hub, size_t port_number, usb_port_status_t *status)
+int usb_hub_get_port_status(const usb_hub_dev_t *hub, size_t port_number,
+    usb_port_status_t *status)
 {
 	assert(hub);
 	assert(status);
@@ -668,7 +689,14 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 	}
 }
 
+/**
+ * Instead of just sleeping, we may as well sleep on a condition variable.
+ * This has the advantage that we may instantly wait other hub from the polling
+ * sleep, mitigating the delay of polling while still being synchronized with
+ * other devices in need of the default address (there shall not be any).
+ */
 static FIBRIL_CONDVAR_INITIALIZE(global_hub_default_address_cv);
+static FIBRIL_MUTEX_INITIALIZE(global_hub_default_address_guard);
 
 /**
  * Reserve a default address for a port across all other devices connected to
@@ -676,35 +704,48 @@ static FIBRIL_CONDVAR_INITIALIZE(global_hub_default_address_cv);
  * connecting multiple devices from one hub - which happens e.g. when the hub
  * is connected with already attached devices.
  */
-int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch, usb_port_t *port)
+int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch,
+    usb_port_t *port)
 {
 	assert(hub);
 	assert(exch);
 	assert(port);
 	assert(fibril_mutex_is_locked(&port->guard));
 
-	fibril_mutex_lock(&hub->default_address_guard);
-	if (hub->default_address_requests++ == 0) {
-		/* We're the first to request the address, we can just do it */
-		fibril_mutex_unlock(&hub->default_address_guard);
-		int err;
-		while ((err = usbhc_reserve_default_address(exch)) == EAGAIN) {
-			// We ignore the return value here, as we cannot give up now.
-			usb_port_condvar_wait_timeout(port, &global_hub_default_address_cv, 500000);
-		}
-		return err;
-	} else {
+	int err = usbhc_reserve_default_address(exch);
+	/*
+	 * EINVAL signalls that its our hub (hopefully different port) that has
+	 * this address reserved
+	 */
+	while (err == EAGAIN || err == EINVAL) {
 		/* Drop the port guard, we're going to wait */
 		fibril_mutex_unlock(&port->guard);
 
-		/* Wait for a signal */
-		fibril_condvar_wait(&hub->default_address_cv, &hub->default_address_guard);
+		/* This sleeping might be disturbed by other hub */
+		fibril_mutex_lock(&global_hub_default_address_guard);
+		fibril_condvar_wait_timeout(&global_hub_default_address_cv,
+		    &global_hub_default_address_guard, 2000000);
+		fibril_mutex_unlock(&global_hub_default_address_guard);
 
-		/* Remember ABBA, first drop the hub guard */
-		fibril_mutex_unlock(&hub->default_address_guard);
 		fibril_mutex_lock(&port->guard);
-		return EOK;
+		err = usbhc_reserve_default_address(exch);
 	}
+
+	if (err)
+		return err;
+
+	/*
+	 * As we dropped the port guard, we need to check whether the device is
+	 * still connected. If the release fails, we still hold the default
+	 * address -- but then there is probably a bigger problem with the HC
+	 * anyway.
+	 */
+	if (port->state != PORT_CONNECTING) {
+		err = usb_hub_release_default_address(hub, exch);
+		return err ? err : EINTR;
+	}
+
+	return EOK;
 }
 
 /**
@@ -712,19 +753,13 @@ int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch, usb_
  */
 int usb_hub_release_default_address(usb_hub_dev_t *hub, async_exch_t *exch)
 {
-	int ret = EOK;
+	const int ret = usbhc_release_default_address(exch);
 
-	fibril_mutex_lock(&hub->default_address_guard);
-	if (--hub->default_address_requests == 0) {
-		// We must do it in critical section to prevent other fibril
-		// from requesting the address before we release
-		ret = usbhc_release_default_address(exch);
-		// This is optimistic optimization - it may wake one hub from polling sleep
-		fibril_condvar_signal(&global_hub_default_address_cv);
-	} else {
-		fibril_condvar_signal(&hub->default_address_cv);
-	}
-	fibril_mutex_unlock(&hub->default_address_guard);
+	/*
+	 * This is an optimistic optimization - it may wake
+	 * one hub from polling sleep instantly.
+	 */
+	fibril_condvar_signal(&global_hub_default_address_cv);
 
 	return ret;
 }
