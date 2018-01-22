@@ -261,7 +261,7 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 		return ENOMEM;
 	hc->dcbaa = hc->dcbaa_dma.virt;
 
-	if ((err = xhci_event_ring_init(&hc->event_ring)))
+	if ((err = xhci_event_ring_init(&hc->event_ring, 1)))
 		goto err_dcbaa;
 
 	if ((err = xhci_scratchpad_alloc(hc)))
@@ -492,7 +492,6 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	uint64_t erstptr = hc->event_ring.erst.phys;
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_LO, LOWER32(erstptr));
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_HI, UPPER32(erstptr));
-
 
 	if (irq) {
 		XHCI_REG_SET(intr0, XHCI_INTR_IE, 1);

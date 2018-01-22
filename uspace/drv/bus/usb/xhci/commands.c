@@ -76,7 +76,7 @@ int xhci_init_commands(xhci_hc_t *hc)
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
 	int err;
 
-	if ((err = xhci_trb_ring_init(&cr->trb_ring)))
+	if ((err = xhci_trb_ring_init(&cr->trb_ring, 0)))
 		return err;
 
 	fibril_mutex_initialize(&cr->guard);

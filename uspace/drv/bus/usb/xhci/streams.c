@@ -153,7 +153,7 @@ static int initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, un
 	int err = EOK;
 
 	/* Init and register TRB ring for the primary stream */
-	if ((err = xhci_trb_ring_init(&data->ring))) {
+	if ((err = xhci_trb_ring_init(&data->ring, 0))) {
 		return err;
 	}
 	XHCI_STREAM_DEQ_PTR_SET(*ctx, data->ring.dequeue);
@@ -232,7 +232,7 @@ static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
 		xhci_stream_ctx_t *secondary_ctx = &data->secondary_stream_ctx_array[index];
 		xhci_stream_data_t *secondary_data = &data->secondary_data[index];
 		/* Init and register TRB ring for every secondary stream */
-		if ((err = xhci_trb_ring_init(&secondary_data->ring))) {
+		if ((err = xhci_trb_ring_init(&secondary_data->ring, 0))) {
 			goto err_init;
 		}
 
@@ -331,7 +331,7 @@ int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoin
 
 	/* Streams are now removed, proceed with reconfiguring endpoint. */
 	int err;
-	if ((err = xhci_trb_ring_init(&xhci_ep->ring))) {
+	if ((err = xhci_trb_ring_init(&xhci_ep->ring, 0))) {
 		usb_log_error("Failed to initialize a transfer ring.");
 		return err;
 	}

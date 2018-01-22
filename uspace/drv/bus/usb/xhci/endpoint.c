@@ -284,7 +284,7 @@ static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	xhci_ep->primary_stream_data_size = 0;
 
 	int err;
-	if ((err = xhci_trb_ring_init(&xhci_ep->ring))) {
+	if ((err = xhci_trb_ring_init(&xhci_ep->ring, 0))) {
 		return err;
 	}
 

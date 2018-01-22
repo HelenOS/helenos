@@ -36,12 +36,14 @@
 #include "hw_struct/trb.h"
 #include "trb_ring.h"
 
-#define SEGMENT_HEADER_SIZE (sizeof(link_t) + sizeof(uintptr_t))
-
 /**
- * Number of TRBs in a segment (with our header).
+ * A structure representing a segment of a TRB ring.
  */
-#define SEGMENT_TRB_COUNT ((PAGE_SIZE - SEGMENT_HEADER_SIZE) / sizeof(xhci_trb_t))
+
+#define SEGMENT_FOOTER_SIZE (sizeof(link_t) + sizeof(uintptr_t))
+
+#define SEGMENT_TRB_COUNT ((PAGE_SIZE - SEGMENT_FOOTER_SIZE) / sizeof(xhci_trb_t))
+#define SEGMENT_TRB_USEFUL_COUNT (SEGMENT_TRB_COUNT - 1)
 
 struct trb_segment {
 	xhci_trb_t trb_storage [SEGMENT_TRB_COUNT];
@@ -49,6 +51,8 @@ struct trb_segment {
 	link_t segments_link;
 	uintptr_t phys;
 } __attribute__((aligned(PAGE_SIZE)));
+
+static_assert(sizeof(trb_segment_t) == PAGE_SIZE);
 
 
 /**
@@ -65,6 +69,15 @@ static inline xhci_trb_t *segment_begin(trb_segment_t *segment)
 static inline xhci_trb_t *segment_end(trb_segment_t *segment)
 {
 	return segment_begin(segment) + SEGMENT_TRB_COUNT;
+}
+
+/**
+ * Return a first segment of a list of segments.
+ */
+static inline trb_segment_t *get_first_segment(list_t *segments)
+{
+	return list_get_instance(list_first(segments), trb_segment_t, segments_link);
+
 }
 
 /**
@@ -96,20 +109,30 @@ static void trb_segment_free(trb_segment_t *segment)
 
 /**
  * Initializes the ring with one segment.
+ *
+ * @param[in] initial_size A number of free slots on the ring, 0 leaves the
+ * choice on a reasonable default (one page-sized segment).
  */
-int xhci_trb_ring_init(xhci_trb_ring_t *ring)
+int xhci_trb_ring_init(xhci_trb_ring_t *ring, size_t initial_size)
 {
-	struct trb_segment *segment;
 	int err;
+	if (initial_size == 0)
+		initial_size = SEGMENT_TRB_USEFUL_COUNT;
 
 	list_initialize(&ring->segments);
+	size_t segment_count = (initial_size + SEGMENT_TRB_USEFUL_COUNT - 1)
+		/ SEGMENT_TRB_USEFUL_COUNT;
 
-	if ((err = trb_segment_alloc(&segment)) != EOK)
-		return err;
+	for (size_t i = 0; i < segment_count; ++i) {
+		struct trb_segment *segment;
+		if ((err = trb_segment_alloc(&segment)) != EOK)
+			return err;
 
-	list_append(&segment->segments_link, &ring->segments);
-	ring->segment_count = 1;
+		list_append(&segment->segments_link, &ring->segments);
+		ring->segment_count = i + 1;
+	}
 
+	trb_segment_t * const segment = get_first_segment(&ring->segments);
 	xhci_trb_t *last = segment_end(segment) - 1;
 	xhci_trb_link_fill(last, segment->phys);
 	TRB_LINK_SET_TC(*last, true);
@@ -283,39 +306,50 @@ void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr)
 
 /**
  * Initializes an event ring.
+ *
+ * @param[in] initial_size A number of free slots on the ring, 0 leaves the
+ * choice on a reasonable default (one page-sized segment).
  */
-int xhci_event_ring_init(xhci_event_ring_t *ring)
+int xhci_event_ring_init(xhci_event_ring_t *ring, size_t initial_size)
 {
-	struct trb_segment *segment;
 	int err;
+	if (initial_size == 0)
+		initial_size = SEGMENT_TRB_COUNT;
 
 	list_initialize(&ring->segments);
 
-	if ((err = trb_segment_alloc(&segment)) != EOK)
-		return err;
+	size_t segment_count = (initial_size + SEGMENT_TRB_COUNT - 1) / SEGMENT_TRB_COUNT;
+	size_t erst_size = segment_count * sizeof(xhci_erst_entry_t);
 
-	list_append(&segment->segments_link, &ring->segments);
-	ring->segment_count = 1;
-
-	ring->dequeue_segment = segment;
-	ring->dequeue_trb = segment_begin(segment);
-	ring->dequeue_ptr = segment->phys;
-
-	if (dma_buffer_alloc(&ring->erst, PAGE_SIZE)) {
+	if (dma_buffer_alloc(&ring->erst, erst_size)) {
 		xhci_event_ring_fini(ring);
 		return ENOMEM;
 	}
+
 	xhci_erst_entry_t *erst = ring->erst.virt;
+	memset(erst, 0, erst_size);
 
-	memset(erst, 0, PAGE_SIZE);
-	xhci_fill_erst_entry(&erst[0], segment->phys, SEGMENT_TRB_COUNT);
+	for (size_t i = 0; i < segment_count; i++) {
+		trb_segment_t *segment;
+		if ((err = trb_segment_alloc(&segment)) != EOK) {
+			xhci_event_ring_fini(ring);
+			return err;
+		}
 
+		list_append(&segment->segments_link, &ring->segments);
+		ring->segment_count = i + 1;
+		xhci_fill_erst_entry(&erst[i], segment->phys, SEGMENT_TRB_COUNT);
+	}
+
+	trb_segment_t * const segment = get_first_segment(&ring->segments);
+	ring->dequeue_segment = segment;
+	ring->dequeue_trb = segment_begin(segment);
+	ring->dequeue_ptr = segment->phys;
 	ring->ccs = 1;
 
 	fibril_mutex_initialize(&ring->guard);
 
 	usb_log_debug("Initialized event ring.");
-
 	return EOK;
 }
 
@@ -323,7 +357,7 @@ void xhci_event_ring_fini(xhci_event_ring_t *ring)
 {
 	list_foreach_safe(ring->segments, cur, next) {
 		trb_segment_t *segment = list_get_instance(cur, trb_segment_t, segments_link);
-		dmamem_unmap_anonymous(segment);
+		trb_segment_free(segment);
 	}
 
 	dma_buffer_free(&ring->erst);
