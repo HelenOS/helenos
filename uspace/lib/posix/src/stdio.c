@@ -238,7 +238,7 @@ void posix_perror(const char *s)
  */
 int posix_fsetpos(FILE *stream, const posix_fpos_t *pos)
 {
-	return fseek(stream, pos->offset, SEEK_SET);
+	return fseek64(stream, pos->offset, SEEK_SET);
 }
 
 /** Saves the stream's position for later use by fsetpos().
@@ -249,7 +249,7 @@ int posix_fsetpos(FILE *stream, const posix_fpos_t *pos)
  */
 int posix_fgetpos(FILE *restrict stream, posix_fpos_t *restrict pos)
 {
-	off64_t ret = ftell(stream);
+	off64_t ret = ftell64(stream);
 	if (ret != -1) {
 		pos->offset = ret;
 		return 0;
@@ -268,7 +268,7 @@ int posix_fgetpos(FILE *restrict stream, posix_fpos_t *restrict pos)
  */
 int posix_fseek(FILE *stream, long offset, int whence)
 {
-	return fseek(stream, (off64_t) offset, whence);
+	return fseek(stream, offset, whence);
 }
 
 /**
@@ -281,7 +281,7 @@ int posix_fseek(FILE *stream, long offset, int whence)
  */
 int posix_fseeko(FILE *stream, posix_off_t offset, int whence)
 {
-	return fseek(stream, (off64_t) offset, whence);
+	return fseek64(stream, offset, whence);
 }
 
 /**
@@ -292,7 +292,7 @@ int posix_fseeko(FILE *stream, posix_off_t offset, int whence)
  */
 long posix_ftell(FILE *stream)
 {
-	return (long) ftell(stream);
+	return ftell(stream);
 }
 
 /**
@@ -303,7 +303,7 @@ long posix_ftell(FILE *stream)
  */
 posix_off_t posix_ftello(FILE *stream)
 {
-	return (posix_off_t) ftell(stream);
+	return ftell64(stream);
 }
 
 /**
