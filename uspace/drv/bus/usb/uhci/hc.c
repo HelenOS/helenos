@@ -343,7 +343,13 @@ static void endpoint_unregister(endpoint_t *ep)
 	}
 
 	transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
-	assert(list);
+
+	if (!list)
+		/*
+		 * We don't support this combination (e.g. isochronous),
+		 * so no transfer can be active.
+		 */
+		return;
 
 	// To avoid ABBA deadlock, we need to take the list first
 	fibril_mutex_lock(&list->guard);
