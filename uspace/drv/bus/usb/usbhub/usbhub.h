@@ -71,6 +71,8 @@ struct usb_hub_dev {
 	bool power_switched;
 	/** Each port is switched individually. */
 	bool per_port_power;
+	/** Whether MTT is available */
+	bool mtt_available;
 
 	/** Default address management */
 	unsigned default_address_requests;
@@ -78,7 +80,7 @@ struct usb_hub_dev {
 	fibril_condvar_t default_address_cv;
 };
 
-extern const usb_endpoint_description_t hub_status_change_endpoint_description;
+extern const usb_endpoint_description_t *usb_hub_endpoints [];
 
 int usb_hub_device_add(usb_device_t *);
 int usb_hub_device_remove(usb_device_t *);

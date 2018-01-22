@@ -57,19 +57,28 @@
 
 #define HUB_FNC_NAME "hub"
 
+#define HUB_STATUS_CHANGE_EP(protocol) { \
+	.transfer_type = USB_TRANSFER_INTERRUPT, \
+	.direction = USB_DIRECTION_IN, \
+	.interface_class = USB_CLASS_HUB, \
+	.interface_subclass = 0, \
+	.interface_protocol = (protocol), \
+	.flags = 0 \
+}
+
 /** Hub status-change endpoint description.
  *
  * For more information see section 11.15.1 of USB 1.1 specification.
  */
-const usb_endpoint_description_t hub_status_change_endpoint_description =
-{
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = -1,
-	.flags = 0
+static const usb_endpoint_description_t
+	status_change_single_tt_only = HUB_STATUS_CHANGE_EP(0),
+	status_change_mtt_available = HUB_STATUS_CHANGE_EP(1);
+
+const usb_endpoint_description_t *usb_hub_endpoints [] = {
+	&status_change_single_tt_only,
+	&status_change_mtt_available,
 };
+
 
 /** Standard get hub global status request */
 static const usb_device_request_setup_packet_t get_hub_status_request = {
@@ -136,6 +145,17 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 		return opResult;
 	}
 
+	const usb_endpoint_description_t *status_change = hub_dev->mtt_available
+	    ? &status_change_mtt_available
+	    : &status_change_single_tt_only;
+
+	usb_endpoint_mapping_t *status_change_mapping
+		= usb_device_get_mapped_ep_desc(hub_dev->usb_device, status_change);
+	if (!status_change_mapping) {
+		usb_log_error("Failed to map the Status Change Endpoint of a hub.");
+		return EIO;
+	}
+
 	/* Create hub control function. */
 	usb_log_debug("Creating DDF function '" HUB_FNC_NAME "'.");
 	hub_dev->hub_fun = usb_device_ddf_fun_create(hub_dev->usb_device,
@@ -167,8 +187,7 @@ int usb_hub_device_add(usb_device_t *usb_dev)
 	}
 
 	polling->device = hub_dev->usb_device;
-	polling->ep_mapping = usb_device_get_mapped_ep_desc(hub_dev->usb_device,
-	    &hub_status_change_endpoint_description);
+	polling->ep_mapping = status_change_mapping;
 	polling->request_size = ((hub_dev->port_count + 1 + 7) / 8);
 	polling->buffer = malloc(polling->request_size);
 	polling->on_data = hub_port_changes_callback;
@@ -338,8 +357,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 
 	/* Get hub descriptor. */
 	usb_log_debug("(%p): Retrieving descriptor.", hub_dev);
-	usb_pipe_t *control_pipe =
-	    usb_device_get_default_pipe(hub_dev->usb_device);
+	usb_pipe_t *control_pipe = usb_device_get_default_pipe(hub_dev->usb_device);
 
 	usb_descriptor_type_t desc_type = hub_dev->speed >= USB_SPEED_SUPER
 		? USB_DESCTYPE_SSPEED_HUB : USB_DESCTYPE_HUB;
@@ -382,6 +400,10 @@ static int usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	    !(descriptor.characteristics & HUB_CHAR_NO_POWER_SWITCH_FLAG);
 	hub_dev->per_port_power =
 	    descriptor.characteristics & HUB_CHAR_POWER_PER_PORT_FLAG;
+
+	const uint8_t protocol = usb_device_descriptors(hub_dev->usb_device)
+		->device.device_protocol;
+	hub_dev->mtt_available = (protocol == 2);
 
 	usb_hub_power_ports(hub_dev);
 
@@ -433,15 +455,6 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 		    config_descriptor->configuration_number);
 	}
 
-	/* Check if this is a MTT hub */
-	const size_t device_protocol =
-	    usb_device_descriptors(usb_device)->device.device_protocol;
-	if (device_protocol == 2) {
-		usb_log_debug("This is a MTT hub. MTT not supported, switching to Single-TT.");
-		opResult = usb_request_set_interface(usb_device_get_default_pipe(usb_device), 1, 0);
-		if (opResult != EOK)
-			usb_log_error("Failed to switch to Single-TT protocol.");
-	}
 	return opResult;
 }
 
