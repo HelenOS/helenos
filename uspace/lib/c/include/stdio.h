@@ -157,6 +157,11 @@ extern FILE *fdopen(int, const char *);
 extern int fileno(FILE *);
 extern char *gets(char *, size_t);
 
+#include <offset.h>
+
+extern int fseek64(FILE *, off64_t, int);
+extern off64_t ftell64(FILE *);
+
 #endif
 
 
