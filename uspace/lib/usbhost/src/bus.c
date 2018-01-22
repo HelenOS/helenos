@@ -571,18 +571,18 @@ typedef struct {
 	fibril_condvar_t done_cv;
 	unsigned done;
 
-	size_t transfered_size;
+	size_t transferred_size;
 	int error;
 } sync_data_t;
 
 /**
  * Callback for finishing the transfer. Wake the issuing thread.
  */
-static int sync_transfer_complete(void *arg, int error, size_t transfered_size)
+static int sync_transfer_complete(void *arg, int error, size_t transferred_size)
 {
 	sync_data_t *d = arg;
 	assert(d);
-	d->transfered_size = transfered_size;
+	d->transferred_size = transferred_size;
 	d->error = error;
 	fibril_mutex_lock(&d->done_mtx);
 	d->done = 1;
@@ -623,7 +623,7 @@ ssize_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
 	fibril_mutex_unlock(&sd.done_mtx);
 
 	return (sd.error == EOK)
-		? (ssize_t) sd.transfered_size
+		? (ssize_t) sd.transferred_size
 		: (ssize_t) sd.error;
 }
 

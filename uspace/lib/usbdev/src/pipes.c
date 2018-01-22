@@ -68,13 +68,13 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
  * @param[in] setup_buffer_size Size of the setup packet (in bytes).
  * @param[out] data_buffer Buffer for incoming data.
  * @param[in] data_buffer_size Size of the buffer for incoming data (in bytes).
- * @param[out] data_transfered_size Number of bytes that were actually
- *                                  transfered during the DATA stage.
+ * @param[out] data_transferred_size Number of bytes that were actually
+ *                                  transferred during the DATA stage.
  * @return Error code.
  */
 int usb_pipe_control_read(usb_pipe_t *pipe,
     const void *setup_buffer, size_t setup_buffer_size,
-    void *buffer, size_t buffer_size, size_t *transfered_size)
+    void *buffer, size_t buffer_size, size_t *transferred_size)
 {
 	assert(pipe);
 
@@ -104,8 +104,8 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 		clear_self_endpoint_halt(pipe);
 	}
 
-	if (rc == EOK && transfered_size != NULL) {
-		*transfered_size = act_size;
+	if (rc == EOK && transferred_size != NULL) {
+		*transferred_size = act_size;
 	}
 
 	return rc;
@@ -165,11 +165,11 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
  * @param[in] pipe Pipe used for the transfer.
  * @param[out] buffer Buffer where to store the data.
  * @param[in] size Size of the buffer (in bytes).
- * @param[out] size_transfered Number of bytes that were actually transfered.
+ * @param[out] size_transferred Number of bytes that were actually transferred.
  * @return Error code.
  */
 int usb_pipe_read(usb_pipe_t *pipe,
-    void *buffer, size_t size, size_t *size_transfered)
+    void *buffer, size_t size, size_t *size_transferred)
 {
 	assert(pipe);
 
@@ -199,8 +199,8 @@ int usb_pipe_read(usb_pipe_t *pipe,
 	    usbhc_read(exch, pipe->desc.endpoint_no, 0, buffer, size, &act_size);
 	async_exchange_end(exch);
 
-	if (rc == EOK && size_transfered != NULL) {
-		*size_transfered = act_size;
+	if (rc == EOK && size_transferred != NULL) {
+		*size_transferred = act_size;
 	}
 
 	return rc;

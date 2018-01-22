@@ -208,7 +208,7 @@ static int endpoint_abort(endpoint_t *ep)
 
 	if (batch) {
 		batch->error = EINTR;
-		batch->transfered_size = 0;
+		batch->transferred_size = 0;
 		usb_transfer_batch_finish(batch);
 	}
 	return EOK;

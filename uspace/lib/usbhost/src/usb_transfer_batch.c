@@ -117,7 +117,7 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 
 	if (batch->on_complete) {
-		const int err = batch->on_complete(batch->on_complete_data, batch->error, batch->transfered_size);
+		const int err = batch->on_complete(batch->on_complete_data, batch->error, batch->transferred_size);
 		if (err)
 			usb_log_warning("batch %p failed to complete: %s",
 			    batch, str_error(err));

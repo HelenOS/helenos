@@ -117,7 +117,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
  *                         the DATA stage (they will come in USB endianness).
  * @param data_size        Size of the @p data buffer
  *                         (in native endianness).
- * @param actual_data_size Actual size of transfered data
+ * @param actual_data_size Actual size of transferred data
  *                         (in native endianness).
  *
  * @return Error code.
@@ -182,14 +182,14 @@ int usb_request_get_status(usb_pipe_t *pipe,
 	}
 
 	uint16_t status_usb_endianess;
-	size_t data_transfered_size;
+	size_t data_transferred_size;
 	int rc = usb_control_request_get(pipe, USB_REQUEST_TYPE_STANDARD,
 	    recipient, USB_DEVREQ_GET_STATUS, 0, uint16_host2usb(index),
-	    &status_usb_endianess, 2, &data_transfered_size);
+	    &status_usb_endianess, 2, &data_transferred_size);
 	if (rc != EOK) {
 		return rc;
 	}
-	if (data_transfered_size != 2) {
+	if (data_transferred_size != 2) {
 		return ELIMIT;
 	}
 
@@ -313,14 +313,14 @@ int usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
 	 * Get only first byte to retrieve descriptor length.
 	 */
 	uint8_t tmp_buffer;
-	size_t bytes_transfered;
+	size_t bytes_transferred;
 	rc = usb_request_get_descriptor(pipe, request_type, recipient,
 	    descriptor_type, descriptor_index, language,
-	    &tmp_buffer, sizeof(tmp_buffer), &bytes_transfered);
+	    &tmp_buffer, sizeof(tmp_buffer), &bytes_transferred);
 	if (rc != EOK) {
 		return rc;
 	}
-	if (bytes_transfered != 1) {
+	if (bytes_transferred != 1) {
 		return ELIMIT;
 	}
 
@@ -339,12 +339,12 @@ int usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
 
 	rc = usb_request_get_descriptor(pipe, request_type, recipient,
 	    descriptor_type, descriptor_index, language,
-	    buffer, size, &bytes_transfered);
+	    buffer, size, &bytes_transferred);
 	if (rc != EOK) {
 		free(buffer);
 		return rc;
 	}
-	if (bytes_transfered != size) {
+	if (bytes_transferred != size) {
 		free(buffer);
 		return ELIMIT;
 	}

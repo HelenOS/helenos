@@ -151,7 +151,7 @@ static void ohci_unregister_ep(endpoint_t *ep)
 
 	if (batch) {
 		batch->error = EINTR;
-		batch->transfered_size = 0;
+		batch->transferred_size = 0;
 		usb_transfer_batch_finish(batch);
 	}
 }

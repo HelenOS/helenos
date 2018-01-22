@@ -186,7 +186,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 	 * or all transfer descriptors completed successfully */
 
 	/* Assume all data got through */
-	ohci_batch->base.transfered_size = ohci_batch->base.buffer_size;
+	ohci_batch->base.transferred_size = ohci_batch->base.buffer_size;
 
 	/* Assume we will leave the last(unused) TD behind */
 	unsigned leave_td = ohci_batch->td_count;
@@ -212,7 +212,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			 * NOTE: Short packets don't break the assumption that
 			 * we leave the very last(unused) TD behind.
 			 */
-			ohci_batch->base.transfered_size
+			ohci_batch->base.transferred_size
 			    -= td_remain_size(ohci_batch->tds[i]);
 		} else {
 			usb_log_debug("Batch %p found error TD(%zu):%08x.",
@@ -243,7 +243,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			break;
 		}
 	}
-	assert(ohci_batch->base.transfered_size <=
+	assert(ohci_batch->base.transferred_size <=
 	    ohci_batch->base.buffer_size);
 
 	const size_t setup_size = (ohci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL)
@@ -253,7 +253,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 	if (ohci_batch->base.dir == USB_DIRECTION_IN)
 		memcpy(ohci_batch->base.buffer,
 		    ohci_batch->device_buffer + setup_size,
-		    ohci_batch->base.transfered_size);
+		    ohci_batch->base.transferred_size);
 
 	/* Store the remaining TD */
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ohci_batch->base.ep);

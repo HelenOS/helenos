@@ -361,7 +361,7 @@ static void endpoint_unregister(endpoint_t *ep)
 		// Better wait two frames before we release the buffers.
 		async_usleep(2000);
 		batch->base.error = EINTR;
-		batch->base.transfered_size = 0;
+		batch->base.transferred_size = 0;
 		usb_transfer_batch_finish(&batch->base);
 	}
 }

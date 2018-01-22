@@ -482,13 +482,13 @@ int isoch_schedule_out(xhci_transfer_t *transfer)
 	isoch->enqueue = (isoch->enqueue + 1) % isoch->buffer_count;
 
 	/* Withdraw results from previous transfers. */
-	transfer->batch.transfered_size = 0;
+	transfer->batch.transferred_size = 0;
 	xhci_isoch_transfer_t *res = &isoch->transfers[isoch->dequeue];
 	while (res->state == ISOCH_COMPLETE) {
 		isoch->dequeue = (isoch->dequeue + 1) % isoch->buffer_count;
 
 		res->state = ISOCH_EMPTY;
-		transfer->batch.transfered_size += res->size;
+		transfer->batch.transferred_size += res->size;
 		transfer->batch.error = res->error;
 		if (res->error)
 			break; // Announce one error at a time
@@ -554,7 +554,7 @@ int isoch_schedule_in(xhci_transfer_t *transfer)
 	/* Withdraw results from previous transfer. */
 	if (!it->error) {
 		memcpy(transfer->batch.buffer, it->data.virt, it->size);
-		transfer->batch.transfered_size = it->size;
+		transfer->batch.transferred_size = it->size;
 		transfer->batch.error = it->error;
 	}
 

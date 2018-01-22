@@ -339,43 +339,43 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		case XHCI_TRBC_SHORT_PACKET:
 		case XHCI_TRBC_SUCCESS:
 			batch->error = EOK;
-			batch->transfered_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
+			batch->transferred_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
 			break;
 
 		case XHCI_TRBC_DATA_BUFFER_ERROR:
 			usb_log_warning("Transfer ended with data buffer error.");
 			batch->error = EAGAIN;
-			batch->transfered_size = 0;
+			batch->transferred_size = 0;
 			break;
 
 		case XHCI_TRBC_BABBLE_DETECTED_ERROR:
 			usb_log_warning("Babble detected during the transfer.");
 			batch->error = EAGAIN;
-			batch->transfered_size = 0;
+			batch->transferred_size = 0;
 			break;
 
 		case XHCI_TRBC_USB_TRANSACTION_ERROR:
 			usb_log_warning("USB Transaction error.");
 			batch->error = ESTALL;
-			batch->transfered_size = 0;
+			batch->transferred_size = 0;
 			break;
 
 		case XHCI_TRBC_TRB_ERROR:
 			usb_log_error("Invalid transfer parameters.");
 			batch->error = EINVAL;
-			batch->transfered_size = 0;
+			batch->transferred_size = 0;
 			break;
 
 		case XHCI_TRBC_STALL_ERROR:
 			usb_log_warning("Stall condition detected.");
 			batch->error = ESTALL;
-			batch->transfered_size = 0;
+			batch->transferred_size = 0;
 			break;
 
 		case XHCI_TRBC_SPLIT_TRANSACTION_ERROR:
 			usb_log_error("Split transcation error detected.");
 			batch->error = EAGAIN;
-			batch->transfered_size = 0;
+			batch->transferred_size = 0;
 			break;
 
 		default:
@@ -385,8 +385,8 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 
 	if (batch->dir == USB_DIRECTION_IN) {
 		assert(batch->buffer);
-		assert(batch->transfered_size <= batch->buffer_size);
-		memcpy(batch->buffer, transfer->hc_buffer.virt, batch->transfered_size);
+		assert(batch->transferred_size <= batch->buffer_size);
+		memcpy(batch->buffer, transfer->hc_buffer.virt, batch->transferred_size);
 	}
 
 	usb_transfer_batch_finish(batch);

@@ -162,7 +162,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 	    " checking %zu transfer(s) for completion.",
 	    uhci_batch, USB_TRANSFER_BATCH_ARGS(*batch),
 	    uhci_batch->td_count);
-	batch->transfered_size = 0;
+	batch->transferred_size = 0;
 
 	uhci_endpoint_t *uhci_ep = (uhci_endpoint_t *) batch->ep;
 
@@ -184,22 +184,22 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 			goto substract_ret;
 		}
 
-		batch->transfered_size
+		batch->transferred_size
 		    += td_act_size(&uhci_batch->tds[i]);
 		if (td_is_short(&uhci_batch->tds[i]))
 			goto substract_ret;
 	}
 substract_ret:
-	if (batch->transfered_size > 0 && batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
-		assert(batch->transfered_size >= USB_SETUP_PACKET_SIZE);
-		batch->transfered_size -= USB_SETUP_PACKET_SIZE;
+	if (batch->transferred_size > 0 && batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
+		assert(batch->transferred_size >= USB_SETUP_PACKET_SIZE);
+		batch->transferred_size -= USB_SETUP_PACKET_SIZE;
 	}
 
 	if (batch->dir == USB_DIRECTION_IN) {
-		assert(batch->transfered_size <= batch->buffer_size);
+		assert(batch->transferred_size <= batch->buffer_size);
 		memcpy(batch->buffer,
 		    uhci_transfer_batch_data_buffer(uhci_batch),
-		    batch->transfered_size);
+		    batch->transferred_size);
 	}
 
 	return true;

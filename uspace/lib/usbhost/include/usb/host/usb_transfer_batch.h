@@ -79,7 +79,7 @@ typedef struct usb_transfer_batch {
 	/** Size of memory pointed to by buffer member */
 	size_t buffer_size;
 	/** Actually used portion of the buffer */
-	size_t transfered_size;
+	size_t transferred_size;
 
 	/** Indicates success/failure of the communication */
 	int error;

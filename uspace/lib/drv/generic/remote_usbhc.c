@@ -432,7 +432,7 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	return trans;
 }
 
-static int callback_out(void *arg, int error, size_t transfered_size)
+static int callback_out(void *arg, int error, size_t transferred_size)
 {
 	async_transaction_t *trans = arg;
 
@@ -443,14 +443,14 @@ static int callback_out(void *arg, int error, size_t transfered_size)
 	return err;
 }
 
-static int callback_in(void *arg, int error, size_t transfered_size)
+static int callback_in(void *arg, int error, size_t transferred_size)
 {
 	async_transaction_t *trans = arg;
 
 	if (trans->data_caller) {
 		if (error == EOK) {
 			error = async_data_read_finalize(trans->data_caller,
-			    trans->buffer, transfered_size);
+			    trans->buffer, transferred_size);
 		} else {
 			async_answer_0(trans->data_caller, EINTR);
 		}

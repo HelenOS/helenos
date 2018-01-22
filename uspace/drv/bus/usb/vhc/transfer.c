@@ -150,7 +150,7 @@ static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
 	assert(outcome != ENAK);
 	assert(transfer);
 	transfer->batch.error = outcome;
-	transfer->batch.transfered_size = data_transfer_size;
+	transfer->batch.transferred_size = data_transfer_size;
 	usb_transfer_batch_finish(&transfer->batch);
 }
 

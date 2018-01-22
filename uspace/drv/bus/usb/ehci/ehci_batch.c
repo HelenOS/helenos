@@ -178,7 +178,7 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 	 * or all transfer descriptors completed successfully */
 
 	/* Assume all data got through */
-	ehci_batch->base.transfered_size = ehci_batch->base.buffer_size;
+	ehci_batch->base.transferred_size = ehci_batch->base.buffer_size;
 
 	/* Check all TDs */
 	for (size_t i = 0; i < ehci_batch->td_count; ++i) {
@@ -201,7 +201,7 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 			 * NOTE: Short packets don't break the assumption that
 			 * we leave the very last(unused) TD behind.
 			 */
-			ehci_batch->base.transfered_size
+			ehci_batch->base.transferred_size
 			    -= td_remain_size(&ehci_batch->tds[i]);
 		} else {
 			usb_log_debug("Batch %p found error TD(%zu):%08x (%d).",
@@ -214,12 +214,12 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 		}
 	}
 
-	assert(ehci_batch->base.transfered_size <= ehci_batch->base.buffer_size);
+	assert(ehci_batch->base.transferred_size <= ehci_batch->base.buffer_size);
 
 	if (ehci_batch->base.dir == USB_DIRECTION_IN)
 		memcpy(ehci_batch->base.buffer,
 		    ehci_batch->data_buffer,
-		    ehci_batch->base.transfered_size);
+		    ehci_batch->base.transferred_size);
 
 	/* Clear TD pointers */
 	ehci_batch->qh->next = LINK_POINTER_TERM;
