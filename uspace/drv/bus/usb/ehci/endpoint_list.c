@@ -94,6 +94,7 @@ void endpoint_list_chain(endpoint_list_t *instance, const endpoint_list_t *next)
 void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 {
 	assert(instance);
+	assert(instance->list_head);
 	assert(ep);
 	assert(ep->qh);
 	usb_log_debug2("EPL(%p-%s): Append endpoint(%p).",

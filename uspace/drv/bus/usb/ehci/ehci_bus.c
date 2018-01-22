@@ -69,8 +69,6 @@ static endpoint_t *ehci_endpoint_create(device_t *dev, const usb_endpoint_descri
 
 	endpoint_init(&ehci_ep->base, dev, desc);
 
-	// TODO: extract USB2 information from desc
-	
 	if (dma_buffer_alloc(&ehci_ep->dma_buffer, sizeof(qh_t)))
 		return NULL;
 

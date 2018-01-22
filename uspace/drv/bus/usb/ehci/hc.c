@@ -235,8 +235,8 @@ void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep)
 	assert(instance);
 	assert(ep);
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
-	usb_log_debug("HC(%p) dequeue EP(?:%d:%s:%s)", instance,
-	    ep->endpoint,
+	usb_log_debug("HC(%p) dequeue EP(%d:%d:%s:%s)", instance,
+	    ep->device->address, ep->endpoint,
 	    usb_str_transfer_type_short(ep->transfer_type),
 	    usb_str_direction(ep->direction));
 	switch (ep->transfer_type)
@@ -359,9 +359,6 @@ void ehci_hc_interrupt(bus_t *bus_base, uint32_t status)
 	}
 
 	if (status & (USB_STS_IRQ_FLAG | USB_STS_ERR_IRQ_FLAG)) {
-
-		LIST_INITIALIZE(completed);
-
 		fibril_mutex_lock(&hc->guard);
 
 		usb_log_debug2("HC(%p): Scanning %lu pending endpoints", hc,

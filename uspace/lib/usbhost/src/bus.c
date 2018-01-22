@@ -207,6 +207,7 @@ void bus_device_gone(device_t *dev)
 	assert(dev->fun != NULL);
 
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_gone);
+	const bus_ops_t *ep_ops = BUS_OPS_LOOKUP(dev->bus->ops, endpoint_unregister);
 	assert(ops);
 
 	/* First, block new transfers and operations. */
@@ -239,10 +240,16 @@ void bus_device_gone(device_t *dev)
 	device_clean_ep_children(dev, "removing");
 
 	/* Tell the HC to release its resources. */
-	ops->device_gone(dev);
+	if (ops)
+		ops->device_gone(dev);
 
-	/* Release the EP0 bus reference */
-	endpoint_del_ref(dev->endpoints[0]);
+	/* Check whether the driver didn't forgot EP0 */
+	if (dev->endpoints[0]) {
+		if (ep_ops)
+			ep_ops->endpoint_unregister(dev->endpoints[0]);
+		/* Release the EP0 bus reference */
+		endpoint_del_ref(dev->endpoints[0]);
+	}
 
 	/* Destroy the function, freeing also the device, unlocking mutex. */
 	ddf_fun_destroy(dev->fun);
