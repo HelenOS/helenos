@@ -60,29 +60,29 @@ EXTRA_CLEAN = \
 EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY) $(MERGED_C_LIBRARY)
 
 SOURCES = \
-	source/ctype.c \
-	source/dlfcn.c \
-	source/fcntl.c \
-	source/fnmatch.c \
-	source/getopt.c \
-	source/locale.c \
-	source/pthread/condvar.c \
-	source/pthread/keys.c \
-	source/pthread/mutex.c \
-	source/pthread/threads.c \
-	source/pwd.c \
-	source/signal.c \
-	source/stdio.c \
-	source/stdio/scanf.c \
-	source/stdlib.c \
-	source/stdlib/strtold.c \
-	source/string.c \
-	source/strings.c \
-	source/sys/mman.c \
-	source/sys/stat.c \
-	source/sys/wait.c \
-	source/time.c \
-	source/unistd.c
+	src/ctype.c \
+	src/dlfcn.c \
+	src/fcntl.c \
+	src/fnmatch.c \
+	src/getopt.c \
+	src/locale.c \
+	src/pthread/condvar.c \
+	src/pthread/keys.c \
+	src/pthread/mutex.c \
+	src/pthread/threads.c \
+	src/pwd.c \
+	src/signal.c \
+	src/stdio.c \
+	src/stdio/scanf.c \
+	src/stdlib.c \
+	src/stdlib/strtold.c \
+	src/string.c \
+	src/strings.c \
+	src/sys/mman.c \
+	src/sys/stat.c \
+	src/sys/wait.c \
+	src/time.c \
+	src/unistd.c
 
 TEST_SOURCES = \
 	test/main.c \
