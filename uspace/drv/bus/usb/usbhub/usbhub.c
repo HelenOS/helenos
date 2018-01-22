@@ -67,7 +67,7 @@ const usb_endpoint_description_t hub_status_change_endpoint_description =
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HUB,
 	.interface_subclass = 0,
-	.interface_protocol = 0,
+	.interface_protocol = -1,
 	.flags = 0
 };
 
@@ -422,7 +422,7 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 
 	/* Set configuration. Use the configuration that was in
 	 * usb_device->descriptors.configuration i.e. The first one. */
-	const int opResult = usb_request_set_configuration(
+	int opResult = usb_request_set_configuration(
 	    usb_device_get_default_pipe(usb_device),
 	    config_descriptor->configuration_number);
 	if (opResult != EOK) {
@@ -431,6 +431,16 @@ static int usb_set_first_configuration(usb_device_t *usb_device)
 	} else {
 		usb_log_debug("\tUsed configuration %d",
 		    config_descriptor->configuration_number);
+	}
+
+	/* Check if this is a MTT hub */
+	const size_t device_protocol =
+	    usb_device_descriptors(usb_device)->device.device_protocol;
+	if (device_protocol == 2) {
+		usb_log_debug("This is a MTT hub. MTT not supported, switching to Single-TT.");
+		opResult = usb_request_set_interface(usb_device_get_default_pipe(usb_device), 1, 0);
+		if (opResult != EOK)
+			usb_log_error("Failed to switch to Single-TT protocol.");
 	}
 	return opResult;
 }
