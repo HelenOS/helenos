@@ -35,23 +35,7 @@
 #define POSIX_GETOPT_H
 
 #include "unistd.h"
-
-/* Option Arguments */
-#define no_argument        0
-#define required_argument  1
-#define optional_argument  2
-
-#ifndef LIBPOSIX_INTERNAL
-struct option {
-	const char *name;
-	int has_arg;
-	int *flag;
-	int val;
-};
-#endif
-
-extern int getopt_long(int, char * const [], const char *, const struct option *, int *);
-
+#include "libc/getopt.h"
 
 #endif
 /**

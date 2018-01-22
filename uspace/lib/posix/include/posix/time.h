@@ -47,16 +47,10 @@
 #ifndef __locale_t_defined
 	#define __locale_t_defined
 	typedef struct __posix_locale *locale_t;
-	#ifndef LIBPOSIX_INTERNAL
-		#define locale_t locale_t
-	#endif
 #endif
 
 #ifndef POSIX_SIGNAL_H_
 	struct sigevent;
-	#ifndef LIBPOSIX_INTERNAL
-		#define sigevent sigevent
-	#endif
 #endif
 
 #undef CLOCK_REALTIME

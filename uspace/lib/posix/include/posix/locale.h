@@ -40,9 +40,6 @@
 #ifndef __locale_t_defined
 	#define __locale_t_defined
 	typedef struct __posix_locale *locale_t;
-	#ifndef LIBPOSIX_INTERNAL
-		#define locale_t locale_t
-	#endif
 #endif
 
 #undef LC_ALL
