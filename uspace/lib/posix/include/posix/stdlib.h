@@ -36,10 +36,6 @@
 #ifndef POSIX_STDLIB_H_
 #define POSIX_STDLIB_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "sys/types.h"
 
 #include <_bits/NULL.h>
@@ -52,52 +48,52 @@
 #undef EXIT_SUCCESS
 #define EXIT_SUCCESS 0
 #define _Exit exit
-extern int __POSIX_DEF__(atexit)(void (*func)(void));
+extern int atexit(void (*func)(void));
 extern void exit(int status) __attribute__((noreturn));
 extern void abort(void) __attribute__((noreturn));
 
 /* Absolute Value */
-extern int __POSIX_DEF__(abs)(int i);
-extern long __POSIX_DEF__(labs)(long i);
-extern long long __POSIX_DEF__(llabs)(long long i);
+extern int abs(int i);
+extern long labs(long i);
+extern long long llabs(long long i);
 
 /* Integer Division */
 
 typedef struct {
 	int quot, rem;
-} __POSIX_DEF__(div_t);
+} div_t;
 
 typedef struct {
 	long quot, rem;
-} __POSIX_DEF__(ldiv_t);
+} ldiv_t;
 
 typedef struct {
 	long long quot, rem;
-} __POSIX_DEF__(lldiv_t);
+} lldiv_t;
 
-extern __POSIX_DEF__(div_t) __POSIX_DEF__(div)(int numer, int denom);
-extern __POSIX_DEF__(ldiv_t) __POSIX_DEF__(ldiv)(long numer, long denom);
-extern __POSIX_DEF__(lldiv_t) __POSIX_DEF__(lldiv)(long long numer, long long denom);
+extern div_t div(int numer, int denom);
+extern ldiv_t ldiv(long numer, long denom);
+extern lldiv_t lldiv(long long numer, long long denom);
 
 /* Array Functions */
-extern void __POSIX_DEF__(qsort)(void *array, size_t count, size_t size,
+extern void qsort(void *array, size_t count, size_t size,
     int (*compare)(const void *, const void *));
-extern void *__POSIX_DEF__(bsearch)(const void *key, const void *base,
+extern void *bsearch(const void *key, const void *base,
     size_t nmemb, size_t size, int (*compar)(const void *, const void *));
 
 /* Environment Access */
-extern char *__POSIX_DEF__(getenv)(const char *name);
-extern int __POSIX_DEF__(putenv)(char *string);
-extern int __POSIX_DEF__(system)(const char *string);
+extern char *getenv(const char *name);
+extern int putenv(char *string);
+extern int system(const char *string);
 
 /* Symbolic Links */
-extern char *__POSIX_DEF__(realpath)(const char *__restrict__ name, char *__restrict__ resolved);
+extern char *realpath(const char *__restrict__ name, char *__restrict__ resolved);
 
 /* Floating Point Conversion */
-extern double __POSIX_DEF__(atof)(const char *nptr);
-extern float __POSIX_DEF__(strtof)(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern double __POSIX_DEF__(strtod)(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern long double __POSIX_DEF__(strtold)(const char *__restrict__ nptr, char **__restrict__ endptr);
+extern double atof(const char *nptr);
+extern float strtof(const char *__restrict__ nptr, char **__restrict__ endptr);
+extern double strtod(const char *__restrict__ nptr, char **__restrict__ endptr);
+extern long double strtold(const char *__restrict__ nptr, char **__restrict__ endptr);
 
 /* Integer Conversion */
 extern int atoi(const char *nptr);
@@ -113,23 +109,23 @@ extern unsigned long long int strtoull(
     const char *__restrict__ nptr, char **__restrict__ endptr, int base);
 
 /* Memory Allocation */
-extern void *__POSIX_DEF__(malloc)(size_t size)
+extern void *malloc(size_t size)
     __attribute__((malloc));
-extern void *__POSIX_DEF__(calloc)(size_t nelem, size_t elsize)
+extern void *calloc(size_t nelem, size_t elsize)
     __attribute__((malloc));
-extern void *__POSIX_DEF__(realloc)(void *ptr, size_t size)
+extern void *realloc(void *ptr, size_t size)
     __attribute__((warn_unused_result));
-extern void __POSIX_DEF__(free)(void *ptr);
+extern void free(void *ptr);
 
 /* Temporary Files */
-extern int __POSIX_DEF__(mkstemp)(char *tmpl);
+extern int mkstemp(char *tmpl);
 
 /* Pseudo-random number generator */
-extern int __POSIX_DEF__(rand)(void);
-extern void __POSIX_DEF__(srand)(unsigned int seed);
+extern int rand(void);
+extern void srand(unsigned int seed);
 
 /* Legacy Declarations */
-extern char *__POSIX_DEF__(mktemp)(char *tmpl);
+extern char *mktemp(char *tmpl);
 extern int bsd_getloadavg(double loadavg[], int nelem);
 
 #endif  // POSIX_STDLIB_H_

@@ -35,10 +35,6 @@
 #ifndef POSIX_DIRENT_H_
 #define POSIX_DIRENT_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include <libc/dirent.h>
 
 #endif

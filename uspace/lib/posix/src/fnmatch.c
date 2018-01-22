@@ -41,9 +41,6 @@
  * will be fairly straightforward.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "libc/stdbool.h"
 #include "posix/ctype.h"
 #include "posix/string.h"
@@ -204,7 +201,7 @@ static const struct _char_class _char_classes[] = {
 static int _class_compare(const void *key, const void *elem)
 {
 	const struct _char_class *class = elem;
-	return posix_strcmp((const char *) key, class->name);
+	return strcmp((const char *) key, class->name);
 }
 
 /**
@@ -217,7 +214,7 @@ static int _class_compare(const void *key, const void *elem)
 static bool _is_in_class (const char *cname, int c)
 {
 	/* Search for class in the array of supported character classes. */
-	const struct _char_class *class = posix_bsearch(cname, _char_classes,
+	const struct _char_class *class = bsearch(cname, _char_classes,
 	    sizeof(_char_classes) / sizeof(struct _char_class),
 	    sizeof(struct _char_class), _class_compare);
 
@@ -581,7 +578,7 @@ static bool _full_match(const char *pattern, const char *string, int flags)
 static char *_casefold(const char *s)
 {
 	assert(s != NULL);
-	char *result = posix_strdup(s);
+	char *result = strdup(s);
 	for (char *i = result; *i != '\0'; ++i) {
 		*i = tolower(*i);
 	}
@@ -597,7 +594,7 @@ static char *_casefold(const char *s)
  *     (mainly for dot and slash).
  * @return Zero if the string matches the pattern, FNM_NOMATCH otherwise.
  */
-int posix_fnmatch(const char *pattern, const char *string, int flags)
+int fnmatch(const char *pattern, const char *string, int flags)
 {
 	assert(pattern != NULL);
 	assert(string != NULL);
@@ -636,8 +633,8 @@ void __posix_fnmatch_test()
 
 	#undef assert
 	#define assert(x) { if (x) printf("SUCCESS: "#x"\n"); else { printf("FAILED: "#x"\n"); fail++; } }
-	#define match(s1, s2, flags) assert(posix_fnmatch(s1, s2, flags) == 0)
-	#define nomatch(s1, s2, flags) assert(posix_fnmatch(s1, s2, flags) == FNM_NOMATCH)
+	#define match(s1, s2, flags) assert(fnmatch(s1, s2, flags) == 0)
+	#define nomatch(s1, s2, flags) assert(fnmatch(s1, s2, flags) == FNM_NOMATCH)
 
 	static_assert(FNM_PATHNAME == FNM_FILE_NAME);
 	match("", "", 0);

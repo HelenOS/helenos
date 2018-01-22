@@ -32,9 +32,6 @@
 /** @file Locale-specific definitions.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "internal/common.h"
 #include "posix/locale.h"
 
@@ -53,7 +50,7 @@ struct __posix_locale {
 	int _dummy;
 };
 
-const struct posix_lconv C_LOCALE = {
+const struct lconv C_LOCALE = {
 	.currency_symbol = (char *) "",
 	.decimal_point = (char *) ".",
 	.frac_digits = CHAR_MAX,
@@ -87,11 +84,11 @@ const struct posix_lconv C_LOCALE = {
  * @param locale Locale name.
  * @return Original locale name on success, NULL on failure.
  */
-char *posix_setlocale(int category, const char *locale)
+char *setlocale(int category, const char *locale)
 {
 	// TODO
 	if (locale == NULL || *locale == '\0' ||
-	    posix_strcmp(locale, "C") == 0) {
+	    strcmp(locale, "C") == 0) {
 		return (char *) "C";
 	}
 	return NULL;
@@ -102,10 +99,10 @@ char *posix_setlocale(int category, const char *locale)
  * 
  * @return Information about the current locale.
  */
-struct posix_lconv *posix_localeconv(void)
+struct lconv *localeconv(void)
 {
 	// TODO
-	return (struct posix_lconv *) &C_LOCALE;
+	return (struct lconv *) &C_LOCALE;
 }
 
 /**
@@ -114,13 +111,13 @@ struct posix_lconv *posix_localeconv(void)
  * @param locobj Object to duplicate.
  * @return Duplicated object.
  */
-posix_locale_t posix_duplocale(posix_locale_t locobj)
+locale_t duplocale(locale_t locobj)
 {
 	if (locobj == NULL) {
 		errno = EINVAL;
 		return NULL;
 	}
-	posix_locale_t copy = malloc(sizeof(struct __posix_locale));
+	locale_t copy = malloc(sizeof(struct __posix_locale));
 	if (copy == NULL) {
 		errno = ENOMEM;
 		return NULL;
@@ -134,7 +131,7 @@ posix_locale_t posix_duplocale(posix_locale_t locobj)
  * 
  * @param locobj Object to free.
  */
-void posix_freelocale(posix_locale_t locobj)
+void freelocale(locale_t locobj)
 {
 	if (locobj) {
 		free(locobj);
@@ -149,8 +146,8 @@ void posix_freelocale(posix_locale_t locobj)
  * @param base Object to modify. 0 if new object is to be created.
  * @return The new/modified locale object.
  */
-posix_locale_t posix_newlocale(int category_mask, const char *locale,
-    posix_locale_t base)
+locale_t newlocale(int category_mask, const char *locale,
+    locale_t base)
 {
 	if (locale == NULL ||
 	    (category_mask & LC_ALL_MASK) != category_mask) {
@@ -158,13 +155,13 @@ posix_locale_t posix_newlocale(int category_mask, const char *locale,
 		return NULL;
 	}
 	// TODO
-	posix_locale_t new = malloc(sizeof(struct __posix_locale));
+	locale_t new = malloc(sizeof(struct __posix_locale));
 	if (new == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
 	if (base != NULL) {
-		posix_freelocale(base);
+		freelocale(base);
 	}
 	return new;
 }
@@ -175,7 +172,7 @@ posix_locale_t posix_newlocale(int category_mask, const char *locale,
  * @param newloc Locale to use.
  * @return The previously set locale or LC_GLOBAL_LOCALE
  */
-posix_locale_t posix_uselocale(posix_locale_t newloc)
+locale_t uselocale(locale_t newloc)
 {
 	// TODO
 	return LC_GLOBAL_LOCALE;

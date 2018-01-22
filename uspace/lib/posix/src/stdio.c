@@ -33,9 +33,6 @@
 /** @file Standard buffered input/output.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "internal/common.h"
 #include "posix/stdio.h"
 
@@ -54,22 +51,13 @@
 #include "libc/malloc.h"
 #include "libc/adt/list.h"
 
-/** Clears the stream's error and end-of-file indicators.
- *
- * @param stream Stream whose indicators shall be cleared.
- */
-void posix_clearerr(FILE *stream)
-{
-	clearerr(stream);
-}
-
 /**
  * Generate a pathname for the controlling terminal.
  *
  * @param s Allocated buffer to which the pathname shall be put.
  * @return Either s or static location filled with the requested pathname.
  */
-char *posix_ctermid(char *s)
+char *ctermid(char *s)
 {
 	/* Currently always returns an error value (empty string). */
 	// TODO: return a real terminal path
@@ -85,30 +73,6 @@ char *posix_ctermid(char *s)
 }
 
 /**
- * Put a string on the stream.
- * 
- * @param s String to be written.
- * @param stream Output stream.
- * @return Non-negative on success, EOF on failure.
- */
-int posix_fputs(const char *restrict s, FILE *restrict stream)
-{
-	return fputs(s, stream);
-}
-
-/**
- * Push byte back into input stream.
- * 
- * @param c Byte to be pushed back.
- * @param stream Stream to where the byte shall be pushed.
- * @return Provided byte on success or EOF if not possible.
- */
-int posix_ungetc(int c, FILE *stream)
-{
-	return ungetc(c, stream);
-}
-
-/**
  * Read a stream until the delimiter (or EOF) is encountered.
  *
  * @param lineptr Pointer to the output buffer in which there will be stored
@@ -121,7 +85,7 @@ int posix_ungetc(int c, FILE *stream)
  * @return Number of fetched characters (including delimiter if encountered)
  *     or -1 on error (set in errno).
  */
-ssize_t posix_getdelim(char **restrict lineptr, size_t *restrict n,
+ssize_t getdelim(char **restrict lineptr, size_t *restrict n,
     int delimiter, FILE *restrict stream)
 {
 	/* Check arguments for sanity. */
@@ -193,27 +157,10 @@ ssize_t posix_getdelim(char **restrict lineptr, size_t *restrict n,
  * @return Number of fetched characters (including newline if encountered)
  *     or -1 on error (set in errno).
  */
-ssize_t posix_getline(char **restrict lineptr, size_t *restrict n,
+ssize_t getline(char **restrict lineptr, size_t *restrict n,
     FILE *restrict stream)
 {
-	return posix_getdelim(lineptr, n, '\n', stream);
-}
-
-/**
- * Reopen a file stream.
- * 
- * @param filename Pathname of a file to be reopened or NULL for changing
- *     the mode of the stream.
- * @param mode Mode to be used for reopening the file or changing current
- *     mode of the stream.
- * @param stream Current stream associated with the opened file.
- * @return On success, either a stream of the reopened file or the provided
- *     stream with a changed mode. NULL otherwise.
- */
-FILE *posix_freopen(const char *restrict filename, 
-    const char *restrict mode, FILE *restrict stream)
-{
-	return freopen(filename, mode, stream);
+	return getdelim(lineptr, n, '\n', stream);
 }
 
 /**
@@ -221,12 +168,12 @@ FILE *posix_freopen(const char *restrict filename,
  *
  * @param s Error message.
  */
-void posix_perror(const char *s)
+void perror(const char *s)
 {
 	if (s == NULL || s[0] == '\0') {
-		fprintf(stderr, "%s\n", posix_strerror(errno));
+		fprintf(stderr, "%s\n", strerror(errno));
 	} else {
-		fprintf(stderr, "%s: %s\n", s, posix_strerror(errno));
+		fprintf(stderr, "%s: %s\n", s, strerror(errno));
 	}
 }
 
@@ -236,7 +183,7 @@ void posix_perror(const char *s)
  * @param pos Position to restore
  * @return Zero on success, non-zero (with errno set) on failure
  */
-int posix_fsetpos(FILE *stream, const posix_fpos_t *pos)
+int fsetpos(FILE *stream, const fpos_t *pos)
 {
 	return fseek64(stream, pos->offset, SEEK_SET);
 }
@@ -247,7 +194,7 @@ int posix_fsetpos(FILE *stream, const posix_fpos_t *pos)
  * @param pos Place to store the position
  * @return Zero on success, non-zero (with errno set) on failure
  */
-int posix_fgetpos(FILE *restrict stream, posix_fpos_t *restrict pos)
+int fgetpos(FILE *restrict stream, fpos_t *restrict pos)
 {
 	off64_t ret = ftell64(stream);
 	if (ret != -1) {
@@ -266,20 +213,7 @@ int posix_fgetpos(FILE *restrict stream, posix_fpos_t *restrict pos)
  * @param whence From where to seek.
  * @return Zero on success, -1 otherwise.
  */
-int posix_fseek(FILE *stream, long offset, int whence)
-{
-	return fseek(stream, offset, whence);
-}
-
-/**
- * Reposition a file-position indicator in a stream.
- * 
- * @param stream Stream to seek in.
- * @param offset Direction and amount of bytes to seek.
- * @param whence From where to seek.
- * @return Zero on success, -1 otherwise.
- */
-int posix_fseeko(FILE *stream, posix_off_t offset, int whence)
+int fseeko(FILE *stream, off_t offset, int whence)
 {
 	return fseek64(stream, offset, whence);
 }
@@ -290,31 +224,9 @@ int posix_fseeko(FILE *stream, posix_off_t offset, int whence)
  * @param stream Stream for which the offset shall be retrieved.
  * @return Current offset or -1 if not possible.
  */
-long posix_ftell(FILE *stream)
-{
-	return ftell(stream);
-}
-
-/**
- * Discover current file offset in a stream.
- * 
- * @param stream Stream for which the offset shall be retrieved.
- * @return Current offset or -1 if not possible.
- */
-posix_off_t posix_ftello(FILE *stream)
+off_t ftello(FILE *stream)
 {
 	return ftell64(stream);
-}
-
-/**
- * Discard prefetched data or write unwritten data.
- * 
- * @param stream Stream that shall be flushed.
- * @return Zero on success, EOF on failure.
- */
-int posix_fflush(FILE *stream)
-{
-	return fflush(stream);
 }
 
 /**
@@ -324,11 +236,11 @@ int posix_fflush(FILE *stream)
  * @param format Format description.
  * @return Either the number of printed characters or negative value on error.
  */
-int posix_dprintf(int fildes, const char *restrict format, ...)
+int dprintf(int fildes, const char *restrict format, ...)
 {
 	va_list list;
 	va_start(list, format);
-	int result = posix_vdprintf(fildes, format, list);
+	int result = vdprintf(fildes, format, list);
 	va_end(list);
 	return result;
 }
@@ -391,7 +303,7 @@ static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
  * @param ap Print arguments.
  * @return Either the number of printed characters or negative value on error.
  */
-int posix_vdprintf(int fildes, const char *restrict format, va_list ap)
+int vdprintf(int fildes, const char *restrict format, va_list ap)
 {
 	printf_spec_t spec = {
 		.str_write = _dprintf_str_write,
@@ -410,11 +322,11 @@ int posix_vdprintf(int fildes, const char *restrict format, va_list ap)
  * @return Either the number of printed characters (excluding null byte) or
  *     negative value on error.
  */
-int posix_sprintf(char *s, const char *restrict format, ...)
+int sprintf(char *s, const char *restrict format, ...)
 {
 	va_list list;
 	va_start(list, format);
-	int result = posix_vsprintf(s, format, list);
+	int result = vsprintf(s, format, list);
 	va_end(list);
 	return result;
 }
@@ -428,7 +340,7 @@ int posix_sprintf(char *s, const char *restrict format, ...)
  * @return Either the number of printed characters (excluding null byte) or
  *     negative value on error.
  */
-int posix_vsprintf(char *s, const char *restrict format, va_list ap)
+int vsprintf(char *s, const char *restrict format, va_list ap)
 {
 	return vsnprintf(s, STR_NO_LIMIT, format, ap);
 }
@@ -440,11 +352,11 @@ int posix_vsprintf(char *s, const char *restrict format, va_list ap)
  * @param format Format description.
  * @return The number of converted output items or EOF on failure.
  */
-int posix_fscanf(FILE *restrict stream, const char *restrict format, ...)
+int fscanf(FILE *restrict stream, const char *restrict format, ...)
 {
 	va_list list;
 	va_start(list, format);
-	int result = posix_vfscanf(stream, format, list);
+	int result = vfscanf(stream, format, list);
 	va_end(list);
 	return result;
 }
@@ -455,11 +367,11 @@ int posix_fscanf(FILE *restrict stream, const char *restrict format, ...)
  * @param format Format description.
  * @return The number of converted output items or EOF on failure.
  */
-int posix_scanf(const char *restrict format, ...)
+int scanf(const char *restrict format, ...)
 {
 	va_list list;
 	va_start(list, format);
-	int result = posix_vscanf(format, list);
+	int result = vscanf(format, list);
 	va_end(list);
 	return result;
 }
@@ -471,9 +383,9 @@ int posix_scanf(const char *restrict format, ...)
  * @param arg Output items.
  * @return The number of converted output items or EOF on failure.
  */
-int posix_vscanf(const char *restrict format, va_list arg)
+int vscanf(const char *restrict format, va_list arg)
 {
-	return posix_vfscanf(stdin, format, arg);
+	return vfscanf(stdin, format, arg);
 }
 
 /**
@@ -483,11 +395,11 @@ int posix_vscanf(const char *restrict format, va_list arg)
  * @param format Format description.
  * @return The number of converted output items or EOF on failure.
  */
-int posix_sscanf(const char *restrict s, const char *restrict format, ...)
+int sscanf(const char *restrict s, const char *restrict format, ...)
 {
 	va_list list;
 	va_start(list, format);
-	int result = posix_vsscanf(s, format, list);
+	int result = vsscanf(s, format, list);
 	va_end(list);
 	return result;
 }
@@ -497,7 +409,7 @@ int posix_sscanf(const char *restrict s, const char *restrict format, ...)
  *
  * @param file File stream to lock.
  */
-void posix_flockfile(FILE *file)
+void flockfile(FILE *file)
 {
 	/* dummy */
 }
@@ -508,7 +420,7 @@ void posix_flockfile(FILE *file)
  * @param file File stream to lock.
  * @return Zero for success and non-zero if the lock cannot be acquired.
  */
-int posix_ftrylockfile(FILE *file)
+int ftrylockfile(FILE *file)
 {
 	/* dummy */
 	return 0;
@@ -519,7 +431,7 @@ int posix_ftrylockfile(FILE *file)
  *
  * @param file File stream to unlock.
  */
-void posix_funlockfile(FILE *file)
+void funlockfile(FILE *file)
 {
 	/* dummy */
 }
@@ -530,7 +442,7 @@ void posix_funlockfile(FILE *file)
  * @param stream Input file stream.
  * @return Either read byte or EOF.
  */
-int posix_getc_unlocked(FILE *stream)
+int getc_unlocked(FILE *stream)
 {
 	return getc(stream);
 }
@@ -540,7 +452,7 @@ int posix_getc_unlocked(FILE *stream)
  *
  * @return Either read byte or EOF.
  */
-int posix_getchar_unlocked(void)
+int getchar_unlocked(void)
 {
 	return getchar();
 }
@@ -552,7 +464,7 @@ int posix_getchar_unlocked(void)
  * @param stream Output file stream.
  * @return Either written byte or EOF.
  */
-int posix_putc_unlocked(int c, FILE *stream)
+int putc_unlocked(int c, FILE *stream)
 {
 	return putc(c, stream);
 }
@@ -563,38 +475,9 @@ int posix_putc_unlocked(int c, FILE *stream)
  * @param c Byte to output.
  * @return Either written byte or EOF.
  */
-int posix_putchar_unlocked(int c)
+int putchar_unlocked(int c)
 {
 	return putchar(c);
-}
-
-/**
- * Remove a file or directory.
- *
- * @param path Pathname of the file that shall be removed.
- * @return Zero on success, -1 (with errno set) otherwise.
- */
-int posix_remove(const char *path)
-{
-	if (failed(vfs_unlink_path(path)))
-		return -1;
-	else
-		return 0;
-}
-
-/**
- * Rename a file or directory.
- *
- * @param old Old pathname.
- * @param new New pathname.
- * @return Zero on success, -1 (with errno set) otherwise.
- */
-int posix_rename(const char *old, const char *new)
-{
-	if (failed(vfs_rename_path(old, new)))
-		return -1;
-	else
-		return 0;
 }
 
 /**
@@ -603,17 +486,17 @@ int posix_rename(const char *old, const char *new)
  * @param s Buffer for the file name. Must be at least L_tmpnam bytes long.
  * @return The value of s on success, NULL on failure.
  */
-char *posix_tmpnam(char *s)
+char *tmpnam(char *s)
 {
-	assert(L_tmpnam >= posix_strlen("/tmp/tnXXXXXX"));
+	assert(L_tmpnam >= strlen("/tmp/tnXXXXXX"));
 	
 	static char buffer[L_tmpnam + 1];
 	if (s == NULL) {
 		s = buffer;
 	}
 	
-	posix_strcpy(s, "/tmp/tnXXXXXX");
-	posix_mktemp(s);
+	strcpy(s, "/tmp/tnXXXXXX");
+	mktemp(s);
 	
 	if (*s == '\0') {
 		/* Errno set by mktemp(). */
@@ -630,17 +513,17 @@ char *posix_tmpnam(char *s)
  * @param pfx Optional prefix up to 5 characters long.
  * @return Newly allocated unique path for temporary file. NULL on failure.
  */
-char *posix_tempnam(const char *dir, const char *pfx)
+char *tempnam(const char *dir, const char *pfx)
 {
 	/* Sequence number of the filename. */
 	static int seq = 0;
 	
-	size_t dir_len = posix_strlen(dir);
+	size_t dir_len = strlen(dir);
 	if (dir[dir_len - 1] == '/') {
 		dir_len--;
 	}
 	
-	size_t pfx_len = posix_strlen(pfx);
+	size_t pfx_len = strlen(pfx);
 	if (pfx_len > 5) {
 		pfx_len = 5;
 	}
@@ -654,9 +537,9 @@ char *posix_tempnam(const char *dir, const char *pfx)
 	}
 	
 	char *res_ptr = result;
-	posix_strncpy(res_ptr, dir, dir_len);
+	strncpy(res_ptr, dir, dir_len);
 	res_ptr += dir_len;
-	posix_strncpy(res_ptr, pfx, pfx_len);
+	strncpy(res_ptr, pfx, pfx_len);
 	res_ptr += pfx_len;
 	
 	for (; seq < 1000; ++seq) {
@@ -665,7 +548,7 @@ char *posix_tempnam(const char *dir, const char *pfx)
 		int orig_errno = errno;
 		errno = EOK;
 		/* Check if the file exists. */
-		if (posix_access(result, F_OK) == -1) {
+		if (access(result, F_OK) == -1) {
 			if (errno == ENOENT) {
 				errno = orig_errno;
 				break;
@@ -693,17 +576,17 @@ char *posix_tempnam(const char *dir, const char *pfx)
  * @param pfx Optional prefix up to 5 characters long.
  * @return Newly allocated unique path for temporary file. NULL on failure.
  */
-FILE *posix_tmpfile(void)
+FILE *tmpfile(void)
 {
 	char filename[] = "/tmp/tfXXXXXX";
-	int fd = posix_mkstemp(filename);
+	int fd = mkstemp(filename);
 	if (fd == -1) {
 		/* errno set by mkstemp(). */
 		return NULL;
 	}
 	
 	/* Unlink the created file, so that it's removed on close(). */
-	posix_unlink(filename);
+	unlink(filename);
 	return fdopen(fd, "w+");
 }
 

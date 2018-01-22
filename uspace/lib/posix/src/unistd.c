@@ -33,9 +33,6 @@
 /** @file Miscellaneous standard definitions.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "internal/common.h"
 #include "posix/unistd.h"
 
@@ -69,7 +66,7 @@ char *posix_optarg;
  * @param seconds Number of seconds to sleep.
  * @return Always 0 on HelenOS.
  */
-unsigned int posix_sleep(unsigned int seconds)
+unsigned int sleep(unsigned int seconds)
 {
 	return thread_sleep(seconds);
 }
@@ -79,7 +76,7 @@ unsigned int posix_sleep(unsigned int seconds)
  *
  * @return User name (static) string or NULL if not found.
  */
-char *posix_getlogin(void)
+char *getlogin(void)
 {
 	/* There is currently no support for user accounts in HelenOS. */
 	return (char *) "user";
@@ -92,11 +89,11 @@ char *posix_getlogin(void)
  * @param namesize Length of the buffer.
  * @return Zero on success, error code otherwise.
  */
-int posix_getlogin_r(char *name, size_t namesize)
+int getlogin_r(char *name, size_t namesize)
 {
 	/* There is currently no support for user accounts in HelenOS. */
 	if (namesize >= 5) {
-		posix_strcpy(name, (char *) "user");
+		strcpy(name, (char *) "user");
 		return 0;
 	} else {
 		errno = ERANGE;
@@ -110,7 +107,7 @@ int posix_getlogin_r(char *name, size_t namesize)
  * @param fd Open file descriptor to test.
  * @return Boolean result of the test.
  */
-int posix_isatty(int fd)
+int isatty(int fd)
 {
 	// TODO
 	/* Always returns false, because there is no easy way to find
@@ -125,7 +122,7 @@ int posix_isatty(int fd)
  * @param size Size of the buffer.
  * @return Buffer pointer on success, NULL on failure.
  */
-char *posix_getcwd(char *buf, size_t size)
+char *getcwd(char *buf, size_t size)
 {
 	if (failed(vfs_cwd_get(buf, size))) 
 		return NULL;
@@ -137,7 +134,7 @@ char *posix_getcwd(char *buf, size_t size)
  *
  * @param path New working directory.
  */
-int posix_chdir(const char *path)
+int chdir(const char *path)
 {
 	if (failed(vfs_cwd_set(path)))
 		return -1;
@@ -149,7 +146,7 @@ int posix_chdir(const char *path)
  *
  * @return Page size of the process.
  */
-int posix_getpagesize(void)
+int getpagesize(void)
 {
 	return PAGE_SIZE;
 }
@@ -159,7 +156,7 @@ int posix_getpagesize(void)
  *
  * @return Process ID.
  */
-posix_pid_t posix_getpid(void)
+pid_t getpid(void)
 {
 	return task_get_id();
 }
@@ -169,7 +166,7 @@ posix_pid_t posix_getpid(void)
  *
  * @return User ID.
  */
-posix_uid_t posix_getuid(void)
+uid_t getuid(void)
 {
 	/* There is currently no support for user accounts in HelenOS. */
 	return 0;
@@ -180,7 +177,7 @@ posix_uid_t posix_getuid(void)
  * 
  * @return Group ID.
  */
-posix_gid_t posix_getgid(void)
+gid_t getgid(void)
 {
 	/* There is currently no support for user accounts in HelenOS. */
 	return 0;
@@ -192,7 +189,7 @@ posix_gid_t posix_getgid(void)
  * @param fildes File descriptor of the opened file.
  * @return 0 on success, -1 on error.
  */
-int posix_close(int fildes)
+int close(int fildes)
 {
 	posix_pos[fildes] = 0;
 	if (failed(vfs_put(fildes)))
@@ -209,7 +206,7 @@ int posix_close(int fildes)
  * @param nbyte Upper limit on the number of read bytes.
  * @return Number of read bytes on success, -1 otherwise.
  */
-ssize_t posix_read(int fildes, void *buf, size_t nbyte)
+ssize_t read(int fildes, void *buf, size_t nbyte)
 {
 	size_t nread;
 	if (failed(vfs_read(fildes, &posix_pos[fildes], buf, nbyte, &nread)))
@@ -225,7 +222,7 @@ ssize_t posix_read(int fildes, void *buf, size_t nbyte)
  * @param nbyte Size of the buffer.
  * @return Number of written bytes on success, -1 otherwise.
  */
-ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
+ssize_t write(int fildes, const void *buf, size_t nbyte)
 {
 	size_t nwr;
 	if (failed(vfs_write(fildes, &posix_pos[fildes], buf, nbyte, &nwr)))
@@ -242,7 +239,7 @@ ssize_t posix_write(int fildes, const void *buf, size_t nbyte)
  * @return Upon successful completion, returns the resulting offset
  *         as measured in bytes from the beginning of the file, -1 otherwise.
  */
-posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
+off_t lseek(int fildes, off_t offset, int whence)
 {
 	vfs_stat_t st;
 
@@ -273,7 +270,7 @@ posix_off_t posix_lseek(int fildes, posix_off_t offset, int whence)
  * @param fildes File descriptor of the opened file.
  * @return Zero on success, -1 otherwise.
  */
-int posix_fsync(int fildes)
+int fsync(int fildes)
 {
 	if (failed(vfs_sync(fildes)))
 		return -1;
@@ -288,7 +285,7 @@ int posix_fsync(int fildes)
  * @param length New length of the file.
  * @return Zero on success, -1 otherwise.
  */
-int posix_ftruncate(int fildes, posix_off_t length)
+int ftruncate(int fildes, off_t length)
 {
 	if (failed(vfs_resize(fildes, (aoff64_t) length)))
 		return -1;
@@ -302,7 +299,7 @@ int posix_ftruncate(int fildes, posix_off_t length)
  * @param path Directory pathname.
  * @return Zero on success, -1 otherwise.
  */
-int posix_rmdir(const char *path)
+int rmdir(const char *path)
 {
 	if (failed(vfs_unlink_path(path)))
 		return -1;
@@ -316,7 +313,7 @@ int posix_rmdir(const char *path)
  * @param path File pathname.
  * @return Zero on success, -1 otherwise.
  */
-int posix_unlink(const char *path)
+int unlink(const char *path)
 {
 	if (failed(vfs_unlink_path(path)))
 		return -1;
@@ -330,9 +327,9 @@ int posix_unlink(const char *path)
  * @param fildes File descriptor to be duplicated.
  * @return On success, new file descriptor for the same file, otherwise -1.
  */
-int posix_dup(int fildes)
+int dup(int fildes)
 {
-	return posix_fcntl(fildes, F_DUPFD, 0);
+	return fcntl(fildes, F_DUPFD, 0);
 }
 
 /**
@@ -343,7 +340,7 @@ int posix_dup(int fildes)
  *     as is paired fildes.
  * @return fildes2 on success, -1 otherwise.
  */
-int posix_dup2(int fildes, int fildes2)
+int dup2(int fildes, int fildes2)
 {
 	int file;
 	if (failed(vfs_clone(fildes, fildes2, false, &file))) {
@@ -359,7 +356,7 @@ int posix_dup2(int fildes, int fildes2)
  * @param amode Either check for existence or intended access mode.
  * @return Zero on success, -1 otherwise.
  */
-int posix_access(const char *path, int amode)
+int access(const char *path, int amode)
 {
 	if (amode == F_OK || (amode & (X_OK | W_OK | R_OK))) {
 		/* HelenOS doesn't support permissions, permission checks
@@ -367,10 +364,10 @@ int posix_access(const char *path, int amode)
 		 *
 		 * Check file existence by attempting to open it.
 		 */
-		int fd = posix_open(path, O_RDONLY);
+		int fd = open(path, O_RDONLY);
 		if (fd < 0)
 			return -1;
-		posix_close(fd);
+		close(fd);
 		return 0;
 	} else {
 		/* Invalid amode argument. */
@@ -385,7 +382,7 @@ int posix_access(const char *path, int amode)
  * @param name Variable name.
  * @return Variable value.
  */
-long posix_sysconf(int name)
+long sysconf(int name)
 {
 	long clk_tck = 0;
 	size_t cpu_count = 0;
@@ -402,8 +399,8 @@ long posix_sysconf(int name)
 	long avphys_pages = 0;
 	stats_physmem_t *mem_stats = stats_get_physmem();
 	if (mem_stats) {
-		phys_pages = (long) (mem_stats->total / posix_getpagesize());
-		avphys_pages = (long) (mem_stats->free / posix_getpagesize());
+		phys_pages = (long) (mem_stats->total / getpagesize());
+		avphys_pages = (long) (mem_stats->free / getpagesize());
 		free(mem_stats);
 		mem_stats = 0;
 	}
@@ -414,7 +411,7 @@ long posix_sysconf(int name)
 	case _SC_AVPHYS_PAGES:
 		return avphys_pages;
 	case _SC_PAGESIZE:
-		return posix_getpagesize();
+		return getpagesize();
 	case _SC_CLK_TCK:
 		return clk_tck;
 	default:
@@ -429,7 +426,7 @@ long posix_sysconf(int name)
  * @param name
  * @return
  */
-long posix_pathconf(const char *path, int name)
+long pathconf(const char *path, int name)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
@@ -440,7 +437,7 @@ long posix_pathconf(const char *path, int name)
  * 
  * @return
  */
-posix_pid_t posix_fork(void)
+pid_t fork(void)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
@@ -453,7 +450,7 @@ posix_pid_t posix_fork(void)
  * @param argv
  * @return
  */
-int posix_execv(const char *path, char *const argv[])
+int execv(const char *path, char *const argv[])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
@@ -466,7 +463,7 @@ int posix_execv(const char *path, char *const argv[])
  * @param argv
  * @return
  */
-int posix_execvp(const char *file, char *const argv[])
+int execvp(const char *file, char *const argv[])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
@@ -478,14 +475,14 @@ int posix_execvp(const char *file, char *const argv[])
  * @param fildes
  * @return
  */
-int posix_pipe(int fildes[2])
+int pipe(int fildes[2])
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
 	return -1;
 }
 
-unsigned int posix_alarm(unsigned int seconds)
+unsigned int alarm(unsigned int seconds)
 {
 	not_implemented();
 	return 0;

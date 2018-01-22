@@ -32,9 +32,6 @@
 /** @file Pthread: condition variables.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "posix/pthread.h"
 #include "errno.h"
 #include "../internal/common.h"
@@ -65,7 +62,7 @@ int pthread_cond_signal(pthread_cond_t *condvar)
 }
 
 int pthread_cond_timedwait(pthread_cond_t *restrict condvar,
-    pthread_mutex_t *restrict mutex, const struct __POSIX_DEF__(timespec) *restrict timeout)
+    pthread_mutex_t *restrict mutex, const struct timespec *restrict timeout)
 {
 	not_implemented();
 	return ENOTSUP;

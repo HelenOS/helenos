@@ -49,6 +49,9 @@
 		__not_implemented_counter++; \
 	} while (0)
 
+// Just a marker for external tools.
+#define _HIDE_LIBC_SYMBOL(symbol)
+
 /* Checks if the value is a failing error code.
  * If so, writes the error code to errno and returns true.
  */

@@ -32,9 +32,6 @@
 /** @file Password handling.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "libc/stdbool.h"
 #include "posix/pwd.h"
 #include "posix/string.h"
@@ -44,7 +41,7 @@
 static bool entry_read = false;
 
 /* dummy user account */
-static const struct posix_passwd dummy_pwd = {
+static const struct passwd dummy_pwd = {
 	.pw_name = (char *) "user",
 	.pw_uid = 0,
 	.pw_gid = 0,
@@ -61,20 +58,20 @@ static const struct posix_passwd dummy_pwd = {
  * @return Next user database entry or NULL if not possible. Since HelenOS
  *     doesn't have user accounts, this always returns the same made-up entry.
  */
-struct posix_passwd *posix_getpwent(void)
+struct passwd *getpwent(void)
 {
 	if (entry_read) {
 		return NULL;
 	}
 
 	entry_read = true;
-	return (struct posix_passwd *) &dummy_pwd;
+	return (struct passwd *) &dummy_pwd;
 }
 
 /**
  * Rewind the user list.
  */
-void posix_setpwent(void)
+void setpwent(void)
 {
 	entry_read = false;
 }
@@ -82,7 +79,7 @@ void posix_setpwent(void)
 /**
  * Ends enumerating and releases all resources. (Noop)
  */
-void posix_endpwent(void)
+void endpwent(void)
 {
 	/* noop */
 }
@@ -93,15 +90,15 @@ void posix_endpwent(void)
  * @param name Name of the entry.
  * @return Either found entry or NULL if no such entry exists.
  */
-struct posix_passwd *posix_getpwnam(const char *name)
+struct passwd *getpwnam(const char *name)
 {
 	assert(name != NULL);
 
-	if (posix_strcmp(name, "user") != 0) {
+	if (strcmp(name, "user") != 0) {
 		return NULL;
 	}
 
-	return (struct posix_passwd *) &dummy_pwd;
+	return (struct passwd *) &dummy_pwd;
 }
 
 /**
@@ -115,20 +112,20 @@ struct posix_passwd *posix_getpwnam(const char *name)
  * @return Zero on success (either found or not found, but without an error),
  *     non-zero error number if error occured.
  */
-int posix_getpwnam_r(const char *name, struct posix_passwd *pwd,
-    char *buffer, size_t bufsize, struct posix_passwd **result)
+int getpwnam_r(const char *name, struct passwd *pwd,
+    char *buffer, size_t bufsize, struct passwd **result)
 {
 	assert(name != NULL);
 	assert(pwd != NULL);
 	assert(buffer != NULL);
 	assert(result != NULL);
 	
-	if (posix_strcmp(name, "user") != 0) {
+	if (strcmp(name, "user") != 0) {
 		*result = NULL;
 		return 0;
 	}
 	
-	return posix_getpwuid_r(0, pwd, buffer, bufsize, result);
+	return getpwuid_r(0, pwd, buffer, bufsize, result);
 }
 
 /**
@@ -137,13 +134,13 @@ int posix_getpwnam_r(const char *name, struct posix_passwd *pwd,
  * @param uid UID of the entry.
  * @return Either found entry or NULL if no such entry exists.
  */
-struct posix_passwd *posix_getpwuid(posix_uid_t uid)
+struct passwd *getpwuid(uid_t uid)
 {
 	if (uid != 0) {
 		return NULL;
 	}
 
-	return (struct posix_passwd *) &dummy_pwd;
+	return (struct passwd *) &dummy_pwd;
 }
 
 /**
@@ -157,8 +154,8 @@ struct posix_passwd *posix_getpwuid(posix_uid_t uid)
  * @return Zero on success (either found or not found, but without an error),
  *     non-zero error number if error occured.
  */
-int posix_getpwuid_r(posix_uid_t uid, struct posix_passwd *pwd,
-    char *buffer, size_t bufsize, struct posix_passwd **result)
+int getpwuid_r(uid_t uid, struct passwd *pwd,
+    char *buffer, size_t bufsize, struct passwd **result)
 {
 	assert(pwd != NULL);
 	assert(buffer != NULL);
@@ -183,7 +180,7 @@ int posix_getpwuid_r(posix_uid_t uid, struct posix_passwd *pwd,
 	pwd->pw_gid = 0;
 	pwd->pw_dir = (char *) bf + 5;
 	pwd->pw_shell = (char *) bf + 7;
-	*result = (struct posix_passwd *) pwd;
+	*result = (struct passwd *) pwd;
 
 	return 0;
 }

@@ -33,9 +33,6 @@
 /** @file Time measurement support.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "internal/common.h"
 #include "posix/time.h"
 
@@ -69,7 +66,7 @@ char *posix_tzname[2];
 /**
  * Set timezone conversion information.
  */
-void posix_tzset(void)
+void tzset(void)
 {
 	// TODO: read environment
 	posix_tzname[0] = (char *) "GMT";
@@ -79,26 +76,13 @@ void posix_tzset(void)
 }
 
 /**
- * Get the time in seconds
- *
- * @param t If t is non-NULL, the return value is also stored in the memory
- *          pointed to by t.
- * @return  On success, the value of time in seconds since the Epoch
- *          is returned. On error, (time_t)-1 is returned.
- */
-time_t posix_time(time_t *t)
-{
-	return time(t);
-}
-
-/**
  * Converts a time value to a broken-down UTC time.
  * 
  * @param timer Time to convert.
  * @param result Structure to store the result to.
  * @return Value of result on success, NULL on overflow.
  */
-struct tm *posix_gmtime_r(const time_t *restrict timer,
+struct tm *gmtime_r(const time_t *restrict timer,
     struct tm *restrict result)
 {
 	if (failed(time_utc2tm(*timer, result))) {
@@ -116,11 +100,11 @@ struct tm *posix_gmtime_r(const time_t *restrict timer,
  * @return       Pointer to a statically allocated structure that stores
  *               the result, NULL in case of error.
  */
-struct tm *posix_gmtime(const time_t *restrict timep)
+struct tm *gmtime(const time_t *restrict timep)
 {
 	static struct tm result;
 
-	return posix_gmtime_r(timep, &result);
+	return gmtime_r(timep, &result);
 }
 
 /**
@@ -130,12 +114,12 @@ struct tm *posix_gmtime(const time_t *restrict timep)
  * @param result Structure to store the result to.
  * @return Value of result on success, NULL on overflow.
  */
-struct tm *posix_localtime_r(const time_t *restrict timer,
+struct tm *localtime_r(const time_t *restrict timer,
     struct tm *restrict result)
 {
 	// TODO: deal with timezone
 	// currently assumes system and all times are in GMT
-	return posix_gmtime_r(timer, result);
+	return gmtime_r(timer, result);
 }
 
 /**
@@ -146,11 +130,11 @@ struct tm *posix_localtime_r(const time_t *restrict timer,
  * @return         Pointer to a statically allocated structure that stores
  *                 the result, NULL in case of error.
  */
-struct tm *posix_localtime(const time_t *restrict timep)
+struct tm *localtime(const time_t *restrict timep)
 {
 	static struct tm result;
 
-	return posix_localtime_r(timep, &result);
+	return localtime_r(timep, &result);
 }
 
 /**
@@ -162,7 +146,7 @@ struct tm *posix_localtime(const time_t *restrict timep)
  *     bytes long.
  * @return Value of buf.
  */
-char *posix_asctime_r(const struct tm *restrict timeptr,
+char *asctime_r(const struct tm *restrict timeptr,
     char *restrict buf)
 {
 	time_tm2str(timeptr, buf);
@@ -178,11 +162,11 @@ char *posix_asctime_r(const struct tm *restrict timeptr,
  * @return           Pointer to a statically allocated buffer that stores
  *                   the result, NULL in case of error.
  */
-char *posix_asctime(const struct tm *restrict timeptr)
+char *asctime(const struct tm *restrict timeptr)
 {
 	static char buf[ASCTIME_BUF_LEN];
 
-	return posix_asctime_r(timeptr, buf);
+	return asctime_r(timeptr, buf);
 }
 
 /**
@@ -194,7 +178,7 @@ char *posix_asctime(const struct tm *restrict timeptr)
  *     bytes long.
  * @return Pointer to buf on success, NULL on failure.
  */
-char *posix_ctime_r(const time_t *timer, char *buf)
+char *ctime_r(const time_t *timer, char *buf)
 {
 	if (failed(time_local2str(*timer, buf))) {
 		return NULL;
@@ -212,11 +196,11 @@ char *posix_ctime_r(const time_t *timer, char *buf)
  * @return         Pointer to a statically allocated buffer that stores
  *                 the result, NULL in case of error.
  */
-char *posix_ctime(const time_t *timep)
+char *ctime(const time_t *timep)
 {
 	static char buf[ASCTIME_BUF_LEN];
 
-	return posix_ctime_r(timep, buf);
+	return ctime_r(timep, buf);
 }
 
 /**
@@ -226,7 +210,7 @@ char *posix_ctime(const time_t *timep)
  * @param res Pointer to the variable where the resolution is to be written.
  * @return 0 on success, -1 with errno set on failure.
  */
-int posix_clock_getres(posix_clockid_t clock_id, struct posix_timespec *res)
+int clock_getres(clockid_t clock_id, struct timespec *res)
 {
 	assert(res != NULL);
 
@@ -248,7 +232,7 @@ int posix_clock_getres(posix_clockid_t clock_id, struct posix_timespec *res)
  * @param tp Pointer to the variable where the time is to be written.
  * @return 0 on success, -1 with errno on failure.
  */
-int posix_clock_gettime(posix_clockid_t clock_id, struct posix_timespec *tp)
+int clock_gettime(clockid_t clock_id, struct timespec *tp)
 {
 	assert(tp != NULL);
 
@@ -274,8 +258,8 @@ int posix_clock_gettime(posix_clockid_t clock_id, struct posix_timespec *tp)
  * @param tp Time to set.
  * @return 0 on success, -1 with errno on failure.
  */
-int posix_clock_settime(posix_clockid_t clock_id,
-    const struct posix_timespec *tp)
+int clock_settime(clockid_t clock_id,
+    const struct timespec *tp)
 {
 	assert(tp != NULL);
 
@@ -301,8 +285,8 @@ int posix_clock_settime(posix_clockid_t clock_id,
  * @param rmtp Remaining time is written here if sleep is interrupted.
  * @return 0 on success, -1 with errno set on failure.
  */
-int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
-    const struct posix_timespec *rqtp, struct posix_timespec *rmtp)
+int clock_nanosleep(clockid_t clock_id, int flags,
+    const struct timespec *rqtp, struct timespec *rmtp)
 {
 	assert(rqtp != NULL);
 	assert(rmtp != NULL);
@@ -328,12 +312,12 @@ int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
  *
  * @return Consumed CPU cycles by this process or -1 if not available.
  */
-posix_clock_t posix_clock(void)
+clock_t clock(void)
 {
-	posix_clock_t total_cycles = -1;
+	clock_t total_cycles = -1;
 	stats_task_t *task_stats = stats_get_task(task_get_id());
 	if (task_stats) {
-		total_cycles = (posix_clock_t) (task_stats->kcycles +
+		total_cycles = (clock_t) (task_stats->kcycles +
 		    task_stats->ucycles);
 		free(task_stats);
 		task_stats = 0;

@@ -33,9 +33,6 @@
 /** @file Additional string manipulation.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "internal/common.h"
 #include "posix/strings.h"
 
@@ -51,7 +48,7 @@
  * @param i Integer in which to look for the first set bit.
  * @return Index of first set bit. Bits are numbered starting at one.
  */
-int posix_ffs(int i)
+int ffs(int i)
 {
 	if (i == 0) {
 		return 0;
@@ -91,9 +88,9 @@ int posix_ffs(int i)
  * @return Difference of the first pair of inequal characters,
  *     or 0 if strings have the same content.
  */
-int posix_strcasecmp(const char *s1, const char *s2)
+int strcasecmp(const char *s1, const char *s2)
 {
-	return posix_strncasecmp(s1, s2, STR_NO_LIMIT);
+	return strncasecmp(s1, s2, STR_NO_LIMIT);
 }
 
 /**
@@ -105,7 +102,7 @@ int posix_strcasecmp(const char *s1, const char *s2)
  * @return Difference of the first pair of inequal characters,
  *     or 0 if strings have the same content.
  */
-int posix_strncasecmp(const char *s1, const char *s2, size_t n)
+int strncasecmp(const char *s1, const char *s2, size_t n)
 {
 	for (size_t i = 0; i < n; ++i) {
 		int cmp = tolower(s1[i]) - tolower(s2[i]);
@@ -130,7 +127,7 @@ int posix_strncasecmp(const char *s1, const char *s2, size_t n)
  * @return If n is 0, return zero. If the areas match, return
  *     zero. Otherwise return non-zero.
  */
-int posix_bcmp(const void *mem1, const void *mem2, size_t n)
+int bcmp(const void *mem1, const void *mem2, size_t n)
 {
 	return memcmp(mem1, mem2, n);
 }
@@ -142,7 +139,7 @@ int posix_bcmp(const void *mem1, const void *mem2, size_t n)
  * @param dest Destination area.
  * @param n Number of bytes to copy.
  */
-void posix_bcopy(const void *src, void *dest, size_t n)
+void bcopy(const void *src, void *dest, size_t n)
 {
 	/* Note that memmove has different order of arguments. */
 	memmove(dest, src, n);
@@ -154,7 +151,7 @@ void posix_bcopy(const void *src, void *dest, size_t n)
  * @param mem Memory area to be zeroed.
  * @param n Number of bytes to reset.
  */
-void posix_bzero(void *mem, size_t n)
+void bzero(void *mem, size_t n)
 {
 	memset(mem, 0, n);
 }
@@ -167,9 +164,9 @@ void posix_bzero(void *mem, size_t n)
  * @return Pointer to the specified character on success,
  *     NULL pointer otherwise.
  */
-char *posix_index(const char *s, int c)
+char *index(const char *s, int c)
 {
-	return posix_strchr(s, c);
+	return strchr(s, c);
 }
 
 /**
@@ -180,9 +177,9 @@ char *posix_index(const char *s, int c)
  * @return Pointer to the specified character on success,
  *     NULL pointer otherwise.
  */
-char *posix_rindex(const char *s, int c)
+char *rindex(const char *s, int c)
 {
-	return posix_strrchr(s, c);
+	return strrchr(s, c);
 }
 
 /** @}

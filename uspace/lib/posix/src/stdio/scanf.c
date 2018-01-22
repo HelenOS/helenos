@@ -32,9 +32,6 @@
 /** @file Implementation of the scanf backend.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include <assert.h>
 
 #include <errno.h>
@@ -118,7 +115,7 @@ static void _capture_stream(_input_provider *self)
 
 	/* Initialize internal structures. */
 	self->consumed = 0;
-	ssize_t fetched = posix_getline(
+	ssize_t fetched = getline(
 	    &self->window, &self->window_size, self->source.stream);
 	if (fetched != -1) {
 		self->fetched = fetched;
@@ -139,7 +136,7 @@ static void _capture_string(_input_provider *self)
 
 	/* Initialize internal structures. */
 	self->consumed = 0;
-	self->fetched = posix_strlen(self->source.string);
+	self->fetched = strlen(self->source.string);
 	self->window = (char *) self->source.string;
 	self->window_size = self->fetched + 1;
 	self->cursor = self->window;
@@ -157,7 +154,7 @@ static int _pop_stream(_input_provider *self)
 		++self->cursor;
 		/* Do we need to fetch a new line from the source? */
 		if (*self->cursor == '\0') {
-			ssize_t fetched = posix_getline(&self->window,
+			ssize_t fetched = getline(&self->window,
 			    &self->window_size, self->source.stream);
 			if (fetched != -1) {
 				self->fetched += fetched;
@@ -207,13 +204,12 @@ static int _undo_stream(_input_provider *self)
 		 * when matching unbounded string (%s) or unbounded scanset (%[) not
 		 * containing newline, while at the same time newline is the character
 		 * that breaks the matching process. */
-		int rc = posix_fseek(
-		    self->source.stream, -1, SEEK_CUR);
+		int rc = fseek(self->source.stream, -1, SEEK_CUR);
 		if (rc == -1) {
 			/* Seek failed.  */
 			return 0;
 		}
-		ssize_t fetched = posix_getline(&self->window,
+		ssize_t fetched = getline(&self->window,
 		    &self->window_size, self->source.stream);
 		if (fetched != -1) {
 			assert(fetched == 1);
@@ -265,7 +261,7 @@ static void _return_cursor_stream(_input_provider *self, const char *cursor)
 	self->cursor = cursor;
 	if (*self->cursor == '\0') {
 		/* Window was completely consumed, fetch new data. */
-		ssize_t fetched = posix_getline(&self->window,
+		ssize_t fetched = getline(&self->window,
 		    &self->window_size, self->source.stream);
 		if (fetched != -1) {
 			self->fetched += fetched;
@@ -297,7 +293,7 @@ static void _release_stream(_input_provider *self)
 
 	/* Try to correct the difference between the stream position and what was
 	 * actually consumed. If it is not possible, continue anyway. */
-	posix_fseek(self->source.stream, self->consumed - self->fetched, SEEK_CUR);
+	fseek(self->source.stream, self->consumed - self->fetched, SEEK_CUR);
 
 	/* Destruct internal structures. */
 	self->fetched = 0;
@@ -637,7 +633,7 @@ static inline int _internal_scanf(
 				 * decreased accordingly. Otherwise the strtol could read more
 				 * than allowed by width. */
 				if (width != -1) {
-					cur_duplicated = posix_strndup(cur_borrowed, width);
+					cur_duplicated = strndup(cur_borrowed, width);
 					cur_limited = cur_duplicated;
 				} else {
 					cur_limited = cur_borrowed;
@@ -811,7 +807,7 @@ static inline int _internal_scanf(
 				 * decreased accordingly. Otherwise the strtof could read more
 				 * than allowed by width. */
 				if (width != -1) {
-					cur_duplicated = posix_strndup(cur_borrowed, width);
+					cur_duplicated = strndup(cur_borrowed, width);
 					cur_limited = cur_duplicated;
 				} else {
 					cur_limited = cur_borrowed;
@@ -825,13 +821,13 @@ static inline int _internal_scanf(
 				/* Try to convert the floating point nubmer. */
 				switch (length_mod) {
 				case LMOD_NONE:
-					fres = posix_strtof(cur_limited, (char **) &cur_updated);
+					fres = strtof(cur_limited, (char **) &cur_updated);
 					break;
 				case LMOD_l:
-					dres = posix_strtod(cur_limited, (char **) &cur_updated);
+					dres = strtod(cur_limited, (char **) &cur_updated);
 					break;
 				case LMOD_L:
-					ldres = posix_strtold(cur_limited, (char **) &cur_updated);
+					ldres = strtold(cur_limited, (char **) &cur_updated);
 					break;
 				default:
 					assert(false);
@@ -1193,7 +1189,7 @@ static inline int _internal_scanf(
  * @param arg Output items.
  * @return The number of converted output items or EOF on failure.
  */
-int posix_vfscanf(
+int vfscanf(
     FILE *restrict stream, const char *restrict format, va_list arg)
 {
 	_input_provider provider = {
@@ -1213,7 +1209,7 @@ int posix_vfscanf(
  * @param arg Output items.
  * @return The number of converted output items or EOF on failure.
  */
-int posix_vsscanf(
+int vsscanf(
     const char *restrict s, const char *restrict format, va_list arg)
 {
 	_input_provider provider = {

@@ -35,10 +35,6 @@
 #ifndef POSIX_INTTYPES_H_
 #define POSIX_INTTYPES_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "stdint.h"
 #include "libc/inttypes.h"
 

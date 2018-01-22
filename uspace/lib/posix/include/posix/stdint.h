@@ -35,10 +35,6 @@
 #ifndef POSIX_STDINT_H_
 #define POSIX_STDINT_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "libc/stdint.h"
 
 #undef OFF64_MAX

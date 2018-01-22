@@ -34,10 +34,6 @@
 #ifndef POSIX_GETOPT_H
 #define POSIX_GETOPT_H
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "unistd.h"
 
 /* Option Arguments */
@@ -54,7 +50,7 @@ struct option {
 };
 #endif
 
-extern int __POSIX_DEF__(getopt_long)(int, char * const [], const char *, const struct option *, int *);
+extern int getopt_long(int, char * const [], const char *, const struct option *, int *);
 
 
 #endif

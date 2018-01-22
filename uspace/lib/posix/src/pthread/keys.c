@@ -32,9 +32,6 @@
 /** @file Pthread: keys and thread-specific storage.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "posix/stdlib.h"
 #include "posix/pthread.h"
 #include <errno.h>

@@ -32,9 +32,6 @@
 /** @file File control.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "internal/common.h"
 #include "posix/fcntl.h"
 
@@ -50,7 +47,7 @@
  * @return Non-negative on success. Might have special meaning corresponding
  *     to the requested operation.
  */
-int posix_fcntl(int fd, int cmd, ...)
+int fcntl(int fd, int cmd, ...)
 {
 	int flags;
 
@@ -101,13 +98,13 @@ int posix_fcntl(int fd, int cmd, ...)
  * @param pathname Path to the file.
  * @param posix_flags Access mode flags.
  */
-int posix_open(const char *pathname, int posix_flags, ...)
+int open(const char *pathname, int posix_flags, ...)
 {
-	posix_mode_t posix_mode = 0;
+	mode_t posix_mode = 0;
 	if (posix_flags & O_CREAT) {
 		va_list args;
 		va_start(args, posix_flags);
-		posix_mode = va_arg(args, posix_mode_t);
+		posix_mode = va_arg(args, mode_t);
 		va_end(args);
 		(void) posix_mode;
 	}

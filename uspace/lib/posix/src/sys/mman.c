@@ -32,17 +32,14 @@
 /** @file
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "../internal/common.h"
 #include <posix/sys/mman.h>
 #include <posix/sys/types.h>
 #include <libc/as.h>
 #include <posix/unistd.h>
 
-void *posix_mmap(void *start, size_t length, int prot, int flags, int fd,
-    __POSIX_DEF__(off_t) offset)
+void *mmap(void *start, size_t length, int prot, int flags, int fd,
+    off_t offset)
 {
 	if (!start)
 		start = AS_AREA_ANY;
@@ -56,7 +53,7 @@ void *posix_mmap(void *start, size_t length, int prot, int flags, int fd,
 	return as_area_create(start, length, prot, AS_AREA_UNPAGED);
 }
 
-int posix_munmap(void *start, size_t length)
+int munmap(void *start, size_t length)
 {
 	int rc = as_area_destroy(start);
 	if (rc != EOK) {

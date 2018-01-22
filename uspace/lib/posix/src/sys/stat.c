@@ -33,9 +33,6 @@
 /** @file File status handling.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "../internal/common.h"
 #include "posix/sys/stat.h"
 #include "libc/vfs/vfs.h"
@@ -51,9 +48,9 @@
  *
  * @return 0 on success, -1 on error.
  */
-static int stat_to_posix(struct posix_stat *dest, vfs_stat_t *src)
+static int stat_to_posix(struct stat *dest, vfs_stat_t *src)
 {
-	memset(dest, 0, sizeof(struct posix_stat));
+	memset(dest, 0, sizeof(struct stat));
 	
 	dest->st_dev = src->service;
 	dest->st_ino = src->index;
@@ -85,7 +82,7 @@ static int stat_to_posix(struct posix_stat *dest, vfs_stat_t *src)
  * @param st Status structure to be filled with information.
  * @return Zero on success, -1 otherwise.
  */
-int posix_fstat(int fd, struct posix_stat *st)
+int fstat(int fd, struct stat *st)
 {
 	vfs_stat_t hst;
 	if (failed(vfs_stat(fd, &hst)))
@@ -100,10 +97,10 @@ int posix_fstat(int fd, struct posix_stat *st)
  * @param st Status structure to be filled with information.
  * @return Zero on success, -1 otherwise.
  */
-int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
+int lstat(const char *restrict path, struct stat *restrict st)
 {
 	/* There are currently no symbolic links in HelenOS. */
-	return posix_stat(path, st);
+	return stat(path, st);
 }
 
 /**
@@ -113,7 +110,7 @@ int posix_lstat(const char *restrict path, struct posix_stat *restrict st)
  * @param st Status structure to be filled with information.
  * @return Zero on success, -1 otherwise.
  */
-int posix_stat(const char *restrict path, struct posix_stat *restrict st)
+int stat(const char *restrict path, struct stat *restrict st)
 {
 	vfs_stat_t hst;
 	if (failed(vfs_stat_path(path, &hst)))
@@ -128,7 +125,7 @@ int posix_stat(const char *restrict path, struct posix_stat *restrict st)
  * @param mode Permission bits to be set.
  * @return Zero on success, -1 otherwise.
  */
-int posix_chmod(const char *path, posix_mode_t mode)
+int chmod(const char *path, mode_t mode)
 {
 	/* HelenOS doesn't support permissions, return success. */
 	return 0;
@@ -141,7 +138,7 @@ int posix_chmod(const char *path, posix_mode_t mode)
  *     functions. Non-permission bits are ignored.
  * @return Previous file mode creation mask.
  */
-posix_mode_t posix_umask(posix_mode_t mask)
+mode_t umask(mode_t mask)
 {
 	/* HelenOS doesn't support permissions, return empty mask. */
 	return 0;
@@ -154,7 +151,7 @@ posix_mode_t posix_umask(posix_mode_t mask)
  * @param mode Permission bits to be set.
  * @return Zero on success, -1 otherwise.
  */
-int posix_mkdir(const char *path, posix_mode_t mode)
+int mkdir(const char *path, mode_t mode)
 {
 	if (failed(vfs_link_path(path, KIND_DIRECTORY, NULL)))
 		return -1;

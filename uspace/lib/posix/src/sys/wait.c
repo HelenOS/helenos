@@ -33,9 +33,6 @@
 /** @file Support for waiting.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "../internal/common.h"
 #include "posix/sys/wait.h"
 
@@ -75,11 +72,11 @@ int __posix_wtermsig(int status) {
  * @return ID of the child process for which status is reported,
  *     -1 on signal interrupt, (pid_t)-1 otherwise.
  */
-posix_pid_t posix_wait(int *stat_ptr)
+pid_t wait(int *stat_ptr)
 {
 	/* HelenOS does not support this. */
 	errno = ENOSYS;
-	return (posix_pid_t) -1;
+	return (pid_t) -1;
 }
 
 /**
@@ -93,7 +90,7 @@ posix_pid_t posix_wait(int *stat_ptr)
  *     -1 on signal interrupt, 0 if non-blocking wait is requested but there is
  *     no child process whose status can be reported, (pid_t)-1 otherwise.
  */
-posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
+pid_t waitpid(pid_t pid, int *stat_ptr, int options)
 {
 	assert(stat_ptr != NULL);
 	assert(options == 0 /* None of the options are supported. */);
@@ -103,7 +100,7 @@ posix_pid_t posix_waitpid(posix_pid_t pid, int *stat_ptr, int options)
 	
 	if (failed(task_wait_task_id((task_id_t) pid, &texit, &retval))) {
 		/* Unable to retrieve status. */
-		return (posix_pid_t) -1;
+		return (pid_t) -1;
 	}
 	
 	if (texit == TASK_EXIT_NORMAL) {

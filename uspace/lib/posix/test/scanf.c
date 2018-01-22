@@ -26,8 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
+
 
 #include <errno.h>
 
@@ -51,14 +50,14 @@ PCUT_TEST_SUITE(scanf);
 
 PCUT_TEST(int_decimal) {
 	int number;
-	int rc = posix_sscanf("4242", "%d", &number);
+	int rc = sscanf("4242", "%d", &number);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_INT_EQUALS(4242, number);
 }
 
 PCUT_TEST(int_negative_decimal) {
 	int number;
-	int rc = posix_sscanf("-53", "%d", &number);
+	int rc = sscanf("-53", "%d", &number);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_INT_EQUALS(-53, number);
 }
@@ -82,7 +81,7 @@ PCUT_TEST(int_misc) {
 	long long sll;
 	void *p;
 
-	int rc = posix_sscanf(
+	int rc = sscanf(
 		"\n j tt % \t -121314 98765 aqw 0765 0x77 0xABCDEF88 -99 884",
 		" j tt %%%3hhd%1hhu%3hd %3hu%u aqw%n %lo%llx %p %li %lld",
 		&shh, &uhh, &sh, &uh, &udef, &sdef, &ul, &ull, &p, &sl, &sll);
@@ -107,7 +106,7 @@ PCUT_TEST(double_misc) {
 	double d;
 	long double ld;
 
-	int rc = posix_sscanf(
+	int rc = sscanf(
 		"\n \t\t1.0 -0x555.AP10 1234.5678e12",
 		"%f %lf %Lf",
 		&f, &d, &ld);
@@ -123,7 +122,7 @@ PCUT_TEST(str_misc) {
 	char str[20];
 	char *pstr;
 
-	int rc = posix_sscanf(
+	int rc = sscanf(
 		"\n\n\thello world    \n",
 		"%5s %ms",
 		str, &pstr);
@@ -140,7 +139,7 @@ PCUT_TEST(str_matchers) {
 	char scanset[20];
 	char *pscanset;
 
-	int rc = posix_sscanf(
+	int rc = sscanf(
 		"\n\n\th-e-l-l-o world-]    \n",
 		" %9[-eh-o] %m[^]-]",
 		scanset, &pscanset);
@@ -157,7 +156,7 @@ PCUT_TEST(char_misc) {
 	char seq[20];
 	char *pseq;
 
-	int rc = posix_sscanf(
+	int rc = sscanf(
 		"\n\n\thello world    \n",
 		" %5c %mc",
 		seq, &pseq);

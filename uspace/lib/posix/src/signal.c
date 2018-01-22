@@ -32,9 +32,6 @@
 /** @file Signal handling.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "posix/signal.h"
 #include "internal/common.h"
 #include "posix/limits.h"
@@ -60,13 +57,13 @@ static FIBRIL_MUTEX_INITIALIZE(_signal_mutex);
 
 static LIST_INITIALIZE(_signal_queue);
 
-static posix_sigset_t _signal_mask = 0;
+static sigset_t _signal_mask = 0;
 
 #define DEFAULT_HANDLER { .sa_handler = SIG_DFL, \
     .sa_mask = 0, .sa_flags = 0, .sa_sigaction = NULL }
 
 /* Actions associated with each signal number. */
-static struct posix_sigaction _signal_actions[_TOP_SIGNAL + 1] = {
+static struct sigaction _signal_actions[_TOP_SIGNAL + 1] = {
 	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
 	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
 	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
@@ -110,7 +107,7 @@ void __posix_default_signal_handler(int signo)
 	case SIGBUS:
 	case SIGILL:
 	case SIGSEGV:
-		posix_psignal(signo, "Hardware exception raised by user code");
+		psignal(signo, "Hardware exception raised by user code");
 		abort();
 	case SIGSYS:
 	case SIGXCPU:
@@ -123,7 +120,7 @@ void __posix_default_signal_handler(int signo)
 	case SIGTSTP:
 	case SIGTTIN:
 	case SIGTTOU:
-		posix_psignal(signo, "Unsupported signal caught");
+		psignal(signo, "Unsupported signal caught");
 		abort();
 	case SIGCHLD:
 	case SIGUSR1:
@@ -163,7 +160,7 @@ void __posix_ignore_signal_handler(int signo)
  * @param set Pointer to the signal set.
  * @return Always returns zero.
  */
-int posix_sigemptyset(posix_sigset_t *set)
+int sigemptyset(sigset_t *set)
 {
 	assert(set != NULL);
 
@@ -177,7 +174,7 @@ int posix_sigemptyset(posix_sigset_t *set)
  * @param set Pointer to the signal set.
  * @return Always returns zero.
  */
-int posix_sigfillset(posix_sigset_t *set)
+int sigfillset(sigset_t *set)
 {
 	assert(set != NULL);
 
@@ -192,7 +189,7 @@ int posix_sigfillset(posix_sigset_t *set)
  * @param signo Signal number to add.
  * @return Always returns zero.
  */
-int posix_sigaddset(posix_sigset_t *set, int signo)
+int sigaddset(sigset_t *set, int signo)
 {
 	assert(set != NULL);
 
@@ -207,7 +204,7 @@ int posix_sigaddset(posix_sigset_t *set, int signo)
  * @param signo Signal number to remove.
  * @return Always returns zero.
  */
-int posix_sigdelset(posix_sigset_t *set, int signo)
+int sigdelset(sigset_t *set, int signo)
 {
 	assert(set != NULL);
 
@@ -222,7 +219,7 @@ int posix_sigdelset(posix_sigset_t *set, int signo)
  * @param signo Signal number to query.
  * @return 1 if the signal is in the set, 0 otherwise.
  */
-int posix_sigismember(const posix_sigset_t *set, int signo)
+int sigismember(const sigset_t *set, int signo)
 {
 	assert(set != NULL);
 	
@@ -238,17 +235,17 @@ int posix_sigismember(const posix_sigset_t *set, int signo)
  * @param act
  * @param oact
  */
-static void _sigaction_unsafe(int sig, const struct posix_sigaction *restrict act,
-    struct posix_sigaction *restrict oact)
+static void _sigaction_unsafe(int sig, const struct sigaction *restrict act,
+    struct sigaction *restrict oact)
 {
 	if (oact != NULL) {
 		memcpy(oact, &_signal_actions[sig],
-		    sizeof(struct posix_sigaction));
+		    sizeof(struct sigaction));
 	}
 
 	if (act != NULL) {
 		memcpy(&_signal_actions[sig], act,
-		    sizeof(struct posix_sigaction));
+		    sizeof(struct sigaction));
 	}
 }
 
@@ -262,8 +259,8 @@ static void _sigaction_unsafe(int sig, const struct posix_sigaction *restrict ac
  *     is stored in the structure pointer to. 
  * @return -1 with errno set on failure, 0 on success.
  */
-int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
-    struct posix_sigaction *restrict oact)
+int sigaction(int sig, const struct sigaction *restrict act,
+    struct sigaction *restrict oact)
 {
 	if (sig > _TOP_SIGNAL || (act != NULL &&
 	    (sig == SIGKILL || sig == SIGSTOP))) {
@@ -272,7 +269,7 @@ int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
 	}
 
 	if (sig > _TOP_CATCHABLE_SIGNAL) {
-		posix_psignal(sig,
+		psignal(sig,
 		    "WARNING: registering handler for a partially"
 		    " or fully unsupported signal. This handler may only be"
 		    " invoked by the raise() function, which may not be what"
@@ -293,16 +290,16 @@ int posix_sigaction(int sig, const struct posix_sigaction *restrict act,
  * @param func Handler function.
  * @return SIG_ERR on failure, original handler on success.
  */
-void (*posix_signal(int sig, void (*func)(int)))(int)
+void (*signal(int sig, void (*func)(int)))(int)
 {
-	struct posix_sigaction new = {
+	struct sigaction new = {
 		.sa_handler = func,
 		.sa_mask = 0,
 		.sa_flags = 0,
 		.sa_sigaction = NULL
 	};
-	struct posix_sigaction old;
-	if (posix_sigaction(sig, func == NULL ? NULL : &new, &old) == 0) {
+	struct sigaction old;
+	if (sigaction(sig, func == NULL ? NULL : &new, &old) == 0) {
 		return old.sa_handler;
 	} else {
 		return SIG_ERR;
@@ -312,7 +309,7 @@ void (*posix_signal(int sig, void (*func)(int)))(int)
 typedef struct {
 	link_t link;
 	int signo;
-	posix_siginfo_t siginfo;
+	siginfo_t siginfo;
 } signal_queue_item;
 
 /**
@@ -321,7 +318,7 @@ typedef struct {
  * @param signo Signal number.
  * @param siginfo Additional information about the signal.
  */
-static void _queue_signal(int signo, posix_siginfo_t *siginfo)
+static void _queue_signal(int signo, siginfo_t *siginfo)
 {
 	assert(signo >= 0 && signo <= _TOP_SIGNAL);
 	assert(siginfo != NULL);
@@ -329,7 +326,7 @@ static void _queue_signal(int signo, posix_siginfo_t *siginfo)
 	signal_queue_item *item = malloc(sizeof(signal_queue_item));
 	link_initialize(&(item->link));
 	item->signo = signo;
-	memcpy(&item->siginfo, siginfo, sizeof(posix_siginfo_t));
+	memcpy(&item->siginfo, siginfo, sizeof(siginfo_t));
 	list_append(&(item->link), &_signal_queue);
 }
 
@@ -342,16 +339,16 @@ static void _queue_signal(int signo, posix_siginfo_t *siginfo)
  * @return 0 if the action has been successfully executed. -1 if the signal is
  *     blocked.
  */
-static int _raise_sigaction(int signo, posix_siginfo_t *siginfo)
+static int _raise_sigaction(int signo, siginfo_t *siginfo)
 {
 	assert(signo >= 0 && signo <= _TOP_SIGNAL);
 	assert(siginfo != NULL);
 
 	fibril_mutex_lock(&_signal_mutex);
 
-	struct posix_sigaction action = _signal_actions[signo];
+	struct sigaction action = _signal_actions[signo];
 
-	if (posix_sigismember(&_signal_mask, signo) ||
+	if (sigismember(&_signal_mask, signo) ||
 	    action.sa_handler == SIG_HOLD) {
 		_queue_signal(signo, siginfo);
 		fibril_mutex_unlock(&_signal_mutex);
@@ -363,7 +360,7 @@ static int _raise_sigaction(int signo, posix_siginfo_t *siginfo)
 	 */
 
 	if ((action.sa_flags & SA_RESETHAND) && signo != SIGILL && signo != SIGTRAP) {
-		_signal_actions[signo] = (struct posix_sigaction) DEFAULT_HANDLER;
+		_signal_actions[signo] = (struct sigaction) DEFAULT_HANDLER;
 	}
 
 	if (action.sa_flags & SA_SIGINFO) {
@@ -393,7 +390,7 @@ static void _dequeue_unblocked_signals(void)
 		signal_queue_item *item =
 		    list_get_instance(iterator, signal_queue_item, link);
 		
-		if (!posix_sigismember(&_signal_mask, item->signo) &&
+		if (!sigismember(&_signal_mask, item->signo) &&
 		    _signal_actions[item->signo].sa_handler != SIG_HOLD) {
 			list_remove(&(item->link));
 			_raise_sigaction(item->signo, &(item->siginfo));
@@ -410,10 +407,10 @@ static void _dequeue_unblocked_signals(void)
  * @param sig Signal number.
  * @return -1 with errno set on failure, 0 on success.
  */
-int posix_raise(int sig)
+int raise(int sig)
 {
 	if (sig >= 0 && sig <= _TOP_SIGNAL) {
-		posix_siginfo_t siginfo = {
+		siginfo_t siginfo = {
 			.si_signo = sig,
 			.si_code = SI_USER
 		};
@@ -432,7 +429,7 @@ int posix_raise(int sig)
  * @return -1 with errno set on failure (possible errors include unsupported
  *     action, invalid signal number, lack of permissions, etc.), 0 on success.
  */
-int posix_kill(posix_pid_t pid, int signo)
+int kill(pid_t pid, int signo)
 {
 	if (pid < 1) {
 		// TODO
@@ -445,8 +442,8 @@ int posix_kill(posix_pid_t pid, int signo)
 		return -1;
 	}
 
-	if (pid == (posix_pid_t) task_get_id()) {
-		return posix_raise(signo);
+	if (pid == (pid_t) task_get_id()) {
+		return raise(signo);
 	}
 
 	switch (signo) {
@@ -470,10 +467,10 @@ int posix_kill(posix_pid_t pid, int signo)
  * @param sig Signal number.
  * @return -1 on failure, 0 on success (see kill()).
  */
-int posix_killpg(posix_pid_t pid, int sig)
+int killpg(pid_t pid, int sig)
 {
 	assert(pid > 1);
-	return posix_kill(-pid, sig);
+	return kill(-pid, sig);
 }
 
 /**
@@ -482,10 +479,10 @@ int posix_killpg(posix_pid_t pid, int sig)
  * @param pinfo SigInfo struct to write.
  * @param message String to output alongside human-readable signal description.
  */
-void posix_psiginfo(const posix_siginfo_t *pinfo, const char *message)
+void psiginfo(const siginfo_t *pinfo, const char *message)
 {
 	assert(pinfo != NULL);
-	posix_psignal(pinfo->si_signo, message);
+	psignal(pinfo->si_signo, message);
 	// TODO: print si_code
 }
 
@@ -495,9 +492,9 @@ void posix_psiginfo(const posix_siginfo_t *pinfo, const char *message)
  * @param signum Signal number.
  * @param message String to output alongside human-readable signal description.
  */
-void posix_psignal(int signum, const char *message)
+void psignal(int signum, const char *message)
 {
-	char *sigmsg = posix_strsignal(signum);
+	char *sigmsg = strsignal(signum);
 	if (message == NULL || *message == '\0') {
 		fprintf(stderr, "%s\n", sigmsg);
 	} else {
@@ -513,8 +510,8 @@ void posix_psignal(int signum, const char *message)
  * @param oset If not NULL, the original signal mask is coppied here.
  * @return 0 success, errorcode on failure.
  */
-int posix_thread_sigmask(int how, const posix_sigset_t *restrict set,
-    posix_sigset_t *restrict oset)
+int thread_sigmask(int how, const sigset_t *restrict set,
+    sigset_t *restrict oset)
 {
 	fibril_mutex_lock(&_signal_mutex);
 
@@ -553,10 +550,10 @@ int posix_thread_sigmask(int how, const posix_sigset_t *restrict set,
  * @param oset If not NULL, the original signal mask is coppied here.
  * @return 0 on success, -1 with errno set on failure.
  */
-int posix_sigprocmask(int how, const posix_sigset_t *restrict set,
-    posix_sigset_t *restrict oset)
+int sigprocmask(int how, const sigset_t *restrict set,
+    sigset_t *restrict oset)
 {
-	int result = posix_thread_sigmask(how, set, oset);
+	int result = thread_sigmask(how, set, oset);
 	if (result != 0) {
 		errno = result;
 		return -1;

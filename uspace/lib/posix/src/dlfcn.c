@@ -30,35 +30,28 @@
  * @{
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "internal/common.h"
 #include "posix/dlfcn.h"
 
-#include "libc/dlfcn.h"
+_HIDE_LIBC_SYMBOL(dlopen)
+extern void *__helenos_libc_dlopen(const char *filename, int flags);
 
-void *posix_dlopen(const char *filename, int flags)
+void *dlopen(const char *filename, int flags)
 {
 	if (flags != 0) {
 		fprintf(stderr, "dlopen() not implemented with non-zero flags (%s:%d), something will NOT work.\n", __FILE__, __LINE__);
 	}
 	
-	return dlopen(filename, 0);
+	return __helenos_libc_dlopen(filename, 0);
 }
 
-void *posix_dlsym(void *handle, const char *symbol)
-{
-	return dlsym(handle, symbol);
-}
-
-int posix_dlclose(void *handle)
+int dlclose(void *handle)
 {
 	not_implemented();
 	return 0;
 }
 
-char *posix_dlerror(void)
+char *dlerror(void)
 {
 	not_implemented();
 	return (char *)"dlerror()";

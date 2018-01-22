@@ -33,10 +33,6 @@
 #ifndef POSIX_SYS_TIME_H_
 #define POSIX_SYS_TIME_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "libc/sys/time.h"
 
 #endif

@@ -33,9 +33,6 @@
 /** @file Standard library definitions.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "internal/common.h"
 #include "posix/stdlib.h"
 
@@ -59,7 +56,7 @@
  * @param size
  * @param compare
  */
-int posix_atexit(void (*func)(void))
+int atexit(void (*func)(void))
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
@@ -72,7 +69,7 @@ int posix_atexit(void (*func)(void))
  * @param i Input value.
  * @return Absolute value of the parameter.
  */
-int posix_abs(int i)
+int abs(int i)
 {
 	return i < 0 ? -i : i;
 }
@@ -83,7 +80,7 @@ int posix_abs(int i)
  * @param i Input value.
  * @return Absolute value of the parameter.
  */
-long posix_labs(long i)
+long labs(long i)
 {
 	return i < 0 ? -i : i;
 }
@@ -94,7 +91,7 @@ long posix_labs(long i)
  * @param i Input value.
  * @return Absolute value of the parameter.
  */
-long long posix_llabs(long long i)
+long long llabs(long long i)
 {
 	return i < 0 ? -i : i;
 }
@@ -106,9 +103,9 @@ long long posix_llabs(long long i)
  * @param denom Denominator.
  * @return Quotient and remainder packed into structure.
  */
-posix_div_t posix_div(int numer, int denom)
+div_t div(int numer, int denom)
 {
-	return (posix_div_t) { .quot = numer / denom, .rem = numer % denom };
+	return (div_t) { .quot = numer / denom, .rem = numer % denom };
 }
 
 /**
@@ -118,9 +115,9 @@ posix_div_t posix_div(int numer, int denom)
  * @param denom Denominator.
  * @return Quotient and remainder packed into structure.
  */
-posix_ldiv_t posix_ldiv(long numer, long denom)
+ldiv_t ldiv(long numer, long denom)
 {
-	return (posix_ldiv_t) { .quot = numer / denom, .rem = numer % denom };
+	return (ldiv_t) { .quot = numer / denom, .rem = numer % denom };
 }
 
 /**
@@ -130,23 +127,9 @@ posix_ldiv_t posix_ldiv(long numer, long denom)
  * @param denom Denominator.
  * @return Quotient and remainder packed into structure.
  */
-posix_lldiv_t posix_lldiv(long long numer, long long denom)
+lldiv_t lldiv(long long numer, long long denom)
 {
-	return (posix_lldiv_t) { .quot = numer / denom, .rem = numer % denom };
-}
-
-/**
- * Array sorting utilizing the quicksort algorithm.
- *
- * @param array Array of elements to sort.
- * @param count Number of elements in the array.
- * @param size Width of each element.
- * @param compare Decides relative ordering of two elements.
- */
-void posix_qsort(void *array, size_t count, size_t size,
-    int (*compare)(const void *, const void *))
-{
-	qsort(array, count, size, compare);
+	return (lldiv_t) { .quot = numer / denom, .rem = numer % denom };
 }
 
 /**
@@ -159,7 +142,7 @@ void posix_qsort(void *array, size_t count, size_t size,
  * @param compar Comparison function.
  * @return Pointer to a matching element, or NULL if none can be found.
  */
-void *posix_bsearch(const void *key, const void *base,
+void *bsearch(const void *key, const void *base,
     size_t nmemb, size_t size, int (*compar)(const void *, const void *))
 {
 	while (nmemb > 0) {
@@ -194,7 +177,7 @@ void *posix_bsearch(const void *key, const void *base,
  * @param name Name of the variable.
  * @return Value of the variable or NULL if such variable does not exist.
  */
-char *posix_getenv(const char *name)
+char *getenv(const char *name)
 {
 	return NULL;
 }
@@ -205,7 +188,7 @@ char *posix_getenv(const char *name)
  * @param resolved
  * @return
  */
-int posix_putenv(char *string)
+int putenv(char *string)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
 	not_implemented();
@@ -220,7 +203,7 @@ int posix_putenv(char *string)
  *     otherwise indicate whether there is a command interpreter (non-zero)
  *     or not (zero).
  */
-int posix_system(const char *string) {
+int system(const char *string) {
 	// TODO: does nothing at the moment
 	not_implemented();
 	return 0;
@@ -236,7 +219,7 @@ int posix_system(const char *string) {
  *     NULL). Otherwise NULL.
  *
  */
-char *posix_realpath(const char *restrict name, char *restrict resolved)
+char *realpath(const char *restrict name, char *restrict resolved)
 {
 	#ifndef PATH_MAX
 		assert(resolved == NULL);
@@ -278,115 +261,42 @@ char *posix_realpath(const char *restrict name, char *restrict resolved)
 
 /**
  * Converts a string representation of a floating-point number to
- * its native representation. See posix_strtold().
+ * its native representation. See strtold().
  *
  * @param nptr String representation of a floating-point number.
  * @return Double-precision number resulting from the string conversion.
  */
-double posix_atof(const char *nptr)
+double atof(const char *nptr)
 {
-	return posix_strtod(nptr, NULL);
+	return strtod(nptr, NULL);
 }
 
 /**
  * Converts a string representation of a floating-point number to
- * its native representation. See posix_strtold().
+ * its native representation. See strtold().
  *
  * @param nptr String representation of a floating-point number.
  * @param endptr Pointer to the final part of the string which
  *     was not used for conversion.
  * @return Single-precision number resulting from the string conversion.
  */
-float posix_strtof(const char *restrict nptr, char **restrict endptr)
+float strtof(const char *restrict nptr, char **restrict endptr)
 {
-	return (float) posix_strtold(nptr, endptr);
+	return (float) strtold(nptr, endptr);
 }
 
 /**
  * Converts a string representation of a floating-point number to
- * its native representation. See posix_strtold().
+ * its native representation. See strtold().
  *
  * @param nptr String representation of a floating-point number.
  * @param endptr Pointer to the final part of the string which
  *     was not used for conversion.
  * @return Double-precision number resulting from the string conversion.
  */
-double posix_strtod(const char *restrict nptr, char **restrict endptr)
+double strtod(const char *restrict nptr, char **restrict endptr)
 {
-	return (double) posix_strtold(nptr, endptr);
-}
-
-/**
- * Allocate memory chunk.
- *
- * @param size Size of the chunk to allocate.
- * @return Either pointer to the allocated chunk or NULL if not possible.
- */
-void *posix_malloc(size_t size)
-{
-	return malloc(size);
-}
-
-/**
- * Allocate memory for an array of elements.
- *
- * @param nelem Number of elements in the array.
- * @param elsize Size of each element.
- * @return Either pointer to the allocated array or NULL if not possible.
- */
-void *posix_calloc(size_t nelem, size_t elsize)
-{
-	return calloc(nelem, elsize);
-}
-
-/**
- * Reallocate memory chunk to a new size.
- *
- * @param ptr Memory chunk to reallocate. Might be NULL.
- * @param size Size of the reallocated chunk. Might be zero.
- * @return Either NULL or the pointer to the newly reallocated chunk.
- */
-void *posix_realloc(void *ptr, size_t size)
-{
-	if (ptr != NULL && size == 0) {
-		/* Native realloc does not handle this special case. */
-		free(ptr);
-		return NULL;
-	} else {
-		return realloc(ptr, size);
-	}
-}
-
-/**
- * Free allocated memory chunk.
- *
- * @param ptr Memory chunk to be freed.
- */
-void posix_free(void *ptr)
-{
-	if (ptr) {
-		free(ptr);
-	}
-}
-
-/**
- * Generate a pseudo random integer in the range 0 to RAND_MAX inclusive.
- *
- * @return The pseudo random integer.
- */
-int posix_rand(void)
-{
-	return (int) rand();
-}
-
-/**
- * Initialize a new sequence of pseudo-random integers.
- *
- * @param seed The seed of the new sequence.
- */
-void posix_srand(unsigned int seed)
-{
-	srand(seed);
+	return (double) strtold(nptr, endptr);
 }
 
 /**
@@ -395,19 +305,19 @@ void posix_srand(unsigned int seed)
  * @param tmpl Template. Last six characters must be XXXXXX.
  * @return The opened file descriptor or -1 on error.
  */
-int posix_mkstemp(char *tmpl)
+int mkstemp(char *tmpl)
 {
 	int fd = -1;
 	
-	char *tptr = tmpl + posix_strlen(tmpl) - 6;
+	char *tptr = tmpl + strlen(tmpl) - 6;
 	
 	while (fd < 0) {
-		if (*posix_mktemp(tmpl) == '\0') {
+		if (*mktemp(tmpl) == '\0') {
 			/* Errno set by mktemp(). */
 			return -1;
 		}
 		
-		fd = posix_open(tmpl, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+		fd = open(tmpl, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 		
 		if (fd == -1) {
 			/* Restore template to it's original state. */
@@ -426,9 +336,9 @@ int posix_mkstemp(char *tmpl)
  *    If no temporary file name can be created, template is
  *    reduced to an empty string.
  */
-char *posix_mktemp(char *tmpl)
+char *mktemp(char *tmpl)
 {
-	int tmpl_len = posix_strlen(tmpl);
+	int tmpl_len = strlen(tmpl);
 	if (tmpl_len < 6) {
 		errno = EINVAL;
 		*tmpl = '\0';
@@ -436,7 +346,7 @@ char *posix_mktemp(char *tmpl)
 	}
 	
 	char *tptr = tmpl + tmpl_len - 6;
-	if (posix_strcmp(tptr, "XXXXXX") != 0) {
+	if (strcmp(tptr, "XXXXXX") != 0) {
 		errno = EINVAL;
 		*tmpl = '\0';
 		return tmpl;
@@ -450,7 +360,7 @@ char *posix_mktemp(char *tmpl)
 		int orig_errno = errno;
 		errno = 0;
 		/* Check if the file exists. */
-		if (posix_access(tmpl, F_OK) == -1) {
+		if (access(tmpl, F_OK) == -1) {
 			if (errno == ENOENT) {
 				errno = orig_errno;
 				break;

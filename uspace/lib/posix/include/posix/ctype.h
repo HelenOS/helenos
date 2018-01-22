@@ -36,10 +36,6 @@
 #ifndef POSIX_CTYPE_H_
 #define POSIX_CTYPE_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "libc/ctype.h"
 
 /* Obsolete Functions and Macros */

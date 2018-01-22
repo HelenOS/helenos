@@ -35,31 +35,27 @@
 #ifndef POSIX_PWD_H_
 #define POSIX_PWD_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "sys/types.h"
 
-struct __POSIX_DEF__(passwd) {
+struct passwd {
 	char *pw_name;
-	__POSIX_DEF__(uid_t) pw_uid;
-	__POSIX_DEF__(gid_t) pw_gid;
+	uid_t pw_uid;
+	gid_t pw_gid;
 	char *pw_dir;
 	char *pw_shell;
 };
 
-extern struct __POSIX_DEF__(passwd) *__POSIX_DEF__(getpwent)(void);
-extern void __POSIX_DEF__(setpwent)(void);
-extern void __POSIX_DEF__(endpwent)(void);
+extern struct passwd *getpwent(void);
+extern void setpwent(void);
+extern void endpwent(void);
 
-extern struct __POSIX_DEF__(passwd) *__POSIX_DEF__(getpwnam)(const char *name);
-extern int __POSIX_DEF__(getpwnam_r)(const char *name, struct __POSIX_DEF__(passwd) *pwd,
-    char *buffer, size_t bufsize, struct __POSIX_DEF__(passwd) **result);
+extern struct passwd *getpwnam(const char *name);
+extern int getpwnam_r(const char *name, struct passwd *pwd,
+    char *buffer, size_t bufsize, struct passwd **result);
 
-extern struct __POSIX_DEF__(passwd) *__POSIX_DEF__(getpwuid)(__POSIX_DEF__(uid_t) uid);
-extern int __POSIX_DEF__(getpwuid_r)(__POSIX_DEF__(uid_t) uid, struct __POSIX_DEF__(passwd) *pwd,
-    char *buffer, size_t bufsize, struct __POSIX_DEF__(passwd) **result);
+extern struct passwd *getpwuid(uid_t uid);
+extern int getpwuid_r(uid_t uid, struct passwd *pwd,
+    char *buffer, size_t bufsize, struct passwd **result);
 
 
 #endif /* POSIX_PWD_H_ */

@@ -32,9 +32,6 @@
 /** @file Backend for floating point conversions.
  */
 
-#define LIBPOSIX_INTERNAL
-#define __POSIX_DEF__(x) posix_##x
-
 #include "../internal/common.h"
 #include "libc/stdbool.h"
 #include "posix/stdlib.h"
@@ -406,7 +403,7 @@ static long double parse_hexadecimal(const char **sptr)
  *     unrecognized character.
  * @return An approximate representation of the input floating-point number.
  */
-long double posix_strtold(const char *restrict nptr, char **restrict endptr)
+long double strtold(const char *restrict nptr, char **restrict endptr)
 {
 	assert(nptr != NULL);
 	
@@ -432,7 +429,7 @@ long double posix_strtold(const char *restrict nptr, char **restrict endptr)
 	}
 	
 	/* check for NaN */
-	if (posix_strncasecmp(&nptr[i], "nan", 3) == 0) {
+	if (strncasecmp(&nptr[i], "nan", 3) == 0) {
 		// FIXME: return NaN
 		// TODO: handle the parenthesised case
 		
@@ -444,9 +441,9 @@ long double posix_strtold(const char *restrict nptr, char **restrict endptr)
 	}
 	
 	/* check for Infinity */
-	if (posix_strncasecmp(&nptr[i], "inf", 3) == 0) {
+	if (strncasecmp(&nptr[i], "inf", 3) == 0) {
 		i += 3;
-		if (posix_strncasecmp(&nptr[i], "inity", 5) == 0) {
+		if (strncasecmp(&nptr[i], "inity", 5) == 0) {
 			i += 5;
 		}
 		
