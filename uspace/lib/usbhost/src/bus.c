@@ -208,7 +208,6 @@ void bus_device_gone(device_t *dev)
 
 	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_gone);
 	const bus_ops_t *ep_ops = BUS_OPS_LOOKUP(dev->bus->ops, endpoint_unregister);
-	assert(ops);
 
 	/* First, block new transfers and operations. */
 	fibril_mutex_lock(&dev->guard);
