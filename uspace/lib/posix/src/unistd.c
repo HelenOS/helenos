@@ -53,8 +53,7 @@
 aoff64_t posix_pos[MAX_OPEN_FILES];
 
 /* Array of environment variable strings (NAME=VALUE). */
-char **posix_environ = NULL;
-char *posix_optarg;
+char **environ = NULL;
 
 /**
  * Sleep for the specified number of seconds.
