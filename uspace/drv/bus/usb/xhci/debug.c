@@ -263,7 +263,9 @@ const char *xhci_trb_str_type(unsigned type)
  */
 void xhci_dump_trb(const xhci_trb_t *trb)
 {
-	usb_log_debug("TRB(%p): type %s, cycle %u, status 0x%#08" PRIx32 ", parameter 0x%#016" PRIx64, trb, xhci_trb_str_type(TRB_TYPE(*trb)), TRB_CYCLE(*trb), trb->status, trb->parameter);
+	usb_log_debug("TRB(%p): type %s, cycle %u, status 0x%#08" PRIx32 ", "
+	    "parameter 0x%#016" PRIx64, trb, xhci_trb_str_type(TRB_TYPE(*trb)),
+	    TRB_CYCLE(*trb), trb->status, trb->parameter);
 }
 
 static const char *ec_ids [] = {
@@ -329,7 +331,8 @@ void xhci_dump_extcap(const xhci_extcap_t *ec)
 			ports_to = ports_from + XHCI_REG_RD(ec, XHCI_EC_SP_CP_COUNT) - 1;
 			unsigned psic = XHCI_REG_RD(ec, XHCI_EC_SP_PSIC);
 
-			usb_log_debug("\tProtocol %.4s%u.%u, ports %u-%u, %u protocol speeds", name.str,
+			usb_log_debug("\tProtocol %.4s%u.%u, ports %u-%u, "
+			    "%u protocol speeds", name.str,
 			    XHCI_REG_RD(ec, XHCI_EC_SP_MAJOR),
 			    XHCI_REG_RD(ec, XHCI_EC_SP_MINOR),
 			    ports_from, ports_to, psic);

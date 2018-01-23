@@ -154,7 +154,8 @@ static int rh_enumerate_device(usb_port_t *usb_port)
 	if (!enabled)
 		return ENOENT;
 
-	unsigned psiv = (status & XHCI_REG_MASK(XHCI_PORT_PS)) >> XHCI_REG_SHIFT(XHCI_PORT_PS);
+	unsigned psiv = (status & XHCI_REG_MASK(XHCI_PORT_PS))
+	    >> XHCI_REG_SHIFT(XHCI_PORT_PS);
 	const usb_speed_t speed = port->rh->hc->speeds[psiv].usb_speed;
 
 	device_t *dev = hcd_ddf_fun_create(&port->rh->hc->base, speed);
@@ -170,7 +171,8 @@ static int rh_enumerate_device(usb_port_t *usb_port)
 	port->device = xhci_device_get(dev);
 	port->device->rh_port = dev->port;
 
-	usb_log_debug("Enumerating new %s-speed device on port %u.", usb_str_speed(dev->speed), dev->port);
+	usb_log_debug("Enumerating new %s-speed device on port %u.",
+	    usb_str_speed(dev->speed), dev->port);
 
 	if ((err = bus_device_enumerate(dev))) {
 		usb_log_error("Failed to enumerate USB device: %s", str_error(err));
@@ -228,7 +230,8 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 		 * writing 1 to it will disable the port. Which means all
 		 * standard mechanisms of register handling fails here.
 		 */
-		XHCI_REG_WR_FIELD(&port->regs->portsc, status & ~XHCI_REG_MASK(XHCI_PORT_PED), 32);
+		XHCI_REG_WR_FIELD(&port->regs->portsc,
+		    status & ~XHCI_REG_MASK(XHCI_PORT_PED), 32);
 
 		const bool connected = !!(status & XHCI_REG_MASK(XHCI_PORT_CCS));
 		const bool enabled = !!(status & XHCI_REG_MASK(XHCI_PORT_PED));
@@ -263,7 +266,8 @@ void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 	}
 }
 
-void xhci_rh_set_ports_protocol(xhci_rh_t *rh, unsigned offset, unsigned count, unsigned major)
+void xhci_rh_set_ports_protocol(xhci_rh_t *rh,
+    unsigned offset, unsigned count, unsigned major)
 {
 	for (unsigned i = offset; i < offset + count; i++)
 		rh->ports[i - 1].major = major;
@@ -284,7 +288,8 @@ void xhci_rh_startup(xhci_rh_t *rh)
 		 * the CSC bit, even though they are connected. Try to find
 		 * such ports.
 		 */
-		if (XHCI_REG_RD(port->regs, XHCI_PORT_CCS) && port->base.state == PORT_DISABLED)
+		if (XHCI_REG_RD(port->regs, XHCI_PORT_CCS)
+		    && port->base.state == PORT_DISABLED)
 			usb_port_connected(&port->base, &rh_enumerate_device);
 	}
 }

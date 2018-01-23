@@ -58,15 +58,18 @@ typedef ioport32_t xhci_dword_t __attribute__((aligned(4)));
  */
 typedef volatile uint64_t xhci_qword_t __attribute__((aligned(8)));
 
-#define XHCI_DWORD_EXTRACT(field, hi, lo) (BIT_RANGE_EXTRACT(uint32_t, hi, lo, xhci2host(32, field)))
-#define XHCI_QWORD_EXTRACT(field, hi, lo) (BIT_RANGE_EXTRACT(uint64_t, hi, lo, xhci2host(64, field)))
+#define XHCI_DWORD_EXTRACT(field, hi, lo) \
+	(BIT_RANGE_EXTRACT(uint32_t, hi, lo, xhci2host(32, field)))
+#define XHCI_QWORD_EXTRACT(field, hi, lo) \
+	(BIT_RANGE_EXTRACT(uint64_t, hi, lo, xhci2host(64, field)))
 
 /**
  * Common base for setters on xhci_dword_t storage.
  *
  * Not thread-safe, proper synchronization over this dword must be assured.
  */
-static inline void xhci_dword_set_bits(xhci_dword_t *storage, uint32_t value, unsigned hi, unsigned lo)
+static inline void xhci_dword_set_bits(xhci_dword_t *storage, uint32_t value,
+	unsigned hi, unsigned lo)
 {
 	const uint32_t mask = host2xhci(32, BIT_RANGE(uint32_t, hi, lo));
 	const uint32_t set = host2xhci(32, value << lo);
@@ -81,14 +84,16 @@ static inline void xhci_qword_set(xhci_qword_t *storage, uint64_t value)
 	*storage = host2xhci(64, value);
 }
 
-static inline void xhci_qword_set_bits(xhci_qword_t *storage, uint64_t value, unsigned hi, unsigned lo)
+static inline void xhci_qword_set_bits(xhci_qword_t *storage, uint64_t value,
+	unsigned hi, unsigned lo)
 {
 	const uint64_t mask = host2xhci(64, BIT_RANGE(uint64_t, hi, lo));
 	const uint64_t set = host2xhci(64, value << lo);
 	*storage = (*storage & ~mask) | set;
 }
 
-static inline int xhci_reg_wait(xhci_dword_t *reg, uint32_t mask, uint32_t expected)
+static inline int xhci_reg_wait(xhci_dword_t *reg, uint32_t mask,
+	uint32_t expected)
 {
 	mask = host2xhci(32, mask);
 	expected = host2xhci(32, expected);

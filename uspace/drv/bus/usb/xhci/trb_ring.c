@@ -155,7 +155,8 @@ void xhci_trb_ring_fini(xhci_trb_ring_t *ring)
 	assert(ring);
 
 	list_foreach_safe(ring->segments, cur, next) {
-		trb_segment_t *segment = list_get_instance(cur, trb_segment_t, segments_link);
+		trb_segment_t *segment =
+		    list_get_instance(cur, trb_segment_t, segments_link);
 		trb_segment_free(segment);
 	}
 }
@@ -170,12 +171,14 @@ void xhci_trb_ring_fini(xhci_trb_ring_t *ring)
  */
 static void trb_ring_resolve_link(xhci_trb_ring_t *ring)
 {
-	link_t *next_segment = list_next(&ring->enqueue_segment->segments_link, &ring->segments);
+	link_t *next_segment =
+	    list_next(&ring->enqueue_segment->segments_link, &ring->segments);
 	if (!next_segment)
 		next_segment = list_first(&ring->segments);
 	assert(next_segment);
 
-	ring->enqueue_segment = list_get_instance(next_segment, trb_segment_t, segments_link);
+	ring->enqueue_segment =
+	    list_get_instance(next_segment, trb_segment_t, segments_link);
 	ring->enqueue_trb = segment_begin(ring->enqueue_segment);
 }
 
@@ -205,7 +208,8 @@ static bool trb_generates_interrupt(xhci_trb_t *trb)
  *
  * The copied TRBs must be contiguous in memory, and must not contain Link TRBs.
  *
- * We cannot avoid the copying, because the TRB in ring should be updated atomically.
+ * We cannot avoid the copying, because the TRB in ring should be updated
+ * atomically.
  *
  * @param first_trb the first TRB
  * @param trbs number of TRBS to enqueue
@@ -404,7 +408,8 @@ int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
 
 	/* Wrapping around segment boundary */
 	if (index >= SEGMENT_TRB_COUNT) {
-		link_t *next_segment = list_next(&ring->dequeue_segment->segments_link, &ring->segments);
+		link_t *next_segment =
+		    list_next(&ring->dequeue_segment->segments_link, &ring->segments);
 
 		/* Wrapping around table boundary */
 		if (!next_segment) {
@@ -412,7 +417,8 @@ int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
 			ring->ccs = !ring->ccs;
 		}
 
-		ring->dequeue_segment = list_get_instance(next_segment, trb_segment_t, segments_link);
+		ring->dequeue_segment =
+		    list_get_instance(next_segment, trb_segment_t, segments_link);
 		ring->dequeue_trb = segment_begin(ring->dequeue_segment);
 	}
 

@@ -55,7 +55,10 @@
 
 #include "device.h"
 
-/** Initial descriptor used for control endpoint 0 before more configuration is retrieved. */
+/**
+ * Initial descriptor used for control endpoint 0,
+ * before more configuration is retrieved.
+ */
 static const usb_endpoint_descriptors_t ep0_initial_desc = {
 	.endpoint.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
 };
@@ -86,7 +89,8 @@ static int address_device(xhci_device_t *dev)
 	endpoint_add_ref(ep0_base);
 	dev->base.endpoints[0] = ep0_base;
 
-	usb_log_debug("Looking up new device initial MPS: %s", usb_str_speed(dev->base.speed));
+	usb_log_debug("Looking up new device initial MPS: %s",
+	    usb_str_speed(dev->base.speed));
 	ep0_base->max_packet_size = hc_get_ep0_initial_mps(dev->base.speed);
 
 	/* Address device */
@@ -116,7 +120,8 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 	int err;
 
 	uint16_t max_packet_size;
-	if ((err = hc_get_ep0_max_packet_size(&max_packet_size, (bus_t *) &hc->bus, &dev->base)))
+	if ((err = hc_get_ep0_max_packet_size(&max_packet_size,
+	    (bus_t *) &hc->bus, &dev->base)))
 		return err;
 
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(dev->base.endpoints[0]);
@@ -159,7 +164,8 @@ static int setup_hub(xhci_device_t *dev, usb_standard_device_descriptor_t *desc)
 			16 * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_16);
 	}
 
-	usb_log_debug("Device(%u): recognised USB hub with %u ports", dev->base.address, dev->num_ports);
+	usb_log_debug("Device(%u): recognised USB hub with %u ports",
+	    dev->base.address, dev->num_ports);
 	return EOK;
 }
 
@@ -196,7 +202,8 @@ int xhci_device_enumerate(device_t *dev)
 	} while (err == ESTALL && --retries > 0);
 
 	if (err) {
-		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
+		usb_log_error("Failed to setup address of the new device: %s",
+		    str_error(err));
 		return err;
 	}
 
@@ -207,23 +214,27 @@ int xhci_device_enumerate(device_t *dev)
 	fibril_mutex_unlock(&bus->base.guard);
 
 	if ((err = setup_ep0_packet_size(bus->hc, xhci_dev))) {
-		usb_log_error("Failed to setup control endpoint of the new device: %s", str_error(err));
+		usb_log_error("Failed to setup control endpoint "
+		    "of the new device: %s", str_error(err));
 		goto err_address;
 	}
 
 	usb_standard_device_descriptor_t desc = { 0 };
 
 	if ((err = hc_get_device_desc(dev, &desc))) {
-		usb_log_error("Device(%d): failed to get devices descriptor: %s", dev->address, str_error(err));
+		usb_log_error("Device(%d): failed to get device "
+		   "descriptor: %s", dev->address, str_error(err));
 		goto err_address;
 	}
 
 	if ((err = setup_hub(xhci_dev, &desc)))
-		usb_log_warning("Device(%d): failed to setup hub characteristics: %s. "
-		    " Continuing anyway.", dev->address, str_error(err));
+		usb_log_warning("Device(%d): failed to setup hub "
+		    "characteristics: %s.  Continuing anyway.",
+		    dev->address, str_error(err));
 
 	if ((err = hcd_ddf_setup_match_ids(dev, &desc))) {
-		usb_log_error("Device(%d): failed to setup match IDs: %s", dev->address, str_error(err));
+		usb_log_error("Device(%d): failed to setup match IDs: %s",
+		    dev->address, str_error(err));
 		goto err_address;
 	}
 
@@ -252,8 +263,8 @@ void xhci_device_gone(device_t *dev)
 	/* Disable the slot, dropping all endpoints. */
 	const uint32_t slot_id = xhci_dev->slot_id;
 	if ((err = hc_disable_slot(xhci_dev))) {
-		usb_log_warning("Failed to disable slot of device " XHCI_DEV_FMT ": %s",
-		    XHCI_DEV_ARGS(*xhci_dev), str_error(err));
+		usb_log_warning("Failed to disable slot of device " XHCI_DEV_FMT
+		    ": %s", XHCI_DEV_ARGS(*xhci_dev), str_error(err));
 	}
 
 	bus->devices_by_slot[slot_id] = NULL;
@@ -276,7 +287,8 @@ int xhci_device_online(device_t *dev_base)
 
 	/* Transition the device from the Addressed to the Configured state. */
 	if ((err = hc_configure_device(dev))) {
-		usb_log_warning("Failed to configure device " XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*dev));
+		usb_log_warning("Failed to configure device " XHCI_DEV_FMT ".",
+		    XHCI_DEV_ARGS(*dev));
 		return err;
 	}
 
@@ -301,8 +313,8 @@ void xhci_device_offline(device_t *dev_base)
 
 	/* Issue one HC command to simultaneously drop all endpoints except zero. */
 	if ((err = hc_deconfigure_device(dev))) {
-		usb_log_warning("Failed to deconfigure device " XHCI_DEV_FMT ".",
-		    XHCI_DEV_ARGS(*dev));
+		usb_log_warning("Failed to deconfigure device "
+		    XHCI_DEV_FMT ".", XHCI_DEV_ARGS(*dev));
 	}
 }
 
@@ -338,7 +350,11 @@ void xhci_setup_slot_context(xhci_device_t *dev, xhci_slot_ctx_t *ctx)
 		XHCI_SLOT_TT_HUB_PORT_SET(*ctx, dev->base.tt.port);
 	}
 
-	// As we always allocate space for whole input context, we can set this to maximum
+	/*
+	 * As we always allocate space for whole input context, we can set this
+	 * to maximum. The only exception being Address Device command, which
+	 * explicitly requires this to be se to 1.
+	 */
 	XHCI_SLOT_CTX_ENTRIES_SET(*ctx, 31);
 }
 

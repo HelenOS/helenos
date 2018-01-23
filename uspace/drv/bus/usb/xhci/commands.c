@@ -243,8 +243,9 @@ void xhci_stop_command_ring(xhci_hc_t *hc)
 	// Prevent others from starting CR again.
 	cr_set_state(cr, XHCI_CR_STATE_CLOSED);
 
+	/* Some systems, inc. QEMU, need whole 64-bit qword to be written */
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_CS, 1);
-	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0); // Some systems (incl. QEMU) require 64-bit write
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0);
 
 	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_CRR))
 		fibril_condvar_wait(&cr->stopped_cv, &cr->guard);
@@ -258,8 +259,9 @@ void xhci_stop_command_ring(xhci_hc_t *hc)
  */
 static void abort_command_ring(xhci_hc_t *hc)
 {
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_CA, 1);
-	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0); // Some systems (incl. QEMU) require 64-bit write
+	/* Some systems, inc. QEMU, need whole 64-bit qword to be written */
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_CA, 1);
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0);
 }
 
 static const char *trb_codes [] = {
@@ -369,7 +371,8 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	command->status = code;
 	command->slot_id = TRB_GET_SLOT(*trb);
 
-	usb_log_debug("Completed command %s", xhci_trb_str_type(TRB_TYPE(command->_header.trb)));
+	usb_log_debug("Completed command %s",
+	    xhci_trb_str_type(TRB_TYPE(command->_header.trb)));
 
 	if (code != XHCI_TRBC_SUCCESS) {
 		report_error(code);
@@ -411,7 +414,8 @@ static int enable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	xhci_trb_clean(&cmd->_header.trb);
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_ENABLE_SLOT_CMD);
-	cmd->_header.trb.control |= host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
+	cmd->_header.trb.control |=
+	    host2xhci(32, XHCI_REG_RD(hc->xecp, XHCI_EC_SP_SLOT_TYPE) << 16);
 
 	return enqueue_command(hc, cmd);
 }
@@ -682,7 +686,8 @@ static int wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	fibril_mutex_lock(&cmd->_header.completed_mtx);
 	while (!cmd->_header.completed) {
 
-		rv = fibril_condvar_wait_timeout(&cmd->_header.completed_cv, &cmd->_header.completed_mtx, XHCI_COMMAND_TIMEOUT);
+		rv = fibril_condvar_wait_timeout(&cmd->_header.completed_cv,
+		    &cmd->_header.completed_mtx, XHCI_COMMAND_TIMEOUT);
 
 		/* The waiting timed out. Current command (not necessarily
 		 * ours) is probably blocked.

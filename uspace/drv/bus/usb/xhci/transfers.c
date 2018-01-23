@@ -150,7 +150,8 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	/* Immediate data */
 	TRB_CTRL_SET_IDT(*trb_setup, 1);
 	TRB_CTRL_SET_TRB_TYPE(*trb_setup, XHCI_TRB_TYPE_SETUP_STAGE);
-	TRB_CTRL_SET_TRT(*trb_setup, get_transfer_type(trb_setup, setup->request_type, setup->length));
+	TRB_CTRL_SET_TRT(*trb_setup,
+	    get_transfer_type(trb_setup, setup->request_type, setup->length));
 
 	/* Data stage */
 	xhci_trb_t *trb_data = NULL;
@@ -177,12 +178,10 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	xhci_trb_t *trb_status = trbs + trbs_used++;
 	xhci_trb_clean(trb_status);
 
-	// FIXME: Evaluate next TRB? 4.12.3
-	// TRB_CTRL_SET_ENT(*trb_status, 1);
-
 	TRB_CTRL_SET_IOC(*trb_status, 1);
 	TRB_CTRL_SET_TRB_TYPE(*trb_status, XHCI_TRB_TYPE_STATUS_STAGE);
-	TRB_CTRL_SET_DIR(*trb_status, get_status_direction_flag(trb_setup, setup->request_type, setup->length));
+	TRB_CTRL_SET_DIR(*trb_status, get_status_direction_flag(trb_setup,
+	    setup->request_type, setup->length));
 
 	// Issue a Configure Endpoint command, if needed.
 	if (configure_endpoint_needed(setup)) {
@@ -191,7 +190,8 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 			return err;
 	}
 
-	return xhci_trb_ring_enqueue_multiple(get_ring(transfer), trbs, trbs_used, &transfer->interrupt_trb_phys);
+	return xhci_trb_ring_enqueue_multiple(get_ring(transfer), trbs,
+	    trbs_used, &transfer->interrupt_trb_phys);
 }
 
 static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
@@ -302,7 +302,8 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		assert(ep->base.transfer_type != USB_TRANSFER_ISOCHRONOUS);
 		/* We are received transfer pointer instead - work with that */
 		transfer = (xhci_transfer_t *) addr;
-		xhci_trb_ring_update_dequeue(get_ring(transfer), transfer->interrupt_trb_phys);
+		xhci_trb_ring_update_dequeue(get_ring(transfer),
+		    transfer->interrupt_trb_phys);
 		batch = &transfer->batch;
 
 		fibril_mutex_lock(&ep->base.guard);
@@ -452,24 +453,29 @@ int xhci_transfer_schedule(usb_transfer_batch_t *batch)
 	 * If this is a ClearFeature(ENDPOINT_HALT) request, we have to issue
 	 * the Reset Endpoint command.
 	 */
-	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL && batch->dir == USB_DIRECTION_OUT) {
+	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL
+	    && batch->dir == USB_DIRECTION_OUT) {
 		const usb_device_request_setup_packet_t *request = &batch->setup.packet;
 		if (request->request == USB_DEVREQ_CLEAR_FEATURE
 		    && request->request_type == USB_REQUEST_RECIPIENT_ENDPOINT
 		    && request->value == USB_FEATURE_ENDPOINT_HALT) {
 			const uint16_t index = uint16_usb2host(request->index);
 			const usb_endpoint_t ep_num = index & 0xf;
-			const usb_direction_t dir = (index >> 7) ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+			const usb_direction_t dir = (index >> 7)
+			    ? USB_DIRECTION_IN
+			    : USB_DIRECTION_OUT;
 			endpoint_t *halted_ep = bus_find_endpoint(&xhci_dev->base, ep_num, dir);
 			if (halted_ep) {
 				/*
-				 * TODO: Find out how to come up with stream_id. It
-				 * might be possible that we have to clear all of them.
+				 * TODO: Find out how to come up with stream_id. It might be
+				 * possible that we have to clear all of them.
 				 */
 				xhci_endpoint_clear_halt(xhci_endpoint_get(halted_ep), 0);
 				endpoint_del_ref(halted_ep);
 			} else {
-				usb_log_warning("Device(%u): Resetting unregistered endpoint %u %s.", xhci_dev->base.address, ep_num, usb_str_direction(dir));
+				usb_log_warning("Device(%u): Resetting unregistered endpoint"
+					" %u %s.", xhci_dev->base.address, ep_num,
+					usb_str_direction(dir));
 			}
 		}
 	}
@@ -486,9 +492,6 @@ int xhci_transfer_schedule(usb_transfer_batch_t *batch)
 	}
 
 	hc_ring_ep_doorbell(xhci_ep, batch->target.stream);
-
-	/* After the critical section, the transfer can already be finished or aborted. */
-	transfer = NULL; batch = NULL;
 	fibril_mutex_unlock(&ep->guard);
 	return EOK;
 }

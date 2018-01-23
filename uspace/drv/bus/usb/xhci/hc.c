@@ -138,14 +138,14 @@ static int hc_parse_ec(xhci_hc_t *hc)
 					uint64_t bps = PSI_TO_BPS(psie, psim);
 
 					/*
-					 * Speed is not implied, but using one of default PSIV. This is
-					 * not clearly stated in xHCI spec. There is a clear intention
-					 * to allow xHCI to specify its own speed parameters, but
-					 * throughout the document, they used fixed values for e.g.
-					 * High-speed (3), without stating the controller shall have
-					 * implied default speeds - and for instance Intel controllers
-					 * do not. So let's check if the values match and if so, accept
-					 * the implied USB speed too.
+					 * Speed is not implied, but using one of default PSIV. This
+					 * is not clearly stated in xHCI spec. There is a clear
+					 * intention to allow xHCI to specify its own speed
+					 * parameters, but throughout the document, they used fixed
+					 * values for e.g. High-speed (3), without stating the
+					 * controller shall have implied default speeds - and for
+					 * instance Intel controllers do not. So let's check if the
+					 * values match and if so, accept the implied USB speed too.
 					 *
 					 * The main reason we need this is the usb_speed to have
 					 * mapping also for devices connected to hubs.
@@ -156,7 +156,8 @@ static int hc_parse_ec(xhci_hc_t *hc)
 					   && default_psiv_to_port_speed[psiv].rx_bps == bps
 					   && default_psiv_to_port_speed[psiv].tx_bps == bps) {
 						speeds[psiv] = default_psiv_to_port_speed[psiv];
-						usb_log_debug("Assumed default %s speed of USB %u.", usb_str_speed(speeds[psiv].usb_speed), major);
+						usb_log_debug("Assumed default %s speed of USB %u.",
+							usb_str_speed(speeds[psiv].usb_speed), major);
 						continue;
 					}
 
@@ -170,7 +171,9 @@ static int hc_parse_ec(xhci_hc_t *hc)
 						speeds[psiv].rx_bps = bps;
 					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_TX) {
 						speeds[psiv].tx_bps = bps;
-						usb_log_debug("Speed %u set up for bps %" PRIu64 " / %" PRIu64 ".", psiv, speeds[psiv].rx_bps, speeds[psiv].tx_bps);
+						usb_log_debug("Speed %u set up for bps %" PRIu64
+							" / %" PRIu64 ".", psiv, speeds[psiv].rx_bps,
+							speeds[psiv].tx_bps);
 					}
 				}
 			}
@@ -394,8 +397,13 @@ int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t 
 	code->cmdcount = ARRAY_SIZE(irq_commands);
 	memcpy(code->cmds, irq_commands, sizeof(irq_commands));
 
-	void *intr0_iman = RNGABSPTR(hc->mmio_range) + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF) + offsetof(xhci_rt_regs_t, ir[0]);
-	void *usbsts = RNGABSPTR(hc->mmio_range) + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH) + offsetof(xhci_op_regs_t, usbsts);
+	void *intr0_iman = RNGABSPTR(hc->mmio_range)
+	    + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF)
+	    + offsetof(xhci_rt_regs_t, ir[0]);
+	void *usbsts = RNGABSPTR(hc->mmio_range)
+	    + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH)
+	    + offsetof(xhci_op_regs_t, usbsts);
+
 	code->cmds[0].addr = intr0_iman;
 	code->cmds[1].value = host2xhci(32, 1);
 	code->cmds[3].addr = usbsts;
@@ -446,7 +454,8 @@ static int hc_reset(xhci_hc_t *hc)
 	XHCI_REG_CLR(hc->op_regs, XHCI_OP_RS, 1);
 
 	/* Wait until the HC is halted - it shall take at most 16 ms */
-	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_HCH), XHCI_REG_MASK(XHCI_OP_HCH)))
+	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_HCH),
+	    XHCI_REG_MASK(XHCI_OP_HCH)))
 		return ETIMEOUT;
 
 	/* Reset */
@@ -532,7 +541,8 @@ static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	struct timeval tv;
 	getuptime(&tv);
-	usb_log_debug("Microframe index wrapped (@%lu.%li, %"PRIu64" total).", tv.tv_sec, tv.tv_usec, hc->wrap_count);
+	usb_log_debug("Microframe index wrapped (@%lu.%li, %"PRIu64" total).",
+	    tv.tv_sec, tv.tv_usec, hc->wrap_count);
 	hc->wrap_time = ((uint64_t) tv.tv_sec) * 1000000 + ((uint64_t) tv.tv_usec);
 	++hc->wrap_count;
 	return EOK;
@@ -595,7 +605,8 @@ static int event_worker(void *arg)
 	// TODO: completion_complete
 	fibril_mutex_lock(&hc->event_fibril_completion.guard);
 	hc->event_fibril_completion.active = false;
-	fibril_condvar_wait(&hc->event_fibril_completion.cv, &hc->event_fibril_completion.guard);
+	fibril_condvar_wait(&hc->event_fibril_completion.cv,
+	    &hc->event_fibril_completion.guard);
 	fibril_mutex_unlock(&hc->event_fibril_completion.guard);
 
 	return EOK;
@@ -611,7 +622,8 @@ static int event_worker(void *arg)
  * Whenever the event handling blocks, it switches fibril, and incoming
  * IPC notification will create new event handling fibril for us.
  */
-static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring, xhci_interrupter_regs_t *intr)
+static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring,
+    xhci_interrupter_regs_t *intr)
 {
 	int err;
 
@@ -665,7 +677,8 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 	}
 
 	if (status & XHCI_REG_MASK(XHCI_OP_SRE)) {
-		usb_log_error("Save/Restore error occured. WTF, S/R mechanism not implemented!");
+		usb_log_error("Save/Restore error occured. WTF, "
+		    "S/R mechanism not implemented!");
 		status &= ~XHCI_REG_MASK(XHCI_OP_SRE);
 	}
 
@@ -673,7 +686,8 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 	status &= ~XHCI_REG_MASK(XHCI_OP_PCD);
 
 	if (status) {
-		usb_log_error("Non-zero status after interrupt handling (%08x) - missing something?", status);
+		usb_log_error("Non-zero status after interrupt handling (%08x) "
+			" - missing something?", status);
 	}
 }
 
@@ -687,7 +701,8 @@ void hc_fini(xhci_hc_t *hc)
 	// TODO: completion_wait
 	fibril_mutex_lock(&hc->event_fibril_completion.guard);
 	while (hc->event_fibril_completion.active)
-		fibril_condvar_wait(&hc->event_fibril_completion.cv, &hc->event_fibril_completion.guard);
+		fibril_condvar_wait(&hc->event_fibril_completion.cv,
+		    &hc->event_fibril_completion.guard);
 	fibril_mutex_unlock(&hc->event_fibril_completion.guard);
 	xhci_sw_ring_fini(&hc->sw_ring);
 
@@ -829,7 +844,8 @@ int hc_address_device(xhci_device_t *dev)
 	/* Although we have the precise PSIV value on devices of tier 1,
 	 * we have to rely on reverse mapping on others. */
 	if (!usb_speed_to_psiv[dev->base.speed]) {
-		usb_log_error("Device reported an USB speed (%s) that cannot be mapped to HC port speed.", usb_str_speed(dev->base.speed));
+		usb_log_error("Device reported an USB speed (%s) that cannot be mapped "
+		    "to HC port speed.", usb_str_speed(dev->base.speed));
 		return EINVAL;
 	}
 
@@ -849,7 +865,10 @@ int hc_address_device(xhci_device_t *dev)
 	XHCI_SLOT_CTX_ENTRIES_SET(*slot_ctx, 1);
 
 	/* Issue Address Device command. */
-	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf)))
+	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE,
+		.slot_id = dev->slot_id,
+		.input_ctx = ictx_dma_buf
+	    )))
 		return err;
 
 	xhci_device_ctx_t *device_ctx = dev->dev_ctx.virt;
@@ -874,7 +893,10 @@ int hc_configure_device(xhci_device_t *dev)
 	if (err)
 		return err;
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
+		.slot_id = dev->slot_id,
+		.input_ctx = ictx_dma_buf
+	);
 }
 
 /**
@@ -887,7 +909,10 @@ int hc_deconfigure_device(xhci_device_t *dev)
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
 	/* Issue configure endpoint command (sec 4.3.5) with the DC flag. */
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = dev->slot_id, .deconfigure = true);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
+		.slot_id = dev->slot_id,
+		.deconfigure = true
+	);
 }
 
 /**
@@ -916,7 +941,10 @@ int hc_add_endpoint(xhci_endpoint_t *ep)
 	xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(XHCI_GET_DEVICE_CTX(ictx, hc), hc, dci);
 	xhci_setup_endpoint_context(ep, ep_ctx);
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
+		.slot_id = dev->slot_id,
+		.input_ctx = ictx_dma_buf
+	);
 }
 
 /**
@@ -940,7 +968,10 @@ int hc_drop_endpoint(xhci_endpoint_t *ep)
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 	XHCI_INPUT_CTRL_CTX_DROP_SET(*XHCI_GET_CTRL_CTX(ictx, hc), dci);
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf);
+	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
+		.slot_id = dev->slot_id,
+		.input_ctx = ictx_dma_buf
+	);
 }
 
 /**
@@ -970,7 +1001,10 @@ int hc_update_endpoint(xhci_endpoint_t *ep)
 	xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(XHCI_GET_DEVICE_CTX(ictx, hc), hc, dci);
 	xhci_setup_endpoint_context(ep, ep_ctx);
 
-	return xhci_cmd_sync_inline(hc, EVALUATE_CONTEXT, .slot_id = dev->slot_id, .input_ctx = ictx_dma_buf);
+	return xhci_cmd_sync_inline(hc, EVALUATE_CONTEXT,
+		.slot_id = dev->slot_id,
+		.input_ctx = ictx_dma_buf
+	);
 }
 
 /**
@@ -984,7 +1018,10 @@ int hc_stop_endpoint(xhci_endpoint_t *ep)
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
-	return xhci_cmd_sync_inline(hc, STOP_ENDPOINT, .slot_id = dev->slot_id, .endpoint_id = dci);
+	return xhci_cmd_sync_inline(hc, STOP_ENDPOINT,
+		.slot_id = dev->slot_id,
+		.endpoint_id = dci
+	);
 }
 
 /**
@@ -998,7 +1035,10 @@ int hc_reset_endpoint(xhci_endpoint_t *ep)
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
-	return xhci_cmd_sync_inline(hc, RESET_ENDPOINT, .slot_id = dev->slot_id, .endpoint_id = dci);
+	return xhci_cmd_sync_inline(hc, RESET_ENDPOINT,
+		.slot_id = dev->slot_id,
+		.endpoint_id = dci
+	);
 }
 
 /**
@@ -1017,11 +1057,11 @@ int hc_reset_ring(xhci_endpoint_t *ep, uint32_t stream_id)
 
 	xhci_hc_t * const hc = bus_to_hc(endpoint_get_bus(&ep->base));
 	return xhci_cmd_sync_inline(hc, SET_TR_DEQUEUE_POINTER,
-			    .slot_id = dev->slot_id,
-			    .endpoint_id = dci,
-			    .stream_id = stream_id,
-			    .dequeue_ptr = addr,
-			);
+		.slot_id = dev->slot_id,
+		.endpoint_id = dci,
+		.stream_id = stream_id,
+		.dequeue_ptr = addr,
+	);
 }
 
 /**

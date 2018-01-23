@@ -38,7 +38,8 @@
 #include "hw_struct/regs.h"
 #include "streams.h"
 
-/** Finds stream data with given stream ID if it exists.
+/**
+ * Finds stream data with given stream ID if it exists.
  * Note that streams with ID 0, 65534 and 65535 are reserved.
  * Splits the ID into primary and secondary context ID and searches the structures.
  * @param[in] ep Affected endpoint.
@@ -51,14 +52,17 @@ xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *ep, uint32_t strea
 	}
 
 	/* See 4.12.2.1 for the calculation of the IDs and dividing the stream_id */
-	uint32_t primary_stream_id = (uint32_t) (stream_id & (ep->primary_stream_data_size - 1));
-	uint32_t secondary_stream_id = (uint32_t) ((stream_id / ep->primary_stream_data_size) & 0xFF);
+	uint32_t primary_stream_id =
+	    (uint32_t) (stream_id & (ep->primary_stream_data_size - 1));
+	uint32_t secondary_stream_id =
+	    (uint32_t) ((stream_id / ep->primary_stream_data_size) & 0xFF);
 
 	if (primary_stream_id >= ep->primary_stream_data_size) {
 		return NULL;
 	}
 
-	xhci_stream_data_t *primary_data = &ep->primary_stream_data_array[primary_stream_id];
+	xhci_stream_data_t *primary_data =
+	    &ep->primary_stream_data_array[primary_stream_id];
 	if (secondary_stream_id != 0 && !primary_data->secondary_size) {
 		return NULL;
 	}
@@ -75,16 +79,18 @@ xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *ep, uint32_t strea
 	return &secondary_data[secondary_stream_id];
 }
 
-/** Initializes primary stream data structures in endpoint.
+/**
+ * Initializes primary stream data structures in endpoint.
  * @param[in] xhci_ep Used XHCI bulk endpoint.
  * @param[in] count Amount of primary streams.
  */
 static int initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned count)
 {
-	usb_log_debug("Allocating primary stream context array of size %u for endpoint " XHCI_EP_FMT,
-		count, XHCI_EP_ARGS(*xhci_ep));
+	usb_log_debug("Allocating primary stream context array of size %u "
+		"for endpoint " XHCI_EP_FMT, count, XHCI_EP_ARGS(*xhci_ep));
 
-	if ((dma_buffer_alloc(&xhci_ep->primary_stream_ctx_dma, count * sizeof(xhci_stream_ctx_t)))) {
+	if ((dma_buffer_alloc(&xhci_ep->primary_stream_ctx_dma,
+		count * sizeof(xhci_stream_ctx_t)))) {
 		return ENOMEM;
 	}
 
@@ -100,12 +106,10 @@ static int initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned coun
 	return EOK;
 }
 
-/**
- *
- */
 static void clear_primary_structures(xhci_endpoint_t *xhci_ep)
 {
-	usb_log_debug("Deallocating primary stream structures for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	usb_log_debug("Deallocating primary stream structures for "
+		"endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
 	free(xhci_ep->primary_stream_data_array);
@@ -132,7 +136,8 @@ static void clear_secondary_streams(xhci_endpoint_t *xhci_ep, unsigned index)
 
 void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep)
 {
-	usb_log_debug("Freeing stream rings and context arrays of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	usb_log_debug("Freeing stream rings and context arrays of endpoint "
+		XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	for (size_t index = 0; index < xhci_ep->primary_stream_data_size; ++index) {
 		clear_secondary_streams(xhci_ep, index);
@@ -140,12 +145,15 @@ void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep)
 	clear_primary_structures(xhci_ep);
 }
 
-/** Initialize a single primary stream structure with given index.
+/**
+ * Initialize a single primary stream structure with given index.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] xhci_ep XHCI bulk endpoint to use.
  * @param[in] index index of the initialized stream structure.
  */
-static int initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, unsigned index) {
+static int initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
+    unsigned index)
+{
 	xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[index];
 	xhci_stream_data_t *data = &xhci_ep->primary_stream_data_array[index];
 	memset(data, 0, sizeof(xhci_stream_data_t));
@@ -164,7 +172,8 @@ static int initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, un
 	return EOK;
 }
 
-/** Initialize primary streams of XHCI bulk endpoint.
+/**
+ * Initialize primary streams of XHCI bulk endpoint.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] xhci_ep XHCI bulk endpoint to use.
  */
@@ -188,21 +197,27 @@ err_clean:
 	return err;
 }
 
-/** Initialize secondary streams of XHCI bulk endpoint.
+/**
+ * Initialize secondary streams of XHCI bulk endpoint.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] xhci_epi XHCI bulk endpoint to use.
  * @param[in] idx Index to primary stream array
  * @param[in] count Number of secondary streams to initialize.
  */
-static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep, unsigned idx, unsigned count)
+static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
+    unsigned idx, unsigned count)
 {
 	if (count == 0) {
-		/* The primary stream context can still point to a single ring, not a secondary. */
+		/*
+		 * The primary stream context can still point to a single ring, not
+		 * a secondary.
+		 */
 		return initialize_primary_stream(hc, xhci_ep, idx);
 	}
 
 	if ((count & (count - 1)) != 0 || count < 8 || count > 256) {
-		usb_log_error("The secondary stream array size must be a power of 2 between 8 and 256.");
+		usb_log_error("The secondary stream array size must be a power of 2 "
+			"between 8 and 256.");
 		return EINVAL;
 	}
 
@@ -216,7 +231,8 @@ static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
 		return ENOMEM;
 	}
 
-	if ((dma_buffer_alloc(&data->secondary_stream_ctx_dma, count * sizeof(xhci_stream_ctx_t)))) {
+	if ((dma_buffer_alloc(&data->secondary_stream_ctx_dma,
+		count * sizeof(xhci_stream_ctx_t)))) {
 		free(data->secondary_data);
 		return ENOMEM;
 	}
@@ -250,13 +266,15 @@ err_init:
 	return err;
 }
 
-/** Configure XHCI bulk endpoint's stream context.
+/**
+ * Configure XHCI bulk endpoint's stream context.
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
  * @param[in] ctx Endpoint context to configure.
  * @param[in] pstreams The value of MaxPStreams.
  * @param[in] lsa Specifies if the stream IDs point to primary stream array.
  */
-static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, unsigned pstreams, unsigned lsa)
+static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx,
+    unsigned pstreams, unsigned lsa)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(xhci_ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, xhci_ep->base.max_packet_size);
@@ -268,7 +286,8 @@ static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx, u
 	XHCI_EP_LSA_SET(*ctx, lsa);
 }
 
-/** Verifies if all the common preconditions are satisfied.
+/**
+ * Verifies if all the common preconditions are satisfied.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] dev Used device.
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
@@ -284,7 +303,8 @@ static int verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
 	}
 
 	if (xhci_ep->max_streams <= 1) {
-		usb_log_error("Streams are not supported by endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+		usb_log_error("Streams are not supported by endpoint "
+		    XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 		return EINVAL;
 	}
 
@@ -293,10 +313,14 @@ static int verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
 		return EINVAL;
 	}
 
-	/* The maximum amount of primary streams is 2 ^ (MaxPSA + 1) (See table 26 of XHCI specification) */
+	/*
+	 * The maximum amount of primary streams is 2 ^ (MaxPSA + 1)
+	 * See table 26 of XHCI specification.
+	 */
 	uint8_t max_psa_size = 1 << (XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PSA_SIZE) + 1);
 	if (count > max_psa_size) {
-		usb_log_error("Host controller only supports %u primary streams.", max_psa_size);
+		usb_log_error("Host controller only supports "
+			"%u primary streams.", max_psa_size);
 		return EINVAL;
 	}
 
@@ -314,12 +338,14 @@ static int verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
 	return EOK;
 }
 
-/** Cancels streams and reconfigures endpoint back to single ring no stream endpoint.
+/**
+ * Cancels streams and reconfigures endpoint back to single ring no stream endpoint.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] dev Used device.
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
  */
-int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *xhci_ep)
+int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev,
+    xhci_endpoint_t *xhci_ep)
 {
 	if (!xhci_ep->primary_stream_data_size) {
 		usb_log_warning("There are no streams enabled on the endpoint, doing nothing.");
@@ -339,7 +365,8 @@ int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoin
 	return hc_update_endpoint(xhci_ep);
 }
 
-/** Initialize, setup and register primary streams.
+/**
+ * Initialize, setup and register primary streams.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] dev Used device.
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
@@ -373,20 +400,24 @@ int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	}
 
 	xhci_ep_ctx_t ep_ctx;
-	/* Allowed values are 1-15, where 2 ^ pstreams is the actual amount of streams. */
+	/*
+	 * Allowed values are 1-15, where 2 ^ pstreams is the actual amount of
+	 * streams.
+	 */
 	const size_t pstreams = fnzb32(count) - 1;
 	setup_stream_context(xhci_ep, &ep_ctx, pstreams, 1);
 
 	return hc_update_endpoint(xhci_ep);
 }
 
-/** Initialize, setup and register secondary streams.
+/**
+ * Initialize, setup and register secondary streams.
  * @param[in] hc Host controller of the endpoint.
  * @param[in] dev Used device.
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
- * @param[in] sizes Amount of secondary streams in each primary stream.
- 					This array should have exactly count elements.
-					If the size is 0, then a primary ring is created with that index.
+ * @param[in] sizes Amount of secondary streams in each of the primary streams.
+ *                  This array should have exactly count elements. If the size
+ *                  is 0, then a primary ring is created with that index.
  * @param[in] count Amount of primary streams requested.
  */
 int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,

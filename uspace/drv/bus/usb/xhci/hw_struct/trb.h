@@ -207,7 +207,8 @@ typedef struct xhci_erst_entry {
 	xhci_dword_t _reserved;
 } xhci_erst_entry_t;
 
-static inline void xhci_fill_erst_entry(xhci_erst_entry_t *entry, uintptr_t phys, int segments)
+static inline void xhci_fill_erst_entry(xhci_erst_entry_t *entry,
+    uintptr_t phys, int segments)
 {
 	xhci_qword_set(&entry->rs_base_ptr, phys);
 	xhci_dword_set_bits(&entry->size, segments, 16, 0);

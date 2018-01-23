@@ -80,7 +80,8 @@ static void isoch_reset(xhci_endpoint_t *ep)
 
 	fibril_timer_clear_locked(isoch->feeding_timer);
 	isoch->last_mf = -1U;
-	usb_log_info("[isoch] Endpoint" XHCI_EP_FMT ": Data flow reset.", XHCI_EP_ARGS(*ep));
+	usb_log_info("[isoch] Endpoint" XHCI_EP_FMT ": Data flow reset.",
+	    XHCI_EP_ARGS(*ep));
 }
 
 static void isoch_reset_no_timer(xhci_endpoint_t *ep)
@@ -109,7 +110,8 @@ static void isoch_reset_timer(void *ep) {
 #define RESET_TIMER_DELAY 100000
 static void timer_schedule_reset(xhci_endpoint_t *ep) {
 	xhci_isoch_t * const isoch = ep->isoch;
-	const suseconds_t delay = isoch->buffer_count * ep->interval * 125 + RESET_TIMER_DELAY;
+	const suseconds_t delay = isoch->buffer_count * ep->interval * 125
+	    + RESET_TIMER_DELAY;
 
 	fibril_timer_clear_locked(isoch->reset_timer);
 	fibril_timer_set_locked(isoch->reset_timer, delay,
@@ -212,11 +214,13 @@ static inline uint64_t get_current_microframe(const xhci_hc_t *hc)
 {
 	const uint32_t reg_mfindex = XHCI_REG_RD(hc->rt_regs, XHCI_RT_MFINDEX);
 	/*
-	 * If the mfindex is low and the time passed since last mfindex wrap
-	 * is too high, we have entered the new epoch already (and haven't received event yet).
+	 * If the mfindex is low and the time passed since last mfindex wrap is too
+	 * high, we have entered the new epoch already (and haven't received event
+	 * yet).
 	 */
 	uint64_t epoch = hc->wrap_count;
-	if (reg_mfindex < EPOCH_LOW_MFINDEX && get_system_time() - hc->wrap_time > EPOCH_DELAY) {
+	if (reg_mfindex < EPOCH_LOW_MFINDEX
+	    && get_system_time() - hc->wrap_time > EPOCH_DELAY) {
 		++epoch;
 	}
 	return (epoch << EPOCH_BITS) + reg_mfindex;
@@ -229,7 +233,10 @@ static inline void calc_next_mfindex(xhci_endpoint_t *ep, xhci_isoch_transfer_t 
 		const xhci_bus_t *bus = bus_to_xhci_bus(ep->base.device->bus);
 		const xhci_hc_t *hc = bus->hc;
 
-		/* Delay the first frame by some time to fill the buffer, but at most 10 miliseconds. */
+		/*
+		 * Delay the first frame by some time to fill the buffer, but at most 10
+		 * miliseconds.
+		 */
 		const uint64_t delay = min(isoch->buffer_count * ep->interval, 10 * 8);
 		it->mfindex = get_current_microframe(hc) + 1 + delay + hc->ist;
 
@@ -261,7 +268,8 @@ typedef struct {
  * decision, and in case of the mfindex being outside, also the number of
  * uframes it's off.
  */
-static inline void window_decide(window_decision_t *res, xhci_hc_t *hc, uint64_t mfindex)
+static inline void window_decide(window_decision_t *res, xhci_hc_t *hc,
+    uint64_t mfindex)
 {
 	const uint64_t current_mf = get_current_microframe(hc);
 	const uint64_t start = current_mf + hc->ist + 1;
@@ -332,9 +340,12 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 			break;
 
 		case WINDOW_TOO_LATE:
-			/* Missed the opportunity to schedule. Just mark this transfer as skipped. */
-			usb_log_debug("[isoch] missed feeding buffer %lu at 0x%llx by %llu uframes",
-			    it - isoch->transfers, it->mfindex, wd.offset);
+			/*
+			 * Missed the opportunity to schedule. Just mark this transfer as
+			 * skipped.
+			 */
+			usb_log_debug("[isoch] missed feeding buffer %lu at 0x%llx by "
+				"%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
 			it->state = ISOCH_COMPLETE;
 			it->error = EOK;
 			it->size = 0;
@@ -347,7 +358,10 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 out:
 	if (fed) {
 		hc_ring_ep_doorbell(ep, 0);
-		/* The ring may be dead. If no event happens until the delay, reset the endpoint. */
+		/*
+		 * The ring may be dead. If no event happens until the delay, reset the
+		 * endpoint.
+		 */
 		timer_schedule_reset(ep);
 	}
 
@@ -404,8 +418,8 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 		}
 
 		case WINDOW_TOO_LATE:
-			usb_log_debug("[isoch] missed feeding buffer %lu at 0x%llx by %llu uframes",
-			    it - isoch->transfers, it->mfindex, wd.offset);
+			usb_log_debug("[isoch] missed feeding buffer %lu at 0x%llx by"
+				"%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
 			/* Missed the opportunity to schedule. Schedule ASAP. */
 			it->mfindex += wd.offset;
 			// Align to ESIT start boundary
@@ -434,7 +448,10 @@ out:
 
 	if (fed) {
 		hc_ring_ep_doorbell(ep, 0);
-		/* The ring may be dead. If no event happens until the delay, reset the endpoint. */
+		/*
+		 * The ring may be dead. If no event happens until the delay, reset the
+		 * endpoint.
+		 */
 		timer_schedule_reset(ep);
 	}
 }
@@ -501,7 +518,8 @@ int isoch_schedule_out(xhci_transfer_t *transfer)
 	/* Calculate when to schedule next transfer */
 	calc_next_mfindex(ep, it);
 	isoch->last_mf = it->mfindex;
-	usb_log_debug("[isoch] buffer %zu will be on schedule at 0x%llx", it - isoch->transfers, it->mfindex);
+	usb_log_debug("[isoch] buffer %zu will be on schedule at 0x%llx",
+	    it - isoch->transfers, it->mfindex);
 
 	/* Prepare the transfer. */
 	it->size = transfer->batch.buffer_size;
@@ -542,7 +560,8 @@ int isoch_schedule_in(xhci_transfer_t *transfer)
 		fibril_timer_clear_locked(isoch->feeding_timer);
 		isoch_feed_in(ep);
 
-		usb_log_debug("[isoch] waiting for buffer %zu to be completed", it - isoch->transfers);
+		usb_log_debug("[isoch] waiting for buffer %zu to be completed",
+		    it - isoch->transfers);
 		fibril_condvar_wait(&isoch->avail, &isoch->guard);
 
 		/* The enqueue ptr may have changed while sleeping */
@@ -567,7 +586,8 @@ int isoch_schedule_in(xhci_transfer_t *transfer)
 	return EOK;
 }
 
-void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t *trb)
+void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep,
+    xhci_trb_t *trb)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
 	xhci_isoch_t * const isoch = ep->isoch;
@@ -580,8 +600,11 @@ void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep, xhci_trb_t 
 	switch (completion_code) {
 		case XHCI_TRBC_RING_OVERRUN:
 		case XHCI_TRBC_RING_UNDERRUN:
-			/* For OUT, there was nothing to process */
-			/* For IN, the buffer has overfilled, we empty the buffers and readd TRBs */
+			/*
+			 * For OUT, there was nothing to process.
+			 * For IN, the buffer has overfilled.
+			 * In either case, reset the ring.
+			 */
 			usb_log_warning("Ring over/underrun.");
 			isoch_reset_no_timer(ep);
 			fibril_condvar_broadcast(&ep->isoch->avail);

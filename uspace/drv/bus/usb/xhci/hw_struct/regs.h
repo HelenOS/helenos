@@ -83,20 +83,28 @@
 /*
  * Field handling is the easiest. Just do it with whole field.
  */
-#define XHCI_REG_RD_FIELD(ptr, size)         xhci2host(size, pio_read_##size((ptr)))
-#define XHCI_REG_WR_FIELD(ptr, value, size)  pio_write_##size((ptr), host2xhci(size, value))
-#define XHCI_REG_SET_FIELD(ptr, value, size) pio_set_##size((ptr), host2xhci(size, value), XHCI_PIO_CHANGE_UDELAY);
-#define XHCI_REG_CLR_FIELD(ptr, value, size) pio_clear_##size((ptr), host2xhci(size, value), XHCI_PIO_CHANGE_UDELAY);
+#define XHCI_REG_RD_FIELD(ptr, size) \
+	xhci2host(size, pio_read_##size((ptr)))
+#define XHCI_REG_WR_FIELD(ptr, value, size) \
+	pio_write_##size((ptr), host2xhci(size, value))
+#define XHCI_REG_SET_FIELD(ptr, value, size) \
+	pio_set_##size((ptr), host2xhci(size, value), XHCI_PIO_CHANGE_UDELAY);
+#define XHCI_REG_CLR_FIELD(ptr, value, size) \
+	pio_clear_##size((ptr), host2xhci(size, value), XHCI_PIO_CHANGE_UDELAY);
 #define XHCI_REG_MASK_FIELD(size)            (~((uint##size##_t) 0))
 #define XHCI_REG_SHIFT_FIELD(size)           (0)
 
 /*
  * Flags are just trivial case of ranges.
  */
-#define XHCI_REG_RD_FLAG(ptr, size, offset)         XHCI_REG_RD_RANGE((ptr), size, (offset), (offset))
-#define XHCI_REG_WR_FLAG(ptr, value, size, offset)  XHCI_REG_WR_RANGE((ptr), (value), size, (offset), (offset))
-#define XHCI_REG_SET_FLAG(ptr, value, size, offset) XHCI_REG_SET_RANGE((ptr), (value), size, (offset), (offset))
-#define XHCI_REG_CLR_FLAG(ptr, value, size, offset) XHCI_REG_CLR_RANGE((ptr), (value), size, (offset), (offset))
+#define XHCI_REG_RD_FLAG(ptr, size, offset) \
+	XHCI_REG_RD_RANGE((ptr), size, (offset), (offset))
+#define XHCI_REG_WR_FLAG(ptr, value, size, offset) \
+	XHCI_REG_WR_RANGE((ptr), (value), size, (offset), (offset))
+#define XHCI_REG_SET_FLAG(ptr, value, size, offset) \
+	XHCI_REG_SET_RANGE((ptr), (value), size, (offset), (offset))
+#define XHCI_REG_CLR_FLAG(ptr, value, size, offset) \
+	XHCI_REG_CLR_RANGE((ptr), (value), size, (offset), (offset))
 #define XHCI_REG_MASK_FLAG(size, offset)            BIT_V(uint##size##_t, offset)
 #define XHCI_REG_SHIFT_FLAG(size, offset)           (offset)
 
@@ -107,16 +115,19 @@
 	BIT_RANGE_EXTRACT(uint##size##_t, (hi), (lo), XHCI_REG_RD_FIELD((ptr), size))
 
 #define XHCI_REG_WR_RANGE(ptr, value, size, hi, lo) \
-	pio_change_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, (hi), (lo), (value))), \
+	pio_change_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, \
+			(hi), (lo), (value))), \
 		host2xhci(size, BIT_RANGE(uint##size##_t, (hi), (lo))), \
 		XHCI_PIO_CHANGE_UDELAY);
 
 #define XHCI_REG_SET_RANGE(ptr, value, size, hi, lo) \
-	pio_set_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, (hi), (lo), (value))), \
+	pio_set_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, \
+			(hi), (lo), (value))), \
 		XHCI_PIO_CHANGE_UDELAY);
 
 #define XHCI_REG_CLR_RANGE(ptr, value, size, hi, lo) \
-	pio_clear_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, (hi), (lo), (value))), \
+	pio_clear_##size((ptr), host2xhci(size, BIT_RANGE_INSERT(uint##size##_t, \
+			(hi), (lo), (value))), \
 		XHCI_PIO_CHANGE_UDELAY);
 
 #define XHCI_REG_MASK_RANGE(size, hi, lo)  BIT_RANGE(uint##size##_t, hi, lo)
@@ -408,8 +419,10 @@ typedef struct xhci_op_regs {
 #define XHCI_OP_CS             crcr_lo, 32,  FLAG, 1
 #define XHCI_OP_CA             crcr_lo, 32,  FLAG, 2
 #define XHCI_OP_CRR            crcr_lo, 32,  FLAG, 3
-/* This shall be RANGE, 6, 0, but the value containing CR pointer and RCS flag
- * must be written at once. */
+/*
+ * This shall be RANGE, 6, 0, but the value containing CR pointer and RCS flag
+ * must be written at once.
+ */
 #define XHCI_OP_CRCR_LO        crcr_lo, 32, FIELD
 #define XHCI_OP_CRCR_HI        crcr_hi, 32, FIELD
 #define XHCI_OP_DCBAAP_LO    dcbaap_lo, 32, FIELD
@@ -465,7 +478,6 @@ typedef struct xhci_interrupter_regs {
 #define XHCI_INTR_ERSTBA_HI  erstba_hi, 32, FIELD
 #define XHCI_INTR_ERDP_ESI     erdp_lo, 32, RANGE,  2, 0
 #define XHCI_INTR_ERDP_EHB     erdp_lo, 32,  FLAG,  3
-// TODO: ERDP_LO is supposed to be RANGE 31, 4 (section 5.5.2.3.3).
 #define XHCI_INTR_ERDP_LO      erdp_lo, 32, FIELD
 #define XHCI_INTR_ERDP_HI      erdp_hi, 32, FIELD
 
@@ -531,17 +543,17 @@ typedef struct xhci_extcap {
 	xhci_dword_t cap_specific[];
 } xhci_extcap_t;
 
-#define XHCI_EC_CAP_ID                           header, 32, RANGE,  7,  0
-#define XHCI_EC_SIZE                             header, 32, RANGE, 15,  8
+#define XHCI_EC_CAP_ID                  header, 32, RANGE,  7,  0
+#define XHCI_EC_SIZE                    header, 32, RANGE, 15,  8
 
 /* Supported protocol */
-#define XHCI_EC_SP_MINOR                         header, 32, RANGE, 23, 16
-#define XHCI_EC_SP_MAJOR                         header, 32, RANGE, 31, 24
-#define XHCI_EC_SP_NAME                 cap_specific[0], 32, FIELD
-#define XHCI_EC_SP_CP_OFF               cap_specific[1], 32, RANGE,  7,  0
-#define XHCI_EC_SP_CP_COUNT             cap_specific[1], 32, RANGE, 15,  8
-#define XHCI_EC_SP_PSIC                 cap_specific[1], 32, RANGE, 31, 28
-#define XHCI_EC_SP_SLOT_TYPE            cap_specific[2], 32, RANGE,  4,  0
+#define XHCI_EC_SP_MINOR                header, 32, RANGE, 23, 16
+#define XHCI_EC_SP_MAJOR                header, 32, RANGE, 31, 24
+#define XHCI_EC_SP_NAME        cap_specific[0], 32, FIELD
+#define XHCI_EC_SP_CP_OFF      cap_specific[1], 32, RANGE,  7,  0
+#define XHCI_EC_SP_CP_COUNT    cap_specific[1], 32, RANGE, 15,  8
+#define XHCI_EC_SP_PSIC        cap_specific[1], 32, RANGE, 31, 28
+#define XHCI_EC_SP_SLOT_TYPE   cap_specific[2], 32, RANGE,  4,  0
 
 typedef union {
 	char str [4];
@@ -581,14 +593,16 @@ typedef struct xhci_extcap_legsup {
 	ioport8_t sem_bios;
 	ioport8_t sem_os;
 
-	xhci_dword_t usblegctlsts;	/**< USB Legacy Support Control/Status - RW for BIOS, RO for OS */
+	/** USB Legacy Support Control/Status - RW for BIOS, RO for OS */
+	xhci_dword_t usblegctlsts;
 } xhci_legsup_t;
 
 #define XHCI_LEGSUP_SEM_BIOS	sem_bios, 8, FLAG, 0
 #define XHCI_LEGSUP_SEM_OS	sem_os, 8, FLAG, 0
 
-#define XHCI_LEGSUP_POLLING_DELAY_1MS	1000
-#define XHCI_LEGSUP_BIOS_TIMEOUT_US	1000000 /* 4.22.1 BIOS may take up to 1 second to release the device */
+/* 4.22.1 BIOS may take up to 1 second to release the device */
+#define XHCI_LEGSUP_BIOS_TIMEOUT_US   1000000
+#define XHCI_LEGSUP_POLLING_DELAY_1MS    1000
 
 #endif
 /**

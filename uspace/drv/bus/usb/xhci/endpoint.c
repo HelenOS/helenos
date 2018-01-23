@@ -57,7 +57,8 @@ static int alloc_transfer_ds(xhci_endpoint_t *);
  *
  * @return Error code.
  */
-static int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb_endpoint_descriptors_t *desc)
+static int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
+    const usb_endpoint_descriptors_t *desc)
 {
 	int rc;
 	assert(xhci_ep);
@@ -78,7 +79,8 @@ static int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb
 	else
 		xhci_ep->mult = 1;
 
-	/* In USB 3, the semantics of wMaxPacketSize changed. Now the number of
+	/*
+	 * In USB 3, the semantics of wMaxPacketSize changed. Now the number of
 	 * packets per service interval is determined from max_burst and mult.
 	 */
 	if (dev->speed >= USB_SPEED_SUPER) {
@@ -92,7 +94,8 @@ static int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev, const usb
 	 * Only Low/Full speed interrupt endpoints have interval as a linear field,
 	 * others have 2-based log of it.
 	 */
-	if (dev->speed >= USB_SPEED_HIGH || ep->transfer_type != USB_TRANSFER_INTERRUPT) {
+	if (dev->speed >= USB_SPEED_HIGH
+	    || ep->transfer_type != USB_TRANSFER_INTERRUPT) {
 		xhci_ep->interval = 1 << (xhci_ep->interval - 1);
 	}
 
@@ -118,7 +121,8 @@ err:
  *
  * Bus callback.
  */
-endpoint_t *xhci_endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
+endpoint_t *xhci_endpoint_create(device_t *dev,
+    const usb_endpoint_descriptors_t *desc)
 {
 	const usb_transfer_type_t type = USB_ED_GET_TRANSFER_TYPE(desc->endpoint);
 
@@ -192,8 +196,9 @@ static int endpoint_abort(endpoint_t *ep)
 		if (dev->slot_id) {
 			const int err = hc_stop_endpoint(xhci_ep);
 			if (err) {
-				usb_log_warning("Failed to stop endpoint %u of device " XHCI_DEV_FMT ": %s",
-				    ep->endpoint, XHCI_DEV_ARGS(*dev), str_error(err));
+				usb_log_warning("Failed to stop endpoint %u of device "
+				    XHCI_DEV_FMT ": %s", ep->endpoint, XHCI_DEV_ARGS(*dev),
+				    str_error(err));
 			}
 
 			endpoint_wait_timeout_locked(ep, 2000);
@@ -232,7 +237,8 @@ void xhci_endpoint_unregister(endpoint_t *ep_base)
 	if (dev->slot_id) {
 
 		if ((err = hc_drop_endpoint(ep))) {
-			usb_log_error("Failed to drop endpoint " XHCI_EP_FMT ": %s", XHCI_EP_ARGS(*ep), str_error(err));
+			usb_log_error("Failed to drop endpoint " XHCI_EP_FMT ": %s",
+			    XHCI_EP_ARGS(*ep), str_error(err));
 		}
 	} else {
 		usb_log_debug("Not going to drop endpoint " XHCI_EP_FMT " because"
@@ -270,7 +276,8 @@ int xhci_endpoint_type(xhci_endpoint_t *ep)
 	return EP_TYPE_INVALID;
 }
 
-/** Allocate transfer data structures for XHCI endpoint not using streams.
+/**
+ * Allocate transfer data structures for XHCI endpoint not using streams.
  * @param[in] xhci_ep XHCI endpoint to allocate data structures for.
  *
  * @return Error code.
@@ -278,7 +285,8 @@ int xhci_endpoint_type(xhci_endpoint_t *ep)
 static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	/* Can't use XHCI_EP_FMT because the endpoint may not have device. */
-	usb_log_debug("Allocating main transfer ring for endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	usb_log_debug("Allocating main transfer ring for endpoint " XHCI_EP_FMT,
+	    XHCI_EP_ARGS(*xhci_ep));
 
 	xhci_ep->primary_stream_data_array = NULL;
 	xhci_ep->primary_stream_data_size = 0;
@@ -298,7 +306,8 @@ static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	return EOK;
 }
 
-/** Free transfer data structures for XHCI endpoint.
+/**
+ * Free transfer data structures for XHCI endpoint.
  * @param[in] xhci_ep XHCI endpoint to free data structures for.
  */
 void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
@@ -306,7 +315,8 @@ void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *xhci_ep)
 	if (xhci_ep->primary_stream_data_size) {
 		xhci_stream_free_ds(xhci_ep);
 	} else {
-		usb_log_debug("Freeing main transfer ring of endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+		usb_log_debug("Freeing main transfer ring of endpoint " XHCI_EP_FMT,
+		    XHCI_EP_ARGS(*xhci_ep));
 		xhci_trb_ring_fini(&xhci_ep->ring);
 	}
 
@@ -328,7 +338,8 @@ xhci_trb_ring_t *xhci_endpoint_get_ring(xhci_endpoint_t *ep, uint32_t stream_id)
 	return &stream_data->ring;
 }
 
-/** Configure endpoint context of a control endpoint.
+/**
+ * Configure endpoint context of a control endpoint.
  * @param[in] ep XHCI control endpoint.
  * @param[in] ctx Endpoint context to configure.
  */
@@ -343,7 +354,8 @@ static void setup_control_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_DCS_SET(*ctx, 1);
 }
 
-/** Configure endpoint context of a bulk endpoint.
+/**
+ * Configure endpoint context of a bulk endpoint.
  * @param[in] ep XHCI bulk endpoint.
  * @param[in] ctx Endpoint context to configure.
  */
@@ -359,7 +371,8 @@ static void setup_bulk_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_DCS_SET(*ctx, 1);
 }
 
-/** Configure endpoint context of a isochronous endpoint.
+/**
+ * Configure endpoint context of a isochronous endpoint.
  * @param[in] ep XHCI isochronous endpoint.
  * @param[in] ctx Endpoint context to configure.
  */
@@ -378,7 +391,8 @@ static void setup_isoch_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 	XHCI_EP_MAX_ESIT_PAYLOAD_HI_SET(*ctx, (ep->isoch->max_size >> 16) & 0xFF);
 }
 
-/** Configure endpoint context of a interrupt endpoint.
+/**
+ * Configure endpoint context of a interrupt endpoint.
  * @param[in] ep XHCI interrupt endpoint.
  * @param[in] ctx Endpoint context to configure.
  */
@@ -398,7 +412,10 @@ static void setup_interrupt_ep_ctx(xhci_endpoint_t *ep, xhci_ep_ctx_t *ctx)
 /** Type of endpoint context configuration function. */
 typedef void (*setup_ep_ctx_helper)(xhci_endpoint_t *, xhci_ep_ctx_t *);
 
-/** Static array, which maps USB endpoint types to their respective endpoint context configuration functions. */
+/**
+ * Static array, which maps USB endpoint types to their respective endpoint
+ * context configuration functions.
+ */
 static const setup_ep_ctx_helper setup_ep_ctx_helpers[] = {
 	[USB_TRANSFER_CONTROL] = setup_control_ep_ctx,
 	[USB_TRANSFER_ISOCHRONOUS] = setup_isoch_ep_ctx,
