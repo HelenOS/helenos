@@ -60,7 +60,6 @@ void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors
 	ep->device = dev;
 
 	atomic_set(&ep->refcnt, 0);
-	fibril_mutex_initialize(&ep->guard);
 	fibril_condvar_initialize(&ep->avail);
 
 	ep->endpoint = USB_ED_GET_EP(desc->endpoint);
@@ -121,17 +120,41 @@ void endpoint_del_ref(endpoint_t *ep)
 }
 
 /**
- * Wait until the endpoint have no transfer scheduled.
+ * Mark the endpoint as online. Supply a guard to be used for this endpoint
+ * synchronization.
+ */
+void endpoint_set_online(endpoint_t *ep, fibril_mutex_t *guard)
+{
+	ep->guard = guard;
+	ep->online = true;
+}
+
+/**
+ * Mark the endpoint as offline. All other fibrils waiting to activate this
+ * endpoint will be interrupted.
+ */
+void endpoint_set_offline_locked(endpoint_t *ep)
+{
+	assert(ep);
+	assert(fibril_mutex_is_locked(ep->guard));
+
+	ep->online = false;
+	fibril_condvar_broadcast(&ep->avail);
+}
+
+/**
+ * Wait until a transfer finishes. Can be used even when the endpoint is
+ * offline (and is interrupted by the endpoint going offline).
  */
 void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t timeout)
 {
-	assert(fibril_mutex_is_locked(&ep->guard));
+	assert(ep);
+	assert(fibril_mutex_is_locked(ep->guard));
 
-	if (ep->active_batch != NULL)
-		fibril_condvar_wait_timeout(&ep->avail, &ep->guard, timeout);
+	if (ep->active_batch == NULL)
+		return;
 
-	while (timeout == 0 && ep->active_batch != NULL)
-		fibril_condvar_wait_timeout(&ep->avail, &ep->guard, timeout);
+	fibril_condvar_wait_timeout(&ep->avail, ep->guard, timeout);
 }
 
 /**
@@ -139,30 +162,42 @@ void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t timeout)
  * endpoint is already active, it will block on ep->avail condvar.
  *
  * Call only under endpoint guard. After you activate the endpoint and release
- * the guard, you must assume that particular transfer is already finished/aborted.
+ * the guard, you must assume that particular transfer is already
+ * finished/aborted.
  *
- * @param ep endpoint_t structure.
- * @param batch Transfer batch this endpoint is bocked by.
+ * Activation and deactivation is not done by the library to maximize
+ * performance. The HC might want to prepare some memory buffers prior to
+ * interfering with other world.
+ *
+ * @param batch Transfer batch this endpoint is blocked by.
  */
-void endpoint_activate_locked(endpoint_t *ep, usb_transfer_batch_t *batch)
+int endpoint_activate_locked(endpoint_t *ep, usb_transfer_batch_t *batch)
 {
 	assert(ep);
 	assert(batch);
 	assert(batch->ep == ep);
+	assert(ep->guard);
+	assert(fibril_mutex_is_locked(ep->guard));
 
-	endpoint_wait_timeout_locked(ep, 0);
+	while (ep->online && ep->active_batch != NULL)
+		fibril_condvar_wait(&ep->avail, ep->guard);
+
+	if (!ep->online)
+		return EINTR;
+
+	assert(ep->active_batch == NULL);
 	ep->active_batch = batch;
+	return EOK;
 }
 
 /**
  * Mark the endpoint as inactive and allow access for further fibrils.
- *
- * @param ep endpoint_t structure.
  */
 void endpoint_deactivate_locked(endpoint_t *ep)
 {
 	assert(ep);
-	assert(fibril_mutex_is_locked(&ep->guard));
+	assert(fibril_mutex_is_locked(ep->guard));
+
 	ep->active_batch = NULL;
 	fibril_condvar_signal(&ep->avail);
 }

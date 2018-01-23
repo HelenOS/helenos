@@ -80,14 +80,9 @@ static int address_device(xhci_device_t *dev)
 		return err;
 	usb_log_debug("Obtained slot ID: %u.", dev->slot_id);
 
-	/* Create and configure control endpoint. */
-	endpoint_t *ep0_base = xhci_endpoint_create(&dev->base, &ep0_initial_desc);
-	if (!ep0_base)
+	endpoint_t *ep0_base;
+	if ((err = bus_endpoint_add(&dev->base, &ep0_initial_desc, &ep0_base)))
 		goto err_slot;
-
-	/* Bus reference */
-	endpoint_add_ref(ep0_base);
-	dev->base.endpoints[0] = ep0_base;
 
 	usb_log_debug("Looking up new device initial MPS: %s",
 	    usb_str_speed(dev->base.speed));

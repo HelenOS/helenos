@@ -299,16 +299,14 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	xhci_transfer_t *transfer;
 
 	if (TRB_EVENT_DATA(*trb)) {
-		assert(ep->base.transfer_type != USB_TRANSFER_ISOCHRONOUS);
+		/* We schedule those only when streams are involved */
+		assert(ep->primary_stream_ctx_array != NULL);
+
 		/* We are received transfer pointer instead - work with that */
 		transfer = (xhci_transfer_t *) addr;
 		xhci_trb_ring_update_dequeue(get_ring(transfer),
 		    transfer->interrupt_trb_phys);
 		batch = &transfer->batch;
-
-		fibril_mutex_lock(&ep->base.guard);
-		endpoint_deactivate_locked(&ep->base);
-		fibril_mutex_unlock(&ep->base.guard);
 	}
 	else {
 		xhci_trb_ring_update_dequeue(&ep->ring, addr);
@@ -320,19 +318,18 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 			return EOK;
 		}
 
-		fibril_mutex_lock(&ep->base.guard);
+		fibril_mutex_lock(&ep->guard);
 		batch = ep->base.active_batch;
+		endpoint_deactivate_locked(&ep->base);
+		fibril_mutex_unlock(&ep->guard);
+
 		if (!batch) {
-			fibril_mutex_unlock(&ep->base.guard);
 			/* Dropping temporary reference */
 			endpoint_del_ref(&ep->base);
 			return ENOENT;
 		}
 
 		transfer = xhci_transfer_from_batch(batch);
-
-		endpoint_deactivate_locked(&ep->base);
-		fibril_mutex_unlock(&ep->base.guard);
 	}
 
 	const xhci_trb_completion_code_t completion_code = TRB_COMPLETION_CODE(*trb);
@@ -481,17 +478,21 @@ int xhci_transfer_schedule(usb_transfer_batch_t *batch)
 	}
 
 
-	fibril_mutex_lock(&ep->guard);
-	endpoint_activate_locked(ep, batch);
-	const int err = transfer_handlers[batch->ep->transfer_type](hc, transfer);
+	int err;
+	fibril_mutex_lock(&xhci_ep->guard);
 
-	if (err) {
+	if ((err = endpoint_activate_locked(ep, batch))) {
+		fibril_mutex_unlock(&xhci_ep->guard);
+		return err;
+	}
+
+	if ((err = transfer_handlers[batch->ep->transfer_type](hc, transfer))) {
 		endpoint_deactivate_locked(ep);
-		fibril_mutex_unlock(&ep->guard);
+		fibril_mutex_unlock(&xhci_ep->guard);
 		return err;
 	}
 
 	hc_ring_ep_doorbell(xhci_ep, batch->target.stream);
-	fibril_mutex_unlock(&ep->guard);
+	fibril_mutex_unlock(&xhci_ep->guard);
 	return EOK;
 }

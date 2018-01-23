@@ -67,6 +67,8 @@ static int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
 
 	endpoint_init(ep, dev, desc);
 
+	fibril_mutex_initialize(&xhci_ep->guard);
+
 	xhci_ep->max_burst = desc->companion.max_burst + 1;
 
 	if (ep->transfer_type == USB_TRANSFER_BULK)
@@ -176,47 +178,56 @@ int xhci_endpoint_register(endpoint_t *ep_base)
 	int err;
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 
-	if ((err = hc_add_endpoint(ep)))
+	if (ep_base->endpoint != 0 && (err = hc_add_endpoint(ep)))
 		return err;
 
+	endpoint_set_online(ep_base, &ep->guard);
 	return EOK;
 }
 
 /**
  * Abort a transfer on an endpoint.
  */
-static int endpoint_abort(endpoint_t *ep)
+static void endpoint_abort(endpoint_t *ep)
 {
 	xhci_device_t *dev = xhci_device_get(ep->device);
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(ep);
 
-	usb_transfer_batch_t *batch = NULL;
-	fibril_mutex_lock(&ep->guard);
-	if (ep->active_batch) {
-		if (dev->slot_id) {
-			const int err = hc_stop_endpoint(xhci_ep);
-			if (err) {
-				usb_log_warning("Failed to stop endpoint %u of device "
-				    XHCI_DEV_FMT ": %s", ep->endpoint, XHCI_DEV_ARGS(*dev),
-				    str_error(err));
-			}
+	/* This function can only abort endpoints without streams. */
+	assert(xhci_ep->primary_stream_data_array == NULL);
 
-			endpoint_wait_timeout_locked(ep, 2000);
-		}
+	fibril_mutex_lock(&xhci_ep->guard);
 
-		batch = ep->active_batch;
-		if (batch) {
-			endpoint_deactivate_locked(ep);
-		}
+	endpoint_set_offline_locked(ep);
+
+	if (!ep->active_batch) {
+		fibril_mutex_unlock(&xhci_ep->guard);
+		return;
 	}
-	fibril_mutex_unlock(&ep->guard);
 
-	if (batch) {
-		batch->error = EINTR;
-		batch->transferred_size = 0;
-		usb_transfer_batch_finish(batch);
+	/* First, offer the batch a short chance to be finished. */
+	endpoint_wait_timeout_locked(ep, 10000);
+
+	if (!ep->active_batch) {
+		fibril_mutex_unlock(&xhci_ep->guard);
+		return;
 	}
-	return EOK;
+
+	usb_transfer_batch_t * const batch = ep->active_batch;
+
+	const int err = hc_stop_endpoint(xhci_ep);
+	if (err) {
+		usb_log_error("Failed to stop endpoint %u of device "
+		    XHCI_DEV_FMT ": %s", ep->endpoint, XHCI_DEV_ARGS(*dev),
+		    str_error(err));
+	}
+
+	fibril_mutex_unlock(&xhci_ep->guard);
+
+	batch->error = EINTR;
+	batch->transferred_size = 0;
+	usb_transfer_batch_finish(batch);
+	return;
 }
 
 /**
@@ -234,7 +245,7 @@ void xhci_endpoint_unregister(endpoint_t *ep_base)
 	endpoint_abort(ep_base);
 
 	/* If device slot is still available, drop the endpoint. */
-	if (dev->slot_id) {
+	if (ep_base->endpoint != 0 && dev->slot_id) {
 
 		if ((err = hc_drop_endpoint(ep))) {
 			usb_log_error("Failed to drop endpoint " XHCI_EP_FMT ": %s",

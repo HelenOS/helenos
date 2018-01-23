@@ -101,14 +101,16 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 	qh_set_next_qh(instance->queue_head, next->queue_head);
 }
 
-/** Add transfer batch to the list and queue.
- *
- * @param[in] instance List to use.
- * @param[in] batch Transfer batch to submit.
+/**
+ * Add transfer batch to the list and queue.
  *
  * The batch is added to the end of the list and queue.
+ *
+ * @param[in] instance List to use.
+ * @param[in] batch Transfer batch to submit. After return, the batch must
+ *                  not be used further.
  */
-void transfer_list_add_batch(
+int transfer_list_add_batch(
     transfer_list_t *instance, uhci_transfer_batch_t *uhci_batch)
 {
 	assert(instance);
@@ -116,15 +118,16 @@ void transfer_list_add_batch(
 
 	endpoint_t *ep = uhci_batch->base.ep;
 
-	/* First, wait until the endpoint is free to use */
-	fibril_mutex_lock(&ep->guard);
-	endpoint_activate_locked(ep, &uhci_batch->base);
-	fibril_mutex_unlock(&ep->guard);
+	fibril_mutex_lock(&instance->guard);
+
+	const int err = endpoint_activate_locked(ep, &uhci_batch->base);
+	if (err) {
+		fibril_mutex_unlock(&instance->guard);
+		return err;
+	}
 
 	usb_log_debug2("Batch %p adding to queue %s.",
 	    uhci_batch, instance->name);
-
-	fibril_mutex_lock(&instance->guard);
 
 	/* Assume there is nothing scheduled */
 	qh_t *last_qh = instance->queue_head;
@@ -154,6 +157,7 @@ void transfer_list_add_batch(
 	    " scheduled in queue %s.", uhci_batch,
 	    USB_TRANSFER_BATCH_ARGS(uhci_batch->base), instance->name);
 	fibril_mutex_unlock(&instance->guard);
+	return EOK;
 }
 
 /**
@@ -170,30 +174,21 @@ static void uhci_reset_toggle(endpoint_t *ep)
  * @param[in] instance List to use.
  * @param[in] done list to fill
  */
-void transfer_list_remove_finished(transfer_list_t *instance, list_t *done)
+void transfer_list_check_finished(transfer_list_t *instance)
 {
 	assert(instance);
-	assert(done);
 
 	fibril_mutex_lock(&instance->guard);
-	link_t *current = list_first(&instance->batch_list);
-	while (current && current != &instance->batch_list.head) {
-		link_t * const next = current->next;
-		uhci_transfer_batch_t *batch =
-		    uhci_transfer_batch_from_link(current);
+	list_foreach_safe(instance->batch_list, current, next) {
+		uhci_transfer_batch_t *batch = uhci_transfer_batch_from_link(current);
 
 		if (uhci_transfer_batch_check_completed(batch)) {
-			/* Remove from schedule, save for processing */
-			fibril_mutex_lock(&batch->base.ep->guard);
 			assert(batch->base.ep->active_batch == &batch->base);
-			hc_reset_toggles(&batch->base, &uhci_reset_toggle);
 			endpoint_deactivate_locked(batch->base.ep);
+			hc_reset_toggles(&batch->base, &uhci_reset_toggle);
 			transfer_list_remove_batch(instance, batch);
-			fibril_mutex_unlock(&batch->base.ep->guard);
-
-			list_append(current, done);
+			usb_transfer_batch_finish(&batch->base);
 		}
-		current = next;
 	}
 	fibril_mutex_unlock(&instance->guard);
 }

@@ -296,24 +296,24 @@ int ohci_hc_schedule(usb_transfer_batch_t *batch)
 		usb_log_debug("OHCI root hub request.");
 		return ohci_rh_schedule(&hc->rh, batch);
 	}
-	ohci_transfer_batch_t *ohci_batch = ohci_transfer_batch_get(batch);
-	if (!ohci_batch)
-		return ENOMEM;
-
-	const int err = ohci_transfer_batch_prepare(ohci_batch);
-	if (err)
-		return err;
 
 	endpoint_t *ep = batch->ep;
 	ohci_endpoint_t * const ohci_ep = ohci_endpoint_get(ep);
+	ohci_transfer_batch_t *ohci_batch = ohci_transfer_batch_get(batch);
 
-	/* creating local reference */
-	endpoint_add_ref(ep);
+	int err;
+	if ((err = ohci_transfer_batch_prepare(ohci_batch)))
+		return err;
 
-	fibril_mutex_lock(&ep->guard);
-	endpoint_activate_locked(ep, batch);
+	fibril_mutex_lock(&hc->guard);
+	if ((err = endpoint_activate_locked(ep, batch))) {
+		fibril_mutex_unlock(&hc->guard);
+		return err;
+	}
+
 	ohci_transfer_batch_commit(ohci_batch);
-	fibril_mutex_unlock(&ep->guard);
+	list_append(&ohci_ep->pending_link, &hc->pending_endpoints);
+	fibril_mutex_unlock(&hc->guard);
 
 	/* Control and bulk schedules need a kick to start working */
 	switch (batch->ep->transfer_type)
@@ -327,10 +327,6 @@ int ohci_hc_schedule(usb_transfer_batch_t *batch)
 	default:
 		break;
 	}
-
-	fibril_mutex_lock(&hc->guard);
-	list_append(&ohci_ep->pending_link, &hc->pending_endpoints);
-	fibril_mutex_unlock(&hc->guard);
 
 	return EOK;
 }
@@ -368,7 +364,6 @@ void ohci_hc_interrupt(bus_t *bus_base, uint32_t status)
 			ohci_endpoint_t *ep
 				= list_get_instance(current, ohci_endpoint_t, pending_link);
 
-			fibril_mutex_lock(&ep->base.guard);
 			ohci_transfer_batch_t *batch
 				= ohci_transfer_batch_get(ep->base.active_batch);
 			assert(batch);
@@ -376,11 +371,9 @@ void ohci_hc_interrupt(bus_t *bus_base, uint32_t status)
 			if (ohci_transfer_batch_check_completed(batch)) {
 				endpoint_deactivate_locked(&ep->base);
 				list_remove(current);
-				endpoint_del_ref(&ep->base);
 				hc_reset_toggles(&batch->base, &ohci_ep_toggle_reset);
 				usb_transfer_batch_finish(&batch->base);
 			}
-			fibril_mutex_unlock(&ep->base.guard);
 		}
 		fibril_mutex_unlock(&hc->guard);
 	}

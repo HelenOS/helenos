@@ -96,7 +96,7 @@ static const irq_cmd_t uhci_irq_commands[] = {
 };
 
 static void hc_init_hw(const hc_t *instance);
-static int hc_init_mem_structures(hc_t *instance, hc_device_t *);
+static int hc_init_mem_structures(hc_t *instance);
 static int hc_init_transfer_lists(hc_t *instance);
 
 static int hc_debug_checker(void *arg);
@@ -163,23 +163,12 @@ static void hc_interrupt(bus_t *bus, uint32_t status)
 
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
-		LIST_INITIALIZE(done);
-		transfer_list_remove_finished(
-		    &instance->transfers_interrupt, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_control_slow, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_control_full, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_bulk_full, &done);
-
-		list_foreach_safe(done, current, next) {
-			list_remove(current);
-			uhci_transfer_batch_t *batch =
-			    uhci_transfer_batch_from_link(current);
-			usb_transfer_batch_finish(&batch->base);
-		}
+		transfer_list_check_finished(&instance->transfers_interrupt);
+		transfer_list_check_finished(&instance->transfers_control_slow);
+		transfer_list_check_finished(&instance->transfers_control_full);
+		transfer_list_check_finished(&instance->transfers_bulk_full);
 	}
+
 	/* Resume interrupts are not supported */
 	if (status & UHCI_STATUS_RESUME) {
 		usb_log_error("Resume interrupt!");
@@ -238,7 +227,7 @@ int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	    hw_res->io_ranges.ranges[0].address.absolute,
 	    hw_res->io_ranges.ranges[0].size);
 
-	ret = hc_init_mem_structures(instance, hcd);
+	ret = hc_init_mem_structures(instance);
 	if (ret != EOK) {
 		usb_log_error("Failed to init UHCI memory structures: %s.",
 		    str_error(ret));
@@ -327,12 +316,32 @@ static void destroy_transfer_batch(usb_transfer_batch_t *batch)
 	uhci_transfer_batch_destroy(uhci_transfer_batch_get(batch));
 }
 
+static int endpoint_register(endpoint_t *ep)
+{
+	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
+
+	const int err = usb2_bus_ops.endpoint_register(ep);
+	if (err)
+		return err;
+
+	transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
+	if (!list)
+		/*
+		 * We don't support this combination (e.g. isochronous). Do not
+		 * fail early, because that would block any device with these
+		 * endpoints from connecting. Instead, make sure these transfers
+		 * are denied soon enough with ENOTSUP not to fail on asserts.
+		 */
+		return EOK;
+
+	endpoint_set_online(ep, &list->guard);
+	return EOK;
+}
+
 static void endpoint_unregister(endpoint_t *ep)
 {
 	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
 	usb2_bus_ops.endpoint_unregister(ep);
-
-	uhci_transfer_batch_t *batch = NULL;
 
 	// Check for the roothub, as it does not schedule into lists
 	if (ep->device->address == uhci_rh_get_address(&hc->rh)) {
@@ -343,7 +352,6 @@ static void endpoint_unregister(endpoint_t *ep)
 	}
 
 	transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
-
 	if (!list)
 		/*
 		 * We don't support this combination (e.g. isochronous),
@@ -351,25 +359,42 @@ static void endpoint_unregister(endpoint_t *ep)
 		 */
 		return;
 
-	// To avoid ABBA deadlock, we need to take the list first
 	fibril_mutex_lock(&list->guard);
-	fibril_mutex_lock(&ep->guard);
-	if (ep->active_batch) {
-		batch = uhci_transfer_batch_get(ep->active_batch);
-		endpoint_deactivate_locked(ep);
-		transfer_list_remove_batch(list, batch);
+
+	endpoint_set_offline_locked(ep);
+	/* From now on, no other transfer will be scheduled. */
+
+	if (!ep->active_batch) {
+		fibril_mutex_unlock(&list->guard);
+		return;
 	}
-	fibril_mutex_unlock(&ep->guard);
+
+	/* First, offer the batch a short chance to be finished. */
+	endpoint_wait_timeout_locked(ep, 10000);
+
+	if (!ep->active_batch) {
+		fibril_mutex_unlock(&list->guard);
+		return;
+	}
+
+	uhci_transfer_batch_t * const batch =
+		uhci_transfer_batch_get(ep->active_batch);
+
+	/* Remove the batch from the schedule to stop it from being finished. */
+	endpoint_deactivate_locked(ep);
+	transfer_list_remove_batch(list, batch);
+
 	fibril_mutex_unlock(&list->guard);
 
-	if (batch) {
-		// The HW could have been looking at the batch.
-		// Better wait two frames before we release the buffers.
-		async_usleep(2000);
-		batch->base.error = EINTR;
-		batch->base.transferred_size = 0;
-		usb_transfer_batch_finish(&batch->base);
-	}
+	/*
+	 * We removed the batch from software schedule only, it's still possible
+	 * that HC has it in its caches. Better wait a while before we release
+	 * the buffers.
+	 */
+	async_usleep(20000);
+	batch->base.error = EINTR;
+	batch->base.transferred_size = 0;
+	usb_transfer_batch_finish(&batch->base);
 }
 
 static int hc_status(bus_t *, uint32_t *);
@@ -381,6 +406,7 @@ static const bus_ops_t uhci_bus_ops = {
 	.interrupt = hc_interrupt,
 	.status = hc_status,
 
+	.endpoint_register = endpoint_register,
 	.endpoint_unregister = endpoint_unregister,
 	.endpoint_count_bw = bandwidth_count_usb11,
 
@@ -399,7 +425,7 @@ static const bus_ops_t uhci_bus_ops = {
  *  - transfer lists (queue heads need to be accessible by the hw)
  *  - frame list page (needs to be one UHCI hw accessible 4K page)
  */
-int hc_init_mem_structures(hc_t *instance, hc_device_t *hcd)
+int hc_init_mem_structures(hc_t *instance)
 {
 	assert(instance);
 
@@ -424,6 +450,7 @@ int hc_init_mem_structures(hc_t *instance, hc_device_t *hcd)
 		return_page(instance->frame_list);
 		return ENOMEM;
 	}
+	list_initialize(&instance->pending_endpoints);
 	usb_log_debug("Initialized transfer lists.");
 
 
@@ -513,13 +540,12 @@ static int hc_status(bus_t *bus, uint32_t *status)
 	return EOK;
 }
 
-/** Schedule batch for execution.
+/**
+ * Schedule batch for execution.
  *
  * @param[in] instance UHCI structure to use.
  * @param[in] batch Transfer batch to schedule.
  * @return Error code
- *
- * Checks for bandwidth availability and appends the batch to the proper queue.
  */
 static int hc_schedule(usb_transfer_batch_t *batch)
 {
@@ -530,22 +556,17 @@ static int hc_schedule(usb_transfer_batch_t *batch)
 	if (batch->target.address == uhci_rh_get_address(&hc->rh))
 		return uhci_rh_schedule(&hc->rh, batch);
 
+	transfer_list_t * const list =
+	    hc->transfers[ep->device->speed][ep->transfer_type];
 
-	const int err = uhci_transfer_batch_prepare(uhci_batch);
-	if (err)
+	if (!list)
+		return ENOTSUP;
+
+	int err;
+	if ((err = uhci_transfer_batch_prepare(uhci_batch)))
 		return err;
 
-	transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
-	assert(list);
-	transfer_list_add_batch(list, uhci_batch);
-
-	return EOK;
-}
-
-int hc_unschedule_batch(usb_transfer_batch_t *batch)
-{
-
-	return EOK;
+	return transfer_list_add_batch(list, uhci_batch);
 }
 
 /** Debug function, checks consistency of memory structures.

@@ -52,22 +52,43 @@ typedef struct bus bus_t;
 typedef struct device device_t;
 typedef struct usb_transfer_batch usb_transfer_batch_t;
 
-/** Host controller side endpoint structure. */
+/**
+ * Host controller side endpoint structure.
+ *
+ * This structure, though reference-counted, is very fragile. It is responsible
+ * for synchronizing transfer batch scheduling and completion.
+ *
+ * To avoid situations, in which two locks must be obtained to schedule/finish
+ * a transfer, the endpoint inherits a lock from the outside. Because the
+ * concrete instance of mutex can be unknown at the time of initialization,
+ * the HC shall pass the right lock at the time of onlining the endpoint.
+ *
+ * The fields used for scheduling (online, active_batch) are to be used only
+ * under that guard and by functions designed for this purpose. The driver can
+ * also completely avoid using this mechanism, in which case it is on its own in
+ * question of transfer aborting.
+ *
+ * Relevant information can be found in the documentation of HelenOS xHCI
+ * project.
+ */
 typedef struct endpoint {
 	/** USB device */
 	device_t *device;
 	/** Reference count. */
 	atomic_t refcnt;
-	/** Reserved bandwidth. */
-	size_t bandwidth;
-	/** The currently active transfer batch. Write using methods, read under guard. */
+
+	/** An inherited guard */
+	fibril_mutex_t *guard;
+	/** Whether it's allowed to schedule on this endpoint */
+	bool online;
+	/** The currently active transfer batch. */
 	usb_transfer_batch_t *active_batch;
-	/** Protects resources and active status changes. */
-	fibril_mutex_t guard;
 	/** Signals change of active status. */
 	fibril_condvar_t avail;
 
-	/** Enpoint number */
+	/** Reserved bandwidth. Needed for USB2 bus. */
+	size_t bandwidth;
+	/** Endpoint number */
 	usb_endpoint_t endpoint;
 	/** Communication direction. */
 	usb_direction_t direction;
@@ -78,7 +99,10 @@ typedef struct endpoint {
 
 	/** Maximum size of one transfer */
 	size_t max_transfer_size;
-	/** Number of packats that can be sent in one service interval (not necessarily uframe) */
+	/**
+	 * Number of packets that can be sent in one service interval
+	 * (not necessarily uframe, despite its name)
+	 */
 	unsigned packets_per_uframe;
 
 	/* This structure is meant to be extended by overriding. */
@@ -89,8 +113,11 @@ extern void endpoint_init(endpoint_t *, device_t *, const usb_endpoint_descripto
 extern void endpoint_add_ref(endpoint_t *);
 extern void endpoint_del_ref(endpoint_t *);
 
+extern void endpoint_set_online(endpoint_t *, fibril_mutex_t *);
+extern void endpoint_set_offline_locked(endpoint_t *);
+
 extern void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t);
-extern void endpoint_activate_locked(endpoint_t *, usb_transfer_batch_t *);
+extern int endpoint_activate_locked(endpoint_t *, usb_transfer_batch_t *);
 extern void endpoint_deactivate_locked(endpoint_t *);
 
 /* Calculate bandwidth */

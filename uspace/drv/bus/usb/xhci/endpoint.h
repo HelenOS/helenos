@@ -69,6 +69,9 @@ enum {
 typedef struct xhci_endpoint {
 	endpoint_t base;	/**< Inheritance. Keep this first. */
 
+	/** Guarding scheduling of this endpoint. */
+	fibril_mutex_t guard;
+
 	/** Main transfer ring (unused if streams are enabled) */
 	xhci_trb_ring_t ring;
 

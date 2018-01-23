@@ -114,6 +114,7 @@ static int ohci_register_ep(endpoint_t *ep)
 
 	ed_init(ohci_ep->ed, ep, ohci_ep->td);
 	hc_enqueue_endpoint(bus->hc, ep);
+	endpoint_set_online(ep, &bus->hc->guard);
 
 	return EOK;
 }
@@ -127,27 +128,19 @@ static void ohci_unregister_ep(endpoint_t *ep)
 	usb2_bus_ops.endpoint_unregister(ep);
 	hc_dequeue_endpoint(bus->hc, ep);
 
-	ohci_endpoint_t * const ohci_ep = ohci_endpoint_get(ep);
-
 	/*
-	 * Now we can be sure the active transfer will not be completed. But first,
-	 * make sure that the handling fibril won't use its link in pending list.
+	 * Now we can be sure the active transfer will not be completed,
+	 * as it's out of the schedule, and HC acknowledged it.
 	 */
+
+	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
+
 	fibril_mutex_lock(&hc->guard);
-	if (link_in_use(&ohci_ep->pending_link))
-		/* pending list reference */
-		endpoint_del_ref(ep);
+	endpoint_set_offline_locked(ep);
 	list_remove(&ohci_ep->pending_link);
-	fibril_mutex_unlock(&hc->guard);
-
-	/*
-	 * Finally, the endpoint shall not be used anywhere else. Finish the
-	 * pending batch.
-	 */
-	fibril_mutex_lock(&ep->guard);
 	usb_transfer_batch_t * const batch = ep->active_batch;
 	endpoint_deactivate_locked(ep);
-	fibril_mutex_unlock(&ep->guard);
+	fibril_mutex_unlock(&hc->guard);
 
 	if (batch) {
 		batch->error = EINTR;

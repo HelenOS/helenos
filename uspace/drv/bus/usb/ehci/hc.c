@@ -301,35 +301,28 @@ int ehci_hc_schedule(usb_transfer_batch_t *batch)
 
 	endpoint_t * const ep = batch->ep;
 	ehci_endpoint_t * const ehci_ep = ehci_endpoint_get(ep);
-
-	/* creating local reference */
-	endpoint_add_ref(ep);
-
-	fibril_mutex_lock(&ep->guard);
-	endpoint_activate_locked(ep, batch);
-
 	ehci_transfer_batch_t *ehci_batch = ehci_transfer_batch_get(batch);
-	const int err = ehci_transfer_batch_prepare(ehci_batch);
-	if (err) {
-		endpoint_deactivate_locked(ep);
-		fibril_mutex_unlock(&ep->guard);
-		/* dropping local reference */
-		endpoint_del_ref(ep);
+
+	int err;
+
+	if ((err = ehci_transfer_batch_prepare(ehci_batch)))
+		return err;
+
+	fibril_mutex_lock(&hc->guard);
+
+	if ((err = endpoint_activate_locked(ep, batch))) {
+		fibril_mutex_unlock(&hc->guard);
 		return err;
 	}
 
 	usb_log_debug("HC(%p): Committing BATCH(%p)", hc, batch);
 	ehci_transfer_batch_commit(ehci_batch);
-	fibril_mutex_unlock(&ep->guard);
 
 	/* Enqueue endpoint to the checked list */
-	fibril_mutex_lock(&hc->guard);
 	usb_log_debug2("HC(%p): Appending BATCH(%p)", hc, batch);
-
-	/* local reference -> pending list reference */
 	list_append(&ehci_ep->pending_link, &hc->pending_endpoints);
-	fibril_mutex_unlock(&hc->guard);
 
+	fibril_mutex_unlock(&hc->guard);
 	return EOK;
 }
 
@@ -367,7 +360,6 @@ void ehci_hc_interrupt(bus_t *bus_base, uint32_t status)
 			ehci_endpoint_t *ep
 				= list_get_instance(current, ehci_endpoint_t, pending_link);
 
-			fibril_mutex_lock(&ep->base.guard);
 			ehci_transfer_batch_t *batch
 				= ehci_transfer_batch_get(ep->base.active_batch);
 			assert(batch);
@@ -375,11 +367,9 @@ void ehci_hc_interrupt(bus_t *bus_base, uint32_t status)
 			if (ehci_transfer_batch_check_completed(batch)) {
 				endpoint_deactivate_locked(&ep->base);
 				list_remove(current);
-				endpoint_del_ref(&ep->base);
 				hc_reset_toggles(&batch->base, &ehci_ep_toggle_reset);
 				usb_transfer_batch_finish(&batch->base);
 			}
-			fibril_mutex_unlock(&ep->base.guard);
 		}
 		fibril_mutex_unlock(&hc->guard);
 

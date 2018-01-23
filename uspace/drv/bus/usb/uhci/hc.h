@@ -122,6 +122,14 @@ typedef struct hc {
 	/** Pointer table to the above lists, helps during scheduling */
 	transfer_list_t *transfers[2][4];
 
+	/**
+	 * Guard for the pending list. Can be locked under EP guard, but not
+	 * vice versa.
+	 */
+	fibril_mutex_t guard;
+	/** List of endpoints with a transfer scheduled */
+	list_t pending_endpoints;
+
 	/** Number of hw failures detected. */
 	unsigned hw_failures;
 } hc_t;
