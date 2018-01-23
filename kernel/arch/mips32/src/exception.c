@@ -42,7 +42,7 @@
 #include <proc/thread.h>
 #include <print.h>
 #include <interrupt.h>
-#include <func.h>
+#include <halt.h>
 #include <ddi/irq.h>
 #include <arch/debugger.h>
 #include <symtab.h>

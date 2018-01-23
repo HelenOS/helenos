@@ -45,7 +45,7 @@
 #include <config.h>
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
-#include <func.h>
+#include <halt.h>
 #include <proc/scheduler.h>
 #include <cpu.h>
 #include <arch.h>

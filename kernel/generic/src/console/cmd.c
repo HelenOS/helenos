@@ -51,7 +51,7 @@
 #include <adt/list.h>
 #include <arch.h>
 #include <config.h>
-#include <func.h>
+#include <halt.h>
 #include <str.h>
 #include <macros.h>
 #include <cpu.h>

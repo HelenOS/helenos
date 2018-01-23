@@ -34,7 +34,7 @@
 
 #include <debug.h>
 #include <panic.h>
-#include <func.h>
+#include <halt.h>
 #include <log.h>
 #include <str.h>
 #include <arch/sun4v/md.h>

@@ -29,19 +29,54 @@
 /** @addtogroup generic
  * @{
  */
-/** @file
+
+/**
+ * @file
+ * @brief Halt function.
  */
 
-#ifndef KERN_FUNC_H_
-#define KERN_FUNC_H_
+#include <halt.h>
+#include <log.h>
+#include <cpu.h>
+#include <arch/asm.h>
+#include <arch.h>
+#include <console/kconsole.h>
 
-#include <atomic.h>
+/** Halt flag */
+atomic_t haltstate = {0};
 
-extern atomic_t haltstate;
-
-extern void halt(void) __attribute__((noreturn));
-
+/** Halt wrapper
+ *
+ * Set halt flag and halt the CPU.
+ *
+ */
+void halt(void)
+{
+#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
+	bool rundebugger = false;
+	
+	if (!atomic_get(&haltstate)) {
+		atomic_set(&haltstate, 1);
+		rundebugger = true;
+	}
+#else
+	atomic_set(&haltstate, 1);
 #endif
+	
+	interrupts_disable();
+	
+#if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
+	if ((rundebugger) && (kconsole_check_poll()))
+		kconsole("panic", "\nLast resort kernel console ready.\n", false);
+#endif
+	
+	if (CPU)
+		log(LF_OTHER, LVL_NOTE, "cpu%u: halted", CPU->id);
+	else
+		log(LF_OTHER, LVL_NOTE, "cpu: halted");
+	
+	cpu_halt();
+}
 
 /** @}
  */

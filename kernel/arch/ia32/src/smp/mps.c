@@ -40,7 +40,7 @@
 #include <arch/smp/apic.h>
 #include <arch/smp/smp.h>
 #include <assert.h>
-#include <func.h>
+#include <halt.h>
 #include <typedefs.h>
 #include <cpu.h>
 #include <arch/asm.h>

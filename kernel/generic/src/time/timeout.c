@@ -40,7 +40,7 @@
 #include <config.h>
 #include <panic.h>
 #include <synch/spinlock.h>
-#include <func.h>
+#include <halt.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>

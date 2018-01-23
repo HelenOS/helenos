@@ -42,7 +42,7 @@
 #include <arch.h>
 #include <config.h>
 #include <macros.h>
-#include <func.h>
+#include <halt.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
