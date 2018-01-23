@@ -181,28 +181,39 @@ typedef struct {
 /** One bit for the device and one bit for every port */
 #define STATUS_BYTES(ports) ((1 + ports + 7) / 8)
 
-/**	@brief usb hub specific request types.
- *
- *	For more information see Universal Serial Bus Specification Revision 1.1 chapter 11.16.2
+/**
+ * @brief usb hub specific request types.
  */
 typedef enum {
-    /**	This request resets a value reported in the hub status.	*/
+    /** This request resets a value reported in the hub status. */
     USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE = 0x20,
     /** This request resets a value reported in the port status. */
     USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE = 0x23,
-    /** This is an optional per-port diagnostic request that returns the bus state value, as sampled at the last EOF2 point. */
+    /**
+     * This is an optional per-port diagnostic request that returns the bus
+     * state value, as sampled at the last EOF2 point.
+     */
     USB_HUB_REQ_TYPE_GET_STATE = 0xA3,
     /** This request returns the hub descriptor. */
     USB_HUB_REQ_TYPE_GET_DESCRIPTOR = 0xA0,
-    /** This request returns the current hub status and the states that have changed since the previous acknowledgment. */
+    /**
+     * This request returns the current hub status and the states that have
+     * changed since the previous acknowledgment.
+     */
     USB_HUB_REQ_TYPE_GET_HUB_STATUS = 0xA0,
-    /** This request returns the current port status and the current value of the port status change bits. */
+    /**
+     * This request returns the current port status and the current value of the
+     * port status change bits.
+     */
     USB_HUB_REQ_TYPE_GET_PORT_STATUS = 0xA3,
     /** This request overwrites the hub descriptor. */
     USB_HUB_REQ_TYPE_SET_DESCRIPTOR = 0x20,
     /** This request sets a value reported in the hub status. */
     USB_HUB_REQ_TYPE_SET_HUB_FEATURE = 0x20,
-    /** This request sets the value that the hub uses to determine the index into the Route String Index for the hub. */
+    /**
+     * This request sets the value that the hub uses to determine the index
+     * into the Route String Index for the hub.
+     */
     USB_HUB_REQ_TYPE_SET_HUB_DEPTH = 0x20,
     /** This request sets a value reported in the port status. */
     USB_HUB_REQ_TYPE_SET_PORT_FEATURE = 0x23,
@@ -236,7 +247,7 @@ typedef enum {
 } usb_hub_request_t;
 
 /**
- *	Maximum size of usb hub descriptor in bytes
+ * Maximum size of usb hub descriptor in bytes
  */
 /* 7 (basic size) + 2*32 (port bitmasks) */
 #define USB_HUB_MAX_DESCRIPTOR_SIZE  (7 + 2 * 32)
