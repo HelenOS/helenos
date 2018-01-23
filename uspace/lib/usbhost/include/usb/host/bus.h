@@ -83,7 +83,7 @@ typedef struct device {
 	/* The following are not set by the library */
 	usb_speed_t speed;
 	usb_address_t address;
-	endpoint_t *endpoints [2 * USB_ENDPOINT_MAX];
+	endpoint_t *endpoints [USB_ENDPOINT_COUNT];
 
 	/* Managing bus */
 	bus_t *bus;

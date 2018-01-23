@@ -153,6 +153,9 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port, usb_speed_t speed)
 
 	int err;
 
+	if (!usb_speed_is_valid(speed))
+		return EINVAL;
+
 	usb_log_debug("Hub %d reported a new %s speed device on port: %u",
 	    hub->address, usb_str_speed(speed), port);
 
@@ -211,7 +214,7 @@ static int device_remove(ddf_fun_t *fun, unsigned port)
 	fibril_mutex_unlock(&hub->guard);
 
 	if (!victim) {
-		usb_log_warning("Hub '%s' tried to remove non-existant"
+		usb_log_warning("Hub '%s' tried to remove non-existent"
 		    " device.", ddf_fun_get_name(fun));
 		return ENOENT;
 	}
@@ -270,6 +273,15 @@ static int dev_read(ddf_fun_t *fun, usb_target_t target,
 
 	target.address = dev->address;
 
+	if (!usb_target_is_valid(&target))
+		return EINVAL;
+
+	if (size > 0 && data == NULL)
+		return EBADMEM;
+
+	if (!callback && arg)
+		return EBADMEM;
+
 	return bus_device_send_batch(dev, target, USB_DIRECTION_IN,
 	    data, size, setup_data,
 	    callback, arg, "READ");
@@ -294,6 +306,15 @@ static int dev_write(ddf_fun_t *fun, usb_target_t target,
 	assert(dev);
 
 	target.address = dev->address;
+
+	if (!usb_target_is_valid(&target))
+		return EINVAL;
+
+	if (size > 0 && data == NULL)
+		return EBADMEM;
+
+	if (!callback && arg)
+		return EBADMEM;
 
 	return bus_device_send_batch(dev, target, USB_DIRECTION_OUT,
 	    (char *) data, size, setup_data,

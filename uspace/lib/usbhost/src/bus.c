@@ -41,6 +41,7 @@
 #include <ddf/driver.h>
 #include <errno.h>
 #include <mem.h>
+#include <macros.h>
 #include <stdio.h>
 #include <str_error.h>
 #include <usb/debug.h>
@@ -344,7 +345,7 @@ err:
  * For the default control endpoint 0, it must return 0.
  * For different arguments, the result is stable but not defined.
  */
-static int bus_endpoint_index(usb_endpoint_t ep, usb_direction_t dir)
+static size_t bus_endpoint_index(usb_endpoint_t ep, usb_direction_t dir)
 {
 	return 2 * ep + (dir == USB_DIRECTION_OUT);
 }
@@ -383,12 +384,17 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	/* Bus reference */
 	endpoint_add_ref(ep);
 
+	const size_t idx = bus_endpoint_index(ep->endpoint, ep->direction);
+	if (idx >= ARRAY_SIZE(device->endpoints)) {
+		usb_log_warning("Invalid endpoint description (ep no %u out of "
+		    "bounds)", ep->endpoint);
+		goto drop;
+	}
+
 	if (ep->max_transfer_size == 0) {
 		usb_log_warning("Invalid endpoint description (mps %zu, "
 			"%u packets)", ep->max_packet_size, ep->packets_per_uframe);
-		/* Bus reference */
-		endpoint_del_ref(ep);
-		return EINVAL;
+		goto drop;
 	}
 
 	usb_log_debug("Register endpoint %d:%d %s-%s %zuB.",
@@ -396,8 +402,6 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	    usb_str_transfer_type(ep->transfer_type),
 	    usb_str_direction(ep->direction),
 	    ep->max_transfer_size);
-
-	const int idx = bus_endpoint_index(ep->endpoint, ep->direction);
 
 	fibril_mutex_lock(&device->guard);
 	if (!device->online && ep->endpoint != 0) {
@@ -422,25 +426,33 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	}
 
 	return EOK;
+drop:
+	/* Bus reference */
+	endpoint_del_ref(ep);
+	return EINVAL;
 }
 
 /**
  * Search for an endpoint. Returns a reference.
  */
-endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint, usb_direction_t dir)
+endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint,
+    usb_direction_t dir)
 {
 	assert(device);
 
-	const int idx = bus_endpoint_index(endpoint, dir);
-	const int ctrl_idx = bus_endpoint_index(endpoint, USB_DIRECTION_BOTH);
+	const size_t idx = bus_endpoint_index(endpoint, dir);
+	const size_t ctrl_idx = bus_endpoint_index(endpoint, USB_DIRECTION_BOTH);
+
+	endpoint_t *ep = NULL;
 
 	fibril_mutex_lock(&device->guard);
-	endpoint_t *ep = device->endpoints[idx];
+	if (idx < ARRAY_SIZE(device->endpoints))
+		ep = device->endpoints[idx];
 	/*
 	 * If the endpoint was not found, it's still possible it is a control
 	 * endpoint having direction BOTH.
 	 */
-	if (!ep) {
+	if (!ep && ctrl_idx < ARRAY_SIZE(device->endpoints)) {
 		ep = device->endpoints[ctrl_idx];
 		if (ep && ep->transfer_type != USB_TRANSFER_CONTROL)
 			ep = NULL;
@@ -477,7 +489,10 @@ int bus_endpoint_remove(endpoint_t *ep)
 	    usb_str_direction(ep->direction),
 	    ep->max_transfer_size);
 
-	const int idx = bus_endpoint_index(ep->endpoint, ep->direction);
+	const size_t idx = bus_endpoint_index(ep->endpoint, ep->direction);
+
+	if (idx >= ARRAY_SIZE(device->endpoints))
+		return EINVAL;
 
 	fibril_mutex_lock(&device->guard);
 	ops->endpoint_unregister(ep);
@@ -494,10 +509,7 @@ int bus_endpoint_remove(endpoint_t *ep)
 }
 
 /**
- * Reserve the default address on the bus. Also, report the speed of the device
- * that is listening on the default address.
- *
- * The speed is then used for devices enumerated while the address is reserved.
+ * Reserve the default address on the bus for the specified device (hub).
  */
 int bus_reserve_default_address(bus_t *bus, device_t *dev)
 {
@@ -563,8 +575,20 @@ int bus_device_send_batch(device_t *device, usb_target_t target,
 
 	assert(ep->device == device);
 
-	const int err = endpoint_send_batch(ep, target, direction, data, size, setup_data,
-	    on_complete, arg, name);
+	/*
+	 * This method is already callable from HC only, so we can force these
+	 * conditions harder.
+	 * Invalid values from devices shall be caught on DDF interface already.
+	 */
+	assert(usb_target_is_valid(&target));
+	assert(usb_direction_is_valid(direction));
+	assert(direction != USB_DIRECTION_BOTH);
+	assert(size == 0 || data != NULL);
+	assert(arg == NULL || on_complete != NULL);
+	assert(name);
+
+	const int err = endpoint_send_batch(ep, target, direction,
+	    data, size, setup_data, on_complete, arg, name);
 
 	/* Temporary reference */
 	endpoint_del_ref(ep);
@@ -572,10 +596,13 @@ int bus_device_send_batch(device_t *device, usb_target_t target,
 	return err;
 }
 
+/**
+ * A structure to pass data from the completion callback to the caller.
+ */
 typedef struct {
 	fibril_mutex_t done_mtx;
 	fibril_condvar_t done_cv;
-	unsigned done;
+	bool done;
 
 	size_t transferred_size;
 	int error;
@@ -591,14 +618,14 @@ static int sync_transfer_complete(void *arg, int error, size_t transferred_size)
 	d->transferred_size = transferred_size;
 	d->error = error;
 	fibril_mutex_lock(&d->done_mtx);
-	d->done = 1;
+	d->done = true;
 	fibril_condvar_broadcast(&d->done_cv);
 	fibril_mutex_unlock(&d->done_mtx);
 	return EOK;
 }
 
 /**
- * Issue a transfer on the bus, wait for result.
+ * Issue a transfer on the bus, wait for the result.
  *
  * @param device Device for which to send the batch
  * @param target The target of the transfer.
@@ -612,20 +639,22 @@ ssize_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
     const char *name)
 {
-	sync_data_t sd = { .done = 0 };
+	sync_data_t sd = { .done = false };
 	fibril_mutex_initialize(&sd.done_mtx);
 	fibril_condvar_initialize(&sd.done_cv);
 
 	const int ret = bus_device_send_batch(device, target, direction,
-	    data, size, setup_data,
-	    sync_transfer_complete, &sd, name);
+	    data, size, setup_data, sync_transfer_complete, &sd, name);
 	if (ret != EOK)
 		return ret;
 
+	/*
+	 * Note: There are requests that are completed synchronously. It is not
+	 *       therefore possible to just lock the mutex before and wait.
+	 */
 	fibril_mutex_lock(&sd.done_mtx);
-	while (!sd.done) {
+	while (!sd.done)
 		fibril_condvar_wait(&sd.done_cv, &sd.done_mtx);
-	}
 	fibril_mutex_unlock(&sd.done_mtx);
 
 	return (sd.error == EOK)

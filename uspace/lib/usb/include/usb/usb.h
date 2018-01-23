@@ -62,6 +62,11 @@ static inline bool usb_speed_is_11(const usb_speed_t s)
 	return (s == USB_SPEED_FULL) || (s == USB_SPEED_LOW);
 }
 
+static inline bool usb_speed_is_valid(const usb_speed_t s)
+{
+	return (s >= USB_SPEED_LOW) && (s < USB_SPEED_MAX);
+}
+
 const char *usb_str_speed(usb_speed_t);
 
 
@@ -96,7 +101,7 @@ typedef enum {
  */
 static inline bool usb_address_is_valid(usb_address_t a)
 {
-	return (a >= USB_ADDRESS_DEFAULT) && (a <= USB11_ADDRESS_MAX);
+	return a <= USB11_ADDRESS_MAX;
 }
 
 /** Default control endpoint */
@@ -104,6 +109,9 @@ static inline bool usb_address_is_valid(usb_address_t a)
 
 /** Maximum endpoint number in USB */
 #define USB_ENDPOINT_MAX 16
+
+/** There might be two directions for every endpoint number (except 0) */
+#define USB_ENDPOINT_COUNT (2 * USB_ENDPOINT_MAX)
 
 /** Check USB endpoint for allowed values.
  *
@@ -114,19 +122,21 @@ static inline bool usb_address_is_valid(usb_address_t a)
  */
 static inline bool usb_endpoint_is_valid(usb_endpoint_t ep)
 {
-	return (ep >= USB_ENDPOINT_DEFAULT_CONTROL) &&
-	    (ep < USB_ENDPOINT_MAX);
+	return ep < USB_ENDPOINT_MAX;
 }
 
-/** Check USB target for allowed values (address and endpoint).
+/**
+ * Check USB target for allowed values (address, endpoint, stream).
  *
  * @param target.
  * @return True, if values are wihtin limits, false otherwise.
  */
-static inline bool usb_target_is_valid(usb_target_t target)
+static inline bool usb_target_is_valid(usb_target_t *target)
 {
-	return usb_address_is_valid(target.address) &&
-	    usb_endpoint_is_valid(target.endpoint);
+	return usb_address_is_valid(target->address) &&
+	    usb_endpoint_is_valid(target->endpoint);
+
+	// A 16-bit Stream ID is always valid.
 }
 
 /** Compare USB targets (addresses and endpoints).
@@ -135,16 +145,21 @@ static inline bool usb_target_is_valid(usb_target_t target)
  * @param b Second target.
  * @return Whether @p a and @p b points to the same pipe on the same device.
  */
-static inline int usb_target_same(usb_target_t a, usb_target_t b)
+static inline bool usb_target_same(usb_target_t a, usb_target_t b)
 {
 	return (a.address == b.address)
 	    && (a.endpoint == b.endpoint);
 }
 
-/** General handle type.
- * Used by various USB functions as opaque handle.
- */
-typedef sysarg_t usb_handle_t;
+static inline bool usb_transfer_type_is_valid(usb_transfer_type_t type)
+{
+	return (type >= 0) && (type < USB_TRANSFER_COUNT);
+}
+
+static inline bool usb_direction_is_valid(usb_direction_t dir)
+{
+	return (dir >= 0) && (dir < USB_DIRECTION_COUNT);
+}
 
 /** USB packet identifier. */
 typedef enum {

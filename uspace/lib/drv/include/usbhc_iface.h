@@ -59,27 +59,36 @@ typedef enum {
 /** USB endpoint number type.
  * Negative values could be used to indicate error.
  */
-typedef int16_t usb_endpoint_t;
+typedef uint16_t usb_endpoint_t;
 
 /** USB address type.
  * Negative values could be used to indicate error.
  */
-typedef int16_t usb_address_t;
+typedef uint16_t usb_address_t;
+
+/**
+ * USB Stream ID type.
+ */
+typedef uint16_t usb_stream_t;
 
 /** USB transfer type. */
 typedef enum {
 	USB_TRANSFER_CONTROL = 0,
 	USB_TRANSFER_ISOCHRONOUS = 1,
 	USB_TRANSFER_BULK = 2,
-	USB_TRANSFER_INTERRUPT = 3
+	USB_TRANSFER_INTERRUPT = 3,
 } usb_transfer_type_t;
+
+#define USB_TRANSFER_COUNT  (USB_TRANSFER_INTERRUPT + 1)
 
 /** USB data transfer direction. */
 typedef enum {
 	USB_DIRECTION_IN,
 	USB_DIRECTION_OUT,
-	USB_DIRECTION_BOTH
+	USB_DIRECTION_BOTH,
 } usb_direction_t;
+
+#define USB_DIRECTION_COUNT  (USB_DIRECTION_BOTH + 1)
 
 /** USB complete address type.
  * Pair address + endpoint is identification of transaction recipient.
@@ -88,7 +97,7 @@ typedef union {
 	struct {
 		usb_address_t address;
 		usb_endpoint_t endpoint;
-		uint32_t stream;
+		usb_stream_t stream;
 	} __attribute__((packed));
 	uint64_t packed;
 } usb_target_t;
