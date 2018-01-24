@@ -423,7 +423,7 @@ uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item,
 	int resolution;
 
 	if (USB_HID_ITEM_FLAG_CONSTANT(item->item_flags)) {
-		ret = item->logical_minimum;
+		return item->logical_minimum;
 	}
 
 	if ((item->physical_minimum == 0) && (item->physical_maximum == 0)) {

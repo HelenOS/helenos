@@ -106,7 +106,6 @@ static int usbmid_device_remove(usb_device_t *dev)
 		if (pret != EOK) {
 			usb_log_warning("Failed to turn off child `%s': %s",
 			    ddf_fun_get_name(iface->fun), str_error(pret));
-			ret = pret;
 		}
 	}
 

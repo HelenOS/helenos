@@ -554,8 +554,10 @@ usb_device_t * usb_device_create(devman_handle_t handle)
 	int ret = usb_device_get_info(sess, usb_dev);
 	if (sess)
 		async_hangup(sess);
-	if (ret != EOK)
+	if (ret != EOK) {
+		free(usb_dev);
 		return NULL;
+	}
 
 	const char* dummy = NULL;
 	ret = usb_device_init(usb_dev, NULL, NULL, &dummy);
