@@ -73,12 +73,12 @@ typedef struct xhci_trb_ring {
 	fibril_mutex_t guard;
 } xhci_trb_ring_t;
 
-int xhci_trb_ring_init(xhci_trb_ring_t *, size_t);
-void xhci_trb_ring_fini(xhci_trb_ring_t *);
-int xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *, uintptr_t *);
-int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *, xhci_trb_t *, size_t, uintptr_t *);
+extern int xhci_trb_ring_init(xhci_trb_ring_t *, size_t);
+extern void xhci_trb_ring_fini(xhci_trb_ring_t *);
+extern int xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *, uintptr_t *);
+extern int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *, xhci_trb_t *, size_t, uintptr_t *);
 
-void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr);
+extern void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr);
 
 /**
  * When an event is received by the upper layer, it needs to update the dequeue
@@ -106,9 +106,9 @@ typedef struct xhci_event_ring {
 	fibril_mutex_t guard;
 } xhci_event_ring_t;
 
-int xhci_event_ring_init(xhci_event_ring_t *, size_t);
-void xhci_event_ring_fini(xhci_event_ring_t *);
-int xhci_event_ring_dequeue(xhci_event_ring_t *, xhci_trb_t *);
+extern int xhci_event_ring_init(xhci_event_ring_t *, size_t);
+extern void xhci_event_ring_fini(xhci_event_ring_t *);
+extern int xhci_event_ring_dequeue(xhci_event_ring_t *, xhci_trb_t *);
 
 /**
  * A TRB ring of which the software is both consumer and provider.
@@ -123,14 +123,14 @@ typedef struct xhci_sw_ring {
 	bool running;
 } xhci_sw_ring_t;
 
-void xhci_sw_ring_init(xhci_sw_ring_t *, size_t);
+extern void xhci_sw_ring_init(xhci_sw_ring_t *, size_t);
 
 /* Both may block if the ring is full/empty. */
-int xhci_sw_ring_enqueue(xhci_sw_ring_t *, xhci_trb_t *);
-int xhci_sw_ring_dequeue(xhci_sw_ring_t *, xhci_trb_t *);
+extern int xhci_sw_ring_enqueue(xhci_sw_ring_t *, xhci_trb_t *);
+extern int xhci_sw_ring_dequeue(xhci_sw_ring_t *, xhci_trb_t *);
 
-void xhci_sw_ring_stop(xhci_sw_ring_t *);
-void xhci_sw_ring_fini(xhci_sw_ring_t *);
+extern void xhci_sw_ring_stop(xhci_sw_ring_t *);
+extern void xhci_sw_ring_fini(xhci_sw_ring_t *);
 
 #endif
 

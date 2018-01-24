@@ -113,31 +113,31 @@ static inline xhci_hc_t *bus_to_hc(bus_t *bus)
 typedef struct xhci_endpoint xhci_endpoint_t;
 typedef struct xhci_device xhci_device_t;
 
-int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);
-int hc_init_memory(xhci_hc_t *, ddf_dev_t *);
-int hc_claim(xhci_hc_t *, ddf_dev_t *);
-int hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *);
-int hc_start(xhci_hc_t *, bool);
-void hc_fini(xhci_hc_t *);
+extern int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);
+extern int hc_init_memory(xhci_hc_t *, ddf_dev_t *);
+extern int hc_claim(xhci_hc_t *, ddf_dev_t *);
+extern int hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *);
+extern int hc_start(xhci_hc_t *, bool);
+extern void hc_fini(xhci_hc_t *);
 
-void hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
-void hc_ring_ep_doorbell(xhci_endpoint_t *, uint32_t);
-unsigned hc_speed_to_psiv(usb_speed_t);
+extern void hc_ring_doorbell(xhci_hc_t *, unsigned, unsigned);
+extern void hc_ring_ep_doorbell(xhci_endpoint_t *, uint32_t);
+extern unsigned hc_speed_to_psiv(usb_speed_t);
 
-int hc_enable_slot(xhci_device_t *);
-int hc_disable_slot(xhci_device_t *);
-int hc_address_device(xhci_device_t *);
-int hc_configure_device(xhci_device_t *);
-int hc_deconfigure_device(xhci_device_t *);
-int hc_add_endpoint(xhci_endpoint_t *);
-int hc_drop_endpoint(xhci_endpoint_t *);
-int hc_update_endpoint(xhci_endpoint_t *);
-int hc_stop_endpoint(xhci_endpoint_t *);
-int hc_reset_endpoint(xhci_endpoint_t *);
-int hc_reset_ring(xhci_endpoint_t *, uint32_t);
+extern int hc_enable_slot(xhci_device_t *);
+extern int hc_disable_slot(xhci_device_t *);
+extern int hc_address_device(xhci_device_t *);
+extern int hc_configure_device(xhci_device_t *);
+extern int hc_deconfigure_device(xhci_device_t *);
+extern int hc_add_endpoint(xhci_endpoint_t *);
+extern int hc_drop_endpoint(xhci_endpoint_t *);
+extern int hc_update_endpoint(xhci_endpoint_t *);
+extern int hc_stop_endpoint(xhci_endpoint_t *);
+extern int hc_reset_endpoint(xhci_endpoint_t *);
+extern int hc_reset_ring(xhci_endpoint_t *, uint32_t);
 
-int hc_status(bus_t *, uint32_t *);
-void hc_interrupt(bus_t *, uint32_t);
+extern int hc_status(bus_t *, uint32_t *);
+extern void hc_interrupt(bus_t *, uint32_t);
 
 #endif
 

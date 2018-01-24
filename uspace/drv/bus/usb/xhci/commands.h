@@ -124,23 +124,23 @@ typedef struct xhci_command {
 } xhci_cmd_t;
 
 /* Command handling control */
-int xhci_init_commands(xhci_hc_t *);
-void xhci_fini_commands(xhci_hc_t *);
+extern int xhci_init_commands(xhci_hc_t *);
+extern void xhci_fini_commands(xhci_hc_t *);
 
-void xhci_stop_command_ring(xhci_hc_t *);
-void xhci_abort_command_ring(xhci_hc_t *);
-void xhci_start_command_ring(xhci_hc_t *);
+extern void xhci_stop_command_ring(xhci_hc_t *);
+extern void xhci_abort_command_ring(xhci_hc_t *);
+extern void xhci_start_command_ring(xhci_hc_t *);
 
-int xhci_handle_command_completion(xhci_hc_t *, xhci_trb_t *);
+extern int xhci_handle_command_completion(xhci_hc_t *, xhci_trb_t *);
 
 /* Command lifecycle */
-void xhci_cmd_init(xhci_cmd_t *, xhci_cmd_type_t);
-void xhci_cmd_fini(xhci_cmd_t *);
+extern void xhci_cmd_init(xhci_cmd_t *, xhci_cmd_type_t);
+extern void xhci_cmd_fini(xhci_cmd_t *);
 
 /* Issuing commands */
-int xhci_cmd_sync(xhci_hc_t *, xhci_cmd_t *);
-int xhci_cmd_sync_fini(xhci_hc_t *, xhci_cmd_t *);
-int xhci_cmd_async_fini(xhci_hc_t *, xhci_cmd_t *);
+extern int xhci_cmd_sync(xhci_hc_t *, xhci_cmd_t *);
+extern int xhci_cmd_sync_fini(xhci_hc_t *, xhci_cmd_t *);
+extern int xhci_cmd_async_fini(xhci_hc_t *, xhci_cmd_t *);
 
 static inline int xhci_cmd_sync_inline_wrapper(xhci_hc_t *hc, xhci_cmd_t cmd)
 {

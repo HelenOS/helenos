@@ -108,18 +108,18 @@ typedef struct xhci_endpoint {
 	((ep).base.endpoint),		\
 	(usb_str_transfer_type((ep).base.transfer_type))
 
-int xhci_endpoint_type(xhci_endpoint_t *ep);
+extern int xhci_endpoint_type(xhci_endpoint_t *ep);
 
-endpoint_t *xhci_endpoint_create(device_t *, const usb_endpoint_descriptors_t *);
-int xhci_endpoint_register(endpoint_t *);
-void xhci_endpoint_unregister(endpoint_t *);
-void xhci_endpoint_destroy(endpoint_t *);
+extern endpoint_t *xhci_endpoint_create(device_t *, const usb_endpoint_descriptors_t *);
+extern int xhci_endpoint_register(endpoint_t *);
+extern void xhci_endpoint_unregister(endpoint_t *);
+extern void xhci_endpoint_destroy(endpoint_t *);
 
-void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
-xhci_trb_ring_t *xhci_endpoint_get_ring(xhci_endpoint_t *, uint32_t);
+extern void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
+extern xhci_trb_ring_t *xhci_endpoint_get_ring(xhci_endpoint_t *, uint32_t);
 
-void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
-int xhci_endpoint_clear_halt(xhci_endpoint_t *, unsigned);
+extern void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
+extern int xhci_endpoint_clear_halt(xhci_endpoint_t *, unsigned);
 
 static inline xhci_endpoint_t * xhci_endpoint_get(endpoint_t *ep)
 {
