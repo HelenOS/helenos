@@ -151,16 +151,6 @@ static inline bool usb_target_same(usb_target_t a, usb_target_t b)
 	    && (a.endpoint == b.endpoint);
 }
 
-static inline bool usb_transfer_type_is_valid(usb_transfer_type_t type)
-{
-	return (type >= 0) && (type < USB_TRANSFER_COUNT);
-}
-
-static inline bool usb_direction_is_valid(usb_direction_t dir)
-{
-	return (dir >= 0) && (dir < USB_DIRECTION_COUNT);
-}
-
 /** USB packet identifier. */
 typedef enum {
 #define _MAKE_PID_NIBBLE(tag, type) \

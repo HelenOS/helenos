@@ -581,7 +581,6 @@ int bus_device_send_batch(device_t *device, usb_target_t target,
 	 * Invalid values from devices shall be caught on DDF interface already.
 	 */
 	assert(usb_target_is_valid(&target));
-	assert(usb_direction_is_valid(direction));
 	assert(direction != USB_DIRECTION_BOTH);
 	assert(size == 0 || data != NULL);
 	assert(arg == NULL || on_complete != NULL);
