@@ -86,8 +86,6 @@ typedef struct endpoint {
 	/** Signals change of active status. */
 	fibril_condvar_t avail;
 
-	/** Reserved bandwidth. Needed for USB2 bus. */
-	size_t bandwidth;
 	/** Endpoint number */
 	usb_endpoint_t endpoint;
 	/** Communication direction. */
@@ -119,9 +117,6 @@ extern void endpoint_set_offline_locked(endpoint_t *);
 extern void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t);
 extern int endpoint_activate_locked(endpoint_t *, usb_transfer_batch_t *);
 extern void endpoint_deactivate_locked(endpoint_t *);
-
-/* Calculate bandwidth */
-ssize_t endpoint_count_bw(endpoint_t *, size_t);
 
 int endpoint_send_batch(endpoint_t *, usb_target_t, usb_direction_t,
     char *, size_t, uint64_t, usbhc_iface_transfer_callback_t, void *,

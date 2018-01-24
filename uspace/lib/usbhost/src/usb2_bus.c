@@ -209,6 +209,24 @@ static int usb2_bus_device_enumerate(device_t *dev)
 }
 
 /**
+ * Call the bus operation to count bandwidth.
+ *
+ * @param ep Endpoint on which the transfer will take place.
+ * @param size The payload size.
+ */
+static ssize_t endpoint_count_bw(endpoint_t *ep)
+{
+	assert(ep);
+
+	bus_t *bus = ep->device->bus;
+	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, endpoint_count_bw);
+	if (!ops)
+		return 0;
+
+	return ops->endpoint_count_bw(ep, ep->max_transfer_size);
+}
+
+/**
  * Register an endpoint to the bus. Reserves bandwidth.
  */
 static int usb2_bus_register_ep(endpoint_t *ep)
@@ -217,11 +235,13 @@ static int usb2_bus_register_ep(endpoint_t *ep)
 	assert(fibril_mutex_is_locked(&ep->device->guard));
 	assert(ep);
 
+	size_t bw = endpoint_count_bw(ep);
+
 	/* Check for available bandwidth */
-	if (ep->bandwidth > bus->free_bw)
+	if (bw > bus->free_bw)
 		return ENOSPC;
 
-	bus->free_bw -= ep->bandwidth;
+	bus->free_bw -= bw;
 
 	return EOK;
 }
@@ -234,7 +254,7 @@ static void usb2_bus_unregister_ep(endpoint_t *ep)
 	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
 	assert(ep);
 
-	bus->free_bw += ep->bandwidth;
+	bus->free_bw += endpoint_count_bw(ep);
 }
 
 const bus_ops_t usb2_bus_ops = {

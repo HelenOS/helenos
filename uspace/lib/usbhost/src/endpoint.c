@@ -73,8 +73,6 @@ void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors
 		ep->direction = USB_DIRECTION_BOTH;
 
 	ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
-
-	ep->bandwidth = endpoint_count_bw(ep, ep->max_transfer_size);
 }
 
 /**
@@ -203,23 +201,6 @@ void endpoint_deactivate_locked(endpoint_t *ep)
 }
 
 /**
- * Call the bus operation to count bandwidth.
- *
- * @param ep Endpoint on which the transfer will take place.
- * @param size The payload size.
- */
-ssize_t endpoint_count_bw(endpoint_t *ep, size_t size)
-{
-	assert(ep);
-
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_count_bw);
-	if (!ops)
-		return 0;
-
-	return ops->endpoint_count_bw(ep, size);
-}
-
-/**
  * Initiate a transfer on an endpoint. Creates a transfer batch, checks the
  * bandwidth requirements and schedules the batch.
  *
@@ -261,19 +242,15 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 		return ENOTSUP;
 	}
 
-	/* Offline devices don't schedule transfers other than on EP0. */
-	if (!device->online && ep->endpoint > 0) {
-		return EAGAIN;
-	}
-
-	const size_t bw = endpoint_count_bw(ep, size);
-	/* Check if we have enough bandwidth reserved */
-	if (ep->bandwidth < bw) {
-		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
-		    "but only %zu is reserved.\n",
-		    device->address, ep->endpoint, name, bw, ep->bandwidth);
+	/** Limit transfers with reserved bandwidth to the amount reserved */
+	if ((ep->transfer_type == USB_TRANSFER_INTERRUPT
+	    || ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
+	    && size > ep->max_transfer_size)
 		return ENOSPC;
-	}
+
+	/* Offline devices don't schedule transfers other than on EP0. */
+	if (!device->online && ep->endpoint > 0)
+		return EAGAIN;
 
 	usb_transfer_batch_t *batch = usb_transfer_batch_create(ep);
 	if (!batch) {
