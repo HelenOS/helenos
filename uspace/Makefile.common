@@ -174,7 +174,7 @@ endif
 endif
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-ffreestanding -fno-builtin -nostdlib -nostdinc -fexec-charset=UTF-8 \
+	-ffreestanding -nostdlib -nostdinc -fexec-charset=UTF-8 \
 	-finput-charset=UTF-8 -D__$(ENDIANESS)__ -D_HELENOS_SOURCE -fno-common \
 	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 

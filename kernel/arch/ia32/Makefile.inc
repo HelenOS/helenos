@@ -33,7 +33,7 @@ BFD = binary
 BITS = 32
 ENDIANESS = LE
 
-COMMON_CFLAGS += -m32 -fno-omit-frame-pointer
+COMMON_CFLAGS += -fno-omit-frame-pointer
 
 ## Accepted CPUs
 #

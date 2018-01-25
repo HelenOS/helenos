@@ -31,7 +31,7 @@ BFD_ARCH = i386:x86-64
 BFD = binary
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
-COMMON_CFLAGS += -m64 -mcmodel=$(MEMORY_MODEL) -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
+COMMON_CFLAGS += -mcmodel=$(MEMORY_MODEL) -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 
 BITS = 64
 ENDIANESS = LE
