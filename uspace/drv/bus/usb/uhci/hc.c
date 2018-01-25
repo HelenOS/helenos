@@ -417,7 +417,6 @@ static const bus_ops_t uhci_bus_ops = {
 	.endpoint_create = endpoint_create,
 	.endpoint_register = endpoint_register,
 	.endpoint_unregister = endpoint_unregister,
-	.endpoint_count_bw = bandwidth_count_usb11,
 
 	.batch_create = create_transfer_batch,
 	.batch_schedule = hc_schedule,
@@ -438,7 +437,7 @@ int hc_init_mem_structures(hc_t *instance)
 {
 	assert(instance);
 
-	usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11);
+	usb2_bus_init(&instance->bus, &bandwidth_accounting_usb11);
 
 	bus_t *bus = (bus_t *) &instance->bus;
 	bus->ops = &uhci_bus_ops;

@@ -165,7 +165,6 @@ static usb_transfer_batch_t *batch_create(endpoint_t *ep)
 static const bus_ops_t vhc_bus_ops = {
 	.parent = &usb2_bus_ops,
 
-	.endpoint_count_bw = bandwidth_count_usb11,
 	.batch_create = batch_create,
 	.batch_schedule = vhc_schedule,
 };
@@ -175,7 +174,7 @@ int vhc_init(vhc_data_t *instance)
 	assert(instance);
 	list_initialize(&instance->devices);
 	fibril_mutex_initialize(&instance->guard);
-	usb2_bus_init(&instance->bus, BANDWIDTH_AVAILABLE_USB11);
+	usb2_bus_init(&instance->bus, &bandwidth_accounting_usb11);
 	instance->bus.base.ops = &vhc_bus_ops;
 	return virthub_init(&instance->hub, "root hub");
 }

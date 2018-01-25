@@ -41,6 +41,7 @@
 #include <usb/usb.h>
 
 #include <usb/host/bus.h>
+#include <usb/host/bandwidth.h>
 
 typedef struct usb2_bus usb2_bus_t;
 typedef struct endpoint endpoint_t;
@@ -56,11 +57,14 @@ typedef struct usb2_bus {
 
 	/** Size of the bandwidth pool */
 	size_t free_bw;
+
+	/* Configured bandwidth accounting */
+	const bandwidth_accounting_t *bw_accounting;
 } usb2_bus_t;
 
 extern const bus_ops_t usb2_bus_ops;
 
-extern void usb2_bus_init(usb2_bus_t *, size_t);
+extern void usb2_bus_init(usb2_bus_t *, const bandwidth_accounting_t *);
 
 #endif
 /**

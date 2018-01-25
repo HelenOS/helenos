@@ -218,12 +218,9 @@ static ssize_t endpoint_count_bw(endpoint_t *ep)
 {
 	assert(ep);
 
-	bus_t *bus = ep->device->bus;
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, endpoint_count_bw);
-	if (!ops)
-		return 0;
+	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
 
-	return ops->endpoint_count_bw(ep, ep->max_transfer_size);
+	return bus->bw_accounting->count_bw(ep);
 }
 
 /**
@@ -268,14 +265,16 @@ const bus_ops_t usb2_bus_ops = {
  * @param bus usb_bus structure, non-null.
  * @param available_bandwidth Size of the bandwidth pool.
  */
-void usb2_bus_init(usb2_bus_t *bus, size_t available_bandwidth)
+void usb2_bus_init(usb2_bus_t *bus, const bandwidth_accounting_t *bw_accounting)
 {
 	assert(bus);
+	assert(bw_accounting);
 
 	bus_init(&bus->base, sizeof(device_t));
 	bus->base.ops = &usb2_bus_ops;
 
-	bus->free_bw = available_bandwidth;
+	bus->bw_accounting = bw_accounting;
+	bus->free_bw = bw_accounting->available_bandwidth;
 
 	/*
 	 * The first address allocated is for the roothub. This way, its

@@ -41,14 +41,18 @@
 
 #include "bandwidth.h"
 
+/** Bytes per second in FULL SPEED */
+#define BANDWIDTH_TOTAL_USB11 (12000000 / 8)
+/** 90% of total bandwidth is available for periodic transfers */
+#define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 * 9) / 10)
+
 /**
  * Calculate bandwidth that needs to be reserved for communication with EP.
  * Calculation follows USB 1.1 specification.
- * @param ep Registered endpoint
- * @param size Number of bytes to transfer.
- * @param max_packet_size Maximum bytes in one packet.
+ *
+ * @param ep An endpoint for which the bandwidth is to be counted
  */
-ssize_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
+static size_t bandwidth_count_usb11(endpoint_t *ep)
 {
 	assert(ep);
 	assert(ep->device);
@@ -62,9 +66,8 @@ ssize_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
 	}
 
 	const size_t max_packet_size = ep->max_packet_size;
+	const size_t packet_count = ep->packets_per_uframe;
 
-	const unsigned packet_count =
-	    (size + max_packet_size - 1) / max_packet_size;
 	/* TODO: It may be that ISO and INT transfers use only one packet per
 	 * transaction, but I did not find text in USB spec to confirm this */
 	/* NOTE: All data packets will be considered to be max_packet_size */
@@ -95,20 +98,30 @@ ssize_t bandwidth_count_usb11(endpoint_t *ep, size_t size)
 	}
 }
 
-/** 
+const bandwidth_accounting_t bandwidth_accounting_usb11 = {
+	.available_bandwidth = BANDWIDTH_AVAILABLE_USB11,
+	.count_bw = &bandwidth_count_usb11,
+};
+
+/** Number of nanoseconds in one microframe */
+#define BANDWIDTH_TOTAL_USB2 (125000)
+/** 90% of total bandwidth is available for periodic transfers */
+#define BANDWIDTH_AVAILABLE_USB2  ((BANDWIDTH_TOTAL_USB2 * 9) / 10)
+
+/**
  * Calculate bandwidth that needs to be reserved for communication with EP.
  * Calculation follows USB 2.0 specification, chapter 5.11.3.
  *
- * @param speed Device's speed.
- * @param type Type of the transfer.
- * @param size Number of byte to transfer.
- * @param max_packet_size Maximum bytes in one packet.
+ * FIXME: Interrupt transfers shall be probably divided by their polling interval.
+ *
+ * @param ep An endpoint for which the bandwidth is to be counted
  * @return Number of nanoseconds transaction with @c size bytes payload will
  *         take.
  */
-ssize_t bandwidth_count_usb20(endpoint_t *ep, size_t size)
+static size_t bandwidth_count_usb2(endpoint_t *ep)
 {
 	assert(ep);
+	assert(ep->device);
 
 	const usb_transfer_type_t type = ep->transfer_type;
 
@@ -123,7 +136,7 @@ ssize_t bandwidth_count_usb20(endpoint_t *ep, size_t size)
 	const size_t hub_ls_setup = 0;
 
 	// Approx. Floor(3.167 + BitStuffTime(Data_bc))
-	const size_t base_time = (size * 8 + 19) / 6;
+	const size_t base_time = (ep->max_transfer_size * 8 + 19) / 6;
 
 	switch (ep->device->speed) {
 	case USB_SPEED_LOW:
@@ -151,3 +164,8 @@ ssize_t bandwidth_count_usb20(endpoint_t *ep, size_t size)
 		return 0;
 	}
 }
+
+const bandwidth_accounting_t bandwidth_accounting_usb2 = {
+	.available_bandwidth = BANDWIDTH_AVAILABLE_USB2,
+	.count_bw = &bandwidth_count_usb2,
+};

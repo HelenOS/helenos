@@ -119,7 +119,6 @@ struct bus_ops {
 	int (*endpoint_register)(endpoint_t *);
 	void (*endpoint_unregister)(endpoint_t *);
 	void (*endpoint_destroy)(endpoint_t *);			/**< Optional */
-	ssize_t (*endpoint_count_bw) (endpoint_t *, size_t);	/**< Optional */
 	usb_transfer_batch_t *(*batch_create)(endpoint_t *);	/**< Optional */
 
 	/* Operations on batch */

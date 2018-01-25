@@ -40,21 +40,17 @@
 
 #include <stddef.h>
 
-/** Bytes per second in FULL SPEED */
-#define BANDWIDTH_TOTAL_USB11 (12000000 / 8)
-/** 90% of total bandwidth is available for periodic transfers */
-#define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 * 9) / 10)
-
-/** Number of nanoseconds in one microframe */
-#define BANDWIDTH_TOTAL_USB20 (125000)
-/** 90% of total bandwidth is available for periodic transfers */
-#define BANDWIDTH_AVAILABLE_USB20  ((BANDWIDTH_TOTAL_USB20 * 9) / 10)
-
 typedef struct endpoint endpoint_t;
 
-extern ssize_t bandwidth_count_usb11(endpoint_t *, size_t);
+typedef size_t (*endpoint_count_bw_t)(endpoint_t *);
 
-extern ssize_t bandwidth_count_usb20(endpoint_t *, size_t);
+typedef struct {
+	size_t available_bandwidth;
+	endpoint_count_bw_t count_bw;
+} bandwidth_accounting_t;
+
+extern const bandwidth_accounting_t bandwidth_accounting_usb11;
+extern const bandwidth_accounting_t bandwidth_accounting_usb2;
 
 #endif
 /**

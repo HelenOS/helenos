@@ -170,7 +170,6 @@ static const bus_ops_t ohci_bus_ops = {
 	.endpoint_create = ohci_endpoint_create,
 	.endpoint_register = ohci_register_ep,
 	.endpoint_unregister = ohci_unregister_ep,
-	.endpoint_count_bw = bandwidth_count_usb11,
 
 	.batch_create = ohci_create_batch,
 	.batch_destroy = ohci_destroy_batch,
@@ -186,7 +185,7 @@ int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
 	usb2_bus_t *usb2_bus = (usb2_bus_t *) bus;
 	bus_t *bus_base = (bus_t *) bus;
 
-	usb2_bus_init(usb2_bus, BANDWIDTH_AVAILABLE_USB11);
+	usb2_bus_init(usb2_bus, &bandwidth_accounting_usb11);
 	bus_base->ops = &ohci_bus_ops;
 
 	bus->hc = hc;
