@@ -354,7 +354,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 
 		case XHCI_TRBC_USB_TRANSACTION_ERROR:
 			usb_log_warning("USB Transaction error.");
-			batch->error = ESTALL;
+			batch->error = EAGAIN;
 			batch->transferred_size = 0;
 			break;
 
