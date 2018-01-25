@@ -46,7 +46,7 @@
 typedef void (*endpoint_reset_toggle_t)(endpoint_t *);
 
 uint16_t hc_get_ep0_initial_mps(usb_speed_t);
-int hc_get_ep0_max_packet_size(uint16_t *, bus_t *, device_t *);
+int hc_get_ep0_max_packet_size(uint16_t *, device_t *);
 void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t);
 int hc_setup_virtual_root_hub(hc_device_t *, usb_speed_t);
 int hc_get_device_desc(device_t *, usb_standard_device_descriptor_t *);

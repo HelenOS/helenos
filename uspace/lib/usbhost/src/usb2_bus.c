@@ -129,7 +129,7 @@ static int address_device(usb2_bus_helper_t *helper, device_t *dev)
 		goto err_address;
 	}
 
-	if ((err = hc_get_ep0_max_packet_size(&ep0_desc.endpoint.max_packet_size, dev->bus, dev)))
+	if ((err = hc_get_ep0_max_packet_size(&ep0_desc.endpoint.max_packet_size, dev)))
 		goto err_address;
 
 	/* Set new address */

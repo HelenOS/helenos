@@ -74,7 +74,7 @@ uint16_t hc_get_ep0_initial_mps(usb_speed_t speed)
  *
  * @return Max packet size for EP 0 (in bytes)
  */
-int hc_get_ep0_max_packet_size(uint16_t *mps, bus_t *bus, device_t *dev)
+int hc_get_ep0_max_packet_size(uint16_t *mps, device_t *dev)
 {
 	assert(mps);
 
