@@ -823,7 +823,7 @@ leave:
  * @param ep_index Endpoint index (in native endianness).
  * @return Error code.
  */
-int usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
+static int usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
 {
 	return usb_request_clear_feature(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_ENDPOINT,

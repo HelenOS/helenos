@@ -55,7 +55,7 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
 
 	/* Prevent infinite recursion. */
 	pipe->auto_reset_halt = false;
-	usb_request_clear_endpoint_halt(pipe, 0);
+	usb_pipe_clear_halt(pipe, pipe);
 	pipe->auto_reset_halt = true;
 }
 
@@ -193,7 +193,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
 	if (pipe->desc.transfer_type == USB_TRANSFER_ISOCHRONOUS)
 		exch = async_exchange_begin(pipe->isoch_session);
 	else
-	 	exch = async_exchange_begin(pipe->bus_session);
+		exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
 	const int rc =
 	    usbhc_read(exch, pipe->desc.endpoint_no, 0, buffer, size, &act_size);

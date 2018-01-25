@@ -153,9 +153,8 @@ static int polling_fibril(void *arg)
 			 * We ignore error here as this is usually a futile
 			 * attempt anyway.
 			 */
-			usb_request_clear_endpoint_halt(
-			    usb_device_get_default_pipe(polling->device),
-			    pipe->desc.endpoint_no);
+			usb_pipe_clear_halt(
+			    usb_device_get_default_pipe(polling->device), pipe);
 		}
 
 		if (rc != EOK) {
