@@ -53,9 +53,8 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
 	assert(ep);
 
 	bus_t *bus = endpoint_get_bus(ep);
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, batch_create);
 
-	if (!ops) {
+	if (!bus->ops->batch_create) {
 		usb_transfer_batch_t *batch = calloc(1, sizeof(usb_transfer_batch_t));
 		if (!batch)
 			return NULL;
@@ -63,7 +62,7 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *ep)
 		return batch;
 	}
 
-	return ops->batch_create(ep);
+	return bus->ops->batch_create(ep);
 }
 
 /**
@@ -86,21 +85,21 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 	assert(batch->ep);
 
 	bus_t *bus = endpoint_get_bus(batch->ep);
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, batch_destroy);
+	endpoint_t *ep = batch->ep;
 
-	/* Batch reference */
-	endpoint_del_ref(batch->ep);
-
-	if (ops) {
+	if (bus->ops) {
 		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " destroying.",
 		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
-		ops->batch_destroy(batch);
+		bus->ops->batch_destroy(batch);
 	}
 	else {
 		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.",
 		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 		free(batch);
 	}
+
+	/* Batch reference */
+	endpoint_del_ref(ep);
 }
 
 /**

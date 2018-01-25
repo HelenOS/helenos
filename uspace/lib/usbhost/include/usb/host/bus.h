@@ -101,9 +101,6 @@ typedef struct bus_ops bus_ops_t;
  * (and the rest of the system).
  */
 struct bus_ops {
-	/* Undefined operations will be delegated to parent ops */
-	const bus_ops_t *parent;
-
 	/* Global operations on the bus */
 	void (*interrupt)(bus_t *, uint32_t);
 	int (*status)(bus_t *, uint32_t *);
@@ -125,11 +122,6 @@ struct bus_ops {
 	int (*batch_schedule)(usb_transfer_batch_t *);
 	void (*batch_destroy)(usb_transfer_batch_t *);		/**< Optional */
 };
-
-/**
- * Use this macro to lookup virtual function.
- */
-#define BUS_OPS_LOOKUP(start, fn) ({ bus_ops_t const * ops = (start); while (ops && ops->fn == NULL) ops = ops->parent; ops; })
 
 /** Endpoint management structure */
 typedef struct bus {

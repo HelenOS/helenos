@@ -96,8 +96,8 @@ void endpoint_add_ref(endpoint_t *ep)
  */
 static inline void endpoint_destroy(endpoint_t *ep)
 {
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(get_bus_ops(ep), endpoint_destroy);
-	if (ops) {
+	const bus_ops_t *ops = get_bus_ops(ep);
+	if (ops->endpoint_destroy) {
 		ops->endpoint_destroy(ep);
 	} else {
 		assert(ep->active_batch == NULL);
@@ -236,8 +236,8 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 		return EAGAIN;
 	}
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(device->bus->ops, batch_schedule);
-	if (!ops) {
+	const bus_ops_t *ops = device->bus->ops;
+	if (!ops->batch_schedule) {
 		usb_log_error("HCD does not implement scheduler.");
 		return ENOTSUP;
 	}

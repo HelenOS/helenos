@@ -99,11 +99,8 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
 	assert(dev);
 	hc_device_t *hcd = dev_to_hcd(dev);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(hcd->bus->ops, interrupt);
-	assert(ops);
-
 	const uint32_t status = IPC_GET_ARG1(*call);
-	ops->interrupt(hcd->bus, status);
+	hcd->bus->ops->interrupt(hcd->bus, status);
 }
 
 /**
@@ -114,14 +111,12 @@ static int interrupt_polling(void *arg)
 	bus_t *bus = arg;
 	assert(bus);
 
-	const bus_ops_t *interrupt_ops = BUS_OPS_LOOKUP(bus->ops, interrupt);
-	const bus_ops_t *status_ops = BUS_OPS_LOOKUP(bus->ops, status);
-	if (!interrupt_ops || !status_ops)
+	if (!bus->ops->interrupt || !bus->ops->status)
 		return ENOTSUP;
 
 	uint32_t status = 0;
-	while (status_ops->status(bus, &status) == EOK) {
-		interrupt_ops->interrupt(bus, status);
+	while (bus->ops->status(bus, &status) == EOK) {
+		bus->ops->interrupt(bus, status);
 		status = 0;
 		/* We should wait 1 frame - 1ms here, but this polling is a
 		 * lame crutch anyway so don't hog the system. 10ms is still
@@ -264,10 +259,10 @@ int hc_dev_add(ddf_dev_t *device)
 		goto err_irq;
 	}
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(hcd->bus->ops, status);
+	const bus_ops_t *ops = hcd->bus->ops;
 
 	/* Need working irq replacement to setup root hub */
-	if (hcd->irq_cap < 0 && ops) {
+	if (hcd->irq_cap < 0 && ops->status) {
 		hcd->polling_fibril = fibril_create(interrupt_polling, hcd->bus);
 		if (!hcd->polling_fibril) {
 			usb_log_error("Failed to create polling fibril");

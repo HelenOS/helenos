@@ -128,8 +128,7 @@ int bus_device_enumerate(device_t *dev)
 {
 	assert(dev);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_enumerate);
-	if (!ops)
+	if (!dev->bus->ops->device_enumerate)
 		return ENOTSUP;
 
 	if (dev->online)
@@ -137,7 +136,7 @@ int bus_device_enumerate(device_t *dev)
 
 	device_setup_tt(dev);
 
-	const int r = ops->device_enumerate(dev);
+	const int r = dev->bus->ops->device_enumerate(dev);
 	if (r)
 		return r;
 
@@ -207,8 +206,7 @@ void bus_device_gone(device_t *dev)
 	assert(dev);
 	assert(dev->fun != NULL);
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_gone);
-	const bus_ops_t *ep_ops = BUS_OPS_LOOKUP(dev->bus->ops, endpoint_unregister);
+	const bus_ops_t *ops = dev->bus->ops;
 
 	/* First, block new transfers and operations. */
 	fibril_mutex_lock(&dev->guard);
@@ -240,13 +238,13 @@ void bus_device_gone(device_t *dev)
 	device_clean_ep_children(dev, "removing");
 
 	/* Tell the HC to release its resources. */
-	if (ops)
+	if (ops->device_gone)
 		ops->device_gone(dev);
 
 	/* Check whether the driver didn't forgot EP0 */
 	if (dev->endpoints[0]) {
-		if (ep_ops)
-			ep_ops->endpoint_unregister(dev->endpoints[0]);
+		if (ops->endpoint_unregister)
+			ops->endpoint_unregister(dev->endpoints[0]);
 		/* Release the EP0 bus reference */
 		endpoint_del_ref(dev->endpoints[0]);
 	}
@@ -270,8 +268,8 @@ int bus_device_online(device_t *dev)
 	}
 
 	/* First, tell the HC driver. */
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_online);
-	if (ops && (rc = ops->device_online(dev))) {
+	const bus_ops_t *ops = dev->bus->ops;
+	if (ops->device_online && (rc = ops->device_online(dev))) {
 		usb_log_warning("Host controller failed to make device '%s' online: %s",
 		    ddf_fun_get_name(dev->fun), str_error(rc));
 		goto err_lock;
@@ -328,8 +326,8 @@ int bus_device_offline(device_t *dev)
 	device_clean_ep_children(dev, "offlining");
 
 	/* Tell also the HC driver. */
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(dev->bus->ops, device_offline);
-	if (ops)
+	const bus_ops_t *ops = dev->bus->ops;
+	if (ops->device_offline)
 		ops->device_offline(dev);
 
 	fibril_mutex_unlock(&dev->guard);
@@ -364,14 +362,12 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 
 	bus_t *bus = device->bus;
 
-	const bus_ops_t *register_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_register);
-	if (!register_ops)
+	if (!bus->ops->endpoint_register)
 		return ENOTSUP;
 
-	const bus_ops_t *create_ops = BUS_OPS_LOOKUP(bus->ops, endpoint_create);
 	endpoint_t *ep;
-	if (create_ops) {
-		ep = create_ops->endpoint_create(device, desc);
+	if (bus->ops->endpoint_create) {
+		ep = bus->ops->endpoint_create(device, desc);
 		if (!ep)
 			return ENOMEM;
 	} else {
@@ -409,7 +405,7 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 	} else if (device->endpoints[idx] != NULL) {
 		err = EEXIST;
 	} else {
-		err = register_ops->endpoint_register(ep);
+		err = bus->ops->endpoint_register(ep);
 		if (!err)
 			device->endpoints[idx] = ep;
 	}
@@ -479,8 +475,7 @@ int bus_endpoint_remove(endpoint_t *ep)
 
 	bus_t *bus = device->bus;
 
-	const bus_ops_t *ops = BUS_OPS_LOOKUP(bus->ops, endpoint_unregister);
-	if (!ops)
+	if (!bus->ops->endpoint_unregister)
 		return ENOTSUP;
 
 	usb_log_debug("Unregister endpoint %d:%d %s-%s %zuB.",
@@ -495,7 +490,7 @@ int bus_endpoint_remove(endpoint_t *ep)
 		return EINVAL;
 
 	fibril_mutex_lock(&device->guard);
-	ops->endpoint_unregister(ep);
+	bus->ops->endpoint_unregister(ep);
 	device->endpoints[idx] = NULL;
 	fibril_mutex_unlock(&device->guard);
 
