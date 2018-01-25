@@ -56,6 +56,11 @@ void ehci_ep_toggle_reset(endpoint_t *ep)
 	qh_toggle_set(instance->qh, 0);
 }
 
+static int ehci_device_enumerate(device_t *dev)
+{
+	ehci_bus_t *bus = (ehci_bus_t *) dev->bus;
+	return usb2_bus_device_enumerate(&bus->helper, dev);
+}
 
 /** Creates new hcd endpoint representation.
  */
@@ -100,7 +105,7 @@ static int ehci_register_ep(endpoint_t *ep)
 	ehci_bus_t *bus = (ehci_bus_t *) bus_base;
 	ehci_endpoint_t *ehci_ep = ehci_endpoint_get(ep);
 
-	const int err = usb2_bus_ops.endpoint_register(ep);
+	const int err = usb2_bus_endpoint_register(&bus->helper, ep);
 	if (err)
 		return err;
 
@@ -118,7 +123,7 @@ static void ehci_unregister_ep(endpoint_t *ep)
 	assert(bus);
 	assert(ep);
 
-	usb2_bus_ops.endpoint_unregister(ep);
+	usb2_bus_endpoint_unregister(&bus->helper, ep);
 	hc_dequeue_endpoint(hc, ep);
 	/*
 	 * Now we can be sure the active transfer will not be completed,
@@ -153,10 +158,10 @@ static void ehci_destroy_batch(usb_transfer_batch_t *batch)
 }
 
 static const bus_ops_t ehci_bus_ops = {
-	.parent = &usb2_bus_ops,
-
 	.interrupt = ehci_hc_interrupt,
 	.status = ehci_hc_status,
+
+	.device_enumerate = ehci_device_enumerate,
 
 	.endpoint_destroy = ehci_endpoint_destroy,
 	.endpoint_create = ehci_endpoint_create,
@@ -173,11 +178,11 @@ int ehci_bus_init(ehci_bus_t *bus, hc_t *hc)
 	assert(hc);
 	assert(bus);
 
-	usb2_bus_t *usb2_bus = (usb2_bus_t *) bus;
 	bus_t *bus_base = (bus_t *) bus;
-
-	usb2_bus_init(usb2_bus, &bandwidth_accounting_usb2);
+	bus_init(bus_base, sizeof(device_t));
 	bus_base->ops = &ehci_bus_ops;
+
+	usb2_bus_helper_init(&bus->helper, &bandwidth_accounting_usb2);
 
 	bus->hc = hc;
 

@@ -59,7 +59,9 @@ typedef struct {
 typedef struct {
 	hc_device_t base;
 
-	usb2_bus_t bus;
+	bus_t bus;
+	usb2_bus_helper_t bus_helper;
+
 	ddf_fun_t *virtual_fun;
 	list_t devices;
 	fibril_mutex_t guard;

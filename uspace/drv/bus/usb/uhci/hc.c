@@ -328,7 +328,7 @@ static int endpoint_register(endpoint_t *ep)
 {
 	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
 
-	const int err = usb2_bus_ops.endpoint_register(ep);
+	const int err = usb2_bus_endpoint_register(&hc->bus_helper, ep);
 	if (err)
 		return err;
 
@@ -349,7 +349,7 @@ static int endpoint_register(endpoint_t *ep)
 static void endpoint_unregister(endpoint_t *ep)
 {
 	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
-	usb2_bus_ops.endpoint_unregister(ep);
+	usb2_bus_endpoint_unregister(&hc->bus_helper, ep);
 
 	// Check for the roothub, as it does not schedule into lists
 	if (ep->device->address == uhci_rh_get_address(&hc->rh)) {
@@ -405,14 +405,20 @@ static void endpoint_unregister(endpoint_t *ep)
 	usb_transfer_batch_finish(&batch->base);
 }
 
+static int device_enumerate(device_t *dev)
+{
+	hc_t * const hc = bus_to_hc(dev->bus);
+	return usb2_bus_device_enumerate(&hc->bus_helper, dev);
+}
+
 static int hc_status(bus_t *, uint32_t *);
 static int hc_schedule(usb_transfer_batch_t *);
 
 static const bus_ops_t uhci_bus_ops = {
-	.parent = &usb2_bus_ops,
-
 	.interrupt = hc_interrupt,
 	.status = hc_status,
+
+	.device_enumerate = device_enumerate,
 
 	.endpoint_create = endpoint_create,
 	.endpoint_register = endpoint_register,
@@ -437,12 +443,12 @@ int hc_init_mem_structures(hc_t *instance)
 {
 	assert(instance);
 
-	usb2_bus_init(&instance->bus, &bandwidth_accounting_usb11);
+	usb2_bus_helper_init(&instance->bus_helper, &bandwidth_accounting_usb11);
 
-	bus_t *bus = (bus_t *) &instance->bus;
-	bus->ops = &uhci_bus_ops;
+	bus_init(&instance->bus, sizeof(device_t));
+	instance->bus.ops = &uhci_bus_ops;
 
-	hc_device_setup(&instance->base, bus);
+	hc_device_setup(&instance->base, &instance->bus);
 
 	/* Init USB frame list page */
 	instance->frame_list = get_page();

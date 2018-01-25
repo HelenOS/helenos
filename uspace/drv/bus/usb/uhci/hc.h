@@ -103,7 +103,9 @@ typedef struct hc {
 	hc_device_t base;
 
 	uhci_rh_t rh;
-	usb2_bus_t bus;
+	bus_t bus;
+	usb2_bus_helper_t bus_helper;
+
 	/** Addresses of I/O registers */
 	uhci_regs_t *registers;
 

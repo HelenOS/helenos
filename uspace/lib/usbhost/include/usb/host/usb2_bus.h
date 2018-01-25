@@ -46,10 +46,8 @@
 typedef struct usb2_bus usb2_bus_t;
 typedef struct endpoint endpoint_t;
 
-/** Endpoint management structure */
-typedef struct usb2_bus {
-	bus_t base;			/**< Inheritance - keep this first */
-
+/** Endpoint and bandwidth management structure */
+typedef struct usb2_bus_helper {
 	/** Map of occupied addresses */
 	bool address_occupied [USB_ADDRESS_COUNT];
 	/** The last reserved address */
@@ -60,11 +58,13 @@ typedef struct usb2_bus {
 
 	/* Configured bandwidth accounting */
 	const bandwidth_accounting_t *bw_accounting;
-} usb2_bus_t;
+} usb2_bus_helper_t;
 
-extern const bus_ops_t usb2_bus_ops;
+extern void usb2_bus_helper_init(usb2_bus_helper_t *, const bandwidth_accounting_t *);
 
-extern void usb2_bus_init(usb2_bus_t *, const bandwidth_accounting_t *);
+extern int usb2_bus_device_enumerate(usb2_bus_helper_t *, device_t *);
+extern int usb2_bus_endpoint_register(usb2_bus_helper_t *, endpoint_t *);
+extern void usb2_bus_endpoint_unregister(usb2_bus_helper_t *, endpoint_t *);
 
 #endif
 /**

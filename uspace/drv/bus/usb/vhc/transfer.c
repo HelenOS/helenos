@@ -162,11 +162,33 @@ static usb_transfer_batch_t *batch_create(endpoint_t *ep)
 	return &transfer->batch;
 }
 
-static const bus_ops_t vhc_bus_ops = {
-	.parent = &usb2_bus_ops,
+static int device_enumerate(device_t *device)
+{
+	vhc_data_t *vhc = bus_to_vhc(device->bus);
+	return usb2_bus_device_enumerate(&vhc->bus_helper, device);
+}
 
+static int endpoint_register(endpoint_t *endpoint)
+{
+	vhc_data_t *vhc = bus_to_vhc(endpoint->device->bus);
+	return usb2_bus_endpoint_register(&vhc->bus_helper, endpoint);
+}
+
+static void endpoint_unregister(endpoint_t *endpoint)
+{
+	vhc_data_t *vhc = bus_to_vhc(endpoint->device->bus);
+	usb2_bus_endpoint_unregister(&vhc->bus_helper, endpoint);
+
+	// TODO: abort transfer?
+}
+
+static const bus_ops_t vhc_bus_ops = {
 	.batch_create = batch_create,
 	.batch_schedule = vhc_schedule,
+
+	.device_enumerate = device_enumerate,
+	.endpoint_register = endpoint_register,
+	.endpoint_unregister = endpoint_unregister,
 };
 
 int vhc_init(vhc_data_t *instance)
@@ -174,8 +196,9 @@ int vhc_init(vhc_data_t *instance)
 	assert(instance);
 	list_initialize(&instance->devices);
 	fibril_mutex_initialize(&instance->guard);
-	usb2_bus_init(&instance->bus, &bandwidth_accounting_usb11);
-	instance->bus.base.ops = &vhc_bus_ops;
+	bus_init(&instance->bus, sizeof(device_t));
+	usb2_bus_helper_init(&instance->bus_helper, &bandwidth_accounting_usb11);
+	instance->bus.ops = &vhc_bus_ops;
 	return virthub_init(&instance->hub, "root hub");
 }
 

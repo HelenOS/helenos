@@ -56,6 +56,12 @@ void ohci_ep_toggle_reset(endpoint_t *ep)
 	ed_toggle_set(instance->ed, 0);
 }
 
+static int ohci_device_enumerate(device_t *dev)
+{
+	ohci_bus_t *bus = (ohci_bus_t *) dev->bus;
+	return usb2_bus_device_enumerate(&bus->helper, dev);
+}
+
 /** Creates new hcd endpoint representation.
  */
 static endpoint_t *ohci_endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
@@ -108,7 +114,7 @@ static int ohci_register_ep(endpoint_t *ep)
 	ohci_bus_t *bus = (ohci_bus_t *) bus_base;
 	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ep);
 
-	const int err = usb2_bus_ops.endpoint_register(ep);
+	const int err = usb2_bus_endpoint_register(&bus->helper, ep);
 	if (err)
 		return err;
 
@@ -125,7 +131,7 @@ static void ohci_unregister_ep(endpoint_t *ep)
 	hc_t * const hc = bus->hc;
 	assert(ep);
 
-	usb2_bus_ops.endpoint_unregister(ep);
+	usb2_bus_endpoint_unregister(&bus->helper, ep);
 	hc_dequeue_endpoint(bus->hc, ep);
 
 	/*
@@ -161,10 +167,10 @@ static void ohci_destroy_batch(usb_transfer_batch_t *batch)
 }
 
 static const bus_ops_t ohci_bus_ops = {
-	.parent = &usb2_bus_ops,
-
 	.interrupt = ohci_hc_interrupt,
 	.status = ohci_hc_status,
+
+	.device_enumerate = ohci_device_enumerate,
 
 	.endpoint_destroy = ohci_endpoint_destroy,
 	.endpoint_create = ohci_endpoint_create,
@@ -182,11 +188,11 @@ int ohci_bus_init(ohci_bus_t *bus, hc_t *hc)
 	assert(hc);
 	assert(bus);
 
-	usb2_bus_t *usb2_bus = (usb2_bus_t *) bus;
 	bus_t *bus_base = (bus_t *) bus;
-
-	usb2_bus_init(usb2_bus, &bandwidth_accounting_usb11);
+	bus_init(bus_base, sizeof(device_t));
 	bus_base->ops = &ohci_bus_ops;
+
+	usb2_bus_helper_init(&bus->helper, &bandwidth_accounting_usb11);
 
 	bus->hc = hc;
 

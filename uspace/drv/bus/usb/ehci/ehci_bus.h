@@ -63,7 +63,8 @@ typedef struct ehci_endpoint {
 typedef struct hc hc_t;
 
 typedef struct {
-	usb2_bus_t base;
+	bus_t base;
+	usb2_bus_helper_t helper;
 	hc_t *hc;
 } ehci_bus_t;
 

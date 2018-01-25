@@ -53,15 +53,6 @@
 #include "usb2_bus.h"
 
 /**
- * Ops receive generic bus_t pointer.
- */
-static inline usb2_bus_t *bus_to_usb2_bus(bus_t *bus_base)
-{
-	assert(bus_base);
-	return (usb2_bus_t *) bus_base;
-}
-
-/**
  * Request a new address. A free address is found and marked as occupied.
  *
  * There's no need to synchronize this method, because it is called only with
@@ -70,21 +61,21 @@ static inline usb2_bus_t *bus_to_usb2_bus(bus_t *bus_base)
  * @param bus usb_device_manager
  * @param addr Pointer to requested address value, place to store new address
  */
-static int request_address(usb2_bus_t *bus, usb_address_t *addr)
+static int request_address(usb2_bus_helper_t *helper, usb_address_t *addr)
 {
 	// Find a free address
-	usb_address_t new_address = bus->last_address;
+	usb_address_t new_address = helper->last_address;
 	do {
 		new_address = (new_address + 1) % USB_ADDRESS_COUNT;
 		if (new_address == USB_ADDRESS_DEFAULT)
 			new_address = 1;
-		if (new_address == bus->last_address)
+		if (new_address == helper->last_address)
 			return ENOSPC;
-	} while (bus->address_occupied[new_address]);
-	bus->last_address = new_address;
+	} while (helper->address_occupied[new_address]);
+	helper->last_address = new_address;
 
 	*addr = new_address;
-	bus->address_occupied[*addr] = true;
+	helper->address_occupied[*addr] = true;
 
 	return EOK;
 }
@@ -92,9 +83,9 @@ static int request_address(usb2_bus_t *bus, usb_address_t *addr)
 /**
  * Mark address as free.
  */
-static void release_address(usb2_bus_t *bus, usb_address_t address)
+static void release_address(usb2_bus_helper_t *helper, usb_address_t address)
 {
-	bus->address_occupied[address] = false;
+	helper->address_occupied[address] = false;
 }
 
 static const usb_target_t usb2_default_target = {{
@@ -108,18 +99,16 @@ static const usb_target_t usb2_default_target = {{
  * Reserve address, configure the control EP, issue a SET_ADDRESS command.
  * Configure the device with the new address,
  */
-static int address_device(device_t *dev)
+static int address_device(usb2_bus_helper_t *helper, device_t *dev)
 {
 	int err;
-
-	usb2_bus_t *bus = (usb2_bus_t *) dev->bus;
 
 	/* The default address is currently reserved for this device */
 	dev->address = USB_ADDRESS_DEFAULT;
 
 	/** Reserve address early, we want pretty log messages */
 	usb_address_t address = USB_ADDRESS_DEFAULT;
-	if ((err = request_address(bus, &address))) {
+	if ((err = request_address(helper, &address))) {
 		usb_log_error("Failed to reserve new address: %s.",
 		    str_error(err));
 		return err;
@@ -140,7 +129,7 @@ static int address_device(device_t *dev)
 		goto err_address;
 	}
 
-	if ((err = hc_get_ep0_max_packet_size(&ep0_desc.endpoint.max_packet_size, &bus->base, dev)))
+	if ((err = hc_get_ep0_max_packet_size(&ep0_desc.endpoint.max_packet_size, dev->bus, dev)))
 		goto err_address;
 
 	/* Set new address */
@@ -177,7 +166,7 @@ static int address_device(device_t *dev)
 err_default_control_ep:
 	bus_endpoint_remove(default_ep);
 err_address:
-	release_address(bus, address);
+	release_address(helper, address);
 	return err;
 }
 
@@ -185,15 +174,13 @@ err_address:
  * Enumerate a USB device. Move it to the addressed state, then explore it
  * to create a DDF function node with proper characteristics.
  */
-static int usb2_bus_device_enumerate(device_t *dev)
+int usb2_bus_device_enumerate(usb2_bus_helper_t *helper, device_t *dev)
 {
 	int err;
-	usb2_bus_t *bus = bus_to_usb2_bus(dev->bus);
-
 	usb_log_debug("Found new %s speed USB device.", usb_str_speed(dev->speed));
 
 	/* Assign an address to the device */
-	if ((err = address_device(dev))) {
+	if ((err = address_device(helper, dev))) {
 		usb_log_error("Failed to setup address of the new device: %s", str_error(err));
 		return err;
 	}
@@ -201,7 +188,7 @@ static int usb2_bus_device_enumerate(device_t *dev)
 	/* Read the device descriptor, derive the match ids */
 	if ((err = hc_device_explore(dev))) {
 		usb_log_error("Device(%d): Failed to explore device: %s", dev->address, str_error(err));
-		release_address(bus, dev->address);
+		release_address(helper, dev->address);
 		return err;
 	}
 
@@ -209,36 +196,20 @@ static int usb2_bus_device_enumerate(device_t *dev)
 }
 
 /**
- * Call the bus operation to count bandwidth.
- *
- * @param ep Endpoint on which the transfer will take place.
- * @param size The payload size.
- */
-static ssize_t endpoint_count_bw(endpoint_t *ep)
-{
-	assert(ep);
-
-	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
-
-	return bus->bw_accounting->count_bw(ep);
-}
-
-/**
  * Register an endpoint to the bus. Reserves bandwidth.
  */
-static int usb2_bus_register_ep(endpoint_t *ep)
+int usb2_bus_endpoint_register(usb2_bus_helper_t *helper, endpoint_t *ep)
 {
-	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
-	assert(fibril_mutex_is_locked(&ep->device->guard));
 	assert(ep);
+	assert(fibril_mutex_is_locked(&ep->device->guard));
 
-	size_t bw = endpoint_count_bw(ep);
+	size_t bw = helper->bw_accounting->count_bw(ep);
 
 	/* Check for available bandwidth */
-	if (bw > bus->free_bw)
+	if (bw > helper->free_bw)
 		return ENOSPC;
 
-	bus->free_bw -= bw;
+	helper->free_bw -= bw;
 
 	return EOK;
 }
@@ -246,42 +217,34 @@ static int usb2_bus_register_ep(endpoint_t *ep)
 /**
  * Release bandwidth reserved by the given endpoint.
  */
-static void usb2_bus_unregister_ep(endpoint_t *ep)
+void usb2_bus_endpoint_unregister(usb2_bus_helper_t *helper, endpoint_t *ep)
 {
-	usb2_bus_t *bus = bus_to_usb2_bus(ep->device->bus);
+	assert(helper);
 	assert(ep);
 
-	bus->free_bw += endpoint_count_bw(ep);
+	helper->free_bw += helper->bw_accounting->count_bw(ep);
 }
 
-const bus_ops_t usb2_bus_ops = {
-	.device_enumerate = usb2_bus_device_enumerate,
-	.endpoint_register = usb2_bus_register_ep,
-	.endpoint_unregister = usb2_bus_unregister_ep,
-};
-
-/** Initialize to default state.
+/**
+ * Initialize to default state.
  *
- * @param bus usb_bus structure, non-null.
- * @param available_bandwidth Size of the bandwidth pool.
+ * @param helper usb_bus_helper structure, non-null.
+ * @param bw_accounting a structure defining bandwidth accounting
  */
-void usb2_bus_init(usb2_bus_t *bus, const bandwidth_accounting_t *bw_accounting)
+void usb2_bus_helper_init(usb2_bus_helper_t *helper, const bandwidth_accounting_t *bw_accounting)
 {
-	assert(bus);
+	assert(helper);
 	assert(bw_accounting);
 
-	bus_init(&bus->base, sizeof(device_t));
-	bus->base.ops = &usb2_bus_ops;
-
-	bus->bw_accounting = bw_accounting;
-	bus->free_bw = bw_accounting->available_bandwidth;
+	helper->bw_accounting = bw_accounting;
+	helper->free_bw = bw_accounting->available_bandwidth;
 
 	/*
 	 * The first address allocated is for the roothub. This way, its
 	 * address will be 127, and the first connected USB device will have
 	 * address 1.
 	 */
-	bus->last_address = USB_ADDRESS_COUNT - 2;
+	helper->last_address = USB_ADDRESS_COUNT - 2;
 }
 
 /**
