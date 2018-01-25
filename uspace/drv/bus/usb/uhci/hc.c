@@ -316,6 +316,14 @@ static void destroy_transfer_batch(usb_transfer_batch_t *batch)
 	uhci_transfer_batch_destroy(uhci_transfer_batch_get(batch));
 }
 
+static endpoint_t *endpoint_create(device_t *device, const usb_endpoint_descriptors_t *desc)
+{
+	endpoint_t *ep = calloc(1, sizeof(uhci_endpoint_t));
+	if (ep)
+		endpoint_init(ep, device, desc);
+	return ep;
+}
+
 static int endpoint_register(endpoint_t *ep)
 {
 	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
@@ -406,6 +414,7 @@ static const bus_ops_t uhci_bus_ops = {
 	.interrupt = hc_interrupt,
 	.status = hc_status,
 
+	.endpoint_create = endpoint_create,
 	.endpoint_register = endpoint_register,
 	.endpoint_unregister = endpoint_unregister,
 	.endpoint_count_bw = bandwidth_count_usb11,
