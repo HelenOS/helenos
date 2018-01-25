@@ -563,7 +563,6 @@ typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
  */
 static event_handler event_handlers [] = {
 	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &handle_port_status_change_event,
-	[XHCI_TRB_TYPE_TRANSFER_EVENT] = &xhci_handle_transfer_event,
 };
 
 /**
@@ -573,6 +572,7 @@ static event_handler event_handlers [] = {
 static event_handler event_handlers_fast [] = {
 	[XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT] = &xhci_handle_command_completion,
 	[XHCI_TRB_TYPE_MFINDEX_WRAP_EVENT] = &xhci_handle_mfindex_wrap_event,
+	[XHCI_TRB_TYPE_TRANSFER_EVENT] = &xhci_handle_transfer_event,
 };
 
 static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
