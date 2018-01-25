@@ -467,8 +467,19 @@ int xhci_transfer_schedule(usb_transfer_batch_t *batch)
 				 * TODO: Find out how to come up with stream_id. It might be
 				 * possible that we have to clear all of them.
 				 */
-				xhci_endpoint_clear_halt(xhci_endpoint_get(halted_ep), 0);
+				const int err = xhci_endpoint_clear_halt(xhci_endpoint_get(halted_ep), 0);
 				endpoint_del_ref(halted_ep);
+				if (err) {
+					/*
+					 * The endpoint halt condition failed to be cleared in HC.
+					 * As it does not make sense to send the reset to the device
+					 * itself, return as unschedulable answer.
+					 *
+					 * Furthermore, if this is a request to clear EP 0 stall, it
+					 * would be gone forever, as the endpoint is halted.
+					 */
+					return err;
+				}
 			} else {
 				usb_log_warning("Device(%u): Resetting unregistered endpoint"
 					" %u %s.", xhci_dev->base.address, ep_num,
