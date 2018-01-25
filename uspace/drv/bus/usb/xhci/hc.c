@@ -548,21 +548,12 @@ static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	return EOK;
 }
 
-static int handle_port_status_change_event(xhci_hc_t *hc, xhci_trb_t *trb)
-{
-	uint8_t port_id = XHCI_QWORD_EXTRACT(trb->parameter, 31, 24);
-	usb_log_debug("Port status change event detected for port %u.", port_id);
-	xhci_rh_handle_port_change(&hc->rh, port_id);
-	return EOK;
-}
-
 typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
 
 /**
  * These events are handled by separate event handling fibril.
  */
 static event_handler event_handlers [] = {
-	[XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT] = &handle_port_status_change_event,
 	[XHCI_TRB_TYPE_TRANSFER_EVENT] = &xhci_handle_transfer_event,
 };
 
@@ -585,6 +576,9 @@ static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	if (type <= ARRAY_SIZE(event_handlers) && event_handlers[type])
 		return xhci_sw_ring_enqueue(&hc->sw_ring, trb);
 
+	if (type == XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT)
+		return xhci_sw_ring_enqueue(&hc->rh.event_ring, trb);
+
 	return ENOTSUP;
 }
 
@@ -605,8 +599,7 @@ static int event_worker(void *arg)
 	// TODO: completion_complete
 	fibril_mutex_lock(&hc->event_fibril_completion.guard);
 	hc->event_fibril_completion.active = false;
-	fibril_condvar_wait(&hc->event_fibril_completion.cv,
-	    &hc->event_fibril_completion.guard);
+	fibril_condvar_broadcast(&hc->event_fibril_completion.cv);
 	fibril_mutex_unlock(&hc->event_fibril_completion.guard);
 
 	return EOK;

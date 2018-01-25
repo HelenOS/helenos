@@ -72,12 +72,20 @@ typedef struct {
 
 	/* Array of port structures. (size is `max_ports`) */
 	rh_port_t *ports;
+
+	/* Event ring for roothub */
+	xhci_sw_ring_t event_ring;
+
+	struct {
+		fibril_mutex_t guard;
+		fibril_condvar_t cv;
+		bool active;
+	} event_fibril_completion;
 } xhci_rh_t;
 
 extern int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
 extern int xhci_rh_fini(xhci_rh_t *);
 
-extern void xhci_rh_handle_port_change(xhci_rh_t *, uint8_t);
 extern void xhci_rh_set_ports_protocol(xhci_rh_t *, unsigned, unsigned, unsigned);
 extern void xhci_rh_startup(xhci_rh_t *);
 

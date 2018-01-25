@@ -73,6 +73,8 @@ typedef struct rh_port {
 	xhci_device_t *device;
 } rh_port_t;
 
+static int rh_worker(void *);
+
 /**
  * Initialize the roothub subsystem.
  */
@@ -93,6 +95,12 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 		return err;
 	}
 
+	fid_t fid = fibril_create(&rh_worker, rh);
+	if (!fid) {
+		free(rh->ports);
+		return err;
+	}
+
 	for (unsigned i = 0; i < rh->max_ports; i++) {
 		usb_port_init(&rh->ports[i].base);
 		rh->ports[i].rh = rh;
@@ -101,6 +109,14 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 
 	/* Initialize route string */
 	rh->device.route_str = 0;
+
+	xhci_sw_ring_init(&rh->event_ring, rh->max_ports);
+
+	hc->event_fibril_completion.active = true;
+	fibril_mutex_initialize(&hc->event_fibril_completion.guard);
+	fibril_condvar_initialize(&hc->event_fibril_completion.cv);
+
+	fibril_add_ready(fid);
 
 	return EOK;
 }
@@ -113,6 +129,16 @@ int xhci_rh_fini(xhci_rh_t *rh)
 	assert(rh);
 	for (unsigned i = 0; i < rh->max_ports; i++)
 		usb_port_fini(&rh->ports[i].base);
+
+	xhci_sw_ring_stop(&rh->event_ring);
+
+	// TODO: completion_wait
+	fibril_mutex_lock(&rh->event_fibril_completion.guard);
+	while (rh->event_fibril_completion.active)
+		fibril_condvar_wait(&rh->event_fibril_completion.cv,
+		    &rh->event_fibril_completion.guard);
+	fibril_mutex_unlock(&rh->event_fibril_completion.guard);
+	xhci_sw_ring_fini(&rh->event_ring);
 	return EOK;
 }
 
@@ -218,7 +244,7 @@ static void rh_remove_device(usb_port_t *usb_port)
 /**
  * Handle all changes on specified port.
  */
-void xhci_rh_handle_port_change(xhci_rh_t *rh, uint8_t port_id)
+static void handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 {
 	rh_port_t * const port = &rh->ports[port_id - 1];
 
@@ -279,7 +305,7 @@ void xhci_rh_startup(xhci_rh_t *rh)
 	 * not cause an interrupt.
 	 */
 	for (uint8_t i = 0; i < rh->max_ports; ++i) {
-		xhci_rh_handle_port_change(rh, i + 1);
+		handle_port_change(rh, i + 1);
 
 		rh_port_t * const port = &rh->ports[i];
 
@@ -292,6 +318,26 @@ void xhci_rh_startup(xhci_rh_t *rh)
 		    && port->base.state == PORT_DISABLED)
 			usb_port_connected(&port->base, &rh_enumerate_device);
 	}
+}
+
+static int rh_worker(void *arg)
+{
+	xhci_rh_t * const rh = arg;
+
+	xhci_trb_t trb;
+	while (xhci_sw_ring_dequeue(&rh->event_ring, &trb) == EOK) {
+		uint8_t port_id = XHCI_QWORD_EXTRACT(trb.parameter, 31, 24);
+		usb_log_debug("Port status change event detected for port %u.", port_id);
+		handle_port_change(rh, port_id);
+	}
+
+	// TODO: completion_complete
+	fibril_mutex_lock(&rh->event_fibril_completion.guard);
+	rh->event_fibril_completion.active = false;
+	fibril_condvar_broadcast(&rh->event_fibril_completion.cv);
+	fibril_mutex_unlock(&rh->event_fibril_completion.guard);
+
+	return EOK;
 }
 
 /**
