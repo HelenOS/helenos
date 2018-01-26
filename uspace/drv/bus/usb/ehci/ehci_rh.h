@@ -60,10 +60,19 @@ typedef struct {
 		usb_hub_descriptor_header_t header;
 		uint8_t rempow[STATUS_BYTES(EHCI_MAX_PORTS) * 2];
 	} __attribute__((packed)) hub_descriptor;
-	/** interrupt transfer waiting for an actual interrupt to occur */
-	usb_transfer_batch_t *unfinished_interrupt_transfer;
 	bool reset_flag[EHCI_MAX_PORTS];
 	bool resume_flag[EHCI_MAX_PORTS];
+
+	/*
+	 * This is sort of hacky, but better than duplicating functionality.
+	 * We cannot simply store a pointer to a transfer in-progress, in order
+	 * to allow it to be aborted. We can however store a reference to the
+	 * Status Change Endpoint. Note that this is mixing two worlds together
+	 * - otherwise, the RH is "a device" and have no clue about HC, apart
+	 * from accessing its registers.
+	 */
+	endpoint_t *status_change_endpoint;
+
 } ehci_rh_t;
 
 int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,

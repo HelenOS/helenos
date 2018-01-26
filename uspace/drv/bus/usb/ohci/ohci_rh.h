@@ -60,8 +60,8 @@ typedef struct {
 		usb_hub_descriptor_header_t header;
 		uint8_t rempow[STATUS_BYTES(OHCI_MAX_PORTS) * 2];
 	} __attribute__((packed)) hub_descriptor;
-	/** interrupt transfer waiting for an actual interrupt to occur */
-	usb_transfer_batch_t *unfinished_interrupt_transfer;
+	/** A hacky way to emulate interrupts over polling. See ehci_rh. */
+	endpoint_t *status_change_endpoint;
 } ohci_rh_t;
 
 int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name);

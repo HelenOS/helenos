@@ -126,7 +126,7 @@ int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,
 	}
 
 	ehci_rh_hub_desc_init(instance, EHCI_RD(caps->hcsparams));
-	instance->unfinished_interrupt_transfer = NULL;
+	instance->status_change_endpoint = NULL;
 
 	return virthub_base_init(&instance->base, name, &ops, instance,
 	    NULL, &instance->hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
@@ -149,11 +149,24 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 	if (batch->error == ENAK) {
 		usb_log_debug("RH(%p): BATCH(%p) adding as unfinished",
 		    instance, batch);
-		/* This is safe because only status change interrupt transfers
-		 * return NAK. The assertion holds true because the batch
-		 * existence prevents communication with that ep */
-		assert(instance->unfinished_interrupt_transfer == NULL);
-		instance->unfinished_interrupt_transfer = batch;
+
+		/* Lock the HC guard */
+		fibril_mutex_lock(batch->ep->guard);
+		const int err = endpoint_activate_locked(batch->ep, batch);
+		if (err) {
+			fibril_mutex_unlock(batch->ep->guard);
+			return err;
+		}
+
+		/*
+		 * Asserting that the HC do not run two instances of the status
+		 * change endpoint - shall be true.
+		 */
+		assert(!instance->status_change_endpoint);
+
+		endpoint_add_ref(batch->ep);
+		instance->status_change_endpoint = batch->ep;
+		fibril_mutex_unlock(batch->ep->guard);
 	} else {
 		usb_log_debug("RH(%p): BATCH(%p) virtual request complete: %s",
 		    instance, batch, str_error(batch->error));
@@ -171,12 +184,21 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
  */
 int ehci_rh_interrupt(ehci_rh_t *instance)
 {
-	//TODO atomic swap needed
-	usb_transfer_batch_t *batch = instance->unfinished_interrupt_transfer;
-	instance->unfinished_interrupt_transfer = NULL;
-	usb_log_debug2("RH(%p): Interrupt. Processing batch: %p",
-	    instance, batch);
+	endpoint_t *ep = instance->status_change_endpoint;
+	if (!ep)
+		return EOK;
+
+	fibril_mutex_lock(ep->guard);
+	usb_transfer_batch_t * const batch = ep->active_batch;
+	endpoint_deactivate_locked(ep);
+	instance->status_change_endpoint = NULL;
+	fibril_mutex_unlock(ep->guard);
+
+	endpoint_del_ref(ep);
+
 	if (batch) {
+		usb_log_debug2("RH(%p): Interrupt. Processing batch: %p",
+		    instance, batch);
 		batch->error = virthub_base_request(&instance->base, batch->target,
 		    batch->dir, (void*) batch->setup.buffer,
 		    batch->buffer, batch->buffer_size, &batch->transferred_size);

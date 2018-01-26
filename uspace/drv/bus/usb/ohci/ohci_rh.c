@@ -161,7 +161,7 @@ int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 #endif
 
 	ohci_rh_hub_desc_init(instance);
-	instance->unfinished_interrupt_transfer = NULL;
+	instance->status_change_endpoint = NULL;
 	return virthub_base_init(&instance->base, name, &ops, instance,
 	    NULL, &instance->hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
 }
@@ -181,11 +181,23 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 	    batch->dir, &batch->setup.packet,
 	    batch->buffer, batch->buffer_size, &batch->transferred_size);
 	if (batch->error == ENAK) {
-		/* This is safe because only status change interrupt transfers
-		 * return NAK. The assertion holds true because the batch
-		 * existence prevents communication with that ep */
-		assert(instance->unfinished_interrupt_transfer == NULL);
-		instance->unfinished_interrupt_transfer = batch;
+		/* Lock the HC guard */
+		fibril_mutex_lock(batch->ep->guard);
+		const int err = endpoint_activate_locked(batch->ep, batch);
+		if (err) {
+			fibril_mutex_unlock(batch->ep->guard);
+			return err;
+		}
+
+		/*
+		 * Asserting that the HC do not run two instances of the status
+		 * change endpoint - shall be true.
+		 */
+		assert(!instance->status_change_endpoint);
+
+		endpoint_add_ref(batch->ep);
+		instance->status_change_endpoint = batch->ep;
+		fibril_mutex_unlock(batch->ep->guard);
 	} else {
 		usb_transfer_batch_finish(batch);
 	}
@@ -201,9 +213,18 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
  */
 int ohci_rh_interrupt(ohci_rh_t *instance)
 {
-	//TODO atomic swap needed
-	usb_transfer_batch_t *batch = instance->unfinished_interrupt_transfer;
-	instance->unfinished_interrupt_transfer = NULL;
+	endpoint_t *ep = instance->status_change_endpoint;
+	if (!ep)
+		return EOK;
+
+	fibril_mutex_lock(ep->guard);
+	usb_transfer_batch_t * const batch = ep->active_batch;
+	endpoint_deactivate_locked(ep);
+	instance->status_change_endpoint = NULL;
+	fibril_mutex_unlock(ep->guard);
+
+	endpoint_del_ref(ep);
+
 	if (batch) {
 		batch->error = virthub_base_request(&instance->base, batch->target,
 		    batch->dir, &batch->setup.packet,
