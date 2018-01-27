@@ -189,11 +189,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	async_exch_t *exch;
-	if (pipe->desc.transfer_type == USB_TRANSFER_ISOCHRONOUS)
-		exch = async_exchange_begin(pipe->isoch_session);
-	else
-		exch = async_exchange_begin(pipe->bus_session);
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	size_t act_size = 0;
 	const int rc =
 	    usbhc_read(exch, pipe->desc.endpoint_no, 0, buffer, size, &act_size);
@@ -229,32 +225,10 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 		return EBADF;
 	}
 
-	async_exch_t *exch;
-	if (pipe->desc.transfer_type == USB_TRANSFER_ISOCHRONOUS)
-		exch = async_exchange_begin(pipe->isoch_session);
-	else
-	 	exch = async_exchange_begin(pipe->bus_session);
-
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
 	const int rc = usbhc_write(exch, pipe->desc.endpoint_no, 0, buffer, size);
 	async_exchange_end(exch);
 	return rc;
-}
-
-/** Setup isochronous session for isochronous communication.
- *  Isochronous endpoints need a different session as they might block while waiting for data.
- *
- * @param pipe Endpoint pipe being initialized.
- * @return Error code.
- */
-static int usb_isoch_session_initialize(usb_pipe_t *pipe) {
-
-	/*
-	 * XXX: As parallel exhanges are implemented by using parallel sessions,
-	 * it is safe to just take the same session. Once this won't be true,
-	 * just use session cloning to clone the bus session.
-	 */
-	pipe->isoch_session = pipe->bus_session;
-	return EOK;
 }
 
 /** Initialize USB endpoint pipe.
@@ -269,9 +243,6 @@ int usb_pipe_initialize(usb_pipe_t *pipe, usb_dev_session_t *bus_session, usb_tr
 
 	pipe->auto_reset_halt = false;
 	pipe->bus_session = bus_session;
-
-	if (transfer_type == USB_TRANSFER_ISOCHRONOUS)
-		return usb_isoch_session_initialize(pipe);
 
 	return EOK;
 }
