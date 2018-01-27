@@ -318,7 +318,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 		switch (wd.position) {
 		case WINDOW_TOO_SOON: {
 			const suseconds_t delay = wd.offset * 125;
-			usb_log_debug("[isoch] delaying feeding buffer %lu for %ldus",
+			usb_log_debug("[isoch] delaying feeding buffer %zu for %ldus",
 				it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_out_timer, ep);
@@ -326,7 +326,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 		}
 
 		case WINDOW_INSIDE:
-			usb_log_debug("[isoch] feeding buffer %lu at 0x%llx",
+			usb_log_debug("[isoch] feeding buffer %zu at 0x%llx",
 			    it - isoch->transfers, it->mfindex);
 			it->error = schedule_isochronous_trb(ep, it);
 			if (it->error) {
@@ -344,7 +344,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 			 * Missed the opportunity to schedule. Just mark this transfer as
 			 * skipped.
 			 */
-			usb_log_debug("[isoch] missed feeding buffer %lu at 0x%llx by "
+			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%llx by "
 				"%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
 			it->state = ISOCH_COMPLETE;
 			it->error = EOK;
@@ -410,7 +410,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 		case WINDOW_TOO_SOON: {
 			/* Not allowed to feed yet. Defer to later. */
 			const suseconds_t delay = wd.offset * 125;
-			usb_log_debug("[isoch] delaying feeding buffer %lu for %ldus",
+			usb_log_debug("[isoch] delaying feeding buffer %zu for %ldus",
 			    it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_in_timer, ep);
@@ -418,7 +418,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 		}
 
 		case WINDOW_TOO_LATE:
-			usb_log_debug("[isoch] missed feeding buffer %lu at 0x%llx by"
+			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%llx by"
 				"%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
 			/* Missed the opportunity to schedule. Schedule ASAP. */
 			it->mfindex += wd.offset;
@@ -431,7 +431,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 			isoch->enqueue = (isoch->enqueue + 1) % isoch->buffer_count;
 			isoch->last_mf = it->mfindex;
 
-			usb_log_debug("[isoch] feeding buffer %lu at 0x%llx",
+			usb_log_debug("[isoch] feeding buffer %zu at 0x%llx",
 			    it - isoch->transfers, it->mfindex);
 
 			it->error = schedule_isochronous_trb(ep, it);

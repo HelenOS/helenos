@@ -186,7 +186,9 @@ static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t
 
 		for (size_t i = 0; i < size; i += sizeof(test_data)) {
 			if (*(uint32_t *)(buffer + i) != test_data) {
-				usb_log_error("Read of %s IN endpoint returned invald data at address %lu.", usb_str_transfer_type(pipe->desc.transfer_type), i);
+				usb_log_error("Read of %s IN endpoint returned "
+				    "invald data at address %zu.",
+				    usb_str_transfer_type(pipe->desc.transfer_type), i);
 				rc = EINVAL;
 				break;
 			}

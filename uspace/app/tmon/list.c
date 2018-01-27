@@ -52,13 +52,13 @@ static void print_list_item(service_id_t svc)
 	devman_handle_t diag_handle = 0;
 
 	if ((rc = devman_fun_sid_to_handle(svc, &diag_handle))) {
-		printf(NAME ": Error resolving handle of device with SID %ld, skipping.\n", svc);
+		printf(NAME ": Error resolving handle of device with SID %" PRIun ", skipping.\n", svc);
 		return;
 	}
 
 	char path[MAX_PATH_LENGTH];
 	if ((rc = devman_fun_get_path(diag_handle, path, sizeof(path)))) {
-		printf(NAME ": Error resolving path of device with SID %ld, skipping.\n", svc);
+		printf(NAME ": Error resolving path of device with SID %" PRIun ", skipping.\n", svc);
 		return;
 	}
 

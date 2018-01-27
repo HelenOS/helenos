@@ -68,7 +68,7 @@ int tmon_resolve_default(devman_handle_t *fun)
 	// There must be exactly one diagnostic device for this to work.
 	if (count != 1) {
 		if (count) {
-			printf(NAME ": Found %ld devices. Please specify which to use.\n", count);
+			printf(NAME ": Found %zu devices. Please specify which to use.\n", count);
 		} else {
 			printf(NAME ": No diagnostic devices found.\n");
 		}
@@ -76,7 +76,8 @@ int tmon_resolve_default(devman_handle_t *fun)
 	}
 
 	if ((rc = devman_fun_sid_to_handle(svcs[0], fun))) {
-		printf(NAME ": Error resolving handle of device with SID %ld.\n", svcs[0]);
+		printf(NAME ": Error resolving handle of device with "
+		    "SID %" PRIun ".\n", svcs[0]);
 		return rc;
 	}
 

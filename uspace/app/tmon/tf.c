@@ -68,7 +68,8 @@ int tmon_test_main(int argc, char *argv[], const tmon_test_ops_t *ops)
 	int rc, ec;
 	char path[MAX_PATH_LENGTH];
 	if ((rc = devman_fun_get_path(fun, path, sizeof(path)))) {
-		printf(NAME ": Error resolving path of device with handle %ld. %s\n", fun, str_error(rc));
+		printf(NAME ": Error resolving path of device with handle "
+		    "%" PRIun ". %s\n", fun, str_error(rc));
 		return 1;
 	}
 

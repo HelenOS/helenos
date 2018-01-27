@@ -127,12 +127,12 @@ typedef struct tmon_unit {
 
 /** Static array of units with decreasing factors. */
 static const tmon_unit_t units[] = {
-	{ .prefix = 'E', .factor = 1ul << 60 },
-	{ .prefix = 'P', .factor = 1ul << 50 },
-	{ .prefix = 'T', .factor = 1ul << 40 },
-	{ .prefix = 'G', .factor = 1ul << 30 },
-	{ .prefix = 'M', .factor = 1ul << 20 },
-	{ .prefix = 'k', .factor = 1ul << 10 }
+	{ .prefix = 'E', .factor = ((uint64_t) 1) << 60 },
+	{ .prefix = 'P', .factor = ((uint64_t) 1) << 50 },
+	{ .prefix = 'T', .factor = ((uint64_t) 1) << 40 },
+	{ .prefix = 'G', .factor = ((uint64_t) 1) << 30 },
+	{ .prefix = 'M', .factor = ((uint64_t) 1) << 20 },
+	{ .prefix = 'k', .factor = ((uint64_t) 1) << 10 }
 };
 
 /** Format size in bytes for human reading.
