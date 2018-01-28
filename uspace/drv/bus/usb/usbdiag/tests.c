@@ -139,12 +139,14 @@ static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur
 	return rc;
 }
 
-static const uint32_t test_data = uint32_host2usb(0xDEADBEEF);
+static const uint32_t test_data_src = 0xDEADBEEF;
 
 static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t *duration)
 {
 	if (!pipe)
 		return EBADMEM;
+
+	const uint32_t test_data = uint32_host2usb(test_data_src);
 
 	if (size % sizeof(test_data))
 		return EINVAL;
@@ -216,6 +218,8 @@ static int data_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 {
 	if (!pipe)
 		return EBADMEM;
+
+	const uint32_t test_data = uint32_host2usb(test_data_src);
 
 	if (size % sizeof(test_data))
 		return EINVAL;
