@@ -26,9 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BUILTIN_ALIASES_H
-#define BUILTIN_ALIASES_H
+#include <stdlib.h>
+#include "builtins.h"
 
-extern char *builtin_aliases[];
+#include "batch/entry.h"
+#include "cd/entry.h"
+#include "exit/entry.h"
 
-#endif
+builtin_t builtins[] = {
+#include "batch/batch_def.inc"
+#include "cd/cd_def.inc"
+#include "exit/exit_def.inc"
+	{ NULL, NULL, NULL, NULL, 0 }
+};

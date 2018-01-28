@@ -29,6 +29,13 @@
 #ifndef BUILTIN_ALIASES_H
 #define BUILTIN_ALIASES_H
 
-extern char *builtin_aliases[];
+#include <stdlib.h>
+#include "builtin_aliases.h"
+
+/* See modules/module_aliases.h for an explanation of this file */
+
+char *builtin_aliases[] = {
+	NULL, NULL
+};
 
 #endif
