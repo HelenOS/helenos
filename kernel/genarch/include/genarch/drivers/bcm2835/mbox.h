@@ -133,10 +133,11 @@ typedef struct {
 	ioport32_t size;
 } bcm2835_fb_desc_t;
 
-bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size);
-bool bcm2835_fb_init(fb_properties_t *prop);
+extern bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size);
+extern bool bcm2835_fb_init(fb_properties_t *prop);
 
 #endif
+
 /**
  * @}
  */
