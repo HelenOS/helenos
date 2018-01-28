@@ -88,7 +88,7 @@ static hash_table_ops_t param_hash_table_ops = {
 	.remove_callback = param_remove
 };
 
-extern errno_t bench_env_init(bench_env_t *env)
+errno_t bench_env_init(bench_env_t *env)
 {
 	bool ok = hash_table_create(&env->parameters, 0, 0, &param_hash_table_ops);
 	if (!ok) {
@@ -101,7 +101,7 @@ extern errno_t bench_env_init(bench_env_t *env)
 	return EOK;
 }
 
-extern void bench_env_cleanup(bench_env_t *env)
+void bench_env_cleanup(bench_env_t *env)
 {
 	hash_table_destroy(&env->parameters);
 }

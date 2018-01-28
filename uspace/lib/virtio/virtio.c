@@ -84,7 +84,7 @@ errno_t virtio_setup_dma_bufs(unsigned int buffers, size_t size,
  * @param buf[in]  Array holding the virtual addresses of the DMA buffers
  *                 previously allocated by virtio_setup_dma_bufs().
  */
-extern void virtio_teardown_dma_bufs(void *buf[])
+void virtio_teardown_dma_bufs(void *buf[])
 {
 	if (buf[0]) {
 		dmamem_unmap_anonymous(buf[0]);
