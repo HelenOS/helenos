@@ -237,7 +237,7 @@ int usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
  * @param bus_session Endpoint pipe to be initialized.
  * @return Error code.
  */
-int usb_pipe_initialize(usb_pipe_t *pipe, usb_dev_session_t *bus_session, usb_transfer_type_t transfer_type)
+int usb_pipe_initialize(usb_pipe_t *pipe, usb_dev_session_t *bus_session)
 {
 	assert(pipe);
 
@@ -264,7 +264,7 @@ static const usb_pipe_desc_t default_control_pipe = {
  */
 int usb_pipe_initialize_default_control(usb_pipe_t *pipe, usb_dev_session_t *bus_session)
 {
-	const int ret = usb_pipe_initialize(pipe, bus_session, USB_TRANSFER_CONTROL);
+	const int ret = usb_pipe_initialize(pipe, bus_session);
 	if (ret)
 		return ret;
 

@@ -199,7 +199,7 @@ static int process_endpoint(
 		return EEXIST;
 	}
 
-	int err = usb_pipe_initialize(&ep_mapping->pipe, bus_session, description.transfer_type);
+	int err = usb_pipe_initialize(&ep_mapping->pipe, bus_session);
 	if (err)
 		return err;
 

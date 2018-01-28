@@ -97,7 +97,7 @@ typedef struct {
 	bool present;
 } usb_endpoint_mapping_t;
 
-int usb_pipe_initialize(usb_pipe_t *, usb_dev_session_t *, usb_transfer_type_t);
+int usb_pipe_initialize(usb_pipe_t *, usb_dev_session_t *);
 int usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
 
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
