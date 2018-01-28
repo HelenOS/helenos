@@ -235,6 +235,9 @@ int xhci_device_enumerate(device_t *dev)
 	return EOK;
 
 err_address:
+	bus_endpoint_remove(xhci_dev->base.endpoints[0]);
+	bus->devices_by_slot[xhci_dev->slot_id] = NULL;
+	hc_disable_slot(xhci_dev);
 	return err;
 }
 
