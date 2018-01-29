@@ -99,16 +99,16 @@ void hc_enqueue_endpoint(hc_t *, const endpoint_t *);
 void hc_dequeue_endpoint(hc_t *, const endpoint_t *);
 
 /* Boottime operations */
-int hc_add(hc_device_t *, const hw_res_list_parsed_t *);
-int hc_start(hc_device_t *);
-int hc_setup_roothub(hc_device_t *);
-int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *);
-int hc_gone(hc_device_t *);
+extern int hc_add(hc_device_t *, const hw_res_list_parsed_t *);
+extern int hc_start(hc_device_t *);
+extern int hc_setup_roothub(hc_device_t *);
+extern int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *);
+extern int hc_gone(hc_device_t *);
 
 /** Runtime operations */
-void ehci_hc_interrupt(bus_t *, uint32_t);
-int ehci_hc_status(bus_t *, uint32_t *);
-int ehci_hc_schedule(usb_transfer_batch_t *);
+extern void ehci_hc_interrupt(bus_t *, uint32_t);
+extern int ehci_hc_status(bus_t *, uint32_t *);
+extern int ehci_hc_schedule(usb_transfer_batch_t *);
 
 #endif
 /**
