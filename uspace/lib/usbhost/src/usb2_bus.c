@@ -152,6 +152,9 @@ static int address_device(usb2_bus_helper_t *helper, device_t *dev)
 		goto err_address;
 	}
 
+	/* Temporary reference */
+	endpoint_del_ref(default_ep);
+
 	dev->address = address;
 
 	/* Register EP on the new address */
@@ -162,9 +165,6 @@ static int address_device(usb2_bus_helper_t *helper, device_t *dev)
 		    address, str_error(err));
 		goto err_address;
 	}
-
-	/* Temporary reference */
-	endpoint_del_ref(default_ep);
 
 	return EOK;
 
