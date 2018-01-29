@@ -195,9 +195,14 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	else
 		rc = ENOTSUP;
 	
-	if (rc == EOK)
+	if (rc == EOK) {
+		fibril_mutex_lock(&devices_mutex);
+		list_remove(&dev->link);
+		fibril_mutex_unlock(&devices_mutex);
 		dev_del_ref(dev);
+	}
 	
+	dev_del_ref(dev);
 	async_answer_0(iid, rc);
 }
 
@@ -223,9 +228,14 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 	else
 		rc = ENOTSUP;
 	
-	if (rc == EOK)
+	if (rc == EOK) {
+		fibril_mutex_lock(&devices_mutex);
+		list_remove(&dev->link);
+		fibril_mutex_unlock(&devices_mutex);
 		dev_del_ref(dev);
+	}
 	
+	dev_del_ref(dev);
 	async_answer_0(iid, rc);
 }
 
