@@ -121,6 +121,8 @@ static int address_device(usb2_bus_helper_t *helper, device_t *dev)
 	usb_endpoint_descriptors_t ep0_desc = {
 	    .endpoint.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
 	};
+
+	/* Temporary reference */
 	endpoint_t *default_ep;
 	err = bus_endpoint_add(dev, &ep0_desc, &default_ep);
 	if (err != EOK) {
@@ -161,10 +163,15 @@ static int address_device(usb2_bus_helper_t *helper, device_t *dev)
 		goto err_address;
 	}
 
+	/* Temporary reference */
+	endpoint_del_ref(default_ep);
+
 	return EOK;
 
 err_default_control_ep:
 	bus_endpoint_remove(default_ep);
+	/* Temporary reference */
+	endpoint_del_ref(default_ep);
 err_address:
 	release_address(helper, address);
 	return err;

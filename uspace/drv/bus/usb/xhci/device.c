@@ -80,6 +80,7 @@ static int address_device(xhci_device_t *dev)
 		return err;
 	usb_log_debug("Obtained slot ID: %u.", dev->slot_id);
 
+	/* Temporary reference */
 	endpoint_t *ep0_base;
 	if ((err = bus_endpoint_add(&dev->base, &ep0_initial_desc, &ep0_base)))
 		goto err_slot;
@@ -92,12 +93,15 @@ static int address_device(xhci_device_t *dev)
 	if ((err = hc_address_device(dev)))
 		goto err_added;
 
+	/* Temporary reference */
+	endpoint_del_ref(ep0_base);
+
 	return EOK;
 
 err_added:
-	/* Bus reference */
+	bus_endpoint_remove(ep0_base);
+	/* Temporary reference */
 	endpoint_del_ref(ep0_base);
-	dev->base.endpoints[0] = NULL;
 err_slot:
 	hc_disable_slot(dev);
 	return err;
