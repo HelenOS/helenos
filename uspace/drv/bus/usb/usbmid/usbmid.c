@@ -70,6 +70,8 @@ static int usb_iface_description(ddf_fun_t *fun, usb_device_desc_t *desc)
 		desc->iface = iface->interface_no;
 	}
 
+	usb_device_bus_exchange_end(exch);
+
 	return EOK;
 }
 
