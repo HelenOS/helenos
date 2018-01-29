@@ -459,7 +459,7 @@ int hc_gain_control(hc_device_t *hcd)
 int hc_start(hc_device_t *hcd)
 {
 	hc_t *instance = hcd_to_hc(hcd);
-	ohci_rh_init(&instance->rh, instance->registers, "ohci rh");
+	ohci_rh_init(&instance->rh, instance->registers, &instance->guard, "ohci rh");
 
 	/* OHCI guide page 42 */
 	assert(instance);

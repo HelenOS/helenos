@@ -62,9 +62,10 @@ typedef struct {
 	} __attribute__((packed)) hub_descriptor;
 	/** A hacky way to emulate interrupts over polling. See ehci_rh. */
 	endpoint_t *status_change_endpoint;
+	fibril_mutex_t *guard;
 } ohci_rh_t;
 
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name);
+int ohci_rh_init(ohci_rh_t *, ohci_regs_t *, fibril_mutex_t *, const char *);
 int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch);
 int ohci_rh_interrupt(ohci_rh_t *instance);
 

@@ -108,7 +108,8 @@ static void ohci_rh_hub_desc_init(ohci_rh_t *instance)
  * Selects preconfigured port powering mode, sets up descriptor, and
  * initializes internal virtual hub.
  */
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
+int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs,
+    fibril_mutex_t *guard, const char *name)
 {
 	assert(instance);
 	instance->registers = regs;
@@ -162,6 +163,7 @@ int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 
 	ohci_rh_hub_desc_init(instance);
 	instance->status_change_endpoint = NULL;
+	instance->guard = guard;
 	return virthub_base_init(&instance->base, name, &ops, instance,
 	    NULL, &instance->hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
 }
@@ -182,7 +184,7 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 	    batch->buffer, batch->buffer_size, &batch->transferred_size);
 	if (batch->error == ENAK) {
 		/* Lock the HC guard */
-		fibril_mutex_lock(batch->ep->guard);
+		fibril_mutex_lock(instance->guard);
 		const int err = endpoint_activate_locked(batch->ep, batch);
 		if (err) {
 			fibril_mutex_unlock(batch->ep->guard);
@@ -197,7 +199,7 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 
 		endpoint_add_ref(batch->ep);
 		instance->status_change_endpoint = batch->ep;
-		fibril_mutex_unlock(batch->ep->guard);
+		fibril_mutex_unlock(instance->guard);
 	} else {
 		usb_transfer_batch_finish(batch);
 	}
@@ -213,15 +215,17 @@ int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
  */
 int ohci_rh_interrupt(ohci_rh_t *instance)
 {
+	fibril_mutex_lock(instance->guard);
 	endpoint_t *ep = instance->status_change_endpoint;
-	if (!ep)
+	if (!ep) {
+		fibril_mutex_unlock(instance->guard);
 		return EOK;
+	}
 
-	fibril_mutex_lock(ep->guard);
 	usb_transfer_batch_t * const batch = ep->active_batch;
 	endpoint_deactivate_locked(ep);
 	instance->status_change_endpoint = NULL;
-	fibril_mutex_unlock(ep->guard);
+	fibril_mutex_unlock(instance->guard);
 
 	endpoint_del_ref(ep);
 
