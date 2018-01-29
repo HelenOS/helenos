@@ -99,7 +99,7 @@ static void ehci_rh_hub_desc_init(ehci_rh_t *instance, unsigned hcs)
  * initializes internal virtual hub.
  */
 int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,
-    const char *name)
+    fibril_mutex_t *guard, const char *name)
 {
 	assert(instance);
 	instance->registers = regs;
@@ -126,6 +126,7 @@ int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,
 	}
 
 	ehci_rh_hub_desc_init(instance, EHCI_RD(caps->hcsparams));
+	instance->guard = guard;
 	instance->status_change_endpoint = NULL;
 
 	return virthub_base_init(&instance->base, name, &ops, instance,
@@ -151,7 +152,7 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 		    instance, batch);
 
 		/* Lock the HC guard */
-		fibril_mutex_lock(batch->ep->guard);
+		fibril_mutex_lock(instance->guard);
 		const int err = endpoint_activate_locked(batch->ep, batch);
 		if (err) {
 			fibril_mutex_unlock(batch->ep->guard);
@@ -166,7 +167,7 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 
 		endpoint_add_ref(batch->ep);
 		instance->status_change_endpoint = batch->ep;
-		fibril_mutex_unlock(batch->ep->guard);
+		fibril_mutex_unlock(instance->guard);
 	} else {
 		usb_log_debug("RH(%p): BATCH(%p) virtual request complete: %s",
 		    instance, batch, str_error(batch->error));
@@ -184,15 +185,17 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
  */
 int ehci_rh_interrupt(ehci_rh_t *instance)
 {
+	fibril_mutex_lock(instance->guard);
 	endpoint_t *ep = instance->status_change_endpoint;
-	if (!ep)
+	if (!ep) {
+		fibril_mutex_unlock(instance->guard);
 		return EOK;
+	}
 
-	fibril_mutex_lock(ep->guard);
 	usb_transfer_batch_t * const batch = ep->active_batch;
 	endpoint_deactivate_locked(ep);
 	instance->status_change_endpoint = NULL;
-	fibril_mutex_unlock(ep->guard);
+	fibril_mutex_unlock(instance->guard);
 
 	endpoint_del_ref(ep);
 

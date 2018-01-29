@@ -186,7 +186,8 @@ int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 
 	usb_log_info("HC(%p): Initializing RH(%p).", instance, &instance->rh);
 	ehci_rh_init(
-	    &instance->rh, instance->caps, instance->registers, "ehci rh");
+	    &instance->rh, instance->caps, instance->registers, &instance->guard,
+	    "ehci rh");
 
 	ehci_bus_init(&instance->bus, instance);
 	hc_device_setup(hcd, (bus_t *) &instance->bus);
