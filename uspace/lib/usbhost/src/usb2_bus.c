@@ -202,6 +202,11 @@ int usb2_bus_device_enumerate(usb2_bus_helper_t *helper, device_t *dev)
 	return EOK;
 }
 
+void usb2_bus_device_gone(usb2_bus_helper_t *helper, device_t *dev)
+{
+	release_address(helper, dev->address);
+}
+
 /**
  * Register an endpoint to the bus. Reserves bandwidth.
  */

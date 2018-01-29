@@ -62,6 +62,12 @@ static int ehci_device_enumerate(device_t *dev)
 	return usb2_bus_device_enumerate(&bus->helper, dev);
 }
 
+static void ehci_device_gone(device_t *dev)
+{
+	ehci_bus_t *bus = (ehci_bus_t *) dev->bus;
+	usb2_bus_device_gone(&bus->helper, dev);
+}
+
 /** Creates new hcd endpoint representation.
  */
 static endpoint_t *ehci_endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
@@ -162,6 +168,7 @@ static const bus_ops_t ehci_bus_ops = {
 	.status = ehci_hc_status,
 
 	.device_enumerate = ehci_device_enumerate,
+	.device_gone = ehci_device_gone,
 
 	.endpoint_destroy = ehci_endpoint_destroy,
 	.endpoint_create = ehci_endpoint_create,

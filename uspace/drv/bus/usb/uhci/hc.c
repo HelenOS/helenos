@@ -411,6 +411,12 @@ static int device_enumerate(device_t *dev)
 	return usb2_bus_device_enumerate(&hc->bus_helper, dev);
 }
 
+static void device_gone(device_t *dev)
+{
+	hc_t * const hc = bus_to_hc(dev->bus);
+	usb2_bus_device_gone(&hc->bus_helper, dev);
+}
+
 static int hc_status(bus_t *, uint32_t *);
 static int hc_schedule(usb_transfer_batch_t *);
 
@@ -419,6 +425,7 @@ static const bus_ops_t uhci_bus_ops = {
 	.status = hc_status,
 
 	.device_enumerate = device_enumerate,
+	.device_gone = device_gone,
 
 	.endpoint_create = endpoint_create,
 	.endpoint_register = endpoint_register,
