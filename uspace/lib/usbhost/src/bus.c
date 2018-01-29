@@ -172,20 +172,32 @@ static void device_clean_ep_children(device_t *dev, const char *op)
 
 		endpoint_t * const ep = dev->endpoints[i];
 		endpoint_add_ref(ep);
-		
-		fibril_mutex_unlock(&dev->guard);
-		bus_endpoint_remove(ep);
-		fibril_mutex_lock(&dev->guard);
 
-		assert(dev->endpoints[i] == NULL);
+		fibril_mutex_unlock(&dev->guard);
+		const int err = bus_endpoint_remove(ep);
+		if (err)
+			usb_log_warning("Endpoint %u cannot be removed. "
+			    "Some deffered cleanup was faster?", ep->endpoint);
+
+		endpoint_del_ref(ep);
+		fibril_mutex_lock(&dev->guard);
 	}
+
+	for (usb_endpoint_t i = 1; i < USB_ENDPOINT_MAX; ++i)
+		assert(dev->endpoints[i] == NULL);
 
 	/* Remove also orphaned children. */
 	while (!list_empty(&dev->devices)) {
 		device_t * const child = list_get_instance(list_first(&dev->devices), device_t, link);
 
-		usb_log_warning("USB device '%s' driver left device '%s' behind after %s.",
+		/*
+		 * This is not an error condition, as devices cannot remove
+		 * their children devices while they are removed, because for
+		 * DDF, they are siblings.
+		 */
+		usb_log_debug("USB device '%s' driver left device '%s' behind after %s.",
 		    ddf_fun_get_name(dev->fun), ddf_fun_get_name(child->fun), op);
+
 		/*
 		 * The child node won't disappear, because its parent's driver
 		 * is already dead. And the child will need the guard to remove
@@ -462,7 +474,7 @@ endpoint_t *bus_find_endpoint(device_t *device, usb_endpoint_t endpoint,
 }
 
 /**
- * Remove an endpoint from the device. Consumes a reference.
+ * Remove an endpoint from the device.
  */
 int bus_endpoint_remove(endpoint_t *ep)
 {
@@ -490,14 +502,18 @@ int bus_endpoint_remove(endpoint_t *ep)
 		return EINVAL;
 
 	fibril_mutex_lock(&device->guard);
+
+	/* Check whether the endpoint is registered */
+	if (device->endpoints[idx] != ep) {
+		fibril_mutex_unlock(&device->guard);
+		return EINVAL;
+	}
+
 	bus->ops->endpoint_unregister(ep);
 	device->endpoints[idx] = NULL;
 	fibril_mutex_unlock(&device->guard);
 
 	/* Bus reference */
-	endpoint_del_ref(ep);
-
-	/* Given reference */
 	endpoint_del_ref(ep);
 
 	return EOK;
