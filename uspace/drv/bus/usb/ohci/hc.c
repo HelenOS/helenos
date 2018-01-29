@@ -300,16 +300,16 @@ int ohci_hc_schedule(usb_transfer_batch_t *batch)
 	endpoint_t *ep = batch->ep;
 	ohci_endpoint_t * const ohci_ep = ohci_endpoint_get(ep);
 	ohci_transfer_batch_t *ohci_batch = ohci_transfer_batch_get(batch);
-
 	int err;
-	if ((err = ohci_transfer_batch_prepare(ohci_batch)))
-		return err;
 
 	fibril_mutex_lock(&hc->guard);
 	if ((err = endpoint_activate_locked(ep, batch))) {
 		fibril_mutex_unlock(&hc->guard);
 		return err;
 	}
+
+	if ((err = ohci_transfer_batch_prepare(ohci_batch)))
+		return err;
 
 	ohci_transfer_batch_commit(ohci_batch);
 	list_append(&ohci_ep->pending_link, &hc->pending_endpoints);
