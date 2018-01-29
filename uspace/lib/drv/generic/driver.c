@@ -198,6 +198,7 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	if (rc == EOK)
 		dev_del_ref(dev);
 	
+	dev_del_ref(dev);
 	async_answer_0(iid, rc);
 }
 
@@ -226,6 +227,7 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 	if (rc == EOK)
 		dev_del_ref(dev);
 	
+	dev_del_ref(dev);
 	async_answer_0(iid, rc);
 }
 
