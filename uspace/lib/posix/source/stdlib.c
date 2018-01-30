@@ -39,7 +39,8 @@
 #include "internal/common.h"
 #include "posix/stdlib.h"
 
-#include "posix/errno.h"
+#include <errno.h>
+
 #include "posix/fcntl.h"
 #include "posix/limits.h"
 #include "posix/string.h"

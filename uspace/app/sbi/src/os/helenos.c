@@ -251,7 +251,8 @@ int os_exec(char *const cmd[])
 	task_id_t tid;
 	task_wait_t twait;
 	task_exit_t texit;
-	int rc, retval;
+	int rc;
+	int retval;
 
 	rc = task_spawnv(&tid, &twait, cmd[0], (char const * const *) cmd);
 	if (rc != EOK) {

@@ -116,7 +116,7 @@ typedef struct xhci_device xhci_device_t;
 extern int hc_init_mmio(xhci_hc_t *, const hw_res_list_parsed_t *);
 extern int hc_init_memory(xhci_hc_t *, ddf_dev_t *);
 extern int hc_claim(xhci_hc_t *, ddf_dev_t *);
-extern int hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *);
+extern int hc_irq_code_gen(irq_code_t *, xhci_hc_t *, const hw_res_list_parsed_t *, int *);
 extern int hc_start(xhci_hc_t *, bool);
 extern void hc_fini(xhci_hc_t *);
 

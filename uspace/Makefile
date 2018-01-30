@@ -136,6 +136,7 @@ DIRS = \
 	srv/hid/remcons \
 	srv/hw/char/s3c24xx_uart \
 	srv/hid/rfb \
+	srv/test/chardev-test \
 	drv/audio/hdaudio \
 	drv/audio/sb16 \
 	drv/root/root \
@@ -164,6 +165,8 @@ DIRS = \
 	drv/char/sun4v-con \
 	drv/fb/amdm37x_dispc \
 	drv/fb/kfb \
+	drv/hid/adb-kbd \
+	drv/hid/adb-mouse \
 	drv/hid/atkbd \
 	drv/hid/ps2mouse \
 	drv/hid/usbhid \

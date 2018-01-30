@@ -179,12 +179,14 @@ static void paged_char(wchar_t c)
 static unsigned int cat_file(const char *fname, size_t blen, bool hex,
     off64_t head, off64_t tail, bool tail_first)
 {
-	int fd, bytes = 0, count = 0, reads = 0;
+	int fd, count = 0, reads = 0;
+	size_t bytes;
 	char *buff = NULL;
-	int i;
+	size_t i;
 	size_t offset = 0, copied_bytes = 0;
 	off64_t file_size = 0, length = 0;
 	aoff64_t pos = 0;
+	int rc;
 
 	bool reading_stdin = dash_represents_stdin && (str_cmp(fname, "-") == 0);
 	
@@ -192,8 +194,12 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		fd = fileno(stdin);
 		/* Allow storing the whole UTF-8 character. */
 		blen = STR_BOUNDS(1);
-	} else
-		fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
+	} else {
+		int rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
+		if (rc != EOK) {
+			fd = -1;
+		}
+	}
 	
 	if (fd < 0) {
 		printf("Unable to open %s\n", fname);
@@ -249,10 +255,11 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 			}
 		}
 		
-		bytes = vfs_read(fd, &pos, buff + copied_bytes, bytes_to_read);
+		rc = vfs_read(fd, &pos, buff + copied_bytes, bytes_to_read,
+		    &bytes);
 		copied_bytes = 0;
 
-		if (bytes > 0) {
+		if (rc == EOK && bytes > 0) {
 			buff[bytes] = '\0';
 			offset = 0;
 			for (i = 0; i < bytes && !should_quit; i++) {
@@ -283,10 +290,10 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 		
 		if (reading_stdin)
 			fflush(stdout);
-	} while (bytes > 0 && !should_quit && (count < length || length == CAT_FULL_FILE));
+	} while (rc == EOK && bytes > 0 && !should_quit && (count < length || length == CAT_FULL_FILE));
 
 	vfs_put(fd);
-	if (bytes == -1) {
+	if (rc != EOK) {
 		printf("Error reading %s\n", fname);
 		free(buff);
 		return 1;
@@ -320,6 +327,7 @@ int cmd_cat(char **argv)
 	console_cols = 0;
 	console_rows = 0;
 	should_quit = false;
+	dash_represents_stdin = false;
 	console = console_init(stdin, stdout);
 	number = false;
 	lineno = 0;
@@ -330,7 +338,7 @@ int cmd_cat(char **argv)
 	argc = cli_count_args(argv);
 
 	for (c = 0, optreset = 1, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "xhvmH:t:b:s:n", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "xhvmH:t:b:sn", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_cat(HELP_LONG);

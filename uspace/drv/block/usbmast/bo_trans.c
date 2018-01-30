@@ -227,7 +227,7 @@ void usb_massstor_reset_recovery(usbmast_dev_t *mdev)
  * You shall rather use usb_masstor_get_lun_count.
  *
  * @param mfun		Mass storage function
- * @return		Error code of maximum LUN (index, not count)
+ * @return		Maximum LUN (index, not count), or -1
  */
 int usb_massstor_get_max_lun(usbmast_dev_t *mdev)
 {
@@ -239,12 +239,12 @@ int usb_massstor_get_max_lun(usbmast_dev_t *mdev)
 	    0xFE, 0, usb_device_get_iface_number(mdev->usb_dev), &max_lun, 1,
 	    &data_recv_len);
 	if (rc != EOK) {
-		return rc;
+		return -1;
 	}
 	if (data_recv_len != 1) {
-		return EEMPTY;
+		return -1;
 	}
-	return (int) max_lun;
+	return max_lun;
 }
 
 /** Get number of LUNs supported by mass storage device.

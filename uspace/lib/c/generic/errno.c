@@ -35,9 +35,9 @@
 #include <errno.h>
 #include <fibril.h>
 
-static fibril_local int fibril_errno;
+static fibril_local errno_t fibril_errno;
 
-int *__errno(void)
+errno_t *__errno(void)
 {
 	return &fibril_errno;
 }

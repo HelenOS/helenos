@@ -1,0 +1,35 @@
+language: c
+
+env:
+  global:
+    - CROSS_PREFIX=/usr/local/cross-static/
+  matrix:
+    - HELENOS_ARCH=amd64 HELENOS_TARGET=amd64-unknown-elf HELENOS_OUTPUT=image.iso
+    - HELENOS_ARCH=arm32/beagleboardxm HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=uImage.bin
+    - HELENOS_ARCH=arm32/beaglebone HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=uImage.bin
+    - HELENOS_ARCH=arm32/gta02 HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=uImage.bin
+    - HELENOS_ARCH=arm32/integratorcp HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=image.boot
+    - HELENOS_ARCH=arm32/raspberrypi HELENOS_TARGET=arm-linux-gnueabi HELENOS_OUTPUT=uImage.bin
+    - HELENOS_ARCH=ia32 HELENOS_TARGET=i686-pc-linux-gnu HELENOS_OUTPUT=image.iso
+    - HELENOS_ARCH=ia64/i460GX HELENOS_TARGET=ia64-pc-linux-gnu HELENOS_OUTPUT=image.boot
+    - HELENOS_ARCH=ia64/ski HELENOS_TARGET=ia64-pc-linux-gnu HELENOS_OUTPUT=image.boot
+    - HELENOS_ARCH=mips32/malta-be HELENOS_TARGET=mips-linux-gnu HELENOS_OUTPUT=image.boot
+    - HELENOS_ARCH=mips32/malta-le HELENOS_TARGET=mipsel-linux-gnu HELENOS_OUTPUT=image.boot
+    - HELENOS_ARCH=mips32/msim HELENOS_TARGET=mipsel-linux-gnu HELENOS_OUTPUT=image.boot
+    - HELENOS_ARCH=ppc32 HELENOS_TARGET=ppc-linux-gnu HELENOS_OUTPUT=image.iso
+    - HELENOS_ARCH=sparc64/niagara HELENOS_TARGET=sparc64-linux-gnu HELENOS_OUTPUT=image.iso
+    - HELENOS_ARCH=sparc64/ultra HELENOS_TARGET=sparc64-linux-gnu HELENOS_OUTPUT=image.iso
+
+before_install:
+ - sudo apt-get -qq update
+ - sudo apt-get install -y genisoimage 
+ - wget http://ci.helenos.org/download/helenos-cross-$HELENOS_TARGET.static.tar.xz -O /tmp/cross-$HELENOS_TARGET.static.tar.xz
+ - sudo mkdir -p /usr/local/cross-static/
+ - sudo tar -xJ -C /usr/local/cross-static/ -f /tmp/cross-$HELENOS_TARGET.static.tar.xz
+
+script:
+ - make PROFILE=$HELENOS_ARCH HANDS_OFF=y
+ - test -s $HELENOS_OUTPUT
+
+os:
+- linux

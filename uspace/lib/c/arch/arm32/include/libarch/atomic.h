@@ -81,7 +81,7 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 	);
 	ras_page[1] = 0xffffffff;
 	
-	return (bool) ret;
+	return ret != 0;
 }
 
 /** Atomic addition.

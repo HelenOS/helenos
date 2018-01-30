@@ -31,6 +31,7 @@
 #define DELAY    10
 
 #include <atomic.h>
+#include <errno.h>
 #include <thread.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -60,7 +61,7 @@ const char *test_thread1(void)
 	
 	TPRINTF("Creating threads");
 	for (i = 0; i < THREADS; i++) {
-		if (thread_create(threadtest, NULL, "threadtest", NULL) < 0) {
+		if (thread_create(threadtest, NULL, "threadtest", NULL) != EOK) {
 			TPRINTF("\nCould not create thread %u\n", i);
 			break;
 		}

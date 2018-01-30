@@ -35,6 +35,7 @@
 
 #include <adt/list.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril_synch.h>
 #include <inet/addr.h>
 #include <inet/endpoint.h>
@@ -198,7 +199,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 		rc = udp_assoc_send_msg(transport_assoc, &ep, req_data,
 		    req_size);
 		if (rc != EOK) {
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error %d sending message", rc);
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "Error sending message: %s", str_error(rc));
 			goto error;
 		}
 

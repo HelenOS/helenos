@@ -37,7 +37,7 @@
 #include <str.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <async.h>
 #include <io/kio.h>
 #include <vfs/vfs.h>
@@ -107,10 +107,10 @@ void __stdio_init(void)
 	/* The first three standard file descriptors are assigned for compatibility.
 	 * This will probably be removed later.
 	 */
-	 
 	int infd = inbox_get("stdin");
 	if (infd >= 0) {
-		int stdinfd = vfs_clone(infd, -1, false);
+		int stdinfd = -1;
+		(void) vfs_clone(infd, -1, false, &stdinfd);
 		assert(stdinfd == 0);
 		vfs_open(stdinfd, MODE_READ);
 		stdin = fdopen(stdinfd, "r");
@@ -121,10 +121,11 @@ void __stdio_init(void)
 	
 	int outfd = inbox_get("stdout");
 	if (outfd >= 0) {
-		int stdoutfd = vfs_clone(outfd, -1, false);
+		int stdoutfd = -1;
+		(void) vfs_clone(outfd, -1, false, &stdoutfd);
 		assert(stdoutfd <= 1);
 		while (stdoutfd < 1)
-			stdoutfd = vfs_clone(outfd, -1, false);
+			(void) vfs_clone(outfd, -1, false, &stdoutfd);
 		vfs_open(stdoutfd, MODE_APPEND);
 		stdout = fdopen(stdoutfd, "a");
 	} else {
@@ -134,10 +135,11 @@ void __stdio_init(void)
 	
 	int errfd = inbox_get("stderr");
 	if (errfd >= 0) {
-		int stderrfd = vfs_clone(errfd, -1, false);
+		int stderrfd = -1;
+		(void) vfs_clone(errfd, -1, false, &stderrfd);
 		assert(stderrfd <= 2);
 		while (stderrfd < 2)
-			stderrfd = vfs_clone(errfd, -1, false);
+			(void) vfs_clone(errfd, -1, false, &stderrfd);
 		vfs_open(stderrfd, MODE_APPEND);
 		stderr = fdopen(stderrfd, "a");
 	} else {
@@ -293,14 +295,15 @@ FILE *fopen(const char *path, const char *fmode)
 	int flags = WALK_REGULAR;
 	if (create)
 		flags |= WALK_MAY_CREATE;
-	int file = vfs_lookup(path, flags);
-	if (file < 0) {
-		errno = file;
+	int file;
+	int rc = vfs_lookup(path, flags, &file);
+	if (rc != EOK) {
+		errno = rc;
 		free(stream);
 		return NULL;
 	}
 
-	int rc = vfs_open(file, mode);
+	rc = vfs_open(file, mode);
 	if (rc != EOK) {
 		errno = rc;
 		vfs_put(file);
@@ -372,8 +375,8 @@ static int _fclose_nofree(FILE *stream)
 	
 	list_remove(&stream->link);
 	
-	if (rc != 0) {
-		/* errno was set by close() */
+	if (rc != EOK) {
+		errno = rc;
 		return EOF;
 	}
 	
@@ -429,19 +432,21 @@ FILE *freopen(const char *path, const char *mode, FILE *stream)
  */
 static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
+	int rc;
+	size_t nread;
+
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	ssize_t rd = vfs_read(stream->fd, &stream->pos, buf, size * nmemb);
-	if (rd < 0) {
-		errno = rd;
+	rc = vfs_read(stream->fd, &stream->pos, buf, size * nmemb, &nread);
+	if (rc != EOK) {
+		errno = rc;
 		stream->error = true;
-		rd = 0;
-	} else if (rd == 0) {
+	} else if (nread == 0) {
 		stream->eof = true;
 	}
-	
-	return (rd / size);
+
+	return (nread / size);
 }
 
 /** Write to a stream (unbuffered).
@@ -456,32 +461,31 @@ static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
  */
 static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 {
+	int rc;
+	size_t nwritten;
+
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	ssize_t wr;
 	if (stream->kio) {
-		size_t nwritten;
-		wr = kio_write(buf, size * nmemb, &nwritten);
-		if (wr != EOK) {
+		rc = kio_write(buf, size * nmemb, &nwritten);
+		if (rc != EOK) {
 			stream->error = true;
-			wr = 0;
-		} else {
-			wr = nwritten;
+			nwritten = 0;
 		}
 	} else {
-		wr = vfs_write(stream->fd, &stream->pos, buf, size * nmemb);
-		if (wr < 0) {
-			errno = wr;
+		rc = vfs_write(stream->fd, &stream->pos, buf, size * nmemb,
+		    &nwritten);
+		if (rc != EOK) {
+			errno = rc;
 			stream->error = true;
-			wr = 0;
 		}
 	}
 
-	if (wr > 0)
+	if (nwritten > 0)
 		stream->need_sync = true;
-	
-	return (wr / size);
+
+	return (nwritten / size);
 }
 
 /** Read some data in stream buffer.
@@ -490,23 +494,25 @@ static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
  */
 static void _ffillbuf(FILE *stream)
 {
-	ssize_t rc;
+	int rc;
+	size_t nread;
 
 	stream->buf_head = stream->buf_tail = stream->buf;
 
-	rc = vfs_read(stream->fd, &stream->pos, stream->buf, stream->buf_size);
-	if (rc < 0) {
+	rc = vfs_read(stream->fd, &stream->pos, stream->buf, stream->buf_size,
+	    &nread);
+	if (rc != EOK) {
 		errno = rc;
 		stream->error = true;
 		return;
 	}
 
-	if (rc == 0) {
+	if (nread == 0) {
 		stream->eof = true;
 		return;
 	}
 
-	stream->buf_head += rc;
+	stream->buf_head += nread;
 	stream->buf_state = _bs_read;
 }
 

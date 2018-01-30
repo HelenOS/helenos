@@ -58,8 +58,8 @@
 #include <assert.h>
 #include <fibril_synch.h>
 #include <align.h>
-#include <malloc.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /** Mutex protecting the list of cached free FAT nodes. */
 static FIBRIL_MUTEX_INITIALIZE(ffn_mutex);

@@ -58,7 +58,12 @@ void *posix_mmap(void *start, size_t length, int prot, int flags, int fd,
 
 int posix_munmap(void *start, size_t length)
 {
-	return as_area_destroy(start);
+	int rc = as_area_destroy(start);
+	if (rc != EOK) {
+		errno = rc;
+		return -1;
+	}
+	return 0;
 }
 
 /** @}

@@ -41,13 +41,12 @@
  * be found at the same addresses.
  */
 
-#include <align.h>
-#include <as.h>
 #include <async.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
+#include <str_error.h>
 #include <inttypes.h>
 #include <ipc/irc.h>
 #include <stdbool.h>
@@ -117,23 +116,16 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 int obio_add(obio_t *obio, obio_res_t *res)
 {
 	ddf_fun_t *fun_a = NULL;
-	int flags;
-	int retval;
 	int rc;
 
-	flags = AS_AREA_READ | AS_AREA_WRITE;
-	obio->regs = (ioport64_t *)AS_AREA_ANY;
-	retval = physmem_map(res->base,
-	    ALIGN_UP(OBIO_SIZE, PAGE_SIZE) >> PAGE_WIDTH, flags,
-	    (void *) &obio->regs);
-
-	if (retval < 0) {
+	rc = pio_enable((void *)res->base, OBIO_SIZE, (void **) &obio->regs);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Error mapping OBIO registers");
 		rc = EIO;
 		goto error;
 	}
 
-	ddf_msg(LVL_NOTE, "OBIO registers with base at 0x%" PRIun, res->base);
+	ddf_msg(LVL_NOTE, "OBIO registers with base at 0x%" PRIxn, res->base);
 
 	fun_a = ddf_fun_create(obio->dev, fun_exposed, "a");
 	if (fun_a == NULL) {
@@ -146,7 +138,7 @@ int obio_add(obio_t *obio, obio_res_t *res)
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed binding function 'a': %s", str_error(rc));
 		goto error;
 	}
 

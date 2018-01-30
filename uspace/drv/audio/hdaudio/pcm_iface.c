@@ -119,7 +119,7 @@ static unsigned hda_query_cap(ddf_fun_t *fun, audio_cap_t cap)
 	case AUDIO_CAP_INTERRUPT_MAX_FRAMES:
 		return 16384;
 	default:
-		return ENOTSUP;
+		return -1;
 	}
 }
 

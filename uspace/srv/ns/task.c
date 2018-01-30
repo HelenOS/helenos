@@ -36,9 +36,9 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
-#include <stdio.h>
 #include <macros.h>
-#include <malloc.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <types/task.h>
 #include "task.h"
 #include "ns.h"

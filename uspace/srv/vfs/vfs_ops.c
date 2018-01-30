@@ -85,7 +85,7 @@ static void out_destroy(vfs_triplet_t *file)
 	vfs_exchange_release(exch);
 }
 
-int vfs_op_clone(int oldfd, int newfd, bool desc)
+int vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
 {
 	int rc;
 
@@ -101,21 +101,19 @@ int vfs_op_clone(int oldfd, int newfd, bool desc)
 	assert(oldfile->node != NULL);
 
 	if (newfd != -1) {
-		/* Make sure newfd is closed. */
-		(void) vfs_fd_free(newfd);
 		/* Assign the old file to newfd. */
 		rc = vfs_fd_assign(oldfile, newfd);
+		*out_fd = newfd;
 	} else {
 		vfs_file_t *newfile;
-		int newfd = vfs_fd_alloc(&newfile, desc);
-		if (newfd >= 0) {
+		rc = vfs_fd_alloc(&newfile, desc, out_fd);
+		if (rc == EOK) {
 			newfile->node = oldfile->node;
 			newfile->permissions = oldfile->permissions;
 			vfs_node_addref(newfile->node);
 	
 			vfs_file_put(newfile);
 		}
-		rc = newfd;
 	}
 	vfs_file_put(oldfile);
 	
@@ -153,7 +151,7 @@ static int vfs_connect_internal(service_id_t service_id, unsigned flags,
 	aid_t msg = async_send_1(exch, VFS_OUT_MOUNTED, (sysarg_t) service_id,
 	    &answer);
 	/* Send the mount options */
-	sysarg_t rc = async_data_write_start(exch, options, str_size(options));
+	int rc = async_data_write_start(exch, options, str_size(options));
 	if (rc != EOK) {
 		async_forget(msg);
 		vfs_exchange_release(exch);
@@ -193,7 +191,7 @@ int vfs_op_fsprobe(const char *fs_name, service_id_t sid,
     vfs_fs_probe_info_t *info)
 {
 	fs_handle_t fs_handle = 0;
-	sysarg_t rc;
+	int rc;
 	int retval;
 	
 	fibril_mutex_lock(&fs_list_lock);
@@ -224,12 +222,12 @@ int vfs_op_fsprobe(const char *fs_name, service_id_t sid,
 }
 
 int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
-    unsigned instance, const char *opts, const char *fs_name, int *outfd)
+    unsigned instance, const char *opts, const char *fs_name, int *out_fd)
 {
 	int rc;
 	vfs_file_t *mp = NULL;
 	vfs_file_t *file = NULL;
-	int fd = -1;
+	*out_fd = -1;
 	
 	if (!(flags & VFS_MOUNT_CONNECT_ONLY)) {
 		mp = vfs_file_get(mpfd);
@@ -255,9 +253,8 @@ int vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 	}
 	
 	if (!(flags & VFS_MOUNT_NO_REF)) {
-		fd = vfs_fd_alloc(&file, false);
-		if (fd < 0) {
-			rc = fd;
+		rc = vfs_fd_alloc(&file, false, out_fd);
+		if (rc != EOK) {
 			goto out;
 		}
 	}
@@ -296,12 +293,11 @@ out:
 	if (file)
 		vfs_file_put(file);
 
-	if (rc != EOK && fd >= 0) {
-		vfs_fd_free(fd);
-		fd = 0;
+	if (rc != EOK && *out_fd >= 0) {
+		vfs_fd_free(*out_fd);
+		*out_fd = -1;
 	}
 	
-	*outfd = fd;
 	return rc;
 }
 
@@ -401,7 +397,7 @@ static int rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,
 		return retval;
 	}
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(msg, &rc);
 	
 	chunk->size = IPC_GET_ARG1(*answer); 
@@ -680,7 +676,7 @@ int vfs_op_sync(int fd)
 	
 	vfs_exchange_release(fs_exch);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(msg, &rc);
 	
 	vfs_file_put(file);
@@ -692,7 +688,7 @@ static int vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service_id,
     fs_index_t index, aoff64_t size)
 {
 	async_exch_t *exch = vfs_exchange_grab(fs_handle);
-	sysarg_t rc = async_req_4_0(exch, VFS_OUT_TRUNCATE,
+	int rc = async_req_4_0(exch, VFS_OUT_TRUNCATE,
 	    (sysarg_t) service_id, (sysarg_t) index, LOWER32(size),
 	    UPPER32(size));
 	vfs_exchange_release(exch);
@@ -829,9 +825,9 @@ int vfs_op_unmount(int mpfd)
 	return EOK;
 }
 
-int vfs_op_wait_handle(bool high_fd)
+int vfs_op_wait_handle(bool high_fd, int *out_fd)
 {
-	return vfs_wait_handle_internal(high_fd);
+	return vfs_wait_handle_internal(high_fd, out_fd);
 }
 
 static inline bool walk_flags_valid(int flags)
@@ -893,11 +889,11 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	}
 	
 	vfs_file_t *file;
-	int fd = vfs_fd_alloc(&file, false);
-	if (fd < 0) {
+	rc = vfs_fd_alloc(&file, false, out_fd);
+	if (rc != EOK) {
 		vfs_node_put(node);
 		vfs_file_put(parent);
-		return fd;
+		return rc;
 	}
 	assert(file != NULL);
 	
@@ -911,7 +907,6 @@ int vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 	
 	fibril_rwlock_read_unlock(&namespace_rwlock);
 
-	*out_fd = fd;
 	return EOK;
 }
 

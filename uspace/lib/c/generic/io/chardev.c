@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +27,194 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libc
+ * @{
+ */
+/**
+ * @file
+ * @brief Character device client interface
+ */
+
 #include <errno.h>
 #include <mem.h>
 #include <io/chardev.h>
 #include <ipc/chardev.h>
+#include <stddef.h>
+#include <stdlib.h>
 
-ssize_t chardev_read(async_exch_t *exch, void *data, size_t size)
+/** Open character device.
+ *
+ * @param sess Session with the character device
+ * @param rchardev Place to store pointer to the new character device structure
+ *
+ * @return EOK on success, ENOMEM if out of memory, EIO on I/O error
+ */
+int chardev_open(async_sess_t *sess, chardev_t **rchardev)
 {
-	if (!exch)
-		return EBADMEM;
-	if (size > 4 * sizeof(sysarg_t))
-		return ELIMIT;
+	chardev_t *chardev;
 
-	sysarg_t message[4] = { 0 };
-	const ssize_t ret = async_req_1_4(exch, CHARDEV_READ, size,
-	    &message[0], &message[1], &message[2], &message[3]);
-	if (ret > 0 && (size_t)ret <= size)
-		memcpy(data, message, size);
-	return ret;
+	chardev = calloc(1, sizeof(chardev_t));
+	if (chardev == NULL)
+		return ENOMEM;
+
+	chardev->sess = sess;
+	*rchardev = chardev;
+
+	/* EIO might be used in a future implementation */
+	return EOK;
 }
 
-ssize_t chardev_write(async_exch_t *exch, const void *data, size_t size)
+/** Close character device.
+ *
+ * Frees the character device structure. The underlying session is
+ * not affected.
+ *
+ * @param chardev Character device or @c NULL
+ */
+void chardev_close(chardev_t *chardev)
 {
-	if (!exch)
-		return EBADMEM;
-	if (size > 3 * sizeof(sysarg_t))
-		return ELIMIT;
-
-	sysarg_t message[3] = { 0 };
-	memcpy(message, data, size);
-	return async_req_4_0(exch, CHARDEV_WRITE, size,
-	    message[0], message[1], message[2]);
+	free(chardev);
 }
+
+/** Read from character device.
+ *
+ * Read as much data as is available from character device up to @a size
+ * bytes into @a buf. On success EOK is returned and at least one byte
+ * is read (if no byte is available the function blocks). The number
+ * of bytes read is stored in @a *nread.
+ *
+ * On error a non-zero error code is returned and @a *nread is filled with
+ * the number of bytes that were successfully transferred.
+ *
+ * @param chardev Character device
+ * @param buf Destination buffer
+ * @param size Maximum number of bytes to read
+ * @param nread Place to store actual number of bytes read
+ *
+ * @return EOK on success or non-zero error code
+ */
+int chardev_read(chardev_t *chardev, void *buf, size_t size, size_t *nread)
+{
+	async_exch_t *exch = async_exchange_begin(chardev->sess);
+
+	if (size > DATA_XFER_LIMIT) {
+		/* This should not hurt anything. */
+		size = DATA_XFER_LIMIT;
+	}
+
+	ipc_call_t answer;
+	aid_t req = async_send_0(exch, CHARDEV_READ, &answer);
+	int rc = async_data_read_start(exch, buf, size);
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		*nread = 0;
+		return rc;
+	}
+
+	int retval;
+	async_wait_for(req, &retval);
+
+	if (retval != EOK) {
+		*nread = 0;
+		return retval;
+	}
+
+	*nread = IPC_GET_ARG2(answer);
+	/* In case of partial success, ARG1 contains the error code */
+	return (int) IPC_GET_ARG1(answer);
+
+}
+
+/** Write up to DATA_XFER_LIMIT bytes to character device.
+ *
+ * Write up to @a size or DATA_XFER_LIMIT bytes from @a data to character
+ * device. On success EOK is returned, bytes were written and @a *nwritten
+ * is set to min(@a size, DATA_XFER_LIMIT)
+ *
+ * On error a non-zero error code is returned and @a *nwritten is filled with
+ * the number of bytes that were successfully transferred.
+ *
+ * @param chardev Character device
+ * @param buf Destination buffer
+ * @param size Maximum number of bytes to read
+ * @param nwritten Place to store actual number of bytes written
+ *
+ * @return EOK on success or non-zero error code
+ */
+static int chardev_write_once(chardev_t *chardev, const void *data,
+    size_t size, size_t *nwritten)
+{
+	async_exch_t *exch = async_exchange_begin(chardev->sess);
+	ipc_call_t answer;
+	aid_t req;
+	int rc;
+
+	/* Break down large transfers */
+	if (size > DATA_XFER_LIMIT)
+		size = DATA_XFER_LIMIT;
+
+	req = async_send_0(exch, CHARDEV_WRITE, &answer);
+	rc = async_data_write_start(exch, data, size);
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		*nwritten = 0;
+		return rc;
+	}
+
+	int retval;
+	async_wait_for(req, &retval);
+	if (retval != EOK) {
+		*nwritten = 0;
+		return retval;
+	}
+
+	*nwritten = IPC_GET_ARG2(answer);
+	/* In case of partial success, ARG1 contains the error code */
+	return (int) IPC_GET_ARG1(answer);
+}
+
+/** Write to character device.
+ *
+ * Write @a size bytes from @a data to character device. On success EOK
+ * is returned, all bytes were written and @a *nwritten is set to @a size.
+ *
+ * On error a non-zero error code is returned and @a *nwritten is filled with
+ * the number of bytes that were successfully transferred.
+ *
+ * @param chardev Character device
+ * @param buf Destination buffer
+ * @param size Maximum number of bytes to read
+ * @param nwritten Place to store actual number of bytes written
+ *
+ * @return EOK on success or non-zero error code
+ */
+int chardev_write(chardev_t *chardev, const void *data, size_t size,
+    size_t *nwritten)
+{
+	size_t nw;
+	size_t p;
+	int rc;
+
+	p = 0;
+	while (p < size) {
+		rc = chardev_write_once(chardev, data + p, size - p, &nw);
+		/* nw is always valid, we can have partial success */
+		p += nw;
+
+		if (rc != EOK) {
+			/* We can return partial success */
+			*nwritten = p;
+			return rc;
+		}
+	}
+
+	*nwritten = p;
+	return EOK;
+}
+
+/** @}
+ */

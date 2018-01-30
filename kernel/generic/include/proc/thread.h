@@ -47,6 +47,7 @@
 #include <mm/tlb.h>
 #include <abi/proc/uarg.h>
 #include <udebug/udebug.h>
+#include <abi/proc/thread.h>
 #include <abi/sysinfo.h>
 #include <arch.h>
 
@@ -271,7 +272,7 @@ extern void thread_stack_trace(thread_id_t);
 #endif
 
 /** Fpu context slab cache. */
-extern slab_cache_t *fpu_context_slab;
+extern slab_cache_t *fpu_context_cache;
 
 /* Thread syscall prototypes. */
 extern sysarg_t sys_thread_create(uspace_arg_t *, char *, size_t,

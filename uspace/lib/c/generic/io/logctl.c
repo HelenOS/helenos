@@ -110,7 +110,7 @@ int logctl_set_log_level(const char *logname, log_level_t new_level)
 	aid_t reg_msg = async_send_1(exchange, LOGGER_CONTROL_SET_LOG_LEVEL,
 	    new_level, NULL);
 	rc = async_data_write_start(exchange, logname, str_size(logname));
-	sysarg_t reg_msg_rc;
+	int reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);
@@ -136,7 +136,7 @@ int logctl_set_root(void)
 	async_exch_t *vfs_exch = vfs_exchange_begin();
 	rc = vfs_pass_handle(vfs_exch, vfs_root(), exchange);
 	vfs_exchange_end(vfs_exch);
-	sysarg_t reg_msg_rc;
+	int reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);

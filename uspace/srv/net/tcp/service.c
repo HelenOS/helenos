@@ -36,6 +36,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <inet/endpoint.h>
 #include <inet/inet.h>
 #include <io/log.h>
@@ -431,7 +432,7 @@ static int tcp_clistener_get(tcp_client_t *client, sysarg_t id,
  * @param epp      Endpoint pair
  * @param rconn_id Place to store ID of new connection
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int tcp_conn_create_impl(tcp_client_t *client, inet_ep2_t *epp,
     sysarg_t *rconn_id)
@@ -505,7 +506,7 @@ static int tcp_conn_destroy_impl(tcp_client_t *client, sysarg_t conn_id)
  * @param ep      Endpoint
  * @param rlst_id Place to store ID of new listener
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
 */
 static int tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
     sysarg_t *rlst_id)
@@ -576,7 +577,7 @@ static int tcp_listener_destroy_impl(tcp_client_t *client, sysarg_t lst_id)
  * @param client  TCP client
  * @param conn_id Connection ID
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int tcp_conn_send_fin_impl(tcp_client_t *client, sysarg_t conn_id)
 {
@@ -601,7 +602,7 @@ static int tcp_conn_send_fin_impl(tcp_client_t *client, sysarg_t conn_id)
  * @param client  TCP client
  * @param conn_id Connection ID
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int tcp_conn_push_impl(tcp_client_t *client, sysarg_t conn_id)
 {
@@ -626,7 +627,7 @@ static int tcp_conn_push_impl(tcp_client_t *client, sysarg_t conn_id)
  * @param client  TCP client
  * @param conn_id Connection ID
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int tcp_conn_reset_impl(tcp_client_t *client, sysarg_t conn_id)
 {
@@ -652,21 +653,22 @@ static int tcp_conn_reset_impl(tcp_client_t *client, sysarg_t conn_id)
  * @param data    Data buffer
  * @param size    Data size in bytes
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int tcp_conn_send_impl(tcp_client_t *client, sysarg_t conn_id,
     void *data, size_t size)
 {
 	tcp_cconn_t *cconn;
 	int rc;
+	tcp_error_t trc;
 
 	rc = tcp_cconn_get(client, conn_id, &cconn);
 	if (rc != EOK)
 		return rc;
 
-	rc = tcp_uc_send(cconn->conn, data, size, 0);
-	if (rc != EOK)
-		return rc;
+	trc = tcp_uc_send(cconn->conn, data, size, 0);
+	if (trc != TCP_EOK)
+		return EIO;
 
 	return EOK;
 }
@@ -681,7 +683,7 @@ static int tcp_conn_send_impl(tcp_client_t *client, sysarg_t conn_id,
  * @param size    Buffer size in bytes
  * @param nrecv   Place to store actual number of bytes received
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
     void *data, size_t size, size_t *nrecv)
@@ -689,6 +691,7 @@ static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
 	tcp_cconn_t *cconn;
 	xflags_t xflags;
 	int rc;
+	tcp_error_t trc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl()");
 
@@ -698,9 +701,9 @@ static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
 		return rc;
 	}
 
-	rc = tcp_uc_receive(cconn->conn, data, size, nrecv, &xflags);
-	if (rc != EOK) {
-		switch (rc) {
+	trc = tcp_uc_receive(cconn->conn, data, size, nrecv, &xflags);
+	if (trc != TCP_EOK) {
+		switch (trc) {
 		case TCP_EAGAIN:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl() - EAGAIN");
 			return EAGAIN;
@@ -708,7 +711,7 @@ static int tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
 			*nrecv = 0;
 			return EOK;
 		default:
-			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl() - trc=%d", rc);
+			log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_impl() - trc=%d", trc);
 			return EIO;
 		}
 	}
@@ -1094,7 +1097,7 @@ static void tcp_conn_recv_wait_srv(tcp_client_t *client, ipc_callid_t iid,
 
 	rc = tcp_conn_recv_impl(client, conn_id, data, size, &rsize);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - recv_impl failed rc=%d", rc);
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - recv_impl failed rc=%s", str_error_name(rc));
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
 		free(data);
@@ -1240,7 +1243,7 @@ static void tcp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 /** Initialize TCP service.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 int tcp_service_init(void)
 {

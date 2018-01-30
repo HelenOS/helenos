@@ -29,7 +29,7 @@
 #ifndef LIBC_IPC_SERIAL_CTL_H_
 #define LIBC_IPC_SERIAL_CTL_H_
 
-#include <ipc/dev_iface.h>
+#include <ipc/chardev.h>
 
 /** IPC methods for getting/setting serial communication properties
  *
@@ -40,7 +40,7 @@
  *
  */
 typedef enum {
-	SERIAL_GET_COM_PROPS = DEV_FIRST_CUSTOM_METHOD,
+	SERIAL_GET_COM_PROPS = CHARDEV_LIMIT,
 	SERIAL_SET_COM_PROPS
 } serial_ctl_t;
 

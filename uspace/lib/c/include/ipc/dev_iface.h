@@ -29,7 +29,7 @@
 #ifndef LIBC_IPC_DEV_IFACE_H_
 #define LIBC_IPC_DEV_IFACE_H_
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <types/common.h>
 
 typedef enum {

@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <str_error.h>
 #include <str.h>
 #include <vfs/vfs.h>
 #include <dirent.h>
@@ -71,20 +72,22 @@ const char *test_vfs1(void)
 
 	rc = vfs_link_path(TEST_DIRECTORY, KIND_DIRECTORY, NULL);
 	if (rc != EOK) {
-		TPRINTF("rc=%d\n", rc);
+		TPRINTF("rc=%s\n", str_error_name(rc));
 		return "vfs_link_path() failed";
 	}
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	
-	int fd0 = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
-	    MODE_READ | MODE_WRITE);
-	if (fd0 < 0)
+	int fd0;
+	rc = vfs_lookup_open(TEST_FILE, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_READ | MODE_WRITE, &fd0);
+	if (rc != EOK)
 		return "vfs_lookup_open() failed";
 	TPRINTF("Created file %s (fd=%d)\n", TEST_FILE, fd0);
 	
 	size_t size = sizeof(text);
-	ssize_t cnt = vfs_write(fd0, &pos, text, size);
-	if (cnt < 0)
+	size_t cnt;
+	rc  = vfs_write(fd0, &pos, text, size, &cnt);
+	if (rc != EOK)
 		return "write() failed";
 	TPRINTF("Written %zd bytes\n", cnt);
 
@@ -92,17 +95,17 @@ const char *test_vfs1(void)
 	
 	char buf[BUF_SIZE];
 	TPRINTF("read..\n");
-	while ((cnt = vfs_read(fd0, &pos, buf, BUF_SIZE))) {
-		TPRINTF("read returns %zd\n", cnt);
-		if (cnt < 0)
+	while ((rc = vfs_read(fd0, &pos, buf, BUF_SIZE, &cnt))) {
+		TPRINTF("read returns rc = %s, cnt = %zu\n", str_error_name(rc), cnt);
+		if (rc != EOK)
 			return "read() failed";
 		
-		int _cnt = (int) cnt;
-		if (_cnt != cnt) {
+		int icnt = (int) cnt;
+		if ((size_t) icnt != cnt) {
 			/* Count overflow, just to be sure. */
 			TPRINTF("Read %zd bytes\n", cnt);
 		} else {
-			TPRINTF("Read %zd bytes: \"%.*s\"\n", cnt, _cnt, buf);
+			TPRINTF("Read %zd bytes: \"%.*s\"\n", cnt, icnt, buf);
 		}
 	}
 	

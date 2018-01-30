@@ -76,8 +76,9 @@ static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 	if (offset > blob->size)
 		return ELIMIT;
 
-	ssize_t amount_read = vfs_read(blob->fd, &offset, buffer, *size);
-	if (amount_read < 0)
+	size_t amount_read;
+	int rc = vfs_read(blob->fd, &offset, buffer, *size, &amount_read);
+	if (rc != EOK)
 		return errno;
 	*size += amount_read;
 	return EOK;
@@ -143,9 +144,10 @@ int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 {
 	assert(filename);
 
-	int fd = vfs_lookup_open(filename, WALK_REGULAR, MODE_READ);
-	if (fd < 0)
-		return errno;
+	int fd;
+	int rc = vfs_lookup_open(filename, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK)
+		return rc;
 
 	return new_file_blob(out, fd, true);
 }

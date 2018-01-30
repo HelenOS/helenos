@@ -32,7 +32,7 @@
 #include <errno.h>
 #include <loc.h>
 #include <time.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
 
@@ -50,7 +50,8 @@ static int days_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 int
 main(int argc, char **argv)
 {
-	int rc, c;
+	int rc;
+	int c;
 	category_id_t cat_id;
 	size_t        svc_cnt;
 	service_id_t  *svc_ids = NULL;

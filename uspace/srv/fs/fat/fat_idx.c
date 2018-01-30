@@ -44,7 +44,7 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 /** Each instance of this type describes one interval of freed VFS indices. */
 typedef struct {

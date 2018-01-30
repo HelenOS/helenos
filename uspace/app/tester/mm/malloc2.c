@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <malloc.h>
 #include "../tester.h"
 
 const char *test_malloc2(void)

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,11 +33,17 @@
 #ifndef LIBC_IO_CHARDEV_H_
 #define LIBC_IO_CHARDEV_H_
 
-#include <types/common.h>
 #include <async.h>
+#include <stddef.h>
 
-ssize_t chardev_read(async_exch_t *, void *, size_t);
-ssize_t chardev_write(async_exch_t *, const void *, size_t);
+typedef struct {
+	async_sess_t *sess;
+} chardev_t;
+
+extern int chardev_open(async_sess_t *, chardev_t **);
+extern void chardev_close(chardev_t *);
+extern int chardev_read(chardev_t *, void *, size_t, size_t *);
+extern int chardev_write(chardev_t *, const void *, size_t, size_t *);
 
 #endif
 /**

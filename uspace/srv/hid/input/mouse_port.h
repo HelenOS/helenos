@@ -46,7 +46,6 @@ typedef struct mouse_port_ops {
 	void (*write)(uint8_t);
 } mouse_port_ops_t;
 
-extern mouse_port_ops_t adb_mouse_port;
 extern mouse_port_ops_t chardev_mouse_port;
 
 #endif

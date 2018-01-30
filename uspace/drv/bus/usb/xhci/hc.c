@@ -368,7 +368,7 @@ static const irq_cmd_t irq_commands[] = {
  * MSI/MSI-X, but we use PCI Interrupt Pin. In this mode, all the Interrupters
  * (except 0) are disabled.
  */
-int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
+int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -411,7 +411,8 @@ int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t 
 	code->cmds[5].addr = usbsts;
 	code->cmds[6].addr = intr0_iman;
 
-	return hw_res->irqs.irqs[0];
+        *irq = hw_res->irqs.irqs[0];
+        return EOK;
 }
 
 /**

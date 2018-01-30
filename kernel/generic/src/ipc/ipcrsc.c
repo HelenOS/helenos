@@ -136,33 +136,6 @@
 #include <cap/cap.h>
 #include <mm/slab.h>
 
-/** Find call_t * in call table according to callid.
- *
- * @todo Some speedup (hash table?)
- *
- * @param callid Userspace hash of the call. Currently it is the call structure
- *               kernel address.
- *
- * @return NULL on not found, otherwise pointer to the call structure.
- *
- */
-call_t *get_call(sysarg_t callid)
-{
-	call_t *result = NULL;
-	
-	irq_spinlock_lock(&TASK->answerbox.lock, true);
-	
-	list_foreach(TASK->answerbox.dispatched_calls, ab_link, call_t, call) {
-		if ((sysarg_t) call == callid) {
-			result = call;
-			break;
-		}
-	}
-	
-	irq_spinlock_unlock(&TASK->answerbox.lock, true);
-	return result;
-}
-
 static bool phone_reclaim(kobject_t *kobj)
 {
 	bool gc = false;
@@ -179,7 +152,7 @@ static bool phone_reclaim(kobject_t *kobj)
 static void phone_destroy(void *arg)
 {
 	phone_t *phone = (phone_t *) arg;
-	slab_free(phone_slab, phone);
+	slab_free(phone_cache, phone);
 }
 
 static kobject_ops_t phone_kobject_ops = {
@@ -192,14 +165,16 @@ static kobject_ops_t phone_kobject_ops = {
  *
  * @param task  Task for which to allocate a new phone.
  *
- * @return  New phone capability handle.
- * @return  Negative error code if a new capability cannot be allocated.
+ * @param[out] out_handle  New phone capability handle.
+ *
+ * @return  An error code if a new capability cannot be allocated.
  */
-cap_handle_t phone_alloc(task_t *task)
+int phone_alloc(task_t *task, cap_handle_t *out_handle)
 {
-	cap_handle_t handle = cap_alloc(task);
-	if (handle >= 0) {
-		phone_t *phone = slab_alloc(phone_slab, FRAME_ATOMIC);
+	cap_handle_t handle;
+	int rc = cap_alloc(task, &handle);
+	if (rc == EOK) {
+		phone_t *phone = slab_alloc(phone_cache, FRAME_ATOMIC);
 		if (!phone) {
 			cap_free(TASK, handle);
 			return ENOMEM;
@@ -207,7 +182,7 @@ cap_handle_t phone_alloc(task_t *task)
 		kobject_t *kobject = malloc(sizeof(kobject_t), FRAME_ATOMIC);
 		if (!kobject) {
 			cap_free(TASK, handle);
-			slab_free(phone_slab, phone);
+			slab_free(phone_cache, phone);
 			return ENOMEM;
 		}
 
@@ -219,9 +194,10 @@ cap_handle_t phone_alloc(task_t *task)
 		phone->kobject = kobject;
 		
 		cap_publish(task, handle, kobject);
+
+		*out_handle = handle;
 	}
-	
-	return handle;
+	return rc;
 }
 
 /** Free slot from a disconnected phone.

@@ -34,10 +34,10 @@
  * @file
  */
 
-#include <malloc.h>
 #include <mem.h>
 #include <as.h>
 #include <assert.h>
+#include <stdlib.h>
 #include "surface.h"
 
 struct surface {

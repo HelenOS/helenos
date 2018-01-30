@@ -394,8 +394,8 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
  * @param uaddr		Userspace address of the futex counter.
  *
  * @return		If there is no physical mapping for uaddr ENOENT is
- *			returned. Otherwise returns a wait result as defined in
- *			synch.h.
+ *			returned. Otherwise returns the return value of
+ *                      waitq_sleep_timeout().
  */
 sysarg_t sys_futex_sleep(uintptr_t uaddr)
 {
@@ -408,7 +408,8 @@ sysarg_t sys_futex_sleep(uintptr_t uaddr)
 	udebug_stoppable_begin();
 #endif
 
-	int rc = waitq_sleep_timeout(&futex->wq, 0, SYNCH_FLAGS_INTERRUPTIBLE); 
+	int rc = waitq_sleep_timeout(
+	    &futex->wq, 0, SYNCH_FLAGS_INTERRUPTIBLE, NULL);
 
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
@@ -429,7 +430,7 @@ sysarg_t sys_futex_wakeup(uintptr_t uaddr)
 	
 	if (futex) {
 		waitq_wakeup(&futex->wq, WAKEUP_FIRST);
-		return 0;
+		return EOK;
 	} else {
 		return (sysarg_t) ENOENT;
 	}

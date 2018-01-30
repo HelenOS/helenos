@@ -513,7 +513,7 @@ static int ieee80211_scan(void *arg)
  *
  * @param fun NIC function.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ieee80211_open(ddf_fun_t *fun)
@@ -727,7 +727,7 @@ ieee80211_dev_t *ieee80211_device_create(void)
  * @param ieee80211_dev Device structure to initialize.
  * @param ddf_dev       Pointer to backing DDF device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, ddf_dev_t *ddf_dev)
@@ -767,7 +767,7 @@ int ieee80211_device_init(ieee80211_dev_t *ieee80211_dev, ddf_dev_t *ddf_dev)
  * @param ieee80211_iface Structure with implemented IEEE802.11
  *                        interface operations.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ieee80211_init(ieee80211_dev_t *ieee80211_dev,
@@ -846,7 +846,7 @@ static void ieee80211_prepare_ie_header(void **ie_header,
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  * @param ssid          Probing SSID or NULL if broadcast.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, char *ssid)
@@ -913,7 +913,7 @@ int ieee80211_probe_request(ieee80211_dev_t *ieee80211_dev, char *ssid)
  *
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ieee80211_authenticate(ieee80211_dev_t *ieee80211_dev)
@@ -963,7 +963,7 @@ int ieee80211_authenticate(ieee80211_dev_t *ieee80211_dev)
  * @param password      Passphrase to be used in encrypted communication
  *                      or NULL for open networks.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
@@ -1053,7 +1053,7 @@ int ieee80211_associate(ieee80211_dev_t *ieee80211_dev, char *password)
  *
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ieee80211_deauthenticate(ieee80211_dev_t *ieee80211_dev)
@@ -1237,7 +1237,7 @@ static uint8_t *ieee80211_process_ies(ieee80211_dev_t *ieee80211_dev,
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  * @param mgmt_header   Pointer to start of management frame header.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
@@ -1323,7 +1323,7 @@ static int ieee80211_process_probe_response(ieee80211_dev_t *ieee80211_dev,
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  * @param mgmt_header   Pointer to start of management frame header.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ieee80211_process_auth_response(ieee80211_dev_t *ieee80211_dev,
@@ -1352,7 +1352,7 @@ static int ieee80211_process_auth_response(ieee80211_dev_t *ieee80211_dev,
  * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
  * @param mgmt_header   Pointer to start of management frame header.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ieee80211_process_assoc_response(ieee80211_dev_t *ieee80211_dev,
@@ -1628,7 +1628,7 @@ static int ieee80211_process_eapol_frame(ieee80211_dev_t *ieee80211_dev,
  * @param buffer        Data buffer starting with IEEE 802.11 data header.
  * @param buffer_size   Size of buffer.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ieee80211_process_data(ieee80211_dev_t *ieee80211_dev,
@@ -1692,7 +1692,7 @@ static int ieee80211_process_data(ieee80211_dev_t *ieee80211_dev,
  * @param buffer        Buffer with data.
  * @param buffer_size   Size of buffer.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ieee80211_rx_handler(ieee80211_dev_t *ieee80211_dev, void *buffer,

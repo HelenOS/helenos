@@ -37,7 +37,7 @@
 
 /** Length of data being transferred with IPC call
  *
- * The uspace may not be able to utilize full length
+ * The uspace may not be able to utilize the full length
  *
  */
 #define IPC_CALL_LEN  6
@@ -48,16 +48,19 @@
 /* Flags for calls */
 
 /** This is answer to a call */
-#define IPC_CALL_ANSWERED  (1 << 0)
+#define IPC_CALL_ANSWERED        (1 << 0)
 
 /** Answer will not be passed to userspace, will be discarded */
 #define IPC_CALL_DISCARD_ANSWER  (1 << 1)
 
 /** Call was forwarded */
-#define IPC_CALL_FORWARDED  (1 << 2)
+#define IPC_CALL_FORWARDED       (1 << 2)
 
 /** Interrupt notification */
-#define IPC_CALL_NOTIF  (1 << 3)
+#define IPC_CALL_NOTIF           (1 << 3)
+
+/** The call was automatically answered by the kernel due to error */
+#define IPC_CALL_AUTO_REPLY      (1 << 4)
 
 /**
  * Maximum buffer size allowed for IPC_M_DATA_WRITE and
@@ -65,25 +68,8 @@
  */
 #define DATA_XFER_LIMIT  (64 * 1024)
 
-
-/** Bits used in call hashes.
- *
- * The addresses are aligned at least to 4 that is why we can use the 2 least
- * significant bits of the call address.
- *
- */
-
-/** Type of this call is 'answer' */
-#define IPC_CALLID_ANSWERED  1
-
-/** Type of this call is 'notification' */
-#define IPC_CALLID_NOTIFICATION  2
-
-/* Return values from sys_ipc_call_async(). */
-#define IPC_CALLRET_FATAL      -1
-
 /* Macros for manipulating calling data */
-#define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (retval))
+#define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (sysarg_t) (retval))
 #define IPC_SET_IMETHOD(data, val)    ((data).args[0] = (val))
 #define IPC_SET_ARG1(data, val)       ((data).args[1] = (val))
 #define IPC_SET_ARG2(data, val)       ((data).args[2] = (val))
@@ -92,7 +78,7 @@
 #define IPC_SET_ARG5(data, val)       ((data).args[5] = (val))
 
 #define IPC_GET_IMETHOD(data)  ((data).args[0])
-#define IPC_GET_RETVAL(data)   ((data).args[0])
+#define IPC_GET_RETVAL(data)   ((errno_t) (data).args[0])
 
 #define IPC_GET_ARG1(data)  ((data).args[1])
 #define IPC_GET_ARG2(data)  ((data).args[2])

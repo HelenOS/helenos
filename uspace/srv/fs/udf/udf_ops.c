@@ -50,7 +50,7 @@
 #include <assert.h>
 #include <fibril_synch.h>
 #include <align.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include <io/log.h>
 #include "../../vfs/vfs.h"

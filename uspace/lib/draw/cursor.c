@@ -33,7 +33,7 @@
  * @file
  */
 
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "cursor.h"
 #include "cursor/embedded.h"

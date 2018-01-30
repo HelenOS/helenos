@@ -60,15 +60,15 @@ typedef struct work_item {
 extern void workq_global_init(void);
 extern void workq_global_worker_init(void);
 extern void workq_global_stop(void);
-extern int workq_global_enqueue_noblock(work_t *, work_func_t);
-extern int workq_global_enqueue(work_t *, work_func_t);
+extern bool workq_global_enqueue_noblock(work_t *, work_func_t);
+extern bool workq_global_enqueue(work_t *, work_func_t);
 
 extern struct work_queue * workq_create(const char *);
 extern void workq_destroy(struct work_queue *);
-extern int workq_init(struct work_queue *, const char *);
+extern bool workq_init(struct work_queue *, const char *);
 extern void workq_stop(struct work_queue *);
-extern int workq_enqueue_noblock(struct work_queue *, work_t *, work_func_t);
-extern int workq_enqueue(struct work_queue *, work_t *, work_func_t);
+extern bool workq_enqueue_noblock(struct work_queue *, work_t *, work_func_t);
+extern bool workq_enqueue(struct work_queue *, work_t *, work_func_t);
 
 extern void workq_print_info(struct work_queue *);
 extern void workq_global_print_info(void);

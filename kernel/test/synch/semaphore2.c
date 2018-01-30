@@ -59,7 +59,8 @@ static uint32_t random(uint32_t max)
 
 static void consumer(void *arg)
 {
-	int rc, to;
+	int rc;
+	int to;
 	
 	thread_detach(THREAD);
 	
@@ -68,7 +69,7 @@ static void consumer(void *arg)
 	to = random(20000);
 	TPRINTF("cpu%u, tid %" PRIu64 " down+ (%d)\n", CPU->id, THREAD->tid, to);
 	rc = semaphore_down_timeout(&sem, to);
-	if (SYNCH_FAILED(rc)) {
+	if (rc != EOK) {
 		TPRINTF("cpu%u, tid %" PRIu64 " down!\n", CPU->id, THREAD->tid);
 		return;
 	}

@@ -90,14 +90,14 @@ static bool mps_cpu_enabled(size_t i)
 	if (i > 7)
 		return false;
 	
-	return (bool) ((processor_entries[i].cpu_flags & 0x01) == 0x01);
+	return ((processor_entries[i].cpu_flags & 0x01) == 0x01);
 }
 
 static bool mps_cpu_bootstrap(size_t i)
 {
 	assert(i < processor_entry_cnt);
 	
-	return (bool) ((processor_entries[i].cpu_flags & 0x02) == 0x02);
+	return ((processor_entries[i].cpu_flags & 0x02) == 0x02);
 }
 
 static int mps_irq_to_pin(unsigned int irq)

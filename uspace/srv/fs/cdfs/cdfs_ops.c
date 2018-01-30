@@ -41,13 +41,13 @@
 #include <adt/list.h>
 #include <adt/hash_table.h>
 #include <adt/hash.h>
-#include <malloc.h>
 #include <mem.h>
 #include <loc.h>
 #include <libfs.h>
 #include <errno.h>
 #include <block.h>
 #include <scsi/mmc.h>
+#include <stdlib.h>
 #include <str.h>
 #include <byteorder.h>
 #include <macros.h>
@@ -565,13 +565,13 @@ static char *cdfs_decode_vol_ident(void *data, size_t dsize, cdfs_enc_t enc)
 	return ident;
 }
 
-static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
+static int cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 {
 	cdfs_node_t *node = CDFS_NODE(fs_node);
 	assert(node);
 	
 	if (node->processed)
-		return true;
+		return EOK;
 	
 	uint32_t blocks = node->size / BLOCK_SIZE;
 	if ((node->size % BLOCK_SIZE) != 0)
@@ -581,7 +581,7 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 		block_t *block;
 		int rc = block_get(&block, fs->service_id, node->lba + i, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
-			return false;
+			return rc;
 		
 		cdfs_dir_t *dir;
 		
@@ -615,8 +615,10 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 			fs_node_t *fn;
 			int rc = create_node(&fn, fs, dentry_type,
 			    (node->lba + i) * BLOCK_SIZE + offset);
-			if ((rc != EOK) || (fn == NULL))
-				return false;
+			if (rc != EOK)
+				return rc;
+
+			assert(fn != NULL);
 			
 			cdfs_node_t *cur = CDFS_NODE(fn);
 			cur->lba = uint32_lb(dir->lba);
@@ -625,7 +627,7 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 			char *name = cdfs_decode_name(dir->name,
 			    dir->name_length, node->fs->enc, dentry_type);
 			if (name == NULL)
-				return false;
+				return EIO;
 			
 			// FIXME: check return value
 			
@@ -640,7 +642,7 @@ static bool cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 	}
 	
 	node->processed = true;
-	return true;
+	return EOK;
 }
 
 static fs_node_t *get_uncached_node(cdfs_t *fs, fs_index_t index)
@@ -960,14 +962,14 @@ static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
 }
 
 /** Read the volume descriptors. */
-static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
+static int iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
     uint32_t *rlba, uint32_t *rsize, cdfs_enc_t *enc, char **vol_ident)
 {
 	/* First 16 blocks of isofs are empty */
 	block_t *block;
 	int rc = block_get(&block, sid, altroot + 16, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
-		return false;
+		return rc;
 	
 	cdfs_vol_desc_t *vol_desc = (cdfs_vol_desc_t *) block->data;
 	
@@ -979,7 +981,7 @@ static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
 	    (memcmp(vol_desc->standard_ident, CDFS_STANDARD_IDENT, 5) != 0) ||
 	    (vol_desc->version != 1)) {
 		block_put(block);
-		return false;
+		return ENOTSUP;
 	}
 	
 	uint16_t set_size = uint16_lb(vol_desc->data.prisec.set_size);
@@ -999,13 +1001,13 @@ static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
 		 * in multi-disc sets.
 		 */
 		block_put(block);
-		return false;
+		return ENOTSUP;
 	}
 	
 	uint16_t block_size = uint16_lb(vol_desc->data.prisec.block_size);
 	if (block_size != BLOCK_SIZE) {
 		block_put(block);
-		return false;
+		return ENOTSUP;
 	}
 	
 	// TODO: implement path table support
@@ -1030,17 +1032,18 @@ static bool iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
 	}
 	
 	block_put(block);
-	return true;
+	return EOK;
 }
 
-static bool iso_readfs(cdfs_t *fs, fs_node_t *rfn,
+static int iso_readfs(cdfs_t *fs, fs_node_t *rfn,
     cdfs_lba_t altroot)
 {
 	cdfs_node_t *node = CDFS_NODE(rfn);
 	
-	if (!iso_read_vol_desc(fs->service_id, altroot, &node->lba,
-	    &node->size, &fs->enc, &fs->vol_ident))
-		return false;
+	int rc = iso_read_vol_desc(fs->service_id, altroot, &node->lba,
+	    &node->size, &fs->enc, &fs->vol_ident);
+	if (rc != EOK)
+		return rc;
 	
 	return cdfs_readdir(fs, rfn);
 }
@@ -1071,7 +1074,7 @@ static cdfs_t *cdfs_fs_create(service_id_t sid, cdfs_lba_t altroot)
 	CDFS_NODE(rfn)->processed = false;
 	
 	/* Check if there is cdfs in given session */
-	if (!iso_readfs(fs, rfn, altroot))
+	if (iso_readfs(fs, rfn, altroot) != EOK)
 		goto error;
 	
 	list_append(&fs->link, &cdfs_instances);
@@ -1124,11 +1127,12 @@ static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	uint32_t rlba;
 	uint32_t rsize;
 	cdfs_enc_t enc;
-	if (!iso_read_vol_desc(service_id, altroot, &rlba, &rsize, &enc,
-	    &vol_ident)) {
+	rc = iso_read_vol_desc(service_id, altroot, &rlba, &rsize, &enc,
+	    &vol_ident);
+	if (rc != EOK) {
 		block_cache_fini(service_id);
 		block_fini(service_id);
-		return EIO;
+		return rc;
 	}
 	
 	str_cpy(info->label, FS_LABEL_MAXLEN + 1, vol_ident);

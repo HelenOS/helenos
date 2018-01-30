@@ -47,11 +47,11 @@
  * Interrupts
  */
 
-typedef void interrupt_handler_t(ipc_callid_t, ipc_call_t *, ddf_dev_t *);
+typedef void interrupt_handler_t(ipc_call_t *, ddf_dev_t *);
 
 extern int register_interrupt_handler(ddf_dev_t *, int, interrupt_handler_t *,
-    const irq_code_t *);
-extern int unregister_interrupt_handler(ddf_dev_t *, int);
+    const irq_code_t *, cap_handle_t *);
+extern int unregister_interrupt_handler(ddf_dev_t *, cap_handle_t);
 
 #endif
 

@@ -41,7 +41,7 @@
 #include <stats.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <str.h>

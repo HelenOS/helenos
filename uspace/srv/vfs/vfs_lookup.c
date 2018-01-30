@@ -196,7 +196,7 @@ int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 	    triplet->index, child->index, NULL);
 	
 	rc = async_data_write_start(exch, component, str_size(component) + 1);
-	sysarg_t orig_rc;
+	int orig_rc;
 	async_wait_for(req, &orig_rc);
 	vfs_exchange_release(exch);
 	if (orig_rc != EOK)
@@ -212,7 +212,7 @@ static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 	assert(base);
 	assert(result);
 	
-	sysarg_t rc;
+	int rc;
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
 	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) *pfirst,
@@ -221,15 +221,15 @@ static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 	async_wait_for(req, &rc);
 	vfs_exchange_release(exch);
 	
-	if ((int) rc < 0)
-		return (int) rc;
+	if (rc != EOK)
+		return rc;
 	
 	unsigned last = *pfirst + *plen;
 	*pfirst = IPC_GET_ARG3(answer) & 0xffff;
 	*plen = last - *pfirst;
 	
-	result->triplet.fs_handle = (fs_handle_t) rc;
-	result->triplet.service_id = (service_id_t) IPC_GET_ARG1(answer);
+	result->triplet.fs_handle = (fs_handle_t) IPC_GET_ARG1(answer);
+	result->triplet.service_id = base->service_id;
 	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
 	result->size = MERGE_LOUP32(IPC_GET_ARG4(answer), IPC_GET_ARG5(answer));
 	result->type = (IPC_GET_ARG3(answer) >> 16) ?

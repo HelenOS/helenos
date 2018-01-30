@@ -47,7 +47,7 @@ int led_dev_color_set(async_sess_t *sess, pixel_t pixel)
 	
 	async_exchange_end(exch);
 	
-	sysarg_t rc;
+	int rc;
 	async_wait_for(req, &rc);
 	
 	return (int) rc;

@@ -45,48 +45,72 @@ static chardev_srv_t *chardev_srv_create(chardev_srvs_t *);
 static void chardev_read_srv(chardev_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	size_t size = IPC_GET_ARG1(*call);
+	void *buf;
+	size_t size;
+	size_t nread;
 	int rc;
+	ipc_callid_t rcallid;
 
-	if (srv->srvs->ops->read == NULL) {
-		async_answer_0(callid, ENOTSUP);
+	if (!async_data_read_receive(&rcallid, &size)) {
+		async_answer_0(callid, EINVAL);
 		return;
 	}
 
-	if (size <= 4 * sizeof(sysarg_t)) {
-		sysarg_t message[4] = {};
-
-		rc = srv->srvs->ops->read(srv, (char *)message, size);
-		async_answer_4(callid, rc, message[0], message[1],
-		    message[2], message[3]);
-	} else {
-		async_answer_0(callid, ELIMIT);
+	buf = malloc(size);
+	if (buf == NULL) {
+		async_answer_0(rcallid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
+		return;
 	}
+
+	if (srv->srvs->ops->read == NULL) {
+		async_answer_0(rcallid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
+		free(buf);
+		return;
+	}
+
+	rc = srv->srvs->ops->read(srv, buf, size, &nread);
+	if (rc != EOK && nread == 0) {
+		async_answer_0(rcallid, rc);
+		async_answer_0(callid, rc);
+		free(buf);
+		return;
+	}
+
+	async_data_read_finalize(rcallid, buf, nread);
+
+	free(buf);
+	async_answer_2(callid, EOK, (sysarg_t) rc, nread);
 }
 
 static void chardev_write_srv(chardev_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	size_t size = IPC_GET_ARG1(*call);
+	void *data;
+	size_t size;
+	size_t nwr;
 	int rc;
+
+	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
+	}
 
 	if (srv->srvs->ops->write == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
-	if (size <= 3 * sizeof(sysarg_t)) {
-		const sysarg_t message[3] = {
-			IPC_GET_ARG2(*call),
-			IPC_GET_ARG3(*call),
-			IPC_GET_ARG4(*call)
-		};
-
-		rc = srv->srvs->ops->write(srv, (char *)message, size);
+	rc = srv->srvs->ops->write(srv, data, size, &nwr);
+	free(data);
+	if (rc != EOK && nwr == 0) {
 		async_answer_0(callid, rc);
-	} else {
-		async_answer_0(callid, ELIMIT);
+		return;
 	}
+
+	async_answer_2(callid, EOK, (sysarg_t) rc, nwr);
 }
 
 static chardev_srv_t *chardev_srv_create(chardev_srvs_t *srvs)
@@ -144,7 +168,10 @@ int chardev_conn(ipc_callid_t iid, ipc_call_t *icall, chardev_srvs_t *srvs)
 			chardev_write_srv(srv, callid, &call);
 			break;
 		default:
-			async_answer_0(callid, EINVAL);
+			if (srv->srvs->ops->def_handler != NULL)
+				srv->srvs->ops->def_handler(srv, callid, &call);
+			else
+				async_answer_0(callid, ENOTSUP);
 		}
 	}
 

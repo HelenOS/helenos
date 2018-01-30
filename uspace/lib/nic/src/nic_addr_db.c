@@ -222,7 +222,7 @@ int nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr)
  *
  * @return true if the address is in the db, false otherwise
  */
-int nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr)
+bool nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr)
 {
 	assert(db && addr);
 	

@@ -27,9 +27,9 @@
  */
 
 #include <assert.h>
+#include <async.h>
 #include <errno.h>
 #include <align.h>
-#include <thread.h>
 #include <byteorder.h>
 #include <libarch/barrier.h>
 #include <as.h>
@@ -216,7 +216,7 @@ inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
  *  @param rtl8139  The RTL8139 device
  *  @param address  The place to store the address
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 inline static void rtl8139_hw_get_addr(rtl8139_t *rtl8139,
     nic_address_t *addr)
@@ -434,7 +434,7 @@ inline static void rtl8139_hw_soft_reset(void *io_base)
 	pio_write_8(io_base + CR, CR_RST);
 	memory_barrier();
 	while(pio_read_8(io_base + CR) & CR_RST) {
-		thread_usleep(1);
+		async_usleep(1);
 		read_barrier();
 	}
 }
@@ -815,13 +815,11 @@ static void rtl8139_interrupt_impl(nic_t *nic_data, uint16_t isr)
 
 /** Handle device interrupt
  *
- * @param iid    The IPC call id
  * @param icall  The IPC call structure
  * @param dev    The rtl8139 device
  *
  */
-static void rtl8139_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev)
+static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	assert(dev);
 	assert(icall);
@@ -843,10 +841,11 @@ static void rtl8139_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
  *
  *  @param nic_data  The driver data
  *
- *  @return IRQ capability handle if the handler was registered.
- *  @return Negative error code otherwise.
+ *  @param[out] handle  IRQ capability handle if the handler was registered.
+ *
+ *  @return An error code otherwise.
  */
-inline static int rtl8139_register_int_handler(nic_t *nic_data)
+inline static int rtl8139_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
 {
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 
@@ -857,12 +856,12 @@ inline static int rtl8139_register_int_handler(nic_t *nic_data)
 	rtl8139_irq_code.cmds[0].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[2].addr = rtl8139->io_addr + ISR;
 	rtl8139_irq_code.cmds[3].addr = rtl8139->io_addr + IMR;
-	int cap = register_interrupt_handler(nic_get_ddf_dev(nic_data),
-	    rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code);
+	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
+	    rtl8139->irq, rtl8139_interrupt_handler, &rtl8139_irq_code, handle);
 
 	RTL8139_IRQ_STRUCT_UNLOCK();
 
-	return cap;
+	return rc;
 }
 
 /** Start the controller
@@ -1025,7 +1024,7 @@ static void rtl8139_dev_cleanup(ddf_dev_t *dev)
  *  @param dev           The device structure
  *  @param hw_resources  Devices hardware resources
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
     *hw_resources)
@@ -1065,7 +1064,7 @@ static int rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_parsed_t
  *
  *  @param dev  The device structure
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 static int rtl8139_get_resource_info(ddf_dev_t *dev)
 {
@@ -1147,7 +1146,7 @@ err_tx_alloc:
  *
  *  @param dev  The device information
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 static int rtl8139_device_initialize(ddf_dev_t *dev)
 {
@@ -1206,7 +1205,7 @@ failed:
  *
  * @param dev  The RTL8139 device.
  *
- * @return EOK if successed, negative error code otherwise
+ * @return EOK if successed, error code otherwise
  */
 static int rtl8139_pio_enable(ddf_dev_t *dev)
 {
@@ -1256,7 +1255,7 @@ static void rtl8139_data_init(rtl8139_t *rtl8139)
  *
  * @param dev  The RTL8139 device.
  *
- * @return EOK if added successfully, negative error code otherwise
+ * @return EOK if added successfully, error code otherwise
  */
 int rtl8139_dev_add(ddf_dev_t *dev)
 {
@@ -1288,9 +1287,9 @@ int rtl8139_dev_add(ddf_dev_t *dev)
 	rtl8139_data_init(rtl8139);
 
 	/* Register interrupt handler */
-	int irq_cap = rtl8139_register_int_handler(nic_data);
-	if (irq_cap < 0) {
-		rc = irq_cap;
+	int irq_cap;
+	rc = rtl8139_register_int_handler(nic_data, &irq_cap);
+	if (rc != EOK) {
 		goto err_pio;
 	}
 
@@ -1339,7 +1338,7 @@ err_destroy:
  *  @param address  The place to store the address
  *  @param max_len  Maximal addresss length to store
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 static int rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {

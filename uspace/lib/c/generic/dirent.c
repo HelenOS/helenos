@@ -53,15 +53,16 @@ DIR *opendir(const char *dirname)
 		return NULL;
 	}
 	
-	int fd = vfs_lookup(dirname, WALK_DIRECTORY);
-	if (fd < 0) {
+	int fd;
+	int rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
+	if (rc != EOK) {
 		free(dirp);
-		errno = fd;
+		errno = rc;
 		return NULL;
 	}
 	
-	int rc = vfs_open(fd, MODE_READ);
-	if (rc < 0) {
+	rc = vfs_open(fd, MODE_READ);
+	if (rc != EOK) {
 		free(dirp);
 		vfs_put(fd);
 		errno = rc;
@@ -112,13 +113,15 @@ void rewinddir(DIR *dirp)
  */
 int closedir(DIR *dirp)
 {
-	int rc;
-	
-	rc = vfs_put(dirp->fd);
+	int rc = vfs_put(dirp->fd);
 	free(dirp);
 
-	/* On error errno was set by close() */
-	return rc;
+	if (rc == EOK) {
+		return 0;
+	} else {
+		errno = rc;
+		return -1;
+	}
 }
 
 /** @}

@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fibril_synch.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <str_error.h>
 #include <stdio.h>
 #include <hound/client.h>

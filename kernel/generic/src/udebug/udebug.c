@@ -97,9 +97,9 @@ static void udebug_wait_for_go(waitq_t *wq)
 	ipl_t ipl = waitq_sleep_prepare(wq);
 	
 	wq->missed_wakeups = 0;  /* Enforce blocking. */
-	int rc = waitq_sleep_timeout_unsafe(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
-	
-	waitq_sleep_finish(wq, rc, ipl);
+	bool blocked;
+	(void) waitq_sleep_timeout_unsafe(wq, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, &blocked);
+	waitq_sleep_finish(wq, blocked, ipl);
 }
 
 /** Start of stoppable section.
@@ -393,7 +393,7 @@ void udebug_thread_e_event(void)
  *
  * @param task Task structure. task->udebug.lock must be already locked.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int udebug_task_cleanup(struct task *task)

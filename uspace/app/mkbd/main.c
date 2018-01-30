@@ -236,6 +236,8 @@ int main(int argc, char *argv[])
 	char path[MAX_PATH_LENGTH];
 	rc = devman_fun_get_path(dev_handle, path, MAX_PATH_LENGTH);
 	if (rc != EOK) {
+		printf(NAME ": failed to get path (handle %"
+		       PRIun "): %s.\n", dev_handle, str_error(errno));
 		return ENOMEM;
 	}
 	
@@ -261,6 +263,7 @@ int main(int argc, char *argv[])
 	
 	uint8_t *event = (uint8_t *)malloc(size);
 	if (event == NULL) {
+		printf("Out of memory.\n");
 		// TODO: hangup phone?
 		return ENOMEM;
 	}

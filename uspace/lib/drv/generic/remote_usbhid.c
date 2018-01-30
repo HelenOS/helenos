@@ -93,7 +93,7 @@ typedef enum {
  *
  * @param dev_sess Session to DDF device providing USB HID interface.
  *
- * @return Number of usages returned or negative error code.
+ * @return Number of usages returned or an error code.
  *
  */
 int usbhid_dev_get_event_length(async_sess_t *dev_sess, size_t *size)
@@ -173,8 +173,8 @@ int usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 		return ENOMEM;
 	}
 	
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	
@@ -258,8 +258,8 @@ int usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
 		return ENOMEM;
 	}
 	
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	

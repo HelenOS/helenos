@@ -97,7 +97,7 @@ static int cmd_runl(const char *path, ...)
 		    "exit code %d)", path, retval);
 	}
 
-	return retval;
+	return retval == 0 ? EOK : EPARTY;
 }
 
 

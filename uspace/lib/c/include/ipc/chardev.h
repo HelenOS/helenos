@@ -40,8 +40,12 @@
 
 typedef enum {
 	CHARDEV_READ = IPC_FIRST_USER_METHOD,
-	CHARDEV_WRITE
+	CHARDEV_WRITE,
 } chardev_request_t;
+
+enum {
+	CHARDEV_LIMIT = CHARDEV_WRITE + 1
+};
 
 #endif
 

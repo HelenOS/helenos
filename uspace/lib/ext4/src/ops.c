@@ -41,8 +41,8 @@
 #include <fibril_synch.h>
 #include <libfs.h>
 #include <macros.h>
-#include <malloc.h>
 #include <mem.h>
+#include <stdlib.h>
 #include <str.h>
 #include <ipc/loc.h>
 #include "ext4/balloc.h"

@@ -43,7 +43,7 @@
 #include <abi/errno.h>
 #include <arch.h>
 
-static int pagein_request_process(call_t *call, answerbox_t *box)
+static int pagein_request_preprocess(call_t *call, phone_t *phone)
 {
 	/*
 	 * Allow only requests from numerically higher task IDs to
@@ -51,7 +51,7 @@ static int pagein_request_process(call_t *call, answerbox_t *box)
 	 * pagein_answer_preprocess() that could happen if two tasks
 	 * wanted to be each other's pager.
 	 */
-	if (call->sender->taskid <= TASK->taskid)
+	if (TASK->taskid <= phone->callee->task->taskid)
 		return ENOTSUP;
 	else
 		return EOK;
@@ -96,9 +96,9 @@ static int pagein_answer_preprocess(call_t *answer, ipc_data_t *olddata)
 }
 
 sysipc_ops_t ipc_m_page_in_ops = {
-	.request_preprocess = null_request_preprocess,
+	.request_preprocess = pagein_request_preprocess,
 	.request_forget = null_request_forget,
-	.request_process = pagein_request_process,
+	.request_process = null_request_process,
 	.answer_cleanup = null_answer_cleanup,
 	.answer_preprocess = pagein_answer_preprocess,
 	.answer_process = null_answer_process,

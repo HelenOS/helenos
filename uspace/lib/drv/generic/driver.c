@@ -203,7 +203,7 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	dev_del_ref(dev);
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
@@ -236,7 +236,7 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	dev_del_ref(dev);
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
@@ -271,7 +271,7 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	
 	fun_del_ref(fun);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
@@ -304,7 +304,7 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	else
 		rc = ENOTSUP;
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void driver_stop(ipc_callid_t iid, ipc_call_t *icall)
@@ -821,7 +821,7 @@ static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
  *
  * @param fun Function to bind
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  *
  */
 int ddf_fun_bind(ddf_fun_t *fun)
@@ -849,7 +849,7 @@ int ddf_fun_bind(ddf_fun_t *fun)
  *
  * @param fun Function to unbind
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  *
  */
 int ddf_fun_unbind(ddf_fun_t *fun)
@@ -870,7 +870,7 @@ int ddf_fun_unbind(ddf_fun_t *fun)
  *
  * @param fun Function to online
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  *
  */
 int ddf_fun_online(ddf_fun_t *fun)
@@ -888,7 +888,7 @@ int ddf_fun_online(ddf_fun_t *fun)
  *
  * @param fun Function to offline
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  *
  */
 int ddf_fun_offline(ddf_fun_t *fun)

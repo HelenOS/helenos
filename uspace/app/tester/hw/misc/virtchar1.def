@@ -1,6 +1,0 @@
-{
-	"virtchar1",
-	"Virtual char device test",
-	&test_virtchar1,
-	false
-},

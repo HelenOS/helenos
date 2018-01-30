@@ -52,7 +52,10 @@ typedef enum {
 #include <errno.h>
 /** We need NULL defined. */
 #include <stddef.h>
+
+#ifndef EOK
 #define EOK 0
+#endif
 
 #include "bigint_t.h"
 #include "builtin_t.h"

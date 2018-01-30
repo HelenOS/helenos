@@ -220,20 +220,17 @@ int audio_pcm_get_info_str(audio_pcm_sess_t *sess, const char **name)
  *
  * @param sess Audio device session.
  * @param cap  Audio device capability.
- * @param val  Place to store queried value.
+ * @param[out] val  Place to store queried value.
  *
  * @return Error code.
  */
-int audio_pcm_query_cap(audio_pcm_sess_t *sess, audio_cap_t cap)
+int audio_pcm_query_cap(audio_pcm_sess_t *sess, audio_cap_t cap, sysarg_t *value)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	sysarg_t value = 0;
 	const int ret = async_req_2_1(exch,
 	    DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE), IPC_M_AUDIO_PCM_QUERY_CAPS,
-	    cap, &value);
+	    cap, value);
 	async_exchange_end(exch);
-	if (ret == EOK)
-		return value;
 	return ret;
 }
 

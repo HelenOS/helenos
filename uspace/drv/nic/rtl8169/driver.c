@@ -27,13 +27,14 @@
  */
 
 #include <assert.h>
+#include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <align.h>
 #include <byteorder.h>
 #include <libarch/barrier.h>
 
 #include <as.h>
-#include <thread.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>
 #include <device/hw_res.h>
@@ -41,9 +42,6 @@
 #include <io/log.h>
 #include <nic.h>
 #include <pci_dev_iface.h>
-
-#include <sysinfo.h>
-#include <ipc/ns.h>
 
 #include <str.h>
 
@@ -74,9 +72,8 @@ static int rtl8169_defective_set_mode(ddf_fun_t *fun, uint32_t mode);
 static int rtl8169_on_activated(nic_t *nic_data);
 static int rtl8169_on_stopped(nic_t *nic_data);
 static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size);
-static void rtl8169_irq_handler(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev);
-static inline int rtl8169_register_int_handler(nic_t *nic_data);
+static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev);
+static inline int rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle);
 static inline void rtl8169_get_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr);
 static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, const nic_address_t *addr);
 
@@ -362,7 +359,7 @@ failed:
 
 }
 
-inline static int rtl8169_register_int_handler(nic_t *nic_data)
+inline static int rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
@@ -370,10 +367,10 @@ inline static int rtl8169_register_int_handler(nic_t *nic_data)
 	rtl8169_irq_code.cmds[0].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[2].addr = rtl8169->regs + ISR;
 	rtl8169_irq_code.cmds[3].addr = rtl8169->regs + IMR;
-	int irq_cap = register_interrupt_handler(nic_get_ddf_dev(nic_data),
-	    rtl8169->irq, rtl8169_irq_handler, &rtl8169_irq_code);
+	int rc = register_interrupt_handler(nic_get_ddf_dev(nic_data),
+	    rtl8169->irq, rtl8169_irq_handler, &rtl8169_irq_code, handle);
 
-	return irq_cap;
+	return rc;
 }
 
 static int rtl8169_dev_add(ddf_dev_t *dev)
@@ -430,10 +427,10 @@ static int rtl8169_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_pio;
 
-	int irq_cap = rtl8169_register_int_handler(nic_data);
-	if (irq_cap < 0) {
-		rc = irq_cap;
-		ddf_msg(LVL_ERROR, "Failed to register IRQ handler (%d)", rc);
+	int irq_cap;
+	rc = rtl8169_register_int_handler(nic_data, &irq_cap);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to register IRQ handler (%s)", str_error_name(rc));
 		goto err_irq;
 	}
 
@@ -709,7 +706,7 @@ static int rtl8169_on_activated(nic_t *nic_data)
 	/* Allocate buffers */
 	rc = rtl8169_allocate_buffers(rtl8169);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Error allocating buffers: %d", rc);
+		ddf_msg(LVL_ERROR, "Error allocating buffers: %s", str_error_name(rc));
 		return 0;
 	}
 
@@ -766,7 +763,7 @@ inline static void rtl8169_reset(rtl8169_t *rtl8169)
 	pio_write_8(rtl8169->regs + CR, CR_RST);
 	memory_barrier();
 	while (pio_read_8(rtl8169->regs + CR) & CR_RST) {
-		thread_usleep(1);
+		async_usleep(1);
 		read_barrier();
 	}
 }
@@ -1034,8 +1031,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 
 }
 
-static void rtl8169_irq_handler(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev)
+static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	assert(dev);
 	assert(icall);
@@ -1180,7 +1176,7 @@ static uint16_t rtl8169_mii_read(rtl8169_t *rtl8169, uint8_t addr)
 
 	do {
 		phyar = pio_read_32(rtl8169->regs + PHYAR);
-		thread_usleep(20);
+		async_usleep(20);
 	} while ((phyar & PHYAR_RW_WRITE) == 0);
 
 	return phyar & PHYAR_DATA_MASK;
@@ -1198,10 +1194,10 @@ static void rtl8169_mii_write(rtl8169_t *rtl8169, uint8_t addr, uint16_t value)
 
 	do {
 		phyar = pio_read_32(rtl8169->regs + PHYAR);
-		thread_usleep(20);
+		async_usleep(20);
 	} while ((phyar & PHYAR_RW_WRITE) != 0);
 
-	thread_usleep(20);
+	async_usleep(20);
 }
 
 /** Main function of RTL8169 driver

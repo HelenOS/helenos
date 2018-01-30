@@ -44,7 +44,7 @@
 #include <async.h>
 #include <errno.h>
 #include <ns.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <libc.h>
 #include "private/ns.h"
 #include <vfs/vfs.h>
@@ -68,20 +68,20 @@ task_id_t task_get_id(void)
  * @param name The new name, typically the command used to execute the
  *             program.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  */
 int task_set_name(const char *name)
 {
 	assert(name);
 	
-	return __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
+	return (int) __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
 }
 
 /** Kill a task.
  *
  * @param task_id ID of task to kill.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  */
 
 int task_kill(task_id_t task_id)
@@ -100,7 +100,7 @@ int task_kill(task_id_t task_id)
  * @param path Pathname of the binary to execute.
  * @param argv Command-line arguments.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
@@ -142,7 +142,7 @@ int task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
  * @param std_out File to use as stdout.
  * @param std_err File to use as stderr.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
@@ -248,7 +248,7 @@ error:
  * @param cnt  Number of arguments.
  * @param ap   Command-line arguments.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int task_spawn(task_id_t *task_id, task_wait_t *wait, const char *path,
@@ -286,7 +286,7 @@ int task_spawn(task_id_t *task_id, task_wait_t *wait, const char *path,
  * @param path Pathname of the binary to execute.
  * @param ...  Command-line arguments.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...)
@@ -368,7 +368,7 @@ int task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
 	assert(texit);
 	assert(retval);
 
-	sysarg_t rc;
+	int rc;
 	async_wait_for(wait->aid, &rc);
 
 	if (rc == EOK) {

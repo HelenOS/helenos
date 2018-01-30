@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 #include <inttypes.h>
 #include <adt/hash_table.h>
 #include <abi/ipc/methods.h>
@@ -42,8 +43,6 @@
 #include "proto.h"
 #include "trace.h"
 #include "ipcp.h"
-
-#define IPCP_CALLID_SYNC 0
 
 typedef struct {
 	sysarg_t phone_hash;
@@ -144,7 +143,7 @@ void ipcp_init(void)
 		V_INTEGER,
 		V_INTEGER,
 		V_INTEGER,
-		V_INTEGER		
+		V_INTEGER
 	};
 
 	/*
@@ -188,8 +187,8 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	args = call->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Call ID: %p, phone: %d, proto: %s, method: ",
-		    (void *) hash, phone,
+		printf("Call ID: %d, phone: %d, proto: %s, method: ",
+		    hash, phone,
 		    (proto ? proto->name : "n/a"));
 		ipc_m_print(proto, IPC_GET_IMETHOD(*call));
 		printf(" args: (%" PRIun ", %" PRIun ", %" PRIun ", "
@@ -250,7 +249,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	sysarg_t phone;
 	sysarg_t method;
 	sysarg_t service;
-	sysarg_t retval;
+	int retval;
 	proto_t *proto;
 	int cphone;
 	
@@ -265,9 +264,9 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	resp = answer->args;
 	
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Response to %p: retval=%" PRIdn ", args = (%" PRIun ", "
+		printf("Response to %d: retval=%s, args = (%" PRIun ", "
 		    "%" PRIun ", %" PRIun ", %" PRIun ", %" PRIun ")\n",
-		    (void *) hash, retval, IPC_GET_ARG1(*answer),
+		    hash, str_error_name(retval), IPC_GET_ARG1(*answer),
 		    IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
 		    IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
 	}
@@ -281,7 +280,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 			
 			if (oper->rv_type != V_VOID) {
 				putchar(' ');
-				val_print(retval, oper->rv_type);
+				val_print((sysarg_t) retval, oper->rv_type);
 			}
 			
 			if (oper->respc > 0) {
@@ -322,15 +321,13 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	ht_link_t *item;
 	pending_call_t *pcall;
 	
-	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
+	if ((call->flags & IPC_CALL_ANSWERED) == 0) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
-			printf("Not a response (hash %p)\n", (void *) hash);
+			printf("Not a response (hash %d)\n", hash);
 		}
 		return;
 	}
-	
-	hash = hash & ~IPC_CALLID_ANSWERED;
 	
 	item = hash_table_find(&pending_calls, &hash);
 	if (item == NULL)
@@ -347,16 +344,10 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	free(pcall);
 }
 
-void ipcp_call_sync(int phone, ipc_call_t *call, ipc_call_t *answer)
-{
-	ipcp_call_out(phone, call, IPCP_CALLID_SYNC);
-	ipcp_call_in(answer, IPCP_CALLID_SYNC);
-}
-
 void ipcp_hangup(int phone, int rc)
 {
 	if ((display_mask & DM_SYSTEM) != 0) {
-		printf("Hang phone %d up -> %d\n", phone, rc);
+		printf("Hang phone %d up -> %s\n", phone, str_error_name(rc));
 		ipcp_connection_clear(phone);
 	}
 }

@@ -59,7 +59,7 @@ extern void nic_addr_db_clear(nic_addr_db_t *db);
 extern void nic_addr_db_destroy(nic_addr_db_t *db);
 extern int nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr);
 extern int nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr);
-extern int nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr);
+extern bool nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr);
 extern void nic_addr_db_foreach(const nic_addr_db_t *db,
 	void (*func)(const uint8_t *, void *), void *arg);
 

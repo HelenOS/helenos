@@ -122,6 +122,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/tcp/tcp \
 	$(USPACE_PATH)/srv/net/udp/udp \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
+	$(USPACE_PATH)/srv/test/chardev-test/chardev-test \
 	$(USPACE_PATH)/srv/volsrv/volsrv
 
 RD_DRVS_ESSENTIAL = \

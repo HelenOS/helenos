@@ -36,12 +36,8 @@ SOURCES = \
 	layout/us_qwerty.c \
 	layout/us_dvorak.c \
 	layout/ar.c \
-	port/adb.c \
-	port/adb_mouse.c \
 	port/chardev.c \
-	proto/adb.c \
 	proto/mousedev.c \
-	ctl/apple.c \
 	ctl/kbdev.c \
 	ctl/stty.c \
 	ctl/sun.c \

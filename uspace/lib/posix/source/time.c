@@ -40,11 +40,13 @@
 #include "posix/time.h"
 
 #include "posix/ctype.h"
-#include "posix/errno.h"
+
+#include <errno.h>
+
 #include "posix/signal.h"
 #include "posix/assert.h"
 
-#include "libc/fibril_synch.h"
+#include "libc/async.h"
 #include "libc/malloc.h"
 #include "libc/task.h"
 #include "libc/stats.h"
@@ -99,9 +101,7 @@ time_t posix_time(time_t *t)
 struct tm *posix_gmtime_r(const time_t *restrict timer,
     struct tm *restrict result)
 {
-	int rc = time_utc2tm(*timer, result);
-	if (rc != EOK) {
-		errno = rc;
+	if (failed(time_utc2tm(*timer, result))) {
 		return NULL;
 	}
 
@@ -196,9 +196,7 @@ char *posix_asctime(const struct tm *restrict timeptr)
  */
 char *posix_ctime_r(const time_t *timer, char *buf)
 {
-	int r = time_local2str(*timer, buf);
-	if (r != EOK) {
-		errno = r;
+	if (failed(time_local2str(*timer, buf))) {
 		return NULL;
 	}
 
@@ -313,10 +311,10 @@ int posix_clock_nanosleep(posix_clockid_t clock_id, int flags,
 		case CLOCK_REALTIME:
 			// TODO: interruptible sleep
 			if (rqtp->tv_sec != 0) {
-				fibril_sleep(rqtp->tv_sec);
+				async_sleep(rqtp->tv_sec);
 			}
 			if (rqtp->tv_nsec != 0) {
-				fibril_usleep(rqtp->tv_nsec / 1000);
+				async_usleep(rqtp->tv_nsec / 1000);
 			}
 			return 0;
 		default:

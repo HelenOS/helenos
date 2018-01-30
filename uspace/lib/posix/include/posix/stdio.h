@@ -142,18 +142,18 @@ extern void __POSIX_DEF__(clearerr)(FILE *stream);
 /* Input/Output */
 #undef putc
 #define putc fputc
-extern int __POSIX_DEF__(fputs)(const char *restrict s, FILE *restrict stream);
+extern int __POSIX_DEF__(fputs)(const char *__restrict__ s, FILE *__restrict__ stream);
 #undef getc
 #define getc fgetc
 extern int __POSIX_DEF__(ungetc)(int c, FILE *stream);
-extern ssize_t __POSIX_DEF__(getdelim)(char **restrict lineptr, size_t *restrict n,
-    int delimiter, FILE *restrict stream);
-extern ssize_t __POSIX_DEF__(getline)(char **restrict lineptr, size_t *restrict n,
-    FILE *restrict stream);
+extern ssize_t __POSIX_DEF__(getdelim)(char **__restrict__ lineptr, size_t *__restrict__ n,
+    int delimiter, FILE *__restrict__ stream);
+extern ssize_t __POSIX_DEF__(getline)(char **__restrict__ lineptr, size_t *__restrict__ n,
+    FILE *__restrict__ stream);
 
 /* Opening Streams */
-extern FILE *__POSIX_DEF__(freopen)(const char *restrict filename,
-    const char *restrict mode, FILE *restrict stream);
+extern FILE *__POSIX_DEF__(freopen)(const char *__restrict__ filename,
+    const char *__restrict__ mode, FILE *__restrict__ stream);
 
 /* Error Messages */
 extern void __POSIX_DEF__(perror)(const char *s);
@@ -164,7 +164,7 @@ typedef struct {
 } __POSIX_DEF__(fpos_t);
 
 extern int __POSIX_DEF__(fsetpos)(FILE *stream, const __POSIX_DEF__(fpos_t) *pos);
-extern int __POSIX_DEF__(fgetpos)(FILE *restrict stream, __POSIX_DEF__(fpos_t) *restrict pos);
+extern int __POSIX_DEF__(fgetpos)(FILE *__restrict__ stream, __POSIX_DEF__(fpos_t) *__restrict__ pos);
 extern int __POSIX_DEF__(fseek)(FILE *stream, long offset, int whence);
 extern int __POSIX_DEF__(fseeko)(FILE *stream, __POSIX_DEF__(off_t) offset, int whence);
 extern long __POSIX_DEF__(ftell)(FILE *stream);
@@ -174,24 +174,24 @@ extern __POSIX_DEF__(off_t) __POSIX_DEF__(ftello)(FILE *stream);
 extern int __POSIX_DEF__(fflush)(FILE *stream);
 
 /* Formatted Output */
-extern int __POSIX_DEF__(dprintf)(int fildes, const char *restrict format, ...)
+extern int __POSIX_DEF__(dprintf)(int fildes, const char *__restrict__ format, ...)
     PRINTF_ATTRIBUTE(2, 3);
-extern int __POSIX_DEF__(vdprintf)(int fildes, const char *restrict format, va_list ap);
-extern int __POSIX_DEF__(sprintf)(char *restrict s, const char *restrict format, ...)
+extern int __POSIX_DEF__(vdprintf)(int fildes, const char *__restrict__ format, va_list ap);
+extern int __POSIX_DEF__(sprintf)(char *__restrict__ s, const char *__restrict__ format, ...)
     PRINTF_ATTRIBUTE(2, 3);
-extern int __POSIX_DEF__(vsprintf)(char *restrict s, const char *restrict format, va_list ap);
+extern int __POSIX_DEF__(vsprintf)(char *__restrict__ s, const char *__restrict__ format, va_list ap);
 
 /* Formatted Input */
 extern int __POSIX_DEF__(fscanf)(
-    FILE *restrict stream, const char *restrict format, ...);
+    FILE *__restrict__ stream, const char *__restrict__ format, ...);
 extern int __POSIX_DEF__(vfscanf)(
-    FILE *restrict stream, const char *restrict format, va_list arg);
-extern int __POSIX_DEF__(scanf)(const char *restrict format, ...);
-extern int __POSIX_DEF__(vscanf)(const char *restrict format, va_list arg);
+    FILE *__restrict__ stream, const char *__restrict__ format, va_list arg);
+extern int __POSIX_DEF__(scanf)(const char *__restrict__ format, ...);
+extern int __POSIX_DEF__(vscanf)(const char *__restrict__ format, va_list arg);
 extern int __POSIX_DEF__(sscanf)(
-    const char *restrict s, const char *restrict format, ...);
+    const char *__restrict__ s, const char *__restrict__ format, ...);
 extern int __POSIX_DEF__(vsscanf)(
-    const char *restrict s, const char *restrict format, va_list arg);
+    const char *__restrict__ s, const char *__restrict__ format, va_list arg);
 
 /* File Locking */
 extern void __POSIX_DEF__(flockfile)(FILE *file);

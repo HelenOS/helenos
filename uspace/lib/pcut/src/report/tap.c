@@ -41,6 +41,9 @@
 /** Counter of all run tests. */
 static int test_counter;
 
+/** Counter of all failures. */
+static int failed_test_counter;
+
 /** Counter for tests in a current suite. */
 static int tests_in_suite;
 
@@ -54,6 +57,7 @@ static int failed_tests_in_suite;
 static void tap_init(pcut_item_t *all_items) {
 	int tests_total = pcut_count_tests(all_items);
 	test_counter = 0;
+	failed_test_counter = 0;
 
 	printf("1..%d\n", tests_total);
 }
@@ -74,8 +78,13 @@ static void tap_suite_start(pcut_item_t *suite) {
  * @param suite Suite that just ended.
  */
 static void tap_suite_done(pcut_item_t *suite) {
-	printf("#> Finished suite %s (failed %d of %d).\n",
-			suite->name, failed_tests_in_suite, tests_in_suite);
+	if (failed_tests_in_suite == 0) {
+		printf("#> Finished suite %s (passed).\n",
+				suite->name);
+	} else {
+		printf("#> Finished suite %s (failed %d of %d).\n",
+				suite->name, failed_tests_in_suite, tests_in_suite);
+	}
 }
 
 /** Report that a test was started.
@@ -128,25 +137,23 @@ static void tap_test_done(pcut_item_t *test, int outcome,
 	const char *status_str = NULL;
 	const char *fail_error_str = NULL;
 
-	if (outcome != TEST_OUTCOME_PASS) {
+	if (outcome != PCUT_OUTCOME_PASS) {
 		failed_tests_in_suite++;
+		failed_test_counter++;
 	}
 
 	switch (outcome) {
-	case TEST_OUTCOME_PASS:
+	case PCUT_OUTCOME_PASS:
 		status_str = "ok";
 		fail_error_str = "";
 		break;
-	case TEST_OUTCOME_FAIL:
+	case PCUT_OUTCOME_FAIL:
 		status_str = "not ok";
 		fail_error_str = " failed";
 		break;
-	case TEST_OUTCOME_ERROR:
+	default:
 		status_str = "not ok";
 		fail_error_str = " aborted";
-		break;
-	default:
-		/* Shall not get here. */
 		break;
 	}
 	printf("%s %d %s%s\n", status_str, test_counter, test_name, fail_error_str);
@@ -159,6 +166,11 @@ static void tap_test_done(pcut_item_t *test, int outcome,
 
 /** Report testing done. */
 static void tap_done(void) {
+	if (failed_test_counter == 0) {
+		printf("#> Done: all tests passed.\n");
+	} else {
+		printf("#> Done: %d of %d tests failed.\n", failed_test_counter, test_counter);
+	}
 }
 
 

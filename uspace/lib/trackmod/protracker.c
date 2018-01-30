@@ -301,8 +301,7 @@ int trackmod_protracker_load(char *fname, trackmod_module_t **rmodule)
 	if (samples == 15) {
 		memcpy(&mod15, &mod31, sizeof(protracker_15smp_t));
 
-		rc = fseek(f, sizeof(protracker_15smp_t), SEEK_SET);
-		if (rc != 0) {
+		if (fseek(f, sizeof(protracker_15smp_t), SEEK_SET) < 0) {
 			printf("Error seeking.\n");
 			rc = EIO;
 			goto error;

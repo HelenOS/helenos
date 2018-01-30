@@ -35,15 +35,26 @@
 #ifndef SKI_CON_H
 #define SKI_CON_H
 
+#include <adt/circ_buf.h>
 #include <async.h>
 #include <ddf/driver.h>
+#include <io/chardev_srv.h>
 #include <loc.h>
 #include <stdint.h>
+
+enum {
+	ski_con_buf_size = 64
+};
 
 /** Ski console */
 typedef struct {
 	async_sess_t *client_sess;
 	ddf_dev_t *dev;
+	chardev_srvs_t cds;
+	circ_buf_t cbuf;
+	uint8_t buf[ski_con_buf_size];
+	fibril_mutex_t buf_lock;
+	fibril_condvar_t buf_cv;
 } ski_con_t;
 
 extern int ski_con_add(ski_con_t *);

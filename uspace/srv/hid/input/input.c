@@ -36,32 +36,33 @@
 /** @file
  */
 
-#include <adt/list.h>
-#include <stdbool.h>
-#include <fibril_synch.h>
-#include <ipc/services.h>
-#include <ipc/input.h>
-#include <config.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ns.h>
-#include <async.h>
-#include <errno.h>
 #include <adt/fifo.h>
+#include <adt/list.h>
+#include <async.h>
+#include <config.h>
+#include <errno.h>
+#include <fibril.h>
+#include <fibril_synch.h>
+#include <io/chardev.h>
 #include <io/console.h>
 #include <io/keycode.h>
+#include <ipc/services.h>
+#include <ipc/input.h>
 #include <loc.h>
+#include <ns.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <str_error.h>
-#include <char_dev_iface.h>
-#include <fibril.h>
-#include "layout.h"
+
+#include "input.h"
 #include "kbd.h"
 #include "kbd_port.h"
 #include "kbd_ctl.h"
+#include "layout.h"
 #include "mouse.h"
 #include "mouse_proto.h"
 #include "serial.h"
-#include "input.h"
 
 #define NUM_LAYOUTS  4
 
@@ -363,8 +364,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static void kconsole_event_handler(ipc_callid_t callid, ipc_call_t *call,
-    void *arg)
+static void kconsole_event_handler(ipc_call_t *call, void *arg)
 {
 	if (IPC_GET_ARG1(*call)) {
 		/* Kernel console activated */
@@ -457,34 +457,6 @@ fail:
 	free(kdev);
 }
 
-/** Add new legacy mouse device. */
-static void mouse_add_dev(mouse_port_ops_t *port, mouse_proto_ops_t *proto)
-{
-	mouse_dev_t *mdev = mouse_dev_new();
-	if (mdev == NULL)
-		return;
-	
-	mdev->port_ops = port;
-	mdev->proto_ops = proto;
-	mdev->svc_id = 0;
-	
-	/* Initialize port driver. */
-	if ((*mdev->port_ops->init)(mdev) != 0)
-		goto fail;
-	
-	/* Initialize protocol driver. */
-	if ((*mdev->proto_ops->init)(mdev) != 0) {
-		/* XXX Uninit port */
-		goto fail;
-	}
-	
-	list_append(&mdev->link, &mouse_devs);
-	return;
-	
-fail:
-	free(mdev);
-}
-
 /** Add new kbdev device.
  *
  * @param service_id Service ID of the keyboard device
@@ -513,7 +485,7 @@ static int kbd_add_kbdev(service_id_t service_id, kbd_dev_t **kdevp)
 	
 	list_append(&kdev->link, &kbd_devs);
 	*kdevp = kdev;
-	return EOK;
+	return 0;
 	
 fail:
 	if (kdev->svc_name != NULL)
@@ -550,7 +522,7 @@ static int mouse_add_mousedev(service_id_t service_id, mouse_dev_t **mdevp)
 	
 	list_append(&mdev->link, &mouse_devs);
 	*mdevp = mdev;
-	return EOK;
+	return 0;
 	
 fail:
 	free(mdev);
@@ -563,8 +535,10 @@ static int serial_consumer(void *arg)
 
 	while (true) {
 		uint8_t data;
+		size_t nread;
 
-		char_dev_read(sdev->sess, &data, sizeof(data));
+		chardev_read(sdev->chardev, &data, sizeof(data), &nread);
+		/* XXX Handle error */
 		kbd_push_data(sdev->kdev, data);
 	}
 
@@ -579,6 +553,7 @@ static int serial_consumer(void *arg)
 static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 {
 	bool match = false;
+	int rc;
 
 	serial_dev_t *sdev = serial_dev_new();
 	if (sdev == NULL)
@@ -586,7 +561,7 @@ static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 	
 	sdev->kdev->svc_id = service_id;
 	
-	int rc = loc_service_get_name(service_id, &sdev->kdev->svc_name);
+	rc = loc_service_get_name(service_id, &sdev->kdev->svc_name);
 	if (rc != EOK)
 		goto fail;
 
@@ -610,12 +585,20 @@ static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 		sdev->sess = loc_service_connect(service_id, INTERFACE_DDF,
 		    IPC_FLAG_BLOCKING);
 
+		rc = chardev_open(sdev->sess, &sdev->chardev);
+		if (rc != EOK) {
+			async_hangup(sdev->sess);
+			sdev->sess = NULL;
+			list_remove(&sdev->link);
+			goto fail;
+		}
+
 		fid_t fid = fibril_create(serial_consumer, sdev);
 		fibril_add_ready(fid);
 	}
 	
 	*sdevp = sdev;
-	return EOK;
+	return 0;
 	
 fail:
 	if (sdev->kdev->svc_name != NULL)
@@ -642,28 +625,11 @@ static void kbd_add_legacy_devs(void)
 #if defined(MACHINE_msim)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
-#if defined(UARCH_ppc32)
-	kbd_add_dev(&adb_port, &apple_ctl);
-#endif
 #if defined(UARCH_sparc64) && defined(PROCESSOR_sun4v)
 	kbd_add_dev(&chardev_port, &stty_ctl);
 #endif
 	/* Silence warning on abs32le about kbd_add_dev() being unused */
 	(void) kbd_add_dev;
-}
-
-/** Add legacy drivers/devices. */
-static void mouse_add_legacy_devs(void)
-{
-	/*
-	 * Need to add these drivers based on config unless we can probe
-	 * them automatically.
-	 */
-#if defined(UARCH_ppc32)
-	mouse_add_dev(&adb_mouse_port, &adb_proto);
-#endif
-	/* Silence warning on abs32le about mouse_add_dev() being unused */
-	(void) mouse_add_dev;
 }
 
 static int dev_check_new_kbdevs(void)
@@ -703,7 +669,7 @@ static int dev_check_new_kbdevs(void)
 		
 		if (!already_known) {
 			kbd_dev_t *kdev;
-			if (kbd_add_kbdev(svcs[i], &kdev) == EOK) {
+			if (kbd_add_kbdev(svcs[i], &kdev) == 0) {
 				printf("%s: Connected keyboard device '%s'\n",
 				    NAME, kdev->svc_name);
 			}
@@ -754,7 +720,7 @@ static int dev_check_new_mousedevs(void)
 		
 		if (!already_known) {
 			mouse_dev_t *mdev;
-			if (mouse_add_mousedev(svcs[i], &mdev) == EOK) {
+			if (mouse_add_mousedev(svcs[i], &mdev) == 0) {
 				printf("%s: Connected mouse device '%s'\n",
 				    NAME, mdev->svc_name);
 			}
@@ -805,7 +771,7 @@ static int dev_check_new_serialdevs(void)
 		
 		if (!already_known) {
 			serial_dev_t *sdev;
-			if (serial_add_srldev(svcs[i], &sdev) == EOK) {
+			if (serial_add_srldev(svcs[i], &sdev) == 0) {
 				printf("%s: Connected serial device '%s'\n",
 				    NAME, sdev->kdev->svc_name);
 			}
@@ -860,8 +826,8 @@ static int input_start_dev_discovery(void)
 {
 	int rc = loc_register_cat_change_cb(cat_change_cb);
 	if (rc != EOK) {
-		printf("%s: Failed registering callback for device discovery. "
-		    "(%d)\n", NAME, rc);
+		printf("%s: Failed registering callback for device discovery: "
+		    "%s\n", NAME, str_error(rc));
 		return rc;
 	}
 	
@@ -893,9 +859,6 @@ int main(int argc, char **argv)
 	
 	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();
-	
-	/* Add legacy mouse devices. */
-	mouse_add_legacy_devs();
 	
 	/* Register driver */
 	async_set_client_data_constructor(client_data_create);

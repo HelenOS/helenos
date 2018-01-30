@@ -959,7 +959,7 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 			int ret = _condvar_wait_timeout_spinlock(&rcu.gp_ended, &rcu.gp_lock, 
 				SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 			
-			if (ret == ESYNCH_INTERRUPTED) {
+			if (ret == EINTR) {
 				spinlock_unlock(&rcu.gp_lock);
 				return false;			
 			}
@@ -1017,13 +1017,13 @@ static bool gp_sleep(bool *expedite)
 			DETECT_SLEEP_MS * 1000, SYNCH_FLAGS_INTERRUPTIBLE);
 
 		/* rcu.expedite_now was signaled. */
-		if (ret == ESYNCH_OK_BLOCKED) {
+		if (ret == EOK) {
 			*expedite = true;
 		}
 
 		spinlock_unlock(&rcu.gp_lock);
 
-		return (ret != ESYNCH_INTERRUPTED);
+		return (ret != EINTR);
 	}
 }
 
@@ -1270,7 +1270,7 @@ static bool cv_wait_for_gp(rcu_gp_t wait_on_gp)
 	while (rcu.completed_gp < wait_on_gp && !interrupted) {
 		int ret = _condvar_wait_timeout_spinlock(&rcu.gp_ended, &rcu.gp_lock, 
 			SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
-		interrupted = (ret == ESYNCH_INTERRUPTED);
+		interrupted = (ret == EINTR);
 	}
 	
 	return interrupted;
@@ -1331,7 +1331,7 @@ static bool wait_for_detect_req(void)
 		int ret = _condvar_wait_timeout_spinlock(&rcu.req_gp_changed, 
 			&rcu.gp_lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 		
-		interrupted = (ret == ESYNCH_INTERRUPTED);
+		interrupted = (ret == EINTR);
 	}
 	
 	return !interrupted;
@@ -1405,7 +1405,7 @@ static bool gp_sleep(void)
 	
 	spinlock_unlock(&rcu.gp_lock);
 	
-	return (ret != ESYNCH_INTERRUPTED);
+	return (ret != EINTR);
 }
 
 /** Actively interrupts and checks the offending cpus for quiescent states. */

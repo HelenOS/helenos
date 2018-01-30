@@ -34,7 +34,7 @@
 
 #include <usb/dev/pipes.h>
 #include <usb/debug.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <errno.h>
 #include "ath_usb.h"
 
@@ -55,7 +55,7 @@ static ath_ops_t ath_usb_ops = {
  * @param ath Generic Atheros WiFi device structure.
  * @param usb_device  Connected USB device.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int ath_usb_init(ath_t *ath, usb_device_t *usb_device, const usb_endpoint_description_t **endpoints)
@@ -106,7 +106,7 @@ err_ath_usb:
  * @param buffer      Buffer with data to send.
  * @param buffer_size Buffer size.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ath_usb_send_ctrl_message(ath_t *ath, void *buffer,
@@ -123,7 +123,7 @@ static int ath_usb_send_ctrl_message(ath_t *ath, void *buffer,
  * @param buffer_size      Buffer size.
  * @param transferred_size Real size of read data.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
@@ -139,7 +139,7 @@ static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
  * @param buffer      Buffer with data to send.
  * @param buffer_size Buffer size.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ath_usb_send_data_message(ath_t *ath, void *buffer,
@@ -172,7 +172,7 @@ static int ath_usb_send_data_message(ath_t *ath, void *buffer,
  * @param buffer_size      Buffer size.
  * @param transferred_size Real size of read data.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int ath_usb_read_data_message(ath_t *ath, void *buffer,

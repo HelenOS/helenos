@@ -42,12 +42,13 @@ PROFILES = \
 	ia64/i460GX \
 	ia64/ski \
 	mips32/malta-be \
+	mips32/malta-le \
 	mips32/msim \
 	ppc32 \
 	sparc64/niagara \
 	sparc64/ultra
 
-BZR = bzr
+GIT = git
 TAR = tar
 
 # To determine IMG_FILE
@@ -81,6 +82,8 @@ $(IMG_FILE):
 	$(MAKE) -r -C $(EXPORT_DIR)
 
 release: src_rel
+	mkdir -p $(EXPORT_DIR)/uspace/overlay
+	(cd ..; tools/cc.sh) >$(EXPORT_DIR)/uspace/overlay/COPYRIGHT
 	for profile in $(PROFILES); do \
 		$(MAKE) -r -C $(EXPORT_DIR) distclean ; \
 		$(MAKE) -r -C $(EXPORT_DIR) PROFILE=$$profile ; \
@@ -90,7 +93,7 @@ release: src_rel
 $(EXPORT_DIR) export:
 	rm -rf $(EXPORT_DIR)
 	mkdir -p $(EXPORT_DIR)
-	$(BZR) export $(EXPORT_DIR) ../
+	(cd ..; $(GIT) archive master) | $(TAR) -x -C $(EXPORT_DIR)
 
 src_rel $(SRC_ARCHIVE): export
 	$(TAR) -C $(shell dirname $(EXPORT_DIR)) \

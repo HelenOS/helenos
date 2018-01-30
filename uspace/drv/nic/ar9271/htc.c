@@ -35,6 +35,7 @@
 #include <usb/debug.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <str_error.h>
 #include "wmi.h"
 #include "htc.h"
 #include "nic/nic.h"
@@ -148,7 +149,7 @@ static void htc_config_frame_header(htc_frame_header_t *header,
  * @param buffer_size Size of buffer (including HTC frame header).
  * @param endpoint_id Destination endpoint.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_send_control_message(htc_device_t *htc_device, void *buffer,
@@ -171,7 +172,7 @@ int htc_send_control_message(htc_device_t *htc_device, void *buffer,
  * @param buffer_size Size of buffer (including HTC frame header).
  * @param endpoint_id Destination endpoint.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_send_data_message(htc_device_t *htc_device, void *buffer,
@@ -194,7 +195,7 @@ int htc_send_data_message(htc_device_t *htc_device, void *buffer,
  * @param buffer_size      Size of buffer.
  * @param transferred_size Real size of read data.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_read_data_message(htc_device_t *htc_device, void *buffer,
@@ -214,7 +215,7 @@ int htc_read_data_message(htc_device_t *htc_device, void *buffer,
  * @param buffer_size      Size of buffer.
  * @param transferred_size Real size of read data.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_read_control_message(htc_device_t *htc_device, void *buffer,
@@ -234,7 +235,7 @@ int htc_read_control_message(htc_device_t *htc_device, void *buffer,
  *                             this service.
  *
  * @return EOK if succeed, EINVAL when failed to connect service,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 static int htc_connect_service(htc_device_t *htc_device,
@@ -263,7 +264,7 @@ static int htc_connect_service(htc_device_t *htc_device,
 	    htc_device->endpoints.ctrl_endpoint);
 	if (rc != EOK) {
 		free(buffer);
-		usb_log_error("Failed to send HTC message. Error: %d\n", rc);
+		usb_log_error("Failed to send HTC message. Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -277,7 +278,7 @@ static int htc_connect_service(htc_device_t *htc_device,
 	if (rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to receive HTC service connect response. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -307,7 +308,7 @@ static int htc_connect_service(htc_device_t *htc_device,
  *
  * @param htc_device HTC device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int htc_config_credits(htc_device_t *htc_device)
@@ -330,7 +331,7 @@ static int htc_config_credits(htc_device_t *htc_device)
 	if (rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to send HTC config message. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -343,7 +344,7 @@ static int htc_config_credits(htc_device_t *htc_device)
 	rc = htc_read_control_message(htc_device, buffer, buffer_size, NULL);
 	if (rc != EOK) {
 		usb_log_error("Failed to receive HTC config response message. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 	}
 	
 	free(buffer);
@@ -355,7 +356,7 @@ static int htc_config_credits(htc_device_t *htc_device)
  *
  * @param htc_device HTC device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 static int htc_complete_setup(htc_device_t *htc_device)
@@ -375,7 +376,7 @@ static int htc_complete_setup(htc_device_t *htc_device)
 	    htc_device->endpoints.ctrl_endpoint);
 	if (rc != EOK)
 		usb_log_error("Failed to send HTC setup complete message. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 	
 	free(buffer);
 	
@@ -389,7 +390,7 @@ static int htc_complete_setup(htc_device_t *htc_device)
  * @param htc_device HTC device structure.
  *
  * @return EOK if succeed, EINVAL if response error,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 static int htc_check_ready(htc_device_t *htc_device)
@@ -403,7 +404,7 @@ static int htc_check_ready(htc_device_t *htc_device)
 	if (rc != EOK) {
 		free(buffer);
 		usb_log_error("Failed to receive HTC check ready message. "
-		    "Error: %d\n", rc);
+		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
 	
@@ -425,7 +426,7 @@ static int htc_check_ready(htc_device_t *htc_device)
  *                   with this HTC device.
  * @param htc_device HTC device structure to be initialized.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev,
@@ -446,7 +447,7 @@ int htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev,
  *
  * @param htc_device HTC device structure.
  *
- * @return EOK if succeed, negative error code otherwise.
+ * @return EOK if succeed, error code otherwise.
  *
  */
 int htc_init(htc_device_t *htc_device)

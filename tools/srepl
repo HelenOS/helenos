@@ -1,0 +1,38 @@
+#!/bin/sh
+
+function usage {
+	echo "Usage:"
+	echo
+	echo "	$0 search_pattern [-- <pathspec> ]"
+	echo "	$0 search_pattern replacement [-- <pathspec> ]"
+	echo
+	echo "Pattern should be a basic regexp as accepted by grep and sed."
+	echo "For information on pathspec syntax, see git documentation."
+	echo
+	exit 1
+}
+
+
+if [ "$1" == "--" ]; then
+	usage
+elif [ "$#" -eq 1 ]  || [ "$2" == "--" ]; then
+	pattern="$1"
+	shift
+	git grep -I -n "$pattern" "$@"
+elif [ "$#" -eq 2 ] || [ "$3" == "--" ]; then
+
+	if ( git status --porcelain | grep '^.[^ ]' ); then
+		echo "You have unstaged changes in your tree."
+		echo "Either stage them with 'git add', commit them,"
+		echo "or discard them with 'git checkout -- .'"
+		exit 1
+	fi
+
+	pattern="$1"
+	replacement="$2"
+	shift
+	shift
+	git grep -I -l "$pattern" "$@" | xargs sed -i "s/$pattern/$replacement/g"
+else
+	usage
+fi

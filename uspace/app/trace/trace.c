@@ -37,6 +37,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <str_error.h>
 #include <inttypes.h>
 #include <fibril.h>
 #include <errno.h>
@@ -61,7 +62,6 @@
 
 #include "syscalls.h"
 #include "ipcp.h"
-#include "errors.h"
 #include "trace.h"
 
 #define THBUF_SIZE 64
@@ -156,19 +156,19 @@ static int connect_task(task_id_t task_id)
 		}
 		
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%" PRIu64 ") -> %d ", task_id, errno);
+		printf("ipc_connect_task(%" PRIu64 ") -> %s ", task_id, str_error_name(errno));
 		return errno;
 	}
 	
 	int rc = udebug_begin(ksess);
-	if (rc < 0) {
-		printf("udebug_begin() -> %d\n", rc);
+	if (rc != EOK) {
+		printf("udebug_begin() -> %s\n", str_error_name(rc));
 		return rc;
 	}
 	
 	rc = udebug_set_evmask(ksess, UDEBUG_EM_ALL);
-	if (rc < 0) {
-		printf("udebug_set_evmask(0x%x) -> %d\n ", UDEBUG_EM_ALL, rc);
+	if (rc != EOK) {
+		printf("udebug_set_evmask(0x%x) -> %s\n ", UDEBUG_EM_ALL, str_error_name(rc));
 		return rc;
 	}
 	
@@ -185,8 +185,8 @@ static int get_thread_list(void)
 
 	rc = udebug_thread_read(sess, thread_hash_buf,
 		THBUF_SIZE*sizeof(unsigned), &tb_copied, &tb_needed);
-	if (rc < 0) {
-		printf("udebug_thread_read() -> %d\n", rc);
+	if (rc != EOK) {
+		printf("udebug_thread_read() -> %s\n", str_error_name(rc));
 		return rc;
 	}
 
@@ -224,8 +224,8 @@ void val_print(sysarg_t val, val_type_t v_type)
 	case V_ERRNO:
 		if (sval >= -15 && sval <= 0) {
 			printf("%ld %s (%s)", sval,
-			    err_desc[-sval].name,
-			    err_desc[-sval].desc);
+			    str_error_name((int) sval),
+			    str_error((int) sval));
 		} else {
 			printf("%ld", sval);
 		}
@@ -233,8 +233,8 @@ void val_print(sysarg_t val, val_type_t v_type)
 	case V_INT_ERRNO:
 		if (sval >= -15 && sval < 0) {
 			printf("%ld %s (%s)", sval,
-			    err_desc[-sval].name,
-			    err_desc[-sval].desc);
+			    str_error_name((int) sval),
+			    str_error((int) sval));
 		} else {
 			printf("%ld", sval);
 		}
@@ -278,12 +278,12 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 	putchar(')');
 }
 
-static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
+static void sc_ipc_call_async_fast(sysarg_t *sc_args, int sc_rc)
 {
 	ipc_call_t call;
 	sysarg_t phoneid;
 	
-	if (sc_rc == (sysarg_t) IPC_CALLRET_FATAL)
+	if (sc_rc != EOK)
 		return;
 
 	phoneid = sc_args[0];
@@ -295,22 +295,22 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 	IPC_SET_ARG4(call, sc_args[5]);
 	IPC_SET_ARG5(call, 0);
 
-	ipcp_call_out(phoneid, &call, sc_rc);
+	ipcp_call_out(phoneid, &call, 0);
 }
 
-static void sc_ipc_call_async_slow(sysarg_t *sc_args, sysarg_t sc_rc)
+static void sc_ipc_call_async_slow(sysarg_t *sc_args, int sc_rc)
 {
 	ipc_call_t call;
 	int rc;
 
-	if (sc_rc == (sysarg_t) IPC_CALLRET_FATAL)
+	if (sc_rc != EOK)
 		return;
 
 	memset(&call, 0, sizeof(call));
 	rc = udebug_mem_read(sess, &call.args, sc_args[1], sizeof(call.args));
 
-	if (rc >= 0) {
-		ipcp_call_out(sc_args[0], &call, sc_rc);
+	if (rc == EOK) {
+		ipcp_call_out(sc_args[0], &call, 0);
 	}
 }
 
@@ -324,7 +324,7 @@ static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
 	memset(&call, 0, sizeof(call));
 	rc = udebug_mem_read(sess, &call, sc_args[0], sizeof(call));
 	
-	if (rc >= 0)
+	if (rc == EOK)
 		ipcp_call_in(&call, sc_rc);
 }
 
@@ -337,7 +337,7 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
 	/* Read syscall arguments */
 	rc = udebug_args_read(sess, thread_hash, sc_args);
 
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("error\n");
 		return;
 	}
@@ -367,7 +367,7 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 
 //	printf("[%d] ", thread_id);
 
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("error\n");
 		return;
 	}
@@ -444,7 +444,7 @@ static int trace_loop(void *thread_hash_arg)
 			break;
 		}
 
-		if (rc >= 0) {
+		if (rc == EOK) {
 			switch (ev_type) {
 			case UDEBUG_EVENT_SYSCALL_B:
 				event_syscall_b(thread_id, thread_hash, val0, (int)val1);
@@ -580,7 +580,7 @@ static int cev_fibril(void *arg)
 		fibril_mutex_unlock(&state_lock);
 		
 		if (!console_get_event(console, &event))
-			return -1;
+			return EINVAL;
 		
 		if (event.type == CEV_KEY) {
 			fibril_mutex_lock(&state_lock);
@@ -602,8 +602,8 @@ static void trace_task(task_id_t task_id)
 	ipcp_init();
 
 	rc = get_thread_list();
-	if (rc < 0) {
-		printf("Failed to get thread list (error %d)\n", rc);
+	if (rc != EOK) {
+		printf("Failed to get thread list (%s)\n", str_error(rc));
 		return;
 	}
 
@@ -642,7 +642,7 @@ static void trace_task(task_id_t task_id)
 			printf("Pause...\n");
 			rc = udebug_stop(sess, thash);
 			if (rc != EOK)
-				printf("Error: stop -> %d\n", rc);
+				printf("Error: stop -> %s\n", str_error_name(rc));
 			break;
 		case KC_R:
 			fibril_mutex_lock(&state_lock);
@@ -858,7 +858,7 @@ int main(int argc, char *argv[])
 	main_init();
 
 	rc = connect_task(task_id);
-	if (rc < 0) {
+	if (rc != EOK) {
 		printf("Failed connecting to task %" PRIu64 ".\n", task_id);
 		return 1;
 	}

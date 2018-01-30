@@ -35,8 +35,8 @@
  */
 
 #include <stdint.h>
-#include <malloc.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include "../gfx/font-8x16.h"
 #include "embedded.h"

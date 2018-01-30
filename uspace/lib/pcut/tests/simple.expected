@@ -7,3 +7,4 @@ not ok 2 one_exponent failed
 not ok 3 same_strings failed
 # error: simple.c:46: Expected <abc> but got <abd> ("abc" != "XXXabd" + 3)
 #> Finished suite Default (failed 3 of 3).
+#> Done: 3 of 3 tests failed.

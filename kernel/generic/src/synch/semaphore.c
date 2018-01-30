@@ -72,7 +72,7 @@ void semaphore_initialize(semaphore_t *sem, int val)
  */
 int _semaphore_down_timeout(semaphore_t *sem, uint32_t usec, unsigned int flags)
 {
-	return waitq_sleep_timeout(&sem->wq, usec, flags);
+	return waitq_sleep_timeout(&sem->wq, usec, flags, NULL);
 }
 
 /** Semaphore up

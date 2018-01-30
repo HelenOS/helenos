@@ -38,7 +38,6 @@
 #include <errno.h>
 #include <ddi.h>
 #include <as.h>
-#include <sysinfo.h>
 #include <libarch/barrier.h>
 #include <stdio.h>
 #include <ddf/driver.h>
@@ -190,7 +189,7 @@ rtc_pio_enable(rtc_t *rtc)
  *
  * @param rtc  Pointer to the RTC device
  *
- * @return  EOK on success or a negative error code
+ * @return  EOK on success or an error code
  */ 
 static int
 rtc_dev_initialize(rtc_t *rtc)
@@ -314,7 +313,7 @@ rtc_update_in_progress(rtc_t *rtc)
  * @param fun  The RTC function
  * @param t    Pointer to the time variable
  *
- * @return  EOK on success or a negative error code
+ * @return  EOK on success or an error code
  */
 static int
 rtc_time_get(ddf_fun_t *fun, struct tm *t)
@@ -436,7 +435,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
  * @param fun  The RTC function
  * @param t    The time value to set
  *
- * @return  EOK or a negative error code
+ * @return  EOK or an error code
  */
 static int
 rtc_time_set(ddf_fun_t *fun, struct tm *t)
@@ -544,7 +543,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
  * @param fun    The RTC function
  * @param status The status of the battery
  *
- * @return       EOK on success or a negative error code
+ * @return       EOK on success or an error code
  */
 static int
 rtc_battery_status_get(ddf_fun_t *fun, battery_status_t *status)
@@ -577,7 +576,7 @@ is_battery_ok(rtc_t *rtc)
  *
  * @param dev  The RTC device
  *
- * @return  EOK on success or a negative error code
+ * @return  EOK on success or an error code
  */
 static int
 rtc_dev_add(ddf_dev_t *dev)
@@ -643,7 +642,7 @@ error:
  *
  * @param dev   The RTC device
  *
- * @return      EOK on success or a negative error code
+ * @return      EOK on success or an error code
  */
 static int
 rtc_dev_remove(ddf_dev_t *dev)
@@ -682,7 +681,7 @@ rtc_dev_remove(ddf_dev_t *dev)
  *
  * @param fun   The function node
  *
- * @return  EOK on success or a negative error code
+ * @return  EOK on success or an error code
  */
 static int
 rtc_open(ddf_fun_t *fun)

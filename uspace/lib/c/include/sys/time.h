@@ -92,8 +92,8 @@ extern int time_tv2tm(const struct timeval *, struct tm *);
 extern int time_local2tm(const time_t, struct tm *);
 extern int time_local2str(const time_t, char *);
 extern double difftime(time_t, time_t);
-extern size_t strftime(char *restrict, size_t, const char *restrict,
-    const struct tm *restrict);
+extern size_t strftime(char *__restrict__, size_t, const char *__restrict__,
+    const struct tm *__restrict__);
 
 #endif
 

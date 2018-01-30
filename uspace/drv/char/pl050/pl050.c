@@ -34,6 +34,7 @@
 #include <bitops.h>
 #include <stdio.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
 #include <ddf/log.h>
@@ -53,8 +54,8 @@ static int pl050_dev_add(ddf_dev_t *);
 static int pl050_fun_online(ddf_fun_t *);
 static int pl050_fun_offline(ddf_fun_t *);
 static void pl050_char_conn(ipc_callid_t, ipc_call_t *, void *);
-static int pl050_read(chardev_srv_t *, void *, size_t);
-static int pl050_write(chardev_srv_t *, const void *, size_t);
+static int pl050_read(chardev_srv_t *, void *, size_t, size_t *);
+static int pl050_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &pl050_dev_add,
@@ -136,7 +137,7 @@ static pl050_t *pl050_from_fun(ddf_fun_t *fun)
 	return (pl050_t *)ddf_dev_data_get(ddf_fun_get_dev(fun));
 }
 
-static void pl050_interrupt(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
+static void pl050_interrupt(ipc_call_t *call, ddf_dev_t *dev)
 {
 	pl050_t *pl050 = (pl050_t *)ddf_dev_data_get(dev);
 	size_t nidx;
@@ -211,18 +212,18 @@ static int pl050_init(pl050_t *pl050)
 
 	pl050->regs = regs;
 
-	const int irq_cap = register_interrupt_handler(pl050->dev,
-	    res.irqs.irqs[0], pl050_interrupt, &pl050_irq_code);
-	if (irq_cap < 0) {
-		rc = irq_cap;
-		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
-		    rc);
+	int irq_cap;
+	rc = register_interrupt_handler(pl050->dev,
+	    res.irqs.irqs[0], pl050_interrupt, &pl050_irq_code, &irq_cap);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%s)",
+		    str_error_name(rc));
 		goto error;
 	}
 
 	rc = hw_res_enable_interrupt(pl050->parent_sess, res.irqs.irqs[0]);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed enabling interrupt. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed enabling interrupt: %s", str_error(rc));
 		goto error;
 	}
 
@@ -235,7 +236,8 @@ error:
 	return rc;
 }
 
-static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
+static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size,
+    size_t *nread)
 {
 	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
 	uint8_t *bp = buffer;
@@ -245,8 +247,10 @@ static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
 
 	left = size;
 	while (left > 0) {
-		while (pl050->buf_rp == pl050->buf_wp)
+		while (left == size && pl050->buf_rp == pl050->buf_wp)
 			fibril_condvar_wait(&pl050->buf_cv, &pl050->buf_lock);
+		if (pl050->buf_rp == pl050->buf_wp)
+			break;
 		*bp++ = pl050->buffer[pl050->buf_rp];
 		--left;
 		pl050->buf_rp = (pl050->buf_rp + 1) % buffer_size;
@@ -254,10 +258,12 @@ static int pl050_read(chardev_srv_t *srv, void *buffer, size_t size)
 
 	fibril_mutex_unlock(&pl050->buf_lock);
 
-	return size;
+	*nread = size - left;
+	return EOK;
 }
 
-static int pl050_write(chardev_srv_t *srv, const void *data, size_t size)
+static int pl050_write(chardev_srv_t *srv, const void *data, size_t size,
+    size_t *nwritten)
 {
 	pl050_t *pl050 = (pl050_t *)srv->srvs->sarg;
 	uint8_t *dp = (uint8_t *)data;
@@ -275,7 +281,8 @@ static int pl050_write(chardev_srv_t *srv, const void *data, size_t size)
 	}
 	ddf_msg(LVL_NOTE, "%s/pl050_write() success", pl050->name);
 
-	return size;
+	*nwritten = size;
+	return EOK;
 }
 
 void pl050_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
@@ -342,7 +349,7 @@ static int pl050_dev_add(ddf_dev_t *dev)
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed binding function 'a': %s", str_error(rc));
 		ddf_fun_destroy(fun_a);
 		goto error;
 	}

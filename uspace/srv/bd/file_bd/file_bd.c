@@ -47,6 +47,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdbool.h>
 #include <task.h>
 #include <macros.h>
@@ -133,21 +134,21 @@ int main(int argc, char **argv)
 
 	rc = loc_service_register(device_name, &service_id);
 	if (rc != EOK) {
-		printf("%s: Unable to register device '%s'.\n",
-		    NAME, device_name);
+		printf("%s: Unable to register device '%s': %s.\n",
+		    NAME, device_name, str_error(rc));
 		return rc;
 	}
 
 	rc = loc_category_get_id("disk", &disk_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
-		printf("%s: Failed resolving category 'disk'.\n", NAME);
+		printf("%s: Failed resolving category 'disk': %s\n", NAME, str_error(rc));
 		return rc;
 	}
 
 	rc = loc_service_add_to_cat(service_id, disk_cat);
 	if (rc != EOK) {
-		printf("%s: Failed adding %s to category.",
-		    NAME, device_name);
+		printf("%s: Failed adding %s to category: %s",
+		    NAME, device_name, str_error(rc));
 		return rc;
 	}
 
@@ -220,7 +221,6 @@ static int file_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
     size_t size)
 {
 	size_t n_rd;
-	int rc;
 
 	if (size < cnt * block_size)
 		return EINVAL;
@@ -236,8 +236,7 @@ static int file_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
 	fibril_mutex_lock(&dev_lock);
 
 	clearerr(img);
-	rc = fseek(img, ba * block_size, SEEK_SET);
-	if (rc < 0) {
+	if (fseek(img, ba * block_size, SEEK_SET) < 0) {
 		fibril_mutex_unlock(&dev_lock);
 		return EIO;
 	}
@@ -262,7 +261,6 @@ static int file_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	size_t n_wr;
-	int rc;
 
 	if (size < cnt * block_size)
 		return EINVAL;
@@ -278,8 +276,7 @@ static int file_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 	fibril_mutex_lock(&dev_lock);
 
 	clearerr(img);
-	rc = fseek(img, ba * block_size, SEEK_SET);
-	if (rc < 0) {
+	if (fseek(img, ba * block_size, SEEK_SET) < 0) {
 		fibril_mutex_unlock(&dev_lock);
 		return EIO;
 	}

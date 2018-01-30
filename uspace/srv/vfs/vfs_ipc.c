@@ -40,8 +40,9 @@ static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
 	int newfd = IPC_GET_ARG2(*request);
 	bool desc = IPC_GET_ARG3(*request);
 	
-	int ret = vfs_op_clone(oldfd, newfd, desc);
-	async_answer_0(rid, ret);
+	int outfd = -1;
+	int rc = vfs_op_clone(oldfd, newfd, desc, &outfd);
+	async_answer_1(rid, rc, outfd);
 }
 
 static void vfs_in_fsprobe(ipc_callid_t rid, ipc_call_t *request)
@@ -278,8 +279,9 @@ static void vfs_in_unmount(ipc_callid_t rid, ipc_call_t *request)
 static void vfs_in_wait_handle(ipc_callid_t rid, ipc_call_t *request)
 {
 	bool high_fd = IPC_GET_ARG1(*request);
-	int fd = vfs_op_wait_handle(high_fd);
-	async_answer_1(rid, EOK, fd);
+	int fd = -1;
+	int rc = vfs_op_wait_handle(high_fd, &fd);
+	async_answer_1(rid, rc, fd);
 }
 
 static void vfs_in_walk(ipc_callid_t rid, ipc_call_t *request)

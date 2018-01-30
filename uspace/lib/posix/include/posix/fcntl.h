@@ -40,7 +40,6 @@
 #endif
 
 #include "sys/types.h"
-#include "errno.h"
 
 #undef O_CREAT
 #undef O_EXCL

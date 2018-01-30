@@ -51,13 +51,11 @@
  *
  * @param name Symbolic name to set on the newly created task.
  *
- * @return Pointer to the loader connection structure (should be
- *         deallocated using free() after use).
- *
+ * @return Error code.
  */
 int loader_spawn(const char *name)
 {
-	return __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
+	return (int) __SYSCALL2(SYS_PROGRAM_SPAWN_LOADER,
 	    (sysarg_t) name, str_size(name));
 }
 
@@ -85,7 +83,7 @@ loader_t *loader_connect(void)
  * @param ldr     Loader connection structure.
  * @param task_id Points to a variable where the ID should be stored.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
@@ -95,7 +93,7 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_GET_TASKID, &answer);
-	sysarg_t rc = async_data_read_start(exch, task_id, sizeof(task_id_t));
+	int rc = async_data_read_start(exch, task_id, sizeof(task_id_t));
 	
 	async_exchange_end(exch);
 	
@@ -114,7 +112,7 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
  *
  * @param ldr  Loader connection structure.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_set_cwd(loader_t *ldr)
@@ -132,7 +130,7 @@ int loader_set_cwd(loader_t *ldr)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_CWD, &answer);
-	sysarg_t rc = async_data_write_start(exch, cwd, len);
+	int rc = async_data_write_start(exch, cwd, len);
 	
 	async_exchange_end(exch);
 	free(cwd);
@@ -152,7 +150,7 @@ int loader_set_cwd(loader_t *ldr)
  * @param name Name to set for the spawned program.
  * @param file Program file.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_set_program(loader_t *ldr, const char *name, int file)
@@ -162,7 +160,7 @@ int loader_set_program(loader_t *ldr, const char *name, int file)
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_PROGRAM, &answer);
 
-	sysarg_t rc = async_data_write_start(exch, name, str_size(name) + 1);
+	int rc = async_data_write_start(exch, name, str_size(name) + 1);
 	if (rc == EOK) {
 		async_exch_t *vfs_exch = vfs_exchange_begin();
 		rc = vfs_pass_handle(vfs_exch, file, exch);
@@ -185,7 +183,7 @@ int loader_set_program(loader_t *ldr, const char *name, int file)
  * @param ldr  Loader connection structure.
  * @param path Program path.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_set_program_path(loader_t *ldr, const char *path)
@@ -197,12 +195,13 @@ int loader_set_program_path(loader_t *ldr, const char *path)
 		name++;
 	}
 	
-	int fd = vfs_lookup(path, 0);
-	if (fd < 0) {
-		return fd;
+	int fd;
+	int rc = vfs_lookup(path, 0, &fd);
+	if (rc != EOK) {
+		return rc;
 	}
 	
-	int rc = loader_set_program(ldr, name, fd);
+	rc = loader_set_program(ldr, name, fd);
 	vfs_put(fd);
 	return rc;
 }
@@ -217,7 +216,7 @@ int loader_set_program_path(loader_t *ldr, const char *path)
  * @param ldr  Loader connection structure.
  * @param argv NULL-terminated array of pointers to arguments.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_set_args(loader_t *ldr, const char *const argv[])
@@ -252,7 +251,7 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_ARGS, &answer);
-	sysarg_t rc = async_data_write_start(exch, (void *) arg_buf,
+	int rc = async_data_write_start(exch, (void *) arg_buf,
 	    buffer_size);
 	
 	async_exchange_end(exch);
@@ -273,7 +272,7 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
  * @param name       Identification of the file.
  * @param file       The file's descriptor.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_add_inbox(loader_t *ldr, const char *name, int file)
@@ -283,7 +282,7 @@ int loader_add_inbox(loader_t *ldr, const char *name, int file)
 	
 	aid_t req = async_send_0(exch, LOADER_ADD_INBOX, NULL);
 	
-	sysarg_t rc = async_data_write_start(exch, name, str_size(name) + 1);
+	int rc = async_data_write_start(exch, name, str_size(name) + 1);
 	if (rc == EOK) {
 		rc = vfs_pass_handle(vfs_exch, file, exch);
 	}
@@ -307,7 +306,7 @@ int loader_add_inbox(loader_t *ldr, const char *name, int file)
  *
  * @param ldr Loader connection structure.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_load_program(loader_t *ldr)
@@ -330,7 +329,7 @@ int loader_load_program(loader_t *ldr)
  *
  * @param ldr Loader connection structure.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int loader_run(loader_t *ldr)
@@ -356,7 +355,7 @@ int loader_run(loader_t *ldr)
  *
  * @param ldr Loader connection structure.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 void loader_abort(loader_t *ldr)

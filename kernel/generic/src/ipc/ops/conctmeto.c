@@ -41,12 +41,15 @@
 
 static int request_preprocess(call_t *call, phone_t *phone)
 {
-	cap_handle_t phone_handle = phone_alloc(TASK);
+	cap_handle_t phone_handle;
+	int rc = phone_alloc(TASK, &phone_handle);
 
-	/* Remember the phone capability or the error. */
-	call->priv = phone_handle;
-	if (phone_handle < 0)
-		return phone_handle;
+	/* Remember the phone capability or that an error occured. */
+	call->priv = (rc == EOK) ? phone_handle : -1;
+
+	if (rc != EOK) {
+		return rc;
+	}
 
 	/* Set arg5 for server */
 	kobject_t *phone_obj = kobject_get(TASK, phone_handle,
@@ -60,6 +63,11 @@ static int request_preprocess(call_t *call, phone_t *phone)
 static int request_forget(call_t *call)
 {
 	cap_handle_t phone_handle = (cap_handle_t) call->priv;
+
+	if (phone_handle < 0) {
+		return EOK;
+	}
+
 	phone_dealloc(phone_handle);
 	/* Hand over reference from ARG5 to phone->kobject */
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(call->data);

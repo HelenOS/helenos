@@ -37,6 +37,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <synch/workqueue.h>
 #include <synch/spinlock.h>
 #include <synch/condvar.h>
@@ -255,7 +256,7 @@ static void workq_preinit(struct work_queue *workq, const char *name)
  * Before destroying a work queue it must be stopped via
  * workq_stop().
  */
-int workq_init(struct work_queue *workq, const char *name)
+bool workq_init(struct work_queue *workq, const char *name)
 {
 	workq_preinit(workq, name);
 	return add_worker(workq);
@@ -393,7 +394,7 @@ static void wait_for_workers(struct work_queue *workq)
  * 
  * See workq_enqueue_noblock() for more details.
  */
-int workq_global_enqueue_noblock(work_t *work_item, work_func_t func)
+bool workq_global_enqueue_noblock(work_t *work_item, work_func_t func)
 {
 	return workq_enqueue_noblock(&g_work_queue, work_item, func);
 }
@@ -402,7 +403,7 @@ int workq_global_enqueue_noblock(work_t *work_item, work_func_t func)
  * 
  * See workq_enqueue() for more details.
  */
-int workq_global_enqueue(work_t *work_item, work_func_t func)
+bool workq_global_enqueue(work_t *work_item, work_func_t func)
 {
 	return workq_enqueue(&g_work_queue, work_item, func);
 }
@@ -425,7 +426,7 @@ int workq_global_enqueue(work_t *work_item, work_func_t func)
  *               queued for further processing. 
  * @return true  Otherwise. func() will be invoked in a separate thread.
  */
-int workq_enqueue_noblock(struct work_queue *workq, work_t *work_item, 
+bool workq_enqueue_noblock(struct work_queue *workq, work_t *work_item, 
 	work_func_t func)
 {
 	return _workq_enqueue(workq, work_item, func, false);
@@ -445,7 +446,7 @@ int workq_enqueue_noblock(struct work_queue *workq, work_t *work_item,
  *               queued for further processing. 
  * @return true  Otherwise. func() will be invoked in a separate thread.
  */
-int workq_enqueue(struct work_queue *workq, work_t *work_item, work_func_t func)
+bool workq_enqueue(struct work_queue *workq, work_t *work_item, work_func_t func)
 {
 	return _workq_enqueue(workq, work_item, func, true);
 }
@@ -896,7 +897,7 @@ static bool dequeue_add_req(nonblock_adder_t *info, struct work_queue **pworkq)
 		int ret = _condvar_wait_timeout_irq_spinlock(&info->req_cv, 
 			&info->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 		
-		stop = (ret == ESYNCH_INTERRUPTED);
+		stop = (ret == EINTR);
 	}
 	
 	if (!stop) {

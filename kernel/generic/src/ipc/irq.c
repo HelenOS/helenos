@@ -293,7 +293,7 @@ static void irq_destroy(void *arg)
 
 	/* Free up the IRQ code and associated structures. */
 	code_free(irq->notif_cfg.code);
-	slab_free(irq_slab, irq);
+	slab_free(irq_cache, irq);
 }
 
 static kobject_ops_t irq_kobject_ops = {
@@ -307,12 +307,13 @@ static kobject_ops_t irq_kobject_ops = {
  * @param imethod Interface and method to be associated with the notification.
  * @param ucode   Uspace pointer to top-half IRQ code.
  *
- * @return  IRQ capability handle.
- * @return  Negative error code.
+ * @param[out] uspace_handle  Uspace pointer to IRQ capability handle
+ *
+ * @return  Error code.
  *
  */
 int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
-    irq_code_t *ucode)
+    irq_code_t *ucode, cap_handle_t *uspace_handle)
 {
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;
@@ -328,11 +329,18 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	/*
 	 * Allocate and populate the IRQ kernel object.
 	 */
-	cap_handle_t handle = cap_alloc(TASK);
-	if (handle < 0)
-		return handle;
+	cap_handle_t handle;
+	int rc = cap_alloc(TASK, &handle);
+	if (rc != EOK)
+		return rc;
 	
-	irq_t *irq = (irq_t *) slab_alloc(irq_slab, FRAME_ATOMIC);
+	rc = copy_to_uspace(uspace_handle, &handle, sizeof(cap_handle_t));
+	if (rc != EOK) {
+		cap_free(TASK, handle);
+		return rc;
+	}
+
+	irq_t *irq = (irq_t *) slab_alloc(irq_cache, FRAME_ATOMIC);
 	if (!irq) {
 		cap_free(TASK, handle);
 		return ENOMEM;
@@ -341,7 +349,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	kobject_t *kobject = malloc(sizeof(kobject_t), FRAME_ATOMIC);
 	if (!kobject) {
 		cap_free(TASK, handle);
-		slab_free(irq_slab, irq);
+		slab_free(irq_cache, irq);
 		return ENOMEM;
 	}
 	
@@ -370,7 +378,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	kobject_initialize(kobject, KOBJECT_TYPE_IRQ, irq, &irq_kobject_ops);
 	cap_publish(TASK, handle, kobject);
 	
-	return handle;
+	return EOK;
 }
 
 /** Unsubscribe task from IRQ notification.
@@ -378,7 +386,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
  * @param box     Answerbox associated with the notification.
  * @param handle  IRQ capability handle.
  *
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  *
  */
 int ipc_irq_unsubscribe(answerbox_t *box, int handle)

@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <str_error.h>
 #include <errno.h>
 #include "../tester.h"
 
@@ -41,7 +42,7 @@ const char *test_stdio2(void)
 	errno = 0;
 	file = fopen(file_name, "wt");
 	if (file == NULL) {
-		TPRINTF("errno = %d\n", errno);
+		TPRINTF("errno = %s\n", str_error_name(errno));
 		return "Failed opening file";
 	} else
 		TPRINTF("OK\n");
@@ -52,7 +53,7 @@ const char *test_stdio2(void)
 	
 	TPRINTF("Close...");
 	if (fclose(file) != 0) {
-		TPRINTF("errno = %d\n", errno);
+		TPRINTF("errno = %s\n", str_error_name(errno));
 		return "Failed closing file";
 	} else
 		TPRINTF("OK\n");
@@ -60,7 +61,7 @@ const char *test_stdio2(void)
 	TPRINTF("Open file \"%s\" for reading...", file_name);
 	file = fopen(file_name, "rt");
 	if (file == NULL) {
-		TPRINTF("errno = %d\n", errno);
+		TPRINTF("errno = %s\n", str_error_name(errno));
 		return "Failed opening file";
 	} else
 		TPRINTF("OK\n");
@@ -75,7 +76,7 @@ const char *test_stdio2(void)
 	
 	TPRINTF("\nClose...");
 	if (fclose(file) != 0) {
-		TPRINTF("errno = %d\n", errno);
+		TPRINTF("errno = %s\n", str_error_name(errno));
 		return "Failed closing file";
 	} else
 		TPRINTF("OK\n");

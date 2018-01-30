@@ -35,6 +35,7 @@
 #ifndef KERN_SEMAPHORE_H_
 #define KERN_SEMAPHORE_H_
 
+#include <errno.h>
 #include <stdint.h>
 #include <synch/waitq.h>
 #include <abi/synch.h>
@@ -53,8 +54,8 @@ typedef struct {
 	_semaphore_down_timeout((s), (usec), SYNCH_FLAGS_NONE)
 
 #define semaphore_down_interruptable(s) \
-	(ESYNCH_INTERRUPTED != _semaphore_down_timeout((s), SYNCH_NO_TIMEOUT, \
-		SYNCH_FLAGS_INTERRUPTIBLE))
+	(_semaphore_down_timeout((s), SYNCH_NO_TIMEOUT, \
+		SYNCH_FLAGS_INTERRUPTIBLE) != EINTR)
 
 extern void semaphore_initialize(semaphore_t *, int);
 extern int _semaphore_down_timeout(semaphore_t *, uint32_t, unsigned int);

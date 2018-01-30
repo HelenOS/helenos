@@ -34,6 +34,7 @@ RD_DRVS_ESSENTIAL += \
 	intctl/apic \
 	intctl/i8259 \
 	platform/pc \
+	block/ata_bd \
 	bus/pci/pciintel \
 	bus/isa \
 	audio/sb16 \

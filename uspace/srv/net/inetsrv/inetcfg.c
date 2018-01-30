@@ -363,7 +363,7 @@ static void inetcfg_addr_get_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	async_answer_1(iid, (sysarg_t) rc, ainfo.ilink);
+	async_answer_1(iid, rc, ainfo.ilink);
 }
 
 static void inetcfg_addr_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
@@ -418,7 +418,7 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	act_size = count * sizeof(sysarg_t);
 	size = min(act_size, max_size);
 
-	sysarg_t retval = async_data_read_finalize(rcallid, id_buf, size);
+	int retval = async_data_read_finalize(rcallid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(callid, retval, act_size);
@@ -452,7 +452,7 @@ static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	act_size = count * sizeof(sysarg_t);
 	size = min(act_size, max_size);
 
-	sysarg_t retval = async_data_read_finalize(rcallid, id_buf, size);
+	int retval = async_data_read_finalize(rcallid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(callid, retval, act_size);
@@ -486,7 +486,7 @@ static void inetcfg_get_sroute_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	act_size = count * sizeof(sysarg_t);
 	size = min(act_size, max_size);
 
-	sysarg_t retval = async_data_read_finalize(rcallid, id_buf, size);
+	int retval = async_data_read_finalize(rcallid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(callid, retval, act_size);
@@ -541,7 +541,7 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	sysarg_t retval = async_data_read_finalize(name_callid, linfo.name,
+	int retval = async_data_read_finalize(name_callid, linfo.name,
 	    min(name_max_size, str_size(linfo.name)));
 	if (retval != EOK) {
 		free(linfo.name);
@@ -713,7 +713,7 @@ static void inetcfg_sroute_get_srv(ipc_callid_t iid, ipc_call_t *icall)
 	    min(size, str_size(srinfo.name)));
 	free(srinfo.name);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void inetcfg_sroute_get_id_srv(ipc_callid_t callid, ipc_call_t *call)

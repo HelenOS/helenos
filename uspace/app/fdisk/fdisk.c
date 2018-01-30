@@ -209,8 +209,8 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 			goto error;
 		}
 
-		rc = asprintf(&dtext, "%s (%s)", svcname, scap);
-		if (rc < 0) {
+		int ret = asprintf(&dtext, "%s (%s)", svcname, scap);
+		if (ret < 0) {
 			rc = ENOMEM;
 			printf("Out of memory.\n");
 			goto error;
@@ -268,6 +268,8 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 	*rsvcid = svcid;
 	return EOK;
 error:
+	assert(rc != EOK);
+	*rsvcid = 0;
 	if (devlist != NULL)
 		fdisk_dev_list_free(devlist);
 	if (choice != NULL)
@@ -612,16 +614,16 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 			else
 				label = "(No name)";
 
-			rc = asprintf(&sdesc, "%s %s, %s, %s", label,
+			int ret = asprintf(&sdesc, "%s %s, %s, %s", label,
 			    scap, spkind, sfstype);
-			if (rc < 0) {
+			if (ret < 0) {
 				rc = ENOMEM;
 				goto error;
 			}
 
 		} else {
-			rc = asprintf(&sdesc, "%s, %s", scap, spkind);
-			if (rc < 0) {
+			int ret = asprintf(&sdesc, "%s, %s", scap, spkind);
+			if (ret < 0) {
 				rc = ENOMEM;
 				goto error;
 			}

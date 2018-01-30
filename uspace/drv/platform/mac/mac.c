@@ -172,7 +172,7 @@ failure:
  * @param dev Device which is root of the whole device tree
  *            (both of HW and pseudo devices).
  *
- * @return Zero on success, negative error number otherwise.
+ * @return Zero on success, error number otherwise.
  *
  */
 static int mac_dev_add(ddf_dev_t *dev)

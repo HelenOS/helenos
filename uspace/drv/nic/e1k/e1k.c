@@ -32,12 +32,12 @@
  *
  */
 
+#include <async.h>
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
 #include <adt/list.h>
 #include <align.h>
-#include <thread.h>
 #include <byteorder.h>
 #include <as.h>
 #include <ddi.h>
@@ -371,7 +371,7 @@ static void e1000_link_restart(e1000_t *e1000)
 		E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
 		
-		thread_usleep(10);
+		async_usleep(10);
 		
 		fibril_mutex_lock(&e1000->ctrl_lock);
 		ctrl = E1000_REG_READ(e1000, E1000_CTRL);
@@ -1236,12 +1236,11 @@ static void e1000_interrupt_handler_impl(nic_t *nic, uint32_t icr)
 
 /** Handle device interrupt
  *
- * @param iid   IPC call id
  * @param icall IPC call structure
  * @param dev   E1000 device
  *
  */
-static void e1000_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
+static void e1000_interrupt_handler(ipc_call_t *icall,
     ddf_dev_t *dev)
 {
 	uint32_t icr = (uint32_t) IPC_GET_ARG2(*icall);
@@ -1259,11 +1258,12 @@ static void e1000_interrupt_handler(ipc_callid_t iid, ipc_call_t *icall,
  *
  * @param nic Driver data
  *
- * @return IRQ capability handle if the handler was registered
- * @return Negative error code otherwise
+ * @param[out] handle  IRQ capability handle if the handler was registered
+ *
+ * @return An error code otherwise
  *
  */
-inline static int e1000_register_int_handler(nic_t *nic)
+inline static int e1000_register_int_handler(nic_t *nic, cap_handle_t *handle)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
@@ -1274,11 +1274,11 @@ inline static int e1000_register_int_handler(nic_t *nic)
 	e1000_irq_code.cmds[0].addr = e1000->reg_base_phys + E1000_ICR;
 	e1000_irq_code.cmds[2].addr = e1000->reg_base_phys + E1000_IMC;
 	
-	int cap = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
-	    e1000_interrupt_handler, &e1000_irq_code);
+	int rc = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
+	    e1000_interrupt_handler, &e1000_irq_code, handle);
 	
 	fibril_mutex_unlock(&irq_reg_mutex);
-	return cap;
+	return rc;
 }
 
 /** Force receiving all frames in the receive buffer
@@ -1369,7 +1369,7 @@ static void e1000_initialize_rx_registers(e1000_t *e1000)
  * @param nic NIC data
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_initialize_rx_structure(nic_t *nic)
@@ -1523,7 +1523,7 @@ static void e1000_fill_mac_from_eeprom(e1000_t *e1000)
  * @param dev E1000 data.
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static void e1000_initialize_registers(e1000_t *e1000)
@@ -1724,7 +1724,7 @@ static int e1000_reset(nic_t *nic)
 	E1000_REG_WRITE(e1000, E1000_CTRL, CTRL_RST);
 	
 	/* Wait for the reset */
-	thread_usleep(20);
+	async_usleep(20);
 	
 	/* check if RST_BIT cleared */
 	if (E1000_REG_READ(e1000, E1000_CTRL) & (CTRL_RST))
@@ -1812,7 +1812,7 @@ static int e1000_on_down_unlocked(nic_t *nic)
 	 * Wait for the for the end of all data
 	 * transfers to descriptors.
 	 */
-	thread_usleep(100);
+	async_usleep(100);
 	
 	return EOK;
 }
@@ -1939,7 +1939,7 @@ static void e1000_dev_cleanup(ddf_dev_t *dev)
  * @param hw_resources Hardware resources obtained from the parent device
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_fill_resource_info(ddf_dev_t *dev,
@@ -1964,7 +1964,7 @@ static int e1000_fill_resource_info(ddf_dev_t *dev,
  * @param dev Device structure
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_get_resource_info(ddf_dev_t *dev)
@@ -1992,7 +1992,7 @@ static int e1000_get_resource_info(ddf_dev_t *dev)
  * @param dev Device information
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_device_initialize(ddf_dev_t *dev)
@@ -2106,7 +2106,7 @@ static int e1000_device_initialize(ddf_dev_t *dev)
  * @param dev E1000 device.
  *
  * @return EOK if successed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_pio_enable(ddf_dev_t *dev)
@@ -2164,9 +2164,9 @@ int e1000_dev_add(ddf_dev_t *dev)
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &e1000_dev_ops);
 	
-	int irq_cap = e1000_register_int_handler(nic);
-	if (irq_cap < 0) {
-		rc = irq_cap;
+	int irq_cap;
+	rc = e1000_register_int_handler(nic, &irq_cap);
+	if (rc != EOK) {
 		goto err_fun_create;
 	}
 	
@@ -2238,7 +2238,7 @@ static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
 	
 	uint32_t eerd = E1000_REG_READ(e1000, E1000_EERD);
 	while ((eerd & e1000->info.eerd_done) == 0) {
-		thread_usleep(1);
+		async_usleep(1);
 		eerd = E1000_REG_READ(e1000, E1000_EERD);
 	}
 	
@@ -2254,7 +2254,7 @@ static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
  * @param max_len Maximal addresss length to store
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  *
  */
 static int e1000_get_address(e1000_t *e1000, nic_address_t *address)
@@ -2288,7 +2288,7 @@ static int e1000_get_address(e1000_t *e1000, nic_address_t *address)
  * @param address Address
  *
  * @return EOK if succeed
- * @return Negative error code otherwise
+ * @return An error code otherwise
  */
 static int e1000_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {

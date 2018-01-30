@@ -44,6 +44,7 @@
 #endif
 
 #include <_bits/all.h>
+#include <_bits/errno.h>
 
 #endif
 

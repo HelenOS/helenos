@@ -33,13 +33,13 @@
  * @file
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <macros.h>
 
 #include <http/http.h>
-#include <http/errno.h>
 
 static bool is_digit(char c)
 {
@@ -53,7 +53,7 @@ static int receive_number(receive_buffer_t *rb, char **str)
 	
 	recv_mark(rb, &start);
 	int rc = recv_while(rb, is_digit);
-	if (rc < 0) {
+	if (rc != EOK) {
 		recv_unmark(rb, &start);
 		return rc;
 	}
@@ -95,10 +95,11 @@ static int receive_uint16_t(receive_buffer_t *rb, uint16_t *out_value)
 
 static int expect(receive_buffer_t *rb, const char *expect)
 {
-	int rc = recv_discard_str(rb, expect);
-	if (rc < 0)
+	size_t ndisc;
+	int rc = recv_discard_str(rb, expect, &ndisc);
+	if (rc != EOK)
 		return rc;
-	if ((size_t) rc < str_length(expect))
+	if (ndisc < str_length(expect))
 		return HTTP_EPARSE;
 	return EOK;
 }
@@ -147,7 +148,7 @@ int http_receive_status(receive_buffer_t *rb, http_version_t *out_version,
 	recv_mark(rb, &msg_start);
 	
 	rc = recv_while(rb, is_not_newline);
-	if (rc < 0) {
+	if (rc != EOK) {
 		recv_unmark(rb, &msg_start);
 		return rc;
 	}
@@ -167,10 +168,11 @@ int http_receive_status(receive_buffer_t *rb, http_version_t *out_version,
 	recv_unmark(rb, &msg_start);
 	recv_unmark(rb, &msg_end);
 	
-	rc = recv_eol(rb);
-	if (rc == 0)
+	size_t nrecv;
+	rc = recv_eol(rb, &nrecv);
+	if (rc == EOK && nrecv == 0)
 		rc = HTTP_EPARSE;
-	if (rc < 0) {
+	if (rc != EOK) {
 		free(message);
 		return rc;
 	}
@@ -203,10 +205,11 @@ int http_receive_response(receive_buffer_t *rb, http_response_t **out_response,
 	if (rc != EOK)
 		goto error;
 	
-	rc = recv_eol(rb);
-	if (rc == 0)
+	size_t nrecv;
+	rc = recv_eol(rb, &nrecv);
+	if (rc == EOK && nrecv == 0)
 		rc = HTTP_EPARSE;
-	if (rc < 0)
+	if (rc != EOK)
 		goto error;
 	
 	*out_response = resp;

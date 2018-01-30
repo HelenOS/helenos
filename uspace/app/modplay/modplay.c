@@ -39,6 +39,7 @@
 #include <io/console.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str_error.h>
 #include <trackmod.h>
 
 static bool quit = false;
@@ -116,7 +117,7 @@ int main(int argc, char *argv[])
 
 	rc = hound_context_connect_target(hound, HOUND_DEFAULT_TARGET);
 	if (rc != EOK) {
-		printf("Error connecting default audio target (%d).\n", rc);
+		printf("Error connecting default audio target: %s.\n", str_error(rc));
 		return 1;
 	}
 

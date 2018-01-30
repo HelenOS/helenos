@@ -62,7 +62,6 @@ EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY) $(MERGED_C_LIBRARY)
 SOURCES = \
 	source/ctype.c \
 	source/dlfcn.c \
-	source/errno.c \
 	source/fcntl.c \
 	source/fnmatch.c \
 	source/getopt.c \

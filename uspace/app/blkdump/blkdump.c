@@ -160,14 +160,15 @@ devname:
 
 	printf("Device %s has %" PRIuOFF64 " blocks, %" PRIuOFF64 " bytes each\n", dev_path, dev_nblocks, (aoff64_t) block_size);
 
+	int ret;
 	if (toc)
-		rc = print_toc();
+		ret = print_toc();
 	else
-		rc = print_blocks(block_offset, block_count, block_size);
+		ret = print_blocks(block_offset, block_count, block_size);
 
 	block_fini(service_id);
 
-	return rc;
+	return ret;
 }
 
 static int print_blocks(aoff64_t block_offset, aoff64_t block_count, size_t block_size)

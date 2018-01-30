@@ -37,7 +37,7 @@ import stat
 import errno
 import subprocess
 
-exclude_names = set(['.svn', '.bzr'])
+exclude_names = set(['.svn', '.bzr', '.git'])
 
 def duplicate_tree(src_path, dest_path, current):
 	"Duplicate source directory tree in the destination path"

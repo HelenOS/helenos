@@ -28,24 +28,30 @@
 
 #include <pcut/pcut.h>
 
-#ifdef __unix
-// FIXME
+#ifdef __helenos__
 #include <thread.h>
+#else
+#ifdef __unix
+#include <unistd.h>
 #endif
 #if defined(__WIN64) || defined(__WIN32) || defined(_WIN32)
 #include <windows.h>
+#endif
 #endif
 
 #include <stdio.h>
 #include "tested.h"
 
 static void my_sleep(int sec) {
-#ifdef __unix
-// FIXME
+#ifdef __helenos__
 	thread_sleep(sec);
+#else
+#ifdef __unix
+	sleep(sec);
 #endif
 #if defined(__WIN64) || defined(__WIN32) || defined(_WIN32)
 	Sleep(1000 * sec);
+#endif
 #endif
 }
 

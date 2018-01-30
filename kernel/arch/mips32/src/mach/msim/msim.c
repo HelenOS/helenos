@@ -104,15 +104,6 @@ void msim_input_init(void)
 			cp0_unmask_int(MSIM_KBD_IRQ);
 		}
 	}
-	
-	/*
-	 * This is the necessary evil until the userspace driver is entirely
-	 * self-sufficient.
-	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, MSIM_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
-	    PA2KA(MSIM_KBD_ADDRESS));
 #endif
 }
 

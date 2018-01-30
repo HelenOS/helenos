@@ -51,6 +51,7 @@ typedef struct {
 	void (* cursor_update)(struct outdev *dev, sysarg_t prev_col,
 	    sysarg_t prev_row, sysarg_t col, sysarg_t row, bool visible);
 	void (* char_update)(struct outdev *dev, sysarg_t col, sysarg_t row);
+	void (* flush)(struct outdev *dev);
 } outdev_ops_t;
 
 typedef struct outdev {

@@ -28,8 +28,8 @@
 
 #include <io/console.h>
 #include <errno.h>
-#include <malloc.h>
 #include <fmtutil.h>
+#include <stdlib.h>
 
 typedef struct {
 	align_mode_t alignment;

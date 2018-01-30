@@ -74,7 +74,7 @@ static void conn_data_avail(tcp_conn_t *conn)
 	while (true) {
 		rc = tcp_conn_recv(conn, recv_buf, RECV_BUF_SIZE, &nrecv);
 		if (rc != EOK) {
-			printf("\n[Receive error %d]\n", rc);
+			printf("\n[Receive error: %s]\n", str_error_name(rc));
 			break;
 		}
 

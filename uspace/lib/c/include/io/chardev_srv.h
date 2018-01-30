@@ -58,8 +58,9 @@ typedef struct {
 struct chardev_ops {
 	int (*open)(chardev_srvs_t *, chardev_srv_t *);
 	int (*close)(chardev_srv_t *);
-	int (*read)(chardev_srv_t *, void *, size_t);
-	int (*write)(chardev_srv_t *, const void *, size_t);
+	int (*read)(chardev_srv_t *, void *, size_t, size_t *);
+	int (*write)(chardev_srv_t *, const void *, size_t, size_t *);
+	void (*def_handler)(chardev_srv_t *, ipc_callid_t, ipc_call_t *);
 };
 
 extern void chardev_srvs_init(chardev_srvs_t *);

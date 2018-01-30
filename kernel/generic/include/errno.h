@@ -35,6 +35,7 @@
 #ifndef KERN_ERRNO_H_
 #define KERN_ERRNO_H_
 
+#include <_bits/errno.h>
 #include <abi/errno.h>
 
 #endif

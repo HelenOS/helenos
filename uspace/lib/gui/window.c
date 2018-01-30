@@ -39,7 +39,7 @@
 #include <stdlib.h>
 
 #include <as.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <str.h>
 
 #include <fibril.h>

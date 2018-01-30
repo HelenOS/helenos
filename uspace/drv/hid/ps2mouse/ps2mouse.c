@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,11 +30,12 @@
  * @{
  */
 /** @file
- * @brief ps2 mouse driver.
+ * @brief PS/2 mouse driver.
  */
 
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ddf/log.h>
 #include <io/keycode.h>
 #include <io/chardev.h>
@@ -69,14 +71,15 @@
 
 #define PS2_BUTTON_MASK(button) (1 << button)
 
-#define MOUSE_READ_BYTE_TEST(sess, value_) \
+#define MOUSE_READ_BYTE_TEST(mouse, value_) \
 do { \
 	uint8_t value = (value_); \
 	uint8_t data = 0; \
-	const ssize_t size = chardev_read(sess, &data, 1); \
-	if (size != 1) { \
-		ddf_msg(LVL_ERROR, "Failed reading byte: %zd)", size);\
-		return size < 0 ? size : EIO; \
+	size_t nread; \
+	const int rc = chardev_read((mouse)->chardev, &data, 1, &nread); \
+	if (rc != EOK) { \
+		ddf_msg(LVL_ERROR, "Failed reading byte: %s", str_error_name(rc));\
+		return rc; \
 	} \
 	if (data != value) { \
 		ddf_msg(LVL_DEBUG, "Failed testing byte: got %hhx vs. %hhx)", \
@@ -85,20 +88,21 @@ do { \
 	} \
 } while (0)
 
-#define MOUSE_WRITE_BYTE(sess, value_) \
+#define MOUSE_WRITE_BYTE(mouse, value_) \
 do { \
 	uint8_t value = (value_); \
 	uint8_t data = (value); \
-	const ssize_t size = chardev_write(sess, &data, 1); \
-	if (size < 0 ) { \
-		ddf_msg(LVL_ERROR, "Failed writing byte: %hhx", value); \
-		return size; \
+	size_t nwr; \
+	const int rc = chardev_write((mouse)->chardev, &data, 1, &nwr); \
+	if (rc != EOK) { \
+		ddf_msg(LVL_ERROR, "Failed writing byte: %s", str_error_name(rc)); \
+		return rc; \
 	} \
 } while (0)
 
 static int polling_ps2(void *);
 static int polling_intellimouse(void *);
-static int probe_intellimouse(async_exch_t *, bool);
+static int probe_intellimouse(ps2_mouse_t *, bool);
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
 
 /** ps/2 mouse driver ops. */
@@ -107,73 +111,135 @@ static ddf_dev_ops_t mouse_ops = {
 };
 
 /** Initialize mouse driver structure.
+ *
+ * Connects to parent, creates keyboard function, starts polling fibril.
+ *
  * @param kbd Mouse driver structure to initialize.
  * @param dev DDF device structure.
  *
- * Connects to parent, creates keyboard function, starts polling fibril.
+ * @return EOK on success or non-zero error code
  */
 int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 {
+	async_sess_t *parent_sess;
+	bool bound = false;
+	int rc;
+
 	mouse->client_sess = NULL;
-	mouse->parent_sess = ddf_dev_parent_sess_get(dev);
-	if (!mouse->parent_sess)
-		return ENOMEM;
+
+	parent_sess = ddf_dev_parent_sess_get(dev);
+	if (parent_sess == NULL) {
+		ddf_msg(LVL_ERROR, "Failed getting parent session.");
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = chardev_open(parent_sess, &mouse->chardev);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed opening character device.");
+		goto error;
+	}
 
 	mouse->mouse_fun = ddf_fun_create(dev, fun_exposed, "mouse");
-	if (!mouse->mouse_fun) {
-		return ENOMEM;
+	if (mouse->mouse_fun == NULL) {
+		ddf_msg(LVL_ERROR, "Error creating mouse function.");
+		rc = ENOMEM;
+		goto error;
 	}
+
 	ddf_fun_set_ops(mouse->mouse_fun, &mouse_ops);
 
-	int ret = ddf_fun_bind(mouse->mouse_fun);
-	if (ret != EOK) {
-		ddf_fun_destroy(mouse->mouse_fun);
-		return ENOMEM;
+	rc = ddf_fun_bind(mouse->mouse_fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding mouse function.");
+		goto error;
 	}
 
-	ret = ddf_fun_add_to_category(mouse->mouse_fun, "mouse");
-	if (ret != EOK) {
-		ddf_fun_unbind(mouse->mouse_fun);
-		ddf_fun_destroy(mouse->mouse_fun);
-		return ENOMEM;
+	bound = true;
+
+	rc = ddf_fun_add_to_category(mouse->mouse_fun, "mouse");
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding mouse function to category.");
+		goto error;
 	}
+
 	/* Probe IntelliMouse extensions. */
 	int (*polling_f)(void*) = polling_ps2;
-	async_exch_t *exch = async_exchange_begin(mouse->parent_sess);
-	if (probe_intellimouse(exch, false) == EOK) {
+	if (probe_intellimouse(mouse, false) == EOK) {
 		ddf_msg(LVL_NOTE, "Enabled IntelliMouse extensions");
 		polling_f = polling_intellimouse;
-		if (probe_intellimouse(exch, true) == EOK)
+		if (probe_intellimouse(mouse, true) == EOK)
 			ddf_msg(LVL_NOTE, "Enabled 4th and 5th button.");
 	}
+
 	/* Enable mouse data reporting. */
 	uint8_t report = PS2_MOUSE_ENABLE_DATA_REPORT;
-	ssize_t size = chardev_write(exch, &report, 1);
-	if (size != 1) {
+	size_t nwr;
+	rc = chardev_write(mouse->chardev, &report, 1, &nwr);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to enable data reporting.");
-		async_exchange_end(exch);
-		ddf_fun_unbind(mouse->mouse_fun);
-		ddf_fun_destroy(mouse->mouse_fun);
-		return EIO;
+		rc = EIO;
+		goto error;
 	}
 
-	size = chardev_read(exch, &report, 1);
-	async_exchange_end(exch);
-	if (size != 1 || report != PS2_MOUSE_ACK) {
+	size_t nread;
+	rc = chardev_read(mouse->chardev, &report, 1, &nread);
+	if (rc != EOK || report != PS2_MOUSE_ACK) {
 		ddf_msg(LVL_ERROR, "Failed to confirm data reporting: %hhx.",
 		    report);
-		ddf_fun_unbind(mouse->mouse_fun);
-		ddf_fun_destroy(mouse->mouse_fun);
-		return EIO;
+		rc = EIO;
+		goto error;
 	}
 
 	mouse->polling_fibril = fibril_create(polling_f, mouse);
-	if (!mouse->polling_fibril) {
-		ddf_fun_unbind(mouse->mouse_fun);
-		ddf_fun_destroy(mouse->mouse_fun);
-		return ENOMEM;
+	if (mouse->polling_fibril == 0) {
+		rc = ENOMEM;
+		goto error;
 	}
+
 	fibril_add_ready(mouse->polling_fibril);
+	return EOK;
+error:
+	if (bound)
+		ddf_fun_unbind(mouse->mouse_fun);
+	if (mouse->mouse_fun != NULL) {
+		ddf_fun_destroy(mouse->mouse_fun);
+		mouse->mouse_fun = NULL;
+	}
+
+	chardev_close(mouse->chardev);
+	mouse->chardev = NULL;
+	return rc;
+}
+
+/** Read fixed-size mouse packet.
+ *
+ * Continue reading until entire packet is received.
+ *
+ * @param mouse Mouse device
+ * @param pbuf Buffer for storing packet
+ * @param psize Packet size
+ *
+ * @return EOK on success or non-zero error code
+ */
+static int ps2_mouse_read_packet(ps2_mouse_t *mouse, void *pbuf, size_t psize)
+{
+	int rc;
+	size_t pos;
+	size_t nread;
+
+	pos = 0;
+	while (pos < psize) {
+		rc = chardev_read(mouse->chardev, pbuf + pos, psize - pos,
+		    &nread);
+		if (rc != EOK) {
+			ddf_msg(LVL_WARN, "Error reading packet.");
+			return rc;
+		}
+
+		pos += nread;
+	}
+
 	return EOK;
 }
 
@@ -183,22 +249,16 @@ int ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
  */
 int polling_ps2(void *arg)
 {
-	assert(arg);
-	const ps2_mouse_t *mouse = arg;
+	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
+	int rc;
 
-	assert(mouse->parent_sess);
 	bool buttons[PS2_BUTTON_COUNT] = {};
-	async_exch_t *parent_exch = async_exchange_begin(mouse->parent_sess);
 	while (1) {
-
 		uint8_t packet[PS2_BUFSIZE] = {};
-		const ssize_t size =
-		    chardev_read(parent_exch, packet, PS2_BUFSIZE);
-
-		if (size != PS2_BUFSIZE) {
-			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", size);
+		rc = ps2_mouse_read_packet(mouse, packet, PS2_BUFSIZE);
+		if (rc != EOK)
 			continue;
-		}
+
 		ddf_msg(LVL_DEBUG2, "Got packet: %hhx:%hhx:%hhx.",
 		    packet[0], packet[1], packet[2]);
 
@@ -231,7 +291,8 @@ int polling_ps2(void *arg)
 		}
 		async_exchange_end(exch);
 	}
-	async_exchange_end(parent_exch);
+
+	return 0;
 }
 
 /** Get data and parse ps2 protocol with IntelliMouse extension packets.
@@ -240,24 +301,16 @@ int polling_ps2(void *arg)
  */
 static int polling_intellimouse(void *arg)
 {
-	assert(arg);
-	const ps2_mouse_t *mouse = arg;
+	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
+	int rc;
 
-	assert(mouse->parent_sess);
 	bool buttons[INTELLIMOUSE_BUTTON_COUNT] = {};
-	async_exch_t *parent_exch = NULL;
 	while (1) {
-		if (!parent_exch)
-			parent_exch = async_exchange_begin(mouse->parent_sess);
-
 		uint8_t packet[INTELLIMOUSE_BUFSIZE] = {};
-		const ssize_t size = chardev_read(
-		    parent_exch, packet, INTELLIMOUSE_BUFSIZE);
-
-		if (size != INTELLIMOUSE_BUFSIZE) {
-			ddf_msg(LVL_WARN, "Incorrect packet size: %zd.", size);
+		rc = ps2_mouse_read_packet(mouse, packet, INTELLIMOUSE_BUFSIZE);
+		if (rc != EOK)
 			continue;
-		}
+
 		ddf_msg(LVL_DEBUG2, "Got packet: %hhx:%hhx:%hhx:%hhx.",
 		    packet[0], packet[1], packet[2], packet[3]);
 
@@ -309,7 +362,8 @@ static int polling_intellimouse(void *arg)
 		}
 		async_exchange_end(exch);
 	}
-	async_exchange_end(parent_exch);
+
+	return 0;
 }
 
 /** Send magic sequence to initialize IntelliMouse extensions.
@@ -318,28 +372,26 @@ static int polling_intellimouse(void *arg)
  * false selects wheel support magic sequence.
  * See http://www.computer-engineering.org/ps2mouse/ for details.
  */
-static int probe_intellimouse(async_exch_t *exch, bool buttons)
+static int probe_intellimouse(ps2_mouse_t *mouse, bool buttons)
 {
-	assert(exch);
+	MOUSE_WRITE_BYTE(mouse, PS2_MOUSE_SET_SAMPLE_RATE);
+	MOUSE_READ_BYTE_TEST(mouse, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(mouse, 200);
+	MOUSE_READ_BYTE_TEST(mouse, PS2_MOUSE_ACK);
 
-	MOUSE_WRITE_BYTE(exch, PS2_MOUSE_SET_SAMPLE_RATE);
-	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
-	MOUSE_WRITE_BYTE(exch, 200);
-	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(mouse, PS2_MOUSE_SET_SAMPLE_RATE);
+	MOUSE_READ_BYTE_TEST(mouse, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(mouse, buttons ? 200 : 100);
+	MOUSE_READ_BYTE_TEST(mouse, PS2_MOUSE_ACK);
 
-	MOUSE_WRITE_BYTE(exch, PS2_MOUSE_SET_SAMPLE_RATE);
-	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
-	MOUSE_WRITE_BYTE(exch, buttons ? 200 : 100);
-	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(mouse, PS2_MOUSE_SET_SAMPLE_RATE);
+	MOUSE_READ_BYTE_TEST(mouse, PS2_MOUSE_ACK);
+	MOUSE_WRITE_BYTE(mouse, 80);
+	MOUSE_READ_BYTE_TEST(mouse, PS2_MOUSE_ACK);
 
-	MOUSE_WRITE_BYTE(exch, PS2_MOUSE_SET_SAMPLE_RATE);
-	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
-	MOUSE_WRITE_BYTE(exch, 80);
-	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
-
-	MOUSE_WRITE_BYTE(exch, PS2_MOUSE_GET_DEVICE_ID);
-	MOUSE_READ_BYTE_TEST(exch, PS2_MOUSE_ACK);
-	MOUSE_READ_BYTE_TEST(exch, buttons ? 4 : 3);
+	MOUSE_WRITE_BYTE(mouse, PS2_MOUSE_GET_DEVICE_ID);
+	MOUSE_READ_BYTE_TEST(mouse, PS2_MOUSE_ACK);
+	MOUSE_READ_BYTE_TEST(mouse, buttons ? 4 : 3);
 
 	return EOK;
 }

@@ -42,7 +42,7 @@
 #include <block.h>
 #include <assert.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <byteorder.h>
 #include <align.h>
 #include <str.h>
@@ -343,14 +343,15 @@ exit:
  * @param service_id  The service id.
  * @param cfg  Pointer to the exFAT configuration structure.
  * @param base Base sector of the EBS.
- * @return  EOK on success or a negative error code.
+ * @return  EOK on success or an error code.
  */
 static int
 ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base,
     uint32_t *chksum)
 {
 	uint32_t *ebs = calloc(cfg->sector_size, sizeof(uint8_t));
-	int i, rc;
+	int i;
+	int rc;
 
 	if (!ebs)
 		return ENOMEM;
@@ -395,7 +396,7 @@ exit:
  *
  * @param service_id  The service id.
  * @param cfg Pointer to the exfat_cfg structure.
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  */
 static int
 fat_initialize(service_id_t service_id, exfat_cfg_t *cfg)
@@ -435,7 +436,7 @@ error:
  * @param cfg  Pointer to the exfat configuration structure.
  * @param cur_cls  Cluster index from where to start the allocation.
  * @param ncls  Number of clusters to allocate.
- * @return EOK on success or a negative error code.
+ * @return EOK on success or an error code.
  */
 static int
 fat_allocate_clusters(service_id_t service_id, exfat_cfg_t *cfg,
@@ -492,7 +493,7 @@ exit:
  *
  * @param service_id   The service id.
  * @param cfg  Pointer to the exfat configuration structure.
- * @return  EOK on success or a negative error code.
+ * @return  EOK on success or an error code.
  */
 static int
 bitmap_write(service_id_t service_id, exfat_cfg_t *cfg)
@@ -591,7 +592,7 @@ exit:
  *
  * @param service_id   The service id.
  * @param cfg   Pointer to the exFAT configuration structure.
- * @return   EOK on success or a negative error code.
+ * @return   EOK on success or an error code.
  */
 static int
 root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
@@ -756,7 +757,8 @@ int main (int argc, char **argv)
 	uint32_t next_cls;
 	char *dev_path;
 	service_id_t service_id;
-	int rc, c, opt_ind;
+	int rc;
+	int c, opt_ind;
 	aoff64_t user_fs_size = 0;
 
 	if (argc < 2) {

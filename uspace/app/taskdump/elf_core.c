@@ -54,6 +54,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <errno.h>
+#include <str_error.h>
 #include <mem.h>
 #include <as.h>
 #include <udebug.h>
@@ -96,7 +97,8 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	aoff64_t pos = 0;
 
 	int fd;
-	ssize_t rc;
+	int rc;
+	size_t nwr;
 	unsigned int i;
 
 #ifdef __32_BITS__
@@ -121,10 +123,10 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		return ENOMEM;
 	}
 
-	fd = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MAY_CREATE,
-	    MODE_WRITE);
-	if (fd < 0) {
-		printf("Failed opening file.\n");
+	rc = vfs_lookup_open(file_name, WALK_REGULAR | WALK_MAY_CREATE,
+	    MODE_WRITE, &fd);
+	if (rc != EOK) {
+		printf("Failed opening file '%s': %s.\n", file_name, str_error(rc));
 		free(p_hdr);
 		return ENOENT;
 	}
@@ -205,16 +207,16 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 		foff += ainfo[i].size;
 	}
 
-	rc = vfs_write(fd, &pos, &elf_hdr, sizeof(elf_hdr));
-	if (rc != sizeof(elf_hdr)) {
+	rc = vfs_write(fd, &pos, &elf_hdr, sizeof(elf_hdr), &nwr);
+	if (rc != EOK) {
 		printf("Failed writing ELF header.\n");
 		free(p_hdr);
 		return EIO;
 	}
 
 	for (i = 0; i < n_ph; ++i) {
-		rc = vfs_write(fd, &pos, &p_hdr[i], sizeof(p_hdr[i]));
-		if (rc != sizeof(p_hdr[i])) {
+		rc = vfs_write(fd, &pos, &p_hdr[i], sizeof(p_hdr[i]), &nwr);
+		if (rc != EOK) {
 			printf("Failed writing program header.\n");
 			free(p_hdr);
 			return EIO;
@@ -230,15 +232,15 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 	note.descsz = sizeof(elf_prstatus_t);
 	note.type = NT_PRSTATUS;
 
-	rc = vfs_write(fd, &pos, &note, sizeof(elf_note_t));
-	if (rc != sizeof(elf_note_t)) {
+	rc = vfs_write(fd, &pos, &note, sizeof(elf_note_t), &nwr);
+	if (rc != EOK) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
 		return EIO;
 	}
 
-	rc = vfs_write(fd, &pos, "CORE", note.namesz);
-	if (rc != (ssize_t) note.namesz) {
+	rc = vfs_write(fd, &pos, "CORE", note.namesz, &nwr);
+	if (rc != EOK) {
 		printf("Failed writing note header.\n");
 		free(p_hdr);
 		return EIO;
@@ -246,8 +248,8 @@ int elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int n,
 
 	pos = ALIGN_UP(pos, word_size);
 
-	rc = vfs_write(fd, &pos, &pr_status, sizeof(elf_prstatus_t));
-	if (rc != sizeof(elf_prstatus_t)) {
+	rc = vfs_write(fd, &pos, &pr_status, sizeof(elf_prstatus_t), &nwr);
+	if (rc != EOK) {
 		printf("Failed writing register data.\n");
 		free(p_hdr);
 		return EIO;
@@ -295,7 +297,8 @@ static int write_mem_area(int fd, aoff64_t *pos, as_area_info_t *area,
 	size_t to_copy;
 	size_t total;
 	uintptr_t addr;
-	ssize_t rc;
+	int rc;
+	size_t nwr;
 
 	addr = area->start_addr;
 	total = 0;
@@ -303,13 +306,13 @@ static int write_mem_area(int fd, aoff64_t *pos, as_area_info_t *area,
 	while (total < area->size) {
 		to_copy = min(area->size - total, BUFFER_SIZE);
 		rc = udebug_mem_read(sess, buffer, addr, to_copy);
-		if (rc < 0) {
+		if (rc != EOK) {
 			printf("Failed reading task memory.\n");
 			return EIO;
 		}
 
-		rc = vfs_write(fd, pos, buffer, to_copy);
-		if (rc != (ssize_t) to_copy) {
+		rc = vfs_write(fd, pos, buffer, to_copy, &nwr);
+		if (rc != EOK) {
 			printf("Failed writing memory contents.\n");
 			return EIO;
 		}

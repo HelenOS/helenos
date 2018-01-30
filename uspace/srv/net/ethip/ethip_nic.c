@@ -38,6 +38,7 @@
 #include <async.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril_synch.h>
 #include <inet/iplink_srv.h>
 #include <io/log.h>
@@ -279,7 +280,7 @@ static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "free data");
 	free(data);
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_received() done, rc=%d", rc);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_received() done, rc=%s", str_error_name(rc));
 	async_answer_0(callid, rc);
 }
 
@@ -327,7 +328,7 @@ int ethip_nic_discovery_start(void)
 	int rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback for NIC "
-		    "discovery (%d).", rc);
+		    "discovery: %s.", str_error(rc));
 		return rc;
 	}
 	
@@ -356,7 +357,7 @@ int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 	int rc;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_send(size=%zu)", size);
 	rc = nic_send_frame(nic->sess, data, size);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "nic_send_frame -> %d", rc);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "nic_send_frame -> %s", str_error_name(rc));
 	return rc;
 }
 

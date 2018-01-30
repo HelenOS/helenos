@@ -46,17 +46,12 @@
 #include <http/http.h>
 #include <http/receive-buffer.h>
 
-static ssize_t http_receive(void *client_data, void *buf, size_t buf_size)
+static int http_receive(void *client_data, void *buf, size_t buf_size,
+    size_t *nrecv)
 {
 	http_t *http = client_data;
-	size_t nrecv;
-	int rc;
 
-	rc = tcp_conn_recv_wait(http->conn, buf, buf_size, &nrecv);
-	if (rc != EOK)
-		return rc;
-
-	return nrecv;
+	return tcp_conn_recv_wait(http->conn, buf, buf_size, nrecv);
 }
 
 http_t *http_create(const char *host, uint16_t port)

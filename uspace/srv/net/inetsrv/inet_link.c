@@ -36,6 +36,7 @@
 
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril_synch.h>
 #include <inet/iplink.h>
 #include <io/log.h>
@@ -113,7 +114,7 @@ static int inet_iplink_recv(iplink_t *iplink, iplink_recv_sdu_t *sdu, ip_ver_t v
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_iplink_recv: link_id=%zu", packet.link_id);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet()");
 	rc = inet_recv_packet(&packet);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet -> %d", rc);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "call inet_recv_packet -> %s", str_error_name(rc));
 	free(packet.data);
 
 	return rc;

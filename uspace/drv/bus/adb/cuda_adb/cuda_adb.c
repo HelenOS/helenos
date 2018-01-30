@@ -45,7 +45,6 @@
 #include <libarch/ddi.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <sysinfo.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +56,7 @@
 
 static void cuda_dev_connection(ipc_callid_t, ipc_call_t *, void *);
 static int cuda_init(cuda_t *);
-static void cuda_irq_handler(ipc_callid_t, ipc_call_t *, void *);
+static void cuda_irq_handler(ipc_call_t *, void *);
 
 static void cuda_irq_listen(cuda_t *);
 static void cuda_irq_receive(cuda_t *);
@@ -108,15 +107,23 @@ static irq_code_t cuda_irq_code = {
 	cuda_cmds
 };
 
-static int cuda_dev_create(cuda_t *cuda, const char *name, adb_dev_t **rdev)
+static int cuda_dev_create(cuda_t *cuda, const char *name, const char *id,
+    adb_dev_t **rdev)
 {
 	adb_dev_t *dev = NULL;
 	ddf_fun_t *fun;
 	int rc;
 
-	fun = ddf_fun_create(cuda->dev, fun_exposed, name);
+	fun = ddf_fun_create(cuda->dev, fun_inner, name);
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating function '%s'.", name);
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = ddf_fun_add_match_id(fun, id, 10);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match ID.");
 		rc = ENOMEM;
 		goto error;
 	}
@@ -155,11 +162,11 @@ int cuda_add(cuda_t *cuda, cuda_res_t *res)
 
 	cuda->phys_base = res->base;
 
-	rc = cuda_dev_create(cuda, "kbd", &kbd);
+	rc = cuda_dev_create(cuda, "kbd", "adb/keyboard", &kbd);
 	if (rc != EOK)
 		goto error;
 
-	rc = cuda_dev_create(cuda, "mouse", &mouse);
+	rc = cuda_dev_create(cuda, "mouse", "adb/mouse", &mouse);
 	if (rc != EOK)
 		goto error;
 
@@ -244,7 +251,7 @@ static int cuda_init(cuda_t *cuda)
 	cuda_irq_code.ranges[0].base = (uintptr_t) cuda->phys_base;
 	cuda_irq_code.cmds[0].addr = (void *) &((cuda_regs_t *)
 	    cuda->phys_base)->ifr;
-	async_irq_subscribe(10, cuda_irq_handler, cuda, &cuda_irq_code);
+	async_irq_subscribe(10, cuda_irq_handler, cuda, &cuda_irq_code, NULL);
 
 	/* Enable SR interrupt. */
 	pio_write_8(&cuda->regs->ier, TIP | TREQ);
@@ -256,7 +263,7 @@ static int cuda_init(cuda_t *cuda)
 	return EOK;
 }
 
-static void cuda_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
+static void cuda_irq_handler(ipc_call_t *call, void *arg)
 {
 	uint8_t rbuf[CUDA_RCV_BUF_SIZE];
 	cuda_t *cuda = (cuda_t *)arg;

@@ -38,7 +38,7 @@
 #include <task.h>
 #include <stats.h>
 #include <str_error.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #define NAME  "killall"
 

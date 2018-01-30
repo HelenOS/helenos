@@ -114,10 +114,13 @@ void hound_service_disconnect(hound_sess_t *sess)
  * @param sess Valid audio session.
  * @param name Valid string identifier
  * @param record True if the application context wishes to receive data.
- * @return Valid ID on success, Error code on failure.
+ *
+ * @param[out] id  Return context ID.
+ *
+ * @return EOK on success, Error code on failure.
  */
-hound_context_id_t hound_service_register_context(hound_sess_t *sess,
-    const char *name, bool record)
+int hound_service_register_context(hound_sess_t *sess,
+    const char *name, bool record, hound_context_id_t *id)
 {
 	assert(sess);
 	assert(name);
@@ -133,10 +136,14 @@ hound_context_id_t hound_service_register_context(hound_sess_t *sess,
 		async_forget(mid);
 
 	if (ret == EOK)
-		async_wait_for(mid, (sysarg_t *)&ret);
+		async_wait_for(mid, &ret);
 
 	async_exchange_end(exch);
-	return ret == EOK ? (hound_context_id_t)IPC_GET_ARG1(call) : ret;
+	if (ret == EOK) {
+		*id = (hound_context_id_t)IPC_GET_ARG1(call);
+	}
+
+	return ret;
 }
 
 /**
@@ -181,7 +188,7 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
 
 	ipc_call_t res_call;
 	aid_t mid = async_send_3(exch, IPC_M_HOUND_GET_LIST, flags, *count,
-	    (bool)connection, &res_call);
+	    connection != NULL, &res_call);
 
 	int ret = EOK;
 	if (mid && connection)
@@ -189,7 +196,7 @@ int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,
 		    str_size(connection));
 
 	if (ret == EOK)
-		async_wait_for(mid, (sysarg_t*)&ret);
+		async_wait_for(mid, &ret);
 
 	if (ret != EOK) {
 		async_exchange_end(exch);
@@ -256,7 +263,7 @@ int hound_service_connect_source_sink(hound_sess_t *sess, const char *source,
 		ret = async_data_write_start(exch, source, str_size(source));
 	if (ret == EOK)
 		ret = async_data_write_start(exch, sink, str_size(sink));
-	async_wait_for(id, (sysarg_t*)&ret);
+	async_wait_for(id, &ret);
 	async_exchange_end(exch);
 	return ret;
 }
@@ -282,7 +289,7 @@ int hound_service_disconnect_source_sink(hound_sess_t *sess, const char *source,
 		ret = async_data_write_start(exch, source, str_size(source));
 	if (ret == EOK)
 		ret = async_data_write_start(exch, sink, str_size(sink));
-	async_wait_for(id, (sysarg_t*)&ret);
+	async_wait_for(id, &ret);
 	async_exchange_end(exch);
 	return ENOTSUP;
 }

@@ -100,7 +100,7 @@ void vol_destroy(vol_t *vol)
  * @param buf_size Buffer size
  * @param act_size Place to store actual size of complete data.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 static int vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
     sysarg_t *id_buf, size_t buf_size, size_t *act_size)
@@ -118,7 +118,7 @@ static int vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
@@ -138,7 +138,7 @@ static int vol_get_ids_once(vol_t *vol, sysarg_t method, sysarg_t arg1,
  * @param arg1   IPC argument 1
  * @param data   Place to store pointer to array of IDs
  * @param count  Place to store number of IDs
- * @return       EOK on success or negative error code
+ * @return       EOK on success or an error code
  */
 static int vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
     sysarg_t **data, size_t *count)
@@ -182,7 +182,7 @@ static int vol_get_ids_internal(vol_t *vol, sysarg_t method, sysarg_t arg1,
  * @param data Place to store pointer to array
  * @param count Place to store length of array (number of entries)
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 int vol_get_parts(vol_t *vol, service_id_t **data, size_t *count)
 {
@@ -214,7 +214,7 @@ int vol_part_add(vol_t *vol, service_id_t sid)
 int vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(vol->sess);
@@ -256,7 +256,7 @@ int vol_part_get_lsupp(vol_t *vol, vol_fstype_t fstype,
     vol_label_supp_t *vlsupp)
 {
 	async_exch_t *exch;
-	sysarg_t retval;
+	int retval;
 	ipc_call_t answer;
 
 	exch = async_exchange_begin(vol->sess);
@@ -282,7 +282,7 @@ int vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
 {
 	async_exch_t *exch;
 	ipc_call_t answer;
-	sysarg_t retval;
+	int retval;
 
 	exch = async_exchange_begin(vol->sess);
 	aid_t req = async_send_2(exch, VOL_PART_MKFS, sid, fstype, &answer);

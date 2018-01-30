@@ -36,12 +36,11 @@
  */
 
 #include <str.h>
-#include <stdlib.h>
 #include <stddef.h>
-#include <assert.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <assert.h>
 #include <ctype.h>
-#include <malloc.h>
 #include <errno.h>
 #include <align.h>
 #include <mem.h>
@@ -918,7 +917,7 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
  * @param size	Size of the destination buffer.
  * @param src	Source utf16 string.
  *
- * @return EOK, if success, negative otherwise.
+ * @return EOK, if success, an error code otherwise.
  */
 int utf16_to_str(char *dest, size_t size, const uint16_t *src)
 {
@@ -961,7 +960,7 @@ int utf16_to_str(char *dest, size_t size, const uint16_t *src)
  * @param dlen	Number of utf16 characters that fit in the destination buffer.
  * @param src	Source string.
  *
- * @return EOK, if success, negative otherwise.
+ * @return EOK, if success, an error code otherwise.
  */
 int str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
 {

@@ -58,7 +58,7 @@ typedef enum {
  * @param[out] results  Structure where to put scan results.
  *
  * @return EOK If the operation was successfully completed,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 int ieee80211_get_scan_results(async_sess_t *dev_sess,
@@ -74,7 +74,7 @@ int ieee80211_get_scan_results(async_sess_t *dev_sess,
 	    sizeof(ieee80211_scan_results_t));
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(aid, &res);
 	
 	if(res != EOK)
@@ -122,21 +122,21 @@ static sysarg_t get_link_id(uint8_t *mac)
  * @param[in] password   Network password (pass empty string if not needed).
  *
  * @return EOK If the operation was successfully completed,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 {
 	assert(ssid_start);
 	
-	sysarg_t rc_orig;
+	int rc_orig;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_CONNECT, NULL);
 	
-	sysarg_t rc = async_data_write_start(exch, ssid_start,
+	int rc = async_data_write_start(exch, ssid_start,
 	    str_size(ssid_start) + 1);
 	if (rc != EOK) {
 		async_exchange_end(exch);
@@ -189,7 +189,7 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
  * @param[in] dev_sess Device session.
  *
  * @return EOK If the operation was successfully completed,
- *         negative error code otherwise.
+ *         error code otherwise.
  *
  */
 int ieee80211_disconnect(async_sess_t *dev_sess)

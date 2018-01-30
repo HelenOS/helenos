@@ -36,8 +36,11 @@
 #define KERN_UDEBUG_OPS_H_
 
 #include <ipc/ipc.h>
+#include <proc/thread.h>
+#include <stdbool.h>
+#include <stddef.h>
 
-int udebug_begin(call_t *call);
+int udebug_begin(call_t *call, bool *active);
 int udebug_end(void);
 int udebug_set_evmask(udebug_evmask_t mask);
 

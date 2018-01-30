@@ -35,22 +35,41 @@
 #ifndef MSIM_CON_H
 #define MSIM_CON_H
 
+#include <adt/circ_buf.h>
 #include <async.h>
 #include <ddf/driver.h>
+#include <ddi.h>
+#include <fibril_synch.h>
+#include <io/chardev_srv.h>
 #include <loc.h>
 #include <stdint.h>
+
+enum {
+	msim_con_buf_size = 64
+};
+
+/** MSIM console resources */
+typedef struct {
+	uintptr_t base;
+	int irq;
+} msim_con_res_t;
 
 /** MSIM console */
 typedef struct {
 	async_sess_t *client_sess;
 	ddf_dev_t *dev;
+	chardev_srvs_t cds;
+	msim_con_res_t res;
+	irq_pio_range_t irq_range[1];
+	irq_code_t irq_code;
+	circ_buf_t cbuf;
+	uint8_t buf[msim_con_buf_size];
+	fibril_mutex_t buf_lock;
+	fibril_condvar_t buf_cv;
+	ioport8_t *out_reg;
 } msim_con_t;
 
-extern int msim_con_init(msim_con_t *);
-extern void msim_con_write(uint8_t data);
-
-
-extern int msim_con_add(msim_con_t *);
+extern int msim_con_add(msim_con_t *, msim_con_res_t *);
 extern int msim_con_remove(msim_con_t *);
 extern int msim_con_gone(msim_con_t *);
 

@@ -29,6 +29,7 @@
 # Just for this Makefile. Sub-makes will run in parallel if requested.
 .NOTPARALLEL:
 
+CCHECK = tools/sycek/ccheck
 CSCOPE = cscope
 FORMAT = clang-format
 CHECK = tools/check.sh
@@ -43,13 +44,15 @@ COMMON_HEADER = common.h
 
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
+ERRNO_HEADER = abi/include/abi/errno.h
+ERRNO_INPUT = abi/include/abi/errno.in
 
 .PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace
 
 all: kernel uspace
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
 
-common: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
+common: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(ERRNO_HEADER)
 
 kernel: common
 	$(MAKE) -r -C kernel PRECHECK=$(PRECHECK)
@@ -72,6 +75,15 @@ cscope_parts:
 format:
 	find abi kernel boot uspace -type f -regex '^.*\.[ch]$$' | xargs $(FORMAT) -i -sort-includes -style=file
 
+ccheck: $(CCHECK)
+	tools/ccheck.sh
+
+$(CCHECK):
+	cd tools && ./build-ccheck.sh
+
+doxy:
+	$(MAKE) -r -C doxygen
+
 # Pre-integration build check
 check: $(CHECK)
 ifdef JOBS 
@@ -79,6 +91,13 @@ ifdef JOBS
 else
 	$(CHECK)
 endif
+
+# `sed` pulls a list of "compatibility-only" error codes from `errno.in`,
+# the following grep finds instances of those error codes in HelenOS code.
+check_errno:
+	@ ! cat abi/include/abi/errno.in | \
+	sed -n -e '1,/COMPAT_START/d' -e 's/__errno_entry(\([A-Z0-9]\+\).*/\\b\1\\b/p' | \
+	git grep -n -f - -- ':(exclude)abi' ':(exclude)uspace/lib/posix'
 
 # Autotool (detects compiler features)
 
@@ -119,5 +138,11 @@ clean:
 	$(MAKE) -r -C kernel clean
 	$(MAKE) -r -C uspace clean
 	$(MAKE) -r -C boot clean
+	$(MAKE) -r -C doxygen clean
+
+$(ERRNO_HEADER): $(ERRNO_INPUT)
+	echo '/* Generated file. Edit errno.in instead. */' > $@.new
+	sed 's/__errno_entry(\([^,]*\),\([^,]*\),.*/#define \1 __errno_t(\2)/' < $< >> $@.new
+	mv $@.new $@
 
 -include Makefile.local

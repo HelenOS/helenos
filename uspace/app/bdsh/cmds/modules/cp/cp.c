@@ -27,6 +27,7 @@
  */
 
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <io/console.h>
@@ -65,7 +66,7 @@ typedef enum {
 	TYPE_DIR
 } dentry_type_t;
 
-static int64_t copy_file(const char *src, const char *dest,
+static int copy_file(const char *src, const char *dest,
     size_t blen, int vb);
 
 /** Get the type of a directory entry.
@@ -174,10 +175,10 @@ static bool get_user_decision(bool bdefault, const char *message, ...)
 	}
 }
 
-static int64_t do_copy(const char *src, const char *dest,
+static int do_copy(const char *src, const char *dest,
     size_t blen, int vb, int recursive, int force, int interactive)
 {
-	int r = -1;
+	int rc = EOK;
 	char dest_path[PATH_MAX];
 	char src_path[PATH_MAX];
 	DIR *dir = NULL;
@@ -216,6 +217,7 @@ static int64_t do_copy(const char *src, const char *dest,
 
 				printf("The dest directory %s does not exists",
 				    dest_path);
+				rc = ENOENT;
 				goto exit;
 			}
 		}
@@ -223,6 +225,7 @@ static int64_t do_copy(const char *src, const char *dest,
 		if (dest_type == TYPE_DIR) {
 			printf("Cannot overwrite existing directory %s\n",
 			    dest_path);
+			rc = EEXIST;
 			goto exit;
 		} else if (dest_type == TYPE_FILE) {
 			/* e.g. cp file_name existing_file */
@@ -232,7 +235,8 @@ static int64_t do_copy(const char *src, const char *dest,
 			 * if interactive is set user input is required.
 			 */
 			if (force && !interactive) {
-				if (vfs_unlink_path(dest_path) != EOK) {
+				rc = vfs_unlink_path(dest_path);
+				if (rc != EOK) {
 					printf("Unable to remove %s\n",
 					    dest_path);
 					goto exit;
@@ -243,23 +247,27 @@ static int64_t do_copy(const char *src, const char *dest,
 				    dest_path);
 				if (overwrite) {
 					printf("Overwriting file: %s\n", dest_path);
-					if (vfs_unlink_path(dest_path) != EOK) {
+					rc = vfs_unlink_path(dest_path);
+					if (rc != EOK) {
 						printf("Unable to remove %s\n", dest_path);
 						goto exit;
 					}
 				} else {
 					printf("Not overwriting file: %s\n", dest_path);
-					r = 0;
+					rc = EOK;
 					goto exit;
 				}
 			} else {
 				printf("File already exists: %s\n", dest_path);
+				rc = EEXIST;
 				goto exit;
 			}
 		}
 
 		/* call copy_file and exit */
-		r = (copy_file(src, dest_path, blen, vb) < 0);
+		if (copy_file(src, dest_path, blen, vb) < 0) {
+			rc = EIO;
+		}
 
 	} else if (src_type == TYPE_DIR) {
 		/* e.g. cp -r /x/srcdir /y/destdir/ */
@@ -267,9 +275,11 @@ static int64_t do_copy(const char *src, const char *dest,
 		if (!recursive) {
 			printf("Cannot copy the %s directory without the "
 			    "-r option\n", src);
+			rc = EINVAL;
 			goto exit;
 		} else if (dest_type == TYPE_FILE) {
 			printf("Cannot overwrite a file with a directory\n");
+			rc = EEXIST;
 			goto exit;
 		}
 
@@ -292,8 +302,9 @@ static int64_t do_copy(const char *src, const char *dest,
 				 */
 				merge_paths(dest_path, PATH_MAX, src_dirname);
 
-				if (vfs_link_path(dest_path, KIND_DIRECTORY,
-				    NULL) != EOK) {
+				rc = vfs_link_path(dest_path, KIND_DIRECTORY,
+				    NULL);
+				if (rc != EOK) {
 					printf("Unable to create "
 					    "dest directory %s\n", dest_path);
 					goto exit;
@@ -307,8 +318,8 @@ static int64_t do_copy(const char *src, const char *dest,
 			 *
 			 * e.g. cp -r /src /data/new_dir_src
 			 */
-			if (vfs_link_path(dest_path, KIND_DIRECTORY,
-			    NULL) != EOK) {
+			rc = vfs_link_path(dest_path, KIND_DIRECTORY, NULL);
+			if (rc != EOK) {
 				printf("Unable to create "
 				    "dest directory %s\n", dest_path);
 				goto exit;
@@ -320,6 +331,7 @@ static int64_t do_copy(const char *src, const char *dest,
 		if (!dir) {
 			/* Something strange is happening... */
 			printf("Unable to open src %s directory\n", src);
+			rc = ENOENT;
 			goto exit;
 		}
 
@@ -347,6 +359,7 @@ static int64_t do_copy(const char *src, const char *dest,
 			    dest_s.fs_handle == src_s.fs_handle) {
 				printf("Cannot copy a directory "
 				    "into itself\n");
+				rc = EEXIST;
 				goto exit;
 			}
 
@@ -354,9 +367,9 @@ static int64_t do_copy(const char *src, const char *dest,
 				printf("copy %s %s\n", src_dent, dest_dent);
 
 			/* Recursively call do_copy() */
-			r = do_copy(src_dent, dest_dent, blen, vb, recursive,
+			rc = do_copy(src_dent, dest_dent, blen, vb, recursive,
 			    force, interactive);
-			if (r)
+			if (rc != EOK)
 				goto exit;
 
 		}
@@ -366,15 +379,16 @@ static int64_t do_copy(const char *src, const char *dest,
 exit:
 	if (dir)
 		closedir(dir);
-	return r;
+	return rc;
 }
 
-static int64_t copy_file(const char *src, const char *dest,
+static int copy_file(const char *src, const char *dest,
 	size_t blen, int vb)
 {
-	int fd1, fd2, bytes;
+	int fd1, fd2;
+	size_t rbytes, wbytes;
+	int rc;
 	off64_t total;
-	int64_t copied = 0;
 	char *buff = NULL;
 	aoff64_t posr = 0, posw = 0;
 	struct stat st;
@@ -382,14 +396,14 @@ static int64_t copy_file(const char *src, const char *dest,
 	if (vb)
 		printf("Copying %s to %s\n", src, dest);
 
-	fd1 = vfs_lookup_open(src, WALK_REGULAR, MODE_READ);
-	if (fd1 < 0) {
+	rc = vfs_lookup_open(src, WALK_REGULAR, MODE_READ, &fd1);
+	if (rc != EOK) {
 		printf("Unable to open source file %s\n", src);
 		return -1;
 	}
 
-	fd2 = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
-	if (fd2 < 0) {
+	rc = vfs_lookup_open(dest, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE, &fd2);
+	if (rc != EOK) {
 		printf("Unable to open destination file %s\n", dest);
 		vfs_put(fd1);
 		return -1;
@@ -409,19 +423,19 @@ static int64_t copy_file(const char *src, const char *dest,
 	if (NULL == (buff = (char *) malloc(blen))) {
 		printf("Unable to allocate enough memory to read %s\n",
 		    src);
-		copied = -1;
+		rc = ENOMEM;
 		goto out;
 	}
 
-	while ((bytes = vfs_read(fd1, &posr, buff, blen)) > 0) {
-		if ((bytes = vfs_write(fd2, &posw, buff, bytes)) < 0)
+	while ((rc = vfs_read(fd1, &posr, buff, blen, &rbytes)) == EOK &&
+	    rbytes > 0) {
+		if ((rc = vfs_write(fd2, &posw, buff, rbytes, &wbytes)) != EOK)
 			break;
-		copied += bytes;
 	}
 
-	if (bytes < 0) {
-		printf("\nError copying %s, (%d)\n", src, bytes);
-		copied = bytes;
+	if (rc != EOK) {
+		printf("\nError copying %s: %s\n", src, str_error(rc));
+		return -1;
 	}
 
 out:
@@ -429,7 +443,11 @@ out:
 	vfs_put(fd2);
 	if (buff)
 		free(buff);
-	return copied;
+	if (rc != EOK) {
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 void help_cmd_cp(unsigned int level)
@@ -460,7 +478,7 @@ int cmd_cp(char **argv)
 	int buffer = 0, recursive = 0;
 	int force = 0, interactive = 0;
 	int c, opt_ind;
-	int64_t ret;
+	int ret;
 
 	con = console_init(stdin, stdout);
 	argc = cli_count_args(argv);

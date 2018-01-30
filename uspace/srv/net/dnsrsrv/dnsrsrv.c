@@ -35,6 +35,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <io/log.h>
 #include <ipc/dnsr.h>
 #include <ipc/services.h>
@@ -67,7 +68,7 @@ static int dnsr_init(void)
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		transport_fini();
 		return EEXIST;
 	}
@@ -75,7 +76,7 @@ static int dnsr_init(void)
 	service_id_t sid;
 	rc = loc_service_register(SERVICE_NAME_DNSR, &sid);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		transport_fini();
 		return EEXIST;
 	}
@@ -143,7 +144,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 	if (rc != EOK)
 		async_answer_0(callid, rc);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 	
 	dns_hostinfo_destroy(hinfo);
 }
@@ -203,7 +204,7 @@ static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 		async_answer_0(iid, rc);
 	}
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void dnsr_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)

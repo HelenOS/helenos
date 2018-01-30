@@ -38,4 +38,5 @@ SOURCES = \
 	src/run.c
 
 EXTRA_CFLAGS = -D__helenos__
+
 LIBRARY = libpcut

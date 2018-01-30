@@ -63,7 +63,7 @@ static int ddisk_fun_offline(ddf_fun_t *);
 
 static void ddisk_bd_connection(ipc_callid_t, ipc_call_t *, void *);
 
-static void ddisk_irq_handler(ipc_callid_t, ipc_call_t *, ddf_dev_t *);
+static void ddisk_irq_handler(ipc_call_t *, ddf_dev_t *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = ddisk_dev_add,
@@ -175,7 +175,7 @@ irq_code_t ddisk_irq_code = {
 	.cmds = ddisk_irq_commands,
 };
 
-void ddisk_irq_handler(ipc_callid_t iid, ipc_call_t *icall, ddf_dev_t *dev)
+void ddisk_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "ddisk_irq_handler(), status=%" PRIx32,
 	    (uint32_t) IPC_GET_ARG1(*icall));
@@ -407,7 +407,7 @@ error:
 /** Add new device
  *
  * @param  dev New device
- * @return     EOK on success or negative error code.
+ * @return     EOK on success or an error code.
  */
 static int ddisk_dev_add(ddf_dev_t *dev)
 {
@@ -502,10 +502,9 @@ static int ddisk_dev_add(ddf_dev_t *dev)
 	ddisk_irq_pio_ranges[0].base = res.base;
 	ddisk_irq_commands[0].addr = (void *) &res_phys->status;
 	ddisk_irq_commands[3].addr = (void *) &res_phys->command;
-	ddisk->irq_cap = register_interrupt_handler(dev, ddisk->ddisk_res.irq,
-	    ddisk_irq_handler, &ddisk_irq_code);
-	if (ddisk->irq_cap < 0) {
-		rc = ddisk->irq_cap;
+	rc = register_interrupt_handler(dev, ddisk->ddisk_res.irq,
+	    ddisk_irq_handler, &ddisk_irq_code, &ddisk->irq_cap);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
 		goto error;
 	}

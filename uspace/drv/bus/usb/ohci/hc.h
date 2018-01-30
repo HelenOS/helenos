@@ -89,7 +89,7 @@ static inline hc_t * hcd_to_hc(hc_device_t *hcd)
 }
 
 extern int hc_add(hc_device_t *, const hw_res_list_parsed_t *);
-extern int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *);
+extern int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *, int *);
 extern int hc_gain_control(hc_device_t *);
 extern int hc_start(hc_device_t *);
 extern int hc_setup_roothub(hc_device_t *);

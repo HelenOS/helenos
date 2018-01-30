@@ -37,11 +37,11 @@
 
 #include <stdio.h>
 #include <vfs/vfs_sess.h>
-#include <malloc.h>
 #include <async.h>
 #include <errno.h>
 #include <ipc/mouseev.h>
 #include <loc.h>
+#include <stdlib.h>
 #include "../mouse.h"
 #include "../mouse_port.h"
 #include "../mouse_proto.h"

@@ -91,26 +91,26 @@ extern int __POSIX_DEF__(putenv)(char *string);
 extern int __POSIX_DEF__(system)(const char *string);
 
 /* Symbolic Links */
-extern char *__POSIX_DEF__(realpath)(const char *restrict name, char *restrict resolved);
+extern char *__POSIX_DEF__(realpath)(const char *__restrict__ name, char *__restrict__ resolved);
 
 /* Floating Point Conversion */
 extern double __POSIX_DEF__(atof)(const char *nptr);
-extern float __POSIX_DEF__(strtof)(const char *restrict nptr, char **restrict endptr);
-extern double __POSIX_DEF__(strtod)(const char *restrict nptr, char **restrict endptr);
-extern long double __POSIX_DEF__(strtold)(const char *restrict nptr, char **restrict endptr);
+extern float __POSIX_DEF__(strtof)(const char *__restrict__ nptr, char **__restrict__ endptr);
+extern double __POSIX_DEF__(strtod)(const char *__restrict__ nptr, char **__restrict__ endptr);
+extern long double __POSIX_DEF__(strtold)(const char *__restrict__ nptr, char **__restrict__ endptr);
 
 /* Integer Conversion */
 extern int __POSIX_DEF__(atoi)(const char *nptr);
 extern long int __POSIX_DEF__(atol)(const char *nptr);
 extern long long int __POSIX_DEF__(atoll)(const char *nptr);
-extern long int __POSIX_DEF__(strtol)(const char *restrict nptr,
-    char **restrict endptr, int base);
-extern long long int __POSIX_DEF__(strtoll)(const char *restrict nptr,
-    char **restrict endptr, int base);
-extern unsigned long int __POSIX_DEF__(strtoul)(const char *restrict nptr,
-    char **restrict endptr, int base);
+extern long int __POSIX_DEF__(strtol)(const char *__restrict__ nptr,
+    char **__restrict__ endptr, int base);
+extern long long int __POSIX_DEF__(strtoll)(const char *__restrict__ nptr,
+    char **__restrict__ endptr, int base);
+extern unsigned long int __POSIX_DEF__(strtoul)(const char *__restrict__ nptr,
+    char **__restrict__ endptr, int base);
 extern unsigned long long int __POSIX_DEF__(strtoull)(
-    const char *restrict nptr, char **restrict endptr, int base);
+    const char *__restrict__ nptr, char **__restrict__ endptr, int base);
 
 /* Memory Allocation */
 extern void *__POSIX_DEF__(malloc)(size_t size)

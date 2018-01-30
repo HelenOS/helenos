@@ -122,7 +122,10 @@ int cmd_touch(char **argv)
 		/* Check whether file exists if -c (--no-create) option is given */
 		if ((!no_create) ||
 		    ((no_create) && (vfs_stat_path(buff, &file_stat) == EOK))) {
-			fd = vfs_lookup(buff, WALK_REGULAR | WALK_MAY_CREATE);
+			int rc = vfs_lookup(buff, WALK_REGULAR | WALK_MAY_CREATE, &fd);
+			if (rc != EOK) {
+				fd = -1;
+			}
 		}
 		
 		if (fd < 0) {

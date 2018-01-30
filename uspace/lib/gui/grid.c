@@ -36,7 +36,7 @@
 
 #include <assert.h>
 #include <mem.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <surface.h>
 #include "window.h"
 #include "grid.h"

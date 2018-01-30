@@ -102,10 +102,10 @@ avltree_t threads_tree;
 IRQ_SPINLOCK_STATIC_INITIALIZE(tidlock);
 static thread_id_t last_tid = 0;
 
-static slab_cache_t *thread_slab;
+static slab_cache_t *thread_cache;
 
 #ifdef CONFIG_FPU
-slab_cache_t *fpu_context_slab;
+slab_cache_t *fpu_context_cache;
 #endif
 
 /** Thread wrapper.
@@ -168,9 +168,9 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 #ifdef CONFIG_FPU_LAZY
 	thread->saved_fpu_context = NULL;
 #else /* CONFIG_FPU_LAZY */
-	thread->saved_fpu_context = slab_alloc(fpu_context_slab, kmflags);
+	thread->saved_fpu_context = slab_alloc(fpu_context_cache, kmflags);
 	if (!thread->saved_fpu_context)
-		return -1;
+		return ENOMEM;
 #endif /* CONFIG_FPU_LAZY */
 #endif /* CONFIG_FPU */
 	
@@ -198,9 +198,9 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 	if (!stack_phys) {
 #ifdef CONFIG_FPU
 		if (thread->saved_fpu_context)
-			slab_free(fpu_context_slab, thread->saved_fpu_context);
+			slab_free(fpu_context_cache, thread->saved_fpu_context);
 #endif
-		return -1;
+		return ENOMEM;
 	}
 	
 	thread->kstack = (uint8_t *) PA2KA(stack_phys);
@@ -209,7 +209,7 @@ static int thr_constructor(void *obj, unsigned int kmflags)
 	mutex_initialize(&thread->udebug.lock, MUTEX_PASSIVE);
 #endif
 	
-	return 0;
+	return EOK;
 }
 
 /** Destruction of thread_t object */
@@ -224,7 +224,7 @@ static size_t thr_destructor(void *obj)
 	
 #ifdef CONFIG_FPU
 	if (thread->saved_fpu_context)
-		slab_free(fpu_context_slab, thread->saved_fpu_context);
+		slab_free(fpu_context_cache, thread->saved_fpu_context);
 #endif
 	
 	return STACK_FRAMES;  /* number of frames freed */
@@ -240,11 +240,11 @@ void thread_init(void)
 	THREAD = NULL;
 	
 	atomic_set(&nrdy, 0);
-	thread_slab = slab_cache_create("thread_t", sizeof(thread_t), 0,
+	thread_cache = slab_cache_create("thread_t", sizeof(thread_t), 0,
 	    thr_constructor, thr_destructor, 0);
 	
 #ifdef CONFIG_FPU
-	fpu_context_slab = slab_cache_create("fpu_context_t",
+	fpu_context_cache = slab_cache_create("fpu_context_t",
 	    sizeof(fpu_context_t), FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
 	
@@ -340,7 +340,7 @@ void thread_ready(thread_t *thread)
 thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
     thread_flags_t flags, const char *name)
 {
-	thread_t *thread = (thread_t *) slab_alloc(thread_slab, 0);
+	thread_t *thread = (thread_t *) slab_alloc(thread_cache, 0);
 	if (!thread)
 		return NULL;
 	
@@ -456,7 +456,7 @@ void thread_destroy(thread_t *thread, bool irq_res)
 	 * Drop the reference to the containing task.
 	 */
 	task_release(thread->task);
-	slab_free(thread_slab, thread);
+	slab_free(thread_cache, thread);
 }
 
 /** Make the thread visible to the system.
@@ -547,7 +547,7 @@ restart:
 /** Interrupts an existing thread so that it may exit as soon as possible.
  * 
  * Threads that are blocked waiting for a synchronization primitive 
- * are woken up with a return code of ESYNCH_INTERRUPTED if the
+ * are woken up with a return code of EINTR if the
  * blocking call was interruptable. See waitq_sleep_timeout().
  * 
  * The caller must guarantee the thread object is valid during the entire
@@ -652,7 +652,7 @@ int thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 	assert(!thread->detached);
 	irq_spinlock_unlock(&thread->lock, true);
 	
-	return waitq_sleep_timeout(&thread->join_wq, usec, flags);
+	return waitq_sleep_timeout(&thread->join_wq, usec, flags, NULL);
 }
 
 /** Detach thread.
@@ -699,7 +699,7 @@ void thread_usleep(uint32_t usec)
 	
 	waitq_initialize(&wq);
 	
-	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING);
+	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING, NULL);
 }
 
 static bool thread_walker(avltree_node_t *node, void *arg)
@@ -973,7 +973,7 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				 * is still not visible to the system.
 				 * We can safely deallocate it.
 				 */
-				slab_free(thread_slab, thread);
+				slab_free(thread_cache, thread);
 				free(kernel_uarg);
 				
 				return (sysarg_t) rc;
@@ -1007,9 +1007,6 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 sysarg_t sys_thread_exit(int uspace_status)
 {
 	thread_exit();
-	
-	/* Unreachable */
-	return 0;
 }
 
 /** Syscall for getting TID.

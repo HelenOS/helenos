@@ -35,7 +35,7 @@
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include "service.h"
 #include "ns.h"
 
@@ -172,7 +172,7 @@ void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
 {
 	sysarg_t arg3 = IPC_GET_ARG3(*call);
 	sysarg_t flags = IPC_GET_ARG4(*call);
-	sysarg_t retval;
+	int retval;
 	
 	ht_link_t *link = hash_table_find(&service_hash_table, &service);
 	if (!link) {

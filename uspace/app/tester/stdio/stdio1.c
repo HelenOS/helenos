@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <str_error.h>
 #include <errno.h>
 #include "../tester.h"
 
@@ -45,7 +46,7 @@ const char *test_stdio1(void)
 	errno = 0;
 	file = fopen(file_name, "rt");
 	if (file == NULL) {
-		TPRINTF("errno = %d\n", errno);
+		TPRINTF("errno = %s\n", str_error_name(errno));
 		return "Failed opening file";
 	} else
 		TPRINTF("OK\n");
@@ -53,7 +54,7 @@ const char *test_stdio1(void)
 	TPRINTF("Read file...");
 	size_t cnt = fread(buf, 1, BUF_SIZE, file);
 	if (ferror(file)) {
-		TPRINTF("errno = %d\n", errno);
+		TPRINTF("errno = %s\n", str_error_name(errno));
 		fclose(file);
 		return "Failed reading file";
 	} else
@@ -64,7 +65,7 @@ const char *test_stdio1(void)
 	
 	TPRINTF("Seek to beginning...");
 	if (fseek(file, 0, SEEK_SET) != 0) {
-		TPRINTF("errno = %d\n", errno);
+		TPRINTF("errno = %s\n", str_error_name(errno));
 		fclose(file);
 		return "Failed seeking in file";
 	} else
@@ -82,7 +83,7 @@ const char *test_stdio1(void)
 	
 	TPRINTF("Close...");
 	if (fclose(file) != 0) {
-		TPRINTF("errno = %d\n", errno);
+		TPRINTF("errno = %s\n", str_error_name(errno));
 		return "Failed closing file";
 	} else
 		TPRINTF("OK\n");

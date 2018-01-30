@@ -35,6 +35,7 @@
 #ifndef KERN_CAP_H_
 #define KERN_CAP_H_
 
+#include <abi/cap.h>
 #include <typedefs.h>
 #include <adt/list.h>
 #include <adt/hash.h>
@@ -43,8 +44,6 @@
 #include <synch/mutex.h>
 #include <atomic.h>
 
-typedef int cap_handle_t;
-
 typedef enum {
 	CAP_STATE_FREE,
 	CAP_STATE_ALLOCATED,
@@ -52,14 +51,17 @@ typedef enum {
 } cap_state_t;
 
 typedef enum {
-	KOBJECT_TYPE_PHONE,
+	KOBJECT_TYPE_CALL,
 	KOBJECT_TYPE_IRQ,
+	KOBJECT_TYPE_PHONE,
 	KOBJECT_TYPE_MAX
 } kobject_type_t;
 
 struct task;
-struct phone;
+
+struct call;
 struct irq;
+struct phone;
 
 struct kobject;
 typedef struct kobject_ops {
@@ -78,8 +80,9 @@ typedef struct kobject {
 
 	union {
 		void *raw;
-		struct phone *phone;
+		struct call *call;
 		struct irq *irq;
+		struct phone *phone;
 	};
 } kobject_t;
 
@@ -117,7 +120,7 @@ extern void caps_task_init(struct task *);
 extern bool caps_apply_to_kobject_type(struct task *, kobject_type_t,
     bool (*)(cap_t *, void *), void *);
 
-extern cap_handle_t cap_alloc(struct task *);
+extern int cap_alloc(struct task *, cap_handle_t *);
 extern void cap_publish(struct task *, cap_handle_t, kobject_t *);
 extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
 extern void cap_free(struct task *, cap_handle_t);

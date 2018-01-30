@@ -36,21 +36,21 @@
 #include <ddf/log.h>
 #include <ddi.h>
 #include <errno.h>
-#include <ipc/char.h>
-#include <sysinfo.h>
+#include <io/chardev_srv.h>
 
 #include "msim-con.h"
 
 static void msim_con_connection(ipc_callid_t, ipc_call_t *, void *);
 
-static irq_pio_range_t msim_ranges[] = {
-	{
-		.base = 0,
-		.size = 1
-	}
+static int msim_con_read(chardev_srv_t *, void *, size_t, size_t *);
+static int msim_con_write(chardev_srv_t *, const void *, size_t, size_t *);
+
+static chardev_ops_t msim_con_chardev_ops = {
+	.read = msim_con_read,
+	.write = msim_con_write
 };
 
-static irq_cmd_t msim_cmds[] = {
+static irq_cmd_t msim_cmds_proto[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
 		.addr = (void *) 0,	/* will be patched in run-time */
@@ -61,33 +61,42 @@ static irq_cmd_t msim_cmds[] = {
 	}
 };
 
-static irq_code_t msim_kbd = {
-	sizeof(msim_ranges) / sizeof(irq_pio_range_t),
-	msim_ranges,
-	sizeof(msim_cmds) / sizeof(irq_cmd_t),
-	msim_cmds
-};
-
-static void msim_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *arg)
+static void msim_irq_handler(ipc_call_t *call, void *arg)
 {
 	msim_con_t *con = (msim_con_t *) arg;
 	uint8_t c;
+	int rc;
+
+	fibril_mutex_lock(&con->buf_lock);
 
 	c = IPC_GET_ARG2(*call);
+	rc = circ_buf_push(&con->cbuf, &c);
+	if (rc != EOK)
+		ddf_msg(LVL_ERROR, "Buffer overrun");
 
-	if (con->client_sess != NULL) {
-		async_exch_t *exch = async_exchange_begin(con->client_sess);
-		async_msg_1(exch, CHAR_NOTIF_BYTE, c);
-		async_exchange_end(exch);
-	}
+	fibril_mutex_unlock(&con->buf_lock);
+	fibril_condvar_broadcast(&con->buf_cv);
 }
 
 /** Add msim console device. */
-int msim_con_add(msim_con_t *con)
+int msim_con_add(msim_con_t *con, msim_con_res_t *res)
 {
 	ddf_fun_t *fun = NULL;
 	bool subscribed = false;
+	irq_cmd_t *msim_cmds = NULL;
 	int rc;
+
+	circ_buf_init(&con->cbuf, con->buf, msim_con_buf_size, 1);
+	fibril_mutex_initialize(&con->buf_lock);
+	fibril_condvar_initialize(&con->buf_cv);
+
+	msim_cmds = malloc(sizeof(msim_cmds_proto));
+	if (msim_cmds == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	con->res = *res;
 
 	fun = ddf_fun_create(con->dev, fun_exposed, "a");
 	if (fun == NULL) {
@@ -96,24 +105,31 @@ int msim_con_add(msim_con_t *con)
 		goto error;
 	}
 
+	rc = pio_enable((void *)res->base, 1, (void **) &con->out_reg);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error enabling I/O");
+		goto error;
+	}
+
 	ddf_fun_set_conn_handler(fun, msim_con_connection);
 
-	sysarg_t paddr;
-	if (sysinfo_get_value("kbd.address.physical", &paddr) != EOK) {
-		rc = ENOENT;
-		goto error;
-	}
+	con->irq_range[0].base = res->base;
+	con->irq_range[0].size = 1;
 
-	sysarg_t inr;
-	if (sysinfo_get_value("kbd.inr", &inr) != EOK) {
-		rc = ENOENT;
-		goto error;
-	}
+	memcpy(msim_cmds, msim_cmds_proto, sizeof(msim_cmds_proto));
+	msim_cmds[0].addr = (void *) res->base;
 
-	msim_ranges[0].base = paddr;
-	msim_cmds[0].addr = (void *) paddr;
-	async_irq_subscribe(inr, msim_irq_handler, con, &msim_kbd);
+	con->irq_code.rangecount = 1;
+	con->irq_code.ranges = con->irq_range;
+	con->irq_code.cmdcount = sizeof(msim_cmds_proto) / sizeof(irq_cmd_t);
+	con->irq_code.cmds = msim_cmds;
+
+	async_irq_subscribe(res->irq, msim_irq_handler, con, &con->irq_code, NULL);
 	subscribed = true;
+
+	chardev_srvs_init(&con->cds);
+	con->cds.ops = &msim_con_chardev_ops;
+	con->cds.sarg = con;
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
@@ -121,12 +137,15 @@ int msim_con_add(msim_con_t *con)
 		goto error;
 	}
 
+	ddf_fun_add_to_category(fun, "console");
+
 	return EOK;
 error:
 	if (subscribed)
-		async_irq_unsubscribe(inr);
+		async_irq_unsubscribe(res->irq);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
+	free(msim_cmds);
 
 	return rc;
 }
@@ -145,51 +164,60 @@ int msim_con_gone(msim_con_t *con)
 
 static void msim_con_putchar(msim_con_t *con, uint8_t ch)
 {
+	pio_write_8(con->out_reg, ch);
+}
+
+/** Read from msim console device */
+static int msim_con_read(chardev_srv_t *srv, void *buf, size_t size,
+    size_t *nread)
+{
+	msim_con_t *con = (msim_con_t *) srv->srvs->sarg;
+	size_t p;
+	uint8_t *bp = (uint8_t *) buf;
+	int rc;
+
+	fibril_mutex_lock(&con->buf_lock);
+
+	while (circ_buf_nused(&con->cbuf) == 0)
+		fibril_condvar_wait(&con->buf_cv, &con->buf_lock);
+
+	p = 0;
+	while (p < size) {
+		rc = circ_buf_pop(&con->cbuf, &bp[p]);
+		if (rc != EOK)
+			break;
+		++p;
+	}
+
+	fibril_mutex_unlock(&con->buf_lock);
+
+	*nread = p;
+	return EOK;
+}
+
+/** Write to msim console device */
+static int msim_con_write(chardev_srv_t *srv, const void *data, size_t size,
+    size_t *nwr)
+{
+	msim_con_t *con = (msim_con_t *) srv->srvs->sarg;
+	size_t i;
+	uint8_t *dp = (uint8_t *) data;
+
+	for (i = 0; i < size; i++)
+		msim_con_putchar(con, dp[i]); 
+
+	*nwr = size;
+	return EOK;
 }
 
 /** Character device connection handler. */
 static void msim_con_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
-	msim_con_t *con;
+	msim_con_t *con = (msim_con_t *) ddf_dev_data_get(
+	    ddf_fun_get_dev((ddf_fun_t *) arg));
 
-	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(iid, EOK);
-
-	con = (msim_con_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
-
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		sysarg_t method = IPC_GET_IMETHOD(call);
-
-		if (!method) {
-			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
-			return;
-		}
-
-		async_sess_t *sess =
-		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
-		if (sess != NULL) {
-			if (con->client_sess == NULL) {
-				con->client_sess = sess;
-				async_answer_0(callid, EOK);
-			} else
-				async_answer_0(callid, ELIMIT);
-		} else {
-			switch (method) {
-			case CHAR_WRITE_BYTE:
-				ddf_msg(LVL_DEBUG, "Write %" PRIun " to device\n",
-				    IPC_GET_ARG1(call));
-				msim_con_putchar(con, (uint8_t) IPC_GET_ARG1(call));
-				async_answer_0(callid, EOK);
-				break;
-			default:
-				async_answer_0(callid, EINVAL);
-			}
-		}
-	}
+	chardev_conn(iid, icall, &con->cds);
 }
 
 /** @}

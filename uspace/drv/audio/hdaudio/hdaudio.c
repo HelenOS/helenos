@@ -57,7 +57,7 @@ static int hda_dev_gone(ddf_dev_t *dev);
 static int hda_fun_online(ddf_fun_t *fun);
 static int hda_fun_offline(ddf_fun_t *fun);
 
-static void hdaudio_interrupt(ipc_callid_t, ipc_call_t *, ddf_dev_t *);
+static void hdaudio_interrupt(ipc_call_t *, ddf_dev_t *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &hda_dev_add,
@@ -258,16 +258,16 @@ static int hda_dev_add(ddf_dev_t *dev)
 
 	rc = hw_res_enable_interrupt(hda->parent_sess, res.irqs.irqs[0]);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed enabling interrupt. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed enabling interrupt.: %s", str_error(rc));
 		goto error;
 	}
 
-	int irq_cap = register_interrupt_handler(dev, res.irqs.irqs[0],
-	    hdaudio_interrupt, &irq_code);
-	if (irq_cap < 0) {
-		rc = irq_cap;
-		ddf_msg(LVL_ERROR, "Failed registering interrupt handler. (%d)",
-		    rc);
+	int irq_cap;
+	rc = register_interrupt_handler(dev, res.irqs.irqs[0],
+	    hdaudio_interrupt, &irq_code, &irq_cap);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed registering interrupt handler: %s",
+		    str_error_name(rc));
 		goto error;
 	}
 
@@ -313,7 +313,7 @@ error:
 	// pio_disable(regs);
 	hw_res_list_parsed_clean(&res);
 
-	ddf_msg(LVL_NOTE, "Failing hda_dev_add() -> %d", rc);
+	ddf_msg(LVL_NOTE, "Failing hda_dev_add() -> %s", str_error_name(rc));
 	return rc;
 }
 
@@ -367,8 +367,7 @@ static int hda_fun_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-static void hdaudio_interrupt(ipc_callid_t iid, ipc_call_t *icall,
-    ddf_dev_t *dev)
+static void hdaudio_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	hda_t *hda = (hda_t *)ddf_dev_data_get(dev);
 

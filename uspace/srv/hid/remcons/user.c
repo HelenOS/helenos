@@ -33,13 +33,13 @@
  */
 #include <async.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <adt/prodcons.h>
 #include <errno.h>
 #include <str_error.h>
 #include <loc.h>
 #include <io/keycode.h>
 #include <align.h>
-#include <malloc.h>
 #include <as.h>
 #include <fibril_synch.h>
 #include <task.h>

@@ -9,3 +9,4 @@ not ok 2 one_exponent failed
 not ok 3 test_min failed
 # error: suites.c:49: Expected <5> but got <654> (5 != intmin(654, 5))
 #> Finished suite intmin (failed 1 of 1).
+#> Done: 3 of 3 tests failed.

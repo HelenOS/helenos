@@ -77,7 +77,7 @@ static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	if (rc != EOK)
 		async_answer_0(callid, rc);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
@@ -88,10 +88,9 @@ static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	addr48_t mac;
 	ipc_callid_t callid;
 
-	rc = async_data_write_receive(&callid, &size);
-	if (rc != EOK) {
-		async_answer_0(callid, (sysarg_t) rc);
-		async_answer_0(iid, (sysarg_t) rc);
+	if (!async_data_write_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
 	}
 
 	rc = srv->ops->set_mac48(srv, &mac);
@@ -104,7 +103,7 @@ static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	if (rc != EOK)
 		async_answer_0(callid, rc);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t iid,
@@ -127,12 +126,12 @@ static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	inet_addr_t addr;
 	int rc = async_data_write_finalize(callid, &addr, size);
 	if (rc != EOK) {
-		async_answer_0(callid, (sysarg_t) rc);
-		async_answer_0(iid, (sysarg_t) rc);
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 	}
 	
 	rc = srv->ops->addr_add(srv, &addr);
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t iid,
@@ -155,12 +154,12 @@ static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	inet_addr_t addr;
 	int rc = async_data_write_finalize(callid, &addr, size);
 	if (rc != EOK) {
-		async_answer_0(callid, (sysarg_t) rc);
-		async_answer_0(iid, (sysarg_t) rc);
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 	}
 	
 	rc = srv->ops->addr_remove(srv, &addr);
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t iid,
@@ -204,8 +203,8 @@ static void iplink_send6_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	
 	int rc = async_data_write_finalize(callid, &sdu.dest, size);
 	if (rc != EOK) {
-		async_answer_0(callid, (sysarg_t) rc);
-		async_answer_0(iid, (sysarg_t) rc);
+		async_answer_0(callid, rc);
+		async_answer_0(iid, rc);
 	}
 	
 	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
@@ -321,7 +320,7 @@ int iplink_ev_recv(iplink_srv_t *srv, iplink_recv_sdu_t *sdu, ip_ver_t ver)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
@@ -347,7 +346,7 @@ int iplink_ev_change_addr(iplink_srv_t *srv, addr48_t *addr)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;

@@ -48,6 +48,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <log.h>
+#include <str.h>
 
 static bool user_create(as_area_t *);
 static void user_destroy(as_area_t *);
@@ -129,8 +130,8 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	if (rc != EOK) {
 		log(LF_USPACE, LVL_FATAL,
 		    "Page-in request for page %#" PRIxPTR
-		    " at pager %d failed with error %d.",
-		    upage, pager_info->pager, rc);
+		    " at pager %d failed with error %s.",
+		    upage, pager_info->pager, str_error_name(rc));
 		return AS_PF_FAULT;
 	}
 

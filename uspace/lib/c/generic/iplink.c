@@ -101,10 +101,10 @@ int iplink_send(iplink_t *iplink, iplink_sdu_t *sdu)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
-	return (int) retval;
+	return retval;
 }
 
 int iplink_send6(iplink_t *iplink, iplink_sdu6_t *sdu)
@@ -130,10 +130,10 @@ int iplink_send6(iplink_t *iplink, iplink_sdu6_t *sdu)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
-	return (int) retval;
+	return retval;
 }
 
 int iplink_get_mtu(iplink_t *iplink, size_t *rmtu)
@@ -168,10 +168,10 @@ int iplink_get_mac48(iplink_t *iplink, addr48_t *mac)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
-	return (int) retval;
+	return retval;
 }
 
 int iplink_set_mac48(iplink_t *iplink, addr48_t mac)
@@ -190,10 +190,10 @@ int iplink_set_mac48(iplink_t *iplink, addr48_t mac)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
-	return (int) retval;
+	return retval;
 }
 
 
@@ -212,10 +212,10 @@ int iplink_addr_add(iplink_t *iplink, inet_addr_t *addr)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
-	return (int) retval;
+	return retval;
 }
 
 int iplink_addr_remove(iplink_t *iplink, inet_addr_t *addr)
@@ -233,10 +233,10 @@ int iplink_addr_remove(iplink_t *iplink, inet_addr_t *addr)
 		return rc;
 	}
 	
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 	
-	return (int) retval;
+	return retval;
 }
 
 void *iplink_get_userptr(iplink_t *iplink)

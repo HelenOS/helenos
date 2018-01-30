@@ -36,6 +36,7 @@
 #define LIBC_FUTEX_H_
 
 #include <atomic.h>
+#include <errno.h>
 #include <libc.h>
 
 typedef struct futex {
@@ -106,11 +107,11 @@ extern void futex_upgrade_all_and_wait(void);
  *
  * @param futex Futex.
  *
- * @return Non-zero if the futex was acquired.
- * @return Zero if the futex was not acquired.
+ * @return true if the futex was acquired.
+ * @return false if the futex was not acquired.
  *
  */
-static inline int futex_trydown(futex_t *futex)
+static inline bool futex_trydown(futex_t *futex)
 {
 	return cas(&futex->val, 1, 0);
 }
@@ -120,16 +121,16 @@ static inline int futex_trydown(futex_t *futex)
  * @param futex Futex.
  *
  * @return ENOENT if there is no such virtual address.
- * @return Zero in the uncontended case.
- * @return Otherwise one of ESYNCH_OK_ATOMIC or ESYNCH_OK_BLOCKED.
+ * @return EOK on success.
+ * @return Error code from <errno.h> otherwise.
  *
  */
 static inline int futex_down(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
-		return __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
+		return (int) __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
 	
-	return 0;
+	return EOK;
 }
 
 /** Up the futex.
@@ -137,15 +138,16 @@ static inline int futex_down(futex_t *futex)
  * @param futex Futex.
  *
  * @return ENOENT if there is no such virtual address.
- * @return Zero in the uncontended case.
+ * @return EOK on success.
+ * @return Error code from <errno.h> otherwise.
  *
  */
 static inline int futex_up(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
-		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
+		return (int) __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
 	
-	return 0;
+	return EOK;
 }
 
 #endif

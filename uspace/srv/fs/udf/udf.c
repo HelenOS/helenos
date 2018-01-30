@@ -40,6 +40,7 @@
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <task.h>
 #include <libfs.h>
 #include <str.h>
@@ -95,7 +96,7 @@ int main(int argc, char *argv[])
 	return 0;
 	
 err:
-	log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to register file system (%d)", rc);
+	log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to register file system: %s", str_error(rc));
 	return rc;
 }
 

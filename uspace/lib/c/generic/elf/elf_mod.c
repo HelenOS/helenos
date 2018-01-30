@@ -68,7 +68,8 @@ static const char *error_codes[] = {
 	"address space error",
 	"incompatible image",
 	"unsupported image type",
-	"irrecoverable error"
+	"irrecoverable error",
+	"file io error"
 };
 
 static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias);
@@ -89,36 +90,44 @@ static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
  * @param info      Pointer to a structure for storing information
  *                  extracted from the binary.
  *
- * @return EOK on success or negative error code.
+ * @return EE_OK on success or EE_xx error code.
  *
  */
 int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info)
 {
 	elf_ld_t elf;
 
-	int ofile = vfs_clone(file, -1, true);
-	int rc = vfs_open(ofile, MODE_READ);
+	int ofile;
+	int rc = vfs_clone(file, -1, true, &ofile);
+	if (rc == EOK) {
+		rc = vfs_open(ofile, MODE_READ);
+	}
 	if (rc != EOK) {
-		return rc;
+		return EE_IO;
 	}
 
 	elf.fd = ofile;
 	elf.info = info;
 	elf.flags = flags;
 
-	rc = elf_load_module(&elf, so_bias);
+	int ret = elf_load_module(&elf, so_bias);
 
 	vfs_put(ofile);
-	return rc;
+	return ret;
 }
 
 int elf_load_file_name(const char *path, size_t so_bias, eld_flags_t flags,
     elf_finfo_t *info)
 {
-	int file = vfs_lookup(path, 0);
-	int rc = elf_load_file(file, so_bias, flags, info);
-	vfs_put(file);
-	return rc;
+	int file;
+	int rc = vfs_lookup(path, 0, &file);
+	if (rc == EOK) {
+		int ret = elf_load_file(file, so_bias, flags, info);
+		vfs_put(file);
+		return ret;
+	} else {
+		return EE_IO;
+	}
 }
 
 /** Load an ELF binary.
@@ -136,12 +145,14 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	elf_header_t header_buf;
 	elf_header_t *header = &header_buf;
 	aoff64_t pos = 0;
-	int i, rc;
+	size_t nr;
+	int i, ret;
+	int rc;
 
-	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t));
-	if (rc != sizeof(elf_header_t)) {
+	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t), &nr);
+	if (rc != EOK || nr != sizeof(elf_header_t)) {
 		DPRINTF("Read error.\n"); 
-		return EE_INVALID;
+		return EE_IO;
 	}
 
 	elf->header = header;
@@ -198,15 +209,15 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 
 		pos = header->e_phoff + i * sizeof(elf_segment_header_t);
 		rc = vfs_read(elf->fd, &pos, &segment_hdr,
-		    sizeof(elf_segment_header_t));
-		if (rc != sizeof(elf_segment_header_t)) {
+		    sizeof(elf_segment_header_t), &nr);
+		if (rc != EOK || nr != sizeof(elf_segment_header_t)) {
 			DPRINTF("Read error.\n");
-			return EE_INVALID;
+			return EE_IO;
 		}
 
-		rc = segment_header(elf, &segment_hdr);
-		if (rc != EE_OK)
-			return rc;
+		ret = segment_header(elf, &segment_hdr);
+		if (ret != EE_OK)
+			return ret;
 	}
 
 	DPRINTF("Parse sections.\n");
@@ -217,15 +228,15 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 
 		pos = header->e_shoff + i * sizeof(elf_section_header_t);
 		rc = vfs_read(elf->fd, &pos, &section_hdr,
-		    sizeof(elf_section_header_t));
-		if (rc != sizeof(elf_section_header_t)) {
+		    sizeof(elf_section_header_t), &nr);
+		if (rc != EOK || nr != sizeof(elf_section_header_t)) {
 			DPRINTF("Read error.\n");
-			return EE_INVALID;
+			return EE_IO;
 		}
 
-		rc = section_header(elf, &section_hdr);
-		if (rc != EE_OK)
-			return rc;
+		ret = section_header(elf, &section_hdr);
+		if (ret != EE_OK)
+			return ret;
 	}
 
 	elf->info->entry =
@@ -329,7 +340,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	uintptr_t seg_addr;
 	size_t mem_sz;
 	aoff64_t pos;
-	ssize_t rc;
+	int rc;
+	size_t nr;
 
 	bias = elf->bias;
 
@@ -387,10 +399,10 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 * Load segment data
 	 */
 	pos = entry->p_offset;
-	rc = vfs_read(elf->fd, &pos, seg_ptr, entry->p_filesz);
-	if (rc < 0) {
+	rc = vfs_read(elf->fd, &pos, seg_ptr, entry->p_filesz, &nr);
+	if (rc != EOK || nr != entry->p_filesz) {
 		DPRINTF("read error\n");
-		return EE_INVALID;
+		return EE_IO;
 	}
 
 	/*

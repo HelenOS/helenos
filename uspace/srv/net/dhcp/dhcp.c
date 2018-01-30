@@ -38,6 +38,7 @@
 #include <bitops.h>
 #include <byteorder.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril_synch.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>
@@ -369,7 +370,7 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 	    &addr_id);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		    "Error creating IP address %s (%d)", "dhcp4a", rc);
+		    "Error creating IP address %s: %s", "dhcp4a", str_error(rc));
 		return rc;
 	}
 
@@ -379,7 +380,7 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 		rc = inetcfg_sroute_create("dhcpdef", &defr, &offer->router, &sroute_id);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating "
-			    "default route %s (%d).", "dhcpdef", rc);
+			    "default route %s: %s.", "dhcpdef", str_error(rc));
 			return rc;
 		}
 	}
@@ -388,7 +389,7 @@ static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 		rc = dnsr_set_srvaddr(&offer->dns_server);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Error setting "
-			    "nameserver address (%d))", rc);
+			    "nameserver address: %s)", str_error(rc));
 			return rc;
 		}
 	}

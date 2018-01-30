@@ -222,7 +222,7 @@ static int log_printf_wstr_write(const wchar_t *wstr, size_t size, void *data)
 		size_t buffer_offset = 0;
 		int rc = chr_encode(wstr[chars], buffer, &buffer_offset, 16);
 		if (rc != EOK) {
-			return rc;
+			return EOF;
 		}
 		
 		log_append((const uint8_t *)buffer, buffer_offset);
@@ -293,7 +293,7 @@ int log(log_facility_t fac, log_level_t level, const char *fmt, ...)
  *
  */
 sysarg_t sys_klog(sysarg_t operation, void *buf, size_t size,
-    sysarg_t level)
+    sysarg_t level, size_t *uspace_nread)
 {
 	char *data;
 	int rc;
@@ -375,7 +375,8 @@ sysarg_t sys_klog(sysarg_t operation, void *buf, size_t size,
 			if (rc != EOK)
 				return (sysarg_t) rc;
 			
-			return copied;
+			return copy_to_uspace(uspace_nread, &copied, sizeof(copied));
+			return EOK;
 		default:
 			return (sysarg_t) ENOTSUP;
 	}

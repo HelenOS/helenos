@@ -109,10 +109,10 @@ int inetping_send(inetping_sdu_t *sdu)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
-	return (int) retval;
+	return retval;
 }
 
 int inetping_get_srcaddr(const inet_addr_t *remote, inet_addr_t *local)
@@ -135,18 +135,18 @@ int inetping_get_srcaddr(const inet_addr_t *remote, inet_addr_t *local)
 
 	async_exchange_end(exch);
 
-	sysarg_t retval_local;
+	int retval_local;
 	async_wait_for(req_local, &retval_local);
 
 	if (retval_local != EOK) {
 		async_forget(req);
-		return (int) retval_local;
+		return retval_local;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
-	return (int) retval;
+	return retval;
 }
 
 static void inetping_ev_recv(ipc_callid_t iid, ipc_call_t *icall)

@@ -40,7 +40,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <task.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <macros.h>
 #include <str.h>
 #include <loc.h>
@@ -207,7 +207,7 @@ static int srv_startl(const char *path, ...)
 		printf("%s: Server %s failed to start (exit code %d)\n", NAME,
 		    path, retval);
 	
-	return retval;
+	return retval == 0 ? EOK : EPARTY;
 }
 
 static int console(const char *isvc, const char *osvc)

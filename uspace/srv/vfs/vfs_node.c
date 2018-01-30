@@ -274,7 +274,7 @@ int vfs_open_node_remote(vfs_node_t *node)
 	
 	vfs_exchange_release(exch);
 
-	sysarg_t rc;
+	int rc;
 	async_wait_for(req, &rc);
 	
 	return rc;

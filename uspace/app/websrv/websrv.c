@@ -167,7 +167,7 @@ static int recv_char(recv_t *recv, char *c)
 		
 		rc = tcp_conn_recv_wait(recv->conn, recv->rbuf, BUFFER_SIZE, &nrecv);
 		if (rc != EOK) {
-			fprintf(stderr, "tcp_conn_recv() failed (%d)\n", rc);
+			fprintf(stderr, "tcp_conn_recv() failed: %s\n", str_error(rc));
 			return rc;
 		}
 		
@@ -246,6 +246,7 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	char *fbuf = NULL;
 	char *fname = NULL;
 	int rc;
+	size_t nr;
 	int fd = -1;
 	
 	fbuf = calloc(BUFFER_SIZE, 1);
@@ -257,14 +258,13 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	if (str_cmp(uri, "/") == 0)
 		uri = "/index.html";
 	
-	rc = asprintf(&fname, "%s%s", WEB_ROOT, uri);
-	if (rc < 0) {
+	if (asprintf(&fname, "%s%s", WEB_ROOT, uri) < 0) {
 		rc = ENOMEM;
 		goto out;
 	}
 	
-	fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
-	if (fd < 0) {
+	rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK) {
 		rc = send_response(conn, msg_not_found);
 		goto out;
 	}
@@ -278,14 +278,12 @@ static int uri_get(const char *uri, tcp_conn_t *conn)
 	
 	aoff64_t pos = 0;
 	while (true) {
-		ssize_t nr = vfs_read(fd, &pos, fbuf, BUFFER_SIZE);
+		rc = vfs_read(fd, &pos, fbuf, BUFFER_SIZE, &nr);
+		if (rc != EOK)
+			goto out;
+		
 		if (nr == 0)
 			break;
-		
-		if (nr < 0) {
-			rc = EIO;
-			goto out;
-		}
 		
 		rc = tcp_conn_send(conn, fbuf, nr);
 		if (rc != EOK) {

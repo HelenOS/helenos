@@ -47,7 +47,7 @@ static async_sess_t *sess_ns = NULL;
 
 int service_register(service_t service)
 {
-	sysarg_t retval;
+	int retval;
 	ipc_call_t answer;
 	
 	async_sess_t *sess = ns_session_get();

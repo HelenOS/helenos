@@ -49,7 +49,7 @@
 #include <mem.h>
 #include <arch.h>
 
-slab_cache_t *irq_slab = NULL;
+slab_cache_t *irq_cache = NULL;
 
 /** Spinlock protecting the kernel IRQ hash table
  *
@@ -96,9 +96,9 @@ void irq_init(size_t inrs, size_t chains)
 {
 	last_inr = inrs - 1;
 
-	irq_slab = slab_cache_create("irq_t", sizeof(irq_t), 0, NULL, NULL,
+	irq_cache = slab_cache_create("irq_t", sizeof(irq_t), 0, NULL, NULL,
 	    FRAME_ATOMIC);
-	assert(irq_slab);
+	assert(irq_cache);
 
 	hash_table_create(&irq_uspace_hash_table, chains, 0, &irq_ht_ops);
 	hash_table_create(&irq_kernel_hash_table, chains, 0, &irq_ht_ops);

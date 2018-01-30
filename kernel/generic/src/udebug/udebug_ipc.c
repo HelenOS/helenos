@@ -71,9 +71,10 @@ int udebug_request_preprocess(call_t *call, phone_t *phone)
 static void udebug_receive_begin(call_t *call)
 {
 	int rc;
+	bool active;
 
-	rc = udebug_begin(call);
-	if (rc < 0) {
+	rc = udebug_begin(call, &active);
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
@@ -83,8 +84,8 @@ static void udebug_receive_begin(call_t *call)
 	 * If the initialization of the debugging session has finished,
 	 * send a reply.
 	 */
-	if (rc != 0) {
-		IPC_SET_RETVAL(call->data, 0);
+	if (active) {
+		IPC_SET_RETVAL(call->data, EOK);
 		ipc_answer(&TASK->kb.box, call);
 	}
 }
@@ -135,7 +136,7 @@ static void udebug_receive_go(call_t *call)
 	t = (thread_t *)IPC_GET_ARG2(call->data);
 
 	rc = udebug_go(t, call);
-	if (rc < 0) {
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
@@ -180,7 +181,7 @@ static void udebug_receive_thread_read(call_t *call)
 	 * of threads times thread-id size.
 	 */
 	rc = udebug_thread_read(&buffer, buf_size, &copied, &needed);
-	if (rc < 0) {
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
@@ -349,7 +350,7 @@ static void udebug_receive_regs_read(call_t *call)
 	t = (thread_t *) IPC_GET_ARG2(call->data);
 
 	rc = udebug_regs_read(t, &buffer);
-	if (rc < 0) {
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;
@@ -395,7 +396,7 @@ static void udebug_receive_mem_read(call_t *call)
 	size = IPC_GET_ARG4(call->data);
 
 	rc = udebug_mem_read(uspace_src, size, &buffer);
-	if (rc < 0) {
+	if (rc != EOK) {
 		IPC_SET_RETVAL(call->data, rc);
 		ipc_answer(&TASK->kb.box, call);
 		return;

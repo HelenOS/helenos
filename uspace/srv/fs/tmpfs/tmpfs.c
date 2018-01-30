@@ -45,6 +45,7 @@
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 #include <task.h>
 #include <libfs.h>
@@ -88,7 +89,7 @@ int main(int argc, char **argv)
 	int rc = fs_register(vfs_sess, &tmpfs_vfs_info, &tmpfs_ops,
 	    &tmpfs_libfs_ops);
 	if (rc != EOK) {
-		printf(NAME ": Failed to register file system (%d)\n", rc);
+		printf(NAME ": Failed to register file system: %s\n", str_error(rc));
 		return rc;
 	}
 	

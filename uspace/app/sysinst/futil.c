@@ -56,39 +56,44 @@ static char buf[BUF_SIZE];
 int futil_copy_file(const char *srcp, const char *destp)
 {
 	int sf, df;
-	ssize_t nr, nw;
+	size_t nr, nw;
 	int rc;
 	aoff64_t posr = 0, posw = 0;
 
 	printf("Copy '%s' to '%s'.\n", srcp, destp);
 
-	sf = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ);
-	if (sf < 0)
+	rc = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ, &sf);
+	if (rc != EOK)
 		return EIO;
 
-	df = vfs_lookup_open(destp, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE);
-	if (df < 0)
+	rc = vfs_lookup_open(destp, WALK_REGULAR | WALK_MAY_CREATE, MODE_WRITE, &df);
+	if (rc != EOK)
 		return EIO;
 
 	do {
-		nr = vfs_read(sf, &posr, buf, BUF_SIZE);
+		rc = vfs_read(sf, &posr, buf, BUF_SIZE, &nr);
+		if (rc != EOK)
+			goto error;
 		if (nr == 0)
 			break;
-		if (nr < 0)
-			return EIO;
 
-		nw = vfs_write(df, &posw, buf, nr);
-		if (nw <= 0)
-			return EIO;
-	} while (true);
+		rc= vfs_write(df, &posw, buf, nr, &nw);
+		if (rc != EOK)
+			goto error;
+
+	} while (nr == BUF_SIZE);
 
 	(void) vfs_put(sf);
 
 	rc = vfs_put(df);
-	if (rc < 0)
+	if (rc != EOK)
 		return EIO;
 
 	return EOK;
+error:
+	vfs_put(sf);
+	vfs_put(df);
+	return rc;
 }
 
 /** Copy contents of srcdir (recursively) into destdir.
@@ -155,19 +160,20 @@ int futil_rcopy_contents(const char *srcdir, const char *destdir)
 int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 {
 	int sf;
-	ssize_t nr;
+	size_t nr;
+	int rc;
 	size_t fsize;
 	char *data;
 	struct stat st;
 
-	sf = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ);
-	if (sf < 0)
+	rc = vfs_lookup_open(srcp, WALK_REGULAR, MODE_READ, &sf);
+	if (rc != EOK)
 		return ENOENT;
 
 	if (vfs_stat(sf, &st) != EOK) {
 		vfs_put(sf);
 		return EIO;
-	}	
+	}
 
 	fsize = st.size;
 
@@ -177,8 +183,8 @@ int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 		return ENOMEM;
 	}
 
-	nr = vfs_read(sf, (aoff64_t []) { 0 }, data, fsize);
-	if (nr != (ssize_t)fsize) {
+	rc = vfs_read(sf, (aoff64_t []) { 0 }, data, fsize, &nr);
+	if (rc != EOK || nr != fsize) {
 		vfs_put(sf);
 		free(data);
 		return EIO;

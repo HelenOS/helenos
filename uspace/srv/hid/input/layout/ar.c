@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011 Jiri Svoboda
- * Copyright (c) 2012 Mohammed Q. Hussain (For Arabic Keyboard)
+ * Copyright (c) 2012 Mohammed Q. Hussain
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

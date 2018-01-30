@@ -45,23 +45,6 @@
 /** Interruptible operation. */
 #define SYNCH_FLAGS_INTERRUPTIBLE  (1 << 1)
 
-/** Could not satisfy the request without going to sleep. */
-#define ESYNCH_WOULD_BLOCK  1
-/** Timeout occurred. */
-#define ESYNCH_TIMEOUT      2
-/** Sleep was interrupted. */
-#define ESYNCH_INTERRUPTED  4
-/** Operation succeeded without sleeping. */
-#define ESYNCH_OK_ATOMIC    8
-/** Operation succeeded and did sleep. */
-#define ESYNCH_OK_BLOCKED   16
-
-#define SYNCH_FAILED(rc) \
-	((rc) & (ESYNCH_WOULD_BLOCK | ESYNCH_TIMEOUT | ESYNCH_INTERRUPTED))
-
-#define SYNCH_OK(rc) \
-	((rc) & (ESYNCH_OK_ATOMIC | ESYNCH_OK_BLOCKED))
-
 #endif
 
 /** @}

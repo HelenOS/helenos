@@ -417,10 +417,10 @@ static void cpixel_encode(rfb_t *rfb, cpixel_ctx_t *cpixel, void *buf,
 	}
 }
 
-static ssize_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
+static size_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
     rfb_rectangle_t *tile, void *buf)
 {
-	ssize_t size = tile->width * tile->height * cpixel->size;
+	size_t size = tile->width * tile->height * cpixel->size;
 	if (buf == NULL)
 		return size;
 	
@@ -434,22 +434,23 @@ static ssize_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
 	return size;
 }
 
-static ssize_t rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
-    rfb_rectangle_t *tile, void *buf)
+static int rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
+    rfb_rectangle_t *tile, void *buf, size_t *size)
 {
 	/* Check if it is single color */
 	pixel_t the_color = pixelmap_get_pixel(&rfb->framebuffer, tile->x, tile->y);
 	for (uint16_t y = tile->y; y < tile->y + tile->height; y++) {
 		for (uint16_t x = tile->x; x < tile->x + tile->width; x++) {
 			if (pixelmap_get_pixel(&rfb->framebuffer, x, y) != the_color)
-				return -1;
+				return EINVAL;
 		}
 	}
 	
 	/* OK, encode it */
 	if (buf)
 		cpixel_encode(rfb, cpixel, buf, the_color);
-	return cpixel->size;
+	*size = cpixel->size;
+	return EOK;
 }
 
 static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
@@ -473,8 +474,10 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 				buf +=  1;
 			
 			uint8_t tile_enctype = RFB_TILE_ENCODING_SOLID;
-			ssize_t tile_size = rfb_tile_encode_solid(rfb, &cpixel, &tile, buf);
-			if (tile_size < 0) {
+			size_t tile_size;
+			int rc = rfb_tile_encode_solid(rfb, &cpixel, &tile, buf,
+			    &tile_size);
+			if (rc != EOK) {
 				tile_size = rfb_tile_encode_raw(rfb, &cpixel, &tile, buf);
 				tile_enctype = RFB_TILE_ENCODING_RAW;
 			}
@@ -597,14 +600,16 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	/* Version handshake */
 	int rc = tcp_conn_send(conn, "RFB 003.008\n", 12);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server version %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server version: %s",
+		    str_error(rc));
 		return;
 	}
 	
 	char client_version[12];
 	rc = recv_chars(conn, client_version, 12);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client version: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client version: %s",
+		    str_error(rc));
 		return;
 	}
 	
@@ -622,14 +627,15 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	rc = tcp_conn_send(conn, sec_types, 2);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN,
-		    "Failed sending security handshake: %d", rc);
+		    "Failed sending security handshake: %s", str_error(rc));
 		return;
 	}
 	
 	char selected_sec_type = 0;
 	rc = recv_char(conn, &selected_sec_type);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving security type: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving security type: %s",
+		    str_error(rc));
 		return;
 	}
 	if (selected_sec_type != RFB_SECURITY_NONE) {
@@ -640,7 +646,8 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	uint32_t security_result = RFB_SECURITY_HANDSHAKE_OK;
 	rc = tcp_conn_send(conn, &security_result, sizeof(uint32_t));
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending security result: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending security result: %s",
+		    str_error(rc));
 		return;
 	}
 	
@@ -648,7 +655,8 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	char shared_flag;
 	rc = recv_char(conn, &shared_flag);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client init: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed receiving client init: %s",
+		    str_error(rc));
 		return;
 	}
 	
@@ -671,7 +679,8 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	fibril_mutex_unlock(&rfb->lock);
 	rc = tcp_conn_send(conn, server_init, msg_length);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server init: %d", rc);
+		log_msg(LOG_DEFAULT, LVL_WARN, "Failed sending server init: %s",
+		    str_error(rc));
 		return;
 	}
 	

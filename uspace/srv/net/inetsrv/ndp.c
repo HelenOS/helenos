@@ -36,7 +36,7 @@
 
 #include <errno.h>
 #include <mem.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <io/log.h>
 #include "ntrans.h"
 #include "addrobj.h"

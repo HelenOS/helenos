@@ -50,10 +50,8 @@ typedef struct {
 	bool exited;
 } exited_t;
 
-/* Callback raced with preexisting readers. */
-#define ERACE   123
-/* Waited for too long for the callback to exit; consider it lost. */
-#define ECBLOST 432
+/* Co-opt EPARTY error code for race detection. */
+#define ERACE   EPARTY
 
 /*-------------------------------------------------------------------*/
 static void wait_for_cb_exit(size_t secs, exited_t *p, int *presult)
@@ -70,7 +68,7 @@ static void wait_for_cb_exit(size_t secs, exited_t *p, int *presult)
 	}
 	
 	if (!p->exited) {
-		*presult = ECBLOST;
+		*presult = ETIMEOUT;
 	}
 }
 
@@ -115,9 +113,9 @@ static void join_all(void)
 			bool joined = false;
 			do {
 				int ret = thread_join_timeout(thread[i], 5 * 1000 * 1000, 0);
-				joined = (ret != ESYNCH_TIMEOUT);
+				joined = (ret != ETIMEOUT);
 				
-				if (ret == ESYNCH_OK_BLOCKED) {
+				if (ret == EOK) {
 					TPRINTF("%zu threads remain\n", thread_cnt - i - 1);
 				}
 			} while (!joined);

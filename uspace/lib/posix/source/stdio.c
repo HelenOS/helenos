@@ -40,7 +40,9 @@
 #include "posix/stdio.h"
 
 #include "posix/assert.h"
-#include "posix/errno.h"
+
+#include <errno.h>
+
 #include "posix/stdlib.h"
 #include "posix/string.h"
 #include "posix/sys/types.h"
@@ -312,7 +314,7 @@ posix_off_t posix_ftello(FILE *stream)
  */
 int posix_fflush(FILE *stream)
 {
-	return negerrno(fflush, stream);
+	return fflush(stream);
 }
 
 /**
@@ -342,9 +344,9 @@ int posix_dprintf(int fildes, const char *restrict format, ...)
 static int _dprintf_str_write(const char *str, size_t size, void *fd)
 {
 	const int fildes = *(int *) fd;
-	ssize_t wr = vfs_write(fildes, &posix_pos[fildes], str, size);
-	if (wr < 0)
-		return wr;
+	size_t wr;
+	if (failed(vfs_write(fildes, &posix_pos[fildes], str, size, &wr)))
+		return -1;
 	return str_nlength(str, wr);
 }
 
@@ -370,7 +372,8 @@ static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
 		}
 		
 		const int fildes = *(int *) fd;
-		if (vfs_write(fildes, &posix_pos[fildes], buf, sz) < 0)
+		size_t nwr;
+		if (vfs_write(fildes, &posix_pos[fildes], buf, sz, &nwr) != EOK)
 			break;
 		
 		chars++;
@@ -573,7 +576,7 @@ int posix_putchar_unlocked(int c)
  */
 int posix_remove(const char *path)
 {
-	if (rcerrno(vfs_unlink_path, path) != EOK)
+	if (failed(vfs_unlink_path(path)))
 		return -1;
 	else
 		return 0;
@@ -588,8 +591,7 @@ int posix_remove(const char *path)
  */
 int posix_rename(const char *old, const char *new)
 {
-	int rc = rcerrno(vfs_rename_path, old, new);
-	if (rc != EOK)
+	if (failed(vfs_rename_path(old, new)))
 		return -1;
 	else
 		return 0;
@@ -661,7 +663,7 @@ char *posix_tempnam(const char *dir, const char *pfx)
 		snprintf(res_ptr, 8, "%03d.tmp", seq);
 		
 		int orig_errno = errno;
-		errno = 0;
+		errno = EOK;
 		/* Check if the file exists. */
 		if (posix_access(result, F_OK) == -1) {
 			if (errno == ENOENT) {

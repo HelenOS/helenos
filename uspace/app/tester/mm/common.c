@@ -28,7 +28,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <as.h>
 #include <adt/list.h>
 #include <stdio.h>

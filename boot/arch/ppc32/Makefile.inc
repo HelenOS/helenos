@@ -52,6 +52,8 @@ RD_DRVS_ESSENTIAL += \
 	bus/usb/usbmid \
 	bus/usb/vhc \
 	block/usbmast \
+	hid/adb-kbd \
+	hid/adb-mouse \
 	hid/usbhid
 
 SOURCES = \

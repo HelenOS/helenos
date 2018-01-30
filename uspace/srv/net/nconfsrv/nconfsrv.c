@@ -37,6 +37,7 @@
 #include <adt/list.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril_synch.h>
 #include <inet/dhcp.h>
 #include <inet/inetcfg.h>
@@ -79,13 +80,13 @@ static int ncs_init(void)
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
 		return EEXIST;
 	}
 
 	rc = loc_service_register(SERVICE_NAME_NETCONF, &sid);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service (%d).", rc);
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
 		return EEXIST;
 	}
 

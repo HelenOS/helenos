@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <errno.h>
+#include <str_error.h>
 #include <vfs/vfs.h>
 
 #include "include/symtab.h"
@@ -70,6 +71,7 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 
 	int fd;
 	int rc;
+	size_t nread;
 	int i;
 
 	bool load_sec, sec_is_symtab;
@@ -80,15 +82,15 @@ int symtab_load(const char *file_name, symtab_t **symtab)
 	if (stab == NULL)
 		return ENOMEM;
 
-	fd = vfs_lookup_open(file_name, WALK_REGULAR, MODE_READ);
-	if (fd < 0) {
-		printf("failed opening file\n");
+	rc = vfs_lookup_open(file_name, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK) {
+		printf("failed opening file '%s': %s\n", file_name, str_error(rc));
 		free(stab);
 		return ENOENT;
 	}
 
-	rc = vfs_read(fd, &pos, &elf_hdr, sizeof(elf_header_t));
-	if (rc != sizeof(elf_header_t)) {
+	rc = vfs_read(fd, &pos, &elf_hdr, sizeof(elf_header_t), &nread);
+	if (rc != EOK || nread != sizeof(elf_header_t)) {
 		printf("failed reading elf header\n");
 		free(stab);
 		return EIO;
@@ -282,7 +284,7 @@ int symtab_addr_to_name(symtab_t *st, uintptr_t addr, char **name,
 
 /** Check if ELF header is valid.
  *
- * @return	EOK on success or negative error code.
+ * @return	EOK on success or an error code.
  */
 static int elf_hdr_check(elf_header_t *ehdr)
 {
@@ -303,10 +305,11 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
     elf_section_header_t *sec_hdr)
 {
 	int rc;
+	size_t nread;
 	aoff64_t pos = elf_hdr->e_shoff + idx * sizeof(elf_section_header_t);
 
-	rc = vfs_read(fd, &pos, sec_hdr, sizeof(elf_section_header_t));
-	if (rc != sizeof(elf_section_header_t))
+	rc = vfs_read(fd, &pos, sec_hdr, sizeof(elf_section_header_t), &nread);
+	if (rc != EOK || nread != sizeof(elf_section_header_t))
 		return EIO;
 
 	return EOK;
@@ -325,7 +328,8 @@ static int section_hdr_load(int fd, const elf_header_t *elf_hdr, int idx,
  */
 static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 {
-	ssize_t rc;
+	int rc;
+	size_t nread;
 	aoff64_t pos = start;
 
 	*ptr = malloc(size);
@@ -334,8 +338,8 @@ static int chunk_load(int fd, off64_t start, size_t size, void **ptr)
 		return ENOMEM;
 	}
 
-	rc = vfs_read(fd, &pos, *ptr, size);
-	if (rc != (ssize_t) size) {
+	rc = vfs_read(fd, &pos, *ptr, size, &nread);
+	if (rc != EOK || nread != size) {
 		printf("failed reading chunk\n");
 		free(*ptr);
 		*ptr = NULL;

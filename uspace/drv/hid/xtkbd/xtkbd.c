@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -205,23 +206,17 @@ static void push_event(async_sess_t *sess, kbd_event_type_t type,
  */
 static int polling(void *arg)
 {
-	const xt_kbd_t *kbd = arg;
-	
-	assert(kbd);
-	assert(kbd->parent_sess);
-	
-	async_exch_t *parent_exch = async_exchange_begin(kbd->parent_sess);
+	xt_kbd_t *kbd = arg;
+	size_t nread;
+	int rc;
 	
 	while (true) {
-		if (!parent_exch)
-			parent_exch = async_exchange_begin(kbd->parent_sess);
-		
 		const unsigned int *map = scanmap_simple;
 		size_t map_size = sizeof(scanmap_simple) / sizeof(unsigned int);
 		
 		uint8_t code = 0;
-		ssize_t size = chardev_read(parent_exch, &code, 1);
-		if (size != 1)
+		rc = chardev_read(kbd->chardev, &code, 1, &nread);
+		if (rc != EOK)
 			return EIO;
 		
 		/* Ignore AT command reply */
@@ -233,22 +228,22 @@ static int polling(void *arg)
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(unsigned int);
 			
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			/* Handle really special keys */
 			
 			if (code == 0x2a) {  /* Print Screen */
-				size = chardev_read(parent_exch, &code, 1);
-				if (size != 1)
+				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				if (rc != EOK)
 					return EIO;
 				
 				if (code != 0xe0)
 					continue;
 				
-				size = chardev_read(parent_exch, &code, 1);
-				if (size != 1)
+				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				if (rc != EOK)
 					return EIO;
 				
 				if (code == 0x37)
@@ -258,15 +253,15 @@ static int polling(void *arg)
 			}
 			
 			if (code == 0x46) {  /* Break */
-				size = chardev_read(parent_exch, &code, 1);
-				if (size != 1)
+				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				if (rc != EOK)
 					return EIO;
 				
 				if (code != 0xe0)
 					continue;
 				
-				size = chardev_read(parent_exch, &code, 1);
-				if (size != 1)
+				rc = chardev_read(kbd->chardev, &code, 1, &nread);
+				if (rc != EOK)
 					return EIO;
 				
 				if (code == 0xc6)
@@ -278,36 +273,36 @@ static int polling(void *arg)
 		
 		/* Extended special set */
 		if (code == KBD_SCANCODE_SET_EXTENDED_SPECIAL) {
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code != 0x1d)
 				continue;
 			
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code != 0x45)
 				continue;
 			
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code != 0xe1)
 				continue;
 			
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code != 0x9d)
 				continue;
 			
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nread);
+			if (rc != EOK)
 				return EIO;
 			
 			if (code == 0xc5)
@@ -356,11 +351,15 @@ static void default_connection_handler(ddf_fun_t *fun,
 		    ((mods & KM_SCROLL_LOCK) ? LI_SCROLL : 0);
 		uint8_t cmds[] = { KBD_CMD_SET_LEDS, status };
 		
-		async_exch_t *exch = async_exchange_begin(kbd->parent_sess);
-		const ssize_t size = chardev_write(exch, cmds, sizeof(cmds));
-		async_exchange_end(exch);
-		
-		async_answer_0(icallid, size < 0 ? size : EOK);
+		size_t nwr;
+		int rc = chardev_write(kbd->chardev, &cmds[0], 1, &nwr);
+		if (rc != EOK) {
+			async_answer_0(icallid, rc);
+			break;
+		}
+
+		rc = chardev_write(kbd->chardev, &cmds[1], 1, &nwr);
+		async_answer_0(icallid, rc);
 		break;
 	}
 	/*
@@ -412,49 +411,61 @@ static ddf_dev_ops_t kbd_ops = {
  */
 int xt_kbd_init(xt_kbd_t *kbd, ddf_dev_t *dev)
 {
-	assert(kbd);
-	assert(dev);
+	async_sess_t *parent_sess;
+	bool bound = false;
+	int rc;
 	
 	kbd->client_sess = NULL;
-	kbd->parent_sess = ddf_dev_parent_sess_get(dev);
 	
-	if (!kbd->parent_sess) {
+	parent_sess = ddf_dev_parent_sess_get(dev);
+	if (parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating parent session.");
-		return EIO;
+		rc = EIO;
+		goto error;
+	}
+	
+	rc = chardev_open(parent_sess, &kbd->chardev);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed opening character device.");
+		goto error;
 	}
 	
 	kbd->kbd_fun = ddf_fun_create(dev, fun_exposed, "kbd");
-	if (!kbd->kbd_fun) {
+	if (kbd->kbd_fun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating function 'kbd'.");
-		return ENOMEM;
+		rc = ENOMEM;
+		goto error;
 	}
 	
 	ddf_fun_set_ops(kbd->kbd_fun, &kbd_ops);
 	
-	int ret = ddf_fun_bind(kbd->kbd_fun);
-	if (ret != EOK) {
+	rc = ddf_fun_bind(kbd->kbd_fun);
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function 'kbd'.");
-		ddf_fun_destroy(kbd->kbd_fun);
-		return EEXIST;
+		goto error;
 	}
 	
-	ret = ddf_fun_add_to_category(kbd->kbd_fun, "keyboard");
-	if (ret != EOK) {
+	rc = ddf_fun_add_to_category(kbd->kbd_fun, "keyboard");
+	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding function 'kbd' to category "
 		    "'keyboard'.");
-		ddf_fun_unbind(kbd->kbd_fun);
-		ddf_fun_destroy(kbd->kbd_fun);
-		return ENOMEM;
+		goto error;
 	}
 	
 	kbd->polling_fibril = fibril_create(polling, kbd);
-	if (!kbd->polling_fibril) {
+	if (kbd->polling_fibril == 0) {
 		ddf_msg(LVL_ERROR, "Failed creating polling fibril.");
-		ddf_fun_unbind(kbd->kbd_fun);
-		ddf_fun_destroy(kbd->kbd_fun);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto error;
 	}
 	
 	fibril_add_ready(kbd->polling_fibril);
 	return EOK;
+error:
+	if (bound)
+		ddf_fun_unbind(kbd->kbd_fun);
+	if (kbd->kbd_fun != NULL)
+		ddf_fun_destroy(kbd->kbd_fun);
+	chardev_close(kbd->chardev);
+	return rc;
 }

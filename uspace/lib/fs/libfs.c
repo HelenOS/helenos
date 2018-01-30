@@ -655,7 +655,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		rc = ops->unlink(par, cur, component);
 		if (rc == EOK) {
 			aoff64_t size = ops->size_get(cur);
-			async_answer_5(rid, fs_handle, service_id,
+			async_answer_5(rid, EOK, fs_handle,
 			    ops->index_get(cur),
 			    (ops->is_directory(cur) << 16) | last,
 			    LOWER32(size), UPPER32(size));
@@ -698,13 +698,13 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/* Return. */
 out1:
 	if (!cur) {
-		async_answer_5(rid, fs_handle, service_id, ops->index_get(par),
+		async_answer_5(rid, EOK, fs_handle, ops->index_get(par),
 		    (ops->is_directory(par) << 16) | last_next,
 		    LOWER32(ops->size_get(par)), UPPER32(ops->size_get(par)));
 		goto out;
 	}
 	
-	async_answer_5(rid, fs_handle, service_id, ops->index_get(cur),
+	async_answer_5(rid, EOK, fs_handle, ops->index_get(cur),
 	    (ops->is_directory(cur) << 16) | last, LOWER32(ops->size_get(cur)),
 	    UPPER32(ops->size_get(cur)));
 	

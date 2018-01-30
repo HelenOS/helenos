@@ -129,10 +129,10 @@ int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 		return rc;
 	}
 
-	sysarg_t retval;
+	int retval;
 	async_wait_for(req, &retval);
 
-	return (int) retval;
+	return retval;
 }
 
 static void inetping_send_srv(inetping_client_t *client, ipc_callid_t iid,

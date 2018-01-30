@@ -37,8 +37,11 @@
 #ifndef S3C24XX_UART_H_
 #define S3C24XX_UART_H_
 
-#include <stdint.h>
+#include <adt/circ_buf.h>
 #include <async.h>
+#include <fibril_synch.h>
+#include <io/chardev_srv.h>
+#include <stdint.h>
 
 /** S3C24xx UART I/O */
 typedef struct {
@@ -75,6 +78,9 @@ typedef struct {
 #define UFCON_RX_FIFO_TLEVEL_1B		0x00
 #define UFCON_FIFO_ENABLE		0x01
 
+enum {
+	s3c24xx_uart_buf_size = 64
+};
 
 /** S3C24xx UART instance */
 typedef struct {
@@ -84,11 +90,20 @@ typedef struct {
 	/** Device I/O structure */
 	s3c24xx_uart_io_t *io;
 
-	/** Callback session to the client */
-	async_sess_t *client_sess;
+	/** Character device service */
+	chardev_srvs_t cds;
 
 	/** Service ID */
 	service_id_t service_id;
+
+	/** Circular buffer */
+	circ_buf_t cbuf;
+	/** Buffer */
+	uint8_t buf[s3c24xx_uart_buf_size];
+	/** Buffer lock */
+	fibril_mutex_t buf_lock;
+	/** Signal newly added data in buffer */
+	fibril_condvar_t buf_cv;
 } s3c24xx_uart_t;
 
 #endif

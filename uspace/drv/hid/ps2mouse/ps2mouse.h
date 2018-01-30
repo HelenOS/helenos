@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,26 +30,32 @@
  * @{
  */
 /** @file
- * @brief ps/2 mouse driver.
+ * @brief PS/2 mouse driver.
  */
 
-#ifndef _PS2MOUSE_H_
-#define _PS2MOUSE_H_
+#ifndef PS2MOUSE_H_
+#define PS2MOUSE_H_
 
 #include <ddf/driver.h>
 #include <fibril.h>
+#include <io/chardev.h>
 
 /** PS/2 mouse driver structure. */
 typedef struct {
-	ddf_fun_t *mouse_fun;      /**< Mouse function. */
-	async_sess_t *parent_sess; /**< Connection to device providing data. */
-	async_sess_t *client_sess;  /**< Callback connection to client. */
-	fid_t polling_fibril;      /**< Fibril retrieving an parsing data. */
+	/** Mouse function. */
+	ddf_fun_t *mouse_fun;
+	/** Device providing mouse connection */
+	chardev_t *chardev;
+	/** Callback connection to client. */
+	async_sess_t *client_sess;
+	/** Fibril retrieving an parsing data. */
+	fid_t polling_fibril;
 } ps2_mouse_t;
 
-int ps2_mouse_init(ps2_mouse_t *, ddf_dev_t *);
+extern int ps2_mouse_init(ps2_mouse_t *, ddf_dev_t *);
 
 #endif
+
 /**
  * @}
  */

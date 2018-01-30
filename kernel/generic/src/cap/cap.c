@@ -40,6 +40,7 @@
  *
  * A kernel object (kobject_t) encapsulates one of the following raw objects:
  *
+ * - IPC call
  * - IPC phone
  * - IRQ object
  *
@@ -72,6 +73,7 @@
  */
 
 #include <cap/cap.h>
+#include <abi/cap.h>
 #include <proc/task.h>
 #include <synch/mutex.h>
 #include <abi/errno.h>
@@ -80,9 +82,11 @@
 
 #include <stdint.h>
 
-#define MAX_CAPS	INT_MAX
+#define CAPS_START	(CAP_NIL + 1)
+#define CAPS_SIZE	(INT_MAX - CAPS_START)
+#define CAPS_LAST	(CAPS_SIZE - 1)
 
-static slab_cache_t *cap_slab;
+static slab_cache_t *cap_cache;
 
 static size_t caps_hash(const ht_link_t *item)
 {
@@ -111,7 +115,7 @@ static hash_table_ops_t caps_ops = {
 
 void caps_init(void)
 {
-	cap_slab = slab_cache_create("cap_t", sizeof(cap_t), 0, NULL,
+	cap_cache = slab_cache_create("cap_t", sizeof(cap_t), 0, NULL,
 	    NULL, 0);
 }
 
@@ -128,7 +132,7 @@ int caps_task_alloc(task_t *task)
 	task->cap_info->handles = ra_arena_create();
 	if (!task->cap_info->handles)
 		goto error_handles;
-	if (!ra_span_add(task->cap_info->handles, 0, MAX_CAPS))
+	if (!ra_span_add(task->cap_info->handles, CAPS_START, CAPS_SIZE))
 		goto error_span;
 	if (!hash_table_create(&task->cap_info->caps, 0, 0, &caps_ops))
 		goto error_span;
@@ -219,7 +223,7 @@ static cap_t *cap_get(task_t *task, cap_handle_t handle, cap_state_t state)
 {
 	assert(mutex_locked(&task->cap_info->lock));
 
-	if ((handle < 0) || (handle >= MAX_CAPS))
+	if ((handle < CAPS_START) || (handle > CAPS_LAST))
 		return NULL;
 	ht_link_t *link = hash_table_find(&task->cap_info->caps, &handle);
 	if (!link)
@@ -252,13 +256,13 @@ static bool cap_reclaimer(ht_link_t *link, void *arg)
  *
  * @param task  Task for which to allocate the new capability.
  *
- * @return New capability handle on success.
- * @return Negative error code in case of error.
+ * @param[out] handle  New capability handle on success.
+ *
+ * @return An error code in case of error.
  */
-cap_handle_t cap_alloc(task_t *task)
+int cap_alloc(task_t *task, cap_handle_t *handle)
 {
 	cap_t *cap = NULL;
-	cap_handle_t handle;
 
 	/*
 	 * First of all, see if we can reclaim a capability. Note that this
@@ -272,14 +276,14 @@ cap_handle_t cap_alloc(task_t *task)
 	 * If we don't have a capability by now, try to allocate a new one.
 	 */
 	if (!cap) {
-		cap = slab_alloc(cap_slab, FRAME_ATOMIC);
+		cap = slab_alloc(cap_cache, FRAME_ATOMIC);
 		if (!cap) {
 			mutex_unlock(&task->cap_info->lock);
 			return ENOMEM;
 		}
 		uintptr_t hbase;
 		if (!ra_alloc(task->cap_info->handles, 1, 1, &hbase)) {
-			slab_free(cap_slab, cap);
+			slab_free(cap_cache, cap);
 			mutex_unlock(&task->cap_info->lock);
 			return ENOMEM;
 		}
@@ -288,10 +292,10 @@ cap_handle_t cap_alloc(task_t *task)
 	}
 
 	cap->state = CAP_STATE_ALLOCATED;
-	handle = cap->handle;
+	*handle = cap->handle;
 	mutex_unlock(&task->cap_info->lock);
 
-	return handle;
+	return EOK;
 }
 
 /** Publish allocated capability
@@ -356,8 +360,8 @@ kobject_t *cap_unpublish(task_t *task, cap_handle_t handle, kobject_type_t type)
  */
 void cap_free(task_t *task, cap_handle_t handle)
 {
-	assert(handle >= 0);
-	assert(handle < MAX_CAPS);
+	assert(handle >= CAPS_START);
+	assert(handle <= CAPS_LAST);
 
 	mutex_lock(&task->cap_info->lock);
 	cap_t *cap = cap_get(task, handle, CAP_STATE_ALLOCATED);
@@ -366,7 +370,7 @@ void cap_free(task_t *task, cap_handle_t handle)
 
 	hash_table_remove_item(&task->cap_info->caps, &cap->caps_link);
 	ra_free(task->cap_info->handles, handle, 1);
-	slab_free(cap_slab, cap);
+	slab_free(cap_cache, cap);
 	mutex_unlock(&task->cap_info->lock);
 }
 

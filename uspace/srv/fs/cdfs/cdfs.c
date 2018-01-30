@@ -40,6 +40,7 @@
 #include <ipc/services.h>
 #include <ns.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 #include <libfs.h>
 #include "cdfs.h"
@@ -82,7 +83,7 @@ int main(int argc, char **argv)
 	int rc = fs_register(vfs_sess, &cdfs_vfs_info, &cdfs_ops,
 	    &cdfs_libfs_ops);
 	if (rc != EOK) {
-		printf("%s: Failed to register file system (%d)\n", NAME, rc);
+		printf("%s: Failed to register file system: %s\n", NAME, str_error(rc));
 		return rc;
 	}
 	

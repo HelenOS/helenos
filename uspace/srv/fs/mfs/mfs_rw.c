@@ -58,7 +58,7 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone);
  * @param mnode	Pointer to a generic MINIX inode in memory.
  * @param pos	Position in file.
  *
- * @return	EOK on success or a negative error code.
+ * @return	EOK on success or an error code.
  */
 int
 mfs_read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
@@ -235,7 +235,7 @@ out:
  * @param mnode		Pointer to a generic MINIX inode in memory.
  * @param new_size	The new size of the inode.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 int
 mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
@@ -243,7 +243,8 @@ mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 	struct mfs_instance *inst = mnode->instance;
 	struct mfs_sb_info *sbi = inst->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
-	int nr_direct, ptrs_per_block, rblock, r;
+	int nr_direct, ptrs_per_block, rblock;
+	int r;
 	int i;
 
 	mfs_version_t fs_version = sbi->fs_version;

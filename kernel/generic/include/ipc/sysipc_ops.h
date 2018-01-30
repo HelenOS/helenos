@@ -39,13 +39,9 @@
 
 #define SYSIPC_OP(op, call, ...) \
 	({ \
-		int rc = EOK; \
-		\
-		sysipc_ops_t *ops; \
-		ops = sysipc_ops_get((call)->request_method); \
-		if (ops->op) \
-			rc = ops->op((call), ##__VA_ARGS__); \
-		rc; \
+		sysipc_ops_t *ops = sysipc_ops_get((call)->request_method); \
+		assert(ops->op); \
+		ops->op((call), ##__VA_ARGS__); \
 	})
 
 /**

@@ -104,21 +104,29 @@ static void serial_char_update(outdev_t *dev, sysarg_t col, sysarg_t row)
 	draw_char(state, field, col, row);
 }
 
+static void serial_flush(outdev_t *dev)
+{
+	vt100_state_t *state = (vt100_state_t *) dev->data;
+
+	vt100_flush(state);
+}
+
 static outdev_ops_t serial_ops = {
 	.yield = serial_yield,
 	.claim = serial_claim,
 	.get_dimensions = serial_get_dimensions,
 	.get_caps = serial_get_caps,
 	.cursor_update = serial_cursor_update,
-	.char_update = serial_char_update
+	.char_update = serial_char_update,
+	.flush = serial_flush
 };
 
 int serial_init(vt100_putchar_t putchar_fn,
-    vt100_control_puts_t control_puts_fn)
+    vt100_control_puts_t control_puts_fn, vt100_flush_t flush_fn)
 {
 	vt100_state_t *state =
 	    vt100_state_create(SERIAL_COLS, SERIAL_ROWS, putchar_fn,
-	    control_puts_fn);
+	    control_puts_fn, flush_fn);
 	if (state == NULL)
 		return ENOMEM;
 	

@@ -44,7 +44,7 @@
  * @param sess     Session of the device
  * @param status   Current status of the battery
  *
- * @return         EOK on success or a negative error code
+ * @return         EOK on success or an error code
  */
 int
 battery_status_get(async_sess_t *sess, battery_status_t *batt_status)
@@ -69,7 +69,7 @@ battery_status_get(async_sess_t *sess, battery_status_t *batt_status)
  * @param sess     Session of the device
  * @param level    Battery charge level (0 - 100)
  *
- * @return         EOK on success or a negative error code
+ * @return         EOK on success or an error code
  */
 int
 battery_charge_level_get(async_sess_t *sess, int *level)

@@ -39,7 +39,9 @@
 #include "posix/stdlib.h"
 
 #include "posix/ctype.h"
-#include "posix/errno.h"
+
+#include <errno.h>
+
 #include "posix/inttypes.h"
 #include "posix/limits.h"
 

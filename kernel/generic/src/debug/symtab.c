@@ -49,7 +49,7 @@
  * @param name   Place to store pointer to the symbol name.
  * @param offset Place to store offset from the symbol address.
  *
- * @return Zero on success or negative error code, ENOENT if not found,
+ * @return Zero on success or an error code, ENOENT if not found,
  *         ENOTSUP if symbol table not available.
  *
  */

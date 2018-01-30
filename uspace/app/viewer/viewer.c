@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <vfs/vfs.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <window.h>
 #include <canvas.h>
@@ -108,12 +108,13 @@ static void on_keyboard_event(widget_t *widget, void *data)
 
 static bool img_load(const char *fname, surface_t **p_local_surface)
 {
-	int fd = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ);
-	if (fd < 0)
+	int fd;
+	int rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
+	if (rc != EOK)
 		return false;
 	
 	struct stat stat;
-	int rc = vfs_stat(fd, &stat);
+	rc = vfs_stat(fd, &stat);
 	if (rc != EOK) {
 		vfs_put(fd);
 		return false;
@@ -125,8 +126,9 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 		return false;
 	}
 
-	ssize_t rd = vfs_read(fd, (aoff64_t []) {0}, tga, stat.size);
-	if ((rd < 0) || (rd != (ssize_t) stat.size)) {
+	size_t nread;
+	rc = vfs_read(fd, (aoff64_t []) {0}, tga, stat.size, &nread);
+	if (rc != EOK || nread != stat.size) {
 		free(tga);
 		vfs_put(fd);
 		return false;

@@ -86,13 +86,13 @@ typedef void (*send_frame_handler)(nic_t *, void *, size_t);
 
 /**
  * The handler for transitions between driver states.
- * If the handler returns negative error code, the transition between
+ * If the handler returns error code, the transition between
  * states is canceled (the state is not changed).
  *
  * @param nic_data	NICF main structure
  *
  * @return EOK	If everything is all right.
- * @return negative error code on error.
+ * @return error code on error.
  */
 typedef int (*state_change_handler)(nic_t *);
 

@@ -45,6 +45,7 @@
 #include <arch.h>
 #include <errno.h>
 #include <print.h>
+#include <stdbool.h>
 #include <str.h>
 #include <syscall/copy.h>
 #include <ipc/ipc.h>
@@ -156,20 +157,23 @@ static void _thread_op_end(thread_t *thread)
 /** Begin debugging the current task.
  *
  * Initiates a debugging session for the current task (and its threads).
- * When the debugging session has started a reply will be sent to the
+ * When the debugging session has started a reply should be sent to the
  * UDEBUG_BEGIN call. This may happen immediately in this function if
  * all the threads in this task are stoppable at the moment and in this
- * case the function returns 1.
+ * case the function sets @a *active to @c true.
  *
- * Otherwise the function returns 0 and the reply will be sent as soon as
- * all the threads become stoppable (i.e. they can be considered stopped).
+ * Otherwise the function sets @a *active to false and the resonse should
+ * be sent as soon as all the threads become stoppable (i.e. they can be
+ * considered stopped).
  *
  * @param call The BEGIN call we are servicing.
+ * @param active Place to store @c true iff we went directly to active state,
+ *               @c false if we only went to beginning state
  *
- * @return 0 (OK, but not done yet), 1 (done) or negative error code.
- *
+ * @return EOK on success, EBUSY if the task is already has an active
+ *         debugging session.
  */
-int udebug_begin(call_t *call)
+int udebug_begin(call_t *call, bool *active)
 {
 	LOG("Debugging task %" PRIu64, TASK->taskid);
 	
@@ -184,14 +188,12 @@ int udebug_begin(call_t *call)
 	TASK->udebug.begin_call = call;
 	TASK->udebug.debugger = call->sender;
 	
-	int reply;
-	
 	if (TASK->udebug.not_stoppable_count == 0) {
 		TASK->udebug.dt_state = UDEBUG_TS_ACTIVE;
 		TASK->udebug.begin_call = NULL;
-		reply = 1;  /* immediate reply */
+		*active = true;  /* directly to active state */
 	} else
-		reply = 0;  /* no reply */
+		*active = false;  /* only in beginning state */
 	
 	/* Set udebug.active on all of the task's userspace threads. */
 	
@@ -206,14 +208,14 @@ int udebug_begin(call_t *call)
 	}
 	
 	mutex_unlock(&TASK->udebug.lock);
-	return reply;
+	return EOK;
 }
 
 /** Finish debugging the current task.
  *
  * Closes the debugging session for the current task.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int udebug_end(void)
@@ -233,7 +235,7 @@ int udebug_end(void)
  *
  * @param mask Or combination of events that should be enabled.
  *
- * @return Zero on success or negative error code.
+ * @return Zero on success or an error code.
  *
  */
 int udebug_set_evmask(udebug_evmask_t mask)
@@ -250,7 +252,7 @@ int udebug_set_evmask(udebug_evmask_t mask)
 	TASK->udebug.evmask = mask;
 	mutex_unlock(&TASK->udebug.lock);
 	
-	return 0;
+	return EOK;
 }
 
 /** Give thread GO.
@@ -282,7 +284,7 @@ int udebug_go(thread_t *thread, call_t *call)
 	
 	_thread_op_end(thread);
 	
-	return 0;
+	return EOK;
 }
 
 /** Stop a thread (i.e. take its GO away)
@@ -313,7 +315,7 @@ int udebug_stop(thread_t *thread, call_t *call)
 	if (thread->udebug.stoppable != true) {
 		/* Answer will be sent when the thread becomes stoppable. */
 		_thread_op_end(thread);
-		return 0;
+		return EOK;
 	}
 	
 	/*
@@ -336,7 +338,7 @@ int udebug_stop(thread_t *thread, call_t *call)
 	ipc_answer(&TASK->answerbox, call);
 	mutex_unlock(&TASK->udebug.lock);
 	
-	return 0;
+	return EOK;
 }
 
 /** Read the list of userspace threads in the current task.
@@ -411,7 +413,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	*stored = copied_ids * sizeof(sysarg_t);
 	*needed = (copied_ids + extra_ids) * sizeof(sysarg_t);
 	
-	return 0;
+	return EOK;
 }
 
 /** Read task name.
@@ -434,7 +436,7 @@ int udebug_name_read(char **data, size_t *data_size)
 	
 	memcpy(*data, TASK->name, name_size);
 	
-	return 0;
+	return EOK;
 }
 
 /** Read the arguments of a system call.
@@ -477,7 +479,7 @@ int udebug_args_read(thread_t *thread, void **buffer)
 	_thread_op_end(thread);
 	
 	*buffer = arg_buffer;
-	return 0;
+	return EOK;
 }
 
 /** Read the register state of the thread.
@@ -519,7 +521,7 @@ int udebug_regs_read(thread_t *thread, void **buffer)
 	_thread_op_end(thread);
 	
 	*buffer = (void *) state_buf;
-	return 0;
+	return EOK;
 }
 
 /** Read the memory of the debugged task.
@@ -557,7 +559,7 @@ int udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 		return rc;
 	
 	*buffer = data_buffer;
-	return 0;
+	return EOK;
 }
 
 /** @}

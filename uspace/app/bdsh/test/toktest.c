@@ -46,11 +46,11 @@ static void prepare(const char *input, size_t expected_token_count) {
 	str_cpy(input_buffer, MAX_INPUT, input);
 
 	int rc = tok_init(&tokenizer, input_buffer, tokens, MAX_TOKENS);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 	size_t token_count;
 	rc = tok_tokenize(&tokenizer, &token_count);
-	PCUT_ASSERT_INT_EQUALS(EOK, rc);
+	PCUT_ASSERT_ERRNO_VAL(EOK, rc);
 
 
 	PCUT_ASSERT_INT_EQUALS(expected_token_count, token_count);

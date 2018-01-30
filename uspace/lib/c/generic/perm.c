@@ -51,11 +51,11 @@ int perm_grant(task_id_t id, unsigned int perms)
 {
 #ifdef __32_BITS__
 	sysarg64_t arg = (sysarg64_t) id;
-	return __SYSCALL2(SYS_PERM_GRANT, (sysarg_t) &arg, (sysarg_t) perms);
+	return (int) __SYSCALL2(SYS_PERM_GRANT, (sysarg_t) &arg, (sysarg_t) perms);
 #endif
 	
 #ifdef __64_BITS__
-	return __SYSCALL2(SYS_PERM_GRANT, (sysarg_t) id, (sysarg_t) perms);
+	return (int) __SYSCALL2(SYS_PERM_GRANT, (sysarg_t) id, (sysarg_t) perms);
 #endif
 }
 
@@ -71,11 +71,11 @@ int perm_revoke(task_id_t id, unsigned int perms)
 {
 #ifdef __32_BITS__
 	sysarg64_t arg = (sysarg64_t) id;
-	return __SYSCALL2(SYS_PERM_REVOKE, (sysarg_t) &arg, (sysarg_t) perms);
+	return (int) __SYSCALL2(SYS_PERM_REVOKE, (sysarg_t) &arg, (sysarg_t) perms);
 #endif
 	
 #ifdef __64_BITS__
-	return __SYSCALL2(SYS_PERM_REVOKE, (sysarg_t) id, (sysarg_t) perms);
+	return (int) __SYSCALL2(SYS_PERM_REVOKE, (sysarg_t) id, (sysarg_t) perms);
 #endif
 }
 

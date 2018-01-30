@@ -61,11 +61,9 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <str.h>
-#include <loc.h>
 #include <inttypes.h>
 #include <errno.h>
 #include <byteorder.h>
-#include <task.h>
 #include <macros.h>
 
 #include "ata_hw.h"
@@ -146,7 +144,8 @@ static int disk_dev_idx(disk_t *disk)
 /** Initialize ATA controller. */
 int ata_ctrl_init(ata_ctrl_t *ctrl, ata_base_t *res)
 {
-	int i, rc;
+	int i;
+	int rc;
 	int n_disks;
 
 	ddf_msg(LVL_DEBUG, "ata_ctrl_init()");
@@ -211,7 +210,8 @@ error:
 /** Remove ATA controller. */
 int ata_ctrl_remove(ata_ctrl_t *ctrl)
 {
-	int i, rc;
+	int i;
+	int rc;
 
 	ddf_msg(LVL_DEBUG, ": ata_ctrl_remove()");
 
@@ -235,7 +235,8 @@ int ata_ctrl_remove(ata_ctrl_t *ctrl)
 /** Surprise removal of ATA controller. */
 int ata_ctrl_gone(ata_ctrl_t *ctrl)
 {
-	int i, rc;
+	int i;
+	int rc;
 
 	ddf_msg(LVL_DEBUG, "ata_ctrl_gone()");
 

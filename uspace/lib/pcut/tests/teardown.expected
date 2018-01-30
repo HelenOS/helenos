@@ -20,3 +20,4 @@ not ok 5 failing2 failed
 # error: teardown.c:56: Expected <42> but got <10> (42 != intmin(10, 20))
 # stdio: This is failing teardown-function.
 #> Finished suite with_failing_teardown (failed 3 of 3).
+#> Done: 4 of 5 tests failed.

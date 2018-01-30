@@ -47,7 +47,7 @@
  *
  * int      strcoll_l(const char *, const char *, locale_t);
  * char    *strerror_l(int, locale_t);
- * size_t   strxfrm_l(char *restrict, const char *restrict, size_t, locale_t);
+ * size_t   strxfrm_l(char *__restrict__, const char *__restrict__, size_t, locale_t);
  */
 
 #include <_bits/NULL.h>
@@ -73,13 +73,13 @@ extern void *memmove(void *, const void *, size_t)
 
 
 /* Copying and Concatenation */
-extern char *__POSIX_DEF__(strcpy)(char *restrict dest, const char *restrict src);
-extern char *__POSIX_DEF__(strncpy)(char *restrict dest, const char *restrict src, size_t n);
-extern char *__POSIX_DEF__(stpcpy)(char *restrict dest, const char *restrict src);
-extern char *__POSIX_DEF__(stpncpy)(char *restrict dest, const char *restrict src, size_t n);
-extern char *__POSIX_DEF__(strcat)(char *restrict dest, const char *restrict src);
-extern char *__POSIX_DEF__(strncat)(char *restrict dest, const char *restrict src, size_t n);
-extern void *__POSIX_DEF__(memccpy)(void *restrict dest, const void *restrict src, int c, size_t n);
+extern char *__POSIX_DEF__(strcpy)(char *__restrict__ dest, const char *__restrict__ src);
+extern char *__POSIX_DEF__(strncpy)(char *__restrict__ dest, const char *__restrict__ src, size_t n);
+extern char *__POSIX_DEF__(stpcpy)(char *__restrict__ dest, const char *__restrict__ src);
+extern char *__POSIX_DEF__(stpncpy)(char *__restrict__ dest, const char *__restrict__ src, size_t n);
+extern char *__POSIX_DEF__(strcat)(char *__restrict__ dest, const char *__restrict__ src);
+extern char *__POSIX_DEF__(strncat)(char *__restrict__ dest, const char *__restrict__ src, size_t n);
+extern void *__POSIX_DEF__(memccpy)(void *__restrict__ dest, const void *__restrict__ src, int c, size_t n);
 extern char *__POSIX_DEF__(strdup)(const char *s);
 extern char *__POSIX_DEF__(strndup)(const char *s, size_t n);
 
@@ -105,7 +105,7 @@ extern char *__POSIX_DEF__(strtok)(char *, const char *);
 
 /* Collation Functions */
 extern int __POSIX_DEF__(strcoll)(const char *s1, const char *s2);
-extern size_t __POSIX_DEF__(strxfrm)(char *restrict s1, const char *restrict s2, size_t n);
+extern size_t __POSIX_DEF__(strxfrm)(char *__restrict__ s1, const char *__restrict__ s2, size_t n);
 
 /* Error Messages */
 extern char *__POSIX_DEF__(strerror)(int errnum);

@@ -101,7 +101,7 @@ static int hc_init_memory(hc_t *instance);
  *
  * @return Error code.
  */
-int hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
+int hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -139,7 +139,8 @@ int hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed
 	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.",
 	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
 
-	return hw_res->irqs.irqs[0];
+	*irq = hw_res->irqs.irqs[0];
+	return EOK;
 }
 
 /** Initialize OHCI hc driver structure

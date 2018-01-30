@@ -37,8 +37,8 @@
 
 #include <byteorder.h>
 #include <errno.h>
-#include <malloc.h>
 #include <mem.h>
+#include <stdlib.h>
 #include <str.h>
 #include "ext4/directory.h"
 #include "ext4/directory_index.h"

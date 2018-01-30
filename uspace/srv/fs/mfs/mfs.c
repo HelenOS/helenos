@@ -43,6 +43,7 @@
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <task.h>
 #include <stdio.h>
 #include <libfs.h>
@@ -66,7 +67,7 @@ int main(int argc, char **argv)
 			mfs_vfs_info.instance = strtol(argv[2], NULL, 10);
 		else {
 			printf(NAME " Unrecognized parameters");
-			rc = -1;
+			rc = EINVAL;
 			goto err;
 		}
 	}
@@ -76,7 +77,8 @@ int main(int argc, char **argv)
 
 	if (!vfs_sess) {
 		printf(NAME ": failed to connect to VFS\n");
-		return -1;
+		rc = errno;
+		goto err;
 	}
 
 	rc = mfs_global_init();
@@ -96,7 +98,7 @@ int main(int argc, char **argv)
 	return 0;
 
 err:
-	printf(NAME ": Failed to register file system (%d)\n", rc);
+	printf(NAME ": Failed to register file system: %s\n", str_error(rc));
 	return rc;
 }
 

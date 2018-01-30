@@ -44,6 +44,7 @@
 #include <ddi.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <async.h>
 #include <stdio.h>
 
@@ -219,7 +220,7 @@ int apic_add(apic_t *apic, apic_res_t *res)
 	
 	rc = pio_enable((void *) res->base, IO_APIC_SIZE, &regs);
 	if (rc != EOK) {
-		printf("%s: Failed to enable PIO for APIC: %d\n", NAME, rc);
+		printf("%s: Failed to enable PIO for APIC: %s\n", NAME, str_error(rc));
 		return EIO;
 	}
 
@@ -236,7 +237,7 @@ int apic_add(apic_t *apic, apic_res_t *res)
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'. (%d)", rc);
+		ddf_msg(LVL_ERROR, "Failed binding function 'a': %s", str_error(rc));
 		goto error;
 	}
 

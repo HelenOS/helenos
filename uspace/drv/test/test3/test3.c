@@ -70,9 +70,9 @@ static int register_fun_and_add_to_category(ddf_dev_t *parent,
 	int rc;
 	char *fun_name = NULL;
 	
-	rc = asprintf(&fun_name, "%s%zu", base_name, index);
-	if (rc < 0) {
-		ddf_msg(LVL_ERROR, "Failed to format string: %s", str_error(rc));
+	if (asprintf(&fun_name, "%s%zu", base_name, index) < 0) {
+		ddf_msg(LVL_ERROR, "Failed to format string: No memory");
+		rc = ENOMEM;
 		goto leave;
 	}
 	
@@ -160,9 +160,8 @@ static int test3_dev_remove(ddf_dev_t *dev)
 	size_t i;
 
 	for (i = 0; i < NUM_FUNCS; i++) {
-		rc = asprintf(&fun_name, "test3_%zu", i);
-		if (rc < 0) {
-			ddf_msg(LVL_ERROR, "Failed to format string: %s", str_error(rc));
+		if (asprintf(&fun_name, "test3_%zu", i) < 0) {
+			ddf_msg(LVL_ERROR, "Failed to format string: No memory");
 			return ENOMEM;
 		}
 

@@ -36,6 +36,7 @@
 #include <bitops.h>
 #include <ddf/log.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdlib.h>
 
 #include "codec.h"
@@ -513,7 +514,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 	if (rc != EOK)
 		goto error;
 
-	ddf_msg(LVL_NOTE, "hda_get_subnc -> %d", rc);
+	ddf_msg(LVL_NOTE, "hda_get_subnc -> %s", str_error_name(rc));
 	ddf_msg(LVL_NOTE, "sfg=%d nfg=%d", sfg, nfg);
 
 	for (fg = sfg; fg < sfg + nfg; fg++) {
@@ -523,7 +524,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "hda_get_fgrp_type -> %d", rc);
+		ddf_msg(LVL_NOTE, "hda_get_fgrp_type -> %s", str_error_name(rc));
 		ddf_msg(LVL_NOTE, "unsol: %d, grptype: %d", unsol, grptype);
 
 		rc = hda_get_gpio_cnt(codec, fg, &gpio);
@@ -545,7 +546,7 @@ hda_codec_t *hda_codec_init(hda_t *hda, uint8_t address)
 		if (rc != EOK)
 			goto error;
 
-		ddf_msg(LVL_NOTE, "hda_get_subnc -> %d", rc);
+		ddf_msg(LVL_NOTE, "hda_get_subnc -> %s", str_error_name(rc));
 		ddf_msg(LVL_NOTE, "saw=%d baw=%d", saw, naw);
 
 		for (aw = saw; aw < saw + naw; aw++) {

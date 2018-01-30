@@ -156,7 +156,7 @@ static size_t get_task_virtmem(as_t *as)
 	 * object, return inexact statistics by skipping the respective object.
 	 */
 	
-	if (SYNCH_FAILED(mutex_trylock(&as->lock)))
+	if (mutex_trylock(&as->lock) != EOK)
 		return 0;
 	
 	size_t pages = 0;
@@ -168,7 +168,7 @@ static size_t get_task_virtmem(as_t *as)
 		for (i = 0; i < node->keys; i++) {
 			as_area_t *area = node->value[i];
 			
-			if (SYNCH_FAILED(mutex_trylock(&area->lock)))
+			if (mutex_trylock(&area->lock) != EOK)
 				continue;
 			
 			pages += area->pages;
@@ -197,7 +197,7 @@ static size_t get_task_resmem(as_t *as)
 	 * object, return inexact statistics by skipping the respective object.
 	 */
 	
-	if (SYNCH_FAILED(mutex_trylock(&as->lock)))
+	if (mutex_trylock(&as->lock) != EOK)
 		return 0;
 	
 	size_t pages = 0;
@@ -208,7 +208,7 @@ static size_t get_task_resmem(as_t *as)
 		for (i = 0; i < node->keys; i++) {
 			as_area_t *area = node->value[i];
 			
-			if (SYNCH_FAILED(mutex_trylock(&area->lock)))
+			if (mutex_trylock(&area->lock) != EOK)
 				continue;
 			
 			pages += area->resident;

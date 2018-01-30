@@ -35,9 +35,6 @@
 
 #include <errno.h>
 #include <stdio.h>
-#include <loc.h>
-#include <async.h>
-#include <task.h>
 #include <graph.h>
 #include "port.h"
 #include "kfb.h"

@@ -204,7 +204,7 @@ static void udp_cassoc_recv_msg(void *arg, inet_ep2_t *epp, udp_msg_t *msg)
  * @param epp       Endpoint pair
  * @param rassoc_id Place to store ID of new association
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int udp_assoc_create_impl(udp_client_t *client, inet_ep2_t *epp,
     sysarg_t *rassoc_id)
@@ -304,7 +304,7 @@ static int udp_assoc_set_nolocal_impl(udp_client_t *client, sysarg_t assoc_id)
  * @param data     Message data
  * @param size     Message size
  *
- * @return EOK on success or negative error code
+ * @return EOK on success or an error code
  */
 static int udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
     inet_ep_t *dest, void *data, size_t size)
@@ -569,7 +569,7 @@ static void udp_rmsg_info_srv(udp_client_t *client, ipc_callid_t iid,
 	}
 
 	rc = async_data_read_finalize(callid, &enext->epp.remote,
-	    max(size, (ssize_t)sizeof(inet_ep_t)));
+	    max(size, (size_t)sizeof(inet_ep_t)));
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
@@ -595,11 +595,11 @@ static void udp_rmsg_read_srv(udp_client_t *client, ipc_callid_t iid,
     ipc_call_t *icall)
 {
 	ipc_callid_t callid;
-	ssize_t msg_size;
+	size_t msg_size;
 	udp_crcv_queue_entry_t *enext;
 	void *data;
 	size_t size;
-	ssize_t off;
+	size_t off;
 	int rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_rmsg_read_srv()");
@@ -622,8 +622,13 @@ static void udp_rmsg_read_srv(udp_client_t *client, ipc_callid_t iid,
 	data = enext->msg->data + off;
 	msg_size = enext->msg->data_size;
 
-	rc = async_data_read_finalize(callid, data, max(msg_size - off,
-	    (ssize_t)size));
+	if (off > msg_size) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+
+	rc = async_data_read_finalize(callid, data, min(msg_size - off, size));
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
@@ -744,7 +749,7 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 /** Initialize UDP service.
  *
- * @return EOK on success or negative error code.
+ * @return EOK on success or an error code.
  */
 int udp_service_init(void)
 {

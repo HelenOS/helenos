@@ -28,13 +28,14 @@
 
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril_synch.h>
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <loc.h>
-#include <malloc.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <task.h>
 
 #define NAME  "clipboard"
@@ -119,7 +120,7 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 			break;
 		}
 		
-		sysarg_t retval = async_data_read_finalize(callid, clip_data, size);
+		int retval = async_data_read_finalize(callid, clip_data, size);
 		if (retval != EOK) {
 			async_answer_0(rid, retval);
 			break;
@@ -187,13 +188,13 @@ int main(int argc, char *argv[])
 	
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
-		printf("%s: Failed registering server. (%d)\n", NAME, rc);
+		printf("%s: Failed registering server: %s\n", NAME, str_error(rc));
 		return rc;
 	}
 	
 	rc = loc_service_register(SERVICE_NAME_CLIPBOARD, &svc_id);
 	if (rc != EOK) {
-		printf("%s: Failed registering service. (%d)\n", NAME, rc);
+		printf("%s: Failed registering service : %s\n", NAME, str_error(rc));
 		return rc;
 	}
 	

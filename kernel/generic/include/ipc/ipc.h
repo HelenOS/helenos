@@ -105,17 +105,23 @@ typedef struct {
 	task_id_t task_id;
 	/** Phone which made or last masqueraded this call. */
 	phone_t *phone;
+	/** Flags */
+	unsigned flags;
+	/** User-defined label */
+	sysarg_t label;
+	/** Capability handle */
+	cap_handle_t cap_handle;
 } ipc_data_t;
 
-typedef struct {
+typedef struct call {
+	kobject_t *kobject;
+
 	/**
 	 * Task link.
 	 * Valid only when the call is not forgotten.
 	 * Protected by the task's active_calls_lock.
 	 */
 	link_t ta_link;
-
-	atomic_t refcnt;
 
 	/** Answerbox link. */
 	link_t ab_link;
@@ -168,7 +174,7 @@ typedef struct {
 	uint8_t *buffer;
 } call_t;
 
-extern slab_cache_t *phone_slab;
+extern slab_cache_t *phone_cache;
 
 extern answerbox_t *ipc_phone_0;
 
@@ -193,7 +199,7 @@ extern int ipc_phone_hangup(phone_t *);
 extern void ipc_answerbox_init(answerbox_t *, struct task *);
 
 extern void ipc_cleanup(void);
-extern void ipc_backsend_err(phone_t *, call_t *, sysarg_t);
+extern void ipc_backsend_err(phone_t *, call_t *, int);
 extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
 extern void ipc_cleanup_call_list(answerbox_t *, list_t *);
 

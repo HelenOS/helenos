@@ -220,7 +220,7 @@ static bool malta_add_functions(ddf_dev_t *dev)
  *
  * @param dev		The device which is root of the whole device tree (both
  *			of HW and pseudo devices).
- * @return		Zero on success, negative error number otherwise.
+ * @return		Zero on success, error number otherwise.
  */
 static int malta_dev_add(ddf_dev_t *dev)
 {

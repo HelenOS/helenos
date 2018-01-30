@@ -43,7 +43,7 @@
 
 #include <align.h>
 #include <as.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include <atomic.h>
 #include <fibril_synch.h>

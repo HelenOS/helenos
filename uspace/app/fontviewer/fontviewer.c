@@ -35,8 +35,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <str_error.h>
 #include <window.h>
 #include <canvas.h>
 #include <surface.h>
@@ -96,7 +97,7 @@ static void on_keyboard_event(widget_t *widget, void *data)
 	
 	int rc = draw();
 	if (rc != EOK) {
-		printf("Failed drawing: %d.\n", rc);
+		printf("Failed drawing: %s.\n", str_error(rc));
 		exit(1);
 	}
 	update_canvas(canvas, surface);
@@ -147,14 +148,13 @@ static int text(drawctx_t *drawctx, font_t *font, source_t *source,
 	int ret = vasprintf(&str, fmt, args);
 	va_end(args);
 	
-	if (ret <= 0)
-		return ret;
-	
-	drawctx_set_source(drawctx, source);
-	drawctx_set_font(drawctx, font);
-	drawctx_print(drawctx, str, x, y);
-	
-	free(str);
+	if (ret >= 0) {
+		drawctx_set_source(drawctx, source);
+		drawctx_set_font(drawctx, font);
+		drawctx_print(drawctx, str, x, y);
+
+		free(str);
+	}
 	
 	return ret;
 }
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
 	
 	int rc = draw();
 	if (rc != EOK) {
-		printf("Failed drawing: %d.\n", rc);
+		printf("Failed drawing: %s.\n", str_error(rc));
 		return 2;
 	}
 	

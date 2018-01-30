@@ -162,7 +162,7 @@ restart:
 			irq_spinlock_unlock(&THREAD->lock, false);
 			irq_spinlock_unlock(&CPU->lock, false);
 			THREAD->saved_fpu_context =
-			    (fpu_context_t *) slab_alloc(fpu_context_slab, 0);
+			    (fpu_context_t *) slab_alloc(fpu_context_cache, 0);
 			
 			/* We may have switched CPUs during slab_alloc */
 			goto restart;

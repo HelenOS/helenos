@@ -27,6 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -74,7 +75,7 @@ const char *test_float1(void)
 	
 	TPRINTF("Creating threads");
 	for (unsigned int i = 0; i < THREADS; i++) {
-		if (thread_create(e, NULL, "e", NULL) < 0) {
+		if (thread_create(e, NULL, "e", NULL) != EOK) {
 			TPRINTF("\nCould not create thread %u\n", i);
 			break;
 		}

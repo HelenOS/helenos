@@ -496,11 +496,11 @@ static cmd_info_t sched_info = {
 	.argc = 0
 };
 
-static int cmd_slabs(cmd_arg_t *argv);
-static cmd_info_t slabs_info = {
-	.name = "slabs",
+static int cmd_caches(cmd_arg_t *argv);
+static cmd_info_t caches_info = {
+	.name = "caches",
 	.description = "List slab caches.",
-	.func = cmd_slabs,
+	.func = cmd_caches,
 	.argc = 0
 };
 
@@ -604,6 +604,7 @@ cmd_info_t version_info = {
 static cmd_info_t *basic_commands[] = {
 	&call0_info,
 	&mcall0_info,
+	&caches_info,
 	&call1_info,
 	&call2_info,
 	&call3_info,
@@ -619,7 +620,6 @@ static cmd_info_t *basic_commands[] = {
 	&rcu_info,
 	&sched_info,
 	&set4_info,
-	&slabs_info,
 	&symaddr_info,
 	&sysinfo_info,
 	&tasks_info,
@@ -1213,13 +1213,13 @@ int cmd_set4(cmd_arg_t *argv)
 	return 1;
 }
 
-/** Command for listings SLAB caches
+/** Command for listing slab allocator caches
  *
- * @param argv Ignores
+ * @param argv Ignored
  *
  * @return Always 1
  */
-int cmd_slabs(cmd_arg_t *argv)
+int cmd_caches(cmd_arg_t *argv)
 {
 	slab_print_list();
 	return 1;

@@ -43,6 +43,7 @@
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <str.h>
@@ -75,7 +76,7 @@ static void vfs_pager(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static void notification_handler(ipc_callid_t callid, ipc_call_t *call, void *arg)
+static void notification_handler(ipc_call_t *call, void *arg)
 {
 	if (IPC_GET_ARG1(*call) == VFS_PASS_HANDLE)
 		vfs_op_pass_handle(
@@ -121,9 +122,11 @@ int main(int argc, char **argv)
 	 */
 	port_id_t port;
 	rc = async_create_port(INTERFACE_PAGER, vfs_pager, NULL, &port);
-	if (rc != EOK)
+	if (rc != EOK) {
+		printf("%s: Cannot create pager port: %s\n", NAME, str_error(rc));
 		return rc;
-		
+	}
+
 	/*
 	 * Set a connection handling function/fibril.
 	 */
@@ -140,7 +143,7 @@ int main(int argc, char **argv)
 	 */
 	rc = service_register(SERVICE_VFS);
 	if (rc != EOK) {
-		printf("%s: Cannot register VFS service\n", NAME);
+		printf("%s: Cannot register VFS service: %s\n", NAME, str_error(rc));
 		return rc;
 	}
 	

@@ -42,7 +42,7 @@
 #include <str_error.h>
 #include <io/kio.h>
 #include <sysinfo.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>
@@ -143,13 +143,11 @@ static int consumer(void *data)
  *
  * Receives kernel kio notifications.
  *
- * @param callid IPC call ID
  * @param call   IPC call structure
  * @param arg    Local argument
  *
  */
-static void kio_notification_handler(ipc_callid_t callid, ipc_call_t *call,
-    void *arg)
+static void kio_notification_handler(ipc_call_t *call, void *arg)
 {
 	/*
 	 * Make sure we process only a single notification

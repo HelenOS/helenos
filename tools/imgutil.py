@@ -35,7 +35,7 @@ Utilities for filesystem image creators
 import os
 import stat
 
-exclude_names = set(['.svn', '.bzr'])
+exclude_names = set(['.svn', '.bzr', '.git'])
 
 def align_up(size, alignment):
 	"Return size aligned up to alignment"

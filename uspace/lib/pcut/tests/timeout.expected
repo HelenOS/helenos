@@ -6,3 +6,4 @@ ok 2 custom_time_out
 # stdio: Text before sleeping.
 # stdio: Text after the sleep.
 #> Finished suite Default (failed 1 of 2).
+#> Done: 1 of 2 tests failed.

@@ -80,7 +80,7 @@ void* rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
  *  @param timer_freq  The timer frequency in kHz
  *  @param time        The requested time
  *
- *  @return EOK if succeed, negative error code otherwise
+ *  @return EOK if succeed, error code otherwise
  */
 int rtl8139_timer_act_init(rtl8139_timer_act_t * ta, uint32_t timer_freq,
     const struct timeval *time) 

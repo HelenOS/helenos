@@ -37,7 +37,6 @@
 #ifndef LIBC_IEEE80211_H_
 #define LIBC_IEEE80211_H_
 
-#include <malloc.h>
 #include <adt/list.h>
 #include <nic/nic.h>
 #include <time.h>

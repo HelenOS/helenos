@@ -108,7 +108,8 @@ static struct option const long_options[] = {
 
 int main (int argc, char **argv)
 {
-	int rc, c, opt_ind;
+	int rc;
+	int c, opt_ind;
 	char *device_name;
 	size_t devblock_size;
 
@@ -288,7 +289,7 @@ int main (int argc, char **argv)
  *
  * @param sb		Pointer to the superblock structure.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int insert_dentries(const struct mfs_sb_info *sb)
 {
@@ -341,7 +342,7 @@ static int insert_dentries(const struct mfs_sb_info *sb)
  *
  * @param sb		Pointer to the superblock structure.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int init_inode_table(const struct mfs_sb_info *sb)
 {
@@ -374,7 +375,7 @@ static int init_inode_table(const struct mfs_sb_info *sb)
  *
  * @param sb		Ponter to the superblock structure.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int make_root_ino(const struct mfs_sb_info *sb)
 {
@@ -411,7 +412,7 @@ static int make_root_ino(const struct mfs_sb_info *sb)
  *
  * @param sb		Pointer to the superblock structure.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int make_root_ino2(const struct mfs_sb_info *sb)
 {
@@ -450,7 +451,7 @@ static int make_root_ino2(const struct mfs_sb_info *sb)
  *
  * @param sb		Pointer to the superblock structure.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int init_superblock(struct mfs_sb_info *sb)
 {
@@ -557,7 +558,7 @@ static int init_superblock(struct mfs_sb_info *sb)
  *
  * @param sbi		Pointer to the superblock structure to write on disk.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int write_superblock(const struct mfs_sb_info *sbi)
 {
@@ -590,7 +591,7 @@ static int write_superblock(const struct mfs_sb_info *sbi)
  *
  * @param sbi		Pointer to the superblock structure to write on disk.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int write_superblock3(const struct mfs_sb_info *sbi)
 {
@@ -623,7 +624,7 @@ static int write_superblock3(const struct mfs_sb_info *sbi)
  *
  * @param sb		Pointer to the superblock structure.
  *
- * @return		EOK on success or a negative error code.
+ * @return		EOK on success or an error code.
  */
 static int init_bitmaps(const struct mfs_sb_info *sb)
 {
@@ -697,7 +698,7 @@ static void mark_bmap(uint32_t *bmap, int idx, int v)
  * @param size		size of the block.
  * @param data		Pointer to the block content.
  *
- * @return		EOK on success or a negative error number.
+ * @return		EOK on success or a error number.
  */
 static inline int write_block(aoff64_t off, size_t size, const void *data)
 {

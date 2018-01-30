@@ -42,10 +42,10 @@
 #include <io/klog.h>
 #include <ns.h>
 #include <async.h>
-#include <stdio.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <str_error.h>
-#include <malloc.h>
 #include "logger.h"
 
 
@@ -79,7 +79,7 @@ static int handle_receive_message(sysarg_t log_id, sysarg_t level)
 		goto leave;
 	}
 
-	KLOG_PRINTF(level, "[%s] %s: %s\n",
+	KLOG_PRINTF(level, "[%s] %s: %s",
 	    log->full_name, log_level_str(level),
 	    (const char *) message);
 	write_to_log(log, level, message);

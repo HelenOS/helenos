@@ -73,6 +73,7 @@ int main(int argc, char *argv[])
 	uri_t *uri = NULL;
 	http_t *http = NULL;
 	int rc;
+	int ret;
 
 	if (argc < 2) {
 		syntax_print();
@@ -154,8 +155,8 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 	} else {
-		rc = asprintf(&server_path, "%s?%s", path, uri->query);
-		if (rc < 0) {
+		ret = asprintf(&server_path, "%s?%s", path, uri->query);
+		if (ret < 0) {
 			fprintf(stderr, "Failed allocating path\n");
 			rc = ENOMEM;
 			goto error;
@@ -223,13 +224,13 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 		
-		int body_size;
-		while ((body_size = recv_buffer(&http->recv_buffer, buf, buf_size)) > 0) {
+		size_t body_size;
+		while ((rc = recv_buffer(&http->recv_buffer, buf, buf_size, &body_size)) == EOK && body_size > 0) {
 			fwrite(buf, 1, body_size, ofile != NULL ? ofile : stdout);
 		}
 		
-		if (body_size != 0) {
-			fprintf(stderr, "Failed receiving body: %s", str_error(body_size));
+		if (rc != EOK) {
+			fprintf(stderr, "Failed receiving body: %s", str_error(rc));
 		}
 	}
 	

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2017 Jiri Svoboda
  * Copyright (c) 2011 Jan Vesely
  * Copyright (c) 2009 Vineeth Pillai
  * All rights reserved.
@@ -200,20 +201,14 @@ static void push_event(async_sess_t *sess, kbd_event_type_t type,
  */
 static int polling(void *arg)
 {
-	const at_kbd_t *kbd = arg;
-	
-	assert(kbd);
-	assert(kbd->parent_sess);
-	
-	async_exch_t *parent_exch = async_exchange_begin(kbd->parent_sess);
+	at_kbd_t *kbd = arg;
+	size_t nwr;
+	int rc;
 	
 	while (true) {
-		if (!parent_exch)
-			parent_exch = async_exchange_begin(kbd->parent_sess);
-
 		uint8_t code = 0;
-		ssize_t size = chardev_read(parent_exch, &code, 1);
-		if (size != 1)
+		rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+		if (rc != EOK)
 			return EIO;
 		
 		const unsigned int *map;
@@ -223,48 +218,48 @@ static int polling(void *arg)
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(unsigned int);
 			
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 		} else if (code == KBD_SCANCODE_SET_EXTENDED_SPECIAL) {
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0x14)
 				continue;
 
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0x77)
 				continue;
 
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0xe1)
 				continue;
 
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0xf0)
 				continue;
 
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0x14)
 				continue;
 
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code != 0xf0)
 				continue;
 
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 			if (code == 0x77)
 				push_event(kbd->client_sess, KEY_PRESS, KC_BREAK);
@@ -278,8 +273,8 @@ static int polling(void *arg)
 		kbd_event_type_t type;
 		if (code == KBD_SCANCODE_KEY_RELEASE) {
 			type = KEY_RELEASE;
-			size = chardev_read(parent_exch, &code, 1);
-			if (size != 1)
+			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
+			if (rc != EOK)
 				return EIO;
 		} else {
 			type = KEY_PRESS;
@@ -361,14 +356,23 @@ static ddf_dev_ops_t kbd_ops = {
  */
 int at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 {
+	async_sess_t *parent_sess;
+	int rc;
+	
 	assert(kbd);
 	assert(dev);
 	
 	kbd->client_sess = NULL;
-	kbd->parent_sess = ddf_dev_parent_sess_get(dev);
-	
-	if (!kbd->parent_sess) {
+	parent_sess = ddf_dev_parent_sess_get(dev);
+	if (parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating parent session.");
+		rc = EIO;
+		goto error;
+	}
+	
+	rc = chardev_open(parent_sess, &kbd->chardev);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed opening character device.");
 		return EIO;
 	}
 	
@@ -406,4 +410,8 @@ int at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 	
 	fibril_add_ready(kbd->polling_fibril);
 	return EOK;
+error:
+	chardev_close(kbd->chardev);
+	kbd->chardev = NULL;
+	return rc;
 }

@@ -101,6 +101,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <synch/spinlock.h>
 #include <mm/slab.h>
 #include <adt/list.h>
@@ -333,7 +334,7 @@ NO_TRACE static void *slab_obj_create(slab_cache_t *cache, unsigned int flags)
 	
 	irq_spinlock_unlock(&cache->slablock, true);
 	
-	if ((cache->constructor) && (cache->constructor(obj, flags))) {
+	if ((cache->constructor) && (cache->constructor(obj, flags) != EOK)) {
 		/* Bad, bad, construction failed */
 		slab_obj_destroy(cache, obj, slab);
 		return NULL;
@@ -817,12 +818,10 @@ size_t slab_reclaim(unsigned int flags)
 	return frames;
 }
 
-/* Print list of slabs
- *
- */
+/* Print list of caches */
 void slab_print_list(void)
 {
-	printf("[slab name       ] [size  ] [pages ] [obj/pg] [slabs ]"
+	printf("[cache name      ] [size  ] [pages ] [obj/pg] [slabs ]"
 	    " [cached] [alloc ] [ctl]\n");
 	
 	size_t skip = 0;

@@ -35,8 +35,8 @@
 
 #include <ipc/common.h>
 #include <adt/list.h>
-#include <malloc.h>
 #include <mem.h>
+#include <stdlib.h>
 
 #define DEVMAN_NAME_MAXLEN  256
 

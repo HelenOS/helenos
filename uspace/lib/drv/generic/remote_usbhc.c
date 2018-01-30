@@ -134,7 +134,7 @@ int usbhc_register_endpoint(async_exch_t *exch, usb_pipe_desc_t *pipe_desc,
 	}
 
 	/* Wait for the answer. */
-	sysarg_t opening_request_rc;
+	int opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
 	if (opening_request_rc)
@@ -171,7 +171,7 @@ int usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pipe_de
 	}
 
 	/* Wait for the answer. */
-	sysarg_t opening_request_rc;
+	int opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
 	return (int) opening_request_rc;
@@ -207,8 +207,8 @@ int usbhc_read(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
 	}
 
 	/* Wait for the answer. */
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 
@@ -255,7 +255,7 @@ int usbhc_write(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
 	}
 
 	/* Wait for the answer. */
-	sysarg_t opening_request_rc;
+	int opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
 	return (int) opening_request_rc;

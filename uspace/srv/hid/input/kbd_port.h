@@ -46,7 +46,6 @@ typedef struct kbd_port_ops {
 	void (*write)(uint8_t);
 } kbd_port_ops_t;
 
-extern kbd_port_ops_t adb_port;
 extern kbd_port_ops_t chardev_port;
 extern kbd_port_ops_t ns16550_port;
 

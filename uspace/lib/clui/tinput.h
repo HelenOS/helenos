@@ -60,7 +60,7 @@
  * @param cstart	Output, position in text where completion begins from.
  * @param state		Output, pointer to a client state object.
  *
- * @return		EOK on success, negative error code on failure.
+ * @return		EOK on success, error code on failure.
  */
 typedef int (*tinput_compl_init_fn)(wchar_t *text, size_t pos, size_t *cstart,
     void **state);
@@ -75,7 +75,7 @@ typedef int (*tinput_compl_init_fn)(wchar_t *text, size_t pos, size_t *cstart,
  * @param state		Pointer to state object created by the init funtion.
  * @param compl		Output, the completion text, ownership retained.
  *
- * @return		EOK on success, negative error code on failure.
+ * @return		EOK on success, error code on failure.
  */
 typedef int (*tinput_compl_get_next_fn)(void *state, char **compl);
 

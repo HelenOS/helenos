@@ -57,21 +57,11 @@ typedef enum {
 typedef async_sess_t hound_sess_t;
 typedef intptr_t hound_context_id_t;
 
-/**
- * Check context id for errors.
- * @param id Context id
- * @return Error code.
- */
-static inline int hound_context_id_err(hound_context_id_t id)
-{
-	return id > 0 ? EOK : (id == 0 ? ENOENT : id);
-}
-
 hound_sess_t *hound_service_connect(const char *service);
 void hound_service_disconnect(hound_sess_t *sess);
 
-hound_context_id_t hound_service_register_context(hound_sess_t *sess,
-    const char *name, bool record);
+int hound_service_register_context(hound_sess_t *sess,
+    const char *name, bool record, hound_context_id_t *id);
 int hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id);
 
 int hound_service_get_list(hound_sess_t *sess, const char ***ids, size_t *count,

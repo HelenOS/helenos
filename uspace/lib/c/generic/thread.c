@@ -131,7 +131,7 @@ int thread_create(void (* function)(void *), void *arg, const char *name,
 	uarg->uspace_thread_arg = arg;
 	uarg->uspace_uarg = uarg;
 	
-	int rc = __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,
+	int rc = (int) __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,
 	    (sysarg_t) name, (sysarg_t) str_size(name), (sysarg_t) tid);
 	
 	if (rc != EOK) {

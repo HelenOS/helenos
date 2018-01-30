@@ -29,7 +29,8 @@
 #define LIBPOSIX_INTERNAL
 #define __POSIX_DEF__(x) posix_##x
 
-#include "posix/errno.h"
+#include <errno.h>
+
 #include "posix/stdio.h"
 
 #include <pcut/pcut.h>

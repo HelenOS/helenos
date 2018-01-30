@@ -36,6 +36,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <synch/mutex.h>
 #include <synch/semaphore.h>
 #include <arch.h>
@@ -94,10 +95,10 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 
 		if (mtx->owner == THREAD) {
 			mtx->nesting++;
-			return ESYNCH_OK_ATOMIC;
+			return EOK;
 		} else {
 			rc = _semaphore_down_timeout(&mtx->sem, usec, flags);
-			if (SYNCH_OK(rc)) {
+			if (rc == EOK) {
 				mtx->owner = THREAD;
 				mtx->nesting = 1;
 			}
@@ -118,8 +119,7 @@ int _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 				deadlock_reported = true;
 			}
 			rc = semaphore_trydown(&mtx->sem);
-		} while (SYNCH_FAILED(rc) &&
-		    !(flags & SYNCH_FLAGS_NON_BLOCKING));
+		} while (rc != EOK && !(flags & SYNCH_FLAGS_NON_BLOCKING));
 		if (deadlock_reported)
 			printf("cpu%u: not deadlocked\n", CPU->id);
 	}

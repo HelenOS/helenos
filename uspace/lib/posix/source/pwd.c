@@ -38,7 +38,7 @@
 #include "libc/stdbool.h"
 #include "posix/pwd.h"
 #include "posix/string.h"
-#include "posix/errno.h"
+#include <errno.h>
 #include "posix/assert.h"
 
 static bool entry_read = false;

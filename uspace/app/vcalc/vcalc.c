@@ -37,7 +37,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <io/pixel.h>
 #include <task.h>
 #include <window.h>

@@ -32,6 +32,7 @@
  *
  */
 
+#include <async.h>
 #include <ieee80211.h>
 #include <usb/classes/classes.h>
 #include <usb/dev/request.h>
@@ -40,9 +41,9 @@
 #include <stdio.h>
 #include <ddf/interrupt.h>
 #include <errno.h>
+#include <str_error.h>
 #include <nic.h>
 #include <macros.h>
-#include <thread.h>
 #include "ath_usb.h"
 #include "wmi.h"
 #include "hw.h"
@@ -732,7 +733,7 @@ static int ar9271_init(ar9271_t *ar9271, usb_device_t *usb_device, const usb_end
  *
  * @param ar9271 AR9271 device structure
  *
- * @return EOK if succeed, negative error code otherwise
+ * @return EOK if succeed, error code otherwise
  *
  */
 static int ar9271_upload_fw(ar9271_t *ar9271)
@@ -783,7 +784,7 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 			free(fw_data);
 			free(buffer);
 			usb_log_error("Error while uploading firmware. "
-			    "Error: %d\n", rc);
+			    "Error: %s\n", str_error_name(rc));
 			return rc;
 		}
 		
@@ -817,7 +818,7 @@ static int ar9271_upload_fw(ar9271_t *ar9271)
 	usb_log_info("Firmware uploaded successfully.\n");
 	
 	/* Wait until firmware is ready - wait for 1 second to be sure. */
-	thread_sleep(1);
+	async_sleep(1);
 	
 	return rc;
 }
@@ -835,7 +836,7 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	int rc = usb_device_create_ddf(dev, endpoints, &err_msg);
 	if (rc != EOK) {
 		usb_log_error("Failed to create USB device: %s, "
-		    "ERR_NUM = %d\n", err_msg, rc);
+		    "ERR_NUM = %s\n", err_msg, str_error_name(rc));
 		return NULL;
 	}
 	
@@ -852,8 +853,8 @@ static ar9271_t *ar9271_create_dev_data(ddf_dev_t *dev)
 	rc = ar9271_init(ar9271, usb_device_get(dev), endpoints);
 	if (rc != EOK) {
 		free(ar9271);
-		usb_log_error("Failed to initialize AR9271 structure: %d\n",
-		    rc);
+		usb_log_error("Failed to initialize AR9271 structure: %s\n",
+		    str_error_name(rc));
 		return NULL;
 	}
 	
@@ -875,7 +876,7 @@ static void ar9271_delete_dev_data(ar9271_t *ar9271)
  *
  * @param dev The device structure.
  *
- * @return EOK if succeed, negative error code otherwise
+ * @return EOK if succeed, error code otherwise
  */
 static int ar9271_add_device(ddf_dev_t *dev)
 {

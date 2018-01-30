@@ -188,7 +188,7 @@ int nic_send_frame_impl(ddf_fun_t *fun, void *data, size_t size)
  *
  * @param	fun
  *
- * @return EOK		On success, or negative error code.
+ * @return EOK		On success, or an error code.
  */
 int nic_callback_create_impl(ddf_fun_t *fun)
 {

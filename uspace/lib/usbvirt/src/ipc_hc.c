@@ -94,8 +94,8 @@ int usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 		return ENOMEM;
 	}
 	
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	
@@ -167,7 +167,7 @@ int usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t opening_request_rc;
+	int opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 	
 	return (int) opening_request_rc;
@@ -229,8 +229,8 @@ int usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
 		return ENOMEM;
 	}
 	
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	
@@ -304,7 +304,7 @@ int usbvirt_ipc_send_data_out(async_sess_t *sess, usb_endpoint_t ep,
 		return rc;
 	}
 	
-	sysarg_t opening_request_rc;
+	int opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 	
 	return (int) opening_request_rc;

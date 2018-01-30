@@ -1,0 +1,6 @@
+{
+	"chardev1",
+	"Character device basic functionality",
+	&test_chardev1,
+	false
+},

@@ -268,7 +268,7 @@ static int constraint_satisfy(size_t index, size_t base, size_t constraint)
  * @return Zero otherwise.
  *
  */
-int bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
+bool bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
     size_t prefered, size_t constraint, size_t *index)
 {
 	if (count == 0)

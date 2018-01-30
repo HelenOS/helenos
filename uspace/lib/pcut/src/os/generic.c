@@ -33,6 +33,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
@@ -93,11 +94,11 @@ static void before_test_start(pcut_item_t *test) {
  */
 static int convert_wait_status_to_outcome(int status) {
 	if (status < 0) {
-		return TEST_OUTCOME_ERROR;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	} else if (status == 0) {
-		return TEST_OUTCOME_PASS;
+		return PCUT_OUTCOME_PASS;
 	} else {
-		return TEST_OUTCOME_FAIL;
+		return PCUT_OUTCOME_FAIL;
 	}
 }
 
@@ -106,8 +107,8 @@ static int convert_wait_status_to_outcome(int status) {
  * @param self_path Path to itself, that is to current binary.
  * @param test Test to be run.
  */
-void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
-	int rc;
+int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
+	int rc, outcome;
 	FILE *tempfile;
 	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
 	char command[PCUT_COMMAND_LINE_BUFFER_SIZE];
@@ -125,19 +126,21 @@ void pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	PCUT_DEBUG("system() returned 0x%04X", rc);
 
-	rc = convert_wait_status_to_outcome(rc);
+	outcome = convert_wait_status_to_outcome(rc);
 
 	tempfile = fopen(tempfile_name, "rb");
 	if (tempfile == NULL) {
 		pcut_report_test_done(test, TEST_OUTCOME_ERROR, "Failed to open temporary file.", NULL, NULL);
-		return;
+		return PCUT_OUTCOME_INTERNAL_ERROR;
 	}
 
 	fread(extra_output_buffer, 1, OUTPUT_BUFFER_SIZE, tempfile);
 	fclose(tempfile);
-	unlink(tempfile_name);
+	remove(tempfile_name);
 
-	pcut_report_test_done_unparsed(test, rc, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+	pcut_report_test_done_unparsed(test, outcome, extra_output_buffer, OUTPUT_BUFFER_SIZE);
+
+	return outcome;
 }
 
 void pcut_hook_before_test(pcut_item_t *test) {

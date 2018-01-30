@@ -399,7 +399,7 @@ static void devman_dev_get_functions(ipc_callid_t iid, ipc_call_t *icall)
 	
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	
-	sysarg_t retval = async_data_read_finalize(callid, hdl_buf, size);
+	int retval = async_data_read_finalize(callid, hdl_buf, size);
 	free(hdl_buf);
 	
 	async_answer_1(iid, retval, act_size);
@@ -450,7 +450,7 @@ static void devman_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	rc = driver_fun_online(&device_tree, fun);
 	fun_del_ref(fun);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 /** Offline function.
@@ -475,7 +475,7 @@ static void devman_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	rc = driver_fun_offline(&device_tree, fun);
 	fun_del_ref(fun);
 	
-	async_answer_0(iid, (sysarg_t) rc);
+	async_answer_0(iid, rc);
 }
 
 /** Find handle for the function instance identified by its service ID. */
@@ -531,7 +531,7 @@ static void devman_get_drivers(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	sysarg_t retval = async_data_read_finalize(callid, hdl_buf, size);
+	int retval = async_data_read_finalize(callid, hdl_buf, size);
 	free(hdl_buf);
 	
 	async_answer_1(iid, retval, act_size);
@@ -571,7 +571,7 @@ static void devman_driver_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	sysarg_t retval = async_data_read_finalize(callid, hdl_buf, size);
+	int retval = async_data_read_finalize(callid, hdl_buf, size);
 	free(hdl_buf);
 	
 	async_answer_1(iid, retval, act_size);

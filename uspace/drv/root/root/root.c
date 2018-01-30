@@ -83,7 +83,7 @@ static driver_t root_driver = {
 /** Create the function which represents the root of virtual device tree.
  *
  * @param dev	Device
- * @return	EOK on success or negative error code
+ * @return	EOK on success or an error code
  */
 static int add_virtual_root_fun(ddf_dev_t *dev)
 {
@@ -124,7 +124,7 @@ static int add_virtual_root_fun(ddf_dev_t *dev)
 /** Create the function which represents the root of HW device tree.
  *
  * @param dev	Device
- * @return	EOK on success or negative error code
+ * @return	EOK on success or an error code
  */
 static int add_platform_fun(ddf_dev_t *dev)
 {

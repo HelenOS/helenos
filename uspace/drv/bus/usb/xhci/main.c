@@ -67,10 +67,10 @@ static int hcd_hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	return EOK;
 }
 
-static int hcd_irq_code_gen(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
+static int hcd_irq_code_gen(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	xhci_hc_t *hc = hcd_to_hc(hcd);
-	return hc_irq_code_gen(code, hc, hw_res);
+	return hc_irq_code_gen(code, hc, hw_res, irq);
 }
 
 static int hcd_claim(hc_device_t *hcd)

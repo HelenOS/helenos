@@ -104,7 +104,7 @@ int nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SEND_MESSAGE, &answer);
-	sysarg_t retval = async_data_write_start(exch, data, size);
+	int retval = async_data_write_start(exch, data, size);
 	
 	async_exchange_end(exch);
 	
@@ -130,7 +130,7 @@ int nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
 {
 	ipc_call_t answer;
 	int rc;
-	sysarg_t retval;
+	int retval;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
@@ -146,7 +146,7 @@ int nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
 	async_exchange_end(exch);
 	
 	async_wait_for(req, &retval);
-	return (int) retval;
+	return retval;
 }
 
 /** Get the current state of the device
@@ -209,13 +209,13 @@ int nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
 	int rc = async_data_read_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Set the address of the device (e.g. MAC on Ethernet)
@@ -236,13 +236,13 @@ int nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
 	int rc = async_data_write_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Request statistic data about NIC operation.
@@ -294,13 +294,13 @@ int nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
 	int rc = async_data_read_start(exch, device_info, sizeof(nic_device_info_t));
 	async_exchange_end(exch);
 
-	sysarg_t res;
+	int res;
 	async_wait_for(aid, &res);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Request status of the cable (plugged/unplugged)
@@ -628,13 +628,13 @@ int nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Retrieve current settings of multicast frames reception.
@@ -716,13 +716,13 @@ int nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Determine if broadcast packets are received.
@@ -877,13 +877,13 @@ int nic_blocked_sources_set(async_sess_t *dev_sess,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Request current VLAN filtering mask.
@@ -937,13 +937,13 @@ int nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Set VLAN (802.1q) tag.
@@ -996,7 +996,7 @@ int nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_ADD, (sysarg_t) type, send_data, &result);
 	
-	sysarg_t res;
+	int res;
 	if (send_data) {
 		int rc = async_data_write_start(exch, data, length);
 		if (rc != EOK) {
@@ -1010,7 +1010,7 @@ int nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
 	async_wait_for(message_id, &res);
 	
 	*id = IPC_GET_ARG1(result);
-	return (int) res;
+	return res;
 }
 
 /** Remove Wake-On-LAN virtue.
@@ -1310,13 +1310,13 @@ int nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
 	
 	async_exchange_end(exch);
 	
-	sysarg_t res;
+	int res;
 	async_wait_for(message_id, &res);
 	
 	if (rc != EOK)
 		return rc;
 	
-	return (int) res;
+	return res;
 }
 
 /** Request the driver to poll the NIC.

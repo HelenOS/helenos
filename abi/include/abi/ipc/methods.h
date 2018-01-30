@@ -35,8 +35,10 @@
 #ifndef ABI_IPC_METHODS_H_
 #define ABI_IPC_METHODS_H_
 
+#include <abi/cap.h>
+
 /* Well known phone descriptors */
-#define PHONE_NS  0
+#define PHONE_NS  (CAP_NIL + 1)
 
 /** Kernel IPC interfaces
  *

@@ -70,7 +70,7 @@ static s3c24xx_ts_t *ts;
 
 static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg);
-static void s3c24xx_ts_irq_handler(ipc_callid_t iid, ipc_call_t *call, void *);
+static void s3c24xx_ts_irq_handler(ipc_call_t *call, void *);
 static void s3c24xx_ts_pen_down(s3c24xx_ts_t *ts);
 static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts);
 static void s3c24xx_ts_eoc(s3c24xx_ts_t *ts);
@@ -136,7 +136,7 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
 	    (void *) ts->paddr, inr);
 
-	async_irq_subscribe(inr, s3c24xx_ts_irq_handler, NULL, &ts_irq_code);
+	async_irq_subscribe(inr, s3c24xx_ts_irq_handler, NULL, &ts_irq_code, NULL);
 
 	s3c24xx_ts_wait_for_int_mode(ts, updn_down);
 
@@ -201,12 +201,11 @@ static void s3c24xx_ts_wait_for_int_mode(s3c24xx_ts_t *ts, ts_updn_t updn)
 }
 
 /** Handle touchscreen interrupt */
-static void s3c24xx_ts_irq_handler(ipc_callid_t iid, ipc_call_t *call,
-    void *arg)
+static void s3c24xx_ts_irq_handler(ipc_call_t *call, void *arg)
 {
 	ts_updn_t updn;
 
-	(void) iid; (void) call;
+	(void) call;
 
 	/* Read up/down interrupt flags. */
 	updn = pio_read_32(&ts->io->updn);

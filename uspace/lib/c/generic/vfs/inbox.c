@@ -119,7 +119,7 @@ out:
 /* Retrieve a file with this name.
  *
  * @param name Name of the entry.
- * @return Requested file or ENOENT if not set.
+ * @return Requested file or -1 if not set.
  */
 int inbox_get(const char *name)
 {
@@ -129,11 +129,11 @@ int inbox_get(const char *name)
 		case 0:
 			return e->file;
 		case 1:
-			return ENOENT;
+			return -1;
 		} 
 	}
 
-	return ENOENT;
+	return -1;
 }
 
 /* Writes names of entries that are currently set into an array provided by the

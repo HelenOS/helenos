@@ -74,8 +74,8 @@ static void receive_device_name(async_sess_t *sess)
 		return;
 	}
 	
-	sysarg_t data_request_rc;
-	sysarg_t opening_request_rc;
+	int data_request_rc;
+	int opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	

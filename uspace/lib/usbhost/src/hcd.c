@@ -94,7 +94,7 @@ int hc_driver_main(const hc_driver_t *driver)
  * TODO: Make the bus mechanism less flexible in irq handling and remove the
  * lookup.
  */
-static void irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev)
+static void irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 {
 	assert(dev);
 	hc_device_t *hcd = dev_to_hcd(dev);
@@ -161,24 +161,27 @@ static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t
 	if (!hc_driver->irq_code_gen)
 		return ENOTSUP;
 
-	const int irq = hc_driver->irq_code_gen(&irq_code, hcd, hw_res);
-	if (irq < 0) {
+	int irq;
+	int ret;
+	ret = hc_driver->irq_code_gen(&irq_code, hcd, hw_res, &irq);
+	if (ret != EOK) {
 		usb_log_error("Failed to generate IRQ code: %s.",
 		    str_error(irq));
 		return irq;
 	}
 
 	/* Register handler to avoid interrupt lockup */
-	const int irq_cap = register_interrupt_handler(hcd->ddf_dev, irq, irq_handler, &irq_code);
+	int irq_cap;
+	ret = register_interrupt_handler(hcd->ddf_dev, irq, irq_handler, &irq_code, &irq_cap);
 	irq_code_clean(&irq_code);
-	if (irq_cap < 0) {
+	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.",
 		    str_error(irq_cap));
 		return irq_cap;
 	}
 
 	/* Enable interrupts */
-	int ret = hcd_ddf_enable_interrupt(hcd, irq);
+	ret = hcd_ddf_enable_interrupt(hcd, irq);
 	if (ret != EOK) {
 		usb_log_error("Failed to enable interrupts: %s.",
 		    str_error(ret));
