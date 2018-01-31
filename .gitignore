@@ -11,6 +11,8 @@
 *.ag.probe.c
 *.pyc
 tag
+tags
+common.h.new
 deps.mk
 Makefile.ag.depend
 /Makefile.config
