@@ -38,29 +38,26 @@
 
 #include "usb/dma_buffer.h"
 
-dma_policy_t dma_policy_default = {
+const dma_policy_t dma_policy_default = {
 	.use64 = false,
 	.alignment = PAGE_SIZE,
 };
 
 /**
- * Allocate a DMA buffer.
- *
- * @param[in] db dma_buffer_t structure to fill
- * @param[in] policy dma_policy_t structure to guide
- * @param[in] size Size of the required memory space
- * @return Error code.
+ * The routine of allocating a DMA buffer. Inlined to force optimization for the
+ * default policy.
  */
-int dma_buffer_alloc_policy(dma_buffer_t *db, size_t size, dma_policy_t policy)
+static inline int dma_buffer_alloc_internal(dma_buffer_t *db,
+    size_t size, const dma_policy_t *policy)
 {
 	assert(db);
 
-	if (policy.alignment > PAGE_SIZE)
+	if (policy->alignment > PAGE_SIZE)
 		return EINVAL;
 
-	const size_t aligned_size = ALIGN_UP(size, policy.alignment);
+	const size_t aligned_size = ALIGN_UP(size, policy->alignment);
 	const size_t real_size = ALIGN_UP(aligned_size, PAGE_SIZE);
-	const uintptr_t flags = policy.use64 ? 0 : DMAMEM_4GiB;
+	const uintptr_t flags = policy->use64 ? 0 : DMAMEM_4GiB;
 
 	uintptr_t phys;
 	void *address = AS_AREA_ANY;
@@ -70,13 +67,24 @@ int dma_buffer_alloc_policy(dma_buffer_t *db, size_t size, dma_policy_t policy)
 	    &phys, &address);
 
 	if (ret == EOK) {
-		/* Poison, accessing it should be enough to make sure
-		 * the location is mapped, but poison works better */
-		memset(address, 0x5, real_size);
 		db->virt = address;
 		db->phys = phys;
 	}
 	return ret;
+}
+
+/**
+ * Allocate a DMA buffer.
+ *
+ * @param[in] db dma_buffer_t structure to fill
+ * @param[in] size Size of the required memory space
+ * @param[in] policy dma_policy_t structure to guide
+ * @return Error code.
+ */
+int dma_buffer_alloc_policy(dma_buffer_t *db, size_t size,
+    const dma_policy_t *policy)
+{
+	return dma_buffer_alloc_internal(db, size, policy);
 }
 
 /**
@@ -88,7 +96,7 @@ int dma_buffer_alloc_policy(dma_buffer_t *db, size_t size, dma_policy_t policy)
  */
 int dma_buffer_alloc(dma_buffer_t *db, size_t size)
 {
-	return dma_buffer_alloc_policy(db, size, dma_policy_default);
+	return dma_buffer_alloc_internal(db, size, &dma_policy_default);
 }
 
 
