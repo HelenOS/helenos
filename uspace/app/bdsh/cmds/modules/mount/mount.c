@@ -77,7 +77,7 @@ static void print_mtab_list(void)
 	LIST_INITIALIZE(mtab_list);
 	mtab_ent_t *old_ent = NULL;
 	char *svc_name;
-	int rc;
+	errno_t rc;
 
 	vfs_get_mtab_list(&mtab_list);
 
@@ -108,7 +108,7 @@ static void print_mtab_list(void)
 
 static void print_fstypes(void)
 {
-	int rc;
+	errno_t rc;
 	vfs_fstypes_t fstypes;
 	char **p;
 
@@ -131,7 +131,7 @@ int cmd_mount(char **argv)
 	unsigned int argc;
 	const char *mopts = "";
 	const char *dev = "";
-	int rc;
+	errno_t rc;
 	int c, opt_ind;
 	unsigned int instance = 0;
 	bool instance_set = false;

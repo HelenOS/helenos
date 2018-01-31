@@ -42,10 +42,10 @@
 #include <vfs/vfs.h>
 #include "logger.h"
 
-static int handle_log_level_change(sysarg_t new_level)
+static errno_t handle_log_level_change(sysarg_t new_level)
 {
 	void *full_name;
-	int rc = async_data_write_accept(&full_name, true, 0, 0, 0, NULL);
+	errno_t rc = async_data_write_accept(&full_name, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -76,18 +76,18 @@ void logger_connection_handler_control(ipc_callid_t callid)
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOGGER_CONTROL_SET_DEFAULT_LEVEL: {
-			int rc = set_default_logging_level(IPC_GET_ARG1(call));
+			errno_t rc = set_default_logging_level(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
 		}
 		case LOGGER_CONTROL_SET_LOG_LEVEL: {
-			int rc = handle_log_level_change(IPC_GET_ARG1(call));
+			errno_t rc = handle_log_level_change(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
 		}
 		case LOGGER_CONTROL_SET_ROOT: {
 			int fd;
-			int rc = vfs_receive_handle(true, &fd);
+			errno_t rc = vfs_receive_handle(true, &fd);
 			if (rc == EOK) {
 				rc = vfs_root_set(fd);
 				vfs_put(fd);

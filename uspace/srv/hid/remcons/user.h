@@ -86,8 +86,8 @@ extern void telnet_user_destroy(telnet_user_t *);
 extern telnet_user_t *telnet_user_get_for_client_connection(service_id_t);
 extern bool telnet_user_is_zombie(telnet_user_t *);
 extern void telnet_user_notify_client_disconnected(telnet_user_t *);
-extern int telnet_user_get_next_keyboard_event(telnet_user_t *, kbd_event_t *);
-extern int telnet_user_send_data(telnet_user_t *, uint8_t *, size_t);
+extern errno_t telnet_user_get_next_keyboard_event(telnet_user_t *, kbd_event_t *);
+extern errno_t telnet_user_send_data(telnet_user_t *, uint8_t *, size_t);
 extern void telnet_user_update_cursor_x(telnet_user_t *, int);
 
 /** Print informational message about connected user. */

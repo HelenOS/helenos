@@ -113,10 +113,10 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Add OBIO device. */
-int obio_add(obio_t *obio, obio_res_t *res)
+errno_t obio_add(obio_t *obio, obio_res_t *res)
 {
 	ddf_fun_t *fun_a = NULL;
-	int rc;
+	errno_t rc;
 
 	rc = pio_enable((void *)res->base, OBIO_SIZE, (void **) &obio->regs);
 	if (rc != EOK) {
@@ -154,13 +154,13 @@ error:
 }
 
 /** Remove OBIO device */
-int obio_remove(obio_t *obio)
+errno_t obio_remove(obio_t *obio)
 {
 	return ENOTSUP;
 }
 
 /** OBIO device gone */
-int obio_gone(obio_t *obio)
+errno_t obio_gone(obio_t *obio)
 {
 	return ENOTSUP;
 }

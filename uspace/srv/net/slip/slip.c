@@ -56,14 +56,14 @@
 #define SLIP_ESC_END	0334
 #define SLIP_ESC_ESC	0335
 
-static int slip_open(iplink_srv_t *);
-static int slip_close(iplink_srv_t *);
-static int slip_send(iplink_srv_t *, iplink_sdu_t *);
-static int slip_send6(iplink_srv_t *, iplink_sdu6_t *);
-static int slip_get_mtu(iplink_srv_t *, size_t *);
-static int slip_get_mac48(iplink_srv_t *, addr48_t *);
-static int slip_addr_add(iplink_srv_t *, inet_addr_t *);
-static int slip_addr_remove(iplink_srv_t *, inet_addr_t *);
+static errno_t slip_open(iplink_srv_t *);
+static errno_t slip_close(iplink_srv_t *);
+static errno_t slip_send(iplink_srv_t *, iplink_sdu_t *);
+static errno_t slip_send6(iplink_srv_t *, iplink_sdu6_t *);
+static errno_t slip_get_mtu(iplink_srv_t *, size_t *);
+static errno_t slip_get_mac48(iplink_srv_t *, addr48_t *);
+static errno_t slip_addr_add(iplink_srv_t *, inet_addr_t *);
+static errno_t slip_addr_remove(iplink_srv_t *, inet_addr_t *);
 
 static iplink_srv_t slip_iplink;
 
@@ -85,13 +85,13 @@ static uint8_t slip_recv_buf[SLIP_MTU + 2];
 static size_t slip_recv_pending;
 static size_t slip_recv_read;
 
-int slip_open(iplink_srv_t *srv)
+errno_t slip_open(iplink_srv_t *srv)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_open()");
 	return EOK;
 }
 
-int slip_close(iplink_srv_t *srv)
+errno_t slip_close(iplink_srv_t *srv)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_close()");
 	return EOK;
@@ -102,7 +102,7 @@ static void write_flush(chardev_t *chardev)
 	size_t written = 0;
 
 	while (slip_send_pending > 0) {
-		int rc;
+		errno_t rc;
 		size_t nwr;
 
 		rc = chardev_write(chardev, &slip_send_buf[written],
@@ -125,7 +125,7 @@ static void write_buffered(chardev_t *chardev, uint8_t ch)
 	slip_send_buf[slip_send_pending++] = ch;
 }
 
-int slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
+errno_t slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send()");
 	
@@ -161,33 +161,33 @@ int slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 	return EOK;
 }
 
-int slip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
+errno_t slip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send6()");
 	
 	return ENOTSUP;
 }
 
-int slip_get_mtu(iplink_srv_t *srv, size_t *mtu)
+errno_t slip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_get_mtu()");
 	*mtu = SLIP_MTU;
 	return EOK;
 }
 
-int slip_get_mac48(iplink_srv_t *src, addr48_t *mac)
+errno_t slip_get_mac48(iplink_srv_t *src, addr48_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_get_mac48()");
 	return ENOTSUP;
 }
 
-int slip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)
+errno_t slip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_addr_add()");
 	return EOK;
 }
 
-int slip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
+errno_t slip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_addr_remove()");
 	return EOK;
@@ -207,7 +207,7 @@ static void slip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 static uint8_t read_buffered(chardev_t *chardev)
 {
 	while (slip_recv_pending == 0) {
-		int rc;
+		errno_t rc;
 		size_t nread;
 
 		rc = chardev_read(chardev, slip_recv_buf,
@@ -227,13 +227,13 @@ static uint8_t read_buffered(chardev_t *chardev)
 	return slip_recv_buf[slip_recv_read++];
 }
 
-static int slip_recv_fibril(void *arg)
+static errno_t slip_recv_fibril(void *arg)
 {
 	chardev_t *chardev = (chardev_t *) arg;
 	static uint8_t recv_final[SLIP_MTU];
 	iplink_recv_sdu_t sdu;
 	uint8_t ch;
-	int rc;
+	errno_t rc;
 
 	sdu.data = recv_final;
 
@@ -293,7 +293,7 @@ pass:
 	return 0;
 }
 
-static int slip_init(const char *svcstr, const char *linkstr)
+static errno_t slip_init(const char *svcstr, const char *linkstr)
 {
 	service_id_t svcid;
 	service_id_t linksid;
@@ -303,7 +303,7 @@ static int slip_init(const char *svcstr, const char *linkstr)
 	chardev_t *chardev_in = NULL;
 	chardev_t *chardev_out = NULL;
 	fid_t fid;
-	int rc;
+	errno_t rc;
 
 	iplink_srv_init(&slip_iplink);
 	slip_iplink.ops = &slip_iplink_ops;
@@ -414,7 +414,7 @@ fail:
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": IP over serial line service\n");
 

@@ -52,7 +52,7 @@ FIBRIL_MUTEX_INITIALIZE(plb_mutex);
 LIST_INITIALIZE(plb_entries);	/**< PLB entry ring buffer. */
 uint8_t *plb = NULL;
 
-static int plb_insert_entry(plb_entry_t *entry, char *path, size_t *start,
+static errno_t plb_insert_entry(plb_entry_t *entry, char *path, size_t *start,
     size_t len)
 {
 	fibril_mutex_lock(&plb_mutex);
@@ -137,7 +137,7 @@ static void plb_clear_entry(plb_entry_t *entry, size_t first, size_t len)
 	fibril_mutex_unlock(&plb_mutex);
 }
 
-int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
+errno_t vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 {
 	assert(base != NULL);
 	assert(child != NULL);
@@ -147,7 +147,7 @@ int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 	
 	vfs_lookup_res_t res;
 	char component[NAME_MAX + 1];
-	int rc;
+	errno_t rc;
 	
 	size_t len;
 	char *npath = canonify(path, &len);
@@ -196,7 +196,7 @@ int vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 	    triplet->index, child->index, NULL);
 	
 	rc = async_data_write_start(exch, component, str_size(component) + 1);
-	int orig_rc;
+	errno_t orig_rc;
 	async_wait_for(req, &orig_rc);
 	vfs_exchange_release(exch);
 	if (orig_rc != EOK)
@@ -206,13 +206,13 @@ out:
 	return rc;
 }
 
-static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
+static errno_t out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
     int lflag, vfs_lookup_res_t *result)
 {
 	assert(base);
 	assert(result);
 	
-	int rc;
+	errno_t rc;
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
 	aid_t req = async_send_5(exch, VFS_OUT_LOOKUP, (sysarg_t) *pfirst,
@@ -237,11 +237,11 @@ static int out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 	return EOK;
 }
 
-static int _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
+static errno_t _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
     vfs_lookup_res_t *result, size_t len)
 {
 	size_t first;
-	int rc;
+	errno_t rc;
 
 	plb_entry_t entry;
 	rc = plb_insert_entry(&entry, path, &first, len);
@@ -333,14 +333,14 @@ out:
  * @return EOK on success or an error code from errno.h.
  *
  */
-int vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
+errno_t vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
     vfs_lookup_res_t *result)
 {
 	assert(base != NULL);
 	assert(path != NULL);
 	
 	size_t len;
-	int rc;
+	errno_t rc;
 	char *npath = canonify(path, &len);
 	if (!npath) {
 		rc = EINVAL;

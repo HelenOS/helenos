@@ -116,13 +116,13 @@ typedef struct {
 	uint32_t value;   /**< Big Endian value! */
 } wmi_reg_t;
 
-extern int wmi_reg_read(htc_device_t *, uint32_t, uint32_t *);
-extern int wmi_reg_write(htc_device_t *, uint32_t, uint32_t);
-extern int wmi_reg_set_clear_bit(htc_device_t *, uint32_t, uint32_t, uint32_t);
-extern int wmi_reg_set_bit(htc_device_t *, uint32_t, uint32_t);
-extern int wmi_reg_clear_bit(htc_device_t *, uint32_t, uint32_t);
-extern int wmi_reg_buffer_write(htc_device_t *, wmi_reg_t *, size_t);
-extern int wmi_send_command(htc_device_t *, wmi_command_t, uint8_t *, uint32_t,
+extern errno_t wmi_reg_read(htc_device_t *, uint32_t, uint32_t *);
+extern errno_t wmi_reg_write(htc_device_t *, uint32_t, uint32_t);
+extern errno_t wmi_reg_set_clear_bit(htc_device_t *, uint32_t, uint32_t, uint32_t);
+extern errno_t wmi_reg_set_bit(htc_device_t *, uint32_t, uint32_t);
+extern errno_t wmi_reg_clear_bit(htc_device_t *, uint32_t, uint32_t);
+extern errno_t wmi_reg_buffer_write(htc_device_t *, wmi_reg_t *, size_t);
+extern errno_t wmi_send_command(htc_device_t *, wmi_command_t, uint8_t *, uint32_t,
     void *);
 
 #endif  /* ATHEROS_WMI_H */

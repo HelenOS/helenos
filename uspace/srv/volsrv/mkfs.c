@@ -46,7 +46,7 @@
 
 #include "mkfs.h"
 
-static int cmd_runl(const char *path, ...)
+static errno_t cmd_runl(const char *path, ...)
 {
 	va_list ap;
 	const char *arg;
@@ -62,7 +62,7 @@ static int cmd_runl(const char *path, ...)
 	va_start(ap, path);
 	task_id_t id;
 	task_wait_t wait;
-	int rc = task_spawn(&id, &wait, path, cnt, ap);
+	errno_t rc = task_spawn(&id, &wait, path, cnt, ap);
 	va_end(ap);
 
 	if (rc != EOK) {
@@ -101,11 +101,11 @@ static int cmd_runl(const char *path, ...)
 }
 
 
-int volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype, const char *label)
+errno_t volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype, const char *label)
 {
 	const char *cmd;
 	char *svc_name;
-	int rc;
+	errno_t rc;
 
 	cmd = NULL;
 	switch (fstype) {

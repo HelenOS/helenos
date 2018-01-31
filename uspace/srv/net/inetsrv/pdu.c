@@ -101,7 +101,7 @@ uint16_t inet_checksum_calc(uint16_t ivalue, void *data, size_t size)
  * @param roffs  Place to store offset of remaning data
  *
  */
-int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
+errno_t inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
     size_t offs, size_t mtu, void **rdata, size_t *rsize, size_t *roffs)
 {
 	/* Upper bound for fragment offset field */
@@ -193,7 +193,7 @@ int inet_pdu_encode(inet_packet_t *packet, addr32_t src, addr32_t dest,
  * @param roffs  Place to store offset of remaning data
  *
  */
-int inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
+errno_t inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
     size_t offs, size_t mtu, void **rdata, size_t *rsize, size_t *roffs)
 {
 	/* IPv6 mandates a minimal MTU of 1280 bytes */
@@ -307,7 +307,7 @@ int inet_pdu_encode6(inet_packet_t *packet, addr128_t src, addr128_t dest,
  * @return ENOMEM if not enough memory
  *
  */
-int inet_pdu_decode(void *data, size_t size, service_id_t link_id,
+errno_t inet_pdu_decode(void *data, size_t size, service_id_t link_id,
     inet_packet_t *packet)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode()");
@@ -384,7 +384,7 @@ int inet_pdu_decode(void *data, size_t size, service_id_t link_id,
  * @return ENOMEM if not enough memory
  *
  */
-int inet_pdu_decode6(void *data, size_t size, service_id_t link_id,
+errno_t inet_pdu_decode6(void *data, size_t size, service_id_t link_id,
     inet_packet_t *packet)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_pdu_decode6()");
@@ -473,7 +473,7 @@ int inet_pdu_decode6(void *data, size_t size, service_id_t link_id,
  * @return EOK on success
  *
  */
-int ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
+errno_t ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
 {
 	inet_addr_set6(ndp->sender_proto_addr, &dgram->src);
 	inet_addr_set6(ndp->target_proto_addr, &dgram->dest);
@@ -534,7 +534,7 @@ int ndp_pdu_encode(ndp_packet_t *ndp, inet_dgram_t *dgram)
  * @return EINVAL if the Datagram is invalid
  *
  */
-int ndp_pdu_decode(inet_dgram_t *dgram, ndp_packet_t *ndp)
+errno_t ndp_pdu_decode(inet_dgram_t *dgram, ndp_packet_t *ndp)
 {
 	ip_ver_t src_ver = inet_addr_get(&dgram->src, NULL,
 	    &ndp->sender_proto_addr);

@@ -102,7 +102,7 @@ static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
  * @return EOK on success.
  *
  */
-static int loc_callback_create(void)
+static errno_t loc_callback_create(void)
 {
 	if (!loc_callback_created) {
 		async_exch_t *exch =
@@ -112,7 +112,7 @@ static int loc_callback_create(void)
 		aid_t req = async_send_0(exch, LOC_CALLBACK_CREATE, &answer);
 		
 		port_id_t port;
-		int rc = async_create_callback_port(exch, INTERFACE_LOC_CB, 0, 0,
+		errno_t rc = async_create_callback_port(exch, INTERFACE_LOC_CB, 0, 0,
 		    loc_cb_conn, NULL, &port);
 		
 		loc_exchange_end(exch);
@@ -120,7 +120,7 @@ static int loc_callback_create(void)
 		if (rc != EOK)
 			return rc;
 		
-		int retval;
+		errno_t retval;
 		async_wait_for(req, &retval);
 		if (retval != EOK)
 			return retval;
@@ -238,13 +238,13 @@ void loc_exchange_end(async_exch_t *exch)
 }
 
 /** Register new driver with loc. */
-int loc_server_register(const char *name)
+errno_t loc_server_register(const char *name)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVER_REGISTER, 0, 0, &answer);
-	int retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_size(name));
 	
 	if (retval != EOK) {
 		async_forget(req);
@@ -271,13 +271,13 @@ int loc_server_register(const char *name)
  * @param[out] sid   Service ID of new service
  *
  */
-int loc_service_register(const char *fqsn, service_id_t *sid)
+errno_t loc_service_register(const char *fqsn, service_id_t *sid)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOC_SERVICE_REGISTER, &answer);
-	int retval = async_data_write_start(exch, fqsn, str_size(fqsn));
+	errno_t retval = async_data_write_start(exch, fqsn, str_size(fqsn));
 	
 	if (retval != EOK) {
 		async_forget(req);
@@ -310,19 +310,19 @@ int loc_service_register(const char *fqsn, service_id_t *sid)
  *
  * @param sid	Service ID
  */
-int loc_service_unregister(service_id_t sid)
+errno_t loc_service_unregister(service_id_t sid)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	
 	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
 	retval = async_req_1_0(exch, LOC_SERVICE_UNREGISTER, sid);
 	loc_exchange_end(exch);
 	
-	return (int)retval;
+	return (errno_t)retval;
 }
 
-int loc_service_get_id(const char *fqdn, service_id_t *handle,
+errno_t loc_service_get_id(const char *fqdn, service_id_t *handle,
     unsigned int flags)
 {
 	async_exch_t *exch;
@@ -338,7 +338,7 @@ int loc_service_get_id(const char *fqdn, service_id_t *handle,
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVICE_GET_ID, flags, 0,
 	    &answer);
-	int retval = async_data_write_start(exch, fqdn, str_size(fqdn));
+	errno_t retval = async_data_write_start(exch, fqdn, str_size(fqdn));
 	
 	loc_exchange_end(exch);
 	
@@ -372,13 +372,13 @@ int loc_service_get_id(const char *fqdn, service_id_t *handle,
  *			free it using free().
  * @return		EOK on success or an error code
  */
-static int loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
+static errno_t loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 {
 	async_exch_t *exch;
 	char name_buf[LOC_NAME_MAXLEN + 1];
 	ipc_call_t dreply;
 	size_t act_size;
-	int dretval;
+	errno_t dretval;
 	
 	*name = NULL;
 	exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
@@ -396,7 +396,7 @@ static int loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 		return dretval;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK)
@@ -422,7 +422,7 @@ static int loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
  *			free it using free().
  * @return		EOK on success or an error code
  */
-int loc_category_get_name(category_id_t cat_id, char **name)
+errno_t loc_category_get_name(category_id_t cat_id, char **name)
 {
 	return loc_get_name_internal(LOC_CATEGORY_GET_NAME, cat_id, name);
 }
@@ -436,7 +436,7 @@ int loc_category_get_name(category_id_t cat_id, char **name)
  *			free it using free().
  * @return		EOK on success or an error code
  */
-int loc_service_get_name(service_id_t svc_id, char **name)
+errno_t loc_service_get_name(service_id_t svc_id, char **name)
 {
 	return loc_get_name_internal(LOC_SERVICE_GET_NAME, svc_id, name);
 }
@@ -450,12 +450,12 @@ int loc_service_get_name(service_id_t svc_id, char **name)
  *			free it using free().
  * @return		EOK on success or an error code
  */
-int loc_service_get_server_name(service_id_t svc_id, char **name)
+errno_t loc_service_get_server_name(service_id_t svc_id, char **name)
 {
 	return loc_get_name_internal(LOC_SERVICE_GET_SERVER_NAME, svc_id, name);
 }
 
-int loc_namespace_get_id(const char *name, service_id_t *handle,
+errno_t loc_namespace_get_id(const char *name, service_id_t *handle,
     unsigned int flags)
 {
 	async_exch_t *exch;
@@ -471,7 +471,7 @@ int loc_namespace_get_id(const char *name, service_id_t *handle,
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_NAMESPACE_GET_ID, flags, 0,
 	    &answer);
-	int retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_size(name));
 	
 	loc_exchange_end(exch);
 	
@@ -504,7 +504,7 @@ int loc_namespace_get_id(const char *name, service_id_t *handle,
  * @param flags		IPC_FLAG_BLOCKING to wait for location service to start
  * @return		EOK on success or an error code
  */
-int loc_category_get_id(const char *name, category_id_t *cat_id,
+errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
     unsigned int flags)
 {
 	async_exch_t *exch;
@@ -520,7 +520,7 @@ int loc_category_get_id(const char *name, category_id_t *cat_id,
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOC_CATEGORY_GET_ID,
 	    &answer);
-	int retval = async_data_write_start(exch, name, str_size(name));
+	errno_t retval = async_data_write_start(exch, name, str_size(name));
 	
 	loc_exchange_end(exch);
 	
@@ -550,7 +550,7 @@ loc_object_type_t loc_id_probe(service_id_t handle)
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 	
 	sysarg_t type;
-	int retval = async_req_1_1(exch, LOC_ID_PROBE, handle, &type);
+	errno_t retval = async_req_1_1(exch, LOC_ID_PROBE, handle, &type);
 	
 	loc_exchange_end(exch);
 	
@@ -581,7 +581,7 @@ int loc_null_create(void)
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 	
 	sysarg_t null_id;
-	int retval = async_req_0_1(exch, LOC_NULL_CREATE, &null_id);
+	errno_t retval = async_req_0_1(exch, LOC_NULL_CREATE, &null_id);
 	
 	loc_exchange_end(exch);
 	
@@ -601,7 +601,7 @@ void loc_null_destroy(int null_id)
 static size_t loc_count_namespaces_internal(async_exch_t *exch)
 {
 	sysarg_t count;
-	int retval = async_req_0_1(exch, LOC_GET_NAMESPACE_COUNT, &count);
+	errno_t retval = async_req_0_1(exch, LOC_GET_NAMESPACE_COUNT, &count);
 	if (retval != EOK)
 		return 0;
 	
@@ -614,10 +614,10 @@ static size_t loc_count_namespaces_internal(async_exch_t *exch)
  * @param cat_id	Category ID
  * @return		EOK on success or an error code
  */
-int loc_service_add_to_cat(service_id_t svc_id, service_id_t cat_id)
+errno_t loc_service_add_to_cat(service_id_t svc_id, service_id_t cat_id)
 {
 	async_exch_t *exch;
-	int retval;
+	errno_t retval;
 	
 	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
 	retval = async_req_2_0(exch, LOC_SERVICE_ADD_TO_CAT, svc_id, cat_id);
@@ -630,7 +630,7 @@ static size_t loc_count_services_internal(async_exch_t *exch,
     service_id_t ns_handle)
 {
 	sysarg_t count;
-	int retval = async_req_1_1(exch, LOC_GET_SERVICE_COUNT, ns_handle,
+	errno_t retval = async_req_1_1(exch, LOC_GET_SERVICE_COUNT, ns_handle,
 	    &count);
 	if (retval != EOK)
 		return 0;
@@ -675,7 +675,7 @@ size_t loc_get_namespaces(loc_sdesc_t **data)
 		
 		ipc_call_t answer;
 		aid_t req = async_send_0(exch, LOC_GET_NAMESPACES, &answer);
-		int rc = async_data_read_start(exch, devs, count * sizeof(loc_sdesc_t));
+		errno_t rc = async_data_read_start(exch, devs, count * sizeof(loc_sdesc_t));
 		
 		loc_exchange_end(exch);
 		
@@ -694,7 +694,7 @@ size_t loc_get_namespaces(loc_sdesc_t **data)
 			return 0;
 		}
 		
-		int retval;
+		errno_t retval;
 		async_wait_for(req, &retval);
 		
 		if (retval != EOK)
@@ -724,7 +724,7 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 		
 		ipc_call_t answer;
 		aid_t req = async_send_1(exch, LOC_GET_SERVICES, ns_handle, &answer);
-		int rc = async_data_read_start(exch, devs, count * sizeof(loc_sdesc_t));
+		errno_t rc = async_data_read_start(exch, devs, count * sizeof(loc_sdesc_t));
 		
 		loc_exchange_end(exch);
 		
@@ -743,7 +743,7 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 			return 0;
 		}
 		
-		int retval;
+		errno_t retval;
 		async_wait_for(req, &retval);
 		
 		if (retval != EOK)
@@ -754,14 +754,14 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 	}
 }
 
-static int loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
+static errno_t loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
     sysarg_t *id_buf, size_t buf_size, size_t *act_size)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, arg1, &answer);
-	int rc = async_data_read_start(exch, id_buf, buf_size);
+	errno_t rc = async_data_read_start(exch, id_buf, buf_size);
 	
 	loc_exchange_end(exch);
 	
@@ -770,7 +770,7 @@ static int loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
 		return rc;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	
 	if (retval != EOK) {
@@ -791,14 +791,14 @@ static int loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
  * @param count		Place to store number of IDs
  * @return 		EOK on success or an error code
  */
-static int loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
+static errno_t loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
     sysarg_t **data, size_t *count)
 {
 	*data = NULL;
 	*count = 0;
 	
 	size_t act_size = 0;
-	int rc = loc_category_get_ids_once(method, arg1, NULL, 0,
+	errno_t rc = loc_category_get_ids_once(method, arg1, NULL, 0,
 	    &act_size);
 	if (rc != EOK)
 		return rc;
@@ -837,7 +837,7 @@ static int loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
  * @param count		Place to store number of IDs
  * @return 		EOK on success or an error code
  */
-int loc_category_get_svcs(category_id_t cat_id, service_id_t **data,
+errno_t loc_category_get_svcs(category_id_t cat_id, service_id_t **data,
     size_t *count)
 {
 	return loc_get_ids_internal(LOC_CATEGORY_GET_SVCS, cat_id,
@@ -852,13 +852,13 @@ int loc_category_get_svcs(category_id_t cat_id, service_id_t **data,
  * @param count		Place to store number of IDs
  * @return 		EOK on success or an error code
  */
-int loc_get_categories(category_id_t **data, size_t *count)
+errno_t loc_get_categories(category_id_t **data, size_t *count)
 {
 	return loc_get_ids_internal(LOC_GET_CATEGORIES, 0,
 	    data, count);
 }
 
-int loc_register_cat_change_cb(loc_cat_change_cb_t cb_fun)
+errno_t loc_register_cat_change_cb(loc_cat_change_cb_t cb_fun)
 {
 	fibril_mutex_lock(&loc_callback_mutex);
 	if (loc_callback_create() != EOK) {

@@ -35,7 +35,7 @@
 #ifndef LIBC_INET_HOSTNAME_H_
 #define LIBC_INET_HOSTNAME_H_
 
-extern int inet_hostname_parse(const char *, char **, char **);
+extern errno_t inet_hostname_parse(const char *, char **, char **);
 
 #endif
 

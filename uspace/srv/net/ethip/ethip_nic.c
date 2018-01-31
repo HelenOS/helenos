@@ -50,19 +50,19 @@
 #include "ethip_nic.h"
 #include "pdu.h"
 
-static int ethip_nic_open(service_id_t sid);
+static errno_t ethip_nic_open(service_id_t sid);
 static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
 
 static LIST_INITIALIZE(ethip_nic_list);
 static FIBRIL_MUTEX_INITIALIZE(ethip_discovery_lock);
 
-static int ethip_nic_check_new(void)
+static errno_t ethip_nic_check_new(void)
 {
 	bool already_known;
 	category_id_t iplink_cat;
 	service_id_t *svcs;
 	size_t count, i;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&ethip_discovery_lock);
 
@@ -146,7 +146,7 @@ static void ethip_link_addr_delete(ethip_link_addr_t *laddr)
 	free(laddr);
 }
 
-static int ethip_nic_open(service_id_t sid)
+static errno_t ethip_nic_open(service_id_t sid)
 {
 	bool in_list = false;
 	nic_address_t nic_address;
@@ -156,7 +156,7 @@ static int ethip_nic_open(service_id_t sid)
 	if (nic == NULL)
 		return ENOMEM;
 	
-	int rc = loc_service_get_name(sid, &nic->svc_name);
+	errno_t rc = loc_service_get_name(sid, &nic->svc_name);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting service name.");
 		goto error;
@@ -233,7 +233,7 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
 {
 	uint8_t *addr;
 	size_t size;
-	int rc;
+	errno_t rc;
 
 	rc = async_data_write_accept((void **)&addr, false, 0, 0, 0, &size);
 	if (rc != EOK) {
@@ -260,7 +260,7 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
 static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
+	errno_t rc;
 	void *data;
 	size_t size;
 
@@ -323,9 +323,9 @@ static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-int ethip_nic_discovery_start(void)
+errno_t ethip_nic_discovery_start(void)
 {
-	int rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb);
+	errno_t rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback for NIC "
 		    "discovery: %s.", str_error(rc));
@@ -352,9 +352,9 @@ ethip_nic_t *ethip_nic_find_by_iplink_sid(service_id_t iplink_sid)
 	return NULL;
 }
 
-int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
+errno_t ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 {
-	int rc;
+	errno_t rc;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_send(size=%zu)", size);
 	rc = nic_send_frame(nic->sess, data, size);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "nic_send_frame -> %s", str_error_name(rc));
@@ -367,7 +367,7 @@ int ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
  * determined only based on IPv6 addresses.
  *
  */
-static int ethip_nic_setup_multicast(ethip_nic_t *nic)
+static errno_t ethip_nic_setup_multicast(ethip_nic_t *nic)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_setup_multicast()");
 	
@@ -424,14 +424,14 @@ static int ethip_nic_setup_multicast(ethip_nic_t *nic)
 	
 	/* Setup the multicast MAC list */
 	
-	int rc = nic_multicast_set_mode(nic->sess, NIC_MULTICAST_LIST,
+	errno_t rc = nic_multicast_set_mode(nic->sess, NIC_MULTICAST_LIST,
 	    mac_list, count);
 	
 	free(mac_list);
 	return rc;
 }
 
-int ethip_nic_addr_add(ethip_nic_t *nic, inet_addr_t *addr)
+errno_t ethip_nic_addr_add(ethip_nic_t *nic, inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_add()");
 	
@@ -444,7 +444,7 @@ int ethip_nic_addr_add(ethip_nic_t *nic, inet_addr_t *addr)
 	return ethip_nic_setup_multicast(nic);
 }
 
-int ethip_nic_addr_remove(ethip_nic_t *nic, inet_addr_t *addr)
+errno_t ethip_nic_addr_remove(ethip_nic_t *nic, inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_remove()");
 	

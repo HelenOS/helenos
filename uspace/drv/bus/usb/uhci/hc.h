@@ -156,11 +156,11 @@ static inline hc_t *bus_to_hc(bus_t *bus)
 
 int hc_unschedule_batch(usb_transfer_batch_t *);
 
-extern int hc_add(hc_device_t *, const hw_res_list_parsed_t *);
-extern int hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *, int *);
-extern int hc_start(hc_device_t *);
-extern int hc_setup_roothub(hc_device_t *);
-extern int hc_gone(hc_device_t *);
+extern errno_t hc_add(hc_device_t *, const hw_res_list_parsed_t *);
+extern errno_t hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *, int *);
+extern errno_t hc_start(hc_device_t *);
+extern errno_t hc_setup_roothub(hc_device_t *);
+extern errno_t hc_gone(hc_device_t *);
 
 #endif
 

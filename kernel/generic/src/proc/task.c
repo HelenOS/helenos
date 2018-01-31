@@ -82,7 +82,7 @@ static slab_cache_t *task_cache;
 
 /* Forward declarations. */
 static void task_kill_internal(task_t *);
-static int tsk_constructor(void *, unsigned int);
+static errno_t tsk_constructor(void *, unsigned int);
 static size_t tsk_destructor(void *obj);
 
 /** Initialize kernel tasks support.
@@ -157,11 +157,11 @@ void task_done(void)
 	} while (tasks_left > 0);
 }
 
-int tsk_constructor(void *obj, unsigned int kmflags)
+errno_t tsk_constructor(void *obj, unsigned int kmflags)
 {
 	task_t *task = (task_t *) obj;
 
-	int rc = caps_task_alloc(task);
+	errno_t rc = caps_task_alloc(task);
 	if (rc != EOK)
 		return rc;
 	
@@ -245,7 +245,7 @@ task_t *task_create(as_t *as, const char *name)
 	if ((ipc_phone_0) &&
 	    (container_check(ipc_phone_0->task->container, task->container))) {
 		cap_handle_t phone_handle;
-		int rc = phone_alloc(task, &phone_handle);
+		errno_t rc = phone_alloc(task, &phone_handle);
 		if (rc != EOK) {
 			task->as = NULL;
 			task_destroy_arch(task);
@@ -344,13 +344,13 @@ void task_release(task_t *task)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_task_get_id(sysarg64_t *uspace_taskid)
+sys_errno_t sys_task_get_id(sysarg64_t *uspace_taskid)
 {
 	/*
 	 * No need to acquire lock on TASK because taskid remains constant for
 	 * the lifespan of the task.
 	 */
-	return (sysarg_t) copy_to_uspace(uspace_taskid, &TASK->taskid,
+	return (sys_errno_t) copy_to_uspace(uspace_taskid, &TASK->taskid,
 	    sizeof(TASK->taskid));
 }
 
@@ -384,7 +384,7 @@ sysarg_t sys_task_get_id(void)
  * @return 0 on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len)
+sys_errno_t sys_task_set_name(const char *uspace_name, size_t name_len)
 {
 	char namebuf[TASK_NAME_BUFLEN];
 	
@@ -392,9 +392,9 @@ sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len)
 	if (name_len > TASK_NAME_BUFLEN - 1)
 		name_len = TASK_NAME_BUFLEN - 1;
 	
-	int rc = copy_from_uspace(namebuf, uspace_name, name_len);
-	if (rc != 0)
-		return (sysarg_t) rc;
+	errno_t rc = copy_from_uspace(namebuf, uspace_name, name_len);
+	if (rc != EOK)
+		return (sys_errno_t) rc;
 	
 	namebuf[name_len] = '\0';
 	
@@ -425,14 +425,14 @@ sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len)
  * @return 0 on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_task_kill(task_id_t *uspace_taskid)
+sys_errno_t sys_task_kill(task_id_t *uspace_taskid)
 {
 	task_id_t taskid;
-	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(taskid));
-	if (rc != 0)
-		return (sysarg_t) rc;
+	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(taskid));
+	if (rc != EOK)
+		return (sys_errno_t) rc;
 	
-	return (sysarg_t) task_kill(taskid);
+	return (sys_errno_t) task_kill(taskid);
 }
 
 /** Find task structure corresponding to task ID.
@@ -538,7 +538,7 @@ static void task_kill_internal(task_t *task)
  * @return Zero on success or an error code from errno.h.
  *
  */
-int task_kill(task_id_t id)
+errno_t task_kill(task_id_t id)
 {
 	if (id == 1)
 		return EPERM;
@@ -595,7 +595,7 @@ void task_kill_self(bool notify)
  * @param notify Send out fault notifications.
  *
  */
-sysarg_t sys_task_exit(sysarg_t notify)
+sys_errno_t sys_task_exit(sysarg_t notify)
 {
 	task_kill_self(notify);
 	

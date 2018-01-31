@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 		return 2;
 	}
 	
-	int rc = fs_register(vfs_sess, &udf_vfs_info, &udf_ops,
+	errno_t rc = fs_register(vfs_sess, &udf_vfs_info, &udf_ops,
 	    &udf_libfs_ops);
 	if (rc != EOK)
 		goto err;

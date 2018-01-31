@@ -71,7 +71,7 @@ typedef struct {
 void ehci_ep_toggle_reset(endpoint_t *);
 void ehci_bus_prepare_ops(void);
 
-int ehci_bus_init(ehci_bus_t *, hc_t *);
+errno_t ehci_bus_init(ehci_bus_t *, hc_t *);
 
 /** Get and convert assigned ehci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.

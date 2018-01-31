@@ -57,7 +57,7 @@ static inline int hex_digit(char digit)
 	return -1;
 }
 
-static int blob_from_hex(bithenge_node_t **out, const char *hex)
+static errno_t blob_from_hex(bithenge_node_t **out, const char *hex)
 {
 	size_t size = str_length(hex);
 	if (size % 2)
@@ -84,7 +84,7 @@ static int blob_from_hex(bithenge_node_t **out, const char *hex)
  * @param[out] out Stores the created node.
  * @param source Specifies the node to be created.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_node_from_source(bithenge_node_t **out, const char *source)
+errno_t bithenge_node_from_source(bithenge_node_t **out, const char *source)
 {
 	if (str_chr(source, ':')) {
 		if (!str_lcmp(source, "file:", 5)) {
@@ -94,7 +94,7 @@ int bithenge_node_from_source(bithenge_node_t **out, const char *source)
 		} else if (!str_lcmp(source, "block:", 6)) {
 			// Example: block:bd/initrd
 			service_id_t service_id;
-			int rc = loc_service_get_id(source + 6, &service_id, 0);
+			errno_t rc = loc_service_get_id(source + 6, &service_id, 0);
 			if (rc != EOK)
 				return rc;
 			return bithenge_new_block_blob(out, service_id);

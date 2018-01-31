@@ -61,22 +61,22 @@
 
 static LIST_INITIALIZE(terms);
 
-static int term_open(con_srvs_t *, con_srv_t *);
-static int term_close(con_srv_t *);
-static int term_read(con_srv_t *, void *, size_t, size_t *);
-static int term_write(con_srv_t *, void *, size_t, size_t *);
+static errno_t term_open(con_srvs_t *, con_srv_t *);
+static errno_t term_close(con_srv_t *);
+static errno_t term_read(con_srv_t *, void *, size_t, size_t *);
+static errno_t term_write(con_srv_t *, void *, size_t, size_t *);
 static void term_sync(con_srv_t *);
 static void term_clear(con_srv_t *);
 static void term_set_pos(con_srv_t *, sysarg_t col, sysarg_t row);
-static int term_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
-static int term_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
-static int term_get_color_cap(con_srv_t *, console_caps_t *);
+static errno_t term_get_pos(con_srv_t *, sysarg_t *, sysarg_t *);
+static errno_t term_get_size(con_srv_t *, sysarg_t *, sysarg_t *);
+static errno_t term_get_color_cap(con_srv_t *, console_caps_t *);
 static void term_set_style(con_srv_t *, console_style_t);
 static void term_set_color(con_srv_t *, console_color_t, console_color_t,
     console_color_attr_t);
 static void term_set_rgb_color(con_srv_t *, pixel_t, pixel_t);
 static void term_set_cursor_visibility(con_srv_t *, bool);
-static int term_get_event(con_srv_t *, cons_event_t *);
+static errno_t term_get_event(con_srv_t *, cons_event_t *);
 
 static con_ops_t con_ops = {
 	.open = term_open,
@@ -375,17 +375,17 @@ static void term_damage(terminal_t *term)
 	fibril_mutex_unlock(&term->mtx);
 }
 
-static int term_open(con_srvs_t *srvs, con_srv_t *srv)
+static errno_t term_open(con_srvs_t *srvs, con_srv_t *srv)
 {
 	return EOK;
 }
 
-static int term_close(con_srv_t *srv)
+static errno_t term_close(con_srv_t *srv)
 {
 	return EOK;
 }
 
-static int term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
+static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	uint8_t *bbuf = buf;
@@ -462,7 +462,7 @@ static void term_write_char(terminal_t *term, wchar_t ch)
 		term_update(term);
 }
 
-static int term_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
+static errno_t term_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	
@@ -503,7 +503,7 @@ static void term_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 	term_update(term);
 }
 
-static int term_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
+static errno_t term_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	
@@ -514,7 +514,7 @@ static int term_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 	return EOK;
 }
 
-static int term_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
+static errno_t term_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	
@@ -526,7 +526,7 @@ static int term_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 	return EOK;
 }
 
-static int term_get_color_cap(con_srv_t *srv, console_caps_t *caps)
+static errno_t term_get_color_cap(con_srv_t *srv, console_caps_t *caps)
 {
 	(void) srv;
 	*caps = TERM_CAPS;
@@ -574,7 +574,7 @@ static void term_set_cursor_visibility(con_srv_t *srv, bool visible)
 	term_update(term);
 }
 
-static int term_get_event(con_srv_t *srv, cons_event_t *event)
+static errno_t term_get_event(con_srv_t *srv, cons_event_t *event)
 {
 	terminal_t *term = srv_to_terminal(srv);
 	link_t *link = prodcons_consume(&term->input_pc);
@@ -750,7 +750,7 @@ bool init_terminal(terminal_t *term, widget_t *parent, const void *data,
 	term->srvs.ops = &con_ops;
 	term->srvs.sarg = term;
 	
-	int rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		widget_deinit(&term->widget);
 		return false;

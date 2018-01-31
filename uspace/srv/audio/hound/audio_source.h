@@ -54,9 +54,9 @@ struct audio_source {
 	/** backend data */
 	void *private_data;
 	/** Callback for connection and disconnection */
-	int (*connection_change)(audio_source_t *source, bool added);
+	errno_t (*connection_change)(audio_source_t *source, bool added);
 	/** Ask backend for more data */
-	int (*update_available_data)(audio_source_t *source, size_t size);
+	errno_t (*update_available_data)(audio_source_t *source, size_t size);
 };
 
 /**
@@ -69,12 +69,12 @@ static inline audio_source_t * audio_source_list_instance(link_t *l)
 	return l ? list_get_instance(l, audio_source_t, link) : NULL;
 }
 
-int audio_source_init(audio_source_t *source, const char *name, void *data,
-    int (*connection_change)(audio_source_t *, bool),
-    int (*update_available_data)(audio_source_t *, size_t),
+errno_t audio_source_init(audio_source_t *source, const char *name, void *data,
+    errno_t (*connection_change)(audio_source_t *, bool),
+    errno_t (*update_available_data)(audio_source_t *, size_t),
     const pcm_format_t *f);
 void audio_source_fini(audio_source_t *source);
-int audio_source_push_data(audio_source_t *source, const void *data,
+errno_t audio_source_push_data(audio_source_t *source, const void *data,
     size_t size);
 static inline const pcm_format_t *audio_source_format(const audio_source_t *s)
 {

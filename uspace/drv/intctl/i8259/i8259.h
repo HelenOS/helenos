@@ -51,9 +51,9 @@ typedef struct {
 	ddf_dev_t *dev;
 } i8259_t;
 
-extern int i8259_add(i8259_t *, i8259_res_t *);
-extern int i8259_remove(i8259_t *);
-extern int i8259_gone(i8259_t *);
+extern errno_t i8259_add(i8259_t *, i8259_res_t *);
+extern errno_t i8259_remove(i8259_t *);
+extern errno_t i8259_gone(i8259_t *);
 
 #endif
 

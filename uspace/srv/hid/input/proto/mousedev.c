@@ -84,7 +84,7 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 			return;
 		}
 		
-		int retval;
+		errno_t retval;
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case MOUSEEV_MOVE_EVENT:
@@ -113,7 +113,7 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 	}
 }
 
-static int mousedev_proto_init(mouse_dev_t *mdev)
+static errno_t mousedev_proto_init(mouse_dev_t *mdev)
 {
 	async_sess_t *sess = loc_service_connect(mdev->svc_id, INTERFACE_DDF, 0);
 	if (sess == NULL) {
@@ -140,7 +140,7 @@ static int mousedev_proto_init(mouse_dev_t *mdev)
 	}
 	
 	port_id_t port;
-	int rc = async_create_callback_port(exch, INTERFACE_MOUSE_CB, 0, 0,
+	errno_t rc = async_create_callback_port(exch, INTERFACE_MOUSE_CB, 0, 0,
 	    mousedev_callback_conn, mousedev, &port);
 	
 	async_exchange_end(exch);

@@ -59,14 +59,14 @@ static void draw_char(vt100_state_t *state, charfield_t *field,
 	vt100_putchar(state, field->ch);
 }
 
-static int serial_yield(outdev_t *dev)
+static errno_t serial_yield(outdev_t *dev)
 {
 	vt100_state_t *state = (vt100_state_t *) dev->data;
 	
 	return vt100_yield(state);
 }
 
-static int serial_claim(outdev_t *dev)
+static errno_t serial_claim(outdev_t *dev)
 {
 	vt100_state_t *state = (vt100_state_t *) dev->data;
 	
@@ -121,7 +121,7 @@ static outdev_ops_t serial_ops = {
 	.flush = serial_flush
 };
 
-int serial_init(vt100_putchar_t putchar_fn,
+errno_t serial_init(vt100_putchar_t putchar_fn,
     vt100_control_puts_t control_puts_fn, vt100_flush_t flush_fn)
 {
 	vt100_state_t *state =

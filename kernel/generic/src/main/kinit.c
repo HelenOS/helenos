@@ -252,7 +252,7 @@ void kinit(void *arg)
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		assert(page);
 		
-		int rc = program_create_from_image((void *) page, namebuf,
+		errno_t rc = program_create_from_image((void *) page, namebuf,
 		    &programs[i]);
 		
 		if (rc == 0) {

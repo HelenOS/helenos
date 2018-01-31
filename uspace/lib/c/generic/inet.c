@@ -41,7 +41,7 @@ static async_sess_t *inet_sess = NULL;
 static inet_ev_ops_t *inet_ev_ops = NULL;
 static uint8_t inet_protocol = 0;
 
-static int inet_callback_create(void)
+static errno_t inet_callback_create(void)
 {
 	async_exch_t *exch = async_exchange_begin(inet_sess);
 	
@@ -49,7 +49,7 @@ static int inet_callback_create(void)
 	aid_t req = async_send_0(exch, INET_CALLBACK_CREATE, &answer);
 	
 	port_id_t port;
-	int rc = async_create_callback_port(exch, INTERFACE_INET_CB, 0, 0,
+	errno_t rc = async_create_callback_port(exch, INTERFACE_INET_CB, 0, 0,
 	    inet_cb_conn, NULL, &port);
 	
 	async_exchange_end(exch);
@@ -57,25 +57,25 @@ static int inet_callback_create(void)
 	if (rc != EOK)
 		return rc;
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	
 	return retval;
 }
 
-static int inet_set_proto(uint8_t protocol)
+static errno_t inet_set_proto(uint8_t protocol)
 {
 	async_exch_t *exch = async_exchange_begin(inet_sess);
-	int rc = async_req_1_0(exch, INET_SET_PROTO, protocol);
+	errno_t rc = async_req_1_0(exch, INET_SET_PROTO, protocol);
 	async_exchange_end(exch);
 	
 	return rc;
 }
 
-int inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
+errno_t inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 {
 	service_id_t inet_svc;
-	int rc;
+	errno_t rc;
 
 	assert(inet_sess == NULL);
 	assert(inet_ev_ops == NULL);
@@ -109,7 +109,7 @@ int inet_init(uint8_t protocol, inet_ev_ops_t *ev_ops)
 	return EOK;
 }
 
-int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
+errno_t inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 {
 	async_exch_t *exch = async_exchange_begin(inet_sess);
 	
@@ -117,7 +117,7 @@ int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 	aid_t req = async_send_4(exch, INET_SEND, dgram->iplink, dgram->tos,
 	    ttl, df, &answer);
 	
-	int rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
+	errno_t rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -140,20 +140,20 @@ int inet_send(inet_dgram_t *dgram, uint8_t ttl, inet_df_t df)
 		return rc;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	
 	return retval;
 }
 
-int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
+errno_t inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 {
 	async_exch_t *exch = async_exchange_begin(inet_sess);
 	
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INET_GET_SRCADDR, tos, &answer);
 	
-	int rc = async_data_write_start(exch, remote, sizeof(inet_addr_t));
+	errno_t rc = async_data_write_start(exch, remote, sizeof(inet_addr_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -169,7 +169,7 @@ int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 		return rc;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	
 	return retval;
@@ -196,7 +196,7 @@ static void inet_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	int rc = async_data_write_finalize(callid, &dgram.src, size);
+	errno_t rc = async_data_write_finalize(callid, &dgram.src, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);

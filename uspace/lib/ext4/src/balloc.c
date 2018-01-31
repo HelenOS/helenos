@@ -52,7 +52,7 @@
  * @return Error code
  *
  */
-int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
+errno_t ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 {
 	ext4_filesystem_t *fs = inode_ref->fs;
 	ext4_superblock_t *sb = fs->superblock;
@@ -64,7 +64,7 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	
 	/* Load block group reference */
 	ext4_block_group_ref_t *bg_ref;
-	int rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	errno_t rc = ext4_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
 	if (rc != EOK)
 		return rc;
 	
@@ -117,7 +117,7 @@ int ext4_balloc_free_block(ext4_inode_ref_t *inode_ref, uint32_t block_addr)
 	return ext4_filesystem_put_block_group_ref(bg_ref);
 }
 
-static int ext4_balloc_free_blocks_internal(ext4_inode_ref_t *inode_ref,
+static errno_t ext4_balloc_free_blocks_internal(ext4_inode_ref_t *inode_ref,
     uint32_t first, uint32_t count)
 {
 	ext4_filesystem_t *fs = inode_ref->fs;
@@ -133,7 +133,7 @@ static int ext4_balloc_free_blocks_internal(ext4_inode_ref_t *inode_ref,
 
 	/* Load block group reference */
 	ext4_block_group_ref_t *bg_ref;
-	int rc = ext4_filesystem_get_block_group_ref(fs, block_group_first, &bg_ref);
+	errno_t rc = ext4_filesystem_get_block_group_ref(fs, block_group_first, &bg_ref);
 	if (rc != EOK)
 		return rc;
 
@@ -197,10 +197,10 @@ static int ext4_balloc_free_blocks_internal(ext4_inode_ref_t *inode_ref,
  * @param count     Number of blocks to release
  *
  */
-int ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
+errno_t ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
     uint32_t first, uint32_t count)
 {
-	int r;
+	errno_t r;
 	uint32_t gid;
 	uint64_t limit;
 	ext4_filesystem_t *fs = inode_ref->fs;
@@ -292,7 +292,7 @@ uint32_t ext4_balloc_get_first_data_block_in_group(ext4_superblock_t *sb,
  * @return Goal block number
  *
  */
-static int ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref, uint32_t *goal)
+static errno_t ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref, uint32_t *goal)
 {
 	*goal = 0;
 	ext4_superblock_t *sb = inode_ref->fs->superblock;
@@ -306,7 +306,7 @@ static int ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref, uint32_t *goal)
 
 	/* If inode has some blocks, get last block address + 1 */
 	if (inode_block_count > 0) {
-		int rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
+		errno_t rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
 		    inode_block_count - 1, goal);
 		if (rc != EOK)
 			return rc;
@@ -324,7 +324,7 @@ static int ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref, uint32_t *goal)
 
 	/* Load block group reference */
 	ext4_block_group_ref_t *bg_ref;
-	int rc = ext4_filesystem_get_block_group_ref(inode_ref->fs,
+	errno_t rc = ext4_filesystem_get_block_group_ref(inode_ref->fs,
 	    block_group, &bg_ref);
 	if (rc != EOK)
 		return rc;
@@ -342,7 +342,7 @@ static int ext4_balloc_find_goal(ext4_inode_ref_t *inode_ref, uint32_t *goal)
  * @return Error code
  *
  */
-int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
+errno_t ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 {
 	uint32_t allocated_block = 0;
 	
@@ -353,7 +353,7 @@ int ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 	uint32_t goal;
 	
 	/* Find GOAL */
-	int rc = ext4_balloc_find_goal(inode_ref, &goal);
+	errno_t rc = ext4_balloc_find_goal(inode_ref, &goal);
 	if (rc != EOK)
 		return rc;
 
@@ -624,10 +624,10 @@ success:
  * @return Error code
  *
  */
-int ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock,
+errno_t ext4_balloc_try_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t fblock,
     bool *free)
 {
-	int rc;
+	errno_t rc;
 	
 	ext4_filesystem_t *fs = inode_ref->fs;
 	ext4_superblock_t *sb = fs->superblock;

@@ -216,7 +216,7 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
  *         was not enough space in the output buffer or EINVAL if the character
  *         code was invalid.
  */
-int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
+errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
@@ -793,7 +793,7 @@ bool wstr_remove(wchar_t *str, size_t pos)
  * @return EOK if conversion was successful.
  *
  */
-static int str_uint(const char *nptr, char **endptr, unsigned int base,
+static errno_t str_uint(const char *nptr, char **endptr, unsigned int base,
     bool *neg, uint64_t *result)
 {
 	assert(endptr != NULL);
@@ -914,14 +914,14 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint64_t(const char *nptr, char **endptr, unsigned int base,
+errno_t str_uint64_t(const char *nptr, char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	assert(result != NULL);
 	
 	bool neg;
 	char *lendptr;
-	int ret = str_uint(nptr, &lendptr, base, &neg, result);
+	errno_t ret = str_uint(nptr, &lendptr, base, &neg, result);
 	
 	if (endptr != NULL)
 		*endptr = (char *) lendptr;

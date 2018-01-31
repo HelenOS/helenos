@@ -79,10 +79,10 @@ static portrng_flags_t aflags_to_pflags(amap_flags_t flags)
  * @param rmap Place to store pointer to new association map
  * @return EOk on success, ENOMEM if out of memory
  */
-int amap_create(amap_t **rmap)
+errno_t amap_create(amap_t **rmap)
 {
 	amap_t *map;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_create()");
 
@@ -130,7 +130,7 @@ void amap_destroy(amap_t *map)
  *
  * @return EOK on success, ENOENT if not found
  */
-static int amap_repla_find(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
+static errno_t amap_repla_find(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
     amap_repla_t **rrepla)
 {
 	char *sraddr, *sladdr;
@@ -174,11 +174,11 @@ static int amap_repla_find(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-static int amap_repla_insert(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
+static errno_t amap_repla_insert(amap_t *map, inet_ep_t *rep, inet_addr_t *la,
     amap_repla_t **rrepla)
 {
 	amap_repla_t *repla;
-	int rc;
+	errno_t rc;
 
 	repla = calloc(1, sizeof(amap_repla_t));
 	if (repla == NULL) {
@@ -224,7 +224,7 @@ static void amap_repla_remove(amap_t *map, amap_repla_t *repla)
  *
  * @return EOK on success, ENOENT if not found.
  */
-static int amap_laddr_find(amap_t *map, inet_addr_t *addr,
+static errno_t amap_laddr_find(amap_t *map, inet_addr_t *addr,
     amap_laddr_t **rladdr)
 {
 	list_foreach(map->laddr, lamap, amap_laddr_t, laddr) {
@@ -247,11 +247,11 @@ static int amap_laddr_find(amap_t *map, inet_addr_t *addr,
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-static int amap_laddr_insert(amap_t *map, inet_addr_t *addr,
+static errno_t amap_laddr_insert(amap_t *map, inet_addr_t *addr,
     amap_laddr_t **rladdr)
 {
 	amap_laddr_t *laddr;
-	int rc;
+	errno_t rc;
 
 	laddr = calloc(1, sizeof(amap_laddr_t));
 	if (laddr == NULL) {
@@ -296,7 +296,7 @@ static void amap_laddr_remove(amap_t *map, amap_laddr_t *laddr)
  *
  * @return EOK on success, ENOENT if not found.
  */
-static int amap_llink_find(amap_t *map, sysarg_t link_id,
+static errno_t amap_llink_find(amap_t *map, sysarg_t link_id,
     amap_llink_t **rllink)
 {
 	list_foreach(map->llink, lamap, amap_llink_t, llink) {
@@ -319,11 +319,11 @@ static int amap_llink_find(amap_t *map, sysarg_t link_id,
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-static int amap_llink_insert(amap_t *map, sysarg_t link_id,
+static errno_t amap_llink_insert(amap_t *map, sysarg_t link_id,
     amap_llink_t **rllink)
 {
 	amap_llink_t *llink;
-	int rc;
+	errno_t rc;
 
 	llink = calloc(1, sizeof(amap_llink_t));
 	if (llink == NULL) {
@@ -371,12 +371,12 @@ static void amap_llink_remove(amap_t *map, amap_llink_t *llink)
  * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
-static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
+static errno_t amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
     amap_flags_t flags, inet_ep2_t *aepp)
 {
 	amap_repla_t *repla;
 	inet_ep2_t mepp;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_repla()");
 
@@ -416,12 +416,12 @@ static int amap_insert_repla(amap_t *map, inet_ep2_t *epp, void *arg,
  * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
-static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
+static errno_t amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
     amap_flags_t flags, inet_ep2_t *aepp)
 {
 	amap_laddr_t *laddr;
 	inet_ep2_t mepp;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_laddr()");
 
@@ -460,12 +460,12 @@ static int amap_insert_laddr(amap_t *map, inet_ep2_t *epp, void *arg,
  * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
-static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
+static errno_t amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
     amap_flags_t flags, inet_ep2_t *aepp)
 {
 	amap_llink_t *llink;
 	inet_ep2_t mepp;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_llink()");
 
@@ -504,11 +504,11 @@ static int amap_insert_llink(amap_t *map, inet_ep2_t *epp, void *arg,
  * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
-static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
+static errno_t amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
     amap_flags_t flags, inet_ep2_t *aepp)
 {
 	inet_ep2_t mepp;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert_unspec()");
 	mepp = *epp;
@@ -537,12 +537,12 @@ static int amap_insert_unspec(amap_t *map, inet_ep2_t *epp, void *arg,
  * @return EOK on success, EEXIST if conflicting epp exists,
  *         ENOMEM if out of memory
  */
-int amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,
+errno_t amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,
     inet_ep2_t *aepp)
 {
 	bool raddr, rport, laddr, llink;
 	inet_ep2_t mepp;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "amap_insert()");
 
@@ -598,7 +598,7 @@ int amap_insert(amap_t *map, inet_ep2_t *epp, void *arg, amap_flags_t flags,
 static void amap_remove_repla(amap_t *map, inet_ep2_t *epp)
 {
 	amap_repla_t *repla;
-	int rc;
+	errno_t rc;
 
 	rc = amap_repla_find(map, &epp->remote, &epp->local.addr, &repla);
 	if (rc != EOK) {
@@ -623,7 +623,7 @@ static void amap_remove_repla(amap_t *map, inet_ep2_t *epp)
 static void amap_remove_laddr(amap_t *map, inet_ep2_t *epp)
 {
 	amap_laddr_t *laddr;
-	int rc;
+	errno_t rc;
 
 	rc = amap_laddr_find(map, &epp->local.addr, &laddr);
 	if (rc != EOK) {
@@ -648,7 +648,7 @@ static void amap_remove_laddr(amap_t *map, inet_ep2_t *epp)
 static void amap_remove_llink(amap_t *map, inet_ep2_t *epp)
 {
 	amap_llink_t *llink;
-	int rc;
+	errno_t rc;
 
 	rc = amap_llink_find(map, epp->local_link, &llink);
 	if (rc != EOK) {
@@ -720,9 +720,9 @@ void amap_remove(amap_t *map, inet_ep2_t *epp)
  *
  * @return	EOK on success, ENOENT if not found.
  */
-int amap_find_match(amap_t *map, inet_ep2_t *epp, void **rarg)
+errno_t amap_find_match(amap_t *map, inet_ep2_t *epp, void **rarg)
 {
-	int rc;
+	errno_t rc;
 	amap_repla_t *repla;
 	amap_laddr_t *laddr;
 	amap_llink_t *llink;

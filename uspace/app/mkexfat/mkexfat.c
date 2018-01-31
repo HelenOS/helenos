@@ -111,11 +111,11 @@ vbr_checksum_start(void const *octets, size_t nbytes);
 static void
 vbr_checksum_update(void const *octets, size_t nbytes, uint32_t *checksum);
 
-static int
+static errno_t
 ebs_write(service_id_t service_id, exfat_cfg_t *cfg,
     int base, uint32_t *chksum);
 
-static int
+static errno_t
 bitmap_write(service_id_t service_id, exfat_cfg_t *cfg);
 
 static uint32_t
@@ -283,13 +283,13 @@ vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
 	return vbr_checksum_start(mbs, sizeof(exfat_bs_t));
 }
 
-static int
+static errno_t
 bootsec_write(service_id_t service_id, exfat_cfg_t *cfg)
 {
 	exfat_bs_t mbs;
 	uint32_t vbr_checksum;
 	uint32_t *chksum_sector;
-	int rc;
+	errno_t rc;
 	unsigned idx;
 
 	chksum_sector = calloc(cfg->sector_size, sizeof(uint8_t));
@@ -345,13 +345,13 @@ exit:
  * @param base Base sector of the EBS.
  * @return  EOK on success or an error code.
  */
-static int
+static errno_t
 ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base,
     uint32_t *chksum)
 {
 	uint32_t *ebs = calloc(cfg->sector_size, sizeof(uint8_t));
 	int i;
-	int rc;
+	errno_t rc;
 
 	if (!ebs)
 		return ENOMEM;
@@ -398,12 +398,12 @@ exit:
  * @param cfg Pointer to the exfat_cfg structure.
  * @return EOK on success or an error code.
  */
-static int
+static errno_t
 fat_initialize(service_id_t service_id, exfat_cfg_t *cfg)
 {
 	unsigned long i;
 	uint32_t *pfat;
-	int rc;
+	errno_t rc;
 
 	pfat = calloc(cfg->sector_size, 1);
 	if (!pfat)
@@ -438,11 +438,11 @@ error:
  * @param ncls  Number of clusters to allocate.
  * @return EOK on success or an error code.
  */
-static int
+static errno_t
 fat_allocate_clusters(service_id_t service_id, exfat_cfg_t *cfg,
     uint32_t cur_cls, unsigned long ncls)
 {
-	int rc;
+	errno_t rc;
 	unsigned const fat_entries = cfg->sector_size / sizeof(uint32_t);
 	aoff64_t fat_sec = cur_cls / fat_entries + FAT_SECTOR_START;
 	uint32_t *fat;
@@ -495,12 +495,12 @@ exit:
  * @param cfg  Pointer to the exfat configuration structure.
  * @return  EOK on success or an error code.
  */
-static int
+static errno_t
 bitmap_write(service_id_t service_id, exfat_cfg_t *cfg)
 {
 	unsigned long i, sec;
 	unsigned long allocated_cls;
-	int rc = EOK;
+	errno_t rc = EOK;
 	bool need_reset = true;
 
 	/* Bitmap size in sectors */
@@ -543,10 +543,10 @@ exit:
 }
 
 /** Write the upcase table to disk. */
-static int
+static errno_t
 upcase_table_write(service_id_t service_id, exfat_cfg_t *cfg)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	aoff64_t start_sec, nsecs, i;
 	uint8_t *table_ptr;
 	uint8_t *buf;
@@ -594,13 +594,13 @@ exit:
  * @param cfg   Pointer to the exFAT configuration structure.
  * @return   EOK on success or an error code.
  */
-static int
+static errno_t
 root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
 {
 	exfat_dentry_t *d;
 	aoff64_t rootdir_sec;
 	uint16_t wlabel[EXFAT_VOLLABEL_LEN + 1];
-	int rc;
+	errno_t rc;
 	uint8_t *data;
 	unsigned long i;
 
@@ -757,7 +757,7 @@ int main (int argc, char **argv)
 	uint32_t next_cls;
 	char *dev_path;
 	service_id_t service_id;
-	int rc;
+	errno_t rc;
 	int c, opt_ind;
 	aoff64_t user_fs_size = 0;
 

@@ -35,7 +35,7 @@ PCUT_TEST_SUITE(table);
 
 PCUT_TEST(smoke) {
 	table_t *table;
-	int rc;
+	errno_t rc;
 
 	rc = table_create(&table);
 	PCUT_ASSERT_ERRNO_VAL(EOK, rc);

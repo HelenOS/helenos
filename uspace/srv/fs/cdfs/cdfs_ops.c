@@ -330,7 +330,7 @@ static hash_table_ops_t nodes_ops = {
 	.remove_callback = nodes_remove_callback
 };
 
-static int cdfs_node_get(fs_node_t **rfn, service_id_t service_id,
+static errno_t cdfs_node_get(fs_node_t **rfn, service_id_t service_id,
     fs_index_t index)
 {
 	ht_key_t key = {
@@ -350,7 +350,7 @@ static int cdfs_node_get(fs_node_t **rfn, service_id_t service_id,
 	return EOK;
 }
 
-static int cdfs_root_get(fs_node_t **rfn, service_id_t service_id)
+static errno_t cdfs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return cdfs_node_get(rfn, service_id, CDFS_SOME_ROOT);
 }
@@ -370,7 +370,7 @@ static void cdfs_node_initialize(cdfs_node_t *node)
 	list_initialize(&node->cs_list);
 }
 
-static int create_node(fs_node_t **rfn, cdfs_t *fs, int lflag,
+static errno_t create_node(fs_node_t **rfn, cdfs_t *fs, int lflag,
     fs_index_t index)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
@@ -391,7 +391,7 @@ static int create_node(fs_node_t **rfn, cdfs_t *fs, int lflag,
 	node->fs_node->data = node;
 	
 	fs_node_t *rootfn;
-	int rc = cdfs_root_get(&rootfn, fs->service_id);
+	errno_t rc = cdfs_root_get(&rootfn, fs->service_id);
 	
 	assert(rc == EOK);
 	
@@ -416,7 +416,7 @@ static int create_node(fs_node_t **rfn, cdfs_t *fs, int lflag,
 	return EOK;
 }
 
-static int link_node(fs_node_t *pfn, fs_node_t *fn, const char *name)
+static errno_t link_node(fs_node_t *pfn, fs_node_t *fn, const char *name)
 {
 	cdfs_node_t *parent = CDFS_NODE(pfn);
 	cdfs_node_t *node = CDFS_NODE(fn);
@@ -459,7 +459,7 @@ static int link_node(fs_node_t *pfn, fs_node_t *fn, const char *name)
  */
 static char *cdfs_decode_str(void *data, size_t dsize, cdfs_enc_t enc)
 {
-	int rc;
+	errno_t rc;
 	char *str;
 	uint16_t *buf;
 	
@@ -565,7 +565,7 @@ static char *cdfs_decode_vol_ident(void *data, size_t dsize, cdfs_enc_t enc)
 	return ident;
 }
 
-static int cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
+static errno_t cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 {
 	cdfs_node_t *node = CDFS_NODE(fs_node);
 	assert(node);
@@ -579,7 +579,7 @@ static int cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 	
 	for (uint32_t i = 0; i < blocks; i++) {
 		block_t *block;
-		int rc = block_get(&block, fs->service_id, node->lba + i, BLOCK_FLAGS_NONE);
+		errno_t rc = block_get(&block, fs->service_id, node->lba + i, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return rc;
 		
@@ -613,7 +613,7 @@ static int cdfs_readdir(cdfs_t *fs, fs_node_t *fs_node)
 			// FIXME: hack - indexing by dentry byte offset on disc
 			
 			fs_node_t *fn;
-			int rc = create_node(&fn, fs, dentry_type,
+			errno_t rc = create_node(&fn, fs, dentry_type,
 			    (node->lba + i) * BLOCK_SIZE + offset);
 			if (rc != EOK)
 				return rc;
@@ -651,7 +651,7 @@ static fs_node_t *get_uncached_node(cdfs_t *fs, fs_index_t index)
 	size_t offset = index % BLOCK_SIZE;
 	
 	block_t *block;
-	int rc = block_get(&block, fs->service_id, lba, BLOCK_FLAGS_NONE);
+	errno_t rc = block_get(&block, fs->service_id, lba, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return NULL;
 	
@@ -697,12 +697,12 @@ static fs_node_t *get_cached_node(cdfs_t *fs, fs_index_t index)
 	return get_uncached_node(fs, index);
 }
 
-static int cdfs_match(fs_node_t **fn, fs_node_t *pfn, const char *component)
+static errno_t cdfs_match(fs_node_t **fn, fs_node_t *pfn, const char *component)
 {
 	cdfs_node_t *parent = CDFS_NODE(pfn);
 	
 	if (!parent->processed) {
-		int rc = cdfs_readdir(parent->fs, pfn);
+		errno_t rc = cdfs_readdir(parent->fs, pfn);
 		if (rc != EOK)
 			return rc;
 	}
@@ -718,7 +718,7 @@ static int cdfs_match(fs_node_t **fn, fs_node_t *pfn, const char *component)
 	return EOK;
 }
 
-static int cdfs_node_open(fs_node_t *fn)
+static errno_t cdfs_node_open(fs_node_t *fn)
 {
 	cdfs_node_t *node = CDFS_NODE(fn);
 	
@@ -729,37 +729,37 @@ static int cdfs_node_open(fs_node_t *fn)
 	return EOK;
 }
 
-static int cdfs_node_put(fs_node_t *fn)
+static errno_t cdfs_node_put(fs_node_t *fn)
 {
 	/* Nothing to do */
 	return EOK;
 }
 
-static int cdfs_create_node(fs_node_t **fn, service_id_t service_id, int lflag)
+static errno_t cdfs_create_node(fs_node_t **fn, service_id_t service_id, int lflag)
 {
 	/* Read-only */
 	return ENOTSUP;
 }
 
-static int cdfs_destroy_node(fs_node_t *fn)
+static errno_t cdfs_destroy_node(fs_node_t *fn)
 {
 	/* Read-only */
 	return ENOTSUP;
 }
 
-static int cdfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+static errno_t cdfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	/* Read-only */
 	return ENOTSUP;
 }
 
-static int cdfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+static errno_t cdfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	/* Read-only */
 	return ENOTSUP;
 }
 
-static int cdfs_has_children(bool *has_children, fs_node_t *fn)
+static errno_t cdfs_has_children(bool *has_children, fs_node_t *fn)
 {
 	cdfs_node_t *node = CDFS_NODE(fn);
 	
@@ -805,21 +805,21 @@ static service_id_t cdfs_service_get(fs_node_t *fn)
 	return 0;
 }
 
-static int cdfs_size_block(service_id_t service_id, uint32_t *size)
+static errno_t cdfs_size_block(service_id_t service_id, uint32_t *size)
 {
 	*size = BLOCK_SIZE;
 	
 	return EOK; 
 }
 
-static int cdfs_total_block_count(service_id_t service_id, uint64_t *count)
+static errno_t cdfs_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	*count = 0;
 	
 	return EOK;
 }
 
-static int cdfs_free_block_count(service_id_t service_id, uint64_t *count)
+static errno_t cdfs_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	*count = 0;
 	
@@ -850,7 +850,7 @@ libfs_ops_t cdfs_libfs_ops = {
 
 /** Verify that escape sequence corresonds to one of the allowed encoding
  * escape sequences allowed for Joliet. */
-static int cdfs_verify_joliet_esc_seq(uint8_t *seq)
+static errno_t cdfs_verify_joliet_esc_seq(uint8_t *seq)
 {
 	size_t i, j, k;
 	bool match;
@@ -894,14 +894,14 @@ static int cdfs_verify_joliet_esc_seq(uint8_t *seq)
  * @param vol_ident	Place to store pointer to volume identifier
  * @return 		EOK if found, ENOENT if not
  */
-static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
+static errno_t cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
     uint32_t *rlba, uint32_t *rsize, char **vol_ident)
 {
 	cdfs_lba_t bi;
 
 	for (bi = altroot + 17; ; bi++) {
 		block_t *block;
-		int rc = block_get(&block, sid, bi, BLOCK_FLAGS_NONE);
+		errno_t rc = block_get(&block, sid, bi, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			break;
 		
@@ -962,12 +962,12 @@ static int cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
 }
 
 /** Read the volume descriptors. */
-static int iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
+static errno_t iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
     uint32_t *rlba, uint32_t *rsize, cdfs_enc_t *enc, char **vol_ident)
 {
 	/* First 16 blocks of isofs are empty */
 	block_t *block;
-	int rc = block_get(&block, sid, altroot + 16, BLOCK_FLAGS_NONE);
+	errno_t rc = block_get(&block, sid, altroot + 16, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
 	
@@ -1035,12 +1035,12 @@ static int iso_read_vol_desc(service_id_t sid, cdfs_lba_t altroot,
 	return EOK;
 }
 
-static int iso_readfs(cdfs_t *fs, fs_node_t *rfn,
+static errno_t iso_readfs(cdfs_t *fs, fs_node_t *rfn,
     cdfs_lba_t altroot)
 {
 	cdfs_node_t *node = CDFS_NODE(rfn);
 	
-	int rc = iso_read_vol_desc(fs->service_id, altroot, &node->lba,
+	errno_t rc = iso_read_vol_desc(fs->service_id, altroot, &node->lba,
 	    &node->size, &fs->enc, &fs->vol_ident);
 	if (rc != EOK)
 		return rc;
@@ -1063,7 +1063,7 @@ static cdfs_t *cdfs_fs_create(service_id_t sid, cdfs_lba_t altroot)
 	fs->service_id = sid;
 	
 	/* Create root node */
-	int rc = create_node(&rfn, fs, L_DIRECTORY, cdfs_index++);
+	errno_t rc = create_node(&rfn, fs, L_DIRECTORY, cdfs_index++);
 	
 	if ((rc != EOK) || (!rfn))
 		goto error;
@@ -1085,12 +1085,12 @@ error:
 	return NULL;
 }
 
-static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+static errno_t cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
 	char *vol_ident;
 
 	/* Initialize the block layer */
-	int rc = block_init(service_id, BLOCK_SIZE);
+	errno_t rc = block_init(service_id, BLOCK_SIZE);
 	if (rc != EOK)
 		return rc;
 	
@@ -1143,11 +1143,11 @@ static int cdfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	return EOK;
 }
 
-static int cdfs_mounted(service_id_t service_id, const char *opts,
+static errno_t cdfs_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size)
 {
 	/* Initialize the block layer */
-	int rc = block_init(service_id, BLOCK_SIZE);
+	errno_t rc = block_init(service_id, BLOCK_SIZE);
 	if (rc != EOK)
 		return rc;
 	
@@ -1237,7 +1237,7 @@ static cdfs_t *cdfs_find_by_sid(service_id_t service_id)
 	return NULL;
 }
 
-static int cdfs_unmounted(service_id_t service_id)
+static errno_t cdfs_unmounted(service_id_t service_id)
 {
 	cdfs_t *fs;
 
@@ -1249,7 +1249,7 @@ static int cdfs_unmounted(service_id_t service_id)
 	return EOK;
 }
 
-static int cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
+static errno_t cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	ht_key_t key = {
@@ -1265,7 +1265,7 @@ static int cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	    hash_table_get_inst(link, cdfs_node_t, nh_link);
 	
 	if (!node->processed) {
-		int rc = cdfs_readdir(node->fs, FS_NODE(node));
+		errno_t rc = cdfs_readdir(node->fs, FS_NODE(node));
 		if (rc != EOK)
 			return rc;
 	}
@@ -1289,7 +1289,7 @@ static int cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			*rbytes = min(*rbytes, node->size - pos);
 			
 			block_t *block;
-			int rc = block_get(&block, service_id, node->lba + lba,
+			errno_t rc = block_get(&block, service_id, node->lba + lba,
 			    BLOCK_FLAGS_NONE);
 			if (rc != EOK) {
 				async_answer_0(callid, rc);
@@ -1320,7 +1320,7 @@ static int cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	return EOK;
 }
 
-static int cdfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
+static errno_t cdfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
 	/*
@@ -1331,7 +1331,7 @@ static int cdfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	return ENOTSUP;
 }
 
-static int cdfs_truncate(service_id_t service_id, fs_index_t index,
+static errno_t cdfs_truncate(service_id_t service_id, fs_index_t index,
     aoff64_t size)
 {
 	/*
@@ -1372,7 +1372,7 @@ static void cleanup_cache(service_id_t service_id)
 	}
 }
 
-static int cdfs_close(service_id_t service_id, fs_index_t index)
+static errno_t cdfs_close(service_id_t service_id, fs_index_t index)
 {
 	/* Root node is always in memory */
 	if (index == 0)
@@ -1398,7 +1398,7 @@ static int cdfs_close(service_id_t service_id, fs_index_t index)
 	return EOK;
 }
 
-static int cdfs_destroy(service_id_t service_id, fs_index_t index)
+static errno_t cdfs_destroy(service_id_t service_id, fs_index_t index)
 {
 	/*
 	 * As cdfs is a read-only filesystem,
@@ -1408,7 +1408,7 @@ static int cdfs_destroy(service_id_t service_id, fs_index_t index)
 	return ENOTSUP;
 }
 
-static int cdfs_sync(service_id_t service_id, fs_index_t index)
+static errno_t cdfs_sync(service_id_t service_id, fs_index_t index)
 {
 	/*
 	 * As cdfs is a read-only filesystem,

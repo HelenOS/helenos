@@ -44,9 +44,9 @@ rtld_t *runtime_env;
 static rtld_t rt_env_static;
 
 /** Initialize the runtime linker for use in a statically-linked executable. */
-int rtld_init_static(void)
+errno_t rtld_init_static(void)
 {
-	int rc;
+	errno_t rc;
 
 	runtime_env = &rt_env_static;
 	list_initialize(&runtime_env->modules);
@@ -69,7 +69,7 @@ int rtld_init_static(void)
  * @param p_info Program info
  * @return EOK on success or non-zero error code
  */
-int rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
+errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 {
 	rtld_t *env;
 	module_t *prog;

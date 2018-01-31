@@ -58,7 +58,7 @@ static void test_seg_received(inet_ep2_t *epp, tcp_segment_t *seg)
 
 PCUT_TEST_BEFORE
 {
-	int rc;
+	errno_t rc;
 
 	/* We will be calling functions that perform logging */
 	rc = log_init("test-tcp");

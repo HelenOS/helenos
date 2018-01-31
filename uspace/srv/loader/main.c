@@ -118,7 +118,7 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *buf;
-	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
+	errno_t rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
 	
 	if (rc == EOK) {
 		if (cwd != NULL)
@@ -145,7 +145,7 @@ static void ldr_set_program(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	char* name = malloc(namesize);
-	int rc = async_data_write_finalize(writeid, name, namesize);
+	errno_t rc = async_data_write_finalize(writeid, name, namesize);
 	if (rc != EOK) {
 		async_answer_0(rid, EINVAL);
 		return;
@@ -172,7 +172,7 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *buf;
 	size_t buf_size;
-	int rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, &buf_size);
+	errno_t rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, &buf_size);
 	
 	if (rc == EOK) {
 		/*
@@ -248,7 +248,7 @@ static void ldr_add_inbox(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	char* name = malloc(namesize);
-	int rc = async_data_write_finalize(writeid, name, namesize);
+	errno_t rc = async_data_write_finalize(writeid, name, namesize);
 	if (rc != EOK) {
 		async_answer_0(rid, EINVAL);
 		return;
@@ -348,7 +348,7 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	(void) icall;
 	
 	while (true) {
-		int retval;
+		errno_t retval;
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
@@ -394,7 +394,7 @@ int main(int argc, char *argv[])
 	
 	/* Introduce this task to the NS (give it our task ID). */
 	task_id_t id = task_get_id();
-	int rc = ns_intro(id);
+	errno_t rc = ns_intro(id);
 	if (rc != EOK)
 		return rc;
 	

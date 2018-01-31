@@ -278,10 +278,10 @@ static dma_controller_t controller_8237 = {
  * @return Error code.
  *
  */
-static inline int dma_controller_init(dma_controller_t *controller)
+static inline errno_t dma_controller_init(dma_controller_t *controller)
 {
 	assert(controller);
-	int ret = pio_enable(DMA_CONTROLLER_PAGE_BASE, sizeof(dma_page_regs_t),
+	errno_t ret = pio_enable(DMA_CONTROLLER_PAGE_BASE, sizeof(dma_page_regs_t),
 	    (void **) &controller->page_table);
 	if (ret != EOK)
 		return EIO;
@@ -338,7 +338,7 @@ static inline bool is_dma8(unsigned channel)
  *
  * @return Error code.
  */
-int dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
+errno_t dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
     uint8_t mode)
 {
 	if (!is_dma8(channel) && !is_dma16(channel))
@@ -453,7 +453,7 @@ int dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
  *
  * @return Error code.
  */
-int dma_channel_remain(unsigned channel, size_t *size)
+errno_t dma_channel_remain(unsigned channel, size_t *size)
 {
 	assert(size);
 	if (!is_dma8(channel) && !is_dma16(channel))

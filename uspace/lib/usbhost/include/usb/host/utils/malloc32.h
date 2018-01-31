@@ -58,7 +58,7 @@
 static inline uintptr_t addr_to_phys(const void *addr)
 {
 	uintptr_t result;
-	int ret = as_get_physical_mapping(addr, &result);
+	errno_t ret = as_get_physical_mapping(addr, &result);
 	
 	if (ret != EOK)
 		return 0;
@@ -77,7 +77,7 @@ static inline void * malloc32(size_t size)
 	void *address = AS_AREA_ANY;
 	size_t real_size = ALIGN_UP(size, PAGE_SIZE);
 
-	const int ret = dmamem_map_anonymous(real_size,
+	const errno_t ret = dmamem_map_anonymous(real_size,
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0, &phys,
 	    &address);
 

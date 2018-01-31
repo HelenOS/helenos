@@ -149,7 +149,7 @@ static const amdm37x_fun_t amdm37x_funcs[] = {
 
 
 static hw_resource_list_t *amdm37x_get_resources(ddf_fun_t *fnode);
-static int amdm37x_enable_interrupt(ddf_fun_t *fun, int);
+static errno_t amdm37x_enable_interrupt(ddf_fun_t *fun, int);
 
 static hw_res_ops_t fun_hw_res_ops = {
 	.get_resource_list = &amdm37x_get_resources,
@@ -160,7 +160,7 @@ static ddf_dev_ops_t amdm37x_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops
 };
 
-static int amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
+static errno_t amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
 {
 	assert(dev);
 	assert(fun);
@@ -173,7 +173,7 @@ static int amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
 		return ENOMEM;
 	
 	/* Add match id */
-	int ret = ddf_fun_add_match_id(fnode,
+	errno_t ret = ddf_fun_add_match_id(fnode,
 	    fun->match_id.id, fun->match_id.score);
 	if (ret != EOK) {
 		ddf_fun_destroy(fnode);
@@ -211,13 +211,13 @@ static int amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
  * @return Zero on success, error number otherwise.
  *
  */
-static int amdm37x_dev_add(ddf_dev_t *dev)
+static errno_t amdm37x_dev_add(ddf_dev_t *dev)
 {
 	assert(dev);
 	amdm37x_t *device = ddf_dev_data_alloc(dev, sizeof(amdm37x_t));
 	if (!device)
 		return ENOMEM;
-	int ret = amdm37x_init(device, DEBUG_CM);
+	errno_t ret = amdm37x_init(device, DEBUG_CM);
 	if (ret != EOK) {
 		ddf_msg(LVL_FATAL, "Failed to setup hw access!.\n");
 		return ret;
@@ -264,7 +264,7 @@ static hw_resource_list_t * amdm37x_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static int amdm37x_enable_interrupt(ddf_fun_t *fun, int irq)
+static errno_t amdm37x_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	//TODO: Implement
 	return false;

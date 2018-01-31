@@ -49,7 +49,7 @@ static void parse_single_level_setting(char *setting)
 		return;
 	if (value == NULL) {
 		log_level_t level;
-		int rc = log_level_from_str(key, &level);
+		errno_t rc = log_level_from_str(key, &level);
 		if (rc != EOK)
 			return;
 		set_default_logging_level(level);
@@ -58,7 +58,7 @@ static void parse_single_level_setting(char *setting)
 
 
 	log_level_t level;
-	int rc = log_level_from_str(value, &level);
+	errno_t rc = log_level_from_str(value, &level);
 	if (rc != EOK)
 		return;
 

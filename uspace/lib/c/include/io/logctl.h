@@ -35,9 +35,9 @@
 
 #include <io/log.h>
 
-extern int logctl_set_default_level(log_level_t);
-extern int logctl_set_log_level(const char *, log_level_t);
-extern int logctl_set_root(void);
+extern errno_t logctl_set_default_level(log_level_t);
+extern errno_t logctl_set_log_level(const char *, log_level_t);
+extern errno_t logctl_set_root(void);
 
 #endif
 

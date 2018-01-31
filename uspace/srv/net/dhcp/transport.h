@@ -57,10 +57,10 @@ struct dhcp_transport {
 	void *cb_arg;
 };
 
-extern int dhcp_transport_init(dhcp_transport_t *, service_id_t,
+extern errno_t dhcp_transport_init(dhcp_transport_t *, service_id_t,
     dhcp_recv_cb_t, void *);
 extern void dhcp_transport_fini(dhcp_transport_t *);
-extern int dhcp_send(dhcp_transport_t *dt, void *msg, size_t size);
+extern errno_t dhcp_send(dhcp_transport_t *dt, void *msg, size_t size);
 
 #endif
 

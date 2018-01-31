@@ -69,8 +69,8 @@ struct vuhid_interface {
 	size_t in_data_size;
 	size_t out_data_size;
 
-	int (*on_data_in)(vuhid_interface_t *, void *, size_t, size_t *);
-	int (*on_data_out)(vuhid_interface_t *, const void *, size_t);
+	errno_t (*on_data_in)(vuhid_interface_t *, void *, size_t, size_t *);
+	errno_t (*on_data_out)(vuhid_interface_t *, const void *, size_t);
 	void (*live)(vuhid_interface_t *);
 
 	int set_protocol;
@@ -113,11 +113,11 @@ typedef struct {
 	uint16_t descriptor1_length;
 } __attribute__ ((packed)) hid_descriptor_t;
 
-int add_interface_by_id(vuhid_interface_t **, const char *, usbvirt_device_t *);
+errno_t add_interface_by_id(vuhid_interface_t **, const char *, usbvirt_device_t *);
 void wait_for_interfaces_death(usbvirt_device_t *);
 
 void interface_life_live(vuhid_interface_t *);
-int interface_live_on_data_in(vuhid_interface_t *, void *, size_t, size_t *);
+errno_t interface_live_on_data_in(vuhid_interface_t *, void *, size_t, size_t *);
 
 
 #endif

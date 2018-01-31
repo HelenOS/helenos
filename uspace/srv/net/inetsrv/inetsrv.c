@@ -83,12 +83,12 @@ static LIST_INITIALIZE(client_list);
 
 static void inet_default_conn(ipc_callid_t, ipc_call_t *, void *);
 
-static int inet_init(void)
+static errno_t inet_init(void)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_init()");
 	
 	port_id_t port;
-	int rc = async_create_port(INTERFACE_INET,
+	errno_t rc = async_create_port(INTERFACE_INET,
 	    inet_default_conn, NULL, &port);
 	if (rc != EOK)
 		return rc;
@@ -134,7 +134,7 @@ static void inet_callback_create_srv(inet_client_t *client, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static int inet_find_dir(inet_addr_t *src, inet_addr_t *dest, uint8_t tos,
+static errno_t inet_find_dir(inet_addr_t *src, inet_addr_t *dest, uint8_t tos,
     inet_dir_t *dir)
 {
 	inet_sroute_t *sr;
@@ -164,12 +164,12 @@ static int inet_find_dir(inet_addr_t *src, inet_addr_t *dest, uint8_t tos,
 	return EOK;
 }
 
-int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
+errno_t inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
     int df)
 {
 	inet_dir_t dir;
 	inet_link_t *ilink;
-	int rc;
+	errno_t rc;
 
 	if (dgram->iplink != 0) {
 		/* XXX TODO - IPv6 */
@@ -200,16 +200,16 @@ int inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
 	    proto, ttl, df);
 }
 
-static int inet_send(inet_client_t *client, inet_dgram_t *dgram,
+static errno_t inet_send(inet_client_t *client, inet_dgram_t *dgram,
     uint8_t proto, uint8_t ttl, int df)
 {
 	return inet_route_packet(dgram, proto, ttl, df);
 }
 
-int inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
+errno_t inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 {
 	inet_dir_t dir;
-	int rc;
+	errno_t rc;
 
 	rc = inet_find_dir(NULL, remote, tos, &dir);
 	if (rc != EOK)
@@ -251,7 +251,7 @@ static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t iid,
 	}
 	
 	inet_addr_t remote;
-	int rc = async_data_write_finalize(callid, &remote, size);
+	errno_t rc = async_data_write_finalize(callid, &remote, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
@@ -313,7 +313,7 @@ static void inet_send_srv(inet_client_t *client, ipc_callid_t iid,
 		return;
 	}
 	
-	int rc = async_data_write_finalize(callid, &dgram.src, size);
+	errno_t rc = async_data_write_finalize(callid, &dgram.src, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
@@ -444,7 +444,7 @@ static inet_client_t *inet_client_find(uint8_t proto)
 	return NULL;
 }
 
-int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
+errno_t inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 {
 	async_exch_t *exch = async_exchange_begin(client->sess);
 
@@ -456,7 +456,7 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 	aid_t req = async_send_2(exch, INET_EV_RECV, dgram->tos,
 	    dgram->iplink, &answer);
 
-	int rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
+	errno_t rc = async_data_write_start(exch, &dgram->src, sizeof(inet_addr_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -479,13 +479,13 @@ int inet_ev_recv(inet_client_t *client, inet_dgram_t *dgram)
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	return retval;
 }
 
-int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
+errno_t inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 {
 	inet_client_t *client;
 
@@ -508,7 +508,7 @@ int inet_recv_dgram_local(inet_dgram_t *dgram, uint8_t proto)
 	return inet_ev_recv(client, dgram);
 }
 
-int inet_recv_packet(inet_packet_t *packet)
+errno_t inet_recv_packet(inet_packet_t *packet)
 {
 	inet_addrobj_t *addr;
 	inet_dgram_t dgram;
@@ -542,7 +542,7 @@ int inet_recv_packet(inet_packet_t *packet)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": HelenOS Internet Protocol service\n");
 

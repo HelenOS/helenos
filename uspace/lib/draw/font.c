@@ -59,22 +59,22 @@ void font_release(font_t *font)
 	font->backend->release(font->backend_data);
 }
 
-int font_get_metrics(font_t *font, font_metrics_t *metrics) {
+errno_t font_get_metrics(font_t *font, font_metrics_t *metrics) {
 	return font->backend->get_font_metrics(font->backend_data, metrics);
 }
 
-int font_resolve_glyph(font_t *font, wchar_t c, glyph_id_t *glyph_id) {
+errno_t font_resolve_glyph(font_t *font, wchar_t c, glyph_id_t *glyph_id) {
 	return font->backend->resolve_glyph(font->backend_data, c, glyph_id);
 }
 
-int font_get_glyph_metrics(font_t *font, glyph_id_t glyph_id,
+errno_t font_get_glyph_metrics(font_t *font, glyph_id_t glyph_id,
     glyph_metrics_t *glyph_metrics)
 {
 	return font->backend->get_glyph_metrics(font->backend_data,
 	    glyph_id, glyph_metrics);
 }
 
-int font_render_glyph(font_t *font, drawctx_t *context, source_t *source,
+errno_t font_render_glyph(font_t *font, drawctx_t *context, source_t *source,
     sysarg_t x, sysarg_t y, glyph_id_t glyph_id)
 {
 	return font->backend->render_glyph(font->backend_data, context, source,
@@ -82,10 +82,10 @@ int font_render_glyph(font_t *font, drawctx_t *context, source_t *source,
 }
 
 /* TODO this is bad interface */
-int font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height)
+errno_t font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height)
 {
 	font_metrics_t fm;
-	int rc = font_get_metrics(font, &fm);
+	errno_t rc = font_get_metrics(font, &fm);
 	if (rc != EOK)
 		return rc;
 
@@ -100,7 +100,7 @@ int font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height)
 		glyph_id_t glyph_id;
 		rc = font_resolve_glyph(font, c, &glyph_id);
 		if (rc != EOK) {
-			int rc2 = font_resolve_glyph(font, U_SPECIAL, &glyph_id);
+			errno_t rc2 = font_resolve_glyph(font, U_SPECIAL, &glyph_id);
 			if (rc2 != EOK) {
 				return rc;
 			}
@@ -120,14 +120,14 @@ int font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height)
 }
 
 /* TODO this is bad interface */
-int font_draw_text(font_t *font, drawctx_t *context, source_t *source,
+errno_t font_draw_text(font_t *font, drawctx_t *context, source_t *source,
     const char *text, sysarg_t sx, sysarg_t sy)
 {
 	drawctx_save(context);
 	drawctx_set_compose(context, compose_over);
 
 	font_metrics_t fm;
-	int rc = font_get_metrics(font, &fm);
+	errno_t rc = font_get_metrics(font, &fm);
 	if (rc != EOK)
 		return rc;
 
@@ -143,7 +143,7 @@ int font_draw_text(font_t *font, drawctx_t *context, source_t *source,
 		glyph_id_t glyph_id;
 		rc = font_resolve_glyph(font, c, &glyph_id);
 		if (rc != EOK) {
-			int rc2 = font_resolve_glyph(font, U_SPECIAL, &glyph_id);
+			errno_t rc2 = font_resolve_glyph(font, U_SPECIAL, &glyph_id);
 			if (rc2 != EOK) {
 				return rc;
 			}

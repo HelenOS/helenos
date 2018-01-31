@@ -36,11 +36,12 @@
 #ifndef LIBC_STACKTRACE_H_
 #define LIBC_STACKTRACE_H_
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 typedef struct {
-	int (*read_uintptr)(void *, uintptr_t, uintptr_t *);
+	errno_t (*read_uintptr)(void *, uintptr_t, uintptr_t *);
 } stacktrace_ops_t;
 
 typedef struct {
@@ -57,8 +58,8 @@ extern void stacktrace_print_generic(stacktrace_ops_t *, void *, uintptr_t,
  * The following interface is to be implemented by each architecture.
  */
 extern bool stacktrace_fp_valid(stacktrace_t *, uintptr_t);
-extern int stacktrace_fp_prev(stacktrace_t *, uintptr_t, uintptr_t *);
-extern int stacktrace_ra_get(stacktrace_t *, uintptr_t, uintptr_t *);
+extern errno_t stacktrace_fp_prev(stacktrace_t *, uintptr_t, uintptr_t *);
+extern errno_t stacktrace_ra_get(stacktrace_t *, uintptr_t, uintptr_t *);
 
 extern void stacktrace_prepare(void);
 extern uintptr_t stacktrace_fp_get(void);

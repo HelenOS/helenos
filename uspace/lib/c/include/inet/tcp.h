@@ -97,25 +97,25 @@ typedef struct tcp {
 	bool cb_done;
 } tcp_t;
 
-extern int tcp_create(tcp_t **);
+extern errno_t tcp_create(tcp_t **);
 extern void tcp_destroy(tcp_t *);
-extern int tcp_conn_create(tcp_t *, inet_ep2_t *, tcp_cb_t *, void *,
+extern errno_t tcp_conn_create(tcp_t *, inet_ep2_t *, tcp_cb_t *, void *,
     tcp_conn_t **);
 extern void tcp_conn_destroy(tcp_conn_t *);
 extern void *tcp_conn_userptr(tcp_conn_t *);
-extern int tcp_listener_create(tcp_t *, inet_ep_t *, tcp_listen_cb_t *, void *,
+extern errno_t tcp_listener_create(tcp_t *, inet_ep_t *, tcp_listen_cb_t *, void *,
     tcp_cb_t *, void *, tcp_listener_t **);
 extern void tcp_listener_destroy(tcp_listener_t *);
 extern void *tcp_listener_userptr(tcp_listener_t *);
 
-extern int tcp_conn_wait_connected(tcp_conn_t *);
-extern int tcp_conn_send(tcp_conn_t *, const void *, size_t);
-extern int tcp_conn_send_fin(tcp_conn_t *);
-extern int tcp_conn_push(tcp_conn_t *);
-extern int tcp_conn_reset(tcp_conn_t *);
+extern errno_t tcp_conn_wait_connected(tcp_conn_t *);
+extern errno_t tcp_conn_send(tcp_conn_t *, const void *, size_t);
+extern errno_t tcp_conn_send_fin(tcp_conn_t *);
+extern errno_t tcp_conn_push(tcp_conn_t *);
+extern errno_t tcp_conn_reset(tcp_conn_t *);
 
-extern int tcp_conn_recv(tcp_conn_t *, void *, size_t, size_t *);
-extern int tcp_conn_recv_wait(tcp_conn_t *, void *, size_t, size_t *);
+extern errno_t tcp_conn_recv(tcp_conn_t *, void *, size_t, size_t *);
+extern errno_t tcp_conn_recv_wait(tcp_conn_t *, void *, size_t, size_t *);
 
 
 #endif

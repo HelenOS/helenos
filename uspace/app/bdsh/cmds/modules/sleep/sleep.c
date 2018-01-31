@@ -61,9 +61,9 @@ void help_cmd_sleep(unsigned int level)
  * @param result Result of the conversion.
  * @return EOK if conversion was successful.
  */
-static int decimal_to_useconds(const char *nptr, useconds_t *result)
+static errno_t decimal_to_useconds(const char *nptr, useconds_t *result)
 {
-	int ret;
+	errno_t ret;
 	uint64_t whole_seconds;
 	uint64_t frac_seconds;
 	const char *endptr;
@@ -111,7 +111,7 @@ static int decimal_to_useconds(const char *nptr, useconds_t *result)
 /* Main entry point for sleep, accepts an array of arguments */
 int cmd_sleep(char **argv)
 {
-	int ret;
+	errno_t ret;
 	unsigned int argc;
 	useconds_t duration = 0;
 

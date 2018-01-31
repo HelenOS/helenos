@@ -51,10 +51,10 @@
  * @return ENOMEM	On not enough memory
  * @return EINVAL	Internal error, should not happen
  */
-int nic_rxc_init(nic_rxc_t *rxc)
+errno_t nic_rxc_init(nic_rxc_t *rxc)
 {
 	memset(rxc, 0, sizeof(nic_rxc_t));
-	int rc;
+	errno_t rc;
 	rc = nic_addr_db_init(&rxc->blocked_sources, ETH_ADDR);
 	if (rc != EOK) {
 		return rc;
@@ -83,7 +83,7 @@ int nic_rxc_init(nic_rxc_t *rxc)
  *
  * @param filters
  */
-int nic_rxc_clear(nic_rxc_t *rxc)
+errno_t nic_rxc_clear(nic_rxc_t *rxc)
 {
 	nic_addr_db_destroy(&rxc->unicast_addrs);
 	nic_addr_db_destroy(&rxc->multicast_addrs);
@@ -102,11 +102,11 @@ int nic_rxc_clear(nic_rxc_t *rxc)
  * @return EOK On success
  *
  */
-int nic_rxc_set_addr(nic_rxc_t *rxc, const nic_address_t *prev_addr,
+errno_t nic_rxc_set_addr(nic_rxc_t *rxc, const nic_address_t *prev_addr,
     const nic_address_t *curr_addr)
 {
 	if (prev_addr != NULL) {
-		int rc = nic_addr_db_remove(&rxc->unicast_addrs,
+		errno_t rc = nic_addr_db_remove(&rxc->unicast_addrs,
 		    (const uint8_t *) &prev_addr->address);
 		if (rc != EOK)
 			return rc;
@@ -172,7 +172,7 @@ void nic_rxc_unicast_get_mode(const nic_rxc_t *rxc, nic_unicast_mode_t *mode,
  * @return EINVAL	If any of the MAC addresses is not a unicast address.
  * @return ENOMEM	If there was not enough memory
  */
-int nic_rxc_unicast_set_mode(nic_rxc_t *rxc, nic_unicast_mode_t mode,
+errno_t nic_rxc_unicast_set_mode(nic_rxc_t *rxc, nic_unicast_mode_t mode,
 	const nic_address_t *address_list, size_t address_count)
 {
 	if (mode == NIC_UNICAST_LIST && address_list == NULL) {
@@ -187,7 +187,7 @@ int nic_rxc_unicast_set_mode(nic_rxc_t *rxc, nic_unicast_mode_t mode,
 	rxc->unicast_mode = mode;
 	size_t i;
 	for (i = 0; i < address_count; ++i) {
-		int rc = nic_addr_db_insert(&rxc->unicast_addrs,
+		errno_t rc = nic_addr_db_insert(&rxc->unicast_addrs,
 			(const uint8_t *) &address_list[i].address);
 		if (rc == ENOMEM) {
 			return ENOMEM;
@@ -236,7 +236,7 @@ void nic_rxc_multicast_get_mode(const nic_rxc_t *rxc,
  * @return EINVAL	If any of the MAC addresses is not a multicast address.
  * @return ENOMEM	If there was not enough memory
  */
-int nic_rxc_multicast_set_mode(nic_rxc_t *rxc, nic_multicast_mode_t mode,
+errno_t nic_rxc_multicast_set_mode(nic_rxc_t *rxc, nic_multicast_mode_t mode,
 	const nic_address_t *address_list, size_t address_count)
 {
 	if (mode == NIC_MULTICAST_LIST && address_list == NULL)
@@ -250,7 +250,7 @@ int nic_rxc_multicast_set_mode(nic_rxc_t *rxc, nic_multicast_mode_t mode,
 	rxc->multicast_mode = mode;
 	size_t i;
 	for (i = 0; i < address_count; ++i) {
-		int rc = nic_addr_db_insert(&rxc->multicast_addrs,
+		errno_t rc = nic_addr_db_insert(&rxc->multicast_addrs,
 			(const uint8_t *)&address_list[i].address);
 		if (rc == ENOMEM) {
 			return ENOMEM;
@@ -278,7 +278,7 @@ void nic_rxc_broadcast_get_mode(const nic_rxc_t *rxc, nic_broadcast_mode_t *mode
  *
  * @return EOK		On success
  */
-int nic_rxc_broadcast_set_mode(nic_rxc_t *rxc, nic_broadcast_mode_t mode)
+errno_t nic_rxc_broadcast_set_mode(nic_rxc_t *rxc, nic_broadcast_mode_t mode)
 {
 	rxc->broadcast_mode = mode;
 	return EOK;
@@ -319,7 +319,7 @@ void nic_rxc_blocked_sources_get(const nic_rxc_t *rxc,
  * @return EOK		On success
  * @return ENOMEM	If there was not enough memory
  */
-int nic_rxc_blocked_sources_set(nic_rxc_t *rxc,
+errno_t nic_rxc_blocked_sources_set(nic_rxc_t *rxc,
 	const nic_address_t *address_list, size_t address_count)
 {
 	assert((address_count == 0 && address_list == NULL)
@@ -329,7 +329,7 @@ int nic_rxc_blocked_sources_set(nic_rxc_t *rxc,
 	rxc->block_sources = (address_count != 0);
 	size_t i;
 	for (i = 0; i < address_count; ++i) {
-		int rc = nic_addr_db_insert(&rxc->blocked_sources,
+		errno_t rc = nic_addr_db_insert(&rxc->blocked_sources,
 			(const uint8_t *) &address_list[i].address);
 		if (rc == ENOMEM) {
 			return ENOMEM;
@@ -347,7 +347,7 @@ int nic_rxc_blocked_sources_set(nic_rxc_t *rxc,
  * @return EOK
  * @return ENOENT
  */
-int nic_rxc_vlan_get_mask(const nic_rxc_t *rxc, nic_vlan_mask_t *mask)
+errno_t nic_rxc_vlan_get_mask(const nic_rxc_t *rxc, nic_vlan_mask_t *mask)
 {
 	if (rxc->vlan_mask == NULL) {
 		return ENOENT;
@@ -365,7 +365,7 @@ int nic_rxc_vlan_get_mask(const nic_rxc_t *rxc, nic_vlan_mask_t *mask)
  * @return EOK
  * @return ENOMEM
  */
-int nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask)
+errno_t nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask)
 {
 	if (mask == NULL) {
 		if (rxc->vlan_mask) {

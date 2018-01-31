@@ -55,7 +55,7 @@ typedef struct ddf_dev_ops {
 	 * Optional callback function called when a client is connecting to the
 	 * device.
 	 */
-	int (*open)(ddf_fun_t *);
+	errno_t (*open)(ddf_fun_t *);
 	
 	/**
 	 * Optional callback function called when a client is disconnecting from
@@ -87,19 +87,19 @@ struct ddf_fun;
 /** Generic device driver operations */
 typedef struct driver_ops {
 	/** Callback method for passing a new device to the device driver */
-	int (*dev_add)(ddf_dev_t *);
+	errno_t (*dev_add)(ddf_dev_t *);
 	
 	/** Ask driver to remove a device */
-	int (*dev_remove)(ddf_dev_t *);
+	errno_t (*dev_remove)(ddf_dev_t *);
 	
 	/** Inform driver a device disappeared */
-	int (*dev_gone)(ddf_dev_t *);
+	errno_t (*dev_gone)(ddf_dev_t *);
 	
 	/** Ask driver to online a specific function */
-	int (*fun_online)(ddf_fun_t *);
+	errno_t (*fun_online)(ddf_fun_t *);
 	
 	/** Ask driver to offline a specific function */
-	int (*fun_offline)(ddf_fun_t *);
+	errno_t (*fun_offline)(ddf_fun_t *);
 } driver_ops_t;
 
 /** Driver structure */
@@ -123,16 +123,16 @@ extern void ddf_fun_destroy(ddf_fun_t *);
 extern void *ddf_fun_data_alloc(ddf_fun_t *, size_t);
 extern void *ddf_fun_data_get(ddf_fun_t *);
 extern const char *ddf_fun_get_name(ddf_fun_t *);
-extern int ddf_fun_set_name(ddf_fun_t *, const char *);
+extern errno_t ddf_fun_set_name(ddf_fun_t *, const char *);
 extern ddf_dev_t *ddf_fun_get_dev(ddf_fun_t *);
-extern int ddf_fun_bind(ddf_fun_t *);
-extern int ddf_fun_unbind(ddf_fun_t *);
-extern int ddf_fun_online(ddf_fun_t *);
-extern int ddf_fun_offline(ddf_fun_t *);
-extern int ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
+extern errno_t ddf_fun_bind(ddf_fun_t *);
+extern errno_t ddf_fun_unbind(ddf_fun_t *);
+extern errno_t ddf_fun_online(ddf_fun_t *);
+extern errno_t ddf_fun_offline(ddf_fun_t *);
+extern errno_t ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
 extern void ddf_fun_set_ops(ddf_fun_t *, const ddf_dev_ops_t *);
 extern void ddf_fun_set_conn_handler(ddf_fun_t *, async_port_handler_t);
-extern int ddf_fun_add_to_category(ddf_fun_t *, const char *);
+extern errno_t ddf_fun_add_to_category(ddf_fun_t *, const char *);
 
 #endif
 

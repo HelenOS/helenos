@@ -60,7 +60,7 @@ static mutex_t sysinfo_lock;
 /** Sysinfo item constructor
  *
  */
-NO_TRACE static int sysinfo_item_constructor(void *obj, unsigned int kmflag)
+NO_TRACE static errno_t sysinfo_item_constructor(void *obj, unsigned int kmflag)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
 	
@@ -789,10 +789,10 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
  * @return Error code (EOK in case of no error).
  *
  */
-sysarg_t sys_sysinfo_get_keys_size(void *path_ptr, size_t path_size,
+sys_errno_t sys_sysinfo_get_keys_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
-	int rc;
+	errno_t rc;
 	
 	/*
 	 * Get the keys.
@@ -810,7 +810,7 @@ sysarg_t sys_sysinfo_get_keys_size(void *path_ptr, size_t path_size,
 	else
 		rc = EINVAL;
 	
-	return (sysarg_t) rc;
+	return (sys_errno_t) rc;
 }
 
 /** Get the sysinfo keys (syscall)
@@ -837,10 +837,10 @@ sysarg_t sys_sysinfo_get_keys_size(void *path_ptr, size_t path_size,
  * @return Error code (EOK in case of no error).
  *
  */
-sysarg_t sys_sysinfo_get_keys(void *path_ptr, size_t path_size,
+sys_errno_t sys_sysinfo_get_keys(void *path_ptr, size_t path_size,
     void *buffer_ptr, size_t buffer_size, size_t *size_ptr)
 {
-	int rc;
+	errno_t rc;
 	
 	/* Get the keys */
 	sysinfo_return_t ret = sysinfo_get_keys_uspace(path_ptr, path_size,
@@ -857,7 +857,7 @@ sysarg_t sys_sysinfo_get_keys(void *path_ptr, size_t path_size,
 	} else
 		rc = EINVAL;
 	
-	return (sysarg_t) rc;
+	return (sys_errno_t) rc;
 }
 
 /** Get the sysinfo value type (syscall)
@@ -908,10 +908,10 @@ sysarg_t sys_sysinfo_get_val_type(void *path_ptr, size_t path_size)
  * @return Error code (EOK in case of no error).
  *
  */
-sysarg_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
+sys_errno_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
     void *value_ptr)
 {
-	int rc;
+	errno_t rc;
 	
 	/*
 	 * Get the item.
@@ -927,7 +927,7 @@ sysarg_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 	else
 		rc = EINVAL;
 	
-	return (sysarg_t) rc;
+	return (sys_errno_t) rc;
 }
 
 /** Get the sysinfo binary data size (syscall)
@@ -944,10 +944,10 @@ sysarg_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
  * @return Error code (EOK in case of no error).
  *
  */
-sysarg_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
+sys_errno_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
-	int rc;
+	errno_t rc;
 	
 	/*
 	 * Get the item.
@@ -964,7 +964,7 @@ sysarg_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 	else
 		rc = EINVAL;
 	
-	return (sysarg_t) rc;
+	return (sys_errno_t) rc;
 }
 
 /** Get the sysinfo binary data (syscall)
@@ -994,10 +994,10 @@ sysarg_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
  * @return Error code (EOK in case of no error).
  *
  */
-sysarg_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
+sys_errno_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
     void *buffer_ptr, size_t buffer_size, size_t *size_ptr)
 {
-	int rc;
+	errno_t rc;
 	
 	/* Get the item */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size,
@@ -1017,7 +1017,7 @@ sysarg_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
 	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
 		free(ret.data.data);
 	
-	return (sysarg_t) rc;
+	return (sys_errno_t) rc;
 }
 
 /** @}

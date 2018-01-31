@@ -56,9 +56,9 @@ typedef struct transfer_list {
 } transfer_list_t;
 
 void transfer_list_fini(transfer_list_t *);
-int transfer_list_init(transfer_list_t *, const char *);
+errno_t transfer_list_init(transfer_list_t *, const char *);
 void transfer_list_set_next(transfer_list_t *, transfer_list_t *);
-int transfer_list_add_batch(transfer_list_t *, uhci_transfer_batch_t *);
+errno_t transfer_list_add_batch(transfer_list_t *, uhci_transfer_batch_t *);
 void transfer_list_remove_batch(transfer_list_t *, uhci_transfer_batch_t *);
 void transfer_list_check_finished(transfer_list_t *);
 void transfer_list_abort_all(transfer_list_t *);

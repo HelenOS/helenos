@@ -1,4 +1,4 @@
-extern int putchar(char);
+extern errno_t putchar(char);
 
 #define TERMINATOR '!'
 

@@ -56,7 +56,7 @@ extern hound_server_iface_t hound_iface;
 
 static hound_t hound;
 
-static int device_callback(service_id_t id, const char *name)
+static errno_t device_callback(service_id_t id, const char *name)
 {
 	return hound_add_device(&hound, id, name);
 }
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	int ret = hound_init(&hound);
+	errno_t ret = hound_init(&hound);
 	if (ret != EOK) {
 		log_fatal("Failed to initialize hound structure: %s",
 		    str_error(ret));

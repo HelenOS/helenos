@@ -37,10 +37,10 @@
 
 #include <types/common.h>
 
-extern int dhcp_init(void);
-extern int dhcp_link_add(sysarg_t);
-extern int dhcp_link_remove(sysarg_t);
-extern int dhcp_discover(sysarg_t);
+extern errno_t dhcp_init(void);
+extern errno_t dhcp_link_add(sysarg_t);
+extern errno_t dhcp_link_remove(sysarg_t);
+extern errno_t dhcp_discover(sysarg_t);
 
 #endif
 

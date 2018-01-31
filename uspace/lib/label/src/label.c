@@ -50,10 +50,10 @@ static label_ops_t *probe_list[] = {
 	NULL
 };
 
-int label_open(label_bd_t *bd, label_t **rlabel)
+errno_t label_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_ops_t **ops;
-	int rc;
+	errno_t rc;
 
 	ops = &probe_list[0];
 	while (ops[0] != NULL) {
@@ -66,7 +66,7 @@ int label_open(label_bd_t *bd, label_t **rlabel)
 	return ENOTSUP;
 }
 
-int label_create(label_bd_t *bd, label_type_t ltype, label_t **rlabel)
+errno_t label_create(label_bd_t *bd, label_type_t ltype, label_t **rlabel)
 {
 	label_ops_t *ops = NULL;
 
@@ -95,12 +95,12 @@ void label_close(label_t *label)
 	label->ops->close(label);
 }
 
-int label_destroy(label_t *label)
+errno_t label_destroy(label_t *label)
 {
 	return label->ops->destroy(label);
 }
 
-int label_get_info(label_t *label, label_info_t *linfo)
+errno_t label_get_info(label_t *label, label_info_t *linfo)
 {
 	return label->ops->get_info(label, linfo);
 }
@@ -120,13 +120,13 @@ void label_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 	return part->label->ops->part_get_info(part, pinfo);
 }
 
-int label_part_create(label_t *label, label_part_spec_t *pspec,
+errno_t label_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
 	return label->ops->part_create(label, pspec, rpart);
 }
 
-int label_part_destroy(label_part_t *part)
+errno_t label_part_destroy(label_part_t *part)
 {
 	return part->label->ops->part_destroy(part);
 }
@@ -136,7 +136,7 @@ void label_pspec_init(label_part_spec_t *pspec)
 	memset(pspec, 0, sizeof(label_part_spec_t));
 }
 
-int label_suggest_ptype(label_t *label, label_pcnt_t pcnt,
+errno_t label_suggest_ptype(label_t *label, label_pcnt_t pcnt,
     label_ptype_t *ptype)
 {
 	return label->ops->suggest_ptype(label, pcnt, ptype);

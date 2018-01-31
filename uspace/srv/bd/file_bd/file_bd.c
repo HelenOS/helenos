@@ -65,15 +65,15 @@ static bd_srvs_t bd_srvs;
 static fibril_mutex_t dev_lock;
 
 static void print_usage(void);
-static int file_bd_init(const char *fname);
+static errno_t file_bd_init(const char *fname);
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *);
 
-static int file_bd_open(bd_srvs_t *, bd_srv_t *);
-static int file_bd_close(bd_srv_t *);
-static int file_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
-static int file_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
-static int file_bd_get_block_size(bd_srv_t *, size_t *);
-static int file_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t file_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t file_bd_close(bd_srv_t *);
+static errno_t file_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static errno_t file_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *, size_t);
+static errno_t file_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t file_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
 static bd_ops_t file_bd_ops = {
 	.open = file_bd_open,
@@ -86,7 +86,7 @@ static bd_ops_t file_bd_ops = {
 
 int main(int argc, char **argv)
 {
-	int rc;
+	errno_t rc;
 	char *image_name;
 	char *device_name;
 	category_id_t disk_cat;
@@ -165,13 +165,13 @@ static void print_usage(void)
 	printf("Usage: " NAME " [-b <block_size>] <image_file> <device_name>\n");
 }
 
-static int file_bd_init(const char *fname)
+static errno_t file_bd_init(const char *fname)
 {
 	bd_srvs_init(&bd_srvs);
 	bd_srvs.ops = &file_bd_ops;
 	
 	async_set_fallback_port_handler(file_bd_connection, NULL);
-	int rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
@@ -205,19 +205,19 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Open device. */
-static int file_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+static errno_t file_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Close device. */
-static int file_bd_close(bd_srv_t *bd)
+static errno_t file_bd_close(bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Read blocks from the device. */
-static int file_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
+static errno_t file_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
     size_t size)
 {
 	size_t n_rd;
@@ -257,7 +257,7 @@ static int file_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt, void *buf,
 }
 
 /** Write blocks to the device. */
-static int file_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+static errno_t file_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	size_t n_wr;
@@ -299,14 +299,14 @@ static int file_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 }
 
 /** Get device block size. */
-static int file_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+static errno_t file_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	*rsize = block_size;
 	return EOK;
 }
 
 /** Get number of blocks on device. */
-static int file_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+static errno_t file_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	*rnb = num_blocks;
 	return EOK;

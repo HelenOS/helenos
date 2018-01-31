@@ -49,7 +49,7 @@
 
 #define NAME       "tcp"
 
-static int tcp_inet_ev_recv(inet_dgram_t *dgram);
+static errno_t tcp_inet_ev_recv(inet_dgram_t *dgram);
 static void tcp_received_pdu(tcp_pdu_t *pdu);
 
 static inet_ev_ops_t tcp_inet_ev_ops = {
@@ -57,7 +57,7 @@ static inet_ev_ops_t tcp_inet_ev_ops = {
 };
 
 /** Received datagram callback */
-static int tcp_inet_ev_recv(inet_dgram_t *dgram)
+static errno_t tcp_inet_ev_recv(inet_dgram_t *dgram)
 {
 	uint8_t *pdu_raw;
 	size_t pdu_raw_size;
@@ -120,7 +120,7 @@ static int tcp_inet_ev_recv(inet_dgram_t *dgram)
 /** Transmit PDU over network layer. */
 void tcp_transmit_pdu(tcp_pdu_t *pdu)
 {
-	int rc;
+	errno_t rc;
 	uint8_t *pdu_raw;
 	size_t pdu_raw_size;
 	inet_dgram_t dgram;
@@ -168,9 +168,9 @@ static void tcp_received_pdu(tcp_pdu_t *pdu)
 }
 
 /** Initialize TCP inet interface. */
-int tcp_inet_init(void)
+errno_t tcp_inet_init(void)
 {
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_inet_init()");
 

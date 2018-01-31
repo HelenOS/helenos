@@ -47,7 +47,7 @@ void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 	size_t page_size = IPC_GET_ARG2(*request);
 	int fd = IPC_GET_ARG3(*request);
 	void *page;
-	int rc;
+	errno_t rc;
 
 	page = as_area_create(AS_AREA_ANY, page_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,

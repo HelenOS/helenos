@@ -96,10 +96,10 @@ static const irq_cmd_t uhci_irq_commands[] = {
 };
 
 static void hc_init_hw(const hc_t *instance);
-static int hc_init_mem_structures(hc_t *instance);
-static int hc_init_transfer_lists(hc_t *instance);
+static errno_t hc_init_mem_structures(hc_t *instance);
+static errno_t hc_init_transfer_lists(hc_t *instance);
 
-static int hc_debug_checker(void *arg);
+static errno_t hc_debug_checker(void *arg);
 
 
 /** Generate IRQ code.
@@ -109,7 +109,7 @@ static int hc_debug_checker(void *arg);
  *
  * @return Error code.
  */
-int hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res, int *irq)
+errno_t hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -206,7 +206,7 @@ static void hc_interrupt(bus_t *bus, uint32_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
+errno_t hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	hc_t *instance = hcd_to_hc(hcd);
 	assert(hw_res);
@@ -217,7 +217,7 @@ int hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
-	int ret = pio_enable_range(&hw_res->io_ranges.ranges[0],
+	errno_t ret = pio_enable_range(&hw_res->io_ranges.ranges[0],
 	    (void **) &instance->registers);
 	if (ret != EOK) {
 		usb_log_error("Failed to gain access to registers: %s.",
@@ -326,11 +326,11 @@ static endpoint_t *endpoint_create(device_t *device, const usb_endpoint_descript
 	return ep;
 }
 
-static int endpoint_register(endpoint_t *ep)
+static errno_t endpoint_register(endpoint_t *ep)
 {
 	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
 
-	const int err = usb2_bus_endpoint_register(&hc->bus_helper, ep);
+	const errno_t err = usb2_bus_endpoint_register(&hc->bus_helper, ep);
 	if (err)
 		return err;
 
@@ -448,7 +448,7 @@ static const bus_ops_t uhci_bus_ops = {
  *  - transfer lists (queue heads need to be accessible by the hw)
  *  - frame list page (needs to be one UHCI hw accessible 4K page)
  */
-int hc_init_mem_structures(hc_t *instance)
+errno_t hc_init_mem_structures(hc_t *instance)
 {
 	assert(instance);
 
@@ -467,7 +467,7 @@ int hc_init_mem_structures(hc_t *instance)
 	usb_log_debug("Initialized frame list at %p.", instance->frame_list);
 
 	/* Init transfer lists */
-	int ret = hc_init_transfer_lists(instance);
+	errno_t ret = hc_init_transfer_lists(instance);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize transfer lists.");
 		return_page(instance->frame_list);
@@ -497,12 +497,12 @@ int hc_init_mem_structures(hc_t *instance)
  * Initializes transfer lists and sets them in one chain to support proper
  * USB scheduling. Sets pointer table for quick access.
  */
-int hc_init_transfer_lists(hc_t *instance)
+errno_t hc_init_transfer_lists(hc_t *instance)
 {
 	assert(instance);
 #define SETUP_TRANSFER_LIST(type, name) \
 do { \
-	int ret = transfer_list_init(&instance->transfers_##type, name); \
+	errno_t ret = transfer_list_init(&instance->transfers_##type, name); \
 	if (ret != EOK) { \
 		usb_log_error("Failed to setup %s transfer list: %s.", \
 		    name, str_error(ret)); \
@@ -549,7 +549,7 @@ do { \
 	return EOK;
 }
 
-static int hc_status(bus_t *bus, uint32_t *status)
+static errno_t hc_status(bus_t *bus, uint32_t *status)
 {
 	hc_t *instance = bus_to_hc(bus);
 	assert(status);
@@ -570,7 +570,7 @@ static int hc_status(bus_t *bus, uint32_t *status)
  * @param[in] batch Transfer batch to schedule.
  * @return Error code
  */
-static int hc_schedule(usb_transfer_batch_t *batch)
+static errno_t hc_schedule(usb_transfer_batch_t *batch)
 {
 	uhci_transfer_batch_t *uhci_batch = uhci_transfer_batch_get(batch);
 	endpoint_t *ep = batch->ep;
@@ -585,7 +585,7 @@ static int hc_schedule(usb_transfer_batch_t *batch)
 	if (!list)
 		return ENOTSUP;
 
-	int err;
+	errno_t err;
 	if ((err = uhci_transfer_batch_prepare(uhci_batch)))
 		return err;
 
@@ -597,7 +597,7 @@ static int hc_schedule(usb_transfer_batch_t *batch)
  * @param[in] arg UHCI structure to use.
  * @return EOK (should never return)
  */
-int hc_debug_checker(void *arg)
+errno_t hc_debug_checker(void *arg)
 {
 	hc_t *instance = arg;
 	assert(instance);

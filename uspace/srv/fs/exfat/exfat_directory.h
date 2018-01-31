@@ -54,32 +54,32 @@ typedef struct {
 
 
 extern void exfat_directory_init(exfat_directory_t *);
-extern int exfat_directory_open(exfat_node_t *, exfat_directory_t *);
-extern int exfat_directory_open_parent(exfat_directory_t *, service_id_t,
+extern errno_t exfat_directory_open(exfat_node_t *, exfat_directory_t *);
+extern errno_t exfat_directory_open_parent(exfat_directory_t *, service_id_t,
     exfat_cluster_t, bool);
-extern int exfat_directory_close(exfat_directory_t *);
+extern errno_t exfat_directory_close(exfat_directory_t *);
 
-extern int exfat_directory_next(exfat_directory_t *);
-extern int exfat_directory_prev(exfat_directory_t *);
-extern int exfat_directory_seek(exfat_directory_t *, aoff64_t);
-extern int exfat_directory_get(exfat_directory_t *, exfat_dentry_t **);
-extern int exfat_directory_find(exfat_directory_t *, exfat_dentry_clsf_t,
+extern errno_t exfat_directory_next(exfat_directory_t *);
+extern errno_t exfat_directory_prev(exfat_directory_t *);
+extern errno_t exfat_directory_seek(exfat_directory_t *, aoff64_t);
+extern errno_t exfat_directory_get(exfat_directory_t *, exfat_dentry_t **);
+extern errno_t exfat_directory_find(exfat_directory_t *, exfat_dentry_clsf_t,
     exfat_dentry_t **);
-extern int exfat_directory_find_continue(exfat_directory_t *, 
+extern errno_t exfat_directory_find_continue(exfat_directory_t *, 
     exfat_dentry_clsf_t, exfat_dentry_t **);
 
-extern int exfat_directory_read_file(exfat_directory_t *, char *, size_t,
+extern errno_t exfat_directory_read_file(exfat_directory_t *, char *, size_t,
     exfat_file_dentry_t *, exfat_stream_dentry_t *);
-extern int exfat_directory_read_vollabel(exfat_directory_t *, char *, size_t);
-extern int exfat_directory_sync_file(exfat_directory_t *, exfat_file_dentry_t *,
+extern errno_t exfat_directory_read_vollabel(exfat_directory_t *, char *, size_t);
+extern errno_t exfat_directory_sync_file(exfat_directory_t *, exfat_file_dentry_t *,
     exfat_stream_dentry_t *);
-extern int exfat_directory_write_file(exfat_directory_t *, const char *);
-extern int exfat_directory_erase_file(exfat_directory_t *, aoff64_t);
+extern errno_t exfat_directory_write_file(exfat_directory_t *, const char *);
+extern errno_t exfat_directory_erase_file(exfat_directory_t *, aoff64_t);
 
 
-extern int exfat_directory_expand(exfat_directory_t *);
-extern int exfat_directory_lookup_free(exfat_directory_t *, size_t);
-extern int exfat_directory_print(exfat_directory_t *);
+extern errno_t exfat_directory_expand(exfat_directory_t *);
+extern errno_t exfat_directory_lookup_free(exfat_directory_t *, size_t);
+extern errno_t exfat_directory_print(exfat_directory_t *);
 
 
 #endif

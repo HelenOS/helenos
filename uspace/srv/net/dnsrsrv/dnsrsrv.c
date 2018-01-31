@@ -53,9 +53,9 @@
 
 static void dnsr_client_conn(ipc_callid_t, ipc_call_t *, void *);
 
-static int dnsr_init(void)
+static errno_t dnsr_init(void)
 {
-	int rc;
+	errno_t rc;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dnsr_init()");
 
 	rc = transport_init();
@@ -92,7 +92,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 	ip_ver_t ver = IPC_GET_ARG1(*icall);
 	
 	char *name;
-	int rc = async_data_write_accept((void **) &name, true, 0,
+	errno_t rc = async_data_write_accept((void **) &name, true, 0,
 	    DNS_NAME_MAX_SIZE, 0, NULL);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
@@ -170,7 +170,7 @@ static void dnsr_get_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 	
 	// FIXME locking
 	
-	int rc = async_data_read_finalize(callid, &dns_server_addr, size);
+	errno_t rc = async_data_read_finalize(callid, &dns_server_addr, size);
 	if (rc != EOK)
 		async_answer_0(callid, rc);
 	
@@ -198,7 +198,7 @@ static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 	
 	// FIXME locking
 	
-	int rc = async_data_write_finalize(callid, &dns_server_addr, size);
+	errno_t rc = async_data_write_finalize(callid, &dns_server_addr, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
@@ -245,7 +245,7 @@ static void dnsr_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf("%s: DNS Resolution Service\n", NAME);
 

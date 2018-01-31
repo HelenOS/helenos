@@ -69,7 +69,7 @@ typedef struct tar_header {
 } tar_header_t;
 
 
-extern int tar_header_parse(tar_header_t *, const tar_header_raw_t *);
+extern errno_t tar_header_parse(tar_header_t *, const tar_header_raw_t *);
 extern tar_type_t tar_type_parse(const char);
 extern const char *tar_type_str(tar_type_t);
 

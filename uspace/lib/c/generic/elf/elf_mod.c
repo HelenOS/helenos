@@ -98,7 +98,7 @@ int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info
 	elf_ld_t elf;
 
 	int ofile;
-	int rc = vfs_clone(file, -1, true, &ofile);
+	errno_t rc = vfs_clone(file, -1, true, &ofile);
 	if (rc == EOK) {
 		rc = vfs_open(ofile, MODE_READ);
 	}
@@ -120,7 +120,7 @@ int elf_load_file_name(const char *path, size_t so_bias, eld_flags_t flags,
     elf_finfo_t *info)
 {
 	int file;
-	int rc = vfs_lookup(path, 0, &file);
+	errno_t rc = vfs_lookup(path, 0, &file);
 	if (rc == EOK) {
 		int ret = elf_load_file(file, so_bias, flags, info);
 		vfs_put(file);
@@ -147,7 +147,7 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	aoff64_t pos = 0;
 	size_t nr;
 	int i, ret;
-	int rc;
+	errno_t rc;
 
 	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t), &nr);
 	if (rc != EOK || nr != sizeof(elf_header_t)) {
@@ -340,7 +340,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	uintptr_t seg_addr;
 	size_t mem_sz;
 	aoff64_t pos;
-	int rc;
+	errno_t rc;
 	size_t nr;
 
 	bias = elf->bias;
@@ -413,7 +413,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 
 //	printf("set area flags to %d\n", flags);
 	rc = as_area_change_flags(seg_ptr, flags);
-	if (rc != 0) {
+	if (rc != EOK) {
 		DPRINTF("Failed to set memory area flags.\n");
 		return EE_MEMORY;
 	}

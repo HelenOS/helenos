@@ -39,7 +39,7 @@
 /** Rename file or directory (C standard) */
 int rename(const char *old_path, const char *new_path)
 {
-	int rc;
+	errno_t rc;
 
 	rc = vfs_rename_path(old_path, new_path);
 	if (rc != EOK) {
@@ -53,7 +53,7 @@ int rename(const char *old_path, const char *new_path)
 /** Remove file or directory (C standard) */
 int remove(const char *path)
 {
-	int rc;
+	errno_t rc;
 
 	rc = vfs_unlink_path(path);
 	if (rc != EOK) {

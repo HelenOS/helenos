@@ -62,7 +62,7 @@ static void on_state_change(usbvirt_device_t *dev,
 }
 
 /** Callback for data request. */
-static int req_on_status_change_pipe(usbvirt_device_t *dev,
+static errno_t req_on_status_change_pipe(usbvirt_device_t *dev,
     usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
     void *buffer, size_t buffer_size, size_t *actual_size)
 {
@@ -108,7 +108,7 @@ static int req_on_status_change_pipe(usbvirt_device_t *dev,
  * @param data Extra data (when DATA stage present).
  * @return Error code.
  */
-static int req_clear_hub_feature(usbvirt_device_t *dev,
+static errno_t req_clear_hub_feature(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
@@ -122,11 +122,11 @@ static int req_clear_hub_feature(usbvirt_device_t *dev,
  * @param data Extra data (when DATA stage present).
  * @return Error code.
  */
-static int req_clear_port_feature(usbvirt_device_t *dev,
+static errno_t req_clear_port_feature(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
-	int rc;
+	errno_t rc;
 	size_t port = request->index - 1;
 	usb_hub_class_feature_t feature = request->value;
 	hub_t *hub = (hub_t *) dev->device_data;
@@ -202,7 +202,7 @@ static int req_clear_port_feature(usbvirt_device_t *dev,
  * @param data Extra data (when DATA stage present).
  * @return Error code.
  */
-static int req_get_bus_state(usbvirt_device_t *dev,
+static errno_t req_get_bus_state(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
@@ -216,7 +216,7 @@ static int req_get_bus_state(usbvirt_device_t *dev,
  * @param data Extra data (when DATA stage present).
  * @return Error code.
  */
-static int req_get_descriptor(usbvirt_device_t *dev,
+static errno_t req_get_descriptor(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
@@ -237,7 +237,7 @@ static int req_get_descriptor(usbvirt_device_t *dev,
  * @param data Extra data (when DATA stage present).
  * @return Error code.
  */
-static int req_get_hub_status(usbvirt_device_t *dev,
+static errno_t req_get_hub_status(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
@@ -256,7 +256,7 @@ static int req_get_hub_status(usbvirt_device_t *dev,
  * @param data Extra data (when DATA stage present).
  * @return Error code.
  */
-static int req_get_port_status(usbvirt_device_t *dev,
+static errno_t req_get_port_status(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
@@ -281,7 +281,7 @@ static int req_get_port_status(usbvirt_device_t *dev,
  * @param data Extra data (when DATA stage present).
  * @return Error code.
  */
-static int req_set_hub_feature(usbvirt_device_t *dev,
+static errno_t req_set_hub_feature(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
@@ -295,11 +295,11 @@ static int req_set_hub_feature(usbvirt_device_t *dev,
  * @param data Extra data (when DATA stage present).
  * @return Error code.
  */
-static int req_set_port_feature(usbvirt_device_t *dev,
+static errno_t req_set_port_feature(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *request, uint8_t *data,
     size_t *act_size)
 {
-	int rc = ENOTSUP;
+	errno_t rc = ENOTSUP;
 	size_t port = request->index - 1;
 	usb_hub_class_feature_t feature = request->value;
 	hub_t *hub = (hub_t *) dev->device_data;

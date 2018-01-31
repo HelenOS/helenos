@@ -255,7 +255,7 @@ extern void thread_usleep(uint32_t);
 #define thread_join(t) \
 	thread_join_timeout((t), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
 
-extern int thread_join_timeout(thread_t *, uint32_t, unsigned int);
+extern errno_t thread_join_timeout(thread_t *, uint32_t, unsigned int);
 extern void thread_detach(thread_t *);
 
 extern void thread_print_list(bool);
@@ -275,12 +275,12 @@ extern void thread_stack_trace(thread_id_t);
 extern slab_cache_t *fpu_context_cache;
 
 /* Thread syscall prototypes. */
-extern sysarg_t sys_thread_create(uspace_arg_t *, char *, size_t,
+extern sys_errno_t sys_thread_create(uspace_arg_t *, char *, size_t,
     thread_id_t *);
-extern sysarg_t sys_thread_exit(int);
-extern sysarg_t sys_thread_get_id(thread_id_t *);
-extern sysarg_t sys_thread_usleep(uint32_t);
-extern sysarg_t sys_thread_udelay(uint32_t);
+extern sys_errno_t sys_thread_exit(int);
+extern sys_errno_t sys_thread_get_id(thread_id_t *);
+extern sys_errno_t sys_thread_usleep(uint32_t);
+extern sys_errno_t sys_thread_udelay(uint32_t);
 
 #endif
 

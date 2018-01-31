@@ -96,7 +96,7 @@ typedef enum {
  * @return Number of usages returned or an error code.
  *
  */
-int usbhid_dev_get_event_length(async_sess_t *dev_sess, size_t *size)
+errno_t usbhid_dev_get_event_length(async_sess_t *dev_sess, size_t *size)
 {
 	if (!dev_sess)
 		return EINVAL;
@@ -104,7 +104,7 @@ int usbhid_dev_get_event_length(async_sess_t *dev_sess, size_t *size)
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	sysarg_t len;
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(USBHID_DEV_IFACE),
+	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(USBHID_DEV_IFACE),
 	    IPC_M_USBHID_GET_EVENT_LENGTH, &len);
 	
 	async_exchange_end(exch);
@@ -131,7 +131,7 @@ int usbhid_dev_get_event_length(async_sess_t *dev_sess, size_t *size)
  * @return Error code.
  *
  */
-int usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
+errno_t usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
     size_t size, size_t *actual_size, int *event_nr, unsigned int flags)
 {
 	if (!dev_sess)
@@ -173,21 +173,21 @@ int usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 		return ENOMEM;
 	}
 	
-	int data_request_rc;
-	int opening_request_rc;
+	errno_t data_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	
 	if (data_request_rc != EOK) {
 		/* Prefer return code of the opening request. */
 		if (opening_request_rc != EOK)
-			return (int) opening_request_rc;
+			return (errno_t) opening_request_rc;
 		else
-			return (int) data_request_rc;
+			return (errno_t) data_request_rc;
 	}
 	
 	if (opening_request_rc != EOK)
-		return (int) opening_request_rc;
+		return (errno_t) opening_request_rc;
 	
 	size_t act_size = IPC_GET_ARG2(data_request_call);
 	
@@ -203,7 +203,7 @@ int usbhid_dev_get_event(async_sess_t *dev_sess, uint8_t *buf,
 	return EOK;
 }
 
-int usbhid_dev_get_report_descriptor_length(async_sess_t *dev_sess,
+errno_t usbhid_dev_get_report_descriptor_length(async_sess_t *dev_sess,
     size_t *size)
 {
 	if (!dev_sess)
@@ -212,7 +212,7 @@ int usbhid_dev_get_report_descriptor_length(async_sess_t *dev_sess,
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	sysarg_t arg_size;
-	int rc = async_req_1_1(exch, DEV_IFACE_ID(USBHID_DEV_IFACE),
+	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(USBHID_DEV_IFACE),
 	    IPC_M_USBHID_GET_REPORT_DESCRIPTOR_LENGTH, &arg_size);
 	
 	async_exchange_end(exch);
@@ -225,7 +225,7 @@ int usbhid_dev_get_report_descriptor_length(async_sess_t *dev_sess,
 	return rc;
 }
 
-int usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
+errno_t usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
     size_t size, size_t *actual_size)
 {
 	if (!dev_sess)
@@ -258,21 +258,21 @@ int usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
 		return ENOMEM;
 	}
 	
-	int data_request_rc;
-	int opening_request_rc;
+	errno_t data_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 	
 	if (data_request_rc != EOK) {
 		/* Prefer return code of the opening request. */
 		if (opening_request_rc != EOK)
-			return (int) opening_request_rc;
+			return (errno_t) opening_request_rc;
 		else
-			return (int) data_request_rc;
+			return (errno_t) data_request_rc;
 	}
 	
 	if (opening_request_rc != EOK)
-		return (int) opening_request_rc;
+		return (errno_t) opening_request_rc;
 	
 	size_t act_size = IPC_GET_ARG2(data_request_call);
 	
@@ -361,7 +361,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-	int rc;
+	errno_t rc;
 
 	uint8_t *data = malloc(len);
 	if (data == NULL) {
@@ -437,7 +437,7 @@ void remote_usbhid_get_report_descriptor(ddf_fun_t *fun, void *iface,
 	}
 
 	size_t act_len = 0;
-	int rc = hid_iface->get_report_descriptor(fun, descriptor, len,
+	errno_t rc = hid_iface->get_report_descriptor(fun, descriptor, len,
 	    &act_len);
 	if (act_len > len) {
 		rc = ELIMIT;

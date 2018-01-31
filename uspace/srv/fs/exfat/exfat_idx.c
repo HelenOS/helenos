@@ -327,7 +327,7 @@ static void exfat_index_free(service_id_t service_id, fs_index_t index)
 	fibril_mutex_unlock(&unused_lock);
 }
 
-static int exfat_idx_create(exfat_idx_t **fidxp, service_id_t service_id)
+static errno_t exfat_idx_create(exfat_idx_t **fidxp, service_id_t service_id)
 {
 	exfat_idx_t *fidx;
 
@@ -349,10 +349,10 @@ static int exfat_idx_create(exfat_idx_t **fidxp, service_id_t service_id)
 	return EOK;
 }
 
-int exfat_idx_get_new(exfat_idx_t **fidxp, service_id_t service_id)
+errno_t exfat_idx_get_new(exfat_idx_t **fidxp, service_id_t service_id)
 {
 	exfat_idx_t *fidx;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&used_lock);
 	rc = exfat_idx_create(&fidx, service_id);
@@ -385,7 +385,7 @@ exfat_idx_get_by_pos(service_id_t service_id, exfat_cluster_t pfc, unsigned pdi)
 	if (l) {
 		fidx = hash_table_get_inst(l, exfat_idx_t, uph_link);
 	} else {
-		int rc;
+		errno_t rc;
 
 		rc = exfat_idx_create(&fidx, service_id);
 		if (rc != EOK) {
@@ -467,7 +467,7 @@ void exfat_idx_destroy(exfat_idx_t *idx)
 	/* The index structure itself is freed in idx_remove_callback(). */
 }
 
-int exfat_idx_init(void)
+errno_t exfat_idx_init(void)
 {
 	if (!hash_table_create(&up_hash, 0, 0, &uph_ops)) 
 		return ENOMEM;
@@ -486,10 +486,10 @@ void exfat_idx_fini(void)
 	hash_table_destroy(&ui_hash);
 }
 
-int exfat_idx_init_by_service_id(service_id_t service_id)
+errno_t exfat_idx_init_by_service_id(service_id_t service_id)
 {
 	unused_t *u;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	u = (unused_t *) malloc(sizeof(unused_t));
 	if (!u)

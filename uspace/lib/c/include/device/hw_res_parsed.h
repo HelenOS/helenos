@@ -153,9 +153,9 @@ static inline void hw_res_list_parsed_init(hw_res_list_parsed_t *list)
 	memset(list, 0, sizeof(hw_res_list_parsed_t));
 }
 
-extern int hw_res_list_parse(const pio_window_t *, const hw_resource_list_t *,
+extern errno_t hw_res_list_parse(const pio_window_t *, const hw_resource_list_t *,
     hw_res_list_parsed_t *, int);
-extern int hw_res_get_list_parsed(async_sess_t *, hw_res_list_parsed_t *, int);
+extern errno_t hw_res_get_list_parsed(async_sess_t *, hw_res_list_parsed_t *, int);
 
 #endif
 

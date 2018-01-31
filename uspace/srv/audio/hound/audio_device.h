@@ -75,12 +75,12 @@ static inline audio_device_t * audio_device_list_instance(link_t *l)
 	return l ? list_get_instance(l, audio_device_t, link) : NULL;
 };
 
-int audio_device_init(audio_device_t *dev, service_id_t id, const char *name);
+errno_t audio_device_init(audio_device_t *dev, service_id_t id, const char *name);
 void audio_device_fini(audio_device_t *dev);
 audio_source_t * audio_device_get_source(audio_device_t *dev);
 audio_sink_t * audio_device_get_sink(audio_device_t *dev);
-int audio_device_recorded_data(audio_device_t *dev, void **base, size_t *size);
-int audio_device_available_buffer(audio_device_t *dev, void **base, size_t *size);
+errno_t audio_device_recorded_data(audio_device_t *dev, void **base, size_t *size);
+errno_t audio_device_available_buffer(audio_device_t *dev, void **base, size_t *size);
 
 #endif
 

@@ -39,11 +39,11 @@
 extern vfs_out_ops_t ext4_ops;
 extern libfs_ops_t ext4_libfs_ops;
 
-extern int ext4_global_init(void);
-extern int ext4_global_fini(void);
+extern errno_t ext4_global_init(void);
+extern errno_t ext4_global_fini(void);
 
-extern int ext4_node_get_core(fs_node_t **, ext4_instance_t *, fs_index_t);
-extern int ext4_node_put(fs_node_t *);
+extern errno_t ext4_node_get_core(fs_node_t **, ext4_instance_t *, fs_index_t);
+extern errno_t ext4_node_put(fs_node_t *);
 
 
 #endif

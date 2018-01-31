@@ -102,7 +102,7 @@ void usb_polling_fini(usb_polling_t *polling)
  * @param arg Pointer to usb_polling_t.
  * @return Always EOK.
  */
-static int polling_fibril(void *arg)
+static errno_t polling_fibril(void *arg)
 {
 	assert(arg);
 	usb_polling_t *polling = arg;
@@ -129,7 +129,7 @@ static int polling_fibril(void *arg)
 	size_t failed_attempts = 0;
 	while (failed_attempts <= polling->max_failures) {
 		size_t actual_size;
-		const int rc = usb_pipe_read(pipe, polling->buffer,
+		const errno_t rc = usb_pipe_read(pipe, polling->buffer,
 		    polling->request_size, &actual_size);
 
 		if (rc == EOK) {
@@ -232,7 +232,7 @@ static int polling_fibril(void *arg)
  * @return Error code.
  * @retval EOK New fibril polling the device was already started.
  */
-int usb_polling_start(usb_polling_t *polling)
+errno_t usb_polling_start(usb_polling_t *polling)
 {
 	if (!polling || !polling->device || !polling->ep_mapping || !polling->on_data)
 		return EBADMEM;
@@ -271,9 +271,9 @@ int usb_polling_start(usb_polling_t *polling)
  *  @return Error code.
  *  @retval EOK Polling fibril has been successfully terminated.
  */
-int usb_polling_join(usb_polling_t *polling)
+errno_t usb_polling_join(usb_polling_t *polling)
 {
-	int rc;
+	errno_t rc;
 	if (!polling)
 		return EBADMEM;
 

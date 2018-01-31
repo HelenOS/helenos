@@ -53,24 +53,24 @@ typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
 typedef volatile uint64_t ioport64_t;
 
-extern int physmem_map(uintptr_t, size_t, unsigned int, void **);
-extern int physmem_unmap(void *);
+extern errno_t physmem_map(uintptr_t, size_t, unsigned int, void **);
+extern errno_t physmem_unmap(void *);
 
-extern int dmamem_map(void *, size_t, unsigned int, unsigned int, uintptr_t *);
-extern int dmamem_map_anonymous(size_t, uintptr_t, unsigned int, unsigned int,
+extern errno_t dmamem_map(void *, size_t, unsigned int, unsigned int, uintptr_t *);
+extern errno_t dmamem_map_anonymous(size_t, uintptr_t, unsigned int, unsigned int,
     uintptr_t *, void **);
-extern int dmamem_unmap(void *, size_t);
-extern int dmamem_unmap_anonymous(void *);
+extern errno_t dmamem_unmap(void *, size_t);
+extern errno_t dmamem_unmap_anonymous(void *);
 
-extern int pio_enable_range(addr_range_t *, void **);
-extern int pio_enable_resource(pio_window_t *, hw_resource_t *, void **);
-extern int pio_enable(void *, size_t, void **);
-extern int pio_disable(void *, size_t);
+extern errno_t pio_enable_range(addr_range_t *, void **);
+extern errno_t pio_enable_resource(pio_window_t *, hw_resource_t *, void **);
+extern errno_t pio_enable(void *, size_t, void **);
+extern errno_t pio_disable(void *, size_t);
 
 typedef void (*trace_fnc)(const volatile void *place, uint64_t val,
     volatile void* base, size_t size, void *data, bool write);
 
-extern int pio_trace_enable(void *, size_t, trace_fnc, void *);
+extern errno_t pio_trace_enable(void *, size_t, trace_fnc, void *);
 extern void pio_trace_log(const volatile void *, uint64_t val, bool write);
 extern void pio_trace_disable(void *);
 

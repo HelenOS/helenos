@@ -52,12 +52,12 @@ typedef struct {
  * @todo Should these be thread-safe? */
 typedef struct bithenge_random_access_blob_ops_t {
 	/** @copydoc bithenge_blob_t::bithenge_blob_size */
-	int (*size)(bithenge_blob_t *self, aoff64_t *size);
+	errno_t (*size)(bithenge_blob_t *self, aoff64_t *size);
 	/** @copydoc bithenge_blob_t::bithenge_blob_read */
-	int (*read)(bithenge_blob_t *self, aoff64_t offset, char *buffer,
+	errno_t (*read)(bithenge_blob_t *self, aoff64_t offset, char *buffer,
 	    aoff64_t *size);
 	/** @copydoc bithenge_blob_t::bithenge_blob_read_bits */
-	int (*read_bits)(bithenge_blob_t *self, aoff64_t offset, char *buffer,
+	errno_t (*read_bits)(bithenge_blob_t *self, aoff64_t offset, char *buffer,
 	    aoff64_t *size, bool little_endian);
 	/** Destroy the blob.
 	 * @param blob The blob. */
@@ -93,7 +93,7 @@ typedef struct bithenge_sequential_blob_ops_t {
 	 * @param[out] size Total size of the blob.
 	 * @return EOK on success or an error code from errno.h.
 	 */
-	int (*size)(bithenge_sequential_blob_t *self, aoff64_t *size);
+	errno_t (*size)(bithenge_sequential_blob_t *self, aoff64_t *size);
 
 	/** Read the next part of the blob. If the requested data extends
 	 * beyond the end of the blob, the data up until the end of the blob
@@ -107,7 +107,7 @@ typedef struct bithenge_sequential_blob_ops_t {
 	 * stored here. If an error occurs, the contents are undefined.
 	 * @return EOK on success or an error code from errno.h.
 	 */
-	int (*read)(bithenge_sequential_blob_t *self, char *buffer,
+	errno_t (*read)(bithenge_sequential_blob_t *self, char *buffer,
 	    aoff64_t *size);
 
 	/** Destroy the blob.
@@ -122,7 +122,7 @@ typedef struct bithenge_sequential_blob_ops_t {
  * @param[out] size Total size of the blob.
  * @return EOK on success or an error code from errno.h.
  */
-static inline int bithenge_blob_size(bithenge_blob_t *self, aoff64_t *size)
+static inline errno_t bithenge_blob_size(bithenge_blob_t *self, aoff64_t *size)
 {
 	assert(self);
 	assert(self->base.blob_ops);
@@ -144,7 +144,7 @@ static inline int bithenge_blob_size(bithenge_blob_t *self, aoff64_t *size)
  * should be stored here. If an error occurs, the contents are undefined.
  * @return EOK on success or an error code from errno.h.
  */
-static inline int bithenge_blob_read(bithenge_blob_t *self, aoff64_t offset,
+static inline errno_t bithenge_blob_read(bithenge_blob_t *self, aoff64_t offset,
     char *buffer, aoff64_t *size)
 {
 	assert(self);
@@ -172,7 +172,7 @@ static inline int bithenge_blob_read(bithenge_blob_t *self, aoff64_t offset,
  * significant bit.
  * @return EOK on success or an error code from errno.h.
  */
-static inline int bithenge_blob_read_bits(bithenge_blob_t *self,
+static inline errno_t bithenge_blob_read_bits(bithenge_blob_t *self,
     aoff64_t offset, char *buffer, aoff64_t *size, bool little_endian)
 {
 	assert(self);
@@ -189,12 +189,12 @@ static inline int bithenge_blob_read_bits(bithenge_blob_t *self,
  * @param self The blob.
  * @param[out] out Holds whether the blob is empty.
  * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_blob_empty(bithenge_blob_t *self, bool *out)
+static inline errno_t bithenge_blob_empty(bithenge_blob_t *self, bool *out)
 {
 	assert(self);
 	assert(self->base.blob_ops);
 	aoff64_t size;
-	int rc = bithenge_blob_size(self, &size);
+	errno_t rc = bithenge_blob_size(self, &size);
 	*out = size == 0;
 	return rc;
 }
@@ -234,21 +234,21 @@ static inline void bithenge_blob_dec_ref(bithenge_blob_t *blob)
 }
 
 /** @memberof bithenge_blob_t */
-int bithenge_init_random_access_blob(bithenge_blob_t *,
+errno_t bithenge_init_random_access_blob(bithenge_blob_t *,
     const bithenge_random_access_blob_ops_t *);
 /** @memberof bithenge_sequential_blob_t */
-int bithenge_init_sequential_blob(bithenge_sequential_blob_t *,
+errno_t bithenge_init_sequential_blob(bithenge_sequential_blob_t *,
     const bithenge_sequential_blob_ops_t *);
 /** @memberof bithenge_blob_t */
-int bithenge_new_blob_from_data(bithenge_node_t **, const void *, size_t);
+errno_t bithenge_new_blob_from_data(bithenge_node_t **, const void *, size_t);
 /** @memberof bithenge_blob_t */
-int bithenge_new_blob_from_buffer(bithenge_node_t **, const void *, size_t,
+errno_t bithenge_new_blob_from_buffer(bithenge_node_t **, const void *, size_t,
     bool);
-int bithenge_new_offset_blob(bithenge_node_t **, bithenge_blob_t *, aoff64_t);
-int bithenge_new_subblob(bithenge_node_t **, bithenge_blob_t *, aoff64_t,
+errno_t bithenge_new_offset_blob(bithenge_node_t **, bithenge_blob_t *, aoff64_t);
+errno_t bithenge_new_subblob(bithenge_node_t **, bithenge_blob_t *, aoff64_t,
     aoff64_t);
 /** @memberof bithenge_blob_t */
-int bithenge_blob_equal(bool *, bithenge_blob_t *, bithenge_blob_t *);
+errno_t bithenge_blob_equal(bool *, bithenge_blob_t *, bithenge_blob_t *);
 
 #endif
 

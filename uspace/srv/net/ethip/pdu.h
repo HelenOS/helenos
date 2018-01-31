@@ -39,10 +39,10 @@
 
 #include "ethip.h"
 
-extern int eth_pdu_encode(eth_frame_t *, void **, size_t *);
-extern int eth_pdu_decode(void *, size_t, eth_frame_t *);
-extern int arp_pdu_encode(arp_eth_packet_t *, void **, size_t *);
-extern int arp_pdu_decode(void *, size_t, arp_eth_packet_t *);
+extern errno_t eth_pdu_encode(eth_frame_t *, void **, size_t *);
+extern errno_t eth_pdu_decode(void *, size_t, eth_frame_t *);
+extern errno_t arp_pdu_encode(arp_eth_packet_t *, void **, size_t *);
+extern errno_t arp_pdu_decode(void *, size_t, arp_eth_packet_t *);
 
 #endif
 

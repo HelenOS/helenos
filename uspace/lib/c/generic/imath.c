@@ -47,7 +47,7 @@
  * @param res Place to store result
  * @return EOK on success, ERANGE if result does not fit into result type
  */
-int ipow10_u64(unsigned exp, uint64_t *res)
+errno_t ipow10_u64(unsigned exp, uint64_t *res)
 {
 	unsigned a;
 	uint64_t r;

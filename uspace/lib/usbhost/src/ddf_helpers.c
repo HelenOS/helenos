@@ -62,7 +62,7 @@
  * @param[in] endpoint_desc Endpoint descriptors from the device.
  * @return Error code.
  */
-static int register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
+static errno_t register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
      const usb_endpoint_descriptors_t *ep_desc)
 {
 	assert(fun);
@@ -96,7 +96,7 @@ static int register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
   * @param pipe_desc Pipe description.
   * @return Error code.
   */
-static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_desc)
+static errno_t unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_desc)
 {
 	assert(fun);
 	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -117,7 +117,7 @@ static int unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_desc)
  *
  * @param fun DDF function of the device (hub) requesting the address.
  */
-static int default_address_reservation(ddf_fun_t *fun, bool reserve)
+static errno_t default_address_reservation(ddf_fun_t *fun, bool reserve)
 {
 	assert(fun);
 	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -141,7 +141,7 @@ static int default_address_reservation(ddf_fun_t *fun, bool reserve)
  * @param fun DDF function of the device (hub) requesting the address.
  * @param speed USB speed of the new device
  */
-static int device_enumerate(ddf_fun_t *fun, unsigned port, usb_speed_t speed)
+static errno_t device_enumerate(ddf_fun_t *fun, unsigned port, usb_speed_t speed)
 {
 	assert(fun);
 	ddf_dev_t *hc = ddf_fun_get_dev(fun);
@@ -151,7 +151,7 @@ static int device_enumerate(ddf_fun_t *fun, unsigned port, usb_speed_t speed)
 	device_t *hub = ddf_fun_data_get(fun);
 	assert(hub);
 
-	int err;
+	errno_t err;
 
 	if (!usb_speed_is_valid(speed))
 		return EINVAL;
@@ -194,7 +194,7 @@ err_usb_dev:
 	return err;
 }
 
-static int device_remove(ddf_fun_t *fun, unsigned port)
+static errno_t device_remove(ddf_fun_t *fun, unsigned port)
 {
 	assert(fun);
 	device_t *hub = ddf_fun_data_get(fun);
@@ -234,7 +234,7 @@ static int device_remove(ddf_fun_t *fun, unsigned port)
  * @param[out] desc Device descriptor to be filled.
  * @return Error code.
  */
-static int get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
+static errno_t get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
 {
 	assert(fun);
 	device_t *dev = ddf_fun_data_get(fun);
@@ -263,7 +263,7 @@ static int get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static int dev_read(ddf_fun_t *fun, usb_target_t target,
+static errno_t dev_read(ddf_fun_t *fun, usb_target_t target,
     uint64_t setup_data, char *data, size_t size,
     usbhc_iface_transfer_callback_t callback, void *arg)
 {
@@ -297,7 +297,7 @@ static int dev_read(ddf_fun_t *fun, usb_target_t target,
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static int dev_write(ddf_fun_t *fun, usb_target_t target,
+static errno_t dev_write(ddf_fun_t *fun, usb_target_t target,
     uint64_t setup_data, const char *data, size_t size,
     usbhc_iface_transfer_callback_t callback, void *arg)
 {
@@ -369,7 +369,7 @@ do { \
 } while (0)
 
 /* This is a copy of lib/usbdev/src/recognise.c */
-static int create_match_ids(match_id_list_t *l,
+static errno_t create_match_ids(match_id_list_t *l,
     usb_standard_device_descriptor_t *d)
 {
 	assert(l);
@@ -426,9 +426,9 @@ void hcd_ddf_fun_destroy(device_t *dev)
 	ddf_fun_destroy(dev->fun);
 }
 
-int hcd_ddf_setup_match_ids(device_t *device, usb_standard_device_descriptor_t *desc)
+errno_t hcd_ddf_setup_match_ids(device_t *device, usb_standard_device_descriptor_t *desc)
 {
-	int err;
+	errno_t err;
 	match_id_list_t mids;
 
 	init_match_ids(&mids);
@@ -456,7 +456,7 @@ int hcd_ddf_setup_match_ids(device_t *device, usb_standard_device_descriptor_t *
  * @return Error code.
  * This function does all the ddf work for hc driver.
  */
-int hcd_ddf_setup_hc(ddf_dev_t *device, size_t size)
+errno_t hcd_ddf_setup_hc(ddf_dev_t *device, size_t size)
 {
 	assert(device);
 
@@ -467,7 +467,7 @@ int hcd_ddf_setup_hc(ddf_dev_t *device, size_t size)
 	}
 	instance->ddf_dev = device;
 
-	int ret = ENOMEM;
+	errno_t ret = ENOMEM;
 	instance->ctl_fun = ddf_fun_create(device, fun_exposed, "ctl");
 	if (!instance->ctl_fun) {
 		usb_log_error("Failed to create HCD ddf fun.");
@@ -509,7 +509,7 @@ void hcd_ddf_clean_hc(hc_device_t *hcd)
  * @param[in] inum Interrupt number
  * @return Error code.
  */
-int hcd_ddf_enable_interrupt(hc_device_t *hcd, int inum)
+errno_t hcd_ddf_enable_interrupt(hc_device_t *hcd, int inum)
 {
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(hcd->ddf_dev);
 	if (parent_sess == NULL)
@@ -518,14 +518,14 @@ int hcd_ddf_enable_interrupt(hc_device_t *hcd, int inum)
 	return hw_res_enable_interrupt(parent_sess, inum);
 }
 
-int hcd_ddf_get_registers(hc_device_t *hcd, hw_res_list_parsed_t *hw_res)
+errno_t hcd_ddf_get_registers(hc_device_t *hcd, hw_res_list_parsed_t *hw_res)
 {
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(hcd->ddf_dev);
 	if (parent_sess == NULL)
 		return EIO;
 
 	hw_res_list_parsed_init(hw_res);
-	const int ret = hw_res_get_list_parsed(parent_sess, hw_res, 0);
+	const errno_t ret = hw_res_get_list_parsed(parent_sess, hw_res, 0);
 	if (ret != EOK)
 		hw_res_list_parsed_clean(hw_res);
 	return ret;

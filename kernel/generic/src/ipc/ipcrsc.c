@@ -169,10 +169,10 @@ static kobject_ops_t phone_kobject_ops = {
  *
  * @return  An error code if a new capability cannot be allocated.
  */
-int phone_alloc(task_t *task, cap_handle_t *out_handle)
+errno_t phone_alloc(task_t *task, cap_handle_t *out_handle)
 {
 	cap_handle_t handle;
-	int rc = cap_alloc(task, &handle);
+	errno_t rc = cap_alloc(task, &handle);
 	if (rc == EOK) {
 		phone_t *phone = slab_alloc(phone_cache, FRAME_ATOMIC);
 		if (!phone) {

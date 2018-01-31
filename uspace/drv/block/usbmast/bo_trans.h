@@ -85,8 +85,8 @@ typedef struct {
 	cmd_status_t status;
 } scsi_cmd_t;
 
-extern int usb_massstor_cmd(usbmast_fun_t *, uint32_t, scsi_cmd_t *);
-extern int usb_massstor_reset(usbmast_dev_t *);
+extern errno_t usb_massstor_cmd(usbmast_fun_t *, uint32_t, scsi_cmd_t *);
+extern errno_t usb_massstor_reset(usbmast_dev_t *);
 extern void usb_massstor_reset_recovery(usbmast_dev_t *);
 extern int usb_massstor_get_max_lun(usbmast_dev_t *);
 extern size_t usb_masstor_get_lun_count(usbmast_dev_t *);

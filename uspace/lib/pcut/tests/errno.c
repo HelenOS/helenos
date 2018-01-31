@@ -37,7 +37,7 @@
 PCUT_INIT
 
 PCUT_TEST(errno_value) {
-	int value = EOK;
+	errno_t value = EOK;
 	PCUT_ASSERT_ERRNO_VAL(EOK, value);
 	value = ENOENT;
 	PCUT_ASSERT_ERRNO_VAL(ENOENT, value);

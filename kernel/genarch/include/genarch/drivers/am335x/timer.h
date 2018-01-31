@@ -84,7 +84,7 @@ typedef struct am335x_timer {
 	am335x_timer_id_t id;
 } am335x_timer_t;
 
-extern int am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id,
+extern errno_t am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id,
     unsigned hz, unsigned srcclk_hz);
 extern void am335x_timer_intr_ack(am335x_timer_t *timer);
 extern void am335x_timer_reset(am335x_timer_t *timer);

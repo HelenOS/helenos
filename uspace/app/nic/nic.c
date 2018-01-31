@@ -71,7 +71,7 @@ static void print_syntax(void)
 
 static async_sess_t *get_nic_by_index(size_t i)
 {
-	int rc;
+	errno_t rc;
 	size_t count;
 	char *svc_name;
 	category_id_t nic_cat;
@@ -109,12 +109,12 @@ error:
 	return NULL;
 }
 
-static int nic_get_info(service_id_t svc_id, char *svc_name,
+static errno_t nic_get_info(service_id_t svc_id, char *svc_name,
     nic_info_t *info)
 {
 	async_sess_t *sess;
 	nic_role_t role;
-	int rc;
+	errno_t rc;
 
 	sess = loc_service_connect(svc_id, INTERFACE_DDF, 0);
 	if (sess == NULL) {
@@ -244,7 +244,7 @@ static char *nic_addr_format(nic_address_t *a)
 	return s;
 }
 
-static int nic_list(void)
+static errno_t nic_list(void)
 {
 	category_id_t nic_cat;
 	service_id_t *nics = NULL;
@@ -252,7 +252,7 @@ static int nic_list(void)
 	size_t count, i;
 	char *svc_name;
 	char *addr_str;
-	int rc;
+	errno_t rc;
 
 	rc = loc_category_get_id("nic", &nic_cat, 0);
 	if (rc != EOK) {
@@ -315,14 +315,14 @@ error:
 	return rc;
 }
 
-static int nic_set_speed(int i, char *str)
+static errno_t nic_set_speed(int i, char *str)
 {
 	async_sess_t *sess;
 	uint32_t speed;
 	int oldspeed;
 	nic_channel_mode_t oldduplex;
 	nic_role_t oldrole;
-	int rc;
+	errno_t rc;
 
 	rc = str_uint32_t(str, NULL, 10, false, &speed);
 	if (rc != EOK) {
@@ -350,14 +350,14 @@ static int nic_set_speed(int i, char *str)
 	return nic_set_operation_mode(sess, speed, oldduplex, oldrole);
 }
 
-static int nic_set_duplex(int i, char *str)
+static errno_t nic_set_duplex(int i, char *str)
 {
 	async_sess_t *sess;
 	int oldspeed;
 	nic_channel_mode_t duplex = NIC_CM_UNKNOWN;
 	nic_channel_mode_t oldduplex;
 	nic_role_t oldrole;
-	int rc;
+	errno_t rc;
 
 	if (!str_cmp(str, "half"))
 		duplex = NIC_CM_HALF_DUPLEX;
@@ -388,10 +388,10 @@ static int nic_set_duplex(int i, char *str)
 	return nic_set_operation_mode(sess, oldspeed, duplex, oldrole);
 }
 
-static int nic_set_autoneg(int i)
+static errno_t nic_set_autoneg(int i)
 {
 	async_sess_t *sess;
-	int rc;
+	errno_t rc;
 
 	sess = get_nic_by_index(i);
 	if (sess == NULL) {
@@ -408,11 +408,12 @@ static int nic_set_autoneg(int i)
 	return EOK;
 }
 
-static int nic_set_addr(int i, char *str)
+static errno_t nic_set_addr(int i, char *str)
 {
 	async_sess_t *sess;
 	nic_address_t addr;
-	int rc, idx;
+	errno_t rc;
+	int idx;
 
 	sess = get_nic_by_index(i);
 	if (sess == NULL) {
@@ -436,7 +437,7 @@ static int nic_set_addr(int i, char *str)
 	return nic_set_address(sess, &addr);
 }
 
-static int nic_set_rx_unicast(int i, char *str)
+static errno_t nic_set_rx_unicast(int i, char *str)
 {
 	async_sess_t *sess;
 
@@ -471,7 +472,7 @@ static int nic_set_rx_unicast(int i, char *str)
 	return EINVAL;
 }
 
-static int nic_set_rx_multicast(int i, char *str)
+static errno_t nic_set_rx_multicast(int i, char *str)
 {
 	async_sess_t *sess;
 
@@ -500,7 +501,7 @@ static int nic_set_rx_multicast(int i, char *str)
 	return EINVAL;
 }
 
-static int nic_set_rx_broadcast(int i, char *str)
+static errno_t nic_set_rx_broadcast(int i, char *str)
 {
 	async_sess_t *sess;
 
@@ -526,7 +527,7 @@ static int nic_set_rx_broadcast(int i, char *str)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 	uint32_t index;
 
 	if (argc == 1) {

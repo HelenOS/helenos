@@ -201,7 +201,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	size_t len = 0;
 	struct stat st;
 	
-	int rc = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ, &fd);
+	errno_t rc = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ, &fd);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
 		    conf_path, str_error(rc));

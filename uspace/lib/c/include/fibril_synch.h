@@ -158,7 +158,7 @@ extern bool fibril_rwlock_is_write_locked(fibril_rwlock_t *);
 extern bool fibril_rwlock_is_locked(fibril_rwlock_t *);
 
 extern void fibril_condvar_initialize(fibril_condvar_t *);
-extern int fibril_condvar_wait_timeout(fibril_condvar_t *, fibril_mutex_t *,
+extern errno_t fibril_condvar_wait_timeout(fibril_condvar_t *, fibril_mutex_t *,
     suseconds_t);
 extern void fibril_condvar_wait(fibril_condvar_t *, fibril_mutex_t *);
 extern void fibril_condvar_signal(fibril_condvar_t *);

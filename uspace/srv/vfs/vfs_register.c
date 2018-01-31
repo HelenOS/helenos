@@ -117,7 +117,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	    request->in_phone_hash);
 	
 	vfs_info_t *vfs_info;
-	int rc = async_data_write_accept((void **) &vfs_info, false,
+	errno_t rc = async_data_write_accept((void **) &vfs_info, false,
 	    sizeof(vfs_info_t), sizeof(vfs_info_t), 0, NULL);
 	
 	if (rc != EOK) {
@@ -347,7 +347,7 @@ vfs_info_t *fs_handle_to_info(fs_handle_t handle)
  *
  * @return EOK on success or an error code
  */
-int vfs_get_fstypes(vfs_fstypes_t *fstypes)
+errno_t vfs_get_fstypes(vfs_fstypes_t *fstypes)
 {
 	size_t size;
 	size_t count;

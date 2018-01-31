@@ -54,7 +54,7 @@ const char *test_ping_pong(void)
 		
 		size_t i;
 		for (i = 0; i < COUNT_GRANULARITY; i++) {
-			int retval = ns_ping();
+			errno_t retval = ns_ping();
 			
 			if (retval != EOK) {
 				TPRINTF("\n");

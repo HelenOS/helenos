@@ -45,7 +45,7 @@
 
 #define NAME "ski"
 
-static int ski_dev_add(ddf_dev_t *dev);
+static errno_t ski_dev_add(ddf_dev_t *dev);
 
 static driver_ops_t ski_ops = {
 	.dev_add = &ski_dev_add
@@ -56,12 +56,12 @@ static driver_t ski_driver = {
 	.driver_ops = &ski_ops
 };
 
-static int ski_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id)
+static errno_t ski_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id)
 {
 	ddf_msg(LVL_NOTE, "Adding function '%s'.", name);
 
 	ddf_fun_t *fnode = NULL;
-	int rc;
+	errno_t rc;
 
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
@@ -93,9 +93,9 @@ error:
 	return rc;
 }
 
-static int ski_add_functions(ddf_dev_t *dev)
+static errno_t ski_add_functions(ddf_dev_t *dev)
 {
-	int rc;
+	errno_t rc;
 
 	rc = ski_add_fun(dev, "console", "ski/console");
 	if (rc != EOK)
@@ -105,7 +105,7 @@ static int ski_add_functions(ddf_dev_t *dev)
 }
 
 /** Add device. */
-static int ski_dev_add(ddf_dev_t *dev)
+static errno_t ski_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_NOTE, "ski_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));
@@ -120,7 +120,7 @@ static int ski_dev_add(ddf_dev_t *dev)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": Ski platform driver\n");
 

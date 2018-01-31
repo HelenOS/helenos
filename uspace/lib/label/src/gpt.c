@@ -45,32 +45,32 @@
 #include "std/gpt.h"
 #include "gpt.h"
 
-static int gpt_open(label_bd_t *, label_t **);
-static int gpt_create(label_bd_t *, label_t **);
+static errno_t gpt_open(label_bd_t *, label_t **);
+static errno_t gpt_create(label_bd_t *, label_t **);
 static void gpt_close(label_t *);
-static int gpt_destroy(label_t *);
-static int gpt_get_info(label_t *, label_info_t *);
+static errno_t gpt_destroy(label_t *);
+static errno_t gpt_get_info(label_t *, label_info_t *);
 static label_part_t *gpt_part_first(label_t *);
 static label_part_t *gpt_part_next(label_part_t *);
 static void gpt_part_get_info(label_part_t *, label_part_info_t *);
-static int gpt_part_create(label_t *, label_part_spec_t *, label_part_t **);
-static int gpt_part_destroy(label_part_t *);
-static int gpt_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
+static errno_t gpt_part_create(label_t *, label_part_spec_t *, label_part_t **);
+static errno_t gpt_part_destroy(label_part_t *);
+static errno_t gpt_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
 
-static int gpt_check_free_idx(label_t *, int);
-static int gpt_check_free_range(label_t *, uint64_t, uint64_t);
+static errno_t gpt_check_free_idx(label_t *, int);
+static errno_t gpt_check_free_range(label_t *, uint64_t, uint64_t);
 
 static void gpt_unused_pte(gpt_entry_t *);
-static int gpt_part_to_pte(label_part_t *, gpt_entry_t *);
-static int gpt_pte_to_part(label_t *, gpt_entry_t *, int);
-static int gpt_pte_update(label_t *, gpt_entry_t *, int);
+static errno_t gpt_part_to_pte(label_part_t *, gpt_entry_t *);
+static errno_t gpt_pte_to_part(label_t *, gpt_entry_t *, int);
+static errno_t gpt_pte_update(label_t *, gpt_entry_t *, int);
 
-static int gpt_update_pt_crc(label_t *, uint32_t);
+static errno_t gpt_update_pt_crc(label_t *, uint32_t);
 static void gpt_hdr_compute_crc(gpt_header_t *, size_t);
-static int gpt_hdr_get_crc(gpt_header_t *, size_t, uint32_t *);
+static errno_t gpt_hdr_get_crc(gpt_header_t *, size_t, uint32_t *);
 
-static int gpt_pmbr_create(label_bd_t *, size_t, uint64_t);
-static int gpt_pmbr_destroy(label_bd_t *, size_t);
+static errno_t gpt_pmbr_create(label_bd_t *, size_t, uint64_t);
+static errno_t gpt_pmbr_destroy(label_bd_t *, size_t);
 
 const uint8_t efi_signature[8] = {
 	/* "EFI PART" in ASCII */
@@ -91,7 +91,7 @@ label_ops_t gpt_label_ops = {
 	.suggest_ptype = gpt_suggest_ptype
 };
 
-static int gpt_open(label_bd_t *bd, label_t **rlabel)
+static errno_t gpt_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	gpt_header_t *gpt_hdr[2];
@@ -110,7 +110,7 @@ static int gpt_open(label_bd_t *bd, label_t **rlabel)
 	uint32_t hdr_size;
 	uint32_t hdr_crc;
 	int i, j;
-	int rc;
+	errno_t rc;
 
 	gpt_hdr[0] = NULL;
 	gpt_hdr[1] = NULL;
@@ -344,7 +344,7 @@ error:
 	return rc;
 }
 
-static int gpt_create(label_bd_t *bd, label_t **rlabel)
+static errno_t gpt_create(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	gpt_header_t *gpt_hdr = NULL;
@@ -361,7 +361,7 @@ static int gpt_create(label_bd_t *bd, label_t **rlabel)
 	uint32_t pt_crc;
 	uuid_t disk_uuid;
 	int i, j;
-	int rc;
+	errno_t rc;
 
 	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
@@ -509,13 +509,13 @@ static void gpt_close(label_t *label)
 	free(label);
 }
 
-static int gpt_destroy(label_t *label)
+static errno_t gpt_destroy(label_t *label)
 {
 	gpt_header_t *gpt_hdr = NULL;
 	uint8_t *etable = NULL;
 	label_part_t *part;
 	int i;
-	int rc;
+	errno_t rc;
 
 	part = gpt_part_first(label);
 	if (part != NULL) {
@@ -579,7 +579,7 @@ static bool gpt_can_delete_part(label_t *label)
 	return list_count(&label->parts) > 0;
 }
 
-static int gpt_get_info(label_t *label, label_info_t *linfo)
+static errno_t gpt_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
 	linfo->ltype = lt_gpt;
@@ -623,12 +623,12 @@ static void gpt_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 	pinfo->nblocks = part->nblocks;
 }
 
-static int gpt_part_create(label_t *label, label_part_spec_t *pspec,
+static errno_t gpt_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
 	label_part_t *part;
 	gpt_entry_t pte;
-	int rc;
+	errno_t rc;
 
 	part = calloc(1, sizeof(label_part_t));
 	if (part == NULL) {
@@ -695,10 +695,10 @@ error:
 	return rc;
 }
 
-static int gpt_part_destroy(label_part_t *part)
+static errno_t gpt_part_destroy(label_part_t *part)
 {
 	gpt_entry_t pte;
-	int rc;
+	errno_t rc;
 
 	/* Prepare unused partition table entry */
 	gpt_unused_pte(&pte);
@@ -714,11 +714,11 @@ static int gpt_part_destroy(label_part_t *part)
 	return EOK;
 }
 
-static int gpt_suggest_ptype(label_t *label, label_pcnt_t pcnt,
+static errno_t gpt_suggest_ptype(label_t *label, label_pcnt_t pcnt,
     label_ptype_t *ptype)
 {
 	const char *ptid;
-	int rc;
+	errno_t rc;
 
 	ptid = NULL;
 
@@ -747,7 +747,7 @@ static int gpt_suggest_ptype(label_t *label, label_pcnt_t pcnt,
 }
 
 /** Verify that the specified index is valid and free. */
-static int gpt_check_free_idx(label_t *label, int index)
+static errno_t gpt_check_free_idx(label_t *label, int index)
 {
 	label_part_t *part;
 
@@ -770,7 +770,7 @@ static bool gpt_overlap(uint64_t a0, uint64_t an, uint64_t b0, uint64_t bn)
 	return !(a0 + an <= b0 || b0 + bn <= a0);
 }
 
-static int gpt_check_free_range(label_t *label, uint64_t block0,
+static errno_t gpt_check_free_range(label_t *label, uint64_t block0,
     uint64_t nblocks)
 {
 	label_part_t *part;
@@ -795,7 +795,7 @@ static void gpt_unused_pte(gpt_entry_t *pte)
 	memset(pte, 0, sizeof(gpt_entry_t));
 }
 
-static int gpt_part_to_pte(label_part_t *part, gpt_entry_t *pte)
+static errno_t gpt_part_to_pte(label_part_t *part, gpt_entry_t *pte)
 {
 	uint64_t eblock;
 
@@ -813,7 +813,7 @@ static int gpt_part_to_pte(label_part_t *part, gpt_entry_t *pte)
 	return EOK;
 }
 
-static int gpt_pte_to_part(label_t *label, gpt_entry_t *pte, int index)
+static errno_t gpt_pte_to_part(label_t *label, gpt_entry_t *pte, int index)
 {
 	label_part_t *part;
 	bool present;
@@ -855,7 +855,7 @@ static int gpt_pte_to_part(label_t *label, gpt_entry_t *pte, int index)
  * Replace partition entry at index @a index with the contents of
  * @a pte.
  */
-static int gpt_pte_update(label_t *label, gpt_entry_t *pte, int index)
+static errno_t gpt_pte_update(label_t *label, gpt_entry_t *pte, int index)
 {
 	size_t pos;
 	uint64_t ba;
@@ -865,7 +865,7 @@ static int gpt_pte_update(label_t *label, gpt_entry_t *pte, int index)
 	gpt_entry_t *e;
 	uint32_t crc;
 	int i;
-	int rc;
+	errno_t rc;
 
 	/* Byte offset of partition entry */
 	pos = index * label->lt.gpt.esize;
@@ -920,10 +920,10 @@ error:
 	return rc;
 }
 
-static int gpt_update_pt_crc(label_t *label, uint32_t crc)
+static errno_t gpt_update_pt_crc(label_t *label, uint32_t crc)
 {
 	gpt_header_t *gpt_hdr;
-	int rc;
+	errno_t rc;
 	int i;
 
 	gpt_hdr = calloc(1, label->block_size);
@@ -967,7 +967,7 @@ static void gpt_hdr_compute_crc(gpt_header_t *hdr, size_t hdr_size)
 	hdr->header_crc32 = crc;
 }
 
-static int gpt_hdr_get_crc(gpt_header_t *hdr, size_t hdr_size, uint32_t *crc)
+static errno_t gpt_hdr_get_crc(gpt_header_t *hdr, size_t hdr_size, uint32_t *crc)
 {
 	gpt_header_t *c;
 
@@ -984,11 +984,11 @@ static int gpt_hdr_get_crc(gpt_header_t *hdr, size_t hdr_size, uint32_t *crc)
 }
 
 /** Create GPT Protective MBR */
-static int gpt_pmbr_create(label_bd_t *bd, size_t bsize, uint64_t nblocks)
+static errno_t gpt_pmbr_create(label_bd_t *bd, size_t bsize, uint64_t nblocks)
 {
 	mbr_br_block_t *pmbr = NULL;
 	uint64_t pmbr_nb;
-	int rc;
+	errno_t rc;
 
 	pmbr = calloc(1, bsize);
 	if (pmbr == NULL) {
@@ -1022,10 +1022,10 @@ error:
 }
 
 /** Destroy GPT Protective MBR */
-static int gpt_pmbr_destroy(label_bd_t *bd, size_t bsize)
+static errno_t gpt_pmbr_destroy(label_bd_t *bd, size_t bsize)
 {
 	mbr_br_block_t *pmbr = NULL;
-	int rc;
+	errno_t rc;
 
 	pmbr = calloc(1, bsize);
 	if (pmbr == NULL) {

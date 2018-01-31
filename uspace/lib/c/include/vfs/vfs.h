@@ -81,47 +81,47 @@ typedef struct {
 	size_t size;
 } vfs_fstypes_t;
 
-extern int vfs_fhandle(FILE *, int *);
+extern errno_t vfs_fhandle(FILE *, int *);
 
 extern char *vfs_absolutize(const char *, size_t *);
-extern int vfs_clone(int, int, bool, int *);
-extern int vfs_cwd_get(char *path, size_t);
-extern int vfs_cwd_set(const char *path);
+extern errno_t vfs_clone(int, int, bool, int *);
+extern errno_t vfs_cwd_get(char *path, size_t);
+extern errno_t vfs_cwd_set(const char *path);
 extern async_exch_t *vfs_exchange_begin(void);
 extern void vfs_exchange_end(async_exch_t *);
-extern int vfs_fsprobe(const char *, service_id_t, vfs_fs_probe_info_t *);
-extern int vfs_fstypes(vfs_fstypes_t *);
+extern errno_t vfs_fsprobe(const char *, service_id_t, vfs_fs_probe_info_t *);
+extern errno_t vfs_fstypes(vfs_fstypes_t *);
 extern void vfs_fstypes_free(vfs_fstypes_t *);
-extern int vfs_link(int, const char *, vfs_file_kind_t, int *);
-extern int vfs_link_path(const char *, vfs_file_kind_t, int *);
-extern int vfs_lookup(const char *, int, int *);
-extern int vfs_lookup_open(const char *, int, int, int *);
-extern int vfs_mount_path(const char *, const char *, const char *,
+extern errno_t vfs_link(int, const char *, vfs_file_kind_t, int *);
+extern errno_t vfs_link_path(const char *, vfs_file_kind_t, int *);
+extern errno_t vfs_lookup(const char *, int, int *);
+extern errno_t vfs_lookup_open(const char *, int, int, int *);
+extern errno_t vfs_mount_path(const char *, const char *, const char *,
     const char *, unsigned int, unsigned int);
-extern int vfs_mount(int, const char *, service_id_t, const char *, unsigned,
+extern errno_t vfs_mount(int, const char *, service_id_t, const char *, unsigned,
     unsigned, int *);
-extern int vfs_open(int, int);
-extern int vfs_pass_handle(async_exch_t *, int, async_exch_t *);
-extern int vfs_put(int);
-extern int vfs_read(int, aoff64_t *, void *, size_t, size_t *);
-extern int vfs_read_short(int, aoff64_t, void *, size_t, ssize_t *);
-extern int vfs_receive_handle(bool, int *);
-extern int vfs_rename_path(const char *, const char *);
-extern int vfs_resize(int, aoff64_t);
+extern errno_t vfs_open(int, int);
+extern errno_t vfs_pass_handle(async_exch_t *, int, async_exch_t *);
+extern errno_t vfs_put(int);
+extern errno_t vfs_read(int, aoff64_t *, void *, size_t, size_t *);
+extern errno_t vfs_read_short(int, aoff64_t, void *, size_t, ssize_t *);
+extern errno_t vfs_receive_handle(bool, int *);
+extern errno_t vfs_rename_path(const char *, const char *);
+extern errno_t vfs_resize(int, aoff64_t);
 extern int vfs_root(void);
-extern int vfs_root_set(int);
-extern int vfs_stat(int, struct stat *);
-extern int vfs_stat_path(const char *, struct stat *);
-extern int vfs_statfs(int, struct statfs *);
-extern int vfs_statfs_path(const char *, struct statfs *);
-extern int vfs_sync(int);
-extern int vfs_unlink(int, const char *, int);
-extern int vfs_unlink_path(const char *);
-extern int vfs_unmount(int);
-extern int vfs_unmount_path(const char *);
-extern int vfs_walk(int, const char *, int, int *);
-extern int vfs_write(int, aoff64_t *, const void *, size_t, size_t *);
-extern int vfs_write_short(int, aoff64_t, const void *, size_t, ssize_t *);
+extern errno_t vfs_root_set(int);
+extern errno_t vfs_stat(int, struct stat *);
+extern errno_t vfs_stat_path(const char *, struct stat *);
+extern errno_t vfs_statfs(int, struct statfs *);
+extern errno_t vfs_statfs_path(const char *, struct statfs *);
+extern errno_t vfs_sync(int);
+extern errno_t vfs_unlink(int, const char *, int);
+extern errno_t vfs_unlink_path(const char *);
+extern errno_t vfs_unmount(int);
+extern errno_t vfs_unmount_path(const char *);
+extern errno_t vfs_walk(int, const char *, int, int *);
+extern errno_t vfs_write(int, aoff64_t *, const void *, size_t, size_t *);
+extern errno_t vfs_write_short(int, aoff64_t, const void *, size_t, ssize_t *);
 
 #endif
 

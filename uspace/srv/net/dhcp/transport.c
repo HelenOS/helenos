@@ -74,10 +74,10 @@ static udp_cb_t dhcp_transport_cb = {
 	.link_state = dhcp_link_state
 };
 
-int dhcp_send(dhcp_transport_t *dt, void *msg, size_t size)
+errno_t dhcp_send(dhcp_transport_t *dt, void *msg, size_t size)
 {
 	inet_ep_t ep;
-	int rc;
+	errno_t rc;
 
 	inet_ep_init(&ep);
 	ep.port = dhcp_server_port;
@@ -96,7 +96,7 @@ static void dhcp_recv_msg(udp_assoc_t *assoc, udp_rmsg_t *rmsg)
 {
 	dhcp_transport_t *dt;
 	size_t s;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "dhcp_recv_msg()");
 
@@ -125,13 +125,13 @@ static void dhcp_link_state(udp_assoc_t *assoc, udp_link_state_t ls)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Link state change");
 }
 
-int dhcp_transport_init(dhcp_transport_t *dt, service_id_t link_id,
+errno_t dhcp_transport_init(dhcp_transport_t *dt, service_id_t link_id,
     dhcp_recv_cb_t recv_cb, void *arg)
 {
 	udp_t *udp = NULL;
 	udp_assoc_t *assoc = NULL;
 	inet_ep2_t epp;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_transport_init()");
 

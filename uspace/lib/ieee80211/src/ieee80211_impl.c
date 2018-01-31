@@ -48,7 +48,7 @@
  * @return EOK.
  *
  */
-int ieee80211_start_impl(ieee80211_dev_t *ieee80211_dev)
+errno_t ieee80211_start_impl(ieee80211_dev_t *ieee80211_dev)
 {
 	return EOK;
 }
@@ -62,7 +62,7 @@ int ieee80211_start_impl(ieee80211_dev_t *ieee80211_dev)
  * @return EOK.
  *
  */
-int ieee80211_tx_handler_impl(ieee80211_dev_t *ieee80211_dev, void *buffer,
+errno_t ieee80211_tx_handler_impl(ieee80211_dev_t *ieee80211_dev, void *buffer,
     size_t buffer_size)
 {
 	return EOK;
@@ -76,7 +76,7 @@ int ieee80211_tx_handler_impl(ieee80211_dev_t *ieee80211_dev, void *buffer,
  * @return EOK.
  *
  */
-int ieee80211_set_freq_impl(ieee80211_dev_t *ieee80211_dev, uint16_t freq)
+errno_t ieee80211_set_freq_impl(ieee80211_dev_t *ieee80211_dev, uint16_t freq)
 {
 	return EOK;
 }
@@ -88,7 +88,7 @@ int ieee80211_set_freq_impl(ieee80211_dev_t *ieee80211_dev, uint16_t freq)
  * @return EOK.
  *
  */
-int ieee80211_bssid_change_impl(ieee80211_dev_t *ieee80211_dev,
+errno_t ieee80211_bssid_change_impl(ieee80211_dev_t *ieee80211_dev,
     bool connected)
 {
 	return EOK;
@@ -101,7 +101,7 @@ int ieee80211_bssid_change_impl(ieee80211_dev_t *ieee80211_dev,
  * @return EOK.
  *
  */
-int ieee80211_key_config_impl(ieee80211_dev_t *ieee80211_dev,
+errno_t ieee80211_key_config_impl(ieee80211_dev_t *ieee80211_dev,
     ieee80211_key_config_t *key_conf, bool insert)
 {
 	return EOK;
@@ -115,7 +115,7 @@ int ieee80211_key_config_impl(ieee80211_dev_t *ieee80211_dev,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)
+errno_t ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)
 {
 	fibril_mutex_lock(&ieee80211_dev->scan_mutex);
 	
@@ -177,7 +177,7 @@ int ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)
  *         is not allocated, otherwise EOK.
  *
  */
-int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
+errno_t ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
     size_t output_size)
 {
 	if ((!key) || (!data))
@@ -211,13 +211,13 @@ int ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
 	return EOK;
 }
 
-int ieee80211_rc4_key_unwrap(uint8_t *key, uint8_t *data, size_t data_size,
+errno_t ieee80211_rc4_key_unwrap(uint8_t *key, uint8_t *data, size_t data_size,
     uint8_t *output)
 {
 	return rc4(key, 32, data, data_size, 256, output);
 }
 
-int ieee80211_aes_key_unwrap(uint8_t *kek, uint8_t *data, size_t data_size,
+errno_t ieee80211_aes_key_unwrap(uint8_t *kek, uint8_t *data, size_t data_size,
     uint8_t *output)
 {
 	if ((!kek) || (!data))
@@ -284,7 +284,7 @@ static void ieee80211_michael_mic_block(uint32_t *l, uint32_t *r,
 	*l += *r;
 }
 
-int ieee80211_michael_mic(uint8_t *key, uint8_t *buffer, size_t size,
+errno_t ieee80211_michael_mic(uint8_t *key, uint8_t *buffer, size_t size,
     uint8_t *mic)
 {
 	if ((!key) || (!buffer))
@@ -371,7 +371,7 @@ uint32_t uint32be_from_seq(void *seq)
 	return uint32_t_be2host(*u32);
 }
 
-int rnd_sequence(uint8_t *sequence, size_t length)
+errno_t rnd_sequence(uint8_t *sequence, size_t length)
 {
 	if (!sequence)
 		return ENOMEM;

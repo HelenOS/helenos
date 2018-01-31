@@ -44,9 +44,9 @@ struct symtab_entry {
 	char symbol_name[MAX_SYMBOL_NAME];
 };
 
-extern int symtab_name_lookup(uintptr_t, const char **, uintptr_t *);
+extern errno_t symtab_name_lookup(uintptr_t, const char **, uintptr_t *);
 extern const char *symtab_fmt_name_lookup(uintptr_t);
-extern int symtab_addr_lookup(const char *, uintptr_t *);
+extern errno_t symtab_addr_lookup(const char *, uintptr_t *);
 
 #ifdef CONFIG_SYMTAB
 

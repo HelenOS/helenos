@@ -61,7 +61,7 @@ typedef enum {
  *         error code otherwise.
  *
  */
-int ieee80211_get_scan_results(async_sess_t *dev_sess,
+errno_t ieee80211_get_scan_results(async_sess_t *dev_sess,
     ieee80211_scan_results_t *results, bool now)
 {
 	assert(results);
@@ -70,15 +70,15 @@ int ieee80211_get_scan_results(async_sess_t *dev_sess,
 	
 	aid_t aid = async_send_2(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_GET_SCAN_RESULTS, now, NULL);
-	int rc = async_data_read_start(exch, results,
+	errno_t rc = async_data_read_start(exch, results,
 	    sizeof(ieee80211_scan_results_t));
 	async_exchange_end(exch);
 	
-	int res;
+	errno_t res;
 	async_wait_for(aid, &res);
 	
 	if(res != EOK)
-		return (int) res;
+		return (errno_t) res;
 	
 	return rc;
 }
@@ -99,7 +99,7 @@ static sysarg_t get_link_id(uint8_t *mac)
 	inet_link_info_t link_info;
 	size_t count;
 	
-	int rc = inetcfg_get_link_list(&link_list, &count);
+	errno_t rc = inetcfg_get_link_list(&link_list, &count);
 	if (rc != EOK)
 		return -1;
 	
@@ -125,27 +125,27 @@ static sysarg_t get_link_id(uint8_t *mac)
  *         error code otherwise.
  *
  */
-int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
+errno_t ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 {
 	assert(ssid_start);
 	
-	int rc_orig;
+	errno_t rc_orig;
 	
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_CONNECT, NULL);
 	
-	int rc = async_data_write_start(exch, ssid_start,
+	errno_t rc = async_data_write_start(exch, ssid_start,
 	    str_size(ssid_start) + 1);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_wait_for(aid, &rc_orig);
 		
 		if (rc_orig == EOK)
-			return (int) rc;
+			return (errno_t) rc;
 		
-		return (int) rc_orig;
+		return (errno_t) rc_orig;
 	}
 	
 	// FIXME: Typecasting string literal
@@ -158,9 +158,9 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 		async_wait_for(aid, &rc_orig);
 		
 		if (rc_orig == EOK)
-			return (int) rc;
+			return (errno_t) rc;
 		
-		return (int) rc_orig;
+		return (errno_t) rc_orig;
 	}
 	
 	async_exchange_end(exch);
@@ -181,7 +181,7 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 	
 	rc = dhcp_discover(link_id);
 	
-	return (int) rc;
+	return (errno_t) rc;
 }
 
 /** Disconnect device from network.
@@ -192,10 +192,10 @@ int ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
  *         error code otherwise.
  *
  */
-int ieee80211_disconnect(async_sess_t *dev_sess)
+errno_t ieee80211_disconnect(async_sess_t *dev_sess)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	int rc = async_req_1_0(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
+	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_DISCONNECT);
 	async_exchange_end(exch);
 	
@@ -277,7 +277,7 @@ static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
 	
 	bool now = IPC_GET_ARG2(*call);
 	
-	int rc = ieee80211_iface->get_scan_results(fun, &scan_results, now);
+	errno_t rc = ieee80211_iface->get_scan_results(fun, &scan_results, now);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
 		size_t max_len;
@@ -323,7 +323,7 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 		return;
 	}
 	
-	int rc = async_data_write_finalize(data_callid, ssid_start, len);
+	errno_t rc = async_data_write_finalize(data_callid, ssid_start, len);
 	if (rc != EOK) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
@@ -359,7 +359,7 @@ static void remote_ieee80211_disconnect(ddf_fun_t *fun, void *iface,
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->disconnect);
-	int rc = ieee80211_iface->disconnect(fun);
+	errno_t rc = ieee80211_iface->disconnect(fun);
 	async_answer_0(callid, rc);
 }
 

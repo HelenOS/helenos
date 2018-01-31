@@ -50,14 +50,14 @@ typedef enum {
 
 extern inet_addrobj_t *inet_addrobj_new(void);
 extern void inet_addrobj_delete(inet_addrobj_t *);
-extern int inet_addrobj_add(inet_addrobj_t *);
+extern errno_t inet_addrobj_add(inet_addrobj_t *);
 extern void inet_addrobj_remove(inet_addrobj_t *);
 extern inet_addrobj_t *inet_addrobj_find(inet_addr_t *, inet_addrobj_find_t);
 extern inet_addrobj_t *inet_addrobj_find_by_name(const char *, inet_link_t *);
 extern inet_addrobj_t *inet_addrobj_get_by_id(sysarg_t);
-extern int inet_addrobj_send_dgram(inet_addrobj_t *, inet_addr_t *,
+extern errno_t inet_addrobj_send_dgram(inet_addrobj_t *, inet_addr_t *,
     inet_dgram_t *, uint8_t, uint8_t, int);
-extern int inet_addrobj_get_id_list(sysarg_t **, size_t *);
+extern errno_t inet_addrobj_get_id_list(sysarg_t **, size_t *);
 
 #endif
 

@@ -48,8 +48,8 @@ typedef enum {
 	BATTERY_CHARGE_LEVEL_GET,
 } battery_dev_method_t;
 
-extern int battery_status_get(async_sess_t *, battery_status_t *);
-extern int battery_charge_level_get(async_sess_t *, int *);
+extern errno_t battery_status_get(async_sess_t *, battery_status_t *);
+extern errno_t battery_charge_level_get(async_sess_t *, int *);
 
 #endif
 

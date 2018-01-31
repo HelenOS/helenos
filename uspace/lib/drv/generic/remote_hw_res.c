@@ -78,7 +78,7 @@ static void remote_hw_res_enable_interrupt(ddf_fun_t *fun, void *ops,
 	}
 	
 	const int irq = DEV_IPC_GET_ARG1(*call);
-	const int ret = hw_res_ops->enable_interrupt(fun, irq);
+	const errno_t ret = hw_res_ops->enable_interrupt(fun, irq);
 	async_answer_0(callid, ret);
 }
 
@@ -93,7 +93,7 @@ static void remote_hw_res_disable_interrupt(ddf_fun_t *fun, void *ops,
 	}
 	
 	const int irq = DEV_IPC_GET_ARG1(*call);
-	const int ret = hw_res_ops->disable_interrupt(fun, irq);
+	const errno_t ret = hw_res_ops->disable_interrupt(fun, irq);
 	async_answer_0(callid, ret);
 }
 
@@ -108,7 +108,7 @@ static void remote_hw_res_clear_interrupt(ddf_fun_t *fun, void *ops,
 	}
 	
 	const int irq = DEV_IPC_GET_ARG1(*call);
-	const int ret = hw_res_ops->enable_interrupt(fun, irq);
+	const errno_t ret = hw_res_ops->enable_interrupt(fun, irq);
 	async_answer_0(callid, ret);
 }
 
@@ -152,7 +152,7 @@ static void remote_hw_res_dma_channel_setup(ddf_fun_t *fun, void *ops,
 	const uint32_t address = DEV_IPC_GET_ARG2(*call);
 	const uint32_t size = DEV_IPC_GET_ARG3(*call);
 
-	const int ret = hw_res_ops->dma_channel_setup(
+	const errno_t ret = hw_res_ops->dma_channel_setup(
 	    fun, channel, address, size, mode);
 	async_answer_0(callid, ret);
 }
@@ -168,7 +168,7 @@ static void remote_hw_res_dma_channel_remain(ddf_fun_t *fun, void *ops,
 	}
 	const unsigned channel = DEV_IPC_GET_ARG1(*call);
 	size_t remain = 0;
-	const int ret = hw_res_ops->dma_channel_remain(fun, channel, &remain);
+	const errno_t ret = hw_res_ops->dma_channel_remain(fun, channel, &remain);
 	async_answer_1(callid, ret, remain);
 }
 /**

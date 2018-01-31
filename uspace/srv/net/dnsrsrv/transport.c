@@ -68,7 +68,7 @@ typedef struct {
 	fibril_condvar_t done_cv;
 	fibril_mutex_t done_lock;
 
-	int status;
+	errno_t status;
 } trans_req_t;
 
 static uint8_t recv_buf[RECV_BUF_SIZE];
@@ -89,10 +89,10 @@ static udp_cb_t transport_cb = {
 	.link_state = transport_link_state
 };
 
-int transport_init(void)
+errno_t transport_init(void)
 {
 	inet_ep2_t epp;
-	int rc;
+	errno_t rc;
 
 	inet_ep2_init(&epp);
 
@@ -176,7 +176,7 @@ static void treq_complete(trans_req_t *treq, dns_message_t *resp)
 	fibril_condvar_broadcast(&treq->done_cv);
 }
 
-int dns_request(dns_message_t *req, dns_message_t **rresp)
+errno_t dns_request(dns_message_t *req, dns_message_t **rresp)
 {
 	trans_req_t *treq = NULL;
 	inet_ep_t ep;
@@ -184,7 +184,7 @@ int dns_request(dns_message_t *req, dns_message_t **rresp)
 	void *req_data;
 	size_t req_size;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dns_request: Encode dns message");
-	int rc = dns_message_encode(req, &req_data, &req_size);
+	errno_t rc = dns_message_encode(req, &req_data, &req_size);
 	if (rc != EOK)
 		goto error;
 
@@ -254,7 +254,7 @@ static void transport_recv_msg(udp_assoc_t *assoc, udp_rmsg_t *rmsg)
 	trans_req_t *treq;
 	size_t size;
 	inet_ep_t remote_ep;
-	int rc;
+	errno_t rc;
 
 	size = udp_rmsg_size(rmsg);
 	if (size > RECV_BUF_SIZE)

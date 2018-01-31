@@ -53,7 +53,7 @@ typedef struct {
 } inet_dgram_t;
 
 typedef struct {
-	int (*recv)(inet_dgram_t *);
+	errno_t (*recv)(inet_dgram_t *);
 } inet_ev_ops_t;
 
 typedef enum {

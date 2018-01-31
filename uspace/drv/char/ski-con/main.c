@@ -41,11 +41,11 @@
 
 #define NAME  "ski-con"
 
-static int ski_con_dev_add(ddf_dev_t *dev);
-static int ski_con_dev_remove(ddf_dev_t *dev);
-static int ski_con_dev_gone(ddf_dev_t *dev);
-static int ski_con_fun_online(ddf_fun_t *fun);
-static int ski_con_fun_offline(ddf_fun_t *fun);
+static errno_t ski_con_dev_add(ddf_dev_t *dev);
+static errno_t ski_con_dev_remove(ddf_dev_t *dev);
+static errno_t ski_con_dev_gone(ddf_dev_t *dev);
+static errno_t ski_con_fun_online(ddf_fun_t *fun);
+static errno_t ski_con_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.dev_add = ski_con_dev_add,
@@ -60,7 +60,7 @@ static driver_t ski_con_driver = {
 	.driver_ops = &driver_ops
 };
 
-static int ski_con_dev_add(ddf_dev_t *dev)
+static errno_t ski_con_dev_add(ddf_dev_t *dev)
 {
 	ski_con_t *ski_con;
 
@@ -76,7 +76,7 @@ static int ski_con_dev_add(ddf_dev_t *dev)
 	return ski_con_add(ski_con);
 }
 
-static int ski_con_dev_remove(ddf_dev_t *dev)
+static errno_t ski_con_dev_remove(ddf_dev_t *dev)
 {
         ski_con_t *ski_con = (ski_con_t *)ddf_dev_data_get(dev);
 
@@ -85,7 +85,7 @@ static int ski_con_dev_remove(ddf_dev_t *dev)
         return ski_con_remove(ski_con);
 }
 
-static int ski_con_dev_gone(ddf_dev_t *dev)
+static errno_t ski_con_dev_gone(ddf_dev_t *dev)
 {
         ski_con_t *ski_con = (ski_con_t *)ddf_dev_data_get(dev);
 
@@ -94,13 +94,13 @@ static int ski_con_dev_gone(ddf_dev_t *dev)
         return ski_con_gone(ski_con);
 }
 
-static int ski_con_fun_online(ddf_fun_t *fun)
+static errno_t ski_con_fun_online(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "ski_con_fun_online()");
         return ddf_fun_online(fun);
 }
 
-static int ski_con_fun_offline(ddf_fun_t *fun)
+static errno_t ski_con_fun_offline(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "ski_con_fun_offline()");
         return ddf_fun_offline(fun);

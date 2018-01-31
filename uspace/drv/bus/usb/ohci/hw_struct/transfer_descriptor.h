@@ -118,7 +118,7 @@ inline static bool td_is_finished(const td_t *instance)
  * @param instance TD structure.
  * @return Error code.
  */
-static inline int td_error(const td_t *instance)
+static inline errno_t td_error(const td_t *instance)
 {
 	assert(instance);
 	const int cc = (OHCI_MEM32_RD(instance->status)

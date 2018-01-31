@@ -193,7 +193,7 @@ static void hw_res_parse_add_mem_range(hw_res_list_parsed_t *out,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int hw_res_list_parse(const pio_window_t *win,
+errno_t hw_res_list_parse(const pio_window_t *win,
     const hw_resource_list_t *res, hw_res_list_parsed_t *out, int flags)
 {
 	if (!res || !out)
@@ -252,11 +252,11 @@ int hw_res_list_parse(const pio_window_t *win,
  * @return EOK if succeed, error code otherwise
  *
  */
-int hw_res_get_list_parsed(async_sess_t *sess,
+errno_t hw_res_get_list_parsed(async_sess_t *sess,
     hw_res_list_parsed_t *hw_res_parsed, int flags)
 {
 	pio_window_t pio_window;
-	int rc;
+	errno_t rc;
 
 	if (!hw_res_parsed)
 		return EBADMEM;

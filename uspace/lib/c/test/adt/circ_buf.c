@@ -49,7 +49,7 @@ PCUT_TEST(push_pop)
 	circ_buf_t cbuf;
 	int i;
 	int j;
-	int rc;
+	errno_t rc;
 
 	circ_buf_init(&cbuf, buffer, buffer_size, sizeof(int));
 

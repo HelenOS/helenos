@@ -91,7 +91,7 @@ INT_MAP_IMPLEMENT(int_map, int);
  * @returns The first error occurred.
  *
  */
-int self_test(void)
+errno_t self_test(void)
 {
 	printf("Running networking self-tests\n");
 	

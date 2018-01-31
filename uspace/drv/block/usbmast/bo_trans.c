@@ -57,9 +57,9 @@
  *
  * @return		Error code
  */
-int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
+errno_t usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 {
-	int rc;
+	errno_t rc;
 
 	if (cmd->data_in && cmd->data_out)
 		return EINVAL;
@@ -191,7 +191,7 @@ int usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
  * @param mfun		Mass storage function
  * @return		Error code
  */
-int usb_massstor_reset(usbmast_dev_t *mdev)
+errno_t usb_massstor_reset(usbmast_dev_t *mdev)
 {
 	return usb_control_request_set(
 	    usb_device_get_default_pipe(mdev->usb_dev),
@@ -233,7 +233,7 @@ int usb_massstor_get_max_lun(usbmast_dev_t *mdev)
 {
 	uint8_t max_lun;
 	size_t data_recv_len;
-	int rc = usb_control_request_get(
+	errno_t rc = usb_control_request_get(
 	    usb_device_get_default_pipe(mdev->usb_dev),
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    0xFE, 0, usb_device_get_iface_number(mdev->usb_dev), &max_lun, 1,

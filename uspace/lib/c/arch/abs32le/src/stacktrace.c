@@ -39,12 +39,12 @@ bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 	return true;
 }
 
-int stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
+errno_t stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 {
 	return 0;
 }
 
-int stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
+errno_t stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
 {
 	return 0;
 }

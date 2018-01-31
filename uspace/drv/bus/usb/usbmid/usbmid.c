@@ -51,7 +51,7 @@
  * @param[out] desc Device descriptor.
  * @return Error code.
  */
-static int usb_iface_description(ddf_fun_t *fun, usb_device_desc_t *desc)
+static errno_t usb_iface_description(ddf_fun_t *fun, usb_device_desc_t *desc)
 {
 	usbmid_interface_t *iface = ddf_fun_data_get(fun);
 	assert(iface);
@@ -63,7 +63,7 @@ static int usb_iface_description(ddf_fun_t *fun, usb_device_desc_t *desc)
 		return EPARTY;
 
 	usb_device_desc_t tmp_desc;
-	const int ret = usb_get_my_description(exch, &tmp_desc);
+	const errno_t ret = usb_get_my_description(exch, &tmp_desc);
 
 	if (ret == EOK && desc) {
 		*desc = tmp_desc;
@@ -85,11 +85,11 @@ static ddf_dev_ops_t child_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &child_usb_iface
 };
 
-int usbmid_interface_destroy(usbmid_interface_t *mid_iface)
+errno_t usbmid_interface_destroy(usbmid_interface_t *mid_iface)
 {
 	assert(mid_iface);
 	assert_link_not_used(&mid_iface->link);
-	const int ret = ddf_fun_unbind(mid_iface->fun);
+	const errno_t ret = ddf_fun_unbind(mid_iface->fun);
 	if (ret != EOK) {
 		return ret;
 	}
@@ -105,14 +105,14 @@ int usbmid_interface_destroy(usbmid_interface_t *mid_iface)
  * @param interface_descriptor Interface descriptor.
  * @return Error code.
  */
-int usbmid_spawn_interface_child(usb_device_t *parent,
+errno_t usbmid_spawn_interface_child(usb_device_t *parent,
     usbmid_interface_t **iface_ret,
     const usb_standard_device_descriptor_t *device_descriptor,
     const usb_standard_interface_descriptor_t *interface_descriptor)
 {
 	ddf_fun_t *child = NULL;
 	char *child_name = NULL;
-	int rc;
+	errno_t rc;
 
 	/*
 	 * Name is class name followed by interface number.

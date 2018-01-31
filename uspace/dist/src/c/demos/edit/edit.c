@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 {
 	cons_event_t ev;
 	bool new_file;
-	int rc;
+	errno_t rc;
 
 	con = console_init(stdin, stdout);
 	console_clear(con);
@@ -579,7 +579,7 @@ static void key_handle_movement(unsigned int key, bool select)
 static int file_save(char const *fname)
 {
 	spt_t sp, ep;
-	int rc;
+	errno_t rc;
 
 	status_display("Saving...");
 	pt_get_sof(&sp);
@@ -614,7 +614,7 @@ static void file_save_as(void)
 		return;
 	}
 
-	int rc = file_save(fname);
+	errno_t rc = file_save(fname);
 	if (rc != EOK)
 		return;
 
@@ -1329,7 +1329,7 @@ static void search(char *pattern, bool reverse)
 	}
 	
 	match_t match;
-	int rc = search_next_match(search, &match);
+	errno_t rc = search_next_match(search, &match);
 	if (rc != EOK) {
 		status_display("Failed searching.");
 		search_fini(search);
@@ -1447,7 +1447,7 @@ static void insert_clipboard_data(void)
 	char *str;
 	size_t off;
 	wchar_t c;
-	int rc;
+	errno_t rc;
 
 	rc = clipboard_get_str(&str);
 	if (rc != EOK || str == NULL)

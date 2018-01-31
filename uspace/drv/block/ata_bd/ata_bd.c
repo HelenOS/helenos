@@ -81,43 +81,43 @@
  */
 static const size_t identify_data_size = 512;
 
-static int ata_bd_init_io(ata_ctrl_t *ctrl);
+static errno_t ata_bd_init_io(ata_ctrl_t *ctrl);
 static void ata_bd_fini_io(ata_ctrl_t *ctrl);
 
-static int ata_bd_open(bd_srvs_t *, bd_srv_t *);
-static int ata_bd_close(bd_srv_t *);
-static int ata_bd_read_blocks(bd_srv_t *, uint64_t ba, size_t cnt, void *buf,
+static errno_t ata_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t ata_bd_close(bd_srv_t *);
+static errno_t ata_bd_read_blocks(bd_srv_t *, uint64_t ba, size_t cnt, void *buf,
     size_t);
-static int ata_bd_read_toc(bd_srv_t *, uint8_t session, void *buf, size_t);
-static int ata_bd_write_blocks(bd_srv_t *, uint64_t ba, size_t cnt,
+static errno_t ata_bd_read_toc(bd_srv_t *, uint8_t session, void *buf, size_t);
+static errno_t ata_bd_write_blocks(bd_srv_t *, uint64_t ba, size_t cnt,
     const void *buf, size_t);
-static int ata_bd_get_block_size(bd_srv_t *, size_t *);
-static int ata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
-static int ata_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
+static errno_t ata_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t ata_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t ata_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
 
-static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t cnt,
+static errno_t ata_rcmd_read(disk_t *disk, uint64_t ba, size_t cnt,
     void *buf);
-static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
+static errno_t ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
     const void *buf);
-static int ata_rcmd_flush_cache(disk_t *disk);
-static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id);
-static int ata_identify_dev(disk_t *disk, void *buf);
-static int ata_identify_pkt_dev(disk_t *disk, void *buf);
-static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
+static errno_t ata_rcmd_flush_cache(disk_t *disk);
+static errno_t disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id);
+static errno_t ata_identify_dev(disk_t *disk, void *buf);
+static errno_t ata_identify_pkt_dev(disk_t *disk, void *buf);
+static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
     void *obuf, size_t obuf_size, size_t *rcvd_size);
-static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size,
+static errno_t ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size,
     size_t *rcvd_size);
-static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
+static errno_t ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
     void *obuf, size_t obuf_size);
-static int ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
+static errno_t ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
     size_t *block_size);
-static int ata_pcmd_read_toc(disk_t *disk, uint8_t ses,
+static errno_t ata_pcmd_read_toc(disk_t *disk, uint8_t ses,
     void *obuf, size_t obuf_size);
 static void disk_print_summary(disk_t *d);
-static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
+static errno_t coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
 static void coord_sc_program(ata_ctrl_t *ctrl, const block_coord_t *bc,
     uint16_t scnt);
-static int wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
+static errno_t wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
     uint8_t *pstatus, unsigned timeout);
 
 bd_ops_t ata_bd_ops = {
@@ -142,10 +142,10 @@ static int disk_dev_idx(disk_t *disk)
 }
 
 /** Initialize ATA controller. */
-int ata_ctrl_init(ata_ctrl_t *ctrl, ata_base_t *res)
+errno_t ata_ctrl_init(ata_ctrl_t *ctrl, ata_base_t *res)
 {
 	int i;
-	int rc;
+	errno_t rc;
 	int n_disks;
 
 	ddf_msg(LVL_DEBUG, "ata_ctrl_init()");
@@ -208,10 +208,10 @@ error:
 }
 
 /** Remove ATA controller. */
-int ata_ctrl_remove(ata_ctrl_t *ctrl)
+errno_t ata_ctrl_remove(ata_ctrl_t *ctrl)
 {
 	int i;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, ": ata_ctrl_remove()");
 
@@ -233,10 +233,10 @@ int ata_ctrl_remove(ata_ctrl_t *ctrl)
 }
 
 /** Surprise removal of ATA controller. */
-int ata_ctrl_gone(ata_ctrl_t *ctrl)
+errno_t ata_ctrl_gone(ata_ctrl_t *ctrl)
 {
 	int i;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "ata_ctrl_gone()");
 
@@ -307,9 +307,9 @@ cleanup:
 }
 
 /** Enable device I/O. */
-static int ata_bd_init_io(ata_ctrl_t *ctrl)
+static errno_t ata_bd_init_io(ata_ctrl_t *ctrl)
 {
-	int rc;
+	errno_t rc;
 	void *vaddr;
 
 	rc = pio_enable((void *) ctrl->cmd_physical, sizeof(ata_cmd_t), &vaddr);
@@ -343,7 +343,7 @@ static void ata_bd_fini_io(ata_ctrl_t *ctrl)
  * Probes for a disk, determines its parameters and initializes
  * the disk structure.
  */
-static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
+static errno_t disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 {
 	identify_data_t idata;
 	uint8_t model[40];
@@ -355,7 +355,7 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 	uint64_t nblocks;
 	size_t block_size;
 	size_t pos, len;
-	int rc;
+	errno_t rc;
 	unsigned i;
 
 	d->ctrl = ctrl;
@@ -497,22 +497,22 @@ static int disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 	return EOK;
 }
 
-static int ata_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+static errno_t ata_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	return EOK;
 }
 
-static int ata_bd_close(bd_srv_t *bd)
+static errno_t ata_bd_close(bd_srv_t *bd)
 {
 	return EOK;
 }
 
 /** Read multiple blocks from the device. */
-static int ata_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+static errno_t ata_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     void *buf, size_t size)
 {
 	disk_t *disk = bd_srv_disk(bd);
-	int rc;
+	errno_t rc;
 
 	if (size < cnt * disk->block_size)
 		return EINVAL;
@@ -537,7 +537,7 @@ static int ata_bd_read_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 }
 
 /** Read TOC from device. */
-static int ata_bd_read_toc(bd_srv_t *bd, uint8_t session, void *buf, size_t size)
+static errno_t ata_bd_read_toc(bd_srv_t *bd, uint8_t session, void *buf, size_t size)
 {
 	disk_t *disk = bd_srv_disk(bd);
 
@@ -545,11 +545,11 @@ static int ata_bd_read_toc(bd_srv_t *bd, uint8_t session, void *buf, size_t size
 }
 
 /** Write multiple blocks to the device. */
-static int ata_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
+static errno_t ata_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	disk_t *disk = bd_srv_disk(bd);
-	int rc;
+	errno_t rc;
 
 	if (disk->dev_type != ata_reg_dev)
 		return ENOTSUP;
@@ -571,7 +571,7 @@ static int ata_bd_write_blocks(bd_srv_t *bd, uint64_t ba, size_t cnt,
 }
 
 /** Get device block size. */
-static int ata_bd_get_block_size(bd_srv_t *bd, size_t *rbsize)
+static errno_t ata_bd_get_block_size(bd_srv_t *bd, size_t *rbsize)
 {
 	disk_t *disk = bd_srv_disk(bd);
 
@@ -580,7 +580,7 @@ static int ata_bd_get_block_size(bd_srv_t *bd, size_t *rbsize)
 }
 
 /** Get device number of blocks. */
-static int ata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+static errno_t ata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	disk_t *disk = bd_srv_disk(bd);
 
@@ -589,7 +589,7 @@ static int ata_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 }
 
 /** Flush cache. */
-static int ata_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
+static errno_t ata_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
 {
 	disk_t *disk = bd_srv_disk(bd);
 
@@ -601,7 +601,7 @@ static int ata_bd_sync_cache(bd_srv_t *bd, uint64_t ba, size_t cnt)
 }
 
 /** PIO data-in command protocol. */
-static int ata_pio_data_in(disk_t *disk, void *obuf, size_t obuf_size,
+static errno_t ata_pio_data_in(disk_t *disk, void *obuf, size_t obuf_size,
     size_t blk_size, size_t nblocks)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
@@ -632,7 +632,7 @@ static int ata_pio_data_in(disk_t *disk, void *obuf, size_t obuf_size,
 }
 
 /** PIO data-out command protocol. */
-static int ata_pio_data_out(disk_t *disk, const void *buf, size_t buf_size,
+static errno_t ata_pio_data_out(disk_t *disk, const void *buf, size_t buf_size,
     size_t blk_size, size_t nblocks)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
@@ -661,7 +661,7 @@ static int ata_pio_data_out(disk_t *disk, const void *buf, size_t buf_size,
 }
 
 /** PIO non-data command protocol. */
-static int ata_pio_nondata(disk_t *disk)
+static errno_t ata_pio_nondata(disk_t *disk)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	uint8_t status;
@@ -686,7 +686,7 @@ static int ata_pio_nondata(disk_t *disk)
  * @return		ETIMEOUT on timeout (this can mean the device is
  *			not present). EIO if device responds with error.
  */
-static int ata_identify_dev(disk_t *disk, void *buf)
+static errno_t ata_identify_dev(disk_t *disk, void *buf)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	uint8_t status;
@@ -738,7 +738,7 @@ static int ata_identify_dev(disk_t *disk, void *buf)
  * @param disk		Disk
  * @param buf		Pointer to a 512-byte buffer.
  */
-static int ata_identify_pkt_dev(disk_t *disk, void *buf)
+static errno_t ata_identify_pkt_dev(disk_t *disk, void *buf)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	uint8_t drv_head;
@@ -771,7 +771,7 @@ static int ata_identify_pkt_dev(disk_t *disk, void *buf)
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
+static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
     void *obuf, size_t obuf_size, size_t *rcvd_size)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
@@ -859,12 +859,12 @@ static int ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size,
+static errno_t ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size,
     size_t *rcvd_size)
 {
 	uint8_t cpb[12];
 	scsi_cdb_inquiry_t *cp = (scsi_cdb_inquiry_t *)cpb;
-	int rc;
+	errno_t rc;
 
 	memset(cpb, 0, sizeof(cpb));
 
@@ -892,13 +892,13 @@ static int ata_pcmd_inquiry(disk_t *disk, void *obuf, size_t obuf_size,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
+static errno_t ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
     size_t *block_size)
 {
 	scsi_cdb_read_capacity_10_t cdb;
 	scsi_read_capacity_10_data_t data;
 	size_t rsize;
-	int rc;
+	errno_t rc;
 
 	memset(&cdb, 0, sizeof(cdb));
 	cdb.op_code = SCSI_CMD_READ_CAPACITY_10;
@@ -929,11 +929,11 @@ static int ata_pcmd_read_capacity(disk_t *disk, uint64_t *nblocks,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
+static errno_t ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
     void *obuf, size_t obuf_size)
 {
 	scsi_cdb_read_12_t cp;
-	int rc;
+	errno_t rc;
 
 	if (ba > UINT32_MAX)
 		return EINVAL;
@@ -968,12 +968,12 @@ static int ata_pcmd_read_12(disk_t *disk, uint64_t ba, size_t cnt,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_pcmd_read_toc(disk_t *disk, uint8_t session, void *obuf,
+static errno_t ata_pcmd_read_toc(disk_t *disk, uint8_t session, void *obuf,
     size_t obuf_size)
 {
 	uint8_t cpb[12];
 	scsi_cdb_read_toc_t *cp = (scsi_cdb_read_toc_t *)cpb;
-	int rc;
+	errno_t rc;
 
 	memset(cpb, 0, sizeof(cpb));
 
@@ -1000,13 +1000,13 @@ static int ata_pcmd_read_toc(disk_t *disk, uint8_t session, void *obuf,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
+static errno_t ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
     void *buf)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	uint8_t drv_head;
 	block_coord_t bc;
-	int rc;
+	errno_t rc;
 
 	/* Silence warning. */
 	memset(&bc, 0, sizeof(bc));
@@ -1060,13 +1060,13 @@ static int ata_rcmd_read(disk_t *disk, uint64_t ba, size_t blk_cnt,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
+static errno_t ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
     const void *buf)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	uint8_t drv_head;
 	block_coord_t bc;
-	int rc;
+	errno_t rc;
 
 	/* Silence warning. */
 	memset(&bc, 0, sizeof(bc));
@@ -1116,11 +1116,11 @@ static int ata_rcmd_write(disk_t *disk, uint64_t ba, size_t cnt,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_rcmd_flush_cache(disk_t *disk)
+static errno_t ata_rcmd_flush_cache(disk_t *disk)
 {
 	ata_ctrl_t *ctrl = disk->ctrl;
 	uint8_t drv_head;
-	int rc;
+	errno_t rc;
 
 	/* New value for Drive/Head register */
 	drv_head =
@@ -1158,7 +1158,7 @@ static int ata_rcmd_flush_cache(disk_t *disk)
  *
  * @return EOK on success or EINVAL if block index is past end of device.
  */
-static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc)
+static errno_t coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc)
 {
 	uint64_t c;
 	uint64_t idx;
@@ -1245,7 +1245,7 @@ static void coord_sc_program(ata_ctrl_t *ctrl, const block_coord_t *bc,
  *
  * @return		EOK on success, EIO on timeout.
  */
-static int wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
+static errno_t wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
     uint8_t *pstatus, unsigned timeout)
 {
 	uint8_t status;

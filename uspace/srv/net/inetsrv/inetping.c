@@ -57,7 +57,7 @@ static LIST_INITIALIZE(client_list);
 /** Last used session identifier. Protected by @c client_list_lock */
 static uint16_t inetping_ident = 0;
 
-static int inetping_send(inetping_client_t *client, inetping_sdu_t *sdu)
+static errno_t inetping_send(inetping_client_t *client, inetping_sdu_t *sdu)
 {
 	if (sdu->src.version != sdu->dest.version)
 		return EINVAL;
@@ -72,7 +72,7 @@ static int inetping_send(inetping_client_t *client, inetping_sdu_t *sdu)
 	}
 }
 
-static int inetping_get_srcaddr(inetping_client_t *client,
+static errno_t inetping_get_srcaddr(inetping_client_t *client,
     inet_addr_t *remote, inet_addr_t *local)
 {
 	return inet_get_srcaddr(remote, ICMP_TOS, local);
@@ -93,7 +93,7 @@ static inetping_client_t *inetping_client_find(uint16_t ident)
 	return NULL;
 }
 
-int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
+errno_t inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 {
 	inetping_client_t *client = inetping_client_find(ident);
 	if (client == NULL) {
@@ -106,7 +106,7 @@ int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, INETPING_EV_RECV, sdu->seq_no, &answer);
 
-	int rc = async_data_write_start(exch, &sdu->src, sizeof(sdu->src));
+	errno_t rc = async_data_write_start(exch, &sdu->src, sizeof(sdu->src));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -129,7 +129,7 @@ int inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 		return rc;
 	}
 
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 
 	return retval;
@@ -141,7 +141,7 @@ static void inetping_send_srv(inetping_client_t *client, ipc_callid_t iid,
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_send_srv()");
 
 	inetping_sdu_t sdu;
-	int rc;
+	errno_t rc;
 
 	sdu.seq_no = IPC_GET_ARG1(*icall);
 
@@ -221,7 +221,7 @@ static void inetping_get_srcaddr_srv(inetping_client_t *client,
 		return;
 	}
 
-	int rc = async_data_write_finalize(callid, &remote, size);
+	errno_t rc = async_data_write_finalize(callid, &remote, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
@@ -253,7 +253,7 @@ static void inetping_get_srcaddr_srv(inetping_client_t *client,
 	async_answer_0(iid, rc);
 }
 
-static int inetping_client_init(inetping_client_t *client)
+static errno_t inetping_client_init(inetping_client_t *client)
 {
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL)
@@ -288,7 +288,7 @@ void inetping_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	async_answer_0(iid, EOK);
 
 	inetping_client_t client;
-	int rc = inetping_client_init(&client);
+	errno_t rc = inetping_client_init(&client);
 	if (rc != EOK)
 		return;
 

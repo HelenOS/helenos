@@ -40,7 +40,7 @@
 #include <abi/errno.h>
 #include <macros.h>
 
-static int request_preprocess(call_t *call, phone_t *phone)
+static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
 	task_t *other_task_s;
 
@@ -67,9 +67,9 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	if (!IPC_GET_RETVAL(answer->data)) {
 		/* The recipient authorized the change of state. */

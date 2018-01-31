@@ -70,7 +70,7 @@ static bool nic_wv_key_equal(void *key, const ht_link_t *item)
  * @return EOK		On success
  * @return ENOMEM	On not enough memory
  */
-int nic_wol_virtues_init(nic_wol_virtues_t *wvs)
+errno_t nic_wol_virtues_init(nic_wol_virtues_t *wvs)
 {
 	memset(wvs, 0, sizeof(nic_wol_virtues_t));
 	wvs->table_operations.hash = nic_wv_hash;
@@ -123,7 +123,7 @@ void nic_wol_virtues_clear(nic_wol_virtues_t *wvs)
  * @return EINVAL	The arguments are incorrect
  * @return ENOTSUP	This type is unknown
  */
-int nic_wol_virtues_verify(nic_wv_type_t type, const void *data, size_t length)
+errno_t nic_wol_virtues_verify(nic_wv_type_t type, const void *data, size_t length)
 {
 	switch (type) {
 	case NIC_WV_ARP_REQUEST:
@@ -159,7 +159,7 @@ int nic_wol_virtues_verify(nic_wv_type_t type, const void *data, size_t length)
  * 					with the data
  * @return ENOMEM	Not enough memory to activate the virtue
  */
-int nic_wol_virtues_add(nic_wol_virtues_t *wvs, nic_wol_virtue_t *virtue)
+errno_t nic_wol_virtues_add(nic_wol_virtues_t *wvs, nic_wol_virtue_t *virtue)
 {
 	if (!nic_wv_is_multi(virtue->type) &&
 		wvs->lists[virtue->type] != NULL) {
@@ -246,7 +246,7 @@ const nic_wol_virtue_t *nic_wol_virtues_find(const nic_wol_virtues_t *wvs,
  * @return EOK		If it completes successfully
  * @return EINVAL	If the filter type is invalid
  */
-int nic_wol_virtues_list(const nic_wol_virtues_t *wvs, nic_wv_type_t type,
+errno_t nic_wol_virtues_list(const nic_wol_virtues_t *wvs, nic_wv_type_t type,
 	size_t max_count, nic_wv_id_t *id_list, size_t *id_count)
 {
 	size_t count = 0;

@@ -46,7 +46,7 @@
 
 #define RCV_BUF_SIZE 64
 
-static int test_srv(void *arg)
+static errno_t test_srv(void *arg)
 {
 	tcp_conn_t *conn;
 	inet_ep2_t epp;
@@ -90,7 +90,7 @@ static int test_srv(void *arg)
 	return 0;
 }
 
-static int test_cli(void *arg)
+static errno_t test_cli(void *arg)
 {
 	tcp_conn_t *conn;
 	inet_ep2_t epp;

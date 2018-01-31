@@ -34,7 +34,7 @@
 #ifndef CTL_H
 #define CTL_H
 
-extern int adb_kbd_key_translate(sysarg_t, kbd_event_type_t *, unsigned int *);
+extern errno_t adb_kbd_key_translate(sysarg_t, kbd_event_type_t *, unsigned int *);
 
 #endif
 

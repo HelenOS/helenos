@@ -83,7 +83,7 @@ perm_t perm_get(task_t *task)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-static int perm_grant(task_id_t taskid, perm_t perms)
+static errno_t perm_grant(task_id_t taskid, perm_t perms)
 {
 	if (!(perm_get(TASK) & PERM_PERM))
 		return EPERM;
@@ -115,7 +115,7 @@ static int perm_grant(task_id_t taskid, perm_t perms)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-static int perm_revoke(task_id_t taskid, perm_t perms)
+static errno_t perm_revoke(task_id_t taskid, perm_t perms)
 {
 	irq_spinlock_lock(&tasks_lock, true);
 	
@@ -157,12 +157,12 @@ static int perm_revoke(task_id_t taskid, perm_t perms)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_perm_grant(sysarg64_t *uspace_taskid, perm_t perms)
+sys_errno_t sys_perm_grant(sysarg64_t *uspace_taskid, perm_t perms)
 {
 	sysarg64_t taskid;
-	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
-	if (rc != 0)
-		return (sysarg_t) rc;
+	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
+	if (rc != EOK)
+		return (sys_errno_t) rc;
 	
 	return perm_grant((task_id_t) taskid, perms);
 }
@@ -178,12 +178,12 @@ sysarg_t sys_perm_grant(sysarg64_t *uspace_taskid, perm_t perms)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_perm_revoke(sysarg64_t *uspace_taskid, perm_t perms)
+sys_errno_t sys_perm_revoke(sysarg64_t *uspace_taskid, perm_t perms)
 {
 	sysarg64_t taskid;
-	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
-	if (rc != 0)
-		return (sysarg_t) rc;
+	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
+	if (rc != EOK)
+		return (sys_errno_t) rc;
 	
 	return perm_revoke((task_id_t) taskid, perms);
 }
@@ -202,7 +202,7 @@ sysarg_t sys_perm_revoke(sysarg64_t *uspace_taskid, perm_t perms)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_perm_grant(sysarg_t taskid, perm_t perms)
+sys_errno_t sys_perm_grant(sysarg_t taskid, perm_t perms)
 {
 	return perm_grant((task_id_t) taskid, perms);
 }
@@ -218,7 +218,7 @@ sysarg_t sys_perm_grant(sysarg_t taskid, perm_t perms)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_perm_revoke(sysarg_t taskid, perm_t perms)
+sys_errno_t sys_perm_revoke(sysarg_t taskid, perm_t perms)
 {
 	return perm_revoke((task_id_t) taskid, perms);
 }

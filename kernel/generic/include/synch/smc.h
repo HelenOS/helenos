@@ -35,7 +35,7 @@
 #ifndef KERN_SMC_H_
 #define KERN_SMC_H_
 
-extern sysarg_t sys_smc_coherence(uintptr_t, size_t);
+extern sys_errno_t sys_smc_coherence(uintptr_t, size_t);
 
 #endif
 

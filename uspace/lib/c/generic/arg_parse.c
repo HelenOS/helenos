@@ -64,7 +64,7 @@ int arg_parse_short_long(const char *arg, const char *ashort, const char *along)
  * @return EINVAL if the argument is in wrong format.
  *
  */
-int arg_parse_int(int argc, char *argv[], int *index, int *value,
+errno_t arg_parse_int(int argc, char *argv[], int *index, int *value,
     int offset)
 {
 	char *rest;
@@ -104,12 +104,12 @@ int arg_parse_int(int argc, char *argv[], int *index, int *value,
  * @return EINVAL if the argument name has not been found.
  *
  */
-int arg_parse_name_int(int argc, char *argv[], int *index, int *value,
+errno_t arg_parse_name_int(int argc, char *argv[], int *index, int *value,
     int offset, arg_parser parser)
 {
 	char *arg;
 	
-	int ret = arg_parse_string(argc, argv, index, &arg, offset);
+	errno_t ret = arg_parse_string(argc, argv, index, &arg, offset);
 	if (ret != EOK)
 		return ret;
 	
@@ -134,7 +134,7 @@ int arg_parse_name_int(int argc, char *argv[], int *index, int *value,
  * @return ENOENT if the parameter is missing.
  *
  */
-int arg_parse_string(int argc, char **argv, int *index, char **value,
+errno_t arg_parse_string(int argc, char **argv, int *index, char **value,
     int offset)
 {
 	if (offset)

@@ -47,12 +47,12 @@
 
 #define POLL_INTERVAL		10000
 
-static int ski_con_fibril(void *arg);
+static errno_t ski_con_fibril(void *arg);
 static int32_t ski_con_getchar(void);
 static void ski_con_connection(ipc_callid_t, ipc_call_t *, void *);
 
-static int ski_con_read(chardev_srv_t *, void *, size_t, size_t *);
-static int ski_con_write(chardev_srv_t *, const void *, size_t, size_t *);
+static errno_t ski_con_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t ski_con_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t ski_con_chardev_ops = {
 	.read = ski_con_read,
@@ -62,12 +62,12 @@ static chardev_ops_t ski_con_chardev_ops = {
 static void ski_con_putchar(ski_con_t *con, char ch); /* XXX */
 
 /** Add ski console device. */
-int ski_con_add(ski_con_t *con)
+errno_t ski_con_add(ski_con_t *con)
 {
 	fid_t fid;
 	ddf_fun_t *fun = NULL;
 	bool bound = false;
-	int rc;
+	errno_t rc;
 
 	circ_buf_init(&con->cbuf, con->buf, ski_con_buf_size, 1);
 	fibril_mutex_initialize(&con->buf_lock);
@@ -115,23 +115,23 @@ error:
 }
 
 /** Remove ski console device */
-int ski_con_remove(ski_con_t *con)
+errno_t ski_con_remove(ski_con_t *con)
 {
 	return ENOTSUP;
 }
 
 /** Ski console device gone */
-int ski_con_gone(ski_con_t *con)
+errno_t ski_con_gone(ski_con_t *con)
 {
 	return ENOTSUP;
 }
 
 /** Poll Ski for keypresses. */
-static int ski_con_fibril(void *arg)
+static errno_t ski_con_fibril(void *arg)
 {
 	int32_t c;
 	ski_con_t *con = (ski_con_t *) arg;
-	int rc;
+	errno_t rc;
 
 	while (1) {
 		while (1) {
@@ -211,13 +211,13 @@ static void ski_con_putchar(ski_con_t *con, char ch)
 }
 
 /** Read from Ski console device */
-static int ski_con_read(chardev_srv_t *srv, void *buf, size_t size,
+static errno_t ski_con_read(chardev_srv_t *srv, void *buf, size_t size,
     size_t *nread)
 {
 	ski_con_t *con = (ski_con_t *) srv->srvs->sarg;
 	size_t p;
 	uint8_t *bp = (uint8_t *) buf;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&con->buf_lock);
 
@@ -239,7 +239,7 @@ static int ski_con_read(chardev_srv_t *srv, void *buf, size_t size,
 }
 
 /** Write to Ski console device */
-static int ski_con_write(chardev_srv_t *srv, const void *data, size_t size,
+static errno_t ski_con_write(chardev_srv_t *srv, const void *data, size_t size,
     size_t *nwr)
 {
 	ski_con_t *con = (ski_con_t *) srv->srvs->sarg;

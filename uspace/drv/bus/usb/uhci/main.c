@@ -48,7 +48,7 @@
 
 #define NAME "uhci"
 
-static int disable_legacy(hc_device_t *);
+static errno_t disable_legacy(hc_device_t *);
 
 static const hc_driver_t uhci_driver = {
 	.name = NAME,
@@ -66,7 +66,7 @@ static const hc_driver_t uhci_driver = {
  * @param[in] device Device asking to disable interrupts
  * @return Error code.
  */
-static int disable_legacy(hc_device_t *hcd)
+static errno_t disable_legacy(hc_device_t *hcd)
 {
 	assert(hcd);
 

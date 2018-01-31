@@ -397,25 +397,25 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
  *			returned. Otherwise returns the return value of
  *                      waitq_sleep_timeout().
  */
-sysarg_t sys_futex_sleep(uintptr_t uaddr)
+sys_errno_t sys_futex_sleep(uintptr_t uaddr)
 {
 	futex_t *futex = get_futex(uaddr);
 	
 	if (!futex) 
-		return (sysarg_t) ENOENT;
+		return (sys_errno_t) ENOENT;
 
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_begin();
 #endif
 
-	int rc = waitq_sleep_timeout(
+	errno_t rc = waitq_sleep_timeout(
 	    &futex->wq, 0, SYNCH_FLAGS_INTERRUPTIBLE, NULL);
 
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
 
-	return (sysarg_t) rc;
+	return (sys_errno_t) rc;
 }
 
 /** Wakeup one thread waiting in futex wait queue.
@@ -424,7 +424,7 @@ sysarg_t sys_futex_sleep(uintptr_t uaddr)
  *
  * @return		ENOENT if there is no physical mapping for uaddr.
  */
-sysarg_t sys_futex_wakeup(uintptr_t uaddr)
+sys_errno_t sys_futex_wakeup(uintptr_t uaddr)
 {
 	futex_t *futex = get_futex(uaddr);
 	
@@ -432,7 +432,7 @@ sysarg_t sys_futex_wakeup(uintptr_t uaddr)
 		waitq_wakeup(&futex->wq, WAKEUP_FIRST);
 		return EOK;
 	} else {
-		return (sysarg_t) ENOENT;
+		return (sys_errno_t) ENOENT;
 	}
 }
 

@@ -39,18 +39,18 @@
 #include <io/chargrid.h>
 #include <io/console.h>
 
-extern int output_yield(async_sess_t *);
-extern int output_claim(async_sess_t *);
-extern int output_get_dimensions(async_sess_t *, sysarg_t *, sysarg_t *);
-extern int output_get_caps(async_sess_t *, console_caps_t *);
+extern errno_t output_yield(async_sess_t *);
+extern errno_t output_claim(async_sess_t *);
+extern errno_t output_get_dimensions(async_sess_t *, sysarg_t *, sysarg_t *);
+extern errno_t output_get_caps(async_sess_t *, console_caps_t *);
 
 extern frontbuf_handle_t output_frontbuf_create(async_sess_t *, chargrid_t *);
 
-extern int output_cursor_update(async_sess_t *, frontbuf_handle_t);
-extern int output_set_style(async_sess_t *, console_style_t);
+extern errno_t output_cursor_update(async_sess_t *, frontbuf_handle_t);
+extern errno_t output_set_style(async_sess_t *, console_style_t);
 
-extern int output_update(async_sess_t *, frontbuf_handle_t);
-extern int output_damage(async_sess_t *, frontbuf_handle_t,
+extern errno_t output_update(async_sess_t *, frontbuf_handle_t);
+extern errno_t output_damage(async_sess_t *, frontbuf_handle_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t);
 
 #endif

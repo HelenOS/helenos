@@ -87,7 +87,7 @@ size_t usb_interface_count_alternates(const uint8_t *config_descr,
  * @param[in] interface_number Interface number.
  * @return Error code.
  */
-int usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
+errno_t usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
     const uint8_t *config_descr, size_t config_descr_size, int interface_number)
 {
 	assert(alternates != NULL);

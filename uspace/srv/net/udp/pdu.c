@@ -161,7 +161,7 @@ static void udp_pdu_set_checksum(udp_pdu_t *pdu, uint16_t checksum)
 }
 
 /** Decode incoming PDU */
-int udp_pdu_decode(udp_pdu_t *pdu, inet_ep2_t *epp, udp_msg_t **msg)
+errno_t udp_pdu_decode(udp_pdu_t *pdu, inet_ep2_t *epp, udp_msg_t **msg)
 {
 	udp_msg_t *nmsg;
 	udp_header_t *hdr;
@@ -208,7 +208,7 @@ int udp_pdu_decode(udp_pdu_t *pdu, inet_ep2_t *epp, udp_msg_t **msg)
 }
 
 /** Encode outgoing PDU */
-int udp_pdu_encode(inet_ep2_t *epp, udp_msg_t *msg, udp_pdu_t **pdu)
+errno_t udp_pdu_encode(inet_ep2_t *epp, udp_msg_t *msg, udp_pdu_t **pdu)
 {
 	udp_pdu_t *npdu;
 	udp_header_t *hdr;

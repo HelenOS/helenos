@@ -40,9 +40,9 @@
 #include <stdint.h>
 #include <types/inet.h>
 
-extern int inet_init(uint8_t, inet_ev_ops_t *);
-extern int inet_send(inet_dgram_t *, uint8_t, inet_df_t);
-extern int inet_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
+extern errno_t inet_init(uint8_t, inet_ev_ops_t *);
+extern errno_t inet_send(inet_dgram_t *, uint8_t, inet_df_t);
+extern errno_t inet_get_srcaddr(inet_addr_t *, uint8_t, inet_addr_t *);
 
 #endif
 

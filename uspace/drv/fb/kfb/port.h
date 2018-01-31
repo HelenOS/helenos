@@ -38,7 +38,7 @@
 
 #include <ddf/driver.h>
 
-extern int port_init(ddf_dev_t *);
+extern errno_t port_init(ddf_dev_t *);
 
 #endif
 

@@ -50,7 +50,7 @@ typedef struct {
 	usb_hid_dev_t *hid_dev;
 } usb_hid_gen_fun_t;
 
-extern int usb_generic_hid_init(usb_hid_dev_t *, void **);
+extern errno_t usb_generic_hid_init(usb_hid_dev_t *, void **);
 extern void usb_generic_hid_deinit(usb_hid_dev_t *, void *);
 extern bool usb_generic_hid_polling_callback(usb_hid_dev_t *, void *);
 

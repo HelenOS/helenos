@@ -162,7 +162,7 @@ bool init_label(label_t *lbl, widget_t *parent, const void *data,
 	else
 		lbl->caption = str_dup(caption);
 	
-	int rc = embedded_font_create(&lbl->font, points);
+	errno_t rc = embedded_font_create(&lbl->font, points);
 	if (rc != EOK) {
 		free(lbl->caption);
 		lbl->caption = NULL;

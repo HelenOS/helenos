@@ -37,7 +37,7 @@
 
 typedef struct hc_device hc_device_t;
 
-extern int disable_legacy(hc_device_t *);
+extern errno_t disable_legacy(hc_device_t *);
 
 #endif
 /**

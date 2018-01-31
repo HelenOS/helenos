@@ -55,7 +55,7 @@ const char *test_serial1(void)
 	size_t cnt;
 	serial_t *serial;
 	chardev_t *chardev;
-	int rc;
+	errno_t rc;
 	size_t nread;
 	size_t nwritten;
 	
@@ -74,7 +74,7 @@ const char *test_serial1(void)
 		}
 	
 	service_id_t svc_id;
-	int res = loc_service_get_id("devices/\\hw\\pci0\\00:01.0\\com1\\a",
+	errno_t res = loc_service_get_id("devices/\\hw\\pci0\\00:01.0\\com1\\a",
 	    &svc_id, IPC_FLAG_BLOCKING);
 	if (res != EOK)
 		return "Failed getting serial port service ID";

@@ -100,7 +100,7 @@ static vuhid_interface_life_t boot_life = {
 	.msg_die = "Boot keyboard died."
 };
 
-static int on_data_out(vuhid_interface_t *iface,
+static errno_t on_data_out(vuhid_interface_t *iface,
     const void *buffer, size_t buffer_size)
 {
 	if (buffer_size == 0) {

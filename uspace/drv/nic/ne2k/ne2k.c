@@ -123,7 +123,7 @@ static irq_cmd_t ne2k_cmds_prototype[] = {
 
 static void ne2k_interrupt_handler(ipc_call_t *, ddf_dev_t *);
 
-static int ne2k_register_interrupt(nic_t *nic_data, cap_handle_t *handle)
+static errno_t ne2k_register_interrupt(nic_t *nic_data, cap_handle_t *handle)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
@@ -177,13 +177,13 @@ static void ne2k_dev_cleanup(ddf_dev_t *dev)
 	}
 }
 
-static int ne2k_dev_init(nic_t *nic_data)
+static errno_t ne2k_dev_init(nic_t *nic_data)
 {
 	/* Get HW resources */
 	hw_res_list_parsed_t hw_res_parsed;
 	hw_res_list_parsed_init(&hw_res_parsed);
 	
-	int rc = nic_get_resources(nic_data, &hw_res_parsed);
+	errno_t rc = nic_get_resources(nic_data, &hw_res_parsed);
 	
 	if (rc != EOK)
 		goto failed;
@@ -242,12 +242,12 @@ void ne2k_interrupt_handler(ipc_call_t *call, ddf_dev_t *dev)
 	ne2k_interrupt(nic_data, IRQ_GET_ISR(*call), IRQ_GET_TSR(*call));
 }
 
-static int ne2k_on_activating(nic_t *nic_data)
+static errno_t ne2k_on_activating(nic_t *nic_data)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
 	if (!ne2k->up) {
-		int rc = ne2k_up(ne2k);
+		errno_t rc = ne2k_up(ne2k);
 		if (rc != EOK)
 			return rc;
 
@@ -260,7 +260,7 @@ static int ne2k_on_activating(nic_t *nic_data)
 	return EOK;
 }
 
-static int ne2k_on_stopping(nic_t *nic_data)
+static errno_t ne2k_on_stopping(nic_t *nic_data)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
@@ -270,10 +270,10 @@ static int ne2k_on_stopping(nic_t *nic_data)
 	return EOK;
 }
 
-static int ne2k_set_address(ddf_fun_t *fun, const nic_address_t *address)
+static errno_t ne2k_set_address(ddf_fun_t *fun, const nic_address_t *address)
 {
 	nic_t *nic_data = DRIVER_DATA(ddf_fun_get_dev(fun));
-	int rc = nic_report_address(nic_data, address);
+	errno_t rc = nic_report_address(nic_data, address);
 	if (rc != EOK) {
 		return EINVAL;
 	}
@@ -285,7 +285,7 @@ static int ne2k_set_address(ddf_fun_t *fun, const nic_address_t *address)
 	return EOK;
 }
 
-static int ne2k_on_unicast_mode_change(nic_t *nic_data,
+static errno_t ne2k_on_unicast_mode_change(nic_t *nic_data,
 	nic_unicast_mode_t new_mode,
 	const nic_address_t *address_list, size_t address_count)
 {
@@ -312,7 +312,7 @@ static int ne2k_on_unicast_mode_change(nic_t *nic_data,
 	}
 }
 
-static int ne2k_on_multicast_mode_change(nic_t *nic_data,
+static errno_t ne2k_on_multicast_mode_change(nic_t *nic_data,
 	nic_multicast_mode_t new_mode,
 	const nic_address_t *address_list, size_t address_count)
 {
@@ -338,7 +338,7 @@ static int ne2k_on_multicast_mode_change(nic_t *nic_data,
 	}
 }
 
-static int ne2k_on_broadcast_mode_change(nic_t *nic_data,
+static errno_t ne2k_on_broadcast_mode_change(nic_t *nic_data,
 	nic_broadcast_mode_t new_mode)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
@@ -354,7 +354,7 @@ static int ne2k_on_broadcast_mode_change(nic_t *nic_data,
 	}
 }
 
-static int ne2k_dev_add(ddf_dev_t *dev)
+static errno_t ne2k_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
 	
@@ -386,7 +386,7 @@ static int ne2k_dev_add(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 	
-	int rc = ne2k_dev_init(nic_data);
+	errno_t rc = ne2k_dev_init(nic_data);
 	if (rc != EOK) {
 		ne2k_dev_cleanup(dev);
 		return rc;

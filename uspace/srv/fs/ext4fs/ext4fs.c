@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 		return 2;
 	}
 	
-	int rc = ext4_global_init();
+	errno_t rc = ext4_global_init();
 	if (rc != EOK) {
 		printf("%s: Global initialization failed\n", NAME);
 		return rc;

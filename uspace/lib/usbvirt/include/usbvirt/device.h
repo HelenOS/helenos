@@ -55,7 +55,7 @@ typedef struct usbvirt_device usbvirt_device_t;
  * @param buffer_size Size of the buffer in bytes.
  * @return Error code.
  */
-typedef int (*usbvirt_on_data_to_device_t)(usbvirt_device_t *dev,
+typedef errno_t (*usbvirt_on_data_to_device_t)(usbvirt_device_t *dev,
     usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
     const void *buffer, size_t buffer_size);
 
@@ -69,7 +69,7 @@ typedef int (*usbvirt_on_data_to_device_t)(usbvirt_device_t *dev,
  * @param act_buffer_size Write here how many bytes were actually written.
  * @return Error code.
  */
-typedef int (*usbvirt_on_data_from_device_t)(usbvirt_device_t *dev,
+typedef errno_t (*usbvirt_on_data_from_device_t)(usbvirt_device_t *dev,
     usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
     void *buffer, size_t buffer_size, size_t *act_buffer_size);
 
@@ -84,7 +84,7 @@ typedef int (*usbvirt_on_data_from_device_t)(usbvirt_device_t *dev,
  * @param act_data_size Size of returned data in bytes.
  * @return Error code.
  */
-typedef int (*usbvirt_on_control_t)(usbvirt_device_t *dev,
+typedef errno_t (*usbvirt_on_control_t)(usbvirt_device_t *dev,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_data_size);
 
@@ -238,24 +238,24 @@ struct usbvirt_device {
 	async_sess_t *vhc_sess;
 };
 
-extern int req_nop(usbvirt_device_t *device,
+extern errno_t req_nop(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size);
 
-extern int usbvirt_device_plug(usbvirt_device_t *, const char *);
+extern errno_t usbvirt_device_plug(usbvirt_device_t *, const char *);
 extern void usbvirt_device_unplug(usbvirt_device_t *);
 
 extern void usbvirt_control_reply_helper(
     const usb_device_request_setup_packet_t *, uint8_t *, size_t *,
     const void *, size_t);
 
-extern int usbvirt_control_write(usbvirt_device_t *, const void *, size_t,
+extern errno_t usbvirt_control_write(usbvirt_device_t *, const void *, size_t,
     void *, size_t);
-extern int usbvirt_control_read(usbvirt_device_t *, const void *, size_t,
+extern errno_t usbvirt_control_read(usbvirt_device_t *, const void *, size_t,
     void *, size_t, size_t *);
-extern int usbvirt_data_out(usbvirt_device_t *, usb_transfer_type_t,
+extern errno_t usbvirt_data_out(usbvirt_device_t *, usb_transfer_type_t,
     usb_endpoint_t, const void *, size_t);
-extern int usbvirt_data_in(usbvirt_device_t *, usb_transfer_type_t,
+extern errno_t usbvirt_data_in(usbvirt_device_t *, usb_transfer_type_t,
     usb_endpoint_t, void *, size_t, size_t *);
 
 #endif

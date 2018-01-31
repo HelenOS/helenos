@@ -47,15 +47,15 @@
 
 extern uint16_t inet_checksum_calc(uint16_t, void *, size_t);
 
-extern int inet_pdu_encode(inet_packet_t *, addr32_t, addr32_t, size_t, size_t,
+extern errno_t inet_pdu_encode(inet_packet_t *, addr32_t, addr32_t, size_t, size_t,
     void **, size_t *, size_t *);
-extern int inet_pdu_encode6(inet_packet_t *, addr128_t, addr128_t, size_t,
+extern errno_t inet_pdu_encode6(inet_packet_t *, addr128_t, addr128_t, size_t,
     size_t, void **, size_t *, size_t *);
-extern int inet_pdu_decode(void *, size_t, service_id_t, inet_packet_t *);
-extern int inet_pdu_decode6(void *, size_t, service_id_t, inet_packet_t *);
+extern errno_t inet_pdu_decode(void *, size_t, service_id_t, inet_packet_t *);
+extern errno_t inet_pdu_decode6(void *, size_t, service_id_t, inet_packet_t *);
 
-extern int ndp_pdu_decode(inet_dgram_t *, ndp_packet_t *);
-extern int ndp_pdu_encode(ndp_packet_t *, inet_dgram_t *);
+extern errno_t ndp_pdu_decode(inet_dgram_t *, ndp_packet_t *);
+extern errno_t ndp_pdu_encode(ndp_packet_t *, inet_dgram_t *);
 
 #endif
 

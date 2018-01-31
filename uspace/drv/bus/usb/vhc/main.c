@@ -49,7 +49,7 @@ static ddf_dev_ops_t vhc_ops = {
 	.default_handler = default_connection_handler
 };
 
-static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
+static errno_t vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 {
 	assert(dev);
 	assert(fun);
@@ -63,7 +63,7 @@ static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 		ddf_fun_destroy(*fun);
 	}
 	ddf_fun_set_ops(*fun, &vhc_ops);
-	const int ret = ddf_fun_bind(*fun);
+	const errno_t ret = ddf_fun_bind(*fun);
 	if (ret != EOK) {
 		ddf_fun_destroy(*fun);
 		*fun = NULL;
@@ -72,10 +72,10 @@ static int vhc_control_node(ddf_dev_t *dev, ddf_fun_t **fun)
 	return EOK;
 }
 
-static int vhc_dev_add(ddf_dev_t *dev)
+static errno_t vhc_dev_add(ddf_dev_t *dev)
 {
 	/* Initialize generic structures */
-	int ret = hcd_ddf_setup_hc(dev, sizeof(vhc_data_t));
+	errno_t ret = hcd_ddf_setup_hc(dev, sizeof(vhc_data_t));
 	if (ret != EOK) {
 		usb_log_error("Failed to init HCD structures: %s.",
 		   str_error(ret));

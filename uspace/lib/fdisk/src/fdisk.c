@@ -45,16 +45,16 @@
 #include <vbd.h>
 #include <vol.h>
 
-static int fdisk_dev_add_parts(fdisk_dev_t *);
+static errno_t fdisk_dev_add_parts(fdisk_dev_t *);
 static void fdisk_dev_remove_parts(fdisk_dev_t *);
-static int fdisk_part_spec_prepare(fdisk_dev_t *, fdisk_part_spec_t *,
+static errno_t fdisk_part_spec_prepare(fdisk_dev_t *, fdisk_part_spec_t *,
     vbd_part_spec_t *);
 static void fdisk_pri_part_insert_lists(fdisk_dev_t *, fdisk_part_t *);
 static void fdisk_log_part_insert_lists(fdisk_dev_t *, fdisk_part_t *);
-static int fdisk_update_dev_info(fdisk_dev_t *);
+static errno_t fdisk_update_dev_info(fdisk_dev_t *);
 static uint64_t fdisk_ba_align_up(fdisk_dev_t *, uint64_t);
 static uint64_t fdisk_ba_align_down(fdisk_dev_t *, uint64_t);
-static int fdisk_part_get_max_free_range(fdisk_dev_t *, fdisk_spc_t, aoff64_t *,
+static errno_t fdisk_part_get_max_free_range(fdisk_dev_t *, fdisk_spc_t, aoff64_t *,
     aoff64_t *);
 static void fdisk_free_range_first(fdisk_dev_t *, fdisk_spc_t, fdisk_free_range_t *);
 static bool fdisk_free_range_next(fdisk_free_range_t *);
@@ -69,10 +69,10 @@ static void fdisk_dev_info_delete(fdisk_dev_info_t *info)
 	free(info);
 }
 
-int fdisk_create(fdisk_t **rfdisk)
+errno_t fdisk_create(fdisk_t **rfdisk)
 {
 	fdisk_t *fdisk = NULL;
-	int rc;
+	errno_t rc;
 
 	fdisk = calloc(1, sizeof(fdisk_t));
 	if (fdisk == NULL) {
@@ -110,13 +110,13 @@ void fdisk_destroy(fdisk_t *fdisk)
 	free(fdisk);
 }
 
-int fdisk_dev_list_get(fdisk_t *fdisk, fdisk_dev_list_t **rdevlist)
+errno_t fdisk_dev_list_get(fdisk_t *fdisk, fdisk_dev_list_t **rdevlist)
 {
 	fdisk_dev_list_t *devlist = NULL;
 	fdisk_dev_info_t *info;
 	service_id_t *svcs = NULL;
 	size_t count, i;
-	int rc;
+	errno_t rc;
 
 	devlist = calloc(1, sizeof(fdisk_dev_list_t));
 	if (devlist == NULL)
@@ -198,10 +198,10 @@ void fdisk_dev_info_get_svcid(fdisk_dev_info_t *info, service_id_t *rsid)
 	*rsid = info->svcid;
 }
 
-int fdisk_dev_info_get_svcname(fdisk_dev_info_t *info, char **rname)
+errno_t fdisk_dev_info_get_svcname(fdisk_dev_info_t *info, char **rname)
 {
 	char *name;
-	int rc;
+	errno_t rc;
 
 	if (info->svcname == NULL) {
 		rc = loc_service_get_name(info->svcid,
@@ -218,10 +218,10 @@ int fdisk_dev_info_get_svcname(fdisk_dev_info_t *info, char **rname)
 	return EOK;
 }
 
-int fdisk_dev_info_capacity(fdisk_dev_info_t *info, cap_spec_t *cap)
+errno_t fdisk_dev_info_capacity(fdisk_dev_info_t *info, cap_spec_t *cap)
 {
 	vbd_disk_info_t vinfo;
-	int rc;
+	errno_t rc;
 
 	rc = vbd_disk_info(info->devlist->fdisk->vbd, info->svcid, &vinfo);
 	if (rc != EOK)
@@ -232,13 +232,13 @@ int fdisk_dev_info_capacity(fdisk_dev_info_t *info, cap_spec_t *cap)
 }
 
 /** Add partition to our inventory. */
-static int fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
+static errno_t fdisk_part_add(fdisk_dev_t *dev, vbd_part_id_t partid,
     fdisk_part_t **rpart)
 {
 	fdisk_part_t *part;
 	vbd_part_info_t pinfo;
 	vol_part_info_t vpinfo;
-	int rc;
+	errno_t rc;
 
 	part = calloc(1, sizeof(fdisk_part_t));
 	if (part == NULL)
@@ -380,11 +380,11 @@ static void fdisk_log_part_insert_lists(fdisk_dev_t *dev, fdisk_part_t *part)
 		list_append(&part->llog_ba, &dev->log_ba);
 }
 
-static int fdisk_dev_add_parts(fdisk_dev_t *dev)
+static errno_t fdisk_dev_add_parts(fdisk_dev_t *dev)
 {
 	service_id_t *psids = NULL;
 	size_t nparts, i;
-	int rc;
+	errno_t rc;
 
 	rc = fdisk_update_dev_info(dev);
 	if (rc != EOK) {
@@ -423,12 +423,12 @@ static void fdisk_dev_remove_parts(fdisk_dev_t *dev)
 	}
 }
 
-int fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
+errno_t fdisk_dev_open(fdisk_t *fdisk, service_id_t sid, fdisk_dev_t **rdev)
 {
 	fdisk_dev_t *dev = NULL;
 	service_id_t *psids = NULL;
 	size_t nparts, i;
-	int rc;
+	errno_t rc;
 
 	dev = calloc(1, sizeof(fdisk_dev_t));
 	if (dev == NULL)
@@ -478,10 +478,10 @@ void fdisk_dev_close(fdisk_dev_t *dev)
 }
 
 /** Erase contents of unlabeled disk. */
-int fdisk_dev_erase(fdisk_dev_t *dev)
+errno_t fdisk_dev_erase(fdisk_dev_t *dev)
 {
 	fdisk_part_t *part;
-	int rc;
+	errno_t rc;
 
 	if (dev->dinfo.ltype != lt_none)
 		return EINVAL;
@@ -522,10 +522,10 @@ void fdisk_dev_get_flags(fdisk_dev_t *dev, fdisk_dev_flags_t *rflags)
 	*rflags = flags;
 }
 
-int fdisk_dev_get_svcname(fdisk_dev_t *dev, char **rname)
+errno_t fdisk_dev_get_svcname(fdisk_dev_t *dev, char **rname)
 {
 	char *name;
-	int rc;
+	errno_t rc;
 
 	rc = loc_service_get_name(dev->sid, &name);
 	if (rc != EOK)
@@ -535,18 +535,18 @@ int fdisk_dev_get_svcname(fdisk_dev_t *dev, char **rname)
 	return EOK;
 }
 
-int fdisk_dev_capacity(fdisk_dev_t *dev, cap_spec_t *cap)
+errno_t fdisk_dev_capacity(fdisk_dev_t *dev, cap_spec_t *cap)
 {
 	cap_from_blocks(dev->dinfo.nblocks, dev->dinfo.block_size, cap);
 	return EOK;
 }
 
-int fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
+errno_t fdisk_label_get_info(fdisk_dev_t *dev, fdisk_label_info_t *info)
 {
 	vbd_disk_info_t vinfo;
 	uint64_t b0, nb;
 	uint64_t hdrb;
-	int rc;
+	errno_t rc;
 
 	rc = vbd_disk_info(dev->fdisk->vbd, dev->sid, &vinfo);
 	if (rc != EOK) {
@@ -579,10 +579,10 @@ error:
 	return rc;
 }
 
-int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
+errno_t fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 {
 	fdisk_part_t *part;
-	int rc;
+	errno_t rc;
 
 	/* Disk must not contain a label. */
 	if (dev->dinfo.ltype != lt_none)
@@ -611,11 +611,11 @@ int fdisk_label_create(fdisk_dev_t *dev, label_type_t ltype)
 	return EOK;
 }
 
-int fdisk_label_destroy(fdisk_dev_t *dev)
+errno_t fdisk_label_destroy(fdisk_dev_t *dev)
 {
 	fdisk_part_t *part;
 	fdisk_dev_flags_t dflags;
-	int rc;
+	errno_t rc;
 
 	part = fdisk_part_first(dev);
 	while (part != NULL) {
@@ -666,7 +666,7 @@ fdisk_part_t *fdisk_part_next(fdisk_part_t *part)
 	return list_get_instance(link, fdisk_part_t, lparts);
 }
 
-int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
+errno_t fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 {
 	info->capacity = part->capacity;
 	info->pcnt = part->pcnt;
@@ -677,9 +677,9 @@ int fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 }
 
 /** Get size of largest free block. */
-int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, cap_spec_t *cap)
+errno_t fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, cap_spec_t *cap)
 {
-	int rc;
+	errno_t rc;
 	uint64_t b0;
 	uint64_t nb;
 	aoff64_t hdrb;
@@ -701,7 +701,7 @@ int fdisk_part_get_max_avail(fdisk_dev_t *dev, fdisk_spc_t spc, cap_spec_t *cap)
 }
 
 /** Get total free space capacity. */
-int fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
+errno_t fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
     cap_spec_t *cap)
 {
 	fdisk_free_range_t fr;
@@ -728,7 +728,7 @@ int fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
 	return EOK;
 }
 
-int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
+errno_t fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     fdisk_part_t **rpart)
 {
 	fdisk_part_t *part = NULL;
@@ -736,7 +736,7 @@ int fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	vbd_part_id_t partid = 0;
 	vol_part_info_t vpinfo;
 	const char *label;
-	int rc;
+	errno_t rc;
 
 	label = pspec->label != NULL ? pspec->label : "";
 
@@ -795,9 +795,9 @@ error:
 	return rc;
 }
 
-int fdisk_part_destroy(fdisk_part_t *part)
+errno_t fdisk_part_destroy(fdisk_part_t *part)
 {
-	int rc;
+	errno_t rc;
 
 	rc = vbd_part_delete(part->dev->fdisk->vbd, part->part_id);
 	if (rc != EOK)
@@ -812,7 +812,7 @@ void fdisk_pspec_init(fdisk_part_spec_t *pspec)
 	memset(pspec, 0, sizeof(fdisk_part_spec_t));
 }
 
-int fdisk_ltype_format(label_type_t ltype, char **rstr)
+errno_t fdisk_ltype_format(label_type_t ltype, char **rstr)
 {
 	const char *sltype;
 	char *s;
@@ -838,7 +838,7 @@ int fdisk_ltype_format(label_type_t ltype, char **rstr)
 	return EOK;
 }
 
-int fdisk_fstype_format(vol_fstype_t fstype, char **rstr)
+errno_t fdisk_fstype_format(vol_fstype_t fstype, char **rstr)
 {
 	const char *sfstype;
 	char *s;
@@ -870,7 +870,7 @@ int fdisk_fstype_format(vol_fstype_t fstype, char **rstr)
 	return EOK;
 }
 
-int fdisk_pkind_format(label_pkind_t pkind, char **rstr)
+errno_t fdisk_pkind_format(label_pkind_t pkind, char **rstr)
 {
 	const char *spkind;
 	char *s;
@@ -897,7 +897,7 @@ int fdisk_pkind_format(label_pkind_t pkind, char **rstr)
 }
 
 /** Get free partition index. */
-static int fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
+static errno_t fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
 {
 	link_t *link;
 	fdisk_part_t *part;
@@ -925,7 +925,7 @@ static int fdisk_part_get_free_idx(fdisk_dev_t *dev, int *rindex)
  *
  * Get free range of blocks of at least the specified size (first fit).
  */
-static int fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
+static errno_t fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
     fdisk_spc_t spc, aoff64_t *rblock0, aoff64_t *rnblocks)
 {
 	fdisk_free_range_t fr;
@@ -951,7 +951,7 @@ static int fdisk_part_get_free_range(fdisk_dev_t *dev, aoff64_t nblocks,
  *
  * Get free range of blocks of the maximum size.
  */
-static int fdisk_part_get_max_free_range(fdisk_dev_t *dev, fdisk_spc_t spc,
+static errno_t fdisk_part_get_max_free_range(fdisk_dev_t *dev, fdisk_spc_t spc,
     aoff64_t *rblock0, aoff64_t *rnblocks)
 {
 	fdisk_free_range_t fr;
@@ -980,7 +980,7 @@ static int fdisk_part_get_max_free_range(fdisk_dev_t *dev, fdisk_spc_t spc,
 }
 
 /** Prepare new partition specification for VBD. */
-static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
+static errno_t fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     vbd_part_spec_t *vpspec)
 {
 	aoff64_t nom_blocks;
@@ -993,7 +993,7 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	label_pcnt_t pcnt;
 	fdisk_spc_t spc;
 	int index;
-	int rc;
+	errno_t rc;
 
 	rc = cap_to_blocks(&pspec->capacity, cv_nom, dev->dinfo.block_size,
 	    &nom_blocks);
@@ -1102,9 +1102,9 @@ static int fdisk_part_spec_prepare(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	return EOK;
 }
 
-static int fdisk_update_dev_info(fdisk_dev_t *dev)
+static errno_t fdisk_update_dev_info(fdisk_dev_t *dev)
 {
-	int rc;
+	errno_t rc;
 	size_t align_bytes;
 	uint64_t avail_cap;
 
@@ -1222,7 +1222,7 @@ static bool fdisk_free_range_get(fdisk_free_range_t *fr,
 }
 
 /** Get volume label support. */
-int fdisk_get_vollabel_support(fdisk_dev_t *dev, vol_fstype_t fstype,
+errno_t fdisk_get_vollabel_support(fdisk_dev_t *dev, vol_fstype_t fstype,
     vol_label_supp_t *vlsupp)
 {
 	return vol_part_get_lsupp(dev->fdisk->vol, fstype, vlsupp);

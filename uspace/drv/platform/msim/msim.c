@@ -61,7 +61,7 @@ typedef struct msim_fun {
 	pio_window_t pio_window;
 } msim_fun_t;
 
-static int msim_dev_add(ddf_dev_t *dev);
+static errno_t msim_dev_add(ddf_dev_t *dev);
 static void msim_init(void);
 
 /** Standard driver operations. */
@@ -151,7 +151,7 @@ static hw_resource_list_t *msim_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static int msim_enable_interrupt(ddf_fun_t *fun, int irq)
+static errno_t msim_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	/* Nothing to do. */
 
@@ -185,7 +185,7 @@ msim_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
 	ddf_fun_t *fnode = NULL;
-	int rc;
+	errno_t rc;
 	
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
@@ -237,7 +237,7 @@ static bool msim_add_functions(ddf_dev_t *dev)
  * @param dev DDF device
  * @return Zero on success or non-zero error code.
  */
-static int msim_dev_add(ddf_dev_t *dev)
+static errno_t msim_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "msim_dev_add, device handle = %d",
 	    (int) ddf_dev_get_handle(dev));

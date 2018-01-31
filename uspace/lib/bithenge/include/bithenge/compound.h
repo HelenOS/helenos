@@ -40,11 +40,11 @@
 #include "expression.h"
 #include "transform.h"
 
-int bithenge_new_composed_transform(bithenge_transform_t **,
+errno_t bithenge_new_composed_transform(bithenge_transform_t **,
     bithenge_transform_t **, size_t);
-int bithenge_if_transform(bithenge_transform_t **, bithenge_expression_t *,
+errno_t bithenge_if_transform(bithenge_transform_t **, bithenge_expression_t *,
     bithenge_transform_t *, bithenge_transform_t *);
-int bithenge_partial_transform(bithenge_transform_t **,
+errno_t bithenge_partial_transform(bithenge_transform_t **,
     bithenge_transform_t *);
 
 #endif

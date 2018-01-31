@@ -54,7 +54,7 @@ static void print_syntax(void)
 	printf("\t%s unset-ns\n", NAME);
 }
 
-static int dnscfg_set_ns(int argc, char *argv[])
+static errno_t dnscfg_set_ns(int argc, char *argv[])
 {
 	if (argc < 1) {
 		printf("%s: Missing arguments.\n", NAME);
@@ -71,7 +71,7 @@ static int dnscfg_set_ns(int argc, char *argv[])
 	char *srv_addr  = argv[0];
 	
 	inet_addr_t addr;
-	int rc = inet_addr_parse(srv_addr, &addr, NULL);
+	errno_t rc = inet_addr_parse(srv_addr, &addr, NULL);
 	
 	if (rc != EOK) {
 		printf("%s: Invalid address format '%s'.\n", NAME, srv_addr);
@@ -88,12 +88,12 @@ static int dnscfg_set_ns(int argc, char *argv[])
 	return EOK;
 }
 
-static int dnscfg_unset_ns(void)
+static errno_t dnscfg_unset_ns(void)
 {
 	inet_addr_t addr;
 	inet_addr_any(&addr);
 	
-	int rc = dnsr_set_srvaddr(&addr);
+	errno_t rc = dnsr_set_srvaddr(&addr);
 	if (rc != EOK) {
 		printf("%s: Failed unsetting server address (%s)\n",
 		    NAME, str_error(rc));
@@ -103,10 +103,10 @@ static int dnscfg_unset_ns(void)
 	return EOK;
 }
 
-static int dnscfg_print(void)
+static errno_t dnscfg_print(void)
 {
 	inet_addr_t addr;
-	int rc = dnsr_get_srvaddr(&addr);
+	errno_t rc = dnsr_get_srvaddr(&addr);
 	if (rc != EOK) {
 		printf("%s: Failed getting DNS server address.\n", NAME);
 		return rc;

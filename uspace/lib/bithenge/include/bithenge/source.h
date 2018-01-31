@@ -39,7 +39,7 @@
 
 #include "tree.h"
 
-int bithenge_node_from_source(bithenge_node_t **, const char *);
+errno_t bithenge_node_from_source(bithenge_node_t **, const char *);
 
 #endif
 

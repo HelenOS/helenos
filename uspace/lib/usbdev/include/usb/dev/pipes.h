@@ -97,21 +97,21 @@ typedef struct {
 	bool present;
 } usb_endpoint_mapping_t;
 
-int usb_pipe_initialize(usb_pipe_t *, usb_dev_session_t *);
-int usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
+errno_t usb_pipe_initialize(usb_pipe_t *, usb_dev_session_t *);
+errno_t usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
 
-int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
+errno_t usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, const uint8_t *, size_t, usb_dev_session_t *);
 
-int usb_pipe_register(usb_pipe_t *, const usb_standard_endpoint_descriptor_t *, const usb_superspeed_endpoint_companion_descriptor_t *);
-int usb_pipe_unregister(usb_pipe_t *);
+errno_t usb_pipe_register(usb_pipe_t *, const usb_standard_endpoint_descriptor_t *, const usb_superspeed_endpoint_companion_descriptor_t *);
+errno_t usb_pipe_unregister(usb_pipe_t *);
 
-int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
-int usb_pipe_write(usb_pipe_t *, const void *, size_t);
+errno_t usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
+errno_t usb_pipe_write(usb_pipe_t *, const void *, size_t);
 
-int usb_pipe_control_read(usb_pipe_t *, const void *, size_t,
+errno_t usb_pipe_control_read(usb_pipe_t *, const void *, size_t,
     void *, size_t, size_t *);
-int usb_pipe_control_write(usb_pipe_t *, const void *, size_t,
+errno_t usb_pipe_control_write(usb_pipe_t *, const void *, size_t,
     const void *, size_t);
 
 #endif

@@ -44,7 +44,7 @@
 #include <errno.h>
 
 #include "posix/signal.h"
-#include "posix/assert.h"
+#include <assert.h>
 
 #include "libc/async.h"
 #include "libc/malloc.h"

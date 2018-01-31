@@ -73,7 +73,7 @@ static async_sess_t *logger_session;
  * @param message The actual message.
  * @return Error code of the conversion or EOK on success.
  */
-static int logger_message(async_sess_t *session, log_t log, log_level_t level, char *message)
+static errno_t logger_message(async_sess_t *session, log_t log, log_level_t level, char *message)
 {
 	async_exch_t *exchange = async_exchange_begin(session);
 	if (exchange == NULL) {
@@ -87,8 +87,8 @@ static int logger_message(async_sess_t *session, log_t log, log_level_t level, c
 
 	aid_t reg_msg = async_send_2(exchange, LOGGER_WRITER_MESSAGE,
 	    log, level, NULL);
-	int rc = async_data_write_start(exchange, message, str_size(message));
-	int reg_msg_rc;
+	errno_t rc = async_data_write_start(exchange, message, str_size(message));
+	errno_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);
@@ -126,7 +126,7 @@ const char *log_level_str(log_level_t level)
  * @param[out] level_out Where to store the result (set to NULL to ignore).
  * @return Error code of the conversion or EOK on success.
  */
-int log_level_from_str(const char *name, log_level_t *level_out)
+errno_t log_level_from_str(const char *name, log_level_t *level_out)
 {
 	log_level_t level = LVL_FATAL;
 
@@ -159,7 +159,7 @@ int log_level_from_str(const char *name, log_level_t *level_out)
  *
  * @param prog_name Program name, will be printed as part of message
  */
-int log_init(const char *prog_name)
+errno_t log_init(const char *prog_name)
 {
 	log_prog_name = str_dup(prog_name);
 	if (log_prog_name == NULL)
@@ -197,8 +197,8 @@ log_t log_create(const char *name, log_t parent)
 	ipc_call_t answer;
 	aid_t reg_msg = async_send_1(exchange, LOGGER_WRITER_CREATE_LOG,
 	    parent, &answer);
-	int rc = async_data_write_start(exchange, name, str_size(name));
-	int reg_msg_rc;
+	errno_t rc = async_data_write_start(exchange, name, str_size(name));
+	errno_t reg_msg_rc;
 	async_wait_for(reg_msg, &reg_msg_rc);
 
 	async_exchange_end(exchange);

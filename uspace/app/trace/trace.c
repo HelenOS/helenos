@@ -92,8 +92,8 @@ static bool task_wait_for;
 /** Combination of events/data to print. */
 display_mask_t display_mask;
 
-static int program_run_fibril(void *arg);
-static int cev_fibril(void *arg);
+static errno_t program_run_fibril(void *arg);
+static errno_t cev_fibril(void *arg);
 
 static void program_run(void)
 {
@@ -121,16 +121,16 @@ static void cev_fibril_start(void)
 	fibril_add_ready(fid);
 }
 
-static int program_run_fibril(void *arg)
+static errno_t program_run_fibril(void *arg)
 {
-	int rc;
+	errno_t rc;
 
 	/*
 	 * This must be done in background as it will block until
 	 * we let the task reply to this call.
 	 */
 	rc = loader_run(task_ldr);
-	if (rc != 0) {
+	if (rc != EOK) {
 		printf("Error running program\n");
 		exit(1);
 	}
@@ -142,7 +142,7 @@ static int program_run_fibril(void *arg)
 }
 
 
-static int connect_task(task_id_t task_id)
+static errno_t connect_task(task_id_t task_id)
 {
 	async_sess_t *ksess = async_connect_kbox(task_id);
 	
@@ -160,7 +160,7 @@ static int connect_task(task_id_t task_id)
 		return errno;
 	}
 	
-	int rc = udebug_begin(ksess);
+	errno_t rc = udebug_begin(ksess);
 	if (rc != EOK) {
 		printf("udebug_begin() -> %s\n", str_error_name(rc));
 		return rc;
@@ -176,9 +176,9 @@ static int connect_task(task_id_t task_id)
 	return 0;
 }
 
-static int get_thread_list(void)
+static errno_t get_thread_list(void)
 {
-	int rc;
+	errno_t rc;
 	size_t tb_copied;
 	size_t tb_needed;
 	int i;
@@ -224,8 +224,8 @@ void val_print(sysarg_t val, val_type_t v_type)
 	case V_ERRNO:
 		if (sval >= -15 && sval <= 0) {
 			printf("%ld %s (%s)", sval,
-			    str_error_name((int) sval),
-			    str_error((int) sval));
+			    str_error_name((errno_t) sval),
+			    str_error((errno_t) sval));
 		} else {
 			printf("%ld", sval);
 		}
@@ -233,8 +233,8 @@ void val_print(sysarg_t val, val_type_t v_type)
 	case V_INT_ERRNO:
 		if (sval >= -15 && sval < 0) {
 			printf("%ld %s (%s)", sval,
-			    str_error_name((int) sval),
-			    str_error((int) sval));
+			    str_error_name((errno_t) sval),
+			    str_error((errno_t) sval));
 		} else {
 			printf("%ld", sval);
 		}
@@ -278,7 +278,7 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 	putchar(')');
 }
 
-static void sc_ipc_call_async_fast(sysarg_t *sc_args, int sc_rc)
+static void sc_ipc_call_async_fast(sysarg_t *sc_args, errno_t sc_rc)
 {
 	ipc_call_t call;
 	sysarg_t phoneid;
@@ -298,10 +298,10 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, int sc_rc)
 	ipcp_call_out(phoneid, &call, 0);
 }
 
-static void sc_ipc_call_async_slow(sysarg_t *sc_args, int sc_rc)
+static void sc_ipc_call_async_slow(sysarg_t *sc_args, errno_t sc_rc)
 {
 	ipc_call_t call;
-	int rc;
+	errno_t rc;
 
 	if (sc_rc != EOK)
 		return;
@@ -317,7 +317,7 @@ static void sc_ipc_call_async_slow(sysarg_t *sc_args, int sc_rc)
 static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
 {
 	ipc_call_t call;
-	int rc;
+	errno_t rc;
 
 	if (sc_rc == 0) return;
 
@@ -332,7 +332,7 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
     unsigned sc_id, sysarg_t sc_rc)
 {
 	sysarg_t sc_args[6];
-	int rc;
+	errno_t rc;
 
 	/* Read syscall arguments */
 	rc = udebug_args_read(sess, thread_hash, sc_args);
@@ -360,7 +360,7 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 {
 	sysarg_t sc_args[6];
 	int rv_type;
-	int rc;
+	errno_t rc;
 
 	/* Read syscall arguments */
 	rc = udebug_args_read(sess, thread_hash, sc_args);
@@ -383,10 +383,10 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 
 	switch (sc_id) {
 	case SYS_IPC_CALL_ASYNC_FAST:
-		sc_ipc_call_async_fast(sc_args, sc_rc);
+		sc_ipc_call_async_fast(sc_args, (errno_t) sc_rc);
 		break;
 	case SYS_IPC_CALL_ASYNC_SLOW:
-		sc_ipc_call_async_slow(sc_args, sc_rc);
+		sc_ipc_call_async_slow(sc_args, (errno_t) sc_rc);
 		break;
 	case SYS_IPC_WAIT:
 		sc_ipc_wait(sc_args, sc_rc);
@@ -402,9 +402,9 @@ static void event_thread_b(uintptr_t hash)
 	thread_trace_start(hash);
 }
 
-static int trace_loop(void *thread_hash_arg)
+static errno_t trace_loop(void *thread_hash_arg)
 {
-	int rc;
+	errno_t rc;
 	unsigned ev_type;
 	uintptr_t thread_hash;
 	unsigned thread_id;
@@ -497,7 +497,7 @@ static loader_t *preload_task(const char *path, char **argv,
     task_id_t *task_id)
 {
 	loader_t *ldr;
-	int rc;
+	errno_t rc;
 
 	/* Spawn a program loader */
 	ldr = loader_connect();
@@ -565,7 +565,7 @@ error:
 	return NULL;
 }
 
-static int cev_fibril(void *arg)
+static errno_t cev_fibril(void *arg)
 {
 	cons_event_t event;
 
@@ -597,7 +597,7 @@ static void trace_task(task_id_t task_id)
 	kbd_event_t ev;
 	bool done;
 	int i;
-	int rc;
+	errno_t rc;
 
 	ipcp_init();
 
@@ -843,7 +843,7 @@ static int parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 	task_exit_t texit;
 	int retval;
 

@@ -42,16 +42,16 @@
 struct loader;
 typedef struct loader loader_t;
 
-extern int loader_spawn(const char *);
+extern errno_t loader_spawn(const char *);
 extern loader_t *loader_connect(void);
-extern int loader_get_task_id(loader_t *, task_id_t *);
-extern int loader_set_cwd(loader_t *);
-extern int loader_set_program(loader_t *, const char *, int);
-extern int loader_set_program_path(loader_t *, const char *);
-extern int loader_set_args(loader_t *, const char *const[]);
-extern int loader_add_inbox(loader_t *, const char *, int);
-extern int loader_load_program(loader_t *);
-extern int loader_run(loader_t *);
+extern errno_t loader_get_task_id(loader_t *, task_id_t *);
+extern errno_t loader_set_cwd(loader_t *);
+extern errno_t loader_set_program(loader_t *, const char *, int);
+extern errno_t loader_set_program_path(loader_t *, const char *);
+extern errno_t loader_set_args(loader_t *, const char *const[]);
+extern errno_t loader_add_inbox(loader_t *, const char *, int);
+extern errno_t loader_load_program(loader_t *);
+extern errno_t loader_run(loader_t *);
 extern void loader_abort(loader_t *);
 
 #endif

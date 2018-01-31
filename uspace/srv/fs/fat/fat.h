@@ -249,16 +249,16 @@ typedef struct {
 extern vfs_out_ops_t fat_ops;
 extern libfs_ops_t fat_libfs_ops;
 
-extern int fat_idx_get_new(fat_idx_t **, service_id_t);
+extern errno_t fat_idx_get_new(fat_idx_t **, service_id_t);
 extern fat_idx_t *fat_idx_get_by_pos(service_id_t, fat_cluster_t, unsigned);
 extern fat_idx_t *fat_idx_get_by_index(service_id_t, fs_index_t);
 extern void fat_idx_destroy(fat_idx_t *);
 extern void fat_idx_hashin(fat_idx_t *);
 extern void fat_idx_hashout(fat_idx_t *);
 
-extern int fat_idx_init(void);
+extern errno_t fat_idx_init(void);
 extern void fat_idx_fini(void);
-extern int fat_idx_init_by_service_id(service_id_t);
+extern errno_t fat_idx_init_by_service_id(service_id_t);
 extern void fat_idx_fini_by_service_id(service_id_t);
 
 #endif

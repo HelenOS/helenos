@@ -36,6 +36,7 @@
 #ifndef LIBC_STR_H_
 #define LIBC_STR_H_
 
+#include <errno.h>
 #include <mem.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -57,7 +58,7 @@
 
 extern wchar_t str_decode(const char *str, size_t *offset, size_t sz);
 extern wchar_t str_decode_reverse(const char *str, size_t *offset, size_t sz);
-extern int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
+extern errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t sz);
 
 extern size_t str_size(const char *str);
 extern size_t wstr_size(const wchar_t *str);
@@ -91,13 +92,13 @@ extern void str_cpy(char *dest, size_t size, const char *src);
 extern void str_ncpy(char *dest, size_t size, const char *src, size_t n);
 extern void str_append(char *dest, size_t size, const char *src);
 
-extern int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n);
+extern errno_t spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n);
 extern void wstr_to_str(char *dest, size_t size, const wchar_t *src);
 extern char *wstr_to_astr(const wchar_t *src);
 extern void str_to_wstr(wchar_t *dest, size_t dlen, const char *src);
 extern wchar_t *str_to_awstr(const char *src);
-extern int utf16_to_str(char *dest, size_t size, const uint16_t *src);
-extern int str_to_utf16(uint16_t *dest, size_t dlen, const char *src);
+extern errno_t utf16_to_str(char *dest, size_t size, const uint16_t *src);
+extern errno_t str_to_utf16(uint16_t *dest, size_t dlen, const char *src);
 extern size_t utf16_wsize(const uint16_t *ustr);
 
 extern char *str_chr(const char *str, wchar_t ch);
@@ -114,15 +115,15 @@ extern char *str_ndup(const char *, size_t max_size);
 
 extern char *str_tok(char *, const char *, char **);
 
-extern int str_uint8_t(const char *, const char **, unsigned int, bool,
+extern errno_t str_uint8_t(const char *, const char **, unsigned int, bool,
     uint8_t *);
-extern int str_uint16_t(const char *, const char **, unsigned int, bool,
+extern errno_t str_uint16_t(const char *, const char **, unsigned int, bool,
     uint16_t *);
-extern int str_uint32_t(const char *, const char **, unsigned int, bool,
+extern errno_t str_uint32_t(const char *, const char **, unsigned int, bool,
     uint32_t *);
-extern int str_uint64_t(const char *, const char **, unsigned int, bool,
+extern errno_t str_uint64_t(const char *, const char **, unsigned int, bool,
     uint64_t *);
-extern int str_size_t(const char *, const char **, unsigned int, bool,
+extern errno_t str_size_t(const char *, const char **, unsigned int, bool,
     size_t *);
 
 extern void order_suffix(const uint64_t, uint64_t *, char *);

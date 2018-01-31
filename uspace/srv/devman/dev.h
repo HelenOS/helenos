@@ -44,7 +44,7 @@ extern void dev_del_ref(dev_node_t *);
 extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
-extern int dev_get_functions(dev_tree_t *tree, dev_node_t *, devman_handle_t *,
+extern errno_t dev_get_functions(dev_tree_t *tree, dev_node_t *, devman_handle_t *,
     size_t, size_t *);
 
 #endif

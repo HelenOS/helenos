@@ -58,7 +58,7 @@ vfs_info_t mfs_vfs_info = {
 
 int main(int argc, char **argv)
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": HelenOS Minix file system server\n");
 

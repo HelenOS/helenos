@@ -54,12 +54,12 @@ static char name_buf[MAX_NAME_SIZE + 1];
  * @return		EOK on success, EIO if file is not found,
  *			EINVAL if file has syntax errors.
  */
-int program_file_process(stree_program_t *program, const char *fname)
+errno_t program_file_process(stree_program_t *program, const char *fname)
 {
 	input_t *input;
 	lex_t lex;
 	parse_t parse;
-	int rc;
+	errno_t rc;
 
 	rc = input_new_file(&input, fname);
 	if (rc != EOK) {
@@ -90,9 +90,9 @@ int program_file_process(stree_program_t *program, const char *fname)
  *			library is not found, EINVAL if the library
  *			has syntax errors.
  */
-int program_lib_process(stree_program_t *program)
+errno_t program_lib_process(stree_program_t *program)
 {
-	int rc;
+	errno_t rc;
 	char *path, *fname;
 	char *tmp;
 	char *cp;

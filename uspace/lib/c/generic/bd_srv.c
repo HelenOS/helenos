@@ -49,7 +49,7 @@ static void bd_read_blocks_srv(bd_srv_t *srv, ipc_callid_t callid,
 	size_t cnt;
 	void *buf;
 	size_t size;
-	int rc;
+	errno_t rc;
 	ipc_callid_t rcallid;
 
 	ba = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
@@ -94,7 +94,7 @@ static void bd_read_toc_srv(bd_srv_t *srv, ipc_callid_t callid,
 	uint8_t session;
 	void *buf;
 	size_t size;
-	int rc;
+	errno_t rc;
 	ipc_callid_t rcallid;
 
 	session = IPC_GET_ARG1(*call);
@@ -137,7 +137,7 @@ static void bd_sync_cache_srv(bd_srv_t *srv, ipc_callid_t callid,
 {
 	aoff64_t ba;
 	size_t cnt;
-	int rc;
+	errno_t rc;
 
 	ba = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 	cnt = IPC_GET_ARG3(*call);
@@ -158,7 +158,7 @@ static void bd_write_blocks_srv(bd_srv_t *srv, ipc_callid_t callid,
 	size_t cnt;
 	void *data;
 	size_t size;
-	int rc;
+	errno_t rc;
 
 	ba = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 	cnt = IPC_GET_ARG3(*call);
@@ -182,7 +182,7 @@ static void bd_write_blocks_srv(bd_srv_t *srv, ipc_callid_t callid,
 static void bd_get_block_size_srv(bd_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
+	errno_t rc;
 	size_t block_size;
 
 	if (srv->srvs->ops->get_block_size == NULL) {
@@ -197,7 +197,7 @@ static void bd_get_block_size_srv(bd_srv_t *srv, ipc_callid_t callid,
 static void bd_get_num_blocks_srv(bd_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	int rc;
+	errno_t rc;
 	aoff64_t num_blocks;
 
 	if (srv->srvs->ops->get_num_blocks == NULL) {
@@ -227,10 +227,10 @@ void bd_srvs_init(bd_srvs_t *srvs)
 	srvs->sarg = NULL;
 }
 
-int bd_conn(ipc_callid_t iid, ipc_call_t *icall, bd_srvs_t *srvs)
+errno_t bd_conn(ipc_callid_t iid, ipc_call_t *icall, bd_srvs_t *srvs)
 {
 	bd_srv_t *srv;
-	int rc;
+	errno_t rc;
 
 	/* Accept the connection */
 	async_answer_0(iid, EOK);

@@ -65,7 +65,7 @@ void usbvirt_control_reply_helper(const usb_device_request_setup_packet_t *setup
 }
 
 /** NOP handler */
-int req_nop(usbvirt_device_t *device,
+errno_t req_nop(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -73,7 +73,7 @@ int req_nop(usbvirt_device_t *device,
 }
 
 /** GET_DESCRIPTOR handler. */
-static int req_get_descriptor(usbvirt_device_t *device,
+static errno_t req_get_descriptor(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet, uint8_t *data, size_t *act_size)
 {
 	uint8_t type = setup_packet->value_high;
@@ -134,7 +134,7 @@ static int req_get_descriptor(usbvirt_device_t *device,
 	return EFORWARD;
 }
 
-static int req_set_address(usbvirt_device_t *device,
+static errno_t req_set_address(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet, uint8_t *data, size_t *act_size)
 {
 	uint16_t new_address = setup_packet->value;
@@ -154,7 +154,7 @@ static int req_set_address(usbvirt_device_t *device,
 	return EOK;
 }
 
-static int req_set_configuration(usbvirt_device_t *device,
+static errno_t req_set_configuration(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet, uint8_t *data, size_t *act_size)
 {
 	uint16_t configuration_value = setup_packet->value;
@@ -196,7 +196,7 @@ static int req_set_configuration(usbvirt_device_t *device,
 	return EOK;
 }
 
-static int req_get_dev_status(usbvirt_device_t *device,
+static errno_t req_get_dev_status(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet, uint8_t *data, size_t *act_size)
 {
 	if (setup_packet->length != 2)
@@ -206,7 +206,7 @@ static int req_get_dev_status(usbvirt_device_t *device,
 	*act_size = 2;
 	return EOK;
 }
-static int req_get_iface_ep_status(usbvirt_device_t *device,
+static errno_t req_get_iface_ep_status(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet, uint8_t *data, size_t *act_size)
 {
 	if (setup_packet->length != 2)

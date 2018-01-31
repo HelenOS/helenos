@@ -36,7 +36,7 @@
 #ifndef FB_PORT_KFB_H_
 #define FB_PORT_KFB_H_
 
-extern int kfb_init(void);
+extern errno_t kfb_init(void);
 
 #endif
 

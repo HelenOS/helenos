@@ -54,7 +54,7 @@
  *
  * Allocates memory for internal qh_t structure.
  */
-int transfer_list_init(transfer_list_t *instance, const char *name)
+errno_t transfer_list_init(transfer_list_t *instance, const char *name)
 {
 	assert(instance);
 	instance->name = name;

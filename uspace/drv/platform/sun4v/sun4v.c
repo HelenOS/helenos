@@ -54,7 +54,7 @@ typedef struct sun4v_fun {
 	pio_window_t pio_window;
 } sun4v_fun_t;
 
-static int sun4v_dev_add(ddf_dev_t *dev);
+static errno_t sun4v_dev_add(ddf_dev_t *dev);
 
 static driver_ops_t sun4v_ops = {
 	.dev_add = &sun4v_dev_add
@@ -113,7 +113,7 @@ static hw_resource_list_t *sun4v_get_resources(ddf_fun_t *fnode)
 	return &fun->hw_resources;
 }
 
-static int sun4v_enable_interrupt(ddf_fun_t *fun, int irq)
+static errno_t sun4v_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	return EOK;
 }
@@ -137,13 +137,13 @@ static pio_window_ops_t fun_pio_window_ops = {
 
 static ddf_dev_ops_t sun4v_fun_ops;
 
-static int sun4v_add_fun(ddf_dev_t *dev, const char *name,
+static errno_t sun4v_add_fun(ddf_dev_t *dev, const char *name,
     const char *str_match_id, sun4v_fun_t *fun_proto)
 {
 	ddf_msg(LVL_NOTE, "Adding function '%s'.", name);
 
 	ddf_fun_t *fnode = NULL;
-	int rc;
+	errno_t rc;
 
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
@@ -187,9 +187,9 @@ error:
 	return rc;
 }
 
-static int sun4v_add_functions(ddf_dev_t *dev)
+static errno_t sun4v_add_functions(ddf_dev_t *dev)
 {
-	int rc;
+	errno_t rc;
 
 	rc = sun4v_add_fun(dev, "console", "sun4v/console", &console_data);
 	if (rc != EOK)
@@ -199,7 +199,7 @@ static int sun4v_add_functions(ddf_dev_t *dev)
 }
 
 /** Add device. */
-static int sun4v_dev_add(ddf_dev_t *dev)
+static errno_t sun4v_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "sun4v_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));
@@ -212,9 +212,9 @@ static int sun4v_dev_add(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int sun4v_init(void)
+static errno_t sun4v_init(void)
 {
-	int rc;
+	errno_t rc;
 	sysarg_t paddr;
 
 	sun4v_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
@@ -246,7 +246,7 @@ static int sun4v_init(void)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf(NAME ": Sun4v platform driver\n");
 

@@ -43,7 +43,7 @@ struct mouse_dev;
 
 typedef struct mouse_proto_ops {
 	void (*parse)(sysarg_t);
-	int (*init)(struct mouse_dev *);
+	errno_t (*init)(struct mouse_dev *);
 } mouse_proto_ops_t;
 
 extern mouse_proto_ops_t mousedev_proto;

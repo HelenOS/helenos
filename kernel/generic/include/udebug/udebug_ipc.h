@@ -37,7 +37,7 @@
 
 #include <ipc/ipc.h>
 
-int udebug_request_preprocess(call_t *call, phone_t *phone);
+errno_t udebug_request_preprocess(call_t *call, phone_t *phone);
 void udebug_call_receive(call_t *call);
 
 #endif

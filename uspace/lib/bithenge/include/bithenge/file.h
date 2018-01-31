@@ -40,9 +40,9 @@
 #include <stdio.h>
 #include "blob.h"
 
-int bithenge_new_file_blob(bithenge_node_t **, const char *);
-int bithenge_new_file_blob_from_fd(bithenge_node_t **, int);
-int bithenge_new_file_blob_from_file(bithenge_node_t **, FILE *);
+errno_t bithenge_new_file_blob(bithenge_node_t **, const char *);
+errno_t bithenge_new_file_blob_from_fd(bithenge_node_t **, int);
+errno_t bithenge_new_file_blob_from_file(bithenge_node_t **, FILE *);
 
 #endif
 

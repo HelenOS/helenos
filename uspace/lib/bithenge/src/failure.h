@@ -43,15 +43,15 @@
 #include <stdlib.h>
 #include <stddef.h>
 
-int bithenge_should_fail(void);
+errno_t bithenge_should_fail(void);
 void *bithenge_failure_malloc(size_t);
 void *bithenge_failure_realloc(void *, size_t);
 ssize_t bithenge_failure_read(int, void *, size_t);
 off_t bithenge_failure_lseek(int, off_t, int);
-int bithenge_failure_ferror(FILE *);
+errno_t bithenge_failure_ferror(FILE *);
 char *bithenge_failure_str_ndup(const char *, size_t);
-int bithenge_failure_open(const char *, int);
-int bithenge_failure_fstat(int, struct stat *);
+errno_t bithenge_failure_open(const char *, int);
+errno_t bithenge_failure_fstat(int, struct stat *);
 
 #ifndef BITHENGE_FAILURE_DECLS_ONLY
 #define malloc bithenge_failure_malloc

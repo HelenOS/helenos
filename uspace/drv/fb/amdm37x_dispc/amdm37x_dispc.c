@@ -55,11 +55,11 @@
 #endif
 
 
-static int change_mode(visualizer_t *vis, vslmode_t mode);
-static int handle_damage(visualizer_t *vs,
+static errno_t change_mode(visualizer_t *vis, vslmode_t mode);
+static errno_t handle_damage(visualizer_t *vs,
     sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
     sysarg_t x_offset, sysarg_t y_offset);
-static int dummy(visualizer_t *vs)
+static errno_t dummy(visualizer_t *vs)
 {
 	return EOK;
 }
@@ -114,7 +114,7 @@ static void mode_init(vslmode_list_element_t *mode,
 
 }
 
-int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
+errno_t amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
 {
 	assert(instance);
 	assert(vis);
@@ -133,7 +133,7 @@ int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
 		return EINVAL;
 	}
 
-	int ret = pio_enable((void*)AMDM37x_DISPC_BASE_ADDRESS,
+	errno_t ret = pio_enable((void*)AMDM37x_DISPC_BASE_ADDRESS,
 	    AMDM37x_DISPC_SIZE, (void**)&instance->regs);
 	if (ret != EOK) {
 		return EIO;
@@ -151,12 +151,12 @@ int amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
 	return EOK;
 };
 
-int amdm37x_dispc_fini(amdm37x_dispc_t *instance)
+errno_t amdm37x_dispc_fini(amdm37x_dispc_t *instance)
 {
 	return EOK;
 };
 
-static int amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
+static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
     unsigned x, unsigned y, unsigned bpp, uint32_t pa)
 {
 	assert(regs);
@@ -259,7 +259,7 @@ static int amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	return EOK;
 }
 
-static int change_mode(visualizer_t *vis, vslmode_t mode)
+static errno_t change_mode(visualizer_t *vis, vslmode_t mode)
 {
 	assert(vis);
 	assert(vis->dev_ctx);
@@ -275,7 +275,7 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 	const size_t size = ALIGN_UP(x * y * bpp, PAGE_SIZE);
 	uintptr_t pa;
 	void *buffer = AS_AREA_ANY;
-	int ret = dmamem_map_anonymous(size, DMAMEM_4GiB,
+	errno_t ret = dmamem_map_anonymous(size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &pa, &buffer);
 	if (ret != EOK) {
 		ddf_log_error("Failed to get new FB\n");
@@ -298,7 +298,7 @@ static int change_mode(visualizer_t *vis, vslmode_t mode)
 	return EOK;
 }
 
-static int handle_damage(visualizer_t *vs,
+static errno_t handle_damage(visualizer_t *vs,
     sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height,
     sysarg_t x_offset, sysarg_t y_offset)
 {

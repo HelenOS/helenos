@@ -68,9 +68,9 @@
  *         the address space area.
  *
  */
-int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
+errno_t physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 {
-	return (int) __SYSCALL5(SYS_PHYSMEM_MAP, (sysarg_t) phys,
+	return (errno_t) __SYSCALL5(SYS_PHYSMEM_MAP, (sysarg_t) phys,
 	    pages, flags, (sysarg_t) virt, (sysarg_t) __entry);
 }
 
@@ -84,9 +84,9 @@ int physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
  * @return EPERM if the caller lacks the PERM_MEM_MANAGER permission.
  *
  */
-int physmem_unmap(void *virt)
+errno_t physmem_unmap(void *virt)
 {
-	return (int) __SYSCALL1(SYS_PHYSMEM_UNMAP, (sysarg_t) virt);
+	return (errno_t) __SYSCALL1(SYS_PHYSMEM_UNMAP, (sysarg_t) virt);
 }
 
 /** Lock a piece physical memory for DMA transfers.
@@ -109,10 +109,10 @@ int physmem_unmap(void *virt)
  *         the address space area.
  *
  */
-int dmamem_map(void *virt, size_t size, unsigned int map_flags,
+errno_t dmamem_map(void *virt, size_t size, unsigned int map_flags,
     unsigned int flags, uintptr_t *phys)
 {
-	return (int) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
+	return (errno_t) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
 	    (sysarg_t) map_flags, (sysarg_t) flags & ~DMAMEM_FLAGS_ANONYMOUS,
 	    (sysarg_t) phys, (sysarg_t) virt, 0);
 }
@@ -137,24 +137,24 @@ int dmamem_map(void *virt, size_t size, unsigned int map_flags,
  *         the address space area.
  *
  */
-int dmamem_map_anonymous(size_t size, uintptr_t constraint,
+errno_t dmamem_map_anonymous(size_t size, uintptr_t constraint,
     unsigned int map_flags, unsigned int flags, uintptr_t *phys, void **virt)
 {
 	*phys = constraint;
 	
-	return (int) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
+	return (errno_t) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
 	    (sysarg_t) map_flags, (sysarg_t) flags | DMAMEM_FLAGS_ANONYMOUS,
 	    (sysarg_t) phys, (sysarg_t) virt, (sysarg_t) __entry);
 }
 
-int dmamem_unmap(void *virt, size_t size)
+errno_t dmamem_unmap(void *virt, size_t size)
 {
-	return (int) __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, (sysarg_t) size, 0);
+	return (errno_t) __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, (sysarg_t) size, 0);
 }
 
-int dmamem_unmap_anonymous(void *virt)
+errno_t dmamem_unmap_anonymous(void *virt)
 {
-	return (int) __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, 0,
+	return (errno_t) __SYSCALL3(SYS_DMAMEM_UNMAP, (sysarg_t) virt, 0,
 	    DMAMEM_FLAGS_ANONYMOUS);
 }
 
@@ -172,7 +172,7 @@ int dmamem_unmap_anonymous(void *virt)
  * @return ENOMEM if there was some problem in allocating memory.
  *
  */
-static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
+static errno_t iospace_enable(task_id_t id, void *ioaddr, size_t size)
 {
 	const ddi_ioarg_t arg = {
 		.task_id = id,
@@ -180,7 +180,7 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
 		.size = size
 	};
 	
-	return (int) __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
+	return (errno_t) __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
 /** Disable I/O space range to task.
@@ -196,7 +196,7 @@ static int iospace_enable(task_id_t id, void *ioaddr, size_t size)
  * @return ENOENT if there is no task with specified ID
  *
  */
-static int iospace_disable(task_id_t id, void *ioaddr, size_t size)
+static errno_t iospace_disable(task_id_t id, void *ioaddr, size_t size)
 {
 	const ddi_ioarg_t arg = {
 		.task_id = id,
@@ -204,7 +204,7 @@ static int iospace_disable(task_id_t id, void *ioaddr, size_t size)
 		.size = size
 	};
 	
-	return (int) __SYSCALL1(SYS_IOSPACE_DISABLE, (sysarg_t) &arg);
+	return (errno_t) __SYSCALL1(SYS_IOSPACE_DISABLE, (sysarg_t) &arg);
 }
 
 /** Enable PIO for specified address range.
@@ -212,7 +212,7 @@ static int iospace_disable(task_id_t id, void *ioaddr, size_t size)
  * @param range I/O range to be enable.
  * @param virt  Virtual address for application's PIO operations. 
  */
-int pio_enable_range(addr_range_t *range, void **virt)
+errno_t pio_enable_range(addr_range_t *range, void **virt)
 {
 	return pio_enable(RNGABSPTR(*range), RNGSZ(*range), virt);
 }
@@ -228,7 +228,7 @@ int pio_enable_range(addr_range_t *range, void **virt)
  * @return An error code on failure.
  *
  */
-int pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
+errno_t pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
 {
 	uintptr_t addr;
 	size_t size;
@@ -270,7 +270,7 @@ int pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
  * @return An error code on failure.
  *
  */
-int pio_enable(void *pio_addr, size_t size, void **virt)
+errno_t pio_enable(void *pio_addr, size_t size, void **virt)
 {
 #ifdef IO_SPACE_BOUNDARY
 	if (pio_addr < IO_SPACE_BOUNDARY) {
@@ -290,7 +290,7 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
 	size_t pages = SIZE2PAGES(offset + size);
 	
 	void *virt_page = AS_AREA_ANY;
-	int rc = physmem_map(phys_frame, pages,
+	errno_t rc = physmem_map(phys_frame, pages,
 	    AS_AREA_READ | AS_AREA_WRITE, &virt_page);
 	if (rc != EOK)
 		return rc;
@@ -308,7 +308,7 @@ int pio_enable(void *pio_addr, size_t size, void **virt)
  * @return An error code on failure.
  *
  */
-int pio_disable(void *virt, size_t size)
+errno_t pio_disable(void *virt, size_t size)
 {
 #ifdef IO_SPACE_BOUNDARY
 	if (virt < IO_SPACE_BOUNDARY)

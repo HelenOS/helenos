@@ -44,8 +44,8 @@
 #include "connection.h"
 #include "log.h"
 
-static int update_data(audio_source_t *source, size_t size);
-static int new_data(audio_sink_t *sink);
+static errno_t update_data(audio_source_t *source, size_t size);
+static errno_t new_data(audio_sink_t *sink);
 
 /**
  * Allocate and initialize hound context structure.
@@ -67,7 +67,7 @@ hound_ctx_t *hound_record_ctx_get(const char *name)
 			free(ctx);
 			return NULL;
 		}
-		const int ret = audio_sink_init(ctx->sink, name, ctx, NULL,
+		const errno_t ret = audio_sink_init(ctx->sink, name, ctx, NULL,
 		    NULL, new_data, &AUDIO_FORMAT_DEFAULT);
 		if (ret != EOK) {
 			free(ctx->sink);
@@ -98,7 +98,7 @@ hound_ctx_t *hound_playback_ctx_get(const char *name)
 			free(ctx);
 			return NULL;
 		}
-		const int ret = audio_source_init(ctx->source, name, ctx, NULL,
+		const errno_t ret = audio_source_init(ctx->source, name, ctx, NULL,
 		    update_data, &AUDIO_FORMAT_DEFAULT);
 		if (ret != EOK) {
 			free(ctx->source);
@@ -198,7 +198,7 @@ static inline void stream_append(hound_ctx_t *ctx, hound_ctx_stream_t *stream)
  * @param adata The new data.
  * @return Error code.
  */
-static int stream_push_data(hound_ctx_stream_t *stream, audio_data_t *adata)
+static errno_t stream_push_data(hound_ctx_stream_t *stream, audio_data_t *adata)
 {
 	assert(stream);
 	assert(adata);
@@ -215,7 +215,7 @@ static int stream_push_data(hound_ctx_stream_t *stream, audio_data_t *adata)
 
 	}
 
-	const int ret = audio_pipe_push(&stream->fifo, adata);
+	const errno_t ret = audio_pipe_push(&stream->fifo, adata);
 	fibril_mutex_unlock(&stream->guard);
 	if (ret == EOK)
 		fibril_condvar_signal(&stream->change);
@@ -296,7 +296,7 @@ void hound_ctx_destroy_stream(hound_ctx_stream_t *stream)
  * @param size size of the @p data buffer.
  * @return Error code.
  */
-int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
+errno_t hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
     size_t size)
 {
 	assert(stream);
@@ -311,7 +311,7 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 
 	}
 
-	const int ret =
+	const errno_t ret =
 	    audio_pipe_push_data(&stream->fifo, data, size, stream->format);
 	fibril_mutex_unlock(&stream->guard);
 	if (ret == EOK)
@@ -326,7 +326,7 @@ int hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
  * @param size Size of the @p data buffer.
  * @return Error code.
  */
-int hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
+errno_t hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t size)
 {
 	assert(stream);
 
@@ -390,7 +390,7 @@ void hound_ctx_stream_drain(hound_ctx_stream_t *stream)
  *
  * Mixes data from all streams and pushes it to all connections.
  */
-int update_data(audio_source_t *source, size_t size)
+errno_t update_data(audio_source_t *source, size_t size)
 {
 	assert(source);
 	assert(source->private_data);
@@ -424,7 +424,7 @@ int update_data(audio_source_t *source, size_t size)
 	return EOK;
 }
 
-int new_data(audio_sink_t *sink)
+errno_t new_data(audio_sink_t *sink)
 {
 	assert(sink);
 	assert(sink->private_data);
@@ -462,7 +462,7 @@ int new_data(audio_sink_t *sink)
 	}
 	/* push to all streams */
 	list_foreach(ctx->streams, link, hound_ctx_stream_t, stream) {
-		const int ret = stream_push_data(stream, adata);
+		const errno_t ret = stream_push_data(stream, adata);
 		if (ret != EOK)
 			log_error("Failed to push data to stream: %s",
 				str_error(ret));

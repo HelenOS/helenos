@@ -78,7 +78,7 @@
  * Returns EOK if all went well, or an error code otherwise.
  *
  */
-static int _thread_op_begin(thread_t *thread, bool being_go)
+static errno_t _thread_op_begin(thread_t *thread, bool being_go)
 {
 	mutex_lock(&TASK->udebug.lock);
 	
@@ -173,7 +173,7 @@ static void _thread_op_end(thread_t *thread)
  * @return EOK on success, EBUSY if the task is already has an active
  *         debugging session.
  */
-int udebug_begin(call_t *call, bool *active)
+errno_t udebug_begin(call_t *call, bool *active)
 {
 	LOG("Debugging task %" PRIu64, TASK->taskid);
 	
@@ -218,12 +218,12 @@ int udebug_begin(call_t *call, bool *active)
  * @return Zero on success or an error code.
  *
  */
-int udebug_end(void)
+errno_t udebug_end(void)
 {
 	LOG("Task %" PRIu64, TASK->taskid);
 	
 	mutex_lock(&TASK->udebug.lock);
-	int rc = udebug_task_cleanup(TASK);
+	errno_t rc = udebug_task_cleanup(TASK);
 	mutex_unlock(&TASK->udebug.lock);
 	
 	return rc;
@@ -238,7 +238,7 @@ int udebug_end(void)
  * @return Zero on success or an error code.
  *
  */
-int udebug_set_evmask(udebug_evmask_t mask)
+errno_t udebug_set_evmask(udebug_evmask_t mask)
 {
 	LOG("mask = 0x%x", mask);
 	
@@ -265,10 +265,10 @@ int udebug_set_evmask(udebug_evmask_t mask)
  * @param call   The GO call that we are servicing.
  *
  */
-int udebug_go(thread_t *thread, call_t *call)
+errno_t udebug_go(thread_t *thread, call_t *call)
 {
 	/* On success, this will lock thread->udebug.lock. */
-	int rc = _thread_op_begin(thread, false);
+	errno_t rc = _thread_op_begin(thread, false);
 	if (rc != EOK)
 		return rc;
 	
@@ -296,7 +296,7 @@ int udebug_go(thread_t *thread, call_t *call)
  * @param call   The GO call that we are servicing.
  *
  */
-int udebug_stop(thread_t *thread, call_t *call)
+errno_t udebug_stop(thread_t *thread, call_t *call)
 {
 	LOG("udebug_stop()");
 	
@@ -305,7 +305,7 @@ int udebug_stop(thread_t *thread, call_t *call)
 	 * makes sure the thread is not stopped.
 	 *
 	 */
-	int rc = _thread_op_begin(thread, true);
+	errno_t rc = _thread_op_begin(thread, true);
 	if (rc != EOK)
 		return rc;
 	
@@ -363,7 +363,7 @@ int udebug_stop(thread_t *thread, call_t *call)
  * @param needed   Total number of hashes that could have been saved.
  *
  */
-int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
+errno_t udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
     size_t *needed)
 {
 	LOG("udebug_thread_read()");
@@ -427,7 +427,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
  * @return EOK.
  *
  */
-int udebug_name_read(char **data, size_t *data_size)
+errno_t udebug_name_read(char **data, size_t *data_size)
 {
 	size_t name_size = str_size(TASK->name) + 1;
 	
@@ -456,10 +456,10 @@ int udebug_name_read(char **data, size_t *data_size)
  *         if thread state is not valid for this operation.
  *
  */
-int udebug_args_read(thread_t *thread, void **buffer)
+errno_t udebug_args_read(thread_t *thread, void **buffer)
 {
 	/* On success, this will lock t->udebug.lock. */
-	int rc = _thread_op_begin(thread, false);
+	errno_t rc = _thread_op_begin(thread, false);
 	if (rc != EOK)
 		return rc;
 	
@@ -499,10 +499,10 @@ int udebug_args_read(thread_t *thread, void **buffer)
  *         is not available.
  *
  */
-int udebug_regs_read(thread_t *thread, void **buffer)
+errno_t udebug_regs_read(thread_t *thread, void **buffer)
 {
 	/* On success, this will lock t->udebug.lock */
-	int rc = _thread_op_begin(thread, false);
+	errno_t rc = _thread_op_begin(thread, false);
 	if (rc != EOK)
 		return rc;
 	
@@ -535,7 +535,7 @@ int udebug_regs_read(thread_t *thread, void **buffer)
  * @param buffer      For storing a pointer to the allocated buffer.
  *
  */
-int udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
+errno_t udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 {
 	/* Verify task state */
 	mutex_lock(&TASK->udebug.lock);
@@ -552,10 +552,10 @@ int udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 	 * be a problem
 	 *
 	 */
-	int rc = copy_from_uspace(data_buffer, (void *) uspace_addr, n);
+	errno_t rc = copy_from_uspace(data_buffer, (void *) uspace_addr, n);
 	mutex_unlock(&TASK->udebug.lock);
 	
-	if (rc != 0)
+	if (rc != EOK)
 		return rc;
 	
 	*buffer = data_buffer;

@@ -42,7 +42,7 @@
 
 #include <http/receive-buffer.h>
 
-int recv_buffer_init(receive_buffer_t *rb, size_t buffer_size,
+errno_t recv_buffer_init(receive_buffer_t *rb, size_t buffer_size,
     receive_func_t receive, void *client_data)
 {
 	rb->receive = receive;
@@ -60,16 +60,16 @@ int recv_buffer_init(receive_buffer_t *rb, size_t buffer_size,
 	return EOK;
 }
 
-static int dummy_receive(void *unused, void *buf, size_t buf_size,
+static errno_t dummy_receive(void *unused, void *buf, size_t buf_size,
     size_t *nrecv)
 {
 	*nrecv = 0;
 	return EOK;
 }
 
-int recv_buffer_init_const(receive_buffer_t *rb, void *buf, size_t size)
+errno_t recv_buffer_init_const(receive_buffer_t *rb, void *buf, size_t size)
 {
-	int rc = recv_buffer_init(rb, size, dummy_receive, NULL);
+	errno_t rc = recv_buffer_init(rb, size, dummy_receive, NULL);
 	if (rc != EOK)
 		return rc;
 	
@@ -106,7 +106,7 @@ void recv_mark_update(receive_buffer_t *rb, receive_buffer_mark_t *mark)
 	mark->offset = rb->out;
 }
 
-int recv_cut(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_mark_t *b, void **out_buf, size_t *out_size)
+errno_t recv_cut(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_mark_t *b, void **out_buf, size_t *out_size)
 {
 	if (a->offset > b->offset)
 		return EINVAL;
@@ -122,7 +122,7 @@ int recv_cut(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_mark
 	return EOK;
 }
 
-int recv_cut_str(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_mark_t *b, char **out_buf)
+errno_t recv_cut_str(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_mark_t *b, char **out_buf)
 {
 	if (a->offset > b->offset)
 		return EINVAL;
@@ -146,7 +146,7 @@ int recv_cut_str(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_
 
 
 /** Receive one character (with buffering) */
-int recv_char(receive_buffer_t *rb, char *c, bool consume)
+errno_t recv_char(receive_buffer_t *rb, char *c, bool consume)
 {
 	if (rb->out == rb->in) {
 		size_t free = rb->size - rb->in;
@@ -169,7 +169,7 @@ int recv_char(receive_buffer_t *rb, char *c, bool consume)
 		}
 		
 		size_t nrecv;
-		int rc = rb->receive(rb->client_data, rb->buffer + rb->in, free, &nrecv);
+		errno_t rc = rb->receive(rb->client_data, rb->buffer + rb->in, free, &nrecv);
 		if (rc != EOK)
 			return rc;
 		
@@ -182,7 +182,7 @@ int recv_char(receive_buffer_t *rb, char *c, bool consume)
 	return EOK;
 }
 
-int recv_buffer(receive_buffer_t *rb, char *buf, size_t buf_size,
+errno_t recv_buffer(receive_buffer_t *rb, char *buf, size_t buf_size,
     size_t *nrecv)
 {
 	/* Flush any buffered data */
@@ -201,10 +201,10 @@ int recv_buffer(receive_buffer_t *rb, char *buf, size_t buf_size,
  * @param ndisc Place to store number of characters discarded
  * @return EOK or an error code
  */
-int recv_discard(receive_buffer_t *rb, char discard, size_t *ndisc)
+errno_t recv_discard(receive_buffer_t *rb, char discard, size_t *ndisc)
 {
 	char c = 0;
-	int rc = recv_char(rb, &c, false);
+	errno_t rc = recv_char(rb, &c, false);
 	if (rc != EOK)
 		return rc;
 	if (c != discard) {
@@ -222,12 +222,12 @@ int recv_discard(receive_buffer_t *rb, char discard, size_t *ndisc)
  * @param ndisc Place to store number of characters discarded
  * @return EOK or an error code
  */
-int recv_discard_str(receive_buffer_t *rb, const char *discard, size_t *ndisc)
+errno_t recv_discard_str(receive_buffer_t *rb, const char *discard, size_t *ndisc)
 {
 	size_t discarded = 0;
 	while (*discard) {
 		size_t nd;
-		int rc = recv_discard(rb, *discard, &nd);
+		errno_t rc = recv_discard(rb, *discard, &nd);
 		if (rc != EOK)
 			return rc;
 		if (nd == 0)
@@ -240,11 +240,11 @@ int recv_discard_str(receive_buffer_t *rb, const char *discard, size_t *ndisc)
 	return EOK;
 }
 
-int recv_while(receive_buffer_t *rb, char_class_func_t class)
+errno_t recv_while(receive_buffer_t *rb, char_class_func_t class)
 {
 	while (true) {
 		char c = 0;
-		int rc = recv_char(rb, &c, false);
+		errno_t rc = recv_char(rb, &c, false);
 		if (rc != EOK)
 			return rc;
 		
@@ -265,10 +265,10 @@ int recv_while(receive_buffer_t *rb, char_class_func_t class)
  *              no newline is present in the stream)
  * @return EOK on success or an error code
  */
-int recv_eol(receive_buffer_t *rb, size_t *nrecv)
+errno_t recv_eol(receive_buffer_t *rb, size_t *nrecv)
 {
 	char c = 0;
-	int rc = recv_char(rb, &c, false);
+	errno_t rc = recv_char(rb, &c, false);
 	if (rc != EOK)
 		return rc;
 	
@@ -291,14 +291,14 @@ int recv_eol(receive_buffer_t *rb, size_t *nrecv)
 }
 
 /* Receive a single line */
-int recv_line(receive_buffer_t *rb, char *line, size_t size, size_t *nrecv)
+errno_t recv_line(receive_buffer_t *rb, char *line, size_t size, size_t *nrecv)
 {
 	size_t written = 0;
 	size_t nr;
 	
 	while (written < size) {
 		char c = 0;
-		int rc = recv_char(rb, &c, true);
+		errno_t rc = recv_char(rb, &c, true);
 		if (rc != EOK)
 			return rc;
 		if (c == '\n') {

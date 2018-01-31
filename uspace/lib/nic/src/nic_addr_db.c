@@ -119,7 +119,7 @@ static hash_table_ops_t set_ops = {
  * @return EINVAL	If the address length is too big
  * @return ENOMEM	If there was not enough memory to initialize the storage
  */
-int nic_addr_db_init(nic_addr_db_t *db, size_t addr_len)
+errno_t nic_addr_db_init(nic_addr_db_t *db, size_t addr_len)
 {
 	assert(db);
 	
@@ -167,7 +167,7 @@ void nic_addr_db_destroy(nic_addr_db_t *db)
  * @return ENOMEM	If there was not enough memory
  * @return EEXIST	If this adress already is in the db
  */
-int nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
+errno_t nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
 {
 	assert(db && addr);
 
@@ -199,7 +199,7 @@ int nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
  * @return EOK		If the address was removed
  * @return ENOENT	If there is no address
  */
-int nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr)
+errno_t nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr)
 {
 	assert(db && addr);
 	

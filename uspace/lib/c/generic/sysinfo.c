@@ -48,9 +48,9 @@
  * @return EOK if the keys were successfully read.
  *
  */
-static int sysinfo_get_keys_size(const char *path, size_t *size)
+static errno_t sysinfo_get_keys_size(const char *path, size_t *size)
 {
-	return (int) __SYSCALL3(SYS_SYSINFO_GET_KEYS_SIZE, (sysarg_t) path,
+	return (errno_t) __SYSCALL3(SYS_SYSINFO_GET_KEYS_SIZE, (sysarg_t) path,
 	    (sysarg_t) str_size(path), (sysarg_t) size);
 }
 
@@ -74,7 +74,7 @@ char *sysinfo_get_keys(const char *path, size_t *size)
 	 */
 	
 	/* Get the keys size */
-	int ret = sysinfo_get_keys_size(path, size);
+	errno_t ret = sysinfo_get_keys_size(path, size);
 	if ((ret != EOK) || (size == 0)) {
 		/*
 		 * Item with no subkeys.
@@ -91,7 +91,7 @@ char *sysinfo_get_keys(const char *path, size_t *size)
 	
 	/* Get the data */
 	size_t sz;
-	ret = (int) __SYSCALL5(SYS_SYSINFO_GET_KEYS, (sysarg_t) path,
+	ret = (errno_t) __SYSCALL5(SYS_SYSINFO_GET_KEYS, (sysarg_t) path,
 	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
 	    (sysarg_t) &sz);
 	if (ret == EOK) {
@@ -126,9 +126,9 @@ sysinfo_item_val_type_t sysinfo_get_val_type(const char *path)
  *         is of SYSINFO_VAL_VAL type.
  *
  */
-int sysinfo_get_value(const char *path, sysarg_t *value)
+errno_t sysinfo_get_value(const char *path, sysarg_t *value)
 {
-	return (int) __SYSCALL3(SYS_SYSINFO_GET_VALUE, (sysarg_t) path,
+	return (errno_t) __SYSCALL3(SYS_SYSINFO_GET_VALUE, (sysarg_t) path,
 	    (sysarg_t) str_size(path), (sysarg_t) value);
 }
 
@@ -141,9 +141,9 @@ int sysinfo_get_value(const char *path, sysarg_t *value)
  *         is of SYSINFO_VAL_DATA type.
  *
  */
-static int sysinfo_get_data_size(const char *path, size_t *size)
+static errno_t sysinfo_get_data_size(const char *path, size_t *size)
 {
-	return (int) __SYSCALL3(SYS_SYSINFO_GET_DATA_SIZE, (sysarg_t) path,
+	return (errno_t) __SYSCALL3(SYS_SYSINFO_GET_DATA_SIZE, (sysarg_t) path,
 	    (sysarg_t) str_size(path), (sysarg_t) size);
 }
 
@@ -167,7 +167,7 @@ void *sysinfo_get_data(const char *path, size_t *size)
 	 */
 	
 	/* Get the binary data size */
-	int ret = sysinfo_get_data_size(path, size);
+	errno_t ret = sysinfo_get_data_size(path, size);
 	if ((ret != EOK) || (size == 0)) {
 		/*
 		 * Not a binary data item
@@ -185,7 +185,7 @@ void *sysinfo_get_data(const char *path, size_t *size)
 	
 	/* Get the data */
 	size_t sz;
-	ret = (int) __SYSCALL5(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
+	ret = (errno_t) __SYSCALL5(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
 	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
 	    (sysarg_t) &sz);
 	if (ret == EOK) {

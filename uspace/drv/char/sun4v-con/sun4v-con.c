@@ -45,8 +45,8 @@ static void sun4v_con_connection(ipc_callid_t, ipc_call_t *, void *);
 
 #define POLL_INTERVAL  10000
 
-static int sun4v_con_read(chardev_srv_t *, void *, size_t, size_t *);
-static int sun4v_con_write(chardev_srv_t *, const void *, size_t, size_t *);
+static errno_t sun4v_con_read(chardev_srv_t *, void *, size_t, size_t *);
+static errno_t sun4v_con_write(chardev_srv_t *, const void *, size_t, size_t *);
 
 static chardev_ops_t sun4v_con_chardev_ops = {
 	.read = sun4v_con_read,
@@ -68,10 +68,10 @@ static void sun4v_con_putchar(sun4v_con_t *con, uint8_t data)
 }
 
 /** Add sun4v console device. */
-int sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
+errno_t sun4v_con_add(sun4v_con_t *con, sun4v_con_res_t *res)
 {
 	ddf_fun_t *fun = NULL;
-	int rc;
+	errno_t rc;
 
 	con->res = *res;
 	con->input_buffer = (niagara_input_buffer_t *) AS_AREA_ANY;
@@ -128,19 +128,19 @@ error:
 }
 
 /** Remove sun4v console device */
-int sun4v_con_remove(sun4v_con_t *con)
+errno_t sun4v_con_remove(sun4v_con_t *con)
 {
 	return ENOTSUP;
 }
 
 /** Msim console device gone */
-int sun4v_con_gone(sun4v_con_t *con)
+errno_t sun4v_con_gone(sun4v_con_t *con)
 {
 	return ENOTSUP;
 }
 
 /** Read from Sun4v console device */
-static int sun4v_con_read(chardev_srv_t *srv, void *buf, size_t size,
+static errno_t sun4v_con_read(chardev_srv_t *srv, void *buf, size_t size,
     size_t *nread)
 {
 	sun4v_con_t *con = (sun4v_con_t *) srv->srvs->sarg;
@@ -164,7 +164,7 @@ static int sun4v_con_read(chardev_srv_t *srv, void *buf, size_t size,
 }
 
 /** Write to Sun4v console device */
-static int sun4v_con_write(chardev_srv_t *srv, const void *data, size_t size,
+static errno_t sun4v_con_write(chardev_srv_t *srv, const void *data, size_t size,
     size_t *nwr)
 {
 	sun4v_con_t *con = (sun4v_con_t *) srv->srvs->sarg;

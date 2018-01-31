@@ -45,7 +45,7 @@
 
 #define NAME "xtkbd"
 
-static int xt_kbd_add(ddf_dev_t *device);
+static errno_t xt_kbd_add(ddf_dev_t *device);
 
 /** DDF driver ops. */
 static driver_ops_t kbd_driver_ops = {
@@ -82,9 +82,9 @@ int main(int argc, char *argv[])
  * @return Error code.
  *
  */
-static int xt_kbd_add(ddf_dev_t *device)
+static errno_t xt_kbd_add(ddf_dev_t *device)
 {
-	int rc;
+	errno_t rc;
 
 	if (!device)
 		return EINVAL;

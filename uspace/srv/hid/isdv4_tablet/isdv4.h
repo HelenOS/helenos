@@ -89,9 +89,9 @@ struct isdv4_event {
 	unsigned int button;
 };
 
-extern int isdv4_init(isdv4_state_t *, async_sess_t *, isdv4_event_fn);
-extern int isdv4_init_tablet(isdv4_state_t *);
-extern int isdv4_read_events(isdv4_state_t *state);
+extern errno_t isdv4_init(isdv4_state_t *, async_sess_t *, isdv4_event_fn);
+extern errno_t isdv4_init_tablet(isdv4_state_t *);
+extern errno_t isdv4_read_events(isdv4_state_t *state);
 extern void isdv4_fini(isdv4_state_t *);
 
 #endif

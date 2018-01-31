@@ -55,7 +55,7 @@ void interface_life_live(vuhid_interface_t *iface)
 
 
 
-int interface_live_on_data_in(vuhid_interface_t *iface,
+errno_t interface_live_on_data_in(vuhid_interface_t *iface,
     void *buffer, size_t buffer_size, size_t *act_buffer_size)
 {
 	vuhid_interface_life_t *life = iface->interface_data;

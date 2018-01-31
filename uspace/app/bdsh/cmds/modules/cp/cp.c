@@ -81,7 +81,7 @@ static dentry_type_t get_type(const char *path)
 {
 	struct stat s;
 
-	int r = vfs_stat_path(path, &s);
+	errno_t r = vfs_stat_path(path, &s);
 
 	if (r != EOK)
 		return TYPE_NONE;
@@ -175,10 +175,10 @@ static bool get_user_decision(bool bdefault, const char *message, ...)
 	}
 }
 
-static int do_copy(const char *src, const char *dest,
+static errno_t do_copy(const char *src, const char *dest,
     size_t blen, int vb, int recursive, int force, int interactive)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	char dest_path[PATH_MAX];
 	char src_path[PATH_MAX];
 	DIR *dir = NULL;
@@ -387,7 +387,7 @@ static int copy_file(const char *src, const char *dest,
 {
 	int fd1, fd2;
 	size_t rbytes, wbytes;
-	int rc;
+	errno_t rc;
 	off64_t total;
 	char *buff = NULL;
 	aoff64_t posr = 0, posw = 0;
@@ -478,7 +478,7 @@ int cmd_cp(char **argv)
 	int buffer = 0, recursive = 0;
 	int force = 0, interactive = 0;
 	int c, opt_ind;
-	int ret;
+	errno_t ret;
 
 	con = console_init(stdin, stdout);
 	argc = cli_count_args(argv);

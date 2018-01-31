@@ -50,10 +50,10 @@ static char previous_directory_tmp[PATH_MAX];
 static bool previous_directory_valid = true;
 static bool previous_directory_set = false;
 
-static int chdir_and_remember(const char *new_dir)
+static errno_t chdir_and_remember(const char *new_dir)
 {
 
-	int rc = vfs_cwd_get(previous_directory_tmp, PATH_MAX);
+	errno_t rc = vfs_cwd_get(previous_directory_tmp, PATH_MAX);
 	previous_directory_valid = (rc == EOK);
 	previous_directory_set = true;
 
@@ -85,7 +85,7 @@ void help_cmd_cd(unsigned int level)
 int cmd_cd(char **argv, cliuser_t *usr)
 {
 	int argc;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	argc = cli_count_args(argv);
 

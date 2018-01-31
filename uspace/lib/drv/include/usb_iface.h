@@ -55,11 +55,11 @@ extern usb_dev_session_t *usb_dev_connect(devman_handle_t);
 extern usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
 extern void usb_dev_disconnect(usb_dev_session_t *);
 
-extern int usb_get_my_description(async_exch_t *, usb_device_desc_t *);
+extern errno_t usb_get_my_description(async_exch_t *, usb_device_desc_t *);
 
 /** USB device communication interface. */
 typedef struct {
-	int (*get_my_description)(ddf_fun_t *, usb_device_desc_t *);
+	errno_t (*get_my_description)(ddf_fun_t *, usb_device_desc_t *);
 } usb_iface_t;
 
 #endif

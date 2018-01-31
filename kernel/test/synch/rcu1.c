@@ -54,7 +54,7 @@ typedef struct {
 #define ERACE   EPARTY
 
 /*-------------------------------------------------------------------*/
-static void wait_for_cb_exit(size_t secs, exited_t *p, int *presult)
+static void wait_for_cb_exit(size_t secs, exited_t *p, errno_t *presult)
 {
 	size_t loops = 0;
 	/* 4 secs max */
@@ -112,7 +112,7 @@ static void join_all(void)
 		if (thread[i]) {
 			bool joined = false;
 			do {
-				int ret = thread_join_timeout(thread[i], 5 * 1000 * 1000, 0);
+				errno_t ret = thread_join_timeout(thread[i], 5 * 1000 * 1000, 0);
 				joined = (ret != ETIMEOUT);
 				
 				if (ret == EOK) {
@@ -364,7 +364,7 @@ typedef struct {
 } seq_item_t;
 
 
-static int seq_test_result = EOK;
+static errno_t seq_test_result = EOK;
 
 static atomic_t cur_time = {1};
 static atomic_count_t max_upd_done_time = {0};
@@ -533,7 +533,7 @@ static bool do_reader_exit(void)
 	run_one(reader_exit, p);	
 	join_one();
 	
-	int result = EOK;
+	errno_t result = EOK;
 	wait_for_cb_exit(2 /* secs */, p, &result);
 	
 	if (result != EOK) {
@@ -552,7 +552,7 @@ static bool do_reader_exit(void)
 
 typedef struct preempt_struct {
 	exited_t e;
-	int result;
+	errno_t result;
 } preempt_t;
 
 

@@ -40,7 +40,19 @@
 
 static atomic_t failed_asserts = {0};
 
-void assert_abort(const char *cond, const char *file, unsigned int line)
+void __helenos_assert_quick_abort(const char *cond, const char *file, unsigned int line)
+{
+	/*
+	 * Send the message safely to kio. Nested asserts should not occur.
+	 */
+	kio_printf("Assertion failed (%s) in file \"%s\", line %u.\n",
+	    cond, file, line);
+	
+	/* Sometimes we know in advance that regular printf() would likely fail. */
+	abort();
+}
+
+void __helenos_assert_abort(const char *cond, const char *file, unsigned int line)
 {
 	/*
 	 * Send the message safely to kio. Nested asserts should not occur.

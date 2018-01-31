@@ -40,7 +40,7 @@
 #include <syscall/copy.h>
 #include <config.h>
 
-static int request_preprocess(call_t *call, phone_t *phone)
+static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
 	uintptr_t src = IPC_GET_ARG1(call->data);
 	size_t size = IPC_GET_ARG2(call->data);
@@ -56,8 +56,8 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	}
 
 	call->buffer = (uint8_t *) malloc(size, 0);
-	int rc = copy_from_uspace(call->buffer, (void *) src, size);
-	if (rc != 0) {
+	errno_t rc = copy_from_uspace(call->buffer, (void *) src, size);
+	if (rc != EOK) {
 		/*
 		 * call->buffer will be cleaned up in ipc_call_free() at the
 		 * latest.
@@ -68,7 +68,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	return EOK;
 }
 
-static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
+static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	assert(answer->buffer);
 
@@ -79,7 +79,7 @@ static int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		size_t max_size = (size_t)IPC_GET_ARG2(*olddata);
 			
 		if (size <= max_size) {
-			int rc = copy_to_uspace((void *) dst,
+			errno_t rc = copy_to_uspace((void *) dst,
 			    answer->buffer, size);
 			if (rc)
 				IPC_SET_RETVAL(answer->data, rc);

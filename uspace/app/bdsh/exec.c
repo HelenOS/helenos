@@ -57,7 +57,7 @@ static int try_access(const char *f)
 {
 	int fd;
 
-	int rc = vfs_lookup_open(f, WALK_REGULAR, MODE_READ, &fd);
+	errno_t rc = vfs_lookup_open(f, WALK_REGULAR, MODE_READ, &fd);
 	if (rc == EOK) {
 		vfs_put(fd);
 		return 0;
@@ -97,7 +97,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	task_wait_t twait;
 	task_exit_t texit;
 	char *tmp;
-	int rc;
+	errno_t rc;
 	int retval, i;
 	int file_handles[3] = { -1, -1, -1 };
 	FILE *files[3];
@@ -117,7 +117,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 	    file_handles[0], file_handles[1], file_handles[2]);
 	free(tmp);
 
-	if (rc != 0) {
+	if (rc != EOK) {
 		cli_error(CL_EEXEC, "%s: Cannot spawn `%s' (%s)", progname, cmd,
 		    str_error(rc));
 		return 1;

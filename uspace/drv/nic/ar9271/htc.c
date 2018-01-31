@@ -65,7 +65,7 @@ static inline uint8_t wmi_service_to_upload_pipe(wmi_services_t service_id)
 	return (service_id == WMI_CONTROL_SERVICE) ? 4 : 1;
 }
 
-int htc_init_new_vif(htc_device_t *htc_device)
+errno_t htc_init_new_vif(htc_device_t *htc_device)
 {
 	htc_vif_msg_t vif_msg;
 	htc_sta_msg_t sta_msg;
@@ -152,7 +152,7 @@ static void htc_config_frame_header(htc_frame_header_t *header,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int htc_send_control_message(htc_device_t *htc_device, void *buffer,
+errno_t htc_send_control_message(htc_device_t *htc_device, void *buffer,
     size_t buffer_size, uint8_t endpoint_id)
 {
 	htc_config_frame_header((htc_frame_header_t *) buffer, buffer_size,
@@ -175,7 +175,7 @@ int htc_send_control_message(htc_device_t *htc_device, void *buffer,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int htc_send_data_message(htc_device_t *htc_device, void *buffer,
+errno_t htc_send_data_message(htc_device_t *htc_device, void *buffer,
     size_t buffer_size, uint8_t endpoint_id)
 {
 	htc_config_frame_header((htc_frame_header_t *) buffer, buffer_size,
@@ -198,7 +198,7 @@ int htc_send_data_message(htc_device_t *htc_device, void *buffer,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int htc_read_data_message(htc_device_t *htc_device, void *buffer,
+errno_t htc_read_data_message(htc_device_t *htc_device, void *buffer,
     size_t buffer_size, size_t *transferred_size)
 {
 	ath_t *ath_device = htc_device->ath_device;
@@ -218,7 +218,7 @@ int htc_read_data_message(htc_device_t *htc_device, void *buffer,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int htc_read_control_message(htc_device_t *htc_device, void *buffer,
+errno_t htc_read_control_message(htc_device_t *htc_device, void *buffer,
     size_t buffer_size, size_t *transferred_size)
 {
 	ath_t *ath_device = htc_device->ath_device;
@@ -238,7 +238,7 @@ int htc_read_control_message(htc_device_t *htc_device, void *buffer,
  *         error code otherwise.
  *
  */
-static int htc_connect_service(htc_device_t *htc_device,
+static errno_t htc_connect_service(htc_device_t *htc_device,
     wmi_services_t service_id, int *response_endpoint_no)
 {
 	size_t buffer_size = sizeof(htc_frame_header_t) +
@@ -260,7 +260,7 @@ static int htc_connect_service(htc_device_t *htc_device,
 	service_message->connection_flags = 0;
 	
 	/* Send HTC message. */
-	int rc = htc_send_control_message(htc_device, buffer, buffer_size,
+	errno_t rc = htc_send_control_message(htc_device, buffer, buffer_size,
 	    htc_device->endpoints.ctrl_endpoint);
 	if (rc != EOK) {
 		free(buffer);
@@ -311,7 +311,7 @@ static int htc_connect_service(htc_device_t *htc_device,
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int htc_config_credits(htc_device_t *htc_device)
+static errno_t htc_config_credits(htc_device_t *htc_device)
 {
 	size_t buffer_size = sizeof(htc_frame_header_t) +
 	    sizeof(htc_config_msg_t);
@@ -326,7 +326,7 @@ static int htc_config_credits(htc_device_t *htc_device)
 	config_message->pipe_id = 1;
 	
 	/* Send HTC message. */
-	int rc = htc_send_control_message(htc_device, buffer, buffer_size,
+	errno_t rc = htc_send_control_message(htc_device, buffer, buffer_size,
 	    htc_device->endpoints.ctrl_endpoint);
 	if (rc != EOK) {
 		free(buffer);
@@ -359,7 +359,7 @@ static int htc_config_credits(htc_device_t *htc_device)
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int htc_complete_setup(htc_device_t *htc_device)
+static errno_t htc_complete_setup(htc_device_t *htc_device)
 {
 	size_t buffer_size = sizeof(htc_frame_header_t) +
 	    sizeof(htc_setup_complete_msg_t);
@@ -372,7 +372,7 @@ static int htc_complete_setup(htc_device_t *htc_device)
 	    host2uint16_t_be(HTC_MESSAGE_SETUP_COMPLETE);
 	
 	/* Send HTC message. */
-	int rc = htc_send_control_message(htc_device, buffer, buffer_size,
+	errno_t rc = htc_send_control_message(htc_device, buffer, buffer_size,
 	    htc_device->endpoints.ctrl_endpoint);
 	if (rc != EOK)
 		usb_log_error("Failed to send HTC setup complete message. "
@@ -393,13 +393,13 @@ static int htc_complete_setup(htc_device_t *htc_device)
  *         error code otherwise.
  *
  */
-static int htc_check_ready(htc_device_t *htc_device)
+static errno_t htc_check_ready(htc_device_t *htc_device)
 {
 	size_t buffer_size = htc_device->ath_device->ctrl_response_length;
 	void *buffer = malloc(buffer_size);
 	
 	/* Read response from device. */
-	int rc = htc_read_control_message(htc_device, buffer, buffer_size,
+	errno_t rc = htc_read_control_message(htc_device, buffer, buffer_size,
 	    NULL);
 	if (rc != EOK) {
 		free(buffer);
@@ -429,7 +429,7 @@ static int htc_check_ready(htc_device_t *htc_device)
  * @return EOK if succeed, error code otherwise.
  *
  */
-int htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev,
+errno_t htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev,
     htc_device_t *htc_device)
 {
 	fibril_mutex_initialize(&htc_device->rx_lock);
@@ -450,10 +450,10 @@ int htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev,
  * @return EOK if succeed, error code otherwise.
  *
  */
-int htc_init(htc_device_t *htc_device)
+errno_t htc_init(htc_device_t *htc_device)
 {
 	/* First check ready message in device. */
-	int rc = htc_check_ready(htc_device);
+	errno_t rc = htc_check_ready(htc_device);
 	if (rc != EOK) {
 		usb_log_error("Device is not in ready state after loading "
 		    "firmware.\n");

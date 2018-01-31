@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 	size_t nread;
 
 	int arg = 1;
-	int rc;
+	errno_t rc;
 
 	if (argc > arg && str_test_prefix(argv[arg], "--baud=")) {
 		size_t arg_offset = str_lsize(argv[arg], 7);

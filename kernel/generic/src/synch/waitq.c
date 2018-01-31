@@ -267,13 +267,13 @@ void waitq_unsleep(waitq_t *wq)
  *              the wakeup was already pending.
  *
  */
-int waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
+errno_t waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
 {
 	assert((!PREEMPTION_DISABLED) || (PARAM_NON_BLOCKING(flags, usec)));
 	
 	ipl_t ipl = waitq_sleep_prepare(wq);
 	bool nblocked;
-	int rc = waitq_sleep_timeout_unsafe(wq, usec, flags, &nblocked);
+	errno_t rc = waitq_sleep_timeout_unsafe(wq, usec, flags, &nblocked);
 	waitq_sleep_finish(wq, nblocked, ipl);
 
 	if (blocked != NULL) {
@@ -372,7 +372,7 @@ void waitq_sleep_finish(waitq_t *wq, bool blocked, ipl_t ipl)
  * @return See waitq_sleep_timeout().
  *
  */
-int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
+errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
 {
 	*blocked = false;
 

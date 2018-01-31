@@ -77,7 +77,7 @@ static void ranges_unmap(irq_pio_range_t *ranges, size_t rangecount)
 	}
 }
 
-static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
+static errno_t ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
     irq_cmd_t *cmds, size_t cmdcount)
 {
 	/* Copy the physical base addresses aside. */
@@ -163,7 +163,7 @@ static int ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
  * Check the top-half IRQ code for invalid or unsafe constructs.
  *
  */
-static int code_check(irq_cmd_t *cmds, size_t cmdcount)
+static errno_t code_check(irq_cmd_t *cmds, size_t cmdcount)
 {
 	for (size_t i = 0; i < cmdcount; i++) {
 		/*
@@ -225,7 +225,7 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	irq_cmd_t *cmds = NULL;
 	
 	irq_code_t *code = malloc(sizeof(*code), 0);
-	int rc = copy_from_uspace(code, ucode, sizeof(*code));
+	errno_t rc = copy_from_uspace(code, ucode, sizeof(*code));
 	if (rc != EOK)
 		goto error;
 	
@@ -312,7 +312,7 @@ static kobject_ops_t irq_kobject_ops = {
  * @return  Error code.
  *
  */
-int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
+errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
     irq_code_t *ucode, cap_handle_t *uspace_handle)
 {
 	if ((inr < 0) || (inr > last_inr))
@@ -330,7 +330,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	 * Allocate and populate the IRQ kernel object.
 	 */
 	cap_handle_t handle;
-	int rc = cap_alloc(TASK, &handle);
+	errno_t rc = cap_alloc(TASK, &handle);
 	if (rc != EOK)
 		return rc;
 	
@@ -389,7 +389,7 @@ int ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
  * @return EOK on success or an error code.
  *
  */
-int ipc_irq_unsubscribe(answerbox_t *box, int handle)
+errno_t ipc_irq_unsubscribe(answerbox_t *box, int handle)
 {
 	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_IRQ);
 	if (!kobj)

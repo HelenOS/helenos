@@ -101,7 +101,7 @@ struct hub {
 
 void hub_init(hub_t *);
 size_t hub_connect_device(hub_t *, void *);
-int hub_disconnect_device(hub_t *, void *);
+errno_t hub_disconnect_device(hub_t *, void *);
 size_t hub_find_device(hub_t *, void *);
 void hub_acquire(hub_t *);
 void hub_release(hub_t *);

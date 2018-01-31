@@ -56,7 +56,7 @@
  * @return EOK on success or an error code from errno.h.
  *
  */
-int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
+errno_t ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	size_t elements = ioaddr + size;
 	if (elements > IO_PORTS)
@@ -119,7 +119,7 @@ int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
  * @return EOK on success or an error code from errno.h.
  *
  */
-int ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
+errno_t ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	size_t elements = ioaddr + size;
 	if (elements > IO_PORTS)

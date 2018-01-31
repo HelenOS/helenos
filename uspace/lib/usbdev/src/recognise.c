@@ -59,7 +59,7 @@
  * @param format Printf-like format
  * @return Error code.
  */
-static int usb_add_match_id(match_id_list_t *matches, int score,
+static errno_t usb_add_match_id(match_id_list_t *matches, int score,
     const char *match_str)
 {
 	assert(matches);
@@ -88,7 +88,7 @@ static int usb_add_match_id(match_id_list_t *matches, int score,
 		char *str = NULL; \
 		int __rc = asprintf(&str, format, ##__VA_ARGS__); \
 		if (__rc >= 0) { \
-			int __rc = usb_add_match_id((match_ids), (score), str); \
+			errno_t __rc = usb_add_match_id((match_ids), (score), str); \
 			if (__rc != EOK) { \
 				free(str); \
 				return __rc; \
@@ -107,7 +107,7 @@ static int usb_add_match_id(match_id_list_t *matches, int score,
  * @retval EINVAL Invalid input parameters (expects non NULL pointers).
  * @retval ENOENT Device class is not "use interface".
  */
-int usb_device_create_match_ids_from_interface(
+errno_t usb_device_create_match_ids_from_interface(
     const usb_standard_device_descriptor_t *desc_device,
     const usb_standard_interface_descriptor_t *desc_interface,
     match_id_list_t *matches)
@@ -219,7 +219,7 @@ int usb_device_create_match_ids_from_interface(
  * @param device_descriptor Device descriptor returned by given device.
  * @return Error code.
  */
-int usb_device_create_match_ids_from_device_descriptor(
+errno_t usb_device_create_match_ids_from_device_descriptor(
     const usb_standard_device_descriptor_t *device_descriptor,
     match_id_list_t *matches)
 {
@@ -263,11 +263,11 @@ int usb_device_create_match_ids_from_device_descriptor(
  * @param matches Initialized list of match ids.
  * @return Error code.
  */
-int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
+errno_t usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
     match_id_list_t *matches)
 {
 	assert(ctrl_pipe);
-	int rc;
+	errno_t rc;
 	/*
 	 * Retrieve device descriptor and add matches from it.
 	 */

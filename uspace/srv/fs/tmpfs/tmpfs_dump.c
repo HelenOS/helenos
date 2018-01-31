@@ -62,7 +62,7 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 {
 	struct rdentry entry;
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
-	int rc;
+	errno_t rc;
 	
 	do {
 		char *fname;
@@ -167,7 +167,7 @@ bool tmpfs_restore(service_id_t dsid)
 {
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
 	fs_node_t *fn;
-	int rc;
+	errno_t rc;
 
 	rc = block_init(dsid, TMPFS_COMM_SIZE);
 	if (rc != EOK)

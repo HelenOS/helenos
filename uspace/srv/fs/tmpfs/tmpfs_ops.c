@@ -63,22 +63,22 @@ fs_index_t tmpfs_next_index = 1;
  */
 
 /* Forward declarations of static functions. */
-static int tmpfs_match(fs_node_t **, fs_node_t *, const char *);
-static int tmpfs_node_get(fs_node_t **, service_id_t, fs_index_t);
-static int tmpfs_node_open(fs_node_t *);
-static int tmpfs_node_put(fs_node_t *);
-static int tmpfs_create_node(fs_node_t **, service_id_t, int);
-static int tmpfs_destroy_node(fs_node_t *);
-static int tmpfs_link_node(fs_node_t *, fs_node_t *, const char *);
-static int tmpfs_unlink_node(fs_node_t *, fs_node_t *, const char *);
+static errno_t tmpfs_match(fs_node_t **, fs_node_t *, const char *);
+static errno_t tmpfs_node_get(fs_node_t **, service_id_t, fs_index_t);
+static errno_t tmpfs_node_open(fs_node_t *);
+static errno_t tmpfs_node_put(fs_node_t *);
+static errno_t tmpfs_create_node(fs_node_t **, service_id_t, int);
+static errno_t tmpfs_destroy_node(fs_node_t *);
+static errno_t tmpfs_link_node(fs_node_t *, fs_node_t *, const char *);
+static errno_t tmpfs_unlink_node(fs_node_t *, fs_node_t *, const char *);
 
 /* Implementation of helper functions. */
-static int tmpfs_root_get(fs_node_t **rfn, service_id_t service_id)
+static errno_t tmpfs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return tmpfs_node_get(rfn, service_id, TMPFS_SOME_ROOT); 
 }
 
-static int tmpfs_has_children(bool *has_children, fs_node_t *fn)
+static errno_t tmpfs_has_children(bool *has_children, fs_node_t *fn)
 {
 	*has_children = !list_empty(&TMPFS_NODE(fn)->cs_list);
 	return EOK;
@@ -226,7 +226,7 @@ bool tmpfs_init(void)
 static bool tmpfs_instance_init(service_id_t service_id)
 {
 	fs_node_t *rfn;
-	int rc;
+	errno_t rc;
 	
 	rc = tmpfs_create_node(&rfn, service_id, L_DIRECTORY);
 	if (rc != EOK || !rfn)
@@ -251,7 +251,7 @@ static void tmpfs_instance_done(service_id_t service_id)
 	hash_table_apply(&nodes, rm_service_id_nodes, &service_id);
 }
 
-int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+errno_t tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
 
@@ -266,7 +266,7 @@ int tmpfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	return EOK;
 }
 
-int tmpfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
+errno_t tmpfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
 	node_key_t key = {
 		.service_id = service_id,
@@ -285,22 +285,22 @@ int tmpfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 	return EOK;	
 }
 
-int tmpfs_node_open(fs_node_t *fn)
+errno_t tmpfs_node_open(fs_node_t *fn)
 {
 	/* nothing to do */
 	return EOK;
 }
 
-int tmpfs_node_put(fs_node_t *fn)
+errno_t tmpfs_node_put(fs_node_t *fn)
 {
 	/* nothing to do */
 	return EOK;
 }
 
-int tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
+errno_t tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 {
 	fs_node_t *rootfn;
-	int rc;
+	errno_t rc;
 
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 
@@ -334,7 +334,7 @@ int tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 	return EOK;
 }
 
-int tmpfs_destroy_node(fs_node_t *fn)
+errno_t tmpfs_destroy_node(fs_node_t *fn)
 {
 	tmpfs_node_t *nodep = TMPFS_NODE(fn);
 	
@@ -350,7 +350,7 @@ int tmpfs_destroy_node(fs_node_t *fn)
 	return EOK;
 }
 
-int tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+errno_t tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
 	tmpfs_node_t *childp = TMPFS_NODE(cfn);
@@ -385,7 +385,7 @@ int tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	return EOK;
 }
 
-int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+errno_t tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
 	tmpfs_node_t *childp = NULL;
@@ -420,17 +420,17 @@ int tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
  * Implementation of the VFS_OUT interface.
  */
 
-static int tmpfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+static errno_t tmpfs_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
 	return ENOTSUP;
 }
 
-static int
+static errno_t
 tmpfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size)
 {
 	fs_node_t *rootfn;
-	int rc;
+	errno_t rc;
 	
 	/* Check if this device is not already mounted. */
 	rc = tmpfs_root_get(&rootfn, service_id);
@@ -457,13 +457,13 @@ tmpfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	return EOK;
 }
 
-static int tmpfs_unmounted(service_id_t service_id)
+static errno_t tmpfs_unmounted(service_id_t service_id)
 {
 	tmpfs_instance_done(service_id);
 	return EOK;
 }
 
-static int tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
+static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	/*
@@ -524,7 +524,7 @@ static int tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	return EOK;
 }
 
-static int
+static errno_t
 tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
@@ -588,7 +588,7 @@ out:
 	return EOK;
 }
 
-static int tmpfs_truncate(service_id_t service_id, fs_index_t index,
+static errno_t tmpfs_truncate(service_id_t service_id, fs_index_t index,
     aoff64_t size)
 {
 	/*
@@ -625,12 +625,12 @@ static int tmpfs_truncate(service_id_t service_id, fs_index_t index,
 	return EOK;
 }
 
-static int tmpfs_close(service_id_t service_id, fs_index_t index)
+static errno_t tmpfs_close(service_id_t service_id, fs_index_t index)
 {
 	return EOK;
 }
 
-static int tmpfs_destroy(service_id_t service_id, fs_index_t index)
+static errno_t tmpfs_destroy(service_id_t service_id, fs_index_t index)
 {
 	node_key_t key = {
 		.service_id = service_id,
@@ -645,7 +645,7 @@ static int tmpfs_destroy(service_id_t service_id, fs_index_t index)
 	return tmpfs_destroy_node(FS_NODE(nodep));
 }
 
-static int tmpfs_sync(service_id_t service_id, fs_index_t index)
+static errno_t tmpfs_sync(service_id_t service_id, fs_index_t index)
 {
 	/*
 	 * TMPFS keeps its data structures always consistent,

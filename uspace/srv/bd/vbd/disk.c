@@ -57,30 +57,30 @@ static list_t vbds_parts; /* of vbds_part_t */
 
 static category_id_t part_cid;
 
-static int vbds_disk_parts_add(vbds_disk_t *, label_t *);
-static int vbds_disk_parts_remove(vbds_disk_t *, vbds_rem_flag_t);
+static errno_t vbds_disk_parts_add(vbds_disk_t *, label_t *);
+static errno_t vbds_disk_parts_remove(vbds_disk_t *, vbds_rem_flag_t);
 
-static int vbds_bd_open(bd_srvs_t *, bd_srv_t *);
-static int vbds_bd_close(bd_srv_t *);
-static int vbds_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
-static int vbds_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
-static int vbds_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *,
+static errno_t vbds_bd_open(bd_srvs_t *, bd_srv_t *);
+static errno_t vbds_bd_close(bd_srv_t *);
+static errno_t vbds_bd_read_blocks(bd_srv_t *, aoff64_t, size_t, void *, size_t);
+static errno_t vbds_bd_sync_cache(bd_srv_t *, aoff64_t, size_t);
+static errno_t vbds_bd_write_blocks(bd_srv_t *, aoff64_t, size_t, const void *,
     size_t);
-static int vbds_bd_get_block_size(bd_srv_t *, size_t *);
-static int vbds_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
+static errno_t vbds_bd_get_block_size(bd_srv_t *, size_t *);
+static errno_t vbds_bd_get_num_blocks(bd_srv_t *, aoff64_t *);
 
-static int vbds_bsa_translate(vbds_part_t *, aoff64_t, size_t, aoff64_t *);
+static errno_t vbds_bsa_translate(vbds_part_t *, aoff64_t, size_t, aoff64_t *);
 
-static int vbds_part_svc_register(vbds_part_t *);
-static int vbds_part_svc_unregister(vbds_part_t *);
-static int vbds_part_indices_update(vbds_disk_t *);
+static errno_t vbds_part_svc_register(vbds_part_t *);
+static errno_t vbds_part_svc_unregister(vbds_part_t *);
+static errno_t vbds_part_indices_update(vbds_disk_t *);
 
 static vbd_part_id_t vbds_part_id = 1;
 
-static int vbds_label_get_bsize(void *, size_t *);
-static int vbds_label_get_nblocks(void *, aoff64_t *);
-static int vbds_label_read(void *, aoff64_t, size_t, void *);
-static int vbds_label_write(void *, aoff64_t, size_t, const void *);
+static errno_t vbds_label_get_bsize(void *, size_t *);
+static errno_t vbds_label_get_nblocks(void *, aoff64_t *);
+static errno_t vbds_label_read(void *, aoff64_t, size_t, void *);
+static errno_t vbds_label_write(void *, aoff64_t, size_t, const void *);
 
 /** Block device operations provided by VBD */
 static bd_ops_t vbds_bd_ops = {
@@ -131,9 +131,9 @@ static vbds_disk_t *vbds_disk_next(vbds_disk_t *disk)
 	return list_get_instance(link, vbds_disk_t, ldisks);
 }
 
-int vbds_disks_init(void)
+errno_t vbds_disks_init(void)
 {
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_initialize(&vbds_disks_lock);
 	list_initialize(&vbds_disks);
@@ -151,14 +151,14 @@ int vbds_disks_init(void)
 }
 
 /** Check for new/removed disk devices */
-static int vbds_disks_check_new(void)
+static errno_t vbds_disks_check_new(void)
 {
 	bool already_known;
 	category_id_t disk_cat;
 	service_id_t *svcs;
 	size_t count, i;
 	vbds_disk_t *cur, *next;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disks_check_new()");
 
@@ -228,7 +228,7 @@ static int vbds_disks_check_new(void)
 }
 
 
-static int vbds_disk_by_svcid(service_id_t sid, vbds_disk_t **rdisk)
+static errno_t vbds_disk_by_svcid(service_id_t sid, vbds_disk_t **rdisk)
 {
 	list_foreach(vbds_disks, ldisks, vbds_disk_t, disk) {
 		if (disk->svc_id == sid) {
@@ -255,7 +255,7 @@ static void vbds_part_del_ref(vbds_part_t *part)
 	}
 }
 
-static int vbds_part_by_pid(vbds_part_id_t partid, vbds_part_t **rpart)
+static errno_t vbds_part_by_pid(vbds_part_id_t partid, vbds_part_t **rpart)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_by_pid(%zu)", partid);
 
@@ -277,7 +277,7 @@ static int vbds_part_by_pid(vbds_part_id_t partid, vbds_part_t **rpart)
 	return ENOENT;
 }
 
-static int vbds_part_by_svcid(service_id_t svcid, vbds_part_t **rpart)
+static errno_t vbds_part_by_svcid(service_id_t svcid, vbds_part_t **rpart)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_by_svcid(%zu)", svcid);
 
@@ -300,13 +300,13 @@ static int vbds_part_by_svcid(service_id_t svcid, vbds_part_t **rpart)
 }
 
 /** Add partition to our inventory based on liblabel partition structure */
-static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
+static errno_t vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
     vbds_part_t **rpart)
 {
 	vbds_part_t *part;
 	service_id_t psid = 0;
 	label_part_info_t lpinfo;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_add(%s, %p)",
 	    disk->svc_name, lpart);
@@ -361,11 +361,11 @@ static int vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
  * @param rlpart Place to store pointer to liblabel partition
  *
  */
-static int vbds_part_remove(vbds_part_t *part, vbds_rem_flag_t flag,
+static errno_t vbds_part_remove(vbds_part_t *part, vbds_rem_flag_t flag,
     label_part_t **rlpart)
 {
 	label_part_t *lpart;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_remove(%p)", part);
 
@@ -403,10 +403,10 @@ static int vbds_part_remove(vbds_part_t *part, vbds_rem_flag_t flag,
 
 /** Remove all disk partitions from our inventory leaving only the underlying
  * liblabel partition structures. */
-static int vbds_disk_parts_add(vbds_disk_t *disk, label_t *label)
+static errno_t vbds_disk_parts_add(vbds_disk_t *disk, label_t *label)
 {
 	label_part_t *part;
-	int rc;
+	errno_t rc;
 
 	part = label_part_first(label);
 	while (part != NULL) {
@@ -425,11 +425,11 @@ static int vbds_disk_parts_add(vbds_disk_t *disk, label_t *label)
 
 /** Remove all disk partitions from our inventory leaving only the underlying
  * liblabel partition structures. */
-static int vbds_disk_parts_remove(vbds_disk_t *disk, vbds_rem_flag_t flag)
+static errno_t vbds_disk_parts_remove(vbds_disk_t *disk, vbds_rem_flag_t flag)
 {
 	link_t *link;
 	vbds_part_t *part;
-	int rc;
+	errno_t rc;
 
 	link = list_first(&disk->parts);
 	while (link != NULL) {
@@ -449,9 +449,9 @@ static void vbds_disk_cat_change_cb(void)
 	(void) vbds_disks_check_new();
 }
 
-int vbds_disk_discovery_start(void)
+errno_t vbds_disk_discovery_start(void)
 {
-	int rc;
+	errno_t rc;
 
 	rc = loc_register_cat_change_cb(vbds_disk_cat_change_cb);
 	if (rc != EOK) {
@@ -463,7 +463,7 @@ int vbds_disk_discovery_start(void)
 	return vbds_disks_check_new();
 }
 
-int vbds_disk_add(service_id_t sid)
+errno_t vbds_disk_add(service_id_t sid)
 {
 	label_t *label = NULL;
 	label_bd_t lbd;
@@ -471,7 +471,7 @@ int vbds_disk_add(service_id_t sid)
 	bool block_inited = false;
 	size_t block_size;
 	aoff64_t nblocks;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_add(%zu)", sid);
 
@@ -556,10 +556,10 @@ error:
 	return rc;
 }
 
-int vbds_disk_remove(service_id_t sid)
+errno_t vbds_disk_remove(service_id_t sid)
 {
 	vbds_disk_t *disk;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_remove(%zu)", sid);
 
@@ -582,7 +582,7 @@ int vbds_disk_remove(service_id_t sid)
 }
 
 /** Get list of disks as array of service IDs. */
-int vbds_disk_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
+errno_t vbds_disk_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
 {
 	size_t act_cnt;
 	size_t buf_cnt;
@@ -610,11 +610,11 @@ int vbds_disk_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
 	return EOK;
 }
 
-int vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
+errno_t vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
 {
 	vbds_disk_t *disk;
 	label_info_t linfo;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_disk_info(%zu)", sid);
 
@@ -637,13 +637,13 @@ int vbds_disk_info(service_id_t sid, vbd_disk_info_t *info)
 	return EOK;
 }
 
-int vbds_get_parts(service_id_t sid, service_id_t *id_buf, size_t buf_size,
+errno_t vbds_get_parts(service_id_t sid, service_id_t *id_buf, size_t buf_size,
     size_t *act_size)
 {
 	vbds_disk_t *disk;
 	size_t act_cnt;
 	size_t buf_cnt;
-	int rc;
+	errno_t rc;
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK)
@@ -667,13 +667,13 @@ int vbds_get_parts(service_id_t sid, service_id_t *id_buf, size_t buf_size,
 	return EOK;
 }
 
-int vbds_label_create(service_id_t sid, label_type_t ltype)
+errno_t vbds_label_create(service_id_t sid, label_type_t ltype)
 {
 	label_t *label;
 	label_bd_t lbd;
 	label_info_t linfo;
 	vbds_disk_t *disk;
-	int rc, rc2;
+	errno_t rc, rc2;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_create(%zu)", sid);
 
@@ -738,12 +738,12 @@ error:
 	return rc;
 }
 
-int vbds_label_delete(service_id_t sid)
+errno_t vbds_label_delete(service_id_t sid)
 {
 	vbds_disk_t *disk;
 	label_t *label;
 	label_bd_t lbd;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_label_delete(%zu)", sid);
 
@@ -780,11 +780,11 @@ int vbds_label_delete(service_id_t sid)
 	return EOK;
 }
 
-int vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
+errno_t vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
 {
 	vbds_part_t *part;
 	label_part_info_t lpinfo;
-	int rc;
+	errno_t rc;
 
 	rc = vbds_part_by_pid(partid, &part);
 	if (rc != EOK)
@@ -809,14 +809,14 @@ int vbds_part_get_info(vbds_part_id_t partid, vbd_part_info_t *pinfo)
 	return EOK;
 }
 
-int vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
+errno_t vbds_part_create(service_id_t sid, vbd_part_spec_t *pspec,
     vbds_part_id_t *rpart)
 {
 	vbds_disk_t *disk;
 	vbds_part_t *part;
 	label_part_spec_t lpspec;
 	label_part_t *lpart;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_create(%zu)", sid);
 
@@ -878,12 +878,12 @@ error:
 	return rc;
 }
 
-int vbds_part_delete(vbds_part_id_t partid)
+errno_t vbds_part_delete(vbds_part_id_t partid)
 {
 	vbds_part_t *part;
 	vbds_disk_t *disk;
 	label_part_t *lpart;
-	int rc;
+	errno_t rc;
 
 	rc = vbds_part_by_pid(partid, &part);
 	if (rc != EOK)
@@ -917,11 +917,11 @@ int vbds_part_delete(vbds_part_id_t partid)
 	return EOK;
 }
 
-int vbds_suggest_ptype(service_id_t sid, label_pcnt_t pcnt,
+errno_t vbds_suggest_ptype(service_id_t sid, label_pcnt_t pcnt,
     label_ptype_t *ptype)
 {
 	vbds_disk_t *disk;
-	int rc;
+	errno_t rc;
 
 	rc = vbds_disk_by_svcid(sid, &disk);
 	if (rc != EOK) {
@@ -941,7 +941,7 @@ error:
 	return rc;
 }
 
-static int vbds_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
+static errno_t vbds_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 
@@ -952,7 +952,7 @@ static int vbds_bd_open(bd_srvs_t *bds, bd_srv_t *bd)
 	return EOK;
 }
 
-static int vbds_bd_close(bd_srv_t *bd)
+static errno_t vbds_bd_close(bd_srv_t *bd)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 
@@ -966,12 +966,12 @@ static int vbds_bd_close(bd_srv_t *bd)
 	return EOK;
 }
 
-static int vbds_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+static errno_t vbds_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     void *buf, size_t size)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 	aoff64_t gba;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_bd_read_blocks()");
 	fibril_rwlock_read_lock(&part->lock);
@@ -992,11 +992,11 @@ static int vbds_bd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	return rc;
 }
 
-static int vbds_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
+static errno_t vbds_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 	aoff64_t gba;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_bd_sync_cache()");
 	fibril_rwlock_read_lock(&part->lock);
@@ -1016,12 +1016,12 @@ static int vbds_bd_sync_cache(bd_srv_t *bd, aoff64_t ba, size_t cnt)
 	return rc;
 }
 
-static int vbds_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+static errno_t vbds_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
     const void *buf, size_t size)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 	aoff64_t gba;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_bd_write_blocks()");
 	fibril_rwlock_read_lock(&part->lock);
@@ -1041,7 +1041,7 @@ static int vbds_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 	return rc;
 }
 
-static int vbds_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
+static errno_t vbds_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 
@@ -1054,7 +1054,7 @@ static int vbds_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 	return EOK;
 }
 
-static int vbds_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
+static errno_t vbds_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 {
 	vbds_part_t *part = bd_srv_part(bd);
 
@@ -1070,7 +1070,7 @@ static int vbds_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 void vbds_bd_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	vbds_part_t *part;
-	int rc;
+	errno_t rc;
 	service_id_t svcid;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_bd_conn()");
@@ -1093,7 +1093,7 @@ void vbds_bd_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Translate block segment address with range checking. */
-static int vbds_bsa_translate(vbds_part_t *part, aoff64_t ba, size_t cnt,
+static errno_t vbds_bsa_translate(vbds_part_t *part, aoff64_t ba, size_t cnt,
     aoff64_t *gba)
 {
 	if (ba + cnt > part->nblocks)
@@ -1104,12 +1104,12 @@ static int vbds_bsa_translate(vbds_part_t *part, aoff64_t ba, size_t cnt,
 }
 
 /** Register service for partition */
-static int vbds_part_svc_register(vbds_part_t *part)
+static errno_t vbds_part_svc_register(vbds_part_t *part)
 {
 	char *name;
 	service_id_t psid;
 	int idx;
-	int rc;
+	errno_t rc;
 
 	idx = part->lpart->index;
 
@@ -1151,9 +1151,9 @@ static int vbds_part_svc_register(vbds_part_t *part)
 }
 
 /** Unregister service for partition */
-static int vbds_part_svc_unregister(vbds_part_t *part)
+static errno_t vbds_part_svc_unregister(vbds_part_t *part)
 {
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_svc_unregister("
 	    "disk->svc_name='%s', id=%zu)", part->disk->svc_name, part->svc_id);
@@ -1168,10 +1168,10 @@ static int vbds_part_svc_unregister(vbds_part_t *part)
 }
 
 /** Update service names for any partition whose index has changed. */
-static int vbds_part_indices_update(vbds_disk_t *disk)
+static errno_t vbds_part_indices_update(vbds_disk_t *disk)
 {
 	label_part_info_t lpinfo;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_part_indices_update()");
 
@@ -1218,28 +1218,28 @@ static int vbds_part_indices_update(vbds_disk_t *disk)
 }
 
 /** Get block size wrapper for liblabel */
-static int vbds_label_get_bsize(void *arg, size_t *bsize)
+static errno_t vbds_label_get_bsize(void *arg, size_t *bsize)
 {
 	vbds_disk_t *disk = (vbds_disk_t *)arg;
 	return block_get_bsize(disk->svc_id, bsize);
 }
 
 /** Get number of blocks wrapper for liblabel */
-static int vbds_label_get_nblocks(void *arg, aoff64_t *nblocks)
+static errno_t vbds_label_get_nblocks(void *arg, aoff64_t *nblocks)
 {
 	vbds_disk_t *disk = (vbds_disk_t *)arg;
 	return block_get_nblocks(disk->svc_id, nblocks);
 }
 
 /** Read blocks wrapper for liblabel */
-static int vbds_label_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
+static errno_t vbds_label_read(void *arg, aoff64_t ba, size_t cnt, void *buf)
 {
 	vbds_disk_t *disk = (vbds_disk_t *)arg;
 	return block_read_direct(disk->svc_id, ba, cnt, buf);
 }
 
 /** Write blocks wrapper for liblabel */
-static int vbds_label_write(void *arg, aoff64_t ba, size_t cnt, const void *data)
+static errno_t vbds_label_write(void *arg, aoff64_t ba, size_t cnt, const void *data)
 {
 	vbds_disk_t *disk = (vbds_disk_t *)arg;
 	return block_write_direct(disk->svc_id, ba, cnt, data);

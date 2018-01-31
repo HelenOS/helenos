@@ -53,11 +53,11 @@ static char buf[BUF_SIZE];
  *
  * @return EOK on success, EIO on I/O error
  */
-int futil_copy_file(const char *srcp, const char *destp)
+errno_t futil_copy_file(const char *srcp, const char *destp)
 {
 	int sf, df;
 	size_t nr, nw;
-	int rc;
+	errno_t rc;
 	aoff64_t posr = 0, posw = 0;
 
 	printf("Copy '%s' to '%s'.\n", srcp, destp);
@@ -103,13 +103,13 @@ error:
  *
  * @return EOK on success, ENOMEM if out of memory, EIO on I/O error
  */
-int futil_rcopy_contents(const char *srcdir, const char *destdir)
+errno_t futil_rcopy_contents(const char *srcdir, const char *destdir)
 {
 	DIR *dir;
 	struct dirent *de;
 	struct stat s;
 	char *srcp, *destp;
-	int rc;
+	errno_t rc;
 
 	dir = opendir(srcdir);
 	if (dir == NULL)
@@ -157,11 +157,11 @@ int futil_rcopy_contents(const char *srcdir, const char *destdir)
  * @return EOK on success, ENOENT if failed to open file, EIO on other
  *         I/O error, ENOMEM if out of memory
  */
-int futil_get_file(const char *srcp, void **rdata, size_t *rsize)
+errno_t futil_get_file(const char *srcp, void **rdata, size_t *rsize)
 {
 	int sf;
 	size_t nr;
-	int rc;
+	errno_t rc;
 	size_t fsize;
 	char *data;
 	struct stat st;

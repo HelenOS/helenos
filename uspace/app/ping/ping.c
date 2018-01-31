@@ -70,7 +70,7 @@ static bool quit = false;
 static FIBRIL_CONDVAR_INITIALIZE(quit_cv);
 static FIBRIL_MUTEX_INITIALIZE(quit_lock);
 
-static int ping_ev_recv(inetping_sdu_t *);
+static errno_t ping_ev_recv(inetping_sdu_t *);
 
 static inetping_ev_ops_t ev_ops = {
 	.recv = ping_ev_recv
@@ -108,10 +108,10 @@ static void ping_signal_quit(void)
 	fibril_condvar_broadcast(&quit_cv);
 }
 
-static int ping_ev_recv(inetping_sdu_t *sdu)
+static errno_t ping_ev_recv(inetping_sdu_t *sdu)
 {
 	char *asrc;
-	int rc = inet_addr_format(&src_addr, &asrc);
+	errno_t rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK)
 		return ENOMEM;
 	
@@ -132,7 +132,7 @@ static int ping_ev_recv(inetping_sdu_t *sdu)
 	return EOK;
 }
 
-static int ping_send(uint16_t seq_no)
+static errno_t ping_send(uint16_t seq_no)
 {
 	inetping_sdu_t sdu;
 	
@@ -142,7 +142,7 @@ static int ping_send(uint16_t seq_no)
 	sdu.data = (void *) "foo";
 	sdu.size = 3;
 	
-	int rc = inetping_send(&sdu);
+	errno_t rc = inetping_send(&sdu);
 	if (rc != EOK)
 		printf("Failed sending echo request: %s: %s.\n",
 		    str_error_name(rc), str_error(rc));
@@ -150,7 +150,7 @@ static int ping_send(uint16_t seq_no)
 	return rc;
 }
 
-static int transmit_fibril(void *arg)
+static errno_t transmit_fibril(void *arg)
 {
 	uint16_t seq_no = 0;
 	
@@ -162,7 +162,7 @@ static int transmit_fibril(void *arg)
 		(void) ping_send(++seq_no);
 		
 		fibril_mutex_lock(&received_lock);
-		int rc = fibril_condvar_wait_timeout(&received_cv, &received_lock,
+		errno_t rc = fibril_condvar_wait_timeout(&received_cv, &received_lock,
 		    PING_TIMEOUT);
 		received_t recv = received;
 		fibril_mutex_unlock(&received_lock);
@@ -189,7 +189,7 @@ static int transmit_fibril(void *arg)
 	return 0;
 }
 
-static int input_fibril(void *arg)
+static errno_t input_fibril(void *arg)
 {
 	console_ctrl_t *con = console_init(stdin, stdout);
 	
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
 	const char *errmsg;
 	ip_ver_t ip_ver = ip_any;
 	
-	int rc = inetping_init(&ev_ops);
+	errno_t rc = inetping_init(&ev_ops);
 	if (rc != EOK) {
 		printf("Failed connecting to internet ping service: "
 		    "%s: %s.\n", str_error_name(rc), str_error(rc));

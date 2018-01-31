@@ -60,10 +60,10 @@ static bool is_set_address_transfer(vhc_transfer_t *transfer)
 	return true;
 }
 
-static int process_transfer_local(usb_transfer_batch_t *batch,
+static errno_t process_transfer_local(usb_transfer_batch_t *batch,
     usbvirt_device_t *dev, size_t *actual_data_size)
 {
-	int rc;
+	errno_t rc;
 
 	const usb_direction_t dir = batch->dir;
 
@@ -96,10 +96,10 @@ static int process_transfer_local(usb_transfer_batch_t *batch,
 	return rc;
 }
 
-static int process_transfer_remote(usb_transfer_batch_t *batch,
+static errno_t process_transfer_remote(usb_transfer_batch_t *batch,
     async_sess_t *sess, size_t *actual_data_size)
 {
-	int rc;
+	errno_t rc;
 
 	const usb_direction_t dir = batch->dir;
 
@@ -145,7 +145,7 @@ static vhc_transfer_t *dequeue_first_transfer(vhc_virtdev_t *dev)
 }
 
 static void execute_transfer_callback_and_free(vhc_transfer_t *transfer,
-    size_t data_transfer_size, int outcome)
+    size_t data_transfer_size, errno_t outcome)
 {
 	assert(outcome != ENAK);
 	assert(transfer);
@@ -191,7 +191,7 @@ static const bus_ops_t vhc_bus_ops = {
 	.endpoint_unregister = endpoint_unregister,
 };
 
-int vhc_init(vhc_data_t *instance)
+errno_t vhc_init(vhc_data_t *instance)
 {
 	assert(instance);
 	list_initialize(&instance->devices);
@@ -202,7 +202,7 @@ int vhc_init(vhc_data_t *instance)
 	return virthub_init(&instance->hub, "root hub");
 }
 
-int vhc_schedule(usb_transfer_batch_t *batch)
+errno_t vhc_schedule(usb_transfer_batch_t *batch)
 {
 	assert(batch);
 	vhc_transfer_t *transfer = (vhc_transfer_t *) batch;
@@ -232,7 +232,7 @@ int vhc_schedule(usb_transfer_batch_t *batch)
 	return targets ? EOK : ENOENT;
 }
 
-int vhc_transfer_queue_processor(void *arg)
+errno_t vhc_transfer_queue_processor(void *arg)
 {
 	vhc_virtdev_t *dev = arg;
 	fibril_mutex_lock(&dev->guard);
@@ -247,7 +247,7 @@ int vhc_transfer_queue_processor(void *arg)
 		vhc_transfer_t *transfer = dequeue_first_transfer(dev);
 		fibril_mutex_unlock(&dev->guard);
 
-		int rc = EOK;
+		errno_t rc = EOK;
 		size_t data_transfer_size = 0;
 		if (dev->dev_sess) {
 			rc = process_transfer_remote(&transfer->batch,

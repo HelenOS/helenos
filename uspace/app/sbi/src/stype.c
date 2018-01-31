@@ -1889,7 +1889,7 @@ tdata_item_t *stype_tobject_find_pred(stype_t *stype, tdata_item_t *src,
  * @param b_ti		b_tiination type
  * @return		EOK if equal, EINVAL if not.
  */
-int stype_targs_check_equal(stype_t *stype, tdata_item_t *a_ti,
+errno_t stype_targs_check_equal(stype_t *stype, tdata_item_t *a_ti,
     tdata_item_t *b_ti)
 {
 	list_node_t *arg_a_n, *arg_b_n;

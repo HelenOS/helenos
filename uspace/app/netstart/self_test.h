@@ -33,7 +33,7 @@
 #ifndef __SELF_TEST_H__
 #define __SELF_TEST_H__
 
-extern int self_test(void);
+extern errno_t self_test(void);
 
 #endif
 

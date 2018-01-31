@@ -58,7 +58,7 @@ typedef struct {
 
 
 
-int usb_kbd_repeat_fibril(void *arg);
+errno_t usb_kbd_repeat_fibril(void *arg);
 
 void usb_kbd_repeat_start(struct usb_kbd_t *kbd, unsigned int key);
 

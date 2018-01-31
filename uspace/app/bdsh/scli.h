@@ -38,7 +38,7 @@ typedef struct {
 	char *line;
 	char *cwd;
 	char *prompt;
-	int lasterr;
+	errno_t lasterr;
 } cliuser_t;
 
 typedef struct {

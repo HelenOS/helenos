@@ -107,31 +107,31 @@ typedef uint32_t fat_cluster_t;
 
 #define fat_clusters_get(numc, bs, sid, fc) \
     fat_cluster_walk((bs), (sid), (fc), NULL, (numc), (uint32_t) -1)
-extern int fat_cluster_walk(struct fat_bs *, service_id_t, fat_cluster_t,
+extern errno_t fat_cluster_walk(struct fat_bs *, service_id_t, fat_cluster_t,
     fat_cluster_t *, uint32_t *, uint32_t);
 
-extern int fat_block_get(block_t **, struct fat_bs *, struct fat_node *,
+extern errno_t fat_block_get(block_t **, struct fat_bs *, struct fat_node *,
     aoff64_t, int);
-extern int _fat_block_get(block_t **, struct fat_bs *, service_id_t,
+extern errno_t _fat_block_get(block_t **, struct fat_bs *, service_id_t,
     fat_cluster_t, fat_cluster_t *, aoff64_t, int);
 
-extern int fat_append_clusters(struct fat_bs *, struct fat_node *,
+extern errno_t fat_append_clusters(struct fat_bs *, struct fat_node *,
     fat_cluster_t, fat_cluster_t);
-extern int fat_chop_clusters(struct fat_bs *, struct fat_node *,
+extern errno_t fat_chop_clusters(struct fat_bs *, struct fat_node *,
     fat_cluster_t);
-extern int fat_alloc_clusters(struct fat_bs *, service_id_t, unsigned,
+extern errno_t fat_alloc_clusters(struct fat_bs *, service_id_t, unsigned,
     fat_cluster_t *, fat_cluster_t *);
-extern int fat_free_clusters(struct fat_bs *, service_id_t, fat_cluster_t);
-extern int fat_alloc_shadow_clusters(struct fat_bs *, service_id_t,
+extern errno_t fat_free_clusters(struct fat_bs *, service_id_t, fat_cluster_t);
+extern errno_t fat_alloc_shadow_clusters(struct fat_bs *, service_id_t,
     fat_cluster_t *, unsigned);
-extern int fat_get_cluster(struct fat_bs *, service_id_t, unsigned,
+extern errno_t fat_get_cluster(struct fat_bs *, service_id_t, unsigned,
     fat_cluster_t, fat_cluster_t *);
-extern int fat_set_cluster(struct fat_bs *, service_id_t, unsigned,
+extern errno_t fat_set_cluster(struct fat_bs *, service_id_t, unsigned,
     fat_cluster_t, fat_cluster_t);
-extern int fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
+extern errno_t fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
     aoff64_t);
-extern int fat_zero_cluster(struct fat_bs *, service_id_t, fat_cluster_t);
-extern int fat_sanity_check(struct fat_bs *, service_id_t);
+extern errno_t fat_zero_cluster(struct fat_bs *, service_id_t, fat_cluster_t);
+extern errno_t fat_sanity_check(struct fat_bs *, service_id_t);
 
 #endif
 

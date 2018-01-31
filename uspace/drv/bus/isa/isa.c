@@ -129,7 +129,7 @@ static bool isa_fun_owns_interrupt(isa_fun_t *fun, int irq)
 	return false;
 }
 
-static int isa_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t isa_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
 {
 	isa_fun_t *fun = isa_fun(fnode);
 
@@ -139,7 +139,7 @@ static int isa_fun_enable_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_enable_interrupt(irq);
 }
 
-static int isa_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t isa_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
 {
 	isa_fun_t *fun = isa_fun(fnode);
 
@@ -149,7 +149,7 @@ static int isa_fun_disable_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_disable_interrupt(irq);
 }
 
-static int isa_fun_clear_interrupt(ddf_fun_t *fnode, int irq)
+static errno_t isa_fun_clear_interrupt(ddf_fun_t *fnode, int irq)
 {
 	isa_fun_t *fun = isa_fun(fnode);
 
@@ -159,7 +159,7 @@ static int isa_fun_clear_interrupt(ddf_fun_t *fnode, int irq)
 	return irc_clear_interrupt(irq);
 }
 
-static int isa_fun_setup_dma(ddf_fun_t *fnode,
+static errno_t isa_fun_setup_dma(ddf_fun_t *fnode,
     unsigned int channel, uint32_t pa, uint32_t size, uint8_t mode)
 {
 	assert(fnode);
@@ -181,7 +181,7 @@ static int isa_fun_setup_dma(ddf_fun_t *fnode,
 	return EINVAL;
 }
 
-static int isa_fun_remain_dma(ddf_fun_t *fnode,
+static errno_t isa_fun_remain_dma(ddf_fun_t *fnode,
     unsigned channel, size_t *size)
 {
 	assert(size);
@@ -231,10 +231,10 @@ static ddf_dev_ops_t isa_fun_ops= {
 	.interfaces[PIO_WINDOW_DEV_IFACE] = &isa_fun_pio_window_ops,
 };
 
-static int isa_dev_add(ddf_dev_t *dev);
-static int isa_dev_remove(ddf_dev_t *dev);
-static int isa_fun_online(ddf_fun_t *fun);
-static int isa_fun_offline(ddf_fun_t *fun);
+static errno_t isa_dev_add(ddf_dev_t *dev);
+static errno_t isa_dev_remove(ddf_dev_t *dev);
+static errno_t isa_fun_online(ddf_fun_t *fun);
+static errno_t isa_fun_offline(ddf_fun_t *fun);
 
 /** The isa device driver's standard operations */
 static driver_ops_t isa_ops = {
@@ -276,7 +276,7 @@ static char *fun_conf_read(const char *conf_path)
 	bool opened = false;
 	int fd;
 	size_t len;
-	int rc;
+	errno_t rc;
 	size_t nread;
 	struct stat st;
 
@@ -577,7 +577,7 @@ static void fun_parse_match_id(isa_fun_t *fun, const char *val)
 	ddf_msg(LVL_DEBUG, "Adding match id '%s' with score %d to "
 	    "function %s", id, score, ddf_fun_get_name(fun->fnode));
 
-	int rc = ddf_fun_add_match_id(fun->fnode, id, score);
+	errno_t rc = ddf_fun_add_match_id(fun->fnode, id, score);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding match ID: %s",
 		    str_error(rc));
@@ -697,10 +697,10 @@ static void isa_functions_add(isa_bus_t *isa)
 	free(conf);
 }
 
-static int isa_dev_add(ddf_dev_t *dev)
+static errno_t isa_dev_add(ddf_dev_t *dev)
 {
 	async_sess_t *sess;
-	int rc;
+	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "isa_dev_add, device handle = %d",
 	    (int) ddf_dev_get_handle(dev));
@@ -766,7 +766,7 @@ static int isa_dev_add(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int isa_dev_remove(ddf_dev_t *dev)
+static errno_t isa_dev_remove(ddf_dev_t *dev)
 {
 	isa_bus_t *isa = isa_bus(dev);
 
@@ -776,7 +776,7 @@ static int isa_dev_remove(ddf_dev_t *dev)
 		isa_fun_t *fun = list_get_instance(list_first(&isa->functions),
 		    isa_fun_t, bus_link);
 
-		int rc = ddf_fun_offline(fun->fnode);
+		errno_t rc = ddf_fun_offline(fun->fnode);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&isa->mutex);
 			ddf_msg(LVL_ERROR, "Failed offlining %s", ddf_fun_get_name(fun->fnode));
@@ -806,13 +806,13 @@ static int isa_dev_remove(ddf_dev_t *dev)
 	return EOK;
 }
 
-static int isa_fun_online(ddf_fun_t *fun)
+static errno_t isa_fun_online(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "isa_fun_online()");
 	return ddf_fun_online(fun);
 }
 
-static int isa_fun_offline(ddf_fun_t *fun)
+static errno_t isa_fun_offline(ddf_fun_t *fun)
 {
 	ddf_msg(LVL_DEBUG, "isa_fun_offline()");
 	return ddf_fun_offline(fun);

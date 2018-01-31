@@ -146,7 +146,7 @@ usbvirt_descriptors_t descriptors = {
  * @param dev Virtual USB device backend.
  * @return Error code.
  */
-int virthub_init(usbvirt_device_t *dev, const char* name)
+errno_t virthub_init(usbvirt_device_t *dev, const char* name)
 {
 	if (dev == NULL) {
 		return EBADMEM;
@@ -196,7 +196,7 @@ int virthub_connect_device(usbvirt_device_t *dev, vhc_virtdev_t *conn)
  * @param conn Device to be disconnected.
  * @return Error code.
  */
-int virthub_disconnect_device(usbvirt_device_t *dev, vhc_virtdev_t *conn)
+errno_t virthub_disconnect_device(usbvirt_device_t *dev, vhc_virtdev_t *conn)
 {
 	assert(dev != NULL);
 	assert(conn != NULL);

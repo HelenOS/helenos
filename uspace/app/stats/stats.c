@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
 		if ((off = arg_parse_short_long(argv[i], "-t", "--task=")) != -1) {
 			// TODO: Support for 64b range
 			int tmp;
-			int ret = arg_parse_int(argc, argv, &i, &tmp, off);
+			errno_t ret = arg_parse_int(argc, argv, &i, &tmp, off);
 			if (ret != EOK) {
 				printf("%s: Malformed task_id '%s'\n", NAME, argv[i]);
 				return -1;

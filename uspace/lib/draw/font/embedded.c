@@ -43,7 +43,7 @@
 #include "../drawctx.h"
 #include "bitmap_backend.h"
 
-static int fde_resolve_glyph(void *unused, const wchar_t chr,
+static errno_t fde_resolve_glyph(void *unused, const wchar_t chr,
     glyph_id_t *glyph_id)
 {
 	bool found = false;
@@ -55,7 +55,7 @@ static int fde_resolve_glyph(void *unused, const wchar_t chr,
 	return EOK;
 }
 
-static int fde_load_glyph_surface(void *unused, glyph_id_t glyph_id,
+static errno_t fde_load_glyph_surface(void *unused, glyph_id_t glyph_id,
     surface_t **out_surface)
 {
 	surface_t *surface = surface_create(FONT_WIDTH, FONT_SCANLINES, NULL, 0);
@@ -74,7 +74,7 @@ static int fde_load_glyph_surface(void *unused, glyph_id_t glyph_id,
 	return EOK;
 }
 
-static int fde_load_glyph_metrics(void *unused, glyph_id_t glyph_id,
+static errno_t fde_load_glyph_metrics(void *unused, glyph_id_t glyph_id,
     glyph_metrics_t *gm)
 {
 	/* This is simple monospaced font, so fill this data statically */
@@ -105,7 +105,7 @@ font_metrics_t font_metrics = {
 	.leading = 0
 };
 
-int embedded_font_create(font_t **font, uint16_t points)
+errno_t embedded_font_create(font_t **font, uint16_t points)
 {
 	return bitmap_font_create(&fd_embedded, NULL, FONT_GLYPHS, font_metrics,
 	    points, font);

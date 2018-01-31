@@ -78,7 +78,7 @@ int elf_load(int file, elf_info_t *info)
 #ifdef CONFIG_RTLD
 	DPRINTF( "- prog dynamic: %p\n", info->finfo.dynamic);
 
-	int rc2 = rtld_prog_process(&info->finfo, &env);
+	errno_t rc2 = rtld_prog_process(&info->finfo, &env);
 	switch (rc2) {
 	case EOK:
 		rc = EE_OK;

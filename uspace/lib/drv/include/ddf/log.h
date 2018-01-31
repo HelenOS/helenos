@@ -36,7 +36,7 @@
 #include <io/log.h>
 #include <io/verify.h>
 
-extern int ddf_log_init(const char *);
+extern errno_t ddf_log_init(const char *);
 extern void ddf_msg(log_level_t, const char *, ...)
     PRINTF_ATTRIBUTE(2, 3);
 

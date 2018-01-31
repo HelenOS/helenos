@@ -59,7 +59,7 @@ void as_arch_init(void)
 	}
 }
 
-int as_constructor_arch(as_t *as, unsigned int flags)
+errno_t as_constructor_arch(as_t *as, unsigned int flags)
 {
 #ifdef CONFIG_TSB
 	uintptr_t tsb_base = frame_alloc(TSB_FRAMES, flags, TSB_SIZE - 1);
@@ -87,7 +87,7 @@ int as_destructor_arch(as_t *as)
 #endif
 }
 
-int as_create_arch(as_t *as, unsigned int flags)
+errno_t as_create_arch(as_t *as, unsigned int flags)
 {
 #ifdef CONFIG_TSB
 	tsb_invalidate(as, 0, (size_t) -1);

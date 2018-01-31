@@ -116,7 +116,7 @@ typedef struct {
 static void dhcpsrv_recv(void *, void *, size_t);
 
 /** Decode subnet mask into subnet prefix length. */
-static int subnet_mask_decode(uint32_t mask, int *bits)
+static errno_t subnet_mask_decode(uint32_t mask, int *bits)
 {
 	int zbits;
 	uint32_t nmask;
@@ -147,7 +147,7 @@ static uint32_t dhcp_uint32_decode(uint8_t *data)
 	    ((uint32_t)data[3]);
 }
 
-static int dhcp_send_discover(dhcp_link_t *dlink)
+static errno_t dhcp_send_discover(dhcp_link_t *dlink)
 {
 	dhcp_hdr_t *hdr = (dhcp_hdr_t *)msgbuf;
 	uint8_t *opt = msgbuf + sizeof(dhcp_hdr_t);
@@ -170,7 +170,7 @@ static int dhcp_send_discover(dhcp_link_t *dlink)
 	return dhcp_send(&dlink->dt, msgbuf, sizeof(dhcp_hdr_t) + 4);
 }
 
-static int dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
+static errno_t dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
 {
 	dhcp_hdr_t *hdr = (dhcp_hdr_t *)msgbuf;
 	uint8_t *opt = msgbuf + sizeof(dhcp_hdr_t);
@@ -211,7 +211,7 @@ static int dhcp_send_request(dhcp_link_t *dlink, dhcp_offer_t *offer)
 	return dhcp_send(&dlink->dt, msgbuf, sizeof(dhcp_hdr_t) + i);
 }
 
-static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
+static errno_t dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 {
 	dhcp_hdr_t *hdr = (dhcp_hdr_t *)msg;
 	inet_addr_t yiaddr;
@@ -224,7 +224,7 @@ static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	char *saddr;
 	uint8_t opt_type, opt_len;
 	uint8_t *msgb;
-	int rc;
+	errno_t rc;
 	size_t i;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Receive reply");
@@ -359,9 +359,9 @@ static int dhcp_parse_reply(void *msg, size_t size, dhcp_offer_t *offer)
 	return EOK;
 }
 
-static int dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
+static errno_t dhcp_cfg_create(service_id_t iplink, dhcp_offer_t *offer)
 {
-	int rc;
+	errno_t rc;
 	service_id_t addr_id;
 	service_id_t sroute_id;
 	inet_naddr_t defr;
@@ -419,11 +419,11 @@ static void dhcp_link_set_failed(dhcp_link_t *dlink)
 	dlink->state = ds_fail;
 }
 
-static int dhcp_discover_proc(dhcp_link_t *dlink)
+static errno_t dhcp_discover_proc(dhcp_link_t *dlink)
 {
 	dlink->state = ds_selecting;
 
-	int rc = dhcp_send_discover(dlink);
+	errno_t rc = dhcp_send_discover(dlink);
 	if (rc != EOK)
 		return EIO;
 
@@ -437,10 +437,10 @@ static int dhcp_discover_proc(dhcp_link_t *dlink)
 	return rc;
 }
 
-int dhcpsrv_link_add(service_id_t link_id)
+errno_t dhcpsrv_link_add(service_id_t link_id)
 {
 	dhcp_link_t *dlink;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
 
@@ -497,12 +497,12 @@ error:
 	return rc;
 }
 
-int dhcpsrv_link_remove(service_id_t link_id)
+errno_t dhcpsrv_link_remove(service_id_t link_id)
 {
 	return ENOTSUP;
 }
 
-int dhcpsrv_discover(service_id_t link_id)
+errno_t dhcpsrv_discover(service_id_t link_id)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
 	
@@ -519,7 +519,7 @@ int dhcpsrv_discover(service_id_t link_id)
 
 static void dhcpsrv_recv_offer(dhcp_link_t *dlink, dhcp_offer_t *offer)
 {
-	int rc;
+	errno_t rc;
 
 	if (dlink->state != ds_selecting) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Received offer in state "
@@ -545,7 +545,7 @@ static void dhcpsrv_recv_offer(dhcp_link_t *dlink, dhcp_offer_t *offer)
 
 static void dhcpsrv_recv_ack(dhcp_link_t *dlink, dhcp_offer_t *offer)
 {
-	int rc;
+	errno_t rc;
 
 	if (dlink->state != ds_requesting) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Received ack in state "
@@ -571,7 +571,7 @@ static void dhcpsrv_recv(void *arg, void *msg, size_t size)
 {
 	dhcp_link_t *dlink = (dhcp_link_t *)arg;
 	dhcp_offer_t offer;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: dhcpsrv_recv() %zu bytes",
 	    dlink->link_info.name, size);
@@ -599,7 +599,7 @@ static void dhcpsrv_recv(void *arg, void *msg, size_t size)
 static void dhcpsrv_discover_timeout(void *arg)
 {
 	dhcp_link_t *dlink = (dhcp_link_t *)arg;
-	int rc;
+	errno_t rc;
 
 	assert(dlink->state == ds_selecting);
 	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: dcpsrv_discover_timeout",
@@ -627,7 +627,7 @@ static void dhcpsrv_discover_timeout(void *arg)
 static void dhcpsrv_request_timeout(void *arg)
 {
 	dhcp_link_t *dlink = (dhcp_link_t *)arg;
-	int rc;
+	errno_t rc;
 
 	assert(dlink->state == ds_requesting);
 	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: dcpsrv_request_timeout",

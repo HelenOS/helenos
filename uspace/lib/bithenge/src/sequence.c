@@ -57,7 +57,7 @@ typedef struct {
 } seq_node_t;
 
 typedef struct seq_node_ops {
-	int (*get_transform)(seq_node_t *self, bithenge_transform_t **out,
+	errno_t (*get_transform)(seq_node_t *self, bithenge_transform_t **out,
 	    bithenge_int_t index);
 } seq_node_ops_t;
 
@@ -71,7 +71,7 @@ static seq_node_t *node_as_seq(bithenge_node_t *node)
 	return (seq_node_t *)node;
 }
 
-static int seq_node_field_offset(seq_node_t *self, aoff64_t *out, size_t index)
+static errno_t seq_node_field_offset(seq_node_t *self, aoff64_t *out, size_t index)
 {
 	if (index == 0) {
 		*out = 0;
@@ -82,7 +82,7 @@ static int seq_node_field_offset(seq_node_t *self, aoff64_t *out, size_t index)
 	    self->num_ends ? self->ends[self->num_ends - 1] : 0;
 	for (; self->num_ends <= index; self->num_ends++) {
 		bithenge_transform_t *subxform;
-		int rc = self->ops->get_transform(self, &subxform,
+		errno_t rc = self->ops->get_transform(self, &subxform,
 		    self->num_ends);
 		if (rc != EOK)
 			return rc;
@@ -135,11 +135,11 @@ static int seq_node_field_offset(seq_node_t *self, aoff64_t *out, size_t index)
 	return EOK;
 }
 
-static int seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
+static errno_t seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
     size_t index)
 {
 	aoff64_t start_pos;
-	int rc = seq_node_field_offset(self, &start_pos, index);
+	errno_t rc = seq_node_field_offset(self, &start_pos, index);
 	if (rc != EOK)
 		return rc;
 
@@ -193,7 +193,7 @@ static int seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
 		self->ends[self->num_ends++] = start_pos + size;
 	} else {
 		aoff64_t end_pos;
-		int rc = seq_node_field_offset(self, &end_pos, index + 1);
+		errno_t rc = seq_node_field_offset(self, &end_pos, index + 1);
 		if (rc != EOK) {
 			bithenge_transform_dec_ref(subxform);
 			return rc;
@@ -219,10 +219,10 @@ static int seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
 	return EOK;
 }
 
-static int seq_node_complete(seq_node_t *self, bool *out)
+static errno_t seq_node_complete(seq_node_t *self, bool *out)
 {
 	aoff64_t blob_size, end_pos;
-	int rc = bithenge_blob_size(self->blob, &blob_size);
+	errno_t rc = bithenge_blob_size(self->blob, &blob_size);
 	if (rc != EOK)
 		return rc;
 	rc = seq_node_field_offset(self, &end_pos, self->num_xforms);
@@ -250,7 +250,7 @@ static bithenge_scope_t *seq_node_scope(seq_node_t *self)
 	return self->scope;
 }
 
-static int seq_node_init(seq_node_t *self, const seq_node_ops_t *ops,
+static errno_t seq_node_init(seq_node_t *self, const seq_node_ops_t *ops,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_int_t num_xforms,
     bool end_on_empty)
 {
@@ -318,10 +318,10 @@ static struct_node_t *node_as_struct(bithenge_node_t *node)
 	return seq_as_struct(node_as_seq(node));
 }
 
-static int struct_node_for_each(bithenge_node_t *base,
+static errno_t struct_node_for_each(bithenge_node_t *base,
     bithenge_for_each_func_t func, void *data)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	struct_node_t *self = node_as_struct(base);
 	bithenge_named_transform_t *subxforms =
 	    self->transform->subtransforms;
@@ -367,12 +367,12 @@ static int struct_node_for_each(bithenge_node_t *base,
 	return rc;
 }
 
-static int struct_node_get(bithenge_node_t *base, bithenge_node_t *key,
+static errno_t struct_node_get(bithenge_node_t *base, bithenge_node_t *key,
     bithenge_node_t **out)
 {
 	struct_node_t *self = node_as_struct(base);
 
-	int rc = ENOENT;
+	errno_t rc = ENOENT;
 	if (bithenge_node_type(key) != BITHENGE_NODE_STRING)
 		goto end;
 	const char *name = bithenge_string_node_value(key);
@@ -454,7 +454,7 @@ static const bithenge_internal_node_ops_t struct_node_ops = {
 	.destroy = struct_node_destroy,
 };
 
-static int struct_node_get_transform(seq_node_t *base,
+static errno_t struct_node_get_transform(seq_node_t *base,
     bithenge_transform_t **out, bithenge_int_t index)
 {
 	struct_node_t *self = seq_as_struct(base);
@@ -467,7 +467,7 @@ static const seq_node_ops_t struct_node_seq_ops = {
 	.get_transform = struct_node_get_transform,
 };
 
-static int struct_transform_make_node(struct_transform_t *self,
+static errno_t struct_transform_make_node(struct_transform_t *self,
     bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob,
     bool prefix)
 {
@@ -475,7 +475,7 @@ static int struct_transform_make_node(struct_transform_t *self,
 	if (!node)
 		return ENOMEM;
 
-	int rc = bithenge_init_internal_node(struct_as_node(node),
+	errno_t rc = bithenge_init_internal_node(struct_as_node(node),
 	    &struct_node_ops);
 	if (rc != EOK) {
 		free(node);
@@ -512,7 +512,7 @@ static int struct_transform_make_node(struct_transform_t *self,
 	return EOK;
 }
 
-static int struct_transform_apply(bithenge_transform_t *base,
+static errno_t struct_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	struct_transform_t *self = transform_as_struct(base);
@@ -522,12 +522,12 @@ static int struct_transform_apply(bithenge_transform_t *base,
 	    bithenge_node_as_blob(in), false);
 }
 
-static int struct_transform_prefix_length(bithenge_transform_t *base,
+static errno_t struct_transform_prefix_length(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
 	struct_transform_t *self = transform_as_struct(base);
 	bithenge_node_t *struct_node;
-	int rc = struct_transform_make_node(self, &struct_node, scope, blob,
+	errno_t rc = struct_transform_make_node(self, &struct_node, scope, blob,
 	    true);
 	if (rc != EOK)
 		return rc;
@@ -538,12 +538,12 @@ static int struct_transform_prefix_length(bithenge_transform_t *base,
 	return rc;
 }
 
-static int struct_transform_prefix_apply(bithenge_transform_t *base,
+static errno_t struct_transform_prefix_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
     aoff64_t *out_size)
 {
 	struct_transform_t *self = transform_as_struct(base);
-	int rc = struct_transform_make_node(self, out_node, scope, blob,
+	errno_t rc = struct_transform_make_node(self, out_node, scope, blob,
 	    true);
 	if (rc != EOK)
 		return rc;
@@ -591,10 +591,10 @@ static bithenge_transform_ops_t struct_transform_ops = {
  * @param[out] out Stores the created transform.
  * @param subtransforms The subtransforms and field names.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_struct(bithenge_transform_t **out,
+errno_t bithenge_new_struct(bithenge_transform_t **out,
     bithenge_named_transform_t *subtransforms)
 {
-	int rc;
+	errno_t rc;
 	struct_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -668,10 +668,10 @@ static repeat_node_t *node_as_repeat(bithenge_node_t *base)
 	return seq_as_repeat(node_as_seq(base));
 }
 
-static int repeat_node_for_each(bithenge_node_t *base,
+static errno_t repeat_node_for_each(bithenge_node_t *base,
     bithenge_for_each_func_t func, void *data)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	repeat_node_t *self = node_as_repeat(base);
 
 	for (bithenge_int_t i = 0; self->count == -1 || i < self->count; i++) {
@@ -711,7 +711,7 @@ static int repeat_node_for_each(bithenge_node_t *base,
 	return rc;
 }
 
-static int repeat_node_get(bithenge_node_t *base, bithenge_node_t *key,
+static errno_t repeat_node_get(bithenge_node_t *base, bithenge_node_t *key,
     bithenge_node_t **out)
 {
 	repeat_node_t *self = node_as_repeat(base);
@@ -742,7 +742,7 @@ static const bithenge_internal_node_ops_t repeat_node_ops = {
 	.destroy = repeat_node_destroy,
 };
 
-static int repeat_node_get_transform(seq_node_t *base,
+static errno_t repeat_node_get_transform(seq_node_t *base,
     bithenge_transform_t **out, bithenge_int_t index)
 {
 	repeat_node_t *self = seq_as_repeat(base);
@@ -755,14 +755,14 @@ static const seq_node_ops_t repeat_node_seq_ops = {
 	.get_transform = repeat_node_get_transform,
 };
 
-static int repeat_transform_make_node(repeat_transform_t *self,
+static errno_t repeat_transform_make_node(repeat_transform_t *self,
     bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob,
     bool prefix)
 {
 	bithenge_int_t count = -1;
 	if (self->expr != NULL) {
 		bithenge_node_t *count_node;
-		int rc = bithenge_expression_evaluate(self->expr, scope,
+		errno_t rc = bithenge_expression_evaluate(self->expr, scope,
 		    &count_node);
 		if (rc != EOK)
 			return rc;
@@ -780,7 +780,7 @@ static int repeat_transform_make_node(repeat_transform_t *self,
 	if (!node)
 		return ENOMEM;
 
-	int rc = bithenge_init_internal_node(repeat_as_node(node),
+	errno_t rc = bithenge_init_internal_node(repeat_as_node(node),
 	    &repeat_node_ops);
 	if (rc != EOK) {
 		free(node);
@@ -802,7 +802,7 @@ static int repeat_transform_make_node(repeat_transform_t *self,
 	return EOK;
 }
 
-static int repeat_transform_apply(bithenge_transform_t *base,
+static errno_t repeat_transform_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
 	repeat_transform_t *self = transform_as_repeat(base);
@@ -812,12 +812,12 @@ static int repeat_transform_apply(bithenge_transform_t *base,
 	    bithenge_node_as_blob(in), false);
 }
 
-static int repeat_transform_prefix_apply(bithenge_transform_t *base,
+static errno_t repeat_transform_prefix_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
     aoff64_t *out_size)
 {
 	repeat_transform_t *self = transform_as_repeat(base);
-	int rc = repeat_transform_make_node(self, out_node, scope, blob, true);
+	errno_t rc = repeat_transform_make_node(self, out_node, scope, blob, true);
 	if (rc != EOK)
 		return rc;
 
@@ -870,10 +870,10 @@ static const bithenge_transform_ops_t repeat_transform_ops = {
  * @param expr Used to calculate the number of times @a xform will be applied.
  * May be NULL, in which case @a xform will be applied indefinitely.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_repeat_transform(bithenge_transform_t **out,
+errno_t bithenge_repeat_transform(bithenge_transform_t **out,
     bithenge_transform_t *xform, bithenge_expression_t *expr)
 {
-	int rc;
+	errno_t rc;
 	repeat_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;
@@ -946,10 +946,10 @@ static do_while_node_t *node_as_do_while(bithenge_node_t *base)
 	return seq_as_do_while(node_as_seq(base));
 }
 
-static int do_while_node_for_each(bithenge_node_t *base,
+static errno_t do_while_node_for_each(bithenge_node_t *base,
     bithenge_for_each_func_t func, void *data)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	do_while_node_t *self = node_as_do_while(base);
 
 	for (bithenge_int_t i = 0; ; i++) {
@@ -1017,7 +1017,7 @@ static const bithenge_internal_node_ops_t do_while_node_ops = {
 	.destroy = do_while_node_destroy,
 };
 
-static int do_while_node_get_transform(seq_node_t *base,
+static errno_t do_while_node_get_transform(seq_node_t *base,
     bithenge_transform_t **out, bithenge_int_t index)
 {
 	do_while_node_t *self = seq_as_do_while(base);
@@ -1030,14 +1030,14 @@ static const seq_node_ops_t do_while_node_seq_ops = {
 	.get_transform = do_while_node_get_transform,
 };
 
-static int do_while_transform_make_node(do_while_transform_t *self,
+static errno_t do_while_transform_make_node(do_while_transform_t *self,
     bithenge_node_t **out, bithenge_scope_t *scope, bithenge_blob_t *blob)
 {
 	do_while_node_t *node = malloc(sizeof(*node));
 	if (!node)
 		return ENOMEM;
 
-	int rc = bithenge_init_internal_node(do_while_as_node(node),
+	errno_t rc = bithenge_init_internal_node(do_while_as_node(node),
 	    &do_while_node_ops);
 	if (rc != EOK) {
 		free(node);
@@ -1060,7 +1060,7 @@ static int do_while_transform_make_node(do_while_transform_t *self,
 	return EOK;
 }
 
-static int for_each_noop(bithenge_node_t *key, bithenge_node_t *value,
+static errno_t for_each_noop(bithenge_node_t *key, bithenge_node_t *value,
     void *data)
 {
 	bithenge_node_dec_ref(key);
@@ -1068,12 +1068,12 @@ static int for_each_noop(bithenge_node_t *key, bithenge_node_t *value,
 	return EOK;
 }
 
-static int do_while_transform_prefix_apply(bithenge_transform_t *base,
+static errno_t do_while_transform_prefix_apply(bithenge_transform_t *base,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
     aoff64_t *out_size)
 {
 	do_while_transform_t *self = transform_as_do_while(base);
-	int rc = do_while_transform_make_node(self, out_node, scope, blob);
+	errno_t rc = do_while_transform_make_node(self, out_node, scope, blob);
 	if (rc != EOK)
 		return rc;
 
@@ -1115,10 +1115,10 @@ static const bithenge_transform_ops_t do_while_transform_ops = {
  * @param expr Applied in the result of each application of @a xform to
  * determine whether there will be more.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_do_while_transform(bithenge_transform_t **out,
+errno_t bithenge_do_while_transform(bithenge_transform_t **out,
     bithenge_transform_t *xform, bithenge_expression_t *expr)
 {
-	int rc;
+	errno_t rc;
 	do_while_transform_t *self = malloc(sizeof(*self));
 	if (!self) {
 		rc = ENOMEM;

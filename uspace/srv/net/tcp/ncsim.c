@@ -122,12 +122,12 @@ void tcp_ncsim_bounce_seg(inet_ep2_t *epp, tcp_segment_t *seg)
 }
 
 /** Network condition simulator handler fibril. */
-static int tcp_ncsim_fibril(void *arg)
+static errno_t tcp_ncsim_fibril(void *arg)
 {
 	link_t *link;
 	tcp_squeue_entry_t *sqe;
 	inet_ep2_t rident;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_ncsim_fibril()");
 

@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 	stree_program_t *program;
 	stype_t stype;
 	run_t run;
-	int rc;
+	errno_t rc;
 
 	/* Store executable file path under which we have been invoked. */
 	os_store_ef_path(*argv);

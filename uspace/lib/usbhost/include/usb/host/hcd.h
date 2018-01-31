@@ -107,7 +107,7 @@ static inline hc_device_t *dev_to_hcd(ddf_dev_t *dev)
 	return ddf_dev_data_get(dev);
 }
 
-int hc_driver_main(const hc_driver_t *);
+extern errno_t hc_driver_main(const hc_driver_t *);
 
 #endif
 

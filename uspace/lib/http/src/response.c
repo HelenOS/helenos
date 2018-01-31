@@ -46,13 +46,13 @@ static bool is_digit(char c)
 	return (c >= '0' && c <= '9');
 }
 
-static int receive_number(receive_buffer_t *rb, char **str)
+static errno_t receive_number(receive_buffer_t *rb, char **str)
 {
 	receive_buffer_mark_t start;
 	receive_buffer_mark_t end;
 	
 	recv_mark(rb, &start);
-	int rc = recv_while(rb, is_digit);
+	errno_t rc = recv_while(rb, is_digit);
 	if (rc != EOK) {
 		recv_unmark(rb, &start);
 		return rc;
@@ -65,10 +65,10 @@ static int receive_number(receive_buffer_t *rb, char **str)
 	return rc;
 }
 
-static int receive_uint8_t(receive_buffer_t *rb, uint8_t *out_value)
+static errno_t receive_uint8_t(receive_buffer_t *rb, uint8_t *out_value)
 {
 	char *str = NULL;
-	int rc = receive_number(rb, &str);
+	errno_t rc = receive_number(rb, &str);
 	
 	if (rc != EOK)
 		return rc;
@@ -79,10 +79,10 @@ static int receive_uint8_t(receive_buffer_t *rb, uint8_t *out_value)
 	return rc;
 }
 
-static int receive_uint16_t(receive_buffer_t *rb, uint16_t *out_value)
+static errno_t receive_uint16_t(receive_buffer_t *rb, uint16_t *out_value)
 {
 	char *str = NULL;
-	int rc = receive_number(rb, &str);
+	errno_t rc = receive_number(rb, &str);
 	
 	if (rc != EOK)
 		return rc;
@@ -93,10 +93,10 @@ static int receive_uint16_t(receive_buffer_t *rb, uint16_t *out_value)
 	return rc;
 }
 
-static int expect(receive_buffer_t *rb, const char *expect)
+static errno_t expect(receive_buffer_t *rb, const char *expect)
 {
 	size_t ndisc;
-	int rc = recv_discard_str(rb, expect, &ndisc);
+	errno_t rc = recv_discard_str(rb, expect, &ndisc);
 	if (rc != EOK)
 		return rc;
 	if (ndisc < str_length(expect))
@@ -109,14 +109,14 @@ static bool is_not_newline(char c)
 	return (c != '\n' && c != '\r');
 }
 
-int http_receive_status(receive_buffer_t *rb, http_version_t *out_version,
+errno_t http_receive_status(receive_buffer_t *rb, http_version_t *out_version,
     uint16_t *out_status, char **out_message)
 {
 	http_version_t version;
 	uint16_t status;
 	char *message = NULL;
 	
-	int rc = expect(rb, "HTTP/");
+	errno_t rc = expect(rb, "HTTP/");
 	if (rc != EOK)
 		return rc;
 	
@@ -186,7 +186,7 @@ int http_receive_status(receive_buffer_t *rb, http_version_t *out_version,
 	return EOK;
 }
 
-int http_receive_response(receive_buffer_t *rb, http_response_t **out_response,
+errno_t http_receive_response(receive_buffer_t *rb, http_response_t **out_response,
     size_t max_headers_size, unsigned max_headers_count)
 {
 	http_response_t *resp = malloc(sizeof(http_response_t));
@@ -195,7 +195,7 @@ int http_receive_response(receive_buffer_t *rb, http_response_t **out_response,
 	memset(resp, 0, sizeof(http_response_t));
 	http_headers_init(&resp->headers);
 	
-	int rc = http_receive_status(rb, &resp->version, &resp->status,
+	errno_t rc = http_receive_status(rb, &resp->version, &resp->status,
 	    &resp->message);
 	if (rc != EOK)
 		goto error;

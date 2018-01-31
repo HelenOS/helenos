@@ -62,7 +62,7 @@
  *
  * @return		EOK on success, error code on failure.
  */
-typedef int (*tinput_compl_init_fn)(wchar_t *text, size_t pos, size_t *cstart,
+typedef errno_t (*tinput_compl_init_fn)(wchar_t *text, size_t pos, size_t *cstart,
     void **state);
 
 /** Obtain one text completion alternative.
@@ -77,7 +77,7 @@ typedef int (*tinput_compl_init_fn)(wchar_t *text, size_t pos, size_t *cstart,
  *
  * @return		EOK on success, error code on failure.
  */
-typedef int (*tinput_compl_get_next_fn)(void *state, char **compl);
+typedef errno_t (*tinput_compl_get_next_fn)(void *state, char **compl);
 
 
 /** Finish enumeration of text completions.
@@ -154,11 +154,11 @@ typedef struct {
 } tinput_t;
 
 extern tinput_t *tinput_new(void);
-extern int tinput_set_prompt(tinput_t *, const char *);
+extern errno_t tinput_set_prompt(tinput_t *, const char *);
 extern void tinput_set_compl_ops(tinput_t *, tinput_compl_ops_t *);
 extern void tinput_destroy(tinput_t *);
-extern int tinput_read(tinput_t *, char **);
-extern int tinput_read_i(tinput_t *, const char *, char **);
+extern errno_t tinput_read(tinput_t *, char **);
+extern errno_t tinput_read_i(tinput_t *, const char *, char **);
 
 #endif
 

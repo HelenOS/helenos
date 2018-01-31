@@ -32,7 +32,7 @@
 #ifndef OUTPUT_PORT_EGA_H_
 #define OUTPUT_PORT_EGA_H_
 
-extern int ega_init(void);
+extern errno_t ega_init(void);
 
 #endif
 

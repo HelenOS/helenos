@@ -894,7 +894,7 @@ static bool dequeue_add_req(nonblock_adder_t *info, struct work_queue **pworkq)
 	irq_spinlock_lock(&info->lock, true);
 	
 	while (list_empty(&info->work_queues) && !stop) {
-		int ret = _condvar_wait_timeout_irq_spinlock(&info->req_cv, 
+		errno_t ret = _condvar_wait_timeout_irq_spinlock(&info->req_cv, 
 			&info->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 		
 		stop = (ret == EINTR);

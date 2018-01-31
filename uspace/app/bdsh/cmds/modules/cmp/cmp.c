@@ -69,9 +69,9 @@ void help_cmd_cmp(unsigned int level)
 	return;
 }
 
-static int cmp_files(const char *fn0, const char *fn1)
+static errno_t cmp_files(const char *fn0, const char *fn1)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	const char *fn[2] = {fn0, fn1};
 	int fd[2] = {-1, -1};
 	char buffer[2][CMP_BUFLEN];
@@ -116,7 +116,7 @@ end:
 /* Main entry point for cmd, accepts an array of arguments */
 int cmd_cmp(char **argv)
 {
-	int rc;
+	errno_t rc;
 	unsigned int argc;
 	int c, opt_ind;
 	

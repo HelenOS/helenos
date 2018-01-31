@@ -39,7 +39,7 @@
 #include "libc/stdbool.h"
 #include "posix/stdlib.h"
 
-#include "posix/assert.h"
+#include <assert.h>
 #include "posix/ctype.h"
 #include "posix/stdint.h"
 #include "posix/strings.h"

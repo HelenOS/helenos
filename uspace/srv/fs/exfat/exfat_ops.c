@@ -71,25 +71,25 @@ static LIST_INITIALIZE(ffn_list);
  * Forward declarations of FAT libfs operations.
  */
 
-static int exfat_root_get(fs_node_t **, service_id_t);
-static int exfat_match(fs_node_t **, fs_node_t *, const char *);
-static int exfat_node_get(fs_node_t **, service_id_t, fs_index_t);
-static int exfat_node_open(fs_node_t *);
-/* static int exfat_node_put(fs_node_t *); */
-static int exfat_create_node(fs_node_t **, service_id_t, int);
-static int exfat_destroy_node(fs_node_t *);
-static int exfat_link(fs_node_t *, fs_node_t *, const char *);
-static int exfat_unlink(fs_node_t *, fs_node_t *, const char *);
-static int exfat_has_children(bool *, fs_node_t *);
+static errno_t exfat_root_get(fs_node_t **, service_id_t);
+static errno_t exfat_match(fs_node_t **, fs_node_t *, const char *);
+static errno_t exfat_node_get(fs_node_t **, service_id_t, fs_index_t);
+static errno_t exfat_node_open(fs_node_t *);
+/* static errno_t exfat_node_put(fs_node_t *); */
+static errno_t exfat_create_node(fs_node_t **, service_id_t, int);
+static errno_t exfat_destroy_node(fs_node_t *);
+static errno_t exfat_link(fs_node_t *, fs_node_t *, const char *);
+static errno_t exfat_unlink(fs_node_t *, fs_node_t *, const char *);
+static errno_t exfat_has_children(bool *, fs_node_t *);
 static fs_index_t exfat_index_get(fs_node_t *);
 static aoff64_t exfat_size_get(fs_node_t *);
 static unsigned exfat_lnkcnt_get(fs_node_t *);
 static bool exfat_is_directory(fs_node_t *);
 static bool exfat_is_file(fs_node_t *node);
 static service_id_t exfat_service_get(fs_node_t *node);
-static int exfat_size_block(service_id_t, uint32_t *);
-static int exfat_total_block_count(service_id_t, uint64_t *);
-static int exfat_free_block_count(service_id_t, uint64_t *);
+static errno_t exfat_size_block(service_id_t, uint32_t *);
+static errno_t exfat_total_block_count(service_id_t, uint64_t *);
+static errno_t exfat_free_block_count(service_id_t, uint64_t *);
 
 /*
  * Helper functions.
@@ -113,9 +113,9 @@ static void exfat_node_initialize(exfat_node_t *node)
 	node->currc_cached_value = 0;
 }
 
-static int exfat_node_sync(exfat_node_t *node)
+static errno_t exfat_node_sync(exfat_node_t *node)
 {
-	int rc;
+	errno_t rc;
 	exfat_directory_t di;
 	exfat_file_dentry_t df;
 	exfat_stream_dentry_t ds;
@@ -154,9 +154,9 @@ static int exfat_node_sync(exfat_node_t *node)
 	return exfat_directory_close(&di);
 }
 
-static int exfat_node_fini_by_service_id(service_id_t service_id)
+static errno_t exfat_node_fini_by_service_id(service_id_t service_id)
 {
-	int rc;
+	errno_t rc;
 
 	/*
 	 * We are called from fat_unmounted() and assume that there are already
@@ -210,11 +210,11 @@ restart:
 	return EOK;
 }
 
-static int exfat_node_get_new(exfat_node_t **nodepp)
+static errno_t exfat_node_get_new(exfat_node_t **nodepp)
 {
 	fs_node_t *fn;
 	exfat_node_t *nodep;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&ffn_mutex);
 	if (!list_empty(&ffn_list)) {
@@ -268,7 +268,7 @@ skip_cache:
 	return EOK;
 }
 
-static int exfat_node_get_new_by_pos(exfat_node_t **nodepp, 
+static errno_t exfat_node_get_new_by_pos(exfat_node_t **nodepp, 
     service_id_t service_id, exfat_cluster_t pfc, unsigned pdi)
 {
 	exfat_idx_t *idxp = exfat_idx_get_by_pos(service_id, pfc, pdi);
@@ -286,12 +286,12 @@ static int exfat_node_get_new_by_pos(exfat_node_t **nodepp,
  *
  * @param idxp		Locked index structure.
  */
-static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
+static errno_t exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 {
 	exfat_dentry_t *d;
 	exfat_node_t *nodep = NULL;
 	exfat_directory_t di;
-	int rc;
+	errno_t rc;
 
 	if (idxp->nodep) {
 		/*
@@ -397,11 +397,11 @@ static int exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	return EOK;
 }
 
-int exfat_node_expand(service_id_t service_id, exfat_node_t *nodep,
+errno_t exfat_node_expand(service_id_t service_id, exfat_node_t *nodep,
     exfat_cluster_t clusters)
 {
 	exfat_bs_t *bs;
-	int rc;
+	errno_t rc;
 	bs = block_bb_get(service_id);
 
 	if (!nodep->fragmented) {
@@ -442,11 +442,11 @@ int exfat_node_expand(service_id_t service_id, exfat_node_t *nodep,
 	return EOK;
 }
 
-static int exfat_node_shrink(service_id_t service_id, exfat_node_t *nodep,
+static errno_t exfat_node_shrink(service_id_t service_id, exfat_node_t *nodep,
     aoff64_t size)
 {
 	exfat_bs_t *bs;
-	int rc;
+	errno_t rc;
 	bs = block_bb_get(service_id);
 
 	if (!nodep->fragmented) {
@@ -490,30 +490,30 @@ static int exfat_node_shrink(service_id_t service_id, exfat_node_t *nodep,
  * EXFAT libfs operations.
  */
 
-int exfat_root_get(fs_node_t **rfn, service_id_t service_id)
+errno_t exfat_root_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return exfat_node_get(rfn, service_id, EXFAT_ROOT_IDX);
 }
 
-int exfat_bitmap_get(fs_node_t **rfn, service_id_t service_id)
+errno_t exfat_bitmap_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return exfat_node_get(rfn, service_id, EXFAT_BITMAP_IDX);
 }
 
-int exfat_uctable_get(fs_node_t **rfn, service_id_t service_id)
+errno_t exfat_uctable_get(fs_node_t **rfn, service_id_t service_id)
 {
 	return exfat_node_get(rfn, service_id, EXFAT_UCTABLE_IDX);
 }
 
 
-int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+errno_t exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	exfat_node_t *parentp = EXFAT_NODE(pfn);
 	char name[EXFAT_FILENAME_LEN + 1];
 	exfat_file_dentry_t df;
 	exfat_stream_dentry_t ds;
 	service_id_t service_id;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&parentp->idx->lock);
 	service_id = parentp->idx->service_id;
@@ -564,11 +564,11 @@ int exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 }
 
 /** Instantiate a exFAT in-core node. */
-int exfat_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
+errno_t exfat_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 {
 	exfat_node_t *nodep;
 	exfat_idx_t *idxp;
-	int rc;
+	errno_t rc;
 
 	idxp = exfat_idx_get_by_index(service_id, index);
 	if (!idxp) {
@@ -583,7 +583,7 @@ int exfat_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index)
 	return rc;
 }
 
-int exfat_node_open(fs_node_t *fn)
+errno_t exfat_node_open(fs_node_t *fn)
 {
 	/*
 	 * Opening a file is stateless, nothing
@@ -592,7 +592,7 @@ int exfat_node_open(fs_node_t *fn)
 	return EOK;
 }
 
-int exfat_node_put(fs_node_t *fn)
+errno_t exfat_node_put(fs_node_t *fn)
 {
 	if (fn == NULL)
 		return EOK;
@@ -624,12 +624,12 @@ int exfat_node_put(fs_node_t *fn)
 	return EOK;
 }
 
-int exfat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
+errno_t exfat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 {
 	exfat_idx_t *idxp;
 	exfat_node_t *nodep;
 	exfat_bs_t *bs;
-	int rc;
+	errno_t rc;
 
 	bs = block_bb_get(service_id);
 	rc = exfat_node_get_new(&nodep);
@@ -676,12 +676,12 @@ int exfat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 	return EOK;
 }
 
-int exfat_destroy_node(fs_node_t *fn)
+errno_t exfat_destroy_node(fs_node_t *fn)
 {
 	exfat_node_t *nodep = EXFAT_NODE(fn);
 	exfat_bs_t *bs;
 	bool has_children;
-	int rc;
+	errno_t rc;
 
 	/*
 	 * The node is not reachable from the file system. This means that the
@@ -717,12 +717,12 @@ int exfat_destroy_node(fs_node_t *fn)
 	return rc;
 }
 
-int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+errno_t exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	exfat_node_t *parentp = EXFAT_NODE(pfn);
 	exfat_node_t *childp = EXFAT_NODE(cfn);
 	exfat_directory_t di;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&childp->lock);
 	if (childp->lnkcnt == 1) {
@@ -782,12 +782,12 @@ int exfat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 
 }
 
-int exfat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+errno_t exfat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	exfat_node_t *parentp = EXFAT_NODE(pfn);
 	exfat_node_t *childp = EXFAT_NODE(cfn);
 	bool has_children;
-	int rc;
+	errno_t rc;
 
 	if (!parentp)
 		return EBUSY;
@@ -837,12 +837,12 @@ error:
 
 }
 
-int exfat_has_children(bool *has_children, fs_node_t *fn)
+errno_t exfat_has_children(bool *has_children, fs_node_t *fn)
 {
 	exfat_directory_t di;
 	exfat_dentry_t *d;
 	exfat_node_t *nodep = EXFAT_NODE(fn);
-	int rc;
+	errno_t rc;
 
 	*has_children = false;
 
@@ -914,7 +914,7 @@ service_id_t exfat_service_get(fs_node_t *node)
 	return 0;
 }
 
-int exfat_size_block(service_id_t service_id, uint32_t *size)
+errno_t exfat_size_block(service_id_t service_id, uint32_t *size)
 {
 	exfat_bs_t *bs;
 	bs = block_bb_get(service_id);
@@ -923,7 +923,7 @@ int exfat_size_block(service_id_t service_id, uint32_t *size)
 	return EOK;
 }
 
-int exfat_total_block_count(service_id_t service_id, uint64_t *count)
+errno_t exfat_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	exfat_bs_t *bs;
 	bs = block_bb_get(service_id);
@@ -932,7 +932,7 @@ int exfat_total_block_count(service_id_t service_id, uint64_t *count)
 	return EOK;
 }
 
-int exfat_free_block_count(service_id_t service_id, uint64_t *count)
+errno_t exfat_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	fs_node_t *node = NULL;
 	exfat_node_t *bmap_node;
@@ -940,7 +940,7 @@ int exfat_free_block_count(service_id_t service_id, uint64_t *count)
 	uint64_t free_block_count = 0;
 	uint64_t block_count;
 	unsigned sector;
-	int rc;
+	errno_t rc;
 
 	rc = exfat_total_block_count(service_id, &block_count);
 	if (rc != EOK)
@@ -1014,10 +1014,10 @@ libfs_ops_t exfat_libfs_ops = {
 	.free_block_count = exfat_free_block_count
 };
 
-static int exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
+static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
     fs_node_t **rrfn, exfat_idx_t **rridxp, vfs_fs_probe_info_t *info)
 {
-	int rc;
+	errno_t rc;
 	exfat_node_t *rootp = NULL, *bitmapp = NULL, *uctablep = NULL;
 	exfat_bs_t *bs;
 
@@ -1266,9 +1266,9 @@ static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
 }
 */
 
-static int exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
+static errno_t exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {
-	int rc;
+	errno_t rc;
 	exfat_idx_t *ridxp;
 	fs_node_t *rfn;
 
@@ -1280,11 +1280,11 @@ static int exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 	return EOK;
 }
 
-static int
+static errno_t
 exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
     aoff64_t *size)
 {
-	int rc;
+	errno_t rc;
 	enum cache_mode cmode;
 	exfat_idx_t *ridxp;
 	fs_node_t *rfn;
@@ -1305,10 +1305,10 @@ exfat_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	return EOK;
 }
 
-static int exfat_unmounted(service_id_t service_id)
+static errno_t exfat_unmounted(service_id_t service_id)
 {
 	fs_node_t *rfn;
-	int rc;
+	errno_t rc;
 
 	rc = exfat_root_get(&rfn, service_id);
 	if (rc != EOK)
@@ -1318,7 +1318,7 @@ static int exfat_unmounted(service_id_t service_id)
 	return EOK;
 }
 
-static int
+static errno_t
 exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
@@ -1327,7 +1327,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	exfat_bs_t *bs;
 	size_t bytes = 0;
 	block_t *b;
-	int rc;
+	errno_t rc;
 
 	rc = exfat_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1437,15 +1437,15 @@ hit:
 	return rc;
 }
 
-static int exfat_close(service_id_t service_id, fs_index_t index)
+static errno_t exfat_close(service_id_t service_id, fs_index_t index)
 {
 	return EOK;
 }
 
-static int exfat_sync(service_id_t service_id, fs_index_t index)
+static errno_t exfat_sync(service_id_t service_id, fs_index_t index)
 {
 	fs_node_t *fn;
-	int rc = exfat_node_get(&fn, service_id, index);
+	errno_t rc = exfat_node_get(&fn, service_id, index);
 	if (rc != EOK)
 		return rc;
 	if (!fn)
@@ -1460,7 +1460,7 @@ static int exfat_sync(service_id_t service_id, fs_index_t index)
 	return rc;
 }
 
-static int
+static errno_t
 exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *wbytes, aoff64_t *nsize)
 {
@@ -1471,7 +1471,7 @@ exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	block_t *b;
 	aoff64_t boundary;
 	int flags = BLOCK_FLAGS_NONE;
-	int rc;
+	errno_t rc;
 
 	rc = exfat_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1547,13 +1547,13 @@ exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	return rc;
 }
 
-static int
+static errno_t
 exfat_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 {
 	fs_node_t *fn;
 	exfat_node_t *nodep;
 	exfat_bs_t *bs;
-	int rc;
+	errno_t rc;
 
 	rc = exfat_node_get(&fn, service_id, index);
 	if (rc != EOK)
@@ -1583,18 +1583,18 @@ exfat_truncate(service_id_t service_id, fs_index_t index, aoff64_t size)
 		rc = exfat_node_shrink(service_id, nodep, size);
 	}
 
-	int rc2 = exfat_node_put(fn);
+	errno_t rc2 = exfat_node_put(fn);
 	if (rc == EOK && rc2 != EOK)
 		rc = rc2;
 
 	return rc;
 }
 
-static int exfat_destroy(service_id_t service_id, fs_index_t index)
+static errno_t exfat_destroy(service_id_t service_id, fs_index_t index)
 {
 	fs_node_t *fn;
 	exfat_node_t *nodep;
-	int rc;
+	errno_t rc;
 
 	rc = exfat_node_get(&fn, service_id, index);
 	if (rc != EOK)

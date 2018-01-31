@@ -83,14 +83,14 @@ typedef struct {
 } http_response_t;
 
 extern http_t *http_create(const char *, uint16_t);
-extern int http_connect(http_t *);
+extern errno_t http_connect(http_t *);
 
 extern void http_header_init(http_header_t *);
 extern http_header_t *http_header_create(const char *, const char *);
-extern int http_header_receive_name(receive_buffer_t *, receive_buffer_mark_t *);
-extern int http_header_receive_value(receive_buffer_t *, receive_buffer_mark_t *,
+extern errno_t http_header_receive_name(receive_buffer_t *, receive_buffer_mark_t *);
+extern errno_t http_header_receive_value(receive_buffer_t *, receive_buffer_mark_t *,
     receive_buffer_mark_t *);
-extern int http_header_receive(receive_buffer_t *, http_header_t *, size_t,
+extern errno_t http_header_receive(receive_buffer_t *, http_header_t *, size_t,
     size_t *);
 extern void http_header_normalize_value(char *);
 extern bool http_header_name_match(const char *, const char *);
@@ -98,12 +98,12 @@ ssize_t http_header_encode(http_header_t *, char *, size_t);
 extern void http_header_destroy(http_header_t *);
 
 extern void http_headers_init(http_headers_t *);
-extern int http_headers_find_single(http_headers_t *, const char *,
+extern errno_t http_headers_find_single(http_headers_t *, const char *,
     http_header_t **);
-extern int http_headers_append(http_headers_t *, const char *, const char *);
-extern int http_headers_set(http_headers_t *, const char *, const char *);
-extern int http_headers_get(http_headers_t *, const char *, char **);
-extern int http_headers_receive(receive_buffer_t *, http_headers_t *, size_t,
+extern errno_t http_headers_append(http_headers_t *, const char *, const char *);
+extern errno_t http_headers_set(http_headers_t *, const char *, const char *);
+extern errno_t http_headers_get(http_headers_t *, const char *, char **);
+extern errno_t http_headers_receive(receive_buffer_t *, http_headers_t *, size_t,
     unsigned);
 extern void http_headers_clear(http_headers_t *);
 
@@ -124,14 +124,14 @@ static inline void http_headers_append_header(http_headers_t *headers,
 
 extern http_request_t *http_request_create(const char *, const char *);
 extern void http_request_destroy(http_request_t *);
-extern int http_request_format(http_request_t *, char **, size_t *);
-extern int http_send_request(http_t *, http_request_t *);
-extern int http_receive_status(receive_buffer_t *, http_version_t *, uint16_t *,
+extern errno_t http_request_format(http_request_t *, char **, size_t *);
+extern errno_t http_send_request(http_t *, http_request_t *);
+extern errno_t http_receive_status(receive_buffer_t *, http_version_t *, uint16_t *,
     char **);
-extern int http_receive_response(receive_buffer_t *, http_response_t **,
+extern errno_t http_receive_response(receive_buffer_t *, http_response_t **,
     size_t, unsigned);
 extern void http_response_destroy(http_response_t *);
-extern int http_close(http_t *);
+extern errno_t http_close(http_t *);
 extern void http_destroy(http_t *);
 
 #endif

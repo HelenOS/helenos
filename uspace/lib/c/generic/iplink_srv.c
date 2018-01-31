@@ -45,7 +45,7 @@ static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	size_t mtu;
-	int rc = srv->ops->get_mtu(srv, &mtu);
+	errno_t rc = srv->ops->get_mtu(srv, &mtu);
 	async_answer_1(callid, rc, mtu);
 }
 
@@ -53,7 +53,7 @@ static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
     ipc_call_t *icall)
 {
 	addr48_t mac;
-	int rc = srv->ops->get_mac48(srv, &mac);
+	errno_t rc = srv->ops->get_mac48(srv, &mac);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
@@ -83,7 +83,7 @@ static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
 static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
     ipc_call_t *icall)
 {
-	int rc;
+	errno_t rc;
 	size_t size;
 	addr48_t mac;
 	ipc_callid_t callid;
@@ -124,7 +124,7 @@ static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	}
 	
 	inet_addr_t addr;
-	int rc = async_data_write_finalize(callid, &addr, size);
+	errno_t rc = async_data_write_finalize(callid, &addr, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
@@ -152,7 +152,7 @@ static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	}
 	
 	inet_addr_t addr;
-	int rc = async_data_write_finalize(callid, &addr, size);
+	errno_t rc = async_data_write_finalize(callid, &addr, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
@@ -170,7 +170,7 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	sdu.src = IPC_GET_ARG1(*icall);
 	sdu.dest = IPC_GET_ARG2(*icall);
 	
-	int rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
+	errno_t rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
 	    &sdu.size);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
@@ -201,7 +201,7 @@ static void iplink_send6_srv(iplink_srv_t *srv, ipc_callid_t iid,
 		return;
 	}
 	
-	int rc = async_data_write_finalize(callid, &sdu.dest, size);
+	errno_t rc = async_data_write_finalize(callid, &sdu.dest, size);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 		async_answer_0(iid, rc);
@@ -228,10 +228,10 @@ void iplink_srv_init(iplink_srv_t *srv)
 	srv->client_sess = NULL;
 }
 
-int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+errno_t iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	iplink_srv_t *srv = (iplink_srv_t *) arg;
-	int rc;
+	errno_t rc;
 	
 	fibril_mutex_lock(&srv->lock);
 	if (srv->connected) {
@@ -301,7 +301,7 @@ int iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /* XXX Version should be part of @a sdu */
-int iplink_ev_recv(iplink_srv_t *srv, iplink_recv_sdu_t *sdu, ip_ver_t ver)
+errno_t iplink_ev_recv(iplink_srv_t *srv, iplink_recv_sdu_t *sdu, ip_ver_t ver)
 {
 	if (srv->client_sess == NULL)
 		return EIO;
@@ -312,7 +312,7 @@ int iplink_ev_recv(iplink_srv_t *srv, iplink_recv_sdu_t *sdu, ip_ver_t ver)
 	aid_t req = async_send_1(exch, IPLINK_EV_RECV, (sysarg_t)ver,
 	    &answer);
 	
-	int rc = async_data_write_start(exch, sdu->data, sdu->size);
+	errno_t rc = async_data_write_start(exch, sdu->data, sdu->size);
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
@@ -320,7 +320,7 @@ int iplink_ev_recv(iplink_srv_t *srv, iplink_recv_sdu_t *sdu, ip_ver_t ver)
 		return rc;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;
@@ -328,7 +328,7 @@ int iplink_ev_recv(iplink_srv_t *srv, iplink_recv_sdu_t *sdu, ip_ver_t ver)
 	return EOK;
 }
 
-int iplink_ev_change_addr(iplink_srv_t *srv, addr48_t *addr)
+errno_t iplink_ev_change_addr(iplink_srv_t *srv, addr48_t *addr)
 {
 	if (srv->client_sess == NULL)
 		return EIO;
@@ -338,7 +338,7 @@ int iplink_ev_change_addr(iplink_srv_t *srv, addr48_t *addr)
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, IPLINK_EV_CHANGE_ADDR, &answer);
 	
-	int rc = async_data_write_start(exch, addr, sizeof(addr48_t));
+	errno_t rc = async_data_write_start(exch, addr, sizeof(addr48_t));
 	async_exchange_end(exch);
 	
 	if (rc != EOK) {
@@ -346,7 +346,7 @@ int iplink_ev_change_addr(iplink_srv_t *srv, addr48_t *addr)
 		return rc;
 	}
 	
-	int retval;
+	errno_t retval;
 	async_wait_for(req, &retval);
 	if (retval != EOK)
 		return retval;

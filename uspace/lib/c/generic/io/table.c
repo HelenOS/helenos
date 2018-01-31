@@ -50,7 +50,7 @@ static table_column_t *table_column_next(table_column_t *);
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-static int table_add_row(table_t *table, table_row_t **rrow)
+static errno_t table_add_row(table_t *table, table_row_t **rrow)
 {
 	table_row_t *row;
 
@@ -73,7 +73,7 @@ static int table_add_row(table_t *table, table_row_t **rrow)
  * @param rcell Place to store pointer to new cell or @c NULL
  * @return EOK on success, ENOMEM if out of memory
  */
-static int table_row_add_cell(table_row_t *row, table_cell_t **rcell)
+static errno_t table_row_add_cell(table_row_t *row, table_cell_t **rcell)
 {
 	table_cell_t *cell;
 
@@ -98,7 +98,7 @@ static int table_row_add_cell(table_row_t *row, table_cell_t **rcell)
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-static int table_add_column(table_t *table, table_column_t **rcolumn)
+static errno_t table_add_column(table_t *table, table_column_t **rcolumn)
 {
 	table_column_t *column;
 
@@ -120,9 +120,9 @@ static int table_add_column(table_t *table, table_column_t **rcolumn)
  * @param table Table
  * @return EOK on success, ENOMEM if out of memory
  */
-static int table_write_next_cell(table_t *table)
+static errno_t table_write_next_cell(table_t *table)
 {
-	int rc;
+	errno_t rc;
 
 	rc = table_row_add_cell(table->wrow, &table->wcell);
 	if (rc != EOK) {
@@ -154,9 +154,9 @@ static int table_write_next_cell(table_t *table)
  * @param table Table
  * @return EOK on success, ENOMEM if out of memory
  */
-static int table_write_next_row(table_t *table)
+static errno_t table_write_next_row(table_t *table)
 {
-	int rc;
+	errno_t rc;
 
 	rc = table_add_row(table, &table->wrow);
 	if (rc != EOK) {
@@ -271,7 +271,7 @@ static table_column_t *table_column_next(table_column_t *cur)
  * @param len Max number of bytes to read from str
  * @return EOK on success, ENOMEM if out of memory
  */
-static int table_cell_extend(table_cell_t *cell, const char *str, size_t len)
+static errno_t table_cell_extend(table_cell_t *cell, const char *str, size_t len)
 {
 	char *cstr;
 	int rc;
@@ -297,10 +297,10 @@ static int table_cell_extend(table_cell_t *cell, const char *str, size_t len)
  * @para, rtable Place to store pointer to new table.
  * @return EOK on success, ENOMEM if out of memory
  */
-int table_create(table_t **rtable)
+errno_t table_create(table_t **rtable)
 {
 	table_t *table;
-	int rc;
+	errno_t rc;
 
 	table = calloc(1, sizeof(table_t));
 	if (table == NULL)
@@ -376,7 +376,7 @@ void table_destroy(table_t *table)
  *
  * @return EOK on success, EIO on I/O error
  */
-int table_print_out(table_t *table, FILE *f)
+errno_t table_print_out(table_t *table, FILE *f)
 {
 	table_row_t *row;
 	table_cell_t *cell;
@@ -473,10 +473,10 @@ void table_header_row(table_t *table)
  * @param fmt Format string
  * @return EOK on success, ENOMEM if out of memory
  */
-int table_printf(table_t *table, const char *fmt, ...)
+errno_t table_printf(table_t *table, const char *fmt, ...)
 {
 	va_list args;
-	int rc;
+	errno_t rc;
 	int ret;
 	char *str;
 	char *sp, *ep;
@@ -547,7 +547,7 @@ out:
  * @param table Table
  * @return EOK if no error indicated, non-zero error code otherwise
  */
-int table_get_error(table_t *table)
+errno_t table_get_error(table_t *table)
 {
 	return table->error;
 }

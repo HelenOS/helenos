@@ -125,10 +125,10 @@ static inline bool futex_trydown(futex_t *futex)
  * @return Error code from <errno.h> otherwise.
  *
  */
-static inline int futex_down(futex_t *futex)
+static inline errno_t futex_down(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
-		return (int) __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
+		return (errno_t) __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
 	
 	return EOK;
 }
@@ -142,10 +142,10 @@ static inline int futex_down(futex_t *futex)
  * @return Error code from <errno.h> otherwise.
  *
  */
-static inline int futex_up(futex_t *futex)
+static inline errno_t futex_up(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
-		return (int) __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
+		return (errno_t) __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
 	
 	return EOK;
 }

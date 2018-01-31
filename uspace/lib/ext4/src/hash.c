@@ -37,7 +37,7 @@
 #include <errno.h>
 #include "ext4/hash.h"
 
-int ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
+errno_t ext4_hash_string(ext4_hash_info_t *hinfo, int len, const char *name)
 {
 	// TODO
 	hinfo->hash = 0;

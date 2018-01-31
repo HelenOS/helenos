@@ -152,7 +152,7 @@ static void cushion(void)
 /** Initialization and allocation for thread_t structure
  *
  */
-static int thr_constructor(void *obj, unsigned int kmflags)
+static errno_t thr_constructor(void *obj, unsigned int kmflags)
 {
 	thread_t *thread = (thread_t *) obj;
 	
@@ -638,7 +638,7 @@ void thread_sleep(uint32_t sec)
  * @return An error code from errno.h or an error code from synch.h.
  *
  */
-int thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
+errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 {
 	if (thread == THREAD)
 		return EINVAL;
@@ -929,16 +929,16 @@ void thread_stack_trace(thread_id_t thread_id)
 /** Process syscall to create new thread.
  *
  */
-sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
+sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
     size_t name_len, thread_id_t *uspace_thread_id)
 {
 	if (name_len > THREAD_NAME_BUFLEN - 1)
 		name_len = THREAD_NAME_BUFLEN - 1;
 	
 	char namebuf[THREAD_NAME_BUFLEN];
-	int rc = copy_from_uspace(namebuf, uspace_name, name_len);
-	if (rc != 0)
-		return (sysarg_t) rc;
+	errno_t rc = copy_from_uspace(namebuf, uspace_name, name_len);
+	if (rc != EOK)
+		return (sys_errno_t) rc;
 	
 	namebuf[name_len] = 0;
 	
@@ -950,9 +950,9 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
 	
 	rc = copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
-	if (rc != 0) {
+	if (rc != EOK) {
 		free(kernel_uarg);
-		return (sysarg_t) rc;
+		return (sys_errno_t) rc;
 	}
 	
 	thread_t *thread = thread_create(uinit, kernel_uarg, TASK,
@@ -961,7 +961,7 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 		if (uspace_thread_id != NULL) {
 			rc = copy_to_uspace(uspace_thread_id, &thread->tid,
 			    sizeof(thread->tid));
-			if (rc != 0) {
+			if (rc != EOK) {
 				/*
 				 * We have encountered a failure, but the thread
 				 * has already been created. We need to undo its
@@ -976,7 +976,7 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				slab_free(thread_cache, thread);
 				free(kernel_uarg);
 				
-				return (sysarg_t) rc;
+				return (sys_errno_t) rc;
 			 }
 		}
 		
@@ -998,13 +998,13 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	} else
 		free(kernel_uarg);
 	
-	return (sysarg_t) ENOMEM;
+	return (sys_errno_t) ENOMEM;
 }
 
 /** Process syscall to terminate thread.
  *
  */
-sysarg_t sys_thread_exit(int uspace_status)
+sys_errno_t sys_thread_exit(int uspace_status)
 {
 	thread_exit();
 }
@@ -1017,25 +1017,25 @@ sysarg_t sys_thread_exit(int uspace_status)
  * @return 0 on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_thread_get_id(thread_id_t *uspace_thread_id)
+sys_errno_t sys_thread_get_id(thread_id_t *uspace_thread_id)
 {
 	/*
 	 * No need to acquire lock on THREAD because tid
 	 * remains constant for the lifespan of the thread.
 	 *
 	 */
-	return (sysarg_t) copy_to_uspace(uspace_thread_id, &THREAD->tid,
+	return (sys_errno_t) copy_to_uspace(uspace_thread_id, &THREAD->tid,
 	    sizeof(THREAD->tid));
 }
 
 /** Syscall wrapper for sleeping. */
-sysarg_t sys_thread_usleep(uint32_t usec)
+sys_errno_t sys_thread_usleep(uint32_t usec)
 {
 	thread_usleep(usec);
 	return 0;
 }
 
-sysarg_t sys_thread_udelay(uint32_t usec)
+sys_errno_t sys_thread_udelay(uint32_t usec)
 {
 	delay(usec);
 	return 0;

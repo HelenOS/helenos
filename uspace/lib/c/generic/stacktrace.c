@@ -39,7 +39,7 @@
 #include <stdint.h>
 #include <errno.h>
 
-static int stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data);
+static errno_t stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data);
 
 static stacktrace_ops_t basic_ops = {
 	.read_uintptr = stacktrace_read_uintptr
@@ -50,7 +50,7 @@ void stacktrace_print_generic(stacktrace_ops_t *ops, void *arg, uintptr_t fp,
 {
 	stacktrace_t st;
 	uintptr_t nfp;
-	int rc;
+	errno_t rc;
 
 	st.op_arg = arg;
 	st.ops = ops;
@@ -85,7 +85,7 @@ void stacktrace_print(void)
 	printf("-- end of stack trace --\n");
 }
 
-static int stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data)
+static errno_t stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data)
 {
 	(void) arg;
 	*data = *((uintptr_t *) addr);

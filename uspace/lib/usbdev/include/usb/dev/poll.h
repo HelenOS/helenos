@@ -117,7 +117,7 @@ typedef struct usb_polling {
 	 * @param arg Custom argument.
 	 * @return Whether to continue in polling.
 	 */
-	bool (*on_error)(usb_device_t *dev, int err_code, void *arg);
+	bool (*on_error)(usb_device_t *dev, errno_t err_code, void *arg);
 
 
 	/** Internal parameters - user is not expected to set them. Messing with them
@@ -138,11 +138,11 @@ typedef struct usb_polling {
 	fibril_condvar_t cv;
 } usb_polling_t;
 
-int usb_polling_init(usb_polling_t *);
+errno_t usb_polling_init(usb_polling_t *);
 void usb_polling_fini(usb_polling_t *);
 
-int usb_polling_start(usb_polling_t *);
-int usb_polling_join(usb_polling_t *);
+errno_t usb_polling_start(usb_polling_t *);
+errno_t usb_polling_join(usb_polling_t *);
 
 #endif
 /**

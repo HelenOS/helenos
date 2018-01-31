@@ -60,7 +60,7 @@ nic_globals_t nic_globals;
  *
  * @param name	Name of the device/driver (used in logging)
  */
-int nic_driver_init(const char *name)
+errno_t nic_driver_init(const char *name)
 {
 	list_initialize(&nic_globals.frame_list_cache);
 	nic_globals.frame_list_cache_size = 0;
@@ -242,7 +242,7 @@ void nic_set_poll_handlers(nic_t *nic_data,
  *
  * @return EOK or an error code
  */
-int nic_get_resources(nic_t *nic_data, hw_res_list_parsed_t *resources)
+errno_t nic_get_resources(nic_t *nic_data, hw_res_list_parsed_t *resources)
 {
 	ddf_dev_t *dev = nic_data->dev;
 	async_sess_t *parent_sess;
@@ -398,10 +398,10 @@ nic_poll_mode_t nic_query_poll_mode(nic_t *nic_data, struct timeval *period)
  *  @return EOK
  *  @return EINVAL
  */
-int nic_report_poll_mode(nic_t *nic_data, nic_poll_mode_t mode,
+errno_t nic_report_poll_mode(nic_t *nic_data, nic_poll_mode_t mode,
 	struct timeval *period)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	fibril_rwlock_write_lock(&nic_data->main_lock);
 	nic_data->poll_mode = mode;
 	nic_data->default_poll_mode = mode;
@@ -422,7 +422,7 @@ int nic_report_poll_mode(nic_t *nic_data, nic_poll_mode_t mode,
  * @return EOK On success
  *
  */
-int nic_report_address(nic_t *nic_data, const nic_address_t *address)
+errno_t nic_report_address(nic_t *nic_data, const nic_address_t *address)
 {
 	assert(nic_data);
 	
@@ -433,7 +433,7 @@ int nic_report_address(nic_t *nic_data, const nic_address_t *address)
 	
 	/* Notify NIL layer (and uppper) if bound - not in add_device */
 	if (nic_data->client_session != NULL) {
-		int rc = nic_ev_addr_changed(nic_data->client_session,
+		errno_t rc = nic_ev_addr_changed(nic_data->client_session,
 		    address);
 
 		if (rc != EOK) {
@@ -449,7 +449,7 @@ int nic_report_address(nic_t *nic_data, const nic_address_t *address)
 	 * there and we will ignore that error -- in next
 	 * calls this should not happen.
 	 */
-	int rc = nic_rxc_set_addr(&nic_data->rx_control,
+	errno_t rc = nic_rxc_set_addr(&nic_data->rx_control,
 	    &nic_data->mac, address);
 	
 	/* For the first time also record the default MAC */
@@ -807,7 +807,7 @@ void nic_query_blocked_sources(const nic_t *nic_data,
  * @return EOK
  * @return ENOENT
  */
-int nic_query_vlan_mask(const nic_t *nic_data, nic_vlan_mask_t *mask)
+errno_t nic_query_vlan_mask(const nic_t *nic_data, nic_vlan_mask_t *mask)
 {
 	assert(mask);
 	return nic_rxc_vlan_get_mask(&nic_data->rx_control, mask);
@@ -1038,7 +1038,7 @@ static int timeval_nonpositive(struct timeval t) {
  *
  *  @return 0, never reached
  */
-static int period_fibril_fun(void *data)
+static errno_t period_fibril_fun(void *data)
 {
 	nic_t *nic = data;
 	struct sw_poll_info *info = &nic->sw_poll_info;

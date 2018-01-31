@@ -48,7 +48,7 @@
 #include "posix/ctype.h"
 #include "posix/string.h"
 #include "posix/stdlib.h"
-#include "posix/assert.h"
+#include <assert.h>
 
 #include "internal/common.h"
 #include "posix/fnmatch.h"

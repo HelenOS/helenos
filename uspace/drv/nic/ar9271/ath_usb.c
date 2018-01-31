@@ -38,10 +38,10 @@
 #include <errno.h>
 #include "ath_usb.h"
 
-static int ath_usb_send_ctrl_message(ath_t *, void *, size_t);
-static int ath_usb_read_ctrl_message(ath_t *, void *, size_t, size_t *);
-static int ath_usb_send_data_message(ath_t *, void *, size_t);
-static int ath_usb_read_data_message(ath_t *, void *, size_t, size_t *);
+static errno_t ath_usb_send_ctrl_message(ath_t *, void *, size_t);
+static errno_t ath_usb_read_ctrl_message(ath_t *, void *, size_t, size_t *);
+static errno_t ath_usb_send_data_message(ath_t *, void *, size_t);
+static errno_t ath_usb_read_data_message(ath_t *, void *, size_t, size_t *);
 
 static ath_ops_t ath_usb_ops = {
 	.send_ctrl_message = ath_usb_send_ctrl_message,
@@ -58,7 +58,7 @@ static ath_ops_t ath_usb_ops = {
  * @return EOK if succeed, error code otherwise.
  *
  */
-int ath_usb_init(ath_t *ath, usb_device_t *usb_device, const usb_endpoint_description_t **endpoints)
+errno_t ath_usb_init(ath_t *ath, usb_device_t *usb_device, const usb_endpoint_description_t **endpoints)
 {
 	ath_usb_t *ath_usb = malloc(sizeof(ath_usb_t));
 	if (!ath_usb) {
@@ -109,7 +109,7 @@ err_ath_usb:
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ath_usb_send_ctrl_message(ath_t *ath, void *buffer,
+static errno_t ath_usb_send_ctrl_message(ath_t *ath, void *buffer,
     size_t buffer_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
@@ -126,7 +126,7 @@ static int ath_usb_send_ctrl_message(ath_t *ath, void *buffer,
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
+static errno_t ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
     size_t buffer_size, size_t *transferred_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
@@ -142,7 +142,7 @@ static int ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ath_usb_send_data_message(ath_t *ath, void *buffer,
+static errno_t ath_usb_send_data_message(ath_t *ath, void *buffer,
     size_t buffer_size)
 {
 	size_t complete_buffer_size = buffer_size +
@@ -157,8 +157,8 @@ static int ath_usb_send_data_message(ath_t *ath, void *buffer,
 	data_header->tag = host2uint16_t_le(TX_TAG);
 	
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
-	int ret_val = usb_pipe_write(ath_usb->output_data_pipe, complete_buffer,
-	    complete_buffer_size);
+	const errno_t ret_val = usb_pipe_write(ath_usb->output_data_pipe,
+	    complete_buffer, complete_buffer_size);
 	
 	free(complete_buffer);
 	
@@ -175,7 +175,7 @@ static int ath_usb_send_data_message(ath_t *ath, void *buffer,
  * @return EOK if succeed, error code otherwise.
  *
  */
-static int ath_usb_read_data_message(ath_t *ath, void *buffer,
+static errno_t ath_usb_read_data_message(ath_t *ath, void *buffer,
     size_t buffer_size, size_t *transferred_size)
 {
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;

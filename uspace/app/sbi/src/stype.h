@@ -49,7 +49,7 @@ void stype_convert_failure(stype_t *stype, stype_conv_class_t convc,
 stree_expr_t *stype_box_expr(stype_t *stype, stree_expr_t *expr);
 tdata_item_t *stype_tobject_find_pred(stype_t *stype, tdata_item_t *src,
     tdata_item_t *dest);
-int stype_targs_check_equal(stype_t *stype, tdata_item_t *a_ti,
+errno_t stype_targs_check_equal(stype_t *stype, tdata_item_t *a_ti,
     tdata_item_t *b_ti);
 
 tdata_fun_sig_t *stype_deleg_get_sig(stype_t *stype, tdata_deleg_t *tdeleg);

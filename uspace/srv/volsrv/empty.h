@@ -39,8 +39,8 @@
 
 #include <loc.h>
 
-extern int volsrv_part_is_empty(service_id_t, bool *);
-extern int volsrv_part_empty(service_id_t);
+extern errno_t volsrv_part_is_empty(service_id_t, bool *);
+extern errno_t volsrv_part_empty(service_id_t);
 
 #endif
 

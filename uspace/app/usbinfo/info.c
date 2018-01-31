@@ -321,7 +321,7 @@ void dump_strings(usb_device_t *usb_dev)
 	/* Get supported languages. */
 	l18_win_locales_t *langs;
 	size_t langs_count;
-	int rc = usb_request_get_supported_languages(
+	errno_t rc = usb_request_get_supported_languages(
 	    usb_device_get_default_pipe(usb_dev), &langs, &langs_count);
 	if (rc != EOK) {
 		fprintf(stderr,
@@ -370,7 +370,7 @@ void dump_strings(usb_device_t *usb_dev)
 
 void dump_status(usb_device_t *usb_dev)
 {
-	int rc;
+	errno_t rc;
 	uint16_t status = 0;
 
 	/* Device status first. */

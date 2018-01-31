@@ -138,22 +138,22 @@ typedef struct usb_endpoint_descriptors {
 	} companion;
 } usb_endpoint_descriptors_t;
 
-extern int usbhc_reserve_default_address(async_exch_t *);
-extern int usbhc_release_default_address(async_exch_t *);
+extern errno_t usbhc_reserve_default_address(async_exch_t *);
+extern errno_t usbhc_release_default_address(async_exch_t *);
 
-extern int usbhc_device_enumerate(async_exch_t *, unsigned, usb_speed_t);
-extern int usbhc_device_remove(async_exch_t *, unsigned);
+extern errno_t usbhc_device_enumerate(async_exch_t *, unsigned, usb_speed_t);
+extern errno_t usbhc_device_remove(async_exch_t *, unsigned);
 
-extern int usbhc_register_endpoint(async_exch_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
-extern int usbhc_unregister_endpoint(async_exch_t *, const usb_pipe_desc_t *);
+extern errno_t usbhc_register_endpoint(async_exch_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
+extern errno_t usbhc_unregister_endpoint(async_exch_t *, const usb_pipe_desc_t *);
 
-extern int usbhc_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
+extern errno_t usbhc_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
     size_t *);
-extern int usbhc_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
+extern errno_t usbhc_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
     size_t);
 
 /** Callback for outgoing transfer */
-typedef int (*usbhc_iface_transfer_callback_t)(void *, int, size_t);
+typedef errno_t (*usbhc_iface_transfer_callback_t)(void *, int, size_t);
 
 /** USB device communication interface. */
 typedef struct {
@@ -165,10 +165,10 @@ typedef struct {
 	int (*register_endpoint)(ddf_fun_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
 	int (*unregister_endpoint)(ddf_fun_t *, const usb_pipe_desc_t *);
 
-	int (*read)(ddf_fun_t *, usb_target_t,
+	errno_t (*read)(ddf_fun_t *, usb_target_t,
 		uint64_t, char *, size_t,
 		usbhc_iface_transfer_callback_t, void *);
-	int (*write)(ddf_fun_t *, usb_target_t,
+	errno_t (*write)(ddf_fun_t *, usb_target_t,
 		uint64_t, const char *, size_t,
 		usbhc_iface_transfer_callback_t, void *);
 } usbhc_iface_t;

@@ -49,9 +49,9 @@ static void syntax_print(void)
 	fprintf(stderr, "Usage: %s [--baud=<baud>] [--print-events] [device_service]\n", NAME);
 }
 
-static int read_fibril(void *unused)
+static errno_t read_fibril(void *unused)
 {
-	int rc = isdv4_read_events(&state);
+	errno_t rc = isdv4_read_events(&state);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed reading events");
 		return rc;
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 	char *serial_port_name = NULL;
 
 	int arg = 1;
-	int rc;
+	errno_t rc;
 
 	isdv4_event_fn event_fn = emit_event;
 

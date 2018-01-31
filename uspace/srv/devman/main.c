@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Device Manager\n", NAME);
 	
-	int rc = log_init(NAME);
+	errno_t rc = log_init(NAME);
 	if (rc != EOK) {
 		printf("%s: Error initializing logging subsystem: %s\n", NAME, str_error(rc));
 		return rc;

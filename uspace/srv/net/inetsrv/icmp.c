@@ -49,10 +49,10 @@
 /* XXX */
 #define INET_TTL_MAX 255
 
-static int icmp_recv_echo_request(inet_dgram_t *);
-static int icmp_recv_echo_reply(inet_dgram_t *);
+static errno_t icmp_recv_echo_request(inet_dgram_t *);
+static errno_t icmp_recv_echo_reply(inet_dgram_t *);
 
-int icmp_recv(inet_dgram_t *dgram)
+errno_t icmp_recv(inet_dgram_t *dgram)
 {
 	uint8_t type;
 
@@ -75,13 +75,13 @@ int icmp_recv(inet_dgram_t *dgram)
 	return EINVAL;
 }
 
-static int icmp_recv_echo_request(inet_dgram_t *dgram)
+static errno_t icmp_recv_echo_request(inet_dgram_t *dgram)
 {
 	icmp_echo_t *request, *reply;
 	uint16_t checksum;
 	size_t size;
 	inet_dgram_t rdgram;
-	int rc;
+	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmp_recv_echo_request()");
 
@@ -118,7 +118,7 @@ static int icmp_recv_echo_request(inet_dgram_t *dgram)
 	return rc;
 }
 
-static int icmp_recv_echo_reply(inet_dgram_t *dgram)
+static errno_t icmp_recv_echo_reply(inet_dgram_t *dgram)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "icmp_recv_echo_reply()");
 
@@ -140,7 +140,7 @@ static int icmp_recv_echo_reply(inet_dgram_t *dgram)
 	return inetping_recv(ident, &sdu);
 }
 
-int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
+errno_t icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 {
 	size_t rsize = sizeof(icmp_echo_t) + sdu->size;
 	void *rdata = calloc(rsize, 1);
@@ -169,7 +169,7 @@ int icmp_ping_send(uint16_t ident, inetping_sdu_t *sdu)
 	dgram.data = rdata;
 	dgram.size = rsize;
 
-	int rc = inet_route_packet(&dgram, IP_PROTO_ICMP, INET_TTL_MAX, 0);
+	errno_t rc = inet_route_packet(&dgram, IP_PROTO_ICMP, INET_TTL_MAX, 0);
 
 	free(rdata);
 	return rc;

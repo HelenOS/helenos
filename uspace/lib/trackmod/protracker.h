@@ -38,7 +38,7 @@
 
 #include "types/trackmod.h"
 
-extern int trackmod_protracker_load(char *, trackmod_module_t **);
+extern errno_t trackmod_protracker_load(char *, trackmod_module_t **);
 
 #endif
 

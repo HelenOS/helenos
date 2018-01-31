@@ -37,6 +37,7 @@
 #ifndef LIBC_SYS_TIME_H_
 #define LIBC_SYS_TIME_H_
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -82,15 +83,15 @@ extern void gettimeofday(struct timeval *, struct timezone *);
 extern void getuptime(struct timeval *);
 
 extern void udelay(useconds_t);
-extern int usleep(useconds_t);
+extern errno_t usleep(useconds_t);
 
 extern time_t mktime(struct tm *);
-extern int time_utc2tm(const time_t, struct tm *);
-extern int time_utc2str(const time_t, char *);
+extern errno_t time_utc2tm(const time_t, struct tm *);
+extern errno_t time_utc2str(const time_t, char *);
 extern void time_tm2str(const struct tm *, char *);
-extern int time_tv2tm(const struct timeval *, struct tm *);
-extern int time_local2tm(const time_t, struct tm *);
-extern int time_local2str(const time_t, char *);
+extern errno_t time_tv2tm(const struct timeval *, struct tm *);
+extern errno_t time_local2tm(const time_t, struct tm *);
+extern errno_t time_local2str(const time_t, char *);
 extern double difftime(time_t, time_t);
 extern size_t strftime(char *__restrict__, size_t, const char *__restrict__,
     const struct tm *__restrict__);

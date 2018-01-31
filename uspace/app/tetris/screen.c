@@ -137,7 +137,7 @@ void moveto(sysarg_t r, sysarg_t c)
 
 winsize_t winsize;
 
-static int get_display_size(winsize_t *ws)
+static errno_t get_display_size(winsize_t *ws)
 {
 	return console_get_size(console, &ws->ws_col, &ws->ws_row);
 }
@@ -145,9 +145,9 @@ static int get_display_size(winsize_t *ws)
 static bool get_display_color_sup(void)
 {
 	sysarg_t ccap;
-	int rc = console_get_color_cap(console, &ccap);
+	errno_t rc = console_get_color_cap(console, &ccap);
 	
-	if (rc != 0)
+	if (rc != EOK)
 		return false;
 	
 	return ((ccap & CONSOLE_CAP_RGB) == CONSOLE_CAP_RGB);

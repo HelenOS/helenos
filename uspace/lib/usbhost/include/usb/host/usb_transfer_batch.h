@@ -82,7 +82,7 @@ typedef struct usb_transfer_batch {
 	size_t transferred_size;
 
 	/** Indicates success/failure of the communication */
-	int error;
+	errno_t error;
 } usb_transfer_batch_t;
 
 /**

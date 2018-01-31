@@ -39,7 +39,7 @@
 #include <usb/dev/driver.h>
 #include "../usbhid.h"
 
-extern int usb_multimedia_init(usb_hid_dev_t *, void **);
+extern errno_t usb_multimedia_init(usb_hid_dev_t *, void **);
 extern void usb_multimedia_deinit(usb_hid_dev_t *, void *);
 extern bool usb_multimedia_polling_callback(usb_hid_dev_t *, void *);
 

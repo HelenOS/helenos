@@ -67,10 +67,10 @@ typedef enum {
 	devac_exit
 } devac_t;
 
-static int fdsk_pcnt_fs_format(vol_part_cnt_t pcnt, vol_fstype_t fstype,
+static errno_t fdsk_pcnt_fs_format(vol_part_cnt_t pcnt, vol_fstype_t fstype,
     char **rstr)
 {
-	int rc;
+	errno_t rc;
 	char *s;
 
 	switch (pcnt) {
@@ -96,11 +96,11 @@ static int fdsk_pcnt_fs_format(vol_part_cnt_t pcnt, vol_fstype_t fstype,
 }
 
 /** Confirm user selection. */
-static int fdsk_confirm(const char *msg, bool *rconfirm)
+static errno_t fdsk_confirm(const char *msg, bool *rconfirm)
 {
 	tinput_t *tinput = NULL;
 	char *answer;
-	int rc;
+	errno_t rc;
 
 	tinput = tinput_new();
 	if (tinput == NULL) {
@@ -145,7 +145,7 @@ error:
 }
 
 /** Device selection */
-static int fdsk_dev_sel_choice(service_id_t *rsvcid)
+static errno_t fdsk_dev_sel_choice(service_id_t *rsvcid)
 {
 	fdisk_dev_list_t *devlist = NULL;
 	fdisk_dev_info_t *info;
@@ -158,7 +158,7 @@ static int fdsk_dev_sel_choice(service_id_t *rsvcid)
 	service_id_t svcid;
 	void *sel;
 	int ndevs;
-	int rc;
+	errno_t rc;
 
 	rc = nchoice_create(&choice);
 	if (rc != EOK) {
@@ -280,13 +280,13 @@ error:
 	return rc;
 }
 
-static int fdsk_create_label(fdisk_dev_t *dev)
+static errno_t fdsk_create_label(fdisk_dev_t *dev)
 {
 	nchoice_t *choice = NULL;
 	void *sel;
 	char *sltype = NULL;
 	int i;
-	int rc;
+	errno_t rc;
 
 	rc = nchoice_create(&choice);
 	if (rc != EOK) {
@@ -340,10 +340,10 @@ error:
 	return rc;
 }
 
-static int fdsk_delete_label(fdisk_dev_t *dev)
+static errno_t fdsk_delete_label(fdisk_dev_t *dev)
 {
 	bool confirm;
-	int rc;
+	errno_t rc;
 
 	rc = fdsk_confirm("Warning. Any data on disk will be lost. "
 	    "Really delete label?", &confirm);
@@ -364,10 +364,10 @@ static int fdsk_delete_label(fdisk_dev_t *dev)
 	return EOK;
 }
 
-static int fdsk_erase_disk(fdisk_dev_t *dev)
+static errno_t fdsk_erase_disk(fdisk_dev_t *dev)
 {
 	bool confirm;
-	int rc;
+	errno_t rc;
 
 	rc = fdsk_confirm("Warning. Any data on disk will be lost. "
 	    "Really erase disk?", &confirm);
@@ -388,13 +388,13 @@ static int fdsk_erase_disk(fdisk_dev_t *dev)
 	return EOK;
 }
 
-static int fdsk_select_fstype(vol_fstype_t *fstype)
+static errno_t fdsk_select_fstype(vol_fstype_t *fstype)
 {
 	nchoice_t *choice = NULL;
 	void *sel;
 	char *sfstype;
 	int i;
-	int rc;
+	errno_t rc;
 
 	rc = nchoice_create(&choice);
 	if (rc != EOK) {
@@ -443,9 +443,9 @@ error:
 	return rc;
 }
 
-static int fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
+static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 {
-	int rc;
+	errno_t rc;
 	fdisk_part_spec_t pspec;
 	cap_spec_t cap;
 	cap_spec_t mcap;
@@ -552,7 +552,7 @@ error:
 	return rc;
 }
 
-static int fdsk_delete_part(fdisk_dev_t *dev)
+static errno_t fdsk_delete_part(fdisk_dev_t *dev)
 {
 	nchoice_t *choice = NULL;
 	fdisk_part_t *part;
@@ -564,7 +564,7 @@ static int fdsk_delete_part(fdisk_dev_t *dev)
 	const char *label;
 	bool confirm;
 	void *sel;
-	int rc;
+	errno_t rc;
 
 	rc = nchoice_create(&choice);
 	if (rc != EOK) {
@@ -699,7 +699,7 @@ error:
 }
 
 /** Device menu */
-static int fdsk_dev_menu(fdisk_dev_t *dev)
+static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 {
 	nchoice_t *choice = NULL;
 	fdisk_label_info_t linfo;
@@ -716,7 +716,7 @@ static int fdsk_dev_menu(fdisk_dev_t *dev)
 	char *svcname = NULL;
 	char *spkind;
 	const char *label;
-	int rc;
+	errno_t rc;
 	int npart;
 	void *sel;
 
@@ -1078,7 +1078,7 @@ int main(int argc, char *argv[])
 {
 	service_id_t svcid;
 	fdisk_dev_t *dev;
-	int rc;
+	errno_t rc;
 
 	rc = fdisk_create(&fdisk);
 	if (rc != EOK) {

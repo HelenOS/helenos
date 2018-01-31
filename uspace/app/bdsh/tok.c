@@ -37,10 +37,10 @@
 /* Forward declarations of static functions */
 static wchar_t tok_get_char(tokenizer_t *);
 static wchar_t tok_look_char(tokenizer_t *);
-static int tok_push_char(tokenizer_t *, wchar_t);
-static int tok_push_token(tokenizer_t *);
+static errno_t tok_push_char(tokenizer_t *, wchar_t);
+static errno_t tok_push_token(tokenizer_t *);
 static bool tok_pending_chars(tokenizer_t *);
-static int tok_finish_string(tokenizer_t *);
+static errno_t tok_finish_string(tokenizer_t *);
 static void tok_start_token(tokenizer_t *, token_type_t);
 
 /** Initialize the token parser
@@ -50,7 +50,7 @@ static void tok_start_token(tokenizer_t *, token_type_t);
  * @param out_tokens array of strings where to store the result
  * @param max_tokens number of elements of the out_tokens array
  */
-int tok_init(tokenizer_t *tok, char *input, token_t *out_tokens,
+errno_t tok_init(tokenizer_t *tok, char *input, token_t *out_tokens,
     size_t max_tokens)
 {	
 	tok->in = input;
@@ -88,9 +88,9 @@ void tok_fini(tokenizer_t *tok)
 }
 
 /** Tokenize the input string into the tokens */
-int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
+errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 {
-	int rc;
+	errno_t rc;
 	wchar_t next_char;
 	
 	/* Read the input line char by char and append tokens */
@@ -177,9 +177,9 @@ int tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 }
 
 /** Finish tokenizing an opened string */
-int tok_finish_string(tokenizer_t *tok)
+errno_t tok_finish_string(tokenizer_t *tok)
 {
-	int rc;
+	errno_t rc;
 	wchar_t next_char;
 	
 	while ((next_char = tok_look_char(tok)) != 0) {
@@ -232,7 +232,7 @@ wchar_t tok_look_char(tokenizer_t *tok)
 }
 
 /** Append a char to the end of the current token */
-int tok_push_char(tokenizer_t *tok, wchar_t ch)
+errno_t tok_push_char(tokenizer_t *tok, wchar_t ch)
 {
 	return chr_encode(ch, tok->outbuf, &tok->outbuf_offset, tok->outbuf_size);
 }
@@ -243,7 +243,7 @@ void tok_start_token(tokenizer_t *tok, token_type_t type)
 }
 
 /** Push the current token to the output array */
-int tok_push_token(tokenizer_t *tok)
+errno_t tok_push_token(tokenizer_t *tok)
 {
 	if (tok->outtok_offset >= tok->outtok_size) {
 		return EOVERFLOW;

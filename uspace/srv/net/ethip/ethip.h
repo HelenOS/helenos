@@ -115,8 +115,8 @@ typedef struct {
 	addr48_t mac_addr;
 } ethip_atrans_t;
 
-extern int ethip_iplink_init(ethip_nic_t *);
-extern int ethip_received(iplink_srv_t *, void *, size_t);
+extern errno_t ethip_iplink_init(ethip_nic_t *);
+extern errno_t ethip_received(iplink_srv_t *, void *, size_t);
 
 #endif
 

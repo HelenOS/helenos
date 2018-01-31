@@ -168,7 +168,7 @@ bool ext4_bitmap_is_free_bit(uint8_t *bitmap, uint32_t index)
  * @return Error code
  *
  */
-int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *bitmap, uint32_t start,
+errno_t ext4_bitmap_find_free_byte_and_set_bit(uint8_t *bitmap, uint32_t start,
     uint32_t *index, uint32_t max)
 {
 	uint32_t idx;
@@ -210,7 +210,7 @@ int ext4_bitmap_find_free_byte_and_set_bit(uint8_t *bitmap, uint32_t start,
  * @return Error code
  *
  */
-int ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
+errno_t ext4_bitmap_find_free_bit_and_set(uint8_t *bitmap, uint32_t start_idx,
     uint32_t *index, uint32_t max)
 {
 	uint8_t *pos = bitmap + (start_idx / 8);

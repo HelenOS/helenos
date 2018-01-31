@@ -33,20 +33,20 @@
 #include <align.h>
 #include "mfs.h"
 
-static int
+static errno_t
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
     bool write_mode, uint32_t w_block);
 
-static int
+static errno_t
 reset_zone_content(struct mfs_instance *inst, uint32_t zone);
 
-static int
+static errno_t
 alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *zone);
 
-static int
+static errno_t
 read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone);
 
-static int
+static errno_t
 write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone);
 
 
@@ -60,10 +60,10 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone);
  *
  * @return	EOK on success or an error code.
  */
-int
+errno_t
 mfs_read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
 {
-	int r;
+	errno_t r;
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
 	const int block_size = sbi->block_size;
 
@@ -82,7 +82,7 @@ out:
 	return r;
 }
 
-int
+errno_t
 mfs_write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
     uint32_t *old_zone)
 {
@@ -99,14 +99,14 @@ mfs_write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone,
 	return rw_map_ondisk(old_zone, mnode, rblock, true, new_zone);
 }
 
-static int
+static errno_t
 rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
     bool write_mode, uint32_t w_block)
 {
 	int nr_direct;
 	int ptrs_per_block;
 	uint32_t *ind_zone = NULL, *ind2_zone = NULL;
-	int r = EOK;
+	errno_t r = EOK;
 
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_instance *inst = mnode->instance;
@@ -237,14 +237,14 @@ out:
  *
  * @return		EOK on success or an error code.
  */
-int
+errno_t
 mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 {
 	struct mfs_instance *inst = mnode->instance;
 	struct mfs_sb_info *sbi = inst->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	int nr_direct, ptrs_per_block, rblock;
-	int r;
+	errno_t r;
 	int i;
 
 	mfs_version_t fs_version = sbi->fs_version;
@@ -311,11 +311,11 @@ out:
 	return r;
 }
 
-static int
+static errno_t
 reset_zone_content(struct mfs_instance *inst, uint32_t zone)
 {
 	block_t *b;
-	int r;
+	errno_t r;
 
 	r = block_get(&b, inst->service_id, zone, BLOCK_FLAGS_NOREAD);
 	if (r != EOK)
@@ -327,10 +327,10 @@ reset_zone_content(struct mfs_instance *inst, uint32_t zone)
 	return block_put(b);
 }
 
-static int
+static errno_t
 alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *zone)
 {
-	int r;
+	errno_t r;
 
 	r = mfs_alloc_zone(inst, zone);
 	if (r != EOK)
@@ -340,11 +340,11 @@ alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *zone)
 	return r;
 }
 
-static int
+static errno_t
 read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
 {
 	struct mfs_sb_info *sbi = inst->sbi;
-	int r;
+	errno_t r;
 	unsigned i;
 	block_t *b;
 	const int max_ind_zone_ptrs = (MFS_MAX_BLOCKSIZE / sizeof(uint16_t)) *
@@ -375,11 +375,11 @@ read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
 	return block_put(b);
 }
 
-static int
+static errno_t
 write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone)
 {
 	struct mfs_sb_info *sbi = inst->sbi;
-	int r;
+	errno_t r;
 	unsigned i;
 	block_t *b;
 

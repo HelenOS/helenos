@@ -37,9 +37,9 @@
 
 #include "ata_bd.h"
 
-extern int ata_fun_create(disk_t *);
-extern int ata_fun_remove(disk_t *);
-extern int ata_fun_unbind(disk_t *);
+extern errno_t ata_fun_create(disk_t *);
+extern errno_t ata_fun_remove(disk_t *);
+extern errno_t ata_fun_unbind(disk_t *);
 
 #endif
 

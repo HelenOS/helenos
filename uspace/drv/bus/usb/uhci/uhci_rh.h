@@ -55,8 +55,8 @@ typedef struct {
 	bool reset_changed[2];
 } uhci_rh_t;
 
-int uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name);
-int uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch);
+errno_t uhci_rh_init(uhci_rh_t *instance, ioport16_t *ports, const char *name);
+errno_t uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch);
 
 /** Get UHCI rh address.
  *

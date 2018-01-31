@@ -98,7 +98,7 @@ static void ehci_rh_hub_desc_init(ehci_rh_t *instance, unsigned hcs)
  * Selects preconfigured port powering mode, sets up descriptor, and
  * initializes internal virtual hub.
  */
-int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,
+errno_t ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,
     fibril_mutex_t *guard, const char *name)
 {
 	assert(instance);
@@ -140,7 +140,7 @@ int ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *regs,
  * Most requests complete even before this function returns,
  * status change requests might be postponed until there is something to report.
  */
-int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
+errno_t ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
@@ -183,7 +183,7 @@ int ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
  * Interrupt means there is a change of status to report. It may trigger
  * processing of a postponed request.
  */
-int ehci_rh_interrupt(ehci_rh_t *instance)
+errno_t ehci_rh_interrupt(ehci_rh_t *instance)
 {
 	fibril_mutex_lock(instance->guard);
 	endpoint_t *ep = instance->status_change_endpoint;
@@ -230,7 +230,7 @@ do { \
  * @param[out] act_size Sized of the valid response part of the buffer.
  * @return Error code.
  */
-static int req_get_status(usbvirt_device_t *device,
+static errno_t req_get_status(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -253,7 +253,7 @@ static int req_get_status(usbvirt_device_t *device,
  * @param[out] act_size Sized of the valid response part of the buffer.
  * @return Error code.
  */
-static int req_clear_hub_feature(usbvirt_device_t *device,
+static errno_t req_clear_hub_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -281,7 +281,7 @@ static int req_clear_hub_feature(usbvirt_device_t *device,
  * @param[out] act_size Sized of the valid response part of the buffer.
  * @return Error code.
  */
-static int req_get_port_status(usbvirt_device_t *device,
+static errno_t req_get_port_status(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -324,7 +324,7 @@ typedef struct {
 	unsigned port;
 } ehci_rh_job_t;
 
-static int stop_reset(void *arg)
+static errno_t stop_reset(void *arg)
 {
 	ehci_rh_job_t *job = arg;
 	async_usleep(50000);
@@ -353,7 +353,7 @@ static int stop_reset(void *arg)
 	return 0;
 }
 
-static int stop_resume(void *arg)
+static errno_t stop_resume(void *arg)
 {
 	ehci_rh_job_t *job = arg;
 	async_usleep(20000);
@@ -366,7 +366,7 @@ static int stop_resume(void *arg)
 	return 0;
 }
 
-static int delayed_job(int (*func)(void*), ehci_rh_t *rh, unsigned port)
+static errno_t delayed_job(errno_t (*func)(void*), ehci_rh_t *rh, unsigned port)
 {
 	ehci_rh_job_t *job = malloc(sizeof(*job));
 	if (!job)
@@ -392,7 +392,7 @@ static int delayed_job(int (*func)(void*), ehci_rh_t *rh, unsigned port)
  * @param[out] act_size Sized of the valid response part of the buffer.
  * @return Error code.
  */
-static int req_clear_port_feature(usbvirt_device_t *device,
+static errno_t req_clear_port_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -471,7 +471,7 @@ static int req_clear_port_feature(usbvirt_device_t *device,
  * @param[out] act_size Sized of the valid response part of the buffer.
  * @return Error code.
  */
-static int req_set_port_feature(usbvirt_device_t *device,
+static errno_t req_set_port_feature(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
@@ -520,7 +520,7 @@ static int req_set_port_feature(usbvirt_device_t *device,
  * represent port status change. Endian does not matter as UHCI root hubs
  * only need 1 byte.
  */
-static int req_status_change_handler(usbvirt_device_t *device,
+static errno_t req_status_change_handler(usbvirt_device_t *device,
     usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
     void *buffer, size_t buffer_size, size_t *actual_size)
 {

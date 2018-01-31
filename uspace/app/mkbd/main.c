@@ -59,14 +59,14 @@
 
 static async_sess_t *dev_sess = NULL;
 
-static int initialize_report_parser(async_sess_t *dev_sess,
+static errno_t initialize_report_parser(async_sess_t *dev_sess,
     usb_hid_report_t **report)
 {
 	*report = (usb_hid_report_t *) malloc(sizeof(usb_hid_report_t));
 	if (*report == NULL)
 		return ENOMEM;
 	
-	int rc = usb_hid_report_init(*report);
+	errno_t rc = usb_hid_report_init(*report);
 	if (rc != EOK) {
 		usb_hid_report_deinit(*report);
 		*report = NULL;
@@ -130,7 +130,7 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 	assert(report != NULL);
 	
 	uint8_t report_id;
-	int rc = usb_hid_parse_report(report, buffer, size, &report_id);
+	errno_t rc = usb_hid_parse_report(report, buffer, size, &report_id);
 	if (rc != EOK)
 		return;
 	
@@ -164,7 +164,7 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 	usb_hid_report_path_free(path);
 }
 
-static int wait_for_quit_fibril(void *arg)
+static errno_t wait_for_quit_fibril(void *arg)
 {
 	console_ctrl_t *con = console_init(stdin, stdout);
 
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 	
 	devman_handle_t dev_handle = 0;
 	
-	int rc = usb_resolve_device_handle(devpath, &dev_handle);
+	errno_t rc = usb_resolve_device_handle(devpath, &dev_handle);
 	if (rc != EOK) {
 		printf("Device not found or not of USB kind: %s.\n",
 		    str_error(rc));

@@ -124,7 +124,7 @@ static void bi_string_slice(run_t *run)
 	rdata_var_t *length_var;
 	int length;
 
-	int rc;
+	errno_t rc;
 
 	/* Extract self.Value */
 	self_value_var = builtin_get_self_mbr_var(run, "Value");

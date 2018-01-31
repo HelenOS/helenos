@@ -150,12 +150,12 @@ static FIBRIL_MUTEX_INITIALIZE(discovery_mtx);
 static input_t *input;
 static bool active = false;
 
-static int comp_active(input_t *);
-static int comp_deactive(input_t *);
-static int comp_key_press(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
-static int comp_mouse_move(input_t *, int, int);
-static int comp_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
-static int comp_mouse_button(input_t *, int, int);
+static errno_t comp_active(input_t *);
+static errno_t comp_deactive(input_t *);
+static errno_t comp_key_press(input_t *, kbd_event_type_t, keycode_t, keymod_t, wchar_t);
+static errno_t comp_mouse_move(input_t *, int, int);
+static errno_t comp_abs_move(input_t *, unsigned, unsigned, unsigned, unsigned);
+static errno_t comp_mouse_button(input_t *, int, int);
 
 static input_ev_ops_t input_ev_ops = {
 	.active = comp_active,
@@ -601,7 +601,7 @@ static void comp_window_get_event(window_t *win, ipc_callid_t iid, ipc_call_t *i
 		return;
 	}
 	
-	int rc = async_data_read_finalize(callid, event, len);
+	errno_t rc = async_data_read_finalize(callid, event, len);
 	if (rc != EOK) {
 		async_answer_0(iid, ENOMEM);
 		free(event);
@@ -705,7 +705,7 @@ static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 	}
 	
 	void *new_cell_storage;
-	int rc = async_share_out_finalize(callid, &new_cell_storage);
+	errno_t rc = async_share_out_finalize(callid, &new_cell_storage);
 	if ((rc != EOK) || (new_cell_storage == AS_MAP_FAILED)) {
 		async_answer_0(iid, ENOMEM);
 		return;
@@ -1048,7 +1048,7 @@ static void comp_mode_change(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall
 
 	/* Retrieve the mode that shall be set. */
 	vslmode_t new_mode;
-	int rc = visualizer_get_mode(vp->sess, &new_mode, mode_idx);
+	errno_t rc = visualizer_get_mode(vp->sess, &new_mode, mode_idx);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&viewport_list_mtx);
 		async_answer_0(iid, EINVAL);
@@ -1176,7 +1176,7 @@ static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 static async_sess_t *vsl_connect(service_id_t sid, const char *svc)
 {
-	int rc;
+	errno_t rc;
 	async_sess_t *sess;
 
 	sess = loc_service_connect(sid, INTERFACE_DDF, 0);
@@ -1205,7 +1205,7 @@ static async_sess_t *vsl_connect(service_id_t sid, const char *svc)
 
 static viewport_t *viewport_create(service_id_t sid)
 {
-	int rc;
+	errno_t rc;
 	char *vsl_name = NULL;
 	viewport_t *vp = NULL;
 	bool claimed = false;
@@ -1476,7 +1476,7 @@ static void comp_ghost_animate(pointer_t *pointer,
 }
 #endif
 
-static int comp_abs_move(input_t *input, unsigned x , unsigned y,
+static errno_t comp_abs_move(input_t *input, unsigned x , unsigned y,
     unsigned max_x, unsigned max_y)
 {
 	/* XXX TODO Use absolute coordinates directly */
@@ -1511,7 +1511,7 @@ static int comp_abs_move(input_t *input, unsigned x , unsigned y,
 	return comp_mouse_move(input, delta.x, delta.y);
 }
 
-static int comp_mouse_move(input_t *input, int dx, int dy)
+static errno_t comp_mouse_move(input_t *input, int dx, int dy)
 {
 	pointer_t *pointer = input_pointer(input);
 	
@@ -1623,7 +1623,7 @@ static int comp_mouse_move(input_t *input, int dx, int dy)
 	return EOK;
 }
 
-static int comp_mouse_button(input_t *input, int bnum, int bpress)
+static errno_t comp_mouse_button(input_t *input, int bnum, int bpress)
 {
 	pointer_t *pointer = input_pointer(input);
 
@@ -1808,7 +1808,7 @@ static int comp_mouse_button(input_t *input, int bnum, int bpress)
 	return EOK;
 }
 
-static int comp_active(input_t *input)
+static errno_t comp_active(input_t *input)
 {
 	active = true;
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
@@ -1816,13 +1816,13 @@ static int comp_active(input_t *input)
 	return EOK;
 }
 
-static int comp_deactive(input_t *input)
+static errno_t comp_deactive(input_t *input)
 {
 	active = false;
 	return EOK;
 }
 
-static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
+static errno_t comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
     keymod_t mods, wchar_t c)
 {
 	bool win_transform = (mods & KM_ALT) && (
@@ -2142,12 +2142,12 @@ static int comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
 	return EOK;
 }
 
-static int input_connect(const char *svc)
+static errno_t input_connect(const char *svc)
 {
 	async_sess_t *sess;
 	service_id_t dsid;
 
-	int rc = loc_service_get_id(svc, &dsid, 0);
+	errno_t rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc != EOK) {
 		printf("%s: Input service %s not found\n", NAME, svc);
 		return rc;
@@ -2198,7 +2198,7 @@ static void discover_viewports(void)
 	
 	/* Create viewports and connect them to visualizers. */
 	category_id_t cat_id;
-	int rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
+	errno_t rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		goto ret;
 	
@@ -2239,7 +2239,7 @@ static void category_change_cb(void)
 	discover_viewports();
 }
 
-static int compositor_srv_init(char *input_svc, char *name)
+static errno_t compositor_srv_init(char *input_svc, char *name)
 {
 	/* Coordinates of the central pixel. */
 	coord_origin = UINT32_MAX / 4;
@@ -2250,7 +2250,7 @@ static int compositor_srv_init(char *input_svc, char *name)
 	/* Register compositor server. */
 	async_set_fallback_port_handler(client_connection, NULL);
 	
-	int rc = loc_server_register(NAME);
+	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME, str_error(rc));
 		return -1;
@@ -2312,7 +2312,7 @@ int main(int argc, char *argv[])
 	
 	printf("%s: HelenOS Compositor server\n", NAME);
 	
-	int rc = compositor_srv_init(argv[1], argv[2]);
+	errno_t rc = compositor_srv_init(argv[1], argv[2]);
 	if (rc != EOK)
 		return rc;
 	

@@ -66,27 +66,27 @@ typedef struct {
 } con_srv_t;
 
 struct con_ops {
-	int (*open)(con_srvs_t *, con_srv_t *);
-	int (*close)(con_srv_t *);
-	int (*read)(con_srv_t *, void *, size_t, size_t *);
-	int (*write)(con_srv_t *, void *, size_t, size_t *);
+	errno_t (*open)(con_srvs_t *, con_srv_t *);
+	errno_t (*close)(con_srv_t *);
+	errno_t (*read)(con_srv_t *, void *, size_t, size_t *);
+	errno_t (*write)(con_srv_t *, void *, size_t, size_t *);
 	void (*sync)(con_srv_t *);
 	void (*clear)(con_srv_t *);
 	void (*set_pos)(con_srv_t *, sysarg_t col, sysarg_t row);
-	int (*get_pos)(con_srv_t *, sysarg_t *, sysarg_t *);
-	int (*get_size)(con_srv_t *, sysarg_t *, sysarg_t *);
-	int (*get_color_cap)(con_srv_t *, console_caps_t *);
+	errno_t (*get_pos)(con_srv_t *, sysarg_t *, sysarg_t *);
+	errno_t (*get_size)(con_srv_t *, sysarg_t *, sysarg_t *);
+	errno_t (*get_color_cap)(con_srv_t *, console_caps_t *);
 	void (*set_style)(con_srv_t *, console_style_t);
 	void (*set_color)(con_srv_t *, console_color_t, console_color_t,
 	    console_color_attr_t);
 	void (*set_rgb_color)(con_srv_t *, pixel_t, pixel_t);
 	void (*set_cursor_visibility)(con_srv_t *, bool);
-	int (*get_event)(con_srv_t *, cons_event_t *);
+	errno_t (*get_event)(con_srv_t *, cons_event_t *);
 };
 
 extern void con_srvs_init(con_srvs_t *);
 
-extern int con_conn(ipc_callid_t, ipc_call_t *, con_srvs_t *);
+extern errno_t con_conn(ipc_callid_t, ipc_call_t *, con_srvs_t *);
 
 #endif
 

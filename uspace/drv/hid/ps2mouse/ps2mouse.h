@@ -52,7 +52,7 @@ typedef struct {
 	fid_t polling_fibril;
 } ps2_mouse_t;
 
-extern int ps2_mouse_init(ps2_mouse_t *, ddf_dev_t *);
+extern errno_t ps2_mouse_init(ps2_mouse_t *, ddf_dev_t *);
 
 #endif
 

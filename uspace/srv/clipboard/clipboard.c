@@ -49,7 +49,7 @@ static service_id_t svc_id;
 static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *data;
-	int rc;
+	errno_t rc;
 	size_t size;
 	
 	switch (IPC_GET_ARG1(*request)) {
@@ -120,7 +120,7 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 			break;
 		}
 		
-		int retval = async_data_read_finalize(callid, clip_data, size);
+		errno_t retval = async_data_read_finalize(callid, clip_data, size);
 		if (retval != EOK) {
 			async_answer_0(rid, retval);
 			break;
@@ -181,7 +181,7 @@ static void clip_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 	
 	printf("%s: HelenOS clipboard service\n", NAME);
 	async_set_fallback_port_handler(clip_connection, NULL);

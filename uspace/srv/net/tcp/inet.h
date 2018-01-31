@@ -37,7 +37,7 @@
 
 #include "tcp_type.h"
 
-extern int tcp_inet_init(void);
+extern errno_t tcp_inet_init(void);
 extern void tcp_transmit_pdu(tcp_pdu_t *);
 
 #endif

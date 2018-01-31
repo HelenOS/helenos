@@ -409,10 +409,10 @@ extern void ieee80211_set_connect_request(ieee80211_dev_t *);
 extern bool ieee80211_pending_connect_request(ieee80211_dev_t *);
 extern ieee80211_auth_phase_t ieee80211_get_auth_phase(ieee80211_dev_t *);
 extern void ieee80211_set_auth_phase(ieee80211_dev_t *, ieee80211_auth_phase_t);
-extern int ieee80211_probe_request(ieee80211_dev_t *, char *);
-extern int ieee80211_authenticate(ieee80211_dev_t *);
-extern int ieee80211_associate(ieee80211_dev_t *, char *);
-extern int ieee80211_deauthenticate(ieee80211_dev_t *);
+extern errno_t ieee80211_probe_request(ieee80211_dev_t *, char *);
+extern errno_t ieee80211_authenticate(ieee80211_dev_t *);
+extern errno_t ieee80211_associate(ieee80211_dev_t *, char *);
+extern errno_t ieee80211_deauthenticate(ieee80211_dev_t *);
 
 #endif
 

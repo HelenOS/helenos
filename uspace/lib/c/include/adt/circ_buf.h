@@ -35,6 +35,7 @@
 #ifndef LIBC_CIRC_BUF_H_
 #define LIBC_CIRC_BUF_H_
 
+#include <errno.h>
 #include <stddef.h>
 
 /** Circular buffer */
@@ -56,8 +57,8 @@ typedef struct {
 extern void circ_buf_init(circ_buf_t *, void *, size_t, size_t);
 extern size_t circ_buf_nfree(circ_buf_t *);
 extern size_t circ_buf_nused(circ_buf_t *);
-extern int circ_buf_push(circ_buf_t *, const void *);
-extern int circ_buf_pop(circ_buf_t *, void *);
+extern errno_t circ_buf_push(circ_buf_t *, const void *);
+extern errno_t circ_buf_pop(circ_buf_t *, void *);
 
 #endif
 

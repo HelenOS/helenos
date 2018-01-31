@@ -212,7 +212,7 @@ void audio_pipe_fini(audio_pipe_t *pipe)
  * @param data The data.
  * @return Error code.
  */
-int audio_pipe_push(audio_pipe_t *pipe, audio_data_t *data)
+errno_t audio_pipe_push(audio_pipe_t *pipe, audio_data_t *data)
 {
 	assert(pipe);
 	assert(data);

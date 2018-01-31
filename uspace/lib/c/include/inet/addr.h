@@ -35,6 +35,7 @@
 #ifndef LIBC_INET_ADDR_H_
 #define LIBC_INET_ADDR_H_
 
+#include <errno.h>
 #include <stdint.h>
 
 typedef uint32_t addr32_t;
@@ -110,11 +111,11 @@ extern int inet_addr_is_any(const inet_addr_t *);
 extern int inet_naddr_compare(const inet_naddr_t *, const inet_addr_t *);
 extern int inet_naddr_compare_mask(const inet_naddr_t *, const inet_addr_t *);
 
-extern int inet_addr_parse(const char *, inet_addr_t *, char **);
-extern int inet_naddr_parse(const char *, inet_naddr_t *, char **);
+extern errno_t inet_addr_parse(const char *, inet_addr_t *, char **);
+extern errno_t inet_naddr_parse(const char *, inet_naddr_t *, char **);
 
-extern int inet_addr_format(const inet_addr_t *, char **);
-extern int inet_naddr_format(const inet_naddr_t *, char **);
+extern errno_t inet_addr_format(const inet_addr_t *, char **);
+extern errno_t inet_naddr_format(const inet_naddr_t *, char **);
 
 extern ip_ver_t inet_addr_get(const inet_addr_t *, addr32_t *, addr128_t *);
 extern ip_ver_t inet_naddr_get(const inet_naddr_t *, addr32_t *, addr128_t *,

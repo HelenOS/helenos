@@ -98,7 +98,7 @@ static bool find_output_dev(service_id_t *svcid)
 {
 	service_id_t *svc;
 	size_t svcs;
-	int rc;
+	errno_t rc;
 
 	rc = loc_category_get_svcs(serial_cat_id, &svc, &svcs);
 	if (rc != EOK) {
@@ -156,7 +156,7 @@ static bool find_output_dev(service_id_t *svcid)
  */
 static void check_for_dev(void)
 {
-	int rc;
+	errno_t rc;
 	bool found;
 	service_id_t sid;
 
@@ -204,7 +204,7 @@ static void check_for_dev(void)
 	fibril_mutex_unlock(&discovery_lock);
 }
 
-int chardev_init(void)
+errno_t chardev_init(void)
 {
 	if (!config_key_exists("console")) {
 		console = NULL;
@@ -223,7 +223,7 @@ int chardev_init(void)
 			return EOK;
 	}
 
-	int rc = loc_category_get_id("serial", &serial_cat_id, IPC_FLAG_BLOCKING);
+	errno_t rc = loc_category_get_id("serial", &serial_cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed to get \"serial\" category ID.\n", NAME);
 		return rc;

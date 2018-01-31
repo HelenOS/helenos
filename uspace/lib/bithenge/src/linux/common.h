@@ -54,7 +54,7 @@ static inline string_iterator_t string_iterator(const char *string)
 	return string;
 }
 
-static inline int string_iterator_next(string_iterator_t *i, wchar_t *out)
+static inline errno_t string_iterator_next(string_iterator_t *i, wchar_t *out)
 {
 	wint_t rc = btowc(*(*i)++); // TODO
 	*out = (wchar_t) rc;
@@ -81,7 +81,7 @@ static inline int str_cmp(const char *s1, const char *s2)
 	return strcmp(s1, s2);
 }
 
-static inline int str_lcmp(const char *s1, const char *s2, size_t max_len)
+static inline errno_t str_lcmp(const char *s1, const char *s2, size_t max_len)
 {
 	return strncmp(s1, s2, max_len);
 }
@@ -131,7 +131,7 @@ static inline uint64_t uint64_t_be2host(uint64_t val)
 	return be64toh(val);
 }
 
-static inline int bithenge_parse_int(const char *start, bithenge_int_t *result)
+static inline errno_t bithenge_parse_int(const char *start, bithenge_int_t *result)
 {
 	errno = 0;
 	*result = strtoll(start, NULL, 10);

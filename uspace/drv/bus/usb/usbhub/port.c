@@ -100,9 +100,9 @@ static usb_speed_t get_port_speed(usb_hub_port_t *port, uint32_t status)
 /**
  * Routine for adding a new device in USB2.
  */
-static int enumerate_device_usb2(usb_hub_port_t *port, async_exch_t *exch)
+static errno_t enumerate_device_usb2(usb_hub_port_t *port, async_exch_t *exch)
 {
-	int err;
+	errno_t err;
 
 	port_log(debug, port, "Requesting default address.");
 	err = usb_hub_reserve_default_address(port->hub, exch, &port->base);
@@ -144,9 +144,9 @@ out_address:
 /**
  * Routine for adding a new device in USB 3.
  */
-static int enumerate_device_usb3(usb_hub_port_t *port, async_exch_t *exch)
+static errno_t enumerate_device_usb3(usb_hub_port_t *port, async_exch_t *exch)
 {
-	int err;
+	errno_t err;
 
 	port_log(debug, port, "Issuing a warm reset.");
 	if ((err = usb_hub_set_port_feature(port->hub, port->port_number, USB3_HUB_FEATURE_BH_PORT_RESET))) {
@@ -169,7 +169,7 @@ static int enumerate_device_usb3(usb_hub_port_t *port, async_exch_t *exch)
 	return EOK;
 }
 
-static int enumerate_device(usb_port_t *port_base)
+static errno_t enumerate_device(usb_port_t *port_base)
 {
 	usb_hub_port_t *port = get_hub_port(port_base);
 
@@ -180,7 +180,7 @@ static int enumerate_device(usb_port_t *port_base)
 		return ENOMEM;
 	}
 
-	const int err = port->hub->speed == USB_SPEED_SUPER
+	const errno_t err = port->hub->speed == USB_SPEED_SUPER
 		? enumerate_device_usb3(port, exch)
 		: enumerate_device_usb2(port, exch);
 

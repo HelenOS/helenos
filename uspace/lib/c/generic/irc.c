@@ -48,12 +48,12 @@ static async_sess_t *irc_sess;
  *
  * @return	EOK on success, EIO on failure
  */
-static int irc_init(void)
+static errno_t irc_init(void)
 {
 	category_id_t irc_cat;
 	service_id_t *svcs;
 	size_t count;
-	int rc;
+	errno_t rc;
 
 	assert(irc_sess == NULL);
 	rc = loc_category_get_id("irc", &irc_cat, IPC_FLAG_BLOCKING);
@@ -90,9 +90,9 @@ static int irc_init(void)
  *
  * @param irq	IRQ number
  */
-int irc_enable_interrupt(int irq)
+errno_t irc_enable_interrupt(int irq)
 {
-	int rc;
+	errno_t rc;
 
 	if (irc_sess == NULL) {
 		rc = irc_init();
@@ -113,9 +113,9 @@ int irc_enable_interrupt(int irq)
  *
  * @param irq	IRQ number
  */
-int irc_disable_interrupt(int irq)
+errno_t irc_disable_interrupt(int irq)
 {
-	int rc;
+	errno_t rc;
 
 	if (irc_sess == NULL) {
 		rc = irc_init();
@@ -137,9 +137,9 @@ int irc_disable_interrupt(int irq)
  *
  * @param irq	IRQ number
  */
-int irc_clear_interrupt(int irq)
+errno_t irc_clear_interrupt(int irq)
 {
-	int rc;
+	errno_t rc;
 
 	if (irc_sess == NULL) {
 		rc = irc_init();

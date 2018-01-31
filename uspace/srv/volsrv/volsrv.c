@@ -53,9 +53,9 @@
 
 static void vol_client_conn(ipc_callid_t, ipc_call_t *, void *);
 
-static int vol_init(void)
+static errno_t vol_init(void)
 {
-	int rc;
+	errno_t rc;
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_init()");
 
 	rc = vol_part_init();
@@ -89,7 +89,7 @@ static void vol_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	size_t size;
 	size_t act_size;
-	int rc;
+	errno_t rc;
 
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -111,7 +111,7 @@ static void vol_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	int retval = async_data_read_finalize(callid, id_buf, size);
+	errno_t retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
 
 	async_answer_1(iid, retval, act_size);
@@ -120,7 +120,7 @@ static void vol_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 static void vol_part_add_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
-	int rc;
+	errno_t rc;
 
 	sid = IPC_GET_ARG1(*icall);
 
@@ -138,7 +138,7 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	service_id_t sid;
 	vol_part_t *part;
 	vol_part_info_t pinfo;
-	int rc;
+	errno_t rc;
 
 	sid = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_info_srv(%zu)",
@@ -184,7 +184,7 @@ static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
-	int rc;
+	errno_t rc;
 
 	sid = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_srv(%zu)", sid);
@@ -208,7 +208,7 @@ static void vol_part_get_lsupp_srv(ipc_callid_t iid, ipc_call_t *icall)
 {
 	vol_fstype_t fstype;
 	vol_label_supp_t vlsupp;
-	int rc;
+	errno_t rc;
 
 	fstype = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_get_lsupp_srv(%u)",
@@ -248,7 +248,7 @@ static void vol_part_mkfs_srv(ipc_callid_t iid, ipc_call_t *icall)
 	vol_part_t *part;
 	vol_fstype_t fstype;
 	char *label;
-	int rc;
+	errno_t rc;
 
 	sid = IPC_GET_ARG1(*icall);
 	fstype = IPC_GET_ARG2(*icall);
@@ -326,7 +326,7 @@ static void vol_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 
 	printf("%s: Volume service\n", NAME);
 

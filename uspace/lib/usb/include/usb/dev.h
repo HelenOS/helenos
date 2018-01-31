@@ -39,7 +39,7 @@
 
 #include <devman.h>
 
-extern int usb_resolve_device_handle(const char *, devman_handle_t *);
+extern errno_t usb_resolve_device_handle(const char *, devman_handle_t *);
 
 #endif
 

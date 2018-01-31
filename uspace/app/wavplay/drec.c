@@ -138,7 +138,7 @@ static void record_fragment(record_t *rec, pcm_format_t f)
 {
 	assert(rec);
 	assert(rec->device);
-	int ret = audio_pcm_register_event_callback(rec->device,
+	errno_t ret = audio_pcm_register_event_callback(rec->device,
 	    device_event_callback, rec);
 	if (ret != EOK) {
 		printf("Failed to register for events: %s.\n", str_error(ret));
@@ -173,7 +173,7 @@ static void record_fragment(record_t *rec, pcm_format_t f)
  */
 int drecord(const char *device, const char *file)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 	audio_pcm_sess_t *session = NULL;
 	sysarg_t val;
 	if (str_cmp(device, "default") == 0) {

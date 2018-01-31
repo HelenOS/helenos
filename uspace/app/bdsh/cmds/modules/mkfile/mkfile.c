@@ -88,7 +88,7 @@ void help_cmd_mkfile(unsigned int level)
  * @param rsize	Place to store size in bytes
  * @return	EOK on success or an error code
  */
-static int read_size(const char *str, size_t *rsize)
+static errno_t read_size(const char *str, size_t *rsize)
 {
 	size_t number, unit;
 	char *ep;
@@ -122,7 +122,7 @@ int cmd_mkfile(char **argv)
 	size_t total_written;
 	size_t to_write;
 	size_t nwritten;
-	int rc;
+	errno_t rc;
 	char *file_name;
 	void *buffer;
 	bool create_sparse = false;

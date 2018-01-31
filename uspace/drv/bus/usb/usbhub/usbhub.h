@@ -77,19 +77,19 @@ struct usb_hub_dev {
 
 extern const usb_endpoint_description_t *usb_hub_endpoints [];
 
-int usb_hub_device_add(usb_device_t *);
-int usb_hub_device_remove(usb_device_t *);
-int usb_hub_device_gone(usb_device_t *);
+errno_t usb_hub_device_add(usb_device_t *);
+errno_t usb_hub_device_remove(usb_device_t *);
+errno_t usb_hub_device_gone(usb_device_t *);
 
-int usb_hub_set_depth(const usb_hub_dev_t *);
-int usb_hub_get_port_status(const usb_hub_dev_t *, size_t, usb_port_status_t *);
-int usb_hub_set_port_feature(const usb_hub_dev_t *, size_t, usb_hub_class_feature_t);
-int usb_hub_clear_port_feature(const usb_hub_dev_t *, size_t, usb_hub_class_feature_t);
+errno_t usb_hub_set_depth(const usb_hub_dev_t *);
+errno_t usb_hub_get_port_status(const usb_hub_dev_t *, size_t, usb_port_status_t *);
+errno_t usb_hub_set_port_feature(const usb_hub_dev_t *, size_t, usb_hub_class_feature_t);
+errno_t usb_hub_clear_port_feature(const usb_hub_dev_t *, size_t, usb_hub_class_feature_t);
 
 bool hub_port_changes_callback(usb_device_t *, uint8_t *, size_t, void *);
 
-int usb_hub_reserve_default_address(usb_hub_dev_t *, async_exch_t *, usb_port_t *);
-int usb_hub_release_default_address(usb_hub_dev_t *, async_exch_t *);
+errno_t usb_hub_reserve_default_address(usb_hub_dev_t *, async_exch_t *, usb_port_t *);
+errno_t usb_hub_release_default_address(usb_hub_dev_t *, async_exch_t *);
 
 #endif
 

@@ -53,9 +53,9 @@ typedef sysarg_t log_t;
 #define LOG_NO_PARENT ((log_t) 0)
 
 extern const char *log_level_str(log_level_t);
-extern int log_level_from_str(const char *, log_level_t *);
+extern errno_t log_level_from_str(const char *, log_level_t *);
 
-extern int log_init(const char *);
+extern errno_t log_init(const char *);
 extern log_t log_create(const char *, log_t);
 
 extern void log_msg(log_t, log_level_t, const char *, ...)

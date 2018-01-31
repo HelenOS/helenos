@@ -1413,7 +1413,7 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 	list_node_t *node;
 	int length;
 	int i;
-	int rc;
+	errno_t rc;
 	int iextent;
 
 #ifdef DEBUG_RUN_TRACE
@@ -2286,7 +2286,7 @@ static void run_index_array(run_t *run, stree_index_t *index,
 	int i;
 	int elem_index;
 	int arg_val;
-	int rc;
+	errno_t rc;
 
 	rdata_item_t *ritem;
 	rdata_address_t *address;
@@ -2475,7 +2475,7 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	int i;
 	int elem_index;
 	int arg_val;
-	int rc1, rc2;
+	errno_t rc1, rc2;
 
 	rdata_value_t *value;
 	rdata_var_t *cvar;

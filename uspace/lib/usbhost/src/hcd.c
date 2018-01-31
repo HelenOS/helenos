@@ -106,7 +106,7 @@ static void irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 /**
  * Worker for the HW interrupt replacement fibril.
  */
-static int interrupt_polling(void *arg)
+static errno_t interrupt_polling(void *arg)
 {
 	bus_t *bus = arg;
 	assert(bus);
@@ -153,7 +153,7 @@ static inline void irq_code_clean(irq_code_t *code)
  * @return IRQ capability handle on success.
  * @return Negative error code.
  */
-static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
+static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
 	assert(hcd);
 	irq_code_t irq_code = {0};
@@ -162,7 +162,7 @@ static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t
 		return ENOTSUP;
 
 	int irq;
-	int ret;
+	errno_t ret;
 	ret = hc_driver->irq_code_gen(&irq_code, hcd, hw_res, &irq);
 	if (ret != EOK) {
 		usb_log_error("Failed to generate IRQ code: %s.",
@@ -204,9 +204,9 @@ static int hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t
  * @param device DDF instance of the device to use
  * @return Error code
  */
-int hc_dev_add(ddf_dev_t *device)
+errno_t hc_dev_add(ddf_dev_t *device)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 	assert(device);
 
 	if (!hc_driver->hc_add) {
@@ -310,9 +310,9 @@ err_hcd:
 	return ret;
 }
 
-int hc_dev_remove(ddf_dev_t *dev)
+errno_t hc_dev_remove(ddf_dev_t *dev)
 {
-	int err;
+	errno_t err;
 	hc_device_t *hcd = dev_to_hcd(dev);
 
 	if (hc_driver->stop)
@@ -332,9 +332,9 @@ int hc_dev_remove(ddf_dev_t *dev)
 	return EOK;
 }
 
-int hc_dev_gone(ddf_dev_t *dev)
+errno_t hc_dev_gone(ddf_dev_t *dev)
 {
-	int err = ENOTSUP;
+	errno_t err = ENOTSUP;
 	hc_device_t *hcd = dev_to_hcd(dev);
 
 	if (hc_driver->hc_gone)
@@ -345,7 +345,7 @@ int hc_dev_gone(ddf_dev_t *dev)
 	return err;
 }
 
-int hc_fun_online(ddf_fun_t *fun)
+errno_t hc_fun_online(ddf_fun_t *fun)
 {
 	assert(fun);
 

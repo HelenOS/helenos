@@ -40,7 +40,7 @@
 #include <assert.h>
 #include <usb/classes/classes.h>
 
-static int on_data_from_device(usbvirt_device_t *dev,
+static errno_t on_data_from_device(usbvirt_device_t *dev,
     usb_endpoint_t ep, usb_transfer_type_t tr_type,
     void *data, size_t data_size, size_t *actual_size)
 {
@@ -57,7 +57,7 @@ static int on_data_from_device(usbvirt_device_t *dev,
 	return iface->on_data_in(iface, data, data_size, actual_size);
 }
 
-static int on_data_to_device(usbvirt_device_t *dev,
+static errno_t on_data_to_device(usbvirt_device_t *dev,
     usb_endpoint_t ep, usb_transfer_type_t tr_type,
     const void *data, size_t data_size)
 {
@@ -74,7 +74,7 @@ static int on_data_to_device(usbvirt_device_t *dev,
 	return iface->on_data_out(iface, data, data_size);
 }
 
-static int interface_life_fibril(void *arg)
+static errno_t interface_life_fibril(void *arg)
 {
 	vuhid_interface_t *iface = arg;
 	vuhid_data_t *hid_data = iface->vuhid_data;
@@ -108,7 +108,7 @@ static vuhid_interface_t *find_interface_by_id(vuhid_interface_t **ifaces,
 	return NULL;
 }
 
-int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
+errno_t add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
     usbvirt_device_t *dev)
 {
 	vuhid_interface_t *iface = find_interface_by_id(interfaces, id);
@@ -160,7 +160,7 @@ int add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	}
 
 	/* From now on, in case of errors, we goto to error_leave */
-	int rc;
+	errno_t rc;
 
 	/*
 	 * Prepare new descriptors.

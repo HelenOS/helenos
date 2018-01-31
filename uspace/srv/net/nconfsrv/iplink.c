@@ -48,18 +48,18 @@
 #include "iplink.h"
 #include "nconfsrv.h"
 
-static int ncs_link_add(service_id_t);
+static errno_t ncs_link_add(service_id_t);
 
 static LIST_INITIALIZE(ncs_links);
 static FIBRIL_MUTEX_INITIALIZE(ncs_links_lock);
 
-static int ncs_link_check_new(void)
+static errno_t ncs_link_check_new(void)
 {
 	bool already_known;
 	category_id_t iplink_cat;
 	service_id_t *svcs;
 	size_t count, i;
-	int rc;
+	errno_t rc;
 
 	fibril_mutex_lock(&ncs_links_lock);
 
@@ -123,10 +123,10 @@ static void ncs_link_delete(ncs_link_t *nlink)
 	free(nlink);
 }
 
-static int ncs_link_add(service_id_t sid)
+static errno_t ncs_link_add(service_id_t sid)
 {
 	ncs_link_t *nlink;
-	int rc;
+	errno_t rc;
 
 	assert(fibril_mutex_is_locked(&ncs_links_lock));
 
@@ -174,9 +174,9 @@ static void ncs_link_cat_change_cb(void)
 	(void) ncs_link_check_new();
 }
 
-int ncs_link_discovery_start(void)
+errno_t ncs_link_discovery_start(void)
 {
-	int rc;
+	errno_t rc;
 
 	rc = loc_register_cat_change_cb(ncs_link_cat_change_cb);
 	if (rc != EOK) {
@@ -204,7 +204,7 @@ ncs_link_t *ncs_link_get_by_id(sysarg_t link_id)
 }
 
 /** Get IDs of all links. */
-int ncs_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
+errno_t ncs_link_get_id_list(sysarg_t **rid_list, size_t *rcount)
 {
 	sysarg_t *id_list;
 	size_t count, i;

@@ -43,7 +43,7 @@ void ipcp_cleanup(void);
 void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash);
 void ipcp_call_sync(int phone, ipc_call_t *call, ipc_call_t *answer);
 void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash);
-void ipcp_hangup(int phone, int rc);
+void ipcp_hangup(int phone, errno_t rc);
 
 void ipcp_connection_set(int phone, int server, proto_t *proto);
 void ipcp_connection_clear(int phone);

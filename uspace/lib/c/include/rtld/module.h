@@ -40,7 +40,7 @@
 #include <types/rtld/module.h>
 #include <types/rtld/rtld.h>
 
-extern int module_create_static_exec(rtld_t *, module_t **);
+extern errno_t module_create_static_exec(rtld_t *, module_t **);
 extern void module_process_relocs(module_t *);
 extern module_t *module_find(rtld_t *, const char *);
 extern module_t *module_load(rtld_t *, const char *, mlflags_t);

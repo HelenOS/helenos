@@ -39,17 +39,17 @@
 
 #include "dummy.h"
 
-static int dummy_open(label_bd_t *, label_t **);
-static int dummy_create(label_bd_t *, label_t **);
+static errno_t dummy_open(label_bd_t *, label_t **);
+static errno_t dummy_create(label_bd_t *, label_t **);
 static void dummy_close(label_t *);
-static int dummy_destroy(label_t *);
-static int dummy_get_info(label_t *, label_info_t *);
+static errno_t dummy_destroy(label_t *);
+static errno_t dummy_get_info(label_t *, label_info_t *);
 static label_part_t *dummy_part_first(label_t *);
 static label_part_t *dummy_part_next(label_part_t *);
 static void dummy_part_get_info(label_part_t *, label_part_info_t *);
-static int dummy_part_create(label_t *, label_part_spec_t *, label_part_t **);
-static int dummy_part_destroy(label_part_t *);
-static int dummy_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
+static errno_t dummy_part_create(label_t *, label_part_spec_t *, label_part_t **);
+static errno_t dummy_part_destroy(label_part_t *);
+static errno_t dummy_suggest_ptype(label_t *, label_pcnt_t, label_ptype_t *);
 
 label_ops_t dummy_label_ops = {
 	.open = dummy_open,
@@ -65,14 +65,14 @@ label_ops_t dummy_label_ops = {
 	.suggest_ptype = dummy_suggest_ptype
 };
 
-static int dummy_open(label_bd_t *bd, label_t **rlabel)
+static errno_t dummy_open(label_bd_t *bd, label_t **rlabel)
 {
 	label_t *label = NULL;
 	label_part_t *part = NULL;
 	size_t bsize;
 	aoff64_t nblocks;
 	uint64_t ba_min, ba_max;
-	int rc;
+	errno_t rc;
 
 	rc = bd->ops->get_bsize(bd->arg, &bsize);
 	if (rc != EOK) {
@@ -127,7 +127,7 @@ error:
 	return rc;
 }
 
-static int dummy_create(label_bd_t *bd, label_t **rlabel)
+static errno_t dummy_create(label_bd_t *bd, label_t **rlabel)
 {
 	return ENOTSUP;
 }
@@ -147,12 +147,12 @@ static void dummy_close(label_t *label)
 	free(label);
 }
 
-static int dummy_destroy(label_t *label)
+static errno_t dummy_destroy(label_t *label)
 {
 	return ENOTSUP;
 }
 
-static int dummy_get_info(label_t *label, label_info_t *linfo)
+static errno_t dummy_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
 	linfo->ltype = lt_none;
@@ -192,18 +192,18 @@ static void dummy_part_get_info(label_part_t *part, label_part_info_t *pinfo)
 	pinfo->nblocks = part->nblocks;
 }
 
-static int dummy_part_create(label_t *label, label_part_spec_t *pspec,
+static errno_t dummy_part_create(label_t *label, label_part_spec_t *pspec,
     label_part_t **rpart)
 {
 	return ENOTSUP;
 }
 
-static int dummy_part_destroy(label_part_t *part)
+static errno_t dummy_part_destroy(label_part_t *part)
 {
 	return ENOTSUP;
 }
 
-static int dummy_suggest_ptype(label_t *label, label_pcnt_t pcnt,
+static errno_t dummy_suggest_ptype(label_t *label, label_pcnt_t pcnt,
     label_ptype_t *ptype)
 {
 	return ENOTSUP;

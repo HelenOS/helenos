@@ -55,7 +55,7 @@ static uint16_t dns_uint16_t_decode(uint8_t *, size_t);
  * Reallocate this buffer so that concatenation of @a *dstr and @a suff can
  * fit in and append @a suff.
  */
-static int dns_dstr_ext(char **dstr, const char *suff)
+static errno_t dns_dstr_ext(char **dstr, const char *suff)
 {
 	size_t s1, s2;
 	size_t nsize;
@@ -92,7 +92,7 @@ static int dns_dstr_ext(char **dstr, const char *suff)
  * @param buf_size      Buffer size or 0 if @a buf is NULL
  * @param act_size	Place to store actual encoded size
  */
-static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
+static errno_t dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
     size_t *act_size)
 {
 	size_t off;
@@ -157,7 +157,7 @@ static int dns_name_encode(char *name, uint8_t *buf, size_t buf_size,
  * @param rname	Place to return dynamically allocated string
  * @param eoff	Place to store end offset (offset after last decoded byte)
  */
-int dns_name_decode(dns_pdu_t *pdu, size_t boff, char **rname,
+errno_t dns_name_decode(dns_pdu_t *pdu, size_t boff, char **rname,
     size_t *eoff)
 {
 	uint8_t *bp;
@@ -168,7 +168,7 @@ int dns_name_decode(dns_pdu_t *pdu, size_t boff, char **rname,
 	size_t eptr;
 	char *name;
 	char dbuf[2];
-	int rc;
+	errno_t rc;
 	bool first;
 
 	name = NULL;
@@ -324,12 +324,12 @@ void dns_addr128_t_decode(uint8_t *buf, size_t buf_size, addr128_t addr)
  * @param buf_size      Buffer size or 0 if @a buf is NULL
  * @param act_size	Place to store actual encoded size
  */
-static int dns_question_encode(dns_question_t *question, uint8_t *buf,
+static errno_t dns_question_encode(dns_question_t *question, uint8_t *buf,
     size_t buf_size, size_t *act_size)
 {
 	size_t name_size;
 	size_t di;
-	int rc;
+	errno_t rc;
 
 	rc = dns_name_encode(question->qname, buf, buf_size, &name_size);
 	if (rc != EOK)
@@ -357,12 +357,12 @@ static int dns_question_encode(dns_question_t *question, uint8_t *buf,
  * @param rquestion	Place to return dynamically allocated question
  * @param eoff		Place to store end offset (offset after last decoded byte)
  */
-static int dns_question_decode(dns_pdu_t *pdu, size_t boff,
+static errno_t dns_question_decode(dns_pdu_t *pdu, size_t boff,
     dns_question_t **rquestion, size_t *eoff)
 {
 	dns_question_t *question;
 	size_t name_eoff;
-	int rc;
+	errno_t rc;
 
 	question = calloc(1, sizeof (dns_question_t));
 	if (question == NULL)
@@ -397,7 +397,7 @@ static int dns_question_decode(dns_pdu_t *pdu, size_t boff,
  * @param retrr		Place to return dynamically allocated resource record
  * @param eoff		Place to store end offset (offset after last decoded byte)
  */
-static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
+static errno_t dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
     size_t *eoff)
 {
 	dns_rr_t *rr;
@@ -405,7 +405,7 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 	uint8_t *bp;
 	size_t bsz;
 	size_t rdlength;
-	int rc;
+	errno_t rc;
 
 	rr = calloc(1, sizeof(dns_rr_t));
 	if (rr == NULL)
@@ -491,14 +491,14 @@ static int dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
  * @return 	EOK on success, EINVAL if message contains invalid data,
  *		ENOMEM if out of memory
  */
-int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
+errno_t dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 {
 	uint8_t *data;
 	size_t size;
 	dns_header_t hdr;
 	size_t q_size = 0;
 	size_t di;
-	int rc;
+	errno_t rc;
 
 	hdr.id = host2uint16_t_be(msg->id);
 
@@ -563,7 +563,7 @@ int dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
  * @return	EOK on success, EINVAL if message contains invalid data,
  * 		ENOMEM if out of memory
  */
-int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
+errno_t dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 {
 	dns_message_t *msg;
 	dns_header_t *hdr;
@@ -574,7 +574,7 @@ int dns_message_decode(void *data, size_t size, dns_message_t **rmsg)
 	size_t qd_count;
 	size_t an_count;
 	size_t i;
-	int rc;
+	errno_t rc;
 
 	msg = dns_message_new();
 	if (msg == NULL)

@@ -51,7 +51,7 @@ typedef struct {
 /** Operations provided by an expression. */
 typedef struct bithenge_expression_ops {
 	/** @copydoc bithenge_expression_t::bithenge_expression_evaluate */
-	int (*evaluate)(bithenge_expression_t *self, bithenge_scope_t *scope,
+	errno_t (*evaluate)(bithenge_expression_t *self, bithenge_scope_t *scope,
 	    bithenge_node_t **out);
 	/** Destroy the expression.
 	 * @param self The expression. */
@@ -84,7 +84,7 @@ static inline void bithenge_expression_dec_ref(bithenge_expression_t *self)
  * @param scope The scope.
  * @param[out] out Where the output tree will be stored.
  * @return EOK on success or an error code from errno.h. */
-static inline int bithenge_expression_evaluate(bithenge_expression_t *self,
+static inline errno_t bithenge_expression_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	assert(self);
@@ -116,29 +116,29 @@ typedef enum {
 	BITHENGE_EXPRESSION_CONCAT,
 } bithenge_binary_op_t;
 
-int bithenge_init_expression(bithenge_expression_t *,
+errno_t bithenge_init_expression(bithenge_expression_t *,
     const bithenge_expression_ops_t *);
-int bithenge_binary_expression(bithenge_expression_t **, bithenge_binary_op_t,
+errno_t bithenge_binary_expression(bithenge_expression_t **, bithenge_binary_op_t,
     bithenge_expression_t *, bithenge_expression_t *);
-int bithenge_in_node_expression(bithenge_expression_t **);
-int bithenge_current_node_expression(bithenge_expression_t **);
-int bithenge_param_expression(bithenge_expression_t **, int);
-int bithenge_const_expression(bithenge_expression_t **, bithenge_node_t *);
-int bithenge_scope_member_expression(bithenge_expression_t **,
+errno_t bithenge_in_node_expression(bithenge_expression_t **);
+errno_t bithenge_current_node_expression(bithenge_expression_t **);
+errno_t bithenge_param_expression(bithenge_expression_t **, int);
+errno_t bithenge_const_expression(bithenge_expression_t **, bithenge_node_t *);
+errno_t bithenge_scope_member_expression(bithenge_expression_t **,
     bithenge_node_t *);
-int bithenge_subblob_expression(bithenge_expression_t **,
+errno_t bithenge_subblob_expression(bithenge_expression_t **,
     bithenge_expression_t *, bithenge_expression_t *, bithenge_expression_t *,
     bool);
-int bithenge_param_wrapper(bithenge_transform_t **, bithenge_transform_t *,
+errno_t bithenge_param_wrapper(bithenge_transform_t **, bithenge_transform_t *,
     bithenge_expression_t **);
-int bithenge_expression_transform(bithenge_transform_t **,
+errno_t bithenge_expression_transform(bithenge_transform_t **,
     bithenge_expression_t *);
-int bithenge_inputless_transform(bithenge_transform_t **,
+errno_t bithenge_inputless_transform(bithenge_transform_t **,
     bithenge_expression_t *);
 
-int bithenge_concat_blob(bithenge_node_t **, bithenge_blob_t *,
+errno_t bithenge_concat_blob(bithenge_node_t **, bithenge_blob_t *,
     bithenge_blob_t *);
-int bithenge_concat_blob_lazy(bithenge_node_t **, bithenge_blob_t *,
+errno_t bithenge_concat_blob_lazy(bithenge_node_t **, bithenge_blob_t *,
     bithenge_expression_t *, bithenge_scope_t *);
 
 #endif

@@ -37,6 +37,7 @@
 #ifndef LIBUSBDEV_ALTERNATE_IFACES_H_
 #define LIBUSBDEV_ALTERNATE_IFACES_H_
 
+#include <errno.h>
 #include <usb/descriptor.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -65,7 +66,7 @@ typedef struct {
 } usb_alternate_interfaces_t;
 
 size_t usb_interface_count_alternates(const uint8_t *, size_t, uint8_t);
-int usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
+errno_t usb_alternate_interfaces_init(usb_alternate_interfaces_t *,
     const uint8_t *, size_t, int);
 void usb_alternate_interfaces_deinit(usb_alternate_interfaces_t *);
 

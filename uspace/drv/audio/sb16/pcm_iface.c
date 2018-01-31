@@ -46,7 +46,7 @@ static inline sb_dsp_t *fun_to_dsp(ddf_fun_t *fun)
 	return &sb->dsp;
 }
 
-static int sb_get_info_str(ddf_fun_t *fun, const char** name)
+static errno_t sb_get_info_str(ddf_fun_t *fun, const char** name)
 {
 	if (name)
 		*name = "SB 16 DSP";
@@ -58,22 +58,22 @@ static unsigned sb_query_cap(ddf_fun_t *fun, audio_cap_t cap)
 	return sb_dsp_query_cap(fun_to_dsp(fun), cap);
 }
 
-static int sb_test_format(ddf_fun_t *fun, unsigned *channels, unsigned *rate,
+static errno_t sb_test_format(ddf_fun_t *fun, unsigned *channels, unsigned *rate,
     pcm_sample_format_t *format)
 {
 	return sb_dsp_test_format(fun_to_dsp(fun), channels, rate, format);
 }
-static int sb_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
+static errno_t sb_get_buffer(ddf_fun_t *fun, void **buffer, size_t *size)
 {
 	return sb_dsp_get_buffer(fun_to_dsp(fun), buffer, size);
 }
 
-static int sb_get_buffer_position(ddf_fun_t *fun, size_t *size)
+static errno_t sb_get_buffer_position(ddf_fun_t *fun, size_t *size)
 {
 	return sb_dsp_get_buffer_position(fun_to_dsp(fun), size);
 }
 
-static int sb_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
+static errno_t sb_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
 {
 	return sb_dsp_set_event_session(fun_to_dsp(fun), sess);
 }
@@ -83,31 +83,31 @@ static async_sess_t * sb_get_event_session(ddf_fun_t *fun)
 	return sb_dsp_get_event_session(fun_to_dsp(fun));
 }
 
-static int sb_release_buffer(ddf_fun_t *fun)
+static errno_t sb_release_buffer(ddf_fun_t *fun)
 {
 	return sb_dsp_release_buffer(fun_to_dsp(fun));
 }
 
-static int sb_start_playback(ddf_fun_t *fun, unsigned frames,
+static errno_t sb_start_playback(ddf_fun_t *fun, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	return sb_dsp_start_playback(
 	    fun_to_dsp(fun), frames, channels, sample_rate, format);
 }
 
-static int sb_stop_playback(ddf_fun_t *fun, bool immediate)
+static errno_t sb_stop_playback(ddf_fun_t *fun, bool immediate)
 {
 	return sb_dsp_stop_playback(fun_to_dsp(fun), immediate);
 }
 
-static int sb_start_capture(ddf_fun_t *fun, unsigned frames,
+static errno_t sb_start_capture(ddf_fun_t *fun, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format)
 {
 	return sb_dsp_start_capture(
 	    fun_to_dsp(fun), frames, channels, sample_rate, format);
 }
 
-static int sb_stop_capture(ddf_fun_t *fun, bool immediate)
+static errno_t sb_stop_capture(ddf_fun_t *fun, bool immediate)
 {
 	return sb_dsp_stop_capture(fun_to_dsp(fun), immediate);
 }

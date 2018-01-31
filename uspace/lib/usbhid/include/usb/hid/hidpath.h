@@ -35,6 +35,7 @@
 #ifndef LIBUSB_HIDPATH_H_
 #define LIBUSB_HIDPATH_H_
 
+#include <errno.h>
 #include <usb/hid/hidparser.h>
 #include <stdint.h>
 #include <adt/list.h>
@@ -116,10 +117,10 @@ usb_hid_report_path_t *usb_hid_report_path(void);
 
 void usb_hid_report_path_free(usb_hid_report_path_t *path);
 
-int usb_hid_report_path_set_report_id(usb_hid_report_path_t *usage_path,
+errno_t usb_hid_report_path_set_report_id(usb_hid_report_path_t *usage_path,
 		uint8_t report_id);
 
-int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
+errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
 		int32_t usage_page, int32_t usage);
 
 void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path);

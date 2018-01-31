@@ -118,7 +118,7 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
  * @param[in] instance TD structure to use.
  * @return Error code.
  */
-int td_status(const td_t *instance)
+errno_t td_status(const td_t *instance)
 {
 	assert(instance);
 

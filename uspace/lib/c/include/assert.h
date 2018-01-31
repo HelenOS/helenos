@@ -33,10 +33,22 @@
 /** @file
  */
 
+// XXX: The definition of `assert()` is not guarded.
+// One must not use `#pragma once` in this header.
+// This is in accordance with the C standard.
+
 #ifndef LIBC_ASSERT_H_
 #define LIBC_ASSERT_H_
 
 #define static_assert(expr)	_Static_assert(expr, "")
+
+extern void __helenos_assert_abort(const char *, const char *, unsigned int)
+    __attribute__((noreturn));
+
+extern void __helenos_assert_quick_abort(const char *, const char *, unsigned int)
+    __attribute__((noreturn));
+
+#endif
 
 /** Debugging assert macro
  *
@@ -48,24 +60,25 @@
  *
  */
 
+#undef assert
+
 #ifndef NDEBUG
-
-#define assert(expr) \
-	do { \
-		if (!(expr)) \
-			assert_abort(#expr, __FILE__, __LINE__); \
-	} while (0)
-
-#else /* NDEBUG */
-
-#define assert(expr)
-
-#endif /* NDEBUG */
-
-extern void assert_abort(const char *, const char *, unsigned int)
-    __attribute__((noreturn));
-
+	#define assert(expr) ((expr) ? (void) 0 : __helenos_assert_abort(#expr, __FILE__, __LINE__))
+#else
+	#define assert(expr) ((void) 0)
 #endif
+
+#ifdef _HELENOS_SOURCE
+
+#undef safe_assert
+
+#ifndef NDEBUG
+	#define safe_assert(expr) ((expr) ? (void) 0 : __helenos_assert_quick_abort(#expr, __FILE__, __LINE__))
+#else
+	#define safe_assert(expr) ((void) 0)
+#endif
+
+#endif /* _HELENOS_SOURCE */
 
 /** @}
  */

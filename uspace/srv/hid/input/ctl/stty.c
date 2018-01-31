@@ -45,7 +45,7 @@
 #include "../kbd_ctl.h"
 
 static void stty_ctl_parse(sysarg_t);
-static int stty_ctl_init(kbd_dev_t *);
+static errno_t stty_ctl_init(kbd_dev_t *);
 static void stty_ctl_set_ind(kbd_dev_t *, unsigned int);
 
 kbd_ctl_ops_t stty_ctl = {
@@ -236,7 +236,7 @@ static int seq_defs[] = {
 	0,	0
 };
 
-static int stty_ctl_init(kbd_dev_t *kdev)
+static errno_t stty_ctl_init(kbd_dev_t *kdev)
 {
 	kbd_dev = kdev;
 	ds = 0;

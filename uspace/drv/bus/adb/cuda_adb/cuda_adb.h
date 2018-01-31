@@ -86,9 +86,9 @@ typedef struct cude {
 	adb_dev_t *addr_dev[ADB_MAX_ADDR];
 } cuda_t;
 
-extern int cuda_add(cuda_t *, cuda_res_t *);
-extern int cuda_remove(cuda_t *);
-extern int cuda_gone(cuda_t *);
+extern errno_t cuda_add(cuda_t *, cuda_res_t *);
+extern errno_t cuda_remove(cuda_t *);
+extern errno_t cuda_gone(cuda_t *);
 
 #endif
 

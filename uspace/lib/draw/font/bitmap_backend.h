@@ -44,13 +44,13 @@
 #include "../source.h"
 
 typedef struct {
-	int (*resolve_glyph)(void *, const wchar_t, glyph_id_t *);
-	int (*load_glyph_surface)(void *, glyph_id_t, surface_t **);
-	int (*load_glyph_metrics)(void *, glyph_id_t, glyph_metrics_t *);
+	errno_t (*resolve_glyph)(void *, const wchar_t, glyph_id_t *);
+	errno_t (*load_glyph_surface)(void *, glyph_id_t, surface_t **);
+	errno_t (*load_glyph_metrics)(void *, glyph_id_t, glyph_metrics_t *);
 	void (*release)(void *);
 } bitmap_font_decoder_t;
 
-extern int bitmap_font_create(bitmap_font_decoder_t *, void *, uint32_t,
+extern errno_t bitmap_font_create(bitmap_font_decoder_t *, void *, uint32_t,
     font_metrics_t, uint16_t, font_t **);
 
 #endif

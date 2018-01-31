@@ -103,7 +103,7 @@ int usbhc_device_enumerate(async_exch_t *exch, unsigned port, usb_speed_t speed)
  * @return Error code.
  *
  */
-int usbhc_device_remove(async_exch_t *exch, unsigned port)
+errno_t usbhc_device_remove(async_exch_t *exch, unsigned port)
 {
 	if (!exch)
 		return EBADMEM;
@@ -111,7 +111,7 @@ int usbhc_device_remove(async_exch_t *exch, unsigned port)
 	    IPC_M_USB_DEVICE_REMOVE, port);
 }
 
-int usbhc_register_endpoint(async_exch_t *exch, usb_pipe_desc_t *pipe_desc,
+errno_t usbhc_register_endpoint(async_exch_t *exch, usb_pipe_desc_t *pipe_desc,
     const usb_endpoint_descriptors_t *desc)
 {
 	if (!exch)
@@ -152,7 +152,7 @@ int usbhc_register_endpoint(async_exch_t *exch, usb_pipe_desc_t *pipe_desc,
 	return EOK;
 }
 
-int usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pipe_desc)
+errno_t usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pipe_desc)
 {
 	if (!exch)
 		return EBADMEM;
@@ -177,7 +177,7 @@ int usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pipe_de
 	return (int) opening_request_rc;
 }
 
-int usbhc_read(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
+errno_t usbhc_read(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
     void *data, size_t size, size_t *rec_size)
 {
 	if (!exch)
@@ -207,28 +207,28 @@ int usbhc_read(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
 	}
 
 	/* Wait for the answer. */
-	int data_request_rc;
-	int opening_request_rc;
+	errno_t data_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 
 	if (data_request_rc != EOK) {
 		/* Prefer the return code of the opening request. */
 		if (opening_request_rc != EOK) {
-			return (int) opening_request_rc;
+			return (errno_t) opening_request_rc;
 		} else {
-			return (int) data_request_rc;
+			return (errno_t) data_request_rc;
 		}
 	}
 	if (opening_request_rc != EOK) {
-		return (int) opening_request_rc;
+		return (errno_t) opening_request_rc;
 	}
 
 	*rec_size = IPC_GET_ARG2(data_request_call);
 	return EOK;
 }
 
-int usbhc_write(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
+errno_t usbhc_write(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
     const void *data, size_t size)
 {
 	if (!exch)
@@ -247,7 +247,7 @@ int usbhc_write(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
 
 	/* Send the data if any. */
 	if (size > 0) {
-		const int ret = async_data_write_start(exch, data, size);
+		const errno_t ret = async_data_write_start(exch, data, size);
 		if (ret != EOK) {
 			async_forget(opening_request);
 			return ret;
@@ -255,10 +255,10 @@ int usbhc_write(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
 	}
 
 	/* Wait for the answer. */
-	int opening_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
-	return (int) opening_request_rc;
+	return (errno_t) opening_request_rc;
 }
 
 static void remote_usbhc_default_address_reservation(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -432,18 +432,18 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	return trans;
 }
 
-static int callback_out(void *arg, int error, size_t transferred_size)
+static errno_t callback_out(void *arg, int error, size_t transferred_size)
 {
 	async_transaction_t *trans = arg;
 
-	const int err = async_answer_0(trans->caller, error);
+	const errno_t err = async_answer_0(trans->caller, error);
 
 	async_transaction_destroy(trans);
 
 	return err;
 }
 
-static int callback_in(void *arg, int error, size_t transferred_size)
+static errno_t callback_in(void *arg, int error, size_t transferred_size)
 {
 	async_transaction_t *trans = arg;
 
@@ -456,7 +456,7 @@ static int callback_in(void *arg, int error, size_t transferred_size)
 		}
 	}
 
-	const int err = async_answer_0(trans->caller, error);
+	const errno_t err = async_answer_0(trans->caller, error);
 	async_transaction_destroy(trans);
 	return err;
 }
@@ -506,7 +506,7 @@ void remote_usbhc_read(
 		.endpoint = ep,
 	}};
 
-	const int rc = usbhc_iface->read(
+	const errno_t rc = usbhc_iface->read(
 	    fun, target, setup, trans->buffer, size, callback_in, trans);
 
 	if (rc != EOK) {
@@ -544,7 +544,7 @@ void remote_usbhc_write(
 
 	size_t size = 0;
 	if (data_buffer_len > 0) {
-		const int rc = async_data_write_accept(&trans->buffer, false,
+		const errno_t rc = async_data_write_accept(&trans->buffer, false,
 		    1, data_buffer_len, 0, &size);
 
 		if (rc != EOK) {
@@ -561,7 +561,7 @@ void remote_usbhc_write(
 		.stream = 0,
 	}};
 
-	const int rc = usbhc_iface->write(
+	const errno_t rc = usbhc_iface->write(
 	    fun, target, setup, trans->buffer, size, callback_out, trans);
 
 	if (rc != EOK) {

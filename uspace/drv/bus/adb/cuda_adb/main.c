@@ -42,11 +42,11 @@
 
 #define NAME  "cuda_adb"
 
-static int cuda_dev_add(ddf_dev_t *dev);
-static int cuda_dev_remove(ddf_dev_t *dev);
-static int cuda_dev_gone(ddf_dev_t *dev);
-static int cuda_fun_online(ddf_fun_t *fun);
-static int cuda_fun_offline(ddf_fun_t *fun);
+static errno_t cuda_dev_add(ddf_dev_t *dev);
+static errno_t cuda_dev_remove(ddf_dev_t *dev);
+static errno_t cuda_dev_gone(ddf_dev_t *dev);
+static errno_t cuda_fun_online(ddf_fun_t *fun);
+static errno_t cuda_fun_offline(ddf_fun_t *fun);
 
 static driver_ops_t driver_ops = {
 	.dev_add = cuda_dev_add,
@@ -61,11 +61,11 @@ static driver_t cuda_adb_driver = {
 	.driver_ops = &driver_ops
 };
 
-static int cuda_get_res(ddf_dev_t *dev, cuda_res_t *res)
+static errno_t cuda_get_res(ddf_dev_t *dev, cuda_res_t *res)
 {
 	async_sess_t *parent_sess;
 	hw_res_list_parsed_t hw_res;
-	int rc;
+	errno_t rc;
 
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
@@ -96,11 +96,11 @@ error:
 	return rc;
 }
 
-static int cuda_dev_add(ddf_dev_t *dev)
+static errno_t cuda_dev_add(ddf_dev_t *dev)
 {
 	cuda_t *cuda;
 	cuda_res_t cuda_res;
-	int rc;
+	errno_t rc;
 
         ddf_msg(LVL_DEBUG, "cuda_dev_add(%p)", dev);
 	cuda = ddf_dev_data_alloc(dev, sizeof(cuda_t));
@@ -121,7 +121,7 @@ static int cuda_dev_add(ddf_dev_t *dev)
 	return cuda_add(cuda, &cuda_res);
 }
 
-static int cuda_dev_remove(ddf_dev_t *dev)
+static errno_t cuda_dev_remove(ddf_dev_t *dev)
 {
         cuda_t *cuda = (cuda_t *)ddf_dev_data_get(dev);
 
@@ -130,7 +130,7 @@ static int cuda_dev_remove(ddf_dev_t *dev)
         return cuda_remove(cuda);
 }
 
-static int cuda_dev_gone(ddf_dev_t *dev)
+static errno_t cuda_dev_gone(ddf_dev_t *dev)
 {
         cuda_t *cuda = (cuda_t *)ddf_dev_data_get(dev);
 
@@ -139,13 +139,13 @@ static int cuda_dev_gone(ddf_dev_t *dev)
         return cuda_gone(cuda);
 }
 
-static int cuda_fun_online(ddf_fun_t *fun)
+static errno_t cuda_fun_online(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "cuda_fun_online()");
         return ddf_fun_online(fun);
 }
 
-static int cuda_fun_offline(ddf_fun_t *fun)
+static errno_t cuda_fun_offline(ddf_fun_t *fun)
 {
         ddf_msg(LVL_DEBUG, "cuda_fun_offline()");
         return ddf_fun_offline(fun);

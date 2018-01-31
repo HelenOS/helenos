@@ -69,14 +69,14 @@ typedef enum {
  * @param[out] usb_iface Assigned USB interface
  * @return Error code.
  */
-int usb_get_my_description(async_exch_t *exch, usb_device_desc_t *desc)
+errno_t usb_get_my_description(async_exch_t *exch, usb_device_desc_t *desc)
 {
 	if (!exch)
 		return EBADMEM;
 
 	usb_device_desc_t tmp_desc;
 
-	const int ret = async_req_1_5(exch, DEV_IFACE_ID(USB_DEV_IFACE),
+	const errno_t ret = async_req_1_5(exch, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_MY_DESCRIPTION,
 	    (sysarg_t *) &tmp_desc.address,
 	    (sysarg_t *) &tmp_desc.depth,
@@ -113,7 +113,7 @@ void remote_usb_get_my_description(ddf_fun_t *fun, void *iface,
 	}
 
 	usb_device_desc_t desc;
-	const int ret = usb_iface->get_my_description(fun, &desc);
+	const errno_t ret = usb_iface->get_my_description(fun, &desc);
 	if (ret != EOK) {
 		async_answer_0(callid, ret);
 	} else {

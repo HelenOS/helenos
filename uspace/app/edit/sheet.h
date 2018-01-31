@@ -89,9 +89,9 @@ typedef struct {
 	size_t b_off;
 } tag_t;
 
-extern int sheet_create(sheet_t **);
-extern int sheet_insert(sheet_t *, spt_t *, enum dir_spec, char *);
-extern int sheet_delete(sheet_t *, spt_t *, spt_t *);
+extern errno_t sheet_create(sheet_t **);
+extern errno_t sheet_insert(sheet_t *, spt_t *, enum dir_spec, char *);
+extern errno_t sheet_delete(sheet_t *, spt_t *, spt_t *);
 extern void sheet_copy_out(sheet_t *, spt_t const *, spt_t const *, char *,
     size_t, spt_t *);
 extern void sheet_get_cell_pt(sheet_t *, coord_t const *, enum dir_spec,

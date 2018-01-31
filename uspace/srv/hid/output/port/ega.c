@@ -116,12 +116,12 @@ static void draw_char(charfield_t *field, sysarg_t col, sysarg_t row)
 	ega.addr[FB_POS(col, row) + 1] = attr;
 }
 
-static int ega_yield(outdev_t *dev)
+static errno_t ega_yield(outdev_t *dev)
 {
 	return EOK;
 }
 
-static int ega_claim(outdev_t *dev)
+static errno_t ega_claim(outdev_t *dev)
 {
 	return EOK;
 }
@@ -182,10 +182,10 @@ static outdev_ops_t ega_ops = {
 	.flush = ega_flush
 };
 
-int ega_init(void)
+errno_t ega_init(void)
 {
 	sysarg_t present;
-	int rc = sysinfo_get_value("fb", &present);
+	errno_t rc = sysinfo_get_value("fb", &present);
 	if (rc != EOK)
 		present = false;
 	

@@ -65,9 +65,9 @@ typedef struct {
 	fibril_mutex_t *guard;
 } ohci_rh_t;
 
-int ohci_rh_init(ohci_rh_t *, ohci_regs_t *, fibril_mutex_t *, const char *);
-int ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch);
-int ohci_rh_interrupt(ohci_rh_t *instance);
+errno_t ohci_rh_init(ohci_rh_t *, ohci_regs_t *, fibril_mutex_t *, const char *);
+errno_t ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch);
+errno_t ohci_rh_interrupt(ohci_rh_t *instance);
 
 /** Get OHCI rh address.
  *

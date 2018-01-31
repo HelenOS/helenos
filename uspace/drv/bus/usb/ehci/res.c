@@ -62,7 +62,7 @@
  * @param eecp Value of EHCI Extended Capabilities pointer.
  * @return Error code.
  */
-static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
+static errno_t disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 {
 	/* nothing to do */
 	if (eecp == 0)
@@ -70,7 +70,7 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 
 	/* Read the first EEC. i.e. Legacy Support register */
 	uint32_t usblegsup;
-	int ret = pci_config_space_read_32(parent_sess,
+	errno_t ret = pci_config_space_read_32(parent_sess,
 	    eecp + USBLEGSUP_OFFSET, &usblegsup);
 	if (ret != EOK) {
 		usb_log_error("Failed to read USBLEGSUP: %s.", str_error(ret));
@@ -172,7 +172,7 @@ static int disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	return ret;
 }
 
-int disable_legacy(hc_device_t *hcd)
+errno_t disable_legacy(hc_device_t *hcd)
 {
 	hc_t *hc = hcd_to_hc(hcd);
 
@@ -181,7 +181,6 @@ int disable_legacy(hc_device_t *hcd)
 		return ENOMEM;
 
 	usb_log_debug("Disabling EHCI legacy support.");
-
 
 	const uint32_t hcc_params = EHCI_RD(hc->caps->hccparams);
 	usb_log_debug2("Value of hcc params register: %x.", hcc_params);

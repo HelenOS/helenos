@@ -83,7 +83,7 @@ write_register_posted(am335x_timer_t *timer, timer_reg_t reg, uint32_t value)
 	}
 }
 
-int
+errno_t
 am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
     unsigned srcclk_hz)
 {

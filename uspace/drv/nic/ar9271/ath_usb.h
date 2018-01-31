@@ -58,6 +58,6 @@ typedef struct {
 	uint16_t tag;     /**< Little Endian value! */
 } ath_usb_data_header_t;
 
-extern int ath_usb_init(ath_t *, usb_device_t *, const usb_endpoint_description_t **endpoints);
+extern errno_t ath_usb_init(ath_t *, usb_device_t *, const usb_endpoint_description_t **endpoints);
 
 #endif  /* ATHEROS_ATH_USB_H */

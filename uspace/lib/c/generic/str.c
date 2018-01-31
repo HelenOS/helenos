@@ -195,7 +195,7 @@ wchar_t str_decode_reverse(const char *str, size_t *offset, size_t size)
  *         was not enough space in the output buffer or EINVAL if the character
  *         code was invalid.
  */
-int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
+errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
@@ -838,14 +838,14 @@ void str_append(char *dest, size_t size, const char *src)
  *			destination buffer, EIO if the text contains
  *			non-ASCII bytes.
  */
-int spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n)
+errno_t spascii_to_str(char *dest, size_t size, const uint8_t *src, size_t n)
 {
 	size_t sidx;
 	size_t didx;
 	size_t dlast;
 	uint8_t byte;
-	int rc;
-	int result;
+	errno_t rc;
+	errno_t result;
 
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
@@ -919,11 +919,11 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
  *
  * @return EOK, if success, an error code otherwise.
  */
-int utf16_to_str(char *dest, size_t size, const uint16_t *src)
+errno_t utf16_to_str(char *dest, size_t size, const uint16_t *src)
 {
 	size_t idx = 0, dest_off = 0;
 	wchar_t ch;
-	int rc = EOK;
+	errno_t rc = EOK;
 
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
@@ -962,9 +962,9 @@ int utf16_to_str(char *dest, size_t size, const uint16_t *src)
  *
  * @return EOK, if success, an error code otherwise.
  */
-int str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
+errno_t str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
 {
-	int rc = EOK;
+	errno_t rc = EOK;
 	size_t offset = 0;
 	size_t idx = 0;
 	wchar_t c;
@@ -1538,7 +1538,7 @@ char *str_tok(char *s, const char *delim, char **next)
  * @return EOK if conversion was successful.
  *
  */
-static int str_uint(const char *nptr, char **endptr, unsigned int base,
+static errno_t str_uint(const char *nptr, char **endptr, unsigned int base,
     bool *neg, uint64_t *result)
 {
 	assert(endptr != NULL);
@@ -1659,7 +1659,7 @@ static int str_uint(const char *nptr, char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint8_t(const char *nptr, const char **endptr, unsigned int base,
+errno_t str_uint8_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, uint8_t *result)
 {
 	assert(result != NULL);
@@ -1667,7 +1667,7 @@ int str_uint8_t(const char *nptr, const char **endptr, unsigned int base,
 	bool neg;
 	char *lendptr;
 	uint64_t res;
-	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	errno_t ret = str_uint(nptr, &lendptr, base, &neg, &res);
 	
 	if (endptr != NULL)
 		*endptr = (char *) lendptr;
@@ -1706,7 +1706,7 @@ int str_uint8_t(const char *nptr, const char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint16_t(const char *nptr, const char **endptr, unsigned int base,
+errno_t str_uint16_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, uint16_t *result)
 {
 	assert(result != NULL);
@@ -1714,7 +1714,7 @@ int str_uint16_t(const char *nptr, const char **endptr, unsigned int base,
 	bool neg;
 	char *lendptr;
 	uint64_t res;
-	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	errno_t ret = str_uint(nptr, &lendptr, base, &neg, &res);
 	
 	if (endptr != NULL)
 		*endptr = (char *) lendptr;
@@ -1753,7 +1753,7 @@ int str_uint16_t(const char *nptr, const char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint32_t(const char *nptr, const char **endptr, unsigned int base,
+errno_t str_uint32_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, uint32_t *result)
 {
 	assert(result != NULL);
@@ -1761,7 +1761,7 @@ int str_uint32_t(const char *nptr, const char **endptr, unsigned int base,
 	bool neg;
 	char *lendptr;
 	uint64_t res;
-	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	errno_t ret = str_uint(nptr, &lendptr, base, &neg, &res);
 	
 	if (endptr != NULL)
 		*endptr = (char *) lendptr;
@@ -1800,14 +1800,14 @@ int str_uint32_t(const char *nptr, const char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_uint64_t(const char *nptr, const char **endptr, unsigned int base,
+errno_t str_uint64_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	assert(result != NULL);
 	
 	bool neg;
 	char *lendptr;
-	int ret = str_uint(nptr, &lendptr, base, &neg, result);
+	errno_t ret = str_uint(nptr, &lendptr, base, &neg, result);
 	
 	if (endptr != NULL)
 		*endptr = (char *) lendptr;
@@ -1839,7 +1839,7 @@ int str_uint64_t(const char *nptr, const char **endptr, unsigned int base,
  * @return EOK if conversion was successful.
  *
  */
-int str_size_t(const char *nptr, const char **endptr, unsigned int base,
+errno_t str_size_t(const char *nptr, const char **endptr, unsigned int base,
     bool strict, size_t *result)
 {
 	assert(result != NULL);
@@ -1847,7 +1847,7 @@ int str_size_t(const char *nptr, const char **endptr, unsigned int base,
 	bool neg;
 	char *lendptr;
 	uint64_t res;
-	int ret = str_uint(nptr, &lendptr, base, &neg, &res);
+	errno_t ret = str_uint(nptr, &lendptr, base, &neg, &res);
 	
 	if (endptr != NULL)
 		*endptr = (char *) lendptr;

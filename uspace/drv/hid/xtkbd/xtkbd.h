@@ -54,7 +54,7 @@ typedef struct {
 	fid_t polling_fibril;
 } xt_kbd_t;
 
-extern int xt_kbd_init(xt_kbd_t *, ddf_dev_t *);
+extern errno_t xt_kbd_init(xt_kbd_t *, ddf_dev_t *);
 
 #endif
 

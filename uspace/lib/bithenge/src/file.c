@@ -62,14 +62,14 @@ static inline bithenge_blob_t *file_as_blob(file_blob_t *blob)
 	return &blob->base;
 }
 
-static int file_size(bithenge_blob_t *base, aoff64_t *size)
+static errno_t file_size(bithenge_blob_t *base, aoff64_t *size)
 {
 	file_blob_t *blob = blob_as_file(base);
 	*size = blob->size;
 	return EOK;
 }
 
-static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
+static errno_t file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
     aoff64_t *size)
 {
 	file_blob_t *blob = blob_as_file(base);
@@ -77,7 +77,7 @@ static int file_read(bithenge_blob_t *base, aoff64_t offset, char *buffer,
 		return ELIMIT;
 
 	size_t amount_read;
-	int rc = vfs_read(blob->fd, &offset, buffer, *size, &amount_read);
+	errno_t rc = vfs_read(blob->fd, &offset, buffer, *size, &amount_read);
 	if (rc != EOK)
 		return errno;
 	*size += amount_read;
@@ -97,12 +97,12 @@ static const bithenge_random_access_blob_ops_t file_ops = {
 	.destroy = file_destroy,
 };
 
-static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
+static errno_t new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 {
 	assert(out);
 
 	struct stat stat;
-	int rc = vfs_stat(fd, &stat);
+	errno_t rc = vfs_stat(fd, &stat);
 	if (rc != EOK) {
 		if (needs_close)
 			vfs_put(fd);
@@ -140,12 +140,12 @@ static int new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
  * @param[out] out Stores the created blob.
  * @param filename The name of the file.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
+errno_t bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 {
 	assert(filename);
 
 	int fd;
-	int rc = vfs_lookup_open(filename, WALK_REGULAR, MODE_READ, &fd);
+	errno_t rc = vfs_lookup_open(filename, WALK_REGULAR, MODE_READ, &fd);
 	if (rc != EOK)
 		return rc;
 
@@ -157,7 +157,7 @@ int bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
  * @param[out] out Stores the created blob.
  * @param fd The file descriptor.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_file_blob_from_fd(bithenge_node_t **out, int fd)
+errno_t bithenge_new_file_blob_from_fd(bithenge_node_t **out, int fd)
 {
 	return new_file_blob(out, fd, false);
 }
@@ -167,7 +167,7 @@ int bithenge_new_file_blob_from_fd(bithenge_node_t **out, int fd)
  * @param[out] out Stores the created blob.
  * @param file The file pointer.
  * @return EOK on success or an error code from errno.h. */
-int bithenge_new_file_blob_from_file(bithenge_node_t **out, FILE *file)
+errno_t bithenge_new_file_blob_from_file(bithenge_node_t **out, FILE *file)
 {
 	int fd = fileno(file);
 	if (fd < 0)

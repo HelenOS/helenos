@@ -139,7 +139,7 @@ static int irq_to_pin(int irq)
 	return irq;
 }
 
-static int apic_enable_irq(apic_t *apic, sysarg_t irq)
+static errno_t apic_enable_irq(apic_t *apic, sysarg_t irq)
 {
 	io_redirection_reg_t reg;
 
@@ -206,12 +206,12 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 }
 
 /** Add APIC device. */
-int apic_add(apic_t *apic, apic_res_t *res)
+errno_t apic_add(apic_t *apic, apic_res_t *res)
 {
 	sysarg_t have_apic;
 	ddf_fun_t *fun_a = NULL;
 	void *regs;
-	int rc;
+	errno_t rc;
 	
 	if ((sysinfo_get_value("apic", &have_apic) != EOK) || (!have_apic)) {
 		printf("%s: No APIC found\n", NAME);
@@ -253,13 +253,13 @@ error:
 }
 
 /** Remove APIC device */
-int apic_remove(apic_t *apic)
+errno_t apic_remove(apic_t *apic)
 {
 	return ENOTSUP;
 }
 
 /** APIC device gone */
-int apic_gone(apic_t *apic)
+errno_t apic_gone(apic_t *apic)
 {
 	return ENOTSUP;
 }

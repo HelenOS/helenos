@@ -55,7 +55,7 @@
  * @param dev Structure representing the new device.
  * @return Error code.
  */
-static int usb_hid_device_add(usb_device_t *dev)
+static errno_t usb_hid_device_add(usb_device_t *dev)
 {
 	usb_log_debug("%s", __FUNCTION__);
 
@@ -76,7 +76,7 @@ static int usb_hid_device_add(usb_device_t *dev)
 		return ENOMEM;
 	}
 
-	int rc = usb_hid_init(hid_dev, dev);
+	errno_t rc = usb_hid_init(hid_dev, dev);
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize USB/HID device.");
 		usb_hid_deinit(hid_dev);
@@ -125,7 +125,7 @@ static int join_and_clean(usb_device_t *dev)
  * @param dev Structure representing the device.
  * @return Error code.
  */
-static int usb_hid_device_remove(usb_device_t *dev)
+static errno_t usb_hid_device_remove(usb_device_t *dev)
 {
 	assert(dev);
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
@@ -141,7 +141,7 @@ static int usb_hid_device_remove(usb_device_t *dev)
  * @param dev Structure representing the device.
  * @return Error code.
  */
-static int usb_hid_device_gone(usb_device_t *dev)
+static errno_t usb_hid_device_gone(usb_device_t *dev)
 {
 	assert(dev);
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);

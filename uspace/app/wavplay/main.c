@@ -56,7 +56,7 @@
  * @param filename File to play.
  * @return Error code.
  */
-static int hplay_ctx(hound_context_t *ctx, const char *filename)
+static errno_t hplay_ctx(hound_context_t *ctx, const char *filename)
 {
 	printf("Hound context playback: %s\n", filename);
 	FILE *source = fopen(filename, "rb");
@@ -75,7 +75,7 @@ static int hplay_ctx(hound_context_t *ctx, const char *filename)
 	}
 	pcm_format_t format;
 	const char *error;
-	int ret = wav_parse_header(&header, NULL, NULL, &format.channels,
+	errno_t ret = wav_parse_header(&header, NULL, NULL, &format.channels,
 	    &format.sampling_rate, &format.sample_format, &error);
 	if (ret != EOK) {
 		printf("Error parsing `%s' wav header: %s.\n", filename, error);
@@ -117,7 +117,7 @@ static int hplay_ctx(hound_context_t *ctx, const char *filename)
  * @param filename File to play.
  * @return Error code
  */
-static int hplay(const char *filename)
+static errno_t hplay(const char *filename)
 {
 	printf("Hound playback: %s\n", filename);
 	FILE *source = fopen(filename, "rb");
@@ -136,7 +136,7 @@ static int hplay(const char *filename)
 	}
 	pcm_format_t format;
 	const char *error;
-	int ret = wav_parse_header(&header, NULL, NULL, &format.channels,
+	errno_t ret = wav_parse_header(&header, NULL, NULL, &format.channels,
 	    &format.sampling_rate, &format.sample_format, &error);
 	if (ret != EOK) {
 		printf("Error parsing `%s' wav header: %s.\n", filename, error);
@@ -196,11 +196,11 @@ typedef struct {
  * @param arg Argument, pointer to playback helper structure.
  * @return Error code.
  */
-static int play_wrapper(void *arg)
+static errno_t play_wrapper(void *arg)
 {
 	assert(arg);
 	fib_play_t *p = arg;
-	const int ret = hplay_ctx(p->ctx, p->file);
+	const errno_t ret = hplay_ctx(p->ctx, p->file);
 	atomic_dec(p->count);
 	free(arg);
 	return ret;
@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
 			printf("Failed to create global hound context\n");
 			return 1;
 		}
-		const int ret = hound_context_connect_target(hound_ctx,
+		const errno_t ret = hound_context_connect_target(hound_ctx,
 		    HOUND_DEFAULT_TARGET);
 		if (ret != EOK) {
 			printf("Failed to connect hound context to default "

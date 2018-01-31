@@ -42,13 +42,13 @@
 
 #define NAME "loc"
 
-static int show_cat(const char *cat_name, category_id_t cat_id)
+static errno_t show_cat(const char *cat_name, category_id_t cat_id)
 {
 	service_id_t *svc_ids;
 	size_t svc_cnt;
 	char *svc_name;
 	char *server_name;
-	int rc;
+	errno_t rc;
 	size_t j;
 
 	printf("%s:\n", cat_name);
@@ -89,14 +89,14 @@ static int show_cat(const char *cat_name, category_id_t cat_id)
 	return EOK;
 }
 
-static int list_svcs_by_cat(void)
+static errno_t list_svcs_by_cat(void)
 {
 	category_id_t *cat_ids;
 	size_t cat_cnt;
 
 	size_t i;
 	char *cat_name;
-	int rc;
+	errno_t rc;
 
 	rc = loc_get_categories(&cat_ids, &cat_cnt);
 	if (rc != EOK) {
@@ -135,7 +135,7 @@ static void print_syntax(void)
 
 int main(int argc, char *argv[])
 {
-	int rc;
+	errno_t rc;
 	char *cmd;
 	char *cat_name;
 	category_id_t cat_id;

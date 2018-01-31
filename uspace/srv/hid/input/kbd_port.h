@@ -42,7 +42,7 @@
 struct kbd_dev;
 
 typedef struct kbd_port_ops {
-	int (*init)(struct kbd_dev *);
+	errno_t (*init)(struct kbd_dev *);
 	void (*write)(uint8_t);
 } kbd_port_ops_t;
 

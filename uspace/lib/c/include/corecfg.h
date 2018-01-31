@@ -35,11 +35,12 @@
 #ifndef LIBC_CORECFG_H_
 #define LIBC_CORECFG_H_
 
+#include <errno.h>
 #include <stdbool.h>
 
-extern int corecfg_init(void);
-extern int corecfg_set_enable(bool);
-extern int corecfg_get_enable(bool *);
+extern errno_t corecfg_init(void);
+extern errno_t corecfg_set_enable(bool);
+extern errno_t corecfg_get_enable(bool *);
 
 #endif
 

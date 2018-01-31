@@ -178,24 +178,24 @@ typedef struct {
 /** Global mutex for work with shared irq structure */
 FIBRIL_MUTEX_INITIALIZE(irq_reg_mutex);
 
-static int e1000_get_address(e1000_t *, nic_address_t *);
+static errno_t e1000_get_address(e1000_t *, nic_address_t *);
 static void e1000_eeprom_get_address(e1000_t *, nic_address_t *);
-static int e1000_set_addr(ddf_fun_t *, const nic_address_t *);
+static errno_t e1000_set_addr(ddf_fun_t *, const nic_address_t *);
 
-static int e1000_defective_get_mode(ddf_fun_t *, uint32_t *);
-static int e1000_defective_set_mode(ddf_fun_t *, uint32_t);
+static errno_t e1000_defective_get_mode(ddf_fun_t *, uint32_t *);
+static errno_t e1000_defective_set_mode(ddf_fun_t *, uint32_t);
 
-static int e1000_get_cable_state(ddf_fun_t *, nic_cable_state_t *);
-static int e1000_get_device_info(ddf_fun_t *, nic_device_info_t *);
-static int e1000_get_operation_mode(ddf_fun_t *, int *,
+static errno_t e1000_get_cable_state(ddf_fun_t *, nic_cable_state_t *);
+static errno_t e1000_get_device_info(ddf_fun_t *, nic_device_info_t *);
+static errno_t e1000_get_operation_mode(ddf_fun_t *, int *,
     nic_channel_mode_t *, nic_role_t *);
-static int e1000_set_operation_mode(ddf_fun_t *, int,
+static errno_t e1000_set_operation_mode(ddf_fun_t *, int,
     nic_channel_mode_t, nic_role_t);
-static int e1000_autoneg_enable(ddf_fun_t *, uint32_t);
-static int e1000_autoneg_disable(ddf_fun_t *);
-static int e1000_autoneg_restart(ddf_fun_t *);
+static errno_t e1000_autoneg_enable(ddf_fun_t *, uint32_t);
+static errno_t e1000_autoneg_disable(ddf_fun_t *);
+static errno_t e1000_autoneg_restart(ddf_fun_t *);
 
-static int e1000_vlan_set_tag(ddf_fun_t *, uint16_t, bool, bool);
+static errno_t e1000_vlan_set_tag(ddf_fun_t *, uint16_t, bool, bool);
 
 /** Network interface options for E1000 card driver */
 static nic_iface_t e1000_nic_iface;
@@ -218,7 +218,7 @@ static nic_iface_t e1000_nic_iface = {
 /** Basic device operations for E1000 driver */
 static ddf_dev_ops_t e1000_dev_ops;
 
-static int e1000_dev_add(ddf_dev_t *);
+static errno_t e1000_dev_add(ddf_dev_t *);
 
 /** Basic driver operations for E1000 driver */
 static driver_ops_t e1000_driver_ops = {
@@ -232,8 +232,8 @@ static driver_t e1000_driver = {
 };
 
 /* The default implementation callbacks */
-static int e1000_on_activating(nic_t *);
-static int e1000_on_stopping(nic_t *);
+static errno_t e1000_on_activating(nic_t *);
+static errno_t e1000_on_stopping(nic_t *);
 static void e1000_send_frame(nic_t *, void *, size_t);
 
 /** PIO ranges used in the IRQ code. */
@@ -287,7 +287,7 @@ irq_code_t e1000_irq_code = {
  * @return EOK
  *
  */
-static int e1000_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
+static errno_t e1000_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
 {
 	assert(dev);
 	assert(info);
@@ -315,7 +315,7 @@ static int e1000_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
  * @return EOK
  *
  */
-static int e1000_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
+static errno_t e1000_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	if (E1000_REG_READ(e1000, E1000_STATUS) & (STATUS_LU))
@@ -334,7 +334,7 @@ static uint16_t e1000_calculate_itr_interval_from_usecs(suseconds_t useconds)
 /** Get operation mode of the device
  *
  */
-static int e1000_get_operation_mode(ddf_fun_t *fun, int *speed,
+static errno_t e1000_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
@@ -385,7 +385,7 @@ static void e1000_link_restart(e1000_t *e1000)
 /** Set operation mode of the device
  *
  */
-static int e1000_set_operation_mode(ddf_fun_t *fun, int speed,
+static errno_t e1000_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t role)
 {
 	if ((speed != 10) && (speed != 100) && (speed != 1000))
@@ -433,7 +433,7 @@ static int e1000_set_operation_mode(ddf_fun_t *fun, int speed,
  * @return EOK if advertisement mode set successfully
  *
  */
-static int e1000_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
+static errno_t e1000_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	
@@ -461,7 +461,7 @@ static int e1000_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
  * @return EOK
  *
  */
-static int e1000_autoneg_disable(ddf_fun_t *fun)
+static errno_t e1000_autoneg_disable(ddf_fun_t *fun)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	
@@ -489,7 +489,7 @@ static int e1000_autoneg_disable(ddf_fun_t *fun)
  * @return EOK if advertisement mode set successfully
  *
  */
-static int e1000_autoneg_restart(ddf_fun_t *dev)
+static errno_t e1000_autoneg_restart(ddf_fun_t *dev)
 {
 	return e1000_autoneg_enable(dev, 0);
 }
@@ -500,7 +500,7 @@ static int e1000_autoneg_restart(ddf_fun_t *dev)
  * @param[out] mode   Current mode
  *
  */
-static int e1000_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
+static errno_t e1000_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	
@@ -521,10 +521,10 @@ static int e1000_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
  * @return EOK of mode was set
  *
  */
-static int e1000_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
+static errno_t e1000_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	fibril_mutex_lock(&e1000->rx_lock);
 	
@@ -826,11 +826,11 @@ static void e1000_disable_vlan_filter(e1000_t *e1000)
  * @return EOK
  *
  */
-static int e1000_on_multicast_mode_change(nic_t *nic, nic_multicast_mode_t mode,
+static errno_t e1000_on_multicast_mode_change(nic_t *nic, nic_multicast_mode_t mode,
     const nic_address_t *addr, size_t addr_cnt)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	fibril_mutex_lock(&e1000->rx_lock);
 	
@@ -880,11 +880,11 @@ static int e1000_on_multicast_mode_change(nic_t *nic, nic_multicast_mode_t mode,
  * @return EOK
  *
  */
-static int e1000_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
+static errno_t e1000_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
     const nic_address_t *addr, size_t addr_cnt)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	fibril_mutex_lock(&e1000->rx_lock);
 	
@@ -936,10 +936,10 @@ static int e1000_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
  * @return EOK
  *
  */
-static int e1000_on_broadcast_mode_change(nic_t *nic, nic_broadcast_mode_t mode)
+static errno_t e1000_on_broadcast_mode_change(nic_t *nic, nic_broadcast_mode_t mode)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	int rc = EOK;
+	errno_t rc = EOK;
 	
 	fibril_mutex_lock(&e1000->rx_lock);
 	
@@ -1047,7 +1047,7 @@ static void e1000_on_vlan_mask_change(nic_t *nic,
  * @return ENOTSUP
  *
  */
-static int e1000_vlan_set_tag(ddf_fun_t *fun, uint16_t tag, bool add,
+static errno_t e1000_vlan_set_tag(ddf_fun_t *fun, uint16_t tag, bool add,
     bool strip)
 {
 	/* VLAN CFI bit cannot be set */
@@ -1263,7 +1263,7 @@ static void e1000_interrupt_handler(ipc_call_t *icall,
  * @return An error code otherwise
  *
  */
-inline static int e1000_register_int_handler(nic_t *nic, cap_handle_t *handle)
+inline static errno_t e1000_register_int_handler(nic_t *nic, cap_handle_t *handle)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
@@ -1274,7 +1274,7 @@ inline static int e1000_register_int_handler(nic_t *nic, cap_handle_t *handle)
 	e1000_irq_code.cmds[0].addr = e1000->reg_base_phys + E1000_ICR;
 	e1000_irq_code.cmds[2].addr = e1000->reg_base_phys + E1000_IMC;
 	
-	int rc = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
+	errno_t rc = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
 	    e1000_interrupt_handler, &e1000_irq_code, handle);
 	
 	fibril_mutex_unlock(&irq_reg_mutex);
@@ -1318,7 +1318,7 @@ static uint16_t e1000_calculate_itr_interval(const struct timeval *period)
  * @return ENOTSUP if the mode is not supported
  *
  */
-static int e1000_poll_mode_change(nic_t *nic, nic_poll_mode_t mode,
+static errno_t e1000_poll_mode_change(nic_t *nic, nic_poll_mode_t mode,
     const struct timeval *period)
 {
 	assert(nic);
@@ -1372,13 +1372,13 @@ static void e1000_initialize_rx_registers(e1000_t *e1000)
  * @return An error code otherwise
  *
  */
-static int e1000_initialize_rx_structure(nic_t *nic)
+static errno_t e1000_initialize_rx_structure(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	fibril_mutex_lock(&e1000->rx_lock);
 	
 	e1000->rx_ring_virt = AS_AREA_ANY;
-	int rc = dmamem_map_anonymous(
+	errno_t rc = dmamem_map_anonymous(
 	    E1000_RX_FRAME_COUNT * sizeof(e1000_rx_descriptor_t),
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 	    &e1000->rx_ring_phys, &e1000->rx_ring_virt);
@@ -1566,7 +1566,7 @@ static void e1000_initialize_tx_registers(e1000_t *e1000)
  * @param e1000 E1000 data.
  *
  */
-static int e1000_initialize_tx_structure(e1000_t *e1000)
+static errno_t e1000_initialize_tx_structure(e1000_t *e1000)
 {
 	size_t i;
 	
@@ -1578,7 +1578,7 @@ static int e1000_initialize_tx_structure(e1000_t *e1000)
 	e1000->tx_frame_phys = NULL;
 	e1000->tx_frame_virt = NULL;
 	
-	int rc = dmamem_map_anonymous(
+	errno_t rc = dmamem_map_anonymous(
 	    E1000_TX_FRAME_COUNT * sizeof(e1000_tx_descriptor_t),
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 	    &e1000->tx_ring_phys, &e1000->tx_ring_virt);
@@ -1717,7 +1717,7 @@ static void e1000_disable_tx(e1000_t *e1000)
  * @param e1000 The E1000 data
  *
  */
-static int e1000_reset(nic_t *nic)
+static errno_t e1000_reset(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
@@ -1748,7 +1748,7 @@ static int e1000_reset(nic_t *nic)
  * @return Error code otherwise
  *
  */
-static int e1000_on_activating(nic_t *nic)
+static errno_t e1000_on_activating(nic_t *nic)
 {
 	assert(nic);
 	
@@ -1760,7 +1760,7 @@ static int e1000_on_activating(nic_t *nic)
 	
 	e1000_enable_interrupts(e1000);
 	
-	int rc = hw_res_enable_interrupt(e1000->parent_sess, e1000->irq);
+	errno_t rc = hw_res_enable_interrupt(e1000->parent_sess, e1000->irq);
 	if (rc != EOK) {
 		e1000_disable_interrupts(e1000);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
@@ -1794,7 +1794,7 @@ static int e1000_on_activating(nic_t *nic)
  * @return Error code otherwise
  *
  */
-static int e1000_on_down_unlocked(nic_t *nic)
+static errno_t e1000_on_down_unlocked(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
@@ -1825,7 +1825,7 @@ static int e1000_on_down_unlocked(nic_t *nic)
  * @return Error code otherwise
  *
  */
-static int e1000_on_down(nic_t *nic)
+static errno_t e1000_on_down(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
@@ -1833,7 +1833,7 @@ static int e1000_on_down(nic_t *nic)
 	fibril_mutex_lock(&e1000->tx_lock);
 	fibril_mutex_lock(&e1000->ctrl_lock);
 	
-	int rc = e1000_on_down_unlocked(nic);
+	errno_t rc = e1000_on_down_unlocked(nic);
 	
 	fibril_mutex_unlock(&e1000->ctrl_lock);
 	fibril_mutex_unlock(&e1000->tx_lock);
@@ -1850,7 +1850,7 @@ static int e1000_on_down(nic_t *nic)
  * @return Error code otherwise
  *
  */
-static int e1000_on_stopping(nic_t *nic)
+static errno_t e1000_on_stopping(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	
@@ -1858,7 +1858,7 @@ static int e1000_on_stopping(nic_t *nic)
 	fibril_mutex_lock(&e1000->tx_lock);
 	fibril_mutex_lock(&e1000->ctrl_lock);
 	
-	int rc = e1000_on_down_unlocked(nic);
+	errno_t rc = e1000_on_down_unlocked(nic);
 	if (rc == EOK)
 		rc = e1000_reset(nic);
 	
@@ -1942,7 +1942,7 @@ static void e1000_dev_cleanup(ddf_dev_t *dev)
  * @return An error code otherwise
  *
  */
-static int e1000_fill_resource_info(ddf_dev_t *dev,
+static errno_t e1000_fill_resource_info(ddf_dev_t *dev,
     const hw_res_list_parsed_t *hw_resources)
 {
 	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
@@ -1967,7 +1967,7 @@ static int e1000_fill_resource_info(ddf_dev_t *dev,
  * @return An error code otherwise
  *
  */
-static int e1000_get_resource_info(ddf_dev_t *dev)
+static errno_t e1000_get_resource_info(ddf_dev_t *dev)
 {
 	assert(dev != NULL);
 	assert(NIC_DATA_DEV(dev) != NULL);
@@ -1976,7 +1976,7 @@ static int e1000_get_resource_info(ddf_dev_t *dev)
 	hw_res_list_parsed_init(&hw_res_parsed);
 	
 	/* Get hw resources form parent driver */
-	int rc = nic_get_resources(NIC_DATA_DEV(dev), &hw_res_parsed);
+	errno_t rc = nic_get_resources(NIC_DATA_DEV(dev), &hw_res_parsed);
 	if (rc != EOK)
 		return rc;
 	
@@ -1995,7 +1995,7 @@ static int e1000_get_resource_info(ddf_dev_t *dev)
  * @return An error code otherwise
  *
  */
-static int e1000_device_initialize(ddf_dev_t *dev)
+static errno_t e1000_device_initialize(ddf_dev_t *dev)
 {
 	/* Allocate driver data for the device. */
 	e1000_t *e1000 = e1000_create_dev_data(dev);
@@ -2011,7 +2011,7 @@ static int e1000_device_initialize(ddf_dev_t *dev)
 	}
 	
 	/* Obtain and fill hardware resources info */
-	int rc = e1000_get_resource_info(dev);
+	errno_t rc = e1000_get_resource_info(dev);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Cannot obtain hardware resources");
 		e1000_dev_cleanup(dev);
@@ -2109,11 +2109,11 @@ static int e1000_device_initialize(ddf_dev_t *dev)
  * @return An error code otherwise
  *
  */
-static int e1000_pio_enable(ddf_dev_t *dev)
+static errno_t e1000_pio_enable(ddf_dev_t *dev)
 {
 	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
 	
-	int rc = pio_enable(e1000->reg_base_phys, 8 * PAGE_SIZE,
+	errno_t rc = pio_enable(e1000->reg_base_phys, 8 * PAGE_SIZE,
 	    &e1000->reg_base_virt);
 	if (rc != EOK)
 		return EADDRNOTAVAIL;
@@ -2126,12 +2126,12 @@ static int e1000_pio_enable(ddf_dev_t *dev)
  * @param dev E1000 device.
  *
  */
-int e1000_dev_add(ddf_dev_t *dev)
+errno_t e1000_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
 	
 	/* Initialize device structure for E1000 */
-	int rc = e1000_device_initialize(dev);
+	errno_t rc = e1000_device_initialize(dev);
 	if (rc != EOK)
 		return rc;
 	
@@ -2257,7 +2257,7 @@ static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
  * @return An error code otherwise
  *
  */
-static int e1000_get_address(e1000_t *e1000, nic_address_t *address)
+static errno_t e1000_get_address(e1000_t *e1000, nic_address_t *address)
 {
 	fibril_mutex_lock(&e1000->rx_lock);
 	
@@ -2290,7 +2290,7 @@ static int e1000_get_address(e1000_t *e1000, nic_address_t *address)
  * @return EOK if succeed
  * @return An error code otherwise
  */
-static int e1000_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
+static errno_t e1000_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {
 	nic_t *nic = NIC_DATA_FUN(fun);
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
@@ -2298,7 +2298,7 @@ static int e1000_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 	fibril_mutex_lock(&e1000->rx_lock);
 	fibril_mutex_lock(&e1000->tx_lock);
 	
-	int rc = nic_report_address(nic, addr);
+	errno_t rc = nic_report_address(nic, addr);
 	if (rc == EOK)
 		e1000_write_receive_address(e1000, 0, addr, false);
 	

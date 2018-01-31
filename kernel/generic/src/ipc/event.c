@@ -137,10 +137,10 @@ void event_task_set_unmask_callback(task_t *task, event_task_type_t evno,
 	_event_set_unmask_callback(evno2event(evno, task), callback);
 }
 
-static int event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2,
+static errno_t event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2,
     sysarg_t a3, sysarg_t a4, sysarg_t a5)
 {
-	int res;
+	errno_t res;
 
 	spinlock_lock(&event->lock);
 	
@@ -205,7 +205,7 @@ static int event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2,
  *         currently not subscribed.
  *
  */
-int event_notify(event_type_t evno, bool mask, sysarg_t a1, sysarg_t a2,
+errno_t event_notify(event_type_t evno, bool mask, sysarg_t a1, sysarg_t a2,
     sysarg_t a3, sysarg_t a4, sysarg_t a5)
 {
 	assert(evno < EVENT_END);
@@ -233,7 +233,7 @@ int event_notify(event_type_t evno, bool mask, sysarg_t a1, sysarg_t a2,
  *         currently not subscribed.
  *
  */
-int event_task_notify(task_t *task, event_task_type_t evno, bool mask,
+errno_t event_task_notify(task_t *task, event_task_type_t evno, bool mask,
     sysarg_t a1, sysarg_t a2, sysarg_t a3, sysarg_t a4, sysarg_t a5)
 {
 	assert(evno >= (int) EVENT_END);
@@ -254,10 +254,10 @@ int event_task_notify(task_t *task, event_task_type_t evno, bool mask,
  *         already subscribed.
  *
  */
-static int event_subscribe(event_t *event, sysarg_t imethod,
+static errno_t event_subscribe(event_t *event, sysarg_t imethod,
     answerbox_t *answerbox)
 {
-	int res;
+	errno_t res;
 	
 	spinlock_lock(&event->lock);
 	
@@ -285,9 +285,9 @@ static int event_subscribe(event_t *event, sysarg_t imethod,
  *         already subscribed.
  *
  */
-static int event_unsubscribe(event_t *event, answerbox_t *answerbox)
+static errno_t event_unsubscribe(event_t *event, answerbox_t *answerbox)
 {
-	int res;
+	errno_t res;
 	
 	spinlock_lock(&event->lock);
 	
@@ -337,12 +337,12 @@ static void event_unmask(event_t *event)
  *         already subscribed.
  *
  */
-sysarg_t sys_ipc_event_subscribe(sysarg_t evno, sysarg_t imethod)
+sys_errno_t sys_ipc_event_subscribe(sysarg_t evno, sysarg_t imethod)
 {
 	if (evno >= EVENT_TASK_END)
 		return ELIMIT;
 	
-	return (sysarg_t) event_subscribe(evno2event(evno, TASK),
+	return (sys_errno_t) event_subscribe(evno2event(evno, TASK),
 	    (sysarg_t) imethod, &TASK->answerbox);
 }
 
@@ -356,12 +356,12 @@ sysarg_t sys_ipc_event_subscribe(sysarg_t evno, sysarg_t imethod)
            subscribed.
  *
  */
-sysarg_t sys_ipc_event_unsubscribe(sysarg_t evno)
+sys_errno_t sys_ipc_event_unsubscribe(sysarg_t evno)
 {
 	if (evno >= EVENT_TASK_END)
 		return ELIMIT;
 	
-	return (sysarg_t) event_unsubscribe(evno2event(evno, TASK),
+	return (sys_errno_t) event_unsubscribe(evno2event(evno, TASK),
 	    &TASK->answerbox);
 }
 
@@ -378,7 +378,7 @@ sysarg_t sys_ipc_event_unsubscribe(sysarg_t evno)
  * @return ELIMIT on unknown event type.
  *
  */
-sysarg_t sys_ipc_event_unmask(sysarg_t evno)
+sys_errno_t sys_ipc_event_unmask(sysarg_t evno)
 {
 	if (evno >= EVENT_TASK_END)
 		return ELIMIT;

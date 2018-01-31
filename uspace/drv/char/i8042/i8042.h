@@ -87,7 +87,7 @@ typedef struct i8042 {
 	fibril_mutex_t write_guard;
 } i8042_t;
 
-extern int i8042_init(i8042_t *, addr_range_t *, int, int, ddf_dev_t *);
+extern errno_t i8042_init(i8042_t *, addr_range_t *, int, int, ddf_dev_t *);
 
 #endif
 

@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 	void *buf = NULL;
 	uri_t *uri = NULL;
 	http_t *http = NULL;
-	int rc;
+	errno_t rc;
 	int ret;
 
 	if (argc < 2) {

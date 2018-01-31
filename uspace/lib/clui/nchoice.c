@@ -42,10 +42,10 @@
 /** Create numerical choice
  *
  */
-int nchoice_create(nchoice_t **rchoice)
+errno_t nchoice_create(nchoice_t **rchoice)
 {
 	nchoice_t *choice = NULL;
-	int rc;
+	errno_t rc;
 
 	choice = calloc(1, sizeof(nchoice_t));
 	if (choice == NULL)
@@ -81,7 +81,7 @@ void nchoice_destroy(nchoice_t *choice)
 }
 
 /** Set numerica choice prompt text */
-int nchoice_set_prompt(nchoice_t *choice, const char *prompt)
+errno_t nchoice_set_prompt(nchoice_t *choice, const char *prompt)
 {
 	char *pstr;
 
@@ -95,7 +95,7 @@ int nchoice_set_prompt(nchoice_t *choice, const char *prompt)
 }
 
 /** Add option to numerical choice */
-int nchoice_add(nchoice_t *choice, const char *opttext, void *arg,
+errno_t nchoice_add(nchoice_t *choice, const char *opttext, void *arg,
     nchoice_flag_t flags)
 {
 	nchoice_opt_t *opt;
@@ -126,10 +126,10 @@ int nchoice_add(nchoice_t *choice, const char *opttext, void *arg,
 }
 
 /** Get numerical choice from user */
-int nchoice_get(nchoice_t *choice, void **rarg)
+errno_t nchoice_get(nchoice_t *choice, void **rarg)
 {
 	int i;
-	int rc;
+	errno_t rc;
 	int ret;
 	char *str;
 	unsigned long c;

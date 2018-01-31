@@ -103,7 +103,7 @@ void ddi_parea_register(parea_t *parea)
  * @return ENOMEM if there was a problem in creating address space area.
  *
  */
-NO_TRACE static int physmem_map(uintptr_t phys, size_t pages,
+NO_TRACE static errno_t physmem_map(uintptr_t phys, size_t pages,
     unsigned int flags, uintptr_t *virt, uintptr_t bound)
 {
 	assert(TASK);
@@ -209,7 +209,7 @@ map:
 	return EOK;
 }
 
-NO_TRACE static int physmem_unmap(uintptr_t virt)
+NO_TRACE static errno_t physmem_unmap(uintptr_t virt)
 {
 	assert(TASK);
 
@@ -227,11 +227,11 @@ NO_TRACE static int physmem_unmap(uintptr_t virt)
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-sysarg_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
+sys_errno_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
     void *virt_ptr, uintptr_t bound)
 {
 	uintptr_t virt;
-	int rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
+	errno_t rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
 	if (rc != EOK)
 		return rc;
 	
@@ -249,7 +249,7 @@ sysarg_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
 	return EOK;
 }
 
-sysarg_t sys_physmem_unmap(uintptr_t virt)
+sys_errno_t sys_physmem_unmap(uintptr_t virt)
 {
 	return physmem_unmap(virt);
 }
@@ -264,7 +264,7 @@ sysarg_t sys_physmem_unmap(uintptr_t virt)
  *           syscall, ENOENT if there is no task matching the specified ID.
  *
  */
-NO_TRACE static int iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
+NO_TRACE static errno_t iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 {
 	/*
 	 * Make sure the caller is authorised to make this syscall.
@@ -289,7 +289,7 @@ NO_TRACE static int iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 	
 	/* Lock the task and release the lock protecting tasks_btree. */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
-	int rc = ddi_iospace_enable_arch(task, ioaddr, size);
+	errno_t rc = ddi_iospace_enable_arch(task, ioaddr, size);
 	irq_spinlock_unlock(&task->lock, true);
 
 	return rc;
@@ -305,7 +305,7 @@ NO_TRACE static int iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
  *           syscall, ENOENT if there is no task matching the specified ID.
  *
  */
-NO_TRACE static int iospace_disable(task_id_t id, uintptr_t ioaddr, size_t size)
+NO_TRACE static errno_t iospace_disable(task_id_t id, uintptr_t ioaddr, size_t size)
 {
 	/*
 	 * Make sure the caller is authorised to make this syscall.
@@ -330,7 +330,7 @@ NO_TRACE static int iospace_disable(task_id_t id, uintptr_t ioaddr, size_t size)
 	
 	/* Lock the task and release the lock protecting tasks_btree. */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
-	int rc = ddi_iospace_disable_arch(task, ioaddr, size);
+	errno_t rc = ddi_iospace_disable_arch(task, ioaddr, size);
 	irq_spinlock_unlock(&task->lock, true);
 	
 	return rc;
@@ -343,29 +343,29 @@ NO_TRACE static int iospace_disable(task_id_t id, uintptr_t ioaddr, size_t size)
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-sysarg_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
+sys_errno_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
-	int rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
-	if (rc != 0)
-		return (sysarg_t) rc;
+	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
+	if (rc != EOK)
+		return (sys_errno_t) rc;
 	
-	return (sysarg_t) iospace_enable((task_id_t) arg.task_id,
+	return (sys_errno_t) iospace_enable((task_id_t) arg.task_id,
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
-sysarg_t sys_iospace_disable(ddi_ioarg_t *uspace_io_arg)
+sys_errno_t sys_iospace_disable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
-	int rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
-	if (rc != 0)
-		return (sysarg_t) rc;
+	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
+	if (rc != EOK)
+		return (sys_errno_t) rc;
 
-	return (sysarg_t) iospace_disable((task_id_t) arg.task_id,
+	return (sys_errno_t) iospace_disable((task_id_t) arg.task_id,
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
-NO_TRACE static int dmamem_map(uintptr_t virt, size_t size, unsigned int map_flags,
+NO_TRACE static errno_t dmamem_map(uintptr_t virt, size_t size, unsigned int map_flags,
     unsigned int flags, uintptr_t *phys)
 {
 	assert(TASK);
@@ -374,7 +374,7 @@ NO_TRACE static int dmamem_map(uintptr_t virt, size_t size, unsigned int map_fla
 	return page_find_mapping(virt, phys);
 }
 
-NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
+NO_TRACE static errno_t dmamem_map_anonymous(size_t size, uintptr_t constraint,
     unsigned int map_flags, unsigned int flags, uintptr_t *phys,
     uintptr_t *virt, uintptr_t bound)
 {
@@ -402,18 +402,18 @@ NO_TRACE static int dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	return EOK;
 }
 
-NO_TRACE static int dmamem_unmap(uintptr_t virt, size_t size)
+NO_TRACE static errno_t dmamem_unmap(uintptr_t virt, size_t size)
 {
 	// TODO: implement unlocking & unmap
 	return EOK;
 }
 
-NO_TRACE static int dmamem_unmap_anonymous(uintptr_t virt)
+NO_TRACE static errno_t dmamem_unmap_anonymous(uintptr_t virt)
 {
 	return as_area_destroy(TASK->as, virt);
 }
 
-sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
+sys_errno_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
     void *phys_ptr, void *virt_ptr, uintptr_t bound)
 {
 	if ((flags & DMAMEM_FLAGS_ANONYMOUS) == 0) {
@@ -422,7 +422,7 @@ sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
 		 */
 		
 		uintptr_t phys;
-		int rc = dmamem_map((uintptr_t) virt_ptr, size, map_flags,
+		errno_t rc = dmamem_map((uintptr_t) virt_ptr, size, map_flags,
 		    flags, &phys);
 		
 		if (rc != EOK)
@@ -439,7 +439,7 @@ sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
 		 */
 		
 		uintptr_t constraint;
-		int rc = copy_from_uspace(&constraint, phys_ptr,
+		errno_t rc = copy_from_uspace(&constraint, phys_ptr,
 		    sizeof(constraint));
 		if (rc != EOK)
 			return rc;
@@ -471,7 +471,7 @@ sysarg_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int flags,
 	return EOK;
 }
 
-sysarg_t sys_dmamem_unmap(uintptr_t virt, size_t size, unsigned int flags)
+sys_errno_t sys_dmamem_unmap(uintptr_t virt, size_t size, unsigned int flags)
 {
 	if ((flags & DMAMEM_FLAGS_ANONYMOUS) == 0)
 		return dmamem_unmap(virt, size);

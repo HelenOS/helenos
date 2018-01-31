@@ -94,7 +94,7 @@ typedef void (*send_frame_handler)(nic_t *, void *, size_t);
  * @return EOK	If everything is all right.
  * @return error code on error.
  */
-typedef int (*state_change_handler)(nic_t *);
+typedef errno_t (*state_change_handler)(nic_t *);
 
 /**
  * Handler for unicast filtering mode change.
@@ -107,7 +107,7 @@ typedef int (*state_change_handler)(nic_t *);
  * @return EOK		If the mode is set up
  * @return ENOTSUP	If this mode is not supported
  */
-typedef int (*unicast_mode_change_handler)(nic_t *,
+typedef errno_t (*unicast_mode_change_handler)(nic_t *,
     nic_unicast_mode_t, const nic_address_t *, size_t);
 
 /**
@@ -121,7 +121,7 @@ typedef int (*unicast_mode_change_handler)(nic_t *,
  * @return EOK		If the mode is set up
  * @return ENOTSUP	If this mode is not supported
  */
-typedef int (*multicast_mode_change_handler)(nic_t *,
+typedef errno_t (*multicast_mode_change_handler)(nic_t *,
     nic_multicast_mode_t, const nic_address_t *, size_t);
 
 /**
@@ -133,7 +133,7 @@ typedef int (*multicast_mode_change_handler)(nic_t *,
  * @return EOK		If the mode is set up
  * @return ENOTSUP	If this mode is not supported
  */
-typedef int (*broadcast_mode_change_handler)(nic_t *, nic_broadcast_mode_t);
+typedef errno_t (*broadcast_mode_change_handler)(nic_t *, nic_broadcast_mode_t);
 
 /**
  * Handler for blocked sources list change.
@@ -171,7 +171,7 @@ typedef void (*vlan_mask_change_handler)(nic_t *, const nic_vlan_mask_t *);
  * @return ELIMIT	If this filter must implemented in HW but currently the
  * 					limit of these HW filters was reached.
  */
-typedef int (*wol_virtue_add_handler)(nic_t *, const nic_wol_virtue_t *);
+typedef errno_t (*wol_virtue_add_handler)(nic_t *, const nic_wol_virtue_t *);
 
 /**
  * Handler called when a WOL virtue is removed.
@@ -194,7 +194,7 @@ typedef void (*wol_virtue_remove_handler)(nic_t *, const nic_wol_virtue_t *);
  * @return ENOTSUP	If NICF should do the periodic polling
  * @return EINVAL	If this mode cannot be set up under no circumstances
  */
-typedef int (*poll_mode_change_handler)(nic_t *,
+typedef errno_t (*poll_mode_change_handler)(nic_t *,
     nic_poll_mode_t, const struct timeval *);
 
 /**
@@ -210,12 +210,12 @@ extern nic_t *nic_create_and_bind(ddf_dev_t *);
 extern void nic_unbind_and_destroy(ddf_dev_t *);
 
 /* Functions called in the main function */
-extern int nic_driver_init(const char *);
+extern errno_t nic_driver_init(const char *);
 extern void nic_driver_implement(driver_ops_t *, ddf_dev_ops_t *,
     nic_iface_t *);
 
 /* Functions called in add_device */
-extern int nic_get_resources(nic_t *, hw_res_list_parsed_t *);
+extern errno_t nic_get_resources(nic_t *, hw_res_list_parsed_t *);
 extern void nic_set_specific(nic_t *, void *);
 extern void nic_set_send_frame_handler(nic_t *, send_frame_handler);
 extern void nic_set_state_change_handlers(nic_t *,
@@ -238,8 +238,8 @@ extern nic_t *nic_get_from_ddf_fun(ddf_fun_t *);
 extern void *nic_get_specific(nic_t *);
 extern nic_device_state_t nic_query_state(nic_t *);
 extern void nic_set_tx_busy(nic_t *, int);
-extern int nic_report_address(nic_t *, const nic_address_t *);
-extern int nic_report_poll_mode(nic_t *, nic_poll_mode_t, struct timeval *);
+extern errno_t nic_report_address(nic_t *, const nic_address_t *);
+extern errno_t nic_report_poll_mode(nic_t *, nic_poll_mode_t, struct timeval *);
 extern void nic_query_address(nic_t *, nic_address_t *);
 extern void nic_received_frame(nic_t *, nic_frame_t *);
 extern void nic_received_frame_list(nic_t *, nic_frame_list_t *);
@@ -267,7 +267,7 @@ extern void nic_query_multicast(const nic_t *,
 extern void nic_query_broadcast(const nic_t *, nic_broadcast_mode_t *);
 extern void nic_query_blocked_sources(const nic_t *,
     size_t, nic_address_t *, size_t *);
-extern int nic_query_vlan_mask(const nic_t *, nic_vlan_mask_t *);
+extern errno_t nic_query_vlan_mask(const nic_t *, nic_vlan_mask_t *);
 extern int nic_query_wol_max_caps(const nic_t *, nic_wv_type_t);
 extern void nic_set_wol_max_caps(nic_t *, nic_wv_type_t, int);
 extern uint64_t nic_mcast_hash(const nic_address_t *, size_t);
