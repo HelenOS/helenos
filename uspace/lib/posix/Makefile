@@ -97,11 +97,11 @@ TEST_SOURCES = \
 	test/scanf.c
 
 EXPORT_CPPFLAGS = \
-	-specs $(EXPORT_DIR)/lib/gcc.specs \
-	-isystem $(EXPORT_DIR)/include
+	-specs $$(HELENOS_EXPORT_ROOT)/lib/gcc.specs \
+	-isystem $$(HELENOS_EXPORT_ROOT)/include
 
 EXPORT_LDFLAGS = \
-	-L$(EXPORT_DIR)/lib \
+	-L$$(HELENOS_EXPORT_ROOT)/lib \
 	--whole-archive -lc -lmath --no-whole-archive \
 	-T link.ld
 
@@ -130,16 +130,20 @@ $(INCLUDE_LIBC): $(shell find ../c/include -name '*.h')
 	cp -r -L --remove-destination -T ../c/include $@
 	find ../c/include -type f -and -not -name '*.h' -delete
 
-export: $(EXPORT_DIR)/config
+export: $(EXPORT_DIR)/config.mk $(EXPORT_DIR)/config.rc
 
-$(EXPORT_DIR)/config: export-libs export-includes
+$(EXPORT_DIR)/config.mk: export-libs export-includes
 	echo '# Generated file, do not modify.' >> $@.new
+	echo '# Do not forget to set HELENOS_EXPORT_ROOT.' >> $@.new
 	echo 'HELENOS_CROSS_PATH="$(shell dirname $(CC))"' >> $@.new
 	echo 'HELENOS_TARGET="$(TARGET)"' >> $@.new
 	echo 'HELENOS_CPPFLAGS="$(EXPORT_CPPFLAGS)"' >> $@.new
 	echo 'HELENOS_CFLAGS="$(EXPORT_CFLAGS)"' >> $@.new
 	echo 'HELENOS_LDFLAGS="$(EXPORT_LDFLAGS)"' >> $@.new
 	mv $@.new $@
+
+$(EXPORT_DIR)/config.rc: $(EXPORT_DIR)/config.mk
+	sed 's:$$(HELENOS_EXPORT_ROOT):$$HELENOS_EXPORT_ROOT:g' < $< >$@
 
 export-libs: $(EXPORT_FILES) export-includes
 	mkdir -p $(EXPORT_DIR)/lib
