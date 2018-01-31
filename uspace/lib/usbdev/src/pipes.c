@@ -35,6 +35,7 @@
 #include <usb/dev/pipes.h>
 #include <usb/dev/request.h>
 #include <usb/usb.h>
+#include <usb/dma_buffer.h>
 
 #include <assert.h>
 #include <async.h>
@@ -158,6 +159,31 @@ errno_t usb_pipe_control_write(usb_pipe_t *pipe,
 	}
 
 	return rc;
+}
+
+/**
+ * Allocate a buffer for data transmission, that satisfies the constraints
+ * imposed by the host controller.
+ *
+ * @param[in] pipe Pipe for which the buffer is allocated
+ * @param[in] size Size of the required buffer
+ */
+void *usb_pipe_alloc_buffer(usb_pipe_t *pipe, size_t size)
+{
+	// FIXME: Do not use the default policy, but the one required by HC.
+
+	dma_buffer_t buf;
+	if (dma_buffer_alloc(&buf, size))
+		return NULL;
+
+	return buf.virt;
+}
+
+void usb_pipe_free_buffer(usb_pipe_t *pipe, void *buffer)
+{
+	dma_buffer_t buf;
+	buf.virt = buffer;
+	dma_buffer_free(&buf);
 }
 
 /** Request a read (in) transfer on an endpoint pipe.

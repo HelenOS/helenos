@@ -114,6 +114,8 @@ errno_t usb_pipe_control_read(usb_pipe_t *, const void *, size_t,
 errno_t usb_pipe_control_write(usb_pipe_t *, const void *, size_t,
     const void *, size_t);
 
+void *usb_pipe_alloc_buffer(usb_pipe_t *, size_t);
+void usb_pipe_free_buffer(usb_pipe_t *, void *);
 #endif
 /**
  * @}
