@@ -147,6 +147,8 @@ extern errno_t usbhc_device_remove(async_exch_t *, unsigned);
 extern errno_t usbhc_register_endpoint(async_exch_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
 extern errno_t usbhc_unregister_endpoint(async_exch_t *, const usb_pipe_desc_t *);
 
+extern errno_t usbhc_transfer(async_exch_t *, usb_endpoint_t, usb_direction_t,
+    uint64_t, void *, size_t, size_t *);
 extern errno_t usbhc_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
     size_t *);
 extern errno_t usbhc_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
@@ -165,11 +167,8 @@ typedef struct {
 	int (*register_endpoint)(ddf_fun_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
 	int (*unregister_endpoint)(ddf_fun_t *, const usb_pipe_desc_t *);
 
-	errno_t (*read)(ddf_fun_t *, usb_target_t,
-		uint64_t, char *, size_t,
-		usbhc_iface_transfer_callback_t, void *);
-	errno_t (*write)(ddf_fun_t *, usb_target_t,
-		uint64_t, const char *, size_t,
+	errno_t (*transfer)(ddf_fun_t *, usb_target_t,
+		usb_direction_t, uint64_t, char *, size_t,
 		usbhc_iface_transfer_callback_t, void *);
 } usbhc_iface_t;
 

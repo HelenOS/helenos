@@ -253,9 +253,12 @@ static errno_t get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
 	return EOK;
 }
 
-/** Inbound communication interface function.
+/**
+ * Transfer issuing interface function.
+ *
  * @param fun DDF function.
  * @param target Communication target.
+ * @param dir Communication direction.
  * @param setup_data Data to use in setup stage (control transfers).
  * @param data Pointer to data buffer.
  * @param size Size of the data buffer.
@@ -263,8 +266,8 @@ static errno_t get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static errno_t dev_read(ddf_fun_t *fun, usb_target_t target,
-    uint64_t setup_data, char *data, size_t size,
+static errno_t transfer(ddf_fun_t *fun, usb_target_t target,
+    usb_direction_t dir, uint64_t setup_data, char *data, size_t size,
     usbhc_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
@@ -282,43 +285,11 @@ static errno_t dev_read(ddf_fun_t *fun, usb_target_t target,
 	if (!callback && arg)
 		return EBADMEM;
 
-	return bus_device_send_batch(dev, target, USB_DIRECTION_IN,
-	    data, size, setup_data,
-	    callback, arg, "READ");
-}
+	const char *name = (dir == USB_DIRECTION_IN) ? "READ" : "WRITE";
 
-/** Outbound communication interface function.
- * @param fun DDF function.
- * @param target Communication target.
- * @param setup_data Data to use in setup stage (control transfers).
- * @param data Pointer to data buffer.
- * @param size Size of the data buffer.
- * @param callback Function to call on communication end.
- * @param arg Argument passed to the callback function.
- * @return Error code.
- */
-static errno_t dev_write(ddf_fun_t *fun, usb_target_t target,
-    uint64_t setup_data, const char *data, size_t size,
-    usbhc_iface_transfer_callback_t callback, void *arg)
-{
-	assert(fun);
-	device_t *dev = ddf_fun_data_get(fun);
-	assert(dev);
-
-	target.address = dev->address;
-
-	if (!usb_target_is_valid(&target))
-		return EINVAL;
-
-	if (size > 0 && data == NULL)
-		return EBADMEM;
-
-	if (!callback && arg)
-		return EBADMEM;
-
-	return bus_device_send_batch(dev, target, USB_DIRECTION_OUT,
+	return bus_device_send_batch(dev, target, dir,
 	    (char *) data, size, setup_data,
-	    callback, arg, "WRITE");
+	    callback, arg, name);
 }
 
 /** USB device interface */
@@ -336,8 +307,7 @@ static usbhc_iface_t usbhc_iface = {
 	.register_endpoint = register_endpoint,
 	.unregister_endpoint = unregister_endpoint,
 
-	.read = dev_read,
-	.write = dev_write,
+	.transfer = transfer,
 };
 
 /** Standard USB device interface) */
