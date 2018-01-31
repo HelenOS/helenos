@@ -283,6 +283,88 @@ void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t
 	}
 }
 
+typedef struct joinable_fibril {
+	fid_t fid;
+	void *arg;
+	fibril_worker_t worker;
+
+	bool running;
+	fibril_mutex_t guard;
+	fibril_condvar_t dead_cv;
+} joinable_fibril_t;
+
+static int joinable_fibril_worker(void *arg)
+{
+	joinable_fibril_t *jf = arg;
+	jf->worker(jf->arg);
+
+	fibril_mutex_lock(&jf->guard);
+	jf->running = false;
+	fibril_mutex_unlock(&jf->guard);
+	fibril_condvar_broadcast(&jf->dead_cv);
+	return 0;
+}
+
+/**
+ * Create a fibril that is joinable. Similar to fibril_create.
+ */
+joinable_fibril_t *joinable_fibril_create(fibril_worker_t worker, void *arg)
+{
+	joinable_fibril_t *jf = calloc(1, sizeof(joinable_fibril_t));
+	if (!jf)
+		return NULL;
+
+	jf->fid = fibril_create(joinable_fibril_worker, jf);
+	if (!jf->fid) {
+		free(jf);
+		return NULL;
+	}
+
+	jf->worker = worker;
+	jf->arg = arg;
+	fibril_mutex_initialize(&jf->guard);
+	fibril_condvar_initialize(&jf->dead_cv);
+
+	return jf;
+}
+
+
+/**
+ * Start a joinable fibril. Similar to fibril_add_ready.
+ */
+void joinable_fibril_start(joinable_fibril_t *jf)
+{
+	assert(jf);
+	assert(!jf->running);
+
+	jf->running = true;
+	fibril_add_ready(jf->fid);
+}
+
+/**
+ * Join a joinable fibril. Not similar to anything, obviously.
+ */
+void joinable_fibril_join(joinable_fibril_t *jf)
+{
+	assert(jf);
+
+	fibril_mutex_lock(&jf->guard);
+	while (jf->running)
+		fibril_condvar_wait(&jf->dead_cv, &jf->guard);
+	fibril_mutex_unlock(&jf->guard);
+}
+
+/**
+ * Regular fibrils clean after themselves, joinable fibrils cannot.
+ */
+void joinable_fibril_destroy(joinable_fibril_t *jf)
+{
+	if (jf) {
+		joinable_fibril_join(jf);
+		free(jf);
+	}
+}
+
 /**
  * @}
  */

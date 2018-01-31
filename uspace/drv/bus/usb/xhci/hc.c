@@ -276,18 +276,13 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 	if ((err = xhci_bus_init(&hc->bus, hc)))
 		goto err_cmd;
 
-	fid_t fid = fibril_create(&event_worker, hc);
-	if (!fid)
+	hc->event_worker = joinable_fibril_create(&event_worker, hc);
+	if (!hc->event_worker)
 		goto err_bus;
-
-	// TODO: completion_reset
-	hc->event_fibril_completion.active = true;
-	fibril_mutex_initialize(&hc->event_fibril_completion.guard);
-	fibril_condvar_initialize(&hc->event_fibril_completion.cv);
 
 	xhci_sw_ring_init(&hc->sw_ring, PAGE_SIZE / sizeof(xhci_trb_t));
 
-	fibril_add_ready(fid);
+	joinable_fibril_start(hc->event_worker);
 
 	return EOK;
 
@@ -597,13 +592,7 @@ static int event_worker(void *arg)
 			usb_log_error("Failed to handle event: %s", str_error(err));
 	}
 
-	// TODO: completion_complete
-	fibril_mutex_lock(&hc->event_fibril_completion.guard);
-	hc->event_fibril_completion.active = false;
-	fibril_condvar_broadcast(&hc->event_fibril_completion.cv);
-	fibril_mutex_unlock(&hc->event_fibril_completion.guard);
-
-	return EOK;
+	return 0;
 }
 
 /**
@@ -687,13 +676,7 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 void hc_fini(xhci_hc_t *hc)
 {
 	xhci_sw_ring_stop(&hc->sw_ring);
-
-	// TODO: completion_wait
-	fibril_mutex_lock(&hc->event_fibril_completion.guard);
-	while (hc->event_fibril_completion.active)
-		fibril_condvar_wait(&hc->event_fibril_completion.cv,
-		    &hc->event_fibril_completion.guard);
-	fibril_mutex_unlock(&hc->event_fibril_completion.guard);
+	joinable_fibril_join(hc->event_worker);
 	xhci_sw_ring_fini(&hc->sw_ring);
 
 	xhci_bus_fini(&hc->bus);

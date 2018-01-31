@@ -53,6 +53,17 @@ int hc_get_device_desc(device_t *, usb_standard_device_descriptor_t *);
 int hc_get_hub_desc(device_t *, usb_hub_descriptor_header_t *);
 int hc_device_explore(device_t *);
 
+/** Joinable fibril */
+
+typedef int (*fibril_worker_t)(void *);
+typedef struct joinable_fibril joinable_fibril_t;
+
+joinable_fibril_t *joinable_fibril_create(fibril_worker_t, void *);
+void joinable_fibril_start(joinable_fibril_t *);
+void joinable_fibril_join(joinable_fibril_t *);
+void joinable_fibril_destroy(joinable_fibril_t *);
+
+
 #endif
 /**
  * @}

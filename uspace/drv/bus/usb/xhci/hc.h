@@ -38,6 +38,7 @@
 
 #include <fibril_synch.h>
 #include <usb/host/usb_transfer_batch.h>
+#include <usb/host/utility.h>
 #include "hw_struct/regs.h"
 #include "hw_struct/context.h"
 #include "scratchpad.h"
@@ -77,11 +78,8 @@ typedef struct xhci_hc {
 	/* Buffer for events */
 	xhci_sw_ring_t sw_ring;
 
-	struct {
-		fibril_mutex_t guard;
-		fibril_condvar_t cv;
-		bool active;
-	} event_fibril_completion;
+	/** Event handling fibril */
+	joinable_fibril_t *event_worker;
 
 	/* Root hub emulation */
 	xhci_rh_t rh;

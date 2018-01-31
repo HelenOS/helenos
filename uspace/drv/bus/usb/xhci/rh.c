@@ -95,8 +95,8 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 		return err;
 	}
 
-	fid_t fid = fibril_create(&rh_worker, rh);
-	if (!fid) {
+	rh->event_worker = joinable_fibril_create(&rh_worker, rh);
+	if (!rh->event_worker) {
 		free(rh->ports);
 		return err;
 	}
@@ -112,11 +112,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 
 	xhci_sw_ring_init(&rh->event_ring, rh->max_ports);
 
-	hc->event_fibril_completion.active = true;
-	fibril_mutex_initialize(&hc->event_fibril_completion.guard);
-	fibril_condvar_initialize(&hc->event_fibril_completion.cv);
-
-	fibril_add_ready(fid);
+	joinable_fibril_start(rh->event_worker);
 
 	return EOK;
 }
@@ -131,13 +127,7 @@ int xhci_rh_fini(xhci_rh_t *rh)
 		usb_port_fini(&rh->ports[i].base);
 
 	xhci_sw_ring_stop(&rh->event_ring);
-
-	// TODO: completion_wait
-	fibril_mutex_lock(&rh->event_fibril_completion.guard);
-	while (rh->event_fibril_completion.active)
-		fibril_condvar_wait(&rh->event_fibril_completion.cv,
-		    &rh->event_fibril_completion.guard);
-	fibril_mutex_unlock(&rh->event_fibril_completion.guard);
+	joinable_fibril_join(rh->event_worker);
 	xhci_sw_ring_fini(&rh->event_ring);
 	return EOK;
 }
@@ -331,13 +321,7 @@ static int rh_worker(void *arg)
 		handle_port_change(rh, port_id);
 	}
 
-	// TODO: completion_complete
-	fibril_mutex_lock(&rh->event_fibril_completion.guard);
-	rh->event_fibril_completion.active = false;
-	fibril_condvar_broadcast(&rh->event_fibril_completion.cv);
-	fibril_mutex_unlock(&rh->event_fibril_completion.guard);
-
-	return EOK;
+	return 0;
 }
 
 /**

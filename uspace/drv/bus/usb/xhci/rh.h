@@ -36,8 +36,9 @@
 #ifndef XHCI_RH_H
 #define XHCI_RH_H
 
-#include <usb/host/usb_transfer_batch.h>
 #include <usb/host/bus.h>
+#include <usb/host/usb_transfer_batch.h>
+#include <usb/host/utility.h>
 
 #include "hw_struct/regs.h"
 #include "endpoint.h"
@@ -76,11 +77,7 @@ typedef struct {
 	/* Event ring for roothub */
 	xhci_sw_ring_t event_ring;
 
-	struct {
-		fibril_mutex_t guard;
-		fibril_condvar_t cv;
-		bool active;
-	} event_fibril_completion;
+	joinable_fibril_t *event_worker;
 } xhci_rh_t;
 
 extern int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
