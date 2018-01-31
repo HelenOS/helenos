@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbehci
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -37,8 +37,8 @@
  * extended to support memory pools, which will enable smaller units of
  * allocation.
  */
-#ifndef LIB_USBHOST_DMA_BUFFER
-#define LIB_USBHOST_DMA_BUFFER
+#ifndef LIB_USB_DMA_BUFFER
+#define LIB_USB_DMA_BUFFER
 
 #include <stdint.h>
 #include <stdlib.h>

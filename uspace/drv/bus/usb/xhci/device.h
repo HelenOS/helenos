@@ -35,7 +35,7 @@
 #define XHCI_DEVICE_H
 
 #include <usb/host/bus.h>
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 
 typedef struct xhci_slot_ctx xhci_slot_ctx_t;
 

@@ -39,7 +39,6 @@ SOURCES = \
 	src/bus.c \
 	src/usb2_bus.c \
 	src/bandwidth.c \
-	src/dma_buffer.c \
 	src/utility.c \
 	src/usb_transfer_batch.c
 

@@ -45,7 +45,7 @@
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <libarch/config.h>
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 
 typedef struct trb_segment trb_segment_t;
 typedef struct xhci_hc xhci_hc_t;

@@ -39,7 +39,7 @@
 #include <assert.h>
 
 #include <usb/debug.h>
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 #include <usb/host/endpoint.h>
 #include <usb/host/hcd.h>
 #include <ddf/driver.h>

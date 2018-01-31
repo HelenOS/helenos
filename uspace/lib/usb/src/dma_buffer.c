@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2013 Jan Vesely
  * Copyright (c) 2017 Ondrej Hlavaty <aearsis@eideo.cz>
  * All rights reserved.
  *
@@ -26,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/**  @addtogroup libusbhost
+/**  @addtogroup libusb
  * @{
  */
 /** @file
@@ -37,7 +36,7 @@
 #include <ddi.h>
 #include <stddef.h>
 
-#include "dma_buffer.h"
+#include "usb/dma_buffer.h"
 
 dma_policy_t dma_policy_default = {
 	.use64 = false,

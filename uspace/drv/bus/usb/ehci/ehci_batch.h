@@ -38,7 +38,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <usb/host/usb_transfer_batch.h>
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 
 #include "hw_struct/queue_head.h"
 #include "hw_struct/transfer_descriptor.h"

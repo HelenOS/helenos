@@ -40,7 +40,7 @@
 #ifndef XHCI_SCRATCHPAD_H
 #define XHCI_SCRATCHPAD_H
 
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 
 typedef struct xhci_hc xhci_hc_t;
 

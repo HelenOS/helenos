@@ -39,7 +39,7 @@
 #include <usb/debug.h>
 #include <usb/host/bus.h>
 #include <usb/host/ddf_helpers.h>
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 #include <usb/host/hcd.h>
 #include <usb/port.h>
 

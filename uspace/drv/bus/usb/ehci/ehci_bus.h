@@ -39,7 +39,7 @@
 #include <adt/list.h>
 #include <usb/host/usb2_bus.h>
 #include <usb/host/endpoint.h>
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 
 #include "hw_struct/queue_head.h"
 

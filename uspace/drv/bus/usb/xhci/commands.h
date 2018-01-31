@@ -39,7 +39,7 @@
 #include <adt/list.h>
 #include <stdbool.h>
 #include <fibril_synch.h>
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 #include "hw_struct/trb.h"
 #include "trb_ring.h"
 

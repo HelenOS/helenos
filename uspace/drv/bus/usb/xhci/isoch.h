@@ -36,7 +36,7 @@
 #ifndef XHCI_ISOCH_H
 #define XHCI_ISOCH_H
 
-#include <usb/host/dma_buffer.h>
+#include <usb/dma_buffer.h>
 
 #include "trb_ring.h"
 
