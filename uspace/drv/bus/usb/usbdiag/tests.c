@@ -48,7 +48,7 @@ static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 	if (!pipe)
 		return EBADMEM;
 
-	char *buffer = (char *) malloc(size);
+	char *buffer = usb_pipe_alloc_buffer(pipe, size);
 	if (!buffer)
 		return ENOMEM;
 
@@ -66,7 +66,7 @@ static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 		size_t transferred;
 
 		while (remaining > 0) {
-			if ((rc = usb_pipe_read(pipe, buffer + size - remaining, remaining, &transferred))) {
+			if ((rc = usb_pipe_read_dma(pipe, buffer + size - remaining, remaining, &transferred))) {
 				usb_log_error("Read of %s IN endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 				break;
 			}
@@ -91,7 +91,7 @@ static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 
 	usb_log_info("Burst test on %s IN endpoint completed in %lu ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
-	free(buffer);
+	usb_pipe_free_buffer(pipe, buffer);
 	if (duration)
 		*duration = in_duration;
 
@@ -103,7 +103,7 @@ static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur
 	if (!pipe)
 		return EBADMEM;
 
-	char *buffer = (char *) malloc(size);
+	char *buffer = usb_pipe_alloc_buffer(pipe, size);
 	if (!buffer)
 		return ENOMEM;
 
@@ -119,7 +119,7 @@ static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur
 
 	for (int i = 0; i < cycles; ++i) {
 		// Write buffer to device.
-		if ((rc = usb_pipe_write(pipe, buffer, size))) {
+		if ((rc = usb_pipe_write_dma(pipe, buffer, size))) {
 			usb_log_error("Write to %s OUT endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 			break;
 		}
@@ -132,7 +132,7 @@ static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur
 
 	usb_log_info("Burst test on %s OUT endpoint completed in %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
-	free(buffer);
+	usb_pipe_free_buffer(pipe, buffer);
 	if (duration)
 		*duration = in_duration;
 
@@ -151,7 +151,7 @@ static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t
 	if (size % sizeof(test_data))
 		return EINVAL;
 
-	char *buffer = (char *) malloc(size);
+	char *buffer = usb_pipe_alloc_buffer(pipe, size);
 	if (!buffer)
 		return ENOMEM;
 
@@ -169,7 +169,7 @@ static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t
 		size_t transferred;
 
 		while (remaining > 0) {
-			if ((rc = usb_pipe_read(pipe, buffer + size - remaining, remaining, &transferred))) {
+			if ((rc = usb_pipe_read_dma(pipe, buffer + size - remaining, remaining, &transferred))) {
 				usb_log_error("Read of %s IN endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 				break;
 			}
@@ -207,7 +207,7 @@ static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t
 
 	usb_log_info("Data test on %s IN endpoint completed in %lu ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
-	free(buffer);
+	usb_pipe_free_buffer(pipe, buffer);
 	if (duration)
 		*duration = in_duration;
 
@@ -224,7 +224,7 @@ static int data_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 	if (size % sizeof(test_data))
 		return EINVAL;
 
-	char *buffer = (char *) malloc(size);
+	char *buffer = usb_pipe_alloc_buffer(pipe, size);
 	if (!buffer)
 		return ENOMEM;
 
@@ -242,7 +242,7 @@ static int data_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 
 	for (int i = 0; i < cycles; ++i) {
 		// Write buffer to device.
-		if ((rc = usb_pipe_write(pipe, buffer, size))) {
+		if ((rc = usb_pipe_write_dma(pipe, buffer, size))) {
 			usb_log_error("Write to %s OUT endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 			break;
 		}
@@ -255,7 +255,7 @@ static int data_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_
 
 	usb_log_info("Data test on %s OUT endpoint completed in %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
-	free(buffer);
+	usb_pipe_free_buffer(pipe, buffer);
 	if (duration)
 		*duration = in_duration;
 
