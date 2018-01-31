@@ -109,6 +109,9 @@ errno_t usb_pipe_unregister(usb_pipe_t *);
 errno_t usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
 errno_t usb_pipe_write(usb_pipe_t *, const void *, size_t);
 
+errno_t usb_pipe_read_dma(usb_pipe_t *, void *, size_t, size_t *);
+errno_t usb_pipe_write_dma(usb_pipe_t *, void *, size_t);
+
 errno_t usb_pipe_control_read(usb_pipe_t *, const void *, size_t,
     void *, size_t, size_t *);
 errno_t usb_pipe_control_write(usb_pipe_t *, const void *, size_t,

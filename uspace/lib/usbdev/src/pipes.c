@@ -257,6 +257,68 @@ errno_t usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 	return rc;
 }
 
+/**
+ * Request a read (in) transfer on an endpoint pipe, declaring that buffer
+ * is pointing to a memory area previously allocated by usb_pipe_alloc_buffer.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] buffer Buffer, previously allocated with usb_pipe_alloc_buffer.
+ * @param[in] size Size of the buffer (in bytes).
+ * @param[out] size_transferred Number of bytes that were actually transferred.
+ * @return Error code.
+ */
+errno_t usb_pipe_read_dma(usb_pipe_t *pipe, void *buffer, size_t size,
+    size_t *size_transferred)
+{
+	assert(pipe);
+
+	if (buffer == NULL || size == 0)
+		return EINVAL;
+
+	if (pipe->desc.direction != USB_DIRECTION_IN
+	    || pipe->desc.transfer_type == USB_TRANSFER_CONTROL)
+		return EBADF;
+
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	if (!exch)
+		return ENOMEM;
+
+	const errno_t rc = usbhc_transfer(exch, pipe->desc.endpoint_no,
+	    USB_DIRECTION_IN, 0, buffer, size, size_transferred);
+	async_exchange_end(exch);
+	return rc;
+}
+
+/**
+ * Request a write (out) transfer on an endpoint pipe, declaring that buffer
+ * is pointing to a memory area previously allocated by usb_pipe_alloc_buffer.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] buffer Buffer, previously allocated with usb_pipe_alloc_buffer.
+ * @param[in] size Size of the buffer (in bytes).
+ * @return Error code.
+ */
+errno_t usb_pipe_write_dma(usb_pipe_t *pipe, void *buffer, size_t size)
+{
+	assert(pipe);
+
+	if (buffer == NULL || size == 0) {
+		return EINVAL;
+	}
+
+	if (pipe->desc.direction != USB_DIRECTION_OUT
+	    || pipe->desc.transfer_type == USB_TRANSFER_CONTROL)
+		return EBADF;
+
+	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
+	if (!exch)
+		return ENOMEM;
+
+	const errno_t rc = usbhc_transfer(exch, pipe->desc.endpoint_no, USB_DIRECTION_OUT, 0, buffer, size, NULL);
+	async_exchange_end(exch);
+	return rc;
+}
+
 /** Initialize USB endpoint pipe.
  *
  * @param pipe Endpoint pipe to be initialized.
