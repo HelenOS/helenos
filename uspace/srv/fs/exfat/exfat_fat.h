@@ -60,7 +60,7 @@ typedef uint32_t exfat_cluster_t;
 #define exfat_clusters_get(numc, bs, sid, fc) \
     exfat_cluster_walk((bs), (sid), (fc), NULL, (numc), (uint32_t) -1)
 
-extern errno_t exfat_cluster_walk(struct exfat_bs *, service_id_t, 
+extern errno_t exfat_cluster_walk(struct exfat_bs *, service_id_t,
     exfat_cluster_t, exfat_cluster_t *, uint32_t *, uint32_t);
 extern errno_t exfat_block_get(block_t **, struct exfat_bs *, struct exfat_node *,
     aoff64_t, int);

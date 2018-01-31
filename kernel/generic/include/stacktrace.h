@@ -48,10 +48,10 @@ typedef struct {
 } stack_trace_context_t;
 
 typedef struct {
-	bool (* stack_trace_context_validate)(stack_trace_context_t *);
-	bool (* frame_pointer_prev)(stack_trace_context_t *, uintptr_t *);
-	bool (* return_address_get)(stack_trace_context_t *, uintptr_t *);
-	bool (* symbol_resolve)(uintptr_t, const char **, uintptr_t *);
+	bool (*stack_trace_context_validate)(stack_trace_context_t *);
+	bool (*frame_pointer_prev)(stack_trace_context_t *, uintptr_t *);
+	bool (*return_address_get)(stack_trace_context_t *, uintptr_t *);
+	bool (*symbol_resolve)(uintptr_t, const char **, uintptr_t *);
 } stack_trace_ops_t;
 
 extern stack_trace_ops_t kst_ops;

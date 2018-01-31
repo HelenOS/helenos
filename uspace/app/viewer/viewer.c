@@ -43,6 +43,7 @@
 #include <surface.h>
 #include <codec/tga.h>
 #include <task.h>
+#include <str.h>
 
 #define NAME  "viewer"
 
@@ -113,7 +114,7 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 	if (rc != EOK)
 		return false;
 	
-	struct stat stat;
+	vfs_stat_t stat;
 	rc = vfs_stat(fd, &stat);
 	if (rc != EOK) {
 		vfs_put(fd);

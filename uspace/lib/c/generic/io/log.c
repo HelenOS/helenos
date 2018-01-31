@@ -40,6 +40,7 @@
 #include <async.h>
 #include <io/log.h>
 #include <ipc/logger.h>
+#include <str.h>
 #include <ns.h>
 
 /** Id of the first log we create at logger. */

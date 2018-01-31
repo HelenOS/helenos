@@ -53,6 +53,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 #include <str_error.h>
 
 #include "input.h"

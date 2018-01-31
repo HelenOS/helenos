@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #ifndef LIBC_TIME_H_
 #define LIBC_TIME_H_

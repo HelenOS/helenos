@@ -89,7 +89,7 @@ typedef struct {
 	 * Races with:		N/A
 	 * Invoked on:		all calls
 	 */
-	errno_t (* request_preprocess)(call_t *, phone_t *);
+	errno_t (*request_preprocess)(call_t *, phone_t *);
 
 	/**
 	 * This callback is called when the IPC cleanup code wins the race to
@@ -100,8 +100,8 @@ typedef struct {
 	 * Races with:		request_process(), answer_cleanup(),
 	 *			_ipc_answer_free_call()
 	 * Invoked on:		all forgotten calls
-	 */	
-	errno_t (* request_forget)(call_t *);
+	 */
+	errno_t (*request_forget)(call_t *);
 
 	/**
 	 * This callback is called from process_request().
@@ -110,8 +110,8 @@ typedef struct {
 	 * Caller alive:	no guarantee
 	 * Races with:		request_forget()
 	 * Invoked on:		all calls delivered to the callee
-	 */	
-	int (* request_process)(call_t *, answerbox_t *);
+	 */
+	int (*request_process)(call_t *, answerbox_t *);
 
 	/**
 	 * This callback is called when answer_preprocess() loses the race to
@@ -122,7 +122,7 @@ typedef struct {
 	 * Races with:		request_forget()
 	 * Invoked on:		all forgotten calls
 	 */
-	errno_t (* answer_cleanup)(call_t *, ipc_data_t *);
+	errno_t (*answer_cleanup)(call_t *, ipc_data_t *);
 
 	/**
 	 * This callback is called when answer_preprocess() wins the race to
@@ -133,7 +133,7 @@ typedef struct {
 	 * Races with:		N/A
 	 * Invoked on:		all answered calls
 	 */
-	errno_t (* answer_preprocess)(call_t *, ipc_data_t *);
+	errno_t (*answer_preprocess)(call_t *, ipc_data_t *);
 
 	/**
 	 * This callback is called from process_answer().
@@ -143,7 +143,7 @@ typedef struct {
 	 * Races with:		N/A
 	 * Invoked on:		all answered calls
 	 */
-	errno_t (* answer_process)(call_t *);
+	errno_t (*answer_process)(call_t *);
 } sysipc_ops_t;
 
 extern sysipc_ops_t *sysipc_ops_get(sysarg_t);

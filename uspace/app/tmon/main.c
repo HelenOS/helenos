@@ -35,6 +35,8 @@
  */
 
 #include <stdio.h>
+#include <stddef.h>
+#include <str.h>
 #include <macros.h>
 #include "commands.h"
 

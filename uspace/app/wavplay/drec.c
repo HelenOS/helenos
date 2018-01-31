@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <as.h>
 #include <inttypes.h>
+#include <str.h>
 
 #include "wave.h"
 #include "drec.h"
@@ -193,7 +194,7 @@ int drecord(const char *device, const char *file)
 		goto close_session;
 	}
 
-	const char* info = NULL;
+	char* info = NULL;
 	ret = audio_pcm_get_info_str(session, &info);
 	if (ret != EOK) {
 		printf("Failed to get PCM info.\n");

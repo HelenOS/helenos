@@ -33,6 +33,7 @@
 #include <macros.h>
 #include <stdlib.h>
 #include <vfs/vfs.h>
+#include <str.h>
 
 #include "cmds/cmds.h"
 #include "compl.h"
@@ -67,9 +68,9 @@ typedef struct {
 	builtin_t *builtin;
 
 	/** Pointer inside list of directories */
-	const char **path;
+	const char *const *path;
 	/** If not @c NULL, should be freed in the end. */
-	const char **path_list;
+	char **path_list;
 	/** Current open directory */
 	DIR *dir;
 
@@ -217,7 +218,9 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 		}
 		cs->path_list[0] = dirname;
 		cs->path_list[1] = NULL;
-		cs->path = cs->path_list;
+		/* The second const ensures that we can't assign a const
+		 * string to the non-const array. */
+		cs->path = (const char *const *) cs->path_list;
 
 	} else if (cs->is_command) {
 		/* Command without path */
@@ -358,7 +361,7 @@ static errno_t compl_get_next(void *state, char **compl)
 				/* Construct pathname */
 				char *ent_path;
 				asprintf(&ent_path, "%s/%s", *cs->path, dent->d_name);
-				struct stat ent_stat;
+				vfs_stat_t ent_stat;
 				if (vfs_stat_path(ent_path, &ent_stat) != EOK) {
 					/* Error */
 					free(ent_path);

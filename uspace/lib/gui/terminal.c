@@ -46,6 +46,7 @@
 #include <adt/prodcons.h>
 #include <atomic.h>
 #include <stdarg.h>
+#include <str.h>
 #include "window.h"
 #include "terminal.h"
 

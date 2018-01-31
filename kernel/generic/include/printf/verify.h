@@ -35,22 +35,22 @@
 #ifndef KERN_PRINTF_VERIFY_H_
 #define KERN_PRINTF_VERIFY_H_
 
-#ifndef NVERIFY_PRINTF
+#ifndef _HELENOS_NVERIFY_PRINTF
 
 #ifdef __clang__
-#define PRINTF_ATTRIBUTE(start, end) \
+#define _HELENOS_PRINTF_ATTRIBUTE(start, end) \
 	__attribute__((format(__printf__, start, end)))
 #else
-#define PRINTF_ATTRIBUTE(start, end) \
+#define _HELENOS_PRINTF_ATTRIBUTE(start, end) \
 	__attribute__((format(gnu_printf, start, end)))
 #endif
 
 
-#else /* NVERIFY_PRINTF */
+#else /* _HELENOS_NVERIFY_PRINTF */
 
-#define PRINTF_ATTRIBUTE(start, end)
+#define _HELENOS_PRINTF_ATTRIBUTE(start, end)
 
-#endif /* NVERIFY_PRINTF */
+#endif /* _HELENOS_NVERIFY_PRINTF */
 
 #endif
 

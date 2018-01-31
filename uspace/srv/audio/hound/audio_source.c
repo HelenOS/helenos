@@ -95,7 +95,7 @@ void audio_source_fini(audio_source_t *source)
  * @param size size of the @p dest buffer.
  * @return Error code.
  */
-errno_t audio_source_push_data(audio_source_t *source, const void *data,
+errno_t audio_source_push_data(audio_source_t *source, void *data,
     size_t size)
 {
 	assert(source);

@@ -32,16 +32,16 @@
 #ifndef BOOT_PRINTF_VERIFY_H_
 #define BOOT_PRINTF_VERIFY_H_
 
-#ifndef NVERIFY_PRINTF
+#ifndef _HELENOS_NVERIFY_PRINTF
 
-#define PRINTF_ATTRIBUTE(start, end) \
+#define _HELENOS_PRINTF_ATTRIBUTE(start, end) \
 	__attribute__((format(gnu_printf, start, end)))
 
-#else /* NVERIFY_PRINTF */
+#else /* _HELENOS_NVERIFY_PRINTF */
 
-#define PRINTF_ATTRIBUTE(start, end)
+#define _HELENOS_PRINTF_ATTRIBUTE(start, end)
 
-#endif /* NVERIFY_PRINTF */
+#endif /* _HELENOS_NVERIFY_PRINTF */
 
 #endif
 

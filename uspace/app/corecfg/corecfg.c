@@ -35,6 +35,7 @@
 #include <corecfg.h>
 #include <errno.h>
 #include <stdio.h>
+#include <str.h>
 
 #define NAME "corecfg"
 

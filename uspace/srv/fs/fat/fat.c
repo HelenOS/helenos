@@ -46,6 +46,7 @@
 #include <task.h>
 #include <stdio.h>
 #include <libfs.h>
+#include <str.h>
 #include "../../vfs/vfs.h"
 
 #define NAME	"fat"

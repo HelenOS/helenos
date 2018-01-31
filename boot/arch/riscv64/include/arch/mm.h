@@ -33,11 +33,11 @@
 #define BOOT_riscv64_MM_H_
 
 #ifndef __ASM__
-	#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
-	#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
+#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
+#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
 #else
-	#define KA2PA(x)  ((x) - 0xffff800000000000)
-	#define PA2KA(x)  ((x) + 0xffff800000000000)
+#define KA2PA(x)  ((x) - 0xffff800000000000)
+#define PA2KA(x)  ((x) + 0xffff800000000000)
 #endif
 
 #define PTL_DIRTY       (1 << 7)

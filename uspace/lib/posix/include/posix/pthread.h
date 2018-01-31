@@ -32,10 +32,6 @@
 #ifndef POSIX_PTHREAD_H_
 #define POSIX_PTHREAD_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "libc/thread.h"
 #include "time.h"
 
@@ -98,7 +94,7 @@ extern int pthread_cond_destroy(pthread_cond_t *);
 extern int pthread_cond_broadcast(pthread_cond_t *);
 extern int pthread_cond_signal(pthread_cond_t *);
 extern int pthread_cond_timedwait(pthread_cond_t *__restrict__,
-    pthread_mutex_t *__restrict__, const struct __POSIX_DEF__(timespec) *__restrict__);
+    pthread_mutex_t *__restrict__, const struct timespec *__restrict__);
 extern int pthread_cond_wait(pthread_cond_t *__restrict__,
     pthread_mutex_t *__restrict__);
 
@@ -108,7 +104,7 @@ extern int pthread_condattr_init(pthread_condattr_t *);
 extern void *pthread_getspecific(pthread_key_t);
 extern int pthread_setspecific(pthread_key_t, const void *);
 extern int pthread_key_delete(pthread_key_t);
-extern int pthread_key_create(pthread_key_t *, void (*)(void*));
+extern int pthread_key_create(pthread_key_t *, void (*)(void *));
 
 #endif
 

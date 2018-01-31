@@ -63,7 +63,7 @@ extern void workq_global_stop(void);
 extern bool workq_global_enqueue_noblock(work_t *, work_func_t);
 extern bool workq_global_enqueue(work_t *, work_func_t);
 
-extern struct work_queue * workq_create(const char *);
+extern struct work_queue *workq_create(const char *);
 extern void workq_destroy(struct work_queue *);
 extern bool workq_init(struct work_queue *, const char *);
 extern void workq_stop(struct work_queue *);

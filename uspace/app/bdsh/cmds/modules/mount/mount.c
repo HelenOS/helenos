@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <str.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"

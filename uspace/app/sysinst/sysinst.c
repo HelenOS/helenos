@@ -46,6 +46,7 @@
 #include <str_error.h>
 #include <task.h>
 #include <vfs/vfs.h>
+#include <str.h>
 
 #include "futil.h"
 #include "grub.h"

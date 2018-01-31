@@ -53,7 +53,7 @@ typedef enum {
 	 *
 	 * Returns: error code
 	 * Followed by: vfs_pass_handle() request.
-	 */ 
+	 */
 	LOGGER_CONTROL_SET_ROOT
 } logger_control_request_t;
 

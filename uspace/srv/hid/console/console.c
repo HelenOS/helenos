@@ -50,6 +50,7 @@
 #include <task.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
+#include <str.h>
 #include "console.h"
 
 #define NAME       "console"

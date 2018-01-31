@@ -44,7 +44,7 @@
 #include <config.h>
 #include <synch/waitq.h>
 #include <arch/pm.h>
-#include <func.h>
+#include <halt.h>
 #include <panic.h>
 #include <arch/asm.h>
 #include <mm/page.h>

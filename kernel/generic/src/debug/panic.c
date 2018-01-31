@@ -35,7 +35,7 @@
 #include <panic.h>
 #include <print.h>
 #include <stacktrace.h>
-#include <func.h>
+#include <halt.h>
 #include <typedefs.h>
 #include <mm/as.h>
 #include <stdarg.h>

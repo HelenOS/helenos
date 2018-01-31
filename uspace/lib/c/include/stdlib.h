@@ -41,14 +41,20 @@
 
 #define RAND_MAX  714025
 
-#define rand()       random()
-#define srand(seed)  srandom(seed)
-
-extern long int random(void);
-extern void srandom(unsigned int seed);
+extern int rand(void);
+extern void srand(unsigned int seed);
 
 extern void abort(void) __attribute__((noreturn));
 extern void exit(int) __attribute__((noreturn));
+
+extern int atoi(const char *);
+extern long atol(const char *);
+extern long long atoll(const char *);
+
+extern long strtol(const char *__restrict__, char **__restrict__, int);
+extern long long strtoll(const char *__restrict__, char **__restrict__, int);
+extern unsigned long strtoul(const char *__restrict__, char **__restrict__, int);
+extern unsigned long long strtoull(const char *__restrict__, char **__restrict__, int);
 
 #endif
 

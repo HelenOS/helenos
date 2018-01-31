@@ -39,10 +39,6 @@
 #include "types.h"
 #include "../time.h"
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 /* values are the same as on Linux */
 
 #undef S_IFMT
@@ -111,28 +107,28 @@
 #define S_ISLNK(m) ((m & S_IFLNK) != 0) /* symbolic link? (Not in POSIX.1-1996.) */
 #define S_ISSOCK(m) ((m & S_IFSOCK) != 0) /* socket? (Not in POSIX.1-1996.) */
 
-struct __POSIX_DEF__(stat) {
-	__POSIX_DEF__(dev_t)     st_dev;     /* ID of device containing file */
-	__POSIX_DEF__(ino_t)     st_ino;     /* inode number */
-	__POSIX_DEF__(mode_t)    st_mode;    /* protection */
-	__POSIX_DEF__(nlink_t)   st_nlink;   /* number of hard links */
-	__POSIX_DEF__(uid_t)     st_uid;     /* user ID of owner */
-	__POSIX_DEF__(gid_t)     st_gid;     /* group ID of owner */
-	__POSIX_DEF__(dev_t)     st_rdev;    /* device ID (if special file) */
-	__POSIX_DEF__(off_t)     st_size;    /* total size, in bytes */
-	__POSIX_DEF__(blksize_t) st_blksize; /* blocksize for file system I/O */
-	__POSIX_DEF__(blkcnt_t)  st_blocks;  /* number of 512B blocks allocated */
+struct stat {
+	dev_t     st_dev;     /* ID of device containing file */
+	ino_t     st_ino;     /* inode number */
+	mode_t    st_mode;    /* protection */
+	nlink_t   st_nlink;   /* number of hard links */
+	uid_t     st_uid;     /* user ID of owner */
+	gid_t     st_gid;     /* group ID of owner */
+	dev_t     st_rdev;    /* device ID (if special file) */
+	off_t     st_size;    /* total size, in bytes */
+	blksize_t st_blksize; /* blocksize for file system I/O */
+	blkcnt_t  st_blocks;  /* number of 512B blocks allocated */
 	time_t          st_atime;   /* time of last access */
 	time_t          st_mtime;   /* time of last modification */
 	time_t          st_ctime;   /* time of last status change */
 };
 
-extern int __POSIX_DEF__(fstat)(int fd, struct __POSIX_DEF__(stat) *st);
-extern int __POSIX_DEF__(lstat)(const char *__restrict__ path, struct __POSIX_DEF__(stat) *__restrict__ st);
-extern int __POSIX_DEF__(stat)(const char *__restrict__ path, struct __POSIX_DEF__(stat) *__restrict__ st);
-extern int __POSIX_DEF__(chmod)(const char *path, __POSIX_DEF__(mode_t) mode);
-extern __POSIX_DEF__(mode_t) __POSIX_DEF__(umask)(__POSIX_DEF__(mode_t) mask);
-extern int __POSIX_DEF__(mkdir)(const char *path, __POSIX_DEF__(mode_t) mode);
+extern int fstat(int fd, struct stat *st);
+extern int lstat(const char *__restrict__ path, struct stat *__restrict__ st);
+extern int stat(const char *__restrict__ path, struct stat *__restrict__ st);
+extern int chmod(const char *path, mode_t mode);
+extern mode_t umask(mode_t mask);
+extern int mkdir(const char *path, mode_t mode);
 
 
 #endif /* POSIX_SYS_STAT_H */

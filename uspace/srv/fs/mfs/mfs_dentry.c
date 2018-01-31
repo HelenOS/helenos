@@ -30,6 +30,7 @@
  * @{
  */
 
+#include <str.h>
 #include "mfs.h"
 
 /**Read a directory entry from disk.

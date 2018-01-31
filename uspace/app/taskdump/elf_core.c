@@ -61,6 +61,7 @@
 #include <macros.h>
 #include <libarch/istate.h>
 #include <vfs/vfs.h>
+#include <str.h>
 
 #include "elf_core.h"
 

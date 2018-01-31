@@ -57,13 +57,13 @@ static bool display_blocks;
 
 static errno_t size_to_human_readable(uint64_t, size_t, char **);
 static void print_header(void);
-static errno_t print_statfs(struct statfs *, char *, char *);
+static errno_t print_statfs(vfs_statfs_t *, char *, char *);
 static void print_usage(void);
 
 int main(int argc, char *argv[])
 {
 	int optres, errflg = 0;
-	struct statfs st;
+	vfs_statfs_t st;
 	errno_t rc;
 
 	display_blocks = false;
@@ -146,7 +146,7 @@ static void print_header(void)
 	putchar('\n');
 }
 
-static errno_t print_statfs(struct statfs *st, char *name, char *mountpoint)
+static errno_t print_statfs(vfs_statfs_t *st, char *name, char *mountpoint)
 {
 	uint64_t const used_blocks = st->f_blocks - st->f_bfree;
 	unsigned const perc_used = PERCENTAGE(used_blocks, st->f_blocks);

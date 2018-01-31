@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef LOCFS_LOCFS_H_
 #define LOCFS_LOCFS_H_

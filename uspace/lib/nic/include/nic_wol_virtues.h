@@ -77,12 +77,12 @@ extern errno_t nic_wol_virtues_init(nic_wol_virtues_t *);
 extern void nic_wol_virtues_clear(nic_wol_virtues_t *);
 extern errno_t nic_wol_virtues_verify(nic_wv_type_t, const void *, size_t);
 extern errno_t nic_wol_virtues_list(const nic_wol_virtues_t *, nic_wv_type_t type,
-	size_t max_count, nic_wv_id_t *id_list, size_t *id_count);
+    size_t max_count, nic_wv_id_t *id_list, size_t *id_count);
 extern errno_t nic_wol_virtues_add(nic_wol_virtues_t *, nic_wol_virtue_t *);
 extern nic_wol_virtue_t *nic_wol_virtues_remove(nic_wol_virtues_t *,
-	nic_wv_id_t);
+    nic_wv_id_t);
 extern const nic_wol_virtue_t *nic_wol_virtues_find(const nic_wol_virtues_t *,
-	nic_wv_id_t);
+    nic_wv_id_t);
 
 #endif
 

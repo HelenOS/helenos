@@ -48,7 +48,8 @@
 
 typedef struct {
 	const char *name;
-	match_id_t match_id;
+	const char *id;
+	int score;
 	hw_resource_list_t hw_resources;
 } amdm37x_fun_t;
 
@@ -132,17 +133,20 @@ static hw_resource_t disp_res[] = {
 static const amdm37x_fun_t amdm37x_funcs[] = {
 {
 	.name = "ohci",
-	.match_id = { .id = "usb/host=ohci", .score = 90 },
+	.id = "usb/host=ohci",
+	.score = 90,
 	.hw_resources = { .resources = ohci_res, .count = ARRAY_SIZE(ohci_res) }
 },
 {
 	.name = "ehci",
-	.match_id = { .id = "usb/host=ehci", .score = 90 },
+	.id = "usb/host=ehci",
+	.score = 90,
 	.hw_resources = { .resources = ehci_res, .count = ARRAY_SIZE(ehci_res) }
 },
 {
 	.name = "fb",
-	.match_id = { .id = "amdm37x&dispc", .score = 90 },
+	.id = "amdm37x&dispc",
+	.score = 90,
 	.hw_resources = { .resources = disp_res, .count = ARRAY_SIZE(disp_res) }
 },
 };
@@ -173,8 +177,7 @@ static errno_t amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
 		return ENOMEM;
 	
 	/* Add match id */
-	errno_t ret = ddf_fun_add_match_id(fnode,
-	    fun->match_id.id, fun->match_id.score);
+	errno_t ret = ddf_fun_add_match_id(fnode, fun->id, fun->score);
 	if (ret != EOK) {
 		ddf_fun_destroy(fnode);
 		return ret;

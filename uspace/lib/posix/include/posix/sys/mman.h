@@ -35,10 +35,6 @@
 #ifndef POSIX_SYS_MMAN_H_
 #define POSIX_SYS_MMAN_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "types.h"
 #include <abi/mm/as.h>
 
@@ -59,10 +55,9 @@
 #define PROT_WRITE AS_AREA_WRITE
 #define PROT_EXEC  AS_AREA_EXEC
 
-extern void *
-__POSIX_DEF__(mmap)(void *start, size_t length, int prot, int flags, int fd,
-    __POSIX_DEF__(off_t) offset);
-extern int __POSIX_DEF__(munmap)(void *start, size_t length);
+extern void *mmap(void *start, size_t length, int prot, int flags, int fd,
+    off_t offset);
+extern int munmap(void *start, size_t length);
 
 
 #endif /* POSIX_SYS_MMAN_H_ */

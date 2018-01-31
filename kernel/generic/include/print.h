@@ -43,9 +43,9 @@
 
 extern int puts(const char *s);
 extern int printf(const char *fmt, ...)
-    PRINTF_ATTRIBUTE(1, 2);
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int snprintf(char *str, size_t size, const char *fmt, ...)
-    PRINTF_ATTRIBUTE(3, 4);
+    _HELENOS_PRINTF_ATTRIBUTE(3, 4);
 
 extern int vprintf(const char *fmt, va_list ap);
 extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);

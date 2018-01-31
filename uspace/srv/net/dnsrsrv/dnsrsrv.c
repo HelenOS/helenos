@@ -42,6 +42,7 @@
 #include <loc.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 #include <task.h>
 
 #include "dns_msg.h"

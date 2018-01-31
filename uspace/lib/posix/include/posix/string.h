@@ -36,10 +36,6 @@
 #ifndef POSIX_STRING_H_
 #define POSIX_STRING_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "sys/types.h"
 
 /*
@@ -73,56 +69,56 @@ extern void *memmove(void *, const void *, size_t)
 
 
 /* Copying and Concatenation */
-extern char *__POSIX_DEF__(strcpy)(char *__restrict__ dest, const char *__restrict__ src);
-extern char *__POSIX_DEF__(strncpy)(char *__restrict__ dest, const char *__restrict__ src, size_t n);
-extern char *__POSIX_DEF__(stpcpy)(char *__restrict__ dest, const char *__restrict__ src);
-extern char *__POSIX_DEF__(stpncpy)(char *__restrict__ dest, const char *__restrict__ src, size_t n);
-extern char *__POSIX_DEF__(strcat)(char *__restrict__ dest, const char *__restrict__ src);
-extern char *__POSIX_DEF__(strncat)(char *__restrict__ dest, const char *__restrict__ src, size_t n);
-extern void *__POSIX_DEF__(memccpy)(void *__restrict__ dest, const void *__restrict__ src, int c, size_t n);
-extern char *__POSIX_DEF__(strdup)(const char *s);
-extern char *__POSIX_DEF__(strndup)(const char *s, size_t n);
+extern char *strcpy(char *__restrict__ dest, const char *__restrict__ src);
+extern char *strncpy(char *__restrict__ dest, const char *__restrict__ src, size_t n);
+extern char *stpcpy(char *__restrict__ dest, const char *__restrict__ src);
+extern char *stpncpy(char *__restrict__ dest, const char *__restrict__ src, size_t n);
+extern char *strcat(char *__restrict__ dest, const char *__restrict__ src);
+extern char *strncat(char *__restrict__ dest, const char *__restrict__ src, size_t n);
+extern void *memccpy(void *__restrict__ dest, const void *__restrict__ src, int c, size_t n);
+extern char *strdup(const char *s);
+extern char *strndup(const char *s, size_t n);
 
 /* String/Array Comparison */
-extern int __POSIX_DEF__(memcmp)(const void *mem1, const void *mem2, size_t n);
-extern int __POSIX_DEF__(strcmp)(const char *s1, const char *s2);
-extern int __POSIX_DEF__(strncmp)(const char *s1, const char *s2, size_t n);
+extern int memcmp(const void *mem1, const void *mem2, size_t n);
+extern int strcmp(const char *s1, const char *s2);
+extern int strncmp(const char *s1, const char *s2, size_t n);
 
 /* Search Functions */
-extern void *__POSIX_DEF__(memchr)(const void *mem, int c, size_t n);
-extern char *__POSIX_DEF__(strchr)(const char *s, int c);
-extern char *__POSIX_DEF__(strrchr)(const char *s, int c);
+extern void *memchr(const void *mem, int c, size_t n);
+extern char *strchr(const char *s, int c);
+extern char *strrchr(const char *s, int c);
 extern char *gnu_strchrnul(const char *s, int c);
-extern char *__POSIX_DEF__(strpbrk)(const char *s1, const char *s2);
-extern size_t __POSIX_DEF__(strcspn)(const char *s1, const char *s2);
-extern size_t __POSIX_DEF__(strspn)(const char *s1, const char *s2);
-extern char *__POSIX_DEF__(strstr)(const char *haystack, const char *needle);
+extern char *strpbrk(const char *s1, const char *s2);
+extern size_t strcspn(const char *s1, const char *s2);
+extern size_t strspn(const char *s1, const char *s2);
+extern char *strstr(const char *haystack, const char *needle);
 
 /* Tokenization functions. */
-extern char *__POSIX_DEF__(strtok_r)(char *, const char *, char **);
-extern char *__POSIX_DEF__(strtok)(char *, const char *);
+extern char *strtok_r(char *, const char *, char **);
+extern char *strtok(char *, const char *);
 
 
 /* Collation Functions */
-extern int __POSIX_DEF__(strcoll)(const char *s1, const char *s2);
-extern size_t __POSIX_DEF__(strxfrm)(char *__restrict__ s1, const char *__restrict__ s2, size_t n);
+extern int strcoll(const char *s1, const char *s2);
+extern size_t strxfrm(char *__restrict__ s1, const char *__restrict__ s2, size_t n);
 
 /* Error Messages */
-extern char *__POSIX_DEF__(strerror)(int errnum);
-extern int __POSIX_DEF__(strerror_r)(int errnum, char *buf, size_t bufsz);
+extern char *strerror(int errnum);
+extern int strerror_r(int errnum, char *buf, size_t bufsz);
 
 /* String Length */
-extern size_t __POSIX_DEF__(strlen)(const char *s);
-extern size_t __POSIX_DEF__(strnlen)(const char *s, size_t n);
+extern size_t strlen(const char *s);
+extern size_t strnlen(const char *s, size_t n);
 
 /* Signal Messages */
-extern char *__POSIX_DEF__(strsignal)(int signum);
+extern char *strsignal(int signum);
 
 /* Legacy Declarations */
 #ifndef POSIX_STRINGS_H_
-extern int __POSIX_DEF__(ffs)(int i);
-extern int __POSIX_DEF__(strcasecmp)(const char *s1, const char *s2);
-extern int __POSIX_DEF__(strncasecmp)(const char *s1, const char *s2, size_t n);
+extern int ffs(int i);
+extern int strcasecmp(const char *s1, const char *s2);
+extern int strncasecmp(const char *s1, const char *s2, size_t n);
 #endif
 
 

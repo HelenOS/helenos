@@ -128,11 +128,11 @@
 	
 	?fstat {
 		tentative {
-			?ipc_m_data_read /* struct stat */ {
+			?ipc_m_data_read /* vfs_stat_t */ {
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_grab_phone] ;
 					!fs.stat {
-						!fs.ipc_m_data_read /* forward struct stat */
+						!fs.ipc_m_data_read /* forward vfs_stat_t */
 					} ;
 					[fnc.vfs_release_phone]
 				}
@@ -143,12 +143,12 @@
 	?stat {
 		?ipc_m_data_write /* path */ ;
 		tentative {
-			?ipc_m_data_read /* struct stat */ {
+			?ipc_m_data_read /* vfs_stat_t */ {
 				alternative (fs; tmpfs; fat; devfs) {
 					[fnc.vfs_lookup_internal] ;
 					tentative {
 						!fs.stat {
-							!fs.ipc_m_data_read /* forward struct stat */
+							!fs.ipc_m_data_read /* forward vfs_stat_t */
 						}
 					}
 				}

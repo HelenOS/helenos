@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <io/console.h>
 #include <stdio.h>
+#include <str.h>
 
 #include "conn.h"
 #include "nterm.h"

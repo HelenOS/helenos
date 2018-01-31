@@ -48,7 +48,7 @@
  */
 static void print_levels(async_exch_t *exch)
 {
-	const char* name = NULL;
+	char* name = NULL;
 	unsigned count = 0;
 	errno_t ret = audio_mixer_get_info(exch, &name, &count);
 	if (ret != EOK) {
@@ -58,7 +58,7 @@ static void print_levels(async_exch_t *exch)
 	printf("MIXER %s:\n\n", name);
 
 	for (unsigned i = 0; i < count; ++i) {
-		const char *name = NULL;
+		char *name = NULL;
 		unsigned levels = 0, current = 0;
 		errno_t ret =
 		    audio_mixer_get_item_info(exch, i, &name, &levels);

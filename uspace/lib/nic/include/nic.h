@@ -56,7 +56,7 @@ typedef struct nic_wol_virtue {
 	ht_link_t item;
 	nic_wv_id_t id;
 	nic_wv_type_t type;
-	const void *data;
+	void *data;
 	size_t length;
 	struct nic_wol_virtue *next;
 } nic_wol_virtue_t;

@@ -51,7 +51,7 @@ off_t bithenge_failure_lseek(int, off_t, int);
 errno_t bithenge_failure_ferror(FILE *);
 char *bithenge_failure_str_ndup(const char *, size_t);
 errno_t bithenge_failure_open(const char *, int);
-errno_t bithenge_failure_fstat(int, struct stat *);
+errno_t bithenge_failure_fstat(int, vfs_stat_t *);
 
 #ifndef BITHENGE_FAILURE_DECLS_ONLY
 #define malloc bithenge_failure_malloc

@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <str.h>
 #include <str_error.h>
 #include <getopt.h>
 #include <usbdiag_iface.h>

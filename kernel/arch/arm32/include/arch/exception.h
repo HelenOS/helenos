@@ -44,9 +44,9 @@
 #define HIGH_EXCEPTION_VECTORS
 
 #ifdef HIGH_EXCEPTION_VECTORS
-	#define EXC_BASE_ADDRESS  0xffff0000
+#define EXC_BASE_ADDRESS  0xffff0000
 #else
-	#define EXC_BASE_ADDRESS  0x0
+#define EXC_BASE_ADDRESS  0x0
 #endif
 
 /* Exception Vectors */

@@ -33,6 +33,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <errno.h>
+#include <str.h>
 #include <str_error.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>

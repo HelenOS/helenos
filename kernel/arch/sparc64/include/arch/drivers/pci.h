@@ -51,8 +51,8 @@ enum pci_model {
 };
 
 struct pci_operations {
-	void (* enable_interrupt)(pci_t *, int);
-	void (* clear_interrupt)(pci_t *, int);
+	void (*enable_interrupt)(pci_t *, int);
+	void (*clear_interrupt)(pci_t *, int);
 };
 
 struct pci {

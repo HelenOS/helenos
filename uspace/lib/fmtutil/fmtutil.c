@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <fmtutil.h>
 #include <stdlib.h>
+#include <str.h>
 
 typedef struct {
 	align_mode_t alignment;

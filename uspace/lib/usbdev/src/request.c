@@ -474,7 +474,7 @@ errno_t usb_request_get_full_configuration_descriptor(usb_pipe_t *pipe,
  */
 errno_t usb_request_get_full_configuration_descriptor_alloc(
     usb_pipe_t *pipe, int index,
-    const void **descriptor_ptr, size_t *descriptor_size)
+    void **descriptor_ptr, size_t *descriptor_size)
 {
 	errno_t rc;
 

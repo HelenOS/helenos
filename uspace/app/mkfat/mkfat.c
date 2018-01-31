@@ -47,6 +47,7 @@
 #include <byteorder.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <str.h>
 #include "fat.h"
 #include "fat_dentry.h"
 

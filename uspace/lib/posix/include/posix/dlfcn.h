@@ -33,21 +33,17 @@
 #ifndef POSIX_DLFCN_H_
 #define POSIX_DLFCN_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
+#include "libc/dlfcn.h"
 
 #define RTLD_LAZY 1
 #define RTLD_NOW 2
 #define RTLD_GLOBAL 32
 #define RTLD_LOCAL 0
 
-
-extern void *__POSIX_DEF__(dlopen)(const char *, int);
-extern void *__POSIX_DEF__(dlsym)(void *, const char *);
-extern int __POSIX_DEF__(dlclose)(void *);
-extern char *__POSIX_DEF__(dlerror)(void);
-
+extern void *dlopen(const char *, int);
+extern void *dlsym(void *, const char *);
+extern int dlclose(void *);
+extern char *dlerror(void);
 
 #endif
 

@@ -44,7 +44,7 @@ extern void screen_init(void);
 extern void screen_done(void);
 extern void print_data(data_t *);
 extern void show_warning(const char *, ...)
-    PRINTF_ATTRIBUTE(1, 2);
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 
 extern int tgetchar(unsigned int);
 

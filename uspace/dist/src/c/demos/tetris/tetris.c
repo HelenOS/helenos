@@ -156,9 +156,9 @@ static void elide(void)
 
 const struct shape *randshape(void)
 {
-	const struct shape *tmp = &shapes[random() % 7];
+	const struct shape *tmp = &shapes[rand() % 7];
 	int i;
-	int j = random() % 4;
+	int j = rand() % 4;
 	
 	for (i = 0; i < j; i++)
 		tmp = &shapes[classic ? tmp->rotc : tmp->rot];
@@ -171,7 +171,7 @@ static void srandomdev(void)
 	struct timeval tv;
 	
 	gettimeofday(&tv, NULL);
-	srandom(tv.tv_sec + tv.tv_usec / 100000);
+	srand(tv.tv_sec + tv.tv_usec / 100000);
 }
 
 static void tetris_menu_draw(int level) 

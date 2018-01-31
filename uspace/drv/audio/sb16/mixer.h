@@ -49,7 +49,7 @@ typedef struct sb_mixer {
 	sb_mixer_type_t type;
 } sb_mixer_t;
 
-const char * sb_mixer_type_str(sb_mixer_type_t type);
+const char *sb_mixer_type_str(sb_mixer_type_t type);
 errno_t sb_mixer_init(sb_mixer_t *mixer, sb16_regs_t *regs, sb_mixer_type_t type);
 int sb_mixer_get_control_item_count(const sb_mixer_t *mixer);
 errno_t sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned index,

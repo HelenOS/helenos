@@ -75,7 +75,7 @@ struct hound_context {
 	/** Audio session */
 	hound_sess_t *session;
 	/** context name, reported to the daemon */
-	const char *name;
+	char *name;
 	/** True if the instance is record context */
 	bool record;
 	/** List of associated streams */
@@ -195,7 +195,7 @@ void hound_context_destroy(hound_context_t *hound)
  * The function will return deice sinks or source based on the context type.
  */
 errno_t hound_context_get_available_targets(hound_context_t *hound,
-    const char ***names, size_t *count)
+    char ***names, size_t *count)
 {
 	assert(hound);
 	assert(names);
@@ -212,7 +212,7 @@ errno_t hound_context_get_available_targets(hound_context_t *hound,
  * @return Error code.
  */
 errno_t hound_context_get_connected_targets(hound_context_t *hound,
-    const char ***names, size_t *count)
+    char ***names, size_t *count)
 {
 	assert(hound);
 	assert(names);
@@ -236,7 +236,7 @@ errno_t hound_context_connect_target(hound_context_t *hound, const char* target)
 	assert(hound);
 	assert(target);
 
-	const char **tgt = NULL;
+	char **tgt = NULL;
 	size_t count = 1;
 	errno_t ret = EOK;
 	if (str_cmp(target, HOUND_DEFAULT_TARGET) == 0) {

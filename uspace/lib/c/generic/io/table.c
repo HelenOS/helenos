@@ -39,6 +39,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <str.h>
 
 static table_column_t *table_column_first(table_t *);
 static table_column_t *table_column_next(table_column_t *);

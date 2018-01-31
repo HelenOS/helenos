@@ -41,7 +41,7 @@
 #include <errno.h>
 
 #include "uri.h"
-#include "ctype.h"
+#include "internal/ctype.h"
 
 static char *cut_str(const char *start, const char *end)
 {

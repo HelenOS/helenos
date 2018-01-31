@@ -56,7 +56,7 @@ typedef enum {
 } vfs_file_kind_t;
 
 
-struct stat {
+typedef struct {
 	fs_handle_t fs_handle;
 	service_id_t service_id;
 	fs_index_t index;
@@ -65,14 +65,14 @@ struct stat {
 	bool is_directory;
 	aoff64_t size;
 	service_id_t service;
-};
+} vfs_stat_t;
 
-struct statfs { 
+typedef struct {
 	char fs_name[FS_NAME_MAXLEN + 1];
 	uint32_t f_bsize;    /* fundamental file system block size */
 	uint64_t f_blocks;   /* total data blocks in file system */
 	uint64_t f_bfree;    /* free blocks in fs */
-};
+} vfs_statfs_t;
 
 /** List of file system types */
 typedef struct {
@@ -110,10 +110,10 @@ extern errno_t vfs_rename_path(const char *, const char *);
 extern errno_t vfs_resize(int, aoff64_t);
 extern int vfs_root(void);
 extern errno_t vfs_root_set(int);
-extern errno_t vfs_stat(int, struct stat *);
-extern errno_t vfs_stat_path(const char *, struct stat *);
-extern errno_t vfs_statfs(int, struct statfs *);
-extern errno_t vfs_statfs_path(const char *, struct statfs *);
+extern errno_t vfs_stat(int, vfs_stat_t *);
+extern errno_t vfs_stat_path(const char *, vfs_stat_t *);
+extern errno_t vfs_statfs(int, vfs_statfs_t *);
+extern errno_t vfs_statfs_path(const char *, vfs_statfs_t *);
 extern errno_t vfs_sync(int);
 extern errno_t vfs_unlink(int, const char *, int);
 extern errno_t vfs_unlink_path(const char *);

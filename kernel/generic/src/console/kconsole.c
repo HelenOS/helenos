@@ -51,7 +51,7 @@
 #include <arch.h>
 #include <macros.h>
 #include <debug.h>
-#include <func.h>
+#include <halt.h>
 #include <str.h>
 #include <sysinfo/sysinfo.h>
 #include <symtab.h>

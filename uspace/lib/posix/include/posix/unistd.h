@@ -36,10 +36,6 @@
 #ifndef POSIX_UNISTD_H_
 #define POSIX_UNISTD_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "sys/types.h"
 #include "stddef.h"
 
@@ -50,47 +46,47 @@
 /* Process Termination */
 #define _exit exit
 
-extern char *__POSIX_DEF__(optarg);
+extern char *optarg;
 extern int optind, opterr, optopt;
-extern int __POSIX_DEF__(getopt)(int, char * const [], const char *);
+extern int getopt(int, char * const [], const char *);
 
 /* Environment */
-extern char **__POSIX_DEF__(environ);
+extern char **environ;
 
 /* Sleeping */
-extern unsigned int __POSIX_DEF__(sleep)(unsigned int);
+extern unsigned int sleep(unsigned int);
 
 /* Login Information */
-extern char *__POSIX_DEF__(getlogin)(void);
-extern int __POSIX_DEF__(getlogin_r)(char *name, size_t namesize);
+extern char *getlogin(void);
+extern int getlogin_r(char *name, size_t namesize);
 
 /* Identifying Terminals */
-extern int __POSIX_DEF__(isatty)(int fd);
+extern int isatty(int fd);
 
 /* Working Directory */
-extern char *__POSIX_DEF__(getcwd)(char *buf, size_t size);
-extern int __POSIX_DEF__(chdir)(const char *path);
+extern char *getcwd(char *buf, size_t size);
+extern int chdir(const char *path);
 
 /* Query Memory Parameters */
-extern int __POSIX_DEF__(getpagesize)(void);
+extern int getpagesize(void);
 
 /* Process Identification */
-extern __POSIX_DEF__(pid_t) __POSIX_DEF__(getpid)(void);
-extern __POSIX_DEF__(uid_t) __POSIX_DEF__(getuid)(void);
-extern __POSIX_DEF__(gid_t) __POSIX_DEF__(getgid)(void);
+extern pid_t getpid(void);
+extern uid_t getuid(void);
+extern gid_t getgid(void);
 
 /* File Manipulation */
-extern int __POSIX_DEF__(close)(int fildes);
-extern ssize_t __POSIX_DEF__(read)(int fildes, void *buf, size_t nbyte);
-extern ssize_t __POSIX_DEF__(write)(int fildes, const void *buf, size_t nbyte);
-extern __POSIX_DEF__(off_t) __POSIX_DEF__(lseek)(int fildes,
-    __POSIX_DEF__(off_t) offset, int whence);
-extern int __POSIX_DEF__(fsync)(int fildes);
-extern int __POSIX_DEF__(ftruncate)(int fildes, __POSIX_DEF__(off_t) length);
-extern int __POSIX_DEF__(rmdir)(const char *path);
-extern int __POSIX_DEF__(unlink)(const char *path);
-extern int __POSIX_DEF__(dup)(int fildes);
-extern int __POSIX_DEF__(dup2)(int fildes, int fildes2);
+extern int close(int fildes);
+extern ssize_t read(int fildes, void *buf, size_t nbyte);
+extern ssize_t write(int fildes, const void *buf, size_t nbyte);
+extern off_t lseek(int fildes,
+    off_t offset, int whence);
+extern int fsync(int fildes);
+extern int ftruncate(int fildes, off_t length);
+extern int rmdir(const char *path);
+extern int unlink(const char *path);
+extern int dup(int fildes);
+extern int dup2(int fildes, int fildes2);
 
 /* Standard Streams */
 #undef STDIN_FILENO
@@ -109,7 +105,7 @@ extern int __POSIX_DEF__(dup2)(int fildes, int fildes2);
 #define	X_OK 1 /* Test for execute permission. */
 #define	W_OK 2 /* Test for write permission. */
 #define	R_OK 4 /* Test for read permission. */
-extern int __POSIX_DEF__(access)(const char *path, int amode);
+extern int access(const char *path, int amode);
 
 /* System Parameters */
 enum {
@@ -118,7 +114,7 @@ enum {
 	_SC_PAGESIZE,
 	_SC_CLK_TCK
 };
-extern long __POSIX_DEF__(sysconf)(int name);
+extern long sysconf(int name);
 
 /* Path Configuration Parameters */
 enum {
@@ -142,20 +138,20 @@ enum {
 	_PC_SYNC_IO,
 	_PC_VDISABLE
 };
-extern long __POSIX_DEF__(pathconf)(const char *path, int name);
+extern long pathconf(const char *path, int name);
 
 /* Creating a Process */
-extern __POSIX_DEF__(pid_t) __POSIX_DEF__(fork)(void);
+extern pid_t fork(void);
 
 /* Executing a File */
-extern int __POSIX_DEF__(execv)(const char *path, char *const argv[]);
-extern int __POSIX_DEF__(execvp)(const char *file, char *const argv[]);
+extern int execv(const char *path, char *const argv[]);
+extern int execvp(const char *file, char *const argv[]);
 
 /* Creating a Pipe */
-extern int __POSIX_DEF__(pipe)(int fildes[2]);
+extern int pipe(int fildes[2]);
 
 /* Issue alarm signal. */
-extern unsigned int __POSIX_DEF__(alarm)(unsigned int);
+extern unsigned int alarm(unsigned int);
 
 #endif /* POSIX_UNISTD_H_ */
 

@@ -78,6 +78,9 @@ format:
 ccheck: $(CCHECK)
 	tools/ccheck.sh
 
+ccheck-fix: $(CCHECK)
+	tools/ccheck.sh --fix
+
 $(CCHECK):
 	cd tools && ./build-ccheck.sh
 

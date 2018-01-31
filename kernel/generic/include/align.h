@@ -57,7 +57,7 @@
  *
  * @param s Address or size to be checked for alignment.
  * @param a Size of alignment, must be a power of 2.
- */ 
+ */
 #define IS_ALIGNED(s, a)	(ALIGN_UP((s), (a)) == (s))
 
 #endif

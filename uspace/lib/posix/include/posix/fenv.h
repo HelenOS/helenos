@@ -36,7 +36,6 @@
 #ifndef POSIX_FENV_H_
 #define POSIX_FENV_H_
 
-
 #define FE_DIVBYZERO 1
 #define FE_INEXACT 2
 #define FE_INVALID 4

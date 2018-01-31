@@ -51,6 +51,7 @@
 #include <stdbool.h>
 #include <task.h>
 #include <macros.h>
+#include <str.h>
 
 #define NAME "file_bd"
 

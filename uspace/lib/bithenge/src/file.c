@@ -101,7 +101,7 @@ static errno_t new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
 {
 	assert(out);
 
-	struct stat stat;
+	vfs_stat_t stat;
 	errno_t rc = vfs_stat(fd, &stat);
 	if (rc != EOK) {
 		if (needs_close)

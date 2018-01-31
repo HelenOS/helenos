@@ -44,6 +44,7 @@
 #include <devman.h>
 #include <loc.h>
 #include <usb_iface.h>
+#include <str.h>
 
 #include "usbinfo.h"
 

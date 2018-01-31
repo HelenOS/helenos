@@ -34,6 +34,7 @@
 #include <loc.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <str.h>
 #include <task.h>
 
 #include "isdv4.h"

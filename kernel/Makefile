@@ -89,7 +89,7 @@ INCLUDES_FLAGS = $(addprefix -I,$(INCLUDES))
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-ffreestanding -nostdlib -nostdinc \
 	-fexec-charset=UTF-8 -finput-charset=UTF-8 -fno-common \
 	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
 
@@ -207,7 +207,7 @@ GENERIC_SOURCES = \
 	generic/src/mm/backend_phys.c \
 	generic/src/mm/backend_user.c \
 	generic/src/mm/slab.c \
-	generic/src/lib/func.c \
+	generic/src/lib/halt.c \
 	generic/src/lib/mem.c \
 	generic/src/lib/memfnc.c \
 	generic/src/lib/gsort.c \

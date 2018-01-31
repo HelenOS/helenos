@@ -224,7 +224,7 @@ errno_t bithenge_failure_open(const char *pathname, int flags)
 	return open(pathname, flags);
 }
 
-errno_t bithenge_failure_fstat(int fd, struct stat *buf)
+errno_t bithenge_failure_fstat(int fd, vfs_stat_t *buf)
 {
 	if (bithenge_should_fail()) {
 		errno = EIO;

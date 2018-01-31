@@ -278,7 +278,7 @@ static char *fun_conf_read(const char *conf_path)
 	size_t len;
 	errno_t rc;
 	size_t nread;
-	struct stat st;
+	vfs_stat_t st;
 
 	rc = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ, &fd);
 	if (rc != EOK) {

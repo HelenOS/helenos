@@ -48,6 +48,6 @@
 extern volatile int cli_errno;
 
 extern void cli_error(int, const char *, ...)
-    PRINTF_ATTRIBUTE(2, 3);
+    _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 
 #endif

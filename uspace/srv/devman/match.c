@@ -199,7 +199,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	bool opened = false;
 	int fd;
 	size_t len = 0;
-	struct stat st;
+	vfs_stat_t st;
 	
 	errno_t rc = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ, &fd);
 	if (rc != EOK) {

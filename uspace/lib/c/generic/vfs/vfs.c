@@ -351,7 +351,7 @@ void vfs_exchange_end(async_exch_t *exch)
  */
 async_sess_t *vfs_fd_session(int file, iface_t iface)
 {
-	struct stat stat;
+	vfs_stat_t stat;
 	errno_t rc = vfs_stat(file, &stat);
 	if (rc != EOK)
 		return NULL;
@@ -1051,7 +1051,7 @@ errno_t vfs_root_set(int nroot)
  *
  * @return              EOK on success or an error code
  */
-errno_t vfs_stat(int file, struct stat *stat)
+errno_t vfs_stat(int file, vfs_stat_t *stat)
 {
 	errno_t rc;
 	aid_t req;
@@ -1059,7 +1059,7 @@ errno_t vfs_stat(int file, struct stat *stat)
 	async_exch_t *exch = vfs_exchange_begin();
 	
 	req = async_send_1(exch, VFS_IN_STAT, file, NULL);
-	rc = async_data_read_start(exch, (void *) stat, sizeof(struct stat));
+	rc = async_data_read_start(exch, (void *) stat, sizeof(vfs_stat_t));
 	if (rc != EOK) {
 		vfs_exchange_end(exch);
 		
@@ -1085,7 +1085,7 @@ errno_t vfs_stat(int file, struct stat *stat)
  *
  * @return              EOK on success or an error code
  */
-errno_t vfs_stat_path(const char *path, struct stat *stat)
+errno_t vfs_stat_path(const char *path, vfs_stat_t *stat)
 {
 	int file;
 	errno_t rc = vfs_lookup(path, 0, &file);
@@ -1106,7 +1106,7 @@ errno_t vfs_stat_path(const char *path, struct stat *stat)
  *
  * @return              EOK on success or an error code
  */
-errno_t vfs_statfs(int file, struct statfs *st)
+errno_t vfs_statfs(int file, vfs_statfs_t *st)
 {
 	errno_t rc, ret;
 	aid_t req;
@@ -1131,7 +1131,7 @@ errno_t vfs_statfs(int file, struct statfs *st)
  *
  * @return              EOK on success or an error code
  */
-errno_t vfs_statfs_path(const char *path, struct statfs *st)
+errno_t vfs_statfs_path(const char *path, vfs_statfs_t *st)
 {
 	int file;
 	errno_t rc = vfs_lookup(path, 0, &file);

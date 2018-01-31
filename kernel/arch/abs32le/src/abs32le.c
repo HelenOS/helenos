@@ -37,7 +37,7 @@
 #include <arch/interrupt.h>
 #include <arch/asm.h>
 
-#include <func.h>
+#include <halt.h>
 #include <config.h>
 #include <console/console.h>
 #include <errno.h>

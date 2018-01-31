@@ -41,7 +41,7 @@ typedef struct {
 	size_t char_start;
 	size_t byte_length;
 	size_t char_length;
- 	token_type_t type;
+	token_type_t type;
 } token_t;
 
 typedef struct {

@@ -36,14 +36,7 @@
 #ifndef POSIX_STDIO_H_
 #define POSIX_STDIO_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-/* DEBUG macro does not belong to POSIX stdio.h. Its unconditional
- * definition in the native stdio.h causes unexpected behaviour of
- * applications which uses their own DEBUG macro (e.g. debugging
- * output is printed even if not desirable). */
-#undef DEBUG
-#endif
+#include "libc/stdio.h"
 
 #include "stddef.h"
 #include "unistd.h"
@@ -71,17 +64,6 @@
 
 typedef struct _IO_FILE FILE;
 
-#ifndef LIBPOSIX_INTERNAL
-	enum _buffer_type {
-		/** No buffering */
-		_IONBF,
-		/** Line buffering */
-		_IOLBF,
-		/** Full buffering */
-		_IOFBF
-	};
-#endif
-
 extern FILE *stdin;
 extern FILE *stdout;
 extern FILE *stderr;
@@ -98,16 +80,16 @@ extern int fputs(const char *, FILE *);
 extern int putchar(wchar_t);
 extern int puts(const char *);
 
-extern int fprintf(FILE *, const char*, ...) PRINTF_ATTRIBUTE(2, 3);
+extern int fprintf(FILE *, const char*, ...) _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vfprintf(FILE *, const char *, va_list);
 
-extern int printf(const char *, ...) PRINTF_ATTRIBUTE(1, 2);
+extern int printf(const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int vprintf(const char *, va_list);
 
-extern int snprintf(char *, size_t , const char *, ...) PRINTF_ATTRIBUTE(3, 4);
+extern int snprintf(char *, size_t , const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(3, 4);
 #ifdef _GNU_SOURCE
 extern int vasprintf(char **, const char *, va_list);
-extern int asprintf(char **, const char *, ...) PRINTF_ATTRIBUTE(2, 3);
+extern int asprintf(char **, const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 #endif
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
@@ -134,86 +116,86 @@ extern void setbuf(FILE *, void *);
 /* Identifying the Terminal */
 #undef L_ctermid
 #define L_ctermid PATH_MAX
-extern char *__POSIX_DEF__(ctermid)(char *s);
+extern char *ctermid(char *s);
 
 /* Error Recovery */
-extern void __POSIX_DEF__(clearerr)(FILE *stream);
+extern void clearerr(FILE *stream);
 
 /* Input/Output */
 #undef putc
 #define putc fputc
-extern int __POSIX_DEF__(fputs)(const char *__restrict__ s, FILE *__restrict__ stream);
+extern int fputs(const char *__restrict__ s, FILE *__restrict__ stream);
 #undef getc
 #define getc fgetc
-extern int __POSIX_DEF__(ungetc)(int c, FILE *stream);
-extern ssize_t __POSIX_DEF__(getdelim)(char **__restrict__ lineptr, size_t *__restrict__ n,
+extern int ungetc(int c, FILE *stream);
+extern ssize_t getdelim(char **__restrict__ lineptr, size_t *__restrict__ n,
     int delimiter, FILE *__restrict__ stream);
-extern ssize_t __POSIX_DEF__(getline)(char **__restrict__ lineptr, size_t *__restrict__ n,
+extern ssize_t getline(char **__restrict__ lineptr, size_t *__restrict__ n,
     FILE *__restrict__ stream);
 
 /* Opening Streams */
-extern FILE *__POSIX_DEF__(freopen)(const char *__restrict__ filename,
+extern FILE *freopen(const char *__restrict__ filename,
     const char *__restrict__ mode, FILE *__restrict__ stream);
 
 /* Error Messages */
-extern void __POSIX_DEF__(perror)(const char *s);
+extern void perror(const char *s);
 
 /* File Positioning */
 typedef struct {
 	off64_t offset;
-} __POSIX_DEF__(fpos_t);
+} fpos_t;
 
-extern int __POSIX_DEF__(fsetpos)(FILE *stream, const __POSIX_DEF__(fpos_t) *pos);
-extern int __POSIX_DEF__(fgetpos)(FILE *__restrict__ stream, __POSIX_DEF__(fpos_t) *__restrict__ pos);
-extern int __POSIX_DEF__(fseek)(FILE *stream, long offset, int whence);
-extern int __POSIX_DEF__(fseeko)(FILE *stream, __POSIX_DEF__(off_t) offset, int whence);
-extern long __POSIX_DEF__(ftell)(FILE *stream);
-extern __POSIX_DEF__(off_t) __POSIX_DEF__(ftello)(FILE *stream);
+extern int fsetpos(FILE *stream, const fpos_t *pos);
+extern int fgetpos(FILE *__restrict__ stream, fpos_t *__restrict__ pos);
+extern int fseek(FILE *stream, long offset, int whence);
+extern int fseeko(FILE *stream, off_t offset, int whence);
+extern long ftell(FILE *stream);
+extern off_t ftello(FILE *stream);
 
 /* Flushing Buffers */
-extern int __POSIX_DEF__(fflush)(FILE *stream);
+extern int fflush(FILE *stream);
 
 /* Formatted Output */
-extern int __POSIX_DEF__(dprintf)(int fildes, const char *__restrict__ format, ...)
-    PRINTF_ATTRIBUTE(2, 3);
-extern int __POSIX_DEF__(vdprintf)(int fildes, const char *__restrict__ format, va_list ap);
-extern int __POSIX_DEF__(sprintf)(char *__restrict__ s, const char *__restrict__ format, ...)
-    PRINTF_ATTRIBUTE(2, 3);
-extern int __POSIX_DEF__(vsprintf)(char *__restrict__ s, const char *__restrict__ format, va_list ap);
+extern int dprintf(int fildes, const char *__restrict__ format, ...)
+    _HELENOS_PRINTF_ATTRIBUTE(2, 3);
+extern int vdprintf(int fildes, const char *__restrict__ format, va_list ap);
+extern int sprintf(char *__restrict__ s, const char *__restrict__ format, ...)
+    _HELENOS_PRINTF_ATTRIBUTE(2, 3);
+extern int vsprintf(char *__restrict__ s, const char *__restrict__ format, va_list ap);
 
 /* Formatted Input */
-extern int __POSIX_DEF__(fscanf)(
+extern int fscanf(
     FILE *__restrict__ stream, const char *__restrict__ format, ...);
-extern int __POSIX_DEF__(vfscanf)(
+extern int vfscanf(
     FILE *__restrict__ stream, const char *__restrict__ format, va_list arg);
-extern int __POSIX_DEF__(scanf)(const char *__restrict__ format, ...);
-extern int __POSIX_DEF__(vscanf)(const char *__restrict__ format, va_list arg);
-extern int __POSIX_DEF__(sscanf)(
+extern int scanf(const char *__restrict__ format, ...);
+extern int vscanf(const char *__restrict__ format, va_list arg);
+extern int sscanf(
     const char *__restrict__ s, const char *__restrict__ format, ...);
-extern int __POSIX_DEF__(vsscanf)(
+extern int vsscanf(
     const char *__restrict__ s, const char *__restrict__ format, va_list arg);
 
 /* File Locking */
-extern void __POSIX_DEF__(flockfile)(FILE *file);
-extern int __POSIX_DEF__(ftrylockfile)(FILE *file);
-extern void __POSIX_DEF__(funlockfile)(FILE *file);
-extern int __POSIX_DEF__(getc_unlocked)(FILE *stream);
-extern int __POSIX_DEF__(getchar_unlocked)(void);
-extern int __POSIX_DEF__(putc_unlocked)(int c, FILE *stream);
-extern int __POSIX_DEF__(putchar_unlocked)(int c);
+extern void flockfile(FILE *file);
+extern int ftrylockfile(FILE *file);
+extern void funlockfile(FILE *file);
+extern int getc_unlocked(FILE *stream);
+extern int getchar_unlocked(void);
+extern int putc_unlocked(int c, FILE *stream);
+extern int putchar_unlocked(int c);
 
 /* Deleting Files */
-extern int __POSIX_DEF__(remove)(const char *path);
+extern int remove(const char *path);
 
 /* Renaming Files */
-extern int __POSIX_DEF__(rename)(const char *oldname, const char *newname);
+extern int rename(const char *oldname, const char *newname);
 
 /* Temporary Files */
 #undef L_tmpnam
 #define L_tmpnam PATH_MAX
-extern char *__POSIX_DEF__(tmpnam)(char *s);
-extern char *__POSIX_DEF__(tempnam)(const char *dir, const char *pfx);
-extern FILE *__POSIX_DEF__(tmpfile)(void);
+extern char *tmpnam(char *s);
+extern char *tempnam(const char *dir, const char *pfx);
+extern FILE *tmpfile(void);
 
 
 #endif /* POSIX_STDIO_H_ */

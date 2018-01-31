@@ -35,10 +35,6 @@
 #ifndef POSIX_STDDEF_H_
 #define POSIX_STDDEF_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "sys/types.h"
 
 #include <_bits/NULL.h>

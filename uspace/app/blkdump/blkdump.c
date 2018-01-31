@@ -48,6 +48,7 @@
 #include <offset.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <str.h>
 
 #define NAME	"blkdump"
 

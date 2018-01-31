@@ -64,7 +64,7 @@ typedef struct ofw_tree_node {
 } ofw_tree_node_t;
 
 /* Walker for visiting OpenFirmware device tree nodes. */
-typedef bool (* ofw_tree_walker_t)(ofw_tree_node_t *, void *);
+typedef bool (*ofw_tree_walker_t)(ofw_tree_node_t *, void *);
 
 extern void ofw_tree_init(ofw_tree_node_t *);
 extern void ofw_sysinfo_map(void);

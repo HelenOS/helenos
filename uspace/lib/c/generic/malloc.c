@@ -33,8 +33,6 @@
 /** @file
  */
 
-#define _HELENOS_SOURCE
-
 #include <malloc.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -875,8 +873,13 @@ void *memalign(const size_t align, const size_t size)
  * @return Reallocated memory or NULL.
  *
  */
-void *realloc(const void *addr, const size_t size)
+void *realloc(void * const addr, const size_t size)
 {
+	if (size == 0) {
+		free(addr);
+		return NULL;
+	}
+
 	if (addr == NULL)
 		return malloc(size);
 	
@@ -984,7 +987,7 @@ void *realloc(const void *addr, const size_t size)
  * @param addr The address of the block.
  *
  */
-void free(const void *addr)
+void free(void * const addr)
 {
 	if (addr == NULL)
 		return;

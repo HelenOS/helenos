@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <str.h>
 
 #include <libarch/rtld/elf_dyn.h>
 #include <rtld/symbol.h>

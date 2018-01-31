@@ -39,7 +39,7 @@
 #include <console/chardev.h>
 
 extern void symtab_print_search(const char *);
-extern const char* symtab_hints_enum(const char *, const char **, void **);
+extern const char *symtab_hints_enum(const char *, const char **, void **);
 
 #endif
 

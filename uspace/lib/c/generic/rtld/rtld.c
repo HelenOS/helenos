@@ -39,6 +39,7 @@
 #include <rtld/rtld.h>
 #include <rtld/rtld_debug.h>
 #include <stdlib.h>
+#include <str.h>
 
 rtld_t *runtime_env;
 static rtld_t rt_env_static;

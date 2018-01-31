@@ -60,7 +60,7 @@
  * @return Error code.
  */
 static errno_t usb_add_match_id(match_id_list_t *matches, int score,
-    const char *match_str)
+    char *match_str)
 {
 	assert(matches);
 

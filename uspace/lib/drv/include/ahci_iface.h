@@ -40,7 +40,7 @@
 #include "ddf/driver.h"
 #include <async.h>
 
-extern async_sess_t* ahci_get_sess(devman_handle_t, char **);
+extern async_sess_t *ahci_get_sess(devman_handle_t, char **);
 
 extern errno_t ahci_get_sata_device_name(async_sess_t *, size_t, char *);
 extern errno_t ahci_get_num_blocks(async_sess_t *, uint64_t *);

@@ -35,18 +35,11 @@
 #ifndef POSIX_LOCALE_H_
 #define POSIX_LOCALE_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include <_bits/NULL.h>
 
 #ifndef __locale_t_defined
-	#define __locale_t_defined
-	typedef struct __posix_locale *__POSIX_DEF__(locale_t);
-	#ifndef LIBPOSIX_INTERNAL
-		#define locale_t __POSIX_DEF__(locale_t)
-	#endif
+#define __locale_t_defined
+typedef struct __posix_locale *locale_t;
 #endif
 
 #undef LC_ALL
@@ -83,7 +76,7 @@
 #undef LC_GLOBAL_LOCALE
 #define LC_GLOBAL_LOCALE NULL
 
-struct __POSIX_DEF__(lconv) {
+struct lconv {
 	char *currency_symbol;
 	char *decimal_point;
 	char  frac_digits;
@@ -110,15 +103,15 @@ struct __POSIX_DEF__(lconv) {
 	char *thousands_sep;
 };
 
-extern char *__POSIX_DEF__(setlocale)(int category, const char *locale);
-extern struct __POSIX_DEF__(lconv) *__POSIX_DEF__(localeconv)(void);
+extern char *setlocale(int category, const char *locale);
+extern struct lconv *localeconv(void);
 
 /* POSIX Extensions */
-extern __POSIX_DEF__(locale_t) __POSIX_DEF__(duplocale)(__POSIX_DEF__(locale_t) locobj);
-extern void __POSIX_DEF__(freelocale)(__POSIX_DEF__(locale_t) locobj);
-extern __POSIX_DEF__(locale_t) __POSIX_DEF__(newlocale)(int category_mask, const char *locale,
-    __POSIX_DEF__(locale_t) base);
-extern __POSIX_DEF__(locale_t) __POSIX_DEF__(uselocale)(__POSIX_DEF__(locale_t) newloc);
+extern locale_t duplocale(locale_t locobj);
+extern void freelocale(locale_t locobj);
+extern locale_t newlocale(int category_mask, const char *locale,
+    locale_t base);
+extern locale_t uselocale(locale_t newloc);
 
 
 #endif /* POSIX_LOCALE_H_ */

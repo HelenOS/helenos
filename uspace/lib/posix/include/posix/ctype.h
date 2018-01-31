@@ -36,29 +36,14 @@
 #ifndef POSIX_CTYPE_H_
 #define POSIX_CTYPE_H_
 
-#ifndef __POSIX_DEF__
-#define __POSIX_DEF__(x) x
-#endif
-
 #include "libc/ctype.h"
 
-/* Classification of Characters */
-extern int __POSIX_DEF__(isxdigit)(int c);
-extern int __POSIX_DEF__(isblank)(int c);
-extern int __POSIX_DEF__(iscntrl)(int c);
-extern int __POSIX_DEF__(isgraph)(int c);
-extern int __POSIX_DEF__(isprint)(int c);
-extern int __POSIX_DEF__(ispunct)(int c);
-
 /* Obsolete Functions and Macros */
-extern int __POSIX_DEF__(isascii)(int c);
-extern int __POSIX_DEF__(toascii)(int c);
-#undef _tolower
+extern int isascii(int c);
+extern int toascii(int c);
+
 #define _tolower(c) ((c) - 'A' + 'a')
-#undef _toupper
 #define _toupper(c) ((c) - 'a' + 'A')
-
-
 
 #endif /* POSIX_CTYPE_H_ */
 

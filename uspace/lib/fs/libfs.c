@@ -732,15 +732,15 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	ipc_callid_t callid;
 	size_t size;
 	if ((!async_data_read_receive(&callid, &size)) ||
-	    (size != sizeof(struct stat))) {
+	    (size != sizeof(vfs_stat_t))) {
 		ops->node_put(fn);
 		async_answer_0(callid, EINVAL);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
 
-	struct stat stat;
-	memset(&stat, 0, sizeof(struct stat));
+	vfs_stat_t stat;
+	memset(&stat, 0, sizeof(vfs_stat_t));
 
 	stat.fs_handle = fs_handle;
 	stat.service_id = service_id;
@@ -754,7 +754,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	ops->node_put(fn);
 
 
-	async_data_read_finalize(callid, &stat, sizeof(struct stat));
+	async_data_read_finalize(callid, &stat, sizeof(vfs_stat_t));
 	async_answer_0(rid, EOK);
 }
 
@@ -771,12 +771,12 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	ipc_callid_t callid;
 	size_t size;
 	if ((!async_data_read_receive(&callid, &size)) ||
-	    (size != sizeof(struct statfs))) {
+	    (size != sizeof(vfs_statfs_t))) {
 		goto error;
 	}
 
-	struct statfs st;
-	memset(&st, 0, sizeof(struct statfs));
+	vfs_statfs_t st;
+	memset(&st, 0, sizeof(vfs_statfs_t));
 
 	str_cpy(st.fs_name, sizeof(st.fs_name), fs_name);
 
@@ -799,7 +799,7 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	}
 
 	ops->node_put(fn);
-	async_data_read_finalize(callid, &st, sizeof(struct statfs));
+	async_data_read_finalize(callid, &st, sizeof(vfs_statfs_t));
 	async_answer_0(rid, EOK);
 	return;
 

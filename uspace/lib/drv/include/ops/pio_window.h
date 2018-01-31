@@ -39,7 +39,7 @@
 #include "../ddf/driver.h"
 
 typedef struct {
-	pio_window_t *(* get_pio_window)(ddf_fun_t *);
+	pio_window_t *(*get_pio_window)(ddf_fun_t *);
 } pio_window_ops_t;
 
 #endif

@@ -36,9 +36,9 @@
 #define LIBC_STDIO_H_
 
 #include <stdarg.h>
-#include <str.h>
 #include <io/verify.h>
-#include <abi/kio.h>
+#include <_bits/size_t.h>
+#include <_bits/wchar_t.h>
 
 #define EOF  (-1)
 
@@ -57,13 +57,78 @@
 /** Default size for stream I/O buffers */
 #define BUFSIZ  4096
 
-#define DEBUG(fmt, ...) \
-	{ \
-		char _buf[256]; \
-		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \
-		if (_n > 0) \
-			(void) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) _buf, str_size(_buf)); \
-	}
+/** Forward declaration */
+struct _IO_FILE;
+typedef struct _IO_FILE FILE;
+
+extern FILE *stdin;
+extern FILE *stdout;
+extern FILE *stderr;
+
+/* Character and string input functions */
+extern int fgetc(FILE *);
+extern char *fgets(char *, int, FILE *);
+
+extern int getchar(void);
+
+/* Character and string output functions */
+extern int fputc(wchar_t, FILE *);
+extern int fputs(const char *, FILE *);
+
+extern int putchar(wchar_t);
+extern int puts(const char *);
+
+extern int ungetc(int, FILE *);
+
+/* Formatted string output functions */
+extern int fprintf(FILE *, const char*, ...)
+    _HELENOS_PRINTF_ATTRIBUTE(2, 3);
+extern int vfprintf(FILE *, const char *, va_list);
+
+extern int printf(const char *, ...)
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
+extern int vprintf(const char *, va_list);
+
+extern int snprintf(char *, size_t , const char *, ...)
+    _HELENOS_PRINTF_ATTRIBUTE(3, 4);
+extern int vasprintf(char **, const char *, va_list);
+extern int asprintf(char **, const char *, ...)
+    _HELENOS_PRINTF_ATTRIBUTE(2, 3);
+extern int vsnprintf(char *, size_t, const char *, va_list);
+
+/* File stream functions */
+extern FILE *fopen(const char *, const char *);
+extern FILE *freopen(const char *, const char *, FILE *);
+extern int fclose(FILE *);
+
+extern size_t fread(void *, size_t, size_t, FILE *);
+extern size_t fwrite(const void *, size_t, size_t, FILE *);
+
+extern int fseek(FILE *, long, int);
+extern void rewind(FILE *);
+extern long ftell(FILE *);
+extern int feof(FILE *);
+
+extern int fflush(FILE *);
+extern int ferror(FILE *);
+extern void clearerr(FILE *);
+
+extern void setvbuf(FILE *, void *, int, size_t);
+extern void setbuf(FILE *, void *);
+
+/* Misc file functions */
+extern int rename(const char *, const char *);
+extern int remove(const char *);
+
+#ifndef _HELENOS_SOURCE
+#define _IONBF 0
+#define _IOLBF 1
+#define _IOFBF 2
+#endif
+
+#ifdef _HELENOS_SOURCE
+
+/* Nonstandard extensions. */
 
 enum _buffer_type {
 	/** No buffering */
@@ -85,75 +150,20 @@ enum _buffer_state {
 	_bs_read
 };
 
-/** Forward declaration */
-struct _IO_FILE;
-typedef struct _IO_FILE FILE;
-
-extern FILE *stdin;
-extern FILE *stdout;
-extern FILE *stderr;
-
-/* Character and string input functions */
-extern int fgetc(FILE *);
-extern char *fgets(char *, int, FILE *);
-
-extern int getchar(void);
+extern int vprintf_size(const char *, va_list);
+extern int printf_size(const char *, ...)
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
+extern FILE *fdopen(int, const char *);
+extern int fileno(FILE *);
 extern char *gets(char *, size_t);
 
-/* Character and string output functions */
-extern int fputc(wchar_t, FILE *);
-extern int fputs(const char *, FILE *);
+#include <offset.h>
 
-extern int putchar(wchar_t);
-extern int puts(const char *);
+extern int fseek64(FILE *, off64_t, int);
+extern off64_t ftell64(FILE *);
 
-extern int ungetc(int, FILE *);
+#endif
 
-/* Formatted string output functions */
-extern int fprintf(FILE *, const char*, ...)
-    PRINTF_ATTRIBUTE(2, 3);
-extern int vfprintf(FILE *, const char *, va_list);
-
-extern int printf(const char *, ...)
-    PRINTF_ATTRIBUTE(1, 2);
-extern int vprintf(const char *, va_list);
-
-extern int snprintf(char *, size_t , const char *, ...)
-    PRINTF_ATTRIBUTE(3, 4);
-extern int vasprintf(char **, const char *, va_list);
-extern int asprintf(char **, const char *, ...)
-    PRINTF_ATTRIBUTE(2, 3);
-extern int vsnprintf(char *, size_t, const char *, va_list);
-
-extern int printf_size(const char *, ...)
-    PRINTF_ATTRIBUTE(1, 2);
-extern int vprintf_size(const char *, va_list);
-
-/* File stream functions */
-extern FILE *fopen(const char *, const char *);
-extern FILE *fdopen(int, const char *);
-extern FILE *freopen(const char *, const char *, FILE *);
-extern int fclose(FILE *);
-
-extern size_t fread(void *, size_t, size_t, FILE *);
-extern size_t fwrite(const void *, size_t, size_t, FILE *);
-
-extern int fseek(FILE *, long, int);
-extern void rewind(FILE *);
-extern long ftell(FILE *);
-extern int feof(FILE *);
-extern int fileno(FILE *);
-
-extern int fflush(FILE *);
-extern int ferror(FILE *);
-extern void clearerr(FILE *);
-
-extern void setvbuf(FILE *, void *, int, size_t);
-extern void setbuf(FILE *, void *);
-
-/* Misc file functions */
-extern int rename(const char *, const char *);
-extern int remove(const char *);
 
 #endif
 

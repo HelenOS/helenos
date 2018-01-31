@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <task.h>
+#include <str.h>
 #include <str_error.h>
 
 #define NAME  "kill"

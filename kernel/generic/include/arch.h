@@ -79,11 +79,11 @@ typedef struct {
 } the_t;
 
 typedef struct {
-	void (* pre_mm_init)(void);
-	void (* post_mm_init)(void);
-	void (* post_cpu_init)(void);
-	void (* pre_smp_init)(void);
-	void (* post_smp_init)(void);
+	void (*pre_mm_init)(void);
+	void (*post_mm_init)(void);
+	void (*post_cpu_init)(void);
+	void (*pre_smp_init)(void);
+	void (*post_smp_init)(void);
 } arch_ops_t;
 
 extern arch_ops_t *arch_ops;

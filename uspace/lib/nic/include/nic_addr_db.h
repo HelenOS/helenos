@@ -61,7 +61,7 @@ extern errno_t nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr);
 extern errno_t nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr);
 extern bool nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr);
 extern void nic_addr_db_foreach(const nic_addr_db_t *db,
-	void (*func)(const uint8_t *, void *), void *arg);
+    void (*func)(const uint8_t *, void *), void *arg);
 
 #endif
 

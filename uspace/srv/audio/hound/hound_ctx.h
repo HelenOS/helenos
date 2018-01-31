@@ -68,7 +68,7 @@ hound_context_id_t hound_ctx_get_id(hound_ctx_t *ctx);
 bool hound_ctx_is_record(hound_ctx_t *ctx);
 
 hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
-	pcm_format_t format, size_t buffer_size);
+    pcm_format_t format, size_t buffer_size);
 void hound_ctx_destroy_stream(hound_ctx_stream_t *stream);
 
 errno_t hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *buffer,

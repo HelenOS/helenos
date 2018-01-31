@@ -81,10 +81,10 @@ void sb_dsp_interrupt(sb_dsp_t *dsp);
 unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap);
 errno_t sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *size);
 errno_t sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
-  pcm_sample_format_t *format);
+    pcm_sample_format_t *format);
 errno_t sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size);
 errno_t sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session);
-async_sess_t * sb_dsp_get_event_session(sb_dsp_t *dsp);
+async_sess_t *sb_dsp_get_event_session(sb_dsp_t *dsp);
 errno_t sb_dsp_release_buffer(sb_dsp_t *dsp);
 errno_t sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
     unsigned channels, unsigned sample_rate, pcm_sample_format_t format);

@@ -183,13 +183,13 @@ static inline const char * pcm_sample_format_str(pcm_sample_format_t format)
 {
 	switch(format) {
 	case PCM_SAMPLE_UINT8:
-		return "8 bit unsinged";
+		return "8 bit unsigned";
 	case PCM_SAMPLE_SINT8:
-		return "8 bit singed";
+		return "8 bit signed";
 	case PCM_SAMPLE_UINT16_LE:
 		return "16 bit unsigned(LE)";
 	case PCM_SAMPLE_SINT16_LE:
-		return "16 bit singed(LE)";
+		return "16 bit signed(LE)";
 	case PCM_SAMPLE_UINT16_BE:
 		return "16 bit unsigned(BE)";
 	case PCM_SAMPLE_SINT16_BE:

@@ -79,7 +79,7 @@ static int copy_file(const char *src, const char *dest,
  */
 static dentry_type_t get_type(const char *path)
 {
-	struct stat s;
+	vfs_stat_t s;
 
 	errno_t r = vfs_stat_path(path, &s);
 
@@ -339,8 +339,8 @@ static errno_t do_copy(const char *src, const char *dest,
 		 * destination directory.
 		 */
 		while ((dp = readdir(dir))) {
-			struct stat src_s;
-			struct stat dest_s;
+			vfs_stat_t src_s;
+			vfs_stat_t dest_s;
 
 			char src_dent[PATH_MAX];
 			char dest_dent[PATH_MAX];
@@ -391,7 +391,7 @@ static int copy_file(const char *src, const char *dest,
 	off64_t total;
 	char *buff = NULL;
 	aoff64_t posr = 0, posw = 0;
-	struct stat st;
+	vfs_stat_t st;
 
 	if (vb)
 		printf("Copying %s to %s\n", src, dest);

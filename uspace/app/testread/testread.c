@@ -57,6 +57,7 @@
 #include <errno.h>
 #include <time.h>
 #include <offset.h>
+#include <str.h>
 
 #define NAME	"testread"
 #define BUFELEMS 1024

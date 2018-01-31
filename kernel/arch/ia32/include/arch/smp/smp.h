@@ -41,7 +41,7 @@
 /** SMP config opertaions interface. */
 struct smp_config_operations {
 	/** Check whether a processor is enabled. */
-	bool (* cpu_enabled)(size_t);
+	bool (*cpu_enabled)(size_t);
 	
 	/** Check whether a processor is BSP. */
 	bool (*cpu_bootstrap)(size_t);

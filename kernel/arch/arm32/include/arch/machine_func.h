@@ -107,7 +107,7 @@ extern void machine_input_init(void);
 
 extern size_t machine_get_irq_count(void);
 
-extern const char * machine_get_platform_name(void);
+extern const char *machine_get_platform_name(void);
 
 #endif
 

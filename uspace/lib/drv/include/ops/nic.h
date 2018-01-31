@@ -65,7 +65,7 @@ typedef struct nic_iface {
 	    nic_result_t *, nic_result_t *);
 	errno_t (*autoneg_restart)(ddf_fun_t *);
 	errno_t (*get_pause)(ddf_fun_t *, nic_result_t *, nic_result_t *,
-		uint16_t *);
+	    uint16_t *);
 	errno_t (*set_pause)(ddf_fun_t *, int, int, uint16_t);
 	
 	errno_t (*unicast_get_mode)(ddf_fun_t *, nic_unicast_mode_t *, size_t,

@@ -47,9 +47,9 @@ extern void log_begin(log_facility_t, log_level_t);
 extern void log_end(void);
 extern int log_vprintf(const char *, va_list);
 extern int log_printf(const char *, ...)
-    PRINTF_ATTRIBUTE(1, 2);
+    _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int log(log_facility_t, log_level_t, const char *, ...)
-    PRINTF_ATTRIBUTE(3, 4);
+    _HELENOS_PRINTF_ATTRIBUTE(3, 4);
 
 extern sys_errno_t sys_klog(sysarg_t, void *buf, size_t size,
     sysarg_t level, size_t *uspace_nread);

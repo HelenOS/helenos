@@ -37,6 +37,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define BITMAP_ELEMENT   8
 #define BITMAP_REMAINER  7

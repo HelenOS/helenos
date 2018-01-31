@@ -22,7 +22,7 @@ typedef struct {
  */
 struct dir_elem_t {
 	char *name;
-	struct stat s;
+	vfs_stat_t s;
 };
 
 #endif

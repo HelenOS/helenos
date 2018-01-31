@@ -56,7 +56,7 @@ struct ddf_dev {
 	async_sess_t *parent_sess;
 	
 	/** Device name */
-	const char *name;
+	char *name;
 	
 	/** Driver-specific data associated with this device */
 	void *driver_data;
@@ -83,7 +83,7 @@ struct ddf_fun {
 	fun_type_t ftype;
 	
 	/** Function name */
-	const char *name;
+	char *name;
 	
 	/** List of device ids for driver matching */
 	match_id_list_t match_ids;

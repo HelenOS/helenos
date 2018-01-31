@@ -47,6 +47,7 @@
 #include <libarch/istate.h>
 #include <macros.h>
 #include <assert.h>
+#include <str.h>
 
 #include <symtab.h>
 #include <elf_core.h>

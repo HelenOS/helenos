@@ -42,9 +42,9 @@
 
 #include "ddf/driver.h"
 
-errno_t audio_mixer_get_info(async_exch_t *, const char **, unsigned *);
+errno_t audio_mixer_get_info(async_exch_t *, char **, unsigned *);
 errno_t audio_mixer_get_item_info(async_exch_t *, unsigned,
-    const char **, unsigned *);
+    char **, unsigned *);
 errno_t audio_mixer_get_item_level(async_exch_t *, unsigned, unsigned *);
 errno_t audio_mixer_set_item_level(async_exch_t *, unsigned, unsigned);
 

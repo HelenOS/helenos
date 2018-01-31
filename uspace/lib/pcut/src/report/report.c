@@ -32,7 +32,9 @@
  */
 
 #include "../internal.h"
-#ifndef __helenos__
+#ifdef __helenos__
+#include <str.h>
+#else
 #include <string.h>
 #endif
 #include <stdio.h>

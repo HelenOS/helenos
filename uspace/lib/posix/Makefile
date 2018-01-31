@@ -36,54 +36,47 @@ INCLUDE_LIBC = ./include/libc
 
 LIBC_FILE = $(LIBC_PREFIX)/libc.a
 
-FIXED_POSIX_LIBRARY = libposixaslibc.a
 FIXED_C_LIBRARY = libc4posix.a
 MERGED_C_LIBRARY = libc.a
 MERGE_LIBRARIES = \
 	$(FIXED_C_LIBRARY) \
-	$(FIXED_POSIX_LIBRARY) \
+	$(LIBRARY).a \
 	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
 	$(LIBSOFTINT_PREFIX)/libsoftint.a
 
 REDEFS_HIDE_LIBC = redefs-hide-libc-symbols.list
-REDEFS_SHOW_LIBPOSIX = redefs-show-posix-symbols.list
-COLLISIONS_LIST = collisions.list
 
 PRE_DEPEND = $(INCLUDE_LIBC)
 EXTRA_CLEAN = \
 	$(INCLUDE_LIBC) \
 	$(REDEFS_HIDE_LIBC) \
-	$(REDEFS_SHOW_LIBPOSIX) \
-	$(COLLISIONS_LIST) \
 	libc.o
 
 EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY) $(MERGED_C_LIBRARY)
 
 SOURCES = \
-	source/ctype.c \
-	source/dlfcn.c \
-	source/fcntl.c \
-	source/fnmatch.c \
-	source/getopt.c \
-	source/locale.c \
-	source/pthread/condvar.c \
-	source/pthread/keys.c \
-	source/pthread/mutex.c \
-	source/pthread/threads.c \
-	source/pwd.c \
-	source/signal.c \
-	source/stdio.c \
-	source/stdio/scanf.c \
-	source/stdlib.c \
-	source/stdlib/strtol.c \
-	source/stdlib/strtold.c \
-	source/string.c \
-	source/strings.c \
-	source/sys/mman.c \
-	source/sys/stat.c \
-	source/sys/wait.c \
-	source/time.c \
-	source/unistd.c
+	src/ctype.c \
+	src/dlfcn.c \
+	src/fcntl.c \
+	src/fnmatch.c \
+	src/locale.c \
+	src/pthread/condvar.c \
+	src/pthread/keys.c \
+	src/pthread/mutex.c \
+	src/pthread/threads.c \
+	src/pwd.c \
+	src/signal.c \
+	src/stdio.c \
+	src/stdio/scanf.c \
+	src/stdlib.c \
+	src/stdlib/strtold.c \
+	src/string.c \
+	src/strings.c \
+	src/sys/mman.c \
+	src/sys/stat.c \
+	src/sys/wait.c \
+	src/time.c \
+	src/unistd.c
 
 TEST_SOURCES = \
 	test/main.c \
@@ -94,26 +87,13 @@ include $(USPACE_PREFIX)/Makefile.common
 $(INCLUDE_LIBC): ../c/include
 	ln -s -f -n ../$^ $@
 
-$(FIXED_C_LIBRARY): $(LIBC_FILE) $(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
+$(FIXED_C_LIBRARY): $(LIBC_FILE) $(REDEFS_HIDE_LIBC)
 	$(OBJCOPY) --redefine-syms=$(REDEFS_HIDE_LIBC) $(LIBC_FILE) $@
-	$(OBJCOPY) --redefine-syms=$(REDEFS_SHOW_LIBPOSIX) $@ $@
-
-$(FIXED_POSIX_LIBRARY): $(LIBRARY).a $(REDEFS_HIDE_LIBC) $(REDEFS_SHOW_LIBPOSIX)
-	$(OBJCOPY) --redefine-syms=$(REDEFS_HIDE_LIBC) $(LIBRARY).a $@
-	$(OBJCOPY) --redefine-syms=$(REDEFS_SHOW_LIBPOSIX) $@ $@
 
 $(MERGED_C_LIBRARY): $(MERGE_LIBRARIES)
 	$(LD) --fatal-warnings -r -o libc.o --whole-archive $(MERGE_LIBRARIES) --no-whole-archive
 	$(AR) rc $@ libc.o
 
-$(REDEFS_HIDE_LIBC): $(COLLISIONS_LIST)
-	sed 's/.*/& __helenos_libc_&/' <$(COLLISIONS_LIST) >$@
+$(REDEFS_HIDE_LIBC): $(SOURCES)
+	sed -n -e 's/_HIDE_LIBC_SYMBOL(\(.*\))/\1 __helenos_libc_\1/p' $(SOURCES) >$@
 
-$(REDEFS_SHOW_LIBPOSIX): $(COLLISIONS_LIST)
-	sed 's/.*/posix_& &/' <$(COLLISIONS_LIST) >$@
-
-$(COLLISIONS_LIST): include/posix/*.h include/posix/*/*.h
-	find ./include/posix -name '*.h' -exec \
-		sed -n -e '/^#/d' -e 's/__POSIX_DEF__/\n&/gp' {} \; | \
-		sed -n -e 's/__POSIX_DEF__(\([^)]*\)).*/\1/p' | \
-		sort -u >$@

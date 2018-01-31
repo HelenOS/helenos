@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fdisk.h>
+#include <str.h>
 
 #define NO_LABEL_CAPTION "(No name)"
 

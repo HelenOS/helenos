@@ -39,7 +39,7 @@
 #include <arch/asm.h>
 #include <arch/drivers/ucb.h>
 
-#include <func.h>
+#include <halt.h>
 #include <config.h>
 #include <errno.h>
 #include <context.h>

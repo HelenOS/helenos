@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <task.h>
 #include <ipc/services.h>
+#include <str.h>
 #include "ext4/ops.h"
 #include "../../vfs/vfs.h"
 

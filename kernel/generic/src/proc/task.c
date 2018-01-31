@@ -55,7 +55,7 @@
 #include <ipc/event.h>
 #include <print.h>
 #include <errno.h>
-#include <func.h>
+#include <halt.h>
 #include <str.h>
 #include <syscall/copy.h>
 #include <macros.h>
