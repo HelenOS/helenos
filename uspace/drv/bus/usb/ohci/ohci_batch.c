@@ -148,7 +148,7 @@ int ohci_transfer_batch_prepare(ohci_transfer_batch_t *ohci_batch)
 		/* Copy setup data */
                 memcpy(ohci_batch->device_buffer, usb_batch->setup.buffer, setup_size);
 		/* Copy generic data */
-		if (usb_batch->ep->direction != USB_DIRECTION_IN)
+		if (usb_batch->dir == USB_DIRECTION_OUT)
 			memcpy(
 			    ohci_batch->device_buffer + setup_size,
 			    usb_batch->buffer, usb_batch->buffer_size);

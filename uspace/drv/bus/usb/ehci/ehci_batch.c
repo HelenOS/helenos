@@ -138,7 +138,9 @@ int ehci_transfer_batch_prepare(ehci_transfer_batch_t *ehci_batch)
 			    ehci_batch->base.buffer_size);
 	}
 
-	assert(batch_setup[ehci_batch->base.ep->transfer_type]);
+	if (!batch_setup[ehci_batch->base.ep->transfer_type])
+		return ENOTSUP;
+
 	batch_setup[ehci_batch->base.ep->transfer_type](ehci_batch);
 
 	usb_log_debug("Batch %p %s " USB_TRANSFER_BATCH_FMT " initialized.",
