@@ -610,11 +610,7 @@ static int event_worker(void *arg)
  * Dequeue from event ring and handle dequeued events.
  *
  * As there can be events, that blocks on waiting for subsequent events,
- * we solve this problem by first copying the event TRBs from the event ring,
- * then asserting EHB and only after, handling the events.
- *
- * Whenever the event handling blocks, it switches fibril, and incoming
- * IPC notification will create new event handling fibril for us.
+ * we solve this problem by deferring some types of events to separate fibrils.
  */
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring,
     xhci_interrupter_regs_t *intr)
