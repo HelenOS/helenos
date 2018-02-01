@@ -121,11 +121,9 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 int xhci_rh_fini(xhci_rh_t *rh)
 {
 	assert(rh);
-	for (unsigned i = 0; i < rh->max_ports; i++)
-		usb_port_fini(&rh->ports[i].base);
+	xhci_rh_stop(rh);
 
-	xhci_sw_ring_stop(&rh->event_ring);
-	joinable_fibril_join(rh->event_worker);
+	joinable_fibril_destroy(rh->event_worker);
 	xhci_sw_ring_fini(&rh->event_ring);
 	return EOK;
 }
