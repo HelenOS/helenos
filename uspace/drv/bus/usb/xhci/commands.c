@@ -241,9 +241,7 @@ void xhci_stop_command_ring(xhci_hc_t *hc)
 	// Prevent others from starting CR again.
 	cr_set_state(cr, XHCI_CR_STATE_CLOSED);
 
-	/* Some systems, inc. QEMU, need whole 64-bit qword to be written */
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_CS, 1);
-	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0);
 
 	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_CRR))
 		fibril_condvar_wait(&cr->stopped_cv, &cr->guard);
@@ -282,9 +280,7 @@ void xhci_start_command_ring(xhci_hc_t *hc)
  */
 static void abort_command_ring(xhci_hc_t *hc)
 {
-	/* Some systems, inc. QEMU, need whole 64-bit qword to be written */
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_CA, 1);
-	XHCI_REG_SET(hc->op_regs, XHCI_OP_CRCR_HI, 0);
 }
 
 static const char *trb_codes [] = {

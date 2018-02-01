@@ -175,10 +175,8 @@ void xhci_dump_state(const xhci_hc_t *hc)
 	DUMP_REG(hc->op_regs, XHCI_OP_CS);
 	DUMP_REG(hc->op_regs, XHCI_OP_CA);
 	DUMP_REG(hc->op_regs, XHCI_OP_CRR);
-	DUMP_REG(hc->op_regs, XHCI_OP_CRCR_LO);
-	DUMP_REG(hc->op_regs, XHCI_OP_CRCR_HI);
-	DUMP_REG(hc->op_regs, XHCI_OP_DCBAAP_LO);
-	DUMP_REG(hc->op_regs, XHCI_OP_DCBAAP_HI);
+	DUMP_REG(hc->op_regs, XHCI_OP_CRCR);
+	DUMP_REG(hc->op_regs, XHCI_OP_DCBAAP);
 	DUMP_REG(hc->rt_regs, XHCI_RT_MFINDEX);
 
 	usb_log_debug("Interrupter 0 state:");
@@ -187,10 +185,8 @@ void xhci_dump_state(const xhci_hc_t *hc)
 	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IMI);
 	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_IMC);
 	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERSTSZ);
-	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERSTBA_LO);
-	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERSTBA_HI);
-	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERDP_LO);
-	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERDP_HI);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERSTBA);
+	DUMP_REG(&hc->rt_regs->ir[0], XHCI_INTR_ERDP);
 }
 
 /**

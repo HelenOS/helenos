@@ -476,14 +476,12 @@ int hc_start(xhci_hc_t *hc)
 		return ETIMEOUT;
 
 	uint64_t dcbaaptr = hc->dcbaa_dma.phys;
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_LO, LOWER32(dcbaaptr));
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP_HI, UPPER32(dcbaaptr));
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP, dcbaaptr);
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, hc->max_slots);
 
 	uintptr_t crcr;
 	xhci_trb_ring_reset_dequeue_state(&hc->cr.trb_ring, &crcr);
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_LO, LOWER32(crcr));
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR_HI, UPPER32(crcr));
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_CRCR, crcr);
 
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_EWE, 1);
 
@@ -491,12 +489,8 @@ int hc_start(xhci_hc_t *hc)
 
 	xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTSZ, hc->event_ring.segment_count);
-	uint64_t erdp = hc->event_ring.dequeue_ptr;
-	XHCI_REG_WR(intr0, XHCI_INTR_ERDP_LO, LOWER32(erdp));
-	XHCI_REG_WR(intr0, XHCI_INTR_ERDP_HI, UPPER32(erdp));
-	uint64_t erstptr = hc->event_ring.erst.phys;
-	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_LO, LOWER32(erstptr));
-	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_HI, UPPER32(erstptr));
+	XHCI_REG_WR(intr0, XHCI_INTR_ERDP, hc->event_ring.dequeue_ptr);
+	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA, hc->event_ring.erst.phys);
 
 	if (hc->base.irq_cap > 0) {
 		XHCI_REG_SET(intr0, XHCI_INTR_IE, 1);
@@ -669,17 +663,14 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring,
 			usb_log_error("Failed to handle event in interrupt: %s", str_error(err));
 		}
 
-		uint64_t erdp = hc->event_ring.dequeue_ptr;
-		XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
-		XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
+		XHCI_REG_WR(intr, XHCI_INTR_ERDP, hc->event_ring.dequeue_ptr);
 	}
 
 	hc->event_handler = 0;
 
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	erdp |= XHCI_REG_MASK(XHCI_INTR_ERDP_EHB);
-	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
-	XHCI_REG_WR(intr, XHCI_INTR_ERDP_HI, UPPER32(erdp));
+	XHCI_REG_WR(intr, XHCI_INTR_ERDP, erdp);
 
 	usb_log_debug2("Event ring run finished.");
 }

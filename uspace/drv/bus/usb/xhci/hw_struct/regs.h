@@ -370,13 +370,11 @@ typedef struct xhci_op_regs {
 	 *  3:0 - CRR CA CS RCS
 	 * 64:6 - Command Ring Pointer
 	 */
-	ioport32_t crcr_lo;
-	ioport32_t crcr_hi;
+	ioport64_t crcr;
 
 	PADD32[4];
 
-	ioport32_t dcbaap_lo;
-	ioport32_t dcbaap_hi;
+	ioport64_t dcbaap;
 
 	/*
 	 * 7:0 - MaxSlotsEn
@@ -415,18 +413,16 @@ typedef struct xhci_op_regs {
 #define XHCI_OP_HCE             usbsts, 32,  FLAG, 12
 #define XHCI_OP_PAGESIZE      pagesize, 32, FIELD
 #define XHCI_OP_NOTIFICATION    dnctrl, 32, RANGE, 15, 0
-#define XHCI_OP_RCS            crcr_lo, 32,  FLAG, 0
-#define XHCI_OP_CS             crcr_lo, 32,  FLAG, 1
-#define XHCI_OP_CA             crcr_lo, 32,  FLAG, 2
-#define XHCI_OP_CRR            crcr_lo, 32,  FLAG, 3
+#define XHCI_OP_RCS               crcr, 64,  FLAG, 0
+#define XHCI_OP_CS                crcr, 64,  FLAG, 1
+#define XHCI_OP_CA                crcr, 64,  FLAG, 2
+#define XHCI_OP_CRR               crcr, 64,  FLAG, 3
 /*
  * This shall be RANGE, 6, 0, but the value containing CR pointer and RCS flag
  * must be written at once.
  */
-#define XHCI_OP_CRCR_LO        crcr_lo, 32, FIELD
-#define XHCI_OP_CRCR_HI        crcr_hi, 32, FIELD
-#define XHCI_OP_DCBAAP_LO    dcbaap_lo, 32, FIELD
-#define XHCI_OP_DCBAAP_HI    dcbaap_hi, 32, FIELD
+#define XHCI_OP_CRCR              crcr, 64, FIELD
+#define XHCI_OP_DCBAAP          dcbaap, 64, FIELD
 #define XHCI_OP_MAX_SLOTS_EN    config, 32, RANGE, 7, 0
 #define XHCI_OP_U3E             config, 32,  FLAG, 8
 #define XHCI_OP_CIE             config, 32,  FLAG, 9
@@ -457,16 +453,14 @@ typedef struct xhci_interrupter_regs {
 
 	PADD32;
 
-	ioport32_t erstba_lo;
-	ioport32_t erstba_hi;
+	ioport64_t erstba;
 
 	/*
 	 *  2:0 - Dequeue ERST Segment Index
 	 *    3 - Event Handler Busy
 	 * 63:4 - Event Ring Dequeue Pointer
 	 */
-	ioport32_t erdp_lo;
-	ioport32_t erdp_hi;
+	ioport64_t erdp;
 } xhci_interrupter_regs_t;
 
 #define XHCI_INTR_IP              iman, 32,  FLAG,  0
@@ -474,12 +468,10 @@ typedef struct xhci_interrupter_regs {
 #define XHCI_INTR_IMI             imod, 32, RANGE, 15, 0
 #define XHCI_INTR_IMC             imod, 32, RANGE, 31, 16
 #define XHCI_INTR_ERSTSZ        erstsz, 32, FIELD
-#define XHCI_INTR_ERSTBA_LO  erstba_lo, 32, FIELD
-#define XHCI_INTR_ERSTBA_HI  erstba_hi, 32, FIELD
-#define XHCI_INTR_ERDP_ESI     erdp_lo, 32, RANGE,  2, 0
-#define XHCI_INTR_ERDP_EHB     erdp_lo, 32,  FLAG,  3
-#define XHCI_INTR_ERDP_LO      erdp_lo, 32, FIELD
-#define XHCI_INTR_ERDP_HI      erdp_hi, 32, FIELD
+#define XHCI_INTR_ERSTBA        erstba, 64, FIELD
+#define XHCI_INTR_ERDP_ESI        erdp, 64, RANGE,  2, 0
+#define XHCI_INTR_ERDP_EHB        erdp, 64,  FLAG,  3
+#define XHCI_INTR_ERDP            erdp, 64, FIELD
 
 /**
  * XHCI Runtime registers: section 5.5
