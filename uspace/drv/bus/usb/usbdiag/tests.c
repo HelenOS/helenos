@@ -59,6 +59,7 @@ static int test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdia
 	if (validate && size % sizeof(test_data))
 		return EINVAL;
 
+	size_t test_data_size = size / sizeof(test_data);
 	char *buffer = (char *) malloc(size);
 	if (!buffer)
 		return ENOMEM;
@@ -103,13 +104,15 @@ static int test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdia
 			break;
 
 		if (validate) {
-			for (size_t i = 0; i < size; i += sizeof(test_data)) {
-				if (*(uint32_t *)(buffer + i) != test_data) {
+			uint32_t *beef_buffer = (uint32_t *) buffer;
+
+			/* Check if the beef is really dead. */
+			for (size_t i = 0; i < test_data_size; ++i) {
+				if (beef_buffer[i] != test_data) {
 					usb_log_error("Read of %s IN endpoint returned "
-						"invald data at address %zu.",
-						usb_str_transfer_type(pipe->desc.transfer_type), i);
+						"invalid data at address %zu. [ 0x%X != 0x%X ]",
+						usb_str_transfer_type(pipe->desc.transfer_type), i * sizeof(test_data), beef_buffer[i], test_data);
 					rc = EINVAL;
-					break;
 				}
 			}
 
