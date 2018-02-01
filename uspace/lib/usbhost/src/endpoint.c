@@ -243,9 +243,7 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 	}
 
 	/** Limit transfers with reserved bandwidth to the amount reserved */
-	if ((ep->transfer_type == USB_TRANSFER_INTERRUPT
-	    || ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
-	    && size > ep->max_transfer_size)
+	if (ep->direction == USB_DIRECTION_OUT && size > ep->max_transfer_size)
 		return ENOSPC;
 
 	/* Offline devices don't schedule transfers other than on EP0. */
