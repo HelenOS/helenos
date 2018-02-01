@@ -109,7 +109,10 @@ static errno_t unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_d
 	if (!ep)
 		return ENOENT;
 
-	return bus_endpoint_remove(ep);
+	const errno_t err = bus_endpoint_remove(ep);
+
+	endpoint_del_ref(ep);
+	return err;
 }
 
 /**
