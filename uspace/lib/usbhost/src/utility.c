@@ -296,6 +296,7 @@ typedef struct joinable_fibril {
 static int joinable_fibril_worker(void *arg)
 {
 	joinable_fibril_t *jf = arg;
+
 	jf->worker(jf->arg);
 
 	fibril_mutex_lock(&jf->guard);
@@ -314,20 +315,18 @@ joinable_fibril_t *joinable_fibril_create(fibril_worker_t worker, void *arg)
 	if (!jf)
 		return NULL;
 
-	jf->fid = fibril_create(joinable_fibril_worker, jf);
-	if (!jf->fid) {
-		free(jf);
-		return NULL;
-	}
-
 	jf->worker = worker;
 	jf->arg = arg;
 	fibril_mutex_initialize(&jf->guard);
 	fibril_condvar_initialize(&jf->dead_cv);
 
+	if (joinable_fibril_recreate(jf)) {
+		free(jf);
+		return NULL;
+	}
+
 	return jf;
 }
-
 
 /**
  * Start a joinable fibril. Similar to fibril_add_ready.
@@ -352,6 +351,19 @@ void joinable_fibril_join(joinable_fibril_t *jf)
 	while (jf->running)
 		fibril_condvar_wait(&jf->dead_cv, &jf->guard);
 	fibril_mutex_unlock(&jf->guard);
+
+	jf->fid = 0;
+}
+
+/**
+ * Reinitialize a joinable fibril.
+ */
+errno_t joinable_fibril_recreate(joinable_fibril_t *jf)
+{
+	assert(!jf->fid);
+
+	jf->fid = fibril_create(joinable_fibril_worker, jf);
+	return jf->fid ? EOK : ENOMEM;
 }
 
 /**

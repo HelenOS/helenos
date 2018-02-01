@@ -187,7 +187,7 @@ static void trb_ring_resolve_link(xhci_trb_ring_t *ring)
  */
 static uintptr_t trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
 {
-	uintptr_t trb_id = ring->enqueue_trb - segment_begin(ring->enqueue_segment);
+	size_t trb_id = ring->enqueue_trb - segment_begin(ring->enqueue_segment);
 	return ring->enqueue_segment->phys + trb_id * sizeof(xhci_trb_t);
 }
 
@@ -345,16 +345,22 @@ int xhci_event_ring_init(xhci_event_ring_t *ring, size_t initial_size)
 		xhci_fill_erst_entry(&erst[i], segment->phys, SEGMENT_TRB_COUNT);
 	}
 
+	fibril_mutex_initialize(&ring->guard);
+
+	usb_log_debug("Initialized event ring.");
+	return EOK;
+}
+
+void xhci_event_ring_reset(xhci_event_ring_t *ring)
+{
+	list_foreach(ring->segments, segments_link, trb_segment_t, segment)
+		memset(segment->trb_storage, 0, sizeof(segment->trb_storage));
+
 	trb_segment_t * const segment = get_first_segment(&ring->segments);
 	ring->dequeue_segment = segment;
 	ring->dequeue_trb = segment_begin(segment);
 	ring->dequeue_ptr = segment->phys;
 	ring->ccs = 1;
-
-	fibril_mutex_initialize(&ring->guard);
-
-	usb_log_debug("Initialized event ring.");
-	return EOK;
 }
 
 void xhci_event_ring_fini(xhci_event_ring_t *ring)
@@ -431,13 +437,11 @@ void xhci_sw_ring_init(xhci_sw_ring_t *ring, size_t size)
 	ring->begin = calloc(size, sizeof(xhci_trb_t));
 	ring->end = ring->begin + size;
 
-	ring->enqueue = ring->dequeue = ring->begin;
-
 	fibril_mutex_initialize(&ring->guard);
 	fibril_condvar_initialize(&ring->enqueued_cv);
 	fibril_condvar_initialize(&ring->dequeued_cv);
 
-	ring->running = true;
+	xhci_sw_ring_restart(ring);
 }
 
 int xhci_sw_ring_enqueue(xhci_sw_ring_t *ring, xhci_trb_t *trb)
@@ -483,6 +487,13 @@ void xhci_sw_ring_stop(xhci_sw_ring_t *ring)
 	ring->running = false;
 	fibril_condvar_broadcast(&ring->enqueued_cv);
 	fibril_condvar_broadcast(&ring->dequeued_cv);
+}
+
+void xhci_sw_ring_restart(xhci_sw_ring_t *ring)
+{
+	ring->enqueue = ring->dequeue = ring->begin;
+	memset(ring->begin, 0, sizeof(xhci_trb_t) * (ring->end - ring->begin));
+	ring->running = true;
 }
 
 void xhci_sw_ring_fini(xhci_sw_ring_t *ring)

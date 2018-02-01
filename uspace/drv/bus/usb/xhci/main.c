@@ -82,7 +82,7 @@ static int hcd_claim(hc_device_t *hcd)
 static int hcd_start(hc_device_t *hcd)
 {
 	xhci_hc_t *hc = hcd_to_hc(hcd);
-	return hc_start(hc, hcd->irq_cap >= 0);
+	return hc_start(hc);
 }
 
 static int hcd_hc_gone(hc_device_t *hcd)

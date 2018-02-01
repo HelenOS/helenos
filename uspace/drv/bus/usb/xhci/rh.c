@@ -112,8 +112,6 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 
 	xhci_sw_ring_init(&rh->event_ring, rh->max_ports);
 
-	joinable_fibril_start(rh->event_worker);
-
 	return EOK;
 }
 
@@ -289,8 +287,11 @@ void xhci_rh_set_ports_protocol(xhci_rh_t *rh,
 		rh->ports[i - 1].major = major;
 }
 
-void xhci_rh_startup(xhci_rh_t *rh)
+void xhci_rh_start(xhci_rh_t *rh)
 {
+	xhci_sw_ring_restart(&rh->event_ring);
+	joinable_fibril_start(rh->event_worker);
+
 	/* The reset changed status of all ports, and SW originated reason does
 	 * not cause an interrupt.
 	 */
@@ -307,6 +308,22 @@ void xhci_rh_startup(xhci_rh_t *rh)
 		if (XHCI_REG_RD(port->regs, XHCI_PORT_CCS)
 		    && port->base.state == PORT_DISABLED)
 			usb_port_connected(&port->base, &rh_enumerate_device);
+	}
+}
+
+/**
+ * Disconnect all devices on all ports. On contrary to ordinary disconnect, this
+ * function waits until the disconnection routine is over.
+ */
+void xhci_rh_stop(xhci_rh_t *rh)
+{
+	xhci_sw_ring_stop(&rh->event_ring);
+	joinable_fibril_join(rh->event_worker);
+
+	for (uint8_t i = 0; i < rh->max_ports; ++i) {
+		rh_port_t * const port = &rh->ports[i];
+		usb_port_disabled(&port->base, &rh_remove_device);
+		usb_port_fini(&port->base);
 	}
 }
 

@@ -85,8 +85,6 @@ int xhci_init_commands(xhci_hc_t *hc)
 
 	list_initialize(&cr->cmd_list);
 
-	cr->state = XHCI_CR_STATE_OPEN;
-
 	return EOK;
 }
 
@@ -250,6 +248,31 @@ void xhci_stop_command_ring(xhci_hc_t *hc)
 	while (XHCI_REG_RD(hc->op_regs, XHCI_OP_CRR))
 		fibril_condvar_wait(&cr->stopped_cv, &cr->guard);
 
+	fibril_mutex_unlock(&cr->guard);
+}
+
+/**
+ * Mark the command ring as stopped. NAK new commands, abort running, do not
+ * touch the HC as it's probably broken.
+ */
+void xhci_nuke_command_ring(xhci_hc_t *hc)
+{
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
+	fibril_mutex_lock(&cr->guard);
+	// Prevent others from starting CR again.
+	cr_set_state(cr, XHCI_CR_STATE_CLOSED);
+	fibril_mutex_unlock(&cr->guard);
+}
+
+/**
+ * Mark the command ring as working again.
+ */
+void xhci_start_command_ring(xhci_hc_t *hc)
+{
+	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
+	fibril_mutex_lock(&cr->guard);
+	// Prevent others from starting CR again.
+	cr_set_state(cr, XHCI_CR_STATE_OPEN);
 	fibril_mutex_unlock(&cr->guard);
 }
 

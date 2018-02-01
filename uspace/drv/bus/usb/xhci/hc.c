@@ -258,14 +258,18 @@ static int event_worker(void *arg);
  */
 int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 {
-	int err;
+	int err = ENOMEM;
 
 	if (dma_buffer_alloc(&hc->dcbaa_dma, (1 + hc->max_slots) * sizeof(uint64_t)))
 		return ENOMEM;
 	hc->dcbaa = hc->dcbaa_dma.virt;
 
-	if ((err = xhci_event_ring_init(&hc->event_ring, 1)))
+	hc->event_worker = joinable_fibril_create(&event_worker, hc);
+	if (!hc->event_worker)
 		goto err_dcbaa;
+
+	if ((err = xhci_event_ring_init(&hc->event_ring, 1)))
+		goto err_worker;
 
 	if ((err = xhci_scratchpad_alloc(hc)))
 		goto err_event_ring;
@@ -276,24 +280,18 @@ int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 	if ((err = xhci_bus_init(&hc->bus, hc)))
 		goto err_cmd;
 
-	hc->event_worker = joinable_fibril_create(&event_worker, hc);
-	if (!hc->event_worker)
-		goto err_bus;
-
 	xhci_sw_ring_init(&hc->sw_ring, PAGE_SIZE / sizeof(xhci_trb_t));
-
-	joinable_fibril_start(hc->event_worker);
 
 	return EOK;
 
-err_bus:
-	xhci_bus_fini(&hc->bus);
 err_cmd:
 	xhci_fini_commands(hc);
 err_scratch:
 	xhci_scratchpad_free(hc);
 err_event_ring:
 	xhci_event_ring_fini(&hc->event_ring);
+err_worker:
+	joinable_fibril_destroy(hc->event_worker);
 err_dcbaa:
 	hc->dcbaa = NULL;
 	dma_buffer_free(&hc->dcbaa_dma);
@@ -467,7 +465,7 @@ static int hc_reset(xhci_hc_t *hc)
 /**
  * Initialize the HC: section 4.2
  */
-int hc_start(xhci_hc_t *hc, bool irq)
+int hc_start(xhci_hc_t *hc)
 {
 	int err;
 
@@ -489,6 +487,8 @@ int hc_start(xhci_hc_t *hc, bool irq)
 
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_EWE, 1);
 
+	xhci_event_ring_reset(&hc->event_ring);
+
 	xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTSZ, hc->event_ring.segment_count);
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
@@ -498,18 +498,73 @@ int hc_start(xhci_hc_t *hc, bool irq)
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_LO, LOWER32(erstptr));
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA_HI, UPPER32(erstptr));
 
-	if (irq) {
+	if (hc->base.irq_cap > 0) {
 		XHCI_REG_SET(intr0, XHCI_INTR_IE, 1);
 		XHCI_REG_SET(hc->op_regs, XHCI_OP_INTE, 1);
 	}
 
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_HSEE, 1);
 
+	xhci_sw_ring_restart(&hc->sw_ring);
+	joinable_fibril_start(hc->event_worker);
+
+	xhci_start_command_ring(hc);
+
 	XHCI_REG_SET(hc->op_regs, XHCI_OP_RS, 1);
 
-	xhci_rh_startup(&hc->rh);
+	/* RH needs to access port states on startup */
+	xhci_rh_start(&hc->rh);
 
 	return EOK;
+}
+
+static void hc_stop(xhci_hc_t *hc)
+{
+	/* Stop the HC in hardware. */
+	XHCI_REG_CLR(hc->op_regs, XHCI_OP_RS, 1);
+
+	/*
+	 * Wait until the HC is halted - it shall take at most 16 ms.
+	 * Note that we ignore the return value here.
+	 */
+	xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_HCH),
+	    XHCI_REG_MASK(XHCI_OP_HCH));
+
+	/* Make sure commands will not block other fibrils. */
+	xhci_nuke_command_ring(hc);
+
+	/* Stop the event worker fibril to restart it */
+	xhci_sw_ring_stop(&hc->sw_ring);
+	joinable_fibril_join(hc->event_worker);
+
+	/* Then, disconnect all roothub devices, which shall trigger
+	 * disconnection of everything */
+	xhci_rh_stop(&hc->rh);
+}
+
+static void hc_reinitialize(xhci_hc_t *hc)
+{
+	/* Stop everything. */
+	hc_stop(hc);
+
+	usb_log_info("HC stopped. Starting again...");
+
+	/* The worker fibrils need to be started again */
+	joinable_fibril_recreate(hc->event_worker);
+	joinable_fibril_recreate(hc->rh.event_worker);
+
+	/* Now, the HC shall be stopped and software shall be clean. */
+	hc_start(hc);
+}
+
+static bool hc_is_broken(xhci_hc_t *hc)
+{
+	const uint32_t usbcmd = XHCI_REG_RD_FIELD(&hc->op_regs->usbcmd, 32);
+	const uint32_t usbsts = XHCI_REG_RD_FIELD(&hc->op_regs->usbsts, 32);
+
+	return !(usbcmd & XHCI_REG_MASK(XHCI_OP_RS))
+	    ||  (usbsts & XHCI_REG_MASK(XHCI_OP_HCE))
+	    ||  (usbsts & XHCI_REG_MASK(XHCI_OP_HSE));
 }
 
 /**
@@ -621,7 +676,6 @@ static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring,
 
 	hc->event_handler = 0;
 
-	/* Update the ERDP to make room in the ring. */
 	uint64_t erdp = hc->event_ring.dequeue_ptr;
 	erdp |= XHCI_REG_MASK(XHCI_INTR_ERDP_EHB);
 	XHCI_REG_WR(intr, XHCI_INTR_ERDP_LO, LOWER32(erdp));
@@ -645,8 +699,14 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 	status = xhci2host(32, status);
 
 	if (status & XHCI_REG_MASK(XHCI_OP_HSE)) {
-		usb_log_error("Host controller error occured. Bad things gonna happen...");
-		status &= ~XHCI_REG_MASK(XHCI_OP_HSE);
+		usb_log_error("Host system error occured. Aren't we supposed to be dead already?");
+		return;
+	}
+
+	if (status & XHCI_REG_MASK(XHCI_OP_HCE)) {
+		usb_log_error("Host controller error occured. Reinitializing...");
+		hc_reinitialize(hc);
+		return;
 	}
 
 	if (status & XHCI_REG_MASK(XHCI_OP_EINT)) {
@@ -675,10 +735,10 @@ void hc_interrupt(bus_t *bus, uint32_t status)
  */
 void hc_fini(xhci_hc_t *hc)
 {
-	xhci_sw_ring_stop(&hc->sw_ring);
-	joinable_fibril_join(hc->event_worker);
-	xhci_sw_ring_fini(&hc->sw_ring);
+	hc_stop(hc);
 
+	xhci_sw_ring_fini(&hc->sw_ring);
+	joinable_fibril_destroy(hc->event_worker);
 	xhci_bus_fini(&hc->bus);
 	xhci_event_ring_fini(&hc->event_ring);
 	xhci_scratchpad_free(hc);
@@ -881,6 +941,9 @@ int hc_deconfigure_device(xhci_device_t *dev)
 {
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
+	if (hc_is_broken(hc))
+		return EOK;
+
 	/* Issue configure endpoint command (sec 4.3.5) with the DC flag. */
 	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
 		.slot_id = dev->slot_id,
@@ -929,7 +992,11 @@ int hc_add_endpoint(xhci_endpoint_t *ep)
 int hc_drop_endpoint(xhci_endpoint_t *ep)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
+	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 	const unsigned dci = endpoint_dci(ep);
+
+	if (hc_is_broken(hc))
+		return EOK;
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
@@ -937,7 +1004,6 @@ int hc_drop_endpoint(xhci_endpoint_t *ep)
 	if (err)
 		return err;
 
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 	XHCI_INPUT_CTRL_CTX_DROP_SET(*XHCI_GET_CTRL_CTX(ictx, hc), dci);
 
@@ -991,6 +1057,10 @@ int hc_stop_endpoint(xhci_endpoint_t *ep)
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+
+	if (hc_is_broken(hc))
+		return EOK;
+
 	return xhci_cmd_sync_inline(hc, STOP_ENDPOINT,
 		.slot_id = dev->slot_id,
 		.endpoint_id = dci

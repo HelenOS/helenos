@@ -127,6 +127,7 @@ typedef struct xhci_command {
 extern int xhci_init_commands(xhci_hc_t *);
 extern void xhci_fini_commands(xhci_hc_t *);
 
+extern void xhci_nuke_command_ring(xhci_hc_t *);
 extern void xhci_stop_command_ring(xhci_hc_t *);
 extern void xhci_abort_command_ring(xhci_hc_t *);
 extern void xhci_start_command_ring(xhci_hc_t *);

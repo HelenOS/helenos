@@ -108,6 +108,7 @@ typedef struct xhci_event_ring {
 
 extern int xhci_event_ring_init(xhci_event_ring_t *, size_t);
 extern void xhci_event_ring_fini(xhci_event_ring_t *);
+extern void xhci_event_ring_reset(xhci_event_ring_t *);
 extern int xhci_event_ring_dequeue(xhci_event_ring_t *, xhci_trb_t *);
 
 /**
@@ -129,6 +130,7 @@ extern void xhci_sw_ring_init(xhci_sw_ring_t *, size_t);
 extern int xhci_sw_ring_enqueue(xhci_sw_ring_t *, xhci_trb_t *);
 extern int xhci_sw_ring_dequeue(xhci_sw_ring_t *, xhci_trb_t *);
 
+extern void xhci_sw_ring_restart(xhci_sw_ring_t *);
 extern void xhci_sw_ring_stop(xhci_sw_ring_t *);
 extern void xhci_sw_ring_fini(xhci_sw_ring_t *);
 
