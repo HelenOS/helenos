@@ -29,13 +29,13 @@
 USPACE_PREFIX = ../..
 BINARY = tmon
 
-LIBS = drv
+LIBS = drv usb
 
 SOURCES = \
 	main.c\
 	list.c\
 	tf.c\
-	burst_tests.c\
+	tests.c\
 	resolve.c
 
 include $(USPACE_PREFIX)/Makefile.common

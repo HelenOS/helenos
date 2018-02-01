@@ -61,33 +61,33 @@ static tmon_cmd_t commands[] = {
 	{
 		.name = "test-intr-in",
 		.description = "Read from interrupt endpoint as fast as possible.",
-		.action = tmon_burst_intr_in,
+		.action = tmon_test_intr_in,
 	},
 	{
 		.name = "test-intr-out",
 		.description = "Write to interrupt endpoint as fast as possible.",
-		.action = tmon_burst_intr_out,
+		.action = tmon_test_intr_out,
 	},
 	{
 		.name = "test-bulk-in",
 		.description = "Read from bulk endpoint as fast as possible.",
-		.action = tmon_burst_bulk_in,
+		.action = tmon_test_bulk_in,
 	},
 	{
 		.name = "test-bulk-out",
 		.description = "Write to bulk endpoint as fast as possible.",
-		.action = tmon_burst_bulk_out,
+		.action = tmon_test_bulk_out,
 	},
 	{
 		.name = "test-isoch-in",
 		.description = "Read from isochronous endpoint as fast as possible.",
-		.action = tmon_burst_isoch_in,
+		.action = tmon_test_isoch_in,
 	},
 	{
 		.name = "test-isoch-out",
 		.description = "Write to isochronous endpoint as fast as possible.",
-		.action = tmon_burst_isoch_out,
-	}
+		.action = tmon_test_isoch_out,
+	},
 };
 
 /** Option shown in the usage string. */
@@ -103,15 +103,20 @@ typedef struct tmon_opt {
 /** Static array of options displayed in the tmon usage string. */
 static tmon_opt_t options[] = {
 	{
-		.long_name = "cycles",
-		.short_name = 'n',
-		.description = "Set the number of read/write cycles."
+		.long_name = "duration",
+		.short_name = 't',
+		.description = "Set the minimum test duration (in seconds)."
 	},
 	{
 		.long_name = "size",
 		.short_name = 's',
-		.description = "Set the data size transferred in a single cycle."
-	}
+		.description = "Set the data size (in bytes) transferred in a single cycle."
+	},
+	{
+		.long_name = "validate",
+		.short_name = 'v',
+		.description = "Validate the correctness of transferred data (impacts performance)."
+	},
 };
 
 /** Print usage string.
