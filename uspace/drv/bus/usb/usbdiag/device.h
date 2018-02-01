@@ -39,12 +39,19 @@
 #include <usb/dev/device.h>
 #include <usb/dev/driver.h>
 
-#define USBDIAG_EP_INTR_IN    1
-#define USBDIAG_EP_INTR_OUT   2
-#define USBDIAG_EP_BULK_IN    3
-#define USBDIAG_EP_BULK_OUT   4
-#define USBDIAG_EP_ISOCH_IN   5
-#define USBDIAG_EP_ISOCH_OUT  6
+#define USBDIAG_EP_BURST_INTR_IN    1
+#define USBDIAG_EP_BURST_INTR_OUT   2
+#define USBDIAG_EP_BURST_BULK_IN    3
+#define USBDIAG_EP_BURST_BULK_OUT   4
+#define USBDIAG_EP_BURST_ISOCH_IN   5
+#define USBDIAG_EP_BURST_ISOCH_OUT  6
+
+#define USBDIAG_EP_DATA_INTR_IN     7
+#define USBDIAG_EP_DATA_INTR_OUT    8
+#define USBDIAG_EP_DATA_BULK_IN     9
+#define USBDIAG_EP_DATA_BULK_OUT   10
+#define USBDIAG_EP_DATA_ISOCH_IN   11
+#define USBDIAG_EP_DATA_ISOCH_OUT  12
 
 /**
  * USB diagnostic device.
@@ -52,12 +59,21 @@
 typedef struct usbdiag_dev {
 	usb_device_t *usb_dev;
 	ddf_fun_t *fun;
-	usb_pipe_t *intr_in;
-	usb_pipe_t *intr_out;
-	usb_pipe_t *bulk_in;
-	usb_pipe_t *bulk_out;
-	usb_pipe_t *isoch_in;
-	usb_pipe_t *isoch_out;
+
+	usb_pipe_t *burst_intr_in;
+	usb_pipe_t *burst_intr_out;
+	usb_pipe_t *burst_bulk_in;
+	usb_pipe_t *burst_bulk_out;
+	usb_pipe_t *burst_isoch_in;
+	usb_pipe_t *burst_isoch_out;
+
+	usb_pipe_t *data_intr_in;
+	usb_pipe_t *data_intr_out;
+	usb_pipe_t *data_bulk_in;
+	usb_pipe_t *data_bulk_out;
+	usb_pipe_t *data_isoch_in;
+	usb_pipe_t *data_isoch_out;
+
 } usbdiag_dev_t;
 
 int usbdiag_dev_create(usb_device_t *, usbdiag_dev_t **, const usb_endpoint_description_t **);

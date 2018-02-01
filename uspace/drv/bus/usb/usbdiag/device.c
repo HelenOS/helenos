@@ -45,18 +45,8 @@
 #define NAME "usbdiag"
 
 static usbdiag_iface_t diag_interface = {
-	.burst_intr_in = usbdiag_burst_test_intr_in,
-	.burst_intr_out = usbdiag_burst_test_intr_out,
-	.burst_bulk_in = usbdiag_burst_test_bulk_in,
-	.burst_bulk_out = usbdiag_burst_test_bulk_out,
-	.burst_isoch_in = usbdiag_burst_test_isoch_in,
-	.burst_isoch_out = usbdiag_burst_test_isoch_out,
-	.data_intr_in = usbdiag_data_test_intr_in,
-	.data_intr_out = usbdiag_data_test_intr_out,
-	.data_bulk_in = usbdiag_data_test_bulk_in,
-	.data_bulk_out = usbdiag_data_test_bulk_out,
-	.data_isoch_in = usbdiag_data_test_isoch_in,
-	.data_isoch_out = usbdiag_data_test_isoch_out
+	.test_in = usbdiag_dev_test_in,
+	.test_out = usbdiag_dev_test_out,
 };
 
 static ddf_dev_ops_t diag_ops = {
@@ -85,12 +75,18 @@ static int device_init(usbdiag_dev_t *dev, const usb_endpoint_description_t **en
 	target = &epm->pipe;\
 	} while (0);
 
-	_MAP_EP(dev->intr_in, INTR_IN);
-	_MAP_EP(dev->intr_out, INTR_OUT);
-	_MAP_EP(dev->bulk_in, BULK_IN);
-	_MAP_EP(dev->bulk_out, BULK_OUT);
-	_MAP_EP(dev->isoch_in, ISOCH_IN);
-	_MAP_EP(dev->isoch_out, ISOCH_OUT);
+	_MAP_EP(dev->burst_intr_in, BURST_INTR_IN);
+	_MAP_EP(dev->burst_intr_out, BURST_INTR_OUT);
+	_MAP_EP(dev->burst_bulk_in, BURST_BULK_IN);
+	_MAP_EP(dev->burst_bulk_out, BURST_BULK_OUT);
+	_MAP_EP(dev->burst_isoch_in, BURST_ISOCH_IN);
+	_MAP_EP(dev->burst_isoch_out, BURST_ISOCH_OUT);
+	_MAP_EP(dev->data_intr_in, DATA_INTR_IN);
+	_MAP_EP(dev->data_intr_out, DATA_INTR_OUT);
+	_MAP_EP(dev->data_bulk_in, DATA_BULK_IN);
+	_MAP_EP(dev->data_bulk_out, DATA_BULK_OUT);
+	_MAP_EP(dev->data_isoch_in, DATA_ISOCH_IN);
+	_MAP_EP(dev->data_isoch_out, DATA_ISOCH_OUT);
 
 #undef _MAP_EP
 
