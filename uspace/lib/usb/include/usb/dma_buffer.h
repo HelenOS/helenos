@@ -31,7 +31,7 @@
 /** @file
  * @brief USB host controller library: DMA buffer helpers
  *
- * Simplifies usage of bounce buffers.
+ * Simplifies usage of bounce buffers
  *
  * Currently the minimum size allocated is a page, which is wasteful. Could be
  * extended to support memory pools, which will enable smaller units of
@@ -45,8 +45,10 @@
 #include <errno.h>
 
 typedef const struct dma_policy {
-	bool use64;		/**< Whether to use more than initial 4GiB of memory */
-	size_t alignment;	/**< What alignment is needed. At most PAGE_SIZE. */
+	unsigned flags;
+
+#define DMA_POLICY_F_4GiB	(1<<0)	/**< Must use only 32-bit addresses */
+#define DMA_POLICY_F_CONTIGUOUS	(1<<1)	/**< Pages must follow each other physically */
 } dma_policy_t;
 
 typedef struct dma_buffer {
@@ -55,9 +57,11 @@ typedef struct dma_buffer {
 } dma_buffer_t;
 
 extern int dma_buffer_alloc(dma_buffer_t *db, size_t size);
-extern int dma_buffer_alloc_policy(dma_buffer_t *, size_t, const dma_policy_t *);
+extern int dma_buffer_alloc_policy(dma_buffer_t *, size_t, dma_policy_t *);
 extern void dma_buffer_free(dma_buffer_t *);
 extern uintptr_t dma_buffer_phys(const dma_buffer_t *, void *);
+
+extern bool dma_buffer_check_policy(const void *, size_t, dma_policy_t *);
 
 static inline int dma_buffer_is_set(dma_buffer_t *db)
 {
