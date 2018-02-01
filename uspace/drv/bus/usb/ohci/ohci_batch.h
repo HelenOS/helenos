@@ -37,6 +37,7 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <usb/dma_buffer.h>
 #include <usb/host/usb_transfer_batch.h>
 
 #include "hw_struct/transfer_descriptor.h"
@@ -46,14 +47,20 @@
 typedef struct ohci_transfer_batch {
 	usb_transfer_batch_t base;
 
-	/** Endpoint descriptor of the target endpoint. */
-	ed_t *ed;
-	/** List of TDs needed for the transfer */
-	td_t **tds;
 	/** Number of TDs used by the transfer */
 	size_t td_count;
-	/** Data buffer, must be accessible by the OHCI hw. */
-	char *device_buffer;
+
+	/**
+	 * List of TDs needed for the transfer - together with setup data
+	 * backed by the dma buffer. Note that the TD pointers are pointing to
+	 * the DMA buffer initially, but as the scheduling must use the first TD
+	 * from EP, it is replaced.
+	 */
+	td_t **tds;
+	char *setup_buffer;
+	char *data_buffer;
+
+	dma_buffer_t ohci_dma_buffer;
 } ohci_transfer_batch_t;
 
 ohci_transfer_batch_t * ohci_transfer_batch_create(endpoint_t *batch);

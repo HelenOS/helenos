@@ -74,24 +74,22 @@ static endpoint_t *ohci_endpoint_create(device_t *dev, const usb_endpoint_descri
 {
 	assert(dev);
 
-	ohci_endpoint_t *ohci_ep = malloc(sizeof(ohci_endpoint_t));
+	ohci_endpoint_t *ohci_ep = calloc(1, sizeof(ohci_endpoint_t));
 	if (ohci_ep == NULL)
 		return NULL;
 
 	endpoint_init(&ohci_ep->base, dev, desc);
 
-	ohci_ep->ed = malloc32(sizeof(ed_t));
-	if (ohci_ep->ed == NULL) {
+	const errno_t err = dma_buffer_alloc(&ohci_ep->dma_buffer, sizeof(ed_t) + 2 * sizeof(td_t));
+	if (err) {
 		free(ohci_ep);
 		return NULL;
 	}
 
-	ohci_ep->td = malloc32(sizeof(td_t));
-	if (ohci_ep->td == NULL) {
-		free32(ohci_ep->ed);
-		free(ohci_ep);
-		return NULL;
-	}
+	ohci_ep->ed = ohci_ep->dma_buffer.virt;
+
+	ohci_ep->tds[0] = (td_t *) ohci_ep->ed + 1;
+	ohci_ep->tds[1] = ohci_ep->tds[0] + 1;
 
 	link_initialize(&ohci_ep->eplist_link);
 	link_initialize(&ohci_ep->pending_link);
@@ -108,8 +106,7 @@ static void ohci_endpoint_destroy(endpoint_t *ep)
 	assert(ep);
 	ohci_endpoint_t *instance = ohci_endpoint_get(ep);
 
-	free32(instance->ed);
-	free32(instance->td);
+	dma_buffer_free(&instance->dma_buffer);
 	free(instance);
 }
 
@@ -124,7 +121,7 @@ static int ohci_register_ep(endpoint_t *ep)
 	if (err)
 		return err;
 
-	ed_init(ohci_ep->ed, ep, ohci_ep->td);
+	ed_init(ohci_ep->ed, ep, ohci_ep->tds[0]);
 	hc_enqueue_endpoint(bus->hc, ep);
 	endpoint_set_online(ep, &bus->hc->guard);
 

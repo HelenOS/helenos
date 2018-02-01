@@ -91,8 +91,8 @@ typedef struct td {
 	volatile uint32_t be;
 } __attribute__((packed)) td_t;
 
-void td_init(td_t *instance, const td_t *next,
-    usb_direction_t dir, const void *buffer, size_t size, int toggle);
+void td_init(td_t *, const td_t *, usb_direction_t, const void *, size_t, int);
+void td_set_next(td_t *, const td_t *);
 
 /**
  * Check TD for completion.
