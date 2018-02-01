@@ -125,6 +125,29 @@ static xhci_trb_ring_t *get_ring(xhci_transfer_t *transfer)
 	return xhci_endpoint_get_ring(xhci_ep, transfer->batch.target.stream);
 }
 
+static int calculate_trb_count(xhci_transfer_t *transfer)
+{
+	const size_t size = transfer->batch.buffer_size;
+	return (size + PAGE_SIZE - 1 )/ PAGE_SIZE;
+}
+
+static void trb_set_buffer(xhci_transfer_t *transfer, xhci_trb_t *trb,
+	size_t i, size_t total)
+{
+	const uintptr_t ptr = dma_buffer_phys(&transfer->hc_buffer,
+		transfer->hc_buffer.virt + i * PAGE_SIZE);
+
+	trb->parameter = host2xhci(64, ptr);
+	TRB_CTRL_SET_TD_SIZE(*trb, max(31, total - i - 1));
+	if (i < total - 1) {
+		TRB_CTRL_SET_XFER_LEN(*trb, PAGE_SIZE);
+	}
+	else {
+		const size_t size = ((transfer->batch.buffer_size - 1) % PAGE_SIZE) + 1;
+		TRB_CTRL_SET_XFER_LEN(*trb, size);
+	}
+}
+
 static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
 	usb_transfer_batch_t *batch = &transfer->batch;
@@ -196,27 +219,35 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 
 static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 {
-	xhci_trb_t trb;
-	xhci_trb_clean(&trb);
-	trb.parameter = host2xhci(64, transfer->hc_buffer.phys);
-
-	// data size (sent for OUT, or buffer size)
-	TRB_CTRL_SET_XFER_LEN(trb, transfer->batch.buffer_size);
-
 	/* The stream-enabled endpoints need to chain ED trb */
 	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
 	if (!ep->primary_stream_data_size) {
-		// FIXME: TD size 4.11.2.4
-		TRB_CTRL_SET_TD_SIZE(trb, 1);
-
-		// we want an interrupt after this td is done
-		TRB_CTRL_SET_IOC(trb, 1);
-		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
-
+		const size_t buffer_count = calculate_trb_count(transfer);
 		xhci_trb_ring_t* ring = get_ring(transfer);
-		return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+		xhci_trb_t trbs[buffer_count];
+
+		for (size_t i = 0; i < buffer_count; ++i) {
+			xhci_trb_clean(&trbs[i]);
+			trb_set_buffer(transfer, &trbs[i], i, buffer_count);
+			TRB_CTRL_SET_TRB_TYPE(trbs[i], XHCI_TRB_TYPE_NORMAL);
+
+			if (i == buffer_count - 1) break;
+
+			/* Set the chain bit as this is not the last TRB */
+			TRB_CTRL_SET_CHAIN(trbs[i], 1);
+		}
+		/* Set the interrupt bit for last TRB */
+		TRB_CTRL_SET_IOC(trbs[buffer_count - 1], 1);
+		return xhci_trb_ring_enqueue_multiple(ring, &trbs[0], buffer_count,
+			&transfer->interrupt_trb_phys);
 	}
 	else {
+		xhci_trb_t trb;
+		xhci_trb_clean(&trb);
+		trb.parameter = host2xhci(64, transfer->hc_buffer.phys);
+
+		// data size (sent for OUT, or buffer size)
+		TRB_CTRL_SET_XFER_LEN(trb, transfer->batch.buffer_size);
 		TRB_CTRL_SET_TD_SIZE(trb, 2);
 		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
 		TRB_CTRL_SET_CHAIN(trb, 1);
@@ -244,23 +275,24 @@ static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 
 static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
-	xhci_trb_t trb;
-	xhci_trb_clean(&trb);
-	trb.parameter = host2xhci(64, transfer->hc_buffer.phys);
-
-	// data size (sent for OUT, or buffer size)
-	TRB_CTRL_SET_XFER_LEN(trb, transfer->batch.buffer_size);
-	// FIXME: TD size 4.11.2.4
-	TRB_CTRL_SET_TD_SIZE(trb, 1);
-
-	// we want an interrupt after this td is done
-	TRB_CTRL_SET_IOC(trb, 1);
-
-	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
-
+	const size_t buffer_count = calculate_trb_count(transfer);
 	xhci_trb_ring_t* ring = get_ring(transfer);
+	xhci_trb_t trbs[buffer_count];
 
-	return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+	for (size_t i = 0; i < buffer_count; ++i) {
+		xhci_trb_clean(&trbs[i]);
+		trb_set_buffer(transfer, &trbs[i], i, buffer_count);
+		TRB_CTRL_SET_TRB_TYPE(trbs[i], XHCI_TRB_TYPE_NORMAL);
+
+		if (i == buffer_count - 1) break;
+
+		/* Set the chain bit as this is not the last TRB */
+		TRB_CTRL_SET_CHAIN(trbs[i], 1);
+	}
+	/* Set the interrupt bit for last TRB */
+	TRB_CTRL_SET_IOC(trbs[buffer_count - 1], 1);
+	return xhci_trb_ring_enqueue_multiple(ring, &trbs[0], buffer_count,
+		&transfer->interrupt_trb_phys);
 }
 
 static int schedule_isochronous(xhci_transfer_t* transfer)
