@@ -82,6 +82,7 @@ static errno_t register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
 		pipe_desc->direction = ep->direction;
 		pipe_desc->transfer_type = ep->transfer_type;
 		pipe_desc->max_transfer_size = ep->max_transfer_size;
+		pipe_desc->transfer_buffer_policy = ep->transfer_buffer_policy;
 	}
 	endpoint_del_ref(ep);
 

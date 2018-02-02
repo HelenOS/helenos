@@ -97,6 +97,9 @@ typedef struct endpoint {
 
 	/** Maximum size of one transfer */
 	size_t max_transfer_size;
+	/** Policy for transfer buffers */
+	dma_policy_t transfer_buffer_policy;
+
 	/**
 	 * Number of packets that can be sent in one service interval
 	 * (not necessarily uframe, despite its name)

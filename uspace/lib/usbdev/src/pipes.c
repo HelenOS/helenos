@@ -170,10 +170,8 @@ errno_t usb_pipe_control_write(usb_pipe_t *pipe,
  */
 void *usb_pipe_alloc_buffer(usb_pipe_t *pipe, size_t size)
 {
-	// FIXME: Do not use the default policy, but the one required by HC.
-
 	dma_buffer_t buf;
-	if (dma_buffer_alloc(&buf, size))
+	if (dma_buffer_alloc_policy(&buf, size, pipe->desc.transfer_buffer_policy))
 		return NULL;
 
 	return buf.virt;

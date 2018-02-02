@@ -117,6 +117,9 @@ typedef struct usb_pipe_desc {
 
 	/** Maximum size of one transfer */
 	size_t max_transfer_size;
+
+	/** Constraints on buffers to be transferred without copying */
+	dma_policy_t transfer_buffer_policy;
 } usb_pipe_desc_t;
 
 /** This structure follows standard endpoint descriptor + superspeed companion

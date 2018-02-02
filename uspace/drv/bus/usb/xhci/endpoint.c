@@ -118,6 +118,17 @@ static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
 	if ((rc = alloc_transfer_ds(xhci_ep)))
 		goto err;
 
+	/* Driver can handle non-contiguous buffers */
+	ep->transfer_buffer_policy &= ~DMA_POLICY_CONTIGUOUS;
+
+	/* Driver can handle buffers crossing boundaries */
+	ep->transfer_buffer_policy &= ~DMA_POLICY_NOT_CROSSING;
+
+	/* Some xHCs can handle 64-bit addresses */
+	xhci_bus_t *bus = bus_to_xhci_bus(ep->device->bus);
+	if (bus->hc->ac64)
+		ep->transfer_buffer_policy &= ~DMA_POLICY_4GiB;
+
 	return EOK;
 
 err:
