@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 BINARY = usbinfo
 
-LIBS = usb usbhid usbdev drv
+LIBS = usbhid usbdev usb drv
 
 SOURCES = \
 	desctree.c \

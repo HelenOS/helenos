@@ -60,6 +60,92 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
 	pipe->auto_reset_halt = true;
 }
 
+typedef struct {
+	usb_pipe_t *pipe;
+	usb_direction_t dir;
+	bool is_control;
+	uint64_t setup;
+	void *buffer;
+	size_t buffer_size;
+	size_t transferred_size;
+} transfer_t;
+
+/**
+ * Issue a transfer in a separate exchange.
+ */
+static errno_t transfer_common(transfer_t *t)
+{
+	async_exch_t *exch = async_exchange_begin(t->pipe->bus_session);
+	if (!exch)
+		return ENOMEM;
+
+	const errno_t rc = usbhc_transfer(exch, t->pipe->desc.endpoint_no,
+	    t->dir, t->setup, t->buffer, t->buffer_size, &t->transferred_size);
+
+	async_exchange_end(exch);
+
+	if (rc == ESTALL)
+		clear_self_endpoint_halt(t->pipe);
+
+	return rc;
+}
+
+/**
+ * Compatibility wrapper for reads/writes without preallocated buffer.
+ */
+static errno_t transfer_wrap_dma(transfer_t *t)
+{
+	void *orig_buffer = t->buffer;
+	t->buffer = usb_pipe_alloc_buffer(t->pipe, t->buffer_size);
+
+	if (t->dir == USB_DIRECTION_OUT)
+		memcpy(t->buffer, orig_buffer, t->buffer_size);
+
+	const errno_t err = transfer_common(t);
+
+	if (!err && t->dir == USB_DIRECTION_IN)
+		memcpy(orig_buffer, t->buffer, t->transferred_size);
+
+	usb_pipe_free_buffer(t->pipe, t->buffer);
+	t->buffer = orig_buffer;
+	return err;
+}
+
+static errno_t transfer_check(const transfer_t *t)
+{
+	if (!t->pipe)
+		return EBADMEM;
+
+	/* Only control writes make sense without buffer */
+	if ((t->dir != USB_DIRECTION_OUT || !t->is_control)
+	    && (t->buffer == NULL || t->buffer_size == 0))
+		return EINVAL;
+
+	/* Nonzero size requires buffer */
+	if (t->buffer == NULL && t->buffer_size != 0)
+		return EINVAL;
+
+	/* Check expected direction */
+	if (t->pipe->desc.direction != USB_DIRECTION_BOTH &&
+	    t->pipe->desc.direction != t->dir)
+		return EBADF;
+
+	/* Check expected transfer type */
+	if ((t->pipe->desc.transfer_type == USB_TRANSFER_CONTROL) != t->is_control)
+		return EBADF;
+
+	return EOK;
+}
+
+static errno_t prepare_control(transfer_t *t, const void *setup, size_t setup_size)
+{
+	if ((setup == NULL) || (setup_size != 8))
+		return EINVAL;
+	
+	memcpy(&t->setup, setup, 8);
+	return EOK;
+}
+
 /** Request a control read transfer on an endpoint pipe.
  *
  * This function encapsulates all three stages of a control transfer.
@@ -77,39 +163,28 @@ errno_t usb_pipe_control_read(usb_pipe_t *pipe,
     const void *setup_buffer, size_t setup_buffer_size,
     void *buffer, size_t buffer_size, size_t *transferred_size)
 {
-	assert(pipe);
+	errno_t err;
+	transfer_t transfer = {
+		.pipe = pipe,
+		.dir = USB_DIRECTION_IN,
+		.is_control = true,
+		.buffer = buffer,
+		.buffer_size = buffer_size
+	};
 
-	if ((setup_buffer == NULL) || (setup_buffer_size != 8)) {
-		return EINVAL;
-	}
+	if ((err = transfer_check(&transfer)))
+		return err;
 
-	if ((buffer == NULL) || (buffer_size == 0)) {
-		return EINVAL;
-	}
+	if ((err = prepare_control(&transfer, setup_buffer, setup_buffer_size)))
+		return err;
 
-	if ((pipe->desc.direction != USB_DIRECTION_BOTH)
-	    || (pipe->desc.transfer_type != USB_TRANSFER_CONTROL)) {
-		return EBADF;
-	}
+	if ((err = transfer_wrap_dma(&transfer)))
+		return err;
 
-	uint64_t setup_packet;
-	memcpy(&setup_packet, setup_buffer, 8);
+	if (transferred_size)
+		*transferred_size = transfer.transferred_size;
 
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	size_t act_size = 0;
-	const errno_t rc = usbhc_read(exch, pipe->desc.endpoint_no, setup_packet, buffer,
-	    buffer_size, &act_size);
-	async_exchange_end(exch);
-
-	if (rc == ESTALL) {
-		clear_self_endpoint_halt(pipe);
-	}
-
-	if (rc == EOK && transferred_size != NULL) {
-		*transferred_size = act_size;
-	}
-
-	return rc;
+	return EOK;
 }
 
 /** Request a control write transfer on an endpoint pipe.
@@ -128,37 +203,22 @@ errno_t usb_pipe_control_write(usb_pipe_t *pipe,
     const void *buffer, size_t buffer_size)
 {
 	assert(pipe);
+	errno_t err;
+	transfer_t transfer = {
+		.pipe = pipe,
+		.dir = USB_DIRECTION_OUT,
+		.is_control = true,
+		.buffer = (void *) buffer,
+		.buffer_size = buffer_size
+	};
 
-	if ((setup_buffer == NULL) || (setup_buffer_size != 8)) {
-		return EINVAL;
-	}
+	if ((err = transfer_check(&transfer)))
+		return err;
 
-	if ((buffer == NULL) && (buffer_size > 0)) {
-		return EINVAL;
-	}
+	if ((err = prepare_control(&transfer, setup_buffer, setup_buffer_size)))
+		return err;
 
-	if ((buffer != NULL) && (buffer_size == 0)) {
-		return EINVAL;
-	}
-
-	if ((pipe->desc.direction != USB_DIRECTION_BOTH)
-	    || (pipe->desc.transfer_type != USB_TRANSFER_CONTROL)) {
-		return EBADF;
-	}
-
-	uint64_t setup_packet;
-	memcpy(&setup_packet, setup_buffer, 8);
-
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	const errno_t rc = usbhc_write(exch,
-	    pipe->desc.endpoint_no, setup_packet, buffer, buffer_size);
-	async_exchange_end(exch);
-
-	if (rc == ESTALL) {
-		clear_self_endpoint_halt(pipe);
-	}
-
-	return rc;
+	return transfer_wrap_dma(&transfer);
 }
 
 /**
@@ -196,34 +256,24 @@ errno_t usb_pipe_read(usb_pipe_t *pipe,
     void *buffer, size_t size, size_t *size_transferred)
 {
 	assert(pipe);
+	errno_t err;
+	transfer_t transfer = {
+		.pipe = pipe,
+		.dir = USB_DIRECTION_IN,
+		.buffer = buffer,
+		.buffer_size = size,
+	};
 
-	if (buffer == NULL) {
-		return EINVAL;
-	}
+	if ((err = transfer_check(&transfer)))
+		return err;
 
-	if (size == 0) {
-		return EINVAL;
-	}
+	if ((err = transfer_wrap_dma(&transfer)))
+		return err;
 
-	if (pipe->desc.direction != USB_DIRECTION_IN) {
-		return EBADF;
-	}
+	if (size_transferred)
+		*size_transferred = transfer.transferred_size;
 
-	if (pipe->desc.transfer_type == USB_TRANSFER_CONTROL) {
-		return EBADF;
-	}
-
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	size_t act_size = 0;
-	const errno_t rc =
-	    usbhc_read(exch, pipe->desc.endpoint_no, 0, buffer, size, &act_size);
-	async_exchange_end(exch);
-
-	if (rc == EOK && size_transferred != NULL) {
-		*size_transferred = act_size;
-	}
-
-	return rc;
+	return EOK;
 }
 
 /** Request a write (out) transfer on an endpoint pipe.
@@ -236,23 +286,21 @@ errno_t usb_pipe_read(usb_pipe_t *pipe,
 errno_t usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 {
 	assert(pipe);
+	errno_t err;
+	transfer_t transfer = {
+		.pipe = pipe,
+		.dir = USB_DIRECTION_OUT,
+		.buffer = (void *) buffer,
+		.buffer_size = size
+	};
 
-	if (buffer == NULL || size == 0) {
-		return EINVAL;
-	}
+	if ((err = transfer_check(&transfer)))
+		return err;
 
-	if (pipe->desc.direction != USB_DIRECTION_OUT) {
-		return EBADF;
-	}
+	if ((err = transfer_wrap_dma(&transfer)))
+		return err;
 
-	if (pipe->desc.transfer_type == USB_TRANSFER_CONTROL) {
-		return EBADF;
-	}
-
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	const errno_t rc = usbhc_write(exch, pipe->desc.endpoint_no, 0, buffer, size);
-	async_exchange_end(exch);
-	return rc;
+	return EOK;
 }
 
 /**
@@ -269,22 +317,24 @@ errno_t usb_pipe_read_dma(usb_pipe_t *pipe, void *buffer, size_t size,
     size_t *size_transferred)
 {
 	assert(pipe);
+	errno_t err;
+	transfer_t transfer = {
+		.pipe = pipe,
+		.dir = USB_DIRECTION_IN,
+		.buffer = buffer,
+		.buffer_size = size
+	};
 
-	if (buffer == NULL || size == 0)
-		return EINVAL;
+	if ((err = transfer_check(&transfer)))
+		return err;
 
-	if (pipe->desc.direction != USB_DIRECTION_IN
-	    || pipe->desc.transfer_type == USB_TRANSFER_CONTROL)
-		return EBADF;
+	if ((err = transfer_common(&transfer)))
+		return err;
 
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	if (!exch)
-		return ENOMEM;
+	if (size_transferred)
+		*size_transferred = transfer.transferred_size;
 
-	const errno_t rc = usbhc_transfer(exch, pipe->desc.endpoint_no,
-	    USB_DIRECTION_IN, 0, buffer, size, size_transferred);
-	async_exchange_end(exch);
-	return rc;
+	return EOK;
 }
 
 /**
@@ -299,22 +349,21 @@ errno_t usb_pipe_read_dma(usb_pipe_t *pipe, void *buffer, size_t size,
 errno_t usb_pipe_write_dma(usb_pipe_t *pipe, void *buffer, size_t size)
 {
 	assert(pipe);
+	errno_t err;
+	transfer_t transfer = {
+		.pipe = pipe,
+		.dir = USB_DIRECTION_OUT,
+		.buffer = buffer,
+		.buffer_size = size
+	};
 
-	if (buffer == NULL || size == 0) {
-		return EINVAL;
-	}
+	if ((err = transfer_check(&transfer)))
+		return err;
 
-	if (pipe->desc.direction != USB_DIRECTION_OUT
-	    || pipe->desc.transfer_type == USB_TRANSFER_CONTROL)
-		return EBADF;
+	if ((err = transfer_common(&transfer)))
+		return err;
 
-	async_exch_t *exch = async_exchange_begin(pipe->bus_session);
-	if (!exch)
-		return ENOMEM;
-
-	const errno_t rc = usbhc_transfer(exch, pipe->desc.endpoint_no, USB_DIRECTION_OUT, 0, buffer, size, NULL);
-	async_exchange_end(exch);
-	return rc;
+	return EOK;
 }
 
 /** Initialize USB endpoint pipe.
