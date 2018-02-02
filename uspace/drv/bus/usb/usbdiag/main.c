@@ -138,7 +138,7 @@ static int function_offline(ddf_fun_t *fun)
 	return ddf_fun_offline(fun);
 }
 
-static const usb_endpoint_description_t intr_in_ep = {
+static const usb_endpoint_description_t burst_intr_in_ep = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
@@ -146,7 +146,7 @@ static const usb_endpoint_description_t intr_in_ep = {
 	.interface_protocol = 0x01,
 	.flags = 0
 };
-static const usb_endpoint_description_t intr_out_ep = {
+static const usb_endpoint_description_t burst_intr_out_ep = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_OUT,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
@@ -154,7 +154,7 @@ static const usb_endpoint_description_t intr_out_ep = {
 	.interface_protocol = 0x01,
 	.flags = 0
 };
-static const usb_endpoint_description_t bulk_in_ep = {
+static const usb_endpoint_description_t burst_bulk_in_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
@@ -162,7 +162,7 @@ static const usb_endpoint_description_t bulk_in_ep = {
 	.interface_protocol = 0x01,
 	.flags = 0
 };
-static const usb_endpoint_description_t bulk_out_ep = {
+static const usb_endpoint_description_t burst_bulk_out_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
 	.direction = USB_DIRECTION_OUT,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
@@ -170,7 +170,7 @@ static const usb_endpoint_description_t bulk_out_ep = {
 	.interface_protocol = 0x01,
 	.flags = 0
 };
-static const usb_endpoint_description_t isoch_in_ep = {
+static const usb_endpoint_description_t burst_isoch_in_ep = {
 	.transfer_type = USB_TRANSFER_ISOCHRONOUS,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
@@ -178,7 +178,55 @@ static const usb_endpoint_description_t isoch_in_ep = {
 	.interface_protocol = 0x01,
 	.flags = 0
 };
-static const usb_endpoint_description_t isoch_out_ep = {
+static const usb_endpoint_description_t burst_isoch_out_ep = {
+	.transfer_type = USB_TRANSFER_ISOCHRONOUS,
+	.direction = USB_DIRECTION_OUT,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
+	.flags = 0
+};
+static const usb_endpoint_description_t data_intr_in_ep = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
+	.flags = 0
+};
+static const usb_endpoint_description_t data_intr_out_ep = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_OUT,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
+	.flags = 0
+};
+static const usb_endpoint_description_t data_bulk_in_ep = {
+	.transfer_type = USB_TRANSFER_BULK,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
+	.flags = 0
+};
+static const usb_endpoint_description_t data_bulk_out_ep = {
+	.transfer_type = USB_TRANSFER_BULK,
+	.direction = USB_DIRECTION_OUT,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
+	.flags = 0
+};
+static const usb_endpoint_description_t data_isoch_in_ep = {
+	.transfer_type = USB_TRANSFER_ISOCHRONOUS,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_DIAGNOSTIC,
+	.interface_subclass = 0x00,
+	.interface_protocol = 0x01,
+	.flags = 0
+};
+static const usb_endpoint_description_t data_isoch_out_ep = {
 	.transfer_type = USB_TRANSFER_ISOCHRONOUS,
 	.direction = USB_DIRECTION_OUT,
 	.interface_class = USB_CLASS_DIAGNOSTIC,
@@ -188,12 +236,18 @@ static const usb_endpoint_description_t isoch_out_ep = {
 };
 
 static const usb_endpoint_description_t *diag_endpoints[] = {
-	[USBDIAG_EP_INTR_IN] = &intr_in_ep,
-	[USBDIAG_EP_INTR_OUT] = &intr_out_ep,
-	[USBDIAG_EP_BULK_IN] = &bulk_in_ep,
-	[USBDIAG_EP_BULK_OUT] = &bulk_out_ep,
-	[USBDIAG_EP_ISOCH_IN] = &isoch_in_ep,
-	[USBDIAG_EP_ISOCH_OUT] = &isoch_out_ep,
+	[USBDIAG_EP_BURST_INTR_IN] = &burst_intr_in_ep,
+	[USBDIAG_EP_BURST_INTR_OUT] = &burst_intr_out_ep,
+	[USBDIAG_EP_BURST_BULK_IN] = &burst_bulk_in_ep,
+	[USBDIAG_EP_BURST_BULK_OUT] = &burst_bulk_out_ep,
+	[USBDIAG_EP_BURST_ISOCH_IN] = &burst_isoch_in_ep,
+	[USBDIAG_EP_BURST_ISOCH_OUT] = &burst_isoch_out_ep,
+	[USBDIAG_EP_DATA_INTR_IN] = &data_intr_in_ep,
+	[USBDIAG_EP_DATA_INTR_OUT] = &data_intr_out_ep,
+	[USBDIAG_EP_DATA_BULK_IN] = &data_bulk_in_ep,
+	[USBDIAG_EP_DATA_BULK_OUT] = &data_bulk_out_ep,
+	[USBDIAG_EP_DATA_ISOCH_IN] = &data_isoch_in_ep,
+	[USBDIAG_EP_DATA_ISOCH_OUT] = &data_isoch_out_ep,
 	NULL
 };
 

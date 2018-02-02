@@ -125,6 +125,30 @@ static xhci_trb_ring_t *get_ring(xhci_transfer_t *transfer)
 	return xhci_endpoint_get_ring(xhci_ep, transfer->batch.target.stream);
 }
 
+static int calculate_trb_count(xhci_transfer_t *transfer)
+{
+	const size_t size = transfer->batch.buffer_size;
+	return (size + PAGE_SIZE - 1 )/ PAGE_SIZE;
+}
+
+static void trb_set_buffer(xhci_transfer_t *transfer, xhci_trb_t *trb,
+	size_t i, size_t total, size_t *remaining)
+{
+	const uintptr_t ptr = dma_buffer_phys(&transfer->hc_buffer,
+		transfer->hc_buffer.virt + i * PAGE_SIZE);
+
+	trb->parameter = host2xhci(64, ptr);
+	TRB_CTRL_SET_TD_SIZE(*trb, max(31, total - i - 1));
+	if (*remaining > PAGE_SIZE) {
+		TRB_CTRL_SET_XFER_LEN(*trb, PAGE_SIZE);
+		*remaining -= PAGE_SIZE;
+	}
+	else {
+		TRB_CTRL_SET_XFER_LEN(*trb, *remaining);
+		*remaining = 0;
+	}
+}
+
 static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
 	usb_transfer_batch_t *batch = &transfer->batch;
@@ -132,10 +156,14 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 
 	usb_device_request_setup_packet_t* setup = &batch->setup.packet;
 
-	xhci_trb_t trbs[3];
-	int trbs_used = 0;
+	size_t buffer_count = 0;
+	if (setup->length > 0) {
+		buffer_count = calculate_trb_count(transfer);
+	}
 
-	xhci_trb_t *trb_setup = trbs + trbs_used++;
+	xhci_trb_t trbs[buffer_count + 2];
+
+	xhci_trb_t *trb_setup = trbs;
 	xhci_trb_clean(trb_setup);
 
 	TRB_CTRL_SET_SETUP_WVALUE(*trb_setup, setup->value);
@@ -154,28 +182,27 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	    get_transfer_type(trb_setup, setup->request_type, setup->length));
 
 	/* Data stage */
-	xhci_trb_t *trb_data = NULL;
 	if (setup->length > 0) {
-		trb_data = trbs + trbs_used++;
-		xhci_trb_clean(trb_data);
-
-		trb_data->parameter = host2xhci(64, transfer->hc_buffer.phys);
-
-		// data size (sent for OUT, or buffer size)
-		TRB_CTRL_SET_XFER_LEN(*trb_data, batch->buffer_size);
-		// FIXME: TD size 4.11.2.4
-		TRB_CTRL_SET_TD_SIZE(*trb_data, 1);
-
-		// Some more fields here, no idea what they mean
-		TRB_CTRL_SET_TRB_TYPE(*trb_data, XHCI_TRB_TYPE_DATA_STAGE);
-
 		int stage_dir = REQUEST_TYPE_IS_DEVICE_TO_HOST(setup->request_type)
 					? STAGE_IN : STAGE_OUT;
-		TRB_CTRL_SET_DIR(*trb_data, stage_dir);
+		size_t remaining = transfer->batch.buffer_size;
+
+		for (size_t i = 0; i < buffer_count; ++i) {
+			xhci_trb_clean(&trbs[i + 1]);
+			trb_set_buffer(transfer, &trbs[i + 1], i, buffer_count, &remaining);
+
+			TRB_CTRL_SET_DIR(trbs[i + 1], stage_dir);
+			TRB_CTRL_SET_TRB_TYPE(trbs[i + 1], XHCI_TRB_TYPE_DATA_STAGE);
+
+			if (i == buffer_count - 1) break;
+
+			/* Set the chain bit as this is not the last TRB */
+			TRB_CTRL_SET_CHAIN(trbs[i], 1);
+		}
 	}
 
 	/* Status stage */
-	xhci_trb_t *trb_status = trbs + trbs_used++;
+	xhci_trb_t *trb_status = trbs + buffer_count + 1;
 	xhci_trb_clean(trb_status);
 
 	TRB_CTRL_SET_IOC(*trb_status, 1);
@@ -191,76 +218,85 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	}
 
 	return xhci_trb_ring_enqueue_multiple(get_ring(transfer), trbs,
-	    trbs_used, &transfer->interrupt_trb_phys);
+	    buffer_count + 2, &transfer->interrupt_trb_phys);
 }
 
 static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 {
-	xhci_trb_t trb;
-	xhci_trb_clean(&trb);
-	trb.parameter = host2xhci(64, transfer->hc_buffer.phys);
-
-	// data size (sent for OUT, or buffer size)
-	TRB_CTRL_SET_XFER_LEN(trb, transfer->batch.buffer_size);
-
 	/* The stream-enabled endpoints need to chain ED trb */
 	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
 	if (!ep->primary_stream_data_size) {
-		// FIXME: TD size 4.11.2.4
-		TRB_CTRL_SET_TD_SIZE(trb, 1);
+		const size_t buffer_count = calculate_trb_count(transfer);
+		xhci_trb_t trbs[buffer_count];
+		size_t remaining = transfer->batch.buffer_size;
 
-		// we want an interrupt after this td is done
-		TRB_CTRL_SET_IOC(trb, 1);
-		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
+		for (size_t i = 0; i < buffer_count; ++i) {
+			xhci_trb_clean(&trbs[i]);
+			trb_set_buffer(transfer, &trbs[i], i, buffer_count, &remaining);
+			TRB_CTRL_SET_TRB_TYPE(trbs[i], XHCI_TRB_TYPE_NORMAL);
+
+			if (i == buffer_count - 1) break;
+
+			/* Set the chain bit as this is not the last TRB */
+			TRB_CTRL_SET_CHAIN(trbs[i], 1);
+		}
+		/* Set the interrupt bit for last TRB */
+		TRB_CTRL_SET_IOC(trbs[buffer_count - 1], 1);
 
 		xhci_trb_ring_t* ring = get_ring(transfer);
-		return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+		return xhci_trb_ring_enqueue_multiple(ring, &trbs[0], buffer_count,
+			&transfer->interrupt_trb_phys);
 	}
 	else {
-		TRB_CTRL_SET_TD_SIZE(trb, 2);
-		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
-		TRB_CTRL_SET_CHAIN(trb, 1);
-		TRB_CTRL_SET_ENT(trb, 1);
-
 		xhci_trb_ring_t* ring = get_ring(transfer);
 		if (!ring) {
 			return EINVAL;
 		}
 
-		int err = xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+		const size_t buffer_count = calculate_trb_count(transfer);
+		xhci_trb_t trbs[buffer_count + 1];
+		size_t remaining = transfer->batch.buffer_size;
 
-		if (err) {
-			return err;
+		for (size_t i = 0; i < buffer_count; ++i) {
+			xhci_trb_clean(&trbs[i]);
+			trb_set_buffer(transfer, &trbs[i], i, buffer_count + 1, &remaining);
+			TRB_CTRL_SET_TRB_TYPE(trbs[i], XHCI_TRB_TYPE_NORMAL);
+			TRB_CTRL_SET_CHAIN(trbs[i], 1);
 		}
+		TRB_CTRL_SET_ENT(trbs[buffer_count - 1], 1);
 
-		xhci_trb_clean(&trb);
-		trb.parameter = host2xhci(64, (uintptr_t) transfer);
-		TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_EVENT_DATA);
-		TRB_CTRL_SET_IOC(trb, 1);
+		xhci_trb_clean(&trbs[buffer_count]);
+		trbs[buffer_count].parameter = host2xhci(64, (uintptr_t) transfer);
+		TRB_CTRL_SET_TRB_TYPE(trbs[buffer_count], XHCI_TRB_TYPE_EVENT_DATA);
+		TRB_CTRL_SET_IOC(trbs[buffer_count], 1);
 
-		return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+		return xhci_trb_ring_enqueue_multiple(ring, &trbs[0], buffer_count + 1,
+			&transfer->interrupt_trb_phys);
 	}
 }
 
 static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
-	xhci_trb_t trb;
-	xhci_trb_clean(&trb);
-	trb.parameter = host2xhci(64, transfer->hc_buffer.phys);
+	const size_t buffer_count = calculate_trb_count(transfer);
+	xhci_trb_t trbs[buffer_count];
+	size_t remaining = transfer->batch.buffer_size;
 
-	// data size (sent for OUT, or buffer size)
-	TRB_CTRL_SET_XFER_LEN(trb, transfer->batch.buffer_size);
-	// FIXME: TD size 4.11.2.4
-	TRB_CTRL_SET_TD_SIZE(trb, 1);
+	for (size_t i = 0; i < buffer_count; ++i) {
+		xhci_trb_clean(&trbs[i]);
+		trb_set_buffer(transfer, &trbs[i], i, buffer_count, &remaining);
+		TRB_CTRL_SET_TRB_TYPE(trbs[i], XHCI_TRB_TYPE_NORMAL);
 
-	// we want an interrupt after this td is done
-	TRB_CTRL_SET_IOC(trb, 1);
+		if (i == buffer_count - 1) break;
 
-	TRB_CTRL_SET_TRB_TYPE(trb, XHCI_TRB_TYPE_NORMAL);
+		/* Set the chain bit as this is not the last TRB */
+		TRB_CTRL_SET_CHAIN(trbs[i], 1);
+	}
+	/* Set the interrupt bit for last TRB */
+	TRB_CTRL_SET_IOC(trbs[buffer_count - 1], 1);
 
 	xhci_trb_ring_t* ring = get_ring(transfer);
-
-	return xhci_trb_ring_enqueue(ring, &trb, &transfer->interrupt_trb_phys);
+	return xhci_trb_ring_enqueue_multiple(ring, &trbs[0], buffer_count,
+		&transfer->interrupt_trb_phys);
 }
 
 static int schedule_isochronous(xhci_transfer_t* transfer)

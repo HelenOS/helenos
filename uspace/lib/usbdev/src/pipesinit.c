@@ -145,13 +145,15 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
 
 		if (interface_number_fits
 		    && interface_setting_fits
-		    && endpoint_descriptions_fits) {
+		    && endpoint_descriptions_fits
+		    && !mapping->present) {
 			return mapping;
 		}
 
 		mapping++;
 		mapping_count--;
 	}
+
 	return NULL;
 }
 

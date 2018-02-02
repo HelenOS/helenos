@@ -37,19 +37,19 @@
 #define TMON_TF_H_
 
 #include <async.h>
-
-/** Parameters common for all tests. */
-typedef struct tmon_test_params {
-	/* Nothing here. */
-} tmon_test_params_t;
+#include <usbdiag_iface.h>
 
 /** Operations to implement by all tests. */
 typedef struct tmon_test_ops {
-	int (*run)(async_exch_t *, const tmon_test_params_t *);
-	int (*read_params)(int, char **, tmon_test_params_t **);
+	int (*pre_run)(void *);
+	int (*run)(async_exch_t *, const void *);
+	int (*read_params)(int, char **, void **);
 } tmon_test_ops_t;
 
 int tmon_test_main(int, char **, const tmon_test_ops_t *);
+
+char *tmon_format_size(double, const char *);
+char *tmon_format_duration(usbdiag_dur_t, const char *);
 
 #endif /* TMON_TF_H_ */
 

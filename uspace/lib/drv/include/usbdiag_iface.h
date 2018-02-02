@@ -38,6 +38,7 @@
 #define LIBDRV_USBDIAG_IFACE_H_
 
 #include <async.h>
+#include <usbhc_iface.h>
 #include "ddf/driver.h"
 
 #define USBDIAG_CATEGORY "usbdiag"
@@ -45,37 +46,31 @@
 /** Milliseconds */
 typedef unsigned long usbdiag_dur_t;
 
+/** Test parameters. */
+typedef struct usbdiag_test_params {
+	usb_transfer_type_t transfer_type;
+	size_t transfer_size;
+	usbdiag_dur_t min_duration;
+	bool validate_data;
+} usbdiag_test_params_t;
+
+/** Test results. */
+typedef struct usbdiag_test_results {
+	usbdiag_dur_t act_duration;
+	uint32_t transfer_count;
+	size_t transfer_size;
+} usbdiag_test_results_t;
+
 async_sess_t *usbdiag_connect(devman_handle_t);
 void usbdiag_disconnect(async_sess_t*);
 
-int usbdiag_burst_intr_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_burst_intr_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_burst_bulk_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_burst_bulk_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_burst_isoch_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_burst_isoch_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
-
-int usbdiag_data_intr_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_data_intr_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_data_bulk_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_data_bulk_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_data_isoch_in(async_exch_t*, int, size_t, usbdiag_dur_t*);
-int usbdiag_data_isoch_out(async_exch_t*, int, size_t, usbdiag_dur_t*);
+int usbdiag_test_in(async_exch_t*, const usbdiag_test_params_t *, usbdiag_test_results_t *);
+int usbdiag_test_out(async_exch_t*, const usbdiag_test_params_t *, usbdiag_test_results_t *);
 
 /** USB diagnostic device communication interface. */
 typedef struct {
-	int (*burst_intr_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*burst_intr_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*burst_bulk_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*burst_bulk_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*burst_isoch_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*burst_isoch_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*data_intr_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*data_intr_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*data_bulk_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*data_bulk_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*data_isoch_in)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
-	int (*data_isoch_out)(ddf_fun_t*, int, size_t, usbdiag_dur_t*);
+	int (*test_in)(ddf_fun_t*, const usbdiag_test_params_t *, usbdiag_test_results_t *);
+	int (*test_out)(ddf_fun_t*, const usbdiag_test_params_t *, usbdiag_test_results_t *);
 } usbdiag_iface_t;
 
 #endif

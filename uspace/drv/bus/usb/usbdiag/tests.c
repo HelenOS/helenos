@@ -43,127 +43,44 @@
 
 #define NAME "usbdiag"
 
-static int burst_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	if (!pipe)
-		return EBADMEM;
-
-	char *buffer = usb_pipe_alloc_buffer(pipe, size);
-	if (!buffer)
-		return ENOMEM;
-
-	// TODO: Are we sure that no other test is running on this endpoint?
-
-	usb_log_info("Performing %s IN burst test.", usb_str_transfer_type(pipe->desc.transfer_type));
-
-	int rc = EOK;
-	struct timeval start_time;
-	gettimeofday(&start_time, NULL);
-
-	for (int i = 0; i < cycles; ++i) {
-		// Read device's response.
-		size_t remaining = size;
-		size_t transferred;
-
-		while (remaining > 0) {
-			if ((rc = usb_pipe_read_dma(pipe, buffer + size - remaining, remaining, &transferred))) {
-				usb_log_error("Read of %s IN endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
-				break;
-			}
-
-			if (transferred > remaining) {
-				usb_log_error("Read of %s IN endpoint returned more data than expected.", usb_str_transfer_type(pipe->desc.transfer_type));
-				rc = EINVAL;
-				break;
-			}
-
-			remaining -= transferred;
-		}
-
-		if (rc)
-			break;
-	}
-
-	struct timeval final_time;
-	gettimeofday(&final_time, NULL);
-	usbdiag_dur_t in_duration = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
-	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
-
-	usb_log_info("Burst test on %s IN endpoint completed in %lu ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
-
-	usb_pipe_free_buffer(pipe, buffer);
-	if (duration)
-		*duration = in_duration;
-
-	return rc;
-}
-
-static int burst_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	if (!pipe)
-		return EBADMEM;
-
-	char *buffer = usb_pipe_alloc_buffer(pipe, size);
-	if (!buffer)
-		return ENOMEM;
-
-	memset(buffer, 42, size);
-
-	// TODO: Are we sure that no other test is running on this endpoint?
-
-	usb_log_info("Performing %s OUT burst test.", usb_str_transfer_type(pipe->desc.transfer_type));
-
-	int rc = EOK;
-	struct timeval start_time;
-	gettimeofday(&start_time, NULL);
-
-	for (int i = 0; i < cycles; ++i) {
-		// Write buffer to device.
-		if ((rc = usb_pipe_write_dma(pipe, buffer, size))) {
-			usb_log_error("Write to %s OUT endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
-			break;
-		}
-	}
-
-	struct timeval final_time;
-	gettimeofday(&final_time, NULL);
-	usbdiag_dur_t in_duration = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
-	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
-
-	usb_log_info("Burst test on %s OUT endpoint completed in %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
-
-	usb_pipe_free_buffer(pipe, buffer);
-	if (duration)
-		*duration = in_duration;
-
-	return rc;
-}
-
 static const uint32_t test_data_src = 0xDEADBEEF;
 
-static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t *duration)
+static int test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	if (!pipe)
 		return EBADMEM;
 
-	const uint32_t test_data = uint32_host2usb(test_data_src);
+	bool validate = params->validate_data;
+	size_t size = params->transfer_size;
+	if (!size)
+		size = pipe->desc.max_transfer_size;
 
-	if (size % sizeof(test_data))
+	const uint32_t test_data = uint32_host2usb(test_data_src);
+	if (validate && size % sizeof(test_data))
 		return EINVAL;
 
-	char *buffer = usb_pipe_alloc_buffer(pipe, size);
+	size_t test_data_size = size / sizeof(test_data);
+	char *buffer = (char *) malloc(size);
 	if (!buffer)
 		return ENOMEM;
 
 	// TODO: Are we sure that no other test is running on this endpoint?
 
-	usb_log_info("Performing %s IN data test.", usb_str_transfer_type(pipe->desc.transfer_type));
+	usb_log_info("Performing %s IN test with duration %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), params->min_duration);
 
 	int rc = EOK;
-	struct timeval start_time;
-	gettimeofday(&start_time, NULL);
+	uint32_t transfer_count = 0;
 
-	for (int i = 0; i < cycles; ++i) {
+	struct timeval start_time, final_time, stop_time;
+	gettimeofday(&start_time, NULL);
+	gettimeofday(&stop_time, NULL);
+
+	tv_add_diff(&stop_time, params->min_duration * 1000);
+	gettimeofday(&final_time, NULL);
+
+	while (!tv_gt(&final_time, &stop_time)) {
+		++transfer_count;
+
 		// Read device's response.
 		size_t remaining = size;
 		size_t transferred;
@@ -186,188 +103,153 @@ static int data_in_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t
 		if (rc)
 			break;
 
-		for (size_t i = 0; i < size; i += sizeof(test_data)) {
-			if (*(uint32_t *)(buffer + i) != test_data) {
-				usb_log_error("Read of %s IN endpoint returned "
-				    "invald data at address %zu.",
-				    usb_str_transfer_type(pipe->desc.transfer_type), i);
-				rc = EINVAL;
-				break;
+		if (validate) {
+			uint32_t *beef_buffer = (uint32_t *) buffer;
+
+			/* Check if the beef is really dead. */
+			for (size_t i = 0; i < test_data_size; ++i) {
+				if (beef_buffer[i] != test_data) {
+					usb_log_error("Read of %s IN endpoint returned "
+						"invalid data at address %zu. [ 0x%X != 0x%X ]",
+						usb_str_transfer_type(pipe->desc.transfer_type), i * sizeof(test_data), beef_buffer[i], test_data);
+					rc = EINVAL;
+				}
 			}
+
+			if (rc)
+				break;
 		}
 
-		if (rc)
-			break;
+		gettimeofday(&final_time, NULL);
 	}
 
-	struct timeval final_time;
-	gettimeofday(&final_time, NULL);
 	usbdiag_dur_t in_duration = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
 	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
 
-	usb_log_info("Data test on %s IN endpoint completed in %lu ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
+	usb_log_info("Test on %s IN endpoint completed in %lu ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
-	usb_pipe_free_buffer(pipe, buffer);
-	if (duration)
-		*duration = in_duration;
+	results->act_duration = in_duration;
+	results->transfer_count = transfer_count;
+	results->transfer_size = size;
+
+	free(buffer);
 
 	return rc;
 }
 
-static int data_out_test(usb_pipe_t *pipe, int cycles, size_t size, usbdiag_dur_t *duration)
+static int test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	if (!pipe)
 		return EBADMEM;
 
+	bool validate = params->validate_data;
+	size_t size = params->transfer_size;
+	if (!size)
+		size = pipe->desc.max_transfer_size;
+
 	const uint32_t test_data = uint32_host2usb(test_data_src);
 
-	if (size % sizeof(test_data))
+	if (validate && size % sizeof(test_data))
 		return EINVAL;
 
 	char *buffer = usb_pipe_alloc_buffer(pipe, size);
 	if (!buffer)
 		return ENOMEM;
 
-	for (size_t i = 0; i < size; i += sizeof(test_data)) {
-		memcpy(buffer + i, &test_data, sizeof(test_data));
+	if (validate) {
+		for (size_t i = 0; i < size; i += sizeof(test_data)) {
+			memcpy(buffer + i, &test_data, sizeof(test_data));
+		}
 	}
 
 	// TODO: Are we sure that no other test is running on this endpoint?
 
-	usb_log_info("Performing %s OUT data test.", usb_str_transfer_type(pipe->desc.transfer_type));
+	usb_log_info("Performing %s OUT test.", usb_str_transfer_type(pipe->desc.transfer_type));
 
 	int rc = EOK;
-	struct timeval start_time;
-	gettimeofday(&start_time, NULL);
+	uint32_t transfer_count = 0;
 
-	for (int i = 0; i < cycles; ++i) {
+	struct timeval start_time, final_time, stop_time;
+	gettimeofday(&start_time, NULL);
+	gettimeofday(&stop_time, NULL);
+
+	tv_add_diff(&stop_time, params->min_duration * 1000);
+	gettimeofday(&final_time, NULL);
+
+	while (!tv_gt(&final_time, &stop_time)) {
+		++transfer_count;
+
 		// Write buffer to device.
 		if ((rc = usb_pipe_write_dma(pipe, buffer, size))) {
 			usb_log_error("Write to %s OUT endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 			break;
 		}
+
+		gettimeofday(&final_time, NULL);
 	}
 
-	struct timeval final_time;
-	gettimeofday(&final_time, NULL);
 	usbdiag_dur_t in_duration = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
 	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
 
-	usb_log_info("Data test on %s OUT endpoint completed in %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
+	usb_log_info("Test on %s OUT endpoint completed in %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
-	usb_pipe_free_buffer(pipe, buffer);
-	if (duration)
-		*duration = in_duration;
+	results->act_duration = in_duration;
+	results->transfer_count = transfer_count;
+	results->transfer_size = size;
+
+	free(buffer);
 
 	return rc;
 }
 
-int usbdiag_burst_test_intr_in(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
+int usbdiag_dev_test_in(ddf_fun_t *fun, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
 	if (!dev)
 		return EBADMEM;
 
-	return burst_in_test(dev->intr_in, cycles, size, duration);
+	usb_pipe_t *pipe;
+
+	switch (params->transfer_type) {
+	case USB_TRANSFER_INTERRUPT:
+		pipe = params->validate_data ? dev->data_intr_in : dev->burst_intr_in;
+		break;
+	case USB_TRANSFER_BULK:
+		pipe = params->validate_data ? dev->data_bulk_in : dev->burst_bulk_in;
+		break;
+	case USB_TRANSFER_ISOCHRONOUS:
+		pipe = params->validate_data ? dev->data_isoch_in : dev->burst_isoch_in;
+		break;
+	default:
+		return ENOTSUP;
+	}
+
+	return test_in(pipe, params, results);
 }
 
-int usbdiag_burst_test_intr_out(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
+int usbdiag_dev_test_out(ddf_fun_t *fun, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
 	if (!dev)
 		return EBADMEM;
 
-	return burst_out_test(dev->intr_out, cycles, size, duration);
-}
+	usb_pipe_t *pipe;
 
-int usbdiag_burst_test_bulk_in(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
+	switch (params->transfer_type) {
+	case USB_TRANSFER_INTERRUPT:
+		pipe = params->validate_data ? dev->data_intr_out : dev->burst_intr_out;
+		break;
+	case USB_TRANSFER_BULK:
+		pipe = params->validate_data ? dev->data_bulk_out : dev->burst_bulk_out;
+		break;
+	case USB_TRANSFER_ISOCHRONOUS:
+		pipe = params->validate_data ? dev->data_isoch_out : dev->burst_isoch_out;
+		break;
+	default:
+		return ENOTSUP;
+	}
 
-	return burst_in_test(dev->bulk_in, cycles, size, duration);
-}
-
-int usbdiag_burst_test_bulk_out(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return burst_out_test(dev->bulk_out, cycles, size, duration);
-}
-
-int usbdiag_burst_test_isoch_in(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return burst_in_test(dev->isoch_in, cycles, size, duration);
-}
-
-int usbdiag_burst_test_isoch_out(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return burst_out_test(dev->isoch_out, cycles, size, duration);
-}
-
-int usbdiag_data_test_intr_in(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return data_in_test(dev->intr_in, cycles, size, duration);
-}
-
-int usbdiag_data_test_intr_out(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return data_out_test(dev->intr_out, cycles, size, duration);
-}
-
-int usbdiag_data_test_bulk_in(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return data_in_test(dev->bulk_in, cycles, size, duration);
-}
-
-int usbdiag_data_test_bulk_out(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return data_out_test(dev->bulk_out, cycles, size, duration);
-}
-
-int usbdiag_data_test_isoch_in(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return data_in_test(dev->isoch_in, cycles, size, duration);
-}
-
-int usbdiag_data_test_isoch_out(ddf_fun_t *fun, int cycles, size_t size, usbdiag_dur_t *duration)
-{
-	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
-	if (!dev)
-		return EBADMEM;
-
-	return data_out_test(dev->isoch_out, cycles, size, duration);
+	return test_out(pipe, params, results);
 }
 
 /**

@@ -87,7 +87,13 @@ static int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
 	 */
 	if (dev->speed >= USB_SPEED_SUPER) {
 		ep->packets_per_uframe = xhci_ep->max_burst * xhci_ep->mult;
-		ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
+		if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS
+			|| ep->transfer_type == USB_TRANSFER_INTERRUPT) {
+			ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
+		}
+		else {
+			ep->max_transfer_size = 200 * PAGE_SIZE;
+		}
 	}
 
 	xhci_ep->interval = desc->endpoint.poll_interval;
