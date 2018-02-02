@@ -290,7 +290,7 @@ errno_t usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
 
 	rc = usbmast_run_cmd(mfun, &cmd);
 
-        if (rc != EOK) {
+	if (rc != EOK) {
 		usb_log_error("Read Capacity (10) transport failed, device %s: %s.",
 		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
@@ -448,7 +448,7 @@ errno_t usbmast_sync_cache(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks)
 
 	const errno_t rc = usbmast_run_cmd(mfun, &cmd);
 
-        if (rc != EOK) {
+	if (rc != EOK) {
 		usb_log_error("Synchronize Cache (10) transport failed, device %s: %s.",
 		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
