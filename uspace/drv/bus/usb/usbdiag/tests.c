@@ -60,7 +60,7 @@ static int test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdia
 		return EINVAL;
 
 	size_t test_data_size = size / sizeof(test_data);
-	char *buffer = (char *) malloc(size);
+	char *buffer = usb_pipe_alloc_buffer(pipe, size);
 	if (!buffer)
 		return ENOMEM;
 
@@ -132,7 +132,7 @@ static int test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdia
 	results->transfer_count = transfer_count;
 	results->transfer_size = size;
 
-	free(buffer);
+	usb_pipe_free_buffer(pipe, buffer);
 
 	return rc;
 }
@@ -197,7 +197,7 @@ static int test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdi
 	results->transfer_count = transfer_count;
 	results->transfer_size = size;
 
-	free(buffer);
+	usb_pipe_free_buffer(pipe, buffer);
 
 	return rc;
 }
