@@ -229,48 +229,6 @@ errno_t usbhc_transfer(async_exch_t *exch, usb_endpoint_t endpoint,
 	return (errno_t) opening_request_rc;
 }
 
-errno_t usbhc_read(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
-    void *data, size_t size, size_t *rec_size)
-{
-	if (size == 0)
-		return usbhc_transfer(exch, endpoint, USB_DIRECTION_IN,
-		    setup, NULL, 0, NULL);
-
-	/* Prepare an area to read */
-	void *area = as_area_create(AS_AREA_ANY, size,
-	    AS_AREA_READ | AS_AREA_WRITE, AS_AREA_UNPAGED);
-	if (!area)
-		return ENOMEM;
-
-	const errno_t err = usbhc_transfer(exch, endpoint, USB_DIRECTION_IN,
-	    setup, area, size, rec_size);
-	if (err == EOK)
-		memcpy(data, area, *rec_size);
-
-	as_area_destroy(area);
-	return err;
-}
-
-errno_t usbhc_write(async_exch_t *exch, usb_endpoint_t endpoint, uint64_t setup,
-    const void *data, size_t size)
-{
-	if (size == 0)
-		return usbhc_transfer(exch, endpoint, USB_DIRECTION_OUT,
-		    setup, NULL, 0, NULL);
-
-	/* Prepare an area to read */
-	void *area = as_area_create(AS_AREA_ANY, size,
-	    AS_AREA_READ | AS_AREA_WRITE, AS_AREA_UNPAGED);
-	if (!area)
-		return ENOMEM;
-
-	memcpy(area, data, size);
-	const errno_t err = usbhc_transfer(exch, endpoint, USB_DIRECTION_OUT,
-	    setup, area, size, NULL);
-	as_area_destroy(area);
-	return err;
-}
-
 static void remote_usbhc_default_address_reservation(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_device_enumerate(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_device_remove(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);

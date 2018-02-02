@@ -155,10 +155,6 @@ extern errno_t usbhc_unregister_endpoint(async_exch_t *, const usb_pipe_desc_t *
 
 extern errno_t usbhc_transfer(async_exch_t *, usb_endpoint_t, usb_direction_t,
     uint64_t, void *, size_t, size_t *);
-extern errno_t usbhc_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
-    size_t *);
-extern errno_t usbhc_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
-    size_t);
 
 /** Callback for outgoing transfer */
 typedef errno_t (*usbhc_iface_transfer_callback_t)(void *, int, size_t);
