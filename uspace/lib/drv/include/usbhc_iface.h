@@ -102,6 +102,9 @@ typedef union {
 	uint64_t packed;
 } usb_target_t;
 
+// FIXME: DMA buffers shall be part of libdrv anyway.
+typedef unsigned dma_policy_t;
+
 typedef struct usb_pipe_desc {
 	/** Endpoint number. */
 	usb_endpoint_t endpoint_no;

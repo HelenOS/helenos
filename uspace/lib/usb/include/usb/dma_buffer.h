@@ -31,37 +31,50 @@
 /** @file
  * @brief USB host controller library: DMA buffer helpers
  *
- * Simplifies usage of bounce buffers
+ * Simplifies handling of buffers accessible to hardware. Defines properties of
+ * such buffer, which can be communicated through IPC to allow higher layers to
+ * allocate a buffer that is ready to be passed to HW right away (after being
+ * shared through IPC).
  *
- * Currently the minimum size allocated is a page, which is wasteful. Could be
- * extended to support memory pools, which will enable smaller units of
- * allocation.
+ * Note that although allocated memory is always page-aligned, the buffer itself
+ * may be only a part of it, justifying the existence of page-alignment and
+ * page-crossing flags.
+ *
+ * Also, currently the buffers that are allocated are always contiguous and
+ * page-aligned, regardless of whether the policy requires it. We blindly
+ * believe this fact in dma_buffer_phys, which will yield wrong results if the
+ * buffer is not contiguous.
  */
 #ifndef LIB_USB_DMA_BUFFER
 #define LIB_USB_DMA_BUFFER
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <usbhc_iface.h>
 #include <errno.h>
 
-typedef const struct dma_policy {
-	unsigned flags;
+#define DMA_POLICY_4GiB		(1<<0)	/**< Must use only 32-bit addresses */
+#define DMA_POLICY_PAGE_ALIGNED	(1<<1)	/**< The first pointer must be page-aligned */
+#define DMA_POLICY_CONTIGUOUS	(1<<2)	/**< Pages must follow each other physically */
+#define DMA_POLICY_NOT_CROSSING	(1<<3)	/**< Buffer must not cross page boundary. (Implies buffer is no larger than page).  */
 
-#define DMA_POLICY_F_4GiB	(1<<0)	/**< Must use only 32-bit addresses */
-#define DMA_POLICY_F_CONTIGUOUS	(1<<1)	/**< Pages must follow each other physically */
-} dma_policy_t;
+#define DMA_POLICY_STRICT	(-1U)
+#define DMA_POLICY_DEFAULT	DMA_POLICY_STRICT
 
 typedef struct dma_buffer {
 	void *virt;
 	uintptr_t phys;
 } dma_buffer_t;
 
-extern int dma_buffer_alloc(dma_buffer_t *db, size_t size);
-extern int dma_buffer_alloc_policy(dma_buffer_t *, size_t, dma_policy_t *);
+extern errno_t dma_buffer_alloc(dma_buffer_t *db, size_t size);
+extern errno_t dma_buffer_alloc_policy(dma_buffer_t *, size_t, dma_policy_t);
 extern void dma_buffer_free(dma_buffer_t *);
 extern uintptr_t dma_buffer_phys(const dma_buffer_t *, void *);
 
-extern bool dma_buffer_check_policy(const void *, size_t, dma_policy_t *);
+extern bool dma_buffer_check_policy(const void *, size_t, const dma_policy_t);
+
+extern errno_t dma_buffer_lock(dma_buffer_t *, void *, size_t);
+extern void dma_buffer_unlock(dma_buffer_t *, size_t);
 
 static inline int dma_buffer_is_set(dma_buffer_t *db)
 {

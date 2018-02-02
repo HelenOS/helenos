@@ -38,23 +38,23 @@
 
 #include "usb/dma_buffer.h"
 
-const dma_policy_t dma_policy_default = {
-	.flags = DMA_POLICY_F_4GiB | DMA_POLICY_F_CONTIGUOUS,
-};
-
 /**
- * The routine of allocating a DMA buffer. Inlined to force optimization for the
- * default policy.
+ * Allocate a DMA buffer.
  *
- * FIXME: We ignore the non-presence of contiguous flag, for now.
+ * XXX: Currently cannot make much use of missing constraints, as it always
+ * allocates page-aligned contiguous buffer. We rely on it in dma_buffer_phys.
+ *
+ * @param[in] db dma_buffer_t structure to fill
+ * @param[in] size Size of the required memory space
+ * @param[in] policy dma_policy_t flags to guide the allocation
+ * @return Error code.
  */
-static inline int dma_buffer_alloc_internal(dma_buffer_t *db,
-    size_t size, const dma_policy_t *policy)
+errno_t dma_buffer_alloc_policy(dma_buffer_t *db, size_t size, dma_policy_t policy)
 {
 	assert(db);
 
 	const size_t real_size = ALIGN_UP(size, PAGE_SIZE);
-	const bool need_4gib = !!(policy->flags & DMA_POLICY_F_4GiB);
+	const bool need_4gib = !!(policy & DMA_POLICY_4GiB);
 
 	const uintptr_t flags = need_4gib ? DMAMEM_4GiB : 0;
 
@@ -66,25 +66,17 @@ static inline int dma_buffer_alloc_internal(dma_buffer_t *db,
 	    &phys, &address);
 
 	if (ret == EOK) {
+		/* Access the pages to force mapping */
+		volatile char *buf = address;
+		for (size_t i = 0; i < size; i += PAGE_SIZE)
+			buf[i] = 0xff;
+
 		db->virt = address;
 		db->phys = phys;
 	}
 	return ret;
 }
 
-/**
- * Allocate a DMA buffer.
- *
- * @param[in] db dma_buffer_t structure to fill
- * @param[in] size Size of the required memory space
- * @param[in] policy dma_policy_t structure to guide
- * @return Error code.
- */
-int dma_buffer_alloc_policy(dma_buffer_t *db, size_t size,
-    const dma_policy_t *policy)
-{
-	return dma_buffer_alloc_internal(db, size, policy);
-}
 
 /**
  * Allocate a DMA buffer using the default policy.
@@ -93,9 +85,9 @@ int dma_buffer_alloc_policy(dma_buffer_t *db, size_t size,
  * @param[in] size Size of the required memory space
  * @return Error code.
  */
-int dma_buffer_alloc(dma_buffer_t *db, size_t size)
+errno_t dma_buffer_alloc(dma_buffer_t *db, size_t size)
 {
-	return dma_buffer_alloc_internal(db, size, &dma_policy_default);
+	return dma_buffer_alloc_policy(db, size, DMA_POLICY_DEFAULT);
 }
 
 
@@ -127,24 +119,34 @@ uintptr_t dma_buffer_phys(const dma_buffer_t *db, void *virt)
 /**
  * Check whether a memory area is compatible with a policy.
  *
- * Useful to skip copying, if the buffer is already ready to be given to
- * hardware.
+ * Useful to skip copying when the buffer is already ready to be given to
+ * hardware as is.
+ *
+ * Note that the "as_get_physical_mapping" fails when the page is not mapped
+ * yet, and that the caller is responsible for forcing the mapping.
  */
-bool dma_buffer_check_policy(const void *buffer, size_t size, dma_policy_t *policy)
+bool dma_buffer_check_policy(const void *buffer, size_t size, const dma_policy_t policy)
 {
-	/* Buffer must be always page aligned */
-	if (((uintptr_t) buffer) % PAGE_SIZE)
+	uintptr_t addr = (uintptr_t) buffer;
+
+	const bool check_4gib       = !!(policy & DMA_POLICY_4GiB);
+	const bool check_crossing   = !!(policy & DMA_POLICY_NOT_CROSSING);
+	const bool check_alignment  = !!(policy & DMA_POLICY_PAGE_ALIGNED);
+	const bool check_contiguous = !!(policy & DMA_POLICY_CONTIGUOUS);
+
+	/* Check the two conditions that are easy */
+	if (check_crossing && (addr + size - 1) / PAGE_SIZE != addr / PAGE_SIZE)
 		goto violated;
 
-	const bool check_4gib = !!(policy->flags & DMA_POLICY_F_4GiB);
-	const bool check_contiguous = !!(policy->flags & DMA_POLICY_F_CONTIGUOUS);
+	if (check_alignment && ((uintptr_t) buffer) % PAGE_SIZE)
+		goto violated;
 
 	/*
 	 * For these conditions, we need to walk through pages and check
 	 * physical address of each one
 	 */
 	if (check_contiguous || check_4gib) {
-		const void * virt = buffer;
+		const void *virt = buffer;
 		uintptr_t phys;
 
 		/* Get the mapping of the first page */
@@ -155,7 +157,7 @@ bool dma_buffer_check_policy(const void *buffer, size_t size, dma_policy_t *poli
 		if (check_4gib && (phys & DMAMEM_4GiB) != 0)
 			goto violated;
 
-		while (size <= PAGE_SIZE) {
+		while (size >= PAGE_SIZE) {
 			/* Move to the next page */
 			virt += PAGE_SIZE;
 			size -= PAGE_SIZE;
@@ -178,6 +180,31 @@ bool dma_buffer_check_policy(const void *buffer, size_t size, dma_policy_t *poli
 violated:
 error:
 	return false;
+}
+
+/**
+ * Lock an arbitrary buffer for DMA operations, creating a DMA buffer.
+ *
+ * FIXME: To handle page-unaligned buffers, we need to calculate the base
+ *        address and lock the whole first page. But as the operation is not yet
+ *        implemented in the kernel, it doesn't matter.
+ */
+errno_t dma_buffer_lock(dma_buffer_t *db, void *virt, size_t size)
+{
+	db->virt = virt;
+	return dmamem_map(db->virt, size, 0, 0, &db->phys);
+}
+
+/**
+ * Unlock a buffer for DMA operations.
+ */
+void dma_buffer_unlock(dma_buffer_t *db, size_t size)
+{
+	if (db->virt) {
+		dmamem_unmap(db->virt, size);
+		db->virt = NULL;
+		db->phys = 0;
+	}
 }
 
 /**
