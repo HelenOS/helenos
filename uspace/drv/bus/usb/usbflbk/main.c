@@ -65,7 +65,7 @@ static errno_t usbfallback_device_gone(usb_device_t *dev)
 	return EOK;
 }
 
-static int usbfallback_device_remove(usb_device_t *dev)
+static errno_t usbfallback_device_remove(usb_device_t *dev)
 {
 	assert(dev);
 	usb_log_info("Device '%s' removed.", usb_device_get_name(dev));
