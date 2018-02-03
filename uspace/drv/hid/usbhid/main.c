@@ -103,7 +103,7 @@ static errno_t usb_hid_device_add(usb_device_t *dev)
 	return EOK;
 }
 
-static int join_and_clean(usb_device_t *dev)
+static errno_t join_and_clean(usb_device_t *dev)
 {
 	assert(dev);
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);

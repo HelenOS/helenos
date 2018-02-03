@@ -347,7 +347,7 @@ static bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	}
 
 	/* Parse the input report */
-	const int rc = usb_hid_parse_report(
+	const errno_t rc = usb_hid_parse_report(
 	    &hid_dev->report, buffer, buffer_size, &hid_dev->report_id);
 	if (rc != EOK) {
 		usb_log_warning("Failure in usb_hid_parse_report():"
@@ -366,7 +366,7 @@ static bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
 	return cont;
 }
 
-static bool usb_hid_polling_error_callback(usb_device_t *dev, int err_code, void *arg)
+static bool usb_hid_polling_error_callback(usb_device_t *dev, errno_t err_code, void *arg)
 {
 	assert(dev);
 	assert(arg);
