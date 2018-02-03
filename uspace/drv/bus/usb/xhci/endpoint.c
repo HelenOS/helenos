@@ -58,7 +58,7 @@ static errno_t alloc_transfer_ds(xhci_endpoint_t *);
  * @return Error code.
  */
 static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
-    const usb_endpoint_descriptors_t *desc)
+	const usb_endpoint_descriptors_t *desc)
 {
 	errno_t rc;
 	assert(xhci_ep);
@@ -130,7 +130,7 @@ err:
  * Bus callback.
  */
 endpoint_t *xhci_endpoint_create(device_t *dev,
-    const usb_endpoint_descriptors_t *desc)
+	const usb_endpoint_descriptors_t *desc)
 {
 	const usb_transfer_type_t type = USB_ED_GET_TRANSFER_TYPE(desc->endpoint);
 

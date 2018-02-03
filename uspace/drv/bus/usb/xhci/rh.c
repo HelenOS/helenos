@@ -279,7 +279,7 @@ static void handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 }
 
 void xhci_rh_set_ports_protocol(xhci_rh_t *rh,
-    unsigned offset, unsigned count, unsigned major)
+	unsigned offset, unsigned count, unsigned major)
 {
 	for (unsigned i = offset; i < offset + count; i++)
 		rh->ports[i - 1].major = major;

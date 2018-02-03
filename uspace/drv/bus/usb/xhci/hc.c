@@ -404,8 +404,8 @@ errno_t hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parse
 	code->cmds[5].addr = usbsts;
 	code->cmds[6].addr = intr0_iman;
 
-        *irq = hw_res->irqs.irqs[0];
-        return EOK;
+	*irq = hw_res->irqs.irqs[0];
+	return EOK;
 }
 
 /**
@@ -651,7 +651,7 @@ static int event_worker(void *arg)
  * we solve this problem by deferring some types of events to separate fibrils.
  */
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring,
-    xhci_interrupter_regs_t *intr)
+	xhci_interrupter_regs_t *intr)
 {
 	errno_t err;
 

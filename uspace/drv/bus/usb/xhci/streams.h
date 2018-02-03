@@ -65,8 +65,8 @@ extern void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep);
 
 extern errno_t xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *xhci_ep);
 extern errno_t xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
-	xhci_endpoint_t *xhci_ep, unsigned count);
+    xhci_endpoint_t *xhci_ep, unsigned count);
 extern errno_t xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
-	xhci_endpoint_t *xhci_ep, unsigned *sizes, unsigned count);
+    xhci_endpoint_t *xhci_ep, unsigned *sizes, unsigned count);
 
 #endif

@@ -43,8 +43,8 @@
 #include "trb_ring.h"
 
 typedef enum {
-    STAGE_OUT,
-    STAGE_IN,
+	STAGE_OUT,
+	STAGE_IN,
 } stage_dir_flag_t;
 
 #define REQUEST_TYPE_DTD (0x80)
@@ -64,9 +64,9 @@ static inline stage_dir_flag_t get_status_direction_flag(xhci_trb_t* trb,
 }
 
 typedef enum {
-    DATA_STAGE_NO = 0,
-    DATA_STAGE_OUT = 2,
-    DATA_STAGE_IN = 3,
+	DATA_STAGE_NO = 0,
+	DATA_STAGE_OUT = 2,
+	DATA_STAGE_IN = 3,
 } data_stage_type_t;
 
 /** Get transfer type flag.

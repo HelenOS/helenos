@@ -269,7 +269,7 @@ typedef struct {
  * uframes it's off.
  */
 static inline void window_decide(window_decision_t *res, xhci_hc_t *hc,
-    uint64_t mfindex)
+	uint64_t mfindex)
 {
 	const uint64_t current_mf = get_current_microframe(hc);
 	const uint64_t start = current_mf + hc->ist + 1;
@@ -587,7 +587,7 @@ errno_t isoch_schedule_in(xhci_transfer_t *transfer)
 }
 
 void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep,
-    xhci_trb_t *trb)
+	xhci_trb_t *trb)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
 	xhci_isoch_t * const isoch = ep->isoch;
