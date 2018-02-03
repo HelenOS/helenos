@@ -119,7 +119,7 @@ errno_t usbmid_spawn_interface_child(usb_device_t *parent,
 	 * The interface number shall provide uniqueness while the
 	 * class name something humanly understandable.
 	 */
-	int ret = asprintf(&child_name, "%s%hhu",
+	errno_t ret = asprintf(&child_name, "%s%hhu",
 	    usb_str_class(interface_descriptor->interface_class),
 	    interface_descriptor->interface_number);
 	if (ret < 0) {

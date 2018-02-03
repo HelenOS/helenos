@@ -55,9 +55,9 @@ static errno_t usbmid_device_add(usb_device_t *dev)
 	return usbmid_explore_device(dev);
 }
 
-static int destroy_interfaces(usb_mid_t *usb_mid)
+static errno_t destroy_interfaces(usb_mid_t *usb_mid)
 {
-	int ret = EOK;
+	errno_t ret = EOK;
 
 	while (!list_empty(&usb_mid->interface_list)) {
 		link_t *item = list_first(&usb_mid->interface_list);
@@ -65,7 +65,7 @@ static int destroy_interfaces(usb_mid_t *usb_mid)
 
 		usbmid_interface_t *iface = usbmid_interface_from_link(item);
 
-		const int pret = usbmid_interface_destroy(iface);
+		const errno_t pret = usbmid_interface_destroy(iface);
 		if (pret != EOK) {
 			usb_log_error("Failed to remove child `%s': %s",
 			    ddf_fun_get_name(iface->fun), str_error(pret));
@@ -138,7 +138,7 @@ static errno_t usbmid_device_gone(usb_device_t *dev)
 	return destroy_interfaces(usb_mid);
 }
 
-static int usbmid_function_online(ddf_fun_t *fun)
+static errno_t usbmid_function_online(ddf_fun_t *fun)
 {
 	usb_device_t *usb_dev = ddf_dev_data_get(ddf_fun_get_dev(fun));
 	usb_mid_t *usb_mid = usb_device_data_get(usb_dev);
