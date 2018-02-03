@@ -41,9 +41,9 @@
 
 /** Operations to implement by all tests. */
 typedef struct tmon_test_ops {
-	int (*pre_run)(void *);
-	int (*run)(async_exch_t *, const void *);
-	int (*read_params)(int, char **, void **);
+	errno_t (*pre_run)(void *);
+	errno_t (*run)(async_exch_t *, const void *);
+	errno_t (*read_params)(int, char **, void **);
 } tmon_test_ops_t;
 
 int tmon_test_main(int, char **, const tmon_test_ops_t *);

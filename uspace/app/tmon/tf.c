@@ -66,7 +66,8 @@ int tmon_test_main(int argc, char *argv[], const tmon_test_ops_t *ops)
 			return 1;
 	}
 
-	int rc, ec;
+	errno_t rc;
+	int ec;
 	char path[MAX_PATH_LENGTH];
 	if ((rc = devman_fun_get_path(fun, path, sizeof(path)))) {
 		printf(NAME ": Error resolving path of device with handle "

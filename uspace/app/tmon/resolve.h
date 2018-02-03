@@ -38,8 +38,8 @@
 
 #include <devman.h>
 
-int tmon_resolve_default(devman_handle_t *);
-int tmon_resolve_named(const char *, devman_handle_t *);
+errno_t tmon_resolve_default(devman_handle_t *);
+errno_t tmon_resolve_named(const char *, devman_handle_t *);
 
 #endif /* TMON_RESOLVE_H_ */
 

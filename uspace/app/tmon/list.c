@@ -48,7 +48,7 @@
  */
 static void print_list_item(service_id_t svc)
 {
-	int rc;
+	errno_t rc;
 	devman_handle_t diag_handle = 0;
 
 	if ((rc = devman_fun_sid_to_handle(svc, &diag_handle))) {

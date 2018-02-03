@@ -65,9 +65,9 @@ static const char *short_options = "t:s:v";
  *
  * @return EOK if successful (in such case caller becomes the owner of `params`).
  */
-static int read_params(int argc, char *argv[], void **params)
+static errno_t read_params(int argc, char *argv[], void **params)
 {
-	int rc;
+	errno_t rc;
 	usbdiag_test_params_t *p = (usbdiag_test_params_t *) malloc(sizeof(usbdiag_test_params_t));
 	if (!p)
 		return ENOMEM;
@@ -181,7 +181,7 @@ static int test_in(async_exch_t *exch, const void *generic_params)
 	puts("\nTesting... ");
 
 	usbdiag_test_results_t results;
-	int rc = usbdiag_test_in(exch, params, &results);
+	errno_t rc = usbdiag_test_in(exch, params, &results);
 	if (rc != EOK) {
 		puts("failed\n");
 		printf(NAME ": %s\n", str_error(rc));
@@ -206,7 +206,7 @@ static int test_out(async_exch_t *exch, const void *generic_params)
 	puts("\nTesting... ");
 
 	usbdiag_test_results_t results;
-	int rc = usbdiag_test_out(exch, params, &results);
+	errno_t rc = usbdiag_test_out(exch, params, &results);
 	if (rc) {
 		puts("failed\n");
 		printf(NAME ": %s\n", str_error(rc));
