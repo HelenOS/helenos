@@ -58,7 +58,7 @@ typedef enum {
  * @param[in] exch IPC communication exchange
  * @return Error code.
  */
-int usbhc_reserve_default_address(async_exch_t *exch)
+errno_t usbhc_reserve_default_address(async_exch_t *exch)
 {
 	if (!exch)
 		return EBADMEM;
@@ -71,7 +71,7 @@ int usbhc_reserve_default_address(async_exch_t *exch)
  *
  * @return Error code.
  */
-int usbhc_release_default_address(async_exch_t *exch)
+errno_t usbhc_release_default_address(async_exch_t *exch)
 {
 	if (!exch)
 		return EBADMEM;
@@ -87,11 +87,11 @@ int usbhc_release_default_address(async_exch_t *exch)
  *
  * @return Error code.
  */
-int usbhc_device_enumerate(async_exch_t *exch, unsigned port, usb_speed_t speed)
+errno_t usbhc_device_enumerate(async_exch_t *exch, unsigned port, usb_speed_t speed)
 {
 	if (!exch)
 		return EBADMEM;
-	const int ret = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	const errno_t ret = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USB_DEVICE_ENUMERATE, port, speed);
 	return ret;
 }
@@ -128,18 +128,18 @@ errno_t usbhc_register_endpoint(async_exch_t *exch, usb_pipe_desc_t *pipe_desc,
 		return ENOMEM;
 	}
 
-	int ret = async_data_write_start(exch, desc, sizeof(*desc));
+	errno_t ret = async_data_write_start(exch, desc, sizeof(*desc));
 	if (ret != EOK) {
 		async_forget(opening_request);
 		return ret;
 	}
 
 	/* Wait for the answer. */
-	int opening_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
 	if (opening_request_rc)
-		return (int) opening_request_rc;
+		return (errno_t) opening_request_rc;
 
 	usb_pipe_desc_t dest;
 	ret = async_data_read_start(exch, &dest, sizeof(dest));
@@ -165,17 +165,17 @@ errno_t usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pip
 		return ENOMEM;
 	}
 
-	const int ret = async_data_write_start(exch, pipe_desc, sizeof(*pipe_desc));
+	const errno_t ret = async_data_write_start(exch, pipe_desc, sizeof(*pipe_desc));
 	if (ret != EOK) {
 		async_forget(opening_request);
 		return ret;
 	}
 
 	/* Wait for the answer. */
-	int opening_request_rc;
+	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
-	return (int) opening_request_rc;
+	return (errno_t) opening_request_rc;
 }
 
 /**
@@ -312,7 +312,7 @@ void remote_usbhc_default_address_reservation(ddf_fun_t *fun, void *iface,
 	}
 
 	const bool reserve = IPC_GET_ARG2(*call);
-	const int ret = usbhc_iface->default_address_reservation(fun, reserve);
+	const errno_t ret = usbhc_iface->default_address_reservation(fun, reserve);
 	async_answer_0(callid, ret);
 }
 
@@ -329,7 +329,7 @@ static void remote_usbhc_device_enumerate(ddf_fun_t *fun, void *iface,
 
 	const unsigned port = DEV_IPC_GET_ARG1(*call);
 	usb_speed_t speed = DEV_IPC_GET_ARG2(*call);
-	const int ret = usbhc_iface->device_enumerate(fun, port, speed);
+	const errno_t ret = usbhc_iface->device_enumerate(fun, port, speed);
 	async_answer_0(callid, ret);
 }
 
@@ -344,7 +344,7 @@ static void remote_usbhc_device_remove(ddf_fun_t *fun, void *iface,
 	}
 
 	const unsigned port = DEV_IPC_GET_ARG1(*call);
-	const int ret = usbhc_iface->device_remove(fun, port);
+	const errno_t ret = usbhc_iface->device_remove(fun, port);
 	async_answer_0(callid, ret);
 }
 
@@ -375,7 +375,7 @@ static void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 
 	usb_pipe_desc_t pipe_desc;
 
-	const int rc = usbhc_iface->register_endpoint(fun, &pipe_desc, &ep_desc);
+	const errno_t rc = usbhc_iface->register_endpoint(fun, &pipe_desc, &ep_desc);
 	async_answer_0(callid, rc);
 
 	if (!async_data_read_receive(&data_callid, &len)
@@ -410,7 +410,7 @@ static void remote_usbhc_unregister_endpoint(ddf_fun_t *fun, void *iface,
 	}
 	async_data_write_finalize(data_callid, &pipe_desc, sizeof(pipe_desc));
 
-	const int rc = usbhc_iface->unregister_endpoint(fun, &pipe_desc);
+	const errno_t rc = usbhc_iface->unregister_endpoint(fun, &pipe_desc);
 	async_answer_0(callid, rc);
 }
 
@@ -439,7 +439,7 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	return trans;
 }
 
-static errno_t transfer_finished(void *arg, int error, size_t transferred_size)
+static errno_t transfer_finished(void *arg, errno_t error, size_t transferred_size)
 {
 	async_transaction_t *trans = arg;
 	const errno_t err = async_answer_1(trans->caller, error, transferred_size);

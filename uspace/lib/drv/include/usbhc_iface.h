@@ -159,13 +159,13 @@ typedef errno_t (*usbhc_iface_transfer_callback_t)(void *, int, size_t);
 
 /** USB device communication interface. */
 typedef struct {
-	int (*default_address_reservation)(ddf_fun_t *, bool);
+	errno_t (*default_address_reservation)(ddf_fun_t *, bool);
 
-	int (*device_enumerate)(ddf_fun_t *, unsigned, usb_speed_t);
-	int (*device_remove)(ddf_fun_t *, unsigned);
+	errno_t (*device_enumerate)(ddf_fun_t *, unsigned, usb_speed_t);
+	errno_t (*device_remove)(ddf_fun_t *, unsigned);
 
-	int (*register_endpoint)(ddf_fun_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
-	int (*unregister_endpoint)(ddf_fun_t *, const usb_pipe_desc_t *);
+	errno_t (*register_endpoint)(ddf_fun_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
+	errno_t (*unregister_endpoint)(ddf_fun_t *, const usb_pipe_desc_t *);
 
 	errno_t (*transfer)(ddf_fun_t *, usb_target_t,
 		usb_direction_t, uint64_t, char *, size_t,
