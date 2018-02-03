@@ -81,7 +81,7 @@ static void remove_device(usb_port_t *port_base)
 		return;
 	}
 	
-	const int err = usbhc_device_remove(exch, port->port_number);
+	const errno_t err = usbhc_device_remove(exch, port->port_number);
 	if (err)
 		port_log(error, port, "Failed to remove device: %s", str_error(err));
 
@@ -223,7 +223,7 @@ static void port_changed_overcurrent(usb_hub_port_t *port, usb_port_status_t sta
 	usb_port_disabled(&port->base, &remove_device);
 
 	if (!overcurrent) {
-		const int err = usb_hub_set_port_feature(port->hub, port->port_number, USB_HUB_FEATURE_PORT_POWER);
+		const errno_t err = usb_hub_set_port_feature(port->hub, port->port_number, USB_HUB_FEATURE_PORT_POWER);
 		if (err)
 			port_log(error, port, "Failed to set port power after OC: %s.", str_error(err));
 	}
@@ -271,7 +271,7 @@ void usb_hub_port_process_interrupt(usb_hub_port_t *port)
 	port_log(debug2, port, "Interrupt.");
 
 	usb_port_status_t status = 0;
-	const int err = usb_hub_get_port_status(port->hub, port->port_number, &status);
+	const errno_t err = usb_hub_get_port_status(port->hub, port->port_number, &status);
 	if (err != EOK) {
 		port_log(error, port, "Failed to get port status: %s.", str_error(err));
 		return;

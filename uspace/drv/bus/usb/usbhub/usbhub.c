@@ -126,7 +126,7 @@ static bool usb_hub_polling_error_callback(usb_device_t *dev,
  */
 errno_t usb_hub_device_add(usb_device_t *usb_dev)
 {
-	int err;
+	errno_t err;
 	assert(usb_dev);
 
 	/* Create driver soft-state structure */
@@ -207,7 +207,7 @@ static errno_t usb_hub_cleanup(usb_hub_dev_t *hub)
 	}
 	free(hub->ports);
 
-	const int ret = ddf_fun_unbind(hub->hub_fun);
+	const errno_t ret = ddf_fun_unbind(hub->hub_fun);
 	if (ret != EOK) {
 		usb_log_error("(%p) Failed to unbind '%s' function: %s.",
 		   hub, HUB_FNC_NAME, str_error(ret));
@@ -346,7 +346,7 @@ static void usb_hub_power_ports(usb_hub_dev_t *hub_dev)
 
 	for (unsigned int port = 0; port < hub_dev->port_count; ++port) {
 		usb_log_debug("(%p): Powering port %u.", hub_dev, port + 1);
-		const int ret = usb_hub_set_port_feature(hub_dev, port + 1,
+		const errno_t ret = usb_hub_set_port_feature(hub_dev, port + 1,
 		    USB_HUB_FEATURE_PORT_POWER);
 
 		if (ret != EOK) {
@@ -518,7 +518,7 @@ static void usb_hub_over_current(const usb_hub_dev_t *hub_dev,
  * @param port Port structure.
  * @param feature Feature selector.
  */
-int usb_hub_set_depth(const usb_hub_dev_t *hub)
+errno_t usb_hub_set_depth(const usb_hub_dev_t *hub)
 {
 	assert(hub);
 
@@ -543,7 +543,7 @@ int usb_hub_set_depth(const usb_hub_dev_t *hub)
  * @param port Port structure.
  * @param feature Feature selector.
  */
-int usb_hub_set_port_feature(const usb_hub_dev_t *hub, size_t port_number,
+errno_t usb_hub_set_port_feature(const usb_hub_dev_t *hub, size_t port_number,
     usb_hub_class_feature_t feature)
 {
 	assert(hub);
@@ -564,7 +564,7 @@ int usb_hub_set_port_feature(const usb_hub_dev_t *hub, size_t port_number,
  * @param port Port structure.
  * @param feature Feature selector.
  */
-int usb_hub_clear_port_feature(const usb_hub_dev_t *hub, size_t port_number,
+errno_t usb_hub_clear_port_feature(const usb_hub_dev_t *hub, size_t port_number,
     usb_hub_class_feature_t feature)
 {
 	assert(hub);
@@ -586,7 +586,7 @@ int usb_hub_clear_port_feature(const usb_hub_dev_t *hub, size_t port_number,
  * @param[out] status Where to store the port status.
  * @return Error code.
  */
-int usb_hub_get_port_status(const usb_hub_dev_t *hub, size_t port_number,
+errno_t usb_hub_get_port_status(const usb_hub_dev_t *hub, size_t port_number,
     usb_port_status_t *status)
 {
 	assert(hub);
@@ -605,7 +605,7 @@ int usb_hub_get_port_status(const usb_hub_dev_t *hub, size_t port_number,
 	size_t recv_size;
 
 	uint32_t buffer;
-	const int rc = usb_pipe_control_read(hub->control_pipe,
+	const errno_t rc = usb_pipe_control_read(hub->control_pipe,
 	    &request, sizeof(usb_device_request_setup_packet_t),
 	    &buffer, sizeof(buffer), &recv_size);
 	if (rc != EOK)
@@ -704,7 +704,7 @@ static FIBRIL_MUTEX_INITIALIZE(global_hub_default_address_guard);
  * connecting multiple devices from one hub - which happens e.g. when the hub
  * is connected with already attached devices.
  */
-int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch,
+errno_t usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch,
     usb_port_t *port)
 {
 	assert(hub);
@@ -712,7 +712,7 @@ int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch,
 	assert(port);
 	assert(fibril_mutex_is_locked(&port->guard));
 
-	int err = usbhc_reserve_default_address(exch);
+	errno_t err = usbhc_reserve_default_address(exch);
 	/*
 	 * EINVAL signalls that its our hub (hopefully different port) that has
 	 * this address reserved
@@ -751,9 +751,9 @@ int usb_hub_reserve_default_address(usb_hub_dev_t *hub, async_exch_t *exch,
 /**
  * Release the default address from a port.
  */
-int usb_hub_release_default_address(usb_hub_dev_t *hub, async_exch_t *exch)
+errno_t usb_hub_release_default_address(usb_hub_dev_t *hub, async_exch_t *exch)
 {
-	const int ret = usbhc_release_default_address(exch);
+	const errno_t ret = usbhc_release_default_address(exch);
 
 	/*
 	 * This is an optimistic optimization - it may wake
