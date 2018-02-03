@@ -84,7 +84,7 @@ xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *ep, uint32_t strea
  * @param[in] xhci_ep Used XHCI bulk endpoint.
  * @param[in] count Amount of primary streams.
  */
-static int initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned count)
+static errno_t initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned count)
 {
 	usb_log_debug("Allocating primary stream context array of size %u "
 		"for endpoint " XHCI_EP_FMT, count, XHCI_EP_ARGS(*xhci_ep));
@@ -151,14 +151,14 @@ void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep)
  * @param[in] xhci_ep XHCI bulk endpoint to use.
  * @param[in] index index of the initialized stream structure.
  */
-static int initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
-    unsigned index)
+static errno_t initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
+	unsigned index)
 {
 	xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[index];
 	xhci_stream_data_t *data = &xhci_ep->primary_stream_data_array[index];
 	memset(data, 0, sizeof(xhci_stream_data_t));
 
-	int err = EOK;
+	errno_t err = EOK;
 
 	/* Init and register TRB ring for the primary stream */
 	if ((err = xhci_trb_ring_init(&data->ring, 0))) {
@@ -177,9 +177,9 @@ static int initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
  * @param[in] hc Host controller of the endpoint.
  * @param[in] xhci_ep XHCI bulk endpoint to use.
  */
-static int initialize_primary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep)
+static errno_t initialize_primary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep)
 {
-	int err = EOK;
+	errno_t err = EOK;
 	size_t index;
 	for (index = 0; index < xhci_ep->primary_stream_data_size; ++index) {
 		err = initialize_primary_stream(hc, xhci_ep, index);
@@ -204,8 +204,8 @@ err_clean:
  * @param[in] idx Index to primary stream array
  * @param[in] count Number of secondary streams to initialize.
  */
-static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
-    unsigned idx, unsigned count)
+static errno_t initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
+	unsigned idx, unsigned count)
 {
 	if (count == 0) {
 		/*
@@ -242,7 +242,7 @@ static int initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
 	XHCI_STREAM_SCT_SET(*ctx, fnzb32(count) + 1);
 
 	/* Initialize all the rings. */
-	int err = EOK;
+	errno_t err = EOK;
 	size_t index;
 	for (index = 0; index < count; ++index) {
 		xhci_stream_ctx_t *secondary_ctx = &data->secondary_stream_ctx_array[index];
@@ -274,7 +274,7 @@ err_init:
  * @param[in] lsa Specifies if the stream IDs point to primary stream array.
  */
 static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx,
-    unsigned pstreams, unsigned lsa)
+	unsigned pstreams, unsigned lsa)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(xhci_ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, xhci_ep->base.max_packet_size);
@@ -293,7 +293,7 @@ static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx,
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
  * @param[in] count Amount of primary streams requested.
  */
-static int verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
+static errno_t verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
 	xhci_endpoint_t *xhci_ep, unsigned count)
 {
 	if (xhci_ep->base.transfer_type != USB_TRANSFER_BULK
@@ -344,8 +344,8 @@ static int verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
  * @param[in] dev Used device.
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
  */
-int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev,
-    xhci_endpoint_t *xhci_ep)
+errno_t xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev,
+	xhci_endpoint_t *xhci_ep)
 {
 	if (!xhci_ep->primary_stream_data_size) {
 		usb_log_warning("There are no streams enabled on the endpoint, doing nothing.");
@@ -356,7 +356,7 @@ int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	xhci_endpoint_free_transfer_ds(xhci_ep);
 
 	/* Streams are now removed, proceed with reconfiguring endpoint. */
-	int err;
+	errno_t err;
 	if ((err = xhci_trb_ring_init(&xhci_ep->ring, 0))) {
 		usb_log_error("Failed to initialize a transfer ring.");
 		return err;
@@ -372,10 +372,10 @@ int xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev,
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
  * @param[in] count Amount of primary streams requested.
  */
-int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
+errno_t xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	xhci_endpoint_t *xhci_ep, unsigned count)
 {
-	int err = verify_stream_conditions(hc, dev, xhci_ep, count);
+	errno_t err = verify_stream_conditions(hc, dev, xhci_ep, count);
 	if (err) {
 		return err;
 	}
@@ -420,7 +420,7 @@ int xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
  *                  is 0, then a primary ring is created with that index.
  * @param[in] count Amount of primary streams requested.
  */
-int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
+errno_t xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 	xhci_endpoint_t *xhci_ep, unsigned *sizes, unsigned count)
 {
 	/* Check if HC supports secondary indexing */
@@ -429,7 +429,7 @@ int xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
 		return ENOTSUP;
 	}
 
-	int err = verify_stream_conditions(hc, dev, xhci_ep, count);
+	errno_t err = verify_stream_conditions(hc, dev, xhci_ep, count);
 	if (err) {
 		return err;
 	}

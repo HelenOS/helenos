@@ -79,7 +79,7 @@ static const unsigned usb_speed_to_psiv [] = {
  * The most interesting thing hidden in extended capabilities is the mapping of
  * ports to protocol versions and speeds.
  */
-static int hc_parse_ec(xhci_hc_t *hc)
+static errno_t hc_parse_ec(xhci_hc_t *hc)
 {
 	unsigned psic, major, minor;
 	xhci_sp_name_t name;
@@ -185,9 +185,9 @@ static int hc_parse_ec(xhci_hc_t *hc)
 /**
  * Initialize MMIO spaces of xHC.
  */
-int hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
+errno_t hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 {
-	int err;
+	errno_t err;
 
 	if (hw_res->mem_ranges.count != 1) {
 		usb_log_error("Unexpected MMIO area, bailing out.");
@@ -256,9 +256,9 @@ static int event_worker(void *arg);
 /**
  * Initialize structures kept in allocated memory.
  */
-int hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
+errno_t hc_init_memory(xhci_hc_t *hc, ddf_dev_t *device)
 {
-	int err = ENOMEM;
+	errno_t err = ENOMEM;
 
 	if (dma_buffer_alloc(&hc->dcbaa_dma, (1 + hc->max_slots) * sizeof(uint64_t)))
 		return ENOMEM;
@@ -361,7 +361,7 @@ static const irq_cmd_t irq_commands[] = {
  * MSI/MSI-X, but we use PCI Interrupt Pin. In this mode, all the Interrupters
  * (except 0) are disabled.
  */
-int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res, int *irq)
+errno_t hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -411,7 +411,7 @@ int hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parsed_t 
 /**
  * Claim xHC from BIOS. Implements handoff as per Section 4.22.1 of xHCI spec.
  */
-int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
+errno_t hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 {
 	/* No legacy support capability, the controller is solely for us */
 	if (!hc->legsup)
@@ -439,7 +439,7 @@ int hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 /**
  * Ask the xHC to reset its state. Implements sequence
  */
-static int hc_reset(xhci_hc_t *hc)
+static errno_t hc_reset(xhci_hc_t *hc)
 {
 	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_CNR), 0))
 		return ETIMEOUT;
@@ -465,9 +465,9 @@ static int hc_reset(xhci_hc_t *hc)
 /**
  * Initialize the HC: section 4.2
  */
-int hc_start(xhci_hc_t *hc)
+errno_t hc_start(xhci_hc_t *hc)
 {
-	int err;
+	errno_t err;
 
 	if ((err = hc_reset(hc)))
 		return err;
@@ -564,7 +564,7 @@ static bool hc_is_broken(xhci_hc_t *hc)
 /**
  * Used only when polling. Shall supplement the irq_commands.
  */
-int hc_status(bus_t *bus, uint32_t *status)
+errno_t hc_status(bus_t *bus, uint32_t *status)
 {
 	xhci_hc_t *hc = bus_to_hc(bus);
 	int ip = XHCI_REG_RD(hc->rt_regs->ir, XHCI_INTR_IP);
@@ -582,7 +582,7 @@ int hc_status(bus_t *bus, uint32_t *status)
 	return EOK;
 }
 
-static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
+static errno_t xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	struct timeval tv;
 	getuptime(&tv);
@@ -593,7 +593,7 @@ static int xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 	return EOK;
 }
 
-typedef int (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
+typedef errno_t (*event_handler) (xhci_hc_t *, xhci_trb_t *trb);
 
 /**
  * These events are handled by separate event handling fibril.
@@ -611,7 +611,7 @@ static event_handler event_handlers_fast [] = {
 	[XHCI_TRB_TYPE_MFINDEX_WRAP_EVENT] = &xhci_handle_mfindex_wrap_event,
 };
 
-static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
+static errno_t hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	const unsigned type = TRB_TYPE(*trb);
 
@@ -629,7 +629,7 @@ static int hc_handle_event(xhci_hc_t *hc, xhci_trb_t *trb)
 
 static int event_worker(void *arg)
 {
-	int err;
+	errno_t err;
 	xhci_trb_t trb;
 	xhci_hc_t * const hc = arg;
 	assert(hc);
@@ -653,7 +653,7 @@ static int event_worker(void *arg)
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring,
     xhci_interrupter_regs_t *intr)
 {
-	int err;
+	errno_t err;
 
 	xhci_trb_t trb;
 	hc->event_handler = fibril_get_id();
@@ -780,9 +780,9 @@ void hc_ring_ep_doorbell(xhci_endpoint_t *ep, uint32_t stream_id)
  * Issue an Enable Slot command. Allocate memory for the slot and fill the
  * DCBAA with the newly created slot.
  */
-int hc_enable_slot(xhci_device_t *dev)
+errno_t hc_enable_slot(xhci_device_t *dev)
 {
-	int err;
+	errno_t err;
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
 	/* Prepare memory for the context */
@@ -814,9 +814,9 @@ int hc_enable_slot(xhci_device_t *dev)
  * Issue a Disable Slot command for a slot occupied by device.
  * Frees the device context.
  */
-int hc_disable_slot(xhci_device_t *dev)
+errno_t hc_disable_slot(xhci_device_t *dev)
 {
-	int err;
+	errno_t err;
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
 	if ((err = xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = dev->slot_id))) {
@@ -836,10 +836,10 @@ int hc_disable_slot(xhci_device_t *dev)
 /**
  * Prepare an empty Endpoint Input Context inside a dma buffer.
  */
-static int create_configure_ep_input_ctx(xhci_device_t *dev, dma_buffer_t *dma_buf)
+static errno_t create_configure_ep_input_ctx(xhci_device_t *dev, dma_buffer_t *dma_buf)
 {
 	const xhci_hc_t * hc = bus_to_hc(dev->base.bus);
-	const int err = dma_buffer_alloc(dma_buf, XHCI_INPUT_CTX_SIZE(hc));
+	const errno_t err = dma_buffer_alloc(dma_buf, XHCI_INPUT_CTX_SIZE(hc));
 	if (err)
 		return err;
 
@@ -859,9 +859,9 @@ static int create_configure_ep_input_ctx(xhci_device_t *dev, dma_buffer_t *dma_b
  *
  * @param dev Device to assing an address (unconfigured yet)
  */
-int hc_address_device(xhci_device_t *dev)
+errno_t hc_address_device(xhci_device_t *dev)
 {
-	int err = ENOMEM;
+	errno_t err = ENOMEM;
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(dev->base.endpoints[0]);
 
@@ -907,13 +907,13 @@ int hc_address_device(xhci_device_t *dev)
  *
  * @param slot_id Slot ID assigned to the device.
  */
-int hc_configure_device(xhci_device_t *dev)
+errno_t hc_configure_device(xhci_device_t *dev)
 {
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
+	const errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err)
 		return err;
 
@@ -928,7 +928,7 @@ int hc_configure_device(xhci_device_t *dev)
  *
  * @param dev The owner of the device
  */
-int hc_deconfigure_device(xhci_device_t *dev)
+errno_t hc_deconfigure_device(xhci_device_t *dev)
 {
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
@@ -949,14 +949,14 @@ int hc_deconfigure_device(xhci_device_t *dev)
  * @param ep_idx Endpoint DCI in question
  * @param ep_ctx Endpoint context of the endpoint
  */
-int hc_add_endpoint(xhci_endpoint_t *ep)
+errno_t hc_add_endpoint(xhci_endpoint_t *ep)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
+	const errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err)
 		return err;
 
@@ -980,7 +980,7 @@ int hc_add_endpoint(xhci_endpoint_t *ep)
  * @param dev The owner of the endpoint
  * @param ep_idx Endpoint DCI in question
  */
-int hc_drop_endpoint(xhci_endpoint_t *ep)
+errno_t hc_drop_endpoint(xhci_endpoint_t *ep)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
@@ -991,7 +991,7 @@ int hc_drop_endpoint(xhci_endpoint_t *ep)
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const int err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
+	const errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
 	if (err)
 		return err;
 
@@ -1012,7 +1012,7 @@ int hc_drop_endpoint(xhci_endpoint_t *ep)
  * @param ep_idx Endpoint DCI in question
  * @param ep_ctx Endpoint context of the endpoint
  */
-int hc_update_endpoint(xhci_endpoint_t *ep)
+errno_t hc_update_endpoint(xhci_endpoint_t *ep)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
@@ -1020,7 +1020,7 @@ int hc_update_endpoint(xhci_endpoint_t *ep)
 	dma_buffer_t ictx_dma_buf;
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
-	const int err = dma_buffer_alloc(&ictx_dma_buf, XHCI_INPUT_CTX_SIZE(hc));
+	const errno_t err = dma_buffer_alloc(&ictx_dma_buf, XHCI_INPUT_CTX_SIZE(hc));
 	if (err)
 		return err;
 
@@ -1043,7 +1043,7 @@ int hc_update_endpoint(xhci_endpoint_t *ep)
  * @param dev The owner of the endpoint
  * @param ep_idx Endpoint DCI in question
  */
-int hc_stop_endpoint(xhci_endpoint_t *ep)
+errno_t hc_stop_endpoint(xhci_endpoint_t *ep)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
@@ -1064,7 +1064,7 @@ int hc_stop_endpoint(xhci_endpoint_t *ep)
  * @param dev The owner of the endpoint
  * @param ep_idx Endpoint DCI in question
  */
-int hc_reset_endpoint(xhci_endpoint_t *ep)
+errno_t hc_reset_endpoint(xhci_endpoint_t *ep)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
@@ -1080,7 +1080,7 @@ int hc_reset_endpoint(xhci_endpoint_t *ep)
  *
  * @param dev The owner of the endpoint
  */
-int hc_reset_ring(xhci_endpoint_t *ep, uint32_t stream_id)
+errno_t hc_reset_ring(xhci_endpoint_t *ep, uint32_t stream_id)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);

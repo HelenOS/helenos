@@ -47,7 +47,7 @@
 #include "endpoint.h"
 #include "streams.h"
 
-static int alloc_transfer_ds(xhci_endpoint_t *);
+static errno_t alloc_transfer_ds(xhci_endpoint_t *);
 
 /**
  * Initialize new XHCI endpoint.
@@ -57,10 +57,10 @@ static int alloc_transfer_ds(xhci_endpoint_t *);
  *
  * @return Error code.
  */
-static int xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
+static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
     const usb_endpoint_descriptors_t *desc)
 {
-	int rc;
+	errno_t rc;
 	assert(xhci_ep);
 
 	endpoint_t *ep = &xhci_ep->base;
@@ -179,9 +179,9 @@ void xhci_endpoint_destroy(endpoint_t *ep)
  *
  * Bus callback.
  */
-int xhci_endpoint_register(endpoint_t *ep_base)
+errno_t xhci_endpoint_register(endpoint_t *ep_base)
 {
-	int err;
+	errno_t err;
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 
 	if (ep_base->endpoint != 0 && (err = hc_add_endpoint(ep)))
@@ -221,7 +221,7 @@ static void endpoint_abort(endpoint_t *ep)
 
 	usb_transfer_batch_t * const batch = ep->active_batch;
 
-	const int err = hc_stop_endpoint(xhci_ep);
+	const errno_t err = hc_stop_endpoint(xhci_ep);
 	if (err) {
 		usb_log_error("Failed to stop endpoint %u of device "
 		    XHCI_DEV_FMT ": %s", ep->endpoint, XHCI_DEV_ARGS(*dev),
@@ -244,7 +244,7 @@ static void endpoint_abort(endpoint_t *ep)
  */
 void xhci_endpoint_unregister(endpoint_t *ep_base)
 {
-	int err;
+	errno_t err;
 	xhci_endpoint_t *ep = xhci_endpoint_get(ep_base);
 	xhci_device_t *dev = xhci_device_get(ep_base->device);
 
@@ -299,7 +299,7 @@ int xhci_endpoint_type(xhci_endpoint_t *ep)
  *
  * @return Error code.
  */
-static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
+static errno_t alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 {
 	/* Can't use XHCI_EP_FMT because the endpoint may not have device. */
 	usb_log_debug("Allocating main transfer ring for endpoint " XHCI_EP_FMT,
@@ -308,7 +308,7 @@ static int alloc_transfer_ds(xhci_endpoint_t *xhci_ep)
 	xhci_ep->primary_stream_data_array = NULL;
 	xhci_ep->primary_stream_data_size = 0;
 
-	int err;
+	errno_t err;
 	if ((err = xhci_trb_ring_init(&xhci_ep->ring, 0))) {
 		return err;
 	}
@@ -459,9 +459,9 @@ void xhci_setup_endpoint_context(xhci_endpoint_t *ep, xhci_ep_ctx_t *ep_ctx)
  * Clear endpoint halt condition by resetting the endpoint and skipping the
  * offending transfer.
  */
-int xhci_endpoint_clear_halt(xhci_endpoint_t *ep, uint32_t stream_id)
+errno_t xhci_endpoint_clear_halt(xhci_endpoint_t *ep, uint32_t stream_id)
 {
-	int err;
+	errno_t err;
 
 	if ((err = hc_reset_endpoint(ep)))
 		return err;

@@ -64,9 +64,9 @@ typedef struct xhci_device {
 #define XHCI_DEV_ARGS(dev)		 ddf_fun_get_name((dev).base.fun), (dev).slot_id
 
 /* Bus callbacks */
-int xhci_device_enumerate(device_t *);
+errno_t xhci_device_enumerate(device_t *);
 void xhci_device_offline(device_t *);
-int xhci_device_online(device_t *);
+errno_t xhci_device_online(device_t *);
 void xhci_device_gone(device_t *);
 
 void xhci_setup_slot_context(xhci_device_t *, xhci_slot_ctx_t *);

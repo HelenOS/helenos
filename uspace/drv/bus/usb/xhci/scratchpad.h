@@ -44,7 +44,7 @@
 
 typedef struct xhci_hc xhci_hc_t;
 
-extern int xhci_scratchpad_alloc(xhci_hc_t *);
+extern errno_t xhci_scratchpad_alloc(xhci_hc_t *);
 extern void xhci_scratchpad_free(xhci_hc_t *);
 
 #endif

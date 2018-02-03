@@ -52,9 +52,9 @@ static inline xhci_hc_t *hcd_to_hc(hc_device_t *hcd)
 	return (xhci_hc_t *) hcd;
 }
 
-static int hcd_hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
+static errno_t hcd_hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
-	int err;
+	errno_t err;
 	xhci_hc_t *hc = hcd_to_hc(hcd);
 	hc_device_setup(hcd, (bus_t *) &hc->bus);
 
@@ -67,25 +67,25 @@ static int hcd_hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	return EOK;
 }
 
-static int hcd_irq_code_gen(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res, int *irq)
+static errno_t hcd_irq_code_gen(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	xhci_hc_t *hc = hcd_to_hc(hcd);
 	return hc_irq_code_gen(code, hc, hw_res, irq);
 }
 
-static int hcd_claim(hc_device_t *hcd)
+static errno_t hcd_claim(hc_device_t *hcd)
 {
 	xhci_hc_t *hc = hcd_to_hc(hcd);
 	return hc_claim(hc, hcd->ddf_dev);
 }
 
-static int hcd_start(hc_device_t *hcd)
+static errno_t hcd_start(hc_device_t *hcd)
 {
 	xhci_hc_t *hc = hcd_to_hc(hcd);
 	return hc_start(hc);
 }
 
-static int hcd_hc_gone(hc_device_t *hcd)
+static errno_t hcd_hc_gone(hc_device_t *hcd)
 {
 	xhci_hc_t *hc = hcd_to_hc(hcd);
 	hc_fini(hc);
@@ -111,7 +111,7 @@ static const hc_driver_t xhci_driver = {
  *
  * Driver debug level is set here.
  */
-int main(int argc, char *argv[])
+errno_t main(int argc, char *argv[])
 {
 	log_init(NAME);
 	logctl_set_log_level(NAME, LVL_DEBUG);

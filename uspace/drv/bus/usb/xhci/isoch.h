@@ -67,7 +67,7 @@ typedef struct {
 	uintptr_t interrupt_trb_phys;
 
 	/** Result of the transfer. Valid only if status == ISOCH_COMPLETE. */
-	int error;
+	errno_t error;
 } xhci_isoch_transfer_t;
 
 typedef struct {
@@ -118,10 +118,10 @@ typedef struct usb_endpoint_descriptors usb_endpoint_descriptors_t;
 
 extern void isoch_init(xhci_endpoint_t *, const usb_endpoint_descriptors_t *);
 extern void isoch_fini(xhci_endpoint_t *);
-extern int isoch_alloc_transfers(xhci_endpoint_t *);
+extern errno_t isoch_alloc_transfers(xhci_endpoint_t *);
 
-extern int isoch_schedule_out(xhci_transfer_t *);
-extern int isoch_schedule_in(xhci_transfer_t *);
+extern errno_t isoch_schedule_out(xhci_transfer_t *);
+extern errno_t isoch_schedule_in(xhci_transfer_t *);
 extern void isoch_handle_transfer_event(xhci_hc_t *, xhci_endpoint_t *, xhci_trb_t *);
 
 #endif

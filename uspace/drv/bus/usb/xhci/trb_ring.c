@@ -86,11 +86,11 @@ static inline trb_segment_t *get_first_segment(list_t *segments)
  * TODO: When the HC supports 64-bit addressing, there's no need to restrict
  * to DMAMEM_4GiB.
  */
-static int trb_segment_alloc(trb_segment_t **segment)
+static errno_t trb_segment_alloc(trb_segment_t **segment)
 {
 	dma_buffer_t dbuf;
 
-	const int err = dma_buffer_alloc(&dbuf, PAGE_SIZE);
+	const errno_t err = dma_buffer_alloc(&dbuf, PAGE_SIZE);
 	if (err)
 		return err;
 
@@ -113,9 +113,9 @@ static void trb_segment_free(trb_segment_t *segment)
  * @param[in] initial_size A number of free slots on the ring, 0 leaves the
  * choice on a reasonable default (one page-sized segment).
  */
-int xhci_trb_ring_init(xhci_trb_ring_t *ring, size_t initial_size)
+errno_t xhci_trb_ring_init(xhci_trb_ring_t *ring, size_t initial_size)
 {
-	int err;
+	errno_t err;
 	if (initial_size == 0)
 		initial_size = SEGMENT_TRB_USEFUL_COUNT;
 
@@ -217,10 +217,10 @@ static bool trb_generates_interrupt(xhci_trb_t *trb)
  * @return EOK on success,
  *         EAGAIN when the ring is too full to fit all TRBs (temporary)
  */
-int xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
+errno_t xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
 	size_t trbs, uintptr_t *phys)
 {
-	int err;
+	errno_t err;
 	assert(trbs > 0);
 	fibril_mutex_lock(&ring->guard);
 
@@ -293,7 +293,7 @@ err:
 /**
  * Enqueue TD composed of a single TRB. See: `xhci_trb_ring_enqueue_multiple`
  */
-int xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys)
+errno_t xhci_trb_ring_enqueue(xhci_trb_ring_t *ring, xhci_trb_t *td, uintptr_t *phys)
 {
 	return xhci_trb_ring_enqueue_multiple(ring, td, 1, phys);
 }
@@ -314,9 +314,9 @@ void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr)
  * @param[in] initial_size A number of free slots on the ring, 0 leaves the
  * choice on a reasonable default (one page-sized segment).
  */
-int xhci_event_ring_init(xhci_event_ring_t *ring, size_t initial_size)
+errno_t xhci_event_ring_init(xhci_event_ring_t *ring, size_t initial_size)
 {
-	int err;
+	errno_t err;
 	if (initial_size == 0)
 		initial_size = SEGMENT_TRB_COUNT;
 
@@ -389,7 +389,7 @@ static uintptr_t event_ring_dequeue_phys(xhci_event_ring_t *ring)
  * @return EOK on success,
  *         ENOENT when the ring is empty
  */
-int xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
+errno_t xhci_event_ring_dequeue(xhci_event_ring_t *ring, xhci_trb_t *event)
 {
 	fibril_mutex_lock(&ring->guard);
 
@@ -444,7 +444,7 @@ void xhci_sw_ring_init(xhci_sw_ring_t *ring, size_t size)
 	xhci_sw_ring_restart(ring);
 }
 
-int xhci_sw_ring_enqueue(xhci_sw_ring_t *ring, xhci_trb_t *trb)
+errno_t xhci_sw_ring_enqueue(xhci_sw_ring_t *ring, xhci_trb_t *trb)
 {
 	assert(ring);
 	assert(trb);
@@ -463,7 +463,7 @@ int xhci_sw_ring_enqueue(xhci_sw_ring_t *ring, xhci_trb_t *trb)
 	return ring->running ? EOK : EINTR;
 }
 
-int xhci_sw_ring_dequeue(xhci_sw_ring_t *ring, xhci_trb_t *trb)
+errno_t xhci_sw_ring_dequeue(xhci_sw_ring_t *ring, xhci_trb_t *trb)
 {
 	assert(ring);
 	assert(trb);

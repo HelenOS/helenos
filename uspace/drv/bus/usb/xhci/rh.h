@@ -80,8 +80,8 @@ typedef struct {
 	joinable_fibril_t *event_worker;
 } xhci_rh_t;
 
-extern int xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
-extern int xhci_rh_fini(xhci_rh_t *);
+extern errno_t xhci_rh_init(xhci_rh_t *, xhci_hc_t *);
+extern errno_t xhci_rh_fini(xhci_rh_t *);
 
 extern void xhci_rh_set_ports_protocol(xhci_rh_t *, unsigned, unsigned, unsigned);
 extern void xhci_rh_start(xhci_rh_t *);

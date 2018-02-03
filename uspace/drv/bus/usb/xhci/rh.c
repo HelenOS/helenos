@@ -78,7 +78,7 @@ static int rh_worker(void *);
 /**
  * Initialize the roothub subsystem.
  */
-int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
+errno_t xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 {
 	assert(rh);
 	assert(hc);
@@ -89,7 +89,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 	if (!rh->ports)
 		return ENOMEM;
 
-	const int err = bus_device_init(&rh->device.base, &rh->hc->bus.base);
+	const errno_t err = bus_device_init(&rh->device.base, &rh->hc->bus.base);
 	if (err) {
 		free(rh->ports);
 		return err;
@@ -118,7 +118,7 @@ int xhci_rh_init(xhci_rh_t *rh, xhci_hc_t *hc)
 /**
  * Finalize the RH subsystem.
  */
-int xhci_rh_fini(xhci_rh_t *rh)
+errno_t xhci_rh_fini(xhci_rh_t *rh)
 {
 	assert(rh);
 	xhci_rh_stop(rh);
@@ -138,9 +138,9 @@ static rh_port_t *get_rh_port(usb_port_t *port)
  * Create and setup a device directly connected to RH. As the xHCI is not using
  * a virtual usbhub device for RH, this routine is called for devices directly.
  */
-static int rh_enumerate_device(usb_port_t *usb_port)
+static errno_t rh_enumerate_device(usb_port_t *usb_port)
 {
-	int err;
+	errno_t err;
 	rh_port_t *port = get_rh_port(usb_port);
 
 	if (port->major <= 2) {

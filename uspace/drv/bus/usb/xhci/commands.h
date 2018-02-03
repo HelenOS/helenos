@@ -124,7 +124,7 @@ typedef struct xhci_command {
 } xhci_cmd_t;
 
 /* Command handling control */
-extern int xhci_init_commands(xhci_hc_t *);
+extern errno_t xhci_init_commands(xhci_hc_t *);
 extern void xhci_fini_commands(xhci_hc_t *);
 
 extern void xhci_nuke_command_ring(xhci_hc_t *);
@@ -132,18 +132,18 @@ extern void xhci_stop_command_ring(xhci_hc_t *);
 extern void xhci_abort_command_ring(xhci_hc_t *);
 extern void xhci_start_command_ring(xhci_hc_t *);
 
-extern int xhci_handle_command_completion(xhci_hc_t *, xhci_trb_t *);
+extern errno_t xhci_handle_command_completion(xhci_hc_t *, xhci_trb_t *);
 
 /* Command lifecycle */
 extern void xhci_cmd_init(xhci_cmd_t *, xhci_cmd_type_t);
 extern void xhci_cmd_fini(xhci_cmd_t *);
 
 /* Issuing commands */
-extern int xhci_cmd_sync(xhci_hc_t *, xhci_cmd_t *);
-extern int xhci_cmd_sync_fini(xhci_hc_t *, xhci_cmd_t *);
-extern int xhci_cmd_async_fini(xhci_hc_t *, xhci_cmd_t *);
+extern errno_t xhci_cmd_sync(xhci_hc_t *, xhci_cmd_t *);
+extern errno_t xhci_cmd_sync_fini(xhci_hc_t *, xhci_cmd_t *);
+extern errno_t xhci_cmd_async_fini(xhci_hc_t *, xhci_cmd_t *);
 
-static inline int xhci_cmd_sync_inline_wrapper(xhci_hc_t *hc, xhci_cmd_t cmd)
+static inline errno_t xhci_cmd_sync_inline_wrapper(xhci_hc_t *hc, xhci_cmd_t cmd)
 {
 	/* Poor man's xhci_cmd_init (everything else is zeroed) */
 	link_initialize(&cmd._header.link);
@@ -151,7 +151,7 @@ static inline int xhci_cmd_sync_inline_wrapper(xhci_hc_t *hc, xhci_cmd_t cmd)
 	fibril_condvar_initialize(&cmd._header.completed_cv);
 
 	/* Issue the command */
-	const int err = xhci_cmd_sync(hc, &cmd);
+	const errno_t err = xhci_cmd_sync(hc, &cmd);
 	xhci_cmd_fini(&cmd);
 
 	return err;
@@ -165,7 +165,7 @@ static inline int xhci_cmd_sync_inline_wrapper(xhci_hc_t *hc, xhci_cmd_t cmd)
  *  The return code and semantics matches those of `xhci_cmd_sync_fini`.
  *
  *  Example:
- *    int err = xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = 42);
+ *    errno_t err = xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = 42);
  */
 
 #define xhci_cmd_sync_inline(hc, command, ...) \

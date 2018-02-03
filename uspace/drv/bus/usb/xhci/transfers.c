@@ -149,7 +149,7 @@ static void trb_set_buffer(xhci_transfer_t *transfer, xhci_trb_t *trb,
 	}
 }
 
-static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
+static errno_t schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
 	usb_transfer_batch_t *batch = &transfer->batch;
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(transfer->batch.ep);
@@ -212,7 +212,7 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 
 	// Issue a Configure Endpoint command, if needed.
 	if (configure_endpoint_needed(setup)) {
-		const int err = hc_configure_device(xhci_ep_to_dev(xhci_ep));
+		const errno_t err = hc_configure_device(xhci_ep_to_dev(xhci_ep));
 		if (err)
 			return err;
 	}
@@ -221,7 +221,7 @@ static int schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	    buffer_count + 2, &transfer->interrupt_trb_phys);
 }
 
-static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
+static errno_t schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 {
 	/* The stream-enabled endpoints need to chain ED trb */
 	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
@@ -275,7 +275,7 @@ static int schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 	}
 }
 
-static int schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
+static errno_t schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
 	const size_t buffer_count = calculate_trb_count(transfer);
 	xhci_trb_t trbs[buffer_count];
@@ -308,7 +308,7 @@ static int schedule_isochronous(xhci_transfer_t* transfer)
 		: isoch_schedule_in(transfer);
 }
 
-int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
+errno_t xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 {
 	uintptr_t addr = trb->parameter;
 	const unsigned slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
@@ -429,7 +429,7 @@ int xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 	return EOK;
 }
 
-typedef int (*transfer_handler)(xhci_hc_t *, xhci_transfer_t *);
+typedef errno_t (*transfer_handler)(xhci_hc_t *, xhci_transfer_t *);
 
 static const transfer_handler transfer_handlers[] = {
 	[USB_TRANSFER_CONTROL] = schedule_control,
@@ -443,7 +443,7 @@ static const transfer_handler transfer_handlers[] = {
  *
  * Bus callback.
  */
-int xhci_transfer_schedule(usb_transfer_batch_t *batch)
+errno_t xhci_transfer_schedule(usb_transfer_batch_t *batch)
 {
 	endpoint_t *ep = batch->ep;
 
@@ -503,7 +503,7 @@ int xhci_transfer_schedule(usb_transfer_batch_t *batch)
 				 * TODO: Find out how to come up with stream_id. It might be
 				 * possible that we have to clear all of them.
 				 */
-				const int err = xhci_endpoint_clear_halt(xhci_endpoint_get(halted_ep), 0);
+				const errno_t err = xhci_endpoint_clear_halt(xhci_endpoint_get(halted_ep), 0);
 				endpoint_del_ref(halted_ep);
 				if (err) {
 					/*
@@ -525,7 +525,7 @@ int xhci_transfer_schedule(usb_transfer_batch_t *batch)
 	}
 
 
-	int err;
+	errno_t err;
 	fibril_mutex_lock(&xhci_ep->guard);
 
 	if ((err = endpoint_activate_locked(ep, batch))) {

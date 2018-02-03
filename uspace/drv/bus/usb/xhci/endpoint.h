@@ -111,7 +111,7 @@ typedef struct xhci_endpoint {
 extern int xhci_endpoint_type(xhci_endpoint_t *ep);
 
 extern endpoint_t *xhci_endpoint_create(device_t *, const usb_endpoint_descriptors_t *);
-extern int xhci_endpoint_register(endpoint_t *);
+extern errno_t xhci_endpoint_register(endpoint_t *);
 extern void xhci_endpoint_unregister(endpoint_t *);
 extern void xhci_endpoint_destroy(endpoint_t *);
 
@@ -119,7 +119,7 @@ extern void xhci_endpoint_free_transfer_ds(xhci_endpoint_t *);
 extern xhci_trb_ring_t *xhci_endpoint_get_ring(xhci_endpoint_t *, uint32_t);
 
 extern void xhci_setup_endpoint_context(xhci_endpoint_t *, xhci_ep_ctx_t *);
-extern int xhci_endpoint_clear_halt(xhci_endpoint_t *, unsigned);
+extern errno_t xhci_endpoint_clear_halt(xhci_endpoint_t *, unsigned);
 
 static inline xhci_endpoint_t * xhci_endpoint_get(endpoint_t *ep)
 {

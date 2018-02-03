@@ -71,9 +71,9 @@ static const usb_endpoint_descriptors_t ep0_initial_desc = {
  * @param[in] dev New device to address and configure./e
  * @return Error code.
  */
-static int address_device(xhci_device_t *dev)
+static errno_t address_device(xhci_device_t *dev)
 {
-	int err;
+	errno_t err;
 
 	/* Enable new slot. */
 	if ((err = hc_enable_slot(dev)) != EOK)
@@ -114,9 +114,9 @@ err_slot:
  * @param[in] dev Device with operational endpoint zero.
  * @return Error code.
  */
-static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
+static errno_t setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
 {
-	int err;
+	errno_t err;
 
 	uint16_t max_packet_size;
 	if ((err = hc_get_ep0_max_packet_size(&max_packet_size, &dev->base)))
@@ -143,13 +143,13 @@ static int setup_ep0_packet_size(xhci_hc_t *hc, xhci_device_t *dev)
  * If this fails, it does not necessarily mean the device is unusable.
  * Just the TT will not work correctly.
  */
-static int setup_hub(xhci_device_t *dev, usb_standard_device_descriptor_t *desc)
+static errno_t setup_hub(xhci_device_t *dev, usb_standard_device_descriptor_t *desc)
 {
 	if (desc->device_class != USB_CLASS_HUB)
 		return EOK;
 
 	usb_hub_descriptor_header_t hub_desc = { 0 };
-	const int err = hc_get_hub_desc(&dev->base, &hub_desc);
+	const errno_t err = hc_get_hub_desc(&dev->base, &hub_desc);
 	if (err)
 		return err;
 
@@ -176,9 +176,9 @@ static int setup_hub(xhci_device_t *dev, usb_standard_device_descriptor_t *desc)
  *
  * @return Error code.
  */
-int xhci_device_enumerate(device_t *dev)
+errno_t xhci_device_enumerate(device_t *dev)
 {
-	int err;
+	errno_t err;
 	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
@@ -257,7 +257,7 @@ err_address:
  */
 void xhci_device_gone(device_t *dev)
 {
-	int err;
+	errno_t err;
 	xhci_bus_t *bus = bus_to_xhci_bus(dev->bus);
 	xhci_device_t *xhci_dev = xhci_device_get(dev);
 
@@ -276,9 +276,9 @@ void xhci_device_gone(device_t *dev)
  *
  * Bus callback.
  */
-int xhci_device_online(device_t *dev_base)
+errno_t xhci_device_online(device_t *dev_base)
 {
-	int err;
+	errno_t err;
 
 	xhci_bus_t *bus = bus_to_xhci_bus(dev_base->bus);
 	assert(bus);
@@ -304,7 +304,7 @@ int xhci_device_online(device_t *dev_base)
  */
 void xhci_device_offline(device_t *dev_base)
 {
-	int err;
+	errno_t err;
 
 	xhci_bus_t *bus = bus_to_xhci_bus(dev_base->bus);
 	assert(bus);

@@ -51,7 +51,7 @@ typedef struct xhci_bus {
 	xhci_device_t **devices_by_slot;	/**< Devices by Slot ID */
 } xhci_bus_t;
 
-extern int xhci_bus_init(xhci_bus_t *, xhci_hc_t *);
+extern errno_t xhci_bus_init(xhci_bus_t *, xhci_hc_t *);
 extern void xhci_bus_fini(xhci_bus_t *);
 
 static inline xhci_bus_t *bus_to_xhci_bus(bus_t *bus_base)

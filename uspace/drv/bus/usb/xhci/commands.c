@@ -71,10 +71,10 @@ static xhci_cmd_ring_t *get_cmd_ring(xhci_hc_t *hc)
  * Does not configure the CR pointer to the hardware, because the xHC will be
  * reset before starting.
  */
-int xhci_init_commands(xhci_hc_t *hc)
+errno_t xhci_init_commands(xhci_hc_t *hc)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
-	int err;
+	errno_t err;
 
 	if ((err = xhci_trb_ring_init(&cr->trb_ring, 0)))
 		return err;
@@ -171,7 +171,7 @@ static void cr_set_state(xhci_cmd_ring_t *cr, xhci_cr_state_t state)
 		fibril_condvar_broadcast(&cr->state_cv);
 }
 
-static int wait_for_ring_open(xhci_cmd_ring_t *cr)
+static errno_t wait_for_ring_open(xhci_cmd_ring_t *cr)
 {
 	assert(fibril_mutex_is_locked(&cr->guard));
 
@@ -193,7 +193,7 @@ static int wait_for_ring_open(xhci_cmd_ring_t *cr)
  * Enqueue a command on the TRB ring. Ring the doorbell to initiate processing.
  * Register the command as waiting for completion inside the command list.
  */
-static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static inline errno_t enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
 	assert(cmd);
@@ -209,7 +209,7 @@ static inline int enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	list_append(&cmd->_header.link, &cr->cmd_list);
 
-	int err = EOK;
+	errno_t err = EOK;
 	while (err == EOK) {
 		err = xhci_trb_ring_enqueue(&cr->trb_ring,
 		    &cmd->_header.trb, &cmd->_header.trb_phys);
@@ -342,7 +342,7 @@ static void report_error(int code)
  *
  * @param trb The COMMAND_COMPLETION TRB found in event ring.
  */
-int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
+errno_t xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
 	assert(trb);
@@ -415,7 +415,7 @@ int xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 
 /* Command-issuing functions */
 
-static int no_op_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t no_op_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 
@@ -426,7 +426,7 @@ static int no_op_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int enable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t enable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 
@@ -439,7 +439,7 @@ static int enable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int disable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t disable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -452,7 +452,7 @@ static int disable_slot_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int address_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t address_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -482,7 +482,7 @@ static int address_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int configure_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t configure_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -503,7 +503,7 @@ static int configure_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int evaluate_context_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t evaluate_context_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -525,7 +525,7 @@ static int evaluate_context_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int reset_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t reset_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -540,7 +540,7 @@ static int reset_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int stop_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t stop_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -555,7 +555,7 @@ static int stop_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int set_tr_dequeue_pointer_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t set_tr_dequeue_pointer_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -571,7 +571,7 @@ static int set_tr_dequeue_pointer_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int reset_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t reset_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -584,7 +584,7 @@ static int reset_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	return enqueue_command(hc, cmd);
 }
 
-static int get_port_bandwidth_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t get_port_bandwidth_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
@@ -602,7 +602,7 @@ static int get_port_bandwidth_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 /* The table of command-issuing functions. */
 
-typedef int (*cmd_handler) (xhci_hc_t *hc, xhci_cmd_t *cmd);
+typedef errno_t (*cmd_handler) (xhci_hc_t *hc, xhci_cmd_t *cmd);
 
 static cmd_handler cmd_handlers [] = {
 	[XHCI_CMD_ENABLE_SLOT] = enable_slot_cmd,
@@ -634,7 +634,7 @@ static cmd_handler cmd_handlers [] = {
  * then start it again. If there was a blocked command, it will be satisfied by
  * COMMAND_ABORTED event.
  */
-static int try_abort_current_command(xhci_hc_t *hc)
+static errno_t try_abort_current_command(xhci_hc_t *hc)
 {
 	xhci_cmd_ring_t *cr = get_cmd_ring(hc);
 
@@ -693,9 +693,9 @@ static int try_abort_current_command(xhci_hc_t *hc)
  * this function will return in XHCI_COMMAND_TIMEOUT. It will continue waiting
  * until COMMAND_COMPLETION event arrives.
  */
-static int wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
+static errno_t wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
-	int rv = EOK;
+	errno_t rv = EOK;
 
 	if (fibril_get_id() == hc->event_handler) {
 		usb_log_error("Deadlock detected in waiting for command.");
@@ -730,12 +730,12 @@ static int wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
  * Issue command and block the current fibril until it is completed or timeout
  * expires. Nothing is deallocated. Caller should always execute `xhci_cmd_fini`.
  */
-int xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
+errno_t xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
 	assert(hc);
 	assert(cmd);
 
-	int err;
+	errno_t err;
 
 	if (!cmd_handlers[cmd->_header.cmd]) {
 		/* Handler not implemented. */
@@ -772,9 +772,9 @@ int xhci_cmd_sync(xhci_hc_t *hc, xhci_cmd_t *cmd)
  * Does the same thing as `xhci_cmd_sync` and executes `xhci_cmd_fini`. This
  * is a useful shorthand for issuing commands without out parameters.
  */
-int xhci_cmd_sync_fini(xhci_hc_t *hc, xhci_cmd_t *cmd)
+errno_t xhci_cmd_sync_fini(xhci_hc_t *hc, xhci_cmd_t *cmd)
 {
-	const int err = xhci_cmd_sync(hc, cmd);
+	const errno_t err = xhci_cmd_sync(hc, cmd);
 	xhci_cmd_fini(cmd);
 
 	return err;
@@ -784,7 +784,7 @@ int xhci_cmd_sync_fini(xhci_hc_t *hc, xhci_cmd_t *cmd)
  * Does the same thing as `xhci_cmd_sync_fini` without blocking the current
  * fibril. The command is copied to stack memory and `fini` is called upon its completion.
  */
-int xhci_cmd_async_fini(xhci_hc_t *hc, xhci_cmd_t *stack_cmd)
+errno_t xhci_cmd_async_fini(xhci_hc_t *hc, xhci_cmd_t *stack_cmd)
 {
 	assert(hc);
 	assert(stack_cmd);
@@ -800,7 +800,7 @@ int xhci_cmd_async_fini(xhci_hc_t *hc, xhci_cmd_t *stack_cmd)
 	heap_cmd->_header.async = true;
 
 	/* Issue the command. */
-	int err;
+	errno_t err;
 
 	if (!cmd_handlers[heap_cmd->_header.cmd]) {
 		/* Handler not implemented. */

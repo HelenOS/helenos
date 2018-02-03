@@ -67,7 +67,7 @@ static const bus_ops_t xhci_bus_ops = {
  *
  * @return Error code.
  */
-int xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
+errno_t xhci_bus_init(xhci_bus_t *bus, xhci_hc_t *hc)
 {
 	assert(bus);
 

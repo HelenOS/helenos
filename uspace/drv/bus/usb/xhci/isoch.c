@@ -140,7 +140,7 @@ void isoch_fini(xhci_endpoint_t *ep)
 /**
  * Allocate isochronous buffers. Create the feeding timer.
  */
-int isoch_alloc_transfers(xhci_endpoint_t *ep) {
+errno_t isoch_alloc_transfers(xhci_endpoint_t *ep) {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
 	xhci_isoch_t * const isoch = ep->isoch;
 
@@ -170,7 +170,7 @@ err:
 	return ENOMEM;
 }
 
-static int schedule_isochronous_trb(xhci_endpoint_t *ep, xhci_isoch_transfer_t *it)
+static errno_t schedule_isochronous_trb(xhci_endpoint_t *ep, xhci_isoch_transfer_t *it)
 {
 	xhci_trb_t trb;
 	xhci_trb_clean(&trb);
@@ -192,7 +192,7 @@ static int schedule_isochronous_trb(xhci_endpoint_t *ep, xhci_isoch_transfer_t *
 	TRB_ISOCH_SET_TLBPC(trb, tlbpc);
 	TRB_ISOCH_SET_FRAMEID(trb, (it->mfindex / 8) % 2048);
 
-	const int err = xhci_trb_ring_enqueue(&ep->ring, &trb, &it->interrupt_trb_phys);
+	const errno_t err = xhci_trb_ring_enqueue(&ep->ring, &trb, &it->interrupt_trb_phys);
 	return err;
 }
 
@@ -471,9 +471,9 @@ static void isoch_feed_in_timer(void *ep)
  * When there is at least one buffer free, fill it with data. Then try to feed
  * it to the xHC.
  */
-int isoch_schedule_out(xhci_transfer_t *transfer)
+errno_t isoch_schedule_out(xhci_transfer_t *transfer)
 {
-	int err = EOK;
+	errno_t err = EOK;
 
 	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
@@ -539,7 +539,7 @@ int isoch_schedule_out(xhci_transfer_t *transfer)
  * IN is in fact easier than OUT. Our responsibility is just to feed all empty
  * buffers, and fetch one filled buffer from the ring.
  */
-int isoch_schedule_in(xhci_transfer_t *transfer)
+errno_t isoch_schedule_in(xhci_transfer_t *transfer)
 {
 	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
@@ -594,7 +594,7 @@ void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep,
 
 	fibril_mutex_lock(&ep->isoch->guard);
 
-	int err;
+	errno_t err;
 	const xhci_trb_completion_code_t completion_code = TRB_COMPLETION_CODE(*trb);
 
 	switch (completion_code) {
