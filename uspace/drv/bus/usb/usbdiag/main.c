@@ -46,9 +46,9 @@
 
 static const usb_endpoint_description_t *diag_endpoints[];
 
-static int device_add(usb_device_t *dev)
+static errno_t device_add(usb_device_t *dev)
 {
-	int rc;
+	errno_t rc;
 	usb_log_info("Adding device '%s'", usb_device_get_name(dev));
 
 	usbdiag_dev_t *diag_dev;
@@ -78,7 +78,7 @@ err:
 	return rc;
 }
 
-static int device_cleanup(usbdiag_dev_t *diag_dev)
+static errno_t device_cleanup(usbdiag_dev_t *diag_dev)
 {
 	/* TODO: Join some fibrils? */
 
@@ -87,9 +87,9 @@ static int device_cleanup(usbdiag_dev_t *diag_dev)
 	return EOK;
 }
 
-static int device_remove(usb_device_t *dev)
+static errno_t device_remove(usb_device_t *dev)
 {
-	int rc;
+	errno_t rc;
 	usb_log_info("Removing device '%s'", usb_device_get_name(dev));
 
 	usbdiag_dev_t *diag_dev = usb_device_to_usbdiag_dev(dev);
@@ -108,9 +108,9 @@ err:
 	return rc;
 }
 
-static int device_gone(usb_device_t *dev)
+static errno_t device_gone(usb_device_t *dev)
 {
-	int rc;
+	errno_t rc;
 	usb_log_info("Device '%s' gone.", usb_device_get_name(dev));
 
 	usbdiag_dev_t *diag_dev = usb_device_to_usbdiag_dev(dev);
@@ -128,12 +128,12 @@ err:
 	return rc;
 }
 
-static int function_online(ddf_fun_t *fun)
+static errno_t function_online(ddf_fun_t *fun)
 {
 	return ddf_fun_online(fun);
 }
 
-static int function_offline(ddf_fun_t *fun)
+static errno_t function_offline(ddf_fun_t *fun)
 {
 	return ddf_fun_offline(fun);
 }

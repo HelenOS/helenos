@@ -53,9 +53,9 @@ static ddf_dev_ops_t diag_ops = {
 	.interfaces[USBDIAG_DEV_IFACE] = &diag_interface
 };
 
-static int device_init(usbdiag_dev_t *dev, const usb_endpoint_description_t **endpoints)
+static errno_t device_init(usbdiag_dev_t *dev, const usb_endpoint_description_t **endpoints)
 {
-	int rc;
+	errno_t rc;
 	ddf_fun_t *fun = usb_device_ddf_fun_create(dev->usb_dev, fun_exposed, "tmon");
 	if (!fun) {
 		rc = ENOMEM;
@@ -103,7 +103,7 @@ static void device_fini(usbdiag_dev_t *dev)
 	ddf_fun_destroy(dev->fun);
 }
 
-int usbdiag_dev_create(usb_device_t *dev, usbdiag_dev_t **out_diag_dev, const usb_endpoint_description_t **endpoints)
+errno_t usbdiag_dev_create(usb_device_t *dev, usbdiag_dev_t **out_diag_dev, const usb_endpoint_description_t **endpoints)
 {
 	assert(dev);
 	assert(out_diag_dev);
@@ -114,7 +114,7 @@ int usbdiag_dev_create(usb_device_t *dev, usbdiag_dev_t **out_diag_dev, const us
 
 	diag_dev->usb_dev = dev;
 
-	int err;
+	errno_t err;
 	if ((err = device_init(diag_dev, endpoints)))
 		goto err_init;
 

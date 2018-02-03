@@ -76,7 +76,7 @@ typedef struct usbdiag_dev {
 
 } usbdiag_dev_t;
 
-int usbdiag_dev_create(usb_device_t *, usbdiag_dev_t **, const usb_endpoint_description_t **);
+errno_t usbdiag_dev_create(usb_device_t *, usbdiag_dev_t **, const usb_endpoint_description_t **);
 void usbdiag_dev_destroy(usbdiag_dev_t *);
 
 static inline usbdiag_dev_t * usb_device_to_usbdiag_dev(usb_device_t *usb_dev)

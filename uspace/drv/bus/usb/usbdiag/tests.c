@@ -45,7 +45,7 @@
 
 static const uint32_t test_data_src = 0xDEADBEEF;
 
-static int test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
+static errno_t test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	if (!pipe)
 		return EBADMEM;
@@ -68,7 +68,7 @@ static int test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdia
 
 	usb_log_info("Performing %s IN test with duration %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), params->min_duration);
 
-	int rc = EOK;
+	errno_t rc = EOK;
 	uint32_t transfer_count = 0;
 
 	struct timeval start_time, final_time, stop_time;
@@ -137,7 +137,7 @@ static int test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdia
 	return rc;
 }
 
-static int test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
+static errno_t test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	if (!pipe)
 		return EBADMEM;
@@ -166,7 +166,7 @@ static int test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdi
 
 	usb_log_info("Performing %s OUT test.", usb_str_transfer_type(pipe->desc.transfer_type));
 
-	int rc = EOK;
+	errno_t rc = EOK;
 	uint32_t transfer_count = 0;
 
 	struct timeval start_time, final_time, stop_time;
@@ -202,7 +202,7 @@ static int test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, usbdi
 	return rc;
 }
 
-int usbdiag_dev_test_in(ddf_fun_t *fun, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
+errno_t usbdiag_dev_test_in(ddf_fun_t *fun, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
 	if (!dev)
@@ -227,7 +227,7 @@ int usbdiag_dev_test_in(ddf_fun_t *fun, const usbdiag_test_params_t *params, usb
 	return test_in(pipe, params, results);
 }
 
-int usbdiag_dev_test_out(ddf_fun_t *fun, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
+errno_t usbdiag_dev_test_out(ddf_fun_t *fun, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	usbdiag_dev_t *dev = ddf_fun_to_usbdiag_dev(fun);
 	if (!dev)
