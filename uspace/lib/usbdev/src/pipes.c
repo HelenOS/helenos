@@ -67,8 +67,6 @@ typedef struct {
 	usb_pipe_t *pipe;
 	usb_direction_t dir;
 	bool is_control;	// Only for checking purposes
-	void *buffer;
-	size_t buffer_size;
 
 	usbhc_iface_transfer_request_t req;
 
@@ -80,17 +78,33 @@ typedef struct {
  */
 static errno_t transfer_common(transfer_t *t)
 {
+	if (!t->pipe)
+		return EBADMEM;
+
+	/* Only control writes make sense without buffer */
+	if ((t->dir != USB_DIRECTION_OUT || !t->is_control)
+	    && (t->req.base == NULL || t->req.size == 0))
+		return EINVAL;
+
+	/* Nonzero size requires buffer */
+	if (t->req.base == NULL && t->req.size != 0)
+		return EINVAL;
+
+	/* Check expected direction */
+	if (t->pipe->desc.direction != USB_DIRECTION_BOTH &&
+	    t->pipe->desc.direction != t->dir)
+		return EBADF;
+
+	/* Check expected transfer type */
+	if ((t->pipe->desc.transfer_type == USB_TRANSFER_CONTROL) != t->is_control)
+		return EBADF;
+
 	async_exch_t *exch = async_exchange_begin(t->pipe->bus_session);
 	if (!exch)
 		return ENOMEM;
 
 	t->req.dir = t->dir;
 	t->req.endpoint = t->pipe->desc.endpoint_no;
-
-	/* We support only aligned buffers for now. */
-	t->req.base = t->buffer;
-	t->req.offset = 0;
-	t->req.size = t->buffer_size;
 
 	const errno_t rc = usbhc_transfer(exch, &t->req, &t->transferred_size);
 
@@ -103,50 +117,34 @@ static errno_t transfer_common(transfer_t *t)
 }
 
 /**
+ * Setup the transfer request inside transfer according to dma buffer provided.
+ */
+static void setup_dma_buffer(transfer_t *t, void *base, void *ptr, size_t size)
+{
+	t->req.base = base;
+	t->req.offset = ptr - base;
+	t->req.size = size;
+	t->req.buffer_policy = t->pipe->desc.transfer_buffer_policy;
+}
+
+/**
  * Compatibility wrapper for reads/writes without preallocated buffer.
  */
-static errno_t transfer_wrap_dma(transfer_t *t)
+static errno_t transfer_wrap_dma(transfer_t *t, void *buf, size_t size)
 {
-	void *orig_buffer = t->buffer;
-	t->buffer = usb_pipe_alloc_buffer(t->pipe, t->buffer_size);
+	void *dma_buf = usb_pipe_alloc_buffer(t->pipe, size);
+	setup_dma_buffer(t, dma_buf, dma_buf, size);
 
 	if (t->dir == USB_DIRECTION_OUT)
-		memcpy(t->buffer, orig_buffer, t->buffer_size);
+		memcpy(dma_buf, buf, size);
 
 	const errno_t err = transfer_common(t);
 
 	if (!err && t->dir == USB_DIRECTION_IN)
-		memcpy(orig_buffer, t->buffer, t->transferred_size);
+		memcpy(buf, dma_buf, t->transferred_size);
 
-	usb_pipe_free_buffer(t->pipe, t->buffer);
-	t->buffer = orig_buffer;
+	usb_pipe_free_buffer(t->pipe, dma_buf);
 	return err;
-}
-
-static errno_t transfer_check(const transfer_t *t)
-{
-	if (!t->pipe)
-		return EBADMEM;
-
-	/* Only control writes make sense without buffer */
-	if ((t->dir != USB_DIRECTION_OUT || !t->is_control)
-	    && (t->buffer == NULL || t->buffer_size == 0))
-		return EINVAL;
-
-	/* Nonzero size requires buffer */
-	if (t->buffer == NULL && t->buffer_size != 0)
-		return EINVAL;
-
-	/* Check expected direction */
-	if (t->pipe->desc.direction != USB_DIRECTION_BOTH &&
-	    t->pipe->desc.direction != t->dir)
-		return EBADF;
-
-	/* Check expected transfer type */
-	if ((t->pipe->desc.transfer_type == USB_TRANSFER_CONTROL) != t->is_control)
-		return EBADF;
-
-	return EOK;
 }
 
 static errno_t prepare_control(transfer_t *t, const void *setup, size_t setup_size)
@@ -180,17 +178,12 @@ errno_t usb_pipe_control_read(usb_pipe_t *pipe,
 		.pipe = pipe,
 		.dir = USB_DIRECTION_IN,
 		.is_control = true,
-		.buffer = buffer,
-		.buffer_size = buffer_size
 	};
-
-	if ((err = transfer_check(&transfer)))
-		return err;
 
 	if ((err = prepare_control(&transfer, setup_buffer, setup_buffer_size)))
 		return err;
 
-	if ((err = transfer_wrap_dma(&transfer)))
+	if ((err = transfer_wrap_dma(&transfer, buffer, buffer_size)))
 		return err;
 
 	if (transferred_size)
@@ -220,17 +213,12 @@ errno_t usb_pipe_control_write(usb_pipe_t *pipe,
 		.pipe = pipe,
 		.dir = USB_DIRECTION_OUT,
 		.is_control = true,
-		.buffer = (void *) buffer,
-		.buffer_size = buffer_size
 	};
-
-	if ((err = transfer_check(&transfer)))
-		return err;
 
 	if ((err = prepare_control(&transfer, setup_buffer, setup_buffer_size)))
 		return err;
 
-	return transfer_wrap_dma(&transfer);
+	return transfer_wrap_dma(&transfer, (void *) buffer, buffer_size);
 }
 
 /**
@@ -272,14 +260,9 @@ errno_t usb_pipe_read(usb_pipe_t *pipe,
 	transfer_t transfer = {
 		.pipe = pipe,
 		.dir = USB_DIRECTION_IN,
-		.buffer = buffer,
-		.buffer_size = size,
 	};
 
-	if ((err = transfer_check(&transfer)))
-		return err;
-
-	if ((err = transfer_wrap_dma(&transfer)))
+	if ((err = transfer_wrap_dma(&transfer, buffer, size)))
 		return err;
 
 	if (size_transferred)
@@ -298,21 +281,12 @@ errno_t usb_pipe_read(usb_pipe_t *pipe,
 errno_t usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
 {
 	assert(pipe);
-	errno_t err;
 	transfer_t transfer = {
 		.pipe = pipe,
 		.dir = USB_DIRECTION_OUT,
-		.buffer = (void *) buffer,
-		.buffer_size = size
 	};
 
-	if ((err = transfer_check(&transfer)))
-		return err;
-
-	if ((err = transfer_wrap_dma(&transfer)))
-		return err;
-
-	return EOK;
+	return transfer_wrap_dma(&transfer, (void *) buffer, size);
 }
 
 /**
@@ -325,7 +299,7 @@ errno_t usb_pipe_write(usb_pipe_t *pipe, const void *buffer, size_t size)
  * @param[out] size_transferred Number of bytes that were actually transferred.
  * @return Error code.
  */
-errno_t usb_pipe_read_dma(usb_pipe_t *pipe, void *buffer, size_t size,
+errno_t usb_pipe_read_dma(usb_pipe_t *pipe, void *base, void *ptr, size_t size,
     size_t *size_transferred)
 {
 	assert(pipe);
@@ -333,12 +307,9 @@ errno_t usb_pipe_read_dma(usb_pipe_t *pipe, void *buffer, size_t size,
 	transfer_t transfer = {
 		.pipe = pipe,
 		.dir = USB_DIRECTION_IN,
-		.buffer = buffer,
-		.buffer_size = size
 	};
 
-	if ((err = transfer_check(&transfer)))
-		return err;
+	setup_dma_buffer(&transfer, base, ptr, size);
 
 	if ((err = transfer_common(&transfer)))
 		return err;
@@ -358,24 +329,17 @@ errno_t usb_pipe_read_dma(usb_pipe_t *pipe, void *buffer, size_t size,
  * @param[in] size Size of the buffer (in bytes).
  * @return Error code.
  */
-errno_t usb_pipe_write_dma(usb_pipe_t *pipe, void *buffer, size_t size)
+errno_t usb_pipe_write_dma(usb_pipe_t *pipe, void *base, void* ptr,  size_t size)
 {
 	assert(pipe);
-	errno_t err;
 	transfer_t transfer = {
 		.pipe = pipe,
 		.dir = USB_DIRECTION_OUT,
-		.buffer = buffer,
-		.buffer_size = size
 	};
 
-	if ((err = transfer_check(&transfer)))
-		return err;
+	setup_dma_buffer(&transfer, base, ptr, size);
 
-	if ((err = transfer_common(&transfer)))
-		return err;
-
-	return EOK;
+	return transfer_common(&transfer);
 }
 
 /** Initialize USB endpoint pipe.

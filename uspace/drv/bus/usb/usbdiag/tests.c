@@ -86,7 +86,7 @@ static errno_t test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, us
 		size_t transferred;
 
 		while (remaining > 0) {
-			if ((rc = usb_pipe_read_dma(pipe, buffer + size - remaining, remaining, &transferred))) {
+			if ((rc = usb_pipe_read_dma(pipe, buffer, buffer + size - remaining, remaining, &transferred))) {
 				usb_log_error("Read of %s IN endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 				break;
 			}
@@ -180,7 +180,7 @@ static errno_t test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, u
 		++transfer_count;
 
 		// Write buffer to device.
-		if ((rc = usb_pipe_write_dma(pipe, buffer, size))) {
+		if ((rc = usb_pipe_write_dma(pipe, buffer, buffer, size))) {
 			usb_log_error("Write to %s OUT endpoint failed with error: %s", usb_str_transfer_type(pipe->desc.transfer_type), str_error(rc));
 			break;
 		}

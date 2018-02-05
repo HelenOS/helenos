@@ -136,8 +136,10 @@ typedef struct usb_pipe_transfer_request {
 	 * Base address of the buffer to share. Must be at least offset + size
 	 * large. Is patched after being transmitted over IPC, so the pointer is
 	 * still valid.
+	 *
+	 * Note that offset might be actually more than PAGE_SIZE.
 	 */
-	void *base;			
+	void *base;
 	size_t offset;			/**< Offset to the buffer */
 	size_t size;			/**< Requested size. */
 	dma_policy_t buffer_policy;	/**< Properties of the buffer. */
