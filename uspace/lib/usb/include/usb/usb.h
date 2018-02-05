@@ -131,7 +131,7 @@ static inline bool usb_endpoint_is_valid(usb_endpoint_t ep)
  * @param target.
  * @return True, if values are wihtin limits, false otherwise.
  */
-static inline bool usb_target_is_valid(usb_target_t *target)
+static inline bool usb_target_is_valid(const usb_target_t *target)
 {
 	return usb_address_is_valid(target->address) &&
 	    usb_endpoint_is_valid(target->endpoint);

@@ -38,7 +38,9 @@
 #include <usb/dma_buffer.h>
 
 #include <assert.h>
+#include <bitops.h>
 #include <async.h>
+#include <as.h>
 #include <errno.h>
 #include <mem.h>
 
@@ -60,13 +62,16 @@ static void clear_self_endpoint_halt(usb_pipe_t *pipe)
 	pipe->auto_reset_halt = true;
 }
 
+/* Helper structure to avoid passing loads of arguments through */
 typedef struct {
 	usb_pipe_t *pipe;
 	usb_direction_t dir;
-	bool is_control;
-	uint64_t setup;
+	bool is_control;	// Only for checking purposes
 	void *buffer;
 	size_t buffer_size;
+
+	usbhc_iface_transfer_request_t req;
+
 	size_t transferred_size;
 } transfer_t;
 
@@ -79,8 +84,15 @@ static errno_t transfer_common(transfer_t *t)
 	if (!exch)
 		return ENOMEM;
 
-	const errno_t rc = usbhc_transfer(exch, t->pipe->desc.endpoint_no,
-	    t->dir, t->setup, t->buffer, t->buffer_size, &t->transferred_size);
+	t->req.dir = t->dir;
+	t->req.endpoint = t->pipe->desc.endpoint_no;
+
+	/* We support only aligned buffers for now. */
+	t->req.base = t->buffer;
+	t->req.offset = 0;
+	t->req.size = t->buffer_size;
+
+	const errno_t rc = usbhc_transfer(exch, &t->req, &t->transferred_size);
 
 	async_exchange_end(exch);
 
@@ -142,7 +154,7 @@ static errno_t prepare_control(transfer_t *t, const void *setup, size_t setup_si
 	if ((setup == NULL) || (setup_size != 8))
 		return EINVAL;
 	
-	memcpy(&t->setup, setup, 8);
+	memcpy(&t->req.setup, setup, 8);
 	return EOK;
 }
 

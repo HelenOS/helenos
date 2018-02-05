@@ -125,6 +125,24 @@ typedef struct usb_pipe_desc {
 	dma_policy_t transfer_buffer_policy;
 } usb_pipe_desc_t;
 
+typedef struct usb_pipe_transfer_request {
+	usb_direction_t dir;
+	usb_endpoint_t endpoint;
+	usb_stream_t stream;
+
+	uint64_t setup;			/**< Valid iff the transfer is of control type */
+
+	/**
+	 * Base address of the buffer to share. Must be at least offset + size
+	 * large. Is patched after being transmitted over IPC, so the pointer is
+	 * still valid.
+	 */
+	void *base;			
+	size_t offset;			/**< Offset to the buffer */
+	size_t size;			/**< Requested size. */
+	dma_policy_t buffer_policy;	/**< Properties of the buffer. */
+} usbhc_iface_transfer_request_t;
+
 /** This structure follows standard endpoint descriptor + superspeed companion
  * descriptor, and exists to avoid dependency of libdrv on libusb. Keep the
  * internal fields named exactly like their source (because we want to use the
@@ -156,8 +174,7 @@ extern errno_t usbhc_device_remove(async_exch_t *, unsigned);
 extern errno_t usbhc_register_endpoint(async_exch_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
 extern errno_t usbhc_unregister_endpoint(async_exch_t *, const usb_pipe_desc_t *);
 
-extern errno_t usbhc_transfer(async_exch_t *, usb_endpoint_t, usb_direction_t,
-    uint64_t, void *, size_t, size_t *);
+extern errno_t usbhc_transfer(async_exch_t *, const usbhc_iface_transfer_request_t *, size_t *);
 
 /** Callback for outgoing transfer */
 typedef errno_t (*usbhc_iface_transfer_callback_t)(void *, int, size_t);
@@ -172,9 +189,8 @@ typedef struct {
 	errno_t (*register_endpoint)(ddf_fun_t *, usb_pipe_desc_t *, const usb_endpoint_descriptors_t *);
 	errno_t (*unregister_endpoint)(ddf_fun_t *, const usb_pipe_desc_t *);
 
-	errno_t (*transfer)(ddf_fun_t *, usb_target_t,
-		usb_direction_t, uint64_t, char *, size_t,
-		usbhc_iface_transfer_callback_t, void *);
+	errno_t (*transfer)(ddf_fun_t *, const usbhc_iface_transfer_request_t *,
+	    usbhc_iface_transfer_callback_t, void *);
 } usbhc_iface_t;
 
 #endif

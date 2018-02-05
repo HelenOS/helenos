@@ -270,29 +270,34 @@ static errno_t get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static errno_t transfer(ddf_fun_t *fun, usb_target_t target,
-    usb_direction_t dir, uint64_t setup_data, char *data, size_t size,
+static errno_t transfer(ddf_fun_t *fun, const usbhc_iface_transfer_request_t *req,
     usbhc_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(dev);
 
-	target.address = dev->address;
+	const usb_target_t target = {{
+		.address = dev->address,
+		.endpoint = req->endpoint,
+		.stream = req->stream,
+	}};
 
 	if (!usb_target_is_valid(&target))
 		return EINVAL;
 
-	if (size > 0 && data == NULL)
+	if (req->size > 0 && req->base == NULL)
 		return EBADMEM;
 
 	if (!callback && arg)
 		return EBADMEM;
 
-	const char *name = (dir == USB_DIRECTION_IN) ? "READ" : "WRITE";
+	const char *name = (req->dir == USB_DIRECTION_IN) ? "READ" : "WRITE";
 
-	return bus_device_send_batch(dev, target, dir,
-	    (char *) data, size, setup_data,
+	char *buffer = req->base + req->offset;
+
+	return bus_device_send_batch(dev, target, req->dir,
+	    buffer, req->size, req->setup,
 	    callback, arg, name);
 }
 
