@@ -50,8 +50,8 @@ typedef struct ehci_transfer_batch {
 	size_t td_count;
 	/** Endpoint descriptor of the target endpoint. */
 	qh_t *qh;
-	/** Data buffer, must be accessible by the EHCI hw. */
-	dma_buffer_t dma_buffer;
+	/** Backend for TDs and setup data. */
+	dma_buffer_t ehci_dma_buffer;
 	/** List of TDs needed for the transfer - backed by dma_buffer */
 	td_t *tds;
 	/** Data buffers - backed by dma_buffer */

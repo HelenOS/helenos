@@ -60,8 +60,10 @@ typedef struct uhci_transfer_batch {
 	td_t *tds;
 	/** Number of TDs used by the transfer */
 	size_t td_count;
-	/** Data buffer, must be accessible by the UHCI hw */
-	void *device_buffer;
+	/* Setup data */
+	char *setup_buffer;
+	/** Backing TDs + setup_buffer */
+	dma_buffer_t uhci_dma_buffer;
 	/** List element */
 	link_t link;
 } uhci_transfer_batch_t;
@@ -79,8 +81,7 @@ static inline void * uhci_transfer_batch_setup_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
-	assert(uhci_batch->device_buffer);
-	return uhci_batch->device_buffer + sizeof(qh_t) +
+	return uhci_batch->uhci_dma_buffer.virt + sizeof(qh_t) +
 	    uhci_batch->td_count * sizeof(td_t);
 }
 
@@ -92,8 +93,7 @@ static inline void * uhci_transfer_batch_data_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
-	return uhci_transfer_batch_setup_buffer(uhci_batch) +
-	    (uhci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL ? USB_SETUP_PACKET_SIZE : 0);
+	return uhci_batch->base.dma_buffer.virt;
 }
 
 /** Linked list conversion wrapper.

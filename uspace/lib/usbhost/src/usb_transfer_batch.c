@@ -103,6 +103,45 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 }
 
 /**
+ * Prepare a DMA buffer according to endpoint policy.
+ *
+ * If the buffer is suitable to be used directly, it is. Otherwise, a bounce
+ * buffer is created.
+ */
+errno_t usb_transfer_batch_prepare_buffer(
+    usb_transfer_batch_t *batch, char *buf)
+{
+	const dma_policy_t policy = batch->ep->transfer_buffer_policy;
+
+	/* Empty transfers do not need a buffer */
+	if (batch->buffer_size == 0)
+		return EOK;
+
+	if (dma_buffer_check_policy(buf, batch->buffer_size, policy)) {
+		/* Mark this case with invalid address */
+		batch->original_buffer = NULL;
+
+		/* Fill the buffer with virtual address and lock it for DMA */
+		return dma_buffer_lock(&batch->dma_buffer, buf, batch->buffer_size);
+	}
+	else {
+		usb_log_debug("Batch(%p): Buffer cannot be used directly, "
+		    "falling back to bounce buffer!", batch);
+		const errno_t err = dma_buffer_alloc_policy(&batch->dma_buffer,
+		    batch->buffer_size, policy);
+
+		/* Copy the data out */
+		if (!err && batch->dir == USB_DIRECTION_OUT)
+			memcpy(batch->dma_buffer.virt, buf, batch->buffer_size);
+
+		/* Store the buffer to store the data back before finishing */
+		batch->original_buffer = buf;
+
+		return err;
+	}
+}
+
+/**
  * Finish a transfer batch: call handler, destroy batch, release endpoint.
  *
  * Call only after the batch have been scheduled && completed!
@@ -115,10 +154,27 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " finishing.",
 	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 
+	if (batch->error == EOK && batch->buffer_size > 0) {
+		if (batch->original_buffer == NULL) {
+			/* Unlock the buffer for DMA */
+			dma_buffer_unlock(&batch->dma_buffer,
+			    batch->buffer_size);
+		}
+		else {
+			/* We we're forced to use bounce buffer, copy it back */
+			if (batch->dir == USB_DIRECTION_IN)
+				memcpy(batch->original_buffer,
+				    batch->dma_buffer.virt,
+				    batch->transferred_size);
+
+			dma_buffer_free(&batch->dma_buffer);
+		}
+	}
+
 	if (batch->on_complete) {
 		const int err = batch->on_complete(batch->on_complete_data, batch->error, batch->transferred_size);
 		if (err)
-			usb_log_warning("batch %p failed to complete: %s",
+			usb_log_warning("Batch %p failed to complete: %s",
 			    batch, str_error(err));
 	}
 

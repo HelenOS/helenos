@@ -427,6 +427,22 @@ static errno_t receive_memory_buffer(async_transaction_t *trans,
 	if ((err = async_share_out_finalize(data_callid, &trans->buffer)))
 		return err;
 
+	/*
+	 * As we're going to check the mapping, we must make sure the memory is
+	 * actually mapped. We must do it right now, because the area might be
+	 * read-only or write-only, and we may be unsure later.
+	 */
+	if (flags & AS_AREA_READ) {
+		char foo = 0;
+		volatile const char *buf = trans->buffer;
+		for (size_t i = 0; i < size; i += PAGE_SIZE)
+			foo += buf[i];
+	} else {
+		volatile char *buf = trans->buffer;
+		for (size_t i = 0; i < size; i += PAGE_SIZE)
+			buf[i] = 0xff;
+	}
+
 	return EOK;
 }
 

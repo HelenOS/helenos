@@ -73,6 +73,7 @@ void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors
 		ep->direction = USB_DIRECTION_BOTH;
 
 	ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
+	ep->transfer_buffer_policy = DMA_POLICY_STRICT;
 }
 
 /**
@@ -214,7 +215,7 @@ void endpoint_deactivate_locked(endpoint_t *ep)
  * @param arg Callback parameter.
  * @param name Communication identifier (for nicer output).
  */
-int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
+errno_t endpoint_send_batch(endpoint_t *ep, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
     usbhc_iface_transfer_callback_t on_complete, void *arg, const char *name)
 {
@@ -257,10 +258,17 @@ int endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 	}
 
 	batch->target = target;
-	batch->buffer = data;
-	batch->buffer_size = size;
 	batch->setup.packed = setup_data;
 	batch->dir = direction;
+	batch->buffer_size = size;
+
+	errno_t err;
+	if ((err = usb_transfer_batch_prepare_buffer(batch, data))) {
+		usb_log_warning("Failed to prepare buffer for batch: %s", str_error(err));
+		usb_transfer_batch_destroy(batch);
+		return err;
+	}
+
 	batch->on_complete = on_complete;
 	batch->on_complete_data = arg;
 

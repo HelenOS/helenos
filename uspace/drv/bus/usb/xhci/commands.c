@@ -259,6 +259,8 @@ void xhci_nuke_command_ring(xhci_hc_t *hc)
 	fibril_mutex_lock(&cr->guard);
 	// Prevent others from starting CR again.
 	cr_set_state(cr, XHCI_CR_STATE_CLOSED);
+
+	XHCI_REG_SET(hc->op_regs, XHCI_OP_CS, 1);
 	fibril_mutex_unlock(&cr->guard);
 }
 

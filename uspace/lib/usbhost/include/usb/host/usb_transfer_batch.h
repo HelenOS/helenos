@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <usb/dma_buffer.h>
 #include <usb/request.h>
 #include <usb/usb.h>
 #include <usbhc_iface.h>
@@ -55,17 +56,11 @@ typedef struct bus bus_t;
 typedef struct usb_transfer_batch {
 	/** Target for communication */
 	usb_target_t target;
-
-	/** Endpoint used for communication */
-	endpoint_t *ep;
-
 	/** Direction of the transfer */
 	usb_direction_t dir;
 
-	/** Function called on completion */
-	usbhc_iface_transfer_callback_t on_complete;
-	/** Arbitrary data for the handler */
-	void *on_complete_data;
+	/** Endpoint used for communication */
+	endpoint_t *ep;
 
 	/** Place to store SETUP data needed by control transfers */
 	union {
@@ -74,15 +69,26 @@ typedef struct usb_transfer_batch {
 		uint64_t packed;
 	} setup;
 
-	/** Place for data to send/receive */
-	char *buffer;
-	/** Size of memory pointed to by buffer member */
+	/** DMA buffer with enforced policy */
+	dma_buffer_t dma_buffer;
+	/** Size of memory buffer */
 	size_t buffer_size;
-	/** Actually used portion of the buffer */
-	size_t transferred_size;
+
+	/**
+	 * In case the DMA buffer is allocated, the original buffer must to be
+	 * stored to be filled after the IN transaction is finished.
+	 */
+	char *original_buffer;
 
 	/** Indicates success/failure of the communication */
 	errno_t error;
+	/** Actually used portion of the buffer */
+	size_t transferred_size;
+
+	/** Function called on completion */
+	usbhc_iface_transfer_callback_t on_complete;
+	/** Arbitrary data for the handler */
+	void *on_complete_data;
 } usb_transfer_batch_t;
 
 /**
@@ -106,6 +112,9 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
 
 /** Batch initializer. */
 void usb_transfer_batch_init(usb_transfer_batch_t *, endpoint_t *);
+
+/** Buffer preparation */
+errno_t usb_transfer_batch_prepare_buffer(usb_transfer_batch_t *, char *);
 
 /** Batch finalization. */
 void usb_transfer_batch_finish(usb_transfer_batch_t *);

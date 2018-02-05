@@ -146,7 +146,8 @@ errno_t ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 	assert(batch);
 	batch->error = virthub_base_request(&instance->base, batch->target,
 	    batch->dir, (void*) batch->setup.buffer,
-	    batch->buffer, batch->buffer_size, &batch->transferred_size);
+	    batch->dma_buffer.virt, batch->buffer_size,
+	    &batch->transferred_size);
 	if (batch->error == ENAK) {
 		usb_log_debug("RH(%p): BATCH(%p) adding as unfinished",
 		    instance, batch);
@@ -204,7 +205,8 @@ errno_t ehci_rh_interrupt(ehci_rh_t *instance)
 		    instance, batch);
 		batch->error = virthub_base_request(&instance->base, batch->target,
 		    batch->dir, (void*) batch->setup.buffer,
-		    batch->buffer, batch->buffer_size, &batch->transferred_size);
+		    batch->dma_buffer.virt, batch->buffer_size,
+		    &batch->transferred_size);
 		usb_transfer_batch_finish(batch);
 	}
 	return EOK;

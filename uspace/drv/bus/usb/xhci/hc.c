@@ -475,8 +475,7 @@ errno_t hc_start(xhci_hc_t *hc)
 	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_CNR), 0))
 		return ETIMEOUT;
 
-	uint64_t dcbaaptr = hc->dcbaa_dma.phys;
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP, dcbaaptr);
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP, hc->dcbaa_dma.phys);
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, hc->max_slots);
 
 	uintptr_t crcr;

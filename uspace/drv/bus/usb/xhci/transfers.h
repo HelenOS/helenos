@@ -49,8 +49,6 @@ typedef struct {
 
 	uint8_t direction;
 
-	dma_buffer_t hc_buffer;
-
 	uintptr_t interrupt_trb_phys;
 } xhci_transfer_t;
 

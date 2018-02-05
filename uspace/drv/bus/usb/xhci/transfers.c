@@ -114,8 +114,6 @@ usb_transfer_batch_t * xhci_transfer_create(endpoint_t* ep)
 void xhci_transfer_destroy(usb_transfer_batch_t* batch)
 {
 	xhci_transfer_t *transfer = xhci_transfer_from_batch(batch);
-
-	dma_buffer_free(&transfer->hc_buffer);
 	free(transfer);
 }
 
@@ -134,8 +132,8 @@ static int calculate_trb_count(xhci_transfer_t *transfer)
 static void trb_set_buffer(xhci_transfer_t *transfer, xhci_trb_t *trb,
 	size_t i, size_t total, size_t *remaining)
 {
-	const uintptr_t ptr = dma_buffer_phys(&transfer->hc_buffer,
-		transfer->hc_buffer.virt + i * PAGE_SIZE);
+	const uintptr_t ptr = dma_buffer_phys(&transfer->batch.dma_buffer,
+		transfer->batch.dma_buffer.virt + i * PAGE_SIZE);
 
 	trb->parameter = host2xhci(64, ptr);
 	TRB_CTRL_SET_TD_SIZE(*trb, max(31, total - i - 1));
@@ -417,11 +415,7 @@ errno_t xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 			batch->error = EIO;
 	}
 
-	if (batch->dir == USB_DIRECTION_IN) {
-		assert(batch->buffer);
-		assert(batch->transferred_size <= batch->buffer_size);
-		memcpy(batch->buffer, transfer->hc_buffer.virt, batch->transferred_size);
-	}
+	assert(batch->transferred_size <= batch->buffer_size);
 
 	usb_transfer_batch_finish(batch);
 	/* Dropping temporary reference */
@@ -471,16 +465,6 @@ errno_t xhci_transfer_schedule(usb_transfer_batch_t *batch)
 
 	const usb_transfer_type_t type = batch->ep->transfer_type;
 	assert(transfer_handlers[type]);
-
-	if (batch->buffer_size > 0) {
-		if (dma_buffer_alloc(&transfer->hc_buffer, batch->buffer_size))
-			return ENOMEM;
-	}
-
-	if (batch->dir != USB_DIRECTION_IN) {
-		// Sending stuff from host to device, we need to copy the actual data.
-		memcpy(transfer->hc_buffer.virt, batch->buffer, batch->buffer_size);
-	}
 
 	/*
 	 * If this is a ClearFeature(ENDPOINT_HALT) request, we have to issue

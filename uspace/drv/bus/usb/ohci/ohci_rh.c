@@ -181,7 +181,7 @@ errno_t ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 	assert(batch);
 	batch->error = virthub_base_request(&instance->base, batch->target,
 	    batch->dir, &batch->setup.packet,
-	    batch->buffer, batch->buffer_size, &batch->transferred_size);
+	    batch->dma_buffer.virt, batch->buffer_size, &batch->transferred_size);
 	if (batch->error == ENAK) {
 		/* Lock the HC guard */
 		fibril_mutex_lock(instance->guard);
@@ -232,7 +232,7 @@ errno_t ohci_rh_interrupt(ohci_rh_t *instance)
 	if (batch) {
 		batch->error = virthub_base_request(&instance->base, batch->target,
 		    batch->dir, &batch->setup.packet,
-		    batch->buffer, batch->buffer_size, &batch->transferred_size);
+		    batch->dma_buffer.virt, batch->buffer_size, &batch->transferred_size);
 		usb_transfer_batch_finish(batch);
 	}
 	return EOK;

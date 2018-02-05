@@ -60,7 +60,7 @@ static void (*const batch_setup[])(uhci_transfer_batch_t*);
 void uhci_transfer_batch_destroy(uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
-	free32(uhci_batch->device_buffer);
+	dma_buffer_free(&uhci_batch->uhci_dma_buffer);
 	free(uhci_batch);
 }
 
@@ -109,31 +109,25 @@ int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 		: 0;
 
 	const size_t total_size = (sizeof(td_t) * uhci_batch->td_count)
-	    + sizeof(qh_t) + setup_size + usb_batch->buffer_size;
-	uhci_batch->device_buffer = malloc32(total_size);
-	if (!uhci_batch->device_buffer) {
+	    + sizeof(qh_t) + setup_size;
+
+	if (dma_buffer_alloc(&uhci_batch->uhci_dma_buffer, total_size)) {
 		usb_log_error("Failed to allocate UHCI buffer.");
 		return ENOMEM;
 	}
-	memset(uhci_batch->device_buffer, 0, total_size);
+	memset(uhci_batch->uhci_dma_buffer.virt, 0, total_size);
 
-	uhci_batch->tds = uhci_batch->device_buffer;
-	uhci_batch->qh =
-	    (uhci_batch->device_buffer + (sizeof(td_t) * uhci_batch->td_count));
+	uhci_batch->tds = uhci_batch->uhci_dma_buffer.virt;
+	uhci_batch->qh = (qh_t *) &uhci_batch->tds[uhci_batch->td_count];
 
 	qh_init(uhci_batch->qh);
 	qh_set_element_td(uhci_batch->qh, &uhci_batch->tds[0]);
 
-	void *dest =
-	    uhci_batch->device_buffer + (sizeof(td_t) * uhci_batch->td_count)
-	    + sizeof(qh_t);
+	void *setup_buffer = uhci_transfer_batch_setup_buffer(uhci_batch);
+	assert(setup_buffer == (void *) (uhci_batch->qh + 1));
 	/* Copy SETUP packet data to the device buffer */
-	memcpy(dest, usb_batch->setup.buffer, setup_size);
-	dest += setup_size;
-	/* Copy generic data unless they are provided by the device */
-	if (usb_batch->dir != USB_DIRECTION_IN) {
-		memcpy(dest, usb_batch->buffer, usb_batch->buffer_size);
-	}
+	memcpy(setup_buffer, usb_batch->setup.buffer, setup_size);
+
 	usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT
 	    " memory structures ready.", usb_batch,
 	    USB_TRANSFER_BATCH_ARGS(*usb_batch));
@@ -195,12 +189,7 @@ substract_ret:
 		batch->transferred_size -= USB_SETUP_PACKET_SIZE;
 	}
 
-	if (batch->dir == USB_DIRECTION_IN) {
-		assert(batch->transferred_size <= batch->buffer_size);
-		memcpy(batch->buffer,
-		    uhci_transfer_batch_data_buffer(uhci_batch),
-		    batch->transferred_size);
-	}
+	assert(batch->transferred_size <= batch->buffer_size);
 
 	return true;
 }

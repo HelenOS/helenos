@@ -479,10 +479,8 @@ errno_t isoch_schedule_out(xhci_transfer_t *transfer)
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
 	xhci_isoch_t * const isoch = ep->isoch;
 
-	if (transfer->batch.buffer_size > ep->base.max_transfer_size) {
-		usb_log_error("Cannot schedule an oversized isochronous transfer.");
-		return ELIMIT;
-	}
+	/* This shall be already checked by endpoint */
+	assert(transfer->batch.buffer_size <= ep->base.max_transfer_size);
 
 	fibril_mutex_lock(&isoch->guard);
 
@@ -523,7 +521,7 @@ errno_t isoch_schedule_out(xhci_transfer_t *transfer)
 
 	/* Prepare the transfer. */
 	it->size = transfer->batch.buffer_size;
-	memcpy(it->data.virt, transfer->batch.buffer, it->size);
+	memcpy(it->data.virt, transfer->batch.dma_buffer.virt, it->size);
 	it->state = ISOCH_FILLED;
 
 	fibril_timer_clear_locked(isoch->feeding_timer);
@@ -572,7 +570,7 @@ errno_t isoch_schedule_in(xhci_transfer_t *transfer)
 
 	/* Withdraw results from previous transfer. */
 	if (!it->error) {
-		memcpy(transfer->batch.buffer, it->data.virt, it->size);
+		memcpy(transfer->batch.dma_buffer.virt, it->data.virt, it->size);
 		transfer->batch.transferred_size = it->size;
 		transfer->batch.error = it->error;
 	}

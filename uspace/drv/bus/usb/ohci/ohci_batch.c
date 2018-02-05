@@ -112,7 +112,7 @@ int ohci_transfer_batch_prepare(ohci_transfer_batch_t *ohci_batch)
 		? USB_SETUP_PACKET_SIZE
 		: 0;
 
-	if (dma_buffer_alloc(&ohci_batch->ohci_dma_buffer, td_size + setup_size + usb_batch->buffer_size)) {
+	if (dma_buffer_alloc(&ohci_batch->ohci_dma_buffer, td_size + setup_size)) {
 		usb_log_error("Failed to allocate OHCI DMA buffer.");
 		return ENOMEM;
 	}
@@ -128,9 +128,7 @@ int ohci_transfer_batch_prepare(ohci_transfer_batch_t *ohci_batch)
 	ohci_batch->setup_buffer = (void *) (&tds[ohci_batch->td_count]);
 	memcpy(ohci_batch->setup_buffer, usb_batch->setup.buffer, setup_size);
 
-	ohci_batch->data_buffer = ohci_batch->setup_buffer + setup_size;
-	if (usb_batch->dir == USB_DIRECTION_OUT)
-		memcpy(ohci_batch->data_buffer, usb_batch->buffer, usb_batch->buffer_size);
+	ohci_batch->data_buffer = usb_batch->dma_buffer.virt;
 
 	batch_setup[usb_batch->ep->transfer_type](ohci_batch);
 
@@ -150,11 +148,12 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 {
 	assert(ohci_batch);
 
-	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(ohci_batch->base.ep);
+	usb_transfer_batch_t *usb_batch = &ohci_batch->base;
+	ohci_endpoint_t *ohci_ep = ohci_endpoint_get(usb_batch->ep);
 	assert(ohci_ep);
 
 	usb_log_debug("Batch %p checking %zu td(s) for completion.",
-	    &ohci_batch->base, ohci_batch->td_count);
+	    ohci_batch, ohci_batch->td_count);
 	usb_log_debug2("ED: %08x:%08x:%08x:%08x.",
 	    ohci_ep->ed->status, ohci_ep->ed->td_head,
 	    ohci_ep->ed->td_tail, ohci_ep->ed->next);
@@ -166,7 +165,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 	 * or all transfer descriptors completed successfully */
 
 	/* Assume all data got through */
-	ohci_batch->base.transferred_size = ohci_batch->base.buffer_size;
+	usb_batch->transferred_size = usb_batch->buffer_size;
 
 	/* Check all TDs */
 	for (size_t i = 0; i < ohci_batch->td_count; ++i) {
@@ -175,8 +174,8 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 		    ohci_batch->tds[i]->status, ohci_batch->tds[i]->cbp,
 		    ohci_batch->tds[i]->next, ohci_batch->tds[i]->be);
 
-		ohci_batch->base.error = td_error(ohci_batch->tds[i]);
-		if (ohci_batch->base.error == EOK) {
+		usb_batch->error = td_error(ohci_batch->tds[i]);
+		if (usb_batch->error == EOK) {
 			/* If the TD got all its data through, it will report
 			 * 0 bytes remain, the sole exception is INPUT with
 			 * data rounding flag (short), i.e. every INPUT.
@@ -189,11 +188,11 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			 * NOTE: Short packets don't break the assumption that
 			 * we leave the very last(unused) TD behind.
 			 */
-			ohci_batch->base.transferred_size
+			usb_batch->transferred_size
 			    -= td_remain_size(ohci_batch->tds[i]);
 		} else {
 			usb_log_debug("Batch %p found error TD(%zu):%08x.",
-			    &ohci_batch->base, i, ohci_batch->tds[i]->status);
+			    ohci_batch, i, ohci_batch->tds[i]->status);
 
 			/* ED should be stopped because of errors */
 			assert((ohci_ep->ed->td_head & ED_TDHEAD_HALTED_FLAG) != 0);
@@ -212,13 +211,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			break;
 		}
 	}
-	assert(ohci_batch->base.transferred_size <=
-	    ohci_batch->base.buffer_size);
-
-	if (ohci_batch->base.dir == USB_DIRECTION_IN)
-		memcpy(ohci_batch->base.buffer,
-		    ohci_batch->data_buffer,
-		    ohci_batch->base.transferred_size);
+	assert(usb_batch->transferred_size <= usb_batch->buffer_size);
 
 	/* Make sure that we are leaving the right TD behind */
 	assert(addr_to_phys(ohci_ep->tds[0]) == ed_tail_td(ohci_ep->ed));
