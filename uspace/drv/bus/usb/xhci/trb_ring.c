@@ -222,6 +222,10 @@ errno_t xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_
 {
 	errno_t err;
 	assert(trbs > 0);
+
+	if (trbs > xhci_trb_ring_size(ring))
+		return ELIMIT;
+
 	fibril_mutex_lock(&ring->guard);
 
 	xhci_trb_t * const saved_enqueue_trb = ring->enqueue_trb;
@@ -306,6 +310,11 @@ void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr)
 
 	if (addr)
 		*addr = ring->dequeue | ring->pcs;
+}
+
+size_t xhci_trb_ring_size(xhci_trb_ring_t *ring)
+{
+	return ring->segment_count * SEGMENT_TRB_USEFUL_COUNT;
 }
 
 /**

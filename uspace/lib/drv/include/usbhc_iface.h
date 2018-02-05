@@ -115,7 +115,10 @@ typedef struct usb_pipe_desc {
 	/** Endpoint direction. */
 	usb_direction_t direction;
 
-	/** Maximum size of one transfer */
+	/**
+	 * Maximum size of one transfer. Non-periodic endpoints may handle
+	 * bigger transfers, but those can be split into multiple USB transfers.
+	 */
 	size_t max_transfer_size;
 
 	/** Constraints on buffers to be transferred without copying */

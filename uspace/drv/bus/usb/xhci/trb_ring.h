@@ -77,6 +77,7 @@ extern errno_t xhci_trb_ring_init(xhci_trb_ring_t *, size_t);
 extern void xhci_trb_ring_fini(xhci_trb_ring_t *);
 extern errno_t xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *, uintptr_t *);
 extern errno_t xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *, xhci_trb_t *, size_t, uintptr_t *);
+extern size_t xhci_trb_ring_size(xhci_trb_ring_t *);
 
 extern void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr);
 
