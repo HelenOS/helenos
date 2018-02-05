@@ -69,16 +69,17 @@ typedef struct usb_transfer_batch {
 		uint64_t packed;
 	} setup;
 
-	/** DMA buffer with enforced policy */
-	dma_buffer_t dma_buffer;
+	/**
+	 * In case a bounce buffer is allocated, the original buffer must to be
+	 * stored to be filled after the IN transaction is finished.
+	 */
+	char *buffer;
 	/** Size of memory buffer */
 	size_t buffer_size;
 
-	/**
-	 * In case the DMA buffer is allocated, the original buffer must to be
-	 * stored to be filled after the IN transaction is finished.
-	 */
-	char *original_buffer;
+	/** DMA buffer with enforced policy */
+	dma_buffer_t dma_buffer;
+	bool is_bounced;
 
 	/** Indicates success/failure of the communication */
 	errno_t error;
@@ -113,6 +114,7 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
 /** Batch initializer. */
 void usb_transfer_batch_init(usb_transfer_batch_t *, endpoint_t *);
 
+errno_t usb_transfer_batch_bounce(usb_transfer_batch_t *);
 /** Buffer preparation */
 errno_t usb_transfer_batch_prepare_buffer(usb_transfer_batch_t *, char *);
 

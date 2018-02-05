@@ -102,43 +102,55 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 	endpoint_del_ref(ep);
 }
 
+errno_t usb_transfer_batch_bounce(usb_transfer_batch_t *batch)
+{
+	assert(batch);
+	assert(!batch->is_bounced);
+
+	if (dma_buffer_is_set(&batch->dma_buffer))
+		dma_buffer_unlock(&batch->dma_buffer, batch->buffer_size);
+
+	usb_log_debug("Batch(%p): Buffer cannot be used directly, "
+	    "falling back to bounce buffer!", batch);
+
+	const errno_t err = dma_buffer_alloc_policy(&batch->dma_buffer,
+	    batch->buffer_size, batch->ep->transfer_buffer_policy);
+	if (err)
+		return err;
+
+	/* Copy the data out */
+	if (batch->dir == USB_DIRECTION_OUT)
+		memcpy(batch->dma_buffer.virt, batch->buffer, batch->buffer_size);
+
+	batch->is_bounced = true;
+	return err;
+}
+
 /**
  * Prepare a DMA buffer according to endpoint policy.
  *
  * If the buffer is suitable to be used directly, it is. Otherwise, a bounce
  * buffer is created.
  */
-errno_t usb_transfer_batch_prepare_buffer(
-    usb_transfer_batch_t *batch, char *buf)
+errno_t usb_transfer_batch_prepare_buffer(usb_transfer_batch_t *batch, char *buf)
 {
-	const dma_policy_t policy = batch->ep->transfer_buffer_policy;
-
 	/* Empty transfers do not need a buffer */
 	if (batch->buffer_size == 0)
 		return EOK;
 
-	if (dma_buffer_check_policy(buf, batch->buffer_size, policy)) {
-		/* Mark this case with invalid address */
-		batch->original_buffer = NULL;
+	batch->buffer = buf;
 
-		/* Fill the buffer with virtual address and lock it for DMA */
-		return dma_buffer_lock(&batch->dma_buffer, buf, batch->buffer_size);
-	}
-	else {
-		usb_log_debug("Batch(%p): Buffer cannot be used directly, "
-		    "falling back to bounce buffer!", batch);
-		const errno_t err = dma_buffer_alloc_policy(&batch->dma_buffer,
-		    batch->buffer_size, policy);
+	const dma_policy_t policy = batch->ep->transfer_buffer_policy;
 
-		/* Copy the data out */
-		if (!err && batch->dir == USB_DIRECTION_OUT)
-			memcpy(batch->dma_buffer.virt, buf, batch->buffer_size);
+	/*
+	 * We don't have enough information (yet, WIP) to know if we can skip
+	 * the bounce, so check the conditions carefully.
+	 */
+	if (!dma_buffer_check_policy(buf, batch->buffer_size, policy))
+		return usb_transfer_batch_bounce(batch);
 
-		/* Store the buffer to store the data back before finishing */
-		batch->original_buffer = buf;
-
-		return err;
-	}
+	/* Fill the buffer with virtual address and lock it for DMA */
+	return dma_buffer_lock(&batch->dma_buffer, buf, batch->buffer_size);
 }
 
 /**
@@ -155,7 +167,7 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 	    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 
 	if (batch->error == EOK && batch->buffer_size > 0) {
-		if (batch->original_buffer == NULL) {
+		if (!batch->is_bounced) {
 			/* Unlock the buffer for DMA */
 			dma_buffer_unlock(&batch->dma_buffer,
 			    batch->buffer_size);
@@ -163,7 +175,7 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 		else {
 			/* We we're forced to use bounce buffer, copy it back */
 			if (batch->dir == USB_DIRECTION_IN)
-				memcpy(batch->original_buffer,
+				memcpy(batch->buffer,
 				    batch->dma_buffer.virt,
 				    batch->transferred_size);
 
