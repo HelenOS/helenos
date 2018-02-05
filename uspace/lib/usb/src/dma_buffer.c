@@ -38,11 +38,47 @@
 
 #include "usb/dma_buffer.h"
 
+dma_policy_t dma_policy_create(unsigned flags, size_t chunk_size)
+{
+	assert((chunk_size & (chunk_size - 1)) == 0); /* Check if power of 2 */
+	assert(chunk_size >= PAGE_SIZE || chunk_size == 0);
+
+	return ((chunk_size - 1) & DMA_POLICY_CHUNK_SIZE_MASK)
+		| (flags & DMA_POLICY_FLAGS_MASK);
+}
+
+/**
+ * As the driver is typically using only a few buffers at once, we cache the
+ * physical mapping to avoid calling the kernel unnecessarily often. This cache
+ * is global for a task.
+ *
+ * TODO: "few" is currently limited to one.
+ */
+static struct {
+	const void *last;
+	uintptr_t phys;
+} phys_mapping_cache = { 0 };
+
+static void cache_insert(const void *v, uintptr_t p)
+{
+	phys_mapping_cache.last = v;
+	phys_mapping_cache.phys = p;
+}
+
+static void cache_evict(const void *v)
+{
+	if (phys_mapping_cache.last == v)
+		phys_mapping_cache.last = NULL;
+}
+
+static bool cache_find(const void *v, uintptr_t *p)
+{
+	*p = phys_mapping_cache.phys;
+	return phys_mapping_cache.last == v;
+}
+
 /**
  * Allocate a DMA buffer.
- *
- * XXX: Currently cannot make much use of missing constraints, as it always
- * allocates page-aligned contiguous buffer. We rely on it in dma_buffer_phys.
  *
  * @param[in] db dma_buffer_t structure to fill
  * @param[in] size Size of the required memory space
@@ -61,20 +97,22 @@ errno_t dma_buffer_alloc_policy(dma_buffer_t *db, size_t size, dma_policy_t poli
 	uintptr_t phys;
 	void *address = AS_AREA_ANY;
 
-	const int ret = dmamem_map_anonymous(real_size,
+	const int err = dmamem_map_anonymous(real_size,
 	    flags, AS_AREA_READ | AS_AREA_WRITE, 0,
 	    &phys, &address);
+	if (err)
+		return err;
 
-	if (ret == EOK) {
-		/* Access the pages to force mapping */
-		volatile char *buf = address;
-		for (size_t i = 0; i < size; i += PAGE_SIZE)
-			buf[i] = 0xff;
+	/* Access the pages to force mapping */
+	volatile char *buf = address;
+	for (size_t i = 0; i < size; i += PAGE_SIZE)
+		buf[i] = 0xff;
 
-		db->virt = address;
-		db->phys = phys;
-	}
-	return ret;
+	db->virt = address;
+	db->policy = dma_policy_create(policy, 0);
+	cache_insert(db->virt, phys);
+
+	return EOK;
 }
 
 
@@ -101,7 +139,7 @@ void dma_buffer_free(dma_buffer_t *db)
 	if (db->virt) {
 		dmamem_unmap_anonymous(db->virt);
 		db->virt = NULL;
-		db->phys = 0;
+		db->policy = 0;
 	}
 }
 
@@ -111,75 +149,40 @@ void dma_buffer_free(dma_buffer_t *db)
  * @param[in] db Buffer at which virt is pointing
  * @param[in] virt Pointer somewhere inside db
  */
-uintptr_t dma_buffer_phys(const dma_buffer_t *db, void *virt)
+uintptr_t dma_buffer_phys(const dma_buffer_t *db, const void *virt)
 {
-	return db->phys + (virt - db->virt);
-}
+	const size_t chunk_mask = dma_policy_chunk_mask(db->policy);
+	const uintptr_t offset = (virt - db->virt) & chunk_mask;
+	const void *chunk_base = virt - offset;
 
-/**
- * Check whether a memory area is compatible with a policy.
- *
- * Useful to skip copying when the buffer is already ready to be given to
- * hardware as is.
- *
- * Note that the "as_get_physical_mapping" fails when the page is not mapped
- * yet, and that the caller is responsible for forcing the mapping.
- */
-bool dma_buffer_check_policy(const void *buffer, size_t size, const dma_policy_t policy)
-{
-	uintptr_t addr = (uintptr_t) buffer;
+	uintptr_t phys;
 
-	const bool check_4gib       = !!(policy & DMA_POLICY_4GiB);
-	const bool check_crossing   = !!(policy & DMA_POLICY_NOT_CROSSING);
-	const bool check_alignment  = !!(policy & DMA_POLICY_PAGE_ALIGNED);
-	const bool check_contiguous = !!(policy & DMA_POLICY_CONTIGUOUS);
-
-	/* Check the two conditions that are easy */
-	if (check_crossing && (addr + size - 1) / PAGE_SIZE != addr / PAGE_SIZE)
-		goto violated;
-
-	if (check_alignment && ((uintptr_t) buffer) % PAGE_SIZE)
-		goto violated;
-
-	/*
-	 * For these conditions, we need to walk through pages and check
-	 * physical address of each one
-	 */
-	if (check_contiguous || check_4gib) {
-		const void *virt = buffer;
-		uintptr_t phys;
-
-		/* Get the mapping of the first page */
-		if (as_get_physical_mapping(virt, &phys))
-			goto error;
-
-		/* First page can already break 4GiB condition */
-		if (check_4gib && (phys & DMAMEM_4GiB) != 0)
-			goto violated;
-
-		while (size >= PAGE_SIZE) {
-			/* Move to the next page */
-			virt += PAGE_SIZE;
-			size -= PAGE_SIZE;
-
-			uintptr_t last_phys = phys;
-			if (as_get_physical_mapping(virt, &phys))
-				goto error;
-
-			if (check_contiguous && (phys - last_phys) != PAGE_SIZE)
-				goto violated;
-
-			if (check_4gib && (phys & DMAMEM_4GiB) != 0)
-				goto violated;
-		}
+	if (!cache_find(chunk_base, &phys)) {
+		if (as_get_physical_mapping(chunk_base, &phys))
+			return 0;
+		cache_insert(chunk_base, phys);
 	}
 
-	/* All checks passed */
-	return true;
+	return phys + offset;
+}
 
-violated:
-error:
-	return false;
+static bool dma_buffer_is_4gib(dma_buffer_t *db, size_t size)
+{
+	if (sizeof(uintptr_t) <= 32)
+		return true;
+
+	const size_t chunk_size = dma_policy_chunk_mask(db->policy) + 1;
+	const size_t chunks = chunk_size ? 1 : size / chunk_size;
+
+	for (size_t c = 0; c < chunks; c++) {
+		const void *addr = db->virt + (c * chunk_size);
+		const uintptr_t phys = dma_buffer_phys(db, addr);
+	
+		if ((phys & DMAMEM_4GiB) != 0)
+			return false;
+	}
+
+	return true;
 }
 
 /**
@@ -191,8 +194,24 @@ error:
  */
 errno_t dma_buffer_lock(dma_buffer_t *db, void *virt, size_t size)
 {
+	assert(virt);
+
+	uintptr_t phys;
+
+	const errno_t err = dmamem_map(virt, size, 0, 0, &phys);
+	if (err)
+		return err;
+
 	db->virt = virt;
-	return dmamem_map(db->virt, size, 0, 0, &db->phys);
+	db->policy = dma_policy_create(0, PAGE_SIZE);
+	cache_insert(virt, phys);
+
+	unsigned flags = -1U;
+	if (!dma_buffer_is_4gib(db, size))
+		flags &= ~DMA_POLICY_4GiB;
+	db->policy = dma_policy_create(flags, PAGE_SIZE);
+
+	return EOK;
 }
 
 /**
@@ -203,8 +222,25 @@ void dma_buffer_unlock(dma_buffer_t *db, size_t size)
 	if (db->virt) {
 		dmamem_unmap(db->virt, size);
 		db->virt = NULL;
-		db->phys = 0;
+		db->policy = 0;
 	}
+}
+
+/**
+ * Must be called when the buffer is received over IPC. Clears potentially
+ * leftover value from different buffer mapped to the same virtual address.
+ */
+void dma_buffer_acquire(dma_buffer_t *db)
+{
+	cache_evict(db->virt);
+}
+
+/**
+ * Counterpart of acquire.
+ */
+void dma_buffer_release(dma_buffer_t *db)
+{
+	cache_evict(db->virt);
 }
 
 /**

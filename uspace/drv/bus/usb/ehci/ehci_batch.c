@@ -101,7 +101,7 @@ int ehci_transfer_batch_prepare(ehci_transfer_batch_t *ehci_batch)
 		? USB_SETUP_PACKET_SIZE
 		: 0;
 
-	const size_t size = ehci_batch->base.buffer_size;
+	const size_t size = ehci_batch->base.size;
 
 	/* Add TD left over by the previous transfer */
 	ehci_batch->qh = ehci_endpoint_get(ehci_batch->base.ep)->qh;
@@ -179,7 +179,7 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 	 * or all transfer descriptors completed successfully */
 
 	/* Assume all data got through */
-	ehci_batch->base.transferred_size = ehci_batch->base.buffer_size;
+	ehci_batch->base.transferred_size = ehci_batch->base.size;
 
 	/* Check all TDs */
 	for (size_t i = 0; i < ehci_batch->td_count; ++i) {
@@ -215,7 +215,7 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 		}
 	}
 
-	assert(ehci_batch->base.transferred_size <= ehci_batch->base.buffer_size);
+	assert(ehci_batch->base.transferred_size <= ehci_batch->base.size);
 
 	/* Clear TD pointers */
 	ehci_batch->qh->next = LINK_POINTER_TERM;
@@ -280,7 +280,7 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch)
 
 	/* Data stage */
 	unsigned td_current = 1;
-	size_t remain_size = ehci_batch->base.buffer_size;
+	size_t remain_size = ehci_batch->base.size;
 	uintptr_t buffer = dma_buffer_phys(&ehci_batch->base.dma_buffer,
 	    ehci_batch->data_buffer);
 	while (remain_size > 0) {
@@ -334,7 +334,7 @@ static void batch_data(ehci_transfer_batch_t *ehci_batch)
 	    ehci_batch->qh->next, ehci_batch->qh->alternate);
 
 	size_t td_current = 0;
-	size_t remain_size = ehci_batch->base.buffer_size;
+	size_t remain_size = ehci_batch->base.size;
 	uintptr_t buffer = dma_buffer_phys(&ehci_batch->base.dma_buffer,
 	    ehci_batch->data_buffer);
 	while (remain_size > 0) {

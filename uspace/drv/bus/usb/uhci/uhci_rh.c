@@ -106,7 +106,7 @@ errno_t uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 	do {
 		batch->error = virthub_base_request(&instance->base, batch->target,
 		    batch->dir, (void*) batch->setup.buffer,
-		    batch->dma_buffer.virt, batch->buffer_size, &batch->transferred_size);
+		    batch->dma_buffer.virt, batch->size, &batch->transferred_size);
 		if (batch->error == ENAK)
 			async_usleep(instance->base.endpoint_descriptor.poll_interval * 1000);
 		//TODO This is flimsy, but we can't exit early because

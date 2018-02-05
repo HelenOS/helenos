@@ -95,7 +95,7 @@ int ohci_transfer_batch_prepare(ohci_transfer_batch_t *ohci_batch)
 	if (!batch_setup[usb_batch->ep->transfer_type])
 		return ENOTSUP;
 
-	ohci_batch->td_count = (usb_batch->buffer_size + OHCI_TD_MAX_TRANSFER - 1)
+	ohci_batch->td_count = (usb_batch->size + OHCI_TD_MAX_TRANSFER - 1)
 	    / OHCI_TD_MAX_TRANSFER;
 	/* Control transfer need Setup and Status stage */
 	if (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
@@ -165,7 +165,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 	 * or all transfer descriptors completed successfully */
 
 	/* Assume all data got through */
-	usb_batch->transferred_size = usb_batch->buffer_size;
+	usb_batch->transferred_size = usb_batch->size;
 
 	/* Check all TDs */
 	for (size_t i = 0; i < ohci_batch->td_count; ++i) {
@@ -211,7 +211,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			break;
 		}
 	}
-	assert(usb_batch->transferred_size <= usb_batch->buffer_size);
+	assert(usb_batch->transferred_size <= usb_batch->size);
 
 	/* Make sure that we are leaving the right TD behind */
 	assert(addr_to_phys(ohci_ep->tds[0]) == ed_tail_td(ohci_ep->ed));
@@ -288,7 +288,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch)
 	/* Data stage */
 	size_t td_current = 1;
 	const char* buffer = ohci_batch->data_buffer;
-	size_t remain_size = ohci_batch->base.buffer_size;
+	size_t remain_size = ohci_batch->base.size;
 	while (remain_size > 0) {
 		const size_t transfer_size =
 		    min(remain_size, OHCI_TD_MAX_TRANSFER);
@@ -342,7 +342,7 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 	assert(dir == USB_DIRECTION_IN || dir == USB_DIRECTION_OUT);
 
 	size_t td_current = 0;
-	size_t remain_size = ohci_batch->base.buffer_size;
+	size_t remain_size = ohci_batch->base.size;
 	char *buffer = ohci_batch->data_buffer;
 	while (remain_size > 0) {
 		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER

@@ -71,25 +71,25 @@ static errno_t process_transfer_local(usb_transfer_batch_t *batch,
 		if (dir == USB_DIRECTION_IN) {
 			rc = usbvirt_control_read(dev,
 			    batch->setup.buffer, USB_SETUP_PACKET_SIZE,
-			    batch->dma_buffer.virt, batch->buffer_size,
+			    batch->dma_buffer.virt, batch->size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
 			rc = usbvirt_control_write(dev,
 			    batch->setup.buffer, USB_SETUP_PACKET_SIZE,
-			    batch->dma_buffer.virt, batch->buffer_size);
+			    batch->dma_buffer.virt, batch->size);
 		}
 	} else {
 		if (dir == USB_DIRECTION_IN) {
 			rc = usbvirt_data_in(dev, batch->ep->transfer_type,
 			    batch->ep->endpoint,
-			    batch->dma_buffer.virt, batch->buffer_size,
+			    batch->dma_buffer.virt, batch->size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
 			rc = usbvirt_data_out(dev, batch->ep->transfer_type,
 			    batch->ep->endpoint,
-			    batch->dma_buffer.virt, batch->buffer_size);
+			    batch->dma_buffer.virt, batch->size);
 		}
 	}
 
@@ -107,25 +107,25 @@ static errno_t process_transfer_remote(usb_transfer_batch_t *batch,
 		if (dir == USB_DIRECTION_IN) {
 			rc = usbvirt_ipc_send_control_read(sess,
 			    batch->setup.buffer, USB_SETUP_PACKET_SIZE,
-			    batch->dma_buffer.virt, batch->buffer_size,
+			    batch->dma_buffer.virt, batch->size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
 			rc = usbvirt_ipc_send_control_write(sess,
 			    batch->setup.buffer, USB_SETUP_PACKET_SIZE,
-			    batch->dma_buffer.virt, batch->buffer_size);
+			    batch->dma_buffer.virt, batch->size);
 		}
 	} else {
 		if (dir == USB_DIRECTION_IN) {
 			rc = usbvirt_ipc_send_data_in(sess, batch->ep->endpoint,
 			    batch->ep->transfer_type,
-			    batch->dma_buffer.virt, batch->buffer_size,
+			    batch->dma_buffer.virt, batch->size,
 			    actual_data_size);
 		} else {
 			assert(dir == USB_DIRECTION_OUT);
 			rc = usbvirt_ipc_send_data_out(sess, batch->ep->endpoint,
 			    batch->ep->transfer_type,
-			    batch->dma_buffer.virt, batch->buffer_size);
+			    batch->dma_buffer.virt, batch->size);
 		}
 	}
 

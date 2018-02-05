@@ -238,7 +238,7 @@ static errno_t initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci
 	}
 	data->secondary_stream_ctx_array = data->secondary_stream_ctx_dma.virt;
 
-	XHCI_STREAM_DEQ_PTR_SET(*ctx, data->secondary_stream_ctx_dma.phys);
+	XHCI_STREAM_DEQ_PTR_SET(*ctx, dma_buffer_phys_base(&data->secondary_stream_ctx_dma));
 	XHCI_STREAM_SCT_SET(*ctx, fnzb32(count) + 1);
 
 	/* Initialize all the rings. */
@@ -282,7 +282,7 @@ static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx,
 	XHCI_EP_ERROR_COUNT_SET(*ctx, 3);
 
 	XHCI_EP_MAX_P_STREAMS_SET(*ctx, pstreams);
-	XHCI_EP_TR_DPTR_SET(*ctx, xhci_ep->primary_stream_ctx_dma.phys);
+	XHCI_EP_TR_DPTR_SET(*ctx, dma_buffer_phys_base(&xhci_ep->primary_stream_ctx_dma));
 	XHCI_EP_LSA_SET(*ctx, lsa);
 }
 

@@ -74,6 +74,7 @@ void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors
 
 	ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
 	ep->transfer_buffer_policy = DMA_POLICY_STRICT;
+	ep->required_transfer_buffer_policy = DMA_POLICY_STRICT;
 }
 
 /**
@@ -206,29 +207,21 @@ void endpoint_deactivate_locked(endpoint_t *ep)
  * bandwidth requirements and schedules the batch.
  *
  * @param endpoint Endpoint for which to send the batch
- * @param target The target of the transfer.
- * @param direction A direction of the transfer.
- * @param data A pointer to the data buffer.
- * @param size Size of the data buffer.
- * @param setup_data Data to use in the setup stage (Control communication type)
- * @param on_complete Callback which is called after the batch is complete
- * @param arg Callback parameter.
- * @param name Communication identifier (for nicer output).
  */
-errno_t endpoint_send_batch(endpoint_t *ep, usb_target_t target,
-    usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
-    usbhc_iface_transfer_callback_t on_complete, void *arg, const char *name)
+errno_t endpoint_send_batch(endpoint_t *ep, const transfer_request_t *req)
 {
-	if (!ep)
-		return EBADMEM;
+	assert(ep);
+	assert(req);
 
 	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
-		usb_log_debug("%s %d:%d %zu/%zuB, setup %#016" PRIx64, name,
-		    target.address, target.endpoint, size, ep->max_packet_size,
-		    setup_data);
+		usb_log_debug("%s %d:%d %zu/%zuB, setup %#016" PRIx64, req->name,
+		    req->target.address, req->target.endpoint,
+		    req->size, ep->max_packet_size,
+		    req->setup);
 	} else {
-		usb_log_debug("%s %d:%d %zu/%zuB", name, target.address,
-		    target.endpoint, size, ep->max_packet_size);
+		usb_log_debug("%s %d:%d %zu/%zuB", req->name,
+		    req->target.address, req->target.endpoint,
+		    req->size, ep->max_packet_size);
 	}
 
 	device_t * const device = ep->device;
@@ -243,16 +236,18 @@ errno_t endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 		return ENOTSUP;
 	}
 
+	size_t size = req->size;
 	/*
 	 * Limit transfers with reserved bandwidth to the amount reserved.
 	 * OUT transfers are rejected, IN can be just trimmed in advance.
 	 */
-	if ((ep->transfer_type == USB_TRANSFER_INTERRUPT || ep->transfer_type == USB_TRANSFER_ISOCHRONOUS) && size > ep->max_transfer_size) {
-		if (direction == USB_DIRECTION_OUT)
+	if (size > ep->max_transfer_size &&
+	    (ep->transfer_type == USB_TRANSFER_INTERRUPT
+	     || ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)) {
+		if (req->dir == USB_DIRECTION_OUT)
 			return ENOSPC;
 		else
 			size = ep->max_transfer_size;
-
 	}
 
 	/* Offline devices don't schedule transfers other than on EP0. */
@@ -265,20 +260,25 @@ errno_t endpoint_send_batch(endpoint_t *ep, usb_target_t target,
 		return ENOMEM;
 	}
 
-	batch->target = target;
-	batch->setup.packed = setup_data;
-	batch->dir = direction;
-	batch->buffer_size = size;
+	batch->target = req->target;
+	batch->setup.packed = req->setup;
+	batch->dir = req->dir;
+	batch->size = size;
+	batch->offset = req->offset;
+	batch->dma_buffer = req->buffer;
 
-	errno_t err;
-	if ((err = usb_transfer_batch_prepare_buffer(batch, data))) {
-		usb_log_warning("Failed to prepare buffer for batch: %s", str_error(err));
-		usb_transfer_batch_destroy(batch);
-		return err;
+	dma_buffer_acquire(&batch->dma_buffer);
+
+	if (batch->offset != 0) {
+		usb_log_debug("A transfer with nonzero offset requested.");
+		usb_transfer_batch_bounce(batch);
 	}
 
-	batch->on_complete = on_complete;
-	batch->on_complete_data = arg;
+	if (usb_transfer_batch_bounce_required(batch))
+		usb_transfer_batch_bounce(batch);
+
+	batch->on_complete = req->on_complete;
+	batch->on_complete_data = req->arg;
 
 	const int ret = ops->batch_schedule(batch);
 	if (ret != EOK) {

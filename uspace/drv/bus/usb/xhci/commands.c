@@ -469,7 +469,8 @@ static errno_t address_device_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	xhci_trb_clean(&cmd->_header.trb);
 
-	TRB_SET_ICTX(cmd->_header.trb, cmd->input_ctx.phys);
+	const uintptr_t phys = dma_buffer_phys_base(&cmd->input_ctx);
+	TRB_SET_ICTX(cmd->_header.trb, phys);
 
 	/**
 	 * Note: According to section 6.4.3.4, we can set the 9th bit
@@ -495,7 +496,8 @@ static errno_t configure_endpoint_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 		/* If the DC flag is on, input context is not evaluated. */
 		assert(dma_buffer_is_set(&cmd->input_ctx));
 
-		TRB_SET_ICTX(cmd->_header.trb, cmd->input_ctx.phys);
+		const uintptr_t phys = dma_buffer_phys_base(&cmd->input_ctx);
+		TRB_SET_ICTX(cmd->_header.trb, phys);
 	}
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_CONFIGURE_ENDPOINT_CMD);
@@ -519,7 +521,8 @@ static errno_t evaluate_context_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 	 */
 	xhci_trb_clean(&cmd->_header.trb);
 
-	TRB_SET_ICTX(cmd->_header.trb, cmd->input_ctx.phys);
+	const uintptr_t phys = dma_buffer_phys_base(&cmd->input_ctx);
+	TRB_SET_ICTX(cmd->_header.trb, phys);
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_EVALUATE_CONTEXT_CMD);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);
@@ -593,7 +596,8 @@ static errno_t get_port_bandwidth_cmd(xhci_hc_t *hc, xhci_cmd_t *cmd)
 
 	xhci_trb_clean(&cmd->_header.trb);
 
-	TRB_SET_ICTX(cmd->_header.trb, cmd->bandwidth_ctx.phys);
+	const uintptr_t phys = dma_buffer_phys_base(&cmd->input_ctx);
+	TRB_SET_ICTX(cmd->_header.trb, phys);
 
 	TRB_SET_TYPE(cmd->_header.trb, XHCI_TRB_TYPE_GET_PORT_BANDWIDTH_CMD);
 	TRB_SET_SLOT(cmd->_header.trb, cmd->slot_id);

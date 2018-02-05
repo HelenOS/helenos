@@ -71,13 +71,15 @@ errno_t xhci_scratchpad_alloc(xhci_hc_t *hc)
 
 	memset(hc->scratchpad_array.virt, 0, size);
 
-	uint64_t phys_begin = hc->scratchpad_array.phys + array_size;
+	const char *base = hc->scratchpad_array.virt + array_size;
 	uint64_t *array = hc->scratchpad_array.virt;
 
-	for (unsigned i = 0; i < num_bufs; ++i)
-		array[i] = host2xhci(64, phys_begin + i * PAGE_SIZE);
+	for (unsigned i = 0; i < num_bufs; ++i) {
+		array[i] = host2xhci(64, dma_buffer_phys(&hc->scratchpad_array,
+			    base + i * PAGE_SIZE));
+	}
 
-	hc->dcbaa[0] = host2xhci(64, hc->scratchpad_array.phys);
+	hc->dcbaa[0] = host2xhci(64, dma_buffer_phys_base(&hc->scratchpad_array));
 
 	usb_log_debug("Allocated %d scratchpad buffers.", num_bufs);
 

@@ -475,7 +475,8 @@ errno_t hc_start(xhci_hc_t *hc)
 	if (xhci_reg_wait(&hc->op_regs->usbsts, XHCI_REG_MASK(XHCI_OP_CNR), 0))
 		return ETIMEOUT;
 
-	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP, hc->dcbaa_dma.phys);
+	uintptr_t dcbaa_phys = dma_buffer_phys_base(&hc->dcbaa_dma);
+	XHCI_REG_WR(hc->op_regs, XHCI_OP_DCBAAP, dcbaa_phys);
 	XHCI_REG_WR(hc->op_regs, XHCI_OP_MAX_SLOTS_EN, hc->max_slots);
 
 	uintptr_t crcr;
@@ -489,7 +490,9 @@ errno_t hc_start(xhci_hc_t *hc)
 	xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTSZ, hc->event_ring.segment_count);
 	XHCI_REG_WR(intr0, XHCI_INTR_ERDP, hc->event_ring.dequeue_ptr);
-	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA, hc->event_ring.erst.phys);
+
+	const uintptr_t erstba_phys = dma_buffer_phys_base(&hc->event_ring.erst);
+	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA, erstba_phys);
 
 	if (hc->base.irq_cap > 0) {
 		XHCI_REG_SET(intr0, XHCI_INTR_IE, 1);
@@ -798,7 +801,8 @@ errno_t hc_enable_slot(xhci_device_t *dev)
 	/* Link them together */
 	if (err == EOK) {
 		dev->slot_id = cmd.slot_id;
-		hc->dcbaa[dev->slot_id] = host2xhci(64, dev->dev_ctx.phys);
+		hc->dcbaa[dev->slot_id] =
+		    host2xhci(64, dma_buffer_phys_base(&dev->dev_ctx));
 	}
 
 	xhci_cmd_fini(&cmd);

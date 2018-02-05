@@ -69,16 +69,16 @@ typedef struct usb_transfer_batch {
 		uint64_t packed;
 	} setup;
 
+	/** DMA buffer with enforced policy */
+	dma_buffer_t dma_buffer;
+	/** Size of memory buffer */
+	size_t offset, size;
+
 	/**
 	 * In case a bounce buffer is allocated, the original buffer must to be
 	 * stored to be filled after the IN transaction is finished.
 	 */
-	char *buffer;
-	/** Size of memory buffer */
-	size_t buffer_size;
-
-	/** DMA buffer with enforced policy */
-	dma_buffer_t dma_buffer;
+	char *original_buffer;
 	bool is_bounced;
 
 	/** Indicates success/failure of the communication */
@@ -106,7 +106,7 @@ typedef struct usb_transfer_batch {
 	usb_str_speed((batch).ep->device->speed), \
 	usb_str_transfer_type_short((batch).ep->transfer_type), \
 	usb_str_direction((batch).dir), \
-	(batch).buffer_size, (batch).ep->max_packet_size
+	(batch).size, (batch).ep->max_packet_size
 
 /** Wrapper for bus operation. */
 usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
@@ -114,9 +114,9 @@ usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
 /** Batch initializer. */
 void usb_transfer_batch_init(usb_transfer_batch_t *, endpoint_t *);
 
+/** Buffer handling */
+bool usb_transfer_batch_bounce_required(usb_transfer_batch_t *);
 errno_t usb_transfer_batch_bounce(usb_transfer_batch_t *);
-/** Buffer preparation */
-errno_t usb_transfer_batch_prepare_buffer(usb_transfer_batch_t *, char *);
 
 /** Batch finalization. */
 void usb_transfer_batch_finish(usb_transfer_batch_t *);

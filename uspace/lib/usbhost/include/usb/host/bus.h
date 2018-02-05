@@ -152,9 +152,26 @@ void bus_device_gone(device_t *);
 int bus_device_online(device_t *);
 int bus_device_offline(device_t *);
 
-int bus_device_send_batch(device_t *, usb_target_t,
-    usb_direction_t direction, char *, size_t, uint64_t,
-    usbhc_iface_transfer_callback_t, void *, const char *);
+/**
+ * A proforma to USB transfer batch. As opposed to transfer batch, which is
+ * supposed to be a dynamic structrure, this one is static and descriptive only.
+ * Its fields are copied to the final batch.
+ */
+typedef struct transfer_request {
+	usb_target_t target;
+	usb_direction_t dir;
+
+	dma_buffer_t buffer;
+	size_t offset, size;
+	uint64_t setup;
+
+	usbhc_iface_transfer_callback_t on_complete;
+	void *arg;
+
+	const char *name;
+} transfer_request_t;
+
+int bus_issue_transfer(device_t *, const transfer_request_t *);
 
 errno_t bus_device_send_batch_sync(device_t *, usb_target_t,
     usb_direction_t direction, char *, size_t, uint64_t,

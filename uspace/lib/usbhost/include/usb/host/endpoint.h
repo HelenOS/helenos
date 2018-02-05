@@ -50,6 +50,7 @@
 
 typedef struct bus bus_t;
 typedef struct device device_t;
+typedef struct transfer_request transfer_request_t;
 typedef struct usb_transfer_batch usb_transfer_batch_t;
 
 /**
@@ -97,8 +98,10 @@ typedef struct endpoint {
 
 	/** Maximum size of one transfer */
 	size_t max_transfer_size;
-	/** Policy for transfer buffers */
-	dma_policy_t transfer_buffer_policy;
+
+	/* Policies for transfer buffers */
+	dma_policy_t transfer_buffer_policy;		/**< A hint for optimal performance. */
+	dma_policy_t required_transfer_buffer_policy;	/**< Enforced by the library. */
 
 	/**
 	 * Number of packets that can be sent in one service interval
@@ -121,9 +124,7 @@ extern void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t);
 extern int endpoint_activate_locked(endpoint_t *, usb_transfer_batch_t *);
 extern void endpoint_deactivate_locked(endpoint_t *);
 
-int endpoint_send_batch(endpoint_t *, usb_target_t, usb_direction_t,
-    char *, size_t, uint64_t, usbhc_iface_transfer_callback_t, void *,
-    const char *);
+int endpoint_send_batch(endpoint_t *, const transfer_request_t *);
 
 static inline bus_t *endpoint_get_bus(endpoint_t *ep)
 {

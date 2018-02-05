@@ -175,7 +175,7 @@ static errno_t schedule_isochronous_trb(xhci_endpoint_t *ep, xhci_isoch_transfer
 	xhci_trb_t trb;
 	xhci_trb_clean(&trb);
 
-	trb.parameter = it->data.phys;
+	trb.parameter = host2xhci(64, dma_buffer_phys_base(&it->data));
 	TRB_CTRL_SET_XFER_LEN(trb, it->size);
 	TRB_CTRL_SET_TD_SIZE(trb, 0);
 	TRB_CTRL_SET_IOC(trb, 1);
@@ -480,7 +480,7 @@ errno_t isoch_schedule_out(xhci_transfer_t *transfer)
 	xhci_isoch_t * const isoch = ep->isoch;
 
 	/* This shall be already checked by endpoint */
-	assert(transfer->batch.buffer_size <= ep->base.max_transfer_size);
+	assert(transfer->batch.size <= ep->base.max_transfer_size);
 
 	fibril_mutex_lock(&isoch->guard);
 
@@ -520,7 +520,7 @@ errno_t isoch_schedule_out(xhci_transfer_t *transfer)
 	    it - isoch->transfers, it->mfindex);
 
 	/* Prepare the transfer. */
-	it->size = transfer->batch.buffer_size;
+	it->size = transfer->batch.size;
 	memcpy(it->data.virt, transfer->batch.dma_buffer.virt, it->size);
 	it->state = ISOCH_FILLED;
 
@@ -543,7 +543,7 @@ errno_t isoch_schedule_in(xhci_transfer_t *transfer)
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
 	xhci_isoch_t * const isoch = ep->isoch;
 
-	if (transfer->batch.buffer_size < ep->base.max_transfer_size) {
+	if (transfer->batch.size < ep->base.max_transfer_size) {
 		usb_log_error("Cannot schedule an undersized isochronous transfer.");
 		return ELIMIT;
 	}

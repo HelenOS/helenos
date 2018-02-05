@@ -103,7 +103,12 @@ typedef union {
 } usb_target_t;
 
 // FIXME: DMA buffers shall be part of libdrv anyway.
-typedef unsigned dma_policy_t;
+typedef uintptr_t dma_policy_t;
+
+typedef struct dma_buffer {
+	void *virt;
+	dma_policy_t policy;
+} dma_buffer_t;
 
 typedef struct usb_pipe_desc {
 	/** Endpoint number. */
@@ -133,16 +138,13 @@ typedef struct usb_pipe_transfer_request {
 	uint64_t setup;			/**< Valid iff the transfer is of control type */
 
 	/**
-	 * Base address of the buffer to share. Must be at least offset + size
-	 * large. Is patched after being transmitted over IPC, so the pointer is
-	 * still valid.
-	 *
-	 * Note that offset might be actually more than PAGE_SIZE.
+	 * The DMA buffer to share. Must be at least offset + size large. Is
+	 * patched after being transmitted over IPC, so the pointer is still
+	 * valid.
 	 */
-	void *base;
+	dma_buffer_t buffer;
 	size_t offset;			/**< Offset to the buffer */
 	size_t size;			/**< Requested size. */
-	dma_policy_t buffer_policy;	/**< Properties of the buffer. */
 } usbhc_iface_transfer_request_t;
 
 /** This structure follows standard endpoint descriptor + superspeed companion

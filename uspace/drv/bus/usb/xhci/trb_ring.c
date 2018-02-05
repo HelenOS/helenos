@@ -88,23 +88,24 @@ static inline trb_segment_t *get_first_segment(list_t *segments)
  */
 static errno_t trb_segment_alloc(trb_segment_t **segment)
 {
-	dma_buffer_t dbuf;
+	*segment = AS_AREA_ANY;
+	uintptr_t phys;
 
-	const errno_t err = dma_buffer_alloc(&dbuf, PAGE_SIZE);
+	const int err = dmamem_map_anonymous(PAGE_SIZE,
+	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
+	    &phys, (void **) segment);
 	if (err)
 		return err;
 
-	*segment = dbuf.virt;
 	memset(*segment, 0, PAGE_SIZE);
-	(*segment)->phys = dbuf.phys;
+	(*segment)->phys = phys;
 	usb_log_debug("Allocated new ring segment.");
 	return EOK;
 }
 
 static void trb_segment_free(trb_segment_t *segment)
 {
-	dma_buffer_t dbuf = { .virt = segment, .phys = segment->phys };
-	dma_buffer_free(&dbuf);
+	dmamem_unmap_anonymous(segment);
 }
 
 /**

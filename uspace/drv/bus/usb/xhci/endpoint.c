@@ -115,16 +115,18 @@ static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
 	if ((rc = alloc_transfer_ds(xhci_ep)))
 		goto err;
 
-	/* Driver can handle non-contiguous buffers */
-	ep->transfer_buffer_policy &= ~DMA_POLICY_CONTIGUOUS;
-
-	/* Driver can handle buffers crossing boundaries */
-	ep->transfer_buffer_policy &= ~DMA_POLICY_NOT_CROSSING;
+	unsigned flags = -1U;
 
 	/* Some xHCs can handle 64-bit addresses */
 	xhci_bus_t *bus = bus_to_xhci_bus(ep->device->bus);
 	if (bus->hc->ac64)
-		ep->transfer_buffer_policy &= ~DMA_POLICY_4GiB;
+		flags &= ~DMA_POLICY_4GiB;
+
+	/* xHCI works best if it can fit 65k transfers in one TRB */
+	ep->transfer_buffer_policy = dma_policy_create(flags, 1 << 16);
+
+	/* But actualy can do full scatter-gather. */
+	ep->required_transfer_buffer_policy = dma_policy_create(flags, PAGE_SIZE);
 
 	return EOK;
 

@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <str_error.h>
 #include <usb/debug.h>
+#include <usb/dma_buffer.h>
 
 #include "endpoint.h"
 #include "bus.h"
@@ -389,6 +390,8 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 		endpoint_init(ep, device, desc);
 	}
 
+	assert((ep->required_transfer_buffer_policy & ~ep->transfer_buffer_policy) == 0);
+
 	/* Bus reference */
 	endpoint_add_ref(ep);
 
@@ -556,49 +559,47 @@ void bus_release_default_address(bus_t *bus, device_t *dev)
 }
 
 /**
- * Initiate a transfer on the bus. Finds the target endpoint, creates
- * a transfer batch and schedules it.
+ * Assert some conditions on transfer request. As the request is an entity of
+ * HC driver only, we can force these conditions harder. Invalid values from
+ * devices shall be caught on DDF interface already.
+ */
+static void check_request(const transfer_request_t *request)
+{
+	assert(usb_target_is_valid(&request->target));
+	assert(request->dir != USB_DIRECTION_BOTH);
+	/* Non-zero offset => size is non-zero */
+	assert(request->offset == 0 || request->size != 0);
+	/* Non-zero size => buffer is set */
+	assert(request->size == 0 || dma_buffer_is_set(&request->buffer));
+	/* Non-null arg => callback is set */
+	assert(request->arg == NULL || request->on_complete != NULL);
+	assert(request->name);
+}
+
+/**
+ * Initiate a transfer with given device.
  *
- * @param device Device for which to send the batch
- * @param target The target of the transfer.
- * @param direction A direction of the transfer.
- * @param data A pointer to the data buffer.
- * @param size Size of the data buffer.
- * @param setup_data Data to use in the setup stage (Control communication type)
- * @param on_complete Callback which is called after the batch is complete
- * @param arg Callback parameter.
- * @param name Communication identifier (for nicer output).
  * @return Error code.
  */
-int bus_device_send_batch(device_t *device, usb_target_t target,
-    usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
-    usbhc_iface_transfer_callback_t on_complete, void *arg, const char *name)
+int bus_issue_transfer(device_t *device, const transfer_request_t *request)
 {
-	assert(device->address == target.address);
+	assert(device);
+	assert(request);
+
+	check_request(request);
+	assert(device->address == request->target.address);
 
 	/* Temporary reference */
-	endpoint_t *ep = bus_find_endpoint(device, target.endpoint, direction);
+	endpoint_t *ep = bus_find_endpoint(device, request->target.endpoint, request->dir);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.",
-		    device->address, target.endpoint, name);
+		    device->address, request->target.endpoint, request->name);
 		return ENOENT;
 	}
 
 	assert(ep->device == device);
 
-	/*
-	 * This method is already callable from HC only, so we can force these
-	 * conditions harder.
-	 * Invalid values from devices shall be caught on DDF interface already.
-	 */
-	assert(usb_target_is_valid(&target));
-	assert(direction != USB_DIRECTION_BOTH);
-	assert(size == 0 || data != NULL);
-	assert(arg == NULL || on_complete != NULL);
-	assert(name);
-
-	const int err = endpoint_send_batch(ep, target, direction,
-	    data, size, setup_data, on_complete, arg, name);
+	const int err = endpoint_send_batch(ep, request);
 
 	/* Temporary reference */
 	endpoint_del_ref(ep);
@@ -649,14 +650,30 @@ errno_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
     const char *name, size_t *transferred_size)
 {
+	int err;
 	sync_data_t sd = { .done = false };
 	fibril_mutex_initialize(&sd.done_mtx);
 	fibril_condvar_initialize(&sd.done_cv);
 
-	const int ret = bus_device_send_batch(device, target, direction,
-	    data, size, setup_data, sync_transfer_complete, &sd, name);
-	if (ret != EOK)
-		return ret;
+	transfer_request_t request = {
+		.target = target,
+		.dir = direction,
+		.offset = ((uintptr_t) data) % PAGE_SIZE,
+		.size = size,
+		.setup = setup_data,
+		.on_complete = sync_transfer_complete,
+		.arg = &sd,
+		.name = name,
+	};
+
+	if (data &&
+	    (err = dma_buffer_lock(&request.buffer, data - request.offset, size)))
+		return err;
+
+	if ((err = bus_issue_transfer(device, &request))) {
+		dma_buffer_unlock(&request.buffer, size);
+		return err;
+	}
 
 	/*
 	 * Note: There are requests that are completed synchronously. It is not
@@ -666,6 +683,8 @@ errno_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
 	while (!sd.done)
 		fibril_condvar_wait(&sd.done_cv, &sd.done_mtx);
 	fibril_mutex_unlock(&sd.done_mtx);
+
+	dma_buffer_unlock(&request.buffer, size);
 
 	if (transferred_size)
 		*transferred_size = sd.transferred_size;

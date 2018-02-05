@@ -82,12 +82,11 @@ static errno_t transfer_common(transfer_t *t)
 		return EBADMEM;
 
 	/* Only control writes make sense without buffer */
-	if ((t->dir != USB_DIRECTION_OUT || !t->is_control)
-	    && (t->req.base == NULL || t->req.size == 0))
+	if ((t->dir != USB_DIRECTION_OUT || !t->is_control) && t->req.size == 0)
 		return EINVAL;
 
 	/* Nonzero size requires buffer */
-	if (t->req.base == NULL && t->req.size != 0)
+	if (!dma_buffer_is_set(&t->req.buffer) && t->req.size != 0)
 		return EINVAL;
 
 	/* Check expected direction */
@@ -118,13 +117,16 @@ static errno_t transfer_common(transfer_t *t)
 
 /**
  * Setup the transfer request inside transfer according to dma buffer provided.
+ *
+ * TODO: The buffer could have been allocated as a more strict one. Currently,
+ * we assume that the policy is just the requested one.
  */
 static void setup_dma_buffer(transfer_t *t, void *base, void *ptr, size_t size)
 {
-	t->req.base = base;
+	t->req.buffer.virt = base;
+	t->req.buffer.policy = t->pipe->desc.transfer_buffer_policy;
 	t->req.offset = ptr - base;
 	t->req.size = size;
-	t->req.buffer_policy = t->pipe->desc.transfer_buffer_policy;
 }
 
 /**
@@ -132,6 +134,11 @@ static void setup_dma_buffer(transfer_t *t, void *base, void *ptr, size_t size)
  */
 static errno_t transfer_wrap_dma(transfer_t *t, void *buf, size_t size)
 {
+	if (size == 0) {
+		setup_dma_buffer(t, NULL, NULL, 0);
+		return transfer_common(t);
+	}
+
 	void *dma_buf = usb_pipe_alloc_buffer(t->pipe, size);
 	setup_dma_buffer(t, dma_buf, dma_buf, size);
 
@@ -363,6 +370,7 @@ static const usb_pipe_desc_t default_control_pipe = {
 	.transfer_type = USB_TRANSFER_CONTROL,
 	.direction = USB_DIRECTION_BOTH,
 	.max_transfer_size = CTRL_PIPE_MIN_PACKET_SIZE,
+	.transfer_buffer_policy = DMA_POLICY_STRICT,
 };
 
 /** Initialize USB default control pipe.

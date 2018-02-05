@@ -125,7 +125,7 @@ static xhci_trb_ring_t *get_ring(xhci_transfer_t *transfer)
 
 static int calculate_trb_count(xhci_transfer_t *transfer)
 {
-	const size_t size = transfer->batch.buffer_size;
+	const size_t size = transfer->batch.size;
 	return (size + PAGE_SIZE - 1 )/ PAGE_SIZE;
 }
 
@@ -183,7 +183,7 @@ static errno_t schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	if (setup->length > 0) {
 		int stage_dir = REQUEST_TYPE_IS_DEVICE_TO_HOST(setup->request_type)
 					? STAGE_IN : STAGE_OUT;
-		size_t remaining = transfer->batch.buffer_size;
+		size_t remaining = transfer->batch.size;
 
 		for (size_t i = 0; i < buffer_count; ++i) {
 			xhci_trb_clean(&trbs[i + 1]);
@@ -226,7 +226,7 @@ static errno_t schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 	if (!ep->primary_stream_data_size) {
 		const size_t buffer_count = calculate_trb_count(transfer);
 		xhci_trb_t trbs[buffer_count];
-		size_t remaining = transfer->batch.buffer_size;
+		size_t remaining = transfer->batch.size;
 
 		for (size_t i = 0; i < buffer_count; ++i) {
 			xhci_trb_clean(&trbs[i]);
@@ -253,7 +253,7 @@ static errno_t schedule_bulk(xhci_hc_t* hc, xhci_transfer_t *transfer)
 
 		const size_t buffer_count = calculate_trb_count(transfer);
 		xhci_trb_t trbs[buffer_count + 1];
-		size_t remaining = transfer->batch.buffer_size;
+		size_t remaining = transfer->batch.size;
 
 		for (size_t i = 0; i < buffer_count; ++i) {
 			xhci_trb_clean(&trbs[i]);
@@ -277,7 +277,7 @@ static errno_t schedule_interrupt(xhci_hc_t* hc, xhci_transfer_t* transfer)
 {
 	const size_t buffer_count = calculate_trb_count(transfer);
 	xhci_trb_t trbs[buffer_count];
-	size_t remaining = transfer->batch.buffer_size;
+	size_t remaining = transfer->batch.size;
 
 	for (size_t i = 0; i < buffer_count; ++i) {
 		xhci_trb_clean(&trbs[i]);
@@ -371,7 +371,7 @@ errno_t xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		case XHCI_TRBC_SHORT_PACKET:
 		case XHCI_TRBC_SUCCESS:
 			batch->error = EOK;
-			batch->transferred_size = batch->buffer_size - TRB_TRANSFER_LENGTH(*trb);
+			batch->transferred_size = batch->size - TRB_TRANSFER_LENGTH(*trb);
 			break;
 
 		case XHCI_TRBC_DATA_BUFFER_ERROR:
@@ -415,7 +415,7 @@ errno_t xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 			batch->error = EIO;
 	}
 
-	assert(batch->transferred_size <= batch->buffer_size);
+	assert(batch->transferred_size <= batch->size);
 
 	usb_transfer_batch_finish(batch);
 	/* Dropping temporary reference */

@@ -209,7 +209,7 @@ errno_t usbhc_transfer(async_exch_t *exch,
 		unsigned flags = (req->dir == USB_DIRECTION_IN)
 			? AS_AREA_WRITE : AS_AREA_READ;
 
-		const errno_t ret = async_share_out_start(exch, req->base, flags);
+		const errno_t ret = async_share_out_start(exch, req->buffer.virt, flags);
 		if (ret != EOK) {
 			async_forget(opening_request);
 			return ret;
@@ -373,8 +373,8 @@ static void async_transaction_destroy(async_transaction_t *trans)
 	if (trans == NULL) {
 		return;
 	}
-	if (trans->request.base != NULL) {
-		as_area_destroy(trans->request.base);
+	if (trans->request.buffer.virt != NULL) {
+		as_area_destroy(trans->request.buffer.virt);
 	}
 
 	free(trans);
@@ -421,21 +421,22 @@ static errno_t receive_memory_buffer(async_transaction_t *trans)
 		return EINVAL;
 	}
 
-	if ((err = async_share_out_finalize(data_callid, &trans->request.base)))
+	if ((err = async_share_out_finalize(data_callid, &trans->request.buffer.virt)))
 		return err;
 
 	/*
-	 * As we're going to check the mapping, we must make sure the memory is
-	 * actually mapped. We must do it right now, because the area might be
-	 * read-only or write-only, and we may be unsure later.
+	 * As we're going to get physical addresses of the mapping, we must make
+	 * sure the memory is actually mapped. We must do it right now, because
+	 * the area might be read-only or write-only, and we may be unsure
+	 * later.
 	 */
 	if (flags & AS_AREA_READ) {
 		char foo = 0;
-		volatile const char *buf = trans->request.base + trans->request.offset;
+		volatile const char *buf = trans->request.buffer.virt + trans->request.offset;
 		for (size_t i = 0; i < size; i += PAGE_SIZE)
 			foo += buf[i];
 	} else {
-		volatile char *buf = trans->request.base + trans->request.offset;
+		volatile char *buf = trans->request.buffer.virt + trans->request.offset;
 		for (size_t i = 0; i < size; i += PAGE_SIZE)
 			buf[i] = 0xff;
 	}
@@ -481,7 +482,7 @@ void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc
 			goto err;
 	} else {
 		/* The value was valid on the other side, for us, its garbage. */
-		trans->request.base = NULL;
+		trans->request.buffer.virt = NULL;
 	}
 
 	if ((err = usbhc_iface->transfer(fun, &trans->request,

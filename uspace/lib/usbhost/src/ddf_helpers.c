@@ -45,6 +45,7 @@
 #include <usb/debug.h>
 #include <usb/descriptor.h>
 #include <usb/usb.h>
+#include <usb/dma_buffer.h>
 #include <usb_iface.h>
 #include <usbhc_iface.h>
 
@@ -270,7 +271,8 @@ static errno_t get_device_description(ddf_fun_t *fun, usb_device_desc_t *desc)
  * @param arg Argument passed to the callback function.
  * @return Error code.
  */
-static errno_t transfer(ddf_fun_t *fun, const usbhc_iface_transfer_request_t *req,
+static errno_t transfer(ddf_fun_t *fun,
+    const usbhc_iface_transfer_request_t *ifreq,
     usbhc_iface_transfer_callback_t callback, void *arg)
 {
 	assert(fun);
@@ -279,26 +281,35 @@ static errno_t transfer(ddf_fun_t *fun, const usbhc_iface_transfer_request_t *re
 
 	const usb_target_t target = {{
 		.address = dev->address,
-		.endpoint = req->endpoint,
-		.stream = req->stream,
+		.endpoint = ifreq->endpoint,
+		.stream = ifreq->stream,
 	}};
 
 	if (!usb_target_is_valid(&target))
 		return EINVAL;
 
-	if (req->size > 0 && req->base == NULL)
+	if (ifreq->offset > 0 && ifreq->size == 0)
+		return EINVAL;
+
+	if (ifreq->size > 0 && !dma_buffer_is_set(&ifreq->buffer))
 		return EBADMEM;
 
 	if (!callback && arg)
 		return EBADMEM;
 
-	const char *name = (req->dir == USB_DIRECTION_IN) ? "READ" : "WRITE";
+	const transfer_request_t request = {
+		.target = target,
+		.dir = ifreq->dir,
+		.buffer = ifreq->buffer,
+		.offset = ifreq->offset,
+		.size = ifreq->size,
+		.setup = ifreq->setup,
+		.on_complete = callback,
+		.arg = arg,
+		.name = (ifreq->dir == USB_DIRECTION_IN) ? "READ" : "WRITE",
+	};
 
-	char *buffer = req->base + req->offset;
-
-	return bus_device_send_batch(dev, target, req->dir,
-	    buffer, req->size, req->setup,
-	    callback, arg, name);
+	return bus_issue_transfer(dev, &request);
 }
 
 /** USB device interface */

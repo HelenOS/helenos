@@ -97,7 +97,7 @@ int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 
 	usb_transfer_batch_t *usb_batch = &uhci_batch->base;
 
-	uhci_batch->td_count = (usb_batch->buffer_size + usb_batch->ep->max_packet_size - 1)
+	uhci_batch->td_count = (usb_batch->size + usb_batch->ep->max_packet_size - 1)
 		/ usb_batch->ep->max_packet_size;
 
 	if (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
@@ -189,7 +189,7 @@ substract_ret:
 		batch->transferred_size -= USB_SETUP_PACKET_SIZE;
 	}
 
-	assert(batch->transferred_size <= batch->buffer_size);
+	assert(batch->transferred_size <= batch->size);
 
 	return true;
 }
@@ -227,7 +227,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	assert(toggle == 0 || toggle == 1);
 
 	size_t td = 0;
-	size_t remain_size = uhci_batch->base.buffer_size;
+	size_t remain_size = uhci_batch->base.size;
 	char *buffer = uhci_transfer_batch_data_buffer(uhci_batch);
 
 	while (remain_size > 0) {
@@ -296,7 +296,7 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch)
 	/* data stage */
 	size_t td = 1;
 	unsigned toggle = 1;
-	size_t remain_size = uhci_batch->base.buffer_size;
+	size_t remain_size = uhci_batch->base.size;
 	char *buffer = uhci_transfer_batch_data_buffer(uhci_batch);
 
 	while (remain_size > 0) {
