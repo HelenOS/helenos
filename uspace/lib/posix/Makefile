@@ -102,12 +102,13 @@ EXPORT_CPPFLAGS = \
 
 EXPORT_LDFLAGS = \
 	-L$$(HELENOS_EXPORT_ROOT)/lib \
-	--whole-archive -lc -lmath --no-whole-archive \
 	-T link.ld
 
+EXPORT_LDLIBS = \
+	-lmath -lc
+
 EXPORT_CFLAGS = \
-	$(EXPORT_CPPFLAGS) \
-	$(addprefix -Xlinker , $(EXPORT_LDFLAGS))
+	-specs $$(HELENOS_EXPORT_ROOT)/lib/gcc.specs
 
 include $(USPACE_PREFIX)/Makefile.common
 
@@ -115,9 +116,11 @@ $(SPECS): $(CONFIG_MAKEFILE)
 	echo '*self_spec:' > $@.new
 	echo '+ $(COMMON_CFLAGS)' >> $@.new
 	echo >> $@.new
-	echo '*lib:' >> $@.new
-	echo '--whole-archive -lc -lmath --no-whole-archive' >> $@.new
+	echo '*cpp:' >> $@.new
+	echo '+ $(COMMON_CPPFLAGS)' >> $@.new
 	echo >> $@.new
+	echo '*lib:' >> $@.new
+	echo '$(EXPORT_LDLIBS)' >> $@.new
 	mv $@.new $@
 
 $(EXPORT_LINKER_SCRIPT): $(LIBC_LINKER_SCRIPT)
@@ -136,10 +139,13 @@ $(EXPORT_DIR)/config.mk: export-libs export-includes
 	echo '# Generated file, do not modify.' >> $@.new
 	echo '# Do not forget to set HELENOS_EXPORT_ROOT.' >> $@.new
 	echo 'HELENOS_CROSS_PATH="$(shell dirname $(CC))"' >> $@.new
+	echo 'HELENOS_ARCH="$(firstword $(subst -, ,$(TARGET)))"' >> $@.new
 	echo 'HELENOS_TARGET="$(TARGET)"' >> $@.new
 	echo 'HELENOS_CPPFLAGS="$(EXPORT_CPPFLAGS)"' >> $@.new
 	echo 'HELENOS_CFLAGS="$(EXPORT_CFLAGS)"' >> $@.new
+	echo 'HELENOS_CXXFLAGS="$(EXPORT_CFLAGS)"' >> $@.new
 	echo 'HELENOS_LDFLAGS="$(EXPORT_LDFLAGS)"' >> $@.new
+	echo 'HELENOS_LDLIBS="$(EXPORT_LDLIBS)"' >> $@.new
 	mv $@.new $@
 
 $(EXPORT_DIR)/config.rc: $(EXPORT_DIR)/config.mk

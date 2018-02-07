@@ -204,11 +204,13 @@ ifeq ($(CONFIG_LINE_DEBUG),y)
 endif
 
 # Flags that should always be used, even for third-party software.
-COMMON_CFLAGS = \
-	-ffreestanding \
-	-nostdlib \
+COMMON_CPPFLAGS = \
 	-nostdinc \
 	-D__$(ENDIANESS)__
+
+COMMON_CFLAGS = \
+	-ffreestanding \
+	-nostdlib
 
 # Flags that are always used for HelenOS code, but not for third-party.
 HELENOS_CFLAGS = \
@@ -223,7 +225,7 @@ HELENOS_CFLAGS = \
 
 # TODO: Use a different name.
 # CFLAGS variable is traditionally used for overridable flags.
-CFLAGS = $(COMMON_CFLAGS) $(HELENOS_CFLAGS) $(DEFAULT_CFLAGS)
+CFLAGS = $(COMMON_CPPFLAGS) $(COMMON_CFLAGS) $(HELENOS_CFLAGS) $(DEFAULT_CFLAGS)
 
 ## Setup platform configuration
 #
