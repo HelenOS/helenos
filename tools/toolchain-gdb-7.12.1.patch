@@ -1,0 +1,30 @@
+diff -rud gdb-7.12.1-original/gdb/doublest.c gdb-7.12.1/gdb/doublest.c
+--- gdb-7.12.1-original/gdb/doublest.c	2017-01-21 21:48:42.000000000 +0800
++++ gdb-7.12.1/gdb/doublest.c	2017-12-06 11:08:35.000000000 +0800
+@@ -255,7 +255,7 @@
+ 
+   while (mant_bits_left > 0)
+     {
+-      mant_bits = min (mant_bits_left, 32);
++      mant_bits = fmin (mant_bits_left, 32);
+ 
+       mant = get_field (ufrom, order, fmt->totalsize, mant_off, mant_bits);
+ 
+@@ -565,7 +565,7 @@
+   mant_zero = 1;
+   while (mant_bits_left > 0)
+     {
+-      mant_bits = min (mant_bits_left, 32);
++      mant_bits = fmin (mant_bits_left, 32);
+ 
+       mant = get_field (uval, order, fmt->totalsize, mant_off, mant_bits);
+ 
+@@ -909,7 +909,7 @@
+          comment in store_typed_floating for a discussion about
+          zeroing out remaining bytes in the target buffer.  */
+       memset (to, 0, TYPE_LENGTH (to_type));
+-      memcpy (to, from, min (TYPE_LENGTH (from_type), TYPE_LENGTH (to_type)));
++      memcpy (to, from, fmin (TYPE_LENGTH (from_type), TYPE_LENGTH (to_type)));
+     }
+   else
+     {
