@@ -156,9 +156,9 @@ int bus_device_send_batch(device_t *, usb_target_t,
     usb_direction_t direction, char *, size_t, uint64_t,
     usbhc_iface_transfer_callback_t, void *, const char *);
 
-ssize_t bus_device_send_batch_sync(device_t *, usb_target_t,
+errno_t bus_device_send_batch_sync(device_t *, usb_target_t,
     usb_direction_t direction, char *, size_t, uint64_t,
-    const char *);
+    const char *, size_t *);
 
 int bus_endpoint_add(device_t *, const usb_endpoint_descriptors_t *, endpoint_t **);
 endpoint_t *bus_find_endpoint(device_t *, usb_endpoint_t, usb_direction_t);

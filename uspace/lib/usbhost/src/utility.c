@@ -93,12 +93,13 @@ int hc_get_ep0_max_packet_size(uint16_t *mps, device_t *dev)
 	    GET_DEVICE_DESC(CTRL_PIPE_MIN_PACKET_SIZE);
 
 	usb_log_debug("Requesting first 8B of device descriptor to determine MPS.");
-	ssize_t got = bus_device_send_batch_sync(dev, control_ep, USB_DIRECTION_IN,
-	    (char *) &desc, CTRL_PIPE_MIN_PACKET_SIZE, *(uint64_t *)&get_device_desc_8,
-	    "read first 8 bytes of dev descriptor");
+	size_t got;
+	const errno_t err = bus_device_send_batch_sync(dev, control_ep,
+	    USB_DIRECTION_IN, (char *) &desc, CTRL_PIPE_MIN_PACKET_SIZE,
+	    *(uint64_t *)&get_device_desc_8,
+	    "read first 8 bytes of dev descriptor", &got);
 
 	if (got != CTRL_PIPE_MIN_PACKET_SIZE) {
-		const int err = got < 0 ? got : EOVERFLOW;
 		usb_log_error("Failed to get 8B of dev descr: %s.", str_error(err));
 		return err;
 	}
@@ -132,14 +133,15 @@ int hc_get_device_desc(device_t *device, usb_standard_device_descriptor_t *desc)
 
 	usb_log_debug("Device(%d): Requesting full device descriptor.",
 	    device->address);
-	ssize_t got = bus_device_send_batch_sync(device, control_ep, USB_DIRECTION_IN,
-	    (char *) desc, sizeof(*desc), *(uint64_t *)&get_device_desc,
-	    "read device descriptor");
+	size_t got;
+	errno_t err = bus_device_send_batch_sync(device, control_ep,
+	    USB_DIRECTION_IN, (char *) desc, sizeof(*desc),
+	    *(uint64_t *)&get_device_desc, "read device descriptor", &got);
 
-	if (got < 0)
-		return got;
+	if (!err && got != sizeof(*desc))
+		err = EOVERFLOW;
 
-	return got == sizeof(*desc) ? EOK : EOVERFLOW;
+	return err;
 }
 
 int hc_get_hub_desc(device_t *device, usb_hub_descriptor_header_t *desc)
@@ -163,14 +165,16 @@ int hc_get_hub_desc(device_t *device, usb_hub_descriptor_header_t *desc)
 
 	usb_log_debug("Device(%d): Requesting hub descriptor.",
 	    device->address);
-	ssize_t got = bus_device_send_batch_sync(device, control_ep, USB_DIRECTION_IN,
-	    (char *) desc, sizeof(*desc), *(uint64_t *)&get_hub_desc,
-	    "get hub descriptor");
 
-	if (got < 0)
-		return got;
+	size_t got;
+	errno_t err = bus_device_send_batch_sync(device, control_ep,
+	    USB_DIRECTION_IN, (char *) desc, sizeof(*desc),
+	    *(uint64_t *)&get_hub_desc, "get hub descriptor", &got);
 
-	return got == sizeof(*desc) ? EOK : EOVERFLOW;
+	if (!err && got != sizeof(*desc))
+		err = EOVERFLOW;
+
+	return err;
 }
 
 int hc_device_explore(device_t *device)

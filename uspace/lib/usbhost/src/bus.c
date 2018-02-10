@@ -645,9 +645,9 @@ static int sync_transfer_complete(void *arg, int error, size_t transferred_size)
  * @param setup_data Data to use in the setup stage (Control communication type)
  * @param name Communication identifier (for nicer output).
  */
-ssize_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
+errno_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
     usb_direction_t direction, char *data, size_t size, uint64_t setup_data,
-    const char *name)
+    const char *name, size_t *transferred_size)
 {
 	sync_data_t sd = { .done = false };
 	fibril_mutex_initialize(&sd.done_mtx);
@@ -667,9 +667,10 @@ ssize_t bus_device_send_batch_sync(device_t *device, usb_target_t target,
 		fibril_condvar_wait(&sd.done_cv, &sd.done_mtx);
 	fibril_mutex_unlock(&sd.done_mtx);
 
-	return (sd.error == EOK)
-		? (ssize_t) sd.transferred_size
-		: (ssize_t) sd.error;
+	if (transferred_size)
+		*transferred_size = sd.transferred_size;
+
+	return sd.error;
 }
 
 /**
