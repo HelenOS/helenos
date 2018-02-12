@@ -215,7 +215,7 @@ void amd64_post_smp_init(void)
 	outdev_t **ns16550_out_ptr = NULL;
 #endif
 	ns16550_instance_t *ns16550_instance
-	    = ns16550_init((ns16550_t *) NS16550_BASE, IRQ_NS16550, NULL, NULL,
+	    = ns16550_init(NS16550_BASE, 0, IRQ_NS16550, NULL, NULL,
 	    ns16550_out_ptr);
 	if (ns16550_instance) {
 #ifdef CONFIG_NS16550

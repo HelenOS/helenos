@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,12 +46,19 @@
 #define LSR_DATA_READY  0x01
 #define LSR_TH_READY    0x20
 
+static inline uint8_t _read(ns16550_instance_t *inst, int reg) {
+	return pio_read_8(&inst->ns16550[reg << inst->reg_shift]);
+}
+
+static inline void _write(ns16550_instance_t *inst, int reg, uint8_t val) {
+	pio_write_8(&inst->ns16550[reg << inst->reg_shift], val);
+}
+
 static irq_ownership_t ns16550_claim(irq_t *irq)
 {
 	ns16550_instance_t *instance = irq->instance;
-	ns16550_t *dev = instance->ns16550;
-	
-	if (pio_read_8(&dev->lsr) & LSR_DATA_READY)
+
+	if (_read(instance, NS16550_REG_LSR) & LSR_DATA_READY)
 		return IRQ_ACCEPT;
 	else
 		return IRQ_DECLINE;
@@ -59,26 +67,25 @@ static irq_ownership_t ns16550_claim(irq_t *irq)
 static void ns16550_irq_handler(irq_t *irq)
 {
 	ns16550_instance_t *instance = irq->instance;
-	ns16550_t *dev = instance->ns16550;
 	
-	if (pio_read_8(&dev->lsr) & LSR_DATA_READY) {
-		uint8_t data = pio_read_8(&dev->rbr);
+	while (_read(instance, NS16550_REG_LSR) & LSR_DATA_READY) {
+		uint8_t data = _read(instance, NS16550_REG_RBR);
 		indev_push_character(instance->input, data);
 	}
 }
 
 /**< Clear input buffer. */
-static void ns16550_clear_buffer(ns16550_t *dev)
+static void ns16550_clear_buffer(ns16550_instance_t *instance)
 {
-	while ((pio_read_8(&dev->lsr) & LSR_DATA_READY))
-		(void) pio_read_8(&dev->rbr);
+	while (_read(instance, NS16550_REG_LSR) & LSR_DATA_READY)
+		(void) _read(instance, NS16550_REG_RBR);
 }
 
-static void ns16550_sendb(ns16550_t *dev, uint8_t byte)
+static void ns16550_sendb(ns16550_instance_t *instance, uint8_t byte)
 {
-	while (!(pio_read_8(&dev->lsr) & LSR_TH_READY))
+	while (!(_read(instance, NS16550_REG_LSR) & LSR_TH_READY))
 		;
-	pio_write_8(&dev->thr, byte);
+	_write(instance, NS16550_REG_THR, byte);
 }
 
 static void ns16550_putchar(outdev_t *dev, wchar_t ch)
@@ -87,9 +94,9 @@ static void ns16550_putchar(outdev_t *dev, wchar_t ch)
 	
 	if ((!instance->parea.mapped) || (console_override)) {
 		if (ascii_check(ch))
-			ns16550_sendb(instance->ns16550, (uint8_t) ch);
+			ns16550_sendb(instance, (uint8_t) ch);
 		else
-			ns16550_sendb(instance->ns16550, U_SPECIAL);
+			ns16550_sendb(instance, U_SPECIAL);
 	}
 }
 
@@ -100,24 +107,28 @@ static outdev_operations_t ns16550_ops = {
 
 /** Initialize ns16550.
  *
- * @param dev      Addrress of the beginning of the device in I/O space.
- * @param inr      Interrupt number.
- * @param cir      Clear interrupt function.
- * @param cir_arg  First argument to cir.
- * @param output   Where to store pointer to the output device
- *                 or NULL if the caller is not interested in
- *                 writing to the serial port.
+ * @param dev        Address of the beginning of the device in I/O space.
+ * @param reg_shift  Spacing between individual register addresses, in log2.
+ *                   The individual register location is calculated as
+ *                   `base + (register offset << reg_shift)`.
+ * @param inr        Interrupt number.
+ * @param cir        Clear interrupt function.
+ * @param cir_arg    First argument to cir.
+ * @param output     Where to store pointer to the output device
+ *                   or NULL if the caller is not interested in
+ *                   writing to the serial port.
  *
  * @return Keyboard instance or NULL on failure.
  *
  */
-ns16550_instance_t *ns16550_init(ns16550_t *dev, inr_t inr, cir_t cir,
-    void *cir_arg, outdev_t **output)
+ns16550_instance_t *ns16550_init(ioport8_t *dev, int reg_shift, inr_t inr,
+    cir_t cir, void *cir_arg, outdev_t **output)
 {
 	ns16550_instance_t *instance
 	    = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
 	if (instance) {
 		instance->ns16550 = dev;
+		instance->reg_shift = reg_shift;
 		instance->input = NULL;
 		instance->output = NULL;
 		
@@ -161,11 +172,11 @@ void ns16550_wire(ns16550_instance_t *instance, indev_t *input)
 	instance->input = input;
 	irq_register(&instance->irq);
 	
-	ns16550_clear_buffer(instance->ns16550);
+	ns16550_clear_buffer(instance);
 	
 	/* Enable interrupts */
-	pio_write_8(&instance->ns16550->ier, IER_ERBFI);
-	pio_write_8(&instance->ns16550->mcr, MCR_OUT2);
+	_write(instance, NS16550_REG_IER, IER_ERBFI);
+	_write(instance, NS16550_REG_MCR, MCR_OUT2);
 }
 
 /** @}
