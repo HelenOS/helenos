@@ -49,7 +49,7 @@
 #define MCR_OUT2   0x08  /** OUT2. */
 
 /** NS16550 registers. */
-enum {
+typedef enum {
 	NS16550_REG_RBR = 0,  /**< Receiver Buffer Register (read). */
 	NS16550_REG_THR = 0,  /**< Transmitter Holder Register (write). */
 	NS16550_REG_IER = 1,  /**< Interrupt Enable Register. */
@@ -58,7 +58,7 @@ enum {
 	NS16550_REG_LCR = 3,  /**< Line Control register. */
 	NS16550_REG_MCR = 4,  /**< Modem Control Register. */
 	NS16550_REG_LSR = 5,  /**< Line Status Register. */
-};
+} ns16550_reg_t;
 
 /** Structure representing the ns16550 device. */
 typedef struct {
@@ -70,8 +70,8 @@ typedef struct {
 	int reg_shift;
 } ns16550_instance_t;
 
-extern ns16550_instance_t *ns16550_init(ioport8_t *, int, inr_t, cir_t, void *,
-    outdev_t **);
+extern ns16550_instance_t *ns16550_init(ioport8_t *, unsigned, inr_t, cir_t,
+    void *, outdev_t **);
 extern void ns16550_wire(ns16550_instance_t *, indev_t *);
 
 #endif

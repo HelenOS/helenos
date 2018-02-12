@@ -46,11 +46,14 @@
 #define LSR_DATA_READY  0x01
 #define LSR_TH_READY    0x20
 
-static inline uint8_t _read(ns16550_instance_t *inst, int reg) {
+static uint8_t ns16550_reg_read(ns16550_instance_t *inst, ns16550_reg_t reg)
+{
 	return pio_read_8(&inst->ns16550[reg << inst->reg_shift]);
 }
 
-static inline void _write(ns16550_instance_t *inst, int reg, uint8_t val) {
+static void ns16550_reg_write(ns16550_instance_t *inst, ns16550_reg_t reg,
+    uint8_t val)
+{
 	pio_write_8(&inst->ns16550[reg << inst->reg_shift], val);
 }
 
@@ -58,7 +61,7 @@ static irq_ownership_t ns16550_claim(irq_t *irq)
 {
 	ns16550_instance_t *instance = irq->instance;
 
-	if (_read(instance, NS16550_REG_LSR) & LSR_DATA_READY)
+	if (ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_DATA_READY)
 		return IRQ_ACCEPT;
 	else
 		return IRQ_DECLINE;
@@ -68,8 +71,8 @@ static void ns16550_irq_handler(irq_t *irq)
 {
 	ns16550_instance_t *instance = irq->instance;
 	
-	while (_read(instance, NS16550_REG_LSR) & LSR_DATA_READY) {
-		uint8_t data = _read(instance, NS16550_REG_RBR);
+	while (ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_DATA_READY) {
+		uint8_t data = ns16550_reg_read(instance, NS16550_REG_RBR);
 		indev_push_character(instance->input, data);
 	}
 }
@@ -77,15 +80,15 @@ static void ns16550_irq_handler(irq_t *irq)
 /**< Clear input buffer. */
 static void ns16550_clear_buffer(ns16550_instance_t *instance)
 {
-	while (_read(instance, NS16550_REG_LSR) & LSR_DATA_READY)
-		(void) _read(instance, NS16550_REG_RBR);
+	while (ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_DATA_READY)
+		(void) ns16550_reg_read(instance, NS16550_REG_RBR);
 }
 
 static void ns16550_sendb(ns16550_instance_t *instance, uint8_t byte)
 {
-	while (!(_read(instance, NS16550_REG_LSR) & LSR_TH_READY))
+	while (!(ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_TH_READY))
 		;
-	_write(instance, NS16550_REG_THR, byte);
+	ns16550_reg_write(instance, NS16550_REG_THR, byte);
 }
 
 static void ns16550_putchar(outdev_t *dev, wchar_t ch)
@@ -121,7 +124,7 @@ static outdev_operations_t ns16550_ops = {
  * @return Keyboard instance or NULL on failure.
  *
  */
-ns16550_instance_t *ns16550_init(ioport8_t *dev, int reg_shift, inr_t inr,
+ns16550_instance_t *ns16550_init(ioport8_t *dev, unsigned reg_shift, inr_t inr,
     cir_t cir, void *cir_arg, outdev_t **output)
 {
 	ns16550_instance_t *instance
@@ -175,8 +178,8 @@ void ns16550_wire(ns16550_instance_t *instance, indev_t *input)
 	ns16550_clear_buffer(instance);
 	
 	/* Enable interrupts */
-	_write(instance, NS16550_REG_IER, IER_ERBFI);
-	_write(instance, NS16550_REG_MCR, MCR_OUT2);
+	ns16550_reg_write(instance, NS16550_REG_IER, IER_ERBFI);
+	ns16550_reg_write(instance, NS16550_REG_MCR, MCR_OUT2);
 }
 
 /** @}
