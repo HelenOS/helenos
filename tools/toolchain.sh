@@ -553,8 +553,8 @@ build_target() {
 	fi
 	
 	# Symlink clang and lld to the install path.
-	CLANG=`which clang 2> /dev/null || echo "/usr/bin/clang"`
-	LLD=`which ld.lld 2> /dev/null || echo "/usr/bin/ld.lld"`
+	CLANG="`which clang 2> /dev/null || echo "/usr/bin/clang"`"
+	LLD="`which ld.lld 2> /dev/null || echo "/usr/bin/ld.lld"`"
 	
 	ln -s $CLANG "${INSTALL_DIR}/${PREFIX}/bin/${TARGET}-clang"
 	ln -s $LLD "${INSTALL_DIR}/${PREFIX}/bin/${TARGET}-ld.lld"
