@@ -62,8 +62,8 @@
 
 static void ipc_forget_call(call_t *);
 
-/** Open channel that is assigned automatically to new tasks */
-answerbox_t *ipc_phone_0 = NULL;
+/** Answerbox that new tasks are automatically connected to */
+answerbox_t *ipc_box_0 = NULL;
 
 static slab_cache_t *call_cache;
 static slab_cache_t *answerbox_cache;

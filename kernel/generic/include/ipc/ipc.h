@@ -176,7 +176,7 @@ typedef struct call {
 
 extern slab_cache_t *phone_cache;
 
-extern answerbox_t *ipc_phone_0;
+extern answerbox_t *ipc_box_0;
 
 extern void ipc_init(void);
 
