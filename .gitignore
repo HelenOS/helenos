@@ -372,12 +372,10 @@ uspace/lib/c/arch/sparc64/include/libarch/istate_struct.h
 uspace/lib/c/test-libc
 uspace/lib/label/test-liblabel
 uspace/lib/pcut/test-libpcut-*
-uspace/lib/posix/collisions.list
+uspace/lib/posix/gcc.specs
 uspace/lib/posix/include/libc
+uspace/lib/posix/link.ld
 uspace/lib/posix/redefs-hide-libc-symbols.list
-uspace/lib/posix/redefs-hide-libc.xargs
-uspace/lib/posix/redefs-show-posix-symbols.list
-uspace/lib/posix/redefs-show-posix.xargs
 uspace/lib/posix/test-libposix
 uspace/lib/uri/test-liburi
 uspace/srv/audio/hound/hound
