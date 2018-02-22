@@ -54,19 +54,18 @@
 	((((uint64_t) (lo)) & 0xffffffff) \
 	    | ((((uint64_t) (up)) & 0xffffffff) << 32))
 
-#ifndef member_to_inst
 #define member_to_inst(ptr_member, type, member_identif) \
-	((type*) (((void*)(ptr_member)) - ((void*)&(((type*)0)->member_identif))))
+	((type *) (((void *) (ptr_member)) - \
+	    ((void *) &(((type *) 0)->member_identif))))
+
+#define _paddname(line)     PADD_ ## line ## __
+#define _padd(width, line)  uint ## width ## _t _paddname(line)
+
+#define PADD32  _padd(32, __LINE__)
+#define PADD16  _padd(16, __LINE__)
+#define PADD8   _padd(8, __LINE__)
+
 #endif
-
-
-#endif
-
-#define _paddname(line) PADD_ ## line ## __
-#define _padd(width, line) uint ## width ## _t _paddname(line)
-#define PADD32 _padd(32, __LINE__)
-#define PADD16 _padd(16, __LINE__)
-#define PADD8 _padd(8, __LINE__)
 
 /** @}
  */
