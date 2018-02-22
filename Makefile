@@ -47,7 +47,7 @@ CONFIG_HEADER = config.h
 ERRNO_HEADER = abi/include/abi/errno.h
 ERRNO_INPUT = abi/include/abi/errno.in
 
-.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace
+.PHONY: all precheck cscope cscope_parts autotool config_auto config_default config distclean clean check releasefile release common boot kernel uspace export-posix
 
 all: kernel uspace
 	$(MAKE) -r -C boot PRECHECK=$(PRECHECK)
@@ -59,6 +59,13 @@ kernel: common
 
 uspace: common
 	$(MAKE) -r -C uspace PRECHECK=$(PRECHECK)
+
+export-posix: common
+ifndef EXPORT_DIR
+	@echo ERROR: Variable EXPORT_DIR is not defined. && false
+else
+	$(MAKE) -r -C uspace export EXPORT_DIR=$(abspath $(EXPORT_DIR))
+endif
 
 precheck: clean
 	$(MAKE) -r all PRECHECK=y

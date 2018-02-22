@@ -257,12 +257,15 @@ BUILDS_TESTS := $(addsuffix .build-test,$(DIRS) $(LIBS) $(BASE_LIBS))
 DEPS = $(addsuffix /deps.mk,$(DIRS) $(LIBS))
 CLEANS := $(addsuffix .clean,$(DIRS) $(LIBS) $(BASE_LIBS))
 
-.PHONY: all $(BASE_BUILDS) $(BUILDS) $(BUILDS_TESTS) $(CLEANS) clean
+.PHONY: all $(BASE_BUILDS) $(BUILDS) $(BUILDS_TESTS) $(CLEANS) clean export
 
 all: $(BUILDS) $(BUILDS_TESTS)
 
 $(BUILDS_TESTS): $(BASE_BUILDS) $(BUILDS)
 	$(MAKE) -r -C $(basename $@) all-test PRECHECK=$(PRECHECK)
+
+export: lib/posix.build lib/math.build lib/clui.build
+	$(MAKE) -r -C lib/posix export EXPORT_DIR=$(EXPORT_DIR)
 
 clean: $(CLEANS)
 	find lib app drv srv -name '*.o' -follow -exec rm \{\} \;

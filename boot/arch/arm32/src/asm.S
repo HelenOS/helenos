@@ -67,7 +67,7 @@ FUNCTION_BEGIN(jump_to_kernel)
 #ifndef PROCESSOR_ARCH_armv7_a
 	mrc	p15, 0, r4, c1, c0, 0
 	
-	# D-cache before the kernel is started.
+	# Disable D-cache before the kernel is started.
 	bic	r4, r4, #(1 << CP15_C1_DC)
 
 	# Disable I-cache and Branch predictors.

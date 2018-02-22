@@ -49,32 +49,29 @@
 #define MCR_OUT2   0x08  /** OUT2. */
 
 /** NS16550 registers. */
-typedef struct {
-	union {
-		ioport8_t rbr;      /**< Receiver Buffer Register (read). */
-		ioport8_t thr;      /**< Transmitter Holder Register (write). */
-	} __attribute__ ((packed));
-	ioport8_t ier;      /**< Interrupt Enable Register. */
-	union {
-		ioport8_t iir;  /**< Interrupt Ident Register (read). */
-		ioport8_t fcr;  /**< FIFO control register (write). */
-	} __attribute__ ((packed));
-	ioport8_t lcr;      /**< Line Control register. */
-	ioport8_t mcr;      /**< Modem Control Register. */
-	ioport8_t lsr;      /**< Line Status Register. */
-} __attribute__ ((packed)) ns16550_t;
+typedef enum {
+	NS16550_REG_RBR = 0,  /**< Receiver Buffer Register (read). */
+	NS16550_REG_THR = 0,  /**< Transmitter Holder Register (write). */
+	NS16550_REG_IER = 1,  /**< Interrupt Enable Register. */
+	NS16550_REG_IIR = 2,  /**< Interrupt Ident Register (read). */
+	NS16550_REG_FCR = 2,  /**< FIFO control register (write). */
+	NS16550_REG_LCR = 3,  /**< Line Control register. */
+	NS16550_REG_MCR = 4,  /**< Modem Control Register. */
+	NS16550_REG_LSR = 5,  /**< Line Status Register. */
+} ns16550_reg_t;
 
 /** Structure representing the ns16550 device. */
 typedef struct {
 	irq_t irq;
-	ns16550_t *ns16550;
+	volatile ioport8_t *ns16550;
 	indev_t *input;
 	outdev_t *output;
 	parea_t parea;
+	int reg_shift;
 } ns16550_instance_t;
 
-extern ns16550_instance_t *ns16550_init(ns16550_t *, inr_t, cir_t, void *,
-    outdev_t **);
+extern ns16550_instance_t *ns16550_init(ioport8_t *, unsigned, inr_t, cir_t,
+    void *, outdev_t **);
 extern void ns16550_wire(ns16550_instance_t *, indev_t *);
 
 #endif

@@ -180,7 +180,7 @@ void ia64_post_smp_init(void)
 	
 #ifdef CONFIG_NS16550
 	ns16550_instance_t *ns16550_instance
-	    = ns16550_init((ns16550_t *) NS16550_BASE, NS16550_IRQ, NULL, NULL,
+	    = ns16550_init(NS16550_BASE, 0, NS16550_IRQ, NULL, NULL,
 	    NULL);
 	if (ns16550_instance) {
 		srln_instance_t *srln_instance = srln_init();

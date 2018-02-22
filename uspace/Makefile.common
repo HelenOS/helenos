@@ -173,31 +173,59 @@ endif
 	TEST_BINARY_LIBS += $(TEST_LIBS)
 endif
 
-COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
-	-ffreestanding -nostdlib -nostdinc -fexec-charset=UTF-8 \
-	-finput-charset=UTF-8 -D__$(ENDIANESS)__ -D_HELENOS_SOURCE -fno-common \
-	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
-
-GCC_CFLAGS = -ffunction-sections -Wall -Wextra -Wno-clobbered \
-	-Wno-unused-parameter -Wmissing-prototypes -std=gnu99 \
-	-Werror-implicit-function-declaration \
-	-Wwrite-strings -pipe
-
-# -Wno-missing-prototypes is there because it warns about main().
-# This should be fixed elsewhere.
-CLANG_CFLAGS = -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-typedef-redefinition \
-	-Wno-missing-prototypes -Wno-unused-command-line-argument \
-	-std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings \
-	-pipe -fno-stack-protector -fno-PIC
+# Flags that are not necessary, and can be overriden, but are used by default.
+DEFAULT_CFLAGS = \
+	-O$(OPTIMIZATION) \
+	-ffunction-sections \
+	-pipe \
+	-Wall \
+	-Wextra \
+	-Wno-unused-parameter \
+	-Wmissing-prototypes \
+	-Wwrite-strings \
+	-Werror-implicit-function-declaration
 
 ifeq ($(CONFIG_DEBUG),y)
-	COMMON_CFLAGS += -Werror
+	DEFAULT_CFLAGS += -Werror
+endif
+
+ifeq ($(COMPILER),clang)
+	DEFAULT_CFLAGS += \
+		-Wno-missing-field-initializers \
+		-Wno-typedef-redefinition \
+		-Wno-unused-command-line-argument
+else
+	DEFAULT_CFLAGS += \
+		-Wno-clobbered
 endif
 
 ifeq ($(CONFIG_LINE_DEBUG),y)
-	GCC_CFLAGS += -ggdb
-	CLANG_CFLAGS += -g
+	DEFAULT_CFLAGS += -ggdb
 endif
+
+# Flags that should always be used, even for third-party software.
+COMMON_CPPFLAGS = \
+	-nostdinc \
+	-D__$(ENDIANESS)__
+
+COMMON_CFLAGS = \
+	-ffreestanding \
+	-nostdlib
+
+# Flags that are always used for HelenOS code, but not for third-party.
+HELENOS_CFLAGS = \
+	-std=gnu99 \
+	$(INCLUDES_FLAGS) \
+	-imacros $(CONFIG_HEADER) \
+	-D_HELENOS_SOURCE \
+	-fexec-charset=UTF-8 \
+	-finput-charset=UTF-8 \
+	-fno-common \
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
+
+# TODO: Use a different name.
+# CFLAGS variable is traditionally used for overridable flags.
+CFLAGS = $(COMMON_CPPFLAGS) $(COMMON_CFLAGS) $(HELENOS_CFLAGS) $(DEFAULT_CFLAGS)
 
 ## Setup platform configuration
 #
@@ -213,12 +241,6 @@ ifeq ($(PRECHECK),y)
 	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
 else
 	CC_JOB = $(CC) $< -o $@
-endif
-
-ifeq ($(COMPILER),clang)
-	CFLAGS += $(COMMON_CFLAGS) $(CLANG_CFLAGS)
-else
-	CFLAGS += $(COMMON_CFLAGS) $(GCC_CFLAGS)
 endif
 
 ifeq ($(CONFIG_STRIP_BINARIES),y)
@@ -245,14 +267,13 @@ all: tag $(OUTPUTS)
 
 all-test: $(TEST_OUTPUTS)
 
-clean:
-	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN) tag deps.mk
+clean: fasterclean
 	find . -name '*.o' -follow -exec rm \{\} \;
 	find . -name '*.lo' -follow -exec rm \{\} \;
 	find . -name '*.d' -follow -exec rm \{\} \;
 
 fasterclean:
-	rm -f $(JOB) $(OUTPUTS) $(EXTRA_CLEAN) tag deps.mk
+	rm -rf $(JOB) $(OUTPUTS) $(EXTRA_CLEAN) tag deps.mk
 
 depend: $(PRE_DEPEND)
 

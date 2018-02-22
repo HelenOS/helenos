@@ -125,6 +125,9 @@ static slab_cache_t mag_cache;
 /** Cache for cache descriptors */
 static slab_cache_t slab_cache_cache;
 
+/** Cache for per-CPU magazines of caches */
+static slab_cache_t slab_mag_cache;
+
 /** Cache for external slab descriptors
  * This time we want per-cpu cache, so do not make it static
  * - using slab for internal slab structures will not deadlock,
@@ -588,8 +591,7 @@ NO_TRACE static bool make_magcache(slab_cache_t *cache)
 {
 	assert(_slab_initialized >= 2);
 	
-	cache->mag_cache = malloc(sizeof(slab_mag_cache_t) * config.cpu_count,
-	    FRAME_ATOMIC);
+	cache->mag_cache = slab_alloc(&slab_mag_cache, FRAME_ATOMIC);
 	if (!cache->mag_cache)
 		return false;
 	
@@ -722,6 +724,21 @@ NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
 	return frames;
 }
 
+/** Return object to cache, use slab if known
+ *
+ */
+NO_TRACE static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
+{
+	ipl_t ipl = interrupts_disable();
+	
+	if ((cache->flags & SLAB_CACHE_NOMAGAZINE) ||
+	    (magazine_obj_put(cache, obj)))
+		slab_obj_destroy(cache, obj, slab);
+	
+	interrupts_restore(ipl);
+	atomic_dec(&cache->allocated_objs);
+}
+
 /** Check that there are no slabs and remove cache from system
  *
  */
@@ -750,8 +767,10 @@ void slab_cache_destroy(slab_cache_t *cache)
 	    (!list_empty(&cache->partial_slabs)))
 		panic("Destroying cache that is not empty.");
 	
-	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE))
-		free(cache->mag_cache);
+	if (!(cache->flags & SLAB_CACHE_NOMAGAZINE)) {
+		slab_t *mag_slab = obj2slab(cache->mag_cache);
+		_slab_free(mag_slab->cache, cache->mag_cache, mag_slab);
+	}
 	
 	slab_free(&slab_cache_cache, cache);
 }
@@ -778,21 +797,6 @@ void *slab_alloc(slab_cache_t *cache, unsigned int flags)
 		atomic_inc(&cache->allocated_objs);
 	
 	return result;
-}
-
-/** Return object to cache, use slab if known
- *
- */
-NO_TRACE static void _slab_free(slab_cache_t *cache, void *obj, slab_t *slab)
-{
-	ipl_t ipl = interrupts_disable();
-	
-	if ((cache->flags & SLAB_CACHE_NOMAGAZINE) ||
-	    (magazine_obj_put(cache, obj)))
-		slab_obj_destroy(cache, obj, slab);
-	
-	interrupts_restore(ipl);
-	atomic_dec(&cache->allocated_objs);
 }
 
 /** Return slab object to cache
@@ -929,6 +933,10 @@ void slab_enable_cpucache(void)
 #ifdef CONFIG_DEBUG
 	_slab_initialized = 2;
 #endif
+	
+	_slab_cache_create(&slab_mag_cache, "slab_mag_cache",
+	    sizeof(slab_mag_cache_t) * config.cpu_count, sizeof(uintptr_t),
+	    NULL, NULL, SLAB_CACHE_NOMAGAZINE | SLAB_CACHE_SLINSIDE);
 	
 	irq_spinlock_lock(&slab_cache_lock, false);
 	

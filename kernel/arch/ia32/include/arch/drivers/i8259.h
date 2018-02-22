@@ -43,8 +43,13 @@
 #define PIC_PIC1PORT1  ((ioport8_t *) 0xa0U)
 #define PIC_PIC1PORT2  ((ioport8_t *) 0xa1U)
 
-#define PIC_NEEDICW4  (1 << 0)
-#define PIC_ICW1      (1 << 4)
+/* ICW1 bits */
+#define PIC_ICW1           (1 << 4)
+#define PIC_ICW1_NEEDICW4  (1 << 0)
+
+/* OCW4 bits */
+#define PIC_OCW4           (0 << 3)
+#define PIC_OCW4_NSEOI     (1 << 5)
 
 extern void i8259_init(void);
 extern void pic_enable_irqs(uint16_t);

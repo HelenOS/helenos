@@ -81,5 +81,6 @@ static inline bool sec_ext_is_secure(void)
 }
 
 #endif
+
 /** @}
  */

@@ -49,7 +49,7 @@ static void pic_spurious(unsigned int n, istate_t *istate);
 void i8259_init(void)
 {
 	/* ICW1: this is ICW1, ICW4 to follow */
-	pio_write_8(PIC_PIC0PORT1, PIC_ICW1 | PIC_NEEDICW4);
+	pio_write_8(PIC_PIC0PORT1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
 	/* ICW2: IRQ 0 maps to INT IRQBASE */
 	pio_write_8(PIC_PIC0PORT2, IVT_IRQBASE);
@@ -61,7 +61,7 @@ void i8259_init(void)
 	pio_write_8(PIC_PIC0PORT2, 1);
 
 	/* ICW1: ICW1, ICW4 to follow */
-	pio_write_8(PIC_PIC1PORT1, PIC_ICW1 | PIC_NEEDICW4);
+	pio_write_8(PIC_PIC1PORT1, PIC_ICW1 | PIC_ICW1_NEEDICW4);
 
 	/* ICW2: IRQ 8 maps to INT (IVT_IRQBASE + 8) */
 	pio_write_8(PIC_PIC1PORT2, IVT_IRQBASE + 8);
@@ -121,8 +121,8 @@ void pic_disable_irqs(uint16_t irqmask)
 
 void pic_eoi(void)
 {
-	pio_write_8((ioport8_t *) 0x20, 0x20);
-	pio_write_8((ioport8_t *) 0xa0, 0x20);
+	pio_write_8(PIC_PIC0PORT1, PIC_OCW4 | PIC_OCW4_NSEOI);
+	pio_write_8(PIC_PIC1PORT1, PIC_OCW4 | PIC_OCW4_NSEOI);
 }
 
 void pic_spurious(unsigned int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
