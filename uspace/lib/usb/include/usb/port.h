@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 HelenOS xHCI team
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

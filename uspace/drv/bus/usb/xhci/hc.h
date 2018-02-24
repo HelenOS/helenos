@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Ondrej Hlavaty
+ * Copyright (c) 2018 Ondrej Hlavaty, Jan Hrach, Jaroslav Jindrak, Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

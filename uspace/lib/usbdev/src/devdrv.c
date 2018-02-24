@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek, Michal Staruch
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

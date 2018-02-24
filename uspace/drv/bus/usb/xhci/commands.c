@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak, Ondrej Hlavaty, Petr Manek, Michal Staruch, Jan Hrach
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Petr Manek
+ * Copyright (c) 2018 Petr Manek, Ondrej Hlavaty, Michal Staruch, Jan Hrach
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

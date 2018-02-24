@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
- * Copyright (c) 2017 Ondrej Hlavaty <aearsis@eideo.cz>
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
