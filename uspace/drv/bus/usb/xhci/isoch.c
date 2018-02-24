@@ -596,26 +596,26 @@ void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep,
 	const xhci_trb_completion_code_t completion_code = TRB_COMPLETION_CODE(*trb);
 
 	switch (completion_code) {
-		case XHCI_TRBC_RING_OVERRUN:
-		case XHCI_TRBC_RING_UNDERRUN:
-			/*
-			 * For OUT, there was nothing to process.
-			 * For IN, the buffer has overfilled.
-			 * In either case, reset the ring.
-			 */
-			usb_log_warning("Ring over/underrun.");
-			isoch_reset_no_timer(ep);
-			fibril_condvar_broadcast(&ep->isoch->avail);
-			fibril_mutex_unlock(&ep->isoch->guard);
-			goto out;
-		case XHCI_TRBC_SHORT_PACKET:
-		case XHCI_TRBC_SUCCESS:
-			err = EOK;
-			break;
-		default:
-			usb_log_warning("Transfer not successfull: %u", completion_code);
-			err = EIO;
-			break;
+	case XHCI_TRBC_RING_OVERRUN:
+	case XHCI_TRBC_RING_UNDERRUN:
+		/*
+		 * For OUT, there was nothing to process.
+		 * For IN, the buffer has overfilled.
+		 * In either case, reset the ring.
+		 */
+		usb_log_warning("Ring over/underrun.");
+		isoch_reset_no_timer(ep);
+		fibril_condvar_broadcast(&ep->isoch->avail);
+		fibril_mutex_unlock(&ep->isoch->guard);
+		goto out;
+	case XHCI_TRBC_SHORT_PACKET:
+	case XHCI_TRBC_SUCCESS:
+		err = EOK;
+		break;
+	default:
+		usb_log_warning("Transfer not successfull: %u", completion_code);
+		err = EIO;
+		break;
 	}
 
 	/*
