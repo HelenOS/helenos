@@ -89,7 +89,7 @@ typedef struct td {
 	 * @note this does not have to be on the same page as cbp.
 	 */
 	volatile uint32_t be;
-} __attribute__((packed)) td_t;
+} __attribute__((packed,aligned(32))) td_t;
 
 void td_init(td_t *, const td_t *, usb_direction_t, const void *, size_t, int);
 void td_set_next(td_t *, const td_t *);

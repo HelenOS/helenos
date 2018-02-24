@@ -142,7 +142,7 @@ typedef struct queue_head {
 
 	/* 64 bit struct only */
 	volatile uint32_t extended_bp[5];
-} qh_t;
+} __attribute__((packed,aligned(32))) qh_t;
 
 static inline void qh_append_qh(qh_t *qh, const qh_t *next)
 {

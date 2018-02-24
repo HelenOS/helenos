@@ -105,7 +105,7 @@ typedef struct ed {
 	volatile uint32_t next;
 #define ED_NEXT_PTR_MASK (0xfffffff0)
 #define ED_NEXT_PTR_SHIFT (0)
-} __attribute__((packed)) ed_t;
+} __attribute__((packed,aligned(32))) ed_t;
 
 void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td);
 
