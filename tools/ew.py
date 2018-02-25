@@ -189,6 +189,9 @@ def qemu_run(platform, machine, processor):
 	cmd = 'qemu-' + suffix
 
 	cmdline = cmd
+	if 'qemu_path' in overrides.keys():
+		cmdline = overrides['qemu_path'] + cmd
+
 	if options != '':
 		cmdline += ' ' + options
 
@@ -328,6 +331,7 @@ def fail(platform, machine):
 
 def run():
 	expect_nic = False
+	expect_qemu = False
 
 	for i in range(1, len(sys.argv)):
 
@@ -344,6 +348,10 @@ def run():
 			else:
 				usage()
 				exit()
+
+		if expect_qemu:
+			expect_qemu = False
+			overrides['qemu_path'] = sys.argv[i]
 
 		elif sys.argv[i] == '-h':
 			usage()
@@ -366,6 +374,8 @@ def run():
 			overrides['noxhci'] = True
 		elif sys.argv[i] == '-notablet':
 			overrides['notablet'] = True
+		elif sys.argv[i] == '-qemu_path' and i < len(sys.argv) - 1:
+			expect_qemu = True
 		else:
 			usage()
 			exit()
