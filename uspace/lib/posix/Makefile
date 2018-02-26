@@ -138,7 +138,7 @@ export: $(EXPORT_DIR)/config.mk $(EXPORT_DIR)/config.rc
 $(EXPORT_DIR)/config.mk: export-libs export-includes
 	echo '# Generated file, do not modify.' >> $@.new
 	echo '# Do not forget to set HELENOS_EXPORT_ROOT.' >> $@.new
-	echo 'HELENOS_CROSS_PATH="$(shell dirname $(CC))"' >> $@.new
+	echo 'HELENOS_CROSS_PATH="$(shell dirname "$(CC)")"' >> $@.new
 	echo 'HELENOS_ARCH="$(firstword $(subst -, ,$(TARGET)))"' >> $@.new
 	echo 'HELENOS_TARGET="$(TARGET)"' >> $@.new
 	echo 'HELENOS_CPPFLAGS="$(EXPORT_CPPFLAGS)"' >> $@.new
