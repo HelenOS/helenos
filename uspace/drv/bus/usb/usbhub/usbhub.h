@@ -83,13 +83,17 @@ errno_t usb_hub_device_remove(usb_device_t *);
 errno_t usb_hub_device_gone(usb_device_t *);
 
 errno_t usb_hub_set_depth(const usb_hub_dev_t *);
-errno_t usb_hub_get_port_status(const usb_hub_dev_t *, size_t, usb_port_status_t *);
-errno_t usb_hub_set_port_feature(const usb_hub_dev_t *, size_t, usb_hub_class_feature_t);
-errno_t usb_hub_clear_port_feature(const usb_hub_dev_t *, size_t, usb_hub_class_feature_t);
+errno_t usb_hub_get_port_status(const usb_hub_dev_t *, size_t,
+    usb_port_status_t *);
+errno_t usb_hub_set_port_feature(const usb_hub_dev_t *, size_t,
+    usb_hub_class_feature_t);
+errno_t usb_hub_clear_port_feature(const usb_hub_dev_t *, size_t,
+    usb_hub_class_feature_t);
 
 bool hub_port_changes_callback(usb_device_t *, uint8_t *, size_t, void *);
 
-errno_t usb_hub_reserve_default_address(usb_hub_dev_t *, async_exch_t *, usb_port_t *);
+errno_t usb_hub_reserve_default_address(usb_hub_dev_t *, async_exch_t *,
+    usb_port_t *);
 errno_t usb_hub_release_default_address(usb_hub_dev_t *, async_exch_t *);
 
 #endif

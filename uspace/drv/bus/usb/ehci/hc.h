@@ -103,7 +103,8 @@ void hc_dequeue_endpoint(hc_t *, const endpoint_t *);
 extern errno_t hc_add(hc_device_t *, const hw_res_list_parsed_t *);
 extern errno_t hc_start(hc_device_t *);
 extern errno_t hc_setup_roothub(hc_device_t *);
-extern errno_t hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *, int *);
+extern errno_t hc_gen_irq_code(irq_code_t *, hc_device_t *,
+    const hw_res_list_parsed_t *, int *);
 extern errno_t hc_gone(hc_device_t *);
 
 /** Runtime operations */

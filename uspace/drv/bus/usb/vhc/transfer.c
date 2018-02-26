@@ -49,8 +49,8 @@ static bool is_set_address_transfer(vhc_transfer_t *transfer)
 	if (transfer->batch.dir != USB_DIRECTION_OUT) {
 		return false;
 	}
-	const usb_device_request_setup_packet_t *setup
-		= &transfer->batch.setup.packet;
+	const usb_device_request_setup_packet_t *setup =
+	    &transfer->batch.setup.packet;
 	if (setup->request_type != 0) {
 		return false;
 	}
@@ -138,8 +138,9 @@ static vhc_transfer_t *dequeue_first_transfer(vhc_virtdev_t *dev)
 	assert(fibril_mutex_is_locked(&dev->guard));
 	assert(!list_empty(&dev->transfer_queue));
 
-	vhc_transfer_t *transfer = list_get_instance(
-	    list_first(&dev->transfer_queue), vhc_transfer_t, link);
+	vhc_transfer_t *transfer =
+	    list_get_instance(list_first(&dev->transfer_queue),
+	    vhc_transfer_t, link);
 	list_remove(&transfer->link);
 
 	return transfer;
@@ -257,7 +258,8 @@ errno_t vhc_transfer_queue_processor(void *arg)
 			rc = process_transfer_local(&transfer->batch,
 			    dev->dev_local, &data_transfer_size);
 		} else {
-			usb_log_warning("Device has no remote phone nor local node.");
+			usb_log_warning("Device has no remote phone "
+			    "nor local node.");
 			rc = ESTALL;
 		}
 
@@ -268,7 +270,7 @@ errno_t vhc_transfer_queue_processor(void *arg)
 		if (rc == EOK) {
 			if (is_set_address_transfer(transfer)) {
 				usb_device_request_setup_packet_t *setup =
-				    (void*) transfer->batch.setup.buffer;
+				    (void *) transfer->batch.setup.buffer;
 				dev->address = setup->value;
 				usb_log_debug2("Address changed to %d",
 				    dev->address);

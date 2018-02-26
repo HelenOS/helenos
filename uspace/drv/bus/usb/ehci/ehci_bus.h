@@ -77,13 +77,13 @@ errno_t ehci_bus_init(ehci_bus_t *, hc_t *);
  * @param[in] ep USBD endpoint structure.
  * @return Pointer to assigned ehci endpoint structure
  */
-static inline ehci_endpoint_t * ehci_endpoint_get(const endpoint_t *ep)
+static inline ehci_endpoint_t *ehci_endpoint_get(const endpoint_t *ep)
 {
 	assert(ep);
 	return (ehci_endpoint_t *) ep;
 }
 
-static inline ehci_endpoint_t * ehci_endpoint_list_instance(link_t *l)
+static inline ehci_endpoint_t *ehci_endpoint_list_instance(link_t *l)
 {
 	return list_get_instance(l, ehci_endpoint_t, eplist_link);
 }

@@ -149,7 +149,8 @@ static inline xhci_cmd_t *find_command(xhci_hc_t *hc, uint64_t phys)
 	link_t *cmd_link = list_first(&cr->cmd_list);
 
 	while (cmd_link != NULL) {
-		xhci_cmd_t *cmd = list_get_instance(cmd_link, xhci_cmd_t, _header.link);
+		xhci_cmd_t *cmd = list_get_instance(cmd_link, xhci_cmd_t,
+		    _header.link);
 
 		if (cmd->_header.trb_phys == phys)
 			break;
@@ -157,8 +158,9 @@ static inline xhci_cmd_t *find_command(xhci_hc_t *hc, uint64_t phys)
 		cmd_link = list_next(cmd_link, &cr->cmd_list);
 	}
 
-	return cmd_link ? list_get_instance(cmd_link, xhci_cmd_t, _header.link)
-		: NULL;
+	return cmd_link
+	    ? list_get_instance(cmd_link, xhci_cmd_t, _header.link)
+	    : NULL;
 }
 
 static void cr_set_state(xhci_cmd_ring_t *cr, xhci_cr_state_t state)
@@ -166,8 +168,7 @@ static void cr_set_state(xhci_cmd_ring_t *cr, xhci_cr_state_t state)
 	assert(fibril_mutex_is_locked(&cr->guard));
 
 	cr->state = state;
-	if (state == XHCI_CR_STATE_OPEN
-	    || state == XHCI_CR_STATE_CLOSED)
+	if (state == XHCI_CR_STATE_OPEN || state == XHCI_CR_STATE_CLOSED)
 		fibril_condvar_broadcast(&cr->state_cv);
 }
 
@@ -205,7 +206,8 @@ static inline errno_t enqueue_command(xhci_hc_t *hc, xhci_cmd_t *cmd)
 		return ENAK;
 	}
 
-	usb_log_debug("Sending command %s", xhci_trb_str_type(TRB_TYPE(cmd->_header.trb)));
+	usb_log_debug("Sending command %s",
+	    xhci_trb_str_type(TRB_TYPE(cmd->_header.trb)));
 
 	list_append(&cmd->_header.link, &cr->cmd_list);
 
@@ -336,7 +338,8 @@ static void report_error(int code)
 	if (code < XHCI_TRBC_MAX && trb_codes[code] != NULL)
 		usb_log_error("Command resulted in error: %s.", trb_codes[code]);
 	else
-		usb_log_error("Command resulted in reserved or vendor specific error.");
+		usb_log_error("Command resulted in reserved or "
+		    "vendor specific error.");
 }
 
 /**
@@ -656,13 +659,15 @@ static errno_t try_abort_current_command(xhci_hc_t *hc)
 		return EOK;
 	}
 
-	usb_log_error("Timeout while waiting for command: aborting current command.");
+	usb_log_error("Timeout while waiting for command: "
+	    "aborting current command.");
 
 	cr_set_state(cr, XHCI_CR_STATE_CHANGING);
 
 	abort_command_ring(hc);
 
-	fibril_condvar_wait_timeout(&cr->stopped_cv, &cr->guard, XHCI_CR_ABORT_TIMEOUT);
+	fibril_condvar_wait_timeout(&cr->stopped_cv, &cr->guard,
+	    XHCI_CR_ABORT_TIMEOUT);
 
 	if (XHCI_REG_RD(hc->op_regs, XHCI_OP_CRR)) {
 		/* 4.6.1.2, implementation note

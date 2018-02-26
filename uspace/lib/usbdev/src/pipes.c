@@ -337,7 +337,7 @@ errno_t usb_pipe_read_dma(usb_pipe_t *pipe, void *base, void *ptr, size_t size,
  * @param[in] size Size of the buffer (in bytes).
  * @return Error code.
  */
-errno_t usb_pipe_write_dma(usb_pipe_t *pipe, void *base, void* ptr,  size_t size)
+errno_t usb_pipe_write_dma(usb_pipe_t *pipe, void *base, void *ptr, size_t size)
 {
 	assert(pipe);
 	transfer_t transfer = {
@@ -376,13 +376,15 @@ static const usb_pipe_desc_t default_control_pipe = {
 
 /** Initialize USB default control pipe.
  *
- * This one is special because it must not be registered, it is registered automatically.
+ * This one is special because it must not be registered, it is registered
+ * automatically.
  *
  * @param pipe Endpoint pipe to be initialized.
  * @param bus_session Endpoint pipe to be initialized.
  * @return Error code.
  */
-errno_t usb_pipe_initialize_default_control(usb_pipe_t *pipe, usb_dev_session_t *bus_session)
+errno_t usb_pipe_initialize_default_control(usb_pipe_t *pipe,
+    usb_dev_session_t *bus_session)
 {
 	const errno_t ret = usb_pipe_initialize(pipe, bus_session);
 	if (ret)
@@ -401,7 +403,9 @@ errno_t usb_pipe_initialize_default_control(usb_pipe_t *pipe, usb_dev_session_t 
  * @param comp_desc Matched superspeed companion descriptro, if any
  * @return Error code.
  */
-errno_t usb_pipe_register(usb_pipe_t *pipe, const usb_standard_endpoint_descriptor_t *ep_desc, const usb_superspeed_endpoint_companion_descriptor_t *comp_desc)
+errno_t usb_pipe_register(usb_pipe_t *pipe,
+    const usb_standard_endpoint_descriptor_t *ep_desc,
+    const usb_superspeed_endpoint_companion_descriptor_t *comp_desc)
 {
 	assert(pipe);
 	assert(pipe->bus_session);
@@ -428,7 +432,8 @@ errno_t usb_pipe_register(usb_pipe_t *pipe, const usb_standard_endpoint_descript
 	}
 #undef COPY
 
-	const errno_t ret = usbhc_register_endpoint(exch, &pipe->desc, &descriptors);
+	const errno_t ret = usbhc_register_endpoint(exch,
+	    &pipe->desc, &descriptors);
 	async_exchange_end(exch);
 	return ret;
 }

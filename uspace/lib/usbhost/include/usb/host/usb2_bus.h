@@ -60,7 +60,8 @@ typedef struct usb2_bus_helper {
 	const bandwidth_accounting_t *bw_accounting;
 } usb2_bus_helper_t;
 
-extern void usb2_bus_helper_init(usb2_bus_helper_t *, const bandwidth_accounting_t *);
+extern void usb2_bus_helper_init(usb2_bus_helper_t *,
+    const bandwidth_accounting_t *);
 
 extern int usb2_bus_device_enumerate(usb2_bus_helper_t *, device_t *);
 extern void usb2_bus_device_gone(usb2_bus_helper_t *, device_t *);

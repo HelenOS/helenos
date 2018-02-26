@@ -64,13 +64,14 @@ typedef struct ohci_transfer_batch {
 	dma_buffer_t ohci_dma_buffer;
 } ohci_transfer_batch_t;
 
-ohci_transfer_batch_t * ohci_transfer_batch_create(endpoint_t *batch);
+ohci_transfer_batch_t *ohci_transfer_batch_create(endpoint_t *batch);
 int ohci_transfer_batch_prepare(ohci_transfer_batch_t *ohci_batch);
 void ohci_transfer_batch_commit(const ohci_transfer_batch_t *batch);
 bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *batch);
 void ohci_transfer_batch_destroy(ohci_transfer_batch_t *ohci_batch);
 
-static inline ohci_transfer_batch_t * ohci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
+static inline ohci_transfer_batch_t *ohci_transfer_batch_get(
+    usb_transfer_batch_t *usb_batch)
 {
 	assert(usb_batch);
 

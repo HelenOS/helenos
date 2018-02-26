@@ -59,7 +59,10 @@ typedef struct usb_polling {
 	/** Size of the recieved data. */
 	size_t request_size;
 
-	/** Data buffer of at least `request_size`. User is responsible for its allocation. */
+	/**
+	 * Data buffer of at least `request_size`. User is responsible for its
+	 * allocation.
+	 */
 	uint8_t *buffer;
 
 	/** Callback when data arrives.
@@ -74,8 +77,9 @@ typedef struct usb_polling {
 	    void *arg);
 
 
-	/** Optional parameters - user can customize them, but they are defaulted to
-	 *  some reasonable values.
+	/**
+	 * Optional parameters - user can customize them, but they are
+	 * defaulted to  some reasonable values.
 	 */
 
 	/** Level of debugging messages from auto polling.
@@ -85,7 +89,10 @@ typedef struct usb_polling {
 	 */
 	int debug;
 
-	/** Maximum number of consecutive errors before polling termination (default 3). */
+	/**
+	 * Maximum number of consecutive errors before polling termination
+	 * (default 3).
+	 */
 	size_t max_failures;
 
 	/** Delay between poll requests in milliseconds.
@@ -120,8 +127,10 @@ typedef struct usb_polling {
 	bool (*on_error)(usb_device_t *dev, errno_t err_code, void *arg);
 
 
-	/** Internal parameters - user is not expected to set them. Messing with them
-	 *  can result in unexpected behavior if you do not know what you are doing.
+	/**
+	 * Internal parameters - user is not expected to set them. Messing with
+	 * them can result in unexpected behavior if you do not know what you
+	 * are doing.
 	 */
 
 	/** Fibril used for polling. */

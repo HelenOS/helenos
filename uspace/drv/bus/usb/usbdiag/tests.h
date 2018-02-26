@@ -38,8 +38,10 @@
 
 #include <ddf/driver.h>
 
-errno_t usbdiag_dev_test_in(ddf_fun_t *, const usbdiag_test_params_t *, usbdiag_test_results_t *);
-errno_t usbdiag_dev_test_out(ddf_fun_t *, const usbdiag_test_params_t *, usbdiag_test_results_t *);
+errno_t usbdiag_dev_test_in(ddf_fun_t *, const usbdiag_test_params_t *,
+    usbdiag_test_results_t *);
+errno_t usbdiag_dev_test_out(ddf_fun_t *, const usbdiag_test_params_t *,
+    usbdiag_test_results_t *);
 
 #endif /* USBDIAG_TESTS_H_ */
 

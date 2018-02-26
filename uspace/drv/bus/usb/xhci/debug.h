@@ -62,7 +62,8 @@ extern void xhci_dump_extcap(const struct xhci_extcap *);
 
 extern void xhci_dump_slot_ctx(const struct xhci_slot_ctx *);
 extern void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *);
-extern void xhci_dump_input_ctx(const struct xhci_hc *, const struct xhci_input_ctx *);
+extern void xhci_dump_input_ctx(const struct xhci_hc *,
+    const struct xhci_input_ctx *);
 
 #endif
 /**

@@ -92,7 +92,8 @@ void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
 
 errno_t vhc_virtdev_plug(vhc_data_t *, async_sess_t *, uintptr_t *);
 errno_t vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);
-errno_t vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *, usb_address_t address);
+errno_t vhc_virtdev_plug_hub(vhc_data_t *, usbvirt_device_t *, uintptr_t *,
+    usb_address_t address);
 void vhc_virtdev_unplug(vhc_data_t *, uintptr_t);
 
 errno_t vhc_init(vhc_data_t *);

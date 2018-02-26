@@ -118,7 +118,8 @@ errno_t usbvirt_control_write(usbvirt_device_t *dev, const void *setup,
  * @param data_size_sent Number of actually send bytes during the transfer.
  * @return Error code.
  */
-errno_t usbvirt_control_read(usbvirt_device_t *dev, const void *setup, size_t setup_size,
+errno_t usbvirt_control_read(usbvirt_device_t *dev,
+    const void *setup, size_t setup_size,
     void *data, size_t data_size, size_t *data_size_sent)
 {
 	return usbvirt_control_transfer(dev, setup, setup_size,

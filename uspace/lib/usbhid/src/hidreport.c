@@ -70,7 +70,7 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 	 */
 	const uint8_t *d =
 	    usb_dp_get_nested_descriptor(&parser, &parser_data,
-	        usb_device_descriptors(dev)->full_config);
+	    usb_device_descriptors(dev)->full_config);
 	
 	/*
 	 * Find the interface descriptor corresponding to our interface number.
@@ -162,7 +162,7 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 
 
 
-errno_t usb_hid_process_report_descriptor(usb_device_t *dev, 
+errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
     usb_hid_report_t *report, uint8_t **report_desc, size_t *report_size)
 {
 	if (dev == NULL || report == NULL) {

@@ -110,7 +110,8 @@ struct bus_ops {
 	void (*device_gone)(device_t *);
 	int (*device_online)(device_t *);			/**< Optional */
 	void (*device_offline)(device_t *);			/**< Optional */
-	endpoint_t *(*endpoint_create)(device_t *, const usb_endpoint_descriptors_t *);
+	endpoint_t *(*endpoint_create)(device_t *,
+	    const usb_endpoint_descriptors_t *);
 
 	/* Operations on endpoint */
 	int (*endpoint_register)(endpoint_t *);

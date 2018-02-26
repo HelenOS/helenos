@@ -100,7 +100,7 @@ typedef struct {
 	uint8_t str_serial_number;
 	/** Number of possible configurations. */
 	uint8_t configuration_count;
-} __attribute__ ((packed)) usb_standard_device_descriptor_t;
+} __attribute__((packed)) usb_standard_device_descriptor_t;
 
 /** USB device qualifier decriptor is basically a cut down version of the device
  * descriptor with values that would be valid if the device operated on the
@@ -128,7 +128,7 @@ typedef struct {
 	/** Number of possible configurations. */
 	uint8_t configuration_count;
 	uint8_t reserved;
-} __attribute__ ((packed)) usb_standard_device_qualifier_descriptor_t;
+} __attribute__((packed)) usb_standard_device_qualifier_descriptor_t;
 
 /** Standard USB configuration descriptor.
  */
@@ -155,7 +155,7 @@ typedef struct {
 	 * Expressed in 2mA unit (e.g. 50 ~ 100mA).
 	 */
 	uint8_t max_power;
-} __attribute__ ((packed)) usb_standard_configuration_descriptor_t;
+} __attribute__((packed)) usb_standard_configuration_descriptor_t;
 
 /** USB Other Speed Configuration descriptor shows values that would change
  * in the configuration descriptor if the device operated at its other
@@ -190,7 +190,7 @@ typedef struct {
 	uint8_t interface_protocol;
 	/** String descriptor describing this interface. */
 	uint8_t str_interface;
-} __attribute__ ((packed)) usb_standard_interface_descriptor_t;
+} __attribute__((packed)) usb_standard_interface_descriptor_t;
 
 /** Standard USB endpoint descriptor.
  */
@@ -222,7 +222,7 @@ typedef struct {
 	 * pairs.
 	 */
 	uint8_t poll_interval;
-} __attribute__ ((packed)) usb_standard_endpoint_descriptor_t;
+} __attribute__((packed)) usb_standard_endpoint_descriptor_t;
 
 /** Superspeed USB endpoint companion descriptor.
  * See USB 3 specification, section 9.6.7.
@@ -253,7 +253,7 @@ typedef struct {
 	 * This field is only valid for periodic endpoints.
 	 */
 	uint16_t bytes_per_interval;
-} __attribute__ ((packed)) usb_superspeed_endpoint_companion_descriptor_t;
+} __attribute__((packed)) usb_superspeed_endpoint_companion_descriptor_t;
 
 /** Part of standard USB HID descriptor specifying one class descriptor.
  *
@@ -264,7 +264,7 @@ typedef struct {
 	uint8_t type;
 	/** Length of class-specific descriptor in bytes. */
 	uint16_t length;
-} __attribute__ ((packed)) usb_standard_hid_class_descriptor_info_t;
+} __attribute__((packed)) usb_standard_hid_class_descriptor_info_t;
 
 /** Standard USB HID descriptor.
  *
@@ -295,7 +295,7 @@ typedef struct {
 	uint8_t class_desc_count;
 	/** First mandatory class descriptor (Report) info. */
 	usb_standard_hid_class_descriptor_info_t report_desc_info;
-} __attribute__ ((packed)) usb_standard_hid_descriptor_t;
+} __attribute__((packed)) usb_standard_hid_descriptor_t;
 
 #endif
 /**

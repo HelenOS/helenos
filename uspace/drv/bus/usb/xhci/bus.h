@@ -44,11 +44,9 @@ typedef struct xhci_device xhci_device_t;
 
 /** Endpoint management structure */
 typedef struct xhci_bus {
-	bus_t base;		/**< Inheritance. Keep this first. */
-
-	xhci_hc_t *hc;				/**< Pointer to managing HC (to issue commands) */
-
-	xhci_device_t **devices_by_slot;	/**< Devices by Slot ID */
+	bus_t base; /**< Inheritance. Keep this first. */
+	xhci_hc_t *hc; /**< Pointer to managing HC (to issue commands) */
+	xhci_device_t **devices_by_slot; /**< Devices by Slot ID */
 } xhci_bus_t;
 
 extern errno_t xhci_bus_init(xhci_bus_t *, xhci_hc_t *);

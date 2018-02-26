@@ -71,7 +71,8 @@ static void ohci_device_gone(device_t *dev)
 
 /** Creates new hcd endpoint representation.
  */
-static endpoint_t *ohci_endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
+static endpoint_t *ohci_endpoint_create(device_t *dev,
+    const usb_endpoint_descriptors_t *desc)
 {
 	assert(dev);
 
@@ -81,7 +82,8 @@ static endpoint_t *ohci_endpoint_create(device_t *dev, const usb_endpoint_descri
 
 	endpoint_init(&ohci_ep->base, dev, desc);
 
-	const errno_t err = dma_buffer_alloc(&ohci_ep->dma_buffer, sizeof(ed_t) + 2 * sizeof(td_t));
+	const errno_t err = dma_buffer_alloc(&ohci_ep->dma_buffer,
+	    sizeof(ed_t) + 2 * sizeof(td_t));
 	if (err) {
 		free(ohci_ep);
 		return NULL;

@@ -77,7 +77,8 @@ typedef struct hc_driver {
 	int (*hc_add)(hc_device_t *, const hw_res_list_parsed_t *);
 
 	/** Generate IRQ code to handle interrupts. */
-	int (*irq_code_gen)(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *, int *);
+	int (*irq_code_gen)(irq_code_t *, hc_device_t *,
+	    const hw_res_list_parsed_t *, int *);
 
 	/** Claim device from BIOS. */
 	int (*claim)(hc_device_t *);
@@ -99,7 +100,8 @@ typedef struct hc_driver {
 } hc_driver_t;
 
 /* Drivers should call this before leaving hc_add */
-static inline void hc_device_setup(hc_device_t *hcd, bus_t *bus) {
+static inline void hc_device_setup(hc_device_t *hcd, bus_t *bus)
+{
 	hcd->bus = bus;
 }
 

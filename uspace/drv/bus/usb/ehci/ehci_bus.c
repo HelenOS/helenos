@@ -53,7 +53,8 @@ void ehci_ep_toggle_reset(endpoint_t *ep)
 {
 	ehci_endpoint_t *instance = ehci_endpoint_get(ep);
 	if (qh_toggle_from_td(instance->qh))
-		usb_log_warning("EP(%p): Resetting toggle bit for transfer directed EP", instance);
+		usb_log_warning("EP(%p): Resetting toggle bit for transfer "
+		    "directed EP", instance);
 	qh_toggle_set(instance->qh, 0);
 }
 
@@ -71,7 +72,8 @@ static void ehci_device_gone(device_t *dev)
 
 /** Creates new hcd endpoint representation.
  */
-static endpoint_t *ehci_endpoint_create(device_t *dev, const usb_endpoint_descriptors_t *desc)
+static endpoint_t *ehci_endpoint_create(device_t *dev,
+    const usb_endpoint_descriptors_t *desc)
 {
 	assert(dev);
 

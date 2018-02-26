@@ -101,8 +101,10 @@ typedef struct endpoint {
 	size_t max_transfer_size;
 
 	/* Policies for transfer buffers */
-	dma_policy_t transfer_buffer_policy;		/**< A hint for optimal performance. */
-	dma_policy_t required_transfer_buffer_policy;	/**< Enforced by the library. */
+	/** A hint for optimal performance. */
+	dma_policy_t transfer_buffer_policy;
+	/** Enforced by the library. */
+	dma_policy_t required_transfer_buffer_policy;
 
 	/**
 	 * Number of packets that can be sent in one service interval
@@ -113,7 +115,8 @@ typedef struct endpoint {
 	/* This structure is meant to be extended by overriding. */
 } endpoint_t;
 
-extern void endpoint_init(endpoint_t *, device_t *, const usb_endpoint_descriptors_t *);
+extern void endpoint_init(endpoint_t *, device_t *,
+    const usb_endpoint_descriptors_t *);
 
 extern void endpoint_add_ref(endpoint_t *);
 extern void endpoint_del_ref(endpoint_t *);

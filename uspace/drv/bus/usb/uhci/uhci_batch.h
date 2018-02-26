@@ -69,7 +69,7 @@ typedef struct uhci_transfer_batch {
 	link_t link;
 } uhci_transfer_batch_t;
 
-uhci_transfer_batch_t * uhci_transfer_batch_create(endpoint_t *);
+uhci_transfer_batch_t *uhci_transfer_batch_create(endpoint_t *);
 int uhci_transfer_batch_prepare(uhci_transfer_batch_t *);
 bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *);
 void uhci_transfer_batch_destroy(uhci_transfer_batch_t *);
@@ -78,7 +78,7 @@ void uhci_transfer_batch_destroy(uhci_transfer_batch_t *);
  * @param uhci_batch UHCI batch structure.
  * @return Pointer to the setup buffer.
  */
-static inline void * uhci_transfer_batch_setup_buffer(
+static inline void *uhci_transfer_batch_setup_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
@@ -90,7 +90,7 @@ static inline void * uhci_transfer_batch_setup_buffer(
  * @param uhci_batch UHCI batch structure.
  * @return Pointer to the data buffer.
  */
-static inline void * uhci_transfer_batch_data_buffer(
+static inline void *uhci_transfer_batch_data_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
@@ -107,7 +107,8 @@ static inline uhci_transfer_batch_t *uhci_transfer_batch_from_link(link_t *l)
 	return list_get_instance(l, uhci_transfer_batch_t, link);
 }
 
-static inline uhci_transfer_batch_t *uhci_transfer_batch_get(usb_transfer_batch_t *b)
+static inline uhci_transfer_batch_t *uhci_transfer_batch_get(
+    usb_transfer_batch_t *b)
 {
 	assert(b);
 	return (uhci_transfer_batch_t *) b;

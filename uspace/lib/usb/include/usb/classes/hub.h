@@ -177,7 +177,7 @@ typedef struct {
 	 *  electronics in mA.
 	 */
 	uint8_t max_current;
-} __attribute__ ((packed)) usb_hub_descriptor_header_t;
+} __attribute__((packed)) usb_hub_descriptor_header_t;
 
 /** One bit for the device and one bit for every port */
 #define STATUS_BYTES(ports) ((1 + ports + 7) / 8)
@@ -186,65 +186,57 @@ typedef struct {
  * @brief usb hub specific request types.
  */
 typedef enum {
-    /** This request resets a value reported in the hub status. */
-    USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE = 0x20,
-    /** This request resets a value reported in the port status. */
-    USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE = 0x23,
-    /**
-     * This is an optional per-port diagnostic request that returns the bus
-     * state value, as sampled at the last EOF2 point.
-     */
-    USB_HUB_REQ_TYPE_GET_STATE = 0xA3,
-    /** This request returns the hub descriptor. */
-    USB_HUB_REQ_TYPE_GET_DESCRIPTOR = 0xA0,
-    /**
-     * This request returns the current hub status and the states that have
-     * changed since the previous acknowledgment.
-     */
-    USB_HUB_REQ_TYPE_GET_HUB_STATUS = 0xA0,
-    /**
-     * This request returns the current port status and the current value of the
-     * port status change bits.
-     */
-    USB_HUB_REQ_TYPE_GET_PORT_STATUS = 0xA3,
-    /** This request overwrites the hub descriptor. */
-    USB_HUB_REQ_TYPE_SET_DESCRIPTOR = 0x20,
-    /** This request sets a value reported in the hub status. */
-    USB_HUB_REQ_TYPE_SET_HUB_FEATURE = 0x20,
-    /**
-     * This request sets the value that the hub uses to determine the index
-     * into the Route String Index for the hub.
-     */
-    USB_HUB_REQ_TYPE_SET_HUB_DEPTH = 0x20,
-    /** This request sets a value reported in the port status. */
-    USB_HUB_REQ_TYPE_SET_PORT_FEATURE = 0x23,
+	/** This request resets a value reported in the hub status. */
+	USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE = 0x20,
+	/** This request resets a value reported in the port status. */
+	USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE = 0x23,
+	/**
+	 * This is an optional per-port diagnostic request that returns the bus
+	 * state value, as sampled at the last EOF2 point.
+	 */
+	USB_HUB_REQ_TYPE_GET_STATE = 0xA3,
+	/** This request returns the hub descriptor. */
+	USB_HUB_REQ_TYPE_GET_DESCRIPTOR = 0xA0,
+	/**
+	 * This request returns the current hub status and the states that have
+	 * changed since the previous acknowledgment.
+	 */
+	USB_HUB_REQ_TYPE_GET_HUB_STATUS = 0xA0,
+	/**
+	 * This request returns the current port status and the current value of the
+	 * port status change bits.
+	 */
+	USB_HUB_REQ_TYPE_GET_PORT_STATUS = 0xA3,
+	/** This request overwrites the hub descriptor. */
+	USB_HUB_REQ_TYPE_SET_DESCRIPTOR = 0x20,
+	/** This request sets a value reported in the hub status. */
+	USB_HUB_REQ_TYPE_SET_HUB_FEATURE = 0x20,
+	/**
+	 * This request sets the value that the hub uses to determine the index
+	 * into the Route String Index for the hub.
+	 */
+	USB_HUB_REQ_TYPE_SET_HUB_DEPTH = 0x20,
+	/** This request sets a value reported in the port status. */
+	USB_HUB_REQ_TYPE_SET_PORT_FEATURE = 0x23,
 } usb_hub_bm_request_type_t;
 
-/** @brief hub class request codes*/
-/// \TODO these are duplicit to standart descriptors
+/**
+ * @brief hub class request codes
+ */
 typedef enum {
-    /**  */
-    USB_HUB_REQUEST_GET_STATUS = 0,
-    /** */
-    USB_HUB_REQUEST_CLEAR_FEATURE = 1,
-    /** USB 1.0 only */
-    USB_HUB_REQUEST_GET_STATE = 2,
-    /** */
-    USB_HUB_REQUEST_SET_FEATURE = 3,
-    /** */
-    USB_HUB_REQUEST_GET_DESCRIPTOR = 6,
-    /** */
-    USB_HUB_REQUEST_SET_DESCRIPTOR = 7,
-    /** */
-    USB_HUB_REQUEST_CLEAR_TT_BUFFER = 8,
-    /** */
-    USB_HUB_REQUEST_RESET_TT = 9,
-    /** */
-    USB_HUB_GET_TT_STATE = 10,
-    /** */
-    USB_HUB_STOP_TT = 11,
-    /** USB 3+ only */
-    USB_HUB_REQUEST_SET_HUB_DEPTH = 12,
+	USB_HUB_REQUEST_GET_STATUS = 0,
+	USB_HUB_REQUEST_CLEAR_FEATURE = 1,
+	/** USB 1.0 only */
+	USB_HUB_REQUEST_GET_STATE = 2,
+	USB_HUB_REQUEST_SET_FEATURE = 3,
+	USB_HUB_REQUEST_GET_DESCRIPTOR = 6,
+	USB_HUB_REQUEST_SET_DESCRIPTOR = 7,
+	USB_HUB_REQUEST_CLEAR_TT_BUFFER = 8,
+	USB_HUB_REQUEST_RESET_TT = 9,
+	USB_HUB_GET_TT_STATE = 10,
+	USB_HUB_STOP_TT = 11,
+	/** USB 3+ only */
+	USB_HUB_REQUEST_SET_HUB_DEPTH = 12,
 } usb_hub_request_t;
 
 /**

@@ -57,22 +57,26 @@ void usbdiag_disconnect(async_sess_t *sess)
 		async_hangup(sess);
 }
 
-errno_t usbdiag_test_in(async_exch_t *exch, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
+errno_t usbdiag_test_in(async_exch_t *exch,
+    const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	if (!exch)
 		return EBADMEM;
 
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_TEST_IN, &answer);
+	aid_t req = async_send_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE),
+	    IPC_M_USBDIAG_TEST_IN, &answer);
 
-	errno_t rc = async_data_write_start(exch, params, sizeof(usbdiag_test_params_t));
+	errno_t rc = async_data_write_start(exch, params,
+	    sizeof(usbdiag_test_params_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return rc;
 	}
 
-	rc = async_data_read_start(exch, results, sizeof(usbdiag_test_results_t));
+	rc = async_data_read_start(exch, results,
+	    sizeof(usbdiag_test_results_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -87,22 +91,26 @@ errno_t usbdiag_test_in(async_exch_t *exch, const usbdiag_test_params_t *params,
 	return (errno_t) retval;
 }
 
-errno_t usbdiag_test_out(async_exch_t *exch, const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
+errno_t usbdiag_test_out(async_exch_t *exch,
+    const usbdiag_test_params_t *params, usbdiag_test_results_t *results)
 {
 	if (!exch)
 		return EBADMEM;
 
 	ipc_call_t answer;
-	aid_t req = async_send_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE), IPC_M_USBDIAG_TEST_OUT, &answer);
+	aid_t req = async_send_1(exch, DEV_IFACE_ID(USBDIAG_DEV_IFACE),
+	    IPC_M_USBDIAG_TEST_OUT, &answer);
 
-	errno_t rc = async_data_write_start(exch, params, sizeof(usbdiag_test_params_t));
+	errno_t rc = async_data_write_start(exch, params,
+	    sizeof(usbdiag_test_params_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return rc;
 	}
 
-	rc = async_data_read_start(exch, results, sizeof(usbdiag_test_results_t));
+	rc = async_data_read_start(exch, results,
+	    sizeof(usbdiag_test_results_t));
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
@@ -117,8 +125,10 @@ errno_t usbdiag_test_out(async_exch_t *exch, const usbdiag_test_params_t *params
 	return (errno_t) retval;
 }
 
-static void remote_usbdiag_test_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbdiag_test_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbdiag_test_in(ddf_fun_t *, void *,
+    ipc_callid_t, ipc_call_t *);
+static void remote_usbdiag_test_out(ddf_fun_t *, void *,
+    ipc_callid_t, ipc_call_t *);
 
 /** Remote USB diagnostic interface operations. */
 static const remote_iface_func_ptr_t remote_usbdiag_iface_ops [] = {
@@ -132,7 +142,8 @@ const remote_iface_t remote_usbdiag_iface = {
 	.methods = remote_usbdiag_iface_ops,
 };
 
-void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
@@ -157,7 +168,8 @@ void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ip
 	}
 
 	usbdiag_test_results_t results;
-	const errno_t ret = !diag_iface->test_in ? ENOTSUP : diag_iface->test_in(fun, &params, &results);
+	const errno_t ret = !diag_iface->test_in ? ENOTSUP
+	    : diag_iface->test_in(fun, &params, &results);
 
 	if (ret != EOK) {
 		async_answer_0(callid, ret);
@@ -184,7 +196,8 @@ void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ip
 	async_answer_0(callid, ret);
 }
 
-void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
@@ -209,7 +222,8 @@ void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface, ipc_callid_t callid, i
 	}
 
 	usbdiag_test_results_t results;
-	const errno_t ret = !diag_iface->test_out ? ENOTSUP : diag_iface->test_out(fun, &params, &results);
+	const errno_t ret = !diag_iface->test_out ? ENOTSUP
+	    : diag_iface->test_out(fun, &params, &results);
 
 	if (ret != EOK) {
 		async_answer_0(callid, ret);

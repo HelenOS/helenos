@@ -51,7 +51,8 @@ usb_dev_session_t *usb_dev_connect(devman_handle_t handle)
 
 usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *dev)
 {
-	return devman_parent_device_connect(ddf_dev_get_handle(dev), IPC_FLAG_BLOCKING);
+	return devman_parent_device_connect(ddf_dev_get_handle(dev),
+	    IPC_FLAG_BLOCKING);
 }
 
 void usb_dev_disconnect(usb_dev_session_t *sess)
@@ -89,7 +90,8 @@ errno_t usb_get_my_description(async_exch_t *exch, usb_device_desc_t *desc)
 	return ret;
 }
 
-static void remote_usb_get_my_description(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_get_my_description(ddf_fun_t *, void *,
+    ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static const remote_iface_func_ptr_t remote_usb_iface_ops [] = {

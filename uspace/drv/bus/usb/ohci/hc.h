@@ -83,14 +83,15 @@ typedef struct hc {
 	ohci_bus_t bus;
 } hc_t;
 
-static inline hc_t * hcd_to_hc(hc_device_t *hcd)
+static inline hc_t *hcd_to_hc(hc_device_t *hcd)
 {
 	assert(hcd);
 	return (hc_t *) hcd;
 }
 
 extern errno_t hc_add(hc_device_t *, const hw_res_list_parsed_t *);
-extern errno_t hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *, int *);
+extern errno_t hc_gen_irq_code(irq_code_t *, hc_device_t *,
+    const hw_res_list_parsed_t *, int *);
 extern errno_t hc_gain_control(hc_device_t *);
 extern errno_t hc_start(hc_device_t *);
 extern errno_t hc_setup_roothub(hc_device_t *);

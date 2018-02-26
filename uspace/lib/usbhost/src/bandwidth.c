@@ -72,8 +72,7 @@ static size_t bandwidth_count_usb11(endpoint_t *ep)
 	/* TODO: It may be that ISO and INT transfers use only one packet per
 	 * transaction, but I did not find text in USB spec to confirm this */
 	/* NOTE: All data packets will be considered to be max_packet_size */
-	switch (ep->device->speed)
-	{
+	switch (ep->device->speed) {
 	case USB_SPEED_LOW:
 		assert(type == USB_TRANSFER_INTERRUPT);
 		/* Protocol overhead 13B
@@ -142,9 +141,11 @@ static size_t bandwidth_count_usb2(endpoint_t *ep)
 	switch (ep->device->speed) {
 	case USB_SPEED_LOW:
 		if (ep->direction == USB_DIRECTION_IN)
-			return 64060 + (2 * hub_ls_setup) + (677 * base_time) + host_delay;
+			return 64060 + (2 * hub_ls_setup) +
+				(677 * base_time) + host_delay;
 		else
-			return 64107 + (2 * hub_ls_setup) + (667 * base_time) + host_delay;
+			return 64107 + (2 * hub_ls_setup) +
+				(667 * base_time) + host_delay;
 
 	case USB_SPEED_FULL:
 		if (ep->transfer_type == USB_TRANSFER_INTERRUPT)

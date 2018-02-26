@@ -178,14 +178,17 @@ enum {
  */
 #define XHCI_CTX_SIZE_SMALL 32
 #define XHCI_ONE_CTX_SIZE(hc) (XHCI_CTX_SIZE_SMALL << hc->csz)
-#define XHCI_GET_CTX_FIELD(type, ctx, hc, ci) (xhci_##type##_ctx_to_charptr(ctx) + (ci) * XHCI_ONE_CTX_SIZE(hc))
+#define XHCI_GET_CTX_FIELD(type, ctx, hc, ci) \
+    (xhci_##type##_ctx_to_charptr(ctx) + (ci) * XHCI_ONE_CTX_SIZE(hc))
 
 /**
  * Device context: section 6.2.1
  */
 #define XHCI_DEVICE_CTX_SIZE(hc) ((1 + XHCI_EP_COUNT) * XHCI_ONE_CTX_SIZE(hc))
-#define XHCI_GET_EP_CTX(dev_ctx, hc, dci) ((xhci_ep_ctx_t *)   XHCI_GET_CTX_FIELD(device, (dev_ctx), (hc), (dci)))
-#define XHCI_GET_SLOT_CTX(dev_ctx, hc)    ((xhci_slot_ctx_t *) XHCI_GET_CTX_FIELD(device, (dev_ctx), (hc), 0))
+#define XHCI_GET_EP_CTX(dev_ctx, hc, dci) \
+    ((xhci_ep_ctx_t *)   XHCI_GET_CTX_FIELD(device, (dev_ctx), (hc), (dci)))
+#define XHCI_GET_SLOT_CTX(dev_ctx, hc) \
+    ((xhci_slot_ctx_t *) XHCI_GET_CTX_FIELD(device, (dev_ctx), (hc), 0))
 
 /**
  * As control, slot and endpoint contexts differ in size on different HCs,
@@ -209,10 +212,10 @@ static inline char *xhci_device_ctx_to_charptr(const xhci_device_ctx_t *ctx)
  */
 typedef struct xhci_stream_ctx {
 	uint64_t data [2];
-#define XHCI_STREAM_DCS(ctx)       XHCI_QWORD_EXTRACT((ctx).data[0],  0, 0)
-#define XHCI_STREAM_SCT(ctx)       XHCI_QWORD_EXTRACT((ctx).data[0],  3, 1)
-#define XHCI_STREAM_DEQ_PTR(ctx)   (XHCI_QWORD_EXTRACT((ctx).data[0], 63, 4) << 4)
-#define XHCI_STREAM_EDTLA(ctx)     XHCI_QWORD_EXTRACT((ctx).data[1], 24, 0)
+#define XHCI_STREAM_DCS(ctx)     XHCI_QWORD_EXTRACT((ctx).data[0],  0, 0)
+#define XHCI_STREAM_SCT(ctx)     XHCI_QWORD_EXTRACT((ctx).data[0],  3, 1)
+#define XHCI_STREAM_DEQ_PTR(ctx) (XHCI_QWORD_EXTRACT((ctx).data[0], 63, 4) << 4)
+#define XHCI_STREAM_EDTLA(ctx)   XHCI_QWORD_EXTRACT((ctx).data[1], 24, 0)
 
 #define XHCI_STREAM_SCT_SET(ctx, val) \
 	xhci_qword_set_bits(&(ctx).data[0], val, 3, 1)
@@ -231,28 +234,33 @@ typedef struct xhci_stream_ctx {
 typedef struct xhci_input_ctrl_ctx {
 	uint32_t data [8];
 #define XHCI_INPUT_CTRL_CTX_DROP(ctx, idx) \
-	XHCI_DWORD_EXTRACT((ctx).data[0], (idx), (idx))
+    XHCI_DWORD_EXTRACT((ctx).data[0], (idx), (idx))
 
 #define XHCI_INPUT_CTRL_CTX_DROP_SET(ctx, idx) (ctx).data[0] |= (1 << (idx))
 #define XHCI_INPUT_CTRL_CTX_DROP_CLEAR(ctx, idx) (ctx).data[0] &= ~(1 << (idx))
 
 #define XHCI_INPUT_CTRL_CTX_ADD(ctx, idx) \
-	XHCI_DWORD_EXTRACT((ctx).data[1], (idx), (idx))
+    XHCI_DWORD_EXTRACT((ctx).data[1], (idx), (idx))
 
 #define XHCI_INPUT_CTRL_CTX_ADD_SET(ctx, idx) (ctx).data[1] |= (1 << (idx))
 #define XHCI_INPUT_CTRL_CTX_ADD_CLEAR(ctx, idx) (ctx).data[1] &= ~(1 << (idx))
 
-#define XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7],  7,  0)
-#define XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(ctx)   XHCI_DWORD_EXTRACT((ctx).data[7], 15,  8)
-#define XHCI_INPUT_CTRL_CTX_ALTER_SETTING(ctx)  XHCI_DWORD_EXTRACT((ctx).data[7], 23, 16)
+#define XHCI_INPUT_CTRL_CTX_CONFIG_VALUE(ctx) \
+    XHCI_DWORD_EXTRACT((ctx).data[7],  7,  0)
+#define XHCI_INPUT_CTRL_CTX_IFACE_NUMBER(ctx) \
+    XHCI_DWORD_EXTRACT((ctx).data[7], 15,  8)
+#define XHCI_INPUT_CTRL_CTX_ALTER_SETTING(ctx) \
+    XHCI_DWORD_EXTRACT((ctx).data[7], 23, 16)
 } __attribute__((packed)) xhci_input_ctrl_ctx_t;
 
 /**
  * Input context: section 6.2.5
  */
 #define XHCI_INPUT_CTX_SIZE(hc) (XHCI_ONE_CTX_SIZE(hc) + XHCI_DEVICE_CTX_SIZE(hc))
-#define XHCI_GET_CTRL_CTX(ictx, hc)  ((xhci_input_ctrl_ctx_t *) XHCI_GET_CTX_FIELD(input, (ictx), (hc), 0))
-#define XHCI_GET_DEVICE_CTX(dev_ctx, hc) ((xhci_device_ctx_t *) XHCI_GET_CTX_FIELD(input, (ictx), (hc), 1))
+#define XHCI_GET_CTRL_CTX(ictx, hc) \
+    ((xhci_input_ctrl_ctx_t *) XHCI_GET_CTX_FIELD(input, (ictx), (hc), 0))
+#define XHCI_GET_DEVICE_CTX(dev_ctx, hc) \
+    ((xhci_device_ctx_t *) XHCI_GET_CTX_FIELD(input, (ictx), (hc), 1))
 
 typedef struct xhci_input_ctx {
 } xhci_input_ctx_t;

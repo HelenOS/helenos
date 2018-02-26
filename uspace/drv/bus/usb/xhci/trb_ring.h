@@ -56,36 +56,39 @@ typedef struct xhci_erst_entry xhci_erst_entry_t;
  * A TRB ring of which the software is a producer - command / transfer.
  */
 typedef struct xhci_trb_ring {
-	list_t segments;                /* List of assigned segments */
-	int segment_count;              /* Number of segments assigned */
+	list_t segments;                /**< List of assigned segments */
+	int segment_count;              /**< Number of segments assigned */
 
-	/*
-	 * As the link TRBs connect physical addresses, we need to keep track of
-	 * active segment in virtual memory. The enqueue ptr should always belong
-	 * to the enqueue segment.
+	/**
+	 * As the link TRBs connect physical addresses, we need to keep track
+	 * of active segment in virtual memory. The enqueue ptr should always
+	 * belong to the enqueue segment.
 	 */
 	trb_segment_t *enqueue_segment;
 	xhci_trb_t *enqueue_trb;
 
-	uintptr_t dequeue;              /* Last reported position of the dequeue pointer */
-	bool pcs;                       /* Producer Cycle State: section 4.9.2 */
+	uintptr_t dequeue; /**< Last reported position of the dequeue pointer */
+	bool pcs;          /**< Producer Cycle State: section 4.9.2 */
 
 	fibril_mutex_t guard;
 } xhci_trb_ring_t;
 
 extern errno_t xhci_trb_ring_init(xhci_trb_ring_t *, size_t);
 extern void xhci_trb_ring_fini(xhci_trb_ring_t *);
-extern errno_t xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *, uintptr_t *);
-extern errno_t xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *, xhci_trb_t *, size_t, uintptr_t *);
+extern errno_t xhci_trb_ring_enqueue(xhci_trb_ring_t *, xhci_trb_t *,
+    uintptr_t *);
+extern errno_t xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *, xhci_trb_t *,
+    size_t, uintptr_t *);
 extern size_t xhci_trb_ring_size(xhci_trb_ring_t *);
 
-extern void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *ring, uintptr_t *addr);
+extern void xhci_trb_ring_reset_dequeue_state(xhci_trb_ring_t *, uintptr_t *);
 
 /**
  * When an event is received by the upper layer, it needs to update the dequeue
  * pointer inside the ring. Otherwise, the ring will soon show up as full.
  */
-static inline void xhci_trb_ring_update_dequeue(xhci_trb_ring_t *ring, uintptr_t phys)
+static inline void xhci_trb_ring_update_dequeue(xhci_trb_ring_t *ring,
+    uintptr_t phys)
 {
 	ring->dequeue = phys;
 }
@@ -94,16 +97,16 @@ static inline void xhci_trb_ring_update_dequeue(xhci_trb_ring_t *ring, uintptr_t
  * A TRB ring of which the software is a consumer (event rings).
  */
 typedef struct xhci_event_ring {
-	list_t segments;                /* List of assigned segments */
-	int segment_count;              /* Number of segments assigned */
+	list_t segments;                /**< List of assigned segments */
+	int segment_count;              /**< Number of segments assigned */
 
-	trb_segment_t *dequeue_segment; /* Current segment of the dequeue ptr */
-	xhci_trb_t *dequeue_trb;        /* Next TRB to be processed */
-	uintptr_t dequeue_ptr;          /* Physical address of the ERDP to be reported to the HC */
+	trb_segment_t *dequeue_segment; /**< Current segment */
+	xhci_trb_t *dequeue_trb;        /**< Next TRB to be processed */
+	uintptr_t dequeue_ptr;  /**< Physical ERDP to be reported to the HC */
 
-	dma_buffer_t erst;              /* ERST given to the HC */
+	dma_buffer_t erst;      /**< ERST given to the HC */
 
-	bool ccs;                       /* Consumer Cycle State: section 4.9.2 */
+	bool ccs;               /**< Consumer Cycle State: section 4.9.2 */
 
 	fibril_mutex_t guard;
 } xhci_event_ring_t;

@@ -47,7 +47,10 @@ typedef struct xhci_stream_data {
 	/** The TRB ring for the context, if valid */
 	xhci_trb_ring_t ring;
 
-	/** Pointer to the array of secondary stream context data for primary data. */
+	/**
+	 * Pointer to the array of secondary stream context data for primary
+	 * data.
+	 */
 	xhci_stream_data_t *secondary_data;
 
 	/** The size of secondary stream context data array */
@@ -60,13 +63,14 @@ typedef struct xhci_stream_data {
 	dma_buffer_t secondary_stream_ctx_dma;
 } xhci_stream_data_t;
 
-extern xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *ep, uint32_t stream_id);
-extern void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep);
+extern xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *, uint32_t);
+extern void xhci_stream_free_ds(xhci_endpoint_t *);
 
-extern errno_t xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev, xhci_endpoint_t *xhci_ep);
-extern errno_t xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
-    xhci_endpoint_t *xhci_ep, unsigned count);
-extern errno_t xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
-    xhci_endpoint_t *xhci_ep, unsigned *sizes, unsigned count);
+extern errno_t xhci_endpoint_remove_streams(xhci_hc_t *, xhci_device_t *,
+    xhci_endpoint_t *);
+extern errno_t xhci_endpoint_request_primary_streams(xhci_hc_t *,
+    xhci_device_t *, xhci_endpoint_t *, unsigned);
+extern errno_t xhci_endpoint_request_secondary_streams(xhci_hc_t *,
+    xhci_device_t *, xhci_endpoint_t *, unsigned *, unsigned);
 
 #endif

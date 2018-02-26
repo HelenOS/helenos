@@ -69,8 +69,7 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	    QH_EP_CHAR_ADDR_SET(ep->device->address) |
 	    QH_EP_CHAR_EP_SET(ep->endpoint) |
 	    speed[ep->device->speed] |
-	    QH_EP_CHAR_MAX_LENGTH_SET(ep->max_packet_size)
-	);
+	    QH_EP_CHAR_MAX_LENGTH_SET(ep->max_packet_size));
 	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
 		if (ep->device->speed != USB_SPEED_HIGH)
 			EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_C_FLAG);
@@ -79,7 +78,7 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 		EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_DTC_FLAG);
 	}
 	uint32_t ep_cap = QH_EP_CAP_C_MASK_SET(3 << 2) |
-		    QH_EP_CAP_MULTI_SET(ep->packets_per_uframe);
+	    QH_EP_CAP_MULTI_SET(ep->packets_per_uframe);
 	if (usb_speed_is_11(ep->device->speed)) {
 		assert(ep->device->tt.dev != NULL);
 		ep_cap |=

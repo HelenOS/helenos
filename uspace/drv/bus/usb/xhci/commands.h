@@ -69,10 +69,10 @@ typedef enum xhci_cmd_type {
 } xhci_cmd_type_t;
 
 typedef enum {
-	XHCI_CR_STATE_CLOSED,		/**< Commands are rejected with ENAK. */
-	XHCI_CR_STATE_OPEN,		/**< Commands are enqueued normally. */
-	XHCI_CR_STATE_CHANGING,		/**< Commands wait until state changes. */
-	XHCI_CR_STATE_FULL,		/**< Commands wait until something completes. */
+	XHCI_CR_STATE_CLOSED,	/**< Commands are rejected with ENAK. */
+	XHCI_CR_STATE_OPEN,	/**< Commands are enqueued normally. */
+	XHCI_CR_STATE_CHANGING,	/**< Commands wait until state changes. */
+	XHCI_CR_STATE_FULL,	/**< Commands wait until something completes. */
 } xhci_cr_state_t;
 
 typedef struct xhci_command_ring {

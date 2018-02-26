@@ -94,9 +94,9 @@ typedef struct xhci_hc {
 	unsigned max_slots;
 	bool ac64;
 	bool csz;
-	uint64_t wrap_time;		/** The last time when mfindex wrap happened */
-	uint64_t wrap_count;	/** Amount of mfindex wraps HC has done */
-	unsigned ist;			/**< IST in microframes */
+	uint64_t wrap_time;	/**< The last time when mfindex wrap happened */
+	uint64_t wrap_count;	/**< Amount of mfindex wraps HC has done */
+	unsigned ist;		/**< IST in microframes */
 
 	/** Port speed mapping */
 	xhci_port_speed_t speeds [16];

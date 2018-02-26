@@ -106,7 +106,7 @@ typedef struct ed {
 	volatile uint32_t next;
 #define ED_NEXT_PTR_MASK (0xfffffff0)
 #define ED_NEXT_PTR_SHIFT (0)
-} __attribute__((packed,aligned(32))) ed_t;
+} __attribute__((packed, aligned(32))) ed_t;
 
 void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td);
 
@@ -203,7 +203,7 @@ static inline uint32_t ed_next(const ed_t *instance)
 static inline int ed_toggle_get(const ed_t *instance)
 {
 	assert(instance);
-	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_TOGGLE_CARRY) ? 1 : 0;
+	return !!(OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_TOGGLE_CARRY);
 }
 
 /**

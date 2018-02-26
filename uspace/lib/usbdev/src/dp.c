@@ -126,7 +126,8 @@ static const uint8_t *get_next_descriptor(const usb_dp_parser_data_t *data,
  * @return Descriptor type.
  * @retval -1 Invalid input.
  */
-static int get_descriptor_type(const usb_dp_parser_data_t *data, const uint8_t *start)
+static int get_descriptor_type(const usb_dp_parser_data_t *data,
+    const uint8_t *start)
 {
 	if (start == NULL) {
 		return -1;
@@ -257,7 +258,8 @@ const uint8_t *usb_dp_get_sibling_descriptor(
 
 	int parent_type = get_descriptor_type(data, parent);
 	int possible_sibling_type = get_descriptor_type(data, possible_sibling);
-	if (is_nested_descriptor_type(parser, possible_sibling_type, parent_type)) {
+	if (is_nested_descriptor_type(parser,
+		    possible_sibling_type, parent_type)) {
 		return possible_sibling;
 	} else {
 		return NULL;

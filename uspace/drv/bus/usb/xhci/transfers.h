@@ -58,7 +58,8 @@ extern errno_t xhci_transfer_schedule(usb_transfer_batch_t *);
 extern errno_t xhci_handle_transfer_event(xhci_hc_t *, xhci_trb_t *);
 extern void xhci_transfer_destroy(usb_transfer_batch_t *);
 
-static inline xhci_transfer_t *xhci_transfer_from_batch(usb_transfer_batch_t *batch)
+static inline xhci_transfer_t *xhci_transfer_from_batch(
+    usb_transfer_batch_t *batch)
 {
 	assert(batch);
 	return (xhci_transfer_t *) batch;

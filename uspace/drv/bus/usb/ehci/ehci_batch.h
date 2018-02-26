@@ -62,13 +62,14 @@ typedef struct ehci_transfer_batch {
 	usb_transfer_batch_t *usb_batch;
 } ehci_transfer_batch_t;
 
-ehci_transfer_batch_t * ehci_transfer_batch_create(endpoint_t *ep);
+ehci_transfer_batch_t *ehci_transfer_batch_create(endpoint_t *ep);
 int ehci_transfer_batch_prepare(ehci_transfer_batch_t *batch);
 void ehci_transfer_batch_commit(const ehci_transfer_batch_t *batch);
 bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *batch);
 void ehci_transfer_batch_destroy(ehci_transfer_batch_t *batch);
 
-static inline ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *usb_batch)
+static inline ehci_transfer_batch_t *ehci_transfer_batch_get(
+    usb_transfer_batch_t *usb_batch)
 {
 	assert(usb_batch);
 

@@ -67,7 +67,8 @@ static errno_t hcd_hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	return EOK;
 }
 
-static errno_t hcd_irq_code_gen(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res, int *irq)
+static errno_t hcd_irq_code_gen(irq_code_t *code, hc_device_t *hcd,
+    const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	xhci_hc_t *hc = hcd_to_hc(hcd);
 	return hc_irq_code_gen(code, hc, hw_res, irq);

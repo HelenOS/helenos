@@ -53,8 +53,8 @@
 /** Convert 32bit value from USB endianness into native (host) one. */
 #define uint32_usb2host(n) uint32_t_le2host((n))
 
-const char * usb_str_transfer_type(usb_transfer_type_t t);
-const char * usb_str_transfer_type_short(usb_transfer_type_t t);
+const char *usb_str_transfer_type(usb_transfer_type_t);
+const char *usb_str_transfer_type_short(usb_transfer_type_t);
 
 const char *usb_str_direction(usb_direction_t);
 
@@ -148,8 +148,7 @@ static inline bool usb_target_is_valid(const usb_target_t *target)
  */
 static inline bool usb_target_same(usb_target_t a, usb_target_t b)
 {
-	return (a.address == b.address)
-	    && (a.endpoint == b.endpoint);
+	return (a.address == b.address) && (a.endpoint == b.endpoint);
 }
 
 /** USB packet identifier. */
@@ -166,14 +165,14 @@ typedef enum {
 	USB_PID_SOF = _MAKE_PID(1, 1),
 	USB_PID_SETUP = _MAKE_PID(3, 1),
 
-	USB_PID_DATA0 = _MAKE_PID(0 ,3),
-	USB_PID_DATA1 = _MAKE_PID(2 ,3),
+	USB_PID_DATA0 = _MAKE_PID(0, 3),
+	USB_PID_DATA1 = _MAKE_PID(2, 3),
 
-	USB_PID_ACK = _MAKE_PID(0 ,2),
-	USB_PID_NAK = _MAKE_PID(2 ,2),
-	USB_PID_STALL = _MAKE_PID(3 ,2),
+	USB_PID_ACK = _MAKE_PID(0, 2),
+	USB_PID_NAK = _MAKE_PID(2, 2),
+	USB_PID_STALL = _MAKE_PID(3, 2),
 
-	USB_PID_PRE = _MAKE_PID(3 ,0),
+	USB_PID_PRE = _MAKE_PID(3, 0),
 	/* USB_PID_ = _MAKE_PID( ,), */
 #undef _MAKE_PID
 #undef _MAKE_PID_NIBBLE

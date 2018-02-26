@@ -76,7 +76,8 @@ errno_t usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 		return ENOMEM;
 	}
 	
-	errno_t rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
+	errno_t rc = async_data_write_start(exch, setup_buffer,
+	    setup_buffer_size);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(opening_request);
@@ -84,8 +85,8 @@ errno_t usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 	}
 	
 	ipc_call_t data_request_call;
-	aid_t data_request = async_data_read(exch, data_buffer, data_buffer_size,
-	    &data_request_call);
+	aid_t data_request = async_data_read(exch, data_buffer,
+	    data_buffer_size, &data_request_call);
 	
 	async_exchange_end(exch);
 	
@@ -149,7 +150,8 @@ errno_t usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 		return ENOMEM;
 	}
 	
-	errno_t rc = async_data_write_start(exch, setup_buffer, setup_buffer_size);
+	errno_t rc = async_data_write_start(exch, setup_buffer,
+	    setup_buffer_size);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(opening_request);
@@ -157,7 +159,8 @@ errno_t usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 	}
 	
 	if (data_buffer_size > 0) {
-		rc = async_data_write_start(exch, data_buffer, data_buffer_size);
+		rc = async_data_write_start(exch, data_buffer,
+		    data_buffer_size);
 		if (rc != EOK) {
 			async_exchange_end(exch);
 			async_forget(opening_request);

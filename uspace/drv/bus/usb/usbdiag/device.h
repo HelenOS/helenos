@@ -76,22 +76,23 @@ typedef struct usbdiag_dev {
 
 } usbdiag_dev_t;
 
-errno_t usbdiag_dev_create(usb_device_t *, usbdiag_dev_t **, const usb_endpoint_description_t **);
+errno_t usbdiag_dev_create(usb_device_t *, usbdiag_dev_t **,
+    const usb_endpoint_description_t **);
 void usbdiag_dev_destroy(usbdiag_dev_t *);
 
-static inline usbdiag_dev_t * usb_device_to_usbdiag_dev(usb_device_t *usb_dev)
+static inline usbdiag_dev_t *usb_device_to_usbdiag_dev(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_device_data_get(usb_dev);
 }
 
-static inline usbdiag_dev_t * ddf_dev_to_usbdiag_dev(ddf_dev_t *ddf_dev)
+static inline usbdiag_dev_t *ddf_dev_to_usbdiag_dev(ddf_dev_t *ddf_dev)
 {
 	assert(ddf_dev);
 	return usb_device_to_usbdiag_dev(usb_device_get(ddf_dev));
 }
 
-static inline usbdiag_dev_t * ddf_fun_to_usbdiag_dev(ddf_fun_t *ddf_fun)
+static inline usbdiag_dev_t *ddf_fun_to_usbdiag_dev(ddf_fun_t *ddf_fun)
 {
 	assert(ddf_fun);
 	return ddf_dev_to_usbdiag_dev(ddf_fun_get_dev(ddf_fun));

@@ -83,7 +83,10 @@ typedef struct {
 	/** Resets endpoint if there is no traffic. */
 	fibril_timer_t *reset_timer;
 
-	/** The maximum size of an isochronous transfer and therefore the size of buffers */
+	/**
+	 * The maximum size of an isochronous transfer
+	 * and therefore the size of buffers
+	 */
 	size_t max_size;
 
 	/** The microframe at which the last TRB was scheduled. */
@@ -122,7 +125,8 @@ extern errno_t isoch_alloc_transfers(xhci_endpoint_t *);
 
 extern errno_t isoch_schedule_out(xhci_transfer_t *);
 extern errno_t isoch_schedule_in(xhci_transfer_t *);
-extern void isoch_handle_transfer_event(xhci_hc_t *, xhci_endpoint_t *, xhci_trb_t *);
+extern void isoch_handle_transfer_event(xhci_hc_t *, xhci_endpoint_t *,
+    xhci_trb_t *);
 
 #endif
 

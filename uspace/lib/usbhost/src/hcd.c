@@ -154,10 +154,11 @@ static inline void irq_code_clean(irq_code_t *code)
  * @return IRQ capability handle on success.
  * @return Negative error code.
  */
-static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
+static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd,
+    const hw_res_list_parsed_t *hw_res)
 {
 	assert(hcd);
-	irq_code_t irq_code = {0};
+	irq_code_t irq_code = { 0 };
 
 	if (!hc_driver->irq_code_gen)
 		return ENOTSUP;
@@ -173,7 +174,8 @@ static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd, const hw_res_list_pars
 
 	/* Register handler to avoid interrupt lockup */
 	int irq_cap;
-	ret = register_interrupt_handler(hcd->ddf_dev, irq, irq_handler, &irq_code, &irq_cap);
+	ret = register_interrupt_handler(hcd->ddf_dev, irq, irq_handler,
+	    &irq_code, &irq_cap);
 	irq_code_clean(&irq_code);
 	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.",
@@ -211,7 +213,8 @@ errno_t hc_dev_add(ddf_dev_t *device)
 	assert(device);
 
 	if (!hc_driver->hc_add) {
-		usb_log_error("Driver '%s' does not support adding devices.", hc_driver->name);
+		usb_log_error("Driver '%s' does not support adding devices.",
+		    hc_driver->name);
 		return ENOTSUP;
 	}
 
@@ -291,7 +294,7 @@ errno_t hc_dev_add(ddf_dev_t *device)
 	}
 
 	usb_log_info("Controlling new `%s' device `%s'.",
-	   hc_driver->name, ddf_dev_get_name(device));
+	    hc_driver->name, ddf_dev_get_name(device));
 	return EOK;
 
 err_polling:

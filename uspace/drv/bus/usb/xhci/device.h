@@ -61,7 +61,7 @@ typedef struct xhci_device {
 } xhci_device_t;
 
 #define XHCI_DEV_FMT  "(%s, slot %d)"
-#define XHCI_DEV_ARGS(dev)		 ddf_fun_get_name((dev).base.fun), (dev).slot_id
+#define XHCI_DEV_ARGS(dev)	ddf_fun_get_name((dev).base.fun), (dev).slot_id
 
 /* Bus callbacks */
 errno_t xhci_device_enumerate(device_t *);
@@ -71,7 +71,7 @@ void xhci_device_gone(device_t *);
 
 void xhci_setup_slot_context(xhci_device_t *, xhci_slot_ctx_t *);
 
-static inline xhci_device_t * xhci_device_get(device_t *dev)
+static inline xhci_device_t *xhci_device_get(device_t *dev)
 {
 	assert(dev);
 	return (xhci_device_t *) dev;

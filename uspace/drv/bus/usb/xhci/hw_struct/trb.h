@@ -159,7 +159,8 @@ typedef struct xhci_trb {
 /**
  * The Chain bit is valid only in specific TRB types.
  */
-static inline bool xhci_trb_is_chained(xhci_trb_t *trb) {
+static inline bool xhci_trb_is_chained(xhci_trb_t *trb)
+{
 	const int type = TRB_TYPE(*trb);
 	const bool chain_bit = XHCI_DWORD_EXTRACT(trb->control, 4, 4);
 
