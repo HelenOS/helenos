@@ -415,7 +415,7 @@ errno_t usb_pipe_register(usb_pipe_t *pipe,
 	if (!exch)
 		return ENOMEM;
 
-	usb_endpoint_descriptors_t descriptors;
+	usb_endpoint_descriptors_t descriptors = { 0 };
 
 #define COPY(field) descriptors.endpoint.field = ep_desc->field
 	COPY(endpoint_address);
