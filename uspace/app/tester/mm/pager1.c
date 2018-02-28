@@ -70,25 +70,25 @@ static void *create_paged_area(size_t size)
 		vfs_put(fd);
 		return NULL;
 	}
-	
+
 	TPRINTF("Creating AS area...\n");
-	
+
 	void *result = async_as_area_create(AS_AREA_ANY, size,
 	    AS_AREA_READ | AS_AREA_CACHEABLE, vfs_pager_sess, fd, 0, 0);
 	if (result == AS_MAP_FAILED) {
 		vfs_put(fd);
 		return NULL;
 	}
-	
+
 	return result;
 }
 
 static void touch_area(void *area, size_t size)
 {
 	TPRINTF("Touching (faulting-in) AS area...\n");
-	
+
 	volatile char *ptr = (char *) area;
-	
+
 	char ch;
 	while ((ch = *ptr++))
 		putchar(ch);
@@ -100,11 +100,11 @@ const char *test_pager1(void)
 	void *buffer = create_paged_area(buffer_len);
 	if (!buffer)
 		return "Cannot allocate memory";
-	
+
 	touch_area(buffer, buffer_len);
 
 	as_area_destroy(buffer);
 	vfs_put(fd);
-	
+
 	return NULL;
 }

@@ -43,12 +43,12 @@
 
 typedef struct {
 	const char *name;
-	
+
 	int argc;
 	val_type_t arg_type[OPER_MAX_ARGS];
-	
+
 	val_type_t rv_type;
-	
+
 	int respc;
 	val_type_t resp_type[OPER_MAX_ARGS];
 } oper_t;
@@ -56,7 +56,7 @@ typedef struct {
 typedef struct {
 	/** Protocol name */
 	const char *name;
-	
+
 	/** Maps method number to operation */
 	hash_table_t method_oper;
 } proto_t;

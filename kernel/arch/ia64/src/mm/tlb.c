@@ -60,17 +60,17 @@ void tlb_invalidate_all(void)
 	ipl_t ipl;
 	uintptr_t adr;
 	uint32_t count1, count2, stride1, stride2;
-	
+
 	unsigned int i, j;
-	
+
 	adr = PAL_PTCE_INFO_BASE();
 	count1 = PAL_PTCE_INFO_COUNT1();
 	count2 = PAL_PTCE_INFO_COUNT2();
 	stride1 = PAL_PTCE_INFO_STRIDE1();
 	stride2 = PAL_PTCE_INFO_STRIDE2();
-	
+
 	ipl = interrupts_disable();
-	
+
 	for (i = 0; i < count1; i++) {
 		for (j = 0; j < count2; j++) {
 			asm volatile (
@@ -81,12 +81,12 @@ void tlb_invalidate_all(void)
 		}
 		adr += stride1;
 	}
-	
+
 	interrupts_restore(ipl);
-	
+
 	srlz_d();
 	srlz_i();
-	
+
 #ifdef CONFIG_VHPT
 	vhpt_invalidate_all();
 #endif
@@ -109,10 +109,10 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	bool restore_rr = false;
 	int b = 0;
 	int c = cnt;
-	
+
 	uintptr_t va;
 	va = page;
-	
+
 	rr.word = rr_read(VA2VRN(page));
 	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(page))))) {
 		/*
@@ -120,19 +120,19 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 		 * Save the old content of the register and replace the RID.
 		 */
 		region_register_t rr0;
-		
+
 		rr0 = rr;
 		rr0.map.rid = ASID2RID(asid, VA2VRN(page));
 		rr_write(VA2VRN(page), rr0.word);
 		srlz_d();
 		srlz_i();
 	}
-	
+
 	while (c >>= 1)
 		b++;
 	b >>= 1;
 	uint64_t ps;
-	
+
 	switch (b) {
 	case 0: /* cnt 1 - 3 */
 		ps = PAGE_WIDTH;
@@ -171,17 +171,17 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 		va &= ~((1UL << ps) - 1);
 		break;
 	}
-	
+
 	for (; va < (page + cnt * PAGE_SIZE); va += (1UL << ps))
 		asm volatile (
 			"ptc.l %[va], %[ps] ;;"
 			:: [va]"r" (va),
 			   [ps] "r" (ps << 2)
 		);
-	
+
 	srlz_d();
 	srlz_i();
-	
+
 	if (restore_rr) {
 		rr_write(VA2VRN(page), rr.word);
 		srlz_d();
@@ -228,7 +228,7 @@ void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 {
 	region_register_t rr;
 	bool restore_rr = false;
-	
+
 	rr.word = rr_read(VA2VRN(va));
 	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
 		/*
@@ -236,14 +236,14 @@ void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 		 * Save the old content of the register and replace the RID.
 		 */
 		region_register_t rr0;
-		
+
 		rr0 = rr;
 		rr0.map.rid = ASID2RID(asid, VA2VRN(va));
 		rr_write(VA2VRN(va), rr0.word);
 		srlz_d();
 		srlz_i();
 	}
-	
+
 	asm volatile (
 		"mov r8 = psr ;;\n"
 		"rsm %[mask] ;;\n"                 /* PSR_IC_MASK */
@@ -263,7 +263,7 @@ void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 		   [dtc] "r" (dtc)
 		: "p6", "p7", "r8"
 	);
-	
+
 	if (restore_rr) {
 		rr_write(VA2VRN(va), rr.word);
 		srlz_d();
@@ -315,7 +315,7 @@ void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr,
 {
 	region_register_t rr;
 	bool restore_rr = false;
-	
+
 	rr.word = rr_read(VA2VRN(va));
 	if ((restore_rr = (rr.map.rid != ASID2RID(asid, VA2VRN(va))))) {
 		/*
@@ -323,14 +323,14 @@ void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr,
 		 * Save the old content of the register and replace the RID.
 		 */
 		region_register_t rr0;
-		
+
 		rr0 = rr;
 		rr0.map.rid = ASID2RID(asid, VA2VRN(va));
 		rr_write(VA2VRN(va), rr0.word);
 		srlz_d();
 		srlz_i();
 	}
-	
+
 	asm volatile (
 		"mov r8 = psr ;;\n"
 		"rsm %[mask] ;;\n"                       /* PSR_IC_MASK */
@@ -351,7 +351,7 @@ void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr,
 		   [dtr] "r" (dtr)
 		: "p6", "p7", "r8"
 	);
-	
+
 	if (restore_rr) {
 		rr_write(VA2VRN(va), rr.word);
 		srlz_d();
@@ -372,10 +372,10 @@ void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr,
     size_t tr)
 {
 	tlb_entry_t entry;
-	
+
 	entry.word[0] = 0;
 	entry.word[1] = 0;
-	
+
 	entry.p = true;           /* present */
 	entry.ma = MA_WRITEBACK;
 	entry.a = true;           /* already accessed */
@@ -384,7 +384,7 @@ void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr,
 	entry.ar = AR_READ | AR_WRITE;
 	entry.ppn = frame >> PPN_SHIFT;
 	entry.ps = PAGE_WIDTH;
-	
+
 	if (dtr)
 		dtr_mapping_insert(page, ASID_KERNEL, entry, tr);
 	else
@@ -417,10 +417,10 @@ void dtr_purge(uintptr_t page, size_t width)
 void dtc_pte_copy(pte_t *t)
 {
 	tlb_entry_t entry;
-	
+
 	entry.word[0] = 0;
 	entry.word[1] = 0;
-	
+
 	entry.p = t->p;
 	entry.ma = t->c ? MA_WRITEBACK : MA_UNCACHEABLE;
 	entry.a = t->a;
@@ -429,9 +429,9 @@ void dtc_pte_copy(pte_t *t)
 	entry.ar = t->w ? AR_WRITE : AR_READ;
 	entry.ppn = t->frame >> PPN_SHIFT;
 	entry.ps = PAGE_WIDTH;
-	
+
 	dtc_mapping_insert(t->page, t->as->asid, entry);
-	
+
 #ifdef CONFIG_VHPT
 	vhpt_mapping_insert(t->page, t->as->asid, entry);
 #endif
@@ -445,12 +445,12 @@ void dtc_pte_copy(pte_t *t)
 void itc_pte_copy(pte_t *t)
 {
 	tlb_entry_t entry;
-	
+
 	entry.word[0] = 0;
 	entry.word[1] = 0;
-	
+
 	assert(t->x);
-	
+
 	entry.p = t->p;
 	entry.ma = t->c ? MA_WRITEBACK : MA_UNCACHEABLE;
 	entry.a = t->a;
@@ -458,9 +458,9 @@ void itc_pte_copy(pte_t *t)
 	entry.ar = t->x ? (AR_EXECUTE | AR_READ) : AR_READ;
 	entry.ppn = t->frame >> PPN_SHIFT;
 	entry.ps = PAGE_WIDTH;
-	
+
 	itc_mapping_insert(t->page, t->as->asid, entry);
-	
+
 #ifdef CONFIG_VHPT
 	vhpt_mapping_insert(t->page, t->as->asid, entry);
 #endif
@@ -485,9 +485,9 @@ void alternate_instruction_tlb_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t t;
-	
+
 	va = istate->cr_ifa; /* faulting address */
-	
+
 	assert(!is_kernel_fault(va));
 
 	bool found = page_mapping_find(AS, va, true, &t);
@@ -531,20 +531,20 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 		if (TASK) {
 			uint64_t io_page = (va & ((1 << LEGACYIO_PAGE_WIDTH) - 1)) >>
 			    LEGACYIO_SINGLE_PAGE_WIDTH;
-			
+
 			if (is_io_page_accessible(io_page)) {
 				uint64_t page, frame;
-				
+
 				page = LEGACYIO_USER_BASE +
 				    (1 << LEGACYIO_SINGLE_PAGE_WIDTH) * io_page;
 				frame = LEGACYIO_PHYS_BASE +
 				    (1 << LEGACYIO_SINGLE_PAGE_WIDTH) * io_page;
-				
+
 				tlb_entry_t entry;
-				
+
 				entry.word[0] = 0;
 				entry.word[1] = 0;
-				
+
 				entry.p = true;             /* present */
 				entry.ma = MA_UNCACHEABLE;
 				entry.a = true;             /* already accessed */
@@ -553,7 +553,7 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 				entry.ar = AR_READ | AR_WRITE;
 				entry.ppn = frame >> PPN_SHIFT;
 				entry.ps = LEGACYIO_SINGLE_PAGE_WIDTH;
-				
+
 				dtc_mapping_insert(page, TASK->as->asid, entry);
 				return 1;
 			} else {
@@ -562,7 +562,7 @@ static int try_memmap_io_insertion(uintptr_t va, istate_t *istate)
 			}
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -585,10 +585,10 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 		istate->cr_ipsr.ed = true;
 		return;
 	}
-	
+
 	uintptr_t va = istate->cr_ifa;  /* faulting address */
 	as_t *as = AS;
-	
+
 	if (is_kernel_fault(va)) {
 		if (va < end_of_identity) {
 			/*
@@ -600,8 +600,8 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 			as = AS_KERNEL;
 		}
 	}
-	
-	
+
+
 	pte_t t;
 	bool found = page_mapping_find(as, va, true, &t);
 	if (found) {
@@ -615,7 +615,7 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 	} else {
 		if (try_memmap_io_insertion(va, istate))
 			return;
-		
+
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
@@ -648,9 +648,9 @@ void data_dirty_bit_fault(unsigned int n, istate_t *istate)
 	uintptr_t va;
 	pte_t t;
 	as_t *as = AS;
-	
+
 	va = istate->cr_ifa;  /* faulting address */
-	
+
 	if (is_kernel_fault(va))
 		as = AS_KERNEL;
 
@@ -682,11 +682,11 @@ void instruction_access_bit_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t t;
-	
+
 	va = istate->cr_ifa;  /* faulting address */
 
 	assert(!is_kernel_fault(va));
-	
+
 	bool found = page_mapping_find(AS, va, true, &t);
 
 	assert(found);
@@ -716,9 +716,9 @@ void data_access_bit_fault(unsigned int n, istate_t *istate)
 	uintptr_t va;
 	pte_t t;
 	as_t *as = AS;
-	
+
 	va = istate->cr_ifa;  /* faulting address */
-	
+
 	if (is_kernel_fault(va))
 		as = AS_KERNEL;
 
@@ -754,11 +754,11 @@ void data_access_rights_fault(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t t;
-	
+
 	va = istate->cr_ifa;  /* faulting address */
 
 	assert(!is_kernel_fault(va));
-	
+
 	/*
 	 * Assume a write to a read-only page.
 	 */
@@ -781,15 +781,15 @@ void page_not_present(unsigned int n, istate_t *istate)
 {
 	uintptr_t va;
 	pte_t t;
-	
+
 	va = istate->cr_ifa;  /* faulting address */
-	
+
 	assert(!is_kernel_fault(va));
 
 	bool found = page_mapping_find(AS, va, true, &t);
 
 	assert(found);
-	
+
 	if (t.p) {
 		/*
 		 * If the Present bit is set in page hash table, just copy it

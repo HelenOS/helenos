@@ -42,15 +42,15 @@
 dev_node_t *create_dev_node(void)
 {
 	dev_node_t *dev;
-	
+
 	dev = calloc(1, sizeof(dev_node_t));
 	if (dev == NULL)
 		return NULL;
-	
+
 	atomic_set(&dev->refcnt, 0);
 	list_initialize(&dev->functions);
 	link_initialize(&dev->driver_devices);
-	
+
 	return dev;
 }
 
@@ -63,7 +63,7 @@ void delete_dev_node(dev_node_t *dev)
 	assert(list_empty(&dev->functions));
 	assert(dev->pfun == NULL);
 	assert(dev->drv == NULL);
-	
+
 	free(dev);
 }
 
@@ -97,11 +97,11 @@ void dev_del_ref(dev_node_t *dev)
 dev_node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 {
 	assert(fibril_rwlock_is_locked(&tree->rwlock));
-	
+
 	ht_link_t *link = hash_table_find(&tree->devman_devices, &handle);
 	if (link == NULL)
 		return NULL;
-	
+
 	return hash_table_get_inst(link, dev_node_t, devman_dev);
 }
 
@@ -114,14 +114,14 @@ dev_node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle)
 {
 	dev_node_t *dev = NULL;
-	
+
 	fibril_rwlock_read_lock(&tree->rwlock);
 	dev = find_dev_node_no_lock(tree, handle);
 	if (dev != NULL)
 		dev_add_ref(dev);
-	
+
 	fibril_rwlock_read_unlock(&tree->rwlock);
-	
+
 	return dev;
 }
 

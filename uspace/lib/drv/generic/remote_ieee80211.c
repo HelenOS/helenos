@@ -65,21 +65,21 @@ errno_t ieee80211_get_scan_results(async_sess_t *dev_sess,
     ieee80211_scan_results_t *results, bool now)
 {
 	assert(results);
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	aid_t aid = async_send_2(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_GET_SCAN_RESULTS, now, NULL);
 	errno_t rc = async_data_read_start(exch, results,
 	    sizeof(ieee80211_scan_results_t));
 	async_exchange_end(exch);
-	
+
 	errno_t res;
 	async_wait_for(aid, &res);
-	
+
 	if(res != EOK)
 		return (errno_t) res;
-	
+
 	return rc;
 }
 
@@ -89,7 +89,7 @@ static bool mac_matches(uint8_t *mac1, uint8_t *mac2)
 		if (mac1[i] != mac2[i])
 			return false;
 	}
-	
+
 	return true;
 }
 
@@ -98,20 +98,20 @@ static sysarg_t get_link_id(uint8_t *mac)
 	sysarg_t *link_list;
 	inet_link_info_t link_info;
 	size_t count;
-	
+
 	errno_t rc = inetcfg_get_link_list(&link_list, &count);
 	if (rc != EOK)
 		return -1;
-	
+
 	for (size_t i = 0; i < count; i++) {
 		rc = inetcfg_link_get(link_list[i], &link_info);
 		if (rc != EOK)
 			return -1;
-		
+
 		if (mac_matches(mac, link_info.mac_addr))
 			return link_list[i];
 	}
-	
+
 	return -1;
 }
 
@@ -128,59 +128,59 @@ static sysarg_t get_link_id(uint8_t *mac)
 errno_t ieee80211_connect(async_sess_t *dev_sess, char *ssid_start, char *password)
 {
 	assert(ssid_start);
-	
+
 	errno_t rc_orig;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_CONNECT, NULL);
-	
+
 	errno_t rc = async_data_write_start(exch, ssid_start,
 	    str_size(ssid_start) + 1);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_wait_for(aid, &rc_orig);
-		
+
 		if (rc_orig == EOK)
 			return (errno_t) rc;
-		
+
 		return (errno_t) rc_orig;
 	}
-	
+
 	// FIXME: Typecasting string literal
 	if (password == NULL)
 		password = (char *) "";
-	
+
 	rc = async_data_write_start(exch, password, str_size(password) + 1);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_wait_for(aid, &rc_orig);
-		
+
 		if (rc_orig == EOK)
 			return (errno_t) rc;
-		
+
 		return (errno_t) rc_orig;
 	}
-	
+
 	async_exchange_end(exch);
-	
+
 	async_wait_for(aid, &rc);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Send DHCP discover. */
 	nic_address_t wifi_mac;
 	rc = nic_get_address(dev_sess, &wifi_mac);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t link_id = get_link_id(wifi_mac.address);
 	if (link_id == ((sysarg_t) -1))
 		return EINVAL;
-	
+
 	rc = dhcp_discover(link_id);
-	
+
 	return (errno_t) rc;
 }
 
@@ -198,47 +198,47 @@ errno_t ieee80211_disconnect(async_sess_t *dev_sess)
 	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(IEEE80211_DEV_IFACE),
 	    IEEE80211_DISCONNECT);
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	nic_address_t wifi_mac;
 	rc = nic_get_address(dev_sess, &wifi_mac);
 	if (rc != EOK)
 		return rc;
-	
+
 	inet_link_info_t link_info;
 	inet_addr_info_t addr_info;
 	inet_sroute_info_t route_info;
 	sysarg_t *addr_list;
 	sysarg_t *route_list;
 	size_t count;
-	
+
 	/* Remove previous DHCP address. */
 	rc = inetcfg_get_addr_list(&addr_list, &count);
 	if (rc != EOK)
 		return rc;
-	
+
 	for (size_t i = 0; i < count; i++) {
 		rc = inetcfg_addr_get(addr_list[i], &addr_info);
 		if (rc != EOK)
 			return rc;
-		
+
 		rc = inetcfg_link_get(addr_info.ilink, &link_info);
 		if (rc != EOK)
 			return rc;
-		
+
 		if (mac_matches(wifi_mac.address, link_info.mac_addr)) {
 			if (str_test_prefix(addr_info.name, "dhcp")) {
 				rc = inetcfg_addr_delete(addr_list[i]);
 				if (rc != EOK)
 					return rc;
-				
+
 				break;
 			}
 		}
 	}
-	
+
 	/*
 	 * TODO: At this moment there can be only one DHCP route,
 	 * so it must be reimplemented after this limitation will be
@@ -248,21 +248,21 @@ errno_t ieee80211_disconnect(async_sess_t *dev_sess)
 	rc = inetcfg_get_sroute_list(&route_list, &count);
 	if (rc != EOK)
 		return rc;
-	
+
 	for (size_t i = 0; i < count; i++) {
 		rc = inetcfg_sroute_get(route_list[i], &route_info);
 		if (rc != EOK)
 			return rc;
-		
+
 		if (str_test_prefix(route_info.name, "dhcp")) {
 			rc = inetcfg_sroute_delete(route_list[i]);
 			if (rc != EOK)
 				return rc;
-			
+
 			break;
 		}
 	}
-	
+
 	return rc;
 }
 
@@ -271,12 +271,12 @@ static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->get_scan_results);
-	
+
 	ieee80211_scan_results_t scan_results;
 	memset(&scan_results, 0, sizeof(ieee80211_scan_results_t));
-	
+
 	bool now = IPC_GET_ARG2(*call);
-	
+
 	errno_t rc = ieee80211_iface->get_scan_results(fun, &scan_results, now);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
@@ -286,17 +286,17 @@ static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (max_len < sizeof(ieee80211_scan_results_t)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		async_data_read_finalize(data_callid, &scan_results,
 		    sizeof(ieee80211_scan_results_t));
 	}
-	
+
 	async_answer_0(callid, rc);
 }
 
@@ -305,10 +305,10 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->connect);
-	
+
 	char ssid_start[MAX_STRING_SIZE];
 	char password[MAX_STRING_SIZE];
-	
+
 	ipc_callid_t data_callid;
 	size_t len;
 	if (!async_data_write_receive(&data_callid, &len)) {
@@ -316,41 +316,41 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	if (len > MAX_STRING_SIZE) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	errno_t rc = async_data_write_finalize(data_callid, ssid_start, len);
 	if (rc != EOK) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	if (!async_data_write_receive(&data_callid, &len)) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	if (len > MAX_STRING_SIZE) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	rc = async_data_write_finalize(data_callid, password, len);
 	if (rc != EOK) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	rc = ieee80211_iface->connect(fun, ssid_start, password);
-	
+
 	async_answer_0(callid, rc);
 }
 

@@ -65,14 +65,14 @@ static errno_t initialize_report_parser(async_sess_t *dev_sess,
 	*report = (usb_hid_report_t *) malloc(sizeof(usb_hid_report_t));
 	if (*report == NULL)
 		return ENOMEM;
-	
+
 	errno_t rc = usb_hid_report_init(*report);
 	if (rc != EOK) {
 		usb_hid_report_deinit(*report);
 		*report = NULL;
 		return rc;
 	}
-	
+
 	/* Get the report descriptor length from the device */
 	size_t report_desc_size;
 	rc = usbhid_dev_get_report_descriptor_length(dev_sess,
@@ -82,21 +82,21 @@ static errno_t initialize_report_parser(async_sess_t *dev_sess,
 		*report = NULL;
 		return rc;
 	}
-	
+
 	if (report_desc_size == 0) {
 		usb_hid_report_deinit(*report);
 		*report = NULL;
 		// TODO: other error code?
 		return EINVAL;
 	}
-	
+
 	uint8_t *desc = (uint8_t *) malloc(report_desc_size);
 	if (desc == NULL) {
 		usb_hid_report_deinit(*report);
 		*report = NULL;
 		return ENOMEM;
 	}
-	
+
 	/* Get the report descriptor from the device */
 	size_t actual_size;
 	rc = usbhid_dev_get_report_descriptor(dev_sess, desc, report_desc_size,
@@ -107,7 +107,7 @@ static errno_t initialize_report_parser(async_sess_t *dev_sess,
 		free(desc);
 		return rc;
 	}
-	
+
 	if (actual_size != report_desc_size) {
 		usb_hid_report_deinit(*report);
 		*report = NULL;
@@ -115,12 +115,12 @@ static errno_t initialize_report_parser(async_sess_t *dev_sess,
 		// TODO: other error code?
 		return EINVAL;
 	}
-	
+
 	/* Initialize the report parser */
-	
+
 	rc = usb_hid_parse_report_descriptor(*report, desc, report_desc_size);
 	free(desc);
-	
+
 	return rc;
 }
 
@@ -128,39 +128,39 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 {
 	assert(buffer != NULL);
 	assert(report != NULL);
-	
+
 	uint8_t report_id;
 	errno_t rc = usb_hid_parse_report(report, buffer, size, &report_id);
 	if (rc != EOK)
 		return;
-	
+
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL) {
 		return;
 	}
-	
+
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
-	
+
 	usb_hid_report_path_set_report_id(path, report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    report, NULL, path, USB_HID_PATH_COMPARE_END
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_INPUT);
-	
+
 	while (field != NULL) {
 		if (field->value != 0) {
 			const char *key_str =
 			    usbhid_multimedia_usage_to_str(field->usage);
 			printf("Pressed key: %s\n", key_str);
 		}
-		
+
 		field = usb_hid_report_get_sibling(
 		    report, field, path, USB_HID_PATH_COMPARE_END
 		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		    USB_HID_REPORT_TYPE_INPUT);
 	}
-	
+
 	usb_hid_report_path_free(path);
 }
 
@@ -207,32 +207,32 @@ static void print_usage(char *app_name)
 int main(int argc, char *argv[])
 {
 	int act_event = -1;
-	
+
 	if (argc <= 1) {
 		print_usage(argv[0]);
 		return -1;
 	}
-	
+
 	char *devpath = argv[1];
-	
+
 	devman_handle_t dev_handle = 0;
-	
+
 	errno_t rc = usb_resolve_device_handle(devpath, &dev_handle);
 	if (rc != EOK) {
 		printf("Device not found or not of USB kind: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	async_sess_t *sess = devman_device_connect(dev_handle, 0);
 	if (!sess) {
 		printf(NAME ": failed to connect to the device (handle %"
 		       PRIun "): %s.\n", dev_handle, str_error(errno));
 		return errno;
 	}
-	
+
 	dev_sess = sess;
-	
+
 	char path[MAX_PATH_LENGTH];
 	rc = devman_fun_get_path(dev_handle, path, MAX_PATH_LENGTH);
 	if (rc != EOK) {
@@ -240,10 +240,10 @@ int main(int argc, char *argv[])
 		       PRIun "): %s.\n", dev_handle, str_error(errno));
 		return ENOMEM;
 	}
-	
+
 	printf("Device path: %s\n", path);
-	
-	
+
+
 	usb_hid_report_t *report = NULL;
 	rc = initialize_report_parser(dev_sess, &report);
 	if (rc != EOK) {
@@ -251,23 +251,23 @@ int main(int argc, char *argv[])
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	assert(report != NULL);
-	
+
 	size_t size;
 	rc = usbhid_dev_get_event_length(dev_sess, &size);
 	if (rc != EOK) {
 		printf("Failed to get event length: %s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	uint8_t *event = (uint8_t *)malloc(size);
 	if (event == NULL) {
 		printf("Out of memory.\n");
 		// TODO: hangup phone?
 		return ENOMEM;
 	}
-	
+
 	fid_t quit_fibril = fibril_create(wait_for_quit_fibril, NULL);
 	if (quit_fibril == 0) {
 		printf("Failed to start extra fibril.\n");
@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
 
 	size_t actual_size;
 	int event_nr;
-	
+
 	while (true) {
 		/** @todo Try blocking call. */
 		rc = usbhid_dev_get_event(dev_sess, event, size, &actual_size,
@@ -288,15 +288,15 @@ int main(int argc, char *argv[])
 			    "%s.\n", str_error(rc));
 			break;
 		}
-		
+
 		if (event_nr > act_event) {
 			print_key(event, size, report);
 			act_event = event_nr;
 		}
-		
+
 		async_usleep(10000);
 	}
-	
+
 	return 0;
 }
 

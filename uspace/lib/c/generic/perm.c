@@ -53,7 +53,7 @@ errno_t perm_grant(task_id_t id, unsigned int perms)
 	sysarg64_t arg = (sysarg64_t) id;
 	return (errno_t) __SYSCALL2(SYS_PERM_GRANT, (sysarg_t) &arg, (sysarg_t) perms);
 #endif
-	
+
 #ifdef __64_BITS__
 	return (errno_t) __SYSCALL2(SYS_PERM_GRANT, (sysarg_t) id, (sysarg_t) perms);
 #endif
@@ -73,7 +73,7 @@ errno_t perm_revoke(task_id_t id, unsigned int perms)
 	sysarg64_t arg = (sysarg64_t) id;
 	return (errno_t) __SYSCALL2(SYS_PERM_REVOKE, (sysarg_t) &arg, (sysarg_t) perms);
 #endif
-	
+
 #ifdef __64_BITS__
 	return (errno_t) __SYSCALL2(SYS_PERM_REVOKE, (sysarg_t) id, (sysarg_t) perms);
 #endif

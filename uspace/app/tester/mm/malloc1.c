@@ -207,7 +207,7 @@ static phase_t phases[] = {
 static void do_subphase(phase_t *phase, subphase_t *subphase)
 {
 	for (unsigned int cycles = 0; /* always */; cycles++) {
-		
+
 		if ((subphase->cond.max_cycles) &&
 		    (cycles >= subphase->cond.max_cycles)) {
 			/*
@@ -216,7 +216,7 @@ static void do_subphase(phase_t *phase, subphase_t *subphase)
 			 */
 			break;
 		}
-		
+
 		/*
 		 * Decide whether we alloc or free memory in this step.
 		 */
@@ -228,10 +228,10 @@ static void do_subphase(phase_t *phase, subphase_t *subphase)
 			 */
 			int alloc = phase->alloc.min_block_size +
 			    (rand() % (phase->alloc.max_block_size - phase->alloc.min_block_size + 1));
-			
+
 			mem_block_t *blk = alloc_block(alloc);
 			RETURN_IF_ERROR;
-			
+
 			if (blk == NULL) {
 				TPRINTF("F(A)");
 				if (subphase->cond.no_memory) {
@@ -243,7 +243,7 @@ static void do_subphase(phase_t *phase, subphase_t *subphase)
 				fill_block(blk);
 				RETURN_IF_ERROR;
 			}
-			
+
 		} else if (rnd < subphase->prob.free) {
 			mem_block_t *blk = get_random_block();
 			if (blk == NULL) {
@@ -256,13 +256,13 @@ static void do_subphase(phase_t *phase, subphase_t *subphase)
 				TPRINTF("R");
 				check_block(blk);
 				RETURN_IF_ERROR;
-				
+
 				free_block(blk);
 				RETURN_IF_ERROR;
 			}
 		}
 	}
-	
+
 	TPRINTF("\n..  finished.\n");
 }
 
@@ -270,7 +270,7 @@ static void do_phase(phase_t *phase)
 {
 	for (unsigned int subno = 0; subno < 3; subno++) {
 		subphase_t *subphase = &phase->subphases[subno];
-		
+
 		TPRINTF(".. Sub-phase %u (%s)\n", subno + 1, subphase->name);
 		do_subphase(phase, subphase);
 		RETURN_IF_ERROR;
@@ -280,24 +280,24 @@ static void do_phase(phase_t *phase)
 const char *test_malloc1(void)
 {
 	init_mem();
-	
+
 	for (unsigned int phaseno = 0; phaseno < sizeof_array(phases);
 	    phaseno++) {
 		phase_t *phase = &phases[phaseno];
-		
+
 		TPRINTF("Entering phase %u (%s)\n", phaseno + 1, phase->name);
-		
+
 		do_phase(phase);
 		if (error_flag)
 			break;
-		
+
 		TPRINTF("Phase finished.\n");
 	}
-	
+
 	TPRINTF("Cleaning up.\n");
 	done_mem();
 	if (error_flag)
 		return "Test failed";
-	
+
 	return NULL;
 }

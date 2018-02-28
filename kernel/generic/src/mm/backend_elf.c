@@ -101,7 +101,7 @@ bool elf_create(as_area_t *area)
 
 	if (area->pages <= nonanon_pages)
 		return true;
-	
+
 	return reserve_try_alloc(area->pages - nonanon_pages);
 }
 
@@ -122,7 +122,7 @@ bool elf_resize(as_area_t *area, size_t new_pages)
 		else if (area->pages > nonanon_pages)
 			reserve_free(nonanon_pages - new_pages);
 	}
-	
+
 	return true;
 }
 
@@ -165,14 +165,14 @@ void elf_share(as_area_t *area)
 	for (cur = &node->leaf_link; cur != &area->used_space.leaf_list.head;
 	    cur = cur->next) {
 		unsigned int i;
-		
+
 		node = list_get_instance(cur, btree_node_t, leaf_link);
-		
+
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
 			size_t count = (size_t) node->value[i];
 			unsigned int j;
-			
+
 			/*
 			 * Skip read-only areas of used space that are backed
 			 * by the ELF image.
@@ -181,11 +181,11 @@ void elf_share(as_area_t *area)
 				if (base >= entry->p_vaddr &&
 				    base + P2SZ(count) <= start_anon)
 					continue;
-			
+
 			for (j = 0; j < count; j++) {
 				pte_t pte;
 				bool found;
-			
+
 				/*
 				 * Skip read-only pages that are backed by the
 				 * ELF image.
@@ -194,7 +194,7 @@ void elf_share(as_area_t *area)
 					if (base >= entry->p_vaddr &&
 					    base + P2SZ(j + 1) <= start_anon)
 						continue;
-				
+
 				page_table_lock(area->as, false);
 				found = page_mapping_find(area->as,
 				    base + P2SZ(j), false, &pte);
@@ -211,7 +211,7 @@ void elf_share(as_area_t *area)
 				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(&pte));
 				frame_reference_add(pfn);
 			}
-				
+
 		}
 	}
 	mutex_unlock(&area->sh_info->lock);
@@ -266,13 +266,13 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
-	
+
 	if (upage < ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE))
 		return AS_PF_FAULT;
-	
+
 	if (upage >= entry->p_vaddr + entry->p_memsz)
 		return AS_PF_FAULT;
-	
+
 	i = (upage - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >> PAGE_WIDTH;
 	base = (uintptr_t)
 	    (((void *) elf) + ALIGN_DOWN(entry->p_offset, PAGE_SIZE));
@@ -287,7 +287,7 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		/*
 		 * The address space area is shared.
 		 */
-		
+
 		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
 		    upage - area->base, &leaf);
 		if (!frame) {

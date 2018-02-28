@@ -217,7 +217,7 @@ typedef struct nic_device_stats {
 	unsigned long send_window_errors;
 
 	/* for cslip etc */
-	
+
 	/** Total compressed packets received. */
 	unsigned long receive_compressed;
 	/** Total compressed packet transmitted. */

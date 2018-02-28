@@ -54,7 +54,7 @@ void ipi_broadcast(int ipi)
 	 * - before all CPU's were configured to accept the IPI
 	 * - if there is only one CPU but the kernel was compiled with CONFIG_SMP
 	 */
-	
+
 	if (config.cpu_count > 1)
 		ipi_broadcast_arch(ipi);
 }

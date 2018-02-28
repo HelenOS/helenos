@@ -209,7 +209,7 @@ typedef struct {
 NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
-	
+
 	return ((!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT |
 	    (!p->present) << PAGE_PRESENT_SHIFT |
 	    p->uaccessible << PAGE_USER_SHIFT |
@@ -222,7 +222,7 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 NO_TRACE static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 {
 	pte_t *p = &pt[i];
-	
+
 	p->addr_12_31 = (a >> 12) & UINT32_C(0xfffff);
 	p->addr_32_51 = a >> 32;
 }
@@ -230,14 +230,14 @@ NO_TRACE static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
-	
+
 	p->page_cache_disable = !(flags & PAGE_CACHEABLE);
 	p->present = !(flags & PAGE_NOT_PRESENT);
 	p->uaccessible = (flags & PAGE_USER) != 0;
 	p->writeable = (flags & PAGE_WRITE) != 0;
 	p->no_execute = (flags & PAGE_EXEC) == 0;
 	p->global = (flags & PAGE_GLOBAL) != 0;
-	
+
 	/*
 	 * Ensure that there is at least one bit set even if the present bit is cleared.
 	 */

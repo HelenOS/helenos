@@ -63,19 +63,19 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 	struct rdentry entry;
 	libfs_ops_t *ops = &tmpfs_libfs_ops;
 	errno_t rc;
-	
+
 	do {
 		char *fname;
 		fs_node_t *fn;
 		tmpfs_node_t *nodep;
 		uint32_t size;
-		
+
 		if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, &entry,
 		    sizeof(entry)) != EOK)
 			return false;
-		
+
 		entry.len = uint32_t_le2host(entry.len);
-		
+
 		switch (entry.type) {
 		case TMPFS_NONE:
 			break;
@@ -83,57 +83,13 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 			fname = malloc(entry.len + 1);
 			if (fname == NULL)
 				return false;
-			
+
 			rc = ops->create(&fn, dsid, L_FILE);
 			if (rc != EOK || fn == NULL) {
 				free(fname);
 				return false;
 			}
-			
-			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, fname,
-			    entry.len) != EOK) {
-				(void) ops->destroy(fn);
-				free(fname);
-				return false;
-			}
-			fname[entry.len] = 0;
-			
-			rc = ops->link(pfn, fn, fname);
-			if (rc != EOK) {
-				(void) ops->destroy(fn);
-				free(fname);
-				return false;
-			}
-			free(fname);
-			
-			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, &size,
-			    sizeof(size)) != EOK)
-				return false;
-			
-			size = uint32_t_le2host(size);
-			
-			nodep = TMPFS_NODE(fn);
-			nodep->data = malloc(size);
-			if (nodep->data == NULL)
-				return false;
-			
-			nodep->size = size;
-			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, nodep->data,
-			    size) != EOK)
-				return false;
-			
-			break;
-		case TMPFS_DIRECTORY:
-			fname = malloc(entry.len + 1);
-			if (fname == NULL)
-				return false;
-			
-			rc = ops->create(&fn, dsid, L_DIRECTORY);
-			if (rc != EOK || fn == NULL) {
-				free(fname);
-				return false;
-			}
-			
+
 			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, fname,
 			    entry.len) != EOK) {
 				(void) ops->destroy(fn);
@@ -149,17 +105,61 @@ tmpfs_restore_recursion(service_id_t dsid, size_t *bufpos, size_t *buflen,
 				return false;
 			}
 			free(fname);
-			
+
+			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, &size,
+			    sizeof(size)) != EOK)
+				return false;
+
+			size = uint32_t_le2host(size);
+
+			nodep = TMPFS_NODE(fn);
+			nodep->data = malloc(size);
+			if (nodep->data == NULL)
+				return false;
+
+			nodep->size = size;
+			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, nodep->data,
+			    size) != EOK)
+				return false;
+
+			break;
+		case TMPFS_DIRECTORY:
+			fname = malloc(entry.len + 1);
+			if (fname == NULL)
+				return false;
+
+			rc = ops->create(&fn, dsid, L_DIRECTORY);
+			if (rc != EOK || fn == NULL) {
+				free(fname);
+				return false;
+			}
+
+			if (block_seqread(dsid, tmpfs_buf, bufpos, buflen, pos, fname,
+			    entry.len) != EOK) {
+				(void) ops->destroy(fn);
+				free(fname);
+				return false;
+			}
+			fname[entry.len] = 0;
+
+			rc = ops->link(pfn, fn, fname);
+			if (rc != EOK) {
+				(void) ops->destroy(fn);
+				free(fname);
+				return false;
+			}
+			free(fname);
+
 			if (!tmpfs_restore_recursion(dsid, bufpos, buflen, pos,
 			    fn))
 				return false;
-			
+
 			break;
 		default:
 			return false;
 		}
 	} while (entry.type != TMPFS_NONE);
-	
+
 	return true;
 }
 
@@ -172,29 +172,29 @@ bool tmpfs_restore(service_id_t dsid)
 	rc = block_init(dsid, TMPFS_COMM_SIZE);
 	if (rc != EOK)
 		return false;
-	
+
 	size_t bufpos = 0;
 	size_t buflen = 0;
 	aoff64_t pos = 0;
-	
+
 	char tag[6];
 	if (block_seqread(dsid, tmpfs_buf, &bufpos, &buflen, &pos, tag, 5) != EOK)
 		goto error;
-	
+
 	tag[5] = 0;
 	if (str_cmp(tag, "TMPFS") != 0)
 		goto error;
-	
+
 	rc = ops->root_get(&fn, dsid);
 	if (rc != EOK)
 		goto error;
 
 	if (!tmpfs_restore_recursion(dsid, &bufpos, &buflen, &pos, fn))
 		goto error;
-		
+
 	block_fini(dsid);
 	return true;
-	
+
 error:
 	block_fini(dsid);
 	return false;

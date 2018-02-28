@@ -123,7 +123,7 @@ static errno_t nic_get_info(service_id_t svc_id, char *svc_name,
 		rc = EIO;
 		goto error;
 	}
-	
+
 	rc = nic_get_address(sess, &info->address);
 	if (rc != EOK) {
 		printf("Error getting NIC address.\n");

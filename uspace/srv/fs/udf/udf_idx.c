@@ -94,7 +94,7 @@ errno_t udf_idx_init(void)
 {
 	if (!hash_table_create(&udf_idx, 0, 0, &udf_idx_ops))
 		return ENOMEM;
-	
+
 	return EOK;
 }
 
@@ -126,19 +126,19 @@ errno_t udf_idx_get(udf_node_t **udfn, udf_instance_t *instance, fs_index_t inde
 		.service_id = instance->service_id,
 		.index = index
 	};
-	
+
 	ht_link_t *already_open = hash_table_find(&udf_idx, &key);
 	if (already_open) {
 		udf_node_t *node = hash_table_get_inst(already_open,
 		    udf_node_t, link);
 		node->ref_cnt++;
-		
+
 		*udfn = node;
-		
+
 		fibril_mutex_unlock(&udf_idx_lock);
 		return EOK;
 	}
-	
+
 	fibril_mutex_unlock(&udf_idx_lock);
 	return ENOENT;
 }
@@ -155,22 +155,22 @@ errno_t udf_idx_get(udf_node_t **udfn, udf_instance_t *instance, fs_index_t inde
 errno_t udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t index)
 {
 	fibril_mutex_lock(&udf_idx_lock);
-	
+
 	udf_node_t *udf_node = malloc(sizeof(udf_node_t));
 	if (udf_node == NULL) {
 		fibril_mutex_unlock(&udf_idx_lock);
 		return ENOMEM;
 	}
-	
+
 	fs_node_t *fs_node = malloc(sizeof(fs_node_t));
 	if (fs_node == NULL) {
 		free(udf_node);
 		fibril_mutex_unlock(&udf_idx_lock);
 		return ENOMEM;
 	}
-	
+
 	fs_node_initialize(fs_node);
-	
+
 	udf_node->index = index;
 	udf_node->instance = instance;
 	udf_node->ref_cnt = 1;
@@ -178,15 +178,15 @@ errno_t udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t inde
 	udf_node->fs_node = fs_node;
 	udf_node->data = NULL;
 	udf_node->allocators = NULL;
-	
+
 	fibril_mutex_initialize(&udf_node->lock);
 	fs_node->data = udf_node;
-	
+
 	hash_table_insert(&udf_idx, &udf_node->link);
 	instance->open_nodes_count++;
-	
+
 	*udfn = udf_node;
-	
+
 	fibril_mutex_unlock(&udf_idx_lock);
 	return EOK;
 }
@@ -201,17 +201,17 @@ errno_t udf_idx_add(udf_node_t **udfn, udf_instance_t *instance, fs_index_t inde
 errno_t udf_idx_del(udf_node_t *node)
 {
 	assert(node->ref_cnt == 0);
-	
+
 	fibril_mutex_lock(&udf_idx_lock);
-	
+
 	hash_table_remove_item(&udf_idx, &node->link);
-	
+
 	assert(node->instance->open_nodes_count > 0);
 	node->instance->open_nodes_count--;
-	
+
 	free(node->fs_node);
 	free(node);
-	
+
 	fibril_mutex_unlock(&udf_idx_lock);
 	return EOK;
 }

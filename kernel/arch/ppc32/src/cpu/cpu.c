@@ -53,7 +53,7 @@ void cpu_identify(void)
 void cpu_print_report(cpu_t *cpu)
 {
 	const char *name;
-	
+
 	switch (cpu->arch.version) {
 	case 8:
 		name = "PowerPC 750";
@@ -70,7 +70,7 @@ void cpu_print_report(cpu_t *cpu)
 	default:
 		name = "unknown";
 	}
-	
+
 	printf("cpu%u: version=%" PRIu16" (%s), revision=%" PRIu16 "\n", cpu->id,
 	    cpu->arch.version, name, cpu->arch.revision);
 }

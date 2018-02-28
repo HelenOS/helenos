@@ -125,7 +125,7 @@ const char *test_print6(void)
 		{ -1.2345006789e+231, "%#10.10e",   "-1.2345006789e+231", 0 },
 		/* __PRINTF_FLAG_DECIMALPT */
 		{ -1.23450067995e+231, "%#10.10e",  "-1.2345006800e+231", 0 },
-			
+
 		/* special */
 
 		{ 1e300 * 1e300, "%10.5e",  "       inf", 0 },
@@ -138,7 +138,7 @@ const char *test_print6(void)
 		/*
 		 * Fixed
 		 */
-		 
+
 		/* padding */
 
 		/* __PRINTF_FLAG_SPACESIGN | __PRINTF_FLAG_ZEROPADDED */
@@ -180,14 +180,14 @@ const char *test_print6(void)
 	int failed = 0;
 	const int buf_size = 256;
 	char buf[256 + 1] = { 0 };
-	
+
 	TPRINTF("Test printing of floating point numbers via "
 	    "printf(\"%%f\"):\n");
-	
+
 	for (int i = 0; i < patterns_len; ++i) {
-		
+
 		snprintf(buf, buf_size, pat[i].fmt, pat[i].val);
-		
+
 		if (!str_cmp(buf, pat[i].exp_str)) {
 			TPRINTF("ok:  %s |%s| == |%s|\n",
 			    pat[i].fmt, buf, pat[i].exp_str);
@@ -202,7 +202,7 @@ const char *test_print6(void)
 			}
 		}
 	}
-	
+
 	if (failed) {
 		return "Unexpectedly misprinted floating point numbers.";
 	} else {

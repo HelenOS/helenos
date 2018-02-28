@@ -106,7 +106,7 @@ typedef struct {
 	 *
 	 */
 	errno_t (*start)(struct ieee80211_dev *);
-	
+
 	/** Scan neighborhood for networks.
 	 *
 	 * There should be implemented scanning of whole bandwidth.
@@ -118,7 +118,7 @@ typedef struct {
 	 *
 	 */
 	errno_t (*scan)(struct ieee80211_dev *);
-	
+
 	/** Handler for TX frames to be send from device.
 	 *
 	 * This should be called for every frame that has to be send
@@ -132,7 +132,7 @@ typedef struct {
 	 *
 	 */
 	errno_t (*tx_handler)(struct ieee80211_dev *, void *, size_t);
-	
+
 	/** Set device operating frequency to given value.
 	 *
 	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
@@ -142,7 +142,7 @@ typedef struct {
 	 *
 	 */
 	errno_t (*set_freq)(struct ieee80211_dev *, uint16_t);
-	
+
 	/** Callback to inform device about BSSID change.
 	 *
 	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.
@@ -152,7 +152,7 @@ typedef struct {
 	 *
 	 */
 	errno_t (*bssid_change)(struct ieee80211_dev *, bool);
-	
+
 	/** Callback to setup encryption key in IEEE 802.11 device.
 	 *
 	 * @param ieee80211_dev Pointer to IEEE 802.11 device structure.

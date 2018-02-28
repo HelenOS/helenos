@@ -93,13 +93,13 @@ static void vfs_files_done(vfs_client_data_t *vfs_data)
 		if (vfs_data->files[i])
 			(void) _vfs_fd_free(vfs_data, i);
 	}
-	
+
 	free(vfs_data->files);
 
 	while (!list_empty(&vfs_data->passed_handles)) {
 		link_t *lnk;
 		vfs_boxed_handle_t *bh;
-		
+
 		lnk = list_first(&vfs_data->passed_handles);
 		list_remove(lnk);
 
@@ -119,7 +119,7 @@ void *vfs_client_data_create(void)
 		list_initialize(&vfs_data->passed_handles);
 		vfs_data->files = NULL;
 	}
-	
+
 	return vfs_data;
 }
 
@@ -135,18 +135,18 @@ void vfs_client_data_destroy(void *data)
 static errno_t vfs_file_close_remote(vfs_file_t *file)
 {
 	assert(!file->refcnt);
-	
+
 	async_exch_t *exch = vfs_exchange_grab(file->node->fs_handle);
-	
+
 	ipc_call_t answer;
 	aid_t msg = async_send_2(exch, VFS_OUT_CLOSE, file->node->service_id,
 	    file->node->index, &answer);
-	
+
 	vfs_exchange_release(exch);
-	
+
 	errno_t rc;
 	async_wait_for(msg, &rc);
-	
+
 	return IPC_GET_RETVAL(answer);
 }
 
@@ -178,7 +178,7 @@ static errno_t vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 		 * Lost the last reference to a file, need to close it in the
 		 * endpoint FS and drop our reference to the underlying VFS node.
 		 */
-		
+
 		if (file->node != NULL) {
 			if (file->open_read || file->open_write) {
 				rc = vfs_file_close_remote(file);
@@ -195,13 +195,13 @@ static errno_t _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, boo
 {
 	if (!vfs_files_init(vfs_data))
 		return ENOMEM;
-	
+
 	unsigned int i;
 	if (desc)
 		i = MAX_OPEN_FILES - 1;
 	else
 		i = 0;
-	
+
 	fibril_mutex_lock(&vfs_data->lock);
 	while (true) {
 		if (!vfs_data->files[i]) {
@@ -210,36 +210,36 @@ static errno_t _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, boo
 				fibril_mutex_unlock(&vfs_data->lock);
 				return ENOMEM;
 			}
-			
-			
+
+
 			memset(vfs_data->files[i], 0, sizeof(vfs_file_t));
-			
+
 			fibril_mutex_initialize(&vfs_data->files[i]->_lock);
 			fibril_mutex_lock(&vfs_data->files[i]->_lock);
 			vfs_file_addref(vfs_data, vfs_data->files[i]);
-			
+
 			*file = vfs_data->files[i];
 			vfs_file_addref(vfs_data, *file);
-			
+
 			fibril_mutex_unlock(&vfs_data->lock);
 			*out_fd = (int) i;
 			return EOK;
 		}
-		
+
 		if (desc) {
 			if (i == 0)
 				break;
-			
+
 			i--;
 		} else {
 			if (i == MAX_OPEN_FILES - 1)
 				break;
-			
+
 			i++;
 		}
 	}
 	fibril_mutex_unlock(&vfs_data->lock);
-	
+
 	return EMFILE;
 }
 
@@ -279,7 +279,7 @@ static errno_t _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
 	fibril_mutex_lock(&vfs_data->lock);
 	rc = _vfs_fd_free_locked(vfs_data, fd);
 	fibril_mutex_unlock(&vfs_data->lock);
-	
+
 	return rc;
 }
 
@@ -318,18 +318,18 @@ errno_t vfs_fd_assign(vfs_file_t *file, int fd)
 	/* Make sure fd is closed. */
 	(void) _vfs_fd_free_locked(VFS_DATA, fd);
 	assert(FILES[fd] == NULL);
-	
+
 	FILES[fd] = file;
 	vfs_file_addref(VFS_DATA, FILES[fd]);
 	fibril_mutex_unlock(&VFS_DATA->lock);
-	
+
 	return EOK;
 }
 
 static void _vfs_file_put(vfs_client_data_t *vfs_data, vfs_file_t *file)
 {
 	fibril_mutex_unlock(&file->_lock);
-	
+
 	fibril_mutex_lock(&vfs_data->lock);
 	vfs_file_delref(vfs_data, file);
 	fibril_mutex_unlock(&vfs_data->lock);
@@ -339,14 +339,14 @@ static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
 {
 	if (!vfs_files_init(vfs_data))
 		return NULL;
-	
+
 	fibril_mutex_lock(&vfs_data->lock);
 	if ((fd >= 0) && (fd < MAX_OPEN_FILES)) {
 		vfs_file_t *file = vfs_data->files[fd];
 		if (file != NULL) {
 			vfs_file_addref(vfs_data, file);
 			fibril_mutex_unlock(&vfs_data->lock);
-			
+
 			fibril_mutex_lock(&file->_lock);
 			if (file->node == NULL) {
 				_vfs_file_put(vfs_data, file);
@@ -358,7 +358,7 @@ static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
 		}
 	}
 	fibril_mutex_unlock(&vfs_data->lock);
-	
+
 	return NULL;
 }
 
@@ -431,7 +431,7 @@ out:
 errno_t vfs_wait_handle_internal(bool high_fd, int *out_fd)
 {
 	vfs_client_data_t *vfs_data = VFS_DATA;
-	
+
 	fibril_mutex_lock(&vfs_data->lock);
 	while (list_empty(&vfs_data->passed_handles))
 		fibril_condvar_wait(&vfs_data->cv, &vfs_data->lock);
@@ -448,7 +448,7 @@ errno_t vfs_wait_handle_internal(bool high_fd, int *out_fd)
 		free(bh);
 		return rc;
 	}
-	
+
 	file->node = bh->node;
 	file->permissions = bh->permissions;
 	vfs_file_put(file);

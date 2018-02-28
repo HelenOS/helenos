@@ -71,18 +71,18 @@ void istate_decode(istate_t *istate)
 	printf("cs =%0#10" PRIx32 "\teip=%0#10" PRIx32 "\t"
 	    "efl=%0#10" PRIx32 "\terr=%0#10" PRIx32 "\n",
 	    istate->cs, istate->eip, istate->eflags, istate->error_word);
-	
+
 	printf("ds =%0#10" PRIx32 "\tes =%0#10" PRIx32 "\t"
 	    "fs =%0#10" PRIx32 "\tgs =%0#10" PRIx32 "\n",
 	    istate->ds, istate->es, istate->fs, istate->gs);
-	
+
 	if (istate_from_uspace(istate))
 		printf("ss =%0#10" PRIx32 "\n", istate->ss);
-	
+
 	printf("eax=%0#10" PRIx32 "\tebx=%0#10" PRIx32 "\t"
 	    "ecx=%0#10" PRIx32 "\tedx=%0#10" PRIx32 "\n",
 	    istate->eax, istate->ebx, istate->ecx, istate->edx);
-	
+
 	printf("esi=%0#10" PRIx32 "\tedi=%0#10" PRIx32 "\t"
 	    "ebp=%0#10" PRIx32 "\tesp=%0#10" PRIxn "\n",
 	    istate->esi, istate->edi, istate->ebp,
@@ -118,7 +118,7 @@ static void gp_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 		irq_spinlock_lock(&TASK->lock, false);
 		size_t ver = TASK->arch.iomapver;
 		irq_spinlock_unlock(&TASK->lock, false);
-		
+
 		if (CPU->arch.iomapver_copy != ver) {
 			/*
 			 * This fault can be caused by an early access
@@ -148,7 +148,7 @@ static void simd_fp_exception(unsigned int n __attribute__((unused)), istate_t *
 		"stmxcsr %[mxcsr]\n"
 		: [mxcsr] "=m" (mxcsr)
 	);
-	
+
 	fault_if_from_uspace(istate, "SIMD FP exception(19), MXCSR=%#0" PRIx32 ".",
 	    mxcsr);
 	panic_badtrap(istate, n, "SIMD FP exception");
@@ -184,18 +184,18 @@ static void arch_smp_call_ipi_recv(unsigned int n, istate_t *istate)
 static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused)))
 {
 	assert(n >= IVT_IRQBASE);
-	
+
 	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
 	assert(inum < IRQ_COUNT);
 	assert((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
-	
+
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
 		/*
 		 * The IRQ handler was found.
 		 */
-		
+
 		if (irq->preack) {
 			/* Send EOI before processing the interrupt */
 			trap_virtual_eoi();
@@ -211,7 +211,7 @@ static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused
 		printf("cpu%u: spurious interrupt (inum=%u)\n", CPU->id, inum);
 #endif
 	}
-	
+
 	if (!ack)
 		trap_virtual_eoi();
 }
@@ -219,22 +219,22 @@ static void irq_interrupt(unsigned int n, istate_t *istate __attribute__((unused
 void interrupt_init(void)
 {
 	unsigned int i;
-	
+
 	for (i = 0; i < IVT_ITEMS; i++)
 		exc_register(i, "null", false, (iroutine_t) null_interrupt);
-	
+
 	for (i = 0; i < IRQ_COUNT; i++) {
 		if ((i != IRQ_PIC_SPUR) && (i != IRQ_PIC1))
 			exc_register(IVT_IRQBASE + i, "irq", true,
 			    (iroutine_t) irq_interrupt);
 	}
-	
+
 	exc_register(VECTOR_DE, "de_fault", true, (iroutine_t) de_fault);
 	exc_register(VECTOR_NM, "nm_fault", true, (iroutine_t) nm_fault);
 	exc_register(VECTOR_SS, "ss_fault", true, (iroutine_t) ss_fault);
 	exc_register(VECTOR_GP, "gp_fault", true, (iroutine_t) gp_fault);
 	exc_register(VECTOR_XM, "simd_fp", true, (iroutine_t) simd_fp_exception);
-	
+
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,
 	    (iroutine_t) tlb_shootdown_ipi);

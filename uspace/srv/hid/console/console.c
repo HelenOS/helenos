@@ -61,22 +61,22 @@
 typedef struct {
 	atomic_t refcnt;      /**< Connection reference count */
 	prodcons_t input_pc;  /**< Incoming keyboard events */
-	
+
 	/**
 	 * Not yet sent bytes of last char event.
 	 */
 	char char_remains[UTF8_CHAR_BUFFER_SIZE];
 	size_t char_remains_len;  /**< Number of not yet sent bytes. */
-	
+
 	fibril_mutex_t mtx;  /**< Lock protecting mutable fields */
-	
+
 	size_t index;           /**< Console index */
 	service_id_t dsid;      /**< Service handle */
-	
+
 	sysarg_t cols;         /**< Number of columns */
 	sysarg_t rows;         /**< Number of rows */
 	console_caps_t ccaps;  /**< Console capabilities */
-	
+
 	chargrid_t *frontbuf;    /**< Front buffer */
 	frontbuf_handle_t fbid;  /**< Front buffer handle */
 	con_srvs_t srvs;         /**< Console service setup */
@@ -161,12 +161,12 @@ static void cons_update(console_t *cons)
 {
 	fibril_mutex_lock(&switch_mtx);
 	fibril_mutex_lock(&cons->mtx);
-	
+
 	if ((active) && (cons == active_console)) {
 		output_update(output_sess, cons->fbid);
 		output_cursor_update(output_sess, cons->fbid);
 	}
-	
+
 	fibril_mutex_unlock(&cons->mtx);
 	fibril_mutex_unlock(&switch_mtx);
 }
@@ -175,10 +175,10 @@ static void cons_update_cursor(console_t *cons)
 {
 	fibril_mutex_lock(&switch_mtx);
 	fibril_mutex_lock(&cons->mtx);
-	
+
 	if ((active) && (cons == active_console))
 		output_cursor_update(output_sess, cons->fbid);
-	
+
 	fibril_mutex_unlock(&cons->mtx);
 	fibril_mutex_unlock(&switch_mtx);
 }
@@ -187,13 +187,13 @@ static void cons_damage(console_t *cons)
 {
 	fibril_mutex_lock(&switch_mtx);
 	fibril_mutex_lock(&cons->mtx);
-	
+
 	if ((active) && (cons == active_console)) {
 		output_damage(output_sess, cons->fbid, 0, 0, cons->cols,
 		    cons->rows);
 		output_cursor_update(output_sess, cons->fbid);
 	}
-	
+
 	fibril_mutex_unlock(&cons->mtx);
 	fibril_mutex_unlock(&switch_mtx);
 }
@@ -207,26 +207,26 @@ static void cons_switch(unsigned int index)
 	if (index == CONSOLE_COUNT) {
 		if (console_kcon())
 			active = false;
-		
+
 		return;
 	}
-	
+
 	if (index > CONSOLE_COUNT)
 		return;
-	
+
 	console_t *cons = &consoles[index];
-	
+
 	fibril_mutex_lock(&switch_mtx);
-	
+
 	if (cons == active_console) {
 		fibril_mutex_unlock(&switch_mtx);
 		return;
 	}
-	
+
 	active_console = cons;
-	
+
 	fibril_mutex_unlock(&switch_mtx);
-	
+
 	cons_damage(cons);
 }
 
@@ -235,7 +235,7 @@ static errno_t input_ev_active(input_t *input)
 	active = true;
 	output_claim(output_sess);
 	cons_damage(active_console);
-	
+
 	return EOK;
 }
 
@@ -243,7 +243,7 @@ static errno_t input_ev_deactive(input_t *input)
 {
 	active = false;
 	output_yield(output_sess);
-	
+
 	return EOK;
 }
 
@@ -260,17 +260,17 @@ static errno_t input_ev_key(input_t *input, kbd_event_type_t type, keycode_t key
 		if (event == NULL) {
 			return ENOMEM;
 		}
-		
+
 		link_initialize(&event->link);
 		event->type = type;
 		event->key = key;
 		event->mods = mods;
 		event->c = c;
-		
+
 		prodcons_produce(&active_console->input_pc,
 		    &event->link);
 	}
-	
+
 	return EOK;
 }
 
@@ -294,9 +294,9 @@ static errno_t input_ev_button(input_t *input, int bnum, int bpress)
 static void cons_write_char(console_t *cons, wchar_t ch)
 {
 	sysarg_t updated = 0;
-	
+
 	fibril_mutex_lock(&cons->mtx);
-	
+
 	switch (ch) {
 	case '\n':
 		updated = chargrid_newline(cons->frontbuf);
@@ -312,9 +312,9 @@ static void cons_write_char(console_t *cons, wchar_t ch)
 	default:
 		updated = chargrid_putchar(cons->frontbuf, ch, true);
 	}
-	
+
 	fibril_mutex_unlock(&cons->mtx);
-	
+
 	if (updated > 1)
 		cons_update(cons);
 }
@@ -324,7 +324,7 @@ static void cons_set_cursor_vis(console_t *cons, bool visible)
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_cursor_visibility(cons->frontbuf, visible);
 	fibril_mutex_unlock(&cons->mtx);
-	
+
 	cons_update_cursor(cons);
 }
 
@@ -343,7 +343,7 @@ static errno_t cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 	uint8_t *bbuf = buf;
 	console_t *cons = srv_to_console(srv);
 	size_t pos = 0;
-	
+
 	/*
 	 * Read input from keyboard and copy it to the buffer.
 	 * We need to handle situation when wchar is split by 2 following
@@ -354,30 +354,30 @@ static errno_t cons_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 		while ((pos < size) && (cons->char_remains_len > 0)) {
 			bbuf[pos] = cons->char_remains[0];
 			pos++;
-			
+
 			/* Unshift the array. */
 			for (size_t i = 1; i < cons->char_remains_len; i++)
 				cons->char_remains[i - 1] = cons->char_remains[i];
-			
+
 			cons->char_remains_len--;
 		}
-		
+
 		/* Still not enough? Then get another key from the queue. */
 		if (pos < size) {
 			link_t *link = prodcons_consume(&cons->input_pc);
 			kbd_event_t *event = list_get_instance(link, kbd_event_t, link);
-			
+
 			/* Accept key presses of printable chars only. */
 			if ((event->type == KEY_PRESS) && (event->c != 0)) {
 				wchar_t tmp[2] = { event->c, 0 };
 				wstr_to_str(cons->char_remains, UTF8_CHAR_BUFFER_SIZE, tmp);
 				cons->char_remains_len = str_size(cons->char_remains);
 			}
-			
+
 			free(event);
 		}
 	}
-	
+
 	*nread = size;
 	return EOK;
 }
@@ -389,7 +389,7 @@ static errno_t cons_write(con_srv_t *srv, void *data, size_t size, size_t *nwrit
 	size_t off = 0;
 	while (off < size)
 		cons_write_char(cons, str_decode(data, &off, size));
-	
+
 	*nwritten = size;
 	return EOK;
 }
@@ -397,70 +397,70 @@ static errno_t cons_write(con_srv_t *srv, void *data, size_t size, size_t *nwrit
 static void cons_sync(con_srv_t *srv)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	cons_update(cons);
 }
 
 static void cons_clear(con_srv_t *srv)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_clear(cons->frontbuf);
 	fibril_mutex_unlock(&cons->mtx);
-	
+
 	cons_update(cons);
 }
 
 static void cons_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_cursor(cons->frontbuf, col, row);
 	fibril_mutex_unlock(&cons->mtx);
-	
+
 	cons_update_cursor(cons);
 }
 
 static errno_t cons_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_get_cursor(cons->frontbuf, col, row);
 	fibril_mutex_unlock(&cons->mtx);
-	
+
 	return EOK;
 }
 
 static errno_t cons_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	fibril_mutex_lock(&cons->mtx);
 	*cols = cons->cols;
 	*rows = cons->rows;
 	fibril_mutex_unlock(&cons->mtx);
-	
+
 	return EOK;
 }
 
 static errno_t cons_get_color_cap(con_srv_t *srv, console_caps_t *ccaps)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	fibril_mutex_lock(&cons->mtx);
 	*ccaps = cons->ccaps;
 	fibril_mutex_unlock(&cons->mtx);
-	
+
 	return EOK;
 }
 
 static void cons_set_style(con_srv_t *srv, console_style_t style)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_style(cons->frontbuf, style);
 	fibril_mutex_unlock(&cons->mtx);
@@ -470,7 +470,7 @@ static void cons_set_color(con_srv_t *srv, console_color_t bgcolor,
     console_color_t fgcolor, console_color_attr_t attr)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_color(cons->frontbuf, bgcolor, fgcolor, attr);
 	fibril_mutex_unlock(&cons->mtx);
@@ -480,7 +480,7 @@ static void cons_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
     pixel_t fgcolor)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	fibril_mutex_lock(&cons->mtx);
 	chargrid_set_rgb_color(cons->frontbuf, bgcolor, fgcolor);
 	fibril_mutex_unlock(&cons->mtx);
@@ -489,7 +489,7 @@ static void cons_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
 static void cons_set_cursor_visibility(con_srv_t *srv, bool visible)
 {
 	console_t *cons = srv_to_console(srv);
-	
+
 	cons_set_cursor_vis(cons, visible);
 }
 
@@ -498,10 +498,10 @@ static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)
 	console_t *cons = srv_to_console(srv);
 	link_t *link = prodcons_consume(&cons->input_pc);
 	kbd_event_t *kevent = list_get_instance(link, kbd_event_t, link);
-	
+
 	event->type = CEV_KEY;
 	event->ev.key = *kevent;
-	
+
 	free(kevent);
 	return EOK;
 }
@@ -509,22 +509,22 @@ static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	console_t *cons = NULL;
-	
+
 	for (size_t i = 0; i < CONSOLE_COUNT; i++) {
 		if (consoles[i].dsid == (service_id_t) IPC_GET_ARG2(*icall)) {
 			cons = &consoles[i];
 			break;
 		}
 	}
-	
+
 	if (cons == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	if (atomic_postinc(&cons->refcnt) == 0)
 		cons_set_cursor_vis(cons, true);
-	
+
 	con_conn(iid, icall, &cons->srvs);
 }
 
@@ -532,7 +532,7 @@ static errno_t input_connect(const char *svc)
 {
 	async_sess_t *sess;
 	service_id_t dsid;
-	
+
 	errno_t rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc != EOK) {
 		printf("%s: Input service %s not found\n", NAME, svc);
@@ -545,7 +545,7 @@ static errno_t input_connect(const char *svc)
 		    svc);
 		return EIO;
 	}
-	
+
 	rc = input_open(sess, &input_ev_ops, NULL, &input);
 	if (rc != EOK) {
 		async_hangup(sess);
@@ -553,7 +553,7 @@ static errno_t input_connect(const char *svc)
 		    NAME, svc, str_error(rc));
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -561,7 +561,7 @@ static async_sess_t *output_connect(const char *svc)
 {
 	async_sess_t *sess;
 	service_id_t dsid;
-	
+
 	errno_t rc = loc_service_get_id(svc, &dsid, 0);
 	if (rc == EOK) {
 		sess = loc_service_connect(dsid, INTERFACE_OUTPUT, 0);
@@ -572,7 +572,7 @@ static async_sess_t *output_connect(const char *svc)
 		}
 	} else
 		return NULL;
-	
+
 	return sess;
 }
 
@@ -582,12 +582,12 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 	errno_t rc = input_connect(input_svc);
 	if (rc != EOK)
 		return false;
-	
+
 	/* Connect to output service */
 	output_sess = output_connect(output_svc);
 	if (output_sess == NULL)
 		return false;
-	
+
 	/* Register server */
 	async_set_fallback_port_handler(client_connection, NULL);
 	rc = loc_server_register(NAME);
@@ -596,13 +596,13 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 		    str_error(rc));
 		return false;
 	}
-	
+
 	output_get_dimensions(output_sess, &cols, &rows);
 	output_set_style(output_sess, STYLE_NORMAL);
-	
+
 	console_caps_t ccaps;
 	output_get_caps(output_sess, &ccaps);
-	
+
 	/*
 	 * Inititalize consoles only if there are
 	 * actually some output devices.
@@ -614,41 +614,41 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 			fibril_mutex_initialize(&consoles[i].mtx);
 			prodcons_initialize(&consoles[i].input_pc);
 			consoles[i].char_remains_len = 0;
-			
+
 			consoles[i].cols = cols;
 			consoles[i].rows = rows;
 			consoles[i].ccaps = ccaps;
 			consoles[i].frontbuf =
 			    chargrid_create(cols, rows, CHARGRID_FLAG_SHARED);
-			
+
 			if (consoles[i].frontbuf == NULL) {
 				printf("%s: Unable to allocate frontbuffer %zu\n", NAME, i);
 				return false;
 			}
-			
+
 			consoles[i].fbid = output_frontbuf_create(output_sess,
 			    consoles[i].frontbuf);
 			if (consoles[i].fbid == 0) {
 				printf("%s: Unable to create frontbuffer %zu\n", NAME, i);
 				return false;
 			}
-			
+
 			con_srvs_init(&consoles[i].srvs);
 			consoles[i].srvs.ops = &con_ops;
 			consoles[i].srvs.sarg = &consoles[i];
-			
+
 			char vc[LOC_NAME_MAXLEN + 1];
 			snprintf(vc, LOC_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
-			
+
 			if (loc_service_register(vc, &consoles[i].dsid) != EOK) {
 				printf("%s: Unable to register device %s\n", NAME, vc);
 				return false;
 			}
 		}
-		
+
 		input_activate(input);
 	}
-	
+
 	return true;
 }
 
@@ -663,16 +663,16 @@ int main(int argc, char *argv[])
 		usage(argv[0]);
 		return -1;
 	}
-	
+
 	printf("%s: HelenOS Console service\n", NAME);
-	
+
 	if (!console_srv_init(argv[1], argv[2]))
 		return -1;
-	
+
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
-	
+
 	/* Never reached */
 	return 0;
 }

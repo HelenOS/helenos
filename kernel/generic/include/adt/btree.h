@@ -59,7 +59,7 @@ typedef struct btree_node {
 	 * leaf-level. There is room for storing value for the extra key.
 	 */
 	void *value[BTREE_MAX_KEYS + 1];
-	
+
 	/**
 	 * Pointers to descendants of this node sorted according to the key
 	 * array.

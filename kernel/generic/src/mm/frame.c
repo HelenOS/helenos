@@ -107,20 +107,20 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
 		    ZONES_MAX);
 		return (size_t) -1;
 	}
-	
+
 	size_t i;
 	for (i = 0; i < zones.count; i++) {
 		/* Check for overlap */
 		if (overlaps(zones.info[i].base, zones.info[i].count,
 		    base, count)) {
-			
+
 			/*
 			 * If the overlaping zones are of the same type
 			 * and the new zone is completely within the previous
 			 * one, then quietly ignore the new zone.
 			 *
 			 */
-			
+
 			if ((zones.info[i].flags != flags) ||
 			    (!iswithin(zones.info[i].base, zones.info[i].count,
 			    base, count))) {
@@ -131,19 +131,19 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
 				    (void *) PFN2ADDR(zones.info[i].base),
 				    (void *) PFN2ADDR(zones.info[i].count));
 			}
-			
+
 			return (size_t) -1;
 		}
 		if (base < zones.info[i].base)
 			break;
 	}
-	
+
 	/* Move other zones up */
 	for (size_t j = zones.count; j > i; j--)
 		zones.info[j] = zones.info[j - 1];
-	
+
 	zones.count++;
-	
+
 	return i;
 }
 
@@ -162,7 +162,7 @@ NO_TRACE static size_t frame_total_free_get_internal(void)
 
 	for (i = 0; i < zones.count; i++)
 		total += zones.info[i].free_count;
-	
+
 	return total;
 }
 
@@ -194,19 +194,19 @@ NO_TRACE size_t find_zone(pfn_t frame, size_t count, size_t hint)
 {
 	if (hint >= zones.count)
 		hint = 0;
-	
+
 	size_t i = hint;
 	do {
 		if ((zones.info[i].base <= frame)
 		    && (zones.info[i].base + zones.info[i].count >= frame + count))
 			return i;
-		
+
 		i++;
 		if (i >= zones.count)
 			i = 0;
-		
+
 	} while (i != hint);
-	
+
 	return (size_t) -1;
 }
 
@@ -218,7 +218,7 @@ NO_TRACE static bool zone_can_alloc(zone_t *zone, size_t count,
 	 * The function bitmap_allocate_range() does not modify
 	 * the bitmap if the last argument is NULL.
 	 */
-	
+
 	return ((zone->flags & ZONE_AVAILABLE) &&
 	    bitmap_allocate_range(&zone->bitmap, count, zone->base,
 	    FRAME_LOWPRIO, constraint, NULL));
@@ -244,16 +244,16 @@ NO_TRACE static size_t find_free_zone_all(size_t count, zone_flags_t flags,
 {
 	for (size_t pos = 0; pos < zones.count; pos++) {
 		size_t i = (pos + hint) % zones.count;
-		
+
 		/* Check whether the zone meets the search criteria. */
 		if (!ZONE_FLAGS_MATCH(zones.info[i].flags, flags))
 			continue;
-		
+
 		/* Check if the zone can satisfy the allocation request. */
 		if (zone_can_alloc(&zones.info[i], count, constraint))
 			return i;
 	}
-	
+
 	return (size_t) -1;
 }
 
@@ -290,20 +290,20 @@ NO_TRACE static size_t find_free_zone_lowprio(size_t count, zone_flags_t flags,
 {
 	for (size_t pos = 0; pos < zones.count; pos++) {
 		size_t i = (pos + hint) % zones.count;
-		
+
 		/* Skip zones containing only high-priority memory. */
 		if (is_high_priority(zones.info[i].base, zones.info[i].count))
 			continue;
-		
+
 		/* Check whether the zone meets the search criteria. */
 		if (!ZONE_FLAGS_MATCH(zones.info[i].flags, flags))
 			continue;
-		
+
 		/* Check if the zone can satisfy the allocation request. */
 		if (zone_can_alloc(&zones.info[i], count, constraint))
 			return i;
 	}
-	
+
 	return (size_t) -1;
 }
 
@@ -327,16 +327,16 @@ NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
 {
 	if (hint >= zones.count)
 		hint = 0;
-	
+
 	/*
 	 * Prefer zones with low-priority memory over
 	 * zones with high-priority memory.
 	 */
-	
+
 	size_t znum = find_free_zone_lowprio(count, flags, constraint, hint);
 	if (znum != (size_t) -1)
 		return znum;
-	
+
 	/* Take all zones into account */
 	return find_free_zone_all(count, flags, constraint, hint);
 }
@@ -349,7 +349,7 @@ NO_TRACE static size_t find_free_zone(size_t count, zone_flags_t flags,
 NO_TRACE static frame_t *zone_get_frame(zone_t *zone, size_t index)
 {
 	assert(index < zone->count);
-	
+
 	return &zone->frames[index];
 }
 
@@ -370,27 +370,27 @@ NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
     pfn_t constraint)
 {
 	assert(zone->flags & ZONE_AVAILABLE);
-	
+
 	/* Allocate frames from zone */
 	size_t index = (size_t) -1;
 	int avail = bitmap_allocate_range(&zone->bitmap, count, zone->base,
 	    FRAME_LOWPRIO, constraint, &index);
-	
+
 	assert(avail);
 	assert(index != (size_t) -1);
-	
+
 	/* Update frame reference count */
 	for (size_t i = 0; i < count; i++) {
 		frame_t *frame = zone_get_frame(zone, index + i);
-		
+
 		assert(frame->refcount == 0);
 		frame->refcount = 1;
 	}
-	
+
 	/* Update zone information. */
 	zone->free_count -= count;
 	zone->busy_count += count;
-	
+
 	return index;
 }
 
@@ -407,21 +407,21 @@ NO_TRACE static size_t zone_frame_alloc(zone_t *zone, size_t count,
 NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 {
 	assert(zone->flags & ZONE_AVAILABLE);
-	
+
 	frame_t *frame = zone_get_frame(zone, index);
-	
+
 	assert(frame->refcount > 0);
-	
+
 	if (!--frame->refcount) {
 		bitmap_set(&zone->bitmap, index, 0);
-		
+
 		/* Update zone information. */
 		zone->free_count++;
 		zone->busy_count--;
-		
+
 		return 1;
 	}
-	
+
 	return 0;
 }
 
@@ -429,14 +429,14 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t index)
 NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t index)
 {
 	assert(zone->flags & ZONE_AVAILABLE);
-	
+
 	frame_t *frame = zone_get_frame(zone, index);
 	if (frame->refcount > 0)
 		return;
-	
+
 	frame->refcount = 1;
 	bitmap_set_range(&zone->bitmap, index, 1);
-	
+
 	zone->free_count--;
 	reserve_force_alloc(1);
 }
@@ -461,30 +461,30 @@ NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
 	assert(zones.info[z1].base < zones.info[z2].base);
 	assert(!overlaps(zones.info[z1].base, zones.info[z1].count,
 	    zones.info[z2].base, zones.info[z2].count));
-	
+
 	/* Difference between zone bases */
 	pfn_t base_diff = zones.info[z2].base - zones.info[z1].base;
-	
+
 	zones.info[z1].count = base_diff + zones.info[z2].count;
 	zones.info[z1].free_count += zones.info[z2].free_count;
 	zones.info[z1].busy_count += zones.info[z2].busy_count;
-	
+
 	bitmap_initialize(&zones.info[z1].bitmap, zones.info[z1].count,
 	    confdata + (sizeof(frame_t) * zones.info[z1].count));
 	bitmap_clear_range(&zones.info[z1].bitmap, 0, zones.info[z1].count);
-	
+
 	zones.info[z1].frames = (frame_t *) confdata;
-	
+
 	/*
 	 * Copy frames and bits from both zones to preserve parents, etc.
 	 */
-	
+
 	for (size_t i = 0; i < old_z1->count; i++) {
 		bitmap_set(&zones.info[z1].bitmap, i,
 		    bitmap_get(&old_z1->bitmap, i));
 		zones.info[z1].frames[i] = old_z1->frames[i];
 	}
-	
+
 	for (size_t i = 0; i < zones.info[z2].count; i++) {
 		bitmap_set(&zones.info[z1].bitmap, base_diff + i,
 		    bitmap_get(&zones.info[z2].bitmap, i));
@@ -509,13 +509,13 @@ NO_TRACE static void zone_merge_internal(size_t z1, size_t z2, zone_t *old_z1,
 NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 {
 	assert(zones.info[znum].flags & ZONE_AVAILABLE);
-	
+
 	size_t cframes = SIZE2FRAMES(zone_conf_size(count));
-	
+
 	if ((pfn < zones.info[znum].base) ||
 	    (pfn >= zones.info[znum].base + zones.info[znum].count))
 		return;
-	
+
 	for (size_t i = 0; i < cframes; i++)
 		(void) zone_frame_free(&zones.info[znum],
 		    pfn - zones.info[znum].base + i);
@@ -535,9 +535,9 @@ NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 bool zone_merge(size_t z1, size_t z2)
 {
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	bool ret = true;
-	
+
 	/*
 	 * We can join only 2 zones with none existing inbetween,
 	 * the zones have to be available and with the same
@@ -548,11 +548,11 @@ bool zone_merge(size_t z1, size_t z2)
 		ret = false;
 		goto errout;
 	}
-	
+
 	pfn_t cframes = SIZE2FRAMES(zone_conf_size(
 	    zones.info[z2].base - zones.info[z1].base
 	    + zones.info[z2].count));
-	
+
 	/* Allocate merged zone data inside one of the zones */
 	pfn_t pfn;
 	if (zone_can_alloc(&zones.info[z1], cframes, 0)) {
@@ -565,32 +565,32 @@ bool zone_merge(size_t z1, size_t z2)
 		ret = false;
 		goto errout;
 	}
-	
+
 	/* Preserve original data from z1 */
 	zone_t old_z1 = zones.info[z1];
-	
+
 	/* Do zone merging */
 	zone_merge_internal(z1, z2, &old_z1, (void *) PA2KA(PFN2ADDR(pfn)));
-	
+
 	/* Subtract zone information from busy frames */
 	zones.info[z1].busy_count -= cframes;
-	
+
 	/* Free old zone information */
 	return_config_frames(z1,
 	    ADDR2PFN(KA2PA((uintptr_t) old_z1.frames)), old_z1.count);
 	return_config_frames(z1,
 	    ADDR2PFN(KA2PA((uintptr_t) zones.info[z2].frames)),
 	    zones.info[z2].count);
-	
+
 	/* Move zones down */
 	for (size_t i = z2 + 1; i < zones.count; i++)
 		zones.info[i - 1] = zones.info[i];
-	
+
 	zones.count--;
-	
+
 errout:
 	irq_spinlock_unlock(&zones.lock, true);
-	
+
 	return ret;
 }
 
@@ -604,7 +604,7 @@ errout:
 void zone_merge_all(void)
 {
 	size_t i = 1;
-	
+
 	while (i < zones.count) {
 		if (!zone_merge(i - 1, i))
 			i++;
@@ -630,23 +630,23 @@ NO_TRACE static void zone_construct(zone_t *zone, pfn_t start, size_t count,
 	zone->flags = flags;
 	zone->free_count = count;
 	zone->busy_count = 0;
-	
+
 	if (flags & ZONE_AVAILABLE) {
 		/*
 		 * Initialize frame bitmap (located after the array of
 		 * frame_t structures in the configuration space).
 		 */
-		
+
 		bitmap_initialize(&zone->bitmap, count, confdata +
 		    (sizeof(frame_t) * count));
 		bitmap_clear_range(&zone->bitmap, 0, count);
-		
+
 		/*
 		 * Initialize the array of frame_t structures.
 		 */
-		
+
 		zone->frames = (frame_t *) confdata;
-		
+
 		for (size_t i = 0; i < count; i++)
 			frame_initialize(&zone->frames[i]);
 	} else {
@@ -671,7 +671,7 @@ size_t zone_conf_size(size_t count)
 pfn_t zone_external_conf_alloc(size_t count)
 {
 	size_t frames = SIZE2FRAMES(zone_conf_size(count));
-	
+
 	return ADDR2PFN((uintptr_t)
 	    frame_alloc(frames, FRAME_LOWMEM | FRAME_ATOMIC, 0));
 }
@@ -696,7 +696,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
     zone_flags_t flags)
 {
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	if (flags & ZONE_AVAILABLE) {  /* Create available zone */
 		/*
 		 * Theoretically we could have NULL here, practically make sure
@@ -704,27 +704,27 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 		 * the assert
 		 */
 		assert(confframe != ADDR2PFN((uintptr_t ) NULL));
-		
+
 		/* Update the known end of physical memory. */
 		config.physmem_end = max(config.physmem_end, PFN2ADDR(start + count));
-		
+
 		/*
 		 * If confframe is supposed to be inside our zone, then make sure
 		 * it does not span kernel & init
 		 */
 		size_t confcount = SIZE2FRAMES(zone_conf_size(count));
-		
+
 		if ((confframe >= start) && (confframe < start + count)) {
 			for (; confframe < start + count; confframe++) {
 				uintptr_t addr = PFN2ADDR(confframe);
 				if (overlaps(addr, PFN2ADDR(confcount),
 				    KA2PA(config.base), config.kernel_size))
 					continue;
-				
+
 				if (overlaps(addr, PFN2ADDR(confcount),
 				    KA2PA(config.stack_base), config.stack_size))
 					continue;
-				
+
 				bool overlap = false;
 				for (size_t i = 0; i < init.cnt; i++) {
 					if (overlaps(addr, PFN2ADDR(confcount),
@@ -734,49 +734,49 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 						break;
 					}
 				}
-				
+
 				if (overlap)
 					continue;
-				
+
 				break;
 			}
-			
+
 			if (confframe >= start + count)
 				panic("Cannot find configuration data for zone.");
 		}
-		
+
 		size_t znum = zones_insert_zone(start, count, flags);
 		if (znum == (size_t) -1) {
 			irq_spinlock_unlock(&zones.lock, true);
 			return (size_t) -1;
 		}
-		
+
 		void *confdata = (void *) PA2KA(PFN2ADDR(confframe));
 		zone_construct(&zones.info[znum], start, count, flags, confdata);
-		
+
 		/* If confdata in zone, mark as unavailable */
 		if ((confframe >= start) && (confframe < start + count)) {
 			for (size_t i = confframe; i < confframe + confcount; i++)
 				zone_mark_unavailable(&zones.info[znum],
 				    i - zones.info[znum].base);
 		}
-		
+
 		irq_spinlock_unlock(&zones.lock, true);
-		
+
 		return znum;
 	}
-	
+
 	/* Non-available zone */
 	size_t znum = zones_insert_zone(start, count, flags);
 	if (znum == (size_t) -1) {
 		irq_spinlock_unlock(&zones.lock, true);
 		return (size_t) -1;
 	}
-	
+
 	zone_construct(&zones.info[znum], start, count, flags, NULL);
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
-	
+
 	return znum;
 }
 
@@ -788,30 +788,30 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 void frame_set_parent(pfn_t pfn, void *data, size_t hint)
 {
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	size_t znum = find_zone(pfn, 1, hint);
-	
+
 	assert(znum != (size_t) -1);
-	
+
 	zone_get_frame(&zones.info[znum],
 	    pfn - zones.info[znum].base)->parent = data;
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
 }
 
 void *frame_get_parent(pfn_t pfn, size_t hint)
 {
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	size_t znum = find_zone(pfn, 1, hint);
-	
+
 	assert(znum != (size_t) -1);
-	
+
 	void *res = zone_get_frame(&zones.info[znum],
 	    pfn - zones.info[znum].base)->parent;
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
-	
+
 	return res;
 }
 
@@ -830,25 +830,25 @@ uintptr_t frame_alloc_generic(size_t count, frame_flags_t flags,
     uintptr_t constraint, size_t *pzone)
 {
 	assert(count > 0);
-	
+
 	size_t hint = pzone ? (*pzone) : 0;
 	pfn_t frame_constraint = ADDR2PFN(constraint);
-	
+
 	/*
 	 * If not told otherwise, we must first reserve the memory.
 	 */
 	if (!(flags & FRAME_NO_RESERVE))
 		reserve_force_alloc(count);
-	
+
 loop:
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	/*
 	 * First, find suitable frame zone.
 	 */
 	size_t znum = find_free_zone(count, FRAME_TO_ZONE_FLAGS(flags),
 	    frame_constraint, hint);
-	
+
 	/*
 	 * If no memory, reclaim some slab memory,
 	 * if it does not help, reclaim all.
@@ -857,86 +857,86 @@ loop:
 		irq_spinlock_unlock(&zones.lock, true);
 		size_t freed = slab_reclaim(0);
 		irq_spinlock_lock(&zones.lock, true);
-		
+
 		if (freed > 0)
 			znum = find_free_zone(count, FRAME_TO_ZONE_FLAGS(flags),
 			    frame_constraint, hint);
-		
+
 		if (znum == (size_t) -1) {
 			irq_spinlock_unlock(&zones.lock, true);
 			freed = slab_reclaim(SLAB_RECLAIM_ALL);
 			irq_spinlock_lock(&zones.lock, true);
-			
+
 			if (freed > 0)
 				znum = find_free_zone(count, FRAME_TO_ZONE_FLAGS(flags),
 				    frame_constraint, hint);
 		}
 	}
-	
+
 	if (znum == (size_t) -1) {
 		if (flags & FRAME_ATOMIC) {
 			irq_spinlock_unlock(&zones.lock, true);
-			
+
 			if (!(flags & FRAME_NO_RESERVE))
 				reserve_free(count);
-			
+
 			return 0;
 		}
-		
+
 		size_t avail = frame_total_free_get_internal();
-		
+
 		irq_spinlock_unlock(&zones.lock, true);
-		
+
 		if (!THREAD)
 			panic("Cannot wait for %zu frames to become available "
 			    "(%zu available).", count, avail);
-		
+
 		/*
 		 * Sleep until some frames are available again.
 		 */
-		
+
 #ifdef CONFIG_DEBUG
 		log(LF_OTHER, LVL_DEBUG,
 		    "Thread %" PRIu64 " waiting for %zu frames "
 		    "%zu available.", THREAD->tid, count, avail);
 #endif
-		
+
 		/*
 		 * Since the mem_avail_mtx is an active mutex, we need to
 		 * disable interrupts to prevent deadlock with TLB shootdown.
 		 */
 		ipl_t ipl = interrupts_disable();
 		mutex_lock(&mem_avail_mtx);
-		
+
 		if (mem_avail_req > 0)
 			mem_avail_req = min(mem_avail_req, count);
 		else
 			mem_avail_req = count;
-		
+
 		size_t gen = mem_avail_gen;
-		
+
 		while (gen == mem_avail_gen)
 			condvar_wait(&mem_avail_cv, &mem_avail_mtx);
-		
+
 		mutex_unlock(&mem_avail_mtx);
 		interrupts_restore(ipl);
-		
+
 #ifdef CONFIG_DEBUG
 		log(LF_OTHER, LVL_DEBUG, "Thread %" PRIu64 " woken up.",
 		    THREAD->tid);
 #endif
-		
+
 		goto loop;
 	}
-	
+
 	pfn_t pfn = zone_frame_alloc(&zones.info[znum], count,
 	    frame_constraint) + zones.info[znum].base;
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
-	
+
 	if (pzone)
 		*pzone = znum;
-	
+
 	return PFN2ADDR(pfn);
 }
 
@@ -959,45 +959,45 @@ uintptr_t frame_alloc(size_t count, frame_flags_t flags, uintptr_t constraint)
 void frame_free_generic(uintptr_t start, size_t count, frame_flags_t flags)
 {
 	size_t freed = 0;
-	
+
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	for (size_t i = 0; i < count; i++) {
 		/*
 		 * First, find host frame zone for addr.
 		 */
 		pfn_t pfn = ADDR2PFN(start) + i;
 		size_t znum = find_zone(pfn, 1, 0);
-		
+
 		assert(znum != (size_t) -1);
-		
+
 		freed += zone_frame_free(&zones.info[znum],
 		    pfn - zones.info[znum].base);
 	}
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
-	
+
 	/*
 	 * Signal that some memory has been freed.
 	 * Since the mem_avail_mtx is an active mutex,
 	 * we need to disable interruptsto prevent deadlock
 	 * with TLB shootdown.
 	 */
-	
+
 	ipl_t ipl = interrupts_disable();
 	mutex_lock(&mem_avail_mtx);
-	
+
 	if (mem_avail_req > 0)
 		mem_avail_req -= min(mem_avail_req, freed);
-	
+
 	if (mem_avail_req == 0) {
 		mem_avail_gen++;
 		condvar_broadcast(&mem_avail_cv);
 	}
-	
+
 	mutex_unlock(&mem_avail_mtx);
 	interrupts_restore(ipl);
-	
+
 	if (!(flags & FRAME_NO_RESERVE))
 		reserve_free(freed);
 }
@@ -1023,16 +1023,16 @@ void frame_free_noreserve(uintptr_t frame, size_t count)
 NO_TRACE void frame_reference_add(pfn_t pfn)
 {
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	/*
 	 * First, find host frame zone for addr.
 	 */
 	size_t znum = find_zone(pfn, 1, 0);
-	
+
 	assert(znum != (size_t) -1);
-	
+
 	zones.info[znum].frames[pfn - zones.info[znum].base].refcount++;
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
 }
 
@@ -1042,17 +1042,17 @@ NO_TRACE void frame_reference_add(pfn_t pfn)
 NO_TRACE void frame_mark_unavailable(pfn_t start, size_t count)
 {
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	for (size_t i = 0; i < count; i++) {
 		size_t znum = find_zone(start + i, 1, 0);
-		
+
 		if (znum == (size_t) -1)  /* PFN not found */
 			continue;
-		
+
 		zone_mark_unavailable(&zones.info[znum],
 		    start + i - zones.info[znum].base);
 	}
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
 }
 
@@ -1067,31 +1067,31 @@ void frame_init(void)
 		mutex_initialize(&mem_avail_mtx, MUTEX_ACTIVE);
 		condvar_initialize(&mem_avail_cv);
 	}
-	
+
 	/* Tell the architecture to create some memory */
 	frame_low_arch_init();
-	
+
 	if (config.cpu_active == 1) {
 		frame_mark_unavailable(ADDR2PFN(KA2PA(config.base)),
 		    SIZE2FRAMES(config.kernel_size));
 		frame_mark_unavailable(ADDR2PFN(KA2PA(config.stack_base)),
 		    SIZE2FRAMES(config.stack_size));
-		
+
 		for (size_t i = 0; i < init.cnt; i++)
 			frame_mark_unavailable(ADDR2PFN(init.tasks[i].paddr),
 			    SIZE2FRAMES(init.tasks[i].size));
-		
+
 		if (ballocs.size)
 			frame_mark_unavailable(ADDR2PFN(KA2PA(ballocs.base)),
 			    SIZE2FRAMES(ballocs.size));
-		
+
 		/*
 		 * Blacklist first frame, as allocating NULL would
 		 * fail in some places
 		 */
 		frame_mark_unavailable(0, 1);
 	}
-	
+
 	frame_high_arch_init();
 }
 
@@ -1112,23 +1112,23 @@ void frame_init(void)
 bool frame_adjust_zone_bounds(bool low, uintptr_t *basep, size_t *sizep)
 {
 	uintptr_t limit = KA2PA(config.identity_base) + config.identity_size;
-	
+
 	if (low) {
 		if (*basep > limit)
 			return false;
-		
+
 		if (*basep + *sizep > limit)
 			*sizep = limit - *basep;
 	} else {
 		if (*basep + *sizep <= limit)
 			return false;
-		
+
 		if (*basep <= limit) {
 			*sizep -= limit - *basep;
 			*basep = limit;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -1138,14 +1138,14 @@ bool frame_adjust_zone_bounds(bool low, uintptr_t *basep, size_t *sizep)
 uint64_t zones_total_size(void)
 {
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	uint64_t total = 0;
-	
+
 	for (size_t i = 0; i < zones.count; i++)
 		total += (uint64_t) FRAMES2SIZE(zones.info[i].count);
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
-	
+
 	return total;
 }
 
@@ -1156,24 +1156,24 @@ void zones_stats(uint64_t *total, uint64_t *unavail, uint64_t *busy,
 	assert(unavail != NULL);
 	assert(busy != NULL);
 	assert(free != NULL);
-	
+
 	irq_spinlock_lock(&zones.lock, true);
-	
+
 	*total = 0;
 	*unavail = 0;
 	*busy = 0;
 	*free = 0;
-	
+
 	for (size_t i = 0; i < zones.count; i++) {
 		*total += (uint64_t) FRAMES2SIZE(zones.info[i].count);
-		
+
 		if (zones.info[i].flags & ZONE_AVAILABLE) {
 			*busy += (uint64_t) FRAMES2SIZE(zones.info[i].busy_count);
 			*free += (uint64_t) FRAMES2SIZE(zones.info[i].free_count);
 		} else
 			*unavail += (uint64_t) FRAMES2SIZE(zones.info[i].count);
 	}
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
 }
 
@@ -1189,7 +1189,7 @@ void zones_print_list(void)
 #ifdef __64_BITS__
 	printf("[nr] [base address    ] [frames    ] [flags ] [free frames ] [busy frames ]\n");
 #endif
-	
+
 	/*
 	 * Because printing may require allocation of memory, we may not hold
 	 * the frame allocator locks when printing zone statistics. Therefore,
@@ -1200,38 +1200,38 @@ void zones_print_list(void)
 	 * we may end up with inaccurate output (e.g. a zone being skipped from
 	 * the listing).
 	 */
-	
+
 	size_t free_lowmem = 0;
 	size_t free_highmem = 0;
 	size_t free_highprio = 0;
-	
+
 	for (size_t i = 0;; i++) {
 		irq_spinlock_lock(&zones.lock, true);
-		
+
 		if (i >= zones.count) {
 			irq_spinlock_unlock(&zones.lock, true);
 			break;
 		}
-		
+
 		pfn_t fbase = zones.info[i].base;
 		uintptr_t base = PFN2ADDR(fbase);
 		size_t count = zones.info[i].count;
 		zone_flags_t flags = zones.info[i].flags;
 		size_t free_count = zones.info[i].free_count;
 		size_t busy_count = zones.info[i].busy_count;
-		
+
 		bool available = ((flags & ZONE_AVAILABLE) != 0);
 		bool lowmem = ((flags & ZONE_LOWMEM) != 0);
 		bool highmem = ((flags & ZONE_HIGHMEM) != 0);
 		bool highprio = is_high_priority(fbase, count);
-		
+
 		if (available) {
 			if (lowmem)
 				free_lowmem += free_count;
-			
+
 			if (highmem)
 				free_highmem += free_count;
-			
+
 			if (highprio) {
 				free_highprio += free_count;
 			} else {
@@ -1240,7 +1240,7 @@ void zones_print_list(void)
 				 * all high priority memory to get accurate
 				 * statistics.
 				 */
-				
+
 				for (size_t index = 0; index < count; index++) {
 					if (is_high_priority(fbase + index, 0)) {
 						if (!bitmap_get(&zones.info[i].bitmap, index))
@@ -1250,48 +1250,48 @@ void zones_print_list(void)
 				}
 			}
 		}
-		
+
 		irq_spinlock_unlock(&zones.lock, true);
-		
+
 		printf("%-4zu", i);
-		
+
 #ifdef __32_BITS__
 		printf("  %p", (void *) base);
 #endif
-		
+
 #ifdef __64_BITS__
 		printf(" %p", (void *) base);
 #endif
-		
+
 		printf(" %12zu %c%c%c%c%c    ", count,
 		    available ? 'A' : '-',
 		    (flags & ZONE_RESERVED) ? 'R' : '-',
 		    (flags & ZONE_FIRMWARE) ? 'F' : '-',
 		    (flags & ZONE_LOWMEM) ? 'L' : '-',
 		    (flags & ZONE_HIGHMEM) ? 'H' : '-');
-		
+
 		if (available)
 			printf("%14zu %14zu",
 			    free_count, busy_count);
-		
+
 		printf("\n");
 	}
-	
+
 	printf("\n");
-	
+
 	uint64_t size;
 	const char *size_suffix;
-	
+
 	bin_order_suffix(FRAMES2SIZE(free_lowmem), &size, &size_suffix,
 	    false);
 	printf("Available low memory:    %zu frames (%" PRIu64 " %s)\n",
 	    free_lowmem, size, size_suffix);
-	
+
 	bin_order_suffix(FRAMES2SIZE(free_highmem), &size, &size_suffix,
 	    false);
 	printf("Available high memory:   %zu frames (%" PRIu64 " %s)\n",
 	    free_highmem, size, size_suffix);
-	
+
 	bin_order_suffix(FRAMES2SIZE(free_highprio), &size, &size_suffix,
 	    false);
 	printf("Available high priority: %zu frames (%" PRIu64 " %s)\n",
@@ -1307,43 +1307,43 @@ void zone_print_one(size_t num)
 {
 	irq_spinlock_lock(&zones.lock, true);
 	size_t znum = (size_t) -1;
-	
+
 	for (size_t i = 0; i < zones.count; i++) {
 		if ((i == num) || (PFN2ADDR(zones.info[i].base) == num)) {
 			znum = i;
 			break;
 		}
 	}
-	
+
 	if (znum == (size_t) -1) {
 		irq_spinlock_unlock(&zones.lock, true);
 		printf("Zone not found.\n");
 		return;
 	}
-	
+
 	size_t free_lowmem = 0;
 	size_t free_highmem = 0;
 	size_t free_highprio = 0;
-	
+
 	pfn_t fbase = zones.info[znum].base;
 	uintptr_t base = PFN2ADDR(fbase);
 	zone_flags_t flags = zones.info[znum].flags;
 	size_t count = zones.info[znum].count;
 	size_t free_count = zones.info[znum].free_count;
 	size_t busy_count = zones.info[znum].busy_count;
-	
+
 	bool available = ((flags & ZONE_AVAILABLE) != 0);
 	bool lowmem = ((flags & ZONE_LOWMEM) != 0);
 	bool highmem = ((flags & ZONE_HIGHMEM) != 0);
 	bool highprio = is_high_priority(fbase, count);
-	
+
 	if (available) {
 		if (lowmem)
 			free_lowmem = free_count;
-		
+
 		if (highmem)
 			free_highmem = free_count;
-		
+
 		if (highprio) {
 			free_highprio = free_count;
 		} else {
@@ -1352,7 +1352,7 @@ void zone_print_one(size_t num)
 			 * all high priority memory to get accurate
 			 * statistics.
 			 */
-			
+
 			for (size_t index = 0; index < count; index++) {
 				if (is_high_priority(fbase + index, 0)) {
 					if (!bitmap_get(&zones.info[znum].bitmap, index))
@@ -1362,14 +1362,14 @@ void zone_print_one(size_t num)
 			}
 		}
 	}
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
-	
+
 	uint64_t size;
 	const char *size_suffix;
-	
+
 	bin_order_suffix(FRAMES2SIZE(count), &size, &size_suffix, false);
-	
+
 	printf("Zone number:             %zu\n", znum);
 	printf("Zone base address:       %p\n", (void *) base);
 	printf("Zone size:               %zu frames (%" PRIu64 " %s)\n", count,
@@ -1380,28 +1380,28 @@ void zone_print_one(size_t num)
 	    (flags & ZONE_FIRMWARE) ? 'F' : '-',
 	    (flags & ZONE_LOWMEM) ? 'L' : '-',
 	    (flags & ZONE_HIGHMEM) ? 'H' : '-');
-	
+
 	if (available) {
 		bin_order_suffix(FRAMES2SIZE(busy_count), &size, &size_suffix,
 		    false);
 		printf("Allocated space:         %zu frames (%" PRIu64 " %s)\n",
 		    busy_count, size, size_suffix);
-		
+
 		bin_order_suffix(FRAMES2SIZE(free_count), &size, &size_suffix,
 		    false);
 		printf("Available space:         %zu frames (%" PRIu64 " %s)\n",
 		    free_count, size, size_suffix);
-		
+
 		bin_order_suffix(FRAMES2SIZE(free_lowmem), &size, &size_suffix,
 		    false);
 		printf("Available low memory:    %zu frames (%" PRIu64 " %s)\n",
 		    free_lowmem, size, size_suffix);
-		
+
 		bin_order_suffix(FRAMES2SIZE(free_highmem), &size, &size_suffix,
 		    false);
 		printf("Available high memory:   %zu frames (%" PRIu64 " %s)\n",
 		    free_highmem, size, size_suffix);
-		
+
 		bin_order_suffix(FRAMES2SIZE(free_highprio), &size, &size_suffix,
 		    false);
 		printf("Available high priority: %zu frames (%" PRIu64 " %s)\n",

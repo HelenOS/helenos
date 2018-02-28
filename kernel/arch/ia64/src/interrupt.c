@@ -123,7 +123,7 @@ static const char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 static const char *vector_to_string(unsigned int n)
 {
 	assert(n <= VECTOR_MAX);
-	
+
 	if (n >= VECTORS_16_BUNDLE_START)
 		return vector_names_16_bundle[n - VECTORS_16_BUNDLE_START];
 	else
@@ -140,7 +140,7 @@ void istate_decode(istate_t *istate)
 	    istate->ar_ifs, istate->ar_pfs);
 	printf("cr.isr=%#0" PRIx64 "\tcr.ipsr=%#0" PRIx64 "\n",
 	    istate->cr_isr.value, istate->cr_ipsr.value);
-	
+
 	printf("cr.iip=%#0" PRIxPTR ", #%u\t(%s)\n",
 	    istate->cr_iip, istate->cr_isr.ei,
 	    symtab_fmt_name_lookup(istate->cr_iip));
@@ -153,7 +153,7 @@ void istate_decode(istate_t *istate)
 void general_exception(unsigned int n, istate_t *istate)
 {
 	const char *desc;
-	
+
 	switch (istate->cr_isr.ge_code) {
 	case GE_ILLEGALOP:
 		desc = "Illegal Operation fault";
@@ -177,7 +177,7 @@ void general_exception(unsigned int n, istate_t *istate)
 		desc = "unknown";
 		break;
 	}
-	
+
 	fault_if_from_uspace(istate, "General Exception (%s).", desc);
 	panic_badtrap(istate, n, "General Exception (%s).", desc);
 }
@@ -208,7 +208,7 @@ sysarg_t break_instruction(unsigned int n, istate_t *istate)
 	} else {
 		istate->cr_ipsr.ri++;
 	}
-	
+
 	interrupts_enable();
 	ret = syscall_handler(istate->in0, istate->in1, istate->in2,
 	    istate->in3, istate->in4, istate->in5, istate->in6);
@@ -235,26 +235,26 @@ static void end_of_local_irq(void)
 void external_interrupt(unsigned int n, istate_t *istate)
 {
 	cr_ivr_t ivr;
-	
+
 	ivr.value = ivr_read();
 	srlz_d();
-	
+
 	irq_t *irq;
-	
+
 	switch (ivr.vector) {
 	case INTERRUPT_SPURIOUS:
 #ifdef CONFIG_DEBUG
  		printf("cpu%d: spurious interrupt\n", CPU->id);
 #endif
 		break;
-	
+
 #ifdef CONFIG_SMP
 	case VECTOR_TLB_SHOOTDOWN_IPI:
 		tlb_shootdown_ipi_recv();
 		end_of_local_irq();
 		break;
 #endif
-	
+
 	case INTERRUPT_TIMER:
 		irq = irq_dispatch_and_lock(ivr.vector);
 		if (irq) {

@@ -43,7 +43,7 @@ SYMBOL(__entry)
 	pushq $0
 	pushq $0
 	movq %rsp, %rbp
-	
+
 	# %rdi was deliberately chosen as the first argument is also in %rdi
 	# Pass PCB pointer to __main (no operation)
 	call __main

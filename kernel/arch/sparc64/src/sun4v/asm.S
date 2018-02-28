@@ -57,7 +57,7 @@ FUNCTION_BEGIN(switch_to_userspace)
 	rdpr %cwp, %g1
 	wrpr %g1, TSTATE_IE_BIT, %tstate
 	wrpr %i0, 0, %tnpc
-	
+
 	/*
 	 * Set primary context according to secondary context.
 	 * Secondary context has been already installed by

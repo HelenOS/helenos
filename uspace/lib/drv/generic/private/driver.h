@@ -48,19 +48,19 @@ struct ddf_dev {
 	 * device manager).
 	 */
 	devman_handle_t handle;
-	
+
 	/** Reference count */
 	atomic_t refcnt;
-	
+
 	/** Session with the parent device driver */
 	async_sess_t *parent_sess;
-	
+
 	/** Device name */
 	char *name;
-	
+
 	/** Driver-specific data associated with this device */
 	void *driver_data;
-	
+
 	/** Link in the list of devices handled by the driver */
 	link_t link;
 };
@@ -69,34 +69,34 @@ struct ddf_dev {
 struct ddf_fun {
 	/** True if bound to the device manager */
 	bool bound;
-	
+
 	/** Function indentifier (asigned by device manager) */
 	devman_handle_t handle;
-	
+
 	/** Reference count */
 	atomic_t refcnt;
-	
+
 	/** Device which this function belogs to */
 	struct ddf_dev *dev;
-	
+
 	/** Function type */
 	fun_type_t ftype;
-	
+
 	/** Function name */
 	char *name;
-	
+
 	/** List of device ids for driver matching */
 	match_id_list_t match_ids;
-	
+
 	/** Driver-specific data associated with this function */
 	void *driver_data;
-	
+
 	/** Implementation of operations provided by this function */
 	const ddf_dev_ops_t *ops;
-	
+
 	/** Connection handler or @c NULL to use the DDF default handler. */
 	async_port_handler_t conn_handler;
-	
+
 	/** Link in the list of functions handled by the driver */
 	link_t link;
 };

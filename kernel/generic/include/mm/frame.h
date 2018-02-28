@@ -96,22 +96,22 @@ typedef struct {
 typedef struct {
 	/** Frame_no of the first frame in the frames array */
 	pfn_t base;
-	
+
 	/** Size of zone */
 	size_t count;
-	
+
 	/** Number of free frame_t structures */
 	size_t free_count;
-	
+
 	/** Number of busy frame_t structures */
 	size_t busy_count;
-	
+
 	/** Type of the zone */
 	zone_flags_t flags;
-	
+
 	/** Frame bitmap */
 	bitmap_t bitmap;
-	
+
 	/** Array of frame_t structures in this zone */
 	frame_t *frames;
 } zone_t;

@@ -171,7 +171,7 @@ void user_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	} else {
 		/* Nothing to do */
 	}
-		
+
 }
 
 /** @}

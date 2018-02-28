@@ -66,9 +66,9 @@ static errno_t usb_blink1_color_set(ddf_fun_t *fun, pixel_t pixel)
 		usb_log_debug("Missing parameters.");
 		return EINVAL;
 	}
-	
+
 	blink1_report_t report;
-	
+
 	report.id = BLINK1_REPORT_ID;
 	report.command = BLINK1_COMMAND_SET;
 	report.arg0 = RED(pixel);
@@ -77,7 +77,7 @@ static errno_t usb_blink1_color_set(ddf_fun_t *fun, pixel_t pixel)
 	report.arg3 = 0;
 	report.arg4 = 0;
 	report.arg5 = 0;
-	
+
 	return usbhid_req_set_report(
 	    usb_device_get_default_pipe(blink1_dev->hid_dev->usb_dev),
 	    usb_device_get_iface_number(blink1_dev->hid_dev->usb_dev),
@@ -99,7 +99,7 @@ errno_t usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 		    "given.\n");
 		return EINVAL;
 	}
-	
+
 	/* Create the exposed function. */
 	ddf_fun_t *fun = usb_device_ddf_fun_create(hid_dev->usb_dev,
 	    fun_exposed, HID_BLINK1_FUN_NAME);
@@ -108,7 +108,7 @@ errno_t usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 		    HID_BLINK1_FUN_NAME);
 		return ENOMEM;
 	}
-	
+
 	usb_blink1_t *blink1_dev = (usb_blink1_t *)
 	    ddf_fun_data_alloc(fun, sizeof(usb_blink1_t));
 	if (blink1_dev == NULL) {
@@ -117,9 +117,9 @@ errno_t usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 		ddf_fun_destroy(fun);
 		return ENOMEM;
 	}
-	
+
 	ddf_fun_set_ops(fun, &blink1_ops);
-	
+
 	errno_t rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function `%s': %s.",
@@ -127,27 +127,27 @@ errno_t usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+
 	rc = ddf_fun_add_to_category(fun, HID_BLINK1_CATEGORY);
 	if (rc != EOK) {
 		usb_log_error("Could not add DDF function to category %s: %s.",
 		    HID_BLINK1_CATEGORY, str_error(rc));
-		
+
 		rc = ddf_fun_unbind(fun);
 		if (rc != EOK) {
 			usb_log_error("Could not unbind function `%s', it "
 			    "will not be destroyed.\n", ddf_fun_get_name(fun));
 			return rc;
 		}
-		
+
 		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+
 	blink1_dev->fun = fun;
 	blink1_dev->hid_dev = hid_dev;
 	*data = blink1_dev;
-	
+
 	return EOK;
 }
 
@@ -155,16 +155,16 @@ void usb_blink1_deinit(usb_hid_dev_t *hid_dev, void *data)
 {
 	if (data == NULL)
 		return;
-	
+
 	usb_blink1_t *blink1_dev = (usb_blink1_t *) data;
-	
+
 	errno_t rc = ddf_fun_unbind(blink1_dev->fun);
 	if (rc != EOK) {
 		usb_log_error("Could not unbind function `%s', it "
 		    "will not be destroyed.\n", ddf_fun_get_name(blink1_dev->fun));
 		return;
 	}
-	
+
 	ddf_fun_destroy(blink1_dev->fun);
 }
 

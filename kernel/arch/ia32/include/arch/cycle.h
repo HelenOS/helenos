@@ -43,12 +43,12 @@ NO_TRACE static inline uint64_t get_cycle(void)
 	return 0;
 #else
 	uint64_t v;
-	
+
 	asm volatile(
 		"rdtsc\n"
 		: "=A" (v)
 	);
-	
+
 	return v;
 #endif
 }

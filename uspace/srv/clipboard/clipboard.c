@@ -51,18 +51,18 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 	char *data;
 	errno_t rc;
 	size_t size;
-	
+
 	switch (IPC_GET_ARG1(*request)) {
 	case CLIPBOARD_TAG_NONE:
 		fibril_mutex_lock(&clip_mtx);
-		
+
 		if (clip_data)
 			free(clip_data);
-		
+
 		clip_data = NULL;
 		clip_size = 0;
 		clip_tag = CLIPBOARD_TAG_NONE;
-		
+
 		fibril_mutex_unlock(&clip_mtx);
 		async_answer_0(rid, EOK);
 		break;
@@ -72,16 +72,16 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 			async_answer_0(rid, rc);
 			break;
 		}
-		
+
 		fibril_mutex_lock(&clip_mtx);
-		
+
 		if (clip_data)
 			free(clip_data);
-		
+
 		clip_data = data;
 		clip_size = size;
 		clip_tag = CLIPBOARD_TAG_DATA;
-		
+
 		fibril_mutex_unlock(&clip_mtx);
 		async_answer_0(rid, EOK);
 		break;
@@ -93,10 +93,10 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 {
 	fibril_mutex_lock(&clip_mtx);
-	
+
 	ipc_callid_t callid;
 	size_t size;
-	
+
 	/* Check for clipboard data tag compatibility */
 	switch (IPC_GET_ARG1(*request)) {
 	case CLIPBOARD_TAG_DATA:
@@ -105,27 +105,27 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 			async_answer_0(rid, EINVAL);
 			break;
 		}
-		
+
 		if (clip_tag != CLIPBOARD_TAG_DATA) {
 			/* So far we only understand binary data */
 			async_answer_0(callid, EOVERFLOW);
 			async_answer_0(rid, EOVERFLOW);
 			break;
 		}
-		
+
 		if (clip_size != size) {
 			/* The client expects different size of data */
 			async_answer_0(callid, EOVERFLOW);
 			async_answer_0(rid, EOVERFLOW);
 			break;
 		}
-		
+
 		errno_t retval = async_data_read_finalize(callid, clip_data, size);
 		if (retval != EOK) {
 			async_answer_0(rid, retval);
 			break;
 		}
-		
+
 		async_answer_0(rid, EOK);
 		break;
 	default:
@@ -136,17 +136,17 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EINVAL);
 		break;
 	}
-	
+
 	fibril_mutex_unlock(&clip_mtx);
 }
 
 static void clip_content(ipc_callid_t rid, ipc_call_t *request)
 {
 	fibril_mutex_lock(&clip_mtx);
-	
+
 	size_t size = clip_size;
 	clipboard_tag_t tag = clip_tag;
-	
+
 	fibril_mutex_unlock(&clip_mtx);
 	async_answer_2(rid, EOK, (sysarg_t) size, (sysarg_t) tag);
 }
@@ -155,14 +155,14 @@ static void clip_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case CLIPBOARD_PUT_DATA:
 			clip_put_data(callid, &call);
@@ -182,26 +182,26 @@ static void clip_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 int main(int argc, char *argv[])
 {
 	errno_t rc;
-	
+
 	printf("%s: HelenOS clipboard service\n", NAME);
 	async_set_fallback_port_handler(clip_connection, NULL);
-	
+
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Failed registering server: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	rc = loc_service_register(SERVICE_NAME_CLIPBOARD, &svc_id);
 	if (rc != EOK) {
 		printf("%s: Failed registering service : %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
-	
+
 	/* Never reached */
 	return 0;
 }

@@ -75,7 +75,7 @@ typedef enum {
 typedef enum {
 	WMI_ECHO = 0x0001,
 	WMI_ACCESS_MEMORY,
-	
+
 	/* Commands used for HOST -> DEVICE communication */
 	WMI_GET_FW_VERSION,
 	WMI_DISABLE_INTR,

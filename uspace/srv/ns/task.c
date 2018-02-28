@@ -47,7 +47,7 @@
 /** Task hash table item. */
 typedef struct {
 	ht_link_t link;
-	
+
 	task_id_t id;    /**< Task ID. */
 	bool finished;   /**< Task is done. */
 	bool have_rval;  /**< Task returned a value. */
@@ -114,7 +114,7 @@ static bool p2i_key_equal(void *key, const ht_link_t *item)
 {
 	sysarg_t in_phone_hash = *(sysarg_t*)key;
 	p2i_entry_t *entry = hash_table_get_inst(item, p2i_entry_t, link);
-	
+
 	return (in_phone_hash == entry->in_phone_hash);
 }
 
@@ -156,12 +156,12 @@ errno_t task_init(void)
 		printf(NAME ": No memory available for tasks\n");
 		return ENOMEM;
 	}
-	
+
 	if (!hash_table_create(&phone_to_id, 0, 0, &p2i_ops)) {
 		printf(NAME ": No memory available for tasks\n");
 		return ENOMEM;
 	}
-	
+
 	list_initialize(&pending_wait);
 	return EOK;
 }
@@ -170,21 +170,21 @@ errno_t task_init(void)
 void process_pending_wait(void)
 {
 	task_exit_t texit;
-	
+
 loop:
 	list_foreach(pending_wait, link, pending_wait_t, pr) {
 		ht_link_t *link = hash_table_find(&task_hash_table, &pr->id);
 		if (!link)
 			continue;
-		
+
 		hashed_task_t *ht = hash_table_get_inst(link, hashed_task_t, link);
 		if (!ht->finished)
 			continue;
-		
+
 		texit = ht->have_rval ? TASK_EXIT_NORMAL :
 		    TASK_EXIT_UNEXPECTED;
 		async_answer_2(pr->callid, EOK, texit, ht->retval);
-		
+
 		list_remove(&pr->link);
 		free(pr);
 		goto loop;
@@ -196,20 +196,20 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?
 	    hash_table_get_inst(link, hashed_task_t, link) : NULL;
-	
+
 	if (ht == NULL) {
 		/* No such task exists. */
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	if (ht->finished) {
 		task_exit_t texit = ht->have_rval ? TASK_EXIT_NORMAL :
 		    TASK_EXIT_UNEXPECTED;
 		async_answer_2(callid, EOK, texit, ht->retval);
 		return;
 	}
-	
+
 	/* Add to pending list */
 	pending_wait_t *pr =
 	    (pending_wait_t *) malloc(sizeof(pending_wait_t));
@@ -217,7 +217,7 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 		async_answer_0(callid, ENOMEM);
 		return;
 	}
-	
+
 	link_initialize(&pr->link);
 	pr->id = id;
 	pr->callid = callid;
@@ -227,39 +227,39 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 errno_t ns_task_id_intro(ipc_call_t *call)
 {
 	task_id_t id = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
-	
+
 	ht_link_t *link = hash_table_find(&phone_to_id, &call->in_phone_hash);
 	if (link != NULL)
 		return EEXIST;
-	
+
 	p2i_entry_t *entry = (p2i_entry_t *) malloc(sizeof(p2i_entry_t));
 	if (entry == NULL)
 		return ENOMEM;
-	
+
 	hashed_task_t *ht = (hashed_task_t *) malloc(sizeof(hashed_task_t));
 	if (ht == NULL) {
 		free(entry);
 		return ENOMEM;
 	}
-	
+
 	/*
 	 * Insert into the phone-to-id map.
 	 */
-	
+
 	entry->in_phone_hash = call->in_phone_hash;
 	entry->id = id;
 	hash_table_insert(&phone_to_id, &entry->link);
-	
+
 	/*
 	 * Insert into the main table.
 	 */
-	
+
 	ht->id = id;
 	ht->finished = false;
 	ht->have_rval = false;
 	ht->retval = -1;
 	hash_table_insert(&task_hash_table, &ht->link);
-	
+
 	return EOK;
 }
 
@@ -268,30 +268,30 @@ static errno_t get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
 	ht_link_t *link = hash_table_find(&phone_to_id, &phone_hash);
 	if (link == NULL)
 		return ENOENT;
-	
+
 	p2i_entry_t *entry = hash_table_get_inst(link, p2i_entry_t, link);
 	*id = entry->id;
-	
+
 	return EOK;
 }
 
 errno_t ns_task_retval(ipc_call_t *call)
 {
 	task_id_t id = call->in_task_id;
-	
+
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?
 	    hash_table_get_inst(link, hashed_task_t, link) : NULL;
-	
+
 	if ((ht == NULL) || (ht->finished))
 		return EINVAL;
-	
+
 	ht->finished = true;
 	ht->have_rval = true;
 	ht->retval = IPC_GET_ARG1(*call);
-	
+
 	process_pending_wait();
-	
+
 	return EOK;
 }
 
@@ -301,22 +301,22 @@ errno_t ns_task_disconnect(ipc_call_t *call)
 	errno_t rc = get_id_by_phone(call->in_phone_hash, &id);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Delete from phone-to-id map. */
 	hash_table_remove(&phone_to_id, &call->in_phone_hash);
-	
+
 	/* Mark task as finished. */
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	if (link == NULL)
 		return EOK;
 
 	hashed_task_t *ht = hash_table_get_inst(link, hashed_task_t, link);
-	
+
 	ht->finished = true;
-	
+
 	process_pending_wait();
 	hash_table_remove(&task_hash_table, &id);
-	
+
 	return EOK;
 }
 

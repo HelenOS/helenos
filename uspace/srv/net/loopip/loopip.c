@@ -76,7 +76,7 @@ static prodcons_t loopip_rcv_queue;
 
 typedef struct {
 	link_t link;
-	
+
 	/* XXX Version should be part of SDU */
 	ip_ver_t ver;
 	iplink_recv_sdu_t sdu;
@@ -89,32 +89,32 @@ static errno_t loopip_recv_fibril(void *arg)
 		link_t *link = prodcons_consume(&loopip_rcv_queue);
 		rqueue_entry_t *rqe =
 		    list_get_instance(link, rqueue_entry_t, link);
-		
+
 		(void) iplink_ev_recv(&loopip_iplink, &rqe->sdu, rqe->ver);
-		
+
 		free(rqe->sdu.data);
 		free(rqe);
 	}
-	
+
 	return 0;
 }
 
 static errno_t loopip_init(void)
 {
 	async_set_fallback_port_handler(loopip_client_conn, NULL);
-	
+
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
 	}
-	
+
 	iplink_srv_init(&loopip_iplink);
 	loopip_iplink.ops = &loopip_iplink_ops;
 	loopip_iplink.arg = NULL;
-	
+
 	prodcons_initialize(&loopip_rcv_queue);
-	
+
 	const char *svc_name = "net/loopback";
 	service_id_t sid;
 	rc = loc_service_register(svc_name, &sid);
@@ -123,27 +123,27 @@ static errno_t loopip_init(void)
 		    svc_name);
 		return rc;
 	}
-	
+
 	category_id_t iplink_cat;
 	rc = loc_category_get_id("iplink", &iplink_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'iplink'.");
 		return rc;
 	}
-	
+
 	rc = loc_service_add_to_cat(sid, iplink_cat);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding %s to category.",
 		    svc_name);
 		return rc;
 	}
-	
+
 	fid_t fid = fibril_create(loopip_recv_fibril, NULL);
 	if (fid == 0)
 		return ENOMEM;
-	
+
 	fibril_add_ready(fid);
-	
+
 	return EOK;
 }
 
@@ -168,11 +168,11 @@ static errno_t loopip_close(iplink_srv_t *srv)
 static errno_t loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip_send()");
-	
+
 	rqueue_entry_t *rqe = calloc(1, sizeof(rqueue_entry_t));
 	if (rqe == NULL)
 		return ENOMEM;
-	
+
 	/*
 	 * Clone SDU
 	 */
@@ -182,26 +182,26 @@ static errno_t loopip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 		free(rqe);
 		return ENOMEM;
 	}
-	
+
 	memcpy(rqe->sdu.data, sdu->data, sdu->size);
 	rqe->sdu.size = sdu->size;
-	
+
 	/*
 	 * Insert to receive queue
 	 */
 	prodcons_produce(&loopip_rcv_queue, &rqe->link);
-	
+
 	return EOK;
 }
 
 static errno_t loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "loopip6_send()");
-	
+
 	rqueue_entry_t *rqe = calloc(1, sizeof(rqueue_entry_t));
 	if (rqe == NULL)
 		return ENOMEM;
-	
+
 	/*
 	 * Clone SDU
 	 */
@@ -211,15 +211,15 @@ static errno_t loopip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 		free(rqe);
 		return ENOMEM;
 	}
-	
+
 	memcpy(rqe->sdu.data, sdu->data, sdu->size);
 	rqe->sdu.size = sdu->size;
-	
+
 	/*
 	 * Insert to receive queue
 	 */
 	prodcons_produce(&loopip_rcv_queue, &rqe->link);
-	
+
 	return EOK;
 }
 
@@ -249,23 +249,23 @@ static errno_t loopip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS loopback IP link provider\n", NAME);
-	
+
 	errno_t rc = log_init(NAME);
 	if (rc != EOK) {
 		printf("%s: Failed to initialize logging: %s.\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	rc = loopip_init();
 	if (rc != EOK) {
 		printf("%s: Failed to initialize loopip: %s.\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	printf("%s: Accepting connections.\n", NAME);
 	task_retval(0);
 	async_manager();
-	
+
 	/* Not reached */
 	return 0;
 }

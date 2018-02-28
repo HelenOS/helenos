@@ -54,13 +54,13 @@ typedef struct {
 	 * Must be acquired before T.lock for each T of type thread_t.
 	 */
 	IRQ_SPINLOCK_DECLARE(lock);
-	
+
 	/**
 	 * Number of waitq_wakeup() calls that didn't find a thread to wake up.
 	 *
 	 */
 	int missed_wakeups;
-	
+
 	/** List of sleeping threads for which there was no missed_wakeup. */
 	list_t sleepers;
 } waitq_t;

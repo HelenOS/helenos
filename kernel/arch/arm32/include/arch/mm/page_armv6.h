@@ -169,7 +169,7 @@ NO_TRACE static inline int get_pt_level0_flags(pte_t *pt, size_t i)
 {
 	const pte_level0_t *p = &pt[i].l0;
 	const unsigned np = (p->descriptor_type == PTE_DESCRIPTOR_NOT_PRESENT);
-	
+
 	return (np << PAGE_PRESENT_SHIFT) | (1 << PAGE_USER_SHIFT) |
 	    (1 << PAGE_READ_SHIFT) | (1 << PAGE_WRITE_SHIFT) |
 	    (1 << PAGE_EXEC_SHIFT) | (1 << PAGE_CACHEABLE_SHIFT);
@@ -184,11 +184,11 @@ NO_TRACE static inline int get_pt_level0_flags(pte_t *pt, size_t i)
 NO_TRACE static inline int get_pt_level1_flags(pte_t *pt, size_t i)
 {
 	const pte_level1_t *p = &pt[i].l1;
-	
+
 	const unsigned dt = p->descriptor_type;
 	const unsigned ap0 = p->access_permission_0;
 	const unsigned ap1 = p->access_permission_1;
-	
+
 	return ((dt == PTE_DESCRIPTOR_NOT_PRESENT) << PAGE_PRESENT_SHIFT) |
 	    ((dt != PTE_DESCRIPTOR_SMALL_PAGE_NX) << PAGE_EXEC_SHIFT) |
 	    ((ap0 == PTE_AP0_USER_LIMITED_KERNEL_FULL) << PAGE_READ_SHIFT) |
@@ -210,7 +210,7 @@ NO_TRACE static inline int get_pt_level1_flags(pte_t *pt, size_t i)
 NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_level0_t *p = &pt[i].l0;
-	
+
 	if (flags & PAGE_NOT_PRESENT) {
 		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
 		/*
@@ -244,7 +244,7 @@ NO_TRACE static inline void set_pt_level0_flags(pte_t *pt, size_t i, int flags)
 NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_level1_t *p = &pt[i].l1;
-	
+
 	if (flags & PAGE_NOT_PRESENT) {
 		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
 	} else {
@@ -277,16 +277,16 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		p->cacheable = 0;
 		p->bufferable = 1;
 	}
-	
+
 	/* Shareable is ignored for devices (non-cacheable),
 	 * turn it off for normal memory. */
 	p->shareable = 0;
-	
+
 	p->non_global = !(flags & PAGE_GLOBAL);
-	
+
 	/* default access permission: kernel only*/
 	p->access_permission_0 = PTE_AP0_USER_NO_KERNEL_FULL;
-	
+
 	if (flags & PAGE_USER) {
 		p->access_permission_0 = PTE_AP0_USER_FULL_KERNEL_FULL;
 		// TODO Fix kernel to use PAGE_WRITE flag properly and

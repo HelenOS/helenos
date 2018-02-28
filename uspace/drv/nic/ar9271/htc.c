@@ -69,21 +69,21 @@ errno_t htc_init_new_vif(htc_device_t *htc_device)
 {
 	htc_vif_msg_t vif_msg;
 	htc_sta_msg_t sta_msg;
-	
+
 	memset(&vif_msg, 0, sizeof(htc_vif_msg_t));
 	memset(&sta_msg, 0, sizeof(htc_sta_msg_t));
-	
+
 	nic_address_t addr;
 	nic_t *nic =
 	    nic_get_from_ddf_dev(ieee80211_get_ddf_dev(htc_device->ieee80211_dev));
 	nic_query_address(nic, &addr);
-	
+
 	memcpy(&vif_msg.addr, &addr.address, ETH_ADDR);
 	memcpy(&sta_msg.addr, &addr.address, ETH_ADDR);
-	
+
 	ieee80211_operating_mode_t op_mode =
 	    ieee80211_query_current_op_mode(htc_device->ieee80211_dev);
-	
+
 	switch (op_mode) {
 	case IEEE80211_OPMODE_ADHOC:
 		vif_msg.op_mode = HTC_OPMODE_ADHOC;
@@ -98,36 +98,36 @@ errno_t htc_init_new_vif(htc_device_t *htc_device)
 		vif_msg.op_mode = HTC_OPMODE_STATION;
 		break;
 	}
-	
+
 	vif_msg.index = 0;
 	vif_msg.rts_thres = host2uint16_t_be(HTC_RTS_THRESHOLD);
-	
+
 	wmi_send_command(htc_device, WMI_VAP_CREATE, (uint8_t *) &vif_msg,
 	    sizeof(vif_msg), NULL);
-	
+
 	sta_msg.is_vif_sta = 1;
 	sta_msg.max_ampdu = host2uint16_t_be(0xFFFF);
 	sta_msg.sta_index = 0;
 	sta_msg.vif_index = 0;
-	
+
 	wmi_send_command(htc_device, WMI_NODE_CREATE, (uint8_t *) &sta_msg,
 	    sizeof(sta_msg), NULL);
-	
+
 	/* Write first 4 bytes of MAC address. */
 	uint32_t id0;
 	memcpy(&id0, &addr.address, 4);
 	id0 = host2uint32_t_le(id0);
 	wmi_reg_write(htc_device, AR9271_STATION_ID0, id0);
-	
+
 	/* Write last 2 bytes of MAC address (and preserve existing data). */
 	uint32_t id1;
 	wmi_reg_read(htc_device, AR9271_STATION_ID1, &id1);
-	
+
 	uint16_t id1_addr;
 	memcpy(&id1_addr, &addr.address[4], 2);
 	id1 = (id1 & ~AR9271_STATION_ID1_MASK) | host2uint16_t_le(id1_addr);
 	wmi_reg_write(htc_device, AR9271_STATION_ID1, id1);
-	
+
 	return EOK;
 }
 
@@ -135,7 +135,7 @@ static void htc_config_frame_header(htc_frame_header_t *header,
     size_t buffer_size, uint8_t endpoint_id)
 {
 	memset(header, 0, sizeof(htc_frame_header_t));
-	
+
 	header->endpoint_id = endpoint_id;
 	header->payload_length =
 	    host2uint16_t_be(buffer_size - sizeof(htc_frame_header_t));
@@ -157,9 +157,9 @@ errno_t htc_send_control_message(htc_device_t *htc_device, void *buffer,
 {
 	htc_config_frame_header((htc_frame_header_t *) buffer, buffer_size,
 	    endpoint_id);
-	
+
 	ath_t *ath_device = htc_device->ath_device;
-	
+
 	return ath_device->ops->send_ctrl_message(ath_device, buffer,
 	    buffer_size);
 }
@@ -180,9 +180,9 @@ errno_t htc_send_data_message(htc_device_t *htc_device, void *buffer,
 {
 	htc_config_frame_header((htc_frame_header_t *) buffer, buffer_size,
 	    endpoint_id);
-	
+
 	ath_t *ath_device = htc_device->ath_device;
-	
+
 	return ath_device->ops->send_data_message(ath_device, buffer,
 	    buffer_size);
 }
@@ -202,7 +202,7 @@ errno_t htc_read_data_message(htc_device_t *htc_device, void *buffer,
     size_t buffer_size, size_t *transferred_size)
 {
 	ath_t *ath_device = htc_device->ath_device;
-	
+
 	return ath_device->ops->read_data_message(ath_device, buffer,
 	    buffer_size, transferred_size);
 }
@@ -222,7 +222,7 @@ errno_t htc_read_control_message(htc_device_t *htc_device, void *buffer,
     size_t buffer_size, size_t *transferred_size)
 {
 	ath_t *ath_device = htc_device->ath_device;
-	
+
 	return ath_device->ops->read_ctrl_message(ath_device, buffer,
 	    buffer_size, transferred_size);
 }
@@ -245,7 +245,7 @@ static errno_t htc_connect_service(htc_device_t *htc_device,
 	    sizeof(htc_service_msg_t);
 	void *buffer = malloc(buffer_size);
 	memset(buffer, 0, buffer_size);
-	
+
 	/* Fill service message structure. */
 	htc_service_msg_t *service_message = (htc_service_msg_t *)
 	    ((void *) buffer + sizeof(htc_frame_header_t));
@@ -258,7 +258,7 @@ static errno_t htc_connect_service(htc_device_t *htc_device,
 	service_message->upload_pipe_id =
 	    wmi_service_to_upload_pipe(service_id);
 	service_message->connection_flags = 0;
-	
+
 	/* Send HTC message. */
 	errno_t rc = htc_send_control_message(htc_device, buffer, buffer_size,
 	    htc_device->endpoints.ctrl_endpoint);
@@ -267,12 +267,12 @@ static errno_t htc_connect_service(htc_device_t *htc_device,
 		usb_log_error("Failed to send HTC message. Error: %s\n", str_error_name(rc));
 		return rc;
 	}
-	
+
 	free(buffer);
-	
+
 	buffer_size = htc_device->ath_device->ctrl_response_length;
 	buffer = malloc(buffer_size);
-	
+
 	/* Read response from device. */
 	rc = htc_read_control_message(htc_device, buffer, buffer_size, NULL);
 	if (rc != EOK) {
@@ -281,10 +281,10 @@ static errno_t htc_connect_service(htc_device_t *htc_device,
 		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
-	
+
 	htc_service_resp_msg_t *response_message = (htc_service_resp_msg_t *)
 	    ((void *) buffer + sizeof(htc_frame_header_t));
-	
+
 	/*
 	 * If service was successfully connected,
 	 * write down HTC endpoint number that will
@@ -298,9 +298,9 @@ static errno_t htc_connect_service(htc_device_t *htc_device,
 		    "Message status: %d\n", response_message->status);
 		rc = EINVAL;
 	}
-	
+
 	free(buffer);
-	
+
 	return rc;
 }
 
@@ -318,13 +318,13 @@ static errno_t htc_config_credits(htc_device_t *htc_device)
 	void *buffer = malloc(buffer_size);
 	htc_config_msg_t *config_message = (htc_config_msg_t *)
 	    ((void *) buffer + sizeof(htc_frame_header_t));
-	
+
 	config_message->message_id =
 	    host2uint16_t_be(HTC_MESSAGE_CONFIG);
 	/* Magic number to initialize device. */
 	config_message->credits = 33;
 	config_message->pipe_id = 1;
-	
+
 	/* Send HTC message. */
 	errno_t rc = htc_send_control_message(htc_device, buffer, buffer_size,
 	    htc_device->endpoints.ctrl_endpoint);
@@ -334,21 +334,21 @@ static errno_t htc_config_credits(htc_device_t *htc_device)
 		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
-	
+
 	free(buffer);
-	
+
 	buffer_size = htc_device->ath_device->ctrl_response_length;
 	buffer = malloc(buffer_size);
-	
+
 	/* Check response from device. */
 	rc = htc_read_control_message(htc_device, buffer, buffer_size, NULL);
 	if (rc != EOK) {
 		usb_log_error("Failed to receive HTC config response message. "
 		    "Error: %s\n", str_error_name(rc));
 	}
-	
+
 	free(buffer);
-	
+
 	return rc;
 }
 
@@ -367,19 +367,19 @@ static errno_t htc_complete_setup(htc_device_t *htc_device)
 	htc_setup_complete_msg_t *complete_message =
 	    (htc_setup_complete_msg_t *)
 	    ((void *) buffer + sizeof(htc_frame_header_t));
-	
+
 	complete_message->message_id =
 	    host2uint16_t_be(HTC_MESSAGE_SETUP_COMPLETE);
-	
+
 	/* Send HTC message. */
 	errno_t rc = htc_send_control_message(htc_device, buffer, buffer_size,
 	    htc_device->endpoints.ctrl_endpoint);
 	if (rc != EOK)
 		usb_log_error("Failed to send HTC setup complete message. "
 		    "Error: %s\n", str_error_name(rc));
-	
+
 	free(buffer);
-	
+
 	return rc;
 }
 
@@ -397,7 +397,7 @@ static errno_t htc_check_ready(htc_device_t *htc_device)
 {
 	size_t buffer_size = htc_device->ath_device->ctrl_response_length;
 	void *buffer = malloc(buffer_size);
-	
+
 	/* Read response from device. */
 	errno_t rc = htc_read_control_message(htc_device, buffer, buffer_size,
 	    NULL);
@@ -407,16 +407,16 @@ static errno_t htc_check_ready(htc_device_t *htc_device)
 		    "Error: %s\n", str_error_name(rc));
 		return rc;
 	}
-	
+
 	uint16_t *message_id = (uint16_t *) ((void *) buffer +
 	    sizeof(htc_frame_header_t));
 	if (uint16_t_be2host(*message_id) == HTC_MESSAGE_READY)
 		rc = EOK;
 	else
 		rc = EINVAL;
-	
+
 	free(buffer);
-	
+
 	return rc;
 }
 
@@ -434,12 +434,12 @@ errno_t htc_device_init(ath_t *ath_device, ieee80211_dev_t *ieee80211_dev,
 {
 	fibril_mutex_initialize(&htc_device->rx_lock);
 	fibril_mutex_initialize(&htc_device->tx_lock);
-	
+
 	htc_device->endpoints.ctrl_endpoint = 0;
-	
+
 	htc_device->ath_device = ath_device;
 	htc_device->ieee80211_dev = ieee80211_dev;
-	
+
 	return EOK;
 }
 
@@ -459,7 +459,7 @@ errno_t htc_init(htc_device_t *htc_device)
 		    "firmware.\n");
 		return rc;
 	}
-	
+
 	/*
 	 * HTC services initialization start.
 	 */
@@ -469,35 +469,35 @@ errno_t htc_init(htc_device_t *htc_device)
 		usb_log_error("Error while initalizing WMI service.\n");
 		return rc;
 	}
-	
+
 	rc = htc_connect_service(htc_device, WMI_BEACON_SERVICE,
 	    &htc_device->endpoints.beacon_endpoint);
 	if (rc != EOK) {
 		usb_log_error("Error while initalizing beacon service.\n");
 		return rc;
 	}
-	
+
 	rc = htc_connect_service(htc_device, WMI_CAB_SERVICE,
 	    &htc_device->endpoints.cab_endpoint);
 	if (rc != EOK) {
 		usb_log_error("Error while initalizing CAB service.\n");
 		return rc;
 	}
-	
+
 	rc = htc_connect_service(htc_device, WMI_UAPSD_SERVICE,
 	    &htc_device->endpoints.uapsd_endpoint);
 	if (rc != EOK) {
 		usb_log_error("Error while initalizing UAPSD service.\n");
 		return rc;
 	}
-	
+
 	rc = htc_connect_service(htc_device, WMI_MGMT_SERVICE,
 	    &htc_device->endpoints.mgmt_endpoint);
 	if (rc != EOK) {
 		usb_log_error("Error while initalizing MGMT service.\n");
 		return rc;
 	}
-	
+
 	rc = htc_connect_service(htc_device, WMI_DATA_BE_SERVICE,
 	    &htc_device->endpoints.data_be_endpoint);
 	if (rc != EOK) {
@@ -505,7 +505,7 @@ errno_t htc_init(htc_device_t *htc_device)
 		    "service.\n");
 		return rc;
 	}
-	
+
 	rc = htc_connect_service(htc_device, WMI_DATA_BK_SERVICE,
 	    &htc_device->endpoints.data_bk_endpoint);
 	if (rc != EOK) {
@@ -513,40 +513,40 @@ errno_t htc_init(htc_device_t *htc_device)
 		    "service.\n");
 		return rc;
 	}
-	
+
 	rc = htc_connect_service(htc_device, WMI_DATA_VIDEO_SERVICE,
 	    &htc_device->endpoints.data_video_endpoint);
 	if (rc != EOK) {
 		usb_log_error("Error while initalizing data video service.\n");
 		return rc;
 	}
-	
+
 	rc = htc_connect_service(htc_device, WMI_DATA_VOICE_SERVICE,
 	    &htc_device->endpoints.data_voice_endpoint);
 	if (rc != EOK) {
 		usb_log_error("Error while initalizing data voice service.\n");
 		return rc;
 	}
-	
+
 	/*
 	 * HTC services initialization end.
 	 */
-	
+
 	/* Credits initialization message. */
 	rc = htc_config_credits(htc_device);
 	if (rc != EOK) {
 		usb_log_error("Failed to send HTC config message.\n");
 		return rc;
 	}
-	
+
 	/* HTC setup complete confirmation message. */
 	rc = htc_complete_setup(htc_device);
 	if (rc != EOK) {
 		usb_log_error("Failed to send HTC complete setup message.\n");
 		return rc;
 	}
-	
+
 	usb_log_info("HTC services initialization finished successfully.\n");
-	
+
 	return EOK;
 }

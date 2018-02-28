@@ -48,319 +48,319 @@ uint16_t fb_font_glyph(const wchar_t ch)
 {
 	if (ch == 0x0000)
 		return 0;
-	
+
 	if ((ch >= 0x0020) && (ch <= 0x007f))
 		return (ch - 32);
-	
+
 	if ((ch >= 0x00a0) && (ch <= 0x021f))
 		return (ch - 64);
-	
+
 	if ((ch >= 0x0222) && (ch <= 0x0233))
 		return (ch - 66);
-	
+
 	if ((ch >= 0x0250) && (ch <= 0x02ad))
 		return (ch - 94);
-	
+
 	if ((ch >= 0x02b0) && (ch <= 0x02cf))
 		return (ch - 96);
-	
+
 	if ((ch >= 0x02d8) && (ch <= 0x02dd))
 		return (ch - 104);
-	
+
 	if (ch == 0x02ee)
 		return 630;
-	
+
 	if ((ch >= 0x0300) && (ch <= 0x0301))
 		return (ch - 137);
-	
+
 	if (ch == 0x0303)
 		return 633;
-	
+
 	if (ch == 0x0309)
 		return 634;
-	
+
 	if ((ch >= 0x0312) && (ch <= 0x0314))
 		return (ch - 151);
-	
+
 	if (ch == 0x0323)
 		return 638;
-	
+
 	if ((ch >= 0x0340) && (ch <= 0x0341))
 		return (ch - 193);
-	
+
 	if ((ch >= 0x0374) && (ch <= 0x0375))
 		return (ch - 243);
-	
+
 	if (ch == 0x037a)
 		return 643;
-	
+
 	if (ch == 0x037e)
 		return 644;
-	
+
 	if ((ch >= 0x0384) && (ch <= 0x038a))
 		return (ch - 255);
-	
+
 	if (ch == 0x038c)
 		return 652;
-	
+
 	if ((ch >= 0x038e) && (ch <= 0x03a1))
 		return (ch - 257);
-	
+
 	if ((ch >= 0x03a3) && (ch <= 0x03ce))
 		return (ch - 258);
-	
+
 	if ((ch >= 0x03d0) && (ch <= 0x03d7))
 		return (ch - 259);
-	
+
 	if ((ch >= 0x03da) && (ch <= 0x03f3))
 		return (ch - 261);
-	
+
 	if ((ch >= 0x0400) && (ch <= 0x0486))
 		return (ch - 273);
-	
+
 	if ((ch >= 0x0488) && (ch <= 0x04ce))
 		return (ch - 274);
-	
+
 	if ((ch >= 0x04d0) && (ch <= 0x04f5))
 		return (ch - 275);
-	
+
 	if ((ch >= 0x04f8) && (ch <= 0x04f9))
 		return (ch - 277);
-	
+
 	if ((ch >= 0x0500) && (ch <= 0x050f))
 		return (ch - 283);
-	
+
 	if ((ch >= 0x0530) && (ch <= 0x0556))
 		return (ch - 315);
-	
+
 	if ((ch >= 0x0559) && (ch <= 0x055f))
 		return (ch - 317);
-	
+
 	if ((ch >= 0x0561) && (ch <= 0x0587))
 		return (ch - 318);
-	
+
 	if ((ch >= 0x0589) && (ch <= 0x058a))
 		return (ch - 319);
-	
+
 	if ((ch >= 0x0591) && (ch <= 0x05a1))
 		return (ch - 325);
-	
+
 	if ((ch >= 0x05a3) && (ch <= 0x05b9))
 		return (ch - 326);
-	
+
 	if ((ch >= 0x05bb) && (ch <= 0x05c4))
 		return (ch - 327);
-	
+
 	if ((ch >= 0x05d0) && (ch <= 0x05ea))
 		return (ch - 338);
-	
+
 	if ((ch >= 0x05f0) && (ch <= 0x05f4))
 		return (ch - 343);
-	
+
 	if (ch == 0x060c)
 		return 1182;
-	
+
 	if (ch == 0x061b)
 		return 1183;
-	
+
 	if (ch == 0x061f)
 		return 1184;
-	
+
 	if ((ch >= 0x0621) && (ch <= 0x063a))
 		return (ch - 384);
-	
+
 	if ((ch >= 0x0640) && (ch <= 0x0655))
 		return (ch - 389);
-	
+
 	if ((ch >= 0x0660) && (ch <= 0x066d))
 		return (ch - 399);
-	
+
 	if ((ch >= 0x0670) && (ch <= 0x06ed))
 		return (ch - 401);
-	
+
 	if ((ch >= 0x06f0) && (ch <= 0x06fe))
 		return (ch - 403);
-	
+
 	if (ch == 0x10d3)
 		return 1388;
-	
+
 	if (ch == 0x10d7)
 		return 1389;
-	
+
 	if (ch == 0x10da)
 		return 1390;
-	
+
 	if (ch == 0x10dd)
 		return 1391;
-	
+
 	if (ch == 0x10e6)
 		return 1392;
-	
+
 	if ((ch >= 0x1e00) && (ch <= 0x1e9b))
 		return (ch - 6287);
-	
+
 	if ((ch >= 0x1ea0) && (ch <= 0x1ef9))
 		return (ch - 6291);
-	
+
 	if ((ch >= 0x1f00) && (ch <= 0x1f07))
 		return (ch - 6297);
-	
+
 	if ((ch >= 0x2000) && (ch <= 0x2027))
 		return (ch - 6545);
-	
+
 	if ((ch >= 0x2030) && (ch <= 0x2046))
 		return (ch - 6553);
-	
+
 	if ((ch >= 0x2048) && (ch <= 0x204d))
 		return (ch - 6554);
-	
+
 	if (ch == 0x2070)
 		return 1716;
-	
+
 	if ((ch >= 0x2074) && (ch <= 0x208f))
 		return (ch - 6591);
-	
+
 	if ((ch >= 0x20a0) && (ch <= 0x20af))
 		return (ch - 6607);
-	
+
 	if ((ch >= 0x2100) && (ch <= 0x213a))
 		return (ch - 6687);
-	
+
 	if ((ch >= 0x2153) && (ch <= 0x2183))
 		return (ch - 6711);
-	
+
 	if ((ch >= 0x2190) && (ch <= 0x21f3))
 		return (ch - 6723);
-	
+
 	if ((ch >= 0x2200) && (ch <= 0x22f1))
 		return (ch - 6735);
-	
+
 	if (ch == 0x2300)
 		return 2211;
-	
+
 	if (ch == 0x2302)
 		return 2212;
-	
+
 	if ((ch >= 0x2308) && (ch <= 0x230b))
 		return (ch - 6755);
-	
+
 	if (ch == 0x2310)
 		return 2217;
-	
+
 	if (ch == 0x2318)
 		return 2218;
-	
+
 	if ((ch >= 0x231a) && (ch <= 0x231b))
 		return (ch - 6767);
-	
+
 	if ((ch >= 0x2320) && (ch <= 0x2321))
 		return (ch - 6771);
-	
+
 	if ((ch >= 0x2329) && (ch <= 0x232a))
 		return (ch - 6778);
-	
+
 	if ((ch >= 0x239b) && (ch <= 0x23bd))
 		return (ch - 6890);
-	
+
 	if (ch == 0x23ce)
 		return 2260;
-	
+
 	if ((ch >= 0x2409) && (ch <= 0x240d))
 		return (ch - 6964);
-	
+
 	if ((ch >= 0x2423) && (ch <= 0x2424))
 		return (ch - 6985);
-	
+
 	if (ch == 0x2426)
 		return 2268;
-	
+
 	if ((ch >= 0x2500) && (ch <= 0x2595))
 		return (ch - 7203);
-	
+
 	if ((ch >= 0x25a0) && (ch <= 0x25f7))
 		return (ch - 7213);
-	
+
 	if ((ch >= 0x2600) && (ch <= 0x2602))
 		return (ch - 7221);
-	
+
 	if ((ch >= 0x2605) && (ch <= 0x260d))
 		return (ch - 7223);
-	
+
 	if ((ch >= 0x2610) && (ch <= 0x2613))
 		return (ch - 7225);
-	
+
 	if (ch == 0x2620)
 		return 2523;
-	
+
 	if (ch == 0x2622)
 		return 2524;
-	
+
 	if (ch == 0x2626)
 		return 2525;
-	
+
 	if ((ch >= 0x2628) && (ch <= 0x262b))
 		return (ch - 7242);
-	
+
 	if ((ch >= 0x262e) && (ch <= 0x2637))
 		return (ch - 7244);
-	
+
 	if ((ch >= 0x2639) && (ch <= 0x2653))
 		return (ch - 7245);
-	
+
 	if ((ch >= 0x2660) && (ch <= 0x2667))
 		return (ch - 7257);
-	
+
 	if ((ch >= 0x2669) && (ch <= 0x266f))
 		return (ch - 7258);
-	
+
 	if ((ch >= 0xfb00) && (ch <= 0xfb05))
 		return (ch - 61674);
-	
+
 	if ((ch >= 0xfb50) && (ch <= 0xfbb1))
 		return (ch - 61748);
-	
+
 	if ((ch >= 0xfbd3) && (ch <= 0xfbe9))
 		return (ch - 61781);
-	
+
 	if ((ch >= 0xfbfc) && (ch <= 0xfbff))
 		return (ch - 61799);
-	
+
 	if ((ch >= 0xfc5b) && (ch <= 0xfc63))
 		return (ch - 61890);
-	
+
 	if (ch == 0xfc90)
 		return 2722;
-	
+
 	if ((ch >= 0xfcf2) && (ch <= 0xfcf4))
 		return (ch - 62031);
-	
+
 	if ((ch >= 0xfd3c) && (ch <= 0xfd3f))
 		return (ch - 62102);
-	
+
 	if (ch == 0xfdf2)
 		return 2730;
-	
+
 	if ((ch >= 0xfe50) && (ch <= 0xfe52))
 		return (ch - 62373);
-	
+
 	if ((ch >= 0xfe54) && (ch <= 0xfe66))
 		return (ch - 62374);
-	
+
 	if ((ch >= 0xfe68) && (ch <= 0xfe6b))
 		return (ch - 62375);
-	
+
 	if ((ch >= 0xfe70) && (ch <= 0xfe72))
 		return (ch - 62379);
-	
+
 	if (ch == 0xfe74)
 		return 2760;
-	
+
 	if ((ch >= 0xfe76) && (ch <= 0xfefc))
 		return (ch - 62381);
-	
+
 	if (ch == 0xfeff)
 		return 2896;
-	
+
 	return 2898;
 }
 
@@ -3263,7 +3263,7 @@ uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES] = {
 	{0x00, 0x00, 0x22, 0x12, 0x12, 0x0a, 0x0a, 0x0e, 0x3d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 	{0xf1, 0x35, 0x55, 0x8a, 0xe0, 0x06, 0x95, 0xd6, 0xb5, 0x97, 0x00, 0xee, 0x8a, 0xee, 0x28, 0xe8},
 	{0x00, 0x38, 0x7c, 0x7c, 0xc6, 0x92, 0xf2, 0xe6, 0xfe, 0xe6, 0x7c, 0x7c, 0x38, 0x00, 0x00, 0x00},
-	
+
 	/* Special glyph for unknown character */
 	{0x00, 0x00, 0x7c, 0xc6, 0xc6, 0x0c, 0x18, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00, 0x00, 0x00, 0x00}
 };

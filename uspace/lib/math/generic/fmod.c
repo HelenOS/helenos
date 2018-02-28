@@ -54,9 +54,9 @@
 float32_t float32_fmod(float32_t dividend, float32_t divisor)
 {
 	// FIXME: replace with exact arithmetics
-	
+
 	float32_t quotient = trunc_f32(dividend / divisor);
-	
+
 	return (dividend - quotient * divisor);
 }
 
@@ -79,9 +79,9 @@ float32_t float32_fmod(float32_t dividend, float32_t divisor)
 float64_t float64_fmod(float64_t dividend, float64_t divisor)
 {
 	// FIXME: replace with exact arithmetics
-	
+
 	float64_t quotient = trunc_f64(dividend / divisor);
-	
+
 	return (dividend - quotient * divisor);
 }
 

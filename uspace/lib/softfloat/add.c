@@ -48,7 +48,7 @@ float32 add_float32(float32 a, float32 b)
 {
 	int expdiff;
 	uint32_t exp1, exp2, frac1, frac2;
-	
+
 	expdiff = a.parts.exp - b.parts.exp;
 	if (expdiff < 0) {
 		if (is_float32_nan(b)) {
@@ -58,11 +58,11 @@ float32 add_float32(float32 a, float32 b)
 
 			return b;
 		}
-		
+
 		if (b.parts.exp == FLOAT32_MAX_EXPONENT) {
 			return b;
 		}
-		
+
 		frac1 = b.parts.fraction;
 		exp1 = b.parts.exp;
 		frac2 = a.parts.fraction;
@@ -75,17 +75,17 @@ float32 add_float32(float32 a, float32 b)
 			}
 			return (is_float32_nan(a) ? a : b);
 		}
-		
+
 		if (a.parts.exp == FLOAT32_MAX_EXPONENT) {
 			return a;
 		}
-		
+
 		frac1 = a.parts.fraction;
 		exp1 = a.parts.exp;
 		frac2 = b.parts.fraction;
 		exp2 = b.parts.exp;
 	}
-	
+
 	if (exp1 == 0) {
 		/* both are denormalized */
 		frac1 += frac2;
@@ -96,7 +96,7 @@ float32 add_float32(float32 a, float32 b)
 		a.parts.fraction = frac1;
 		return a;
 	}
-	
+
 	frac1 |= FLOAT32_HIDDEN_BIT_MASK; /* add hidden bit */
 
 	if (exp2 == 0) {
@@ -106,11 +106,11 @@ float32 add_float32(float32 a, float32 b)
 		/* add hidden bit to second operand */
 		frac2 |= FLOAT32_HIDDEN_BIT_MASK;
 	}
-	
+
 	/* create some space for rounding */
 	frac1 <<= 6;
 	frac2 <<= 6;
-	
+
 	if (expdiff < (FLOAT32_FRACTION_SIZE + 2)) {
 		frac2 >>= expdiff;
 		frac1 += frac2;
@@ -119,30 +119,30 @@ float32 add_float32(float32 a, float32 b)
 		a.parts.fraction = (frac1 >> 6) & (~(FLOAT32_HIDDEN_BIT_MASK));
 		return a;
 	}
-	
+
 	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) {
 		++exp1;
 		frac1 >>= 1;
 	}
-	
+
 	/* rounding - if first bit after fraction is set then round up */
 	frac1 += (0x1 << 5);
-	
+
 	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) {
 		/* rounding overflow */
 		++exp1;
 		frac1 >>= 1;
 	}
-	
+
 	if ((exp1 == FLOAT32_MAX_EXPONENT) || (exp2 > exp1)) {
 		/* overflow - set infinity as result */
 		a.parts.exp = FLOAT32_MAX_EXPONENT;
 		a.parts.fraction = 0;
 		return a;
 	}
-	
+
 	a.parts.exp = exp1;
-	
+
 	/* Clear hidden bit and shift */
 	a.parts.fraction = ((frac1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK));
 	return a;
@@ -159,7 +159,7 @@ float64 add_float64(float64 a, float64 b)
 	int expdiff;
 	uint32_t exp1, exp2;
 	uint64_t frac1, frac2;
-	
+
 	expdiff = ((int) a.parts.exp) - b.parts.exp;
 	if (expdiff < 0) {
 		if (is_float64_nan(b)) {
@@ -169,12 +169,12 @@ float64 add_float64(float64 a, float64 b)
 
 			return b;
 		}
-		
+
 		/* b is infinity and a not */
 		if (b.parts.exp == FLOAT64_MAX_EXPONENT) {
 			return b;
 		}
-		
+
 		frac1 = b.parts.fraction;
 		exp1 = b.parts.exp;
 		frac2 = a.parts.fraction;
@@ -187,18 +187,18 @@ float64 add_float64(float64 a, float64 b)
 			}
 			return a;
 		}
-		
+
 		/* a is infinity and b not */
 		if (a.parts.exp == FLOAT64_MAX_EXPONENT) {
 			return a;
 		}
-		
+
 		frac1 = a.parts.fraction;
 		exp1 = a.parts.exp;
 		frac2 = b.parts.fraction;
 		exp2 = b.parts.exp;
 	}
-	
+
 	if (exp1 == 0) {
 		/* both are denormalized */
 		frac1 += frac2;
@@ -209,7 +209,7 @@ float64 add_float64(float64 a, float64 b)
 		a.parts.fraction = frac1;
 		return a;
 	}
-	
+
 	/* add hidden bit - frac1 is sure not denormalized */
 	frac1 |= FLOAT64_HIDDEN_BIT_MASK;
 
@@ -221,11 +221,11 @@ float64 add_float64(float64 a, float64 b)
 		/* is not denormalized */
 		frac2 |= FLOAT64_HIDDEN_BIT_MASK;
 	}
-	
+
 	/* create some space for rounding */
 	frac1 <<= 6;
 	frac2 <<= 6;
-	
+
 	if (expdiff < (FLOAT64_FRACTION_SIZE + 2)) {
 		frac2 >>= expdiff;
 		frac1 += frac2;
@@ -234,28 +234,28 @@ float64 add_float64(float64 a, float64 b)
 		a.parts.fraction = (frac1 >> 6) & (~(FLOAT64_HIDDEN_BIT_MASK));
 		return a;
 	}
-	
+
 	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) {
 		++exp1;
 		frac1 >>= 1;
 	}
-	
+
 	/* rounding - if first bit after fraction is set then round up */
 	frac1 += (0x1 << 5);
-	
+
 	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) {
 		/* rounding overflow */
 		++exp1;
 		frac1 >>= 1;
 	}
-	
+
 	if ((exp1 == FLOAT64_MAX_EXPONENT) || (exp2 > exp1)) {
 		/* overflow - set infinity as result */
 		a.parts.exp = FLOAT64_MAX_EXPONENT;
 		a.parts.fraction = 0;
 		return a;
 	}
-	
+
 	a.parts.exp = exp1;
 	/* Clear hidden bit and shift */
 	a.parts.fraction = ((frac1 >> 6) & (~FLOAT64_HIDDEN_BIT_MASK));
@@ -399,7 +399,7 @@ float128 add_float128(float128 a, float128 b)
 	}
 
 	a.parts.exp = exp1;
-	
+
 	/* Clear hidden bit and shift */
 	rshift128(frac1_hi, frac1_lo, 6, &frac1_hi, &frac1_lo);
 	not128(FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
@@ -418,12 +418,12 @@ float32_t __addsf3(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	float32_u res;
-	
+
 	if (ua.data.parts.sign != ub.data.parts.sign) {
 		if (ua.data.parts.sign) {
 			ua.data.parts.sign = 0;
@@ -434,7 +434,7 @@ float32_t __addsf3(float32_t a, float32_t b)
 		}
 	} else
 		res.data = add_float32(ua.data, ub.data);
-	
+
 	return res.val;
 }
 
@@ -442,12 +442,12 @@ float32_t __aeabi_fadd(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	float32_u res;
-	
+
 	if (ua.data.parts.sign != ub.data.parts.sign) {
 		if (ua.data.parts.sign) {
 			ua.data.parts.sign = 0;
@@ -458,7 +458,7 @@ float32_t __aeabi_fadd(float32_t a, float32_t b)
 		}
 	} else
 		res.data = add_float32(ua.data, ub.data);
-	
+
 	return res.val;
 }
 
@@ -470,12 +470,12 @@ float64_t __adddf3(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	float64_u res;
-	
+
 	if (ua.data.parts.sign != ub.data.parts.sign) {
 		if (ua.data.parts.sign) {
 			ua.data.parts.sign = 0;
@@ -486,7 +486,7 @@ float64_t __adddf3(float64_t a, float64_t b)
 		}
 	} else
 		res.data = add_float64(ua.data, ub.data);
-	
+
 	return res.val;
 }
 
@@ -494,12 +494,12 @@ float64_t __aeabi_dadd(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	float64_u res;
-	
+
 	if (ua.data.parts.sign != ub.data.parts.sign) {
 		if (ua.data.parts.sign) {
 			ua.data.parts.sign = 0;
@@ -510,7 +510,7 @@ float64_t __aeabi_dadd(float64_t a, float64_t b)
 		}
 	} else
 		res.data = add_float64(ua.data, ub.data);
-	
+
 	return res.val;
 }
 
@@ -522,12 +522,12 @@ float128_t __addtf3(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	float128_u res;
-	
+
 	if (ua.data.parts.sign != ub.data.parts.sign) {
 		if (ua.data.parts.sign) {
 			ua.data.parts.sign = 0;
@@ -538,7 +538,7 @@ float128_t __addtf3(float128_t a, float128_t b)
 		}
 	} else
 		res.data = add_float128(ua.data, ub.data);
-	
+
 	return res.val;
 }
 

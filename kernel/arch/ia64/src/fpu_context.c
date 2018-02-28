@@ -102,7 +102,7 @@ void fpu_context_save(fpu_context_t *fctx)
 		[f60] "=m" (fctx->fr[28]),
 		[f61] "=m" (fctx->fr[29])
 	);
-	
+
 	asm volatile (
 		"stf.spill %[f62] = f62\n"
 		"stf.spill %[f63] = f63\n"
@@ -313,7 +313,7 @@ void fpu_context_restore(fpu_context_t *fctx)
 		[f60] "m" (fctx->fr[28]),
 		[f61] "m" (fctx->fr[29])
 	);
-	
+
 	asm volatile (
 		"ldf.fill f62 = %[f62]\n"
 		"ldf.fill f63 = %[f63]\n"

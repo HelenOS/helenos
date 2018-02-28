@@ -48,12 +48,12 @@
 float32_t float32_asin(float32_t arg)
 {
 	float32_t aval;
-	
+
 	if (arg < -1.0 || arg > 1.0) {
 		errno = EDOM;
 		return FLOAT32_NAN;
 	}
-	
+
 	aval = 2.0 * atan_f32(arg / (1.0 + sqrt_f32(1.0 - arg*arg)));
 	if (arg > 0.0)
 		return aval;
@@ -73,12 +73,12 @@ float32_t float32_asin(float32_t arg)
 float64_t float64_asin(float64_t arg)
 {
 	float64_t aval;
-	
+
 	if (arg < -1.0 || arg > 1.0) {
 		errno = EDOM;
 		return FLOAT64_NAN;
 	}
-	
+
 	aval = 2.0 * atan_f64(arg / (1.0 + sqrt_f64(1.0 - arg*arg)));
 	if (arg > 0.0)
 		return aval;

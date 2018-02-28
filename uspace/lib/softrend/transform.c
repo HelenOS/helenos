@@ -42,10 +42,10 @@ void transform_product(transform_t *res, const transform_t *a,
 	for (unsigned int i = 0; i < TRANSFORM_MATRIX_DIM; i++) {
 		for (unsigned int j = 0; j < TRANSFORM_MATRIX_DIM; j++) {
 			double comb = 0;
-			
+
 			for (unsigned int k = 0; k < TRANSFORM_MATRIX_DIM; k++)
 				comb += a->matrix[i][k] * b->matrix[k][j];
-			
+
 			res->matrix[i][j] = comb;
 		}
 	}
@@ -71,18 +71,18 @@ void transform_invert(transform_t *trans)
 	    trans->matrix[0][0] * trans->matrix[1][2];
 	double k = trans->matrix[0][0] * trans->matrix[1][1] -
 	    trans->matrix[0][1] * trans->matrix[1][0];
-	
+
 	double det = 1 / (a * trans->matrix[0][0] + b * trans->matrix[0][1] +
 	    c * trans->matrix[0][2]);
-	
+
 	trans->matrix[0][0] = a * det;
 	trans->matrix[1][0] = b * det;
 	trans->matrix[2][0] = c * det;
-	
+
 	trans->matrix[0][1] = d * det;
 	trans->matrix[1][1] = e * det;
 	trans->matrix[2][1] = f * det;
-	
+
 	trans->matrix[0][2] = g * det;
 	trans->matrix[1][2] = h * det;
 	trans->matrix[2][2] = k * det;
@@ -93,11 +93,11 @@ void transform_identity(transform_t *trans)
 	trans->matrix[0][0] = 1;
 	trans->matrix[1][0] = 0;
 	trans->matrix[2][0] = 0;
-	
+
 	trans->matrix[0][1] = 0;
 	trans->matrix[1][1] = 1;
 	trans->matrix[2][1] = 0;
-	
+
 	trans->matrix[0][2] = 0;
 	trans->matrix[1][2] = 0;
 	trans->matrix[2][2] = 1;
@@ -106,63 +106,63 @@ void transform_identity(transform_t *trans)
 void transform_translate(transform_t *trans, double dx, double dy)
 {
 	transform_t a;
-	
+
 	a.matrix[0][0] = 1;
 	a.matrix[1][0] = 0;
 	a.matrix[2][0] = 0;
-	
+
 	a.matrix[0][1] = 0;
 	a.matrix[1][1] = 1;
 	a.matrix[2][1] = 0;
-	
+
 	a.matrix[0][2] = dx;
 	a.matrix[1][2] = dy;
 	a.matrix[2][2] = 1;
-	
+
 	transform_t b = *trans;
-	
+
 	transform_product(trans, &a, &b);
 }
 
 void transform_scale(transform_t *trans, double qx, double qy)
 {
 	transform_t a;
-	
+
 	a.matrix[0][0] = qx;
 	a.matrix[1][0] = 0;
 	a.matrix[2][0] = 0;
-	
+
 	a.matrix[0][1] = 0;
 	a.matrix[1][1] = qy;
 	a.matrix[2][1] = 0;
-	
+
 	a.matrix[0][2] = 0;
 	a.matrix[1][2] = 0;
 	a.matrix[2][2] = 1;
-	
+
 	transform_t b = *trans;
-	
+
 	transform_product(trans, &a, &b);
 }
 
 void transform_rotate(transform_t *trans, double angle)
 {
 	transform_t a;
-	
+
 	a.matrix[0][0] = cos(angle);
 	a.matrix[1][0] = sin(angle);
 	a.matrix[2][0] = 0;
-	
+
 	a.matrix[0][1] = -sin(angle);
 	a.matrix[1][1] = cos(angle);
 	a.matrix[2][1] = 0;
-	
+
 	a.matrix[0][2] = 0;
 	a.matrix[1][2] = 0;
 	a.matrix[2][2] = 1;
-	
+
 	transform_t b = *trans;
-	
+
 	transform_product(trans, &a, &b);
 }
 
@@ -178,7 +178,7 @@ void transform_apply_linear(const transform_t *trans, double *x, double *y)
 {
 	double old_x = *x;
 	double old_y = *y;
-	
+
 	*x = old_x * trans->matrix[0][0] + old_y * trans->matrix[0][1];
 	*y = old_x * trans->matrix[1][0] + old_y * trans->matrix[1][1];
 }
@@ -187,7 +187,7 @@ void transform_apply_affine(const transform_t *trans, double *x, double *y)
 {
 	double old_x = *x;
 	double old_y = *y;
-	
+
 	*x = old_x * trans->matrix[0][0] + old_y * trans->matrix[0][1] +
 	    trans->matrix[0][2];
 	*y = old_x * trans->matrix[1][0] + old_y * trans->matrix[1][1] +

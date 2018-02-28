@@ -85,14 +85,14 @@ static void arch_detect(void)
 {
 	phandle root = ofw_find_device("/");
 	char compatible[OFW_TREE_PROPERTY_MAX_VALUELEN];
-	
+
 	if (ofw_get_property(root, "compatible", compatible,
 	    OFW_TREE_PROPERTY_MAX_VALUELEN) <= 0) {
 		printf("Warning: Unable to determine architecture, assuming sun4u.\n");
 		arch = ARCH_SUN4U;
 		return;
 	}
-	
+
 	if (str_cmp(compatible, "sun4v") != 0) {
 		/*
 		 * As not all sun4u machines have "sun4u" in their "compatible"
@@ -121,17 +121,17 @@ static void sun4u_subarch_detect(void)
 		"rdpr %%ver, %[ver]\n"
 		: [ver] "=r" (ver)
 	);
-	
+
 	ver = (ver << 16) >> 48;
-	
+
 	if ((ver >= FIRST_US3_CPU) && (ver <= LAST_US3_CPU)) {
 		subarch = SUBARCH_US3;
-		
+
 		if (ver == US_IIIi_CODE)
 			mid_mask = (1 << 5) - 1;
 		else
 			mid_mask = (1 << 10) - 1;
-		
+
 	} else if (ver < FIRST_US3_CPU) {
 		subarch = SUBARCH_US;
 		mid_mask = (1 << 5) - 1;
@@ -192,23 +192,23 @@ static void sun4v_fixups(void)
 void bootstrap(void)
 {
 	version_print();
-	
+
 	arch_detect();
 	if (arch == ARCH_SUN4U)
 		sun4u_subarch_detect();
 	else
 		subarch = SUBARCH_UNKNOWN;
-	
+
 	bootinfo.physmem_start = ofw_get_physmem_start();
 	ofw_memmap(&bootinfo.memmap);
 
 	if (arch == ARCH_SUN4V)
 		sun4v_fixups();
-	
+
 	void *bootinfo_pa = ofw_translate(&bootinfo);
 	void *kernel_address_pa = ofw_translate((void *) KERNEL_ADDRESS);
 	void *loader_address_pa = ofw_translate((void *) LOADER_ADDRESS);
-	
+
 	printf("\nMemory statistics (total %" PRIu64 " MB, starting at %p)\n",
 	    bootinfo.memmap.total >> 20, (void *) bootinfo.physmem_start);
 	printf(" %p|%p: boot info structure\n", &bootinfo, (void *) bootinfo_pa);
@@ -216,42 +216,42 @@ void bootstrap(void)
 	    (void *) KERNEL_ADDRESS, (void *) kernel_address_pa);
 	printf(" %p|%p: loader entry point\n",
 	    (void *) LOADER_ADDRESS, (void *) loader_address_pa);
-	
+
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
 		    ofw_translate(components[i].addr), components[i].name,
 		    components[i].inflated, components[i].size);
-	
+
 	void *dest[COMPONENTS];
 	size_t top = KERNEL_ADDRESS;
 	size_t cnt = 0;
 	bootinfo.taskmap.cnt = 0;
 	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
 		top = ALIGN_UP(top, PAGE_SIZE);
-		
+
 		if (i > 0) {
 			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].addr =
 			    (void *) top;
 			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].size =
 			    components[i].inflated;
-			
+
 			str_cpy(bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].name,
 			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-			
+
 			bootinfo.taskmap.cnt++;
 		}
-		
+
 		dest[i] = (void *) top;
 		top += components[i].inflated;
 		cnt++;
 	}
-	
+
 	printf("\nInflating components ... ");
-	
+
 	for (i = cnt; i > 0; i--) {
 		printf("%s ", components[i - 1].name);
-		
+
 		/*
 		 * At this point, we claim and map the physical memory that we
 		 * are going to use. We should be safe in case of the virtual
@@ -262,22 +262,22 @@ void bootstrap(void)
 		 */
 		ofw_claim_phys(bootinfo.physmem_start + dest[i - 1],
 		    ALIGN_UP(components[i - 1].inflated, PAGE_SIZE));
-		
+
 		ofw_map(bootinfo.physmem_start + dest[i - 1], dest[i - 1],
 		    ALIGN_UP(components[i - 1].inflated, PAGE_SIZE), -1);
-		
+
 		int err = inflate(components[i - 1].addr, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
-		
+
 		if (err != EOK) {
 			printf("\n%s: Inflating error %d, halting.\n",
 			    components[i - 1].name, err);
 			halt();
 		}
 	}
-	
+
 	printf(".\n");
-	
+
 	/*
 	 * Claim and map the physical memory for the boot allocator.
 	 * Initialize the boot allocator.
@@ -289,16 +289,16 @@ void bootstrap(void)
 	    BALLOC_MAX_SIZE, -1);
 	balloc_init(&bootinfo.ballocs, balloc_base, (uintptr_t) balloc_base,
 	    BALLOC_MAX_SIZE);
-	
+
 	printf("Setting up screens ...\n");
 	ofw_setup_screens();
-	
+
 	printf("Canonizing OpenFirmware device tree ...\n");
 	bootinfo.ofw_root = ofw_tree_build();
-	
+
 	if (arch == ARCH_SUN4U)
 		sun4u_smp();
-	
+
 	printf("Booting the kernel ...\n");
 	jump_to_kernel(bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo, subarch,
 	    (void *) KERNEL_ADDRESS);

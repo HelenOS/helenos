@@ -119,7 +119,7 @@ static pc_fun_t *pc_fun(ddf_fun_t *fnode)
 static hw_resource_list_t *pc_get_resources(ddf_fun_t *fnode)
 {
 	pc_fun_t *fun = pc_fun(fnode);
-	
+
 	assert(fun != NULL);
 	return &fun->hw_resources;
 }
@@ -127,14 +127,14 @@ static hw_resource_list_t *pc_get_resources(ddf_fun_t *fnode)
 static errno_t pc_enable_interrupt(ddf_fun_t *fun, int irq)
 {
 	/* TODO */
-	
+
 	return false;
 }
 
 static pio_window_t *pc_get_pio_window(ddf_fun_t *fnode)
 {
 	pc_fun_t *fun = pc_fun(fnode);
-	
+
 	assert(fun != NULL);
 	return &fun->pio_window;
 }
@@ -156,40 +156,40 @@ pc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
     pc_fun_t *fun_proto)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
-	
+
 	ddf_fun_t *fnode = NULL;
 	errno_t rc;
-	
+
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
 	if (fnode == NULL)
 		goto failure;
-	
+
 	pc_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(pc_fun_t));
 	*fun = *fun_proto;
-	
+
 	/* Add match ID */
 	rc = ddf_fun_add_match_id(fnode, str_match_id, 100);
 	if (rc != EOK)
 		goto failure;
-	
+
 	/* Set provided operations to the device. */
 	ddf_fun_set_ops(fnode, &pc_fun_ops);
-	
+
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
 		goto failure;
 	}
-	
+
 	return true;
-	
+
 failure:
 	if (fnode != NULL)
 		ddf_fun_destroy(fnode);
-	
+
 	ddf_msg(LVL_ERROR, "Failed adding function '%s'.", name);
-	
+
 	return false;
 }
 
@@ -208,12 +208,12 @@ static errno_t pc_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_DEBUG, "pc_dev_add, device handle = %d",
 	    (int)ddf_dev_get_handle(dev));
-	
+
 	/* Register functions. */
 	if (!pc_add_functions(dev)) {
 		ddf_msg(LVL_ERROR, "Failed to add functions for PC platform.");
 	}
-	
+
 	return EOK;
 }
 

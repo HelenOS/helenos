@@ -98,12 +98,12 @@ static void screen_get_size(sysarg_t *col, sysarg_t *row)
 static void screen_restart(bool clear)
 {
 	screen_style_normal();
-	
+
 	if (clear) {
 		console_flush(console);
 		console_clear(console);
 	}
-	
+
 	screen_moveto(0, 0);
 }
 
@@ -112,15 +112,15 @@ static void screen_newline(void)
 	sysarg_t cols;
 	sysarg_t rows;
 	screen_get_size(&cols, &rows);
-	
+
 	sysarg_t c;
 	sysarg_t r;
 	screen_get_pos(&c, &r);
-	
+
 	sysarg_t i;
 	for (i = c + 1; i < cols; i++)
 		puts(" ");
-	
+
 	if (r + 1 < rows)
 		puts("\n");
 }
@@ -128,10 +128,10 @@ static void screen_newline(void)
 void screen_init(void)
 {
 	console = console_init(stdin, stdout);
-	
+
 	console_flush(console);
 	console_cursor_visibility(console, false);
-	
+
 	screen_restart(true);
 }
 
@@ -141,7 +141,7 @@ void screen_done(void)
 	warning_text = NULL;
 
 	screen_restart(true);
-	
+
 	console_flush(console);
 	console_cursor_visibility(console, true);
 }
@@ -149,14 +149,14 @@ void screen_done(void)
 static void print_percent(fixed_float ffloat, unsigned int precision)
 {
 	printf("%3" PRIu64 ".", ffloat.upper / ffloat.lower);
-	
+
 	unsigned int i;
 	uint64_t rest = (ffloat.upper % ffloat.lower) * 10;
 	for (i = 0; i < precision; i++) {
 		printf("%" PRIu64, rest / ffloat.lower);
 		rest = (rest % ffloat.lower) * 10;
 	}
-	
+
 	printf("%%");
 }
 
@@ -165,11 +165,11 @@ static void print_string(const char *str)
 	sysarg_t cols;
 	sysarg_t rows;
 	screen_get_size(&cols, &rows);
-	
+
 	sysarg_t c;
 	sysarg_t r;
 	screen_get_pos(&c, &r);
-	
+
 	if (c < cols) {
 		int pos = cols - c - 1;
 		printf("%.*s", pos, str);
@@ -183,13 +183,13 @@ static inline void print_global_head(data_t *data)
 	    "load average:",
 	    data->hours, data->minutes, data->seconds,
 	    data->udays, data->uhours, data->uminutes, data->useconds);
-	
+
 	size_t i;
 	for (i = 0; i < data->load_count; i++) {
 		puts(" ");
 		stats_print_load_fragment(data->load[i], 2);
 	}
-	
+
 	screen_newline();
 }
 
@@ -208,11 +208,11 @@ static inline void print_thread_summary(data_t *data)
 	size_t lingering = 0;
 	size_t other = 0;
 	size_t invalid = 0;
-	
+
 	size_t i;
 	for (i = 0; i < data->threads_count; i++) {
 		total++;
-		
+
 		switch (data->threads[i].state) {
 		case Running:
 			running++;
@@ -234,7 +234,7 @@ static inline void print_thread_summary(data_t *data)
 			invalid++;
 		}
 	}
-	
+
 	printf("threads: %zu total, %zu running, %zu ready, "
 	    "%zu sleeping, %zu lingering, %zu other, %zu invalid",
 	    total, running, ready, sleeping, lingering, other, invalid);
@@ -250,10 +250,10 @@ static inline void print_cpu_info(data_t *data)
 			uint64_t idle;
 			char busy_suffix;
 			char idle_suffix;
-			
+
 			order_suffix(data->cpus[i].busy_cycles, &busy, &busy_suffix);
 			order_suffix(data->cpus[i].idle_cycles, &idle, &idle_suffix);
-			
+
 			printf("cpu%u (%4" PRIu16 " MHz): busy cycles: "
 			    "%" PRIu64 "%c, idle cycles: %" PRIu64 "%c",
 			    data->cpus[i].id, data->cpus[i].frequency_mhz,
@@ -264,7 +264,7 @@ static inline void print_cpu_info(data_t *data)
 			print_percent(data->cpus_perc[i].busy, 2);
 		} else
 			printf("cpu%u inactive", data->cpus[i].id);
-		
+
 		screen_newline();
 	}
 }
@@ -279,12 +279,12 @@ static inline void print_physmem_info(data_t *data)
 	const char *unavail_suffix;
 	const char *used_suffix;
 	const char *free_suffix;
-	
+
 	bin_order_suffix(data->physmem->total, &total, &total_suffix, false);
 	bin_order_suffix(data->physmem->unavail, &unavail, &unavail_suffix, false);
 	bin_order_suffix(data->physmem->used, &used, &used_suffix, false);
 	bin_order_suffix(data->physmem->free, &free, &free_suffix, false);
-	
+
 	printf("memory: %" PRIu64 "%s total, %" PRIu64 "%s unavail, %"
 	    PRIu64 "%s used, %" PRIu64 "%s free", total, total_suffix,
 	    unavail, unavail_suffix, used, used_suffix, free, free_suffix);
@@ -304,21 +304,21 @@ static inline void print_help(void)
 	sysarg_t cols;
 	sysarg_t rows;
 	screen_get_size(&cols, &rows);
-	
+
 	screen_newline();
-	
+
 	printf("Operation modes:");
 	screen_newline();
-	
+
 	printf(" t .. tasks statistics");
 	screen_newline();
-	
+
 	printf(" i .. IPC statistics");
 	screen_newline();
-	
+
 	printf(" e .. exceptions statistics");
 	screen_newline();
-	
+
 	printf("      a .. toggle display of all/hot exceptions");
 	screen_newline();
 
@@ -329,20 +329,20 @@ static inline void print_help(void)
 
 	printf("Other keys:");
 	screen_newline();
-	
+
 	printf(" s .. choose column to sort by");
 	screen_newline();
-	
+
 	printf(" r .. toggle reversed sorting");
 	screen_newline();
-	
+
 	printf(" q .. quit");
 	screen_newline();
-	
+
 	sysarg_t col;
 	sysarg_t row;
 	screen_get_pos(&col, &row);
-	
+
 	while (row < rows) {
 		screen_newline();
 		row++;
@@ -379,11 +379,11 @@ static inline void print_table(const table_t *table)
 	sysarg_t cols;
 	sysarg_t rows;
 	screen_get_size(&cols, &rows);
-	
+
 	sysarg_t col;
 	sysarg_t row;
 	screen_get_pos(&col, &row);
-	
+
 	size_t i;
 	for (i = 0; (i < table->num_fields) && (row < rows); i++) {
 		size_t column_index = i % table->num_columns;
@@ -440,7 +440,7 @@ static inline void print_table(const table_t *table)
 			row++;
 		}
 	}
-	
+
 	while (row < rows) {
 		screen_newline();
 		row++;
@@ -452,7 +452,7 @@ static inline void print_sort(table_t *table)
 	sysarg_t cols;
 	sysarg_t rows;
 	screen_get_size(&cols, &rows);
-	
+
 	sysarg_t col;
 	sysarg_t row;
 	screen_get_pos(&col, &row);
@@ -463,7 +463,7 @@ static inline void print_sort(table_t *table)
 		screen_newline();
 		row++;
 	}
-	
+
 	while (row < rows) {
 		screen_newline();
 		row++;
@@ -493,7 +493,7 @@ void print_data(data_t *data)
 	print_cpu_info(data);
 	print_physmem_info(data);
 	print_warning();
-	
+
 	switch (screen_mode) {
 	case SCREEN_TABLE:
 		print_table_head(&data->table);
@@ -506,7 +506,7 @@ void print_data(data_t *data)
 		print_help_head();
 		print_help();
 	}
-	
+
 	console_flush(console);
 }
 
@@ -526,7 +526,7 @@ void show_warning(const char *fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(warning_text, warning_text_size, fmt, args);
 	va_end(args);
-	
+
 	warning_timeleft = 2 * USEC_COUNT;
 
 	screen_moveto(warning_col, warning_row);
@@ -542,33 +542,33 @@ int tgetchar(unsigned int sec)
 	/*
 	 * Reset timeleft whenever it is not positive.
 	 */
-	
+
 	if (timeleft <= 0)
 		timeleft = sec * USEC_COUNT;
-	
+
 	/*
 	 * Wait to see if there is any input. If so, take it and
 	 * update timeleft so that the next call to tgetchar()
 	 * will not wait as long. If there is no input,
 	 * make timeleft zero and return -1.
 	 */
-	
+
 	wchar_t c = 0;
-	
+
 	while (c == 0) {
 		cons_event_t event;
-		
+
 		warning_timeleft -= timeleft;
 		if (!console_get_event_timeout(console, &event, &timeleft)) {
 			timeleft = 0;
 			return -1;
 		}
 		warning_timeleft += timeleft;
-		
+
 		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
 			c = event.ev.key.c;
 	}
-	
+
 	return (int) c;
 }
 

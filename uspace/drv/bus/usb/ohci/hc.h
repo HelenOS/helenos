@@ -63,7 +63,7 @@ typedef struct hc {
 
 	/** Memory mapped I/O registers area */
 	ohci_regs_t *registers;
-	
+
 	/** Host controller communication area structure */
 	hcca_t *hcca;
 

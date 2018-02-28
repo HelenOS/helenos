@@ -162,7 +162,7 @@ static bool nodes_key_equal(void *key_arg, const ht_link_t *item)
 {
 	tmpfs_node_t *node = hash_table_get_inst(item, tmpfs_node_t, nh_link);
 	node_key_t *key = (node_key_t *)key_arg;
-	
+
 	return key->service_id == node->service_id && key->index == node->index;
 }
 
@@ -219,7 +219,7 @@ bool tmpfs_init(void)
 {
 	if (!hash_table_create(&nodes, 0, 0, &nodes_ops))
 		return false;
-	
+
 	return true;
 }
 
@@ -227,7 +227,7 @@ static bool tmpfs_instance_init(service_id_t service_id)
 {
 	fs_node_t *rfn;
 	errno_t rc;
-	
+
 	rc = tmpfs_create_node(&rfn, service_id, L_DIRECTORY);
 	if (rc != EOK || !rfn)
 		return false;
@@ -239,7 +239,7 @@ static bool rm_service_id_nodes(ht_link_t *item, void *arg)
 {
 	service_id_t sid = *(service_id_t*)arg;
 	tmpfs_node_t *node = hash_table_get_inst(item, tmpfs_node_t, nh_link);
-	
+
 	if (node->service_id == sid) {
 		hash_table_remove_item(&nodes, &node->nh_link);
 	}
@@ -272,9 +272,9 @@ errno_t tmpfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t inde
 		.service_id = service_id,
 		.index = index
 	};
-	
+
 	ht_link_t *lnk = hash_table_find(&nodes, &key);
-	
+
 	if (lnk) {
 		tmpfs_node_t *nodep;
 		nodep = hash_table_get_inst(lnk, tmpfs_node_t, nh_link);
@@ -337,10 +337,10 @@ errno_t tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 errno_t tmpfs_destroy_node(fs_node_t *fn)
 {
 	tmpfs_node_t *nodep = TMPFS_NODE(fn);
-	
+
 	assert(!nodep->lnkcnt);
 	assert(list_empty(&nodep->cs_list));
-	
+
 	hash_table_remove_item(&nodes, &nodep->nh_link);
 
 	/*
@@ -405,7 +405,7 @@ errno_t tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 
 	if (!childp)
 		return ENOENT;
-		
+
 	if ((childp->lnkcnt == 1) && !list_empty(&childp->cs_list))
 		return ENOTEMPTY;
 
@@ -431,7 +431,7 @@ tmpfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 {
 	fs_node_t *rootfn;
 	errno_t rc;
-	
+
 	/* Check if this device is not already mounted. */
 	rc = tmpfs_root_get(&rootfn, service_id);
 	if ((rc == EOK) && (rootfn)) {
@@ -473,13 +473,13 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 		.service_id = service_id,
 		.index = index
 	};
-	
+
 	ht_link_t *hlp = hash_table_find(&nodes, &key);
 	if (!hlp)
 		return ENOENT;
-	
+
 	tmpfs_node_t *nodep = hash_table_get_inst(hlp, tmpfs_node_t, nh_link);
-	
+
 	/*
 	 * Receive the read request.
 	 */
@@ -498,16 +498,16 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 	} else {
 		tmpfs_dentry_t *dentryp;
 		link_t *lnk;
-		
+
 		assert(nodep->type == TMPFS_DIRECTORY);
-		
+
 		/*
 		 * Yes, we really use O(n) algorithm here.
 		 * If it bothers someone, it could be fixed by introducing a
 		 * hash table.
 		 */
 		lnk = list_nth(&nodep->cs_list, pos);
-		
+
 		if (lnk == NULL) {
 			async_answer_0(callid, ENOENT);
 			return ENOENT;
@@ -535,12 +535,12 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		.service_id = service_id,
 		.index = index
 	};
-	
+
 	ht_link_t *hlp = hash_table_find(&nodes, &key);
-	
+
 	if (!hlp)
 		return ENOENT;
-	
+
 	tmpfs_node_t *nodep = hash_table_get_inst(hlp, tmpfs_node_t, nh_link);
 
 	/*
@@ -598,28 +598,28 @@ static errno_t tmpfs_truncate(service_id_t service_id, fs_index_t index,
 		.service_id = service_id,
 		.index = index
 	};
-	
+
 	ht_link_t *hlp = hash_table_find(&nodes, &key);
-	
+
 	if (!hlp)
 		return ENOENT;
 	tmpfs_node_t *nodep = hash_table_get_inst(hlp, tmpfs_node_t, nh_link);
-	
+
 	if (size == nodep->size)
 		return EOK;
-	
+
 	if (size > SIZE_MAX)
 		return ENOMEM;
-	
+
 	void *newdata = realloc(nodep->data, size);
 	if (!newdata)
 		return ENOMEM;
-	
+
 	if (size > nodep->size) {
 		size_t delta = size - nodep->size;
 		memset(newdata + nodep->size, 0, delta);
 	}
-	
+
 	nodep->size = size;
 	nodep->data = newdata;
 	return EOK;
@@ -636,7 +636,7 @@ static errno_t tmpfs_destroy(service_id_t service_id, fs_index_t index)
 		.service_id = service_id,
 		.index = index
 	};
-	
+
 	ht_link_t *hlp = hash_table_find(&nodes, &key);
 	if (!hlp)
 		return ENOENT;

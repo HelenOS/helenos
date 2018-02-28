@@ -98,22 +98,22 @@ static void copyhiscore(int dest, int src)
 void showscores(int firstgame)
 {
 	int i;
-	
+
 	clear_screen();
 	moveto(10, 0);
 	printf("\tRank \tLevel \tName\t                     points\n");
 	printf("\t========================================================\n");
-	
+
 	for (i = 0; i < NUMSPOTS - 1; i++)
 		printf("\t%6d %6d %-16s %20d\n",
 		    i + 1, scores[i].hs_level, scores[i].hs_name, scores[i].hs_score);
-	
+
 	if (!firstgame) {
 		printf("\t========================================================\n");
 		printf("\t  Last %6d %-16s %20d\n",
 		    scores[NUMSPOTS - 1].hs_level, scores[NUMSPOTS - 1].hs_name, scores[NUMSPOTS - 1].hs_score);
 	}
-	
+
 	printf("\n\n\n\n\tPress any key to return to main menu.");
 	getchar();
 }
@@ -125,7 +125,7 @@ void insertscore(int score, int level)
 	size_t off;
 	cons_event_t ev;
 	kbd_event_t *kev;
-	
+
 	clear_screen();
 	moveto(10, 10);
 	puts("Insert your name: ");
@@ -133,28 +133,28 @@ void insertscore(int score, int level)
 	    "Player");
 	i = 6;
 	off = 6;
-	
+
 	moveto(10 , 28);
 	printf("%s%.*s", scores[NUMSPOTS - 1].hs_name, MAXLOGNAME-i,
 	    "........................................");
-	
+
 	while (1) {
 		console_flush(console);
 		if (!console_get_event(console, &ev))
 			exit(1);
-		
+
 		if (ev.type != CEV_KEY || ev.ev.key.type == KEY_RELEASE)
 			continue;
-		
+
 		kev = &ev.ev.key;
-		
+
 		if (kev->key == KC_ENTER || kev->key == KC_NENTER)
 			break;
-		
+
 		if (kev->key == KC_BACKSPACE) {
 			if (i > 0) {
 				wchar_t uc;
-				
+
 				--i;
 				while (off > 0) {
 					--off;
@@ -164,7 +164,7 @@ void insertscore(int score, int level)
 					if (uc != U_SPECIAL)
 						break;
 				}
-				
+
 				scores[NUMSPOTS - 1].hs_name[off] = '\0';
 			}
 		} else if (kev->c != '\0') {
@@ -176,22 +176,22 @@ void insertscore(int score, int level)
 				scores[NUMSPOTS - 1].hs_name[off] = '\0';
 			}
 		}
-		
+
 		moveto(10, 28);
 		printf("%s%.*s", scores[NUMSPOTS - 1].hs_name, MAXLOGNAME - i,
 		    "........................................");
 	}
-	
+
 	scores[NUMSPOTS - 1].hs_score = score;
 	scores[NUMSPOTS - 1].hs_level = level;
-	
+
 	i = NUMSPOTS - 1;
 	while ((i > 0) && (scores[i - 1].hs_score < score))
 		i--;
-	
+
 	for (j = NUMSPOTS - 2; j > i; j--)
 		copyhiscore(j, j-1);
-	
+
 	copyhiscore(i, NUMSPOTS - 1);
 }
 
@@ -235,7 +235,7 @@ void savescores(void)
 		printf("Error creating table\n");
 		return;
 	}
-	
+
 	cnt = fwrite(scores, sizeof(struct highscore), NUMSPOTS, f);
 	rc = fclose(f);
 

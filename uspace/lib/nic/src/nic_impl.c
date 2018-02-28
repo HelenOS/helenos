@@ -194,13 +194,13 @@ errno_t nic_callback_create_impl(ddf_fun_t *fun)
 {
 	nic_t *nic = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic->main_lock);
-	
+
 	nic->client_session = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (nic->client_session == NULL) {
 		fibril_rwlock_write_unlock(&nic->main_lock);
 		return ENOMEM;
 	}
-	
+
 	fibril_rwlock_write_unlock(&nic->main_lock);
 	return EOK;
 }

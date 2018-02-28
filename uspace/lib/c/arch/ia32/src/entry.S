@@ -45,7 +45,7 @@ SYMBOL(__entry)
 	mov %ax, %es
 	mov %ax, %fs
 	# Do not set %gs, it contains descriptor that can see TLS
-	
+
 #ifndef PROCESSOR_i486
 	# Detect the mechanism used for making syscalls
 	movl $(INTEL_CPUID_STANDARD), %eax
@@ -56,14 +56,14 @@ SYMBOL(__entry)
 		movl $__syscall_fast, (%eax)
 	0:
 #endif
-	
+
 	#
 	# Create the first stack frame.
 	#
 	pushl $0
 	pushl $0
 	movl %esp, %ebp
-	
+
 	# Pass the PCB pointer to __main as the first argument
 	pushl %edi
 	call __main

@@ -50,7 +50,7 @@ static atomic_t thread_fail;
 static void falloc(void *arg)
 {
 	uint8_t val = THREAD->tid % THREADS;
-	
+
 	uintptr_t *frames = (uintptr_t *)
 	    malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
 	if (frames == NULL) {
@@ -60,17 +60,17 @@ static void falloc(void *arg)
 		atomic_dec(&thread_count);
 		return;
 	}
-	
+
 	thread_detach(THREAD);
-	
+
 	for (unsigned int run = 0; run < THREAD_RUNS; run++) {
 		for (size_t count = 1; count <= MAX_FRAMES; count++) {
 			size_t bytes = FRAMES2SIZE(count);
-			
+
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 			    "Allocating %zu frames blocks (%zu bytes) ... \n", THREAD->tid,
 			    CPU->id, count, bytes);
-			
+
 			unsigned int allocated = 0;
 			for (unsigned int i = 0; i < (MAX_FRAMES / count); i++) {
 				frames[allocated] = frame_alloc(count, FRAME_ATOMIC, 0);
@@ -80,13 +80,13 @@ static void falloc(void *arg)
 				} else
 					break;
 			}
-			
+
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 			    "%u blocks allocated.\n", THREAD->tid, CPU->id,
 			    allocated);
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 			    "Deallocating ... \n", THREAD->tid, CPU->id);
-			
+
 			for (unsigned int i = 0; i < allocated; i++) {
 				for (size_t k = 0; k < bytes; k++) {
 					if (((uint8_t *) PA2KA(frames[i]))[k] != val) {
@@ -100,15 +100,15 @@ static void falloc(void *arg)
 				}
 				frame_free(frames[i], count);
 			}
-			
+
 			TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 			    "Finished run.\n", THREAD->tid, CPU->id);
 		}
 	}
-	
+
 cleanup:
 	free(frames);
-	
+
 	TPRINTF("Thread #%" PRIu64 " (cpu%u): Exiting\n",
 	    THREAD->tid, CPU->id);
 	atomic_dec(&thread_count);
@@ -118,7 +118,7 @@ const char *test_falloc2(void)
 {
 	atomic_set(&thread_count, THREADS);
 	atomic_set(&thread_fail, 0);
-	
+
 	for (unsigned int i = 0; i < THREADS; i++) {
 		thread_t *thrd = thread_create(falloc, NULL, TASK,
 		    THREAD_FLAG_NONE, "falloc2");
@@ -128,15 +128,15 @@ const char *test_falloc2(void)
 		}
 		thread_ready(thrd);
 	}
-	
+
 	while (atomic_get(&thread_count) > 0) {
 		TPRINTF("Threads left: %" PRIua "\n",
 		    atomic_get(&thread_count));
 		thread_sleep(1);
 	}
-	
+
 	if (atomic_get(&thread_fail) == 0)
 		return NULL;
-	
+
 	return "Test failed";
 }

@@ -54,24 +54,24 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 {
 	assert(report_desc != NULL);
 	assert(size != NULL);
-	
+
 	usb_dp_parser_t parser =  {
 		.nesting = usb_dp_standard_descriptor_nesting
 	};
-	
+
 	usb_dp_parser_data_t parser_data = {
 		.data = usb_device_descriptors(dev)->full_config,
 		.size = usb_device_descriptors(dev)->full_config_size,
 		.arg = NULL
 	};
-	
+
 	/*
 	 * First nested descriptor of the configuration descriptor.
 	 */
 	const uint8_t *d =
 	    usb_dp_get_nested_descriptor(&parser, &parser_data,
 	    usb_device_descriptors(dev)->full_config);
-	
+
 	/*
 	 * Find the interface descriptor corresponding to our interface number.
 	 */
@@ -81,19 +81,19 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 		    usb_device_descriptors(dev)->full_config, d);
 		++i;
 	}
-	
+
 	if (d == NULL) {
 		usb_log_error("The %d. interface descriptor not found!",
 		    usb_device_get_iface_number(dev));
 		return ENOENT;
 	}
-	
+
 	/*
 	 * First nested descriptor of the interface descriptor.
 	 */
 	const uint8_t *iface_desc = d;
 	d = usb_dp_get_nested_descriptor(&parser, &parser_data, iface_desc);
-	
+
 	/*
 	 * Search through siblings until the HID descriptor is found.
 	 */
@@ -101,21 +101,21 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 		d = usb_dp_get_sibling_descriptor(&parser, &parser_data,
 		    iface_desc, d);
 	}
-	
+
 	if (d == NULL) {
 		usb_log_fatal("No HID descriptor found!");
 		return ENOENT;
 	}
-	
+
 	if (*d != sizeof(usb_standard_hid_descriptor_t)) {
 		usb_log_error("HID descriptor has wrong size (%u, expected %zu"
 		    ")\n", *d, sizeof(usb_standard_hid_descriptor_t));
 		return EINVAL;
 	}
-	
+
 	usb_standard_hid_descriptor_t *hid_desc =
 	    (usb_standard_hid_descriptor_t *)d;
-	
+
 	uint16_t length = uint16_usb2host(hid_desc->report_desc_info.length);
 	size_t actual_size = 0;
 
@@ -128,9 +128,9 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 		    "\n");
 		return ENOMEM;
 	}
-	
+
 	usb_log_debug("Getting Report descriptor, expected size: %u", length);
-	
+
 	/*
 	 * Get the descriptor from the device.
 	 */
@@ -152,11 +152,11 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 		    "%u)\n", actual_size, length);
 		return EINVAL;
 	}
-	
+
 	*size = length;
-	
+
 	usb_log_debug("Done.");
-	
+
 	return EOK;
 }
 
@@ -170,12 +170,12 @@ errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
 		    "parameters given.\n");
 		return EINVAL;
 	}
-	
+
 //	uint8_t *report_desc = NULL;
 //	size_t report_size;
-	
+
 	errno_t rc = usb_hid_get_report_descriptor(dev, report_desc, report_size);
-	
+
 	if (rc != EOK) {
 		usb_log_error("Problem with getting Report descriptor: %s.",
 		    str_error(rc));
@@ -185,9 +185,9 @@ errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
 		}
 		return rc;
 	}
-	
+
 	assert(*report_desc != NULL);
-	
+
 	rc = usb_hid_parse_report_descriptor(report, *report_desc, *report_size);
 	if (rc != EOK) {
 		usb_log_error("Problem parsing Report descriptor: %s.",
@@ -196,9 +196,9 @@ errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
 		*report_desc = NULL;
 		return rc;
 	}
-	
+
 	usb_hid_descriptor_print(report);
-	
+
 	return EOK;
 }
 

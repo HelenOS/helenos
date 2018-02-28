@@ -66,7 +66,7 @@ FUNCTION_BEGIN(jump_to_kernel)
 
 #ifndef PROCESSOR_ARCH_armv7_a
 	mrc	p15, 0, r4, c1, c0, 0
-	
+
 	# Disable D-cache before the kernel is started.
 	bic	r4, r4, #(1 << CP15_C1_DC)
 
@@ -75,10 +75,10 @@ FUNCTION_BEGIN(jump_to_kernel)
 #ifdef PROCESSOR_ARCH_armv6
 	bic	r4, r4, #(1 << CP15_C1_BP)
 #endif
-	
+
 	mcr	p15, 0, r4, c1, c0, 0
 #endif
-	
+
 	# Wait for the operations to complete
 #ifdef PROCESSOR_ARCH_armv7_a
 	dsb
@@ -87,7 +87,7 @@ FUNCTION_BEGIN(jump_to_kernel)
 	mov r4, #0
 	mcr p15, 0, r4, c7, c10, 4
 #endif
-	
+
 	# Clean ICache and BPredictors, r4 ignored (SBZ)
 	mov r4, #0
 	mcr p15, 0, r4, c7, c5, 0

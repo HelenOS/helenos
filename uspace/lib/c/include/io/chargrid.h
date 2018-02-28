@@ -48,16 +48,16 @@ typedef enum {
 typedef struct {
 	size_t size;            /**< Structure size */
 	chargrid_flag_t flags;  /**< Screenbuffer flags */
-	
+
 	sysarg_t cols;          /**< Number of columns */
 	sysarg_t rows;          /**< Number of rows */
-	
+
 	sysarg_t col;           /**< Current column */
 	sysarg_t row;           /**< Current row */
 	bool cursor_visible;    /**< Cursor visibility */
-	
+
 	char_attrs_t attrs;     /**< Current attributes */
-	
+
 	sysarg_t top_row;       /**< The first row in the cyclic buffer */
 	charfield_t data[];     /**< Screen contents (cyclic buffer) */
 } chargrid_t;

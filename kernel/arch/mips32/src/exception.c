@@ -76,35 +76,35 @@ void istate_decode(istate_t *istate)
 	log_printf("epc=%#010" PRIx32 "\tsta=%#010" PRIx32 "\t"
 	    "lo =%#010" PRIx32 "\thi =%#010" PRIx32 "\n",
 	    istate->epc, istate->status, istate->lo, istate->hi);
-	
+
 	log_printf("a0 =%#010" PRIx32 "\ta1 =%#010" PRIx32 "\t"
 	    "a2 =%#010" PRIx32 "\ta3 =%#010" PRIx32 "\n",
 	    istate->a0, istate->a1, istate->a2, istate->a3);
-	
+
 	log_printf("t0 =%#010" PRIx32 "\tt1 =%#010" PRIx32 "\t"
 	    "t2 =%#010" PRIx32 "\tt3 =%#010" PRIx32 "\n",
 	    istate->t0, istate->t1, istate->t2, istate->t3);
-	
+
 	log_printf("t4 =%#010" PRIx32 "\tt5 =%#010" PRIx32 "\t"
 	    "t6 =%#010" PRIx32 "\tt7 =%#010" PRIx32 "\n",
 	    istate->t4, istate->t5, istate->t6, istate->t7);
-	
+
 	log_printf("t8 =%#010" PRIx32 "\tt9 =%#010" PRIx32 "\t"
 	    "v0 =%#010" PRIx32 "\tv1 =%#010" PRIx32 "\n",
 	    istate->t8, istate->t9, istate->v0, istate->v1);
-	
+
 	log_printf("s0 =%#010" PRIx32 "\ts1 =%#010" PRIx32 "\t"
 	    "s2 =%#010" PRIx32 "\ts3 =%#010" PRIx32 "\n",
 	    istate->s0, istate->s1, istate->s2, istate->s3);
-	
+
 	log_printf("s4 =%#010" PRIx32 "\ts5 =%#010" PRIx32 "\t"
 	    "s6 =%#010" PRIx32 "\ts7 =%#010" PRIx32 "\n",
 	    istate->s4, istate->s5, istate->s6, istate->s7);
-	
+
 	log_printf("s8 =%#010" PRIx32 "\tat =%#010" PRIx32 "\t"
 	    "kt0=%#010" PRIx32 "\tkt1=%#010" PRIx32 "\n",
 	    istate->s8, istate->at, istate->kt0, istate->kt1);
-	
+
 	log_printf("sp =%#010" PRIx32 "\tra =%#010" PRIx32 "\t"
 	    "gp =%#010" PRIx32 "\n",
 	    istate->sp, istate->ra, istate->gp);
@@ -170,7 +170,7 @@ static void interrupt_exception(unsigned int n, istate_t *istate)
 	/* Decode interrupt number and process the interrupt */
 	ip = (cp0_cause_read() & cp0_cause_ip_mask) >> cp0_cause_ip_shift;
 	im = (cp0_status_read() & cp0_status_im_mask) >> cp0_status_im_shift;
-	
+
 	unsigned int i;
 	for (i = 0; i < 8; i++) {
 
@@ -211,12 +211,12 @@ static void syscall_exception(unsigned int n, istate_t *istate)
 void exception_init(void)
 {
 	unsigned int i;
-	
+
 	/* Clear exception table */
 	for (i = 0; i < IVT_ITEMS; i++)
 		exc_register(i, "undef", false,
 		    (iroutine_t) unhandled_exception);
-	
+
 	exc_register(EXC_Bp, "bkpoint", true,
 	    (iroutine_t) breakpoint_exception);
 	exc_register(EXC_RI, "resinstr", true,
@@ -229,12 +229,12 @@ void exception_init(void)
 	    (iroutine_t) tlbinv_exception);
 	exc_register(EXC_Int, "interrupt", true,
 	    (iroutine_t) interrupt_exception);
-	
+
 #ifdef CONFIG_FPU_LAZY
 	exc_register(EXC_CpU, "cpunus", true,
 	    (iroutine_t) cpuns_exception);
 #endif
-	
+
 	exc_register(EXC_Sys, "syscall", true,
 	    (iroutine_t) syscall_exception);
 }

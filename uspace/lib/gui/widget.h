@@ -55,12 +55,12 @@ struct widget {
 	list_t children;   /**< Children widgets of this widget. */
 	window_t *window;  /**< Window into which this widget belongs. */
 	const void *data;  /**< Custom client data. */
-	
+
 	sysarg_t hpos; /**< Horizontal position in window coordinates. */
 	sysarg_t vpos; /**< Vertical position in window coordinates. */
 	sysarg_t width;
 	sysarg_t height;
-	
+
 	sysarg_t width_min;
 	sysarg_t height_min;
 	sysarg_t width_ideal; /**< Width size hint for initialization. */

@@ -62,7 +62,7 @@ static void basic_test(void)
 	TPRINTF("Issue a single work item.\n");
 	basic_done = 0;
 	workq_global_enqueue(&basic_work, basic_test_work);
-	
+
 	while (!basic_done) {
 		TPRINTF(".");
 		thread_sleep(1);
@@ -86,16 +86,16 @@ static int core_workq_enqueue(work_t *work_item, work_func_t func)
 static const char *test_custom_workq_impl(bool stop, const char *qname)
 {
 	workq = workq_create(qname);
-	
+
 	if (!workq) {
 		return "Failed to create a work queue.\n";
 	}
-	
+
 	const char *ret = run_workq_core(stop);
-	
+
 	TPRINTF("Stopping work queue...\n");
 	workq_stop(workq);
-	
+
 	TPRINTF("Destroying work queue...\n");
 	workq_destroy(workq);
 	return ret;
@@ -122,21 +122,21 @@ const char *test_workqueue_all(void)
 {
 	const char *err = NULL;
 	const char *res;
-	
+
 	basic_test();
-	
+
 	res = test_custom_workq();
 	if (res) {
 		TPRINTF("%s", res);
 		err = res;
 	}
-	
+
 	res = test_custom_workq_stop();
 	if (res) {
 		TPRINTF("%s", res);
 		err = res;
 	}
-	
+
 	res = test_workqueue3();
 	if (res) {
 		TPRINTF("%s", res);

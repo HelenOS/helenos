@@ -48,17 +48,17 @@ void *balloc(size_t size, size_t alignment)
 {
 	if (alignment == 0)
 		return NULL;
-	
+
 	/* Enforce minimal alignment. */
 	alignment = ALIGN_UP(alignment, 4);
-	
+
 	uintptr_t addr = phys_base + ALIGN_UP(ballocs->size, alignment);
-	
+
 	if (ALIGN_UP(ballocs->size, alignment) + size >= max_size)
 		return NULL;
-	
+
 	ballocs->size = ALIGN_UP(ballocs->size, alignment) + size;
-	
+
 	return (void *) addr;
 }
 

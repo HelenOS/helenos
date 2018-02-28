@@ -42,21 +42,21 @@ SYMBOL(__thread_entry)
 	.ent __thread_entry
 	.frame $sp, ABI_STACK_FRAME, $ra
 	.cpload $t9
-	
+
 	#
 	# v0 contains address of uarg.
 	#
 	add $a0, $v0, 0
-	
+
 	# Allocate the stack frame.
 	addiu $sp, -ABI_STACK_FRAME
-	
+
 	# Allow PIC code
 	.cprestore 16
-	
+
 	jal __thread_main
 	nop
-	
+
 	#
 	# Not reached.
 	#

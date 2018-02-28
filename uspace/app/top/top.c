@@ -152,90 +152,90 @@ static const char *read_data(data_t *target)
 	target->table.columns = NULL;
 	target->table.num_fields = 0;
 	target->table.fields = NULL;
-	
+
 	/* Get current time */
 	struct timeval time;
 	gettimeofday(&time, NULL);
-	
+
 	target->hours = (time.tv_sec % DAY) / HOUR;
 	target->minutes = (time.tv_sec % HOUR) / MINUTE;
 	target->seconds = time.tv_sec % MINUTE;
-	
+
 	/* Get uptime */
 	struct timeval uptime;
 	getuptime(&uptime);
-	
+
 	target->udays = uptime.tv_sec / DAY;
 	target->uhours = (uptime.tv_sec % DAY) / HOUR;
 	target->uminutes = (uptime.tv_sec % HOUR) / MINUTE;
 	target->useconds = uptime.tv_sec % MINUTE;
-	
+
 	/* Get load */
 	target->load = stats_get_load(&(target->load_count));
 	if (target->load == NULL)
 		return "Cannot get system load";
-	
+
 	/* Get CPUs */
 	target->cpus = stats_get_cpus(&(target->cpus_count));
 	if (target->cpus == NULL)
 		return "Cannot get CPUs";
-	
+
 	target->cpus_perc =
 	    (perc_cpu_t *) calloc(target->cpus_count, sizeof(perc_cpu_t));
 	if (target->cpus_perc == NULL)
 		return "Not enough memory for CPU utilization";
-	
+
 	/* Get tasks */
 	target->tasks = stats_get_tasks(&(target->tasks_count));
 	if (target->tasks == NULL)
 		return "Cannot get tasks";
-	
+
 	target->tasks_perc =
 	    (perc_task_t *) calloc(target->tasks_count, sizeof(perc_task_t));
 	if (target->tasks_perc == NULL)
 		return "Not enough memory for task utilization";
-	
+
 	/* Get threads */
 	target->threads = stats_get_threads(&(target->threads_count));
 	if (target->threads == NULL)
 		return "Cannot get threads";
-	
+
 	/* Get Exceptions */
 	target->exceptions = stats_get_exceptions(&(target->exceptions_count));
 	if (target->exceptions == NULL)
 		return "Cannot get exceptions";
-	
+
 	target->exceptions_perc =
 	    (perc_exc_t *) calloc(target->exceptions_count, sizeof(perc_exc_t));
 	if (target->exceptions_perc == NULL)
 		return "Not enough memory for exception utilization";
-	
+
 	/* Get physical memory */
 	target->physmem = stats_get_physmem();
 	if (target->physmem == NULL)
 		return "Cannot get physical memory";
-	
+
 	target->ucycles_diff = calloc(target->tasks_count,
 	    sizeof(uint64_t));
 	if (target->ucycles_diff == NULL)
 		return "Not enough memory for user utilization";
-	
+
 	/* Allocate memory for computed values */
 	target->kcycles_diff = calloc(target->tasks_count,
 	    sizeof(uint64_t));
 	if (target->kcycles_diff == NULL)
 		return "Not enough memory for kernel utilization";
-	
+
 	target->ecycles_diff = calloc(target->exceptions_count,
 	    sizeof(uint64_t));
 	if (target->ecycles_diff == NULL)
 		return "Not enough memory for exception cycles utilization";
-	
+
 	target->ecount_diff = calloc(target->exceptions_count,
 	    sizeof(uint64_t));
 	if (target->ecount_diff == NULL)
 		return "Not enough memory for exception count utilization";
-	
+
 	return NULL;
 }
 
@@ -249,7 +249,7 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 {
 	/* For each CPU: Compute total cycles and divide it between
 	   user and kernel */
-	
+
 	size_t i;
 	for (i = 0; i < new_data->cpus_count; i++) {
 		uint64_t idle =
@@ -257,21 +257,21 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 		uint64_t busy =
 		    new_data->cpus[i].busy_cycles - old_data->cpus[i].busy_cycles;
 		uint64_t sum = idle + busy;
-		
+
 		FRACTION_TO_FLOAT(new_data->cpus_perc[i].idle, idle * 100, sum);
 		FRACTION_TO_FLOAT(new_data->cpus_perc[i].busy, busy * 100, sum);
 	}
-	
+
 	/* For all tasks compute sum and differencies of all cycles */
-	
+
 	uint64_t virtmem_total = 0;
 	uint64_t resmem_total = 0;
 	uint64_t ucycles_total = 0;
 	uint64_t kcycles_total = 0;
-	
+
 	for (i = 0; i < new_data->tasks_count; i++) {
 		/* Match task with the previous instance */
-		
+
 		bool found = false;
 		size_t j;
 		for (j = 0; j < old_data->tasks_count; j++) {
@@ -280,27 +280,27 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 				break;
 			}
 		}
-		
+
 		if (!found) {
 			/* This is newly borned task, ignore it */
 			new_data->ucycles_diff[i] = 0;
 			new_data->kcycles_diff[i] = 0;
 			continue;
 		}
-		
+
 		new_data->ucycles_diff[i] =
 		    new_data->tasks[i].ucycles - old_data->tasks[j].ucycles;
 		new_data->kcycles_diff[i] =
 		    new_data->tasks[i].kcycles - old_data->tasks[j].kcycles;
-		
+
 		virtmem_total += new_data->tasks[i].virtmem;
 		resmem_total += new_data->tasks[i].resmem;
 		ucycles_total += new_data->ucycles_diff[i];
 		kcycles_total += new_data->kcycles_diff[i];
 	}
-	
+
 	/* For each task compute percential change */
-	
+
 	for (i = 0; i < new_data->tasks_count; i++) {
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].virtmem,
 		    new_data->tasks[i].virtmem * 100, virtmem_total);
@@ -311,19 +311,19 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].kcycles,
 		    new_data->kcycles_diff[i] * 100, kcycles_total);
 	}
-	
+
 	/* For all exceptions compute sum and differencies of cycles */
-	
+
 	uint64_t ecycles_total = 0;
 	uint64_t ecount_total = 0;
-	
+
 	for (i = 0; i < new_data->exceptions_count; i++) {
 		/*
 		 * March exception with the previous instance.
 		 * This is quite paranoid since exceptions do not
 		 * usually disappear, but it does not hurt.
 		 */
-		
+
 		bool found = false;
 		size_t j;
 		for (j = 0; j < old_data->exceptions_count; j++) {
@@ -332,25 +332,25 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 				break;
 			}
 		}
-		
+
 		if (!found) {
 			/* This is a new exception, ignore it */
 			new_data->ecycles_diff[i] = 0;
 			new_data->ecount_diff[i] = 0;
 			continue;
 		}
-		
+
 		new_data->ecycles_diff[i] =
 		    new_data->exceptions[i].cycles - old_data->exceptions[j].cycles;
 		new_data->ecount_diff[i] =
 		    new_data->exceptions[i].count - old_data->exceptions[i].count;
-		
+
 		ecycles_total += new_data->ecycles_diff[i];
 		ecount_total += new_data->ecount_diff[i];
 	}
-	
+
 	/* For each exception compute percential change */
-	
+
 	for (i = 0; i < new_data->exceptions_count; i++) {
 		FRACTION_TO_FLOAT(new_data->exceptions_perc[i].cycles,
 		    new_data->ecycles_diff[i] * 100, ecycles_total);
@@ -363,7 +363,7 @@ static int cmp_data(void *a, void *b, void *arg)
 {
 	field_t *fa = (field_t *)a + sort_column;
 	field_t *fb = (field_t *)b + sort_column;
-	
+
 	if (fa->type > fb->type)
 		return 1 * sort_reverse;
 
@@ -535,40 +535,40 @@ static void free_data(data_t *target)
 {
 	if (target->load != NULL)
 		free(target->load);
-	
+
 	if (target->cpus != NULL)
 		free(target->cpus);
-	
+
 	if (target->cpus_perc != NULL)
 		free(target->cpus_perc);
-	
+
 	if (target->tasks != NULL)
 		free(target->tasks);
-	
+
 	if (target->tasks_perc != NULL)
 		free(target->tasks_perc);
-	
+
 	if (target->threads != NULL)
 		free(target->threads);
-	
+
 	if (target->exceptions != NULL)
 		free(target->exceptions);
-	
+
 	if (target->exceptions_perc != NULL)
 		free(target->exceptions_perc);
-	
+
 	if (target->physmem != NULL)
 		free(target->physmem);
-	
+
 	if (target->ucycles_diff != NULL)
 		free(target->ucycles_diff);
-	
+
 	if (target->kcycles_diff != NULL)
 		free(target->kcycles_diff);
-	
+
 	if (target->ecycles_diff != NULL)
 		free(target->ecycles_diff);
-	
+
 	if (target->ecount_diff != NULL)
 		free(target->ecount_diff);
 
@@ -581,16 +581,16 @@ int main(int argc, char *argv[])
 	data_t data;
 	data_t data_prev;
 	const char *ret = NULL;
-	
+
 	screen_init();
 	printf("Reading initial data...\n");
-	
+
 	if ((ret = read_data(&data)) != NULL)
 		goto out;
-	
+
 	/* Compute some rubbish to have initialised values */
 	compute_percentages(&data, &data);
-	
+
 	/* And paint screen until death */
 	while (true) {
 		int c = tgetchar(UPDATE_INTERVAL);
@@ -601,7 +601,7 @@ int main(int argc, char *argv[])
 				free_data(&data_prev);
 				goto out;
 			}
-			
+
 			compute_percentages(&data_prev, &data);
 			free_data(&data_prev);
 
@@ -671,16 +671,16 @@ int main(int argc, char *argv[])
 		sort_table(&data.table);
 		print_data(&data);
 	}
-	
+
 out:
 	screen_done();
 	free_data(&data);
-	
+
 	if (ret != NULL) {
 		fprintf(stderr, "%s: %s\n", NAME, ret);
 		return 1;
 	}
-	
+
 	return 0;
 }
 

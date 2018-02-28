@@ -150,15 +150,15 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 {
 	if (*offset + 1 > size)
 		return 0;
-	
+
 	/* First byte read from string */
 	uint8_t b0 = (uint8_t) str[(*offset)++];
-	
+
 	/* Determine code length */
-	
+
 	unsigned int b0_bits;  /* Data bits in first byte */
 	unsigned int cbytes;   /* Number of continuation bytes */
-	
+
 	if ((b0 & 0x80) == 0) {
 		/* 0xxxxxxx (Plain ASCII) */
 		b0_bits = 7;
@@ -179,25 +179,25 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 		/* 10xxxxxx -- unexpected continuation byte */
 		return U_SPECIAL;
 	}
-	
+
 	if (*offset + cbytes > size)
 		return U_SPECIAL;
-	
+
 	wchar_t ch = b0 & LO_MASK_8(b0_bits);
-	
+
 	/* Decode continuation bytes */
 	while (cbytes > 0) {
 		uint8_t b = (uint8_t) str[(*offset)++];
-		
+
 		/* Must be 10xxxxxx */
 		if ((b & 0xc0) != 0x80)
 			return U_SPECIAL;
-		
+
 		/* Shift data bits to ch */
 		ch = (ch << CONT_BITS) | (wchar_t) (b & LO_MASK_8(CONT_BITS));
 		cbytes--;
 	}
-	
+
 	return ch;
 }
 
@@ -220,19 +220,19 @@ errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
-	
+
 	if (!chr_check(ch))
 		return EINVAL;
-	
+
 	/* Unsigned version of ch (bit operations should only be done
 	   on unsigned types). */
 	uint32_t cc = (uint32_t) ch;
-	
+
 	/* Determine how many continuation bytes are needed */
-	
+
 	unsigned int b0_bits;  /* Data bits in first byte */
 	unsigned int cbytes;   /* Number of continuation bytes */
-	
+
 	if ((cc & ~LO_MASK_32(7)) == 0) {
 		b0_bits = 7;
 		cbytes = 0;
@@ -249,24 +249,24 @@ errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 		/* Codes longer than 21 bits are not supported */
 		return EINVAL;
 	}
-	
+
 	/* Check for available space in buffer */
 	if (*offset + cbytes >= size)
 		return EOVERFLOW;
-	
+
 	/* Encode continuation bytes */
 	unsigned int i;
 	for (i = cbytes; i > 0; i--) {
 		str[*offset + i] = 0x80 | (cc & LO_MASK_32(CONT_BITS));
 		cc = cc >> CONT_BITS;
 	}
-	
+
 	/* Encode first byte */
 	str[*offset] = (cc & LO_MASK_32(b0_bits)) | HI_MASK_8(8 - b0_bits - 1);
-	
+
 	/* Advance offset */
 	*offset += cbytes + 1;
-	
+
 	return EOK;
 }
 
@@ -283,10 +283,10 @@ errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 size_t str_size(const char *str)
 {
 	size_t size = 0;
-	
+
 	while (*str++ != 0)
 		size++;
-	
+
 	return size;
 }
 
@@ -322,14 +322,14 @@ size_t str_lsize(const char *str, size_t max_len)
 {
 	size_t len = 0;
 	size_t offset = 0;
-	
+
 	while (len < max_len) {
 		if (str_decode(str, &offset, STR_NO_LIMIT) == 0)
 			break;
-		
+
 		len++;
 	}
-	
+
 	return offset;
 }
 
@@ -362,10 +362,10 @@ size_t str_length(const char *str)
 {
 	size_t len = 0;
 	size_t offset = 0;
-	
+
 	while (str_decode(str, &offset, STR_NO_LIMIT) != 0)
 		len++;
-	
+
 	return len;
 }
 
@@ -379,10 +379,10 @@ size_t str_length(const char *str)
 size_t wstr_length(const wchar_t *wstr)
 {
 	size_t len = 0;
-	
+
 	while (*wstr++ != 0)
 		len++;
-	
+
 	return len;
 }
 
@@ -398,10 +398,10 @@ size_t str_nlength(const char *str, size_t size)
 {
 	size_t len = 0;
 	size_t offset = 0;
-	
+
 	while (str_decode(str, &offset, size) != 0)
 		len++;
-	
+
 	return len;
 }
 
@@ -418,12 +418,12 @@ size_t wstr_nlength(const wchar_t *str, size_t size)
 	size_t len = 0;
 	size_t limit = ALIGN_DOWN(size, sizeof(wchar_t));
 	size_t offset = 0;
-	
+
 	while ((offset < limit) && (*str++ != 0)) {
 		len++;
 		offset += sizeof(wchar_t);
 	}
-	
+
 	return len;
 }
 
@@ -436,7 +436,7 @@ bool ascii_check(wchar_t ch)
 {
 	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 127))
 		return true;
-	
+
 	return false;
 }
 
@@ -449,7 +449,7 @@ bool chr_check(wchar_t ch)
 {
 	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 1114111))
 		return true;
-	
+
 	return false;
 }
 
@@ -475,7 +475,7 @@ int str_cmp(const char *s1, const char *s2)
 {
 	wchar_t c1 = 0;
 	wchar_t c2 = 0;
-	
+
 	size_t off1 = 0;
 	size_t off2 = 0;
 
@@ -485,7 +485,7 @@ int str_cmp(const char *s1, const char *s2)
 
 		if (c1 < c2)
 			return -1;
-		
+
 		if (c1 > c2)
 			return 1;
 
@@ -522,10 +522,10 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
 {
 	wchar_t c1 = 0;
 	wchar_t c2 = 0;
-	
+
 	size_t off1 = 0;
 	size_t off2 = 0;
-	
+
 	size_t len = 0;
 
 	while (true) {
@@ -568,16 +568,16 @@ void str_cpy(char *dest, size_t size, const char *src)
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
 	assert(src != NULL);
-	
+
 	size_t src_off = 0;
 	size_t dest_off = 0;
-	
+
 	wchar_t ch;
 	while ((ch = str_decode(src, &src_off, STR_NO_LIMIT)) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
-	
+
 	dest[dest_off] = '\0';
 }
 
@@ -601,16 +601,16 @@ void str_ncpy(char *dest, size_t size, const char *src, size_t n)
 {
 	/* There must be space for a null terminator in the buffer. */
 	assert(size > 0);
-	
+
 	size_t src_off = 0;
 	size_t dest_off = 0;
-	
+
 	wchar_t ch;
 	while ((ch = str_decode(src, &src_off, n)) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
-	
+
 	dest[dest_off] = '\0';
 }
 
@@ -635,7 +635,7 @@ char *str_dup(const char *src)
 	size_t size = str_size(src) + 1;
 	char *dest = malloc(size, 0);
 	assert(dest);
-	
+
 	str_cpy(dest, size, src);
 	return dest;
 }
@@ -665,10 +665,10 @@ char *str_ndup(const char *src, size_t n)
 	size_t size = str_size(src);
 	if (size > n)
 		size = n;
-	
+
 	char *dest = malloc(size + 1, 0);
 	assert(dest);
-	
+
 	str_ncpy(dest, size + 1, src, size);
 	return dest;
 }
@@ -694,7 +694,7 @@ void wstr_to_str(char *dest, size_t size, const wchar_t *src)
 
 	src_idx = 0;
 	dest_off = 0;
-	
+
 	while ((ch = src[src_idx++]) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
@@ -716,13 +716,13 @@ char *str_chr(const char *str, wchar_t ch)
 	wchar_t acc;
 	size_t off = 0;
 	size_t last = 0;
-	
+
 	while ((acc = str_decode(str, &off, STR_NO_LIMIT)) != 0) {
 		if (acc == ch)
 			return (char *) (str + last);
 		last = off;
 	}
-	
+
 	return NULL;
 }
 
@@ -743,16 +743,16 @@ char *str_chr(const char *str, wchar_t ch)
 bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos)
 {
 	size_t len = wstr_length(str);
-	
+
 	if ((pos > len) || (pos + 1 > max_pos))
 		return false;
-	
+
 	size_t i;
 	for (i = len; i + 1 > pos; i--)
 		str[i + 1] = str[i];
-	
+
 	str[pos] = ch;
-	
+
 	return true;
 }
 
@@ -771,14 +771,14 @@ bool wstr_linsert(wchar_t *str, wchar_t ch, size_t pos, size_t max_pos)
 bool wstr_remove(wchar_t *str, size_t pos)
 {
 	size_t len = wstr_length(str);
-	
+
 	if (pos >= len)
 		return false;
-	
+
 	size_t i;
 	for (i = pos + 1; i <= len; i++)
 		str[i - 1] = str[i];
-	
+
 	return true;
 }
 
@@ -799,28 +799,28 @@ static errno_t str_uint(const char *nptr, char **endptr, unsigned int base,
 	assert(endptr != NULL);
 	assert(neg != NULL);
 	assert(result != NULL);
-	
+
 	*neg = false;
 	const char *str = nptr;
-	
+
 	/* Ignore leading whitespace */
 	while (isspace(*str))
 		str++;
-	
+
 	if (*str == '-') {
 		*neg = true;
 		str++;
 	} else if (*str == '+')
 		str++;
-	
+
 	if (base == 0) {
 		/* Decode base if not specified */
 		base = 10;
-		
+
 		if (*str == '0') {
 			base = 8;
 			str++;
-			
+
 			switch (*str) {
 			case 'b':
 			case 'B':
@@ -855,13 +855,13 @@ static errno_t str_uint(const char *nptr, char **endptr, unsigned int base,
 			return EINVAL;
 		}
 	}
-	
+
 	*result = 0;
 	const char *startstr = str;
-	
+
 	while (*str != 0) {
 		unsigned int digit;
-		
+
 		if ((*str >= 'a') && (*str <= 'z'))
 			digit = *str - 'a' + 10;
 		else if ((*str >= 'A') && (*str <= 'Z'))
@@ -870,22 +870,22 @@ static errno_t str_uint(const char *nptr, char **endptr, unsigned int base,
 			digit = *str - '0';
 		else
 			break;
-		
+
 		if (digit >= base)
 			break;
-		
+
 		uint64_t prev = *result;
 		*result = (*result) * base + digit;
-		
+
 		if (*result < prev) {
 			/* Overflow */
 			*endptr = (char *) str;
 			return EOVERFLOW;
 		}
-		
+
 		str++;
 	}
-	
+
 	if (str == startstr) {
 		/*
 		 * No digits were decoded => first invalid character is
@@ -893,12 +893,12 @@ static errno_t str_uint(const char *nptr, char **endptr, unsigned int base,
 		 */
 		str = nptr;
 	}
-	
+
 	*endptr = (char *) str;
-	
+
 	if (str == nptr)
 		return EINVAL;
-	
+
 	return EOK;
 }
 
@@ -918,26 +918,26 @@ errno_t str_uint64_t(const char *nptr, char **endptr, unsigned int base,
     bool strict, uint64_t *result)
 {
 	assert(result != NULL);
-	
+
 	bool neg;
 	char *lendptr;
 	errno_t ret = str_uint(nptr, &lendptr, base, &neg, result);
-	
+
 	if (endptr != NULL)
 		*endptr = (char *) lendptr;
-	
+
 	if (ret != EOK)
 		return ret;
-	
+
 	/* Do not allow negative values */
 	if (neg)
 		return EINVAL;
-	
+
 	/* Check whether we are at the end of
 	   the string in strict mode */
 	if ((strict) && (*lendptr != 0))
 		return EINVAL;
-	
+
 	return EOK;
 }
 

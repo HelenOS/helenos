@@ -259,7 +259,7 @@ errno_t bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
 	blob->needs_free = needs_free;
 	*out = bithenge_blob_as_node(memory_as_blob(blob));
 	return EOK;
-	
+
 error:
 	if (needs_free)
 		free((void *)buffer);

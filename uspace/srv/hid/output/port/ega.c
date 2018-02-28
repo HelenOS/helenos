@@ -46,10 +46,10 @@
 typedef struct {
 	sysarg_t cols;
 	sysarg_t rows;
-	
+
 	uint8_t style_normal;
 	uint8_t style_inverted;
-	
+
 	size_t size;
 	uint8_t *addr;
 } ega_t;
@@ -59,7 +59,7 @@ static ega_t ega;
 static uint8_t attrs_attr(char_attrs_t attrs)
 {
 	uint8_t attr = 0;
-	
+
 	switch (attrs.type) {
 	case CHAR_ATTR_STYLE:
 		switch (attrs.val.style) {
@@ -80,17 +80,17 @@ static uint8_t attrs_attr(char_attrs_t attrs)
 	case CHAR_ATTR_INDEX:
 		attr = ((attrs.val.index.bgcolor & 7) << 4) |
 		    (attrs.val.index.fgcolor & 7);
-		
+
 		if (attrs.val.index.attr & CATTR_BRIGHT)
 			attr |= 0x08;
-		
+
 		break;
 	case CHAR_ATTR_RGB:
 		attr = (attrs.val.rgb.bgcolor < attrs.val.rgb.fgcolor) ?
 		    ega.style_inverted : ega.style_normal;
 		break;
 	}
-	
+
 	return attr;
 }
 
@@ -104,14 +104,14 @@ static uint8_t attrs_attr(char_attrs_t attrs)
 static void draw_char(charfield_t *field, sysarg_t col, sysarg_t row)
 {
 	uint8_t glyph;
-	
+
 	if (ascii_check(field->ch))
 		glyph = field->ch;
 	else
 		glyph = '?';
-	
+
 	uint8_t attr = attrs_attr(field->attrs);
-	
+
 	ega.addr[FB_POS(col, row)] = glyph;
 	ega.addr[FB_POS(col, row) + 1] = attr;
 }
@@ -142,18 +142,18 @@ static void ega_cursor_update(outdev_t *dev, sysarg_t prev_col,
 {
 	/* Cursor position */
 	uint16_t cursor = row * ega.cols + col;
-	
+
 	pio_write_8(EGA_IO_BASE, 0x0e);
 	pio_write_8(EGA_IO_BASE + 1, (cursor >> 8) & 0xff);
 	pio_write_8(EGA_IO_BASE, 0x0f);
 	pio_write_8(EGA_IO_BASE + 1, cursor & 0xff);
-	
+
 	/* Cursor visibility */
 	pio_write_8(EGA_IO_BASE, 0x0a);
 	uint8_t stat = pio_read_8(EGA_IO_BASE + 1);
-	
+
 	pio_write_8(EGA_IO_BASE, 0x0a);
-	
+
 	if (visible)
 		pio_write_8(EGA_IO_BASE + 1, stat & (~(1 << 5)));
 	else
@@ -164,7 +164,7 @@ static void ega_char_update(outdev_t *dev, sysarg_t col, sysarg_t row)
 {
 	charfield_t *field =
 	    chargrid_charfield_at(dev->backbuf, col, row);
-	
+
 	draw_char(field, col, row);
 }
 
@@ -188,63 +188,63 @@ errno_t ega_init(void)
 	errno_t rc = sysinfo_get_value("fb", &present);
 	if (rc != EOK)
 		present = false;
-	
+
 	if (!present)
 		return ENOENT;
-	
+
 	sysarg_t kind;
 	rc = sysinfo_get_value("fb.kind", &kind);
 	if (rc != EOK)
 		kind = (sysarg_t) -1;
-	
+
 	if (kind != 2)
 		return EINVAL;
-	
+
 	sysarg_t paddr;
 	rc = sysinfo_get_value("fb.address.physical", &paddr);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = sysinfo_get_value("fb.width", &ega.cols);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = sysinfo_get_value("fb.height", &ega.rows);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = pio_enable((void*)EGA_IO_BASE, EGA_IO_SIZE, NULL);
 	if (rc != EOK)
 		return rc;
-	
+
 	ega.size = (ega.cols * ega.rows) << 1;
 	ega.addr = AS_AREA_ANY;
-	
+
 	rc = physmem_map(paddr,
 	    ALIGN_UP(ega.size, PAGE_SIZE) >> PAGE_WIDTH,
 	    AS_AREA_READ | AS_AREA_WRITE, (void *) &ega.addr);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t blinking;
 	rc = sysinfo_get_value("fb.blinking", &blinking);
 	if (rc != EOK)
 		blinking = false;
-	
+
 	ega.style_normal = 0xf0;
 	ega.style_inverted = 0x0f;
-	
+
 	if (blinking) {
 		ega.style_normal &= 0x77;
 		ega.style_inverted &= 0x77;
 	}
-	
+
 	outdev_t *dev = outdev_register(&ega_ops, (void *) &ega);
 	if (dev == NULL) {
 		as_area_destroy(ega.addr);
 		return EINVAL;
 	}
-	
+
 	return EOK;
 }
 

@@ -44,10 +44,10 @@ static atomic_t threads_finished;
 static void threadtest(void *data)
 {
 	thread_detach(thread_get_id());
-	
+
 	while (atomic_get(&finish))
 		thread_usleep(100000);
-	
+
 	atomic_inc(&threads_finished);
 }
 
@@ -55,10 +55,10 @@ const char *test_thread1(void)
 {
 	unsigned int i;
 	atomic_count_t total = 0;
-	
+
 	atomic_set(&finish, 1);
 	atomic_set(&threads_finished, 0);
-	
+
 	TPRINTF("Creating threads");
 	for (i = 0; i < THREADS; i++) {
 		if (thread_create(threadtest, NULL, "threadtest", NULL) != EOK) {
@@ -68,17 +68,17 @@ const char *test_thread1(void)
 		TPRINTF(".");
 		total++;
 	}
-	
+
 	TPRINTF("\nRunning threads for %u seconds...", DELAY);
 	thread_sleep(DELAY);
 	TPRINTF("\n");
-	
+
 	atomic_set(&finish, 0);
 	while (atomic_get(&threads_finished) < total) {
 		TPRINTF("Threads left: %" PRIua "\n",
 		    total - atomic_get(&threads_finished));
 		thread_sleep(1);
 	}
-	
+
 	return NULL;
 }

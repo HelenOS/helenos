@@ -79,7 +79,7 @@ static chardev_ops_t s3c24xx_uart_chardev_ops = {
 int main(int argc, char *argv[])
 {
 	printf("%s: S3C24xx on-chip UART driver\n", NAME);
-	
+
 	async_set_fallback_port_handler(s3c24xx_uart_connection, uart);
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {

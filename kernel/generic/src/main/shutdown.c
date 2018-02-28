@@ -44,11 +44,11 @@
 void reboot(void)
 {
 	task_done();
-	
+
 #ifdef CONFIG_DEBUG
 	log(LF_OTHER, LVL_DEBUG, "Rebooting the system");
 #endif
-	
+
 	arch_reboot();
 	halt();
 }

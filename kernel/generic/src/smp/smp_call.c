@@ -54,7 +54,7 @@ void smp_call_init(void)
 {
 	assert(CPU);
 	assert(PREEMPTION_DISABLED || interrupts_disabled());
-	
+
 	spinlock_initialize(&CPU->smp_calls_lock, "cpu[].smp_calls_lock");
 	list_initialize(&CPU->smp_pending_calls);
 }
@@ -132,19 +132,19 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 	 */
 	assert(!interrupts_disabled());
 	assert(call_info != NULL);
-	
+
 	/* Discard invalid calls. */
 	if (config.cpu_count <= cpu_id || !cpus[cpu_id].active) {
 		call_start(call_info, func, arg);
 		call_done(call_info);
 		return;
 	}
-	
+
 	/* Protect cpu->id against migration. */
 	preemption_disable();
 
 	call_start(call_info, func, arg);
-	
+
 	if (cpu_id != CPU->id) {
 #ifdef CONFIG_SMP
 		spinlock_lock(&cpus[cpu_id].smp_calls_lock);
@@ -168,10 +168,10 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 		ipl_t ipl = interrupts_disable();
 		func(arg);
 		interrupts_restore(ipl);
-		
+
 		call_done(call_info);
 	}
-	
+
 	preemption_enable();
 }
 
@@ -208,10 +208,10 @@ void smp_call_ipi_recv(void)
 {
 	assert(interrupts_disabled());
 	assert(CPU);
-	
+
 	list_t calls_list;
 	list_initialize(&calls_list);
-	
+
 	/*
 	 * Acts as a load memory barrier. Any changes made by the cpu that
 	 * added the smp_call to calls_list will be made visible to this cpu.
@@ -223,10 +223,10 @@ void smp_call_ipi_recv(void)
 	/* Walk the list manually, so that we can safely remove list items. */
 	for (link_t *cur = calls_list.head.next, *next = cur->next;
 		!list_empty(&calls_list); cur = next, next = cur->next) {
-		
+
 		smp_call_t *call_info = list_get_instance(cur, smp_call_t, calls_link);
 		list_remove(cur);
-		
+
 		call_info->func(call_info->arg);
 		call_done(call_info);
 	}
@@ -239,14 +239,14 @@ static void call_start(smp_call_t *call_info, smp_call_func_t func, void *arg)
 	link_initialize(&call_info->calls_link);
 	call_info->func = func;
 	call_info->arg = arg;
-	
+
 	/*
 	 * We can't use standard spinlocks here because we want to lock
 	 * the structure on one cpu and unlock it on another (without
 	 * messing up the preemption count).
 	 */
 	atomic_set(&call_info->pending, 1);
-	
+
 	/* Let initialization complete before continuing. */
 	memory_barrier();
 }

@@ -51,7 +51,7 @@ typedef struct ieee80211_iface {
 	 *
 	 */
 	errno_t (*get_scan_results)(ddf_fun_t *, ieee80211_scan_results_t *, bool);
-	
+
 	/** Connect IEEE 802.11 device to specified network.
 	 *
 	 * @param fun      IEEE 802.11 function.
@@ -62,7 +62,7 @@ typedef struct ieee80211_iface {
 	 *
 	 */
 	errno_t (*connect)(ddf_fun_t *, char *, char *);
-	
+
 	/** Disconnect IEEE 802.11 device from network.
 	 *
 	 * @param fun IEEE 802.11 function.

@@ -46,10 +46,10 @@ FUNCTION_BEGIN(context_save_arch)
 	sd s9, CONTEXT_OFFSET_S9(a0)
 	sd s10, CONTEXT_OFFSET_S10(a0)
 	sd s11, CONTEXT_OFFSET_S11(a0)
-	
+
 	sd ra, CONTEXT_OFFSET_PC(a0)
 	sd sp, CONTEXT_OFFSET_SP(a0)
-	
+
 	# context_save returns 1
 	li a0, 1
 	ret
@@ -70,10 +70,10 @@ FUNCTION_BEGIN(context_restore_arch)
 	ld s9, CONTEXT_OFFSET_S9(a0)
 	ld s10, CONTEXT_OFFSET_S10(a0)
 	ld s11, CONTEXT_OFFSET_S11(a0)
-	
+
 	ld ra, CONTEXT_OFFSET_PC(a0)
 	ld sp, CONTEXT_OFFSET_SP(a0)
-	
+
 	# context_restore returns 0
 	li a0, 0
 	ret

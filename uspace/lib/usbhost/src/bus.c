@@ -328,7 +328,7 @@ int bus_device_offline(device_t *dev)
 	 * assertion. We most probably need some kind of enum status field to
 	 * make the synchronization work.
 	 */
-	
+
 	/* Tear down all drivers working with the device. */
 	if ((rc = ddf_fun_offline(dev->fun))) {
 		goto err;

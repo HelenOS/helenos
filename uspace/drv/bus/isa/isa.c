@@ -401,30 +401,30 @@ static void isa_fun_add_dma(isa_fun_t *fun, int dma)
 {
 	size_t count = fun->hw_resources.count;
 	hw_resource_t *resources = fun->hw_resources.resources;
-	
+
 	if (count < ISA_MAX_HW_RES) {
 		if ((dma > 0) && (dma < 4)) {
 			resources[count].type = DMA_CHANNEL_8;
 			resources[count].res.dma_channel.dma8 = dma;
-			
+
 			fun->hw_resources.count++;
 			ddf_msg(LVL_NOTE, "Added dma 0x%x to function %s", dma,
 			    ddf_fun_get_name(fun->fnode));
-			
+
 			return;
 		}
 
 		if ((dma > 4) && (dma < 8)) {
 			resources[count].type = DMA_CHANNEL_16;
 			resources[count].res.dma_channel.dma16 = dma;
-			
+
 			fun->hw_resources.count++;
 			ddf_msg(LVL_NOTE, "Added dma 0x%x to function %s", dma,
 			    ddf_fun_get_name(fun->fnode));
-			
+
 			return;
 		}
-		
+
 		ddf_msg(LVL_WARN, "Skipped dma 0x%x for function %s", dma,
 		    ddf_fun_get_name(fun->fnode));
 	}
@@ -491,10 +491,10 @@ static void fun_parse_irq(isa_fun_t *fun, const char *val)
 static void fun_parse_dma(isa_fun_t *fun, const char *val)
 {
 	char *end = NULL;
-	
+
 	val = skip_spaces(val);
 	const int dma = strtol(val, &end, 10);
-	
+
 	if (val != end)
 		isa_fun_add_dma(fun, dma);
 }
@@ -732,7 +732,7 @@ static errno_t isa_dev_add(ddf_dev_t *dev)
 	rc = pci_config_space_read_8(sess, PCI_SUB_CLASS, &isa->pci_subclass);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = pio_window_get(sess, &isa->pio_win);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "isa_dev_add failed to get PIO window "

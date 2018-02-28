@@ -54,14 +54,14 @@ typedef struct {
 	 * Device driver shall allocate any necessary internal structures
 	 * specific for a claimed visualizer. */
 	errno_t (*claim)(struct visualizer *vs);
-	
+
 	/**
 	 * Device driver shall deallocate any necessary internal structures
 	 * specific for a claimed visualizer. Driver shall also check whether
 	 * the mode is set and if so it shall change its internal state
 	 * accordingly (e.g. deallocate frame buffers). */
 	errno_t (*yield)(struct visualizer *vs);
-	
+
 	/**
 	 * Device driver shall first try to claim all resources required for
 	 * a new mode (e.g. allocate new framebuffers) and only if successful
@@ -72,7 +72,7 @@ typedef struct {
 	 * optimization), the pointer to the handle_damage operation can be
 	 * changed at this point. */
 	errno_t (*change_mode)(struct visualizer *vs, vslmode_t new_mode);
-	
+
 	/**
 	 * Device driver shall render the cells from damaged region into its
 	 * internal framebuffer. In case the driver use multi-buffering, it
@@ -84,13 +84,13 @@ typedef struct {
 	errno_t (*handle_damage)(struct visualizer *vs,
 	    sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height,
 	    sysarg_t x_offset, sysarg_t y_offset);
-	
+
 	/**
 	 * Upper layers of the graphic stack might report inactivity. In such
 	 * case, device driver might enable power saving mode on the device
 	 * corresponding to the visualizer. */
 	errno_t (*suspend)(struct visualizer *vs);
-	
+
 	/**
 	 * When upper layers detect activity on suspended visualizer, device
 	 * driver shall disable power saving mode on the corresponding device. */
@@ -106,14 +106,14 @@ typedef struct visualizer {
 	 * Link to the list of all visualizers belonging to the graphic device.
 	 * Field is fully managed by libgraph. */
 	link_t link;
-	
+
 	/**
 	 * When reference count equals 1, visualizer is claimed by a client,
 	 * when equals 0, visualizer is not claimed. At the time, visualizer
 	 * can be claimed only by a single client.
 	 * Field is fully managed by libgraph. */
 	atomic_t ref_cnt;
-	
+
 	/**
 	 * Visualizer ID assigned by some particular registration service
 	 * in the system (either location service or device manager). Intended
@@ -122,7 +122,7 @@ typedef struct visualizer {
 	 * field is fully managed by libgraph. Otherwise, it is a driver
 	 * responsibility to set and update this field. */
 	sysarg_t reg_svc_handle;
-	
+
 	/**
 	 * Visualizer ID in the client context. When client gets notified by
 	 * libgraph about some event, it can use this identification to lookup
@@ -131,7 +131,7 @@ typedef struct visualizer {
 	 * Field is fully managed by libgraph. It is assigned when the visualizer
 	 * gets claimed and is valid until it is yielded. */
 	sysarg_t client_side_handle;
-	
+
 	/**
 	 * Callback session to the client. Established by libgraph during initial
 	 * phase of client connection. Can be used to notify client about
@@ -142,7 +142,7 @@ typedef struct visualizer {
 	 * Field is fully managed by libgraph. Device driver can use it indirectly
 	 * through notification functions. */
 	async_sess_t *notif_sess;
-	
+
 	/**
 	 * Mutex protecting the mode list and default mode index. This is required
 	 * for the case when device driver might asynchronously update these
@@ -151,7 +151,7 @@ typedef struct visualizer {
 	 * Both device driver and libgraph must lock on this mutex when accessing
 	 * modes list or default mode index. */
 	fibril_mutex_t mode_mtx;
-	
+
 	/**
 	 * List of all modes that can be set by this visualizer. List is populated
 	 * by device driver when creating a new visualizer or when handling the
@@ -163,7 +163,7 @@ typedef struct visualizer {
 	 * Field is fully managed by device driver, libgraph reads it with locked
 	 * mutex. */
 	list_t modes;
-	
+
 	/**
 	 * Index of the default mode. Might come in handy to the clients that are
 	 * not able to enumerate modes and present the choice to the user
@@ -174,7 +174,7 @@ typedef struct visualizer {
 	 * Field is fully managed by device driver, libgraph reads it with locked
 	 * mutex. */
 	sysarg_t def_mode_idx;
-	
+
 	/**
 	 * Copy of the currently established mode. It is read by both libgraph and
 	 * device driver when deallocating resources for the current mode. Device
@@ -182,26 +182,26 @@ typedef struct visualizer {
 	 * internal structures when handling the damage.
 	 * Field is fully managed by libgraph, can be read by device driver. */
 	vslmode_t cur_mode;
-	
+
 	/**
 	 * Determines whether the visualizer is currently set to some mode or not,
 	 * that is whether cur_mode field contains up-to-date data.
 	 * Field is fully managed by libgraph, can be read by device driver. */
 	bool mode_set;
-	
+
 	/**
 	 * Device driver function pointers.
 	 * Field is fully managed by device driver, libgraph invokes driver's
 	 * functions through it. */
 	visualizer_ops_t ops;
-	
+
 	/**
 	 * Backbuffer shared with the client. Sharing is established by libgraph.
 	 * Device driver reads the cells when handling damage. Cells shall be
 	 * interpreted according to the currently set mode.
 	 * Field is fully managed by libgraph, can be read by device driver. */
 	pixelmap_t cells;
-	
+
 	/**
 	 * Device driver context, completely opaque to the libgraph. Intended to
 	 * contain pointers to frontbuffers or information representing the
@@ -251,11 +251,11 @@ typedef struct {
 typedef struct renderer {
 	// TODO
 	link_t link;
-	
+
 	atomic_t ref_cnt;
-	
+
 	sysarg_t reg_svc_handle;
-	
+
 	renderer_ops_t ops;
 } renderer_t;
 

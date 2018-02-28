@@ -137,12 +137,12 @@ static struct {
 bool is_jump(sysarg_t instr)
 {
 	unsigned int i;
-	
+
 	for (i = 0; jmpinstr[i].andmask; i++) {
 		if ((instr & jmpinstr[i].andmask) == jmpinstr[i].value)
 			return true;
 	}
-	
+
 	return false;
 }
 
@@ -157,9 +157,9 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 		printf("Not aligned instruction, forgot to use &symbol?\n");
 		return 1;
 	}
-	
+
 	irq_spinlock_lock(&bkpoint_lock, true);
-	
+
 	/* Check, that the breakpoints do not conflict */
 	unsigned int i;
 	for (i = 0; i < BKPOINTS_MAX; i++) {
@@ -175,26 +175,26 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 			irq_spinlock_unlock(&bkpoint_lock, true);
 			return 0;
 		}
-		
+
 	}
-	
+
 	bpinfo_t *cur = NULL;
-	
+
 	for (i = 0; i < BKPOINTS_MAX; i++) {
 		if (!breakpoints[i].address) {
 			cur = &breakpoints[i];
 			break;
 		}
 	}
-	
+
 	if (!cur) {
 		printf("Too many breakpoints.\n");
 		irq_spinlock_unlock(&bkpoint_lock, true);
 		return 0;
 	}
-	
+
 	printf("Adding breakpoint on address %p\n", (void *) argv->intval);
-	
+
 	cur->address = (uintptr_t) argv->intval;
 	cur->instruction = ((sysarg_t *) cur->address)[0];
 	cur->nextinstruction = ((sysarg_t *) cur->address)[1];
@@ -204,18 +204,18 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 		cur->flags = BKPOINT_FUNCCALL;
 		cur->bkfunc = (void (*)(void *, istate_t *)) argv[1].intval;
 	}
-	
+
 	if (is_jump(cur->instruction))
 		cur->flags |= BKPOINT_ONESHOT;
-	
+
 	cur->counter = 0;
-	
+
 	/* Set breakpoint */
 	*((sysarg_t *) cur->address) = 0x0d;
 	smc_coherence(cur->address);
-	
+
 	irq_spinlock_unlock(&bkpoint_lock, true);
-	
+
 	return 1;
 }
 
@@ -228,29 +228,29 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 		printf("Invalid breakpoint number.\n");
 		return 0;
 	}
-	
+
 	irq_spinlock_lock(&bkpoint_lock, true);
-	
+
 	bpinfo_t *cur = &breakpoints[argv->intval];
 	if (!cur->address) {
 		printf("Breakpoint does not exist.\n");
 		irq_spinlock_unlock(&bkpoint_lock, true);
 		return 0;
 	}
-	
+
 	if ((cur->flags & BKPOINT_INPROG) && (cur->flags & BKPOINT_ONESHOT)) {
 		printf("Cannot remove one-shot breakpoint in-progress\n");
 		irq_spinlock_unlock(&bkpoint_lock, true);
 		return 0;
 	}
-	
+
 	((uint32_t *) cur->address)[0] = cur->instruction;
 	smc_coherence(((uint32_t *) cur->address)[0]);
 	((uint32_t *) cur->address)[1] = cur->nextinstruction;
 	smc_coherence(((uint32_t *) cur->address)[1]);
-	
+
 	cur->address = (uintptr_t) NULL;
-	
+
 	irq_spinlock_unlock(&bkpoint_lock, true);
 	return 1;
 }
@@ -261,14 +261,14 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 int cmd_print_breakpoints(cmd_arg_t *argv)
 {
 	unsigned int i;
-	
+
 	printf("[nr] [count] [address ] [inprog] [oneshot] [funccall] [in symbol\n");
-	
+
 	for (i = 0; i < BKPOINTS_MAX; i++) {
 		if (breakpoints[i].address) {
 			const char *symbol = symtab_fmt_name_lookup(
 			    breakpoints[i].address);
-			
+
 			printf("%-4u %7zu %p %-8s %-9s %-10s %s\n", i,
 			    breakpoints[i].counter, (void *) breakpoints[i].address,
 			    ((breakpoints[i].flags & BKPOINT_INPROG) ? "true" :
@@ -277,7 +277,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 			    BKPOINT_FUNCCALL) ? "true" : "false"), symbol);
 		}
 	}
-	
+
 	return 1;
 }
 
@@ -289,26 +289,26 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 void debugger_init(void)
 {
 	unsigned int i;
-	
+
 	for (i = 0; i < BKPOINTS_MAX; i++)
 		breakpoints[i].address = (uintptr_t) NULL;
-	
+
 #ifdef CONFIG_KCONSOLE
 	cmd_initialize(&bkpts_info);
 	if (!cmd_register(&bkpts_info))
 		log(LF_OTHER, LVL_WARN, "Cannot register command %s",
 		    bkpts_info.name);
-	
+
 	cmd_initialize(&delbkpt_info);
 	if (!cmd_register(&delbkpt_info))
 		log(LF_OTHER, LVL_WARN, "Cannot register command %s",
 		    delbkpt_info.name);
-	
+
 	cmd_initialize(&addbkpt_info);
 	if (!cmd_register(&addbkpt_info))
 		log(LF_OTHER, LVL_WARN, "Cannot register command %s",
 		    addbkpt_info.name);
-	
+
 	cmd_initialize(&addbkpte_info);
 	if (!cmd_register(&addbkpte_info))
 		log(LF_OTHER, LVL_WARN, "Cannot register command %s",
@@ -330,13 +330,13 @@ void debugger_bpoint(istate_t *istate)
 	/* test branch delay slot */
 	if (cp0_cause_read() & 0x80000000)
 		panic("Breakpoint in branch delay slot not supported.");
-	
+
 	irq_spinlock_lock(&bkpoint_lock, false);
-	
+
 	bpinfo_t *cur = NULL;
 	uintptr_t fireaddr = istate->epc;
 	unsigned int i;
-	
+
 	for (i = 0; i < BKPOINTS_MAX; i++) {
 		/* Normal breakpoint */
 		if ((fireaddr == breakpoints[i].address) &&
@@ -344,7 +344,7 @@ void debugger_bpoint(istate_t *istate)
 			cur = &breakpoints[i];
 			break;
 		}
-		
+
 		/* Reinst only breakpoint */
 		if ((breakpoints[i].flags & BKPOINT_REINST) &&
 		    (fireaddr == breakpoints[i].address + sizeof(sysarg_t))) {
@@ -352,31 +352,31 @@ void debugger_bpoint(istate_t *istate)
 			break;
 		}
 	}
-	
+
 	if (cur) {
 		if (cur->flags & BKPOINT_REINST) {
 			/* Set breakpoint on first instruction */
 			((uint32_t *) cur->address)[0] = 0x0d;
 			smc_coherence(((uint32_t *)cur->address)[0]);
-			
+
 			/* Return back the second */
 			((uint32_t *) cur->address)[1] = cur->nextinstruction;
 			smc_coherence(((uint32_t *) cur->address)[1]);
-			
+
 			cur->flags &= ~BKPOINT_REINST;
 			irq_spinlock_unlock(&bkpoint_lock, false);
 			return;
 		}
-		
+
 		if (cur->flags & BKPOINT_INPROG)
 			printf("Warning: breakpoint recursion\n");
-		
+
 		if (!(cur->flags & BKPOINT_FUNCCALL)) {
 			printf("***Breakpoint %u: %p in %s.\n", i,
 			    (void *) fireaddr,
 			    symtab_fmt_name_lookup(fireaddr));
 		}
-		
+
 		/* Return first instruction back */
 		((uint32_t *)cur->address)[0] = cur->instruction;
 		smc_coherence(cur->address);
@@ -391,14 +391,14 @@ void debugger_bpoint(istate_t *istate)
 		printf("***Breakpoint %d: %p in %s.\n", i,
 		    (void *) fireaddr,
 		    symtab_fmt_name_lookup(fireaddr));
-		
+
 		/* Move on to next instruction */
 		istate->epc += 4;
 	}
-	
+
 	if (cur)
 		cur->counter++;
-	
+
 	if (cur && (cur->flags & BKPOINT_FUNCCALL)) {
 		/* Allow zero bkfunc, just for counting */
 		if (cur->bkfunc)
@@ -413,24 +413,24 @@ void debugger_bpoint(istate_t *istate)
 		 */
 		atomic_set(&haltstate, 1);
 		irq_spinlock_unlock(&bkpoint_lock, false);
-		
+
 		kconsole("debug", "Debug console ready.\n", false);
-		
+
 		irq_spinlock_lock(&bkpoint_lock, false);
 		atomic_set(&haltstate, 0);
 #endif
 	}
-	
+
 	if ((cur) && (cur->address == fireaddr)
 	    && ((cur->flags & BKPOINT_INPROG))) {
 		/* Remove one-shot breakpoint */
 		if ((cur->flags & BKPOINT_ONESHOT))
 			cur->address = (uintptr_t) NULL;
-		
+
 		/* Remove in-progress flag */
 		cur->flags &= ~BKPOINT_INPROG;
 	}
-	
+
 	irq_spinlock_unlock(&bkpoint_lock, false);
 }
 

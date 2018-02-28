@@ -81,18 +81,18 @@ typedef struct {
 			bool relative;
 			endianness_t endianness;
 		} mem_range;
-		
+
 		struct {
 			uint64_t address;
 			size_t size;
 			bool relative;
 			endianness_t endianness;
 		} io_range;
-		
+
 		struct {
 			int irq;
 		} interrupt;
-		
+
 		union {
 			unsigned int dma8;
 			unsigned int dma16;
@@ -111,7 +111,7 @@ static inline void hw_res_clean_resource_list(hw_resource_list_t *hw_res)
 		free(hw_res->resources);
 		hw_res->resources = NULL;
 	}
-	
+
 	hw_res->count = 0;
 }
 

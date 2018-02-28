@@ -93,14 +93,14 @@
 typedef struct as {
 	/** Protected by asidlock. */
 	link_t inactive_as_with_asid_link;
-	
+
 	/**
 	 * Number of processors on which this
 	 * address space is active. Protected by
 	 * asidlock.
 	 */
 	size_t cpu_refcount;
-	
+
 	/** Address space identifier.
 	 *
 	 * Constant on architectures that do not
@@ -108,18 +108,18 @@ typedef struct as {
 	 *
 	 */
 	asid_t asid;
-	
+
 	/** Number of references (i.e. tasks that reference this as). */
 	atomic_t refcount;
-	
+
 	mutex_t lock;
-	
+
 	/** B+tree of address space areas. */
 	btree_t as_area_btree;
-	
+
 	/** Non-generic content. */
 	as_genarch_t genarch;
-	
+
 	/** Architecture specific content. */
 	as_arch_t arch;
 } as_t;
@@ -177,7 +177,7 @@ typedef union mem_backend_data {
 		elf_header_t *elf;
 		elf_segment_header_t *segment;
 	};
-	
+
 	/** phys_backend members */
 	struct {
 		uintptr_t base;
@@ -199,37 +199,37 @@ typedef union mem_backend_data {
  */
 typedef struct {
 	mutex_t lock;
-	
+
 	/** Containing address space. */
 	as_t *as;
-	
+
 	/** Memory flags. */
 	unsigned int flags;
-	
+
 	/** Address space area attributes. */
 	unsigned int attributes;
-	
+
 	/** Number of pages in the area. */
 	size_t pages;
-	
+
 	/** Number of resident pages in the area. */
 	size_t resident;
-	
+
 	/** Base address of this area. */
 	uintptr_t base;
-	
+
 	/** Map of used space. */
 	btree_t used_space;
-	
+
 	/**
 	 * If the address space area is shared. this is
 	 * a reference to the share info structure.
 	 */
 	share_info_t *sh_info;
-	
+
 	/** Memory backend backing this address space area. */
 	struct mem_backend *backend;
-	
+
 	/** Data to be used by the backend. */
 	mem_backend_data_t backend_data;
 } as_area_t;

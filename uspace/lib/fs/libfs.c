@@ -85,7 +85,7 @@ static void vfs_out_fsprobe(ipc_callid_t rid, ipc_call_t *req)
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
 	errno_t rc;
 	vfs_fs_probe_info_t info;
-	
+
 	ipc_callid_t callid;
 	size_t size;
 	if ((!async_data_read_receive(&callid, &size)) ||
@@ -94,7 +94,7 @@ static void vfs_out_fsprobe(ipc_callid_t rid, ipc_call_t *req)
 		async_answer_0(rid, EIO);
 		return;
 	}
-	
+
 	memset(&info, 0, sizeof(info));
 	rc = vfs_out_ops->fsprobe(service_id, &info);
 	if (rc != EOK) {
@@ -102,7 +102,7 @@ static void vfs_out_fsprobe(ipc_callid_t rid, ipc_call_t *req)
 		async_answer_0(rid, rc);
 		return;
 	}
-	
+
 	async_data_read_finalize(callid, &info, sizeof(info));
 	async_answer_0(rid, EOK);
 }
@@ -112,7 +112,7 @@ static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
 	char *opts;
 	errno_t rc;
-	
+
 	/* Accept the mount options. */
 	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
@@ -267,11 +267,11 @@ static void vfs_out_is_empty(ipc_callid_t rid, ipc_call_t *req)
 		async_answer_0(rid, rc);
 	if (node == NULL)
 		async_answer_0(rid, EINVAL);
-	
+
 	bool children = false;
 	rc = libfs_ops->has_children(&children, node);
 	libfs_ops->node_put(node);
-	
+
 	if (rc != EOK)
 		async_answer_0(rid, rc);
 	async_answer_0(rid, children ? ENOTEMPTY : EOK);
@@ -287,14 +287,14 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		 */
 		async_answer_0(iid, EOK);
 	}
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			return;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_OUT_FSPROBE:
 			vfs_out_fsprobe(callid, &call);
@@ -371,23 +371,23 @@ errno_t fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	 * We use the async framework because VFS will answer the request
 	 * out-of-order, when it knows that the operation succeeded or failed.
 	 */
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, VFS_IN_REGISTER, &answer);
-	
+
 	/*
 	 * Send our VFS info structure to VFS.
 	 */
 	errno_t rc = async_data_write_start(exch, info, sizeof(*info));
-	
+
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		async_forget(req);
 		return rc;
 	}
-	
+
 	/*
 	 * Set VFS_OUT and libfs operations.
 	 */
@@ -402,7 +402,7 @@ errno_t fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 	port_id_t port;
 	rc = async_create_callback_port(exch, INTERFACE_VFS_DRIVER_CB, 0, 0,
 	    vfs_connection, NULL, &port);
-	
+
 	/*
 	 * Request sharing the Path Lookup Buffer with VFS.
 	 */
@@ -412,26 +412,26 @@ errno_t fs_register(async_sess_t *sess, vfs_info_t *info, vfs_out_ops_t *vops,
 		async_forget(req);
 		return ENOMEM;
 	}
-	
+
 	async_exchange_end(exch);
-	
+
 	if (rc) {
 		async_forget(req);
 		return rc;
 	}
-	 
+
 	/*
 	 * Pick up the answer for the request to the VFS_IN_REQUEST call.
 	 */
 	async_wait_for(req, NULL);
 	reg.fs_handle = (int) IPC_GET_ARG1(answer);
-	
+
 	/*
 	 * Tell the async framework that other connections are to be handled by
 	 * the same connection fibril as well.
 	 */
 	async_set_fallback_port_handler(vfs_connection, NULL);
-	
+
 	return IPC_GET_RETVAL(answer);
 }
 
@@ -450,7 +450,7 @@ static errno_t plb_get_component(char *dest, unsigned *sz, unsigned *ppos,
 {
 	unsigned pos = *ppos;
 	unsigned size = 0;
-	
+
 	if (pos == last) {
 		*sz = 0;
 		return ERANGE;
@@ -459,7 +459,7 @@ static errno_t plb_get_component(char *dest, unsigned *sz, unsigned *ppos,
 	char c = plb_get_char(pos);
 	if (c == '/')
 		pos++;
-	
+
 	for (int i = 0; i <= NAME_MAX; i++) {
 		c = plb_get_char(pos);
 		if (pos == last || c == '/') {
@@ -479,7 +479,7 @@ static errno_t receive_fname(char *buffer)
 {
 	size_t size;
 	ipc_callid_t wcall;
-	
+
 	if (!async_data_write_receive(&wcall, &size))
 		return ENOENT;
 	if (size > NAME_MAX + 1) {
@@ -497,7 +497,7 @@ void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	service_id_t parent_sid = IPC_GET_ARG1(*req);
 	fs_index_t parent_index = IPC_GET_ARG2(*req);
 	fs_index_t child_index = IPC_GET_ARG3(*req);
-	
+
 	char component[NAME_MAX + 1];
 	errno_t rc = receive_fname(component);
 	if (rc != EOK) {
@@ -511,7 +511,7 @@ void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		async_answer_0(rid, rc == EOK ? EBADF : rc);
 		return;
 	}
-	
+
 	fs_node_t *child = NULL;
 	rc = ops->node_get(&child, parent_sid, child_index);
 	if (child == NULL) {
@@ -519,7 +519,7 @@ void libfs_link(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		ops->node_put(parent);
 		return;
 	}
-	
+
 	rc = ops->link(parent, child, component);
 	ops->node_put(parent);
 	ops->node_put(child);
@@ -547,32 +547,32 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	service_id_t service_id = IPC_GET_ARG3(*req);
 	fs_index_t index = IPC_GET_ARG4(*req);
 	int lflag = IPC_GET_ARG5(*req);
-	
+
 	// TODO: Validate flags.
-	
+
 	unsigned next = first;
 	unsigned last = first + len;
-	
+
 	char component[NAME_MAX + 1];
 	errno_t rc;
-	
+
 	fs_node_t *par = NULL;
 	fs_node_t *cur = NULL;
 	fs_node_t *tmp = NULL;
 	unsigned clen = 0;
-	
+
 	rc = ops->node_get(&cur, service_id, index);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
 		goto out;
 	}
-	
+
 	assert(cur != NULL);
-	
+
 	/* Find the file and its parent. */
-	
+
 	unsigned last_next = 0;
-	
+
 	while (next != last) {
 		if (cur == NULL) {
 			assert(par != NULL);
@@ -583,7 +583,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			async_answer_0(rid, ENOTDIR);
 			goto out;
 		}
-		
+
 		last_next = next;
 		/* Collect the component */
 		rc = plb_get_component(component, &clen, &next, last);
@@ -592,21 +592,21 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			async_answer_0(rid, rc);
 			goto out;
 		}
-		
+
 		if (clen == 0) {
 			/* The path is just "/". */
 			break;
 		}
-		
+
 		assert(component[clen] == 0);
-		
+
 		/* Match the component */
 		rc = ops->match(&tmp, cur, component);
 		if (rc != EOK) {
 			async_answer_0(rid, rc);
 			goto out;
 		}
-		
+
 		/* Descend one level */
 		if (par) {
 			rc = ops->node_put(par);
@@ -615,33 +615,33 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				goto out;
 			}
 		}
-		
+
 		par = cur;
 		cur = tmp;
 		tmp = NULL;
 	}
-	
+
 	/* At this point, par is either NULL or a directory.
 	 * If cur is NULL, the looked up file does not exist yet.
 	 */
-	 
+
 	assert(par == NULL || ops->is_directory(par));
 	assert(par != NULL || cur != NULL);
-	
+
 	/* Check for some error conditions. */
-	
+
 	if (cur && (lflag & L_FILE) && (ops->is_directory(cur))) {
 		async_answer_0(rid, EISDIR);
 		goto out;
 	}
-	
+
 	if (cur && (lflag & L_DIRECTORY) && (ops->is_file(cur))) {
 		async_answer_0(rid, ENOTDIR);
 		goto out;
 	}
-	
+
 	/* Unlink. */
-	
+
 	if (lflag & L_UNLINK) {
 		if (!cur) {
 			async_answer_0(rid, ENOENT);
@@ -651,7 +651,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			async_answer_0(rid, EINVAL);
 			goto out;
 		}
-		
+
 		rc = ops->unlink(par, cur, component);
 		if (rc == EOK) {
 			aoff64_t size = ops->size_get(cur);
@@ -664,15 +664,15 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		}
 		goto out;
 	}
-	
+
 	/* Create. */
-	
+
 	if (lflag & L_CREATE) {
 		if (cur && (lflag & L_EXCLUSIVE)) {
 			async_answer_0(rid, EEXIST);
 			goto out;
 		}
-	
+
 		if (!cur) {
 			rc = ops->create(&cur, service_id,
 			    lflag & (L_FILE | L_DIRECTORY));
@@ -684,7 +684,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				async_answer_0(rid, ENOSPC);
 				goto out;
 			}
-			
+
 			rc = ops->link(par, cur, component);
 			if (rc != EOK) {
 				(void) ops->destroy(cur);
@@ -694,7 +694,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			}
 		}
 	}
-	
+
 	/* Return. */
 out1:
 	if (!cur) {
@@ -703,18 +703,18 @@ out1:
 		    LOWER32(ops->size_get(par)), UPPER32(ops->size_get(par)));
 		goto out;
 	}
-	
+
 	async_answer_5(rid, EOK, fs_handle, ops->index_get(cur),
 	    (ops->is_directory(cur) << 16) | last, LOWER32(ops->size_get(cur)),
 	    UPPER32(ops->size_get(cur)));
-	
+
 out:
 	if (par)
 		(void) ops->node_put(par);
-	
+
 	if (cur)
 		(void) ops->node_put(cur);
-	
+
 	if (tmp)
 		(void) ops->node_put(tmp);
 }
@@ -823,23 +823,23 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 {
 	service_id_t service_id = IPC_GET_ARG1(*request);
 	fs_index_t index = IPC_GET_ARG2(*request);
-	
+
 	fs_node_t *fn;
 	errno_t rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
-	
+
 	if (fn == NULL) {
 		async_answer_0(rid, ENOENT);
 		return;
 	}
-	
+
 	rc = ops->node_open(fn);
 	aoff64_t size = ops->size_get(fn);
 	async_answer_4(rid, rc, LOWER32(size), UPPER32(size),
 	    ops->lnkcnt_get(fn),
 	    (ops->is_file(fn) ? L_FILE : 0) |
 	    (ops->is_directory(fn) ? L_DIRECTORY : 0));
-	
+
 	(void) ops->node_put(fn);
 }
 

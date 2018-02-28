@@ -124,7 +124,7 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 bool fibril_mutex_trylock(fibril_mutex_t *fm)
 {
 	bool locked = false;
-	
+
 	futex_down(&async_futex);
 	if (fm->counter > 0) {
 		fm->counter--;
@@ -132,7 +132,7 @@ bool fibril_mutex_trylock(fibril_mutex_t *fm)
 		locked = true;
 	}
 	futex_up(&async_futex);
-	
+
 	return locked;
 }
 
@@ -142,7 +142,7 @@ static void _fibril_mutex_unlock_unsafe(fibril_mutex_t *fm)
 		link_t *tmp;
 		awaiter_t *wdp;
 		fibril_t *f;
-	
+
 		tmp = list_first(&fm->waiters);
 		assert(tmp != NULL);
 		wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
@@ -172,12 +172,12 @@ void fibril_mutex_unlock(fibril_mutex_t *fm)
 bool fibril_mutex_is_locked(fibril_mutex_t *fm)
 {
 	bool locked = false;
-	
+
 	futex_down(&async_futex);
 	if (fm->counter <= 0)
 		locked = true;
 	futex_up(&async_futex);
-	
+
 	return locked;
 }
 
@@ -192,7 +192,7 @@ void fibril_rwlock_initialize(fibril_rwlock_t *frw)
 void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 {
 	fibril_t *f = (fibril_t *) fibril_get_id();
-	
+
 	futex_down(&async_futex);
 	if (frw->writers) {
 		awaiter_t wdata;
@@ -216,7 +216,7 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 {
 	fibril_t *f = (fibril_t *) fibril_get_id();
-	
+
 	futex_down(&async_futex);
 	if (frw->writers || frw->readers) {
 		awaiter_t wdata;
@@ -260,21 +260,21 @@ static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
 	} else {
 		frw->writers--;
 	}
-	
+
 	assert(!frw->readers && !frw->writers);
-	
+
 	frw->oi.owned_by = NULL;
-	
+
 	while (!list_empty(&frw->waiters)) {
 		link_t *tmp = list_first(&frw->waiters);
 		awaiter_t *wdp;
 		fibril_t *f;
-		
+
 		wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
 		f = (fibril_t *) wdp->fid;
-		
+
 		f->waits_for = NULL;
-		
+
 		if (f->flags & FIBRIL_WRITER) {
 			if (frw->readers)
 				break;
@@ -385,7 +385,7 @@ fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
 	if (wdata.wu_event.inlist)
 		list_remove(&wdata.wu_event.link);
 	futex_up(&async_futex);
-	
+
 	return wdata.to_event.occurred ? ETIMEOUT : EOK;
 }
 

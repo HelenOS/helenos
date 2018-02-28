@@ -153,7 +153,7 @@ static void inet_link_delete(inet_link_t *ilink)
 {
 	if (ilink->svc_name != NULL)
 		free(ilink->svc_name);
-	
+
 	free(ilink);
 }
 
@@ -196,7 +196,7 @@ errno_t inet_link_open(service_id_t sid)
 		    ilink->svc_name);
 		goto error;
 	}
-	
+
 	/*
 	 * Get the MAC address of the link. If the link has a MAC
 	 * address, we assume that it supports NDP.
@@ -220,19 +220,19 @@ errno_t inet_link_open(service_id_t sid)
 	fibril_mutex_unlock(&inet_links_lock);
 
 	inet_addrobj_t *addr = NULL;
-	
+
 	/* XXX FIXME Cannot rely on loopback being the first IP link service!! */
 	if (first_link) {
 		addr = inet_addrobj_new();
-		
+
 		inet_naddr(&addr->naddr, 127, 0, 0, 1, 24);
 		first_link = false;
 	}
-	
+
 	if (addr != NULL) {
 		addr->ilink = ilink;
 		addr->name = str_dup("v4a");
-		
+
 		rc = inet_addrobj_add(addr);
 		if (rc == EOK) {
 			inet_naddr_addr(&addr->naddr, &iaddr);
@@ -248,27 +248,27 @@ errno_t inet_link_open(service_id_t sid)
 			inet_addrobj_delete(addr);
 		}
 	}
-	
+
 	inet_addrobj_t *addr6 = NULL;
-	
+
 	if (first_link6) {
 		addr6 = inet_addrobj_new();
-		
+
 		inet_naddr6(&addr6->naddr, 0, 0, 0, 0, 0, 0, 0, 1, 128);
 		first_link6 = false;
 	} else if (ilink->mac_valid) {
 		addr6 = inet_addrobj_new();
-		
+
 		addr128_t link_local;
 		inet_link_local_node_ip(ilink->mac, link_local);
-		
+
 		inet_naddr_set6(link_local, 64, &addr6->naddr);
 	}
-	
+
 	if (addr6 != NULL) {
 		addr6->ilink = ilink;
 		addr6->name = str_dup("v6a");
-		
+
 		rc = inet_addrobj_add(addr6);
 		if (rc == EOK) {
 			inet_naddr_addr(&addr6->naddr, &iaddr);
@@ -284,14 +284,14 @@ errno_t inet_link_open(service_id_t sid)
 			inet_addrobj_delete(addr6);
 		}
 	}
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Configured link '%s'.", ilink->svc_name);
 	return EOK;
-	
+
 error:
 	if (ilink->iplink != NULL)
 		iplink_close(ilink->iplink);
-	
+
 	inet_link_delete(ilink);
 	return rc;
 }
@@ -318,58 +318,58 @@ errno_t inet_link_send_dgram(inet_link_t *ilink, addr32_t lsrc, addr32_t ldest,
 	ip_ver_t src_ver = inet_addr_get(&dgram->src, &src_v4, NULL);
 	if (src_ver != ip_v4)
 		return EINVAL;
-	
+
 	addr32_t dest_v4;
 	ip_ver_t dest_ver = inet_addr_get(&dgram->dest, &dest_v4, NULL);
 	if (dest_ver != ip_v4)
 		return EINVAL;
-	
+
 	/*
 	 * Fill packet structure. Fragmentation is performed by
 	 * inet_pdu_encode().
 	 */
-	
+
 	iplink_sdu_t sdu;
-	
+
 	sdu.src = lsrc;
 	sdu.dest = ldest;
-	
+
 	inet_packet_t packet;
-	
+
 	packet.src = dgram->src;
 	packet.dest = dgram->dest;
 	packet.tos = dgram->tos;
 	packet.proto = proto;
 	packet.ttl = ttl;
-	
+
 	/* Allocate identifier */
 	fibril_mutex_lock(&ip_ident_lock);
 	packet.ident = ++ip_ident;
 	fibril_mutex_unlock(&ip_ident_lock);
-	
+
 	packet.df = df;
 	packet.data = dgram->data;
 	packet.size = dgram->size;
-	
+
 	errno_t rc;
 	size_t offs = 0;
-	
+
 	do {
 		/* Encode one fragment */
-		
+
 		size_t roffs;
 		rc = inet_pdu_encode(&packet, src_v4, dest_v4, offs, ilink->def_mtu,
 		    &sdu.data, &sdu.size, &roffs);
 		if (rc != EOK)
 			return rc;
-		
+
 		/* Send the PDU */
 		rc = iplink_send(ilink->iplink, &sdu);
-		
+
 		free(sdu.data);
 		offs = roffs;
 	} while (offs < packet.size);
-	
+
 	return rc;
 }
 
@@ -393,56 +393,56 @@ errno_t inet_link_send_dgram6(inet_link_t *ilink, addr48_t ldest,
 	ip_ver_t src_ver = inet_addr_get(&dgram->src, NULL, &src_v6);
 	if (src_ver != ip_v6)
 		return EINVAL;
-	
+
 	addr128_t dest_v6;
 	ip_ver_t dest_ver = inet_addr_get(&dgram->dest, NULL, &dest_v6);
 	if (dest_ver != ip_v6)
 		return EINVAL;
-	
+
 	iplink_sdu6_t sdu6;
 	addr48(ldest, sdu6.dest);
-	
+
 	/*
 	 * Fill packet structure. Fragmentation is performed by
 	 * inet_pdu_encode6().
 	 */
-	
+
 	inet_packet_t packet;
-	
+
 	packet.src = dgram->src;
 	packet.dest = dgram->dest;
 	packet.tos = dgram->tos;
 	packet.proto = proto;
 	packet.ttl = ttl;
-	
+
 	/* Allocate identifier */
 	fibril_mutex_lock(&ip_ident_lock);
 	packet.ident = ++ip_ident;
 	fibril_mutex_unlock(&ip_ident_lock);
-	
+
 	packet.df = df;
 	packet.data = dgram->data;
 	packet.size = dgram->size;
-	
+
 	errno_t rc;
 	size_t offs = 0;
-	
+
 	do {
 		/* Encode one fragment */
-		
+
 		size_t roffs;
 		rc = inet_pdu_encode6(&packet, src_v6, dest_v6, offs, ilink->def_mtu,
 		    &sdu6.data, &sdu6.size, &roffs);
 		if (rc != EOK)
 			return rc;
-		
+
 		/* Send the PDU */
 		rc = iplink_send6(ilink->iplink, &sdu6);
-		
+
 		free(sdu6.data);
 		offs = roffs;
 	} while (offs < packet.size);
-	
+
 	return rc;
 }
 

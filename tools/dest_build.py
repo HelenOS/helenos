@@ -41,30 +41,30 @@ exclude_names = set(['.svn', '.bzr', '.git'])
 
 def duplicate_tree(src_path, dest_path, current):
 	"Duplicate source directory tree in the destination path"
-	
+
 	for name in os.listdir(os.path.join(src_path, current)):
 		if name in exclude_names:
 			next
-		
+
 		following = os.path.join(current, name)
 		src = os.path.join(src_path, following)
 		dest = os.path.join(dest_path, following)
 		dest_parent = os.path.join(dest_path, current)
 		dest_stat = os.stat(src)
-		
+
 		# Create shadow directories
 		if stat.S_ISDIR(dest_stat.st_mode):
 			if not os.path.exists(dest):
 				os.mkdir(dest)
-			
+
 			if not os.path.isdir(dest):
 				raise IOError(errno.ENOTDIR, "Destination path exists, but is not a directory", dest)
-			
+
 			duplicate_tree(src_path, dest_path, following)
 		else:
 			# Compute the relative path from destination to source
 			relative = os.path.relpath(src, dest_parent)
-			
+
 			# Create symlink
 			if not os.path.exists(dest):
 				os.symlink(relative, dest)
@@ -77,30 +77,30 @@ def main():
 	if len(sys.argv) < 3:
 		usage(sys.argv[0])
 		return 1
-	
+
 	# Source tree path
 	src_path = os.path.abspath(sys.argv[1])
 	if not os.path.isdir(src_path):
 		print("<SRC_PATH> must be a directory")
 		return 2
-	
+
 	# Destination tree path
 	dest_path = os.path.abspath(sys.argv[2])
 	if not os.path.exists(dest_path):
 		os.mkdir(dest_path)
-	
+
 	if not os.path.isdir(dest_path):
 		print("<DEST_PATH> must be a directory")
 		return 3
-	
+
 	# Duplicate source directory tree
 	duplicate_tree(src_path, dest_path, "")
-	
+
 	# Run the build from the destination tree
 	os.chdir(dest_path)
 	args = ["make"]
 	args.extend(sys.argv[3:])
-	
+
 	return subprocess.Popen(args).wait()
 
 if __name__ == '__main__':

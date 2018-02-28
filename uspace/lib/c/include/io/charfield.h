@@ -85,7 +85,7 @@ static inline bool attrs_same(char_attrs_t a1, char_attrs_t a2)
 {
 	if (a1.type != a2.type)
 		return false;
-	
+
 	switch (a1.type) {
 	case CHAR_ATTR_STYLE:
 		return (a1.val.style == a2.val.style);
@@ -97,7 +97,7 @@ static inline bool attrs_same(char_attrs_t a1, char_attrs_t a2)
 		return (a1.val.rgb.bgcolor == a2.val.rgb.bgcolor)
 		    && (a1.val.rgb.fgcolor == a2.val.rgb.fgcolor);
 	}
-	
+
 	return false;
 }
 

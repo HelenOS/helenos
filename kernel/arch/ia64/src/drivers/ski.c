@@ -48,10 +48,10 @@
 enum {
 	/** Interval between polling in microseconds */
 	POLL_INTERVAL = 10000,  /* 0.01 s */
-	
+
 	/** Max. number of characters to pull out at a time */
 	POLL_LIMIT = 30,
-	
+
 	SKI_INIT_CONSOLE = 20,
 	SKI_GETCHAR      = 21,
 	SKI_PUTCHAR      = 31
@@ -81,17 +81,17 @@ static ski_instance_t *instance = NULL;
 static wchar_t ski_getchar(void)
 {
 	uint64_t ch;
-	
+
 	asm volatile (
 		"mov r15 = %1\n"
 		"break 0x80000;;\n"  /* modifies r8 */
 		"mov %0 = r8;;\n"
-		
+
 		: "=r" (ch)
 		: "i" (SKI_GETCHAR)
 		: "r15", "r8"
 	);
-	
+
 	return (wchar_t) ch;
 }
 
@@ -102,13 +102,13 @@ static wchar_t ski_getchar(void)
 static void poll_keyboard(ski_instance_t *instance)
 {
 	int count = POLL_LIMIT;
-	
+
 	while (count > 0) {
 		wchar_t ch = ski_getchar();
-		
+
 		if (ch == '\0')
 			break;
-		
+
 		indev_push_character(instance->srlnin, ch);
 		--count;
 	}
@@ -118,14 +118,14 @@ static void poll_keyboard(ski_instance_t *instance)
 static void kskipoll(void *arg)
 {
 	ski_instance_t *instance = (ski_instance_t *) arg;
-	
+
 	while (true) {
 		// TODO FIXME:
 		// This currently breaks the kernel console
 		// before we get the override from uspace.
 		if (console_override)
 			poll_keyboard(instance);
-		
+
 		thread_usleep(POLL_INTERVAL);
 	}
 }
@@ -140,7 +140,7 @@ static void ski_init(void)
 {
 	if (instance)
 		return;
-	
+
 	asm volatile (
 		"mov r15 = %0\n"
 		"break 0x80000\n"
@@ -148,19 +148,19 @@ static void ski_init(void)
 		: "i" (SKI_INIT_CONSOLE)
 		: "r15", "r8"
 	);
-	
+
 	instance = malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
-	
+
 	if (instance) {
 		instance->thread = thread_create(kskipoll, instance, TASK,
 		    THREAD_FLAG_UNCOUNTED, "kskipoll");
-		
+
 		if (!instance->thread) {
 			free(instance);
 			instance = NULL;
 			return;
 		}
-		
+
 		instance->srlnin = NULL;
 	}
 }
@@ -195,7 +195,7 @@ static void ski_putchar(outdev_t *dev, const wchar_t ch)
 		if (ascii_check(ch)) {
 			if (ch == '\n')
 				ski_do_putchar('\r');
-			
+
 			ski_do_putchar(ch);
 		} else
 			ski_do_putchar(U_SPECIAL);
@@ -207,14 +207,14 @@ outdev_t *skiout_init(void)
 	ski_init();
 	if (!instance)
 		return NULL;
-	
+
 	outdev_t *skidev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	if (!skidev)
 		return NULL;
-	
+
 	outdev_initialize("skidev", skidev, &skidev_ops);
 	skidev->data = instance;
-	
+
 	if (!fb_exported) {
 		/*
 		 * This is the necessary evil until
@@ -223,10 +223,10 @@ outdev_t *skiout_init(void)
 		 */
 		sysinfo_set_item_val("fb", NULL, true);
 		sysinfo_set_item_val("fb.kind", NULL, 6);
-		
+
 		fb_exported = true;
 	}
-	
+
 	return skidev;
 }
 
@@ -240,10 +240,10 @@ void skiin_wire(ski_instance_t *instance, indev_t *srlnin)
 {
 	assert(instance);
 	assert(srlnin);
-	
+
 	instance->srlnin = srlnin;
 	thread_ready(instance->thread);
-	
+
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_SKI);
 }

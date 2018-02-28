@@ -57,9 +57,9 @@ void as_install_arch(as_t *as)
 {
 	region_register_t rr;
 	int i;
-	
+
 	assert(as->asid != ASID_INVALID);
-	
+
 	/*
 	 * Load respective ASID (7 consecutive RIDs) to
 	 * region registers.
@@ -67,7 +67,7 @@ void as_install_arch(as_t *as)
 	for (i = 0; i < REGION_REGISTERS; i++) {
 		if (i == VRN_KERNEL)
 			continue;
-		
+
 		rr.word = rr_read(i);
 		rr.map.ve = false;		/* disable VHPT walker */
 		rr.map.rid = ASID2RID(as->asid, i);

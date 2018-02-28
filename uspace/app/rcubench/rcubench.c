@@ -60,7 +60,7 @@ typedef struct bench {
 	size_t iters;
 	size_t nthreads;
 	futex_t done_threads;
-	
+
 	futex_t bench_fut;
 } bench_t;
 
@@ -71,7 +71,7 @@ static void  kernel_futex_bench(bench_t *bench)
 {
 	const size_t iters = bench->iters;
 	int val = 0;
-	
+
 	for (size_t i = 0; i < iters; ++i) {
 		__SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &val);
 		__SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &val);
@@ -82,7 +82,7 @@ static void libc_futex_lock_bench(bench_t *bench)
 {
 	const size_t iters = bench->iters;
 	futex_t loc_fut = FUTEX_INITIALIZER;
-	
+
 	for (size_t i = 0; i < iters; ++i) {
 		futex_lock(&loc_fut);
 		/* no-op */
@@ -95,7 +95,7 @@ static void libc_futex_sema_bench(bench_t *bench)
 {
 	const size_t iters = bench->iters;
 	futex_t loc_fut = FUTEX_INITIALIZER;
-	
+
 	for (size_t i = 0; i < iters; ++i) {
 		futex_down(&loc_fut);
 		/* no-op */
@@ -107,9 +107,9 @@ static void libc_futex_sema_bench(bench_t *bench)
 static void thread_func(void *arg)
 {
 	bench_t *bench = (bench_t*)arg;
-	
+
 	bench->func(bench);
-	
+
 	/* Signal another thread completed. */
 	futex_up(&bench->done_threads);
 }
@@ -117,11 +117,11 @@ static void thread_func(void *arg)
 static void run_threads_and_wait(bench_t *bench)
 {
 	assert(1 <= bench->nthreads);
-	
+
 	if (2 <= bench->nthreads) {
 		printf("Creating %zu additional threads...\n", bench->nthreads - 1);
 	}
-	
+
 	/* Create and run the first nthreads - 1 threads.*/
 	for (size_t k = 1; k < bench->nthreads; ++k) {
 		thread_id_t tid;
@@ -133,16 +133,16 @@ static void run_threads_and_wait(bench_t *bench)
 		}
 		thread_detach(tid);
 	}
-	
+
 	/*
 	 * Run the last thread in place so that we create multiple threads
 	 * only when needed. Otherwise libc would immediately upgrade
 	 * single-threaded futexes to proper multithreaded futexes
 	 */
 	thread_func(bench);
-	
+
 	printf("Waiting for remaining threads to complete.\n");
-	
+
 	/* Wait for threads to complete. */
 	for (size_t k = 0; k < bench->nthreads; ++k) {
 		futex_down(&bench->done_threads);
@@ -167,11 +167,11 @@ static void close_results(void)
 static void print_res(const char *fmt, ... )
 {
 	va_list args;
-	
+
 	va_start(args, fmt);
 	vfprintf(results_fd, fmt, args);
 	va_end(args);
-	
+
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
@@ -201,7 +201,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 	}
 
 	futex_initialize(&bench->bench_fut, 1);
-	
+
 	if (0 == str_cmp(argv[1], "sys-futex")) {
 		bench->func = kernel_futex_bench;
 	} else if (0 == str_cmp(argv[1], "lock")) {
@@ -212,9 +212,9 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 		*err = "Unknown test name";
 		return false;
 	}
-	
+
 	bench->name = argv[1];
-	
+
 	/* Determine iteration count. */
 	uint32_t iter_cnt = 0;
 	errno_t ret = str_uint32_t(argv[2], NULL, 0, true, &iter_cnt);
@@ -225,7 +225,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 		*err = "Err: Invalid number of iterations";
 		return false;
 	}
-	
+
 	/* Determine thread count. */
 	uint32_t thread_cnt = 0;
 	ret = str_uint32_t(argv[3], NULL, 0, true, &thread_cnt);
@@ -236,7 +236,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 		*err = "Err: Invalid number of threads";
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -244,42 +244,42 @@ int main(int argc, char **argv)
 {
 	const char *err = "(error)";
 	bench_t bench;
-	
+
 	futex_initialize(&bench.done_threads, 0);
-	
+
 	if (!parse_cmd_line(argc, argv, &bench, &err)) {
 		printf("%s\n", err);
 		print_usage();
 		return -1;
 	}
-	
+
 	open_results();
-	
+
 	print_res("Running '%s' futex bench in '%zu' threads with '%zu' iterations.\n",
 		bench.name, bench.nthreads, bench.iters);
-	
+
 	struct timeval start, end;
 	getuptime(&start);
-	
+
 	run_threads_and_wait(&bench);
-	
+
 	getuptime(&end);
 	int64_t duration = tv_sub_diff(&end, &start);
-	
+
 	uint64_t secs = (uint64_t)duration / 1000 / 1000;
 	uint64_t total_iters = (uint64_t)bench.iters * bench.nthreads;
 	uint64_t iters_per_sec = 0;
-	
+
 	if (0 < duration) {
 		iters_per_sec = total_iters * 1000 * 1000 / duration;
 	}
-	
+
 	print_res("Completed %" PRIu64 " iterations in %" PRId64  " usecs (%" PRIu64
 		" secs); %" PRIu64 " iters/sec\n",
 		total_iters, duration, secs, iters_per_sec);
 
 	close_results();
-	
+
 	return 0;
 }
 

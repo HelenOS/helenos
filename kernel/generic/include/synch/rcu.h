@@ -146,7 +146,7 @@ static inline void rcu_read_unlock(void)
 {
 	compiler_barrier();
 	THE->rcu_nesting -= RCU_CNT_INC;
-	
+
 	if (RCU_WAS_PREEMPTED == THE->rcu_nesting) {
 		_rcu_preempted_unlock();
 	}
@@ -163,7 +163,7 @@ extern void _rcu_signal_read_unlock(void);
 static inline void _rcu_record_qs(void)
 {
 	assert(PREEMPTION_DISABLED || interrupts_disabled());
-	
+
 	/*
 	 * A new GP was started since the last time we passed a QS.
 	 * Notify the detector we have reached a new QS.
@@ -224,10 +224,10 @@ static inline void rcu_read_unlock(void)
 {
 	assert(CPU);
 	preemption_disable();
-	
+
 	if (0 == --CPU->rcu.nesting_cnt) {
 		_rcu_record_qs();
-		
+
 		/*
 		 * The thread was preempted while in a critical section or
 		 * the detector is eagerly waiting for this cpu's reader to finish.
@@ -237,7 +237,7 @@ static inline void rcu_read_unlock(void)
 			_rcu_signal_read_unlock();
 		}
 	}
-	
+
 	preemption_enable();
 }
 #endif

@@ -33,33 +33,33 @@
 
 FUNCTION_BEGIN(cos_f64)
 	# compute cosine (no stack frame)
-	
+
 	fldl 4(%esp)
 	fcos
-	
+
 	# detect if source operand is out of range
-	
+
 	fnstsw %ax
 	andw $X87_STATUS_WORD_C2_MASK, %ax
 	jnz fix_range
-	
+
 		ret
-	
+
 	# argument reduction
-	
+
 	fix_range:
 		fldpi
 		fadd %st(0)
 		fxch %st(1)
-	
+
 	reduce:
 		fprem1
 		fnstsw %ax
 		andw $X87_STATUS_WORD_C2_MASK, %ax
 		jnz reduce
-	
+
 	fstp %st(1)
 	fcos
-	
+
 	ret
 FUNCTION_END(cos_f64)

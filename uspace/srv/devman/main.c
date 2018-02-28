@@ -70,20 +70,20 @@ static void devman_connection_device(ipc_callid_t iid, ipc_call_t *icall,
 {
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
 	dev_node_t *dev = NULL;
-	
+
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
 		dev = find_dev_node(&device_tree, handle);
 	} else {
 		fibril_rwlock_read_lock(&device_tree.rwlock);
-		
+
 		dev = fun->dev;
 		if (dev != NULL)
 			dev_add_ref(dev);
-		
+
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 	}
-	
+
 	/*
 	 * For a valid function to connect to we need a device. The root
 	 * function, for example, has no device and cannot be connected to.
@@ -96,7 +96,7 @@ static void devman_connection_device(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, ENOENT);
 		goto cleanup;
 	}
-	
+
 	if (fun == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, NAME ": devman_forward error - cannot "
 		    "connect to handle %" PRIun ", refers to a device.",
@@ -104,28 +104,28 @@ static void devman_connection_device(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, ENOENT);
 		goto cleanup;
 	}
-	
+
 	fibril_rwlock_read_lock(&device_tree.rwlock);
-	
+
 	/* Connect to the specified function */
 	driver_t *driver = dev->drv;
-	
+
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
-	
+
 	if (driver == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding refused - " \
 		    "the device %" PRIun " is not in usable state.", handle);
 		async_answer_0(iid, ENOENT);
 		goto cleanup;
 	}
-	
+
 	if (!driver->sess) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Could not forward to driver `%s'.", driver->name);
 		async_answer_0(iid, EINVAL);
 		goto cleanup;
 	}
-	
+
 	if (fun != NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG,
 		    "Forwarding request for `%s' function to driver `%s'.",
@@ -135,15 +135,15 @@ static void devman_connection_device(ipc_callid_t iid, ipc_call_t *icall,
 		    "Forwarding request for `%s' device to driver `%s'.",
 		    dev->pfun->pathname, driver->name);
 	}
-	
+
 	async_exch_t *exch = async_exchange_begin(driver->sess);
 	async_forward_fast(iid, exch, INTERFACE_DDF_CLIENT, handle, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
-	
+
 cleanup:
 	if (dev != NULL)
 		dev_del_ref(dev);
-	
+
 	if (fun != NULL)
 		fun_del_ref(fun);
 }
@@ -153,20 +153,20 @@ static void devman_connection_parent(ipc_callid_t iid, ipc_call_t *icall,
 {
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
 	dev_node_t *dev = NULL;
-	
+
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
 		dev = find_dev_node(&device_tree, handle);
 	} else {
 		fibril_rwlock_read_lock(&device_tree.rwlock);
-		
+
 		dev = fun->dev;
 		if (dev != NULL)
 			dev_add_ref(dev);
-		
+
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 	}
-	
+
 	/*
 	 * For a valid function to connect to we need a device. The root
 	 * function, for example, has no device and cannot be connected to.
@@ -179,33 +179,33 @@ static void devman_connection_parent(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, ENOENT);
 		goto cleanup;
 	}
-	
+
 	driver_t *driver = NULL;
-	
+
 	fibril_rwlock_read_lock(&device_tree.rwlock);
-	
+
 	/* Connect to parent function of a device (or device function). */
 	if (dev->pfun->dev != NULL)
 		driver = dev->pfun->dev->drv;
-	
+
 	devman_handle_t fun_handle = dev->pfun->handle;
-	
+
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
-	
+
 	if (driver == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding refused - " \
 		    "the device %" PRIun " is not in usable state.", handle);
 		async_answer_0(iid, ENOENT);
 		goto cleanup;
 	}
-	
+
 	if (!driver->sess) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Could not forward to driver `%s'.", driver->name);
 		async_answer_0(iid, EINVAL);
 		goto cleanup;
 	}
-	
+
 	if (fun != NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG,
 		    "Forwarding request for `%s' function to driver `%s'.",
@@ -215,15 +215,15 @@ static void devman_connection_parent(ipc_callid_t iid, ipc_call_t *icall,
 		    "Forwarding request for `%s' device to driver `%s'.",
 		    dev->pfun->pathname, driver->name);
 	}
-	
+
 	async_exch_t *exch = async_exchange_begin(driver->sess);
 	async_forward_fast(iid, exch, INTERFACE_DDF_DRIVER, fun_handle, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
-	
+
 cleanup:
 	if (dev != NULL)
 		dev_del_ref(dev);
-	
+
 	if (fun != NULL)
 		fun_del_ref(fun);
 }
@@ -232,11 +232,11 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	iface_t iface = IPC_GET_ARG1(*icall);
 	service_id_t service_id = IPC_GET_ARG2(*icall);
-	
+
 	fun_node_t *fun = find_loc_tree_function(&device_tree, service_id);
-	
+
 	fibril_rwlock_read_lock(&device_tree.rwlock);
-	
+
 	if ((fun == NULL) || (fun->dev == NULL) || (fun->dev->drv == NULL)) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "devman_forward(): function "
 		    "not found.\n");
@@ -244,32 +244,32 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	dev_node_t *dev = fun->dev;
 	driver_t *driver = dev->drv;
 	devman_handle_t handle = fun->handle;
-	
+
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
-	
+
 	async_exch_t *exch = async_exchange_begin(driver->sess);
 	async_forward_fast(iid, exch, iface, handle, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "Forwarding service request for `%s' function to driver `%s'.",
 	    fun->pathname, driver->name);
-	
+
 	fun_del_ref(fun);
 }
 
 static void *devman_client_data_create(void)
 {
 	client_t *client;
-	
+
 	client = calloc(1, sizeof(client_t));
 	if (client == NULL)
 		return NULL;
-	
+
 	fibril_mutex_initialize(&client->mutex);
 	return client;
 }
@@ -283,7 +283,7 @@ static void devman_client_data_destroy(void *data)
 static bool devman_init(void)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_init - looking for available drivers.");
-	
+
 	/* Initialize list of available drivers. */
 	init_driver_list(&drivers_list);
 	if (lookup_available_drivers(&drivers_list,
@@ -291,15 +291,15 @@ static bool devman_init(void)
 		log_msg(LOG_DEFAULT, LVL_FATAL, "No drivers found.");
 		return false;
 	}
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_init - list of drivers has been initialized.");
-	
+
 	/* Create root device node. */
 	if (!init_device_tree(&device_tree, &drivers_list)) {
 		log_msg(LOG_DEFAULT, LVL_FATAL, "Failed to initialize device tree.");
 		return false;
 	}
-	
+
 	/*
 	 * Caution: As the device manager is not a real loc
 	 * driver (it uses a completely different IPC protocol
@@ -308,24 +308,24 @@ static bool devman_init(void)
 	 * not work.
 	 */
 	loc_server_register(NAME);
-	
+
 	return true;
 }
 
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Device Manager\n", NAME);
-	
+
 	errno_t rc = log_init(NAME);
 	if (rc != EOK) {
 		printf("%s: Error initializing logging subsystem: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	/* Set handlers for incoming connections. */
 	async_set_client_data_constructor(devman_client_data_create);
 	async_set_client_data_destructor(devman_client_data_destroy);
-	
+
 	port_id_t port;
 	rc = async_create_port(INTERFACE_DDF_DRIVER,
 	    devman_connection_driver, NULL, &port);
@@ -333,46 +333,46 @@ int main(int argc, char *argv[])
 		printf("%s: Error creating DDF driver port: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	rc = async_create_port(INTERFACE_DDF_CLIENT,
 	    devman_connection_client, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error creating DDF client port: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	rc = async_create_port(INTERFACE_DEVMAN_DEVICE,
 	    devman_connection_device, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error creating devman device port: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	rc = async_create_port(INTERFACE_DEVMAN_PARENT,
 	    devman_connection_parent, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error creating devman parent port: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	async_set_fallback_port_handler(devman_forward, NULL);
-	
+
 	if (!devman_init()) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error while initializing service.");
 		return -1;
 	}
-	
+
 	/* Register device manager at naming service. */
 	rc = service_register(SERVICE_DEVMAN);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering as a service: %s", str_error(rc));
 		return rc;
 	}
-	
+
 	printf("%s: Accepting connections.\n", NAME);
 	task_retval(0);
 	async_manager();
-	
+
 	/* Never reached. */
 	return 0;
 }

@@ -177,7 +177,7 @@ static bool dma_buffer_is_4gib(dma_buffer_t *db, size_t size)
 	for (size_t c = 0; c < chunks; c++) {
 		const void *addr = db->virt + (c * chunk_size);
 		const uintptr_t phys = dma_buffer_phys(db, addr);
-	
+
 		if ((phys & DMAMEM_4GiB) != 0)
 			return false;
 	}

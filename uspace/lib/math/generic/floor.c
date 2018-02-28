@@ -47,10 +47,10 @@ float32_t float32_floor(float32_t val)
 {
 	float32_t t;
 	float32_u v;
-	
+
 	v.val = val;
 	t = trunc_f32(val);
-	
+
 	if (v.data.parts.sign == 0 || val == t)
 		return t;
 	else
@@ -68,10 +68,10 @@ float64_t float64_floor(float64_t val)
 {
 	float64_t t;
 	float64_u v;
-	
+
 	v.val = val;
 	t = trunc_f64(val);
-	
+
 	if (v.data.parts.sign == 0 || val == t)
 		return t;
 	else

@@ -195,17 +195,17 @@ static errno_t do_copy(const char *src, const char *dest,
 		/* Initialize the src_path with the src argument */
 		str_cpy(src_path, src_len + 1, src);
 		str_rtrim(src_path, '/');
-		
+
 		/* Get the last component name from the src path */
 		src_fname = get_last_path_component(src_path);
-		
+
 		/* Initialize dest_path with the dest argument */
 		str_cpy(dest_path, PATH_MAX, dest);
 
 		if (dest_type == TYPE_DIR) {
 			/* e.g. cp file_name /data */
 			/* e.g. cp file_name /data/ */
-			
+
 			/* dest is a directory,
 			 * append the src filename to it.
 			 */

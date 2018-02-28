@@ -281,7 +281,7 @@ static bool parse_response_touch(uint8_t *packet, size_t size,
 	    (packet[4] & 124);
 	state->touch_max_y = ((packet[2] >> 3) & 3) | ((packet[5] & 127) << 7) |
 	    (packet[6] & 124);
-	
+
 	if (touch_resolution == 0)
 		touch_resolution = 10;
 

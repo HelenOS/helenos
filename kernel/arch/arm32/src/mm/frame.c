@@ -48,7 +48,7 @@ static void frame_common_arch_init(bool low)
 	machine_get_memory_extents(&base, &size);
 	base = ALIGN_UP(base, FRAME_SIZE);
 	size = ALIGN_DOWN(size, FRAME_SIZE);
-	
+
 	if (!frame_adjust_zone_bounds(low, &base, &size))
 		return;
 
@@ -63,7 +63,7 @@ static void frame_common_arch_init(bool low)
 			zone_create(ADDR2PFN(base), SIZE2FRAMES(size), conf,
 			    ZONE_AVAILABLE | ZONE_HIGHMEM);
 	}
-	
+
 }
 
 /** Create low memory zones. */

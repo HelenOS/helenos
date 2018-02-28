@@ -52,9 +52,9 @@ void page_arch_init(void)
 {
 	if (config.cpu_active == 1) {
 		page_mapping_operations = &pt_mapping_operations;
-		
+
 		page_table_lock(AS_KERNEL, true);
-		
+
 		/*
 		 * PA2KA(identity) mapping for all low-memory frames.
 		 */
@@ -63,13 +63,13 @@ void page_arch_init(void)
 		    cur += FRAME_SIZE)
 			page_mapping_insert(AS_KERNEL, PA2KA(cur), cur,
 			    PAGE_GLOBAL | PAGE_CACHEABLE | PAGE_EXEC | PAGE_WRITE | PAGE_READ);
-		
+
 		page_table_unlock(AS_KERNEL, true);
-		
+
 		// FIXME: register page fault extension handler
-		
+
 		write_satp((uintptr_t) AS_KERNEL->genarch.page_table);
-		
+
 		/* The boot page table is no longer needed. */
 		// FIXME: frame_mark_available(pt_frame, 1);
 	}
@@ -83,7 +83,7 @@ void write_satp(uintptr_t ptl0)
 {
 	uint64_t satp = ((ptl0 >> FRAME_WIDTH) & SATP_PFN_MASK) |
 	    SATP_MODE_SV48;
-	
+
 	asm volatile (
 		"csrw sptbr, %[satp]\n"
 		:: [satp] "r" (satp)

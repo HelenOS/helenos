@@ -39,32 +39,32 @@ static unsigned int divandmod32(unsigned int a, unsigned int b,
 {
 	unsigned int result;
 	int steps = sizeof(unsigned int) * 8;
-	
+
 	*remainder = 0;
 	result = 0;
-	
+
 	if (b == 0) {
 		/* FIXME: division by zero */
 		return 0;
 	}
-	
+
 	if (a < b) {
 		*remainder = a;
 		return 0;
 	}
-	
+
 	for (; steps > 0; steps--) {
 		/* shift one bit to remainder */
 		*remainder = ((*remainder) << 1) | (( a >> 31) & 0x1);
 		result <<= 1;
-		
+
 		if (*remainder >= b) {
 			*remainder -= b;
 			result |= 0x1;
 		}
 		a <<= 1;
 	}
-	
+
 	return result;
 }
 
@@ -73,32 +73,32 @@ static unsigned long long divandmod64(unsigned long long a,
 {
 	unsigned long long result;
 	int steps = sizeof(unsigned long long) * 8;
-	
+
 	*remainder = 0;
 	result = 0;
-	
+
 	if (b == 0) {
 		/* FIXME: division by zero */
 		return 0;
 	}
-	
+
 	if (a < b) {
 		*remainder = a;
 		return 0;
 	}
-	
+
 	for (; steps > 0; steps--) {
 		/* shift one bit to remainder */
 		*remainder = ((*remainder) << 1) | ((a >> 63) & 0x1);
 		result <<= 1;
-		
+
 		if (*remainder >= b) {
 			*remainder -= b;
 			result |= 0x1;
 		}
 		a <<= 1;
 	}
-	
+
 	return result;
 }
 
@@ -107,10 +107,10 @@ int __divsi3(int a, int b)
 {
 	unsigned int rem;
 	int result = (int) divandmod32(ABSVAL(a), ABSVAL(b), &rem);
-	
+
 	if (SGN(a) == SGN(b))
 		return result;
-	
+
 	return -result;
 }
 
@@ -119,10 +119,10 @@ long long __divdi3(long long a, long long b)
 {
 	unsigned long long rem;
 	long long result = (long long) divandmod64(ABSVAL(a), ABSVAL(b), &rem);
-	
+
 	if (SGN(a) == SGN(b))
 		return result;
-	
+
 	return -result;
 }
 
@@ -145,11 +145,11 @@ int __modsi3(int a, int b)
 {
 	unsigned int rem;
 	divandmod32(a, b, &rem);
-	
+
 	/* if divident is negative, remainder must be too */
 	if (!(SGN(a)))
 		return -((int) rem);
-	
+
 	return (int) rem;
 }
 
@@ -158,11 +158,11 @@ long long __moddi3(long long a, long long b)
 {
 	unsigned long long rem;
 	divandmod64(a, b, &rem);
-	
+
 	/* if divident is negative, remainder must be too */
 	if (!(SGN(a)))
 		return -((long long) rem);
-	
+
 	return (long long) rem;
 }
 
@@ -186,12 +186,12 @@ int __divmodsi3(int a, int b, int *c)
 {
 	unsigned int rem;
 	int result = (int) divandmod32(ABSVAL(a), ABSVAL(b), &rem);
-	
+
 	if (SGN(a) == SGN(b)) {
 		*c = rem;
 		return result;
 	}
-	
+
 	*c = -rem;
 	return -result;
 }
@@ -206,12 +206,12 @@ long long __divmoddi3(long long a, long long b, long long *c)
 {
 	unsigned long long rem;
 	long long result = (int) divandmod64(ABSVAL(a), ABSVAL(b), &rem);
-	
+
 	if (SGN(a) == SGN(b)) {
 		*c = rem;
 		return result;
 	}
-	
+
 	*c = -rem;
 	return -result;
 }

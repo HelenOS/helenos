@@ -61,13 +61,13 @@ SYMBOL(unmapped_ap_boot)
 
 	/* initialize Global Descriptor Table register */
 	lgdtl ap_gdtr
-	
+
 	/* switch to protected mode */
 	movl %cr0, %eax
 	orl $CR0_PE, %eax
 	movl %eax, %cr0
 	jmpl $KTEXT, $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
-	
+
 jump_to_kernel:
 .code32
 	movw $KDATA, %ax
@@ -83,9 +83,9 @@ jump_to_kernel:
 	 * We assume that when using SMP, PSE is always available
 	 */
 	call map_kernel_pse
-	
+
 	addl $PA2KA(0), %esp            /* PA2KA(ctx.sp) */
-	
+
 	/* create the first stack frame */
 	pushl $0
 	movl %esp, %ebp

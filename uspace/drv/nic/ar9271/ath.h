@@ -49,13 +49,13 @@ typedef struct {
 typedef struct ath {
 	/** Maximum length of data response message. */
 	size_t data_response_length;
-	
+
 	/** Maximum length of control response message. */
 	size_t ctrl_response_length;
-	
+
 	/** Implementation specific data. */
 	void *specific_data;
-	
+
 	/** Generic Atheros wifi operations. */
 	const ath_ops_t *ops;
 } ath_t;

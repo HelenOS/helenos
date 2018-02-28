@@ -64,14 +64,14 @@ void __thread_main(uspace_arg_t *uarg)
 	fibril_t *fibril = fibril_setup();
 	if (fibril == NULL)
 		thread_exit(0);
-	
+
 	__tcb_set(fibril->tcb);
-	
+
 #ifdef FUTEX_UPGRADABLE
 	rcu_register_fibril();
 	futex_upgrade_all_and_wait();
 #endif
-	
+
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	/*
 	 * XXX: we cannot free the userspace stack while running on it
@@ -79,16 +79,16 @@ void __thread_main(uspace_arg_t *uarg)
 	 * free(uarg->uspace_stack);
 	 * free(uarg);
 	 */
-	
+
 	/* If there is a manager, destroy it */
 	async_destroy_manager();
 
 #ifdef FUTEX_UPGRADABLE
 	rcu_deregister_fibril();
 #endif
-	
+
 	fibril_teardown(fibril, false);
-	
+
 	thread_exit(0);
 }
 
@@ -111,7 +111,7 @@ errno_t thread_create(void (* function)(void *), void *arg, const char *name,
 	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t));
 	if (!uarg)
 		return ENOMEM;
-	
+
 	size_t stack_size = stack_size_get();
 	void *stack = as_area_create(AS_AREA_ANY, stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
@@ -120,20 +120,20 @@ errno_t thread_create(void (* function)(void *), void *arg, const char *name,
 		free(uarg);
 		return ENOMEM;
 	}
-	
+
 	/* Make heap thread safe. */
 	malloc_enable_multithreaded();
-	
+
 	uarg->uspace_entry = (void *) FADDR(__thread_entry);
 	uarg->uspace_stack = stack;
 	uarg->uspace_stack_size = stack_size;
 	uarg->uspace_thread_function = function;
 	uarg->uspace_thread_arg = arg;
 	uarg->uspace_uarg = uarg;
-	
+
 	errno_t rc = (errno_t) __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,
 	    (sysarg_t) name, (sysarg_t) str_size(name), (sysarg_t) tid);
-	
+
 	if (rc != EOK) {
 		/*
 		 * Failed to create a new thread.
@@ -142,7 +142,7 @@ errno_t thread_create(void (* function)(void *), void *arg, const char *name,
 		as_area_destroy(stack);
 		free(uarg);
 	}
-	
+
 	return rc;
 }
 
@@ -154,7 +154,7 @@ errno_t thread_create(void (* function)(void *), void *arg, const char *name,
 void thread_exit(int status)
 {
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
-	
+
 	/* Unreachable */
 	while (1);
 }
@@ -213,14 +213,14 @@ unsigned int thread_sleep(unsigned int sec)
 	 * Sleep in 1000 second steps to support
 	 * full argument range
 	 */
-	
+
 	while (sec > 0) {
 		unsigned int period = (sec > 1000) ? 1000 : sec;
-		
+
 		thread_usleep(period * 1000000);
 		sec -= period;
 	}
-	
+
 	return 0;
 }
 

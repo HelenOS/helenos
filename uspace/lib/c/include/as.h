@@ -45,7 +45,7 @@ static inline size_t SIZE2PAGES(size_t size)
 {
 	if (size == 0)
 		return 0;
-	
+
 	return (size_t) ((size - 1) >> PAGE_WIDTH) + 1;
 }
 

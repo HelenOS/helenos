@@ -51,15 +51,15 @@ static int vprintf_wstr_write(const wchar_t *str, size_t size, void *stream)
 {
 	size_t offset = 0;
 	size_t chars = 0;
-	
+
 	while (offset < size) {
 		if (fputc(str[chars], (FILE *) stream) <= 0)
 			break;
-		
+
 		chars++;
 		offset += sizeof(wchar_t);
 	}
-	
+
 	return chars;
 }
 
@@ -79,16 +79,16 @@ int vfprintf(FILE *stream, const char *fmt, va_list ap)
 		vprintf_wstr_write,
 		stream
 	};
-	
+
 	/*
 	 * Prevent other threads to execute printf_core()
 	 */
 	fibril_mutex_lock(&printf_mutex);
-	
+
 	int ret = printf_core(fmt, &ps, ap);
-	
+
 	fibril_mutex_unlock(&printf_mutex);
-	
+
 	return ret;
 }
 

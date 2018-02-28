@@ -62,7 +62,7 @@ void draw_icon_cross(surface_t *surface, sysarg_t hpos, sysarg_t vpos,
 			bool visible = cross_mask[offset] & (1 << (x % 8));
 			pixel_t pixel = (cross_texture[offset] & (1 << (x % 8))) ?
 			    highlight : shadow;
-			
+
 			if (visible)
 				surface_put_pixel(surface, hpos + x, vpos + y, pixel);
 		}
@@ -76,7 +76,7 @@ void draw_bevel(drawctx_t *drawctx, source_t *source, sysarg_t hpos,
 	source_set_color(source, highlight);
 	drawctx_transfer(drawctx, hpos, vpos, width - 1, 1);
 	drawctx_transfer(drawctx, hpos, vpos + 1, 1, height - 2);
-	
+
 	source_set_color(source, shadow);
 	drawctx_transfer(drawctx, hpos, vpos + height - 1, width, 1);
 	drawctx_transfer(drawctx, hpos + width - 1, vpos, 1, height);

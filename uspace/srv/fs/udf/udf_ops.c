@@ -74,21 +74,21 @@ static errno_t udf_node_get(fs_node_t **rfn, service_id_t service_id,
 	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
-	
+
 	udf_node_t *node;
 	rc = udf_idx_get(&node, instance, index);
 	if (rc != EOK) {
 		rc = udf_idx_add(&node, instance, index);
 		if (rc != EOK)
 			return rc;
-		
+
 		rc = udf_node_get_core(node);
 		if (rc != EOK) {
 			udf_idx_del(node);
 			return rc;
 		}
 	}
-	
+
 	*rfn = FS_NODE(node);
 	return EOK;
 }
@@ -99,7 +99,7 @@ static errno_t udf_root_get(fs_node_t **rfn, service_id_t service_id)
 	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
-	
+
 	return udf_node_get(rfn, service_id,
 	    instance->volumes[DEFAULT_VOL].root_dir);
 }
@@ -109,7 +109,7 @@ static service_id_t udf_service_get(fs_node_t *node)
 	udf_node_t *udfn = UDF_NODE(node);
 	if (udfn)
 		return udfn->instance->service_id;
-	
+
 	return 0;
 }
 
@@ -118,38 +118,38 @@ static errno_t udf_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	char *name = malloc(MAX_FILE_NAME_LEN + 1);
 	if (name == NULL)
 		return ENOMEM;
-	
+
 	block_t *block = NULL;
 	udf_file_identifier_descriptor_t *fid = NULL;
 	size_t pos = 0;
-	
+
 	while (udf_get_fid(&fid, &block, UDF_NODE(pfn), pos) == EOK) {
 		udf_long_ad_t long_ad = fid->icb;
-		
+
 		udf_to_unix_name(name, MAX_FILE_NAME_LEN,
 		    (char *) fid->implementation_use + FLE16(fid->lenght_iu),
 		    fid->lenght_file_id, &UDF_NODE(pfn)->instance->charset);
-		
+
 		if (str_casecmp(name, component) == 0) {
 			errno_t rc = udf_node_get(rfn, udf_service_get(pfn),
 			    udf_long_ad_to_pos(UDF_NODE(pfn)->instance, &long_ad));
-			
+
 			if (block != NULL)
 				block_put(block);
-			
+
 			free(name);
 			return rc;
 		}
-		
+
 		if (block != NULL) {
 			errno_t rc = block_put(block);
 			if (rc != EOK)
 				return rc;
 		}
-		
+
 		pos++;
 	}
-	
+
 	free(name);
 	return ENOENT;
 }
@@ -164,15 +164,15 @@ static errno_t udf_node_put(fs_node_t *fn)
 	udf_node_t *node = UDF_NODE(fn);
 	if (!node)
 		return EINVAL;
-	
+
 	fibril_mutex_lock(&node->lock);
 	node->ref_cnt--;
 	fibril_mutex_unlock(&node->lock);
-	
+
 	/* Delete node from hash table and memory */
 	if (!node->ref_cnt)
 		udf_idx_del(node);
-	
+
 	return EOK;
 }
 
@@ -207,7 +207,7 @@ static fs_index_t udf_index_get(fs_node_t *fn)
 	udf_node_t *node = UDF_NODE(fn);
 	if (node)
 		return node->index;
-	
+
 	return 0;
 }
 
@@ -216,7 +216,7 @@ static aoff64_t udf_size_get(fs_node_t *fn)
 	udf_node_t *node = UDF_NODE(fn);
 	if (node)
 		return node->data_size;
-	
+
 	return 0;
 }
 
@@ -225,7 +225,7 @@ static unsigned int udf_lnkcnt_get(fs_node_t *fn)
 	udf_node_t *node = UDF_NODE(fn);
 	if (node)
 		return node->link_cnt;
-	
+
 	return 0;
 }
 
@@ -234,7 +234,7 @@ static bool udf_is_directory(fs_node_t *fn)
 	udf_node_t *node = UDF_NODE(fn);
 	if (node)
 		return node->type == NODE_DIR;
-	
+
 	return false;
 }
 
@@ -243,7 +243,7 @@ static bool udf_is_file(fs_node_t *fn)
 	udf_node_t *node = UDF_NODE(fn);
 	if (node)
 		return node->type == NODE_FILE;
-	
+
 	return false;
 }
 
@@ -256,23 +256,23 @@ static errno_t udf_size_block(service_id_t service_id, uint32_t *size)
 
 	if (NULL == instance)
 		return ENOENT;
-	
+
 	*size = instance->volumes[DEFAULT_VOL].logical_block_size;
-	
+
 	return EOK;
 }
 
 static errno_t udf_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	*count = 0;
-	
+
 	return EOK;
 }
 
 static errno_t udf_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	*count = 0;
-	
+
 	return EOK;
 }
 
@@ -307,19 +307,19 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
     fs_index_t *index, aoff64_t *size)
 {
 	enum cache_mode cmode;
-	
+
 	/* Check for option enabling write through. */
 	if (str_cmp(opts, "wtcache") == 0)
 		cmode = CACHE_MODE_WT;
 	else
 		cmode = CACHE_MODE_WB;
-	
+
 	udf_instance_t *instance = malloc(sizeof(udf_instance_t));
 	if (!instance)
 		return ENOMEM;
-	
+
 	instance->sector_size = 0;
-	
+
 	/* Check for block size. Will be enhanced later */
 	if (str_cmp(opts, "bs=512") == 0)
 		instance->sector_size = 512;
@@ -327,22 +327,22 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 		instance->sector_size = 1024;
 	else if (str_cmp(opts, "bs=2048") == 0)
 		instance->sector_size = 2048;
-	
+
 	/* initialize block cache */
 	errno_t rc = block_init(service_id, MAX_SIZE);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = fs_instance_create(service_id, instance);
 	if (rc != EOK) {
 		free(instance);
 		block_fini(service_id);
 		return rc;
 	}
-	
+
 	instance->service_id = service_id;
 	instance->open_nodes_count = 0;
-	
+
 	/* Check Volume Recognition Sequence */
 	rc = udf_volume_recongnition(service_id);
 	if (rc != EOK) {
@@ -352,7 +352,7 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 		block_fini(service_id);
 		return rc;
 	}
-	
+
 	/* Search for Anchor Volume Descriptor */
 	udf_anchor_volume_descriptor_t avd;
 	rc = udf_get_anchor_volume_descriptor(service_id, &avd);
@@ -363,7 +363,7 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 		block_fini(service_id);
 		return rc;
 	}
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG,
 	    "Volume: Anchor volume descriptor found. Sector size=%" PRIu32,
 	    instance->sector_size);
@@ -375,7 +375,7 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 	    "Anchor: reserve sequence [length=%" PRIu32 " (bytes), start=%"
 	    PRIu32 " (sector)]", avd.reserve_extent.length,
 	    avd.reserve_extent.location);
-	
+
 	/* Initialize the block cache */
 	rc = block_cache_init(service_id, instance->sector_size, 0, cmode);
 	if (rc != EOK) {
@@ -384,7 +384,7 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 		block_fini(service_id);
 		return rc;
 	}
-	
+
 	/* Read Volume Descriptor Sequence */
 	rc = udf_read_volume_descriptor_sequence(service_id, avd.main_extent);
 	if (rc != EOK) {
@@ -395,7 +395,7 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 		block_fini(service_id);
 		return rc;
 	}
-	
+
 	fs_node_t *rfn;
 	rc = udf_node_get(&rfn, service_id, instance->volumes[DEFAULT_VOL].root_dir);
 	if (rc != EOK) {
@@ -406,11 +406,11 @@ static errno_t udf_mounted(service_id_t service_id, const char *opts,
 		block_fini(service_id);
 		return rc;
 	}
-	
+
 	udf_node_t *node = UDF_NODE(rfn);
 	*index = instance->volumes[DEFAULT_VOL].root_dir;
 	*size = node->data_size;
-	
+
 	return EOK;
 }
 
@@ -420,10 +420,10 @@ static errno_t udf_unmounted(service_id_t service_id)
 	errno_t rc = udf_root_get(&fn, service_id);
 	if (rc != EOK)
 		return rc;
-	
+
 	udf_node_t *nodep = UDF_NODE(fn);
 	udf_instance_t *instance = nodep->instance;
-	
+
 	/*
 	 * We expect exactly two references on the root node.
 	 * One for the udf_root_get() above and one created in
@@ -433,18 +433,18 @@ static errno_t udf_unmounted(service_id_t service_id)
 		udf_node_put(fn);
 		return EBUSY;
 	}
-	
+
 	/*
 	 * Put the root node twice.
 	 */
 	udf_node_put(fn);
 	udf_node_put(fn);
-	
+
 	fs_instance_destroy(service_id);
 	free(instance);
 	block_cache_fini(service_id);
 	block_fini(service_id);
-	
+
 	return EOK;
 }
 
@@ -455,14 +455,14 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
-	
+
 	fs_node_t *rfn;
 	rc = udf_node_get(&rfn, service_id, index);
 	if (rc != EOK)
 		return rc;
-	
+
 	udf_node_t *node = UDF_NODE(rfn);
-	
+
 	ipc_callid_t callid;
 	size_t len = 0;
 	if (!async_data_read_receive(&callid, &len)) {
@@ -470,7 +470,7 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		udf_node_put(rfn);
 		return EINVAL;
 	}
-	
+
 	if (node->type == NODE_FILE) {
 		if (pos >= node->data_size) {
 			*rbytes = 0;
@@ -478,7 +478,7 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			udf_node_put(rfn);
 			return EOK;
 		}
-		
+
 		size_t read_len = 0;
 		if (node->data == NULL)
 			rc = udf_read_file(&read_len, callid, node, pos, len);
@@ -488,7 +488,7 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			async_data_read_finalize(callid, node->data + pos, read_len);
 			rc = EOK;
 		}
-		
+
 		*rbytes = read_len;
 		(void) udf_node_put(rfn);
 		return rc;
@@ -497,21 +497,21 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		udf_file_identifier_descriptor_t *fid = NULL;
 		if (udf_get_fid(&fid, &block, node, pos) == EOK) {
 			char *name = malloc(MAX_FILE_NAME_LEN + 1);
-			
+
 			// FIXME: Check for NULL return value
-			
+
 			udf_to_unix_name(name, MAX_FILE_NAME_LEN,
 			    (char *) fid->implementation_use + FLE16(fid->lenght_iu),
 			    fid->lenght_file_id, &node->instance->charset);
-			
+
 			async_data_read_finalize(callid, name, str_size(name) + 1);
 			*rbytes = 1;
 			free(name);
 			udf_node_put(rfn);
-			
+
 			if (block != NULL)
 				return block_put(block);
-			
+
 			return EOK;
 		} else {
 			*rbytes = 0;

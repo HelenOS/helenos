@@ -33,7 +33,7 @@
 /**
  * @file
  */
- 
+
 #include <smp/smp.h>
 
 #ifdef CONFIG_SMP

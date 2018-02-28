@@ -81,7 +81,7 @@ static bool frame_available(pfn_t frame)
 	/* MSIM device (dprinter) */
 	if (frame == (KA2PA(MSIM_VIDEORAM) >> ZERO_PAGE_WIDTH))
 		return false;
-	
+
 	/* MSIM device (dkeyboard) */
 	if (frame == (KA2PA(MSIM_KBD_ADDRESS) >> ZERO_PAGE_WIDTH))
 		return false;
@@ -91,7 +91,7 @@ static bool frame_available(pfn_t frame)
 	if (frame >= (sdram_size >> ZERO_PAGE_WIDTH))
 		return false;
 #endif
-	
+
 	return true;
 }
 
@@ -107,17 +107,17 @@ static bool frame_safe(pfn_t frame)
 	/* Kernel structures */
 	if ((frame << ZERO_PAGE_WIDTH) < KA2PA(config.base))
 		return false;
-	
+
 	/* Kernel */
 	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
 	    KA2PA(config.base), config.kernel_size))
 		return false;
-	
+
 	/* Kernel stack */
 	if (overlaps(frame << ZERO_PAGE_WIDTH, ZERO_PAGE_SIZE,
 	    KA2PA(config.stack_base), config.stack_size))
 		return false;
-	
+
 	/* Init tasks */
 	bool safe = true;
 	size_t i;
@@ -127,7 +127,7 @@ static bool frame_safe(pfn_t frame)
 			safe = false;
 			break;
 		}
-	
+
 	return safe;
 }
 
@@ -160,7 +160,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame, bool low)
 			zone_create(first, count, conf_frame,
 			    ZONE_AVAILABLE | ZONE_HIGHMEM);
 	}
-	
+
 	if (phys_regions_count < MAX_REGIONS) {
 		phys_regions[phys_regions_count].start = first;
 		phys_regions[phys_regions_count].count = count;
@@ -181,7 +181,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame, bool low)
 void frame_low_arch_init(void)
 {
 	ipl_t ipl = interrupts_disable();
-	
+
 	/* Clear and initialize TLB */
 	cp0_pagemask_write(ZERO_PAGE_MASK);
 	cp0_entry_lo0_write(0);
@@ -193,11 +193,11 @@ void frame_low_arch_init(void)
 		cp0_index_write(i);
 		tlbwi();
 	}
-		
+
 	pfn_t start_frame = 0;
 	pfn_t frame;
 	bool avail = true;
-	
+
 	/* Walk through all 1 MB frames */
 	for (frame = 0; frame < ZERO_FRAMES; frame++) {
 		if (!frame_available(frame))
@@ -210,14 +210,14 @@ void frame_low_arch_init(void)
 				tlb_prepare_entry_lo(&lo0, false, true, true, false, frame << (ZERO_PAGE_WIDTH - 12));
 				tlb_prepare_entry_lo(&lo1, false, false, false, false, 0);
 				tlb_prepare_entry_hi(&hi, ZERO_PAGE_ASID, ZERO_PAGE_ADDR);
-				
+
 				cp0_pagemask_write(ZERO_PAGE_MASK);
 				cp0_entry_lo0_write(lo0.value);
 				cp0_entry_lo1_write(lo1.value);
 				cp0_entry_hi_write(hi.value);
 				cp0_index_write(ZERO_PAGE_TLBI);
 				tlbwi();
-				
+
 				ZERO_PAGE_VALUE = 0;
 				if (ZERO_PAGE_VALUE != 0)
 					avail = false;
@@ -228,16 +228,16 @@ void frame_low_arch_init(void)
 				}
 			}
 		}
-		
+
 		if (!avail) {
 			frame_add_region(start_frame, frame, true);
 			start_frame = frame + 1;
 			avail = true;
 		}
 	}
-	
+
 	frame_add_region(start_frame, frame, true);
-	
+
 	/* Blacklist interrupt vector frame */
 	frame_mark_unavailable(0, 1);
 
@@ -266,7 +266,7 @@ void frame_low_arch_init(void)
 	 */
 	frame_mark_unavailable(0, 1024 * 1024 / FRAME_SIZE);
 #endif
-	
+
 	/* Cleanup */
 	cp0_pagemask_write(ZERO_PAGE_MASK);
 	cp0_entry_lo0_write(0);
@@ -274,7 +274,7 @@ void frame_low_arch_init(void)
 	cp0_entry_hi_write(0);
 	cp0_index_write(ZERO_PAGE_TLBI);
 	tlbwi();
-	
+
 	interrupts_restore(ipl);
 }
 
@@ -285,7 +285,7 @@ void frame_high_arch_init(void)
 void physmem_print(void)
 {
 	printf("[base    ] [size    ]\n");
-	
+
 	size_t i;
 	for (i = 0; i < phys_regions_count; i++) {
 		printf("%#010x %10u\n",

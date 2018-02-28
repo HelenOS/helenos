@@ -52,12 +52,12 @@ static uint32_t ext4_inode_block_bits_count(uint32_t block_size)
 {
 	uint32_t bits = 8;
 	uint32_t size = block_size;
-	
+
 	do {
 		bits++;
 		size = size >> 1;
 	} while (size > 256);
-	
+
 	return bits;
 }
 
@@ -75,7 +75,7 @@ uint32_t ext4_inode_get_mode(ext4_superblock_t *sb, ext4_inode_t *inode)
 		return ((uint32_t) uint16_t_le2host(inode->osd2.hurd2.mode_high)) << 16 |
 		    ((uint32_t) uint16_t_le2host(inode->mode));
 	}
-	
+
 	return uint16_t_le2host(inode->mode);
 }
 
@@ -89,7 +89,7 @@ uint32_t ext4_inode_get_mode(ext4_superblock_t *sb, ext4_inode_t *inode)
 void ext4_inode_set_mode(ext4_superblock_t *sb, ext4_inode_t *inode, uint32_t mode)
 {
 	inode->mode = host2uint16_t_le((mode << 16) >> 16);
-	
+
 	if (ext4_superblock_get_creator_os(sb) == EXT4_SUPERBLOCK_OS_HURD)
 		inode->osd2.hurd2.mode_high = host2uint16_t_le(mode >> 16);
 }
@@ -128,12 +128,12 @@ void ext4_inode_set_uid(ext4_inode_t *inode, uint32_t uid)
 uint64_t ext4_inode_get_size(ext4_superblock_t *sb, ext4_inode_t *inode)
 {
 	uint32_t major_rev = ext4_superblock_get_rev_level(sb);
-	
+
 	if ((major_rev > 0) &&
 	    (ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_FILE)))
 		return ((uint64_t)uint32_t_le2host(inode->size_hi)) << 32 |
 		    ((uint64_t)uint32_t_le2host(inode->size_lo));
-	
+
 	return uint32_t_le2host(inode->size_lo);
 }
 
@@ -303,7 +303,7 @@ uint64_t ext4_inode_get_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode)
 		uint64_t count = ((uint64_t)
 		    uint16_t_le2host(inode->osd2.linux2.blocks_high)) << 32 |
 		    uint32_t_le2host(inode->blocks_count_lo);
-		
+
 		if (ext4_inode_has_flag(inode, EXT4_INODE_FLAG_HUGE_FILE)) {
 			uint32_t block_size = ext4_superblock_get_block_size(sb);
 			uint32_t block_bits = ext4_inode_block_bits_count(block_size);
@@ -329,24 +329,24 @@ errno_t ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
 	/* 32-bit maximum */
 	uint64_t max = 0;
 	max = ~max >> 32;
-	
+
 	if (count <= max) {
 		inode->blocks_count_lo = host2uint32_t_le(count);
 		inode->osd2.linux2.blocks_high = 0;
 		ext4_inode_clear_flag(inode, EXT4_INODE_FLAG_HUGE_FILE);
-		
+
 		return EOK;
 	}
-	
+
 	/* Check if there can be used huge files (many blocks) */
 	if (!ext4_superblock_has_feature_read_only(sb,
 	    EXT4_FEATURE_RO_COMPAT_HUGE_FILE))
 		return EINVAL;
-	
+
 	/* 48-bit maximum */
 	max = 0;
 	max = ~max >> 16;
-	
+
 	if (count <= max) {
 		inode->blocks_count_lo = host2uint32_t_le(count);
 		inode->osd2.linux2.blocks_high = host2uint16_t_le(count >> 32);
@@ -359,7 +359,7 @@ errno_t ext4_inode_set_blocks_count(ext4_superblock_t *sb, ext4_inode_t *inode,
 		inode->blocks_count_lo = host2uint32_t_le(count);
 		inode->osd2.linux2.blocks_high = host2uint16_t_le(count >> 32);
 	}
-	
+
 	return EOK;
 }
 
@@ -423,7 +423,7 @@ uint64_t ext4_inode_get_file_acl(ext4_inode_t *inode, ext4_superblock_t *sb)
 		return ((uint32_t)
 		    uint16_t_le2host(inode->osd2.linux2.file_acl_high)) << 16 |
 		    (uint32_t_le2host(inode->file_acl_lo));
-	
+
 	return uint32_t_le2host(inode->file_acl_lo);
 }
 
@@ -438,7 +438,7 @@ void ext4_inode_set_file_acl(ext4_inode_t *inode, ext4_superblock_t *sb,
     uint64_t file_acl)
 {
 	inode->file_acl_lo = host2uint32_t_le((file_acl << 32) >> 32);
-	
+
 	if (ext4_superblock_get_creator_os(sb) == EXT4_SUPERBLOCK_OS_LINUX)
 		inode->osd2.linux2.file_acl_high = host2uint16_t_le(file_acl >> 32);
 }
@@ -454,7 +454,7 @@ void ext4_inode_set_file_acl(ext4_inode_t *inode, ext4_superblock_t *sb,
 uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint32_t idx)
 {
 	assert(idx < EXT4_INODE_DIRECT_BLOCK_COUNT);
-	
+
 	return uint32_t_le2host(inode->blocks[idx]);
 }
 
@@ -468,7 +468,7 @@ uint32_t ext4_inode_get_direct_block(ext4_inode_t *inode, uint32_t idx)
 void ext4_inode_set_direct_block(ext4_inode_t *inode, uint32_t idx, uint32_t fblock)
 {
 	assert(idx < EXT4_INODE_DIRECT_BLOCK_COUNT);
-	
+
 	inode->blocks[idx] = host2uint32_t_le(fblock);
 }
 
@@ -539,7 +539,7 @@ bool ext4_inode_has_flag(ext4_inode_t *inode, uint32_t flag)
 {
 	if (ext4_inode_get_flags(inode) & flag)
 		return true;
-	
+
 	return false;
 }
 
@@ -582,11 +582,11 @@ bool ext4_inode_can_truncate(ext4_superblock_t *sb, ext4_inode_t *inode)
 	if ((ext4_inode_has_flag(inode, EXT4_INODE_FLAG_APPEND)) ||
 	    (ext4_inode_has_flag(inode, EXT4_INODE_FLAG_IMMUTABLE)))
 		return false;
-	
+
 	if ((ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_FILE)) ||
 	    (ext4_inode_is_type(sb, inode, EXT4_INODE_MODE_DIRECTORY)))
 		return true;
-	
+
 	return false;
 }
 

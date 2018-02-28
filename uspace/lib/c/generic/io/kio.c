@@ -45,7 +45,7 @@
 errno_t kio_write(const void *buf, size_t size, size_t *nwritten)
 {
 	errno_t rc = (errno_t) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) buf, size);
-	
+
 	if (rc == EOK)
 		*nwritten = size;
 	return rc;
@@ -72,18 +72,18 @@ int kio_printf(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	
+
 	int ret = kio_vprintf(fmt, args);
-	
+
 	va_end(args);
-	
+
 	return ret;
 }
 
 static int kio_vprintf_str_write(const char *str, size_t size, void *data)
 {
 	size_t wr;
-	
+
 	wr = 0;
 	(void) kio_write(str, size, &wr);
 	return str_nlength(str, wr);
@@ -94,18 +94,18 @@ static int kio_vprintf_wstr_write(const wchar_t *str, size_t size, void *data)
 	size_t offset = 0;
 	size_t chars = 0;
 	size_t wr;
-	
+
 	while (offset < size) {
 		char buf[STR_BOUNDS(1)];
 		size_t sz = 0;
-		
+
 		if (chr_encode(str[chars], buf, &sz, STR_BOUNDS(1)) == EOK)
 			kio_write(buf, sz, &wr);
-		
+
 		chars++;
 		offset += sizeof(wchar_t);
 	}
-	
+
 	return chars;
 }
 
@@ -124,7 +124,7 @@ int kio_vprintf(const char *fmt, va_list ap)
 		kio_vprintf_wstr_write,
 		NULL
 	};
-	
+
 	return printf_core(fmt, &ps, ap);
 }
 

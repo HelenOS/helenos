@@ -60,7 +60,7 @@ bool bfb_init(void)
 	if ((bfb_addr == 0) || (bfb_width == 0) || (bfb_height == 0) ||
 	    (bfb_bpp == 0) || (bfb_scanline == 0))
 		return false;
-	
+
 	fb_properties_t bfb_props = {
 		.addr = bfb_addr,
 		.offset = 0,
@@ -68,7 +68,7 @@ bool bfb_init(void)
 		.y = bfb_height,
 		.scan = bfb_scanline
 	};
-	
+
 	switch (bfb_bpp) {
 	case 8:
 		bfb_props.visual = VISUAL_INDIRECT_8;
@@ -91,11 +91,11 @@ bool bfb_init(void)
 		LOG("Unsupported bits per pixel.");
 		return false;
 	}
-	
+
 	outdev_t *fbdev = fb_init(&bfb_props);
 	if (!fbdev)
 		return false;
-	
+
 	stdout_wire(fbdev);
 	return true;
 }

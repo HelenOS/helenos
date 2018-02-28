@@ -54,23 +54,23 @@ struct pcb_inbox_entry {
 typedef struct {
 	/** Program entry point. */
 	entry_point_t entry;
-	
+
 	/** Current working directory. */
 	char *cwd;
-	
+
 	/** Number of command-line arguments. */
 	int argc;
 	/** Command-line arguments. */
 	char **argv;
-	
+
 	/** List of inbox files. */
 	struct pcb_inbox_entry *inbox;
 	int inbox_entries;
-	
+
 	/*
 	 * ELF-specific data.
 	 */
-	
+
 	/** Pointer to ELF dynamic section of the program. */
 	void *dynamic;
 	/** Pointer to dynamic linker state structure (rtld_t). */

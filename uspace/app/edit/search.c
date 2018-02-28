@@ -48,15 +48,15 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 	search_t *search = calloc(1, sizeof(search_t));
 	if (search == NULL)
 		return NULL;
-	
+
 	wchar_t *p = str_to_awstr(pattern);
 	if (p == NULL) {
 		free(search);
 		return NULL;
 	}
-	
+
 	search->pattern_length = wstr_length(p);
-	
+
 	if (reverse) {
 		/* Reverse the pattern */
 		size_t pos, half;
@@ -67,9 +67,9 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 			p[search->pattern_length - pos - 1] = tmp;
 		}
 	}
-	
+
 	search->pattern = p;
-	
+
 	search->client_data = client_data;
 	search->ops = ops;
 	search->back_table = calloc(search->pattern_length, sizeof(ssize_t));
@@ -78,9 +78,9 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 		free(search);
 		return NULL;
 	}
-	
+
 	search->pattern_pos = 0;
-	
+
 	search->back_table[0] = -1;
 	search->back_table[1] = 0;
 	size_t table_idx = 2;
@@ -100,14 +100,14 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 			table_idx++;
 		}
 	}
-	
+
 	return search;
 }
 
 errno_t search_next_match(search_t *s, match_t *match)
 {
 	search_equals_fn eq = s->ops.equals;
-	
+
 	wchar_t cur_char;
 	errno_t rc = EOK;
 	while ((rc = s->ops.producer(s->client_data, &cur_char)) == EOK && cur_char > 0) {
@@ -128,10 +128,10 @@ errno_t search_next_match(search_t *s, match_t *match)
 			}
 		}
 	}
-	
+
 	match->end = NULL;
 	match->length = 0;
-	
+
 	return rc;
 }
 
@@ -139,7 +139,7 @@ void search_fini(search_t *search)
 {
 	free(search->pattern);
 	free(search->back_table);
-	
+
 }
 
 bool char_exact_equals(const wchar_t a, const wchar_t b)

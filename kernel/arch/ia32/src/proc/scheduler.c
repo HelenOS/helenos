@@ -58,14 +58,14 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	uintptr_t kstk = (uintptr_t) &THREAD->kstack[STACK_SIZE];
-	
+
 #ifndef PROCESSOR_i486
 	if (CPU->arch.fi.bits.sep) {
 		/* Set kernel stack for CP3 -> CPL0 switch via SYSENTER */
 		write_msr(IA32_MSR_SYSENTER_ESP, kstk - sizeof(istate_t));
 	}
 #endif
-	
+
 	/* Set kernel stack for CPL3 -> CPL0 switch via interrupt */
 	CPU->arch.tss->esp0 = kstk;
 	CPU->arch.tss->ss0 = GDT_SELECTOR(KDATA_DES);

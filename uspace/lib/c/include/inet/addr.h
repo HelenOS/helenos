@@ -65,13 +65,13 @@ typedef struct {
 typedef struct {
 	/** IP version */
 	ip_ver_t version;
-	
+
 	/** Address */
 	union {
 		addr32_t addr;
 		addr128_t addr6;
 	};
-	
+
 	/** Number of valid bits */
 	uint8_t prefix;
 } inet_naddr_t;

@@ -44,7 +44,7 @@ FUNCTION_BEGIN(context_save_arch)
 	 */
 	flushrs
 	mov loc4 = ar.bsp
-	
+
 	/*
 	 * Put RSE to enforced lazy mode.
 	 * So that ar.rnat can be read.
@@ -116,7 +116,7 @@ FUNCTION_BEGIN(context_save_arch)
 	st8.spill [loc21] = r13 ;;
 
 	mov loc2 = ar.unat
-	
+
 	/*
 	 * Save application registers
 	 */
@@ -176,7 +176,7 @@ FUNCTION_BEGIN(context_save_arch)
 	stf.spill [loc48] = f31
 
 	mov ar.unat = loc1
-	
+
 	add r8 = r0, r0, 1 	/* context_save returns 1 */
 	br.ret.sptk.many b0
 FUNCTION_END(context_save_arch)
@@ -238,7 +238,7 @@ FUNCTION_BEGIN(context_restore_arch)
 	ld8 loc4 = [loc13]	/* load ar.bsp */
 	ld8 loc5 = [loc14]	/* load ar.rnat */
 	ld8 loc6 = [loc15]	/* load ar.lc */
-	
+
 	.auto
 
 	/*
@@ -273,7 +273,7 @@ FUNCTION_BEGIN(context_restore_arch)
 
 	mov ar.unat = loc2 ;;
 	mov ar.lc = loc6
-	
+
 	/*
 	 * Restore general registers including NaT bits
 	 */
@@ -331,9 +331,9 @@ FUNCTION_BEGIN(context_restore_arch)
 	ldf.fill f29 = [loc47]
 	ldf.fill f30 = [loc48]
 	ldf.fill f31 = [loc49]
-	
+
 	mov ar.unat = loc1
-	
+
 	mov r8 = r0			/* context_restore returns 0 */
 	br.ret.sptk.many b0
 FUNCTION_END(context_restore_arch)

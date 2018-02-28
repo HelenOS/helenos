@@ -317,7 +317,7 @@ errno_t audio_pcm_register_event_callback(audio_pcm_sess_t *sess,
 		return EINVAL;
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	errno_t ret = async_req_1_0(exch, DEV_IFACE_ID(AUDIO_PCM_BUFFER_IFACE),
 	    IPC_M_AUDIO_PCM_REGISTER_EVENTS);
 	if (ret == EOK) {
@@ -325,7 +325,7 @@ errno_t audio_pcm_register_event_callback(audio_pcm_sess_t *sess,
 		ret = async_create_callback_port(exch, INTERFACE_AUDIO_PCM_CB, 0, 0,
 		    event_callback, arg, &port);
 	}
-	
+
 	async_exchange_end(exch);
 	return ret;
 }

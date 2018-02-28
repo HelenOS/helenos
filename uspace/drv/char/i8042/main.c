@@ -58,32 +58,32 @@ static errno_t get_my_registers(ddf_dev_t *dev, addr_range_t *p_io_reg,
     int *kbd_irq, int *mouse_irq)
 {
 	assert(dev);
-	
+
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
 		return ENOMEM;
-	
+
 	hw_res_list_parsed_t hw_resources;
 	hw_res_list_parsed_init(&hw_resources);
 	const errno_t ret = hw_res_get_list_parsed(parent_sess, &hw_resources, 0);
 	if (ret != EOK)
 		return ret;
-	
+
 	if ((hw_resources.irqs.count != 2) ||
 	    (hw_resources.io_ranges.count != 1)) {
 		hw_res_list_parsed_clean(&hw_resources);
 		return EINVAL;
 	}
-	
+
 	if (p_io_reg)
 		*p_io_reg = hw_resources.io_ranges.ranges[0];
-	
+
 	if (kbd_irq)
 		*kbd_irq = hw_resources.irqs.irqs[0];
-	
+
 	if (mouse_irq)
 		*mouse_irq = hw_resources.irqs.irqs[1];
-	
+
 	hw_res_list_parsed_clean(&hw_resources);
 	return EOK;
 }
@@ -101,34 +101,34 @@ static errno_t i8042_dev_add(ddf_dev_t *device)
 	int kbd = 0;
 	int mouse = 0;
 	errno_t rc;
-	
+
 	if (!device)
 		return EINVAL;
-	
+
 	rc = get_my_registers(device, &io_regs, &kbd, &mouse);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to get registers: %s.",
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	ddf_msg(LVL_DEBUG,
 	    "I/O regs at %p (size %zuB), IRQ kbd %d, IRQ mouse %d.",
 	    RNGABSPTR(io_regs), RNGSZ(io_regs), kbd, mouse);
-	
+
 	i8042_t *i8042 = ddf_dev_data_alloc(device, sizeof(i8042_t));
 	if (i8042 == NULL) {
 		ddf_msg(LVL_ERROR, "Out of memory.");
 		return ENOMEM;
 	}
-	
+
 	rc = i8042_init(i8042, &io_regs, kbd, mouse, device);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to initialize i8042 driver: %s.",
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",
 	    ddf_dev_get_name(device), ddf_dev_get_handle(device));
 	return EOK;
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS PS/2 driver.\n", NAME);
 	ddf_log_init(NAME);
-	
+
 	return ddf_driver_main(&i8042_driver);
 }
 

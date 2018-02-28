@@ -40,7 +40,7 @@
 
 #define VA_PRIMARY_CONTEXT_REG		0x8	/**< primary context register VA. */
 #define ASI_PRIMARY_CONTEXT_REG		0x21	/**< primary context register ASI. */
- 
+
 #define VA_SECONDARY_CONTEXT_REG	0x10	/**< secondary context register VA. */
 #define ASI_SECONDARY_CONTEXT_REG	0x21	/**< secondary context register ASI. */
 

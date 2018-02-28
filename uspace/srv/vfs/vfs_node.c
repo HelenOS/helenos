@@ -107,28 +107,28 @@ void vfs_node_addref(vfs_node_t *node)
 void vfs_node_delref(vfs_node_t *node)
 {
 	bool free_node = false;
-	
+
 	fibril_mutex_lock(&nodes_mutex);
-	
+
 	node->refcnt--;
 	if (node->refcnt == 0) {
 		/*
 		 * We are dropping the last reference to this node.
 		 * Remove it from the VFS node hash table.
 		 */
-		
+
 		hash_table_remove_item(&nodes, &node->nh_link);
 		free_node = true;
 	}
-	
+
 	fibril_mutex_unlock(&nodes_mutex);
-	
+
 	if (free_node) {
 		/*
 		 * VFS_OUT_DESTROY will free up the file's resources if there
 		 * are no more hard links.
 		 */
-		
+
 		async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
 		async_msg_2(exch, VFS_OUT_DESTROY, (sysarg_t) node->service_id,
 		    (sysarg_t)node->index);
@@ -238,7 +238,7 @@ static bool refcnt_visitor(ht_link_t *item, void *arg)
 	if ((node->fs_handle == rd->fs_handle) &&
 	    (node->service_id == rd->service_id))
 		rd->refcnt += node->refcnt;
-	
+
 	return true;
 }
 
@@ -267,16 +267,16 @@ vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, service_id_t service_id)
 errno_t vfs_open_node_remote(vfs_node_t *node)
 {
 	async_exch_t *exch = vfs_exchange_grab(node->fs_handle);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, VFS_OUT_OPEN_NODE,
 	    (sysarg_t) node->service_id, (sysarg_t) node->index, &answer);
-	
+
 	vfs_exchange_release(exch);
 
 	errno_t rc;
 	async_wait_for(req, &rc);
-	
+
 	return rc;
 }
 
@@ -310,7 +310,7 @@ static inline vfs_triplet_t node_triplet(vfs_node_t *node)
 		.service_id = node->service_id,
 		.index = node->index
 	};
-	
+
 	return tri;
 }
 

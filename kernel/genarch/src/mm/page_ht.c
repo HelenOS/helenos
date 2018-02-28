@@ -134,7 +134,7 @@ bool ht_key_equal(void *arg, const ht_link_t *item)
 void ht_remove_callback(ht_link_t *item)
 {
 	assert(item);
-	
+
 	pte_t *pte = hash_table_get_inst(item, pte_t, link);
 	slab_free(pte_cache, pte);
 }
@@ -161,11 +161,11 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	assert(page_table_locked(as));
 
 	irq_spinlock_lock(&page_ht_lock, true);
-	
+
 	if (!hash_table_find(&page_ht, key)) {
 		pte_t *pte = slab_alloc(pte_cache, FRAME_LOWMEM | FRAME_ATOMIC);
 		assert(pte != NULL);
-		
+
 		pte->g = (flags & PAGE_GLOBAL) != 0;
 		pte->x = (flags & PAGE_EXEC) != 0;
 		pte->w = (flags & PAGE_WRITE) != 0;
@@ -174,7 +174,7 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		pte->p = !(flags & PAGE_NOT_PRESENT);
 		pte->a = false;
 		pte->d = false;
-		
+
 		pte->as = as;
 		pte->page = ALIGN_DOWN(page, PAGE_SIZE);
 		pte->frame = ALIGN_DOWN(frame, FRAME_SIZE);
@@ -184,7 +184,7 @@ void ht_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		 * new entry only after it is fully initialized.
 		 */
 		write_barrier();
-		
+
 		hash_table_insert(&page_ht, &pte->link);
 	}
 
@@ -209,7 +209,7 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 	};
 
 	assert(page_table_locked(as));
-	
+
 	irq_spinlock_lock(&page_ht_lock, true);
 
 	/*
@@ -234,7 +234,7 @@ ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 	ht_link_t *cur = hash_table_find(&page_ht, key);
 	if (cur)
 		return hash_table_get_inst(cur, pte_t, link);
-	
+
 	return NULL;
 }
 
@@ -256,7 +256,7 @@ bool ht_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 		*pte = *t;
 
 	irq_spinlock_unlock(&page_ht_lock, true);
-	
+
 	return t != NULL;
 }
 
@@ -274,7 +274,7 @@ void ht_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 	pte_t *t = ht_mapping_find_internal(as, page, nolock);
 	if (!t)
 		panic("Updating non-existent PTE");
-	
+
 	assert(pte->as == t->as);
 	assert(pte->page == t->page);
 	assert(pte->frame == t->frame);

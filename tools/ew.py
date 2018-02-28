@@ -75,13 +75,13 @@ def get_host_native_width():
 
 def pc_options(guest_width):
 	opts = ''
-	
+
 	# Do not enable KVM if running 64 bits HelenOS
 	# on 32 bits host
 	host_width = get_host_native_width()
 	if guest_width <= host_width and not is_override('nokvm'):
 		opts = opts + ' -enable-kvm'
-	
+
 	# Remove the leading space
 	return opts[1:]
 
@@ -131,9 +131,9 @@ def hdisk_mk():
 def qemu_bd_options():
 	if is_override('nohdd'):
 		return ''
-	
+
 	hdisk_mk()
-	
+
 	return ' -drive file=hdisk.img,index=0,media=disk,format=raw'
 
 def qemu_nic_ne2k_options():
@@ -207,7 +207,7 @@ def qemu_run(platform, machine, processor):
 		cmdline += qemu_tablet_options()
 	if (not 'audio' in cfg.keys()) or cfg['audio']:
 		cmdline += qemu_audio_options()
-	
+
 	if cfg['image'] == 'image.iso':
 		cmdline += ' -boot d -cdrom image.iso'
 	elif cfg['image'] == 'image.boot':
@@ -327,7 +327,7 @@ def usage():
 
 def fail(platform, machine):
 	print("Cannot start emulation for the chosen configuration. (%s/%s)" % (platform, machine))
-	
+
 
 def run():
 	expect_nic = False

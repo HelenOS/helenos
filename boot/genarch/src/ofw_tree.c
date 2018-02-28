@@ -64,7 +64,7 @@ static void *ofw_tree_space_alloc(size_t size)
 	char *addr = balloc(size + 1, 4);
 	if (addr)
 		addr[size] = '\0';
-	
+
 	return addr;
 }
 
@@ -97,32 +97,32 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		current_node->properties = 0;
 		current_node->property = NULL;
 		current_node->device = NULL;
-		
+
 		/*
 		 * Get the disambigued name.
 		 */
 		size_t len = ofw_package_to_path(current, path, OFW_TREE_PATH_MAX_LEN);
 		if (len == (size_t) -1)
 			return;
-		
+
 		path[len] = '\0';
-		
+
 		/* Find last slash */
 		size_t i;
 		for (i = len; (i > 0) && (path[i - 1] != '/'); i--);
-		
+
 		/* Do not include the slash */
 		len -= i;
-		
+
 		/* Add space for trailing '\0' */
 		char *da_name = ofw_tree_space_alloc(len + 1);
 		if (!da_name)
 			return;
-		
+
 		memcpy(da_name, &path[i], len);
 		da_name[len] = '\0';
 		current_node->da_name = (char *) balloc_rebase(da_name);
-		
+
 		/*
 		 * Recursively process the potential child node.
 		 */
@@ -136,7 +136,7 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 				    (ofw_tree_node_t *) balloc_rebase(child_node);
 			}
 		}
-		
+
 		/*
 		 * Count properties.
 		 */
@@ -145,10 +145,10 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 			current_node->properties++;
 			memcpy(name, name2, OFW_TREE_PROPERTY_MAX_NAMELEN);
 		}
-		
+
 		if (!current_node->properties)
 			return;
-		
+
 		/*
 		 * Copy properties.
 		 */
@@ -156,19 +156,19 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 		    ofw_tree_properties_alloc(current_node->properties);
 		if (!property)
 			return;
-		
+
 		name[0] = '\0';
 		for (i = 0; ofw_next_property(current, name, name2) == 1; i++) {
 			if (i == current_node->properties)
 				break;
-			
+
 			memcpy(name, name2, OFW_TREE_PROPERTY_MAX_NAMELEN);
 			memcpy(property[i].name, name, OFW_TREE_PROPERTY_MAX_NAMELEN);
 			property[i].name[OFW_TREE_PROPERTY_MAX_NAMELEN - 1] = '\0';
-			
+
 			size_t size = ofw_get_proplen(current, name);
 			property[i].size = size;
-			
+
 			if (size) {
 				void *buf = ofw_tree_space_alloc(size);
 				if (buf) {
@@ -181,11 +181,11 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 			} else
 				property[i].value = NULL;
 		}
-		
+
 		/* Just in case we ran out of memory. */
 		current_node->properties = i;
 		current_node->property = (ofw_tree_property_t *) balloc_rebase(property);
-		
+
 		/*
 		 * Iteratively process the next peer node.
 		 * Note that recursion is a bad idea here.
@@ -206,7 +206,7 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 				continue;
 			}
 		}
-		
+
 		/*
 		 * No more peers on this level.
 		 */
@@ -224,7 +224,7 @@ ofw_tree_node_t *ofw_tree_build(void)
 	ofw_tree_node_t *root = ofw_tree_node_alloc();
 	if (root)
 		ofw_tree_node_process(root, NULL, ofw_root);
-	
+
 	/*
 	 * The firmware client interface does not automatically include the
 	 * "ssm" node in the list of children of "/". A nasty yet working
@@ -240,6 +240,6 @@ ofw_tree_node_t *ofw_tree_build(void)
 			root->child = (ofw_tree_node_t *) balloc_rebase(ssm);
 		}
 	}
-	
+
 	return (ofw_tree_node_t *) balloc_rebase(root);
 }

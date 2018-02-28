@@ -70,7 +70,7 @@ errno_t process_input(cliuser_t *usr)
 	if (tokens_buf == NULL)
 		return ENOMEM;
 	token_t *tokens = tokens_buf;
-	
+
 	char *cmd[WORD_MAX];
 	errno_t rc = EOK;
 	tokenizer_t tok;
@@ -88,22 +88,22 @@ errno_t process_input(cliuser_t *usr)
 	if (rc != EOK) {
 		goto finit;
 	}
-	
+
 	size_t tokens_length;
 	rc = tok_tokenize(&tok, &tokens_length);
 	if (rc != EOK) {
 		goto finit;
 	}
-	
+
 	if (tokens_length > 0 && tokens[0].type == TOKTYPE_SPACE) {
 		tokens++;
 		tokens_length--;
 	}
-	
+
 	if (tokens_length > 0 && tokens[tokens_length-1].type == TOKTYPE_SPACE) {
 		tokens_length--;
 	}
-	
+
 	/* Until full support for pipes is implemented, allow for a simple case:
 	 * [from <file> |] command [| to <file>]
 	 *
@@ -120,12 +120,12 @@ errno_t process_input(cliuser_t *usr)
 			pipe_count++;
 		}
 	}
-	
+
 	unsigned int cmd_token_start = 0;
 	unsigned int cmd_token_end = tokens_length;
-	
+
 	processed_pipes = 0;
-	
+
 	/* Check if the first part (from <file> |) is present */
 	if (pipe_count > 0 && (pipe_pos[0] == 3 || pipe_pos[0] == 4) && str_cmp(tokens[0].text, "from") == 0) {
 		/* Ignore the first three tokens (from, file, pipe) and set from */
@@ -133,7 +133,7 @@ errno_t process_input(cliuser_t *usr)
 		cmd_token_start = pipe_pos[0]+1;
 		processed_pipes++;
 	}
-	
+
 	/* Check if the second part (| to <file>) is present */
 	if ((pipe_count - processed_pipes) > 0 &&
 	    (pipe_pos[processed_pipes] == tokens_length - 4 ||
@@ -145,13 +145,13 @@ errno_t process_input(cliuser_t *usr)
 		cmd_token_end = pipe_pos[processed_pipes];
 		processed_pipes++;
 	}
-	
+
 	if (processed_pipes != pipe_count) {
 		print_pipe_usage();
 		rc = ENOTSUP;
 		goto finit;
 	}
-	
+
 	/* Convert tokens of the command to string array */
 	unsigned int cmd_pos = 0;
 	for (i = cmd_token_start; i < cmd_token_end; i++) {
@@ -160,22 +160,22 @@ errno_t process_input(cliuser_t *usr)
 		}
 	}
 	cmd[cmd_pos++] = NULL;
-	
+
 	if (cmd[0] == NULL) {
 		print_pipe_usage();
 		rc = ENOTSUP;
 		goto finit;
 	}
-	
+
 	iostate_t new_iostate = {
 		.stdin = stdin,
 		.stdout = stdout,
 		.stderr = stderr
 	};
-	
+
 	FILE *from = NULL;
 	FILE *to = NULL;
-	
+
 	if (redir_from) {
 		from = fopen(redir_from, "r");
 		if (from == NULL) {
@@ -185,8 +185,8 @@ errno_t process_input(cliuser_t *usr)
 		}
 		new_iostate.stdin = from;
 	}
-	
-	
+
+
 	if (redir_to) {
 		to = fopen(redir_to, "w");
 		if (to == NULL) {
@@ -202,7 +202,7 @@ errno_t process_input(cliuser_t *usr)
 	} else {
 		rc = EINVAL;
 	}
-	
+
 finit_with_files:
 	if (from != NULL) {
 		fclose(from);
@@ -210,7 +210,7 @@ finit_with_files:
 	if (to != NULL) {
 		fclose(to);
 	}
-	
+
 finit:
 	if (NULL != usr->line) {
 		free(usr->line);
@@ -229,23 +229,23 @@ void print_pipe_usage(void)
 	printf("from filename | command ...\n");
 	printf("from filename | command ... | to filename\n");
 	printf("command ... | to filename\n");
-	
+
 }
 
 int run_command(char **cmd, cliuser_t *usr, iostate_t *new_iostate)
 {
 	int id = 0;
-	
+
 	/* We have rubbish */
 	if (NULL == cmd[0]) {
 		return CL_ENOENT;
 	}
-	
+
 	/* Is it a builtin command ? */
 	if ((id = (is_builtin(cmd[0]))) > -1) {
 		return run_builtin(id, cmd, usr, new_iostate);
 	}
-	
+
 	/* Is it a module ? */
 	if ((id = (is_module(cmd[0]))) > -1) {
 		return run_module(id, cmd, new_iostate);
@@ -259,7 +259,7 @@ void get_input(cliuser_t *usr)
 {
 	char *str;
 	errno_t rc;
-	
+
 	tinput_set_prompt(tinput, usr->prompt);
 
 	rc = tinput_read(tinput, &str);

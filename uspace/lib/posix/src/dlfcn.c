@@ -41,7 +41,7 @@ void *dlopen(const char *filename, int flags)
 	if (flags != 0) {
 		fprintf(stderr, "dlopen() not implemented with non-zero flags (%s:%d), something will NOT work.\n", __FILE__, __LINE__);
 	}
-	
+
 	return __helenos_libc_dlopen(filename, 0);
 }
 

@@ -70,7 +70,7 @@ static irq_ownership_t ns16550_claim(irq_t *irq)
 static void ns16550_irq_handler(irq_t *irq)
 {
 	ns16550_instance_t *instance = irq->instance;
-	
+
 	while (ns16550_reg_read(instance, NS16550_REG_LSR) & LSR_DATA_READY) {
 		uint8_t data = ns16550_reg_read(instance, NS16550_REG_RBR);
 		indev_push_character(instance->input, data);
@@ -94,7 +94,7 @@ static void ns16550_sendb(ns16550_instance_t *instance, uint8_t byte)
 static void ns16550_putchar(outdev_t *dev, wchar_t ch)
 {
 	ns16550_instance_t *instance = (ns16550_instance_t *) dev->data;
-	
+
 	if ((!instance->parea.mapped) || (console_override)) {
 		if (ascii_check(ch))
 			ns16550_sendb(instance, (uint8_t) ch);
@@ -134,7 +134,7 @@ ns16550_instance_t *ns16550_init(ioport8_t *dev, unsigned reg_shift, inr_t inr,
 		instance->reg_shift = reg_shift;
 		instance->input = NULL;
 		instance->output = NULL;
-		
+
 		if (output) {
 			instance->output = malloc(sizeof(outdev_t),
 			    FRAME_ATOMIC);
@@ -142,13 +142,13 @@ ns16550_instance_t *ns16550_init(ioport8_t *dev, unsigned reg_shift, inr_t inr,
 				free(instance);
 				return NULL;
 			}
-			
+
 			outdev_initialize("ns16550", instance->output,
 			    &ns16550_ops);
 			instance->output->data = instance;
 			*output = instance->output;
 		}
-		
+
 		irq_initialize(&instance->irq);
 		instance->irq.inr = inr;
 		instance->irq.claim = ns16550_claim;
@@ -156,14 +156,14 @@ ns16550_instance_t *ns16550_init(ioport8_t *dev, unsigned reg_shift, inr_t inr,
 		instance->irq.instance = instance;
 		instance->irq.cir = cir;
 		instance->irq.cir_arg = cir_arg;
-		
+
 		instance->parea.pbase = (uintptr_t) dev;
 		instance->parea.frames = 1;
 		instance->parea.unpriv = false;
 		instance->parea.mapped = false;
 		ddi_parea_register(&instance->parea);
 	}
-	
+
 	return instance;
 }
 
@@ -171,12 +171,12 @@ void ns16550_wire(ns16550_instance_t *instance, indev_t *input)
 {
 	assert(instance);
 	assert(input);
-	
+
 	instance->input = input;
 	irq_register(&instance->irq);
-	
+
 	ns16550_clear_buffer(instance);
-	
+
 	/* Enable interrupts */
 	ns16550_reg_write(instance, NS16550_REG_IER, IER_ERBFI);
 	ns16550_reg_write(instance, NS16550_REG_MCR, MCR_OUT2);

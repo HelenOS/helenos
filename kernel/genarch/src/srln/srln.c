@@ -52,18 +52,18 @@ static void ksrln(void *arg)
 	srln_instance_t *instance = (srln_instance_t *) arg;
 	bool cr = false;
 	uint32_t escape = 0;
-	
+
 	while (true) {
 		wchar_t ch = indev_pop_character(&instance->raw);
-		
+
 		/* ANSI escape sequence processing */
 		if (escape != 0) {
 			escape <<= 8;
 			escape |= ch & 0xff;
-			
+
 			if ((escape == 0x1b4f) || (escape == 0x1b5b) || (escape == 0x1b5b33))
 				continue;
-			
+
 			switch (escape) {
 			case 0x1b4f46:
 			case 0x1b5b46:
@@ -99,29 +99,29 @@ static void ksrln(void *arg)
 				escape = 0;
 			}
 		}
-		
+
 		if (ch == 0x1b) {
 			escape = ch & 0xff;
 			continue;
 		}
-		
+
 		/* Replace carriage return with line feed
 		   and suppress any following line feed */
 		if ((ch == '\n') && (cr)) {
 			cr = false;
 			continue;
 		}
-		
+
 		if (ch == '\r') {
 			ch = '\n';
 			cr = true;
 		} else
 			cr = false;
-		
+
 		/* Backspace */
 		if (ch == 0x7f)
 			ch = '\b';
-		
+
 		indev_push_character(instance->sink, ch);
 	}
 }
@@ -133,16 +133,16 @@ srln_instance_t *srln_init(void)
 	if (instance) {
 		instance->thread = thread_create(ksrln, (void *) instance,
 		    TASK, THREAD_FLAG_NONE, "ksrln");
-		
+
 		if (!instance->thread) {
 			free(instance);
 			return NULL;
 		}
-		
+
 		instance->sink = NULL;
 		indev_initialize("srln", &instance->raw, &srln_raw_ops);
 	}
-	
+
 	return instance;
 }
 
@@ -150,10 +150,10 @@ indev_t *srln_wire(srln_instance_t *instance, indev_t *sink)
 {
 	assert(instance);
 	assert(sink);
-	
+
 	instance->sink = sink;
 	thread_ready(instance->thread);
-	
+
 	return &instance->raw;
 }
 

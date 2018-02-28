@@ -121,56 +121,56 @@ typedef struct {
 	async_sess_t *parent_sess;
 	/** Device configuration */
 	e1000_info_t info;
-	
+
 	/** Physical registers base address */
 	void *reg_base_phys;
 	/** Virtual registers base address */
 	void *reg_base_virt;
-	
+
 	/** Physical tx ring address */
 	uintptr_t tx_ring_phys;
 	/** Virtual tx ring address */
 	void *tx_ring_virt;
-	
+
 	/** Ring of TX frames, physical address */
 	uintptr_t *tx_frame_phys;
 	/** Ring of TX frames, virtual address */
 	void **tx_frame_virt;
-	
+
 	/** Physical rx ring address */
 	uintptr_t rx_ring_phys;
 	/** Virtual rx ring address */
 	void *rx_ring_virt;
-	
+
 	/** Ring of RX frames, physical address */
 	uintptr_t *rx_frame_phys;
 	/** Ring of RX frames, virtual address */
 	void **rx_frame_virt;
-	
+
 	/** VLAN tag */
 	uint16_t vlan_tag;
-	
+
 	/** Add VLAN tag to frame */
 	bool vlan_tag_add;
-	
+
 	/** Used unicast Receive Address count */
 	unsigned int unicast_ra_count;
-	
+
 	/** Used milticast Receive addrress count */
 	unsigned int multicast_ra_count;
-	
+
 	/** The irq assigned */
 	int irq;
-	
+
 	/** Lock for CTRL register */
 	fibril_mutex_t ctrl_lock;
-	
+
 	/** Lock for receiver */
 	fibril_mutex_t rx_lock;
-	
+
 	/** Lock for transmitter */
 	fibril_mutex_t tx_lock;
-	
+
 	/** Lock for EEPROM access */
 	fibril_mutex_t eeprom_lock;
 } e1000_t;
@@ -291,19 +291,19 @@ static errno_t e1000_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
 {
 	assert(dev);
 	assert(info);
-	
+
 	memset(info, 0, sizeof(nic_device_info_t));
-	
+
 	info->vendor_id = 0x8086;
 	str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH,
 	    "Intel Corporation");
 	str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH,
 	    "Intel Pro");
-	
+
 	info->ethernet_support[ETH_10M] = ETH_10BASE_T;
 	info->ethernet_support[ETH_100M] = ETH_100BASE_TX;
 	info->ethernet_support[ETH_1000M] = ETH_1000BASE_T;
-	
+
 	return EOK;
 }
 
@@ -322,7 +322,7 @@ static errno_t e1000_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 		*state = NIC_CS_PLUGGED;
 	else
 		*state = NIC_CS_UNPLUGGED;
-	
+
 	return EOK;
 }
 
@@ -339,15 +339,15 @@ static errno_t e1000_get_operation_mode(ddf_fun_t *fun, int *speed,
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	uint32_t status = E1000_REG_READ(e1000, E1000_STATUS);
-	
+
 	if (status & STATUS_FD)
 		*duplex = NIC_CM_FULL_DUPLEX;
 	else
 		*duplex = NIC_CM_HALF_DUPLEX;
-	
+
 	uint32_t speed_bits =
 	    (status >> STATUS_SPEED_SHIFT) & STATUS_SPEED_ALL;
-	
+
 	if (speed_bits == STATUS_SPEED_10)
 		*speed = 10;
 	else if (speed_bits == STATUS_SPEED_100)
@@ -355,7 +355,7 @@ static errno_t e1000_get_operation_mode(ddf_fun_t *fun, int *speed,
 	else if ((speed_bits == STATUS_SPEED_1000A) ||
 	    (speed_bits == STATUS_SPEED_1000B))
 		*speed = 1000;
-	
+
 	*role = NIC_ROLE_UNKNOWN;
 	return EOK;
 }
@@ -363,22 +363,22 @@ static errno_t e1000_get_operation_mode(ddf_fun_t *fun, int *speed,
 static void e1000_link_restart(e1000_t *e1000)
 {
 	fibril_mutex_lock(&e1000->ctrl_lock);
-	
+
 	uint32_t ctrl = E1000_REG_READ(e1000, E1000_CTRL);
-	
+
 	if (ctrl & CTRL_SLU) {
 		ctrl &= ~(CTRL_SLU);
 		E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
-		
+
 		async_usleep(10);
-		
+
 		fibril_mutex_lock(&e1000->ctrl_lock);
 		ctrl = E1000_REG_READ(e1000, E1000_CTRL);
 		ctrl |= CTRL_SLU;
 		E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
 	}
-	
+
 	fibril_mutex_unlock(&e1000->ctrl_lock);
 }
 
@@ -390,24 +390,24 @@ static errno_t e1000_set_operation_mode(ddf_fun_t *fun, int speed,
 {
 	if ((speed != 10) && (speed != 100) && (speed != 1000))
 		return EINVAL;
-	
+
 	if ((duplex != NIC_CM_HALF_DUPLEX) && (duplex != NIC_CM_FULL_DUPLEX))
 		return EINVAL;
-	
+
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
-	
+
 	fibril_mutex_lock(&e1000->ctrl_lock);
 	uint32_t ctrl = E1000_REG_READ(e1000, E1000_CTRL);
-	
+
 	ctrl |= CTRL_FRCSPD;
 	ctrl |= CTRL_FRCDPLX;
 	ctrl &= ~(CTRL_ASDE);
-	
+
 	if (duplex == NIC_CM_FULL_DUPLEX)
 		ctrl |= CTRL_FD;
 	else
 		ctrl &= ~(CTRL_FD);
-	
+
 	ctrl &= ~(CTRL_SPEED_MASK);
 	if (speed == 1000)
 		ctrl |= CTRL_SPEED_1000 << CTRL_SPEED_SHIFT;
@@ -415,13 +415,13 @@ static errno_t e1000_set_operation_mode(ddf_fun_t *fun, int speed,
 		ctrl |= CTRL_SPEED_100 << CTRL_SPEED_SHIFT;
 	else
 		ctrl |= CTRL_SPEED_10 << CTRL_SPEED_SHIFT;
-	
+
 	E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
-	
+
 	fibril_mutex_unlock(&e1000->ctrl_lock);
-	
+
 	e1000_link_restart(e1000);
-	
+
 	return EOK;
 }
 
@@ -436,21 +436,21 @@ static errno_t e1000_set_operation_mode(ddf_fun_t *fun, int speed,
 static errno_t e1000_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
-	
+
 	fibril_mutex_lock(&e1000->ctrl_lock);
-	
+
 	uint32_t ctrl = E1000_REG_READ(e1000, E1000_CTRL);
-	
+
 	ctrl &= ~(CTRL_FRCSPD);
 	ctrl &= ~(CTRL_FRCDPLX);
 	ctrl |= CTRL_ASDE;
-	
+
 	E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
-	
+
 	fibril_mutex_unlock(&e1000->ctrl_lock);
-	
+
 	e1000_link_restart(e1000);
-	
+
 	return EOK;
 }
 
@@ -464,21 +464,21 @@ static errno_t e1000_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 static errno_t e1000_autoneg_disable(ddf_fun_t *fun)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
-	
+
 	fibril_mutex_lock(&e1000->ctrl_lock);
-	
+
 	uint32_t ctrl = E1000_REG_READ(e1000, E1000_CTRL);
-	
+
 	ctrl |= CTRL_FRCSPD;
 	ctrl |= CTRL_FRCDPLX;
 	ctrl &= ~(CTRL_ASDE);
-	
+
 	E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
-	
+
 	fibril_mutex_unlock(&e1000->ctrl_lock);
-	
+
 	e1000_link_restart(e1000);
-	
+
 	return EOK;
 }
 
@@ -503,12 +503,12 @@ static errno_t e1000_autoneg_restart(ddf_fun_t *dev)
 static errno_t e1000_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
-	
+
 	*mode = 0;
 	uint32_t rctl = E1000_REG_READ(e1000, E1000_RCTL);
 	if (rctl & RCTL_SBP)
 		*mode = NIC_DEFECTIVE_BAD_CRC | NIC_DEFECTIVE_SHORT;
-	
+
 	return EOK;
 };
 
@@ -525,22 +525,22 @@ static errno_t e1000_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
 {
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
 	errno_t rc = EOK;
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	uint32_t rctl = E1000_REG_READ(e1000, E1000_RCTL);
 	bool short_mode = (mode & NIC_DEFECTIVE_SHORT ? true : false);
 	bool bad_mode = (mode & NIC_DEFECTIVE_BAD_CRC ? true : false);
-	
+
 	if (short_mode && bad_mode)
 		rctl |= RCTL_SBP;
 	else if ((!short_mode) && (!bad_mode))
 		rctl &= ~RCTL_SBP;
 	else
 		rc = ENOTSUP;
-	
+
 	E1000_REG_WRITE(e1000, E1000_RCTL, rctl);
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return rc;
 };
@@ -562,18 +562,18 @@ static void e1000_write_receive_address(e1000_t *e1000, unsigned int position,
 	uint8_t *mac3 = (uint8_t *) address->address + 3;
 	uint8_t *mac4 = (uint8_t *) address->address + 4;
 	uint8_t *mac5 = (uint8_t *) address->address + 5;
-	
+
 	uint32_t rah;
 	uint32_t ral;
-	
+
 	ral = ((*mac3) << 24) | ((*mac2) << 16) | ((*mac1) << 8) | (*mac0);
 	rah = ((*mac5) << 8) | ((*mac4));
-	
+
 	if (set_av_bit)
 		rah |= RAH_AV;
 	else
 		rah |= E1000_REG_READ(e1000, E1000_RAH_ARRAY(position)) & RAH_AV;
-	
+
 	E1000_REG_WRITE(e1000, E1000_RAH_ARRAY(position), rah);
 	E1000_REG_WRITE(e1000, E1000_RAL_ARRAY(position), ral);
 }
@@ -604,7 +604,7 @@ static void e1000_clear_unicast_receive_addresses(e1000_t *e1000)
 	    ra_num <= e1000->unicast_ra_count;
 	    ra_num++)
 		e1000_disable_receive_address(e1000, ra_num);
-	
+
 	e1000->unicast_ra_count = 0;
 }
 
@@ -617,12 +617,12 @@ static void e1000_clear_multicast_receive_addresses(e1000_t *e1000)
 {
 	unsigned int first_multicast_ra_num =
 	    E1000_RECEIVE_ADDRESS - e1000->multicast_ra_count;
-	
+
 	for (unsigned int ra_num = E1000_RECEIVE_ADDRESS - 1;
 	    ra_num >= first_multicast_ra_num;
 	    ra_num--)
 		e1000_disable_receive_address(e1000, ra_num);
-	
+
 	e1000->multicast_ra_count = 0;
 }
 
@@ -661,9 +661,9 @@ static void e1000_add_unicast_receive_addresses(e1000_t *e1000,
     const nic_address_t *addr, size_t addr_cnt)
 {
 	assert(addr_cnt <= get_free_unicast_address_count(e1000));
-	
+
 	nic_address_t *addr_iterator = (nic_address_t *) addr;
-	
+
 	/* ra_num = 0 is primary address */
 	for (unsigned int ra_num = 1;
 	    ra_num <= addr_cnt;
@@ -684,9 +684,9 @@ static void e1000_add_multicast_receive_addresses(e1000_t *e1000,
     const nic_address_t *addr, size_t addr_cnt)
 {
 	assert(addr_cnt <= get_free_multicast_address_count(e1000));
-	
+
 	nic_address_t *addr_iterator = (nic_address_t *) addr;
-	
+
 	unsigned int first_multicast_ra_num = E1000_RECEIVE_ADDRESS - addr_cnt;
 	for (unsigned int ra_num = E1000_RECEIVE_ADDRESS - 1;
 	    ra_num >= first_multicast_ra_num;
@@ -831,9 +831,9 @@ static errno_t e1000_on_multicast_mode_change(nic_t *nic, nic_multicast_mode_t m
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	errno_t rc = EOK;
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	switch (mode) {
 	case NIC_MULTICAST_BLOCKED:
 		e1000_clear_multicast_receive_addresses(e1000);
@@ -865,7 +865,7 @@ static errno_t e1000_on_multicast_mode_change(nic_t *nic, nic_multicast_mode_t m
 		rc = ENOTSUP;
 		break;
 	}
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return rc;
 }
@@ -885,9 +885,9 @@ static errno_t e1000_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	errno_t rc = EOK;
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	switch (mode) {
 	case NIC_UNICAST_BLOCKED:
 		disable_ra0_address_filter(e1000);
@@ -923,7 +923,7 @@ static errno_t e1000_on_unicast_mode_change(nic_t *nic, nic_unicast_mode_t mode,
 		rc = ENOTSUP;
 		break;
 	}
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return rc;
 }
@@ -940,9 +940,9 @@ static errno_t e1000_on_broadcast_mode_change(nic_t *nic, nic_broadcast_mode_t m
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	errno_t rc = EOK;
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	switch (mode) {
 	case NIC_BROADCAST_BLOCKED:
 		e1000_disable_broadcast_accept(e1000);
@@ -954,7 +954,7 @@ static errno_t e1000_on_broadcast_mode_change(nic_t *nic, nic_broadcast_mode_t m
 		rc = ENOTSUP;
 		break;
 	}
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return rc;
 }
@@ -970,7 +970,7 @@ static bool e1000_is_rx_enabled(e1000_t *e1000)
 {
 	if (E1000_REG_READ(e1000, E1000_RCTL) & (RCTL_EN))
 		return true;
-	
+
 	return false;
 }
 
@@ -1008,9 +1008,9 @@ static void e1000_on_vlan_mask_change(nic_t *nic,
     const nic_vlan_mask_t *vlan_mask)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	if (vlan_mask) {
 		/*
 		 * Disable receiving, so that frame matching
@@ -1019,7 +1019,7 @@ static void e1000_on_vlan_mask_change(nic_t *nic,
 		bool rx_enabled = e1000_is_rx_enabled(e1000);
 		if (rx_enabled)
 			e1000_disable_rx(e1000);
-		
+
 		for (unsigned int i = 0; i < NIC_VLAN_BITMAP_SIZE; i += 4) {
 			uint32_t bitmap_part =
 			    ((uint32_t) vlan_mask->bitmap[i]) |
@@ -1028,13 +1028,13 @@ static void e1000_on_vlan_mask_change(nic_t *nic,
 			    (((uint32_t) vlan_mask->bitmap[i + 3]) << 24);
 			E1000_REG_WRITE(e1000, E1000_VFTA_ARRAY(i / 4), bitmap_part);
 		}
-		
+
 		e1000_enable_vlan_filter(e1000);
 		if (rx_enabled)
 			e1000_enable_rx(e1000);
 	} else
 		e1000_disable_vlan_filter(e1000);
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
 }
 
@@ -1053,29 +1053,29 @@ static errno_t e1000_vlan_set_tag(ddf_fun_t *fun, uint16_t tag, bool add,
 	/* VLAN CFI bit cannot be set */
 	if (tag & VLANTAG_CFI)
 		return ENOTSUP;
-	
+
 	/*
 	 * CTRL.VME is neccessary for both strip and add
 	 * but CTRL.VME means stripping tags on receive.
 	 */
 	if (!strip && add)
 		return ENOTSUP;
-	
+
 	e1000_t *e1000 = DRIVER_DATA_FUN(fun);
-	
+
 	e1000->vlan_tag = tag;
 	e1000->vlan_tag_add = add;
-	
+
 	fibril_mutex_lock(&e1000->ctrl_lock);
-	
+
 	uint32_t ctrl = E1000_REG_READ(e1000, E1000_CTRL);
 	if (strip)
 		ctrl |= CTRL_VME;
 	else
 		ctrl &= ~CTRL_VME;
-	
+
 	E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
-	
+
 	fibril_mutex_unlock(&e1000->ctrl_lock);
 	return EOK;
 }
@@ -1091,10 +1091,10 @@ static errno_t e1000_vlan_set_tag(ddf_fun_t *fun, uint16_t tag, bool add,
 static void e1000_fill_new_rx_descriptor(nic_t *nic, size_t offset)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	e1000_rx_descriptor_t *rx_descriptor = (e1000_rx_descriptor_t *)
 	    (e1000->rx_ring_virt + offset * sizeof(e1000_rx_descriptor_t));
-	
+
 	rx_descriptor->phys_addr = PTR_TO_U64(e1000->rx_frame_phys[offset]);
 	rx_descriptor->length = 0;
 	rx_descriptor->checksum = 0;
@@ -1113,7 +1113,7 @@ static void e1000_clear_rx_descriptor(e1000_t *e1000, unsigned int offset)
 {
 	e1000_rx_descriptor_t *rx_descriptor = (e1000_rx_descriptor_t *)
 	    (e1000->rx_ring_virt + offset * sizeof(e1000_rx_descriptor_t));
-	
+
 	rx_descriptor->length = 0;
 	rx_descriptor->checksum = 0;
 	rx_descriptor->status = 0;
@@ -1130,10 +1130,10 @@ static void e1000_clear_rx_descriptor(e1000_t *e1000, unsigned int offset)
 static void e1000_clear_tx_descriptor(nic_t *nic, unsigned int offset)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	e1000_tx_descriptor_t *tx_descriptor = (e1000_tx_descriptor_t *)
 	    (e1000->tx_ring_virt + offset * sizeof(e1000_tx_descriptor_t));
-	
+
 	tx_descriptor->phys_addr = 0;
 	tx_descriptor->length = 0;
 	tx_descriptor->checksum_offset = 0;
@@ -1167,18 +1167,18 @@ static uint32_t e1000_inc_tail(uint32_t tail, uint32_t descriptors_count)
 static void e1000_receive_frames(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	uint32_t *tail_addr = E1000_REG_ADDR(e1000, E1000_RDT);
 	uint32_t next_tail = e1000_inc_tail(*tail_addr, E1000_RX_FRAME_COUNT);
-	
+
 	e1000_rx_descriptor_t *rx_descriptor = (e1000_rx_descriptor_t *)
 	    (e1000->rx_ring_virt + next_tail * sizeof(e1000_rx_descriptor_t));
-	
+
 	while (rx_descriptor->status & 0x01) {
 		uint32_t frame_size = rx_descriptor->length - E1000_CRC_SIZE;
-		
+
 		nic_frame_t *frame = nic_alloc_frame(nic, frame_size);
 		if (frame != NULL) {
 			memcpy(frame->data, e1000->rx_frame_virt[next_tail], frame_size);
@@ -1186,16 +1186,16 @@ static void e1000_receive_frames(nic_t *nic)
 		} else {
 			ddf_msg(LVL_ERROR, "Memory allocation failed. Frame dropped.");
 		}
-		
+
 		e1000_fill_new_rx_descriptor(nic, next_tail);
-		
+
 		*tail_addr = e1000_inc_tail(*tail_addr, E1000_RX_FRAME_COUNT);
 		next_tail = e1000_inc_tail(*tail_addr, E1000_RX_FRAME_COUNT);
-		
+
 		rx_descriptor = (e1000_rx_descriptor_t *)
 		    (e1000->rx_ring_virt + next_tail * sizeof(e1000_rx_descriptor_t));
 	}
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
 }
 
@@ -1246,7 +1246,7 @@ static void e1000_interrupt_handler(ipc_call_t *icall,
 	uint32_t icr = (uint32_t) IPC_GET_ARG2(*icall);
 	nic_t *nic = NIC_DATA_DEV(dev);
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	e1000_interrupt_handler_impl(nic, icr);
 	e1000_enable_interrupts(e1000);
 }
@@ -1266,17 +1266,17 @@ static void e1000_interrupt_handler(ipc_call_t *icall,
 inline static errno_t e1000_register_int_handler(nic_t *nic, cap_handle_t *handle)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	/* Lock the mutex in whole driver while working with global structure */
 	fibril_mutex_lock(&irq_reg_mutex);
-	
+
 	e1000_irq_code.ranges[0].base = (uintptr_t) e1000->reg_base_phys;
 	e1000_irq_code.cmds[0].addr = e1000->reg_base_phys + E1000_ICR;
 	e1000_irq_code.cmds[2].addr = e1000->reg_base_phys + E1000_IMC;
-	
+
 	errno_t rc = register_interrupt_handler(nic_get_ddf_dev(nic), e1000->irq,
 	    e1000_interrupt_handler, &e1000_irq_code, handle);
-	
+
 	fibril_mutex_unlock(&irq_reg_mutex);
 	return rc;
 }
@@ -1289,10 +1289,10 @@ inline static errno_t e1000_register_int_handler(nic_t *nic, cap_handle_t *handl
 static void e1000_poll(nic_t *nic)
 {
 	assert(nic);
-	
+
 	e1000_t *e1000 = nic_get_specific(nic);
 	assert(e1000);
-	
+
 	uint32_t icr = E1000_REG_READ(e1000, E1000_ICR);
 	e1000_interrupt_handler_impl(nic, icr);
 }
@@ -1322,10 +1322,10 @@ static errno_t e1000_poll_mode_change(nic_t *nic, nic_poll_mode_t mode,
     const struct timeval *period)
 {
 	assert(nic);
-	
+
 	e1000_t *e1000 = nic_get_specific(nic);
 	assert(e1000);
-	
+
 	switch (mode) {
 	case NIC_POLL_IMMEDIATE:
 		E1000_REG_WRITE(e1000, E1000_ITR, 0);
@@ -1343,7 +1343,7 @@ static errno_t e1000_poll_mode_change(nic_t *nic, nic_poll_mode_t mode,
 	default:
 		return ENOTSUP;
 	}
-	
+
 	return EOK;
 }
 
@@ -1356,10 +1356,10 @@ static void e1000_initialize_rx_registers(e1000_t *e1000)
 {
 	E1000_REG_WRITE(e1000, E1000_RDLEN, E1000_RX_FRAME_COUNT * 16);
 	E1000_REG_WRITE(e1000, E1000_RDH, 0);
-	
+
 	/* It is not posible to let HW use all descriptors */
 	E1000_REG_WRITE(e1000, E1000_RDT, E1000_RX_FRAME_COUNT - 1);
-	
+
 	/* Set Broadcast Enable Bit */
 	E1000_REG_WRITE(e1000, E1000_RCTL, RCTL_BAM);
 }
@@ -1376,7 +1376,7 @@ static errno_t e1000_initialize_rx_structure(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	e1000->rx_ring_virt = AS_AREA_ANY;
 	errno_t rc = dmamem_map_anonymous(
 	    E1000_RX_FRAME_COUNT * sizeof(e1000_rx_descriptor_t),
@@ -1384,12 +1384,12 @@ static errno_t e1000_initialize_rx_structure(nic_t *nic)
 	    &e1000->rx_ring_phys, &e1000->rx_ring_virt);
 	if (rc != EOK)
 		return rc;
-	
+
 	E1000_REG_WRITE(e1000, E1000_RDBAH,
 	    (uint32_t) (PTR_TO_U64(e1000->rx_ring_phys) >> 32));
 	E1000_REG_WRITE(e1000, E1000_RDBAL,
 	    (uint32_t) PTR_TO_U64(e1000->rx_ring_phys));
-	
+
 	e1000->rx_frame_phys = (uintptr_t *)
 	    calloc(E1000_RX_FRAME_COUNT, sizeof(uintptr_t));
 	e1000->rx_frame_virt =
@@ -1398,30 +1398,30 @@ static errno_t e1000_initialize_rx_structure(nic_t *nic)
 		rc = ENOMEM;
 		goto error;
 	}
-	
+
 	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++) {
 		uintptr_t frame_phys;
 		void *frame_virt = AS_AREA_ANY;
-		
+
 		rc = dmamem_map_anonymous(E1000_MAX_SEND_FRAME_SIZE,
 		    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 		    &frame_phys, &frame_virt);
 		if (rc != EOK)
 			goto error;
-		
+
 		e1000->rx_frame_phys[i] = frame_phys;
 		e1000->rx_frame_virt[i] = frame_virt;
 	}
-	
+
 	/* Write descriptor */
 	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++)
 		e1000_fill_new_rx_descriptor(nic, i);
-	
+
 	e1000_initialize_rx_registers(e1000);
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return EOK;
-	
+
 error:
 	for (size_t i = 0; i < E1000_RX_FRAME_COUNT; i++) {
 		if (e1000->rx_frame_virt[i] != NULL) {
@@ -1430,17 +1430,17 @@ error:
 			e1000->rx_frame_virt[i] = NULL;
 		}
 	}
-	
+
 	if (e1000->rx_frame_phys != NULL) {
 		free(e1000->rx_frame_phys);
 		e1000->rx_frame_phys = NULL;
 	}
-	
+
 	if (e1000->rx_frame_virt != NULL) {
 		free(e1000->rx_frame_virt);
 		e1000->rx_frame_virt = NULL;
 	}
-	
+
 	return rc;
 }
 
@@ -1452,19 +1452,19 @@ error:
 static void e1000_uninitialize_rx_structure(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	/* Write descriptor */
 	for (unsigned int offset = 0; offset < E1000_RX_FRAME_COUNT; offset++) {
 		dmamem_unmap_anonymous(e1000->rx_frame_virt[offset]);
 		e1000->rx_frame_phys[offset] = 0;
 		e1000->rx_frame_virt[offset] = NULL;
 	}
-	
+
 	free(e1000->rx_frame_virt);
-	
+
 	e1000->rx_frame_phys = NULL;
 	e1000->rx_frame_virt = NULL;
-	
+
 	dmamem_unmap_anonymous(e1000->rx_ring_virt);
 }
 
@@ -1549,12 +1549,12 @@ static void e1000_initialize_tx_registers(e1000_t *e1000)
 	E1000_REG_WRITE(e1000, E1000_TDLEN, E1000_TX_FRAME_COUNT * 16);
 	E1000_REG_WRITE(e1000, E1000_TDH, 0);
 	E1000_REG_WRITE(e1000, E1000_TDT, 0);
-	
+
 	E1000_REG_WRITE(e1000, E1000_TIPG,
 	    10 << TIPG_IPGT_SHIFT |
 	    8 << TIPG_IPGR1_SHIFT |
 	    6 << TIPG_IPGR2_SHIFT);
-	
+
 	E1000_REG_WRITE(e1000, E1000_TCTL,
 	    0x0F << TCTL_CT_SHIFT /* Collision Threshold */ |
 	    0x40 << TCTL_COLD_SHIFT /* Collision Distance */ |
@@ -1569,25 +1569,25 @@ static void e1000_initialize_tx_registers(e1000_t *e1000)
 static errno_t e1000_initialize_tx_structure(e1000_t *e1000)
 {
 	size_t i;
-	
+
 	fibril_mutex_lock(&e1000->tx_lock);
-	
+
 	e1000->tx_ring_phys = 0;
 	e1000->tx_ring_virt = AS_AREA_ANY;
-	
+
 	e1000->tx_frame_phys = NULL;
 	e1000->tx_frame_virt = NULL;
-	
+
 	errno_t rc = dmamem_map_anonymous(
 	    E1000_TX_FRAME_COUNT * sizeof(e1000_tx_descriptor_t),
 	    DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 	    &e1000->tx_ring_phys, &e1000->tx_ring_virt);
 	if (rc != EOK)
 		goto error;
-	
+
 	memset(e1000->tx_ring_virt, 0,
 	    E1000_TX_FRAME_COUNT * sizeof(e1000_tx_descriptor_t));
-	
+
 	e1000->tx_frame_phys = (uintptr_t *)
 	    calloc(E1000_TX_FRAME_COUNT, sizeof(uintptr_t));
 	e1000->tx_frame_virt =
@@ -1597,7 +1597,7 @@ static errno_t e1000_initialize_tx_structure(e1000_t *e1000)
 		rc = ENOMEM;
 		goto error;
 	}
-	
+
 	for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
 		e1000->tx_frame_virt[i] = AS_AREA_ANY;
 		rc = dmamem_map_anonymous(E1000_MAX_SEND_FRAME_SIZE,
@@ -1606,23 +1606,23 @@ static errno_t e1000_initialize_tx_structure(e1000_t *e1000)
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	E1000_REG_WRITE(e1000, E1000_TDBAH,
 	    (uint32_t) (PTR_TO_U64(e1000->tx_ring_phys) >> 32));
 	E1000_REG_WRITE(e1000, E1000_TDBAL,
 	    (uint32_t) PTR_TO_U64(e1000->tx_ring_phys));
-	
+
 	e1000_initialize_tx_registers(e1000);
-	
+
 	fibril_mutex_unlock(&e1000->tx_lock);
 	return EOK;
-	
+
 error:
 	if (e1000->tx_ring_virt != NULL) {
 		dmamem_unmap_anonymous(e1000->tx_ring_virt);
 		e1000->tx_ring_virt = NULL;
 	}
-	
+
 	if ((e1000->tx_frame_phys != NULL) && (e1000->tx_frame_virt != NULL)) {
 		for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
 			if (e1000->tx_frame_virt[i] != NULL) {
@@ -1632,17 +1632,17 @@ error:
 			}
 		}
 	}
-	
+
 	if (e1000->tx_frame_phys != NULL) {
 		free(e1000->tx_frame_phys);
 		e1000->tx_frame_phys = NULL;
 	}
-	
+
 	if (e1000->tx_frame_virt != NULL) {
 		free(e1000->tx_frame_virt);
 		e1000->tx_frame_virt = NULL;
 	}
-	
+
 	return rc;
 }
 
@@ -1654,23 +1654,23 @@ error:
 static void e1000_uninitialize_tx_structure(e1000_t *e1000)
 {
 	size_t i;
-	
+
 	for (i = 0; i < E1000_TX_FRAME_COUNT; i++) {
 		dmamem_unmap_anonymous(e1000->tx_frame_virt[i]);
 		e1000->tx_frame_phys[i] = 0;
 		e1000->tx_frame_virt[i] = NULL;
 	}
-	
+
 	if (e1000->tx_frame_phys != NULL) {
 		free(e1000->tx_frame_phys);
 		e1000->tx_frame_phys = NULL;
 	}
-	
+
 	if (e1000->tx_frame_virt != NULL) {
 		free(e1000->tx_frame_virt);
 		e1000->tx_frame_virt = NULL;
 	}
-	
+
 	dmamem_unmap_anonymous(e1000->tx_ring_virt);
 }
 
@@ -1720,23 +1720,23 @@ static void e1000_disable_tx(e1000_t *e1000)
 static errno_t e1000_reset(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	E1000_REG_WRITE(e1000, E1000_CTRL, CTRL_RST);
-	
+
 	/* Wait for the reset */
 	async_usleep(20);
-	
+
 	/* check if RST_BIT cleared */
 	if (E1000_REG_READ(e1000, E1000_CTRL) & (CTRL_RST))
 		return EINVAL;
-	
+
 	e1000_initialize_registers(e1000);
 	e1000_initialize_rx_registers(e1000);
 	e1000_initialize_tx_registers(e1000);
 	e1000_fill_mac_from_eeprom(e1000);
 	e1000_initialize_filters(e1000);
 	e1000_initialize_vlan(e1000);
-	
+
 	return EOK;
 }
 
@@ -1751,15 +1751,15 @@ static errno_t e1000_reset(nic_t *nic)
 static errno_t e1000_on_activating(nic_t *nic)
 {
 	assert(nic);
-	
+
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
 	fibril_mutex_lock(&e1000->tx_lock);
 	fibril_mutex_lock(&e1000->ctrl_lock);
-	
+
 	e1000_enable_interrupts(e1000);
-	
+
 	errno_t rc = hw_res_enable_interrupt(e1000->parent_sess, e1000->irq);
 	if (rc != EOK) {
 		e1000_disable_interrupts(e1000);
@@ -1768,21 +1768,21 @@ static errno_t e1000_on_activating(nic_t *nic)
 		fibril_mutex_unlock(&e1000->rx_lock);
 		return rc;
 	}
-	
+
 	e1000_clear_rx_ring(e1000);
 	e1000_enable_rx(e1000);
-	
+
 	e1000_clear_tx_ring(nic);
 	e1000_enable_tx(e1000);
-	
+
 	uint32_t ctrl = E1000_REG_READ(e1000, E1000_CTRL);
 	ctrl |= CTRL_SLU;
 	E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
-	
+
 	fibril_mutex_unlock(&e1000->ctrl_lock);
 	fibril_mutex_unlock(&e1000->tx_lock);
 	fibril_mutex_unlock(&e1000->rx_lock);
-	
+
 	return EOK;
 }
 
@@ -1797,23 +1797,23 @@ static errno_t e1000_on_activating(nic_t *nic)
 static errno_t e1000_on_down_unlocked(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	uint32_t ctrl = E1000_REG_READ(e1000, E1000_CTRL);
 	ctrl &= ~CTRL_SLU;
 	E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
-	
+
 	e1000_disable_tx(e1000);
 	e1000_disable_rx(e1000);
-	
+
 	hw_res_disable_interrupt(e1000->parent_sess, e1000->irq);
 	e1000_disable_interrupts(e1000);
-	
+
 	/*
 	 * Wait for the for the end of all data
 	 * transfers to descriptors.
 	 */
 	async_usleep(100);
-	
+
 	return EOK;
 }
 
@@ -1828,17 +1828,17 @@ static errno_t e1000_on_down_unlocked(nic_t *nic)
 static errno_t e1000_on_down(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
 	fibril_mutex_lock(&e1000->tx_lock);
 	fibril_mutex_lock(&e1000->ctrl_lock);
-	
+
 	errno_t rc = e1000_on_down_unlocked(nic);
-	
+
 	fibril_mutex_unlock(&e1000->ctrl_lock);
 	fibril_mutex_unlock(&e1000->tx_lock);
 	fibril_mutex_unlock(&e1000->rx_lock);
-	
+
 	return rc;
 }
 
@@ -1853,19 +1853,19 @@ static errno_t e1000_on_down(nic_t *nic)
 static errno_t e1000_on_stopping(nic_t *nic)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
 	fibril_mutex_lock(&e1000->tx_lock);
 	fibril_mutex_lock(&e1000->ctrl_lock);
-	
+
 	errno_t rc = e1000_on_down_unlocked(nic);
 	if (rc == EOK)
 		rc = e1000_reset(nic);
-	
+
 	fibril_mutex_unlock(&e1000->ctrl_lock);
 	fibril_mutex_unlock(&e1000->tx_lock);
 	fibril_mutex_unlock(&e1000->rx_lock);
-	
+
 	return rc;
 }
 
@@ -1879,16 +1879,16 @@ static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
 	nic_t *nic = nic_create_and_bind(dev);
 	if (!nic)
 		return NULL;
-	
+
 	e1000_t *e1000 = malloc(sizeof(e1000_t));
 	if (!e1000) {
 		nic_unbind_and_destroy(dev);
 		return NULL;
 	}
-	
+
 	memset(e1000, 0, sizeof(e1000_t));
 	e1000->dev = dev;
-	
+
 	nic_set_specific(nic, e1000);
 	nic_set_send_frame_handler(nic, e1000_send_frame);
 	nic_set_state_change_handlers(nic, e1000_on_activating,
@@ -1897,12 +1897,12 @@ static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
 	    e1000_on_unicast_mode_change, e1000_on_multicast_mode_change,
 	    e1000_on_broadcast_mode_change, NULL, e1000_on_vlan_mask_change);
 	nic_set_poll_handlers(nic, e1000_poll_mode_change, e1000_poll);
-	
+
 	fibril_mutex_initialize(&e1000->ctrl_lock);
 	fibril_mutex_initialize(&e1000->rx_lock);
 	fibril_mutex_initialize(&e1000->tx_lock);
 	fibril_mutex_initialize(&e1000->eeprom_lock);
-	
+
 	return e1000;
 }
 
@@ -1914,7 +1914,7 @@ static e1000_t *e1000_create_dev_data(ddf_dev_t *dev)
 inline static void e1000_delete_dev_data(ddf_dev_t *dev)
 {
 	assert(dev);
-	
+
 	if (ddf_dev_data_get(dev) != NULL)
 		nic_unbind_and_destroy(dev);
 }
@@ -1927,7 +1927,7 @@ inline static void e1000_delete_dev_data(ddf_dev_t *dev)
 static void e1000_dev_cleanup(ddf_dev_t *dev)
 {
 	assert(dev);
-	
+
 	e1000_delete_dev_data(dev);
 }
 
@@ -1946,14 +1946,14 @@ static errno_t e1000_fill_resource_info(ddf_dev_t *dev,
     const hw_res_list_parsed_t *hw_resources)
 {
 	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
-	
+
 	if (hw_resources->irqs.count != 1)
 		return EINVAL;
-	
+
 	e1000->irq = hw_resources->irqs.irqs[0];
 	e1000->reg_base_phys =
 	    MEMADDR_TO_PTR(RNGABS(hw_resources->mem_ranges.ranges[0]));
-	
+
 	return EOK;
 }
 
@@ -1971,19 +1971,19 @@ static errno_t e1000_get_resource_info(ddf_dev_t *dev)
 {
 	assert(dev != NULL);
 	assert(NIC_DATA_DEV(dev) != NULL);
-	
+
 	hw_res_list_parsed_t hw_res_parsed;
 	hw_res_list_parsed_init(&hw_res_parsed);
-	
+
 	/* Get hw resources form parent driver */
 	errno_t rc = nic_get_resources(NIC_DATA_DEV(dev), &hw_res_parsed);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Fill resources information to the device */
 	rc = e1000_fill_resource_info(dev, &hw_res_parsed);
 	hw_res_list_parsed_clean(&hw_res_parsed);
-	
+
 	return rc;
 }
 
@@ -2003,13 +2003,13 @@ static errno_t e1000_device_initialize(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "Unable to allocate device softstate");
 		return ENOMEM;
 	}
-	
+
 	e1000->parent_sess = ddf_dev_parent_sess_get(dev);
 	if (e1000->parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed connecting parent device.");
 		return EIO;
 	}
-	
+
 	/* Obtain and fill hardware resources info */
 	errno_t rc = e1000_get_resource_info(dev);
 	if (rc != EOK) {
@@ -2017,7 +2017,7 @@ static errno_t e1000_device_initialize(ddf_dev_t *dev)
 		e1000_dev_cleanup(dev);
 		return rc;
 	}
-	
+
 	uint16_t device_id;
 	rc = pci_config_space_read_16(ddf_dev_parent_sess_get(dev), PCI_DEVICE_ID,
 	    &device_id);
@@ -2026,7 +2026,7 @@ static errno_t e1000_device_initialize(ddf_dev_t *dev)
 		e1000_dev_cleanup(dev);
 		return rc;
 	}
-	
+
 	e1000_board_t board;
 	switch (device_id) {
 	case 0x100e:
@@ -2076,7 +2076,7 @@ static errno_t e1000_device_initialize(ddf_dev_t *dev)
 		e1000_dev_cleanup(dev);
 		return ENOTSUP;
 	}
-	
+
 	switch (board) {
 	case E1000_82540:
 	case E1000_82541:
@@ -2097,7 +2097,7 @@ static errno_t e1000_device_initialize(ddf_dev_t *dev)
 		e1000->info.eerd_data_offset = 16;
 		break;
 	}
-	
+
 	return EOK;
 }
 
@@ -2112,12 +2112,12 @@ static errno_t e1000_device_initialize(ddf_dev_t *dev)
 static errno_t e1000_pio_enable(ddf_dev_t *dev)
 {
 	e1000_t *e1000 = DRIVER_DATA_DEV(dev);
-	
+
 	errno_t rc = pio_enable(e1000->reg_base_phys, 8 * PAGE_SIZE,
 	    &e1000->reg_base_virt);
 	if (rc != EOK)
 		return EADDRNOTAVAIL;
-	
+
 	return EOK;
 }
 
@@ -2129,74 +2129,74 @@ static errno_t e1000_pio_enable(ddf_dev_t *dev)
 errno_t e1000_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
-	
+
 	/* Initialize device structure for E1000 */
 	errno_t rc = e1000_device_initialize(dev);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Device initialization */
 	nic_t *nic = ddf_dev_data_get(dev);
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	/* Map registers */
 	rc = e1000_pio_enable(dev);
 	if (rc != EOK)
 		goto err_destroy;
-	
+
 	e1000_initialize_registers(e1000);
 	rc = e1000_initialize_tx_structure(e1000);
 	if (rc != EOK)
 		goto err_pio;
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	e1000_fill_mac_from_eeprom(e1000);
 	e1000_initialize_filters(e1000);
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
-	
+
 	e1000_initialize_vlan(e1000);
-	
+
 	fun = ddf_fun_create(nic_get_ddf_dev(nic), fun_exposed, "port0");
 	if (fun == NULL)
 		goto err_tx_structure;
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &e1000_dev_ops);
-	
+
 	int irq_cap;
 	rc = e1000_register_int_handler(nic, &irq_cap);
 	if (rc != EOK) {
 		goto err_fun_create;
 	}
-	
+
 	rc = e1000_initialize_rx_structure(nic);
 	if (rc != EOK)
 		goto err_irq;
-	
+
 	nic_address_t e1000_address;
 	e1000_get_address(e1000, &e1000_address);
 	rc = nic_report_address(nic, &e1000_address);
 	if (rc != EOK)
 		goto err_rx_structure;
-	
+
 	struct timeval period;
 	period.tv_sec = 0;
 	period.tv_usec = E1000_DEFAULT_INTERRUPT_INTERVAL_USEC;
 	rc = nic_report_poll_mode(nic, NIC_POLL_PERIODIC, &period);
 	if (rc != EOK)
 		goto err_rx_structure;
-	
+
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK)
 		goto err_fun_bind;
-	
+
 	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
 	if (rc != EOK)
 		goto err_add_to_cat;
-	
+
 	return EOK;
-	
+
 err_add_to_cat:
 	ddf_fun_unbind(fun);
 err_fun_bind:
@@ -2229,21 +2229,21 @@ err_destroy:
 static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
 {
 	fibril_mutex_lock(&e1000->eeprom_lock);
-	
+
 	/* Write address and START bit to EERD register */
 	uint32_t write_data = e1000->info.eerd_start |
 	    (((uint32_t) eeprom_address) <<
 	    e1000->info.eerd_address_offset);
 	E1000_REG_WRITE(e1000, E1000_EERD, write_data);
-	
+
 	uint32_t eerd = E1000_REG_READ(e1000, E1000_EERD);
 	while ((eerd & e1000->info.eerd_done) == 0) {
 		async_usleep(1);
 		eerd = E1000_REG_READ(e1000, E1000_EERD);
 	}
-	
+
 	fibril_mutex_unlock(&e1000->eeprom_lock);
-	
+
 	return (uint16_t) (eerd >> e1000->info.eerd_data_offset);
 }
 
@@ -2260,24 +2260,24 @@ static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
 static errno_t e1000_get_address(e1000_t *e1000, nic_address_t *address)
 {
 	fibril_mutex_lock(&e1000->rx_lock);
-	
+
 	uint8_t *mac0_dest = (uint8_t *) address->address;
 	uint8_t *mac1_dest = (uint8_t *) address->address + 1;
 	uint8_t *mac2_dest = (uint8_t *) address->address + 2;
 	uint8_t *mac3_dest = (uint8_t *) address->address + 3;
 	uint8_t *mac4_dest = (uint8_t *) address->address + 4;
 	uint8_t *mac5_dest = (uint8_t *) address->address + 5;
-	
+
 	uint32_t rah = E1000_REG_READ(e1000, E1000_RAH_ARRAY(0));
 	uint32_t ral = E1000_REG_READ(e1000, E1000_RAL_ARRAY(0));
-	
+
 	*mac0_dest = (uint8_t) ral;
 	*mac1_dest = (uint8_t) (ral >> 8);
 	*mac2_dest = (uint8_t) (ral >> 16);
 	*mac3_dest = (uint8_t) (ral >> 24);
 	*mac4_dest = (uint8_t) rah;
 	*mac5_dest = (uint8_t) (rah >> 8);
-	
+
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return EOK;
 };
@@ -2294,17 +2294,17 @@ static errno_t e1000_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 {
 	nic_t *nic = NIC_DATA_FUN(fun);
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
-	
+
 	fibril_mutex_lock(&e1000->rx_lock);
 	fibril_mutex_lock(&e1000->tx_lock);
-	
+
 	errno_t rc = nic_report_address(nic, addr);
 	if (rc == EOK)
 		e1000_write_receive_address(e1000, 0, addr, false);
-	
+
 	fibril_mutex_unlock(&e1000->tx_lock);
 	fibril_mutex_unlock(&e1000->rx_lock);
-	
+
 	return rc;
 }
 
@@ -2314,7 +2314,7 @@ static void e1000_eeprom_get_address(e1000_t *e1000,
 	uint16_t *mac0_dest = (uint16_t *) address->address;
 	uint16_t *mac2_dest = (uint16_t *) (address->address + 2);
 	uint16_t *mac4_dest = (uint16_t *) (address->address + 4);
-	
+
 	*mac0_dest = e1000_eeprom_read(e1000, 0);
 	*mac2_dest = e1000_eeprom_read(e1000, 1);
 	*mac4_dest = e1000_eeprom_read(e1000, 2);
@@ -2333,35 +2333,35 @@ static void e1000_eeprom_get_address(e1000_t *e1000,
 static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 {
 	assert(nic);
-	
+
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 	fibril_mutex_lock(&e1000->tx_lock);
-	
+
 	uint32_t tdt = E1000_REG_READ(e1000, E1000_TDT);
 	e1000_tx_descriptor_t *tx_descriptor_addr = (e1000_tx_descriptor_t *)
 	    (e1000->tx_ring_virt + tdt * sizeof(e1000_tx_descriptor_t));
-	
+
 	bool descriptor_available = false;
-	
+
 	/* Descriptor never used */
 	if (tx_descriptor_addr->length == 0)
 		descriptor_available = true;
-	
+
 	/* Descriptor done */
 	if (tx_descriptor_addr->status & TXDESCRIPTOR_STATUS_DD)
 		descriptor_available = true;
-	
+
 	if (!descriptor_available) {
 		/* Frame lost */
 		fibril_mutex_unlock(&e1000->tx_lock);
 		return;
 	}
-	
+
 	memcpy(e1000->tx_frame_virt[tdt], data, size);
-	
+
 	tx_descriptor_addr->phys_addr = PTR_TO_U64(e1000->tx_frame_phys[tdt]);
 	tx_descriptor_addr->length = size;
-	
+
 	/*
 	 * Report status to STATUS.DD (descriptor done),
 	 * add ethernet CRC, end of packet.
@@ -2369,7 +2369,7 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 	tx_descriptor_addr->command = TXDESCRIPTOR_COMMAND_RS |
 	    TXDESCRIPTOR_COMMAND_IFCS |
 	    TXDESCRIPTOR_COMMAND_EOP;
-	
+
 	tx_descriptor_addr->checksum_offset = 0;
 	tx_descriptor_addr->status = 0;
 	if (e1000->vlan_tag_add) {
@@ -2377,28 +2377,28 @@ static void e1000_send_frame(nic_t *nic, void *data, size_t size)
 		tx_descriptor_addr->command |= TXDESCRIPTOR_COMMAND_VLE;
 	} else
 		tx_descriptor_addr->special = 0;
-	
+
 	tx_descriptor_addr->checksum_start_field = 0;
-	
+
 	tdt++;
 	if (tdt == E1000_TX_FRAME_COUNT)
 		tdt = 0;
-	
+
 	E1000_REG_WRITE(e1000, E1000_TDT, tdt);
-	
+
 	fibril_mutex_unlock(&e1000->tx_lock);
 }
 
 int main(void)
 {
 	printf("%s: HelenOS E1000 network adapter driver\n", NAME);
-	
+
 	if (nic_driver_init(NAME) != EOK)
 		return 1;
-	
+
 	nic_driver_implement(&e1000_driver_ops, &e1000_dev_ops,
 	    &e1000_nic_iface);
-	
+
 	ddf_log_init(NAME);
 	return ddf_driver_main(&e1000_driver);
 }

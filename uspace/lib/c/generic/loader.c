@@ -64,14 +64,14 @@ loader_t *loader_connect(void)
 	loader_t *ldr = malloc(sizeof(loader_t));
 	if (ldr == NULL)
 		return NULL;
-	
+
 	async_sess_t *sess =
 	    service_connect_blocking(SERVICE_LOADER, INTERFACE_LOADER, 0);
 	if (sess == NULL) {
 		free(ldr);
 		return NULL;
 	}
-	
+
 	ldr->sess = sess;
 	return ldr;
 }
@@ -90,18 +90,18 @@ errno_t loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 {
 	/* Get task ID. */
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_GET_TASKID, &answer);
 	errno_t rc = async_data_read_start(exch, task_id, sizeof(task_id_t));
-	
+
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK) {
 		async_forget(req);
 		return (errno_t) rc;
 	}
-	
+
 	async_wait_for(req, &rc);
 	return (errno_t) rc;
 }
@@ -120,26 +120,26 @@ errno_t loader_set_cwd(loader_t *ldr)
 	char *cwd = (char *) malloc(MAX_PATH_LEN + 1);
 	if (!cwd)
 		return ENOMEM;
-	
+
 	if (vfs_cwd_get(cwd, MAX_PATH_LEN + 1) != EOK)
 		str_cpy(cwd, MAX_PATH_LEN + 1, "/");
-	
+
 	size_t len = str_length(cwd);
-	
+
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_CWD, &answer);
 	errno_t rc = async_data_write_start(exch, cwd, len);
-	
+
 	async_exchange_end(exch);
 	free(cwd);
-	
+
 	if (rc != EOK) {
 		async_forget(req);
 		return (errno_t) rc;
 	}
-	
+
 	async_wait_for(req, &rc);
 	return (errno_t) rc;
 }
@@ -194,13 +194,13 @@ errno_t loader_set_program_path(loader_t *ldr, const char *path)
 	} else {
 		name++;
 	}
-	
+
 	int fd;
 	errno_t rc = vfs_lookup(path, 0, &fd);
 	if (rc != EOK) {
 		return rc;
 	}
-	
+
 	rc = loader_set_program(ldr, name, fd);
 	vfs_put(fd);
 	return rc;
@@ -231,37 +231,37 @@ errno_t loader_set_args(loader_t *ldr, const char *const argv[])
 		buffer_size += str_size(*ap) + 1;
 		ap++;
 	}
-	
+
 	char *arg_buf = malloc(buffer_size);
 	if (arg_buf == NULL)
 		return ENOMEM;
-	
+
 	/* Now fill the buffer with null-terminated argument strings */
 	ap = argv;
 	char *dp = arg_buf;
-	
+
 	while (*ap != NULL) {
 		str_cpy(dp, buffer_size - (dp - arg_buf), *ap);
 		dp += str_size(*ap) + 1;
 		ap++;
 	}
-	
+
 	/* Send serialized arguments to the loader */
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOADER_SET_ARGS, &answer);
 	errno_t rc = async_data_write_start(exch, (void *) arg_buf,
 	    buffer_size);
-	
+
 	async_exchange_end(exch);
 	free(arg_buf);
-	
+
 	if (rc != EOK) {
 		async_forget(req);
 		return (errno_t) rc;
 	}
-	
+
 	async_wait_for(req, &rc);
 	return (errno_t) rc;
 }
@@ -279,23 +279,23 @@ errno_t loader_add_inbox(loader_t *ldr, const char *name, int file)
 {
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
 	async_exch_t *vfs_exch = vfs_exchange_begin();
-	
+
 	aid_t req = async_send_0(exch, LOADER_ADD_INBOX, NULL);
-	
+
 	errno_t rc = async_data_write_start(exch, name, str_size(name) + 1);
 	if (rc == EOK) {
 		rc = vfs_pass_handle(vfs_exch, file, exch);
 	}
-	
+
 	async_exchange_end(vfs_exch);
 	async_exchange_end(exch);
-	
+
 	if (rc == EOK) {
 		async_wait_for(req, &rc);
 	} else {
 		async_forget(req);
 	}
-	
+
 	return (errno_t) rc;
 }
 
@@ -314,7 +314,7 @@ errno_t loader_load_program(loader_t *ldr)
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
 	errno_t rc = async_req_0_0(exch, LOADER_LOAD);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -337,13 +337,13 @@ errno_t loader_run(loader_t *ldr)
 	async_exch_t *exch = async_exchange_begin(ldr->sess);
 	errno_t rc = async_req_0_0(exch, LOADER_RUN);
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	async_hangup(ldr->sess);
 	free(ldr);
-	
+
 	return EOK;
 }
 

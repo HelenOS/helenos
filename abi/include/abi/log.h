@@ -51,7 +51,7 @@ typedef enum {
 	LVL_DEBUG,
 	/** More detailed debugging message. */
 	LVL_DEBUG2,
-	
+
 	/** For checking range of values */
 	LVL_LIMIT
 } log_level_t;

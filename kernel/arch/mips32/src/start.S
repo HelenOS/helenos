@@ -88,27 +88,27 @@
 	sw $s6, ISTATE_OFFSET_S6(\r)
 	sw $s7, ISTATE_OFFSET_S7(\r)
 	sw $s8, ISTATE_OFFSET_S8(\r)
-	
+
 	mflo $at
 	sw $at, ISTATE_OFFSET_LO(\r)
 	mfhi $at
 	sw $at, ISTATE_OFFSET_HI(\r)
-	
+
 	sw $gp, ISTATE_OFFSET_GP(\r)
 	sw $ra, ISTATE_OFFSET_RA(\r)
 	sw $k0, ISTATE_OFFSET_KT0(\r)
 	sw $k1, ISTATE_OFFSET_KT1(\r)
-	
+
 	mfc0 $t0, $status
 	mfc0 $t1, $epc
-	
+
 	/* save only KSU, EXL, ERL, IE */
 	and $t2, $t0, REG_SAVE_MASK
-	
+
 	/* clear KSU, EXL, ERL, IE */
 	li $t3, ~(REG_SAVE_MASK)
 	and $t0, $t0, $t3
-	
+
 	sw $t2, ISTATE_OFFSET_STATUS(\r)
 	sw $t1, ISTATE_OFFSET_EPC(\r)
 	mtc0 $t0, $status
@@ -121,15 +121,15 @@
 	 */
 	mfc0 $t0, $status
 	lw $t1, ISTATE_OFFSET_STATUS(\r)
-	
+
 	/* mask UM, EXL, ERL, IE */
 	li $t2, ~REG_SAVE_MASK
 	and $t0, $t0, $t2
-	
+
 	/* copy UM, EXL, ERL, IE from saved status */
 	or $t0, $t0, $t1
 	mtc0 $t0, $status
-	
+
 	lw $v0, ISTATE_OFFSET_V0(\r)
 	lw $v1, ISTATE_OFFSET_V1(\r)
 	lw $a0, ISTATE_OFFSET_A0(\r)
@@ -146,19 +146,19 @@
 	lw $t7, ISTATE_OFFSET_T7(\r)
 	lw $t8, ISTATE_OFFSET_T8(\r)
 	lw $t9, ISTATE_OFFSET_T9(\r)
-	
+
 	lw $gp, ISTATE_OFFSET_GP(\r)
 	lw $ra, ISTATE_OFFSET_RA(\r)
 	lw $k1, ISTATE_OFFSET_KT1(\r)
-	
+
 	lw $at, ISTATE_OFFSET_LO(\r)
 	mtlo $at
 	lw $at, ISTATE_OFFSET_HI(\r)
 	mthi $at
-	
+
 	lw $at, ISTATE_OFFSET_EPC(\r)
 	mtc0 $at, $epc
-	
+
 	lw $at, ISTATE_OFFSET_AT(\r)
 	lw $sp, ISTATE_OFFSET_SP(\r)
 .endm
@@ -171,16 +171,16 @@
 	/* if we are in user mode */
 	mfc0 $k0, $status
 	andi $k0, 0x10
-	
+
 	beq $k0, $0, 1f
 	move $k0, $sp
-	
+
 	/* move $k0 pointer to kernel stack */
 	la $k0, supervisor_sp
-	
+
 	/* move $k0 (supervisor_sp) */
 	lw $k0, ($k0)
-	
+
 	1:
 .endm
 
@@ -189,14 +189,14 @@ SYMBOL(kernel_image_start)
 	/* load temporary stack */
 	lui $sp, %hi(end_stack)
 	ori $sp, $sp, %lo(end_stack)
-	
+
 	/* not sure about this, but might be needed for PIC code */
 	lui $gp, 0x8000
-	
+
 	/* $a1 contains physical address of bootinfo_t */
 	jal mips32_pre_main
 	addiu $sp, -ABI_STACK_FRAME
-	
+
 	j main_bsp
 	nop
 
@@ -218,28 +218,28 @@ SYMBOL(exception_entry)
 	FAKE_ABI_PROLOGUE
 exception_handler:
 	KERNEL_STACK_TO_K0
-	
+
 	sub $k0, ISTATE_SIZE
 	sw $sp, ISTATE_OFFSET_SP($k0)
 	move $sp, $k0
-	
+
 	mfc0 $k0, $cause
-	
+
 	sra $k0, $k0, 0x2    /* cp0_exc_cause() part 1 */
 	andi $k0, $k0, 0x1f  /* cp0_exc_cause() part 2 */
 	sub $k0, 8           /* 8 = SYSCALL */
-	
+
 	beqz $k0, syscall_shortcut
 	add $k0, 8           /* revert $k0 back to correct exc number */
-	
+
 	REGISTERS_STORE_AND_EXC_RESET $sp
-	
+
 	move $a1, $sp
 	move $a0, $k0
 	jal exc_dispatch     /* exc_dispatch(excno, register_space) */
 	addiu $sp, -ABI_STACK_FRAME
 	addiu $sp, ABI_STACK_FRAME
-	
+
 	REGISTERS_LOAD $sp
 	/* the $sp is automatically restored to former value */
 	eret
@@ -264,29 +264,29 @@ syscall_shortcut:
 	mfc0 $t2, $status
 	sw $t3, ISTATE_OFFSET_EPC($sp)  /* save EPC */
 	sw $k1, ISTATE_OFFSET_KT1($sp)  /* save $k1 not saved on context switch */
-	
+
 	and $t4, $t2, REG_SAVE_MASK  /* save only KSU, EXL, ERL, IE */
 	li $t5, ~(0x1f)
 	and $t2, $t2, $t5  /* clear KSU, EXL, ERL */
 	ori $t2, $t2, 0x1  /* set IE */
-	
+
 	sw $t4, ISTATE_OFFSET_STATUS($sp)
 	mtc0 $t2, $status
-	
+
 	/*
 	 * Call the higher level system call handler.
 	 *
 	 */
 	sw $t0, ISTATE_OFFSET_T0($sp)  /* save the 5th argument on the stack */
 	sw $t1, ISTATE_OFFSET_T1($sp)  /* save the 6th argument on the stack */
-	
+
 	jal syscall_handler
 	sw $v0, ISTATE_OFFSET_V0($sp)  /* save the syscall number on the stack */
-	
+
 	/* restore status */
 	mfc0 $t2, $status
 	lw $t3, ISTATE_OFFSET_STATUS($sp)
-	
+
 	/*
 	 * Change back to EXL = 1 (from last exception), otherwise
 	 * an interrupt could rewrite the CP0 - EPC.
@@ -296,13 +296,13 @@ syscall_shortcut:
 	and $t2, $t2, $t4
 	or $t2, $t2, $t3  /* copy saved UM, EXL, ERL, IE */
 	mtc0 $t2, $status
-	
+
 	/* restore epc + 4 */
 	lw $t2, ISTATE_OFFSET_EPC($sp)
 	lw $k1, ISTATE_OFFSET_KT1($sp)
 	addi $t2, $t2, 4
 	mtc0 $t2, $epc
-	
+
 	lw $sp, ISTATE_OFFSET_SP($sp)  /* restore $sp */
 	eret
 
@@ -313,12 +313,12 @@ tlb_refill_handler:
 	REGISTERS_STORE_AND_EXC_RESET $k0
 	sw $sp, ISTATE_OFFSET_SP($k0)
 	move $sp, $k0
-	
+
 	move $a0, $sp
 	jal tlb_refill
 	addiu $sp, -ABI_STACK_FRAME
 	addiu $sp, ABI_STACK_FRAME
-	
+
 	REGISTERS_LOAD $sp
 	eret
 
@@ -329,12 +329,12 @@ cache_error_handler:
 	REGISTERS_STORE_AND_EXC_RESET $k0
 	sw $sp, ISTATE_OFFSET_SP($k0)
 	move $sp, $k0
-	
+
 	move $a0, $sp
 	jal cache_error
 	addiu $sp, -ABI_STACK_FRAME
 	addiu $sp, ABI_STACK_FRAME
-	
+
 	REGISTERS_LOAD $sp
 	eret
 

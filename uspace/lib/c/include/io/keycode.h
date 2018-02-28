@@ -92,7 +92,7 @@ typedef enum {
 	/* Main block row 3 */
 
 	KC_CAPS_LOCK,
-	
+
 	KC_A,
 	KC_S,
 	KC_D,
@@ -198,7 +198,7 @@ typedef enum {
 
 	KC_N0,
 	KC_NPERIOD
-	
+
 } keycode_t;
 
 typedef enum {
@@ -211,7 +211,7 @@ typedef enum {
 	KM_CAPS_LOCK   = 0x040,
 	KM_NUM_LOCK    = 0x080,
 	KM_SCROLL_LOCK = 0x100,
-	
+
 	KM_SHIFT       = KM_LSHIFT | KM_RSHIFT,
 	KM_CTRL        = KM_LCTRL | KM_RCTRL,
 	KM_ALT         = KM_LALT | KM_RALT

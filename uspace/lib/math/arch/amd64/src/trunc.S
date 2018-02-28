@@ -34,31 +34,31 @@
 FUNCTION_BEGIN(trunc_f64)
 	pushq %rbp
 	movq %rsp, %rbp
-	
+
 	# store x87 control word in the red zone
-	
+
 	fnstcw -8(%rbp)
 	movw -8(%rbp), %ax
-	
+
 	# set rounding control to truncate
 	# (no masking necessary for this flag)
-	
+
 	orw $X87_CONTROL_WORD_RC_TRUNCATE, %ax
 	movw %ax, -16(%rbp)
 	fldcw -16(%rbp)
-	
+
 	# truncate
-	
+
 	movsd %xmm0, -16(%rbp)
 	fldl -16(%rbp)
 	frndint
 	fstpl -16(%rbp)
 	movsd -16(%rbp), %xmm0
-	
+
 	# restore original control word
-	
+
 	fldcw -8(%rbp)
-	
+
 	leave
 	retq
 FUNCTION_END(trunc_f64)

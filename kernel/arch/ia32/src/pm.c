@@ -268,7 +268,7 @@ void pm_init(void)
 	idtr.base = (uintptr_t) idt;
 	gdtr_load(&gdtr);
 	idtr_load(&idtr);
-	
+
 	/*
 	 * Each CPU has its private GDT and TSS.
 	 * All CPUs share one IDT.
@@ -288,11 +288,11 @@ void pm_init(void)
 	}
 
 	tss_initialize(tss_p);
-	
+
 	gdt_p[TSS_DES].access = AR_PRESENT | AR_TSS | DPL_KERNEL;
 	gdt_p[TSS_DES].special = 1;
 	gdt_p[TSS_DES].granularity = 0;
-	
+
 	gdt_setbase(&gdt_p[TSS_DES], (uintptr_t) tss_p);
 	gdt_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE - 1);
 
@@ -301,7 +301,7 @@ void pm_init(void)
 	 * to its own TSS. We just need to load the TR register.
 	 */
 	tr_load(GDT_SELECTOR(TSS_DES));
-	
+
 	/* Disable I/O on nonprivileged levels and clear NT flag. */
 	write_eflags(read_eflags() & ~(EFLAGS_IOPL | EFLAGS_NT));
 

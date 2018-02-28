@@ -64,7 +64,7 @@ NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
 NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
 {
 	/* FIXME */
-	
+
 	return 0;
 }
 

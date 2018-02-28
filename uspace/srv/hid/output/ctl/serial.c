@@ -62,14 +62,14 @@ static void draw_char(vt100_state_t *state, charfield_t *field,
 static errno_t serial_yield(outdev_t *dev)
 {
 	vt100_state_t *state = (vt100_state_t *) dev->data;
-	
+
 	return vt100_yield(state);
 }
 
 static errno_t serial_claim(outdev_t *dev)
 {
 	vt100_state_t *state = (vt100_state_t *) dev->data;
-	
+
 	return vt100_claim(state);
 }
 
@@ -77,7 +77,7 @@ static void serial_get_dimensions(outdev_t *dev, sysarg_t *cols,
     sysarg_t *rows)
 {
 	vt100_state_t *state = (vt100_state_t *) dev->data;
-	
+
 	vt100_get_dimensions(state, cols, rows);
 }
 
@@ -90,7 +90,7 @@ static void serial_cursor_update(outdev_t *dev, sysarg_t prev_col,
     sysarg_t prev_row, sysarg_t col, sysarg_t row, bool visible)
 {
 	vt100_state_t *state = (vt100_state_t *) dev->data;
-	
+
 	vt100_goto(state, col, row);
 	vt100_cursor_visibility(state, visible);
 }
@@ -100,7 +100,7 @@ static void serial_char_update(outdev_t *dev, sysarg_t col, sysarg_t row)
 	vt100_state_t *state = (vt100_state_t *) dev->data;
 	charfield_t *field =
 	    chargrid_charfield_at(dev->backbuf, col, row);
-	
+
 	draw_char(state, field, col, row);
 }
 
@@ -129,13 +129,13 @@ errno_t serial_init(vt100_putchar_t putchar_fn,
 	    control_puts_fn, flush_fn);
 	if (state == NULL)
 		return ENOMEM;
-	
+
 	outdev_t *dev = outdev_register(&serial_ops, state);
 	if (dev == NULL) {
 		vt100_state_destroy(state);
 		return ENOMEM;
 	}
-	
+
 	return EOK;
 }
 

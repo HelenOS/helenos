@@ -61,7 +61,7 @@ vfs_info_t fat_vfs_info = {
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS FAT file system server\n");
-	
+
 	if (argc == 3) {
 		if (!str_cmp(argv[1], "--instance"))
 			fat_vfs_info.instance = strtol(argv[2], NULL, 10);
@@ -74,27 +74,27 @@ int main(int argc, char **argv)
 	errno_t rc = fat_idx_init();
 	if (rc != EOK)
 		goto err;
-	
+
 	async_sess_t *vfs_sess = service_connect_blocking(SERVICE_VFS,
 	    INTERFACE_VFS_DRIVER, 0);
 	if (!vfs_sess) {
 		printf(NAME ": failed to connect to VFS\n");
 		return -1;
 	}
-	
+
 	rc = fs_register(vfs_sess, &fat_vfs_info, &fat_ops, &fat_libfs_ops);
 	if (rc != EOK) {
 		fat_idx_fini();
 		goto err;
 	}
-	
+
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
 	async_manager();
-	
+
 	/* Not reached */
 	return 0;
-	
+
 err:
 	printf(NAME ": Failed to register file system: %s\n", str_error(rc));
 	return rc;

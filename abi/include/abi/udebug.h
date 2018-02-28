@@ -38,7 +38,7 @@
 #define UDEBUG_EVMASK(event)  (1 << ((event) - 1))
 
 typedef enum { /* udebug_method_t */
-	
+
 	/** Start debugging the recipient.
 	 *
 	 * Causes all threads in the receiving task to stop. When they
@@ -46,17 +46,17 @@ typedef enum { /* udebug_method_t */
 	 *
 	 */
 	UDEBUG_M_BEGIN = 1,
-	
+
 	/** Finish debugging the recipient.
 	 *
 	 * Answers all pending GO and GUARD messages.
 	 *
 	 */
 	UDEBUG_M_END,
-	
+
 	/** Set which events should be captured. */
 	UDEBUG_M_SET_EVMASK,
-	
+
 	/** Make sure the debugged task is still there.
 	 *
 	 * This message is answered when the debugged task dies
@@ -64,7 +64,7 @@ typedef enum { /* udebug_method_t */
 	 *
 	 */
 	UDEBUG_M_GUARD,
-	
+
 	/** Run a thread until a debugging event occurs.
 	 *
 	 * This message is answered when the thread stops
@@ -74,7 +74,7 @@ typedef enum { /* udebug_method_t */
 	 *
 	 */
 	UDEBUG_M_GO,
-	
+
 	/** Stop a thread being debugged.
 	 *
 	 * Creates a special STOP event in the thread, causing
@@ -82,7 +82,7 @@ typedef enum { /* udebug_method_t */
 	 *
 	 */
 	UDEBUG_M_STOP,
-	
+
 	/** Read arguments of a syscall.
 	 *
 	 * - ARG2 - thread identification
@@ -90,7 +90,7 @@ typedef enum { /* udebug_method_t */
 	 *
 	 */
 	UDEBUG_M_ARGS_READ,
-	
+
 	/** Read thread's userspace register state (istate_t).
 	 *
 	 * - ARG2 - thread identification
@@ -101,7 +101,7 @@ typedef enum { /* udebug_method_t */
 	 * - EBUSY - register state not available
 	 */
 	UDEBUG_M_REGS_READ,
-	
+
 	/** Read the list of the debugged tasks's threads.
 	 *
 	 * - ARG2 - destination address in the caller's address space
@@ -115,7 +115,7 @@ typedef enum { /* udebug_method_t */
 	 *
 	 */
 	UDEBUG_M_THREAD_READ,
-	
+
 	/** Read the name of the debugged task.
 	 *
 	 * - ARG2 - destination address in the caller's address space
@@ -128,7 +128,7 @@ typedef enum { /* udebug_method_t */
 	 *
 	 */
 	UDEBUG_M_NAME_READ,
-	
+
 	/** Read the list of the debugged task's address space areas.
 	 *
 	 * - ARG2 - destination address in the caller's address space
@@ -142,7 +142,7 @@ typedef enum { /* udebug_method_t */
 	 *
 	 */
 	UDEBUG_M_AREAS_READ,
-	
+
 	/** Read the debugged tasks's memory.
 	 *
 	 * - ARG2 - destination address in the caller's address space

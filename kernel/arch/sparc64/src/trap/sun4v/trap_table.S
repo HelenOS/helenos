@@ -605,7 +605,7 @@ SYMBOL(fill_0_normal_tl1)
 	add \tmpreg2, 2, \tmpreg1
 	and \tmpreg1, NWINDOWS - 1, \tmpreg1		! modulo NWINDOWS
 	wrpr \tmpreg1, %cwp
-	
+
 	! spill to kernel stack
 	stx %l0, [%sp + STACK_BIAS + L0_OFFSET]
 	stx %l1, [%sp + STACK_BIAS + L1_OFFSET]
@@ -765,7 +765,7 @@ SYMBOL(fill_0_normal_tl1)
 	/* Restore Y. */
 	ldx [%sp + STACK_BIAS + ISTATE_OFFSET_Y], %g4
 	wr %g4, %y
-	
+
 	/* If TSTATE.CWP + 1 == CWP, then we do not have to fix CWP. */
 	and %g1, TSTATE_CWP_MASK, %l0
 	inc %l0
@@ -870,7 +870,7 @@ SYMBOL(fill_0_normal_tl1)
 	add \tmpreg2, 2, \tmpreg1
 	and \tmpreg1, NWINDOWS - 1, \tmpreg1		! modulo NWINDOWS
 	wrpr \tmpreg1, %cwp
-	
+
 	! spill to userspace window buffer
 	SAVE_TO_USPACE_WBUF \tmpreg3, \tmpreg1
 
@@ -1027,7 +1027,7 @@ SYMBOL(fill_0_normal_tl1)
 	bg %xcc, 8f				! fix the CANRESTORE=NWINDOWS-1 anomaly
 	mov NWINDOWS - 2, %g1			! use dealy slot for both cases
 	sub %g1, %g2, %g1
-	
+
 	wrpr %g0, 0, %otherwin
 	wrpr %g1, 0, %cansave			! NWINDOWS - 2 - CANRESTORE
 	wrpr %g2, 0, %canrestore		! OTHERWIN + windows in the buffer
@@ -1072,7 +1072,7 @@ SYMBOL(fill_0_normal_tl1)
 	dec %g1
 	and %g1, NWINDOWS - 1, %g1
 	wrpr %g1, 0, %cwp			! CWP--
-	
+
 .if \is_syscall
 	done
 .else

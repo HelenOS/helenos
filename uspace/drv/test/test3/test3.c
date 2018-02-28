@@ -69,13 +69,13 @@ static errno_t register_fun_and_add_to_category(ddf_dev_t *parent,
 	ddf_fun_t *fun = NULL;
 	errno_t rc;
 	char *fun_name = NULL;
-	
+
 	if (asprintf(&fun_name, "%s%zu", base_name, index) < 0) {
 		ddf_msg(LVL_ERROR, "Failed to format string: No memory");
 		rc = ENOMEM;
 		goto leave;
 	}
-	
+
 	fun = ddf_fun_create(parent, fun_exposed, fun_name);
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating function %s", fun_name);
@@ -89,18 +89,18 @@ static errno_t register_fun_and_add_to_category(ddf_dev_t *parent,
 		    str_error(rc));
 		goto leave;
 	}
-	
+
 	ddf_fun_add_to_category(fun, class_name);
 
 	ddf_msg(LVL_NOTE, "Registered exposed function `%s'.", fun_name);
 
 leave:
 	free(fun_name);
-	
+
 	if ((rc != EOK) && (fun != NULL)) {
 		ddf_fun_destroy(fun);
 	}
-	
+
 	*pfun = fun;
 	return rc;
 }
@@ -148,7 +148,7 @@ static errno_t test3_dev_add(ddf_dev_t *dev)
 			break;
 		}
 	}
-	
+
 	return rc;
 }
 

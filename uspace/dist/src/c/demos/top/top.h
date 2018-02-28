@@ -111,32 +111,32 @@ typedef struct {
 	time_t hours;
 	time_t minutes;
 	time_t seconds;
-	
+
 	sysarg_t udays;
 	sysarg_t uhours;
 	sysarg_t uminutes;
 	sysarg_t useconds;
-	
+
 	size_t load_count;
 	load_t *load;
-	
+
 	size_t cpus_count;
 	stats_cpu_t *cpus;
 	perc_cpu_t *cpus_perc;
-	
+
 	size_t tasks_count;
 	stats_task_t *tasks;
 	perc_task_t *tasks_perc;
-	
+
 	size_t threads_count;
 	stats_thread_t *threads;
-	
+
 	size_t exceptions_count;
 	stats_exc_t *exceptions;
 	perc_exc_t *exceptions_perc;
-	
+
 	stats_physmem_t *physmem;
-	
+
 	uint64_t *ucycles_diff;
 	uint64_t *kcycles_diff;
 	uint64_t *ecycles_diff;

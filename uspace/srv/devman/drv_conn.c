@@ -69,7 +69,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 	char *drv_name = NULL;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_driver_register");
-	
+
 	/* Get driver name. */
 	errno_t rc = async_data_write_accept((void **) &drv_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
@@ -79,7 +79,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "The `%s' driver is trying to register.",
 	    drv_name);
-	
+
 	/* Find driver structure. */
 	driver = driver_find_by_name(&drivers_list, drv_name);
 	if (driver == NULL) {
@@ -89,12 +89,12 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, ENOENT);
 		return NULL;
 	}
-	
+
 	free(drv_name);
 	drv_name = NULL;
-	
+
 	fibril_mutex_lock(&driver->driver_mutex);
-	
+
 	if (driver->sess) {
 		/* We already have a connection to the driver. */
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Driver '%s' already started.\n",
@@ -103,7 +103,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, EEXIST);
 		return NULL;
 	}
-	
+
 	switch (driver->state) {
 	case DRIVER_NOT_STARTED:
 		/* Somebody started the driver manually. */
@@ -118,7 +118,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 		/* Should not happen since we do not have a connected session */
 		assert(false);
 	}
-	
+
 	/* Create connection to the driver. */
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Creating connection to the `%s' driver.",
 	    driver->name);
@@ -130,11 +130,11 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 	}
 	/* FIXME: Work around problem with callback sessions */
 	async_sess_args_set(driver->sess, INTERFACE_DDF_DEVMAN, 0, 0);
-	
+
 	log_msg(LOG_DEFAULT, LVL_NOTE,
 	    "The `%s' driver was successfully registered as running.",
 	    driver->name);
-	
+
 	/*
 	 * Initialize the driver as running (e.g. pass assigned devices to it)
 	 * in a separate fibril; the separate fibril is used to enable the
@@ -148,10 +148,10 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, ENOMEM);
 		return NULL;
 	}
-	
+
 	fibril_add_ready(fid);
 	fibril_mutex_unlock(&driver->driver_mutex);
-	
+
 	async_answer_0(callid, EOK);
 	return driver;
 }
@@ -168,7 +168,7 @@ static errno_t devman_receive_match_id(match_id_list_t *match_ids)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	errno_t rc = 0;
-	
+
 	callid = async_get_call(&call);
 	if (DEVMAN_ADD_MATCH_ID != IPC_GET_IMETHOD(call)) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
@@ -177,17 +177,17 @@ static errno_t devman_receive_match_id(match_id_list_t *match_ids)
 		delete_match_id(match_id);
 		return EINVAL;
 	}
-	
+
 	if (match_id == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to allocate match id.");
 		async_answer_0(callid, ENOMEM);
 		return ENOMEM;
 	}
-	
+
 	async_answer_0(callid, EOK);
-	
+
 	match_id->score = IPC_GET_ARG1(call);
-	
+
 	char *match_id_str;
 	rc = async_data_write_accept((void **) &match_id_str, true, 0, 0, 0, 0);
 	match_id->id = match_id_str;
@@ -197,9 +197,9 @@ static errno_t devman_receive_match_id(match_id_list_t *match_ids)
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	list_append(&match_id->link, &match_ids->ids);
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Received match id `%s', score %d.",
 	    match_id->id, match_id->score);
 	return rc;
@@ -217,7 +217,7 @@ static errno_t devman_receive_match_ids(sysarg_t match_count,
 {
 	errno_t ret = EOK;
 	size_t i;
-	
+
 	for (i = 0; i < match_count; i++) {
 		if (EOK != (ret = devman_receive_match_id(match_ids)))
 			return ret;
@@ -235,13 +235,13 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	devman_handle_t dev_handle = IPC_GET_ARG2(*call);
 	sysarg_t match_count = IPC_GET_ARG3(*call);
 	dev_tree_t *tree = &device_tree;
-	
+
 	dev_node_t *pdev = find_dev_node(&device_tree, dev_handle);
 	if (pdev == NULL) {
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	if (ftype != fun_inner && ftype != fun_exposed) {
 		/* Unknown function type */
 		log_msg(LOG_DEFAULT, LVL_ERROR,
@@ -252,7 +252,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	char *fun_name = NULL;
 	errno_t rc = async_data_write_accept((void **)&fun_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
@@ -260,9 +260,9 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, rc);
 		return;
 	}
-	
+
 	fibril_rwlock_write_lock(&tree->rwlock);
-	
+
 	/* Check device state */
 	if (pdev->state == DEVICE_REMOVED) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
@@ -270,7 +270,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	/* Check that function with same name is not there already. */
 	fun_node_t *tfun = find_fun_node_in_device(tree, pdev, fun_name);
 	if (tfun) {
@@ -283,19 +283,19 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		free(fun_name);
 		return;
 	}
-	
+
 	fun_node_t *fun = create_fun_node();
 	/* One reference for creation, one for us */
 	fun_add_ref(fun);
 	fun_add_ref(fun);
 	fun->ftype = ftype;
-	
+
 	/*
 	 * We can lock the function here even when holding the tree because
 	 * we know it cannot be held by anyone else yet.
 	 */
 	fun_busy_lock(fun);
-	
+
 	if (!insert_fun_node(&device_tree, fun, fun_name, pdev)) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		dev_del_ref(pdev);
@@ -305,12 +305,12 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, ENOMEM);
 		return;
 	}
-	
+
 	fibril_rwlock_write_unlock(&tree->rwlock);
 	dev_del_ref(pdev);
-	
+
 	devman_receive_match_ids(match_count, &fun->match_ids);
-	
+
 	rc = fun_online(fun);
 	if (rc != EOK) {
 		/* XXX Set some failed state? */
@@ -319,10 +319,10 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, rc);
 		return;
 	}
-	
+
 	fun_busy_unlock(fun);
 	fun_del_ref(fun);
-	
+
 	/* Return device handle to parent's driver. */
 	async_answer_1(callid, EOK, fun->handle);
 }
@@ -332,7 +332,7 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 	devman_handle_t handle = IPC_GET_ARG1(*call);
 	category_id_t cat_id;
 	errno_t rc;
-	
+
 	/* Get category name. */
 	char *cat_name;
 	rc = async_data_write_accept((void **) &cat_name, true,
@@ -341,22 +341,22 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, rc);
 		return;
 	}
-	
+
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	fibril_rwlock_read_lock(&device_tree.rwlock);
-	
+
 	/* Check function state */
 	if (fun->state == FUN_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	rc = loc_category_get_id(cat_name, &cat_id, IPC_FLAG_BLOCKING);
 	if (rc == EOK) {
 		loc_service_add_to_cat(fun->service_id, cat_id);
@@ -366,10 +366,10 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed adding function `%s' to category "
 		    "`%s'.", fun->pathname, cat_name);
 	}
-	
+
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	fun_del_ref(fun);
-	
+
 	async_answer_0(callid, rc);
 }
 
@@ -381,17 +381,17 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 {
 	fun_node_t *fun;
 	errno_t rc;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_drv_fun_online()");
-	
+
 	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	fun_busy_lock(fun);
-	
+
 	fibril_rwlock_read_lock(&device_tree.rwlock);
 	if (fun->dev == NULL || fun->dev->drv != drv) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
@@ -401,7 +401,7 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
-	
+
 	rc = fun_online(fun);
 	if (rc != EOK) {
 		fun_busy_unlock(fun);
@@ -409,10 +409,10 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	fun_busy_unlock(fun);
 	fun_del_ref(fun);
-	
+
 	async_answer_0(iid, EOK);
 }
 
@@ -431,9 +431,9 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	fun_busy_lock(fun);
-	
+
 	fibril_rwlock_write_lock(&device_tree.rwlock);
 	if (fun->dev == NULL || fun->dev->drv != drv) {
 		fun_busy_unlock(fun);
@@ -442,7 +442,7 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	fibril_rwlock_write_unlock(&device_tree.rwlock);
-	
+
 	rc = fun_offline(fun);
 	if (rc != EOK) {
 		fun_busy_unlock(fun);
@@ -450,7 +450,7 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	fun_busy_unlock(fun);
 	fun_del_ref(fun);
 	async_answer_0(iid, EOK);
@@ -462,19 +462,19 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 	devman_handle_t fun_handle = IPC_GET_ARG1(*call);
 	dev_tree_t *tree = &device_tree;
 	errno_t rc;
-	
+
 	fun_node_t *fun = find_fun_node(&device_tree, fun_handle);
 	if (fun == NULL) {
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	fun_busy_lock(fun);
-	
+
 	fibril_rwlock_write_lock(&tree->rwlock);
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_remove_function(fun='%s')", fun->pathname);
-	
+
 	/* Check function state */
 	if (fun->state == FUN_REMOVED) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
@@ -483,33 +483,33 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	if (fun->ftype == fun_inner) {
 		/* This is a surprise removal. Handle possible descendants */
 		if (fun->child != NULL) {
 			dev_node_t *dev = fun->child;
 			device_state_t dev_state;
 			errno_t gone_rc;
-			
+
 			dev_add_ref(dev);
 			dev_state = dev->state;
-			
+
 			fibril_rwlock_write_unlock(&device_tree.rwlock);
-			
+
 			/* If device is owned by driver, inform driver it is gone. */
 			if (dev_state == DEVICE_USABLE)
 				gone_rc = driver_dev_gone(&device_tree, dev);
 			else
 				gone_rc = EOK;
-			
+
 			fibril_rwlock_read_lock(&device_tree.rwlock);
-			
+
 			/* Verify that driver succeeded and removed all functions */
 			if (gone_rc != EOK || !list_empty(&dev->functions)) {
 				log_msg(LOG_DEFAULT, LVL_ERROR, "Driver did not remove "
 				    "functions for device that is gone. "
 				    "Device node is now defunct.");
-				
+
 				/*
 				 * Not much we can do but mark the device
 				 * node as having invalid state. This
@@ -525,16 +525,16 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 				async_answer_0(callid, gone_rc);
 				return;
 			}
-			
+
 			driver_t *driver = dev->drv;
 			fibril_rwlock_read_unlock(&device_tree.rwlock);
-			
+
 			if (driver)
 				detach_driver(&device_tree, dev);
-			
+
 			fibril_rwlock_write_lock(&device_tree.rwlock);
 			remove_dev_node(&device_tree, dev);
-			
+
 			/* Delete ref created when node was inserted */
 			dev_del_ref(dev);
 			/* Delete ref created by dev_add_ref(dev) above */
@@ -555,16 +555,16 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 			}
 		}
 	}
-	
+
 	remove_fun_node(&device_tree, fun);
 	fibril_rwlock_write_unlock(&tree->rwlock);
 	fun_busy_unlock(fun);
-	
+
 	/* Delete ref added when inserting function into tree */
 	fun_del_ref(fun);
 	/* Delete ref added above when looking up function */
 	fun_del_ref(fun);
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_remove_function() succeeded.");
 	async_answer_0(callid, EOK);
 }
@@ -577,7 +577,7 @@ static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
 static errno_t init_running_drv(void *drv)
 {
 	driver_t *driver = (driver_t *) drv;
-	
+
 	initialize_running_driver(driver, &device_tree);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "The `%s` driver was successfully initialized.",
 	    driver->name);
@@ -589,23 +589,23 @@ void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	client_t *client;
 	driver_t *driver = NULL;
-	
+
 	/* Accept the connection. */
 	async_answer_0(iid, EOK);
-	
+
 	client = async_get_client_data();
 	if (client == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to allocate client data.");
 		return;
 	}
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		if (IPC_GET_IMETHOD(call) != DEVMAN_DRIVER_REGISTER) {
 			fibril_mutex_lock(&client->mutex);
 			driver = client->driver;
@@ -616,7 +616,7 @@ void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				continue;
 			}
 		}
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case DEVMAN_DRIVER_REGISTER:
 			fibril_mutex_lock(&client->mutex);

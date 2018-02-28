@@ -119,12 +119,12 @@ int getpwnam_r(const char *name, struct passwd *pwd,
 	assert(pwd != NULL);
 	assert(buffer != NULL);
 	assert(result != NULL);
-	
+
 	if (strcmp(name, "user") != 0) {
 		*result = NULL;
 		return 0;
 	}
-	
+
 	return getpwuid_r(0, pwd, buffer, bufsize, result);
 }
 
@@ -160,10 +160,10 @@ int getpwuid_r(uid_t uid, struct passwd *pwd,
 	assert(pwd != NULL);
 	assert(buffer != NULL);
 	assert(result != NULL);
-	
+
 	static const char bf[] = { 'u', 's', 'e', 'r', '\0',
 	    '/', '\0', 'b', 'd', 's', 'h', '\0' };
-	
+
 	if (uid != 0) {
 		*result = NULL;
 		return 0;

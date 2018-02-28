@@ -150,7 +150,7 @@ static errno_t pcf_resolve_glyph(void *opaque_data, const wchar_t chr,
     glyph_id_t *glyph_id)
 {
 	pcf_data_t *data = (pcf_data_t *) opaque_data;
-	
+
 	/* TODO is this correct? */
 	uint8_t byte1 = (chr >> 8) & 0xff;
 	uint8_t byte2 = chr & 0xff;
@@ -159,27 +159,27 @@ static errno_t pcf_resolve_glyph(void *opaque_data, const wchar_t chr,
 	aoff64_t entry_index =
 	    (byte1 - e->min_byte1) * (e->max_byte2 - e->min_byte2 + 1) +
 	    (byte2 - e->min_byte2);
-	
+
 	aoff64_t entry_offset = data->encodings_table.offset +
 	    (sizeof(uint32_t) + 5 * sizeof(uint16_t)) +
 	    entry_index * sizeof(uint16_t);
-	
+
 	int rc = fseek(data->file, entry_offset, SEEK_SET);
 	if (rc != 0)
 		return errno;
-	
+
 	uint16_t glyph = 0;
 	size_t records_read = fread(&glyph, sizeof(uint16_t), 1, data->file);
 	if (records_read != 1)
 		return EINVAL;
-	
+
 	glyph = uint16_t_pcf2host(glyph, data->encodings_table.format);
-	
+
 	if (glyph == 0xffff)
 		return ENOENT;
-	
+
 	*glyph_id = glyph;
-	
+
 	return EOK;
 }
 
@@ -189,21 +189,21 @@ static errno_t load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
 	aoff64_t offset;
 	int rc;
 	size_t records_read;
-	
+
 	if (table->format & PCF_FORMAT_COMPRESSED_METRICS) {
 		offset = table->offset + sizeof(uint32_t) + sizeof(uint16_t) +
 		    glyph_id * sizeof(pcf_compressed_metrics_t);
-		
+
 		rc = fseek(data->file, offset, SEEK_SET);
 		if (rc != 0)
 			return errno;
-		
+
 		pcf_compressed_metrics_t compressed_metrics;
 		records_read = fread(&compressed_metrics,
 		    sizeof(pcf_compressed_metrics_t), 1,data->file);
 		if (records_read != 1)
 			return EINVAL;
-		
+
 		metrics->left_side_bearing =
 		    compressed2int(compressed_metrics.left_side_bearing);
 		metrics->right_side_bearing =
@@ -219,17 +219,17 @@ static errno_t load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
 	else {
 		offset = table->offset + 2 * sizeof(uint32_t) +
 		    glyph_id * sizeof(pcf_default_metrics_t);
-		
+
 		rc = fseek(data->file, offset, SEEK_SET);
 		if (rc != 0)
 			return errno;
-	
+
 		pcf_default_metrics_t uncompressed_metrics;
 		records_read = fread(&uncompressed_metrics,
 		    sizeof(pcf_default_metrics_t), 1,data->file);
 		if (records_read != 1)
 			return EINVAL;
-		
+
 		metrics->left_side_bearing =
 		    int16_t_pcf2host(uncompressed_metrics.left_side_bearing,
 		    table->format);
@@ -249,7 +249,7 @@ static errno_t load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
 		    uint16_t_pcf2host(uncompressed_metrics.character_attributes,
 		    table->format);
 	}
-	
+
 	return EOK;
 }
 
@@ -257,20 +257,20 @@ static errno_t pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
     surface_t **out_surface)
 {
 	pcf_data_t *data = (pcf_data_t *) opaque_data;
-	
+
 	pcf_default_metrics_t pcf_metrics;
 	memset(&pcf_metrics, 0, sizeof(pcf_default_metrics_t));
 	errno_t rc = load_glyph_metrics(data, glyph_id, &data->metrics_table,
 	    &pcf_metrics);
 	if (rc != EOK)
 		return rc;
-	
+
 	aoff64_t offset = data->bitmap_table.offset + (2 * sizeof(uint32_t)) +
 	    (glyph_id * sizeof(uint32_t));
-	
+
 	if (fseek(data->file, offset, SEEK_SET) < 0)
 		return errno;
-	
+
 	uint32_t bitmap_offset = 0;
 	size_t records_read = fread(&bitmap_offset, sizeof(uint32_t), 1,
 	    data->file);
@@ -278,14 +278,14 @@ static errno_t pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
 		return EINVAL;
 	bitmap_offset = uint32_t_pcf2host(bitmap_offset,
 	    data->bitmap_table.format);
-	
+
 	offset = data->bitmap_table.offset + (2 * sizeof(uint32_t)) +
 	    (data->glyph_count * sizeof(uint32_t)) + (4 * sizeof(uint32_t))
 	    + bitmap_offset;
-	
+
 	if (fseek(data->file, offset, SEEK_SET) < 0)
 		return errno;
-	
+
 	surface_coord_t width = pcf_metrics.character_width;
 	surface_coord_t height = pcf_metrics.character_ascent +
 	    pcf_metrics.character_descent;
@@ -293,20 +293,20 @@ static errno_t pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
 	size_t word_size_bytes = (1 << ((data->bitmap_table.format >> 4) & 3));
 	size_t row_bytes = ALIGN_UP(ALIGN_UP(width, 8) / 8, row_padding_bytes);
 	size_t bitmap_bytes = height * row_bytes;
-	
+
 	uint8_t *bitmap = malloc(bitmap_bytes);
 	if (bitmap == NULL)
 		return ENOMEM;
-	
+
 	records_read = fread(bitmap, sizeof(uint8_t), bitmap_bytes,
 	    data->file);
-	
+
 	surface_t *surface = surface_create(width, height, NULL, 0);
 	if (!surface) {
 		free(bitmap);
 		return ENOMEM;
 	}
-	
+
 	for (unsigned int y = 0; y < height; ++y) {
 		size_t row_offset = row_bytes * y;
 		for (unsigned int x = 0; x < width; ++x) {
@@ -333,7 +333,7 @@ static errno_t pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
 			surface_put_pixel(surface, x, y, p);
 		}
 	}
-	
+
 	*out_surface = surface;
 	free(bitmap);
 	return EOK;
@@ -343,14 +343,14 @@ static errno_t pcf_load_glyph_metrics(void *opaque_data, glyph_id_t glyph_id,
     glyph_metrics_t *gm)
 {
 	pcf_data_t *data = (pcf_data_t *) opaque_data;
-	
+
 	pcf_default_metrics_t pcf_metrics;
 	memset(&pcf_metrics, 0, sizeof(pcf_default_metrics_t));
 	errno_t rc = load_glyph_metrics(data, glyph_id, &data->metrics_table,
 	    &pcf_metrics);
 	if (rc != EOK)
 		return rc;
-	
+
 	gm->left_side_bearing = pcf_metrics.left_side_bearing;
 	gm->width = pcf_metrics.character_width;
 	gm->right_side_bearing = pcf_metrics.right_side_bearing -
@@ -358,14 +358,14 @@ static errno_t pcf_load_glyph_metrics(void *opaque_data, glyph_id_t glyph_id,
 	gm->height = pcf_metrics.character_descent +
 	    pcf_metrics.character_ascent;
 	gm->ascender = pcf_metrics.character_ascent;
-	
+
 	return EOK;
 }
 
 static void pcf_release(void *opaque_data)
 {
 	pcf_data_t *data = (pcf_data_t *) opaque_data;
-	
+
 	fclose(data->file);
 	free(data);
 }
@@ -382,35 +382,35 @@ static errno_t pcf_read_toc(pcf_data_t *data)
 	int rc = fseek(data->file, 0, SEEK_END);
 	if (rc != 0)
 		return errno;
-	
+
 	aoff64_t file_size = ftell(data->file);
-	
+
 	rc = fseek(data->file, 0, SEEK_SET);
 	if (rc != 0)
 		return errno;
-	
+
 	char header[4];
 	size_t records_read = fread(header, sizeof(char), 4, data->file);
 	if (records_read != 4)
 		return EINVAL;
-	
+
 	if (header[0] != 1 || header[1] != 'f' || header[2] != 'c' ||
 	    header[3] != 'p')
 		return EINVAL;
-	
+
 	uint32_t table_count;
 	records_read = fread(&table_count, sizeof(uint32_t), 1,
 	    data->file);
 	if (records_read != 1)
 		return EINVAL;
-	
+
 	table_count = uint32_t_le2host(table_count);
-	
+
 	bool found_bitmap_table = false;
 	bool found_metrics_table = false;
 	bool found_encodings_table = false;
 	bool found_accelerators_table = false;
-	
+
 	for (uint32_t index = 0; index < table_count; index++) {
 		pcf_toc_entry_t toc_entry;
 		records_read = fread(&toc_entry, sizeof(pcf_toc_entry_t), 1,
@@ -419,14 +419,14 @@ static errno_t pcf_read_toc(pcf_data_t *data)
 		toc_entry.format = uint32_t_le2host(toc_entry.format);
 		toc_entry.size = uint32_t_le2host(toc_entry.size);
 		toc_entry.offset = uint32_t_le2host(toc_entry.offset);
-		
+
 		if (toc_entry.offset >= file_size)
 			continue;
-		
+
 		aoff64_t end = ((aoff64_t) toc_entry.offset) + ((aoff64_t) toc_entry.size);
 		if (end > file_size)
 			continue;
-		
+
 		if (toc_entry.type == PCF_TABLE_BITMAPS) {
 			if (found_bitmap_table)
 				return EINVAL;
@@ -452,11 +452,11 @@ static errno_t pcf_read_toc(pcf_data_t *data)
 			data->accelerators_table = toc_entry;
 		}
 	}
-	
+
 	if (!found_bitmap_table || !found_metrics_table ||
 	    !found_encodings_table || !found_accelerators_table)
 		return EINVAL;
-	
+
 	return EOK;
 }
 
@@ -466,15 +466,15 @@ static errno_t pcf_seek_table_header(pcf_data_t *data, pcf_toc_entry_t *table)
 	int rc = fseek(data->file, table->offset, SEEK_SET);
 	if (rc != 0)
 		return errno;
-	
+
 	size_t records_read = fread(&format, sizeof(uint32_t), 1, data->file);
 	if (records_read != 1)
 		return EINVAL;
-	
+
 	format = uint32_t_le2host(format);
 	if (format != table->format)
 		return EINVAL;
-	
+
 	return EOK;
 }
 
@@ -483,10 +483,10 @@ static errno_t pcf_read_bitmap_table_header(pcf_data_t *data)
 	errno_t rc = pcf_seek_table_header(data, &data->bitmap_table);
 	if (rc != EOK)
 		return rc;
-	
+
 	if ((data->bitmap_table.format & PCF_FORMAT_MASK) != PCF_FORMAT_DEFAULT)
 		return EINVAL;
-	
+
 	uint32_t glyph_count = 0;
 	size_t records_read = fread(&glyph_count, sizeof(uint32_t), 1,
 	    data->file);
@@ -503,7 +503,7 @@ static errno_t pcf_read_metrics_table_header(pcf_data_t *data)
 	errno_t rc = pcf_seek_table_header(data, &data->metrics_table);
 	if (rc != EOK)
 		return rc;
-	
+
 	size_t records_read;
 	uint32_t metrics_count;
 	if (data->metrics_table.format & PCF_FORMAT_COMPRESSED_METRICS) {
@@ -524,10 +524,10 @@ static errno_t pcf_read_metrics_table_header(pcf_data_t *data)
 		metrics_count = uint32_t_pcf2host(metrics_count,
 		    data->metrics_table.format);
 	}
-	
+
 	if (metrics_count != data->glyph_count)
 		return EINVAL;
-	
+
 	return EOK;
 }
 
@@ -536,13 +536,13 @@ static errno_t pcf_read_encodings_table_header(pcf_data_t *data)
 	errno_t rc = pcf_seek_table_header(data, &data->encodings_table);
 	if (rc != EOK)
 		return rc;
-	
+
 	pcf_encoding_t encoding;
 	size_t records_read = fread(&encoding, sizeof(pcf_encoding_t), 1,
 	    data->file);
 	if (records_read != 1)
 		return EINVAL;
-	
+
 	encoding.min_byte1 = uint16_t_pcf2host(encoding.min_byte1,
 	    data->encodings_table.format);
 	encoding.max_byte1 = uint16_t_pcf2host(encoding.max_byte1,
@@ -553,7 +553,7 @@ static errno_t pcf_read_encodings_table_header(pcf_data_t *data)
 	    data->encodings_table.format);
 	encoding.default_char = uint16_t_pcf2host(encoding.default_char,
 	    data->encodings_table.format);
-	
+
 	data->encoding = encoding;
 	return EOK;
 }
@@ -563,19 +563,19 @@ static errno_t pcf_read_accelerators_table(pcf_data_t *data)
 	errno_t rc = pcf_seek_table_header(data, &data->accelerators_table);
 	if (rc != EOK)
 		return rc;
-	
+
 	pcf_accelerators_t accelerators;
 	size_t records_read = fread(&accelerators, sizeof(pcf_accelerators_t),
 	    1, data->file);
 	if (records_read != 1)
 		return EINVAL;
-	
+
 	data->font_metrics.ascender = int32_t_pcf2host(accelerators.font_ascent,
 	    data->accelerators_table.format);
 	data->font_metrics.descender = int32_t_pcf2host(accelerators.font_descent,
 	    data->accelerators_table.format);
 	data->font_metrics.leading = 0;
-	
+
 	return EOK;
 }
 
@@ -585,36 +585,36 @@ errno_t pcf_font_create(font_t **font, char *filename, uint16_t points)
 	pcf_data_t *data = malloc(sizeof(pcf_data_t));
 	if (data == NULL)
 		return ENOMEM;
-	
+
 	data->file = fopen(filename, "rb");
 	if (data->file == NULL)
 		goto read_error;
-	
+
 	rc = pcf_read_toc(data);
 	if (rc != EOK)
 		goto error;
-	
+
 	rc = pcf_read_bitmap_table_header(data);
 	if (rc != EOK)
 		goto error;
-	
+
 	rc = pcf_read_metrics_table_header(data);
 	if (rc != EOK)
 		goto error;
-	
+
 	rc = pcf_read_encodings_table_header(data);
 	if (rc != EOK)
 		goto error;
-	
+
 	rc = pcf_read_accelerators_table(data);
 	if (rc != EOK)
 		goto error;
-	
+
 	rc = bitmap_font_create(&fd_pcf, data, data->glyph_count,
 	    data->font_metrics, points, font);
 	if (rc != EOK)
 		goto error;
-	
+
 	return EOK;
 read_error:
 	rc = EINVAL;

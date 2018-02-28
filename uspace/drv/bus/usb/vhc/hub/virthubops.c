@@ -72,7 +72,7 @@ static errno_t req_on_status_change_pipe(usbvirt_device_t *dev,
 	if (tr_type != USB_TRANSFER_INTERRUPT) {
 		return ESTALL;
 	}
-	
+
 	hub_t *hub = dev->device_data;
 
 	hub_acquire(hub);
@@ -93,7 +93,7 @@ static errno_t req_on_status_change_pipe(usbvirt_device_t *dev,
 	} else {
 		*actual_size = 0;
 	}
-	
+
 	hub->signal_changes = false;
 
 	hub_release(hub);

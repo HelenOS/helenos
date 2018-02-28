@@ -141,7 +141,7 @@ errno_t dmamem_map_anonymous(size_t size, uintptr_t constraint,
     unsigned int map_flags, unsigned int flags, uintptr_t *phys, void **virt)
 {
 	*phys = constraint;
-	
+
 	return (errno_t) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
 	    (sysarg_t) map_flags, (sysarg_t) flags | DMAMEM_FLAGS_ANONYMOUS,
 	    (sysarg_t) phys, (sysarg_t) virt, (sysarg_t) __entry);
@@ -179,7 +179,7 @@ static errno_t iospace_enable(task_id_t id, void *ioaddr, size_t size)
 		.ioaddr = ioaddr,
 		.size = size
 	};
-	
+
 	return (errno_t) __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
@@ -203,7 +203,7 @@ static errno_t iospace_disable(task_id_t id, void *ioaddr, size_t size)
 		.ioaddr = ioaddr,
 		.size = size
 	};
-	
+
 	return (errno_t) __SYSCALL1(SYS_IOSPACE_DISABLE, (sysarg_t) &arg);
 }
 
@@ -283,18 +283,18 @@ errno_t pio_enable(void *pio_addr, size_t size, void **virt)
 #endif
 	if (!virt)
 		return EINVAL;
-	
+
 	uintptr_t phys_frame =
 	    ALIGN_DOWN((uintptr_t) pio_addr, PAGE_SIZE);
 	size_t offset = (uintptr_t) pio_addr - phys_frame;
 	size_t pages = SIZE2PAGES(offset + size);
-	
+
 	void *virt_page = AS_AREA_ANY;
 	errno_t rc = physmem_map(phys_frame, pages,
 	    AS_AREA_READ | AS_AREA_WRITE, &virt_page);
 	if (rc != EOK)
 		return rc;
-	
+
 	*virt = virt_page + offset;
 	return EOK;
 }

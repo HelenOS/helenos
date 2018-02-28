@@ -22,11 +22,11 @@
   * @defgroup proc Scheduling
   * @ingroup kernel
   */
- 
+
 	/** @defgroup genericproc generic
 	* @ingroup proc
 	*/
- 	
+
 
 	/**
 	 * @cond amd64
@@ -93,79 +93,79 @@
  /** @defgroup mm Memory management
   * @ingroup kernel
   */
- 
+
 	/**
 	 * @defgroup genericmm generic
 	 * @ingroup mm
 	 */
- 
+
 	/**
 	 * @defgroup genarchmm genarch
 	 * @ingroup mm
 	 */
- 	
+
 	/**
 	 * @cond amd64
 	 * @defgroup amd64mm amd64
 	 * @ingroup mm
 	 * @endcond
 	 */
-	 
+
 	/**
 	 * @cond arm32
 	 * @defgroup arm32mm arm32
 	 * @ingroup mm
 	 * @endcond
 	 */
-	
+
 	/**
 	 * @cond ia32
 	 * @defgroup ia32mm ia32
 	 * @ingroup mm
 	 * @endcond
 	 */
-	
+
 	/**
 	 * @cond ia64
 	 * @defgroup ia64mm ia64
 	 * @ingroup mm
 	 * @endcond
 	 */
-	
+
 	/**
 	 * @cond mips32
 	 * @defgroup mips32mm mips32
 	 * @ingroup mm
 	 * @endcond
 	 */
-	
+
 	/**
 	 * @cond ppc32
 	 * @defgroup ppc32mm ppc32
 	 * @ingroup mm
 	 * @endcond
 	 */
-	
+
 	/**
 	 * @cond ppc64
 	 * @defgroup ppc64mm ppc64
 	 * @ingroup mm
 	 * @endcond
 	 */
-	
+
 	/**
 	 * @cond sparc64
 	 * @defgroup sparc64mm sparc64
 	 * @ingroup mm
 	 * @endcond
 	 */
-	
 
- 
+
+
 /** @defgroup genericipc IPC
  * @ingroup kernel
  */
- 
+
 /** @defgroup generickio KIO
  * @brief Kernel character input/output facility
  * @ingroup genericconsole
@@ -186,7 +186,7 @@
 	 * @ingroup ddi
 	 * @endcond
 	 */
-	 
+
  	/**
 	 * @cond arm32
 	 * @defgroup arm32ddi arm32
@@ -239,18 +239,18 @@
  /** @defgroup debug Debugging
  * @ingroup others
  */
- 
+
 	/** @defgroup genericdebug generic
 	* @ingroup debug
 	*/
- 
+
 	/**
 	 * @cond amd64
 	 * @defgroup amd64debug ia32/amd64
 	 * @ingroup debug
 	 * @endcond
 	 */
-	 
+
 	/**
 	 * @cond arm32
 	 * @defgroup arm32debug arm32
@@ -314,7 +314,7 @@
 	 * @ingroup interrupt
 	 * @endcond
 	 */
-	 
+
 	/**
 	 * @cond arm32
 	 * @defgroup arm32interrupt arm32
@@ -375,14 +375,14 @@
 	/** @defgroup genarch genarch
 	* @ingroup others
 	*/
- 	
+
 	/**
 	 * @cond amd64
 	 * @defgroup amd64 amd64
 	 * @ingroup others
 	 * @endcond
 	 */
-	 
+
 	/**
 	 * @cond arm32
 	 * @defgroup arm32 arm32

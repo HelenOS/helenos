@@ -47,15 +47,15 @@ static void totalmemtest(void)
 	slab_cache_t *cache1;
 	slab_cache_t *cache2;
 	int i;
-	
+
 	void *data1, *data2;
 	void *olddata1 = NULL, *olddata2 = NULL;
-	
+
 	cache1 = slab_cache_create("test_cache1", ITEM_SIZE, 0, NULL, NULL, 0);
 	cache2 = slab_cache_create("test_cache2", ITEM_SIZE, 0, NULL, NULL, 0);
-	
+
 	TPRINTF("Allocating...");
-	
+
 	/* Use atomic alloc, so that we find end of memory */
 	do {
 		data1 = slab_alloc(cache1, FRAME_ATOMIC);
@@ -74,22 +74,22 @@ static void totalmemtest(void)
 		olddata1 = data1;
 		olddata2 = data2;
 	} while (true);
-	
+
 	TPRINTF("done.\n");
-	
+
 	TPRINTF("Deallocating cache2...");
-	
+
 	/* We do not have memory - now deallocate cache2 */
 	while (olddata2) {
 		data2 = *((void **) olddata2);
 		slab_free(cache2, olddata2);
 		olddata2 = data2;
 	}
-	
+
 	TPRINTF("done.\n");
-	
+
 	TPRINTF("Allocating to cache1...\n");
-	
+
 	for (i = 0; i < 30; i++) {
 		data1 = slab_alloc(cache1, FRAME_ATOMIC);
 		if (!data1) {
@@ -108,20 +108,20 @@ static void totalmemtest(void)
 		*((void **) data1) = olddata1;
 		olddata1 = data1;
 	}
-	
+
 	TPRINTF("Deallocating cache1...");
-	
+
 	while (olddata1) {
 		data1 = *((void **) olddata1);
 		slab_free(cache1, olddata1);
 		olddata1 = data1;
 	}
-	
+
 	TPRINTF("done.\n");
-	
+
 	if (!test_quiet)
 		slab_print_list();
-	
+
 	slab_cache_destroy(cache1);
 	slab_cache_destroy(cache2);
 }
@@ -136,18 +136,18 @@ static mutex_t starter_mutex;
 static void slabtest(void *priv)
 {
 	void *data = NULL, *new;
-	
+
 	thread_detach(THREAD);
-	
+
 	mutex_lock(&starter_mutex);
 	condvar_wait(&thread_starter,&starter_mutex);
 	mutex_unlock(&starter_mutex);
-	
+
 	TPRINTF("Starting thread #%" PRIu64 "...\n", THREAD->tid);
 
 	/* Alloc all */
 	TPRINTF("Thread #%" PRIu64 " allocating...\n", THREAD->tid);
-	
+
 	while (true) {
 		/* Call with atomic to detect end of memory */
 		new = slab_alloc(thr_cache, FRAME_ATOMIC);
@@ -156,18 +156,18 @@ static void slabtest(void *priv)
 		*((void **) new) = data;
 		data = new;
 	}
-	
+
 	TPRINTF("Thread #%" PRIu64 " releasing...\n", THREAD->tid);
-	
+
 	while (data) {
 		new = *((void **)data);
 		*((void **) data) = NULL;
 		slab_free(thr_cache, data);
 		data = new;
 	}
-	
+
 	TPRINTF("Thread #%" PRIu64 " allocating...\n", THREAD->tid);
-	
+
 	while (true) {
 		/* Call with atomic to detect end of memory */
 		new = slab_alloc(thr_cache, FRAME_ATOMIC);
@@ -176,21 +176,21 @@ static void slabtest(void *priv)
 		*((void **) new) = data;
 		data = new;
 	}
-	
+
 	TPRINTF("Thread #%" PRIu64 " releasing...\n", THREAD->tid);
-	
+
 	while (data) {
 		new = *((void **)data);
 		*((void **) data) = NULL;
 		slab_free(thr_cache, data);
 		data = new;
 	}
-	
+
 	TPRINTF("Thread #%" PRIu64 " finished\n", THREAD->tid);
-	
+
 	if (!test_quiet)
 		slab_print_list();
-	
+
 	semaphore_up(&thr_sem);
 }
 
@@ -201,12 +201,12 @@ static void multitest(int size)
 	 */
 	thread_t *t;
 	int i;
-	
+
 	TPRINTF("Running stress test with size %d\n", size);
-	
+
 	condvar_initialize(&thread_starter);
 	mutex_initialize(&starter_mutex, MUTEX_PASSIVE);
-	
+
 	thr_cache = slab_cache_create("thread_cache", size, 0, NULL, NULL, 0);
 	semaphore_initialize(&thr_sem,0);
 	for (i = 0; i < THREADS; i++) {
@@ -217,10 +217,10 @@ static void multitest(int size)
 	}
 	thread_sleep(1);
 	condvar_broadcast(&thread_starter);
-	
+
 	for (i = 0; i < THREADS; i++)
 		semaphore_down(&thr_sem);
-	
+
 	slab_cache_destroy(thr_cache);
 	TPRINTF("Stress test complete.\n");
 }
@@ -229,15 +229,15 @@ const char *test_slab2(void)
 {
 	TPRINTF("Running reclaim single-thread test .. pass 1\n");
 	totalmemtest();
-	
+
 	TPRINTF("Running reclaim single-thread test .. pass 2\n");
 	totalmemtest();
-	
+
 	TPRINTF("Reclaim test OK.\n");
-	
+
 	multitest(128);
 	multitest(2048);
 	multitest(8192);
-	
+
 	return NULL;
 }

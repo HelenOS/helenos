@@ -175,14 +175,14 @@ static errno_t amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
 	ddf_fun_t *fnode = ddf_fun_create(dev, fun_inner, fun->name);
 	if (fnode == NULL)
 		return ENOMEM;
-	
+
 	/* Add match id */
 	errno_t ret = ddf_fun_add_match_id(fnode, fun->id, fun->score);
 	if (ret != EOK) {
 		ddf_fun_destroy(fnode);
 		return ret;
 	}
-	
+
 	/* Alloc needed data */
 	amdm37x_fun_t *rf =
 	    ddf_fun_data_alloc(fnode, sizeof(amdm37x_fun_t));
@@ -194,7 +194,7 @@ static errno_t amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
 
 	/* Set provided operations to the device. */
 	ddf_fun_set_ops(fnode, &amdm37x_fun_ops);
-	
+
 	/* Register function. */
 	ret = ddf_fun_bind(fnode);
 	if (ret != EOK) {
@@ -202,7 +202,7 @@ static errno_t amdm37x_add_fun(ddf_dev_t *dev, const amdm37x_fun_t *fun)
 		ddf_fun_destroy(fnode);
 		return ret;
 	}
-	
+
 	return EOK;
 }
 

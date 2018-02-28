@@ -40,7 +40,7 @@ SYMBOL_BEGIN(__thread_entry)
 	pushq $0
 	pushq $0
 	movq %rsp, %rbp
-	
+
 	#
 	# RAX contains address of uarg
 	#

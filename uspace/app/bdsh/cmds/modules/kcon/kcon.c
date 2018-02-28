@@ -42,10 +42,10 @@ static const char *cmdname = "kcon";
 void help_cmd_kcon(unsigned int level)
 {
 	printf("`kcon' switches to the kernel debug console.\n");
-	
+
 	if (level != HELP_SHORT)
 		printf("Usage: %s\n", cmdname);
-	
+
 	return;
 }
 
@@ -53,13 +53,13 @@ void help_cmd_kcon(unsigned int level)
 int cmd_kcon(char **argv)
 {
 	unsigned int argc = cli_count_args(argv);
-	
+
 	if (argc != 1) {
 		printf("%s - incorrect number of arguments. Try `%s --help'\n",
 		    cmdname, cmdname);
 		return CMD_FAILURE;
 	}
-	
+
 	if (console_kcon())
 		return CMD_SUCCESS;
 	else

@@ -29,7 +29,7 @@
 #include <abi/asmtool.h>
 
 .text
-	
+
 ## User-space thread entry point for all but the first threads.
 #
 #

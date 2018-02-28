@@ -234,10 +234,10 @@ typedef struct {
 	void *data_port;
 	int irq;
 	nic_address_t mac;
-	
+
 	uint8_t start_page;  /**< Ring buffer start page */
 	uint8_t stop_page;   /**< Ring buffer stop page */
-	
+
 	/* Send queue */
 	struct {
 		bool dirty;    /**< Buffer contains a packet */
@@ -246,7 +246,7 @@ typedef struct {
 	} sq;
 	fibril_mutex_t sq_mutex;
 	fibril_condvar_t sq_cv;
-	
+
 	/* Driver run-time variables */
 	bool probed;
 	bool up;

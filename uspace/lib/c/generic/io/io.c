@@ -118,7 +118,7 @@ void __stdio_init(void)
 		stdin = &stdin_null;
 		list_append(&stdin->link, &files);
 	}
-	
+
 	int outfd = inbox_get("stdout");
 	if (outfd >= 0) {
 		int stdoutfd = -1;
@@ -132,7 +132,7 @@ void __stdio_init(void)
 		stdout = &stdout_kio;
 		list_append(&stdout->link, &files);
 	}
-	
+
 	int errfd = inbox_get("stderr");
 	if (errfd >= 0) {
 		int stderrfd = -1;
@@ -164,17 +164,17 @@ static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncat
 		errno = EINVAL;
 		return false;
 	}
-	
+
 	if ((*mp == 'b') || (*mp == 't'))
 		mp++;
-	
+
 	bool plus;
 	if (*mp == '+') {
 		mp++;
 		plus = true;
 	} else
 		plus = false;
-	
+
 	if (*mp != 0) {
 		errno = EINVAL;
 		return false;
@@ -182,7 +182,7 @@ static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncat
 
 	*create = false;
 	*truncate = false;
-	
+
 	/* Parse first character of fmode and determine mode for vfs_open(). */
 	switch (fmode[0]) {
 	case 'r':
@@ -208,7 +208,7 @@ static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncat
 		errno = EINVAL;
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -240,7 +240,7 @@ void setbuf(FILE *stream, void *buf)
 static void _setvbuf(FILE *stream)
 {
 	/* FIXME: Use more complex rules for setting buffering options. */
-	
+
 	switch (stream->fd) {
 	case 1:
 		setvbuf(stream, NULL, _IOLBF, BUFSIZ);
@@ -258,13 +258,13 @@ static void _setvbuf(FILE *stream)
 static int _fallocbuf(FILE *stream)
 {
 	assert(stream->buf == NULL);
-	
+
 	stream->buf = malloc(stream->buf_size);
 	if (stream->buf == NULL) {
 		errno = ENOMEM;
 		return EOF;
 	}
-	
+
 	stream->buf_head = stream->buf;
 	stream->buf_tail = stream->buf;
 	return 0;
@@ -284,7 +284,7 @@ FILE *fopen(const char *path, const char *fmode)
 
 	if (!parse_mode(fmode, &mode, &create, &truncate))
 		return NULL;
-	
+
 	/* Open file. */
 	FILE *stream = malloc(sizeof(FILE));
 	if (stream == NULL) {
@@ -310,7 +310,7 @@ FILE *fopen(const char *path, const char *fmode)
 		free(stream);
 		return NULL;
 	}
-	
+
 	if (truncate) {
 		rc = vfs_resize(file, 0);
 		if (rc != EOK) {
@@ -330,9 +330,9 @@ FILE *fopen(const char *path, const char *fmode)
 	stream->need_sync = false;
 	_setvbuf(stream);
 	stream->ungetc_chars = 0;
-	
+
 	list_append(&stream->link, &files);
-	
+
 	return stream;
 }
 
@@ -344,7 +344,7 @@ FILE *fdopen(int fd, const char *mode)
 		errno = ENOMEM;
 		return NULL;
 	}
-	
+
 	stream->fd = fd;
 	stream->pos = 0;
 	stream->error = false;
@@ -354,9 +354,9 @@ FILE *fdopen(int fd, const char *mode)
 	stream->need_sync = false;
 	_setvbuf(stream);
 	stream->ungetc_chars = 0;
-	
+
 	list_append(&stream->link, &files);
-	
+
 	return stream;
 }
 
@@ -364,59 +364,59 @@ FILE *fdopen(int fd, const char *mode)
 static int _fclose_nofree(FILE *stream)
 {
 	errno_t rc = 0;
-	
+
 	fflush(stream);
-	
+
 	if (stream->sess != NULL)
 		async_hangup(stream->sess);
-	
+
 	if (stream->fd >= 0)
 		rc = vfs_put(stream->fd);
-	
+
 	list_remove(&stream->link);
-	
+
 	if (rc != EOK) {
 		errno = rc;
 		return EOF;
 	}
-	
+
 	return 0;
 }
 
 int fclose(FILE *stream)
 {
 	int rc = _fclose_nofree(stream);
-	
+
 	if ((stream != &stdin_null)
 	    && (stream != &stdout_kio)
 	    && (stream != &stderr_kio))
 		free(stream);
-	
+
 	return rc;
 }
 
 FILE *freopen(const char *path, const char *mode, FILE *stream)
 {
 	FILE *nstr;
-	
+
 	if (path == NULL) {
 		/* Changing mode is not supported */
 		return NULL;
 	}
-	
+
 	(void) _fclose_nofree(stream);
 	nstr = fopen(path, mode);
 	if (nstr == NULL) {
 		free(stream);
 		return NULL;
 	}
-	
+
 	list_remove(&nstr->link);
 	*stream = *nstr;
 	list_append(&stream->link, &files);
-	
+
 	free(nstr);
-	
+
 	return stream;
 }
 
@@ -658,34 +658,34 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 		if (_fallocbuf(stream) != 0)
 			return 0; /* Errno set by _fallocbuf(). */
 	}
-	
+
 	data = (uint8_t *) buf;
 	bytes_left = size * nmemb;
 	total_written = 0;
 	need_flush = false;
-	
+
 	while ((!stream->error) && (bytes_left > 0)) {
 		buf_free = stream->buf_size - (stream->buf_head - stream->buf);
 		if (bytes_left > buf_free)
 			now = buf_free;
 		else
 			now = bytes_left;
-		
+
 		for (i = 0; i < now; i++) {
 			b = data[i];
 			stream->buf_head[i] = b;
-			
+
 			if ((b == '\n') && (stream->btype == _IOLBF))
 				need_flush = true;
 		}
-		
+
 		data += now;
 		stream->buf_head += now;
 		buf_free -= now;
 		bytes_left -= now;
 		total_written += now;
 		stream->buf_state = _bs_write;
-		
+
 		if (buf_free == 0) {
 			/* Only need to drain buffer. */
 			_fflushbuf(stream);
@@ -696,7 +696,7 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 
 	if (need_flush)
 		fflush(stream);
-	
+
 	return (total_written / size);
 }
 
@@ -704,16 +704,16 @@ int fputc(wchar_t c, FILE *stream)
 {
 	char buf[STR_BOUNDS(1)];
 	size_t sz = 0;
-	
+
 	if (chr_encode(c, buf, &sz, STR_BOUNDS(1)) == EOK) {
 		size_t wr = fwrite(buf, 1, sz, stream);
-		
+
 		if (wr < sz)
 			return EOF;
-		
+
 		return (int) c;
 	}
-	
+
 	return EOF;
 }
 
@@ -738,16 +738,16 @@ int puts(const char *str)
 int fgetc(FILE *stream)
 {
 	char c;
-	
+
 	/* This could be made faster by only flushing when needed. */
 	if (stdout)
 		fflush(stdout);
 	if (stderr)
 		fflush(stderr);
-	
+
 	if (fread(&c, sizeof(char), 1, stream) < sizeof(char))
 		return EOF;
-	
+
 	return (int) c;
 }
 
@@ -840,7 +840,7 @@ off64_t ftell64(FILE *stream)
 {
 	if (stream->error)
 		return EOF;
-	
+
 	_fflushbuf(stream);
 	if (stream->error) {
 		/* errno was set by _fflushbuf() */
@@ -875,18 +875,18 @@ int fflush(FILE *stream)
 {
 	if (stream->error)
 		return EOF;
-	
+
 	_fflushbuf(stream);
 	if (stream->error) {
 		/* errno was set by _fflushbuf() */
 		return EOF;
 	}
-	
+
 	if (stream->kio) {
 		kio_update();
 		return 0;
 	}
-	
+
 	if ((stream->fd >= 0) && (stream->need_sync)) {
 		errno_t rc;
 
@@ -903,7 +903,7 @@ int fflush(FILE *stream)
 
 		return 0;
 	}
-	
+
 	return 0;
 }
 
@@ -929,7 +929,7 @@ int fileno(FILE *stream)
 		errno = EBADF;
 		return EOF;
 	}
-	
+
 	return stream->fd;
 }
 
@@ -938,10 +938,10 @@ async_sess_t *vfs_fsession(FILE *stream, iface_t iface)
 	if (stream->fd >= 0) {
 		if (stream->sess == NULL)
 			stream->sess = vfs_fd_session(stream->fd, iface);
-		
+
 		return stream->sess;
 	}
-	
+
 	return NULL;
 }
 
@@ -951,7 +951,7 @@ errno_t vfs_fhandle(FILE *stream, int *handle)
 		*handle = stream->fd;
 		return EOK;
 	}
-	
+
 	return ENOENT;
 }
 

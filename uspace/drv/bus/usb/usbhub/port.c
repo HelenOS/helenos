@@ -86,7 +86,7 @@ static void remove_device(usb_port_t *port_base)
 		    "failed creating exchange.");
 		return;
 	}
-	
+
 	const errno_t err = usbhc_device_remove(exch, port->port_number);
 	if (err)
 		port_log(error, port, "Failed to remove device: %s",

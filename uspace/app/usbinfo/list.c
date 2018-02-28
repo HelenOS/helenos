@@ -111,7 +111,7 @@ static void print_usb_bus(service_id_t svc)
 		    " SID %" PRIun ", skipping.\n", svc);
 		return;
 	}
-	
+
 	devman_handle_t *fhs = 0;
 	size_t count;
 	rc = devman_dev_get_functions(dh, &fhs, &count);

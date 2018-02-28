@@ -109,12 +109,12 @@ int strncasecmp(const char *s1, const char *s2, size_t n)
 		if (cmp != 0) {
 			return cmp;
 		}
-		
+
 		if (s1[i] == 0) {
 			return 0;
 		}
 	}
-	
+
 	return 0;
 }
 

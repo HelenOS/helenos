@@ -75,12 +75,12 @@ void tlb_arch_init(void)
 	cp0_entry_lo1_write(0);
 
 	/* Clear and initialize TLB. */
-	
+
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbwi();
 	}
-	
+
 	/*
 	 * The kernel is going to make use of some wired
 	 * entries (e.g. mapping kernel stacks in kseg3).
@@ -97,7 +97,7 @@ void tlb_refill(istate_t *istate)
 	entry_lo_t lo;
 	uintptr_t badvaddr;
 	pte_t pte;
-	
+
 	badvaddr = cp0_badvaddr_read();
 
 	bool found = page_mapping_find(AS, badvaddr, true, &pte);
@@ -290,25 +290,25 @@ void tlb_print(void)
 	lo0_save.value = cp0_entry_lo0_read();
 	lo1_save.value = cp0_entry_lo1_read();
 	mask_save.value = cp0_pagemask_read();
-	
+
 	printf("[nr] [asid] [vpn2    ] [mask] [gvdc] [pfn     ]\n");
-	
+
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbr();
-		
+
 		mask.value = cp0_pagemask_read();
 		hi.value = cp0_entry_hi_read();
 		lo0.value = cp0_entry_lo0_read();
 		lo1.value = cp0_entry_lo1_read();
-		
+
 		printf("%-4u %-6u %0#10x %-#6x  %1u%1u%1u%1u  %0#10x\n",
 		    i, hi.asid, HI_VPN22ADDR(hi.vpn2), mask.mask,
 		    lo0.g, lo0.v, lo0.d, lo0.c, LO_PFN2ADDR(lo0.pfn));
 		printf("                               %1u%1u%1u%1u  %0#10x\n",
 		    lo1.g, lo1.v, lo1.d, lo1.c, LO_PFN2ADDR(lo1.pfn));
 	}
-	
+
 	cp0_entry_hi_write(hi_save.value);
 	cp0_entry_lo0_write(lo0_save.value);
 	cp0_entry_lo1_write(lo1_save.value);
@@ -338,10 +338,10 @@ void tlb_invalidate_all(void)
 
 		cp0_entry_lo0_write(lo0.value);
 		cp0_entry_lo1_write(lo1.value);
-				
+
 		tlbwi();
 	}
-	
+
 	cp0_entry_hi_write(hi_save.value);
 }
 
@@ -359,13 +359,13 @@ void tlb_invalidate_asid(asid_t asid)
 	assert(asid != ASID_INVALID);
 
 	hi_save.value = cp0_entry_hi_read();
-	
+
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
 		tlbr();
-		
+
 		hi.value = cp0_entry_hi_read();
-		
+
 		if (hi.asid == asid) {
 			lo0.value = cp0_entry_lo0_read();
 			lo1.value = cp0_entry_lo1_read();
@@ -379,7 +379,7 @@ void tlb_invalidate_asid(asid_t asid)
 			tlbwi();
 		}
 	}
-	
+
 	cp0_entry_hi_write(hi_save.value);
 }
 
@@ -398,7 +398,7 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	tlb_index_t index;
 
 	assert(interrupts_disabled());
-	
+
 	if (asid == ASID_INVALID)
 		return;
 
@@ -430,7 +430,7 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 			tlbwi();
 		}
 	}
-	
+
 	cp0_entry_hi_write(hi_save.value);
 }
 

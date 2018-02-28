@@ -128,17 +128,17 @@ static void write_buffered(chardev_t *chardev, uint8_t ch)
 errno_t slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send()");
-	
+
 	chardev_t *chardev = (chardev_t *) srv->arg;
 	uint8_t *data = sdu->data;
-	
+
 	/*
 	 * Strictly speaking, this is not prescribed by the RFC, but the RFC
 	 * suggests to start with sending a SLIP_END byte as a synchronization
 	 * measure for dealing with previous possible noise on the line.
 	 */
 	write_buffered(chardev, SLIP_END);
-	
+
 	for (size_t i = 0; i < sdu->size; i++) {
 		switch (data[i]) {
 		case SLIP_END:
@@ -154,17 +154,17 @@ errno_t slip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 			break;
 		}
 	}
-	
+
 	write_buffered(chardev, SLIP_END);
 	write_flush(chardev);
-	
+
 	return EOK;
 }
 
 errno_t slip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_send6()");
-	
+
 	return ENOTSUP;
 }
 
@@ -271,7 +271,7 @@ static errno_t slip_recv_fibril(void *arg)
 				recv_final[sdu.size++] = ch;
 				break;
 			}
-			
+
 		}
 
 		/*

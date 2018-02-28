@@ -55,7 +55,7 @@ uri_t *uri_parse(const char *str)
 	if (uri == NULL)
 		return NULL;
 	memset(uri, 0, sizeof(uri_t));
-	
+
 	/* scheme ":" */
 	const char *scheme = str;
 	while (*str != 0 && *str != ':') str++;
@@ -64,23 +64,23 @@ uri_t *uri_parse(const char *str)
 		return NULL;
 	}
 	uri->scheme = cut_str(scheme, str);
-	
+
 	/* skip the colon */
 	str++;
-	
+
 	if (*str == '/' && str[1] == '/') {
 		/* "//" [user-info [":" user-credential] "@"] host [":" port] */
 		str++;
 		str++;
 		const char *authority_start = str;
-	
+
 		char *host_or_user_info = NULL;
 		char *port_or_user_credential = NULL;
-	
+
 		while (*str != 0 && *str != '?' && *str != '#' && *str != '@'
 			&& *str != ':' && *str != '/')
 			str++;
-	
+
 		host_or_user_info = cut_str(authority_start, str);
 		if (*str == ':') {
 			str++;
@@ -89,17 +89,17 @@ uri_t *uri_parse(const char *str)
 				*str != '@' && *str != '/') str++;
 			port_or_user_credential = cut_str(second_part, str);
 		}
-	
+
 		if (*str == '@') {
 			uri->user_info = host_or_user_info;
 			uri->user_credential = port_or_user_credential;
-		
+
 			str++;
 			const char *host_start = str;
 			while (*str != 0 && *str != '?' && *str != '#'
 				&& *str != ':' && *str != '/') str++;
 			uri->host = cut_str(host_start, str);
-		
+
 			if (*str == ':') {
 				str++;
 				const char *port_start = str;
@@ -113,25 +113,25 @@ uri_t *uri_parse(const char *str)
 			uri->port = port_or_user_credential;
 		}
 	}
-	
+
 	const char *path_start = str;
 	while (*str != 0 && *str != '?' && *str != '#') str++;
 	uri->path = cut_str(path_start, str);
-	
+
 	if (*str == '?') {
 		str++;
 		const char *query_start = str;
 		while (*str != 0 && *str != '#') str++;
 		uri->query = cut_str(query_start, str);
 	}
-	
+
 	if (*str == '#') {
 		str++;
 		const char *fragment_start = str;
 		while (*str != 0) str++;
 		uri->fragment = cut_str(fragment_start, str);
 	}
-	
+
 	assert(*str == 0);
 	return uri;
 }
@@ -148,17 +148,17 @@ errno_t uri_scheme_parse(const char *str, const char **endptr)
 		*endptr = str;
 		return ELIMIT;
 	}
-	
+
 	if (!isalpha(*str)) {
 		*endptr = str;
 		return EINVAL;
 	}
-	
+
 	while (isalpha(*str) || isdigit(*str) ||
 	    *str == '+' || *str == '-' || *str == '.') {
 		str++;
 	}
-	
+
 	*endptr = str;
 	return EOK;
 }
@@ -180,16 +180,16 @@ errno_t uri_percent_parse(const char *str, const char **endptr,
 	*endptr = str;
 	if (str[0] == 0 || str[1] == 0 || str[2] == 0)
 		return ELIMIT;
-	
+
 	if (str[0] != '%' || !is_hexdig(str[1]) || !is_hexdig(str[2]))
 		return EINVAL;
-	
+
 	if (decoded != NULL) {
 		errno_t rc = str_uint8_t(str + 1, NULL, 16, true, decoded);
 		if (rc != EOK)
 			return rc;
 	}
-	
+
 	*endptr = str + 3;
 	return EOK;
 }
@@ -206,7 +206,7 @@ errno_t uri_user_info_parse(const char *str, const char **endptr)
 			return rc;
 		}
 	}
-	
+
 	*endptr = str;
 	return EOK;
 }
@@ -242,16 +242,16 @@ bool uri_validate(uri_t *uri)
 {
 	if (uri->scheme && !uri_scheme_validate(uri->scheme))
 		return false;
-	
+
 	if (uri->user_info && !uri_user_info_validate(uri->user_info))
 		return false;
-	
+
 	if (uri->user_credential && !uri_user_info_validate(uri->user_credential))
 		return false;
-	
+
 	if (uri->port && !uri_port_validate(uri->port))
 		return false;
-	
+
 	return true;
 }
 

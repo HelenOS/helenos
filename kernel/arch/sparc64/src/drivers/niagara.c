@@ -125,17 +125,17 @@ static void niagara_poll(void)
 	 * Print any pending characters from the
 	 * shared buffer to the console.
 	 */
-	
+
 	while (output_buffer.read_ptr != output_buffer.write_ptr) {
 		do_putchar(output_buffer.data[output_buffer.read_ptr]);
 		output_buffer.read_ptr =
 		    ((output_buffer.read_ptr) + 1) % OUTPUT_BUFFER_SIZE;
 	}
-	
+
 	/*
 	 * Read character from keyboard.
 	 */
-	
+
 	uint64_t c;
 	if (__hypercall_fast_ret1(0, 0, 0, 0, 0, CONS_GETCHAR, &c) == HV_EOK) {
 		if ((!inbuf_parea.mapped) || (console_override)) {
@@ -173,59 +173,59 @@ static void niagara_init(void)
 {
 	if (instance)
 		return;
-	
+
 	instance = malloc(sizeof(niagara_instance_t), FRAME_ATOMIC);
 	instance->thread = thread_create(kniagarapoll, NULL, TASK,
 	    THREAD_FLAG_UNCOUNTED, "kniagarapoll");
-	
+
 	if (!instance->thread) {
 		free(instance);
 		instance = NULL;
 		return;
 	}
-	
+
 	instance->srlnin = NULL;
-	
+
 	output_buffer.read_ptr = 0;
 	output_buffer.write_ptr = 0;
 	input_buffer.write_ptr = 0;
 	input_buffer.read_ptr = 0;
-	
+
 	/*
 	 * Set sysinfos and pareas so that the userspace counterpart of the
 	 * niagara fb and kbd driver can communicate with kernel using shared
 	 * buffers.
 	 */
-	
+
 	sysinfo_set_item_val("fb", NULL, true);
 	sysinfo_set_item_val("fb.kind", NULL, 5);
-	
+
 	sysinfo_set_item_val("niagara.outbuf.address", NULL,
 	    KA2PA(&output_buffer));
 	sysinfo_set_item_val("niagara.outbuf.size", NULL,
 	    PAGE_SIZE);
 	sysinfo_set_item_val("niagara.outbuf.datasize", NULL,
 	    OUTPUT_BUFFER_SIZE);
-	
+
 	sysinfo_set_item_val("niagara.inbuf.address", NULL,
 	    KA2PA(&input_buffer));
 	sysinfo_set_item_val("niagara.inbuf.size", NULL,
 	    PAGE_SIZE);
 	sysinfo_set_item_val("niagara.inbuf.datasize", NULL,
 	   INPUT_BUFFER_SIZE);
-	
+
 	outbuf_parea.pbase = (uintptr_t) (KA2PA(&output_buffer));
 	outbuf_parea.frames = 1;
 	outbuf_parea.unpriv = false;
 	outbuf_parea.mapped = false;
 	ddi_parea_register(&outbuf_parea);
-	
+
 	inbuf_parea.pbase = (uintptr_t) (KA2PA(&input_buffer));
 	inbuf_parea.frames = 1;
 	inbuf_parea.unpriv = false;
 	inbuf_parea.mapped = false;
 	ddi_parea_register(&inbuf_parea);
-	
+
 	outdev_t *niagara_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	outdev_initialize("niagara_dev", niagara_dev, &niagara_ops);
 	stdout_wire(niagara_dev);
@@ -237,18 +237,18 @@ static void niagara_init(void)
 niagara_instance_t *niagarain_init(void)
 {
 	niagara_init();
-	
+
 	if (instance) {
 		srln_instance_t *srln_instance = srln_init();
 		if (srln_instance) {
 			indev_t *sink = stdin_wire();
 			indev_t *srln = srln_wire(srln_instance, sink);
-			
+
 			instance->srlnin = srln;
 			thread_ready(instance->thread);
 		}
 	}
-	
+
 	return instance;
 }
 

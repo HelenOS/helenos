@@ -98,7 +98,7 @@ void set_iostate(iostate_t *ios)
 int main(int argc, char *argv[])
 {
 	errno_t ret = 0;
-	
+
 	stdiostate.stdin = stdin;
 	stdiostate.stdout = stdout;
 	stdiostate.stderr = stderr;

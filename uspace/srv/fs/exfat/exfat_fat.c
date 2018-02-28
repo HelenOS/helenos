@@ -515,7 +515,7 @@ exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
 	errno_t rc;
 	blocks = ROUND_UP(nodep->size, BPS(bs))/BPS(bs);
 	count = BPS(bs);
-	
+
 	for (i = 0; i < blocks; i++) {
 		rc = exfat_block_get(&b, bs, nodep, i, BLOCK_FLAGS_NOREAD);
 		if (rc != EOK)

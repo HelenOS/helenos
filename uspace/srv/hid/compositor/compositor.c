@@ -176,7 +176,7 @@ static pointer_t *pointer_create(void)
 	pointer_t *p = (pointer_t *) malloc(sizeof(pointer_t));
 	if (!p)
 		return NULL;
-	
+
 	link_initialize(&p->link);
 	p->pos.x = coord_origin;
 	p->pos.y = coord_origin;
@@ -188,7 +188,7 @@ static pointer_t *pointer_create(void)
 	p->pressed = false;
 	p->state = 0;
 	cursor_init(&p->cursor, CURSOR_DECODER_EMBEDDED, NULL);
-	
+
 	/* Ghost window for transformation animation. */
 	transform_identity(&p->ghost.transform);
 	transform_translate(&p->ghost.transform, coord_origin, coord_origin);
@@ -201,7 +201,7 @@ static pointer_t *pointer_create(void)
 	p->ghost.surface = NULL;
 	p->accum_ghost.x = 0;
 	p->accum_ghost.y = 0;
-	
+
 	return p;
 }
 
@@ -218,7 +218,7 @@ static window_t *window_create(void)
 	window_t *win = (window_t *) malloc(sizeof(window_t));
 	if (!win)
 		return NULL;
-	
+
 	link_initialize(&win->link);
 	atomic_set(&win->ref_cnt, 0);
 	prodcons_initialize(&win->queue);
@@ -231,7 +231,7 @@ static window_t *window_create(void)
 	win->angle = 0;
 	win->opacity = 255;
 	win->surface = NULL;
-	
+
 	return win;
 }
 
@@ -243,10 +243,10 @@ static void window_destroy(window_t *win)
 			list_remove(&event->link);
 			free(event);
 		}
-		
+
 		if (win->surface)
 			surface_destroy(win->surface);
-		
+
 		free(win);
 	}
 }
@@ -258,7 +258,7 @@ static bool comp_coord_to_client(sysarg_t x_in, sysarg_t y_in, transform_t win_t
 	double y = y_in;
 	transform_invert(&win_trans);
 	transform_apply_affine(&win_trans, &x, &y);
-	
+
 	/*
 	 * Since client coordinate origin is (0, 0), it is necessary to check
 	 * coordinates to avoid underflow. Moreover, it is convenient to also
@@ -267,13 +267,13 @@ static bool comp_coord_to_client(sysarg_t x_in, sysarg_t y_in, transform_t win_t
 	 */
 	if ((x < 0) || (y < 0))
 		return false;
-	
+
 	(*x_out) = (sysarg_t) (x + 0.5);
 	(*y_out) = (sysarg_t) (y + 0.5);
-	
+
 	if (((*x_out) >= x_lim) || ((*y_out) >= y_lim))
 		return false;
-	
+
 	return true;
 }
 
@@ -283,7 +283,7 @@ static void comp_coord_from_client(double x_in, double y_in, transform_t win_tra
 	double x = x_in;
 	double y = y_in;
 	transform_apply_affine(&win_trans, &x, &y);
-	
+
 	/*
 	 * It is assumed that compositor coordinate origin is chosen in such way,
 	 * that underflow/overflow here would be unlikely.
@@ -299,24 +299,24 @@ static void comp_coord_bounding_rect(double x_in, double y_in,
 	if ((w_in > 0) && (h_in > 0)) {
 		sysarg_t x[4];
 		sysarg_t y[4];
-		
+
 		comp_coord_from_client(x_in, y_in, win_trans, &x[0], &y[0]);
 		comp_coord_from_client(x_in + w_in - 1, y_in, win_trans, &x[1], &y[1]);
 		comp_coord_from_client(x_in + w_in - 1, y_in + h_in - 1, win_trans, &x[2], &y[2]);
 		comp_coord_from_client(x_in, y_in + h_in - 1, win_trans, &x[3], &y[3]);
-		
+
 		(*x_out) = x[0];
 		(*y_out) = y[0];
 		(*w_out) = x[0];
 		(*h_out) = y[0];
-		
+
 		for (unsigned int i = 1; i < 4; ++i) {
 			(*x_out) = (x[i] < (*x_out)) ? x[i] : (*x_out);
 			(*y_out) = (y[i] < (*y_out)) ? y[i] : (*y_out);
 			(*w_out) = (x[i] > (*w_out)) ? x[i] : (*w_out);
 			(*h_out) = (y[i] > (*h_out)) ? y[i] : (*h_out);
 		}
-		
+
 		(*w_out) = (*w_out) - (*x_out) + 1;
 		(*h_out) = (*h_out) - (*y_out) + 1;
 	} else {
@@ -330,19 +330,19 @@ static void comp_coord_bounding_rect(double x_in, double y_in,
 static void comp_update_viewport_bound_rect(void)
 {
 	fibril_mutex_lock(&viewport_list_mtx);
-	
+
 	sysarg_t x_res = coord_origin;
 	sysarg_t y_res = coord_origin;
 	sysarg_t w_res = 0;
 	sysarg_t h_res = 0;
-	
+
 	if (!list_empty(&viewport_list)) {
 		viewport_t *vp = (viewport_t *) list_first(&viewport_list);
 		x_res = vp->pos.x;
 		y_res = vp->pos.y;
 		surface_get_resolution(vp->surface, &w_res, &h_res);
 	}
-	
+
 	list_foreach(viewport_list, link, viewport_t, vp) {
 		sysarg_t w_vp, h_vp;
 		surface_get_resolution(vp->surface, &w_vp, &h_vp);
@@ -350,21 +350,21 @@ static void comp_update_viewport_bound_rect(void)
 		    vp->pos.x, vp->pos.y, w_vp, h_vp,
 		    &x_res, &y_res, &w_res, &h_res);
 	}
-	
+
 	viewport_bound_rect.x = x_res;
 	viewport_bound_rect.y = y_res;
 	viewport_bound_rect.w = w_res;
 	viewport_bound_rect.h = h_res;
-	
+
 	fibril_mutex_unlock(&viewport_list_mtx);
 }
 
 static void comp_restrict_pointers(void)
 {
 	comp_update_viewport_bound_rect();
-	
+
 	fibril_mutex_lock(&pointer_list_mtx);
-	
+
 	list_foreach(pointer_list, link, pointer_t, ptr) {
 		ptr->pos.x = ptr->pos.x > viewport_bound_rect.x ? ptr->pos.x : viewport_bound_rect.x;
 		ptr->pos.y = ptr->pos.y > viewport_bound_rect.y ? ptr->pos.y : viewport_bound_rect.y;
@@ -373,7 +373,7 @@ static void comp_restrict_pointers(void)
 		ptr->pos.y = ptr->pos.y < viewport_bound_rect.y + viewport_bound_rect.h ?
 		    ptr->pos.y : viewport_bound_rect.y + viewport_bound_rect.h;
 	}
-	
+
 	fibril_mutex_unlock(&pointer_list_mtx);
 }
 
@@ -584,7 +584,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 			    x_dmg_vp, y_dmg_vp, w_dmg_vp, h_dmg_vp, 0, 0);
 		}
 	}
-	
+
 	fibril_mutex_unlock(&viewport_list_mtx);
 }
 
@@ -600,14 +600,14 @@ static void comp_window_get_event(window_t *win, ipc_callid_t iid, ipc_call_t *i
 		free(event);
 		return;
 	}
-	
+
 	errno_t rc = async_data_read_finalize(callid, event, len);
 	if (rc != EOK) {
 		async_answer_0(iid, ENOMEM);
 		free(event);
 		return;
 	}
-	
+
 	async_answer_0(iid, EOK);
 	free(event);
 }
@@ -637,7 +637,7 @@ static void comp_window_grab(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
 {
 	sysarg_t pos_id = IPC_GET_ARG1(*icall);
 	sysarg_t grab_flags = IPC_GET_ARG2(*icall);
-	
+
 	/*
 	 * Filter out resize grab flags if the window
 	 * is not resizeable.
@@ -668,17 +668,17 @@ static void comp_recalc_transform(window_t *win)
 	transform_t translate;
 	transform_identity(&translate);
 	transform_translate(&translate, win->dx, win->dy);
-	
+
 	transform_t scale;
 	transform_identity(&scale);
 	if ((win->fx != 1) || (win->fy != 1))
 		transform_scale(&scale, win->fx, win->fy);
-	
+
 	transform_t rotate;
 	transform_identity(&rotate);
 	if (win->angle != 0)
 		transform_rotate(&rotate, win->angle);
-	
+
 	transform_t transform;
 	transform_t temp;
 	transform_identity(&transform);
@@ -688,7 +688,7 @@ static void comp_recalc_transform(window_t *win)
 	transform_product(&transform, &temp, &rotate);
 	temp = transform;
 	transform_product(&transform, &temp, &scale);
-	
+
 	win->transform = transform;
 }
 
@@ -697,20 +697,20 @@ static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 	ipc_callid_t callid;
 	size_t size;
 	unsigned int flags;
-	
+
 	/* Start sharing resized window with client. */
 	if (!async_share_out_receive(&callid, &size, &flags)) {
 		async_answer_0(iid, EINVAL);
 		return;
 	}
-	
+
 	void *new_cell_storage;
 	errno_t rc = async_share_out_finalize(callid, &new_cell_storage);
 	if ((rc != EOK) || (new_cell_storage == AS_MAP_FAILED)) {
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	/* Create new surface for the resized window. */
 	surface_t *new_surface = surface_create(IPC_GET_ARG3(*icall),
 	    IPC_GET_ARG4(*icall), new_cell_storage, SURFACE_FLAG_SHARED);
@@ -719,97 +719,97 @@ static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	sysarg_t offset_x = IPC_GET_ARG1(*icall);
 	sysarg_t offset_y = IPC_GET_ARG2(*icall);
 	window_placement_flags_t placement_flags =
 	    (window_placement_flags_t) IPC_GET_ARG5(*icall);
-	
+
 	comp_update_viewport_bound_rect();
-	
+
 	/* Switch new surface with old surface and calculate damage. */
 	fibril_mutex_lock(&window_list_mtx);
-	
+
 	sysarg_t old_width = 0;
 	sysarg_t old_height = 0;
-	
+
 	if (win->surface) {
 		surface_get_resolution(win->surface, &old_width, &old_height);
 		surface_destroy(win->surface);
 	}
-	
+
 	win->surface = new_surface;
-	
+
 	sysarg_t new_width = 0;
 	sysarg_t new_height = 0;
 	surface_get_resolution(win->surface, &new_width, &new_height);
-	
+
 	if (placement_flags & WINDOW_PLACEMENT_CENTER_X)
 		win->dx = viewport_bound_rect.x + viewport_bound_rect.w / 2 -
 		    new_width / 2;
-	
+
 	if (placement_flags & WINDOW_PLACEMENT_CENTER_Y)
 		win->dy = viewport_bound_rect.y + viewport_bound_rect.h / 2 -
 		    new_height / 2;
-	
+
 	if (placement_flags & WINDOW_PLACEMENT_LEFT)
 		win->dx = viewport_bound_rect.x;
-	
+
 	if (placement_flags & WINDOW_PLACEMENT_TOP)
 		win->dy = viewport_bound_rect.y;
-	
+
 	if (placement_flags & WINDOW_PLACEMENT_RIGHT)
 		win->dx = viewport_bound_rect.x + viewport_bound_rect.w -
 		    new_width;
-	
+
 	if (placement_flags & WINDOW_PLACEMENT_BOTTOM)
 		win->dy = viewport_bound_rect.y + viewport_bound_rect.h -
 		    new_height;
-	
+
 	if (placement_flags & WINDOW_PLACEMENT_ABSOLUTE_X)
 		win->dx = coord_origin + offset_x;
-	
+
 	if (placement_flags & WINDOW_PLACEMENT_ABSOLUTE_Y)
 		win->dy = coord_origin + offset_y;
-	
+
 	/* Transform the window and calculate damage. */
 	sysarg_t x1;
 	sysarg_t y1;
 	sysarg_t width1;
 	sysarg_t height1;
-	
+
 	comp_coord_bounding_rect(0, 0, old_width, old_height, win->transform,
 	    &x1, &y1, &width1, &height1);
-	
+
 	comp_recalc_transform(win);
-	
+
 	sysarg_t x2;
 	sysarg_t y2;
 	sysarg_t width2;
 	sysarg_t height2;
-	
+
 	comp_coord_bounding_rect(0, 0, new_width, new_height, win->transform,
 	    &x2, &y2, &width2, &height2);
-	
+
 	sysarg_t x;
 	sysarg_t y;
 	sysarg_t width;
 	sysarg_t height;
-	
+
 	rectangle_union(x1, y1, width1, height1, x2, y2, width2, height2,
 	    &x, &y, &width, &height);
-	
+
 	fibril_mutex_unlock(&window_list_mtx);
-	
+
 	comp_damage(x, y, width, height);
-	
+
 	async_answer_0(iid, EOK);
 }
 
 static void comp_post_event_win(window_event_t *event, window_t *target)
 {
 	fibril_mutex_lock(&window_list_mtx);
-	
+
 	list_foreach(window_list, link, window_t, window) {
 		if (window == target) {
 			prodcons_produce(&window->queue, &event->link);
@@ -817,7 +817,7 @@ static void comp_post_event_win(window_event_t *event, window_t *target)
 			return;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&window_list_mtx);
 	free(event);
 }
@@ -825,13 +825,13 @@ static void comp_post_event_win(window_event_t *event, window_t *target)
 static void comp_post_event_top(window_event_t *event)
 {
 	fibril_mutex_lock(&window_list_mtx);
-	
+
 	window_t *win = (window_t *) list_first(&window_list);
 	if (win)
 		prodcons_produce(&win->queue, &event->link);
 	else
 		free(event);
-	
+
 	fibril_mutex_unlock(&window_list_mtx);
 }
 
@@ -913,7 +913,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				fibril_mutex_unlock(&window_list_mtx);
 				return;
 			}
-			
+
 			win->flags = IPC_GET_ARG1(call);
 
 			char name_in[LOC_NAME_MAXLEN + 1];
@@ -949,10 +949,10 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				link_initialize(&event_unfocus->link);
 				event_unfocus->type = ET_WINDOW_UNFOCUS;
 			}
-			
+
 			async_answer_2(callid, EOK, win->in_dsid, win->out_dsid);
 			fibril_mutex_unlock(&window_list_mtx);
-			
+
 			if (event_unfocus && win_unfocus) {
 				comp_post_event_win(event_unfocus, win_unfocus);
 			}
@@ -1101,7 +1101,7 @@ static void comp_shutdown(void)
 {
 	loc_service_unregister(winreg_id);
 	input_disconnect();
-	
+
 	/* Close all clients and their windows. */
 	fibril_mutex_lock(&window_list_mtx);
 	list_foreach(window_list, link, window_t, win) {
@@ -1113,9 +1113,9 @@ static void comp_shutdown(void)
 		}
 	}
 	fibril_mutex_unlock(&window_list_mtx);
-	
+
 	async_answer_0(iid, EOK);
-	
+
 	/* All fibrils of the compositor will terminate soon. */
 }
 #endif
@@ -1124,14 +1124,14 @@ static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_cal
 {
 	/* Release viewport resources. */
 	fibril_mutex_lock(&viewport_list_mtx);
-	
+
 	list_remove(&vp->link);
 	viewport_destroy(vp);
-	
+
 	fibril_mutex_unlock(&viewport_list_mtx);
-	
+
 	async_answer_0(iid, EOK);
-	
+
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
@@ -1186,11 +1186,11 @@ static async_sess_t *vsl_connect(service_id_t sid, const char *svc)
 	}
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	port_id_t port;
 	rc = async_create_callback_port(exch, INTERFACE_VISUALIZER_CB, 0, 0,
 	    vsl_notifications, NULL, &port);
-	
+
 	async_exchange_end(exch);
 
 	if (rc != EOK) {
@@ -1264,10 +1264,10 @@ static viewport_t *viewport_create(service_id_t sid)
 error:
 	if (claimed)
 		visualizer_yield(vp->sess);
-	
+
 	if (vp->sess != NULL)
 		async_hangup(vp->sess);
-	
+
 	free(vp);
 	free(vsl_name);
 	return NULL;
@@ -1294,24 +1294,24 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 	if (move) {
 		double cx = 0;
 		double cy = 0;
-		
+
 		if (pointer->grab_flags & GF_MOVE_X)
 			cx = 1;
-		
+
 		if (pointer->grab_flags & GF_MOVE_Y)
 			cy = 1;
-		
+
 		if (((scale) || (resize)) && (win->angle != 0)) {
 			transform_t rotate;
 			transform_identity(&rotate);
-			
+
 			transform_rotate(&rotate, win->angle);
 			transform_apply_linear(&rotate, &cx, &cy);
 		}
-		
+
 		cx = (cx < 0) ? (-1 * cx) : cx;
 		cy = (cy < 0) ? (-1 * cy) : cy;
-		
+
 		win->dx += (cx * dx);
 		win->dy += (cy * dy);
 	}
@@ -1467,7 +1467,7 @@ static void comp_ghost_animate(pointer_t *pointer,
 		rect3->y = y_u;
 		rect3->w = w_u - w_i - x_i + x_u + 1;
 		rect3->h = h_u;
-		
+
 		rect4->x = x_u;
 		rect4->y = y_i + h_i - 1;
 		rect4->w = w_u;
@@ -1480,11 +1480,11 @@ static errno_t comp_abs_move(input_t *input, unsigned x , unsigned y,
     unsigned max_x, unsigned max_y)
 {
 	/* XXX TODO Use absolute coordinates directly */
-	
+
 	pointer_t *pointer = input_pointer(input);
-	
+
 	sysarg_t width, height;
-	
+
 	fibril_mutex_lock(&viewport_list_mtx);
 	if (list_empty(&viewport_list)) {
 		printf("No viewport found\n");
@@ -1500,51 +1500,51 @@ static errno_t comp_abs_move(input_t *input, unsigned x , unsigned y,
 	desktop_point_t pos_in_viewport;
 	pos_in_viewport.x = x * width / max_x;
 	pos_in_viewport.y = y * height / max_y;
-	
+
 	/* Calculate offset from pointer */
 	fibril_mutex_lock(&pointer_list_mtx);
 	desktop_vector_t delta;
 	delta.x = (vp_pos.x + pos_in_viewport.x) - pointer->pos.x;
 	delta.y = (vp_pos.y + pos_in_viewport.y) - pointer->pos.y;
 	fibril_mutex_unlock(&pointer_list_mtx);
-	
+
 	return comp_mouse_move(input, delta.x, delta.y);
 }
 
 static errno_t comp_mouse_move(input_t *input, int dx, int dy)
 {
 	pointer_t *pointer = input_pointer(input);
-	
+
 	comp_update_viewport_bound_rect();
-	
+
 	/* Update pointer position. */
 	fibril_mutex_lock(&pointer_list_mtx);
-	
+
 	desktop_point_t old_pos = pointer->pos;
-	
+
 	sysarg_t cursor_width;
 	sysarg_t cursor_height;
 	surface_get_resolution(pointer->cursor.states[pointer->state],
 	     &cursor_width, &cursor_height);
-	
+
 	if (pointer->pos.x + dx < viewport_bound_rect.x)
 		dx = -1 * (pointer->pos.x - viewport_bound_rect.x);
-	
+
 	if (pointer->pos.y + dy < viewport_bound_rect.y)
 		dy = -1 * (pointer->pos.y - viewport_bound_rect.y);
-	
+
 	if (pointer->pos.x + dx > viewport_bound_rect.x + viewport_bound_rect.w)
 		dx = (viewport_bound_rect.x + viewport_bound_rect.w - pointer->pos.x);
-	
+
 	if (pointer->pos.y + dy > viewport_bound_rect.y + viewport_bound_rect.h)
 		dy = (viewport_bound_rect.y + viewport_bound_rect.h - pointer->pos.y);
-	
+
 	pointer->pos.x += dx;
 	pointer->pos.y += dy;
 	fibril_mutex_unlock(&pointer_list_mtx);
 	comp_damage(old_pos.x, old_pos.y, cursor_width, cursor_height);
 	comp_damage(old_pos.x + dx, old_pos.y + dy, cursor_width, cursor_height);
-	
+
 	fibril_mutex_lock(&window_list_mtx);
 	fibril_mutex_lock(&pointer_list_mtx);
 	window_t *top = (window_t *) list_first(&window_list);
@@ -1662,7 +1662,7 @@ static errno_t comp_mouse_button(input_t *input, int bnum, int bpress)
 	sysarg_t dmg_x, dmg_y;
 	sysarg_t dmg_width = 0;
 	sysarg_t dmg_height = 0;
-	
+
 #if ANIMATE_WINDOW_TRANSFORMS == 0
 	desktop_rect_t dmg_rect1, dmg_rect2, dmg_rect3, dmg_rect4;
 #endif
@@ -1737,25 +1737,25 @@ static errno_t comp_mouse_button(input_t *input, int bnum, int bpress)
 			if (event_top) {
 				link_initialize(&event_top->link);
 				event_top->type = ET_WINDOW_RESIZE;
-				
+
 				event_top->data.resize.offset_x = 0;
 				event_top->data.resize.offset_y = 0;
-				
+
 				int dx = (int) (((double) width) * (scale_back_x - 1.0));
 				int dy = (int) (((double) height) * (scale_back_y - 1.0));
-				
+
 				if (pointer->grab_flags & GF_RESIZE_X)
 					event_top->data.resize.width =
 					    ((((int) width) + dx) >= 0) ? (width + dx) : 0;
 				else
 					event_top->data.resize.width = width;
-				
+
 				if (pointer->grab_flags & GF_RESIZE_Y)
 					event_top->data.resize.height =
 					    ((((int) height) + dy) >= 0) ? (height + dy) : 0;
 				else
 					event_top->data.resize.height = height;
-				
+
 				event_top->data.resize.placement_flags =
 				    WINDOW_PLACEMENT_ANY;
 			}
@@ -1763,7 +1763,7 @@ static errno_t comp_mouse_button(input_t *input, int bnum, int bpress)
 			pointer->grab_flags = GF_EMPTY;
 
 		} else if (within_client && (pointer->grab_flags == GF_EMPTY) && (top == win)) {
-			
+
 			/* Notify top-level window about mouse release. */
 			event_top = (window_event_t *) malloc(sizeof(window_event_t));
 			if (event_top) {
@@ -1776,7 +1776,7 @@ static errno_t comp_mouse_button(input_t *input, int bnum, int bpress)
 				event_top->data.pos.vpos = point_y;
 			}
 			pointer->grab_flags = GF_EMPTY;
-			
+
 		} else {
 			pointer->grab_flags = GF_EMPTY;
 		}
@@ -1812,7 +1812,7 @@ static errno_t comp_active(input_t *input)
 {
 	active = true;
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-	
+
 	return EOK;
 }
 
@@ -1909,16 +1909,16 @@ static errno_t comp_key_press(input_t *input, kbd_event_type_t type, keycode_t k
 				fibril_mutex_unlock(&window_list_mtx);
 				return ENOMEM;
 			}
-			
+
 			sysarg_t width, height;
 			surface_get_resolution(win->surface, &width, &height);
-			
+
 			link_initialize(&event->link);
 			event->type = ET_WINDOW_RESIZE;
-			
+
 			event->data.resize.offset_x = 0;
 			event->data.resize.offset_y = 0;
-			
+
 			switch (key) {
 			case KC_T:
 				event->data.resize.width = width;
@@ -1941,9 +1941,9 @@ static errno_t comp_key_press(input_t *input, kbd_event_type_t type, keycode_t k
 				event->data.resize.height = 0;
 				break;
 			}
-			
+
 			event->data.resize.placement_flags = WINDOW_PLACEMENT_ANY;
-			
+
 			fibril_mutex_unlock(&window_list_mtx);
 			comp_post_event_top(event);
 		} else {
@@ -2074,7 +2074,7 @@ static errno_t comp_key_press(input_t *input, kbd_event_type_t type, keycode_t k
 				vp->pos.y += 0;
 				break;
 			}
-			
+
 			sysarg_t x = vp->pos.x;
 			sysarg_t y = vp->pos.y;
 			sysarg_t width, height;
@@ -2195,19 +2195,19 @@ static void input_disconnect(void)
 static void discover_viewports(void)
 {
 	fibril_mutex_lock(&discovery_mtx);
-	
+
 	/* Create viewports and connect them to visualizers. */
 	category_id_t cat_id;
 	errno_t rc = loc_category_get_id("visualizer", &cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		goto ret;
-	
+
 	service_id_t *svcs;
 	size_t svcs_cnt = 0;
 	rc = loc_category_get_svcs(cat_id, &svcs, &svcs_cnt);
 	if (rc != EOK)
 		goto ret;
-	
+
 	fibril_mutex_lock(&viewport_list_mtx);
 	for (size_t i = 0; i < svcs_cnt; ++i) {
 		bool exists = false;
@@ -2217,19 +2217,19 @@ static void discover_viewports(void)
 				break;
 			}
 		}
-		
+
 		if (exists)
 			continue;
-		
+
 		viewport_t *vp = viewport_create(svcs[i]);
 		if (vp != NULL)
 			list_append(&vp->link, &viewport_list);
 	}
 	fibril_mutex_unlock(&viewport_list_mtx);
-	
+
 	if (!list_empty(&viewport_list))
 		input_activate(input);
-	
+
 ret:
 	fibril_mutex_unlock(&discovery_mtx);
 }
@@ -2243,31 +2243,31 @@ static errno_t compositor_srv_init(char *input_svc, char *name)
 {
 	/* Coordinates of the central pixel. */
 	coord_origin = UINT32_MAX / 4;
-	
+
 	/* Color of the viewport background. Must be opaque. */
 	bg_color = PIXEL(255, 69, 51, 103);
-	
+
 	/* Register compositor server. */
 	async_set_fallback_port_handler(client_connection, NULL);
-	
+
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server (%s)\n", NAME, str_error(rc));
 		return -1;
 	}
-	
+
 	server_name = name;
-	
+
 	char svc[LOC_NAME_MAXLEN + 1];
 	snprintf(svc, LOC_NAME_MAXLEN, "%s/%s", NAMESPACE, server_name);
-	
+
 	service_id_t service_id;
 	rc = loc_service_register(svc, &service_id);
 	if (rc != EOK) {
 		printf("%s: Unable to register service %s\n", NAME, svc);
 		return rc;
 	}
-	
+
 	/* Prepare window registrator (entrypoint for clients). */
 	char winreg[LOC_NAME_MAXLEN + 1];
 	snprintf(winreg, LOC_NAME_MAXLEN, "%s%s/winreg", NAMESPACE, server_name);
@@ -2275,26 +2275,26 @@ static errno_t compositor_srv_init(char *input_svc, char *name)
 		printf("%s: Unable to register service %s\n", NAME, winreg);
 		return -1;
 	}
-	
+
 	/* Establish input bidirectional connection. */
 	rc = input_connect(input_svc);
 	if (rc != EOK) {
 		printf("%s: Failed to connect to input service.\n", NAME);
 		return rc;
 	}
-	
+
 	rc = loc_register_cat_change_cb(category_change_cb);
 	if (rc != EOK) {
 		printf("%s: Failed to register category change callback\n", NAME);
 		input_disconnect();
 		return rc;
 	}
-	
+
 	discover_viewports();
-	
+
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
-	
+
 	return EOK;
 }
 
@@ -2309,17 +2309,17 @@ int main(int argc, char *argv[])
 		usage(argv[0]);
 		return 1;
 	}
-	
+
 	printf("%s: HelenOS Compositor server\n", NAME);
-	
+
 	errno_t rc = compositor_srv_init(argv[1], argv[2]);
 	if (rc != EOK)
 		return rc;
-	
+
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
-	
+
 	/* Never reached */
 	return 0;
 }

@@ -38,7 +38,7 @@
 FUNCTION_BEGIN(spinlock_arch)
 	pushl %eax
 	pushl %ebx
-	
+
 	movl 12(%esp),%ebx
 
 0:
@@ -55,5 +55,5 @@ FUNCTION_BEGIN(spinlock_arch)
 	popl %eax
 	ret
 FUNCTION_END(spinlock_arch)
-	
+
 #endif

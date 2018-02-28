@@ -76,10 +76,10 @@ static void fibril_main(void)
 #ifdef FUTEX_UPGRADABLE
 	rcu_register_fibril();
 #endif
-	
+
 	/* Call the implementing function. */
 	fibril->retval = fibril->func(fibril->arg);
-	
+
 	futex_down(&async_futex);
 	fibril_switch(FIBRIL_FROM_DEAD);
 	/* Not reached */
@@ -93,23 +93,23 @@ fibril_t *fibril_setup(void)
 	tcb_t *tcb = tls_make();
 	if (!tcb)
 		return NULL;
-	
+
 	fibril_t *fibril = malloc(sizeof(fibril_t));
 	if (!fibril) {
 		tls_free(tcb);
 		return NULL;
 	}
-	
+
 	tcb->fibril_data = fibril;
 	fibril->tcb = tcb;
-	
+
 	fibril->func = NULL;
 	fibril->arg = NULL;
 	fibril->stack = NULL;
 	fibril->clean_after_me = NULL;
 	fibril->retval = 0;
 	fibril->flags = 0;
-	
+
 	fibril->waits_for = NULL;
 
 	fibril->switches = 0;
@@ -122,7 +122,7 @@ fibril_t *fibril_setup(void)
 	futex_down(&fibril_futex);
 	list_append(&fibril->all_link, &fibril_list);
 	futex_up(&fibril_futex);
-	
+
 	return fibril;
 }
 
@@ -175,10 +175,10 @@ int fibril_switch(fibril_switch_type_t stype)
 		}
 		break;
 	}
-	
+
 	fibril_t *srcf = __tcb_get()->fibril_data;
 	if (stype != FIBRIL_FROM_DEAD) {
-		
+
 		/* Save current state */
 		if (!context_save(&srcf->ctx)) {
 			if (srcf->clean_after_me) {
@@ -201,10 +201,10 @@ int fibril_switch(fibril_switch_type_t stype)
 				fibril_teardown(srcf->clean_after_me, true);
 				srcf->clean_after_me = NULL;
 			}
-			
+
 			return 1;	/* futex_unlock already done here */
 		}
-		
+
 		/* Put the current fibril into the correct run list */
 		switch (stype) {
 		case FIBRIL_PREEMPT:
@@ -225,7 +225,7 @@ int fibril_switch(fibril_switch_type_t stype)
 			break;
 		}
 	}
-	
+
 	fibril_t *dstf;
 
 	/* Choose a new fibril to run */
@@ -234,7 +234,7 @@ int fibril_switch(fibril_switch_type_t stype)
 	case FIBRIL_FROM_DEAD:
 		dstf = list_get_instance(list_first(&manager_list), fibril_t,
 		    link);
-		
+
 		if (stype == FIBRIL_FROM_DEAD)
 			dstf->clean_after_me = srcf;
 		break;
@@ -245,15 +245,15 @@ int fibril_switch(fibril_switch_type_t stype)
 	}
 
 	list_remove(&dstf->link);
-	
+
 	futex_unlock(&fibril_futex);
-	
+
 #ifdef FUTEX_UPGRADABLE
 	if (stype == FIBRIL_FROM_DEAD) {
 		rcu_deregister_fibril();
 	}
 #endif
-	
+
 	context_restore(&dstf->ctx);
 	/* not reached */
 }
@@ -270,11 +270,11 @@ int fibril_switch(fibril_switch_type_t stype)
 fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 {
 	fibril_t *fibril;
-	
+
 	fibril = fibril_setup();
 	if (fibril == NULL)
 		return 0;
-	
+
 	size_t stack_size = (stksz == FIBRIL_DFLT_STK_SIZE) ?
 	    stack_size_get() : stksz;
 	fibril->stack = as_area_create(AS_AREA_ANY, stack_size,
@@ -284,7 +284,7 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 		fibril_teardown(fibril, false);
 		return 0;
 	}
-	
+
 	fibril->func = func;
 	fibril->arg = arg;
 
@@ -306,7 +306,7 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 void fibril_destroy(fid_t fid)
 {
 	fibril_t *fibril = (fibril_t *) fid;
-	
+
 	as_area_destroy(fibril->stack);
 	fibril_teardown(fibril, false);
 }
@@ -320,7 +320,7 @@ void fibril_destroy(fid_t fid)
 void fibril_add_ready(fid_t fid)
 {
 	fibril_t *fibril = (fibril_t *) fid;
-	
+
 	futex_lock(&fibril_futex);
 	list_append(&fibril->link, &ready_list);
 	futex_unlock(&fibril_futex);
@@ -335,7 +335,7 @@ void fibril_add_ready(fid_t fid)
 void fibril_add_manager(fid_t fid)
 {
 	fibril_t *fibril = (fibril_t *) fid;
-	
+
 	futex_lock(&fibril_futex);
 	list_append(&fibril->link, &manager_list);
 	futex_unlock(&fibril_futex);

@@ -79,7 +79,7 @@ extern void futex_initialize(futex_t *futex, int value);
 		1; \
 	} \
 })
-		
+
 #define futex_unlock(fut) \
 ({ \
 	if ((fut)->upgraded) \
@@ -90,7 +90,7 @@ extern void futex_initialize(futex_t *futex, int value);
 extern int _upgrade_futexes;
 
 extern void futex_upgrade_all_and_wait(void);
-		
+
 #else
 
 #define FUTEX_INITIALIZE(val) {{ (val) }}
@@ -98,7 +98,7 @@ extern void futex_upgrade_all_and_wait(void);
 #define futex_lock(fut)     (void) futex_down((fut))
 #define futex_trylock(fut)  futex_trydown((fut))
 #define futex_unlock(fut)   (void) futex_up((fut))
-		
+
 #endif
 
 #define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
@@ -129,7 +129,7 @@ static inline errno_t futex_down(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
 		return (errno_t) __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
-	
+
 	return EOK;
 }
 
@@ -146,7 +146,7 @@ static inline errno_t futex_up(futex_t *futex)
 {
 	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
 		return (errno_t) __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
-	
+
 	return EOK;
 }
 

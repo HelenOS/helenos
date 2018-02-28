@@ -54,10 +54,10 @@ task_id_t task_get_id(void)
 #ifdef __32_BITS__
 	task_id_t task_id;
 	(void) __SYSCALL1(SYS_TASK_GET_ID, (sysarg_t) &task_id);
-	
+
 	return task_id;
 #endif  /* __32_BITS__ */
-	
+
 #ifdef __64_BITS__
 	return (task_id_t) __SYSCALL0(SYS_TASK_GET_ID);
 #endif  /* __64_BITS__ */
@@ -73,7 +73,7 @@ task_id_t task_get_id(void)
 errno_t task_set_name(const char *name)
 {
 	assert(name);
-	
+
 	return (errno_t) __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
 }
 
@@ -107,15 +107,15 @@ errno_t task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
     const char *const args[])
 {
 	/* Send default files */
-	
+
 	int fd_stdin = -1;
 	int fd_stdout = -1;
 	int fd_stderr = -1;
-	
+
 	if (stdin != NULL) {
 		(void) vfs_fhandle(stdin, &fd_stdin);
 	}
-	
+
 	if (stdout != NULL) {
 		(void) vfs_fhandle(stdout, &fd_stdout);
 	}
@@ -123,7 +123,7 @@ errno_t task_spawnv(task_id_t *id, task_wait_t *wait, const char *path,
 	if (stderr != NULL) {
 		(void) vfs_fhandle(stderr, &fd_stderr);
 	}
-	
+
 	return task_spawnvf(id, wait, path, args, fd_stdin, fd_stdout,
 	    fd_stderr);
 }
@@ -152,30 +152,30 @@ errno_t task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 	loader_t *ldr = loader_connect();
 	if (ldr == NULL)
 		return EREFUSED;
-	
+
 	bool wait_initialized = false;
-	
+
 	/* Get task ID. */
 	task_id_t task_id;
 	errno_t rc = loader_get_task_id(ldr, &task_id);
 	if (rc != EOK)
 		goto error;
-	
+
 	/* Send spawner's current working directory. */
 	rc = loader_set_cwd(ldr);
 	if (rc != EOK)
 		goto error;
-	
+
 	/* Send program binary. */
 	rc = loader_set_program_path(ldr, path);
 	if (rc != EOK)
 		goto error;
-	
+
 	/* Send arguments. */
 	rc = loader_set_args(ldr, args);
 	if (rc != EOK)
 		goto error;
-	
+
 	/* Send files */
 	int root = vfs_root();
 	if (root >= 0) {
@@ -184,30 +184,30 @@ errno_t task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	if (fd_stdin >= 0) {
 		rc = loader_add_inbox(ldr, "stdin", fd_stdin);
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	if (fd_stdout >= 0) {
 		rc = loader_add_inbox(ldr, "stdout", fd_stdout);
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	if (fd_stderr >= 0) {
 		rc = loader_add_inbox(ldr, "stderr", fd_stderr);
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	/* Load the program. */
 	rc = loader_load_program(ldr);
 	if (rc != EOK)
 		goto error;
-	
+
 	/* Setup waiting for return value if needed */
 	if (wait) {
 		rc = task_setup_wait(task_id, wait);
@@ -215,22 +215,22 @@ errno_t task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 			goto error;
 		wait_initialized = true;
 	}
-	
+
 	/* Run it. */
 	rc = loader_run(ldr);
 	if (rc != EOK)
 		goto error;
-	
+
 	/* Success */
 	if (id != NULL)
 		*id = task_id;
-	
+
 	return EOK;
-	
+
 error:
 	if (wait_initialized)
 		task_cancel_wait(wait);
-	
+
 	/* Error exit */
 	loader_abort(ldr);
 	return rc;
@@ -258,7 +258,7 @@ errno_t task_spawn(task_id_t *task_id, task_wait_t *wait, const char *path,
 	const char **arglist = malloc(cnt * sizeof(const char *));
 	if (arglist == NULL)
 		return ENOMEM;
-	
+
 	/* Fill in arguments. */
 	const char *arg;
 	cnt = 0;
@@ -266,10 +266,10 @@ errno_t task_spawn(task_id_t *task_id, task_wait_t *wait, const char *path,
 		arg = va_arg(ap, const char *);
 		arglist[cnt++] = arg;
 	} while (arg != NULL);
-	
+
 	/* Spawn task. */
 	errno_t rc = task_spawnv(task_id, wait, path, arglist);
-	
+
 	/* Free argument list. */
 	free(arglist);
 	return rc;
@@ -292,22 +292,22 @@ errno_t task_spawn(task_id_t *task_id, task_wait_t *wait, const char *path,
 errno_t task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...)
 {
 	/* Count the number of arguments. */
-	
+
 	va_list ap;
 	const char *arg;
 	int cnt = 0;
-	
+
 	va_start(ap, path);
 	do {
 		arg = va_arg(ap, const char *);
 		cnt++;
 	} while (arg != NULL);
 	va_end(ap);
-	
+
 	va_start(ap, path);
 	errno_t rc = task_spawn(task_id, wait, path, cnt, ap);
 	va_end(ap);
-	
+
 	return rc;
 }
 
@@ -399,7 +399,7 @@ errno_t task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)
 	errno_t rc = task_setup_wait(id, &wait);
 	if (rc != EOK)
 		return rc;
-	
+
 	return task_wait(&wait, texit, retval);
 }
 
@@ -412,7 +412,7 @@ errno_t task_retval(int val)
 	async_exch_t *exch = async_exchange_begin(sess_ns);
 	errno_t rc = (errno_t) async_req_1_0(exch, NS_RETVAL, val);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 

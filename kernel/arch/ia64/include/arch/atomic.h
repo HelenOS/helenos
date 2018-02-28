@@ -40,14 +40,14 @@
 NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 {
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"movl %[v] = 0x1;;\n"
 		"xchg8 %[v] = %[count], %[v];;\n"
 		: [v] "=r" (v),
 		  [count] "+m" (val->count)
 	);
-	
+
 	return v;
 }
 
@@ -61,7 +61,7 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], 1\n"
 		: [v] "=r" (v),
@@ -72,7 +72,7 @@ NO_TRACE static inline void atomic_inc(atomic_t *val)
 NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], -1\n"
 		: [v] "=r" (v),
@@ -83,52 +83,52 @@ NO_TRACE static inline void atomic_dec(atomic_t *val)
 NO_TRACE static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], 1\n"
 		: [v] "=r" (v),
 		  [count] "+m" (val->count)
 	);
-	
+
 	return (v + 1);
 }
 
 NO_TRACE static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], -1\n"
 		: [v] "=r" (v),
 		  [count] "+m" (val->count)
 	);
-	
+
 	return (v - 1);
 }
 
 NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], 1\n"
 		: [v] "=r" (v),
 		  [count] "+m" (val->count)
 	);
-	
+
 	return v;
 }
 
 NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"fetchadd8.rel %[v] = %[count], -1\n"
 		: [v] "=r" (v),
 		  [count] "+m" (val->count)
 	);
-	
+
 	return v;
 }
 

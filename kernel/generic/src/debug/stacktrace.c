@@ -47,7 +47,7 @@ void stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 	uintptr_t offset;
 	uintptr_t fp;
 	uintptr_t pc;
-	
+
 	while ((cnt++ < STACK_FRAMES_MAX) &&
 	    (ops->stack_trace_context_validate(ctx))) {
 		if (ops->symbol_resolve &&
@@ -59,13 +59,13 @@ void stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 				printf("%p: %s()\n", (void *) ctx->fp, symbol);
 		} else
 			printf("%p: %p()\n", (void *) ctx->fp, (void *) ctx->pc);
-		
+
 		if (!ops->return_address_get(ctx, &pc))
 			break;
-		
+
 		if (!ops->frame_pointer_prev(ctx, &fp))
 			break;
-		
+
 		ctx->fp = fp;
 		ctx->pc = pc;
 	}
@@ -95,7 +95,7 @@ void stack_trace_istate(istate_t *istate)
 		.pc = istate_get_pc(istate),
 		.istate = istate
 	};
-	
+
 	if (istate_from_uspace(istate))
 		stack_trace_ctx(&ust_ops, &ctx);
 	else

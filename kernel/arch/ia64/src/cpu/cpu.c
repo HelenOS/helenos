@@ -53,11 +53,11 @@ void cpu_print_report(cpu_t *m)
 {
 	const char *family_str;
 	char vendor[2 * sizeof(uint64_t) + 1];
-	
+
 	memcpy(vendor, &CPU->arch.cpuid0, 8);
 	memcpy(vendor + 8, &CPU->arch.cpuid1, 8);
 	vendor[sizeof(vendor) - 1] = 0;
-	
+
 	switch (m->arch.cpuid3.family) {
 	case FAMILY_ITANIUM:
 		family_str = "Itanium";
@@ -69,7 +69,7 @@ void cpu_print_report(cpu_t *m)
 		family_str = "Unknown";
 		break;
 	}
-	
+
 	printf("cpu%d: %s (%s), archrev=%d, model=%d, revision=%d\n", CPU->id,
 	    family_str, vendor, CPU->arch.cpuid3.archrev,
 	    CPU->arch.cpuid3.model, CPU->arch.cpuid3.revision);

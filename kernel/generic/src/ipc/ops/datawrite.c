@@ -64,7 +64,7 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 		 */
 		return rc;
 	}
-		
+
 	return EOK;
 }
 
@@ -77,7 +77,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		uintptr_t dst = (uintptr_t)IPC_GET_ARG1(answer->data);
 		size_t size = (size_t)IPC_GET_ARG2(answer->data);
 		size_t max_size = (size_t)IPC_GET_ARG2(*olddata);
-			
+
 		if (size <= max_size) {
 			errno_t rc = copy_to_uspace((void *) dst,
 			    answer->buffer, size);

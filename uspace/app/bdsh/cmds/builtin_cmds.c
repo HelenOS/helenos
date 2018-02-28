@@ -106,16 +106,16 @@ int run_builtin(int builtin, char *argv[], cliuser_t *usr, iostate_t *new_iostat
 	builtin_t *cmd = builtins;
 
 	cmd += builtin;
-	
+
 	iostate_t *old_iostate = get_iostate();
 	set_iostate(new_iostate);
-	
+
 	if (NULL != cmd->entry) {
 		rc = ((int)cmd->entry(argv, usr));
 	} else {
 		rc = CL_ENOENT;
 	}
-	
+
 	set_iostate(old_iostate);
 
 	return rc;

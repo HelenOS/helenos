@@ -60,14 +60,14 @@ static void event_initialize(event_t *event)
 static event_t *evno2event(int evno, task_t *task)
 {
 	assert(evno < EVENT_TASK_END);
-	
+
 	event_t *event;
-	
+
 	if (evno < EVENT_END)
 		event = &events[(event_type_t) evno];
 	else
 		event = &task->events[(event_task_type_t) evno - EVENT_END];
-	
+
 	return event;
 }
 
@@ -95,14 +95,14 @@ void event_cleanup_answerbox(answerbox_t *answerbox)
 {
 	for (unsigned int i = 0; i < EVENT_END; i++) {
 		spinlock_lock(&events[i].lock);
-		
+
 		if (events[i].answerbox == answerbox) {
 			events[i].answerbox = NULL;
 			events[i].counter = 0;
 			events[i].imethod = 0;
 			events[i].masked = false;
 		}
-		
+
 		spinlock_unlock(&events[i].lock);
 	}
 }
@@ -124,7 +124,7 @@ static void _event_set_unmask_callback(event_t *event, event_callback_t callback
 void event_set_unmask_callback(event_type_t evno, event_callback_t callback)
 {
 	assert(evno < EVENT_END);
-	
+
 	_event_set_unmask_callback(evno2event(evno, NULL), callback);
 }
 
@@ -133,7 +133,7 @@ void event_task_set_unmask_callback(task_t *task, event_task_type_t evno,
 {
 	assert(evno >= (int) EVENT_END);
 	assert(evno < EVENT_TASK_END);
-		
+
 	_event_set_unmask_callback(evno2event(evno, task), callback);
 }
 
@@ -143,37 +143,37 @@ static errno_t event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2
 	errno_t res;
 
 	spinlock_lock(&event->lock);
-	
+
 	if (event->answerbox != NULL) {
 		if (!event->masked) {
 			call_t *call = ipc_call_alloc(FRAME_ATOMIC);
-			
+
 			if (call) {
 				call->flags |= IPC_CALL_NOTIF;
 				call->priv = ++event->counter;
-				
+
 				IPC_SET_IMETHOD(call->data, event->imethod);
 				IPC_SET_ARG1(call->data, a1);
 				IPC_SET_ARG2(call->data, a2);
 				IPC_SET_ARG3(call->data, a3);
 				IPC_SET_ARG4(call->data, a4);
 				IPC_SET_ARG5(call->data, a5);
-				
+
 				call->data.task_id = TASK ? TASK->taskid : 0;
-				
+
 				irq_spinlock_lock(&event->answerbox->irq_lock,
 				    true);
 				list_append(&call->ab_link,
 				    &event->answerbox->irq_notifs);
 				irq_spinlock_unlock(&event->answerbox->irq_lock,
 				    true);
-				
+
 				waitq_wakeup(&event->answerbox->wq,
 				    WAKEUP_FIRST);
-				
+
 				if (mask)
 					event->masked = true;
-				
+
 				res = EOK;
 			} else
 				res = ENOMEM;
@@ -181,7 +181,7 @@ static errno_t event_enqueue(event_t *event, bool mask, sysarg_t a1, sysarg_t a2
 			res = EBUSY;
 	} else
 		res = ENOENT;
-	
+
 	spinlock_unlock(&event->lock);
 	return res;
 }
@@ -209,7 +209,7 @@ errno_t event_notify(event_type_t evno, bool mask, sysarg_t a1, sysarg_t a2,
     sysarg_t a3, sysarg_t a4, sysarg_t a5)
 {
 	assert(evno < EVENT_END);
-	
+
 	return event_enqueue(evno2event(evno, NULL), mask, a1, a2, a3, a4, a5);
 }
 
@@ -238,7 +238,7 @@ errno_t event_task_notify(task_t *task, event_task_type_t evno, bool mask,
 {
 	assert(evno >= (int) EVENT_END);
 	assert(evno < EVENT_TASK_END);
-	
+
 	return event_enqueue(evno2event(evno, task), mask, a1, a2, a3, a4, a5);
 }
 
@@ -258,9 +258,9 @@ static errno_t event_subscribe(event_t *event, sysarg_t imethod,
     answerbox_t *answerbox)
 {
 	errno_t res;
-	
+
 	spinlock_lock(&event->lock);
-	
+
 	if (event->answerbox == NULL) {
 		event->answerbox = answerbox;
 		event->imethod = imethod;
@@ -269,9 +269,9 @@ static errno_t event_subscribe(event_t *event, sysarg_t imethod,
 		res = EOK;
 	} else
 		res = EEXIST;
-	
+
 	spinlock_unlock(&event->lock);
-	
+
 	return res;
 }
 
@@ -288,9 +288,9 @@ static errno_t event_subscribe(event_t *event, sysarg_t imethod,
 static errno_t event_unsubscribe(event_t *event, answerbox_t *answerbox)
 {
 	errno_t res;
-	
+
 	spinlock_lock(&event->lock);
-	
+
 	if (event->answerbox == answerbox) {
 		event->answerbox = NULL;
 		event->counter = 0;
@@ -299,9 +299,9 @@ static errno_t event_unsubscribe(event_t *event, answerbox_t *answerbox)
 		res = EOK;
 	} else
 		res = ENOENT;
-	
+
 	spinlock_unlock(&event->lock);
-	
+
 	return res;
 }
 
@@ -316,7 +316,7 @@ static void event_unmask(event_t *event)
 	event->masked = false;
 	event_callback_t callback = event->unmask_callback;
 	spinlock_unlock(&event->lock);
-	
+
 	/*
 	 * Check if there is an unmask callback
 	 * function defined for this event.
@@ -341,7 +341,7 @@ sys_errno_t sys_ipc_event_subscribe(sysarg_t evno, sysarg_t imethod)
 {
 	if (evno >= EVENT_TASK_END)
 		return ELIMIT;
-	
+
 	return (sys_errno_t) event_subscribe(evno2event(evno, TASK),
 	    (sysarg_t) imethod, &TASK->answerbox);
 }
@@ -360,7 +360,7 @@ sys_errno_t sys_ipc_event_unsubscribe(sysarg_t evno)
 {
 	if (evno >= EVENT_TASK_END)
 		return ELIMIT;
-	
+
 	return (sys_errno_t) event_unsubscribe(evno2event(evno, TASK),
 	    &TASK->answerbox);
 }
@@ -382,7 +382,7 @@ sys_errno_t sys_ipc_event_unmask(sysarg_t evno)
 {
 	if (evno >= EVENT_TASK_END)
 		return ELIMIT;
-	
+
 	event_unmask(evno2event(evno, TASK));
 
 	return EOK;

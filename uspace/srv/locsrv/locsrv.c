@@ -99,11 +99,11 @@ service_id_t loc_create_id(void)
 	/* TODO: allow reusing old ids after their unregistration
 	 * and implement some version of LRU algorithm, avoid overflow
 	 */
-	
+
 	fibril_mutex_lock(&create_id_mutex);
 	last_id++;
 	fibril_mutex_unlock(&create_id_mutex);
-	
+
 	return last_id;
 }
 
@@ -120,11 +120,11 @@ static bool loc_fqsn_split(const char *fqsn, char **ns_name, char **name)
 	size_t cnt = 0;
 	size_t slash_offset = 0;
 	size_t slash_after = 0;
-	
+
 	size_t offset = 0;
 	size_t offset_prev = 0;
 	wchar_t c;
-	
+
 	while ((c = str_decode(fqsn, &offset, STR_NO_LIMIT)) != 0) {
 		if (c == '/') {
 			cnt++;
@@ -133,49 +133,49 @@ static bool loc_fqsn_split(const char *fqsn, char **ns_name, char **name)
 		}
 		offset_prev = offset;
 	}
-	
+
 	/* More than one slash */
 	if (cnt > 1)
 		return false;
-	
+
 	/* No slash -> namespace is empty */
 	if (cnt == 0) {
 		*ns_name = str_dup("");
 		if (*ns_name == NULL)
 			return false;
-		
+
 		*name = str_dup(fqsn);
 		if (*name == NULL) {
 			free(*ns_name);
 			return false;
 		}
-		
+
 		if (str_cmp(*name, "") == 0) {
 			free(*name);
 			free(*ns_name);
 			return false;
 		}
-		
+
 		return true;
 	}
-	
+
 	/* Exactly one slash */
 	*ns_name = str_ndup(fqsn, slash_offset);
 	if (*ns_name == NULL)
 		return false;
-	
+
 	*name = str_dup(fqsn + slash_after);
 	if (*name == NULL) {
 		free(*ns_name);
 		return false;
 	}
-	
+
 	if (str_cmp(*name, "") == 0) {
 		free(*name);
 		free(*ns_name);
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -183,12 +183,12 @@ static bool loc_fqsn_split(const char *fqsn, char **ns_name, char **name)
 static loc_namespace_t *loc_namespace_find_name(const char *name)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
-	
+
 	list_foreach(namespaces_list, namespaces, loc_namespace_t, namespace) {
 		if (str_cmp(namespace->name, name) == 0)
 			return namespace;
 	}
-	
+
 	return NULL;
 }
 
@@ -200,12 +200,12 @@ static loc_namespace_t *loc_namespace_find_name(const char *name)
 static loc_namespace_t *loc_namespace_find_id(service_id_t id)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
-	
+
 	list_foreach(namespaces_list, namespaces, loc_namespace_t, namespace) {
 		if (namespace->id == id)
 			return namespace;
 	}
-	
+
 	return NULL;
 }
 
@@ -214,13 +214,13 @@ static loc_service_t *loc_service_find_name(const char *ns_name,
     const char *name)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
-	
+
 	list_foreach(services_list, services, loc_service_t, service) {
 		if ((str_cmp(service->namespace->name, ns_name) == 0)
 		    && (str_cmp(service->name, name) == 0))
 			return service;
 	}
-	
+
 	return NULL;
 }
 
@@ -232,12 +232,12 @@ static loc_service_t *loc_service_find_name(const char *ns_name,
 static loc_service_t *loc_service_find_id(service_id_t id)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
-	
+
 	list_foreach(services_list, services, loc_service_t, service) {
 		if (service->id == id)
 			return service;
 	}
-	
+
 	return NULL;
 }
 
@@ -245,31 +245,31 @@ static loc_service_t *loc_service_find_id(service_id_t id)
 static loc_namespace_t *loc_namespace_create(const char *ns_name)
 {
 	loc_namespace_t *namespace;
-	
+
 	assert(fibril_mutex_is_locked(&services_list_mutex));
-	
+
 	namespace = loc_namespace_find_name(ns_name);
 	if (namespace != NULL)
 		return namespace;
-	
+
 	namespace = (loc_namespace_t *) malloc(sizeof(loc_namespace_t));
 	if (namespace == NULL)
 		return NULL;
-	
+
 	namespace->name = str_dup(ns_name);
 	if (namespace->name == NULL) {
 		free(namespace);
 		return NULL;
 	}
-	
+
 	namespace->id = loc_create_id();
 	namespace->refcnt = 0;
-	
+
 	/*
 	 * Insert new namespace into list of registered namespaces
 	 */
 	list_append(&(namespace->namespaces), &namespaces_list);
-	
+
 	return namespace;
 }
 
@@ -280,7 +280,7 @@ static void loc_namespace_destroy(loc_namespace_t *namespace)
 
 	if (namespace->refcnt == 0) {
 		list_remove(&(namespace->namespaces));
-		
+
 		free(namespace->name);
 		free(namespace);
 	}
@@ -310,23 +310,23 @@ static void loc_service_unregister_core(loc_service_t *service)
 {
 	assert(fibril_mutex_is_locked(&services_list_mutex));
 	assert(fibril_mutex_is_locked(&cdir.mutex));
-	
+
 	loc_namespace_delref(service->namespace);
 	list_remove(&(service->services));
 	list_remove(&(service->server_services));
-	
+
 	/* Remove service from all categories. */
 	while (!list_empty(&service->cat_memb)) {
 		link_t *link = list_first(&service->cat_memb);
 		svc_categ_t *memb = list_get_instance(link, svc_categ_t,
 		    svc_link);
 		category_t *cat = memb->cat;
-		
+
 		fibril_mutex_lock(&cat->mutex);
 		category_remove_service(memb);
 		fibril_mutex_unlock(&cat->mutex);
 	}
-	
+
 	free(service->name);
 	free(service);
 }
@@ -339,19 +339,19 @@ static loc_server_t *loc_server_register(void)
 {
 	ipc_call_t icall;
 	ipc_callid_t iid = async_get_call(&icall);
-	
+
 	if (IPC_GET_IMETHOD(icall) != LOC_SERVER_REGISTER) {
 		async_answer_0(iid, EREFUSED);
 		return NULL;
 	}
-	
+
 	loc_server_t *server =
 	    (loc_server_t *) malloc(sizeof(loc_server_t));
 	if (server == NULL) {
 		async_answer_0(iid, ENOMEM);
 		return NULL;
 	}
-	
+
 	/*
 	 * Get server name
 	 */
@@ -362,7 +362,7 @@ static loc_server_t *loc_server_register(void)
 		async_answer_0(iid, rc);
 		return NULL;
 	}
-	
+
 	/*
 	 * Create connection to the server
 	 */
@@ -373,34 +373,34 @@ static loc_server_t *loc_server_register(void)
 		async_answer_0(iid, ENOTSUP);
 		return NULL;
 	}
-	
+
 	/*
 	 * Initialize mutex for list of services
 	 * supplied by this server
 	 */
 	fibril_mutex_initialize(&server->services_mutex);
-	
+
 	/*
 	 * Initialize list of supplied services
 	 */
 	list_initialize(&server->services);
 	link_initialize(&server->servers);
-	
+
 	fibril_mutex_lock(&servers_list_mutex);
-	
+
 	/* TODO:
 	 * Check that no server with name equal to
 	 * server->name is registered
 	 */
-	
+
 	/*
 	 * Insert new server into list of registered servers
 	 */
 	list_append(&(server->servers), &servers_list);
 	fibril_mutex_unlock(&servers_list_mutex);
-	
+
 	async_answer_0(iid, EOK);
-	
+
 	return server;
 }
 
@@ -413,38 +413,38 @@ static errno_t loc_server_unregister(loc_server_t *server)
 {
 	if (server == NULL)
 		return EEXIST;
-	
+
 	fibril_mutex_lock(&servers_list_mutex);
-	
+
 	if (server->sess)
 		async_hangup(server->sess);
-	
+
 	/* Remove it from list of servers */
 	list_remove(&(server->servers));
-	
+
 	/* Unregister all its services */
 	fibril_mutex_lock(&services_list_mutex);
 	fibril_mutex_lock(&server->services_mutex);
 	fibril_mutex_lock(&cdir.mutex);
-	
+
 	while (!list_empty(&server->services)) {
 		loc_service_t *service = list_get_instance(
 		    list_first(&server->services), loc_service_t,
 		    server_services);
 		loc_service_unregister_core(service);
 	}
-	
+
 	fibril_mutex_unlock(&cdir.mutex);
 	fibril_mutex_unlock(&server->services_mutex);
 	fibril_mutex_unlock(&services_list_mutex);
 	fibril_mutex_unlock(&servers_list_mutex);
-	
+
 	/* Free name and server */
 	if (server->name != NULL)
 		free(server->name);
-	
+
 	free(server);
-	
+
 	loc_category_change_event();
 	return EOK;
 }
@@ -459,7 +459,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	/* Create new service entry */
 	loc_service_t *service =
 	    (loc_service_t *) malloc(sizeof(loc_service_t));
@@ -467,7 +467,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	/* Get fqsn */
 	char *fqsn;
 	errno_t rc = async_data_write_accept((void **) &fqsn, true, 0,
@@ -477,7 +477,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	char *ns_name;
 	if (!loc_fqsn_split(fqsn, &ns_name, &service->name)) {
 		free(fqsn);
@@ -485,11 +485,11 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, EINVAL);
 		return;
 	}
-	
+
 	free(fqsn);
-	
+
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	loc_namespace_t *namespace = loc_namespace_create(ns_name);
 	free(ns_name);
 	if (namespace == NULL) {
@@ -499,11 +499,11 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	link_initialize(&service->services);
 	link_initialize(&service->server_services);
 	list_initialize(&service->cat_memb);
-	
+
 	/* Check that service is not already registered */
 	if (loc_service_find_name(namespace->name, service->name) != NULL) {
 		printf("%s: Service '%s/%s' already registered\n", NAME,
@@ -515,25 +515,25 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, EEXIST);
 		return;
 	}
-	
+
 	/* Get unique service ID */
 	service->id = loc_create_id();
 
 	loc_namespace_addref(namespace, service);
 	service->server = server;
-	
+
 	/* Insert service into list of all services  */
 	list_append(&service->services, &services_list);
-	
+
 	/* Insert service into list of services supplied by one server */
 	fibril_mutex_lock(&service->server->services_mutex);
-	
+
 	list_append(&service->server_services, &service->server->services);
-	
+
 	fibril_mutex_unlock(&service->server->services_mutex);
 	fibril_condvar_broadcast(&services_list_cv);
 	fibril_mutex_unlock(&services_list_mutex);
-	
+
 	async_answer_1(iid, EOK, service->id);
 }
 
@@ -544,7 +544,7 @@ static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
     loc_server_t *server)
 {
 	loc_service_t *svc;
-	
+
 	fibril_mutex_lock(&services_list_mutex);
 	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
 	if (svc == NULL) {
@@ -552,7 +552,7 @@ static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&cdir.mutex);
 	loc_service_unregister_core(svc);
 	fibril_mutex_unlock(&cdir.mutex);
@@ -573,15 +573,15 @@ static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	size_t size;
 	size_t act_size;
 	category_t *cat;
-	
+
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&cdir.mutex);
-	
+
 	cat = category_get(&cdir, IPC_GET_ARG1(*icall));
 	if (cat == NULL) {
 		fibril_mutex_unlock(&cdir.mutex);
@@ -589,7 +589,7 @@ static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	act_size = str_size(cat->name);
 	if (act_size > size) {
 		fibril_mutex_unlock(&cdir.mutex);
@@ -597,12 +597,12 @@ static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EOVERFLOW);
 		return;
 	}
-	
+
 	errno_t retval = async_data_read_finalize(callid, cat->name,
 	    min(size, act_size));
-	
+
 	fibril_mutex_unlock(&cdir.mutex);
-	
+
 	async_answer_0(iid, retval);
 }
 
@@ -613,15 +613,15 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	size_t act_size;
 	loc_service_t *svc;
 	char *fqn;
-	
+
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
 	if (svc == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
@@ -629,14 +629,14 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	if (asprintf(&fqn, "%s/%s", svc->namespace->name, svc->name) < 0) {
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(callid, ENOMEM);
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	act_size = str_size(fqn);
 	if (act_size > size) {
 		free(fqn);
@@ -645,13 +645,13 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EOVERFLOW);
 		return;
 	}
-	
+
 	errno_t retval = async_data_read_finalize(callid, fqn,
 	    min(size, act_size));
 	free(fqn);
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
-	
+
 	async_answer_0(iid, retval);
 }
 
@@ -661,15 +661,15 @@ static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
 	size_t size;
 	size_t act_size;
 	loc_service_t *svc;
-	
+
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	svc = loc_service_find_id(IPC_GET_ARG1(*icall));
 	if (svc == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
@@ -677,14 +677,14 @@ static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	if (svc->server == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;
 	}
-	
+
 	act_size = str_size(svc->server->name);
 	if (act_size > size) {
 		fibril_mutex_unlock(&services_list_mutex);
@@ -692,12 +692,12 @@ static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EOVERFLOW);
 		return;
 	}
-	
+
 	errno_t retval = async_data_read_finalize(callid, svc->server->name,
 	    min(size, act_size));
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
-	
+
 	async_answer_0(iid, retval);
 }
 
@@ -710,24 +710,24 @@ static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
 static void loc_forward(ipc_callid_t callid, ipc_call_t *call, void *arg)
 {
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	/*
 	 * Get ID from request
 	 */
 	iface_t iface = IPC_GET_ARG1(*call);
 	service_id_t id = IPC_GET_ARG2(*call);
 	loc_service_t *svc = loc_service_find_id(id);
-	
+
 	if ((svc == NULL) || (svc->server == NULL) || (!svc->server->sess)) {
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	async_exch_t *exch = async_exchange_begin(svc->server->sess);
 	async_forward_fast(callid, exch, iface, svc->id, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
 }
 
@@ -740,7 +740,7 @@ static void loc_forward(ipc_callid_t callid, ipc_call_t *call, void *arg)
 static void loc_service_get_id(ipc_callid_t iid, ipc_call_t *icall)
 {
 	char *fqsn;
-	
+
 	/* Get fqsn */
 	errno_t rc = async_data_write_accept((void **) &fqsn, true, 0,
 	    LOC_NAME_MAXLEN, 0, NULL);
@@ -748,7 +748,7 @@ static void loc_service_get_id(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	char *ns_name;
 	char *name;
 	if (!loc_fqsn_split(fqsn, &ns_name, &name)) {
@@ -756,19 +756,19 @@ static void loc_service_get_id(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EINVAL);
 		return;
 	}
-	
+
 	free(fqsn);
-	
+
 	fibril_mutex_lock(&services_list_mutex);
 	const loc_service_t *svc;
-	
+
 recheck:
-	
+
 	/*
 	 * Find service name in the list of known services.
 	 */
 	svc = loc_service_find_name(ns_name, name);
-	
+
 	/*
 	 * Device was not found.
 	 */
@@ -779,16 +779,16 @@ recheck:
 			    &services_list_mutex);
 			goto recheck;
 		}
-		
+
 		async_answer_0(iid, ENOENT);
 		free(ns_name);
 		free(name);
 		fibril_mutex_unlock(&services_list_mutex);
 		return;
 	}
-	
+
 	async_answer_1(iid, EOK, svc->id);
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
 	free(ns_name);
 	free(name);
@@ -803,7 +803,7 @@ recheck:
 static void loc_namespace_get_id(ipc_callid_t iid, ipc_call_t *icall)
 {
 	char *name;
-	
+
 	/* Get service name */
 	errno_t rc = async_data_write_accept((void **) &name, true, 0,
 	    LOC_NAME_MAXLEN, 0, NULL);
@@ -811,17 +811,17 @@ static void loc_namespace_get_id(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&services_list_mutex);
 	const loc_namespace_t *namespace;
-	
+
 recheck:
-	
+
 	/*
 	 * Find namespace name in the list of known namespaces.
 	 */
 	namespace = loc_namespace_find_name(name);
-	
+
 	/*
 	 * Namespace was not found.
 	 */
@@ -832,15 +832,15 @@ recheck:
 			    &services_list_mutex);
 			goto recheck;
 		}
-		
+
 		async_answer_0(iid, ENOENT);
 		free(name);
 		fibril_mutex_unlock(&services_list_mutex);
 		return;
 	}
-	
+
 	async_answer_1(iid, EOK, namespace->id);
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
 	free(name);
 }
@@ -861,34 +861,34 @@ static void loc_callback_create(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL) {
 		free(cb_sess);
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	cb_sess->sess = sess;
 	link_initialize(&cb_sess->cb_sess_list);
-	
+
 	fibril_mutex_lock(&callback_sess_mutex);
 	list_append(&cb_sess->cb_sess_list, &callback_sess_list);
 	fibril_mutex_unlock(&callback_sess_mutex);
-	
+
 	async_answer_0(iid, EOK);
 }
 
 void loc_category_change_event(void)
 {
 	fibril_mutex_lock(&callback_sess_mutex);
-	
+
 	list_foreach(callback_sess_list, cb_sess_list, cb_sess_t, cb_sess) {
 		async_exch_t *exch = async_exchange_begin(cb_sess->sess);
 		async_msg_0(exch, LOC_EVENT_CAT_CHANGE);
 		async_exchange_end(exch);
 	}
-	
+
 	fibril_mutex_unlock(&callback_sess_mutex);
 }
 
@@ -902,7 +902,7 @@ static void loc_category_get_id(ipc_callid_t iid, ipc_call_t *icall)
 {
 	char *name;
 	category_t *cat;
-	
+
 	/* Get service name */
 	errno_t rc = async_data_write_accept((void **) &name, true, 0,
 	    LOC_NAME_MAXLEN, 0, NULL);
@@ -910,7 +910,7 @@ static void loc_category_get_id(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&cdir.mutex);
 
 	cat = category_find_by_name(&cdir, name);
@@ -919,7 +919,7 @@ static void loc_category_get_id(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		goto cleanup;
 	}
-	
+
 	async_answer_1(iid, EOK, cat->id);
 cleanup:
 	fibril_mutex_unlock(&cdir.mutex);
@@ -929,7 +929,7 @@ cleanup:
 static void loc_id_probe(ipc_callid_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	loc_namespace_t *namespace =
 	    loc_namespace_find_id(IPC_GET_ARG1(*icall));
 	if (namespace == NULL) {
@@ -941,7 +941,7 @@ static void loc_id_probe(ipc_callid_t iid, ipc_call_t *icall)
 			async_answer_1(iid, EOK, LOC_OBJECT_SERVICE);
 	} else
 		async_answer_1(iid, EOK, LOC_OBJECT_NAMESPACE);
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
 }
 
@@ -955,14 +955,14 @@ static void loc_get_namespace_count(ipc_callid_t iid, ipc_call_t *icall)
 static void loc_get_service_count(ipc_callid_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	loc_namespace_t *namespace =
 	    loc_namespace_find_id(IPC_GET_ARG1(*icall));
 	if (namespace == NULL)
 		async_answer_0(iid, EEXIST);
 	else
 		async_answer_1(iid, EOK, namespace->refcnt);
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
 }
 
@@ -972,13 +972,13 @@ static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
 	size_t size;
 	size_t act_size;
 	errno_t rc;
-	
+
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	category_id_t *id_buf = (category_id_t *) malloc(size);
 	if (id_buf == NULL) {
 		fibril_mutex_unlock(&cdir.mutex);
@@ -986,9 +986,9 @@ static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&cdir.mutex);
-	
+
 	rc = categ_dir_get_categories(&cdir, id_buf, size, &act_size);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&cdir.mutex);
@@ -996,12 +996,12 @@ static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	fibril_mutex_unlock(&cdir.mutex);
-	
+
 	errno_t retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
-	
+
 	async_answer_1(iid, retval, act_size);
 }
 
@@ -1014,15 +1014,15 @@ static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	if ((size % sizeof(loc_sdesc_t)) != 0) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	size_t count = size / sizeof(loc_sdesc_t);
 	if (count != list_count(&namespaces_list)) {
 		fibril_mutex_unlock(&services_list_mutex);
@@ -1030,7 +1030,7 @@ static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EOVERFLOW);
 		return;
 	}
-	
+
 	loc_sdesc_t *desc = (loc_sdesc_t *) malloc(size);
 	if (desc == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
@@ -1038,19 +1038,19 @@ static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	size_t pos = 0;
 	list_foreach(namespaces_list, namespaces, loc_namespace_t, namespace) {
 		desc[pos].id = namespace->id;
 		str_cpy(desc[pos].name, LOC_NAME_MAXLEN, namespace->name);
 		pos++;
 	}
-	
+
 	errno_t retval = async_data_read_finalize(callid, desc, size);
-	
+
 	free(desc);
 	fibril_mutex_unlock(&services_list_mutex);
-	
+
 	async_answer_0(iid, retval);
 }
 
@@ -1058,7 +1058,7 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* FIXME: Use faster algorithm which can make better use
 	   of namespaces */
-	
+
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
@@ -1066,15 +1066,15 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	if ((size % sizeof(loc_sdesc_t)) != 0) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(iid, EINVAL);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	loc_namespace_t *namespace =
 	    loc_namespace_find_id(IPC_GET_ARG1(*icall));
 	if (namespace == NULL) {
@@ -1083,7 +1083,7 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	size_t count = size / sizeof(loc_sdesc_t);
 	if (count != namespace->refcnt) {
 		fibril_mutex_unlock(&services_list_mutex);
@@ -1091,7 +1091,7 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EOVERFLOW);
 		return;
 	}
-	
+
 	loc_sdesc_t *desc = (loc_sdesc_t *) malloc(size);
 	if (desc == NULL) {
 		fibril_mutex_unlock(&services_list_mutex);
@@ -1099,7 +1099,7 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	size_t pos = 0;
 	list_foreach(services_list, services, loc_service_t, service) {
 		if (service->namespace == namespace) {
@@ -1108,12 +1108,12 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 			pos++;
 		}
 	}
-	
+
 	errno_t retval = async_data_read_finalize(callid, desc, size);
-	
+
 	free(desc);
 	fibril_mutex_unlock(&services_list_mutex);
-	
+
 	async_answer_0(iid, retval);
 }
 
@@ -1123,15 +1123,15 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 	size_t size;
 	size_t act_size;
 	errno_t rc;
-	
+
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
 		async_answer_0(iid, EREFUSED);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&cdir.mutex);
-	
+
 	category_t *cat = category_get(&cdir, IPC_GET_ARG1(*icall));
 	if (cat == NULL) {
 		fibril_mutex_unlock(&cdir.mutex);
@@ -1139,7 +1139,7 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	category_id_t *id_buf = (category_id_t *) malloc(size);
 	if (id_buf == NULL) {
 		fibril_mutex_unlock(&cdir.mutex);
@@ -1147,9 +1147,9 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&cat->mutex);
-	
+
 	rc = category_get_services(cat, id_buf, size, &act_size);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&cat->mutex);
@@ -1158,13 +1158,13 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	fibril_mutex_unlock(&cat->mutex);
 	fibril_mutex_unlock(&cdir.mutex);
-	
+
 	errno_t retval = async_data_read_finalize(callid, id_buf, size);
 	free(id_buf);
-	
+
 	async_answer_1(iid, retval, act_size);
 }
 
@@ -1172,33 +1172,33 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 static void loc_null_create(ipc_callid_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&null_services_mutex);
-	
+
 	unsigned int i;
 	bool fnd = false;
-	
+
 	for (i = 0; i < NULL_SERVICES; i++) {
 		if (null_services[i] == NULL) {
 			fnd = true;
 			break;
 		}
 	}
-	
+
 	if (!fnd) {
 		fibril_mutex_unlock(&null_services_mutex);
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	char null[LOC_NAME_MAXLEN];
 	snprintf(null, LOC_NAME_MAXLEN, "%u", i);
-	
+
 	char *dev_name = str_dup(null);
 	if (dev_name == NULL) {
 		fibril_mutex_unlock(&null_services_mutex);
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	loc_service_t *service =
 	    (loc_service_t *) malloc(sizeof(loc_service_t));
 	if (service == NULL) {
@@ -1206,9 +1206,9 @@ static void loc_null_create(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&services_list_mutex);
-	
+
 	loc_namespace_t *namespace = loc_namespace_create("null");
 	if (namespace == NULL) {
 		fibril_mutex_lock(&services_list_mutex);
@@ -1216,18 +1216,18 @@ static void loc_null_create(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	link_initialize(&service->services);
 	link_initialize(&service->server_services);
 	list_initialize(&service->cat_memb);
-	
+
 	/* Get unique service ID */
 	service->id = loc_create_id();
 	service->server = NULL;
-	
+
 	loc_namespace_addref(namespace, service);
 	service->name = dev_name;
-	
+
 	/*
 	 * Insert service into list of all services and into null services array.
 	 * Insert service into a dummy list of null server's services so that it
@@ -1236,10 +1236,10 @@ static void loc_null_create(ipc_callid_t iid, ipc_call_t *icall)
 	list_append(&service->services, &services_list);
 	list_append(&service->server_services, &dummy_null_services);
 	null_services[i] = service;
-	
+
 	fibril_mutex_unlock(&services_list_mutex);
 	fibril_mutex_unlock(&null_services_mutex);
-	
+
 	async_answer_1(iid, EOK, (sysarg_t) i);
 }
 
@@ -1250,23 +1250,23 @@ static void loc_null_destroy(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ELIMIT);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&null_services_mutex);
-	
+
 	if (null_services[i] == NULL) {
 		fibril_mutex_unlock(&null_services_mutex);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&services_list_mutex);
 	fibril_mutex_lock(&cdir.mutex);
 	loc_service_unregister_core(null_services[i]);
 	fibril_mutex_unlock(&cdir.mutex);
 	fibril_mutex_unlock(&services_list_mutex);
-	
+
 	null_services[i] = NULL;
-	
+
 	fibril_mutex_unlock(&null_services_mutex);
 	async_answer_0(iid, EOK);
 }
@@ -1278,23 +1278,23 @@ static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
 	catid_t cat_id;
 	service_id_t svc_id;
 	errno_t retval;
-	
+
 	svc_id = IPC_GET_ARG1(*icall);
 	cat_id = IPC_GET_ARG2(*icall);
-	
+
 	fibril_mutex_lock(&services_list_mutex);
 	fibril_mutex_lock(&cdir.mutex);
-	
+
 	cat = category_get(&cdir, cat_id);
 	svc = loc_service_find_id(svc_id);
-	
+
 	if (cat == NULL || svc == NULL) {
 		fibril_mutex_unlock(&cdir.mutex);
 		fibril_mutex_unlock(&services_list_mutex);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&cat->mutex);
 	retval = category_add_service(cat, svc);
 
@@ -1323,7 +1323,7 @@ static bool loc_init(void)
 
 	for (i = 0; i < NULL_SERVICES; i++)
 		null_services[i] = NULL;
-	
+
 	categ_dir_init(&cdir);
 
 	cat = category_new("disk");
@@ -1367,10 +1367,10 @@ static bool loc_init(void)
 
 	cat = category_new("virtual");
 	categ_dir_add_cat(&cdir, cat);
-	
+
 	cat = category_new("nic");
 	categ_dir_add_cat(&cdir, cat);
-	
+
 	cat = category_new("ieee80211");
 	categ_dir_add_cat(&cdir, cat);
 
@@ -1382,10 +1382,10 @@ static bool loc_init(void)
 
 	cat = category_new("renderer");
 	categ_dir_add_cat(&cdir, cat);
-	
+
 	cat = category_new("audio-pcm");
 	categ_dir_add_cat(&cdir, cat);
-	
+
 	return true;
 }
 
@@ -1396,18 +1396,18 @@ static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall, void *a
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
-	
+
 	loc_server_t *server = loc_server_register();
 	if (server == NULL)
 		return;
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOC_SERVER_UNREGISTER:
 			if (server == NULL)
@@ -1437,7 +1437,7 @@ static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall, void *a
 			async_answer_0(callid, ENOENT);
 		}
 	}
-	
+
 	if (server != NULL) {
 		/*
 		 * Unregister the server and all its services.
@@ -1454,14 +1454,14 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall, void *a
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOC_SERVICE_GET_ID:
 			loc_service_get_id(callid, &call);
@@ -1523,12 +1523,12 @@ static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall, void *a
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS Location Service\n", NAME);
-	
+
 	if (!loc_init()) {
 		printf("%s: Error while initializing service\n", NAME);
 		return -1;
 	}
-	
+
 	port_id_t port;
 	errno_t rc = async_create_port(INTERFACE_LOC_SUPPLIER,
 	    loc_connection_supplier, NULL, &port);
@@ -1536,27 +1536,27 @@ int main(int argc, char *argv[])
 		printf("%s: Error while creating supplier port: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	rc = async_create_port(INTERFACE_LOC_CONSUMER,
 	    loc_connection_consumer, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Error while creating consumer port: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	/* Set a handler of incomming connections */
 	async_set_fallback_port_handler(loc_forward, NULL);
-	
+
 	/* Register location service at naming service */
 	rc = service_register(SERVICE_LOC);
 	if (rc != EOK) {
 		printf("%s: Error while registering service: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	printf("%s: Accepting connections\n", NAME);
 	async_manager();
-	
+
 	/* Never reached */
 	return 0;
 }

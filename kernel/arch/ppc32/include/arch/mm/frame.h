@@ -48,12 +48,12 @@
 NO_TRACE static inline uint32_t physmem_top(void)
 {
 	uint32_t physmem;
-	
+
 	asm volatile (
 		"mfsprg3 %[physmem]\n"
 		: [physmem] "=r" (physmem)
 	);
-	
+
 	return physmem;
 }
 

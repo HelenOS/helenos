@@ -61,7 +61,7 @@ static unsigned int bitmap_get_fast(bitmap_t *bitmap, size_t element)
 {
 	size_t byte = element / BITMAP_ELEMENT;
 	uint8_t mask = 1 << (element & BITMAP_REMAINER);
-	
+
 	return !!((bitmap->bits)[byte] & mask);
 }
 
@@ -77,10 +77,10 @@ static unsigned int bitmap_get_fast(bitmap_t *bitmap, size_t element)
 size_t bitmap_size(size_t elements)
 {
 	size_t size = elements / BITMAP_ELEMENT;
-	
+
 	if ((elements % BITMAP_ELEMENT) != 0)
 		size++;
-	
+
 	return size;
 }
 
@@ -112,43 +112,43 @@ void bitmap_initialize(bitmap_t *bitmap, size_t elements, void *data)
 void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
 {
 	assert(start + count <= bitmap->elements);
-	
+
 	if (count == 0)
 		return;
-	
+
 	size_t start_byte = start / BITMAP_ELEMENT;
 	size_t aligned_start = ALIGN_UP(start, BITMAP_ELEMENT);
-	
+
 	/* Leading unaligned bits */
 	size_t lub = min(aligned_start - start, count);
-	
+
 	/* Aligned middle bits */
 	size_t amb = (count > lub) ? (count - lub) : 0;
-	
+
 	/* Trailing aligned bits */
 	size_t tab = amb % BITMAP_ELEMENT;
-	
+
 	if (start + count < aligned_start) {
 		/* Set bits in the middle of byte. */
 		bitmap->bits[start_byte] |=
 		    ((1 << lub) - 1) << (start & BITMAP_REMAINER);
 		return;
 	}
-	
+
 	if (lub) {
 		/* Make sure to set any leading unaligned bits. */
 		bitmap->bits[start_byte] |=
 		    ~((1 << (BITMAP_ELEMENT - lub)) - 1);
 	}
-	
+
 	size_t i;
-	
+
 	for (i = 0; i < amb / BITMAP_ELEMENT; i++) {
 		/* The middle bits can be set byte by byte. */
 		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] =
 		    ALL_ONES;
 	}
-	
+
 	if (tab) {
 		/* Make sure to set any trailing aligned bits. */
 		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] |=
@@ -166,49 +166,49 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t count)
 void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t count)
 {
 	assert(start + count <= bitmap->elements);
-	
+
 	if (count == 0)
 		return;
-	
+
 	size_t start_byte = start / BITMAP_ELEMENT;
 	size_t aligned_start = ALIGN_UP(start, BITMAP_ELEMENT);
-	
+
 	/* Leading unaligned bits */
 	size_t lub = min(aligned_start - start, count);
-	
+
 	/* Aligned middle bits */
 	size_t amb = (count > lub) ? (count - lub) : 0;
-	
+
 	/* Trailing aligned bits */
 	size_t tab = amb % BITMAP_ELEMENT;
-	
+
 	if (start + count < aligned_start) {
 		/* Set bits in the middle of byte */
 		bitmap->bits[start_byte] &=
 		    ~(((1 << lub) - 1) << (start & BITMAP_REMAINER));
 		return;
 	}
-	
+
 	if (lub) {
 		/* Make sure to clear any leading unaligned bits. */
 		bitmap->bits[start_byte] &=
 		    (1 << (BITMAP_ELEMENT - lub)) - 1;
 	}
-	
+
 	size_t i;
-	
+
 	for (i = 0; i < amb / BITMAP_ELEMENT; i++) {
 		/* The middle bits can be cleared byte by byte. */
 		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] =
 		    ALL_ZEROES;
 	}
-	
+
 	if (tab) {
 		/* Make sure to clear any trailing aligned bits. */
 		bitmap->bits[aligned_start / BITMAP_ELEMENT + i] &=
 		    ~((1 << tab) - 1);
 	}
-	
+
 	bitmap->next_fit = start_byte;
 }
 
@@ -223,12 +223,12 @@ void bitmap_copy(bitmap_t *dst, bitmap_t *src, size_t count)
 {
 	assert(count <= dst->elements);
 	assert(count <= src->elements);
-	
+
 	size_t i;
-	
+
 	for (i = 0; i < count / BITMAP_ELEMENT; i++)
 		dst->bits[i] = src->bits[i];
-	
+
 	if (count % BITMAP_ELEMENT) {
 		bitmap_clear_range(dst, i * BITMAP_ELEMENT,
 		    count % BITMAP_ELEMENT);
@@ -273,42 +273,42 @@ bool bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
 {
 	if (count == 0)
 		return false;
-	
+
 	size_t size = bitmap_size(bitmap->elements);
 	size_t next_fit = bitmap->next_fit;
-	
+
 	/*
 	 * Adjust the next-fit value according to the address
 	 * the caller prefers to start the search at.
 	 */
 	if ((prefered > base) && (prefered < base + bitmap->elements)) {
 		size_t prefered_fit = (prefered - base) / BITMAP_ELEMENT;
-		
+
 		if (prefered_fit > next_fit)
 			next_fit = prefered_fit;
 	}
-	
+
 	for (size_t pos = 0; pos < size; pos++) {
 		size_t byte = (next_fit + pos) % size;
-		
+
 		/* Skip if the current byte has all bits set */
 		if (bitmap->bits[byte] == ALL_ONES)
 			continue;
-		
+
 		size_t byte_bit = byte * BITMAP_ELEMENT;
-		
+
 		for (size_t bit = 0; bit < BITMAP_ELEMENT; bit++) {
 			size_t i = byte_bit + bit;
-			
+
 			if (i >= bitmap->elements)
 				break;
-			
+
 			if (!constraint_satisfy(i, base, constraint))
 				continue;
-			
+
 			if (!bitmap_get_fast(bitmap, i)) {
 				size_t continuous = 1;
-				
+
 				for (size_t j = 1; j < count; j++) {
 					if ((i + j < bitmap->elements) &&
 					    (!bitmap_get_fast(bitmap, i + j)))
@@ -316,21 +316,21 @@ bool bitmap_allocate_range(bitmap_t *bitmap, size_t count, size_t base,
 					else
 						break;
 				}
-				
+
 				if (continuous == count) {
 					if (index != NULL) {
 						bitmap_set_range(bitmap, i, count);
 						bitmap->next_fit = i / BITMAP_ELEMENT;
 						*index = i;
 					}
-					
+
 					return true;
 				} else
 					i += continuous;
 			}
 		}
 	}
-	
+
 	return false;
 }
 

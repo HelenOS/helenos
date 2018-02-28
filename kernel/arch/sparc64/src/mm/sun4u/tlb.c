@@ -177,9 +177,9 @@ void itlb_pte_copy(pte_t *t, size_t index)
 	tag.value = 0;
 	tag.context = t->as->asid;
 	tag.vpn = pg.vpn;
-	
+
 	itlb_tag_access_write(tag.value);
-	
+
 	data.value = 0;
 	data.v = true;
 	data.size = PAGESIZE_8K;
@@ -189,7 +189,7 @@ void itlb_pte_copy(pte_t *t, size_t index)
 	data.p = t->k;		/* p like privileged */
 	data.w = false;
 	data.g = t->g;
-	
+
 	itlb_data_in_write(data.value);
 }
 
@@ -352,7 +352,7 @@ void tlb_print(void)
 	int i;
 	tlb_data_t d;
 	tlb_tag_read_reg_t t;
-	
+
 	printf("I-TLB contents:\n");
 	for (i = 0; i < ITLB_ENTRY_COUNT; i++) {
 		d.value = itlb_data_access_read(i);
@@ -376,35 +376,35 @@ void tlb_print(void)
 	int i;
 	tlb_data_t d;
 	tlb_tag_read_reg_t t;
-	
+
 	printf("TLB_ISMALL contents:\n");
 	for (i = 0; i < tlb_ismall_size(); i++) {
 		d.value = dtlb_data_access_read(TLB_ISMALL, i);
 		t.value = dtlb_tag_read_read(TLB_ISMALL, i);
 		print_tlb_entry(i, t, d);
 	}
-	
+
 	printf("TLB_IBIG contents:\n");
 	for (i = 0; i < tlb_ibig_size(); i++) {
 		d.value = dtlb_data_access_read(TLB_IBIG, i);
 		t.value = dtlb_tag_read_read(TLB_IBIG, i);
 		print_tlb_entry(i, t, d);
 	}
-	
+
 	printf("TLB_DSMALL contents:\n");
 	for (i = 0; i < tlb_dsmall_size(); i++) {
 		d.value = dtlb_data_access_read(TLB_DSMALL, i);
 		t.value = dtlb_tag_read_read(TLB_DSMALL, i);
 		print_tlb_entry(i, t, d);
 	}
-	
+
 	printf("TLB_DBIG_1 contents:\n");
 	for (i = 0; i < tlb_dbig_size(); i++) {
 		d.value = dtlb_data_access_read(TLB_DBIG_0, i);
 		t.value = dtlb_tag_read_read(TLB_DBIG_0, i);
 		print_tlb_entry(i, t, d);
 	}
-	
+
 	printf("TLB_DBIG_2 contents:\n");
 	for (i = 0; i < tlb_dbig_size(); i++) {
 		d.value = dtlb_data_access_read(TLB_DBIG_1, i);
@@ -422,7 +422,7 @@ void describe_dmmu_fault(void)
 
 	sfsr.value = dtlb_sfsr_read();
 	sfar = dtlb_sfar_read();
-	
+
 #if defined (US)
 	printf("DTLB SFSR: asi=%#x, ft=%#x, e=%d, ct=%d, pr=%d, w=%d, ow=%d, "
 	    "fv=%d\n", sfsr.asi, sfsr.ft, sfsr.e, sfsr.ct, sfsr.pr, sfsr.w,
@@ -432,9 +432,9 @@ void describe_dmmu_fault(void)
 	    "w=%d, ow=%d, fv=%d\n", sfsr.nf, sfsr.asi, sfsr.tm, sfsr.ft,
 	    sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
 #endif
-	
+
 	printf("DTLB SFAR: address=%p\n", (void *) sfar);
-	
+
 	dtlb_sfsr_write(0);
 }
 
@@ -445,7 +445,7 @@ void dump_sfsr_and_sfar(void)
 
 	sfsr.value = dtlb_sfsr_read();
 	sfar = dtlb_sfar_read();
-	
+
 #if defined (US)
 	printf("DTLB SFSR: asi=%#x, ft=%#x, e=%d, ct=%d, pr=%d, w=%d, ow=%d, "
 	    "fv=%d\n", sfsr.asi, sfsr.ft, sfsr.e, sfsr.ct, sfsr.pr, sfsr.w,
@@ -455,9 +455,9 @@ void dump_sfsr_and_sfar(void)
 	    "w=%d, ow=%d, fv=%d\n", sfsr.nf, sfsr.asi, sfsr.tm, sfsr.ft,
 	    sfsr.e, sfsr.ct, sfsr.pr, sfsr.w, sfsr.ow, sfsr.fv);
 #endif
-	    
+
 	printf("DTLB SFAR: address=%p\n", (void *) sfar);
-	
+
 	dtlb_sfsr_write(0);
 }
 
@@ -466,7 +466,7 @@ void dump_sfsr_and_sfar(void)
 void tlb_invalidate_all(void)
 {
 	int i;
-	
+
 	/*
 	 * Walk all ITLB and DTLB entries and remove all unlocked mappings.
 	 *
@@ -520,19 +520,19 @@ void tlb_invalidate_all(void)
 void tlb_invalidate_asid(asid_t asid)
 {
 	tlb_context_reg_t pc_save, ctx;
-	
+
 	/* switch to nucleus because we are mapped by the primary context */
 	nucleus_enter();
-	
+
 	ctx.v = pc_save.v = mmu_primary_context_read();
 	ctx.context = asid;
 	mmu_primary_context_write(ctx.v);
-	
+
 	itlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_PRIMARY, 0);
 	dtlb_demap(TLB_DEMAP_CONTEXT, TLB_DEMAP_PRIMARY, 0);
-	
+
 	mmu_primary_context_write(pc_save.v);
-	
+
 	nucleus_leave();
 }
 
@@ -547,23 +547,23 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 {
 	unsigned int i;
 	tlb_context_reg_t pc_save, ctx;
-	
+
 	/* switch to nucleus because we are mapped by the primary context */
 	nucleus_enter();
-	
+
 	ctx.v = pc_save.v = mmu_primary_context_read();
 	ctx.context = asid;
 	mmu_primary_context_write(ctx.v);
-	
+
 	for (i = 0; i < cnt * MMU_PAGES_PER_PAGE; i++) {
 		itlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY,
 		    page + i * MMU_PAGE_SIZE);
 		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_PRIMARY,
 		    page + i * MMU_PAGE_SIZE);
 	}
-	
+
 	mmu_primary_context_write(pc_save.v);
-	
+
 	nucleus_leave();
 }
 

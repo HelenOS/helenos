@@ -64,14 +64,14 @@ typedef struct {
 	 */
 	errno_t (*get_event)(ddf_fun_t *fun, uint8_t *buffer, size_t size,
 	    size_t *act_size, int *event_nr, unsigned int flags);
-	
+
 	/** Get size of the report descriptor in bytes.
 	 *
 	 * @param[in] fun DDF function answering the request.
 	 * @return Size of the report descriptor in bytes.
 	 */
 	size_t (*get_report_descriptor_length)(ddf_fun_t *fun);
-	
+
 	/** Get the report descriptor from the HID device.
 	 *
 	 * @param[in] fun DDF function answering the request.

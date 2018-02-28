@@ -239,13 +239,13 @@ int main(int argc, char * argv[])
 		    controller, str_error(rc));
 		return rc;
 	}
-	
+
 	printf("Connected to VHCD `%s'...\n", controller);
 
 	wait_for_interfaces_death(&hid_dev);
-	
+
 	printf("Terminating...\n");
-	
+
 	usbvirt_device_unplug(&hid_dev);
 
 	return 0;

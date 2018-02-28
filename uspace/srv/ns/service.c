@@ -42,10 +42,10 @@
 /** Service hash table item. */
 typedef struct {
 	ht_link_t link;
-	
+
 	/** Service ID */
 	service_t service;
-	
+
 	/** Session to the service */
 	async_sess_t *sess;
 } hashed_service_t;
@@ -59,7 +59,7 @@ static size_t service_hash(const ht_link_t *item)
 {
 	hashed_service_t *service =
 	    hash_table_get_inst(item, hashed_service_t, link);
-	
+
 	return service->service;
 }
 
@@ -67,7 +67,7 @@ static bool service_key_equal(void *key, const ht_link_t *item)
 {
 	hashed_service_t *service =
 	    hash_table_get_inst(item, hashed_service_t, link);
-	
+
 	return service->service == *(service_t *) key;
 }
 
@@ -101,9 +101,9 @@ errno_t service_init(void)
 		printf("%s: No memory available for services\n", NAME);
 		return ENOMEM;
 	}
-	
+
 	list_initialize(&pending_conn);
-	
+
 	return EOK;
 }
 
@@ -115,16 +115,16 @@ loop:
 		ht_link_t *link = hash_table_find(&service_hash_table, &pending->service);
 		if (!link)
 			continue;
-		
+
 		hashed_service_t *hashed_service = hash_table_get_inst(link, hashed_service_t, link);
 		async_exch_t *exch = async_exchange_begin(hashed_service->sess);
 		async_forward_fast(pending->callid, exch, pending->iface,
 		    pending->arg3, 0, IPC_FF_NONE);
 		async_exchange_end(exch);
-		
+
 		list_remove(&pending->link);
 		free(pending);
-		
+
 		goto loop;
 	}
 }
@@ -142,17 +142,17 @@ errno_t register_service(service_t service, sysarg_t phone, ipc_call_t *call)
 {
 	if (hash_table_find(&service_hash_table, &service))
 		return EEXIST;
-	
+
 	hashed_service_t *hashed_service =
 	    (hashed_service_t *) malloc(sizeof(hashed_service_t));
 	if (!hashed_service)
 		return ENOMEM;
-	
+
 	hashed_service->service = service;
 	hashed_service->sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (hashed_service->sess == NULL)
 		return EIO;
-	
+
 	hash_table_insert(&service_hash_table, &hashed_service->link);
 	return EOK;
 }
@@ -173,7 +173,7 @@ void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
 	sysarg_t arg3 = IPC_GET_ARG3(*call);
 	sysarg_t flags = IPC_GET_ARG4(*call);
 	errno_t retval;
-	
+
 	ht_link_t *link = hash_table_find(&service_hash_table, &service);
 	if (!link) {
 		if (flags & IPC_FLAG_BLOCKING) {
@@ -184,27 +184,27 @@ void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
 				retval = ENOMEM;
 				goto out;
 			}
-			
+
 			link_initialize(&pending->link);
 			pending->service = service;
 			pending->iface = iface;
 			pending->callid = callid;
 			pending->arg3 = arg3;
-			
+
 			list_append(&pending->link, &pending_conn);
 			return;
 		}
-		
+
 		retval = ENOENT;
 		goto out;
 	}
-	
+
 	hashed_service_t *hashed_service = hash_table_get_inst(link, hashed_service_t, link);
 	async_exch_t *exch = async_exchange_begin(hashed_service->sess);
 	async_forward_fast(callid, exch, iface, arg3, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 	return;
-	
+
 out:
 	async_answer_0(callid, retval);
 }

@@ -43,7 +43,7 @@
 typedef struct {
 	/** DDF blink(1) function */
 	ddf_fun_t *fun;
-	
+
 	/** USB HID device */
 	usb_hid_dev_t *hid_dev;
 } usb_blink1_t;

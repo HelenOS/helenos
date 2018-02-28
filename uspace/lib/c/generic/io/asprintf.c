@@ -57,7 +57,7 @@ int vprintf_size(const char *fmt, va_list args)
 		asprintf_wstr_write,
 		NULL
 	};
-	
+
 	return printf_core(fmt, &ps, args);
 }
 
@@ -67,7 +67,7 @@ int printf_size(const char *fmt, ...)
 	va_start(args, fmt);
 	int ret = vprintf_size(fmt, args);
 	va_end(args);
-	
+
 	return ret;
 }
 
@@ -87,15 +87,15 @@ int vasprintf(char **strp, const char *fmt, va_list args)
 	va_copy(args2, args);
 	int ret = vprintf_size(fmt, args2);
 	va_end(args2);
-	
+
 	if (ret > 0) {
 		*strp = malloc(STR_BOUNDS(ret) + 1);
 		if (*strp == NULL)
 			return -1;
-		
+
 		vsnprintf(*strp, STR_BOUNDS(ret) + 1, fmt, args);
 	}
-	
+
 	return ret;
 }
 
@@ -114,7 +114,7 @@ int asprintf(char **strp, const char *fmt, ...)
 	va_start(args, fmt);
 	int ret = vasprintf(strp, fmt, args);
 	va_end(args);
-	
+
 	return ret;
 }
 

@@ -108,18 +108,18 @@ static errno_t locfs_node_get_internal(fs_node_t **rfn, loc_object_type_t type,
 		*rfn = NULL;
 		return ENOMEM;
 	}
-	
+
 	*rfn = (fs_node_t *) malloc(sizeof(fs_node_t));
 	if (*rfn == NULL) {
 		free(node);
 		*rfn = NULL;
 		return ENOMEM;
 	}
-	
+
 	fs_node_initialize(*rfn);
 	node->type = type;
 	node->service_id = service_id;
-	
+
 	(*rfn)->data = node;
 	return EOK;
 }
@@ -133,36 +133,36 @@ static errno_t locfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *componen
 {
 	locfs_node_t *node = (locfs_node_t *) pfn->data;
 	errno_t ret;
-	
+
 	if (node->service_id == 0) {
 		/* Root directory */
-		
+
 		loc_sdesc_t *nspaces;
 		size_t count = loc_get_namespaces(&nspaces);
-		
+
 		if (count > 0) {
 			size_t pos;
 			for (pos = 0; pos < count; pos++) {
 				/* Ignore root namespace */
 				if (str_cmp(nspaces[pos].name, "") == 0)
 					continue;
-				
+
 				if (str_cmp(nspaces[pos].name, component) == 0) {
 					ret = locfs_node_get_internal(rfn, LOC_OBJECT_NAMESPACE, nspaces[pos].id);
 					free(nspaces);
 					return ret;
 				}
 			}
-			
+
 			free(nspaces);
 		}
-		
+
 		/* Search root namespace */
 		service_id_t namespace;
 		loc_sdesc_t *svcs;
 		if (loc_namespace_get_id("", &namespace, 0) == EOK) {
 			count = loc_get_services(namespace, &svcs);
-			
+
 			if (count > 0) {
 				size_t pos;
 				for (pos = 0; pos < count; pos++) {
@@ -172,18 +172,18 @@ static errno_t locfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *componen
 						return ret;
 					}
 				}
-				
+
 				free(svcs);
 			}
 		}
-		
+
 		*rfn = NULL;
 		return EOK;
 	}
-	
+
 	if (node->type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
-		
+
 		loc_sdesc_t *svcs;
 		size_t count = loc_get_services(node->service_id, &svcs);
 		if (count > 0) {
@@ -195,14 +195,14 @@ static errno_t locfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *componen
 					return ret;
 				}
 			}
-			
+
 			free(svcs);
 		}
-		
+
 		*rfn = NULL;
 		return EOK;
 	}
-	
+
 	*rfn = NULL;
 	return EOK;
 }
@@ -215,22 +215,22 @@ static errno_t locfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index
 static errno_t locfs_node_open(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
-	
+
 	if (node->service_id == 0) {
 		/* Root directory */
 		return EOK;
 	}
-	
+
 	loc_object_type_t type = loc_id_probe(node->service_id);
-	
+
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		return EOK;
 	}
-	
+
 	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
-		
+
 		fibril_mutex_lock(&services_mutex);
 		ht_link_t *lnk;
 restart:
@@ -241,37 +241,37 @@ restart:
 				fibril_mutex_unlock(&services_mutex);
 				return ENOMEM;
 			}
-			
+
 			dev->service_id = node->service_id;
-			
+
 			/* Mark as incomplete */
 			dev->sess = NULL;
 			dev->refcount = 1;
 			fibril_condvar_initialize(&dev->cv);
-			
+
 			/*
 			 * Insert the incomplete device structure so that other
 			 * fibrils will not race with us when we drop the mutex
 			 * below.
 			 */
 			hash_table_insert(&services, &dev->link);
-			
+
 			/*
 			 * Drop the mutex to allow recursive locfs requests.
 			 */
 			fibril_mutex_unlock(&services_mutex);
-			
+
 			async_sess_t *sess = loc_service_connect(node->service_id,
 			    INTERFACE_FS, 0);
-			
+
 			fibril_mutex_lock(&services_mutex);
-			
+
 			/*
 			 * Notify possible waiters about this device structure
 			 * being completed (or destroyed).
 			 */
 			fibril_condvar_broadcast(&dev->cv);
-			
+
 			if (!sess) {
 				/*
 				 * Connecting failed, need to remove the
@@ -279,15 +279,15 @@ restart:
 				 */
 				hash_table_remove(&services, &node->service_id);
 				fibril_mutex_unlock(&services_mutex);
-				
+
 				return ENOENT;
 			}
-			
+
 			/* Set the correct session. */
 			dev->sess = sess;
 		} else {
 			service_t *dev = hash_table_get_inst(lnk, service_t, link);
-			
+
 			if (!dev->sess) {
 				/*
 				 * Wait until the device structure is completed
@@ -302,12 +302,12 @@ restart:
 
 			dev->refcount++;
 		}
-		
+
 		fibril_mutex_unlock(&services_mutex);
-		
+
 		return EOK;
 	}
-	
+
 	return ENOENT;
 }
 
@@ -321,7 +321,7 @@ static errno_t locfs_node_put(fs_node_t *fn)
 static errno_t locfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
-	
+
 	*rfn = NULL;
 	return ENOTSUP;
 }
@@ -344,14 +344,14 @@ static errno_t locfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 static errno_t locfs_has_children(bool *has_children, fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
-	
+
 	if (node->service_id == 0) {
 		size_t count = loc_count_namespaces();
 		if (count > 0) {
 			*has_children = true;
 			return EOK;
 		}
-		
+
 		/* Root namespace */
 		service_id_t namespace;
 		if (loc_namespace_get_id("", &namespace, 0) == EOK) {
@@ -361,22 +361,22 @@ static errno_t locfs_has_children(bool *has_children, fs_node_t *fn)
 				return EOK;
 			}
 		}
-		
+
 		*has_children = false;
 		return EOK;
 	}
-	
+
 	if (node->type == LOC_OBJECT_NAMESPACE) {
 		size_t count = loc_count_services(node->service_id);
 		if (count > 0) {
 			*has_children = true;
 			return EOK;
 		}
-		
+
 		*has_children = false;
 		return EOK;
 	}
-	
+
 	*has_children = false;
 	return EOK;
 }
@@ -395,34 +395,34 @@ static aoff64_t locfs_size_get(fs_node_t *fn)
 static unsigned int locfs_lnkcnt_get(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
-	
+
 	if (node->service_id == 0)
 		return 0;
-	
+
 	return 1;
 }
 
 static bool locfs_is_directory(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
-	
+
 	return ((node->type == LOC_OBJECT_NONE) || (node->type == LOC_OBJECT_NAMESPACE));
 }
 
 static bool locfs_is_file(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
-	
+
 	return (node->type == LOC_OBJECT_SERVICE);
 }
 
 static service_id_t locfs_service_get(fs_node_t *fn)
 {
 	locfs_node_t *node = (locfs_node_t *) fn->data;
-	
+
 	if (node->type == LOC_OBJECT_SERVICE)
 		return node->service_id;
-	
+
 	return 0;
 }
 
@@ -450,7 +450,7 @@ bool locfs_init(void)
 {
 	if (!hash_table_create(&services, 0,  0, &services_ops))
 		return false;
-	
+
 	return true;
 }
 
@@ -483,52 +483,52 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			async_answer_0(callid, EINVAL);
 			return EINVAL;
 		}
-		
+
 		loc_sdesc_t *desc;
 		size_t count = loc_get_namespaces(&desc);
-		
+
 		/* Get rid of root namespace */
 		size_t i;
 		for (i = 0; i < count; i++) {
 			if (str_cmp(desc[i].name, "") == 0) {
 				if (pos >= i)
 					pos++;
-				
+
 				break;
 			}
 		}
-		
+
 		if (pos < count) {
 			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 			free(desc);
 			*rbytes = 1;
 			return EOK;
 		}
-		
+
 		free(desc);
 		pos -= count;
-		
+
 		/* Search root namespace */
 		service_id_t namespace;
 		if (loc_namespace_get_id("", &namespace, 0) == EOK) {
 			count = loc_get_services(namespace, &desc);
-			
+
 			if (pos < count) {
 				async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 				free(desc);
 				*rbytes = 1;
 				return EOK;
 			}
-			
+
 			free(desc);
 		}
-		
+
 		async_answer_0(callid, ENOENT);
 		return ENOENT;
 	}
-	
+
 	loc_object_type_t type = loc_id_probe(index);
-	
+
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		ipc_callid_t callid;
@@ -537,25 +537,25 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			async_answer_0(callid, EINVAL);
 			return EINVAL;
 		}
-		
+
 		loc_sdesc_t *desc;
 		size_t count = loc_get_services(index, &desc);
-		
+
 		if (pos < count) {
 			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
 			free(desc);
 			*rbytes = 1;
 			return EOK;
 		}
-		
+
 		free(desc);
 		async_answer_0(callid, ENOENT);
 		return ENOENT;
 	}
-	
+
 	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
-		
+
 		fibril_mutex_lock(&services_mutex);
 		service_id_t service_index = index;
 		ht_link_t *lnk = hash_table_find(&services, &service_index);
@@ -563,31 +563,31 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
 		}
-		
+
 		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
-		
+
 		ipc_callid_t callid;
 		if (!async_data_read_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(callid, EINVAL);
 			return EINVAL;
 		}
-		
+
 		/* Make a request at the driver */
 		async_exch_t *exch = async_exchange_begin(dev->sess);
-		
+
 		ipc_call_t answer;
 		aid_t msg = async_send_4(exch, VFS_OUT_READ, service_id,
 		    index, LOWER32(pos), UPPER32(pos), &answer);
-		
+
 		/* Forward the IPC_M_DATA_READ request to the driver */
 		async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-		
+
 		async_exchange_end(exch);
-		
+
 		fibril_mutex_unlock(&services_mutex);
-		
+
 		/* Wait for reply from the driver. */
 		errno_t rc;
 		async_wait_for(msg, &rc);
@@ -595,11 +595,11 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		/* Do not propagate EHANGUP back to VFS. */
 		if ((errno_t) rc == EHANGUP)
 			rc = ENOTSUP;
-		
+
 		*rbytes = IPC_GET_ARG1(answer);
 		return rc;
 	}
-	
+
 	return ENOENT;
 }
 
@@ -609,17 +609,17 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 {
 	if (index == 0)
 		return ENOTSUP;
-	
+
 	loc_object_type_t type = loc_id_probe(index);
-	
+
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		return ENOTSUP;
 	}
-	
+
 	if (type == LOC_OBJECT_SERVICE) {
 		/* Device node */
-		
+
 		fibril_mutex_lock(&services_mutex);
 		service_id_t service_index = index;
 		ht_link_t *lnk = hash_table_find(&services, &service_index);
@@ -627,31 +627,31 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
 		}
-		
+
 		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
-		
+
 		ipc_callid_t callid;
 		if (!async_data_write_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(callid, EINVAL);
 			return EINVAL;
 		}
-		
+
 		/* Make a request at the driver */
 		async_exch_t *exch = async_exchange_begin(dev->sess);
-		
+
 		ipc_call_t answer;
 		aid_t msg = async_send_4(exch, VFS_OUT_WRITE, service_id,
 		    index, LOWER32(pos), UPPER32(pos), &answer);
-		
+
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
 		async_forward_fast(callid, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
-		
+
 		async_exchange_end(exch);
-		
+
 		fibril_mutex_unlock(&services_mutex);
-		
+
 		/* Wait for reply from the driver. */
 		errno_t rc;
 		async_wait_for(msg, &rc);
@@ -659,12 +659,12 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		/* Do not propagate EHANGUP back to VFS. */
 		if ((errno_t) rc == EHANGUP)
 			rc = ENOTSUP;
-		
+
 		*wbytes = IPC_GET_ARG1(answer);
 		*nsize = 0;
 		return rc;
 	}
-	
+
 	return ENOENT;
 }
 
@@ -678,16 +678,16 @@ static errno_t locfs_close(service_id_t service_id, fs_index_t index)
 {
 	if (index == 0)
 		return EOK;
-	
+
 	loc_object_type_t type = loc_id_probe(index);
-	
+
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		return EOK;
 	}
-	
+
 	if (type == LOC_OBJECT_SERVICE) {
-		
+
 		fibril_mutex_lock(&services_mutex);
 		service_id_t service_index = index;
 		ht_link_t *lnk = hash_table_find(&services, &service_index);
@@ -695,22 +695,22 @@ static errno_t locfs_close(service_id_t service_id, fs_index_t index)
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
 		}
-		
+
 		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 		dev->refcount--;
-		
+
 		if (dev->refcount == 0) {
 			async_hangup(dev->sess);
 			service_id_t service_index = index;
 			hash_table_remove(&services, &service_index);
 		}
-		
+
 		fibril_mutex_unlock(&services_mutex);
-		
+
 		return EOK;
 	}
-	
+
 	return ENOENT;
 }
 
@@ -718,14 +718,14 @@ static errno_t locfs_sync(service_id_t service_id, fs_index_t index)
 {
 	if (index == 0)
 		return EOK;
-	
+
 	loc_object_type_t type = loc_id_probe(index);
-	
+
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
 		return EOK;
 	}
-	
+
 	if (type == LOC_OBJECT_SERVICE) {
 
 		fibril_mutex_lock(&services_mutex);
@@ -735,28 +735,28 @@ static errno_t locfs_sync(service_id_t service_id, fs_index_t index)
 			fibril_mutex_unlock(&services_mutex);
 			return ENOENT;
 		}
-		
+
 		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
-		
+
 		/* Make a request at the driver */
 		async_exch_t *exch = async_exchange_begin(dev->sess);
-		
+
 		ipc_call_t answer;
 		aid_t msg = async_send_2(exch, VFS_OUT_SYNC, service_id,
 		    index, &answer);
-		
+
 		async_exchange_end(exch);
-		
+
 		fibril_mutex_unlock(&services_mutex);
-		
+
 		/* Wait for reply from the driver */
 		errno_t rc;
 		async_wait_for(msg, &rc);
-		
+
 		return rc;
 	}
-	
+
 	return  ENOENT;
 }
 

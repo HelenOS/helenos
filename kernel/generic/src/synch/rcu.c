@@ -25,8 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
- 
+
+
 /** @addtogroup sync
  * @{
  */
@@ -181,7 +181,7 @@ typedef struct rcu_data {
 	 * detection is not in progress and the detector is idle.
 	 */
 	rcu_gp_t completed_gp;
-	
+
 	/** Protects the following 3 fields. */
 	IRQ_SPINLOCK_DECLARE(preempt_lock);
 	/** Preexisting readers that have been preempted. */
@@ -194,9 +194,9 @@ typedef struct rcu_data {
 	 * section by up()ing remaining_readers.
 	 */
 	bool preempt_blocking_det;
-	
+
 #ifdef RCU_PREEMPT_A
-	
+
 	/**
 	 * The detector waits on this semaphore for any preempted readers
 	 * delaying the grace period once all cpus pass a quiescent state.
@@ -204,7 +204,7 @@ typedef struct rcu_data {
 	semaphore_t remaining_readers;
 
 #elif defined(RCU_PREEMPT_PODZIMEK)
-	
+
 	/** Reclaimers notify the detector when they request more grace periods.*/
 	condvar_t req_gp_changed;
 	/** Number of grace period ends the detector was requested to announce. */
@@ -227,17 +227,17 @@ typedef struct rcu_data {
 	 */
 	semaphore_t remaining_readers;
 #endif
-	
+
 	/** Excludes simultaneous rcu_barrier() calls. */
 	mutex_t barrier_mtx;
 	/** Number of cpus that we are waiting for to complete rcu_barrier(). */
 	atomic_t barrier_wait_cnt;
 	/** rcu_barrier() waits for the completion of barrier callbacks on this wq.*/
 	waitq_t barrier_wq;
-	
+
 	/** Interruptible attached detector thread pointer. */
 	thread_t *detector_thr;
-	
+
 	/* Some statistics. */
 	size_t stat_expedited_cnt;
 	size_t stat_delayed_cnt;
@@ -304,28 +304,28 @@ void rcu_init(void)
 	spinlock_initialize(&rcu.gp_lock, "rcu.gp_lock");
 	_rcu_cur_gp = 0;
 	rcu.completed_gp = 0;
-	
+
 	irq_spinlock_initialize(&rcu.preempt_lock, "rcu.preempt_lock");
 	list_initialize(&rcu.cur_preempted);
 	list_initialize(&rcu.next_preempted);
 	rcu.preempt_blocking_det = false;
-	
+
 	mutex_initialize(&rcu.barrier_mtx, MUTEX_PASSIVE);
 	atomic_set(&rcu.barrier_wait_cnt, 0);
 	waitq_initialize(&rcu.barrier_wq);
 
 	semaphore_initialize(&rcu.remaining_readers, 0);
-	
+
 #ifdef RCU_PREEMPT_PODZIMEK
 	condvar_initialize(&rcu.req_gp_changed);
-	
+
 	rcu.req_gp_end_cnt = 0;
 	rcu.req_expedited_cnt = 0;
 	atomic_set(&rcu.delaying_cpu_cnt, 0);
 #endif
-	
+
 	rcu.detector_thr = NULL;
-	
+
 	rcu.stat_expedited_cnt = 0;
 	rcu.stat_delayed_cnt = 0;
 	rcu.stat_preempt_blocking_cnt = 0;
@@ -346,7 +346,7 @@ void rcu_cpu_init(void)
 	CPU->rcu.is_delaying_gp = false;
 	CPU->rcu.signal_unlock = false;
 #endif
-	
+
 	CPU->rcu.cur_cbs = NULL;
 	CPU->rcu.cur_cbs_cnt = 0;
 	CPU->rcu.next_cbs = NULL;
@@ -357,13 +357,13 @@ void rcu_cpu_init(void)
 
 	CPU->rcu.cur_cbs_gp = 0;
 	CPU->rcu.next_cbs_gp = 0;
-	
+
 	semaphore_initialize(&CPU->rcu.arrived_flag, 0);
 
 	/* BSP creates reclaimer threads before AP's rcu_cpu_init() runs. */
 	if (config.cpu_active == 1)
 		CPU->rcu.reclaimer_thr = NULL;
-	
+
 	CPU->rcu.stat_max_cbs = 0;
 	CPU->rcu.stat_avg_cbs = 0;
 	CPU->rcu.stat_missed_gps = 0;
@@ -378,7 +378,7 @@ void rcu_kinit_init(void)
 #ifdef RCU_PREEMPT_PODZIMEK
 	start_detector();
 #endif
-	
+
 	start_reclaimers();
 }
 
@@ -390,7 +390,7 @@ void rcu_thread_init(thread_t *thread)
 #ifdef RCU_PREEMPT_PODZIMEK
 	thread->rcu.was_preempted = false;
 #endif
-	
+
 	link_initialize(&thread->rcu.preempt_link);
 }
 
@@ -405,7 +405,7 @@ void rcu_stop(void)
 	/* Stop and wait for reclaimers. */
 	for (unsigned int cpu_id = 0; cpu_id < config.cpu_active; ++cpu_id) {
 		assert(cpus[cpu_id].rcu.reclaimer_thr != NULL);
-	
+
 		if (cpus[cpu_id].rcu.reclaimer_thr) {
 			thread_interrupt(cpus[cpu_id].rcu.reclaimer_thr);
 			thread_join(cpus[cpu_id].rcu.reclaimer_thr);
@@ -431,7 +431,7 @@ uint64_t rcu_completed_gps(void)
 	spinlock_lock(&rcu.gp_lock);
 	uint64_t completed = rcu.completed_gp;
 	spinlock_unlock(&rcu.gp_lock);
-	
+
 	return completed;
 }
 
@@ -440,9 +440,9 @@ static void start_reclaimers(void)
 {
 	for (unsigned int cpu_id = 0; cpu_id < config.cpu_count; ++cpu_id) {
 		char name[THREAD_NAME_BUFLEN] = {0};
-		
+
 		snprintf(name, THREAD_NAME_BUFLEN - 1, "rcu-rec/%u", cpu_id);
-		
+
 		cpus[cpu_id].rcu.reclaimer_thr =
 			thread_create(reclaimer, NULL, TASK, THREAD_FLAG_NONE, name);
 
@@ -461,10 +461,10 @@ static void start_detector(void)
 {
 	rcu.detector_thr =
 		thread_create(detector, NULL, TASK, THREAD_FLAG_NONE, "rcu-det");
-	
+
 	if (!rcu.detector_thr)
 		panic("Failed to create RCU detector thread.");
-	
+
 	thread_ready(rcu.detector_thr);
 }
 
@@ -474,7 +474,7 @@ bool rcu_read_locked(void)
 	preemption_disable();
 	bool locked = 0 < CPU->rcu.nesting_cnt;
 	preemption_enable();
-	
+
 	return locked;
 }
 
@@ -488,10 +488,10 @@ bool rcu_read_locked(void)
 static void read_unlock_impl(size_t *pnesting_cnt)
 {
 	assert(PREEMPTION_DISABLED || interrupts_disabled());
-	
+
 	if (0 == --(*pnesting_cnt)) {
 		_rcu_record_qs();
-		
+
 		/*
 		 * The thread was preempted while in a critical section or
 		 * the detector is eagerly waiting for this cpu's reader
@@ -510,13 +510,13 @@ static void read_unlock_impl(size_t *pnesting_cnt)
 void _rcu_signal_read_unlock(void)
 {
 	assert(PREEMPTION_DISABLED || interrupts_disabled());
-	
+
 	/*
 	 * If an interrupt occurs here (even a NMI) it may beat us to
 	 * resetting .is_delaying_gp or .was_preempted and up the semaphore
 	 * for us.
 	 */
-	
+
 	/*
 	 * If the detector is eagerly waiting for this cpu's reader to unlock,
 	 * notify it that the reader did so.
@@ -524,7 +524,7 @@ void _rcu_signal_read_unlock(void)
 	if (local_atomic_exchange(&CPU->rcu.is_delaying_gp, false)) {
 		semaphore_up(&rcu.remaining_readers);
 	}
-	
+
 	/*
 	 * This reader was preempted while in a reader section.
 	 * We might be holding up the current GP. Notify the
@@ -535,7 +535,7 @@ void _rcu_signal_read_unlock(void)
 
 		rm_preempted_reader();
 	}
-	
+
 	/* If there was something to signal to the detector we have done so. */
 	CPU->rcu.signal_unlock = false;
 }
@@ -564,7 +564,7 @@ void _rcu_synchronize(bool expedite)
 {
 	/* Calling from a reader section will deadlock. */
 	assert(!rcu_read_locked());
-	
+
 	synch_item_t completion;
 
 	waitq_initialize(&completion.wq);
@@ -588,7 +588,7 @@ void rcu_barrier(void)
 	 * currently in use by rcu_barrier().
 	 */
 	mutex_lock(&rcu.barrier_mtx);
-	
+
 	/*
 	 * Ensure we queue a barrier callback on all cpus before the already
 	 * enqueued barrier callbacks start signaling completion.
@@ -597,15 +597,15 @@ void rcu_barrier(void)
 
 	DEFINE_CPU_MASK(cpu_mask);
 	cpu_mask_active(cpu_mask);
-	
+
 	cpu_mask_for_each(*cpu_mask, cpu_id) {
 		smp_call(cpu_id, add_barrier_cb, NULL);
 	}
-	
+
 	if (0 < atomic_predec(&rcu.barrier_wait_cnt)) {
 		waitq_sleep(&rcu.barrier_wq);
 	}
-	
+
 	mutex_unlock(&rcu.barrier_mtx);
 }
 
@@ -658,10 +658,10 @@ static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
 	rcu_func_t func)
 {
 	assert(rcu_item);
-	
+
 	rcu_item->func = func;
 	rcu_item->next = NULL;
-	
+
 	preemption_disable();
 
 	rcu_cpu_data_t *r = &CPU->rcu;
@@ -669,21 +669,21 @@ static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
 	rcu_item_t **prev_tail
 		= local_atomic_exchange(&r->parriving_cbs_tail, &rcu_item->next);
 	*prev_tail = rcu_item;
-	
+
 	/* Approximate the number of callbacks present. */
 	++r->arriving_cbs_cnt;
-	
+
 	if (expedite) {
 		r->expedite_arriving = true;
 	}
-	
+
 	bool first_cb = (prev_tail == &CPU->rcu.arriving_cbs);
-	
+
 	/* Added first callback - notify the reclaimer. */
 	if (first_cb && !semaphore_count_get(&r->arrived_flag)) {
 		semaphore_up(&r->arrived_flag);
 	}
-	
+
 	preemption_enable();
 }
 
@@ -724,14 +724,14 @@ static void reclaimer(void *arg)
 
 	rcu_gp_t last_compl_gp = 0;
 	bool ok = true;
-	
+
 	while (ok && wait_for_pending_cbs()) {
 		assert(CPU->rcu.reclaimer_thr == THREAD);
-		
+
 		exec_completed_cbs(last_compl_gp);
 
 		bool expedite = advance_cbs();
-		
+
 		ok = wait_for_cur_cbs_gp_end(expedite, &last_compl_gp);
 	}
 }
@@ -743,11 +743,11 @@ static bool wait_for_pending_cbs(void)
 		return true;
 
 	bool ok = true;
-	
+
 	while (arriving_cbs_empty() && ok) {
 		ok = semaphore_down_interruptable(&CPU->rcu.arrived_flag);
 	}
-	
+
 	return ok;
 }
 
@@ -762,13 +762,13 @@ static void upd_stat_missed_gp(rcu_gp_t compl)
 static void exec_completed_cbs(rcu_gp_t last_completed_gp)
 {
 	upd_stat_missed_gp(last_completed_gp);
-	
+
 	/* Both next_cbs and cur_cbs GP elapsed. */
 	if (CPU->rcu.next_cbs_gp <= last_completed_gp) {
 		assert(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
-		
+
 		size_t exec_cnt = CPU->rcu.cur_cbs_cnt + CPU->rcu.next_cbs_cnt;
-		
+
 		if (exec_cnt < CRITICAL_THRESHOLD) {
 			exec_cbs(&CPU->rcu.cur_cbs);
 			exec_cbs(&CPU->rcu.next_cbs);
@@ -783,7 +783,7 @@ static void exec_completed_cbs(rcu_gp_t last_completed_gp)
 			exec_cbs(&CPU->rcu.next_cbs);
 			preemption_enable();
 		}
-		
+
 		CPU->rcu.cur_cbs_cnt = 0;
 		CPU->rcu.next_cbs_cnt = 0;
 	} else if (CPU->rcu.cur_cbs_gp <= last_completed_gp) {
@@ -814,12 +814,12 @@ static void exec_cbs(rcu_item_t **phead)
 		/* func() may free rcu_item. Get a local copy. */
 		rcu_item_t *next = rcu_item->next;
 		rcu_func_t func = rcu_item->func;
-		
+
 		func(rcu_item);
-		
+
 		rcu_item = next;
 	}
-	
+
 	*phead = NULL;
 }
 
@@ -842,12 +842,12 @@ static bool advance_cbs(void)
 	CPU->rcu.cur_cbs = CPU->rcu.next_cbs;
 	CPU->rcu.cur_cbs_cnt = CPU->rcu.next_cbs_cnt;
 	CPU->rcu.cur_cbs_gp = CPU->rcu.next_cbs_gp;
-	
+
 	/* Move arriving_cbs to next_cbs. */
-	
+
 	CPU->rcu.next_cbs_cnt = CPU->rcu.arriving_cbs_cnt;
 	CPU->rcu.arriving_cbs_cnt = 0;
-	
+
 	/*
 	 * Too many callbacks queued. Better speed up the detection
 	 * or risk exhausting all system memory.
@@ -858,14 +858,14 @@ static bool advance_cbs(void)
 
 	/* Start moving the arriving_cbs list to next_cbs. */
 	CPU->rcu.next_cbs = CPU->rcu.arriving_cbs;
-	
+
 	/*
 	 * At least one callback arrived. The tail therefore does not point
 	 * to the head of arriving_cbs and we can safely reset it to NULL.
 	 */
 	if (CPU->rcu.next_cbs) {
 		assert(CPU->rcu.parriving_cbs_tail != &CPU->rcu.arriving_cbs);
-		
+
 		CPU->rcu.arriving_cbs = NULL;
 		/* Reset arriving_cbs before updating the tail pointer. */
 		compiler_barrier();
@@ -882,7 +882,7 @@ static bool advance_cbs(void)
 
 	/* Update statistics of arrived callbacks. */
 	upd_stat_cb_cnts(CPU->rcu.next_cbs_cnt);
-	
+
 	/*
 	 * Make changes prior to queuing next_cbs visible to readers.
 	 * See comment in wait_for_readers().
@@ -890,13 +890,13 @@ static bool advance_cbs(void)
 	memory_barrier(); /* MB A, B */
 
 	/* At the end of next_cbs_gp, exec next_cbs. Determine what GP that is. */
-	
+
 	if (!next_cbs_empty()) {
 		spinlock_lock(&rcu.gp_lock);
-	
+
 		/* Exec next_cbs at the end of the next GP. */
 		CPU->rcu.next_cbs_gp = _rcu_cur_gp + 1;
-		
+
 		/*
 		 * There are no callbacks to invoke before next_cbs. Instruct
 		 * wait_for_cur_cbs_gp() to notify us of the nearest GP end.
@@ -907,14 +907,14 @@ static bool advance_cbs(void)
 		if (cur_cbs_empty()) {
 			CPU->rcu.cur_cbs_gp = rcu.completed_gp + 1;
 		}
-		
+
 		spinlock_unlock(&rcu.gp_lock);
 	} else {
 		CPU->rcu.next_cbs_gp = CPU->rcu.cur_cbs_gp;
 	}
-	
+
 	assert(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
-	
+
 	return expedite;
 }
 
@@ -935,7 +935,7 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 
 	assert(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
 	assert(CPU->rcu.cur_cbs_gp <= _rcu_cur_gp + 1);
-	
+
 	while (rcu.completed_gp < CPU->rcu.cur_cbs_gp) {
 		/* GP has not yet started - start a new one. */
 		if (rcu.completed_gp == _rcu_cur_gp) {
@@ -951,50 +951,50 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 			condvar_broadcast(&rcu.gp_ended);
 		} else {
 			/* GP detection is in progress.*/
-			
+
 			if (expedite)
 				condvar_signal(&rcu.expedite_now);
-			
+
 			/* Wait for the GP to complete. */
 			errno_t ret = _condvar_wait_timeout_spinlock(&rcu.gp_ended, &rcu.gp_lock,
 				SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
-			
+
 			if (ret == EINTR) {
 				spinlock_unlock(&rcu.gp_lock);
 				return false;
 			}
 		}
 	}
-	
+
 	upd_missed_gp_in_wait(rcu.completed_gp);
-	
+
 	*completed_gp = rcu.completed_gp;
 	spinlock_unlock(&rcu.gp_lock);
-	
+
 	return true;
 }
 
 static bool wait_for_readers(bool expedite)
 {
 	DEFINE_CPU_MASK(reader_cpus);
-	
+
 	cpu_mask_active(reader_cpus);
 	rm_quiescent_cpus(reader_cpus);
-	
+
 	while (!cpu_mask_is_none(reader_cpus)) {
 		/* Give cpus a chance to context switch (a QS) and batch callbacks. */
 		if(!gp_sleep(&expedite))
 			return false;
-		
+
 		rm_quiescent_cpus(reader_cpus);
 		sample_cpus(reader_cpus, reader_cpus);
 	}
-	
+
 	/* Update statistic. */
 	if (expedite) {
 		++rcu.stat_expedited_cnt;
 	}
-	
+
 	/*
 	 * All cpus have passed through a QS and see the most recent _rcu_cur_gp.
 	 * As a result newly preempted readers will associate with next_preempted
@@ -1031,11 +1031,11 @@ static void sample_local_cpu(void *arg)
 {
 	assert(interrupts_disabled());
 	cpu_mask_t *reader_cpus = (cpu_mask_t *)arg;
-	
+
 	bool locked = RCU_CNT_INC <= THE->rcu_nesting;
 	/* smp_call machinery makes the most current _rcu_cur_gp visible. */
 	bool passed_qs = (CPU->rcu.last_seen_gp == _rcu_cur_gp);
-		
+
 	if (locked && !passed_qs) {
 		/*
 		 * This cpu has not yet passed a quiescent state during this grace
@@ -1061,19 +1061,19 @@ void rcu_after_thread_ran(void)
 	 * with a local copy.
 	 */
 	size_t nesting_cnt = local_atomic_exchange(&THE->rcu_nesting, 0);
-	
+
 	/*
 	 * Ensures NMIs see .rcu_nesting without the WAS_PREEMPTED mark and
 	 * do not accidentally call rm_preempted_reader() from unlock().
 	 */
 	compiler_barrier();
-	
+
 	/* Preempted a reader critical section for the first time. */
 	if (RCU_CNT_INC <= nesting_cnt && !(nesting_cnt & RCU_WAS_PREEMPTED)) {
 		nesting_cnt |= RCU_WAS_PREEMPTED;
 		note_preempted_reader();
 	}
-	
+
 	/* Save the thread's nesting count when it is not running. */
 	THREAD->rcu.nesting_cnt = nesting_cnt;
 
@@ -1109,7 +1109,7 @@ void rcu_after_thread_ran(void)
 	if (THREAD == CPU->rcu.reclaimer_thr) {
 		THREAD->priority = -1;
 	}
-	
+
 	upd_max_cbs_in_slice(CPU->rcu.arriving_cbs_cnt);
 }
 
@@ -1117,7 +1117,7 @@ void rcu_after_thread_ran(void)
 void rcu_before_thread_runs(void)
 {
 	assert(!rcu_read_locked());
-	
+
 	/* Load the thread's saved nesting count from before it was preempted. */
 	THE->rcu_nesting = THREAD->rcu.nesting_cnt;
 }
@@ -1130,7 +1130,7 @@ void rcu_before_thread_runs(void)
 void rcu_thread_exiting(void)
 {
 	assert(THE->rcu_nesting == 0);
-	
+
 	/*
 	 * The thread forgot to exit its reader critical section.
 	 * It is a bug, but rather than letting the entire system lock up
@@ -1158,7 +1158,7 @@ bool rcu_read_locked(void)
 void _rcu_preempted_unlock(void)
 {
 	assert(0 == THE->rcu_nesting || RCU_WAS_PREEMPTED == THE->rcu_nesting);
-	
+
 	size_t prev = local_atomic_exchange(&THE->rcu_nesting, 0);
 	if (prev == RCU_WAS_PREEMPTED) {
 		/*
@@ -1211,18 +1211,18 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 		*completed_gp = compl_gp;
 		return true;
 	}
-	
+
 	spinlock_lock(&rcu.gp_lock);
-	
+
 	if (CPU->rcu.cur_cbs_gp <= rcu.completed_gp) {
 		*completed_gp = rcu.completed_gp;
 		spinlock_unlock(&rcu.gp_lock);
 		return true;
 	}
-	
+
 	assert(CPU->rcu.cur_cbs_gp <= CPU->rcu.next_cbs_gp);
 	assert(_rcu_cur_gp <= CPU->rcu.cur_cbs_gp);
-	
+
 	/*
 	 * Notify the detector of how many GP ends we intend to wait for, so
 	 * it can avoid going to sleep unnecessarily. Optimistically assume
@@ -1230,7 +1230,7 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 	 */
 	size_t remaining_gp_ends = (size_t) (CPU->rcu.next_cbs_gp - _rcu_cur_gp);
 	req_detection(remaining_gp_ends + (arriving_cbs_empty() ? 0 : 1));
-	
+
 	/*
 	 * Ask the detector to speed up GP detection if there are too many
 	 * pending callbacks and other reclaimers have not already done so.
@@ -1238,7 +1238,7 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 	if (expedite) {
 		if(0 == rcu.req_expedited_cnt)
 			condvar_signal(&rcu.expedite_now);
-		
+
 		/*
 		 * Expedite only cub_cbs. If there really is a surge of callbacks
 		 * the arriving batch will expedite the GP for the huge number
@@ -1249,13 +1249,13 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 
 	/* Wait for cur_cbs_gp to end. */
 	bool interrupted = cv_wait_for_gp(CPU->rcu.cur_cbs_gp);
-	
+
 	*completed_gp = rcu.completed_gp;
 	spinlock_unlock(&rcu.gp_lock);
-	
+
 	if (!interrupted)
 		upd_missed_gp_in_wait(*completed_gp);
-	
+
 	return !interrupted;
 }
 
@@ -1263,16 +1263,16 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 static bool cv_wait_for_gp(rcu_gp_t wait_on_gp)
 {
 	assert(spinlock_locked(&rcu.gp_lock));
-	
+
 	bool interrupted = false;
-	
+
 	/* Wait until wait_on_gp ends. */
 	while (rcu.completed_gp < wait_on_gp && !interrupted) {
 		int ret = _condvar_wait_timeout_spinlock(&rcu.gp_ended, &rcu.gp_lock,
 			SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 		interrupted = (ret == EINTR);
 	}
-	
+
 	return interrupted;
 }
 
@@ -1295,27 +1295,27 @@ static void req_detection(size_t req_cnt)
 static void detector(void *arg)
 {
 	spinlock_lock(&rcu.gp_lock);
-	
+
 	while (wait_for_detect_req()) {
 		/*
 		 * Announce new GP started. Readers start lazily acknowledging that
 		 * they passed a QS.
 		 */
 		start_new_gp();
-		
+
 		spinlock_unlock(&rcu.gp_lock);
-		
+
 		if (!wait_for_readers())
 			goto unlocked_out;
-		
+
 		spinlock_lock(&rcu.gp_lock);
 
 		/* Notify reclaimers that they may now invoke queued callbacks. */
 		end_cur_gp();
 	}
-	
+
 	spinlock_unlock(&rcu.gp_lock);
-	
+
 unlocked_out:
 	return;
 }
@@ -1324,16 +1324,16 @@ unlocked_out:
 static bool wait_for_detect_req(void)
 {
 	assert(spinlock_locked(&rcu.gp_lock));
-	
+
 	bool interrupted = false;
-	
+
 	while (0 == rcu.req_gp_end_cnt && !interrupted) {
 		int ret = _condvar_wait_timeout_spinlock(&rcu.req_gp_changed,
 			&rcu.gp_lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
-		
+
 		interrupted = (ret == EINTR);
 	}
-	
+
 	return !interrupted;
 }
 
@@ -1341,10 +1341,10 @@ static bool wait_for_detect_req(void)
 static void end_cur_gp(void)
 {
 	assert(spinlock_locked(&rcu.gp_lock));
-	
+
 	rcu.completed_gp = _rcu_cur_gp;
 	--rcu.req_gp_end_cnt;
-	
+
 	condvar_broadcast(&rcu.gp_ended);
 }
 
@@ -1352,7 +1352,7 @@ static void end_cur_gp(void)
 static bool wait_for_readers(void)
 {
 	DEFINE_CPU_MASK(reading_cpus);
-	
+
 	/* All running cpus have potential readers. */
 	cpu_mask_active(reading_cpus);
 
@@ -1362,13 +1362,13 @@ static bool wait_for_readers(void)
 	 */
 	if (!gp_sleep())
 		return false;
-	
+
 	/* Non-intrusively determine which cpus have yet to pass a QS. */
 	rm_quiescent_cpus(reading_cpus);
-	
+
 	/* Actively interrupt cpus delaying the current GP and demand a QS. */
 	interrupt_delaying_cpus(reading_cpus);
-	
+
 	/* Wait for the interrupted cpus to notify us that they reached a QS. */
 	if (!wait_for_delaying_cpus())
 		return false;
@@ -1377,11 +1377,11 @@ static bool wait_for_readers(void)
 	 * to next_preempt if preempted, ie the number of readers in cur_preempted
 	 * monotonically descreases.
 	 */
-	
+
 	/* Wait for the last reader in cur_preempted to notify us it is done. */
 	if (!wait_for_preempt_reader())
 		return false;
-	
+
 	return true;
 }
 
@@ -1396,15 +1396,15 @@ static bool gp_sleep(void)
 		ret = _condvar_wait_timeout_spinlock(&rcu.expedite_now, &rcu.gp_lock,
 			DETECT_SLEEP_MS * 1000, SYNCH_FLAGS_INTERRUPTIBLE);
 	}
-	
+
 	if (0 < rcu.req_expedited_cnt) {
 		--rcu.req_expedited_cnt;
 		/* Update statistic. */
 		++rcu.stat_expedited_cnt;
 	}
-	
+
 	spinlock_unlock(&rcu.gp_lock);
-	
+
 	return (ret != EINTR);
 }
 
@@ -1412,7 +1412,7 @@ static bool gp_sleep(void)
 static void interrupt_delaying_cpus(cpu_mask_t *cpu_mask)
 {
 	atomic_set(&rcu.delaying_cpu_cnt, 0);
-	
+
 	sample_cpus(cpu_mask, NULL);
 }
 
@@ -1425,7 +1425,7 @@ static void sample_local_cpu(void *arg)
 {
 	assert(interrupts_disabled());
 	assert(!CPU->rcu.is_delaying_gp);
-	
+
 	/* Cpu did not pass a quiescent state yet. */
 	if (CPU->rcu.last_seen_gp != _rcu_cur_gp) {
 		/* Interrupted a reader in a reader critical section. */
@@ -1439,7 +1439,7 @@ static void sample_local_cpu(void *arg)
 			 */
 			ACCESS_ONCE(CPU->rcu.is_delaying_gp) = true;
 			CPU->rcu.signal_unlock = true;
-			
+
 			atomic_inc(&rcu.delaying_cpu_cnt);
 		} else {
 			/*
@@ -1465,7 +1465,7 @@ static void sample_local_cpu(void *arg)
 		 * a quiescent state since the start of cur_gp.
 		 */
 	}
-	
+
 	/*
 	 * smp_call() makes sure any changes propagate back to the caller.
 	 * In particular, it makes the most current last_seen_gp visible
@@ -1482,10 +1482,10 @@ static bool wait_for_delaying_cpus(void)
 		if (!semaphore_down_interruptable(&rcu.remaining_readers))
 			return false;
 	}
-	
+
 	/* Update statistic. */
 	rcu.stat_delayed_cnt += delaying_cpu_cnt;
-	
+
 	return true;
 }
 
@@ -1505,16 +1505,16 @@ void rcu_after_thread_ran(void)
 	 * THREAD->rcu.was_preempted and CPU->rcu.nesting_cnt.
 	 */
 	compiler_barrier();
-	
+
 	/* Save the thread's nesting count when it is not running. */
 	THREAD->rcu.nesting_cnt = CPU->rcu.nesting_cnt;
-	
+
 	/* Preempted a reader critical section for the first time. */
 	if (0 < THREAD->rcu.nesting_cnt && !THREAD->rcu.was_preempted) {
 		THREAD->rcu.was_preempted = true;
 		note_preempted_reader();
 	}
-	
+
 	/*
 	 * The preempted reader has been noted globally. There are therefore
 	 * no readers running on this cpu so this is a quiescent state.
@@ -1527,7 +1527,7 @@ void rcu_after_thread_ran(void)
 	 * may now start announcing quiescent states.
 	 */
 	CPU->rcu.nesting_cnt = 0;
-	
+
 	/*
 	 * This cpu is holding up the current GP. Let the detector know
 	 * it has just passed a quiescent state.
@@ -1552,7 +1552,7 @@ void rcu_after_thread_ran(void)
 	else if (THREAD == CPU->rcu.reclaimer_thr) {
 		THREAD->priority = -1;
 	}
-	
+
 	upd_max_cbs_in_slice(CPU->rcu.arriving_cbs_cnt);
 }
 
@@ -1561,17 +1561,17 @@ void rcu_before_thread_runs(void)
 {
 	assert(PREEMPTION_DISABLED || interrupts_disabled());
 	assert(0 == CPU->rcu.nesting_cnt);
-	
+
 	/* Load the thread's saved nesting count from before it was preempted. */
 	CPU->rcu.nesting_cnt = THREAD->rcu.nesting_cnt;
-	
+
 	/*
 	 * Ensures NMI see the proper nesting count before .signal_unlock.
 	 * Otherwise the NMI may incorrectly signal that a preempted reader
 	 * exited its reader section.
 	 */
 	compiler_barrier();
-	
+
 	/*
 	 * In the unlikely event that a NMI occurs between the loading of the
 	 * variables and setting signal_unlock, the NMI handler may invoke
@@ -1593,7 +1593,7 @@ void rcu_thread_exiting(void)
 	assert(THREAD != NULL);
 	assert(THREAD->state == Exiting);
 	assert(PREEMPTION_DISABLED || interrupts_disabled());
-	
+
 	/*
 	 * The thread forgot to exit its reader critical section.
 	 * It is a bug, but rather than letting the entire system lock up
@@ -1616,12 +1616,12 @@ void rcu_thread_exiting(void)
 static void start_new_gp(void)
 {
 	assert(spinlock_locked(&rcu.gp_lock));
-	
+
 	irq_spinlock_lock(&rcu.preempt_lock, true);
-	
+
 	/* Start a new GP. Announce to readers that a quiescent state is needed. */
 	++_rcu_cur_gp;
-	
+
 	/*
 	 * Readers preempted before the start of this GP (next_preempted)
 	 * are preexisting readers now that a GP started and will hold up
@@ -1631,7 +1631,7 @@ static void start_new_gp(void)
 	 * cur_preempted is empty, but see comment in _rcu_record_qs().
 	 */
 	list_concat(&rcu.cur_preempted, &rcu.next_preempted);
-	
+
 	irq_spinlock_unlock(&rcu.preempt_lock, true);
 }
 
@@ -1693,7 +1693,7 @@ static void rm_quiescent_cpus(cpu_mask_t *cpu_mask)
 	 * data from previous GPs and will see any changes.
 	 */
 	memory_barrier(); /* MB C */
-	
+
 	cpu_mask_for_each(*cpu_mask, cpu_id) {
 		/*
 		 * The cpu already checked for and passed through a quiescent
@@ -1706,14 +1706,14 @@ static void rm_quiescent_cpus(cpu_mask_t *cpu_mask)
 		 * unnecessarily sample its last_seen_gp with a smp_call.
 		 */
 		bool cpu_acked_gp = (cpus[cpu_id].rcu.last_seen_gp == _rcu_cur_gp);
-		
+
 		/*
 		 * Either the cpu is idle or it is exiting away from idle mode
 		 * and already sees the most current _rcu_cur_gp. See comment
 		 * in wait_for_readers().
 		 */
 		bool cpu_idle = cpus[cpu_id].idle;
-		
+
 		if (cpu_acked_gp || cpu_idle) {
 			cpu_mask_reset(cpu_mask, cpu_id);
 		}
@@ -1735,7 +1735,7 @@ static void sample_cpus(cpu_mask_t *reader_cpus, void *arg)
 static void upd_missed_gp_in_wait(rcu_gp_t completed_gp)
 {
 	assert(CPU->rcu.cur_cbs_gp <= completed_gp);
-	
+
 	size_t delta = (size_t)(completed_gp - CPU->rcu.cur_cbs_gp);
 	CPU->rcu.stat_missed_gp_in_wait += delta;
 }
@@ -1763,7 +1763,7 @@ static void note_preempted_reader(void)
 static void rm_preempted_reader(void)
 {
 	irq_spinlock_lock(&rcu.preempt_lock, true);
-	
+
 	assert(link_used(&THREAD->rcu.preempt_link));
 
 	bool prev_empty = list_empty(&rcu.cur_preempted);
@@ -1792,28 +1792,28 @@ static bool wait_for_preempt_reader(void)
 
 	bool reader_exists = !list_empty(&rcu.cur_preempted);
 	rcu.preempt_blocking_det = reader_exists;
-	
+
 	irq_spinlock_unlock(&rcu.preempt_lock, true);
-	
+
 	if (reader_exists) {
 		/* Update statistic. */
 		++rcu.stat_preempt_blocking_cnt;
-		
+
 		return semaphore_down_interruptable(&rcu.remaining_readers);
 	}
-	
+
 	return true;
 }
 
 static void upd_max_cbs_in_slice(size_t arriving_cbs_cnt)
 {
 	rcu_cpu_data_t *cr = &CPU->rcu;
-	
+
 	if (arriving_cbs_cnt > cr->last_arriving_cnt) {
 		size_t arrived_cnt = arriving_cbs_cnt - cr->last_arriving_cnt;
 		cr->stat_max_slice_cbs = max(arrived_cnt, cr->stat_max_slice_cbs);
 	}
-	
+
 	cr->last_arriving_cnt = arriving_cbs_cnt;
 }
 
@@ -1825,13 +1825,13 @@ void rcu_print_stat(void)
 	 * CPU local values are updated without any locks, so there
 	 * are no locks to lock in order to get up-to-date values.
 	 */
-	
+
 #ifdef RCU_PREEMPT_PODZIMEK
 	const char *algo = "podzimek-preempt-rcu";
 #elif defined(RCU_PREEMPT_A)
 	const char *algo = "a-preempt-rcu";
 #endif
-	
+
 	printf("Config: expedite_threshold=%d, critical_threshold=%d,"
 		" detect_sleep=%dms, %s\n",
 		EXPEDITE_THRESHOLD, CRITICAL_THRESHOLD, DETECT_SLEEP_MS, algo);
@@ -1842,7 +1842,7 @@ void rcu_print_stat(void)
 	printf("Preempt blocked GPs: %zu (waited for preempted readers; "
 		"running or not)\n", rcu.stat_preempt_blocking_cnt);
 	printf("Smp calls:     %zu\n", rcu.stat_smp_call_cnt);
-	
+
 	printf("Max arrived callbacks per GP and CPU:\n");
 	for (unsigned int i = 0; i < config.cpu_count; ++i) {
 		printf(" %zu", cpus[i].rcu.stat_max_cbs);
@@ -1852,7 +1852,7 @@ void rcu_print_stat(void)
 	for (unsigned int i = 0; i < config.cpu_count; ++i) {
 		printf(" %zu", cpus[i].rcu.stat_avg_cbs);
 	}
-	
+
 	printf("\nMax arrived callbacks per time slice and CPU:\n");
 	for (unsigned int i = 0; i < config.cpu_count; ++i) {
 		printf(" %zu", cpus[i].rcu.stat_max_slice_cbs);

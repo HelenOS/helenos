@@ -67,7 +67,7 @@ errno_t inetping_init(inetping_ev_ops_t *ev_ops)
 	port_id_t port;
 	rc = async_create_callback_port(exch, INTERFACE_INETPING_CB, 0, 0,
 	    inetping_cb_conn, NULL, &port);
-	
+
 	async_exchange_end(exch);
 
 	if (rc != EOK) {

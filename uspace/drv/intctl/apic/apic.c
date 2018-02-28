@@ -168,23 +168,23 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	apic_t *apic;
-	
+
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
 	async_answer_0(iid, EOK);
-	
+
 	apic = (apic_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
-	
+
 	while (true) {
 		callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call)) {
 			/* The other side has hung up. */
 			async_answer_0(callid, EOK);
 			return;
 		}
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
 			async_answer_0(callid, apic_enable_irq(apic,
@@ -212,12 +212,12 @@ errno_t apic_add(apic_t *apic, apic_res_t *res)
 	ddf_fun_t *fun_a = NULL;
 	void *regs;
 	errno_t rc;
-	
+
 	if ((sysinfo_get_value("apic", &have_apic) != EOK) || (!have_apic)) {
 		printf("%s: No APIC found\n", NAME);
 		return ENOTSUP;
 	}
-	
+
 	rc = pio_enable((void *) res->base, IO_APIC_SIZE, &regs);
 	if (rc != EOK) {
 		printf("%s: Failed to enable PIO for APIC: %s\n", NAME, str_error(rc));

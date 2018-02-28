@@ -92,14 +92,14 @@ typedef struct {
 typedef struct irq {
 	/** Hash table link. */
 	ht_link_t link;
-	
+
 	/** Lock protecting everything in this structure
 	 *  except the link member. When both the IRQ
 	 *  hash table lock and this lock are to be acquired,
 	 *  this lock must not be taken first.
 	 */
 	IRQ_SPINLOCK_DECLARE(lock);
-	
+
 	/** Send EOI before processing the interrupt.
 	 *  This is essential for timer interrupt which
 	 *  has to be acknowledged before doing preemption
@@ -107,7 +107,7 @@ typedef struct irq {
 	 *  be eventually generated.
 	 */
 	bool preack;
-	
+
 	/** Actual IRQ number. -1 if not yet assigned. */
 	inr_t inr;
 	/** Trigger level of the IRQ. */
@@ -118,12 +118,12 @@ typedef struct irq {
 	irq_handler_t handler;
 	/** Instance argument for the handler and the claim function. */
 	void *instance;
-	
+
 	/** Clear interrupt routine. */
 	cir_t cir;
 	/** First argument to the clear interrupt routine. */
 	void *cir_arg;
-	
+
 	/** Notification configuration structure. */
 	ipc_notif_cfg_t notif_cfg;
 } irq_t;

@@ -53,30 +53,30 @@
 NO_TRACE static inline uint8_t fnzb32(uint32_t arg)
 {
 	uint8_t n = 0;
-	
+
 	if (arg >> 16) {
 		arg >>= 16;
 		n += 16;
 	}
-	
+
 	if (arg >> 8) {
 		arg >>= 8;
 		n += 8;
 	}
-	
+
 	if (arg >> 4) {
 		arg >>= 4;
 		n += 4;
 	}
-	
+
 	if (arg >> 2) {
 		arg >>= 2;
 		n += 2;
 	}
-	
+
 	if (arg >> 1)
 		n += 1;
-	
+
 	return n;
 }
 
@@ -88,12 +88,12 @@ NO_TRACE static inline uint8_t fnzb32(uint32_t arg)
 NO_TRACE static inline uint8_t fnzb64(uint64_t arg)
 {
 	uint8_t n = 0;
-	
+
 	if (arg >> 32) {
 		arg >>= 32;
 		n += 32;
 	}
-	
+
 	return n + fnzb32((uint32_t) arg);
 }
 

@@ -61,7 +61,7 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
 	atomic_count_t tmp;
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"1:\n"
 		"	ll %0, %1\n"
@@ -76,7 +76,7 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 		: "r" (i),
 		  "i" (0)
 	);
-	
+
 	return v;
 }
 

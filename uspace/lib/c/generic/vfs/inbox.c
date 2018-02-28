@@ -78,7 +78,7 @@ static LIST_INITIALIZE(inb_list);
 int inbox_set(const char *name, int file)
 {
 	inbox_entry *next = NULL;
-	
+
 	list_foreach(inb_list, link, inbox_entry, e) {
 		int cmp = str_cmp(e->name, name);
 		switch (cmp) {

@@ -84,7 +84,7 @@ static errno_t ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 	uintptr_t *pbase = malloc(rangecount * sizeof(uintptr_t), 0);
 	for (size_t i = 0; i < rangecount; i++)
 		pbase[i] = ranges[i].base;
-	
+
 	/* Map the PIO ranges into the kernel virtual address space. */
 	for (size_t i = 0; i < rangecount; i++) {
 #ifdef IO_SPACE_BOUNDARY
@@ -99,12 +99,12 @@ static errno_t ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 			return ENOMEM;
 		}
 	}
-	
+
 	/* Rewrite the IRQ code addresses from physical to kernel virtual. */
 	for (size_t i = 0; i < cmdcount; i++) {
 		uintptr_t addr;
 		size_t size;
-		
+
 		/* Process only commands that use an address. */
 		switch (cmds[i].cmd) {
 		case CMD_PIO_READ_8:
@@ -126,23 +126,23 @@ static errno_t ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 			/* Move onto the next command. */
 			continue;
 		}
-		
+
 		addr = (uintptr_t) cmds[i].addr;
-		
+
 		size_t j;
 		for (j = 0; j < rangecount; j++) {
 			/* Find the matching range. */
 			if (!iswithin(pbase[j], ranges[j].size, addr, size))
 				continue;
-			
+
 			/* Switch the command to a kernel virtual address. */
 			addr -= pbase[j];
 			addr += ranges[j].base;
-			
+
 			cmds[i].addr = (void *) addr;
 			break;
 		}
-		
+
 		if (j == rangecount) {
 			/*
 			 * The address used in this command is outside of all
@@ -153,7 +153,7 @@ static errno_t ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 			return EINVAL;
 		}
 	}
-	
+
 	free(pbase);
 	return EOK;
 }
@@ -171,13 +171,13 @@ static errno_t code_check(irq_cmd_t *cmds, size_t cmdcount)
 		 */
 		if (cmds[i].cmd >= CMD_LAST)
 			return EINVAL;
-		
+
 		if (cmds[i].srcarg >= IPC_CALL_LEN)
 			return EINVAL;
-		
+
 		if (cmds[i].dstarg >= IPC_CALL_LEN)
 			return EINVAL;
-		
+
 		switch (cmds[i].cmd) {
 		case CMD_PREDICATE:
 			/*
@@ -187,13 +187,13 @@ static errno_t code_check(irq_cmd_t *cmds, size_t cmdcount)
 			 */
 			if (i + cmds[i].value > cmdcount)
 				return EINVAL;
-			
+
 			break;
 		default:
 			break;
 		}
 	}
-	
+
 	return EOK;
 }
 
@@ -223,49 +223,49 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 {
 	irq_pio_range_t *ranges = NULL;
 	irq_cmd_t *cmds = NULL;
-	
+
 	irq_code_t *code = malloc(sizeof(*code), 0);
 	errno_t rc = copy_from_uspace(code, ucode, sizeof(*code));
 	if (rc != EOK)
 		goto error;
-	
+
 	if ((code->rangecount > IRQ_MAX_RANGE_COUNT) ||
 	    (code->cmdcount > IRQ_MAX_PROG_SIZE))
 		goto error;
-	
+
 	ranges = malloc(sizeof(code->ranges[0]) * code->rangecount, 0);
 	rc = copy_from_uspace(ranges, code->ranges,
 	    sizeof(code->ranges[0]) * code->rangecount);
 	if (rc != EOK)
 		goto error;
-	
+
 	cmds = malloc(sizeof(code->cmds[0]) * code->cmdcount, 0);
 	rc = copy_from_uspace(cmds, code->cmds,
 	    sizeof(code->cmds[0]) * code->cmdcount);
 	if (rc != EOK)
 		goto error;
-	
+
 	rc = code_check(cmds, code->cmdcount);
 	if (rc != EOK)
 		goto error;
-	
+
 	rc = ranges_map_and_apply(ranges, code->rangecount, cmds,
 	    code->cmdcount);
 	if (rc != EOK)
 		goto error;
-	
+
 	code->ranges = ranges;
 	code->cmds = cmds;
-	
+
 	return code;
-	
+
 error:
 	if (cmds)
 		free(cmds);
-	
+
 	if (ranges)
 		free(ranges);
-	
+
 	free(code);
 	return NULL;
 }
@@ -274,7 +274,7 @@ static void irq_hash_out(irq_t *irq)
 {
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
-	
+
 	if (irq->notif_cfg.hashed_in) {
 		/* Remove the IRQ from the uspace IRQ hash table. */
 		hash_table_remove_item(&irq_uspace_hash_table, &irq->link);
@@ -317,7 +317,7 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 {
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;
-	
+
 	irq_code_t *code;
 	if (ucode) {
 		code = code_from_uspace(ucode);
@@ -325,7 +325,7 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 			return EBADMEM;
 	} else
 		code = NULL;
-	
+
 	/*
 	 * Allocate and populate the IRQ kernel object.
 	 */
@@ -333,7 +333,7 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	errno_t rc = cap_alloc(TASK, &handle);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = copy_to_uspace(uspace_handle, &handle, sizeof(cap_handle_t));
 	if (rc != EOK) {
 		cap_free(TASK, handle);
@@ -352,7 +352,7 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 		slab_free(irq_cache, irq);
 		return ENOMEM;
 	}
-	
+
 	irq_initialize(irq);
 	irq->inr = inr;
 	irq->claim = ipc_irq_top_half_claim;
@@ -362,22 +362,22 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 	irq->notif_cfg.imethod = imethod;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
-	
+
 	/*
 	 * Insert the IRQ structure into the uspace IRQ hash table.
 	 */
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	irq_spinlock_lock(&irq->lock, false);
-	
+
 	irq->notif_cfg.hashed_in = true;
 	hash_table_insert(&irq_uspace_hash_table, &irq->link);
-	
+
 	irq_spinlock_unlock(&irq->lock, false);
 	irq_spinlock_unlock(&irq_uspace_hash_table_lock, true);
 
 	kobject_initialize(kobject, KOBJECT_TYPE_IRQ, irq, &irq_kobject_ops);
 	cap_publish(TASK, handle, kobject);
-	
+
 	return EOK;
 }
 
@@ -394,14 +394,14 @@ errno_t ipc_irq_unsubscribe(answerbox_t *box, int handle)
 	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_IRQ);
 	if (!kobj)
 		return ENOENT;
-	
+
 	assert(kobj->irq->notif_cfg.answerbox == box);
 
 	irq_hash_out(kobj->irq);
 
 	kobject_put(kobj);
 	cap_free(TASK, handle);
-	
+
 	return EOK;
 }
 
@@ -418,7 +418,7 @@ static void send_call(irq_t *irq, call_t *call)
 	irq_spinlock_lock(&irq->notif_cfg.answerbox->irq_lock, false);
 	list_append(&call->ab_link, &irq->notif_cfg.answerbox->irq_notifs);
 	irq_spinlock_unlock(&irq->notif_cfg.answerbox->irq_lock, false);
-	
+
 	waitq_wakeup(&irq->notif_cfg.answerbox->wq, WAKEUP_FIRST);
 }
 
@@ -434,17 +434,17 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 {
 	irq_code_t *code = irq->notif_cfg.code;
 	uint32_t *scratch = irq->notif_cfg.scratch;
-	
+
 	if (!irq->notif_cfg.notify)
 		return IRQ_DECLINE;
-	
+
 	if (!code)
 		return IRQ_DECLINE;
-	
+
 	for (size_t i = 0; i < code->cmdcount; i++) {
 		uintptr_t srcarg = code->cmds[i].srcarg;
 		uintptr_t dstarg = code->cmds[i].dstarg;
-		
+
 		switch (code->cmds[i].cmd) {
 		case CMD_PIO_READ_8:
 			scratch[dstarg] =
@@ -492,7 +492,7 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 		case CMD_PREDICATE:
 			if (scratch[srcarg] == 0)
 				i += code->cmds[i].value;
-			
+
 			break;
 		case CMD_ACCEPT:
 			return IRQ_ACCEPT;
@@ -501,7 +501,7 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			return IRQ_DECLINE;
 		}
 	}
-	
+
 	return IRQ_DECLINE;
 }
 
@@ -515,19 +515,19 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 void ipc_irq_top_half_handler(irq_t *irq)
 {
 	assert(irq);
-	
+
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&irq->lock));
-	
+
 	if (irq->notif_cfg.answerbox) {
 		call_t *call = ipc_call_alloc(FRAME_ATOMIC);
 		if (!call)
 			return;
-		
+
 		call->flags |= IPC_CALL_NOTIF;
 		/* Put a counter to the message */
 		call->priv = ++irq->notif_cfg.counter;
-		
+
 		/* Set up args */
 		IPC_SET_IMETHOD(call->data, irq->notif_cfg.imethod);
 		IPC_SET_ARG1(call->data, irq->notif_cfg.scratch[1]);
@@ -535,7 +535,7 @@ void ipc_irq_top_half_handler(irq_t *irq)
 		IPC_SET_ARG3(call->data, irq->notif_cfg.scratch[3]);
 		IPC_SET_ARG4(call->data, irq->notif_cfg.scratch[4]);
 		IPC_SET_ARG5(call->data, irq->notif_cfg.scratch[5]);
-		
+
 		send_call(irq, call);
 	}
 }
@@ -554,28 +554,28 @@ void ipc_irq_send_msg(irq_t *irq, sysarg_t a1, sysarg_t a2, sysarg_t a3,
     sysarg_t a4, sysarg_t a5)
 {
 	irq_spinlock_lock(&irq->lock, true);
-	
+
 	if (irq->notif_cfg.answerbox) {
 		call_t *call = ipc_call_alloc(FRAME_ATOMIC);
 		if (!call) {
 			irq_spinlock_unlock(&irq->lock, true);
 			return;
 		}
-		
+
 		call->flags |= IPC_CALL_NOTIF;
 		/* Put a counter to the message */
 		call->priv = ++irq->notif_cfg.counter;
-		
+
 		IPC_SET_IMETHOD(call->data, irq->notif_cfg.imethod);
 		IPC_SET_ARG1(call->data, a1);
 		IPC_SET_ARG2(call->data, a2);
 		IPC_SET_ARG3(call->data, a3);
 		IPC_SET_ARG4(call->data, a4);
 		IPC_SET_ARG5(call->data, a5);
-		
+
 		send_call(irq, call);
 	}
-	
+
 	irq_spinlock_unlock(&irq->lock, true);
 }
 

@@ -64,23 +64,23 @@ void uinit(void *arg)
 	 * deployed for the event of forceful task termination.
 	 */
 	thread_detach(THREAD);
-	
+
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
-	
+
 	uspace_arg_t *uarg = (uspace_arg_t *) arg;
 	uspace_arg_t local_uarg;
-	
+
 	local_uarg.uspace_entry = uarg->uspace_entry;
 	local_uarg.uspace_stack = uarg->uspace_stack;
 	local_uarg.uspace_stack_size = uarg->uspace_stack_size;
 	local_uarg.uspace_uarg = uarg->uspace_uarg;
 	local_uarg.uspace_thread_function = NULL;
 	local_uarg.uspace_thread_arg = NULL;
-	
+
 	free(uarg);
-	
+
 	userspace(&local_uarg);
 }
 

@@ -53,7 +53,7 @@ static int core_workq_enqueue(work_t *work_item, work_func_t func);
 static bool new_wave(test_work_t *work)
 {
 	++work->wave;
-	
+
 	if (work->wave < WAVES) {
 		work->count_down = COUNT;
 		return true;
@@ -78,7 +78,7 @@ static test_work_t * create_child(test_work_t *work)
 		child->wave = work->wave;
 		child->count_down = work->count_down;
 	}
-	
+
 	return child;
 }
 
@@ -92,11 +92,11 @@ static void reproduce(work_t *work_item)
 {
 	/* Ensure work_item is ours for the taking. */
 	memsetb(work_item, sizeof(work_t), 0xec);
-	
+
 	test_work_t *work = (test_work_t *)work_item;
-	
+
 	atomic_inc(&call_cnt[work->wave]);
-	
+
 	if (0 < work->count_down) {
 		/* Sleep right before creating the last generation. */
 		if (1 == work->count_down) {
@@ -107,7 +107,7 @@ static void reproduce(work_t *work_item)
 				thread_usleep(WAVE_SLEEP_MS * 1000);
 			}
 		}
-		
+
 		--work->count_down;
 
 		/*
@@ -121,7 +121,7 @@ static void reproduce(work_t *work_item)
 					free_work(child);
 			}
 		}
-		
+
 		if (!core_workq_enqueue(work_item, reproduce)) {
 			if (work->master)
 				TPRINTF("\nErr: Master work item exiting prematurely!\n");
@@ -130,7 +130,7 @@ static void reproduce(work_t *work_item)
 		}
 	} else {
 		/* We're done with this wave - only the master survives. */
-		
+
 		if (work->master && new_wave(work)) {
 			if (!core_workq_enqueue(work_item, reproduce)) {
 				TPRINTF("\nErr: Master work could not start a new wave!\n");
@@ -139,7 +139,7 @@ static void reproduce(work_t *work_item)
 		} else {
 			if (work->master)
 				TPRINTF("\nMaster work item done.\n");
-				
+
 			free_work(work);
 		}
 	}
@@ -156,7 +156,7 @@ static const char *run_workq_core(bool end_prematurely)
 	work->master = true;
 	work->wave = 0;
 	work->count_down = COUNT;
-	
+
 	/*
 	 * k == COUNT_POW
 	 * 2^k == COUNT + 1
@@ -165,18 +165,18 @@ static const char *run_workq_core(bool end_prematurely)
 	 * exp_call_cnt == k*2^(k-1) + 2^k == (k + 2) * 2^(k-1)
 	 */
 	size_t exp_call_cnt = (COUNT_POW + 2) * (1 << (COUNT_POW - 1));
-	
+
 	TPRINTF("waves: %d, count_down: %d, total expected calls: %zu\n",
 		WAVES, COUNT, exp_call_cnt * WAVES);
-	
+
 
 	core_workq_enqueue(&work->work_item, reproduce);
-	
+
 	size_t sleep_cnt = 0;
 	/* At least 40 seconds total (or 2 sec to end while there's work). */
 	size_t max_sleep_secs = end_prematurely ? 2 : MAIN_MAX_SLEEP_SEC;
 	size_t max_sleep_cnt = (max_sleep_secs * 1000) / MAIN_POLL_SLEEP_MS;
-	
+
 	for (int i = 0; i < WAVES; ++i) {
 		while (atomic_get(&call_cnt[i]) < exp_call_cnt
 			&& sleep_cnt < max_sleep_cnt) {
@@ -185,9 +185,9 @@ static const char *run_workq_core(bool end_prematurely)
 			++sleep_cnt;
 		}
 	}
-	
+
 	bool success = true;
-	
+
 	for (int i = 0; i < WAVES; ++i) {
 		if (atomic_get(&call_cnt[i]) == exp_call_cnt) {
 			TPRINTF("Ok: %" PRIua " calls in wave %d, as expected.\n",
@@ -198,8 +198,8 @@ static const char *run_workq_core(bool end_prematurely)
 				atomic_get(&call_cnt[i]), i, exp_call_cnt);
 		}
 	}
-	
-	
+
+
 	if (success)
 		return NULL;
 	else {

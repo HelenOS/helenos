@@ -165,7 +165,7 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 		DPRINTF("Invalid header.\n");
 		return EE_INVALID;
 	}
-	
+
 	/* Identify ELF compatibility */
 	if (header->e_ident[EI_DATA] != ELF_DATA_ENCODING ||
 	    header->e_machine != ELF_MACHINE ||
@@ -371,7 +371,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	if (entry->p_flags & PF_R)
 		flags |= AS_AREA_READ;
 	flags |= AS_AREA_CACHEABLE;
-	
+
 	base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	mem_sz = entry->p_memsz + (entry->p_vaddr - base);
 
@@ -457,7 +457,7 @@ static int section_header(elf_ld_t *elf, elf_section_header_t *entry)
 	default:
 		break;
 	}
-	
+
 	return EE_OK;
 }
 

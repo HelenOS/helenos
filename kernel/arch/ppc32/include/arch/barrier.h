@@ -76,21 +76,21 @@ NO_TRACE static inline void smc_coherence(void *addr)
 NO_TRACE static inline void smc_coherence_block(void *addr, unsigned int len)
 {
 	unsigned int i;
-	
+
 	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
 		asm volatile (
 			"dcbst 0, %[addr]\n"
 			:: [addr] "r" (addr + i)
 		);
-	
+
 	memory_barrier();
-	
+
 	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
 		asm volatile (
 			"icbi 0, %[addr]\n"
 			:: [addr] "r" (addr + i)
 		);
-	
+
 	instruction_barrier();
 }
 

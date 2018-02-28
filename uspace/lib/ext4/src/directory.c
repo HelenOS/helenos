@@ -109,7 +109,7 @@ uint16_t ext4_directory_entry_ll_get_name_length(ext4_superblock_t *sb,
 	    (ext4_superblock_get_minor_rev_level(sb) < 5))
 		return ((uint16_t)de->name_length_high) << 8 |
 		    ((uint16_t)de->name_length);
-	
+
 	return de->name_length;
 
 }
@@ -125,11 +125,11 @@ void ext4_directory_entry_ll_set_name_length(ext4_superblock_t *sb,
     ext4_directory_entry_ll_t *de, uint16_t length)
 {
 	de->name_length = (length << 8) >> 8;
-	
+
 	if ((ext4_superblock_get_rev_level(sb) == 0) &&
 	    (ext4_superblock_get_minor_rev_level(sb) < 5))
 		de->name_length_high = length >> 8;
-	
+
 	/* Else do nothing */
 }
 
@@ -147,7 +147,7 @@ uint8_t ext4_directory_entry_ll_get_inode_type(ext4_superblock_t *sb,
 	if ((ext4_superblock_get_rev_level(sb) > 0) ||
 	    (ext4_superblock_get_minor_rev_level(sb) >= 5))
 		return de->inode_type;
-	
+
 	return EXT4_DIRECTORY_FILETYPE_UNKNOWN;
 }
 
@@ -164,7 +164,7 @@ void ext4_directory_entry_ll_set_inode_type(ext4_superblock_t *sb,
 	if ((ext4_superblock_get_rev_level(sb) > 0) ||
 	    (ext4_superblock_get_minor_rev_level(sb) >= 5))
 		de->inode_type = type;
-	
+
 	/* Else do nothing */
 }
 
@@ -189,7 +189,7 @@ errno_t ext4_directory_iterator_init(ext4_directory_iterator_t *it,
 	it->current = NULL;
 	it->current_offset = 0;
 	it->current_block = NULL;
-	
+
 	return ext4_directory_iterator_seek(it, pos);
 }
 
@@ -203,9 +203,9 @@ errno_t ext4_directory_iterator_init(ext4_directory_iterator_t *it,
 errno_t ext4_directory_iterator_next(ext4_directory_iterator_t *it)
 {
 	assert(it->current != NULL);
-	
+
 	uint16_t skip = ext4_directory_entry_ll_get_entry_length(it->current);
-	
+
 	return ext4_directory_iterator_seek(it, it->current_offset + skip);
 }
 
@@ -223,30 +223,30 @@ errno_t ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos
 {
 	uint64_t size = ext4_inode_get_size(it->inode_ref->fs->superblock,
 	    it->inode_ref->inode);
-	
+
 	/* The iterator is not valid until we seek to the desired position */
 	it->current = NULL;
-	
+
 	/* Are we at the end? */
 	if (pos >= size) {
 		if (it->current_block) {
 			errno_t rc = block_put(it->current_block);
 			it->current_block = NULL;
-			
+
 			if (rc != EOK)
 				return rc;
 		}
-		
+
 		it->current_offset = pos;
 		return EOK;
 	}
-	
+
 	/* Compute next block address */
 	uint32_t block_size =
 	    ext4_superblock_get_block_size(it->inode_ref->fs->superblock);
 	aoff64_t current_block_idx = it->current_offset / block_size;
 	aoff64_t next_block_idx = pos / block_size;
-	
+
 	/*
 	 * If we don't have a block or are moving accross block boundary,
 	 * we need to get another block
@@ -256,17 +256,17 @@ errno_t ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos
 		if (it->current_block) {
 			errno_t rc = block_put(it->current_block);
 			it->current_block = NULL;
-			
+
 			if (rc != EOK)
 				return rc;
 		}
-		
+
 		uint32_t next_block_phys_idx;
 		errno_t rc = ext4_filesystem_get_inode_data_block_index(it->inode_ref,
 		    next_block_idx, &next_block_phys_idx);
 		if (rc != EOK)
 			return rc;
-		
+
 		rc = block_get(&it->current_block, it->inode_ref->fs->device,
 		    next_block_phys_idx, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
@@ -274,9 +274,9 @@ errno_t ext4_directory_iterator_seek(ext4_directory_iterator_t *it, aoff64_t pos
 			return rc;
 		}
 	}
-	
+
 	it->current_offset = pos;
-	
+
 	return ext4_directory_iterator_set(it, block_size);
 }
 
@@ -292,30 +292,30 @@ static errno_t ext4_directory_iterator_set(ext4_directory_iterator_t *it,
     uint32_t block_size)
 {
 	it->current = NULL;
-	
+
 	uint32_t offset_in_block = it->current_offset % block_size;
-	
+
 	/* Ensure proper alignment */
 	if ((offset_in_block % 4) != 0)
 		return EIO;
-	
+
 	/* Ensure that the core of the entry does not overflow the block */
 	if (offset_in_block > block_size - 8)
 		return EIO;
-	
+
 	ext4_directory_entry_ll_t *entry =
 	    it->current_block->data + offset_in_block;
-	
+
 	/* Ensure that the whole entry does not overflow the block */
 	uint16_t length = ext4_directory_entry_ll_get_entry_length(entry);
 	if (offset_in_block + length > block_size)
 		return EIO;
-	
+
 	/* Ensure the name length is not too large */
 	if (ext4_directory_entry_ll_get_name_length(
 	    it->inode_ref->fs->superblock, entry) > length-8)
 		return EIO;
-	
+
 	/* Everything OK - "publish" the entry */
 	it->current = entry;
 	return EOK;
@@ -334,10 +334,10 @@ errno_t ext4_directory_iterator_fini(ext4_directory_iterator_t *it)
 {
 	it->inode_ref = NULL;
 	it->current = NULL;
-	
+
 	if (it->current_block)
 		return block_put(it->current_block);
-	
+
 	return EOK;
 }
 
@@ -358,15 +358,15 @@ void ext4_directory_write_entry(ext4_superblock_t *sb,
 	/* Check maximum entry length */
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	assert(entry_len <= block_size);
-	
+
 	/* Set basic attributes */
 	ext4_directory_entry_ll_set_inode(entry, child->index);
 	ext4_directory_entry_ll_set_entry_length(entry, entry_len);
 	ext4_directory_entry_ll_set_name_length(sb, entry, name_len);
-	
+
 	/* Write name */
 	memcpy(entry->name, name, name_len);
-	
+
 	/* Set type of entry */
 	if (ext4_inode_is_type(sb, child->inode, EXT4_INODE_MODE_DIRECTORY))
 		ext4_directory_entry_ll_set_inode_type(sb, entry,
@@ -389,7 +389,7 @@ errno_t ext4_directory_add_entry(ext4_inode_ref_t *parent, const char *name,
     ext4_inode_ref_t *child)
 {
 	ext4_filesystem_t *fs = parent->fs;
-	
+
 	/* Index adding (if allowed) */
 	if ((ext4_superblock_has_feature_compatible(fs->superblock,
 	    EXT4_FEATURE_COMPAT_DIR_INDEX)) &&
@@ -404,17 +404,17 @@ errno_t ext4_directory_add_entry(ext4_inode_ref_t *parent, const char *name,
 		ext4_inode_clear_flag(parent->inode, EXT4_INODE_FLAG_INDEX);
 		parent->dirty = true;
 	}
-	
+
 	/* Linear algorithm */
-	
+
 	uint32_t iblock = 0;
 	uint32_t fblock = 0;
 	uint32_t block_size = ext4_superblock_get_block_size(fs->superblock);
 	uint32_t inode_size = ext4_inode_get_size(fs->superblock, parent->inode);
 	uint32_t total_blocks = inode_size / block_size;
-	
+
 	uint32_t name_len = str_size(name);
-	
+
 	/* Find block, where is space for new entry and try to add */
 	bool success = false;
 	for (iblock = 0; iblock < total_blocks; ++iblock) {
@@ -422,50 +422,50 @@ errno_t ext4_directory_add_entry(ext4_inode_ref_t *parent, const char *name,
 		    iblock, &fblock);
 		if (rc != EOK)
 			return rc;
-		
+
 		block_t *block;
 		rc = block_get(&block, fs->device, fblock, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return rc;
-		
+
 		/* If adding is successful, function can finish */
 		rc = ext4_directory_try_insert_entry(fs->superblock, block,
 		    child, name, name_len);
 		if (rc == EOK)
 			success = true;
-		
+
 		rc = block_put(block);
 		if (rc != EOK)
 			return rc;
-		
+
 		if (success)
 			return EOK;
 	}
-	
+
 	/* No free block found - needed to allocate next data block */
-	
+
 	iblock = 0;
 	fblock = 0;
 	errno_t rc = ext4_filesystem_append_inode_block(parent, &fblock, &iblock);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Load new block */
 	block_t *new_block;
 	rc = block_get(&new_block, fs->device, fblock, BLOCK_FLAGS_NOREAD);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Fill block with zeroes */
 	memset(new_block->data, 0, block_size);
 	ext4_directory_entry_ll_t *block_entry = new_block->data;
 	ext4_directory_write_entry(fs->superblock, block_entry, block_size,
 	    child, name, name_len);
-	
+
 	/* Save new block */
 	new_block->dirty = true;
 	rc = block_put(new_block);
-	
+
 	return rc;
 }
 
@@ -482,37 +482,37 @@ errno_t ext4_directory_find_entry(ext4_directory_search_result_t *result,
     ext4_inode_ref_t *parent, const char *name)
 {
 	uint32_t name_len = str_size(name);
-	
+
 	ext4_superblock_t *sb = parent->fs->superblock;
-	
+
 	/* Index search */
 	if ((ext4_superblock_has_feature_compatible(sb,
 	    EXT4_FEATURE_COMPAT_DIR_INDEX)) &&
 	    (ext4_inode_has_flag(parent->inode, EXT4_INODE_FLAG_INDEX))) {
 		errno_t rc = ext4_directory_dx_find_entry(result, parent, name_len,
 		    name);
-		
+
 		/* Check if index is not corrupted */
 		if (rc != EXT4_ERR_BAD_DX_DIR) {
 			if (rc != EOK)
 				return rc;
-			
+
 			return EOK;
 		}
-		
+
 		/* Needed to clear dir index flag if corrupted */
 		ext4_inode_clear_flag(parent->inode, EXT4_INODE_FLAG_INDEX);
 		parent->dirty = true;
 	}
-	
+
 	/* Linear algorithm */
-	
+
 	uint32_t iblock;
 	uint32_t fblock;
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	uint32_t inode_size = ext4_inode_get_size(sb, parent->inode);
 	uint32_t total_blocks = inode_size / block_size;
-	
+
 	/* Walk through all data blocks */
 	for (iblock = 0; iblock < total_blocks; ++iblock) {
 		/* Load block address */
@@ -520,13 +520,13 @@ errno_t ext4_directory_find_entry(ext4_directory_search_result_t *result,
 		    &fblock);
 		if (rc != EOK)
 			return rc;
-		
+
 		/* Load data block */
 		block_t *block;
 		rc = block_get(&block, parent->fs->device, fblock, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return rc;
-		
+
 		/* Try to find entry in block */
 		ext4_directory_entry_ll_t *res_entry;
 		rc = ext4_directory_find_in_block(block, sb, name_len, name,
@@ -536,19 +536,19 @@ errno_t ext4_directory_find_entry(ext4_directory_search_result_t *result,
 			result->dentry = res_entry;
 			return EOK;
 		}
-		
+
 		/* Entry not found - put block and continue to the next block */
-		
+
 		rc = block_put(block);
 		if (rc != EOK)
 			return rc;
 	}
-	
+
 	/* Entry was not found */
-	
+
 	result->block = NULL;
 	result->dentry =  NULL;
-	
+
 	return ENOENT;
 }
 
@@ -566,31 +566,31 @@ errno_t ext4_directory_remove_entry(ext4_inode_ref_t *parent, const char *name)
 	if (!ext4_inode_is_type(parent->fs->superblock, parent->inode,
 	    EXT4_INODE_MODE_DIRECTORY))
 		return ENOTDIR;
-	
+
 	/* Try to find entry */
 	ext4_directory_search_result_t result;
 	errno_t rc = ext4_directory_find_entry(&result, parent, name);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Invalidate entry */
 	ext4_directory_entry_ll_set_inode(result.dentry, 0);
-	
+
 	/* Store entry position in block */
 	uint32_t pos = (void *) result.dentry - result.block->data;
-	
+
 	/*
 	 * If entry is not the first in block, it must be merged
 	 * with previous entry
 	 */
 	if (pos != 0) {
 		uint32_t offset = 0;
-		
+
 		/* Start from the first entry in block */
 		ext4_directory_entry_ll_t *tmp_dentry = result.block->data;
 		uint16_t tmp_dentry_length =
 		    ext4_directory_entry_ll_get_entry_length(tmp_dentry);
-		
+
 		/* Find direct predecessor of removed entry */
 		while ((offset + tmp_dentry_length) < pos) {
 			offset +=
@@ -599,18 +599,18 @@ errno_t ext4_directory_remove_entry(ext4_inode_ref_t *parent, const char *name)
 			tmp_dentry_length =
 			    ext4_directory_entry_ll_get_entry_length(tmp_dentry);
 		}
-		
+
 		assert(tmp_dentry_length + offset == pos);
-		
+
 		/* Add to removed entry length to predecessor's length */
 		uint16_t del_entry_length =
 		    ext4_directory_entry_ll_get_entry_length(result.dentry);
 		ext4_directory_entry_ll_set_entry_length(tmp_dentry,
 		    tmp_dentry_length + del_entry_length);
 	}
-	
+
 	result.block->dirty = true;
-	
+
 	return ext4_directory_destroy_result(&result);
 }
 
@@ -632,14 +632,14 @@ errno_t ext4_directory_try_insert_entry(ext4_superblock_t *sb,
 	/* Compute required length entry and align it to 4 bytes */
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 	uint16_t required_len = sizeof(ext4_fake_directory_entry_t) + name_len;
-	
+
 	if ((required_len % 4) != 0)
 		required_len += 4 - (required_len % 4);
-	
+
 	/* Initialize pointers, stop means to upper bound */
 	ext4_directory_entry_ll_t *dentry = target_block->data;
 	ext4_directory_entry_ll_t *stop = target_block->data + block_size;
-	
+
 	/*
 	 * Walk through the block and check for invalid entries
 	 * or entries with free space for new entry
@@ -647,29 +647,29 @@ errno_t ext4_directory_try_insert_entry(ext4_superblock_t *sb,
 	while (dentry < stop) {
 		uint32_t inode = ext4_directory_entry_ll_get_inode(dentry);
 		uint16_t rec_len = ext4_directory_entry_ll_get_entry_length(dentry);
-		
+
 		/* If invalid and large enough entry, use it */
 		if ((inode == 0) && (rec_len >= required_len)) {
 			ext4_directory_write_entry(sb, dentry, rec_len, child,
 			    name, name_len);
 			target_block->dirty = true;
-			
+
 			return EOK;
 		}
-		
+
 		/* Valid entry, try to split it */
 		if (inode != 0) {
 			uint16_t used_name_len =
 			    ext4_directory_entry_ll_get_name_length(sb, dentry);
-			
+
 			uint16_t used_space =
 			    sizeof(ext4_fake_directory_entry_t) + used_name_len;
-			
+
 			if ((used_name_len % 4) != 0)
 				used_space += 4 - (used_name_len % 4);
-			
+
 			uint16_t free_space = rec_len - used_space;
-			
+
 			/* There is free space for new entry */
 			if (free_space >= required_len) {
 				/* Cut tail of current entry */
@@ -678,17 +678,17 @@ errno_t ext4_directory_try_insert_entry(ext4_superblock_t *sb,
 				    (void *) dentry + used_space;
 				ext4_directory_write_entry(sb, new_entry,
 				    free_space, child, name, name_len);
-				
+
 				target_block->dirty = true;
-				
+
 				return EOK;
 			}
 		}
-		
+
 		/* Jump to the next entry */
 		dentry = (void *) dentry + rec_len;
 	}
-	
+
 	/* No free space found for new entry */
 	return ENOSPC;
 }
@@ -710,16 +710,16 @@ errno_t ext4_directory_find_in_block(block_t *block, ext4_superblock_t *sb,
 	/* Start from the first entry in block */
 	ext4_directory_entry_ll_t *dentry =
 	    (ext4_directory_entry_ll_t *) block->data;
-	
+
 	/* Set upper bound for cycling */
 	uint8_t *addr_limit = block->data + ext4_superblock_get_block_size(sb);
-	
+
 	/* Walk through the block and check entries */
 	while ((uint8_t *) dentry < addr_limit) {
 		/* Termination condition */
 		if ((uint8_t *) dentry + name_len > addr_limit)
 			break;
-		
+
 		/* Valid entry - check it */
 		if (dentry->inode != 0) {
 			/* For more effectivity compare firstly only lengths */
@@ -732,18 +732,18 @@ errno_t ext4_directory_find_in_block(block_t *block, ext4_superblock_t *sb,
 				}
 			}
 		}
-		
+
 		uint16_t dentry_len =
 		    ext4_directory_entry_ll_get_entry_length(dentry);
-		
+
 		/* Corrupted entry */
 		if (dentry_len == 0)
 			return EINVAL;
-		
+
 		/* Jump to next entry */
 		dentry = (ext4_directory_entry_ll_t *) ((uint8_t *) dentry + dentry_len);
 	}
-	
+
 	/* Entry not found */
 	return ENOENT;
 }
@@ -759,7 +759,7 @@ errno_t ext4_directory_destroy_result(ext4_directory_search_result_t *result)
 {
 	if (result->block)
 		return block_put(result->block);
-	
+
 	return EOK;
 }
 

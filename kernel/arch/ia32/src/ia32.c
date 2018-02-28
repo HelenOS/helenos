@@ -91,7 +91,7 @@ void ia32_pre_main(uint32_t signature, void *info)
 	/* Parse multiboot information obtained from the bootloader. */
 	multiboot_info_parse(signature, (multiboot_info_t *) info);
 	multiboot2_info_parse(signature, (multiboot2_info_t *) info);
-	
+
 #ifdef CONFIG_SMP
 	/* Copy AP bootstrap routines below 1 MB. */
 	memcpy((void *) AP_BOOT_OFFSET, (void *) BOOT_OFFSET,
@@ -106,7 +106,7 @@ void ia32_pre_mm_init(void)
 	if (config.cpu_active == 1) {
 		interrupt_init();
 		bios_init();
-		
+
 		/* PIC */
 		i8259_init();
 	}
@@ -119,18 +119,18 @@ void ia32_post_mm_init(void)
 	if (config.cpu_active == 1) {
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
-		
+
 		/* hard clock */
 		i8254_init();
-		
+
 #if (defined(CONFIG_FB) || defined(CONFIG_EGA))
 		bool bfb = false;
 #endif
-		
+
 #ifdef CONFIG_FB
 		bfb = bfb_init();
 #endif
-		
+
 #ifdef CONFIG_EGA
 		if (!bfb) {
 			outdev_t *egadev = ega_init(EGA_BASE, EGA_VIDEORAM);
@@ -138,7 +138,7 @@ void ia32_post_mm_init(void)
 				stdout_wire(egadev);
 		}
 #endif
-		
+
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
@@ -219,7 +219,7 @@ void ia32_post_smp_init(void)
 #endif
 	}
 #endif
-	
+
 	if (irqs_info != NULL)
 		sysinfo_set_item_val(irqs_info, NULL, true);
 }

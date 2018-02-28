@@ -616,7 +616,7 @@ mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 		.service_id = inst->service_id,
 		.index = index
 	};
-	
+
 	ht_link_t *already_open = hash_table_find(&open_nodes, &key);
 
 	if (already_open) {
@@ -973,7 +973,7 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		r = mfs_alloc_zone(mnode->instance, &block);
 		if (r != EOK)
 			goto out_err;
-		
+
 		r = mfs_write_map(mnode, pos, block, &dummy);
 		if (r != EOK) {
 			mfs_free_zone(mnode->instance, block);
@@ -1201,7 +1201,7 @@ mfs_size_block(service_id_t service_id, uint32_t *size)
 
 	if (NULL == inst)
 		return ENOENT;
-	
+
 	*size = inst->sbi->block_size;
 
 	return EOK;
@@ -1212,14 +1212,14 @@ mfs_total_block_count(service_id_t service_id, uint64_t *count)
 {
 	struct mfs_instance *inst;
 	errno_t rc;
-	
+
 	rc = mfs_instance_get(service_id, &inst);
 	if (rc != EOK)
 		return rc;
 
 	if (NULL == inst)
 		return ENOENT;
-	
+
 	*count = (uint64_t) MFS_BMAP_SIZE_BITS(inst->sbi, BMAP_ZONE);
 
 	return EOK;
@@ -1229,7 +1229,7 @@ static errno_t
 mfs_free_block_count(service_id_t service_id, uint64_t *count)
 {
 	uint32_t block_free;
-	
+
 	struct mfs_instance *inst;
 	errno_t rc = mfs_instance_get(service_id, &inst);
 	if (rc != EOK)

@@ -157,7 +157,7 @@ wchar_t sc_secondary_map[SCANCODES] = {
 	U_SPECIAL,      /* 0x44 - F10 */
 	U_SPECIAL,      /* 0x45 - NumLock */
 	U_SPECIAL,      /* 0x46 - ScrollLock */
-	
+
 	U_HOME_ARROW,   /* 0x47 - Home */
 	U_UP_ARROW,     /* 0x48 - Up Arrow */
 	U_PAGE_UP,      /* 0x49 - Page Up */

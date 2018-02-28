@@ -44,16 +44,16 @@
 typedef struct {
 	/** Register value set in the last timer period */
 	uint32_t last_val;
-	
+
 	/** Register value set in the common timer period */
 	uint32_t full_val;
-	
+
 	/** Amount of full register periods in timer period */
 	size_t full_skips;
-	
+
 	/** Remaining full register periods to the next period end */
 	size_t full_skips_remains;
-	
+
 	/** Mark if there is a last run */
 	int last_run;
 } rtl8139_timer_act_t;

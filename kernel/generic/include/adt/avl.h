@@ -68,7 +68,7 @@ struct avltree_node
 	 * node.
 	 */
 	struct avltree_node *lft;
-	
+
 	/**
 	 * Pointer to the right descendant of this node.
 	 *
@@ -76,13 +76,13 @@ struct avltree_node
 	 * this node.
 	 */
 	struct avltree_node *rgt;
-	
+
 	/** Pointer to the parent node. Root node has NULL parent. */
 	struct avltree_node *par;
-	
+
 	/** Node's key. */
 	avltree_key_t key;
-	
+
 	/**
 	 * Difference between the heights of the left and the right subtree of
 	 * this node.

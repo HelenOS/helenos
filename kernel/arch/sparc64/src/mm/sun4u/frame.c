@@ -47,7 +47,7 @@
 static void frame_common_arch_init(bool low)
 {
 	unsigned int i;
-	
+
 	for (i = 0; i < memmap.cnt; i++) {
 		uintptr_t base;
 		size_t size;
@@ -61,10 +61,10 @@ static void frame_common_arch_init(bool low)
 		base = ALIGN_UP((uintptr_t) memmap.zones[i].start, FRAME_SIZE);
 		size = ALIGN_DOWN(memmap.zones[i].size -
 		    (base - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
-		
+
 		if (!frame_adjust_zone_bounds(low, &base, &size))
 			continue;
- 
+
 		pfn_t confdata;
 		pfn_t pfn = ADDR2PFN(base);
 		size_t count = SIZE2FRAMES(size);
@@ -73,7 +73,7 @@ static void frame_common_arch_init(bool low)
 			confdata = pfn;
 			if (confdata == ADDR2PFN(KA2PA(PFN2ADDR(0))))
 				confdata = ADDR2PFN(KA2PA(PFN2ADDR(2)));
-			
+
 			zone_create(pfn, count, confdata,
 			    ZONE_AVAILABLE | ZONE_LOWMEM);
 		} else {
@@ -89,9 +89,9 @@ void frame_low_arch_init(void)
 {
 	if (config.cpu_active > 1)
 		return;
-	
+
 	frame_common_arch_init(true);
-	
+
 	/*
 	 * On sparc64, physical memory can start on a non-zero address.
 	 * The generic frame_init() only marks PFN 0 as not free, so we

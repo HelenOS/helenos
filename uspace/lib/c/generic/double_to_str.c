@@ -85,7 +85,7 @@ static fp_num_t normalize(fp_num_t num)
 static fp_num_t multiply(fp_num_t x, fp_num_t y)
 {
 	assert(/* is_normalized(x) && */ is_normalized(y));
-	
+
 	const uint32_t low_bits = -1;
 
 	uint64_t a, b, c, d;
@@ -97,7 +97,7 @@ static fp_num_t multiply(fp_num_t x, fp_num_t y)
 	uint64_t bd, ad, bc, ac;
 	bd = b * d;
 	ad = a * d;
-	
+
 	bc = b * c;
 	ac = a * c;
 
@@ -124,7 +124,7 @@ static fp_num_t multiply(fp_num_t x, fp_num_t y)
 	fp_num_t ret;
 	ret.significand = ac + (bc >> 32) + (ad >> 32) + (tmp >> 32);
 	ret.exponent = x.exponent + y.exponent + significand_width;
-	
+
 	return ret;
 }
 
@@ -136,7 +136,7 @@ static fp_num_t subtract(fp_num_t a, fp_num_t b)
 	assert(a.significand >= b.significand);
 
 	fp_num_t result;
-	
+
 	result.significand = a.significand - b.significand;
 	result.exponent = a.exponent;
 
@@ -362,7 +362,7 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 	 *  upper / one == upper >> -one.e
 	 */
 	uint32_t int_part = (uint32_t)(scaled_upper.significand >> (-one.exponent));
-	
+
 	/*
 	 * Fractional part of scaled_upper.
 	 *  upper % one == upper & (one.f - 1)
@@ -429,7 +429,7 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 
 		/* frac_part / one */
 		int digit = (int)(frac_part >> (-one.exponent));
-		
+
 		/* frac_part %= one */
 		frac_part &= one.significand - 1;
 
@@ -644,7 +644,7 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 
 		/* frac_part / one */
 		int digit = (int)(frac_part >> (-one.exponent));
-		
+
 		/* frac_part %= one */
 		frac_part &= one.significand - 1;
 

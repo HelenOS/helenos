@@ -81,13 +81,13 @@ int main(int argc, char **argv)
 		printf(NAME ": failed to connect to VFS\n");
 		return -1;
 	}
-	
+
 	rc = fs_register(vfs_sess, &exfat_vfs_info, &exfat_ops, &exfat_libfs_ops);
 	if (rc != EOK) {
 		exfat_idx_fini();
 		goto err;
 	}
-	
+
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
 	async_manager();

@@ -129,15 +129,15 @@ static void i8042_irq_handler(ipc_call_t *call, ddf_dev_t *dev)
 {
 	i8042_t *controller = ddf_dev_data_get(dev);
 	errno_t rc;
-	
+
 	const uint8_t status = IPC_GET_ARG1(*call);
 	const uint8_t data = IPC_GET_ARG2(*call);
-	
+
 	i8042_port_t *port = (status & i8042_AUX_DATA) ?
 	    controller->aux : controller->kbd;
-	
+
 	fibril_mutex_lock(&port->buf_lock);
-	
+
 	rc = circ_buf_push(&port->cbuf, &data);
 	if (rc != EOK)
 		ddf_msg(LVL_ERROR, "Buffer overrun");
@@ -168,33 +168,33 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	ddf_fun_t *kbd_fun;
 	ddf_fun_t *aux_fun;
 	i8042_regs_t *ar;
-	
+
 	errno_t rc;
 	bool kbd_bound = false;
 	bool aux_bound = false;
-	
+
 	if (regs->size < sizeof(i8042_regs_t)) {
 		rc = EINVAL;
 		goto error;
 	}
-	
+
 	if (pio_enable_range(regs, (void **) &dev->regs) != 0) {
 		rc = EIO;
 		goto error;
 	}
-	
+
 	kbd_fun = ddf_fun_create(ddf_dev, fun_inner, "ps2a");
 	if (kbd_fun == NULL) {
 		rc = ENOMEM;
 		goto error;
 	};
-	
+
 	dev->kbd = ddf_fun_data_alloc(kbd_fun, sizeof(i8042_port_t));
 	if (dev->kbd == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
-	
+
 	dev->kbd->fun = kbd_fun;
 	dev->kbd->ctl = dev;
 	chardev_srvs_init(&dev->kbd->cds);
@@ -202,23 +202,23 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	dev->kbd->cds.sarg = dev->kbd;
 	fibril_mutex_initialize(&dev->kbd->buf_lock);
 	fibril_condvar_initialize(&dev->kbd->buf_cv);
-	
+
 	rc = ddf_fun_add_match_id(dev->kbd->fun, "char/xtkbd", 90);
 	if (rc != EOK)
 		goto error;
-	
+
 	aux_fun = ddf_fun_create(ddf_dev, fun_inner, "ps2b");
 	if (aux_fun == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
-	
+
 	dev->aux = ddf_fun_data_alloc(aux_fun, sizeof(i8042_port_t));
 	if (dev->aux == NULL) {
 		rc = ENOMEM;
 		goto error;
 	}
-	
+
 	dev->aux->fun = aux_fun;
 	dev->aux->ctl = dev;
 	chardev_srvs_init(&dev->aux->cds);
@@ -226,18 +226,18 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	dev->aux->cds.sarg = dev->aux;
 	fibril_mutex_initialize(&dev->aux->buf_lock);
 	fibril_condvar_initialize(&dev->aux->buf_cv);
-	
+
 	rc = ddf_fun_add_match_id(dev->aux->fun, "char/ps2mouse", 90);
 	if (rc != EOK)
 		goto error;
-	
+
 	ddf_fun_set_conn_handler(dev->kbd->fun, i8042_char_conn);
 	ddf_fun_set_conn_handler(dev->aux->fun, i8042_char_conn);
-	
+
 	circ_buf_init(&dev->kbd->cbuf, dev->kbd->buf_data, BUFFER_SIZE, 1);
 	circ_buf_init(&dev->aux->cbuf, dev->aux->buf_data, BUFFER_SIZE, 1);
 	fibril_mutex_initialize(&dev->write_guard);
-	
+
 	rc = ddf_fun_bind(dev->kbd->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to bind keyboard function: %s.",
@@ -245,7 +245,7 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		goto error;
 	}
 	kbd_bound = true;
-	
+
 	rc = ddf_fun_bind(dev->aux->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to bind aux function: %s.",
@@ -253,13 +253,13 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		goto error;
 	}
 	aux_bound = true;
-	
+
 	/* Disable kbd and aux */
 	wait_ready(dev);
 	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
 	wait_ready(dev);
 	pio_write_8(&dev->regs->data, i8042_KBD_DISABLE | i8042_AUX_DISABLE);
-	
+
 	/* Flush all current IO */
 	while (pio_read_8(&dev->regs->status) & i8042_OUTPUT_FULL)
 		(void) pio_read_8(&dev->regs->data);
@@ -279,7 +279,7 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		.cmdcount = cmd_count,
 		.cmds = cmds
 	};
-	
+
 	int irq_kbd_cap;
 	rc = register_interrupt_handler(ddf_dev, irq_kbd,
 	    i8042_irq_handler, &irq_code, &irq_kbd_cap);
@@ -288,7 +288,7 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		    ddf_dev_get_name(ddf_dev));
 		goto error;
 	}
-	
+
 	int irq_mouse_cap;
 	rc = register_interrupt_handler(ddf_dev, irq_mouse,
 	    i8042_irq_handler, &irq_code, &irq_mouse_cap);
@@ -297,11 +297,11 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		    ddf_dev_get_name(ddf_dev));
 		goto error;
 	}
-	
+
 	/* Enable interrupts */
 	async_sess_t *parent_sess = ddf_dev_parent_sess_get(ddf_dev);
 	assert(parent_sess != NULL);
-	
+
 	rc = hw_res_enable_interrupt(parent_sess, irq_kbd);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to enable keyboard interrupt: %s.",
@@ -317,14 +317,14 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		rc = EIO;
 		goto error;
 	}
-	
+
 	/* Enable port interrupts. */
 	wait_ready(dev);
 	pio_write_8(&dev->regs->status, i8042_CMD_WRITE_CMDB);
 	wait_ready(dev);
 	pio_write_8(&dev->regs->data, i8042_KBD_IE | i8042_KBD_TRANSLATE |
 	    i8042_AUX_IE);
-	
+
 	return EOK;
 error:
 	if (kbd_bound)
@@ -355,20 +355,20 @@ static errno_t i8042_write(chardev_srv_t *srv, const void *data, size_t size,
 	i8042_port_t *port = (i8042_port_t *)srv->srvs->sarg;
 	i8042_t *i8042 = port->ctl;
 	const char *dp = (const char *)data;
-	
+
 	fibril_mutex_lock(&i8042->write_guard);
-	
+
 	for (size_t i = 0; i < size; ++i) {
 		if (port == i8042->aux) {
 			wait_ready(i8042);
 			pio_write_8(&i8042->regs->status,
 			    i8042_CMD_WRITE_AUX);
 		}
-		
+
 		wait_ready(i8042);
 		pio_write_8(&i8042->regs->data, dp[i]);
 	}
-	
+
 	fibril_mutex_unlock(&i8042->write_guard);
 	*nwr = size;
 	return EOK;
@@ -391,9 +391,9 @@ static errno_t i8042_read(chardev_srv_t *srv, void *dest, size_t size,
 	size_t p;
 	uint8_t *destp = (uint8_t *)dest;
 	errno_t rc;
-	
+
 	fibril_mutex_lock(&port->buf_lock);
-	
+
 	while (circ_buf_nused(&port->cbuf) == 0)
 		fibril_condvar_wait(&port->buf_cv, &port->buf_lock);
 

@@ -48,7 +48,7 @@ static uint32_t *cpumap = (uint32_t *) PA2KA(CPUMAP_OFFSET);
 void bootstrap(void)
 {
 	version_print();
-	
+
 	printf("\nMemory statistics\n");
 	printf(" %p|%p: CPU map\n", (void *) PA2KA(CPUMAP_OFFSET),
 	    (void *) CPUMAP_OFFSET);
@@ -60,7 +60,7 @@ void bootstrap(void)
 	    (void *) BOOT_OFFSET);
 	printf(" %p|%p: bootloader entry point\n",
 	    (void *) PA2KA(LOADER_OFFSET), (void *) LOADER_OFFSET);
-	
+
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
@@ -69,31 +69,31 @@ void bootstrap(void)
 		    (void *) KA2PA(components[i].addr),
 		    components[i].name, components[i].inflated,
 		    components[i].size);
-	
+
 	void *dest[COMPONENTS];
 	size_t top = 0;
 	size_t cnt = 0;
 	bootinfo->cnt = 0;
 	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
 		top = ALIGN_UP(top, PAGE_SIZE);
-		
+
 		if (i > 0) {
 			bootinfo->tasks[bootinfo->cnt].addr = TOP2ADDR(top);
 			bootinfo->tasks[bootinfo->cnt].size = components[i].inflated;
-			
+
 			str_cpy(bootinfo->tasks[bootinfo->cnt].name,
 			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-			
+
 			bootinfo->cnt++;
 		}
-		
+
 		dest[i] = TOP2ADDR(top);
 		top += components[i].inflated;
 		cnt++;
 	}
-	
+
 	printf("\nInflating components ... ");
-	
+
 	for (i = cnt; i > 0; i--) {
 #ifdef MACHINE_msim
 		void *tail = dest[i - 1] + components[i].inflated;
@@ -103,29 +103,29 @@ void bootstrap(void)
 			halt();
 		}
 #endif
-		
+
 		printf("%s ", components[i - 1].name);
-		
+
 		int err = inflate(components[i - 1].addr, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
-		
+
 		if (err != EOK) {
 			printf("\n%s: Inflating error %d, halting.\n",
 			    components[i - 1].name, err);
 			halt();
 		}
 	}
-	
+
 	printf(".\n");
-	
+
 	printf("Copying CPU map ... \n");
-	
+
 	bootinfo->cpumap = 0;
 	for (i = 0; i < CPUMAP_MAX_RECORDS; i++) {
 		if (cpumap[i] != 0)
 			bootinfo->cpumap |= (1 << i);
 	}
-	
+
 	printf("Booting the kernel ... \n");
 	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), bootinfo);
 }

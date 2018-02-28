@@ -54,13 +54,13 @@ FUNCTION_BEGIN(context_save_arch)
 	stw r29, CONTEXT_OFFSET_R29(r3)
 	stw r30, CONTEXT_OFFSET_R30(r3)
 	stw r31, CONTEXT_OFFSET_R31(r3)
-	
+
 	mflr r4
 	stw r4, CONTEXT_OFFSET_PC(r3)
-	
+
 	mfcr r4
 	stw r4, CONTEXT_OFFSET_CR(r3)
-	
+
 	# context_save returns 1
 	li r3, 1
 	blr
@@ -88,13 +88,13 @@ FUNCTION_BEGIN(context_restore_arch)
 	lwz r29, CONTEXT_OFFSET_R29(r3)
 	lwz r30, CONTEXT_OFFSET_R30(r3)
 	lwz r31, CONTEXT_OFFSET_R31(r3)
-	
+
 	lwz r4, CONTEXT_OFFSET_CR(r3)
 	mtcr r4
-	
+
 	lwz r4, CONTEXT_OFFSET_PC(r3)
 	mtlr r4
-	
+
 	# context_restore returns 0
 	li r3, 0
 	blr

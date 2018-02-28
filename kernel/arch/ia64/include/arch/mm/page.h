@@ -116,16 +116,16 @@ struct vhpt_entry_present {
 	unsigned int : 2;
 	unsigned int ed : 1;
 	unsigned int ig1 : 11;
-	
+
 	/* Word 1 */
 	unsigned int : 2;
 	unsigned int ps : 6;
 	unsigned int key : 24;
 	unsigned int : 32;
-	
+
 	/* Word 2 */
 	union vhpt_tag tag;
-	
+
 	/* Word 3 */
 	uint64_t ig3 : 64;
 } __attribute__ ((packed));
@@ -135,15 +135,15 @@ struct vhpt_entry_not_present {
 	unsigned int p : 1;
 	unsigned long long ig0 : 52;
 	unsigned int ig1 : 11;
-	
+
 	/* Word 1 */
 	unsigned int : 2;
 	unsigned int ps : 6;
 	unsigned long long ig2 : 56;
-	
+
 	/* Word 2 */
 	union vhpt_tag tag;
-	
+
 	/* Word 3 */
 	uint64_t ig3 : 64;
 } __attribute__ ((packed));
@@ -193,13 +193,13 @@ typedef union pta_register {
 NO_TRACE static inline uint64_t thash(uint64_t va)
 {
 	uint64_t ret;
-	
+
 	asm volatile (
 		"thash %[ret] = %[va]\n"
 		: [ret] "=r" (ret)
 		: [va] "r" (va)
 	);
-	
+
 	return ret;
 }
 
@@ -215,13 +215,13 @@ NO_TRACE static inline uint64_t thash(uint64_t va)
 NO_TRACE static inline uint64_t ttag(uint64_t va)
 {
 	uint64_t ret;
-	
+
 	asm volatile (
 		"ttag %[ret] = %[va]\n"
 		: [ret] "=r" (ret)
 		: [va] "r" (va)
 	);
-	
+
 	return ret;
 }
 
@@ -234,15 +234,15 @@ NO_TRACE static inline uint64_t ttag(uint64_t va)
 NO_TRACE static inline uint64_t rr_read(size_t i)
 {
 	uint64_t ret;
-	
+
 	assert(i < REGION_REGISTERS);
-	
+
 	asm volatile (
 		"mov %[ret] = rr[%[index]]\n"
 		: [ret] "=r" (ret)
 		: [index] "r" (i << VRN_SHIFT)
 	);
-	
+
 	return ret;
 }
 
@@ -254,7 +254,7 @@ NO_TRACE static inline uint64_t rr_read(size_t i)
 NO_TRACE static inline void rr_write(size_t i, uint64_t v)
 {
 	assert(i < REGION_REGISTERS);
-	
+
 	asm volatile (
 		"mov rr[%[index]] = %[value]\n"
 		:: [index] "r" (i << VRN_SHIFT),
@@ -269,12 +269,12 @@ NO_TRACE static inline void rr_write(size_t i, uint64_t v)
 NO_TRACE static inline uint64_t pta_read(void)
 {
 	uint64_t ret;
-	
+
 	asm volatile (
 		"mov %[ret] = cr.pta\n"
 		: [ret] "=r" (ret)
 	);
-	
+
 	return ret;
 }
 

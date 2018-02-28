@@ -112,7 +112,7 @@ void inet_addrobj_remove(inet_addrobj_t *addr)
 inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 {
 	fibril_mutex_lock(&addr_list_lock);
-	
+
 	list_foreach(addr_list, addr_list, inet_addrobj_t, naddr) {
 		switch (find) {
 		case iaf_net:
@@ -133,10 +133,10 @@ inet_addrobj_t *inet_addrobj_find(inet_addr_t *addr, inet_addrobj_find_t find)
 			break;
 		}
 	}
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_addrobj_find: Not found");
 	fibril_mutex_unlock(&addr_list_lock);
-	
+
 	return NULL;
 }
 

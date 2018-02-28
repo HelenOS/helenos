@@ -44,7 +44,7 @@ memmap_t memmap;
 void physmem_print(void)
 {
 	printf("[base    ] [size    ]\n");
-	
+
 	size_t i;
 	for (i = 0; i < memmap.cnt; i++) {
 		printf("%p %#0zx\n", memmap.zones[i].start,
@@ -56,14 +56,14 @@ static void frame_common_arch_init(bool low)
 {
 	pfn_t minconf = 2;
 	size_t i;
-	
+
 	for (i = 0; i < memmap.cnt; i++) {
 		/* To be safe, make the available zone possibly smaller */
 		uintptr_t base = ALIGN_UP((uintptr_t) memmap.zones[i].start,
 		    FRAME_SIZE);
 		size_t size = ALIGN_DOWN(memmap.zones[i].size -
 		    (base - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
-		
+
 		if (!frame_adjust_zone_bounds(low, &base, &size))
 			return;
 
@@ -85,20 +85,20 @@ static void frame_common_arch_init(bool low)
 				    ZONE_AVAILABLE | ZONE_HIGHMEM);
 		}
 	}
-	
+
 }
 
 void frame_low_arch_init(void)
 {
 	frame_common_arch_init(true);
-	
+
 	/* First is exception vector, second is 'implementation specific',
 	   third and fourth is reserved, other contain real mode code */
 	frame_mark_unavailable(0, 8);
-	
+
 	/* Mark the Page Hash Table frames as unavailable */
 	uint32_t sdr1 = sdr1_get();
-	
+
 	// FIXME: compute size of PHT exactly
 	frame_mark_unavailable(ADDR2PFN(sdr1 & 0xffff000), 16);
 }

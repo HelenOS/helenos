@@ -192,7 +192,7 @@ errno_t phone_alloc(task_t *task, cap_handle_t *out_handle)
 		kobject_initialize(kobject, KOBJECT_TYPE_PHONE, phone,
 		    &phone_kobject_ops);
 		phone->kobject = kobject;
-		
+
 		cap_publish(task, handle, kobject);
 
 		*out_handle = handle;
@@ -212,10 +212,10 @@ void phone_dealloc(cap_handle_t handle)
 	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
 		return;
-	
+
 	assert(kobj->phone);
 	assert(kobj->phone->state == IPC_PHONE_CONNECTING);
-	
+
 	kobject_put(kobj);
 	cap_free(TASK, handle);
 }
@@ -231,9 +231,9 @@ bool phone_connect(cap_handle_t handle, answerbox_t *box)
 	kobject_t *phone_obj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!phone_obj)
 		return false;
-	
+
 	assert(phone_obj->phone->state == IPC_PHONE_CONNECTING);
-	
+
 	/* Hand over phone_obj reference to the answerbox */
 	return ipc_phone_connect(phone_obj->phone, box);
 }

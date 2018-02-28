@@ -69,7 +69,7 @@ ofw_tree_property_t *ofw_tree_getprop(const ofw_tree_node_t *node,
 		if (str_cmp(node->property[i].name, name) == 0)
 			return &node->property[i];
 	}
-	
+
 	return NULL;
 }
 
@@ -86,7 +86,7 @@ const char *ofw_tree_node_name(const ofw_tree_node_t *node)
 	ofw_tree_property_t *prop = ofw_tree_getprop(node, "name");
 	if ((!prop) || (prop->size < 2))
 		return NULL;
-	
+
 	return prop->value;
 }
 
@@ -109,7 +109,7 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node,
 		if (str_cmp(cur->da_name, name) == 0)
 			return cur;
 	}
-	
+
 	/*
 	 * Disambigued name not found.
 	 * Lets try our luck with possibly ambiguous "name" property.
@@ -121,7 +121,7 @@ ofw_tree_node_t *ofw_tree_find_child(ofw_tree_node_t *node,
 		if (str_cmp(ofw_tree_node_name(cur), name) == 0)
 			return cur;
 	}
-	
+
 	return NULL;
 }
 
@@ -140,14 +140,14 @@ ofw_tree_node_t *ofw_tree_find_child_by_device_type(ofw_tree_node_t *node,
 	for (ofw_tree_node_t *cur = node->child; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
-		
+
 		if ((!prop) || (!prop->value))
 			continue;
-		
+
 		if (str_cmp(prop->value, dtype) == 0)
 			return cur;
 	}
-	
+
 	return NULL;
 }
 
@@ -169,7 +169,7 @@ ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root,
 	for (ofw_tree_node_t *cur = root; cur; cur = cur->peer) {
 		if (cur->node_handle == handle)
 			return cur;
-		
+
 		if (cur->child) {
 			ofw_tree_node_t *node =
 			    ofw_tree_find_node_by_handle(cur->child, handle);
@@ -177,7 +177,7 @@ ofw_tree_node_t *ofw_tree_find_node_by_handle(ofw_tree_node_t *root,
 				return node;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -196,14 +196,14 @@ ofw_tree_node_t *ofw_tree_find_peer_by_device_type(ofw_tree_node_t *node,
 	for (ofw_tree_node_t *cur = node->peer; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
-		
+
 		if ((!prop) || (!prop->value))
 			continue;
-		
+
 		if (str_cmp(prop->value, dtype) == 0)
 			return cur;
 	}
-	
+
 	return NULL;
 }
 
@@ -222,14 +222,14 @@ ofw_tree_node_t *ofw_tree_find_peer_by_name(ofw_tree_node_t *node,
 	for (ofw_tree_node_t *cur = node->peer; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "name");
-		
+
 		if ((!prop) || (!prop->value))
 			continue;
-		
+
 		if (str_cmp(prop->value, name) == 0)
 			return cur;
 	}
-	
+
 	return NULL;
 }
 
@@ -245,23 +245,23 @@ ofw_tree_node_t *ofw_tree_lookup(const char *path)
 {
 	if (path[0] != '/')
 		return NULL;
-	
+
 	ofw_tree_node_t *node = ofw_root;
 	size_t j;
-	
+
 	for (size_t i = 1; (i < str_size(path)) && (node); i = j + 1) {
 		for (j = i; (j < str_size(path)) && (path[j] != '/'); j++);
-		
+
 		/* Skip extra slashes */
 		if (i == j)
 			continue;
-		
+
 		char buf[NAME_BUF_LEN + 1];
 		memcpy(buf, &path[i], j - i);
 		buf[j - i] = 0;
 		node = ofw_tree_find_child(node, buf);
 	}
-	
+
 	return node;
 }
 
@@ -284,13 +284,13 @@ static bool ofw_tree_walk_by_device_type_internal(ofw_tree_node_t *node,
 	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
 		ofw_tree_property_t *prop =
 		    ofw_tree_getprop(cur, "device_type");
-		
+
 		if ((prop) && (prop->value) && (str_cmp(prop->value, dtype) == 0)) {
 			bool ret = walker(cur, arg);
 			if (!ret)
 				return false;
 		}
-		
+
 		if (cur->child) {
 			bool ret =
 			    ofw_tree_walk_by_device_type_internal(cur->child, dtype, walker, arg);
@@ -298,7 +298,7 @@ static bool ofw_tree_walk_by_device_type_internal(ofw_tree_node_t *node,
 				return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -335,40 +335,40 @@ static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
     bool dry_run, void *data)
 {
 	ofw_tree_node_t *node = (ofw_tree_node_t *) data;
-	
+
 	/* Compute serialized data size */
 	*size = 0;
 	for (size_t i = 0; i < node->properties; i++)
 		*size += str_size(node->property[i].name) + 1 +
 		    sizeof(node->property[i].size) + node->property[i].size;
-	
+
 	if (dry_run)
 		return NULL;
-	
+
 	void *dump = malloc(*size, FRAME_ATOMIC);
 	if (dump == NULL) {
 		*size = 0;
 		return NULL;
 	}
-	
+
 	/* Serialize the data */
 	size_t pos = 0;
 	for (size_t i = 0; i < node->properties; i++) {
 		/* Property name */
 		str_cpy(dump + pos, *size - pos, node->property[i].name);
 		pos += str_size(node->property[i].name) + 1;
-		
+
 		/* Value size */
 		memcpy(dump + pos, &node->property[i].size,
 		    sizeof(node->property[i].size));
 		pos += sizeof(node->property[i].size);
-		
+
 		/* Value */
 		memcpy(dump + pos, node->property[i].value,
 		    node->property[i].size);
 		pos += node->property[i].size;
 	}
-	
+
 	return ((void *) dump);
 }
 
@@ -384,20 +384,20 @@ static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
 static void ofw_tree_node_sysinfo(ofw_tree_node_t *node, const char *path)
 {
 	char *cur_path = (char *) malloc(PATH_MAX_LEN, 0);
-	
+
 	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
 		if ((cur->parent) && (path))
 			snprintf(cur_path, PATH_MAX_LEN, "%s.%s", path, cur->da_name);
 		else
 			snprintf(cur_path, PATH_MAX_LEN, "firmware.%s", cur->da_name);
-		
+
 		sysinfo_set_item_gen_data(cur_path, NULL, ofw_sysinfo_properties,
 		    (void *) cur);
-		
+
 		if (cur->child)
 			ofw_tree_node_sysinfo(cur->child, cur_path);
 	}
-	
+
 	free(cur_path);
 }
 

@@ -74,41 +74,41 @@ typedef struct thread {
 	link_t rq_link;  /**< Run queue link. */
 	link_t wq_link;  /**< Wait queue link. */
 	link_t th_link;  /**< Links to threads within containing task. */
-	
+
 	/** Threads linkage to the threads_tree. */
 	avltree_node_t threads_tree_node;
-	
+
 	/** Lock protecting thread structure.
 	 *
 	 * Protects the whole thread structure except list links above.
 	 */
 	IRQ_SPINLOCK_DECLARE(lock);
-	
+
 	char name[THREAD_NAME_BUFLEN];
-	
+
 	/** Function implementing the thread. */
 	void (*thread_code)(void *);
 	/** Argument passed to thread_code() function. */
 	void *thread_arg;
-	
+
 	/**
 	 * From here, the stored context is restored
 	 * when the thread is scheduled.
 	 */
 	context_t saved_context;
-	
+
 	/**
 	 * From here, the stored timeout context
 	 * is restored when sleep times out.
 	 */
 	context_t sleep_timeout_context;
-	
+
 	/**
 	 * From here, the stored interruption context
 	 * is restored when sleep is interrupted.
 	 */
 	context_t sleep_interruption_context;
-	
+
 	/** If true, the thread can be interrupted from sleep. */
 	bool sleep_interruptible;
 	/** Wait queue in which this thread sleeps. */
@@ -117,48 +117,48 @@ typedef struct thread {
 	timeout_t sleep_timeout;
 	/** Flag signalling sleep timeout in progress. */
 	volatile bool timeout_pending;
-	
+
 	/**
 	 * True if this thread is executing copy_from_uspace().
 	 * False otherwise.
 	 */
 	bool in_copy_from_uspace;
-	
+
 	/**
 	 * True if this thread is executing copy_to_uspace().
 	 * False otherwise.
 	 */
 	bool in_copy_to_uspace;
-	
+
 	/**
 	 * If true, the thread will not go to sleep at all and will call
 	 * thread_exit() before returning to userspace.
 	 */
 	bool interrupted;
-	
+
 	/** If true, thread_join_timeout() cannot be used on this thread. */
 	bool detached;
 	/** Waitq for thread_join_timeout(). */
 	waitq_t join_wq;
 	/** Link used in the joiner_head list. */
 	link_t joiner_link;
-	
+
 	fpu_context_t *saved_fpu_context;
 	bool fpu_context_exists;
-	
+
 	/*
 	 * Defined only if thread doesn't run.
 	 * It means that fpu context is in CPU that last time executes this
 	 * thread. This disables migration.
 	 */
 	bool fpu_context_engaged;
-	
+
 	/* The thread will not be migrated if nomigrate is non-zero. */
 	unsigned int nomigrate;
-	
+
 	/** Thread state. */
 	state_t state;
-	
+
 	/** Thread CPU. */
 	cpu_t *cpu;
 	/** Containing task. */
@@ -169,10 +169,10 @@ typedef struct thread {
 	bool stolen;
 	/** Thread is executed in user space. */
 	bool uspace;
-	
+
 	/** Ticks before preemption. */
 	uint64_t ticks;
-	
+
 	/** Thread accounting. */
 	uint64_t ucycles;
 	uint64_t kcycles;
@@ -180,7 +180,7 @@ typedef struct thread {
 	uint64_t last_cycle;
 	/** Thread doesn't affect accumulated accounting. */
 	bool uncounted;
-	
+
 	/** Thread's priority. Implemented as index to CPU->rq */
 	int priority;
 	/** Thread ID. */
@@ -194,23 +194,23 @@ typedef struct thread {
 	bool workq_blocked;
 	/** True if the worker will block in order to become idle. Use workq->lock. */
 	bool workq_idling;
-	
+
 	/** RCU thread related data. Protected by its own locks. */
 	rcu_thread_data_t rcu;
-	
+
 	/** Architecture-specific data. */
 	thread_arch_t arch;
-	
+
 	/** Thread's kernel stack. */
 	uint8_t *kstack;
-	
+
 #ifdef CONFIG_UDEBUG
 	/**
 	 * If true, the scheduler will print a stack trace
 	 * to the kernel console upon scheduling this thread.
 	 */
 	bool btrace;
-	
+
 	/** Debugging stuff */
 	udebug_thread_t udebug;
 #endif /* CONFIG_UDEBUG */

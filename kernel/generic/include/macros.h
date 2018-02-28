@@ -61,7 +61,7 @@ NO_TRACE static inline int overlaps(uint64_t s1, uint64_t sz1, uint64_t s2,
 	/* one size is non-zero */
 	if (sz2)
 		return ((s1 >= s2) && (s1 <= e2));
-	
+
 	if (sz1)
 		return ((s2 >= s1) && (s2 <= e1));
 
@@ -86,11 +86,11 @@ NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
 	/* Handle the two corner cases when either sz1 or sz2 are zero. */
 	if (sz1 == 0)
 		return (s1 == s2) && (sz2 == 0);
-	
+
 	e1 = s1 + sz1 - 1;
 	if (sz2 == 0)
 		return (s1 <= s2) && (s2 <= e1);
-	
+
 	e2 = s2 + sz2 - 1;
 
 	/* e1 and e2 are end addresses, the sum is imune to overflow */

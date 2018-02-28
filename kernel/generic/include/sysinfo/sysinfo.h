@@ -136,13 +136,13 @@ typedef union {
  */
 typedef struct sysinfo_item {
 	char *name;                           /**< Item name */
-	
+
 	sysinfo_item_val_type_t val_type;     /**< Item value type */
 	sysinfo_item_val_t val;               /**< Item value */
-	
+
 	sysinfo_subtree_type_t subtree_type;  /**< Subtree type */
 	sysinfo_subtree_t subtree;            /**< Subtree */
-	
+
 	struct sysinfo_item *next;            /**< Sibling item */
 } sysinfo_item_t;
 

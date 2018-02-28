@@ -188,7 +188,7 @@ static unsigned int rm_recursive_not_empty_dirs(const char *path)
 	}
 
 	closedir(dirp);
-	
+
 	return ret;
 }
 

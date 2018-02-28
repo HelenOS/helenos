@@ -47,7 +47,7 @@ void __helenos_assert_quick_abort(const char *cond, const char *file, unsigned i
 	 */
 	kio_printf("Assertion failed (%s) in file \"%s\", line %u.\n",
 	    cond, file, line);
-	
+
 	/* Sometimes we know in advance that regular printf() would likely fail. */
 	abort();
 }
@@ -59,13 +59,13 @@ void __helenos_assert_abort(const char *cond, const char *file, unsigned int lin
 	 */
 	kio_printf("Assertion failed (%s) in file \"%s\", line %u.\n",
 	    cond, file, line);
-	
+
 	/*
 	 * Check if this is a nested or parallel assert.
 	 */
 	if (atomic_postinc(&failed_asserts))
 		abort();
-	
+
 	/*
 	 * Attempt to print the message to standard output and display
 	 * the stack trace. These operations can theoretically trigger nested
@@ -74,7 +74,7 @@ void __helenos_assert_abort(const char *cond, const char *file, unsigned int lin
 	printf("Assertion failed (%s) in file \"%s\", line %u.\n",
 	    cond, file, line);
 	stacktrace_print();
-	
+
 	abort();
 }
 

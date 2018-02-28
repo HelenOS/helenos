@@ -248,7 +248,7 @@ mfs_prune_ind_zones(struct mfs_node *mnode, size_t new_size)
 	int i;
 
 	mfs_version_t fs_version = sbi->fs_version;
-	
+
 	assert(new_size <= ino_i->i_size);
 
 	if (fs_version == MFS_VERSION_V1) {

@@ -43,7 +43,7 @@ typedef struct {
 	size_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } binit_task_t;
-	
+
 typedef struct {
 	size_t cnt;
 	binit_task_t tasks[TASKMAP_MAX_RECORDS];
@@ -57,10 +57,10 @@ typedef struct {
 
 typedef struct {
 	binit_t taskmap;
-	
+
 	memmap_item_t memmap[MEMMAP_ITEMS];
 	unsigned int memmap_items;
-	
+
 	sysarg_t *sapic;
 	unsigned long sys_freq;
 	unsigned long freq_scale;

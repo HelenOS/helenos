@@ -65,24 +65,24 @@ static errno_t read_fibril(void *unused)
 static void mouse_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	async_answer_0(iid, EOK);
-	
+
 	async_sess_t *sess =
 	    async_callback_receive(EXCHANGE_SERIALIZE);
-	
+
 	fibril_mutex_lock(&client_mutex);
-	
+
 	if (client_sess == NULL)
 		client_sess = sess;
-	
+
 	fibril_mutex_unlock(&client_mutex);
 
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		async_answer_0(callid, ENOTSUP);
 	}
 }
@@ -92,9 +92,9 @@ static void emit_event(const isdv4_event_t *event)
 	fibril_mutex_lock(&client_mutex);
 	async_sess_t *sess = client_sess;
 	fibril_mutex_unlock(&client_mutex);
-	
+
 	if (!sess) return;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch) {
 		unsigned int max_x = state.stylus_max_x;
@@ -152,7 +152,7 @@ static void print_and_emit_event(const isdv4_event_t *event)
 
 	printf("%s %s %u %u %u %u\n", type, source, event->x, event->y,
 	    event->pressure, event->button);
-	
+
 	emit_event(event);
 }
 
@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 	}
 	printf(" Touch: %ux%u type: %s\n", state.touch_max_x, state.touch_max_y,
 		touch_type(state.touch_type));
-	
+
 	fid_t fibril = fibril_create(read_fibril, NULL);
 	/* From this on, state is to be used only by read_fibril */
 	fibril_add_ready(fibril);

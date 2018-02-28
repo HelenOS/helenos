@@ -47,23 +47,23 @@ console_ctrl_t *console_init(FILE *ifile, FILE *ofile)
 	console_ctrl_t *ctrl = malloc(sizeof(console_ctrl_t));
 	if (!ctrl)
 		return NULL;
-	
+
 	ctrl->input_sess = vfs_fsession(ifile, INTERFACE_CONSOLE);
 	if (!ctrl->input_sess) {
 		free(ctrl);
 		return NULL;
 	}
-	
+
 	ctrl->output_sess = vfs_fsession(ofile, INTERFACE_CONSOLE);
 	if (!ctrl->output_sess) {
 		free(ctrl);
 		return NULL;
 	}
-	
+
 	ctrl->input = ifile;
 	ctrl->output = ofile;
 	ctrl->input_aid = 0;
-	
+
 	return ctrl;
 }
 
@@ -94,7 +94,7 @@ errno_t console_get_size(console_ctrl_t *ctrl, sysarg_t *cols, sysarg_t *rows)
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
 	errno_t rc = async_req_0_2(exch, CONSOLE_GET_SIZE, cols, rows);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -133,7 +133,7 @@ errno_t console_get_color_cap(console_ctrl_t *ctrl, sysarg_t *ccap)
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
 	errno_t rc = async_req_0_1(exch, CONSOLE_GET_COLOR_CAP, ccap);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -142,7 +142,7 @@ errno_t console_get_pos(console_ctrl_t *ctrl, sysarg_t *col, sysarg_t *row)
 	async_exch_t *exch = async_exchange_begin(ctrl->output_sess);
 	errno_t rc = async_req_0_2(exch, CONSOLE_GET_POS, col, row);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -182,19 +182,19 @@ bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 {
 	if (ctrl->input_aid == 0) {
 		ipc_call_t result;
-		
+
 		async_exch_t *exch = async_exchange_begin(ctrl->input_sess);
 		aid_t aid = async_send_0(exch, CONSOLE_GET_EVENT, &result);
 		async_exchange_end(exch);
-		
+
 		errno_t rc;
 		async_wait_for(aid, &rc);
-		
+
 		if (rc != EOK) {
 			errno = rc;
 			return false;
 		}
-		
+
 		rc = console_ev_decode(&result, event);
 		if (rc != EOK) {
 			errno = rc;
@@ -203,21 +203,21 @@ bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 	} else {
 		errno_t retval;
 		async_wait_for(ctrl->input_aid, &retval);
-		
+
 		ctrl->input_aid = 0;
-		
+
 		if (retval != EOK) {
 			errno = retval;
 			return false;
 		}
-		
+
 		errno_t rc = console_ev_decode(&ctrl->input_call, event);
 		if (rc != EOK) {
 			errno = rc;
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -226,14 +226,14 @@ bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
 {
 	struct timeval t0;
 	gettimeofday(&t0, NULL);
-	
+
 	if (ctrl->input_aid == 0) {
 		async_exch_t *exch = async_exchange_begin(ctrl->input_sess);
 		ctrl->input_aid = async_send_0(exch, CONSOLE_GET_EVENT,
 		    &ctrl->input_call);
 		async_exchange_end(exch);
 	}
-	
+
 	errno_t retval;
 	errno_t rc = async_wait_timeout(ctrl->input_aid, &retval, *timeout);
 	if (rc != EOK) {
@@ -241,25 +241,25 @@ bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
 		errno = rc;
 		return false;
 	}
-	
+
 	ctrl->input_aid = 0;
-	
+
 	if (retval != EOK) {
 		errno = retval;
 		return false;
 	}
-	
+
 	rc = console_ev_decode(&ctrl->input_call, event);
 	if (rc != EOK) {
 		errno = rc;
 		return false;
 	}
-	
+
 	/* Update timeout */
 	struct timeval t1;
 	gettimeofday(&t1, NULL);
 	*timeout -= tv_sub_diff(&t1, &t0);
-	
+
 	return true;
 }
 

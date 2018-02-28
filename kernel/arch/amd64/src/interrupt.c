@@ -69,24 +69,24 @@ void istate_decode(istate_t *istate)
 	log_printf("cs =%0#18" PRIx64 "\trip=%0#18" PRIx64 "\t"
 	    "rfl=%0#18" PRIx64 "\terr=%0#18" PRIx64 "\n",
 	    istate->cs, istate->rip, istate->rflags, istate->error_word);
-	
+
 	if (istate_from_uspace(istate))
 		log_printf("ss =%0#18" PRIx64 "\n", istate->ss);
-	
+
 	log_printf("rax=%0#18" PRIx64 "\trbx=%0#18" PRIx64 "\t"
 	    "rcx=%0#18" PRIx64 "\trdx=%0#18" PRIx64 "\n",
 	    istate->rax, istate->rbx, istate->rcx, istate->rdx);
-	
+
 	log_printf("rsi=%0#18" PRIx64 "\trdi=%0#18" PRIx64 "\t"
 	    "rbp=%0#18" PRIx64 "\trsp=%0#18" PRIx64 "\n",
 	    istate->rsi, istate->rdi, istate->rbp,
 	    istate_from_uspace(istate) ? istate->rsp :
 	    (uintptr_t) &istate->rsp);
-	
+
 	log_printf("r8 =%0#18" PRIx64 "\tr9 =%0#18" PRIx64 "\t"
 	    "r10=%0#18" PRIx64 "\tr11=%0#18" PRIx64 "\n",
 	    istate->r8, istate->r9, istate->r10, istate->r11);
-	
+
 	log_printf("r12=%0#18" PRIx64 "\tr13=%0#18" PRIx64 "\t"
 	    "r14=%0#18" PRIx64 "\tr15=%0#18" PRIx64 "\n",
 	    istate->r12, istate->r13, istate->r14, istate->r15);
@@ -122,7 +122,7 @@ static void gp_fault(unsigned int n, istate_t *istate)
 		irq_spinlock_lock(&TASK->lock, false);
 		size_t ver = TASK->arch.iomapver;
 		irq_spinlock_unlock(&TASK->lock, false);
-		
+
 		if (CPU->arch.iomapver_copy != ver) {
 			/*
 			 * This fault can be caused by an early access
@@ -175,18 +175,18 @@ static void arch_smp_call_ipi_recv(unsigned int n, istate_t *istate)
 static void irq_interrupt(unsigned int n, istate_t *istate)
 {
 	assert(n >= IVT_IRQBASE);
-	
+
 	unsigned int inum = n - IVT_IRQBASE;
 	bool ack = false;
 	assert(inum < IRQ_COUNT);
 	assert((inum != IRQ_PIC_SPUR) && (inum != IRQ_PIC1));
-	
+
 	irq_t *irq = irq_dispatch_and_lock(inum);
 	if (irq) {
 		/*
 		 * The IRQ handler was found.
 		 */
-		
+
 		if (irq->preack) {
 			/* Send EOI before processing the interrupt */
 			trap_virtual_eoi();
@@ -203,7 +203,7 @@ static void irq_interrupt(unsigned int n, istate_t *istate)
 		    CPU->id, inum);
 #endif
 	}
-	
+
 	if (!ack)
 		trap_virtual_eoi();
 }
@@ -211,21 +211,21 @@ static void irq_interrupt(unsigned int n, istate_t *istate)
 void interrupt_init(void)
 {
 	unsigned int i;
-	
+
 	for (i = 0; i < IVT_ITEMS; i++)
 		exc_register(i, "null", false, (iroutine_t) null_interrupt);
-	
+
 	for (i = 0; i < IRQ_COUNT; i++) {
 		if ((i != IRQ_PIC_SPUR) && (i != IRQ_PIC1))
 			exc_register(IVT_IRQBASE + i, "irq", true,
 			    (iroutine_t) irq_interrupt);
 	}
-	
+
 	exc_register(VECTOR_DE, "de_fault", true, (iroutine_t) de_fault);
 	exc_register(VECTOR_NM, "nm_fault", true, (iroutine_t) nm_fault);
 	exc_register(VECTOR_SS, "ss_fault", true, (iroutine_t) ss_fault);
 	exc_register(VECTOR_GP, "gp_fault", true, (iroutine_t) gp_fault);
-	
+
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,
 	    (iroutine_t) tlb_shootdown_ipi);

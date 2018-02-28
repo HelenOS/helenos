@@ -83,12 +83,12 @@ static bool run_test(test_t *test)
 {
 	/* Execute the test */
 	const char *ret = test->entry();
-	
+
 	if (ret == NULL) {
 		printf("\nTest passed\n");
 		return true;
 	}
-	
+
 	printf("\n%s\n", ret);
 	return false;
 }
@@ -98,9 +98,9 @@ static void run_safe_tests(void)
 	test_t *test;
 	unsigned int i = 0;
 	unsigned int n = 0;
-	
+
 	printf("\n*** Running all safe tests ***\n\n");
-	
+
 	for (test = tests; test->name != NULL; test++) {
 		if (test->safe) {
 			printf("%s (%s)\n", test->name, test->desc);
@@ -110,7 +110,7 @@ static void run_safe_tests(void)
 				n++;
 		}
 	}
-	
+
 	printf("\nCompleted, %u tests run, %u passed.\n", i + n, i);
 }
 
@@ -122,17 +122,17 @@ static void list_tests(void)
 		if (str_length(test->name) > len)
 			len = str_length(test->name);
 	}
-	
+
 	unsigned int _len = (unsigned int) len;
 	if ((_len != len) || (((int) _len) < 0)) {
 		printf("Command length overflow\n");
 		return;
 	}
-	
+
 	for (test = tests; test->name != NULL; test++)
 		printf("%-*s %s%s\n", _len, test->name, test->desc,
 		    (test->safe ? "" : " (unsafe)"));
-	
+
 	printf("%-*s Run all safe tests\n", _len, "*");
 }
 
@@ -144,25 +144,25 @@ int main(int argc, char *argv[])
 		list_tests();
 		return 0;
 	}
-	
+
 	log_init("tester");
 
 	test_quiet = false;
 	test_argc = argc - 2;
 	test_argv = argv + 2;
-	
+
 	if (str_cmp(argv[1], "*") == 0) {
 		run_safe_tests();
 		return 0;
 	}
-	
+
 	test_t *test;
 	for (test = tests; test->name != NULL; test++) {
 		if (str_cmp(argv[1], test->name) == 0) {
 			return (run_test(test) ? 0 : -1);
 		}
 	}
-	
+
 	printf("Unknown test \"%s\"\n", argv[1]);
 	return -2;
 }

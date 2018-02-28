@@ -68,7 +68,7 @@ static inline bool method_is_system(sysarg_t imethod)
 {
 	if (imethod <= IPC_M_LAST_SYSTEM)
 		return true;
-	
+
 	return false;
 }
 
@@ -206,7 +206,7 @@ errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		}
 		mutex_unlock(&phone->lock);
 	}
-	
+
 	if (!olddata)
 		return rc;
 
@@ -241,7 +241,7 @@ static void process_answer(call_t *call)
 	if (((errno_t) IPC_GET_RETVAL(call->data) == EHANGUP) &&
 	    (call->flags & IPC_CALL_FORWARDED))
 		IPC_SET_RETVAL(call->data, EFORWARD);
-	
+
 	SYSIPC_OP(answer_process, call);
 }
 
@@ -275,11 +275,11 @@ errno_t ipc_req_internal(cap_handle_t handle, ipc_data_t *data, sysarg_t priv)
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj->phone)
 		return ENOENT;
-	
+
 	call_t *call = ipc_call_alloc(0);
 	call->priv = priv;
 	memcpy(call->data.args, data->args, sizeof(data->args));
-	
+
 	errno_t rc = request_preprocess(call, kobj->phone);
 	if (!rc) {
 #ifdef CONFIG_UDEBUG
@@ -321,11 +321,11 @@ errno_t ipc_req_internal(cap_handle_t handle, ipc_data_t *data, sysarg_t priv)
 		process_answer(call);
 	} else
 		IPC_SET_RETVAL(call->data, rc);
-	
+
 	memcpy(data->args, call->data.args, sizeof(data->args));
 	kobject_put(call->kobject);
 	kobject_put(kobj);
-	
+
 	return EOK;
 }
 
@@ -341,7 +341,7 @@ static int check_call_limit(phone_t *phone)
 {
 	if (atomic_get(&phone->active_calls) >= IPC_MAX_ASYNC_CALLS)
 		return -1;
-	
+
 	return 0;
 }
 
@@ -367,18 +367,18 @@ sys_errno_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
 		return ENOENT;
-	
+
 	if (check_call_limit(kobj->phone)) {
 		kobject_put(kobj);
 		return ELIMIT;
 	}
-	
+
 	call_t *call = ipc_call_alloc(0);
 	IPC_SET_IMETHOD(call->data, imethod);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
 	IPC_SET_ARG3(call->data, arg3);
-	
+
 	/*
 	 * To achieve deterministic behavior, zero out arguments that are beyond
 	 * the limits of the fast version.
@@ -387,14 +387,14 @@ sys_errno_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
 
 	/* Set the user-defined label */
 	call->data.label = label;
-	
+
 	errno_t res = request_preprocess(call, kobj->phone);
-	
+
 	if (!res)
 		ipc_call(kobj->phone, call);
 	else
 		ipc_backsend_err(kobj->phone, call, res);
-	
+
 	kobject_put(kobj);
 	return EOK;
 }
@@ -431,14 +431,14 @@ sys_errno_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data,
 
 	/* Set the user-defined label */
 	call->data.label = label;
-	
+
 	errno_t res = request_preprocess(call, kobj->phone);
-	
+
 	if (!res)
 		ipc_call(kobj->phone, call);
 	else
 		ipc_backsend_err(kobj->phone, call, res);
-	
+
 	kobject_put(kobj);
 	return EOK;
 }
@@ -472,14 +472,14 @@ static sys_errno_t sys_ipc_forward_common(sysarg_t chandle, sysarg_t phandle,
 	kobject_t *ckobj = cap_unpublish(TASK, chandle, KOBJECT_TYPE_CALL);
 	if (!ckobj)
 		return ENOENT;
-	
+
 	call_t *call = ckobj->call;
 
 	ipc_data_t old;
 	bool need_old = answer_need_old(call);
 	if (need_old)
 		old = call->data;
-	
+
 	bool after_forward = false;
 	errno_t rc;
 
@@ -488,14 +488,14 @@ static sys_errno_t sys_ipc_forward_common(sysarg_t chandle, sysarg_t phandle,
 		rc = ENOENT;
 		goto error;
 	}
-	
+
 	if (!method_is_forwardable(IPC_GET_IMETHOD(call->data))) {
 		rc = EPERM;
 		goto error;
 	}
-	
+
 	call->flags |= IPC_CALL_FORWARDED;
-	
+
 	/*
 	 * User space is not allowed to change interface and method of system
 	 * methods on forward, allow changing ARG1, ARG2, ARG3 and ARG4 by
@@ -506,14 +506,14 @@ static sys_errno_t sys_ipc_forward_common(sysarg_t chandle, sysarg_t phandle,
 		if (method_is_system(IPC_GET_IMETHOD(call->data))) {
 			if (IPC_GET_IMETHOD(call->data) == IPC_M_CONNECT_TO_ME)
 				phone_dealloc(IPC_GET_ARG5(call->data));
-			
+
 			IPC_SET_ARG1(call->data, imethod);
 			IPC_SET_ARG2(call->data, arg1);
 			IPC_SET_ARG3(call->data, arg2);
-			
+
 			if (slow)
 				IPC_SET_ARG4(call->data, arg3);
-			
+
 			/*
 			 * For system methods we deliberately don't
 			 * overwrite ARG5.
@@ -529,7 +529,7 @@ static sys_errno_t sys_ipc_forward_common(sysarg_t chandle, sysarg_t phandle,
 			}
 		}
 	}
-	
+
 	rc = ipc_forward(call, pkobj->phone, &TASK->answerbox, mode);
 	if (rc != EOK) {
 		after_forward = true;
@@ -608,7 +608,7 @@ sys_errno_t sys_ipc_forward_slow(sysarg_t chandle, sysarg_t phandle,
 	    sizeof(newdata.args));
 	if (rc != EOK)
 		return (sys_errno_t) rc;
-	
+
 	return sys_ipc_forward_common(chandle, phandle,
 	    IPC_GET_IMETHOD(newdata), IPC_GET_ARG1(newdata),
 	    IPC_GET_ARG2(newdata), IPC_GET_ARG3(newdata),
@@ -636,31 +636,31 @@ sys_errno_t sys_ipc_answer_fast(sysarg_t chandle, sysarg_t retval, sysarg_t arg1
 	kobject_t *kobj = cap_unpublish(TASK, chandle, KOBJECT_TYPE_CALL);
 	if (!kobj)
 		return ENOENT;
-	
+
 	call_t *call = kobj->call;
 
 	ipc_data_t saved_data;
 	bool saved;
-	
+
 	if (answer_need_old(call)) {
 		memcpy(&saved_data, &call->data, sizeof(call->data));
 		saved = true;
 	} else
 		saved = false;
-	
+
 	IPC_SET_RETVAL(call->data, retval);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
 	IPC_SET_ARG3(call->data, arg3);
 	IPC_SET_ARG4(call->data, arg4);
-	
+
 	/*
 	 * To achieve deterministic behavior, zero out arguments that are beyond
 	 * the limits of the fast version.
 	 */
 	IPC_SET_ARG5(call->data, 0);
 	errno_t rc = answer_preprocess(call, saved ? &saved_data : NULL);
-	
+
 	ipc_answer(&TASK->answerbox, call);
 
 	kobject_put(kobj);
@@ -682,18 +682,18 @@ sys_errno_t sys_ipc_answer_slow(sysarg_t chandle, ipc_data_t *data)
 	kobject_t *kobj = cap_unpublish(TASK, chandle, KOBJECT_TYPE_CALL);
 	if (!kobj)
 		return ENOENT;
-	
+
 	call_t *call = kobj->call;
 
 	ipc_data_t saved_data;
 	bool saved;
-	
+
 	if (answer_need_old(call)) {
 		memcpy(&saved_data, &call->data, sizeof(call->data));
 		saved = true;
 	} else
 		saved = false;
-	
+
 	errno_t rc = copy_from_uspace(&call->data.args, &data->args,
 	    sizeof(call->data.args));
 	if (rc != EOK) {
@@ -703,9 +703,9 @@ sys_errno_t sys_ipc_answer_slow(sysarg_t chandle, ipc_data_t *data)
 		cap_publish(TASK, chandle, kobj);
 		return rc;
 	}
-	
+
 	rc = answer_preprocess(call, saved ? &saved_data : NULL);
-	
+
 	ipc_answer(&TASK->answerbox, call);
 
 	kobject_put(kobj);
@@ -726,7 +726,7 @@ sys_errno_t sys_ipc_hangup(sysarg_t handle)
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
 		return ENOENT;
-	
+
 	errno_t rc = ipc_phone_hangup(kobj->phone);
 	kobject_put(kobj);
 	return rc;
@@ -745,16 +745,16 @@ sys_errno_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
     unsigned int flags)
 {
 	call_t *call;
-	
+
 restart:
-	
+
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_begin();
 #endif
-	
+
 	call = ipc_wait_for_call(&TASK->answerbox, usec,
 	    flags | SYNCH_FLAGS_INTERRUPTIBLE);
-	
+
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
@@ -765,45 +765,45 @@ restart:
 		STRUCT_TO_USPACE(calldata, &data);
 		return EOK;
 	}
-	
+
 	call->data.flags = call->flags;
 	if (call->flags & IPC_CALL_NOTIF) {
 		/* Set in_phone_hash to the interrupt counter */
 		call->data.phone = (void *) call->priv;
-		
+
 		call->data.cap_handle = CAP_NIL;
 
 		STRUCT_TO_USPACE(calldata, &call->data);
 		kobject_put(call->kobject);
-		
+
 		return EOK;
 	}
-	
+
 	if (call->flags & IPC_CALL_ANSWERED) {
 		process_answer(call);
-		
+
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
 			kobject_put(call->kobject);
 			goto restart;
 		}
 
 		call->data.cap_handle = CAP_NIL;
-		
+
 		STRUCT_TO_USPACE(calldata, &call->data);
 		kobject_put(call->kobject);
-		
+
 		return EOK;
 	}
-	
+
 	if (process_request(&TASK->answerbox, call))
 		goto restart;
-	
+
 	cap_handle_t handle;
 	errno_t rc = cap_alloc(TASK, &handle);
 	if (rc != EOK) {
 		goto error;
 	}
-	
+
 	call->data.cap_handle = handle;
 
 	/*
@@ -870,7 +870,7 @@ sys_errno_t sys_ipc_irq_subscribe(inr_t inr, sysarg_t imethod, irq_code_t *ucode
 {
 	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
-	
+
 	return ipc_irq_subscribe(&TASK->answerbox, inr, imethod, ucode, uspace_handle);
 }
 
@@ -886,9 +886,9 @@ sys_errno_t sys_ipc_irq_unsubscribe(sysarg_t cap)
 {
 	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
-	
+
 	ipc_irq_unsubscribe(&TASK->answerbox, cap);
-	
+
 	return 0;
 }
 
@@ -902,12 +902,12 @@ sys_errno_t sys_ipc_connect_kbox(task_id_t *uspace_taskid, cap_handle_t *uspace_
 #ifdef CONFIG_UDEBUG
 	task_id_t taskid;
 	cap_handle_t phone;
-	
+
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(task_id_t));
 	if (rc == EOK) {
 		rc = ipc_connect_kbox((task_id_t) taskid, &phone);
 	}
-	
+
 	if (rc == EOK) {
 		rc = copy_to_uspace(uspace_phone, &phone, sizeof(cap_handle_t));
 		if (rc != EOK) {
@@ -915,7 +915,7 @@ sys_errno_t sys_ipc_connect_kbox(task_id_t *uspace_taskid, cap_handle_t *uspace_
 			sys_ipc_hangup(phone);
 		}
 	}
-	
+
 	return (sys_errno_t) rc;
 #else
 	return (sys_errno_t) ENOTSUP;

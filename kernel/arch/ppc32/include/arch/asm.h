@@ -44,12 +44,12 @@
 NO_TRACE static inline uint32_t msr_read(void)
 {
 	uint32_t msr;
-	
+
 	asm volatile (
 		"mfmsr %[msr]\n"
 		: [msr] "=r" (msr)
 	);
-	
+
 	return msr;
 }
 
@@ -76,25 +76,25 @@ NO_TRACE static inline void sr_set(uint32_t flags, asid_t asid, uint32_t sr)
 NO_TRACE static inline uint32_t sr_get(uint32_t vaddr)
 {
 	uint32_t vsid;
-	
+
 	asm volatile (
 		"mfsrin %[vsid], %[vaddr]\n"
 		: [vsid] "=r" (vsid)
 		: [vaddr] "r" (vaddr)
 	);
-	
+
 	return vsid;
 }
 
 NO_TRACE static inline uint32_t sdr1_get(void)
 {
 	uint32_t sdr1;
-	
+
 	asm volatile (
 		"mfsdr1 %[sdr1]\n"
 		: [sdr1] "=r" (sdr1)
 	);
-	
+
 	return sdr1;
 }
 
@@ -172,13 +172,13 @@ NO_TRACE static inline bool interrupts_disabled(void)
 NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t base;
-	
+
 	asm volatile (
 		"and %[base], %%sp, %[mask]\n"
 		: [base] "=r" (base)
 		: [mask] "r" (~(STACK_SIZE - 1))
 	);
-	
+
 	return base;
 }
 

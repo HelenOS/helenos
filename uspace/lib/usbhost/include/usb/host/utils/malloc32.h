@@ -59,10 +59,10 @@ static inline uintptr_t addr_to_phys(const void *addr)
 {
 	uintptr_t result;
 	errno_t ret = as_get_physical_mapping(addr, &result);
-	
+
 	if (ret != EOK)
 		return 0;
-	
+
 	return result;
 }
 

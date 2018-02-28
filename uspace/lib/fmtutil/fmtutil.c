@@ -166,7 +166,7 @@ skip_words:
 	else {
 		return EINVAL;
 	}
-	
+
 	return EOK;
 }
 errno_t print_aligned(const char *str, size_t width, bool last, align_mode_t mode)
@@ -187,13 +187,13 @@ errno_t wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 	size_t line_start = 0;
 	size_t line_len = 0;
 	size_t pos = 0;
-	
+
 	/*
 	 * Invariants:
 	 *  * line_len = last_word_end - line_start
 	 *  * line_start <= last_word_end <= word_start <= pos
 	 */
-	
+
 	while (wstr[pos] != 0) {
 		/* Skip spaces and process newlines */
 		while (wstr[pos] == ' ' || wstr[pos] == '\n') {

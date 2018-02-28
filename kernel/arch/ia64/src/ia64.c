@@ -107,9 +107,9 @@ static void iosapic_init(void)
 	uintptr_t IOSAPIC = km_map(iosapic_base, PAGE_SIZE,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	int i;
-	
+
 	int myid, myeid;
-	
+
 	myid = ia64_get_cpu_id();
 	myeid = ia64_get_cpu_eid();
 
@@ -166,18 +166,18 @@ void ia64_post_smp_init(void)
 			skiin_wire(ski_instance, srln);
 		}
 	}
-	
+
 	outdev_t *skidev = skiout_init();
 	if (skidev)
 		stdout_wire(skidev);
 #endif
-	
+
 #ifdef CONFIG_EGA
 	outdev_t *egadev = ega_init(EGA_BASE, EGA_VIDEORAM);
 	if (egadev)
 		stdout_wire(egadev);
 #endif
-	
+
 #ifdef CONFIG_NS16550
 	ns16550_instance_t *ns16550_instance
 	    = ns16550_init(NS16550_BASE, 0, NS16550_IRQ, NULL, NULL,
@@ -190,14 +190,14 @@ void ia64_post_smp_init(void)
 			ns16550_wire(ns16550_instance, srln);
 		}
 	}
-	
+
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, NS16550_IRQ);
 	sysinfo_set_item_val("kbd.type", NULL, KBD_NS16550);
 	sysinfo_set_item_val("kbd.address.physical", NULL,
 	    (uintptr_t) NS16550_BASE);
 #endif
-	
+
 #ifdef CONFIG_I8042
 	i8042_instance_t *i8042_instance = i8042_init((i8042_t *) I8042_BASE,
 	    IRQ_KBD);
@@ -210,7 +210,7 @@ void ia64_post_smp_init(void)
 		}
 	}
 #endif
-	
+
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, LEGACYIO_USER_BASE);
@@ -250,7 +250,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    ((uintptr_t) kernel_uarg->uspace_stack) +
 	    kernel_uarg->uspace_stack_size / 2,
 	    (uintptr_t) kernel_uarg->uspace_uarg, psr.value, rsc.value);
-	
+
 	while (1);
 }
 
@@ -273,7 +273,7 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	fptr->fnc = (sysarg_t) addr;
 	fptr->gp = ((sysarg_t *) caller)[1];
-	
+
 	return (void *) fptr;
 }
 

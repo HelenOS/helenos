@@ -62,7 +62,7 @@ static char *winreg = NULL;
 static int app_launch(const char *app)
 {
 	printf("%s: Spawning %s %s \n", NAME, app, winreg);
-	
+
 	task_id_t id;
 	task_wait_t wait;
 	errno_t rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
@@ -71,7 +71,7 @@ static int app_launch(const char *app)
 		    winreg, str_error(rc));
 		return -1;
 	}
-	
+
 	task_exit_t texit;
 	int retval;
 	rc = task_wait(&wait, &texit, &retval);
@@ -80,7 +80,7 @@ static int app_launch(const char *app)
 		    app, str_error(rc));
 		return -1;
 	}
-	
+
 	return retval;
 }
 
@@ -96,13 +96,13 @@ int main(int argc, char *argv[])
 		printf("Compositor server not specified.\n");
 		return 1;
 	}
-	
+
 	surface_t *logo = decode_tga((void *) helenos_tga, helenos_tga_size, 0);
 	if (!logo) {
 		printf("Unable to decode logo.\n");
 		return 1;
 	}
-	
+
 	winreg = argv[1];
 	window_t *main_window = window_open(argv[1], NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, "vlaunch");
@@ -110,16 +110,16 @@ int main(int argc, char *argv[])
 		printf("Cannot open main window.\n");
 		return 1;
 	}
-	
+
 	pixel_t grd_bg = PIXEL(255, 255, 255, 255);
-	
+
 	pixel_t btn_bg = PIXEL(255, 255, 255, 255);
 	pixel_t btn_fg = PIXEL(255, 186, 186, 186);
 	pixel_t btn_text = PIXEL(255, 0, 0, 0);
-	
+
 	pixel_t lbl_bg = PIXEL(255, 255, 255, 255);
 	pixel_t lbl_text = PIXEL(255, 0, 0, 0);
-	
+
 	canvas_t *logo_canvas = create_canvas(NULL, NULL, LOGO_WIDTH, LOGO_HEIGHT,
 	    logo);
 	label_t *lbl_caption = create_label(NULL, NULL, "Launch application:",
@@ -133,33 +133,33 @@ int main(int argc, char *argv[])
 	button_t *btn_vlaunch = create_button(NULL, "/app/vlaunch", "vlaunch",
 	    16, btn_bg, btn_fg, btn_text);
 	grid_t *grid = create_grid(window_root(main_window), NULL, 1, 6, grd_bg);
-	
+
 	if ((!logo_canvas) || (!lbl_caption) || (!btn_vterm) ||
 	    (!btn_vcalc) || (!btn_vdemo) || (!btn_vlaunch) || (!grid)) {
 		window_close(main_window);
 		printf("Cannot create widgets.\n");
 		return 1;
 	}
-	
+
 	sig_connect(&btn_vterm->clicked, &btn_vterm->widget, on_btn_click);
 	sig_connect(&btn_vcalc->clicked, &btn_vcalc->widget, on_btn_click);
 	sig_connect(&btn_vdemo->clicked, &btn_vdemo->widget, on_btn_click);
 	sig_connect(&btn_vlaunch->clicked, &btn_vlaunch->widget, on_btn_click);
-	
+
 	grid->add(grid, &logo_canvas->widget, 0, 0, 1, 1);
 	grid->add(grid, &lbl_caption->widget, 0, 1, 1, 1);
 	grid->add(grid, &btn_vterm->widget, 0, 2, 1, 1);
 	grid->add(grid, &btn_vcalc->widget, 0, 3, 1, 1);
 	grid->add(grid, &btn_vdemo->widget, 0, 4, 1, 1);
 	grid->add(grid, &btn_vlaunch->widget, 0, 5, 1, 1);
-	
+
 	window_resize(main_window, 0, 0, 210, 164 + LOGO_HEIGHT,
 	    WINDOW_PLACEMENT_RIGHT | WINDOW_PLACEMENT_TOP);
 	window_exec(main_window);
-	
+
 	task_retval(0);
 	async_manager();
-	
+
 	return 0;
 }
 

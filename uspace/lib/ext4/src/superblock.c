@@ -240,13 +240,13 @@ void ext4_superblock_set_block_size(ext4_superblock_t *sb, uint32_t size)
 {
 	uint32_t log = 0;
 	uint32_t tmp = size / EXT4_MIN_BLOCK_SIZE;
-	
+
 	tmp >>= 1;
 	while (tmp) {
 		log++;
 		tmp >>= 1;
 	}
-	
+
 	ext4_superblock_set_log_block_size(sb, log);
 }
 
@@ -296,13 +296,13 @@ void ext4_superblock_set_frag_size(ext4_superblock_t *sb, uint32_t size)
 {
 	uint32_t log = 0;
 	uint32_t tmp = size / EXT4_MIN_BLOCK_SIZE;
-	
+
 	tmp >>= 1;
 	while (tmp) {
 		log++;
 		tmp >>= 1;
 	}
-	
+
 	ext4_superblock_set_log_frag_size(sb, log);
 }
 
@@ -735,7 +735,7 @@ uint16_t ext4_superblock_get_inode_size(ext4_superblock_t *sb)
 {
 	if (ext4_superblock_get_rev_level(sb) == 0)
 		return EXT4_REV0_INODE_SIZE;
-	
+
 	return uint16_t_le2host(sb->inode_size);
 }
 
@@ -1000,10 +1000,10 @@ void ext4_superblock_set_default_hash_version(ext4_superblock_t *sb,
 uint16_t ext4_superblock_get_desc_size(ext4_superblock_t *sb)
 {
 	uint16_t size = uint16_t_le2host(sb->desc_size);
-	
+
 	if (size < EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE)
 		size = EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE;
-	
+
 	return size;
 }
 
@@ -1020,7 +1020,7 @@ void ext4_superblock_set_desc_size(ext4_superblock_t *sb, uint16_t size)
 	if (size < EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE)
 		sb->desc_size =
 		    host2uint16_t_le(EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE);
-	
+
 	sb->desc_size = host2uint16_t_le(size);
 }
 
@@ -1063,7 +1063,7 @@ bool ext4_superblock_has_flag(ext4_superblock_t *sb, uint32_t flag)
 {
 	if (ext4_superblock_get_flags(sb) & flag)
 		return true;
-	
+
 	return false;
 }
 
@@ -1080,7 +1080,7 @@ bool ext4_superblock_has_feature_compatible(ext4_superblock_t *sb,
 {
 	if (ext4_superblock_get_features_compatible(sb) & feature)
 		return true;
-	
+
 	return false;
 }
 
@@ -1097,7 +1097,7 @@ bool ext4_superblock_has_feature_incompatible(ext4_superblock_t *sb,
 {
 	if (ext4_superblock_get_features_incompatible(sb) & feature)
 		return true;
-	
+
 	return false;
 }
 
@@ -1114,7 +1114,7 @@ bool ext4_superblock_has_feature_read_only(ext4_superblock_t *sb,
 {
 	if (ext4_superblock_get_features_read_only(sb) & feature)
 		return true;
-	
+
 	return false;
 }
 
@@ -1132,19 +1132,19 @@ errno_t ext4_superblock_read_direct(service_id_t service_id, ext4_superblock_t *
 	void *data = malloc(EXT4_SUPERBLOCK_SIZE);
 	if (data == NULL)
 		return ENOMEM;
-	
+
 	/* Read data from block device */
 	errno_t rc = block_read_bytes_direct(service_id, EXT4_SUPERBLOCK_OFFSET,
 	    EXT4_SUPERBLOCK_SIZE, data);
-	
+
 	if (rc != EOK) {
 		free(data);
 		return rc;
 	}
-	
+
 	/* Set output value */
 	(*sb) = data;
-	
+
 	return EOK;
 }
 
@@ -1163,17 +1163,17 @@ errno_t ext4_superblock_write_direct(service_id_t service_id, ext4_superblock_t 
 	errno_t rc = block_get_bsize(service_id, &phys_block_size);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Compute address of the first block */
 	uint64_t first_block = EXT4_SUPERBLOCK_OFFSET / phys_block_size;
-	
+
 	/* Compute number of block to write */
 	size_t block_count = EXT4_SUPERBLOCK_SIZE / phys_block_size;
-	
+
 	/* Check alignment */
 	if (EXT4_SUPERBLOCK_SIZE % phys_block_size)
 		block_count++;
-	
+
 	/* Write data */
 	return block_write_direct(service_id, first_block, block_count, sb);
 }
@@ -1202,33 +1202,33 @@ errno_t ext4_superblock_check_sanity(ext4_superblock_t *sb)
 {
 	if (ext4_superblock_get_magic(sb) != EXT4_SUPERBLOCK_MAGIC)
 		return ENOTSUP;
-	
+
 	if (ext4_superblock_get_inodes_count(sb) == 0)
 		return ENOTSUP;
-	
+
 	if (ext4_superblock_get_blocks_count(sb) == 0)
 		return ENOTSUP;
-	
+
 	if (ext4_superblock_get_blocks_per_group(sb) == 0)
 		return ENOTSUP;
-	
+
 	if (ext4_superblock_get_inodes_per_group(sb) == 0)
 		return ENOTSUP;
-	
+
 	if (ext4_superblock_get_inode_size(sb) < 128)
 		return ENOTSUP;
-	
+
 	if (ext4_superblock_get_first_inode(sb) < 11)
 		return ENOTSUP;
-	
+
 	if (ext4_superblock_get_desc_size(sb) <
 	    EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE)
 		return ENOTSUP;
-	
+
 	if (ext4_superblock_get_desc_size(sb) >
 	    EXT4_MAX_BLOCK_GROUP_DESCRIPTOR_SIZE)
 		return ENOTSUP;
-	
+
 	return EOK;
 }
 
@@ -1243,12 +1243,12 @@ uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *sb)
 {
 	uint64_t blocks_count = ext4_superblock_get_blocks_count(sb);
 	uint32_t blocks_per_group = ext4_superblock_get_blocks_per_group(sb);
-	
+
 	uint32_t block_groups_count = blocks_count / blocks_per_group;
-	
+
 	if (blocks_count % blocks_per_group)
 		block_groups_count++;
-	
+
 	return block_groups_count;
 }
 
@@ -1268,7 +1268,7 @@ uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *sb, uint32_t bgi
 	    ext4_superblock_get_blocks_per_group(sb);
 	uint64_t total_blocks =
 	    ext4_superblock_get_blocks_count(sb);
-	
+
 	if (bgid < block_group_count - 1)
 		return blocks_per_group;
 	else
@@ -1291,7 +1291,7 @@ uint32_t ext4_superblock_get_inodes_in_group(ext4_superblock_t *sb, uint32_t bgi
 	    ext4_superblock_get_inodes_per_group(sb);
 	uint32_t total_inodes =
 	    ext4_superblock_get_inodes_count(sb);
-	
+
 	if (bgid < block_group_count - 1)
 		return inodes_per_group;
 	else

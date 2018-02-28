@@ -74,11 +74,11 @@ static void tinput_console_set_lpos(tinput_t *ti, unsigned lpos)
 tinput_t *tinput_new(void)
 {
 	tinput_t *ti;
-	
+
 	ti = calloc(1, sizeof(tinput_t));
 	if (ti == NULL)
 		return NULL;
-	
+
 	tinput_init(ti);
 	return ti;
 }
@@ -106,14 +106,14 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 	wchar_t *dbuf = malloc((INPUT_MAX_SIZE + 1) * sizeof(wchar_t));
 	if (!dbuf)
 		return;
-	
+
 	size_t sa;
 	size_t sb;
 	tinput_sel_get_bounds(ti, &sa, &sb);
-	
+
 	tinput_console_set_lpos(ti, ti->text_coord + start);
 	console_set_style(ti->console, STYLE_NORMAL);
-	
+
 	size_t p = start;
 	if (p < sa) {
 		memcpy(dbuf, ti->buffer + p, (sa - p) * sizeof(wchar_t));
@@ -121,31 +121,31 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 		printf("%ls", dbuf);
 		p = sa;
 	}
-	
+
 	if (p < sb) {
 		console_flush(ti->console);
 		console_set_style(ti->console, STYLE_SELECTED);
-		
+
 		memcpy(dbuf, ti->buffer + p,
 		    (sb - p) * sizeof(wchar_t));
 		dbuf[sb - p] = '\0';
 		printf("%ls", dbuf);
 		p = sb;
 	}
-	
+
 	console_flush(ti->console);
 	console_set_style(ti->console, STYLE_NORMAL);
-	
+
 	if (p < ti->nc) {
 		memcpy(dbuf, ti->buffer + p,
 		    (ti->nc - p) * sizeof(wchar_t));
 		dbuf[ti->nc - p] = '\0';
 		printf("%ls", dbuf);
 	}
-	
+
 	for (p = 0; p < pad; p++)
 		putchar(' ');
-	
+
 	console_flush(ti->console);
 
 	free(dbuf);
@@ -187,10 +187,10 @@ static void tinput_jump_after(tinput_t *ti)
 static errno_t tinput_display(tinput_t *ti)
 {
 	sysarg_t col0, row0;
-	
+
 	if (console_get_pos(ti->console, &col0, &row0) != EOK)
 		return EIO;
-	
+
 	ti->prompt_coord = row0 * ti->con_cols + col0;
 	ti->text_coord = ti->prompt_coord + str_length(ti->prompt);
 
@@ -205,7 +205,7 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 {
 	if (ti->nc == INPUT_MAX_SIZE)
 		return;
-	
+
 	unsigned new_width = LIN_TO_COL(ti, ti->text_coord) + ti->nc + 1;
 	if (new_width % ti->con_cols == 0) {
 		/* Advancing to new line. */
@@ -215,17 +215,17 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 			return;
 		}
 	}
-	
+
 	size_t i;
 	for (i = ti->nc; i > ti->pos; i--)
 		ti->buffer[i] = ti->buffer[i - 1];
-	
+
 	ti->buffer[ti->pos] = c;
 	ti->pos += 1;
 	ti->nc += 1;
 	ti->buffer[ti->nc] = '\0';
 	ti->sel_start = ti->pos;
-	
+
 	tinput_display_tail(ti, ti->pos - 1, 0);
 	tinput_update_origin(ti);
 	tinput_position_caret(ti);
@@ -236,40 +236,40 @@ static void tinput_insert_string(tinput_t *ti, const char *str)
 	size_t ilen = min(str_length(str), INPUT_MAX_SIZE - ti->nc);
 	if (ilen == 0)
 		return;
-	
+
 	unsigned new_width = LIN_TO_COL(ti, ti->text_coord) + ti->nc + ilen;
 	unsigned new_height = (new_width / ti->con_cols) + 1;
 	if (new_height >= ti->con_rows) {
 		/* Disallow text longer than 1 page for now. */
 		return;
 	}
-	
+
 	if (ti->nc > 0) {
 		size_t i;
 		for (i = ti->nc; i > ti->pos; i--)
 			ti->buffer[i + ilen - 1] = ti->buffer[i - 1];
 	}
-	
+
 	size_t off = 0;
 	size_t i = 0;
 	while (i < ilen) {
 		wchar_t c = str_decode(str, &off, STR_NO_LIMIT);
 		if (c == '\0')
 			break;
-		
+
 		/* Filter out non-printable chars. */
 		if (c < 32)
 			c = 32;
-		
+
 		ti->buffer[ti->pos + i] = c;
 		i++;
 	}
-	
+
 	ti->pos += ilen;
 	ti->nc += ilen;
 	ti->buffer[ti->nc] = '\0';
 	ti->sel_start = ti->pos;
-	
+
 	tinput_display_tail(ti, ti->pos - ilen, 0);
 	tinput_update_origin(ti);
 	tinput_position_caret(ti);
@@ -281,19 +281,19 @@ static void tinput_backspace(tinput_t *ti)
 		tinput_sel_delete(ti);
 		return;
 	}
-	
+
 	if (ti->pos == 0)
 		return;
-	
+
 	size_t i;
 	for (i = ti->pos; i < ti->nc; i++)
 		ti->buffer[i - 1] = ti->buffer[i];
-	
+
 	ti->pos -= 1;
 	ti->nc -= 1;
 	ti->buffer[ti->nc] = '\0';
 	ti->sel_start = ti->pos;
-	
+
 	tinput_display_tail(ti, ti->pos, 1);
 	tinput_position_caret(ti);
 }
@@ -304,20 +304,20 @@ static void tinput_delete(tinput_t *ti)
 		tinput_sel_delete(ti);
 		return;
 	}
-	
+
 	if (ti->pos == ti->nc)
 		return;
-	
+
 	ti->pos += 1;
 	ti->sel_start = ti->pos;
-	
+
 	tinput_backspace(ti);
 }
 
 static void tinput_seek_cell(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
 	tinput_pre_seek(ti, shift_held);
-	
+
 	if (dir == seek_forward) {
 		if (ti->pos < ti->nc)
 			ti->pos += 1;
@@ -325,24 +325,24 @@ static void tinput_seek_cell(tinput_t *ti, seek_dir_t dir, bool shift_held)
 		if (ti->pos > 0)
 			ti->pos -= 1;
 	}
-	
+
 	tinput_post_seek(ti, shift_held);
 }
 
 static void tinput_seek_word(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
 	tinput_pre_seek(ti, shift_held);
-	
+
 	if (dir == seek_forward) {
 		if (ti->pos == ti->nc)
 			return;
-		
+
 		while (true) {
 			ti->pos += 1;
-			
+
 			if (ti->pos == ti->nc)
 				break;
-			
+
 			if ((ti->buffer[ti->pos - 1] == ' ') &&
 			    (ti->buffer[ti->pos] != ' '))
 				break;
@@ -350,27 +350,27 @@ static void tinput_seek_word(tinput_t *ti, seek_dir_t dir, bool shift_held)
 	} else {
 		if (ti->pos == 0)
 			return;
-		
+
 		while (true) {
 			ti->pos -= 1;
-			
+
 			if (ti->pos == 0)
 				break;
-			
+
 			if (ti->buffer[ti->pos - 1] == ' ' &&
 			    ti->buffer[ti->pos] != ' ')
 				break;
 		}
-	
+
 	}
-	
+
 	tinput_post_seek(ti, shift_held);
 }
 
 static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
 	tinput_pre_seek(ti, shift_held);
-	
+
 	if (dir == seek_forward) {
 		if (ti->pos + ti->con_cols <= ti->nc)
 			ti->pos = ti->pos + ti->con_cols;
@@ -378,7 +378,7 @@ static void tinput_seek_vertical(tinput_t *ti, seek_dir_t dir, bool shift_held)
 		if (ti->pos >= ti->con_cols)
 			ti->pos = ti->pos - ti->con_cols;
 	}
-	
+
 	tinput_post_seek(ti, shift_held);
 }
 
@@ -402,12 +402,12 @@ static void tinput_seek_scrpos(tinput_t *ti, int col, int line, bool shift_held)
 static void tinput_seek_max(tinput_t *ti, seek_dir_t dir, bool shift_held)
 {
 	tinput_pre_seek(ti, shift_held);
-	
+
 	if (dir == seek_backward)
 		ti->pos = 0;
 	else
 		ti->pos = ti->nc;
-	
+
 	tinput_post_seek(ti, shift_held);
 }
 
@@ -430,7 +430,7 @@ static void tinput_post_seek(tinput_t *ti, bool shift_held)
 		/* Shift not held. Keep selection empty. */
 		ti->sel_start = ti->pos;
 	}
-	
+
 	tinput_position_caret(ti);
 }
 
@@ -442,13 +442,13 @@ static void tinput_history_insert(tinput_t *ti, char *str)
 		if (ti->history[HISTORY_LEN] != NULL)
 			free(ti->history[HISTORY_LEN]);
 	}
-	
+
 	size_t i;
 	for (i = ti->hnum; i > 1; i--)
 		ti->history[i] = ti->history[i - 1];
-	
+
 	ti->history[1] = str_dup(str);
-	
+
 	if (ti->history[0] != NULL) {
 		free(ti->history[0]);
 		ti->history[0] = NULL;
@@ -491,18 +491,18 @@ static void tinput_sel_delete(tinput_t *ti)
 {
 	size_t sa;
 	size_t sb;
-	
+
 	tinput_sel_get_bounds(ti, &sa, &sb);
 	if (sa == sb)
 		return;
-	
+
 	memmove(ti->buffer + sa, ti->buffer + sb,
 	    (ti->nc - sb) * sizeof(wchar_t));
-	
+
 	ti->pos = ti->sel_start = sa;
 	ti->nc -= (sb - sa);
 	ti->buffer[ti->nc] = '\0';
-	
+
 	tinput_display_tail(ti, sa, sb - sa);
 	tinput_position_caret(ti);
 }
@@ -511,11 +511,11 @@ static void tinput_sel_copy_to_cb(tinput_t *ti)
 {
 	size_t sa;
 	size_t sb;
-	
+
 	tinput_sel_get_bounds(ti, &sa, &sb);
-	
+
 	char *str;
-	
+
 	if (sb < ti->nc) {
 		wchar_t tmp_c = ti->buffer[sb];
 		ti->buffer[sb] = '\0';
@@ -523,16 +523,16 @@ static void tinput_sel_copy_to_cb(tinput_t *ti)
 		ti->buffer[sb] = tmp_c;
 	} else
 		str = wstr_to_astr(ti->buffer + sa);
-	
+
 	if (str == NULL)
 		goto error;
-	
+
 	if (clipboard_put_str(str) != EOK)
 		goto error;
-	
+
 	free(str);
 	return;
-	
+
 error:
 	/* TODO: Give the user some kind of warning. */
 	return;
@@ -542,12 +542,12 @@ static void tinput_paste_from_cb(tinput_t *ti)
 {
 	char *str;
 	errno_t rc = clipboard_get_str(&str);
-	
+
 	if ((rc != EOK) || (str == NULL)) {
 		/* TODO: Give the user some kind of warning. */
 		return;
 	}
-	
+
 	tinput_insert_string(ti, str);
 	free(str);
 }
@@ -561,19 +561,19 @@ static void tinput_history_seek(tinput_t *ti, int offs)
 		if (ti->hpos < (size_t) -offs)
 			return;
 	}
-	
+
 	if (ti->history[ti->hpos] != NULL) {
 		free(ti->history[ti->hpos]);
 		ti->history[ti->hpos] = NULL;
 	}
-	
+
 	ti->history[ti->hpos] = tinput_get_str(ti);
 	ti->hpos += offs;
-	
+
 	int pad = (int) ti->nc - str_length(ti->history[ti->hpos]);
 	if (pad < 0)
 		pad = 0;
-	
+
 	tinput_set_str(ti, ti->history[ti->hpos]);
 	tinput_display_tail(ti, 0, pad);
 	tinput_update_origin(ti);
@@ -619,7 +619,7 @@ static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 	size_t max_width = 0;
 	for (i = 0; i < cnum; i++)
 		max_width = max(max_width, str_width(compl[i]));
-	
+
 	unsigned int cols = max(1, (ti->con_cols + 1) / (max_width + 1));
 	unsigned int padding = 0;
 	if ((cols * max_width) + (cols - 1) < ti->con_cols) {
@@ -627,9 +627,9 @@ static void tinput_show_completions(tinput_t *ti, char **compl, size_t cnum)
 	}
 	unsigned int col_width = max_width + padding / cols;
 	unsigned int rows = cnum / cols + ((cnum % cols) != 0);
-	
+
 	unsigned int row, col;
-	
+
 	for (row = 0; row < rows; row++) {
 		unsigned int display_col = 0;
 		for (col = 0; col < cols; col++) {
@@ -785,11 +785,11 @@ errno_t tinput_set_prompt(tinput_t *ti, const char *prompt)
 {
 	if (ti->prompt != NULL)
 		free(ti->prompt);
-	
+
 	ti->prompt = str_dup(prompt);
 	if (ti->prompt == NULL)
 		return ENOMEM;
-	
+
 	return EOK;
 }
 
@@ -814,19 +814,19 @@ static void tinput_key_press(tinput_t *ti, kbd_event_t *kev)
 	if (((kev->mods & KM_CTRL) != 0) &&
 	    ((kev->mods & (KM_ALT | KM_SHIFT)) == 0))
 		tinput_key_ctrl(ti, kev);
-	
+
 	if (((kev->mods & KM_SHIFT) != 0) &&
 	    ((kev->mods & (KM_CTRL | KM_ALT)) == 0))
 		tinput_key_shift(ti, kev);
-	
+
 	if (((kev->mods & KM_CTRL) != 0) &&
 	    ((kev->mods & KM_SHIFT) != 0) &&
 	    ((kev->mods & KM_ALT) == 0))
 		tinput_key_ctrl_shift(ti, kev);
-	
+
 	if ((kev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0)
 		tinput_key_unmod(ti, kev);
-	
+
 	if (kev->c >= ' ') {
 		tinput_sel_delete(ti);
 		tinput_insert_char(ti, kev->c);
@@ -867,23 +867,23 @@ errno_t tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
 	console_flush(ti->console);
 	if (console_get_size(ti->console, &ti->con_cols, &ti->con_rows) != EOK)
 		return EIO;
-	
+
 	tinput_set_str(ti, istr);
 
 	ti->sel_start = 0;
 	ti->done = false;
 	ti->exit_clui = false;
-	
+
 	if (tinput_display(ti) != EOK)
 		return EIO;
-	
+
 	while (!ti->done) {
 		console_flush(ti->console);
-		
+
 		cons_event_t ev;
 		if (!console_get_event(ti->console, &ev))
 			return EIO;
-		
+
 		switch (ev.type) {
 		case CEV_KEY:
 			if (ev.ev.key.type == KEY_PRESS)
@@ -896,20 +896,20 @@ errno_t tinput_read_i(tinput_t *ti, const char *istr, char **dstr)
 			break;
 		}
 	}
-	
+
 	if (ti->exit_clui)
 		return ENOENT;
-	
+
 	ti->pos = ti->nc;
 	tinput_position_caret(ti);
 	putchar('\n');
-	
+
 	char *str = tinput_get_str(ti);
 	if (str_cmp(str, "") != 0)
 		tinput_history_insert(ti, str);
-	
+
 	ti->hpos = 0;
-	
+
 	*dstr = str;
 	return EOK;
 }

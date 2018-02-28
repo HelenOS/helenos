@@ -53,10 +53,10 @@ static inline void bitmap_set(bitmap_t *bitmap, size_t element,
 {
 	if (element >= bitmap->elements)
 		return;
-	
+
 	size_t byte = element / BITMAP_ELEMENT;
 	uint8_t mask = 1 << (element & BITMAP_REMAINER);
-	
+
 	if (value) {
 		bitmap->bits[byte] |= mask;
 	} else {
@@ -69,10 +69,10 @@ static inline unsigned int bitmap_get(bitmap_t *bitmap, size_t element)
 {
 	if (element >= bitmap->elements)
 		return 0;
-	
+
 	size_t byte = element / BITMAP_ELEMENT;
 	uint8_t mask = 1 << (element & BITMAP_REMAINER);
-	
+
 	return !!((bitmap->bits)[byte] & mask);
 }
 

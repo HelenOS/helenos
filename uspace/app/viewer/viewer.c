@@ -71,28 +71,28 @@ static void on_keyboard_event(widget_t *widget, void *data)
 {
 	kbd_event_t *event = (kbd_event_t *) data;
 	bool update = false;
-	
+
 	if ((event->type == KEY_PRESS) && (event->c == 'q'))
 		exit(0);
-	
+
 	if ((event->type == KEY_PRESS) && (event->key == KC_PAGE_DOWN)) {
 		if (imgs_current == imgs_count - 1)
 			imgs_current = 0;
 		else
 			imgs_current++;
-		
+
 		update = true;
 	}
-	
+
 	if ((event->type == KEY_PRESS) && (event->key == KC_PAGE_UP)) {
 		if (imgs_current == 0)
 			imgs_current = imgs_count - 1;
 		else
 			imgs_current--;
-		
+
 		update = true;
 	}
-	
+
 	if (update) {
 		surface_t *lsface;
 
@@ -113,14 +113,14 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 	errno_t rc = vfs_lookup_open(fname, WALK_REGULAR, MODE_READ, &fd);
 	if (rc != EOK)
 		return false;
-	
+
 	vfs_stat_t stat;
 	rc = vfs_stat(fd, &stat);
 	if (rc != EOK) {
 		vfs_put(fd);
 		return false;
 	}
-	
+
 	void *tga = malloc(stat.size);
 	if (tga == NULL) {
 		vfs_put(fd);
@@ -134,19 +134,19 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 		vfs_put(fd);
 		return false;
 	}
-	
+
 	vfs_put(fd);
-	
+
 	*p_local_surface = decode_tga(tga, stat.size, 0);
 	if (*p_local_surface == NULL) {
 		free(tga);
 		return false;
 	}
-	
+
 	free(tga);
 
 	surface_get_resolution(*p_local_surface, &img_width, &img_height);
-	
+
 	return true;
 }
 
@@ -164,13 +164,13 @@ static bool img_setup(surface_t *local_surface)
 			surface_destroy(local_surface);
 			return false;
 		}
-		
+
 		sig_connect(&canvas->keyboard_event, NULL, on_keyboard_event);
 	}
-	
+
 	if (surface != NULL)
 		surface_destroy(surface);
-	
+
 	surface = local_surface;
 	return true;
 }
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 		printf("Compositor server not specified.\n");
 		return 1;
 	}
-	
+
 	if (argc < 3) {
 		printf("No image files specified.\n");
 		return 1;
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 		printf("Out of memory.\n");
 		return 2;
 	}
-	
+
 	for (int i = 0; i < argc - 2; i++) {
 		imgs[i] = str_dup(argv[i + 2]);
 		if (imgs[i] == NULL) {
@@ -225,8 +225,8 @@ int main(int argc, char *argv[])
 		printf("Cannot open main window.\n");
 		return 5;
 	}
-	
-	
+
+
 	if (!img_setup(lsface)) {
 		printf("Cannot setup image \"%s\".\n", imgs[imgs_current]);
 		return 6;
@@ -243,10 +243,10 @@ int main(int argc, char *argv[])
 	window_resize(main_window, 0, 0, img_width + dwidth,
 	    img_height + dheight, WINDOW_PLACEMENT_ANY);
 	window_exec(main_window);
-	
+
 	task_retval(0);
 	async_manager();
-	
+
 	return 0;
 }
 

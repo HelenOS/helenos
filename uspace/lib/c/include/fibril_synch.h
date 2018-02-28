@@ -60,7 +60,7 @@ typedef struct {
 			} \
 		} \
 	}
-	
+
 #define FIBRIL_MUTEX_INITIALIZE(name) \
 	fibril_mutex_t name = FIBRIL_MUTEX_INITIALIZER(name)
 

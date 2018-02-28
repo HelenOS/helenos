@@ -165,15 +165,15 @@ NO_TRACE void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;
-	
+
 	config.base = hardcoded_load_address;
 	config.kernel_size = ALIGN_UP(hardcoded_ktext_size +
 	    hardcoded_kdata_size, PAGE_SIZE);
 	config.stack_size = STACK_SIZE;
-	
+
 	/* Initialy the stack is placed just after the kernel */
 	config.stack_base = config.base + config.kernel_size;
-	
+
 	/* Avoid placing stack on top of init */
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
@@ -189,7 +189,7 @@ NO_TRACE void main_bsp(void)
 			    config.stack_size);
 		}
 	}
-	
+
 	/* Avoid placing stack on top of boot allocations. */
 	if (ballocs.size) {
 		if (PA_OVERLAPS(config.stack_base, config.stack_size,
@@ -197,10 +197,10 @@ NO_TRACE void main_bsp(void)
 			config.stack_base = ALIGN_UP(ballocs.base +
 			    ballocs.size, PAGE_SIZE);
 	}
-	
+
 	if (config.stack_base < stack_safe)
 		config.stack_base = ALIGN_UP(stack_safe, PAGE_SIZE);
-	
+
 	context_save(&ctx);
 	context_set(&ctx, FADDR(main_bsp_separated_stack),
 	    config.stack_base, STACK_SIZE);
@@ -217,14 +217,14 @@ void main_bsp_separated_stack(void)
 {
 	/* Keep this the first thing. */
 	the_initialize(THE);
-	
+
 	version_print();
-	
+
 	LOG("\nconfig.base=%p config.kernel_size=%zu"
 	    "\nconfig.stack_base=%p config.stack_size=%zu",
 	    (void *) config.base, config.kernel_size,
 	    (void *) config.stack_base, config.stack_size);
-	
+
 #ifdef CONFIG_KCONSOLE
 	/*
 	 * kconsole data structures must be initialized very early
@@ -233,13 +233,13 @@ void main_bsp_separated_stack(void)
 	 */
 	kconsole_init();
 #endif
-	
+
 	/*
 	 * Exception handler initialization, before architecture
 	 * starts adding its own handlers
 	 */
 	exc_init();
-	
+
 	/*
 	 * Memory management subsystems initialization.
 	 */
@@ -259,16 +259,16 @@ void main_bsp_separated_stack(void)
 	reserve_init();
 	ARCH_OP(pre_smp_init);
 	smp_init();
-	
+
 	/* Slab must be initialized after we know the number of processors. */
 	slab_enable_cpucache();
-	
+
 	uint64_t size;
 	const char *size_suffix;
 	bin_order_suffix(zones_total_size(), &size, &size_suffix, false);
 	printf("Detected %u CPU(s), %" PRIu64 " %s free memory\n",
 	    config.cpu_count, size, size_suffix);
-	
+
 	cpu_init();
 	calibrate_delay_loop();
 	ARCH_OP(post_cpu_init);
@@ -292,20 +292,20 @@ void main_bsp_separated_stack(void)
 			    i, (void *) init.tasks[i].paddr, i, init.tasks[i].size);
 	} else
 		printf("No init binaries found.\n");
-	
+
 	ipc_init();
 	event_init();
 	kio_init();
 	log_init();
 	stats_init();
-	
+
 	/*
 	 * Create kernel task.
 	 */
 	task_t *kernel = task_create(AS_KERNEL, "kernel");
 	if (!kernel)
 		panic("Cannot create kernel task.");
-	
+
 	/*
 	 * Create the first thread.
 	 */
@@ -314,7 +314,7 @@ void main_bsp_separated_stack(void)
 	if (!kinit_thread)
 		panic("Cannot create kinit thread.");
 	thread_ready(kinit_thread);
-	
+
 	/*
 	 * This call to scheduler() will return to kinit,
 	 * starting the thread of kernel threads.
@@ -343,24 +343,24 @@ void main_ap(void)
 	 * do initialization for AP only.
 	 */
 	config.cpu_active++;
-	
+
 	/*
 	 * The THE structure is well defined because ctx.sp is used as stack.
 	 */
 	the_initialize(THE);
-	
+
 	ARCH_OP(pre_mm_init);
 	frame_init();
 	page_init();
 	tlb_init();
 	ARCH_OP(post_mm_init);
-	
+
 	cpu_init();
 	calibrate_delay_loop();
 	ARCH_OP(post_cpu_init);
-	
+
 	the_copy(THE, (the_t *) CPU->stack);
-	
+
 	/*
 	 * If we woke kmp up before we left the kernel stack, we could
 	 * collide with another CPU coming up. To prevent this, we
@@ -381,12 +381,12 @@ void main_ap(void)
 void main_ap_separated_stack(void)
 {
 	smp_call_init();
-	
+
 	/*
 	 * Configure timeouts for this cpu.
 	 */
 	timeout_init();
-	
+
 	waitq_wakeup(&ap_completion_wq, WAKEUP_FIRST);
 	scheduler();
 	/* not reached */

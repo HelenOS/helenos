@@ -67,9 +67,9 @@ errno_t ath_usb_init(ath_t *ath, usb_device_t *usb_device, const usb_endpoint_de
 		    "structure.\n");
 		return ENOMEM;
 	}
-	
+
 	ath_usb->usb_device = usb_device;
-	
+
 	int rc;
 
 #define _MAP_EP(target, ep_no) do {\
@@ -88,13 +88,13 @@ errno_t ath_usb_init(ath_t *ath, usb_device_t *usb_device, const usb_endpoint_de
 	_MAP_EP(ath_usb->output_ctrl_pipe, 3);
 
 #undef _MAP_EP
-	
+
 	ath->ctrl_response_length = 64;
 	ath->data_response_length = 512;
-	
+
 	ath->specific_data = ath_usb;
 	ath->ops = &ath_usb_ops;
-	
+
 	return EOK;
 err_ath_usb:
 	free(ath_usb);
@@ -151,18 +151,18 @@ static errno_t ath_usb_send_data_message(ath_t *ath, void *buffer,
 	void *complete_buffer = malloc(complete_buffer_size);
 	memcpy(complete_buffer + sizeof(ath_usb_data_header_t),
 	    buffer, buffer_size);
-	
+
 	ath_usb_data_header_t *data_header =
 	    (ath_usb_data_header_t *) complete_buffer;
 	data_header->length = host2uint16_t_le(buffer_size);
 	data_header->tag = host2uint16_t_le(TX_TAG);
-	
+
 	ath_usb_t *ath_usb = (ath_usb_t *) ath->specific_data;
 	const errno_t ret_val = usb_pipe_write(ath_usb->output_data_pipe,
 	    complete_buffer, complete_buffer_size);
-	
+
 	free(complete_buffer);
-	
+
 	return ret_val;
 }
 

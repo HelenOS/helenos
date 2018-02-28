@@ -93,14 +93,14 @@ void waitq_sleep_timed_out(void *data)
 	thread_t *thread = (thread_t *) data;
 	bool do_wakeup = false;
 	DEADLOCK_PROBE_INIT(p_wqlock);
-	
+
 	irq_spinlock_lock(&threads_lock, false);
 	if (!thread_exists(thread))
 		goto out;
-	
+
 grab_locks:
 	irq_spinlock_lock(&thread->lock, false);
-	
+
 	waitq_t *wq;
 	if ((wq = thread->sleep_queue)) {  /* Assignment */
 		if (!irq_spinlock_trylock(&wq->lock)) {
@@ -109,20 +109,20 @@ grab_locks:
 			/* Avoid deadlock */
 			goto grab_locks;
 		}
-		
+
 		list_remove(&thread->wq_link);
 		thread->saved_context = thread->sleep_timeout_context;
 		do_wakeup = true;
 		thread->sleep_queue = NULL;
 		irq_spinlock_unlock(&wq->lock, false);
 	}
-	
+
 	thread->timeout_pending = false;
 	irq_spinlock_unlock(&thread->lock, false);
-	
+
 	if (do_wakeup)
 		thread_ready(thread);
-	
+
 out:
 	irq_spinlock_unlock(&threads_lock, false);
 }
@@ -143,15 +143,15 @@ void waitq_interrupt_sleep(thread_t *thread)
 {
 	bool do_wakeup = false;
 	DEADLOCK_PROBE_INIT(p_wqlock);
-	
+
 	/*
 	 * The thread is quaranteed to exist because
 	 * threads_lock is held.
 	 */
-	
+
 grab_locks:
 	irq_spinlock_lock(&thread->lock, false);
-	
+
 	waitq_t *wq;
 	if ((wq = thread->sleep_queue)) {  /* Assignment */
 		if (!(thread->sleep_interruptible)) {
@@ -161,27 +161,27 @@ grab_locks:
 			irq_spinlock_unlock(&thread->lock, false);
 			return;
 		}
-		
+
 		if (!irq_spinlock_trylock(&wq->lock)) {
 			/* Avoid deadlock */
 			irq_spinlock_unlock(&thread->lock, false);
 			DEADLOCK_PROBE(p_wqlock, DEADLOCK_THRESHOLD);
 			goto grab_locks;
 		}
-		
+
 		if ((thread->timeout_pending) &&
 		    (timeout_unregister(&thread->sleep_timeout)))
 			thread->timeout_pending = false;
-		
+
 		list_remove(&thread->wq_link);
 		thread->saved_context = thread->sleep_interruption_context;
 		do_wakeup = true;
 		thread->sleep_queue = NULL;
 		irq_spinlock_unlock(&wq->lock, false);
 	}
-	
+
 	irq_spinlock_unlock(&thread->lock, false);
-	
+
 	if (do_wakeup)
 		thread_ready(thread);
 }
@@ -197,27 +197,27 @@ grab_locks:
 void waitq_unsleep(waitq_t *wq)
 {
 	irq_spinlock_lock(&wq->lock, true);
-	
+
 	if (!list_empty(&wq->sleepers)) {
 		thread_t *thread = list_get_instance(list_first(&wq->sleepers),
 		    thread_t, wq_link);
-		
+
 		irq_spinlock_lock(&thread->lock, false);
-		
+
 		assert(thread->sleep_interruptible);
-		
+
 		if ((thread->timeout_pending) &&
 		    (timeout_unregister(&thread->sleep_timeout)))
 			thread->timeout_pending = false;
-		
+
 		list_remove(&thread->wq_link);
 		thread->saved_context = thread->sleep_interruption_context;
 		thread->sleep_queue = NULL;
-		
+
 		irq_spinlock_unlock(&thread->lock, false);
 		thread_ready(thread);
 	}
-	
+
 	irq_spinlock_unlock(&wq->lock, true);
 }
 
@@ -270,7 +270,7 @@ void waitq_unsleep(waitq_t *wq)
 errno_t waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags, bool *blocked)
 {
 	assert((!PREEMPTION_DISABLED) || (PARAM_NON_BLOCKING(flags, usec)));
-	
+
 	ipl_t ipl = waitq_sleep_prepare(wq);
 	bool nblocked;
 	errno_t rc = waitq_sleep_timeout_unsafe(wq, usec, flags, &nblocked);
@@ -295,10 +295,10 @@ errno_t waitq_sleep_timeout(waitq_t *wq, uint32_t usec, unsigned int flags, bool
 ipl_t waitq_sleep_prepare(waitq_t *wq)
 {
 	ipl_t ipl;
-	
+
 restart:
 	ipl = interrupts_disable();
-	
+
 	if (THREAD) {  /* Needed during system initiailzation */
 		/*
 		 * Busy waiting for a delayed timeout.
@@ -309,16 +309,16 @@ restart:
 		 *
 		 */
 		irq_spinlock_lock(&THREAD->lock, false);
-		
+
 		if (THREAD->timeout_pending) {
 			irq_spinlock_unlock(&THREAD->lock, false);
 			interrupts_restore(ipl);
 			goto restart;
 		}
-		
+
 		irq_spinlock_unlock(&THREAD->lock, false);
 	}
-	
+
 	irq_spinlock_lock(&wq->lock, false);
 	return ipl;
 }
@@ -353,7 +353,7 @@ void waitq_sleep_finish(waitq_t *wq, bool blocked, ipl_t ipl)
 	} else {
 		irq_spinlock_unlock(&wq->lock, false);
 	}
-	
+
 	interrupts_restore(ipl);
 }
 
@@ -386,13 +386,13 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 			return EAGAIN;
 		}
 	}
-	
+
 	/*
 	 * Now we are firmly decided to go to sleep.
 	 *
 	 */
 	irq_spinlock_lock(&THREAD->lock, false);
-	
+
 	if (flags & SYNCH_FLAGS_INTERRUPTIBLE) {
 		/*
 		 * If the thread was already interrupted,
@@ -402,7 +402,7 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 			irq_spinlock_unlock(&THREAD->lock, false);
 			return EINTR;
 		}
-		
+
 		/*
 		 * Set context that will be restored if the sleep
 		 * of this thread is ever interrupted.
@@ -416,7 +416,7 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 		}
 	} else
 		THREAD->sleep_interruptible = false;
-	
+
 	if (usec) {
 		/* We use the timeout variant. */
 		if (!context_save(&THREAD->sleep_timeout_context)) {
@@ -425,31 +425,31 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 			irq_spinlock_unlock(&THREAD->lock, false);
 			return ETIMEOUT;
 		}
-		
+
 		THREAD->timeout_pending = true;
 		timeout_register(&THREAD->sleep_timeout, (uint64_t) usec,
 		    waitq_sleep_timed_out, THREAD);
 	}
-	
+
 	list_append(&THREAD->wq_link, &wq->sleepers);
-	
+
 	/*
 	 * Suspend execution.
 	 *
 	 */
 	THREAD->state = Sleeping;
 	THREAD->sleep_queue = wq;
-	
+
 	/* Must be before entry to scheduler, because there are multiple
 	 * return vectors.
 	 */
 	*blocked = true;
-	
+
 	irq_spinlock_unlock(&THREAD->lock, false);
-	
+
 	/* wq->lock is released in scheduler_separated_stack() */
 	scheduler();
-	
+
 	return EOK;
 }
 
@@ -510,7 +510,7 @@ void waitq_wakeup(waitq_t *wq, wakeup_mode_t mode)
 static void waitq_complete_wakeup(waitq_t *wq)
 {
 	assert(interrupts_disabled());
-	
+
 	irq_spinlock_lock(&wq->lock, false);
 	irq_spinlock_unlock(&wq->lock, false);
 }
@@ -535,20 +535,20 @@ void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&wq->lock));
-	
+
 loop:
 	if (list_empty(&wq->sleepers)) {
 		wq->missed_wakeups++;
 		if ((count) && (mode == WAKEUP_ALL))
 			wq->missed_wakeups--;
-		
+
 		return;
 	}
-	
+
 	count++;
 	thread_t *thread = list_get_instance(list_first(&wq->sleepers),
 	    thread_t, wq_link);
-	
+
 	/*
 	 * Lock the thread prior to removing it from the wq.
 	 * This is not necessary because of mutual exclusion
@@ -568,16 +568,16 @@ loop:
 	 */
 	irq_spinlock_lock(&thread->lock, false);
 	list_remove(&thread->wq_link);
-	
+
 	if ((thread->timeout_pending) &&
 	    (timeout_unregister(&thread->sleep_timeout)))
 		thread->timeout_pending = false;
-	
+
 	thread->sleep_queue = NULL;
 	irq_spinlock_unlock(&thread->lock, false);
-	
+
 	thread_ready(thread);
-	
+
 	if (mode == WAKEUP_ALL)
 		goto loop;
 }

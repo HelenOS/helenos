@@ -127,7 +127,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
     bool locked, bool cacheable)
 {
 	tte_data_t data;
-	
+
 	data.value = 0;
 	data.v = true;
 	data.nfo = false;
@@ -142,7 +142,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
 	data.x = false;
 	data.w = true;
 	data.size = pagesize;
-	
+
 	if (locked) {
 		__hypercall_fast4(
 			MMU_MAP_PERM_ADDR, page, 0, data.value, MMU_FLAG_DTLB);
@@ -162,7 +162,7 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
 void dtlb_pte_copy(pte_t *t, bool ro)
 {
 	tte_data_t data;
-	
+
 	data.value = 0;
 	data.v = true;
 	data.nfo = false;
@@ -177,7 +177,7 @@ void dtlb_pte_copy(pte_t *t, bool ro)
 	data.x = false;
 	data.w = ro ? false : t->w;
 	data.size = PAGESIZE_8K;
-	
+
 	__hypercall_hyperfast(
 		t->page, t->as->asid, data.value, MMU_FLAG_DTLB, 0, MMU_MAP_ADDR);
 }
@@ -189,7 +189,7 @@ void dtlb_pte_copy(pte_t *t, bool ro)
 void itlb_pte_copy(pte_t *t)
 {
 	tte_data_t data;
-	
+
 	data.value = 0;
 	data.v = true;
 	data.nfo = false;
@@ -202,7 +202,7 @@ void itlb_pte_copy(pte_t *t)
 	data.x = true;
 	data.w = false;
 	data.size = PAGESIZE_8K;
-	
+
 	__hypercall_hyperfast(
 		t->page, t->as->asid, data.value, MMU_FLAG_ITLB, 0, MMU_MAP_ADDR);
 }
@@ -386,7 +386,7 @@ void tlb_invalidate_asid(asid_t asid)
 void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 {
 	unsigned int i;
-	
+
 	/* switch to nucleus because we are mapped by the primary context */
 	nucleus_enter();
 

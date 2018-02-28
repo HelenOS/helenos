@@ -75,7 +75,7 @@ static inline bool is_us_iv(void)
 	int impl = ((ver_reg_t) ver_read()).impl;
 	return (impl == IMPL_ULTRASPARCIV) || (impl == IMPL_ULTRASPARCIV_PLUS);
 }
-	
+
 #endif
 
 /** @}

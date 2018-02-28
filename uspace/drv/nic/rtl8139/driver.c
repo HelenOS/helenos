@@ -155,7 +155,7 @@ static void rtl8139_hw_update_rcr(rtl8139_t *rtl8139)
 	    | rtl8139->rcr_data.mcast_mask | rtl8139->rcr_data.bcast_mask
 	    | rtl8139->rcr_data.defect_mask |
 	    (RXBUF_SIZE_FLAGS << RCR_RBLEN_SHIFT);
-	
+
 	ddf_msg(LVL_DEBUG, "Rewriting rcr: %x -> %x", pio_read_32(rtl8139->io_port + RCR),
 	    rcr);
 
@@ -418,7 +418,7 @@ static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size)
 	tsd_value &= ~(uint32_t)TSD_OWN;
 	pio_write_32(tsd, tsd_value);
 	return;
-	
+
 err_busy_no_inc:
 err_size:
 	return;
@@ -549,7 +549,7 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 	/* get values to the <0, buffer size) */
 	bytes_received %= RxBUF_SIZE;
 	rx_offset %= RxBUF_SIZE;
-	
+
 	/* count how many bytes to read maximaly */
 	if (bytes_received < rx_offset)
 		max_read = bytes_received + (RxBUF_SIZE - rx_offset);
@@ -774,7 +774,7 @@ static int rtl8139_poll_interrupt(nic_t *nic_data)
 static void rtl8139_interrupt_impl(nic_t *nic_data, uint16_t isr)
 {
 	assert(nic_data);
-	
+
 	nic_poll_mode_t poll_mode = nic_query_poll_mode(nic_data, 0);
 
 	/* Process only when should in the polling mode */
@@ -1103,7 +1103,7 @@ static errno_t rtl8139_buffers_create(rtl8139_t *rtl8139)
 	errno_t rc;
 
 	ddf_msg(LVL_DEBUG, "Creating buffers");
-	
+
 	rtl8139->tx_buff_virt = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(TX_PAGES * PAGE_SIZE, DMAMEM_4GiB,
 	    AS_AREA_WRITE, 0, &rtl8139->tx_buff_phys, &rtl8139->tx_buff_virt);
@@ -1124,7 +1124,7 @@ static errno_t rtl8139_buffers_create(rtl8139_t *rtl8139)
 	/* Allocate buffer for receiver */
 	ddf_msg(LVL_DEBUG, "Allocating receiver buffer of the size %d bytes",
 	    RxBUF_TOT_LENGTH);
-	
+
 	rtl8139->rx_buff_virt = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(RxBUF_TOT_LENGTH, DMAMEM_4GiB,
 	    AS_AREA_READ, 0, &rtl8139->rx_buff_phys, &rtl8139->rx_buff_virt);
@@ -1194,7 +1194,7 @@ static errno_t rtl8139_device_initialize(ddf_dev_t *dev)
 
 	ddf_msg(LVL_DEBUG, "The device is initialized");
 	return ret;
-	
+
 failed:
 	ddf_msg(LVL_ERROR, "The device initialization failed");
 	rtl8139_dev_cleanup(dev);
@@ -1317,7 +1317,7 @@ errno_t rtl8139_dev_add(ddf_dev_t *dev)
 	    ddf_dev_get_name(dev));
 
 	return EOK;
-	
+
 err_fun_bind:
 	ddf_fun_unbind(fun);
 err_fun_create:
@@ -1546,7 +1546,7 @@ static errno_t rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_recei
 
 	if (rtl8139_pause_is_valid(rtl8139) != VALUE_RW)
 		return EINVAL;
-	
+
 	uint8_t msr = pio_read_8(rtl8139->io_port + MSR);
 	msr &= ~(uint8_t)(MSR_TXFCE | MSR_RXFCE);
 
@@ -1554,7 +1554,7 @@ static errno_t rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_recei
 		msr |= MSR_RXFCE;
 	if (allow_send)
 		msr |= MSR_TXFCE;
-	
+
 	pio_write_8(rtl8139->io_port + MSR, msr);
 
 	if (allow_send && time > 0) {
@@ -1623,7 +1623,7 @@ static errno_t rtl8139_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement)
 
 	if ((advertisement | RTL8139_AUTONEG_CAPS) != RTL8139_AUTONEG_CAPS)
 		return EINVAL; /* some unsuported mode is requested */
-	
+
 	assert(advertisement != 0);
 
 	/* Set the autonegotiation advertisement */

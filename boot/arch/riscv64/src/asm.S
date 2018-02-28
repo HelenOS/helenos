@@ -84,11 +84,11 @@ SYMBOL(start)
 	li x29, 0
 	li x30, 0
 	li x31, 0
-	
+
 	/* Set up stack, create stack frame */
 	la sp, boot_stack + BOOT_STACK_SIZE
 	addi sp, sp, -16
-	
+
 	j bootstrap
 
 .text
@@ -96,37 +96,37 @@ SYMBOL(start)
 FUNCTION_BEGIN(jump_to_kernel)
 	/* Enable performance counters access in supervisor mode */
 	csrsi mcounteren, MCOUNTEREN_CY_MASK | MCOUNTEREN_TM_MASK | MCOUNTEREN_IR_MASK
-	
+
 	/* Setup SV48 paging for supervisor mode */
 	la t0, ptl_0
 	srli t0, t0, 12
-	
+
 	li t1, SATP_PFN_MASK
 	and t0, t0, t1
-	
+
 	li t1, SATP_MODE_SV48
 	or t0, t0, t1
-	
+
 	csrw sptbr, t0
-	
+
 	/* Jump to supervisor mode */
 	csrr t0, mstatus
-	
+
 	li t1, ~MSTATUS_MPP_MASK
 	and t0, t0, t1
-	
+
 	/*
 	 * TODO: Enable running with Supervisor User Mode
 	 * access disabled.
 	 */
 	li t1, MSTATUS_MPP_SUPERVISOR | MSTATUS_SUM_MASK
 	or t0, t0, t1
-	
+
 	csrw mstatus, t0
-	
+
 	li ra, PA2KA(BOOT_OFFSET)
 	csrw mepc, ra
-	
+
 	mret
 FUNCTION_END(jump_to_kernel)
 

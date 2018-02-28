@@ -71,7 +71,7 @@ void sparc64_pre_main(bootinfo_t *bootinfo)
 {
 	/* Copy init task info. */
 	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
-	
+
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
 		init.tasks[i].paddr = KA2PA(bootinfo->taskmap.tasks[i].addr);
@@ -79,7 +79,7 @@ void sparc64_pre_main(bootinfo_t *bootinfo)
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->taskmap.tasks[i].name);
 	}
-	
+
 	/* Copy physical memory map. */
 	memmap.total = bootinfo->memmap.total;
 	memmap.cnt = min(bootinfo->memmap.cnt, MEMMAP_MAX_RECORDS);
@@ -87,11 +87,11 @@ void sparc64_pre_main(bootinfo_t *bootinfo)
 		memmap.zones[i].start = bootinfo->memmap.zones[i].start;
 		memmap.zones[i].size = bootinfo->memmap.zones[i].size;
 	}
-	
+
 	/* Copy boot allocations info. */
 	ballocs.base = bootinfo->ballocs.base;
 	ballocs.size = bootinfo->ballocs.size;
-	
+
 	ofw_tree_init(bootinfo->ofw_root);
 }
 
@@ -110,7 +110,7 @@ void sun4u_post_mm_init(void)
 	if (config.cpu_active == 1) {
 		/* Map OFW information into sysinfo */
 		ofw_sysinfo_map();
-		
+
 		/*
 		 * We have 2^11 different interrupt vectors.
 		 * But we only create 128 buckets.
@@ -166,7 +166,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    kernel_uarg->uspace_stack_size -
 	    (ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT) + STACK_BIAS),
 	    (uintptr_t) kernel_uarg->uspace_uarg);
-	
+
 	/* Not reached */
 	while (1);
 }

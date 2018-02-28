@@ -272,7 +272,7 @@ static void handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 		status &= port_events_mask;
 		if (status != 0)
 			usb_log_debug("RH port %u change not handled: 0x%x", port_id, status);
-		
+
 		/* Make sure that PSCEG is 0 before exiting the loop. */
 		status = XHCI_REG_RD_FIELD(&port->regs->portsc, 32);
 	}

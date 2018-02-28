@@ -40,7 +40,7 @@
 NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
 	atomic_count_t tmp;
-	
+
 	asm volatile (
 		"1:\n"
 		"	lwarx %[tmp], 0, %[count_ptr]\n"
@@ -58,7 +58,7 @@ NO_TRACE static inline void atomic_inc(atomic_t *val)
 NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
 	atomic_count_t tmp;
-	
+
 	asm volatile (
 		"1:\n"
 		"	lwarx %[tmp], 0, %[count_ptr]\n"

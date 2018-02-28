@@ -108,7 +108,7 @@ typedef struct {
 
 	/** Report id of last parsed report. */
 	uint8_t last_report_id;
-	
+
 } usb_hid_report_t;
 
 
@@ -127,7 +127,7 @@ typedef struct {
 
 	/** Number of items in report */
 	size_t item_length;
-	
+
 	/** List of report items in report */
 	list_t report_items;
 
@@ -181,7 +181,7 @@ typedef struct {
 
 	/** The greatest valid usage index */
 	int32_t usage_maximum;
-	
+
 	/** Unit of the value */
 	uint32_t unit;
 
@@ -209,13 +209,13 @@ typedef struct {
 typedef struct {
 	/** report id */
 	int32_t id;
-	
+
 	/** Extended usage page */
 	uint16_t extended_usage_page;
 
 	/** Array of usages specified for this item */
 	uint32_t usages[USB_HID_MAX_USAGES];
-	
+
 	/** Length of usages array */
 	int usages_count;
 
@@ -224,13 +224,13 @@ typedef struct {
 
 	/** Minimum valid usage index */
 	int32_t usage_minimum;
-	
+
 	/** Maximum valid usage index */
 	int32_t usage_maximum;
-	
+
 	/** Minimum valid logical value */
 	int32_t logical_minimum;
-	
+
 	/** Maximum valid logical value */
 	int32_t logical_maximum;
 

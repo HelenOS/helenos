@@ -20,7 +20,7 @@
 	 * @defgroup fbs Framebuffer Service
 	 * @ingroup srvcs
 	 */
-	 
+
 	/**
 	 * @defgroup console Console Service
 	 * @ingroup srvcs
@@ -142,24 +142,24 @@
 	 * @ingroup srvcs
 	 * @endcond
 	 */
-	
+
 	/**
 	 * @cond ia32
 	 * @defgroup pci PCI Service
 	 * @ingroup srvcs
 	 * @endcond
 	 */
-	
+
 /**
  * @defgroup emul Emulation Libraries
  * @ingroup uspace
  */
-	
+
  	/**
 	 * @defgroup sfl Softloat
 	 * @ingroup emul
 	 */
-	
+
 	/**
 	 * @defgroup softint Softint
 	 * @ingroup emul

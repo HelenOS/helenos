@@ -102,14 +102,14 @@ typedef struct {
 	uint8_t *dest;    /**< Output buffer */
 	size_t destlen;   /**< Output buffer size */
 	size_t destcnt;   /**< Position in the output buffer */
-	
+
 	uint8_t *src;     /**< Input buffer */
 	size_t srclen;    /**< Input buffer size */
 	size_t srccnt;    /**< Position in the input buffer */
-	
+
 	uint16_t bitbuf;  /**< Bit buffer */
 	size_t bitlen;    /**< Number of bits in the bit buffer */
-	
+
 	bool overrun;     /**< Overrun condition */
 } inflate_state_t;
 
@@ -239,23 +239,23 @@ static inline uint16_t get_bits(inflate_state_t *state, size_t cnt)
 {
 	/* Bit accumulator for at least 20 bits */
 	uint32_t val = state->bitbuf;
-	
+
 	while (state->bitlen < cnt) {
 		if (state->srccnt == state->srclen) {
 			state->overrun = true;
 			return 0;
 		}
-		
+
 		/* Load 8 more bits */
 		val |= ((uint32_t) state->src[state->srccnt]) << state->bitlen;
 		state->srccnt++;
 		state->bitlen += 8;
 	}
-	
+
 	/* Update bits in the buffer */
 	state->bitbuf = (uint16_t) (val >> cnt);
 	state->bitlen -= cnt;
-	
+
 	return ((uint16_t) (val & ((1 << cnt) - 1)));
 }
 
@@ -274,34 +274,34 @@ static errno_t inflate_stored(inflate_state_t *state)
 	/* Discard bits in the bit buffer */
 	state->bitbuf = 0;
 	state->bitlen = 0;
-	
+
 	if (state->srccnt + 4 > state->srclen)
 		return ELIMIT;
-	
+
 	uint16_t len =
 	    state->src[state->srccnt] | (state->src[state->srccnt + 1] << 8);
 	uint16_t len_compl =
 	    state->src[state->srccnt + 2] | (state->src[state->srccnt + 3] << 8);
-	
+
 	/* Check block length and its complement */
 	if (((int16_t) len) != ~((int16_t) len_compl))
 		return EINVAL;
-	
+
 	state->srccnt += 4;
-	
+
 	/* Check input buffer size */
 	if (state->srccnt + len > state->srclen)
 		return ELIMIT;
-	
+
 	/* Check output buffer size */
 	if (state->destcnt + len > state->destlen)
 		return ENOMEM;
-	
+
 	/* Copy data */
 	memcpy(state->dest + state->destcnt, state->src + state->srccnt, len);
 	state->srccnt += len;
 	state->destcnt += len;
-	
+
 	return EOK;
 }
 
@@ -322,27 +322,27 @@ static errno_t huffman_decode(inflate_state_t *state, huffman_t *huffman,
 	size_t first = 0;  /* First code of the given length */
 	size_t index = 0;  /* Index of the first code of the given length
 	                      in the symbol table */
-	
+
 	size_t len;  /* Current number of bits in the code */
 	for (len = 1; len <= MAX_HUFFMAN_BIT; len++) {
 		/* Get next bit */
 		code |= get_bits(state, 1);
 		CHECK_OVERRUN(*state);
-		
+
 		uint16_t count = huffman->count[len];
 		if (code < first + count) {
 			/* Return decoded symbol */
 			*symbol = huffman->symbol[index + code - first];
 			return EOK;
 		}
-		
+
 		/* Update for next length */
 		index += count;
 		first += count;
 		first <<= 1;
 		code <<= 1;
 	}
-	
+
 	return EINVAL;
 }
 
@@ -363,17 +363,17 @@ static int16_t huffman_construct(huffman_t *huffman, uint16_t *length, size_t n)
 	size_t len;
 	for (len = 0; len <= MAX_HUFFMAN_BIT; len++)
 		huffman->count[len] = 0;
-	
+
 	/* We assume that the lengths are within bounds */
 	size_t symbol;
 	for (symbol = 0; symbol < n; symbol++)
 		huffman->count[length[symbol]]++;
-	
+
 	if (huffman->count[0] == n) {
 		/* The code is complete, but decoding will fail */
 		return 0;
 	}
-	
+
 	/* Check for an over-subscribed or incomplete set of lengths */
 	int16_t left = 1;
 	for (len = 1; len <= MAX_HUFFMAN_BIT; len++) {
@@ -384,21 +384,21 @@ static int16_t huffman_construct(huffman_t *huffman, uint16_t *length, size_t n)
 			return left;
 		}
 	}
-	
+
 	/* Generate offsets into symbol table */
 	uint16_t offs[MAX_HUFFMAN_BIT + 1];
-	
+
 	offs[1] = 0;
 	for (len = 1; len < MAX_HUFFMAN_BIT; len++)
 		offs[len + 1] = offs[len] + huffman->count[len];
-	
+
 	for (symbol = 0; symbol < n; symbol++) {
 		if (length[symbol] != 0) {
 			huffman->symbol[offs[length[symbol]]] = symbol;
 			offs[length[symbol]]++;
 		}
 	}
-	
+
 	return left;
 }
 
@@ -421,19 +421,19 @@ static errno_t inflate_codes(inflate_state_t *state, huffman_t* len_code,
     huffman_t* dist_code)
 {
 	uint16_t symbol;
-	
+
 	do {
 		errno_t err = huffman_decode(state, len_code, &symbol);
 		if (err != EOK) {
 			/* Error decoding */
 			return err;
 		}
-		
+
 		if (symbol < 256) {
 			/* Write out literal */
 			if (state->destcnt == state->destlen)
 				return ENOMEM;
-			
+
 			state->dest[state->destcnt] = (uint8_t) symbol;
 			state->destcnt++;
 		} else if (symbol > 256) {
@@ -441,22 +441,22 @@ static errno_t inflate_codes(inflate_state_t *state, huffman_t* len_code,
 			symbol -= 257;
 			if (symbol >= 29)
 				return EINVAL;
-			
+
 			size_t len = lens[symbol] + get_bits(state, lens_ext[symbol]);
 			CHECK_OVERRUN(*state);
-			
+
 			/* Get distance */
 			err = huffman_decode(state, dist_code, &symbol);
 			if (err != EOK)
 				return err;
-			
+
 			size_t dist = dists[symbol] + get_bits(state, dists_ext[symbol]);
 			if (dist > state->destcnt)
 				return ENOENT;
-			
+
 			if (state->destcnt + len > state->destlen)
 				return ENOMEM;
-			
+
 			while (len > 0) {
 				/* Copy len bytes from distance bytes back */
 				state->dest[state->destcnt]
@@ -466,7 +466,7 @@ static errno_t inflate_codes(inflate_state_t *state, huffman_t* len_code,
 			}
 		}
 	} while (symbol != 256);
-	
+
 	return EOK;
 }
 
@@ -509,43 +509,43 @@ static errno_t inflate_dynamic(inflate_state_t *state)
 	uint16_t dyn_dist_symbol[MAX_DIST];
 	huffman_t dyn_len_code;
 	huffman_t dyn_dist_code;
-	
+
 	dyn_len_code.count = dyn_len_count;
 	dyn_len_code.symbol = dyn_len_symbol;
-	
+
 	dyn_dist_code.count = dyn_dist_count;
 	dyn_dist_code.symbol = dyn_dist_symbol;
-	
+
 	/* Get number of bits in each table */
 	uint16_t nlen = get_bits(state, 5) + 257;
 	CHECK_OVERRUN(*state);
-	
+
 	uint16_t ndist = get_bits(state, 5) + 1;
 	CHECK_OVERRUN(*state);
-	
+
 	uint16_t ncode = get_bits(state, 4) + 4;
 	CHECK_OVERRUN(*state);
-	
+
 	if ((nlen > MAX_LITLEN) || (ndist > MAX_DIST)
 	    || (ncode > MAX_ORDER))
 		return EINVAL;
-	
+
 	/* Read code length code lengths */
 	uint16_t index;
 	for (index = 0; index < ncode; index++) {
 		length[order[index]] = get_bits(state, 3);
 		CHECK_OVERRUN(*state);
 	}
-	
+
 	/* Set missing lengths to zero */
 	for (index = ncode; index < MAX_ORDER; index++)
 		length[order[index]] = 0;
-	
+
 	/* Build Huffman code */
 	int16_t rc = huffman_construct(&dyn_len_code, length, MAX_ORDER);
 	if (rc != 0)
 		return EINVAL;
-	
+
 	/* Read length/literal and distance code length tables */
 	index = 0;
 	while (index < nlen + ndist) {
@@ -553,17 +553,17 @@ static errno_t inflate_dynamic(inflate_state_t *state)
 		errno_t err = huffman_decode(state, &dyn_len_code, &symbol);
 		if (err != EOK)
 			return EOK;
-		
+
 		if (symbol < 16) {
 			length[index] = symbol;
 			index++;
 		} else {
 			uint16_t len = 0;
-			
+
 			if (symbol == 16) {
 				if (index == 0)
 					return EINVAL;
-				
+
 				len = length[index - 1];
 				symbol = get_bits(state, 2) + 3;
 				CHECK_OVERRUN(*state);
@@ -574,10 +574,10 @@ static errno_t inflate_dynamic(inflate_state_t *state)
 				symbol = get_bits(state, 7) + 11;
 				CHECK_OVERRUN(*state);
 			}
-			
+
 			if (index + symbol > nlen + ndist)
 				return EINVAL;
-			
+
 			while (symbol > 0) {
 				length[index] = len;
 				index++;
@@ -585,21 +585,21 @@ static errno_t inflate_dynamic(inflate_state_t *state)
 			}
 		}
 	}
-	
+
 	/* Check for end-of-block code */
 	if (length[256] == 0)
 		return EINVAL;
-	
+
 	/* Build Huffman tables for literal/length codes */
 	rc = huffman_construct(&dyn_len_code, length, nlen);
 	if ((rc < 0) || ((rc > 0) && (dyn_len_code.count[0] + 1 != nlen)))
 		return EINVAL;
-	
+
 	/* Build Huffman tables for distance codes */
 	rc = huffman_construct(&dyn_dist_code, length + nlen, ndist);
 	if ((rc < 0) || ((rc > 0) && (dyn_dist_code.count[0] + 1 != ndist)))
 		return EINVAL;
-	
+
 	return inflate_codes(state, &dyn_len_code, &dyn_dist_code);
 }
 
@@ -621,32 +621,32 @@ errno_t inflate(void *src, size_t srclen, void *dest, size_t destlen)
 {
 	/* Initialize the state */
 	inflate_state_t state;
-	
+
 	state.dest = (uint8_t *) dest;
 	state.destlen = destlen;
 	state.destcnt = 0;
-	
+
 	state.src = (uint8_t *) src;
 	state.srclen = srclen;
 	state.srccnt = 0;
-	
+
 	state.bitbuf = 0;
 	state.bitlen = 0;
-	
+
 	state.overrun = false;
-	
+
 	uint16_t last;
 	errno_t ret = EOK;
-	
+
 	do {
 		/* Last block is indicated by a non-zero bit */
 		last = get_bits(&state, 1);
 		CHECK_OVERRUN(state);
-		
+
 		/* Block type */
 		uint16_t type = get_bits(&state, 2);
 		CHECK_OVERRUN(state);
-		
+
 		switch (type) {
 		case 0:
 			ret = inflate_stored(&state);
@@ -661,6 +661,6 @@ errno_t inflate(void *src, size_t srclen, void *dest, size_t destlen)
 			ret = EINVAL;
 		}
 	} while ((!last) && (ret == 0));
-	
+
 	return ret;
 }

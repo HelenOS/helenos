@@ -67,31 +67,31 @@ void it_init(void)
 		it_irq.claim = it_claim;
 		it_irq.handler = it_interrupt;
 		irq_register(&it_irq);
-		
+
 		uint64_t base_freq;
 		base_freq  = ((bootinfo->freq_scale) & FREQ_NUMERATOR_MASK) >>
 		    FREQ_NUMERATOR_SHIFT;
 		base_freq *= bootinfo->sys_freq;
 		base_freq /= ((bootinfo->freq_scale) & FREQ_DENOMINATOR_MASK) >>
 		    FREQ_DENOMINATOR_SHIFT;
-		
+
 		it_delta = base_freq / HZ;
 	}
-	
+
 	/* Initialize Interval Timer external interrupt vector */
 	cr_itv_t itv;
-	
+
 	itv.value = itv_read();
 	itv.vector = INTERRUPT_TIMER;
 	itv.m = 0;
 	itv_write(itv.value);
-	
+
 	/* Set Interval Timer Counter to zero */
 	itc_write(0);
-	
+
 	/* Generate first Interval Timer interrupt in IT_DELTA ticks */
 	itm_write(IT_DELTA);
-	
+
 	/* Propagate changes */
 	srlz_d();
 }
@@ -112,23 +112,23 @@ irq_ownership_t it_claim(irq_t *irq)
 void it_interrupt(irq_t *irq)
 {
 	eoi_write(EOI);
-	
+
 	int64_t itm = itm_read();
-	
+
 	while (true) {
 		int64_t itc = itc_read();
 		itc += IT_SERVICE_CLOCKS;
-		
+
 		itm += IT_DELTA;
 		if (itm - itc < 0)
 			CPU->missed_clock_ticks++;
 		else
 			break;
 	}
-	
+
 	itm_write(itm);
 	srlz_d();  /* Propagate changes */
-	
+
 	/*
 	 * We are holding a lock which prevents preemption.
 	 * Release the lock, call clock() and reacquire the lock again.

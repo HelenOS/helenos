@@ -77,10 +77,10 @@ static layout_ops_t *layout[NUM_LAYOUTS] = {
 typedef struct {
 	/** Link into the list of clients */
 	link_t link;
-	
+
 	/** Indicate whether the client is active */
 	bool active;
-	
+
 	/** Client callback session */
 	async_sess_t *sess;
 } client_t;
@@ -111,20 +111,20 @@ static void *client_data_create(void)
 	client_t *client = (client_t *) calloc(1, sizeof(client_t));
 	if (client == NULL)
 		return NULL;
-	
+
 	link_initialize(&client->link);
 	client->active = false;
 	client->sess = NULL;
-	
+
 	list_append(&client->link, &clients);
-	
+
 	return client;
 }
 
 static void client_data_destroy(void *data)
 {
 	client_t *client = (client_t *) data;
-	
+
 	list_remove(&client->link);
 	free(client);
 }
@@ -143,7 +143,7 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 {
 	kbd_event_t ev;
 	unsigned int mod_mask;
-	
+
 	switch (key) {
 	case KC_LCTRL:
 		mod_mask = KM_LCTRL;
@@ -166,14 +166,14 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	default:
 		mod_mask = 0;
 	}
-	
+
 	if (mod_mask != 0) {
 		if (type == KEY_PRESS)
 			kdev->mods = kdev->mods | mod_mask;
 		else
 			kdev->mods = kdev->mods & ~mod_mask;
 	}
-	
+
 	switch (key) {
 	case KC_CAPS_LOCK:
 		mod_mask = KM_CAPS_LOCK;
@@ -187,7 +187,7 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 	default:
 		mod_mask = 0;
 	}
-	
+
 	if (mod_mask != 0) {
 		if (type == KEY_PRESS) {
 			/*
@@ -197,50 +197,50 @@ void kbd_push_event(kbd_dev_t *kdev, int type, unsigned int key)
 			 */
 			kdev->mods = kdev->mods ^ (mod_mask & ~kdev->lock_keys);
 			kdev->lock_keys = kdev->lock_keys | mod_mask;
-			
+
 			/* Update keyboard lock indicator lights. */
 			(*kdev->ctl_ops->set_ind)(kdev, kdev->mods);
 		} else {
 			kdev->lock_keys = kdev->lock_keys & ~mod_mask;
 		}
 	}
-	
+
 	// TODO: More elegant layout switching
-	
+
 	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
 	    (key == KC_F1)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[0]);
 		return;
 	}
-	
+
 	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
 	    (key == KC_F2)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[1]);
 		return;
 	}
-	
+
 	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
 	    (key == KC_F3)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[2]);
 		return;
 	}
-	
+
 	if ((type == KEY_PRESS) && (kdev->mods & KM_LCTRL) &&
 	    (key == KC_F4)) {
 		layout_destroy(kdev->active_layout);
 		kdev->active_layout = layout_create(layout[3]);
 		return;
 	}
-	
+
 	ev.type = type;
 	ev.key = key;
 	ev.mods = kdev->mods;
-	
+
 	ev.c = layout_parse_ev(kdev->active_layout, &ev);
-	
+
 	list_foreach(clients, link, client_t, client) {
 		if (client->active) {
 			async_exch_t *exch = async_exchange_begin(client->sess);
@@ -256,20 +256,20 @@ void mouse_push_event_move(mouse_dev_t *mdev, int dx, int dy, int dz)
 	list_foreach(clients, link, client_t, client) {
 		if (client->active) {
 			async_exch_t *exch = async_exchange_begin(client->sess);
-			
+
 			if ((dx) || (dy))
 				async_msg_2(exch, INPUT_EVENT_MOVE, dx, dy);
-			
+
 			if (dz) {
 				// TODO: Implement proper wheel support
 				keycode_t code = dz > 0 ? KC_UP : KC_DOWN;
-				
+
 				for (unsigned int i = 0; i < 3; i++)
 					async_msg_4(exch, INPUT_EVENT_KEY, KEY_PRESS, code, 0, 0);
-				
+
 				async_msg_4(exch, INPUT_EVENT_KEY, KEY_RELEASE, code, 0, 0);
 			}
-			
+
 			async_exchange_end(exch);
 		}
 	}
@@ -308,7 +308,7 @@ static void client_arbitration(void)
 	/* Mutual exclusion of active clients */
 	list_foreach(clients, link, client_t, client)
 		client->active = ((active) && (client == active_client));
-	
+
 	/* Notify clients about the arbitration */
 	list_foreach(clients, link, client_t, client) {
 		async_exch_t *exch = async_exchange_begin(client->sess);
@@ -326,23 +326,23 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	async_answer_0(iid, EOK);
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call)) {
 			if (client->sess != NULL) {
 				async_hangup(client->sess);
 				client->sess = NULL;
 			}
-			
+
 			async_answer_0(callid, EOK);
 			return;
 		}
-		
+
 		async_sess_t *sess =
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
@@ -374,7 +374,7 @@ static void kconsole_event_handler(ipc_call_t *call, void *arg)
 		/* Kernel console deactivated */
 		active = true;
 	}
-	
+
 	client_arbitration();
 }
 
@@ -386,13 +386,13 @@ static kbd_dev_t *kbd_dev_new(void)
 		    "Out of memory.\n", NAME);
 		return NULL;
 	}
-	
+
 	link_initialize(&kdev->link);
-	
+
 	kdev->mods = KM_NUM_LOCK;
 	kdev->lock_keys = 0;
 	kdev->active_layout = layout_create(layout[0]);
-	
+
 	return kdev;
 }
 
@@ -404,9 +404,9 @@ static mouse_dev_t *mouse_dev_new(void)
 		    "Out of memory.\n", NAME);
 		return NULL;
 	}
-	
+
 	link_initialize(&mdev->link);
-	
+
 	return mdev;
 }
 
@@ -418,7 +418,7 @@ static serial_dev_t *serial_dev_new(void)
 		    "Out of memory.\n", NAME);
 		return NULL;
 	}
-	
+
 	sdev->kdev = kbd_dev_new();
 	if (sdev->kdev == NULL) {
 		free(sdev);
@@ -426,7 +426,7 @@ static serial_dev_t *serial_dev_new(void)
 	}
 
 	link_initialize(&sdev->link);
-	
+
 	return sdev;
 }
 
@@ -436,24 +436,24 @@ static void kbd_add_dev(kbd_port_ops_t *port, kbd_ctl_ops_t *ctl)
 	kbd_dev_t *kdev = kbd_dev_new();
 	if (kdev == NULL)
 		return;
-	
+
 	kdev->port_ops = port;
 	kdev->ctl_ops = ctl;
 	kdev->svc_id = 0;
-	
+
 	/* Initialize port driver. */
 	if ((*kdev->port_ops->init)(kdev) != 0)
 		goto fail;
-	
+
 	/* Initialize controller driver. */
 	if ((*kdev->ctl_ops->init)(kdev) != 0) {
 		/* XXX Uninit port */
 		goto fail;
 	}
-	
+
 	list_append(&kdev->link, &kbd_devs);
 	return;
-	
+
 fail:
 	free(kdev);
 }
@@ -468,26 +468,26 @@ static int kbd_add_kbdev(service_id_t service_id, kbd_dev_t **kdevp)
 	kbd_dev_t *kdev = kbd_dev_new();
 	if (kdev == NULL)
 		return -1;
-	
+
 	kdev->svc_id = service_id;
 	kdev->port_ops = NULL;
 	kdev->ctl_ops = &kbdev_ctl;
-	
+
 	errno_t rc = loc_service_get_name(service_id, &kdev->svc_name);
 	if (rc != EOK) {
 		kdev->svc_name = NULL;
 		goto fail;
 	}
-	
+
 	/* Initialize controller driver. */
 	if ((*kdev->ctl_ops->init)(kdev) != 0) {
 		goto fail;
 	}
-	
+
 	list_append(&kdev->link, &kbd_devs);
 	*kdevp = kdev;
 	return 0;
-	
+
 fail:
 	if (kdev->svc_name != NULL)
 		free(kdev->svc_name);
@@ -505,26 +505,26 @@ static int mouse_add_mousedev(service_id_t service_id, mouse_dev_t **mdevp)
 	mouse_dev_t *mdev = mouse_dev_new();
 	if (mdev == NULL)
 		return -1;
-	
+
 	mdev->svc_id = service_id;
 	mdev->port_ops = NULL;
 	mdev->proto_ops = &mousedev_proto;
-	
+
 	errno_t rc = loc_service_get_name(service_id, &mdev->svc_name);
 	if (rc != EOK) {
 		mdev->svc_name = NULL;
 		goto fail;
 	}
-	
+
 	/* Initialize controller driver. */
 	if ((*mdev->proto_ops->init)(mdev) != 0) {
 		goto fail;
 	}
-	
+
 	list_append(&mdev->link, &mouse_devs);
 	*mdevp = mdev;
 	return 0;
-	
+
 fail:
 	free(mdev);
 	return -1;
@@ -559,9 +559,9 @@ static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 	serial_dev_t *sdev = serial_dev_new();
 	if (sdev == NULL)
 		return -1;
-	
+
 	sdev->kdev->svc_id = service_id;
-	
+
 	rc = loc_service_get_name(service_id, &sdev->kdev->svc_name);
 	if (rc != EOK)
 		goto fail;
@@ -597,10 +597,10 @@ static int serial_add_srldev(service_id_t service_id, serial_dev_t **sdevp)
 		fid_t fid = fibril_create(serial_consumer, sdev);
 		fibril_add_ready(fid);
 	}
-	
+
 	*sdevp = sdev;
 	return 0;
-	
+
 fail:
 	if (sdev->kdev->svc_name != NULL)
 		free(sdev->kdev->svc_name);
@@ -640,13 +640,13 @@ static errno_t dev_check_new_kbdevs(void)
 	size_t count, i;
 	bool already_known;
 	errno_t rc;
-	
+
 	rc = loc_category_get_id("keyboard", &keyboard_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed resolving category 'keyboard'.\n", NAME);
 		return ENOENT;
 	}
-	
+
 	/*
 	 * Check for new keyboard devices
 	 */
@@ -659,7 +659,7 @@ static errno_t dev_check_new_kbdevs(void)
 
 	for (i = 0; i < count; i++) {
 		already_known = false;
-		
+
 		/* Determine whether we already know this device. */
 		list_foreach(kbd_devs, link, kbd_dev_t, kdev) {
 			if (kdev->svc_id == svcs[i]) {
@@ -667,7 +667,7 @@ static errno_t dev_check_new_kbdevs(void)
 				break;
 			}
 		}
-		
+
 		if (!already_known) {
 			kbd_dev_t *kdev;
 			if (kbd_add_kbdev(svcs[i], &kdev) == 0) {
@@ -676,11 +676,11 @@ static errno_t dev_check_new_kbdevs(void)
 			}
 		}
 	}
-	
+
 	free(svcs);
-	
+
 	/* XXX Handle device removal */
-	
+
 	return EOK;
 }
 
@@ -691,13 +691,13 @@ static errno_t dev_check_new_mousedevs(void)
 	size_t count, i;
 	bool already_known;
 	errno_t rc;
-	
+
 	rc = loc_category_get_id("mouse", &mouse_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed resolving category 'mouse'.\n", NAME);
 		return ENOENT;
 	}
-	
+
 	/*
 	 * Check for new mouse devices
 	 */
@@ -707,10 +707,10 @@ static errno_t dev_check_new_mousedevs(void)
 		    NAME);
 		return EIO;
 	}
-	
+
 	for (i = 0; i < count; i++) {
 		already_known = false;
-		
+
 		/* Determine whether we already know this device. */
 		list_foreach(mouse_devs, link, mouse_dev_t, mdev) {
 			if (mdev->svc_id == svcs[i]) {
@@ -718,7 +718,7 @@ static errno_t dev_check_new_mousedevs(void)
 				break;
 			}
 		}
-		
+
 		if (!already_known) {
 			mouse_dev_t *mdev;
 			if (mouse_add_mousedev(svcs[i], &mdev) == 0) {
@@ -727,11 +727,11 @@ static errno_t dev_check_new_mousedevs(void)
 			}
 		}
 	}
-	
+
 	free(svcs);
-	
+
 	/* XXX Handle device removal */
-	
+
 	return EOK;
 }
 
@@ -742,13 +742,13 @@ static errno_t dev_check_new_serialdevs(void)
 	size_t count, i;
 	bool already_known;
 	errno_t rc;
-	
+
 	rc = loc_category_get_id("serial", &serial_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed resolving category 'serial'.\n", NAME);
 		return ENOENT;
 	}
-	
+
 	/*
 	 * Check for new serial devices
 	 */
@@ -761,7 +761,7 @@ static errno_t dev_check_new_serialdevs(void)
 
 	for (i = 0; i < count; i++) {
 		already_known = false;
-		
+
 		/* Determine whether we already know this device. */
 		list_foreach(serial_devs, link, serial_dev_t, sdev) {
 			if (sdev->kdev->svc_id == svcs[i]) {
@@ -769,7 +769,7 @@ static errno_t dev_check_new_serialdevs(void)
 				break;
 			}
 		}
-		
+
 		if (!already_known) {
 			serial_dev_t *sdev;
 			if (serial_add_srldev(svcs[i], &sdev) == 0) {
@@ -778,27 +778,27 @@ static errno_t dev_check_new_serialdevs(void)
 			}
 		}
 	}
-	
+
 	free(svcs);
-	
+
 	/* XXX Handle device removal */
-	
+
 	return EOK;
 }
 
 static errno_t dev_check_new(void)
 {
 	errno_t rc;
-	
+
 	fibril_mutex_lock(&discovery_lock);
-	
+
 	if (!serial_console) {
 		rc = dev_check_new_kbdevs();
 		if (rc != EOK) {
 			fibril_mutex_unlock(&discovery_lock);
 			return rc;
 		}
-	
+
 		rc = dev_check_new_mousedevs();
 		if (rc != EOK) {
 			fibril_mutex_unlock(&discovery_lock);
@@ -811,9 +811,9 @@ static errno_t dev_check_new(void)
 			return rc;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&discovery_lock);
-	
+
 	return EOK;
 }
 
@@ -831,7 +831,7 @@ static errno_t input_start_dev_discovery(void)
 		    "%s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	return dev_check_new();
 }
 
@@ -848,50 +848,50 @@ int main(int argc, char **argv)
 		usage(argv[0]);
 		return 1;
 	}
-	
+
 	printf("%s: HelenOS input service\n", NAME);
-	
+
 	list_initialize(&clients);
 	list_initialize(&kbd_devs);
 	list_initialize(&mouse_devs);
 	list_initialize(&serial_devs);
-	
+
 	serial_console = config_get_value("console");
-	
+
 	/* Add legacy keyboard devices. */
 	kbd_add_legacy_devs();
-	
+
 	/* Register driver */
 	async_set_client_data_constructor(client_data_create);
 	async_set_client_data_destructor(client_data_destroy);
 	async_set_fallback_port_handler(client_connection, NULL);
-	
+
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register server\n", NAME);
 		return rc;
 	}
-	
+
 	service_id_t service_id;
 	rc = loc_service_register(argv[1], &service_id);
 	if (rc != EOK) {
 		printf("%s: Unable to register service %s\n", NAME, argv[1]);
 		return rc;
 	}
-	
+
 	/* Receive kernel notifications */
 	rc = async_event_subscribe(EVENT_KCONSOLE, kconsole_event_handler, NULL);
 	if (rc != EOK)
 		printf("%s: Failed to register kconsole notifications (%s)\n",
 		    NAME, str_error(rc));
-	
+
 	/* Start looking for new input devices */
 	input_start_dev_discovery();
-	
+
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
-	
+
 	/* Not reached. */
 	return 0;
 }

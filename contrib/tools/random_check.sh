@@ -87,12 +87,12 @@ FAILED=0
 while [ $COUNTER -lt $LOOPS ]; do
 	COUNTER=$(( $COUNTER + 1 ))
 	echo "Try #$COUNTER ($FAILED failed):" >&2
-	
+
 	(
 		echo "  Cleaning after previous build." >&2
 		make distclean -j$JOBS 2>&1 || exit 1
-		
-		
+
+
 		echo "  Preparing random configuration." >&2
 		# It would be nicer to allow set the constraints directly to
 		# the tools/config.py script but this usually works.
@@ -104,11 +104,11 @@ while [ $COUNTER -lt $LOOPS ]; do
 				echo "  Failed to generate random configuration with given constraints after $RETRIES tries." >&2
 				exit 2
 			fi
-			
+
 			make random-config 2>&1 || exit 1
-			
+
 			tr -d ' ' <Makefile.config >"${FILENAME_PREFIX}config.trimmed"
-			
+
 			THIS_CONFIG_OKAY=true
 			while read pattern; do
 				if grep -q -e "$pattern" "${FILENAME_PREFIX}config.trimmed"; then
@@ -116,15 +116,15 @@ while [ $COUNTER -lt $LOOPS ]; do
 					break
 				fi
 			done <"$PRUNE_CONFIG_FILE"
-			
+
 			rm -f "${FILENAME_PREFIX}config.trimmed"
-			
+
 			if $THIS_CONFIG_OKAY; then
 				break
 			fi
 		done
-		
-		
+
+
 		# Report basic info about the configuration and build it
 		BASIC_CONFIG=`sed -n \
 			-e 's#PLATFORM = \(.*\)#\1#p' \
@@ -133,7 +133,7 @@ while [ $COUNTER -lt $LOOPS ]; do
 			Makefile.config \
 			| paste '-sd,' | sed 's#,#, #g'`
 		echo -n "  Building ($BASIC_CONFIG)... " >&2
-	
+
 		make -j$JOBS 2>&1
 		if [ $? -eq 0 ]; then
 			echo "okay." >&2
@@ -142,15 +142,15 @@ while [ $COUNTER -lt $LOOPS ]; do
 			echo "failed." >&2
 			exit 1
 		fi
-		
+
 	) >random_run_$COUNTER.log
 	RC=$?
-	
+
 	if [ $RC -ne 0 ]; then
 		tail -n 10 random_run_$COUNTER.log | sed 's#.*#    | &#'
 		FAILED=$(( $FAILED + 1 ))
 	fi
-	
+
 	if [ -e Makefile.config ]; then
 		cp Makefile.config "$FILENAME_PREFIX$COUNTER.Makefile.config"
 		cp config.h "$FILENAME_PREFIX$COUNTER.config.h"

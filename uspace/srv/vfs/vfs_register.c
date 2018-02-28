@@ -70,7 +70,7 @@ atomic_t fs_handle_next = {
 static bool vfs_info_sane(vfs_info_t *info)
 {
 	int i;
-	
+
 	/*
 	 * Check if the name is non-empty and is composed solely of ASCII
 	 * characters [a-z]+[a-z0-9_-]*.
@@ -79,7 +79,7 @@ static bool vfs_info_sane(vfs_info_t *info)
 		dprintf("The name doesn't start with a lowercase character.\n");
 		return false;
 	}
-	
+
 	for (i = 1; i < FS_NAME_MAXLEN; i++) {
 		if (!(islower(info->name[i]) || isdigit(info->name[i])) &&
 		    (info->name[i] != '-') && (info->name[i] != '_')) {
@@ -92,7 +92,7 @@ static bool vfs_info_sane(vfs_info_t *info)
 			}
 		}
 	}
-	
+
 	/*
 	 * This check is not redundant. It ensures that the name is
 	 * NULL-terminated, even if FS_NAME_MAXLEN characters are used.
@@ -101,7 +101,7 @@ static bool vfs_info_sane(vfs_info_t *info)
 		dprintf("The name is not properly NULL-terminated.\n");
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -115,18 +115,18 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 {
 	dprintf("Processing VFS_REGISTER request received from %zx.\n",
 	    request->in_phone_hash);
-	
+
 	vfs_info_t *vfs_info;
 	errno_t rc = async_data_write_accept((void **) &vfs_info, false,
 	    sizeof(vfs_info_t), sizeof(vfs_info_t), 0, NULL);
-	
+
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
 		    rc);
 		async_answer_0(rid, rc);
 		return;
 	}
-	
+
 	/*
 	 * Allocate and initialize a buffer for the fs_info structure.
 	 */
@@ -136,21 +136,21 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOMEM);
 		return;
 	}
-	
+
 	link_initialize(&fs_info->fs_link);
 	fs_info->vfs_info = *vfs_info;
 	free(vfs_info);
-	
+
 	dprintf("VFS info delivered.\n");
-	
+
 	if (!vfs_info_sane(&fs_info->vfs_info)) {
 		free(fs_info);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&fs_list_lock);
-	
+
 	/*
 	 * Check for duplicit registrations.
 	 */
@@ -165,13 +165,13 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EEXIST);
 		return;
 	}
-	
+
 	/*
 	 * Add fs_info to the list of registered FS's.
 	 */
 	dprintf("Inserting FS into the list of registered file systems.\n");
 	list_append(&fs_info->fs_link, &fs_list);
-	
+
 	/*
 	 * Now we want the client to send us the IPC_M_CONNECT_TO_ME call so
 	 * that a callback connection is created and we have a phone through
@@ -186,13 +186,13 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
+
 	dprintf("Callback connection to FS created.\n");
-	
+
 	/*
 	 * The client will want us to send him the address space area with PLB.
 	 */
-	
+
 	size_t size;
 	ipc_callid_t callid;
 	if (!async_share_in_receive(&callid, &size)) {
@@ -205,7 +205,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
+
 	/*
 	 * We can only send the client address space area PLB_SIZE bytes long.
 	 */
@@ -219,15 +219,15 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
+
 	/*
 	 * Commit to read-only sharing the PLB with the client.
 	 */
 	(void) async_share_in_finalize(callid, plb,
 	    AS_AREA_READ | AS_AREA_CACHEABLE);
-	
+
 	dprintf("Sharing PLB.\n");
-	
+
 	/*
 	 * That was it. The FS has been registered.
 	 * In reply to the VFS_REGISTER request, we assign the client file
@@ -235,10 +235,10 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
 	async_answer_1(rid, EOK, (sysarg_t) fs_info->fs_handle);
-	
+
 	fibril_condvar_broadcast(&fs_list_cv);
 	fibril_mutex_unlock(&fs_list_lock);
-	
+
 	dprintf("\"%.*s\" filesystem successfully registered, handle=%d.\n",
 	    FS_NAME_MAXLEN, fs_info->vfs_info.name, fs_info->fs_handle);
 }
@@ -259,21 +259,21 @@ async_exch_t *vfs_exchange_grab(fs_handle_t handle)
 	 * begin an exchange.
 	 */
 	fibril_mutex_lock(&fs_list_lock);
-	
+
 	list_foreach(fs_list, fs_link, fs_info_t, fs) {
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_list_lock);
-			
+
 			assert(fs->sess);
 			async_exch_t *exch = async_exchange_begin(fs->sess);
-			
+
 			assert(exch);
 			return exch;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&fs_list_lock);
-	
+
 	return NULL;
 }
 
@@ -299,10 +299,10 @@ void vfs_exchange_release(async_exch_t *exch)
 fs_handle_t fs_name_to_handle(unsigned int instance, const char *name, bool lock)
 {
 	int handle = 0;
-	
+
 	if (lock)
 		fibril_mutex_lock(&fs_list_lock);
-	
+
 	list_foreach(fs_list, fs_link, fs_info_t, fs) {
 		if (str_cmp(fs->vfs_info.name, name) == 0 &&
 		    instance == fs->vfs_info.instance) {
@@ -310,10 +310,10 @@ fs_handle_t fs_name_to_handle(unsigned int instance, const char *name, bool lock
 			break;
 		}
 	}
-	
+
 	if (lock)
 		fibril_mutex_unlock(&fs_list_lock);
-	
+
 	return handle;
 }
 
@@ -327,7 +327,7 @@ fs_handle_t fs_name_to_handle(unsigned int instance, const char *name, bool lock
 vfs_info_t *fs_handle_to_info(fs_handle_t handle)
 {
 	vfs_info_t *info = NULL;
-	
+
 	fibril_mutex_lock(&fs_list_lock);
 	list_foreach(fs_list, fs_link, fs_info_t, fs) {
 		if (fs->fs_handle == handle) {
@@ -336,7 +336,7 @@ vfs_info_t *fs_handle_to_info(fs_handle_t handle)
 		}
 	}
 	fibril_mutex_unlock(&fs_list_lock);
-	
+
 	return info;
 }
 
@@ -354,23 +354,23 @@ errno_t vfs_get_fstypes(vfs_fstypes_t *fstypes)
 	size_t l;
 
 	fibril_mutex_lock(&fs_list_lock);
-	
+
 	size = 0;
 	count = 0;
 	list_foreach(fs_list, fs_link, fs_info_t, fs) {
 		size += str_size(fs->vfs_info.name) + 1;
 		count++;
 	}
-	
+
 	if (size == 0)
 		size = 1;
-	
+
 	fstypes->buf = calloc(1, size);
 	if (fstypes->buf == NULL) {
 		fibril_mutex_unlock(&fs_list_lock);
 		return ENOMEM;
 	}
-	
+
 	fstypes->fstypes = calloc(sizeof(char *), count);
 	if (fstypes->fstypes == NULL) {
 		free(fstypes->buf);
@@ -378,9 +378,9 @@ errno_t vfs_get_fstypes(vfs_fstypes_t *fstypes)
 		fibril_mutex_unlock(&fs_list_lock);
 		return ENOMEM;
 	}
-	
+
 	fstypes->size = size;
-	
+
 	size = 0; count = 0;
 	list_foreach(fs_list, fs_link, fs_info_t, fs) {
 		l = str_size(fs->vfs_info.name) + 1;

@@ -170,7 +170,7 @@ int cmd_mkfile(char **argv)
 
 	if (create_sparse && file_size > 0) {
 		const char byte = 0x00;
-		
+
 		pos = file_size - 1;
 		rc = vfs_write(fd, &pos, &byte, sizeof(char), &nwritten);
 		if (rc != EOK) {

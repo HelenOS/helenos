@@ -52,13 +52,13 @@
 NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
-	
+
 	asm volatile (
 		"andq %%rsp, %[v]\n"
 		: [v] "=r" (v)
 		: "0" (~((uint64_t) STACK_SIZE - 1))
 	);
-	
+
 	return v;
 }
 
@@ -90,13 +90,13 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	if (port < (ioport8_t *) IO_SPACE_BOUNDARY) {
 		uint8_t val;
-		
+
 		asm volatile (
 			"inb %w[port], %b[val]\n"
 			: [val] "=a" (val)
 			: [port] "d" (port)
 		);
-		
+
 		return val;
 	} else
 		return (uint8_t) *port;
@@ -114,13 +114,13 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	if (port < (ioport16_t *) IO_SPACE_BOUNDARY) {
 		uint16_t val;
-		
+
 		asm volatile (
 			"inw %w[port], %w[val]\n"
 			: [val] "=a" (val)
 			: [port] "d" (port)
 		);
-		
+
 		return val;
 	} else
 		return (uint16_t) *port;
@@ -138,13 +138,13 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	if (port < (ioport32_t *) IO_SPACE_BOUNDARY) {
 		uint32_t val;
-		
+
 		asm volatile (
 			"inl %w[port], %[val]\n"
 			: [val] "=a" (val)
 			: [port] "d" (port)
 		);
-		
+
 		return val;
 	} else
 		return (uint32_t) *port;
@@ -251,9 +251,9 @@ NO_TRACE static inline ipl_t interrupts_read(void)
 NO_TRACE static inline ipl_t interrupts_enable(void)
 {
 	ipl_t ipl = interrupts_read();
-	
+
 	asm volatile ("sti\n");
-	
+
 	return ipl;
 }
 
@@ -267,9 +267,9 @@ NO_TRACE static inline ipl_t interrupts_enable(void)
 NO_TRACE static inline ipl_t interrupts_disable(void)
 {
 	ipl_t ipl = interrupts_read();
-	
+
 	asm volatile ("cli\n");
-	
+
 	return ipl;
 }
 
@@ -309,13 +309,13 @@ NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
 {
 	uint32_t ax, dx;
-	
+
 	asm volatile (
 		"rdmsr\n"
 		: "=a" (ax), "=d" (dx)
 		: "c" (msr)
 	);
-	
+
 	return ((uint64_t) dx << 32) | ax;
 }
 

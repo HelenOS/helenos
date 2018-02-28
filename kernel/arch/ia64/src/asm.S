@@ -45,25 +45,25 @@
 FUNCTION_BEGIN(memcpy_from_uspace)
 FUNCTION_BEGIN(memcpy_to_uspace)
 	alloc loc0 = ar.pfs, 3, 1, 0, 0
-	
+
 	adds r14 = 7, in1
 	mov r2 = ar.lc
 	mov r8 = in0 ;;
 	and r14 = -8, r14 ;;
 	cmp.ne p6, p7 = r14, in1
 	(p7) br.cond.dpnt 3f ;;
-	
+
 	0:
-	
+
 		cmp.ne p6, p7 = 0, in2
 		(p7) br.cond.dpnt 2f ;;
 		(p6) adds r14 = -1, in2
 		(p6) mov r16 = r0
 		(p6) mov r17 = r0 ;;
 		(p6) mov ar.lc = r14
-	
+
 	1:
-	
+
 		add r14 = r16, in1
 		add r15 = r16, in0
 		adds r17 = 1, r17 ;;
@@ -71,15 +71,15 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 		mov r16 = r17 ;;
 		st1 [r15] = r14
 		br.cloop.sptk.few 1b ;;
-	
+
 	2:
-	
+
 		mov ar.lc = r2
 		mov ar.pfs = loc0
 		br.ret.sptk.many rp
-	
+
 	3:
-	
+
 		adds r14 = 7, in0 ;;
 		and r14 = -8, r14 ;;
 		cmp.eq p6, p7 = r14, in0
@@ -91,9 +91,9 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 		(p6) mov r16 = r0
 		(p6) mov r17 = r0 ;;
 		(p6) mov ar.lc = r14
-	
+
 	4:
-	
+
 		shladd r14 = r16, 3, r0
 		adds r16 = 1, r17 ;;
 		add r15 = in1, r14
@@ -102,9 +102,9 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 		ld8 r15 = [r15] ;;
 		st8 [r14] = r15
 		br.cloop.sptk.few 4b
-	
+
 	5:
-	
+
 		and r15 = 7, in2
 		shladd r14 = r18, 3, r0
 		mov r16 = r0
@@ -115,9 +115,9 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 		add r17 = r14, in1
 		(p6) br.cond.dpnt 2b ;;
 		mov ar.lc = r15
-	
+
 	6:
-	
+
 		add r14 = r16, r17
 		add r15 = r16, in0
 		adds r16 = 1, r18 ;;
@@ -154,39 +154,39 @@ FUNCTION_END(cpu_halt)
  */
 FUNCTION_BEGIN(switch_to_userspace)
 	alloc loc0 = ar.pfs, 6, 3, 0, 0
-	
+
 	/* Disable interruption collection and interrupts */
 	rsm (PSR_IC_MASK | PSR_I_MASK)
 	srlz.d ;;
 	srlz.i ;;
-	
+
 	mov cr.ipsr = in4
 	mov cr.iip = in0
 	mov r12 = in1
-	
+
 	xor r1 = r1, r1
-	
+
 	/* r2 is defined to hold pcb_ptr - set it to 0 */
 	xor r2 = r2, r2
-	
+
 	mov loc1 = cr.ifs
 	movl loc2 = PFM_MASK ;;
 	and loc1 = loc2, loc1 ;;
 	mov cr.ifs = loc1 ;;  /* prevent decrementing BSP by rfi */
-	
+
 	invala
-	
+
 	mov loc1 = ar.rsc ;;
 	and loc1 = ~3, loc1 ;;
 	mov ar.rsc = loc1 ;;  /* put RSE into enforced lazy mode */
-	
+
 	flushrs ;;
-	
+
 	mov ar.bspstore = in2 ;;
 	mov ar.rsc = in5 ;;
-	
+
 	mov r8 = in3
-	
+
 	rfi ;;
 FUNCTION_END(switch_to_userspace)
 

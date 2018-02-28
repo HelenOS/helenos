@@ -67,10 +67,10 @@ errno_t nic_driver_init(const char *name)
 	list_initialize(&nic_globals.frame_cache);
 	nic_globals.frame_cache_size = 0;
 	fibril_mutex_initialize(&nic_globals.lock);
-	
+
 	char buffer[256];
 	snprintf(buffer, 256, "drv/" DEVICE_CATEGORY_NIC "/%s", name);
-	
+
 	return EOK;
 }
 
@@ -246,12 +246,12 @@ errno_t nic_get_resources(nic_t *nic_data, hw_res_list_parsed_t *resources)
 {
 	ddf_dev_t *dev = nic_data->dev;
 	async_sess_t *parent_sess;
-	
+
 	/* Connect to the parent's driver. */
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL)
 		return EIO;
-	
+
 	return hw_res_get_list_parsed(parent_sess, resources, 0);
 }
 
@@ -276,7 +276,7 @@ nic_frame_t *nic_alloc_frame(nic_t *nic_data, size_t size)
 		frame = malloc(sizeof(nic_frame_t));
 		if (!frame)
 			return NULL;
-		
+
 		link_initialize(&frame->link);
 	}
 
@@ -326,7 +326,7 @@ nic_frame_list_t *nic_alloc_frame_list(void)
 {
 	nic_frame_list_t *frames;
 	fibril_mutex_lock(&nic_globals.lock);
-	
+
 	if (nic_globals.frame_list_cache_size > 0) {
 		frames =
 		    list_get_instance(list_first(&nic_globals.frame_list_cache),
@@ -337,12 +337,12 @@ nic_frame_list_t *nic_alloc_frame_list(void)
 		fibril_mutex_unlock(&nic_globals.lock);
 	} else {
 		fibril_mutex_unlock(&nic_globals.lock);
-		
+
 		frames = malloc(sizeof (nic_frame_list_t));
 		if (frames != NULL)
 			list_initialize(frames);
 	}
-	
+
 	return frames;
 }
 
@@ -425,12 +425,12 @@ errno_t nic_report_poll_mode(nic_t *nic_data, nic_poll_mode_t mode,
 errno_t nic_report_address(nic_t *nic_data, const nic_address_t *address)
 {
 	assert(nic_data);
-	
+
 	if (address->address[0] & 1)
 		return EINVAL;
-	
+
 	fibril_rwlock_write_lock(&nic_data->main_lock);
-	
+
 	/* Notify NIL layer (and uppper) if bound - not in add_device */
 	if (nic_data->client_session != NULL) {
 		errno_t rc = nic_ev_addr_changed(nic_data->client_session,
@@ -441,9 +441,9 @@ errno_t nic_report_address(nic_t *nic_data, const nic_address_t *address)
 			return rc;
 		}
 	}
-	
+
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
-	
+
 	/*
 	 * The initial address (all zeroes) shouldn't be
 	 * there and we will ignore that error -- in next
@@ -451,24 +451,24 @@ errno_t nic_report_address(nic_t *nic_data, const nic_address_t *address)
 	 */
 	errno_t rc = nic_rxc_set_addr(&nic_data->rx_control,
 	    &nic_data->mac, address);
-	
+
 	/* For the first time also record the default MAC */
 	if (MAC_IS_ZERO(nic_data->default_mac.address)) {
 		assert(MAC_IS_ZERO(nic_data->mac.address));
 		memcpy(&nic_data->default_mac, address, sizeof(nic_address_t));
 	}
-	
+
 	fibril_rwlock_write_unlock(&nic_data->rxc_lock);
-	
+
 	if ((rc != EOK) && (rc != ENOENT)) {
 		fibril_rwlock_write_unlock(&nic_data->main_lock);
 		return rc;
 	}
-	
+
 	memcpy(&nic_data->mac, address, sizeof(nic_address_t));
-	
+
 	fibril_rwlock_write_unlock(&nic_data->main_lock);
-	
+
 	return EOK;
 }
 
@@ -592,16 +592,16 @@ static nic_t *nic_create(ddf_dev_t *dev)
 	nic_t *nic_data = ddf_dev_data_alloc(dev, sizeof(nic_t));
 	if (nic_data == NULL)
 		return NULL;
-	
+
 	/* Force zero to all uninitialized fields (e.g. added in future) */
 	if (nic_rxc_init(&nic_data->rx_control) != EOK) {
 		return NULL;
 	}
-	
+
 	if (nic_wol_virtues_init(&nic_data->wol_virtues) != EOK) {
 		return NULL;
 	}
-	
+
 	nic_data->dev = NULL;
 	nic_data->fun = NULL;
 	nic_data->state = NIC_STATE_STOPPED;
@@ -613,16 +613,16 @@ static nic_t *nic_create(ddf_dev_t *dev)
 	nic_data->on_going_down = NULL;
 	nic_data->on_stopping = NULL;
 	nic_data->specific = NULL;
-	
+
 	fibril_rwlock_initialize(&nic_data->main_lock);
 	fibril_rwlock_initialize(&nic_data->stats_lock);
 	fibril_rwlock_initialize(&nic_data->rxc_lock);
 	fibril_rwlock_initialize(&nic_data->wv_lock);
-	
+
 	memset(&nic_data->mac, 0, sizeof(nic_address_t));
 	memset(&nic_data->default_mac, 0, sizeof(nic_address_t));
 	memset(&nic_data->stats, 0, sizeof(nic_device_stats_t));
-	
+
 	return nic_data;
 }
 
@@ -641,9 +641,9 @@ nic_t *nic_create_and_bind(ddf_dev_t *device)
 	nic_t *nic_data = nic_create(device);
 	if (!nic_data)
 		return NULL;
-	
+
 	nic_data->dev = device;
-	
+
 	return nic_data;
 }
 
@@ -942,7 +942,7 @@ void nic_report_send_error(nic_t *nic_data, nic_send_error_cause_t cause,
 {
 	if (count == 0)
 		return;
-	
+
 	fibril_rwlock_write_lock(&nic_data->stats_lock);
 	nic_data->stats.send_errors += count;
 	switch (cause) {
@@ -1078,12 +1078,12 @@ static errno_t period_fibril_fun(void *data)
 				remaining.tv_usec -= wait;
 			}
 			async_usleep(wait);
-			
+
 			/* Check if the period was not reset */
 			if (info->run != run)
 				break;
 		}
-		
+
 		/* Provide polling if the period finished */
 		fibril_rwlock_read_lock(&nic->main_lock);
 		if (info->running && info->run == run) {

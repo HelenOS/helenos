@@ -94,7 +94,7 @@ typedef struct cht_buckets {
 typedef struct {
 	/** Item specific operations. */
 	cht_ops_t *op;
-	
+
 	/** Buckets currently in use. */
 	cht_buckets_t *b;
 	/** Resized table buckets that will replace b once resize is complete. */
@@ -119,7 +119,7 @@ typedef struct {
 	 * If not 0 resize work had already been posted to the system work queue.
 	 */
 	atomic_t resize_reqs;
-	
+
 	/** Number of items in the table that have not been logically deleted. */
 	atomic_t item_cnt;
 } cht_t;

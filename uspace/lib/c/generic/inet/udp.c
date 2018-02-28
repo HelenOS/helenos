@@ -52,11 +52,11 @@ static errno_t udp_callback_create(udp_t *udp)
 	async_exch_t *exch = async_exchange_begin(udp->sess);
 
 	aid_t req = async_send_0(exch, UDP_CALLBACK_CREATE, NULL);
-	
+
 	port_id_t port;
 	errno_t rc = async_create_callback_port(exch, INTERFACE_UDP_CB, 0, 0,
 	    udp_cb_conn, udp, &port);
-	
+
 	async_exchange_end(exch);
 
 	if (rc != EOK)

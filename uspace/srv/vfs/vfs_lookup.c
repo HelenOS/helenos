@@ -107,7 +107,7 @@ static errno_t plb_insert_entry(plb_entry_t *entry, char *path, size_t *start,
 	 * buffer.
 	 */
 	list_append(&entry->plb_link, &plb_entries);
-	
+
 	fibril_mutex_unlock(&plb_mutex);
 
 	/*
@@ -115,7 +115,7 @@ static errno_t plb_insert_entry(plb_entry_t *entry, char *path, size_t *start,
 	 */
 	size_t cnt1 = min(len, (PLB_SIZE - first) + 1);
 	size_t cnt2 = len - cnt1;
-	
+
 	memcpy(&plb[first], path, cnt1);
 	memcpy(plb, &path[cnt1], cnt2);
 
@@ -144,11 +144,11 @@ errno_t vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 	assert(base->fs_handle);
 	assert(child->fs_handle);
 	assert(path != NULL);
-	
+
 	vfs_lookup_res_t res;
 	char component[NAME_MAX + 1];
 	errno_t rc;
-	
+
 	size_t len;
 	char *npath = canonify(path, &len);
 	if (!npath) {
@@ -156,52 +156,52 @@ errno_t vfs_link_internal(vfs_node_t *base, char *path, vfs_triplet_t *child)
 		goto out;
 	}
 	path = npath;
-	
+
 	vfs_triplet_t *triplet;
-	
+
 	char *slash = str_rchr(path, L'/');
 	if (slash && slash != path) {
 		if (slash[1] == 0) {
 			rc = EINVAL;
 			goto out;
 		}
-		
+
 		memcpy(component, slash + 1, str_size(slash));
 		*slash = 0;
-		
+
 		rc = vfs_lookup_internal(base, path, L_DIRECTORY, &res);
 		if (rc != EOK)
 			goto out;
 		triplet = &res.triplet;
-		
+
 		*slash = '/';
 	} else {
 		if (base->mount != NULL) {
 			rc = EINVAL;
 			goto out;
 		}
-		
+
 		memcpy(component, path + 1, str_size(path));
 		triplet = (vfs_triplet_t *) base;
 	}
-	
+
 	if (triplet->fs_handle != child->fs_handle ||
 	    triplet->service_id != child->service_id) {
 		rc = EXDEV;
 		goto out;
 	}
-	
+
 	async_exch_t *exch = vfs_exchange_grab(triplet->fs_handle);
 	aid_t req = async_send_3(exch, VFS_OUT_LINK, triplet->service_id,
 	    triplet->index, child->index, NULL);
-	
+
 	rc = async_data_write_start(exch, component, str_size(component) + 1);
 	errno_t orig_rc;
 	async_wait_for(req, &orig_rc);
 	vfs_exchange_release(exch);
 	if (orig_rc != EOK)
 		rc = orig_rc;
-	
+
 out:
 	return rc;
 }
@@ -211,7 +211,7 @@ static errno_t out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 {
 	assert(base);
 	assert(result);
-	
+
 	errno_t rc;
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_grab(base->fs_handle);
@@ -220,14 +220,14 @@ static errno_t out_lookup(vfs_triplet_t *base, size_t *pfirst, size_t *plen,
 	    (sysarg_t) base->index, (sysarg_t) lflag, &answer);
 	async_wait_for(req, &rc);
 	vfs_exchange_release(exch);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	unsigned last = *pfirst + *plen;
 	*pfirst = IPC_GET_ARG3(answer) & 0xffff;
 	*plen = last - *pfirst;
-	
+
 	result->triplet.fs_handle = (fs_handle_t) IPC_GET_ARG1(answer);
 	result->triplet.service_id = base->service_id;
 	result->triplet.index = (fs_index_t) IPC_GET_ARG2(answer);
@@ -247,12 +247,12 @@ static errno_t _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 	rc = plb_insert_entry(&entry, path, &first, len);
 	if (rc != EOK)
 		return rc;
-	
+
 	size_t next = first;
 	size_t nlen = len;
-	
+
 	vfs_lookup_res_t res;
-	
+
 	/* Resolve path as long as there are mount points to cross. */
 	while (nlen > 0) {
 		while (base->mount) {
@@ -260,15 +260,15 @@ static errno_t _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 				rc = EXDEV;
 				goto out;
 			}
-			
+
 			base = base->mount;
 		}
-		
+
 		rc = out_lookup((vfs_triplet_t *) base, &next, &nlen, lflag,
 		    &res);
 		if (rc != EOK)
 			goto out;
-		
+
 		if (nlen > 0) {
 			base = vfs_node_peek(&res);
 			if (!base) {
@@ -287,10 +287,10 @@ static errno_t _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 			}
 		}
 	}
-	
+
 	assert(nlen == 0);
 	rc = EOK;
-	
+
 	if (result != NULL) {
 		/* The found file may be a mount point. Try to cross it. */
 		if (!(lflag & (L_MP | L_DISABLE_MOUNTS))) {
@@ -302,7 +302,7 @@ static errno_t _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 					vfs_node_put(base);
 					base = nbase;
 				}
-				
+
 				result->triplet = *((vfs_triplet_t *) base);
 				result->type = base->type;
 				result->size = base->size;
@@ -315,7 +315,7 @@ static errno_t _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 
 		*result = res;
 	}
-	
+
 out:
 	plb_clear_entry(&entry, first, len);
 	return rc;
@@ -338,7 +338,7 @@ errno_t vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 {
 	assert(base != NULL);
 	assert(path != NULL);
-	
+
 	size_t len;
 	errno_t rc;
 	char *npath = canonify(path, &len);
@@ -347,7 +347,7 @@ errno_t vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 		return rc;
 	}
 	path = npath;
-	
+
 	assert(path[0] == '/');
 
 
@@ -366,7 +366,7 @@ errno_t vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 
 		char *slash = str_rchr(path, L'/');
 		vfs_node_t *parent = base;
-		
+
 		if (slash != path) {
 			int tflag = lflag;
 			vfs_lookup_res_t tres;
@@ -391,7 +391,7 @@ errno_t vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 	} else {
 		rc = _vfs_lookup_internal(base, path, lflag, result, len);
 	}
-	
+
 	return rc;
 }
 

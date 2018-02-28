@@ -29,7 +29,7 @@
 #include <abi/asmtool.h>
 
 .text
-	
+
 ## Make a system call.
 #
 # @param rdi		First argument.

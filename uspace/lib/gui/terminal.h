@@ -51,21 +51,21 @@
 
 typedef struct terminal {
 	widget_t widget;
-	
+
 	fibril_mutex_t mtx;
 	link_t link;
 	atomic_t refcnt;
-	
+
 	prodcons_t input_pc;
 	char char_remains[UTF8_CHAR_BUFFER_SIZE];
 	size_t char_remains_len;
-	
+
 	sysarg_t cols;
 	sysarg_t rows;
 	chargrid_t *frontbuf;
 	chargrid_t *backbuf;
 	sysarg_t top_row;
-	
+
 	service_id_t dsid;
 	con_srvs_t srvs;
 } terminal_t;

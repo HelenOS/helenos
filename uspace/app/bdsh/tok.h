@@ -50,12 +50,12 @@ typedef struct {
 	size_t last_in_offset;
 	size_t in_char_offset;
 	size_t last_in_char_offset;
-	
+
 	char *outbuf;
 	size_t outbuf_offset;
 	size_t outbuf_size;
 	size_t outbuf_last_start;
-	
+
 	token_t *outtok;
 	token_type_t current_type;
 	size_t outtok_offset;

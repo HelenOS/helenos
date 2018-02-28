@@ -57,27 +57,27 @@ void interrupt(unsigned int n, istate_t *istate)
 	uint64_t status = asi_u64_read(ASI_INTR_DISPATCH_STATUS, 0);
 	if (status & (!INTR_DISPATCH_STATUS_BUSY))
 		panic("Interrupt Dispatch Status busy bit not set\n");
-	
+
 	uint64_t intrcv = asi_u64_read(ASI_INTR_RECEIVE, 0);
 #if defined (US)
 	uint64_t data0 = asi_u64_read(ASI_INTR_R, ASI_UDB_INTR_R_DATA_0);
 #elif defined (US3)
 	uint64_t data0 = asi_u64_read(ASI_INTR_R, VA_INTR_R_DATA_0);
 #endif
-	
+
 	irq_t *irq = irq_dispatch_and_lock(data0);
 	if (irq) {
 		/*
 		 * The IRQ handler was found.
 		 */
 		irq->handler(irq);
-		
+
 		/*
 		 * See if there is a clear-interrupt-routine and call it.
 		 */
 		if (irq->cir)
 			irq->cir(irq->cir_arg, irq->inr);
-		
+
 		irq_spinlock_unlock(&irq->lock, false);
 	} else if (data0 > config.base) {
 		/*
@@ -102,7 +102,7 @@ void interrupt(unsigned int n, istate_t *istate)
 		(void) intrcv;
 #endif
 	}
-	
+
 	membar();
 	asi_u64_write(ASI_INTR_RECEIVE, 0, 0);
 }

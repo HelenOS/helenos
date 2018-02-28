@@ -52,23 +52,23 @@
 errno_t wmi_reg_read(htc_device_t *htc_device, uint32_t reg_offset, uint32_t *res)
 {
 	uint32_t cmd_value = host2uint32_t_be(reg_offset);
-	
+
 	void *resp_buffer =
 	    malloc(htc_device->ath_device->ctrl_response_length);
-	
+
 	errno_t rc = wmi_send_command(htc_device, WMI_REG_READ,
 	    (uint8_t *) &cmd_value, sizeof(cmd_value), resp_buffer);
-	
+
 	if (rc != EOK) {
 		usb_log_error("Failed to read registry value.\n");
 		return rc;
 	}
-	
+
 	uint32_t *resp_value = (uint32_t *) ((void *) resp_buffer +
 	    sizeof(htc_frame_header_t) + sizeof(wmi_command_header_t));
-	
+
 	*res = uint32_t_be2host(*resp_value);
-	
+
 	return rc;
 }
 
@@ -87,20 +87,20 @@ errno_t wmi_reg_write(htc_device_t *htc_device, uint32_t reg_offset, uint32_t va
 		host2uint32_t_be(reg_offset),
 		host2uint32_t_be(val)
 	};
-	
+
 	void *resp_buffer =
 	    malloc(htc_device->ath_device->ctrl_response_length);
-	
+
 	errno_t rc = wmi_send_command(htc_device, WMI_REG_WRITE,
 	    (uint8_t *) &cmd_buffer, sizeof(cmd_buffer), resp_buffer);
-	
+
 	free(resp_buffer);
-	
+
 	if (rc != EOK) {
 		usb_log_error("Failed to write registry value.\n");
 		return rc;
 	}
-	
+
 	return rc;
 }
 
@@ -118,24 +118,24 @@ errno_t wmi_reg_set_clear_bit(htc_device_t *htc_device, uint32_t reg_offset,
     uint32_t set_bit, uint32_t clear_bit)
 {
 	uint32_t value;
-	
+
 	errno_t rc = wmi_reg_read(htc_device, reg_offset, &value);
 	if (rc != EOK) {
 		usb_log_error("Failed to read registry value in RMW "
 		    "function.\n");
 		return rc;
 	}
-	
+
 	value &= ~clear_bit;
 	value |= set_bit;
-	
+
 	rc = wmi_reg_write(htc_device, reg_offset, value);
 	if (rc != EOK) {
 		usb_log_error("Failed to write registry value in RMW "
 		    "function.\n");
 		return rc;
 	}
-	
+
 	return rc;
 }
 
@@ -185,7 +185,7 @@ errno_t wmi_reg_buffer_write(htc_device_t *htc_device, wmi_reg_t *reg_buffer,
 	void *buffer = malloc(buffer_size);
 	void *resp_buffer =
 	    malloc(htc_device->ath_device->ctrl_response_length);
-	
+
 	/* Convert values to correct endianness. */
 	for (size_t i = 0; i < elements; i++) {
 		wmi_reg_t *buffer_element = &reg_buffer[i];
@@ -196,18 +196,18 @@ errno_t wmi_reg_buffer_write(htc_device_t *htc_device, wmi_reg_t *reg_buffer,
 		buffer_it->value =
 		    host2uint32_t_be(buffer_element->value);
 	}
-	
+
 	errno_t rc = wmi_send_command(htc_device, WMI_REG_WRITE,
 	    (uint8_t *) buffer, buffer_size, resp_buffer);
-	
+
 	free(buffer);
 	free(resp_buffer);
-	
+
 	if (rc != EOK) {
 		usb_log_error("Failed to write multi registry value.\n");
 		return rc;
 	}
-	
+
 	return rc;
 }
 
@@ -229,17 +229,17 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	    sizeof(htc_frame_header_t);
 	size_t buffer_size = header_size + command_length;
 	void *buffer = malloc(buffer_size);
-	
+
 	if (command_buffer != NULL)
 		memcpy(buffer+header_size, command_buffer, command_length);
-	
+
 	/* Set up WMI header */
 	wmi_command_header_t *wmi_header = (wmi_command_header_t *)
 	    ((void *) buffer + sizeof(htc_frame_header_t));
 	wmi_header->command_id = host2uint16_t_be(command_id);
 	wmi_header->sequence_number =
 	    host2uint16_t_be(++htc_device->sequence_number);
-	
+
 	/* Send message. */
 	errno_t rc = htc_send_control_message(htc_device, buffer, buffer_size,
 	    htc_device->endpoints.wmi_endpoint);
@@ -248,9 +248,9 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 		usb_log_error("Failed to send WMI message. Error: %s\n", str_error_name(rc));
 		return rc;
 	}
-	
+
 	free(buffer);
-	
+
 	bool clean_resp_buffer = false;
 	size_t response_buffer_size =
 	    htc_device->ath_device->ctrl_response_length;
@@ -258,7 +258,7 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 		response_buffer = malloc(response_buffer_size);
 		clean_resp_buffer = true;
 	}
-	
+
 	/* Read response. */
 	/* TODO: Ignoring WMI management RX messages ~ TX statuses etc. */
 	uint16_t cmd_id;
@@ -271,21 +271,21 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 			    "Error: %s\n", str_error_name(rc));
 			return rc;
 		}
-		
+
 		if (response_buffer_size < sizeof(htc_frame_header_t) +
 		    sizeof(wmi_command_header_t)) {
 			free(buffer);
 			usb_log_error("Corrupted response received.\n");
 			return EINVAL;
 		}
-		
+
 		wmi_command_header_t *wmi_hdr = (wmi_command_header_t *)
 		    ((void *) response_buffer + sizeof(htc_frame_header_t));
 		cmd_id = uint16_t_be2host(wmi_hdr->command_id);
 	} while(cmd_id & WMI_MGMT_CMD_MASK);
-	
+
 	if (clean_resp_buffer)
 		free(response_buffer);
-	
+
 	return rc;
 }

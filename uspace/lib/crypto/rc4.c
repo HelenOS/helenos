@@ -64,7 +64,7 @@ static void create_sbox(uint8_t *key, size_t key_size, uint8_t *sbox)
 {
 	for (size_t i = 0; i < SBOX_SIZE; i++)
 		sbox[i] = i;
-	
+
 	uint8_t j = 0;
 	for (size_t i = 0; i < SBOX_SIZE; i++) {
 		j = j + sbox[i] + key[i % key_size];
@@ -92,14 +92,14 @@ errno_t rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size,
 {
 	if ((!key) || (!input))
 		return EINVAL;
-	
+
 	if (!output)
 		return ENOMEM;
-	
+
 	/* Initialize sbox. */
 	uint8_t sbox[SBOX_SIZE];
 	create_sbox(key, key_size, sbox);
-	
+
 	/* Skip first x bytes. */
 	uint8_t i = 0;
 	uint8_t j = 0;
@@ -108,7 +108,7 @@ errno_t rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size,
 		j = j + sbox[i];
 		swap(i, j, sbox);
 	}
-	
+
 	/* Processing loop. */
 	uint8_t val;
 	for (size_t k = 0; k < input_size; k++) {
@@ -118,6 +118,6 @@ errno_t rc4(uint8_t *key, size_t key_size, uint8_t *input, size_t input_size,
 		val = sbox[sbox[i] + sbox[j]];
 		output[k] = val ^ input[k];
 	}
-	
+
 	return EOK;
 }

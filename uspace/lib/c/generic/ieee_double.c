@@ -38,7 +38,7 @@ ieee_double_t extract_ieee_double(double val)
 	const uint64_t exponent_mask = 0x7ff0000000000000ULL;
 	const int exponent_shift = 64 - 11 - 1;
 	const uint64_t sign_mask = 0x8000000000000000ULL;
-	
+
 	const int special_exponent = 0x7ff;
 	const int denormal_exponent = 0;
 	const uint64_t hidden_bit = (1ULL << 52);

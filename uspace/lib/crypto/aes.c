@@ -212,10 +212,10 @@ static uint8_t sub_byte(uint8_t byte, bool inv)
 {
 	uint8_t i = byte >> 4;
 	uint8_t j = byte & 0xF;
-	
+
 	if (!inv)
 		return sbox[i][j];
-	
+
 	return inv_sbox[i][j];
 }
 
@@ -228,7 +228,7 @@ static uint8_t sub_byte(uint8_t byte, bool inv)
 static void sub_bytes(uint8_t state[ELEMS][ELEMS], bool inv)
 {
 	uint8_t val;
-	
+
 	for (size_t i = 0; i < ELEMS; i++) {
 		for (size_t j = 0; j < ELEMS; j++) {
 			val = state[i][j];
@@ -245,7 +245,7 @@ static void sub_bytes(uint8_t state[ELEMS][ELEMS], bool inv)
 static void shift_rows(uint8_t state[ELEMS][ELEMS])
 {
 	uint8_t temp[ELEMS];
-	
+
 	for (size_t i = 1; i < ELEMS; i++) {
 		memcpy(temp, state[i], i);
 		memcpy(state[i], state[i] + i, ELEMS - i);
@@ -261,7 +261,7 @@ static void shift_rows(uint8_t state[ELEMS][ELEMS])
 static void inv_shift_rows(uint8_t state[ELEMS][ELEMS])
 {
 	uint8_t temp[ELEMS];
-	
+
 	for (size_t i = 1; i < ELEMS; i++) {
 		memcpy(temp, state[i], ELEMS - i);
 		memcpy(state[i], state[i] + ELEMS - i, i);
@@ -281,20 +281,20 @@ static uint8_t galois_mult(uint8_t x, uint8_t y)
 {
 	uint8_t result = 0;
 	uint8_t f_bith;
-	
+
 	for (size_t i = 0; i < 8; i++) {
 		if (y & 1)
 			result ^= x;
-		
+
 		f_bith = (x & 0x80);
 		x <<= 1;
-		
+
 		if (f_bith)
 			x ^= AES_IP;
-		
+
 		y >>= 1;
 	}
-	
+
 	return result;
 }
 
@@ -307,7 +307,7 @@ static void mix_columns(uint8_t state[ELEMS][ELEMS])
 {
 	uint8_t orig_state[ELEMS][ELEMS];
 	memcpy(orig_state, state, BLOCK_LEN);
-	
+
 	for (size_t j = 0; j < ELEMS; j++) {
 		state[0][j] =
 		    galois_mult(0x2, orig_state[0][j]) ^
@@ -341,7 +341,7 @@ static void inv_mix_columns(uint8_t state[ELEMS][ELEMS])
 {
 	uint8_t orig_state[ELEMS][ELEMS];
 	memcpy(orig_state, state, BLOCK_LEN);
-	
+
 	for (size_t j = 0; j < ELEMS; j++) {
 		state[0][j] =
 		    galois_mult(0x0e, orig_state[0][j]) ^
@@ -377,7 +377,7 @@ static void add_round_key(uint8_t state[ELEMS][ELEMS], uint32_t *round_key)
 	uint8_t byte_round;
 	uint8_t shift;
 	uint32_t mask = 0xff;
-	
+
 	for (size_t j = 0; j < ELEMS; j++) {
 		for (size_t i = 0; i < ELEMS; i++) {
 			shift = 24 - 8 * i;
@@ -398,10 +398,10 @@ static uint32_t sub_word(uint32_t word)
 {
 	uint32_t temp = word;
 	uint8_t *start = (uint8_t *) &temp;
-	
+
 	for (size_t i = 0; i < 4; i++)
 		*(start + i) = sub_byte(*(start + i), false);
-	
+
 	return temp;
 }
 
@@ -426,7 +426,7 @@ static uint32_t rot_word(uint32_t word)
 static void key_expansion(uint8_t *key, uint32_t *key_exp)
 {
 	uint32_t temp;
-	
+
 	for (size_t i = 0; i < CIPHER_ELEMS; i++) {
 		key_exp[i] =
 		    (key[4 * i] << 24) +
@@ -434,15 +434,15 @@ static void key_expansion(uint8_t *key, uint32_t *key_exp)
 		    (key[4 * i + 2] << 8) +
 		    (key[4 * i + 3]);
 	}
-	
+
 	for (size_t i = CIPHER_ELEMS; i < ELEMS * (ROUNDS + 1); i++) {
 		temp = key_exp[i - 1];
-		
+
 		if ((i % CIPHER_ELEMS) == 0) {
 			temp = sub_word(rot_word(temp)) ^
 			    r_con_array[i / CIPHER_ELEMS - 1];
 		}
-		
+
 		key_exp[i] = key_exp[i - CIPHER_ELEMS] ^ temp;
 	}
 }
@@ -462,40 +462,40 @@ errno_t aes_encrypt(uint8_t *key, uint8_t *input, uint8_t *output)
 {
 	if ((!key) || (!input))
 		return EINVAL;
-	
+
 	if (!output)
 		return ENOMEM;
-	
+
 	/* Create key expansion. */
 	uint32_t key_exp[ELEMS * (ROUNDS + 1)];
 	key_expansion(key, key_exp);
-	
+
 	/* Copy input into state array. */
 	uint8_t state[ELEMS][ELEMS];
 	for (size_t i = 0; i < ELEMS; i++) {
 		for (size_t j = 0; j < ELEMS; j++)
 			state[i][j] = input[i + ELEMS * j];
 	}
-	
+
 	/* Processing loop. */
 	add_round_key(state, key_exp);
-	
+
 	for (size_t k = 1; k <= ROUNDS; k++) {
 		sub_bytes(state, false);
 		shift_rows(state);
-		
+
 		if (k < ROUNDS)
 			mix_columns(state);
-		
+
 		add_round_key(state, key_exp + k * ELEMS);
 	}
-	
+
 	/* Copy state array into output. */
 	for (size_t i = 0; i < ELEMS; i++) {
 		for (size_t j = 0; j < ELEMS; j++)
 			output[i + j * ELEMS] = state[i][j];
 	}
-	
+
 	return EOK;
 }
 
@@ -514,38 +514,38 @@ errno_t aes_decrypt(uint8_t *key, uint8_t *input, uint8_t *output)
 {
 	if ((!key) || (!input))
 		return EINVAL;
-	
+
 	if (!output)
 		return ENOMEM;
-	
+
 	/* Create key expansion. */
 	uint32_t key_exp[ELEMS * (ROUNDS + 1)];
 	key_expansion(key, key_exp);
-	
+
 	/* Copy input into state array. */
 	uint8_t state[ELEMS][ELEMS];
 	for (size_t i = 0; i < ELEMS; i++) {
 		for (size_t j = 0; j < ELEMS; j++)
 			state[i][j] = input[i + ELEMS * j];
 	}
-	
+
 	/* Processing loop. */
 	add_round_key(state, key_exp + ROUNDS * ELEMS);
-	
+
 	for (int k = ROUNDS - 1; k >= 0; k--) {
 		inv_shift_rows(state);
 		sub_bytes(state, true);
 		add_round_key(state, key_exp + k * ELEMS);
-		
+
 		if (k > 0)
 			inv_mix_columns(state);
 	}
-	
+
 	/* Copy state array into output. */
 	for (size_t i = 0; i < ELEMS; i++) {
 		for (size_t j = 0; j < ELEMS; j++)
 			output[i + j * ELEMS] = state[i][j];
 	}
-	
+
 	return EOK;
 }

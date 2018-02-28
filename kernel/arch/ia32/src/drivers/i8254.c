@@ -88,7 +88,7 @@ void i8254_init(void)
 	i8254_irq.claim = i8254_claim;
 	i8254_irq.handler = i8254_irq_handler;
 	irq_register(&i8254_irq);
-	
+
 	i8254_normal_operation();
 }
 
@@ -110,11 +110,11 @@ void i8254_calibrate_delay_loop(void)
 	pio_write_8(CLK_PORT4, 0x30);
 	pio_write_8(CLK_PORT1, 0xff);
 	pio_write_8(CLK_PORT1, 0xff);
-	
+
 	uint8_t not_ok;
 	uint32_t t1;
 	uint32_t t2;
-	
+
 	do {
 		/* will read both status and count */
 		pio_write_8(CLK_PORT4, 0xc2);
@@ -122,36 +122,36 @@ void i8254_calibrate_delay_loop(void)
 		t1 = pio_read_8(CLK_PORT1);
 		t1 |= pio_read_8(CLK_PORT1) << 8;
 	} while (not_ok);
-	
+
 	asm_delay_loop(LOOPS);
-	
+
 	pio_write_8(CLK_PORT4, 0xd2);
 	t2 = pio_read_8(CLK_PORT1);
 	t2 |= pio_read_8(CLK_PORT1) << 8;
-	
+
 	/*
 	 * We want to determine the overhead of the calibrating mechanism.
 	 */
 	pio_write_8(CLK_PORT4, 0xd2);
 	uint32_t o1 = pio_read_8(CLK_PORT1);
 	o1 |= pio_read_8(CLK_PORT1) << 8;
-	
+
 	asm_fake_loop(LOOPS);
-	
+
 	pio_write_8(CLK_PORT4, 0xd2);
 	uint32_t o2 = pio_read_8(CLK_PORT1);
 	o2 |= pio_read_8(CLK_PORT1) << 8;
-	
+
 	CPU->delay_loop_const =
 	    ((MAGIC_NUMBER * LOOPS) / 1000) / ((t1 - t2) - (o1 - o2)) +
 	    (((MAGIC_NUMBER * LOOPS) / 1000) % ((t1 - t2) - (o1 - o2)) ? 1 : 0);
-	
+
 	uint64_t clk1 = get_cycle();
 	delay(1 << SHIFT);
 	uint64_t clk2 = get_cycle();
-	
+
 	CPU->frequency_mhz = (clk2 - clk1) >> SHIFT;
-	
+
 	return;
 }
 

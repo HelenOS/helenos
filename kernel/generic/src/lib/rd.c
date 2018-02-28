@@ -57,17 +57,17 @@ void init_rd(void *data, size_t size)
 {
 	uintptr_t base = (uintptr_t) data;
 	assert((base % FRAME_SIZE) == 0);
-	
+
 	rd_parea.pbase = base;
 	rd_parea.frames = SIZE2FRAMES(size);
 	rd_parea.unpriv = false;
 	rd_parea.mapped = false;
 	ddi_parea_register(&rd_parea);
-	
+
 	sysinfo_set_item_val("rd", NULL, true);
 	sysinfo_set_item_val("rd.size", NULL, size);
 	sysinfo_set_item_val("rd.address.physical", NULL, (sysarg_t) base);
-	
+
 	log(LF_OTHER, LVL_NOTE, "RAM disk at %p (size %zu bytes)", (void *) base,
 	    size);
 }

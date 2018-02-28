@@ -96,7 +96,7 @@ typedef enum {
 typedef struct {
 	uint32_t eerd_start;
 	uint32_t eerd_done;
-	
+
 	uint32_t eerd_address_offset;
 	uint32_t eerd_data_offset;
 } e1000_info_t;
@@ -158,7 +158,7 @@ typedef enum {
 	CTRL_ASDE = (1 << 5),  /**< Auto-Speed Detection Enable */
 	CTRL_SLU = (1 << 6),   /**< Set Link Up */
 	CTRL_ILOS = (1 << 7),  /**< Invert Loss-of-Signal */
-	
+
 	/** Speed selection shift */
 	CTRL_SPEED_SHIFT = 8,
 	/** Speed selection size */
@@ -173,7 +173,7 @@ typedef enum {
 	CTRL_SPEED_100 = 1,
 	/** Speed selection 10 Mb/s value */
 	CTRL_SPEED_1000 = 2,
-	
+
 	CTRL_FRCSPD = (1 << 11),   /**< Force Speed */
 	CTRL_FRCDPLX = (1 << 12),  /**< Force Duplex */
 	CTRL_RST = (1 << 26),      /**< Device Reset */
@@ -185,7 +185,7 @@ typedef enum {
 typedef enum {
 	STATUS_FD = (1 << 0),  /**< Link Full Duplex configuration Indication */
 	STATUS_LU = (1 << 1),  /**< Link Up Indication */
-	
+
 	/** Link speed setting shift */
 	STATUS_SPEED_SHIFT = 6,
 	/** Link speed setting size */

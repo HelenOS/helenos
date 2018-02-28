@@ -57,7 +57,7 @@ typedef struct {
 	/** Synchronize debug ops on this task / access to this structure */
 	mutex_t lock;
 	char *lock_owner;
-	
+
 	udebug_task_state_t dt_state;
 	call_t *begin_call;
 	int not_stoppable_count;
@@ -70,12 +70,12 @@ typedef struct {
 typedef struct {
 	/** Synchronize debug ops on this thread / access to this structure. */
 	mutex_t lock;
-	
+
 	waitq_t go_wq;
 	call_t *go_call;
 	sysarg_t syscall_args[6];
 	istate_t *uspace_state;
-	
+
 	/** What type of event are we stopped in or 0 if none. */
 	udebug_event_t cur_event;
 	bool go;         /**< Thread is GO */

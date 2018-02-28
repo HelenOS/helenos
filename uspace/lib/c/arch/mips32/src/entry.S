@@ -43,20 +43,20 @@ FUNCTION_BEGIN(__entry)
 	.ent __entry
 	.frame $sp, ABI_STACK_FRAME, $ra
 	.cpload $t9
-	
+
 	# Allocate the stack frame.
 	addiu $sp, -ABI_STACK_FRAME
-	
+
 	# Allow PIC code
 	.cprestore 16
-	
+
 	# Pass pcb_ptr to __main() as the first argument. It is already
 	# in $a0. As the first argument is passed in $a0, no operation
 	# is needed.
-	
+
 	jal __main
 	nop
-	
+
 	#
 	# Not reached.
 	#

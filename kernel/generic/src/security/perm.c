@@ -69,7 +69,7 @@ perm_t perm_get(task_t *task)
 	irq_spinlock_lock(&task->lock, true);
 	perm_t perms = task->perms;
 	irq_spinlock_unlock(&task->lock, true);
-	
+
 	return perms;
 }
 
@@ -87,19 +87,19 @@ static errno_t perm_grant(task_id_t taskid, perm_t perms)
 {
 	if (!(perm_get(TASK) & PERM_PERM))
 		return EPERM;
-	
+
 	irq_spinlock_lock(&tasks_lock, true);
 	task_t *task = task_find_by_id(taskid);
-	
+
 	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		irq_spinlock_unlock(&tasks_lock, true);
 		return ENOENT;
 	}
-	
+
 	irq_spinlock_lock(&task->lock, false);
 	task->perms |= perms;
 	irq_spinlock_unlock(&task->lock, false);
-	
+
 	irq_spinlock_unlock(&tasks_lock, true);
 	return EOK;
 }
@@ -118,29 +118,29 @@ static errno_t perm_grant(task_id_t taskid, perm_t perms)
 static errno_t perm_revoke(task_id_t taskid, perm_t perms)
 {
 	irq_spinlock_lock(&tasks_lock, true);
-	
+
 	task_t *task = task_find_by_id(taskid);
 	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		irq_spinlock_unlock(&tasks_lock, true);
 		return ENOENT;
 	}
-	
+
 	/*
 	 * Revoking permissions is different from granting them in that
 	 * a task can revoke permissions from itself even if it
 	 * doesn't have PERM_PERM.
 	 */
 	irq_spinlock_unlock(&TASK->lock, false);
-	
+
 	if ((!(TASK->perms & PERM_PERM)) || (task != TASK)) {
 		irq_spinlock_unlock(&TASK->lock, false);
 		irq_spinlock_unlock(&tasks_lock, true);
 		return EPERM;
 	}
-	
+
 	task->perms &= ~perms;
 	irq_spinlock_unlock(&TASK->lock, false);
-	
+
 	irq_spinlock_unlock(&tasks_lock, true);
 	return EOK;
 }
@@ -163,7 +163,7 @@ sys_errno_t sys_perm_grant(sysarg64_t *uspace_taskid, perm_t perms)
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
 	if (rc != EOK)
 		return (sys_errno_t) rc;
-	
+
 	return perm_grant((task_id_t) taskid, perms);
 }
 
@@ -184,7 +184,7 @@ sys_errno_t sys_perm_revoke(sysarg64_t *uspace_taskid, perm_t perms)
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
 	if (rc != EOK)
 		return (sys_errno_t) rc;
-	
+
 	return perm_revoke((task_id_t) taskid, perms);
 }
 

@@ -53,7 +53,7 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	uintptr_t base;
-	
+
 	base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
 
 	if ((uintptr_t) THREAD->kstack < base ||
@@ -62,10 +62,10 @@ void before_thread_runs_arch(void)
 		 * Kernel stack of this thread is not mapped by DTR[TR_KERNEL].
 		 * Use DTR[TR_KSTACK1] and DTR[TR_KSTACK2] to map it.
 		 */
-		 
+
 		/* purge DTR[TR_STACK1] and DTR[TR_STACK2] */
 		dtr_purge((uintptr_t) THREAD->kstack, PAGE_WIDTH+1);
-		
+
 		/* insert DTR[TR_STACK1] and DTR[TR_STACK2] */
 		dtlb_kernel_mapping_insert((uintptr_t) THREAD->kstack,
 		    KA2PA(THREAD->kstack), true, DTR_KSTACK1);
@@ -73,7 +73,7 @@ void before_thread_runs_arch(void)
 		    PAGE_SIZE, KA2PA(THREAD->kstack) + FRAME_SIZE, true,
 		    DTR_KSTACK2);
 	}
-	
+
 	/*
 	 * Record address of kernel backing store to bank 0 r22.
 	 * Record address of kernel stack to bank 0 r23.

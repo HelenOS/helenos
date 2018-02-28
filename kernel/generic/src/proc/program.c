@@ -74,7 +74,7 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 	prg->task = task_create(as, name);
 	if (!prg->task)
 		return ELIMIT;
-	
+
 	/*
 	 * Create the stack address space area.
 	 */
@@ -93,17 +93,17 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 		prg->task = NULL;
 		return ENOMEM;
 	}
-	
+
 	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
 	    malloc(sizeof(uspace_arg_t), 0);
-	
+
 	kernel_uarg->uspace_entry = (void *) entry_addr;
 	kernel_uarg->uspace_stack = (void *) virt;
 	kernel_uarg->uspace_stack_size = STACK_SIZE_USER;
 	kernel_uarg->uspace_thread_function = NULL;
 	kernel_uarg->uspace_thread_arg = NULL;
 	kernel_uarg->uspace_uarg = NULL;
-	
+
 	/*
 	 * Create the main thread.
 	 */
@@ -116,7 +116,7 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 		prg->task = NULL;
 		return ELIMIT;
 	}
-	
+
 	return EOK;
 }
 
@@ -141,26 +141,26 @@ errno_t program_create_from_image(void *image_addr, char *name, program_t *prg)
 	as_t *as = as_create(0);
 	if (!as)
 		return ENOMEM;
-	
+
 	prg->loader_status = elf_load((elf_header_t *) image_addr, as, 0);
 	if (prg->loader_status != EE_OK) {
 		as_destroy(as);
 		prg->task = NULL;
 		prg->main_thread = NULL;
-		
+
 		if (prg->loader_status != EE_LOADER)
 			return ENOTSUP;
-		
+
 		/* Register image as the program loader */
 		if (program_loader != NULL)
 			return ELIMIT;
-		
+
 		program_loader = image_addr;
 		log(LF_OTHER, LVL_NOTE, "Program loader at %p", (void *) image_addr);
-		
+
 		return EOK;
 	}
-	
+
 	return program_create(as, ((elf_header_t *) image_addr)->e_entry,
 	    name, prg);
 }
@@ -178,7 +178,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 	as_t *as = as_create(0);
 	if (!as)
 		return ENOMEM;
-	
+
 	void *loader = program_loader;
 	if (!loader) {
 		as_destroy(as);
@@ -186,7 +186,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 		    "Cannot spawn loader as none was registered");
 		return ENOENT;
 	}
-	
+
 	prg->loader_status = elf_load((elf_header_t *) program_loader, as,
 	    ELD_F_LOADER);
 	if (prg->loader_status != EE_OK) {
@@ -195,7 +195,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 		    elf_error(prg->loader_status));
 		return ENOENT;
 	}
-	
+
 	return program_create(as, ((elf_header_t *) program_loader)->e_entry,
 	    name, prg);
 }
@@ -229,24 +229,24 @@ sys_errno_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 	/* Cap length of name and copy it from userspace. */
 	if (name_len > TASK_NAME_BUFLEN - 1)
 		name_len = TASK_NAME_BUFLEN - 1;
-	
+
 	char namebuf[TASK_NAME_BUFLEN];
 	errno_t rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != EOK)
 		return (sys_errno_t) rc;
-	
+
 	namebuf[name_len] = 0;
-	
+
 	/* Spawn the new task. */
 	program_t prg;
 	rc = program_create_loader(&prg, namebuf);
 	if (rc != EOK)
 		return rc;
-	
+
 	// FIXME: control the permissions
 	perm_set(prg.task, perm_get(TASK));
 	program_ready(&prg);
-	
+
 	return EOK;
 }
 

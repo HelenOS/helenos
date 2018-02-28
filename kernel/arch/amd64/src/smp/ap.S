@@ -54,9 +54,9 @@ SYMBOL(unmapped_ap_boot)
 	cli
 	xorw %ax, %ax
 	movw %ax, %ds
-	
+
 	lgdtl ap_gdtr       # initialize Global Descriptor Table register
-	
+
 	movl %cr0, %eax
 	orl $CR0_PE, %eax
 	movl %eax, %cr0     # switch to protected mode
@@ -70,28 +70,28 @@ jump_to_kernel:
 	movw %ax, %ss
 	movw $GDT_SELECTOR(UDATA_DES), %ax
 	movw %ax, %gs
-	
+
 	# Enable 64-bit page transaltion entries (CR4.PAE = 1).
 	# Paging is not enabled until after long mode is enabled
-	
+
 	movl %cr4, %eax
 	orl $CR4_PAE, %eax
 	movl %eax, %cr4
-	
+
 	leal ptl_0, %eax
 	movl %eax, %cr3
-	
+
 	# Enable long mode
 	movl $AMD_MSR_EFER, %ecx  # EFER MSR number
 	rdmsr                     # Read EFER
 	orl $AMD_LME, %eax        # Set LME=1
 	wrmsr                     # Write EFER
-	
+
 	# Enable paging to activate long mode (set CR0.PG = 1)
 	movl %cr0, %eax
 	orl $CR0_PG, %eax
 	movl %eax, %cr0
-	
+
 	# At this point we are in compatibility mode
 	jmpl $GDT_SELECTOR(KTEXT_DES), $start64 - BOOT_OFFSET + AP_BOOT_OFFSET
 
@@ -99,10 +99,10 @@ jump_to_kernel:
 start64:
 	movabsq $ctx, %rsp
 	movq CONTEXT_OFFSET_SP(%rsp), %rsp
-	
+
 	pushq $0
 	movq %rsp, %rbp
-	
+
 	movabsq $main_ap, %rax
 	callq *%rax   # never returns
 

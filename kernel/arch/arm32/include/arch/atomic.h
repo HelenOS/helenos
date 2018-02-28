@@ -58,7 +58,7 @@ NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
 	val->count += i;
 	atomic_count_t ret = val->count;
 	interrupts_restore(ipl);
-	
+
 	return ret;
 }
 

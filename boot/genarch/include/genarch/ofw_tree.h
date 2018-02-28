@@ -44,14 +44,14 @@ typedef struct ofw_tree_node {
 	struct ofw_tree_node *parent;
 	struct ofw_tree_node *peer;
 	struct ofw_tree_node *child;
-	
+
 	phandle node_handle;            /**< Old OpenFirmware node handle. */
-	
+
 	char *da_name;                  /**< Disambigued name. */
-	
+
 	size_t properties;              /**< Number of properties. */
 	ofw_tree_property_t *property;
-	
+
 	void *device;                   /**< Member used solely by the kernel. */
 } ofw_tree_node_t;
 

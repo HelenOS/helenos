@@ -47,7 +47,7 @@ void istate_decode(istate_t *istate)
 {
 	const char *tpcs = symtab_fmt_name_lookup(istate->tpc);
 	const char *tnpcs = symtab_fmt_name_lookup(istate->tnpc);
-	
+
 	printf("TSTATE=%#" PRIx64 "\n", istate->tstate);
 	printf("TPC=%#" PRIx64 " (%s)\n", istate->tpc, tpcs);
 	printf("TNPC=%#" PRIx64 " (%s)\n", istate->tnpc, tnpcs);
@@ -99,7 +99,7 @@ void unimplemented_STD(unsigned int n, istate_t *istate)
 void fp_disabled(unsigned int n, istate_t *istate)
 {
 	fprs_reg_t fprs;
-	
+
 	fprs.value = fprs_read();
 	if (!fprs.fef) {
 		fprs.fef = true;

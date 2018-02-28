@@ -110,7 +110,7 @@ typedef union {
 		unsigned im : 1;	/**< I-MMU enable. */
 		unsigned dc : 1;	/**< D-Cache enable. */
 		unsigned ic : 1;	/**< I-Cache enable. */
-		
+
 	} __attribute__ ((packed));
 } lsu_cr_reg_t;
 #endif /* US */

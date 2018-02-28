@@ -56,10 +56,10 @@
 
 #define USAGE_MINIMUM1(value) \
 	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE_MINIMUM, value)
-	
+
 #define USAGE_MAXIMUM1(value) \
 	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE_MAXIMUM, value)
-	
+
 #define LOGICAL_MINIMUM1(value) \
 	ITEM_CREATE1(ITEM_GLOBAL, TAG_LOGICAL_MINIMUM, value)
 
@@ -71,7 +71,7 @@
 
 #define REPORT_COUNT1(count) \
 	ITEM_CREATE1(ITEM_GLOBAL, TAG_REPORT_COUNT, count)
-	
+
 #define INPUT(modifiers) \
 	ITEM_CREATE1(ITEM_MAIN, TAG_INPUT, modifiers)
 

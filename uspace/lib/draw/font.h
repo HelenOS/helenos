@@ -50,18 +50,18 @@ typedef int metric_t;
 typedef struct {
 	/* Horizontal distance between origin and left side of the glyph */
 	metric_t left_side_bearing;
-	
+
 	/* Width of the actual glyph drawn */
 	metric_t width;
-	
+
 	/* Horizontal distance between right side of the glyph and origin
 	   of the next glyph */
 	metric_t right_side_bearing;
-	
+
 	/* Vertical distance between baseline and top of the glyph
 	   (positive to top) */
 	metric_t ascender;
-	
+
 	/* Height of the actual glyph drawn */
 	metric_t height;
 } glyph_metrics_t;
@@ -79,10 +79,10 @@ static inline metric_t glyph_metrics_get_advancement(glyph_metrics_t *gm)
 typedef struct {
 	/* Distance between top of the line and baseline */
 	metric_t ascender;
-	
+
 	/* Distance between baseline and bottom of the line */
 	metric_t descender;
-	
+
 	/* Distance between bottom of the line and top of the next line */
 	metric_t leading;
 } font_metrics_t;

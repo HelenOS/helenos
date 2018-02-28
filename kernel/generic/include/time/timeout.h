@@ -43,7 +43,7 @@ typedef void (* timeout_handler_t)(void *arg);
 
 typedef struct {
 	IRQ_SPINLOCK_DECLARE(lock);
-	
+
 	/** Link to the list of active timeouts on THE->cpu */
 	link_t link;
 	/** Timeout will be activated in this amount of clock() ticks. */

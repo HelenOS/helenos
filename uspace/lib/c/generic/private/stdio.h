@@ -45,46 +45,46 @@
 struct _IO_FILE {
 	/** Linked list pointer. */
 	link_t link;
-	
+
 	/** Underlying file descriptor. */
 	int fd;
 
 	/** File position. */
 	aoff64_t pos;
-	
+
 	/** Error indicator. */
 	int error;
-	
+
 	/** End-of-file indicator. */
 	int eof;
-	
+
 	/** KIO indicator */
 	int kio;
-	
+
 	/** Session to the file provider */
 	async_sess_t *sess;
-	
+
 	/**
 	 * Non-zero if the stream needs sync on fflush(). XXX change
 	 * console semantics so that sync is not needed.
 	 */
 	int need_sync;
-	
+
 	/** Buffering type */
 	enum _buffer_type btype;
-	
+
 	/** Buffer */
 	uint8_t *buf;
-	
+
 	/** Buffer size */
 	size_t buf_size;
-	
+
 	/** Buffer state */
 	enum _buffer_state buf_state;
-	
+
 	/** Buffer I/O pointer */
 	uint8_t *buf_head;
-	
+
 	/** Points to end of occupied space when in read mode. */
 	uint8_t *buf_tail;
 

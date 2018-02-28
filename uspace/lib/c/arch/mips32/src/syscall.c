@@ -45,7 +45,7 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 	register sysarg_t __mips_reg_t0 asm("$8") = p5;
 	register sysarg_t __mips_reg_t1 asm("$9") = p6;
 	register sysarg_t __mips_reg_v0 asm("$2") = id;
-	
+
 	asm volatile (
 		"syscall\n"
 		: "=r" (__mips_reg_v0)
@@ -62,7 +62,7 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 		 */
 		: "%ra"
 	);
-	
+
 	return __mips_reg_v0;
 }
 

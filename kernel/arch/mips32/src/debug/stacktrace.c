@@ -156,7 +156,7 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 			/*
 			 * We have a candidate for frame pointer.
 			 */
-			
+
 			/* Seek to the end of this function. */
 			for (cur = inst + 1; !IS_JR_RA(*cur); cur++)
 				;
@@ -169,7 +169,7 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 			}
 			continue;
 		}
-		
+
 		if (IS_JR_RA(*inst)) {
 			if (!ctx->istate)
 				return false;
@@ -188,7 +188,7 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 
 	} while ((!IS_ADDIU_SP_SP_IMM(*inst) && !IS_ADDI_SP_SP_IMM(*inst)) ||
 	    (IMM_GET(*inst) >= 0));
-	
+
 	/*
 	 * We are at the instruction which allocates the space for the current
 	 * stack frame.
@@ -209,7 +209,7 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 
 			if (base == SP || (has_fp && base == fp)) {
 				uint32_t *addr = (void *) (ctx->fp + offset);
-				
+
 				if (offset % 4 != 0)
 					return false;
 				/* cannot store below current stack pointer */

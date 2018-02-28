@@ -49,7 +49,7 @@ bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
 {
 	uint64_t *stack = (void *) ctx->fp;
 	*prev = stack[FRAME_OFFSET_FP_PREV];
-	
+
 	return true;
 }
 
@@ -57,7 +57,7 @@ bool kernel_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
 {
 	uint64_t *stack = (void *) ctx->fp;
 	*ra = stack[FRAME_OFFSET_RA];
-	
+
 	return true;
 }
 

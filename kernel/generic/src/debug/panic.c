@@ -48,12 +48,12 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
     uintptr_t address, const char *fmt, ...)
 {
 	console_override = true;
-	
+
 	printf("\n%s Kernel panic ", BANNER_LEFT);
 	if (CPU)
 		printf("on cpu%u ", CPU->id);
 	printf("due to ");
-	
+
 	va_list args;
 	va_start(args, fmt);
 	if (cat == PANIC_ASSERT) {
@@ -90,28 +90,28 @@ void panic_common(panic_category_t cat, istate_t *istate, int access,
 		printf("\n");
 	}
 	va_end(args);
-	
+
 	printf("\n");
-	
+
 	printf("THE=%p: ", THE);
 	if (THE != NULL) {
 		printf("pe=%" PRIuPTR " thread=%p task=%p cpu=%p as=%p"
 		    " magic=%#" PRIx32 "\n", THE->preemption,
 		    THE->thread, THE->task, THE->cpu, THE->as, THE->magic);
-		
+
 		if (THE->thread != NULL)
 			printf("thread=\"%s\"\n", THE->thread->name);
-		
+
 		if (THE->task != NULL)
 			printf("task=\"%s\"\n", THE->task->name);
 	} else
 		printf("invalid\n");
-	
+
 	if (istate) {
 		istate_decode(istate);
 		printf("\n");
 	}
-	
+
 	stack_trace();
 	halt();
 }

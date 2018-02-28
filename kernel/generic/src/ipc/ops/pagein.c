@@ -91,7 +91,7 @@ static errno_t pagein_answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		}
 		page_table_unlock(AS, true);
 	}
-	
+
 	return EOK;
 }
 

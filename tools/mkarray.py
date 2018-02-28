@@ -56,43 +56,43 @@ def chunks(string, length):
 
 def main():
 	arg_check()
-	
+
 	if sys.argv[1] == "--deflate":
 		sys.argv.pop(1)
 		arg_check()
 		compress = True
 	else:
 		compress = False
-	
+
 	dest = sys.argv[1]
 	label = sys.argv[2]
 	as_prolog = sys.argv[3]
 	section = sys.argv[4]
-	
+
 	timestamp = (1980, 1, 1, 0, 0, 0)
-	
+
 	header_ctx = []
 	desc_ctx = []
 	size_ctx = []
 	data_ctx = []
-	
+
 	src_cnt = 0
-	
+
 	archive = zipfile.ZipFile("%s.zip" % dest, "w", zipfile.ZIP_STORED)
-	
+
 	for src in sys.argv[5:]:
 		basename = os.path.basename(src)
 		plainname = os.path.splitext(basename)[0]
 		symbol = basename.replace(".", "_")
-		
+
 		print("%s -> %s" % (src, symbol))
-		
+
 		src_in = open(src, "rb")
 		src_data = src_in.read()
 		src_in.close()
-		
+
 		length = len(src_data)
-		
+
 		if compress:
 			src_data = deflate(src_data)
 			src_fname = os.path.basename("%s.deflate" % src)
@@ -100,41 +100,41 @@ def main():
 			archive.writestr(zipinfo, src_data)
 		else:
 			src_fname = src
-		
+
 		if sys.version_info < (3,):
 			src_data = bytearray(src_data)
-		
+
 		length_out = len(src_data)
-		
+
 		header_ctx.append("extern uint8_t %s[];" % symbol)
 		header_ctx.append("extern size_t %s_size;" % symbol)
-		
+
 		data_ctx.append(".globl %s" % symbol)
 		data_ctx.append(".balign 8")
 		data_ctx.append(".size %s, %u" % (symbol, length_out))
 		data_ctx.append("%s:" % symbol)
 		data_ctx.append("\t.incbin \"%s\"\n" % src_fname)
-		
+
 		desc_field = []
 		desc_field.append("\t{")
 		desc_field.append("\t\t.name = \"%s\"," % plainname)
 		desc_field.append("\t\t.addr = (void *) %s," % symbol)
 		desc_field.append("\t\t.size = %u," % length_out)
 		desc_field.append("\t\t.inflated = %u," % length)
-		
+
 		if compress:
 			desc_field.append("\t\t.compressed = true")
 		else:
 			desc_field.append("\t\t.compressed = false")
-		
+
 		desc_field.append("\t}")
-		
+
 		desc_ctx.append("\n".join(desc_field))
-		
+
 		size_ctx.append("size_t %s_size = %u;" % (symbol, length_out))
-		
+
 		src_cnt += 1
-	
+
 	data = ''
 	data += '/***************************************\n'
 	data += ' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n'
@@ -159,7 +159,7 @@ def main():
 	data += "#endif\n"
 	zipinfo = zipfile.ZipInfo("%s.h" % dest, timestamp)
 	archive.writestr(zipinfo, data)
-	
+
 	data = ''
 	data += '/***************************************\n'
 	data += ' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n'
@@ -171,7 +171,7 @@ def main():
 	data += "\n"
 	zipinfo = zipfile.ZipInfo("%s.s" % dest, timestamp)
 	archive.writestr(zipinfo, data)
-	
+
 	data = ''
 	data += '/***************************************\n'
 	data += ' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n'
@@ -186,7 +186,7 @@ def main():
 	data += "\n"
 	zipinfo = zipfile.ZipInfo("%s_desc.c" % dest, timestamp)
 	archive.writestr(zipinfo, data)
-	
+
 	archive.close()
 
 if __name__ == '__main__':

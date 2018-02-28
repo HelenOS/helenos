@@ -43,13 +43,13 @@ void *mmap(void *start, size_t length, int prot, int flags, int fd,
 {
 	if (!start)
 		start = AS_AREA_ANY;
-	
+
 //	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
 //		return MAP_FAILED;
-	
+
 	if (!(flags & MAP_ANONYMOUS))
 		return MAP_FAILED;
-	
+
 	return as_area_create(start, length, prot, AS_AREA_UNPAGED);
 }
 

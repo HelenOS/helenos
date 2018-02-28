@@ -333,7 +333,7 @@ typedef struct io_redirection_reg {
 			uint8_t dest : 8;   /**< Destination Field. */
 		} __attribute__ ((packed));
 	};
-	
+
 } __attribute__ ((packed)) io_redirection_reg_t;
 
 

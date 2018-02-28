@@ -140,13 +140,13 @@ static long double mul_pow5(long double mant, int exp)
 	if (mant == 0.0l || mant == HUGE_VALL) {
 		return mant;
 	}
-	
+
 	if (abs(exp) >> (MAX_POW5 + 1) != 0) {
 		/* Too large exponent. */
 		errno = ERANGE;
 		return exp < 0 ? LDBL_MIN : HUGE_VALL;
 	}
-	
+
 	if (exp < 0) {
 		exp = abs(exp);
 		for (int bit = 0; bit <= MAX_POW5; ++bit) {
@@ -174,7 +174,7 @@ static long double mul_pow5(long double mant, int exp)
 			}
 		}
 	}
-	
+
 	return mant;
 }
 
@@ -190,12 +190,12 @@ static long double mul_pow2(long double mant, int exp)
 	if (mant == 0.0l || mant == HUGE_VALL) {
 		return mant;
 	}
-	
+
 	if (exp > LDBL_MAX_EXP || exp < LDBL_MIN_EXP) {
 		errno = ERANGE;
 		return exp < 0 ? LDBL_MIN : HUGE_VALL;
 	}
-	
+
 	if (exp < 0) {
 		exp = abs(exp);
 		for (int i = 0; i <= MAX_POW2; ++i) {
@@ -219,7 +219,7 @@ static long double mul_pow2(long double mant, int exp)
 			}
 		}
 	}
-	
+
 	return mant;
 }
 
@@ -241,26 +241,26 @@ static long double parse_decimal(const char **sptr)
 {
 	assert(sptr != NULL);
 	assert (*sptr != NULL);
-	
+
 	const int DEC_BASE = 10;
 	const char DECIMAL_POINT = '.';
 	const char EXPONENT_MARK = 'e';
-	
+
 	const char *str = *sptr;
 	long double significand = 0;
 	long exponent = 0;
-	
+
 	/* number of digits parsed so far */
 	int parsed_digits = 0;
 	bool after_decimal = false;
-	
+
 	while (isdigit(*str) || (!after_decimal && *str == DECIMAL_POINT)) {
 		if (*str == DECIMAL_POINT) {
 			after_decimal = true;
 			str++;
 			continue;
 		}
-		
+
 		if (parsed_digits == 0 && *str == '0') {
 			/* Nothing, just skip leading zeros. */
 		} else if (parsed_digits < LDBL_DIG) {
@@ -269,22 +269,22 @@ static long double parse_decimal(const char **sptr)
 		} else {
 			exponent++;
 		}
-		
+
 		if (after_decimal) {
 			/* Decrement exponent if we are parsing the fractional part. */
 			exponent--;
 		}
-		
+
 		str++;
 	}
-	
+
 	/* exponent */
 	if (tolower(*str) == EXPONENT_MARK) {
 		str++;
-		
+
 		/* Returns MIN/MAX value on error, which is ok. */
 		long exp = strtol(str, (char **) &str, DEC_BASE);
-		
+
 		if (exponent > 0 && exp > LONG_MAX - exponent) {
 			exponent = LONG_MAX;
 		} else if (exponent < 0 && exp < LONG_MIN - exponent) {
@@ -293,9 +293,9 @@ static long double parse_decimal(const char **sptr)
 			exponent += exp;
 		}
 	}
-	
+
 	*sptr = str;
-	
+
 	/* Return multiplied by a power of ten. */
 	return mul_pow2(mul_pow5(significand, exponent), exponent);
 }
@@ -329,27 +329,27 @@ static inline int hex_value(char ch)
 static long double parse_hexadecimal(const char **sptr)
 {
 	assert(sptr != NULL && *sptr != NULL);
-	
+
 	const int DEC_BASE = 10;
 	const int HEX_BASE = 16;
 	const char DECIMAL_POINT = '.';
 	const char EXPONENT_MARK = 'p';
-	
+
 	const char *str = *sptr;
 	long double significand = 0;
 	long exponent = 0;
-	
+
 	/* number of bits parsed so far */
 	int parsed_bits = 0;
 	bool after_decimal = false;
-	
+
 	while (isxdigit(*str) || (!after_decimal && *str == DECIMAL_POINT)) {
 		if (*str == DECIMAL_POINT) {
 			after_decimal = true;
 			str++;
 			continue;
 		}
-		
+
 		if (parsed_bits == 0 && *str == '0') {
 			/* Nothing, just skip leading zeros. */
 		} else if (parsed_bits <= LDBL_MANT_DIG) {
@@ -358,21 +358,21 @@ static long double parse_hexadecimal(const char **sptr)
 		} else {
 			exponent += 4;
 		}
-		
+
 		if (after_decimal) {
 			exponent -= 4;
 		}
-		
+
 		str++;
 	}
-	
+
 	/* exponent */
 	if (tolower(*str) == EXPONENT_MARK) {
 		str++;
-		
+
 		/* Returns MIN/MAX value on error, which is ok. */
 		long exp = strtol(str, (char **) &str, DEC_BASE);
-		
+
 		if (exponent > 0 && exp > LONG_MAX - exponent) {
 			exponent = LONG_MAX;
 		} else if (exponent < 0 && exp < LONG_MIN - exponent) {
@@ -381,9 +381,9 @@ static long double parse_hexadecimal(const char **sptr)
 			exponent += exp;
 		}
 	}
-	
+
 	*sptr = str;
-	
+
 	/* Return multiplied by a power of two. */
 	return mul_pow2(significand, exponent);
 }
@@ -406,19 +406,19 @@ static long double parse_hexadecimal(const char **sptr)
 long double strtold(const char *restrict nptr, char **restrict endptr)
 {
 	assert(nptr != NULL);
-	
+
 	const int RADIX = '.';
-	
+
 	/* minus sign */
 	bool negative = false;
 	/* current position in the string */
 	int i = 0;
-	
+
 	/* skip whitespace */
 	while (isspace(nptr[i])) {
 		i++;
 	}
-	
+
 	/* parse sign */
 	switch (nptr[i]) {
 	case '-':
@@ -427,26 +427,26 @@ long double strtold(const char *restrict nptr, char **restrict endptr)
 	case '+':
 		i++;
 	}
-	
+
 	/* check for NaN */
 	if (strncasecmp(&nptr[i], "nan", 3) == 0) {
 		// FIXME: return NaN
 		// TODO: handle the parenthesised case
-		
+
 		if (endptr != NULL) {
 			*endptr = (char *) nptr;
 		}
 		errno = EINVAL;
 		return 0;
 	}
-	
+
 	/* check for Infinity */
 	if (strncasecmp(&nptr[i], "inf", 3) == 0) {
 		i += 3;
 		if (strncasecmp(&nptr[i], "inity", 5) == 0) {
 			i += 5;
 		}
-		
+
 		if (endptr != NULL) {
 			*endptr = (char *) &nptr[i];
 		}
@@ -458,7 +458,7 @@ long double strtold(const char *restrict nptr, char **restrict endptr)
 	    (isxdigit(nptr[i + 2]) ||
 	    (nptr[i + 2] == RADIX && isxdigit(nptr[i + 3])))) {
 		i += 2;
-		
+
 		const char *ptr = &nptr[i];
 		/* this call sets errno if appropriate. */
 		long double result = parse_hexadecimal(&ptr);
@@ -467,7 +467,7 @@ long double strtold(const char *restrict nptr, char **restrict endptr)
 		}
 		return negative ? -result : result;
 	}
-	
+
 	/* check for a decimal number */
 	if (isdigit(nptr[i]) || (nptr[i] == RADIX && isdigit(nptr[i + 1]))) {
 		const char *ptr = &nptr[i];
@@ -478,7 +478,7 @@ long double strtold(const char *restrict nptr, char **restrict endptr)
 		}
 		return negative ? -result : result;
 	}
-	
+
 	/* nothing to parse */
 	if (endptr != NULL) {
 		*endptr = (char *) nptr;

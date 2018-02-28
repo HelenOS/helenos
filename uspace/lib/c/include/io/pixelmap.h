@@ -46,13 +46,13 @@
 typedef enum {
 	/* Pixels outside of a pixmap are PIXEL(0, 0, 0, 0) */
 	PIXELMAP_EXTEND_TRANSPARENT_BLACK = 0,
-	
+
 	/* The pixmap is repeated infinetely */
 	PIXELMAP_EXTEND_TILE,
-	
+
 	/* If outside of a pixmap, return closest pixel from the edge */
 	PIXELMAP_EXTEND_SIDES,
-	
+
 	/* If outside of a pixmap, return closest pixel from the edge,
 	 * with alpha = 0
 	 */
@@ -124,7 +124,7 @@ static inline pixel_t pixelmap_get_extended_pixel(pixelmap_t *pixmap,
 			x = pixmap->width - 1;
 			transparent = transparent_outside;
 		}
-		
+
 		if (y < 0) {
 			y = 0;
 			transparent = transparent_outside;
@@ -134,16 +134,16 @@ static inline pixel_t pixelmap_get_extended_pixel(pixelmap_t *pixmap,
 			transparent = transparent_outside;
 		}
 	}
-	
+
 	if (x < 0 || ((sysarg_t) x) >= pixmap->width ||
 	    y < 0 || ((sysarg_t) y) >= pixmap->height)
 		return PIXEL(0, 0, 0, 0);
 
 	pixel_t pixel = pixelmap_get_pixel(pixmap, x, y);
-	
+
 	if (transparent)
 		pixel = PIXEL(0, RED(pixel), GREEN(pixel), BLUE(pixel));
-	
+
 	return pixel;
 }
 

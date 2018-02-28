@@ -47,16 +47,16 @@ typedef enum {
 typedef struct {
 	/** List handle */
 	link_t link;
-	
+
 	/** Press or release event. */
 	kbd_event_type_t type;
-	
+
 	/** Keycode of the key that was pressed or released. */
 	keycode_t key;
-	
+
 	/** Bitmask of modifiers held. */
 	keymod_t mods;
-	
+
 	/** The character that was generated or '\0' for none. */
 	wchar_t c;
 } kbd_event_t;

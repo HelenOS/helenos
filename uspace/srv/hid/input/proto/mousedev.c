@@ -58,9 +58,9 @@ static mousedev_t *mousedev_new(mouse_dev_t *mdev)
 	mousedev_t *mousedev = calloc(1, sizeof(mousedev_t));
 	if (mousedev == NULL)
 		return NULL;
-	
+
 	mousedev->mouse_dev = mdev;
-	
+
 	return mousedev;
 }
 
@@ -74,18 +74,18 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 {
 	/* Mousedev device structure */
 	mousedev_t *mousedev = (mousedev_t *) arg;
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call)) {
 			mousedev_destroy(mousedev);
 			return;
 		}
-		
+
 		errno_t retval;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case MOUSEEV_MOVE_EVENT:
 			mouse_push_event_move(mousedev->mouse_dev,
@@ -108,7 +108,7 @@ static void mousedev_callback_conn(ipc_callid_t iid, ipc_call_t *icall,
 			retval = ENOTSUP;
 			break;
 		}
-		
+
 		async_answer_0(callid, retval);
 	}
 }
@@ -121,7 +121,7 @@ static errno_t mousedev_proto_init(mouse_dev_t *mdev)
 		    mdev->svc_name);
 		return ENOENT;
 	}
-	
+
 	mousedev_t *mousedev = mousedev_new(mdev);
 	if (mousedev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
@@ -129,7 +129,7 @@ static errno_t mousedev_proto_init(mouse_dev_t *mdev)
 		async_hangup(sess);
 		return ENOMEM;
 	}
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch == NULL) {
 		printf("%s: Failed starting exchange with '%s'.\n", NAME,
@@ -138,21 +138,21 @@ static errno_t mousedev_proto_init(mouse_dev_t *mdev)
 		async_hangup(sess);
 		return ENOENT;
 	}
-	
+
 	port_id_t port;
 	errno_t rc = async_create_callback_port(exch, INTERFACE_MOUSE_CB, 0, 0,
 	    mousedev_callback_conn, mousedev, &port);
-	
+
 	async_exchange_end(exch);
 	async_hangup(sess);
-	
+
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
 		    NAME, mdev->svc_name);
 		mousedev_destroy(mousedev);
 		return rc;
 	}
-	
+
 	return EOK;
 }
 

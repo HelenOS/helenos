@@ -105,7 +105,7 @@ static bool decode_frames(void)
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -119,13 +119,13 @@ static load_t get_load(void)
 	size_t count;
 	load_t *load = stats_get_load(&count);
 	load_t load_val;
-	
+
 	if ((load != NULL) && (count > 0)) {
 		load_val = load[0];
 		free(load);
 	} else
 		load_val = 0;
-	
+
 	return load_val;
 }
 
@@ -137,53 +137,53 @@ static void plan_frame_timer(suseconds_t render_time)
 	 * unless the load is not above
 	 * a lower threshold.
 	 */
-	
+
 	suseconds_t delta = 1000000 / fps;
 	load_t load = get_load();
-	
+
 	if ((delta >= render_time) && (load < MIN_LOAD))
 		fps++;
-	
+
 	if (fps > MAX_FPS)
 		fps = MAX_FPS;
-	
+
 	/*
 	 * If we lack behind then immediately
 	 * go to the lowest FPS.
 	 */
-	
+
 	if (delta < render_time)
 		fps = MIN_FPS;
-	
+
 	/*
 	 * Crank down the FPS if the current
 	 * load is above an upper threshold.
 	 */
-	
+
 	if (load > MAX_LOAD)
 		fps--;
-	
+
 	if (fps < MIN_FPS)
 		fps = MIN_FPS;
-	
+
 	delta = 1000000 / fps;
-	
+
 	fibril_timer_set(frame_timer, delta, frame_timer_callback, NULL);
 }
 
 static void led_timer_callback(void *data)
 {
 	pixel_t next_led_color = led_colors[led_color];
-	
+
 	led_color++;
 	if (led_color >= LED_COLORS)
 		led_color = 0;
-	
+
 	list_foreach(led_devs, link, led_dev_t, dev) {
 		if (dev->sess)
 			led_dev_color_set(dev->sess, next_led_color);
 	}
-	
+
 	plan_led_timer();
 }
 
@@ -191,16 +191,16 @@ static void frame_timer_callback(void *data)
 {
 	struct timeval prev;
 	getuptime(&prev);
-	
+
 	frame++;
 	if (frame >= FRAMES)
 		frame = 0;
-	
+
 	update_canvas(frame_canvas, frames[frame]);
-	
+
 	struct timeval cur;
 	getuptime(&cur);
-	
+
 	plan_frame_timer(tv_sub_diff(&cur, &prev));
 }
 
@@ -210,16 +210,16 @@ static void loc_callback(void)
 	errno_t rc = loc_category_get_id("led", &led_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK)
 		return;
-	
+
 	service_id_t *svcs;
 	size_t count;
 	rc = loc_category_get_svcs(led_cat, &svcs, &count);
 	if (rc != EOK)
 		return;
-	
+
 	for (size_t i = 0; i < count; i++) {
 		bool known = false;
-		
+
 		/* Determine whether we already know this device. */
 		list_foreach(led_devs, link, led_dev_t, dev) {
 			if (dev->svc_id == svcs[i]) {
@@ -227,22 +227,22 @@ static void loc_callback(void)
 				break;
 			}
 		}
-		
+
 		if (!known) {
 			led_dev_t *dev = (led_dev_t *) calloc(1, sizeof(led_dev_t));
 			if (!dev)
 				continue;
-			
+
 			link_initialize(&dev->link);
 			dev->svc_id = svcs[i];
 			dev->sess = loc_service_connect(svcs[i], INTERFACE_DDF, 0);
-			
+
 			list_append(&dev->link, &led_devs);
 		}
 	}
-	
+
 	// FIXME: Handle LED device removal
-	
+
 	free(svcs);
 }
 
@@ -252,29 +252,29 @@ int main(int argc, char *argv[])
 		printf("Compositor server not specified.\n");
 		return 1;
 	}
-	
+
 	list_initialize(&led_devs);
 	errno_t rc = loc_register_cat_change_cb(loc_callback);
 	if (rc != EOK) {
 		printf("Unable to register callback for device discovery.\n");
 		return 1;
 	}
-	
+
 	led_timer = fibril_timer_create(NULL);
 	if (!led_timer) {
 		printf("Unable to create LED timer.\n");
 		return 1;
 	}
-	
+
 	frame_timer = fibril_timer_create(NULL);
 	if (!frame_timer) {
 		printf("Unable to create frame timer.\n");
 		return 1;
 	}
-	
+
 	if (!decode_frames())
 		return 1;
-	
+
 	winreg = argv[1];
 	window_t *main_window = window_open(argv[1], NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "barber");
@@ -282,26 +282,26 @@ int main(int argc, char *argv[])
 		printf("Cannot open main window.\n");
 		return 1;
 	}
-	
+
 	frame_canvas = create_canvas(window_root(main_window), NULL,
 	    FRAME_WIDTH, FRAME_HEIGHT, frames[frame]);
-	
+
 	if (!frame_canvas) {
 		window_close(main_window);
 		printf("Cannot create widgets.\n");
 		return 1;
 	}
-	
+
 	window_resize(main_window, 0, 0, FRAME_WIDTH + 8, FRAME_HEIGHT + 28,
 	    WINDOW_PLACEMENT_RIGHT | WINDOW_PLACEMENT_BOTTOM);
 	window_exec(main_window);
-	
+
 	plan_led_timer();
 	plan_frame_timer(0);
-	
+
 	task_retval(0);
 	async_manager();
-	
+
 	return 0;
 }
 

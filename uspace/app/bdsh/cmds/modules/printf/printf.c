@@ -54,7 +54,7 @@ void help_cmd_printf(unsigned int level)
 		    cmdname);
 	}
 
-	
+
 	return;
 }
 

@@ -45,13 +45,13 @@ typedef sysarg_t devman_handle_t;
 typedef enum {
 	/** Driver has not been started. */
 	DRIVER_NOT_STARTED = 0,
-	
+
 	/**
 	 * Driver has been started, but has not registered as running and ready
 	 * to receive requests.
 	 */
 	DRIVER_STARTING,
-	
+
 	/** Driver is running and prepared to serve incomming requests. */
 	DRIVER_RUNNING
 } driver_state_t;
@@ -109,7 +109,7 @@ static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 {
 	match_id_t *mid = NULL;
 	link_t *link = ids->ids.head.next;
-	
+
 	while (link != &ids->ids.head) {
 		mid = list_get_instance(link, match_id_t,link);
 		if (mid->score < id->score) {
@@ -117,7 +117,7 @@ static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 		}
 		link = link->next;
 	}
-	
+
 	list_insert_before(&id->link, link);
 }
 
@@ -130,7 +130,7 @@ static inline void clean_match_ids(match_id_list_t *ids)
 {
 	link_t *link = NULL;
 	match_id_t *id;
-	
+
 	while (!list_empty(&ids->ids)) {
 		link = list_first(&ids->ids);
 		list_remove(link);

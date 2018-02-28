@@ -106,17 +106,17 @@ static bool task_done_walker(avltree_node_t *node, void *arg)
 {
 	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
 	size_t *cnt = (size_t *) arg;
-	
+
 	if (task != TASK) {
 		(*cnt)++;
-		
+
 #ifdef CONFIG_DEBUG
 		printf("[%"PRIu64"] ", task->taskid);
 #endif
-		
+
 		task_kill_internal(task);
 	}
-	
+
 	/* Continue the walk */
 	return true;
 }
@@ -137,20 +137,20 @@ void task_done(void)
 		 */
 		task_release(task_0);
 	}
-	
+
 	/* Repeat until there are any tasks except TASK */
 	do {
 #ifdef CONFIG_DEBUG
 		printf("Killing tasks... ");
 #endif
-		
+
 		irq_spinlock_lock(&tasks_lock, true);
 		tasks_left = 0;
 		avltree_walk(&tasks_tree, task_done_walker, &tasks_left);
 		irq_spinlock_unlock(&tasks_lock, true);
-		
+
 		thread_sleep(1);
-		
+
 #ifdef CONFIG_DEBUG
 		printf("\n");
 #endif
@@ -164,33 +164,33 @@ errno_t tsk_constructor(void *obj, unsigned int kmflags)
 	errno_t rc = caps_task_alloc(task);
 	if (rc != EOK)
 		return rc;
-	
+
 	atomic_set(&task->refcount, 0);
 	atomic_set(&task->lifecount, 0);
-	
+
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
-	
+
 	list_initialize(&task->threads);
-	
+
 	ipc_answerbox_init(&task->answerbox, task);
-	
+
 	spinlock_initialize(&task->active_calls_lock, "active_calls_lock");
 	list_initialize(&task->active_calls);
-		
+
 #ifdef CONFIG_UDEBUG
 	/* Init kbox stuff */
 	task->kb.thread = NULL;
 	ipc_answerbox_init(&task->kb.box, task);
 	mutex_initialize(&task->kb.cleanup_lock, MUTEX_PASSIVE);
 #endif
-	
+
 	return EOK;
 }
 
 size_t tsk_destructor(void *obj)
 {
 	task_t *task = (task_t *) obj;
-	
+
 	caps_task_free(task);
 	return 0;
 }
@@ -209,12 +209,12 @@ task_t *task_create(as_t *as, const char *name)
 	if (task == NULL) {
 		return NULL;
 	}
-	
+
 	task_create_arch(task);
-	
+
 	task->as = as;
 	str_cpy(task->name, TASK_NAME_BUFLEN, name);
-	
+
 	task->container = CONTAINER;
 	task->perms = 0;
 	task->ucycles = 0;
@@ -230,18 +230,18 @@ task_t *task_create(as_t *as, const char *name)
 	task->ipc_info.forwarded = 0;
 
 	event_task_init(task);
-	
+
 	task->answerbox.active = true;
 
 #ifdef CONFIG_UDEBUG
 	/* Init debugging stuff */
 	udebug_task_init(&task->udebug);
-	
+
 	/* Init kbox stuff */
 	task->kb.box.active = true;
 	task->kb.finished = false;
 #endif
-	
+
 	if ((ipc_phone_0) &&
 	    (container_check(ipc_phone_0->task->container, task->container))) {
 		cap_handle_t phone_handle;
@@ -252,28 +252,28 @@ task_t *task_create(as_t *as, const char *name)
 			slab_free(task_cache, task);
 			return NULL;
 		}
-		
+
 		kobject_t *phone_obj = kobject_get(task, phone_handle,
 		    KOBJECT_TYPE_PHONE);
 		(void) ipc_phone_connect(phone_obj->phone, ipc_phone_0);
 	}
-	
+
 	futex_task_init(task);
-	
+
 	/*
 	 * Get a reference to the address space.
 	 */
 	as_hold(task->as);
-	
+
 	irq_spinlock_lock(&tasks_lock, true);
-	
+
 	task->taskid = ++task_counter;
 	avltree_node_initialize(&task->tasks_tree_node);
 	task->tasks_tree_node.key = task->taskid;
 	avltree_insert(&tasks_tree, &task->tasks_tree_node);
-	
+
 	irq_spinlock_unlock(&tasks_lock, true);
-	
+
 	return task;
 }
 
@@ -290,22 +290,22 @@ void task_destroy(task_t *task)
 	irq_spinlock_lock(&tasks_lock, true);
 	avltree_delete(&tasks_tree, &task->tasks_tree_node);
 	irq_spinlock_unlock(&tasks_lock, true);
-	
+
 	/*
 	 * Perform architecture specific task destruction.
 	 */
 	task_destroy_arch(task);
-	
+
 	/*
 	 * Free up dynamically allocated state.
 	 */
 	futex_task_deinit(task);
-	
+
 	/*
 	 * Drop our reference to the address space.
 	 */
 	as_release(task->as);
-	
+
 	slab_free(task_cache, task);
 }
 
@@ -387,34 +387,34 @@ sysarg_t sys_task_get_id(void)
 sys_errno_t sys_task_set_name(const char *uspace_name, size_t name_len)
 {
 	char namebuf[TASK_NAME_BUFLEN];
-	
+
 	/* Cap length of name and copy it from userspace. */
 	if (name_len > TASK_NAME_BUFLEN - 1)
 		name_len = TASK_NAME_BUFLEN - 1;
-	
+
 	errno_t rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != EOK)
 		return (sys_errno_t) rc;
-	
+
 	namebuf[name_len] = '\0';
-	
+
 	/*
 	 * As the task name is referenced also from the
 	 * threads, lock the threads' lock for the course
 	 * of the update.
 	 */
-	
+
 	irq_spinlock_lock(&tasks_lock, true);
 	irq_spinlock_lock(&TASK->lock, false);
 	irq_spinlock_lock(&threads_lock, false);
-	
+
 	/* Set task name */
 	str_cpy(TASK->name, TASK_NAME_BUFLEN, namebuf);
-	
+
 	irq_spinlock_unlock(&threads_lock, false);
 	irq_spinlock_unlock(&TASK->lock, false);
 	irq_spinlock_unlock(&tasks_lock, true);
-	
+
 	return EOK;
 }
 
@@ -431,7 +431,7 @@ sys_errno_t sys_task_kill(task_id_t *uspace_taskid)
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(taskid));
 	if (rc != EOK)
 		return (sys_errno_t) rc;
-	
+
 	return (sys_errno_t) task_kill(taskid);
 }
 
@@ -452,10 +452,10 @@ task_t *task_find_by_id(task_id_t id)
 
 	avltree_node_t *node =
 	    avltree_search(&tasks_tree, (avltree_key_t) id);
-	
+
 	if (node)
 		return avltree_get_instance(node, task_t, tasks_tree_node);
-	
+
 	return NULL;
 }
 
@@ -477,25 +477,25 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 	/* Accumulated values of task */
 	uint64_t uret = task->ucycles;
 	uint64_t kret = task->kcycles;
-	
+
 	/* Current values of threads */
 	list_foreach(task->threads, th_link, thread_t, thread) {
 		irq_spinlock_lock(&thread->lock, false);
-		
+
 		/* Process only counted threads */
 		if (!thread->uncounted) {
 			if (thread == THREAD) {
 				/* Update accounting of current thread */
 				thread_update_accounting(false);
 			}
-			
+
 			uret += thread->ucycles;
 			kret += thread->kcycles;
 		}
-		
+
 		irq_spinlock_unlock(&thread->lock, false);
 	}
-	
+
 	*ucycles = uret;
 	*kcycles = kret;
 }
@@ -504,26 +504,26 @@ static void task_kill_internal(task_t *task)
 {
 	irq_spinlock_lock(&task->lock, false);
 	irq_spinlock_lock(&threads_lock, false);
-	
+
 	/*
 	 * Interrupt all threads.
 	 */
-	
+
 	list_foreach(task->threads, th_link, thread_t, thread) {
 		bool sleeping = false;
-		
+
 		irq_spinlock_lock(&thread->lock, false);
-		
+
 		thread->interrupted = true;
 		if (thread->state == Sleeping)
 			sleeping = true;
-		
+
 		irq_spinlock_unlock(&thread->lock, false);
-		
+
 		if (sleeping)
 			waitq_interrupt_sleep(thread);
 	}
-	
+
 	irq_spinlock_unlock(&threads_lock, false);
 	irq_spinlock_unlock(&task->lock, false);
 }
@@ -542,18 +542,18 @@ errno_t task_kill(task_id_t id)
 {
 	if (id == 1)
 		return EPERM;
-	
+
 	irq_spinlock_lock(&tasks_lock, true);
-	
+
 	task_t *task = task_find_by_id(id);
 	if (!task) {
 		irq_spinlock_unlock(&tasks_lock, true);
 		return ENOENT;
 	}
-	
+
 	task_kill_internal(task);
 	irq_spinlock_unlock(&tasks_lock, true);
-	
+
 	return EOK;
 }
 
@@ -582,11 +582,11 @@ void task_kill_self(bool notify)
 #endif
 		}
 	}
-	
+
 	irq_spinlock_lock(&tasks_lock, true);
 	task_kill_internal(TASK);
 	irq_spinlock_unlock(&tasks_lock, true);
-	
+
 	thread_exit();
 }
 
@@ -598,7 +598,7 @@ void task_kill_self(bool notify)
 sys_errno_t sys_task_exit(sysarg_t notify)
 {
 	task_kill_self(notify);
-	
+
 	/* Unreachable */
 	return EOK;
 }
@@ -608,14 +608,14 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	bool *additional = (bool *) arg;
 	task_t *task = avltree_get_instance(node, task_t, tasks_tree_node);
 	irq_spinlock_lock(&task->lock, false);
-	
+
 	uint64_t ucycles;
 	uint64_t kcycles;
 	char usuffix, ksuffix;
 	task_get_accounting(task, &ucycles, &kcycles);
 	order_suffix(ucycles, &ucycles, &usuffix);
 	order_suffix(kcycles, &kcycles, &ksuffix);
-	
+
 #ifdef __32_BITS__
 	if (*additional)
 		printf("%-8" PRIu64 " %9" PRIua, task->taskid,
@@ -626,7 +626,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 		    task->name, task->container, task, task->as,
 		    ucycles, usuffix, kcycles, ksuffix);
 #endif
-	
+
 #ifdef __64_BITS__
 	if (*additional)
 		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c "
@@ -636,7 +636,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %18p %18p\n",
 		    task->taskid, task->name, task->container, task, task->as);
 #endif
-	
+
 	irq_spinlock_unlock(&task->lock, false);
 	return true;
 }
@@ -650,7 +650,7 @@ void task_print_list(bool additional)
 {
 	/* Messing with task structures, avoid deadlock */
 	irq_spinlock_lock(&tasks_lock, true);
-	
+
 #ifdef __32_BITS__
 	if (additional)
 		printf("[id    ] [threads] [calls] [callee\n");
@@ -658,7 +658,7 @@ void task_print_list(bool additional)
 		printf("[id    ] [name        ] [ctn] [address ] [as      ]"
 		    " [ucycles ] [kcycles ]\n");
 #endif
-	
+
 #ifdef __64_BITS__
 	if (additional)
 		printf("[id    ] [ucycles ] [kcycles ] [threads] [calls]"
@@ -667,9 +667,9 @@ void task_print_list(bool additional)
 		printf("[id    ] [name        ] [ctn] [address         ]"
 		    " [as              ]\n");
 #endif
-	
+
 	avltree_walk(&tasks_tree, task_print_walker, &additional);
-	
+
 	irq_spinlock_unlock(&tasks_lock, true);
 }
 

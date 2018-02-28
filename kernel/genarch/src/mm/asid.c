@@ -83,14 +83,14 @@ asid_t asid_get(void)
 	/*
 	 * Check if there is an unallocated ASID.
 	 */
-	
+
 	if (asids_allocated == ASIDS_ALLOCABLE) {
 
 		/*
 		 * All ASIDs are already allocated.
 		 * Resort to stealing.
 		 */
-		
+
 		/*
 		 * Remove the first item on the list.
 		 * It is guaranteed to belong to an
@@ -99,7 +99,7 @@ asid_t asid_get(void)
 		tmp = list_first(&inactive_as_with_asid_list);
 		assert(tmp != NULL);
 		list_remove(tmp);
-		
+
 		as = list_get_instance(tmp, as_t, inactive_as_with_asid_link);
 
 		/*
@@ -114,14 +114,14 @@ asid_t asid_get(void)
 		 * was stolen by invalidating its asid member.
 		 */
 		as->asid = ASID_INVALID;
-		
+
 		/*
 		 * If the architecture uses some software cache
 		 * of TLB entries (e.g. TSB on sparc64), the
 		 * cache must be invalidated as well.
 		 */
 		as_invalidate_translation_cache(as, 0, (size_t) -1);
-		
+
 		/*
 		 * Get the system rid of the stolen ASID.
 		 */
@@ -145,7 +145,7 @@ asid_t asid_get(void)
 		tlb_invalidate_asid(asid);
 		tlb_shootdown_finalize(ipl);
 	}
-	
+
 	return asid;
 }
 

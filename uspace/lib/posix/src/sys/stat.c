@@ -51,10 +51,10 @@
 static int stat_to_posix(struct stat *dest, vfs_stat_t *src)
 {
 	memset(dest, 0, sizeof(struct stat));
-	
+
 	dest->st_dev = src->service;
 	dest->st_ino = src->index;
-	
+
 	/* HelenOS doesn't support permissions, so we set them all */
 	dest->st_mode = S_IRWXU | S_IRWXG | S_IRWXO;
 	if (src->is_file) {
@@ -63,7 +63,7 @@ static int stat_to_posix(struct stat *dest, vfs_stat_t *src)
 	if (src->is_directory) {
 		dest->st_mode |= S_IFDIR;
 	}
-	
+
 	dest->st_nlink = src->lnkcnt;
 	dest->st_size = src->size;
 

@@ -300,7 +300,7 @@ static coll_elm_t _next_coll_elm(const char **pattern, int flags)
 	if (pathname && *p == '/') {
 		return COLL_ELM_INVALID;
 	}
-	
+
 	*pattern = p + 1;
 	return _coll_elm_char(*p);
 }
@@ -358,9 +358,9 @@ static int _match_bracket_expr(const char **pattern, const char *str, int flags)
 		_matched(*str == ']');
 		p++;
 	}
-	
+
 	coll_elm_t current_elm = COLL_ELM_INVALID;
-	
+
 	while (*p != ']') {
 		if (*p == '-' && *(p + 1) != ']' &&
 		    current_elm != COLL_ELM_INVALID) {
@@ -373,13 +373,13 @@ static int _match_bracket_expr(const char **pattern, const char *str, int flags)
 			_matched(_coll_elm_between(current_elm, end_elm, str));
 			continue;
 		}
-	
+
 		if (*p == '[' && *(p + 1) == ':') {
 			current_elm = COLL_ELM_INVALID;
 			_matched(_match_char_class(&p, str, flags));
 			continue;
 		}
-		
+
 		current_elm = _next_coll_elm(&p, flags);
 		if (current_elm == COLL_ELM_INVALID) {
 			return INVALID_PATTERN;
@@ -459,7 +459,7 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 				/* Initial period must be matched explicitly. */
 				return false;
 			}
-			
+
 			/* None of the above, match anything else. */
 			p++;
 			s++;
@@ -495,11 +495,11 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 	}
 
 	/* Entire sub-pattern matched. */
-	
+
 	/* postconditions */
 	assert(*p == '\0' || *p == '*');
 	assert(*p != '\0' || *s == '\0' || (leading_dir && *s == '/'));
-	
+
 	*pattern = p;
 	*string = s;
 	return true;
@@ -666,10 +666,10 @@ void __posix_fnmatch_test()
 	nomatch("[^a-ce-z]", "z", 0);
 	match("helen??", "helenos", 0);
 	match("****booo****", "booo", 0);
-	
+
 	match("hello[[:space:]]world", "hello world", 0);
 	nomatch("hello[[:alpha:]]world", "hello world", 0);
-	
+
 	match("/hoooo*", "/hooooooo/hooo", 0);
 	nomatch("/hoooo*", "/hooooooo/hooo", FNM_PATHNAME);
 	nomatch("/hoooo*/", "/hooooooo/hooo", FNM_PATHNAME);
@@ -679,20 +679,20 @@ void __posix_fnmatch_test()
 	nomatch("/hoooo*/", "/hooooooo/hooo", FNM_PATHNAME | FNM_LEADING_DIR);
 	nomatch("/hoooo", "/hooooooo/hooo", FNM_LEADING_DIR);
 	match("/hooooooo", "/hooooooo/hooo", FNM_LEADING_DIR);
-	
+
 	match("*", "hell", 0);
 	match("*?", "hell", 0);
 	match("?*?", "hell", 0);
 	match("?*??", "hell", 0);
 	match("??*??", "hell", 0);
 	nomatch("???*??", "hell", 0);
-	
+
 	nomatch("", "hell", 0);
 	nomatch("?", "hell", 0);
 	nomatch("??", "hell", 0);
 	nomatch("???", "hell", 0);
 	match("????", "hell", 0);
-	
+
 	match("*", "h.ello", FNM_PERIOD);
 	match("*", "h.ello", FNM_PATHNAME | FNM_PERIOD);
 	nomatch("*", ".hello", FNM_PERIOD);

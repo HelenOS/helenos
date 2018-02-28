@@ -140,15 +140,15 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 {
 	if (*offset + 1 > size)
 		return 0;
-	
+
 	/* First byte read from string */
 	uint8_t b0 = (uint8_t) str[(*offset)++];
-	
+
 	/* Determine code length */
-	
+
 	unsigned int b0_bits;  /* Data bits in first byte */
 	unsigned int cbytes;   /* Number of continuation bytes */
-	
+
 	if ((b0 & 0x80) == 0) {
 		/* 0xxxxxxx (Plain ASCII) */
 		b0_bits = 7;
@@ -169,25 +169,25 @@ wchar_t str_decode(const char *str, size_t *offset, size_t size)
 		/* 10xxxxxx -- unexpected continuation byte */
 		return U_SPECIAL;
 	}
-	
+
 	if (*offset + cbytes > size)
 		return U_SPECIAL;
-	
+
 	wchar_t ch = b0 & LO_MASK_8(b0_bits);
-	
+
 	/* Decode continuation bytes */
 	while (cbytes > 0) {
 		uint8_t b = (uint8_t) str[(*offset)++];
-		
+
 		/* Must be 10xxxxxx */
 		if ((b & 0xc0) != 0x80)
 			return U_SPECIAL;
-		
+
 		/* Shift data bits to ch */
 		ch = (ch << CONT_BITS) | (wchar_t) (b & LO_MASK_8(CONT_BITS));
 		cbytes--;
 	}
-	
+
 	return ch;
 }
 
@@ -210,19 +210,19 @@ int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 {
 	if (*offset >= size)
 		return EOVERFLOW;
-	
+
 	if (!chr_check(ch))
 		return EINVAL;
-	
+
 	/* Unsigned version of ch (bit operations should only be done
 	   on unsigned types). */
 	uint32_t cc = (uint32_t) ch;
-	
+
 	/* Determine how many continuation bytes are needed */
-	
+
 	unsigned int b0_bits;  /* Data bits in first byte */
 	unsigned int cbytes;   /* Number of continuation bytes */
-	
+
 	if ((cc & ~LO_MASK_32(7)) == 0) {
 		b0_bits = 7;
 		cbytes = 0;
@@ -239,24 +239,24 @@ int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 		/* Codes longer than 21 bits are not supported */
 		return EINVAL;
 	}
-	
+
 	/* Check for available space in buffer */
 	if (*offset + cbytes >= size)
 		return EOVERFLOW;
-	
+
 	/* Encode continuation bytes */
 	unsigned int i;
 	for (i = cbytes; i > 0; i--) {
 		str[*offset + i] = 0x80 | (cc & LO_MASK_32(CONT_BITS));
 		cc = cc >> CONT_BITS;
 	}
-	
+
 	/* Encode first byte */
 	str[*offset] = (cc & LO_MASK_32(b0_bits)) | HI_MASK_8(8 - b0_bits - 1);
-	
+
 	/* Advance offset */
 	*offset += cbytes + 1;
-	
+
 	return EOK;
 }
 
@@ -273,10 +273,10 @@ int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 size_t str_size(const char *str)
 {
 	size_t size = 0;
-	
+
 	while (*str++ != 0)
 		size++;
-	
+
 	return size;
 }
 
@@ -297,14 +297,14 @@ size_t str_lsize(const char *str, size_t max_len)
 {
 	size_t len = 0;
 	size_t offset = 0;
-	
+
 	while (len < max_len) {
 		if (str_decode(str, &offset, STR_NO_LIMIT) == 0)
 			break;
-		
+
 		len++;
 	}
-	
+
 	return offset;
 }
 
@@ -319,10 +319,10 @@ size_t str_length(const char *str)
 {
 	size_t len = 0;
 	size_t offset = 0;
-	
+
 	while (str_decode(str, &offset, STR_NO_LIMIT) != 0)
 		len++;
-	
+
 	return len;
 }
 
@@ -335,7 +335,7 @@ bool ascii_check(wchar_t ch)
 {
 	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 127))
 		return true;
-	
+
 	return false;
 }
 
@@ -348,7 +348,7 @@ bool chr_check(wchar_t ch)
 {
 	if (WCHAR_SIGNED_CHECK(ch >= 0) && (ch <= 1114111))
 		return true;
-	
+
 	return false;
 }
 
@@ -374,24 +374,24 @@ int str_cmp(const char *s1, const char *s2)
 {
 	wchar_t c1 = 0;
 	wchar_t c2 = 0;
-	
+
 	size_t off1 = 0;
 	size_t off2 = 0;
-	
+
 	while (true) {
 		c1 = str_decode(s1, &off1, STR_NO_LIMIT);
 		c2 = str_decode(s2, &off2, STR_NO_LIMIT);
-		
+
 		if (c1 < c2)
 			return -1;
-		
+
 		if (c1 > c2)
 			return 1;
-		
+
 		if ((c1 == 0) || (c2 == 0))
 			break;
 	}
-	
+
 	return 0;
 }
 
@@ -411,13 +411,13 @@ void str_cpy(char *dest, size_t size, const char *src)
 {
 	size_t src_off = 0;
 	size_t dest_off = 0;
-	
+
 	wchar_t ch;
 	while ((ch = str_decode(src, &src_off, STR_NO_LIMIT)) != 0) {
 		if (chr_encode(ch, dest, &dest_off, size - 1) != EOK)
 			break;
 	}
-	
+
 	dest[dest_off] = '\0';
 }
 

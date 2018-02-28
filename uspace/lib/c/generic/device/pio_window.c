@@ -50,10 +50,10 @@ errno_t pio_window_get(async_sess_t *sess, pio_window_t *pio_win)
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	rc = async_data_read_start(exch, pio_win, sizeof(*pio_win));
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 

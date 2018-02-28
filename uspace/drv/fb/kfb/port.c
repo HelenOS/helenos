@@ -71,12 +71,12 @@ typedef struct {
 	size_t offset;
 	size_t scanline;
 	visual_t visual;
-	
+
 	pixel2visual_t pixel2visual;
 	visual2pixel_t visual2pixel;
 	visual_mask_t visual_mask;
 	size_t pixel_bytes;
-	
+
 	size_t size;
 	uint8_t *addr;
 } kfb_t;
@@ -185,12 +185,12 @@ errno_t port_init(ddf_dev_t *dev)
 
 	if (!present)
 		return ENOENT;
-	
+
 	sysarg_t kind;
 	rc = sysinfo_get_value("fb.kind", &kind);
 	if (rc != EOK)
 		kind = (sysarg_t) -1;
-	
+
 	if (kind != 1)
 		return EINVAL;
 
@@ -198,32 +198,32 @@ errno_t port_init(ddf_dev_t *dev)
 	rc = sysinfo_get_value("fb.address.physical", &paddr);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t offset;
 	rc = sysinfo_get_value("fb.offset", &offset);
 	if (rc != EOK)
 		offset = 0;
-	
+
 	sysarg_t width;
 	rc = sysinfo_get_value("fb.width", &width);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t height;
 	rc = sysinfo_get_value("fb.height", &height);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t scanline;
 	rc = sysinfo_get_value("fb.scanline", &scanline);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t visual;
 	rc = sysinfo_get_value("fb.visual", &visual);
 	if (rc != EOK)
 		return rc;
-	
+
 	kfb.width = width;
 	kfb.height = height;
 	kfb.paddr = paddr;
@@ -301,10 +301,10 @@ errno_t port_init(ddf_dev_t *dev)
 	default:
 		return EINVAL;
 	}
-	
+
 	kfb.size = scanline * height;
 	kfb.addr = AS_AREA_ANY;
-	
+
 	ddf_fun_t *fun_vs = ddf_fun_create(dev, fun_exposed, "vsl0");
 	if (fun_vs == NULL) {
 		as_area_destroy(kfb.addr);

@@ -82,7 +82,7 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 
 	assert(page_table_locked(as));
-	
+
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT) {
 		pte_t *newpt = (pte_t *)
 		    PA2KA(frame_alloc(PTL1_FRAMES, FRAME_LOWMEM, PTL1_SIZE - 1));
@@ -99,9 +99,9 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		write_barrier();
 		SET_PTL1_PRESENT(ptl0, PTL0_INDEX(page));
 	}
-	
+
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
-	
+
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT) {
 		pte_t *newpt = (pte_t *)
 		    PA2KA(frame_alloc(PTL2_FRAMES, FRAME_LOWMEM, PTL2_SIZE - 1));
@@ -116,9 +116,9 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		write_barrier();
 		SET_PTL2_PRESENT(ptl1, PTL1_INDEX(page));
 	}
-	
+
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
-	
+
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT) {
 		pte_t *newpt = (pte_t *)
 		    PA2KA(frame_alloc(PTL3_FRAMES, FRAME_LOWMEM, PTL2_SIZE - 1));
@@ -133,9 +133,9 @@ void pt_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 		write_barrier();
 		SET_PTL3_PRESENT(ptl2, PTL2_INDEX(page));
 	}
-	
+
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
-	
+
 	SET_FRAME_ADDRESS(ptl3, PTL3_INDEX(page), frame);
 	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), flags | PAGE_NOT_PRESENT);
 	/*
@@ -164,21 +164,21 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	/*
 	 * First, remove the mapping, if it exists.
 	 */
-	
+
 	pte_t *ptl0 = (pte_t *) PA2KA((uintptr_t) as->genarch.page_table);
 	if (GET_PTL1_FLAGS(ptl0, PTL0_INDEX(page)) & PAGE_NOT_PRESENT)
 		return;
-	
+
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
 		return;
-	
+
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
 		return;
-	
+
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
-	
+
 	/*
 	 * Destroy the mapping.
 	 * Setting to PAGE_NOT_PRESENT is not sufficient.
@@ -188,15 +188,15 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 	//TODO: Fix this inconsistency
 	SET_FRAME_FLAGS(ptl3, PTL3_INDEX(page), PAGE_NOT_PRESENT);
 	memsetb(&ptl3[PTL3_INDEX(page)], sizeof(pte_t), 0);
-	
+
 	/*
 	 * Second, free all empty tables along the way from PTL3 down to PTL0
 	 * except those needed for sharing the kernel non-identity mappings.
 	 */
-	
+
 	/* Check PTL3 */
 	bool empty = true;
-	
+
 	unsigned int i;
 	for (i = 0; i < PTL3_ENTRIES; i++) {
 		if (PTE_VALID(&ptl3[i])) {
@@ -204,7 +204,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 			break;
 		}
 	}
-	
+
 	if (empty) {
 		/*
 		 * PTL3 is empty.
@@ -231,7 +231,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 		 */
 		return;
 	}
-	
+
 	/* Check PTL2, empty is still true */
 #if (PTL2_ENTRIES != 0)
 	for (i = 0; i < PTL2_ENTRIES; i++) {
@@ -240,7 +240,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 			break;
 		}
 	}
-	
+
 	if (empty) {
 		/*
 		 * PTL2 is empty.
@@ -266,7 +266,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 		return;
 	}
 #endif /* PTL2_ENTRIES != 0 */
-	
+
 	/* check PTL1, empty is still true */
 #if (PTL1_ENTRIES != 0)
 	for (i = 0; i < PTL1_ENTRIES; i++) {
@@ -275,7 +275,7 @@ void pt_mapping_remove(as_t *as, uintptr_t page)
 			break;
 		}
 	}
-	
+
 	if (empty) {
 		/*
 		 * PTL1 is empty.
@@ -300,7 +300,7 @@ static pte_t *pt_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 		return NULL;
 
 	read_barrier();
-	
+
 	pte_t *ptl1 = (pte_t *) PA2KA(GET_PTL1_ADDRESS(ptl0, PTL0_INDEX(page)));
 	if (GET_PTL2_FLAGS(ptl1, PTL1_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
@@ -311,7 +311,7 @@ static pte_t *pt_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 	 */
 	read_barrier();
 #endif
-	
+
 	pte_t *ptl2 = (pte_t *) PA2KA(GET_PTL2_ADDRESS(ptl1, PTL1_INDEX(page)));
 	if (GET_PTL3_FLAGS(ptl2, PTL2_INDEX(page)) & PAGE_NOT_PRESENT)
 		return NULL;
@@ -322,9 +322,9 @@ static pte_t *pt_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 	 */
 	read_barrier();
 #endif
-	
+
 	pte_t *ptl3 = (pte_t *) PA2KA(GET_PTL3_ADDRESS(ptl2, PTL2_INDEX(page)));
-	
+
 	return &ptl3[PTL3_INDEX(page)];
 }
 
@@ -399,11 +399,11 @@ static uintptr_t ptl0_step_get(void)
 void pt_mapping_make_global(uintptr_t base, size_t size)
 {
 	assert(size > 0);
-	
+
 	uintptr_t ptl0 = PA2KA((uintptr_t) AS_KERNEL->genarch.page_table);
 	uintptr_t ptl0_step = ptl0_step_get();
 	size_t frames;
-	
+
 #if (PTL1_ENTRIES != 0)
 	frames = PTL1_FRAMES;
 #elif (PTL2_ENTRIES != 0)
@@ -411,7 +411,7 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 #else
 	frames = PTL3_FRAMES;
 #endif
-	
+
 	for (uintptr_t addr = ALIGN_DOWN(base, ptl0_step);
 	    addr - 1 < base + size - 1;
 	    addr += ptl0_step) {

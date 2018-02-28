@@ -52,7 +52,7 @@ typedef enum {
 	 * IPC message per exchange only.
 	 */
 	IFACE_EXCHANGE_ATOMIC = 0x00,
-	
+
 	/** Exchange management via mutual exclusion
 	 *
 	 * Suitable for any kind of client/server
@@ -60,7 +60,7 @@ typedef enum {
 	 * parallelism.
 	 */
 	IFACE_EXCHANGE_SERIALIZE = 0x01,
-	
+
 	/** Exchange management via connection cloning
 	 *
 	 * Suitable for servers which support client

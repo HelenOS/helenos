@@ -37,14 +37,14 @@ SYMBOL(__thread_entry)
 	alloc loc0 = ar.pfs, 0, 1, 1, 0
 
 	movl gp = __gp
-	
+
 	#
 	# r8 contains address of uarg structure.
 	#
-	
+
 	mov out0 = r8 ;;
 	br.call.sptk.many b0 = __thread_main
-	
+
 	#
 	# Not reached.
 	#

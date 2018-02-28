@@ -53,7 +53,7 @@ void page_arch_init(void)
 {
 	uintptr_t cur;
 	int flags;
-	
+
 	if (config.cpu_active > 1) {
 		/* Fast path for non-boot CPUs */
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
@@ -62,7 +62,7 @@ void page_arch_init(void)
 	}
 
 	page_mapping_operations = &pt_mapping_operations;
-	
+
 	/*
 	 * PA2KA(identity) mapping for all low-memory frames.
 	 */
@@ -73,10 +73,10 @@ void page_arch_init(void)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	}
 	page_table_unlock(AS_KERNEL, true);
-		
+
 	exc_register(VECTOR_PF, "page_fault", true, (iroutine_t) page_fault);
 	write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-	
+
 	paging_on();
 }
 
@@ -84,17 +84,17 @@ void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
 	uintptr_t badvaddr;
 	pf_access_t access;
-	
+
 	badvaddr = read_cr2();
-		
+
 	if (istate->error_word & PFERR_CODE_RSVD)
 		panic("Reserved bit set in page directory.");
-	
+
 	if (istate->error_word & PFERR_CODE_RW)
 		access = PF_ACCESS_WRITE;
 	else
 		access = PF_ACCESS_READ;
-	
+
 	(void) as_page_fault(badvaddr, access, istate);
 }
 

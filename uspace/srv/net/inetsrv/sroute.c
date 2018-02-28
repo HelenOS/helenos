@@ -95,39 +95,39 @@ void inet_sroute_remove(inet_sroute_t *sroute)
 inet_sroute_t *inet_sroute_find(inet_addr_t *addr)
 {
 	ip_ver_t addr_ver = inet_addr_get(addr, NULL, NULL);
-	
+
 	inet_sroute_t *best = NULL;
 	uint8_t best_bits = 0;
-	
+
 	fibril_mutex_lock(&sroute_list_lock);
-	
+
 	list_foreach(sroute_list, sroute_list, inet_sroute_t, sroute) {
 		uint8_t dest_bits;
 		ip_ver_t dest_ver = inet_naddr_get(&sroute->dest, NULL, NULL,
 		    &dest_bits);
-		
+
 		/* Skip comparison with different address family */
 		if (addr_ver != dest_ver)
 			continue;
-		
+
 		/* Look for the most specific route */
 		if ((best != NULL) && (best_bits >= dest_bits))
 			continue;
-		
+
 		if (inet_naddr_compare_mask(&sroute->dest, addr)) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find: found candidate %p",
 			    sroute);
-			
+
 			best = sroute;
 			best_bits = dest_bits;
 		}
 	}
-	
+
 	if (best == NULL)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_sroute_find: Not found");
-	
+
 	fibril_mutex_unlock(&sroute_list_lock);
-	
+
 	return best;
 }
 

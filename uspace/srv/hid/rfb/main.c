@@ -77,12 +77,12 @@ static errno_t rfb_handle_damage_pixels(visualizer_t *vs,
     sysarg_t x_offset, sysarg_t y_offset)
 {
 	fibril_mutex_lock(&rfb.lock);
-	
+
 	if (x0 + width > rfb.width || y0 + height > rfb.height) {
 		fibril_mutex_unlock(&rfb.lock);
 		return EINVAL;
 	}
-	
+
 	/* TODO update surface_t and use it */
 	if (!rfb.damage_valid) {
 		rfb.damage_rect.x = x0;
@@ -111,9 +111,9 @@ static errno_t rfb_handle_damage_pixels(visualizer_t *vs,
 			rfb.damage_rect.height += y1 - dy1;
 		}
 	}
-	
+
 	pixelmap_t *map = &vs->cells;
-	
+
 	for (sysarg_t y = y0; y < height + y0; ++y) {
 		for (sysarg_t x = x0; x < width + x0; ++x) {
 			pixel_t pix = pixelmap_get_pixel(map, (x + x_offset) % map->width,
@@ -121,7 +121,7 @@ static errno_t rfb_handle_damage_pixels(visualizer_t *vs,
 			pixelmap_put_pixel(&rfb.framebuffer, x, y, pix);
 		}
 	}
-	
+
 	fibril_mutex_unlock(&rfb.lock);
 	return EOK;
 }
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 	}
 
 	const char *rfb_name = argv[1];
-	
+
 	char *endptr;
 	unsigned long width = strtoul(argv[2], &endptr, 0);
 	if (*endptr != 0) {
@@ -168,14 +168,14 @@ int main(int argc, char **argv)
 		syntax_print();
 		return 1;
 	}
-	
+
 	unsigned long height = strtoul(argv[3], &endptr, 0);
 	if (*endptr != 0) {
 		fprintf(stderr, "Invalid height\n");
 		syntax_print();
 		return 1;
 	}
-	
+
 	unsigned long port = 5900;
 	if (argc > 4) {
 		port = strtoul(argv[4], &endptr, 0);
@@ -185,17 +185,17 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
-	
+
 	rfb_init(&rfb, width, height, rfb_name);
-	
+
 	vis = malloc(sizeof(visualizer_t));
 	if (vis == NULL) {
 		fprintf(stderr, "Failed allocating visualizer struct\n");
 		return 3;
 	}
-	
+
 	graph_init_visualizer(vis);
-	
+
 	pixel_mode.mode.index = 0;
 	pixel_mode.mode.version = 0;
 	pixel_mode.mode.refresh_rate = 0;
@@ -206,12 +206,12 @@ int main(int argc, char **argv)
 	pixel_mode.mode.cell_aspect.width = 1;
 	pixel_mode.mode.cell_aspect.height = 1;
 	pixel_mode.mode.cell_visual.pixel_visual = VISUAL_RGB_8_8_8;
-	
+
 	link_initialize(&pixel_mode.link);
 	list_append(&pixel_mode.link, &vis->modes);
-	
+
 	vis->def_mode_idx = 0;
-	
+
 	vis->ops = rfb_ops;
 	vis->dev_ctx = NULL;
 
@@ -231,13 +231,13 @@ int main(int argc, char **argv)
 	}
 
 	service_id_t service_id;
-	
+
 	rc = loc_service_register(service_name, &service_id);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register service %s.\n", service_name);
 		return rc;
 	}
-	
+
 	free(service_name);
 
 	category_id_t visualizer_category;
@@ -246,19 +246,19 @@ int main(int argc, char **argv)
 		fprintf(stderr, NAME ": Unable to get visualizer category id.\n");
 		return 1;
 	}
-	
+
 	rc = loc_service_add_to_cat(service_id, visualizer_category);
 	if (rc != EOK) {
 		fprintf(stderr, NAME ": Unable to add service to visualizer category.\n");
 		return 1;
 	}
-	
+
 	rc = rfb_listen(&rfb, port);
 	if (rc != EOK) {
 		fprintf(stderr, NAME ": Unable to listen at rfb port\n");
 		return 2;
 	}
-	
+
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();

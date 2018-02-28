@@ -52,27 +52,27 @@ errno_t bd_open(async_sess_t *sess, bd_t **rbd)
 	bd_t *bd = calloc(1, sizeof(bd_t));
 	if (bd == NULL)
 		return ENOMEM;
-	
+
 	bd->sess = sess;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	port_id_t port;
 	errno_t rc = async_create_callback_port(exch, INTERFACE_BLOCK_CB, 0, 0,
 	    bd_cb_conn, bd, &port);
-	
+
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK)
 		goto error;
-	
+
 	*rbd = bd;
 	return EOK;
-	
+
 error:
 	if (bd != NULL)
 		free(bd);
-	
+
 	return rc;
 }
 

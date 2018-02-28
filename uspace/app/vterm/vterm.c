@@ -47,14 +47,14 @@ int main(int argc, char *argv[])
 		printf("%s: Compositor server not specified.\n", NAME);
 		return 1;
 	}
-	
+
 	window_t *main_window = window_open(argv[1], NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED, "vterm");
 	if (!main_window) {
 		printf("%s: Cannot open main window.\n", NAME);
 		return 2;
 	}
-	
+
 	window_resize(main_window, 0, 0, 648, 508, WINDOW_PLACEMENT_ANY);
 	terminal_t *terminal_widget =
 	    create_terminal(window_root(main_window), NULL, 640, 480);
@@ -63,11 +63,11 @@ int main(int argc, char *argv[])
 		printf("%s: Cannot create widgets.\n", NAME);
 		return 3;
 	}
-	
+
 	window_exec(main_window);
 	task_retval(0);
 	async_manager();
-	
+
 	return 0;
 }
 

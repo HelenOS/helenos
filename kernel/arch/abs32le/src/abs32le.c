@@ -64,7 +64,7 @@ void abs32le_post_mm_init(void)
 	if (config.cpu_active == 1) {
 		/* Initialize IRQ routing */
 		irq_init(0, 0);
-		
+
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}

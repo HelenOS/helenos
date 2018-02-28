@@ -46,7 +46,7 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 	register sysarg_t __ppc32_reg_r7 asm("7") = p5;
 	register sysarg_t __ppc32_reg_r8 asm("8") = p6;
 	register sysarg_t __ppc32_reg_r9 asm("9") = id;
-	
+
 	asm volatile (
 		"sc\n"
 		: "=r" (__ppc32_reg_r3)
@@ -58,7 +58,7 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 		  "r" (__ppc32_reg_r8),
 		  "r" (__ppc32_reg_r9)
 	);
-	
+
 	return __ppc32_reg_r3;
 }
 

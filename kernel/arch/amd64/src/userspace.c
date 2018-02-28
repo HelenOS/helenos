@@ -48,10 +48,10 @@
 void userspace(uspace_arg_t *kernel_uarg)
 {
 	uint64_t rflags = read_rflags();
-	
+
 	rflags &= ~RFLAGS_NT;
 	rflags |= RFLAGS_IF;
-	
+
 	asm volatile (
 		"pushq %[udata_des]\n"
 		"pushq %[stack_top]\n"
@@ -59,7 +59,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		"pushq %[utext_des]\n"
 		"pushq %[entry]\n"
 		"movq %[uarg], %%rax\n"
-			
+
 		/* %rdi is defined to hold pcb_ptr - set it to 0 */
 		"xorq %%rdi, %%rdi\n"
 		"iretq\n"
@@ -72,7 +72,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		   [uarg] "r" (kernel_uarg->uspace_uarg)
 		: "rax"
 	);
-	
+
 	/* Unreachable */
 	while (1);
 }

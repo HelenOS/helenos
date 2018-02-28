@@ -80,7 +80,7 @@ static errno_t show_cat(const char *cat_name, category_id_t cat_id)
 			printf("\t%s : %s\n", svc_name, server_name);
 		else
 			printf("\t%s\n", svc_name);
-	
+
 		free(svc_name);
 		free(server_name);
 	}

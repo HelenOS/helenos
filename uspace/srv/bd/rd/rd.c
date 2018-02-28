@@ -118,11 +118,11 @@ static errno_t rd_read_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
 		/* Reading past the end of the device. */
 		return ELIMIT;
 	}
-	
+
 	fibril_rwlock_read_lock(&rd_lock);
 	memcpy(buf, rd_addr + ba * block_size, min(block_size * cnt, size));
 	fibril_rwlock_read_unlock(&rd_lock);
-	
+
 	return EOK;
 }
 
@@ -134,11 +134,11 @@ static errno_t rd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 		/* Writing past the end of the device. */
 		return ELIMIT;
 	}
-	
+
 	fibril_rwlock_write_lock(&rd_lock);
 	memcpy(rd_addr + ba * block_size, buf, min(block_size * cnt, size));
 	fibril_rwlock_write_unlock(&rd_lock);
-	
+
 	return EOK;
 }
 
@@ -151,47 +151,47 @@ static bool rd_init(void)
 		printf("%s: No RAM disk found\n", NAME);
 		return false;
 	}
-	
+
 	sysarg_t addr_phys;
 	ret = sysinfo_get_value("rd.address.physical", &addr_phys);
 	if ((ret != EOK) || (addr_phys == 0)) {
 		printf("%s: Invalid RAM disk physical address\n", NAME);
 		return false;
 	}
-	
+
 	rd_size = ALIGN_UP(size, block_size);
 	unsigned int flags =
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE;
-	
+
 	ret = physmem_map(addr_phys,
 	    ALIGN_UP(rd_size, PAGE_SIZE) >> PAGE_WIDTH, flags, &rd_addr);
 	if (ret != EOK) {
 		printf("%s: Error mapping RAM disk\n", NAME);
 		return false;
 	}
-	
+
 	printf("%s: Found RAM disk at %p, %" PRIun " bytes\n", NAME,
 	    (void *) addr_phys, size);
-	
+
 	bd_srvs_init(&bd_srvs);
 	bd_srvs.ops = &rd_bd_ops;
-	
+
 	async_set_fallback_port_handler(rd_client_conn, NULL);
 	ret = loc_server_register(NAME);
 	if (ret != EOK) {
 		printf("%s: Unable to register driver: %s\n", NAME, str_error(ret));
 		return false;
 	}
-	
+
 	service_id_t service_id;
 	ret = loc_service_register("bd/initrd", &service_id);
 	if (ret != EOK) {
 		printf("%s: Unable to register device service\n", NAME);
 		return false;
 	}
-	
+
 	fibril_rwlock_initialize(&rd_lock);
-	
+
 	return true;
 }
 
@@ -212,13 +212,13 @@ static errno_t rd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 int main(int argc, char **argv)
 {
 	printf("%s: HelenOS RAM disk server\n", NAME);
-	
+
 	if (!rd_init())
 		return -1;
-	
+
 	printf("%s: Accepting connections\n", NAME);
 	async_manager();
-	
+
 	/* Never reached */
 	return 0;
 }

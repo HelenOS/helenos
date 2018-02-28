@@ -65,7 +65,7 @@ static const char *do_test(bool exit_early)
 	}
 
 	TPRINTF("Done.\n");
-	
+
 	return err;
 }
 

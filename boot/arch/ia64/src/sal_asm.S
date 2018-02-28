@@ -44,15 +44,15 @@
 #
 FUNCTION_BEGIN(sal_call)
 	alloc loc0 = ar.pfs, 8, 8, 8, 0
-	
+
 	adds sp = -STACK_SCRATCH_AREA, sp
 
 	mov loc1 = gp
 	mov loc2 = rp
-	
+
 	addl loc3 = @gprel(sal_proc), gp
 	addl loc4 = @gprel(sal_proc_gp), gp
-	
+
 	mov out0 = in0
 	mov out1 = in1
 	mov out2 = in2
@@ -61,7 +61,7 @@ FUNCTION_BEGIN(sal_call)
 	mov out5 = in5
 	mov out6 = in6
 	mov out7 = in7 ;;
-	
+
 	ld8 loc3 = [loc3]
 	ld8 gp = [loc4]
 
@@ -72,23 +72,23 @@ FUNCTION_BEGIN(sal_call)
 	ld8 loc5 = [r14]
 	ld8 loc6 = [r15]
 	ld8 loc7 = [r16]
-	
+
 	mov b6 = loc3 ;;
 	br.call.sptk.many rp = b6
-	
+
 	cmp.ne p7,p0 = 0, loc5
 	cmp.ne p8,p0 = 0, loc6
 	cmp.ne p9,p0 = 0, loc7 ;;
-	
+
 (p7)	st8 [loc5] = r9
 (p8)	st8 [loc6] = r10
 (p9)	st8 [loc7] = r11
-	
+
 	mov gp = loc1
 	mov rp = loc2
 
 	adds sp = STACK_SCRATCH_AREA, sp ;;
-	
+
 	mov ar.pfs = loc0
 	br.ret.sptk.many rp
 FUNCTION_END(sal_call)

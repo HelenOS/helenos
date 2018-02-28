@@ -69,7 +69,7 @@ typedef struct rcu_cpu_data {
 	 * detector. Once it reaches a QS it must sema_up(rcu.remaining_readers).
 	 */
 	bool is_delaying_gp;
-	
+
 	/** True if we should signal the detector that we exited a reader section.
 	 *
 	 * Equal to (THREAD->rcu.was_preempted || CPU->rcu.is_delaying_gp).
@@ -84,7 +84,7 @@ typedef struct rcu_cpu_data {
 	 */
 	size_t nesting_cnt;
 #endif
-	
+
 	/** Callbacks to invoke once the current grace period ends, ie cur_cbs_gp.
 	 * Accessed by the local reclaimer only.
 	 */
@@ -117,19 +117,19 @@ typedef struct rcu_cpu_data {
 	 * Invariant: next_cbs_gp >= cur_cbs_gp
 	 */
 	rcu_gp_t next_cbs_gp;
-	
+
 	/** Positive if there are callbacks pending in arriving_cbs. */
 	semaphore_t arrived_flag;
-	
+
 	/** The reclaimer should expedite GPs for cbs in arriving_cbs. */
 	bool expedite_arriving;
-	
+
 	/** Protected by global rcu.barrier_mtx. */
 	rcu_item_t barrier_item;
-	
+
 	/** Interruptable attached reclaimer thread. */
 	struct thread *reclaimer_thr;
-	
+
 	/* Some statistics. */
 	size_t stat_max_cbs;
 	size_t stat_avg_cbs;
@@ -149,7 +149,7 @@ typedef struct rcu_thread_data {
 	size_t nesting_cnt;
 
 #ifdef RCU_PREEMPT_PODZIMEK
-	
+
 	/** True if the thread was preempted in a reader section.
 	 *
 	 * The thread is placed into rcu.cur_preempted or rcu.next_preempted
@@ -159,7 +159,7 @@ typedef struct rcu_thread_data {
 	 */
 	bool was_preempted;
 #endif
-	
+
 	/** Preempted threads link. Access with rcu.prempt_lock.*/
 	link_t preempt_link;
 } rcu_thread_data_t;

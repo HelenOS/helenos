@@ -45,7 +45,7 @@ bool ofw_sbus_apply_ranges(ofw_tree_node_t *node, ofw_sbus_reg_t *reg,
 	ofw_tree_property_t *prop;
 	ofw_sbus_range_t *range;
 	size_t ranges;
-	
+
 	/*
 	 * The SBUS support is very rudimentary in that we simply assume
 	 * that the SBUS bus in question is connected directly to the UPA bus.
@@ -54,16 +54,16 @@ bool ofw_sbus_apply_ranges(ofw_tree_node_t *node, ofw_sbus_reg_t *reg,
 	 */
 	if (!node->parent || node->parent->parent)
 		return false;
-	
+
 	prop = ofw_tree_getprop(node, "ranges");
 	if (!prop)
 		return false;
-		
+
 	ranges = prop->size / sizeof(ofw_sbus_range_t);
 	range = prop->value;
-	
+
 	unsigned int i;
-	
+
 	for (i = 0; i < ranges; i++) {
 		if (overlaps(reg->addr, reg->size, range[i].child_base,
 		    range[i].size)) {
@@ -72,7 +72,7 @@ bool ofw_sbus_apply_ranges(ofw_tree_node_t *node, ofw_sbus_reg_t *reg,
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 

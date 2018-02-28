@@ -109,7 +109,7 @@ typedef struct _vfs_node {
 	 * structures that reference this node.
 	 */
 	unsigned refcnt;
-	
+
 	ht_link_t nh_link;		/**< Node hash-table link. */
 
 	vfs_node_type_t type;	/**< Partial info about the node type. */
@@ -120,7 +120,7 @@ typedef struct _vfs_node {
 	 * Holding this rwlock prevents modifications of the node's contents.
 	 */
 	fibril_rwlock_t contents_rwlock;
-	
+
 	struct _vfs_node *mount;
 } vfs_node_t;
 
@@ -133,7 +133,7 @@ typedef struct {
 	fibril_mutex_t _lock;
 
 	vfs_node_t *node;
-	
+
 	/** Number of file handles referencing this file. */
 	unsigned refcnt;
 

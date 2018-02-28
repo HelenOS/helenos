@@ -139,7 +139,7 @@ typedef struct {
 	unsigned int dirty : 1;
 	unsigned int pat : 1;
 	unsigned int global : 1;
-	
+
 	/** Valid content even if the present bit is not set. */
 	unsigned int soft_valid : 1;
 	unsigned int avl : 2;
@@ -150,7 +150,7 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
-	
+
 	return (
 	    ((unsigned int) (!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT) |
 	    ((unsigned int) (!p->present) << PAGE_PRESENT_SHIFT) |
@@ -167,13 +167,13 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
-	
+
 	p->page_cache_disable = !(flags & PAGE_CACHEABLE);
 	p->present = !(flags & PAGE_NOT_PRESENT);
 	p->uaccessible = (flags & PAGE_USER) != 0;
 	p->writeable = (flags & PAGE_WRITE) != 0;
 	p->global = (flags & PAGE_GLOBAL) != 0;
-	
+
 	/*
 	 * Ensure that there is at least one bit set even if the present bit is
 	 * cleared.

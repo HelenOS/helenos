@@ -60,22 +60,22 @@ errno_t usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 {
 	if (!sess)
 		return EINVAL;
-	
+
 	if ((setup_buffer == NULL) || (setup_buffer_size == 0))
 		return EINVAL;
-	
+
 	if ((data_buffer == NULL) || (data_buffer_size == 0))
 		return EINVAL;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	aid_t opening_request = async_send_0(exch, IPC_M_USBVIRT_CONTROL_READ,
 	    NULL);
 	if (opening_request == 0) {
 		async_exchange_end(exch);
 		return ENOMEM;
 	}
-	
+
 	errno_t rc = async_data_write_start(exch, setup_buffer,
 	    setup_buffer_size);
 	if (rc != EOK) {
@@ -83,23 +83,23 @@ errno_t usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 		async_forget(opening_request);
 		return rc;
 	}
-	
+
 	ipc_call_t data_request_call;
 	aid_t data_request = async_data_read(exch, data_buffer,
 	    data_buffer_size, &data_request_call);
-	
+
 	async_exchange_end(exch);
-	
+
 	if (data_request == 0) {
 		async_forget(opening_request);
 		return ENOMEM;
 	}
-	
+
 	errno_t data_request_rc;
 	errno_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
-	
+
 	if (data_request_rc != EOK) {
 		/* Prefer the return code of the opening request. */
 		if (opening_request_rc != EOK)
@@ -107,13 +107,13 @@ errno_t usbvirt_ipc_send_control_read(async_sess_t *sess, void *setup_buffer,
 		else
 			return (errno_t) data_request_rc;
 	}
-	
+
 	if (opening_request_rc != EOK)
 		return (errno_t) opening_request_rc;
-	
+
 	if (data_transferred_size != NULL)
 		*data_transferred_size = IPC_GET_ARG2(data_request_call);
-	
+
 	return EOK;
 }
 
@@ -134,22 +134,22 @@ errno_t usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 {
 	if (!sess)
 		return EINVAL;
-	
+
 	if ((setup_buffer == NULL) || (setup_buffer_size == 0))
 		return EINVAL;
-	
+
 	if ((data_buffer_size > 0) && (data_buffer == NULL))
 		return EINVAL;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	aid_t opening_request = async_send_1(exch, IPC_M_USBVIRT_CONTROL_WRITE,
 	    data_buffer_size, NULL);
 	if (opening_request == 0) {
 		async_exchange_end(exch);
 		return ENOMEM;
 	}
-	
+
 	errno_t rc = async_data_write_start(exch, setup_buffer,
 	    setup_buffer_size);
 	if (rc != EOK) {
@@ -157,7 +157,7 @@ errno_t usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 		async_forget(opening_request);
 		return rc;
 	}
-	
+
 	if (data_buffer_size > 0) {
 		rc = async_data_write_start(exch, data_buffer,
 		    data_buffer_size);
@@ -167,12 +167,12 @@ errno_t usbvirt_ipc_send_control_write(async_sess_t *sess, void *setup_buffer,
 			return rc;
 		}
 	}
-	
+
 	async_exchange_end(exch);
-	
+
 	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
-	
+
 	return (errno_t) opening_request_rc;
 }
 
@@ -193,9 +193,9 @@ errno_t usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
 {
 	if (!sess)
 		return EINVAL;
-	
+
 	usbvirt_hc_to_device_method_t method;
-	
+
 	switch (tr_type) {
 	case USB_TRANSFER_INTERRUPT:
 		method = IPC_M_USBVIRT_INTERRUPT_IN;
@@ -206,37 +206,37 @@ errno_t usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
 	default:
 		return EINVAL;
 	}
-	
+
 	if ((ep <= 0) || (ep >= USBVIRT_ENDPOINT_MAX))
 		return EINVAL;
-	
+
 	if ((data == NULL) || (data_size == 0))
 		return EINVAL;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	aid_t opening_request = async_send_2(exch, method, ep, tr_type, NULL);
 	if (opening_request == 0) {
 		async_exchange_end(exch);
 		return ENOMEM;
 	}
-	
+
 	ipc_call_t data_request_call;
 	aid_t data_request = async_data_read(exch, data, data_size,
 	    &data_request_call);
-	
+
 	async_exchange_end(exch);
-	
+
 	if (data_request == 0) {
 		async_forget(opening_request);
 		return ENOMEM;
 	}
-	
+
 	errno_t data_request_rc;
 	errno_t opening_request_rc;
 	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
-	
+
 	if (data_request_rc != EOK) {
 		/* Prefer the return code of the opening request. */
 		if (opening_request_rc != EOK)
@@ -244,13 +244,13 @@ errno_t usbvirt_ipc_send_data_in(async_sess_t *sess, usb_endpoint_t ep,
 		else
 			return (errno_t) data_request_rc;
 	}
-	
+
 	if (opening_request_rc != EOK)
 		return (errno_t) opening_request_rc;
-	
+
 	if (act_size != NULL)
 		*act_size = IPC_GET_ARG2(data_request_call);
-	
+
 	return EOK;
 }
 
@@ -270,9 +270,9 @@ errno_t usbvirt_ipc_send_data_out(async_sess_t *sess, usb_endpoint_t ep,
 {
 	if (!sess)
 		return EINVAL;
-	
+
 	usbvirt_hc_to_device_method_t method;
-	
+
 	switch (tr_type) {
 	case USB_TRANSFER_INTERRUPT:
 		method = IPC_M_USBVIRT_INTERRUPT_OUT;
@@ -283,33 +283,33 @@ errno_t usbvirt_ipc_send_data_out(async_sess_t *sess, usb_endpoint_t ep,
 	default:
 		return EINVAL;
 	}
-	
+
 	if ((ep <= 0) || (ep >= USBVIRT_ENDPOINT_MAX))
 		return EINVAL;
-	
+
 	if ((data == NULL) || (data_size == 0))
 		return EINVAL;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	aid_t opening_request = async_send_1(exch, method, ep, NULL);
 	if (opening_request == 0) {
 		async_exchange_end(exch);
 		return ENOMEM;
 	}
-	
+
 	errno_t rc = async_data_write_start(exch, data, data_size);
-	
+
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK) {
 		async_forget(opening_request);
 		return rc;
 	}
-	
+
 	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
-	
+
 	return (errno_t) opening_request_rc;
 }
 

@@ -41,7 +41,7 @@ void source_init(source_t *source)
 {
 	transform_identity(&source->transform);
 	source->filter = filter_nearest;
-	
+
 	source->color = PIXEL(0, 0, 0, 0);
 	source->texture = NULL;
 	source->texture_extend = PIXELMAP_EXTEND_TRANSPARENT_BLACK;

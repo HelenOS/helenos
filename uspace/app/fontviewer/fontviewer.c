@@ -67,17 +67,17 @@ static errno_t draw(void);
 static void on_keyboard_event(widget_t *widget, void *data)
 {
 	kbd_event_t *event = (kbd_event_t *) data;
-	
+
 	if (event->type == KEY_PRESS) {
 		if (event->c == 'q')
 			exit(0);
-		
+
 		if (event->key == KC_UP || event->key == KC_DOWN) {
 			uint16_t increment = (event->mods & KM_SHIFT) ? 10 : 1;
 
 			if (event->key == KC_UP)
 				points += increment;
-		
+
 			if (event->key == KC_DOWN) {
 				if (points <= increment) {
 					points = 1;
@@ -86,15 +86,15 @@ static void on_keyboard_event(widget_t *widget, void *data)
 					points-= increment;
 				}
 			}
-			
+
 			if (points < 1)
 				points = 1;
 		}
-		
+
 		if (event->c == 'm')
 			show_metrics = !show_metrics;
 	}
-	
+
 	errno_t rc = draw();
 	if (rc != EOK) {
 		printf("Failed drawing: %s.\n", str_error(rc));
@@ -108,7 +108,7 @@ static errno_t create_font(font_t **font, uint16_t points)
 	if (font_path == NULL) {
 		return embedded_font_create(font, points);
 	}
-	
+
 	return pcf_font_create(font, font_path, points);
 }
 
@@ -126,7 +126,7 @@ static void horizontal_rectangle(drawctx_t *drawctx, surface_coord_t x1,
 {
 	if (y2 < y1)
 		return;
-	
+
 	drawctx_set_source(drawctx, source);
 	drawctx_transfer(drawctx, x1, y1, x2 - x1 + 1, y2 - y1 + 1);
 }
@@ -147,7 +147,7 @@ static int text(drawctx_t *drawctx, font_t *font, source_t *source,
 	va_start(args, fmt);
 	int ret = vasprintf(&str, fmt, args);
 	va_end(args);
-	
+
 	if (ret >= 0) {
 		drawctx_set_source(drawctx, source);
 		drawctx_set_font(drawctx, font);
@@ -155,7 +155,7 @@ static int text(drawctx_t *drawctx, font_t *font, source_t *source,
 
 		free(str);
 	}
-	
+
 	return ret;
 }
 
@@ -171,26 +171,26 @@ static errno_t draw(void)
 	source_t descender_fg = rgb(85, 212, 0);
 	source_t leading_bg = rgb(170, 238, 255);
 	source_t leading_fg = rgb(0, 170, 212);
-	
+
 	font_t *font;
 	errno_t rc = create_font(&font, points);
 	if (rc != EOK) {
 		printf("Failed creating font\n");
 		return rc;
 	}
-	
+
 	font_t *info_font;
 	rc = embedded_font_create(&info_font, 16);
 	if (rc != EOK) {
 		printf("Failed creating info font\n");
 		return rc;
 	}
-	
+
 	font_metrics_t font_metrics;
 	rc = font_get_metrics(font, &font_metrics);
 	if (rc != EOK)
 		return rc;
-	
+
 	surface_coord_t top = 50;
 	metric_t ascender_top = top;
 	metric_t descender_top = ascender_top + font_metrics.ascender;
@@ -199,32 +199,32 @@ static errno_t draw(void)
 
 	drawctx_t drawctx;
 	drawctx_init(&drawctx, surface);
-	
+
 	drawctx_set_source(&drawctx, &background);
 	drawctx_transfer(&drawctx, 0, 0,
 	    width, height);
-	
+
 	if (show_metrics) {
 		horizontal_rectangle(&drawctx, 0, ascender_top, width,
 		    descender_top - 1, &ascender_bg);
 		horizontal_line(&drawctx, ascender_top, 0, width,
 		    &ascender_fg);
-		
+
 		horizontal_rectangle(&drawctx, 0, descender_top, width,
 		    leading_top - 1, &descender_bg);
 		horizontal_line(&drawctx, descender_top, 0, width,
 		    &descender_fg);
-		
+
 		horizontal_rectangle(&drawctx, 0, leading_top,
 		    width, line_bottom - 1, &leading_bg);
 		horizontal_line(&drawctx, leading_top, 0, width,
 		    &leading_fg);
 	}
-	
+
 	drawctx_set_source(&drawctx, &glyphs);
 	drawctx_set_font(&drawctx, font);
 	drawctx_print(&drawctx, "Čaj'_", 0, top);
-	
+
 	if (show_metrics) {
 		surface_coord_t infos_top = line_bottom + 10;
 		text(&drawctx, info_font, &ascender_fg, 0, infos_top,
@@ -238,7 +238,7 @@ static errno_t draw(void)
 		    "Leading: %d", font_metrics.leading);
 
 	}
-	
+
 	font_release(font);
 	return EOK;
 }
@@ -249,36 +249,36 @@ int main(int argc, char *argv[])
 		printf("Compositor server not specified.\n");
 		return 1;
 	}
-	
+
 	if (argc < 3) {
 		font_path = NULL;
 	}
 	else {
 		font_path = argv[2];
 	}
-	
+
 	main_window = window_open(argv[1], NULL, WINDOW_MAIN, "fontviewer");
 	if (!main_window) {
 		printf("Cannot open main window.\n");
 		return 2;
 	}
-	
+
 	surface = surface_create(WINDOW_WIDTH, WINDOW_HEIGHT, NULL,
 	    SURFACE_FLAG_NONE);
 	if (surface == NULL) {
 		printf("Cannot create surface.\n");
 		return 2;
 	}
-	
+
 	width = WINDOW_WIDTH;
 	height = WINDOW_HEIGHT;
-	
+
 	errno_t rc = draw();
 	if (rc != EOK) {
 		printf("Failed drawing: %s.\n", str_error(rc));
 		return 2;
 	}
-	
+
 	canvas = create_canvas(window_root(main_window), NULL,
 	    WINDOW_WIDTH, WINDOW_HEIGHT, surface);
 	if (canvas == NULL) {
@@ -286,14 +286,14 @@ int main(int argc, char *argv[])
 		return 2;
 	}
 	sig_connect(&canvas->keyboard_event, NULL, on_keyboard_event);
-	
+
 	window_resize(main_window, 200, 200, WINDOW_WIDTH, WINDOW_HEIGHT,
 	    WINDOW_PLACEMENT_ABSOLUTE);
 	window_exec(main_window);
-	
+
 	task_retval(0);
 	async_manager();
-	
+
 	return 0;
 }
 

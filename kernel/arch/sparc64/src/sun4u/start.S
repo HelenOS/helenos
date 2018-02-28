@@ -84,7 +84,7 @@ SYMBOL(kernel_image_start)
 
 	! Get bits (PHYSMEM_ADDR_SIZE - 1):13 of physmem_base.
 	srlx %l6, 13, %l5
-	
+
 	! l5 <= physmem_base[(PHYSMEM_ADDR_SIZE - 1):13]
 	sllx %l5, 13 + (63 - (PHYSMEM_ADDR_SIZE - 1)), %l5
 	srlx %l5, 63 - (PHYSMEM_ADDR_SIZE - 1), %l5
@@ -100,7 +100,7 @@ SYMBOL(kernel_image_start)
 						! consistent
 	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent needless clean_window
 						! traps for kernel
-						
+
 	wrpr %g0, 0, %wstate			! use default spill/fill trap
 
 	wrpr %g0, 0, %tl			! TL = 0, primary context
@@ -131,7 +131,7 @@ SYMBOL(kernel_image_start)
 #define SET_TLB_DEMAP_CMD(r1, context_id) \
 	set (TLB_DEMAP_CONTEXT << TLB_DEMAP_TYPE_SHIFT) | (context_id << \
 		TLB_DEMAP_CONTEXT_SHIFT), %r1
-	
+
 	! demap context 0
 	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_NUCLEUS)
 	stxa %g0, [%g1] ASI_DMMU_DEMAP
@@ -160,7 +160,7 @@ SYMBOL(kernel_image_start)
 	mov 1, %r2; \
 	sllx %r2, TTE_V_SHIFT, %r2; \
 	or %r1, %r2, %r1;
-	
+
 	! write DTLB data and install the kernel mapping
 	SET_TLB_DATA(g1, g2, TTE_L | TTE_W)	! use non-global mapping
 	stxa %g1, [%g0] ASI_DTLB_DATA_IN_REG
@@ -181,7 +181,7 @@ SYMBOL(kernel_image_start)
 	SET_TLB_DATA(g1, g2, TTE_W)			! use non-global mapping
 	stxa %g1, [%g0] ASI_DTLB_DATA_IN_REG
 	membar #Sync
-	
+
 	/*
 	 * Now is time to take over the IMMU. Unfortunatelly, it cannot be done
 	 * as easily as the DMMU, because the IMMU is mapping the code it
@@ -201,9 +201,9 @@ SYMBOL(kernel_image_start)
 	 * is OK because we always use operands with addresses already mapped by
 	 * the taken over DTLB.
 	 */
-	
+
 	set kernel_image_start, %g5
-	
+
 	! write ITLB tag of context 1
 	SET_TLB_TAG(g1, MEM_CONTEXT_TEMP)
 	mov VA_DMMU_TAG_ACCESS, %g2
@@ -214,17 +214,17 @@ SYMBOL(kernel_image_start)
 	SET_TLB_DATA(g1, g2, 0)			! use non-global mapping
 	stxa %g1, [%g0] ASI_ITLB_DATA_IN_REG
 	flush %g5
-	
+
 	! switch to context 1
 	mov MEM_CONTEXT_TEMP, %g1
 	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
 	flush %g5
-	
+
 	! demap context 0
 	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_NUCLEUS)
 	stxa %g0, [%g1] ASI_IMMU_DEMAP
 	flush %g5
-	
+
 	! write ITLB tag of context 0
 	SET_TLB_TAG(g1, MEM_CONTEXT_KERNEL)
 	mov VA_DMMU_TAG_ACCESS, %g2
@@ -243,11 +243,11 @@ SYMBOL(kernel_image_start)
 	SET_TLB_DEMAP_CMD(g1, TLB_DEMAP_PRIMARY)
 	stxa %g0, [%g1] ASI_IMMU_DEMAP
 	flush %g5
-	
+
 	! set context 0 in the primary context register
 	stxa %g0, [VA_PRIMARY_CONTEXT_REG] %asi	! ASI_DMMU is correct here !!!
 	flush %g5
-	
+
 	! leave nucleus - using primary context, i.e. context 0
 	wrpr %g0, 0, %tl
 
@@ -270,18 +270,18 @@ SYMBOL(kernel_image_start)
 	ldx [%l4 + %lo(kernel_8k_tlb_data_template)], %l3
 	or %l3, %l5, %l3
 	stx %l3, [%l4 + %lo(kernel_8k_tlb_data_template)]
-	
+
 	! flush the whole D-cache
 	set (DCACHE_SIZE - DCACHE_LINE_SIZE), %g1
 	stxa %g0, [%g1] ASI_DCACHE_TAG
-	
+
 0:
 	membar #Sync
 	subcc %g1, DCACHE_LINE_SIZE, %g1
 	bnz,pt %xcc, 0b
 	stxa %g0, [%g1] ASI_DCACHE_TAG
 	membar #Sync
-	
+
 	/*
 	 * So far, we have not touched the stack.
 	 * It is a good idea to set the kernel stack to a known state now.
@@ -289,13 +289,13 @@ SYMBOL(kernel_image_start)
 	sethi %hi(temporary_boot_stack), %sp
 	or %sp, %lo(temporary_boot_stack), %sp
 	sub %sp, STACK_BIAS, %sp
-	
+
 	/*
 	 * Call sparc64_pre_main(bootinfo)
 	 */
 	call sparc64_pre_main
 	mov %o1, %o0
-	
+
 	/*
 	 * Create the first stack frame.
 	 */
@@ -371,7 +371,7 @@ SYMBOL(kernel_image_start)
 
 	/* Not reached. */
 #endif
-	
+
 0:
 	ba,a %xcc, 0b
 

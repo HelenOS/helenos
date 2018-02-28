@@ -145,14 +145,14 @@ typedef struct {
 	uint16_t _vs7;
 	uint16_t _vs8;
 	uint16_t _vs9;
-	
+
 	uint16_t serial_number[10];
 	uint16_t _vs20;
 	uint16_t _vs21;
 	uint16_t vs_bytes;
 	uint16_t firmware_rev[4];
 	uint16_t model_name[20];
-	
+
 	uint16_t max_rw_multiple;
 	uint16_t reserved48;
 	/* Different meaning for packet device. */
@@ -160,7 +160,7 @@ typedef struct {
 	uint16_t reserved50;
 	uint16_t pio_timing;
 	uint16_t dma_timing;
-	
+
 	uint16_t validity;
 	uint16_t cur_cyl;
 	uint16_t cur_heads;
@@ -177,14 +177,14 @@ typedef struct {
 	uint16_t rec_mw_dma_cycle;
 	uint16_t min_raw_pio_cycle;
 	uint16_t min_iordy_pio_cycle;
-	
+
 	uint16_t reserved69;
 	uint16_t reserved70;
 	uint16_t reserved71;
 	uint16_t reserved72;
 	uint16_t reserved73;
 	uint16_t reserved74;
-	
+
 	uint16_t queue_depth;
 	/** SATA capatibilities - different meaning for packet device. */
 	uint16_t sata_cap;
@@ -200,15 +200,15 @@ typedef struct {
 	uint16_t csf_enabled1;
 	uint16_t csf_default;
 	uint16_t udma;
-	
+
 	uint16_t reserved89[1 + 99 - 89];
-	
+
 	/* Total number of blocks in LBA-48 addressing. */
 	uint16_t total_lba48_0;
 	uint16_t total_lba48_1;
 	uint16_t total_lba48_2;
 	uint16_t total_lba48_3;
-	
+
 	uint16_t reserved104[1 + 105 - 104];
 	uint16_t physical_logic_sector_size;
 	/* Note: more fields are defined in ATA/ATAPI-7. */
@@ -247,10 +247,10 @@ enum sata_np_caps {
 	sata_np_cap_phy_ctx = 0x0400,
 	/** Supports recepits of host-initiated interface power management. */
 	sata_np_cap_host_pmngmnt = 0x0200,
-	
+
 	/** Supports NCQ. */
 	sata_np_cap_ncq = 0x0100,
-	
+
 	/** Supports SATA 3. */
 	sata_np_cap_sata_3 = 0x0008,
 	/** Supports SATA 2. */
@@ -271,7 +271,7 @@ enum sata_pt_caps {
 	sata_pt_cap_phy_ctx = 0x0400,
 	/** Supports recepits of host-initiated interface power management. */
 	sata_pt_cap_host_pmngmnt = 0x0200,
-	
+
 	/** Supports SATA 3. */
 	sata_pt_cap_sat_3 = 0x0008,
 	/** Supports SATA 2. */

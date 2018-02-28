@@ -182,55 +182,55 @@ static errno_t ne2k_dev_init(nic_t *nic_data)
 	/* Get HW resources */
 	hw_res_list_parsed_t hw_res_parsed;
 	hw_res_list_parsed_init(&hw_res_parsed);
-	
+
 	errno_t rc = nic_get_resources(nic_data, &hw_res_parsed);
-	
+
 	if (rc != EOK)
 		goto failed;
-	
+
 	if (hw_res_parsed.irqs.count == 0) {
 		rc = EINVAL;
 		goto failed;
 	}
-	
+
 	if (hw_res_parsed.io_ranges.count == 0) {
 		rc = EINVAL;
 		goto failed;
 	}
-	
+
 	if (hw_res_parsed.io_ranges.ranges[0].size < NE2K_IO_SIZE) {
 		rc = EINVAL;
 		goto failed;
 	}
-	
+
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 	ne2k->irq = hw_res_parsed.irqs.irqs[0];
-	
+
 	addr_range_t regs = hw_res_parsed.io_ranges.ranges[0];
 	ne2k->base_port = RNGABSPTR(regs);
-	
+
 	hw_res_list_parsed_clean(&hw_res_parsed);
-	
+
 	/* Enable programmed I/O */
 	if (pio_enable_range(&regs, &ne2k->port) != EOK)
 		return EADDRNOTAVAIL;
-	
+
 	ne2k->data_port = ne2k->port + NE2K_DATA;
 	ne2k->receive_configuration = RCR_AB | RCR_AM;
 	ne2k->probed = false;
 	ne2k->up = false;
-	
+
 	/* Find out whether the device is present. */
 	if (ne2k_probe(ne2k) != EOK)
 		return ENOENT;
-	
+
 	ne2k->probed = true;
-	
+
 	if (ne2k_register_interrupt(nic_data, NULL) != EOK)
 		return EINVAL;
-	
+
 	return EOK;
-	
+
 failed:
 	hw_res_list_parsed_clean(&hw_res_parsed);
 	return rc;
@@ -357,19 +357,19 @@ static errno_t ne2k_on_broadcast_mode_change(nic_t *nic_data,
 static errno_t ne2k_dev_add(ddf_dev_t *dev)
 {
 	ddf_fun_t *fun;
-	
+
 	/* Allocate driver data for the device. */
 	nic_t *nic_data = nic_create_and_bind(dev);
 	if (nic_data == NULL)
 		return ENOMEM;
-	
+
 	nic_set_send_frame_handler(nic_data, ne2k_send);
 	nic_set_state_change_handlers(nic_data,
 		ne2k_on_activating, NULL, ne2k_on_stopping);
 	nic_set_filtering_change_handlers(nic_data,
 		ne2k_on_unicast_mode_change, ne2k_on_multicast_mode_change,
 		ne2k_on_broadcast_mode_change, NULL, NULL);
-	
+
 	ne2k_t *ne2k = malloc(sizeof(ne2k_t));
 	if (NULL != ne2k) {
 		memset(ne2k, 0, sizeof(ne2k_t));
@@ -378,49 +378,49 @@ static errno_t ne2k_dev_add(ddf_dev_t *dev)
 		nic_unbind_and_destroy(dev);
 		return ENOMEM;
 	}
-	
+
 	ne2k->dev = dev;
 	ne2k->parent_sess = ddf_dev_parent_sess_get(dev);
 	if (ne2k->parent_sess == NULL) {
 		ne2k_dev_cleanup(dev);
 		return ENOMEM;
 	}
-	
+
 	errno_t rc = ne2k_dev_init(nic_data);
 	if (rc != EOK) {
 		ne2k_dev_cleanup(dev);
 		return rc;
 	}
-	
+
 	rc = nic_report_address(nic_data, &ne2k->mac);
 	if (rc != EOK) {
 		ne2k_dev_cleanup(dev);
 		return rc;
 	}
-	
+
 	fun = ddf_fun_create(nic_get_ddf_dev(nic_data), fun_exposed, "port0");
 	if (fun == NULL) {
 		ne2k_dev_cleanup(dev);
 		return ENOMEM;
 	}
-	
+
 	nic_set_ddf_fun(nic_data, fun);
 	ddf_fun_set_ops(fun, &ne2k_dev_ops);
-	
+
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_fun_destroy(fun);
 		ne2k_dev_cleanup(dev);
 		return rc;
 	}
-	
+
 	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
 	if (rc != EOK) {
 		ddf_fun_unbind(fun);
 		ddf_fun_destroy(fun);
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -440,10 +440,10 @@ static driver_t ne2k_driver = {
 int main(int argc, char *argv[])
 {
 	printf("%s: HelenOS NE 2000 network adapter driver\n", NAME);
-	
+
 	nic_driver_init(NAME);
 	nic_driver_implement(&ne2k_driver_ops, &ne2k_dev_ops, &ne2k_nic_iface);
-	
+
 	return ddf_driver_main(&ne2k_driver);
 }
 

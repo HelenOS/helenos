@@ -47,13 +47,13 @@ errno_t recv_buffer_init(receive_buffer_t *rb, size_t buffer_size,
 {
 	rb->receive = receive;
 	rb->client_data = client_data;
-	
+
 	rb->in = 0;
 	rb->out = 0;
 	rb->size = buffer_size;
-	
+
 	list_initialize(&rb->marks);
-	
+
 	rb->buffer = malloc(buffer_size);
 	if (rb->buffer == NULL)
 		return ENOMEM;
@@ -72,7 +72,7 @@ errno_t recv_buffer_init_const(receive_buffer_t *rb, void *buf, size_t size)
 	errno_t rc = recv_buffer_init(rb, size, dummy_receive, NULL);
 	if (rc != EOK)
 		return rc;
-	
+
 	memcpy(rb->buffer, buf, size);
 	rb->in = size;
 	return EOK;
@@ -110,12 +110,12 @@ errno_t recv_cut(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buffer_
 {
 	if (a->offset > b->offset)
 		return EINVAL;
-	
+
 	size_t size = b->offset - a->offset;
 	void *buf = malloc(size);
 	if (buf == NULL)
 		return ENOMEM;
-	
+
 	memcpy(buf, rb->buffer + a->offset, size);
 	*out_buf = buf;
 	*out_size = size;
@@ -126,12 +126,12 @@ errno_t recv_cut_str(receive_buffer_t *rb, receive_buffer_mark_t *a, receive_buf
 {
 	if (a->offset > b->offset)
 		return EINVAL;
-	
+
 	size_t size = b->offset - a->offset;
 	char *buf = malloc(size + 1);
 	if (buf == NULL)
 		return ENOMEM;
-	
+
 	memcpy(buf, rb->buffer + a->offset, size);
 	buf[size] = 0;
 	for (size_t i = 0; i < size; i++) {
@@ -155,10 +155,10 @@ errno_t recv_char(receive_buffer_t *rb, char *c, bool consume)
 			list_foreach(rb->marks, link, receive_buffer_mark_t, mark) {
 				min_mark = min(min_mark, mark->offset);
 			}
-			
+
 			if (min_mark == 0)
 				return ELIMIT;
-			
+
 			size_t new_in = rb->in - min_mark;
 			memmove(rb->buffer, rb->buffer + min_mark, new_in);
 			rb->out = rb->in = new_in;
@@ -167,15 +167,15 @@ errno_t recv_char(receive_buffer_t *rb, char *c, bool consume)
 				mark->offset -= min_mark;
 			}
 		}
-		
+
 		size_t nrecv;
 		errno_t rc = rb->receive(rb->client_data, rb->buffer + rb->in, free, &nrecv);
 		if (rc != EOK)
 			return rc;
-		
+
 		rb->in = nrecv;
 	}
-	
+
 	*c = rb->buffer[rb->out];
 	if (consume)
 		rb->out++;
@@ -193,7 +193,7 @@ errno_t recv_buffer(receive_buffer_t *rb, char *buf, size_t buf_size,
 		*nrecv = size;
 		return EOK;
 	}
-	
+
 	return rb->receive(rb->client_data, buf, buf_size, nrecv);
 }
 
@@ -247,15 +247,15 @@ errno_t recv_while(receive_buffer_t *rb, char_class_func_t class)
 		errno_t rc = recv_char(rb, &c, false);
 		if (rc != EOK)
 			return rc;
-		
+
 		if (!class(c))
 			break;
-		
+
 		rc = recv_char(rb, &c, true);
 		if (rc != EOK)
 			return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -271,21 +271,21 @@ errno_t recv_eol(receive_buffer_t *rb, size_t *nrecv)
 	errno_t rc = recv_char(rb, &c, false);
 	if (rc != EOK)
 		return rc;
-	
+
 	if (c != '\r' && c != '\n') {
 		*nrecv = 0;
 		return EOK;
 	}
-	
+
 	rc = recv_char(rb, &c, true);
 	if (rc != EOK)
 		return rc;
-	
+
 	size_t nr;
 	rc = recv_discard(rb, (c == '\r' ? '\n' : '\r'), &nr);
 	if (rc != EOK)
 		return rc;
-	
+
 	*nrecv = 1 + nr;
 	return EOK;
 }
@@ -295,7 +295,7 @@ errno_t recv_line(receive_buffer_t *rb, char *line, size_t size, size_t *nrecv)
 {
 	size_t written = 0;
 	size_t nr;
-	
+
 	while (written < size) {
 		char c = 0;
 		errno_t rc = recv_char(rb, &c, true);
@@ -320,7 +320,7 @@ errno_t recv_line(receive_buffer_t *rb, char *line, size_t size, size_t *nrecv)
 		}
 		line[written++] = c;
 	}
-	
+
 	return ELIMIT;
 }
 

@@ -111,7 +111,7 @@ errno_t nic_rxc_set_addr(nic_rxc_t *rxc, const nic_address_t *prev_addr,
 		if (rc != EOK)
 			return rc;
 	}
-	
+
 	return nic_addr_db_insert(&rxc->unicast_addrs,
 	    (const uint8_t *) &curr_addr->address);
 }
@@ -243,10 +243,10 @@ errno_t nic_rxc_multicast_set_mode(nic_rxc_t *rxc, nic_multicast_mode_t mode,
 		return EINVAL;
 	else if (mode != NIC_MULTICAST_LIST && address_list != NULL)
 		return EINVAL;
-	
+
 	if (rxc->multicast_mode == NIC_MULTICAST_LIST)
 		nic_addr_db_clear(&rxc->multicast_addrs);
-	
+
 	rxc->multicast_mode = mode;
 	size_t i;
 	for (i = 0; i < address_count; ++i) {
@@ -438,13 +438,13 @@ bool nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
 			}
 		}
 	}
-	
+
 	/* Blocked source addresses */
 	if (rxc->block_sources) {
 		if (nic_addr_db_contains(&rxc->blocked_sources, src_addr))
 			return false;
 	}
-	
+
 	/* VLAN filtering */
 	if (!rxc->vlan_exact && rxc->vlan_mask != NULL) {
 		vlan_header_t *vlan_header = (vlan_header_t *)
@@ -458,7 +458,7 @@ bool nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
 				return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -518,7 +518,7 @@ static uint64_t multicast_hash(const uint8_t addr[6])
                 crc = ((crc ^ CRC_MCAST_POLYNOMIAL) | carry);
         }
     }
-	
+
     uint64_t one64 = 1;
     return one64 << (crc >> 26);
 }

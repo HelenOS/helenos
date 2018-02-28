@@ -44,7 +44,7 @@ static atomic_t threads_finished;
 static void threadtest(void *data)
 {
 	thread_detach(THREAD);
-	
+
 	while (atomic_get(&finish)) {
 		TPRINTF("%" PRIu64 " ", THREAD->tid);
 		thread_usleep(100000);
@@ -56,10 +56,10 @@ const char *test_thread1(void)
 {
 	unsigned int i;
 	atomic_count_t total = 0;
-	
+
 	atomic_set(&finish, 1);
 	atomic_set(&threads_finished, 0);
-	
+
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		if (!(t = thread_create(threadtest, NULL, TASK,
@@ -70,15 +70,15 @@ const char *test_thread1(void)
 		thread_ready(t);
 		total++;
 	}
-	
+
 	TPRINTF("Running threads for 10 seconds...\n");
 	thread_sleep(10);
-	
+
 	atomic_set(&finish, 0);
 	while (atomic_get(&threads_finished) < total) {
 		TPRINTF("Threads left: %" PRIua "\n", total - atomic_get(&threads_finished));
 		thread_sleep(1);
 	}
-	
+
 	return NULL;
 }

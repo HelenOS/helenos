@@ -43,11 +43,11 @@ struct outdev;
 typedef struct {
 	errno_t (*yield)(struct outdev *dev);
 	errno_t (*claim)(struct outdev *dev);
-	
+
 	void (*get_dimensions)(struct outdev *dev, sysarg_t *cols,
 	    sysarg_t *rows);
 	console_caps_t (*get_caps)(struct outdev *dev);
-	
+
 	void (*cursor_update)(struct outdev *dev, sysarg_t prev_col,
 	    sysarg_t prev_row, sysarg_t col, sysarg_t row, bool visible);
 	void (*char_update)(struct outdev *dev, sysarg_t col, sysarg_t row);
@@ -56,14 +56,14 @@ typedef struct {
 
 typedef struct outdev {
 	link_t link;
-	
+
 	sysarg_t cols;
 	sysarg_t rows;
 	char_attrs_t attrs;
-	
+
 	chargrid_t *backbuf;
 	sysarg_t top_row;
-	
+
 	outdev_ops_t ops;
 	void *data;
 } outdev_t;

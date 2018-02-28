@@ -181,7 +181,7 @@ void ddisk_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 	    (uint32_t) IPC_GET_ARG1(*icall));
 
 	ddisk_t *ddisk = (ddisk_t *) ddf_dev_data_get(dev);
-	
+
 	fibril_mutex_lock(&ddisk->lock);
 	fibril_condvar_broadcast(&ddisk->io_cv);
 	fibril_mutex_unlock(&ddisk->lock);
@@ -215,7 +215,7 @@ errno_t ddisk_rw_block(ddisk_t *ddisk, bool read, aoff64_t ba, void *buf)
 
 	if (!read)
 		memcpy(ddisk->dma_buffer, buf, DDISK_BLOCK_SIZE);
-	
+
 	pio_write_32(&ddisk->ddisk_regs->dma_buffer,
 	    ddisk->dma_buffer_phys);
 	pio_write_32(&ddisk->ddisk_regs->block, (uint32_t) ba);
@@ -545,7 +545,7 @@ static errno_t ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
 	}
 
 	unregister_interrupt_handler(ddisk->dev, ddisk->irq_cap);
-	
+
 	rc = pio_disable(ddisk->ddisk_regs, sizeof(ddisk_regs_t));
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Unable to disable PIO.");

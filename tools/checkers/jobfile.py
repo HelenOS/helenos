@@ -31,13 +31,13 @@ Helper routines for parsing jobfiles
 
 def parse_arg(record):
 	"Parse jobfile line arguments"
-	
+
 	arg = []
 	i = 0
 	current = ""
 	nil = True
 	inside = False
-	
+
 	while (i < len(record)):
 		if (inside):
 			if (record[i] == "}"):
@@ -55,10 +55,10 @@ def parse_arg(record):
 			else:
 				print("Unexpected '%s'" % record[i])
 				return False
-		
+
 		i += 1
-	
+
 	if (not nil):
 		arg.append(current)
-	
+
 	return arg

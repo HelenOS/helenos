@@ -76,7 +76,7 @@ void spinlock_lock_debug(spinlock_t *lock)
 {
 	size_t i = 0;
 	bool deadlock_reported = false;
-	
+
 	preemption_disable();
 	while (test_and_set(&lock->val)) {
 		/*
@@ -100,21 +100,21 @@ void spinlock_lock_debug(spinlock_t *lock)
 		 */
 		if (lock->name[0] == '*')
 			continue;
-		
+
 		if (i++ > DEADLOCK_THRESHOLD) {
 			printf("cpu%u: looping on spinlock %p:%s, "
 			    "caller=%p (%s)\n", CPU->id, lock, lock->name,
 			    (void *) CALLER, symtab_fmt_name_lookup(CALLER));
 			stack_trace();
-			
+
 			i = 0;
 			deadlock_reported = true;
 		}
 	}
-	
+
 	if (deadlock_reported)
 		printf("cpu%u: not deadlocked\n", CPU->id);
-	
+
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */
@@ -130,12 +130,12 @@ void spinlock_lock_debug(spinlock_t *lock)
 void spinlock_unlock_debug(spinlock_t *lock)
 {
 	ASSERT_SPINLOCK(spinlock_locked(lock), lock);
-	
+
 	/*
 	 * Prevent critical section code from bleeding out this way down.
 	 */
 	CS_LEAVE_BARRIER();
-	
+
 	atomic_set(&lock->val, 0);
 	preemption_enable();
 }
@@ -156,15 +156,15 @@ bool spinlock_trylock(spinlock_t *lock)
 {
 	preemption_disable();
 	bool ret = !test_and_set(&lock->val);
-	
+
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */
 	CS_ENTER_BARRIER();
-	
+
 	if (!ret)
 		preemption_enable();
-	
+
 	return ret;
 }
 
@@ -207,12 +207,12 @@ void irq_spinlock_lock(irq_spinlock_t *lock, bool irq_dis)
 	if (irq_dis) {
 		ipl_t ipl = interrupts_disable();
 		spinlock_lock(&(lock->lock));
-		
+
 		lock->guard = true;
 		lock->ipl = ipl;
 	} else {
 		ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
-		
+
 		spinlock_lock(&(lock->lock));
 		ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
 	}
@@ -230,13 +230,13 @@ void irq_spinlock_lock(irq_spinlock_t *lock, bool irq_dis)
 void irq_spinlock_unlock(irq_spinlock_t *lock, bool irq_res)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
-	
+
 	if (irq_res) {
 		ASSERT_IRQ_SPINLOCK(lock->guard, lock);
-		
+
 		lock->guard = false;
 		ipl_t ipl = lock->ipl;
-		
+
 		spinlock_unlock(&(lock->lock));
 		interrupts_restore(ipl);
 	} else {
@@ -260,7 +260,7 @@ bool irq_spinlock_trylock(irq_spinlock_t *lock)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), lock);
 	bool ret = spinlock_trylock(&(lock->lock));
-	
+
 	ASSERT_IRQ_SPINLOCK((!ret) || (!lock->guard), lock);
 	return ret;
 }
@@ -279,17 +279,17 @@ bool irq_spinlock_trylock(irq_spinlock_t *lock)
 void irq_spinlock_pass(irq_spinlock_t *unlock, irq_spinlock_t *lock)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), unlock);
-	
+
 	/* Pass guard from unlock to lock */
 	bool guard = unlock->guard;
 	ipl_t ipl = unlock->ipl;
 	unlock->guard = false;
-	
+
 	spinlock_unlock(&(unlock->lock));
 	spinlock_lock(&(lock->lock));
-	
+
 	ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
-	
+
 	if (guard) {
 		lock->guard = true;
 		lock->ipl = ipl;
@@ -310,17 +310,17 @@ void irq_spinlock_pass(irq_spinlock_t *unlock, irq_spinlock_t *lock)
 void irq_spinlock_exchange(irq_spinlock_t *unlock, irq_spinlock_t *lock)
 {
 	ASSERT_IRQ_SPINLOCK(interrupts_disabled(), unlock);
-	
+
 	spinlock_lock(&(lock->lock));
 	ASSERT_IRQ_SPINLOCK(!lock->guard, lock);
-	
+
 	/* Pass guard from unlock to lock */
 	if (unlock->guard) {
 		lock->guard = true;
 		lock->ipl = unlock->ipl;
 		unlock->guard = false;
 	}
-	
+
 	spinlock_unlock(&(unlock->lock));
 }
 
