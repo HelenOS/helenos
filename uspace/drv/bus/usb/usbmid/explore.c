@@ -105,7 +105,7 @@ static errno_t create_interfaces(const uint8_t *config_descriptor,
 		}
 
 
-		usb_log_info("Creating child for interface %d (%s).\n",
+		usb_log_info("Creating child for interface %d (%s).",
 		    interface->interface_number,
 		    usb_str_class(interface->interface_class));
 
@@ -143,7 +143,7 @@ errno_t usbmid_explore_device(usb_device_t *dev)
 		    "Device class: %u (%s), but expected class %u.\n",
 		    dev_class, usb_str_class(dev_class),
 		    USB_CLASS_USE_INTERFACE);
-		usb_log_error("Not a multi-interface device, refusing.\n");
+		usb_log_error("Not a multi-interface device, refusing.");
 		return ENOTSUP;
 	}
 
@@ -159,7 +159,7 @@ errno_t usbmid_explore_device(usb_device_t *dev)
 	errno_t rc = usb_request_set_configuration(usb_device_get_default_pipe(dev),
 	    config_descriptor->configuration_number);
 	if (rc != EOK) {
-		usb_log_error("Failed to set device configuration: %s.\n",
+		usb_log_error("Failed to set device configuration: %s.",
 		    str_error(rc));
 		return rc;
 	}
@@ -167,21 +167,21 @@ errno_t usbmid_explore_device(usb_device_t *dev)
 	/* Create driver soft-state. */
 	usb_mid_t *usb_mid = usb_device_data_alloc(dev, sizeof(usb_mid_t));
 	if (!usb_mid) {
-		usb_log_error("Failed to create USB MID structure.\n");
+		usb_log_error("Failed to create USB MID structure.");
 		return ENOMEM;
 	}
 
 	/* Create control function. */
 	usb_mid->ctl_fun = usb_device_ddf_fun_create(dev, fun_exposed, "ctl");
 	if (usb_mid->ctl_fun == NULL) {
-		usb_log_error("Failed to create control function.\n");
+		usb_log_error("Failed to create control function.");
 		return ENOMEM;
 	}
 
 	/* Bind control function. */
 	rc = ddf_fun_bind(usb_mid->ctl_fun);
 	if (rc != EOK) {
-		usb_log_error("Failed to bind control function: %s.\n",
+		usb_log_error("Failed to bind control function: %s.",
 		    str_error(rc));
 		ddf_fun_destroy(usb_mid->ctl_fun);
 		return rc;

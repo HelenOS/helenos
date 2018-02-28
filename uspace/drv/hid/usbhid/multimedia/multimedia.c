@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Lubos Slovak
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,7 +86,7 @@ typedef struct usb_multimedia_t {
 static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
-	usb_log_debug(NAME " default_connection_handler()\n");
+	usb_log_debug(NAME " default_connection_handler()");
 
 	usb_multimedia_t *multim_dev = ddf_fun_data_get(fun);
 
@@ -94,7 +95,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 	if (sess != NULL) {
 		if (multim_dev->console_sess == NULL) {
 			multim_dev->console_sess = sess;
-			usb_log_debug(NAME " Saved session to console: %p\n",
+			usb_log_debug(NAME " Saved session to console: %p",
 			    sess);
 			async_answer_0(icallid, EOK);
 		} else
@@ -136,7 +137,7 @@ static void usb_multimedia_push_ev(
 		.c = 0,
 	};
 
-	usb_log_debug2(NAME " Sending key %d to the console\n", ev.key);
+	usb_log_debug2(NAME " Sending key %d to the console", ev.key);
 	if (multim_dev->console_sess == NULL) {
 		usb_log_warning(
 		    "Connection to console not ready, key discarded.\n");
@@ -148,7 +149,7 @@ static void usb_multimedia_push_ev(
 		async_msg_4(exch, KBDEV_EVENT, ev.type, ev.key, ev.mods, ev.c);
 		async_exchange_end(exch);
 	} else {
-		usb_log_warning("Failed to send multimedia key.\n");
+		usb_log_warning("Failed to send multimedia key.");
 	}
 }
 
@@ -158,13 +159,13 @@ errno_t usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 		return EINVAL;
 	}
 
-	usb_log_debug(NAME " Initializing HID/multimedia structure...\n");
+	usb_log_debug(NAME " Initializing HID/multimedia structure...");
 
 	/* Create the exposed function. */
 	ddf_fun_t *fun = usb_device_ddf_fun_create(
 	    hid_dev->usb_dev, fun_exposed, NAME);
 	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node.\n");
+		usb_log_error("Could not create DDF function node.");
 		return ENOMEM;
 	}
 
@@ -183,13 +184,13 @@ errno_t usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 
 	errno_t rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function: %s.\n",
+		usb_log_error("Could not bind DDF function: %s.",
 		    str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
-	usb_log_debug(NAME " function created (handle: %" PRIun ").\n",
+	usb_log_debug(NAME " function created (handle: %" PRIun ").",
 	    ddf_fun_get_handle(fun));
 
 	rc = ddf_fun_add_to_category(fun, "keyboard");
@@ -198,7 +199,7 @@ errno_t usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 		    "Could not add DDF function to category 'keyboard': %s.\n",
 		    str_error(rc));
 		if (ddf_fun_unbind(fun) != EOK) {
-			usb_log_error("Failed to unbind %s, won't destroy.\n",
+			usb_log_error("Failed to unbind %s, won't destroy.",
 			    ddf_fun_get_name(fun));
 		} else {
 			ddf_fun_destroy(fun);
@@ -209,7 +210,7 @@ errno_t usb_multimedia_init(struct usb_hid_dev *hid_dev, void **data)
 	/* Save the KBD device structure into the HID device structure. */
 	*data = fun;
 
-	usb_log_debug(NAME " HID/multimedia structure initialized.\n");
+	usb_log_debug(NAME " HID/multimedia structure initialized.");
 	return EOK;
 }
 
@@ -223,10 +224,10 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 	if (multim_dev->console_sess)
 		async_hangup(multim_dev->console_sess);
 	if (ddf_fun_unbind(fun) != EOK) {
-		usb_log_error("Failed to unbind %s, won't destroy.\n",
+		usb_log_error("Failed to unbind %s, won't destroy.",
 		    ddf_fun_get_name(fun));
 	} else {
-		usb_log_debug2("%s unbound.\n", ddf_fun_get_name(fun));
+		usb_log_debug2("%s unbound.", ddf_fun_get_name(fun));
 		/* This frees multim_dev too as it was stored in
 		 * fun->data */
 		ddf_fun_destroy(fun);
@@ -265,13 +266,13 @@ bool usb_multimedia_polling_callback(struct usb_hid_dev *hid_dev, void *data)
 	//FIXME The parsing is not OK. (what's wrong?)
 	while (field != NULL) {
 		if (field->value != 0) {
-			usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n",
+			usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)",
 			    field->value, field->usage);
 			const unsigned key =
 			    usb_multimedia_map_usage(field->usage);
 			const char *key_str =
 			    usbhid_multimedia_usage_to_str(field->usage);
-			usb_log_info("Pressed key: %s\n", key_str);
+			usb_log_info("Pressed key: %s", key_str);
 			usb_multimedia_push_ev(multim_dev, KEY_PRESS, key);
 		}
 

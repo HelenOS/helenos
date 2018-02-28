@@ -82,6 +82,7 @@ endif
 RD_DRVS_ESSENTIAL += \
 	bus/usb/ehci \
 	bus/usb/ohci \
+	bus/usb/usbdiag \
 	bus/usb/usbflbk \
 	bus/usb/usbhub \
 	bus/usb/usbmid \

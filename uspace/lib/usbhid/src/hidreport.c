@@ -70,7 +70,7 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 	 */
 	const uint8_t *d =
 	    usb_dp_get_nested_descriptor(&parser, &parser_data,
-	        usb_device_descriptors(dev)->full_config);
+	    usb_device_descriptors(dev)->full_config);
 	
 	/*
 	 * Find the interface descriptor corresponding to our interface number.
@@ -83,7 +83,7 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 	}
 	
 	if (d == NULL) {
-		usb_log_error("The %d. interface descriptor not found!\n",
+		usb_log_error("The %d. interface descriptor not found!",
 		    usb_device_get_iface_number(dev));
 		return ENOENT;
 	}
@@ -103,7 +103,7 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 	}
 	
 	if (d == NULL) {
-		usb_log_fatal("No HID descriptor found!\n");
+		usb_log_fatal("No HID descriptor found!");
 		return ENOENT;
 	}
 	
@@ -129,7 +129,7 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 		return ENOMEM;
 	}
 	
-	usb_log_debug("Getting Report descriptor, expected size: %u\n", length);
+	usb_log_debug("Getting Report descriptor, expected size: %u", length);
 	
 	/*
 	 * Get the descriptor from the device.
@@ -155,14 +155,14 @@ static errno_t usb_hid_get_report_descriptor(usb_device_t *dev,
 	
 	*size = length;
 	
-	usb_log_debug("Done.\n");
+	usb_log_debug("Done.");
 	
 	return EOK;
 }
 
 
 
-errno_t usb_hid_process_report_descriptor(usb_device_t *dev, 
+errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
     usb_hid_report_t *report, uint8_t **report_desc, size_t *report_size)
 {
 	if (dev == NULL || report == NULL) {
@@ -177,7 +177,7 @@ errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
 	errno_t rc = usb_hid_get_report_descriptor(dev, report_desc, report_size);
 	
 	if (rc != EOK) {
-		usb_log_error("Problem with getting Report descriptor: %s.\n",
+		usb_log_error("Problem with getting Report descriptor: %s.",
 		    str_error(rc));
 		if (*report_desc != NULL) {
 			free(*report_desc);
@@ -190,7 +190,7 @@ errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
 	
 	rc = usb_hid_parse_report_descriptor(report, *report_desc, *report_size);
 	if (rc != EOK) {
-		usb_log_error("Problem parsing Report descriptor: %s.\n",
+		usb_log_error("Problem parsing Report descriptor: %s.",
 		    str_error(rc));
 		free(*report_desc);
 		*report_desc = NULL;

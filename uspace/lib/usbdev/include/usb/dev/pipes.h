@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,33 +44,20 @@
 #include <stdint.h>
 
 #define CTRL_PIPE_MIN_PACKET_SIZE 8
+
 /** Abstraction of a logical connection to USB device endpoint.
- * It encapsulates endpoint attributes (transfer type etc.).
+ * It contains some vital information about the pipe.
  * This endpoint must be bound with existing usb_device_connection_t
  * (i.e. the wire to send data over).
  */
 typedef struct {
-	/** Endpoint number. */
-	usb_endpoint_t endpoint_no;
-
-	/** Endpoint transfer type. */
-	usb_transfer_type_t transfer_type;
-
-	/** Endpoint direction. */
-	usb_direction_t direction;
-
-	/** Maximum packet size for the endpoint. */
-	size_t max_packet_size;
-
-	/** Number of packets per frame/uframe.
-	 * Only valid for HS INT and ISO transfers. All others should set to 1*/
-	unsigned packets;
+	/** Pipe description received from HC */
+	usb_pipe_desc_t desc;
 
 	/** Whether to automatically reset halt on the endpoint.
 	 * Valid only for control endpoint zero.
 	 */
 	bool auto_reset_halt;
-
 	/** The connection used for sending the data. */
 	usb_dev_session_t *bus_session;
 } usb_pipe_t;
@@ -102,31 +90,39 @@ typedef struct {
 	int interface_setting;
 	/** Found descriptor fitting the description. */
 	const usb_standard_endpoint_descriptor_t *descriptor;
+	/** Relevant superspeed companion descriptor. */
+	const usb_superspeed_endpoint_companion_descriptor_t
+	    *companion_descriptor;
 	/** Interface descriptor the endpoint belongs to. */
 	const usb_standard_interface_descriptor_t *interface;
 	/** Whether the endpoint was actually found. */
 	bool present;
 } usb_endpoint_mapping_t;
 
-errno_t usb_pipe_initialize(usb_pipe_t *, usb_endpoint_t, usb_transfer_type_t,
-    size_t, usb_direction_t, unsigned, usb_dev_session_t *);
+errno_t usb_pipe_initialize(usb_pipe_t *, usb_dev_session_t *);
 errno_t usb_pipe_initialize_default_control(usb_pipe_t *, usb_dev_session_t *);
 
-errno_t usb_pipe_probe_default_control(usb_pipe_t *);
 errno_t usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, const uint8_t *, size_t, usb_dev_session_t *);
 
-errno_t usb_pipe_register(usb_pipe_t *, unsigned);
+errno_t usb_pipe_register(usb_pipe_t *,
+    const usb_standard_endpoint_descriptor_t *,
+    const usb_superspeed_endpoint_companion_descriptor_t *);
 errno_t usb_pipe_unregister(usb_pipe_t *);
 
 errno_t usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
 errno_t usb_pipe_write(usb_pipe_t *, const void *, size_t);
+
+errno_t usb_pipe_read_dma(usb_pipe_t *, void *, void *, size_t, size_t *);
+errno_t usb_pipe_write_dma(usb_pipe_t *, void *, void *, size_t);
 
 errno_t usb_pipe_control_read(usb_pipe_t *, const void *, size_t,
     void *, size_t, size_t *);
 errno_t usb_pipe_control_write(usb_pipe_t *, const void *, size_t,
     const void *, size_t);
 
+void *usb_pipe_alloc_buffer(usb_pipe_t *, size_t);
+void usb_pipe_free_buffer(usb_pipe_t *, void *);
 #endif
 /**
  * @}

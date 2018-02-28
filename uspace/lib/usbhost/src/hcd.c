@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,260 +32,343 @@
  */
 /** @file
  *
+ * Host controller driver framework. Encapsulates DDF device of HC to an
+ * hc_device_t, which is passed to driver implementing hc_driver_t.
  */
-
-#include <usb/debug.h>
-#include <usb/request.h>
 
 #include <assert.h>
 #include <async.h>
+#include <ddf/interrupt.h>
 #include <errno.h>
+#include <macros.h>
+#include <str_error.h>
+#include <usb/debug.h>
+#include <usb/descriptor.h>
+#include <usb/request.h>
 #include <usb_iface.h>
+
+#include "bus.h"
+#include "ddf_helpers.h"
+#include "endpoint.h"
+#include "usb_transfer_batch.h"
 
 #include "hcd.h"
 
-/** Calls ep_add_hook upon endpoint registration.
- * @param ep Endpoint to be registered.
- * @param arg hcd_t in disguise.
- * @return Error code.
+int hc_dev_add(ddf_dev_t *);
+int hc_dev_remove(ddf_dev_t *);
+int hc_dev_gone(ddf_dev_t *);
+int hc_fun_online(ddf_fun_t *);
+int hc_fun_offline(ddf_fun_t *);
+
+static driver_ops_t hc_driver_ops = {
+	.dev_add = hc_dev_add,
+	.dev_remove = hc_dev_remove,
+	.dev_gone = hc_dev_gone,
+	.fun_online = hc_fun_online,
+	.fun_offline = hc_fun_offline,
+};
+
+static const hc_driver_t *hc_driver;
+
+/**
+ * The main HC driver routine.
  */
-static errno_t register_helper(endpoint_t *ep, void *arg)
+int hc_driver_main(const hc_driver_t *driver)
 {
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ops.ep_add_hook)
-		return hcd->ops.ep_add_hook(hcd, ep);
+	driver_t ddf_driver = {
+		.name = driver->name,
+		.driver_ops = &hc_driver_ops,
+	};
+
+	/* Remember ops to call. */
+	hc_driver = driver;
+
+	return ddf_driver_main(&ddf_driver);
+}
+
+/**
+ * IRQ handling callback. Call the bus operation.
+ *
+ * Currently, there is a bus ops lookup to find the interrupt handler. So far,
+ * the mechanism is too flexible, as it allows different instances of HC to
+ * have different IRQ handlers, disallowing us to optimize the lookup here.
+ * TODO: Make the bus mechanism less flexible in irq handling and remove the
+ * lookup.
+ */
+static void irq_handler(ipc_call_t *call, ddf_dev_t *dev)
+{
+	assert(dev);
+	hc_device_t *hcd = dev_to_hcd(dev);
+
+	const uint32_t status = IPC_GET_ARG1(*call);
+	hcd->bus->ops->interrupt(hcd->bus, status);
+}
+
+/**
+ * Worker for the HW interrupt replacement fibril.
+ */
+static errno_t interrupt_polling(void *arg)
+{
+	bus_t *bus = arg;
+	assert(bus);
+
+	if (!bus->ops->interrupt || !bus->ops->status)
+		return ENOTSUP;
+
+	uint32_t status = 0;
+	while (bus->ops->status(bus, &status) == EOK) {
+		bus->ops->interrupt(bus, status);
+		status = 0;
+		/* We should wait 1 frame - 1ms here, but this polling is a
+		 * lame crutch anyway so don't hog the system. 10ms is still
+		 * good enough for emergency mode */
+		async_usleep(10000);
+	}
 	return EOK;
 }
 
-/** Calls ep_remove_hook upon endpoint removal.
- * @param ep Endpoint to be unregistered.
- * @param arg hcd_t in disguise.
+/**
+ * Clean the IRQ code bottom-half.
  */
-static void unregister_helper(endpoint_t *ep, void *arg)
+static inline void irq_code_clean(irq_code_t *code)
 {
-	hcd_t *hcd = arg;
-	assert(ep);
-	assert(hcd);
-	if (hcd->ops.ep_remove_hook)
-		hcd->ops.ep_remove_hook(hcd, ep);
+	if (code) {
+		free(code->ranges);
+		free(code->cmds);
+		code->ranges = NULL;
+		code->cmds = NULL;
+		code->rangecount = 0;
+		code->cmdcount = 0;
+	}
 }
 
-/** Calls ep_remove_hook upon endpoint removal. Prints warning.
- *  * @param ep Endpoint to be unregistered.
- *   * @param arg hcd_t in disguise.
- *    */
-static void unregister_helper_warn(endpoint_t *ep, void *arg)
-{
-        assert(ep);
-        usb_log_warning("Endpoint %d:%d %s was left behind, removing.\n",
-            ep->address, ep->endpoint, usb_str_direction(ep->direction));
-	unregister_helper(ep, arg);
-}
-
-
-/** Initialize hcd_t structure.
- * Initializes device and endpoint managers. Sets data and hook pointer to NULL.
+/**
+ * Register an interrupt handler. If there is a callback to setup the bottom half,
+ * invoke it and register it. Register for notifications.
  *
- * @param hcd hcd_t structure to initialize, non-null.
- * @param max_speed Maximum supported USB speed (full, high).
- * @param bandwidth Available bandwidth, passed to endpoint manager.
- * @param bw_count Bandwidth compute function, passed to endpoint manager.
+ * If this method fails, a polling fibril is started instead.
+ *
+ * @param[in] hcd Host controller device.
+ * @param[in] hw_res Resources to be used.
+ *
+ * @return IRQ capability handle on success.
+ * @return Negative error code.
  */
-void hcd_init(hcd_t *hcd, usb_speed_t max_speed, size_t bandwidth,
-    bw_count_func_t bw_count)
+static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd,
+    const hw_res_list_parsed_t *hw_res)
 {
 	assert(hcd);
-	usb_bus_init(&hcd->bus, bandwidth, bw_count, max_speed);
+	irq_code_t irq_code = { 0 };
 
-	hcd_set_implementation(hcd, NULL, NULL);
-}
+	if (!hc_driver->irq_code_gen)
+		return ENOTSUP;
 
-errno_t hcd_request_address(hcd_t *hcd, usb_speed_t speed, usb_address_t *address)
-{
-	assert(hcd);
-	return usb_bus_request_address(&hcd->bus, address, false, speed);
-}
-
-errno_t hcd_release_address(hcd_t *hcd, usb_address_t address)
-{
-	assert(hcd);
-	return usb_bus_remove_address(&hcd->bus, address,
-	    unregister_helper_warn, hcd);
-}
-
-errno_t hcd_reserve_default_address(hcd_t *hcd, usb_speed_t speed)
-{
-	assert(hcd);
-	usb_address_t address = 0;
-	return usb_bus_request_address(&hcd->bus, &address, true, speed);
-}
-
-errno_t hcd_add_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    usb_transfer_type_t type, size_t max_packet_size, unsigned packets,
-    size_t size, usb_address_t tt_address, unsigned tt_port)
-{
-	assert(hcd);
-	return usb_bus_add_ep(&hcd->bus, target.address,
-	    target.endpoint, dir, type, max_packet_size, packets, size,
-	    register_helper, hcd, tt_address, tt_port);
-}
-
-errno_t hcd_remove_ep(hcd_t *hcd, usb_target_t target, usb_direction_t dir)
-{
-	assert(hcd);
-	return usb_bus_remove_ep(&hcd->bus, target.address,
-	    target.endpoint, dir, unregister_helper, hcd);
-}
-
-
-typedef struct {
-	void *original_data;
-	usbhc_iface_transfer_out_callback_t original_callback;
-	usb_target_t target;
-	hcd_t *hcd;
-} toggle_t;
-
-static void toggle_reset_callback(errno_t retval, void *arg)
-{
-	assert(arg);
-	toggle_t *toggle = arg;
-	if (retval == EOK) {
-		usb_log_debug2("Reseting toggle on %d:%d.\n",
-		    toggle->target.address, toggle->target.endpoint);
-		usb_bus_reset_toggle(&toggle->hcd->bus,
-		    toggle->target, toggle->target.endpoint == 0);
+	int irq;
+	errno_t ret;
+	ret = hc_driver->irq_code_gen(&irq_code, hcd, hw_res, &irq);
+	if (ret != EOK) {
+		usb_log_error("Failed to generate IRQ code: %s.",
+		    str_error(irq));
+		return irq;
 	}
 
-	toggle->original_callback(retval, toggle->original_data);
+	/* Register handler to avoid interrupt lockup */
+	int irq_cap;
+	ret = register_interrupt_handler(hcd->ddf_dev, irq, irq_handler,
+	    &irq_code, &irq_cap);
+	irq_code_clean(&irq_code);
+	if (ret != EOK) {
+		usb_log_error("Failed to register interrupt handler: %s.",
+		    str_error(irq_cap));
+		return irq_cap;
+	}
+
+	/* Enable interrupts */
+	ret = hcd_ddf_enable_interrupt(hcd, irq);
+	if (ret != EOK) {
+		usb_log_error("Failed to enable interrupts: %s.",
+		    str_error(ret));
+		unregister_interrupt_handler(hcd->ddf_dev, irq_cap);
+		return ret;
+	}
+	return irq_cap;
 }
 
-/** Prepare generic usb_transfer_batch and schedule it.
- * @param hcd Host controller driver.
- * @param fun DDF fun
- * @param target address and endpoint number.
- * @param setup_data Data to use in setup stage (Control communication type)
- * @param in Callback for device to host communication.
- * @param out Callback for host to device communication.
- * @param arg Callback parameter.
- * @param name Communication identifier (for nicer output).
- * @return Error code.
+/**
+ * Initialize HC in memory of the driver.
+ *
+ * This function does all the preparatory work for hc and rh drivers:
+ *  - gets device's hw resources
+ *  - attempts to enable interrupts
+ *  - registers interrupt handler
+ *  - calls driver specific initialization
+ *  - registers root hub
+ *
+ * @param device DDF instance of the device to use
+ * @return Error code
  */
-errno_t hcd_send_batch(
-    hcd_t *hcd, usb_target_t target, usb_direction_t direction,
-    void *data, size_t size, uint64_t setup_data,
-    usbhc_iface_transfer_in_callback_t in,
-    usbhc_iface_transfer_out_callback_t out, void *arg, const char* name)
+errno_t hc_dev_add(ddf_dev_t *device)
 {
-	assert(hcd);
+	errno_t ret = EOK;
+	assert(device);
 
-	endpoint_t *ep = usb_bus_find_ep(&hcd->bus,
-	    target.address, target.endpoint, direction);
-	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
-		    target.address, target.endpoint, name);
-		return ENOENT;
-	}
-
-	usb_log_debug2("%s %d:%d %zu(%zu).\n",
-	    name, target.address, target.endpoint, size, ep->max_packet_size);
-
-	const size_t bw = bandwidth_count_usb11(
-	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
-	/* Check if we have enough bandwidth reserved */
-	if (ep->bandwidth < bw) {
-		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
-		    "but only %zu is reserved.\n",
-		    ep->address, ep->endpoint, name, bw, ep->bandwidth);
-		return ENOSPC;
-	}
-	if (!hcd->ops.schedule) {
-		usb_log_error("HCD does not implement scheduler.\n");
+	if (!hc_driver->hc_add) {
+		usb_log_error("Driver '%s' does not support adding devices.",
+		    hc_driver->name);
 		return ENOTSUP;
 	}
 
-	/* Check for commands that reset toggle bit */
-	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
-		const int reset_toggle = usb_request_needs_toggle_reset(
-		    (usb_device_request_setup_packet_t *) &setup_data);
-		if (reset_toggle >= 0) {
-			assert(out);
-			toggle_t *toggle = malloc(sizeof(toggle_t));
-			if (!toggle)
-				return ENOMEM;
-			toggle->target.address = target.address;
-			toggle->target.endpoint = reset_toggle;
-			toggle->original_callback = out;
-			toggle->original_data = arg;
-			toggle->hcd = hcd;
+	ret = hcd_ddf_setup_hc(device, hc_driver->hc_device_size);
+	if (ret != EOK) {
+		usb_log_error("Failed to setup HC device.");
+		return ret;
+	}
 
-			arg = toggle;
-			out = toggle_reset_callback;
+	hc_device_t *hcd = dev_to_hcd(device);
+
+	hw_res_list_parsed_t hw_res;
+	ret = hcd_ddf_get_registers(hcd, &hw_res);
+	if (ret != EOK) {
+		usb_log_error("Failed to get register memory addresses "
+		    "for `%s': %s.", ddf_dev_get_name(device),
+		    str_error(ret));
+		goto err_hcd;
+	}
+
+	ret = hc_driver->hc_add(hcd, &hw_res);
+	if (ret != EOK) {
+		usb_log_error("Failed to init HCD.");
+		goto err_hw_res;
+	}
+
+	assert(hcd->bus);
+
+	/* Setup interrupts  */
+	hcd->irq_cap = hcd_ddf_setup_interrupts(hcd, &hw_res);
+	if (hcd->irq_cap >= 0) {
+		usb_log_debug("Hw interrupts enabled.");
+	}
+
+	/* Claim the device from BIOS */
+	if (hc_driver->claim)
+		ret = hc_driver->claim(hcd);
+	if (ret != EOK) {
+		usb_log_error("Failed to claim `%s' for `%s': %s",
+		    ddf_dev_get_name(device), hc_driver->name, str_error(ret));
+		goto err_irq;
+	}
+
+	/* Start hw */
+	if (hc_driver->start)
+		ret = hc_driver->start(hcd);
+	if (ret != EOK) {
+		usb_log_error("Failed to start HCD: %s.", str_error(ret));
+		goto err_irq;
+	}
+
+	const bus_ops_t *ops = hcd->bus->ops;
+
+	/* Need working irq replacement to setup root hub */
+	if (hcd->irq_cap < 0 && ops->status) {
+		hcd->polling_fibril = fibril_create(interrupt_polling, hcd->bus);
+		if (!hcd->polling_fibril) {
+			usb_log_error("Failed to create polling fibril");
+			ret = ENOMEM;
+			goto err_started;
 		}
+		fibril_add_ready(hcd->polling_fibril);
+		usb_log_warning("Failed to enable interrupts: %s."
+		    " Falling back to polling.", str_error(hcd->irq_cap));
 	}
 
-	usb_transfer_batch_t *batch = usb_transfer_batch_create(
-	    ep, data, size, setup_data, in, out, arg);
-	if (!batch) {
-		usb_log_error("Failed to create transfer batch.\n");
-		return ENOMEM;
+	/*
+	 * Creating root hub registers a new USB device so HC
+	 * needs to be ready at this time.
+	 */
+	if (hc_driver->setup_root_hub)
+		ret = hc_driver->setup_root_hub(hcd);
+	if (ret != EOK) {
+		usb_log_error("Failed to setup HC root hub: %s.",
+		    str_error(ret));
+		goto err_polling;
 	}
 
-	const errno_t ret = hcd->ops.schedule(hcd, batch);
-	if (ret != EOK)
-		usb_transfer_batch_destroy(batch);
+	usb_log_info("Controlling new `%s' device `%s'.",
+	    hc_driver->name, ddf_dev_get_name(device));
+	return EOK;
 
-	/* Drop our own reference to ep. */
-	endpoint_del_ref(ep);
-
+err_polling:
+	// TODO: Stop the polling fibril (refactor the interrupt_polling func)
+	//
+err_started:
+	if (hc_driver->stop)
+		hc_driver->stop(hcd);
+err_irq:
+	unregister_interrupt_handler(device, hcd->irq_cap);
+	if (hc_driver->hc_remove)
+		hc_driver->hc_remove(hcd);
+err_hw_res:
+	hw_res_list_parsed_clean(&hw_res);
+err_hcd:
+	hcd_ddf_clean_hc(hcd);
 	return ret;
 }
 
-typedef struct {
-	volatile unsigned done;
-	errno_t ret;
-	size_t size;
-} sync_data_t;
-
-static void transfer_in_cb(errno_t ret, size_t size, void* data)
+errno_t hc_dev_remove(ddf_dev_t *dev)
 {
-	sync_data_t *d = data;
-	assert(d);
-	d->ret = ret;
-	d->done = 1;
-	d->size = size;
+	errno_t err;
+	hc_device_t *hcd = dev_to_hcd(dev);
+
+	if (hc_driver->stop)
+		if ((err = hc_driver->stop(hcd)))
+			return err;
+
+	unregister_interrupt_handler(dev, hcd->irq_cap);
+
+	if (hc_driver->hc_remove)
+		if ((err = hc_driver->hc_remove(hcd)))
+			return err;
+
+	hcd_ddf_clean_hc(hcd);
+
+	// TODO probably not complete
+
+	return EOK;
 }
 
-static void transfer_out_cb(errno_t ret, void* data)
+errno_t hc_dev_gone(ddf_dev_t *dev)
 {
-	sync_data_t *d = data;
-	assert(data);
-	d->ret = ret;
-	d->done = 1;
+	errno_t err = ENOTSUP;
+	hc_device_t *hcd = dev_to_hcd(dev);
+
+	if (hc_driver->hc_gone)
+		err = hc_driver->hc_gone(hcd);
+
+	hcd_ddf_clean_hc(hcd);
+
+	return err;
 }
 
-/** this is really ugly version of sync usb communication */
-errno_t hcd_send_batch_sync(
-    hcd_t *hcd, usb_target_t target, usb_direction_t dir,
-    void *data, size_t size, uint64_t setup_data, const char* name, size_t *out_size)
+errno_t hc_fun_online(ddf_fun_t *fun)
 {
-	assert(hcd);
-	sync_data_t sd = { .done = 0, .ret = EBUSY, .size = size };
+	assert(fun);
 
-	const errno_t ret = hcd_send_batch(hcd, target, dir, data, size, setup_data,
-	    dir == USB_DIRECTION_IN ? transfer_in_cb : NULL,
-	    dir == USB_DIRECTION_OUT ? transfer_out_cb : NULL, &sd, name);
-	if (ret != EOK)
-		return ret;
+	device_t *dev = ddf_fun_data_get(fun);
+	assert(dev);
 
-	while (!sd.done) {
-		async_usleep(1000);
-	}
+	usb_log_info("Device(%d): Requested to be brought online.", dev->address);
+	return bus_device_online(dev);
+}
 
-	if (sd.ret == EOK)
-		*out_size = sd.size;
-	return sd.ret;
+int hc_fun_offline(ddf_fun_t *fun)
+{
+	assert(fun);
+
+	device_t *dev = ddf_fun_data_get(fun);
+	assert(dev);
+
+	usb_log_info("Device(%d): Requested to be taken offline.", dev->address);
+	return bus_device_offline(dev);
 }
 
 

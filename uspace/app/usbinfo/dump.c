@@ -60,7 +60,8 @@ const char *get_indent(size_t level)
 		INDENT INDENT,
 		INDENT INDENT INDENT,
 		INDENT INDENT INDENT INDENT,
-		INDENT INDENT INDENT INDENT INDENT
+		INDENT INDENT INDENT INDENT INDENT,
+		INDENT INDENT INDENT INDENT INDENT INDENT,
 	};
 	static size_t indents_count = sizeof(indents)/sizeof(indents[0]);
 	if (level >= indents_count) {

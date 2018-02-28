@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Lubos Slovak, Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -117,13 +118,13 @@ static void default_connection_handler(ddf_fun_t *fun,
 	usb_mouse_t *mouse_dev = ddf_fun_data_get(fun);
 
 	if (mouse_dev == NULL) {
-		usb_log_debug("%s: Missing parameters.\n", __FUNCTION__);
+		usb_log_debug("%s: Missing parameters.", __FUNCTION__);
 		async_answer_0(icallid, EINVAL);
 		return;
 	}
 
-	usb_log_debug("%s: fun->name: %s\n", __FUNCTION__, ddf_fun_get_name(fun));
-	usb_log_debug("%s: mouse_sess: %p\n",
+	usb_log_debug("%s: fun->name: %s", __FUNCTION__, ddf_fun_get_name(fun));
+	usb_log_debug("%s: mouse_sess: %p",
 	    __FUNCTION__, mouse_dev->mouse_sess);
 
 	async_sess_t *sess =
@@ -131,68 +132,92 @@ static void default_connection_handler(ddf_fun_t *fun,
 	if (sess != NULL) {
 		if (mouse_dev->mouse_sess == NULL) {
 			mouse_dev->mouse_sess = sess;
-			usb_log_debug("Console session to %s set ok (%p).\n",
+			usb_log_debug("Console session to %s set ok (%p).",
 			    ddf_fun_get_name(fun), sess);
 			async_answer_0(icallid, EOK);
 		} else {
-			usb_log_error("Console session to %s already set.\n",
+			usb_log_error("Console session to %s already set.",
 			    ddf_fun_get_name(fun));
 			async_answer_0(icallid, ELIMIT);
 			async_hangup(sess);
 		}
 	} else {
-		usb_log_debug("%s: Invalid function.\n", __FUNCTION__);
+		usb_log_debug("%s: Invalid function.", __FUNCTION__);
 		async_answer_0(icallid, EINVAL);
 	}
 }
 
-static int get_mouse_axis_move_value(uint8_t rid, usb_hid_report_t *report,
+static const usb_hid_report_field_t *get_mouse_axis_move_field(uint8_t rid, usb_hid_report_t *report,
     int32_t usage)
 {
-	int result = 0;
-
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_GENERIC_DESKTOP,
 	    usage);
 
 	usb_hid_report_path_set_report_id(path, rid);
 
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	const usb_hid_report_field_t *field = usb_hid_report_get_sibling(
 	    report, NULL, path, USB_HID_PATH_COMPARE_END,
 	    USB_HID_REPORT_TYPE_INPUT);
 
-	if (field != NULL) {
-		result = field->value;
-	}
-
 	usb_hid_report_path_free(path);
 
-	return result;
+	return field;
 }
 
-static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
+static void usb_mouse_process_report(usb_hid_dev_t *hid_dev,
     usb_mouse_t *mouse_dev)
 {
 	assert(mouse_dev != NULL);
 
 	if (mouse_dev->mouse_sess == NULL) {
-		usb_log_warning(NAME " No console session.\n");
-		return true;
+		usb_log_warning(NAME " No console session.");
+		return;
 	}
 
-	const int shift_x = get_mouse_axis_move_value(hid_dev->report_id,
-	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
-	const int shift_y = get_mouse_axis_move_value(hid_dev->report_id,
-	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
-	const int wheel = get_mouse_axis_move_value(hid_dev->report_id,
-	    &hid_dev->report, USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
+	const usb_hid_report_field_t *move_x = get_mouse_axis_move_field(
+	    hid_dev->report_id, &hid_dev->report,
+	    USB_HIDUT_USAGE_GENERIC_DESKTOP_X);
+	const usb_hid_report_field_t *move_y = get_mouse_axis_move_field(
+	    hid_dev->report_id, &hid_dev->report,
+	    USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
+	const usb_hid_report_field_t *wheel= get_mouse_axis_move_field(
+	    hid_dev->report_id, &hid_dev->report,
+	    USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
-	if (shift_x || shift_y || wheel) {
+	bool absolute_x = move_x && !USB_HID_ITEM_FLAG_RELATIVE(move_x->item_flags);
+	bool absolute_y = move_y && !USB_HID_ITEM_FLAG_RELATIVE(move_y->item_flags);
+
+	/* Tablet shall always report both X and Y */
+	if (absolute_x != absolute_y) {
+		usb_log_error(NAME " cannot handle mix of absolute and relative mouse move.");
+		return;
+	}
+
+	int shift_x = move_x ? move_x->value : 0;
+	int shift_y = move_y ? move_y->value : 0;
+	int shift_z =  wheel ?  wheel->value : 0;
+
+	if (absolute_x && absolute_y) {
+		async_exch_t *exch =
+		    async_exchange_begin(mouse_dev->mouse_sess);
+		if (exch != NULL) {
+			async_msg_4(exch, MOUSEEV_ABS_MOVE_EVENT,
+			    shift_x, shift_y, move_x->logical_maximum, move_y->logical_maximum);
+			async_exchange_end(exch);
+		}
+
+		// Even if we move the mouse absolutely, we need to resolve wheel
+		shift_x = shift_y = 0;
+	}
+
+
+	if (shift_x || shift_y || shift_z) {
 		async_exch_t *exch =
 		    async_exchange_begin(mouse_dev->mouse_sess);
 		if (exch != NULL) {
 			async_msg_3(exch, MOUSEEV_MOVE_EVENT,
-			    shift_x, shift_y, wheel);
+			    shift_x, shift_y, shift_z);
 			async_exchange_end(exch);
 		}
 	}
@@ -200,15 +225,15 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	/* Buttons */
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	if (path == NULL) {
-		usb_log_warning("Failed to create USB HID report path.\n");
-		return true;
+		usb_log_warning("Failed to create USB HID report path.");
+		return;
 	}
 	errno_t ret =
 	   usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
 	if (ret != EOK) {
 		usb_hid_report_path_free(path);
-		usb_log_warning("Failed to add buttons to report path.\n");
-		return true;
+		usb_log_warning("Failed to add buttons to report path.");
+		return;
 	}
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
@@ -217,7 +242,7 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, USB_HID_REPORT_TYPE_INPUT);
 
 	while (field != NULL) {
-		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)\n", field->value,
+		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)", field->value,
 		    field->usage);
 		assert(field->usage > field->usage_minimum);
 		const unsigned index = field->usage - field->usage_minimum;
@@ -241,8 +266,6 @@ static bool usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	}
 
 	usb_hid_report_path_free(path);
-
-	return true;
 }
 
 #define FUN_UNBIND_DESTROY(fun) \
@@ -308,7 +331,7 @@ static errno_t mouse_dev_init(usb_mouse_t *mouse_dev, usb_hid_dev_t *hid_dev)
 	mouse_dev->buttons = calloc(mouse_dev->buttons_count, sizeof(int32_t));
 
 	if (mouse_dev->buttons == NULL) {
-		usb_log_error(NAME ": out of memory, giving up on device!\n");
+		usb_log_error(NAME ": out of memory, giving up on device!");
 		free(mouse_dev);
 		return ENOMEM;
 	}
@@ -321,7 +344,7 @@ static errno_t mouse_dev_init(usb_mouse_t *mouse_dev, usb_hid_dev_t *hid_dev)
 
 errno_t usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 {
-	usb_log_debug("Initializing HID/Mouse structure...\n");
+	usb_log_debug("Initializing HID/Mouse structure...");
 
 	if (hid_dev == NULL) {
 		usb_log_error("Failed to init mouse structure: no structure"
@@ -330,25 +353,25 @@ errno_t usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 	}
 
 	/* Create the exposed function. */
-	usb_log_debug("Creating DDF function %s...\n", HID_MOUSE_FUN_NAME);
+	usb_log_debug("Creating DDF function %s...", HID_MOUSE_FUN_NAME);
 	ddf_fun_t *fun = usb_device_ddf_fun_create(hid_dev->usb_dev,
 	    fun_exposed, HID_MOUSE_FUN_NAME);
 	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node `%s'.\n",
+		usb_log_error("Could not create DDF function node `%s'.",
 		    HID_MOUSE_FUN_NAME);
 		return ENOMEM;
 	}
 
 	usb_mouse_t *mouse_dev = ddf_fun_data_alloc(fun, sizeof(usb_mouse_t));
 	if (mouse_dev == NULL) {
-		usb_log_error("Failed to alloc HID mouse device structure.\n");
+		usb_log_error("Failed to alloc HID mouse device structure.");
 		ddf_fun_destroy(fun);
 		return ENOMEM;
 	}
 
 	errno_t ret = mouse_dev_init(mouse_dev, hid_dev);
 	if (ret != EOK) {
-		usb_log_error("Failed to init HID mouse device structure.\n");
+		usb_log_error("Failed to init HID mouse device structure.");
 		return ret;
 	}
 
@@ -356,13 +379,13 @@ errno_t usb_mouse_init(usb_hid_dev_t *hid_dev, void **data)
 
 	ret = ddf_fun_bind(fun);
 	if (ret != EOK) {
-		usb_log_error("Could not bind DDF function `%s': %s.\n",
+		usb_log_error("Could not bind DDF function `%s': %s.",
 		    ddf_fun_get_name(fun), str_error(ret));
 		ddf_fun_destroy(fun);
 		return ret;
 	}
 
-	usb_log_debug("Adding DDF function `%s' to category %s...\n",
+	usb_log_debug("Adding DDF function `%s' to category %s...",
 	    ddf_fun_get_name(fun), HID_MOUSE_CATEGORY);
 	ret = ddf_fun_add_to_category(fun, HID_MOUSE_CATEGORY);
 	if (ret != EOK) {
@@ -389,8 +412,10 @@ bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, void *data)
 	}
 
 	usb_mouse_t *mouse_dev = data;
+	usb_mouse_process_report(hid_dev, mouse_dev);
 
-	return usb_mouse_process_report(hid_dev, mouse_dev);
+	/* Continue polling until the device is about to be removed. */
+	return true;
 }
 
 void usb_mouse_deinit(usb_hid_dev_t *hid_dev, void *data)
@@ -419,7 +444,7 @@ errno_t usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 	    sizeof(USB_MOUSE_BOOT_REPORT_DESCRIPTOR));
 
 	if (rc != EOK) {
-		usb_log_error("Failed to parse boot report descriptor: %s\n",
+		usb_log_error("Failed to parse boot report descriptor: %s",
 		    str_error(rc));
 		return rc;
 	}

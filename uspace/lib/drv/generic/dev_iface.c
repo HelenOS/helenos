@@ -47,6 +47,7 @@
 #include "remote_nic.h"
 #include "remote_ieee80211.h"
 #include "remote_usb.h"
+#include "remote_usbdiag.h"
 #include "remote_usbhc.h"
 #include "remote_usbhid.h"
 #include "remote_pci.h"
@@ -64,6 +65,7 @@ static const iface_dipatch_table_t remote_ifaces = {
 		[IEEE80211_DEV_IFACE] = &remote_ieee80211_iface,
 		[PCI_DEV_IFACE] = &remote_pci_iface,
 		[USB_DEV_IFACE] = &remote_usb_iface,
+		[USBDIAG_DEV_IFACE] = &remote_usbdiag_iface,
 		[USBHC_DEV_IFACE] = &remote_usbhc_iface,
 		[USBHID_DEV_IFACE] = &remote_usbhid_iface,
 		[CLOCK_DEV_IFACE] = &remote_clock_dev_iface,
@@ -84,7 +86,7 @@ get_remote_method(const remote_iface_t *rem_iface, sysarg_t iface_method_idx)
 {
 	if (iface_method_idx >= rem_iface->method_count)
 		return NULL;
-	
+
 	return rem_iface->methods[iface_method_idx];
 }
 

@@ -71,7 +71,7 @@ typedef struct itd {
 
 	/* 64 bit struct only */
 	volatile uint32_t extended_bp[7];
-} itd_t;
+} __attribute__((packed, aligned(32))) itd_t;
 #endif
 /**
  * @}

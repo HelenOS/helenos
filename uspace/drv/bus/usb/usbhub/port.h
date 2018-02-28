@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,7 +32,7 @@
  * @{
  */
 /** @file
- * Hub ports related functions.
+ * Hub port handling.
  */
 
 #ifndef DRV_USBHUB_PORT_H
@@ -39,56 +40,24 @@
 
 #include <usb/dev/driver.h>
 #include <usb/classes/hub.h>
-#include <usb_iface.h>
+#include <usb/port.h>
 
 typedef struct usb_hub_dev usb_hub_dev_t;
 
 /** Information about single port on a hub. */
 typedef struct {
+	usb_port_t base;
+	/* Parenting hub */
+	usb_hub_dev_t *hub;
 	/** Port number as reported in descriptors. */
 	unsigned int port_number;
-	/** Device communication pipe. */
-	usb_pipe_t *control_pipe;
-	/** Mutex needed not only by CV for checking port reset. */
-	fibril_mutex_t mutex;
-	/** CV for waiting to port reset completion. */
-	fibril_condvar_t reset_cv;
-	/** Port reset status.
-	 * Guarded by @c reset_mutex.
-	 */
-	enum {
-		NO_RESET,
-		IN_RESET,
-		RESET_OK,
-		RESET_FAIL,
-	} reset_status;
-	/** Device reported to USB bus driver */
-	bool device_attached;
+	/** Speed at the time of enabling the port */
+	usb_speed_t speed;
 } usb_hub_port_t;
 
-/** Initialize hub port information.
- *
- * @param port Port to be initialized.
- */
-static inline void usb_hub_port_init(usb_hub_port_t *port,
-    unsigned int port_number, usb_pipe_t *control_pipe)
-{
-	assert(port);
-	port->port_number = port_number;
-	port->control_pipe = control_pipe;
-	port->reset_status = NO_RESET;
-	port->device_attached = false;
-	fibril_mutex_initialize(&port->mutex);
-	fibril_condvar_initialize(&port->reset_cv);
-}
+void usb_hub_port_init(usb_hub_port_t *, usb_hub_dev_t *, unsigned int);
 
-errno_t usb_hub_port_fini(usb_hub_port_t *port, usb_hub_dev_t *hub);
-errno_t usb_hub_port_clear_feature(
-    usb_hub_port_t *port, usb_hub_class_feature_t feature);
-errno_t usb_hub_port_set_feature(
-    usb_hub_port_t *port, usb_hub_class_feature_t feature);
-void usb_hub_port_reset_fail(usb_hub_port_t *port);
-void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub);
+void usb_hub_port_process_interrupt(usb_hub_port_t *port);
 
 #endif
 

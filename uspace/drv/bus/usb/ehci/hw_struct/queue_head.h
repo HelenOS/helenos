@@ -142,7 +142,7 @@ typedef struct queue_head {
 
 	/* 64 bit struct only */
 	volatile uint32_t extended_bp[5];
-} qh_t;
+} __attribute__((packed, aligned(32))) qh_t;
 
 static inline void qh_append_qh(qh_t *qh, const qh_t *next)
 {
@@ -192,11 +192,11 @@ static inline void qh_clear_halt(qh_t *qh)
 	EHCI_MEM32_CLR(qh->status, QH_STATUS_HALTED_FLAG);
 }
 
-static inline void qh_set_next_td(qh_t *qh, td_t *td)
+static inline void qh_set_next_td(qh_t *qh, uintptr_t td)
 {
 	assert(qh);
 	assert(td);
-	EHCI_MEM32_WR(qh->next, LINK_POINTER_TD(addr_to_phys(td)));
+	EHCI_MEM32_WR(qh->next, LINK_POINTER_TD(td));
 }
 
 static inline bool qh_transfer_active(const qh_t *qh)

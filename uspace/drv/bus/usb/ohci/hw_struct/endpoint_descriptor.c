@@ -39,6 +39,8 @@
 
 #include <usb/usb.h>
 #include <usb/host/utils/malloc32.h>
+#include <usb/host/endpoint.h>
+#include <usb/host/bus.h>
 
 #include "mem_access.h"
 
@@ -78,14 +80,13 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 
 	/* Status: address, endpoint nr, direction mask and max packet size. */
 	OHCI_MEM32_WR(instance->status,
-	    ((ep->address & ED_STATUS_FA_MASK) << ED_STATUS_FA_SHIFT)
+	    ((ep->device->address & ED_STATUS_FA_MASK) << ED_STATUS_FA_SHIFT)
 	    | ((ep->endpoint & ED_STATUS_EN_MASK) << ED_STATUS_EN_SHIFT)
 	    | ((dir[ep->direction] & ED_STATUS_D_MASK) << ED_STATUS_D_SHIFT)
-	    | ((ep->max_packet_size & ED_STATUS_MPS_MASK)
-	        << ED_STATUS_MPS_SHIFT));
+	    | ((ep->max_packet_size & ED_STATUS_MPS_MASK) << ED_STATUS_MPS_SHIFT));
 
 	/* Low speed flag */
-	if (ep->speed == USB_SPEED_LOW)
+	if (ep->device->speed == USB_SPEED_LOW)
 		OHCI_MEM32_SET(instance->status, ED_STATUS_S_FLAG);
 
 	/* Isochronous format flag */
@@ -97,11 +98,6 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 	const uintptr_t pa = addr_to_phys(td);
 	OHCI_MEM32_WR(instance->td_head, pa & ED_TDHEAD_PTR_MASK);
 	OHCI_MEM32_WR(instance->td_tail, pa & ED_TDTAIL_PTR_MASK);
-
-	/* Set toggle bit */
-	if (ep->toggle)
-		OHCI_MEM32_SET(instance->td_head, ED_TDHEAD_TOGGLE_CARRY);
-
 }
 /**
  * @}

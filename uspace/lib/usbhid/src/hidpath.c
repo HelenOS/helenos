@@ -72,11 +72,11 @@
  * @param usage Usage constant
  * @return Error code
  */
-errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
-                                    int32_t usage_page, int32_t usage)
-{	
-	usb_hid_report_usage_path_t *item
-		= malloc(sizeof(usb_hid_report_usage_path_t));
+errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path,
+    int32_t usage_page, int32_t usage)
+{
+	usb_hid_report_usage_path_t *item =
+	    malloc(sizeof(usb_hid_report_usage_path_t));
 
 	if (item == NULL) {
 		return ENOMEM;
@@ -86,7 +86,7 @@ errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path,
 	item->usage = usage;
 	item->usage_page = usage_page;
 	item->flags = 0;
-	
+
 	list_append (&item->rpath_items_link, &usage_path->items);
 	usage_path->depth++;
 	return EOK;
@@ -95,15 +95,15 @@ errno_t usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path,
 
 /**
  * Removes last item from the usage path structure
- * @param usage_path 
+ * @param usage_path
  * @return void
  */
 void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path)
 {
 	link_t *item_link;
 	usb_hid_report_usage_path_t *item;
-	
-	if(!list_empty(&usage_path->items)){
+
+	if (!list_empty(&usage_path->items)) {
 		item_link = list_last(&usage_path->items);
 		item = list_get_instance(item_link,
 		    usb_hid_report_usage_path_t, rpath_items_link);
@@ -123,10 +123,10 @@ void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path)
 void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path)
 {
 	usb_hid_report_usage_path_t *item;
-	
-	if(!list_empty(&usage_path->items)){
+
+	if (!list_empty(&usage_path->items)) {
 		item = list_get_instance(list_last(&usage_path->items),
-			usb_hid_report_usage_path_t, rpath_items_link);
+		    usb_hid_report_usage_path_t, rpath_items_link);
 
 		memset(item, 0, sizeof(usb_hid_report_usage_path_t));
 	}
@@ -142,45 +142,37 @@ void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path)
  * @param data Value of the processed tag
  * @return void
  */
-void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path, 
-                                  int32_t tag, int32_t data)
+void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path,
+    int32_t tag, int32_t data)
 {
 	usb_hid_report_usage_path_t *item;
-	
-	if(!list_empty(&usage_path->items)){
+
+	if (!list_empty(&usage_path->items)) {
 		item = list_get_instance(list_last(&usage_path->items),
 		     usb_hid_report_usage_path_t, rpath_items_link);
 
-		switch(tag) {
-			case USB_HID_TAG_CLASS_GLOBAL:
-				item->usage_page = data;
-				break;
-			case USB_HID_TAG_CLASS_LOCAL:
-				item->usage = data;
-				break;
+		switch (tag) {
+		case USB_HID_TAG_CLASS_GLOBAL:
+			item->usage_page = data;
+			break;
+		case USB_HID_TAG_CLASS_LOCAL:
+			item->usage = data;
+			break;
 		}
 	}
-	
 }
 
-
-/**
- *
- *
- *
- *
- */
 void usb_hid_print_usage_path(usb_hid_report_path_t *path)
 {
-	usb_log_debug("USAGE_PATH FOR RId(%d):\n", path->report_id);
-	usb_log_debug("\tLENGTH: %d\n", path->depth);
+	usb_log_debug("USAGE_PATH FOR RId(%d):", path->report_id);
+	usb_log_debug("\tLENGTH: %d", path->depth);
 
 	list_foreach(path->items, rpath_items_link,
 	    usb_hid_report_usage_path_t, path_item) {
 
-		usb_log_debug("\tUSAGE_PAGE: %X\n", path_item->usage_page);
-		usb_log_debug("\tUSAGE: %X\n", path_item->usage);
-		usb_log_debug("\tFLAGS: %d\n", path_item->flags);
+		usb_log_debug("\tUSAGE_PAGE: %X", path_item->usage_page);
+		usb_log_debug("\tUSAGE: %X", path_item->usage);
+		usb_log_debug("\tFLAGS: %d", path_item->flags);
 	}
 }
 
@@ -198,43 +190,43 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 {
 	usb_hid_report_usage_path_t *report_item;
 	usb_hid_report_usage_path_t *path_item;
-	
+
 	link_t *report_link;
 	link_t *path_link;
-	
+
 	int only_page;
-	
+
 	if (report_path->report_id != path->report_id) {
 		if (path->report_id != 0) {
 			return 1;
 		}
 	}
-	
+
 	// Empty path match all others
 	if (path->depth == 0) {
 		return 0;
 	}
-	
+
 	if ((only_page = flags & USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY) != 0) {
 		flags -= USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY;
 	}
-	
+
 	switch (flags) {
 	/* Path is somewhere in report_path */
 	case USB_HID_PATH_COMPARE_ANYWHERE:
 		if (path->depth != 1) {
 			return 1;
 		}
-		
+
 		path_link = list_first(&path->items);
 		path_item = list_get_instance(path_link,
 		    usb_hid_report_usage_path_t, rpath_items_link);
-		
+
 		list_foreach(report_path->items, rpath_items_link,
 		    usb_hid_report_usage_path_t, report_item) {
 			if (USB_HID_SAME_USAGE_PAGE(report_item->usage_page,
 			    path_item->usage_page)) {
-				
+
 				if (only_page == 0) {
 					if (USB_HID_SAME_USAGE(report_item->usage,
 					    path_item->usage))
@@ -244,31 +236,31 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 				}
 			}
 		}
-		
+
 		return 1;
 		break;
-	
+
 	/* The paths must be identical */
 	case USB_HID_PATH_COMPARE_STRICT:
 		if (report_path->depth != path->depth) {
 			return 1;
 		}
 		/* Fallthrough */
-	
+
 	/* Path is prefix of the report_path */
 	case USB_HID_PATH_COMPARE_BEGIN:
 		report_link = report_path->items.head.next;
 		path_link = path->items.head.next;
-		
+
 		while ((report_link != &report_path->items.head) &&
 		    (path_link != &path->items.head)) {
-			
+
 			report_item = list_get_instance(report_link,
 			    usb_hid_report_usage_path_t, rpath_items_link);
-			
+
 			path_item = list_get_instance(path_link,
 			    usb_hid_report_usage_path_t, rpath_items_link);
-			
+
 			if (!USB_HID_SAME_USAGE_PAGE(report_item->usage_page,
 			    path_item->usage_page) || ((only_page == 0) &&
 			    !USB_HID_SAME_USAGE(report_item->usage,
@@ -279,7 +271,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 				path_link = path_link->next;
 			}
 		}
-		
+
 		if ((((flags & USB_HID_PATH_COMPARE_BEGIN) != 0) &&
 		    (path_link == &path->items.head)) ||
 		    ((report_link == &report_path->items.head) &&
@@ -289,24 +281,24 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 			return 1;
 		}
 		break;
-	
+
 	/* Path is suffix of report_path */
 	case USB_HID_PATH_COMPARE_END:
 		report_link = report_path->items.head.prev;
 		path_link = path->items.head.prev;
-		
+
 		if (list_empty(&path->items)) {
 			return 0;
 		}
-		
+
 		while ((report_link != &report_path->items.head) &&
 		      (path_link != &path->items.head)) {
 			report_item = list_get_instance(report_link,
 			    usb_hid_report_usage_path_t, rpath_items_link);
-			
+
 			path_item = list_get_instance(path_link,
 			    usb_hid_report_usage_path_t, rpath_items_link);
-			
+
 			if (!USB_HID_SAME_USAGE_PAGE(report_item->usage_page,
 			    path_item->usage_page) || ((only_page == 0) &&
 			    !USB_HID_SAME_USAGE(report_item->usage,
@@ -317,14 +309,14 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 				path_link = path_link->prev;
 			}
 		}
-		
+
 		if (path_link == &path->items.head) {
 			return 0;
 		} else {
 			return 1;
 		}
 		break;
-	
+
 	default:
 		return -1;
 	}
@@ -339,7 +331,7 @@ usb_hid_report_path_t *usb_hid_report_path(void)
 {
 	usb_hid_report_path_t *path;
 	path = malloc(sizeof(usb_hid_report_path_t));
-	if(path == NULL){
+	if (path == NULL) {
 		return NULL;
 	}
 	else {
@@ -362,7 +354,7 @@ void usb_hid_report_path_free(usb_hid_report_path_t *path)
 {
 	if (path == NULL)
 		return;
-	while(!list_empty(&path->items)){
+	while (!list_empty(&path->items)) {
 		usb_hid_report_remove_last_item(path);
 	}
 
@@ -378,18 +370,18 @@ void usb_hid_report_path_free(usb_hid_report_path_t *path)
  * @return New copy of given usage path structure
  */
 usb_hid_report_path_t *usb_hid_report_path_clone(
-	usb_hid_report_path_t *usage_path)
+    usb_hid_report_path_t *usage_path)
 {
 	usb_hid_report_usage_path_t *new_path_item;
 	usb_hid_report_path_t *new_usage_path = usb_hid_report_path ();
 
-	if(new_usage_path == NULL){
+	if (new_usage_path == NULL) {
 		return NULL;
 	}
 
 	new_usage_path->report_id = usage_path->report_id;
-	
-	if(list_empty(&usage_path->items)){
+
+	if (list_empty(&usage_path->items)) {
 		return new_usage_path;
 	}
 
@@ -397,15 +389,15 @@ usb_hid_report_path_t *usb_hid_report_path_clone(
 	    usb_hid_report_usage_path_t, path_item) {
 
 		new_path_item = malloc(sizeof(usb_hid_report_usage_path_t));
-		if(new_path_item == NULL) {
+		if (new_path_item == NULL) {
 			return NULL;
 		}
-		
+
 		link_initialize(&new_path_item->rpath_items_link);
 		new_path_item->usage_page = path_item->usage_page;
-		new_path_item->usage = path_item->usage;		
-		new_path_item->flags = path_item->flags;		
-		
+		new_path_item->usage = path_item->usage;
+		new_path_item->flags = path_item->flags;
+
 		list_append(&new_path_item->rpath_items_link,
 		    &new_usage_path->items);
 		new_usage_path->depth++;
@@ -422,10 +414,10 @@ usb_hid_report_path_t *usb_hid_report_path_clone(
  * @param report_id Report id to set
  * @return Error code
  */
-errno_t usb_hid_report_path_set_report_id(usb_hid_report_path_t *path, 
-	uint8_t report_id)
+errno_t usb_hid_report_path_set_report_id(usb_hid_report_path_t *path,
+    uint8_t report_id)
 {
-	if(path == NULL){
+	if (path == NULL) {
 		return EINVAL;
 	}
 

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -155,33 +156,32 @@ static errno_t usbmast_device_add(usb_device_t *dev)
 	usb_endpoint_mapping_t *epm_out =
 	    usb_device_get_mapped_ep_desc(dev, &bulk_out_ep);
 	if (!epm_in || !epm_out || !epm_in->present || !epm_out->present) {
-		usb_log_error("Required EPs were not mapped.\n");
+		usb_log_error("Required EPs were not mapped.");
 		return ENOENT;
 	}
 
 	/* Allocate softstate */
 	mdev = usb_device_data_alloc(dev, sizeof(usbmast_dev_t));
 	if (mdev == NULL) {
-		usb_log_error("Failed allocating softstate.\n");
+		usb_log_error("Failed allocating softstate.");
 		return ENOMEM;
 	}
 
 	mdev->usb_dev = dev;
 
-	usb_log_info("Initializing mass storage `%s'.\n",
+	usb_log_info("Initializing mass storage `%s'.",
 	    usb_device_get_name(dev));
-	usb_log_debug("Bulk in endpoint: %d [%zuB].\n",
-	    epm_in->pipe.endpoint_no, epm_in->pipe.max_packet_size);
-	usb_log_debug("Bulk out endpoint: %d [%zuB].\n",
-	    epm_out->pipe.endpoint_no, epm_out->pipe.max_packet_size);
+	usb_log_debug("Bulk in endpoint: %d [%zuB].",
+	    epm_in->pipe.desc.endpoint_no, epm_in->pipe.desc.max_transfer_size);
+	usb_log_debug("Bulk out endpoint: %d [%zuB].",
+	    epm_out->pipe.desc.endpoint_no, epm_out->pipe.desc.max_transfer_size);
 
-	usb_log_debug("Get LUN count...\n");
+	usb_log_debug("Get LUN count...");
 	mdev->lun_count = usb_masstor_get_lun_count(mdev);
 	mdev->luns = calloc(mdev->lun_count, sizeof(ddf_fun_t*));
 	if (mdev->luns == NULL) {
-		rc = ENOMEM;
-		usb_log_error("Failed allocating luns table.\n");
-		goto error;
+		usb_log_error("Failed allocating luns table.");
+		return ENOMEM;
 	}
 
 	mdev->bulk_in_pipe = &epm_in->pipe;
@@ -225,14 +225,14 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	usbmast_fun_t *mfun = NULL;
 
 	if (asprintf(&fun_name, "l%u", lun) < 0) {
-		usb_log_error("Out of memory.\n");
+		usb_log_error("Out of memory.");
 		rc = ENOMEM;
 		goto error;
 	}
 
 	fun = usb_device_ddf_fun_create(mdev->usb_dev, fun_exposed, fun_name);
 	if (fun == NULL) {
-		usb_log_error("Failed to create DDF function %s.\n", fun_name);
+		usb_log_error("Failed to create DDF function %s.", fun_name);
 		rc = ENOMEM;
 		goto error;
 	}
@@ -240,7 +240,7 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	/* Allocate soft state */
 	mfun = ddf_fun_data_alloc(fun, sizeof(usbmast_fun_t));
 	if (mfun == NULL) {
-		usb_log_error("Failed allocating softstate.\n");
+		usb_log_error("Failed allocating softstate.");
 		rc = ENOMEM;
 		goto error;
 	}
@@ -256,11 +256,11 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 	/* Set up a connection handler. */
 	ddf_fun_set_conn_handler(fun, usbmast_bd_connection);
 
-	usb_log_debug("Inquire...\n");
+	usb_log_debug("Inquire...");
 	usbmast_inquiry_data_t inquiry;
 	rc = usbmast_inquiry(mfun, &inquiry);
 	if (rc != EOK) {
-		usb_log_warning("Failed to inquire device `%s': %s.\n",
+		usb_log_warning("Failed to inquire device `%s': %s.",
 		    usb_device_get_name(mdev->usb_dev), str_error(rc));
 		rc = EIO;
 		goto error;
@@ -280,7 +280,7 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 
 	rc = usbmast_read_capacity(mfun, &nblocks, &block_size);
 	if (rc != EOK) {
-		usb_log_warning("Failed to read capacity, device `%s': %s.\n",
+		usb_log_warning("Failed to read capacity, device `%s': %s.",
 		    usb_device_get_name(mdev->usb_dev), str_error(rc));
 		rc = EIO;
 		goto error;
@@ -294,7 +294,7 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		usb_log_error("Failed to bind DDF function %s: %s.\n",
+		usb_log_error("Failed to bind DDF function %s: %s.",
 		    fun_name, str_error(rc));
 		goto error;
 	}
@@ -389,7 +389,7 @@ static errno_t usbmast_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 /** USB mass storage driver ops. */
 static const usb_driver_ops_t usbmast_driver_ops = {
 	.device_add = usbmast_device_add,
-	.device_rem = usbmast_device_remove,
+	.device_remove = usbmast_device_remove,
 	.device_gone = usbmast_device_gone,
 };
 

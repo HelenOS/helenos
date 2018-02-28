@@ -1,6 +1,7 @@
 /*
- * Copyright (c) 2010-2011 Vojtech Horky
+ * Copyright (c) 2010 Vojtech Horky
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,146 +35,181 @@
  */
 
 #include <async.h>
-#include <errno.h>
-#include <assert.h>
 #include <macros.h>
+#include <errno.h>
+#include <devman.h>
+#include <as.h>
 
 #include "usbhc_iface.h"
 #include "ddf/driver.h"
 
-#define USB_MAX_PAYLOAD_SIZE 1020
 
-/** IPC methods for communication with HC through DDF interface.
- *
- * Notes for async methods:
- *
- * Methods for sending data to device (OUT transactions)
- * - e.g. IPC_M_USBHC_INTERRUPT_OUT -
- * always use the same semantics:
- * - first, IPC call with given method is made
- *   - argument #1 is target address
- *   - argument #2 is target endpoint
- *   - argument #3 is max packet size of the endpoint
- * - this call is immediately followed by IPC data write (from caller)
- * - the initial call (and the whole transaction) is answer after the
- *   transaction is scheduled by the HC and acknowledged by the device
- *   or immediately after error is detected
- * - the answer carries only the error code
- *
- * Methods for retrieving data from device (IN transactions)
- * - e.g. IPC_M_USBHC_INTERRUPT_IN -
- * also use the same semantics:
- * - first, IPC call with given method is made
- *   - argument #1 is target address
- *   - argument #2 is target endpoint
- * - this call is immediately followed by IPC data read (async version)
- * - the call is not answered until the device returns some data (or until
- *   error occurs)
- *
- * Some special methods (NO-DATA transactions) do not send any data. These
- * might behave as both OUT or IN transactions because communication parts
- * where actual buffers are exchanged are omitted.
- **
- * For all these methods, wrap functions exists. Important rule: functions
- * for IN transactions have (as parameters) buffers where retrieved data
- * will be stored. These buffers must be already allocated and shall not be
- * touch until the transaction is completed
- * (e.g. not before calling usb_wait_for() with appropriate handle).
- * OUT transactions buffers can be freed immediately after call is dispatched
- * (i.e. after return from wrapping function).
- *
- */
 typedef enum {
-	/** Get data from device.
-	 * See explanation at usb_iface_funcs_t (IN transaction).
-	 */
-	IPC_M_USBHC_READ,
-
-	/** Send data to device.
-	 * See explanation at usb_iface_funcs_t (OUT transaction).
-	 */
-	IPC_M_USBHC_WRITE,
+	IPC_M_USB_DEFAULT_ADDRESS_RESERVATION,
+	IPC_M_USB_DEVICE_ENUMERATE,
+	IPC_M_USB_DEVICE_REMOVE,
+	IPC_M_USB_REGISTER_ENDPOINT,
+	IPC_M_USB_UNREGISTER_ENDPOINT,
+	IPC_M_USB_TRANSFER,
 } usbhc_iface_funcs_t;
 
-errno_t usbhc_read(async_exch_t *exch, usb_address_t address,
-    usb_endpoint_t endpoint, uint64_t setup, void *data, size_t size,
-    size_t *rec_size)
+/** Reserve default USB address.
+ * @param[in] exch IPC communication exchange
+ * @return Error code.
+ */
+errno_t usbhc_reserve_default_address(async_exch_t *exch)
+{
+	if (!exch)
+		return EBADMEM;
+	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_DEFAULT_ADDRESS_RESERVATION, true);
+}
+
+/** Release default USB address.
+ *
+ * @param[in] exch IPC communication exchange
+ *
+ * @return Error code.
+ */
+errno_t usbhc_release_default_address(async_exch_t *exch)
+{
+	if (!exch)
+		return EBADMEM;
+	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_DEFAULT_ADDRESS_RESERVATION, false);
+}
+
+/**
+ * Trigger USB device enumeration
+ *
+ * @param[in] exch IPC communication exchange
+ * @param[in] port Port number at which the device is attached
+ * @param[in] speed Communication speed of the newly attached device
+ *
+ * @return Error code.
+ */
+errno_t usbhc_device_enumerate(async_exch_t *exch, unsigned port, usb_speed_t speed)
+{
+	if (!exch)
+		return EBADMEM;
+	const errno_t ret = async_req_3_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USB_DEVICE_ENUMERATE, port, speed);
+	return ret;
+}
+
+/** Trigger USB device enumeration
+ *
+ * @param[in] exch   IPC communication exchange
+ * @param[in] handle Identifier of the device
+ *
+ * @return Error code.
+ *
+ */
+errno_t usbhc_device_remove(async_exch_t *exch, unsigned port)
+{
+	if (!exch)
+		return EBADMEM;
+	return async_req_2_0(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USB_DEVICE_REMOVE, port);
+}
+
+errno_t usbhc_register_endpoint(async_exch_t *exch, usb_pipe_desc_t *pipe_desc,
+    const usb_endpoint_descriptors_t *desc)
 {
 	if (!exch)
 		return EBADMEM;
 
-	if (size == 0 && setup == 0)
-		return EOK;
+	if (!desc)
+		return EINVAL;
 
-	const usb_target_t target =
-	    {{ .address = address, .endpoint = endpoint }};
-
-	/* Make call identifying target USB device and type of transfer. */
-	aid_t opening_request = async_send_4(exch,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_READ, target.packed,
-	    (setup & UINT32_MAX), (setup >> 32), NULL);
+	aid_t opening_request = async_send_1(exch,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_REGISTER_ENDPOINT, NULL);
 
 	if (opening_request == 0) {
 		return ENOMEM;
 	}
 
-	/* Retrieve the data. */
-	ipc_call_t data_request_call;
-	aid_t data_request =
-	    async_data_read(exch, data, size, &data_request_call);
-
-	if (data_request == 0) {
-		// FIXME: How to let the other side know that we want to abort?
+	errno_t ret = async_data_write_start(exch, desc, sizeof(*desc));
+	if (ret != EOK) {
 		async_forget(opening_request);
-		return ENOMEM;
+		return ret;
 	}
 
 	/* Wait for the answer. */
-	errno_t data_request_rc;
 	errno_t opening_request_rc;
-	async_wait_for(data_request, &data_request_rc);
 	async_wait_for(opening_request, &opening_request_rc);
 
-	if (data_request_rc != EOK) {
-		/* Prefer the return code of the opening request. */
-		if (opening_request_rc != EOK) {
-			return (errno_t) opening_request_rc;
-		} else {
-			return (errno_t) data_request_rc;
-		}
-	}
-	if (opening_request_rc != EOK) {
+	if (opening_request_rc)
 		return (errno_t) opening_request_rc;
+
+	usb_pipe_desc_t dest;
+	ret = async_data_read_start(exch, &dest, sizeof(dest));
+	if (ret != EOK) {
+		return ret;
 	}
 
-	*rec_size = IPC_GET_ARG2(data_request_call);
+	if (pipe_desc)
+		*pipe_desc = dest;
+
 	return EOK;
 }
 
-errno_t usbhc_write(async_exch_t *exch, usb_address_t address,
-    usb_endpoint_t endpoint, uint64_t setup, const void *data, size_t size)
+errno_t usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pipe_desc)
 {
 	if (!exch)
 		return EBADMEM;
 
-	if (size == 0 && setup == 0)
-		return EOK;
-
-	const usb_target_t target =
-	    {{ .address = address, .endpoint = endpoint }};
-
-	aid_t opening_request = async_send_5(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_WRITE, target.packed, size,
-	    (setup & UINT32_MAX), (setup >> 32), NULL);
+	aid_t opening_request = async_send_1(exch,
+		DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_UNREGISTER_ENDPOINT, NULL);
 
 	if (opening_request == 0) {
 		return ENOMEM;
 	}
 
-	/* Send the data if any. */
-	if (size > 0) {
-		const errno_t ret = async_data_write_start(exch, data, size);
+	const errno_t ret = async_data_write_start(exch, pipe_desc, sizeof(*pipe_desc));
+	if (ret != EOK) {
+		async_forget(opening_request);
+		return ret;
+	}
+
+	/* Wait for the answer. */
+	errno_t opening_request_rc;
+	async_wait_for(opening_request, &opening_request_rc);
+
+	return (errno_t) opening_request_rc;
+}
+
+/**
+ * Issue a USB transfer with a data contained in memory area. That area is
+ * temporarily shared with the HC.
+ */
+errno_t usbhc_transfer(async_exch_t *exch,
+    const usbhc_iface_transfer_request_t *req, size_t *transferred)
+{
+	if (transferred)
+		*transferred = 0;
+
+	if (!exch)
+		return EBADMEM;
+
+	ipc_call_t call;
+
+	aid_t opening_request = async_send_1(exch, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USB_TRANSFER, &call);
+
+	if (opening_request == 0)
+		return ENOMEM;
+
+	const errno_t ret = async_data_write_start(exch, req, sizeof(*req));
+	if (ret != EOK) {
+		async_forget(opening_request);
+		return ret;
+	}
+
+	/* Share the data, if any. */
+	if (req->size > 0) {
+		unsigned flags = (req->dir == USB_DIRECTION_IN)
+			? AS_AREA_WRITE : AS_AREA_READ;
+
+		const errno_t ret = async_share_out_start(exch, req->buffer.virt, flags);
 		if (ret != EOK) {
 			async_forget(opening_request);
 			return ret;
@@ -184,106 +220,242 @@ errno_t usbhc_write(async_exch_t *exch, usb_address_t address,
 	errno_t opening_request_rc;
 	async_wait_for(opening_request, &opening_request_rc);
 
+	if (transferred)
+		*transferred = IPC_GET_ARG1(call);
+
 	return (errno_t) opening_request_rc;
 }
 
-static void remote_usbhc_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_default_address_reservation(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_device_enumerate(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_device_remove(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_register_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call);
 
-/** Remote USB host controller interface operations. */
-static const remote_iface_func_ptr_t remote_usbhc_iface_ops[] = {
-	[IPC_M_USBHC_READ] = remote_usbhc_read,
-	[IPC_M_USBHC_WRITE] = remote_usbhc_write,
+/** Remote USB interface operations. */
+static const remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
+	[IPC_M_USB_DEFAULT_ADDRESS_RESERVATION] = remote_usbhc_default_address_reservation,
+	[IPC_M_USB_DEVICE_ENUMERATE] = remote_usbhc_device_enumerate,
+	[IPC_M_USB_DEVICE_REMOVE] = remote_usbhc_device_remove,
+	[IPC_M_USB_REGISTER_ENDPOINT] = remote_usbhc_register_endpoint,
+	[IPC_M_USB_UNREGISTER_ENDPOINT] = remote_usbhc_unregister_endpoint,
+	[IPC_M_USB_TRANSFER] = remote_usbhc_transfer,
 };
 
-/** Remote USB host controller interface structure.
+/** Remote USB interface structure.
  */
 const remote_iface_t remote_usbhc_iface = {
 	.method_count = ARRAY_SIZE(remote_usbhc_iface_ops),
-	.methods = remote_usbhc_iface_ops
+	.methods = remote_usbhc_iface_ops,
 };
 
 typedef struct {
 	ipc_callid_t caller;
-	ipc_callid_t data_caller;
-	void *buffer;
+	usbhc_iface_transfer_request_t request;
 } async_transaction_t;
+
+void remote_usbhc_default_address_reservation(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbhc_iface_t *usbhc_iface = (usbhc_iface_t *) iface;
+
+	if (usbhc_iface->default_address_reservation == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	const bool reserve = IPC_GET_ARG2(*call);
+	const errno_t ret = usbhc_iface->default_address_reservation(fun, reserve);
+	async_answer_0(callid, ret);
+}
+
+
+static void remote_usbhc_device_enumerate(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbhc_iface_t *usbhc_iface = (usbhc_iface_t *) iface;
+
+	if (usbhc_iface->device_enumerate == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	const unsigned port = DEV_IPC_GET_ARG1(*call);
+	usb_speed_t speed = DEV_IPC_GET_ARG2(*call);
+	const errno_t ret = usbhc_iface->device_enumerate(fun, port, speed);
+	async_answer_0(callid, ret);
+}
+
+static void remote_usbhc_device_remove(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	const usbhc_iface_t *usbhc_iface = (usbhc_iface_t *) iface;
+
+	if (usbhc_iface->device_remove == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	const unsigned port = DEV_IPC_GET_ARG1(*call);
+	const errno_t ret = usbhc_iface->device_remove(fun, port);
+	async_answer_0(callid, ret);
+}
+
+static void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	assert(fun);
+	assert(iface);
+	assert(call);
+
+	const usbhc_iface_t *usbhc_iface = iface;
+
+	if (!usbhc_iface->register_endpoint) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_endpoint_descriptors_t ep_desc;
+	ipc_callid_t data_callid;
+	size_t len;
+
+	if (!async_data_write_receive(&data_callid, &len)
+	    || len != sizeof(ep_desc)) {
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+	async_data_write_finalize(data_callid, &ep_desc, sizeof(ep_desc));
+
+	usb_pipe_desc_t pipe_desc;
+
+	const errno_t rc = usbhc_iface->register_endpoint(fun, &pipe_desc, &ep_desc);
+	async_answer_0(callid, rc);
+
+	if (!async_data_read_receive(&data_callid, &len)
+	    || len != sizeof(pipe_desc)) {
+		return;
+	}
+	async_data_read_finalize(data_callid, &pipe_desc, sizeof(pipe_desc));
+}
+
+static void remote_usbhc_unregister_endpoint(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	assert(fun);
+	assert(iface);
+	assert(call);
+
+	const usbhc_iface_t *usbhc_iface = iface;
+
+	if (!usbhc_iface->unregister_endpoint) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_pipe_desc_t pipe_desc;
+	ipc_callid_t data_callid;
+	size_t len;
+
+	if (!async_data_write_receive(&data_callid, &len)
+	    || len != sizeof(pipe_desc)) {
+		async_answer_0(callid, EINVAL);
+		return;
+	}
+	async_data_write_finalize(data_callid, &pipe_desc, sizeof(pipe_desc));
+
+	const errno_t rc = usbhc_iface->unregister_endpoint(fun, &pipe_desc);
+	async_answer_0(callid, rc);
+}
 
 static void async_transaction_destroy(async_transaction_t *trans)
 {
-	if (trans == NULL)
+	if (trans == NULL) {
 		return;
-	
-	if (trans->buffer != NULL)
-		free(trans->buffer);
-	
+	}
+	if (trans->request.buffer.virt != NULL) {
+		as_area_destroy(trans->request.buffer.virt);
+	}
+
 	free(trans);
 }
 
 static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 {
-	async_transaction_t *trans = malloc(sizeof(async_transaction_t));
-	if (trans == NULL) {
-		return NULL;
-	}
+	async_transaction_t *trans = calloc(1, sizeof(async_transaction_t));
 
-	trans->caller = caller;
-	trans->data_caller = 0;
-	trans->buffer = NULL;
+	if (trans != NULL)
+		trans->caller = caller;
 
 	return trans;
 }
 
-static void callback_out(errno_t outcome, void *arg)
+static errno_t transfer_finished(void *arg, errno_t error, size_t transferred_size)
 {
 	async_transaction_t *trans = arg;
-
-	async_answer_0(trans->caller, outcome);
-
+	const errno_t err = async_answer_1(trans->caller, error, transferred_size);
 	async_transaction_destroy(trans);
+	return err;
 }
 
-static void callback_in(errno_t outcome, size_t actual_size, void *arg)
+static errno_t receive_memory_buffer(async_transaction_t *trans)
 {
-	async_transaction_t *trans = (async_transaction_t *)arg;
+	assert(trans);
+	assert(trans->request.size > 0);
 
-	if (outcome != EOK) {
-		async_answer_0(trans->caller, outcome);
-		if (trans->data_caller) {
-			async_answer_0(trans->data_caller, EINTR);
-		}
-		async_transaction_destroy(trans);
-		return;
+	const size_t required_size = trans->request.offset + trans->request.size;
+	const unsigned required_flags =
+		(trans->request.dir == USB_DIRECTION_IN)
+		? AS_AREA_WRITE : AS_AREA_READ;
+
+	errno_t err;
+	ipc_callid_t data_callid;
+	size_t size;
+	unsigned flags;
+
+	if (!async_share_out_receive(&data_callid, &size, &flags))
+		return EPARTY;
+
+	if (size < required_size || (flags & required_flags) != required_flags) {
+		async_answer_0(data_callid, EINVAL);
+		return EINVAL;
 	}
 
-	if (trans->data_caller) {
-		async_data_read_finalize(trans->data_caller,
-		    trans->buffer, actual_size);
+	if ((err = async_share_out_finalize(data_callid, &trans->request.buffer.virt)))
+		return err;
+
+	/*
+	 * As we're going to get physical addresses of the mapping, we must make
+	 * sure the memory is actually mapped. We must do it right now, because
+	 * the area might be read-only or write-only, and we may be unsure
+	 * later.
+	 */
+	if (flags & AS_AREA_READ) {
+		char foo = 0;
+		volatile const char *buf = trans->request.buffer.virt + trans->request.offset;
+		for (size_t i = 0; i < size; i += PAGE_SIZE)
+			foo += buf[i];
+	} else {
+		volatile char *buf = trans->request.buffer.virt + trans->request.offset;
+		for (size_t i = 0; i < size; i += PAGE_SIZE)
+			buf[i] = 0xff;
 	}
 
-	async_answer_0(trans->caller, EOK);
-
-	async_transaction_destroy(trans);
+	return EOK;
 }
 
-void remote_usbhc_read(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
 {
 	assert(fun);
 	assert(iface);
 	assert(call);
 
-	const usbhc_iface_t *hc_iface = iface;
+	const usbhc_iface_t *usbhc_iface = iface;
 
-	if (!hc_iface->read) {
+	if (!usbhc_iface->transfer) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-
-	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
-	const uint64_t setup =
-	    ((uint64_t)DEV_IPC_GET_ARG2(*call)) |
-	    (((uint64_t)DEV_IPC_GET_ARG3(*call)) << 32);
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
@@ -291,77 +463,40 @@ void remote_usbhc_read(
 		return;
 	}
 
-	size_t size = 0;
-	if (!async_data_read_receive(&trans->data_caller, &size)) {
-		async_answer_0(callid, EPARTY);
-		return;
+	errno_t err = EPARTY;
+
+	ipc_callid_t data_callid;
+	size_t len;
+	if (!async_data_write_receive(&data_callid, &len)
+	    || len != sizeof(trans->request)) {
+		async_answer_0(data_callid, EINVAL);
+		goto err;
 	}
 
-	trans->buffer = malloc(size);
-	if (trans->buffer == NULL) {
-		async_answer_0(trans->data_caller, ENOMEM);
-		async_answer_0(callid, ENOMEM);
-		async_transaction_destroy(trans);
-		return;
+	if ((err = async_data_write_finalize(data_callid,
+			    &trans->request, sizeof(trans->request))))
+		goto err;
+
+	if (trans->request.size > 0) {
+		if ((err = receive_memory_buffer(trans)))
+			goto err;
+	} else {
+		/* The value was valid on the other side, for us, its garbage. */
+		trans->request.buffer.virt = NULL;
 	}
 
-	const errno_t rc = hc_iface->read(
-	    fun, target, setup, trans->buffer, size, callback_in, trans);
+	if ((err = usbhc_iface->transfer(fun, &trans->request,
+	    &transfer_finished, trans)))
+		goto err;
 
-	if (rc != EOK) {
-		async_answer_0(trans->data_caller, rc);
-		async_answer_0(callid, rc);
-		async_transaction_destroy(trans);
-	}
+	/* The call will be answered asynchronously by the callback. */
+	return;
+
+err:
+	async_answer_0(callid, err);
+	async_transaction_destroy(trans);
 }
 
-void remote_usbhc_write(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
-{
-	assert(fun);
-	assert(iface);
-	assert(call);
-
-	const usbhc_iface_t *hc_iface = iface;
-
-	if (!hc_iface->write) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	const usb_target_t target = { .packed = DEV_IPC_GET_ARG1(*call) };
-	const size_t data_buffer_len = DEV_IPC_GET_ARG2(*call);
-	const uint64_t setup =
-	    ((uint64_t)DEV_IPC_GET_ARG3(*call)) |
-	    (((uint64_t)DEV_IPC_GET_ARG4(*call)) << 32);
-
-	async_transaction_t *trans = async_transaction_create(callid);
-	if (trans == NULL) {
-		async_answer_0(callid, ENOMEM);
-		return;
-	}
-
-	size_t size = 0;
-	if (data_buffer_len > 0) {
-		const errno_t rc = async_data_write_accept(&trans->buffer, false,
-		    1, USB_MAX_PAYLOAD_SIZE,
-		    0, &size);
-
-		if (rc != EOK) {
-			async_answer_0(callid, rc);
-			async_transaction_destroy(trans);
-			return;
-		}
-	}
-
-	const errno_t rc = hc_iface->write(
-	    fun, target, setup, trans->buffer, size, callback_out, trans);
-
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_transaction_destroy(trans);
-	}
-}
 /**
  * @}
  */

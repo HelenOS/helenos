@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +37,7 @@
 #include <usb/usb.h>
 #include <mem.h>
 #include <macros.h>
+#include <usb/host/bus.h>
 
 #include "mem_access.h"
 #include "queue_head.h"
@@ -62,26 +64,26 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 		EHCI_MEM32_WR(instance->status, QH_STATUS_HALTED_FLAG);
 		return;
 	}
-	assert(ep->speed < ARRAY_SIZE(speed));
+	assert(ep->device->speed < ARRAY_SIZE(speed));
 	EHCI_MEM32_WR(instance->ep_char,
-	    QH_EP_CHAR_ADDR_SET(ep->address) |
+	    QH_EP_CHAR_ADDR_SET(ep->device->address) |
 	    QH_EP_CHAR_EP_SET(ep->endpoint) |
-	    speed[ep->speed] |
-	    QH_EP_CHAR_MAX_LENGTH_SET(ep->max_packet_size)
-	);
+	    speed[ep->device->speed] |
+	    QH_EP_CHAR_MAX_LENGTH_SET(ep->max_packet_size));
 	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
-		if (ep->speed != USB_SPEED_HIGH)
+		if (ep->device->speed != USB_SPEED_HIGH)
 			EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_C_FLAG);
 		/* Let BULK and INT use queue head managed toggle,
 		 * CONTROL needs special toggle handling anyway */
 		EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_DTC_FLAG);
 	}
 	uint32_t ep_cap = QH_EP_CAP_C_MASK_SET(3 << 2) |
-		    QH_EP_CAP_MULTI_SET(ep->packets);
-	if (ep->speed != USB_SPEED_HIGH) {
+	    QH_EP_CAP_MULTI_SET(ep->packets_per_uframe);
+	if (usb_speed_is_11(ep->device->speed)) {
+		assert(ep->device->tt.dev != NULL);
 		ep_cap |=
-		    QH_EP_CAP_TT_PORT_SET(ep->tt.port) |
-		    QH_EP_CAP_TT_ADDR_SET(ep->tt.address);
+		    QH_EP_CAP_TT_PORT_SET(ep->device->tt.port) |
+		    QH_EP_CAP_TT_ADDR_SET(ep->device->tt.dev->address);
 	}
 	if (ep->transfer_type == USB_TRANSFER_INTERRUPT) {
 		ep_cap |= QH_EP_CAP_S_MASK_SET(3);

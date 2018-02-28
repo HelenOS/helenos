@@ -43,19 +43,21 @@ typedef enum {
 	AUDIO_MIXER_IFACE,
 	/** Audio device pcm buffer interface */
 	AUDIO_PCM_BUFFER_IFACE,
-	
+
 	/** Network interface controller interface */
 	NIC_DEV_IFACE,
-		
+
 	/** IEEE 802.11 interface controller interface */
 	IEEE80211_DEV_IFACE,
-	
+
 	/** Interface provided by any PCI device. */
 	PCI_DEV_IFACE,
 
 	/** Interface provided by any USB device. */
 	USB_DEV_IFACE,
-	/** Interface provided by USB host controller. */
+	/** Interface provided by USB diagnostic devices. */
+	USBDIAG_DEV_IFACE,
+	/** Interface provided by USB host controller to USB device. */
 	USBHC_DEV_IFACE,
 	/** Interface provided by USB HID devices. */
 	USBHID_DEV_IFACE,

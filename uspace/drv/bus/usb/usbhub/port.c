@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,7 @@
 #include <str_error.h>
 #include <inttypes.h>
 #include <fibril_synch.h>
+#include <usbhc_iface.h>
 
 #include <usb/debug.h>
 
@@ -46,86 +48,238 @@
 #include "usbhub.h"
 #include "status.h"
 
-/** Information for fibril for device discovery. */
-struct add_device_phase1 {
-	usb_hub_dev_t *hub;
-	usb_hub_port_t *port;
-	usb_speed_t speed;
-};
+#define port_log(lvl, port, fmt, ...) do { \
+		usb_log_##lvl("(%p-%u): " fmt, \
+		    (port->hub), (port->port_number), ##__VA_ARGS__); \
+	} while (0)
 
-static errno_t usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub);
-static void usb_hub_port_reset_completed(usb_hub_port_t *port,
-    usb_hub_dev_t *hub, usb_port_status_t status);
-static errno_t get_port_status(usb_hub_port_t *port, usb_port_status_t *status);
-static errno_t add_device_phase1_worker_fibril(void *arg);
-static errno_t create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
-    usb_speed_t speed);
-
-errno_t usb_hub_port_fini(usb_hub_port_t *port, usb_hub_dev_t *hub)
+/** Initialize hub port information.
+ *
+ * @param port Port to be initialized.
+ */
+void usb_hub_port_init(usb_hub_port_t *port, usb_hub_dev_t *hub,
+    unsigned int port_number)
 {
 	assert(port);
-	if (port->device_attached)
-		return usb_hub_port_device_gone(port, hub);
+	memset(port, 0, sizeof(*port));
+	port->hub = hub;
+	port->port_number = port_number;
+	usb_port_init(&port->base);
+}
+
+static inline usb_hub_port_t *get_hub_port(usb_port_t *port)
+{
+	assert(port);
+	return (usb_hub_port_t *) port;
+}
+
+/**
+ * Inform the HC that the device on port is gone.
+ */
+static void remove_device(usb_port_t *port_base)
+{
+	usb_hub_port_t *port = get_hub_port(port_base);
+
+	async_exch_t *exch = usb_device_bus_exchange_begin(port->hub->usb_device);
+	if (!exch) {
+		port_log(error, port, "Cannot remove the device, "
+		    "failed creating exchange.");
+		return;
+	}
+	
+	const errno_t err = usbhc_device_remove(exch, port->port_number);
+	if (err)
+		port_log(error, port, "Failed to remove device: %s",
+		    str_error(err));
+
+	usb_device_bus_exchange_end(exch);
+}
+
+
+static usb_speed_t get_port_speed(usb_hub_port_t *port, uint32_t status)
+{
+	assert(port);
+	assert(port->hub);
+
+	return usb_port_speed(port->hub->speed, status);
+}
+
+/**
+ * Routine for adding a new device in USB2.
+ */
+static errno_t enumerate_device_usb2(usb_hub_port_t *port, async_exch_t *exch)
+{
+	errno_t err;
+
+	port_log(debug, port, "Requesting default address.");
+	err = usb_hub_reserve_default_address(port->hub, exch, &port->base);
+	if (err != EOK) {
+		port_log(error, port, "Failed to reserve default address: %s",
+		    str_error(err));
+		return err;
+	}
+
+	/* Reservation of default address could have blocked */
+	if (port->base.state != PORT_CONNECTING)
+		goto out_address;
+
+	port_log(debug, port, "Resetting port.");
+	if ((err = usb_hub_set_port_feature(port->hub, port->port_number,
+			    USB_HUB_FEATURE_PORT_RESET))) {
+		port_log(warning, port, "Port reset request failed: %s",
+		    str_error(err));
+		goto out_address;
+	}
+
+	if ((err = usb_port_wait_for_enabled(&port->base))) {
+		port_log(error, port, "Failed to reset port: %s",
+		    str_error(err));
+		goto out_address;
+	}
+
+	port_log(debug, port, "Enumerating device.");
+	if ((err = usbhc_device_enumerate(exch, port->port_number,
+			    port->speed))) {
+		port_log(error, port, "Failed to enumerate device: %s",
+		    str_error(err));
+		/* Disable the port */
+		usb_hub_clear_port_feature(port->hub, port->port_number,
+		    USB2_HUB_FEATURE_PORT_ENABLE);
+		goto out_address;
+	}
+
+	port_log(debug, port, "Device enumerated");
+
+out_address:
+	usb_hub_release_default_address(port->hub, exch);
+	return err;
+}
+
+/**
+ * Routine for adding a new device in USB 3.
+ */
+static errno_t enumerate_device_usb3(usb_hub_port_t *port, async_exch_t *exch)
+{
+	errno_t err;
+
+	port_log(debug, port, "Issuing a warm reset.");
+	if ((err = usb_hub_set_port_feature(port->hub, port->port_number,
+			    USB3_HUB_FEATURE_BH_PORT_RESET))) {
+		port_log(warning, port, "Port reset request failed: %s",
+		    str_error(err));
+		return err;
+	}
+
+	if ((err = usb_port_wait_for_enabled(&port->base))) {
+		port_log(error, port, "Failed to reset port: %s",
+		    str_error(err));
+		return err;
+	}
+
+	port_log(debug, port, "Enumerating device.");
+	if ((err = usbhc_device_enumerate(exch, port->port_number,
+			    port->speed))) {
+		port_log(error, port, "Failed to enumerate device: %s",
+		    str_error(err));
+		return err;
+	}
+
+	port_log(debug, port, "Device enumerated");
 	return EOK;
 }
 
-/**
- * Clear feature on hub port.
- *
- * @param port Port structure.
- * @param feature Feature selector.
- * @return Operation result
- */
-errno_t usb_hub_port_clear_feature(
-    usb_hub_port_t *port, usb_hub_class_feature_t feature)
+static errno_t enumerate_device(usb_port_t *port_base)
 {
-	assert(port);
-	const usb_device_request_setup_packet_t clear_request = {
-		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
-		.request = USB_DEVREQ_CLEAR_FEATURE,
-		.value = feature,
-		.index = port->port_number,
-		.length = 0,
-	};
-	return usb_pipe_control_write(port->control_pipe, &clear_request,
-	    sizeof(clear_request), NULL, 0);
+	usb_hub_port_t *port = get_hub_port(port_base);
+
+	port_log(debug, port, "Setting up new device.");
+	async_exch_t *exch = usb_device_bus_exchange_begin(port->hub->usb_device);
+	if (!exch) {
+		port_log(error, port, "Failed to create exchange.");
+		return ENOMEM;
+	}
+
+	const errno_t err = port->hub->speed == USB_SPEED_SUPER
+		? enumerate_device_usb3(port, exch)
+		: enumerate_device_usb2(port, exch);
+
+	usb_device_bus_exchange_end(exch);
+	return err;
 }
 
-/**
- * Set feature on hub port.
- *
- * @param port Port structure.
- * @param feature Feature selector.
- * @return Operation result
- */
-errno_t usb_hub_port_set_feature(
-    usb_hub_port_t *port, usb_hub_class_feature_t feature)
+static void port_changed_connection(usb_hub_port_t *port, usb_port_status_t status)
 {
-	assert(port);
-	const usb_device_request_setup_packet_t clear_request = {
-		.request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE,
-		.request = USB_DEVREQ_SET_FEATURE,
-		.index = port->port_number,
-		.value = feature,
-		.length = 0,
-	};
-	return usb_pipe_control_write(port->control_pipe, &clear_request,
-	    sizeof(clear_request), NULL, 0);
+	const bool connected = !!(status & USB_HUB_PORT_STATUS_CONNECTION);
+	port_log(debug, port, "Connection change: device %s.", connected
+	    ? "attached" : "removed");
+
+	if (connected) {
+		usb_port_connected(&port->base, &enumerate_device);
+	} else {
+		usb_port_disabled(&port->base, &remove_device);
+	}
 }
 
-/**
- * Mark reset process as failed due to external reasons
- *
- * @param port Port structure
- */
-void usb_hub_port_reset_fail(usb_hub_port_t *port)
+static void port_changed_enabled(usb_hub_port_t *port, usb_port_status_t status)
 {
-	assert(port);
-	fibril_mutex_lock(&port->mutex);
-	if (port->reset_status == IN_RESET)
-		port->reset_status = RESET_FAIL;
-	fibril_condvar_broadcast(&port->reset_cv);
-	fibril_mutex_unlock(&port->mutex);
+	const bool enabled = !!(status & USB_HUB_PORT_STATUS_ENABLE);
+	if (enabled) {
+		port_log(warning, port, "Port unexpectedly changed to enabled.");
+	} else {
+		usb_port_disabled(&port->base, &remove_device);
+	}
+}
+
+static void port_changed_overcurrent(usb_hub_port_t *port,
+    usb_port_status_t status)
+{
+	const bool overcurrent = !!(status & USB_HUB_PORT_STATUS_OC);
+
+	/* According to the USB specs:
+	 * 11.13.5 Over-current Reporting and Recovery
+	 * Hub device is responsible for putting port in power off
+	 * mode. USB system software is responsible for powering port
+	 * back on when the over-current condition is gone */
+
+	usb_port_disabled(&port->base, &remove_device);
+
+	if (!overcurrent) {
+		const errno_t err = usb_hub_set_port_feature(port->hub,
+		    port->port_number, USB_HUB_FEATURE_PORT_POWER);
+		if (err)
+			port_log(error, port, "Failed to set port power "
+			    "after OC: %s.", str_error(err));
+	}
+}
+
+static void port_changed_reset(usb_hub_port_t *port, usb_port_status_t status)
+{
+	const bool enabled = !!(status & USB_HUB_PORT_STATUS_ENABLE);
+
+	if (enabled) {
+		port->speed = get_port_speed(port, status);
+		usb_port_enabled(&port->base);
+	} else
+		usb_port_disabled(&port->base, &remove_device);
+}
+
+typedef void (*change_handler_t)(usb_hub_port_t *, usb_port_status_t);
+
+static void check_port_change(usb_hub_port_t *port, usb_port_status_t *status,
+    change_handler_t handler, usb_port_status_t mask,
+    usb_hub_class_feature_t feature)
+{
+	if ((*status & mask) == 0)
+		return;
+
+	/* Clear the change so it won't come again */
+	usb_hub_clear_port_feature(port->hub, port->port_number, feature);
+
+	if (handler)
+		handler(port, *status);
+
+	/* Mark the change as resolved */
+	*status &= ~mask;
 }
 
 /**
@@ -135,371 +289,51 @@ void usb_hub_port_reset_fail(usb_hub_port_t *port)
  * @param port port structure
  * @param hub hub representation
  */
-void usb_hub_port_process_interrupt(usb_hub_port_t *port, usb_hub_dev_t *hub)
+void usb_hub_port_process_interrupt(usb_hub_port_t *port)
 {
 	assert(port);
-	assert(hub);
-	usb_log_debug2("(%p-%u): Interrupt.\n", hub, port->port_number);
+	port_log(debug2, port, "Interrupt.");
 
 	usb_port_status_t status = 0;
-	const errno_t opResult = get_port_status(port, &status);
-	if (opResult != EOK) {
-		usb_log_error("(%p-%u): Failed to get port status: %s.\n", hub,
-		    port->port_number, str_error(opResult));
+	const errno_t err = usb_hub_get_port_status(port->hub,
+	    port->port_number, &status);
+	if (err != EOK) {
+		port_log(error, port, "Failed to get port status: %s.",
+		    str_error(err));
 		return;
 	}
 
-	/* Connection change */
-	if (status & USB_HUB_PORT_C_STATUS_CONNECTION) {
-		const bool connected =
-		    (status & USB_HUB_PORT_STATUS_CONNECTION) != 0;
-		usb_log_debug("(%p-%u): Connection change: device %s.\n", hub,
-		    port->port_number, connected ? "attached" : "removed");
+	check_port_change(port, &status, &port_changed_connection,
+	    USB_HUB_PORT_STATUS_C_CONNECTION,
+	    USB_HUB_FEATURE_C_PORT_CONNECTION);
 
-		/* ACK the change */
-		const errno_t opResult = usb_hub_port_clear_feature(port,
-		    USB_HUB_FEATURE_C_PORT_CONNECTION);
-		if (opResult != EOK) {
-			usb_log_warning("(%p-%u): Failed to clear "
-			    "port-change-connection flag: %s.\n", hub,
-			    port->port_number, str_error(opResult));
-		}
+	check_port_change(port, &status, &port_changed_overcurrent,
+	    USB_HUB_PORT_STATUS_C_OC, USB_HUB_FEATURE_C_PORT_OVER_CURRENT);
 
-		if (connected) {
-			const errno_t opResult = create_add_device_fibril(port, hub,
-			    usb_port_speed(status));
-			if (opResult != EOK) {
-				usb_log_error("(%p-%u): Cannot handle change on"
-				   " port: %s.\n", hub, port->port_number,
-				   str_error(opResult));
-			}
-		} else {
-			/* Handle the case we were in reset */
-			// FIXME: usb_hub_port_reset_fail(port);
-			/* If enabled change was reported leave the removal
-			 * to that handler, it shall ACK the change too. */
-			if (!(status & USB_HUB_PORT_C_STATUS_ENABLED)) {
-				usb_hub_port_device_gone(port, hub);
-			}
-		}
-	}
+	check_port_change(port, &status, &port_changed_reset,
+	    USB_HUB_PORT_STATUS_C_RESET, USB_HUB_FEATURE_C_PORT_RESET);
 
-	/* Enable change, ports are automatically disabled on errors. */
-	if (status & USB_HUB_PORT_C_STATUS_ENABLED) {
-		// TODO: maybe HS reset failed?
-		usb_log_info("(%p-%u): Port disabled because of errors.\n", hub,
-		   port->port_number);
-		usb_hub_port_device_gone(port, hub);
-		const errno_t rc = usb_hub_port_clear_feature(port,
-		        USB_HUB_FEATURE_C_PORT_ENABLE);
-		if (rc != EOK) {
-			usb_log_error("(%p-%u): Failed to clear port enable "
-			    "change feature: %s.", hub, port->port_number,
-			    str_error(rc));
-		}
-
-	}
-
-	/* Suspend change */
-	if (status & USB_HUB_PORT_C_STATUS_SUSPEND) {
-		usb_log_error("(%p-%u): Port went to suspend state, this should"
-		    " NOT happen as we do not support suspend state!", hub,
-		    port->port_number);
-		const errno_t rc = usb_hub_port_clear_feature(port,
-		        USB_HUB_FEATURE_C_PORT_SUSPEND);
-		if (rc != EOK) {
-			usb_log_error("(%p-%u): Failed to clear port suspend "
-			    "change feature: %s.", hub, port->port_number,
-			    str_error(rc));
-		}
-	}
-
-	/* Over current */
-	if (status & USB_HUB_PORT_C_STATUS_OC) {
-		usb_log_debug("(%p-%u): Port OC reported!.", hub,
-		    port->port_number);
-		/* According to the USB specs:
-		 * 11.13.5 Over-current Reporting and Recovery
-		 * Hub device is responsible for putting port in power off
-		 * mode. USB system software is responsible for powering port
-		 * back on when the over-current condition is gone */
-		const errno_t rc = usb_hub_port_clear_feature(port,
-		    USB_HUB_FEATURE_C_PORT_OVER_CURRENT);
-		if (rc != EOK) {
-			usb_log_error("(%p-%u): Failed to clear port OC change "
-			    "feature: %s.\n", hub, port->port_number,
-			    str_error(rc));
-		}
-		if (!(status & ~USB_HUB_PORT_STATUS_OC)) {
-			const errno_t rc = usb_hub_port_set_feature(
-			    port, USB_HUB_FEATURE_PORT_POWER);
-			if (rc != EOK) {
-				usb_log_error("(%p-%u): Failed to set port "
-				    "power after OC: %s.", hub,
-				    port->port_number, str_error(rc));
-			}
-		}
-	}
-
-	/* Port reset, set on port reset complete. */
-	if (status & USB_HUB_PORT_C_STATUS_RESET) {
-		usb_hub_port_reset_completed(port, hub, status);
-	}
-
-	usb_log_debug2("(%p-%u): Port status %#08" PRIx32, hub,
-	    port->port_number, status);
-}
-
-/**
- * routine called when a device on port has been removed
- *
- * If the device on port had default address, it releases default address.
- * Otherwise does not do anything, because DDF does not allow to remove device
- * from it`s device tree.
- * @param port port structure
- * @param hub hub representation
- */
-errno_t usb_hub_port_device_gone(usb_hub_port_t *port, usb_hub_dev_t *hub)
-{
-	assert(port);
-	assert(hub);
-	async_exch_t *exch = usb_device_bus_exchange_begin(hub->usb_device);
-	if (!exch)
-		return ENOMEM;
-	const errno_t rc = usb_device_remove(exch, port->port_number);
-	usb_device_bus_exchange_end(exch);
-	if (rc == EOK)
-		port->device_attached = false;
-	return rc;
-
-}
-
-/**
- * Process port reset change
- *
- * After this change port should be enabled, unless some problem occurred.
- * This functions triggers second phase of enabling new device.
- * @param port Port structure
- * @param status Port status mask
- */
-void usb_hub_port_reset_completed(usb_hub_port_t *port, usb_hub_dev_t *hub,
-    usb_port_status_t status)
-{
-	assert(port);
-	fibril_mutex_lock(&port->mutex);
-	const bool enabled = (status & USB_HUB_PORT_STATUS_ENABLED) != 0;
-	/* Finalize device adding. */
-
-	if (enabled) {
-		port->reset_status = RESET_OK;
-		usb_log_debug("(%p-%u): Port reset complete.\n", hub,
-		    port->port_number);
+	if (port->hub->speed <= USB_SPEED_HIGH) {
+		check_port_change(port, &status, &port_changed_enabled,
+		    USB2_HUB_PORT_STATUS_C_ENABLE,
+		    USB2_HUB_FEATURE_C_PORT_ENABLE);
 	} else {
-		port->reset_status = RESET_FAIL;
-		usb_log_warning("(%p-%u): Port reset complete but port not "
-		    "enabled.", hub, port->port_number);
-	}
-	fibril_condvar_broadcast(&port->reset_cv);
-	fibril_mutex_unlock(&port->mutex);
+		check_port_change(port, &status, &port_changed_reset,
+		    USB3_HUB_PORT_STATUS_C_BH_RESET,
+		    USB3_HUB_FEATURE_C_BH_PORT_RESET);
 
-	/* Clear the port reset change. */
-	errno_t rc = usb_hub_port_clear_feature(port, USB_HUB_FEATURE_C_PORT_RESET);
-	if (rc != EOK) {
-		usb_log_error("(%p-%u): Failed to clear port reset change: %s.",
-		    hub, port->port_number, str_error(rc));
-	}
-}
-
-/** Retrieve port status.
- *
- * @param[in] port Port structure
- * @param[out] status Where to store the port status.
- * @return Error code.
- */
-static errno_t get_port_status(usb_hub_port_t *port, usb_port_status_t *status)
-{
-	assert(port);
-	/* USB hub specific GET_PORT_STATUS request. See USB Spec 11.16.2.6
-	 * Generic GET_STATUS request cannot be used because of the difference
-	 * in status data size (2B vs. 4B)*/
-	const usb_device_request_setup_packet_t request = {
-		.request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS,
-		.request = USB_HUB_REQUEST_GET_STATUS,
-		.value = 0,
-		.index = uint16_host2usb(port->port_number),
-		.length = sizeof(usb_port_status_t),
-	};
-	size_t recv_size;
-	usb_port_status_t status_tmp;
-
-	const errno_t rc = usb_pipe_control_read(port->control_pipe,
-	    &request, sizeof(usb_device_request_setup_packet_t),
-	    &status_tmp, sizeof(status_tmp), &recv_size);
-	if (rc != EOK) {
-		return rc;
+		check_port_change(port, &status, NULL,
+		    USB3_HUB_PORT_STATUS_C_LINK_STATE,
+		    USB3_HUB_FEATURE_C_PORT_LINK_STATE);
 	}
 
-	if (recv_size != sizeof (status_tmp)) {
-		return ELIMIT;
-	}
-
-	if (status != NULL) {
-		*status = status_tmp;
-	}
-
-	return EOK;
-}
-
-static errno_t port_enable(usb_hub_port_t *port, usb_hub_dev_t *hub, bool enable)
-{
-	if (enable) {
-		errno_t rc =
-		    usb_hub_port_set_feature(port, USB_HUB_FEATURE_PORT_RESET);
-		if (rc != EOK) {
-			usb_log_error("(%p-%u): Port reset request failed: %s.",
-			    hub, port->port_number, str_error(rc));
-			return rc;
-		}
-		/* Wait until reset completes. */
-		fibril_mutex_lock(&port->mutex);
-		port->reset_status = IN_RESET;
-		while (port->reset_status == IN_RESET)
-			fibril_condvar_wait(&port->reset_cv, &port->mutex);
-		rc = port->reset_status == RESET_OK ? EOK : ESTALL;
-		fibril_mutex_unlock(&port->mutex);
-		return rc;
-	} else {
-		return usb_hub_port_clear_feature(port,
-				USB_HUB_FEATURE_PORT_ENABLE);
+	/* Check for changes we ignored */
+	if (status & 0xffff0000) {
+		port_log(debug, port, "Port status change igored. "
+		    "Status: %#08" PRIx32, status);
 	}
 }
 
-/** Fibril for adding a new device.
- *
- * Separate fibril is needed because the port reset completion is announced
- * via interrupt pipe and thus we cannot block here.
- *
- * @param arg Pointer to struct add_device_phase1.
- * @return 0 Always.
- */
-errno_t add_device_phase1_worker_fibril(void *arg)
-{
-	struct add_device_phase1 *params = arg;
-	assert(params);
-
-	errno_t ret = EOK;
-	usb_hub_dev_t *hub = params->hub;
-	usb_hub_port_t *port = params->port;
-	const usb_speed_t speed = params->speed;
-	free(arg);
-
-	usb_log_debug("(%p-%u): New device sequence.", hub, port->port_number);
-
-	async_exch_t *exch = usb_device_bus_exchange_begin(hub->usb_device);
-	if (!exch) {
-		usb_log_error("(%p-%u): Failed to begin bus exchange.", hub,
-		    port->port_number);
-		ret = ENOMEM;
-		goto out;
-	}
-
-	/* Reserve default address */
-	while ((ret = usb_reserve_default_address(exch, speed)) == ENOENT) {
-		async_usleep(1000000);
-	}
-	if (ret != EOK) {
-		usb_log_error("(%p-%u): Failed to reserve default address: %s",
-		    hub, port->port_number, str_error(ret));
-		goto out;
-	}
-
-	usb_log_debug("(%p-%u): Got default address reseting port.", hub,
-	    port->port_number);
-	/* Reset port */
-	ret = port_enable(port, hub, true);
-	if (ret != EOK) {
-		usb_log_error("(%p-%u): Failed to reset port.", hub,
-		    port->port_number);
-		if (usb_release_default_address(exch) != EOK)
-			usb_log_warning("(%p-%u): Failed to release default "
-			    "address.", hub, port->port_number);
-		ret = EIO;
-		goto out;
-	}
-	usb_log_debug("(%p-%u): Port reset, enumerating device", hub,
-	    port->port_number);
-
-	ret = usb_device_enumerate(exch, port->port_number);
-	if (ret != EOK) {
-		usb_log_error("(%p-%u): Failed to enumerate device: %s", hub,
-		    port->port_number, str_error(ret));
-		const errno_t ret = port_enable(port, hub, false);
-		if (ret != EOK) {
-			usb_log_warning("(%p-%u)Failed to disable port (%s), "
-			    "NOT releasing default address.", hub,
-			    port->port_number, str_error(ret));
-		} else {
-			const errno_t ret = usb_release_default_address(exch);
-			if (ret != EOK)
-				usb_log_warning("(%p-%u): Failed to release "
-				    "default address: %s", hub,
-				    port->port_number, str_error(ret));
-		}
-	} else {
-		usb_log_debug("(%p-%u): Device enumerated", hub,
-		    port->port_number);
-		port->device_attached = true;
-		if (usb_release_default_address(exch) != EOK)
-			usb_log_warning("(%p-%u): Failed to release default "
-			    "address", hub, port->port_number);
-	}
-out:
-	usb_device_bus_exchange_end(exch);
-
-	fibril_mutex_lock(&hub->pending_ops_mutex);
-	assert(hub->pending_ops_count > 0);
-	--hub->pending_ops_count;
-	fibril_condvar_signal(&hub->pending_ops_cv);
-	fibril_mutex_unlock(&hub->pending_ops_mutex);
-
-	return ret;
-}
-
-/** Start device adding when connection change is detected.
- *
- * This fires a new fibril to complete the device addition.
- *
- * @param hub Hub where the change occured.
- * @param port Port index (starting at 1).
- * @param speed Speed of the device.
- * @return Error code.
- */
-static errno_t create_add_device_fibril(usb_hub_port_t *port, usb_hub_dev_t *hub,
-    usb_speed_t speed)
-{
-	assert(hub);
-	assert(port);
-	struct add_device_phase1 *data
-	    = malloc(sizeof(struct add_device_phase1));
-	if (data == NULL) {
-		return ENOMEM;
-	}
-	data->hub = hub;
-	data->port = port;
-	data->speed = speed;
-
-	fid_t fibril = fibril_create(add_device_phase1_worker_fibril, data);
-	if (fibril == 0) {
-		free(data);
-		return ENOMEM;
-	}
-	fibril_mutex_lock(&hub->pending_ops_mutex);
-	++hub->pending_ops_count;
-	fibril_mutex_unlock(&hub->pending_ops_mutex);
-	fibril_add_ready(fibril);
-
-	return EOK;
-}
 
 /**
  * @}

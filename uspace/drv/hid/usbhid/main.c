@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
  * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2018 Petr Manek, Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,10 +58,10 @@
  */
 static errno_t usb_hid_device_add(usb_device_t *dev)
 {
-	usb_log_debug("%s\n", __FUNCTION__);
+	usb_log_debug("%s", __FUNCTION__);
 
 	if (dev == NULL) {
-		usb_log_error("Wrong parameter given for add_device().\n");
+		usb_log_error("Wrong parameter given for add_device().");
 		return EINVAL;
 	}
 
@@ -72,45 +73,49 @@ static errno_t usb_hid_device_add(usb_device_t *dev)
 	usb_hid_dev_t *hid_dev =
 	    usb_device_data_alloc(dev, sizeof(usb_hid_dev_t));
 	if (hid_dev == NULL) {
-		usb_log_error("Failed to create USB/HID device structure.\n");
+		usb_log_error("Failed to create USB/HID device structure.");
 		return ENOMEM;
 	}
 
 	errno_t rc = usb_hid_init(hid_dev, dev);
 	if (rc != EOK) {
-		usb_log_error("Failed to initialize USB/HID device.\n");
+		usb_log_error("Failed to initialize USB/HID device.");
 		usb_hid_deinit(hid_dev);
 		return rc;
 	}
 
-	usb_log_debug("USB/HID device structure initialized.\n");
+	usb_log_debug("USB/HID device structure initialized.");
 
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
 	 * for the data continuously. */
-	rc = usb_device_auto_poll_desc(dev,
-	   /* Index of the polling pipe. */
-	   hid_dev->poll_pipe_mapping->description,
-	   /* Callback when data arrives. */
-	   usb_hid_polling_callback,
-	   /* How much data to request. */
-	   hid_dev->poll_pipe_mapping->pipe.max_packet_size,
-	   /* Delay */
-	   -1,
-	   /* Callback when the polling ends. */
-	   usb_hid_polling_ended_callback,
-	   /* Custom argument. */
-	   hid_dev);
+	rc = usb_polling_start(&hid_dev->polling);
 
 	if (rc != EOK) {
-		usb_log_error("Failed to start polling fibril for `%s'.\n",
+		usb_log_error("Failed to start polling fibril for `%s'.",
 		    usb_device_get_name(dev));
 		usb_hid_deinit(hid_dev);
 		return rc;
 	}
 	hid_dev->running = true;
 
-	usb_log_info("HID device `%s' ready.\n", usb_device_get_name(dev));
+	usb_log_info("HID device `%s' ready.", usb_device_get_name(dev));
+
+	return EOK;
+}
+
+static errno_t join_and_clean(usb_device_t *dev)
+{
+	assert(dev);
+	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
+	assert(hid_dev);
+
+	/* Join polling fibril (ignoring error code). */
+	usb_polling_join(&hid_dev->polling);
+
+	/* Clean up. */
+	usb_hid_deinit(hid_dev);
+	usb_log_info("%s destruction complete.", usb_device_get_name(dev));
 
 	return EOK;
 }
@@ -121,11 +126,14 @@ static errno_t usb_hid_device_add(usb_device_t *dev)
  * @param dev Structure representing the device.
  * @return Error code.
  */
-static errno_t usb_hid_device_rem(usb_device_t *dev)
+static errno_t usb_hid_device_remove(usb_device_t *dev)
 {
-	// TODO: Stop device polling
-	// TODO: Call deinit (stops autorepeat too)
-	return ENOTSUP;
+	assert(dev);
+	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
+	assert(hid_dev);
+
+	usb_log_info("Device %s removed.", usb_device_get_name(dev));
+	return join_and_clean(dev);
 }
 
 /**
@@ -139,25 +147,15 @@ static errno_t usb_hid_device_gone(usb_device_t *dev)
 	assert(dev);
 	usb_hid_dev_t *hid_dev = usb_device_data_get(dev);
 	assert(hid_dev);
-	unsigned tries = 100;
-	/* Wait for fail. */
-	while (hid_dev->running && tries--) {
-		async_usleep(100000);
-	}
-	if (hid_dev->running) {
-		usb_log_error("Can't remove hid, still running.\n");
-		return EBUSY;
-	}
 
-	usb_hid_deinit(hid_dev);
-	usb_log_debug2("%s destruction complete.\n", usb_device_get_name(dev));
-	return EOK;
+	usb_log_info("Device %s gone.", usb_device_get_name(dev));
+	return join_and_clean(dev);
 }
 
 /** USB generic driver callbacks */
 static const usb_driver_ops_t usb_hid_driver_ops = {
 	.device_add = usb_hid_device_add,
-	.device_rem = usb_hid_device_rem,
+	.device_remove = usb_hid_device_remove,
 	.device_gone = usb_hid_device_gone,
 };
 

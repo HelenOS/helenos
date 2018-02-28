@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek, Michal Staruch
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +48,7 @@
 #include <async.h>
 #include <devman.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdlib.h>
 
 #include <ddf/driver.h>
@@ -55,39 +57,48 @@
 struct usb_device {
 	/** Connection to device on USB bus */
 	usb_dev_session_t *bus_session;
-	
+
 	/** devman handle */
 	devman_handle_t handle;
-	
+
 	/** The default control pipe. */
 	usb_pipe_t ctrl_pipe;
-	
+
 	/** Other endpoint pipes.
 	 *
 	 * This is an array of other endpoint pipes in the same order as
 	 * in usb_driver_t.
 	 */
 	usb_endpoint_mapping_t *pipes;
-	
+
 	/** Number of other endpoint pipes. */
 	size_t pipes_count;
-	
+
+	/** USB address of this device */
+	usb_address_t address;
+
+	/** Depth in the USB hub hiearchy */
+	unsigned depth;
+
+	/** USB speed of this device */
+	usb_speed_t speed;
+
 	/** Current interface.
 	 *
 	 * Usually, drivers operate on single interface only.
 	 * This item contains the value of the interface or -1 for any.
 	 */
 	int interface_no;
-	
+
 	/** Alternative interfaces. */
 	usb_alternate_interfaces_t alternate_interfaces;
-	
+
 	/** Some useful descriptors for USB device. */
 	usb_device_descriptors_t descriptors;
-	
+
 	/** Generic DDF device backing this one. DO NOT TOUCH! */
 	ddf_dev_t *ddf_dev;
-	
+
 	/** Custom driver data.
 	 *
 	 * Do not use the entry in generic device, that is already used
@@ -145,7 +156,7 @@ errno_t usb_device_select_interface(usb_device_t *usb_dev,
 	if (rc != EOK) {
 		return rc;
 	}
-	
+
 	/* Change current alternative */
 	usb_dev->alternate_interfaces.current = alternate_setting;
 
@@ -254,14 +265,15 @@ errno_t usb_device_create_pipes(usb_device_t *usb_dev,
 	}
 
 	/* Register created pipes. */
+	unsigned pipes_registered = 0;
 	for (size_t i = 0; i < pipe_count; i++) {
 		if (pipes[i].present) {
-			rc = usb_pipe_register(&pipes[i].pipe,
-			    pipes[i].descriptor->poll_interval);
+			rc = usb_pipe_register(&pipes[i].pipe, pipes[i].descriptor, pipes[i].companion_descriptor);
 			if (rc != EOK) {
 				goto rollback_unregister_endpoints;
 			}
 		}
+		pipes_registered++;
 	}
 
 	usb_dev->pipes = pipes;
@@ -276,7 +288,7 @@ errno_t usb_device_create_pipes(usb_device_t *usb_dev,
 	 * endpoints fails.
 	 */
 rollback_unregister_endpoints:
-	for (size_t i = 0; i < pipe_count; i++) {
+	for (size_t i = 0; i < pipes_registered; i++) {
 		if (pipes[i].present) {
 			usb_pipe_unregister(&pipes[i].pipe);
 		}
@@ -295,15 +307,18 @@ void usb_device_destroy_pipes(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	assert(usb_dev->pipes || usb_dev->pipes_count == 0);
-	
+
 	/* Destroy the pipes. */
+	int rc;
 	for (size_t i = 0; i < usb_dev->pipes_count; ++i) {
-		usb_log_debug2("Unregistering pipe %zu: %spresent.\n",
+		usb_log_debug2("Unregistering pipe %zu: %spresent.",
 		    i, usb_dev->pipes[i].present ? "" : "not ");
-		if (usb_dev->pipes[i].present)
-			usb_pipe_unregister(&usb_dev->pipes[i].pipe);
+
+		rc = usb_device_unmap_ep(usb_dev->pipes + i);
+		if (rc != EOK && rc != ENOENT)
+			usb_log_warning("Unregistering pipe %zu failed: %s", i, str_error(rc));
 	}
-	
+
 	free(usb_dev->pipes);
 	usb_dev->pipes = NULL;
 	usb_dev->pipes_count = 0;
@@ -326,24 +341,46 @@ usb_endpoint_mapping_t *usb_device_get_mapped_ep_desc(usb_device_t *usb_dev,
 	return NULL;
 }
 
-usb_endpoint_mapping_t * usb_device_get_mapped_ep(
-    usb_device_t *usb_dev, usb_endpoint_t ep)
+int usb_device_unmap_ep(usb_endpoint_mapping_t *epm)
 {
-	assert(usb_dev);
-	for (unsigned i = 0; i < usb_dev->pipes_count; ++i) {
-		if (usb_dev->pipes[i].pipe.endpoint_no == ep)
-			return &usb_dev->pipes[i];
-	}
-	return NULL;
+	assert(epm);
+
+	if (!epm->present)
+		return ENOENT;
+
+	const int rc = usb_pipe_unregister(&epm->pipe);
+	if (rc != EOK)
+		return rc;
+
+	epm->present = false;
+	return EOK;
 }
 
-int usb_device_get_iface_number(usb_device_t *usb_dev)
+usb_address_t usb_device_get_address(const usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->depth;
+}
+
+unsigned usb_device_get_depth(const usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->depth;
+}
+
+usb_speed_t usb_device_get_speed(const usb_device_t *usb_dev)
+{
+	assert(usb_dev);
+	return usb_dev->speed;
+}
+
+int usb_device_get_iface_number(const usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_dev->interface_no;
 }
 
-devman_handle_t usb_device_get_devman_handle(usb_device_t *usb_dev)
+devman_handle_t usb_device_get_devman_handle(const usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_dev->handle;
@@ -393,8 +430,7 @@ static void usb_device_fini(usb_device_t *usb_dev)
  * @return Error code.
  */
 static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
-    const usb_endpoint_description_t **endpoints, const char **errstr_ptr,
-    devman_handle_t handle, int interface_no)
+    const usb_endpoint_description_t **endpoints, const char **errstr_ptr)
 {
 	assert(usb_dev != NULL);
 	assert(errstr_ptr);
@@ -402,15 +438,13 @@ static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	*errstr_ptr = NULL;
 
 	usb_dev->ddf_dev = ddf_dev;
-	usb_dev->handle = handle;
-	usb_dev->interface_no = interface_no;
 	usb_dev->driver_data = NULL;
 	usb_dev->descriptors.full_config = NULL;
 	usb_dev->descriptors.full_config_size = 0;
 	usb_dev->pipes_count = 0;
 	usb_dev->pipes = NULL;
 
-	usb_dev->bus_session = usb_dev_connect(handle);
+	usb_dev->bus_session = usb_dev_connect(usb_dev->handle);
 
 	if (!usb_dev->bus_session) {
 		*errstr_ptr = "device bus session create";
@@ -419,8 +453,7 @@ static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 
 	/* This pipe was registered by the hub driver,
 	 * during device initialization. */
-	errno_t rc = usb_pipe_initialize_default_control(
-	    &usb_dev->ctrl_pipe, usb_dev->bus_session);
+	errno_t rc = usb_pipe_initialize_default_control(&usb_dev->ctrl_pipe, usb_dev->bus_session);
 	if (rc != EOK) {
 		usb_dev_disconnect(usb_dev->bus_session);
 		*errstr_ptr = "default control pipe initialization";
@@ -439,7 +472,7 @@ static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	 * We might either control one interface or an entire device,
 	 * it makes no sense to speak about alternate interfaces when
 	 * controlling a device. */
-	rc = usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
+	usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
 	    usb_dev->descriptors.full_config,
 	    usb_dev->descriptors.full_config_size, usb_dev->interface_no);
 
@@ -456,25 +489,25 @@ static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 	return EOK;
 }
 
-static errno_t usb_device_get_info(async_sess_t *sess, devman_handle_t *handle,
-	int *iface_no)
+static errno_t usb_device_get_info(async_sess_t *sess, usb_device_t *dev)
 {
-	assert(handle);
-	assert(iface_no);
-	
+	assert(dev);
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)
 		return EPARTY;
-	
-	errno_t ret = usb_get_my_device_handle(exch, handle);
+
+	usb_device_desc_t dev_desc;
+	const errno_t ret = usb_get_my_description(exch, &dev_desc);
+
 	if (ret == EOK) {
-		ret = usb_get_my_interface(exch, iface_no);
-		if (ret == ENOTSUP) {
-			*iface_no = -1;
-			ret = EOK;
-		}
+		dev->address = dev_desc.address;
+		dev->depth = dev_desc.depth;
+		dev->speed = dev_desc.speed;
+		dev->handle = dev_desc.handle;
+		dev->interface_no = dev_desc.iface;
 	}
-	
+
 	async_exchange_end(exch);
 	return ret;
 }
@@ -485,15 +518,9 @@ errno_t usb_device_create_ddf(ddf_dev_t *ddf_dev,
 	assert(ddf_dev);
 	assert(err);
 
-	devman_handle_t h = 0;
-	int iface_no = -1;
-
 	async_sess_t *sess = ddf_dev_parent_sess_get(ddf_dev);
 	if (sess == NULL)
 		return ENOMEM;
-	const errno_t ret = usb_device_get_info(sess, &h, &iface_no);
-	if (ret != EOK)
-		return ret;
 
 	usb_device_t *usb_dev =
 	    ddf_dev_data_alloc(ddf_dev, sizeof(usb_device_t));
@@ -501,8 +528,12 @@ errno_t usb_device_create_ddf(ddf_dev_t *ddf_dev,
 		*err = "DDF data alloc";
 		return ENOMEM;
 	}
-	
-	return usb_device_init(usb_dev, ddf_dev, desc, err, h, iface_no);
+
+	const errno_t ret = usb_device_get_info(sess, usb_dev);
+	if (ret != EOK)
+		return ret;
+
+	return usb_device_init(usb_dev, ddf_dev, desc, err);
 }
 
 void usb_device_destroy_ddf(ddf_dev_t *ddf_dev)
@@ -516,22 +547,21 @@ void usb_device_destroy_ddf(ddf_dev_t *ddf_dev)
 
 usb_device_t * usb_device_create(devman_handle_t handle)
 {
-	devman_handle_t h = 0;
-	int iface_no = -1;
-
-	async_sess_t *sess = devman_device_connect(handle, IPC_FLAG_BLOCKING);
-	errno_t ret = usb_device_get_info(sess, &h, &iface_no);
-	if (sess)
-		async_hangup(sess);
-	if (ret != EOK)
-		return NULL;
-
 	usb_device_t *usb_dev = malloc(sizeof(usb_device_t));
 	if (!usb_dev)
 		return NULL;
 
+	async_sess_t *sess = devman_device_connect(handle, IPC_FLAG_BLOCKING);
+	errno_t ret = usb_device_get_info(sess, usb_dev);
+	if (sess)
+		async_hangup(sess);
+	if (ret != EOK) {
+		free(usb_dev);
+		return NULL;
+	}
+
 	const char* dummy = NULL;
-	ret = usb_device_init(usb_dev, NULL, NULL, &dummy, handle, iface_no);
+	ret = usb_device_init(usb_dev, NULL, NULL, &dummy);
 	if (ret != EOK) {
 		free(usb_dev);
 		usb_dev = NULL;

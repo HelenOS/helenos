@@ -68,12 +68,12 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 {
 	unsigned int delay = 0;
 
-	usb_log_debug("Starting autorepeat loop.\n");
+	usb_log_debug("Starting autorepeat loop.");
 
 	while (true) {
 		/* Check if the kbd structure is usable. */
 		if (!usb_kbd_is_initialized(kbd)) {
-			usb_log_warning("kbd not ready, exiting autorepeat.\n");
+			usb_log_warning("kbd not ready, exiting autorepeat.");
 			return;
 		}
 
@@ -81,20 +81,20 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 
 		if (kbd->repeat.key_new > 0) {
 			if (kbd->repeat.key_new == kbd->repeat.key_repeated) {
-				usb_log_debug2("Repeating key: %u.\n",
+				usb_log_debug2("Repeating key: %u.",
 				    kbd->repeat.key_repeated);
 				usb_kbd_push_ev(kbd, KEY_PRESS,
 				    kbd->repeat.key_repeated);
 				delay = kbd->repeat.delay_between;
 			} else {
-				usb_log_debug2("New key to repeat: %u.\n",
+				usb_log_debug2("New key to repeat: %u.",
 				    kbd->repeat.key_new);
 				kbd->repeat.key_repeated = kbd->repeat.key_new;
 				delay = kbd->repeat.delay_before;
 			}
 		} else {
 			if (kbd->repeat.key_repeated > 0) {
-				usb_log_debug2("Stopping to repeat key: %u.\n",
+				usb_log_debug2("Stopping to repeat key: %u.",
 				    kbd->repeat.key_repeated);
 				kbd->repeat.key_repeated = 0;
 			}
@@ -118,10 +118,10 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
  */
 errno_t usb_kbd_repeat_fibril(void *arg)
 {
-	usb_log_debug("Autorepeat fibril spawned.\n");
+	usb_log_debug("Autorepeat fibril spawned.");
 
 	if (arg == NULL) {
-		usb_log_error("No device!\n");
+		usb_log_error("No device!");
 		return EINVAL;
 	}
 

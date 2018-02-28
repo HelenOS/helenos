@@ -44,13 +44,13 @@ void interface_life_live(vuhid_interface_t *iface)
 	data->data_in_pos = 0;
 	data->data_in_last_pos = (size_t) -1;
 	async_usleep(1000 * 1000 * 5);
-	usb_log_debug("%s\n", data->msg_born);
+	usb_log_debug("%s", data->msg_born);
 	while (data->data_in_pos < data->data_in_count) {
 		async_usleep(1000 * data->data_in_pos_change_delay);
 		// FIXME: proper locking
 		data->data_in_pos++;
 	}
-	usb_log_debug("%s\n", data->msg_die);
+	usb_log_debug("%s", data->msg_die);
 }
 
 

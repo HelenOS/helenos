@@ -136,7 +136,7 @@ static errno_t req_clear_port_feature(usbvirt_device_t *dev,
 	hub_port_state_t port_state = hub_get_port_state(hub, port);
 
 	switch (feature) {
-		case USB_HUB_FEATURE_PORT_ENABLE:
+		case USB2_HUB_FEATURE_PORT_ENABLE:
 			if ((port_state != HUB_PORT_STATE_NOT_CONFIGURED)
 			    && (port_state != HUB_PORT_STATE_POWERED_OFF)) {
 				hub_set_port_state(hub, port, HUB_PORT_STATE_DISABLED);
@@ -144,7 +144,7 @@ static errno_t req_clear_port_feature(usbvirt_device_t *dev,
 			rc = EOK;
 			break;
 
-		case USB_HUB_FEATURE_PORT_SUSPEND:
+		case USB2_HUB_FEATURE_PORT_SUSPEND:
 			if (port_state != HUB_PORT_STATE_SUSPENDED) {
 				rc = EOK;
 				break;
@@ -165,12 +165,12 @@ static errno_t req_clear_port_feature(usbvirt_device_t *dev,
 			rc = EOK;
 			break;
 
-		case USB_HUB_FEATURE_C_PORT_ENABLE:
+		case USB2_HUB_FEATURE_C_PORT_ENABLE:
 			hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_ENABLE);
 			rc = EOK;
 			break;
 
-		case USB_HUB_FEATURE_C_PORT_SUSPEND:
+		case USB2_HUB_FEATURE_C_PORT_SUSPEND:
 			hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_SUSPEND);
 			rc = EOK;
 			break;
@@ -316,7 +316,7 @@ static errno_t req_set_port_feature(usbvirt_device_t *dev,
 			rc = EOK;
 			break;
 
-		case USB_HUB_FEATURE_PORT_SUSPEND:
+		case USB2_HUB_FEATURE_PORT_SUSPEND:
 			if (port_state == HUB_PORT_STATE_ENABLED) {
 				hub_set_port_state(hub, port, HUB_PORT_STATE_SUSPENDED);
 			}

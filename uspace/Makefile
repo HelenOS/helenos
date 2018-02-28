@@ -73,6 +73,7 @@ DIRS = \
 	app/testread \
 	app/testwrit \
 	app/tetris \
+	app/tmon \
 	app/trace \
 	app/top \
 	app/untar \
@@ -150,10 +151,12 @@ DIRS = \
 	drv/bus/usb/ehci \
 	drv/bus/usb/ohci \
 	drv/bus/usb/uhci \
+	drv/bus/usb/usbdiag \
 	drv/bus/usb/usbflbk \
 	drv/bus/usb/usbhub \
 	drv/bus/usb/usbmid \
 	drv/bus/usb/vhc \
+	drv/bus/usb/xhci \
 	drv/char/i8042 \
 	drv/char/msim-con \
 	drv/char/ns8250 \
@@ -284,4 +287,3 @@ lib/c.build: lib/softfloat.build lib/softint.build
 $(BUILDS): $(BASE_BUILDS)
 
 -include $(DEPS)
-

@@ -140,7 +140,7 @@ static void retrieve_and_dump_hid_report(hid_dump_type_t dump_type,
 	    USB_DESCTYPE_HID_REPORT, 0, iface_no,
 	    raw_report, report_size, &actual_report_size);
 	if (rc != EOK) {
-		usb_log_error("Failed to retrieve HID report descriptor: %s.\n",
+		usb_log_error("Failed to retrieve HID report descriptor: %s.",
 		    str_error(rc));
 		free(raw_report);
 		return;
@@ -149,7 +149,7 @@ static void retrieve_and_dump_hid_report(hid_dump_type_t dump_type,
 	usb_hid_report_t report;
 	rc = usb_hid_parse_report_descriptor(&report, raw_report, report_size);
 	if (rc != EOK) {
-		usb_log_error("Failed to part report descriptor: %s.\n",
+		usb_log_error("Failed to part report descriptor: %s.",
 		    str_error(rc));
 	}
 

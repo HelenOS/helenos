@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,12 +43,15 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <usb/host/usb_transfer_batch.h>
+#include <usb/host/endpoint.h>
 
 #include "hw_struct/queue_head.h"
 #include "hw_struct/transfer_descriptor.h"
 
 /** UHCI specific data required for USB transfer */
 typedef struct uhci_transfer_batch {
+	usb_transfer_batch_t base;
+
 	/** Queue head
 	 * This QH is used to maintain UHCI schedule structure and the element
 	 * pointer points to the first TD of this batch.
@@ -57,28 +61,28 @@ typedef struct uhci_transfer_batch {
 	td_t *tds;
 	/** Number of TDs used by the transfer */
 	size_t td_count;
-	/** Data buffer, must be accessible by the UHCI hw */
-	void *device_buffer;
-	/** Generic transfer data */
-	usb_transfer_batch_t *usb_batch;
+	/* Setup data */
+	char *setup_buffer;
+	/** Backing TDs + setup_buffer */
+	dma_buffer_t uhci_dma_buffer;
 	/** List element */
 	link_t link;
 } uhci_transfer_batch_t;
 
-uhci_transfer_batch_t * uhci_transfer_batch_get(usb_transfer_batch_t *batch);
-void uhci_transfer_batch_finish_dispose(uhci_transfer_batch_t *uhci_batch);
-bool uhci_transfer_batch_is_complete(const uhci_transfer_batch_t *uhci_batch);
+uhci_transfer_batch_t *uhci_transfer_batch_create(endpoint_t *);
+int uhci_transfer_batch_prepare(uhci_transfer_batch_t *);
+bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *);
+void uhci_transfer_batch_destroy(uhci_transfer_batch_t *);
 
 /** Get offset to setup buffer accessible to the HC hw.
  * @param uhci_batch UHCI batch structure.
  * @return Pointer to the setup buffer.
  */
-static inline void * uhci_transfer_batch_setup_buffer(
+static inline void *uhci_transfer_batch_setup_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
-	assert(uhci_batch->device_buffer);
-	return uhci_batch->device_buffer + sizeof(qh_t) +
+	return uhci_batch->uhci_dma_buffer.virt + sizeof(qh_t) +
 	    uhci_batch->td_count * sizeof(td_t);
 }
 
@@ -86,27 +90,11 @@ static inline void * uhci_transfer_batch_setup_buffer(
  * @param uhci_batch UHCI batch structure.
  * @return Pointer to the data buffer.
  */
-static inline void * uhci_transfer_batch_data_buffer(
+static inline void *uhci_transfer_batch_data_buffer(
     const uhci_transfer_batch_t *uhci_batch)
 {
 	assert(uhci_batch);
-	assert(uhci_batch->usb_batch);
-	return uhci_transfer_batch_setup_buffer(uhci_batch) +
-	    uhci_batch->usb_batch->setup_size;
-}
-
-/** Aborts the batch.
- * Sets error to EINTR and size off transferd data to 0, before finishing the
- * batch.
- * @param uhci_batch Batch to abort.
- */
-static inline void uhci_transfer_batch_abort(uhci_transfer_batch_t *uhci_batch)
-{
-	assert(uhci_batch);
-	assert(uhci_batch->usb_batch);
-	uhci_batch->usb_batch->error = EINTR;
-	uhci_batch->usb_batch->transfered_size = 0;
-	uhci_transfer_batch_finish_dispose(uhci_batch);
+	return uhci_batch->base.dma_buffer.virt;
 }
 
 /** Linked list conversion wrapper.
@@ -117,6 +105,13 @@ static inline uhci_transfer_batch_t *uhci_transfer_batch_from_link(link_t *l)
 {
 	assert(l);
 	return list_get_instance(l, uhci_transfer_batch_t, link);
+}
+
+static inline uhci_transfer_batch_t *uhci_transfer_batch_get(
+    usb_transfer_batch_t *b)
+{
+	assert(b);
+	return (uhci_transfer_batch_t *) b;
 }
 
 #endif

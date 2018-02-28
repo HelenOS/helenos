@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,36 +39,43 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <usb/host/usb_transfer_batch.h>
+#include <usb/dma_buffer.h>
 
 #include "hw_struct/queue_head.h"
 #include "hw_struct/transfer_descriptor.h"
 
 /** EHCI specific data required for USB transfer */
 typedef struct ehci_transfer_batch {
-	/** Link */
-	link_t link;
-	/** Endpoint descriptor of the target endpoint. */
-	qh_t *qh;
-	/** List of TDs needed for the transfer */
-	td_t **tds;
+	usb_transfer_batch_t base;
 	/** Number of TDs used by the transfer */
 	size_t td_count;
-	/** Data buffer, must be accessible by the EHCI hw. */
-	char *device_buffer;
+	/** Endpoint descriptor of the target endpoint. */
+	qh_t *qh;
+	/** Backend for TDs and setup data. */
+	dma_buffer_t ehci_dma_buffer;
+	/** List of TDs needed for the transfer - backed by dma_buffer */
+	td_t *tds;
+	/** Data buffers - backed by dma_buffer */
+	void *setup_buffer;
+	void *data_buffer;
 	/** Generic USB transfer structure */
 	usb_transfer_batch_t *usb_batch;
 } ehci_transfer_batch_t;
 
-ehci_transfer_batch_t * ehci_transfer_batch_get(usb_transfer_batch_t *batch);
-bool ehci_transfer_batch_is_complete(const ehci_transfer_batch_t *batch);
+ehci_transfer_batch_t *ehci_transfer_batch_create(endpoint_t *ep);
+int ehci_transfer_batch_prepare(ehci_transfer_batch_t *batch);
 void ehci_transfer_batch_commit(const ehci_transfer_batch_t *batch);
-void ehci_transfer_batch_finish_dispose(ehci_transfer_batch_t *batch);
+bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *batch);
+void ehci_transfer_batch_destroy(ehci_transfer_batch_t *batch);
 
-static inline ehci_transfer_batch_t *ehci_transfer_batch_from_link(link_t *l)
+static inline ehci_transfer_batch_t *ehci_transfer_batch_get(
+    usb_transfer_batch_t *usb_batch)
 {
-	assert(l);
-	return list_get_instance(l, ehci_transfer_batch_t, link);
+	assert(usb_batch);
+
+	return (ehci_transfer_batch_t *) usb_batch;
 }
+
 #endif
 /**
  * @}

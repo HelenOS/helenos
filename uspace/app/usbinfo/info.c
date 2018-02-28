@@ -150,6 +150,12 @@ static void dump_descriptor_tree_brief_endpoint(const char *prefix,
 	    (size_t) descriptor->max_packet_size);
 }
 
+static void dump_descriptor_tree_brief_superspeed_endpoint_companion(const char *prefix,
+    usb_superspeed_endpoint_companion_descriptor_t *descriptor)
+{
+	printf("%sSuperspeed endpoint companion\n", prefix);
+}
+
 static void dump_descriptor_tree_brief_hid(const char *prefix,
     usb_standard_hid_descriptor_t *descriptor)
 {
@@ -205,6 +211,9 @@ static void dump_descriptor_tree_callback(
 		_BRANCH(USB_DESCTYPE_ENDPOINT,
 		    usb_standard_endpoint_descriptor_t,
 		    dump_descriptor_tree_brief_endpoint);
+		_BRANCH(USB_DESCTYPE_SSPEED_EP_COMPANION,
+		    usb_superspeed_endpoint_companion_descriptor_t,
+		    dump_descriptor_tree_brief_superspeed_endpoint_companion);
 		_BRANCH(USB_DESCTYPE_HID,
 		    usb_standard_hid_descriptor_t,
 		    dump_descriptor_tree_brief_hid);

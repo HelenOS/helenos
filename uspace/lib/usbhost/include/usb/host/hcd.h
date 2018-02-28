@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,94 +37,80 @@
 #ifndef LIBUSBHOST_HOST_HCD_H
 #define LIBUSBHOST_HOST_HCD_H
 
-#include <usb/host/endpoint.h>
-#include <usb/host/usb_bus.h>
-#include <usb/host/usb_transfer_batch.h>
-#include <usb/usb.h>
+#include <ddf/driver.h>
+#include <usb/request.h>
 
-#include <assert.h>
-#include <usbhc_iface.h>
-#include <stddef.h>
-#include <stdint.h>
+typedef struct hw_resource_list_parsed hw_res_list_parsed_t;
+typedef struct bus bus_t;
+typedef struct device device_t;
 
-typedef struct hcd hcd_t;
+/* Treat this header as read-only in driver code.
+ * It could be opaque, but why to complicate matters.
+ */
+typedef struct hc_device {
+	/* Bus instance */
+	bus_t *bus;
 
-typedef errno_t (*schedule_hook_t)(hcd_t *, usb_transfer_batch_t *);
-typedef errno_t (*ep_add_hook_t)(hcd_t *, endpoint_t *);
-typedef void (*ep_remove_hook_t)(hcd_t *, endpoint_t *);
-typedef void (*interrupt_hook_t)(hcd_t *, uint32_t);
-typedef errno_t (*status_hook_t)(hcd_t *, uint32_t *);
+	/* Managed DDF device */
+	ddf_dev_t *ddf_dev;
 
-typedef struct {
-	/** Transfer scheduling, implement in device driver. */
-	schedule_hook_t schedule;
-	/** Hook called upon registering new endpoint. */
-	ep_add_hook_t ep_add_hook;
-	/** Hook called upon removing of an endpoint. */
-	ep_remove_hook_t ep_remove_hook;
-	/** Hook to be called on device interrupt, passes ARG1 */
-	interrupt_hook_t irq_hook;
-	/** Periodic polling hook */
-	status_hook_t status_hook;
-} hcd_ops_t;
+	/* Control function */
+	ddf_fun_t *ctl_fun;
 
-/** Generic host controller driver structure. */
-struct hcd {
-	/** Endpoint manager. */
-	usb_bus_t bus;
+	/* Result of enabling HW IRQs */
+	int irq_cap;
 
 	/** Interrupt replacement fibril */
 	fid_t polling_fibril;
 
-	/** Driver implementation */
-	hcd_ops_t ops;
-	/** Device specific driver data. */
-	void * driver_data;
-};
+	/* This structure is meant to be extended by driver code. */
+} hc_device_t;
 
-extern void hcd_init(hcd_t *, usb_speed_t, size_t, bw_count_func_t);
+typedef struct hc_driver {
+	const char *name;
 
-static inline void hcd_set_implementation(hcd_t *hcd, void *data,
-    const hcd_ops_t *ops)
+	/** Size of the device data to be allocated, and passed as the
+	 * hc_device_t. */
+	size_t hc_device_size;
+
+	/** Initialize device structures. */
+	int (*hc_add)(hc_device_t *, const hw_res_list_parsed_t *);
+
+	/** Generate IRQ code to handle interrupts. */
+	int (*irq_code_gen)(irq_code_t *, hc_device_t *,
+	    const hw_res_list_parsed_t *, int *);
+
+	/** Claim device from BIOS. */
+	int (*claim)(hc_device_t *);
+
+	/** Start the host controller. */
+	int (*start)(hc_device_t *);
+
+	/** Setup the virtual roothub. */
+	int (*setup_root_hub)(hc_device_t *);
+
+	/** Stop the host controller (after start has been called) */
+	int (*stop)(hc_device_t *);
+
+	/** HC was asked to be removed (after hc_add has been called) */
+	int (*hc_remove)(hc_device_t *);
+
+	/** HC is gone. */
+	int (*hc_gone)(hc_device_t *);
+} hc_driver_t;
+
+/* Drivers should call this before leaving hc_add */
+static inline void hc_device_setup(hc_device_t *hcd, bus_t *bus)
 {
-	assert(hcd);
-	if (ops) {
-		hcd->driver_data = data;
-		hcd->ops = *ops;
-	} else {
-		memset(&hcd->ops, 0, sizeof(hcd->ops));
-	}
+	hcd->bus = bus;
 }
 
-static inline void * hcd_get_driver_data(hcd_t *hcd)
+static inline hc_device_t *dev_to_hcd(ddf_dev_t *dev)
 {
-	assert(hcd);
-	return hcd->driver_data;
+	return ddf_dev_data_get(dev);
 }
 
-extern errno_t hcd_request_address(hcd_t *, usb_speed_t, usb_address_t *);
-
-extern errno_t hcd_release_address(hcd_t *, usb_address_t);
-
-extern errno_t hcd_reserve_default_address(hcd_t *, usb_speed_t);
-
-static inline errno_t hcd_release_default_address(hcd_t *hcd)
-{
-	return hcd_release_address(hcd, USB_ADDRESS_DEFAULT);
-}
-
-extern errno_t hcd_add_ep(hcd_t *, usb_target_t, usb_direction_t,
-    usb_transfer_type_t, size_t, unsigned int, size_t, usb_address_t,
-    unsigned int);
-
-extern errno_t hcd_remove_ep(hcd_t *, usb_target_t, usb_direction_t);
-
-extern errno_t hcd_send_batch(hcd_t *, usb_target_t, usb_direction_t, void *,
-    size_t, uint64_t, usbhc_iface_transfer_in_callback_t,
-    usbhc_iface_transfer_out_callback_t, void *, const char *);
-
-extern errno_t hcd_send_batch_sync(hcd_t *, usb_target_t, usb_direction_t,
-    void *, size_t, uint64_t, const char *, size_t *);
+extern errno_t hc_driver_main(const hc_driver_t *);
 
 #endif
 

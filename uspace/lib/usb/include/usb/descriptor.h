@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2018 Michal Staruch, Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,11 +49,19 @@ typedef enum {
 	USB_DESCTYPE_DEVICE_QUALIFIER = 6,
 	USB_DESCTYPE_OTHER_SPEED_CONFIGURATION = 7,
 	USB_DESCTYPE_INTERFACE_POWER = 8,
+	/* USB 3.0 types */
+	USB_DESCTYPE_OTG = 9,
+	USB_DESCTYPE_DEBUG = 0xa,
+	USB_DESCTYPE_IFACE_ASSOC = 0xb,
+	USB_DESCTYPE_BOS = 0xf,
+	USB_DESCTYPE_DEVICE_CAP = 0x10,
 	/* Class specific */
 	USB_DESCTYPE_HID = 0x21,
 	USB_DESCTYPE_HID_REPORT = 0x22,
 	USB_DESCTYPE_HID_PHYSICAL = 0x23,
 	USB_DESCTYPE_HUB = 0x29,
+	USB_DESCTYPE_SSPEED_HUB = 0x2a,
+	USB_DESCTYPE_SSPEED_EP_COMPANION = 0x30
 	/* USB_DESCTYPE_ = */
 } usb_descriptor_type_t;
 
@@ -91,7 +100,7 @@ typedef struct {
 	uint8_t str_serial_number;
 	/** Number of possible configurations. */
 	uint8_t configuration_count;
-} __attribute__ ((packed)) usb_standard_device_descriptor_t;
+} __attribute__((packed)) usb_standard_device_descriptor_t;
 
 /** USB device qualifier decriptor is basically a cut down version of the device
  * descriptor with values that would be valid if the device operated on the
@@ -119,7 +128,7 @@ typedef struct {
 	/** Number of possible configurations. */
 	uint8_t configuration_count;
 	uint8_t reserved;
-} __attribute__ ((packed)) usb_standard_device_qualifier_descriptor_t;
+} __attribute__((packed)) usb_standard_device_qualifier_descriptor_t;
 
 /** Standard USB configuration descriptor.
  */
@@ -146,7 +155,7 @@ typedef struct {
 	 * Expressed in 2mA unit (e.g. 50 ~ 100mA).
 	 */
 	uint8_t max_power;
-} __attribute__ ((packed)) usb_standard_configuration_descriptor_t;
+} __attribute__((packed)) usb_standard_configuration_descriptor_t;
 
 /** USB Other Speed Configuration descriptor shows values that would change
  * in the configuration descriptor if the device operated at its other
@@ -181,7 +190,7 @@ typedef struct {
 	uint8_t interface_protocol;
 	/** String descriptor describing this interface. */
 	uint8_t str_interface;
-} __attribute__ ((packed)) usb_standard_interface_descriptor_t;
+} __attribute__((packed)) usb_standard_interface_descriptor_t;
 
 /** Standard USB endpoint descriptor.
  */
@@ -192,29 +201,59 @@ typedef struct {
 	uint8_t descriptor_type;
 	/** Endpoint address together with data flow direction. */
 	uint8_t endpoint_address;
+#define USB_ED_GET_EP(ed)	((ed).endpoint_address & 0xf)
+#define USB_ED_GET_DIR(ed)	(!(((ed).endpoint_address >> 7) & 0x1))
+
 	/** Endpoint attributes.
 	 * Includes transfer type (usb_transfer_type_t).
 	 */
 	uint8_t attributes;
+#define USB_ED_GET_TRANSFER_TYPE(ed)	((ed).attributes & 0x3)
 	/** Maximum packet size.
 	 * Lower 10 bits represent the actuall size
 	 * Bits 11,12 specify addtional transfer opportunitities for
 	 * HS INT and ISO transfers. */
 	uint16_t max_packet_size;
-
-#define ED_MPS_PACKET_SIZE_MASK  0x3ff
-#define ED_MPS_PACKET_SIZE_GET(value) \
-	((value) & ED_MPS_PACKET_SIZE_MASK)
-#define ED_MPS_TRANS_OPPORTUNITIES_GET(value) \
-	((((value) >> 10) & 0x3) + 1)
-
-	/** Polling interval in milliseconds.
-	 * Ignored for bulk and control endpoints.
-	 * Isochronous endpoints must use value 1.
-	 * Interrupt endpoints any value from 1 to 255.
+#define USB_ED_GET_MPS(ed) \
+	(uint16_usb2host((ed).max_packet_size) & 0x7ff)
+#define USB_ED_GET_ADD_OPPS(ed) \
+	((uint16_usb2host((ed).max_packet_size) >> 11) & 0x3)
+	/** Polling interval. Different semantics for various (speed, type)
+	 * pairs.
 	 */
 	uint8_t poll_interval;
-} __attribute__ ((packed)) usb_standard_endpoint_descriptor_t;
+} __attribute__((packed)) usb_standard_endpoint_descriptor_t;
+
+/** Superspeed USB endpoint companion descriptor.
+ * See USB 3 specification, section 9.6.7.
+ */
+typedef struct {
+	/** Size of this descriptor in bytes */
+	uint8_t length;
+	/** Descriptor type (USB_DESCTYPE_SSPEED_EP_COMPANION). */
+	uint8_t descriptor_type;
+	/** The maximum number of packets the endpoint can send
+	 * or receive as part of a burst. Valid values are from 0 to 15.
+	 * The endpoint can only burst max_burst + 1 packets at a time.
+	 */
+	uint8_t max_burst;
+	/** Valid only for bulk and isochronous endpoints.
+	 * For bulk endpoints, this field contains the amount of streams
+	 * supported by the endpoint.
+	 * For isochronous endpoints, this field contains maximum
+	 * number of packets supported within a service interval.
+	 * Warning: the values returned by macros may not make any sense
+	 * for specific endpoint types.
+	 */
+	uint8_t attributes;
+#define USB_SSC_MAX_STREAMS(sscd) ((sscd).attributes & 0x1f)
+#define USB_SSC_MULT(sscd) ((sscd).attributes & 0x3)
+	/** The total number of bytes this endpoint will transfer
+	 * every service interval (SI).
+	 * This field is only valid for periodic endpoints.
+	 */
+	uint16_t bytes_per_interval;
+} __attribute__((packed)) usb_superspeed_endpoint_companion_descriptor_t;
 
 /** Part of standard USB HID descriptor specifying one class descriptor.
  *
@@ -225,7 +264,7 @@ typedef struct {
 	uint8_t type;
 	/** Length of class-specific descriptor in bytes. */
 	uint16_t length;
-} __attribute__ ((packed)) usb_standard_hid_class_descriptor_info_t;
+} __attribute__((packed)) usb_standard_hid_class_descriptor_info_t;
 
 /** Standard USB HID descriptor.
  *
@@ -256,7 +295,7 @@ typedef struct {
 	uint8_t class_desc_count;
 	/** First mandatory class descriptor (Report) info. */
 	usb_standard_hid_class_descriptor_info_t report_desc_info;
-} __attribute__ ((packed)) usb_standard_hid_descriptor_t;
+} __attribute__((packed)) usb_standard_hid_descriptor_t;
 
 #endif
 /**

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,6 +61,8 @@ static void usb_dump_descriptor_string(FILE *, const char *, const char *,
     const uint8_t *, size_t);
 static void usb_dump_descriptor_endpoint(FILE *, const char *, const char *,
     const uint8_t *, size_t);
+static void usb_dump_descriptor_superspeed_endpoint_companion(FILE *, const char *, const char *,
+    const uint8_t *, size_t);
 static void usb_dump_descriptor_hid(FILE *, const char *, const char *,
     const uint8_t *, size_t);
 static void usb_dump_descriptor_hub(FILE *, const char *, const char *,
@@ -74,6 +77,7 @@ static descriptor_dump_t descriptor_dumpers[] = {
 	{ USB_DESCTYPE_STRING, usb_dump_descriptor_string },
 	{ USB_DESCTYPE_INTERFACE, usb_dump_descriptor_interface },
 	{ USB_DESCTYPE_ENDPOINT, usb_dump_descriptor_endpoint },
+	{ USB_DESCTYPE_SSPEED_EP_COMPANION, usb_dump_descriptor_superspeed_endpoint_companion },
 	{ USB_DESCTYPE_HID, usb_dump_descriptor_hid },
 	{ USB_DESCTYPE_HUB, usb_dump_descriptor_hub },
 	{ -1, usb_dump_descriptor_generic },
@@ -237,6 +241,23 @@ static void usb_dump_descriptor_endpoint(FILE *output,
 	    usb_str_transfer_type(transfer_type));
 	PRINTLINE("wMaxPacketSize = %d", d->max_packet_size);
 	PRINTLINE("bInterval = %dms", d->poll_interval);
+}
+
+static void usb_dump_descriptor_superspeed_endpoint_companion(FILE *output,
+    const char *line_prefix, const char *line_suffix,
+    const uint8_t *descriptor, size_t descriptor_length)
+{
+	usb_superspeed_endpoint_companion_descriptor_t *d
+	   = (usb_superspeed_endpoint_companion_descriptor_t *) descriptor;
+	if (descriptor_length < sizeof(*d)) {
+		return;
+	}
+
+	PRINTLINE("bLength = %u", d->length);
+	PRINTLINE("bDescriptorType = 0x%02X", d->descriptor_type);
+	PRINTLINE("bMaxBurst = %u", d->max_burst);
+	PRINTLINE("bmAttributes = %d", d->attributes);
+	PRINTLINE("wBytesPerInterval = %u", d->bytes_per_interval);
 }
 
 static void usb_dump_descriptor_hid(FILE *output,

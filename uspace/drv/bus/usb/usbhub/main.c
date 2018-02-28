@@ -47,15 +47,10 @@
 /** USB hub driver operations. */
 static const usb_driver_ops_t usb_hub_driver_ops = {
 	.device_add = usb_hub_device_add,
-//	.device_rem = usb_hub_device_remove,
+	.device_remove = usb_hub_device_remove,
 	.device_gone = usb_hub_device_gone,
 };
 
-/** Hub endpoints, excluding control endpoint. */
-static const usb_endpoint_description_t *usb_hub_endpoints[] = {
-	&hub_status_change_endpoint_description,
-	NULL,
-};
 /** Static usb hub driver information. */
 static const usb_driver_t usb_hub_driver = {
 	.name = NAME,

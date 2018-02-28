@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -56,11 +57,11 @@ errno_t endpoint_list_init(endpoint_list_t *instance, const char *name)
 	instance->name = name;
 	instance->list_head = malloc32(sizeof(ed_t));
 	if (!instance->list_head) {
-		usb_log_error("Failed to allocate list head.\n");
+		usb_log_error("Failed to allocate list head.");
 		return ENOMEM;
 	}
 	instance->list_head_pa = addr_to_phys(instance->list_head);
-	usb_log_debug2("Transfer list %s setup with ED: %p(0x%0" PRIx32 ")).\n",
+	usb_log_debug2("Transfer list %s setup with ED: %p(0x%0" PRIx32 ")).",
 	    name, instance->list_head, instance->list_head_pa);
 
 	ed_init(instance->list_head, NULL, NULL);
@@ -95,7 +96,7 @@ void endpoint_list_add_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 {
 	assert(instance);
 	assert(ep);
-	usb_log_debug2("Queue %s: Adding endpoint(%p).\n", instance->name, ep);
+	usb_log_debug2("Queue %s: Adding endpoint(%p).", instance->name, ep);
 
 	fibril_mutex_lock(&instance->guard);
 
@@ -107,7 +108,7 @@ void endpoint_list_add_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	} else {
 		/* There are active EDs, get the last one */
 		ohci_endpoint_t *last = list_get_instance(
-		    list_last(&instance->endpoint_list), ohci_endpoint_t, link);
+		    list_last(&instance->endpoint_list), ohci_endpoint_t, eplist_link);
 		last_ed = last->ed;
 	}
 	/* Keep link */
@@ -121,14 +122,14 @@ void endpoint_list_add_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	write_barrier();
 
 	/* Add to the sw list */
-	list_append(&ep->link, &instance->endpoint_list);
+	list_append(&ep->eplist_link, &instance->endpoint_list);
 
 	ohci_endpoint_t *first = list_get_instance(
-	    list_first(&instance->endpoint_list), ohci_endpoint_t, link);
-	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).\n",
+	    list_first(&instance->endpoint_list), ohci_endpoint_t, eplist_link);
+	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).",
 		ep, instance->name, first, first->ed);
 	if (last_ed == instance->list_head) {
-		usb_log_debug2("%s head ED(%p-0x%0" PRIx32 "): %x:%x:%x:%x.\n",
+		usb_log_debug2("%s head ED(%p-0x%0" PRIx32 "): %x:%x:%x:%x.",
 		    instance->name, last_ed, instance->list_head_pa,
 		    last_ed->status, last_ed->td_tail, last_ed->td_head,
 		    last_ed->next);
@@ -150,18 +151,18 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 
 	fibril_mutex_lock(&instance->guard);
 
-	usb_log_debug2("Queue %s: removing endpoint(%p).\n", instance->name, ep);
+	usb_log_debug2("Queue %s: removing endpoint(%p).", instance->name, ep);
 
 	const char *qpos = NULL;
 	ed_t *prev_ed;
 	/* Remove from the hardware queue */
-	if (list_first(&instance->endpoint_list) == &ep->link) {
+	if (list_first(&instance->endpoint_list) == &ep->eplist_link) {
 		/* I'm the first one here */
 		prev_ed = instance->list_head;
 		qpos = "FIRST";
 	} else {
 		ohci_endpoint_t *prev =
-		    list_get_instance(ep->link.prev, ohci_endpoint_t, link);
+		    list_get_instance(ep->eplist_link.prev, ohci_endpoint_t, eplist_link);
 		prev_ed = prev->ed;
 		qpos = "NOT FIRST";
 	}
@@ -170,11 +171,11 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	/* Make sure ED is updated */
 	write_barrier();
 
-	usb_log_debug("HCD EP(%p) removed (%s) from %s, next %x.\n",
+	usb_log_debug("HCD EP(%p) removed (%s) from %s, next %x.",
 	    ep, qpos, instance->name, ep->ed->next);
 
 	/* Remove from the endpoint list */
-	list_remove(&ep->link);
+	list_remove(&ep->eplist_link);
 	fibril_mutex_unlock(&instance->guard);
 }
 /**

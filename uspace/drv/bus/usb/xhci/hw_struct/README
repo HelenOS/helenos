@@ -1,0 +1,3 @@
+This folder contains hardware communication structures and constants, as defined
+in chapter 6 of the xHCI specification. It shall not be modified, as it reflects
+the order hardware expects it.

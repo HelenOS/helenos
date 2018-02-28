@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2013 Jan Vesely
+ * Copyright (c) 2018 Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +62,7 @@ static errno_t generic_device_add(ddf_dev_t *gen_dev)
 	const char *err_msg = NULL;
 	errno_t rc = usb_device_create_ddf(gen_dev, driver->endpoints, &err_msg);
 	if (rc != EOK) {
-		usb_log_error("USB device `%s' init failed (%s): %s.\n",
+		usb_log_error("USB device `%s' init failed (%s): %s.",
 		    ddf_dev_get_name(gen_dev), err_msg, str_error(rc));
 		return rc;
 	}
@@ -84,13 +85,15 @@ static errno_t generic_device_remove(ddf_dev_t *gen_dev)
 {
 	assert(driver);
 	assert(driver->ops);
-	if (driver->ops->device_rem == NULL)
+	if (driver->ops->device_remove == NULL)
 		return ENOTSUP;
+
 	/* Just tell the driver to stop whatever it is doing */
 	usb_device_t *usb_dev = ddf_dev_data_get(gen_dev);
-	const errno_t ret = driver->ops->device_rem(usb_dev);
+	const errno_t ret = driver->ops->device_remove(usb_dev);
 	if (ret != EOK)
 		return ret;
+
 	usb_device_destroy_ddf(gen_dev);
 	return EOK;
 }
@@ -116,10 +119,44 @@ static errno_t generic_device_gone(ddf_dev_t *gen_dev)
 	return ret;
 }
 
+/** Callback when the driver is asked to online a specific function.
+ *
+ * This callback is a wrapper for USB specific version of @c fun_online.
+ *
+ * @param gen_dev Device function structure as prepared by DDF.
+ * @return Error code.
+ */
+static int generic_function_online(ddf_fun_t *fun)
+{
+	assert(driver);
+	assert(driver->ops);
+	if (driver->ops->function_online == NULL)
+		return ENOTSUP;
+	return driver->ops->function_online(fun);
+}
+
+/** Callback when the driver is asked to offline a specific function.
+ *
+ * This callback is a wrapper for USB specific version of @c fun_offline.
+ *
+ * @param gen_dev Device function structure as prepared by DDF.
+ * @return Error code.
+ */
+static int generic_function_offline(ddf_fun_t *fun)
+{
+	assert(driver);
+	assert(driver->ops);
+	if (driver->ops->function_offline == NULL)
+		return ENOTSUP;
+	return driver->ops->function_offline(fun);
+}
+
 static driver_ops_t generic_driver_ops = {
 	.dev_add = generic_device_add,
 	.dev_remove = generic_device_remove,
 	.dev_gone = generic_device_gone,
+	.fun_online = generic_function_online,
+	.fun_offline = generic_function_offline,
 };
 static driver_t generic_driver = {
 	.driver_ops = &generic_driver_ops

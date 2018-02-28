@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2017 Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,47 +25,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup tmon
  * @{
  */
-/** @file
- * @brief OHCI driver
- */
-#ifndef DRV_OHCI_HCD_ENDPOINT_H
-#define DRV_OHCI_HCD_ENDPOINT_H
-
-#include <assert.h>
-#include <adt/list.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/hcd.h>
-
-#include "hw_struct/endpoint_descriptor.h"
-#include "hw_struct/transfer_descriptor.h"
-
-/** Connector structure linking ED to to prepared TD. */
-typedef struct ohci_endpoint {
-	/** OHCI endpoint descriptor */
-	ed_t *ed;
-	/** Currently enqueued transfer descriptor */
-	td_t *td;
-	/** Linked list used by driver software */
-	link_t link;
-} ohci_endpoint_t;
-
-errno_t ohci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
-void ohci_endpoint_fini(hcd_t *hcd, endpoint_t *ep);
-
-/** Get and convert assigned ohci_endpoint_t structure
- * @param[in] ep USBD endpoint structure.
- * @return Pointer to assigned hcd endpoint structure
- */
-static inline ohci_endpoint_t * ohci_endpoint_get(const endpoint_t *ep)
-{
-	assert(ep);
-	return ep->hc_data.data;
-}
-
-#endif
 /**
- * @}
+ * @file USB diagnostic device resolving.
+ */
+
+#ifndef TMON_RESOLVE_H_
+#define TMON_RESOLVE_H_
+
+#include <devman.h>
+
+errno_t tmon_resolve_default(devman_handle_t *);
+errno_t tmon_resolve_named(const char *, devman_handle_t *);
+
+#endif /* TMON_RESOLVE_H_ */
+
+/** @}
  */

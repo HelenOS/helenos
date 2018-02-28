@@ -128,7 +128,7 @@ RD_SRVS_NON_ESSENTIAL = \
 RD_DRVS_ESSENTIAL = \
 	root/root \
 	root/virt \
-	fb/kfb 
+	fb/kfb
 
 RD_DRVS_NON_ESSENTIAL = \
 	test/test1 \
@@ -204,6 +204,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/testread/testread \
 	$(USPACE_PATH)/app/testwrit/testwrit \
 	$(USPACE_PATH)/app/tetris/tetris \
+	$(USPACE_PATH)/app/tmon/tmon \
 	$(USPACE_PATH)/app/trace/trace \
 	$(USPACE_PATH)/app/netecho/netecho \
 	$(USPACE_PATH)/app/nterm/nterm \
@@ -237,6 +238,7 @@ RD_TESTS = \
 	$(USPACE_PATH)/lib/label/test-liblabel \
 	$(USPACE_PATH)/lib/posix/test-libposix \
 	$(USPACE_PATH)/lib/uri/test-liburi \
+	$(USPACE_PATH)/drv/bus/usb/xhci/test-xhci \
 	$(USPACE_PATH)/app/bdsh/test-bdsh \
 	$(USPACE_PATH)/srv/net/tcp/test-tcp
 

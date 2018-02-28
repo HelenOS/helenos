@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2018 Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +43,7 @@
 #include <ddf/driver.h>
 #include <usb/dev/pipes.h>
 #include <usb/dev/driver.h>
+#include <usb/dev/poll.h>
 #include <usb/hid/hid.h>
 #include <stdbool.h>
 
@@ -105,6 +107,9 @@ struct usb_hid_dev {
 	/** Endpont mapping of the polling pipe. */
 	usb_endpoint_mapping_t *poll_pipe_mapping;
 
+	/** Device polling structure. */
+	usb_polling_t polling;
+
 	/** Subdrivers. */
 	usb_hid_subdriver_t *subdrivers;
 
@@ -136,11 +141,6 @@ extern const usb_endpoint_description_t *usb_hid_endpoints[];
 errno_t usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
 
 void usb_hid_deinit(usb_hid_dev_t *hid_dev);
-
-bool usb_hid_polling_callback(usb_device_t *dev,
-    uint8_t *buffer, size_t buffer_size, void *arg);
-
-void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, void *arg);
 
 void usb_hid_new_report(usb_hid_dev_t *hid_dev);
 

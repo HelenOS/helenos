@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,91 +32,110 @@
  */
 /** @file
  *
+ * Endpoint structure is tightly coupled to the bus. The bus controls the
+ * life-cycle of endpoint. In order to keep endpoints lightweight, operations
+ * on endpoints are part of the bus structure.
+ *
  */
 #ifndef LIBUSBHOST_HOST_ENDPOINT_H
 #define LIBUSBHOST_HOST_ENDPOINT_H
 
-#include <stdbool.h>
 #include <adt/list.h>
-#include <fibril_synch.h>
-#include <usb/usb.h>
 #include <atomic.h>
+#include <fibril_synch.h>
+#include <stdbool.h>
+#include <sys/time.h>
+#include <usb/usb.h>
+#include <usb/host/bus.h>
+#include <usbhc_iface.h>
 
-/** Host controller side endpoint structure. */
+typedef struct bus bus_t;
+typedef struct device device_t;
+typedef struct transfer_request transfer_request_t;
+typedef struct usb_transfer_batch usb_transfer_batch_t;
+
+/**
+ * Host controller side endpoint structure.
+ *
+ * This structure, though reference-counted, is very fragile. It is responsible
+ * for synchronizing transfer batch scheduling and completion.
+ *
+ * To avoid situations, in which two locks must be obtained to schedule/finish
+ * a transfer, the endpoint inherits a lock from the outside. Because the
+ * concrete instance of mutex can be unknown at the time of initialization,
+ * the HC shall pass the right lock at the time of onlining the endpoint.
+ *
+ * The fields used for scheduling (online, active_batch) are to be used only
+ * under that guard and by functions designed for this purpose. The driver can
+ * also completely avoid using this mechanism, in which case it is on its own in
+ * question of transfer aborting.
+ *
+ * Relevant information can be found in the documentation of HelenOS xHCI
+ * project.
+ */
 typedef struct endpoint {
+	/** USB device */
+	device_t *device;
 	/** Reference count. */
-	atomic_t refcnt;	
-	/** Part of linked list. */
-	link_t link;
-	/** USB address. */
-	usb_address_t address;
-	/** USB endpoint number. */
+	atomic_t refcnt;
+
+	/** An inherited guard */
+	fibril_mutex_t *guard;
+	/** Whether it's allowed to schedule on this endpoint */
+	bool online;
+	/** The currently active transfer batch. */
+	usb_transfer_batch_t *active_batch;
+	/** Signals change of active status. */
+	fibril_condvar_t avail;
+
+	/** Endpoint number */
 	usb_endpoint_t endpoint;
 	/** Communication direction. */
 	usb_direction_t direction;
 	/** USB transfer type. */
 	usb_transfer_type_t transfer_type;
-	/** Communication speed. */
-	usb_speed_t speed;
-	/** Maximum size of data packets. */
+	/** Maximum size of one packet */
 	size_t max_packet_size;
-	/** Additional opportunities per uframe */
-	unsigned packets;
-	/** Necessary bandwidth. */
-	size_t bandwidth;
-	/** Value of the toggle bit. */
-	unsigned toggle:1;
-	/** True if there is a batch using this scheduled for this endpoint. */
-	volatile bool active;
-	/** Protects resources and active status changes. */
-	fibril_mutex_t guard;
-	/** Signals change of active status. */
-	fibril_condvar_t avail;
-	/** High speed TT data */
-	struct {
-		usb_address_t address;
-		unsigned port;
-	} tt;
-	/** Optional device specific data. */
-	struct {
-		/** Device specific data. */
-		void *data;
-		/** Callback to get the value of toggle bit. */
-		int (*toggle_get)(void *);
-		/** Callback to set the value of toggle bit. */
-		void (*toggle_set)(void *, int);
-	} hc_data;
+
+	/** Maximum size of one transfer */
+	size_t max_transfer_size;
+
+	/* Policies for transfer buffers */
+	/** A hint for optimal performance. */
+	dma_policy_t transfer_buffer_policy;
+	/** Enforced by the library. */
+	dma_policy_t required_transfer_buffer_policy;
+
+	/**
+	 * Number of packets that can be sent in one service interval
+	 * (not necessarily uframe, despite its name)
+	 */
+	unsigned packets_per_uframe;
+
+	/* This structure is meant to be extended by overriding. */
 } endpoint_t;
 
-extern endpoint_t *endpoint_create(usb_address_t, usb_endpoint_t,
-    usb_direction_t, usb_transfer_type_t, usb_speed_t, size_t, unsigned int,
-    size_t, usb_address_t, unsigned int);
-extern void endpoint_destroy(endpoint_t *);
+extern void endpoint_init(endpoint_t *, device_t *,
+    const usb_endpoint_descriptors_t *);
 
 extern void endpoint_add_ref(endpoint_t *);
 extern void endpoint_del_ref(endpoint_t *);
 
-extern void endpoint_set_hc_data(endpoint_t *, void *, int (*)(void *),
-    void (*)(void *, int));
-extern void endpoint_clear_hc_data(endpoint_t *);
+extern void endpoint_set_online(endpoint_t *, fibril_mutex_t *);
+extern void endpoint_set_offline_locked(endpoint_t *);
 
-extern void endpoint_use(endpoint_t *);
-extern void endpoint_release(endpoint_t *);
+extern void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t);
+extern int endpoint_activate_locked(endpoint_t *, usb_transfer_batch_t *);
+extern void endpoint_deactivate_locked(endpoint_t *);
 
-extern int endpoint_toggle_get(endpoint_t *);
-extern void endpoint_toggle_set(endpoint_t *, int);
+int endpoint_send_batch(endpoint_t *, const transfer_request_t *);
 
-/** list_get_instance wrapper.
- *
- * @param item Pointer to link member.
- *
- * @return Pointer to endpoint_t structure.
- *
- */
-static inline endpoint_t * endpoint_get_instance(link_t *item)
+static inline bus_t *endpoint_get_bus(endpoint_t *ep)
 {
-	return item ? list_get_instance(item, endpoint_t, link) : NULL;
+	device_t * const device = ep->device;
+	return device ? device->bus : NULL;
 }
+
 #endif
 
 /**

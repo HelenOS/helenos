@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,9 +87,9 @@ static errno_t usb_massstor_unit_ready(usbmast_fun_t *mfun)
 
 	rc = usb_massstor_cmd(mfun, 0xDEADBEEF, &cmd);
 
-        if (rc != EOK) {
+	if (rc != EOK) {
 		usb_log_error("Test Unit Ready failed on device %s: %s.",
-		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+		    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
 	}
 	/* Ignore command error here. If there's something wrong
@@ -96,7 +97,7 @@ static errno_t usb_massstor_unit_ready(usbmast_fun_t *mfun)
 	 */
 	if (cmd.status != CMDS_GOOD)
 		usb_log_warning("Test Unit Ready command failed on device %s.",
-		   usb_device_get_name(mfun->mdev->usb_dev));
+		    usb_device_get_name(mfun->mdev->usb_dev));
 
 	return EOK;
 }
@@ -115,27 +116,27 @@ static errno_t usbmast_run_cmd(usbmast_fun_t *mfun, scsi_cmd_t *cmd)
 	do {
 		rc = usb_massstor_unit_ready(mfun);
 		if (rc != EOK) {
-			usb_log_error("Inquiry transport failed, device %s: %s.\n",
-			   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+			usb_log_error("Inquiry transport failed, device %s: %s.",
+			    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 			return rc;
 		}
 
 		rc = usb_massstor_cmd(mfun, 0xDEADBEEF, cmd);
 		if (rc != EOK) {
-			usb_log_error("Inquiry transport failed, device %s: %s.\n",
-			   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+			usb_log_error("Inquiry transport failed, device %s: %s.",
+			    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 			return rc;
 		}
 
 		if (cmd->status == CMDS_GOOD)
 			return EOK;
 
-		usb_log_error("SCSI command failed, device %s.\n",
+		usb_log_error("SCSI command failed, device %s.",
 		    usb_device_get_name(mfun->mdev->usb_dev));
 
 		rc = usbmast_request_sense(mfun, &sense_buf, sizeof(sense_buf));
 		if (rc != EOK) {
-			usb_log_error("Failed to read sense data.\n");
+			usb_log_error("Failed to read sense data.");
 			return EIO;
 		}
 
@@ -181,20 +182,20 @@ errno_t usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
 	rc = usb_massstor_cmd(mfun, 0xDEADBEEF, &cmd);
 
 	if (rc != EOK) {
-		usb_log_error("Inquiry transport failed, device %s: %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+		usb_log_error("Inquiry transport failed, device %s: %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
-		usb_log_error("Inquiry command failed, device %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev));
+		usb_log_error("Inquiry command failed, device %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev));
 		return EIO;
 	}
 
 	if (cmd.rcvd_size < SCSI_STD_INQUIRY_DATA_MIN_SIZE) {
-		usb_log_error("SCSI Inquiry response too short (%zu).\n",
-		    cmd.rcvd_size);
+		usb_log_error("SCSI Inquiry response too short (%zu).",
+		     cmd.rcvd_size);
 		return EIO;
 	}
 
@@ -248,9 +249,9 @@ errno_t usbmast_request_sense(usbmast_fun_t *mfun, void *buf, size_t size)
 
 	rc = usb_massstor_cmd(mfun, 0xDEADBEEF, &cmd);
 
-        if (rc != EOK || cmd.status != CMDS_GOOD) {
-		usb_log_error("Request Sense failed, device %s: %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+	if (rc != EOK || cmd.status != CMDS_GOOD) {
+		usb_log_error("Request Sense failed, device %s: %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
 	}
 
@@ -290,21 +291,21 @@ errno_t usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
 
 	rc = usbmast_run_cmd(mfun, &cmd);
 
-        if (rc != EOK) {
-		usb_log_error("Read Capacity (10) transport failed, device %s: %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+	if (rc != EOK) {
+		usb_log_error("Read Capacity (10) transport failed, device %s: %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
-		usb_log_error("Read Capacity (10) command failed, device %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev));
+		usb_log_error("Read Capacity (10) command failed, device %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev));
 		return EIO;
 	}
 
 	if (cmd.rcvd_size < sizeof(data)) {
-		usb_log_error("SCSI Read Capacity response too short (%zu).\n",
-		    cmd.rcvd_size);
+		usb_log_error("SCSI Read Capacity response too short (%zu).",
+		     cmd.rcvd_size);
 		return EIO;
 	}
 
@@ -348,19 +349,19 @@ errno_t usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf
 	rc = usbmast_run_cmd(mfun, &cmd);
 
         if (rc != EOK) {
-		usb_log_error("Read (10) transport failed, device %s: %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+		usb_log_error("Read (10) transport failed, device %s: %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
-		usb_log_error("Read (10) command failed, device %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev));
+		usb_log_error("Read (10) command failed, device %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev));
 		return EIO;
 	}
 
 	if (cmd.rcvd_size < nblocks * mfun->block_size) {
-		usb_log_error("SCSI Read response too short (%zu).\n",
+		usb_log_error("SCSI Read response too short (%zu).",
 		    cmd.rcvd_size);
 		return EIO;
 	}
@@ -403,15 +404,15 @@ errno_t usbmast_write(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks,
 
 	rc = usbmast_run_cmd(mfun, &cmd);
 
-        if (rc != EOK) {
-		usb_log_error("Write (10) transport failed, device %s: %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+	if (rc != EOK) {
+		usb_log_error("Write (10) transport failed, device %s: %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
-		usb_log_error("Write (10) command failed, device %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev));
+		usb_log_error("Write (10) command failed, device %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev));
 		return EIO;
 	}
 
@@ -448,15 +449,15 @@ errno_t usbmast_sync_cache(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks)
 
 	const errno_t rc = usbmast_run_cmd(mfun, &cmd);
 
-        if (rc != EOK) {
-		usb_log_error("Synchronize Cache (10) transport failed, device %s: %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
+	if (rc != EOK) {
+		usb_log_error("Synchronize Cache (10) transport failed, device %s: %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;
 	}
 
 	if (cmd.status != CMDS_GOOD) {
-		usb_log_error("Synchronize Cache (10) command failed, device %s.\n",
-		   usb_device_get_name(mfun->mdev->usb_dev));
+		usb_log_error("Synchronize Cache (10) command failed, device %s.",
+		    usb_device_get_name(mfun->mdev->usb_dev));
 		return EIO;
 	}
 

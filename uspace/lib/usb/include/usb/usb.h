@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty, Michal Staruch
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +39,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <types/common.h>
-#include <usb_iface.h>
+#include <usbhc_iface.h>
 
 /** Convert 16bit value from native (host) endianness to USB endianness. */
 #define uint16_host2usb(n) host2uint16_t_le((n))
@@ -52,14 +53,19 @@
 /** Convert 32bit value from USB endianness into native (host) one. */
 #define uint32_usb2host(n) uint32_t_le2host((n))
 
-const char * usb_str_transfer_type(usb_transfer_type_t t);
-const char * usb_str_transfer_type_short(usb_transfer_type_t t);
+const char *usb_str_transfer_type(usb_transfer_type_t);
+const char *usb_str_transfer_type_short(usb_transfer_type_t);
 
 const char *usb_str_direction(usb_direction_t);
 
 static inline bool usb_speed_is_11(const usb_speed_t s)
 {
 	return (s == USB_SPEED_FULL) || (s == USB_SPEED_LOW);
+}
+
+static inline bool usb_speed_is_valid(const usb_speed_t s)
+{
+	return (s >= USB_SPEED_LOW) && (s < USB_SPEED_MAX);
 }
 
 const char *usb_str_speed(usb_speed_t);
@@ -96,14 +102,17 @@ typedef enum {
  */
 static inline bool usb_address_is_valid(usb_address_t a)
 {
-	return (a >= USB_ADDRESS_DEFAULT) && (a <= USB11_ADDRESS_MAX);
+	return a <= USB11_ADDRESS_MAX;
 }
 
 /** Default control endpoint */
 #define USB_ENDPOINT_DEFAULT_CONTROL 0
 
-/** Maximum endpoint number in USB 1.1. */
-#define USB11_ENDPOINT_MAX 16
+/** Maximum endpoint number in USB */
+#define USB_ENDPOINT_MAX 16
+
+/** There might be two directions for every endpoint number (except 0) */
+#define USB_ENDPOINT_COUNT (2 * USB_ENDPOINT_MAX)
 
 /** Check USB endpoint for allowed values.
  *
@@ -114,19 +123,21 @@ static inline bool usb_address_is_valid(usb_address_t a)
  */
 static inline bool usb_endpoint_is_valid(usb_endpoint_t ep)
 {
-	return (ep >= USB_ENDPOINT_DEFAULT_CONTROL) &&
-	    (ep < USB11_ENDPOINT_MAX);
+	return ep < USB_ENDPOINT_MAX;
 }
 
-/** Check USB target for allowed values (address and endpoint).
+/**
+ * Check USB target for allowed values (address, endpoint, stream).
  *
  * @param target.
  * @return True, if values are wihtin limits, false otherwise.
  */
-static inline bool usb_target_is_valid(usb_target_t target)
+static inline bool usb_target_is_valid(const usb_target_t *target)
 {
-	return usb_address_is_valid(target.address) &&
-	    usb_endpoint_is_valid(target.endpoint);
+	return usb_address_is_valid(target->address) &&
+	    usb_endpoint_is_valid(target->endpoint);
+
+	// A 16-bit Stream ID is always valid.
 }
 
 /** Compare USB targets (addresses and endpoints).
@@ -135,16 +146,10 @@ static inline bool usb_target_is_valid(usb_target_t target)
  * @param b Second target.
  * @return Whether @p a and @p b points to the same pipe on the same device.
  */
-static inline int usb_target_same(usb_target_t a, usb_target_t b)
+static inline bool usb_target_same(usb_target_t a, usb_target_t b)
 {
-	return (a.address == b.address)
-	    && (a.endpoint == b.endpoint);
+	return (a.address == b.address) && (a.endpoint == b.endpoint);
 }
-
-/** General handle type.
- * Used by various USB functions as opaque handle.
- */
-typedef sysarg_t usb_handle_t;
 
 /** USB packet identifier. */
 typedef enum {
@@ -160,14 +165,14 @@ typedef enum {
 	USB_PID_SOF = _MAKE_PID(1, 1),
 	USB_PID_SETUP = _MAKE_PID(3, 1),
 
-	USB_PID_DATA0 = _MAKE_PID(0 ,3),
-	USB_PID_DATA1 = _MAKE_PID(2 ,3),
+	USB_PID_DATA0 = _MAKE_PID(0, 3),
+	USB_PID_DATA1 = _MAKE_PID(2, 3),
 
-	USB_PID_ACK = _MAKE_PID(0 ,2),
-	USB_PID_NAK = _MAKE_PID(2 ,2),
-	USB_PID_STALL = _MAKE_PID(3 ,2),
+	USB_PID_ACK = _MAKE_PID(0, 2),
+	USB_PID_NAK = _MAKE_PID(2, 2),
+	USB_PID_STALL = _MAKE_PID(3, 2),
 
-	USB_PID_PRE = _MAKE_PID(3 ,0),
+	USB_PID_PRE = _MAKE_PID(3, 0),
 	/* USB_PID_ = _MAKE_PID( ,), */
 #undef _MAKE_PID
 #undef _MAKE_PID_NIBBLE

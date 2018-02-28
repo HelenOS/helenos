@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -108,22 +109,23 @@ static void ohci_rh_hub_desc_init(ohci_rh_t *instance)
  * Selects preconfigured port powering mode, sets up descriptor, and
  * initializes internal virtual hub.
  */
-errno_t ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
+errno_t ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs,
+    fibril_mutex_t *guard, const char *name)
 {
 	assert(instance);
 	instance->registers = regs;
 	instance->port_count = OHCI_RD(regs->rh_desc_a) & RHDA_NDS_MASK;
-	usb_log_debug2("rh_desc_a: %x.\n", OHCI_RD(regs->rh_desc_a));
+	usb_log_debug2("rh_desc_a: %x.", OHCI_RD(regs->rh_desc_a));
 	if (instance->port_count > OHCI_MAX_PORTS) {
 		usb_log_warning("OHCI specification does not allow %d ports. "
-		    "Max %d ports will be used.\n", instance->port_count,
+		    "Max %d ports will be used.", instance->port_count,
 		    OHCI_MAX_PORTS);
 		instance->port_count = OHCI_MAX_PORTS;
 	}
-	usb_log_info("%s: Found %u ports.\n", name, instance->port_count);
+	usb_log_info("%s: Found %u ports.", name, instance->port_count);
 
 #if defined OHCI_POWER_SWITCH_no
-	usb_log_info("%s: Set power mode to no power switching.\n", name);
+	usb_log_info("%s: Set power mode to no power switching.", name);
 	/* Set port power mode to no power-switching. (always on) */
 	OHCI_SET(regs->rh_desc_a, RHDA_NPS_FLAG);
 
@@ -131,7 +133,7 @@ errno_t ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 	OHCI_SET(regs->rh_desc_a, RHDA_NOCP_FLAG);
 
 #elif defined OHCI_POWER_SWITCH_ganged
-	usb_log_info("%s: Set power mode to ganged power switching.\n", name);
+	usb_log_info("%s: Set power mode to ganged power switching.", name);
 	/* Set port power mode to ganged power-switching. */
 	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
 	OHCI_CLR(regs->rh_desc_a, RHDA_PSM_FLAG);
@@ -143,7 +145,7 @@ errno_t ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 	OHCI_CLR(regs->rh_desc_a, RHDA_NOCP_FLAG);
 	OHCI_CLR(regs->rh_desc_a, RHDA_OCPM_FLAG);
 #else
-	usb_log_info("%s: Set power mode to per-port power switching.\n", name);
+	usb_log_info("%s: Set power mode to per-port power switching.", name);
 	/* Set port power mode to per port power-switching. */
 	OHCI_CLR(regs->rh_desc_a, RHDA_NPS_FLAG);
 	OHCI_SET(regs->rh_desc_a, RHDA_PSM_FLAG);
@@ -161,7 +163,8 @@ errno_t ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs, const char *name)
 #endif
 
 	ohci_rh_hub_desc_init(instance);
-	instance->unfinished_interrupt_transfer = NULL;
+	instance->status_change_endpoint = NULL;
+	instance->guard = guard;
 	return virthub_base_init(&instance->base, name, &ops, instance,
 	    NULL, &instance->hub_descriptor.header, HUB_STATUS_CHANGE_PIPE);
 }
@@ -177,22 +180,29 @@ errno_t ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
-	const usb_target_t target = {{
-		.address = batch->ep->address,
-		.endpoint = batch->ep->endpoint,
-	}};
-	batch->error = virthub_base_request(&instance->base, target,
-	    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
-	    batch->buffer, batch->buffer_size, &batch->transfered_size);
+	batch->error = virthub_base_request(&instance->base, batch->target,
+	    batch->dir, &batch->setup.packet,
+	    batch->dma_buffer.virt, batch->size, &batch->transferred_size);
 	if (batch->error == ENAK) {
-		/* This is safe because only status change interrupt transfers
-		 * return NAK. The assertion holds true because the batch
-		 * existence prevents communication with that ep */
-		assert(instance->unfinished_interrupt_transfer == NULL);
-		instance->unfinished_interrupt_transfer = batch;
+		/* Lock the HC guard */
+		fibril_mutex_lock(instance->guard);
+		const int err = endpoint_activate_locked(batch->ep, batch);
+		if (err) {
+			fibril_mutex_unlock(batch->ep->guard);
+			return err;
+		}
+
+		/*
+		 * Asserting that the HC do not run two instances of the status
+		 * change endpoint - shall be true.
+		 */
+		assert(!instance->status_change_endpoint);
+
+		endpoint_add_ref(batch->ep);
+		instance->status_change_endpoint = batch->ep;
+		fibril_mutex_unlock(instance->guard);
 	} else {
-		usb_transfer_batch_finish(batch, NULL);
-		usb_transfer_batch_destroy(batch);
+		usb_transfer_batch_finish(batch);
 	}
 	return EOK;
 }
@@ -206,20 +216,25 @@ errno_t ohci_rh_schedule(ohci_rh_t *instance, usb_transfer_batch_t *batch)
  */
 errno_t ohci_rh_interrupt(ohci_rh_t *instance)
 {
-	//TODO atomic swap needed
-	usb_transfer_batch_t *batch = instance->unfinished_interrupt_transfer;
-	instance->unfinished_interrupt_transfer = NULL;
+	fibril_mutex_lock(instance->guard);
+	endpoint_t *ep = instance->status_change_endpoint;
+	if (!ep) {
+		fibril_mutex_unlock(instance->guard);
+		return EOK;
+	}
+
+	usb_transfer_batch_t * const batch = ep->active_batch;
+	endpoint_deactivate_locked(ep);
+	instance->status_change_endpoint = NULL;
+	fibril_mutex_unlock(instance->guard);
+
+	endpoint_del_ref(ep);
+
 	if (batch) {
-		const usb_target_t target = {{
-			.address = batch->ep->address,
-			.endpoint = batch->ep->endpoint,
-		}};
-		batch->error = virthub_base_request(&instance->base, target,
-		    usb_transfer_batch_direction(batch),
-		    (void*)batch->setup_buffer,
-		    batch->buffer, batch->buffer_size, &batch->transfered_size);
-		usb_transfer_batch_finish(batch, NULL);
-		usb_transfer_batch_destroy(batch);
+		batch->error = virthub_base_request(&instance->base, batch->target,
+		    batch->dir, &batch->setup.packet,
+		    batch->dma_buffer.virt, batch->size, &batch->transferred_size);
+		usb_transfer_batch_finish(batch);
 	}
 	return EOK;
 }
@@ -350,23 +365,23 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 			return EOK;
 		}
 
-	case USB_HUB_FEATURE_PORT_ENABLE:         /*1*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:         /*1*/
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    RHPS_CLEAR_PORT_ENABLE);
 		return EOK;
 
-	case USB_HUB_FEATURE_PORT_SUSPEND:        /*2*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND:        /*2*/
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    RHPS_CLEAR_PORT_SUSPEND);
 		return EOK;
 
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:   /*16*/
-	case USB_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:       /*17*/
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:      /*18*/
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT: /*19*/
 	case USB_HUB_FEATURE_C_PORT_RESET:        /*20*/
 		usb_log_debug2("Clearing port C_CONNECTION, C_ENABLE, "
-		    "C_SUSPEND, C_OC or C_RESET on port %u.\n", port);
+		    "C_SUSPEND, C_OC or C_RESET on port %u.", port);
 		/* Bit offsets correspond to the feature number */
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    1 << feature);
@@ -411,11 +426,11 @@ static errno_t req_set_port_feature(usbvirt_device_t *device,
 		}
 		/* Fall through, for per port power */
 		/* Fallthrough */
-	case USB_HUB_FEATURE_PORT_ENABLE:  /*1*/
-	case USB_HUB_FEATURE_PORT_SUSPEND: /*2*/
+	case USB2_HUB_FEATURE_PORT_ENABLE:  /*1*/
+	case USB2_HUB_FEATURE_PORT_SUSPEND: /*2*/
 	case USB_HUB_FEATURE_PORT_RESET:   /*4*/
 		usb_log_debug2("Setting port POWER, ENABLE, SUSPEND or RESET "
-		    "on port %u.\n", port);
+		    "on port %u.", port);
 		/* Bit offsets correspond to the feature number */
 		OHCI_WR(hub->registers->rh_port_status[port], 1 << feature);
 		return EOK;
@@ -461,7 +476,7 @@ static errno_t req_status_change_handler(usbvirt_device_t *device,
 		}
 	}
 
-	usb_log_debug2("OHCI root hub interrupt mask: %hx.\n", mask);
+	usb_log_debug2("OHCI root hub interrupt mask: %hx.", mask);
 
 	if (mask == 0)
 		return ENAK;

@@ -84,6 +84,32 @@
 #define ntohs(n)  uint16_t_be2host((n))
 #define ntohl(n)  uint32_t_be2host((n))
 
+#define uint8_t_be2host(n)  (n)
+#define uint8_t_le2host(n)  (n)
+#define host2uint8_t_be(n)  (n)
+#define host2uint8_t_le(n)  (n)
+#define host2uint8_t_le(n)  (n)
+
+#define  int8_t_le2host(n)  uint8_t_le2host(n)
+#define int16_t_le2host(n) uint16_t_le2host(n)
+#define int32_t_le2host(n) uint32_t_le2host(n)
+#define int64_t_le2host(n) uint64_t_le2host(n)
+
+#define  int8_t_be2host(n)  uint8_t_be2host(n)
+#define int16_t_be2host(n) uint16_t_be2host(n)
+#define int32_t_be2host(n) uint32_t_be2host(n)
+#define int64_t_be2host(n) uint64_t_be2host(n)
+
+#define  host2int8_t_le(n)  host2uint8_t_le(n)
+#define host2int16_t_le(n) host2uint16_t_le(n)
+#define host2int32_t_le(n) host2uint32_t_le(n)
+#define host2int64_t_le(n) host2uint64_t_le(n)
+
+#define  host2int8_t_be(n)  host2uint8_t_be(n)
+#define host2int16_t_be(n) host2uint16_t_be(n)
+#define host2int32_t_be(n) host2uint32_t_be(n)
+#define host2int64_t_be(n) host2uint64_t_be(n)
+
 static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 {
 	return ((n & 0xff) << 56) |

@@ -47,9 +47,12 @@
 typedef struct queue_head {
 	/** Pointer to the next entity (another QH or TD */
 	volatile link_pointer_t next;
-	/** Pointer to the contained entities (execution controlled by vertical flag*/
+	/**
+	 * Pointer to the contained entities
+	 * (execution controlled by vertical flag)
+	 */
 	volatile link_pointer_t element;
-} __attribute__((packed)) qh_t;
+} __attribute__((packed, aligned(16))) qh_t;
 
 /** Initialize queue head structure
  *

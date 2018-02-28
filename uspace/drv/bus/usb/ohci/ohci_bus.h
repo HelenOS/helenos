@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,51 +26,70 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbehci
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief EHCI driver
+ * @brief OHCI driver
  */
-#ifndef DRV_EHCI_HCD_ENDPOINT_H
-#define DRV_EHCI_HCD_ENDPOINT_H
+#ifndef DRV_OHCI_HCD_BUS_H
+#define DRV_OHCI_HCD_BUS_H
 
 #include <assert.h>
 #include <adt/list.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/hcd.h>
+#include <usb/dma_buffer.h>
+#include <usb/host/usb2_bus.h>
 
-#include "hw_struct/queue_head.h"
+#include "hw_struct/endpoint_descriptor.h"
 #include "hw_struct/transfer_descriptor.h"
 
-/** Connector structure linking ED to to prepared TD. */
-typedef struct ehci_endpoint {
-	/** EHCI endpoint descriptor */
-	qh_t *qh;
-	/** Linked list used by driver software */
-	link_t link;
-} ehci_endpoint_t;
+/**
+ * Connector structure linking ED to to prepared TD.
+ *
+ * OHCI requires new transfers to be appended at the end of a queue. But it has
+ * a weird semantics of a leftover TD, which serves as a placeholder. This left
+ * TD is overwritten with first TD of a new transfer, and the spare one is used
+ * as the next placeholder. Then the two are swapped for the next transaction.
+ */
+typedef struct ohci_endpoint {
+	endpoint_t base;
 
-errno_t ehci_endpoint_init(hcd_t *hcd, endpoint_t *ep);
-void ehci_endpoint_fini(hcd_t *hcd, endpoint_t *ep);
+	/** OHCI endpoint descriptor */
+	ed_t *ed;
+	/** TDs to be used at the beginning and end of transaction */
+	td_t *tds [2];
 
-/** Get and convert assigned ehci_endpoint_t structure
+	/** Buffer to back ED + 2 TD */
+	dma_buffer_t dma_buffer;
+
+	/** Link in endpoint_list*/
+	link_t eplist_link;
+	/** Link in pending_endpoints */
+	link_t pending_link;
+} ohci_endpoint_t;
+
+typedef struct hc hc_t;
+
+typedef struct {
+	bus_t base;
+	usb2_bus_helper_t helper;
+	hc_t *hc;
+} ohci_bus_t;
+
+errno_t ohci_bus_init(ohci_bus_t *, hc_t *);
+void ohci_ep_toggle_reset(endpoint_t *);
+
+/** Get and convert assigned ohci_endpoint_t structure
  * @param[in] ep USBD endpoint structure.
  * @return Pointer to assigned hcd endpoint structure
  */
-static inline ehci_endpoint_t * ehci_endpoint_get(const endpoint_t *ep)
+static inline ohci_endpoint_t * ohci_endpoint_get(const endpoint_t *ep)
 {
 	assert(ep);
-	return ep->hc_data.data;
-}
-
-static inline ehci_endpoint_t * ehci_endpoint_list_instance(link_t *l)
-{
-	return list_get_instance(l, ehci_endpoint_t, link);
+	return (ohci_endpoint_t *) ep;
 }
 
 #endif
 /**
  * @}
  */
-

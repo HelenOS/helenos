@@ -89,10 +89,10 @@ typedef struct td {
 	 * @note this does not have to be on the same page as cbp.
 	 */
 	volatile uint32_t be;
-} __attribute__((packed)) td_t;
+} __attribute__((packed, aligned(32))) td_t;
 
-void td_init(td_t *instance, const td_t *next,
-    usb_direction_t dir, const void *buffer, size_t size, int toggle);
+void td_init(td_t *, const td_t *, usb_direction_t, const void *, size_t, int);
+void td_set_next(td_t *, const td_t *);
 
 /**
  * Check TD for completion.
@@ -102,8 +102,8 @@ void td_init(td_t *instance, const td_t *next,
 inline static bool td_is_finished(const td_t *instance)
 {
 	assert(instance);
-	const int cc =(OHCI_MEM32_RD(instance->status)
-	    >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
+	const int cc = (OHCI_MEM32_RD(instance->status) >> TD_STATUS_CC_SHIFT)
+		& TD_STATUS_CC_MASK;
 	/* This value is changed on transfer completion,
 	 * either to CC_NOERROR or and error code.
 	 * See OHCI spec 4.3.1.3.5 p. 23 (pdf 37) */

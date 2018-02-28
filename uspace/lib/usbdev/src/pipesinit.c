@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty, Michal Staruch
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,7 @@
 #include <usb/dev/dp.h>
 #include <usb/dev/request.h>
 #include <usb/usb.h>
+#include <usb/debug.h>
 #include <usb/descriptor.h>
 
 #include <assert.h>
@@ -58,6 +60,7 @@ static const usb_dp_descriptor_nesting_t descriptor_nesting[] = {
 	NESTING(INTERFACE, HUB),
 	NESTING(INTERFACE, HID),
 	NESTING(HID, HID_REPORT),
+	NESTING(ENDPOINT, SSPEED_EP_COMPANION),
 	LAST_NESTING
 };
 
@@ -69,6 +72,16 @@ static const usb_dp_descriptor_nesting_t descriptor_nesting[] = {
 static inline bool is_endpoint_descriptor(const uint8_t *descriptor)
 {
 	return descriptor[1] == USB_DESCTYPE_ENDPOINT;
+}
+
+/** Tells whether given descriptor is of superspeed companion type.
+ *
+ * @param descriptor Descriptor in question.
+ * @return Whether the given descriptor is superspeed companion descriptor.
+ */
+static inline bool is_superspeed_companion_descriptor(const uint8_t *descriptor)
+{
+	return descriptor[1] == USB_DESCTYPE_SSPEED_EP_COMPANION;
 }
 
 /** Tells whether found endpoint corresponds to endpoint described by user.
@@ -133,13 +146,15 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
 
 		if (interface_number_fits
 		    && interface_setting_fits
-		    && endpoint_descriptions_fits) {
+		    && endpoint_descriptions_fits
+		    && !mapping->present) {
 			return mapping;
 		}
 
 		mapping++;
 		mapping_count--;
 	}
+
 	return NULL;
 }
 
@@ -149,29 +164,23 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
  * @param mapping_count Number of endpoint mappings in @p mapping.
  * @param interface Interface descriptor under which belongs the @p endpoint.
  * @param endpoint Endpoint descriptor.
+ * @param companion Superspeed companion descriptor.
  * @return Error code.
  */
 static errno_t process_endpoint(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     usb_standard_interface_descriptor_t *interface,
     usb_standard_endpoint_descriptor_t *endpoint_desc,
+    usb_superspeed_endpoint_companion_descriptor_t *companion_desc,
     usb_dev_session_t *bus_session)
 {
 
 	/*
 	 * Get endpoint characteristics.
 	 */
-
-	/* Actual endpoint number is in bits 0..3 */
-	const usb_endpoint_t ep_no = endpoint_desc->endpoint_address & 0x0F;
-
 	const usb_endpoint_description_t description = {
-		/* Endpoint direction is set by bit 7 */
-		.direction = (endpoint_desc->endpoint_address & 128)
-		    ? USB_DIRECTION_IN : USB_DIRECTION_OUT,
-		/* Transfer type is in bits 0..2 and
-		 * the enum values corresponds 1:1 */
-		.transfer_type = endpoint_desc->attributes & 3,
+		.transfer_type = USB_ED_GET_TRANSFER_TYPE(*endpoint_desc),
+		.direction = USB_ED_GET_DIR(*endpoint_desc),
 
 		/* Get interface characteristics. */
 		.interface_class = interface->interface_class,
@@ -193,19 +202,13 @@ static errno_t process_endpoint(
 		return EEXIST;
 	}
 
-	errno_t rc = usb_pipe_initialize(&ep_mapping->pipe,
-	    ep_no, description.transfer_type,
-	    ED_MPS_PACKET_SIZE_GET(
-	        uint16_usb2host(endpoint_desc->max_packet_size)),
-	    description.direction,
-	    ED_MPS_TRANS_OPPORTUNITIES_GET(
-	        uint16_usb2host(endpoint_desc->max_packet_size)), bus_session);
-	if (rc != EOK) {
-		return rc;
-	}
+	errno_t err = usb_pipe_initialize(&ep_mapping->pipe, bus_session);
+	if (err)
+		return err;
 
 	ep_mapping->present = true;
 	ep_mapping->descriptor = endpoint_desc;
+	ep_mapping->companion_descriptor = companion_desc;
 	ep_mapping->interface = interface;
 
 	return EOK;
@@ -234,11 +237,21 @@ static errno_t process_interface(
 
 	do {
 		if (is_endpoint_descriptor(descriptor)) {
+			/* Check if companion descriptor is present too, it should immediatelly follow. */
+			const uint8_t *companion_desc = usb_dp_get_nested_descriptor(parser,
+				parser_data, descriptor);
+			if (companion_desc && !is_superspeed_companion_descriptor(companion_desc)) {
+				/* Not what we wanted, don't pass it further. */
+				companion_desc = NULL;
+			}
+
 			(void) process_endpoint(mapping, mapping_count,
 			    (usb_standard_interface_descriptor_t *)
 			        interface_descriptor,
 			    (usb_standard_endpoint_descriptor_t *)
 			        descriptor,
+			    (usb_superspeed_endpoint_companion_descriptor_t *)
+			        companion_desc,
 			    bus_session);
 		}
 
@@ -287,7 +300,7 @@ errno_t usb_pipe_initialize_from_configuration(
 {
 	if (config_descriptor == NULL)
 		return EBADMEM;
-	
+
 	if (config_descriptor_size <
 	    sizeof(usb_standard_configuration_descriptor_t)) {
 		return ERANGE;
@@ -323,53 +336,6 @@ errno_t usb_pipe_initialize_from_configuration(
 		interface = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
 		    config_descriptor, interface);
 	} while (interface != NULL);
-
-	return EOK;
-}
-
-/** Probe default control pipe for max packet size.
- *
- * The function tries to get the correct value of max packet size several
- * time before giving up.
- *
- * The session on the pipe shall not be started.
- *
- * @param pipe Default control pipe.
- * @return Error code.
- */
-errno_t usb_pipe_probe_default_control(usb_pipe_t *pipe)
-{
-	assert(pipe);
-	static_assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
-
-	if ((pipe->direction != USB_DIRECTION_BOTH) ||
-	    (pipe->transfer_type != USB_TRANSFER_CONTROL) ||
-	    (pipe->endpoint_no != 0)) {
-		return EINVAL;
-	}
-
-	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
-	size_t transferred_size;
-	errno_t rc;
-	for (size_t attempt_var = 0; attempt_var < 3; ++attempt_var) {
-		rc = usb_request_get_descriptor(pipe, USB_REQUEST_TYPE_STANDARD,
-		    USB_REQUEST_RECIPIENT_DEVICE, USB_DESCTYPE_DEVICE,
-		    0, 0, dev_descr_start, CTRL_PIPE_MIN_PACKET_SIZE,
-		    &transferred_size);
-		if (rc == EOK) {
-			if (transferred_size != CTRL_PIPE_MIN_PACKET_SIZE) {
-				rc = ELIMIT;
-				continue;
-			}
-			break;
-		}
-	}
-	if (rc != EOK) {
-		return rc;
-	}
-
-	pipe->max_packet_size
-	    = dev_descr_start[DEV_DESCR_MAX_PACKET_SIZE_OFFSET];
 
 	return EOK;
 }

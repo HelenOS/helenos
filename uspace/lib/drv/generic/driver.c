@@ -970,7 +970,7 @@ errno_t ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 	return devman_add_device_to_category(fun->handle, cat_name);
 }
 
-int ddf_driver_main(const driver_t *drv)
+errno_t ddf_driver_main(const driver_t *drv)
 {
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic

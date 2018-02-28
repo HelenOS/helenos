@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,47 +37,27 @@
 #ifndef LIBUSBHOST_HOST_DDF_HELPERS_H
 #define LIBUSBHOST_HOST_DDF_HELPERS_H
 
-#include <usb/host/hcd.h>
-#include <usb/host/usb_bus.h>
-#include <usb/usb.h>
-
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
-#include <device/hw_res_parsed.h>
+#include <usb/usb.h>
 
-typedef errno_t (*driver_init_t)(hcd_t *, const hw_res_list_parsed_t *, bool);
-typedef void (*driver_fini_t)(hcd_t *);
-typedef errno_t (*claim_t)(ddf_dev_t *);
-typedef errno_t (*irq_code_gen_t)(irq_code_t *, const hw_res_list_parsed_t *, int *);
+#include <usb/host/hcd.h>
+#include <usb/descriptor.h>
 
-typedef struct {
-	hcd_ops_t ops;
-	claim_t claim;
-	usb_speed_t hc_speed;
-	driver_init_t init;
-	driver_fini_t fini;
-	interrupt_handler_t *irq_handler;
-	irq_code_gen_t irq_code_gen;
-	const char *name;
-} ddf_hc_driver_t;
 
-errno_t hcd_ddf_add_hc(ddf_dev_t *device, const ddf_hc_driver_t *driver);
+errno_t hcd_ddf_setup_hc(ddf_dev_t *, size_t);
+void hcd_ddf_clean_hc(hc_device_t *);
 
-errno_t hcd_ddf_setup_hc(ddf_dev_t *device, usb_speed_t max_speed,
-    size_t bw, bw_count_func_t bw_count);
-void hcd_ddf_clean_hc(ddf_dev_t *device);
-errno_t hcd_ddf_setup_root_hub(ddf_dev_t *device);
 
-hcd_t *dev_to_hcd(ddf_dev_t *dev);
+device_t *hcd_ddf_fun_create(hc_device_t *, usb_speed_t);
+void hcd_ddf_fun_destroy(device_t *);
 
-errno_t hcd_ddf_enable_interrupt(ddf_dev_t *device, int);
-errno_t hcd_ddf_get_registers(ddf_dev_t *device, hw_res_list_parsed_t *hw_res);
-errno_t hcd_ddf_setup_interrupts(ddf_dev_t *device,
-    const hw_res_list_parsed_t *hw_res,
-    interrupt_handler_t handler,
-    errno_t (*gen_irq_code)(irq_code_t *, const hw_res_list_parsed_t *, int *),
-    cap_handle_t *handle);
-void ddf_hcd_gen_irq_handler(ipc_call_t *call, ddf_dev_t *dev);
+errno_t hcd_ddf_setup_match_ids(device_t *, usb_standard_device_descriptor_t *);
+
+errno_t hcd_ddf_enable_interrupt(hc_device_t *hcd, int);
+errno_t hcd_ddf_get_registers(hc_device_t *hcd, hw_res_list_parsed_t *hw_res);
+
+void hcd_ddf_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev);
 
 #endif
 

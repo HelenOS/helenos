@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,7 @@
 #include <usb/descriptor.h>
 #include <usb/classes/hub.h>
 #include <usb/request.h>
+#include <usb/host/endpoint.h>
 #include <usb/usb.h>
 
 #include "uhci_rh.h"
@@ -102,21 +104,16 @@ errno_t uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 	assert(instance);
 	assert(batch);
 
-	const usb_target_t target = {{
-		.address = batch->ep->address,
-		.endpoint = batch->ep->endpoint
-	}};
 	do {
-		batch->error = virthub_base_request(&instance->base, target,
-		    usb_transfer_batch_direction(batch), (void*)batch->setup_buffer,
-		    batch->buffer, batch->buffer_size, &batch->transfered_size);
+		batch->error = virthub_base_request(&instance->base, batch->target,
+		    batch->dir, (void*) batch->setup.buffer,
+		    batch->dma_buffer.virt, batch->size, &batch->transferred_size);
 		if (batch->error == ENAK)
 			async_usleep(instance->base.endpoint_descriptor.poll_interval * 1000);
 		//TODO This is flimsy, but we can't exit early because
 		//ENAK is technically an error condition
 	} while (batch->error == ENAK);
-	usb_transfer_batch_finish(batch, NULL);
-	usb_transfer_batch_destroy(batch);
+	usb_transfer_batch_finish(batch);
 	return EOK;
 }
 
@@ -205,7 +202,7 @@ static errno_t req_get_port_state(usbvirt_device_t *device,
 	const uint16_t value = pio_read_16(hub->ports[port]);
 	data[0] = ((value & STATUS_LINE_D_MINUS) ? 1 : 0)
 	    | ((value & STATUS_LINE_D_PLUS) ? 2 : 0);
-	RH_DEBUG(hub, port, "Bus state %" PRIx8 "(source %" PRIx16")\n",
+	RH_DEBUG(hub, port, "Bus state %" PRIx8 "(source %" PRIx16")",
 	    data[0], value);
 	*act_size = 1;
 	return EOK;
@@ -213,8 +210,8 @@ static errno_t req_get_port_state(usbvirt_device_t *device,
 
 #define BIT_VAL(val, bit) \
 	((val & bit) ? 1 : 0)
-#define UHCI2USB(val, bit, feat) \
-	(BIT_VAL(val, bit) << feat)
+#define UHCI2USB(val, bit, mask) \
+	(BIT_VAL(val, bit) ? (mask) : 0)
 
 /** Port status request handler.
  * @param device Virtual hub device
@@ -239,19 +236,19 @@ static errno_t req_get_port_status(usbvirt_device_t *device,
 
 	const uint16_t val = pio_read_16(hub->ports[port]);
 	const uint32_t status = uint32_host2usb(
-	    UHCI2USB(val, STATUS_CONNECTED, USB_HUB_FEATURE_PORT_CONNECTION) |
-	    UHCI2USB(val, STATUS_ENABLED, USB_HUB_FEATURE_PORT_ENABLE) |
-	    UHCI2USB(val, STATUS_SUSPEND, USB_HUB_FEATURE_PORT_SUSPEND) |
-	    UHCI2USB(val, STATUS_IN_RESET, USB_HUB_FEATURE_PORT_RESET) |
-	    UHCI2USB(val, STATUS_ALWAYS_ONE, USB_HUB_FEATURE_PORT_POWER) |
-	    UHCI2USB(val, STATUS_LOW_SPEED, USB_HUB_FEATURE_PORT_LOW_SPEED) |
-	    UHCI2USB(val, STATUS_CONNECTED_CHANGED, USB_HUB_FEATURE_C_PORT_CONNECTION) |
-	    UHCI2USB(val, STATUS_ENABLED_CHANGED, USB_HUB_FEATURE_C_PORT_ENABLE) |
-//	    UHCI2USB(val, STATUS_SUSPEND, USB_HUB_FEATURE_C_PORT_SUSPEND) |
-	    ((hub->reset_changed[port] ? 1 : 0) << USB_HUB_FEATURE_C_PORT_RESET)
+	    UHCI2USB(val, STATUS_CONNECTED, USB_HUB_PORT_STATUS_CONNECTION) |
+	    UHCI2USB(val, STATUS_ENABLED, USB_HUB_PORT_STATUS_ENABLE) |
+	    UHCI2USB(val, STATUS_SUSPEND, USB2_HUB_PORT_STATUS_SUSPEND) |
+	    UHCI2USB(val, STATUS_IN_RESET, USB_HUB_PORT_STATUS_RESET) |
+	    UHCI2USB(val, STATUS_ALWAYS_ONE, USB2_HUB_PORT_STATUS_POWER) |
+	    UHCI2USB(val, STATUS_LOW_SPEED, USB2_HUB_PORT_STATUS_LOW_SPEED) |
+	    UHCI2USB(val, STATUS_CONNECTED_CHANGED, USB_HUB_PORT_STATUS_C_CONNECTION) |
+	    UHCI2USB(val, STATUS_ENABLED_CHANGED, USB2_HUB_PORT_STATUS_C_ENABLE) |
+//	    UHCI2USB(val, STATUS_SUSPEND, USB2_HUB_PORT_STATUS_C_SUSPEND) |
+	    (hub->reset_changed[port] ?  USB_HUB_PORT_STATUS_C_RESET : 0)
 	);
 	RH_DEBUG(hub, port, "Port status %" PRIx32 " (source %" PRIx16
-	    "%s)\n", uint32_usb2host(status), val,
+	    "%s)", uint32_usb2host(status), val,
 	    hub->reset_changed[port] ? "-reset" : "");
 	memcpy(data, &status, sizeof(status));
 	*act_size = sizeof(status);;
@@ -277,54 +274,54 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 	const uint16_t status = pio_read_16(hub->ports[port]);
 	const uint16_t val = status & (~STATUS_WC_BITS);
 	switch (feature) {
-	case USB_HUB_FEATURE_PORT_ENABLE:
+	case USB2_HUB_FEATURE_PORT_ENABLE:
 		RH_DEBUG(hub, port, "Clear port enable (status %"
-		    PRIx16 ")\n", status);
+		    PRIx16 ")", status);
 		pio_write_16(hub->ports[port], val & ~STATUS_ENABLED);
 		break;
-	case USB_HUB_FEATURE_PORT_SUSPEND:
+	case USB2_HUB_FEATURE_PORT_SUSPEND:
 		RH_DEBUG(hub, port, "Clear port suspend (status %"
-		    PRIx16 ")\n", status);
+		    PRIx16 ")", status);
 		pio_write_16(hub->ports[port], val & ~STATUS_SUSPEND);
 		// TODO we should do resume magic
-		usb_log_warning("Resume is not implemented on port %u\n", port);
+		usb_log_warning("Resume is not implemented on port %u", port);
 		break;
 	case USB_HUB_FEATURE_PORT_POWER:
-		RH_DEBUG(hub, port, "Clear port power (status %" PRIx16 ")\n",
+		RH_DEBUG(hub, port, "Clear port power (status %" PRIx16 ")",
 		    status);
 		/* We are always powered */
-		usb_log_warning("Tried to power off port %u\n", port);
+		usb_log_warning("Tried to power off port %u", port);
 		break;
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:
 		RH_DEBUG(hub, port, "Clear port conn change (status %"
-		    PRIx16 ")\n", status);
+		    PRIx16 ")", status);
 		pio_write_16(hub->ports[port], val | STATUS_CONNECTED_CHANGED);
 		break;
 	case USB_HUB_FEATURE_C_PORT_RESET:
 		RH_DEBUG(hub, port, "Clear port reset change (status %"
-		    PRIx16 ")\n", status);
+		    PRIx16 ")", status);
 		hub->reset_changed[port] = false;
 		break;
-	case USB_HUB_FEATURE_C_PORT_ENABLE:
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:
 		RH_DEBUG(hub, port, "Clear port enable change (status %"
-		    PRIx16 ")\n", status);
+		    PRIx16 ")", status);
 		pio_write_16(hub->ports[port], status | STATUS_ENABLED_CHANGED);
 		break;
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:
 		RH_DEBUG(hub, port, "Clear port suspend change (status %"
-		    PRIx16 ")\n", status);
+		    PRIx16 ")", status);
 		//TODO
 		return ENOTSUP;
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
 		RH_DEBUG(hub, port, "Clear port OC change (status %"
-		    PRIx16 ")\n", status);
+		    PRIx16 ")", status);
 		/* UHCI Does not report over current */
 		//TODO: newer chips do, but some have broken wiring
 		break;
 	default:
 		RH_DEBUG(hub, port, "Clear unknown feature %d (status %"
-		    PRIx16 ")\n", feature, status);
-		usb_log_warning("Clearing feature %d is unsupported\n",
+		    PRIx16 ")", feature, status);
+		usb_log_warning("Clearing feature %d is unsupported",
 		    feature);
 		return ESTALL;
 	}
@@ -351,38 +348,38 @@ static errno_t req_set_port_feature(usbvirt_device_t *device,
 	switch (feature) {
 	case USB_HUB_FEATURE_PORT_RESET:
 		RH_DEBUG(hub, port, "Set port reset before (status %" PRIx16
-		    ")\n", status);
+		    ")", status);
 		uhci_port_reset_enable(hub->ports[port]);
 		hub->reset_changed[port] = true;
 		RH_DEBUG(hub, port, "Set port reset after (status %" PRIx16
-		    ")\n", pio_read_16(hub->ports[port]));
+		    ")", pio_read_16(hub->ports[port]));
 		break;
-	case USB_HUB_FEATURE_PORT_SUSPEND:
+	case USB2_HUB_FEATURE_PORT_SUSPEND:
 		RH_DEBUG(hub, port, "Set port suspend (status %" PRIx16
-		    ")\n", status);
+		    ")", status);
 		pio_write_16(hub->ports[port],
 		    (status & ~STATUS_WC_BITS) | STATUS_SUSPEND);
-		usb_log_warning("Suspend is not implemented on port %u\n", port);
+		usb_log_warning("Suspend is not implemented on port %u", port);
 		break;
 	case USB_HUB_FEATURE_PORT_POWER:
 		RH_DEBUG(hub, port, "Set port power (status %" PRIx16
-		    ")\n", status);
+		    ")", status);
 		/* We are always powered */
-		usb_log_warning("Tried to power port %u\n", port);
+		usb_log_warning("Tried to power port %u", port);
 		break;
 	case USB_HUB_FEATURE_C_PORT_CONNECTION:
-	case USB_HUB_FEATURE_C_PORT_ENABLE:
-	case USB_HUB_FEATURE_C_PORT_SUSPEND:
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
 		RH_DEBUG(hub, port, "Set port change flag (status %" PRIx16
-		    ")\n", status);
+		    ")", status);
 		/* These are voluntary and don't have to be set
 		 * there is no way we could do it on UHCI anyway */
 		break;
 	default:
 		RH_DEBUG(hub, port, "Set unknown feature %d (status %" PRIx16
-		    ")\n", feature, status);
-		usb_log_warning("Setting feature %d is unsupported\n",
+		    ")", feature, status);
+		usb_log_warning("Setting feature %d is unsupported",
 		    feature);
 		return ESTALL;
 	}
@@ -421,7 +418,7 @@ static errno_t req_status_change_handler(usbvirt_device_t *device,
 	if (status)
 		RH_DEBUG(hub, -1, "Event mask %" PRIx8
 		    " (status_a %" PRIx16 "%s),"
-		    " (status_b %" PRIx16 "%s)\n", status,
+		    " (status_b %" PRIx16 "%s)", status,
 		    status_a, hub->reset_changed[0] ? "-reset" : "",
 		    status_b, hub->reset_changed[1] ? "-reset" : "" );
 	((uint8_t *)buffer)[0] = status;

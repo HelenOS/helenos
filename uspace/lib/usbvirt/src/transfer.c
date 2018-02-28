@@ -78,7 +78,7 @@ static errno_t usbvirt_control_transfer(usbvirt_device_t *dev,
 	    setup_packet, data, data_size_sent);
 
 	if (rc == EFORWARD) {
-		usb_log_warning("Control transfer {%s (%s)} not handled.\n",
+		usb_log_warning("Control transfer {%s (%s)} not handled.",
 		    usb_debug_str_buffer(setup, setup_size, 10),
 		    setup_packet->request_type & 0x80
 		    ? "IN" : usb_debug_str_buffer(data, data_size, 10));
@@ -118,7 +118,8 @@ errno_t usbvirt_control_write(usbvirt_device_t *dev, const void *setup,
  * @param data_size_sent Number of actually send bytes during the transfer.
  * @return Error code.
  */
-errno_t usbvirt_control_read(usbvirt_device_t *dev, const void *setup, size_t setup_size,
+errno_t usbvirt_control_read(usbvirt_device_t *dev,
+    const void *setup, size_t setup_size,
     void *data, size_t data_size, size_t *data_size_sent)
 {
 	return usbvirt_control_transfer(dev, setup, setup_size,

@@ -39,7 +39,7 @@
 #include <usbvirt/device.h>
 #include <fibril_synch.h>
 
-#define VUHID_ENDPOINT_MAX USB11_ENDPOINT_MAX
+#define VUHID_ENDPOINT_MAX USB_ENDPOINT_MAX
 #define VUHID_INTERFACE_MAX 8
 
 typedef struct vuhid_interface vuhid_interface_t;

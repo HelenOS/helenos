@@ -63,7 +63,7 @@ static errno_t usb_blink1_color_set(ddf_fun_t *fun, pixel_t pixel)
 {
 	usb_blink1_t *blink1_dev = (usb_blink1_t *) ddf_fun_data_get(fun);
 	if (blink1_dev == NULL) {
-		usb_log_debug("Missing parameters.\n");
+		usb_log_debug("Missing parameters.");
 		return EINVAL;
 	}
 	
@@ -104,7 +104,7 @@ errno_t usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 	ddf_fun_t *fun = usb_device_ddf_fun_create(hid_dev->usb_dev,
 	    fun_exposed, HID_BLINK1_FUN_NAME);
 	if (fun == NULL) {
-		usb_log_error("Could not create DDF function node `%s'.\n",
+		usb_log_error("Could not create DDF function node `%s'.",
 		    HID_BLINK1_FUN_NAME);
 		return ENOMEM;
 	}
@@ -122,7 +122,7 @@ errno_t usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 	
 	errno_t rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function `%s': %s.\n",
+		usb_log_error("Could not bind DDF function `%s': %s.",
 		    ddf_fun_get_name(fun), str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
@@ -130,7 +130,7 @@ errno_t usb_blink1_init(usb_hid_dev_t *hid_dev, void **data)
 	
 	rc = ddf_fun_add_to_category(fun, HID_BLINK1_CATEGORY);
 	if (rc != EOK) {
-		usb_log_error("Could not add DDF function to category %s: %s.\n",
+		usb_log_error("Could not add DDF function to category %s: %s.",
 		    HID_BLINK1_CATEGORY, str_error(rc));
 		
 		rc = ddf_fun_unbind(fun);

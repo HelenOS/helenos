@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Matus Dekanek
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,30 +48,67 @@ typedef enum {
 	USB_HUB_FEATURE_HUB_LOCAL_POWER = 0,
 	USB_HUB_FEATURE_HUB_OVER_CURRENT = 1,
 	USB_HUB_FEATURE_PORT_CONNECTION = 0,
-	USB_HUB_FEATURE_PORT_ENABLE = 1,
-	USB_HUB_FEATURE_PORT_SUSPEND = 2,
+	USB2_HUB_FEATURE_PORT_ENABLE = 1,
+	USB2_HUB_FEATURE_PORT_SUSPEND = 2,
 	USB_HUB_FEATURE_PORT_OVER_CURRENT = 3,
 	USB_HUB_FEATURE_PORT_RESET = 4,
+	USB3_HUB_FEATURE_PORT_LINK_STATE = 5,
 	USB_HUB_FEATURE_PORT_POWER = 8,
-	USB_HUB_FEATURE_PORT_LOW_SPEED = 9,
-	USB_HUB_FEATURE_PORT_HIGH_SPEED = 10,
+	USB2_HUB_FEATURE_PORT_LOW_SPEED = 9,
 	USB_HUB_FEATURE_C_PORT_CONNECTION = 16,
-	USB_HUB_FEATURE_C_PORT_ENABLE = 17,
-	USB_HUB_FEATURE_C_PORT_SUSPEND = 18,
+	USB2_HUB_FEATURE_C_PORT_ENABLE = 17,
+	USB2_HUB_FEATURE_C_PORT_SUSPEND = 18,
 	USB_HUB_FEATURE_C_PORT_OVER_CURRENT = 19,
 	USB_HUB_FEATURE_C_PORT_RESET = 20,
-	USB_HUB_FEATURE_PORT_TEST = 21,
-	USB_HUB_FEATURE_PORT_INDICATOR = 22
+	USB2_HUB_FEATURE_PORT_TEST = 21,
+	USB2_HUB_FEATURE_PORT_INDICATOR = 22,
+	USB3_HUB_FEATURE_C_PORT_LINK_STATE = 25,
+	USB3_HUB_FEATURE_BH_PORT_RESET = 28,
+	USB3_HUB_FEATURE_C_BH_PORT_RESET = 29,
 	/* USB_HUB_FEATURE_ = , */
 } usb_hub_class_feature_t;
 
+/**
+ * Dword holding port status and changes flags.
+ *
+ * For more information refer to tables 11-15 and 11-16 in
+ * "Universal Serial Bus Specification Revision 1.1" pages 274 and 277
+ * (290 and 293 in pdf)
+ *
+ * Beware that definition of bits changed between USB 2 and 3,
+ * so some fields are prefixed with USB2 or USB3 instead.
+ */
+typedef uint32_t usb_port_status_t;
+
+#define USB_HUB_PORT_STATUS_BIT(bit)  (uint32_usb2host(1 << (bit)))
+#define USB_HUB_PORT_STATUS_CONNECTION		USB_HUB_PORT_STATUS_BIT(0)
+#define USB_HUB_PORT_STATUS_ENABLE		USB_HUB_PORT_STATUS_BIT(1)
+#define USB2_HUB_PORT_STATUS_SUSPEND		USB_HUB_PORT_STATUS_BIT(2)
+#define USB_HUB_PORT_STATUS_OC			USB_HUB_PORT_STATUS_BIT(3)
+#define USB_HUB_PORT_STATUS_RESET		USB_HUB_PORT_STATUS_BIT(4)
+
+#define USB2_HUB_PORT_STATUS_POWER		USB_HUB_PORT_STATUS_BIT(8)
+#define USB2_HUB_PORT_STATUS_LOW_SPEED		USB_HUB_PORT_STATUS_BIT(9)
+#define USB3_HUB_PORT_STATUS_POWER		USB_HUB_PORT_STATUS_BIT(9)
+#define USB2_HUB_PORT_STATUS_HIGH_SPEED		USB_HUB_PORT_STATUS_BIT(10)
+#define USB2_HUB_PORT_STATUS_TEST		USB_HUB_PORT_STATUS_BIT(11)
+#define USB2_HUB_PORT_STATUS_INDICATOR		USB_HUB_PORT_STATUS_BIT(12)
+
+#define USB_HUB_PORT_STATUS_C_CONNECTION	USB_HUB_PORT_STATUS_BIT(16)
+#define USB2_HUB_PORT_STATUS_C_ENABLE		USB_HUB_PORT_STATUS_BIT(17)
+#define USB2_HUB_PORT_STATUS_C_SUSPEND		USB_HUB_PORT_STATUS_BIT(18)
+#define USB_HUB_PORT_STATUS_C_OC		USB_HUB_PORT_STATUS_BIT(19)
+#define USB_HUB_PORT_STATUS_C_RESET		USB_HUB_PORT_STATUS_BIT(20)
+#define USB3_HUB_PORT_STATUS_C_BH_RESET		USB_HUB_PORT_STATUS_BIT(21)
+#define USB3_HUB_PORT_STATUS_C_LINK_STATE	USB_HUB_PORT_STATUS_BIT(22)
+#define USB3_HUB_PORT_STATUS_C_CONFIG_ERROR	USB_HUB_PORT_STATUS_BIT(23)
 
 /** Header of standard hub descriptor without the "variadic" part. */
 typedef struct {
 	/** Descriptor length. */
 	uint8_t length;
 
-	/** Descriptor type (0x29). */
+	/** Descriptor type (0x29 or 0x2a for superspeed hub). */
 	uint8_t descriptor_type;
 
 	/** Number of downstream ports. */
@@ -115,6 +153,8 @@ typedef struct {
 #define HUB_CHAR_COMPOUND_DEVICE        (1 << 2)
 #define HUB_CHAR_OC_PER_PORT_FLAG       (1 << 3)
 #define HUB_CHAR_NO_OC_FLAG             (1 << 4)
+
+/* These are invalid for superspeed hub */
 #define HUB_CHAR_TT_THINK_16            (1 << 5)
 #define HUB_CHAR_TT_THINK_8             (1 << 6)
 #define HUB_CHAR_INDICATORS_FLAG        (1 << 7)
@@ -137,63 +177,70 @@ typedef struct {
 	 *  electronics in mA.
 	 */
 	uint8_t max_current;
-} __attribute__ ((packed)) usb_hub_descriptor_header_t;
+} __attribute__((packed)) usb_hub_descriptor_header_t;
 
 /** One bit for the device and one bit for every port */
 #define STATUS_BYTES(ports) ((1 + ports + 7) / 8)
 
-/**	@brief usb hub specific request types.
- *
- *	For more information see Universal Serial Bus Specification Revision 1.1 chapter 11.16.2
+/**
+ * @brief usb hub specific request types.
  */
 typedef enum {
-    /**	This request resets a value reported in the hub status.	*/
-    USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE = 0x20,
-    /** This request resets a value reported in the port status. */
-    USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE = 0x23,
-    /** This is an optional per-port diagnostic request that returns the bus state value, as sampled at the last EOF2 point. */
-    USB_HUB_REQ_TYPE_GET_STATE = 0xA3,
-    /** This request returns the hub descriptor. */
-    USB_HUB_REQ_TYPE_GET_DESCRIPTOR = 0xA0,
-    /** This request returns the current hub status and the states that have changed since the previous acknowledgment. */
-    USB_HUB_REQ_TYPE_GET_HUB_STATUS = 0xA0,
-    /** This request returns the current port status and the current value of the port status change bits. */
-    USB_HUB_REQ_TYPE_GET_PORT_STATUS = 0xA3,
-    /** This request overwrites the hub descriptor. */
-    USB_HUB_REQ_TYPE_SET_DESCRIPTOR = 0x20,
-    /** This request sets a value reported in the hub status. */
-    USB_HUB_REQ_TYPE_SET_HUB_FEATURE = 0x20,
-    /** This request sets a value reported in the port status. */
-    USB_HUB_REQ_TYPE_SET_PORT_FEATURE = 0x23
+	/** This request resets a value reported in the hub status. */
+	USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE = 0x20,
+	/** This request resets a value reported in the port status. */
+	USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE = 0x23,
+	/**
+	 * This is an optional per-port diagnostic request that returns the bus
+	 * state value, as sampled at the last EOF2 point.
+	 */
+	USB_HUB_REQ_TYPE_GET_STATE = 0xA3,
+	/** This request returns the hub descriptor. */
+	USB_HUB_REQ_TYPE_GET_DESCRIPTOR = 0xA0,
+	/**
+	 * This request returns the current hub status and the states that have
+	 * changed since the previous acknowledgment.
+	 */
+	USB_HUB_REQ_TYPE_GET_HUB_STATUS = 0xA0,
+	/**
+	 * This request returns the current port status and the current value of the
+	 * port status change bits.
+	 */
+	USB_HUB_REQ_TYPE_GET_PORT_STATUS = 0xA3,
+	/** This request overwrites the hub descriptor. */
+	USB_HUB_REQ_TYPE_SET_DESCRIPTOR = 0x20,
+	/** This request sets a value reported in the hub status. */
+	USB_HUB_REQ_TYPE_SET_HUB_FEATURE = 0x20,
+	/**
+	 * This request sets the value that the hub uses to determine the index
+	 * into the Route String Index for the hub.
+	 */
+	USB_HUB_REQ_TYPE_SET_HUB_DEPTH = 0x20,
+	/** This request sets a value reported in the port status. */
+	USB_HUB_REQ_TYPE_SET_PORT_FEATURE = 0x23,
 } usb_hub_bm_request_type_t;
 
-/** @brief hub class request codes*/
-/// \TODO these are duplicit to standart descriptors
+/**
+ * @brief hub class request codes
+ */
 typedef enum {
-    /**  */
-    USB_HUB_REQUEST_GET_STATUS = 0,
-    /** */
-    USB_HUB_REQUEST_CLEAR_FEATURE = 1,
-    /** USB 1.0 only */
-    USB_HUB_REQUEST_GET_STATE = 2,
-    /** */
-    USB_HUB_REQUEST_SET_FEATURE = 3,
-    /** */
-    USB_HUB_REQUEST_GET_DESCRIPTOR = 6,
-    /** */
-    USB_HUB_REQUEST_SET_DESCRIPTOR = 7,
-    /** */
-    USB_HUB_REQUEST_CLEAR_TT_BUFFER = 8,
-    /** */
-    USB_HUB_REQUEST_RESET_TT = 9,
-    /** */
-    USB_HUB_GET_TT_STATE = 10,
-    /** */
-    USB_HUB_STOP_TT = 11,
+	USB_HUB_REQUEST_GET_STATUS = 0,
+	USB_HUB_REQUEST_CLEAR_FEATURE = 1,
+	/** USB 1.0 only */
+	USB_HUB_REQUEST_GET_STATE = 2,
+	USB_HUB_REQUEST_SET_FEATURE = 3,
+	USB_HUB_REQUEST_GET_DESCRIPTOR = 6,
+	USB_HUB_REQUEST_SET_DESCRIPTOR = 7,
+	USB_HUB_REQUEST_CLEAR_TT_BUFFER = 8,
+	USB_HUB_REQUEST_RESET_TT = 9,
+	USB_HUB_GET_TT_STATE = 10,
+	USB_HUB_STOP_TT = 11,
+	/** USB 3+ only */
+	USB_HUB_REQUEST_SET_HUB_DEPTH = 12,
 } usb_hub_request_t;
 
 /**
- *	Maximum size of usb hub descriptor in bytes
+ * Maximum size of usb hub descriptor in bytes
  */
 /* 7 (basic size) + 2*32 (port bitmasks) */
 #define USB_HUB_MAX_DESCRIPTOR_SIZE  (7 + 2 * 32)

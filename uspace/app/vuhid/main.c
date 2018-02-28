@@ -226,7 +226,7 @@ int main(int argc, char * argv[])
 	}
 
 	for (int i = 0; i < (int) hid_dev.descriptors->configuration->extra_count; i++) {
-		usb_log_debug("Found extra descriptor: %s.\n",
+		usb_log_debug("Found extra descriptor: %s.",
 		    usb_debug_str_buffer(
 		        hid_dev.descriptors->configuration->extra[i].data,
 		        hid_dev.descriptors->configuration->extra[i].length,

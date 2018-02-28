@@ -109,7 +109,7 @@ static errno_t on_data_out(vuhid_interface_t *iface,
 	uint8_t leds = ((uint8_t *) buffer)[0];
 #define _GET_LED(index, signature) \
 	(((leds) & (1 << index)) ? (signature) : '-')
-	usb_log_info("%s: LEDs = %c%c%c%c%c\n",
+	usb_log_info("%s: LEDs = %c%c%c%c%c",
 	    iface->name,
 	    _GET_LED(0, '0'), _GET_LED(1, 'A'), _GET_LED(2, 's'),
 	    _GET_LED(3, 'c'), _GET_LED(4, 'k'));

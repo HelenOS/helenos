@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,7 +106,7 @@ typedef struct ed {
 	volatile uint32_t next;
 #define ED_NEXT_PTR_MASK (0xfffffff0)
 #define ED_NEXT_PTR_SHIFT (0)
-} __attribute__((packed)) ed_t;
+} __attribute__((packed, aligned(32))) ed_t;
 
 void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td);
 
@@ -164,6 +165,17 @@ static inline uint32_t ed_head_td(const ed_t *instance)
 }
 
 /**
+ * Set the HeadP of ED. Do not call unless the ED is Halted.
+ * @param instance ED
+ */
+static inline void ed_set_head_td(ed_t *instance, const td_t *td)
+{
+	assert(instance);
+	const uintptr_t pa = addr_to_phys(td);
+	OHCI_MEM32_WR(instance->td_head, pa & ED_TDHEAD_PTR_MASK);
+}
+
+/**
  * Set next ED in ED chain.
  * @param instance ED to modify
  * @param next ED to append
@@ -191,7 +203,7 @@ static inline uint32_t ed_next(const ed_t *instance)
 static inline int ed_toggle_get(const ed_t *instance)
 {
 	assert(instance);
-	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_TOGGLE_CARRY) ? 1 : 0;
+	return !!(OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_TOGGLE_CARRY);
 }
 
 /**

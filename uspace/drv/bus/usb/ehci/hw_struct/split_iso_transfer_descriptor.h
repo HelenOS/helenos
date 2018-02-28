@@ -88,7 +88,7 @@ typedef struct sitd {
 
 	/* 64 bit struct only */
 	volatile uint32_t extended_bp[2];
-} sitd_t;
+} __attribute__((packed, aligned(32))) sitd_t;
 #endif
 /**
  * @}

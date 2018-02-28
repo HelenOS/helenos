@@ -40,7 +40,7 @@
 #include <stdint.h>
 #include <usb/host/utils/malloc32.h>
 
-#include "ohci_endpoint.h"
+#include "ohci_bus.h"
 #include "hw_struct/endpoint_descriptor.h"
 
 /** Structure maintains both OHCI queue and software list of active endpoints.*/

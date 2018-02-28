@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -117,7 +118,7 @@ errno_t usb_control_request_set(usb_pipe_t *pipe,
  *                         the DATA stage (they will come in USB endianness).
  * @param data_size        Size of the @p data buffer
  *                         (in native endianness).
- * @param actual_data_size Actual size of transfered data
+ * @param actual_data_size Actual size of transferred data
  *                         (in native endianness).
  *
  * @return Error code.
@@ -182,14 +183,14 @@ errno_t usb_request_get_status(usb_pipe_t *pipe,
 	}
 
 	uint16_t status_usb_endianess;
-	size_t data_transfered_size;
+	size_t data_transferred_size;
 	errno_t rc = usb_control_request_get(pipe, USB_REQUEST_TYPE_STANDARD,
 	    recipient, USB_DEVREQ_GET_STATUS, 0, uint16_host2usb(index),
-	    &status_usb_endianess, 2, &data_transfered_size);
+	    &status_usb_endianess, 2, &data_transferred_size);
 	if (rc != EOK) {
 		return rc;
 	}
-	if (data_transfered_size != 2) {
+	if (data_transferred_size != 2) {
 		return ELIMIT;
 	}
 
@@ -313,14 +314,14 @@ errno_t usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
 	 * Get only first byte to retrieve descriptor length.
 	 */
 	uint8_t tmp_buffer;
-	size_t bytes_transfered;
+	size_t bytes_transferred;
 	rc = usb_request_get_descriptor(pipe, request_type, recipient,
 	    descriptor_type, descriptor_index, language,
-	    &tmp_buffer, sizeof(tmp_buffer), &bytes_transfered);
+	    &tmp_buffer, sizeof(tmp_buffer), &bytes_transferred);
 	if (rc != EOK) {
 		return rc;
 	}
-	if (bytes_transfered != 1) {
+	if (bytes_transferred != 1) {
 		return ELIMIT;
 	}
 
@@ -339,12 +340,12 @@ errno_t usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
 
 	rc = usb_request_get_descriptor(pipe, request_type, recipient,
 	    descriptor_type, descriptor_index, language,
-	    buffer, size, &bytes_transfered);
+	    buffer, size, &bytes_transferred);
 	if (rc != EOK) {
 		free(buffer);
 		return rc;
 	}
-	if (bytes_transfered != size) {
+	if (bytes_transferred != size) {
 		free(buffer);
 		return ELIMIT;
 	}
@@ -823,7 +824,7 @@ leave:
  * @param ep_index Endpoint index (in native endianness).
  * @return Error code.
  */
-errno_t usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
+static errno_t usb_request_clear_endpoint_halt(usb_pipe_t *pipe, uint16_t ep_index)
 {
 	return usb_request_clear_feature(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_ENDPOINT,
@@ -842,8 +843,10 @@ errno_t usb_pipe_clear_halt(usb_pipe_t *ctrl_pipe, usb_pipe_t *target_pipe)
 	if ((ctrl_pipe == NULL) || (target_pipe == NULL)) {
 		return EINVAL;
 	}
-	return usb_request_clear_endpoint_halt(ctrl_pipe,
-	    target_pipe->endpoint_no);
+
+	uint16_t index = target_pipe->desc.endpoint_no;
+	index |= (target_pipe->desc.direction == USB_DIRECTION_IN) << 7;
+	return usb_request_clear_endpoint_halt(ctrl_pipe, index);
 }
 
 /** Get endpoint status.
@@ -857,7 +860,7 @@ errno_t usb_request_get_endpoint_status(usb_pipe_t *ctrl_pipe, usb_pipe_t *pipe,
     uint16_t *status)
 {
 	uint16_t status_tmp;
-	uint16_t pipe_index = (uint16_t) pipe->endpoint_no;
+	uint16_t pipe_index = (uint16_t) pipe->desc.endpoint_no;
 	errno_t rc = usb_request_get_status(ctrl_pipe,
 	    USB_REQUEST_RECIPIENT_ENDPOINT, uint16_host2usb(pipe_index),
 	    &status_tmp);

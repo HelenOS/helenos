@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,13 +55,18 @@
 
 /** Main EHCI driver structure */
 typedef struct hc {
+	/* Common device header */
+	hc_device_t base;
+
 	/** Memory mapped CAPS register area */
 	ehci_caps_regs_t *caps;
 	/** Memory mapped I/O registers area */
 	ehci_regs_t *registers;
 
-	/** Iso transfer list */
-	link_pointer_t *periodic_list_base;
+	/** Iso transfer list, backed by dma_buffer */
+	link_pointer_t *periodic_list;
+
+	dma_buffer_t dma_buffer;
 
 	/** CONTROL and BULK schedules */
 	endpoint_list_t async_list;
@@ -69,7 +75,7 @@ typedef struct hc {
 	endpoint_list_t int_list;
 
 	/** List of active transfers */
-	list_t pending_batches;
+	list_t pending_endpoints;
 
 	/** Guards schedule and endpoint manipulation */
 	fibril_mutex_t guard;
@@ -79,19 +85,33 @@ typedef struct hc {
 
 	/** USB hub emulation structure */
 	ehci_rh_t rh;
+
+	/** USB bookkeeping */
+	ehci_bus_t bus;
 } hc_t;
 
-errno_t hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts);
-void hc_fini(hc_t *instance);
+static inline hc_t *hcd_to_hc(hc_device_t *hcd)
+{
+	assert(hcd);
+	return (hc_t *) hcd;
+}
 
-void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep);
-void hc_dequeue_endpoint(hc_t *instance, const endpoint_t *ep);
+void hc_enqueue_endpoint(hc_t *, const endpoint_t *);
+void hc_dequeue_endpoint(hc_t *, const endpoint_t *);
 
-errno_t ehci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq);
+/* Boottime operations */
+extern errno_t hc_add(hc_device_t *, const hw_res_list_parsed_t *);
+extern errno_t hc_start(hc_device_t *);
+extern errno_t hc_setup_roothub(hc_device_t *);
+extern errno_t hc_gen_irq_code(irq_code_t *, hc_device_t *,
+    const hw_res_list_parsed_t *, int *);
+extern errno_t hc_gone(hc_device_t *);
 
-void ehci_hc_interrupt(hcd_t *hcd, uint32_t status);
-errno_t ehci_hc_status(hcd_t *hcd, uint32_t *status);
-errno_t ehci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch);
+/** Runtime operations */
+extern void ehci_hc_interrupt(bus_t *, uint32_t);
+extern errno_t ehci_hc_status(bus_t *, uint32_t *);
+extern errno_t ehci_hc_schedule(usb_transfer_batch_t *);
+
 #endif
 /**
  * @}

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty, Michal Staruch
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,7 +32,7 @@
  * @{
  */
 /** @file
- * @brief USB interface definition.
+ * @brief USB device interface definition.
  */
 
 #ifndef LIBDRV_USB_IFACE_H_
@@ -39,105 +40,28 @@
 
 #include "ddf/driver.h"
 #include <async.h>
+#include <usbhc_iface.h>
 
 typedef async_sess_t usb_dev_session_t;
 
-/** USB speeds. */
-typedef enum {
-	/** USB 1.1 low speed (1.5Mbits/s). */
-	USB_SPEED_LOW,
-	/** USB 1.1 full speed (12Mbits/s). */
-	USB_SPEED_FULL,
-	/** USB 2.0 high speed (480Mbits/s). */
-	USB_SPEED_HIGH,
-	/** Psuedo-speed serving as a boundary. */
-	USB_SPEED_MAX
-} usb_speed_t;
-
-/** USB endpoint number type.
- * Negative values could be used to indicate error.
- */
-typedef int16_t usb_endpoint_t;
-
-/** USB address type.
- * Negative values could be used to indicate error.
- */
-typedef int16_t usb_address_t;
-
-/** USB transfer type. */
-typedef enum {
-	USB_TRANSFER_CONTROL = 0,
-	USB_TRANSFER_ISOCHRONOUS = 1,
-	USB_TRANSFER_BULK = 2,
-	USB_TRANSFER_INTERRUPT = 3
-} usb_transfer_type_t;
-
-/** USB data transfer direction. */
-typedef enum {
-	USB_DIRECTION_IN,
-	USB_DIRECTION_OUT,
-	USB_DIRECTION_BOTH
-} usb_direction_t;
-
-/** USB complete address type.
- * Pair address + endpoint is identification of transaction recipient.
- */
-typedef union {
-	struct {
-		usb_address_t address;
-		usb_endpoint_t endpoint;
-	} __attribute__((packed));
-	uint32_t packed;
-} usb_target_t;
+typedef struct {
+	usb_address_t address;	/**< Current USB address */
+	uint8_t depth;		/**< Depth in the hub hiearchy */
+	usb_speed_t speed;	/**< Speed of the device */
+	devman_handle_t handle;	/**< Handle to DDF function of the HC driver */
+	/** Interface set by multi interface driver,  -1 if none */
+	int iface;
+} usb_device_desc_t;
 
 extern usb_dev_session_t *usb_dev_connect(devman_handle_t);
 extern usb_dev_session_t *usb_dev_connect_to_self(ddf_dev_t *);
 extern void usb_dev_disconnect(usb_dev_session_t *);
 
-extern errno_t usb_get_my_interface(async_exch_t *, int *);
-extern errno_t usb_get_my_device_handle(async_exch_t *, devman_handle_t *);
-
-extern errno_t usb_reserve_default_address(async_exch_t *, usb_speed_t);
-extern errno_t usb_release_default_address(async_exch_t *);
-
-extern errno_t usb_device_enumerate(async_exch_t *, unsigned port);
-extern errno_t usb_device_remove(async_exch_t *, unsigned port);
-
-extern errno_t usb_register_endpoint(async_exch_t *, usb_endpoint_t,
-    usb_transfer_type_t, usb_direction_t, size_t, unsigned, unsigned);
-extern errno_t usb_unregister_endpoint(async_exch_t *, usb_endpoint_t,
-    usb_direction_t);
-extern errno_t usb_read(async_exch_t *, usb_endpoint_t, uint64_t, void *, size_t,
-    size_t *);
-extern errno_t usb_write(async_exch_t *, usb_endpoint_t, uint64_t, const void *,
-    size_t);
-
-/** Callback for outgoing transfer. */
-typedef void (*usb_iface_transfer_out_callback_t)(errno_t, void *);
-
-/** Callback for incoming transfer. */
-typedef void (*usb_iface_transfer_in_callback_t)(errno_t, size_t, void *);
+extern errno_t usb_get_my_description(async_exch_t *, usb_device_desc_t *);
 
 /** USB device communication interface. */
 typedef struct {
-	errno_t (*get_my_interface)(ddf_fun_t *, int *);
-	errno_t (*get_my_device_handle)(ddf_fun_t *, devman_handle_t *);
-
-	errno_t (*reserve_default_address)(ddf_fun_t *, usb_speed_t);
-	errno_t (*release_default_address)(ddf_fun_t *);
-
-	errno_t (*device_enumerate)(ddf_fun_t *, unsigned);
-	errno_t (*device_remove)(ddf_fun_t *, unsigned);
-
-	errno_t (*register_endpoint)(ddf_fun_t *, usb_endpoint_t,
-	    usb_transfer_type_t, usb_direction_t, size_t, unsigned, unsigned);
-	errno_t (*unregister_endpoint)(ddf_fun_t *, usb_endpoint_t,
-	    usb_direction_t);
-
-	errno_t (*read)(ddf_fun_t *, usb_endpoint_t, uint64_t, uint8_t *, size_t,
-	    usb_iface_transfer_in_callback_t, void *);
-	errno_t (*write)(ddf_fun_t *, usb_endpoint_t, uint64_t, const uint8_t *,
-	    size_t, usb_iface_transfer_out_callback_t, void *);
+	errno_t (*get_my_description)(ddf_fun_t *, usb_device_desc_t *);
 } usb_iface_t;
 
 #endif

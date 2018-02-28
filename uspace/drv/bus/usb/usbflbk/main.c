@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2018 Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +48,7 @@
  */
 static errno_t usbfallback_device_add(usb_device_t *dev)
 {
-	usb_log_info("Pretending to control %s `%s'.\n",
+	usb_log_info("Pretending to control %s `%s'.",
 	    usb_device_get_iface_number(dev) < 0 ? "device" : "interface",
 	    usb_device_get_name(dev));
 	return EOK;
@@ -61,13 +62,21 @@ static errno_t usbfallback_device_add(usb_device_t *dev)
 static errno_t usbfallback_device_gone(usb_device_t *dev)
 {
 	assert(dev);
+	usb_log_info("Device '%s' gone.", usb_device_get_name(dev));
+	return EOK;
+}
+
+static errno_t usbfallback_device_remove(usb_device_t *dev)
+{
+	assert(dev);
+	usb_log_info("Device '%s' removed.", usb_device_get_name(dev));
 	return EOK;
 }
 
 /** USB fallback driver ops. */
 static const usb_driver_ops_t usbfallback_driver_ops = {
 	.device_add = usbfallback_device_add,
-	.device_rem = usbfallback_device_gone,
+	.device_remove = usbfallback_device_remove,
 	.device_gone = usbfallback_device_gone,
 };
 

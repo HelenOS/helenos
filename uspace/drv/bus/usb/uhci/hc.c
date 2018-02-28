@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,8 +50,11 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 #include <usb/host/utils/malloc32.h>
+#include <usb/host/bandwidth.h>
+#include <usb/host/utility.h>
 
 #include "uhci_batch.h"
+#include "transfer_list.h"
 #include "hc.h"
 
 #define UHCI_INTR_ALLOW_INTERRUPTS \
@@ -106,7 +110,7 @@ static errno_t hc_debug_checker(void *arg);
  *
  * @return Error code.
  */
-errno_t uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_res, int *irq)
+errno_t hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_parsed_t *hw_res, int *irq)
 {
 	assert(code);
 	assert(hw_res);
@@ -139,7 +143,7 @@ errno_t uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_re
 	code->cmds[0].addr = (void*)&registers->usbsts;
 	code->cmds[3].addr = (void*)&registers->usbsts;
 
-	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.\n",
+	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.",
 	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
 
 	*irq = hw_res->irqs.irqs[0];
@@ -156,38 +160,26 @@ errno_t uhci_hc_gen_irq_code(irq_code_t *code, const hw_res_list_parsed_t *hw_re
  * - some kind of device error
  * - resume from suspend state (not implemented)
  */
-void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
+static void hc_interrupt(bus_t *bus, uint32_t status)
 {
-	assert(hcd);
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
+	hc_t *instance = bus_to_hc(bus);
+
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
-		LIST_INITIALIZE(done);
-		transfer_list_remove_finished(
-		    &instance->transfers_interrupt, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_control_slow, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_control_full, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_bulk_full, &done);
-
-		list_foreach_safe(done, current, next) {
-			list_remove(current);
-			uhci_transfer_batch_t *batch =
-			    uhci_transfer_batch_from_link(current);
-			uhci_transfer_batch_finish_dispose(batch);
-		}
+		transfer_list_check_finished(&instance->transfers_interrupt);
+		transfer_list_check_finished(&instance->transfers_control_slow);
+		transfer_list_check_finished(&instance->transfers_control_full);
+		transfer_list_check_finished(&instance->transfers_bulk_full);
 	}
+
 	/* Resume interrupts are not supported */
 	if (status & UHCI_STATUS_RESUME) {
-		usb_log_error("Resume interrupt!\n");
+		usb_log_error("Resume interrupt!");
 	}
 
 	/* Bits 4 and 5 indicate hc error */
 	if (status & (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)) {
-		usb_log_error("UHCI hardware failure!.\n");
+		usb_log_error("UHCI hardware failure!.");
 		++instance->hw_failures;
 		transfer_list_abort_all(&instance->transfers_interrupt);
 		transfer_list_abort_all(&instance->transfers_control_slow);
@@ -198,8 +190,8 @@ void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
 			/* reinitialize hw, this triggers virtual disconnect*/
 			hc_init_hw(instance);
 		} else {
-			usb_log_fatal("Too many UHCI hardware failures!.\n");
-			hc_fini(instance);
+			usb_log_fatal("Too many UHCI hardware failures!.");
+			hc_gone(&instance->base);
 		}
 	}
 }
@@ -215,54 +207,63 @@ void uhci_hc_interrupt(hcd_t *hcd, uint32_t status)
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-errno_t hc_init(hc_t *instance, const hw_res_list_parsed_t *hw_res, bool interrupts)
+errno_t hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 {
-	assert(instance);
+	hc_t *instance = hcd_to_hc(hcd);
 	assert(hw_res);
 	if (hw_res->io_ranges.count != 1 ||
 	    hw_res->io_ranges.ranges[0].size < sizeof(uhci_regs_t))
 	    return EINVAL;
 
-	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
 	/* allow access to hc control registers */
 	errno_t ret = pio_enable_range(&hw_res->io_ranges.ranges[0],
 	    (void **) &instance->registers);
 	if (ret != EOK) {
-		usb_log_error("Failed to gain access to registers: %s.\n",
+		usb_log_error("Failed to gain access to registers: %s.",
 	            str_error(ret));
 		return ret;
 	}
 
-	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.\n",
+	usb_log_debug("Device registers at %" PRIx64 " (%zuB) accessible.",
 	    hw_res->io_ranges.ranges[0].address.absolute,
 	    hw_res->io_ranges.ranges[0].size);
 
 	ret = hc_init_mem_structures(instance);
 	if (ret != EOK) {
-		usb_log_error("Failed to init UHCI memory structures: %s.\n",
+		usb_log_error("Failed to init UHCI memory structures: %s.",
 		    str_error(ret));
 		// TODO: we should disable pio here
 		return ret;
 	}
 
+	return EOK;
+}
+
+int hc_start(hc_device_t *hcd)
+{
+	hc_t *instance = hcd_to_hc(hcd);
 	hc_init_hw(instance);
 	(void)hc_debug_checker;
 
-	uhci_rh_init(&instance->rh, instance->registers->ports, "uhci");
+	return uhci_rh_init(&instance->rh, instance->registers->ports, "uhci");
+}
 
-	return EOK;
+int hc_setup_roothub(hc_device_t *hcd)
+{
+	return hc_setup_virtual_root_hub(hcd, USB_SPEED_FULL);
 }
 
 /** Safely dispose host controller internal structures
  *
  * @param[in] instance Host controller structure to use.
  */
-void hc_fini(hc_t *instance)
+int hc_gone(hc_device_t *instance)
 {
 	assert(instance);
 	//TODO Implement
+	return ENOTSUP;
 }
 
 /** Initialize UHCI hc hw resources.
@@ -292,7 +293,7 @@ void hc_init_hw(const hc_t *instance)
 	const uint32_t pa = addr_to_phys(instance->frame_list);
 	pio_write_32(&registers->flbaseadd, pa);
 
-	if (instance->hw_interrupts) {
+	if (instance->base.irq_cap >= 0) {
 		/* Enable all interrupts, but resume interrupt */
 		pio_write_16(&instance->registers->usbintr,
 		    UHCI_INTR_ALLOW_INTERRUPTS);
@@ -300,12 +301,143 @@ void hc_init_hw(const hc_t *instance)
 
 	const uint16_t cmd = pio_read_16(&registers->usbcmd);
 	if (cmd != 0)
-		usb_log_warning("Previous command value: %x.\n", cmd);
+		usb_log_warning("Previous command value: %x.", cmd);
 
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&registers->usbcmd,
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
 }
+
+static usb_transfer_batch_t *create_transfer_batch(endpoint_t *ep)
+{
+	uhci_transfer_batch_t *batch = uhci_transfer_batch_create(ep);
+	return &batch->base;
+}
+
+static void destroy_transfer_batch(usb_transfer_batch_t *batch)
+{
+	uhci_transfer_batch_destroy(uhci_transfer_batch_get(batch));
+}
+
+static endpoint_t *endpoint_create(device_t *device, const usb_endpoint_descriptors_t *desc)
+{
+	endpoint_t *ep = calloc(1, sizeof(uhci_endpoint_t));
+	if (ep)
+		endpoint_init(ep, device, desc);
+	return ep;
+}
+
+static errno_t endpoint_register(endpoint_t *ep)
+{
+	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
+
+	const errno_t err = usb2_bus_endpoint_register(&hc->bus_helper, ep);
+	if (err)
+		return err;
+
+	transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
+	if (!list)
+		/*
+		 * We don't support this combination (e.g. isochronous). Do not
+		 * fail early, because that would block any device with these
+		 * endpoints from connecting. Instead, make sure these transfers
+		 * are denied soon enough with ENOTSUP not to fail on asserts.
+		 */
+		return EOK;
+
+	endpoint_set_online(ep, &list->guard);
+	return EOK;
+}
+
+static void endpoint_unregister(endpoint_t *ep)
+{
+	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
+	usb2_bus_endpoint_unregister(&hc->bus_helper, ep);
+
+	// Check for the roothub, as it does not schedule into lists
+	if (ep->device->address == uhci_rh_get_address(&hc->rh)) {
+		// FIXME: We shall check the roothub for active transfer. But
+		// as it is polling, there is no way to make it stop doing so.
+		// Return after rewriting uhci rh.
+		return;
+	}
+
+	transfer_list_t *list = hc->transfers[ep->device->speed][ep->transfer_type];
+	if (!list)
+		/*
+		 * We don't support this combination (e.g. isochronous),
+		 * so no transfer can be active.
+		 */
+		return;
+
+	fibril_mutex_lock(&list->guard);
+
+	endpoint_set_offline_locked(ep);
+	/* From now on, no other transfer will be scheduled. */
+
+	if (!ep->active_batch) {
+		fibril_mutex_unlock(&list->guard);
+		return;
+	}
+
+	/* First, offer the batch a short chance to be finished. */
+	endpoint_wait_timeout_locked(ep, 10000);
+
+	if (!ep->active_batch) {
+		fibril_mutex_unlock(&list->guard);
+		return;
+	}
+
+	uhci_transfer_batch_t * const batch =
+		uhci_transfer_batch_get(ep->active_batch);
+
+	/* Remove the batch from the schedule to stop it from being finished. */
+	endpoint_deactivate_locked(ep);
+	transfer_list_remove_batch(list, batch);
+
+	fibril_mutex_unlock(&list->guard);
+
+	/*
+	 * We removed the batch from software schedule only, it's still possible
+	 * that HC has it in its caches. Better wait a while before we release
+	 * the buffers.
+	 */
+	async_usleep(20000);
+	batch->base.error = EINTR;
+	batch->base.transferred_size = 0;
+	usb_transfer_batch_finish(&batch->base);
+}
+
+static int device_enumerate(device_t *dev)
+{
+	hc_t * const hc = bus_to_hc(dev->bus);
+	return usb2_bus_device_enumerate(&hc->bus_helper, dev);
+}
+
+static void device_gone(device_t *dev)
+{
+	hc_t * const hc = bus_to_hc(dev->bus);
+	usb2_bus_device_gone(&hc->bus_helper, dev);
+}
+
+static int hc_status(bus_t *, uint32_t *);
+static int hc_schedule(usb_transfer_batch_t *);
+
+static const bus_ops_t uhci_bus_ops = {
+	.interrupt = hc_interrupt,
+	.status = hc_status,
+
+	.device_enumerate = device_enumerate,
+	.device_gone = device_gone,
+
+	.endpoint_create = endpoint_create,
+	.endpoint_register = endpoint_register,
+	.endpoint_unregister = endpoint_unregister,
+
+	.batch_create = create_transfer_batch,
+	.batch_schedule = hc_schedule,
+	.batch_destroy = destroy_transfer_batch,
+};
 
 /** Initialize UHCI hc memory structures.
  *
@@ -321,21 +453,29 @@ errno_t hc_init_mem_structures(hc_t *instance)
 {
 	assert(instance);
 
+	usb2_bus_helper_init(&instance->bus_helper, &bandwidth_accounting_usb11);
+
+	bus_init(&instance->bus, sizeof(device_t));
+	instance->bus.ops = &uhci_bus_ops;
+
+	hc_device_setup(&instance->base, &instance->bus);
+
 	/* Init USB frame list page */
 	instance->frame_list = get_page();
 	if (!instance->frame_list) {
 		return ENOMEM;
 	}
-	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
+	usb_log_debug("Initialized frame list at %p.", instance->frame_list);
 
 	/* Init transfer lists */
 	errno_t ret = hc_init_transfer_lists(instance);
 	if (ret != EOK) {
-		usb_log_error("Failed to initialize transfer lists.\n");
+		usb_log_error("Failed to initialize transfer lists.");
 		return_page(instance->frame_list);
 		return ENOMEM;
 	}
-	usb_log_debug("Initialized transfer lists.\n");
+	list_initialize(&instance->pending_endpoints);
+	usb_log_debug("Initialized transfer lists.");
 
 
 	/* Set all frames to point to the first queue head */
@@ -365,7 +505,7 @@ errno_t hc_init_transfer_lists(hc_t *instance)
 do { \
 	errno_t ret = transfer_list_init(&instance->transfers_##type, name); \
 	if (ret != EOK) { \
-		usb_log_error("Failed to setup %s transfer list: %s.\n", \
+		usb_log_error("Failed to setup %s transfer list: %s.", \
 		    name, str_error(ret)); \
 		transfer_list_fini(&instance->transfers_bulk_full); \
 		transfer_list_fini(&instance->transfers_control_full); \
@@ -410,12 +550,10 @@ do { \
 	return EOK;
 }
 
-errno_t uhci_hc_status(hcd_t *hcd, uint32_t *status)
+static errno_t hc_status(bus_t *bus, uint32_t *status)
 {
-	assert(hcd);
+	hc_t *instance = bus_to_hc(bus);
 	assert(status);
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
 
 	*status = 0;
 	if (instance->registers) {
@@ -426,36 +564,33 @@ errno_t uhci_hc_status(hcd_t *hcd, uint32_t *status)
 	return EOK;
 }
 
-/** Schedule batch for execution.
+/**
+ * Schedule batch for execution.
  *
  * @param[in] instance UHCI structure to use.
  * @param[in] batch Transfer batch to schedule.
  * @return Error code
- *
- * Checks for bandwidth availability and appends the batch to the proper queue.
  */
-errno_t uhci_hc_schedule(hcd_t *hcd, usb_transfer_batch_t *batch)
+static errno_t hc_schedule(usb_transfer_batch_t *batch)
 {
-	assert(hcd);
-	hc_t *instance = hcd_get_driver_data(hcd);
-	assert(instance);
-	assert(batch);
-
-	if (batch->ep->address == uhci_rh_get_address(&instance->rh))
-		return uhci_rh_schedule(&instance->rh, batch);
-
 	uhci_transfer_batch_t *uhci_batch = uhci_transfer_batch_get(batch);
-	if (!uhci_batch) {
-		usb_log_error("Failed to create UHCI transfer structures.\n");
-		return ENOMEM;
-	}
+	endpoint_t *ep = batch->ep;
+	hc_t *hc = bus_to_hc(endpoint_get_bus(ep));
 
-	transfer_list_t *list =
-	    instance->transfers[batch->ep->speed][batch->ep->transfer_type];
-	assert(list);
-	transfer_list_add_batch(list, uhci_batch);
+	if (batch->target.address == uhci_rh_get_address(&hc->rh))
+		return uhci_rh_schedule(&hc->rh, batch);
 
-	return EOK;
+	transfer_list_t * const list =
+	    hc->transfers[ep->device->speed][ep->transfer_type];
+
+	if (!list)
+		return ENOTSUP;
+
+	errno_t err;
+	if ((err = uhci_transfer_batch_prepare(uhci_batch)))
+		return err;
+
+	return transfer_list_add_batch(list, uhci_batch);
 }
 
 /** Debug function, checks consistency of memory structures.
@@ -478,14 +613,14 @@ errno_t hc_debug_checker(void *arg)
 		    pio_read_16(&instance->registers->usbintr);
 
 		if (((cmd & UHCI_CMD_RUN_STOP) != 1) || (sts != 0)) {
-			usb_log_debug2("Command: %X Status: %X Intr: %x\n",
+			usb_log_debug2("Command: %X Status: %X Intr: %x",
 			    cmd, sts, intr);
 		}
 
 		const uintptr_t frame_list =
 		    pio_read_32(&instance->registers->flbaseadd) & ~0xfff;
 		if (frame_list != addr_to_phys(instance->frame_list)) {
-			usb_log_debug("Framelist address: %p vs. %p.\n",
+			usb_log_debug("Framelist address: %p vs. %p.",
 			    (void *) frame_list,
 			    (void *) addr_to_phys(instance->frame_list));
 		}
@@ -496,28 +631,28 @@ errno_t hc_debug_checker(void *arg)
 		    & LINK_POINTER_ADDRESS_MASK;
 		uintptr_t real_pa = addr_to_phys(QH(interrupt));
 		if (expected_pa != real_pa) {
-			usb_log_debug("Interrupt QH: %p (frame %d) vs. %p.\n",
+			usb_log_debug("Interrupt QH: %p (frame %d) vs. %p.",
 			    (void *) expected_pa, frnum, (void *) real_pa);
 		}
 
 		expected_pa = QH(interrupt)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(control_slow));
 		if (expected_pa != real_pa) {
-			usb_log_debug("Control Slow QH: %p vs. %p.\n",
+			usb_log_debug("Control Slow QH: %p vs. %p.",
 			    (void *) expected_pa, (void *) real_pa);
 		}
 
 		expected_pa = QH(control_slow)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(control_full));
 		if (expected_pa != real_pa) {
-			usb_log_debug("Control Full QH: %p vs. %p.\n",
+			usb_log_debug("Control Full QH: %p vs. %p.",
 			    (void *) expected_pa, (void *) real_pa);
 		}
 
 		expected_pa = QH(control_full)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(bulk_full));
 		if (expected_pa != real_pa ) {
-			usb_log_debug("Bulk QH: %p vs. %p.\n",
+			usb_log_debug("Bulk QH: %p vs. %p.",
 			    (void *) expected_pa, (void *) real_pa);
 		}
 		async_usleep(UHCI_DEBUGER_TIMEOUT);

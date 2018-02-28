@@ -41,6 +41,7 @@
 #include <usb/descriptor.h>
 #include <usb/dev/alternate_ifaces.h>
 #include <usb/dev/pipes.h>
+#include <usbhc_iface.h>
 
 #include <assert.h>
 #include <async.h>
@@ -57,7 +58,8 @@ typedef struct {
 typedef struct usb_device usb_device_t;
 
 /* DDF parts */
-errno_t usb_device_create_ddf(ddf_dev_t *, const usb_endpoint_description_t **, const char **);
+errno_t usb_device_create_ddf(ddf_dev_t *,
+    const usb_endpoint_description_t **, const char **);
 void usb_device_destroy_ddf(ddf_dev_t *);
 
 static inline usb_device_t *usb_device_get(ddf_dev_t *dev)
@@ -66,13 +68,13 @@ static inline usb_device_t *usb_device_get(ddf_dev_t *dev)
 	return ddf_dev_data_get(dev);
 }
 
-usb_device_t * usb_device_create(devman_handle_t);
+usb_device_t *usb_device_create(devman_handle_t);
 void usb_device_destroy(usb_device_t *);
 
-const char * usb_device_get_name(usb_device_t *);
+const char *usb_device_get_name(usb_device_t *);
 ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *, fun_type_t, const char *);
 
-async_exch_t * usb_device_bus_exchange_begin(usb_device_t *);
+async_exch_t *usb_device_bus_exchange_begin(usb_device_t *);
 void usb_device_bus_exchange_end(async_exch_t *);
 
 errno_t usb_device_select_interface(usb_device_t *, uint8_t,
@@ -85,19 +87,21 @@ void usb_device_destroy_pipes(usb_device_t *);
 usb_pipe_t *usb_device_get_default_pipe(usb_device_t *);
 usb_endpoint_mapping_t * usb_device_get_mapped_ep_desc(usb_device_t *,
     const usb_endpoint_description_t *);
-usb_endpoint_mapping_t * usb_device_get_mapped_ep(usb_device_t *,
-    usb_endpoint_t);
+int usb_device_unmap_ep(usb_endpoint_mapping_t *);
 
-int usb_device_get_iface_number(usb_device_t *);
-devman_handle_t usb_device_get_devman_handle(usb_device_t *);
+usb_address_t usb_device_get_address(const usb_device_t *);
+usb_speed_t usb_device_get_depth(const usb_device_t *);
+usb_speed_t usb_device_get_speed(const usb_device_t *);
+int usb_device_get_iface_number(const usb_device_t *);
+devman_handle_t usb_device_get_devman_handle(const usb_device_t *);
 
-const usb_device_descriptors_t * usb_device_descriptors(usb_device_t *);
+const usb_device_descriptors_t *usb_device_descriptors(usb_device_t *);
 
-const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
+const usb_alternate_interfaces_t *usb_device_get_alternative_ifaces(
     usb_device_t *);
 
-void * usb_device_data_alloc(usb_device_t *, size_t);
-void * usb_device_data_get(usb_device_t *);
+void *usb_device_data_alloc(usb_device_t *, size_t);
+void *usb_device_data_get(usb_device_t *);
 
 #endif
 /**

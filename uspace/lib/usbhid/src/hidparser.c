@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Matej Klonfar
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,8 @@
 #include <mem.h>
 #include <usb/debug.h>
 #include <assert.h>
+#include <bitops.h>
+#include <macros.h>
 
 
 /*
@@ -48,8 +51,8 @@ uint32_t usb_hid_report_tag_data_uint32(const uint8_t *data, size_t size);
 
 int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data);
 
-uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item, 
-	int32_t value);
+uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item,
+    int32_t value);
 
 
 
@@ -72,11 +75,11 @@ static int usb_pow(int a, int b)
 /** Returns size of report of specified report id and type in items
  *
  * @param parser Opaque report parser structure
- * @param report_id 
+ * @param report_id
  * @param type
  * @return Number of items in specified report
  */
-size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id, 
+size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id,
     usb_hid_report_type_t type)
 {
 	usb_hid_report_description_t *report_des;
@@ -96,11 +99,11 @@ size_t usb_hid_report_size(usb_hid_report_t *report, uint8_t report_id,
 /** Returns size of report of specified report id and type in bytes
  *
  * @param parser Opaque report parser structure
- * @param report_id 
+ * @param report_id
  * @param type
  * @return Number of items in specified report
  */
-size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id, 
+size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
     usb_hid_report_type_t type)
 {
 	usb_hid_report_description_t *report_des;
@@ -113,7 +116,7 @@ size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
 	if (report_des == NULL) {
 		return 0;
 	} else {
-		return ((report_des->bit_length + 7) / 8) ;
+		return ((report_des->bit_length + 7) / 8);
 	}
 }
 
@@ -125,13 +128,13 @@ size_t usb_hid_report_byte_size(usb_hid_report_t *report, uint8_t report_id,
  * @param parser Opaque HID report parser structure.
  * @param data Data for the report.
  * @return Error code.
- */ 
-errno_t usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, 
+ */
+errno_t usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data,
     size_t size, uint8_t *report_id)
 {
 	usb_hid_report_description_t *report_des;
 	usb_hid_report_type_t type = USB_HID_REPORT_TYPE_INPUT;
-	
+
 	if (report == NULL) {
 		return EINVAL;
 	}
@@ -142,7 +145,7 @@ errno_t usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data
 		*report_id = 0;
 	}
 
-	report_des = usb_hid_report_find_description(report, *report_id, 
+	report_des = usb_hid_report_find_description(report, *report_id,
 	    type);
 
 	if (report_des == NULL) {
@@ -154,37 +157,37 @@ errno_t usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data
 	    usb_hid_report_field_t, item) {
 
 		if (USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) == 0) {
-			
+
 			if (USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0) {
 				/* array */
-				item->value = 
-					usb_hid_translate_data(item, data);
-				
+				item->value =
+				    usb_hid_translate_data(item, data);
+
 				item->usage = USB_HID_EXTENDED_USAGE(
 				    item->usages[item->value -
 				    item->physical_minimum]);
 
-				item->usage_page = 
+				item->usage_page =
 				    USB_HID_EXTENDED_USAGE_PAGE(
 				    item->usages[item->value -
 				    item->physical_minimum]);
 
 				usb_hid_report_set_last_item(
-				    item->collection_path, 
-				    USB_HID_TAG_CLASS_GLOBAL, 
+				    item->collection_path,
+				    USB_HID_TAG_CLASS_GLOBAL,
 				    item->usage_page);
 
 				usb_hid_report_set_last_item(
-				    item->collection_path, 
+				    item->collection_path,
 				    USB_HID_TAG_CLASS_LOCAL, item->usage);
 			} else {
 				/* variable item */
-				item->value = usb_hid_translate_data(item, 
+				item->value = usb_hid_translate_data(item,
 				    data);
 			}
 		}
 	}
-	
+
 	return EOK;
 }
 
@@ -198,14 +201,6 @@ errno_t usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data
  */
 int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 {
-	int resolution;
-	int offset;
-	int part_size;
-	
-	int32_t value = 0;
-	int32_t mask = 0;
-	const uint8_t *foo = 0;
-
 	/* now only short tags are allowed */
 	if (item->size > 32) {
 		return 0;
@@ -213,67 +208,60 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 
 	if ((item->physical_minimum == 0) && (item->physical_maximum == 0)) {
 		item->physical_minimum = item->logical_minimum;
-		item->physical_maximum = item->logical_maximum;			
+		item->physical_maximum = item->logical_maximum;
 	}
-	
 
+	int resolution;
 	if (item->physical_maximum == item->physical_minimum) {
-	    resolution = 1;
+		resolution = 1;
 	} else {
-	    resolution = (item->logical_maximum - item->logical_minimum) / 
-		((item->physical_maximum - item->physical_minimum) * 
-		(usb_pow(10, (item->unit_exponent))));
+		resolution = (item->logical_maximum - item->logical_minimum) /
+		    ((item->physical_maximum - item->physical_minimum) *
+		    (usb_pow(10, (item->unit_exponent))));
 	}
 
-	offset = item->offset;
-	// FIXME
-	if ((size_t) (offset / 8) != (size_t) ((offset+item->size - 1) / 8)) {
-		
-		part_size = 0;
+	int32_t value = 0;
 
-		size_t i = 0;
-		for (i = (size_t) (offset / 8);
-		    i <= (size_t) (offset + item->size - 1) / 8; i++) {
-			if (i == (size_t) (offset / 8)) {
-				/* the higher one */
-				part_size = 8 - (offset % 8);
-				foo = data + i;
-				mask =  ((1 << (item->size - part_size)) - 1);
-				value = (*foo & mask);
-			} else if (i == ((offset + item->size - 1) / 8)) {
-				/* the lower one */
-				foo = data + i;
-				mask = ((1 << (item->size - part_size)) - 1) <<
-				    (8 - (item->size - part_size));
+	/* First, skip all bytes we don't care */
+	data += item->offset / 8;
 
-				value = (((*foo & mask) >> (8 - 
-				    (item->size - part_size))) << part_size) + 
-				    value;
-			} else {
-				value = (*(data + 1) << (part_size + 8)) +
-				    value;
-				part_size += 8;
-			}
-		}
-	} else {		
-		foo = data + (offset / 8);
-		mask = ((1 << item->size) - 1) <<
-		    (8 - ((offset % 8) + item->size));
-		value = (*foo & mask) >> (8 - ((offset % 8) + item->size));
+	int bits = item->size;
+	int taken = 0;
+
+	/* Than we take the higher bits from the LSB */
+	const unsigned bit_offset = item->offset % 8;
+	const int lsb_bits = min(bits, 8);
+
+	value |= (*data >> bit_offset) & BIT_RRANGE(uint8_t, lsb_bits);
+	bits -= lsb_bits;
+	taken += lsb_bits;
+	data++;
+
+	/* Then there may be bytes, which we take as a whole. */
+	while (bits > 8) {
+		value |= *data << taken;
+		taken += 8;
+		bits -= 8;
+		data++;
+	}
+
+	/* And, finally, lower bits from HSB. */
+	if (bits > 0) {
+		value |= (*data & BIT_RRANGE(uint8_t, bits)) << taken;
 	}
 
 	if ((item->logical_minimum < 0) || (item->logical_maximum < 0)) {
 		value = USB_HID_UINT32_TO_INT32(value, item->size);
 	}
 
-	return (int) (((value - item->logical_minimum) / resolution) + 
+	return (int) (((value - item->logical_minimum) / resolution) +
 	    item->physical_minimum);
 }
 
 
 /* OUTPUT API */
 
-/** 
+/**
  * Allocates output report buffer for output report
  *
  * @param parser Report parsed structure
@@ -281,7 +269,7 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
  * @param report_id Report id of created output report
  * @return Returns allocated output buffer for specified output
  */
-uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size, 
+uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size,
     uint8_t report_id)
 {
 	if (report == NULL) {
@@ -333,14 +321,14 @@ void usb_hid_report_output_free(uint8_t *output)
  * @param size Size of output buffer
  * @return Error code
  */
-errno_t usb_hid_report_output_translate(usb_hid_report_t *report, 
+errno_t usb_hid_report_output_translate(usb_hid_report_t *report,
     uint8_t report_id, uint8_t *buffer, size_t size)
 {
 	int32_t value = 0;
 	int offset;
 	int length;
 	int32_t tmp_value;
-	
+
 	if (report == NULL) {
 		return EINVAL;
 	}
@@ -350,32 +338,32 @@ errno_t usb_hid_report_output_translate(usb_hid_report_t *report,
 	}
 
 	usb_hid_report_description_t *report_des;
-	report_des = usb_hid_report_find_description(report, report_id, 
+	report_des = usb_hid_report_find_description(report, report_id,
 	    USB_HID_REPORT_TYPE_OUTPUT);
-	
+
 	if (report_des == NULL) {
 		return EINVAL;
 	}
 
 	list_foreach(report_des->report_items, ritems_link,
 	    usb_hid_report_field_t, report_item) {
-		value = usb_hid_translate_data_reverse(report_item, 
+		value = usb_hid_translate_data_reverse(report_item,
 		    report_item->value);
 
 		offset = report_des->bit_length - report_item->offset - 1;
 		length = report_item->size;
-		
-		usb_log_debug("\ttranslated value: %x\n", value);
+
+		usb_log_debug("\ttranslated value: %x", value);
 
 		if ((offset / 8) == ((offset + length - 1) / 8)) {
-			if (((size_t) (offset / 8) >= size) || 
+			if (((size_t) (offset / 8) >= size) ||
 			    ((size_t) (offset + length - 1) / 8) >= size) {
 				break; // TODO ErrorCode
 			}
 			size_t shift = 8 - offset % 8 - length;
 			value = value << shift;
 			value = value & (((1 << length) - 1) << shift);
-			
+
 			uint8_t mask = 0;
 			mask = 0xff - (((1 << length) - 1) << shift);
 			buffer[offset / 8] = (buffer[offset / 8] & mask) |
@@ -387,25 +375,25 @@ errno_t usb_hid_report_output_translate(usb_hid_report_t *report,
 			    i <= ((offset + length - 1) / 8); i++) {
 				if (i == (offset / 8)) {
 					tmp_value = value;
-					tmp_value = tmp_value & 
+					tmp_value = tmp_value &
 					    ((1 << (8 - (offset % 8))) - 1);
 
 					tmp_value = tmp_value << (offset % 8);
-					
+
 					mask = ~(((1 << (8 - (offset % 8))) - 1)
 					    << (offset % 8));
 
-					buffer[i] = (buffer[i] & mask) | 
+					buffer[i] = (buffer[i] & mask) |
 					    tmp_value;
 				} else if (i == ((offset + length - 1) / 8)) {
-					
-					value = value >> (length - 
+
+					value = value >> (length -
 					    ((offset + length) % 8));
 
-					value = value & ((1 << (length - 
+					value = value & ((1 << (length -
 					    ((offset + length) % 8))) - 1);
-					
-					mask = (1 << (length - 
+
+					mask = (1 << (length -
 					    ((offset + length) % 8))) - 1;
 
 					buffer[i] = (buffer[i] & mask) | value;
@@ -418,7 +406,7 @@ errno_t usb_hid_report_output_translate(usb_hid_report_t *report,
 		/* reset value */
 		report_item->value = 0;
 	}
-	
+
 	return EOK;
 }
 
@@ -429,37 +417,37 @@ errno_t usb_hid_report_output_translate(usb_hid_report_t *report,
  * @param value Value to translate
  * @return ranslated value
  */
-uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item, 
+uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item,
     int value)
 {
 	int ret = 0;
 	int resolution;
 
 	if (USB_HID_ITEM_FLAG_CONSTANT(item->item_flags)) {
-		ret = item->logical_minimum;
+		return item->logical_minimum;
 	}
 
 	if ((item->physical_minimum == 0) && (item->physical_maximum == 0)) {
 		item->physical_minimum = item->logical_minimum;
-		item->physical_maximum = item->logical_maximum;			
-	}
-	
-	/* variable item */
-	if (item->physical_maximum == item->physical_minimum) {
-	    resolution = 1;
-	} else {
-	    resolution = (item->logical_maximum - item->logical_minimum) /
-		((item->physical_maximum - item->physical_minimum) *
-		(usb_pow(10, (item->unit_exponent))));
+		item->physical_maximum = item->logical_maximum;
 	}
 
-	ret = ((value - item->physical_minimum) * resolution) + 
+	/* variable item */
+	if (item->physical_maximum == item->physical_minimum) {
+		resolution = 1;
+	} else {
+		resolution = (item->logical_maximum - item->logical_minimum) /
+		    ((item->physical_maximum - item->physical_minimum) *
+		    (usb_pow(10, (item->unit_exponent))));
+	}
+
+	ret = ((value - item->physical_minimum) * resolution) +
 	    item->logical_minimum;
 
 	usb_log_debug("\tvalue(%x), resolution(%x), phymin(%x) logmin(%x), "
-	    "ret(%x)\n", value, resolution, item->physical_minimum, 
+	    "ret(%x)\n", value, resolution, item->physical_minimum,
 	    item->logical_minimum, ret);
-	
+
 	if ((item->logical_minimum < 0) || (item->logical_maximum < 0)) {
 		return USB_HID_INT32_TO_UINT32(ret, item->size);
 	}
@@ -478,10 +466,10 @@ usb_hid_report_item_t *usb_hid_report_item_clone(
     const usb_hid_report_item_t *item)
 {
 	usb_hid_report_item_t *new_report_item;
-	
+
 	if (!(new_report_item = malloc(sizeof(usb_hid_report_item_t)))) {
 		return NULL;
-	}					
+	}
 	memcpy(new_report_item,item, sizeof(usb_hid_report_item_t));
 	link_initialize(&(new_report_item->link));
 
@@ -496,21 +484,21 @@ usb_hid_report_item_t *usb_hid_report_item_clone(
  * @param report Searched report structure
  * @param field Current field. If NULL is given, the first one in the report
  * is returned. Otherwise the next one i nthe list is returned.
- * @param path Usage path specifying which fields wa are interested in. 
+ * @param path Usage path specifying which fields wa are interested in.
  * @param flags Flags defining mode of usage paths comparison
  * @param type Type of report we search.
  * @retval NULL if no field is founded
  * @retval Pointer to the founded report structure when founded
  */
-usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report, 
-    usb_hid_report_field_t *field, usb_hid_report_path_t *path, int flags, 
+usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
+    usb_hid_report_field_t *field, usb_hid_report_path_t *path, int flags,
     usb_hid_report_type_t type)
 {
-	usb_hid_report_description_t *report_des = 
+	usb_hid_report_description_t *report_des =
 	    usb_hid_report_find_description(report, path->report_id, type);
 
 	link_t *field_it;
-	
+
 	if (report_des == NULL) {
 		return NULL;
 	}
@@ -522,7 +510,7 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 	}
 
 	while (field_it != &report_des->report_items.head) {
-		field = list_get_instance(field_it, usb_hid_report_field_t, 
+		field = list_get_instance(field_it, usb_hid_report_field_t,
 		    ritems_link);
 
 		if (USB_HID_ITEM_FLAG_CONSTANT(field->item_flags) == 0) {
@@ -564,21 +552,21 @@ uint8_t usb_hid_get_next_report_id(usb_hid_report_t *report, uint8_t report_id,
 
 	usb_hid_report_description_t *report_des;
 	link_t *report_it;
-	
+
 	if (report_id > 0) {
-		report_des = usb_hid_report_find_description(report, report_id, 
+		report_des = usb_hid_report_find_description(report, report_id,
 		    type);
 		if (report_des == NULL) {
 			return 0;
 		} else {
 			report_it = report_des->reports_link.next;
-		}	
+		}
 	} else {
 		report_it = report->reports.head.next;
 	}
 
 	while (report_it != &report->reports.head) {
-		report_des = list_get_instance(report_it, 
+		report_des = list_get_instance(report_it,
 		    usb_hid_report_description_t, reports_link);
 
 		if (report_des->type == type) {
@@ -605,10 +593,10 @@ void usb_hid_report_reset_local_items(usb_hid_report_item_t *report_item)
 	if (report_item == NULL) {
 		return;
 	}
-	
+
 	report_item->usages_count = 0;
 	memset(report_item->usages, 0, USB_HID_MAX_USAGES);
-	
+
 	report_item->extended_usage_page = 0;
 	report_item->usage_minimum = 0;
 	report_item->usage_maximum = 0;

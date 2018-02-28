@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,159 +34,259 @@
  * @brief UHCI host controller driver structure
  */
 
-#include <usb/host/endpoint.h>
-
 #include <assert.h>
-#include <stdlib.h>
 #include <atomic.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <str_error.h>
+#include <usb/debug.h>
+#include <usb/descriptor.h>
+#include <usb/host/hcd.h>
+#include <usb/host/utility.h>
 
-/** Allocate ad initialize endpoint_t structure.
- * @param address USB address.
- * @param endpoint USB endpoint number.
- * @param direction Communication direction.
- * @param type USB transfer type.
- * @param speed Communication speed.
- * @param max_packet_size Maximum size of data packets.
- * @param bw Required bandwidth.
- * @return Pointer to initialized endpoint_t structure, NULL on failure.
+#include "usb_transfer_batch.h"
+#include "bus.h"
+
+#include "endpoint.h"
+
+/**
+ * Initialize provided endpoint structure.
  */
-endpoint_t * endpoint_create(usb_address_t address, usb_endpoint_t endpoint,
-    usb_direction_t direction, usb_transfer_type_t type, usb_speed_t speed,
-    size_t max_packet_size, unsigned packets, size_t bw,
-    usb_address_t tt_address, unsigned tt_p)
+void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors_t *desc)
 {
-	endpoint_t *instance = malloc(sizeof(endpoint_t));
-	if (instance) {
-		atomic_set(&instance->refcnt, 0);
-		instance->address = address;
-		instance->endpoint = endpoint;
-		instance->direction = direction;
-		instance->transfer_type = type;
-		instance->speed = speed;
-		instance->max_packet_size = max_packet_size;
-		instance->packets = packets;
-		instance->bandwidth = bw;
-		instance->toggle = 0;
-		instance->active = false;
-		instance->tt.address = tt_address;
-		instance->tt.port = tt_p;
-		instance->hc_data.data = NULL;
-		instance->hc_data.toggle_get = NULL;
-		instance->hc_data.toggle_set = NULL;
-		link_initialize(&instance->link);
-		fibril_mutex_initialize(&instance->guard);
-		fibril_condvar_initialize(&instance->avail);
+	memset(ep, 0, sizeof(endpoint_t));
+
+	assert(dev);
+	ep->device = dev;
+
+	atomic_set(&ep->refcnt, 0);
+	fibril_condvar_initialize(&ep->avail);
+
+	ep->endpoint = USB_ED_GET_EP(desc->endpoint);
+	ep->direction = USB_ED_GET_DIR(desc->endpoint);
+	ep->transfer_type = USB_ED_GET_TRANSFER_TYPE(desc->endpoint);
+	ep->max_packet_size = USB_ED_GET_MPS(desc->endpoint);
+	ep->packets_per_uframe = USB_ED_GET_ADD_OPPS(desc->endpoint) + 1;
+
+	/** Direction both is our construct never present in descriptors */
+	if (ep->transfer_type == USB_TRANSFER_CONTROL)
+		ep->direction = USB_DIRECTION_BOTH;
+
+	ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
+	ep->transfer_buffer_policy = DMA_POLICY_STRICT;
+	ep->required_transfer_buffer_policy = DMA_POLICY_STRICT;
+}
+
+/**
+ * Get the bus endpoint belongs to.
+ */
+static inline const bus_ops_t *get_bus_ops(endpoint_t *ep)
+{
+	return ep->device->bus->ops;
+}
+
+/**
+ * Increase the reference count on endpoint.
+ */
+void endpoint_add_ref(endpoint_t *ep)
+{
+	atomic_inc(&ep->refcnt);
+}
+
+/**
+ * Call the desctruction callback. Default behavior is to free the memory directly.
+ */
+static inline void endpoint_destroy(endpoint_t *ep)
+{
+	const bus_ops_t *ops = get_bus_ops(ep);
+	if (ops->endpoint_destroy) {
+		ops->endpoint_destroy(ep);
+	} else {
+		assert(ep->active_batch == NULL);
+
+		/* Assume mostly the eps will be allocated by malloc. */
+		free(ep);
 	}
-	return instance;
 }
 
-/** Properly dispose of endpoint_t structure.
- * @param instance endpoint_t structure.
+/**
+ * Decrease the reference count.
  */
-void endpoint_destroy(endpoint_t *instance)
+void endpoint_del_ref(endpoint_t *ep)
 {
-	assert(instance);
-	assert(!instance->active);
-	assert(instance->hc_data.data == NULL);
-	free(instance);
+	if (atomic_predec(&ep->refcnt) == 0) {
+		endpoint_destroy(ep);
+	}
 }
 
-void endpoint_add_ref(endpoint_t *instance)
-{
-	atomic_inc(&instance->refcnt);
-}
-
-void endpoint_del_ref(endpoint_t *instance)
-{
-	if (atomic_predec(&instance->refcnt) == 0)
-		endpoint_destroy(instance);
-}
-
-/** Set device specific data and hooks.
- * @param instance endpoint_t structure.
- * @param data device specific data.
- * @param toggle_get Hook to call when retrieving value of toggle bit.
- * @param toggle_set Hook to call when setting the value of toggle bit.
+/**
+ * Mark the endpoint as online. Supply a guard to be used for this endpoint
+ * synchronization.
  */
-void endpoint_set_hc_data(endpoint_t *instance,
-    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int))
+void endpoint_set_online(endpoint_t *ep, fibril_mutex_t *guard)
 {
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	instance->hc_data.data = data;
-	instance->hc_data.toggle_get = toggle_get;
-	instance->hc_data.toggle_set = toggle_set;
-	fibril_mutex_unlock(&instance->guard);
+	ep->guard = guard;
+	ep->online = true;
 }
 
-/** Clear device specific data and hooks.
- * @param instance endpoint_t structure.
- * @note This function does not free memory pointed to by data pointer.
+/**
+ * Mark the endpoint as offline. All other fibrils waiting to activate this
+ * endpoint will be interrupted.
  */
-void endpoint_clear_hc_data(endpoint_t *instance)
+void endpoint_set_offline_locked(endpoint_t *ep)
 {
-	assert(instance);
-	endpoint_set_hc_data(instance, NULL, NULL, NULL);
+	assert(ep);
+	assert(fibril_mutex_is_locked(ep->guard));
+
+	ep->online = false;
+	fibril_condvar_broadcast(&ep->avail);
 }
 
-/** Mark the endpoint as active and block access for further fibrils.
- * @param instance endpoint_t structure.
+/**
+ * Wait until a transfer finishes. Can be used even when the endpoint is
+ * offline (and is interrupted by the endpoint going offline).
  */
-void endpoint_use(endpoint_t *instance)
+void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t timeout)
 {
-	assert(instance);
-	/* Add reference for active endpoint. */
-	endpoint_add_ref(instance);
-	fibril_mutex_lock(&instance->guard);
-	while (instance->active)
-		fibril_condvar_wait(&instance->avail, &instance->guard);
-	instance->active = true;
-	fibril_mutex_unlock(&instance->guard);
+	assert(ep);
+	assert(fibril_mutex_is_locked(ep->guard));
+
+	if (ep->active_batch == NULL)
+		return;
+
+	fibril_condvar_wait_timeout(&ep->avail, ep->guard, timeout);
 }
 
-/** Mark the endpoint as inactive and allow access for further fibrils.
- * @param instance endpoint_t structure.
+/**
+ * Mark the endpoint as active and block access for further fibrils. If the
+ * endpoint is already active, it will block on ep->avail condvar.
+ *
+ * Call only under endpoint guard. After you activate the endpoint and release
+ * the guard, you must assume that particular transfer is already
+ * finished/aborted.
+ *
+ * Activation and deactivation is not done by the library to maximize
+ * performance. The HC might want to prepare some memory buffers prior to
+ * interfering with other world.
+ *
+ * @param batch Transfer batch this endpoint is blocked by.
  */
-void endpoint_release(endpoint_t *instance)
+int endpoint_activate_locked(endpoint_t *ep, usb_transfer_batch_t *batch)
 {
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	instance->active = false;
-	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_signal(&instance->avail);
-	/* Drop reference for active endpoint. */
-	endpoint_del_ref(instance);
+	assert(ep);
+	assert(batch);
+	assert(batch->ep == ep);
+	assert(ep->guard);
+	assert(fibril_mutex_is_locked(ep->guard));
+
+	while (ep->online && ep->active_batch != NULL)
+		fibril_condvar_wait(&ep->avail, ep->guard);
+
+	if (!ep->online)
+		return EINTR;
+
+	assert(ep->active_batch == NULL);
+	ep->active_batch = batch;
+	return EOK;
 }
 
-/** Get the value of toggle bit.
- * @param instance endpoint_t structure.
- * @note Will use provided hook.
+/**
+ * Mark the endpoint as inactive and allow access for further fibrils.
  */
-int endpoint_toggle_get(endpoint_t *instance)
+void endpoint_deactivate_locked(endpoint_t *ep)
 {
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	if (instance->hc_data.toggle_get)
-		instance->toggle =
-		    instance->hc_data.toggle_get(instance->hc_data.data);
-	const int ret = instance->toggle;
-	fibril_mutex_unlock(&instance->guard);
+	assert(ep);
+	assert(fibril_mutex_is_locked(ep->guard));
+
+	ep->active_batch = NULL;
+	fibril_condvar_signal(&ep->avail);
+}
+
+/**
+ * Initiate a transfer on an endpoint. Creates a transfer batch, checks the
+ * bandwidth requirements and schedules the batch.
+ *
+ * @param endpoint Endpoint for which to send the batch
+ */
+errno_t endpoint_send_batch(endpoint_t *ep, const transfer_request_t *req)
+{
+	assert(ep);
+	assert(req);
+
+	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
+		usb_log_debug("%s %d:%d %zu/%zuB, setup %#016" PRIx64, req->name,
+		    req->target.address, req->target.endpoint,
+		    req->size, ep->max_packet_size,
+		    req->setup);
+	} else {
+		usb_log_debug("%s %d:%d %zu/%zuB", req->name,
+		    req->target.address, req->target.endpoint,
+		    req->size, ep->max_packet_size);
+	}
+
+	device_t * const device = ep->device;
+	if (!device) {
+		usb_log_warning("Endpoint detached");
+		return EAGAIN;
+	}
+
+	const bus_ops_t *ops = device->bus->ops;
+	if (!ops->batch_schedule) {
+		usb_log_error("HCD does not implement scheduler.");
+		return ENOTSUP;
+	}
+
+	size_t size = req->size;
+	/*
+	 * Limit transfers with reserved bandwidth to the amount reserved.
+	 * OUT transfers are rejected, IN can be just trimmed in advance.
+	 */
+	if (size > ep->max_transfer_size &&
+	    (ep->transfer_type == USB_TRANSFER_INTERRUPT
+	     || ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)) {
+		if (req->dir == USB_DIRECTION_OUT)
+			return ENOSPC;
+		else
+			size = ep->max_transfer_size;
+	}
+
+	/* Offline devices don't schedule transfers other than on EP0. */
+	if (!device->online && ep->endpoint > 0)
+		return EAGAIN;
+
+	usb_transfer_batch_t *batch = usb_transfer_batch_create(ep);
+	if (!batch) {
+		usb_log_error("Failed to create transfer batch.");
+		return ENOMEM;
+	}
+
+	batch->target = req->target;
+	batch->setup.packed = req->setup;
+	batch->dir = req->dir;
+	batch->size = size;
+	batch->offset = req->offset;
+	batch->dma_buffer = req->buffer;
+
+	dma_buffer_acquire(&batch->dma_buffer);
+
+	if (batch->offset != 0) {
+		usb_log_debug("A transfer with nonzero offset requested.");
+		usb_transfer_batch_bounce(batch);
+	}
+
+	if (usb_transfer_batch_bounce_required(batch))
+		usb_transfer_batch_bounce(batch);
+
+	batch->on_complete = req->on_complete;
+	batch->on_complete_data = req->arg;
+
+	const int ret = ops->batch_schedule(batch);
+	if (ret != EOK) {
+		usb_log_warning("Batch %p failed to schedule: %s", batch, str_error(ret));
+		usb_transfer_batch_destroy(batch);
+	}
+
 	return ret;
-}
-
-/** Set the value of toggle bit.
- * @param instance endpoint_t structure.
- * @note Will use provided hook.
- */
-void endpoint_toggle_set(endpoint_t *instance, int toggle)
-{
-	assert(instance);
-	assert(toggle == 0 || toggle == 1);
-	fibril_mutex_lock(&instance->guard);
-	instance->toggle = toggle;
-	if (instance->hc_data.toggle_set)
-		instance->hc_data.toggle_set(instance->hc_data.data, toggle);
-	fibril_mutex_unlock(&instance->guard);
 }
 
 /**

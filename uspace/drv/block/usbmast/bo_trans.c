@@ -89,7 +89,7 @@ errno_t usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 	    usb_debug_str_buffer((uint8_t *) &cbw, sizeof(cbw), 0),
 	    str_error(rc));
 	if (rc != EOK) {
-		usb_log_error("Bulk out write failed: %s\n", str_error(rc));
+		usb_log_error("Bulk out write failed: %s", str_error(rc));
 		return EIO;
 	}
 
@@ -153,21 +153,21 @@ errno_t usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 		break;
 	case cbs_failed:
 		cmd->status = CMDS_FAILED;
-		usb_log_error("CBS Failed.\n");
+		usb_log_error("CBS Failed.");
 		break;
 	case cbs_phase_error:
-		usb_log_error("CBS phase error.\n");
+		usb_log_error("CBS phase error.");
 		rc = EIO;
 		break;
 	default:
-		usb_log_error("CBS other error.\n");
+		usb_log_error("CBS other error.");
 		rc = EIO;
 		break;
 	}
 
 	const size_t residue = uint32_usb2host(csw.dCSWDataResidue);
 	if (residue > dbuf_size) {
-		usb_log_error("Residue > buffer size (%zu > %zu).\n",
+		usb_log_error("Residue > buffer size (%zu > %zu).",
 		    residue, dbuf_size);
 		return EIO;
 	}

@@ -46,6 +46,7 @@ RD_DRVS_ESSENTIAL += \
 	bus/adb/cuda_adb \
 	bus/pci/pciintel \
 	bus/usb/ohci \
+	bus/usb/usbdiag \
 	bus/usb/usbflbk \
 	bus/usb/usbhub \
 	bus/usb/usbmid \

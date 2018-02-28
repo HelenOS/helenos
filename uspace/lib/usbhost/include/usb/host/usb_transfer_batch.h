@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,116 +37,95 @@
 #ifndef LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 #define LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 
-#include <usb/host/endpoint.h>
-#include <usb/usb.h>
-
-#include <assert.h>
+#include <atomic.h>
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <usb/dma_buffer.h>
+#include <usb/request.h>
+#include <usb/usb.h>
 #include <usbhc_iface.h>
 
-#define USB_SETUP_PACKET_SIZE 8
+#include <usb/host/hcd.h>
+#include <usb/host/endpoint.h>
+#include <usb/host/bus.h>
+
+typedef struct endpoint endpoint_t;
+typedef struct bus bus_t;
 
 /** Structure stores additional data needed for communication with EP */
 typedef struct usb_transfer_batch {
+	/** Target for communication */
+	usb_target_t target;
+	/** Direction of the transfer */
+	usb_direction_t dir;
+
 	/** Endpoint used for communication */
 	endpoint_t *ep;
-	/** Function called on completion (IN version) */
-	usbhc_iface_transfer_in_callback_t callback_in;
-	/** Function called on completion (OUT version) */
-	usbhc_iface_transfer_out_callback_t callback_out;
-	/** Argument to pass to the completion function */
-	void *arg;
-	/** Place for data to send/receive */
-	char *buffer;
-	/** Size of memory pointed to by buffer member */
-	size_t buffer_size;
-	/** Place to store SETUP data needed by control transfers */
-	char setup_buffer[USB_SETUP_PACKET_SIZE];
-	/** Used portion of setup_buffer member
-	 *
-	 * SETUP buffer must be 8 bytes for control transfers and is left
-	 * unused for all other transfers. Thus, this field is either 0 or 8.
-	 */
-	size_t setup_size;
 
-	/** Actually used portion of the buffer
-	 * This member is never accessed by functions provided in this header,
-	 * with the exception of usb_transfer_batch_finish. For external use.
+	/** Place to store SETUP data needed by control transfers */
+	union {
+		char buffer [USB_SETUP_PACKET_SIZE];
+		usb_device_request_setup_packet_t packet;
+		uint64_t packed;
+	} setup;
+
+	/** DMA buffer with enforced policy */
+	dma_buffer_t dma_buffer;
+	/** Size of memory buffer */
+	size_t offset, size;
+
+	/**
+	 * In case a bounce buffer is allocated, the original buffer must to be
+	 * stored to be filled after the IN transaction is finished.
 	 */
-	size_t transfered_size;
-	/** Indicates success/failure of the communication
-	 * This member is never accessed by functions provided in this header,
-	 * with the exception of usb_transfer_batch_finish. For external use.
-	 */
+	char *original_buffer;
+	bool is_bounced;
+
+	/** Indicates success/failure of the communication */
 	errno_t error;
+	/** Actually used portion of the buffer */
+	size_t transferred_size;
+
+	/** Function called on completion */
+	usbhc_iface_transfer_callback_t on_complete;
+	/** Arbitrary data for the handler */
+	void *on_complete_data;
 } usb_transfer_batch_t;
 
-/** Printf formatting string for dumping usb_transfer_batch_t. */
+/**
+ * Printf formatting string for dumping usb_transfer_batch_t.
+ *  [address:endpoint speed transfer_type-direction buffer_sizeB/max_packet_size]
+ * */
 #define USB_TRANSFER_BATCH_FMT "[%d:%d %s %s-%s %zuB/%zu]"
 
 /** Printf arguments for dumping usb_transfer_batch_t.
  * @param batch USB transfer batch to be dumped.
  */
 #define USB_TRANSFER_BATCH_ARGS(batch) \
-	(batch).ep->address, (batch).ep->endpoint, \
-	usb_str_speed((batch).ep->speed), \
+	((batch).ep->device->address), ((batch).ep->endpoint), \
+	usb_str_speed((batch).ep->device->speed), \
 	usb_str_transfer_type_short((batch).ep->transfer_type), \
-	usb_str_direction((batch).ep->direction), \
-	(batch).buffer_size, (batch).ep->max_packet_size
+	usb_str_direction((batch).dir), \
+	(batch).size, (batch).ep->max_packet_size
 
+/** Wrapper for bus operation. */
+usb_transfer_batch_t *usb_transfer_batch_create(endpoint_t *);
 
-usb_transfer_batch_t * usb_transfer_batch_create(
-    endpoint_t *ep,
-    char *buffer,
-    size_t buffer_size,
-    uint64_t setup_buffer,
-    usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out,
-    void *arg
-);
-void usb_transfer_batch_destroy(usb_transfer_batch_t *instance);
+/** Batch initializer. */
+void usb_transfer_batch_init(usb_transfer_batch_t *, endpoint_t *);
 
-void usb_transfer_batch_finish_error(const usb_transfer_batch_t *instance,
-    const void* data, size_t size, errno_t error);
+/** Buffer handling */
+bool usb_transfer_batch_bounce_required(usb_transfer_batch_t *);
+errno_t usb_transfer_batch_bounce(usb_transfer_batch_t *);
 
-/** Finish batch using stored error value and transferred size.
- *
- * @param[in] instance Batch structure to use.
- * @param[in] data Data to copy to the output buffer.
+/** Batch finalization. */
+void usb_transfer_batch_finish(usb_transfer_batch_t *);
+
+/** To be called from outside only when the transfer is not going to be finished
+ * (i.o.w. until successfuly scheduling)
  */
-static inline void usb_transfer_batch_finish(
-    const usb_transfer_batch_t *instance, const void* data)
-{
-	assert(instance);
-	usb_transfer_batch_finish_error(
-	    instance, data, instance->transfered_size, instance->error);
-}
-
-/** Determine batch direction based on the callbacks present
- * @param[in] instance Batch structure to use, non-null.
- * @return USB_DIRECTION_IN, or USB_DIRECTION_OUT.
- */
-static inline usb_direction_t usb_transfer_batch_direction(
-    const usb_transfer_batch_t *instance)
-{
-	assert(instance);
-	if (instance->callback_in) {
-		assert(instance->callback_out == NULL);
-		assert(instance->ep == NULL
-		    || instance->ep->transfer_type == USB_TRANSFER_CONTROL
-		    || instance->ep->direction == USB_DIRECTION_IN);
-		return USB_DIRECTION_IN;
-	}
-	if (instance->callback_out) {
-		assert(instance->callback_in == NULL);
-		assert(instance->ep == NULL
-		    || instance->ep->transfer_type == USB_TRANSFER_CONTROL
-		    || instance->ep->direction == USB_DIRECTION_OUT);
-		return USB_DIRECTION_OUT;
-	}
-	assert(false);
-}
+void usb_transfer_batch_destroy(usb_transfer_batch_t *);
 
 #endif
 

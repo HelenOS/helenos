@@ -37,9 +37,8 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <fibril_synch.h>
-#include <usb/host/utils/malloc32.h>
 
-#include "ehci_endpoint.h"
+#include "ehci_bus.h"
 #include "hw_struct/queue_head.h"
 
 /** Structure maintains both EHCI queue and software list of active endpoints.*/
@@ -48,6 +47,7 @@ typedef struct endpoint_list {
 	fibril_mutex_t guard;
 	/** EHCI hw structure at the beginning of the queue */
 	qh_t *list_head;
+	dma_buffer_t dma_buffer;
 	/** Assigned name, provides nicer debug output */
 	const char *name;
 	/** Sw list of all active EDs */
@@ -63,7 +63,7 @@ typedef struct endpoint_list {
 static inline void endpoint_list_fini(endpoint_list_t *instance)
 {
 	assert(instance);
-	free32(instance->list_head);
+	dma_buffer_free(&instance->dma_buffer);
 	instance->list_head = NULL;
 }
 

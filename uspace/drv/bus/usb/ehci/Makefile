@@ -34,7 +34,7 @@ BINARY = ehci
 
 SOURCES = \
 	ehci_batch.c \
-	ehci_endpoint.c \
+	ehci_bus.c \
 	ehci_rh.c \
 	endpoint_list.c \
 	hc.c \

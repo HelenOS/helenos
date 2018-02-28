@@ -44,10 +44,10 @@
 /** Atheros USB wifi device structure */
 typedef struct {
 	/** USB pipes indexes */
-	int input_ctrl_pipe_number;
-	int output_ctrl_pipe_number;
-	int input_data_pipe_number;
-	int output_data_pipe_number;
+	usb_pipe_t *input_ctrl_pipe;
+	usb_pipe_t *output_ctrl_pipe;
+	usb_pipe_t *input_data_pipe;
+	usb_pipe_t *output_data_pipe;
 	
 	/** Pointer to connected USB device. */
 	usb_device_t *usb_device;
@@ -58,6 +58,6 @@ typedef struct {
 	uint16_t tag;     /**< Little Endian value! */
 } ath_usb_data_header_t;
 
-extern errno_t ath_usb_init(ath_t *, usb_device_t *);
+extern errno_t ath_usb_init(ath_t *, usb_device_t *, const usb_endpoint_description_t **endpoints);
 
 #endif  /* ATHEROS_ATH_USB_H */

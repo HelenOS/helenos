@@ -61,28 +61,28 @@ errno_t usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
-	
+
 	if (iface_no < 0) {
 		usb_log_warning("usbhid_req_set_report(): no interface given."
 		    "\n");
 		return EINVAL;
 	}
-	
+
 	/*
 	 * No need for checking other parameters, as they are checked in
 	 * the called function (usb_control_request_set()).
 	 */
-	
+
 	errno_t rc;
-	
+
 	uint16_t value = 0;
 	value |= (type << 8);
 
-	usb_log_debug("Sending Set Report request to the device.\n");
-	
+	usb_log_debug("Sending Set Report request to the device.");
+
 	rc = usb_control_request_set(ctrl_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_HIDREQ_SET_REPORT, value, iface_no, buffer, buf_size);
@@ -92,7 +92,7 @@ errno_t usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
 		    "device: %s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -111,28 +111,28 @@ errno_t usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_protocol_t protocol)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
-	
+
 	if (iface_no < 0) {
 		usb_log_warning("usbhid_req_set_report(): no interface given."
 		    "\n");
 		return EINVAL;
 	}
-	
+
 	/*
 	 * No need for checking other parameters, as they are checked in
 	 * the called function (usb_control_request_set()).
 	 */
-	
+
 	errno_t rc;
 
 	usb_log_debug("Sending Set Protocol request to the device ("
 	    "protocol: %d, iface: %d).\n", protocol, iface_no);
-	
-	rc = usb_control_request_set(ctrl_pipe, 
-	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
+
+	rc = usb_control_request_set(ctrl_pipe,
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_HIDREQ_SET_PROTOCOL, protocol, iface_no, NULL, 0);
 
 	if (rc != EOK) {
@@ -140,7 +140,7 @@ errno_t usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 		    "device: %s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -159,28 +159,28 @@ errno_t usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 errno_t usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
-	
+
 	if (iface_no < 0) {
 		usb_log_warning("usbhid_req_set_report(): no interface given."
 		    "\n");
 		return EINVAL;
 	}
-	
+
 	/*
 	 * No need for checking other parameters, as they are checked in
 	 * the called function (usb_control_request_set()).
 	 */
-	
+
 	errno_t rc;
 
 	usb_log_debug("Sending Set Idle request to the device ("
 	    "duration: %u, iface: %d).\n", duration, iface_no);
-	
+
 	uint16_t value = duration << 8;
-	
+
 	rc = usb_control_request_set(ctrl_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_HIDREQ_SET_IDLE, value, iface_no, NULL, 0);
@@ -190,7 +190,7 @@ errno_t usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duratio
 		    "%s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -202,42 +202,42 @@ errno_t usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duratio
  * @param[in] type Type of the report.
  * @param[in][out] buffer Buffer for the report data.
  * @param[in] buf_size Size of the buffer (in bytes).
- * @param[out] actual_size Actual size of report received from the device 
+ * @param[out] actual_size Actual size of report received from the device
  *                         (in bytes).
  *
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from function usb_control_request_set().
  */
-errno_t usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
-    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
+errno_t usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size,
     size_t *actual_size)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
-	
+
 	if (iface_no < 0) {
 		usb_log_warning("usbhid_req_set_report(): no interface given."
 		    "\n");
 		return EINVAL;
 	}
-	
+
 	/*
 	 * No need for checking other parameters, as they are checked in
 	 * the called function (usb_control_request_set()).
 	 */
-	
+
 	errno_t rc;
 
 	uint16_t value = 0;
 	value |= (type << 8);
-	
-	usb_log_debug("Sending Get Report request to the device.\n");
-	
-	rc = usb_control_request_get(ctrl_pipe, 
-	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
+
+	usb_log_debug("Sending Get Report request to the device.");
+
+	rc = usb_control_request_get(ctrl_pipe,
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_HIDREQ_GET_REPORT, value, iface_no, buffer, buf_size,
 	    actual_size);
 
@@ -246,7 +246,7 @@ errno_t usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
 		    "%s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -261,35 +261,35 @@ errno_t usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from function usb_control_request_set().
  */
-errno_t usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+errno_t usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_protocol_t *protocol)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
-	
+
 	if (iface_no < 0) {
 		usb_log_warning("usbhid_req_set_report(): no interface given."
 		    "\n");
 		return EINVAL;
 	}
-	
+
 	/*
 	 * No need for checking other parameters, as they are checked in
 	 * the called function (usb_control_request_set()).
 	 */
-	
-	errno_t rc;	
+
+	errno_t rc;
 
 	usb_log_debug("Sending Get Protocol request to the device ("
 	    "iface: %d).\n", iface_no);
-	
+
 	uint8_t buffer[1];
 	size_t actual_size = 0;
-	
-	rc = usb_control_request_get(ctrl_pipe, 
-	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
+
+	rc = usb_control_request_get(ctrl_pipe,
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
 	    USB_HIDREQ_GET_PROTOCOL, 0, iface_no, buffer, 1, &actual_size);
 
 	if (rc != EOK) {
@@ -297,15 +297,15 @@ errno_t usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 		    "device: %s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	if (actual_size != 1) {
-		usb_log_warning("Wrong data size: %zu, expected: 1.\n",
-			actual_size);
+		usb_log_warning("Wrong data size: %zu, expected: 1.",
+		    actual_size);
 		return ELIMIT;
 	}
-	
+
 	*protocol = buffer[0];
-	
+
 	return EOK;
 }
 
@@ -319,40 +319,41 @@ errno_t usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
  *
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
- * @return Other value inherited from one of functions 
+ * @return Other value inherited from one of functions
  *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
-errno_t usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
+errno_t usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no,
+    uint8_t *duration)
 {
 	if (ctrl_pipe == NULL) {
-		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		usb_log_warning("usbhid_req_set_report(): no pipe given.");
 		return EINVAL;
 	}
-	
+
 	if (iface_no < 0) {
 		usb_log_warning("usbhid_req_set_report(): no interface given."
 		    "\n");
 		return EINVAL;
 	}
-	
+
 	/*
 	 * No need for checking other parameters, as they are checked in
 	 * the called function (usb_control_request_set()).
 	 */
-	
+
 	errno_t rc;
 
 	usb_log_debug("Sending Get Idle request to the device ("
 	    "iface: %d).\n", iface_no);
-	
+
 	uint16_t value = 0;
 	uint8_t buffer[1];
 	size_t actual_size = 0;
-	
-	rc = usb_control_request_get(ctrl_pipe, 
-	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
-	    USB_HIDREQ_GET_IDLE, value, iface_no, buffer, 1, 
+
+	rc = usb_control_request_get(ctrl_pipe,
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
+	    USB_HIDREQ_GET_IDLE, value, iface_no, buffer, 1,
 	    &actual_size);
 
 	if (rc != EOK) {
@@ -360,15 +361,15 @@ errno_t usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *durati
 		    "%s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	if (actual_size != 1) {
-		usb_log_warning("Wrong data size: %zu, expected: 1.\n",
-			actual_size);
+		usb_log_warning("Wrong data size: %zu, expected: 1.",
+		    actual_size);
 		return ELIMIT;
 	}
-	
+
 	*duration = buffer[0];
-	
+
 	return EOK;
 }
 

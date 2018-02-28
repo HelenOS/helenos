@@ -94,7 +94,7 @@ typedef struct transfer_descriptor {
 	 * According to Linux kernel the hardware does not care,
 	 * memory just needs to be aligned. We don't use it anyway.
 	 */
-} __attribute__((packed)) td_t;
+} __attribute__((packed, aligned(16))) td_t;
 
 
 void td_init(td_t *instance, int error_count, size_t size, bool toggle,

@@ -87,9 +87,14 @@ void td_init(td_t *instance, const td_t *next,
 		OHCI_MEM32_WR(instance->be, addr_to_phys(buffer + size - 1));
 	}
 
-	OHCI_MEM32_WR(instance->next, addr_to_phys(next) & TD_NEXT_PTR_MASK);
-
+	td_set_next(instance, next);
 }
+
+void td_set_next(td_t *instance, const td_t *next)
+{
+	OHCI_MEM32_WR(instance->next, addr_to_phys(next) & TD_NEXT_PTR_MASK);
+}
+
 /**
  * @}
  */

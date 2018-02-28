@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Matej Klonfar
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -175,7 +176,7 @@ errno_t usb_hid_report_append_fields(usb_hid_report_t *report,
 	}
 
 	if(report_item->usages_count > 0){
-		usages = malloc(sizeof(int32_t) * report_item->usages_count);
+		usages = malloc(sizeof(uint32_t) * report_item->usages_count);
 		memcpy(usages, report_item->usages, sizeof(int32_t) *
 				report_item->usages_count); 
 	}
@@ -246,21 +247,7 @@ errno_t usb_hid_report_append_fields(usb_hid_report_t *report,
 
 		field->size = report_item->size;
 
-		if(report_item->type == USB_HID_REPORT_TYPE_INPUT) {
-			int offset = report_item->offset + report_item->size * i;
-			int field_offset = (offset/8)*8 + (offset/8 + 1) * 8 - 
-				offset - report_item->size;
-			if(field_offset < 0) {
-				field->offset = 0;
-			}
-			else {
-				field->offset = field_offset;
-			}
-		}
-		else {
-			field->offset = report_item->offset + (i * report_item->size);
-		}
-
+		field->offset = report_item->offset + (i * report_item->size);
 
 		if(report->use_report_ids != 0) {
 			field->offset += 8;
@@ -895,36 +882,34 @@ uint32_t usb_hid_report_tag_data_uint32(const uint8_t *data, size_t size)
 void usb_hid_descriptor_print_list(list_t *list)
 {
 	if(list == NULL || list_empty(list)) {
-	    usb_log_debug("\tempty\n");
+	    usb_log_debug("\tempty");
 	    return;
 	}
 
         list_foreach(*list, ritems_link, usb_hid_report_field_t,
     	    report_item) {
-		usb_log_debug("\t\tOFFSET: %X\n", report_item->offset);
-		usb_log_debug("\t\tSIZE: %zu\n", report_item->size);
-		usb_log_debug("\t\tLOGMIN: %d\n",
+		usb_log_debug("\t\tOFFSET: %u", report_item->offset);
+		usb_log_debug("\t\tSIZE: %zu", report_item->size);
+		usb_log_debug("\t\tLOGMIN: %d",
 			report_item->logical_minimum);
-		usb_log_debug("\t\tLOGMAX: %d\n",
+		usb_log_debug("\t\tLOGMAX: %d",
 			report_item->logical_maximum);
-		usb_log_debug("\t\tPHYMIN: %d\n",
+		usb_log_debug("\t\tPHYMIN: %d",
 			report_item->physical_minimum);
-		usb_log_debug("\t\tPHYMAX: %d\n",
+		usb_log_debug("\t\tPHYMAX: %d",
 			report_item->physical_maximum);
-		usb_log_debug("\t\ttUSAGEMIN: %X\n",
+		usb_log_debug("\t\ttUSAGEMIN: %X",
 			report_item->usage_minimum);
-		usb_log_debug("\t\tUSAGEMAX: %X\n",
+		usb_log_debug("\t\tUSAGEMAX: %X",
 			       report_item->usage_maximum);
-		usb_log_debug("\t\tUSAGES COUNT: %zu\n",
+		usb_log_debug("\t\tUSAGES COUNT: %zu",
 			report_item->usages_count);
 
-		usb_log_debug("\t\tVALUE: %X\n", report_item->value);
-		usb_log_debug("\t\ttUSAGE: %X\n", report_item->usage);
-		usb_log_debug("\t\tUSAGE PAGE: %X\n", report_item->usage_page);
+		usb_log_debug("\t\tVALUE: %X", report_item->value);
+		usb_log_debug("\t\ttUSAGE: %X", report_item->usage);
+		usb_log_debug("\t\tUSAGE PAGE: %X", report_item->usage_page);
 
 		usb_hid_print_usage_path(report_item->collection_path);
-
-		usb_log_debug("\n");
 	}
 }
 
@@ -942,14 +927,14 @@ void usb_hid_descriptor_print(usb_hid_report_t *report)
 
 	list_foreach(report->reports, reports_link,
 	    usb_hid_report_description_t, report_des) {
-		usb_log_debug("Report ID: %d\n", report_des->report_id);
-		usb_log_debug("\tType: %d\n", report_des->type);
-		usb_log_debug("\tLength: %zu\n", report_des->bit_length);
-		usb_log_debug("\tB Size: %zu\n",
+		usb_log_debug("Report ID: %d", report_des->report_id);
+		usb_log_debug("\tType: %d", report_des->type);
+		usb_log_debug("\tLength: %zu", report_des->bit_length);
+		usb_log_debug("\tB Size: %zu",
 			usb_hid_report_byte_size(report,
 				report_des->report_id,
 				report_des->type));
-		usb_log_debug("\tItems: %zu\n", report_des->item_length);
+		usb_log_debug("\tItems: %zu", report_des->item_length);
 
 		usb_hid_descriptor_print_list(&report_des->report_items);
 	}

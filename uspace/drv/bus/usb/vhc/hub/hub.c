@@ -67,26 +67,27 @@ static void set_port_state_delayed(hub_t *, size_t, suseconds_t,
     hub_port_state_t, hub_port_state_t);
 
 /** Convert hub port state to a char. */
-char hub_port_state_to_char(hub_port_state_t state) {
+char hub_port_state_to_char(hub_port_state_t state)
+{
 	switch (state) {
-		case HUB_PORT_STATE_NOT_CONFIGURED:
-			return '-';
-		case HUB_PORT_STATE_POWERED_OFF:
-			return 'O';
-		case HUB_PORT_STATE_DISCONNECTED:
-			return 'X';
-		case HUB_PORT_STATE_DISABLED:
-			return 'D';
-		case HUB_PORT_STATE_RESETTING:
-			return 'R';
-		case HUB_PORT_STATE_ENABLED:
-			return 'E';
-		case HUB_PORT_STATE_SUSPENDED:
-			return 'S';
-		case HUB_PORT_STATE_RESUMING:
-			return 'F';
-		default:
-			return '?';
+	case HUB_PORT_STATE_NOT_CONFIGURED:
+		return '-';
+	case HUB_PORT_STATE_POWERED_OFF:
+		return 'O';
+	case HUB_PORT_STATE_DISCONNECTED:
+		return 'X';
+	case HUB_PORT_STATE_DISABLED:
+		return 'D';
+	case HUB_PORT_STATE_RESETTING:
+		return 'R';
+	case HUB_PORT_STATE_ENABLED:
+		return 'E';
+	case HUB_PORT_STATE_SUSPENDED:
+		return 'S';
+	case HUB_PORT_STATE_RESUMING:
+		return 'F';
+	default:
+		return '?';
 	}
 }
 
@@ -230,31 +231,31 @@ void hub_set_port_state(hub_t *hub, size_t port_index, hub_port_state_t state)
 		return;
 	}
 
-	usb_log_debug("Setting port %zu to state %d.\n", port_index, state);
+	usb_log_debug("Setting port %zu to state %d.", port_index, state);
 
 	switch (state) {
-		case HUB_PORT_STATE_POWERED_OFF:
-			clear_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
-			clear_port_status_change(port, HUB_STATUS_C_PORT_ENABLE);
-			clear_port_status_change(port, HUB_STATUS_C_PORT_RESET);
-			break;
-		case HUB_PORT_STATE_RESUMING:
-			port->state = state;
-			set_port_state_delayed(hub, port_index,
-			    10, state, HUB_PORT_STATE_ENABLED);
-			break;
-		case HUB_PORT_STATE_RESETTING:
-			port->state = state;
-			set_port_state_delayed(hub, port_index,
-			    10, state, HUB_PORT_STATE_ENABLED);
-			break;
-		case HUB_PORT_STATE_ENABLED:
-			if (port->state == HUB_PORT_STATE_RESETTING) {
-				set_port_status_change(port, HUB_STATUS_C_PORT_RESET);
-			}
-			break;
-		default:
-			break;
+	case HUB_PORT_STATE_POWERED_OFF:
+		clear_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
+		clear_port_status_change(port, HUB_STATUS_C_PORT_ENABLE);
+		clear_port_status_change(port, HUB_STATUS_C_PORT_RESET);
+		break;
+	case HUB_PORT_STATE_RESUMING:
+		port->state = state;
+		set_port_state_delayed(hub, port_index,
+		    10, state, HUB_PORT_STATE_ENABLED);
+		break;
+	case HUB_PORT_STATE_RESETTING:
+		port->state = state;
+		set_port_state_delayed(hub, port_index,
+		    10, state, HUB_PORT_STATE_ENABLED);
+		break;
+	case HUB_PORT_STATE_ENABLED:
+		if (port->state == HUB_PORT_STATE_RESETTING) {
+			set_port_status_change(port, HUB_STATUS_C_PORT_RESET);
+		}
+		break;
+	default:
+		break;
 	}
 
 	port->state = state;
@@ -335,30 +336,29 @@ uint32_t hub_get_port_status(hub_t *hub, size_t port_index)
 		return 0;
 	}
 
-	uint32_t status;
-	status = MAKE_BYTE(
+	uint32_t status = MAKE_BYTE(
 	    /* Current connect status. */
 	    port->connected_device == NULL ? 0 : 1,
 	    /* Port enabled/disabled. */
 	    port->state == HUB_PORT_STATE_ENABLED ? 1 : 0,
 	    /* Suspend. */
 	    (port->state == HUB_PORT_STATE_SUSPENDED)
-		|| (port->state == HUB_PORT_STATE_RESUMING) ? 1 : 0,
+	    || (port->state == HUB_PORT_STATE_RESUMING) ? 1 : 0,
 	    /* Over-current. */
 	    0,
 	    /* Reset. */
 	    port->state == HUB_PORT_STATE_RESETTING ? 1 : 0,
 	    /* Reserved. */
-	    0, 0, 0)
+	    0, 0, 0);
 
-	    | (MAKE_BYTE(
+	status |= MAKE_BYTE(
 	    /* Port power. */
 	    port->state == HUB_PORT_STATE_POWERED_OFF ? 0 : 1,
 	    /* Full-speed device. */
 	    0,
 	    /* Reserved. */
 	    0, 0, 0, 0, 0, 0
-	    )) << 8;
+	    ) << 8;
 
 	status |= (port->status_change << 16);
 
@@ -422,7 +422,7 @@ static void set_port_status_change(hub_port_t *port,
 	assert(port != NULL);
 	uint16_t old_value = port->status_change;
 	port->status_change |= change;
-	usb_log_debug("Changing status change on %zu: %04x => %04x\n",
+	usb_log_debug("Changing status change on %zu: %04x => %04x",
 	    port->index,
 	    (unsigned int) old_value, (unsigned int) port->status_change);
 	port->hub->signal_changes = true;
@@ -462,8 +462,8 @@ struct delay_port_state_change {
  */
 static errno_t set_port_state_delayed_fibril(void *arg)
 {
-	struct delay_port_state_change *change
-	    = (struct delay_port_state_change *) arg;
+	struct delay_port_state_change *change =
+	    (struct delay_port_state_change *) arg;
 
 	async_usleep(change->delay);
 
@@ -499,8 +499,8 @@ static void set_port_state_delayed(hub_t *hub, size_t port_index,
     suseconds_t delay_time_ms,
     hub_port_state_t old_state, hub_port_state_t new_state)
 {
-	struct delay_port_state_change *change
-	    = malloc(sizeof(struct delay_port_state_change));
+	struct delay_port_state_change *change =
+	    malloc(sizeof(struct delay_port_state_change));
 
 	change->hub = hub;
 	change->port = port_index;
@@ -509,7 +509,7 @@ static void set_port_state_delayed(hub_t *hub, size_t port_index,
 	change->new_state = new_state;
 	fid_t fibril = fibril_create(set_port_state_delayed_fibril, change);
 	if (fibril == 0) {
-		printf("Failed to create fibril\n");
+		usb_log_error("Failed to create fibril.");
 		free(change);
 		return;
 	}

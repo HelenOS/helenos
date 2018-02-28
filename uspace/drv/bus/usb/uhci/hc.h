@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +43,7 @@
 #include <stdbool.h>
 #include <ddi.h>
 #include <usb/host/hcd.h>
+#include <usb/host/usb2_bus.h>
 #include <usb/host/usb_transfer_batch.h>
 
 #include "uhci_rh.h"
@@ -98,7 +100,13 @@ typedef struct uhci_regs {
 
 /** Main UHCI driver structure */
 typedef struct hc {
+	/* Common hc_device header */
+	hc_device_t base;
+
 	uhci_rh_t rh;
+	bus_t bus;
+	usb2_bus_helper_t bus_helper;
+
 	/** Addresses of I/O registers */
 	uhci_regs_t *registers;
 
@@ -116,21 +124,44 @@ typedef struct hc {
 
 	/** Pointer table to the above lists, helps during scheduling */
 	transfer_list_t *transfers[2][4];
-	/** Indicator of hw interrupts availability */
-	bool hw_interrupts;
+
+	/**
+	 * Guard for the pending list. Can be locked under EP guard, but not
+	 * vice versa.
+	 */
+	fibril_mutex_t guard;
+	/** List of endpoints with a transfer scheduled */
+	list_t pending_endpoints;
 
 	/** Number of hw failures detected. */
 	unsigned hw_failures;
 } hc_t;
 
-extern errno_t hc_init(hc_t *, const hw_res_list_parsed_t *, bool);
-extern void hc_fini(hc_t *);
+typedef struct uhci_endpoint {
+	endpoint_t base;
 
-extern errno_t uhci_hc_gen_irq_code(irq_code_t *, const hw_res_list_parsed_t *, int *);
+	bool toggle;
+} uhci_endpoint_t;
 
-extern void uhci_hc_interrupt(hcd_t *, uint32_t);
-extern errno_t uhci_hc_status(hcd_t *, uint32_t *);
-extern errno_t uhci_hc_schedule(hcd_t *, usb_transfer_batch_t *);
+static inline hc_t *hcd_to_hc(hc_device_t *hcd)
+{
+	assert(hcd);
+	return (hc_t *) hcd;
+}
+
+static inline hc_t *bus_to_hc(bus_t *bus)
+{
+	assert(bus);
+	return member_to_inst(bus, hc_t, bus);
+}
+
+int hc_unschedule_batch(usb_transfer_batch_t *);
+
+extern errno_t hc_add(hc_device_t *, const hw_res_list_parsed_t *);
+extern errno_t hc_gen_irq_code(irq_code_t *, hc_device_t *, const hw_res_list_parsed_t *, int *);
+extern errno_t hc_start(hc_device_t *);
+extern errno_t hc_setup_roothub(hc_device_t *);
+extern errno_t hc_gone(hc_device_t *);
 
 #endif
 

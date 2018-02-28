@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2017 Petr Manek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,25 +43,28 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <fibril_synch.h>
 
-/** Parameters and callbacks for automated polling. */
-typedef struct {
-	/** Level of debugging messages from auto polling.
-	 * 0 - nothing
-	 * 1 - inform about errors and polling start/end
-	 * 2 - also dump every retrieved buffer
+
+/** USB automated polling. */
+typedef struct usb_polling {
+	/** Mandatory parameters - user is expected to configure these. */
+
+	/** USB device to poll. */
+	usb_device_t *device;
+
+	/** Device enpoint mapping to use for polling. */
+	usb_endpoint_mapping_t *ep_mapping;
+
+	/** Size of the recieved data. */
+	size_t request_size;
+
+	/**
+	 * Data buffer of at least `request_size`. User is responsible for its
+	 * allocation.
 	 */
-	int debug;
-	/** Maximum number of consecutive errors before polling termination. */
-	size_t max_failures;
-	/** Delay between poll requests in milliseconds.
-	 * Set to negative value to use value from endpoint descriptor.
-	 */
-	int delay;
-	/** Whether to automatically try to clear the HALT feature after
-	 * the endpoint stalls.
-	 */
-	bool auto_clear_halt;
+	uint8_t *buffer;
+
 	/** Callback when data arrives.
 	 *
 	 * @param dev Device that was polled.
@@ -71,6 +75,39 @@ typedef struct {
 	 */
 	bool (*on_data)(usb_device_t *dev, uint8_t *data, size_t data_size,
 	    void *arg);
+
+
+	/**
+	 * Optional parameters - user can customize them, but they are
+	 * defaulted to  some reasonable values.
+	 */
+
+	/** Level of debugging messages from auto polling.
+	 * 0 - nothing (default)
+	 * 1 - inform about errors and polling start/end
+	 * 2 - also dump every retrieved buffer
+	 */
+	int debug;
+
+	/**
+	 * Maximum number of consecutive errors before polling termination
+	 * (default 3).
+	 */
+	size_t max_failures;
+
+	/** Delay between poll requests in milliseconds.
+	 * By default, value from endpoint descriptor used.
+	 */
+	int delay;
+
+	/** Whether to automatically try to clear the HALT feature after
+	 * the endpoint stalls (true by default).
+	 */
+	bool auto_clear_halt;
+
+	/** Argument to pass to callbacks (default NULL). */
+	void *arg;
+
 	/** Callback when polling is terminated.
 	 *
 	 * @param dev Device where the polling was terminated.
@@ -79,6 +116,7 @@ typedef struct {
 	 */
 	void (*on_polling_end)(usb_device_t *dev, bool due_to_errors,
 	    void *arg);
+
 	/** Callback when error occurs.
 	 *
 	 * @param dev Device where error occurred.
@@ -87,26 +125,33 @@ typedef struct {
 	 * @return Whether to continue in polling.
 	 */
 	bool (*on_error)(usb_device_t *dev, errno_t err_code, void *arg);
-	/** Argument to pass to callbacks. */
-	void *arg;
-} usb_device_auto_polling_t;
 
-typedef bool (*usb_polling_callback_t)(usb_device_t *, uint8_t *, size_t, void *);
-typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
 
-extern errno_t usb_device_auto_polling(usb_device_t *, usb_endpoint_t,
-    const usb_device_auto_polling_t *, size_t);
+	/**
+	 * Internal parameters - user is not expected to set them. Messing with
+	 * them can result in unexpected behavior if you do not know what you
+	 * are doing.
+	 */
 
-extern errno_t usb_device_auto_poll(usb_device_t *, usb_endpoint_t,
-    usb_polling_callback_t, size_t, int, usb_polling_terminted_callback_t, void *);
+	/** Fibril used for polling. */
+	fid_t fibril;
 
-extern errno_t usb_device_auto_polling_desc(usb_device_t *,
-    const usb_endpoint_description_t *, const usb_device_auto_polling_t *,
-    size_t);
+	/** True if polling is currently in operation. */
+	volatile bool running;
 
-extern errno_t usb_device_auto_poll_desc(usb_device_t *,
-    const usb_endpoint_description_t *, usb_polling_callback_t, size_t, int,
-    usb_polling_terminted_callback_t, void *);
+	/** True if polling should terminate as soon as possible. */
+	volatile bool joining;
+
+	/** Synchronization primitives for joining polling end. */
+	fibril_mutex_t guard;
+	fibril_condvar_t cv;
+} usb_polling_t;
+
+errno_t usb_polling_init(usb_polling_t *);
+void usb_polling_fini(usb_polling_t *);
+
+errno_t usb_polling_start(usb_polling_t *);
+errno_t usb_polling_join(usb_polling_t *);
 
 #endif
 /**

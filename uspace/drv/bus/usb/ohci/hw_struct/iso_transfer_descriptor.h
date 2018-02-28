@@ -68,7 +68,7 @@ typedef struct itd {
 #define ITD_OFFSET_CC_MASK (0xf)
 #define ITD_OFFSET_CC_SHIFT (12)
 
-} __attribute__((packed)) itd_t;
+} __attribute__((packed, aligned(32))) itd_t;
 
 #endif
 

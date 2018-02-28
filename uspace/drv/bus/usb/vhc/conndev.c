@@ -112,7 +112,7 @@ void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
 		
 		receive_device_name(callback);
 		
-		usb_log_info("New virtual device `%s' (id: %" PRIxn ").\n",
+		usb_log_info("New virtual device `%s' (id: %" PRIxn ").",
 		    plugged_device_name, plugged_device_handle);
 	} else
 		async_answer_0(icallid, EINVAL);
@@ -129,7 +129,7 @@ void on_client_close(ddf_fun_t *fun)
 	vhc_data_t *vhc = ddf_fun_data_get(fun);
 
 	if (plugged_device_handle != 0) {
-		usb_log_info("Virtual device `%s' disconnected (id: %" PRIxn ").\n",
+		usb_log_info("Virtual device `%s' disconnected (id: %" PRIxn ").",
 		    plugged_device_name, plugged_device_handle);
 		vhc_virtdev_unplug(vhc, plugged_device_handle);
 	}

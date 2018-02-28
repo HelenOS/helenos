@@ -35,7 +35,7 @@
 #ifndef ABI_IPC_IPC_H_
 #define ABI_IPC_IPC_H_
 
-/** Length of data being transfered with IPC call
+/** Length of data being transferred with IPC call
  *
  * The uspace may not be able to utilize the full length
  *

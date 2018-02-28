@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2018 Ondrej Hlavaty
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,37 +45,40 @@
 #include <usb/dev/recognise.h>
 #include "usbmid.h"
 
-/** Get USB device handle by calling the parent usb_device_t.
+/**
+ * Get USB device description by calling HC and altering the interface field.
  *
  * @param[in] fun Device function the operation is running on.
- * @param[out] handle Device handle.
+ * @param[out] desc Device descriptor.
  * @return Error code.
  */
-static errno_t usb_iface_device_handle(ddf_fun_t *fun, devman_handle_t *handle)
-{
-	assert(fun);
-	assert(handle);
-	usb_device_t *usb_dev = usb_device_get(ddf_fun_get_dev(fun));
-	*handle = usb_device_get_devman_handle(usb_dev);
-	return EOK;
-}
-
-/** Callback for DDF USB get interface. */
-static errno_t usb_iface_iface_no(ddf_fun_t *fun, int *iface_no)
+static errno_t usb_iface_description(ddf_fun_t *fun, usb_device_desc_t *desc)
 {
 	usbmid_interface_t *iface = ddf_fun_data_get(fun);
 	assert(iface);
+	usb_device_t *usb_dev = ddf_dev_data_get(ddf_fun_get_dev(fun));
+	assert(usb_dev);
 
-	if (iface_no)
-		*iface_no = iface->interface_no;
+	async_exch_t *exch = usb_device_bus_exchange_begin(usb_dev);
+	if (!exch)
+		return EPARTY;
+
+	usb_device_desc_t tmp_desc;
+	const errno_t ret = usb_get_my_description(exch, &tmp_desc);
+
+	if (ret == EOK && desc) {
+		*desc = tmp_desc;
+		desc->iface = iface->interface_no;
+	}
+
+	usb_device_bus_exchange_end(exch);
 
 	return EOK;
 }
 
 /** DDF interface of the child - USB functions. */
 static usb_iface_t child_usb_iface = {
-	.get_my_device_handle = usb_iface_device_handle,
-	.get_my_interface = usb_iface_iface_no,
+	.get_my_description = usb_iface_description,
 };
 
 /** Operations for children - interface functions. */
@@ -116,7 +120,7 @@ errno_t usbmid_spawn_interface_child(usb_device_t *parent,
 	 * The interface number shall provide uniqueness while the
 	 * class name something humanly understandable.
 	 */
-	int ret = asprintf(&child_name, "%s%hhu",
+	errno_t ret = asprintf(&child_name, "%s%hhu",
 	    usb_str_class(interface_descriptor->interface_class),
 	    interface_descriptor->interface_number);
 	if (ret < 0) {
