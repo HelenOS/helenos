@@ -79,7 +79,7 @@ errno_t program_file_process(stree_program_t *program, const char *fname)
 	return EOK;
 }
 
-/** Process sources of the library. 
+/** Process sources of the library.
  *
  * Processes all source files in the library. The list of library source files
  * is read from '<libdir>/libflist'. Each line of the file contains one file

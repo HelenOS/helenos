@@ -47,7 +47,7 @@ static char *ef_path;
 /*
  * The string functions are in fact standard C, but would not work under
  * HelenOS.
- * 
+ *
  * XXX String functions used here only work with 8-bit text encoding.
  */
 

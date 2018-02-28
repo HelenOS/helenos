@@ -55,7 +55,7 @@ typedef struct {
 
 /** Scancode parser transition. */
 typedef struct {
-	ht_link_t link;		/**< Link to hash table in @c gsp_t */ 
+	ht_link_t link;		/**< Link to hash table in @c gsp_t */
 
 	/* Preconditions */
 
@@ -81,4 +81,4 @@ extern int gsp_step(gsp_t *, int, int, unsigned *, unsigned *);
 
 /**
  * @}
- */ 
+ */

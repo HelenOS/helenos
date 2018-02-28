@@ -76,7 +76,7 @@
 	mov TT_FAST_INSTRUCTION_ACCESS_MMU_MISS, %g2
 	mov VA_IMMU_TAG_ACCESS, %g5
 	ldxa [%g5] ASI_IMMU, %g5			! read the faulting Context and VPN
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 
 .macro FAST_DATA_ACCESS_MMU_MISS_HANDLER tl
@@ -142,7 +142,7 @@
 
 	mov TT_FAST_DATA_ACCESS_MMU_MISS, %g2
 	ldxa [VA_DMMU_TAG_ACCESS] %asi, %g5		! read the faulting Context and VPN
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 
 .macro FAST_DATA_ACCESS_PROTECTION_HANDLER tl
@@ -162,7 +162,7 @@
 	mov TT_FAST_DATA_ACCESS_PROTECTION, %g2
 	mov VA_DMMU_TAG_ACCESS, %g5
 	ldxa [%g5] ASI_DMMU, %g5			! read the faulting Context and VPN
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 
 #endif /* __ASM__ */

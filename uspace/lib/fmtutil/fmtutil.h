@@ -35,12 +35,12 @@ typedef enum {
 
 /** Callback that processes a line of characters.
  * (e.g. as a result of wrap operation)
- * 
+ *
  * @param content pointer to line data (note: this is NOT null-terminated)
  * @param size number of characters in line
  * @param end_of_para true if the line is the last line of the paragraph
  * @param data user data
- * 
+ *
  * @returns EOK on success or an error code on failure
  */
 typedef errno_t (*line_consumer_fn)(wchar_t *, size_t, bool, void *);

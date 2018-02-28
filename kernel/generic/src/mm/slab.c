@@ -38,7 +38,7 @@
  * @see http://www.usenix.org/events/usenix01/full_papers/bonwick/bonwick_html/
  *
  * with the following exceptions:
- * @li empty slabs are deallocated immediately 
+ * @li empty slabs are deallocated immediately
  *     (in Linux they are kept in linked list, in Solaris ???)
  * @li empty magazines are deallocated when not needed
  *     (in Solaris they are held in linked list in slab cache)
@@ -51,13 +51,13 @@
  * The slab allocator supports per-CPU caches ('magazines') to facilitate
  * good SMP scaling.
  *
- * When a new object is being allocated, it is first checked, if it is 
+ * When a new object is being allocated, it is first checked, if it is
  * available in a CPU-bound magazine. If it is not found there, it is
  * allocated from a CPU-shared slab - if a partially full one is found,
- * it is used, otherwise a new one is allocated. 
+ * it is used, otherwise a new one is allocated.
  *
  * When an object is being deallocated, it is put to a CPU-bound magazine.
- * If there is no such magazine, a new one is allocated (if this fails, 
+ * If there is no such magazine, a new one is allocated (if this fails,
  * the object is deallocated into slab). If the magazine is full, it is
  * put into cpu-shared list of magazines and a new one is allocated.
  *
@@ -78,7 +78,7 @@
  * The slab allocator allocates a lot of space and does not free it. When
  * the frame allocator fails to allocate a frame, it calls slab_reclaim().
  * It tries 'light reclaim' first, then brutal reclaim. The light reclaim
- * releases slabs from cpu-shared magazine-list, until at least 1 slab 
+ * releases slabs from cpu-shared magazine-list, until at least 1 slab
  * is deallocated in each cache (this algorithm should probably change).
  * The brutal reclaim removes all cached objects, even from CPU-bound
  * magazines.
@@ -89,7 +89,7 @@
  * for non-cpu cached magazine cache to provide one. It might be feasible
  * to add cpu-cached magazine cache (which would allocate it's magazines
  * from non-cpu-cached mag. cache). This would provide a nice per-cpu
- * buffer. The other possibility is to use the per-cache 
+ * buffer. The other possibility is to use the per-cache
  * 'empty-magazine-list', which decreases competing for 1 per-system
  * magazine cache.
  *
@@ -659,7 +659,7 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
 	irq_spinlock_unlock(&slab_cache_lock, true);
 }
 
-/** Create slab cache 
+/** Create slab cache
  *
  */
 slab_cache_t *slab_cache_create(const char *name, size_t size, size_t align,

@@ -45,7 +45,7 @@ IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(cas_lock, "arm-cas-lock");
  */
 void * __sync_val_compare_and_swap_4(void **ptr, void *expected, void *new_val)
 {
-	/* 
+	/*
 	 * Using an interrupt disabling spinlock might still lead to deadlock
 	 * if CAS() is used in an exception handler. Eg. if a CAS() results
 	 * in a page fault exception and the exception handler again tries

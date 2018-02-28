@@ -229,7 +229,7 @@ errno_t wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 		line_len = last_word_end - line_start;
 	}
 	/* Here we have less than width chars starting from line_start.
-	 * Moreover, the last portion does not contain spaces or newlines 
+	 * Moreover, the last portion does not contain spaces or newlines
 	 */
 	if (pos - line_start > 0)
 		consumer(wstr + line_start, pos - line_start, true, data);

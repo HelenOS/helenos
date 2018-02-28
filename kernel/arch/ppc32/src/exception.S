@@ -48,7 +48,7 @@
 	# check whether the previous mode was user or kernel
 	
 	mfsrr1 sp # use sp as a temporary register to hold SRR1
-	andi. sp, sp, MSR_PR 
+	andi. sp, sp, MSR_PR
 	bne 1f
 		# previous mode was kernel
 		

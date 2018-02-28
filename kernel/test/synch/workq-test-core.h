@@ -110,9 +110,9 @@ static void reproduce(work_t *work_item)
 		
 		--work->count_down;
 
-		/* 
-		 * Enqueue a child if count_down is power-of-2. 
-		 * Leads to exponential growth. 
+		/*
+		 * Enqueue a child if count_down is power-of-2.
+		 * Leads to exponential growth.
 		 */
 		if (is_pow2(work->count_down + 1)) {
 			test_work_t *child = create_child(work);
@@ -123,7 +123,7 @@ static void reproduce(work_t *work_item)
 		}
 		
 		if (!core_workq_enqueue(work_item, reproduce)) {
-			if (work->master) 
+			if (work->master)
 				TPRINTF("\nErr: Master work item exiting prematurely!\n");
 
 			free_work(work);
@@ -160,13 +160,13 @@ static const char *run_workq_core(bool end_prematurely)
 	/*
 	 * k == COUNT_POW
 	 * 2^k == COUNT + 1
-	 * 
+	 *
 	 * We have "k" branching points. Therefore:
 	 * exp_call_cnt == k*2^(k-1) + 2^k == (k + 2) * 2^(k-1)
 	 */
 	size_t exp_call_cnt = (COUNT_POW + 2) * (1 << (COUNT_POW - 1));
 	
-	TPRINTF("waves: %d, count_down: %d, total expected calls: %zu\n", 
+	TPRINTF("waves: %d, count_down: %d, total expected calls: %zu\n",
 		WAVES, COUNT, exp_call_cnt * WAVES);
 	
 
@@ -178,7 +178,7 @@ static const char *run_workq_core(bool end_prematurely)
 	size_t max_sleep_cnt = (max_sleep_secs * 1000) / MAIN_POLL_SLEEP_MS;
 	
 	for (int i = 0; i < WAVES; ++i) {
-		while (atomic_get(&call_cnt[i]) < exp_call_cnt 
+		while (atomic_get(&call_cnt[i]) < exp_call_cnt
 			&& sleep_cnt < max_sleep_cnt) {
 			TPRINTF(".");
 			thread_usleep(MAIN_POLL_SLEEP_MS * 1000);
@@ -196,7 +196,7 @@ static const char *run_workq_core(bool end_prematurely)
 			success = false;
 			TPRINTF("Error: %" PRIua " calls in wave %d, but %zu expected.\n",
 				atomic_get(&call_cnt[i]), i, exp_call_cnt);
-		} 
+		}
 	}
 	
 	

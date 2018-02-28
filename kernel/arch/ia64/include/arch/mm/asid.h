@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64mm	
+/** @addtogroup ia64mm
  * @{
  */
 /** @file
@@ -47,7 +47,7 @@ typedef uint32_t rid_t;
 /**
  * Number of ia64 RIDs (Region Identifiers) per kernel ASID.
  * Note that some architectures may support more bits,
- * but those extra bits are not used by the kernel. 
+ * but those extra bits are not used by the kernel.
  */
 #define RIDS_PER_ASID		8
 

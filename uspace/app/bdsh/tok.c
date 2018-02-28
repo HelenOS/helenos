@@ -44,7 +44,7 @@ static errno_t tok_finish_string(tokenizer_t *);
 static void tok_start_token(tokenizer_t *, token_type_t);
 
 /** Initialize the token parser
- * 
+ *
  * @param tok the tokenizer structure to initialize
  * @param input the input string to tokenize
  * @param out_tokens array of strings where to store the result
@@ -52,7 +52,7 @@ static void tok_start_token(tokenizer_t *, token_type_t);
  */
 errno_t tok_init(tokenizer_t *tok, char *input, token_t *out_tokens,
     size_t max_tokens)
-{	
+{
 	tok->in = input;
 	tok->in_offset = 0;
 	tok->last_in_offset = 0;

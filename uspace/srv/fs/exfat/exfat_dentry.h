@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef EXFAT_EXFAT_DENTRY_H_
 #define EXFAT_EXFAT_DENTRY_H_
@@ -81,7 +81,7 @@ typedef struct {
 } __attribute__ ((packed)) exfat_uctable_dentry_t;
 
 typedef struct {
-	uint8_t 	count; /* Always zero */ 
+	uint8_t 	count; /* Always zero */
 	uint16_t 	checksum;
 	uint16_t 	flags;
 	uint8_t 	guid[16];

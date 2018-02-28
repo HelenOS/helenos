@@ -225,7 +225,7 @@ void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
 	if (sata_dev_name == NULL) {
 		async_answer_0(callid, ENOMEM);
 		return;
-	}	
+	}
 	
 	const errno_t ret = ahci_iface->get_sata_device_name(fun,
 	    sata_dev_name_length, sata_dev_name);

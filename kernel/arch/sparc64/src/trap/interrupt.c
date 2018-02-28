@@ -111,7 +111,7 @@ void exc_arch_init(void)
 	    fp_exception_other);
 	exc_register(TT_TAG_OVERFLOW,
 	    "tag_overflow", false,
-	    tag_overflow);	
+	    tag_overflow);
 	exc_register(TT_DIVISION_BY_ZERO,
 	    "division_by_zero", false,
 	    division_by_zero);
@@ -144,7 +144,7 @@ void exc_arch_init(void)
 	    "interrupt_level_14", true,
 	    tick_interrupt);
 
-#ifdef SUN4U 
+#ifdef SUN4U
 	exc_register(TT_INTERRUPT_VECTOR_TRAP,
 	    "interrupt_vector_trap", true,
 	    interrupt);
@@ -158,7 +158,7 @@ void exc_arch_init(void)
 	    fast_data_access_mmu_miss);
 	exc_register(TT_FAST_DATA_ACCESS_PROTECTION,
 	    "fast_data_access_protection", true,
-	    fast_data_access_protection);	
+	    fast_data_access_protection);
 
 #ifdef SUN4V
 	exc_register(TT_CPU_MONDO,

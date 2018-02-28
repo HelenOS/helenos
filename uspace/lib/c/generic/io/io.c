@@ -53,7 +53,7 @@ static void _fflushbuf(FILE *stream);
 
 static FILE stdin_null = {
 	.fd = -1,
-	.pos = 0, 
+	.pos = 0,
 	.error = true,
 	.eof = true,
 	.kio = false,
@@ -68,7 +68,7 @@ static FILE stdin_null = {
 
 static FILE stdout_kio = {
 	.fd = -1,
-	.pos = 0, 
+	.pos = 0,
 	.error = false,
 	.eof = false,
 	.kio = true,
@@ -83,7 +83,7 @@ static FILE stdout_kio = {
 
 static FILE stderr_kio = {
 	.fd = -1,
-	.pos = 0, 
+	.pos = 0,
 	.error = false,
 	.eof = false,
 	.kio = true,
@@ -826,7 +826,7 @@ int fseek64(FILE *stream, off64_t offset, int whence)
 		if (rc != EOK) {
 			errno = rc;
 			stream->error = true;
-			return -1;	
+			return -1;
 		}
 		stream->pos = st.size + offset;
 		break;

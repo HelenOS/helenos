@@ -47,7 +47,7 @@
 #define MIN_INT64 (0x8000000000000000ll)
 
 /**
- * Multiply two integers and return long long as result. 
+ * Multiply two integers and return long long as result.
  * This function is overflow safe.
  * @param a
  * @param b
@@ -55,7 +55,7 @@
  */
 static unsigned long long mul(unsigned int a, unsigned int b) {
 	unsigned int a1, a2, b1, b2;
-	unsigned long long t1, t2, t3;	
+	unsigned long long t1, t2, t3;
 
 	a1 = a >> 16;
 	a2 = a & MAX_UINT16;
@@ -67,7 +67,7 @@ static unsigned long long mul(unsigned int a, unsigned int b) {
 	t2 += a2*b1;
 	t3 = a2*b2;
 
-	t3 = (((t1 << 16) + t2) << 16) + t3; 
+	t3 = (((t1 << 16) + t2) << 16) + t3;
 
 	return t3;
 }
@@ -104,7 +104,7 @@ long long __muldi3 (long long a, long long b)
 	}
 
 	// (if OF checked) a1 or b1 is zero => result fits in 64 bits, no need to another overflow check
-	t1 = mul(a1,b2) + mul(b1,a2);	
+	t1 = mul(a1,b2) + mul(b1,a2);
 
 	if (SOFTINT_CHECK_OF && t1 > MAX_UINT32) {
 		// error, overflow

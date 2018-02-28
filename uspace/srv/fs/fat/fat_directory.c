@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	fat_directory.c
@@ -48,7 +48,7 @@
 errno_t fat_directory_open(fat_node_t *nodep, fat_directory_t *di)
 {
 	di->b = NULL;
-	di->nodep = nodep;	
+	di->nodep = nodep;
 	if (di->nodep->type != FAT_DIRECTORY)
 		return EINVAL;
 
@@ -182,7 +182,7 @@ errno_t fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 			if (long_entry) {
 				/* We found long entry */
 				long_entry_count--;
-				if ((FAT_LFN_ORDER(d) == long_entry_count) && 
+				if ((FAT_LFN_ORDER(d) == long_entry_count) &&
 				    (checksum == FAT_LFN_CHKSUM(d))) {
 					/* Right order! */
 					fat_lfn_get_entry(d, wname,
@@ -200,7 +200,7 @@ errno_t fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 				if (FAT_LFN_COUNT(d) <= FAT_LFN_MAX_COUNT) {
 					long_entry = true;
 					long_entry_count = FAT_LFN_COUNT(d);
-					lfn_size = (FAT_LFN_ENTRY_SIZE * 
+					lfn_size = (FAT_LFN_ENTRY_SIZE *
 					    (FAT_LFN_COUNT(d) - 1)) +
 					    fat_lfn_size(d);
 					lfn_offset = lfn_size;
@@ -211,7 +211,7 @@ errno_t fat_directory_read(fat_directory_t *di, char *name, fat_dentry_t **de)
 			}
 			break;
 		case FAT_DENTRY_VALID:
-			if (long_entry && 
+			if (long_entry &&
 			    (checksum == fat_dentry_chksum(d->name))) {
 				wname[lfn_size] = '\0';
 				if (utf16_to_str(name, FAT_LFN_NAME_SIZE,
@@ -252,7 +252,7 @@ errno_t fat_directory_erase(fat_directory_t *di)
 	
 	while (!flag && fat_directory_prev(di) == EOK) {
 		if (fat_directory_get(di, &d) == EOK &&
-		    fat_classify_dentry(d) == FAT_DENTRY_LFN &&	
+		    fat_classify_dentry(d) == FAT_DENTRY_LFN &&
 		    checksum == FAT_LFN_CHKSUM(d)) {
 			if (FAT_IS_LFN(d))
 				flag = true;
@@ -478,7 +478,7 @@ errno_t fat_directory_lookup_free(fat_directory_t *di, size_t count)
 				found = 0;
 				break;
 			}
-		} while (fat_directory_next(di) == EOK);	
+		} while (fat_directory_next(di) == EOK);
 	} while (fat_directory_expand(di) == EOK);
 
 	return ENOSPC;
@@ -563,4 +563,4 @@ errno_t fat_directory_vollabel_get(fat_directory_t *di, char *label)
 
 /**
  * @}
- */ 
+ */

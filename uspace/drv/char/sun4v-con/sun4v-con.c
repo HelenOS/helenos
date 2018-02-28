@@ -172,7 +172,7 @@ static errno_t sun4v_con_write(chardev_srv_t *srv, const void *data, size_t size
 	uint8_t *dp = (uint8_t *) data;
 
 	for (i = 0; i < size; i++)
-		sun4v_con_putchar(con, dp[i]); 
+		sun4v_con_putchar(con, dp[i]);
 
 	*nwr = size;
 	return EOK;

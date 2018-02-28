@@ -198,7 +198,7 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			/* ED should be stopped because of errors */
 			assert((ohci_ep->ed->td_head & ED_TDHEAD_HALTED_FLAG) != 0);
 
-			/* We don't care where the processing stopped, we just 
+			/* We don't care where the processing stopped, we just
 			 * need to make sure it's not using any of the TDs owned
 			 * by the transfer.
 			 *

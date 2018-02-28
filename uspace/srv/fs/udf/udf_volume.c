@@ -99,7 +99,7 @@ static errno_t udf_volume_recongnition_structure_test(service_id_t service_id,
  *
  * @return    EOK on success or an error code.
  */
-errno_t udf_volume_recongnition(service_id_t service_id) 
+errno_t udf_volume_recongnition(service_id_t service_id)
 {
 	aoff64_t addr = VRS_ADDR;
 	bool nsr_found = false;

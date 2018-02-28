@@ -348,7 +348,7 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 			assert(PTE_PRESENT(&pte));
 
 			frame = PTE_GET_FRAME(&pte);
-		}	
+		}
 	} else if (upage >= start_anon) {
 		/*
 		 * This is the uninitialized portion of the segment.
@@ -384,7 +384,7 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		    (void *) (base + i * PAGE_SIZE + pad_lo),
 		    PAGE_SIZE - pad_lo - pad_hi);
 		if (entry->p_flags & PF_X) {
-			smc_coherence_block((void *) (kpage + pad_lo), 
+			smc_coherence_block((void *) (kpage + pad_lo),
 			    PAGE_SIZE - pad_lo - pad_hi);
 		}
 		memsetb((void *) kpage, pad_lo, 0);

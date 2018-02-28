@@ -179,13 +179,13 @@ static const char * do_sanity_test(cht_t *h)
 		
 		if (val->unique_id != v[0]->unique_id)
 			return "Found item with a different key.";
-		if (val->mark) 
+		if (val->mark)
 			return "Found twice the same node.";
 		val->mark = true;
 	}
 	
 	for (int i = 0; i < 3; ++i) {
-		if (!v[i]->mark) 
+		if (!v[i]->mark)
 			return "Did not find all duplicates";
 		
 		v[i]->mark = false;
@@ -305,7 +305,7 @@ cht_ops_t stress_ops = {
 	.key_hash = stress_key_hash,
 	.equal = stress_equal,
 	.key_equal = stress_key_equal,
-	.remove_callback = stress_rm_callback	
+	.remove_callback = stress_rm_callback
 };
 
 static void resize_stresser(void *arg)
@@ -318,7 +318,7 @@ static void resize_stresser(void *arg)
 			stress_t *s = malloc(sizeof(stress_t), FRAME_ATOMIC);
 			if (!s) {
 				TPRINTF("[out-of-mem]\n");
-				goto out_of_mem;				
+				goto out_of_mem;
 			}
 			
 			s->free = true;
@@ -404,7 +404,7 @@ static void op_stresser(void *arg)
 				if (item_op) {
 					rcu_read_lock();
 					cht_link_t *dup;
-					if (!cht_insert_unique(work->h, &work->elem[elem_idx].link, 
+					if (!cht_insert_unique(work->h, &work->elem[elem_idx].link,
 						&dup)) {
 						TPRINTF("Err: already inserted\n");
 						work->failed = true;
@@ -418,7 +418,7 @@ static void op_stresser(void *arg)
 			}
 		} else {
 			rcu_read_lock();
-			cht_link_t *item = 
+			cht_link_t *item =
 				cht_find(work->h, (void*)work->elem[elem_idx].key);
 			rcu_read_unlock();
 
@@ -524,7 +524,7 @@ static bool do_stress(void)
 	for (size_t i = 0; i < total_thr_cnt; ++i) {
 		if (i < op_thread_cnt)
 			thr[i] = thread_create(op_stresser, &pwork[i], TASK, 0, "cht-op-stress");
-		else 
+		else
 			thr[i] = thread_create(resize_stresser, &pwork[i], TASK, 0, "cht-resize");
 		
 		assert(thr[i]);
@@ -566,7 +566,7 @@ const char *test_cht1(void)
 		return err;
 	printf("Basic sanity test: ok.\n");
 	
-	if (!do_stress()) 
+	if (!do_stress())
 		return "CHT stress test failed.";
 	else
 		return NULL;

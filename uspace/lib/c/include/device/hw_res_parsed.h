@@ -53,10 +53,10 @@
 #define RNGABSPTR(rng)	((void *) ((uintptr_t) RNGABS((rng))))
 
 typedef struct address64 {
-	/** Aboslute address. */ 
+	/** Aboslute address. */
 	uint64_t absolute;
 	/** PIO window base relative address. */
-	uint64_t relative; 
+	uint64_t relative;
 } address64_t;
 
 /** Address range structure */

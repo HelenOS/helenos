@@ -387,7 +387,7 @@ static bool ns8250_dev_probe(ns8250_t *ns)
 		res = false;
 	
 	pio_write_8(&ns->regs->mcr, NS8250_MCR_ALL);
-	if ((pio_read_8(&ns->regs->msr) & NS8250_MSR_SIGNALS) 
+	if ((pio_read_8(&ns->regs->msr) & NS8250_MSR_SIGNALS)
 	    != NS8250_MSR_SIGNALS)
 		res = false;
 	
@@ -482,7 +482,7 @@ static inline void ns8250_port_interrupts_enable(ns8250_regs_t *regs)
 {
 	/* Interrupt when data received. */
 	pio_write_8(&regs->ier, NS8250_IER_RXREADY | NS8250_IER_RXSTATUS);
-	pio_write_8(&regs->mcr, NS8250_MCR_DTR | NS8250_MCR_RTS 
+	pio_write_8(&regs->mcr, NS8250_MCR_DTR | NS8250_MCR_RTS
 	    | NS8250_MCR_OUT2);
 }
 

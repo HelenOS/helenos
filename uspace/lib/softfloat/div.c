@@ -150,7 +150,7 @@ float32 div_float32(float32 a, float32 b)
 	cexp = aexp - bexp + FLOAT32_BIAS - 2;
 	
 	cfrac = (afrac << 32) / bfrac;
-	if ((cfrac & 0x3F) == 0) { 
+	if ((cfrac & 0x3F) == 0) {
 		cfrac |= (bfrac * cfrac != afrac << 32);
 	}
 	
@@ -194,7 +194,7 @@ float32 div_float32(float32 a, float32 b)
 		result.parts.exp = (uint32_t) cexp;
 	}
 	
-	result.parts.fraction = ((cfrac >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)); 
+	result.parts.fraction = ((cfrac >> 6) & (~FLOAT32_HIDDEN_BIT_MASK));
 	
 	return result;
 }
@@ -207,11 +207,11 @@ float32 div_float32(float32 a, float32 b)
  * @return Result of division.
  *
  */
-float64 div_float64(float64 a, float64 b) 
+float64 div_float64(float64 a, float64 b)
 {
 	float64 result;
 	int64_t aexp, bexp, cexp;
-	uint64_t afrac, bfrac, cfrac; 
+	uint64_t afrac, bfrac, cfrac;
 	uint64_t remlo, remhi;
 	uint64_t tmplo, tmphi;
 	
@@ -290,7 +290,7 @@ float64 div_float64(float64 a, float64 b)
 		
 		/* normalize it*/
 		aexp++;
-		/* afrac is nonzero => it must stop */	
+		/* afrac is nonzero => it must stop */
 		while (!(afrac & FLOAT64_HIDDEN_BIT_MASK)) {
 			afrac <<= 1;
 			aexp--;
@@ -299,7 +299,7 @@ float64 div_float64(float64 a, float64 b)
 	
 	if (bexp == 0) {
 		bexp++;
-		/* bfrac is nonzero => it must stop */	
+		/* bfrac is nonzero => it must stop */
 		while (!(bfrac & FLOAT64_HIDDEN_BIT_MASK)) {
 			bfrac <<= 1;
 			bexp--;
@@ -314,7 +314,7 @@ float64 div_float64(float64 a, float64 b)
 		aexp++;
 	}
 	
-	cexp = aexp - bexp + FLOAT64_BIAS - 2; 
+	cexp = aexp - bexp + FLOAT64_BIAS - 2;
 	
 	cfrac = div128est(afrac, 0x0ll, bfrac);
 	

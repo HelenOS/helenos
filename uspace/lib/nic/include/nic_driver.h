@@ -120,8 +120,8 @@ struct nic {
 	 */
 	fibril_rwlock_t wv_lock;
 	/**
-	 * Function really sending the data. This MUST be filled in if the 
-	 * nic_send_message_impl function is used for sending messages (filled 
+	 * Function really sending the data. This MUST be filled in if the
+	 * nic_send_message_impl function is used for sending messages (filled
 	 * as send_message member of the nic_iface_t structure).
 	 * Called with the main_lock locked for reading.
 	 */

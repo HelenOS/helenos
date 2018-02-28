@@ -677,7 +677,7 @@ static void main_init(void)
 		V_INTEGER,
 		V_INTEGER,
 		V_INTEGER,
-		V_INTEGER		
+		V_INTEGER
 	};
 
 	val_type_t resp_def[OPER_MAX_ARGS] = {

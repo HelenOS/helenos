@@ -135,7 +135,7 @@ static void vfs_out_mounted(ipc_callid_t rid, ipc_call_t *req)
 static void vfs_out_unmounted(ipc_callid_t rid, ipc_call_t *req)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*req);
-	errno_t rc; 
+	errno_t rc;
 
 	rc = vfs_out_ops->unmounted(service_id);
 
@@ -456,7 +456,7 @@ static errno_t plb_get_component(char *dest, unsigned *sz, unsigned *ppos,
 		return ERANGE;
 	}
 
-	char c = plb_get_char(pos); 
+	char c = plb_get_char(pos);
 	if (c == '/')
 		pos++;
 	

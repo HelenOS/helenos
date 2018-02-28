@@ -42,7 +42,7 @@
 
 /**
  * Find the processor (sub)family.
- * 
+ *
  * @return 	true iff the CPU belongs to the US family
  */
 static inline bool is_us(void)
@@ -54,7 +54,7 @@ static inline bool is_us(void)
 
 /**
  * Find the processor (sub)family.
- * 
+ *
  * @return 	true iff the CPU belongs to the US-III subfamily
  */
 static inline bool is_us_iii(void)
@@ -67,7 +67,7 @@ static inline bool is_us_iii(void)
 
 /**
  * Find the processor (sub)family.
- * 
+ *
  * @return 	true iff the CPU belongs to the US-IV subfamily
  */
 static inline bool is_us_iv(void)

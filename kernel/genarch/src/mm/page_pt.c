@@ -356,7 +356,7 @@ void pt_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
 {
 	pte_t *t = pt_mapping_find_internal(as, page, nolock);
 	if (!t)
-		panic("Updating non-existent PTE");	
+		panic("Updating non-existent PTE");
 
 	assert(PTE_VALID(t) == PTE_VALID(pte));
 	assert(PTE_PRESENT(t) == PTE_PRESENT(pte));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Jakub Jermar 
+ * Copyright (c) 2012 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,7 +83,7 @@
 typedef struct {
 	/**
 	 * This callback is called from request_preprocess().
-	 * 
+	 *
 	 * Context:		caller
 	 * Caller alive:	guaranteed
 	 * Races with:		N/A

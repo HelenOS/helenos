@@ -68,7 +68,7 @@ answerbox_t *ipc_phone_0 = NULL;
 static slab_cache_t *call_cache;
 static slab_cache_t *answerbox_cache;
 
-slab_cache_t *phone_cache = NULL; 
+slab_cache_t *phone_cache = NULL;
 
 /** Initialize a call structure.
  *
@@ -724,7 +724,7 @@ restart:
 		 * Nota bene: there may still be answers waiting for pick up.
 		 */
 		spinlock_unlock(&TASK->active_calls_lock);
-		return;	
+		return;
 	}
 	
 	call = list_get_instance(list_first(&TASK->active_calls), call_t,

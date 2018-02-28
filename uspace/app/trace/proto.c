@@ -172,7 +172,7 @@ void proto_add_oper(proto_t *proto, int method, oper_t *oper)
 	mo->method = method;
 	mo->oper = oper;
 
-	hash_table_insert(&proto->method_oper, &mo->link);	
+	hash_table_insert(&proto->method_oper, &mo->link);
 }
 
 oper_t *proto_get_oper(proto_t *proto, int method)

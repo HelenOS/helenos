@@ -46,7 +46,7 @@
 #define AS_AREA_ANY    ((void *) -1)
 #define AS_MAP_FAILED  ((void *) -1)
 
-#define AS_AREA_UNPAGED NULL 
+#define AS_AREA_UNPAGED NULL
 
 /** Address space area info exported to uspace. */
 typedef struct {

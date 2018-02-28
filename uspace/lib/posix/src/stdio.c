@@ -147,7 +147,7 @@ ssize_t getdelim(char **restrict lineptr, size_t *restrict n,
 
 /**
  * Read a stream until the newline (or EOF) is encountered.
- * 
+ *
  * @param lineptr Pointer to the output buffer in which there will be stored
  *     nul-terminated string together with the delimiter (if encountered).
  *     Will be resized if necessary.
@@ -207,7 +207,7 @@ int fgetpos(FILE *restrict stream, fpos_t *restrict pos)
 
 /**
  * Reposition a file-position indicator in a stream.
- * 
+ *
  * @param stream Stream to seek in.
  * @param offset Direction and amount of bytes to seek.
  * @param whence From where to seek.
@@ -220,7 +220,7 @@ int fseeko(FILE *stream, off_t offset, int whence)
 
 /**
  * Discover current file offset in a stream.
- * 
+ *
  * @param stream Stream for which the offset shall be retrieved.
  * @return Current offset or -1 if not possible.
  */
@@ -264,7 +264,7 @@ static int _dprintf_str_write(const char *str, size_t size, void *fd)
 
 /**
  * Write wide string to the opened file.
- * 
+ *
  * @param str String to be written.
  * @param size Size of the string (in bytes).
  * @param fd File descriptor of the opened file.
@@ -297,7 +297,7 @@ static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
 
 /**
  * Print formatted output to the opened file.
- * 
+ *
  * @param fildes File descriptor of the opened file.
  * @param format Format description.
  * @param ap Print arguments.
@@ -316,7 +316,7 @@ int vdprintf(int fildes, const char *restrict format, va_list ap)
 
 /**
  * Print formatted output to the string.
- * 
+ *
  * @param s Output string.
  * @param format Format description.
  * @return Either the number of printed characters (excluding null byte) or
@@ -333,7 +333,7 @@ int sprintf(char *s, const char *restrict format, ...)
 
 /**
  * Print formatted output to the string.
- * 
+ *
  * @param s Output string.
  * @param format Format description.
  * @param ap Print arguments.
@@ -347,7 +347,7 @@ int vsprintf(char *s, const char *restrict format, va_list ap)
 
 /**
  * Convert formatted input from the stream.
- * 
+ *
  * @param stream Input stream.
  * @param format Format description.
  * @return The number of converted output items or EOF on failure.
@@ -363,7 +363,7 @@ int fscanf(FILE *restrict stream, const char *restrict format, ...)
 
 /**
  * Convert formatted input from the standard input.
- * 
+ *
  * @param format Format description.
  * @return The number of converted output items or EOF on failure.
  */
@@ -378,7 +378,7 @@ int scanf(const char *restrict format, ...)
 
 /**
  * Convert formatted input from the standard input.
- * 
+ *
  * @param format Format description.
  * @param arg Output items.
  * @return The number of converted output items or EOF on failure.
@@ -390,7 +390,7 @@ int vscanf(const char *restrict format, va_list arg)
 
 /**
  * Convert formatted input from the string.
- * 
+ *
  * @param s Input string.
  * @param format Format description.
  * @return The number of converted output items or EOF on failure.
@@ -471,7 +471,7 @@ int putc_unlocked(int c, FILE *stream)
 
 /**
  * Put a byte on the standard output stream (thread-unsafe).
- * 
+ *
  * @param c Byte to output.
  * @return Either written byte or EOF.
  */

@@ -185,7 +185,7 @@ elif [ "$1" = "run" ]; then
             
             "$HOME/helenos-harbours/hsct.sh" update || exit 1
 
-            FAILED_HARBOURS=""    
+            FAILED_HARBOURS=""
             for HARBOUR in $H_HARBOUR_LIST; do
                 "$HOME/helenos-harbours/hsct.sh" archive --no-deps "$HARBOUR" >"run-$HARBOUR.log" 2>&1
                 if [ $? -eq 0 ]; then

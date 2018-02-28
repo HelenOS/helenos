@@ -343,7 +343,7 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t addr,
 			 * that they are separated by at least one unmapped
 			 * page.
 			 */
-			int const gp = (guarded || 
+			int const gp = (guarded ||
 			    (area->flags & AS_AREA_GUARD)) ? 1 : 0;
 			
 			/*

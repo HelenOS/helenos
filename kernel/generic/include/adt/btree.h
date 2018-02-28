@@ -54,7 +54,7 @@ typedef struct btree_node {
 	 */
 	btree_key_t key[BTREE_MAX_KEYS + 1];
 
-	/** 
+	/**
 	 * Pointers to values. Sorted according to the key array. Defined only in
 	 * leaf-level. There is room for storing value for the extra key.
 	 */

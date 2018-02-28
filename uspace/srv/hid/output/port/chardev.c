@@ -227,13 +227,13 @@ errno_t chardev_init(void)
 	if (rc != EOK) {
 		printf("%s: Failed to get \"serial\" category ID.\n", NAME);
 		return rc;
-	} 
+	}
 
 	rc = loc_category_get_id("console", &console_cat_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Failed to get \"console\" category ID.\n", NAME);
 		return rc;
-	} 
+	}
 
 	rc = loc_register_cat_change_cb(check_for_dev);
 	if (rc != EOK) {

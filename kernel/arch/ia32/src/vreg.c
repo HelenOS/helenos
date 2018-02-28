@@ -74,7 +74,7 @@ void vreg_init(void)
 
 	gs_load(GDT_SELECTOR(VREG_DES));
 
-	vreg_ptr = NULL; 
+	vreg_ptr = NULL;
 }
 
 /** @}

@@ -58,9 +58,9 @@ static errno_t rtl8169_get_operation_mode(ddf_fun_t *fun, int *speed,
     nic_channel_mode_t *duplex, nic_role_t *role);
 static errno_t rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t role);
-static errno_t rtl8169_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
+static errno_t rtl8169_pause_get(ddf_fun_t *fun, nic_result_t *we_send,
     nic_result_t *we_receive, uint16_t *time);
-static errno_t rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
+static errno_t rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive,
     uint16_t time);
 static errno_t rtl8169_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement);
 static errno_t rtl8169_autoneg_disable(ddf_fun_t *fun);
@@ -236,7 +236,7 @@ static errno_t rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 
 	/* Allocate TX ring */
 	rtl8169->tx_ring = AS_AREA_ANY;
-	rc = dmamem_map_anonymous(TX_RING_SIZE, DMAMEM_4GiB, 
+	rc = dmamem_map_anonymous(TX_RING_SIZE, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->tx_ring_phys,
 	    (void **)&rtl8169->tx_ring);
 
@@ -250,7 +250,7 @@ static errno_t rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 
 	/* Allocate RX ring */
 	rtl8169->rx_ring = AS_AREA_ANY;
-	rc = dmamem_map_anonymous(RX_RING_SIZE, DMAMEM_4GiB, 
+	rc = dmamem_map_anonymous(RX_RING_SIZE, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->rx_ring_phys,
 	    (void **)&rtl8169->rx_ring);
 
@@ -264,7 +264,7 @@ static errno_t rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 
 	/* Allocate TX buffers */
 	rtl8169->tx_buff = AS_AREA_ANY;
-	rc = dmamem_map_anonymous(TX_BUFFERS_SIZE, DMAMEM_4GiB, 
+	rc = dmamem_map_anonymous(TX_BUFFERS_SIZE, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->tx_buff_phys,
 	    &rtl8169->tx_buff);
 
@@ -276,7 +276,7 @@ static errno_t rtl8169_allocate_buffers(rtl8169_t *rtl8169)
 
 	/* Allocate RX buffers */
 	rtl8169->rx_buff = AS_AREA_ANY;
-	rc = dmamem_map_anonymous(RX_BUFFERS_SIZE, DMAMEM_4GiB, 
+	rc = dmamem_map_anonymous(RX_BUFFERS_SIZE, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &rtl8169->rx_buff_phys,
 	    &rtl8169->rx_buff);
 
@@ -593,13 +593,13 @@ static errno_t rtl8169_set_operation_mode(ddf_fun_t *fun, int speed,
 	return EOK;
 }
 
-static errno_t rtl8169_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
+static errno_t rtl8169_pause_get(ddf_fun_t *fun, nic_result_t *we_send,
     nic_result_t *we_receive, uint16_t *time)
 {
 	return EOK;
 }
 
-static errno_t rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
+static errno_t rtl8169_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive,
     uint16_t time)
 {
 	return EOK;

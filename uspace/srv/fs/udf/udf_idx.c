@@ -54,7 +54,7 @@ static hash_table_t udf_idx;
 typedef struct {
 	service_id_t service_id;
 	fs_index_t index;
-} udf_ht_key_t; 
+} udf_ht_key_t;
 
 static size_t udf_idx_hash(const ht_link_t *item)
 {
@@ -82,7 +82,7 @@ static hash_table_ops_t udf_idx_ops = {
 	.key_hash = udf_idx_key_hash,
 	.key_equal = udf_idx_key_equal,
 	.equal = NULL,
-	.remove_callback = NULL 
+	.remove_callback = NULL
 };
 
 /** Initialization of hash table

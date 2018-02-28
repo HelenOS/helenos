@@ -42,7 +42,7 @@
 #include <arch.h>
 
 /** Architecture dependent address space init.
- *  
+ *
  *  Since ARM supports page tables, #as_pt_operations are used.
  */
 void as_arch_init(void)

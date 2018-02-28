@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -85,7 +85,7 @@ void itsb_pte_copy(pte_t *t)
 	size_t index;
 
 	as = t->as;
-	index = (t->page >> MMU_PAGE_WIDTH) & TSB_ENTRY_MASK; 
+	index = (t->page >> MMU_PAGE_WIDTH) & TSB_ENTRY_MASK;
 	
 	tsb = (tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base);
 	tte = &tsb[index];

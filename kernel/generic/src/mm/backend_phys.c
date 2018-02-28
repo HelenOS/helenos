@@ -60,7 +60,7 @@ static void phys_destroy_shared_data(void *);
 
 typedef struct {
 	uintptr_t base;
-	size_t frames;	
+	size_t frames;
 } phys_shared_data_t;
 
 mem_backend_t phys_backend = {

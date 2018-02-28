@@ -82,7 +82,7 @@ static sata_bd_dev_t *bd_srv_sata(bd_srv_t *bd)
 
 /** Find SATA devices in device tree.
  *
- *  @param Device manager handle describing container for searching.  
+ *  @param Device manager handle describing container for searching.
  *
  *  @return EOK if succeed, error code otherwise.
  *
@@ -110,7 +110,7 @@ static errno_t scan_device_tree(devman_handle_t funh)
 		disk[disk_count].bds.ops = &sata_bd_ops;
 		disk[disk_count].bds.sarg = &disk[disk_count];
 		
-		printf("Device %s - %s , blocks: %lu, block_size: %lu\n", 
+		printf("Device %s - %s , blocks: %lu, block_size: %lu\n",
 		    disk[disk_count].dev_name, disk[disk_count].sata_dev_name,
 			    (long unsigned int) disk[disk_count].blocks,
 				(long unsigned int) disk[disk_count].block_size);

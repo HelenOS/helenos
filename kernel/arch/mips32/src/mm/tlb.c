@@ -218,7 +218,7 @@ void tlb_modified(istate_t *istate)
 	 *
 	 * We do not assert on this because this could be a manifestation of
 	 * an emulator bug, such as QEMU Bug #1128935:
-	 * https://bugs.launchpad.net/qemu/+bug/1128935  
+	 * https://bugs.launchpad.net/qemu/+bug/1128935
 	 */
 	if (index.p) {
 		log(LF_ARCH, LVL_WARN, "%s: TLBP failed in exception handler (badvaddr=%#"

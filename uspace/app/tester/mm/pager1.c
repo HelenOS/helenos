@@ -103,7 +103,7 @@ const char *test_pager1(void)
 	
 	touch_area(buffer, buffer_len);
 
-	as_area_destroy(buffer);	
+	as_area_destroy(buffer);
 	vfs_put(fd);
 	
 	return NULL;

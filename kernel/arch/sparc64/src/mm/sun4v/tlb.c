@@ -281,7 +281,7 @@ void fast_data_access_mmu_miss(unsigned int tt, istate_t *istate)
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
-		 */		
+		 */
 		as_page_fault(va, PF_ACCESS_READ, istate);
 	}
 }
@@ -322,7 +322,7 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
-		 */		
+		 */
 		as_page_fault(va, PF_ACCESS_WRITE, istate);
 	}
 }

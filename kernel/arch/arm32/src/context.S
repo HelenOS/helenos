@@ -28,7 +28,7 @@
 
 #include <abi/asmtool.h>
 
-.text   
+.text
 
 FUNCTION_BEGIN(context_save_arch)
 	stmfd sp!, {r1}

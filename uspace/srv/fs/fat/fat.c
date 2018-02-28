@@ -30,7 +30,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	fat.c

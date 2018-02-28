@@ -79,7 +79,7 @@ const struct lconv C_LOCALE = {
 
 /**
  * Set program locale.
- * 
+ *
  * @param category What category to set.
  * @param locale Locale name.
  * @return Original locale name on success, NULL on failure.
@@ -96,7 +96,7 @@ char *setlocale(int category, const char *locale)
 
 /**
  * Return locale-specific information.
- * 
+ *
  * @return Information about the current locale.
  */
 struct lconv *localeconv(void)
@@ -107,7 +107,7 @@ struct lconv *localeconv(void)
 
 /**
  * Duplicate locale object.
- * 
+ *
  * @param locobj Object to duplicate.
  * @return Duplicated object.
  */
@@ -128,7 +128,7 @@ locale_t duplocale(locale_t locobj)
 
 /**
  * Free locale object.
- * 
+ *
  * @param locobj Object to free.
  */
 void freelocale(locale_t locobj)
@@ -140,7 +140,7 @@ void freelocale(locale_t locobj)
 
 /**
  * Create or modify a locale object.
- * 
+ *
  * @param category_mask Mask of categories to be set or modified.
  * @param locale Locale to be used.
  * @param base Object to modify. 0 if new object is to be created.
@@ -168,7 +168,7 @@ locale_t newlocale(int category_mask, const char *locale,
 
 /**
  * Set locale for the current thread.
- * 
+ *
  * @param newloc Locale to use.
  * @return The previously set locale or LC_GLOBAL_LOCALE
  */

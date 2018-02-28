@@ -105,7 +105,7 @@ void kmp(void *arg __attribute__((unused)))
 	assert(ops != NULL);
 
 	/*
-	 * SMP initialized, cpus array allocated. Assign each CPU its 
+	 * SMP initialized, cpus array allocated. Assign each CPU its
 	 * physical APIC ID.
 	 */
 	cpu_arch_id_init();

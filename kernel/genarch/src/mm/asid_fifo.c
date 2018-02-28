@@ -37,7 +37,7 @@
  * Architectures that link with this file keep the unallocated ASIDs
  * in FIFO queue. The queue can be statically (e.g. mips32) or
  * dynamically allocated (e.g ia64 and sparc64).
- */ 
+ */
 
 #include <genarch/mm/asid_fifo.h>
 #include <arch/mm/asid.h>
@@ -48,7 +48,7 @@
 #define FIFO_STATIC		(ASIDS_ALLOCABLE<FIFO_STATIC_LIMIT)
 
 /**
- * FIFO queue containing unassigned ASIDs. 
+ * FIFO queue containing unassigned ASIDs.
  * Can be only accessed when asidlock is held.
  */
 #if FIFO_STATIC

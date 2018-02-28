@@ -80,7 +80,7 @@ void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_1(rid, rc, (sysarg_t) page);
 
 	/*
-	 * FIXME: 
+	 * FIXME:
 	 * This is just for now until we implement proper page cache
 	 * management.  Not keeping the pages around in a cache results in
 	 * inherently non-coherent private mappings.

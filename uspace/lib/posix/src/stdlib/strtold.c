@@ -231,7 +231,7 @@ static long double mul_pow2(long double mant, int exp)
  * Convert decimal string representation of the floating point number.
  * Function expects the string pointer to be already pointed at the first
  * digit (i.e. leading optional sign was already consumed by the caller).
- * 
+ *
  * @param sptr Pointer to the storage of the string pointer. Upon successful
  *     conversion, the string pointer is updated to point to the first
  *     unrecognized character.
@@ -302,7 +302,7 @@ static long double parse_decimal(const char **sptr)
 
 /**
  * Derive a hexadecimal digit from its character representation.
- * 
+ *
  * @param ch Character representation of the hexadecimal digit.
  * @return Digit value represented by an integer.
  */

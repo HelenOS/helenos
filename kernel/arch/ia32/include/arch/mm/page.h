@@ -160,7 +160,7 @@
 /** When bit on this position is 1, the page fault was caused in user mode. */
 #define PFERR_CODE_US		(1 << 2)
 
-/** When bit on this position is 1, a reserved bit was set in page directory. */ 
+/** When bit on this position is 1, a reserved bit was set in page directory. */
 #define PFERR_CODE_RSVD		(1 << 3)
 
 /** Page Table Entry. */

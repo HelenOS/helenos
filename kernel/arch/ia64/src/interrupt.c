@@ -319,7 +319,7 @@ void exception_init(void)
 	exc_register(EXC_INST_A_BIT_FAULT,
 	    vector_to_string(EXC_INST_A_BIT_FAULT), true,
 	    instruction_access_bit_fault);
-	exc_register(EXC_DATA_A_BIT_FAULT, 
+	exc_register(EXC_DATA_A_BIT_FAULT,
 	    vector_to_string(EXC_DATA_A_BIT_FAULT), true,
 	    data_access_bit_fault);
 	exc_register(EXC_EXT_INTERRUPT,

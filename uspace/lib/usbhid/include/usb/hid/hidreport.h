@@ -52,7 +52,7 @@
  * \retval EINVAL if one of the parameters is not given (is NULL).
  * \retval ENOENT if there are some descriptors missing.
  * \retval ENOMEM if an error with allocation occured.
- * \retval EINVAL if the Report descriptor's size does not match the size 
+ * \retval EINVAL if the Report descriptor's size does not match the size
  *         from the interface descriptor.
  * \return Other value inherited from function usb_pipe_start_session(),
  *         usb_pipe_end_session() or usb_request_get_descriptor().

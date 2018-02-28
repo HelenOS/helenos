@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -57,7 +57,7 @@
 
 /*
  * The following definitions concern the UPA_CONFIG register on US and the
- * FIREPLANE_CONFIG register on US3. 
+ * FIREPLANE_CONFIG register on US3.
  */
 #define ICBUS_CONFIG_MID_SHIFT    17
 

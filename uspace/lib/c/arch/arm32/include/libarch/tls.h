@@ -43,7 +43,7 @@
 /** Offsets for accessing thread-local variables are shifted 8 bytes higher. */
 #define ARM_TP_OFFSET  (-8)
 
-/** TCB (Thread Control Block) struct. 
+/** TCB (Thread Control Block) struct.
  *
  *  TLS starts just after this struct.
  */

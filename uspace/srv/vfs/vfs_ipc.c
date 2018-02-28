@@ -55,7 +55,7 @@ static void vfs_in_fsprobe(ipc_callid_t rid, ipc_call_t *request)
 	errno_t rc;
 	
 	/*
-	 * Now we expect the client to send us data with the name of the file 
+	 * Now we expect the client to send us data with the name of the file
 	 * system.
 	 */
 	rc = async_data_write_accept((void **) &fs_name, true, 0,
@@ -135,7 +135,7 @@ static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	
-	/* Now, we expect the client to send us data with the name of the file 
+	/* Now, we expect the client to send us data with the name of the file
 	 * system.
 	 */
 	rc = async_data_write_accept((void **) &fs_name, true, 0,

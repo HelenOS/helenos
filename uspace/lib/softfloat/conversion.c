@@ -224,7 +224,7 @@ float32 float64_to_float32(float64 a)
 		
 		/* denormalized */
 		
-		frac = a.parts.fraction; 
+		frac = a.parts.fraction;
 		frac |= FLOAT64_HIDDEN_BIT_MASK; /* denormalize and set hidden bit */
 		
 		frac >>= (FLOAT64_FRACTION_SIZE - FLOAT32_FRACTION_SIZE + 1);
@@ -419,7 +419,7 @@ static uint32_t _float32_to_uint32_helper(float32 a)
 	
 	frac |= FLOAT32_HIDDEN_BIT_MASK;
 	/* shift fraction to left so hidden bit will be the most significant bit */
-	frac <<= 32 - FLOAT32_FRACTION_SIZE - 1; 
+	frac <<= 32 - FLOAT32_FRACTION_SIZE - 1;
 	
 	frac >>= 32 - (a.parts.exp - FLOAT32_BIAS) - 1;
 	if ((a.parts.sign == 1) && (frac != 0)) {
@@ -605,7 +605,7 @@ int32_t float64_to_int32(float64 a)
 }
 
 /*
- * FIXME: Im not sure what to return if overflow/underflow happens 
+ * FIXME: Im not sure what to return if overflow/underflow happens
  *  - now its the biggest or the smallest int
  */
 uint64_t float64_to_uint64(float64 a)
@@ -624,7 +624,7 @@ uint64_t float64_to_uint64(float64 a)
 }
 
 /*
- * FIXME: Im not sure what to return if overflow/underflow happens 
+ * FIXME: Im not sure what to return if overflow/underflow happens
  *  - now its the biggest or the smallest int
  */
 int64_t float64_to_int64(float64 a)

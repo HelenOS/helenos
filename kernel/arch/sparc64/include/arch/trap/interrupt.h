@@ -29,7 +29,7 @@
 /** @addtogroup sparc64interrupt
  * @{
  */
-/** 
+/**
  * @file
  * @brief This file contains level N interrupt and inter-processor interrupt
  * trap handler.

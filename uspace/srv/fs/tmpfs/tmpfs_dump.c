@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2008 Jakub Jermar 
- * Copyright (c) 2008 Martin Decky 
+ * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2008 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	tmpfs_dump.c
@@ -171,7 +171,7 @@ bool tmpfs_restore(service_id_t dsid)
 
 	rc = block_init(dsid, TMPFS_COMM_SIZE);
 	if (rc != EOK)
-		return false; 
+		return false;
 	
 	size_t bufpos = 0;
 	size_t buflen = 0;
@@ -202,4 +202,4 @@ error:
 
 /**
  * @}
- */ 
+ */

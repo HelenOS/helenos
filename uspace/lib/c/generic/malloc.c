@@ -215,9 +215,9 @@ static inline void heap_lock(void)
 	} else {
 		/*
 		 * Malloc never switches fibrils while the heap is locked.
-		 * Similarly, it never creates new threads from within the 
-		 * locked region. Therefore, if there are no other threads 
-		 * except this one, the whole operation will complete without 
+		 * Similarly, it never creates new threads from within the
+		 * locked region. Therefore, if there are no other threads
+		 * except this one, the whole operation will complete without
 		 * any interruptions.
 		 */
 	}
@@ -231,9 +231,9 @@ static inline void heap_unlock(void)
 	} else {
 		/*
 		 * Malloc never switches fibrils while the heap is locked.
-		 * Similarly, it never creates new threads from within the 
-		 * locked region. Therefore, if there are no other threads 
-		 * except this one, the whole operation will complete without 
+		 * Similarly, it never creates new threads from within the
+		 * locked region. Therefore, if there are no other threads
+		 * except this one, the whole operation will complete without
 		 * any interruptions.
 		 */
 	}

@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc 
+/** @addtogroup libc
  * @{
- */ 
+ */
 
 /**
  * @file
@@ -337,7 +337,7 @@ restart:
 	case S_ACCEPT:
 		if (lenp)
 			*lenp = (size_t)((tlcomp.stop - tfsl.start) + 1);
-		return tfsl.start; 
+		return tfsl.start;
 	default:
 		abort();
 	}

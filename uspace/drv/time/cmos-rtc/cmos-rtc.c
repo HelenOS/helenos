@@ -190,7 +190,7 @@ rtc_pio_enable(rtc_t *rtc)
  * @param rtc  Pointer to the RTC device
  *
  * @return  EOK on success or an error code
- */ 
+ */
 static errno_t
 rtc_dev_initialize(rtc_t *rtc)
 {
@@ -725,7 +725,7 @@ rtc_close(ddf_fun_t *fun)
  *
  * @return      The converted value
  */
-static unsigned 
+static unsigned
 bcd2bin(unsigned bcd)
 {
 	return ((bcd & 0xF0) >> 1) + ((bcd & 0xF0) >> 3) + (bcd & 0xf);

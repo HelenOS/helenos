@@ -33,7 +33,7 @@
 #ifdef CONFIG_SMP
 
 #
-# This is a bus-and-hyperthreading-friendly implementation of spinlock 
+# This is a bus-and-hyperthreading-friendly implementation of spinlock
 #
 FUNCTION_BEGIN(spinlock_arch)
 	pushl %eax
@@ -41,7 +41,7 @@ FUNCTION_BEGIN(spinlock_arch)
 	
 	movl 12(%esp),%ebx
 
-0:	
+0:
 	pause			# Pentium 4's with HT love this instruction
 	movl (%ebx),%eax
 	testl %eax,%eax

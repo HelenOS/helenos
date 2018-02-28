@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

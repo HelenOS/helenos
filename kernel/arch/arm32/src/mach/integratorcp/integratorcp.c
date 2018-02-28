@@ -112,7 +112,7 @@ static inline uint32_t icp_irqc_get_sources(void)
 }
 
 /** Masks interrupt.
- * 
+ *
  * @param irq interrupt number
  */
 static inline void icp_irqc_mask(uint32_t irq)
@@ -122,7 +122,7 @@ static inline void icp_irqc_mask(uint32_t irq)
 
 
 /** Unmasks interrupt.
- * 
+ *
  * @param irq interrupt number
  */
 static inline void icp_irqc_unmask(uint32_t irq)

@@ -69,8 +69,8 @@ def usage(prname):
 def recursion(root, outf):
 	"Recursive directory walk"
 	
-	for item in listdir_items(root):		
-		if item.is_file:			
+	for item in listdir_items(root):
+		if item.is_file:
 			dentry = xstruct.create(DENTRY_FILE % len(item.name))
 			dentry.kind = TMPFS_FILE
 			dentry.fname_len = len(item.name)

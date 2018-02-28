@@ -319,7 +319,7 @@ static errno_t htc_config_credits(htc_device_t *htc_device)
 	htc_config_msg_t *config_message = (htc_config_msg_t *)
 	    ((void *) buffer + sizeof(htc_frame_header_t));
 	
-	config_message->message_id = 
+	config_message->message_id =
 	    host2uint16_t_be(HTC_MESSAGE_CONFIG);
 	/* Magic number to initialize device. */
 	config_message->credits = 33;

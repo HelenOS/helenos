@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
@@ -80,7 +80,7 @@ pl050_instance_t *pl050_init(pl050_t *dev, inr_t inr)
 
 	pl050 = dev;
 
-	if (instance) {	
+	if (instance) {
 		instance->pl050 = dev;
 		instance->kbrdin = NULL;
 
@@ -105,7 +105,7 @@ void pl050_wire(pl050_instance_t *instance, indev_t *kbrdin)
 
 	pio_write_8(pl050->ctrl, val);
 
-	/* reset the data buffer */	
+	/* reset the data buffer */
 	pio_read_8(pl050->data);
 	
 }

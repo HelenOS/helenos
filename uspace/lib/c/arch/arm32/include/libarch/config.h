@@ -29,7 +29,7 @@
 /** @addtogroup libcarm32
  * @{
  */
-/** @file  
+/** @file
  *  @brief Configuration constants.
  */
 

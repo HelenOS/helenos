@@ -592,7 +592,7 @@ void alternate_data_tlb_fault(unsigned int n, istate_t *istate)
 	if (is_kernel_fault(va)) {
 		if (va < end_of_identity) {
 			/*
-			 * Create kernel identity mapping for low memory. 
+			 * Create kernel identity mapping for low memory.
 			 */
 			dtlb_kernel_mapping_insert(va, KA2PA(va), false, 0);
 			return;

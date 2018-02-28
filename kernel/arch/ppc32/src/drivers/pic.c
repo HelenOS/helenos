@@ -70,7 +70,7 @@ void pic_disable_interrupt(inr_t intnum)
 void pic_ack_interrupt(void *arg, inr_t intnum)
 {
 	if (pic) {
-		if (intnum < 32) 
+		if (intnum < 32)
 			pic[PIC_ACK_LOW] = 1 << intnum;
 		else
 			pic[PIC_ACK_HIGH] = 1 << (intnum - 32);

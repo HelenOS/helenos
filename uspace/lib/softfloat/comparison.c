@@ -256,7 +256,7 @@ int is_float128_eq(float128 a, float128 b)
  * @b Second single-precision operand.
  * @return 1 if a is lower than b, 0 otherwise.
  */
-int is_float32_lt(float32 a, float32 b) 
+int is_float32_lt(float32 a, float32 b)
 {
 	if (((a.bin | b.bin) & 0x7FFFFFFF) == 0) {
 		/* +- zeroes */
@@ -350,7 +350,7 @@ int is_float128_lt(float128 a, float128 b)
  * @b Second single-precision operand.
  * @return 1 if a is greater than b, 0 otherwise.
  */
-int is_float32_gt(float32 a, float32 b) 
+int is_float32_gt(float32 a, float32 b)
 {
 	if (((a.bin | b.bin) & 0x7FFFFFFF) == 0) {
 		/* zeroes are equal with any sign */

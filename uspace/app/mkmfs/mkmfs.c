@@ -166,7 +166,7 @@ int main (int argc, char **argv)
 		}
 	}
 
-	if (sb.block_size < MFS_MIN_BLOCKSIZE || 
+	if (sb.block_size < MFS_MIN_BLOCKSIZE ||
 	    sb.block_size > MFS_MAX_BLOCKSIZE) {
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
@@ -174,7 +174,7 @@ int main (int argc, char **argv)
 		/* Block size must be a power of 2. */
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
-	} else if (sb.block_size > MFS_BLOCKSIZE && 
+	} else if (sb.block_size > MFS_BLOCKSIZE &&
 	    sb.fs_version != 3) {
 		printf(NAME ":Error! Block size > 1024 is "
 		    "supported by V3 filesystem only.\n");
@@ -469,7 +469,7 @@ static errno_t init_superblock(struct mfs_sb_info *sb)
 
 	if (sb->fs_version == 1) {
 		/* Valid only for MFS V1 */
-		sb->n_zones = sb->dev_nblocks > UINT16_MAX ? 
+		sb->n_zones = sb->dev_nblocks > UINT16_MAX ?
 		    UINT16_MAX : sb->dev_nblocks;
 		ind = MFS_BLOCKSIZE / sizeof(uint16_t);
 		ind2 = ind * ind;
@@ -523,7 +523,7 @@ static errno_t init_superblock(struct mfs_sb_info *sb)
 	sb->zbmap_blocks = UPPER(sb->n_zones, sb->block_size * 8);
 
 	/* Compute first data zone position */
-	sb->first_data_zone = 2 + sb->itable_size + 
+	sb->first_data_zone = 2 + sb->itable_size +
 	    sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/* Set log2 of zone to block ratio to zero */

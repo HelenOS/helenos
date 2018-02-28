@@ -51,7 +51,7 @@
 
 /*
  * Implementation of generic 4-level page table interface.
- * 
+ *
  * Page table layout:
  * - 32-bit virtual addresses
  * - Offset is 14 bits => pages are 16K long

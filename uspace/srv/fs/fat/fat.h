@@ -29,7 +29,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef FAT_FAT_H_
 #define FAT_FAT_H_

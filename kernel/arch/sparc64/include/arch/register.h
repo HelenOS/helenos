@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -97,7 +97,7 @@ typedef union tick_compare_reg tick_compare_reg_t;
 union softint_reg {
 	uint64_t value;
 	struct {
-		uint64_t : 47; 
+		uint64_t : 47;
 		unsigned stick_int : 1;
 		unsigned int_level : 15;
 		unsigned tick_int : 1;

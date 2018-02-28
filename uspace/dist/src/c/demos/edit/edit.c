@@ -82,7 +82,7 @@ typedef struct {
 	/** Active keyboard modifiers */
 	keymod_t keymod;
 
-	/** 
+	/**
 	 * Ideal column where the caret should try to get. This is used
 	 * for maintaining the same column during vertical movement.
 	 */
@@ -1158,7 +1158,7 @@ static void caret_move_absolute(int row, int column, enum dir_spec align_dir,
 }
 
 /** Find beginning of a word to the left of spt */
-static spt_t pt_find_word_left(spt_t spt) 
+static spt_t pt_find_word_left(spt_t spt)
 {
 	do {
 		spt_prev_char(spt, &spt);
@@ -1167,7 +1167,7 @@ static spt_t pt_find_word_left(spt_t spt)
 }
 
 /** Find beginning of a word to the right of spt */
-static spt_t pt_find_word_right(spt_t spt) 
+static spt_t pt_find_word_right(spt_t spt)
 {
 	do {
 		spt_next_char(spt, &spt);
@@ -1175,7 +1175,7 @@ static spt_t pt_find_word_right(spt_t spt)
 	return spt;
 }
 
-static void caret_move_word_left(bool select) 
+static void caret_move_word_left(bool select)
 {
 	spt_t pt;
 	tag_get_pt(&pane.caret_pos, &pt);
@@ -1183,7 +1183,7 @@ static void caret_move_word_left(bool select)
 	caret_move(word_left, select, true);
 }
 
-static void caret_move_word_right(bool select) 
+static void caret_move_word_right(bool select)
 {
 	spt_t pt;
 	tag_get_pt(&pane.caret_pos, &pt);

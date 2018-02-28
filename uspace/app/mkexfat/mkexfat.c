@@ -329,7 +329,7 @@ bootsec_write(service_id_t service_id, exfat_cfg_t *cfg)
 	if (rc != EOK)
 		goto exit;
 
-	/* Write the Main extended boot sectors backup to disk */ 
+	/* Write the Main extended boot sectors backup to disk */
 	rc = ebs_write(service_id, cfg,
 	    EBS_BACKUP_SECTOR_START, &vbr_checksum);
 

@@ -475,7 +475,7 @@ void ext4_inode_set_direct_block(ext4_inode_t *inode, uint32_t idx, uint32_t fbl
 /** Get block address of specified indirect block.
  *
  * @param inode I-node to get block address from
- * @param idx   Index of indirect block 
+ * @param idx   Index of indirect block
  *
  * @return Physical block address
  *

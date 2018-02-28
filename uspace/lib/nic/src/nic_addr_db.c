@@ -55,8 +55,8 @@ typedef struct nic_addr_entry {
 } nic_addr_entry_t;
 
 
-/* 
- * Hash table helper functions 
+/*
+ * Hash table helper functions
  */
 typedef struct {
 	size_t len;
@@ -180,7 +180,7 @@ errno_t nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
 		return EEXIST;
 	
 	nic_addr_entry_t *entry = malloc(sizeof(nic_addr_entry_t) + db->addr_len - 1);
-	if (entry == NULL) 
+	if (entry == NULL)
 		return ENOMEM;
 
 	entry->len = (uint8_t) db->addr_len;
@@ -245,7 +245,7 @@ typedef struct {
 /**
  * Helper function for nic_addr_db_foreach
  */
-static bool nic_addr_db_fe_helper(ht_link_t *item, void *arg) 
+static bool nic_addr_db_fe_helper(ht_link_t *item, void *arg)
 {
 	nic_addr_db_fe_arg_t *hs = (nic_addr_db_fe_arg_t *) arg;
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);

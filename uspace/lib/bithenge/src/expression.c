@@ -500,7 +500,7 @@ static bithenge_expression_t *scope_member_as_expression(
 	return &expr->base;
 }
 
-static errno_t scope_member_expression_evaluate(bithenge_expression_t *base, 
+static errno_t scope_member_expression_evaluate(bithenge_expression_t *base,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	scope_member_expression_t *self = expression_as_scope_member(base);
@@ -581,7 +581,7 @@ static bithenge_expression_t *subblob_as_expression(subblob_expression_t *expr)
 	return &expr->base;
 }
 
-static errno_t subblob_expression_evaluate(bithenge_expression_t *base, 
+static errno_t subblob_expression_evaluate(bithenge_expression_t *base,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {
 	subblob_expression_t *self = expression_as_subblob(base);

@@ -103,7 +103,7 @@ static struct acpi_sdt_header *map_sdt(struct acpi_sdt_header *psdt)
 
 	/* Start with mapping the header only. */
 	vhdr = (struct acpi_sdt_header *) km_map((uintptr_t) psdt,
-	    sizeof(struct acpi_sdt_header), PAGE_READ | PAGE_NOT_CACHEABLE); 
+	    sizeof(struct acpi_sdt_header), PAGE_READ | PAGE_NOT_CACHEABLE);
 
 	/* Now we can map the entire structure. */
 	vsdt = (struct acpi_sdt_header *) km_map((uintptr_t) psdt,
@@ -111,7 +111,7 @@ static struct acpi_sdt_header *map_sdt(struct acpi_sdt_header *psdt)
 	
 	// TODO: do not leak vtmp
 
-	return vsdt; 
+	return vsdt;
 }
 
 static void configure_via_rsdt(void)

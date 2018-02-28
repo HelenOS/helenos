@@ -374,7 +374,7 @@ void nic_frame_list_append(nic_frame_list_t *frames,
 	list_append(&frame->link, frames);
 }
 
-/** Get the polling mode information from the device 
+/** Get the polling mode information from the device
  *
  *	The main lock should be locked, otherwise the inconsistency between
  *	mode and period can occure.
@@ -897,7 +897,7 @@ void nic_set_ddf_fun(nic_t *nic_data, ddf_fun_t *fun)
 	nic_data->fun = fun;
 }
 
-/** 
+/**
  * @param dev DDF device associated with NIC
  * @return The associated NIC structure
  */
@@ -906,7 +906,7 @@ nic_t *nic_get_from_ddf_dev(ddf_dev_t *dev)
 	return (nic_t *) ddf_dev_data_get(dev);
 }
 
-/** 
+/**
  * @param dev DDF function associated with NIC
  * @return The associated NIC structure
  */
@@ -937,7 +937,7 @@ void nic_report_send_ok(nic_t *nic_data, size_t packets, size_t bytes)
  * @param nic_data
  * @param cause		The concrete error cause.
  */
-void nic_report_send_error(nic_t *nic_data, nic_send_error_cause_t cause, 
+void nic_report_send_error(nic_t *nic_data, nic_send_error_cause_t cause,
     unsigned count)
 {
 	if (count == 0)
@@ -1020,7 +1020,7 @@ void nic_report_collisions(nic_t *nic_data, unsigned count)
 	fibril_rwlock_write_unlock(&nic_data->stats_lock);
 }
 
-/** Just wrapper for checking nonzero time interval 
+/** Just wrapper for checking nonzero time interval
  *
  *  @oaram t The interval to check
  *  @returns Zero if the t is nonzero interval
@@ -1104,7 +1104,7 @@ void nic_sw_period_start(nic_t *nic_data)
 {
 	/* Create the fibril if it is not crated */
 	if (nic_data->sw_poll_info.fibril == 0) {
-		nic_data->sw_poll_info.fibril = fibril_create(period_fibril_fun, 
+		nic_data->sw_poll_info.fibril = fibril_create(period_fibril_fun,
 		    nic_data);
 		nic_data->sw_poll_info.running = 0;
 		nic_data->sw_poll_info.run = 0;

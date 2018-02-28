@@ -230,7 +230,7 @@ static errno_t do_copy(const char *src, const char *dest,
 		} else if (dest_type == TYPE_FILE) {
 			/* e.g. cp file_name existing_file */
 
-			/* dest already exists, 
+			/* dest already exists,
 			 * if force is set we will try to remove it.
 			 * if interactive is set user input is required.
 			 */
@@ -413,7 +413,7 @@ static int copy_file(const char *src, const char *dest,
 		printf("Unable to fstat %d\n", fd1);
 		vfs_put(fd1);
 		vfs_put(fd2);
-		return -1;	
+		return -1;
 	}
 
 	total = st.size;
@@ -485,7 +485,7 @@ int cmd_cp(char **argv)
 
 	for (c = 0, optreset = 1, optind = 0, opt_ind = 0; c != -1;) {
 		c = getopt_long(argc, argv, "hvVfirb:", long_options, &opt_ind);
-		switch (c) { 
+		switch (c) {
 		case 'h':
 			help_cmd_cp(1);
 			return CMD_SUCCESS;

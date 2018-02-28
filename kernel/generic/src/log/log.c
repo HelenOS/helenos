@@ -91,7 +91,7 @@ static void log_update(void *);
  *
  */
 void log_init(void)
-{	
+{
 	event_set_unmask_callback(EVENT_KLOG, log_update);
 	atomic_set(&log_inited, true);
 }
@@ -111,7 +111,7 @@ static size_t log_copy_to(const uint8_t *data, size_t pos, size_t len) {
 }
 
 /** Append data to the currently open log entry.
- * 
+ *
  * This function requires that the log_lock is acquired by the caller.
  */
 static void log_append(const uint8_t *data, size_t len)
@@ -142,7 +142,7 @@ static void log_append(const uint8_t *data, size_t len)
 }
 
 /** Begin writing an entry to the log.
- * 
+ *
  * This acquires the log and output buffer locks, so only calls to log_* functions should
  * be used until calling log_end.
  */
@@ -166,7 +166,7 @@ void log_begin(log_facility_t fac, log_level_t level)
 }
 
 /** Finish writing an entry to the log.
- * 
+ *
  * This releases the log and output buffer locks.
  */
 void log_end(void) {
@@ -232,7 +232,7 @@ static int log_printf_wstr_write(const wchar_t *wstr, size_t size, void *data)
 }
 
 /** Append a message to the currently being written entry.
- * 
+ *
  * Requires that an entry has been started using log_begin()
  */
 int log_vprintf(const char *fmt, va_list args)
@@ -252,7 +252,7 @@ int log_vprintf(const char *fmt, va_list args)
 }
 
 /** Append a message to the currently being written entry.
- * 
+ *
  * Requires that an entry has been started using log_begin()
  */
 int log_printf(const char *fmt, ...)
@@ -268,7 +268,7 @@ int log_printf(const char *fmt, ...)
 }
 
 /** Log a message to the kernel log.
- * 
+ *
  * This atomically appends a log entry.
  * The resulting message should not contain a trailing newline, as the log
  * entries are explicitly delimited when stored in the log.
@@ -338,7 +338,7 @@ sys_errno_t sys_klog(sysarg_t operation, void *buf, size_t size,
 				log_copy_from((uint8_t *) &entry_len, pos, sizeof(size_t));
 				
 				if (entry_len > PAGE_SIZE) {
-					/* 
+					/*
 					 * Since we limit data transfer
 					 * to uspace to a maximum of PAGE_SIZE
 					 * bytes, skip any entries larger

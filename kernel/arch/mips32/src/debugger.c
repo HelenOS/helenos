@@ -385,7 +385,7 @@ void debugger_bpoint(istate_t *istate)
 			/* Set Breakpoint on next instruction */
 			((uint32_t *)cur->address)[1] = 0x0d;
 			cur->flags |= BKPOINT_REINST;
-		} 
+		}
 		cur->flags |= BKPOINT_INPROG;
 	} else {
 		printf("***Breakpoint %d: %p in %s.\n", i,

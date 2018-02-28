@@ -1254,7 +1254,7 @@ static void ahci_ahci_hw_start(ahci_dev_t *ahci)
  * @return EOK if succeed, error code otherwise.
  *
  */
-static errno_t ahci_dev_add(ddf_dev_t *dev)	
+static errno_t ahci_dev_add(ddf_dev_t *dev)
 {
 	ahci_dev_t *ahci = ahci_ahci_create(dev);
 	if (ahci == NULL)

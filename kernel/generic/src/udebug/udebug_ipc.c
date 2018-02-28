@@ -193,7 +193,7 @@ static void udebug_receive_thread_read(call_t *call)
 
 	IPC_SET_RETVAL(call->data, 0);
 	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
-	   same code in process_answer() can be used 
+	   same code in process_answer() can be used
 	   (no way to distinguish method in answer) */
 	IPC_SET_ARG1(call->data, uspace_addr);
 	IPC_SET_ARG2(call->data, copied);
@@ -238,7 +238,7 @@ static void udebug_receive_name_read(call_t *call)
 
 	IPC_SET_RETVAL(call->data, 0);
 	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
-	   same code in process_answer() can be used 
+	   same code in process_answer() can be used
 	   (no way to distinguish method in answer) */
 	IPC_SET_ARG1(call->data, uspace_addr);
 	IPC_SET_ARG2(call->data, to_copy);
@@ -285,7 +285,7 @@ static void udebug_receive_areas_read(call_t *call)
 
 	IPC_SET_RETVAL(call->data, 0);
 	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
-	   same code in process_answer() can be used 
+	   same code in process_answer() can be used
 	   (no way to distinguish method in answer) */
 	IPC_SET_ARG1(call->data, uspace_addr);
 	IPC_SET_ARG2(call->data, to_copy);
@@ -326,7 +326,7 @@ static void udebug_receive_args_read(call_t *call)
 
 	IPC_SET_RETVAL(call->data, 0);
 	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
-	   same code in process_answer() can be used 
+	   same code in process_answer() can be used
 	   (no way to distinguish method in answer) */
 	IPC_SET_ARG1(call->data, uspace_addr);
 	IPC_SET_ARG2(call->data, 6 * sizeof(sysarg_t));
@@ -367,7 +367,7 @@ static void udebug_receive_regs_read(call_t *call)
 
 	IPC_SET_RETVAL(call->data, 0);
 	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
-	   same code in process_answer() can be used 
+	   same code in process_answer() can be used
 	   (no way to distinguish method in answer) */
 	IPC_SET_ARG1(call->data, uspace_addr);
 	IPC_SET_ARG2(call->data, to_copy);
@@ -406,7 +406,7 @@ static void udebug_receive_mem_read(call_t *call)
 
 	IPC_SET_RETVAL(call->data, 0);
 	/* ARG1=dest, ARG2=size as in IPC_M_DATA_READ so that
-	   same code in process_answer() can be used 
+	   same code in process_answer() can be used
 	   (no way to distinguish method in answer) */
 	IPC_SET_ARG1(call->data, uspace_dst);
 	IPC_SET_ARG2(call->data, size);
@@ -437,7 +437,7 @@ void udebug_call_receive(call_t *call)
 		if (TASK->udebug.debugger != call->sender) {
 			IPC_SET_RETVAL(call->data, EINVAL);
 			ipc_answer(&TASK->kb.box, call);
-			return;	
+			return;
 		}
 	}
 

@@ -53,7 +53,7 @@
  * Holds a reference to generic USB/HID device structure and keyboard-specific
  * data, such as currently pressed keys, modifiers and lock keys.
  *
- * Also holds a IPC session to the console (since there is now no other way to 
+ * Also holds a IPC session to the console (since there is now no other way to
  * communicate with it).
  *
  * @note Storing active lock keys in this structure results in their setting
@@ -97,7 +97,7 @@ typedef struct usb_kbd_t {
 	
 	int32_t *led_data;
 	
-	/** State of the structure (for checking before use). 
+	/** State of the structure (for checking before use).
 	 *
 	 * 0 - not initialized
 	 * 1 - initialized

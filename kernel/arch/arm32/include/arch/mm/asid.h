@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32mm	
+/** @addtogroup arm32mm
  * @{
  */
 /** @file
@@ -50,7 +50,7 @@ typedef uint8_t asid_t;
  */
 #define asid_get()		(ASID_START + 1)
 
-#define asid_put(asid) 
+#define asid_put(asid)
 
 #endif
 

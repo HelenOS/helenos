@@ -114,7 +114,7 @@ typedef struct {
 	unsigned available: 1;
 	unsigned : 2;
 	unsigned granularity : 1;
-	unsigned base_24_31: 8;	
+	unsigned base_24_31: 8;
 	unsigned base_32_63 : 32;
 	unsigned  : 32;
 } __attribute__ ((packed)) tss_descriptor_t;

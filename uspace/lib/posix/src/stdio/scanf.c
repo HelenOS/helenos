@@ -383,7 +383,7 @@ static inline int is_length_mod(int c, int _c, int *modifier)
 /**
  * Decides whether provided character specifies integer conversion. If so, the
  * semantics of the conversion is stored through provided pointers..
- * 
+ *
  * @param c Candidate on the integer conversion.
  * @param is_unsigned Pointer to store whether the conversion is signed or not.
  * @param base Pointer to store the base of the integer conversion.
@@ -483,7 +483,7 @@ static inline int is_seq_conv(int c, int *modifier)
  * POSIX compliant (apart from the not supported stuff).
  *
  * NOT SUPPORTED: locale (see strtold), wide chars, numbered output arguments
- * 
+ *
  * @param in Input provider.
  * @param fmt Format description.
  * @param arg Output arguments.

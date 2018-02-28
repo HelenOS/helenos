@@ -150,14 +150,14 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 	
 	while (field != NULL) {
 		if (field->value != 0) {
-			const char *key_str = 
+			const char *key_str =
 			    usbhid_multimedia_usage_to_str(field->usage);
 			printf("Pressed key: %s\n", key_str);
 		}
 		
 		field = usb_hid_report_get_sibling(
 		    report, field, path, USB_HID_PATH_COMPARE_END
-		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		    USB_HID_REPORT_TYPE_INPUT);
 	}
 	
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
 	
 	while (true) {
 		/** @todo Try blocking call. */
-		rc = usbhid_dev_get_event(dev_sess, event, size, &actual_size, 
+		rc = usbhid_dev_get_event(dev_sess, event, size, &actual_size,
 		    &event_nr, 0);
 		if (rc != EOK) {
 			// TODO: hangup phone?

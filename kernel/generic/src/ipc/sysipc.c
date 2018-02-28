@@ -185,7 +185,7 @@ errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		 * We enforce this locking order so that any potential
 		 * concurrently executing forget operation is forced to
 		 * release its active_calls_lock and lose the race to
-		 * forget this soon to be answered call. 
+		 * forget this soon to be answered call.
 		 */
 		spinlock_lock(&answer->sender->active_calls_lock);
 		list_remove(&answer->ta_link);
@@ -694,7 +694,7 @@ sys_errno_t sys_ipc_answer_slow(sysarg_t chandle, ipc_data_t *data)
 	} else
 		saved = false;
 	
-	errno_t rc = copy_from_uspace(&call->data.args, &data->args, 
+	errno_t rc = copy_from_uspace(&call->data.args, &data->args,
 	    sizeof(call->data.args));
 	if (rc != EOK) {
 		/*

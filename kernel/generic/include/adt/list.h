@@ -65,14 +65,14 @@ extern unsigned long list_count(const list_t *);
 	list_t name = LIST_INITIALIZER(name)
 
 /** Initializer for statically allocated list.
- * 
+ *
  * @code
  * struct named_list {
  *     const char *name;
  *     list_t list;
- * } var = { 
- *     .name = "default name", 
- *     .list = LIST_INITIALIZER(name_list.list) 
+ * } var = {
+ *     .name = "default name",
+ *     .list = LIST_INITIALIZER(name_list.list)
  * };
  * @endcode
  *
@@ -110,9 +110,9 @@ extern unsigned long list_count(const list_t *);
  *     int value;
  *     link_t item_link;
  * } item_t;
- * 
+ *
  * //..
- * 
+ *
  * // Print each list element's value and remove the element from the list.
  * list_foreach_safe(mylist, cur_link, next_link) {
  *     item_t *cur_item = list_get_instance(cur_link, item_t, item_link);
@@ -120,7 +120,7 @@ extern unsigned long list_count(const list_t *);
  *     list_remove(cur_link);
  * }
  * @endcode
- * 
+ *
  * @param list List to traverse.
  * @param iterator Iterator to the current element of the list.
  *             The item this iterator points may be safely removed

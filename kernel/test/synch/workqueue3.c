@@ -62,7 +62,7 @@ static const char *do_test(bool exit_early)
 	if (!err) {
 		TPRINTF("\nSecond run:\n");
 		err = run_workq_core(exit_early);
-	} 
+	}
 
 	TPRINTF("Done.\n");
 	

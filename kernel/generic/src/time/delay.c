@@ -50,7 +50,7 @@
  */
 void delay(uint32_t usec)
 {
-	/* 
+	/*
 	 * The delay loop is calibrated for each and every CPU in the system.
 	 * If running in a thread context, it is therefore necessary to disable
 	 * thread migration. We want to do this in a lightweight manner.

@@ -55,7 +55,7 @@ static void cpu_mask_count(cpu_mask_t *cpus, size_t cpu_cnt)
 	assert(NULL != cpus);
 	assert(cpu_cnt <= config.cpu_count);
 	
-	for (size_t active_word = 0; 
+	for (size_t active_word = 0;
 		(active_word + 1) * word_bit_cnt <= cpu_cnt;
 		++active_word) {
 		/* Set all bits in the cell/word. */
@@ -69,8 +69,8 @@ static void cpu_mask_count(cpu_mask_t *cpus, size_t cpu_cnt)
 	}
 }
 
-/** Sets bits corresponding to the active cpus, ie the first 
- * config.cpu_active cpus. 
+/** Sets bits corresponding to the active cpus, ie the first
+ * config.cpu_active cpus.
  */
 void cpu_mask_active(cpu_mask_t *cpus)
 {

@@ -287,7 +287,7 @@ NO_TRACE static bool is_high_priority(pfn_t base, size_t count)
  */
 NO_TRACE static size_t find_free_zone_lowprio(size_t count, zone_flags_t flags,
     pfn_t constraint, size_t hint)
-{	
+{
 	for (size_t pos = 0; pos < zones.count; pos++) {
 		size_t i = (pos + hint) % zones.count;
 		

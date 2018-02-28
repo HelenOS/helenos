@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64 
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -70,7 +70,7 @@ void vreg_init(void)
 
 	write_msr(AMD_MSR_FS, (uintptr_t) page);
 
-	vreg_ptr = NULL; 
+	vreg_ptr = NULL;
 }
 
 /** @}

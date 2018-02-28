@@ -75,7 +75,7 @@ static errno_t tmpfs_unlink_node(fs_node_t *, fs_node_t *, const char *);
 /* Implementation of helper functions. */
 static errno_t tmpfs_root_get(fs_node_t **rfn, service_id_t service_id)
 {
-	return tmpfs_node_get(rfn, service_id, TMPFS_SOME_ROOT); 
+	return tmpfs_node_get(rfn, service_id, TMPFS_SOME_ROOT);
 }
 
 static errno_t tmpfs_has_children(bool *has_children, fs_node_t *fn)
@@ -137,8 +137,8 @@ libfs_ops_t tmpfs_libfs_ops = {
 /** Hash table of all TMPFS nodes. */
 hash_table_t nodes;
 
-/* 
- * Implementation of hash table interface for the nodes hash table. 
+/*
+ * Implementation of hash table interface for the nodes hash table.
  */
 
 typedef struct {
@@ -247,7 +247,7 @@ static bool rm_service_id_nodes(ht_link_t *item, void *arg)
 }
 
 static void tmpfs_instance_done(service_id_t service_id)
-{	
+{
 	hash_table_apply(&nodes, rm_service_id_nodes, &service_id);
 }
 
@@ -282,7 +282,7 @@ errno_t tmpfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t inde
 	} else {
 		*rfn = NULL;
 	}
-	return EOK;	
+	return EOK;
 }
 
 errno_t tmpfs_node_open(fs_node_t *fn)
@@ -323,9 +323,9 @@ errno_t tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 	else
 		nodep->index = tmpfs_next_index++;
 	nodep->service_id = service_id;
-	if (lflag & L_DIRECTORY) 
+	if (lflag & L_DIRECTORY)
 		nodep->type = TMPFS_DIRECTORY;
-	else 
+	else
 		nodep->type = TMPFS_FILE;
 
 	/* Insert the new node into the nodes hash table. */
@@ -549,7 +549,7 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);	
+		async_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 

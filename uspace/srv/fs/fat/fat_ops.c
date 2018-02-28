@@ -311,7 +311,7 @@ static errno_t fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 
 	d = ((fat_dentry_t *)b->data) + (idxp->pdi % DPS(bs));
 	if (FAT_IS_FAT32(bs)) {
-		nodep->firstc = uint16_t_le2host(d->firstc_lo) | 
+		nodep->firstc = uint16_t_le2host(d->firstc_lo) |
 		    (uint16_t_le2host(d->firstc_hi) << 16);
 	} else
 		nodep->firstc = uint16_t_le2host(d->firstc);
@@ -534,7 +534,7 @@ errno_t fat_create_node(fs_node_t **rfn, service_id_t service_id, int flags)
 error:
 	if (flags & L_DIRECTORY)
 		(void) fat_free_clusters(bs, service_id, mcl);
-	return rc;		
+	return rc;
 }
 
 errno_t fat_destroy_node(fs_node_t *fn)

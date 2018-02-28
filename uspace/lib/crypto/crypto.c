@@ -265,7 +265,7 @@ errno_t create_hash(uint8_t *input, size_t input_size, uint8_t *output,
  *         is not allocated, otherwise EOK.
  *
  */
-errno_t hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size, 
+errno_t hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size,
     uint8_t *hash, hash_func_t hash_sel)
 {
 	if ((!key) || (!msg))

@@ -109,7 +109,7 @@ static size_t open_nodes_key_hash(void *key_arg)
 static size_t open_nodes_hash(const ht_link_t *item)
 {
 	ext4_node_t *enode = hash_table_get_inst(item, ext4_node_t, link);
-	return hash_combine(enode->instance->service_id, enode->inode_ref->index);	
+	return hash_combine(enode->instance->service_id, enode->inode_ref->index);
 }
 
 static bool open_nodes_key_equal(void *key_arg, const ht_link_t *item)
@@ -191,7 +191,7 @@ errno_t ext4_instance_get(service_id_t service_id, ext4_instance_t **inst)
 }
 
 /** Get root node of filesystem specified by service_id.
- * 
+ *
  * @param rfn        Output pointer to loaded node
  * @param service_id Device to load root node from
  *
@@ -204,7 +204,7 @@ errno_t ext4_root_get(fs_node_t **rfn, service_id_t service_id)
 }
 
 /** Check if specified name (component) matches with any directory entry.
- * 
+ *
  * If match is found, load and return matching node.
  *
  * @param rfn       Output pointer to node if operation successful
@@ -271,7 +271,7 @@ errno_t ext4_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t index
 	return ext4_node_get_core(rfn, inst, index);
 }
 
-/** Main function for getting node from the filesystem. 
+/** Main function for getting node from the filesystem.
  *
  * @param rfn   Output point to loaded node if operation successful
  * @param inst  Instance of filesystem

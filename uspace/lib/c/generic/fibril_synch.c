@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar 
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -174,7 +174,7 @@ bool fibril_mutex_is_locked(fibril_mutex_t *fm)
 	bool locked = false;
 	
 	futex_down(&async_futex);
-	if (fm->counter <= 0) 
+	if (fm->counter <= 0)
 		locked = true;
 	futex_up(&async_futex);
 	

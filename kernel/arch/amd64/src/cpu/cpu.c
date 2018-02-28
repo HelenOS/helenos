@@ -80,7 +80,7 @@ void cpu_setup_fpu(void)
 
 /** Set the TS flag to 1.
  *
- * If a thread accesses coprocessor, exception is run, which 
+ * If a thread accesses coprocessor, exception is run, which
  * does a lazy fpu context switch.
  *
  */

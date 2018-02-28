@@ -78,7 +78,7 @@ static pci_operations_t pci_psycho_ops = {
  * @param node		OpenFirmware device tree node of the Sabre.
  *
  * @return		Address of the initialized PCI structure.
- */ 
+ */
 pci_t *pci_sabre_init(ofw_tree_node_t *node)
 {
 	pci_t *pci;
@@ -120,7 +120,7 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
  * @param node		OpenFirmware device tree node of the Psycho.
  *
  * @return		Address of the initialized PCI structure.
- */ 
+ */
 pci_t *pci_psycho_init(ofw_tree_node_t *node)
 {
 	pci_t *pci;

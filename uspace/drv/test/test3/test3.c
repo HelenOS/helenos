@@ -94,7 +94,7 @@ static errno_t register_fun_and_add_to_category(ddf_dev_t *parent,
 
 	ddf_msg(LVL_NOTE, "Registered exposed function `%s'.", fun_name);
 
-leave:	
+leave:
 	free(fun_name);
 	
 	if ((rc != EOK) && (fun != NULL)) {

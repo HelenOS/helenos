@@ -64,12 +64,12 @@ static sigset_t _signal_mask = 0;
 
 /* Actions associated with each signal number. */
 static struct sigaction _signal_actions[_TOP_SIGNAL + 1] = {
-	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
-	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
-	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
-	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
-	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
-	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, 
+	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER,
+	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER,
+	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER,
+	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER,
+	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER,
+	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER,
 	DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER, DEFAULT_HANDLER
 };
 
@@ -146,7 +146,7 @@ void __posix_hold_signal_handler(int signo)
 
 /**
  * Empty function to be used as ignoring handler.
- * 
+ *
  * @param signo Signal number.
  */
 void __posix_ignore_signal_handler(int signo)
@@ -156,7 +156,7 @@ void __posix_ignore_signal_handler(int signo)
 
 /**
  * Clear the signal set.
- * 
+ *
  * @param set Pointer to the signal set.
  * @return Always returns zero.
  */
@@ -170,7 +170,7 @@ int sigemptyset(sigset_t *set)
 
 /**
  * Fill the signal set (i.e. add all signals).
- * 
+ *
  * @param set Pointer to the signal set.
  * @return Always returns zero.
  */
@@ -184,7 +184,7 @@ int sigfillset(sigset_t *set)
 
 /**
  * Add a signal to the set.
- * 
+ *
  * @param set Pointer to the signal set.
  * @param signo Signal number to add.
  * @return Always returns zero.
@@ -199,7 +199,7 @@ int sigaddset(sigset_t *set, int signo)
 
 /**
  * Delete a signal from the set.
- * 
+ *
  * @param set Pointer to the signal set.
  * @param signo Signal number to remove.
  * @return Always returns zero.
@@ -214,7 +214,7 @@ int sigdelset(sigset_t *set, int signo)
 
 /**
  * Inclusion test for a signal set.
- * 
+ *
  * @param set Pointer to the signal set.
  * @param signo Signal number to query.
  * @return 1 if the signal is in the set, 0 otherwise.
@@ -230,7 +230,7 @@ int sigismember(const sigset_t *set, int signo)
  * Unsafe variant of the sigaction() function.
  * Doesn't do any checking of its arguments and
  * does not deal with thread-safety.
- * 
+ *
  * @param sig
  * @param act
  * @param oact
@@ -251,12 +251,12 @@ static void _sigaction_unsafe(int sig, const struct sigaction *restrict act,
 
 /**
  * Sets a new action for the given signal number.
- * 
+ *
  * @param sig Signal number to set action for.
  * @param act If not NULL, contents of this structure are
  *     used as the new action for the signal.
  * @param oact If not NULL, the original action associated with the signal
- *     is stored in the structure pointer to. 
+ *     is stored in the structure pointer to.
  * @return -1 with errno set on failure, 0 on success.
  */
 int sigaction(int sig, const struct sigaction *restrict act,
@@ -285,7 +285,7 @@ int sigaction(int sig, const struct sigaction *restrict act,
 
 /**
  * Sets a new handler for the given signal number.
- * 
+ *
  * @param sig Signal number to set handler for.
  * @param func Handler function.
  * @return SIG_ERR on failure, original handler on success.
@@ -403,7 +403,7 @@ static void _dequeue_unblocked_signals(void)
 
 /**
  * Raise a signal for the calling process.
- * 
+ *
  * @param sig Signal number.
  * @return -1 with errno set on failure, 0 on success.
  */
@@ -423,7 +423,7 @@ int raise(int sig)
 
 /**
  * Raises a signal for a selected process.
- * 
+ *
  * @param pid PID of the process for which the signal shall be raised.
  * @param signo Signal to raise.
  * @return -1 with errno set on failure (possible errors include unsupported
@@ -462,7 +462,7 @@ int kill(pid_t pid, int signo)
 /**
  * Send a signal to a process group. Always fails at the moment because of
  * lack of this functionality in HelenOS.
- * 
+ *
  * @param pid PID of the process group.
  * @param sig Signal number.
  * @return -1 on failure, 0 on success (see kill()).
@@ -475,7 +475,7 @@ int killpg(pid_t pid, int sig)
 
 /**
  * Outputs information about the signal to the standard error stream.
- * 
+ *
  * @param pinfo SigInfo struct to write.
  * @param message String to output alongside human-readable signal description.
  */
@@ -488,7 +488,7 @@ void psiginfo(const siginfo_t *pinfo, const char *message)
 
 /**
  * Outputs information about the signal to the standard error stream.
- * 
+ *
  * @param signum Signal number.
  * @param message String to output alongside human-readable signal description.
  */
@@ -504,7 +504,7 @@ void psignal(int signum, const char *message)
 
 /**
  * Manipulate the signal mask of the calling thread.
- * 
+ *
  * @param how What to do with the mask.
  * @param set Signal set to work with.
  * @param oset If not NULL, the original signal mask is coppied here.
@@ -544,7 +544,7 @@ int thread_sigmask(int how, const sigset_t *restrict set,
 
 /**
  * Manipulate the signal mask of the process.
- * 
+ *
  * @param how What to do with the mask.
  * @param set Signal set to work with.
  * @param oset If not NULL, the original signal mask is coppied here.

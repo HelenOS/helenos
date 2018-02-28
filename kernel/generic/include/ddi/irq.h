@@ -125,7 +125,7 @@ typedef struct irq {
 	void *cir_arg;
 	
 	/** Notification configuration structure. */
-	ipc_notif_cfg_t notif_cfg; 
+	ipc_notif_cfg_t notif_cfg;
 } irq_t;
 
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);

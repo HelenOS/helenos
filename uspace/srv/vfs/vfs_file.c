@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	vfs_file.c
@@ -276,7 +276,7 @@ static errno_t _vfs_fd_free(vfs_client_data_t *vfs_data, int fd)
 	if (!vfs_files_init(vfs_data))
 		return ENOMEM;
 
-	fibril_mutex_lock(&vfs_data->lock);	
+	fibril_mutex_lock(&vfs_data->lock);
 	rc = _vfs_fd_free_locked(vfs_data, fd);
 	fibril_mutex_unlock(&vfs_data->lock);
 	
@@ -309,7 +309,7 @@ errno_t vfs_fd_assign(vfs_file_t *file, int fd)
 	if (!vfs_files_init(VFS_DATA))
 		return ENOMEM;
 
-	fibril_mutex_lock(&VFS_DATA->lock);	
+	fibril_mutex_lock(&VFS_DATA->lock);
 	if ((fd < 0) || (fd >= MAX_OPEN_FILES)) {
 		fibril_mutex_unlock(&VFS_DATA->lock);
 		return EBADF;
@@ -430,7 +430,7 @@ out:
 
 errno_t vfs_wait_handle_internal(bool high_fd, int *out_fd)
 {
-	vfs_client_data_t *vfs_data = VFS_DATA;	
+	vfs_client_data_t *vfs_data = VFS_DATA;
 	
 	fibril_mutex_lock(&vfs_data->lock);
 	while (list_empty(&vfs_data->passed_handles))

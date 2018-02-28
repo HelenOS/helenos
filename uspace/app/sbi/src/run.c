@@ -1432,7 +1432,7 @@ void run_cvt_value_item(run_t *run, rdata_item_t *item, rdata_item_t **ritem)
 {
 	rdata_value_t *value;
 
-	/* 
+	/*
 	 * This can happen when trying to use output of a function which
 	 * does not return a value.
 	 */
@@ -1885,7 +1885,7 @@ void run_var_new(run_t *run, tdata_item_t *ti, rdata_var_t **rvar)
 		run_var_new_deleg(run, rvar);
 		break;
 	case tic_tvref:
-		/* 
+		/*
 		 * XXX Need to obtain run-time value of type argument to
 		 * initialize variable properly.
 		 */

@@ -106,7 +106,7 @@ errno_t process_input(cliuser_t *usr)
 	
 	/* Until full support for pipes is implemented, allow for a simple case:
 	 * [from <file> |] command [| to <file>]
-	 * 
+	 *
 	 * First find the pipes and check that there are no more
 	 */
 	for (i = 0, pipe_count = 0; i < tokens_length; i++) {

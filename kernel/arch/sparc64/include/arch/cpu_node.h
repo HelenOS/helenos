@@ -42,7 +42,7 @@
  *
  *  Depending on the machine type (and possibly the OFW version), CPUs can be
  *  at "/" or at "/ssm@0,0".
- */ 
+ */
 static inline ofw_tree_node_t *cpus_parent(void)
 {
 	ofw_tree_node_t *parent;

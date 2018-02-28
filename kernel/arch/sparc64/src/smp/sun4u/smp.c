@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -82,7 +82,7 @@ void smp_init(void)
 /**
  * Wakes up the CPU which is represented by the "node" OFW tree node.
  * If "node" represents the current CPU, calling the function has
- * no effect. 
+ * no effect.
  */
 static void wakeup_cpu(ofw_tree_node_t *node)
 {

@@ -118,7 +118,7 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 		asm volatile (
 			"outb %b[val], %w[port]\n"
 			:: [val] "a" (val), [port] "d" (port)
-		);	
+		);
 	} else
 		*port = val;
 }
@@ -416,7 +416,7 @@ NO_TRACE static inline void gdtr_store(ptr_16_32_t *gdtr_reg)
 NO_TRACE static inline void idtr_load(ptr_16_32_t *idtr_reg)
 {
 	asm volatile (
-		"lidtl %[idtr_reg]\n" 
+		"lidtl %[idtr_reg]\n"
 		:: [idtr_reg] "m" (*idtr_reg)
 	);
 }

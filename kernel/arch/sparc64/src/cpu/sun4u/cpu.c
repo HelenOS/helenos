@@ -85,11 +85,11 @@ void cpu_arch_init(void)
 	/*
 	 * Detect processor frequency.
 	 */
-	if (is_us() || is_us_iii()) { 
+	if (is_us() || is_us_iii()) {
 		node = ofw_tree_find_child_by_device_type(cpus_parent(), "cpu");
 		while (node) {
 			int f = find_cpu_frequency(node);
-			if (f != -1) 
+			if (f != -1)
 				clock_frequency = (uint32_t) f;
 			node = ofw_tree_find_peer_by_device_type(node, "cpu");
 		}
@@ -99,11 +99,11 @@ void cpu_arch_init(void)
 			int f;
 			f = find_cpu_frequency(
 				ofw_tree_find_child(node, "cpu@0"));
-			if (f != -1) 
+			if (f != -1)
 				clock_frequency = (uint32_t) f;
 			f = find_cpu_frequency(
 				ofw_tree_find_child(node, "cpu@1"));
-			if (f != -1) 
+			if (f != -1)
 				clock_frequency = (uint32_t) f;
 			node = ofw_tree_find_peer_by_name(node, "cmp");
 		}

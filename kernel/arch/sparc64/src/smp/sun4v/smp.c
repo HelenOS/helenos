@@ -253,7 +253,7 @@ static void detect_execution_units(void)
 		} else {
 			exec_unit_assign_error = 1;
 		}
-	}		
+	}
 
 	/* save the number of CPUs to a globally accessible variable */
 	config.cpu_count = cpu_count;

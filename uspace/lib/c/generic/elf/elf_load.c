@@ -50,7 +50,7 @@
 
 /** Load ELF program.
  *
- * @param file File handle 
+ * @param file File handle
  * @param info Place to store ELF program information
  * @return EE_OK on success or an EE_x error code
  */

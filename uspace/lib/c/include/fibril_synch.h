@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar 
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,7 +62,7 @@ typedef struct {
 	}
 	
 #define FIBRIL_MUTEX_INITIALIZE(name) \
-	fibril_mutex_t name = FIBRIL_MUTEX_INITIALIZER(name) 
+	fibril_mutex_t name = FIBRIL_MUTEX_INITIALIZER(name)
 
 typedef struct {
 	fibril_owner_info_t oi;  /**< Keep this the first thing. */

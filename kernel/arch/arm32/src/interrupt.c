@@ -72,7 +72,7 @@ ipl_t interrupts_enable(void)
 void interrupts_restore(ipl_t ipl)
 {
 	current_status_reg_control_write(
-	    (current_status_reg_read() & ~STATUS_REG_IRQ_DISABLED_BIT) | 
+	    (current_status_reg_read() & ~STATUS_REG_IRQ_DISABLED_BIT) |
 	    (ipl & STATUS_REG_IRQ_DISABLED_BIT));
 }
 

@@ -48,7 +48,7 @@ typedef struct drawctx drawctx_t;
 typedef int metric_t;
 
 typedef struct {
-	/* Horizontal distance between origin and left side of the glyph */ 
+	/* Horizontal distance between origin and left side of the glyph */
 	metric_t left_side_bearing;
 	
 	/* Width of the actual glyph drawn */

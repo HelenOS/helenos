@@ -52,12 +52,12 @@ typedef struct ieee_double_t_tag {
 	/** The number could not be represented as a normalized double. */
 	bool is_denormal;
 	/**
-	 * The predecessor double is closer than the successor. This happens 
+	 * The predecessor double is closer than the successor. This happens
 	 * if a normal number is of the form 2^k and it is not the smallest
-	 * normal number. 
+	 * normal number.
 	 */
 	bool is_accuracy_step;
-	/** 
+	/**
 	 * If !is_special the double's value is:
 	 *   pos_val.significand * 2^pos_val.exponent
 	 */

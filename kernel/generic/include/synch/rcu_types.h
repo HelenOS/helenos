@@ -71,14 +71,14 @@ typedef struct rcu_cpu_data {
 	bool is_delaying_gp;
 	
 	/** True if we should signal the detector that we exited a reader section.
-	 * 
+	 *
 	 * Equal to (THREAD->rcu.was_preempted || CPU->rcu.is_delaying_gp).
 	 */
 	bool signal_unlock;
 
-	/** The number of times an RCU reader section is nested on this cpu. 
-	 * 
-	 * If positive, it is definitely executing reader code. If zero, 
+	/** The number of times an RCU reader section is nested on this cpu.
+	 *
+	 * If positive, it is definitely executing reader code. If zero,
 	 * the thread might already be executing reader code thanks to
 	 * cpu instruction reordering.
 	 */
@@ -91,7 +91,7 @@ typedef struct rcu_cpu_data {
 	rcu_item_t *cur_cbs;
 	/** Number of callbacks in cur_cbs. */
 	size_t cur_cbs_cnt;
-	/** Callbacks to invoke once the next grace period ends, ie next_cbs_gp. 
+	/** Callbacks to invoke once the next grace period ends, ie next_cbs_gp.
 	 * Accessed by the local reclaimer only.
 	 */
 	rcu_item_t *next_cbs;
@@ -101,7 +101,7 @@ typedef struct rcu_cpu_data {
 	rcu_item_t *arriving_cbs;
 	/** Tail of arriving_cbs list. Disable interrupts to access. */
 	rcu_item_t **parriving_cbs_tail;
-	/** Number of callbacks currently in arriving_cbs. 
+	/** Number of callbacks currently in arriving_cbs.
 	 * Disable interrupts to access.
 	 */
 	size_t arriving_cbs_cnt;
@@ -109,11 +109,11 @@ typedef struct rcu_cpu_data {
 	/** At the end of this grace period callbacks in cur_cbs will be invoked.*/
 	rcu_gp_t cur_cbs_gp;
 	/** At the end of this grace period callbacks in next_cbs will be invoked.
-	 * 
-	 * Should be the next grace period but it allows the reclaimer to 
+	 *
+	 * Should be the next grace period but it allows the reclaimer to
 	 * notice if it missed a grace period end announcement. In that
 	 * case it can execute next_cbs without waiting for another GP.
-	 * 
+	 *
 	 * Invariant: next_cbs_gp >= cur_cbs_gp
 	 */
 	rcu_gp_t next_cbs_gp;
@@ -142,19 +142,19 @@ typedef struct rcu_cpu_data {
 
 /** RCU related per-thread data. */
 typedef struct rcu_thread_data {
-	/** 
-	 * Nesting count of the thread's RCU read sections when the thread 
+	/**
+	 * Nesting count of the thread's RCU read sections when the thread
 	 * is not running.
 	 */
 	size_t nesting_cnt;
 
 #ifdef RCU_PREEMPT_PODZIMEK
 	
-	/** True if the thread was preempted in a reader section. 
+	/** True if the thread was preempted in a reader section.
 	 *
 	 * The thread is placed into rcu.cur_preempted or rcu.next_preempted
-	 * and must remove itself in rcu_read_unlock(). 
-	 * 
+	 * and must remove itself in rcu_read_unlock().
+	 *
 	 * Access with interrupts disabled.
 	 */
 	bool was_preempted;

@@ -40,7 +40,7 @@
 #include "keymap.h"
 
 /**
- * Mapping between USB HID multimedia usages (from HID Usage Tables) and 
+ * Mapping between USB HID multimedia usages (from HID Usage Tables) and
  * corresponding HelenOS key codes.
  *
  * Currently only Usages used by Logitech UltraX keyboard are present. All other
@@ -71,7 +71,7 @@ static int usb_hid_keymap_consumer[0x29c] = {
  * Translates USB HID Usages from the Consumer Page into HelenOS keycodes.
  *
  * @param usage USB HID Consumer Page Usage number.
- * 
+ *
  * @retval HelenOS key code corresponding to the given USB Consumer Page Usage.
  */
 unsigned int usb_multimedia_map_usage(int usage)

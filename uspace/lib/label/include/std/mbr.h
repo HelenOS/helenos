@@ -74,7 +74,7 @@ enum mbr_ptype {
 	/** Linux */
 	mbr_pt_linux        = 0x83,
 	/** GPT Protective */
-	mbr_pt_gpt_protect  = 0xee 
+	mbr_pt_gpt_protect  = 0xee
 };
 
 /** Structure of a partition table entry */

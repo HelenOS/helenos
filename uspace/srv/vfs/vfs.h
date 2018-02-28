@@ -167,7 +167,7 @@ extern fibril_mutex_t plb_mutex;/**< Mutex protecting plb and plb_entries. */
 extern uint8_t *plb;		/**< Path Lookup Buffer */
 extern list_t plb_entries;	/**< List of active PLB entries. */
 
-/** Holding this rwlock prevents changes in file system namespace. */ 
+/** Holding this rwlock prevents changes in file system namespace. */
 extern fibril_rwlock_t namespace_rwlock;
 
 extern async_exch_t *vfs_exchange_grab(fs_handle_t);

@@ -134,7 +134,7 @@ static void run_threads_and_wait(bench_t *bench)
 		thread_detach(tid);
 	}
 	
-	/* 
+	/*
 	 * Run the last thread in place so that we create multiple threads
 	 * only when needed. Otherwise libc would immediately upgrade
 	 * single-threaded futexes to proper multithreaded futexes
@@ -192,7 +192,7 @@ static void print_usage(void)
 	printf("Results are stored in %s\n", results_txt);
 }
 
-static bool parse_cmd_line(int argc, char **argv, bench_t *bench, 
+static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 	const char **err)
 {
 	if (argc < 4) {
@@ -224,7 +224,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 	} else {
 		*err = "Err: Invalid number of iterations";
 		return false;
-	} 
+	}
 	
 	/* Determine thread count. */
 	uint32_t thread_cnt = 0;
@@ -235,7 +235,7 @@ static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
 	} else {
 		*err = "Err: Invalid number of threads";
 		return false;
-	} 
+	}
 	
 	return true;
 }
@@ -274,9 +274,9 @@ int main(int argc, char **argv)
 		iters_per_sec = total_iters * 1000 * 1000 / duration;
 	}
 	
-	print_res("Completed %" PRIu64 " iterations in %" PRId64  " usecs (%" PRIu64 
-		" secs); %" PRIu64 " iters/sec\n", 
-		total_iters, duration, secs, iters_per_sec);	
+	print_res("Completed %" PRIu64 " iterations in %" PRId64  " usecs (%" PRIu64
+		" secs); %" PRIu64 " iters/sec\n",
+		total_iters, duration, secs, iters_per_sec);
 
 	close_results();
 	

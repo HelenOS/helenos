@@ -28,7 +28,7 @@
 
 /** @file wmi.h
  *
- * Definitions of the Atheros WMI protocol specified in the 
+ * Definitions of the Atheros WMI protocol specified in the
  * Wireless Module Interface (WMI).
  *
  */

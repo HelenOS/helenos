@@ -63,35 +63,35 @@ SYMBOL(instruction_access_exception_tl0)
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
 	mov TT_INSTRUCTION_ACCESS_EXCEPTION, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x0a, TL = 0, instruction_access_error */
 .org trap_table + TT_INSTRUCTION_ACCESS_ERROR*ENTRY_SIZE
 SYMBOL(instruction_access_error_tl0)
 	mov TT_INSTRUCTION_ACCESS_ERROR, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x10, TL = 0, illegal_instruction */
 .org trap_table + TT_ILLEGAL_INSTRUCTION*ENTRY_SIZE
 SYMBOL(illegal_instruction_tl0)
 	mov TT_ILLEGAL_INSTRUCTION, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x11, TL = 0, privileged_opcode */
 .org trap_table + TT_PRIVILEGED_OPCODE*ENTRY_SIZE
 SYMBOL(privileged_opcode_tl0)
 	mov TT_PRIVILEGED_OPCODE, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x12, TL = 0, unimplemented_LDD */
 .org trap_table + TT_UNIMPLEMENTED_LDD*ENTRY_SIZE
 SYMBOL(unimplemented_LDD_tl0)
 	mov TT_UNIMPLEMENTED_LDD, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x13, TL = 0, unimplemented_STD */
 .org trap_table + TT_UNIMPLEMENTED_STD*ENTRY_SIZE
@@ -105,7 +105,7 @@ SYMBOL(unimplemented_STD_tl0)
 SYMBOL(fp_disabled_tl0)
 	mov TT_FP_DISABLED, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x21, TL = 0, fb_exception_ieee_754 handler */
 .org trap_table + TT_FP_EXCEPTION_IEEE_754*ENTRY_SIZE
@@ -167,7 +167,7 @@ SYMBOL(mem_address_not_aligned_tl0)
 SYMBOL(LDDF_mem_address_not_aligned_tl0)
 	mov TT_LDDF_MEM_ADDRESS_NOT_ALIGNED, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x36, TL = 0, STDF_mem_address_not_aligned */
 .org trap_table + TT_STDF_MEM_ADDRESS_NOT_ALIGNED*ENTRY_SIZE
@@ -381,7 +381,7 @@ SYMBOL(instruction_access_exception_tl1)
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
 	mov TT_INSTRUCTION_ACCESS_EXCEPTION, %g2
 	clr %g5
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 
 /* TT = 0x0a, TL > 0, instruction_access_error */
 .org trap_table + (TT_INSTRUCTION_ACCESS_ERROR+512)*ENTRY_SIZE
@@ -488,7 +488,7 @@ SYMBOL(fill_0_normal_tl1)
  * TL0: kernel thread runs (CANSAVE=0, kernel stack not in DTLB)
  * TL1: preemptible trap handler started after a tick interrupt
  * TL2: preemptible trap handler did SAVE
- * TL3: spill handler touched the kernel stack  
+ * TL3: spill handler touched the kernel stack
  * TL4: hardware or software failure
  *
  * Input registers:
@@ -509,7 +509,7 @@ SYMBOL(fill_0_normal_tl1)
 	 * on TL=1 and restart the respective SAVE or RESTORE instruction once the MMU
 	 * trap is resolved. However, because we are in the wrong window from the
 	 * perspective of the MMU trap, we need to synchronize CWP with CWP from TL=0.
-	 */ 
+	 */
 	and %g3, TSTATE_CWP_MASK, %g4
 	wrpr %g4, 0, %cwp			! resynchronize CWP
 
@@ -565,7 +565,7 @@ SYMBOL(fill_0_normal_tl1)
 	save %sp, -ISTATE_SIZE, %sp
 
 	/*
-	 * At this moment, we are using the kernel stack 
+	 * At this moment, we are using the kernel stack
 	 * and have successfully allocated a register window.
 	 */
 1:
@@ -584,7 +584,7 @@ SYMBOL(fill_0_normal_tl1)
 	mov %g2, %o0
 .else
 	! store the syscall number on the stack as 7th argument
-	stx %g2, [%sp + STACK_BIAS + ISTATE_OFFSET_ARG6] 
+	stx %g2, [%sp + STACK_BIAS + ISTATE_OFFSET_ARG6]
 .endif
 
 	/*

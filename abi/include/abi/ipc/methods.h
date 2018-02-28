@@ -71,7 +71,7 @@ enum {
 	 *                       - if it fails, responds with ELIMIT
 	 *                     - passes call to userspace. If userspace
 	 *                       responds with error, phone is deallocated and
-	 *                       error is sent back to caller. Otherwise 
+	 *                       error is sent back to caller. Otherwise
 	 *                       the call is accepted and the response is sent back.
 	 *                     - the hash of the allocated phone is passed to userspace
 	 *                       (on the receiving side) as ARG5 of the call.
@@ -111,7 +111,7 @@ enum {
 	IPC_M_PAGE_IN,
 
 	/** Receive as_area over IPC.
-	 * 
+	 *
 	 * - ARG1 - destination as_area size
 	 * - ARG2 - user defined argument
 	 *
@@ -141,7 +141,7 @@ enum {
 	/** Receive data from another address space over IPC.
 	 *
 	 * - ARG1 - destination virtual address in the source address space
-	 * - ARG2 - size of data to be received, may be cropped by the recipient 
+	 * - ARG2 - size of data to be received, may be cropped by the recipient
 	 *
 	 * on answer, the recipient must set:
 	 *

@@ -39,7 +39,7 @@
 void km_identity_arch_init(void)
 {
 	config.identity_base = KM_IA64_IDENTITY_START;
-	config.identity_size = KM_IA64_IDENTITY_SIZE;	
+	config.identity_size = KM_IA64_IDENTITY_SIZE;
 }
 
 void km_non_identity_arch_init(void)

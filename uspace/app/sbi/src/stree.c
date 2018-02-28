@@ -694,7 +694,7 @@ stree_new_t *stree_new_new(void)
 
 /** Allocate new .
  *
- * @return	New 
+ * @return	New
  */
 stree_access_t *stree_access_new(void)
 {

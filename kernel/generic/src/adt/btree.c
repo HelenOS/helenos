@@ -123,7 +123,7 @@ NO_TRACE static void btree_destroy_subtree(btree_node_t *root)
 	size_t i;
 	
 	if (root->keys) {
-		for (i = 0; i < root->keys + 1; i++) { 
+		for (i = 0; i < root->keys + 1; i++) {
 			if (root->subtree[i])
 				btree_destroy_subtree(root->subtree[i]);
 		}

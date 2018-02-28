@@ -38,9 +38,9 @@
 #include <arch.h>
 #include <proc/thread.h>
 
-/* 
- * Maximum total number of smp_calls in the system is: 
- *  162000 == 9^2 * 1000 * 2 
+/*
+ * Maximum total number of smp_calls in the system is:
+ *  162000 == 9^2 * 1000 * 2
  *  == MAX_CPUS^2 * ITERATIONS * EACH_CPU_INC_PER_ITER
  */
 #define MAX_CPUS   9
@@ -53,9 +53,9 @@ static void inc(void *p)
 	assert(interrupts_disabled());
 
 	size_t *pcall_cnt = (size_t*)p;
-	/* 
-	 * No synchronization. Tests if smp_calls makes changes 
-	 * visible to the caller. 
+	/*
+	 * No synchronization. Tests if smp_calls makes changes
+	 * visible to the caller.
 	 */
 	++*pcall_cnt;
 }
@@ -71,16 +71,16 @@ static void test_thread(void *p)
 	for (int iter = 0; iter < ITERATIONS; ++iter) {
 		/* Synchronous version. */
 		for (unsigned cpu_id = 0; cpu_id < cpu_count; ++cpu_id) {
-			/* 
-			 * smp_call should make changes by inc() visible on this cpu. 
-			 * As a result we can pass it our pcall_cnt and not worry 
+			/*
+			 * smp_call should make changes by inc() visible on this cpu.
+			 * As a result we can pass it our pcall_cnt and not worry
 			 * about other synchronization.
 			 */
 			smp_call(cpu_id, inc, pcall_cnt);
 		}
 		
-		/* 
-		 * Async calls run in parallel on different cpus, so passing the 
+		/*
+		 * Async calls run in parallel on different cpus, so passing the
 		 * same counter would clobber it without additional synchronization.
 		 */
 		size_t local_cnt[MAX_CPUS] = {0};
@@ -119,7 +119,7 @@ const char *test_smpcall1(void)
 	
 	/* Create a wired thread on each cpu. */
 	for (unsigned int id = 0; id < cpu_count; ++id) {
-		thread[id] = thread_create(test_thread, &call_cnt[id], TASK, 
+		thread[id] = thread_create(test_thread, &call_cnt[id], TASK,
 			THREAD_FLAG_NONE, "smp-call-test");
 		
 		if (thread[id]) {
@@ -133,7 +133,7 @@ const char *test_smpcall1(void)
 	size_t exp_calls = calc_exp_calls(running_thread_cnt);
 	size_t exp_calls_sum = exp_calls * cpu_count;
 	
-	TPRINTF("Running %zu wired threads. Expecting %zu calls. Be patient.\n", 
+	TPRINTF("Running %zu wired threads. Expecting %zu calls. Be patient.\n",
 		running_thread_cnt, exp_calls_sum);
 
 	for (unsigned int i = 0; i < cpu_count; ++i) {
@@ -161,7 +161,7 @@ const char *test_smpcall1(void)
 				ok = false;
 				TPRINTF("Error: %zu instead of %zu cpu%zu's calls were"
 					" acknowledged.\n", call_cnt[i], exp_calls, i);
-			} 
+			}
 		}
 		
 		calls_sum += call_cnt[i];

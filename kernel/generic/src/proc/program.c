@@ -243,7 +243,7 @@ sys_errno_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 	if (rc != EOK)
 		return rc;
 	
-	// FIXME: control the permissions 
+	// FIXME: control the permissions
 	perm_set(prg.task, perm_get(TASK));
 	program_ready(&prg);
 	

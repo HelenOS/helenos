@@ -204,7 +204,7 @@ static errno_t msim_con_write(chardev_srv_t *srv, const void *data, size_t size,
 	uint8_t *dp = (uint8_t *) data;
 
 	for (i = 0; i < size; i++)
-		msim_con_putchar(con, dp[i]); 
+		msim_con_putchar(con, dp[i]);
 
 	*nwr = size;
 	return EOK;

@@ -490,7 +490,7 @@ int str_cmp(const char *s1, const char *s2)
 			return 1;
 
 		if (c1 == 0 || c2 == 0)
-			break;		
+			break;
 	}
 
 	return 0;
@@ -544,7 +544,7 @@ int str_lcmp(const char *s1, const char *s2, size_t max_len)
 		if (c1 == 0 || c2 == 0)
 			break;
 
-		++len;	
+		++len;
 	}
 
 	return 0;

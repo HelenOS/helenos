@@ -321,7 +321,7 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 		/*
 		 * Forward the page fault to the address space page fault
 		 * handler.
-		 */		
+		 */
 		as_page_fault(page_16k, PF_ACCESS_WRITE, istate);
 	}
 }
@@ -329,11 +329,11 @@ void fast_data_access_protection(unsigned int tt, istate_t *istate)
 /** Print TLB entry (for debugging purposes).
  *
  * The diag field has been left out in order to make this function more generic
- * (there is no diag field in US3 architeture). 
+ * (there is no diag field in US3 architeture).
  *
- * @param i		TLB entry number 
+ * @param i		TLB entry number
  * @param t		TLB entry tag
- * @param d		TLB entry data 
+ * @param d		TLB entry data
  */
 static void print_tlb_entry(int i, tlb_tag_read_reg_t t, tlb_data_t d)
 {

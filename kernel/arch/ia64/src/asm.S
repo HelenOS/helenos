@@ -64,7 +64,7 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 	
 	1:
 	
-		add r14 = r16, in1 
+		add r14 = r16, in1
 		add r15 = r16, in0
 		adds r17 = 1, r17 ;;
 		ld1 r14 = [r14]
@@ -112,7 +112,7 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 		cmp.eq p6, p7 = 0, r15
 		add in0 = r14, in0
 		adds r15 = -1, r15
-		add r17 = r14, in1 
+		add r17 = r14, in1
 		(p6) br.cond.dpnt 2b ;;
 		mov ar.lc = r15
 	

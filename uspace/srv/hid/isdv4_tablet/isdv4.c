@@ -331,7 +331,7 @@ static errno_t read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 
 			/* Find the end of the packet */
 			i++; /* We need to skip the first byte with START_OF_PACKET set */
-			packet_remaining--; 
+			packet_remaining--;
 			while (packet_remaining > 0 && i < state->buf_end &&
 			    (state->buf[i] & START_OF_PACKET) == 0) {
 				i++;

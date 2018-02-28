@@ -39,7 +39,7 @@
 #include <typedefs.h>
 
 /** Switch to user-space (CPU user priviledge level) */
-extern void userspace(uspace_arg_t *uarg) __attribute__ ((noreturn)); 
+extern void userspace(uspace_arg_t *uarg) __attribute__ ((noreturn));
 
 #endif
 

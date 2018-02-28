@@ -43,7 +43,7 @@ FUNCTION_BEGIN(context_save_arch)
 	 * After this ar.bsp and ar.bspstore are equal.
 	 */
 	flushrs
-	mov loc4 = ar.bsp	
+	mov loc4 = ar.bsp
 	
 	/*
 	 * Put RSE to enforced lazy mode.
@@ -239,7 +239,7 @@ FUNCTION_BEGIN(context_restore_arch)
 	ld8 loc5 = [loc14]	/* load ar.rnat */
 	ld8 loc6 = [loc15]	/* load ar.lc */
 	
-	.auto	
+	.auto
 
 	/*
 	 * Invalidate the ALAT
@@ -285,7 +285,7 @@ FUNCTION_BEGIN(context_restore_arch)
 	ld8.fill r12 = [loc21] ;;	/* restore sp */
 	ld8.fill r13 = [loc22] ;;
 
-	/* 
+	/*
 	 * Restore branch registers
 	 */
 	ld8 loc2 = [loc23]		/* restore pc */

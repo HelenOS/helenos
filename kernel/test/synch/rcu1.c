@@ -81,7 +81,7 @@ static void run_thread(size_t k, void (*func)(void*), void *arg)
 {
 	assert(thread[k] == NULL);
 	
-	thread[k] = thread_create(func, arg, TASK, THREAD_FLAG_NONE, 
+	thread[k] = thread_create(func, arg, TASK, THREAD_FLAG_NONE,
 		"test-rcu-thread");
 		
 	if(thread[k]) {
@@ -222,7 +222,7 @@ static bool do_long_readers(void)
 	size_t seq[MAX_THREADS] = {0};
 	get_seq(10, 1000 * 1000, get_thread_cnt(), seq);
 	
-	TPRINTF("\nRun %zu thr: repeat long reader sections, will preempt, no cbs.\n", 
+	TPRINTF("\nRun %zu thr: repeat long reader sections, will preempt, no cbs.\n",
 		get_thread_cnt());
 	
 	for (size_t k = 0; k < get_thread_cnt(); ++k)
@@ -272,7 +272,7 @@ static bool do_nop_callbacks(void)
 	size_t exp_cnt = nop_updater_iters * get_thread_cnt();
 	size_t max_used_mem = sizeof(rcu_item_t) * exp_cnt;
 	
-	TPRINTF("\nRun %zu thr: post %zu no-op callbacks (%zu B used), no readers.\n", 
+	TPRINTF("\nRun %zu thr: post %zu no-op callbacks (%zu B used), no readers.\n",
 		get_thread_cnt(), exp_cnt, max_used_mem);
 	
 	run_all(nop_updater);
@@ -413,7 +413,7 @@ static void seq_func(void *arg)
 			
 			rcu_read_unlock();
 			
-			if (seq_test_result != EOK) 
+			if (seq_test_result != EOK)
 				return;
 		}
 		
@@ -475,7 +475,7 @@ static bool do_seq_check(void)
 	bin_order_suffix(max_used_mem, &mem_units, &mem_suffix, false);
 	
 	TPRINTF("\nRun %zu th: check callback completion time in readers. "
-		"%zu callbacks total (max %" PRIu64 " %s used). Be patient.\n", 
+		"%zu callbacks total (max %" PRIu64 " %s used). Be patient.\n",
 		get_thread_cnt(), total_cbs, mem_units, mem_suffix);
 	
 	for (size_t i = 0; i < get_thread_cnt(); ++i) {
@@ -489,7 +489,7 @@ static bool do_seq_check(void)
 		TPRINTF("\nErr: out-of mem\n");
 	} else if (seq_test_result == ERACE) {
 		TPRINTF("\nERROR: race detected!!\n");
-	} 
+	}
 	
 	return seq_test_result == EOK;
 }
@@ -530,7 +530,7 @@ static bool do_reader_exit(void)
 		
 	p->exited = false;
 	
-	run_one(reader_exit, p);	
+	run_one(reader_exit, p);
 	join_one();
 	
 	errno_t result = EOK;
@@ -574,8 +574,8 @@ static void preempted_reader_prev(void *arg)
 	scheduler();
 	rcu_read_unlock();
 
-	/* 
-	 * Start GP after exiting reader section w/ preemption. 
+	/*
+	 * Start GP after exiting reader section w/ preemption.
 	 * Just check that the callback does not lock up and is not lost.
 	 */
 	rcu_call(&p->e.rcu, preempted_unlocked);
@@ -589,9 +589,9 @@ static void preempted_reader_inside_cur(void *arg)
 	assert(!p->e.exited);
 	
 	TPRINTF("reader_inside_cur{ ");
-	/* 
-	 * Start a GP and try to finish the reader before 
-	 * the GP ends (including preemption). 
+	/*
+	 * Start a GP and try to finish the reader before
+	 * the GP ends (including preemption).
 	 */
 	rcu_call(&p->e.rcu, preempted_unlocked);
 
@@ -666,8 +666,8 @@ static void preempted_reader_next2(void *arg)
 	/* Start GP. */
 	rcu_call(&p->e.rcu, preempted_unlocked);
 
-	/* 
-	 * Preempt twice while GP is running after we've been known 
+	/*
+	 * Preempt twice while GP is running after we've been known
 	 * to hold up the GP just to make sure multiple preemptions
 	 * are properly tracked if a reader is delaying the cur GP.
 	 */
@@ -694,7 +694,7 @@ static bool do_one_reader_preempt(void (*f)(void*), const char *err)
 	p->e.exited = false;
 	p->result = EOK;
 	
-	run_one(f, p);	
+	run_one(f, p);
 	join_one();
 	
 	/* Wait at most 4 secs. */
@@ -717,23 +717,23 @@ static bool do_reader_preempt(void)
 	bool success = true;
 	bool ok = true;
 	
-	ok = do_one_reader_preempt(preempted_reader_prev, 
+	ok = do_one_reader_preempt(preempted_reader_prev,
 		"Err: preempted_reader_prev()\n");
 	success = success && ok;
 	
-	ok = do_one_reader_preempt(preempted_reader_inside_cur, 
+	ok = do_one_reader_preempt(preempted_reader_inside_cur,
 		"Err: preempted_reader_inside_cur()\n");
 	success = success && ok;
 	
-	ok = do_one_reader_preempt(preempted_reader_cur, 
+	ok = do_one_reader_preempt(preempted_reader_cur,
 		"Err: preempted_reader_cur()\n");
 	success = success && ok;
 	
-	ok = do_one_reader_preempt(preempted_reader_next1, 
+	ok = do_one_reader_preempt(preempted_reader_next1,
 		"Err: preempted_reader_next1()\n");
 	success = success && ok;
 
-	ok = do_one_reader_preempt(preempted_reader_next2, 
+	ok = do_one_reader_preempt(preempted_reader_next2,
 		"Err: preempted_reader_next2()\n");
 	success = success && ok;
 	
@@ -787,7 +787,7 @@ static bool do_synch(void)
 	synch->reader_running = false;
 	synch->synch_running = false;
 	
-	run_one(synch_reader, synch);	
+	run_one(synch_reader, synch);
 	
 	/* Wait for the reader to enter its critical section. */
 	scheduler();
@@ -865,7 +865,7 @@ static void stress_reader(void *arg)
 		rcu_read_lock();
 		rcu_read_unlock();
 		
-		/* 
+		/*
 		 * Do some work outside of the reader section so we are not always
 		 * preempted in the reader section.
 		 */
@@ -904,8 +904,8 @@ static bool do_stress(void)
 {
 	size_t cb_per_thread = 1000 * 1000;
 	bool done = false;
-	stress_t master = { .iters = cb_per_thread, .master = true }; 
-	stress_t worker = { .iters = cb_per_thread, .master = false }; 
+	stress_t master = { .iters = cb_per_thread, .master = true };
+	stress_t worker = { .iters = cb_per_thread, .master = false };
 	
 	size_t thread_cnt = min(MAX_THREADS / 2, config.cpu_active);
 	/* Each cpu has one reader and one updater. */
@@ -920,7 +920,7 @@ static bool do_stress(void)
 	bin_order_suffix(max_used_mem, &mem_units, &mem_suffix, false);
 
 	TPRINTF("\nStress: Run %zu nop-readers and %zu updaters. %zu callbacks"
-		" total (max %" PRIu64 " %s used). Be very patient.\n", 
+		" total (max %" PRIu64 " %s used). Be very patient.\n",
 		reader_cnt, updater_cnt, exp_upd_calls, mem_units, mem_suffix);
 	
 	for (size_t k = 0; k < reader_cnt; ++k) {
@@ -1043,13 +1043,13 @@ const char *test_rcu1(void)
 		delta_gps = rcu_completed_gps() - completed_gps;
 		completed_gps += delta_gps;
 
-		if (ok) {  
-			TPRINTF("\nSubtest %s() ok (GPs: %" PRIu64 ").\n", 
+		if (ok) {
+			TPRINTF("\nSubtest %s() ok (GPs: %" PRIu64 ").\n",
 				test_func[i].desc, delta_gps);
 		} else {
 			TPRINTF("\nFailed: %s(). Pausing for 5 secs.\n", test_func[i].desc);
 			thread_sleep(5);
-		} 
+		}
 	}
 
 	if (success)

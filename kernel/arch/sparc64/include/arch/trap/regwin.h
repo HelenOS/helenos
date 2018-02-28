@@ -83,7 +83,7 @@
  * Macro used by the nucleus and the primary context 0 during normal and other spills.
  */
 .macro SPILL_NORMAL_HANDLER_KERNEL
-	stx %l0, [%sp + STACK_BIAS + L0_OFFSET]	
+	stx %l0, [%sp + STACK_BIAS + L0_OFFSET]
 	stx %l1, [%sp + STACK_BIAS + L1_OFFSET]
 	stx %l2, [%sp + STACK_BIAS + L2_OFFSET]
 	stx %l3, [%sp + STACK_BIAS + L3_OFFSET]

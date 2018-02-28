@@ -38,7 +38,7 @@ static unsigned int divandmod32(unsigned int a, unsigned int b,
     unsigned int *remainder)
 {
 	unsigned int result;
-	int steps = sizeof(unsigned int) * 8; 
+	int steps = sizeof(unsigned int) * 8;
 	
 	*remainder = 0;
 	result = 0;

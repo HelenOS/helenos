@@ -74,7 +74,7 @@ static void consumer(void *arg)
 		return;
 	}
 	
-	TPRINTF("cpu%u, tid %" PRIu64 " down=\n", CPU->id, THREAD->tid);	
+	TPRINTF("cpu%u, tid %" PRIu64 " down=\n", CPU->id, THREAD->tid);
 	thread_usleep(random(30000));
 	
 	semaphore_up(&sem);

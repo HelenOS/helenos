@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32	
+/** @addtogroup libcarm32
  * @{
  */
-/** @file 
+/** @file
  *  @brief Function address conversion.
  */
 

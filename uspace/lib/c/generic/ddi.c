@@ -210,7 +210,7 @@ static errno_t iospace_disable(task_id_t id, void *ioaddr, size_t size)
 /** Enable PIO for specified address range.
  *
  * @param range I/O range to be enable.
- * @param virt  Virtual address for application's PIO operations. 
+ * @param virt  Virtual address for application's PIO operations.
  */
 errno_t pio_enable_range(addr_range_t *range, void **virt)
 {
@@ -256,7 +256,7 @@ errno_t pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
 		return EINVAL;
 	}
 
-	return pio_enable((void *) addr, size, virt);	
+	return pio_enable((void *) addr, size, virt);
 }
 
 /** Enable PIO for specified I/O range.

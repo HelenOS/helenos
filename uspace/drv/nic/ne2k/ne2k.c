@@ -67,7 +67,7 @@
 static irq_pio_range_t ne2k_ranges_prototype[] = {
 	{
 		.base = 0,
-		.size = NE2K_IO_SIZE, 
+		.size = NE2K_IO_SIZE,
 	}
 };
 

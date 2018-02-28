@@ -29,7 +29,7 @@
 /** @addtogroup sparc64interrupt
  * @{
  */
-/** 
+/**
  * @file
  * @brief This file contains interrupt vector trap handler.
  */

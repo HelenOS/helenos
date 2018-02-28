@@ -77,7 +77,7 @@ void tzset(void)
 
 /**
  * Converts a time value to a broken-down UTC time.
- * 
+ *
  * @param timer Time to convert.
  * @param result Structure to store the result to.
  * @return Value of result on success, NULL on overflow.
@@ -109,7 +109,7 @@ struct tm *gmtime(const time_t *restrict timep)
 
 /**
  * Converts a time value to a broken-down local time.
- * 
+ *
  * @param timer Time to convert.
  * @param result Structure to store the result to.
  * @return Value of result on success, NULL on overflow.
@@ -172,7 +172,7 @@ char *asctime(const struct tm *restrict timeptr)
 /**
  * Converts the calendar time to a string in format
  * "Sun Jan 1 00:00:00 1970\n" (Obsolete)
- * 
+ *
  * @param timer Time to convert.
  * @param buf Buffer to store string to. Must be at least ASCTIME_BUF_LEN
  *     bytes long.
@@ -227,7 +227,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 
 /**
  * Get time. Only CLOCK_REALTIME is supported.
- * 
+ *
  * @param clock_id ID of the clock to query.
  * @param tp Pointer to the variable where the time is to be written.
  * @return 0 on success, -1 with errno on failure.
@@ -253,7 +253,7 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
 /**
  * Set time on a specified clock. As HelenOS doesn't support this yet,
  * this function always fails.
- * 
+ *
  * @param clock_id ID of the clock to set.
  * @param tp Time to set.
  * @return 0 on success, -1 with errno on failure.
@@ -278,7 +278,7 @@ int clock_settime(clockid_t clock_id,
 
 /**
  * Sleep on a specified clock.
- * 
+ *
  * @param clock_id ID of the clock to sleep on (only CLOCK_REALTIME supported).
  * @param flags Flags (none supported).
  * @param rqtp Sleep time.

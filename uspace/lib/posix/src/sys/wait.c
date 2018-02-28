@@ -67,7 +67,7 @@ int __posix_wtermsig(int status) {
 
 /**
  * Wait for any child process to stop or terminate.
- * 
+ *
  * @param stat_ptr Location of the final status code of the child process.
  * @return ID of the child process for which status is reported,
  *     -1 on signal interrupt, (pid_t)-1 otherwise.
@@ -81,7 +81,7 @@ pid_t wait(int *stat_ptr)
 
 /**
  * Wait for a child process to stop or terminate.
- * 
+ *
  * @param pid What child process shall the caller wait for. See POSIX manual
  *     for details.
  * @param stat_ptr Location of the final status code of the child process.

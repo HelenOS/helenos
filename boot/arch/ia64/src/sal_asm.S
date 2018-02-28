@@ -76,8 +76,8 @@ FUNCTION_BEGIN(sal_call)
 	mov b6 = loc3 ;;
 	br.call.sptk.many rp = b6
 	
-	cmp.ne p7,p0 = 0, loc5 
-	cmp.ne p8,p0 = 0, loc6 
+	cmp.ne p7,p0 = 0, loc5
+	cmp.ne p8,p0 = 0, loc6
 	cmp.ne p9,p0 = 0, loc7 ;;
 	
 (p7)	st8 [loc5] = r9

@@ -96,7 +96,7 @@ static hash_table_ops_t services_ops = {
 	.hash = services_hash,
 	.key_hash = services_key_hash,
 	.key_equal = services_key_equal,
-	.equal = NULL, 
+	.equal = NULL,
 	.remove_callback = services_remove_callback
 };
 

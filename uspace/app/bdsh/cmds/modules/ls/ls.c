@@ -128,7 +128,7 @@ static int ls_cmp(const void *a, const void *b)
  * @param sort	1 if the output must be sorted,
  *				0 otherwise.
  */
-static signed int ls_scan_dir(const char *d, DIR *dirp, 
+static signed int ls_scan_dir(const char *d, DIR *dirp,
     struct dir_elem_t **dir_list_ptr)
 {
 	int alloc_blocks = 20;
@@ -197,12 +197,12 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 
 	/* Populate the directory list. */
 	if (ls.recursive) {
-		tmp = (struct dir_elem_t *) realloc(*dir_list_ptr, 
+		tmp = (struct dir_elem_t *) realloc(*dir_list_ptr,
 		    nbdirs * sizeof(struct dir_elem_t));
 		if (!tmp) {
 			cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
 			goto out;
-		} 
+		}
 		*dir_list_ptr = tmp;
 
 		for (i = 0; i < nbdirs; i++) {
@@ -252,7 +252,7 @@ static unsigned int ls_recursive(const char *path, DIR *dirp)
 		goto out;
 	}
 
-	nbdirs = ls_scan_dir(path, dirp, &dir_list); 
+	nbdirs = ls_scan_dir(path, dirp, &dir_list);
 	if (nbdirs == -1) {
 		ret = CMD_FAILURE;
 		goto out;
@@ -291,10 +291,10 @@ static unsigned int ls_recursive(const char *path, DIR *dirp)
 		case LS_BOGUS:
 			ret = CMD_FAILURE;
 			goto out;
-		}	
+		}
 	}
    
-	ret = CMD_SUCCESS; 
+	ret = CMD_SUCCESS;
 
 out:
 	for (i = 0; i < nbdirs; i++)
@@ -404,7 +404,7 @@ int cmd_ls(char **argv)
 		}
 		if (ls.recursive)
 			ret = ls_recursive(de.name, dirp);
-		else  
+		else
 			ret = ls_scan_dir(de.name, dirp, NULL);
 
 		closedir(dirp);

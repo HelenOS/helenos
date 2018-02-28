@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64mm	
+/** @addtogroup ia64mm
  * @{
  */
 /** @file
@@ -40,7 +40,7 @@
 
 uintptr_t vhpt_set_up(void);
 
-static inline vhpt_entry_t tlb_entry_t2vhpt_entry_t(tlb_entry_t tentry) 
+static inline vhpt_entry_t tlb_entry_t2vhpt_entry_t(tlb_entry_t tentry)
 {
 	vhpt_entry_t ventry;
 	

@@ -153,7 +153,7 @@ static void rtl8139_hw_update_rcr(rtl8139_t *rtl8139)
 {
 	uint32_t rcr = rtl8139->rcr_data.rcr_base | rtl8139->rcr_data.ucast_mask
 	    | rtl8139->rcr_data.mcast_mask | rtl8139->rcr_data.bcast_mask
-	    | rtl8139->rcr_data.defect_mask | 
+	    | rtl8139->rcr_data.defect_mask |
 	    (RXBUF_SIZE_FLAGS << RCR_RBLEN_SHIFT);
 	
 	ddf_msg(LVL_DEBUG, "Rewriting rcr: %x -> %x", pio_read_32(rtl8139->io_port + RCR),
@@ -287,14 +287,14 @@ static errno_t rtl8139_get_operation_mode(ddf_fun_t *fun, int *speed,
 static errno_t rtl8139_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t);
 
-static errno_t rtl8139_pause_get(ddf_fun_t*, nic_result_t*, nic_result_t*, 
+static errno_t rtl8139_pause_get(ddf_fun_t*, nic_result_t*, nic_result_t*,
     uint16_t *);
 static errno_t rtl8139_pause_set(ddf_fun_t*, int, int, uint16_t);
 
 static errno_t rtl8139_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement);
 static errno_t rtl8139_autoneg_disable(ddf_fun_t *fun);
 static errno_t rtl8139_autoneg_probe(ddf_fun_t *fun, uint32_t *our_advertisement,
-    uint32_t *their_advertisement, nic_result_t *result, 
+    uint32_t *their_advertisement, nic_result_t *result,
     nic_result_t *their_result);
 static errno_t rtl8139_autoneg_restart(ddf_fun_t *fun);
 
@@ -500,7 +500,7 @@ static nic_frame_t *rtl8139_read_frame(nic_t *nic_data,
  *
  * @param rtl8139  controller private data
  */
-static void rtl8139_rx_reset(rtl8139_t *rtl8139) 
+static void rtl8139_rx_reset(rtl8139_t *rtl8139)
 {
 	/* Disable receiver, update offset and enable receiver again */
 	uint8_t cr = pio_read_8(rtl8139->io_port + CR);
@@ -510,7 +510,7 @@ static void rtl8139_rx_reset(rtl8139_t *rtl8139)
 
 	write_barrier();
 	pio_write_32(rtl8139->io_port + CAPR, 0);
-	pio_write_32(rtl8139->io_port + RBSTART, 
+	pio_write_32(rtl8139->io_port + RBSTART,
 	    PTR2U32(rtl8139->rx_buff_phys));
 
 	write_barrier();
@@ -679,7 +679,7 @@ static void rtl8139_tx_interrupt(nic_t *nic_data)
 	size_t tx_used = rtl8139->tx_used;
 	while (tx_used != tx_next) {
 		size_t desc_to_check = tx_used % TX_BUFF_COUNT;
-		void * tsd_to_check = rtl8139->io_port + TSD0 
+		void * tsd_to_check = rtl8139->io_port + TSD0
 		    + desc_to_check * sizeof(uint32_t);
 		uint32_t tsd_value = pio_read_32(tsd_to_check);
 
@@ -1385,7 +1385,7 @@ static errno_t rtl8139_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
 	str_cpy(info->vendor_name, NIC_VENDOR_MAX_LENGTH, "Realtek");
 
 	if (rtl8139->hw_version < RTL8139_VER_COUNT) {
-		str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH, 
+		str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH,
 		    model_names[rtl8139->hw_version]);
 	} else {
 		str_cpy(info->model_name, NIC_MODEL_MAX_LENGTH, "RTL8139");
@@ -1464,7 +1464,7 @@ enum access_mode {
 	VALUE_RW
 };
 
-/** Check if pause frame operations are valid in current situation 
+/** Check if pause frame operations are valid in current situation
  *
  *  @param rtl8139  RTL8139 private structure
  *
@@ -1501,7 +1501,7 @@ static int rtl8139_pause_is_valid(rtl8139_t *rtl8139)
  *
  *  @return EOK if succeed
  */
-static errno_t rtl8139_pause_get(ddf_fun_t *fun, nic_result_t *we_send, 
+static errno_t rtl8139_pause_get(ddf_fun_t *fun, nic_result_t *we_send,
     nic_result_t *we_receive, uint16_t *time)
 {
 	assert(fun);
@@ -1536,7 +1536,7 @@ static errno_t rtl8139_pause_get(ddf_fun_t *fun, nic_result_t *we_send,
  *
  *  @return EOK if succeed, INVAL if the pause frame has no sence
  */
-static errno_t rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive, 
+static errno_t rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_receive,
     uint16_t time)
 {
 	assert(fun);
@@ -2090,7 +2090,7 @@ static errno_t rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
 		rtl8139->poll_timer = new_timer;
 		rtl8139->int_mask = INT_TIME_OUT;
 
-		/* Force timer interrupt start be writing nonzero value to timer 
+		/* Force timer interrupt start be writing nonzero value to timer
 		 * interrutp register (should be small to prevent big delay)
 		 * Read TCTR to reset timer counter
 		 * Change values to simulate the last interrupt from the period.

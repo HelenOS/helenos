@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /**
@@ -46,7 +46,7 @@
  */
 
 /* register where the address of the MMU fault status area will be stored */
-#define SCRATCHPAD_MMU_FSA	0x00	
+#define SCRATCHPAD_MMU_FSA	0x00
 
 /* register where the CPUID will be stored */
 #define SCRATCHPAD_CPUID	0x08

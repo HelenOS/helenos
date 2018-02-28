@@ -140,7 +140,7 @@ static void frame_add_region(pfn_t start_frame, pfn_t end_frame, bool low)
 	size_t size = (end_frame - start_frame) << ZERO_PAGE_WIDTH;
 
 	if (!frame_adjust_zone_bounds(low, &base, &size))
-		return; 
+		return;
 
 	pfn_t first = ADDR2PFN(base);
 	size_t count = SIZE2FRAMES(size);
@@ -290,7 +290,7 @@ void physmem_print(void)
 	for (i = 0; i < phys_regions_count; i++) {
 		printf("%#010x %10u\n",
 			PFN2ADDR(phys_regions[i].start), PFN2ADDR(phys_regions[i].count));
-	}	
+	}
 }
 
 /** @}

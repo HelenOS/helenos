@@ -222,7 +222,7 @@ static void root_rearrange(widget_t *widget, sysarg_t hpos, sysarg_t vpos,
 	if (widget->window->is_decorated) {
 		paint_internal(widget);
 		list_foreach(widget->children, link, widget_t, child) {
-			child->rearrange(child, 
+			child->rearrange(child,
 			    hpos + border_thickness,
 			    vpos + border_thickness + header_height,
 			    width - 2 * border_thickness,

@@ -29,7 +29,7 @@
 /** @addtogroup rtld rtld
  * @brief
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -112,7 +112,7 @@ static elf_symbol_t *def_find_in_module(const char *name, module_t *m)
  *
  * @param name		Name of the symbol to search for.
  * @param start		Module in which to start the search..
- * @param mod		(output) Will be filled with a pointer to the module 
+ * @param mod		(output) Will be filled with a pointer to the module
  *			that contains the symbol.
  */
 elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
@@ -130,7 +130,7 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
 	 * more times in case of circular dependencies.
 	 */
 
-	/* Mark all vertices (modules) as unvisited */	
+	/* Mark all vertices (modules) as unvisited */
 	modules_untag(start->rtld);
 
 	/* Insert root (the program) into the queue and tag it */
@@ -192,7 +192,7 @@ elf_symbol_t *symbol_bfs_find(const char *name, module_t *start,
  * @param origin	Module in which the dependency originates.
  * @param flags		@c ssf_none or @c ssf_noexec to not look for the symbol
  *			in the executable program.
- * @param mod		(output) Will be filled with a pointer to the module 
+ * @param mod		(output) Will be filled with a pointer to the module
  *			that contains the symbol.
  */
 elf_symbol_t *symbol_def_find(const char *name, module_t *origin,

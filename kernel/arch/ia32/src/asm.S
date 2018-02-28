@@ -138,7 +138,7 @@ FUNCTION_END(enable_l_apic_in_msr)
  * Size of the istate structure without the hardware-saved part
  * and without the error word.
  */
-#define ISTATE_SOFT_SIZE	ISTATE_SIZE - (6 * 4) 
+#define ISTATE_SOFT_SIZE	ISTATE_SIZE - (6 * 4)
 
 /*
  * The SYSENTER syscall mechanism can be used for syscalls with
@@ -328,7 +328,7 @@ SYMBOL(int_\i)
 		.endif
 	.else
 		/*
-		 * Interrupt: fake up an error word 
+		 * Interrupt: fake up an error word
 		 */
 		subl $(ISTATE_SOFT_SIZE + 4), %esp
 	.endif
@@ -432,7 +432,7 @@ SYMBOL(int_\i)
 	53,54,55,56,57,58,59,60,61,62,63
 
 interrupt_handlers:
-.irp cnt, LIST_0_63 
+.irp cnt, LIST_0_63
 	handler \cnt
 .endr
 

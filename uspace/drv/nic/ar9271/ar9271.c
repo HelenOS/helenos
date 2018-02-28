@@ -380,7 +380,7 @@ static errno_t ar9271_ieee80211_bssid_change(ieee80211_dev_t *ieee80211_dev,
 		rate_msg.is_new = 1;
 		rate_msg.legacy_rates_count = ARRAY_SIZE(ieee80211bg_data_rates);
 		memcpy(&rate_msg.legacy_rates,
-		    ieee80211bg_data_rates, 
+		    ieee80211bg_data_rates,
 		    ARRAY_SIZE(ieee80211bg_data_rates));
 		
 		wmi_send_command(ar9271->htc_device, WMI_RC_RATE_UPDATE,

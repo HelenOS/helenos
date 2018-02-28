@@ -91,7 +91,7 @@ static errno_t decimal_to_useconds(const char *nptr, useconds_t *result)
 			return ret;
 
 		int ndigits = endptr - nptr;
-		for (; ndigits < 6; ndigits++) 
+		for (; ndigits < 6; ndigits++)
 			frac_seconds *= 10;
 		for (; ndigits > 6; ndigits--)
 			frac_seconds /= 10;

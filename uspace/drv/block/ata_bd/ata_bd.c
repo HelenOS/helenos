@@ -427,7 +427,7 @@ static errno_t disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 		d->geom.sectors = 0;
 
 		d->blocks =
-		     (uint32_t) idata.total_lba28_0 | 
+		     (uint32_t) idata.total_lba28_0 |
 		    ((uint32_t) idata.total_lba28_1 << 16);
 	} else {
 		/* Device supports LBA-48 addressing. */
@@ -440,7 +440,7 @@ static errno_t disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 		d->blocks =
 		     (uint64_t) idata.total_lba48_0 |
 		    ((uint64_t) idata.total_lba48_1 << 16) |
-		    ((uint64_t) idata.total_lba48_2 << 32) | 
+		    ((uint64_t) idata.total_lba48_2 << 32) |
 		    ((uint64_t) idata.total_lba48_3 << 48);
 	}
 

@@ -164,7 +164,7 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 		asm volatile (
 			"outb %b[val], %w[port]\n"
 			:: [val] "a" (val), [port] "d" (port)
-		);	
+		);
 	} else
 		*port = val;
 }

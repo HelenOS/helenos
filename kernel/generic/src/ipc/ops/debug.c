@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda 
+ * Copyright (c) 2008 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

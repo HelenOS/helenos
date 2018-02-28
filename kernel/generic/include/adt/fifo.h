@@ -71,7 +71,7 @@
 /** Create and prepare dynamic FIFO.
  *
  * FIFO is allocated dynamically.
- * This macro is suitable for creating larger FIFOs. 
+ * This macro is suitable for creating larger FIFOs.
  *
  * @param name Name of FIFO.
  * @param t Type of values stored in FIFO.

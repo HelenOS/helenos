@@ -45,13 +45,13 @@ static inline uint32_t hash_mix32(uint32_t hash)
 	 * http://www.concentric.net/~Ttwang/tech/inthash.htm
 	 * Public domain.
 	 */
-	hash = ~hash + (hash << 15); 
+	hash = ~hash + (hash << 15);
 	hash = hash ^ (hash >> 12);
 	hash = hash + (hash << 2);
 	hash = hash ^ (hash >> 4);
-	hash = hash * 2057; 
+	hash = hash * 2057;
 	hash = hash ^ (hash >> 16);
-	return hash;	
+	return hash;
 }
 
 /** Produces a uniform hash affecting all output bits from the skewed input. */
@@ -65,8 +65,8 @@ static inline uint64_t hash_mix64(uint64_t hash)
 	hash = hash + (hash << 3);
 	hash = hash ^ (hash >> 4);
 	hash = hash * 0x27d4eb2d;
-	hash = hash ^ (hash >> 15);	
-	/* 
+	hash = hash ^ (hash >> 15);
+	/*
 	 * Lower order bits are mixed more thoroughly. Swap them with
 	 * the higher order bits and make the resulting higher order bits
 	 * more usable.
@@ -75,7 +75,7 @@ static inline uint64_t hash_mix64(uint64_t hash)
 }
 
 /** Produces a uniform hash affecting all output bits from the skewed input. */
-static inline size_t hash_mix(size_t hash) 
+static inline size_t hash_mix(size_t hash)
 {
 #ifdef __32_BITS__
 	return hash_mix32(hash);
@@ -87,7 +87,7 @@ static inline size_t hash_mix(size_t hash)
 }
 
 /** Use to create a hash from multiple values.
- * 
+ *
  * Typical usage:
  * @code
  * int car_id;
@@ -101,13 +101,13 @@ static inline size_t hash_mix(size_t hash)
  */
 static inline size_t hash_combine(size_t seed, size_t hash)
 {
-	/* 
+	/*
 	 * todo: use Bob Jenkin's proper mixing hash pass:
 	 * http://burtleburtle.net/bob/c/lookup3.c
 	 */
-	seed ^= hash + 0x9e3779b9 
+	seed ^= hash + 0x9e3779b9
 		+ ((seed << 5) | (seed >> (sizeof(size_t) * 8 - 5)));
-	return seed;	
+	return seed;
 }
 
 #endif

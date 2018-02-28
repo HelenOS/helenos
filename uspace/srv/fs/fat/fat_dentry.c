@@ -29,7 +29,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	fat_dentry.c
@@ -262,7 +262,7 @@ uint8_t fat_dentry_chksum(uint8_t *name)
 /** Get number of bytes in a string with size limit.
  *
  * @param str  NULL-terminated (or not) string. The pointer comes from a packed
- *             structure and as such is expected to be unaligned. 
+ *             structure and as such is expected to be unaligned.
  * @param size Maximum number of bytes to consider.
  *
  * @return Number of bytes in string (without 0 and ff).
@@ -273,7 +273,7 @@ size_t fat_lfn_str_nlength(const unaligned_uint16_t *str, size_t size)
 	size_t offset = 0;
 
 	while (offset < size) {
-		if (str[offset] == 0 || str[offset] == FAT_LFN_PAD) 
+		if (str[offset] == 0 || str[offset] == FAT_LFN_PAD)
 			break;
 		offset++;
 	}
@@ -293,7 +293,7 @@ size_t fat_lfn_size(const fat_dentry_t *d)
 	
 	size += fat_lfn_str_nlength(FAT_LFN_PART1(d), FAT_LFN_PART1_SIZE);
 	size += fat_lfn_str_nlength(FAT_LFN_PART2(d), FAT_LFN_PART2_SIZE);
-	size += fat_lfn_str_nlength(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE);	
+	size += fat_lfn_str_nlength(FAT_LFN_PART3(d), FAT_LFN_PART3_SIZE);
 	
 	return size;
 }
@@ -428,4 +428,4 @@ bool fat_valid_short_name(const char *name)
 
 /**
  * @}
- */ 
+ */

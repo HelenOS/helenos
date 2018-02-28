@@ -1083,7 +1083,7 @@ static odlink_t *odict_search_start_node(odict_t *odict, void *key,
 	 * Proof: When walking the BST in order, visit_tree(A) does a
 	 * visit_tree(A->a), visit(A), visit(A->b). If key(A) < key(B),
 	 * we will first visit A, then while visiting all nodes with values
-	 * between A and B we will not leave subtree A->b. 
+	 * between A and B we will not leave subtree A->b.
 	 */
 
 	/* If there is no hint, start search from the root */

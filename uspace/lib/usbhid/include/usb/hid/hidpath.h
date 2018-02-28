@@ -47,7 +47,7 @@
  *
  */
 /** Wanted usage path must be exactly the same as the searched one.  This
- * option cannot be combined with the others. 
+ * option cannot be combined with the others.
  */
 #define USB_HID_PATH_COMPARE_STRICT		0
 
@@ -56,28 +56,28 @@
  */
 #define USB_HID_PATH_COMPARE_END		1
 
-/** 
+/**
  * Only usage page are compared along the usage path.  This option can be
- * combined with others. 
+ * combined with others.
  */
 #define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	2
 
-/** 
+/**
  * Searched usage page must be prefix of the other one.
  */
 #define USB_HID_PATH_COMPARE_BEGIN		4
 
-/** 
+/**
  * Searched couple of usage page and usage can be anywhere in usage path.
  * This option is deprecated.
  */
 #define USB_HID_PATH_COMPARE_ANYWHERE		8
 
 
-/** 
+/**
  * Item of usage path structure. Last item of linked list describes one item
  * in report, the others describe superior Collection tags. Usage and Usage
- * page of report item can be changed due to data in report. 
+ * page of report item can be changed due to data in report.
  */
 typedef struct {
 	/** Usage page of report item. Zero when usage page can be changed. */
@@ -94,7 +94,7 @@ typedef struct {
 
 
 
-/** 
+/**
  * USB HID usage path structure.
  * */
 typedef struct {

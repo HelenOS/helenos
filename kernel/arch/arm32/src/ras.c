@@ -58,7 +58,7 @@ void ras_init(void)
 	ras_page = (uintptr_t *) km_map(frame,
 	    PAGE_SIZE, PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
 	
-	memsetb(ras_page, PAGE_SIZE, 0); 
+	memsetb(ras_page, PAGE_SIZE, 0);
 	ras_page[RAS_START] = 0;
 	ras_page[RAS_END] = 0xffffffff;
 }

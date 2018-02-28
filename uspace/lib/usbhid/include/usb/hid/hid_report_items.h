@@ -73,7 +73,7 @@
 /*
  * Input/Output/Feature Item flags
  */
-/** 
+/**
  * Indicates whether the item is data (0) or a constant (1) value. Data
  * indicates the item is defining report fields that contain modifiable device
  * data. Constant indicates the item is a static read-only field in a report
@@ -83,7 +83,7 @@
 
 /**
  * Indicates whether the item creates variable (1) or array (0) data fields in
- * reports. 
+ * reports.
  */
 #define USB_HID_ITEM_FLAG_VARIABLE(flags) 	((flags & 0x2) == 0x2)
 
@@ -174,7 +174,7 @@
 
 /**
  * A Collection item identifies a relationship between two or more data
- * (Input, Output, or Feature.) 
+ * (Input, Output, or Feature.)
  */
 #define USB_HID_REPORT_TAG_COLLECTION		0xA
 
@@ -202,7 +202,7 @@
  */
 #define USB_HID_REPORT_TAG_USAGE_PAGE		0x0
 
-/** 
+/**
  * Extent value in logical units. This is the minimum value that a variable
  * or array item will report. For example, a mouse reporting x position values
  * from 0 to 128 would have a Logical Minimum of 0 and a Logical Maximum of
@@ -210,41 +210,41 @@
  */
 #define USB_HID_REPORT_TAG_LOGICAL_MINIMUM	0x1
 
-/** 
+/**
  * Extent value in logical units. This is the maximum value that a variable
  * or array item will report.
  */
 #define USB_HID_REPORT_TAG_LOGICAL_MAXIMUM	0x2
 
-/** 
+/**
  * Minimum value for the physical extent of a variable item. This represents
  * the Logical Minimum with units applied to it.
  */
 #define USB_HID_REPORT_TAG_PHYSICAL_MINIMUM 	0x3
 
-/** 
+/**
  * Maximum value for the physical extent of a variable item.
  */
 #define USB_HID_REPORT_TAG_PHYSICAL_MAXIMUM 	0x4
 
-/** 
+/**
  * Value of the unit exponent in base 10. See the table later in this section
  * for more information.
  */
 #define USB_HID_REPORT_TAG_UNIT_EXPONENT	0x5
 
-/** 
+/**
  * Unit values.
  */
 #define USB_HID_REPORT_TAG_UNIT			0x6
 
-/** 
+/**
  * Unsigned integer specifying the size of the report fields in bits. This
  * allows the parser to build an item map for the report handler to use.
  */
 #define USB_HID_REPORT_TAG_REPORT_SIZE		0x7
 
-/** 
+/**
  * Unsigned value that specifies the Report ID. If a Report ID tag is used
  * anywhere in Report descriptor, all data reports for the device are preceded
  * by a single byte ID field. All items succeeding the first Report ID tag but
@@ -254,19 +254,19 @@
  */
 #define USB_HID_REPORT_TAG_REPORT_ID		0x8
 
-/** 
+/**
  * Unsigned integer specifying the number of data fields for the item;
  * determines how many fields are included in the report for this particular
  * item (and consequently how many bits are added to the report).
  */
 #define USB_HID_REPORT_TAG_REPORT_COUNT		0x9
 
-/** 
+/**
  * Places a copy of the global item state table on the stack.
  */
 #define USB_HID_REPORT_TAG_PUSH			0xA
 
-/** 
+/**
  * Replaces the item state table with the top structure from the stack.
  */
 #define USB_HID_REPORT_TAG_POP			0xB

@@ -755,12 +755,12 @@ errno_t nic_poll_set_mode_impl(ddf_fun_t *fun,
 	fibril_rwlock_write_lock(&nic_data->main_lock);
 	errno_t rc = nic_data->on_poll_mode_change(nic_data, mode, period);
 	assert(rc == EOK || rc == ENOTSUP || rc == EINVAL);
-	if (rc == ENOTSUP && (nic_data->on_poll_request != NULL) && 
+	if (rc == ENOTSUP && (nic_data->on_poll_request != NULL) &&
 	    (mode == NIC_POLL_PERIODIC || mode == NIC_POLL_SOFTWARE_PERIODIC) ) {
 
 		rc = nic_data->on_poll_mode_change(nic_data, NIC_POLL_ON_DEMAND, NULL);
 		assert(rc == EOK || rc == ENOTSUP);
-		if (rc == EOK) 
+		if (rc == EOK)
 			nic_sw_period_start(nic_data);
 	}
 	if (rc == EOK) {

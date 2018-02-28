@@ -265,4 +265,4 @@ static void stty_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 
 /**
  * @}
- */ 
+ */

@@ -52,7 +52,7 @@ typedef struct work_item {
 #ifdef CONFIG_DEBUG
 	/* Magic number for integrity checks. */
 	uint32_t cookie;
-#endif 
+#endif
 } work_t;
 
 

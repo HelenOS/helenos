@@ -538,7 +538,7 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	if (!bar)
 		return addr + (addrw64 ? 8 : 4);
 
-	mask &= bar;	
+	mask &= bar;
 
 	/* Restore the original value. */
 	pci_conf_write_32(fun, addr, val);
@@ -598,7 +598,7 @@ void pci_read_interrupt(pci_fun_t *fun)
  * @param bus		Host-to-PCI bridge
  * @param bus_num	Bus number
  */
-void pci_bus_scan(pci_bus_t *bus, int bus_num) 
+void pci_bus_scan(pci_bus_t *bus, int bus_num)
 {
 	pci_fun_t *fun;
 	errno_t rc;

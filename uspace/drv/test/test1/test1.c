@@ -109,7 +109,7 @@ static errno_t register_fun_verbose(ddf_dev_t *parent, const char *message,
 leave:
 	if (rc != expected_rc) {
 		fprintf(stderr,
-		    NAME ": Unexpected error registering function `%s'.\n" 
+		    NAME ": Unexpected error registering function `%s'.\n"
 		    NAME ":     Expected \"%s\" but got \"%s\".\n",
 		    name, str_error(expected_rc), str_error(rc));
 	}

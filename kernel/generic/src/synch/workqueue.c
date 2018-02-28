@@ -53,8 +53,8 @@
 
 
 struct work_queue {
-	/* 
-	 * Protects everything except activate_worker. 
+	/*
+	 * Protects everything except activate_worker.
 	 * Must be acquired after any thread->locks.
 	 */
 	IRQ_SPINLOCK_DECLARE(lock);
@@ -92,7 +92,7 @@ struct work_queue {
 #ifdef CONFIG_DEBUG
 	/* Magic cookie for integrity checks. Immutable. Accessed without lock. */
 	uint32_t cookie;
-#endif 
+#endif
 };
 
 
@@ -131,7 +131,7 @@ static void workq_preinit(struct work_queue *workq, const char *name);
 static bool add_worker(struct work_queue *workq);
 static void interrupt_workers(struct work_queue *workq);
 static void wait_for_workers(struct work_queue *workq);
-static int _workq_enqueue(struct work_queue *workq, work_t *work_item, 
+static int _workq_enqueue(struct work_queue *workq, work_t *work_item,
 	work_func_t func, bool can_block);
 static void init_work_item(work_t *work_item, work_func_t func);
 static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block);
@@ -149,8 +149,8 @@ static bool work_item_corrupted(work_t *work_item);
 /** Creates worker thread for the system-wide worker queue. */
 void workq_global_worker_init(void)
 {
-	/* 
-	 * No need for additional synchronization. Stores to word-sized 
+	/*
+	 * No need for additional synchronization. Stores to word-sized
 	 * variables are atomic and the change will eventually propagate.
 	 * Moreover add_worker() includes the necessary memory barriers
 	 * in spinlock lock/unlock().
@@ -220,7 +220,7 @@ void workq_destroy(struct work_queue *workq)
 	
 #ifdef CONFIG_DEBUG
 	workq->cookie = 0;
-#endif 
+#endif
 	
 	free(workq);
 }
@@ -230,7 +230,7 @@ static void workq_preinit(struct work_queue *workq, const char *name)
 {
 #ifdef CONFIG_DEBUG
 	workq->cookie = WORKQ_MAGIC;
-#endif 
+#endif
 	
 	irq_spinlock_initialize(&workq->lock, name);
 	condvar_initialize(&workq->activate_worker);
@@ -251,8 +251,8 @@ static void workq_preinit(struct work_queue *workq, const char *name)
 	link_initialize(&workq->nb_link);
 }
 
-/** Initializes a work queue. Returns true if successful.  
- * 
+/** Initializes a work queue. Returns true if successful.
+ *
  * Before destroying a work queue it must be stopped via
  * workq_stop().
  */
@@ -267,7 +267,7 @@ static bool add_worker(struct work_queue *workq)
 {
 	assert(!workq_corrupted(workq));
 
-	thread_t *thread = thread_create(worker_thread, workq, TASK, 
+	thread_t *thread = thread_create(worker_thread, workq, TASK,
 		THREAD_FLAG_NONE, workq->name);
 	
 	if (!thread) {
@@ -296,7 +296,7 @@ static bool add_worker(struct work_queue *workq)
 		if (!cpus[cpu_id].active)
 			cpu_id = CPU->id;
 
-		thread->workq = workq;	
+		thread->workq = workq;
 		thread->cpu = &cpus[cpu_id];
 		thread->workq_blocked = false;
 		thread->workq_idling = false;
@@ -304,7 +304,7 @@ static bool add_worker(struct work_queue *workq)
 
 		list_append(&thread->workq_link, &workq->workers);
 	} else {
-		/* 
+		/*
 		 * Work queue is shutting down - we must not add the worker
 		 * and we cannot destroy it without ready-ing it. Mark it
 		 * interrupted so the worker exits right away without even
@@ -329,9 +329,9 @@ static bool add_worker(struct work_queue *workq)
 	return success;
 }
 
-/** Shuts down the work queue. Waits for all pending work items to complete.  
+/** Shuts down the work queue. Waits for all pending work items to complete.
  *
- * workq_stop() may only be run once. 
+ * workq_stop() may only be run once.
  */
 void workq_stop(struct work_queue *workq)
 {
@@ -390,8 +390,8 @@ static void wait_for_workers(struct work_queue *workq)
 	irq_spinlock_unlock(&workq->lock, true);
 }
 
-/** Queues a function into the global wait queue without blocking. 
- * 
+/** Queues a function into the global wait queue without blocking.
+ *
  * See workq_enqueue_noblock() for more details.
  */
 bool workq_global_enqueue_noblock(work_t *work_item, work_func_t func)
@@ -399,8 +399,8 @@ bool workq_global_enqueue_noblock(work_t *work_item, work_func_t func)
 	return workq_enqueue_noblock(&g_work_queue, work_item, func);
 }
 
-/** Queues a function into the global wait queue; may block. 
- * 
+/** Queues a function into the global wait queue; may block.
+ *
  * See workq_enqueue() for more details.
  */
 bool workq_global_enqueue(work_t *work_item, work_func_t func)
@@ -408,42 +408,42 @@ bool workq_global_enqueue(work_t *work_item, work_func_t func)
 	return workq_enqueue(&g_work_queue, work_item, func);
 }
 
-/** Adds a function to be invoked in a separate thread without blocking. 
- * 
- * workq_enqueue_noblock() is guaranteed not to block. It is safe 
+/** Adds a function to be invoked in a separate thread without blocking.
+ *
+ * workq_enqueue_noblock() is guaranteed not to block. It is safe
  * to invoke from interrupt handlers.
- * 
+ *
  * Consider using workq_enqueue() instead if at all possible. Otherwise,
- * your work item may have to wait for previously enqueued sleeping 
+ * your work item may have to wait for previously enqueued sleeping
  * work items to complete if you are unlucky.
- * 
+ *
  * @param workq     Work queue where to queue the work item.
  * @param work_item Work item bookkeeping structure. Must be valid
  *                  until func() is entered.
  * @param func      User supplied function to invoke in a worker thread.
  
- * @return false if work queue is shutting down; function is not 
- *               queued for further processing. 
+ * @return false if work queue is shutting down; function is not
+ *               queued for further processing.
  * @return true  Otherwise. func() will be invoked in a separate thread.
  */
-bool workq_enqueue_noblock(struct work_queue *workq, work_t *work_item, 
+bool workq_enqueue_noblock(struct work_queue *workq, work_t *work_item,
 	work_func_t func)
 {
 	return _workq_enqueue(workq, work_item, func, false);
 }
 
-/** Adds a function to be invoked in a separate thread; may block. 
- * 
- * While the workq_enqueue() is unlikely to block, it may do so if too 
+/** Adds a function to be invoked in a separate thread; may block.
+ *
+ * While the workq_enqueue() is unlikely to block, it may do so if too
  * many previous work items blocked sleeping.
- * 
+ *
  * @param workq     Work queue where to queue the work item.
  * @param work_item Work item bookkeeping structure. Must be valid
  *                  until func() is entered.
  * @param func      User supplied function to invoke in a worker thread.
  
- * @return false if work queue is shutting down; function is not 
- *               queued for further processing. 
+ * @return false if work queue is shutting down; function is not
+ *               queued for further processing.
  * @return true  Otherwise. func() will be invoked in a separate thread.
  */
 bool workq_enqueue(struct work_queue *workq, work_t *work_item, work_func_t func)
@@ -452,26 +452,26 @@ bool workq_enqueue(struct work_queue *workq, work_t *work_item, work_func_t func
 }
 
 /** Adds a work item that will be processed by a separate worker thread.
- * 
- * func() will be invoked in another kernel thread and may block. 
- * 
+ *
+ * func() will be invoked in another kernel thread and may block.
+ *
  * Prefer to call _workq_enqueue() with can_block set. Otherwise
  * your work item may have to wait for sleeping work items to complete.
  * If all worker threads are blocked/sleeping a new worker thread cannot
  * be create without can_block set because creating a thread might
  * block due to low memory conditions.
- * 
+ *
  * @param workq     Work queue where to queue the work item.
  * @param work_item Work item bookkeeping structure. Must be valid
  *                  until func() is entered.
  * @param func      User supplied function to invoke in a worker thread.
  * @param can_block May adding this work item block?
  
- * @return false if work queue is shutting down; function is not 
- *               queued for further processing. 
+ * @return false if work queue is shutting down; function is not
+ *               queued for further processing.
  * @return true  Otherwise.
  */
-static int _workq_enqueue(struct work_queue *workq, work_t *work_item, 
+static int _workq_enqueue(struct work_queue *workq, work_t *work_item,
 	work_func_t func, bool can_block)
 {
 	assert(!workq_corrupted(workq));
@@ -492,8 +492,8 @@ static int _workq_enqueue(struct work_queue *workq, work_t *work_item,
 		if (!booting) {
 			signal_op = signal_worker_logic(workq, can_block);
 		} else {
-			/* 
-			 * During boot there are no workers to signal. Just queue 
+			/*
+			 * During boot there are no workers to signal. Just queue
 			 * the work and let future workers take care of it.
 			 */
 		}
@@ -513,7 +513,7 @@ static void init_work_item(work_t *work_item, work_func_t func)
 {
 #ifdef CONFIG_DEBUG
 	work_item->cookie = WORK_ITEM_MAGIC;
-#endif 
+#endif
 	
 	link_initialize(&work_item->queue_link);
 	work_item->func = func;
@@ -536,25 +536,25 @@ static size_t active_workers_now(struct work_queue *workq)
 	/* Workers pending activation are idle workers not yet given a time slice. */
 	assert(workq->activate_pending <= workq->idle_worker_cnt);
 	
-	/* 
-	 * Workers actively running the work func() this very moment and 
-	 * are neither blocked nor idle. Exclude ->activate_pending workers 
-	 * since they will run their work func() once they get a time slice 
+	/*
+	 * Workers actively running the work func() this very moment and
+	 * are neither blocked nor idle. Exclude ->activate_pending workers
+	 * since they will run their work func() once they get a time slice
 	 * and are not running it right now.
 	 */
 	return workq->cur_worker_cnt - sleeping_workers;
 }
 
-/** 
- * Returns the number of workers that are running or are about to run work 
- * func() and that are not blocked. 
+/**
+ * Returns the number of workers that are running or are about to run work
+ * func() and that are not blocked.
  */
 static size_t active_workers(struct work_queue *workq)
 {
 	assert(irq_spinlock_locked(&workq->lock));
 	
-	/* 
-	 * Workers actively running the work func() and are neither blocked nor 
+	/*
+	 * Workers actively running the work func() and are neither blocked nor
 	 * idle. ->activate_pending workers will run their work func() once they
 	 * get a time slice after waking from a condvar wait, so count them
 	 * as well.
@@ -585,11 +585,11 @@ static void signal_worker_op(struct work_queue *workq)
 }
 
 /** Determines how to signal workers if at all.
- * 
+ *
  * @param workq     Work queue where a new work item was queued.
- * @param can_block True if we may block while signaling a worker or creating 
+ * @param can_block True if we may block while signaling a worker or creating
  *                  a new worker.
- * 
+ *
  * @return Function that will notify workers or NULL if no action is needed.
  */
 static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
@@ -600,9 +600,9 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 	/* Only signal workers if really necessary. */
 	signal_op_t signal_op = NULL;
 
-	/* 
-	 * Workers actively running the work func() and neither blocked nor idle. 
-	 * Including ->activate_pending workers that will run their work func() 
+	/*
+	 * Workers actively running the work func() and neither blocked nor idle.
+	 * Including ->activate_pending workers that will run their work func()
 	 * once they get a time slice.
 	 */
 	size_t active = active_workers(workq);
@@ -612,14 +612,14 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 	/* Active workers are getting overwhelmed - activate another. */
 	if (max_load < workq->item_cnt) {
 
-		size_t remaining_idle = 
+		size_t remaining_idle =
 			workq->idle_worker_cnt - workq->activate_pending;
 
 		/* Idle workers still exist - activate one. */
 		if (remaining_idle > 0) {
-			/* 
+			/*
 			 * Directly changing idle_worker_cnt here would not allow
-			 * workers to recognize spurious wake-ups. Change 
+			 * workers to recognize spurious wake-ups. Change
 			 * activate_pending instead.
 			 */
 			++workq->activate_pending;
@@ -632,7 +632,7 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 			
 			if (need_worker && can_block) {
 				signal_op = add_worker_op;
-				/* 
+				/*
 				 * It may take some time to actually create the worker.
 				 * We don't want to swamp the thread pool with superfluous
 				 * worker creation requests so pretend it was already
@@ -641,7 +641,7 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 				++workq->cur_worker_cnt;
 			}
 			
-			/* 
+			/*
 			 * We cannot create a new worker but we need one desperately
 			 * because all workers are blocked in their work functions.
 			 */
@@ -660,8 +660,8 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 			}
 		}
 	} else {
-		/* 
-		 * There are enough active/running workers to process the queue. 
+		/*
+		 * There are enough active/running workers to process the queue.
 		 * No need to signal/activate any new workers.
 		 */
 		signal_op = NULL;
@@ -673,9 +673,9 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 /** Executes queued work items. */
 static void worker_thread(void *arg)
 {
-	/* 
-	 * The thread has been created after the work queue was ordered to stop. 
-	 * Do not access the work queue and return immediately. 
+	/*
+	 * The thread has been created after the work queue was ordered to stop.
+	 * Do not access the work queue and return immediately.
 	 */
 	if (thread_interrupted(THREAD)) {
 		thread_detach(THREAD);
@@ -759,7 +759,7 @@ static bool worker_unnecessary(struct work_queue *workq)
 		/* There are too many idle workers. Exit. */
 		return (min_worker_cnt <= workq->idle_worker_cnt);
 	} else {
-		/* 
+		/*
 		 * There is work but we are swamped with too many active workers
 		 * that were woken up from sleep at around the same time. We
 		 * don't need another worker fighting for cpu time.
@@ -853,7 +853,7 @@ void workq_print_info(struct work_queue *workq)
 	size_t items = workq->item_cnt;
 	bool stopping = workq->stopping;
 	bool worker_surplus = worker_unnecessary(workq);
-	const char *load_str = worker_surplus ? "decreasing" : 
+	const char *load_str = worker_surplus ? "decreasing" :
 		(0 < workq->activate_pending) ? "increasing" : "stable";
 	
 	irq_spinlock_unlock(&workq->lock, true);
@@ -868,7 +868,7 @@ void workq_print_info(struct work_queue *workq)
 		"Items:   %zu (queued not yet dispatched work)\n"
 		"Stopping: %d\n"
 		"Load: %s\n",
-		max_worker_cnt, min_worker_cnt, 
+		max_worker_cnt, min_worker_cnt,
 		max_concurrent_workers, max_items_per_worker,
 		total,
 		active,
@@ -894,14 +894,14 @@ static bool dequeue_add_req(nonblock_adder_t *info, struct work_queue **pworkq)
 	irq_spinlock_lock(&info->lock, true);
 	
 	while (list_empty(&info->work_queues) && !stop) {
-		errno_t ret = _condvar_wait_timeout_irq_spinlock(&info->req_cv, 
+		errno_t ret = _condvar_wait_timeout_irq_spinlock(&info->req_cv,
 			&info->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 		
 		stop = (ret == EINTR);
 	}
 	
 	if (!stop) {
-		*pworkq = list_get_instance(list_first(&info->work_queues), 
+		*pworkq = list_get_instance(list_first(&info->work_queues),
 			struct work_queue, nb_link);
 
 		assert(!workq_corrupted(*pworkq));
@@ -931,13 +931,13 @@ static void nonblock_init(void)
 	condvar_initialize(&nonblock_adder.req_cv);
 	list_initialize(&nonblock_adder.work_queues);
 	
-	nonblock_adder.thread = thread_create(thr_nonblock_add_worker, 
+	nonblock_adder.thread = thread_create(thr_nonblock_add_worker,
 		&nonblock_adder, TASK, THREAD_FLAG_NONE, "kworkq-nb");
 	
 	if (nonblock_adder.thread) {
 		thread_ready(nonblock_adder.thread);
 	} else {
-		/* 
+		/*
 		 * We won't be able to add workers without blocking if all workers
 		 * sleep, but at least boot the system.
 		 */
@@ -946,13 +946,13 @@ static void nonblock_init(void)
 }
 
 #ifdef CONFIG_DEBUG
-/** Returns true if the workq is definitely corrupted; false if not sure. 
- * 
+/** Returns true if the workq is definitely corrupted; false if not sure.
+ *
  * Can be used outside of any locks.
  */
 static bool workq_corrupted(struct work_queue *workq)
 {
-	/* 
+	/*
 	 * Needed to make the most current cookie value set by workq_preinit()
 	 * visible even if we access the workq right after it is created but
 	 * on a different cpu. Otherwise, workq_corrupted() would not work
@@ -962,8 +962,8 @@ static bool workq_corrupted(struct work_queue *workq)
 	return NULL == workq || workq->cookie != WORKQ_MAGIC;
 }
 
-/** Returns true if the work_item is definitely corrupted; false if not sure. 
- * 
+/** Returns true if the work_item is definitely corrupted; false if not sure.
+ *
  * Must be used with the work queue protecting spinlock locked.
  */
 static bool work_item_corrupted(work_t *work_item)

@@ -126,7 +126,7 @@ errno_t ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 		return ENOENT;
 	
 	if (ioaddr >= task->arch.iomap.elements)
-		return EINVAL;	
+		return EINVAL;
 
 	if (task->arch.iomap.elements < elements)
 		size -= elements - task->arch.iomap.elements;

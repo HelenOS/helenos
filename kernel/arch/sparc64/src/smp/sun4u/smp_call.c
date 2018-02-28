@@ -41,7 +41,7 @@
 
 void arch_smp_call_ipi(unsigned int cpu_id)
 {
-	/* 
+	/*
 	 * Required by ipi_unicast_arch(). That functions resolves a potential
 	 * deadlock should both the destination and source cpus be sending
 	 * unicast ipis to each other with interrupts disabled.

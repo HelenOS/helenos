@@ -180,7 +180,7 @@ float32 mul_float32(float32 a, float32 b)
 		}
 	}
 	
-	result.parts.exp = exp; 
+	result.parts.exp = exp;
 	result.parts.fraction = frac1 & ((1 << FLOAT32_FRACTION_SIZE) - 1);
 	
 	return result;

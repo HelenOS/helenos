@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2012 Adam Hraska
- * 
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,13 +36,13 @@
 
 /*
  * This is an implementation of a generic resizable chained hash table.
- * 
- * The table grows to 2*n+1 buckets each time, starting at n == 89, 
+ *
+ * The table grows to 2*n+1 buckets each time, starting at n == 89,
  * per Thomas Wang's recommendation:
  * http://www.concentric.net/~Ttwang/tech/hashsize.htm
- * 
+ *
  * This policy produces prime table sizes for the first five resizes
- * and generally produces table sizes which are either prime or 
+ * and generally produces table sizes which are either prime or
  * have fairly large (prime/odd) divisors. Having a prime table size
  * mitigates the use of suboptimal hash functions and distributes
  * items over the whole table.
@@ -78,14 +78,14 @@ static void nop_remove_callback(ht_link_t *item)
  *
  * @param h        Hash table structure. Will be initialized by this call.
  * @param init_size Initial desired number of hash table buckets. Pass zero
- *                 if you want the default initial size. 
+ *                 if you want the default initial size.
  * @param max_load The table is resized when the average load per bucket
  *                 exceeds this number. Pass zero if you want the default.
  * @param op       Hash table operations structure. remove_callback()
  *                 is optional and can be NULL if no action is to be taken
  *                 upon removal. equal() is optional if and only if
  *                 hash_table_insert_unique() will never be invoked.
- *                 All other operations are mandatory. 
+ *                 All other operations are mandatory.
  *
  * @return True on success
  *
@@ -209,8 +209,8 @@ void hash_table_insert(hash_table_t *h, ht_link_t *item)
  *
  * @param h    Hash table.
  * @param item Item to be inserted into the hash table.
- * 
- * @return False if such an item had already been inserted. 
+ *
+ * @return False if such an item had already been inserted.
  * @return True if the inserted item was the only item with such a lookup key.
  */
 bool hash_table_insert_unique(hash_table_t *h, ht_link_t *item)
@@ -224,8 +224,8 @@ bool hash_table_insert_unique(hash_table_t *h, ht_link_t *item)
 	
 	/* Check for duplicates. */
 	list_foreach(h->bucket[idx], link, ht_link_t, cur_link) {
-		/* 
-		 * We could filter out items using their hashes first, but 
+		/*
+		 * We could filter out items using their hashes first, but
 		 * calling equal() might very well be just as fast.
 		 */
 		if (h->op->equal(cur_link, item))
@@ -254,9 +254,9 @@ ht_link_t *hash_table_find(const hash_table_t *h, void *key)
 	size_t idx = h->op->key_hash(key) % h->bucket_cnt;
 
 	list_foreach(h->bucket[idx], link, ht_link_t, cur_link) {
-		/* 
-		 * Is this is the item we are looking for? We could have first 
-		 * checked if the hashes match but op->key_equal() may very well be 
+		/*
+		 * Is this is the item we are looking for? We could have first
+		 * checked if the hashes match but op->key_equal() may very well be
 		 * just as fast as op->hash().
 		 */
 		if (h->op->key_equal(key, cur_link)) {
@@ -277,9 +277,9 @@ ht_link_t *hash_table_find_next(const hash_table_t *h, ht_link_t *item)
 	for (link_t *cur = item->link.next; cur != &item->link; cur = cur->next) {
 		assert(cur);
 		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
-		/* 
-		 * Is this is the item we are looking for? We could have first 
-		 * checked if the hashes match but op->equal() may very well be 
+		/*
+		 * Is this is the item we are looking for? We could have first
+		 * checked if the hashes match but op->equal() may very well be
 		 * just as fast as op->hash().
 		 */
 		if (h->op->equal(cur_link, item)) {
@@ -297,7 +297,7 @@ ht_link_t *hash_table_find_next(const hash_table_t *h, ht_link_t *item)
  * @param h    Hash table.
  * @param key  Array of keys that will be compared against items of
  *             the hash table.
- * 
+ *
  * @return Returns the number of removed items.
  */
 size_t hash_table_remove(hash_table_t *h, void *key)
@@ -341,14 +341,14 @@ void hash_table_remove_item(hash_table_t *h, ht_link_t *item)
 /** Apply function to all items in hash table.
  *
  * @param h   Hash table.
- * @param f   Function to be applied. Return false if no more items 
+ * @param f   Function to be applied. Return false if no more items
  *            should be visited. The functor may only delete the supplied
- *            item. It must not delete the successor of the item passed 
+ *            item. It must not delete the successor of the item passed
  *            in the first argument.
  * @param arg Argument to be passed to the function.
  */
 void hash_table_apply(hash_table_t *h, bool (*f)(ht_link_t *, void *), void *arg)
-{	
+{
 	assert(f);
 	assert(h && h->bucket);
 	
@@ -360,8 +360,8 @@ void hash_table_apply(hash_table_t *h, bool (*f)(ht_link_t *, void *), void *arg
 	for (size_t idx = 0; idx < h->bucket_cnt; ++idx) {
 		list_foreach_safe(h->bucket[idx], cur, next) {
 			ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
-			/* 
-			 * The next pointer had already been saved. f() may safely 
+			/*
+			 * The next pointer had already been saved. f() may safely
 			 * delete cur (but not next!).
 			 */
 			if (!f(cur_link, arg))
@@ -408,8 +408,8 @@ static bool alloc_table(size_t bucket_cnt, list_t **pbuckets)
 static inline void shrink_if_needed(hash_table_t *h)
 {
 	if (h->item_cnt <= h->full_item_cnt / 4 && HT_MIN_BUCKETS < h->bucket_cnt) {
-		/* 
-		 * Keep the bucket_cnt odd (possibly also prime). 
+		/*
+		 * Keep the bucket_cnt odd (possibly also prime).
 		 * Shrink from 2n + 1 to n. Integer division discards the +1.
 		 */
 		size_t new_bucket_cnt = h->bucket_cnt / 2;
@@ -429,7 +429,7 @@ static inline void grow_if_needed(hash_table_t *h)
 }
 
 /** Allocates and rehashes items to a new table. Frees the old table. */
-static void resize(hash_table_t *h, size_t new_bucket_cnt) 
+static void resize(hash_table_t *h, size_t new_bucket_cnt)
 {
 	assert(h && h->bucket);
 	assert(HT_MIN_BUCKETS <= new_bucket_cnt);

@@ -738,7 +738,7 @@ static errno_t isa_dev_add(ddf_dev_t *dev)
 		ddf_msg(LVL_ERROR, "isa_dev_add failed to get PIO window "
 		    "for the device.");
 		return rc;
-	}	
+	}
 
 	/* Make the bus device more visible. Does not do anything. */
 	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function");

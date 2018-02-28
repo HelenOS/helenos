@@ -137,7 +137,7 @@ typedef struct {
 
 
 /**
- * Description of one field/item in report 
+ * Description of one field/item in report
  */
 typedef struct {
 	/** Bit offset of the field */
@@ -158,7 +158,7 @@ typedef struct {
 	/** Usage/Collection path of the field. */
 	usb_hid_report_path_t *collection_path;
 
-	/** 
+	/**
 	 * The lowest valid logical value (value with the device operates)
 	 */
 	int32_t logical_minimum;
@@ -207,7 +207,7 @@ typedef struct {
  * State table for report descriptor parsing
  */
 typedef struct {
-	/** report id */	
+	/** report id */
 	int32_t id;
 	
 	/** Extended usage page */
@@ -222,73 +222,73 @@ typedef struct {
 	/** Usage page*/
 	uint32_t usage_page;
 
-	/** Minimum valid usage index */	
+	/** Minimum valid usage index */
 	int32_t usage_minimum;
 	
-	/** Maximum valid usage index */	
+	/** Maximum valid usage index */
 	int32_t usage_maximum;
 	
-	/** Minimum valid logical value */	
+	/** Minimum valid logical value */
 	int32_t logical_minimum;
 	
-	/** Maximum valid logical value */	
+	/** Maximum valid logical value */
 	int32_t logical_maximum;
 
-	/** Length of the items in bits*/	
+	/** Length of the items in bits*/
 	int32_t size;
 
-	/** COunt of items*/	
+	/** COunt of items*/
 	int32_t count;
 
-	/**  Bit offset of the item in report */	
+	/**  Bit offset of the item in report */
 	size_t offset;
 
-	/** Unit exponent */	
+	/** Unit exponent */
 	int32_t unit_exponent;
-	/** Unit of the value */	
+	/** Unit of the value */
 	int32_t unit;
 
 	/** String index */
 	uint32_t string_index;
 
-	/** Minimum valid string index */	
+	/** Minimum valid string index */
 	uint32_t string_minimum;
 
-	/** Maximum valid string index */	
+	/** Maximum valid string index */
 	uint32_t string_maximum;
 
-	/** The designator index */	
+	/** The designator index */
 	uint32_t designator_index;
 
-	/** Minimum valid designator value*/	
+	/** Minimum valid designator value*/
 	uint32_t designator_minimum;
 
-	/** Maximum valid designator value*/	
+	/** Maximum valid designator value*/
 	uint32_t designator_maximum;
 
-	/** Minimal valid physical value*/	
+	/** Minimal valid physical value*/
 	int32_t physical_minimum;
 
-	/** Maximal valid physical value */	
+	/** Maximal valid physical value */
 	int32_t physical_maximum;
 
-	/** Items attributes*/	
+	/** Items attributes*/
 	uint8_t item_flags;
 
 	/** Report type */
 	usb_hid_report_type_t type;
 
-	/** current collection path*/	
+	/** current collection path*/
 	usb_hid_report_path_t *usage_path;
 
-	/** Unused*/	
+	/** Unused*/
 	link_t link;
 
 	int in_delimiter;
 } usb_hid_report_item_t;
 
 /**
- * Enum of the keyboard modifiers 
+ * Enum of the keyboard modifiers
  */
 typedef enum {
 	USB_HID_MOD_LCTRL = 0x01,
@@ -302,7 +302,7 @@ typedef enum {
 	USB_HID_MOD_COUNT = 8
 } usb_hid_modifiers_t;
 
-static const usb_hid_modifiers_t 
+static const usb_hid_modifiers_t
     usb_hid_modifiers_consts[USB_HID_MOD_COUNT] = {
 	USB_HID_MOD_LCTRL,
 	USB_HID_MOD_LSHIFT,

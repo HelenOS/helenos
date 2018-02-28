@@ -59,12 +59,12 @@ void help_cmd_printf(unsigned int level)
 }
 
 /** Print a formatted data with lib printf.
- * 
+ *
  * Currently available format flags are:
  * '%d' - integer.
  * '%u' - unsigned integer.
  * '%s' - null-terminated string.
- ***** 
+ *****
  * @param ch  formatted flag.
  * @param arg string with data to print.
  */
@@ -87,10 +87,10 @@ static int print_arg(wchar_t ch, const char* arg)
 }
 
 /** Process a control character.
- * 
+ *
  * Currently available characters are:
  * '\n' - new line.
- ***** 
+ *****
  * @param ch  Control character.
  */
 static int process_ctl(wchar_t ch)
@@ -106,7 +106,7 @@ static int process_ctl(wchar_t ch)
 }
 
 
-/** Prints formatted data. 
+/** Prints formatted data.
  *
  * Accepted format flags:
  * %d - print an integer
@@ -142,16 +142,16 @@ int cmd_printf(char **argv)
 		switch(ch) {
 
 		case '\\':
-			if (esc_flag) 
+			if (esc_flag)
 				goto emit;
 			esc_flag = true;
 			break;
 
 		case '%':
-			if (esc_flag) 
+			if (esc_flag)
 				goto emit;
 			ch = str_decode(fmt, &pos, fmt_sz);
-			if (!ch) { 
+			if (!ch) {
 				putchar('%');
 				break;
 			}
@@ -169,14 +169,14 @@ int cmd_printf(char **argv)
 				esc_flag = false;
 				break;
 			}
-			putchar(ch);	
+			putchar(ch);
 			break;
 
 		emit:
 			putchar(ch);
 			esc_flag = false;
 		}
-	}	
+	}
 
 	return CMD_SUCCESS;
 }

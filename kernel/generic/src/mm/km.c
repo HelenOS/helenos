@@ -52,7 +52,7 @@
 
 static ra_arena_t *km_ni_arena;
 
-#define DEFERRED_PAGES_MAX	(PAGE_SIZE / sizeof(uintptr_t)) 
+#define DEFERRED_PAGES_MAX	(PAGE_SIZE / sizeof(uintptr_t))
 
 /** Number of freed pages in the deferred buffer. */
 static volatile unsigned deferred_pages;
@@ -187,9 +187,9 @@ static void km_unmap_aligned(uintptr_t vaddr, size_t size)
 uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
 {
 	uintptr_t page;
-	size_t offs; 
+	size_t offs;
 
-	offs = paddr - ALIGN_DOWN(paddr, FRAME_SIZE); 
+	offs = paddr - ALIGN_DOWN(paddr, FRAME_SIZE);
 	page = km_map_aligned(ALIGN_DOWN(paddr, FRAME_SIZE),
 	    ALIGN_UP(size + offs, FRAME_SIZE), flags);
 
@@ -204,9 +204,9 @@ uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
  */
 void km_unmap(uintptr_t vaddr, size_t size)
 {
-	size_t offs; 
+	size_t offs;
 
-	offs = vaddr - ALIGN_DOWN(vaddr, PAGE_SIZE); 
+	offs = vaddr - ALIGN_DOWN(vaddr, PAGE_SIZE);
 	km_unmap_aligned(ALIGN_DOWN(vaddr, PAGE_SIZE),
 	    ALIGN_UP(size + offs, PAGE_SIZE));
 }
@@ -257,7 +257,7 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 	if (frame) {
 		page = km_map(frame, PAGE_SIZE,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
-		if (!page) {	
+		if (!page) {
 			frame_free(frame, 1);
 			goto lowmem;
 		}

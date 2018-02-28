@@ -40,31 +40,31 @@
 #include <compiler/barrier.h>
 
 
-/** Use to assign a pointer to newly initialized data to a rcu reader 
+/** Use to assign a pointer to newly initialized data to a rcu reader
  * accessible pointer.
- * 
+ *
  * Example:
  * @code
  * typedef struct exam {
  *     struct exam *next;
  *     int grade;
  * } exam_t;
- * 
+ *
  * exam_t *exam_list;
  * // ..
- * 
+ *
  * // Insert at the beginning of the list.
  * exam_t *my_exam = malloc(sizeof(exam_t), 0);
  * my_exam->grade = 5;
  * my_exam->next = exam_list;
  * rcu_assign(exam_list, my_exam);
- * 
+ *
  * // Changes properly propagate. Every reader either sees
  * // the old version of exam_list or the new version with
  * // the fully initialized my_exam.
  * rcu_synchronize();
  * // Now we can be sure every reader sees my_exam.
- * 
+ *
  * @endcode
  */
 #define rcu_assign(ptr, value) \
@@ -74,15 +74,15 @@
 	} while (0)
 
 /** Use to access RCU protected data in a reader section.
- * 
+ *
  * Example:
  * @code
  * exam_t *exam_list;
  * // ...
- * 
+ *
  * rcu_read_lock();
  * exam_t *first_exam = rcu_access(exam_list);
- * // We can now safely use first_exam, it won't change 
+ * // We can now safely use first_exam, it won't change
  * // under us while we're using it.
  *
  * // ..
@@ -130,8 +130,8 @@ extern void _rcu_synchronize(bool expedite);
 /* Fwd. decl. because of inlining. */
 void _rcu_preempted_unlock(void);
 
-/** Delimits the start of an RCU reader critical section. 
- * 
+/** Delimits the start of an RCU reader critical section.
+ *
  * Reader sections may be nested and are preemptible. You must not
  * however block/sleep within reader sections.
  */
@@ -164,14 +164,14 @@ static inline void _rcu_record_qs(void)
 {
 	assert(PREEMPTION_DISABLED || interrupts_disabled());
 	
-	/* 
-	 * A new GP was started since the last time we passed a QS. 
+	/*
+	 * A new GP was started since the last time we passed a QS.
 	 * Notify the detector we have reached a new QS.
 	 */
 	if (CPU->rcu.last_seen_gp != _rcu_cur_gp) {
 		rcu_gp_t cur_gp = ACCESS_ONCE(_rcu_cur_gp);
-		/* 
-		 * Contain memory accesses within a reader critical section. 
+		/*
+		 * Contain memory accesses within a reader critical section.
 		 * If we are in rcu_lock() it also makes changes prior to the
 		 * start of the GP visible in the reader section.
 		 */
@@ -179,29 +179,29 @@ static inline void _rcu_record_qs(void)
 		/*
 		 * Acknowledge we passed a QS since the beginning of rcu.cur_gp.
 		 * Cache coherency will lazily transport the value to the
-		 * detector while it sleeps in gp_sleep(). 
-		 * 
+		 * detector while it sleeps in gp_sleep().
+		 *
 		 * Note that there is a theoretical possibility that we
-		 * overwrite a more recent/greater last_seen_gp here with 
+		 * overwrite a more recent/greater last_seen_gp here with
 		 * an older/smaller value. If this cpu is interrupted here
-		 * while in rcu_lock() reader sections in the interrupt handler 
-		 * will update last_seen_gp to the same value as is currently 
-		 * in local cur_gp. However, if the cpu continues processing 
-		 * interrupts and the detector starts a new GP immediately, 
-		 * local interrupt handlers may update last_seen_gp again (ie 
-		 * properly ack the new GP) with a value greater than local cur_gp. 
-		 * Resetting last_seen_gp to a previous value here is however 
-		 * benign and we only have to remember that this reader may end up 
+		 * while in rcu_lock() reader sections in the interrupt handler
+		 * will update last_seen_gp to the same value as is currently
+		 * in local cur_gp. However, if the cpu continues processing
+		 * interrupts and the detector starts a new GP immediately,
+		 * local interrupt handlers may update last_seen_gp again (ie
+		 * properly ack the new GP) with a value greater than local cur_gp.
+		 * Resetting last_seen_gp to a previous value here is however
+		 * benign and we only have to remember that this reader may end up
 		 * in cur_preempted even after the GP ends. That is why we
-		 * append next_preempted to cur_preempted rather than overwriting 
+		 * append next_preempted to cur_preempted rather than overwriting
 		 * it as if cur_preempted were empty.
 		 */
 		CPU->rcu.last_seen_gp = cur_gp;
 	}
 }
 
-/** Delimits the start of an RCU reader critical section. 
- * 
+/** Delimits the start of an RCU reader critical section.
+ *
  * Reader sections may be nested and are preemptable. You must not
  * however block/sleep within reader sections.
  */
@@ -228,9 +228,9 @@ static inline void rcu_read_unlock(void)
 	if (0 == --CPU->rcu.nesting_cnt) {
 		_rcu_record_qs();
 		
-		/* 
-		 * The thread was preempted while in a critical section or 
-		 * the detector is eagerly waiting for this cpu's reader to finish. 
+		/*
+		 * The thread was preempted while in a critical section or
+		 * the detector is eagerly waiting for this cpu's reader to finish.
 		 */
 		if (CPU->rcu.signal_unlock) {
 			/* Rechecks with disabled interrupts. */

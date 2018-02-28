@@ -185,7 +185,7 @@ static bool create_fibril(errno_t (*func)(void*), void *arg)
 
 /*--------------------------------------------------------------------*/
 
-static bool run_tests(test_info_t *info, bool (*include_filter)(test_desc_t *)) 
+static bool run_tests(test_info_t *info, bool (*include_filter)(test_desc_t *))
 {
 	size_t failed_cnt = 0;
 	size_t ok_cnt = 0;
@@ -213,7 +213,7 @@ static bool run_tests(test_info_t *info, bool (*include_filter)(test_desc_t *))
 
 	if (failed_cnt) {
 		printf("%zu tests failed\n", failed_cnt);
-	} 
+	}
 	
 	return 0 == failed_cnt;
 }
@@ -363,8 +363,8 @@ static bool wait_for_one_reader(test_info_t *test_info)
 	
 	if (!info.exited_cs || info.failed) {
 		printf("Error: rcu_sync() returned before the reader exited its CS.\n");
-		/* 
-		 * Sleep some more so we don't free info on stack while the reader 
+		/*
+		 * Sleep some more so we don't free info on stack while the reader
 		 * is using it.
 		 */
 		/* 1.5 sec */
@@ -439,7 +439,7 @@ static errno_t new_reader(two_reader_info_t *arg)
 		async_usleep(WAIT_STEP_US);
 	}
 	
-	/* 
+	/*
 	 * synching is set when rcu_sync() is about to be entered so wait
 	 * some more to make sure it really does start executing.
 	 */
@@ -458,8 +458,8 @@ static errno_t new_reader(two_reader_info_t *arg)
 	/* Write new_exited_cs before exiting reader section. */
 	memory_barrier();
 	
-	/* 
-	 * Preexisting reader should have exited by now, so rcu_synchronize() 
+	/*
+	 * Preexisting reader should have exited by now, so rcu_synchronize()
 	 * must have returned.
 	 */
 	if (!arg->old_exited_cs) {
@@ -528,8 +528,8 @@ static bool dont_wait_for_new_reader(test_info_t *test_info)
 	}
 	
 	if (info.failed) {
-		/* 
-		 * Sleep some more so we don't free info on stack while readers 
+		/*
+		 * Sleep some more so we don't free info on stack while readers
 		 * are using it.
 		 */
 		async_usleep(WAIT_STEP_US);
@@ -607,7 +607,7 @@ static bool wait_for_exiting_reader(test_info_t *test_info)
 	if (!info.exited_cs) {
 		printf("Error: rcu_deregister_fibril did not unlock the CS.\n");
 		return false;
-	}	
+	}
 	
 	return true;
 }
@@ -671,7 +671,7 @@ static errno_t seq_reader(seq_test_info_t *arg)
 			fibril_yield();
 		}
 		
-		/* 
+		/*
 		 * Check if the most recently started rcu_sync of the already
 		 * finished rcu_syncs did not happen to start after this reader
 		 * and, therefore, should have waited for this reader to exit
@@ -712,8 +712,8 @@ static errno_t seq_updater(seq_test_info_t *arg)
 
 static bool seq_test(test_info_t *test_info)
 {
-	size_t reader_cnt = test_info->thread_cnt; 
-	size_t updater_cnt = test_info->thread_cnt; 
+	size_t reader_cnt = test_info->thread_cnt;
+	size_t updater_cnt = test_info->thread_cnt;
 		
 	seq_test_info_t info = {
 		.time = {0},
@@ -819,7 +819,7 @@ static void list_tests(void)
 	for (size_t i = 0; i < test_desc_cnt; ++i) {
 		test_desc_t *t = &test_desc[i];
 		
-		if (!t->func) 
+		if (!t->func)
 			continue;
 		
 		const char *type = "";
@@ -869,7 +869,7 @@ static bool parse_cmd_line(int argc, char **argv, test_info_t *info)
 		} else {
 			info->thread_cnt = 1;
 			printf("Err: Invalid number of threads '%s'; using 1.\n", argv[2]);
-		} 
+		}
 	} else {
 		info->thread_cnt = 1;
 	}

@@ -38,7 +38,7 @@ import types
 integer_types = (int, long) if sys.version < '3' else (int,)
 
 # Ensure that 's' format for struct receives correct data type depending
-# on Python version (needed due to different way to encode into bytes) 
+# on Python version (needed due to different way to encode into bytes)
 ensure_string = \
 	(lambda value: value if type(value) is str else bytes(value)) \
 		if sys.version < '3' else \
@@ -65,7 +65,7 @@ def check_range(varname, fmt, value):
 		raise ValueError('Variable "%s" is %s but should be %s' %
 		                 (varname, str(type(value)), str(vartype)))
 	if value < varmin or value > varmax:
-		raise ValueError('Variable "%s" value %s out of range %s..%s' % 
+		raise ValueError('Variable "%s" value %s out of range %s..%s' %
 		                 (varname, repr(value), repr(varmin), repr(varmax)))
 
 class Struct:
@@ -87,7 +87,7 @@ class Struct:
 				if (fmt == "s"):
 					value = ensure_string(value)
 				check_range(variable, fmt, value)
-				args.append(value)		
+				args.append(value)
 		return struct.pack(self._format_, *args)
 	
 	def unpack(self, data):

@@ -122,7 +122,7 @@ void ppc32_pre_mm_init(void)
 
 	cpu_node = cpus_node->child;
 	if (!cpu_node)
-		panic("Could not find first cpu.");	
+		panic("Could not find first cpu.");
 
 	freq_prop = ofw_tree_getprop(cpu_node, "timebase-frequency");
 	if (!freq_prop)

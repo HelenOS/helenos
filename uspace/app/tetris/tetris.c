@@ -173,7 +173,7 @@ static void srandomdev(void)
 	srand(tv.tv_sec + tv.tv_usec / 100000);
 }
 
-static void tetris_menu_draw(int level) 
+static void tetris_menu_draw(int level)
 {
 	clear_screen();
 	moveto(5, 10);

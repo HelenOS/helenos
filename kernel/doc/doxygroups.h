@@ -106,14 +106,14 @@
  	
 	/**
 	 * @cond amd64
-	 * @defgroup amd64mm amd64	
+	 * @defgroup amd64mm amd64
 	 * @ingroup mm
 	 * @endcond
 	 */
 	 
 	/**
 	 * @cond arm32
-	 * @defgroup arm32mm arm32	
+	 * @defgroup arm32mm arm32
 	 * @ingroup mm
 	 * @endcond
 	 */
@@ -127,7 +127,7 @@
 	
 	/**
 	 * @cond ia64
-	 * @defgroup ia64mm ia64	
+	 * @defgroup ia64mm ia64
 	 * @ingroup mm
 	 * @endcond
 	 */
@@ -148,14 +148,14 @@
 	
 	/**
 	 * @cond ppc64
-	 * @defgroup ppc64mm ppc64	
+	 * @defgroup ppc64mm ppc64
 	 * @ingroup mm
 	 * @endcond
 	 */
 	
 	/**
 	 * @cond sparc64
-	 * @defgroup sparc64mm sparc64	
+	 * @defgroup sparc64mm sparc64
 	 * @ingroup mm
 	 * @endcond
 	 */
@@ -368,7 +368,7 @@
 /** @defgroup others Miscellanea
  * @ingroup kernel
  */
-	/** @defgroup generic generic	
+	/** @defgroup generic generic
 	* @ingroup others
 	*/
 

@@ -151,4 +151,4 @@ static errno_t kbd_port_fibril(void *arg)
 
 /**
  * @}
- */ 
+ */

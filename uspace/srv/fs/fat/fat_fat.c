@@ -519,7 +519,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 			block_put(b);
 			return rc;
 		}
-	} else 
+	} else
 		((uint8_t *) b->data)[(offset % BPS(bs)) + 1] = byte2;
 
 	b->dirty = true;	/* need to sync block */
@@ -965,7 +965,7 @@ errno_t fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
 		 * Check that remaining bits of the first two entries are
 		 * set to one.
 		 */
-		if (!FAT_IS_FAT12(bs) && 
+		if (!FAT_IS_FAT12(bs) &&
 		    ((e0 >> 8) != (FAT_MASK(bs) >> 8) || e1 != FAT_MASK(bs)))
 			return ENOTSUP;
 	}

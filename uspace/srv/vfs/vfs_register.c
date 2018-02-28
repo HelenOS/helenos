@@ -98,7 +98,7 @@ static bool vfs_info_sane(vfs_info_t *info)
 	 * NULL-terminated, even if FS_NAME_MAXLEN characters are used.
 	 */
 	if (info->name[i] != '\0') {
-		dprintf("The name is not properly NULL-terminated.\n");	
+		dprintf("The name is not properly NULL-terminated.\n");
 		return false;
 	}
 	
@@ -330,7 +330,7 @@ vfs_info_t *fs_handle_to_info(fs_handle_t handle)
 	
 	fibril_mutex_lock(&fs_list_lock);
 	list_foreach(fs_list, fs_link, fs_info_t, fs) {
-		if (fs->fs_handle == handle) { 
+		if (fs->fs_handle == handle) {
 			info = &fs->vfs_info;
 			break;
 		}

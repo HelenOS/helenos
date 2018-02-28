@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -208,7 +208,7 @@ void scr_init(ofw_tree_node_t *node)
 		}
 		
 		break;
-	case SCR_FFB:	
+	case SCR_FFB:
 		fb_scanline = 8192;
 		visual = VISUAL_BGR_0_8_8_8;
 

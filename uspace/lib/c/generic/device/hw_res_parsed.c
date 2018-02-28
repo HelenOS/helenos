@@ -267,7 +267,7 @@ errno_t hw_res_get_list_parsed(async_sess_t *sess,
 
 	rc = pio_window_get(sess, &pio_window);
 	if (rc != EOK)
-		return rc; 
+		return rc;
 	
 	rc = hw_res_get_resource_list(sess, &hw_resources);
 	if (rc != EOK)

@@ -545,16 +545,16 @@ restart:
 }
 
 /** Interrupts an existing thread so that it may exit as soon as possible.
- * 
- * Threads that are blocked waiting for a synchronization primitive 
+ *
+ * Threads that are blocked waiting for a synchronization primitive
  * are woken up with a return code of EINTR if the
  * blocking call was interruptable. See waitq_sleep_timeout().
- * 
+ *
  * The caller must guarantee the thread object is valid during the entire
  * function, eg by holding the threads_lock lock.
- * 
+ *
  * Interrupted threads automatically exit when returning back to user space.
- * 
+ *
  * @param thread A valid thread object. The caller must guarantee it
  *               will remain valid until thread_interrupt() exits.
  */
@@ -574,7 +574,7 @@ void thread_interrupt(thread_t *thread)
 }
 
 /** Returns true if the thread was interrupted.
- * 
+ *
  * @param thread A valid thread object. User must guarantee it will
  *               be alive during the entire call.
  * @return true if the thread was already interrupted via thread_interrupt().
@@ -692,7 +692,7 @@ void thread_detach(thread_t *thread)
  *
  * @param usec Number of microseconds to sleep.
  *
- */	
+ */
 void thread_usleep(uint32_t usec)
 {
 	waitq_t wq;

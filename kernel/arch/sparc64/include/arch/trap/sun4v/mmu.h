@@ -74,7 +74,7 @@
 .macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
 	mov TT_FAST_INSTRUCTION_ACCESS_MMU_MISS, %g2
 	clr %g5		! XXX
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 
 /*
@@ -178,7 +178,7 @@
 	/* the same as for FAST_DATA_ACCESS_MMU_MISS_HANDLER */
 	or %g1, %g3, %g5
 
-	PREEMPTIBLE_HANDLER exc_dispatch 
+	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 #endif /* __ASM__ */
 

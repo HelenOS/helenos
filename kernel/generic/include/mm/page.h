@@ -41,7 +41,7 @@
 #include <arch/mm/page.h>
 
 #define P2SZ(pages) \
-	((pages) << PAGE_WIDTH)	
+	((pages) << PAGE_WIDTH)
 
 /** Operations to manipulate page mappings. */
 typedef struct {

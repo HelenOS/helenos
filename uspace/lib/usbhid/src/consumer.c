@@ -325,7 +325,7 @@ static const char *usbhid_consumer_usage_str[] = {
 	[0x11d] = "Reserved",
 	[0x11e] = "Reserved",
 	[0x11f] = "Reserved",
-	[0x120] = "Reserved", 
+	[0x120] = "Reserved",
 	[0x121] = "Reserved",
 	[0x122] = "Reserved",
 	[0x123] = "Reserved",
@@ -341,7 +341,7 @@ static const char *usbhid_consumer_usage_str[] = {
 	[0x12d] = "Reserved",
 	[0x12e] = "Reserved",
 	[0x12f] = "Reserved",
-	[0x130] = "Reserved", 
+	[0x130] = "Reserved",
 	[0x131] = "Reserved",
 	[0x132] = "Reserved",
 	[0x133] = "Reserved",
@@ -709,11 +709,11 @@ static const char *usbhid_consumer_usage_str[] = {
 };
 
 /**
- * Translates USB HID Usages from the Consumer Page into their string 
+ * Translates USB HID Usages from the Consumer Page into their string
  * representation.
  *
  * @param usage USB HID Consumer Page Usage number.
- * 
+ *
  * @retval HelenOS key code corresponding to the given USB Consumer Page Usage.
  */
 const char *usbhid_multimedia_usage_to_str(unsigned usage)

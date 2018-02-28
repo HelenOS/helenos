@@ -186,7 +186,7 @@ errno_t nic_wol_virtues_add(nic_wol_virtues_t *wvs, nic_wol_virtue_t *virtue)
  */
 nic_wol_virtue_t *nic_wol_virtues_remove(nic_wol_virtues_t *wvs, nic_wv_id_t id)
 {
-	nic_wol_virtue_t *virtue = 
+	nic_wol_virtue_t *virtue =
 		(nic_wol_virtue_t *) hash_table_find(&wvs->table, &id);
 	if (virtue == NULL) {
 		return NULL;

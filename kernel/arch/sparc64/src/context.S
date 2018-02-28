@@ -31,7 +31,7 @@
 #include <arch/arch.h>
 #include <arch/regdef.h>
 
-.text   
+.text
 
 /*
  * context_save_arch() is required not to create its own stack frame. See the

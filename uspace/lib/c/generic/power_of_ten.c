@@ -38,7 +38,7 @@
  *   10^dec_exp == significand * 2^bin_exp  +/- 0.5 ulp error
  *
  * The smallest interval of binary exponents computed by hand
- * is [-1083, 987]. Add 200 (exponent change > 3 * 64 bits) 
+ * is [-1083, 987]. Add 200 (exponent change > 3 * 64 bits)
  * to both bounds just to be on the safe side; ie [-1283, 1187].
  */
 static struct {
@@ -143,11 +143,11 @@ static struct {
 };
 
 
-/** 
- * Returns the smallest precomputed power of 10 such that 
+/**
+ * Returns the smallest precomputed power of 10 such that
  *  binary_exp <= power_of_10.bin_exp
  * where
- *  10^decimal_exp = power_of_10.significand * 2^bin_exp 
+ *  10^decimal_exp = power_of_10.significand * 2^bin_exp
  * with an error of 0.5 ulp in the significand.
  */
 void get_power_of_ten(int binary_exp, fp_num_t *power_of_10, int *decimal_exp)
@@ -159,12 +159,12 @@ void get_power_of_ten(int binary_exp, fp_num_t *power_of_10, int *decimal_exp)
 
 	assert(min_bin_exp <= binary_exp && binary_exp <= max_bin_exp);
 
-	/* 
-	 * Binary exponent difference between adjacent powers of 10 
+	/*
+	 * Binary exponent difference between adjacent powers of 10
 	 * is lg(10^8) = 26.575. The starting search index seed_idx
 	 * undershoots the actual position by less than 1.6%, ie it
 	 * skips 26.575/27 = 98.4% of all the smaller powers. This
-	 * translates to at most three extra tests. 
+	 * translates to at most three extra tests.
 	 */
 	int seed_idx = (binary_exp - min_bin_exp) / max_bin_exp_diff;
 

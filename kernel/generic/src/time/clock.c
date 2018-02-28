@@ -74,7 +74,7 @@ static sysarg_t secfrag = 0;
 /** Initialize realtime clock counter
  *
  * The applications (and sometimes kernel) need to access accurate
- * information about realtime data. We allocate 1 page with these 
+ * information about realtime data. We allocate 1 page with these
  * data and update it periodically.
  *
  */

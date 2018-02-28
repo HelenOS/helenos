@@ -154,7 +154,7 @@ while [ $COUNTER -lt $LOOPS ]; do
 	if [ -e Makefile.config ]; then
 		cp Makefile.config "$FILENAME_PREFIX$COUNTER.Makefile.config"
 		cp config.h "$FILENAME_PREFIX$COUNTER.config.h"
-	fi	
+	fi
 done
 
 rm "$PRUNE_CONFIG_FILE"

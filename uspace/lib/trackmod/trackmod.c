@@ -328,7 +328,7 @@ static void trackmod_effect_pattern_break(trackmod_modplay_t *modplay,
 	row = (param >> 4) * 10 + (param & 0xf);
 
 	next_idx = trackmod_get_next_ord_idx(modplay);
-	next_pat = &modplay->module->pattern[next_idx]; 
+	next_pat = &modplay->module->pattern[next_idx];
 
 	modplay->pat_break = true;
 	modplay->pat_break_row = row % next_pat->rows;

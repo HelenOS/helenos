@@ -62,7 +62,7 @@
  *
  * - functions that operate on integer file handles, such as:
  *   vfs_walk(), vfs_open(), vfs_read(), vfs_link(), ...
- *  
+ *
  * - functions that operate on paths, such as:
  *   vfs_lookup(), vfs_link_path(), vfs_unlink_path(), vfs_rename_path(), ...
  *
@@ -1078,7 +1078,7 @@ errno_t vfs_stat(int file, vfs_stat_t *stat)
 	return rc;
 }
 
-/** Get file information 
+/** Get file information
  *
  * @param path          File path to get information about
  * @param[out] stat     Place to store file information
@@ -1142,7 +1142,7 @@ errno_t vfs_statfs_path(const char *path, vfs_statfs_t *st)
 
 	vfs_put(file);
 
-	return rc; 
+	return rc;
 }
 
 /** Synchronize file

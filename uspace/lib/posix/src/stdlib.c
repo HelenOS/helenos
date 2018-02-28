@@ -50,7 +50,7 @@
 #include "libc/stats.h"
 
 /**
- * 
+ *
  * @param array
  * @param count
  * @param size
@@ -65,7 +65,7 @@ int atexit(void (*func)(void))
 
 /**
  * Integer absolute value.
- * 
+ *
  * @param i Input value.
  * @return Absolute value of the parameter.
  */
@@ -76,7 +76,7 @@ int abs(int i)
 
 /**
  * Long integer absolute value.
- * 
+ *
  * @param i Input value.
  * @return Absolute value of the parameter.
  */
@@ -87,7 +87,7 @@ long labs(long i)
 
 /**
  * Long long integer absolute value.
- * 
+ *
  * @param i Input value.
  * @return Absolute value of the parameter.
  */
@@ -183,7 +183,7 @@ char *getenv(const char *name)
 }
 
 /**
- * 
+ *
  * @param name
  * @param resolved
  * @return
@@ -211,7 +211,7 @@ int system(const char *string) {
 
 /**
  * Resolve absolute pathname.
- * 
+ *
  * @param name Pathname to be resolved.
  * @param resolved Either buffer for the resolved absolute pathname or NULL.
  * @return On success, either resolved (if it was not NULL) or pointer to the

@@ -262,7 +262,7 @@ SYMBOL(int_\i)
 
 SYMBOL(interrupt_handlers)
 .irp cnt, LIST_0_63
-	handler \cnt 
+	handler \cnt
 .endr
 
 /** Low-level syscall handler
@@ -306,7 +306,7 @@ SYMBOL(syscall_entry)
 	movq %rbx, ISTATE_OFFSET_RBX(%rsp)  /* observability */
 	movq %rcx, ISTATE_OFFSET_RCX(%rsp)  /* userspace RIP */
 	movq %rdx, ISTATE_OFFSET_RDX(%rsp)  /* 3rd argument, observability */
-	movq %rsi, ISTATE_OFFSET_RSI(%rsp)  /* 2nd argument, observability */ 
+	movq %rsi, ISTATE_OFFSET_RSI(%rsp)  /* 2nd argument, observability */
 	movq %rdi, ISTATE_OFFSET_RDI(%rsp)  /* 1st argument, observability */
 	movq %rbp, ISTATE_OFFSET_RBP(%rsp)  /* need to preserve userspace RBP */
 	movq %r8, ISTATE_OFFSET_R8(%rsp)    /* 5th argument, observability */
@@ -360,7 +360,7 @@ SYMBOL(syscall_entry)
 	 * of the saved return address (two bytes at offset 6).
 	 */
 	testw $0xffff, ISTATE_OFFSET_RIP+6(%rsp)
-	jnz bad_rip 
+	jnz bad_rip
 
 	cli
 	

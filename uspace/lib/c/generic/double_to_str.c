@@ -102,7 +102,7 @@ static fp_num_t multiply(fp_num_t x, fp_num_t y)
 	ac = a * c;
 
 	/* Denote 32 bit parts of x a y as: x == a b, y == c d. Then:
-	 *        a  b    
+	 *        a  b
 	 *  *     c  d
 	 *  ----------
 	 *       ad bd .. multiplication of 32bit parts results in 64bit parts
@@ -125,7 +125,7 @@ static fp_num_t multiply(fp_num_t x, fp_num_t y)
 	ret.significand = ac + (bc >> 32) + (ad >> 32) + (tmp >> 32);
 	ret.exponent = x.exponent + y.exponent + significand_width;
 	
-	return ret;			
+	return ret;
 }
 
 
@@ -145,12 +145,12 @@ static fp_num_t subtract(fp_num_t a, fp_num_t b)
 
 
 /** Returns the interval [low, high] of numbers that convert to binary val. */
-static void get_normalized_bounds(ieee_double_t val, fp_num_t *high, 
+static void get_normalized_bounds(ieee_double_t val, fp_num_t *high,
 	fp_num_t *low, fp_num_t *val_dist)
 {
-	/* 
+	/*
 	 * Only works if val comes directly from extract_ieee_double without
-	 * being manipulated in any way (eg it must not be normalized). 
+	 * being manipulated in any way (eg it must not be normalized).
 	 */
 	assert(!is_normalized(val.pos_val));
 
@@ -172,23 +172,23 @@ static void get_normalized_bounds(ieee_double_t val, fp_num_t *high,
 
 	*high = normalize(*high);
 
-	/* 
+	/*
 	 * Lower bound may not be normalized if subtracting 1 unit
-	 * reset the most-significant bit to 0. 
+	 * reset the most-significant bit to 0.
 	 */
 	low->significand = low->significand << (low->exponent - high->exponent);
 	low->exponent = high->exponent;
 
-	val_dist->significand = 
+	val_dist->significand =
 		val_dist->significand << (val_dist->exponent - high->exponent);
 	val_dist->exponent = high->exponent;
 }
 
-/** Determines the interval of numbers that have the binary representation 
+/** Determines the interval of numbers that have the binary representation
  *  of val.
- * 
+ *
  * Numbers in the range [scaled_upper_bound - bounds_delta, scaled_upper_bound]
- * have the same double binary representation as val. 
+ * have the same double binary representation as val.
  *
  * Bounds are scaled by 10^scale so that alpha <= exponent <= gamma.
  * Moreover, scaled_upper_bound is normalized.
@@ -196,7 +196,7 @@ static void get_normalized_bounds(ieee_double_t val, fp_num_t *high,
  * val_dist is the scaled distance from val to the upper bound, ie
  * val_dist == (upper_bound - val) * 10^scale
  */
-static void calc_scaled_bounds(ieee_double_t val, fp_num_t *scaled_upper_bound, 
+static void calc_scaled_bounds(ieee_double_t val, fp_num_t *scaled_upper_bound,
 	fp_num_t *bounds_delta, fp_num_t *val_dist, int *scale)
 {
 	fp_num_t upper_bound, lower_bound;
@@ -207,9 +207,9 @@ static void calc_scaled_bounds(ieee_double_t val, fp_num_t *scaled_upper_bound,
 	assert(is_normalized(upper_bound));
 	assert(normalize(val.pos_val).exponent == upper_bound.exponent);
 
-	/* 
+	/*
 	 * Find such a cached normalized power of 10 that if multiplied
-	 * by upper_bound the binary exponent of upper_bound almost vanishes, 
+	 * by upper_bound the binary exponent of upper_bound almost vanishes,
 	 * ie:
 	 *   upper_scaled := upper_bound * 10^scale
 	 *   alpha <= upper_scaled.exponent <= gamma
@@ -230,15 +230,15 @@ static void calc_scaled_bounds(ieee_double_t val, fp_num_t *scaled_upper_bound,
 
 	assert(alpha <= upper_scaled.exponent && upper_scaled.exponent <= gamma);
 
-	/* 
+	/*
 	 * Any value between lower and upper bound would be represented
 	 * in binary as the double val originated from. The bounds were
-	 * however scaled by an imprecise power of 10 (error less than 
-	 * 1 ulp) so the scaled bounds have an error of less than 1 ulp. 
-	 * Conservatively round the lower bound up and the upper bound 
+	 * however scaled by an imprecise power of 10 (error less than
+	 * 1 ulp) so the scaled bounds have an error of less than 1 ulp.
+	 * Conservatively round the lower bound up and the upper bound
 	 * down by 1 ulp just to be on the safe side. It avoids pronouncing
 	 * produced decimal digits as correct if such a decimal number
-	 * is close to the bounds to within 1 ulp. 
+	 * is close to the bounds to within 1 ulp.
 	 */
 	upper_scaled.significand -= 1;
 	lower_scaled.significand += 1;
@@ -262,12 +262,12 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
 	 *  ` lower
 	 *
 	 * delta = upper - lower .. conservative/safe interval
-	 * w_dist = upper - w    
+	 * w_dist = upper - w
 	 * upper = "number represented by digits in buf" + rest
-	 * 
-	 * Changing buf[len - 1] changes the value represented by buf 
+	 *
+	 * Changing buf[len - 1] changes the value represented by buf
 	 * by digit_val_diff * scaling, where scaling is shared by
-	 * all parameters. 
+	 * all parameters.
 	 *
 	 */
 
@@ -276,10 +276,10 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
 	/* Rounding down by one would keep buf in between bounds (in safe rng). */
 	bool next_in_val_rng = cur_greater_w && (rest + digit_val_diff < delta);
 	/* Rounding down by one would bring buf closer to the processed number. */
-	bool next_closer = next_in_val_rng 
+	bool next_closer = next_in_val_rng
 		&& (rest + digit_val_diff < w_dist || rest - w_dist < w_dist - rest);
 
-	/* Of the shortest strings pick the one that is closest to the actual 
+	/* Of the shortest strings pick the one that is closest to the actual
 	   floating point number. */
 	while (next_closer) {
 		assert('0' < buf[len - 1]);
@@ -290,7 +290,7 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
 
 		cur_greater_w = rest < w_dist;
 		next_in_val_rng = cur_greater_w && (rest + digit_val_diff < delta);
-		next_closer = next_in_val_rng 
+		next_closer = next_in_val_rng
 			&& (rest + digit_val_diff < w_dist || rest - w_dist < w_dist - rest);
 	}
 }
@@ -298,13 +298,13 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
 
 /** Generates the shortest accurate decimal string representation.
  *
- * Outputs (mostly) the shortest accurate string representation 
+ * Outputs (mostly) the shortest accurate string representation
  * for the number scaled_upper - val_dist. Numbers in the interval
  * [scaled_upper - delta, scaled_upper] have the same binary
  * floating point representation and will therefore share the
  * shortest string representation (up to the rounding of the last
  * digit to bring the shortest string also the closest to the
- * actual number). 
+ * actual number).
  *
  * @param scaled_upper Scaled upper bound of numbers that have the
  *              same binary representation as the converted number.
@@ -314,21 +314,21 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
  * @param val_dist scaled_upper - val_dist is the number whose
  *              decimal string we're generating.
  * @param scale Decimal scaling of the value to convert (ie scaled_upper).
- * @param buf   Buffer to store the string representation. Must be large 
+ * @param buf   Buffer to store the string representation. Must be large
  *              enough to store all digits and a null terminator. At most
  *              MAX_DOUBLE_STR_LEN digits will be written (not counting
  *              the null terminator).
- * @param buf_size Size of buf in bytes. 
- * @param dec_exponent Will be set to the decimal exponent of the number 
+ * @param buf_size Size of buf in bytes.
+ * @param dec_exponent Will be set to the decimal exponent of the number
  *              string in buf.
  *
  * @return Number of digits; negative on failure (eg buffer too small).
  */
-static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta, 
+static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 	fp_num_t val_dist, int scale, char *buf, size_t buf_size, int *dec_exponent)
 {
-	/* 
-	 * The integral part of scaled_upper is 5 to 32 bits long while 
+	/*
+	 * The integral part of scaled_upper is 5 to 32 bits long while
 	 * the remaining fractional part is 59 to 32 bits long because:
 	 * -59 == alpha <= scaled_upper.e <= gamma == -32
 	 *
@@ -340,7 +340,7 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 	 *  |    ` val                ` upper
 	 *  ` lower
 	 *
-	 */ 
+	 */
 	assert(scaled_upper.significand != 0);
 	assert(alpha <= scaled_upper.exponent && scaled_upper.exponent <= gamma);
 	assert(scaled_upper.exponent == delta.exponent);
@@ -358,21 +358,21 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 	one.exponent = scaled_upper.exponent;
 
 	/*
-	 * Extract the integral part of scaled_upper. 
-	 *  upper / one == upper >> -one.e 
+	 * Extract the integral part of scaled_upper.
+	 *  upper / one == upper >> -one.e
 	 */
 	uint32_t int_part = (uint32_t)(scaled_upper.significand >> (-one.exponent));
 	
-	/* 
+	/*
 	 * Fractional part of scaled_upper.
-	 *  upper % one == upper & (one.f - 1) 
+	 *  upper % one == upper & (one.f - 1)
 	 */
 	uint64_t frac_part = scaled_upper.significand & (one.significand - 1);
 
 	/*
-	 * The integral part of upper has at least 5 bits (64 + alpha) and 
-	 * at most 32 bits (64 + gamma). The integral part has at most 10 
-	 * decimal digits, so kappa <= 10. 
+	 * The integral part of upper has at least 5 bits (64 + alpha) and
+	 * at most 32 bits (64 + gamma). The integral part has at most 10
+	 * decimal digits, so kappa <= 10.
 	 */
 	int kappa = 10;
 	uint32_t div = 1000000000;
@@ -396,9 +396,9 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 			}
 		}
 
-		/* 
+		/*
 		 * Difference between the so far produced decimal number and upper
-		 * is calculated as: remaining_int_part * one + frac_part 
+		 * is calculated as: remaining_int_part * one + frac_part
 		 */
 		uint64_t remainder = (((uint64_t)int_part) << -one.exponent) + frac_part;
 
@@ -421,7 +421,7 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 	do {
 		/*
 		 * Does not overflow because at least 5 upper bits were
-		 * taken by the integral part and are now unused in frac_part. 
+		 * taken by the integral part and are now unused in frac_part.
 		 */
 		frac_part *= 10;
 		delta.significand *= 10;
@@ -455,7 +455,7 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 	buf[len] = '\0';
 
 	/* Of the shortest representations choose the numerically closest one. */
-	round_last_digit(frac_part, val_dist.significand, delta.significand, 
+	round_last_digit(frac_part, val_dist.significand, delta.significand,
 		one.significand, buf, len);
 
 	return len;
@@ -475,10 +475,10 @@ static int zero_to_str(char *buf, size_t buf_size, int *dec_exponent)
 }
 
 
-/** Converts a non-special double into its shortest accurate string 
+/** Converts a non-special double into its shortest accurate string
  *  representation.
  *
- * Produces an accurate string representation, ie the string will 
+ * Produces an accurate string representation, ie the string will
  * convert back to the same binary double (eg via strtod). In the
  * vast majority of cases (99%) the string will be the shortest such
  * string that is also the closest to the value of any shortest
@@ -491,18 +491,18 @@ static int zero_to_str(char *buf, size_t buf_size, int *dec_exponent)
  *
  * @param ieee_val Binary double description to convert. Must be the product
  *                 of extract_ieee_double and it must not be a special number.
- * @param buf      Buffer to store the string representation. Must be large 
+ * @param buf      Buffer to store the string representation. Must be large
  *                 enough to store all digits and a null terminator. At most
  *                 MAX_DOUBLE_STR_LEN digits will be written (not counting
  *                 the null terminator).
  * @param buf_size Size of buf in bytes.
- * @param dec_exponent Will be set to the decimal exponent of the number 
+ * @param dec_exponent Will be set to the decimal exponent of the number
  *                 string in buf.
  *
  * @return The number of printed digits. A negative value indicates
  *         an error: buf too small (or ieee_val.is_special).
  */
-int double_to_short_str(ieee_double_t ieee_val, char *buf, size_t buf_size, 
+int double_to_short_str(ieee_double_t ieee_val, char *buf, size_t buf_size,
 	int *dec_exponent)
 {
 	/* The whole computation assumes 64bit significand. */
@@ -522,10 +522,10 @@ int double_to_short_str(ieee_double_t ieee_val, char *buf, size_t buf_size,
 	fp_num_t val_dist;
 	int scale;
 
-	calc_scaled_bounds(ieee_val, &scaled_upper_bound, 
+	calc_scaled_bounds(ieee_val, &scaled_upper_bound,
 		&delta, &val_dist, &scale);
 
-	int len = gen_dec_digits(scaled_upper_bound, delta, val_dist, scale, 
+	int len = gen_dec_digits(scaled_upper_bound, delta, val_dist, scale,
 		buf, buf_size, dec_exponent);
 
 	assert(len <= MAX_DOUBLE_STR_LEN);
@@ -539,20 +539,20 @@ int double_to_short_str(ieee_double_t ieee_val, char *buf, size_t buf_size,
  * @param w_scaled Scaled number by 10^-scale so that
  *              alpha <= exponent <= gamma
  * @param scale Decimal scaling of the value to convert (ie w_scaled).
- * @param signif_d_cnt Maximum number of significant digits to output. 
+ * @param signif_d_cnt Maximum number of significant digits to output.
  *              Negative if as many as possible are requested.
  * @param frac_d_cnt   Maximum number of fractional digits to output.
  *              Negative if as many as possible are requested.
  *              Eg. if 2 then 1.234 -> "1.23"; if 2 then 3e-9 -> "0".
- * @param buf   Buffer to store the string representation. Must be large 
+ * @param buf   Buffer to store the string representation. Must be large
  *              enough to store all digits and a null terminator. At most
  *              MAX_DOUBLE_STR_LEN digits will be written (not counting
  *              the null terminator).
- * @param buf_size Size of buf in bytes. 
+ * @param buf_size Size of buf in bytes.
  *
  * @return Number of digits; negative on failure (eg buffer too small).
  */
-static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt, 
+static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 	int frac_d_cnt, char *buf, size_t buf_size, int *dec_exponent)
 {
 	/* We'll produce at least one digit and a null terminator. */
@@ -560,24 +560,24 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 		return -1;
 	}
 
-	/* 
-	 * The integral part of w_scaled is 5 to 32 bits long while the 
+	/*
+	 * The integral part of w_scaled is 5 to 32 bits long while the
 	 * remaining fractional part is 59 to 32 bits long because:
 	 * -59 == alpha <= w_scaled.e <= gamma == -32
-	 * 
+	 *
 	 * Therefore:
 	 *  | 5..32 bits | 32..59 bits | == w_scaled == w * 10^scale
 	 *  |  int_part  |  frac_part  |
 	 *  |0 0  ..  0 1|0 0   ..  0 0| == one == 1.0
-	 *  |      0     |0 0   ..  0 1| == w_err == 1 * 2^w_scaled.e  
+	 *  |      0     |0 0   ..  0 1| == w_err == 1 * 2^w_scaled.e
 	*/
 	assert(alpha <= w_scaled.exponent && w_scaled.exponent <= gamma);
 	assert(0 != w_scaled.significand);
 
-	/* 
+	/*
 	 * Scaling the number being converted by 10^scale introduced
 	 * an error of less that 1 ulp. The actual value of w_scaled
-	 * could lie anywhere between w_scaled.signif +/- w_err. 
+	 * could lie anywhere between w_scaled.signif +/- w_err.
 	 * Scale the error locally as we scale the fractional part
 	 * of w_scaled.
 	 */
@@ -588,7 +588,7 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 	one.significand = ((uint64_t) 1) << (-w_scaled.exponent);
 	one.exponent = w_scaled.exponent;
 
-	/* Extract the integral part of w_scaled. 
+	/* Extract the integral part of w_scaled.
 	   w_scaled / one == w_scaled >> -one.e */
 	uint32_t int_part = (uint32_t)(w_scaled.significand >> (-one.exponent));
 
@@ -597,16 +597,16 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 	uint64_t frac_part = w_scaled.significand & (one.significand - 1);
 
 	size_t len = 0;
-	/* 
-	 * The integral part of w_scaled has at least 5 bits (64 + alpha = 5) 
-	 * and at most 32 bits (64 + gamma = 32). The integral part has 
-	 * at most 10 decimal digits, so kappa <= 10. 
+	/*
+	 * The integral part of w_scaled has at least 5 bits (64 + alpha = 5)
+	 * and at most 32 bits (64 + gamma = 32). The integral part has
+	 * at most 10 decimal digits, so kappa <= 10.
 	 */
 	int kappa = 10;
 	uint32_t div = 1000000000;
 
 	int rem_signif_d_cnt = signif_d_cnt;
-	int rem_frac_d_cnt = 
+	int rem_frac_d_cnt =
 		(frac_d_cnt >= 0) ? (kappa - scale + frac_d_cnt) : INT_MAX;
 
 	/* Produce decimal digits for the integral part of w_scaled. */
@@ -637,7 +637,7 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 	while (w_err <= frac_part && rem_signif_d_cnt != 0 && rem_frac_d_cnt > 0) {
 		/*
 		 * Does not overflow because at least 5 upper bits were
-		 * taken by the integral part and are now unused in frac_part. 
+		 * taken by the integral part and are now unused in frac_part.
 		 */
 		frac_part *= 10;
 		w_err *= 10;
@@ -672,9 +672,9 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 		*dec_exponent = kappa - scale;
 		assert(frac_d_cnt < 0 || -frac_d_cnt <= *dec_exponent);
 	} else {
-		/* 
-		 * The number of fractional digits was too limiting to produce 
-		 * any digits. 
+		/*
+		 * The number of fractional digits was too limiting to produce
+		 * any digits.
 		 */
 		assert(rem_frac_d_cnt <= 0 || w_scaled.significand == 0);
 		*dec_exponent = 0;
@@ -698,16 +698,16 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
  *
  * Conversion errors are tracked, so all produced digits except the
  * last one are accurate. Garbage digits are never produced.
- * If the requested number of digits cannot be produced accurately 
- * due to conversion errors less digits are produced than requested 
+ * If the requested number of digits cannot be produced accurately
+ * due to conversion errors less digits are produced than requested
  * and the last digit has an error of +/- 1 (so if '7' is the last
  * converted digit it might have been converted to any of '6'..'8'
- * had the conversion been completely precise). 
+ * had the conversion been completely precise).
  *
- * If no error occurs at least one digit is output. 
+ * If no error occurs at least one digit is output.
  *
- * The conversion stops once the requested number of significant or 
- * fractional digits is reached or the conversion error is too large 
+ * The conversion stops once the requested number of significant or
+ * fractional digits is reached or the conversion error is too large
  * to generate any more digits (whichever happens first).
  *
  * Any digits following the first (most-significant) digit (this digit
@@ -730,24 +730,24 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
  * @param ieee_val Binary double description to convert. Must be the product
  *                 of extract_ieee_double and it must not be a special number.
  * @param signif_d_cnt Maximum number of significant digits to produce.
- *                 The output is not rounded. 
+ *                 The output is not rounded.
  *                 Set to a negative value to generate as many digits
  *                 as accurately possible.
  * @param frac_d_cnt Maximum number of fractional digits to produce including
- *                 any zeros immediately trailing the decimal point. 
- *                 The output is not rounded. 
+ *                 any zeros immediately trailing the decimal point.
+ *                 The output is not rounded.
  *                 Set to a negative value to generate as many digits
  *                 as accurately possible.
- * @param buf      Buffer to store the string representation. Must be large 
+ * @param buf      Buffer to store the string representation. Must be large
  *                 enough to store all digits and a null terminator. At most
  *                 MAX_DOUBLE_STR_LEN digits will be written (not counting
  *                 the null terminator).
  * @param buf_size Size of buf in bytes.
- * @param dec_exponent Set to the decimal exponent of the number string 
+ * @param dec_exponent Set to the decimal exponent of the number string
  *                 in buf.
  *
  * @return The number of output digits. A negative value indicates
- *         an error: buf too small (or ieee_val.is_special, or 
+ *         an error: buf too small (or ieee_val.is_special, or
  *         signif_d_cnt == 0).
  */
 int double_to_fixed_str(ieee_double_t ieee_val, int signif_d_cnt,
@@ -778,7 +778,7 @@ int double_to_fixed_str(ieee_double_t ieee_val, int signif_d_cnt,
 	fp_num_t w_scaled = multiply(w, scaling_power_of_10);
 
 	/* Produce decimal digits from the scaled number. */
-	int len = gen_fixed_dec_digits(w_scaled, scale, signif_d_cnt, frac_d_cnt, 
+	int len = gen_fixed_dec_digits(w_scaled, scale, signif_d_cnt, frac_d_cnt,
 		buf, buf_size, dec_exponent);
 
 	assert(len <= MAX_DOUBLE_STR_LEN);

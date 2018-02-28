@@ -540,7 +540,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 /**
  *
  */
-static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall, 
+static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
     loc_server_t *server)
 {
 	loc_service_t *svc;

@@ -136,7 +136,7 @@ static errno_t ath_usb_read_ctrl_message(ath_t *ath, void *buffer,
 
 /** Send data message.
  *
- * @param ath         Generic Atheros WiFi device structure. 
+ * @param ath         Generic Atheros WiFi device structure.
  * @param buffer      Buffer with data to send.
  * @param buffer_size Buffer size.
  *

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
  * Copyright (c) 2012 Adam Hraska
- * 
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@ typedef struct {
 	bool (*key_equal)(void *key, const ht_link_t *item);
 
 	/** Hash table item removal callback.
-	 * 
+	 *
 	 * Must not invoke any mutating functions of the hash table.
 	 *
 	 * @param item Item that was removed from the hash table.

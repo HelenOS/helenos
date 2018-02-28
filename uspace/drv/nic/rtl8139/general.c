@@ -71,9 +71,9 @@ void* rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
 	return memcpy(dest, src + src_offset, to_src_end);
 }
 
-/** Initialize the timer register structures 
+/** Initialize the timer register structures
  *
- *  The structure will be initialized to the state that the first call of 
+ *  The structure will be initialized to the state that the first call of
  *  rtl8139_timer_act_step function will be the period expiration
  *
  *  @param ta          The timer structure
@@ -83,7 +83,7 @@ void* rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
  *  @return EOK if succeed, error code otherwise
  */
 errno_t rtl8139_timer_act_init(rtl8139_timer_act_t * ta, uint32_t timer_freq,
-    const struct timeval *time) 
+    const struct timeval *time)
 {
 	if (!ta || timer_freq == 0 || !time)
 		return EINVAL;

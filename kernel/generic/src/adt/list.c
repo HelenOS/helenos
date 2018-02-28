@@ -77,7 +77,7 @@ bool list_member(const link_t *link, const list_t *list)
  */
 void list_splice(list_t *list, link_t *pos)
 {
-	if (list_empty(list)) 
+	if (list_empty(list))
 		return;
 	
 	/* Attach list to destination. */

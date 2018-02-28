@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc 
+/** @addtogroup libc
  * @{
- */ 
+ */
 
 /**
  * @file
@@ -130,7 +130,7 @@ int inbox_get(const char *name)
 			return e->file;
 		case 1:
 			return -1;
-		} 
+		}
 	}
 
 	return -1;

@@ -7,6 +7,6 @@ HelenOS does not aim to be a clone of any existing operating system and trades c
 
 HelenOS runs on seven different processor architectures and machines ranging from embedded ARM devices and single-board computers through multicore 32-bit and 64-bit desktop PCs to 64-bit Itanium and SPARC rack-mount servers.
 
-HelenOS is open source, free software. Its source code is available under the BSD license. Some third-party components are licensed under GPL. 
+HelenOS is open source, free software. Its source code is available under the BSD license. Some third-party components are licensed under GPL.
 
 */

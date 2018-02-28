@@ -127,7 +127,7 @@ fibril_t *fibril_setup(void)
 }
 
 void fibril_teardown(fibril_t *fibril, bool locked)
-{	
+{
 	if (!locked)
 		futex_lock(&fibril_futex);
 	list_remove(&fibril->all_link);
@@ -235,7 +235,7 @@ int fibril_switch(fibril_switch_type_t stype)
 		dstf = list_get_instance(list_first(&manager_list), fibril_t,
 		    link);
 		
-		if (stype == FIBRIL_FROM_DEAD) 
+		if (stype == FIBRIL_FROM_DEAD)
 			dstf->clean_after_me = srcf;
 		break;
 	default:

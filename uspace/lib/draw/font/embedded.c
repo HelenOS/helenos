@@ -64,7 +64,7 @@ static errno_t fde_load_glyph_surface(void *unused, glyph_id_t glyph_id,
 	
 	for (unsigned int y = 0; y < FONT_SCANLINES; ++y) {
 		for (unsigned int x = 0; x < FONT_WIDTH; ++x) {
-			pixel_t p = (fb_font[glyph_id][y] & (1 << (7 - x))) ? 
+			pixel_t p = (fb_font[glyph_id][y] & (1 << (7 - x))) ?
 			    PIXEL(255, 0, 0, 0) : PIXEL(0, 0, 0, 0);
 			surface_put_pixel(surface, x, y, p);
 		}

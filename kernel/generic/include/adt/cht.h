@@ -45,11 +45,11 @@ typedef uintptr_t cht_ptr_t;
 
 /** Concurrent hash table node link. */
 typedef struct cht_link {
-	/* Must be placed first. 
-	 * 
-	 * The function pointer (rcu_link.func) is used to store the item's 
-	 * mixed memoized hash. If in use by RCU (ie waiting for deferred 
-	 * destruction) the hash will contain the value of 
+	/* Must be placed first.
+	 *
+	 * The function pointer (rcu_link.func) is used to store the item's
+	 * mixed memoized hash. If in use by RCU (ie waiting for deferred
+	 * destruction) the hash will contain the value of
 	 * cht_t.op->remove_callback.
 	 */
 	union {
@@ -63,7 +63,7 @@ typedef struct cht_link {
 /** Set of operations for a concurrent hash table. */
 typedef struct cht_ops {
 	/** Returns the hash of the item.
-	 * 
+	 *
 	 * Applicable also to items that were logically deleted from the table
 	 * but have yet to be physically removed by means of remove_callback().
 	 */
@@ -79,7 +79,7 @@ typedef struct cht_ops {
 } cht_ops_t;
 
 /** Groups hash table buckets with their count.
- * 
+ *
  * It allows both the number of buckets as well as the bucket array
  * to be swapped atomically when resing the table.
  */
@@ -99,11 +99,11 @@ typedef struct {
 	cht_buckets_t *b;
 	/** Resized table buckets that will replace b once resize is complete. */
 	cht_buckets_t *new_b;
-	/** Invalid memoized hash value. 
-	 * 
+	/** Invalid memoized hash value.
+	 *
 	 * If cht_link.hash contains this value the item had been logically
 	 * removed and is waiting to be freed. Such hashes (and the associated
-	 * items) are disregarded and skipped or the actual hash must be 
+	 * items) are disregarded and skipped or the actual hash must be
 	 * determined via op->hash().
 	 */
 	size_t invalid_hash;
@@ -115,7 +115,7 @@ typedef struct {
 	/** Table is resized in the background in a work queue. */
 	work_t resize_work;
 	/** If positive the table should grow or shrink.
-	 * 
+	 *
 	 * If not 0 resize work had already been posted to the system work queue.
 	 */
 	atomic_t resize_reqs;
@@ -132,7 +132,7 @@ typedef struct {
 #define cht_read_unlock()   rcu_read_unlock()
 
 extern bool cht_create_simple(cht_t *h, cht_ops_t *op);
-extern bool cht_create(cht_t *h, size_t init_size, size_t min_size, 
+extern bool cht_create(cht_t *h, size_t init_size, size_t min_size,
 	size_t max_load, bool can_block, cht_ops_t *op);
 extern void cht_destroy(cht_t *h);
 extern void cht_destroy_unsafe(cht_t *h);

@@ -1086,7 +1086,7 @@ errno_t async_irq_subscribe(int inr, async_notification_handler_t handler,
 
 /** Unsubscribe from IRQ notification.
  *
- * @param cap     IRQ capability handle. 
+ * @param cap     IRQ capability handle.
  *
  * @return Zero on success or an error code.
  *

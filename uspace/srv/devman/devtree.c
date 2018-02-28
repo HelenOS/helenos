@@ -255,7 +255,7 @@ void remove_dev_node(dev_tree_t *tree, dev_node_t *dev)
 /** Insert new function into device tree.
  *
  * @param tree		The device tree.
- * @param fun		The newly added function node. 
+ * @param fun		The newly added function node.
  * @param fun_name	The name of the newly added function.
  * @param dev		Owning device node.
  *

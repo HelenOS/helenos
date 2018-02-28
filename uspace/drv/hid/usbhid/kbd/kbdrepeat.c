@@ -135,7 +135,7 @@ errno_t usb_kbd_repeat_fibril(void *arg)
 /**
  * Start repeating particular key.
  *
- * @note Only one key is repeated at any time, so calling this function 
+ * @note Only one key is repeated at any time, so calling this function
  *       effectively cancels auto-repeat of the current repeated key (if any)
  *       and 'schedules' another key for auto-repeat.
  *

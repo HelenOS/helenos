@@ -309,8 +309,8 @@ enum rtl8139_rcr {
 	RCR_ACCEPT_BROADCAST  = 1 << 3,  /**< Accept broadcast */
 	RCR_ACCEPT_MULTICAST  = 1 << 2,  /**< Accept multicast */
 	RCR_ACCEPT_PHYS_MATCH = 1 << 1,  /**< Accept device MAC address match */
-	RCR_ACCEPT_ALL_PHYS   = 1 << 0,  /**< Accept all frames with 
-	                                  * phys. desticnation 
+	RCR_ACCEPT_ALL_PHYS   = 1 << 0,  /**< Accept all frames with
+	                                  * phys. desticnation
 									  */
 	RCR_ACCEPT_MASK = (1 << 6) - 1   /**< Mask of accept part */
 };
@@ -324,8 +324,8 @@ enum rtl8139_cscr {
 	CS_JABBER_ENABLE = (1 << 7),  /**< Enable jabber function */
 	CS_F_LINK100     = (1 << 6),
 	CS_F_CONNECT     = (1 << 5),
-	CS_CON_STATUS    = (1 << 3),  /**< connection status: 
-	                               *   1 = valid, 0 = disconnected 
+	CS_CON_STATUS    = (1 << 3),  /**< connection status:
+	                               *   1 = valid, 0 = disconnected
 								   */
 	CS_CON_STATUS_EN = (1 << 2),  /**< LED1 pin connection status indication */
 	CS_PASS_SCR      = (1 << 0)   /**< Bypass Scramble  */
@@ -360,7 +360,7 @@ enum rtl8139_bmcr {
 /** Auto-negotiation advertisement register */
 enum rtl8139_anar {
 	ANAR_NEXT_PAGE    = (1 << 15),  /**< Next page bit, 0 - primary capability
-	                                 *  1 - protocol specific 
+	                                 *  1 - protocol specific
 									 */
 	ANAR_ACK          = (1 << 14),  /**< Capability reception acknowledge */
 	ANAR_REMOTE_FAULT = (1 << 13),  /**< Remote fault detection capability */
@@ -370,7 +370,7 @@ enum rtl8139_anar {
 	ANAR_100TX_HD     = (1 << 7),   /**< 100BASE_TX half duplex */
 	ANAR_10_FD        = (1 << 6),   /**< 10BASE_T full duplex */
 	ANAR_10_HD        = (1 << 5),   /**< 10BASE_T half duplex */
-	ANAR_SELECTOR     = 0x1         /**< Selector, 
+	ANAR_SELECTOR     = 0x1         /**< Selector,
 	                                 *   CSMA/CD (0x1) supported only
 									 */
 };
@@ -390,9 +390,9 @@ enum rtl8139_config5 {
 	CONFIG5_UNICAST_WAKEUP   = (1 << 4),  /**< Unicast wakeup frame enable */
 
 	/** Descending/ascending grow of Rx/Tx FIFO (to test FIFO SRAM only) */
-	CONFIG5_FIFO_ADDR_PTR = (1 << 3),    
+	CONFIG5_FIFO_ADDR_PTR = (1 << 3),
 	/** Powersave if cable is disconnected */
-	CONFIG5_LINK_DOWN_POWERSAVE = (1 << 2), 
+	CONFIG5_LINK_DOWN_POWERSAVE = (1 << 2),
 
 	CONFIG5_LAN_WAKE     = (1 << 1),   /**< LANWake signal enabled */
 	CONFIG5_PME_STATUS   = (1 << 0)    /**< PMEn change: 0 = SW, 1 = SW+PCI */
@@ -410,8 +410,8 @@ enum rtl8139_config3 {
 enum rtl8139_config4 {
 	CONFIG4_RxFIFOAutoClr = (1 << 7),  /**< Automatic RxFIFO owerflow clear */
 	CONFIG4_AnaOff        = (1 << 6),  /**< Analog poweroff */
-	CONFIG4_LongWF        = (1 << 5),  /**< Long wakeup frame 
-	                                    *   (2xCRC8 + 3xCRC16) 
+	CONFIG4_LongWF        = (1 << 5),  /**< Long wakeup frame
+	                                    *   (2xCRC8 + 3xCRC16)
 										*/
 	CONFIG4_LWPME         = (1 << 4),  /**< LWAKE and PMEB assertion  */
 	CONFIG4_LWPTN         = (1 << 2),  /**< LWake pattern */
@@ -449,8 +449,8 @@ enum rtl8139_tcr_bits {
 	HWVERID_B_MASK  = (1 << 2) - 1, /**< HW version id, part B mask */
 
 	LOOPBACK_SHIFT  = 17,           /**< Loopback mode shift */
-	LOOPBACK_SIZE   = 2,            /**< Loopback mode size 
-	                                  *  00 = normal, 11 = loopback 
+	LOOPBACK_SIZE   = 2,            /**< Loopback mode size
+	                                  *  00 = normal, 11 = loopback
 									  */
 
 	APPEND_CRC = 1 << 16,        /**< Append CRC at the end of a frame */
@@ -461,8 +461,8 @@ enum rtl8139_tcr_bits {
 	TX_RETRY_COUNT_SHIFT = 4,            /**< Retries before aborting shift */
 	TX_RETRY_COUNT_SIZE  = 4,            /**< Retries before aborting size */
 
-	CLEAR_ABORT = 1 << 0    /**< Retransmit aborted frame at the last 
-	                          *  transmitted descriptor 
+	CLEAR_ABORT = 1 << 0    /**< Retransmit aborted frame at the last
+	                          *  transmitted descriptor
 							  */
 };
 
@@ -499,7 +499,7 @@ extern const char* model_names[RTL8139_VER_COUNT];
 /** 64k buffer */
 #define RTL8139_RXFLAGS_SIZE_64 3
 
-/** Get the buffer initial size without 16B padding 
+/** Get the buffer initial size without 16B padding
  *  Size is (8 + 2^flags) kB (^ in mean power)
  *
  *  @param flags The flags for Rx buffer size, 0-3

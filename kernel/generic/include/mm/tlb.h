@@ -72,7 +72,7 @@ extern ipl_t tlb_shootdown_start(tlb_invalidate_type_t, asid_t, uintptr_t,
 extern void tlb_shootdown_finalize(ipl_t);
 extern void tlb_shootdown_ipi_recv(void);
 #else
-#define tlb_shootdown_start(w, x, y, z)	interrupts_disable()	
+#define tlb_shootdown_start(w, x, y, z)	interrupts_disable()
 #define tlb_shootdown_finalize(i)	(interrupts_restore(i));
 #define tlb_shootdown_ipi_recv()
 #endif /* CONFIG_SMP */

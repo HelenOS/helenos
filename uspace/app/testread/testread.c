@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 	
 	uint32_t total_run_time = final_time.tv_sec - start_time.tv_sec;
 	if (total_run_time > 0) {
-		printf("total bytes: %" PRIuOFF64 
+		printf("total bytes: %" PRIuOFF64
 		    ", total time: %u s, avg speed: %" PRIuOFF64 " B/s\n",
 		    offset,
 		    total_run_time,

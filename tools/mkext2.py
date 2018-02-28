@@ -126,7 +126,7 @@ STRUCT_BLOCK_REFERENCE = """little:
 	uint32_t block_id /* Referenced block ID */
 """
 
-class Filesystem:	
+class Filesystem:
 	def __init__(self, filename, block_groups, blocks_per_group, inodes_per_group, block_size, inode_size, reserved_inode_count):
 		"Initialize the filesystem writer"
 		
@@ -214,7 +214,7 @@ class Filesystem:
 		gde = self.gdt[index // self.inodes_per_group]
 		gde.free_inode_count -= 1
 		if directory:
-			gde.directory_inode_count += 1		
+			gde.directory_inode_count += 1
 	
 	def seek_to_block(self, block, offset=0):
 		"Seek to offset bytes after the start of the given block"
@@ -233,12 +233,12 @@ class Filesystem:
 		base_block = gde.inode_table_first_block
 		offset = (index % self.inodes_per_group) * self.inode_size
 		block = base_block + (offset // self.block_size)
-		self.seek_to_block(block, offset % self.block_size)	
+		self.seek_to_block(block, offset % self.block_size)
 	
 	def subtree_add(self, inode, parent_inode, dirpath, is_root=False):
 		"Recursively add files to the filesystem"
 		
-		dir_writer = DirWriter(inode)	
+		dir_writer = DirWriter(inode)
 		dir_writer.add(inode.as_dirent('.'))
 		dir_writer.add(parent_inode.as_dirent('..'))
 		
@@ -453,7 +453,7 @@ class Inode:
 		offset_in_block = block_offset_in_level // self.fs.indirect_blocks_per_level[level-1]
 	
 		# Navigate through other levels
-		while level > 0:		
+		while level > 0:
 			assert offset_in_block < self.fs.block_ids_per_block
 			
 			level -= 1
@@ -489,7 +489,7 @@ class Inode:
 	def write(self, data):
 		"Write a piece of data (arbitrarily long) as the contents of the inode"
 		
-		data_pos = 0		
+		data_pos = 0
 		while data_pos < len(data):
 			bytes_remaining_in_block = self.fs.block_size - (self.pos % self.fs.block_size)
 			bytes_to_write = min(bytes_remaining_in_block, len(data)-data_pos)

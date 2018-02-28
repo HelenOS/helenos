@@ -57,7 +57,7 @@
 /** ia64 has 256 INRs. */
 #define INR_COUNT  256
 
-#define IVT_ITEMS  128 
+#define IVT_ITEMS  128
 #define IVT_FIRST  0
 
 /** External Interrupt vectors. */

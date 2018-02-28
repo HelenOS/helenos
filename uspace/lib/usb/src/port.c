@@ -73,7 +73,7 @@ static int enumerate_worker(void *arg)
 	fibril_mutex_lock(&port->guard);
 
 	if (port->state == PORT_ERROR) {
-		/* 
+		/*
 		 * The device was removed faster than this fibril acquired the
 		 * mutex.
 		 */

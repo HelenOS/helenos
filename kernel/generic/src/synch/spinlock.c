@@ -66,7 +66,7 @@ void spinlock_initialize(spinlock_t *lock, const char *name)
 /** Lock spinlock
  *
  * Lock spinlock.
- * This version has limitted ability to report 
+ * This version has limitted ability to report
  * possible occurence of deadlock.
  *
  * @param lock Pointer to spinlock_t structure.

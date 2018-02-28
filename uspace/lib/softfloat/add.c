@@ -59,7 +59,7 @@ float32 add_float32(float32 a, float32 b)
 			return b;
 		}
 		
-		if (b.parts.exp == FLOAT32_MAX_EXPONENT) { 
+		if (b.parts.exp == FLOAT32_MAX_EXPONENT) {
 			return b;
 		}
 		
@@ -76,7 +76,7 @@ float32 add_float32(float32 a, float32 b)
 			return (is_float32_nan(a) ? a : b);
 		}
 		
-		if (a.parts.exp == FLOAT32_MAX_EXPONENT) { 
+		if (a.parts.exp == FLOAT32_MAX_EXPONENT) {
 			return a;
 		}
 		
@@ -104,7 +104,7 @@ float32 add_float32(float32 a, float32 b)
 		--expdiff;
 	} else {
 		/* add hidden bit to second operand */
-		frac2 |= FLOAT32_HIDDEN_BIT_MASK; 
+		frac2 |= FLOAT32_HIDDEN_BIT_MASK;
 	}
 	
 	/* create some space for rounding */
@@ -128,7 +128,7 @@ float32 add_float32(float32 a, float32 b)
 	/* rounding - if first bit after fraction is set then round up */
 	frac1 += (0x1 << 5);
 	
-	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) { 
+	if (frac1 & (FLOAT32_HIDDEN_BIT_MASK << 7)) {
 		/* rounding overflow */
 		++exp1;
 		frac1 >>= 1;
@@ -144,7 +144,7 @@ float32 add_float32(float32 a, float32 b)
 	a.parts.exp = exp1;
 	
 	/* Clear hidden bit and shift */
-	a.parts.fraction = ((frac1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK)); 
+	a.parts.fraction = ((frac1 >> 6) & (~FLOAT32_HIDDEN_BIT_MASK));
 	return a;
 }
 
@@ -189,7 +189,7 @@ float64 add_float64(float64 a, float64 b)
 		}
 		
 		/* a is infinity and b not */
-		if (a.parts.exp == FLOAT64_MAX_EXPONENT) { 
+		if (a.parts.exp == FLOAT64_MAX_EXPONENT) {
 			return a;
 		}
 		
@@ -202,7 +202,7 @@ float64 add_float64(float64 a, float64 b)
 	if (exp1 == 0) {
 		/* both are denormalized */
 		frac1 += frac2;
-		if (frac1 & FLOAT64_HIDDEN_BIT_MASK) { 
+		if (frac1 & FLOAT64_HIDDEN_BIT_MASK) {
 			/* result is not denormalized */
 			a.parts.exp = 1;
 		}
@@ -216,7 +216,7 @@ float64 add_float64(float64 a, float64 b)
 	/* second operand ... */
 	if (exp2 == 0) {
 		/* ... is denormalized */
-		--expdiff;	
+		--expdiff;
 	} else {
 		/* is not denormalized */
 		frac2 |= FLOAT64_HIDDEN_BIT_MASK;
@@ -241,9 +241,9 @@ float64 add_float64(float64 a, float64 b)
 	}
 	
 	/* rounding - if first bit after fraction is set then round up */
-	frac1 += (0x1 << 5); 
+	frac1 += (0x1 << 5);
 	
-	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) { 
+	if (frac1 & (FLOAT64_HIDDEN_BIT_MASK << 7)) {
 		/* rounding overflow */
 		++exp1;
 		frac1 >>= 1;

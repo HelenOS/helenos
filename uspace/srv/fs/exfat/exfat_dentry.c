@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	exfat_dentry.c
@@ -142,4 +142,4 @@ bool exfat_valid_name(const char *name)
 
 /**
  * @}
- */ 
+ */

@@ -36,7 +36,7 @@
 /*
  * Essential PAL procedures' IDs
  */
-#define PAL_FREQ_RATIOS		14	
+#define PAL_FREQ_RATIOS		14
 
 extern uint64_t pal_proc_freq_ratio(void);
 

@@ -138,7 +138,7 @@ static errno_t exfat_node_sync(exfat_node_t *node)
 	ds.valid_data_size = node->size;
 	ds.data_size = node->size;
 
-	exfat_directory_open_parent(&di, node->idx->service_id, node->idx->pfc, 
+	exfat_directory_open_parent(&di, node->idx->service_id, node->idx->pfc,
 	    node->idx->parent_fragmented);
 	rc = exfat_directory_seek(&di, node->idx->pdi);
 	if (rc != EOK) {
@@ -268,7 +268,7 @@ skip_cache:
 	return EOK;
 }
 
-static errno_t exfat_node_get_new_by_pos(exfat_node_t **nodepp, 
+static errno_t exfat_node_get_new_by_pos(exfat_node_t **nodepp,
     service_id_t service_id, exfat_cluster_t pfc, unsigned pdi)
 {
 	exfat_idx_t *idxp = exfat_idx_get_by_pos(service_id, pfc, pdi);
@@ -319,7 +319,7 @@ static errno_t exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	if (rc != EOK)
 		return rc;
 
-	exfat_directory_open_parent(&di, idxp->service_id, idxp->pfc, 
+	exfat_directory_open_parent(&di, idxp->service_id, idxp->pfc,
 	    idxp->parent_fragmented);
 	rc = exfat_directory_seek(&di, idxp->pdi);
 	if (rc != EOK) {
@@ -337,7 +337,7 @@ static errno_t exfat_node_get_core(exfat_node_t **nodepp, exfat_idx_t *idxp)
 	switch (exfat_classify_dentry(d)) {
 	case EXFAT_DENTRY_FILE:
 		nodep->type =
-		    (uint16_t_le2host(d->file.attr) & EXFAT_ATTR_SUBDIR) ? 
+		    (uint16_t_le2host(d->file.attr) & EXFAT_ATTR_SUBDIR) ?
 		    EXFAT_DIRECTORY : EXFAT_FILE;
 		rc = exfat_directory_next(&di);
 		if (rc != EOK) {
@@ -707,9 +707,9 @@ errno_t exfat_destroy_node(fs_node_t *fn)
 			rc = exfat_free_clusters(bs, nodep->idx->service_id,
 				nodep->firstc);
 		else
-			rc = exfat_bitmap_free_clusters(bs, nodep, 
+			rc = exfat_bitmap_free_clusters(bs, nodep,
 			    ROUND_UP(nodep->size, BPC(bs)) / BPC(bs));
-	} 
+	}
 
 	exfat_idx_destroy(nodep->idx);
 	free(nodep->bp);
@@ -1059,7 +1059,7 @@ static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
 	}
 
 	/* Initialize the root node. */
-	rc = exfat_node_get_new_by_pos(&rootp, service_id, EXFAT_ROOT_PAR, 
+	rc = exfat_node_get_new_by_pos(&rootp, service_id, EXFAT_ROOT_PAR,
 	    EXFAT_ROOT_POS);
 	if (rc!=EOK) {
 		(void) block_cache_fini(service_id);
@@ -1109,7 +1109,7 @@ static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
 		return ENOTSUP;
 	}
 
-	rc = exfat_node_get_new_by_pos(&bitmapp, service_id, rootp->firstc, 
+	rc = exfat_node_get_new_by_pos(&bitmapp, service_id, rootp->firstc,
 	    di.pos);
 	if (rc != EOK) {
 		free(rootp);
@@ -1150,7 +1150,7 @@ static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
 		return ENOTSUP;
 	}
 
-	rc = exfat_node_get_new_by_pos(&uctablep, service_id, rootp->firstc, 
+	rc = exfat_node_get_new_by_pos(&uctablep, service_id, rootp->firstc,
 	    di.pos);
 	if (rc != EOK) {
 		free(rootp);

@@ -60,22 +60,22 @@ void smp_call_init(void)
 }
 
 /** Invokes a function on a specific cpu and waits for it to complete.
- * 
- * Calls @a func on the CPU denoted by its logical id @cpu_id . 
- * The function will execute with interrupts disabled. It should 
- * be a quick and simple function and must never block. 
- * 
+ *
+ * Calls @a func on the CPU denoted by its logical id @cpu_id .
+ * The function will execute with interrupts disabled. It should
+ * be a quick and simple function and must never block.
+ *
  * If @a cpu_id is the local CPU, the function will be invoked
  * directly.
- * 
+ *
  * All memory accesses of prior to smp_call() will be visible
  * to @a func on cpu @a cpu_id. Similarly, any changes @a func
  * makes on cpu @a cpu_id will be visible on this cpu once
  * smp_call() returns.
- * 
+ *
  * Invoking @a func on the destination cpu acts as a memory barrier
  * on that cpu.
- * 
+ *
  * @param cpu_id Destination CPU's logical id (eg CPU->id)
  * @param func Function to call.
  * @param arg Argument to pass to the user supplied function @a func.
@@ -88,46 +88,46 @@ void smp_call(unsigned int cpu_id, smp_call_func_t func, void *arg)
 }
 
 /** Invokes a function on a specific cpu asynchronously.
- * 
- * Calls @a func on the CPU denoted by its logical id @cpu_id . 
- * The function will execute with interrupts disabled. It should 
- * be a quick and simple function and must never block. 
- * 
- * Pass @a call_info to smp_call_wait() in order to wait for 
+ *
+ * Calls @a func on the CPU denoted by its logical id @cpu_id .
+ * The function will execute with interrupts disabled. It should
+ * be a quick and simple function and must never block.
+ *
+ * Pass @a call_info to smp_call_wait() in order to wait for
  * @a func to complete.
- * 
+ *
  * @a call_info must be valid until/after @a func returns. Use
  * smp_call_wait() to wait until it is safe to free @a call_info.
- * 
+ *
  * If @a cpu_id is the local CPU, the function will be invoked
  * directly. If the destination cpu id @a cpu_id is invalid
  * or denotes an inactive cpu, the call is discarded immediately.
- * 
+ *
  * All memory accesses of the caller prior to smp_call_async()
- * will be made visible to @a func on the other cpu. Similarly, 
+ * will be made visible to @a func on the other cpu. Similarly,
  * any changes @a func makes on cpu @a cpu_id will be visible
  * to this cpu when smp_call_wait() returns.
- * 
+ *
  * Invoking @a func on the destination cpu acts as a memory barrier
  * on that cpu.
- * 
+ *
  * Interrupts must be enabled. Otherwise you run the risk
  * of a deadlock.
- * 
+ *
  * @param cpu_id Destination CPU's logical id (eg CPU->id).
  * @param func Function to call.
  * @param arg Argument to pass to the user supplied function @a func.
  * @param call_info Use it to wait for the function to complete. Must
  *          be valid until the function completes.
  */
-void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg, 
+void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 	smp_call_t *call_info)
 {
-	/* 
-	 * Interrupts must not be disabled or you run the risk of a deadlock 
+	/*
+	 * Interrupts must not be disabled or you run the risk of a deadlock
 	 * if both the destination and source cpus try to send an IPI to each
-	 * other with interrupts disabled. Because the interrupts are disabled 
-	 * the IPIs cannot be delivered and both cpus will forever busy wait 
+	 * other with interrupts disabled. Because the interrupts are disabled
+	 * the IPIs cannot be delivered and both cpus will forever busy wait
 	 * for an acknowledgment of the IPI from the other cpu.
 	 */
 	assert(!interrupts_disabled());
@@ -154,10 +154,10 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 		/*
 		 * If a platform supports SMP it must implement arch_smp_call_ipi().
 		 * It should issue an IPI on cpu_id and invoke smp_call_ipi_recv()
-		 * on cpu_id in turn. 
-		 * 
+		 * on cpu_id in turn.
+		 *
 		 * Do not implement as just an empty dummy function. Instead
-		 * consider providing a full implementation or at least a version 
+		 * consider providing a full implementation or at least a version
 		 * that panics if invoked. Note that smp_call_async() never
 		 * calls arch_smp_call_ipi() on uniprocessors even if CONFIG_SMP.
 		 */
@@ -176,21 +176,21 @@ void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
 }
 
 /** Waits for a function invoked on another CPU asynchronously to complete.
- * 
+ *
  * Does not sleep but rather spins.
- * 
+ *
  * Example usage:
  * @code
  * void hello(void *p) {
  *     puts((char*)p);
  * }
- * 
+ *
  * smp_call_t call_info;
  * smp_call_async(cpus[2].id, hello, "hi!\n", &call_info);
  * // Do some work. In the meantime, hello() is executed on cpu2.
  * smp_call_wait(&call_info);
  * @endcode
- * 
+ *
  * @param call_info Initialized by smp_call_async().
  */
 void smp_call_wait(smp_call_t *call_info)
@@ -201,7 +201,7 @@ void smp_call_wait(smp_call_t *call_info)
 #ifdef CONFIG_SMP
 
 /** Architecture independent smp call IPI handler.
- * 
+ *
  * Interrupts must be disabled. Tolerates spurious calls.
  */
 void smp_call_ipi_recv(void)
@@ -212,7 +212,7 @@ void smp_call_ipi_recv(void)
 	list_t calls_list;
 	list_initialize(&calls_list);
 	
-	/* 
+	/*
 	 * Acts as a load memory barrier. Any changes made by the cpu that
 	 * added the smp_call to calls_list will be made visible to this cpu.
 	 */
@@ -221,7 +221,7 @@ void smp_call_ipi_recv(void)
 	spinlock_unlock(&CPU->smp_calls_lock);
 
 	/* Walk the list manually, so that we can safely remove list items. */
-	for (link_t *cur = calls_list.head.next, *next = cur->next; 
+	for (link_t *cur = calls_list.head.next, *next = cur->next;
 		!list_empty(&calls_list); cur = next, next = cur->next) {
 		
 		smp_call_t *call_info = list_get_instance(cur, smp_call_t, calls_link);
@@ -253,8 +253,8 @@ static void call_start(smp_call_t *call_info, smp_call_func_t func, void *arg)
 
 static void call_done(smp_call_t *call_info)
 {
-	/* 
-	 * Separate memory accesses of the called function from the 
+	/*
+	 * Separate memory accesses of the called function from the
 	 * announcement of its completion.
 	 */
 	memory_barrier();
@@ -264,9 +264,9 @@ static void call_done(smp_call_t *call_info)
 static void call_wait(smp_call_t *call_info)
 {
 	do {
-		/* 
+		/*
 		 * Ensure memory accesses following call_wait() are ordered
-		 * after completion of the called function on another cpu. 
+		 * after completion of the called function on another cpu.
 		 * Also, speed up loading of call_info->pending.
 		 */
 		memory_barrier();

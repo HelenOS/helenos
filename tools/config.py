@@ -269,7 +269,7 @@ def infer_verify_choices(config, rules):
 # @param config Configuration to work on
 # @param rules  Rules
 # @param start_index With which rule to start (initial call must specify 0 here).
-# @return True if able to find a valid configuration 
+# @return True if able to find a valid configuration
 def random_choices(config, rules, start_index):
 	"Fill the configuration with random (but valid) values."
 	if start_index >= len(rules):
@@ -277,7 +277,7 @@ def random_choices(config, rules, start_index):
 	
 	varname, vartype, name, choices, cond = rules[start_index]
 
-	# First check that this rule would make sense	
+	# First check that this rule would make sense
 	if cond:
 		if not check_condition(cond, config, rules):
 			return random_choices(config, rules, start_index + 1)
@@ -653,7 +653,7 @@ def main():
 		preprocess_config(config, rules)
 		create_output(MAKEFILE, MACROS, config, rules)
 		
-		return 0	
+		return 0
 	
 	screen = xtui.screen_init()
 	try:

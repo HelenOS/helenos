@@ -319,7 +319,7 @@ static void cuda_packet_handle(cuda_instance_t *instance, uint8_t *data, size_t 
 
 	/* The packet contains one or two scancodes. */
 	if (data[3] != 0xff)
-		indev_push_character(instance->kbrdin, data[3]);		
+		indev_push_character(instance->kbrdin, data[3]);
 	if (data[4] != 0xff)
 		indev_push_character(instance->kbrdin, data[4]);
 }

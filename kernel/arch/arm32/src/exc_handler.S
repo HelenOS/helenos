@@ -28,7 +28,7 @@
 
 #include <abi/asmtool.h>
 
-.text   
+.text
 
 # Switches to kernel stack and saves all registers there.
 #

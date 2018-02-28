@@ -1,7 +1,7 @@
 #! /bin/bash
 
 #
-# Copyright (c) 2010 Jakub Jermar 
+# Copyright (c) 2010 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ do
 	do
 		if [ `echo $H | grep "^$D\/.*"`x != "x"  ];
 		then
-			continue 2 
+			continue 2
 		fi
 	done
 	PROFILES="$PROFILES $D"

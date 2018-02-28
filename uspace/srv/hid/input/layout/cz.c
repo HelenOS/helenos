@@ -343,7 +343,7 @@ static wchar_t parse_ms_start(layout_cz_t *cz_state, kbd_event_t *ev)
 
 		if (c != 0)
 			return c;
-	}	
+	}
 
 	if (((ev->mods & KM_SHIFT) != 0) ^ ((ev->mods & KM_CAPS_LOCK) != 0))
 		c = translate(ev->key, map_ucase, sizeof(map_ucase) / sizeof(wchar_t));

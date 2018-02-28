@@ -196,7 +196,7 @@ void *memmove(void *dst, const void *src, size_t n)
 		return dst;
 
 	/* Non-overlapping? */
-	if (dst >= src + n || src >= dst + n) {	
+	if (dst >= src + n || src >= dst + n) {
 		return memcpy(dst, src, n);
 	}
 

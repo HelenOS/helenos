@@ -348,8 +348,8 @@ errno_t block_cache_fini(service_id_t service_id)
 	return EOK;
 }
 
-#define CACHE_LO_WATERMARK	10	
-#define CACHE_HI_WATERMARK	20	
+#define CACHE_LO_WATERMARK	10
+#define CACHE_HI_WATERMARK	20
 static bool cache_can_grow(cache_t *cache)
 {
 	if (cache->blocks_cached < CACHE_LO_WATERMARK)
@@ -554,7 +554,7 @@ recycle:
 			 */
 			rc = read_blocks(devcon, b->pba, cache->blocks_cluster,
 			    b->data, cache->lblock_size);
-			if (rc != EOK) 
+			if (rc != EOK)
 				b->toxic = true;
 		} else
 			rc = EOK;
@@ -840,12 +840,12 @@ errno_t block_get_nblocks(service_id_t service_id, aoff64_t *nblocks)
 }
 
 /** Read bytes directly from the device (bypass cache)
- * 
+ *
  * @param service_id	Service ID of the block device.
  * @param abs_offset	Absolute offset in bytes where to start reading
  * @param bytes			Number of bytes to read
  * @param data			Buffer that receives the data
- * 
+ *
  * @return		EOK on success or an error code on failure.
  */
 errno_t block_read_bytes_direct(service_id_t service_id, aoff64_t abs_offset,

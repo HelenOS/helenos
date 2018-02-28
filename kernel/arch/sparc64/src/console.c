@@ -55,7 +55,7 @@
  * Initialize kernel console to use framebuffer and keyboard directly.
  * Called on UltraSPARC machines with standard keyboard and framebuffer.
  *
- * @param aliases	the "/aliases" OBP node 
+ * @param aliases	the "/aliases" OBP node
  */
 static void standard_console_init(ofw_tree_node_t *aliases)
 {
@@ -88,7 +88,7 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 
 /**
  * Initialize input/output. Auto-detects the type of machine
- * and calls the appropriate I/O init routine. 
+ * and calls the appropriate I/O init routine.
  */
 void standalone_sparc64_console_init(void)
 {

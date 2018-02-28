@@ -38,8 +38,8 @@
 # pointed by the 1st argument. Returns 1 in EAX.
 #
 FUNCTION_BEGIN(context_save_arch)
-	movl 0(%esp), %eax	# save pc value into eax	
-	movl 4(%esp), %edx	# address of the context variable to save context to 
+	movl 0(%esp), %eax	# save pc value into eax
+	movl 4(%esp), %edx	# address of the context variable to save context to
 
 	# save registers to given structure
 	movl %esp, CONTEXT_OFFSET_SP(%edx)	# %esp -> ctx->sp

@@ -113,7 +113,7 @@ static void iosapic_init(void)
 	myid = ia64_get_cpu_id();
 	myeid = ia64_get_cpu_eid();
 
-	for (i = 0; i < 16; i++) { 
+	for (i = 0; i < 16; i++) {
 		if (i == 2)
 			continue;	 /* Disable Cascade interrupt */
 		((uint32_t *)(IOSAPIC + 0x00))[0] = 0x10 + 2 * i;
@@ -139,7 +139,7 @@ void ia64_post_mm_init(void)
 		iosapic_init();
 		irq_init(INR_COUNT, INR_COUNT);
 	}
-	it_init();	
+	it_init();
 }
 
 void ia64_post_smp_init(void)

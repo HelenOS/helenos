@@ -257,7 +257,7 @@ static void list_node_insert_between(list_node_t *n, list_node_t *a,
 /** Unlink node.
  *
  * Unlink node from the list it is currently in.
- * 
+ *
  * @param n	Node to unlink from its current list.
  */
 static void list_node_unlink(list_node_t *n)

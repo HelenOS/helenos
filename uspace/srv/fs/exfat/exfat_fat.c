@@ -73,7 +73,7 @@ static FIBRIL_MUTEX_INITIALIZE(exfat_alloc_lock);
  * @return		EOK on success or an error code.
  */
 errno_t
-exfat_cluster_walk(exfat_bs_t *bs, service_id_t service_id, 
+exfat_cluster_walk(exfat_bs_t *bs, service_id_t service_id,
     exfat_cluster_t firstc, exfat_cluster_t *lastc, uint32_t *numc,
     uint32_t max_clusters)
 {
@@ -140,8 +140,8 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
 			 * This is a request to read a block within the last cluster
 			 * when fortunately we have the last cluster number cached.
 			 */
-			return block_get(block, nodep->idx->service_id, DATA_FS(bs) + 
-		        (nodep->lastc_cached_value-EXFAT_CLST_FIRST)*SPC(bs) + 
+			return block_get(block, nodep->idx->service_id, DATA_FS(bs) +
+		        (nodep->lastc_cached_value-EXFAT_CLST_FIRST)*SPC(bs) +
 			    (bn % SPC(bs)), flags);
 		}
 
@@ -186,7 +186,7 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
  * @return		EOK on success or an error code.
  */
 errno_t
-exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs, 
+exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
     service_id_t service_id, bool fragmented, exfat_cluster_t fcl,
     exfat_cluster_t *clp, aoff64_t bn, int flags)
 {
@@ -199,7 +199,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 		return ELIMIT;
 
 	if (!fragmented) {
-		rc = block_get(block, service_id, DATA_FS(bs) + 
+		rc = block_get(block, service_id, DATA_FS(bs) +
 		    (fcl - EXFAT_CLST_FIRST)*SPC(bs) + bn, flags);
 	} else {
 		max_clusters = bn / SPC(bs);
@@ -208,7 +208,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 			return rc;
 		assert(clusters == max_clusters);
 
-		rc = block_get(block, service_id, DATA_FS(bs) + 
+		rc = block_get(block, service_id, DATA_FS(bs) +
 		    (c - EXFAT_CLST_FIRST) * SPC(bs) + (bn % SPC(bs)), flags);
 
 		if (clp)

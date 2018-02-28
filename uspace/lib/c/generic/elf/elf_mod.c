@@ -151,7 +151,7 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 
 	rc = vfs_read(elf->fd, &pos, header, sizeof(elf_header_t), &nr);
 	if (rc != EOK || nr != sizeof(elf_header_t)) {
-		DPRINTF("Read error.\n"); 
+		DPRINTF("Read error.\n");
 		return EE_IO;
 	}
 
@@ -159,7 +159,7 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 
 	/* Identify ELF */
 	if (header->e_ident[EI_MAG0] != ELFMAG0 ||
-	    header->e_ident[EI_MAG1] != ELFMAG1 || 
+	    header->e_ident[EI_MAG1] != ELFMAG1 ||
 	    header->e_ident[EI_MAG2] != ELFMAG2 ||
 	    header->e_ident[EI_MAG3] != ELFMAG3) {
 		DPRINTF("Invalid header.\n");
@@ -168,7 +168,7 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	
 	/* Identify ELF compatibility */
 	if (header->e_ident[EI_DATA] != ELF_DATA_ENCODING ||
-	    header->e_machine != ELF_MACHINE || 
+	    header->e_machine != ELF_MACHINE ||
 	    header->e_ident[EI_VERSION] != EV_CURRENT ||
 	    header->e_version != EV_CURRENT ||
 	    header->e_ident[EI_CLASS] != ELF_CLASS) {

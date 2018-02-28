@@ -51,7 +51,7 @@
 #error Please define TLB_ENTRY_COUNT for the target processor.
 #endif
 
-#define TLB_WIRED              	0 
+#define TLB_WIRED              	0
 
 #define TLB_PAGE_MASK_4K    (0x000 << 13)
 #define TLB_PAGE_MASK_16K   (0x003 << 13)

@@ -124,7 +124,7 @@ void cpu_print_report(cpu_t *m)
 	}
 
 	printf("cpu%u: %s %s (rev=%d.%d, imp=%d)\n",
-		m->id, data->vendor, data->model, m->arch.rev_num >> 4, 
+		m->id, data->vendor, data->model, m->arch.rev_num >> 4,
 		m->arch.rev_num & 0x0f, m->arch.imp_num);
 }
 

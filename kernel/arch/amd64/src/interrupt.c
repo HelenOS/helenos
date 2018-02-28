@@ -229,7 +229,7 @@ void interrupt_init(void)
 #ifdef CONFIG_SMP
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,
 	    (iroutine_t) tlb_shootdown_ipi);
-	exc_register(VECTOR_SMP_CALL_IPI, "smp_call", true, 
+	exc_register(VECTOR_SMP_CALL_IPI, "smp_call", true,
 		(iroutine_t) arch_smp_call_ipi_recv);
 #endif
 }

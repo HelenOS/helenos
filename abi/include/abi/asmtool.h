@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup asmtool 
+/** @addtogroup asmtool
  * @{
  */
 /** @file
@@ -51,7 +51,7 @@
 
 #define FUNCTION_BEGIN(func) \
 	.type func STT_FUNC; \
-	SYMBOL_BEGIN(func) 	
+	SYMBOL_BEGIN(func)
 #define FUNCTION_END(func) \
 	SYMBOL_END(func)
 

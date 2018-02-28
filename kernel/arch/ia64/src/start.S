@@ -121,9 +121,9 @@ paging_start:
 	# Set Interruption Vector Address
 	# (i.e. location of interruption vector table)
 	#
-	movl r8 = ivt ;; 
+	movl r8 = ivt ;;
 	mov cr.iva = r8
-	srlz.d ;;	
+	srlz.d ;;
 
 	
 	# Switch to register bank 1

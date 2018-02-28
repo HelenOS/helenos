@@ -276,7 +276,7 @@ static cmd_arg_t set4_argv[] = {
 		.buffer = set_buf,
 		.len = sizeof(set_buf)
 	},
-	{ 
+	{
 		.type = ARG_TYPE_INT
 	}
 };
@@ -333,7 +333,7 @@ static cmd_arg_t call1_argv[] = {
 		.buffer = call0_buf,
 		.len = sizeof(call0_buf)
 	},
-	{ 
+	{
 		.type = ARG_TYPE_VAR,
 		.buffer = carg1_buf,
 		.len = sizeof(carg1_buf)
@@ -356,12 +356,12 @@ static cmd_arg_t call2_argv[] = {
 		.buffer = call0_buf,
 		.len = sizeof(call0_buf)
 	},
-	{ 
+	{
 		.type = ARG_TYPE_VAR,
 		.buffer = carg1_buf,
 		.len = sizeof(carg1_buf)
 	},
-	{ 
+	{
 		.type = ARG_TYPE_VAR,
 		.buffer = carg2_buf,
 		.len = sizeof(carg2_buf)
@@ -384,17 +384,17 @@ static cmd_arg_t call3_argv[] = {
 		.buffer = call0_buf,
 		.len = sizeof(call0_buf)
 	},
-	{ 
+	{
 		.type = ARG_TYPE_VAR,
 		.buffer = carg1_buf,
 		.len = sizeof(carg1_buf)
 	},
-	{ 
+	{
 		.type = ARG_TYPE_VAR,
 		.buffer = carg2_buf,
 		.len = sizeof(carg2_buf)
 	},
-	{ 
+	{
 		.type = ARG_TYPE_VAR,
 		.buffer = carg3_buf,
 		.len = sizeof(carg3_buf)
@@ -951,7 +951,7 @@ int cmd_desc(cmd_arg_t *argv)
 		spinlock_unlock(&hlp->lock);
 	}
 	
-	spinlock_unlock(&cmd_lock);	
+	spinlock_unlock(&cmd_lock);
 	
 	return 1;
 }
@@ -1086,7 +1086,7 @@ int cmd_call2(cmd_arg_t *argv)
 		fnc = (sysarg_t (*)(sysarg_t, sysarg_t, ...))
 		    arch_construct_function(&fptr, (void *) symaddr,
 		    (void *) cmd_call2);
-		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
+		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n",
 		       arg1, arg2, (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
 		interrupts_restore(ipl);

@@ -61,7 +61,7 @@ typedef bool (* avltree_walker_t)(avltree_node_t *, void *);
 /** AVL tree node structure. */
 struct avltree_node
 {
-	/** 
+	/**
 	 * Pointer to the left descendant of this node.
 	 *
 	 * All keys of nodes in the left subtree are less than the key of this
@@ -69,7 +69,7 @@ struct avltree_node
 	 */
 	struct avltree_node *lft;
 	
-	/** 
+	/**
 	 * Pointer to the right descendant of this node.
 	 *
 	 * All keys of nodes in the right subtree are greater than the key of
@@ -81,7 +81,7 @@ struct avltree_node
 	struct avltree_node *par;
 	
 	/** Node's key. */
-	avltree_key_t key; 
+	avltree_key_t key;
 	
 	/**
 	 * Difference between the heights of the left and the right subtree of
@@ -96,15 +96,15 @@ struct avltree
 	/** AVL root node pointer */
 	struct avltree_node *root;
 
-	/** 
+	/**
 	 * Base of the tree is a value that is smaller or equal than every value
 	 * in the tree (valid for positive keys otherwise ignore this atribute).
-	 *  
+	 *
 	 * The base is added to the current key when a new node is inserted into
 	 * the tree. The base is changed to the key of the node which is deleted
 	 * with avltree_delete_min().
 	 */
-	avltree_key_t base; 
+	avltree_key_t base;
 };
 
 

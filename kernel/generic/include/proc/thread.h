@@ -189,7 +189,7 @@ typedef struct thread {
 	/** Work queue this thread belongs to or NULL. Immutable. */
 	struct work_queue *workq;
 	/** Links work queue threads. Protected by workq->lock. */
-	link_t workq_link; 
+	link_t workq_link;
 	/** True if the worker was blocked and is not running. Use thread->lock. */
 	bool workq_blocked;
 	/** True if the worker will block in order to become idle. Use workq->lock. */

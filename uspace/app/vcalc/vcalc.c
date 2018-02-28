@@ -575,7 +575,7 @@ int main(int argc, char *argv[])
 	
 	grid->add(grid, &btn_c->widget, 0, 4, 1, 1);
 	grid->add(grid, &btn_0->widget, 1, 4, 1, 1);
-	grid->add(grid, &btn_eval->widget, 2, 4, 1, 1); 
+	grid->add(grid, &btn_eval->widget, 2, 4, 1, 1);
 	grid->add(grid, &btn_div->widget, 3, 4, 1, 1);
 	
 	window_resize(main_window, 0, 0, 400, 400, WINDOW_PLACEMENT_ANY);

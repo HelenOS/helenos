@@ -184,7 +184,7 @@ static errno_t print_statfs(vfs_statfs_t *st, char *name, char *mountpoint)
 		printf(" %s\n", mountpoint);
 	} else {
 		/* Block size / Blocks / Used blocks / Available blocks / Used% / Mounted on */
-		printf(" %10" PRIu32 " %9" PRIu64 " %11" PRIu64 " %11" PRIu64 " %4u%% %s\n", 
+		printf(" %10" PRIu32 " %9" PRIu64 " %11" PRIu64 " %11" PRIu64 " %4u%% %s\n",
 		    st->f_bsize, st->f_blocks, used_blocks, st->f_bfree,
 		    perc_used, mountpoint);
 	}

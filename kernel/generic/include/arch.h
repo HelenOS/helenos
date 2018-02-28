@@ -70,7 +70,7 @@ typedef struct {
 	size_t preemption;     /**< Preemption disabled counter and flag. */
 #ifdef RCU_PREEMPT_A
 	size_t rcu_nesting;    /**< RCU nesting count and flag. */
-#endif 
+#endif
 	struct thread *thread; /**< Current thread. */
 	struct task *task;     /**< Current task. */
 	struct cpu *cpu;       /**< Executing cpu. */

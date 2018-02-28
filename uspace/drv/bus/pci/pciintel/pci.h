@@ -39,7 +39,7 @@
 #include <ddf/driver.h>
 #include "pci_regs.h"
 
-#define PCI_MAX_HW_RES 10 
+#define PCI_MAX_HW_RES 10
 
 typedef struct pciintel_bus {
 	/** DDF device node */

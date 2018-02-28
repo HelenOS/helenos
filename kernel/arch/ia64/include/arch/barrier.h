@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -51,7 +51,7 @@
 	asm volatile (";; srlz.d\n" ::: "memory")
 
 #define fc_i(a)			\
-	asm volatile ("fc.i %0\n" :: "r" ((a)) : "memory")  
+	asm volatile ("fc.i %0\n" :: "r" ((a)) : "memory")
 #define sync_i()		\
 	asm volatile (";; sync.i\n" ::: "memory")
 

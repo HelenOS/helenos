@@ -79,7 +79,7 @@ static istate_t reg_state;
 
 static stacktrace_ops_t td_stacktrace_ops = {
 	.read_uintptr = td_read_uintptr
-}; 
+};
 
 int main(int argc, char *argv[])
 {

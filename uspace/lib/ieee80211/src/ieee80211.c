@@ -53,7 +53,7 @@
 
 /** Frame encapsulation used in IEEE 802.11. */
 static const uint8_t rfc1042_header[] = {
-	0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00 
+	0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00
 };
 
 /** Broadcast MAC address. */
@@ -352,7 +352,7 @@ uint16_t ieee80211_get_aid(ieee80211_dev_t *ieee80211_dev)
 	return aid;
 }
 
-/** Get pairwise security suite used for HW encryption. 
+/** Get pairwise security suite used for HW encryption.
  *
  * @param ieee80211_dev IEEE 802.11 device.
  *

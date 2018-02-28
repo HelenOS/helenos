@@ -117,7 +117,7 @@ SYMBOL(kernel_image_start)
 	
 	! l5 <= physmem_base[(PHYSMEM_ADDR_SIZE - 1):13]
 	sllx %l5, 13 + (63 - (PHYSMEM_ADDR_SIZE - 1)), %l5
-	srlx %l5, 63 - (PHYSMEM_ADDR_SIZE - 1), %l5	
+	srlx %l5, 63 - (PHYSMEM_ADDR_SIZE - 1), %l5
 
 	/*
 	 * Setup basic runtime environment.
@@ -224,7 +224,7 @@ SYMBOL(kernel_image_start)
 	/*
 	 * Save physmem_base for use by the mm subsystem.
 	 * %l6 contains starting physical address
-	 */	
+	 */
 	sethi %hi(physmem_base), %l4
 	stx %l6, [%l4 + %lo(physmem_base)]
 

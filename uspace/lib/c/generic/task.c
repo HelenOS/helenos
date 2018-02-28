@@ -201,7 +201,7 @@ errno_t task_spawnvf(task_id_t *id, task_wait_t *wait, const char *path,
 		rc = loader_add_inbox(ldr, "stderr", fd_stderr);
 		if (rc != EOK)
 			goto error;
-	}		
+	}
 	
 	/* Load the program. */
 	rc = loader_load_program(ldr);
@@ -312,7 +312,7 @@ errno_t task_spawnl(task_id_t *task_id, task_wait_t *wait, const char *path, ...
 }
 
 /** Setup waiting for a task.
- * 
+ *
  * If the task finishes after this call succeeds, it is guaranteed that
  * task_wait(wait, &texit, &retval) will return correct return value for
  * the task.
@@ -360,7 +360,7 @@ void task_cancel_wait(task_wait_t *wait) {
  * @param wait   task_wait_t previously initialized by task_setup_wait.
  * @param texit  Store type of task exit here.
  * @param retval Store return value of the task here.
- * 
+ *
  * @return EOK on success, else error code.
  */
 errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
@@ -390,7 +390,7 @@ errno_t task_wait(task_wait_t *wait, task_exit_t *texit, int *retval)
  * @param id ID of the task to wait for.
  * @param texit  Store type of task exit here.
  * @param retval Store return value of the task here.
- * 
+ *
  * @return EOK on success, else error code.
  */
 errno_t task_wait_task_id(task_id_t id, task_exit_t *texit, int *retval)

@@ -1499,7 +1499,7 @@ stree_ident_t *parse_ident(parse_t *parse)
 	return ident;
 }
 
-/** Signal a parse error, start bailing out from parser. 
+/** Signal a parse error, start bailing out from parser.
  *
  * @param parse		Parser object.
  */

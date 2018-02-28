@@ -84,7 +84,7 @@ void set_environment(void)
 		srlz_d();
 	}
 
-#ifdef CONFIG_VHPT	
+#ifdef CONFIG_VHPT
 	vhpt_base = vhpt_set_up();
 #endif
 	/*
@@ -192,7 +192,7 @@ bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 	srlz_i();
 	srlz_d();
 
-	return match;		
+	return match;
 }
 
 /** Set up one VHPT entry.
@@ -246,7 +246,7 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	v->present.d = false;  /* not dirty */
 	v->present.pl = (flags & PAGE_USER) ? PL_USER : PL_KERNEL;
 	v->present.ar = (flags & PAGE_WRITE) ? AR_WRITE : AR_READ;
-	v->present.ar |= (flags & PAGE_EXEC) ? AR_EXECUTE : 0; 
+	v->present.ar |= (flags & PAGE_EXEC) ? AR_EXECUTE : 0;
 	v->present.ppn = frame >> PPN_SHIFT;
 	v->present.ed = false;  /* exception not deffered */
 	v->present.ps = PAGE_WIDTH;

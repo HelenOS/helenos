@@ -47,7 +47,7 @@
 #define R_KSTACK	r23	/* keep in sync with before_thread_runs_arch() */
 
 /* Speculation vector handler */
-.macro SPECULATION_VECTOR_HANDLER vector 
+.macro SPECULATION_VECTOR_HANDLER vector
     .org ivt + \vector * 0x100
 
     /* 1. Save predicates, IIM, IIP, IPSR and ISR CR's in bank 0 registers. */
@@ -110,7 +110,7 @@ SYMBOL(heavyweight_handler)
 	
 	/* Set up FPU as in interrupted context. */
 	mov r24 = psr
-	mov r25 = cr.ipsr 
+	mov r25 = cr.ipsr
 	mov r26 = PSR_DFH_MASK
 	mov r27 = ~PSR_DFH_MASK ;;
 	and r26 = r25, r26
@@ -174,14 +174,14 @@ SYMBOL(heavyweight_handler)
 
 (p6)	st8 [r31] = r38, -STACK_ITEM_SIZE ;;	/* save in6 */
 (p6)	st8 [r31] = r37, -STACK_ITEM_SIZE ;;	/* save in5 */
-(p6)	st8 [r31] = r36, -STACK_ITEM_SIZE ;;	/* save in4 */	
+(p6)	st8 [r31] = r36, -STACK_ITEM_SIZE ;;	/* save in4 */
 (p6)	st8 [r31] = r35, -STACK_ITEM_SIZE ;;	/* save in3 */
 (p6) 	st8 [r31] = r34, -STACK_ITEM_SIZE ;;	/* save in2 */
 (p6)	st8 [r31] = r33, -STACK_ITEM_SIZE ;;	/* save in1 */
 (p6)	st8 [r31] = r32, -STACK_ITEM_SIZE ;;	/* save in0 */
 (p5)	add r31 = -(7 * STACK_ITEM_SIZE), r31 ;;
     
-	st8 [r31] = r30, -STACK_ITEM_SIZE ;;	/* save old stack pointer */ 
+	st8 [r31] = r30, -STACK_ITEM_SIZE ;;	/* save old stack pointer */
 	
 	st8 [r31] = r29, -STACK_ITEM_SIZE ;;	/* save predicate registers */
 
@@ -249,7 +249,7 @@ SYMBOL(heavyweight_handler)
 
 	mov r24 = ar.rsc ;;
 	and r30 = ~3, r24 ;;
-	or  r24 = r30 , r27 ;;     
+	or  r24 = r30 , r27 ;;
 	mov ar.rsc = r24 ;;		/* place RSE in enforced lazy mode */
 
 	loadrs 				/* (step 3) */
@@ -263,12 +263,12 @@ SYMBOL(heavyweight_handler)
 	mov ar.rnat = r27		/* (step 5) */
 
 	mov ar.pfs = r25		/* (step 6) */
-	mov cr.ifs = r26	
+	mov cr.ifs = r26
 
 	mov ar.rsc = r24		/* (step 7) */
 
     /* 17. restore interruption state from memory stack */
-	ld8 r28 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.ifa */		
+	ld8 r28 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.ifa */
 	ld8 r27 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.isr */
 	ld8 r26 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.iipa */
 	ld8 r25 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.ipsr */
@@ -293,7 +293,7 @@ SYMBOL(heavyweight_handler)
 	mov pr = r29
 	
     /* 19. return from interruption */
-    	ld8 r12 = [r31]				/* load stack pointer */ 
+    	ld8 r12 = [r31]				/* load stack pointer */
 	rfi ;;
 
 FUNCTION_BEGIN(heavyweight_handler_inner)
@@ -390,7 +390,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	stf.spill [r30] = f14, 8 * FLOAT_ITEM_SIZE
 	stf.spill [r31] = f15, 8 * FLOAT_ITEM_SIZE ;;
 
-	stf.spill [r24] = f16, 8 * FLOAT_ITEM_SIZE 
+	stf.spill [r24] = f16, 8 * FLOAT_ITEM_SIZE
 	stf.spill [r25] = f17, 8 * FLOAT_ITEM_SIZE
 	stf.spill [r26] = f18, 8 * FLOAT_ITEM_SIZE
 	stf.spill [r27] = f19, 8 * FLOAT_ITEM_SIZE
@@ -502,7 +502,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	mov r23 = loc38
 	mov r24 = loc39
 	mov r25 = loc40
-	mov r26 = loc41 
+	mov r26 = loc41
 	mov r27 = loc42
 	mov r28 = loc43
 	mov r29 = loc44
@@ -574,7 +574,7 @@ SYMBOL(ivt)
 	HEAVYWEIGHT_HANDLER 0x5a
 	HEAVYWEIGHT_HANDLER 0x5b
 	HEAVYWEIGHT_HANDLER 0x5c
-	HEAVYWEIGHT_HANDLER 0x5d 
+	HEAVYWEIGHT_HANDLER 0x5d
 	HEAVYWEIGHT_HANDLER 0x5e
 	HEAVYWEIGHT_HANDLER 0x5f
 	

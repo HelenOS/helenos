@@ -34,30 +34,30 @@
 /**
  * @file
  * @brief	Kernel backend for futexes.
- * 
- * Kernel futex objects are stored in a global hash table futex_ht 
+ *
+ * Kernel futex objects are stored in a global hash table futex_ht
  * where the physical address of the futex variable (futex_t.paddr)
- * is used as the lookup key. As a result multiple address spaces 
- * may share the same futex variable. 
- * 
+ * is used as the lookup key. As a result multiple address spaces
+ * may share the same futex variable.
+ *
  * A kernel futex object is created the first time a task accesses
- * the futex (having a futex variable at a physical address not 
+ * the futex (having a futex variable at a physical address not
  * encountered before). Futex object's lifetime is governed by
  * a reference count that represents the number of all the different
  * user space virtual addresses from all tasks that map to the
  * physical address of the futex variable. A futex object is freed
  * when the last task having accessed the futex exits.
- * 
+ *
  * Each task keeps track of the futex objects it accessed in a list
- * of pointers (futex_ptr_t, task->futex_list) to the different futex 
+ * of pointers (futex_ptr_t, task->futex_list) to the different futex
  * objects.
- * 
+ *
  * To speed up translation of futex variables' virtual addresses
  * to their physical addresses, futex pointers accessed by the
  * task are furthermore stored in a concurrent hash table (CHT,
  * task->futexes->ht). A single lookup without locks or accesses
- * to the page table translates a futex variable's virtual address 
- * into its futex kernel object. 
+ * to the page table translates a futex variable's virtual address
+ * into its futex kernel object.
  */
 
 #include <assert.h>
@@ -118,13 +118,13 @@ static bool task_fut_ht_key_equal(void *key, const cht_link_t *item);
 
 
 /** Mutex protecting the global futex hash table.
- * 
+ *
  * Acquire task specific TASK->futex_list_lock before this mutex.
  */
 SPINLOCK_STATIC_INITIALIZE_NAME(futex_ht_lock, "futex-ht-lock");
 
 /** Global kernel futex hash table. Lock futex_ht_lock before accessing.
- * 
+ *
  * Physical address of the futex variable is the lookup key.
  */
 static hash_table_t futex_ht;
@@ -169,7 +169,7 @@ void futex_task_deinit(task_t *task)
 	/* Interrupts are disabled so we must not block (cannot run cht_destroy). */
 	if (interrupts_disabled()) {
 		/* Invoke the blocking cht_destroy in the background. */
-		workq_global_enqueue_noblock(&task->futexes->destroy_work, 
+		workq_global_enqueue_noblock(&task->futexes->destroy_work,
 			destroy_task_cache);
 	} else {
 		/* We can block. Invoke cht_destroy in this thread. */
@@ -180,10 +180,10 @@ void futex_task_deinit(task_t *task)
 /** Deallocates a task's CHT futex cache (must already be empty). */
 static void destroy_task_cache(work_t *work)
 {
-	struct futex_cache *cache = 
+	struct futex_cache *cache =
 		member_to_inst(work, struct futex_cache, destroy_work);
 	
-	/* 
+	/*
 	 * Destroy the cache before manually freeing items of the cache in case
 	 * table resize is in progress.
 	 */
@@ -215,7 +215,7 @@ void futex_task_cleanup(void)
 		 * The function is free to free the futex. All other threads of this
 		 * task have already terminated, so they have also definitely
 		 * exited their CHT futex cache protecting rcu reader sections.
-		 * Moreover release_ref() only frees the futex if this is the 
+		 * Moreover release_ref() only frees the futex if this is the
 		 * last task referencing the futex. Therefore, only threads
 		 * of this task may have referenced the futex if it is to be freed.
 		 */
@@ -272,7 +272,7 @@ static futex_t *get_futex(uintptr_t uaddr)
 {
 	futex_t *futex = find_cached_futex(uaddr);
 	
-	if (futex) 
+	if (futex)
 		return futex;
 
 	uintptr_t paddr;
@@ -318,7 +318,7 @@ static futex_t *find_cached_futex(uintptr_t uaddr)
 	cht_link_t *futex_ptr_link = cht_find_lazy(&TASK->futexes->ht, &uaddr);
 
 	if (futex_ptr_link) {
-		futex_ptr_t *futex_ptr 
+		futex_ptr_t *futex_ptr
 			= member_to_inst(futex_ptr_link, futex_ptr_t, cht_link);
 		
 		futex = futex_ptr->futex;
@@ -332,16 +332,16 @@ static futex_t *find_cached_futex(uintptr_t uaddr)
 }
 
 
-/** 
- * Returns a kernel futex for the physical address @a phys_addr and caches 
+/**
+ * Returns a kernel futex for the physical address @a phys_addr and caches
  * it in this task under the virtual address @a uaddr (if not already cached).
  */
 static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 {
 	futex_t *futex = malloc(sizeof(futex_t), 0);
 	
-	/* 
-	 * Find the futex object in the global futex table (or insert it 
+	/*
+	 * Find the futex object in the global futex table (or insert it
 	 * if it is not present).
 	 */
 	spinlock_lock(&futex_ht_lock);
@@ -359,8 +359,8 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 	
 	spinlock_unlock(&futex_ht_lock);
 	
-	/* 
-	 * Cache the link to the futex object for this task. 
+	/*
+	 * Cache the link to the futex object for this task.
 	 */
 	futex_ptr_t *fut_ptr = malloc(sizeof(futex_ptr_t), 0);
 	cht_link_t *dup_link;
@@ -381,7 +381,7 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 		futex_release_ref_locked(futex);
 		
 		futex_ptr_t *dup = member_to_inst(dup_link, futex_ptr_t, cht_link);
-		futex = dup->futex;		
+		futex = dup->futex;
 	}
 
 	cht_read_unlock();
@@ -401,7 +401,7 @@ sys_errno_t sys_futex_sleep(uintptr_t uaddr)
 {
 	futex_t *futex = get_futex(uaddr);
 	
-	if (!futex) 
+	if (!futex)
 		return (sys_errno_t) ENOENT;
 
 #ifdef CONFIG_UDEBUG
@@ -472,7 +472,7 @@ void futex_ht_remove_callback(ht_link_t *item)
 }
 
 /*
- * Operations of a task's CHT that caches mappings of futex user space 
+ * Operations of a task's CHT that caches mappings of futex user space
  * virtual addresses to kernel futex objects.
  */
 

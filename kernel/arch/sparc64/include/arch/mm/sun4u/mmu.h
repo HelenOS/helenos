@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -42,7 +42,7 @@
 
 /* I-MMU ASIs. */
 #define ASI_IMMU			0x50
-#define ASI_IMMU_TSB_8KB_PTR_REG	0x51	
+#define ASI_IMMU_TSB_8KB_PTR_REG	0x51
 #define ASI_IMMU_TSB_64KB_PTR_REG	0x52
 #define ASI_ITLB_DATA_IN_REG		0x54
 #define ASI_ITLB_DATA_ACCESS_REG	0x55
@@ -62,7 +62,7 @@
 
 /* D-MMU ASIs. */
 #define ASI_DMMU			0x58
-#define ASI_DMMU_TSB_8KB_PTR_REG	0x59	
+#define ASI_DMMU_TSB_8KB_PTR_REG	0x59
 #define ASI_DMMU_TSB_64KB_PTR_REG	0x5a
 #define ASI_DMMU_TSB_DIRECT_PTR_REG	0x5b
 #define ASI_DTLB_DATA_IN_REG		0x5c
@@ -105,7 +105,7 @@ typedef union {
 		unsigned vr : 1;
 		unsigned vw : 1;
 		unsigned : 1;
-		unsigned fm : 16;	
+		unsigned fm : 16;
 		unsigned dm : 1;	/**< D-MMU enable. */
 		unsigned im : 1;	/**< I-MMU enable. */
 		unsigned dc : 1;	/**< D-Cache enable. */

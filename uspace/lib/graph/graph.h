@@ -291,18 +291,18 @@ extern visualizer_t *graph_alloc_visualizer(void);
  * initialialization of the device driver. */
 extern errno_t graph_register_visualizer(visualizer_t *);
 
-/** 
+/**
  * Retrieve the visualizer from the visualizer list according to its
  * service ID. */
 extern visualizer_t *graph_get_visualizer(sysarg_t);
 
 /**
- * Unregister the visualizer from the location service and remove it 
+ * Unregister the visualizer from the location service and remove it
  * from the driver visualizer list. Function shall be called by device driver
  * before deallocating the resources for the visualizer. */
 extern errno_t graph_unregister_visualizer(visualizer_t *);
 
-/** 
+/**
  * Destroy the rest of the visualizer. Device driver shall call this function
  * only after it has unregistered the visualizer and deallocated all the
  * resources for which the driver is responsible. */

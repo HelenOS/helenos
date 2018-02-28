@@ -173,7 +173,7 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 	res.type = VFS_NODE_DIRECTORY;
 	
 	/* Add reference to the mounted root. */
-	*root = vfs_node_get(&res); 
+	*root = vfs_node_get(&res);
 	if (!*root) {
 		aid_t msg = async_send_1(exch, VFS_OUT_UNMOUNTED,
 		    (sysarg_t) service_id, NULL);
@@ -400,7 +400,7 @@ static errno_t rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t 
 	errno_t rc;
 	async_wait_for(msg, &rc);
 	
-	chunk->size = IPC_GET_ARG1(*answer); 
+	chunk->size = IPC_GET_ARG1(*answer);
 
 	return (errno_t) rc;
 }
@@ -493,7 +493,7 @@ static errno_t vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
 		fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 	}
 	
-	vfs_file_put(file);	
+	vfs_file_put(file);
 
 	return rc;
 }
@@ -707,7 +707,7 @@ errno_t vfs_op_unlink(int parentfd, int expectfd, char *path)
 	
 	fibril_rwlock_write_lock(&namespace_rwlock);
 	
-	/* 
+	/*
 	 * Files are retrieved in order of file descriptors, to prevent
 	 * deadlock.
 	 */

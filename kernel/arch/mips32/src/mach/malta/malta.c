@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32 
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -53,7 +53,7 @@ struct mips32_machine_ops malta_machine_ops = {
 	.machine_frame_init = malta_frame_init,
 	.machine_output_init = malta_output_init,
 	.machine_input_init = malta_input_init,
-	.machine_get_platform_name = malta_get_platform_name	
+	.machine_get_platform_name = malta_get_platform_name
 };
 
 void malta_init(void)

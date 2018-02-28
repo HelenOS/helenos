@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 	 */
 	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
 
-	task_wait_t wait;	
+	task_wait_t wait;
 	task_id_t id = spawn(&wait, argc - i, argv + i);
 	
 	if (id != 0) {

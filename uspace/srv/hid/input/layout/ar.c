@@ -238,4 +238,4 @@ static wchar_t ar_parse_ev(layout_t *state, kbd_event_t *ev)
 
 /**
  * @}
- */ 
+ */

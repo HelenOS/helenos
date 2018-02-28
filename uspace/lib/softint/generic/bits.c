@@ -98,7 +98,7 @@ int __popcountsi2(int a)
 			bits++;
 		}
 	}
-	return bits;									
+	return bits;
 }
 
 /** Compute number of set bits in a number. */
@@ -110,7 +110,7 @@ int __popcountdi2(long a)
 			bits++;
 		}
 	}
-	return bits;									
+	return bits;
 }
 
 /** @}

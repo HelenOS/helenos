@@ -28,7 +28,7 @@
 
 /** @addtogroup softint
  * @{
- */ 
+ */
 /**
  * @file
  * SW implementation of 32 and 64 bit division and modulo.
@@ -43,7 +43,7 @@ static unsigned int divandmod32(unsigned int a, unsigned int b,
     unsigned int *remainder)
 {
 	unsigned int result;
-	int steps = sizeof(unsigned int) * 8; 
+	int steps = sizeof(unsigned int) * 8;
 	
 	*remainder = 0;
 	result = 0;

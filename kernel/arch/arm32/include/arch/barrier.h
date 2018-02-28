@@ -77,7 +77,7 @@
 #else
 #define memory_barrier()  CP15DSB_write(0)
 #endif
-#define read_barrier()    CP15DSB_write(0) 
+#define read_barrier()    CP15DSB_write(0)
 #define write_barrier()   read_barrier()
 #if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)
 #define inst_barrier()    CP15ISB_write(0)

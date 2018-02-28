@@ -123,7 +123,7 @@ int isatty(int fd)
  */
 char *getcwd(char *buf, size_t size)
 {
-	if (failed(vfs_cwd_get(buf, size))) 
+	if (failed(vfs_cwd_get(buf, size)))
 		return NULL;
 	return buf;
 }
@@ -173,7 +173,7 @@ uid_t getuid(void)
 
 /**
  * Get the real group ID of the calling process.
- * 
+ *
  * @return Group ID.
  */
 gid_t getgid(void)
@@ -308,7 +308,7 @@ int rmdir(const char *path)
 
 /**
  * Remove a link to a file.
- * 
+ *
  * @param path File pathname.
  * @return Zero on success, -1 otherwise.
  */
@@ -333,7 +333,7 @@ int dup(int fildes)
 
 /**
  * Duplicate an open file descriptor.
- * 
+ *
  * @param fildes File descriptor to be duplicated.
  * @param fildes2 File descriptor to be paired with the same file description
  *     as is paired fildes.
@@ -377,7 +377,7 @@ int access(const char *path, int amode)
 
 /**
  * Get configurable system variables.
- * 
+ *
  * @param name Variable name.
  * @return Variable value.
  */
@@ -420,7 +420,7 @@ long sysconf(int name)
 }
 
 /**
- * 
+ *
  * @param path
  * @param name
  * @return
@@ -433,7 +433,7 @@ long pathconf(const char *path, int name)
 }
 
 /**
- * 
+ *
  * @return
  */
 pid_t fork(void)
@@ -444,7 +444,7 @@ pid_t fork(void)
 }
 
 /**
- * 
+ *
  * @param path
  * @param argv
  * @return
@@ -457,7 +457,7 @@ int execv(const char *path, char *const argv[])
 }
 
 /**
- * 
+ *
  * @param file
  * @param argv
  * @return
@@ -470,7 +470,7 @@ int execvp(const char *file, char *const argv[])
 }
 
 /**
- * 
+ *
  * @param fildes
  * @return
  */

@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup sparc64mm
  * @{
  */
 /** @file
@@ -53,7 +53,7 @@
  *
  * Even though for sun4v the format of the TSB Tag states that the context
  * field has 16 bits, the T1 CPU still only supports 13-bit contexts and the
- * three most significant bits are always zero. 
+ * three most significant bits are always zero.
  */
 typedef union tte_tag {
 	uint64_t value;

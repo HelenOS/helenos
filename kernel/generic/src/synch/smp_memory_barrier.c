@@ -47,7 +47,7 @@ static void issue_mem_bar(void *arg)
 
 /** Issues a memory barrier on each cpu that is running a thread of the current
  * task.
- * 
+ *
  * @return Irrelevant.
  */
 sys_errno_t sys_smp_memory_barrier(void)

@@ -192,7 +192,7 @@ bool set_fun_path(dev_tree_t *tree, fun_node_t *fun, fun_node_t *parent)
 }
 
 /** Find function node with a specified path in the device tree.
- * 
+ *
  * @param path		The path of the function node in the device tree.
  * @param tree		The device tree.
  * @return		The function node if it is present in the tree, NULL

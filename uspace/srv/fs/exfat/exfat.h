@@ -29,7 +29,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef EXFAT_EXFAT_H_
 #define EXFAT_EXFAT_H_

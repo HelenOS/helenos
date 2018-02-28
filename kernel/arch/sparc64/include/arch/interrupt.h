@@ -39,7 +39,7 @@
 #include <arch/istate.h>
 
 #define IVT_ITEMS  512
-#define IVT_FIRST  0 
+#define IVT_FIRST  0
 
 /* This needs to be defined for inter-architecture API portability. */
 #define VECTOR_TLB_SHOOTDOWN_IPI  0

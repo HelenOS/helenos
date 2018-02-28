@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32 
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -56,7 +56,7 @@ struct mips32_machine_ops msim_machine_ops = {
 	.machine_frame_init = msim_frame_init,
 	.machine_output_init = msim_output_init,
 	.machine_input_init = msim_input_init,
-	.machine_get_platform_name = msim_get_platform_name	
+	.machine_get_platform_name = msim_get_platform_name
 };
 
 void msim_init(void)

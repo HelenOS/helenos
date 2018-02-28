@@ -74,7 +74,7 @@
 #define LDBL_MIN __LDBL_MIN__
 #undef LDBL_MAX
 #define LDBL_MAX __LDBL_MAX__
-#undef LDBL_MANT_DIG 
+#undef LDBL_MANT_DIG
 #define LDBL_MANT_DIG __LDBL_MANT_DIG__
 #else
 /* For something else than GCC, following definitions are provided.

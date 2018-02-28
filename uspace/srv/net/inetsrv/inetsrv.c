@@ -516,7 +516,7 @@ errno_t inet_recv_packet(inet_packet_t *packet)
 	addr = inet_addrobj_find(&packet->dest, iaf_addr);
 	if ((addr != NULL) ||
 	    (inet_naddr_compare_mask(&solicited_node_mask, &packet->dest)) ||
-	    (inet_addr_compare(&multicast_all_nodes, &packet->dest)) || 
+	    (inet_addr_compare(&multicast_all_nodes, &packet->dest)) ||
 	    (inet_addr_compare(&broadcast4_all_hosts, &packet->dest))) {
 		/* Destined for one of the local addresses */
 

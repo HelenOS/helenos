@@ -219,9 +219,9 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 
 
 #ifndef local_atomic_exchange
-/* 
+/*
  * Issuing a xchg instruction always implies lock prefix semantics.
- * Therefore, it is cheaper to use a cmpxchg without a lock prefix 
+ * Therefore, it is cheaper to use a cmpxchg without a lock prefix
  * in a loop.
  */
 #define local_atomic_exchange(pptr, new_val) \

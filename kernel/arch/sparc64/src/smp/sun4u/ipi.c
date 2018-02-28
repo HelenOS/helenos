@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -121,7 +121,7 @@ static void cross_call(int mid, void (* func)(void))
 		if (!done) {
 			/*
 			 * Prevent deadlock.
-			 */			
+			 */
 			(void) interrupts_enable();
 			delay(20 + (tick_read() & 0xff));
 			(void) interrupts_disable();
@@ -179,7 +179,7 @@ void ipi_broadcast_arch(int ipi)
  *
  * Interrupts must be disabled.
  *
- * @param cpu_id Destination cpu id (index into cpus array). Must not 
+ * @param cpu_id Destination cpu id (index into cpus array). Must not
  *               be the current cpu.
  * @param ipi    IPI number.
  */

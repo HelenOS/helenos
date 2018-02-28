@@ -106,7 +106,7 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	uintptr_t v;
 	
 	asm volatile (
-		"and %[v], sp, %[size]\n" 
+		"and %[v], sp, %[size]\n"
 		: [v] "=r" (v)
 		: [size] "r" (~(STACK_SIZE - 1))
 	);

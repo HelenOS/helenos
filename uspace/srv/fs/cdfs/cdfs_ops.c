@@ -275,7 +275,7 @@ static size_t nodes_cached = 0;
 /** Hash table of all cdfs nodes */
 static hash_table_t nodes;
 
-/* 
+/*
  * Hash table support functions.
  */
 
@@ -809,7 +809,7 @@ static errno_t cdfs_size_block(service_id_t service_id, uint32_t *size)
 {
 	*size = BLOCK_SIZE;
 	
-	return EOK; 
+	return EOK;
 }
 
 static errno_t cdfs_total_block_count(service_id_t service_id, uint64_t *count)
@@ -1205,7 +1205,7 @@ static errno_t cdfs_mounted(service_id_t service_id, const char *opts,
 	return EOK;
 }
 
-static bool rm_service_id_nodes(ht_link_t *item, void *arg) 
+static bool rm_service_id_nodes(ht_link_t *item, void *arg)
 {
 	service_id_t service_id = *(service_id_t*)arg;
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);

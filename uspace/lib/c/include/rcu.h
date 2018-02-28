@@ -40,31 +40,31 @@
 #include <libarch/barrier.h>
 #include <stdbool.h>
 
-/** Use to assign a pointer to newly initialized data to a rcu reader 
+/** Use to assign a pointer to newly initialized data to a rcu reader
  * accessible pointer.
- * 
+ *
  * Example:
  * @code
  * typedef struct exam {
  *     struct exam *next;
  *     int grade;
  * } exam_t;
- * 
+ *
  * exam_t *exam_list;
  * // ..
- * 
+ *
  * // Insert at the beginning of the list.
  * exam_t *my_exam = malloc(sizeof(exam_t), 0);
  * my_exam->grade = 5;
  * my_exam->next = exam_list;
  * rcu_assign(exam_list, my_exam);
- * 
+ *
  * // Changes properly propagate. Every reader either sees
  * // the old version of exam_list or the new version with
  * // the fully initialized my_exam.
  * rcu_synchronize();
  * // Now we can be sure every reader sees my_exam.
- * 
+ *
  * @endcode
  */
 #define rcu_assign(ptr, value) \
@@ -74,15 +74,15 @@
 	} while (0)
 
 /** Use to access RCU protected data in a reader section.
- * 
+ *
  * Example:
  * @code
  * exam_t *exam_list;
  * // ...
- * 
+ *
  * rcu_read_lock();
  * exam_t *first_exam = rcu_access(exam_list);
- * // We can now safely use first_exam, it won't change 
+ * // We can now safely use first_exam, it won't change
  * // under us while we're using it.
  *
  * // ..

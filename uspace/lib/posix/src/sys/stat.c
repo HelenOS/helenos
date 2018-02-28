@@ -92,7 +92,7 @@ int fstat(int fd, struct stat *st)
 
 /**
  * Retrieve file status for symbolic link.
- * 
+ *
  * @param path Path to the symbolic link.
  * @param st Status structure to be filled with information.
  * @return Zero on success, -1 otherwise.
@@ -120,7 +120,7 @@ int stat(const char *restrict path, struct stat *restrict st)
 
 /**
  * Change permission bits for the file if possible.
- * 
+ *
  * @param path Path to the file.
  * @param mode Permission bits to be set.
  * @return Zero on success, -1 otherwise.
@@ -133,7 +133,7 @@ int chmod(const char *path, mode_t mode)
 
 /**
  * Set the file mode creation mask of the process.
- * 
+ *
  * @param mask Set permission bits are cleared in the related creation
  *     functions. Non-permission bits are ignored.
  * @return Previous file mode creation mask.
@@ -146,7 +146,7 @@ mode_t umask(mode_t mask)
 
 /**
  * Create a directory.
- * 
+ *
  * @param path Path to the new directory.
  * @param mode Permission bits to be set.
  * @return Zero on success, -1 otherwise.

@@ -71,12 +71,12 @@ static const char *vendor_str[] = {
 
 void fpu_disable(void)
 {
-	write_cr0(read_cr0() & ~CR0_TS); 
+	write_cr0(read_cr0() & ~CR0_TS);
 }
 
 void fpu_enable(void)
 {
-	write_cr0(read_cr0() | CR0_TS); 
+	write_cr0(read_cr0() | CR0_TS);
 }
 
 void cpu_arch_init(void)
@@ -149,7 +149,7 @@ void cpu_identify(void)
 
 void cpu_print_report(cpu_t* cpu)
 {
-	printf("cpu%u: (%s family=%u model=%u stepping=%u apicid=%u) %" PRIu16 
+	printf("cpu%u: (%s family=%u model=%u stepping=%u apicid=%u) %" PRIu16
 		" MHz\n", cpu->id, vendor_str[cpu->arch.vendor], cpu->arch.family,
 		cpu->arch.model, cpu->arch.stepping, cpu->arch.id, cpu->frequency_mhz);
 }

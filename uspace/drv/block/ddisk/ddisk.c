@@ -155,13 +155,13 @@ irq_cmd_t ddisk_irq_commands[] = {
 	{
 		.cmd = CMD_PREDICATE,
 		.srcarg = 2,
-		.value = 2 
+		.value = 2
 	},
 	{
 		/* Deassert the DMA interrupt. */
 		.cmd = CMD_PIO_WRITE_32,
 		.value = DDISK_CMD_IRQ_DEASSERT,
-		.addr = NULL 
+		.addr = NULL
 	},
 	{
 		.cmd = CMD_ACCEPT
@@ -243,7 +243,7 @@ errno_t ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
 	errno_t rc;
 
 	if (size < cnt * DDISK_BLOCK_SIZE)
-		return EINVAL;		
+		return EINVAL;
 
 	for (i = 0; i < cnt; i++) {
 		rc = ddisk_rw_block(ddisk, is_read, ba + i,
@@ -269,7 +269,7 @@ errno_t ddisk_bd_write_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
 
 errno_t ddisk_bd_get_block_size(bd_srv_t *bd, size_t *rsize)
 {
-	*rsize = DDISK_BLOCK_SIZE; 
+	*rsize = DDISK_BLOCK_SIZE;
 	return EOK;
 }
 
@@ -278,7 +278,7 @@ errno_t ddisk_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	ddisk_t *ddisk = (ddisk_t *) bd->srvs->sarg;
 
 	*rnb = ddisk->blocks;
-	return EOK;	
+	return EOK;
 }
 
 static errno_t ddisk_get_res(ddf_dev_t *dev, ddisk_res_t *ddisk_res)
@@ -303,7 +303,7 @@ static errno_t ddisk_get_res(ddf_dev_t *dev, ddisk_res_t *ddisk_res)
 
 	addr_range_t *regs = &hw_res.mem_ranges.ranges[0];
 	ddisk_res->base = RNGABS(*regs);
-	ddisk_res->irq = hw_res.irqs.irqs[0]; 
+	ddisk_res->irq = hw_res.irqs.irqs[0];
 
 	if (RNGSZ(*regs) < sizeof(ddisk_regs_t)) {
 		rc = EINVAL;
@@ -549,7 +549,7 @@ static errno_t ddisk_dev_remove_common(ddisk_t *ddisk, bool surprise)
 	rc = pio_disable(ddisk->ddisk_regs, sizeof(ddisk_regs_t));
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Unable to disable PIO.");
-		return rc;	
+		return rc;
 	}
 
 	dmamem_unmap_anonymous(ddisk->dma_buffer);
