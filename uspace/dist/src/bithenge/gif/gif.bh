@@ -98,7 +98,7 @@ transform gif_image_block = struct {
 	}
 	
 	.lzw_initial_size <- uint8;
-	.lzw_data <- generic_data_block;	
+	.lzw_data <- generic_data_block;
 };
 
 # TODO: interpret known extensions
@@ -124,7 +124,7 @@ transform gif_block = struct {
 			.unknown <- repeat { uint8 };
 		};
 	}
-}; 
+};
 
 transform main = struct {
 	.signature <- gif_signature;
@@ -144,5 +144,5 @@ transform main = struct {
 	}
 	.blocks <- repeat {
 		gif_block
-	}; 
+	};
 };

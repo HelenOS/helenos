@@ -196,7 +196,7 @@ include $(USPACE_PREFIX)/Makefile.common
 %.h: %.ag
 	$(AUTOGEN) probe $< >$<.probe.c
 	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
-	$(AUTOGEN) generate $< <$<.probe.s >$@   
+	$(AUTOGEN) generate $< <$<.probe.s >$@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@

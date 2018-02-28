@@ -33,7 +33,7 @@
 # lacking on some legacy systems.
 
 # If your shell does not support eval, shift (x) or
-# here-now documents, sorry :) 
+# here-now documents, sorry :)
 
 usage()
 {

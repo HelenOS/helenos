@@ -14,7 +14,7 @@ transform block = (in.data) <- struct {
 
 # USB configuration descriptor
 # This is not the full configuration descriptor (i.e. with interface
-# and endpoint descriptors included) but only the header. 
+# and endpoint descriptors included) but only the header.
 transform usb_configuration_descriptor_bare = struct {
 	.wTotalLength <- uint16le;
 	.bNumInterfaces <- uint8;

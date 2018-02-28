@@ -38,8 +38,8 @@ SECTIONS {
 	.rel.plt : {
 		*(.rel.plt);
 	}
-	/* 
-	 *.rel.dyn MUST FOLLOW IMMEDIATELY after .rel.plt 
+	/*
+	 *.rel.dyn MUST FOLLOW IMMEDIATELY after .rel.plt
 	 * without alignment gap or DT_REL will be broken
 	 */
 	.rel.dyn : {

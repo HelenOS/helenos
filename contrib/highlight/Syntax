@@ -1,4 +1,4 @@
-file ..\*\\.(bp|BP)$ Behavior\sProtocol 
+file ..\*\\.(bp|BP)$ Behavior\sProtocol
 include bp.syntax
 
 file ..\*\\.(adl|ADP)$ Architecture\sDescription\sLanguage

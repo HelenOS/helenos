@@ -1,4 +1,4 @@
-Commands that need to modify the running user structure defined in scli.h 
+Commands that need to modify the running user structure defined in scli.h
 should reside here. They (will) have a slightly different prototype that
 allows passing the user structure to them for ease of modifications.
 

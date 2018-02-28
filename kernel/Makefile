@@ -404,7 +404,7 @@ $(LINK): $(LINK).in | depend
 %.h: %.ag
 	$(AUTOGEN) probe $< >$<.probe.c
 	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
-	$(AUTOGEN) generate $< <$<.probe.s >$@   
+	$(AUTOGEN) generate $< <$<.probe.s >$@
 
 %.o: %.S | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__

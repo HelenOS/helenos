@@ -96,7 +96,7 @@ doxy:
 
 # Pre-integration build check
 check: $(CHECK)
-ifdef JOBS 
+ifdef JOBS
 	$(CHECK) -j $(JOBS)
 else
 	$(CHECK)

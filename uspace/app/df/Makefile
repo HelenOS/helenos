@@ -30,6 +30,6 @@ USPACE_PREFIX = ../..
 BINARY = df
 
 SOURCES = \
-	df.c 
+	df.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -2,7 +2,7 @@ Modules are commands or full programs (anything can be made into a module
 that can return int type) should go here. Note, modules do not (can not)
 update or read cliuser_t.
 
-Stuff that needs to write to the user structures contained in scli.h should 
+Stuff that needs to write to the user structures contained in scli.h should
 be made as built-in commands, not modules, but there are very few times when
 you would want to do that.
 

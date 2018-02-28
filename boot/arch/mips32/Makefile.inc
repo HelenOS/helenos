@@ -39,13 +39,13 @@ ifeq ($(MACHINE),msim)
 endif
 ifeq ($(MACHINE),lmalta)
 	BFD_NAME = elf32-tradlittlemips
-	BFD_OUTPUT = elf32-tradlittlemips 
+	BFD_OUTPUT = elf32-tradlittlemips
 	ENDIANESS = LE
 	EXTRA_CFLAGS += -march=4kc
 endif
 ifeq ($(MACHINE),bmalta)
 	BFD_NAME = elf32-tradbigmips
-	BFD_OUTPUT = elf32-tradbigmips 
+	BFD_OUTPUT = elf32-tradbigmips
 	ENDIANESS = BE
 	EXTRA_CFLAGS += -march=4kc
 endif

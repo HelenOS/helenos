@@ -22,7 +22,7 @@ SECTIONS {
 		unmapped_kdata_end = .;
 	}
 	
-	.mapped (PA2KA(BOOT_OFFSET)+SIZEOF(.unmapped)): AT (SIZEOF(.unmapped)) { 
+	.mapped (PA2KA(BOOT_OFFSET)+SIZEOF(.unmapped)): AT (SIZEOF(.unmapped)) {
 		ktext_start = .;
 		*(.text .text.*);
 		ktext_end = .;
