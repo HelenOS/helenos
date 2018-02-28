@@ -80,7 +80,7 @@ ifeq ($(CONFIG_PCUT_TESTS),y)
 	echo "cp -f /test/test.html /data/web/test.html" >>"$(DIST_PATH)/test/run_all"
 	echo "</ul></body></html>" >>"$(DIST_PATH)/test/test.html"
 endif
-	
+
 ifeq ($(CONFIG_PCUT_SELF_TESTS),y)
 	echo "echo Running all PCUT self-tests..." >"$(DIST_PATH)/test/run_pcut"
 	echo "<html><head><title>Results of PCUT self-tests on HelenOS</title></head><body>" >"$(DIST_PATH)/test/pcut.html"
@@ -98,7 +98,7 @@ ifeq ($(CONFIG_PCUT_SELF_TESTS),y)
 	echo "cp -f /test/pcut.html /data/web/pcut.html" >>"$(DIST_PATH)/test/run_pcut"
 	echo "</ul></body></html>" >>"$(DIST_PATH)/test/pcut.html"
 endif
-	
+
 	for drv in $(RD_DRVS) ; do \
 		drv_dir="`dirname "$$drv"`" ; \
 		drv_name="`basename "$$drv"`" ; \

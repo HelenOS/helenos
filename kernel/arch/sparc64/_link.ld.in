@@ -16,7 +16,7 @@ SECTIONS {
 		*(K_TEXT_START)
 		*(.text .text.*);
 		ktext_end = .;
-		
+
 		kdata_start = .;
 		*(K_DATA_START)
 		*(.rodata .rodata.*);
@@ -33,16 +33,16 @@ SECTIONS {
 		QUAD(VMA);
 		*(.bss);                    /* uninitialized static variables */
 		*(COMMON);                  /* global variables */
-		
+
 		. = ALIGN(8);
 		symbol_table = .;
 		*(symtab.*);                /* Symbol table, must be LAST symbol!*/
-		
+
 		kdata_end = .;
 	}
-	
+
 	/DISCARD/ : {
 		*(*);
 	}
-	
+
 }

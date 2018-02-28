@@ -17,25 +17,25 @@ SECTIONS {
 #else
 	. = 0x1000 + SIZEOF_HEADERS;
 #endif
-	
+
 	.text : {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
-	
+
 #ifdef LOADER
 	.interp : {
 		*(.interp);
 	} :interp :text
 #endif
-	
+
 	. = . + 0x1000;
-	
+
 	.data : {
 		*(.data);
 		*(.data.rel*);
 	} :data
-	
+
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
@@ -45,19 +45,19 @@ SECTIONS {
 		*(.tbss);
 		_tbss_end = .;
 	} :data
-	
+
 	_tls_alignment = ALIGNOF(.tdata);
-	
+
 	.sbss : {
 		*(.scommon);
 		*(.sbss);
 	}
-	
+
 	.bss : {
 		*(COMMON);
 		*(.bss);
 	} :data
-	
+
 	/DISCARD/ : {
 		*(*);
 	}

@@ -4,7 +4,7 @@
 		?mounted {
 			?ipc_m_data_write /* mount options */
 		} +
-		
+
 		?lookup {
 			tentative {
 				[/uspace/lib/libc/fnc.devmap_device_get_handle] ;
@@ -13,13 +13,13 @@
 				}
 			}
 		} +
-		
+
 		?open_node {
 			tentative {
 				[/uspace/lib/libc/fnc.devmap_device_connect]
 			}
 		} +
-		
+
 		?read {
 			tentative {
 				?ipc_m_data_read /* payload */ {
@@ -33,7 +33,7 @@
 				)
 			}
 		} +
-		
+
 		?write {
 			tentative {
 				?ipc_m_data_write /* payload */ {
@@ -43,15 +43,15 @@
 				}
 			}
 		} +
-		
+
 		?stat {
 			?ipc_m_data_read /* struct data */
 		} +
-		
+
 		?close {
 			!device.ipc_m_phone_hungup
 		} +
-		
+
 		?mount +
 		?truncate +
 		?destroy +

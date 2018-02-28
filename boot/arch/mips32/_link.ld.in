@@ -22,7 +22,7 @@ SECTIONS {
 		*(COMMON);      /* global variables */
 		*(.components);
 	}
-	
+
 	/DISCARD/ : {
 		*(.gnu.*);
 		*(.mdebug*);

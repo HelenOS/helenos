@@ -5,27 +5,27 @@ context default
 	keyword whole NULL yellow
 	keyword whole tentative yellow
 	keyword whole alternative yellow
-	
+
 	keyword /\* brown
 	keyword \*/ brown
 	keyword # brown
-	
+
 	keyword ! brightred
 	keyword ? brightgreen
-	
+
 	keyword ( brightcyan
 	keyword ) brightcyan
-	
+
 	keyword { brightcyan
 	keyword } brightcyan
-	
+
 	keyword \+ brightmagenta
 	keyword ; brightmagenta
 	keyword \* brightmagenta
 	keyword | brightmagenta
-	
+
 	keyword \. brightcyan
-	
+
 	keyword [ brightblue black
 	keyword ] brightblue black
 

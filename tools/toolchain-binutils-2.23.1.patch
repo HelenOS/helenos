@@ -126,7 +126,7 @@ diff -ud -rud binutils-2.23.1/gas/configure.tgt binutils-2.23.1/gas/configure.tg
 +  ia64-*-linux-* | ia64-*-helenos*)	fmt=elf em=linux ;;
    ia64-*-hpux*)				fmt=elf em=hpux ;;
    ia64-*-netbsd*)			fmt=elf em=nbsd ;;
- 
+
 @@ -304,7 +305,7 @@
    mips-*-irix*)				fmt=ecoff em=irix ;;
    mips-*-lnews*)			fmt=ecoff em=lnews ;;

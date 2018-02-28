@@ -52,7 +52,7 @@ open(BDF, "u_vga16.bdf") or die("Unable to open source font\n");
 READHEADER: while (<BDF>) {
 	/^FONTBOUNDINGBOX\s/ and do {
 		($skip, $width, $height, $offset_x, $offset_y) = (split);
-		
+
 		die("Font width is not 8px\n") if ($width != 8);
 		die("Font height is not 16px\n") if ($height != 16);
 	};
@@ -69,26 +69,26 @@ READCHARS: while (<BDF>) {
 	/^BITMAP/ && do {
 		my @glyph = ();
 		my $y;
-		
+
 		# Add empty lines at top
 		my $empties = $height + $offset_y - $goffset_y - $gheight;
-		
+
 		for ($y = 0; $y < $empties; $y++) {
 			$glyph[$y] = 0;
 		}
-		
+
 		# Scan the hex bitmap
 		for ($y = $empties; $y < $empties + $gheight; $y++) {
 			$_ = <BDF>;
 			$glyph[$y] = hex(substr($_, 0, 2)) >> $goffset_x;
 		}
-		
+
 		# Add empty lines at bottom
 		my $fill = $height - $gheight - $empties;
 		for ($y = $empties + $gheight; $y < $empties + $gheight + $fill; $y++) {
 			$glyph[$y] = 0;
 		}
-		
+
 		if ($index != 0) {
 			$glyphs[$index] = (\@glyph);
 			push(@chars, $index);
@@ -124,14 +124,14 @@ for $index (@chars) {
 				printf "\tif ((ch >= 0x%.4x) && (ch <= 0x%.4x))\n", $start, $prev;
 				print "\t\treturn (ch - " . ($start - $start_pos) . ");\n";
 			}
-			
+
 			print "\t\n";
 		}
-		
+
 		$start = $index;
 		$start_pos = $pos;
 	}
-	
+
 	$pos++;
 	$prev = $index;
 }
@@ -144,13 +144,13 @@ print "uint8_t fb_font[FONT_GLYPHS][FONT_SCANLINES] = {";
 
 for $index (@chars) {
 	print "\n\t{";
-	
+
 	my $y;
 	for ($y = 0; $y < $height; $y++) {
 		print ", " if ($y > 0);
 		printf "0x%.2x", $glyphs[$index]->[$y];
 	}
-	
+
 	print "},";
 }
 

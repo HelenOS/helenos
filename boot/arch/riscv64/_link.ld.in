@@ -4,26 +4,26 @@ ENTRY(start)
 
 SECTIONS {
 	. = PHYSMEM_START;
-	
+
 	.text : {
 		*(BOOTSTRAP);
 		*(.text);
 	}
-	
+
 	. = ALIGN(0x1000);
 	.htif : {
 		htif_page = .;
 		*(.htif)
 	}
 	. = ALIGN(0x1000);
-	
+
 	. = ALIGN(0x1000);
 	.pt : {
 		pt_page = .;
 		*(.pt)
 	}
 	. = ALIGN(0x1000);
-	
+
 	.data : {
 		*(.data);       /* initialized data */
 		*(.rodata);
@@ -36,7 +36,7 @@ SECTIONS {
 		*(COMMON);      /* global variables */
 		*(.components);
 	}
-	
+
 	/DISCARD/ : {
 		*(.gnu.*);
 		*(.mdebug*);

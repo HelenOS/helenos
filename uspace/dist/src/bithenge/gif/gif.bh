@@ -85,18 +85,18 @@ transform gif_image_block = struct {
 	.top <- word;
 	.width <- word;
 	.height <- word;
-	
+
 	<- struct {
 		.use_local_color_map <- bit;
 		.interlacing <- bit;
 		.reserved_bits <- uint_be(3);
 		.bits_per_pixel <- (in + 1) <- uint_be(3);
 	} <- bits_be <- known_length(1);
-	
+
 	if (.use_local_color_map) {
 		.local_color_map <- gif_color_map_from_bits_per_pixel(.bits_per_pixel);
 	}
-	
+
 	.lzw_initial_size <- uint8;
 	.lzw_data <- generic_data_block;
 };

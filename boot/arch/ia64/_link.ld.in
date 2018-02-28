@@ -17,7 +17,7 @@ SECTIONS {
 		*(COMMON);
 		*(.components);
 	}
-	
+
 	/DISCARD/ : {
 		*(.*);
 	}

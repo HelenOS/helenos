@@ -32,21 +32,21 @@ The following code tests the standard ``atoi`` function::
 
 	#include <pcut/pcut.h>
 	#include <stdlib.h>
-	
+
 	PCUT_INIT
-	
+
 	PCUT_TEST(atoi_zero) {
 	    PCUT_ASSERT_INT_EQUALS(0, atoi("0"));
 	}
-	
+
 	PCUT_TEST(atoi_positive) {
 	    PCUT_ASSERT_INT_EQUALS(42, atoi("42"));
 	}
-	
+
 	PCUT_TEST(atoi_negative) {
 	    PCUT_ASSERT_INT_EQUALS(-273, atoi("-273"));
 	}
-	
+
 	PCUT_MAIN()
 
 As you can see, there is no manual listing of tests that form the test

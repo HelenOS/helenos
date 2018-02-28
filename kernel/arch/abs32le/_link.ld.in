@@ -15,7 +15,7 @@ SECTIONS {
 		LONG(hardcoded_load_address);
 		*(.bss);                        /* uninitialized static variables */
 		*(COMMON);                      /* global variables */
-		
+
 		*(.rodata*);
 		*(.sdata);
 		*(.reginfo);
@@ -27,9 +27,9 @@ SECTIONS {
 		*(.sbss);
 		*(.scommon);
 	}
-	
+
 	kdata_end = .;
-	
+
 	/DISCARD/ : {
 		*(.mdebug*);
 		*(.pdr);

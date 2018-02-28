@@ -164,7 +164,7 @@ export-includes: $(INCLUDE_LIBC) $(shell find ./include ../c/arch/$(UARCH)/inclu
 	cp -r -L $(ROOT_PATH)/abi/include/* $(EXPORT_DIR)/include.new
 	mkdir -p $(EXPORT_DIR)/include.new/libclui
 	cp -L ../clui/tinput.h $(EXPORT_DIR)/include.new/libclui
-	
+
 	find "$(EXPORT_DIR)/include.new/libc" "$(EXPORT_DIR)/include.new/libclui" -name '*.h' -exec sed \
 		-e 's:#include <:#include <libc/:' \
 		-e 's:#include <libc/abi/:#include <abi/:' \
@@ -175,7 +175,7 @@ export-includes: $(INCLUDE_LIBC) $(shell find ./include ../c/arch/$(UARCH)/inclu
 		-e 's:#include "posix/:#include ":' \
 		-e 's:#include <posix/:#include <:' \
 		-i {} \;
-	
+
 	rm -rf $(EXPORT_DIR)/include
 	mv $(EXPORT_DIR)/include.new $(EXPORT_DIR)/include
 

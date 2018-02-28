@@ -21,18 +21,18 @@ SECTIONS {
 		unmapped_ktext_start = .;
 		*(K_UNMAPPED_TEXT_START);
 		unmapped_ktext_end = .;
-		
+
 		unmapped_kdata_start = .;
 		*(K_UNMAPPED_DATA_START);
 		unmapped_kdata_start = .;
 	}
-	
+
 	.mapped PA2KA(BOOT_OFFSET): AT (BOOT_OFFSET) {
 		ktext_start = .;
 		*(K_TEXT_START);
 		*(.text);
 		ktext_end = .;
-		
+
 		kdata_start = .;
 		*(K_DATA_START);
 		*(.rodata .rodata.*);
@@ -48,11 +48,11 @@ SECTIONS {
 		LONG(PA2KA(BOOT_OFFSET));
 		*(.bss);        /* uninitialized static variables */
 		*(COMMON);      /* global variables */
-		
+
 		. = ALIGN(8);
 		symbol_table = .;
 		*(symtab.*);    /* Symbol table, must be LAST symbol!*/
-		
+
 		kdata_end = .;
 	}
 }

@@ -17,39 +17,39 @@ SECTIONS {
 #else
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
-	
+
 	/* Workaround proper alignment of the .init section */
 	. = ALIGN(., 16);
-	
+
 	.init : {
 		*(.init);
 	} :text
-	
+
 	.text : {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
-	
+
 #ifdef LOADER
 	.interp : {
 		*(.interp);
 	} :interp :text
 #endif
-	
+
 	. = . + 0x4000;
-	
+
 	.got : {
 		/* Tell the linker where we expect GP to point. */
 		__gp = .;
 		*(.got .got.*);
 	} :data
-	
+
 	.data : {
 		*(.opd);
 		*(.data .data.*);
 		*(.sdata);
 	} :data
-	
+
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
@@ -58,16 +58,16 @@ SECTIONS {
 		*(.tbss);
 		_tbss_end = .;
 	} :data
-	
+
 	_tls_alignment = ALIGNOF(.tdata);
-	
+
 	.bss : {
 		*(.sbss);
 		*(.scommon);
 		*(COMMON);
 		*(.bss);
 	} :data
-	
+
 	/DISCARD/ : {
 		*(*);
 	}

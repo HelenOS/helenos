@@ -9,35 +9,35 @@
 				[/uspace/lib/block/fnc.block_init%rd]
 			}
 		} +
-		
+
 		?mount {
 			[/uspace/lib/libfs/fnc.libfs_mount]
 		} +
-		
+
 		?lookup {
 			[/uspace/lib/libfs/fnc.libfs_lookup]
 		} +
-		
+
 		?open_node {
 			[/uspace/lib/libfs/fnc.libfs_open_node]
 		} +
-		
+
 		?read {
 			tentative {
 				?ipc_m_data_read /* payload */
 			}
 		} +
-		
+
 		?write {
 			tentative {
 				?ipc_m_data_write /* payload */
 			}
 		} +
-		
+
 		?stat {
 			[/uspace/lib/libfs/fnc.libfs_stat]
 		} +
-		
+
 		?truncate +
 		?close +
 		?destroy +

@@ -5,7 +5,7 @@ SECTIONS {
 	.boot : {
 		*(BOOTSTRAP);
 		*(.text);
-		
+
 		*(.data);       /* initialized data */
 		*(.rodata);
 		*(.rodata.*);
@@ -16,7 +16,7 @@ SECTIONS {
 		*(COMMON);      /* global variables */
 		*(.components);
 	}
-	
+
 	/DISCARD/ : {
 		*(.gnu.*);
 		*(.mdebug*);

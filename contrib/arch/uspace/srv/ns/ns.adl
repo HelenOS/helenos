@@ -1,25 +1,25 @@
 interface ns {
 		/* Register a clonable service or a generic service */
 		sysarg_t ipc_m_connect_to_me(in sysarg_t service);
-		
+
 		/* Connect to a clonable service or a generic service */
 		sysarg_t ipc_m_connect_me_to(in sysarg_t service, in sysarg_t arg2, in sysarg_t arg3, in sysarg_t flags);
-		
+
 		/* Share real-time clock page or kio page */
 		sysarg_t ipc_m_share_in(in sysarg_t as_area_base, in sysarg_t as_area_size, in sysarg_t service);
-		
+
 		/* For IPC testing purposes */
 		sysarg_t ping(void);
-		
+
 		/* Wait for task exit and get exit status and return value */
 		sysarg_t task_wait(in sysarg_t id_lower, in sysarg_t id_upper, out sysarg_t status, out sysarg_t retval);
-		
+
 		/* Introduce a new loader task id in such a way it cannot be spoofed */
 		sysarg_t id_intro(in sysarg_t id_lower, in sysarg_t id_upper);
-		
+
 		/* Set task return value */
 		sysarg_t retval(in sysarg_t retval);
-		
+
 		/* Implicit connection close */
 		sysarg_t ipc_m_phone_hungup(void);
 	protocol:

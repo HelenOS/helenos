@@ -1,28 +1,28 @@
 system architecture HelenOS version 0.5.0 {
 	/* SPARTAN kernel */
 	inst kernel kernel;
-	
+
 	/* Naming Service */
 	inst ns ns;
-	
+
 	/* Loader (clonable service) */
 	inst loader loader;
-	
+
 	/* Device mapper */
 	inst devmap devmap;
-	
+
 	/* Block device */
 	inst bd bd;
-	
+
 	/* VFS server */
 	inst vfs vfs;
-	
+
 	/* Console */
 	inst console console;
-	
+
 	/* Kernel log */
 	inst kio kio;
-	
+
 	[/uspace/lib/libc/bind%ns]
 	[/uspace/lib/libc/bind%loader]
 	[/uspace/lib/libc/bind%devmap]
@@ -30,7 +30,7 @@ system architecture HelenOS version 0.5.0 {
 	[/uspace/lib/libc/bind%vfs]
 	[/uspace/lib/libc/bind%console]
 	[/uspace/lib/libc/bind%kio]
-	
+
 	bind ns:kbd to console:kbd;
 	bind ns:fb to console:fb;
 	bind ns:console to console:console;
@@ -38,24 +38,24 @@ system architecture HelenOS version 0.5.0 {
 	bind ns:devmap_driver to devmap:devmap_driver;
 	bind ns:devmap_client to devmap:devmap_client;
 	bind ns:loader to loader:loader;
-	
+
 	bind loader:ns to ns:ns;
-	
+
 	bind devmap:ns to ns:ns;
 	bind devmap:rd to bd:rd;
 	bind devmap:console to console:console;
-	
+
 	bind bd:ns to ns:ns;
 	bind bd:devmap_driver to devmap:devmap_driver;
-	
+
 	bind vfs:ns to ns:ns;
 	bind vfs:rd to bd:rd;
 	bind vfs:devmap_client to devmap:devmap_client;
 	bind vfs:device to console:console;
-	
+
 	bind console:ns to ns:ns;
 	bind console:devmap_driver to devmap:devmap_driver;
 	bind console:sys_console to kernel:sys_console;
-	
+
 	bind kio:ns to ns:ns;
 };

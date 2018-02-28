@@ -1,25 +1,25 @@
 interface devmap_driver {
 		/* Establish connection (iface is DEVMAP_DRIVER) */
 		sysarg_t ipc_m_connect_me_to(in sysarg_t iface);
-		
+
 		/* Register as a new driver */
 		sysarg_t driver_register(in_copy string name);
-		
+
 		/* Unregister all devices and the driver itself */
 		sysarg_t driver_unregister(void);
-		
+
 		/* Register new device and return handle */
 		sysarg_t device_register(in_copy string name, out sysarg_t handle);
-		
+
 		/* Unregister device */
 		sysarg_t device_unregister(in sysarg_t handle);
-		
+
 		/* Resolve device name to handle */
 		sysarg_t device_get_handle(in sysarg_t flags, in_copy string name);
-		
+
 		/* Get device name for a given handle */
 		sysarg_t device_get_name(in sysarg_t handle);
-		
+
 		/* Close connection */
 		sysarg_t ipc_m_phone_hungup(void);
 	protocol:
@@ -29,30 +29,30 @@ interface devmap_driver {
 interface devmap_client {
 		/* Establish connection (iface is DEVMAP_CLIENT) or forward to device (iface is DEVMAP_CONNECT_TO_DEVICE) */
 		sysarg_t ipc_m_connect_me_to(in sysarg_t iface, in sysarg_t handle);
-		
+
 		/* Resolve device name to handle */
 		sysarg_t device_get_handle(in sysarg_t flags, in_copy string name);
-		
+
 		/* Get device name for a given handle */
 		sysarg_t device_get_name(in sysarg_t handle);
-		
+
 		/* Clone NULL device */
 		sysarg_t device_null_create(out sysarg_t index);
-		
+
 		/* Destroy NULL device */
 		sysarg_t device_null_destroy(in sysarg_t index);
-		
+
 		/* Get number of devices */
 		sysarg_t device_get_count(out sysarg_t count);
-		
+
 		/* Get an array of (device_name, handle) pairs */
 		sysarg_t device_get_devices(out_copy stream data);
-		
+
 		/* Close connection */
 		sysarg_t ipc_m_phone_hungup(void);
 	protocol:
 		[devmap_client.bp]
-	
+
 };
 
 frame devmap {

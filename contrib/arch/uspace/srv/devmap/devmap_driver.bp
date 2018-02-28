@@ -13,11 +13,11 @@
 			?ipc_m_connect_to_me /* callback */
 		}
 	} +
-	
+
 	?device_get_handle {
 		?ipc_m_data_write /* device name */
 	} +
-	
+
 	?device_get_name +
 	?device_unregister +
 	?driver_unregister
