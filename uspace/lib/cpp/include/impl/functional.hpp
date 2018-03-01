@@ -29,11 +29,9 @@
 #ifndef LIBCPP_FUNCTIONAL
 #define LIBCPP_FUNCTIONAL
 
+#include <limits>
 #include <type_traits>
-
-extern "C" {
-#include <adt/hash.h>
-}
+#include <utility>
 
 namespace std
 {
@@ -43,18 +41,18 @@ namespace std
          * 20.9.2, requirements:
          */
         template<class R, class T, class T1, class... Ts>
-        decltype(auto) invoke(R T::* f, T1&& t1, Args&&... args)
+        decltype(auto) invoke(R T::* f, T1&& t1, Ts&&... args)
         {
             if constexpr (is_member_function_pointer_v<decltype(f)>)
             {
                 if constexpr (is_base_of_v<T, remove_reference_t<T1>>)
                     // (1.1)
-                    return (t1.*f)(forward<Args>(args)...);
+                    return (t1.*f)(forward<Ts>(args)...);
                 else
                     // (1.2)
-                    return ((*t1).*f)(forward<Args>(args)...);
+                    return ((*t1).*f)(forward<Ts>(args)...);
             }
-            else if (is_member_object_pointer_v<decltype(f)> && sizeof...(args) == 0)
+            else if constexpr (is_member_object_pointer_v<decltype(f)> && sizeof...(args) == 0)
             {
                 /**
                  * Note: Standard requires to N be equal to 1, but we take t1 directly
@@ -67,7 +65,14 @@ namespace std
                     // (1.4)
                     return (*t1).*f;
             }
-            static_assert(false, "invalid invoke");
+
+            /**
+             * Note: If this condition holds this will not be reachable,
+             *       but a new addition to the standard (17.7 point (8.1))
+             *       prohibits us from simply using false as the condition here,
+             *       so we use this because we know it is false here.
+             */
+            static_assert(is_member_function_pointer_v<decltype(f)>, "invalid invoke");
         }
 
         template<class F, class... Args>
@@ -207,7 +212,7 @@ namespace std
     struct plus<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) + forward<U>(rhs))
         {
             return forward<T>(lhs) + forward<T>(rhs);
@@ -220,7 +225,7 @@ namespace std
     struct minus<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) - forward<U>(rhs))
         {
             return forward<T>(lhs) - forward<T>(rhs);
@@ -233,7 +238,7 @@ namespace std
     struct multiplies<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) * forward<U>(rhs))
         {
             return forward<T>(lhs) * forward<T>(rhs);
@@ -246,7 +251,7 @@ namespace std
     struct divides<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) / forward<U>(rhs))
         {
             return forward<T>(lhs) / forward<T>(rhs);
@@ -259,7 +264,7 @@ namespace std
     struct modulus<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) % forward<U>(rhs))
         {
             return forward<T>(lhs) % forward<T>(rhs);
@@ -272,7 +277,7 @@ namespace std
     struct negate<void>
     {
         template<class T>
-        constexpr auto operator(T&& x) const
+        constexpr auto operator()(T&& x) const
             -> decltype(-forward<T>(x))
         {
             return -forward<T>(x);
@@ -286,7 +291,7 @@ namespace std
      */
 
     template<class T = void>
-    struct equal_to;
+    struct equal_to
     {
         constexpr bool operator()(const T& lhs, const T& rhs) const
         {
@@ -367,7 +372,7 @@ namespace std
     struct equal_to<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) == forward<U>(rhs))
         {
             return forward<T>(lhs) == forward<U>(rhs);
@@ -380,7 +385,7 @@ namespace std
     struct not_equal_to<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) != forward<U>(rhs))
         {
             return forward<T>(lhs) != forward<U>(rhs);
@@ -393,7 +398,7 @@ namespace std
     struct greater<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) > forward<U>(rhs))
         {
             return forward<T>(lhs) > forward<U>(rhs);
@@ -406,7 +411,7 @@ namespace std
     struct less<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) < forward<U>(rhs))
         {
             return forward<T>(lhs) < forward<U>(rhs);
@@ -419,7 +424,7 @@ namespace std
     struct greater_equal<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) >= forward<U>(rhs))
         {
             return forward<T>(lhs) >= forward<U>(rhs);
@@ -432,7 +437,7 @@ namespace std
     struct less_equal<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) <= forward<U>(rhs))
         {
             return forward<T>(lhs) <= forward<U>(rhs);
@@ -487,7 +492,7 @@ namespace std
     struct logical_and<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) && forward<U>(rhs))
         {
             return forward<T>(lhs) && forward<U>(rhs);
@@ -500,7 +505,7 @@ namespace std
     struct logical_or<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) || forward<U>(rhs))
         {
             return forward<T>(lhs) || forward<U>(rhs);
@@ -513,10 +518,10 @@ namespace std
     struct logical_not<void>
     {
         template<class T>
-        constexpr auto operator(T&& x) const
+        constexpr auto operator()(T&& x) const
             -> decltype(!forward<T>(x))
         {
-            return !forward<T>(lhs);
+            return !forward<T>(x);
         }
 
         using is_transparent = aux::transparent_t;
@@ -581,7 +586,7 @@ namespace std
     struct bit_and<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) & forward<U>(rhs))
         {
             return forward<T>(lhs) & forward<U>(rhs);
@@ -594,7 +599,7 @@ namespace std
     struct bit_or<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) | forward<U>(rhs))
         {
             return forward<T>(lhs) | forward<U>(rhs);
@@ -607,7 +612,7 @@ namespace std
     struct bit_xor<void>
     {
         template<class T, class U>
-        constexpr auto operator(T&& lhs, U&& rhs) const
+        constexpr auto operator()(T&& lhs, U&& rhs) const
             -> decltype(forward<T>(lhs) ^ forward<U>(rhs))
         {
             return forward<T>(lhs) ^ forward<U>(rhs);
@@ -620,10 +625,10 @@ namespace std
     struct bit_not<void>
     {
         template<class T>
-        constexpr auto operator(T&& x) const
+        constexpr auto operator()(T&& x) const
             -> decltype(~forward<T>(x))
         {
-            return ~forward<T>(lhs);
+            return ~forward<T>(x);
         }
 
         using is_transparent = aux::transparent_t;
@@ -709,6 +714,42 @@ namespace std
      * 20.9.13, hash function primary template:
      */
 
+    namespace aux
+    {
+        template<class T>
+        union converter
+        {
+            T value;
+            uint64_t converted;
+        };
+
+        template<class T>
+        T hash_(uint64_t x) noexcept
+        {
+            // TODO: This is copied form adt/hash (temporarily),
+            //       check if we can use something better.
+            x = (x ^ 61) ^ (x >> 16);
+            x = x + (x << 3);
+            x = x ^ (x >> 4);
+            x = x * 0x27d4eb2d;
+            x = x ^ (x >> 15);
+
+            return static_cast<T>((x << 32) | (x >> 32));
+        }
+
+        template<class T>
+        size_t hash(T x) noexcept
+        {
+            static_assert(is_arithmetic_v<T> || is_pointer_v<T>,
+                          "invalid type passed to aux::hash");
+
+            converter<T> conv;
+            conv.value = x;
+
+            return hash_<size_t>(conv.converted);
+        }
+    }
+
     template<class T>
     struct hash
     { /* DUMMY BODY */ };
@@ -718,7 +759,7 @@ namespace std
     {
         size_t operator()(bool x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = bool;
@@ -730,7 +771,7 @@ namespace std
     {
         size_t operator()(char x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = char;
@@ -742,7 +783,7 @@ namespace std
     {
         size_t operator()(signed char x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = signed char;
@@ -754,7 +795,7 @@ namespace std
     {
         size_t operator()(unsigned char x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = unsigned char;
@@ -766,7 +807,7 @@ namespace std
     {
         size_t operator()(char16_t x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = char16_t;
@@ -778,7 +819,7 @@ namespace std
     {
         size_t operator()(char32_t x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = char32_t;
@@ -790,7 +831,7 @@ namespace std
     {
         size_t operator()(wchar_t x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = wchar_t;
@@ -802,7 +843,7 @@ namespace std
     {
         size_t operator()(short x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = short;
@@ -814,7 +855,7 @@ namespace std
     {
         size_t operator()(unsigned short x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = unsigned short;
@@ -826,7 +867,7 @@ namespace std
     {
         size_t operator()(int x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = int;
@@ -838,7 +879,7 @@ namespace std
     {
         size_t operator()(unsigned int x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = unsigned int;
@@ -850,7 +891,7 @@ namespace std
     {
         size_t operator()(long x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = long;
@@ -862,7 +903,7 @@ namespace std
     {
         size_t operator()(long long x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = long long;
@@ -874,7 +915,7 @@ namespace std
     {
         size_t operator()(unsigned long x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = unsigned long;
@@ -886,7 +927,7 @@ namespace std
     {
         size_t operator()(unsigned long long x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = unsigned long long;
@@ -898,7 +939,7 @@ namespace std
     {
         size_t operator()(float x) const noexcept
         {
-            return hash_mix(*(size_t*)(&x));
+            return aux::hash(x);
         }
 
         using argument_type = float;
@@ -906,11 +947,11 @@ namespace std
     };
 
     template<>
-    struct hash<double>;
+    struct hash<double>
     {
         size_t operator()(double x) const noexcept
         {
-            return hash_mix(*(size_t*)(&x));
+            return aux::hash(x);
         }
 
         using argument_type = double;
@@ -918,11 +959,11 @@ namespace std
     };
 
     template<>
-    struct hash<long double>;
+    struct hash<long double>
     {
         size_t operator()(long double x) const noexcept
         {
-            return hash_mix(*(size_t*)(&x));
+            return aux::hash(x);
         }
 
         using argument_type = long double;
@@ -934,7 +975,7 @@ namespace std
     {
         size_t operator()(T* x) const noexcept
         {
-            return hash_mix(static_cast<size_t>(x));
+            return aux::hash(x);
         }
 
         using argument_type = T*;
