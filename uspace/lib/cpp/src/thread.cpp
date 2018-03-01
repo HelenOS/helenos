@@ -80,11 +80,7 @@ namespace std
     void thread::join()
     {
         if (joinable_wrapper_)
-        {
-            printf("JOINING\n");
             joinable_wrapper_->join();
-            printf("JOIN ENDED\n");
-        }
     }
 
     void thread::detach()
