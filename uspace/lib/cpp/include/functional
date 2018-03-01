@@ -26,5 +26,4 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <impl/algorithm.hpp>
-
+#include <impl/functional.hpp>
