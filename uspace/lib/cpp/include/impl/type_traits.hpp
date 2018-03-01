@@ -102,20 +102,30 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_void_v = is_void<T>::value;
+
+    template<class T>
     struct is_null_pointer: aux::is_same<remove_cv_t<T>, nullptr_t>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_null_pointer_v = is_null_pointer<T>::value;
 
     template<class T>
     struct is_integral: aux::is_one_of<remove_cv_t<T>,
             bool, char, unsigned char, signed char,
             long, unsigned long, int, unsigned int, short,
-            unsigned short, long long, unsigned long long>
+            unsigned short, long long, unsigned long long,
+            char16_t, char32_t, wchar_t>
     { /* DUMMY BODY */ };
 
     template<class T>
     struct is_floating_point
         : aux::is_one_of<remove_cv_t<T>, float, double, long double>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_floating_point_v = is_floating_point<T>::value;
 
     template<class>
     struct is_array: false_type
@@ -124,6 +134,9 @@ namespace std
     template<class T>
     struct is_array<T[]>: true_type
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_array_v = is_array<T>::value;
 
     namespace aux
     {
@@ -141,6 +154,9 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_pointer_v = is_pointer<T>::value;
+
+    template<class T>
     struct is_lvalue_reference: false_type
     { /* DUMMY BODY */ };
 
@@ -149,12 +165,18 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_lvalue_reference_v = is_lvalue_reference<T>::value;
+
+    template<class T>
     struct is_rvalue_reference: false_type
     { /* DUMMY BODY*/ };
 
     template<class T>
     struct is_rvalue_reference<T&&>: true_type
     { /* DUMMY BODY*/ };
+
+    template<class T>
+    inline constexpr bool is_rvalue_reference_v = is_rvalue_reference<T>::value;
 
     template<class>
     struct is_member_pointer;
@@ -167,6 +189,9 @@ namespace std
         : integral_constant<bool, is_member_pointer<T>::value &&
                             !is_member_function_pointer<T>::value>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_member_object_pointer_v = is_member_object_pointer<T>::value;
 
     template<class>
     struct is_function;
@@ -187,16 +212,28 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_member_function_pointer_v = is_member_function_pointer<T>::value;
+
+    template<class T>
     struct is_enum: aux::value_is<bool, __is_enum(T)>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_enum_v = is_enum<T>::value;
 
     template<class T>
     struct is_union: aux::value_is<bool, __is_union(T)>
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_union_v = is_union<T>::value;
+
+    template<class T>
     struct is_class: aux::value_is<bool, __is_class(T)>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_class_v = is_class<T>::value;
 
     /**
      * Note: is_function taken from possile implementation on cppreference.com
@@ -398,6 +435,9 @@ namespace std
     struct is_function<Ret(Args......) const volatile && noexcept>: true_type
     { /* DUMMY BODY */ };
 
+    template<class T>
+    inline constexpr bool is_function_v = is_function<T>::value;
+
     /**
      * 20.10.4.2, composite type categories:
      */
@@ -415,10 +455,16 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_reference_v = is_reference<T>::value;
+
+    template<class T>
     struct is_arithmetic: aux::value_is<
         bool,
         is_integral<T>::value || is_floating_point<T>::value>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_arithmetic_v = is_arithmetic<T>::value;
 
     template<class T>
     struct is_fundamental;
@@ -447,6 +493,9 @@ namespace std
     struct is_member_pointer: aux::is_member_pointer<remove_cv_t<T>>
     { /* DUMMY BODY */ };
 
+    template<class T>
+    inline constexpr bool is_member_pointer_v = is_member_pointer<T>::value;
+
     /**
      * 20.10.4.3, type properties:
      */
@@ -460,12 +509,18 @@ namespace std
     { /* DUMMY BODY */};
 
     template<class T>
+    inline constexpr bool is_const_v = is_const<T>::value;
+
+    template<class T>
     struct is_volatile: false_type
     { /* DUMMY BODY */};
 
     template<class T>
     struct is_volatile<T volatile>: true_type
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_volatile_v = is_volatile<T>::value;
 
     /**
      * 2 forward declarations.
@@ -485,8 +540,14 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_trivial_v = is_trivial<T>::value;
+
+    template<class T>
     struct is_trivially_copyable: aux::value_is<bool, __has_trivial_copy(T)>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_trivially_copyable_v = is_trivially_copyable<T>::value;
 
     template<class T>
     struct is_standard_layout;
@@ -496,24 +557,42 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_pod_v = is_pod<T>::value;
+
+    template<class T>
     struct is_literal_type: aux::value_is<bool, __is_literal_type(T)>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_literal_type_v = is_literal_type<T>::value;
 
     template<class T>
     struct is_empty: aux::value_is<bool, __is_empty(T)>
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_empty_v = is_empty<T>::value;
+
+    template<class T>
     struct is_polymorphic: aux::value_is<bool, __is_polymorphic(T)>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_polymorphic_v = is_polymorphic<T>::value;
 
     template<class T>
     struct is_abstract: aux::value_is<bool, __is_abstract(T)>
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_abstract_v = is_abstract<T>::value;
+
+    template<class T>
     struct is_final: aux::value_is<bool, __is_final(T)>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_final_v = is_final<T>::value;
 
     namespace aux
     {
@@ -544,8 +623,14 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_signed_v = is_signed<T>::value;
+
+    template<class T>
     struct is_unsigned: aux::is_unsigned<T>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_unsigned_v = is_unsigned<T>::value;
 
     template<class T, class... Args>
     struct is_constructible;
@@ -576,6 +661,9 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_trivially_constructible_v = is_trivially_constructible<T>::value;
+
+    template<class T>
     struct is_trivially_default_constructible;
 
     template<class T>
@@ -583,11 +671,17 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_trivially_copy_constructible_v = is_trivially_copy_constructible<T>::value;
+
+    template<class T>
     struct is_trivially_move_constructible;
 
     template<class T, class U>
     struct is_trivially_assignable: aux::value_is<bool, __has_trivial_assign(T)>
     { /* DUMMY BODY */ };
+
+    template<class T, class U>
+    inline constexpr bool is_trivially_assignable_v = is_trivially_assignable<T, U>::value;
 
     template<class T>
     struct is_trivially_copy_assignable;
@@ -599,9 +693,15 @@ namespace std
     struct is_trivially_destructible: aux::value_is<bool, __has_trivial_destructor(T)>
     { /* DUMMY BODY */ };
 
+    template<class T>
+    inline constexpr bool is_trivially_destructible_v = is_trivially_destructible<T>::value;
+
     template<class T, class... Args>
     struct is_nothrow_constructible: aux::value_is<bool, __has_nothrow_constructor(T)>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool is_nothrow_constructible_v = is_nothrow_constructible<T>::value;
 
     template<class T>
     struct is_nothrow_default_constructible;
@@ -611,11 +711,17 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_nothrow_copy_constructible_v = is_nothrow_copy_constructible<T>::value;
+
+    template<class T>
     struct is_nothrow_move_constructible;
 
     template<class T, class U>
     struct is_nothrow_assignable: aux::value_is<bool, __has_nothrow_assign(T)>
     { /* DUMMY BODY */ };
+
+    template<class T, class U>
+    inline constexpr bool is_nothrow_assignable_v = is_nothrow_assignable<T, U>::value;
 
     template<class T>
     struct is_nothrow_copy_assignable;
@@ -629,6 +735,9 @@ namespace std
     template<class T>
     struct has_virtual_destructor: aux::value_is<bool, __has_virtual_destructor(T)>
     { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr bool has_virtual_destructor_v = has_virtual_destructor<T>::value;
 
     /**
      * 20.10.5, type property queries:
@@ -649,6 +758,9 @@ namespace std
     struct rank<T[]>: aux::value_is<size_t, 1u + rank<T>::value>
     { /* DUMMY BODY */ };
 
+    template<class T>
+    inline constexpr size_t rank_v = rank<T>::value;
+
     template<class T, unsigned I = 0>
     struct extent;
 
@@ -660,8 +772,14 @@ namespace std
     struct is_same: aux::is_same<T, U>
     { /* DUMMY BODY */ };
 
+    template<class T, class U>
+    inline constexpr bool is_same_v = is_same<T, U>::value;
+
     template<class Base, class Derived>
     struct is_base_of;
+
+    template<class Base, class Derived>
+    inline constexpr bool is_base_of_v = is_base_of<Base, Derived>::value;
 
     template<class From, class To>
     struct is_convertible;
