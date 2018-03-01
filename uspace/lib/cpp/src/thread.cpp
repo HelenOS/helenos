@@ -41,6 +41,12 @@ namespace std
         // TODO: Change this to std::terminate when implemented.
         if (joinable())
         {
+            if (joinable_wrapper_)
+            {
+                joinable_wrapper_->join();
+                delete joinable_wrapper_;
+            }
+
             // TODO: this crashes :(
             /* fibril_teardown((fibril_t*)id_, false); */
             /* std::abort(); */
@@ -68,17 +74,28 @@ namespace std
 
     bool thread::joinable() const noexcept
     {
-        return get_id() != id{};
+        return id_ != fid_t{};
     }
 
     void thread::join()
     {
-        // TODO:
+        if (joinable_wrapper_)
+        {
+            printf("JOINING\n");
+            joinable_wrapper_->join();
+            printf("JOIN ENDED\n");
+        }
     }
 
     void thread::detach()
     {
         id_ = fid_t{};
+
+        if (joinable_wrapper_)
+        {
+            joinable_wrapper_->detach();
+            joinable_wrapper_ = nullptr;
+        }
     }
 
     thread::id thread::get_id() const noexcept

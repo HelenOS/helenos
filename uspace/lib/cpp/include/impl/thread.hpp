@@ -40,6 +40,82 @@ namespace std
         #include <fibril_synch.h>
     }
 
+    namespace aux
+    {
+        template<class Callable>
+        int thread_main(void*);
+
+        /**
+         * Fibrils in HelenOS are not joinable. They were
+         * in the past, but that functionality was removed from them
+         * so we created a workaround using a conditional variable that
+         * comprises the following two wrapper classes.
+         */
+        class joinable_wrapper
+        {
+            public:
+                joinable_wrapper()
+                    : join_mtx_{}, join_cv_{},
+                      finished_{false}, detached_{false}
+                {
+                    fibril_mutex_initialize(&join_mtx_);
+                    fibril_condvar_initialize(&join_cv_);
+                }
+
+                void join()
+                {
+                    fibril_mutex_lock(&join_mtx_);
+                    while (!finished_)
+                        fibril_condvar_wait(&join_cv_, &join_mtx_);
+                    fibril_mutex_unlock(&join_mtx_);
+                }
+
+                bool finished() const
+                {
+                    return finished_;
+                }
+
+                void detach()
+                {
+                    detached_ = true;
+                }
+
+                bool detached() const
+                {
+                    return detached_;
+                }
+
+            protected:
+                fibril_mutex_t join_mtx_;
+                fibril_condvar_t join_cv_;
+                bool finished_;
+                bool detached_;
+        };
+
+        template<class Callable>
+        class callable_wrapper: public joinable_wrapper
+        {
+            public:
+                callable_wrapper(Callable&& clbl)
+                    : joinable_wrapper{}, callable_{forward<Callable>(clbl)}
+                { /* DUMMY BODY */ }
+
+                void operator()()
+                {
+                    callable_();
+
+                    fibril_mutex_lock(&join_mtx_);
+                    finished_ = true;
+                    fibril_mutex_unlock(&join_mtx_);
+
+                    fibril_condvar_broadcast(&join_cv_);
+                }
+
+            private:
+                Callable callable_;
+        };
+    }
+
     /**
      * 30.3.1, class thread:
      */
@@ -64,11 +140,19 @@ namespace std
             // TODO: check the remark in the standard
             template<class F, class... Args>
             explicit thread(F&& f, Args&&... args)
+                : id_{}
             {
-                // TODO: create std::function out of f and args,
-                //       then use fibril_create with that as
-                //       the argument and call it?
-                id_ = fibril_create(f, nullptr);
+                auto callable = [&](){
+                    return f(forward<Args>(args)...);
+                };
+
+                auto callable_wrapper = new aux::callable_wrapper<decltype(callable)>{move(callable)};
+                joinable_wrapper_ = static_cast<aux::joinable_wrapper*>(callable_wrapper);
+
+                id_ = fibril_create(
+                        aux::thread_main<decltype(callable_wrapper)>,
+                        static_cast<void*>(callable_wrapper)
+                );
                 fibril_add_ready(id_);
             }
 
@@ -98,7 +182,29 @@ namespace std
 
         private:
             fid_t id_;
+            aux::joinable_wrapper* joinable_wrapper_{nullptr};
+
+            template<class Callable>
+            friend int aux::thread_main(void*);
     };
+
+    namespace aux
+    {
+        template<class CallablePtr>
+        int thread_main(void* clbl)
+        {
+            if (!clbl)
+                return 1;
+
+            auto callable = static_cast<CallablePtr>(clbl);
+            (*callable)();
+
+            if (callable->detached()) // No thread owns the wrapper.
+                delete callable;
+
+            return 0;
+        }
+    }
 
     void swap(thread& x, thread& y) noexcept;
 
