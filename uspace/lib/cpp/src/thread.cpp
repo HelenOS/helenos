@@ -41,7 +41,7 @@ namespace std
         // TODO: Change this to std::terminate when implemented.
         if (joinable())
         {
-            if (joinable_wrapper_)
+            if (joinable_wrapper_ && !joinable_wrapper_->detached())
             {
                 joinable_wrapper_->join();
                 delete joinable_wrapper_;
