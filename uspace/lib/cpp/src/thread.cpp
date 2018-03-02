@@ -38,19 +38,13 @@ namespace std
 
     thread::~thread()
     {
-        // TODO: Change this to std::terminate when implemented.
         if (joinable())
         {
-            if (joinable_wrapper_ && !joinable_wrapper_->detached())
-            {
-                joinable_wrapper_->join();
-                delete joinable_wrapper_;
-            }
-
-            // TODO: this crashes :(
-            /* fibril_teardown((fibril_t*)id_, false); */
-            /* std::abort(); */
+            // TODO: call std::terminate
         }
+
+        if (joinable_wrapper_ && !joinable_wrapper_->detached())
+            delete joinable_wrapper_;
     }
 
     thread::thread(thread&& other) noexcept
@@ -61,6 +55,11 @@ namespace std
 
     thread& thread::operator=(thread&& other) noexcept
     {
+        if (joinable())
+        {
+            // TODO: call std::terminate
+        }
+
         id_ = other.id_;
         other.id_ = fid_t{};
 
@@ -79,7 +78,7 @@ namespace std
 
     void thread::join()
     {
-        if (joinable_wrapper_)
+        if (joinable() && joinable_wrapper_)
             joinable_wrapper_->join();
     }
 

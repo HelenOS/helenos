@@ -33,13 +33,13 @@
 #include <internal/common.hpp>
 #include <ostream>
 
+extern "C" {
+    #include <fibril.h>
+    #include <fibril_synch.h>
+}
+
 namespace std
 {
-    extern "C" {
-        #include <fibril.h>
-        #include <fibril_synch.h>
-    }
-
     namespace aux
     {
         template<class Callable>
@@ -199,7 +199,7 @@ namespace std
             auto callable = static_cast<CallablePtr>(clbl);
             (*callable)();
 
-            if (callable->detached()) // No thread owns the wrapper.
+            if (callable->detached())
                 delete callable;
 
             return 0;
