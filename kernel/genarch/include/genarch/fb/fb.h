@@ -45,22 +45,22 @@
 typedef struct fb_properties {
 	/** Physical address of the framebuffer device. */
 	uintptr_t addr;
-	
+
 	/**
 	 * Address where the first (top left) pixel is mapped,
 	 * relative to "addr".
 	 */
 	unsigned int offset;
-	
+
 	/** Screen width in pixels. */
 	unsigned int x;
-	
+
 	/** Screen height in pixels. */
 	unsigned int y;
-	
+
 	/** Bytes per one scanline. */
 	unsigned int scan;
-	
+
 	/** Color model. */
 	visual_t visual;
 } fb_properties_t;

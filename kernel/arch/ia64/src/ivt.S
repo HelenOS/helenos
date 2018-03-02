@@ -56,26 +56,26 @@
 	mov r18 = cr.iip
 	mov r19 = cr.ipsr
 	mov r20 = cr.isr ;;
-	
+
     /* 2. Move IIP to IIPA. */
 	mov cr.iipa = r18
-	
+
     /* 3. Sign extend IIM[20:0], shift left by 4 and add to IIP. */
 	shl r17 = r17, 43 ;;	/* shift bit 20 to bit 63 */
 	shr r17 = r17, 39 ;;	/* signed shift right to bit 24 */
 	add r18 = r18, r17 ;;
 	mov cr.iip = r18
-	
+
     /* 4. Set IPSR.ri to 0. */
 	dep r19 = 0, r19, PSR_RI_SHIFT, PSR_RI_LEN ;;
 	mov cr.ipsr = r19
-	
+
     /* 5. Check whether IPSR.tb or IPSR.ss is set. */
 
 	/* TODO:
 	 * Implement this when Taken Branch and Single Step traps can occur.
 	 */
-    
+
     /* 6. Restore predicates and return from interruption. */
 	mov pr = r16 ;;
 	rfi
@@ -103,11 +103,11 @@
 
 SYMBOL(heavyweight_handler)
     /* 1. copy interrupt registers into bank 0 */
-    
+
 	/*
 	 * Note that r24-r31 from bank 0 can be used only as long as PSR.ic = 0.
 	 */
-	
+
 	/* Set up FPU as in interrupted context. */
 	mov r24 = psr
 	mov r25 = cr.ipsr
@@ -125,10 +125,10 @@ SYMBOL(heavyweight_handler)
 	mov r26 = cr.iipa
 	mov r27 = cr.isr
 	mov r28 = cr.ifa
-	
+
     /* 2. preserve predicate register into bank 0 */
 	mov r29 = pr ;;
-	
+
     /* 3. switch to kernel memory stack */
     	mov r30 = cr.ipsr
 	shr.u r31 = r12, VRN_SHIFT ;;
@@ -148,13 +148,13 @@ SYMBOL(heavyweight_handler)
 	 * Set p4 to false if the stack register doesn't reference kernel address space.
 	 */
 (p3)	cmp.eq p3, p4 = VRN_KERNEL, r31 ;;
-	
+
 	/*
 	 * Now, p4 is true iff the stack needs to be switched to kernel stack.
 	 */
 	mov r30 = r12
 (p4)	mov r12 = R_KSTACK ;;
-	
+
 	add r12 = -STACK_FRAME_SIZE, r12 ;;
 	add r31 = STACK_SCRATCH_AREA_SIZE + ISTATE_OFFSET_IN6, r12
 
@@ -165,7 +165,7 @@ SYMBOL(heavyweight_handler)
 	 * copy input parameters to stack.
 	 */
 	cmp.eq p6, p5 = EXC_BREAK_INSTRUCTION, R_VECTOR ;;
-	
+
 	/*
 	 * From now on, if this is break_instruction handler, p6 is true and p5
 	 * is false. Otherwise p6 is false and p5 is true.
@@ -180,9 +180,9 @@ SYMBOL(heavyweight_handler)
 (p6)	st8 [r31] = r33, -STACK_ITEM_SIZE ;;	/* save in1 */
 (p6)	st8 [r31] = r32, -STACK_ITEM_SIZE ;;	/* save in0 */
 (p5)	add r31 = -(7 * STACK_ITEM_SIZE), r31 ;;
-    
+
 	st8 [r31] = r30, -STACK_ITEM_SIZE ;;	/* save old stack pointer */
-	
+
 	st8 [r31] = r29, -STACK_ITEM_SIZE ;;	/* save predicate registers */
 
 	st8 [r31] = r24, -STACK_ITEM_SIZE ;;	/* save cr.iip */
@@ -196,41 +196,41 @@ SYMBOL(heavyweight_handler)
 	mov r25 = ar.pfs
 	cover
 	mov r26 = cr.ifs
-	
+
 	st8 [r31] = r24, -STACK_ITEM_SIZE ;;	/* save ar.rsc */
 	st8 [r31] = r25, -STACK_ITEM_SIZE ;;	/* save ar.pfs */
 	st8 [r31] = r26, -STACK_ITEM_SIZE	/* save ar.ifs */
-	
+
 	and r24 = ~(RSC_PL_MASK), r24 ;;
 	and r30 = ~(RSC_MODE_MASK), r24 ;;
 	mov ar.rsc = r30 ;;		/* update RSE state */
-	
+
 	mov r27 = ar.rnat
 	mov r28 = ar.bspstore ;;
-	
+
 	/*
 	 * Inspect BSPSTORE to figure out whether it is necessary to switch to
 	 * kernel BSPSTORE.
 	 */
 (p1)	shr.u r30 = r28, VRN_SHIFT ;;
 (p1)	cmp.eq p1, p2 = VRN_KERNEL, r30 ;;
-	
+
 	/*
 	 * If BSPSTORE needs to be switched, p1 is false and p2 is true.
 	 */
 (p1)	mov r30 = r28
 (p2)	mov r30 = R_KSTACK_BSP ;;
 (p2)	mov ar.bspstore = r30 ;;
-	
+
 	mov r29 = ar.bsp
-	
+
 	st8 [r31] = r27, -STACK_ITEM_SIZE ;;	/* save ar.rnat */
 	st8 [r31] = r30, -STACK_ITEM_SIZE ;;	/* save new value written to ar.bspstore */
 	st8 [r31] = r28, -STACK_ITEM_SIZE ;;	/* save ar.bspstore */
 	st8 [r31] = r29, -STACK_ITEM_SIZE 	/* save ar.bsp */
-	
+
 	mov ar.rsc = r24		/* restore RSE's setting + kernel privileges */
-	
+
     /* steps 6 - 15 are done by heavyweight_handler_inner() */
 	mov R_RET = b0 			/* save b0 belonging to interrupted context */
 	br.call.sptk.many b0 = heavyweight_handler_inner
@@ -291,7 +291,7 @@ SYMBOL(heavyweight_handler)
     /* 18. restore predicate registers from memory stack */
 	ld8 r29 = [r31], +STACK_ITEM_SIZE ;;	/* load predicate registers */
 	mov pr = r29
-	
+
     /* 19. return from interruption */
     	ld8 r12 = [r31]				/* load stack pointer */
 	rfi ;;
@@ -302,19 +302,19 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	 * will be preserved in stacked registers and backing store.
 	 */
 	alloc loc0 = ar.pfs, 0, 48, 2, 0 ;;
-	
+
 	/* bank 0 is going to be shadowed, copy essential data from there */
 	mov loc1 = R_RET	/* b0 belonging to interrupted context */
 	mov loc2 = R_HANDLER
 	mov out0 = R_VECTOR
-	
+
 	add out1 = STACK_SCRATCH_AREA_SIZE, r12
 
     /* 6. switch to bank 1 and reenable PSR.ic */
 	ssm PSR_IC_MASK
 	bsw.1 ;;
 	srlz.d
-	
+
     /* 7. preserve branch and application registers */
     	mov loc3 = ar.unat
 	mov loc4 = ar.lc
@@ -322,7 +322,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	mov loc6 = ar.ccv
 	mov loc7 = ar.csd
 	mov loc8 = ar.ssd
-	
+
 	mov loc9 = b0
 	mov loc10 = b1
 	mov loc11 = b2
@@ -331,7 +331,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	mov loc14 = b5
 	mov loc15 = b6
 	mov loc16 = b7
-	
+
     /* 8. preserve general and floating-point registers */
 	mov loc17 = r1
 	mov loc18 = r2
@@ -373,7 +373,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	add r29 = ISTATE_OFFSET_F5 + STACK_SCRATCH_AREA_SIZE, r12
 	add r30 = ISTATE_OFFSET_F6 + STACK_SCRATCH_AREA_SIZE, r12
 	add r31 = ISTATE_OFFSET_F7 + STACK_SCRATCH_AREA_SIZE, r12 ;;
-	
+
 	stf.spill [r26] = f2, 8 * FLOAT_ITEM_SIZE
 	stf.spill [r27] = f3, 8 * FLOAT_ITEM_SIZE
 	stf.spill [r28] = f4, 8 * FLOAT_ITEM_SIZE
@@ -409,7 +409,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	stf.spill [r31] = f31 ;;
 
 	mov loc47 = ar.fpsr	/* preserve floating point status register */
-    
+
     /* 9. skipped (will not enable interrupts) */
 	/*
     	 * ssm PSR_I_MASK
@@ -419,13 +419,13 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 
     /* 10. call handler */
     	movl r1 = __gp
-    
+
     	mov b1 = loc2
 	br.call.sptk.many b0 = b1
 
     /* 11. return from handler */
 0:
-	
+
     /* 12. skipped (will not disable interrupts) */
 	/*
     	 * rsm PSR_I_MASK
@@ -476,7 +476,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	ldf.fill f29 = [r29]
 	ldf.fill f30 = [r30]
 	ldf.fill f31 = [r31] ;;
-	
+
 	mov r1 = loc17
 	mov r2 = loc18
 	mov r3 = loc19
@@ -510,7 +510,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	mov r31 = loc46
 
 	mov ar.fpsr = loc47	/* restore floating point status register */
-	
+
     /* 14. restore branch and application registers */
     	mov ar.unat = loc3
 	mov ar.lc = loc4
@@ -518,7 +518,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	mov ar.ccv = loc6
 	mov ar.csd = loc7
 	mov ar.ssd = loc8
-	
+
 	mov b0 = loc9
 	mov b1 = loc10
 	mov b2 = loc11
@@ -527,7 +527,7 @@ FUNCTION_BEGIN(heavyweight_handler_inner)
 	mov b5 = loc14
 	mov b6 = loc15
 	mov b7 = loc16
-	
+
     /* 15. disable PSR.ic and switch to bank 0 */
 	rsm PSR_IC_MASK
 	bsw.0 ;;
@@ -577,7 +577,7 @@ SYMBOL(ivt)
 	HEAVYWEIGHT_HANDLER 0x5d
 	HEAVYWEIGHT_HANDLER 0x5e
 	HEAVYWEIGHT_HANDLER 0x5f
-	
+
 	HEAVYWEIGHT_HANDLER 0x60
 	HEAVYWEIGHT_HANDLER 0x61
 	HEAVYWEIGHT_HANDLER 0x62

@@ -63,7 +63,7 @@ typedef enum {
 	USB_HIDUT_USAGE_GENERIC_DESKTOP_Y = 0x31,
 	USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL = 0x38
 	/* USB_HIDUT_USAGE_GENERIC_DESKTOP_ = , */
-	
+
 } usb_hidut_usage_generic_desktop_t;
 
 typedef enum {

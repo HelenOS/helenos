@@ -60,7 +60,7 @@ typedef struct {
 	uint32_t facility;
 	uint32_t level;
 	char message[0];
-	
+
 } __attribute__((__packed__)) log_entry_t;
 
 /* Producer/consumer buffers */
@@ -106,31 +106,31 @@ static void producer(void)
 		    str_error_name(rc));
 		return;
 	}
-	
+
 	size_t offset = 0;
 	while (offset < len) {
 		size_t entry_len = *((unaligned_size_t *) (buffer + offset));
-		
+
 		if (offset + entry_len > len || entry_len < sizeof(log_entry_t))
 			break;
-		
+
 		log_entry_t *buf = malloc(entry_len + 1);
 		if (buf == NULL)
 			break;
-		
+
 		item_t *item = malloc(sizeof(item_t));
 		if (item == NULL) {
 			free(buf);
 			break;
 		}
-		
+
 		memcpy(buf, buffer + offset, entry_len);
 		*((uint8_t *) buf + entry_len) = 0;
 		link_initialize(&item->link);
 		item->size = entry_len;
 		item->data = buf;
 		prodcons_produce(&pc, &item->link);
-		
+
 		offset += entry_len;
 	}
 }
@@ -147,39 +147,39 @@ static void producer(void)
  */
 static errno_t consumer(void *data)
 {
-	
+
 	while (true) {
 		link_t *link = prodcons_consume(&pc);
 		item_t *item = list_get_instance(link, item_t, link);
-		
+
 		if (item->size < sizeof(log_entry_t)) {
 			free(item->data);
 			free(item);
 			continue;
 		}
-		
+
 		if (item->data->facility == LF_USPACE) {
 			/* Avoid reposting messages */
 			free(item->data);
 			free(item);
 			continue;
 		}
-		
+
 		log_t ctx = kernel_ctx;
 		if (item->data->facility < facility_len) {
 			ctx = facility_ctx[item->data->facility];
 		}
-		
+
 		log_level_t lvl = item->data->level;
 		if (lvl > LVL_LIMIT)
 			lvl = LVL_NOTE;
-		
+
 		log_msg(ctx, lvl, "%s", item->data->message);
-		
+
 		free(item->data);
 		free(item);
 	}
-	
+
 	return EOK;
 }
 
@@ -198,11 +198,11 @@ static void klog_notification_received(ipc_call_t *call, void *arg)
 	 * at any time to limit the chance of the consumer
 	 * starving.
 	 */
-	
+
 	fibril_mutex_lock(&mtx);
-	
+
 	producer();
-	
+
 	async_event_unmask(EVENT_KLOG);
 	fibril_mutex_unlock(&mtx);
 }
@@ -214,18 +214,18 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s: Unable to initialize log\n", NAME);
 		return rc;
 	}
-	
+
 	kernel_ctx = log_create("kernel", LOG_NO_PARENT);
 	for (unsigned int i = 0; i < facility_len; i++) {
 		facility_ctx[i] = log_create(facility_name[i], kernel_ctx);
 	}
-	
+
 	buffer = malloc(BUFFER_SIZE);
 	if (buffer == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to allocate buffer");
 		return 1;
 	}
-	
+
 	prodcons_initialize(&pc);
 	rc = async_event_subscribe(EVENT_KLOG, klog_notification_received, NULL);
 	if (rc != EOK) {
@@ -233,24 +233,24 @@ int main(int argc, char *argv[])
 		    "Unable to register klog notifications");
 		return rc;
 	}
-	
+
 	fid_t fid = fibril_create(consumer, NULL);
 	if (!fid) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Unable to create consumer fibril");
 		return ENOMEM;
 	}
-	
+
 	fibril_add_ready(fid);
 	async_event_unmask(EVENT_KLOG);
-	
+
 	fibril_mutex_lock(&mtx);
 	producer();
 	fibril_mutex_unlock(&mtx);
-	
+
 	task_retval(0);
 	async_manager();
-	
+
 	return 0;
 }
 

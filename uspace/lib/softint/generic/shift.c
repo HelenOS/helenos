@@ -41,11 +41,11 @@ long long __ashldi3 (long long val, int shift)
 	union lltype ll;
 
 	ll.s_whole = val;
-	
+
 	if (shift <= 0) {
 		return ll.s_whole;
 	}
-	
+
 	if (shift >= (int) WHOLE_BIT_CNT) {
 		ll.u_half[HI] = 0;
 		ll.u_half[LO] = 0;

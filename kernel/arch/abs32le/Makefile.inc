@@ -32,7 +32,7 @@ ifeq ($(COMPILER),gcc_cross)
 	ifeq ($(CROSS_TARGET),arm32)
 		ATSIGN = %
 	endif
-	
+
 	ifeq ($(CROSS_TARGET),mips32)
 		COMMON_CFLAGS += -mno-abicalls
 	endif

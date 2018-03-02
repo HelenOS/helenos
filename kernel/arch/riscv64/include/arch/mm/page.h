@@ -181,7 +181,7 @@ typedef struct {
 NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *entry = &pt[i];
-	
+
 	return (((!entry->valid) << PAGE_PRESENT_SHIFT) |
 	    (entry->user << PAGE_USER_SHIFT) |
 	    (entry->readable << PAGE_READ_SHIFT) |
@@ -193,7 +193,7 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *entry = &pt[i];
-	
+
 	entry->valid = !(flags & PAGE_NOT_PRESENT);
 	entry->readable = (flags & PAGE_READ) != 0;
 	entry->writable = (flags & PAGE_WRITE) != 0;

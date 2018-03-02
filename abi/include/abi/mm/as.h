@@ -52,10 +52,10 @@
 typedef struct {
 	/** Starting address */
 	uintptr_t start_addr;
-	
+
 	/** Area size */
 	size_t size;
-	
+
 	/** Area flags */
 	unsigned int flags;
 } as_area_info_t;

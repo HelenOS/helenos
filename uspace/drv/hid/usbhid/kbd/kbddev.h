@@ -62,7 +62,7 @@
 typedef struct usb_kbd_t {
 	/** Link to HID device structure */
 	usb_hid_dev_t *hid_dev;
-	
+
 	/** Previously pressed keys (not translated to key codes). */
 	int32_t *keys_old;
 	/** Currently pressed keys (not translated to key codes). */
@@ -71,32 +71,32 @@ typedef struct usb_kbd_t {
 	size_t key_count;
 	/** Currently pressed modifiers (bitmap). */
 	uint8_t modifiers;
-	
+
 	/** Currently active modifiers including locks. Sent to the console. */
 	unsigned int mods;
-	
+
 	/** Currently active lock keys. */
 	unsigned int lock_keys;
-	
+
 	/** IPC session to client (for sending key events). */
 	async_sess_t *client_sess;
-	
+
 	/** Information for auto-repeat of keys. */
 	usb_kbd_repeat_t repeat;
-	
+
 	/** Mutex for accessing the information about auto-repeat. */
 	fibril_mutex_t repeat_mtx;
-	
+
 	uint8_t *output_buffer;
-	
+
 	size_t output_size;
-	
+
 	size_t led_output_size;
-	
+
 	usb_hid_report_path_t *led_path;
-	
+
 	int32_t *led_data;
-	
+
 	/** State of the structure (for checking before use).
 	 *
 	 * 0 - not initialized
@@ -104,7 +104,7 @@ typedef struct usb_kbd_t {
 	 * -1 - ready for destroying
 	 */
 	int initialized;
-	
+
 	/** DDF function */
 	ddf_fun_t *fun;
 } usb_kbd_t;

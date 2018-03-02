@@ -95,7 +95,7 @@ PCUT_TEST_AFTER {
 PCUT_TEST(only_hostname) {
 	expected_uri.scheme = "http";
 	expected_uri.host = "localhost";
-	
+
 	PARSE_AND_CHECK("http://localhost");
 }
 
@@ -103,7 +103,7 @@ PCUT_TEST(hostname_with_user) {
 	expected_uri.scheme = "http";
 	expected_uri.host = "localhost";
 	expected_uri.user_info = "user";
-		
+
 	PARSE_AND_CHECK("http://user@localhost");
 }
 
@@ -112,7 +112,7 @@ PCUT_TEST(hostname_with_user_and_password) {
 	expected_uri.host = "localhost";
 	expected_uri.user_info = "user";
 	expected_uri.user_credential = "password";
-		
+
 	PARSE_AND_CHECK("https://user:password@localhost");
 }
 
@@ -120,7 +120,7 @@ PCUT_TEST(path_specification) {
 	expected_uri.scheme = "http";
 	expected_uri.host = "localhost";
 	expected_uri.path = "/alpha";
-		
+
 	PARSE_AND_CHECK("http://localhost/alpha");
 }
 
@@ -129,7 +129,7 @@ PCUT_TEST(with_fragment) {
 	expected_uri.host = "localhost";
 	expected_uri.path = "/alpha";
 	expected_uri.fragment = "fragment-name";
-		
+
 	PARSE_AND_CHECK("http://localhost/alpha#fragment-name");
 }
 

@@ -74,7 +74,7 @@ static void _gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp,
     void *arg, void *slot)
 {
 	size_t i = 0;
-	
+
 	while (i < cnt) {
 		if ((i != 0) &&
 		    (cmp(INDEX(data, i, elem_size),
@@ -108,19 +108,19 @@ bool gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
 {
 	uint8_t ibuf_slot[IBUF_SIZE];
 	void *slot;
-	
+
 	if (elem_size > IBUF_SIZE) {
 		slot = (void *) malloc(elem_size, 0);
 		if (!slot)
 			return false;
 	} else
 		slot = (void *) ibuf_slot;
-	
+
 	_gsort(data, cnt, elem_size, cmp, arg, slot);
-	
+
 	if (elem_size > IBUF_SIZE)
 		free(slot);
-	
+
 	return true;
 }
 

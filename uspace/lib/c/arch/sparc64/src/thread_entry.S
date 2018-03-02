@@ -29,7 +29,7 @@
 #include <abi/asmtool.h>
 
 .text
-	
+
 ## User-space thread entry point for all but the first threads.
 #
 #
@@ -49,5 +49,5 @@ SYMBOL(__thread_entry)
 	sethi %hi(_gp), %l7
 	call __thread_main		! %o0 contains address of uarg
 	or %l7, %lo(_gp), %l7
-	
+
 	! not reached

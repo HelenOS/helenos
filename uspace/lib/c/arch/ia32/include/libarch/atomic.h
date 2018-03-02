@@ -72,7 +72,7 @@ static inline void atomic_dec(atomic_t *val)
 static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	atomic_count_t r = 1;
-	
+
 #ifdef __PCC__
 	asm volatile (
 		"lock xaddl %1, %0\n"
@@ -86,14 +86,14 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
 		  [r] "+r" (r)
 	);
 #endif
-	
+
 	return r;
 }
 
 static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	atomic_count_t r = -1;
-	
+
 #ifdef __PCC__
 	asm volatile (
 		"lock xaddl %1, %0\n"
@@ -107,7 +107,7 @@ static inline atomic_count_t atomic_postdec(atomic_t *val)
 		  [r] "+r" (r)
 	);
 #endif
-	
+
 	return r;
 }
 

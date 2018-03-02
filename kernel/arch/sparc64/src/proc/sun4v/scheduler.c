@@ -70,7 +70,7 @@ void after_thread_ran_arch(void)
 		/* sample the state of the userspace window buffer */
 		THREAD->arch.uspace_window_buffer =
 		    (uint8_t *) asi_u64_read(ASI_SCRATCHPAD, SCRATCHPAD_WBUF);
-		
+
 	}
 }
 

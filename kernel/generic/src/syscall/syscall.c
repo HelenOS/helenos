@@ -65,7 +65,7 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 	irq_spinlock_lock(&THREAD->lock, true);
 	thread_update_accounting(true);
 	irq_spinlock_unlock(&THREAD->lock, true);
-	
+
 #ifdef CONFIG_UDEBUG
 	/*
 	 * An istate_t-compatible record was created on the stack by the
@@ -81,7 +81,7 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 	if (THREAD->udebug.active)
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
 #endif
-	
+
 	sysarg_t rc;
 	if (id < SYSCALL_END) {
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
@@ -90,14 +90,14 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 		    "Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
 		task_kill_self(true);
 	}
-	
+
 	if (THREAD->interrupted)
 		thread_exit();
-	
+
 #ifdef CONFIG_UDEBUG
 	if (THREAD->udebug.active) {
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
-		
+
 		/*
 		 * Stopping point needed for tasks that only invoke
 		 * non-blocking system calls. Not needed if the task
@@ -110,47 +110,47 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 	/* Clear userspace state pointer */
 	THREAD->udebug.uspace_state = NULL;
 #endif
-	
+
 	/* Do kernel accounting */
 	irq_spinlock_lock(&THREAD->lock, true);
 	thread_update_accounting(false);
 	irq_spinlock_unlock(&THREAD->lock, true);
-	
+
 	return rc;
 }
 
 syshandler_t syscall_table[SYSCALL_END] = {
 	/* System management syscalls. */
 	[SYS_KIO] = (syshandler_t) sys_kio,
-	
+
 	/* Thread and task related syscalls. */
 	[SYS_THREAD_CREATE] = (syshandler_t) sys_thread_create,
 	[SYS_THREAD_EXIT] = (syshandler_t) sys_thread_exit,
 	[SYS_THREAD_GET_ID] = (syshandler_t) sys_thread_get_id,
 	[SYS_THREAD_USLEEP] = (syshandler_t) sys_thread_usleep,
 	[SYS_THREAD_UDELAY] = (syshandler_t) sys_thread_udelay,
-	
+
 	[SYS_TASK_GET_ID] = (syshandler_t) sys_task_get_id,
 	[SYS_TASK_SET_NAME] = (syshandler_t) sys_task_set_name,
 	[SYS_TASK_KILL] = (syshandler_t) sys_task_kill,
 	[SYS_TASK_EXIT] = (syshandler_t) sys_task_exit,
 	[SYS_PROGRAM_SPAWN_LOADER] = (syshandler_t) sys_program_spawn_loader,
-	
+
 	/* Synchronization related syscalls. */
 	[SYS_FUTEX_SLEEP] = (syshandler_t) sys_futex_sleep,
 	[SYS_FUTEX_WAKEUP] = (syshandler_t) sys_futex_wakeup,
 	[SYS_SMC_COHERENCE] = (syshandler_t) sys_smc_coherence,
 	[SYS_SMP_MEMORY_BARRIER] = (syshandler_t) sys_smp_memory_barrier,
-	
+
 	/* Address space related syscalls. */
 	[SYS_AS_AREA_CREATE] = (syshandler_t) sys_as_area_create,
 	[SYS_AS_AREA_RESIZE] = (syshandler_t) sys_as_area_resize,
 	[SYS_AS_AREA_CHANGE_FLAGS] = (syshandler_t) sys_as_area_change_flags,
 	[SYS_AS_AREA_DESTROY] = (syshandler_t) sys_as_area_destroy,
-	
+
 	/* Page mapping related syscalls. */
 	[SYS_PAGE_FIND_MAPPING] = (syshandler_t) sys_page_find_mapping,
-	
+
 	/* IPC related syscalls. */
 	[SYS_IPC_CALL_ASYNC_FAST] = (syshandler_t) sys_ipc_call_async_fast,
 	[SYS_IPC_CALL_ASYNC_SLOW] = (syshandler_t) sys_ipc_call_async_slow,
@@ -162,16 +162,16 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_IPC_POKE] = (syshandler_t) sys_ipc_poke,
 	[SYS_IPC_HANGUP] = (syshandler_t) sys_ipc_hangup,
 	[SYS_IPC_CONNECT_KBOX] = (syshandler_t) sys_ipc_connect_kbox,
-	
+
 	/* Event notification syscalls. */
 	[SYS_IPC_EVENT_SUBSCRIBE] = (syshandler_t) sys_ipc_event_subscribe,
 	[SYS_IPC_EVENT_UNSUBSCRIBE] = (syshandler_t) sys_ipc_event_unsubscribe,
 	[SYS_IPC_EVENT_UNMASK] = (syshandler_t) sys_ipc_event_unmask,
-	
+
 	/* Permission related syscalls. */
 	[SYS_PERM_GRANT] = (syshandler_t) sys_perm_grant,
 	[SYS_PERM_REVOKE] = (syshandler_t) sys_perm_revoke,
-	
+
 	/* DDI related syscalls. */
 	[SYS_PHYSMEM_MAP] = (syshandler_t) sys_physmem_map,
 	[SYS_PHYSMEM_UNMAP] = (syshandler_t) sys_physmem_unmap,
@@ -179,10 +179,10 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_DMAMEM_UNMAP] = (syshandler_t) sys_dmamem_unmap,
 	[SYS_IOSPACE_ENABLE] = (syshandler_t) sys_iospace_enable,
 	[SYS_IOSPACE_DISABLE] = (syshandler_t) sys_iospace_disable,
-	
+
 	[SYS_IPC_IRQ_SUBSCRIBE] = (syshandler_t) sys_ipc_irq_subscribe,
 	[SYS_IPC_IRQ_UNSUBSCRIBE] = (syshandler_t) sys_ipc_irq_unsubscribe,
-	
+
 	/* Sysinfo syscalls. */
 	[SYS_SYSINFO_GET_KEYS_SIZE] = (syshandler_t) sys_sysinfo_get_keys_size,
 	[SYS_SYSINFO_GET_KEYS] = (syshandler_t) sys_sysinfo_get_keys,
@@ -190,10 +190,10 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	[SYS_SYSINFO_GET_VALUE] = (syshandler_t) sys_sysinfo_get_value,
 	[SYS_SYSINFO_GET_DATA_SIZE] = (syshandler_t) sys_sysinfo_get_data_size,
 	[SYS_SYSINFO_GET_DATA] = (syshandler_t) sys_sysinfo_get_data,
-	
+
 	/* Kernel console syscalls. */
 	[SYS_DEBUG_CONSOLE] = (syshandler_t) sys_debug_console,
-	
+
 	[SYS_KLOG] = (syshandler_t) sys_klog,
 };
 

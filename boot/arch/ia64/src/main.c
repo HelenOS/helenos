@@ -66,7 +66,7 @@ static void read_efi_memmap(void)
 {
 	memmap_item_t *memmap = bootinfo.memmap;
 	size_t items = 0;
-	
+
 	if (!bootpar) {
 		/* Fake-up a memory map for simulators. */
 		memmap[items].base = DEFAULT_MEMORY_BASE;
@@ -82,7 +82,7 @@ static void read_efi_memmap(void)
 		char *cur, *mm_base = (char *) bootpar->efi_memmap;
 		size_t mm_size = bootpar->efi_memmap_sz;
 		size_t md_size = bootpar->efi_memdesc_sz;
-		
+
 		/*
 		 * Walk the EFI memory map using the V1 memory descriptor
 		 * format. The actual memory descriptor can use newer format,
@@ -108,13 +108,13 @@ static void read_efi_memmap(void)
 			default:
 				continue;
 			}
-			
+
 			memmap[items].base = md->phys_start;
 			memmap[items].size = md->pages * EFI_PAGE_SIZE;
 			items++;
 		}
 	}
-	
+
 	bootinfo.memmap_items = items;
 }
 
@@ -133,12 +133,12 @@ static void read_sal_configuration(void)
 	if (bootpar && bootpar->efi_system_table) {
 		efi_guid_t sal_guid = SAL_SYSTEM_TABLE_GUID;
 		sal_system_table_header_t *sal_st;
-		
+
 		sal_st = efi_vendor_table_find(
 		    (efi_system_table_t *) bootpar->efi_system_table, sal_guid);
 
 		sal_system_table_parse(sal_st);
-		
+
 		bootinfo.sys_freq = sal_base_clock_frequency();
 	} else {
 		/* Configure default values for simulators. */
@@ -149,45 +149,45 @@ static void read_sal_configuration(void)
 void bootstrap(void)
 {
 	version_print();
-	
+
 	printf(" %p|%p: boot info structure\n", &bootinfo, &bootinfo);
 	printf(" %p|%p: kernel entry point\n",
 	    (void *) KERNEL_ADDRESS, (void *) KERNEL_ADDRESS);
 	printf(" %p|%p: loader entry point\n",
 	    (void *) LOADER_ADDRESS, (void *) LOADER_ADDRESS);
-	
+
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
 		    components[i].addr, components[i].name,
 		    components[i].inflated, components[i].size);
-	
+
 	void *dest[COMPONENTS];
 	size_t top = KERNEL_ADDRESS;
 	size_t cnt = 0;
 	bootinfo.taskmap.cnt = 0;
 	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
 		top = ALIGN_UP(top, PAGE_SIZE);
-		
+
 		if (i > 0) {
 			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].addr =
 			    (void *) top;
 			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].size =
 			    components[i].inflated;
-			
+
 			str_cpy(bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].name,
 			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-			
+
 			bootinfo.taskmap.cnt++;
 		}
-		
+
 		dest[i] = (void *) top;
 		top += components[i].inflated;
 		cnt++;
 	}
-	
+
 	printf("\nInflating components ... ");
-	
+
 	/*
 	 * We will use the next available address for a copy of each component to
 	 * make sure that inflate() works with disjunctive memory regions.
@@ -196,29 +196,29 @@ void bootstrap(void)
 
 	for (i = cnt; i > 0; i--) {
 		printf("%s ", components[i - 1].name);
-		
+
 		/*
 		 * Copy the component to a location which is guaranteed not to
 		 * overlap with the destination for inflate().
 		 */
 		memmove((void *) top, components[i - 1].addr, components[i - 1].size);
-		
+
 		int err = inflate((void *) top, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
-		
+
 		if (err != EOK) {
 			printf("\n%s: Inflating error %d, halting.\n",
 			    components[i - 1].name, err);
 			halt();
 		}
 	}
-	
+
 	printf(".\n");
 
 	read_efi_memmap();
 	read_sal_configuration();
 	read_pal_configuration();
-	
+
 	printf("Booting the kernel ...\n");
 	jump_to_kernel(&bootinfo);
 }

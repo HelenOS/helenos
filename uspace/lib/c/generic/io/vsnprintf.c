@@ -64,10 +64,10 @@ typedef struct {
 static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *data)
 {
 	size_t left = data->size - data->len;
-	
+
 	if (left == 0)
 		return ((int) size);
-	
+
 	if (left == 1) {
 		/* We have only one free byte left in buffer
 		 * -> store trailing zero
@@ -76,38 +76,38 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 		data->len = data->size;
 		return ((int) size);
 	}
-	
+
 	if (left <= size) {
 		/* We do not have enough space for the whole string
 		 * with the trailing zero => print only a part
 		 * of string
 		 */
 		size_t index = 0;
-		
+
 		while (index < size) {
 			wchar_t uc = str_decode(str, &index, size);
-			
+
 			if (chr_encode(uc, data->dst, &data->len, data->size - 1) != EOK)
 				break;
 		}
-		
+
 		/* Put trailing zero at end, but not count it
 		 * into data->len so it could be rewritten next time
 		 */
 		data->dst[data->len] = 0;
-		
+
 		return ((int) size);
 	}
-	
+
 	/* Buffer is big enough to print the whole string */
 	memcpy((void *)(data->dst + data->len), (void *) str, size);
 	data->len += size;
-	
+
 	/* Put trailing zero at end, but not count it
 	 * into data->len so it could be rewritten next time
 	 */
 	data->dst[data->len] = 0;
-	
+
 	return ((int) size);
 }
 
@@ -131,13 +131,13 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 static int vsnprintf_wstr_write(const wchar_t *str, size_t size, vsnprintf_data_t *data)
 {
 	size_t index = 0;
-	
+
 	while (index < (size / sizeof(wchar_t))) {
 		size_t left = data->size - data->len;
-		
+
 		if (left == 0)
 			return ((int) size);
-		
+
 		if (left == 1) {
 			/* We have only one free byte left in buffer
 			 * -> store trailing zero
@@ -146,18 +146,18 @@ static int vsnprintf_wstr_write(const wchar_t *str, size_t size, vsnprintf_data_
 			data->len = data->size;
 			return ((int) size);
 		}
-		
+
 		if (chr_encode(str[index], data->dst, &data->len, data->size - 1) != EOK)
 			break;
-		
+
 		index++;
 	}
-	
+
 	/* Put trailing zero at end, but not count it
 	 * into data->len so it could be rewritten next time
 	 */
 	data->dst[data->len] = 0;
-	
+
 	return ((int) size);
 }
 
@@ -173,11 +173,11 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 		(int(*) (const wchar_t *, size_t, void *)) vsnprintf_wstr_write,
 		&data
 	};
-	
+
 	/* Print 0 at end of string - fix the case that nothing will be printed */
 	if (size > 0)
 		str[0] = 0;
-	
+
 	/* vsnprintf_write ensures that str will be terminated by zero. */
 	return printf_core(fmt, &ps, ap);
 }

@@ -67,12 +67,12 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		rc = as_area_share(as, IPC_GET_ARG1(*olddata),
 		    IPC_GET_ARG2(*olddata), AS, IPC_GET_ARG3(*olddata),
 		    &dst_base, IPC_GET_ARG1(answer->data));
-			
+
 		if (rc == EOK) {
 			rc = copy_to_uspace((void *) IPC_GET_ARG2(answer->data),
 			    &dst_base, sizeof(dst_base));
 		}
-			
+
 		IPC_SET_RETVAL(answer->data, rc);
 	}
 

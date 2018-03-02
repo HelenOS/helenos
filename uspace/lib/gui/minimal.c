@@ -65,7 +65,7 @@ static void paint_internal(widget_t *w)
 			}
 		}
 	}
-	
+
 	window_yield(min->widget.window);
 }
 

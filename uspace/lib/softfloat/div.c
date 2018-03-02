@@ -52,9 +52,9 @@ float32 div_float32(float32 a, float32 b)
 	float32 result;
 	int32_t aexp, bexp, cexp;
 	uint64_t afrac, bfrac, cfrac;
-	
+
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
-	
+
 	if (is_float32_nan(a)) {
 		if (is_float32_signan(a)) {
 			// FIXME: SigNaN
@@ -62,7 +62,7 @@ float32 div_float32(float32 a, float32 b)
 		/* NaN */
 		return a;
 	}
-	
+
 	if (is_float32_nan(b)) {
 		if (is_float32_signan(b)) {
 			// FIXME: SigNaN
@@ -70,7 +70,7 @@ float32 div_float32(float32 a, float32 b)
 		/* NaN */
 		return b;
 	}
-	
+
 	if (is_float32_infinity(a)) {
 		if (is_float32_infinity(b)) {
 			/*FIXME: inf / inf */
@@ -82,7 +82,7 @@ float32 div_float32(float32 a, float32 b)
 		result.parts.fraction = a.parts.fraction;
 		return result;
 	}
-	
+
 	if (is_float32_infinity(b)) {
 		if (is_float32_zero(a)) {
 			/* FIXME 0 / inf */
@@ -95,7 +95,7 @@ float32 div_float32(float32 a, float32 b)
 		result.parts.fraction = 0;
 		return result;
 	}
-	
+
 	if (is_float32_zero(b)) {
 		if (is_float32_zero(a)) {
 			/*FIXME: 0 / 0*/
@@ -107,12 +107,12 @@ float32 div_float32(float32 a, float32 b)
 		result.parts.fraction = 0;
 		return result;
 	}
-	
+
 	afrac = a.parts.fraction;
 	aexp = a.parts.exp;
 	bfrac = b.parts.fraction;
 	bexp = b.parts.exp;
-	
+
 	/* denormalized numbers */
 	if (aexp == 0) {
 		if (afrac == 0) {
@@ -120,7 +120,7 @@ float32 div_float32(float32 a, float32 b)
 			result.parts.fraction = 0;
 			return result;
 		}
-		
+
 		/* normalize it*/
 		afrac <<= 1;
 		/* afrac is nonzero => it must stop */
@@ -129,7 +129,7 @@ float32 div_float32(float32 a, float32 b)
 			aexp--;
 		}
 	}
-	
+
 	if (bexp == 0) {
 		bfrac <<= 1;
 		/* bfrac is nonzero => it must stop */
@@ -138,38 +138,38 @@ float32 div_float32(float32 a, float32 b)
 			bexp--;
 		}
 	}
-	
+
 	afrac = (afrac | FLOAT32_HIDDEN_BIT_MASK) << (32 - FLOAT32_FRACTION_SIZE - 1);
 	bfrac = (bfrac | FLOAT32_HIDDEN_BIT_MASK) << (32 - FLOAT32_FRACTION_SIZE);
-	
+
 	if (bfrac <= (afrac << 1)) {
 		afrac >>= 1;
 		aexp++;
 	}
-	
+
 	cexp = aexp - bexp + FLOAT32_BIAS - 2;
-	
+
 	cfrac = (afrac << 32) / bfrac;
 	if ((cfrac & 0x3F) == 0) {
 		cfrac |= (bfrac * cfrac != afrac << 32);
 	}
-	
+
 	/* pack and round */
-	
+
 	/* find first nonzero digit and shift result and detect possibly underflow */
 	while ((cexp > 0) && (cfrac) && (!(cfrac & (FLOAT32_HIDDEN_BIT_MASK << 7)))) {
 		cexp--;
 		cfrac <<= 1;
 		/* TODO: fix underflow */
 	}
-	
+
 	cfrac += (0x1 << 6); /* FIXME: 7 is not sure*/
-	
+
 	if (cfrac & (FLOAT32_HIDDEN_BIT_MASK << 7)) {
 		++cexp;
 		cfrac >>= 1;
 	}
-	
+
 	/* check overflow */
 	if (cexp >= FLOAT32_MAX_EXPONENT) {
 		/* FIXME: overflow, return infinity */
@@ -177,7 +177,7 @@ float32 div_float32(float32 a, float32 b)
 		result.parts.fraction = 0;
 		return result;
 	}
-	
+
 	if (cexp < 0) {
 		/* FIXME: underflow */
 		result.parts.exp = 0;
@@ -193,9 +193,9 @@ float32 div_float32(float32 a, float32 b)
 	} else {
 		result.parts.exp = (uint32_t) cexp;
 	}
-	
+
 	result.parts.fraction = ((cfrac >> 6) & (~FLOAT32_HIDDEN_BIT_MASK));
-	
+
 	return result;
 }
 
@@ -214,22 +214,22 @@ float64 div_float64(float64 a, float64 b)
 	uint64_t afrac, bfrac, cfrac;
 	uint64_t remlo, remhi;
 	uint64_t tmplo, tmphi;
-	
+
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
-	
+
 	if (is_float64_nan(a)) {
 		if (is_float64_signan(b)) {
 			// FIXME: SigNaN
 			return b;
 		}
-		
+
 		if (is_float64_signan(a)) {
 			// FIXME: SigNaN
 		}
 		/* NaN */
 		return a;
 	}
-	
+
 	if (is_float64_nan(b)) {
 		if (is_float64_signan(b)) {
 			// FIXME: SigNaN
@@ -237,7 +237,7 @@ float64 div_float64(float64 a, float64 b)
 		/* NaN */
 		return b;
 	}
-	
+
 	if (is_float64_infinity(a)) {
 		if (is_float64_infinity(b) || is_float64_zero(b)) {
 			// FIXME: inf / inf
@@ -249,7 +249,7 @@ float64 div_float64(float64 a, float64 b)
 		result.parts.fraction = a.parts.fraction;
 		return result;
 	}
-	
+
 	if (is_float64_infinity(b)) {
 		if (is_float64_zero(a)) {
 			/* FIXME 0 / inf */
@@ -262,7 +262,7 @@ float64 div_float64(float64 a, float64 b)
 		result.parts.fraction = 0;
 		return result;
 	}
-	
+
 	if (is_float64_zero(b)) {
 		if (is_float64_zero(a)) {
 			/*FIXME: 0 / 0*/
@@ -274,12 +274,12 @@ float64 div_float64(float64 a, float64 b)
 		result.parts.fraction = 0;
 		return result;
 	}
-	
+
 	afrac = a.parts.fraction;
 	aexp = a.parts.exp;
 	bfrac = b.parts.fraction;
 	bexp = b.parts.exp;
-	
+
 	/* denormalized numbers */
 	if (aexp == 0) {
 		if (afrac == 0) {
@@ -287,7 +287,7 @@ float64 div_float64(float64 a, float64 b)
 			result.parts.fraction = 0;
 			return result;
 		}
-		
+
 		/* normalize it*/
 		aexp++;
 		/* afrac is nonzero => it must stop */
@@ -296,7 +296,7 @@ float64 div_float64(float64 a, float64 b)
 			aexp--;
 		}
 	}
-	
+
 	if (bexp == 0) {
 		bexp++;
 		/* bfrac is nonzero => it must stop */
@@ -305,30 +305,30 @@ float64 div_float64(float64 a, float64 b)
 			bexp--;
 		}
 	}
-	
+
 	afrac = (afrac | FLOAT64_HIDDEN_BIT_MASK) << (64 - FLOAT64_FRACTION_SIZE - 2);
 	bfrac = (bfrac | FLOAT64_HIDDEN_BIT_MASK) << (64 - FLOAT64_FRACTION_SIZE - 1);
-	
+
 	if (bfrac <= (afrac << 1)) {
 		afrac >>= 1;
 		aexp++;
 	}
-	
+
 	cexp = aexp - bexp + FLOAT64_BIAS - 2;
-	
+
 	cfrac = div128est(afrac, 0x0ll, bfrac);
-	
+
 	if ((cfrac & 0x1FF) <= 2) {
 		mul64(bfrac, cfrac, &tmphi, &tmplo);
 		sub128(afrac, 0x0ll, tmphi, tmplo, &remhi, &remlo);
-		
+
 		while ((int64_t) remhi < 0) {
 			cfrac--;
 			add128(remhi, remlo, 0x0ll, bfrac, &remhi, &remlo);
 		}
 		cfrac |= (remlo != 0);
 	}
-	
+
 	/* round and shift */
 	result = finish_float64(cexp, cfrac, result.parts.sign);
 	return result;
@@ -350,22 +350,22 @@ float128 div_float128(float128 a, float128 b)
 	uint64_t shift_out;
 	uint64_t rem_hihi, rem_hilo, rem_lohi, rem_lolo;
 	uint64_t tmp_hihi, tmp_hilo, tmp_lohi, tmp_lolo;
-	
+
 	result.parts.sign = a.parts.sign ^ b.parts.sign;
-	
+
 	if (is_float128_nan(a)) {
 		if (is_float128_signan(b)) {
 			// FIXME: SigNaN
 			return b;
 		}
-		
+
 		if (is_float128_signan(a)) {
 			// FIXME: SigNaN
 		}
 		/* NaN */
 		return a;
 	}
-	
+
 	if (is_float128_nan(b)) {
 		if (is_float128_signan(b)) {
 			// FIXME: SigNaN
@@ -373,7 +373,7 @@ float128 div_float128(float128 a, float128 b)
 		/* NaN */
 		return b;
 	}
-	
+
 	if (is_float128_infinity(a)) {
 		if (is_float128_infinity(b) || is_float128_zero(b)) {
 			// FIXME: inf / inf
@@ -387,7 +387,7 @@ float128 div_float128(float128 a, float128 b)
 		result.parts.frac_lo = a.parts.frac_lo;
 		return result;
 	}
-	
+
 	if (is_float128_infinity(b)) {
 		if (is_float128_zero(a)) {
 			// FIXME 0 / inf
@@ -402,7 +402,7 @@ float128 div_float128(float128 a, float128 b)
 		result.parts.frac_lo = 0;
 		return result;
 	}
-	
+
 	if (is_float128_zero(b)) {
 		if (is_float128_zero(a)) {
 			// FIXME: 0 / 0
@@ -416,14 +416,14 @@ float128 div_float128(float128 a, float128 b)
 		result.parts.frac_lo = 0;
 		return result;
 	}
-	
+
 	afrac_hi = a.parts.frac_hi;
 	afrac_lo = a.parts.frac_lo;
 	aexp = a.parts.exp;
 	bfrac_hi = b.parts.frac_hi;
 	bfrac_lo = b.parts.frac_lo;
 	bexp = b.parts.exp;
-	
+
 	/* denormalized numbers */
 	if (aexp == 0) {
 		if (eq128(afrac_hi, afrac_lo, 0x0ll, 0x0ll)) {
@@ -432,7 +432,7 @@ float128 div_float128(float128 a, float128 b)
 			result.parts.frac_lo = 0;
 			return result;
 		}
-		
+
 		/* normalize it*/
 		aexp++;
 		/* afrac is nonzero => it must stop */
@@ -444,7 +444,7 @@ float128 div_float128(float128 a, float128 b)
 			aexp--;
 		}
 	}
-	
+
 	if (bexp == 0) {
 		bexp++;
 		/* bfrac is nonzero => it must stop */
@@ -456,7 +456,7 @@ float128 div_float128(float128 a, float128 b)
 			bexp--;
 		}
 	}
-	
+
 	or128(afrac_hi, afrac_lo,
 	    FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO,
 	    &afrac_hi, &afrac_lo);
@@ -467,19 +467,19 @@ float128 div_float128(float128 a, float128 b)
 	    &bfrac_hi, &bfrac_lo);
 	lshift128(bfrac_hi, bfrac_lo,
 	    (128 - FLOAT128_FRACTION_SIZE - 1), &bfrac_hi, &bfrac_lo);
-	
+
 	if (le128(bfrac_hi, bfrac_lo, afrac_hi, afrac_lo)) {
 		rshift128(afrac_hi, afrac_lo, 1, &afrac_hi, &afrac_lo);
 		aexp++;
 	}
-	
+
 	cexp = aexp - bexp + FLOAT128_BIAS - 2;
-	
+
 	cfrac_hi = div128est(afrac_hi, afrac_lo, bfrac_hi);
-	
+
 	mul128(bfrac_hi, bfrac_lo, 0x0ll, cfrac_hi,
 	    &tmp_lolo /* dummy */, &tmp_hihi, &tmp_hilo, &tmp_lohi);
-	
+
 	/* sub192(afrac_hi, afrac_lo, 0,
 	 *     tmp_hihi, tmp_hilo, tmp_lohi
 	 *     &rem_hihi, &rem_hilo, &rem_lohi); */
@@ -488,7 +488,7 @@ float128 div_float128(float128 a, float128 b)
 		sub128(rem_hihi, rem_hilo, 0x0ll, 0x1ll, &rem_hihi, &rem_hilo);
 	}
 	rem_lohi = -tmp_lohi;
-	
+
 	while ((int64_t) rem_hihi < 0) {
 		--cfrac_hi;
 		/* add192(rem_hihi, rem_hilo, rem_lohi,
@@ -499,13 +499,13 @@ float128 div_float128(float128 a, float128 b)
 			++rem_hihi;
 		}
 	}
-	
+
 	cfrac_lo = div128est(rem_hilo, rem_lohi, bfrac_lo);
-	
+
 	if ((cfrac_lo & 0x3FFF) <= 4) {
 		mul128(bfrac_hi, bfrac_lo, 0x0ll, cfrac_lo,
 		    &tmp_hihi /* dummy */, &tmp_hilo, &tmp_lohi, &tmp_lolo);
-		
+
 		/* sub192(rem_hilo, rem_lohi, 0,
 		 *     tmp_hilo, tmp_lohi, tmp_lolo,
 		 *     &rem_hilo, &rem_lohi, &rem_lolo); */
@@ -514,7 +514,7 @@ float128 div_float128(float128 a, float128 b)
 			sub128(rem_hilo, rem_lohi, 0x0ll, 0x1ll, &rem_hilo, &rem_lohi);
 		}
 		rem_lolo = -tmp_lolo;
-		
+
 		while ((int64_t) rem_hilo < 0) {
 			--cfrac_lo;
 			/* add192(rem_hilo, rem_lohi, rem_lolo,
@@ -525,14 +525,14 @@ float128 div_float128(float128 a, float128 b)
 				++rem_hilo;
 			}
 		}
-		
+
 		cfrac_lo |= ((rem_hilo | rem_lohi | rem_lolo) != 0 );
 	}
-	
+
 	shift_out = cfrac_lo << (64 - (128 - FLOAT128_FRACTION_SIZE - 1));
 	rshift128(cfrac_hi, cfrac_lo, (128 - FLOAT128_FRACTION_SIZE - 1),
 	    &cfrac_hi, &cfrac_lo);
-	
+
 	result = finish_float128(cexp, cfrac_hi, cfrac_lo, result.parts.sign, shift_out);
 	return result;
 }
@@ -543,13 +543,13 @@ float32_t __divsf3(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	float32_u res;
 	res.data = div_float32(ua.data, ub.data);
-	
+
 	return res.val;
 }
 
@@ -557,13 +557,13 @@ float32_t __aeabi_fdiv(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	float32_u res;
 	res.data = div_float32(ua.data, ub.data);
-	
+
 	return res.val;
 }
 
@@ -575,13 +575,13 @@ float64_t __divdf3(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	float64_u res;
 	res.data = div_float64(ua.data, ub.data);
-	
+
 	return res.val;
 }
 
@@ -589,13 +589,13 @@ float64_t __aeabi_ddiv(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	float64_u res;
 	res.data = div_float64(ua.data, ub.data);
-	
+
 	return res.val;
 }
 
@@ -607,13 +607,13 @@ float128_t __divtf3(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	float128_u res;
 	res.data = div_float128(ua.data, ub.data);
-	
+
 	return res.val;
 }
 

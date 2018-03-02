@@ -68,21 +68,21 @@ typedef enum {
 	/* ATH command register */
 	AR9271_COMMAND = 0x0008,
 	AR9271_COMMAND_RX_ENABLE = 0x00000004,
-	
+
 	/* ATH config register */
 	AR9271_CONFIG = 0x0014,
 	AR9271_CONFIG_ADHOC = 0x00000020,
-	
+
 	AR9271_QUEUE_BASE_MASK = 0x1000,
-	
+
 	/* EEPROM Addresses */
 	AR9271_EEPROM_BASE = 0x2100,
 	AR9271_EEPROM_MAC_ADDR_START = 0x2118,
-	
+
 	/* Reset MAC interface */
 	AR9271_RC = 0x4000,
 	AR9271_RC_AHB = 0x00000001,
-	
+
 	/* GPIO registers */
 	AR9271_GPIO_IN_OUT = 0x4048,       /**< GPIO value read/set  */
 	AR9271_GPIO_OE_OUT = 0x404C,       /**< GPIO set to output  */
@@ -91,7 +91,7 @@ typedef enum {
 	AR9271_GPIO_OUT_MUX2 = 0x4064,
 	AR9271_GPIO_OUT_MUX3 = 0x4068,
 	AR9271_GPIO_OUT_MUX_AS_OUT = 0x0,  /**< GPIO set mux as output */
-	
+
 	/* RTC related registers */
 	AR9271_RTC_RC = 0x7000,
 	AR9271_RTC_RC_MAC_WARM = 0x00000001,
@@ -108,7 +108,7 @@ typedef enum {
 	AR9271_RTC_FORCE_WAKE = 0x704C,
 	AR9271_RTC_FORCE_WAKE_ENABLE = 0x00000001,
 	AR9271_RTC_FORCE_WAKE_ON_INT = 0x00000002,
-	
+
 	/* MAC Registers */
 	AR9271_STATION_ID0 = 0x8000,  /**< STA Address Lower 32 Bits */
 	AR9271_STATION_ID1 = 0x8004,  /**< STA Address Upper 16 Bits */
@@ -121,7 +121,7 @@ typedef enum {
 	AR9271_MULTICAST_FILTER1 = 0x8040,
 	AR9271_MULTICAST_FILTER2 = 0x8044,
 	AR9271_DIAG = 0x8048,
-	
+
 	/* RX filtering register */
 	AR9271_RX_FILTER = 0x803C,
 	AR9271_RX_FILTER_UNI = 0x00000001,
@@ -133,7 +133,7 @@ typedef enum {
 	AR9271_RX_FILTER_PROBEREQ = 0x00000080,
 	AR9271_RX_FILTER_MYBEACON = 0x00000200,
 	AR9271_RX_FILTER_MCAST_BCAST_ALL = 0x00008000,
-	
+
 	/* Key related registers */
 	AR9271_KEY_TABLE_BASE = 0x8800,
 	AR9271_KEY_TABLE_TYPE_WEP40 = 0x0,
@@ -141,7 +141,7 @@ typedef enum {
 	AR9271_KEY_TABLE_TYPE_TKIP = 0x4,
 	AR9271_KEY_TABLE_TYPE_CCMP = 0x6,
 	AR9271_KEY_TABLE_TYPE_CLR = 0x7,
-	
+
 	/* Physical layer registers */
 	AR9271_PHY_ACTIVE = 0x981C,
 	AR9271_ADC_CONTROL = 0x982C,
@@ -167,17 +167,17 @@ typedef enum {
 	AR9271_PHY_CCK_TX_CTRL_JAPAN = 0x00000010,
 	AR9271_PHY_TPCRG1_PD_CALIB = 0x00400000,
 	AR9271_CARRIER_LEAK_CALIB = 0x00000002,
-	
+
 	AR9271_OPMODE_STATION_AP_MASK =	0x00010000,
 	AR9271_OPMODE_ADHOC_MASK = 0x00020000,
-	
+
 	AR9271_CLOCK_CONTROL = 0x50040,
 	AR9271_MAX_CPU_CLOCK = 0x304,
-	
+
 	AR9271_RESET_POWER_DOWN_CONTROL = 0x50044,
 	AR9271_RADIO_RF_RESET = 0x20,
 	AR9271_GATE_MAC_CONTROL = 0x4000,
-	
+
 	/* FW Addresses */
 	AR9271_FW_ADDRESS = 0x501000,
 	AR9271_FW_OFFSET = 0x903000,
@@ -196,22 +196,22 @@ typedef enum {
 typedef struct {
 	/** Lock for access. */
 	fibril_mutex_t ar9271_lock;
-	
+
 	/** Whether device is starting up. */
 	bool starting_up;
-	
+
 	/** Backing DDF device */
 	ddf_dev_t *ddf_dev;
-	
+
 	/** USB device data */
 	usb_device_t *usb_device;
-	
+
 	/** IEEE 802.11 device data */
 	ieee80211_dev_t *ieee80211_dev;
-	
+
 	/** ATH device data */
 	ath_t *ath_device;
-	
+
 	/** HTC device data */
 	htc_device_t *htc_device;
 } ar9271_t;

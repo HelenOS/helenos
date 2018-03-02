@@ -94,14 +94,14 @@ static aoff64_t ba_ltop(devcon_t *, aoff64_t);
 static devcon_t *devcon_search(service_id_t service_id)
 {
 	fibril_mutex_lock(&dcl_lock);
-	
+
 	list_foreach(dcl, link, devcon_t, devcon) {
 		if (devcon->service_id == service_id) {
 			fibril_mutex_unlock(&dcl_lock);
 			return devcon;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&dcl_lock);
 	return NULL;
 }
@@ -110,11 +110,11 @@ static errno_t devcon_add(service_id_t service_id, async_sess_t *sess,
     size_t bsize, aoff64_t dev_size, bd_t *bd)
 {
 	devcon_t *devcon;
-	
+
 	devcon = malloc(sizeof(devcon_t));
 	if (!devcon)
 		return ENOMEM;
-	
+
 	link_initialize(&devcon->link);
 	devcon->service_id = service_id;
 	devcon->sess = sess;
@@ -124,7 +124,7 @@ static errno_t devcon_add(service_id_t service_id, async_sess_t *sess,
 	devcon->pblock_size = bsize;
 	devcon->pblocks = dev_size;
 	devcon->cache = NULL;
-	
+
 	fibril_mutex_lock(&dcl_lock);
 	list_foreach(dcl, link, devcon_t, d) {
 		if (d->service_id == service_id) {
@@ -154,13 +154,13 @@ errno_t block_init(service_id_t service_id, size_t comm_size)
 	if (!sess) {
 		return ENOENT;
 	}
-	
+
 	errno_t rc = bd_open(sess, &bd);
 	if (rc != EOK) {
 		async_hangup(sess);
 		return rc;
 	}
-	
+
 	size_t bsize;
 	rc = bd_get_block_size(bd, &bsize);
 	if (rc != EOK) {
@@ -176,14 +176,14 @@ errno_t block_init(service_id_t service_id, size_t comm_size)
 		async_hangup(sess);
 		return rc;
 	}
-	
+
 	rc = devcon_add(service_id, sess, bsize, dev_size, bd);
 	if (rc != EOK) {
 		bd_close(bd);
 		async_hangup(sess);
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -191,20 +191,20 @@ void block_fini(service_id_t service_id)
 {
 	devcon_t *devcon = devcon_search(service_id);
 	assert(devcon);
-	
+
 	if (devcon->cache)
 		(void) block_cache_fini(service_id);
-	
+
 	(void)bd_sync_cache(devcon->bd, 0, 0);
-	
+
 	devcon_remove(devcon);
-	
+
 	if (devcon->bb_buf)
 		free(devcon->bb_buf);
-	
+
 	bd_close(devcon->bd);
 	async_hangup(devcon->sess);
-	
+
 	free(devcon);
 }
 
@@ -281,7 +281,7 @@ errno_t block_cache_init(service_id_t service_id, size_t size, unsigned blocks,
 	cache = malloc(sizeof(cache_t));
 	if (!cache)
 		return ENOMEM;
-	
+
 	fibril_mutex_initialize(&cache->lock);
 	list_initialize(&cache->free_list);
 	cache->lblock_size = size;
@@ -317,7 +317,7 @@ errno_t block_cache_fini(service_id_t service_id)
 	if (!devcon->cache)
 		return EOK;
 	cache = devcon->cache;
-	
+
 	/*
 	 * We are expecting to find all blocks for this device handle on the
 	 * free list, i.e. the block reference count should be zero. Do not
@@ -336,7 +336,7 @@ errno_t block_cache_fini(service_id_t service_id)
 		}
 
 		hash_table_remove_item(&cache->block_hash, &b->hash_link);
-		
+
 		free(b->data);
 		free(b);
 	}
@@ -390,12 +390,12 @@ errno_t block_get(block_t **block, service_id_t service_id, aoff64_t ba, int fla
 	link_t *link;
 	aoff64_t p_ba;
 	errno_t rc;
-	
+
 	devcon = devcon_search(service_id);
 
 	assert(devcon);
 	assert(devcon->cache);
-	
+
 	cache = devcon->cache;
 
 	/* Check whether the logical block (or part of it) is beyond
@@ -711,15 +711,15 @@ errno_t block_seqread(service_id_t service_id, void *buf, size_t *bufpos,
 	devcon = devcon_search(service_id);
 	assert(devcon);
 	block_size = devcon->pblock_size;
-	
+
 	while (left > 0) {
 		size_t rd;
-		
+
 		if (*bufpos + left < *buflen)
 			rd = left;
 		else
 			rd = *buflen - *bufpos;
-		
+
 		if (rd > 0) {
 			/*
 			 * Copy the contents of the communication buffer to the
@@ -731,7 +731,7 @@ errno_t block_seqread(service_id_t service_id, void *buf, size_t *bufpos,
 			*pos += rd;
 			left -= rd;
 		}
-		
+
 		if (*bufpos == *buflen) {
 			/* Refill the communication buffer with a new block. */
 			errno_t rc;
@@ -741,12 +741,12 @@ errno_t block_seqread(service_id_t service_id, void *buf, size_t *bufpos,
 			if (rc != EOK) {
 				return rc;
 			}
-			
+
 			*bufpos = 0;
 			*buflen = block_size;
 		}
 	}
-	
+
 	return EOK;
 }
 
@@ -859,35 +859,35 @@ errno_t block_read_bytes_direct(service_id_t service_id, aoff64_t abs_offset,
 	aoff64_t last_block;
 	size_t blocks;
 	size_t offset;
-	
+
 	rc = block_get_bsize(service_id, &phys_block_size);
 	if (rc != EOK) {
 		return rc;
 	}
-	
+
 	/* calculate data position and required space */
 	first_block = abs_offset / phys_block_size;
 	offset = abs_offset % phys_block_size;
 	last_block = (abs_offset + bytes - 1) / phys_block_size;
 	blocks = last_block - first_block + 1;
 	buf_size = blocks * phys_block_size;
-	
+
 	/* read the data into memory */
 	buffer = malloc(buf_size);
 	if (buffer == NULL) {
 		return ENOMEM;
 	}
-	
+
 	rc = block_read_direct(service_id, first_block, blocks, buffer);
 	if (rc != EOK) {
 		free(buffer);
 		return rc;
 	}
-	
+
 	/* copy the data from the buffer */
 	memcpy(data, buffer + offset, bytes);
 	free(buffer);
-	
+
 	return EOK;
 }
 
@@ -904,7 +904,7 @@ errno_t block_read_toc(service_id_t service_id, uint8_t session, void *buf,
     size_t bufsize)
 {
 	devcon_t *devcon = devcon_search(service_id);
-	
+
 	assert(devcon);
 	return bd_read_toc(devcon->bd, session, buf, bufsize);
 }
@@ -922,7 +922,7 @@ static errno_t read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *buf,
     size_t size)
 {
 	assert(devcon);
-	
+
 	errno_t rc = bd_read_blocks(devcon->bd, ba, cnt, buf, size);
 	if (rc != EOK) {
 		printf("Error %s reading %zu blocks starting at block %" PRIuOFF64
@@ -932,7 +932,7 @@ static errno_t read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *buf,
 		stacktrace_print();
 #endif
 	}
-	
+
 	return rc;
 }
 
@@ -949,7 +949,7 @@ static errno_t write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *dat
     size_t size)
 {
 	assert(devcon);
-	
+
 	errno_t rc = bd_write_blocks(devcon->bd, ba, cnt, data, size);
 	if (rc != EOK) {
 		printf("Error %s writing %zu blocks starting at block %" PRIuOFF64
@@ -958,7 +958,7 @@ static errno_t write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt, void *dat
 		stacktrace_print();
 #endif
 	}
-	
+
 	return rc;
 }
 

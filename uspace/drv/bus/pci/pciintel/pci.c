@@ -92,7 +92,7 @@ static pci_bus_t *pci_bus_from_fun(pci_fun_t *fun)
 static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 {
 	pci_fun_t *fun = pci_fun(fnode);
-	
+
 	if (fun == NULL)
 		return NULL;
 	return &fun->hw_resources;
@@ -102,21 +102,21 @@ static bool pciintel_fun_owns_interrupt(pci_fun_t *fun, int irq)
 {
 	size_t i;
 	hw_resource_list_t *res = &fun->hw_resources;
-	
+
 	for (i = 0; i < res->count; i++) {
 		if (res->resources[i].type == INTERRUPT &&
 		    res->resources[i].res.interrupt.irq == irq) {
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
 static errno_t pciintel_enable_interrupt(ddf_fun_t *fnode, int irq)
 {
 	pci_fun_t *fun = pci_fun(fnode);
-	
+
 	if (!pciintel_fun_owns_interrupt(fun, irq))
 		return EINVAL;
 
@@ -126,7 +126,7 @@ static errno_t pciintel_enable_interrupt(ddf_fun_t *fnode, int irq)
 static errno_t pciintel_disable_interrupt(ddf_fun_t *fnode, int irq)
 {
 	pci_fun_t *fun = pci_fun(fnode);
-	
+
 	if (!pciintel_fun_owns_interrupt(fun, irq))
 		return EINVAL;
 
@@ -136,7 +136,7 @@ static errno_t pciintel_disable_interrupt(ddf_fun_t *fnode, int irq)
 static errno_t pciintel_clear_interrupt(ddf_fun_t *fnode, int irq)
 {
 	pci_fun_t *fun = pci_fun(fnode);
-	
+
 	if (!pciintel_fun_owns_interrupt(fun, irq))
 		return EINVAL;
 
@@ -146,7 +146,7 @@ static errno_t pciintel_clear_interrupt(ddf_fun_t *fnode, int irq)
 static pio_window_t *pciintel_get_pio_window(ddf_fun_t *fnode)
 {
 	pci_fun_t *fun = pci_fun(fnode);
-	
+
 	if (fun == NULL)
 		return NULL;
 	return &fun->pio_window;
@@ -255,7 +255,7 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	pci_bus_t *bus = pci_bus_from_fun(fun);
 	uint32_t val;
-	
+
 	fibril_mutex_lock(&bus->conf_mutex);
 
 	if (bus->conf_addr_reg) {
@@ -284,7 +284,7 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 		*((uint32_t *) buf) = (uint32_t) val;
 		break;
 	}
-	
+
 	fibril_mutex_unlock(&bus->conf_mutex);
 }
 
@@ -293,7 +293,7 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 	const uint32_t conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
 	pci_bus_t *bus = pci_bus_from_fun(fun);
 	uint32_t val = 0;
-	
+
 	fibril_mutex_lock(&bus->conf_mutex);
 
 	/*
@@ -316,7 +316,7 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 			    &bus->conf_space[conf_addr / sizeof(ioport32_t)]));
 		}
 	}
-	
+
 	switch (len) {
 	case 1:
 		val &= ~(0xffU << ((reg & 3) * 8));
@@ -339,7 +339,7 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 		pio_write_32(&bus->conf_space[conf_addr / sizeof(ioport32_t)],
 		    host2uint32_t_le(val));
 	}
-	
+
 	fibril_mutex_unlock(&bus->conf_mutex);
 }
 
@@ -457,10 +457,10 @@ void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
 	hw_resource_list_t *hw_res_list = &fun->hw_resources;
 	hw_resource_t *hw_resources =  hw_res_list->resources;
 	size_t count = hw_res_list->count;
-	
+
 	assert(hw_resources != NULL);
 	assert(count < PCI_MAX_HW_RES);
-	
+
 	if (io) {
 		hw_resources[count].type = IO_RANGE;
 		hw_resources[count].res.io_range.address = range_addr;
@@ -474,7 +474,7 @@ void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
 		hw_resources[count].res.mem_range.relative = false;
 		hw_resources[count].res.mem_range.endianness = LITTLE_ENDIAN;
 	}
-	
+
 	hw_res_list->count++;
 }
 
@@ -497,18 +497,18 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	bool io;
 	/* 64-bit wide address */
 	bool addrw64;
-	
+
 	/* Size of the io or memory range specified by the BAR */
 	size_t range_size;
 	/* Beginning of the io or memory range specified by the BAR */
 	uint64_t range_addr;
-	
+
 	/* Get the value of the BAR. */
 	val = pci_conf_read_32(fun, addr);
 
 #define IO_MASK  (~0x3)
 #define MEM_MASK (~0xf)
-	
+
 	io = (val & 1) != 0;
 	if (io) {
 		addrw64 = false;
@@ -527,7 +527,7 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 			return addr + 4;
 		}
 	}
-	
+
 	/* Get the address mask. */
 	pci_conf_write_32(fun, addr, 0xffffffff);
 	bar = pci_conf_read_32(fun, addr);
@@ -543,27 +543,27 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	/* Restore the original value. */
 	pci_conf_write_32(fun, addr, val);
 	val = pci_conf_read_32(fun, addr);
-	
+
 	range_size = pci_bar_mask_to_size(mask);
-	
+
 	if (addrw64) {
 		range_addr = ((uint64_t)pci_conf_read_32(fun, addr + 4) << 32) |
 		    (val & 0xfffffff0);
 	} else {
 		range_addr = (val & 0xfffffff0);
 	}
-	
+
 	if (range_addr != 0) {
 		ddf_msg(LVL_DEBUG, "Function %s : address = %" PRIx64
 		    ", size = %x", ddf_fun_get_name(fun->fnode), range_addr,
 		    (unsigned int) range_size);
 	}
-	
+
 	pci_add_range(fun, range_addr, range_size, io);
-	
+
 	if (addrw64)
 		return addr + 8;
-	
+
 	return addr + 4;
 }
 
@@ -572,15 +572,15 @@ void pci_add_interrupt(pci_fun_t *fun, int irq)
 	hw_resource_list_t *hw_res_list = &fun->hw_resources;
 	hw_resource_t *hw_resources = hw_res_list->resources;
 	size_t count = hw_res_list->count;
-	
+
 	assert(NULL != hw_resources);
 	assert(count < PCI_MAX_HW_RES);
-	
+
 	hw_resources[count].type = INTERRUPT;
 	hw_resources[count].res.interrupt.irq = irq;
-	
+
 	hw_res_list->count++;
-	
+
 	ddf_msg(LVL_NOTE, "Function %s uses irq %x.", ddf_fun_get_name(fun->fnode), irq);
 }
 
@@ -602,17 +602,17 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 {
 	pci_fun_t *fun;
 	errno_t rc;
-	
+
 	int child_bus = 0;
 	int dnum, fnum;
 	bool multi;
 	uint8_t header_type;
-	
+
 	for (dnum = 0; dnum < 32; dnum++) {
 		multi = true;
 		for (fnum = 0; multi && fnum < 8; fnum++) {
 			fun = pci_fun_new(bus);
-			
+
 			pci_fun_init(fun, bus_num, dnum, fnum);
 			if (fun->vendor_id == 0xffff) {
 				pci_fun_delete(fun);
@@ -625,7 +625,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 				else
 					continue;
 			}
-			
+
 			header_type = pci_conf_read_8(fun, PCI_HEADER_TYPE);
 			if (fnum == 0) {
 				/* Is the device multifunction? */
@@ -633,14 +633,14 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			}
 			/* Clear the multifunction bit. */
 			header_type = header_type & 0x7F;
-			
+
 			char *fun_name = pci_fun_create_name(fun);
 			if (fun_name == NULL) {
 				ddf_msg(LVL_ERROR, "Out of memory.");
 				pci_fun_delete(fun);
 				return;
 			}
-			
+
 			rc = ddf_fun_set_name(fun->fnode, fun_name);
 			free(fun_name);
 			if (rc != EOK) {
@@ -648,27 +648,27 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 				pci_fun_delete(fun);
 				return;
 			}
-			
+
 			pci_alloc_resource_list(fun);
 			pci_read_bars(fun);
 			pci_read_interrupt(fun);
 
 			/* Propagate the PIO window to the function. */
 			fun->pio_window = bus->pio_win;
-			
+
 			ddf_fun_set_ops(fun->fnode, &pci_fun_ops);
-			
+
 			ddf_msg(LVL_DEBUG, "Adding new function %s.",
 			    ddf_fun_get_name(fun->fnode));
 
 			pci_fun_create_match_ids(fun);
-			
+
 			if (ddf_fun_bind(fun->fnode) != EOK) {
 				pci_clean_resource_list(fun);
 				pci_fun_delete(fun);
 				continue;
 			}
-			
+
 			if (header_type == PCI_HEADER_TYPE_BRIDGE ||
 			    header_type == PCI_HEADER_TYPE_CARDBUS) {
 				child_bus = pci_conf_read_8(fun,
@@ -691,9 +691,9 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 	bool got_res = false;
 	async_sess_t *sess;
 	errno_t rc;
-	
+
 	ddf_msg(LVL_DEBUG, "pci_dev_add");
-	
+
 	bus = ddf_dev_data_alloc(dnode, sizeof(pci_bus_t));
 	if (bus == NULL) {
 		ddf_msg(LVL_ERROR, "pci_dev_add allocation failed.");
@@ -703,7 +703,7 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 	fibril_mutex_initialize(&bus->conf_mutex);
 
 	bus->dnode = dnode;
-	
+
 	sess = ddf_dev_parent_sess_get(dnode);
 	if (sess == NULL) {
 		ddf_msg(LVL_ERROR, "pci_dev_add failed to connect to the "
@@ -718,7 +718,7 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 		    "for the device.");
 		goto fail;
 	}
-	
+
 	rc = hw_res_get_resource_list(sess, &hw_resources);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "pci_dev_add failed to get hw resources "
@@ -726,8 +726,8 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 		goto fail;
 	}
 	got_res = true;
-	
-	
+
+
 	assert(hw_resources.count >= 1);
 
 	if (hw_resources.count == 1) {
@@ -744,19 +744,19 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 			rc = EADDRNOTAVAIL;
 			goto fail;
 		}
-		
+
 	} else {
 		assert(hw_resources.resources[0].type == IO_RANGE);
 		assert(hw_resources.resources[0].res.io_range.size >= 4);
-	
+
 		assert(hw_resources.resources[1].type == IO_RANGE);
 		assert(hw_resources.resources[1].res.io_range.size >= 4);
-	
+
 		ddf_msg(LVL_DEBUG, "conf_addr = %" PRIx64 ".",
 		    hw_resources.resources[0].res.io_range.address);
 		ddf_msg(LVL_DEBUG, "data_addr = %" PRIx64 ".",
 		    hw_resources.resources[1].res.io_range.address);
-	
+
 		if (pio_enable_resource(&bus->pio_win,
 		    &hw_resources.resources[0],
 		    (void **) &bus->conf_addr_reg)) {
@@ -774,38 +774,38 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 			goto fail;
 		}
 	}
-	
+
 	/* Make the bus device more visible. It has no use yet. */
 	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function");
-	
+
 	ctl = ddf_fun_create(bus->dnode, fun_exposed, "ctl");
 	if (ctl == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating control function.");
 		rc = ENOMEM;
 		goto fail;
 	}
-	
+
 	rc = ddf_fun_bind(ctl);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding control function.");
 		goto fail;
 	}
-	
+
 	/* Enumerate functions. */
 	ddf_msg(LVL_DEBUG, "Scanning the bus");
 	pci_bus_scan(bus, 0);
-	
+
 	hw_res_clean_resource_list(&hw_resources);
-	
+
 	return EOK;
-	
+
 fail:
 	if (got_res)
 		hw_res_clean_resource_list(&hw_resources);
-	
+
 	if (ctl != NULL)
 		ddf_fun_destroy(ctl);
-	
+
 	return rc;
 }
 
@@ -830,7 +830,7 @@ pci_fun_t *pci_fun_new(pci_bus_t *bus)
 {
 	pci_fun_t *fun;
 	ddf_fun_t *fnode;
-	
+
 	fnode = ddf_fun_create(bus->dnode, fun_inner, NULL);
 	if (fnode == NULL)
 		return NULL;
@@ -851,12 +851,12 @@ void pci_fun_init(pci_fun_t *fun, int bus, int dev, int fn)
 	fun->fn = fn;
 	fun->vendor_id = pci_conf_read_16(fun, PCI_VENDOR_ID);
 	fun->device_id = pci_conf_read_16(fun, PCI_DEVICE_ID);
-	
+
 	/* Explicitly enable PCI bus mastering */
 	fun->command = pci_conf_read_16(fun, PCI_COMMAND) |
 	    PCI_COMMAND_MASTER;
 	pci_conf_write_16(fun, PCI_COMMAND, fun->command);
-	
+
 	fun->class_code = pci_conf_read_8(fun, PCI_BASE_CLASS);
 	fun->subclass_code = pci_conf_read_8(fun, PCI_SUB_CLASS);
 	fun->prog_if = pci_conf_read_8(fun, PCI_PROG_IF);
@@ -873,7 +873,7 @@ void pci_fun_delete(pci_fun_t *fun)
 char *pci_fun_create_name(pci_fun_t *fun)
 {
 	char *name = NULL;
-	
+
 	asprintf(&name, "%02x:%02x.%01x", fun->bus, fun->dev,
 	    fun->fn);
 	return name;
@@ -902,7 +902,7 @@ void pci_read_bars(pci_fun_t *fun)
 	 * device.
 	 */
 	int addr = PCI_BASE_ADDR_0;
-	
+
 	while (addr <= PCI_BASE_ADDR_5)
 		addr = pci_read_bar(fun, addr);
 }

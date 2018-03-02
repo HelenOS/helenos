@@ -88,12 +88,12 @@ void tick_interrupt(unsigned int n, istate_t *istate)
 	uint64_t drift;
 
 	softint.value = softint_read();
-	
+
 	/*
 	 * Make sure we are servicing interrupt_level_14
 	 */
 	assert(n == TT_INTERRUPT_LEVEL_14);
-	
+
 	/*
 	 * Make sure we are servicing TICK_INT.
 	 */
@@ -105,7 +105,7 @@ void tick_interrupt(unsigned int n, istate_t *istate)
 	clear.value = 0;
 	clear.tick_int = 1;
 	clear_softint_write(clear.value);
-	
+
 	/*
 	 * Reprogram the compare register.
 	 * For now, we can ignore the potential of the registers to overflow.

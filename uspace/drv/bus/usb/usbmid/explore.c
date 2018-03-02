@@ -163,7 +163,7 @@ errno_t usbmid_explore_device(usb_device_t *dev)
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	/* Create driver soft-state. */
 	usb_mid_t *usb_mid = usb_device_data_alloc(dev, sizeof(usb_mid_t));
 	if (!usb_mid) {

@@ -9,12 +9,12 @@ alternative (service; rd; console) {
 		?device_get_handle {
 			?ipc_m_data_write /* device name */
 		} +
-		
+
 		?device_get_name +
 		?device_null_create +
 		?device_null_destroy +
 		?device_get_count +
-		
+
 		?device_get_devices {
 			?ipc_m_data_read /* buffer */
 		}

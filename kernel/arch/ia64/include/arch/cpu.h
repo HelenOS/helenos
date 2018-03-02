@@ -65,13 +65,13 @@ typedef struct {
 NO_TRACE static inline uint64_t cpuid_read(int n)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"mov %[v] = cpuid[%[r]]\n"
 		: [v] "=r" (v)
 		: [r] "r" (n)
 	);
-	
+
 	return v;
 }
 

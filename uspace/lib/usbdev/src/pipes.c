@@ -159,7 +159,7 @@ static errno_t prepare_control(transfer_t *t, const void *setup, size_t setup_si
 {
 	if ((setup == NULL) || (setup_size != 8))
 		return EINVAL;
-	
+
 	memcpy(&t->req.setup, setup, 8);
 	return EOK;
 }

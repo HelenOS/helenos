@@ -78,10 +78,10 @@ errno_t as_constructor_arch(as_t *as, unsigned int flags)
 	as->arch.tsb_description.tsb_base = tsb_base;
 	as->arch.tsb_description.reserved = 0;
 	as->arch.tsb_description.context = 0;
-	
+
 	memsetb(tsb, TSB_SIZE, 0);
 #endif
-	
+
 	return EOK;
 }
 
@@ -89,7 +89,7 @@ int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
 	frame_free(as->arch.tsb_description.tsb_base, TSB_FRAMES);
-	
+
 	return TSB_FRAMES;
 #else
 	return 0;
@@ -101,7 +101,7 @@ errno_t as_create_arch(as_t *as, unsigned int flags)
 #ifdef CONFIG_TSB
 	tsb_invalidate(as, 0, (size_t) -1);
 #endif
-	
+
 	return EOK;
 }
 
@@ -116,13 +116,13 @@ errno_t as_create_arch(as_t *as, unsigned int flags)
 void as_install_arch(as_t *as)
 {
 	mmu_secondary_context_write(as->asid);
-	
+
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
-	
+
 	assert(as->arch.tsb_description.tsb_base);
 	uintptr_t tsb = PA2KA(as->arch.tsb_description.tsb_base);
-	
+
 	if (!overlaps(tsb, TSB_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered
@@ -133,7 +133,7 @@ void as_install_arch(as_t *as)
 		mmu_demap_page(tsb, 0, MMU_FLAG_DTLB);
 		dtlb_insert_mapping(tsb, KA2PA(tsb), PAGESIZE_64K, true, true);
 	}
-	
+
 	__hypercall_fast2(MMU_TSB_CTXNON0, 1, KA2PA(&as->arch.tsb_description));
 #endif
 }
@@ -155,14 +155,14 @@ void as_deinstall_arch(as_t *as)
 	 * Moreover, the as->asid is protected by asidlock, which is being held.
 	 *
 	 */
-	
+
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
-	
+
 	assert(as->arch.tsb_description.tsb_base);
-	
+
 	uintptr_t tsb = PA2KA(as->arch.tsb_description.tsb_base);
-	
+
 	if (!overlaps(tsb, TSB_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered

@@ -47,10 +47,10 @@ font_t *font_create(font_backend_t *backend, void *backend_data)
 	font_t *font = malloc(sizeof(font_t));
 	if (font == NULL)
 		return NULL;
-	
+
 	font->backend = backend;
 	font->backend_data = backend_data;
-	
+
 	return font;
 }
 
@@ -96,7 +96,7 @@ errno_t font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height
 		wchar_t c = str_decode(text, &off, STR_NO_LIMIT);
 		if (c == 0)
 			break;
-		
+
 		glyph_id_t glyph_id;
 		rc = font_resolve_glyph(font, c, &glyph_id);
 		if (rc != EOK) {
@@ -105,12 +105,12 @@ errno_t font_get_box(font_t *font, char *text, sysarg_t *width, sysarg_t *height
 				return rc;
 			}
 		}
-		
+
 		glyph_metrics_t glyph_metrics;
 		rc = font_get_glyph_metrics(font, glyph_id, &glyph_metrics);
 		if (rc != EOK)
 			return rc;
-		
+
 		x += glyph_metrics_get_advancement(&glyph_metrics);
 	}
 
@@ -139,7 +139,7 @@ errno_t font_draw_text(font_t *font, drawctx_t *context, source_t *source,
 		wchar_t c = str_decode(text, &off, STR_NO_LIMIT);
 		if (c == 0)
 			break;
-		
+
 		glyph_id_t glyph_id;
 		rc = font_resolve_glyph(font, c, &glyph_id);
 		if (rc != EOK) {
@@ -148,7 +148,7 @@ errno_t font_draw_text(font_t *font, drawctx_t *context, source_t *source,
 				return rc;
 			}
 		}
-		
+
 		glyph_metrics_t glyph_metrics;
 		rc = font_get_glyph_metrics(font, glyph_id, &glyph_metrics);
 		if (rc != EOK)

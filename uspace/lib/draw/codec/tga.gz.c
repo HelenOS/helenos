@@ -57,13 +57,13 @@ surface_t *decode_tga_gz(void *data, size_t size, surface_flags_t flags)
 {
 	void *data_expanded;
 	size_t size_expanded;
-	
+
 	errno_t ret = gzip_expand(data, size, &data_expanded, &size_expanded);
 	if (ret != EOK)
 		return NULL;
-	
+
 	surface_t *surface = decode_tga(data_expanded, size_expanded, flags);
-	
+
 	free(data_expanded);
 	return surface;
 }

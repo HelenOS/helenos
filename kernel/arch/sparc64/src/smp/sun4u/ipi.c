@@ -96,27 +96,27 @@ static void cross_call(int mid, void (* func)(void))
 	 * In order to prevent migration to another processor,
 	 * we explicitly disable preemption.
 	 */
-	
+
 	preemption_disable();
-	
+
 	status = asi_u64_read(ASI_INTR_DISPATCH_STATUS, 0);
 	if (status & INTR_DISPATCH_STATUS_BUSY)
 		panic("Interrupt Dispatch Status busy bit set\n");
-	
+
 	assert(!(pstate_read() & PSTATE_IE_BIT));
-	
+
 	do {
 		set_intr_w_data(func);
 		asi_u64_write(ASI_INTR_W,
 		    (mid << INTR_VEC_DISPATCH_MID_SHIFT) |
 		    VA_INTR_W_DISPATCH, 0);
-	
+
 		membar();
-		
+
 		do {
 			status = asi_u64_read(ASI_INTR_DISPATCH_STATUS, 0);
 		} while (status & INTR_DISPATCH_STATUS_BUSY);
-		
+
 		done = !(status & INTR_DISPATCH_STATUS_NACK);
 		if (!done) {
 			/*
@@ -127,7 +127,7 @@ static void cross_call(int mid, void (* func)(void))
 			(void) interrupts_disable();
 		}
 	} while (!done);
-	
+
 	preemption_enable();
 }
 
@@ -146,9 +146,9 @@ static void cross_call(int mid, void (* func)(void))
 void ipi_broadcast_arch(int ipi)
 {
 	unsigned int i;
-	
+
 	void (* func)(void);
-	
+
 	switch (ipi) {
 	case IPI_TLB_SHOOTDOWN:
 		func = tlb_shootdown_ipi_recv;
@@ -157,14 +157,14 @@ void ipi_broadcast_arch(int ipi)
 		panic("Unknown IPI (%d).\n", ipi);
 		break;
 	}
-	
+
 	/*
 	 * As long as we don't support hot-plugging
 	 * or hot-unplugging of CPUs, we can walk
 	 * the cpus array and read processor's MID
 	 * without locking.
 	 */
-	
+
 	for (i = 0; i < config.cpu_active; i++) {
 		if (&cpus[i] == CPU)
 			continue;		/* skip the current CPU */
@@ -186,7 +186,7 @@ void ipi_broadcast_arch(int ipi)
 void ipi_unicast_arch(unsigned int cpu_id, int ipi)
 {
 	assert(&cpus[cpu_id] != CPU);
-	
+
 	if (ipi == IPI_SMP_CALL) {
 		cross_call(cpus[cpu_id].arch.mid, smp_call_ipi_recv);
 	} else {

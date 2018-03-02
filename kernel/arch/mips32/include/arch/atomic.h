@@ -59,7 +59,7 @@ NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
 {
 	atomic_count_t tmp;
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"1:\n"
 		"	ll %0, %1\n"
@@ -74,7 +74,7 @@ NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
 		: "r" (i),
 		  "i" (0)
 	);
-	
+
 	return v;
 }
 
@@ -82,7 +82,7 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 {
 	atomic_count_t tmp;
 	atomic_count_t v;
-	
+
 	asm volatile (
 		"1:\n"
 		"	ll %2, %1\n"
@@ -97,7 +97,7 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 		  "=&r" (v)
 		: "i" (1)
 	);
-	
+
 	return v;
 }
 

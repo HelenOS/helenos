@@ -51,14 +51,14 @@ void multiboot_extract_command(char *buf, size_t size, const char *cmd_line)
 	const char *end = str_chr(cmd_line, ' ');
 	if (end == NULL)
 		end = cmd_line + str_size(cmd_line);
-	
+
 	/*
 	 * Find last occurence of '/' before 'end'. If found, place start at
 	 * next character. Otherwise, place start at beginning of buffer.
 	 */
 	const char *cp = end;
 	const char *start = buf;
-	
+
 	while (cp != start) {
 		if (*cp == '/') {
 			start = cp + 1;
@@ -66,7 +66,7 @@ void multiboot_extract_command(char *buf, size_t size, const char *cmd_line)
 		}
 		cp--;
 	}
-	
+
 	/* Copy the command. */
 	str_ncpy(buf, size, start, (size_t) (end - start));
 }
@@ -105,10 +105,10 @@ static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
 	for (uint32_t i = 0; i < count; i++) {
 		if (init.cnt >= CONFIG_INIT_TASKS)
 			break;
-		
+
 		init.tasks[init.cnt].paddr = mods[i].start;
 		init.tasks[init.cnt].size = mods[i].end - mods[i].start;
-		
+
 		/* Copy command line, if available. */
 		if (mods[i].string) {
 			multiboot_extract_command(init.tasks[init.cnt].name,
@@ -119,7 +119,7 @@ static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
 			init.tasks[init.cnt].name[0] = 0;
 			init.tasks[init.cnt].arguments[0] = 0;
 		}
-		
+
 		init.cnt++;
 	}
 }
@@ -127,15 +127,15 @@ static void multiboot_modules(uint32_t count, multiboot_module_t *mods)
 static void multiboot_memmap(uint32_t length, multiboot_memmap_t *memmap)
 {
 	uint32_t pos = 0;
-	
+
 	while ((pos < length) && (e820counter < MEMMAP_E820_MAX_RECORDS)) {
 		e820table[e820counter] = memmap->mm_info;
-		
+
 		/* Compute address of next structure. */
 		uint32_t size = sizeof(memmap->size) + memmap->size;
 		memmap = (multiboot_memmap_t *) ((uintptr_t) memmap + size);
 		pos += size;
-		
+
 		e820counter++;
 	}
 }
@@ -162,7 +162,7 @@ void multiboot_info_parse(uint32_t signature, const multiboot_info_t *info)
 	if ((info->flags & MULTIBOOT_INFO_FLAGS_MODS) != 0)
 		multiboot_modules(info->mods_count,
 		    (multiboot_module_t *) MULTIBOOT_PTR(info->mods_addr));
-	
+
 	/* Copy memory map. */
 	if ((info->flags & MULTIBOOT_INFO_FLAGS_MMAP) != 0)
 		multiboot_memmap(info->mmap_length,

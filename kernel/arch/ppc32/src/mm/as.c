@@ -55,11 +55,11 @@ void as_arch_init(void)
 void as_install_arch(as_t *as)
 {
 	uint32_t sr;
-	
+
 	/* Lower 2 GB, user and supervisor access */
 	for (sr = 0; sr < 8; sr++)
 		sr_set(0x6000, as->asid, sr);
-	
+
 	/* Upper 2 GB, only supervisor access */
 	for (sr = 8; sr < 16; sr++)
 		sr_set(0x4000, as->asid, sr);

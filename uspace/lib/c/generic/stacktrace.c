@@ -76,12 +76,12 @@ void stacktrace_print(void)
 {
 	stacktrace_prepare();
 	stacktrace_print_fp_pc(stacktrace_fp_get(), stacktrace_pc_get());
-	
+
 	/*
 	 * Prevent the tail call optimization of the previous call by
 	 * making it a non-tail call.
 	 */
-	
+
 	printf("-- end of stack trace --\n");
 }
 

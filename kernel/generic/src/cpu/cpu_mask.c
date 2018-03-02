@@ -54,14 +54,14 @@ static void cpu_mask_count(cpu_mask_t *cpus, size_t cpu_cnt)
 {
 	assert(NULL != cpus);
 	assert(cpu_cnt <= config.cpu_count);
-	
+
 	for (size_t active_word = 0;
 		(active_word + 1) * word_bit_cnt <= cpu_cnt;
 		++active_word) {
 		/* Set all bits in the cell/word. */
 		cpus->mask[active_word] = -1;
 	}
-	
+
 	size_t remaining_bits = (cpu_cnt % word_bit_cnt);
 	if (0 < remaining_bits) {
 		/* Set lower remaining_bits of the last word. */
@@ -88,9 +88,9 @@ void cpu_mask_all(cpu_mask_t *cpus)
 void cpu_mask_none(cpu_mask_t *cpus)
 {
 	assert(cpus);
-	
+
 	size_t word_cnt = cpu_mask_size() / word_size;
-		
+
 	for (size_t word = 0; word < word_cnt; ++word) {
 		cpus->mask[word] = 0;
 	}
@@ -101,7 +101,7 @@ void cpu_mask_set(cpu_mask_t *cpus, unsigned int cpu_id)
 {
 	size_t word = cpu_id / word_bit_cnt;
 	size_t word_pos = cpu_id % word_bit_cnt;
-	
+
 	cpus->mask[word] |= (1U << word_pos);
 }
 
@@ -110,7 +110,7 @@ void cpu_mask_reset(cpu_mask_t *cpus, unsigned int cpu_id)
 {
 	size_t word = cpu_id / word_bit_cnt;
 	size_t word_pos = cpu_id % word_bit_cnt;
-	
+
 	cpus->mask[word] &= ~(1U << word_pos);
 }
 
@@ -119,7 +119,7 @@ bool cpu_mask_is_set(cpu_mask_t *cpus, unsigned int cpu_id)
 {
 	size_t word = cpu_id / word_bit_cnt;
 	size_t word_pos = cpu_id % word_bit_cnt;
-	
+
 	return 0 != (cpus->mask[word] & (1U << word_pos));
 }
 
@@ -132,7 +132,7 @@ bool cpu_mask_is_none(cpu_mask_t *cpus)
 		if (cpus->mask[word])
 			return false;
 	}
-	
+
 	return true;
 }
 

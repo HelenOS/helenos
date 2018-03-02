@@ -93,23 +93,23 @@ static errno_t scan_device_tree(devman_handle_t funh)
 	devman_handle_t *cfuns;
 	size_t count, i;
 	errno_t rc;
-		
+
 	/* If device is SATA, add device to the disk array. */
 	disk[disk_count].sess = ahci_get_sess(funh, &disk[disk_count].dev_name);
 	if(disk[disk_count].sess != NULL) {
-		
+
 		ahci_get_sata_device_name(disk[disk_count].sess,
 		    SATA_DEV_NAME_LENGTH, disk[disk_count].sata_dev_name);
-		
+
 		ahci_get_block_size(disk[disk_count].sess,
 		    &disk[disk_count].block_size);
-		
+
 		ahci_get_num_blocks(disk[disk_count].sess, &disk[disk_count].blocks);
-		
+
 		bd_srvs_init(&disk[disk_count].bds);
 		disk[disk_count].bds.ops = &sata_bd_ops;
 		disk[disk_count].bds.sarg = &disk[disk_count];
-		
+
 		printf("Device %s - %s , blocks: %lu, block_size: %lu\n",
 		    disk[disk_count].dev_name, disk[disk_count].sata_dev_name,
 			    (long unsigned int) disk[disk_count].blocks,
@@ -117,7 +117,7 @@ static errno_t scan_device_tree(devman_handle_t funh)
 
 		++disk_count;
 	}
-	
+
 	/* search children */
 	rc = devman_fun_get_child(funh, &devh);
 	if (rc == ENOENT)
@@ -151,7 +151,7 @@ static errno_t get_sata_disks(void)
 {
 	devman_handle_t root_fun;
 	errno_t rc;
-	
+
 	disk_count = 0;
 
 	rc = devman_fun_get_handle("/", &root_fun, 0);
@@ -159,9 +159,9 @@ static errno_t get_sata_disks(void)
 		printf(NAME ": Error resolving root function.\n");
 		return EIO;
 	}
-	
+
 	scan_device_tree(root_fun);
-	
+
 	return EOK;
 }
 
@@ -247,14 +247,14 @@ int main(int argc, char **argv)
 {
 	errno_t rc;
 	category_id_t disk_cat;
-	
+
 	async_set_fallback_port_handler(sata_bd_connection, NULL);
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf(NAME ": Unable to register driver: %s.\n", str_error(rc));
 		return rc;
 	}
-	
+
 	rc = get_sata_disks();
 	if (rc != EOK) {
 		// TODO: log the error

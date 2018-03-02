@@ -148,7 +148,7 @@ km_map_aligned(uintptr_t paddr, size_t size, unsigned int flags)
 		    flags);
 	}
 	page_table_unlock(AS_KERNEL, true);
-	
+
 	return vaddr;
 }
 
@@ -246,7 +246,7 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 	assert(THREAD);
 	assert(framep);
 	assert(!(flags & ~(FRAME_NO_RESERVE | FRAME_ATOMIC)));
-	
+
 	/*
 	 * Allocate a frame, preferably from high memory.
 	 */
@@ -266,10 +266,10 @@ lowmem:
 		frame = frame_alloc(1, FRAME_LOWMEM | flags, 0);
 		if (!frame)
 			return (uintptr_t) NULL;
-		
+
 		page = PA2KA(frame);
 	}
-	
+
 	*framep = frame;
 	return page;
 }

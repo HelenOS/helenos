@@ -55,10 +55,10 @@ static avltree_node_t *alloc_avltree_node(void);
 static avltree_node_t *test_tree_parents(avltree_node_t *node)
 {
 	avltree_node_t *tmp;
-	
+
 	if (!node)
 		return NULL;
-	
+
 	if (node->lft) {
 		tmp = test_tree_parents(node->lft);
 		if (tmp != node) {
@@ -80,17 +80,17 @@ static avltree_node_t *test_tree_parents(avltree_node_t *node)
 int test_tree_balance(avltree_node_t *node)
 {
 	int h1, h2, diff;
-	
+
 	if (!node)
 		return 0;
-	
+
 	h1 = test_tree_balance(node->lft);
 	h2 = test_tree_balance(node->rgt);
 	diff = h2 - h1;
-	
+
 	if ((diff != node->balance) || ((diff != -1) && (diff != 0) && (diff != 1)))
 		TPRINTF("Bad balance\n");
-	
+
 	return ((h1 > h2) ? (h1 + 1) : (h2 + 1));
 }
 
@@ -109,20 +109,20 @@ static void print_tree_structure_flat(avltree_node_t *node, int level)
 		TPRINTF("[...]");
 		return;
 	}
-	
+
 	if (node == NULL)
 		return;
-	
+
 	TPRINTF("%" PRIu64 "[%" PRIu8 "]", node->key, node->balance);
 	if (node->lft != NULL || node->rgt != NULL) {
 		TPRINTF("(");
-		
+
 		print_tree_structure_flat(node->lft, level + 1);
 		if (node->rgt != NULL) {
 			TPRINTF(",");
 			print_tree_structure_flat(node->rgt, level + 1);
 		}
-		
+
 		TPRINTF(")");
 	}
 }
@@ -130,67 +130,67 @@ static void print_tree_structure_flat(avltree_node_t *node, int level)
 static void alloc_avltree_node_prepare(void)
 {
 	int i;
-	
+
 	for (i = 0; i < NODE_COUNT - 1; i++)
 		avltree_nodes[i].par = &avltree_nodes[i + 1];
-	
+
 	avltree_nodes[i].par = NULL;
-	
+
 	/*
 	 * Node keys which will be used for insertion. Up to NODE_COUNT size of
 	 * array.
 	 */
-	
+
 	/* First tree node and same key */
 	avltree_nodes[0].key = 60;
 	avltree_nodes[1].key = 60;
 	avltree_nodes[2].key = 60;
-	
+
 	/* LL rotation */
 	avltree_nodes[3].key = 50;
 	avltree_nodes[4].key = 40;
 	avltree_nodes[5].key = 30;
-	
+
 	/* LR rotation */
 	avltree_nodes[6].key = 20;
 	avltree_nodes[7].key = 20;
 	avltree_nodes[8].key = 25;
 	avltree_nodes[9].key = 25;
-	
+
 	/* LL rotation in lower floor */
 	avltree_nodes[10].key = 35;
-	
+
 	/* RR rotation */
 	avltree_nodes[11].key = 70;
 	avltree_nodes[12].key = 80;
-	
+
 	/* RL rotation */
 	avltree_nodes[13].key = 90;
 	avltree_nodes[14].key = 85;
-	
+
 	/* Insert 0 key */
 	avltree_nodes[15].key = 0;
 	avltree_nodes[16].key = 0;
-	
+
 	/* Insert reverse */
 	avltree_nodes[17].key = 600;
 	avltree_nodes[18].key = 500;
 	avltree_nodes[19].key = 400;
 	avltree_nodes[20].key = 300;
-	
+
 	for (i = 21; i < NODE_COUNT; i++)
 		avltree_nodes[i].key = i * 3;
-	
+
 	first_free_node = &avltree_nodes[0];
 }
 
 static avltree_node_t *alloc_avltree_node(void)
 {
 	avltree_node_t *node;
-	
+
 	node = first_free_node;
 	first_free_node = first_free_node->par;
-	
+
 	return node;
 }
 
@@ -198,19 +198,19 @@ static void test_tree_insert(avltree_t *tree, size_t node_count)
 {
 	unsigned int i;
 	avltree_node_t *newnode;
-	
+
 	avltree_create(tree);
-	
+
 	TPRINTF("Inserting %zu nodes...", node_count);
-	
+
 	for (i = 0; i < node_count; i++) {
 		newnode = alloc_avltree_node();
-		
+
 		avltree_insert(tree, newnode);
 		test_tree_parents(tree->root);
 		test_tree_balance(tree->root);
 	}
-	
+
 	TPRINTF("done.\n");
 }
 
@@ -219,11 +219,11 @@ static void test_tree_delete(avltree_t *tree, size_t node_count,
 {
 	avltree_node_t *delnode;
 	unsigned int i;
-	
+
 	switch (node_position) {
 	case 0:
 		TPRINTF("Deleting root nodes...");
-		
+
 		while (tree->root != NULL) {
 			delnode = tree->root;
 			avltree_delete(tree, delnode);
@@ -233,7 +233,7 @@ static void test_tree_delete(avltree_t *tree, size_t node_count,
 		break;
 	case 1:
 		TPRINTF("Deleting nodes according to creation time...");
-		
+
 		for (i = 0; i < node_count; i++) {
 			avltree_delete(tree, &avltree_nodes[i]);
 			test_tree_parents(tree->root);
@@ -241,26 +241,26 @@ static void test_tree_delete(avltree_t *tree, size_t node_count,
 		}
 		break;
 	}
-	
+
 	TPRINTF("done.\n");
 }
 
 static void test_tree_delmin(avltree_t *tree, size_t node_count)
 {
 	unsigned int i = 0;
-	
+
 	TPRINTF("Deleting minimum nodes...");
-	
+
 	while (tree->root != NULL) {
 		i++;
 		avltree_delete_min(tree);
 		test_tree_parents(tree->root);
 		test_tree_balance(tree->root);
 	}
-	
+
 	if (i != node_count)
 		TPRINTF("Bad node count. Some nodes have been lost!\n");
-	
+
 	TPRINTF("done.\n");
 }
 
@@ -269,14 +269,14 @@ const char *test_avltree1(void)
 	alloc_avltree_node_prepare();
 	test_tree_insert(&avltree, NODE_COUNT);
 	test_tree_delete(&avltree, NODE_COUNT, 0);
-	
+
 	alloc_avltree_node_prepare();
 	test_tree_insert(&avltree, NODE_COUNT);
 	test_tree_delete(&avltree, NODE_COUNT, 1);
-	
+
 	alloc_avltree_node_prepare();
 	test_tree_insert(&avltree, NODE_COUNT);
 	test_tree_delmin(&avltree, NODE_COUNT);
-	
+
 	return NULL;
 }

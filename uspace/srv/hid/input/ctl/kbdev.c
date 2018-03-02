@@ -65,7 +65,7 @@ kbd_ctl_ops_t kbdev_ctl = {
 typedef struct {
 	/** Link to generic keyboard device */
 	kbd_dev_t *kbd_dev;
-	
+
 	/** Session with kbdev device */
 	async_sess_t *sess;
 } kbdev_t;
@@ -75,7 +75,7 @@ static kbdev_t *kbdev_new(kbd_dev_t *kdev)
 	kbdev_t *kbdev = calloc(1, sizeof(kbdev_t));
 	if (kbdev == NULL)
 		return NULL;
-	
+
 	kbdev->kbd_dev = kdev;
 
 	return kbdev;
@@ -85,7 +85,7 @@ static void kbdev_destroy(kbdev_t *kbdev)
 {
 	if (kbdev->sess != NULL)
 		async_hangup(kbdev->sess);
-	
+
 	free(kbdev);
 }
 
@@ -98,7 +98,7 @@ static errno_t kbdev_ctl_init(kbd_dev_t *kdev)
 		    kdev->svc_name);
 		return ENOENT;
 	}
-	
+
 	kbdev_t *kbdev = kbdev_new(kdev);
 	if (kbdev == NULL) {
 		printf("%s: Failed allocating device structure for '%s'.\n",
@@ -106,9 +106,9 @@ static errno_t kbdev_ctl_init(kbd_dev_t *kdev)
 		async_hangup(sess);
 		return ENOMEM;
 	}
-	
+
 	kbdev->sess = sess;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch == NULL) {
 		printf("%s: Failed starting exchange with '%s'.\n", NAME,
@@ -116,11 +116,11 @@ static errno_t kbdev_ctl_init(kbd_dev_t *kdev)
 		kbdev_destroy(kbdev);
 		return ENOENT;
 	}
-	
+
 	port_id_t port;
 	errno_t rc = async_create_callback_port(exch, INTERFACE_KBD_CB, 0, 0,
 	    kbdev_callback_conn, kbdev, &port);
-	
+
 	if (rc != EOK) {
 		printf("%s: Failed creating callback connection from '%s'.\n",
 		    NAME, kdev->svc_name);
@@ -128,9 +128,9 @@ static errno_t kbdev_ctl_init(kbd_dev_t *kdev)
 		kbdev_destroy(kbdev);
 		return rc;
 	}
-	
+
 	async_exchange_end(exch);
-	
+
 	kdev->ctl_private = (void *) kbdev;
 	return 0;
 }
@@ -141,7 +141,7 @@ static void kbdev_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)
 		return;
-	
+
 	async_msg_1(exch, KBDEV_SET_IND, mods);
 	async_exchange_end(exch);
 }

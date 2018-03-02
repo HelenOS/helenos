@@ -92,20 +92,20 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 {
 	uint32_t page = (vaddr >> 12) & 0xffff;
 	uint32_t api = (vaddr >> 22) & 0x3f;
-	
+
 	uint32_t vsid = sr_get(vaddr);
 	uint32_t sdr1 = sdr1_get();
-	
+
 	// FIXME: compute size of PHT exactly
 	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
-	
+
 	/* Primary hash (xor) */
 	uint32_t h = 0;
 	uint32_t hash = vsid ^ page;
 	uint32_t base = (hash & 0x3ff) << 3;
 	uint32_t i;
 	bool found = false;
-	
+
 	/* Find colliding PTE in PTEG */
 	for (i = 0; i < 8; i++) {
 		if ((phte[base + i].v)
@@ -116,7 +116,7 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 			break;
 		}
 	}
-	
+
 	if (!found) {
 		/* Find unused PTE in PTEG */
 		for (i = 0; i < 8; i++) {
@@ -126,11 +126,11 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 			}
 		}
 	}
-	
+
 	if (!found) {
 		/* Secondary hash (not) */
 		uint32_t base2 = (~hash & 0x3ff) << 3;
-		
+
 		/* Find colliding PTE in PTEG */
 		for (i = 0; i < 8; i++) {
 			if ((phte[base2 + i].v)
@@ -143,7 +143,7 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 				break;
 			}
 		}
-		
+
 		if (!found) {
 			/* Find unused PTE in PTEG */
 			for (i = 0; i < 8; i++) {
@@ -155,11 +155,11 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 				}
 			}
 		}
-		
+
 		if (!found)
 			i = RANDI(seed) % 8;
 	}
-	
+
 	phte[base + i].v = 1;
 	phte[base + i].vsid = vsid;
 	phte[base + i].h = h;
@@ -180,16 +180,16 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 void pht_refill(unsigned int n, istate_t *istate)
 {
 	uintptr_t badvaddr;
-	
+
 	if (n == VECTOR_DATA_STORAGE)
 		badvaddr = istate->dar;
 	else
 		badvaddr = istate->pc;
-	
+
 	pte_t pte;
 	bool found = find_mapping_and_check(AS, badvaddr,
 	    PF_ACCESS_READ /* FIXME */, istate, &pte);
-	
+
 	if (found) {
 		/* Record access to PTE */
 		pte.accessed = 1;
@@ -200,10 +200,10 @@ void pht_refill(unsigned int n, istate_t *istate)
 void pht_invalidate(as_t *as, uintptr_t page, size_t pages)
 {
 	uint32_t sdr1 = sdr1_get();
-	
+
 	// FIXME: compute size of PHT exactly
 	phte_t *phte = (phte_t *) PA2KA(sdr1 & 0xffff0000);
-	
+
 	// FIXME: this invalidates all PHT entries,
 	// which is an overkill, invalidate only
 	// selectively

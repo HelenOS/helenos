@@ -68,27 +68,27 @@ static void ns_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		}
 		return;
 	}
-	
+
 	async_answer_0(iid, EOK);
 
 	while (true) {
 		process_pending_conn();
-		
+
 		callid = async_get_call(&call);
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		task_id_t id;
 		errno_t retval;
-		
+
 		service_t service;
 		sysarg_t phone;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case NS_REGISTER:
 			service = IPC_GET_ARG1(call);
 			phone = IPC_GET_ARG5(call);
-			
+
 			/*
 			 * Server requests service registration.
 			 */
@@ -98,7 +98,7 @@ static void ns_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			} else {
 				retval = register_service(service, phone, &call);
 			}
-			
+
 			break;
 		case NS_PING:
 			retval = EOK;
@@ -119,7 +119,7 @@ static void ns_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			retval = ENOTSUP;
 			break;
 		}
-		
+
 		async_answer_0(callid, retval);
 	}
 
@@ -129,24 +129,24 @@ static void ns_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 int main(int argc, char **argv)
 {
 	printf("%s: HelenOS IPC Naming Service\n", NAME);
-	
+
 	errno_t rc = service_init();
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = clonable_init();
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = task_init();
 	if (rc != EOK)
 		return rc;
-	
+
 	async_set_fallback_port_handler(ns_connection, NULL);
-	
+
 	printf("%s: Accepting connections\n", NAME);
 	async_manager();
-	
+
 	/* Not reached */
 	return 0;
 }

@@ -95,16 +95,16 @@ bool hash_table_create(hash_table_t *h, size_t init_size, size_t max_load,
 {
 	assert(h);
 	assert(op && op->hash && op->key_hash && op->key_equal);
-	
+
 	/* Check for compulsory ops. */
 	if (!op || !op->hash || !op->key_hash || !op->key_equal)
 		return false;
-	
+
 	h->bucket_cnt = round_up_size(init_size);
-	
+
 	if (!alloc_table(h->bucket_cnt, &h->bucket))
 		return false;
-	
+
 	h->max_load = (max_load == 0) ? HT_MAX_LOAD : max_load;
 	h->item_cnt = 0;
 	h->op = op;
@@ -114,7 +114,7 @@ bool hash_table_create(hash_table_t *h, size_t init_size, size_t max_load,
 	if (h->op->remove_callback == NULL) {
 		h->op->remove_callback = nop_remove_callback;
 	}
-	
+
 	return true;
 }
 
@@ -127,9 +127,9 @@ void hash_table_destroy(hash_table_t *h)
 {
 	assert(h && h->bucket);
 	assert(!h->apply_ongoing);
-	
+
 	clear_items(h);
-	
+
 	free(h->bucket);
 
 	h->bucket = NULL;
@@ -158,9 +158,9 @@ void hash_table_clear(hash_table_t *h)
 {
 	assert(h && h->bucket);
 	assert(!h->apply_ongoing);
-	
+
 	clear_items(h);
-	
+
 	/* Shrink the table to its minimum size if possible. */
 	if (HT_MIN_BUCKETS < h->bucket_cnt) {
 		resize(h, HT_MIN_BUCKETS);
@@ -172,17 +172,17 @@ static void clear_items(hash_table_t *h)
 {
 	if (h->item_cnt == 0)
 		return;
-	
+
 	for (size_t idx = 0; idx < h->bucket_cnt; ++idx) {
 		list_foreach_safe(h->bucket[idx], cur, next) {
 			assert(cur);
 			ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
-			
+
 			list_remove(cur);
 			h->op->remove_callback(cur_link);
 		}
 	}
-	
+
 	h->item_cnt = 0;
 }
 
@@ -196,9 +196,9 @@ void hash_table_insert(hash_table_t *h, ht_link_t *item)
 	assert(item);
 	assert(h && h->bucket);
 	assert(!h->apply_ongoing);
-	
+
 	size_t idx = h->op->hash(item) % h->bucket_cnt;
-	
+
 	list_append(&item->link, &h->bucket[idx]);
 	++h->item_cnt;
 	grow_if_needed(h);
@@ -219,9 +219,9 @@ bool hash_table_insert_unique(hash_table_t *h, ht_link_t *item)
 	assert(h && h->bucket && h->bucket_cnt);
 	assert(h->op && h->op->hash && h->op->equal);
 	assert(!h->apply_ongoing);
-	
+
 	size_t idx = h->op->hash(item) % h->bucket_cnt;
-	
+
 	/* Check for duplicates. */
 	list_foreach(h->bucket[idx], link, ht_link_t, cur_link) {
 		/*
@@ -231,11 +231,11 @@ bool hash_table_insert_unique(hash_table_t *h, ht_link_t *item)
 		if (h->op->equal(cur_link, item))
 			return false;
 	}
-	
+
 	list_append(&item->link, &h->bucket[idx]);
 	++h->item_cnt;
 	grow_if_needed(h);
-	
+
 	return true;
 }
 
@@ -250,7 +250,7 @@ bool hash_table_insert_unique(hash_table_t *h, ht_link_t *item)
 ht_link_t *hash_table_find(const hash_table_t *h, void *key)
 {
 	assert(h && h->bucket);
-	
+
 	size_t idx = h->op->key_hash(key) % h->bucket_cnt;
 
 	list_foreach(h->bucket[idx], link, ht_link_t, cur_link) {
@@ -263,7 +263,7 @@ ht_link_t *hash_table_find(const hash_table_t *h, void *key)
 			return cur_link;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -304,14 +304,14 @@ size_t hash_table_remove(hash_table_t *h, void *key)
 {
 	assert(h && h->bucket);
 	assert(!h->apply_ongoing);
-	
+
 	size_t idx = h->op->key_hash(key) % h->bucket_cnt;
 
 	size_t removed = 0;
-	
+
 	list_foreach_safe(h->bucket[idx], cur, next) {
 		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
-		
+
 		if (h->op->key_equal(key, cur_link)) {
 			++removed;
 			list_remove(cur);
@@ -321,7 +321,7 @@ size_t hash_table_remove(hash_table_t *h, void *key)
 
 	h->item_cnt -= removed;
 	shrink_if_needed(h);
-	
+
 	return removed;
 }
 
@@ -351,12 +351,12 @@ void hash_table_apply(hash_table_t *h, bool (*f)(ht_link_t *, void *), void *arg
 {
 	assert(f);
 	assert(h && h->bucket);
-	
+
 	if (h->item_cnt == 0)
 		return;
-	
+
 	h->apply_ongoing = true;
-	
+
 	for (size_t idx = 0; idx < h->bucket_cnt; ++idx) {
 		list_foreach_safe(h->bucket[idx], cur, next) {
 			ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
@@ -370,7 +370,7 @@ void hash_table_apply(hash_table_t *h, bool (*f)(ht_link_t *, void *), void *arg
 	}
 out:
 	h->apply_ongoing = false;
-	
+
 	shrink_if_needed(h);
 	grow_if_needed(h);
 }
@@ -379,11 +379,11 @@ out:
 static size_t round_up_size(size_t size)
 {
 	size_t rounded_size = HT_MIN_BUCKETS;
-	
+
 	while (rounded_size < size) {
 		rounded_size = 2 * rounded_size + 1;
 	}
-	
+
 	return rounded_size;
 }
 
@@ -391,11 +391,11 @@ static size_t round_up_size(size_t size)
 static bool alloc_table(size_t bucket_cnt, list_t **pbuckets)
 {
 	assert(pbuckets && HT_MIN_BUCKETS <= bucket_cnt);
-		
+
 	list_t *buckets = malloc(bucket_cnt * sizeof(list_t), FRAME_ATOMIC);
 	if (!buckets)
 		return false;
-	
+
 	for (size_t i = 0; i < bucket_cnt; i++)
 		list_initialize(&buckets[i]);
 
@@ -433,17 +433,17 @@ static void resize(hash_table_t *h, size_t new_bucket_cnt)
 {
 	assert(h && h->bucket);
 	assert(HT_MIN_BUCKETS <= new_bucket_cnt);
-	
+
 	/* We are traversing the table and resizing would mess up the buckets. */
 	if (h->apply_ongoing)
 		return;
-	
+
 	list_t *new_buckets;
 
 	/* Leave the table as is if we cannot resize. */
 	if (!alloc_table(new_bucket_cnt, &new_buckets))
 		return;
-	
+
 	if (0 < h->item_cnt) {
 		/* Rehash all the items to the new table. */
 		for (size_t old_idx = 0; old_idx < h->bucket_cnt; ++old_idx) {
@@ -456,7 +456,7 @@ static void resize(hash_table_t *h, size_t new_bucket_cnt)
 			}
 		}
 	}
-	
+
 	free(h->bucket);
 	h->bucket = new_buckets;
 	h->bucket_cnt = new_bucket_cnt;

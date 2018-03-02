@@ -300,7 +300,7 @@ static void xhci_dump_psi(const xhci_psi_t *psi)
 {
 	static const char speed_exp [] = " KMG";
 	static const char *psi_types [] = { "", " rsvd", " RX", " TX" };
-	
+
 	usb_log_debug("Speed %u%s: %5u %cb/s, %s",
 	    XHCI_REG_RD(psi, XHCI_PSI_PSIV),
 	    psi_types[XHCI_REG_RD(psi, XHCI_PSI_PLT)],

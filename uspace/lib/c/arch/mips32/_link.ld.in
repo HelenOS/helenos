@@ -17,58 +17,58 @@ SECTIONS {
 #else
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
-	
+
 	.init : {
 		*(.init);
 	} :text
-	
+
 	.text : {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
-	
+
 #ifdef LOADER
 	.interp : {
 		*(.interp);
 	} :interp :text
 #endif
-	
+
 	. = . + 0x4000;
-	
+
 	.data : {
 		*(.data);
 		*(.data.rel*);
 	} :data
-	
+
 	.got : {
 		_gp = .;
 		*(.got);
 	} :data
-	
+
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
 		_tdata_end = .;
 	} :data
-	
+
 	.tbss : {
 		_tbss_start = .;
 		*(.tbss);
 		_tbss_end = .;
 	} :data
-	
+
 	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
-	
+
 	.sbss : {
 		*(.scommon);
 		*(.sbss);
 	}
-	
+
 	.bss : {
 		*(.bss);
 		*(COMMON);
 	} :data
-	
+
 	/DISCARD/ : {
 		*(*);
 	}

@@ -48,7 +48,7 @@ extern uintptr_t *ras_page;
 static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 {
 	atomic_count_t ret = 0;
-	
+
 	/*
 	 * The following instructions between labels 1 and 2 constitute a
 	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
@@ -74,13 +74,13 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 		  [nv] "r" (nv)
 		: "memory"
 	);
-	
+
 	ras_page[0] = 0;
 	asm volatile (
 		"" ::: "memory"
 	);
 	ras_page[1] = 0xffffffff;
-	
+
 	return ret != 0;
 }
 
@@ -95,7 +95,7 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 {
 	atomic_count_t ret = 0;
-	
+
 	/*
 	 * The following instructions between labels 1 and 2 constitute a
 	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
@@ -117,13 +117,13 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 		  [addr] "+m" (val->count)
 		: [imm] "r" (i)
 	);
-	
+
 	ras_page[0] = 0;
 	asm volatile (
 		"" ::: "memory"
 	);
 	ras_page[1] = 0xffffffff;
-	
+
 	return ret;
 }
 

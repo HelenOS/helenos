@@ -41,7 +41,7 @@
  * Classes of events that can be displayed. Can be or-ed together.
  */
 typedef enum {
-	
+
 	DM_THREAD	= 1,	/**< Thread creation and termination events */
 	DM_SYSCALL	= 2,	/**< System calls */
 	DM_IPC		= 4,	/**< Low-level IPC */

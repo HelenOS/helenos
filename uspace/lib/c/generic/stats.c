@@ -69,14 +69,14 @@ stats_cpu_t *stats_get_cpus(size_t *count)
 	size_t size = 0;
 	stats_cpu_t *stats_cpus =
 	    (stats_cpu_t *) sysinfo_get_data("system.cpus", &size);
-	
+
 	if ((size % sizeof(stats_cpu_t)) != 0) {
 		if (stats_cpus != NULL)
 			free(stats_cpus);
 		*count = 0;
 		return NULL;
 	}
-	
+
 	*count = size / sizeof(stats_cpu_t);
 	return stats_cpus;
 }
@@ -94,13 +94,13 @@ stats_physmem_t *stats_get_physmem(void)
 	size_t size = 0;
 	stats_physmem_t *stats_physmem =
 	    (stats_physmem_t *) sysinfo_get_data("system.physmem", &size);
-	
+
 	if (size != sizeof(stats_physmem_t)) {
 		if (stats_physmem != NULL)
 			free(stats_physmem);
 		return NULL;
 	}
-	
+
 	return stats_physmem;
 }
 
@@ -118,14 +118,14 @@ stats_task_t *stats_get_tasks(size_t *count)
 	size_t size = 0;
 	stats_task_t *stats_tasks =
 	    (stats_task_t *) sysinfo_get_data("system.tasks", &size);
-	
+
 	if ((size % sizeof(stats_task_t)) != 0) {
 		if (stats_tasks != NULL)
 			free(stats_tasks);
 		*count = 0;
 		return NULL;
 	}
-	
+
 	*count = size / sizeof(stats_task_t);
 	return stats_tasks;
 }
@@ -143,17 +143,17 @@ stats_task_t *stats_get_task(task_id_t task_id)
 {
 	char name[SYSINFO_STATS_MAX_PATH];
 	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.tasks.%" PRIu64, task_id);
-	
+
 	size_t size = 0;
 	stats_task_t *stats_task =
 	    (stats_task_t *) sysinfo_get_data(name, &size);
-	
+
 	if (size != sizeof(stats_task_t)) {
 		if (stats_task != NULL)
 			free(stats_task);
 		return NULL;
 	}
-	
+
 	return stats_task;
 }
 
@@ -171,14 +171,14 @@ stats_thread_t *stats_get_threads(size_t *count)
 	size_t size = 0;
 	stats_thread_t *stats_threads =
 	    (stats_thread_t *) sysinfo_get_data("system.threads", &size);
-	
+
 	if ((size % sizeof(stats_thread_t)) != 0) {
 		if (stats_threads != NULL)
 			free(stats_threads);
 		*count = 0;
 		return NULL;
 	}
-	
+
 	*count = size / sizeof(stats_thread_t);
 	return stats_threads;
 }
@@ -196,17 +196,17 @@ stats_thread_t *stats_get_thread(thread_id_t thread_id)
 {
 	char name[SYSINFO_STATS_MAX_PATH];
 	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.threads.%" PRIu64, thread_id);
-	
+
 	size_t size = 0;
 	stats_thread_t *stats_thread =
 	    (stats_thread_t *) sysinfo_get_data(name, &size);
-	
+
 	if (size != sizeof(stats_thread_t)) {
 		if (stats_thread != NULL)
 			free(stats_thread);
 		return NULL;
 	}
-	
+
 	return stats_thread;
 }
 
@@ -224,14 +224,14 @@ stats_exc_t *stats_get_exceptions(size_t *count)
 	size_t size = 0;
 	stats_exc_t *stats_exceptions =
 	    (stats_exc_t *) sysinfo_get_data("system.exceptions", &size);
-	
+
 	if ((size % sizeof(stats_exc_t)) != 0) {
 		if (stats_exceptions != NULL)
 			free(stats_exceptions);
 		*count = 0;
 		return NULL;
 	}
-	
+
 	*count = size / sizeof(stats_exc_t);
 	return stats_exceptions;
 }
@@ -249,17 +249,17 @@ stats_exc_t *stats_get_exception(unsigned int excn)
 {
 	char name[SYSINFO_STATS_MAX_PATH];
 	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.exceptions.%u", excn);
-	
+
 	size_t size = 0;
 	stats_exc_t *stats_exception =
 	    (stats_exc_t *) sysinfo_get_data(name, &size);
-	
+
 	if (size != sizeof(stats_exc_t)) {
 		if (stats_exception != NULL)
 			free(stats_exception);
 		return NULL;
 	}
-	
+
 	return stats_exception;
 }
 
@@ -277,14 +277,14 @@ load_t *stats_get_load(size_t *count)
 	size_t size = 0;
 	load_t *load =
 	    (load_t *) sysinfo_get_data("system.load", &size);
-	
+
 	if ((size % sizeof(load_t)) != 0) {
 		if (load != NULL)
 			free(load);
 		*count = 0;
 		return NULL;
 	}
-	
+
 	*count = size / sizeof(load_t);
 	return load;
 }
@@ -302,9 +302,9 @@ void stats_print_load_fragment(load_t upper, unsigned int dec_length)
 {
 	/* Print the whole part */
 	printf("%u.", upper / LOAD_UNIT);
-	
+
 	load_t rest = (upper % LOAD_UNIT) * 10;
-	
+
 	unsigned int i;
 	for (i = 0; i < dec_length; i++) {
 		printf("%u", rest / LOAD_UNIT);
@@ -316,7 +316,7 @@ const char *thread_get_state(state_t state)
 {
 	if (state <= Lingering)
 		return thread_states[state];
-	
+
 	return thread_states[Invalid];
 }
 

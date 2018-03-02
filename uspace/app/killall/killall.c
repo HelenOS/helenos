@@ -54,15 +54,15 @@ int main(int argc, char *argv[])
 		print_syntax();
 		return 1;
 	}
-	
+
 	size_t count;
 	stats_task_t *stats_tasks = stats_get_tasks(&count);
-	
+
 	if (stats_tasks == NULL) {
 		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
 		return 2;
 	}
-	
+
 	size_t i;
 	for (i = 0; i < count; i++) {
 		if (str_cmp(stats_tasks[i].name, argv[1]) == 0) {
@@ -75,9 +75,9 @@ int main(int argc, char *argv[])
 				printf("Killed task ID %" PRIu64 "\n", taskid);
 		}
 	}
-	
+
 	free(stats_tasks);
-	
+
 	return 0;
 }
 

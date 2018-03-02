@@ -16,18 +16,18 @@ SECTIONS {
 		unmapped_ktext_start = .;
 		*(K_TEXT_START);
 		unmapped_ktext_end = .;
-		
+
 		unmapped_kdata_start = .;
 		*(K_DATA_START);
 		*(K_INI_PTLS);
 		unmapped_kdata_end = .;
 	}
-	
+
 	.mapped (PA2KA(BOOT_OFFSET)+SIZEOF(.unmapped)) : AT (SIZEOF(.unmapped)) {
 		ktext_start = .;
 		*(.text .text.*);
 		ktext_end = .;
-		
+
 		kdata_start = .;
 		*(.data);              /* initialized data */
 		*(.rodata .rodata.*);  /* string literals */
@@ -42,16 +42,16 @@ SECTIONS {
 		hardcoded_unmapped_kdata_size = .;
 		QUAD(unmapped_kdata_end - unmapped_kdata_start);
 		*(COMMON);      /* global variables */
-		
+
 		. = ALIGN(8);
 		symbol_table = .;
 		*(symtab.*);    /* Symbol table, must be LAST symbol!*/
-		
+
 		*(.bss);        /* uninitialized static variables */
-		
+
 		kdata_end = .;
 	}
-	
+
 #ifdef CONFIG_LINE_DEBUG
 	.comment 0 : { *(.comment); }
 	.debug_abbrev 0 : { *(.debug_abbrev); }
@@ -64,16 +64,16 @@ SECTIONS {
 	.debug_ranges 0 : { *(.debug_ranges); }
 	.debug_str 0 : { *(.debug_str); }
 #endif
-	
+
 	/DISCARD/ : {
 		*(*);
 	}
-	
+
 #ifdef CONFIG_SMP
 	_hardcoded_unmapped_size = (unmapped_ktext_end - unmapped_ktext_start) + (unmapped_kdata_end - unmapped_kdata_start);
 	ap_boot = unmapped_ap_boot - BOOT_OFFSET + AP_BOOT_OFFSET;
 	ap_gdtr = unmapped_ap_gdtr - BOOT_OFFSET + AP_BOOT_OFFSET;
 	protected_ap_gdtr = PA2KA(ap_gdtr);
 #endif /* CONFIG_SMP */
-	
+
 }

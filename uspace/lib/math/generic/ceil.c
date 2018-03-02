@@ -47,16 +47,16 @@ float32_t float32_ceil(float32_t val)
 	float32_u t;
 	float32_u v;
 	float32_u r;
-	
+
 	v.val = val;
 	t.val = trunc_f32(val);
-	
+
 	if (v.data.parts.sign == 1 || val == t.val) {
 		r = t;
 	} else {
 		r.val = t.val + 1.0;
 	}
-	
+
 	return r.val;
 }
 
@@ -71,16 +71,16 @@ float64_t float64_ceil(float64_t val)
 	float64_u t;
 	float64_u v;
 	float64_u r;
-	
+
 	v.val = val;
 	t.val = trunc_f64(val);
-	
+
 	if (v.data.parts.sign == 1 || val == t.val) {
 		r = t;
 	} else {
 		r.val = t.val + 1.0;
 	}
-	
+
 	return r.val;
 }
 

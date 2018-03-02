@@ -46,10 +46,10 @@ FUNCTION_BEGIN(context_save_arch)
 	sw $s7, CONTEXT_OFFSET_S7($a0)
 	sw $s8, CONTEXT_OFFSET_S8($a0)
 	sw $gp, CONTEXT_OFFSET_GP($a0)
-	
+
 	sw $ra, CONTEXT_OFFSET_PC($a0)
 	sw $sp, CONTEXT_OFFSET_SP($a0)
-	
+
 	# context_save returns 1
 	j $31
 	li $2, 1
@@ -66,10 +66,10 @@ FUNCTION_BEGIN(context_restore_arch)
 	lw $s7, CONTEXT_OFFSET_S7($a0)
 	lw $s8, CONTEXT_OFFSET_S8($a0)
 	lw $gp, CONTEXT_OFFSET_GP($a0)
-	
+
 	lw $ra, CONTEXT_OFFSET_PC($a0)
 	lw $sp, CONTEXT_OFFSET_SP($a0)
-	
+
 	# context_restore returns 0
 	j $31
 	xor $2, $2

@@ -230,58 +230,58 @@ typedef struct {
 struct ieee80211_dev {
 	/** Backing DDF device. */
 	ddf_dev_t *ddf_dev;
-	
+
 	/** Pointer to implemented IEEE 802.11 device operations. */
 	ieee80211_ops_t *ops;
-	
+
 	/** Pointer to implemented IEEE 802.11 interface operations. */
 	ieee80211_iface_t *iface;
-	
+
 	/** Pointer to driver specific data. */
 	void *specific;
-	
+
 	/** Current operating frequency. */
 	uint16_t current_freq;
-	
+
 	/** Current operating mode. */
 	ieee80211_operating_mode_t current_op_mode;
-	
+
 	/** Info about BSSID we are connected to. */
 	ieee80211_bssid_info_t bssid_info;
-	
+
 	/**
 	 * Flag indicating that data traffic is encrypted by HW key
 	 * that is set up in device.
 	 */
 	bool using_hw_key;
-	
+
 	/** BSSIDs we listen to. */
 	nic_address_t bssid_mask;
-	
+
 	/** List of APs in neighborhood. */
 	ieee80211_scan_result_list_t ap_list;
-	
+
 	/** Current sequence number used in data frames. */
 	uint16_t sequence_number;
-	
+
 	/** Current authentication phase. */
 	ieee80211_auth_phase_t current_auth_phase;
-	
+
 	/** Flag indicating whether client wants connect to network. */
 	bool pending_conn_req;
-	
+
 	/** Scanning guard. */
 	fibril_mutex_t scan_mutex;
-	
+
 	/** General purpose guard. */
 	fibril_mutex_t gen_mutex;
-	
+
 	/** General purpose condition variable. */
 	fibril_condvar_t gen_cond;
-	
+
 	/** Indicates whether device is fully initialized. */
 	bool ready;
-	
+
 	/** Indicates whether driver has already started. */
 	bool started;
 };

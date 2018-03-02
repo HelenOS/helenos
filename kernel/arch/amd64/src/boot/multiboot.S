@@ -77,23 +77,23 @@ multiboot_header:
 SYMBOL(multiboot_image_start)
 	cli
 	cld
-	
+
 	/* Initialize stack pointer */
 	movl $START_STACK, %esp
-	
+
 	/*
 	 * Initialize Global Descriptor Table and
 	 * Interrupt Descriptor Table registers
 	 */
 	lgdtl bootstrap_gdtr
 	lidtl bootstrap_idtr
-	
+
 	/* Kernel data + stack */
 	movw $GDT_SELECTOR(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %ds
 	movw %cx, %ss
-	
+
 	/*
 	 * Simics seems to remove hidden part of GS on entering user mode
 	 * when _visible_ part of GS does not point to user-mode segment.
@@ -101,90 +101,90 @@ SYMBOL(multiboot_image_start)
 	movw $GDT_SELECTOR(UDATA_DES), %cx
 	movw %cx, %fs
 	movw %cx, %gs
-	
+
 	jmpl $GDT_SELECTOR(KTEXT32_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
-	
+
 	/*
 	 * Protected 32-bit. We want to reuse the code-seg descriptor,
 	 * the Default operand size must not be 1 when entering long mode.
 	 */
-	
+
 	/* Save multiboot arguments */
 	movl %eax, multiboot_eax
 	movl %ebx, multiboot_ebx
-	
+
 	pm_status $status_prot
-	
+
 	movl $(INTEL_CPUID_EXTENDED), %eax
 	cpuid
 	cmp $(INTEL_CPUID_EXTENDED), %eax
 	ja extended_cpuid_supported
-	
+
 		pm_error $err_extended_cpuid
-	
+
 	extended_cpuid_supported:
-	
+
 	movl $(AMD_CPUID_EXTENDED), %eax
 	cpuid
 	bt $(AMD_EXT_LONG_MODE), %edx
 	jc long_mode_supported
-	
+
 		pm_error $err_long_mode
-	
+
 	long_mode_supported:
-	
+
 	bt $(AMD_EXT_NOEXECUTE), %edx
 	jc noexecute_supported
-	
+
 		pm_error $err_noexecute
-	
+
 	noexecute_supported:
-	
+
 	movl $(INTEL_CPUID_STANDARD), %eax
 	cpuid
 	bt $(INTEL_FXSAVE), %edx
 	jc fx_supported
-	
+
 		pm_error $err_fx
-	
+
 	fx_supported:
-	
+
 	bt $(INTEL_SSE2), %edx
 	jc sse2_supported
-	
+
 		pm_error $err_sse2
-	
+
 	sse2_supported:
-	
+
 #include "vesa_prot.inc"
-	
+
 	pm2_status $status_prot2
-	
+
 	/*
 	 * Enable 64-bit page translation entries - CR4.PAE = 1.
 	 * Paging is not enabled until after long mode is enabled.
 	 */
-	
+
 	movl %cr4, %eax
 	orl $CR4_PAE, %eax
 	movl %eax, %cr4
-	
+
 	/* Set up paging tables */
 	leal ptl_0, %eax
 	movl %eax, %cr3
-	
+
 	/* Enable long mode */
 	movl $AMD_MSR_EFER, %ecx
 	rdmsr                     /* read EFER */
 	orl $AMD_LME, %eax        /* set LME = 1 */
 	wrmsr
-	
+
 	/* Enable paging to activate long mode (set CR0.PG = 1) */
 	movl %cr0, %eax
 	orl $CR0_PG, %eax
 	movl %eax, %cr0
-	
+
 	/* At this point we are in compatibility mode */
 	jmpl $GDT_SELECTOR(KTEXT_DES), $start64
 
@@ -203,88 +203,88 @@ SYMBOL(multiboot_image_start)
 pm_error_halt:
 	movl $0xb8000, %edi  /* base of EGA text mode memory */
 	xorl %eax, %eax
-	
+
 	/* Read bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
 	shl $8, %ax
-	
+
 	/* Read bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
-	
+
 	/* Sanity check for the cursor on screen */
 	cmp $2000, %ax
 	jb err_cursor_ok
-	
+
 		movw $1998, %ax
-	
+
 	err_cursor_ok:
-	
+
 	movw %ax, %bx
 	shl $1, %eax
 	addl %eax, %edi
-	
+
 	err_ploop:
 		lodsb
-		
+
 		cmp $0, %al
 		je err_ploop_end
-		
+
 		movb $0x0c, %ah  /* black background, light red foreground */
 		stosw
-		
+
 		/* Sanity check for the cursor on the last line */
 		inc %bx
 		cmp $2000, %bx
 		jb err_ploop
-		
+
 		/* Scroll the screen (24 rows) */
 		movl %esi, %edx
 		movl $0xb80a0, %esi
 		movl $0xb8000, %edi
 		movl $960, %ecx
 		rep movsl
-		
+
 		/* Clear the 24th row */
 		xorl %eax, %eax
 		movl $40, %ecx
 		rep stosl
-		
+
 		/* Go to row 24 */
 		movl %edx, %esi
 		movl $0xb8f00, %edi
 		movw $1920, %bx
-		
+
 		jmp err_ploop
 	err_ploop_end:
-	
+
 	/* Write bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bh, %al
 	outb %al, %dx
-	
+
 	/* Write bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bl, %al
 	outb %al, %dx
-	
+
 	cli
 	hlt1:
 		hlt
@@ -310,97 +310,97 @@ pm_early_puts:
 	pushl %ecx
 	pushl %edx
 	pushl %edi
-	
+
 	movl $0xb8000, %edi  /* base of EGA text mode memory */
 	xorl %eax, %eax
-	
+
 	/* Read bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
 	shl $8, %ax
-	
+
 	/* Read bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
-	
+
 	/* Sanity check for the cursor on screen */
 	cmp $2000, %ax
 	jb pm_puts_cursor_ok
-	
+
 		movw $1998, %ax
-	
+
 	pm_puts_cursor_ok:
-	
+
 	movw %ax, %bx
 	shl $1, %eax
 	addl %eax, %edi
-	
+
 	pm_puts_ploop:
 		lodsb
-		
+
 		cmp $0, %al
 		je pm_puts_ploop_end
-		
+
 		movb $0x0a, %ah  /* black background, light green foreground */
 		stosw
-		
+
 		/* Sanity check for the cursor on the last line */
 		inc %bx
 		cmp $2000, %bx
 		jb pm_puts_ploop
-		
+
 		/* Scroll the screen (24 rows) */
 		movl %esi, %edx
 		movl $0xb80a0, %esi
 		movl $0xb8000, %edi
 		movl $960, %ecx
 		rep movsl
-		
+
 		/* Clear the 24th row */
 		xorl %eax, %eax
 		movl $40, %ecx
 		rep stosl
-		
+
 		/* Go to row 24 */
 		movl %edx, %esi
 		movl $0xb8f00, %edi
 		movw $1920, %bx
-		
+
 		jmp pm_puts_ploop
 	pm_puts_ploop_end:
-	
+
 	/* Write bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bh, %al
 	outb %al, %dx
-	
+
 	/* Write bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bl, %al
 	outb %al, %dx
-	
+
 	popl %edi
 	popl %edx
 	popl %ecx
 	popl %ebx
 	popl %eax
-	
+
 	ret
 
 .code64
@@ -413,32 +413,32 @@ pm_early_puts:
 .endm
 
 start64:
-	
+
 	/*
 	 * Long mode.
 	 */
-	
+
 	movq $(PA2KA(START_STACK)), %rsp
-	
+
 	/* Create the first stack frame */
 	pushq $0
 	movq %rsp, %rbp
-	
+
 	long_status $status_long
-	
+
 	/* Call amd64_pre_main(multiboot_eax, multiboot_ebx) */
 	movl multiboot_eax, %edi
 	movl multiboot_ebx, %esi
-	
+
 #ifdef MEMORY_MODEL_large
 	movabsq $amd64_pre_main, %rax
 	callq *%rax
 #else
 	callq amd64_pre_main
 #endif
-	
+
 	long_status $status_main
-	
+
 	/* Call main_bsp() */
 #ifdef MEMORY_MODEL_large
 	movabsq $main_bsp, %rax
@@ -446,7 +446,7 @@ start64:
 #else
 	callq main_bsp
 #endif
-	
+
 	/* Not reached */
 	cli
 	hlt0:
@@ -467,105 +467,105 @@ start64:
  *
  */
 early_puts:
-	
+
 #if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
-	
+
 	/* Prologue, save preserved registers */
 	pushq %rbp
 	movq %rsp, %rbp
 	pushq %rbx
-	
+
 	movq %rdi, %rsi
 	movq $(PA2KA(0xb8000)), %rdi  /* base of EGA text mode memory */
 	xorq %rax, %rax
-	
+
 	/* Read bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
 	shl $8, %ax
-	
+
 	/* Read bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
-	
+
 	/* Sanity check for the cursor on screen */
 	cmp $2000, %ax
 	jb early_puts_cursor_ok
-	
+
 		movw $1998, %ax
-	
+
 	early_puts_cursor_ok:
-	
+
 	movw %ax, %bx
 	shl $1, %rax
 	addq %rax, %rdi
-	
+
 	early_puts_ploop:
 		lodsb
-		
+
 		cmp $0, %al
 		je early_puts_ploop_end
-		
+
 		movb $0x0e, %ah  /* black background, yellow foreground */
 		stosw
-		
+
 		/* Sanity check for the cursor on the last line */
 		inc %bx
 		cmp $2000, %bx
 		jb early_puts_ploop
-		
+
 		/* Scroll the screen (24 rows) */
 		movq %rsi, %rdx
 		movq $(PA2KA(0xb80a0)), %rsi
 		movq $(PA2KA(0xb8000)), %rdi
 		movl $480, %ecx
 		rep movsq
-		
+
 		/* Clear the 24th row */
 		xorl %eax, %eax
 		movl $20, %ecx
 		rep stosq
-		
+
 		/* Go to row 24 */
 		movq %rdx, %rsi
 		movq $(PA2KA(0xb8f00)), %rdi
 		movw $1920, %bx
-		
+
 		jmp early_puts_ploop
 	early_puts_ploop_end:
-	
+
 	/* Write bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bh, %al
 	outb %al, %dx
-	
+
 	/* Write bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bl, %al
 	outb %al, %dx
-	
+
 	/* Epilogue, restore preserved registers */
 	popq %rbx
 	leave
-	
+
 #endif
-	
+
 	ret
 
 #include "vesa_real.inc"

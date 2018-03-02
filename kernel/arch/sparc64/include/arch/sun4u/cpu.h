@@ -77,7 +77,7 @@ NO_TRACE static inline uint32_t read_mid(void)
 {
 	uint64_t icbus_config = asi_u64_read(ASI_ICBUS_CONFIG, 0);
 	icbus_config = icbus_config >> ICBUS_CONFIG_MID_SHIFT;
-	
+
 #if defined (US)
 	return icbus_config & 0x1f;
 #elif defined (US3)

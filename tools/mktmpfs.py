@@ -68,7 +68,7 @@ def usage(prname):
 
 def recursion(root, outf):
 	"Recursive directory walk"
-	
+
 	for item in listdir_items(root):
 		if item.is_file:
 			dentry = xstruct.create(DENTRY_FILE % len(item.name))
@@ -76,54 +76,54 @@ def recursion(root, outf):
 			dentry.fname_len = len(item.name)
 			dentry.fname = item.name.encode('ascii')
 			dentry.flen = item.size
-			
+
 			outf.write(dentry.pack())
-			
+
 			for data in chunks(item, 4096):
 				outf.write(data)
-		
+
 		elif item.is_dir:
 			dentry = xstruct.create(DENTRY_DIRECTORY % len(item.name))
 			dentry.kind = TMPFS_DIRECTORY
 			dentry.fname_len = len(item.name)
 			dentry.fname = item.name.encode('ascii')
-			
+
 			outf.write(dentry.pack())
-			
+
 			recursion(item.path, outf)
-			
+
 			dentry = xstruct.create(DENTRY_NONE)
 			dentry.kind = TMPFS_NONE
 			dentry.fname_len = 0
-			
+
 			outf.write(dentry.pack())
 
 def main():
 	if (len(sys.argv) < 3):
 		usage(sys.argv[0])
 		return
-	
+
 	path = os.path.abspath(sys.argv[1])
 	if (not os.path.isdir(path)):
 		print("<PATH> must be a directory")
 		return
-	
+
 	outf = open(sys.argv[2], "wb")
-	
+
 	header = xstruct.create(HEADER)
 	header.tag = b"TMPFS"
-	
+
 	outf.write(header.pack())
-	
+
 	recursion(path, outf)
-	
+
 	dentry = xstruct.create(DENTRY_NONE)
 	dentry.kind = TMPFS_NONE
 	dentry.fname_len = 0
-	
+
 	outf.write(dentry.pack())
-	
+
 	outf.close()
-	
+
 if __name__ == '__main__':
 	main()

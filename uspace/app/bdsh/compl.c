@@ -94,50 +94,50 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 	char *prefix = NULL;
 	char *dirname = NULL;
 	errno_t retval;
-	
+
 	token_t *tokens = calloc(WORD_MAX, sizeof(token_t));
 	if (tokens == NULL) {
 		retval = ENOMEM;
 		goto error;
 	}
-	
+
 	size_t pref_size;
 	char *rpath_sep;
 	static const char *dirlist_arg[] = { ".", NULL };
 	tokenizer_t tok;
 	ssize_t current_token;
 	size_t tokens_length;
-	
+
 	cs = calloc(1, sizeof(compl_t));
 	if (!cs) {
 		retval = ENOMEM;
 		goto error;
 	}
-	
+
 	/* Convert text buffer to string */
 	stext = wstr_to_astr(text);
 	if (stext == NULL) {
 		retval = ENOMEM;
 		goto error;
 	}
-	
+
 	/* Tokenize the input string */
 	retval = tok_init(&tok, stext, tokens, WORD_MAX);
 	if (retval != EOK) {
 		goto error;
 	}
-	
+
 	retval = tok_tokenize(&tok, &tokens_length);
 	if (retval != EOK) {
 		goto error;
 	}
-	
+
 	/* Find the current token */
 	for (current_token = 0; current_token < (ssize_t) tokens_length;
 	    current_token++) {
 		token_t *t = &tokens[current_token];
 		size_t end = t->char_start + t->char_length;
-		
+
 		/*
 		 * Check if the caret lies inside the token or immediately
 		 * after it
@@ -146,15 +146,15 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 			break;
 		}
 	}
-	
+
 	if (tokens_length == 0)
 		current_token = -1;
-	
+
 	if ((current_token >= 0) && (tokens[current_token].type != TOKTYPE_SPACE))
 		*cstart = tokens[current_token].char_start;
 	else
 		*cstart = pos;
-	
+
 	/*
 	 * Extract the prefix being completed
 	 * XXX: handle strings, etc.
@@ -182,7 +182,7 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 	ssize_t prev_token = current_token - 1;
 	if ((prev_token >= 0) && (tokens[prev_token].type == TOKTYPE_SPACE))
 		prev_token--;
-	
+
 	/*
 	 * It is a command if it is the first token or if it immediately
 	 * follows a pipe token.
@@ -235,7 +235,7 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 	}
 
 	cs->prefix_len = str_length(cs->prefix);
-	
+
 	tok_fini(&tok);
 
 	*state = cs;
@@ -243,7 +243,7 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 
 error:
 	/* Error cleanup */
-	
+
 	tok_fini(&tok);
 
 	if (cs != NULL && cs->path_list != NULL) {
@@ -257,19 +257,19 @@ error:
 
 	if ((cs != NULL) && (cs->prefix != NULL))
 		free(cs->prefix);
-	
+
 	if (dirname != NULL)
 		free(dirname);
-	
+
 	if (prefix != NULL)
 		free(prefix);
-	
+
 	if (stext != NULL)
 		free(stext);
-	
+
 	if (cs != NULL)
 		free(cs);
-	
+
 	if (tokens != NULL)
 		free(tokens);
 

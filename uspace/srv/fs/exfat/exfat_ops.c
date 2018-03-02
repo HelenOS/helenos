@@ -518,7 +518,7 @@ errno_t exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	fibril_mutex_lock(&parentp->idx->lock);
 	service_id = parentp->idx->service_id;
 	fibril_mutex_unlock(&parentp->idx->lock);
-	
+
 	exfat_directory_t di;
 	rc = exfat_directory_open(parentp, &di);
 	if (rc != EOK)
@@ -802,7 +802,7 @@ errno_t exfat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	fibril_mutex_lock(&childp->lock);
 	assert(childp->lnkcnt == 1);
 	fibril_mutex_lock(&childp->idx->lock);
-	
+
 	exfat_directory_t di;
 	rc = exfat_directory_open(parentp,&di);
 	if (rc != EOK)
@@ -928,7 +928,7 @@ errno_t exfat_total_block_count(service_id_t service_id, uint64_t *count)
 	exfat_bs_t *bs;
 	bs = block_bb_get(service_id);
 	*count = DATA_CNT(bs);
-	
+
 	return EOK;
 }
 

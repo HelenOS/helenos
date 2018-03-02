@@ -83,19 +83,19 @@ void clock_counter_init(void)
 	uintptr_t faddr = frame_alloc(1, FRAME_ATOMIC, 0);
 	if (faddr == 0)
 		panic("Cannot allocate page for clock.");
-	
+
 	uptime = (uptime_t *) PA2KA(faddr);
-	
+
 	uptime->seconds1 = 0;
 	uptime->seconds2 = 0;
 	uptime->useconds = 0;
-	
+
 	clock_parea.pbase = faddr;
 	clock_parea.frames = 1;
 	clock_parea.unpriv = true;
 	clock_parea.mapped = false;
 	ddi_parea_register(&clock_parea);
-	
+
 	/*
 	 * Prepare information for the userspace so that it can successfully
 	 * physmem_map() the clock_parea.
@@ -145,10 +145,10 @@ static void cpu_update_accounting(void)
 void clock(void)
 {
 	size_t missed_clock_ticks = CPU->missed_clock_ticks;
-	
+
 	/* Account CPU usage */
 	cpu_update_accounting();
-	
+
 	/*
 	 * To avoid lock ordering problems,
 	 * run all expired timeouts as you visit them.
@@ -159,49 +159,49 @@ void clock(void)
 		/* Update counters and accounting */
 		clock_update_counters();
 		cpu_update_accounting();
-		
+
 		irq_spinlock_lock(&CPU->timeoutlock, false);
-		
+
 		link_t *cur;
 		while ((cur = list_first(&CPU->timeout_active_list)) != NULL) {
 			timeout_t *timeout = list_get_instance(cur, timeout_t,
 			    link);
-			
+
 			irq_spinlock_lock(&timeout->lock, false);
 			if (timeout->ticks-- != 0) {
 				irq_spinlock_unlock(&timeout->lock, false);
 				break;
 			}
-			
+
 			list_remove(cur);
 			timeout_handler_t handler = timeout->handler;
 			void *arg = timeout->arg;
 			timeout_reinitialize(timeout);
-			
+
 			irq_spinlock_unlock(&timeout->lock, false);
 			irq_spinlock_unlock(&CPU->timeoutlock, false);
-			
+
 			handler(arg);
-			
+
 			irq_spinlock_lock(&CPU->timeoutlock, false);
 		}
-		
+
 		irq_spinlock_unlock(&CPU->timeoutlock, false);
 	}
 	CPU->missed_clock_ticks = 0;
-	
+
 	/*
 	 * Do CPU usage accounting and find out whether to preempt THREAD.
 	 *
 	 */
-	
+
 	if (THREAD) {
 		uint64_t ticks;
-		
+
 		irq_spinlock_lock(&CPU->lock, false);
 		CPU->needs_relink += 1 + missed_clock_ticks;
 		irq_spinlock_unlock(&CPU->lock, false);
-		
+
 		irq_spinlock_lock(&THREAD->lock, false);
 		if ((ticks = THREAD->ticks)) {
 			if (ticks >= 1 + missed_clock_ticks)
@@ -210,7 +210,7 @@ void clock(void)
 				THREAD->ticks = 0;
 		}
 		irq_spinlock_unlock(&THREAD->lock, false);
-		
+
 		if (ticks == 0 && PREEMPTION_ENABLED) {
 			scheduler();
 #ifdef CONFIG_UDEBUG

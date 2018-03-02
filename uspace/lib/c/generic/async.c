@@ -124,34 +124,34 @@
 struct async_sess {
 	/** List of inactive exchanges */
 	list_t exch_list;
-	
+
 	/** Session interface */
 	iface_t iface;
-	
+
 	/** Exchange management style */
 	exch_mgmt_t mgmt;
-	
+
 	/** Session identification */
 	int phone;
-	
+
 	/** First clone connection argument */
 	sysarg_t arg1;
-	
+
 	/** Second clone connection argument */
 	sysarg_t arg2;
-	
+
 	/** Third clone connection argument */
 	sysarg_t arg3;
-	
+
 	/** Exchange mutex */
 	fibril_mutex_t mutex;
-	
+
 	/** Number of opened exchanges */
 	atomic_t refcnt;
-	
+
 	/** Mutex for stateful connections */
 	fibril_mutex_t remote_state_mtx;
-	
+
 	/** Data for stateful connections */
 	void *remote_state_data;
 };
@@ -160,13 +160,13 @@ struct async_sess {
 struct async_exch {
 	/** Link into list of inactive exchanges */
 	link_t sess_link;
-	
+
 	/** Link into global list of inactive exchanges */
 	link_t global_link;
-	
+
 	/** Session pointer */
 	async_sess_t *sess;
-	
+
 	/** Exchange identification */
 	int phone;
 };
@@ -183,7 +183,7 @@ async_sess_t *session_ns;
 /** Call data */
 typedef struct {
 	link_t link;
-	
+
 	cap_handle_t chandle;
 	ipc_call_t call;
 } msg_t;
@@ -191,26 +191,26 @@ typedef struct {
 /** Message data */
 typedef struct {
 	awaiter_t wdata;
-	
+
 	/** If reply was received. */
 	bool done;
-	
+
 	/** If the message / reply should be discarded on arrival. */
 	bool forget;
-	
+
 	/** If already destroyed. */
 	bool destroyed;
-	
+
 	/** Pointer to where the answer data is stored. */
 	ipc_call_t *dataptr;
-	
+
 	errno_t retval;
 } amsg_t;
 
 /* Client connection data */
 typedef struct {
 	ht_link_t link;
-	
+
 	task_id_t in_task_id;
 	atomic_t refcnt;
 	void *data;
@@ -219,34 +219,34 @@ typedef struct {
 /* Server connection data */
 typedef struct {
 	awaiter_t wdata;
-	
+
 	/** Hash table link. */
 	ht_link_t link;
-	
+
 	/** Incoming client task ID. */
 	task_id_t in_task_id;
-	
+
 	/** Incoming phone hash. */
 	sysarg_t in_phone_hash;
-	
+
 	/** Link to the client tracking structure. */
 	client_t *client;
-	
+
 	/** Messages that should be delivered to this fibril. */
 	list_t msg_queue;
-	
+
 	/** Identification of the opening call. */
 	cap_handle_t chandle;
-	
+
 	/** Call data of the opening call. */
 	ipc_call_t call;
-	
+
 	/** Identification of the closing call. */
 	cap_handle_t close_chandle;
-	
+
 	/** Fibril function that will be used to handle the connection. */
 	async_port_handler_t handler;
-	
+
 	/** Client data */
 	void *data;
 } connection_t;
@@ -254,16 +254,16 @@ typedef struct {
 /** Interface data */
 typedef struct {
 	ht_link_t link;
-	
+
 	/** Interface ID */
 	iface_t iface;
-	
+
 	/** Futex protecting the hash table */
 	futex_t futex;
-	
+
 	/** Interface ports */
 	hash_table_t port_hash_table;
-	
+
 	/** Next available port ID */
 	port_id_t port_id_avail;
 } interface_t;
@@ -271,13 +271,13 @@ typedef struct {
 /* Port data */
 typedef struct {
 	ht_link_t link;
-	
+
 	/** Port ID */
 	port_id_t id;
-	
+
 	/** Port connection handler */
 	async_port_handler_t handler;
-	
+
 	/** Client data */
 	void *data;
 } port_t;
@@ -285,13 +285,13 @@ typedef struct {
 /* Notification data */
 typedef struct {
 	ht_link_t link;
-	
+
 	/** Notification method */
 	sysarg_t imethod;
-	
+
 	/** Notification handler */
 	async_notification_handler_t handler;
-	
+
 	/** Notification data */
 	void *data;
 } notification_t;
@@ -302,7 +302,7 @@ static fibril_local connection_t *fibril_connection;
 static void to_event_initialize(to_event_t *to)
 {
 	struct timeval tv = { 0, 0 };
-	
+
 	to->inlist = false;
 	to->occurred = false;
 	link_initialize(&to->link);
@@ -334,7 +334,7 @@ static amsg_t *amsg_create(void)
 		msg->retval = EINVAL;
 		awaiter_initialize(&msg->wdata);
 	}
-	
+
 	return msg;
 }
 
@@ -455,20 +455,20 @@ static interface_t *async_new_interface(iface_t iface)
 	    (interface_t *) malloc(sizeof(interface_t));
 	if (!interface)
 		return NULL;
-	
+
 	bool ret = hash_table_create(&interface->port_hash_table, 0, 0,
 	    &port_hash_table_ops);
 	if (!ret) {
 		free(interface);
 		return NULL;
 	}
-	
+
 	interface->iface = iface;
 	futex_initialize(&interface->futex, 1);
 	interface->port_id_avail = 0;
-	
+
 	hash_table_insert(&interface_hash_table, &interface->link);
-	
+
 	return interface;
 }
 
@@ -478,20 +478,20 @@ static port_t *async_new_port(interface_t *interface,
 	port_t *port = (port_t *) malloc(sizeof(port_t));
 	if (!port)
 		return NULL;
-	
+
 	futex_down(&interface->futex);
-	
+
 	port_id_t id = interface->port_id_avail;
 	interface->port_id_avail++;
-	
+
 	port->id = id;
 	port->handler = handler;
 	port->data = data;
-	
+
 	hash_table_insert(&interface->port_hash_table, &port->link);
-	
+
 	futex_up(&interface->futex);
-	
+
 	return port;
 }
 
@@ -515,39 +515,39 @@ errno_t async_create_port(iface_t iface, async_port_handler_t handler,
 {
 	if ((iface & IFACE_MOD_MASK) == IFACE_MOD_CALLBACK)
 		return EINVAL;
-	
+
 	interface_t *interface;
-	
+
 	futex_down(&async_futex);
-	
+
 	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
 	if (link)
 		interface = hash_table_get_inst(link, interface_t, link);
 	else
 		interface = async_new_interface(iface);
-	
+
 	if (!interface) {
 		futex_up(&async_futex);
 		return ENOMEM;
 	}
-	
+
 	port_t *port = async_new_port(interface, handler, data);
 	if (!port) {
 		futex_up(&async_futex);
 		return ENOMEM;
 	}
-	
+
 	*port_id = port->id;
-	
+
 	futex_up(&async_futex);
-	
+
 	return EOK;
 }
 
 void async_set_fallback_port_handler(async_port_handler_t handler, void *data)
 {
 	assert(handler != NULL);
-	
+
 	fallback_port_handler = handler;
 	fallback_port_data = data;
 }
@@ -644,7 +644,7 @@ static hash_table_ops_t conn_hash_table_ops = {
 static client_t *async_client_get(task_id_t client_id, bool create)
 {
 	client_t *client = NULL;
-	
+
 	futex_down(&async_futex);
 	ht_link_t *link = hash_table_find(&client_hash_table, &client_id);
 	if (link) {
@@ -655,12 +655,12 @@ static client_t *async_client_get(task_id_t client_id, bool create)
 		if (client) {
 			client->in_task_id = client_id;
 			client->data = async_client_data_create();
-			
+
 			atomic_set(&client->refcnt, 1);
 			hash_table_insert(&client_hash_table, &client->link);
 		}
 	}
-	
+
 	futex_up(&async_futex);
 	return client;
 }
@@ -668,21 +668,21 @@ static client_t *async_client_get(task_id_t client_id, bool create)
 static void async_client_put(client_t *client)
 {
 	bool destroy;
-	
+
 	futex_down(&async_futex);
-	
+
 	if (atomic_predec(&client->refcnt) == 0) {
 		hash_table_remove(&client_hash_table, &client->in_task_id);
 		destroy = true;
 	} else
 		destroy = false;
-	
+
 	futex_up(&async_futex);
-	
+
 	if (destroy) {
 		if (client->data)
 			async_client_data_destroy(client->data);
-		
+
 		free(client);
 	}
 }
@@ -700,37 +700,37 @@ static void async_client_put(client_t *client)
 static errno_t connection_fibril(void *arg)
 {
 	assert(arg);
-	
+
 	/*
 	 * Setup fibril-local connection pointer.
 	 */
 	fibril_connection = (connection_t *) arg;
-	
+
 	/*
 	 * Add our reference for the current connection in the client task
 	 * tracking structure. If this is the first reference, create and
 	 * hash in a new tracking structure.
 	 */
-	
+
 	client_t *client = async_client_get(fibril_connection->in_task_id, true);
 	if (!client) {
 		ipc_answer_0(fibril_connection->chandle, ENOMEM);
 		return 0;
 	}
-	
+
 	fibril_connection->client = client;
-	
+
 	/*
 	 * Call the connection handler function.
 	 */
 	fibril_connection->handler(fibril_connection->chandle,
 	    &fibril_connection->call, fibril_connection->data);
-	
+
 	/*
 	 * Remove the reference for this client task connection.
 	 */
 	async_client_put(client);
-	
+
 	/*
 	 * Remove myself from the connection hash table.
 	 */
@@ -740,7 +740,7 @@ static errno_t connection_fibril(void *arg)
 		.phone_hash = fibril_connection->in_phone_hash
 	});
 	futex_up(&async_futex);
-	
+
 	/*
 	 * Answer all remaining messages with EHANGUP.
 	 */
@@ -748,19 +748,19 @@ static errno_t connection_fibril(void *arg)
 		msg_t *msg =
 		    list_get_instance(list_first(&fibril_connection->msg_queue),
 		    msg_t, link);
-		
+
 		list_remove(&msg->link);
 		ipc_answer_0(msg->chandle, EHANGUP);
 		free(msg);
 	}
-	
+
 	/*
 	 * If the connection was hung-up, answer the last call,
 	 * i.e. IPC_M_PHONE_HUNGUP.
 	 */
 	if (fibril_connection->close_chandle)
 		ipc_answer_0(fibril_connection->close_chandle, EOK);
-	
+
 	free(fibril_connection);
 	return EOK;
 }
@@ -792,10 +792,10 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 	if (!conn) {
 		if (chandle != CAP_NIL)
 			ipc_answer_0(chandle, ENOMEM);
-		
+
 		return (uintptr_t) NULL;
 	}
-	
+
 	conn->in_task_id = in_task_id;
 	conn->in_phone_hash = in_phone_hash;
 	list_initialize(&conn->msg_queue);
@@ -803,31 +803,31 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 	conn->close_chandle = CAP_NIL;
 	conn->handler = handler;
 	conn->data = data;
-	
+
 	if (call)
 		conn->call = *call;
-	
+
 	/* We will activate the fibril ASAP */
 	conn->wdata.active = true;
 	conn->wdata.fid = fibril_create(connection_fibril, conn);
-	
+
 	if (conn->wdata.fid == 0) {
 		free(conn);
-		
+
 		if (chandle != CAP_NIL)
 			ipc_answer_0(chandle, ENOMEM);
-		
+
 		return (uintptr_t) NULL;
 	}
-	
+
 	/* Add connection to the connection hash table */
-	
+
 	futex_down(&async_futex);
 	hash_table_insert(&conn_hash_table, &conn->link);
 	futex_up(&async_futex);
-	
+
 	fibril_add_ready(conn->wdata.fid);
-	
+
 	return conn->wdata.fid;
 }
 
@@ -851,50 +851,50 @@ errno_t async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t a
 {
 	if ((iface & IFACE_MOD_CALLBACK) != IFACE_MOD_CALLBACK)
 		return EINVAL;
-	
+
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, iface, arg1, arg2,
 	    &answer);
-	
+
 	errno_t ret;
 	async_wait_for(req, &ret);
 	if (ret != EOK)
 		return (errno_t) ret;
-	
+
 	sysarg_t phone_hash = IPC_GET_ARG5(answer);
 	interface_t *interface;
-	
+
 	futex_down(&async_futex);
-	
+
 	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
 	if (link)
 		interface = hash_table_get_inst(link, interface_t, link);
 	else
 		interface = async_new_interface(iface);
-	
+
 	if (!interface) {
 		futex_up(&async_futex);
 		return ENOMEM;
 	}
-	
+
 	port_t *port = async_new_port(interface, handler, data);
 	if (!port) {
 		futex_up(&async_futex);
 		return ENOMEM;
 	}
-	
+
 	*port_id = port->id;
-	
+
 	futex_up(&async_futex);
-	
+
 	fid_t fid = async_new_connection(answer.in_task_id, phone_hash,
 	    CAP_NIL, NULL, handler, data);
 	if (fid == (uintptr_t) NULL)
 		return ENOMEM;
-	
+
 	return EOK;
 }
 
@@ -936,21 +936,21 @@ static hash_table_ops_t notification_hash_table_ops = {
 void async_insert_timeout(awaiter_t *wd)
 {
 	assert(wd);
-	
+
 	wd->to_event.occurred = false;
 	wd->to_event.inlist = true;
-	
+
 	link_t *tmp = timeout_list.head.next;
 	while (tmp != &timeout_list.head) {
 		awaiter_t *cur
 		    = list_get_instance(tmp, awaiter_t, to_event.link);
-		
+
 		if (tv_gteq(&cur->to_event.expires, &wd->to_event.expires))
 			break;
-		
+
 		tmp = tmp->next;
 	}
-	
+
 	list_insert_before(&wd->to_event.link, tmp);
 }
 
@@ -970,9 +970,9 @@ void async_insert_timeout(awaiter_t *wd)
 static bool route_call(cap_handle_t chandle, ipc_call_t *call)
 {
 	assert(call);
-	
+
 	futex_down(&async_futex);
-	
+
 	ht_link_t *link = hash_table_find(&conn_hash_table, &(conn_key_t){
 		.task_id = call->in_task_id,
 		.phone_hash = call->in_phone_hash
@@ -981,35 +981,35 @@ static bool route_call(cap_handle_t chandle, ipc_call_t *call)
 		futex_up(&async_futex);
 		return false;
 	}
-	
+
 	connection_t *conn = hash_table_get_inst(link, connection_t, link);
-	
+
 	msg_t *msg = malloc(sizeof(*msg));
 	if (!msg) {
 		futex_up(&async_futex);
 		return false;
 	}
-	
+
 	msg->chandle = chandle;
 	msg->call = *call;
 	list_append(&msg->link, &conn->msg_queue);
-	
+
 	if (IPC_GET_IMETHOD(*call) == IPC_M_PHONE_HUNGUP)
 		conn->close_chandle = chandle;
-	
+
 	/* If the connection fibril is waiting for an event, activate it */
 	if (!conn->wdata.active) {
-		
+
 		/* If in timeout list, remove it */
 		if (conn->wdata.to_event.inlist) {
 			conn->wdata.to_event.inlist = false;
 			list_remove(&conn->wdata.to_event.link);
 		}
-		
+
 		conn->wdata.active = true;
 		fibril_add_ready(conn->wdata.fid);
 	}
-	
+
 	futex_up(&async_futex);
 	return true;
 }
@@ -1025,9 +1025,9 @@ static void process_notification(ipc_call_t *call)
 	void *data = NULL;
 
 	assert(call);
-	
+
 	futex_down(&async_futex);
-	
+
 	ht_link_t *link = hash_table_find(&notification_hash_table,
 	    &IPC_GET_IMETHOD(*call));
 	if (link) {
@@ -1036,9 +1036,9 @@ static void process_notification(ipc_call_t *call)
 		handler = notification->handler;
 		data = notification->data;
 	}
-	
+
 	futex_up(&async_futex);
-	
+
 	if (handler)
 		handler(call, data);
 }
@@ -1062,20 +1062,20 @@ errno_t async_irq_subscribe(int inr, async_notification_handler_t handler,
 	    (notification_t *) malloc(sizeof(notification_t));
 	if (!notification)
 		return ENOMEM;
-	
+
 	futex_down(&async_futex);
-	
+
 	sysarg_t imethod = notification_avail;
 	notification_avail++;
-	
+
 	notification->imethod = imethod;
 	notification->handler = handler;
 	notification->data = data;
-	
+
 	hash_table_insert(&notification_hash_table, &notification->link);
-	
+
 	futex_up(&async_futex);
-	
+
 	cap_handle_t cap;
 	errno_t rc = ipc_irq_subscribe(inr, imethod, ucode, &cap);
 	if (rc == EOK && handle != NULL) {
@@ -1095,7 +1095,7 @@ errno_t async_irq_unsubscribe(int cap)
 {
 	// TODO: Remove entry from hash table
 	//       to avoid memory leak
-	
+
 	return ipc_irq_unsubscribe(cap);
 }
 
@@ -1115,20 +1115,20 @@ errno_t async_event_subscribe(event_type_t evno,
 	    (notification_t *) malloc(sizeof(notification_t));
 	if (!notification)
 		return ENOMEM;
-	
+
 	futex_down(&async_futex);
-	
+
 	sysarg_t imethod = notification_avail;
 	notification_avail++;
-	
+
 	notification->imethod = imethod;
 	notification->handler = handler;
 	notification->data = data;
-	
+
 	hash_table_insert(&notification_hash_table, &notification->link);
-	
+
 	futex_up(&async_futex);
-	
+
 	return ipc_event_subscribe(evno, imethod);
 }
 
@@ -1148,20 +1148,20 @@ errno_t async_event_task_subscribe(event_task_type_t evno,
 	    (notification_t *) malloc(sizeof(notification_t));
 	if (!notification)
 		return ENOMEM;
-	
+
 	futex_down(&async_futex);
-	
+
 	sysarg_t imethod = notification_avail;
 	notification_avail++;
-	
+
 	notification->imethod = imethod;
 	notification->handler = handler;
 	notification->data = data;
-	
+
 	hash_table_insert(&notification_hash_table, &notification->link);
-	
+
 	futex_up(&async_futex);
-	
+
 	return ipc_event_task_subscribe(evno, imethod);
 }
 
@@ -1203,7 +1203,7 @@ cap_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 {
 	assert(call);
 	assert(fibril_connection);
-	
+
 	/* Why doing this?
 	 * GCC 4.1.0 coughs on fibril_connection-> dereference.
 	 * GCC 4.1.1 happilly puts the rdhwr instruction in delay slot.
@@ -1211,15 +1211,15 @@ cap_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	 *           a compiler.
 	 */
 	connection_t *conn = fibril_connection;
-	
+
 	futex_down(&async_futex);
-	
+
 	if (usecs) {
 		getuptime(&conn->wdata.to_event.expires);
 		tv_add_diff(&conn->wdata.to_event.expires, usecs);
 	} else
 		conn->wdata.to_event.inlist = false;
-	
+
 	/* If nothing in queue, wait until something arrives */
 	while (list_empty(&conn->msg_queue)) {
 		if (conn->close_chandle) {
@@ -1235,12 +1235,12 @@ cap_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			futex_up(&async_futex);
 			return conn->close_chandle;
 		}
-		
+
 		if (usecs)
 			async_insert_timeout(&conn->wdata);
-		
+
 		conn->wdata.active = false;
-		
+
 		/*
 		 * Note: the current fibril will be rescheduled either due to a
 		 * timeout or due to an arriving message destined to it. In the
@@ -1248,7 +1248,7 @@ cap_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		 * case, route_call() will perform the wakeup.
 		 */
 		fibril_switch(FIBRIL_TO_MANAGER);
-		
+
 		/*
 		 * Futex is up after getting back from async_manager.
 		 * Get it again.
@@ -1261,15 +1261,15 @@ cap_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			return CAP_NIL;
 		}
 	}
-	
+
 	msg_t *msg = list_get_instance(list_first(&conn->msg_queue),
 	    msg_t, link);
 	list_remove(&msg->link);
-	
+
 	cap_handle_t chandle = msg->chandle;
 	*call = msg->call;
 	free(msg);
-	
+
 	futex_up(&async_futex);
 	return chandle;
 }
@@ -1285,25 +1285,25 @@ void *async_get_client_data_by_id(task_id_t client_id)
 	client_t *client = async_client_get(client_id, false);
 	if (!client)
 		return NULL;
-	
+
 	if (!client->data) {
 		async_client_put(client);
 		return NULL;
 	}
-	
+
 	return client->data;
 }
 
 void async_put_client_data_by_id(task_id_t client_id)
 {
 	client_t *client = async_client_get(client_id, false);
-	
+
 	assert(client);
 	assert(client->data);
-	
+
 	/* Drop the reference we got in async_get_client_data_by_hash(). */
 	async_client_put(client);
-	
+
 	/* Drop our own reference we got at the beginning of this function. */
 	async_client_put(client);
 }
@@ -1311,21 +1311,21 @@ void async_put_client_data_by_id(task_id_t client_id)
 static port_t *async_find_port(iface_t iface, port_id_t port_id)
 {
 	port_t *port = NULL;
-	
+
 	futex_down(&async_futex);
-	
+
 	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
 	if (link) {
 		interface_t *interface =
 		    hash_table_get_inst(link, interface_t, link);
-		
+
 		link = hash_table_find(&interface->port_hash_table, &port_id);
 		if (link)
 			port = hash_table_get_inst(link, port_t, link);
 	}
-	
+
 	futex_up(&async_futex);
-	
+
 	return port;
 }
 
@@ -1341,14 +1341,14 @@ static port_t *async_find_port(iface_t iface, port_id_t port_id)
 static void handle_call(cap_handle_t chandle, ipc_call_t *call)
 {
 	assert(call);
-	
+
 	/* Kernel notification */
 	if ((chandle == CAP_NIL) && (call->flags & IPC_CALL_NOTIF)) {
 		fibril_t *fibril = (fibril_t *) __tcb_get()->fibril_data;
 		unsigned oldsw = fibril->switches;
-		
+
 		process_notification(call);
-		
+
 		if (oldsw != fibril->switches) {
 			/*
 			 * The notification handler did not execute atomically
@@ -1364,34 +1364,34 @@ static void handle_call(cap_handle_t chandle, ipc_call_t *call)
 			futex_down(&async_futex);
 			fibril_switch(FIBRIL_FROM_DEAD);
 		}
-		
+
 		return;
 	}
-	
+
 	/* New connection */
 	if (IPC_GET_IMETHOD(*call) == IPC_M_CONNECT_ME_TO) {
 		iface_t iface = (iface_t) IPC_GET_ARG1(*call);
 		sysarg_t in_phone_hash = IPC_GET_ARG5(*call);
-		
+
 		async_port_handler_t handler = fallback_port_handler;
 		void *data = fallback_port_data;
-		
+
 		// TODO: Currently ignores all ports but the first one
 		port_t *port = async_find_port(iface, 0);
 		if (port) {
 			handler = port->handler;
 			data = port->data;
 		}
-		
+
 		async_new_connection(call->in_task_id, in_phone_hash, chandle,
 		    call, handler, data);
 		return;
 	}
-	
+
 	/* Try to route the call through the connection hash table */
 	if (route_call(chandle, call))
 		return;
-	
+
 	/* Unknown call from unknown phone - hang it up */
 	ipc_answer_0(chandle, EHANGUP);
 }
@@ -1401,21 +1401,21 @@ static void handle_expired_timeouts(void)
 {
 	struct timeval tv;
 	getuptime(&tv);
-	
+
 	futex_down(&async_futex);
-	
+
 	link_t *cur = list_first(&timeout_list);
 	while (cur != NULL) {
 		awaiter_t *waiter =
 		    list_get_instance(cur, awaiter_t, to_event.link);
-		
+
 		if (tv_gt(&waiter->to_event.expires, &tv))
 			break;
-		
+
 		list_remove(&waiter->to_event.link);
 		waiter->to_event.inlist = false;
 		waiter->to_event.occurred = true;
-		
+
 		/*
 		 * Redundant condition?
 		 * The fibril should not be active when it gets here.
@@ -1424,10 +1424,10 @@ static void handle_expired_timeouts(void)
 			waiter->active = true;
 			fibril_add_ready(waiter->fid);
 		}
-		
+
 		cur = list_first(&timeout_list);
 	}
-	
+
 	futex_up(&async_futex);
 }
 
@@ -1447,18 +1447,18 @@ static errno_t async_manager_worker(void)
 			 */
 			continue;
 		}
-		
+
 		futex_down(&async_futex);
-		
+
 		suseconds_t timeout;
 		unsigned int flags = SYNCH_FLAGS_NONE;
 		if (!list_empty(&timeout_list)) {
 			awaiter_t *waiter = list_get_instance(
 			    list_first(&timeout_list), awaiter_t, to_event.link);
-			
+
 			struct timeval tv;
 			getuptime(&tv);
-			
+
 			if (tv_gteq(&tv, &waiter->to_event.expires)) {
 				futex_up(&async_futex);
 				handle_expired_timeouts();
@@ -1484,14 +1484,14 @@ static errno_t async_manager_worker(void)
 			futex_up(&async_futex);
 			timeout = SYNCH_NO_TIMEOUT;
 		}
-		
+
 		atomic_inc(&threads_in_ipc_wait);
-		
+
 		ipc_call_t call;
 		errno_t rc = ipc_wait_cycle(&call, timeout, flags);
-		
+
 		atomic_dec(&threads_in_ipc_wait);
-		
+
 		assert(rc == EOK);
 
 		if (call.cap_handle == CAP_NIL) {
@@ -1523,12 +1523,12 @@ static errno_t async_manager_worker(void)
 static errno_t async_manager_fibril(void *arg)
 {
 	futex_up(&async_futex);
-	
+
 	/*
 	 * async_futex is always locked when entering manager
 	 */
 	async_manager_worker();
-	
+
 	return 0;
 }
 
@@ -1554,31 +1554,31 @@ void __async_init(void)
 	if (!hash_table_create(&interface_hash_table, 0, 0,
 	    &interface_hash_table_ops))
 		abort();
-	
+
 	if (!hash_table_create(&client_hash_table, 0, 0, &client_hash_table_ops))
 		abort();
-	
+
 	if (!hash_table_create(&conn_hash_table, 0, 0, &conn_hash_table_ops))
 		abort();
-	
+
 	if (!hash_table_create(&notification_hash_table, 0, 0,
 	    &notification_hash_table_ops))
 		abort();
-	
+
 	session_ns = (async_sess_t *) malloc(sizeof(async_sess_t));
 	if (session_ns == NULL)
 		abort();
-	
+
 	session_ns->iface = 0;
 	session_ns->mgmt = EXCHANGE_ATOMIC;
 	session_ns->phone = PHONE_NS;
 	session_ns->arg1 = 0;
 	session_ns->arg2 = 0;
 	session_ns->arg3 = 0;
-	
+
 	fibril_mutex_initialize(&session_ns->remote_state_mtx);
 	session_ns->remote_state_data = NULL;
-	
+
 	list_initialize(&session_ns->exch_list);
 	fibril_mutex_initialize(&session_ns->mutex);
 	atomic_set(&session_ns->refcnt, 0);
@@ -1599,24 +1599,24 @@ void __async_init(void)
 void reply_received(void *arg, errno_t retval, ipc_call_t *data)
 {
 	assert(arg);
-	
+
 	futex_down(&async_futex);
-	
+
 	amsg_t *msg = (amsg_t *) arg;
 	msg->retval = retval;
-	
+
 	/* Copy data after futex_down, just in case the call was detached */
 	if ((msg->dataptr) && (data))
 		*msg->dataptr = *data;
-	
+
 	write_barrier();
-	
+
 	/* Remove message from timeout list */
 	if (msg->wdata.to_event.inlist)
 		list_remove(&msg->wdata.to_event.link);
-	
+
 	msg->done = true;
-	
+
 	if (msg->forget) {
 		assert(msg->wdata.active);
 		amsg_destroy(msg);
@@ -1624,7 +1624,7 @@ void reply_received(void *arg, errno_t retval, ipc_call_t *data)
 		msg->wdata.active = true;
 		fibril_add_ready(msg->wdata.fid);
 	}
-	
+
 	futex_up(&async_futex);
 }
 
@@ -1649,17 +1649,17 @@ aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch == NULL)
 		return 0;
-	
+
 	amsg_t *msg = amsg_create();
 	if (msg == NULL)
 		return 0;
-	
+
 	msg->dataptr = dataptr;
 	msg->wdata.active = true;
-	
+
 	ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4, msg,
 	    reply_received);
-	
+
 	return (aid_t) msg;
 }
 
@@ -1687,17 +1687,17 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch == NULL)
 		return 0;
-	
+
 	amsg_t *msg = amsg_create();
 	if (msg == NULL)
 		return 0;
-	
+
 	msg->dataptr = dataptr;
 	msg->wdata.active = true;
-	
+
 	ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4, arg5,
 	    msg, reply_received);
-	
+
 	return (aid_t) msg;
 }
 
@@ -1711,32 +1711,32 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 void async_wait_for(aid_t amsgid, errno_t *retval)
 {
 	assert(amsgid);
-	
+
 	amsg_t *msg = (amsg_t *) amsgid;
-	
+
 	futex_down(&async_futex);
-	
+
 	assert(!msg->forget);
 	assert(!msg->destroyed);
-	
+
 	if (msg->done) {
 		futex_up(&async_futex);
 		goto done;
 	}
-	
+
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
 	msg->wdata.to_event.inlist = false;
-	
+
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
-	
+
 	/* Futex is up automatically after fibril_switch */
-	
+
 done:
 	if (retval)
 		*retval = msg->retval;
-	
+
 	amsg_destroy(msg);
 }
 
@@ -1757,29 +1757,29 @@ done:
 errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, suseconds_t timeout)
 {
 	assert(amsgid);
-	
+
 	amsg_t *msg = (amsg_t *) amsgid;
-	
+
 	futex_down(&async_futex);
-	
+
 	assert(!msg->forget);
 	assert(!msg->destroyed);
-	
+
 	if (msg->done) {
 		futex_up(&async_futex);
 		goto done;
 	}
-	
+
 	/*
 	 * Negative timeout is converted to zero timeout to avoid
 	 * using tv_add with negative augmenter.
 	 */
 	if (timeout < 0)
 		timeout = 0;
-	
+
 	getuptime(&msg->wdata.to_event.expires);
 	tv_add_diff(&msg->wdata.to_event.expires, timeout);
-	
+
 	/*
 	 * Current fibril is inserted as waiting regardless of the
 	 * "size" of the timeout.
@@ -1800,24 +1800,24 @@ errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, suseconds_t timeout)
 	msg->wdata.fid = fibril_get_id();
 	msg->wdata.active = false;
 	async_insert_timeout(&msg->wdata);
-	
+
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
-	
+
 	/* Futex is up automatically after fibril_switch */
-	
+
 	if (!msg->done)
 		return ETIMEOUT;
-	
+
 done:
 	if (retval)
 		*retval = msg->retval;
-	
+
 	amsg_destroy(msg);
-	
+
 	return 0;
 }
- 
+
 /** Discard the message / reply on arrival.
  *
  * The message will be marked to be discarded once the reply arrives in
@@ -1829,20 +1829,20 @@ done:
 void async_forget(aid_t amsgid)
 {
 	amsg_t *msg = (amsg_t *) amsgid;
-	
+
 	assert(msg);
 	assert(!msg->forget);
 	assert(!msg->destroyed);
-	
+
 	futex_down(&async_futex);
-	
+
 	if (msg->done) {
 		amsg_destroy(msg);
 	} else {
 		msg->dataptr = NULL;
 		msg->forget = true;
 	}
-	
+
 	futex_up(&async_futex);
 }
 
@@ -1857,19 +1857,19 @@ void async_usleep(suseconds_t timeout)
 {
 	awaiter_t awaiter;
 	awaiter_initialize(&awaiter);
-	
+
 	awaiter.fid = fibril_get_id();
-	
+
 	getuptime(&awaiter.to_event.expires);
 	tv_add_diff(&awaiter.to_event.expires, timeout);
-	
+
 	futex_down(&async_futex);
-	
+
 	async_insert_timeout(&awaiter);
-	
+
 	/* Leave the async_futex locked when entering this function */
 	fibril_switch(FIBRIL_TO_MANAGER);
-	
+
 	/* Futex is up automatically after fibril_switch() */
 }
 
@@ -1920,29 +1920,29 @@ errno_t async_req_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	ipc_call_t result;
 	aid_t aid = async_send_4(exch, imethod, arg1, arg2, arg3, arg4,
 	    &result);
-	
+
 	errno_t rc;
 	async_wait_for(aid, &rc);
-	
+
 	if (r1)
 		*r1 = IPC_GET_ARG1(result);
-	
+
 	if (r2)
 		*r2 = IPC_GET_ARG2(result);
-	
+
 	if (r3)
 		*r3 = IPC_GET_ARG3(result);
-	
+
 	if (r4)
 		*r4 = IPC_GET_ARG4(result);
-	
+
 	if (r5)
 		*r5 = IPC_GET_ARG5(result);
-	
+
 	return rc;
 }
 
@@ -1972,29 +1972,29 @@ errno_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	ipc_call_t result;
 	aid_t aid = async_send_5(exch, imethod, arg1, arg2, arg3, arg4, arg5,
 	    &result);
-	
+
 	errno_t rc;
 	async_wait_for(aid, &rc);
-	
+
 	if (r1)
 		*r1 = IPC_GET_ARG1(result);
-	
+
 	if (r2)
 		*r2 = IPC_GET_ARG2(result);
-	
+
 	if (r3)
 		*r3 = IPC_GET_ARG3(result);
-	
+
 	if (r4)
 		*r4 = IPC_GET_ARG4(result);
-	
+
 	if (r5)
 		*r5 = IPC_GET_ARG5(result);
-	
+
 	return rc;
 }
 
@@ -2080,7 +2080,7 @@ errno_t async_forward_fast(cap_handle_t chandle, async_exch_t *exch,
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	return ipc_forward_fast(chandle, exch->phone, imethod, arg1, arg2, mode);
 }
 
@@ -2090,7 +2090,7 @@ errno_t async_forward_slow(cap_handle_t chandle, async_exch_t *exch,
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	return ipc_forward_slow(chandle, exch->phone, imethod, arg1, arg2, arg3,
 	    arg4, arg5, mode);
 }
@@ -2112,16 +2112,16 @@ errno_t async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
 	    &answer);
-	
+
 	errno_t rc;
 	async_wait_for(req, &rc);
 	if (rc != EOK)
 		return (errno_t) rc;
-	
+
 	return EOK;
 }
 
@@ -2129,27 +2129,27 @@ static errno_t async_connect_me_to_internal(int phone, sysarg_t arg1, sysarg_t a
     sysarg_t arg3, sysarg_t arg4, int *out_phone)
 {
 	ipc_call_t result;
-	
+
 	// XXX: Workaround for GCC's inability to infer association between
 	// rc == EOK and *out_phone being assigned.
 	*out_phone = -1;
-	
+
 	amsg_t *msg = amsg_create();
 	if (!msg)
 		return ENOENT;
-	
+
 	msg->dataptr = &result;
 	msg->wdata.active = true;
-	
+
 	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, arg4,
 	    msg, reply_received);
-	
+
 	errno_t rc;
 	async_wait_for((aid_t) msg, &rc);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	*out_phone = (int) IPC_GET_ARG5(result);
 	return EOK;
 }
@@ -2174,13 +2174,13 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 		errno = ENOENT;
 		return NULL;
 	}
-	
+
 	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
 	if (sess == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
-	
+
 	int phone;
 	errno_t rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
 	    0, &phone);
@@ -2189,21 +2189,21 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
 		free(sess);
 		return NULL;
 	}
-	
+
 	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phone;
 	sess->arg1 = arg1;
 	sess->arg2 = arg2;
 	sess->arg3 = arg3;
-	
+
 	fibril_mutex_initialize(&sess->remote_state_mtx);
 	sess->remote_state_data = NULL;
-	
+
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
-	
+
 	return sess;
 }
 
@@ -2227,13 +2227,13 @@ async_sess_t *async_connect_me_to_iface(async_exch_t *exch, iface_t iface,
 		errno = ENOENT;
 		return NULL;
 	}
-	
+
 	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
 	if (sess == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
-	
+
 	int phone;
 	errno_t rc = async_connect_me_to_internal(exch->phone, iface, arg2,
 	    arg3, 0, &phone);
@@ -2242,20 +2242,20 @@ async_sess_t *async_connect_me_to_iface(async_exch_t *exch, iface_t iface,
 		free(sess);
 		return NULL;
 	}
-	
+
 	sess->iface = iface;
 	sess->phone = phone;
 	sess->arg1 = iface;
 	sess->arg2 = arg2;
 	sess->arg3 = arg3;
-	
+
 	fibril_mutex_initialize(&sess->remote_state_mtx);
 	sess->remote_state_data = NULL;
-	
+
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
-	
+
 	return sess;
 }
 
@@ -2298,37 +2298,37 @@ async_sess_t *async_connect_me_to_blocking(exch_mgmt_t mgmt, async_exch_t *exch,
 		errno = ENOENT;
 		return NULL;
 	}
-	
+
 	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
 	if (sess == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
-	
+
 	int phone;
 	errno_t rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
 	    IPC_FLAG_BLOCKING, &phone);
-	
+
 	if (rc != EOK) {
 		errno = rc;
 		free(sess);
 		return NULL;
 	}
-	
+
 	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phone;
 	sess->arg1 = arg1;
 	sess->arg2 = arg2;
 	sess->arg3 = arg3;
-	
+
 	fibril_mutex_initialize(&sess->remote_state_mtx);
 	sess->remote_state_data = NULL;
-	
+
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
-	
+
 	return sess;
 }
 
@@ -2352,13 +2352,13 @@ async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *exch, iface_t ifa
 		errno = ENOENT;
 		return NULL;
 	}
-	
+
 	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
 	if (sess == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
-	
+
 	int phone;
 	errno_t rc = async_connect_me_to_internal(exch->phone, iface, arg2,
 	    arg3, IPC_FLAG_BLOCKING, &phone);
@@ -2367,20 +2367,20 @@ async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *exch, iface_t ifa
 		free(sess);
 		return NULL;
 	}
-	
+
 	sess->iface = iface;
 	sess->phone = phone;
 	sess->arg1 = iface;
 	sess->arg2 = arg2;
 	sess->arg3 = arg3;
-	
+
 	fibril_mutex_initialize(&sess->remote_state_mtx);
 	sess->remote_state_data = NULL;
-	
+
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
-	
+
 	return sess;
 }
 
@@ -2394,7 +2394,7 @@ async_sess_t *async_connect_kbox(task_id_t id)
 		errno = ENOMEM;
 		return NULL;
 	}
-	
+
 	cap_handle_t phone;
 	errno_t rc = ipc_connect_kbox(id, &phone);
 	if (rc != EOK) {
@@ -2402,21 +2402,21 @@ async_sess_t *async_connect_kbox(task_id_t id)
 		free(sess);
 		return NULL;
 	}
-	
+
 	sess->iface = 0;
 	sess->mgmt = EXCHANGE_ATOMIC;
 	sess->phone = phone;
 	sess->arg1 = 0;
 	sess->arg2 = 0;
 	sess->arg3 = 0;
-	
+
 	fibril_mutex_initialize(&sess->remote_state_mtx);
 	sess->remote_state_data = NULL;
-	
+
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
-	
+
 	return sess;
 }
 
@@ -2435,21 +2435,21 @@ static errno_t async_hangup_internal(int phone)
 errno_t async_hangup(async_sess_t *sess)
 {
 	async_exch_t *exch;
-	
+
 	assert(sess);
-	
+
 	if (atomic_get(&sess->refcnt) > 0)
 		return EBUSY;
-	
+
 	fibril_mutex_lock(&async_sess_mutex);
-	
+
 	errno_t rc = async_hangup_internal(sess->phone);
-	
+
 	while (!list_empty(&sess->exch_list)) {
 		exch = (async_exch_t *)
 		    list_get_instance(list_first(&sess->exch_list),
 		    async_exch_t, sess_link);
-		
+
 		list_remove(&exch->sess_link);
 		list_remove(&exch->global_link);
 		async_hangup_internal(exch->phone);
@@ -2457,9 +2457,9 @@ errno_t async_hangup(async_sess_t *sess)
 	}
 
 	free(sess);
-	
+
 	fibril_mutex_unlock(&async_sess_mutex);
-	
+
 	return rc;
 }
 
@@ -2480,15 +2480,15 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 {
 	if (sess == NULL)
 		return NULL;
-	
+
 	exch_mgmt_t mgmt = sess->mgmt;
 	if (sess->iface != 0)
 		mgmt = sess->iface & IFACE_EXCHANGE_MASK;
-	
+
 	async_exch_t *exch = NULL;
-	
+
 	fibril_mutex_lock(&async_sess_mutex);
-	
+
 	if (!list_empty(&sess->exch_list)) {
 		/*
 		 * There are inactive exchanges in the session.
@@ -2496,14 +2496,14 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 		exch = (async_exch_t *)
 		    list_get_instance(list_first(&sess->exch_list),
 		    async_exch_t, sess_link);
-		
+
 		list_remove(&exch->sess_link);
 		list_remove(&exch->global_link);
 	} else {
 		/*
 		 * There are no available exchanges in the session.
 		 */
-		
+
 		if ((mgmt == EXCHANGE_ATOMIC) ||
 		    (mgmt == EXCHANGE_SERIALIZE)) {
 			exch = (async_exch_t *) malloc(sizeof(async_exch_t));
@@ -2516,7 +2516,7 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 		} else if (mgmt == EXCHANGE_PARALLEL) {
 			int phone;
 			errno_t rc;
-			
+
 		retry:
 			/*
 			 * Make a one-time attempt to connect a new data phone.
@@ -2541,7 +2541,7 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 				exch = (async_exch_t *)
 				    list_get_instance(list_first(&inactive_exch_list),
 				    async_exch_t, global_link);
-				
+
 				list_remove(&exch->sess_link);
 				list_remove(&exch->global_link);
 				async_hangup_internal(exch->phone);
@@ -2556,16 +2556,16 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 			}
 		}
 	}
-	
+
 	fibril_mutex_unlock(&async_sess_mutex);
-	
+
 	if (exch != NULL) {
 		atomic_inc(&sess->refcnt);
-		
+
 		if (mgmt == EXCHANGE_SERIALIZE)
 			fibril_mutex_lock(&sess->mutex);
 	}
-	
+
 	return exch;
 }
 
@@ -2578,25 +2578,25 @@ void async_exchange_end(async_exch_t *exch)
 {
 	if (exch == NULL)
 		return;
-	
+
 	async_sess_t *sess = exch->sess;
 	assert(sess != NULL);
-	
+
 	exch_mgmt_t mgmt = sess->mgmt;
 	if (sess->iface != 0)
 		mgmt = sess->iface & IFACE_EXCHANGE_MASK;
-	
+
 	atomic_dec(&sess->refcnt);
-	
+
 	if (mgmt == EXCHANGE_SERIALIZE)
 		fibril_mutex_unlock(&sess->mutex);
-	
+
 	fibril_mutex_lock(&async_sess_mutex);
-	
+
 	list_append(&exch->sess_link, &sess->exch_list);
 	list_append(&exch->global_link, &inactive_exch_list);
 	fibril_condvar_signal(&avail_phone_cv);
-	
+
 	fibril_mutex_unlock(&async_sess_mutex);
 }
 
@@ -2617,15 +2617,15 @@ errno_t async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	sysarg_t _flags = 0;
 	sysarg_t _dst = (sysarg_t) -1;
 	errno_t res = async_req_2_4(exch, IPC_M_SHARE_IN, (sysarg_t) size,
 	    arg, NULL, &_flags, NULL, &_dst);
-	
+
 	if (flags)
 		*flags = (unsigned int) _flags;
-	
+
 	*dst = (void *) _dst;
 	return res;
 }
@@ -2648,13 +2648,13 @@ bool async_share_in_receive(cap_handle_t *chandle, size_t *size)
 {
 	assert(chandle);
 	assert(size);
-	
+
 	ipc_call_t data;
 	*chandle = async_get_call(&data);
-	
+
 	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_IN)
 		return false;
-	
+
 	*size = (size_t) IPC_GET_ARG1(data);
 	return true;
 }
@@ -2691,7 +2691,7 @@ errno_t async_share_out_start(async_exch_t *exch, void *src, unsigned int flags)
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	return async_req_3_0(exch, IPC_M_SHARE_OUT, (sysarg_t) src, 0,
 	    (sysarg_t) flags);
 }
@@ -2717,13 +2717,13 @@ bool async_share_out_receive(cap_handle_t *chandle, size_t *size,
 	assert(chandle);
 	assert(size);
 	assert(flags);
-	
+
 	ipc_call_t data;
 	*chandle = async_get_call(&data);
-	
+
 	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_OUT)
 		return false;
-	
+
 	*size = (size_t) IPC_GET_ARG2(data);
 	*flags = (unsigned int) IPC_GET_ARG3(data);
 	return true;
@@ -2777,7 +2777,7 @@ errno_t async_data_read_start(async_exch_t *exch, void *dst, size_t size)
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	return async_req_2_0(exch, IPC_M_DATA_READ, (sysarg_t) dst,
 	    (sysarg_t) size);
 }
@@ -2821,15 +2821,15 @@ bool async_data_read_receive_call(cap_handle_t *chandle, ipc_call_t *data,
 {
 	assert(chandle);
 	assert(data);
-	
+
 	*chandle = async_get_call(data);
-	
+
 	if (IPC_GET_IMETHOD(*data) != IPC_M_DATA_READ)
 		return false;
-	
+
 	if (size)
 		*size = (size_t) IPC_GET_ARG2(*data);
-	
+
 	return true;
 }
 
@@ -2861,20 +2861,20 @@ errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	cap_handle_t chandle;
 	if (!async_data_read_receive(&chandle, NULL)) {
 		ipc_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
-	
+
 	aid_t msg = async_send_fast(exch, imethod, arg1, arg2, arg3, arg4,
 	    dataptr);
 	if (msg == 0) {
 		ipc_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
-	
+
 	errno_t retval = ipc_forward_fast(chandle, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
@@ -2882,10 +2882,10 @@ errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		ipc_answer_0(chandle, retval);
 		return retval;
 	}
-	
+
 	errno_t rc;
 	async_wait_for(msg, &rc);
-	
+
 	return (errno_t) rc;
 }
 
@@ -2902,7 +2902,7 @@ errno_t async_data_write_start(async_exch_t *exch, const void *src, size_t size)
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	return async_req_2_0(exch, IPC_M_DATA_WRITE, (sysarg_t) src,
 	    (sysarg_t) size);
 }
@@ -2947,15 +2947,15 @@ bool async_data_write_receive_call(cap_handle_t *chandle, ipc_call_t *data,
 {
 	assert(chandle);
 	assert(data);
-	
+
 	*chandle = async_get_call(data);
-	
+
 	if (IPC_GET_IMETHOD(*data) != IPC_M_DATA_WRITE)
 		return false;
-	
+
 	if (size)
 		*size = (size_t) IPC_GET_ARG2(*data);
-	
+
 	return true;
 }
 
@@ -3003,54 +3003,54 @@ errno_t async_data_write_accept(void **data, const bool nullterm,
     size_t *received)
 {
 	assert(data);
-	
+
 	cap_handle_t chandle;
 	size_t size;
 	if (!async_data_write_receive(&chandle, &size)) {
 		ipc_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
-	
+
 	if (size < min_size) {
 		ipc_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
-	
+
 	if ((max_size > 0) && (size > max_size)) {
 		ipc_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
-	
+
 	if ((granularity > 0) && ((size % granularity) != 0)) {
 		ipc_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
-	
+
 	void *arg_data;
-	
+
 	if (nullterm)
 		arg_data = malloc(size + 1);
 	else
 		arg_data = malloc(size);
-	
+
 	if (arg_data == NULL) {
 		ipc_answer_0(chandle, ENOMEM);
 		return ENOMEM;
 	}
-	
+
 	errno_t rc = async_data_write_finalize(chandle, arg_data, size);
 	if (rc != EOK) {
 		free(arg_data);
 		return rc;
 	}
-	
+
 	if (nullterm)
 		((char *) arg_data)[size] = 0;
-	
+
 	*data = arg_data;
 	if (received != NULL)
 		*received = size;
-	
+
 	return EOK;
 }
 
@@ -3077,20 +3077,20 @@ errno_t async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 {
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	cap_handle_t chandle;
 	if (!async_data_write_receive(&chandle, NULL)) {
 		ipc_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
-	
+
 	aid_t msg = async_send_fast(exch, imethod, arg1, arg2, arg3, arg4,
 	    dataptr);
 	if (msg == 0) {
 		ipc_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
-	
+
 	errno_t retval = ipc_forward_fast(chandle, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
@@ -3098,10 +3098,10 @@ errno_t async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 		ipc_answer_0(chandle, retval);
 		return retval;
 	}
-	
+
 	errno_t rc;
 	async_wait_for(msg, &rc);
-	
+
 	return (errno_t) rc;
 }
 
@@ -3122,35 +3122,35 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 	ipc_call_t call;
 	cap_handle_t chandle = async_get_call(&call);
 	cap_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(call);
-	
+
 	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) || (phandle < 0)) {
 		async_answer_0(chandle, EINVAL);
 		return NULL;
 	}
-	
+
 	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
 	if (sess == NULL) {
 		async_answer_0(chandle, ENOMEM);
 		return NULL;
 	}
-	
+
 	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phandle;
 	sess->arg1 = 0;
 	sess->arg2 = 0;
 	sess->arg3 = 0;
-	
+
 	fibril_mutex_initialize(&sess->remote_state_mtx);
 	sess->remote_state_data = NULL;
-	
+
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
-	
+
 	/* Acknowledge the connected phone */
 	async_answer_0(chandle, EOK);
-	
+
 	return sess;
 }
 
@@ -3171,28 +3171,28 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 {
 	cap_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(*call);
-	
+
 	if ((IPC_GET_IMETHOD(*call) != IPC_M_CONNECT_TO_ME) || (phandle < 0))
 		return NULL;
-	
+
 	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
 	if (sess == NULL)
 		return NULL;
-	
+
 	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phandle;
 	sess->arg1 = 0;
 	sess->arg2 = 0;
 	sess->arg3 = 0;
-	
+
 	fibril_mutex_initialize(&sess->remote_state_mtx);
 	sess->remote_state_data = NULL;
-	
+
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
 	atomic_set(&sess->refcnt, 0);
-	
+
 	return sess;
 }
 
@@ -3207,20 +3207,20 @@ bool async_state_change_receive(cap_handle_t *chandle, sysarg_t *arg1,
     sysarg_t *arg2, sysarg_t *arg3)
 {
 	assert(chandle);
-	
+
 	ipc_call_t call;
 	*chandle = async_get_call(&call);
-	
+
 	if (IPC_GET_IMETHOD(call) != IPC_M_STATE_CHANGE_AUTHORIZE)
 		return false;
-	
+
 	if (arg1)
 		*arg1 = IPC_GET_ARG1(call);
 	if (arg2)
 		*arg2 = IPC_GET_ARG2(call);
 	if (arg3)
 		*arg3 = IPC_GET_ARG3(call);
-	
+
 	return true;
 }
 
@@ -3273,7 +3273,7 @@ void async_remote_state_update(async_sess_t *sess, void *state)
 void async_remote_state_release(async_sess_t *sess)
 {
 	assert(fibril_mutex_is_locked(&sess->remote_state_mtx));
-	
+
 	fibril_mutex_unlock(&sess->remote_state_mtx);
 }
 
@@ -3291,10 +3291,10 @@ void async_remote_state_release_exchange(async_exch_t *exch)
 {
 	if (exch == NULL)
 		return;
-	
+
 	async_sess_t *sess = exch->sess;
 	assert(fibril_mutex_is_locked(&sess->remote_state_mtx));
-	
+
 	async_exchange_end(exch);
 	fibril_mutex_unlock(&sess->remote_state_mtx);
 }

@@ -120,12 +120,12 @@ static void log_append(const uint8_t *data, size_t len)
 	if (len > LOG_LENGTH - log_current_len) {
 		len = LOG_LENGTH - log_current_len;
 	}
-	
+
 	if (len == 0)
 		return;
-	
+
 	size_t log_free = LOG_LENGTH - log_used - log_current_len;
-	
+
 	/* Discard older entries to make space, if necessary */
 	while (len > log_free) {
 		size_t entry_len;
@@ -135,7 +135,7 @@ static void log_append(const uint8_t *data, size_t len)
 		log_free += entry_len;
 		next_for_uspace -= entry_len;
 	}
-	
+
 	size_t pos = (log_current_start + log_current_len) % LOG_LENGTH;
 	log_copy_to(data, pos, len);
 	log_current_len += len;
@@ -150,10 +150,10 @@ void log_begin(log_facility_t fac, log_level_t level)
 {
 	spinlock_lock(&log_lock);
 	spinlock_lock(&kio_lock);
-	
+
 	log_current_start = (log_start + log_used) % LOG_LENGTH;
 	log_current_len = 0;
-	
+
 	/* Write header of the log entry, the length will be written in log_end() */
 	log_append((uint8_t *) &log_current_len, sizeof(size_t));
 	log_append((uint8_t *) &log_counter, sizeof(uint32_t));
@@ -161,7 +161,7 @@ void log_begin(log_facility_t fac, log_level_t level)
 	uint32_t lvl32 = level;
 	log_append((uint8_t *) &fac32, sizeof(uint32_t));
 	log_append((uint8_t *) &lvl32, sizeof(uint32_t));
-	
+
 	log_counter++;
 }
 
@@ -173,11 +173,11 @@ void log_end(void) {
 	/* Set the length in the header to correct value */
 	log_copy_to((uint8_t *) &log_current_len, log_current_start, sizeof(size_t));
 	log_used += log_current_len;
-	
+
 	kio_push_char('\n');
 	spinlock_unlock(&kio_lock);
 	spinlock_unlock(&log_lock);
-	
+
 	/* This has to be called after we released the locks above */
 	kio_flush();
 	kio_update(NULL);
@@ -188,7 +188,7 @@ static void log_update(void *event)
 {
 	if (!atomic_get(&log_inited))
 		return;
-	
+
 	spinlock_lock(&log_lock);
 	if (next_for_uspace < log_used)
 		event_notify_0(EVENT_KLOG, true);
@@ -199,14 +199,14 @@ static int log_printf_str_write(const char *str, size_t size, void *data)
 {
 	size_t offset = 0;
 	size_t chars = 0;
-	
+
 	while (offset < size) {
 		kio_push_char(str_decode(str, &offset, size));
 		chars++;
 	}
-	
+
 	log_append((const uint8_t *)str, size);
-	
+
 	return chars;
 }
 
@@ -215,19 +215,19 @@ static int log_printf_wstr_write(const wchar_t *wstr, size_t size, void *data)
 	char buffer[16];
 	size_t offset = 0;
 	size_t chars = 0;
-	
+
 	for (offset = 0; offset < size; offset += sizeof(wchar_t), chars++) {
 		kio_push_char(wstr[chars]);
-		
+
 		size_t buffer_offset = 0;
 		errno_t rc = chr_encode(wstr[chars], buffer, &buffer_offset, 16);
 		if (rc != EOK) {
 			return EOF;
 		}
-		
+
 		log_append((const uint8_t *)buffer, buffer_offset);
 	}
-	
+
 	return chars;
 }
 
@@ -238,16 +238,16 @@ static int log_printf_wstr_write(const wchar_t *wstr, size_t size, void *data)
 int log_vprintf(const char *fmt, va_list args)
 {
 	int ret;
-	
+
 	printf_spec_t ps = {
 		log_printf_str_write,
 		log_printf_wstr_write,
 		NULL
 	};
-	
-	
+
+
 	ret = printf_core(fmt, &ps, args);
-	
+
 	return ret;
 }
 
@@ -259,11 +259,11 @@ int log_printf(const char *fmt, ...)
 {
 	int ret;
 	va_list args;
-	
+
 	va_start(args, fmt);
 	ret = log_vprintf(fmt, args);
 	va_end(args);
-	
+
 	return ret;
 }
 
@@ -277,15 +277,15 @@ int log(log_facility_t fac, log_level_t level, const char *fmt, ...)
 {
 	int ret;
 	va_list args;
-	
+
 	log_begin(fac, level);
-	
+
 	va_start(args, fmt);
 	ret = log_vprintf(fmt, args);
 	va_end(args);
-	
+
 	log_end();
-	
+
 	return ret;
 }
 
@@ -297,46 +297,46 @@ sys_errno_t sys_klog(sysarg_t operation, void *buf, size_t size,
 {
 	char *data;
 	errno_t rc;
-	
+
 	if (size > PAGE_SIZE)
 		return (sys_errno_t) ELIMIT;
-	
+
 	switch (operation) {
 		case KLOG_WRITE:
 			data = (char *) malloc(size + 1, 0);
 			if (!data)
 				return (sys_errno_t) ENOMEM;
-			
+
 			rc = copy_from_uspace(data, buf, size);
 			if (rc) {
 				free(data);
 				return (sys_errno_t) rc;
 			}
 			data[size] = 0;
-			
+
 			if (level >= LVL_LIMIT)
 				level = LVL_NOTE;
-			
+
 			log(LF_USPACE, level, "%s", data);
-			
+
 			free(data);
 			return EOK;
 		case KLOG_READ:
 			data = (char *) malloc(size, 0);
 			if (!data)
 				return (sys_errno_t) ENOMEM;
-			
+
 			size_t entry_len = 0;
 			size_t copied = 0;
-			
+
 			rc = EOK;
-	
+
 			spinlock_lock(&log_lock);
-			
+
 			while (next_for_uspace < log_used) {
 				size_t pos = (log_start + next_for_uspace) % LOG_LENGTH;
 				log_copy_from((uint8_t *) &entry_len, pos, sizeof(size_t));
-				
+
 				if (entry_len > PAGE_SIZE) {
 					/*
 					 * Since we limit data transfer
@@ -349,32 +349,32 @@ sys_errno_t sys_klog(sysarg_t operation, void *buf, size_t size,
 					next_for_uspace += entry_len;
 					continue;
 				}
-				
+
 				if (size < copied + entry_len) {
 					if (copied == 0)
 						rc = EOVERFLOW;
 					break;
 				}
-				
+
 				log_copy_from((uint8_t *) (data + copied), pos, entry_len);
 				copied += entry_len;
 				next_for_uspace += entry_len;
 			}
-			
+
 			spinlock_unlock(&log_lock);
-			
+
 			if (rc != EOK) {
 				free(data);
 				return (sys_errno_t) rc;
 			}
-			
+
 			rc = copy_to_uspace(buf, data, size);
-			
+
 			free(data);
-			
+
 			if (rc != EOK)
 				return (sys_errno_t) rc;
-			
+
 			return copy_to_uspace(uspace_nread, &copied, sizeof(copied));
 			return EOK;
 		default:

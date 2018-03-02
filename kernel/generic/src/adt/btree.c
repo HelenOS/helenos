@@ -82,19 +82,19 @@ void btree_init(void)
 NO_TRACE static void node_initialize(btree_node_t *node)
 {
 	unsigned int i;
-	
+
 	node->keys = 0;
-	
+
 	/* Clean also space for the extra key. */
 	for (i = 0; i < BTREE_MAX_KEYS + 1; i++) {
 		node->key[i] = 0;
 		node->value[i] = NULL;
 		node->subtree[i] = NULL;
 	}
-	
+
 	node->subtree[i] = NULL;
 	node->parent = NULL;
-	
+
 	link_initialize(&node->leaf_link);
 	link_initialize(&node->bfs_link);
 	node->depth = 0;
@@ -121,14 +121,14 @@ void btree_create(btree_t *t)
 NO_TRACE static void btree_destroy_subtree(btree_node_t *root)
 {
 	size_t i;
-	
+
 	if (root->keys) {
 		for (i = 0; i < root->keys + 1; i++) {
 			if (root->subtree[i])
 				btree_destroy_subtree(root->subtree[i]);
 		}
 	}
-	
+
 	slab_free(btree_node_cache, root);
 }
 
@@ -155,21 +155,21 @@ NO_TRACE static void node_insert_key_and_rsubtree(btree_node_t *node,
     btree_key_t key, void *value, btree_node_t *rsubtree)
 {
 	size_t i;
-	
+
 	for (i = 0; i < node->keys; i++) {
 		if (key < node->key[i]) {
 			size_t j;
-			
+
 			for (j = node->keys; j > i; j--) {
 				node->key[j] = node->key[j - 1];
 				node->value[j] = node->value[j - 1];
 				node->subtree[j + 1] = node->subtree[j];
 			}
-			
+
 			break;
 		}
 	}
-	
+
 	node->key[i] = key;
 	node->value[i] = value;
 	node->subtree[i + 1] = rsubtree;
@@ -190,12 +190,12 @@ NO_TRACE static size_t find_key_by_subtree(btree_node_t *node,
     btree_node_t *subtree, bool right)
 {
 	size_t i;
-	
+
 	for (i = 0; i < node->keys + 1; i++) {
 		if (subtree == node->subtree[i])
 			return i - (int) (right != false);
 	}
-	
+
 	panic("Node %p does not contain subtree %p.", node, subtree);
 }
 
@@ -214,7 +214,7 @@ NO_TRACE static void node_remove_key_and_lsubtree(btree_node_t *node,
 {
 	size_t i;
 	size_t j;
-	
+
 	for (i = 0; i < node->keys; i++) {
 		if (key == node->key[i]) {
 			for (j = i + 1; j < node->keys; j++) {
@@ -222,14 +222,14 @@ NO_TRACE static void node_remove_key_and_lsubtree(btree_node_t *node,
 				node->value[j - 1] = node->value[j];
 				node->subtree[j - 1] = node->subtree[j];
 			}
-			
+
 			node->subtree[j - 1] = node->subtree[j];
 			node->keys--;
-			
+
 			return;
 		}
 	}
-	
+
 	panic("Node %p does not contain key %" PRIu64 ".", node, key);
 }
 
@@ -247,7 +247,7 @@ NO_TRACE static void node_remove_key_and_rsubtree(btree_node_t *node,
     btree_key_t key)
 {
 	size_t i, j;
-	
+
 	for (i = 0; i < node->keys; i++) {
 		if (key == node->key[i]) {
 			for (j = i + 1; j < node->keys; j++) {
@@ -255,12 +255,12 @@ NO_TRACE static void node_remove_key_and_rsubtree(btree_node_t *node,
 				node->value[j - 1] = node->value[j];
 				node->subtree[j] = node->subtree[j + 1];
 			}
-			
+
 			node->keys--;
 			return;
 		}
 	}
-	
+
 	panic("Node %p does not contain key %" PRIu64 ".", node, key);
 }
 
@@ -279,26 +279,26 @@ NO_TRACE static void node_insert_key_and_lsubtree(btree_node_t *node,
     btree_key_t key, void *value, btree_node_t *lsubtree)
 {
 	size_t i;
-	
+
 	for (i = 0; i < node->keys; i++) {
 		if (key < node->key[i]) {
 			size_t j;
-			
+
 			for (j = node->keys; j > i; j--) {
 				node->key[j] = node->key[j - 1];
 				node->value[j] = node->value[j - 1];
 				node->subtree[j + 1] = node->subtree[j];
 			}
-			
+
 			node->subtree[j + 1] = node->subtree[j];
 			break;
 		}
 	}
-	
+
 	node->key[i] = key;
 	node->value[i] = value;
 	node->subtree[i] = lsubtree;
-	
+
 	node->keys++;
 }
 
@@ -319,20 +319,20 @@ NO_TRACE static void rotate_from_left(btree_node_t *lnode, btree_node_t *rnode,
     size_t idx)
 {
 	btree_key_t key = lnode->key[lnode->keys - 1];
-	
+
 	if (LEAF_NODE(lnode)) {
 		void *value = lnode->value[lnode->keys - 1];
-		
+
 		node_remove_key_and_rsubtree(lnode, key);
 		node_insert_key_and_lsubtree(rnode, key, value, NULL);
 		lnode->parent->key[idx] = key;
 	} else {
 		btree_node_t *rsubtree = lnode->subtree[lnode->keys];
-		
+
 		node_remove_key_and_rsubtree(lnode, key);
 		node_insert_key_and_lsubtree(rnode, lnode->parent->key[idx], NULL, rsubtree);
 		lnode->parent->key[idx] = key;
-		
+
 		/* Fix parent link of the reconnected right subtree. */
 		rsubtree->parent = rnode;
 	}
@@ -355,20 +355,20 @@ NO_TRACE static void rotate_from_right(btree_node_t *lnode, btree_node_t *rnode,
     size_t idx)
 {
 	btree_key_t key = rnode->key[0];
-	
+
 	if (LEAF_NODE(rnode)) {
 		void *value = rnode->value[0];
-		
+
 		node_remove_key_and_lsubtree(rnode, key);
 		node_insert_key_and_rsubtree(lnode, key, value, NULL);
 		rnode->parent->key[idx] = rnode->key[0];
 	} else {
 		btree_node_t *lsubtree = rnode->subtree[0];
-		
+
 		node_remove_key_and_lsubtree(rnode, key);
 		node_insert_key_and_rsubtree(lnode, rnode->parent->key[idx], NULL, lsubtree);
 		rnode->parent->key[idx] = key;
-		
+
 		/* Fix parent link of the reconnected left subtree. */
 		lsubtree->parent = lnode;
 	}
@@ -394,13 +394,13 @@ NO_TRACE static bool try_insert_by_rotation_to_left(btree_node_t *node,
 {
 	size_t idx;
 	btree_node_t *lnode;
-	
+
 	/*
 	 * If this is root node, the rotation can not be done.
 	 */
 	if (ROOT_NODE(node))
 		return false;
-	
+
 	idx = find_key_by_subtree(node->parent, node, true);
 	if ((int) idx == -1) {
 		/*
@@ -409,7 +409,7 @@ NO_TRACE static bool try_insert_by_rotation_to_left(btree_node_t *node,
 		 */
 		return false;
 	}
-	
+
 	lnode = node->parent->subtree[idx];
 	if (lnode->keys < BTREE_MAX_KEYS) {
 		/*
@@ -419,7 +419,7 @@ NO_TRACE static bool try_insert_by_rotation_to_left(btree_node_t *node,
 		rotate_from_right(lnode, node, idx);
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -443,13 +443,13 @@ NO_TRACE static bool try_insert_by_rotation_to_right(btree_node_t *node,
 {
 	size_t idx;
 	btree_node_t *rnode;
-	
+
 	/*
 	 * If this is root node, the rotation can not be done.
 	 */
 	if (ROOT_NODE(node))
 		return false;
-	
+
 	idx = find_key_by_subtree(node->parent, node, false);
 	if (idx == node->parent->keys) {
 		/*
@@ -458,7 +458,7 @@ NO_TRACE static bool try_insert_by_rotation_to_right(btree_node_t *node,
 		 */
 		return false;
 	}
-	
+
 	rnode = node->parent->subtree[idx + 1];
 	if (rnode->keys < BTREE_MAX_KEYS) {
 		/*
@@ -468,7 +468,7 @@ NO_TRACE static bool try_insert_by_rotation_to_right(btree_node_t *node,
 		rotate_from_left(node, rnode, idx);
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -498,20 +498,20 @@ NO_TRACE static btree_node_t *node_split(btree_node_t *node, btree_key_t key,
 	btree_node_t *rnode;
 	size_t i;
 	size_t j;
-	
+
 	assert(median);
 	assert(node->keys == BTREE_MAX_KEYS);
-	
+
 	/*
 	 * Use the extra space to store the extra node.
 	 */
 	node_insert_key_and_rsubtree(node, key, value, rsubtree);
-	
+
 	/*
 	 * Compute median of keys.
 	 */
 	*median = MEDIAN_HIGH(node);
-	
+
 	/*
 	 * Allocate and initialize new right sibling.
 	 */
@@ -519,7 +519,7 @@ NO_TRACE static btree_node_t *node_split(btree_node_t *node, btree_key_t key,
 	node_initialize(rnode);
 	rnode->parent = node->parent;
 	rnode->depth = node->depth;
-	
+
 	/*
 	 * Copy big keys, values and subtree pointers to the new right sibling.
 	 * If this is an index node, do not copy the median.
@@ -529,21 +529,21 @@ NO_TRACE static btree_node_t *node_split(btree_node_t *node, btree_key_t key,
 		rnode->key[j] = node->key[i];
 		rnode->value[j] = node->value[i];
 		rnode->subtree[j] = node->subtree[i];
-		
+
 		/*
 		 * Fix parent links in subtrees.
 		 */
 		if (rnode->subtree[j])
 			rnode->subtree[j]->parent = rnode;
 	}
-	
+
 	rnode->subtree[j] = node->subtree[i];
 	if (rnode->subtree[j])
 		rnode->subtree[j]->parent = rnode;
-	
+
 	rnode->keys = j;  /* Set number of keys of the new node. */
 	node->keys /= 2;  /* Shrink the old node. */
-	
+
 	return rnode;
 }
 
@@ -577,19 +577,19 @@ NO_TRACE static void _btree_insert(btree_t *t, btree_key_t key, void *value,
 	} else {
 		btree_node_t *rnode;
 		btree_key_t median;
-		
+
 		/*
 		 * Node is full and both siblings (if both exist) are full too.
 		 * Split the node and insert the smallest key from the node containing
 		 * bigger keys (i.e. the new node) into its parent.
 		 */
-		
+
 		rnode = node_split(node, key, value, rsubtree, &median);
-		
+
 		if (LEAF_NODE(node)) {
 			list_insert_after(&rnode->leaf_link, &node->leaf_link);
 		}
-		
+
 		if (ROOT_NODE(node)) {
 			/*
 			 * We split the root node. Create new root.
@@ -598,13 +598,13 @@ NO_TRACE static void _btree_insert(btree_t *t, btree_key_t key, void *value,
 			node->parent = t->root;
 			rnode->parent = t->root;
 			node_initialize(t->root);
-			
+
 			/*
 			 * Left-hand side subtree will be the old root (i.e. node).
 			 * Right-hand side subtree will be rnode.
 			 */
 			t->root->subtree[0] = node;
-			
+
 			t->root->depth = node->depth + 1;
 		}
 		_btree_insert(t, median, NULL, rnode, node->parent);
@@ -623,15 +623,15 @@ void btree_insert(btree_t *t, btree_key_t key, void *value,
     btree_node_t *leaf_node)
 {
 	btree_node_t *lnode;
-	
+
 	assert(value);
-	
+
 	lnode = leaf_node;
 	if (!lnode) {
 		if (btree_search(t, key, &lnode))
 			panic("B-tree %p already contains key %" PRIu64 ".", t, key);
 	}
-	
+
 	_btree_insert(t, key, value, NULL, lnode);
 }
 
@@ -647,13 +647,13 @@ NO_TRACE static bool try_rotation_from_left(btree_node_t *rnode)
 {
 	size_t idx;
 	btree_node_t *lnode;
-	
+
 	/*
 	 * If this is root node, the rotation can not be done.
 	 */
 	if (ROOT_NODE(rnode))
 		return false;
-	
+
 	idx = find_key_by_subtree(rnode->parent, rnode, true);
 	if ((int) idx == -1) {
 		/*
@@ -662,13 +662,13 @@ NO_TRACE static bool try_rotation_from_left(btree_node_t *rnode)
 		 */
 		return false;
 	}
-	
+
 	lnode = rnode->parent->subtree[idx];
 	if (lnode->keys > FILL_FACTOR) {
 		rotate_from_left(lnode, rnode, idx);
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -684,13 +684,13 @@ NO_TRACE static bool try_rotation_from_right(btree_node_t *lnode)
 {
 	size_t idx;
 	btree_node_t *rnode;
-	
+
 	/*
 	 * If this is root node, the rotation can not be done.
 	 */
 	if (ROOT_NODE(lnode))
 		return false;
-	
+
 	idx = find_key_by_subtree(lnode->parent, lnode, false);
 	if (idx == lnode->parent->keys) {
 		/*
@@ -699,13 +699,13 @@ NO_TRACE static bool try_rotation_from_right(btree_node_t *lnode)
 		 */
 		return false;
 	}
-	
+
 	rnode = lnode->parent->subtree[idx + 1];
 	if (rnode->keys > FILL_FACTOR) {
 		rotate_from_right(lnode, rnode, idx);
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -723,9 +723,9 @@ NO_TRACE static btree_node_t *node_combine(btree_node_t *node)
 	size_t idx;
 	btree_node_t *rnode;
 	size_t i;
-	
+
 	assert(!ROOT_NODE(node));
-	
+
 	idx = find_key_by_subtree(node->parent, node, false);
 	if (idx == node->parent->keys) {
 		/*
@@ -736,27 +736,27 @@ NO_TRACE static btree_node_t *node_combine(btree_node_t *node)
 		node = node->parent->subtree[idx];
 	} else
 		rnode = node->parent->subtree[idx + 1];
-	
+
 	/* Index nodes need to insert parent node key in between left and right node. */
 	if (INDEX_NODE(node))
 		node->key[node->keys++] = node->parent->key[idx];
-	
+
 	/* Copy the key-value-subtree triplets from the right node. */
 	for (i = 0; i < rnode->keys; i++) {
 		node->key[node->keys + i] = rnode->key[i];
 		node->value[node->keys + i] = rnode->value[i];
-		
+
 		if (INDEX_NODE(node)) {
 			node->subtree[node->keys + i] = rnode->subtree[i];
 			rnode->subtree[i]->parent = node;
 		}
 	}
-	
+
 	if (INDEX_NODE(node)) {
 		node->subtree[node->keys + i] = rnode->subtree[i];
 		rnode->subtree[i]->parent = node;
 	}
-	
+
 	node->keys += rnode->keys;
 	return rnode;
 }
@@ -788,10 +788,10 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 			 */
 			node_remove_key_and_rsubtree(node, key);
 		}
-		
+
 		return;
 	}
-	
+
 	if (node->keys <= FILL_FACTOR) {
 		/*
 		 * If the node is below the fill factor,
@@ -800,10 +800,10 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 		if (!try_rotation_from_left(node))
 			try_rotation_from_right(node);
 	}
-	
+
 	if (node->keys > FILL_FACTOR) {
 		size_t i;
-		
+
 		/*
 		 * The key can be immediately removed.
 		 *
@@ -812,7 +812,7 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 		 * and the right-side sibling is freed.
 		 */
 		node_remove_key_and_rsubtree(node, key);
-		
+
 		for (i = 0; i < node->parent->keys; i++) {
 			if (node->parent->key[i] == key)
 				node->parent->key[i] = node->key[0];
@@ -821,7 +821,7 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 		size_t idx;
 		btree_node_t *rnode;
 		btree_node_t *parent;
-		
+
 		/*
 		 * The node is below the fill factor as well as its left and right sibling.
 		 * Resort to combining the node with one of its siblings.
@@ -831,10 +831,10 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 		parent = node->parent;
 		node_remove_key_and_rsubtree(node, key);
 		rnode = node_combine(node);
-		
+
 		if (LEAF_NODE(rnode))
 			list_remove(&rnode->leaf_link);
-		
+
 		idx = find_key_by_subtree(parent, rnode, true);
 		assert((int) idx != -1);
 		slab_free(btree_node_cache, rnode);
@@ -854,13 +854,13 @@ NO_TRACE static void _btree_remove(btree_t *t, btree_key_t key,
 void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node)
 {
 	btree_node_t *lnode;
-	
+
 	lnode = leaf_node;
 	if (!lnode) {
 		if (!btree_search(t, key, &lnode))
 			panic("B-tree %p does not contain key %" PRIu64 ".", t, key);
 	}
-	
+
 	_btree_remove(t, key, lnode);
 }
 
@@ -876,7 +876,7 @@ void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node)
 void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 {
 	btree_node_t *cur, *next;
-	
+
 	/*
 	 * Iteratively descend to the leaf that can contain the searched key.
 	 */
@@ -886,7 +886,7 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 		 * leaf node address.
 		 */
 		*leaf_node = cur;
-		
+
 		if (cur->keys == 0)
 			return NULL;
 
@@ -900,7 +900,7 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 		} else {
 			void *val;
 			size_t i;
-			
+
 			/*
 			 * Now if the key is smaller than cur->key[i]
 			 * it can only mean that the value is in cur->subtree[i]
@@ -910,28 +910,28 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 				if (key < cur->key[i]) {
 					next = cur->subtree[i];
 					val = cur->value[i - 1];
-					
+
 					if (LEAF_NODE(cur))
 						return key == cur->key[i - 1] ? val : NULL;
-					
+
 					goto descend;
 				}
 			}
-			
+
 			/*
 			 * Last possibility is that the key is
 			 * in the rightmost subtree.
 			 */
 			next = cur->subtree[i];
 			val = cur->value[i - 1];
-			
+
 			if (LEAF_NODE(cur))
 				return key == cur->key[i - 1] ? val : NULL;
 		}
 descend:
 		;
 	}
-	
+
 	/*
 	 * The key was not found in the *leaf_node and
 	 * is smaller than any of its keys.
@@ -951,7 +951,7 @@ descend:
 btree_node_t *btree_leaf_node_left_neighbour(btree_t *t, btree_node_t *node)
 {
 	assert(LEAF_NODE(node));
-	
+
 	if (node->leaf_link.prev != &t->leaf_list.head)
 		return list_get_instance(node->leaf_link.prev, btree_node_t, leaf_link);
 	else
@@ -970,7 +970,7 @@ btree_node_t *btree_leaf_node_left_neighbour(btree_t *t, btree_node_t *node)
 btree_node_t *btree_leaf_node_right_neighbour(btree_t *t, btree_node_t *node)
 {
 	assert(LEAF_NODE(node));
-	
+
 	if (node->leaf_link.next != &t->leaf_list.head)
 		return list_get_instance(node->leaf_link.next, btree_node_t, leaf_link);
 	else
@@ -987,11 +987,11 @@ void btree_print(btree_t *t)
 	size_t i;
 	int depth = t->root->depth;
 	list_t list;
-	
+
 	printf("Printing B-tree:\n");
 	list_initialize(&list);
 	list_append(&t->root->bfs_link, &list);
-	
+
 	/*
 	 * Use BFS search to print out the tree.
 	 * Levels are distinguished from one another by node->depth.
@@ -999,48 +999,48 @@ void btree_print(btree_t *t)
 	while (!list_empty(&list)) {
 		link_t *hlp;
 		btree_node_t *node;
-		
+
 		hlp = list_first(&list);
 		assert(hlp != NULL);
 		node = list_get_instance(hlp, btree_node_t, bfs_link);
 		list_remove(hlp);
-		
+
 		assert(node);
-		
+
 		if (node->depth != depth) {
 			printf("\n");
 			depth = node->depth;
 		}
-		
+
 		printf("(");
-		
+
 		for (i = 0; i < node->keys; i++) {
 			printf("%" PRIu64 "%s", node->key[i], i < node->keys - 1 ? "," : "");
 			if (node->depth && node->subtree[i]) {
 				list_append(&node->subtree[i]->bfs_link, &list);
 			}
 		}
-		
+
 		if (node->depth && node->subtree[i])
 			list_append(&node->subtree[i]->bfs_link, &list);
-		
+
 		printf(")");
 	}
-	
+
 	printf("\n");
-	
+
 	printf("Printing list of leaves:\n");
 	list_foreach(t->leaf_list, leaf_link, btree_node_t, node) {
 		assert(node);
-		
+
 		printf("(");
-		
+
 		for (i = 0; i < node->keys; i++)
 			printf("%" PRIu64 "%s", node->key[i], i < node->keys - 1 ? "," : "");
-		
+
 		printf(")");
 	}
-	
+
 	printf("\n");
 }
 

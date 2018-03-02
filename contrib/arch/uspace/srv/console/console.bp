@@ -4,11 +4,11 @@
 	?read {
 		[fnc.cons_read]
 	} +
-	
+
 	?write {
 		[fnc.cons_write]
 	} +
-	
+
 	?sync {
 		[fnc.fb_pending_flush] ;
 		tentative {
@@ -16,51 +16,51 @@
 			[fnc.curs_goto]
 		}
 	} +
-	
+
 	?clear {
 		tentative {
 			!fb.flush
 		}
 	} +
-	
+
 	?goto {
 		tentative {
 			!fb.curs_goto
 		}
 	} +
-	
+
 	?set_style {
 		[fnc.fb_pending_flush] ;
 		tentative {
 			[fnc.set_style]
 		}
 	} +
-	
+
 	?set_color {
 		[fnc.fb_pending_flush] ;
 		tentative {
 			[fnc.set_color]
 		}
 	} +
-	
+
 	?set_rgb_color {
 		[fnc.fb_pending_flush] ;
 		tentative {
 			[fnc.set_rgb_color]
 		}
 	} +
-	
+
 	?cursor_visibility {
 		[fnc.fb_pending_flush] ;
 		tentative {
 			[fnc.curs_visibility]
 		}
 	} +
-	
+
 	?kcon_enable {
 		!sys_console.sys_debug_enable_console
 	} +
-	
+
 	?get_event +
 	?get_size +
 	?get_color_cap

@@ -41,7 +41,7 @@
 
 typedef struct {
 	thread_t *thread;
-	
+
 	indev_t *sink;
 	indev_t raw;
 } srln_instance_t;

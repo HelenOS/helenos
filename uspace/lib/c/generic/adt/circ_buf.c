@@ -29,7 +29,7 @@
 /** @addtogroup libc
  * @{
  */
- 
+
 /** @file Circular buffer
  */
 

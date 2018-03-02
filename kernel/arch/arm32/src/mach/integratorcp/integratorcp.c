@@ -102,7 +102,7 @@ void icp_vga_init(void)
 	*(uint32_t *) ((char *)(icp.hw_map.vga) + 0x10) = ICP_FB;
 	*(uint32_t *) ((char *)(icp.hw_map.vga) + 0x1C) = 0x182B;
 	*(uint32_t *) ((char *)(icp.hw_map.cmcr) + 0xC) = 0x33805000;
-	
+
 }
 
 /** Returns the mask of active interrupts. */
@@ -258,7 +258,7 @@ void icp_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	uint32_t sources = icp_irqc_get_sources();
 	unsigned int i;
-	
+
 	for (i = 0; i < ICP_IRQC_MAX_IRQ; i++) {
 		if (sources & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);
@@ -294,7 +294,7 @@ void icp_output_init(void)
 		icp_vga_init();
 		vga_init = true;
 	}
-	
+
 	fb_properties_t prop = {
 		.addr = ICP_FB,
 		.offset = 0,
@@ -303,7 +303,7 @@ void icp_output_init(void)
 		.scan = 2560,
 		.visual = VISUAL_RGB_8_8_8_0,
 	};
-	
+
 	outdev_t *fbdev = fb_init(&prop);
 	if (fbdev)
 		stdout_wire(fbdev);
@@ -321,7 +321,7 @@ void icp_input_init(void)
 	pl050->status = (ioport8_t *) icp.hw_map.kbd_stat;
 	pl050->data = (ioport8_t *) icp.hw_map.kbd_data;
 	pl050->ctrl = (ioport8_t *) icp.hw_map.kbd_ctrl;
-		
+
 	pl050_instance_t *pl050_instance = pl050_init(pl050, ICP_KBD_IRQ);
 	if (pl050_instance) {
 		kbrd_instance_t *kbrd_instance = kbrd_init();

@@ -54,87 +54,87 @@ SYMBOL(start)
 	la $a0, PA2KA(BOOTINFO_OFFSET)
 	sw $a3, 0($a0)
 #endif
-	
+
 	/*
 	 * Setup CPU map (on msim this code
 	 * is executed in parallel on all CPUs,
 	 * but it not an issue).
 	 */
 	la $a0, PA2KA(CPUMAP_OFFSET)
-	
+
 	sw $zero, 0($a0)
 	sw $zero, 4($a0)
 	sw $zero, 8($a0)
 	sw $zero, 12($a0)
-	
+
 	sw $zero, 16($a0)
 	sw $zero, 20($a0)
 	sw $zero, 24($a0)
 	sw $zero, 28($a0)
-	
+
 	sw $zero, 32($a0)
 	sw $zero, 36($a0)
 	sw $zero, 40($a0)
 	sw $zero, 44($a0)
-	
+
 	sw $zero, 48($a0)
 	sw $zero, 52($a0)
 	sw $zero, 56($a0)
 	sw $zero, 60($a0)
-	
+
 	sw $zero, 64($a0)
 	sw $zero, 68($a0)
 	sw $zero, 72($a0)
 	sw $zero, 76($a0)
-	
+
 	sw $zero, 80($a0)
 	sw $zero, 84($a0)
 	sw $zero, 88($a0)
 	sw $zero, 92($a0)
-	
+
 	sw $zero, 96($a0)
 	sw $zero, 100($a0)
 	sw $zero, 104($a0)
 	sw $zero, 108($a0)
-	
+
 	sw $zero, 112($a0)
 	sw $zero, 116($a0)
 	sw $zero, 120($a0)
 	sw $zero, 124($a0)
-	
+
 	lui $a1, 1
-	
+
 #ifdef MACHINE_msim
-	
+
 	/* Read dorder value */
 	la $k0, MSIM_DORDER_ADDRESS
 	lw $k1, ($k0)
-	
+
 	/*
 	 * If we are not running on BSP
 	 * then end in an infinite loop.
 	 */
 	beq $k1, $zero, bsp
 	nop
-	
+
 	/* Record CPU presence */
 	sll $a2, $k1, 2
 	addu $a2, $a2, $a0
 	sw $a1, ($a2)
-	
+
 	loop:
 		j loop
 		nop
-	
+
 #endif
-	
+
 	bsp:
 		/* Record CPU presence */
 		sw $a1, ($a0)
-		
+
 		/* Setup initial stack */
 		la $sp, PA2KA(STACK_OFFSET)
-		
+
 		j bootstrap
 		nop
 

@@ -56,7 +56,7 @@ chargrid_t *chargrid_create(sysarg_t cols, sysarg_t rows,
 	size_t size =
 	    sizeof(chargrid_t) + cols * rows * sizeof(charfield_t);
 	chargrid_t *scrbuf;
-	
+
 	if ((flags & CHARGRID_FLAG_SHARED) == CHARGRID_FLAG_SHARED) {
 		scrbuf = (chargrid_t *) as_area_create(AS_AREA_ANY, size,
 		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE,
@@ -68,19 +68,19 @@ chargrid_t *chargrid_create(sysarg_t cols, sysarg_t rows,
 		if (scrbuf == NULL)
 			return NULL;
 	}
-	
+
 	scrbuf->size = size;
 	scrbuf->flags = flags;
 	scrbuf->cols = cols;
 	scrbuf->rows = rows;
 	scrbuf->cursor_visible = false;
-	
+
 	scrbuf->attrs.type = CHAR_ATTR_STYLE;
 	scrbuf->attrs.val.style = STYLE_NORMAL;
-	
+
 	scrbuf->top_row = 0;
 	chargrid_clear(scrbuf);
-	
+
 	return scrbuf;
 }
 
@@ -106,10 +106,10 @@ static sysarg_t chargrid_update_rows(chargrid_t *scrbuf)
 		scrbuf->row = scrbuf->rows - 1;
 		scrbuf->top_row = (scrbuf->top_row + 1) % scrbuf->rows;
 		chargrid_clear_row(scrbuf, scrbuf->row);
-		
+
 		return scrbuf->rows;
 	}
-	
+
 	return 2;
 }
 
@@ -121,7 +121,7 @@ static sysarg_t chargrid_update_cols(chargrid_t *scrbuf)
 		scrbuf->row++;
 		return chargrid_update_rows(scrbuf);
 	}
-	
+
 	return 1;
 }
 
@@ -143,19 +143,19 @@ sysarg_t chargrid_putchar(chargrid_t *scrbuf, wchar_t ch, bool update)
 {
 	assert(scrbuf->col < scrbuf->cols);
 	assert(scrbuf->row < scrbuf->rows);
-	
+
 	charfield_t *field =
 	    chargrid_charfield_at(scrbuf, scrbuf->col, scrbuf->row);
-	
+
 	field->ch = ch;
 	field->attrs = scrbuf->attrs;
 	field->flags |= CHAR_FLAG_DIRTY;
-	
+
 	if (update) {
 		scrbuf->col++;
 		return chargrid_update_cols(scrbuf);
 	}
-	
+
 	return 1;
 }
 
@@ -172,10 +172,10 @@ sysarg_t chargrid_newline(chargrid_t *scrbuf)
 {
 	assert(scrbuf->col < scrbuf->cols);
 	assert(scrbuf->row < scrbuf->rows);
-	
+
 	scrbuf->col = 0;
 	scrbuf->row++;
-	
+
 	return chargrid_update_rows(scrbuf);
 }
 
@@ -193,13 +193,13 @@ sysarg_t chargrid_tabstop(chargrid_t *scrbuf, sysarg_t tab_size)
 {
 	assert(scrbuf->col < scrbuf->cols);
 	assert(scrbuf->row < scrbuf->rows);
-	
+
 	sysarg_t spaces = tab_size - scrbuf->cols % tab_size;
 	sysarg_t flush = 1;
-	
+
 	for (sysarg_t i = 0; i < spaces; i++)
 		flush += chargrid_putchar(scrbuf, ' ', true) - 1;
-	
+
 	return flush;
 }
 
@@ -219,18 +219,18 @@ sysarg_t chargrid_backspace(chargrid_t *scrbuf)
 {
 	assert(scrbuf->col < scrbuf->cols);
 	assert(scrbuf->row < scrbuf->rows);
-	
+
 	if ((scrbuf->col == 0) && (scrbuf->row == 0))
 		return 0;
-	
+
 	if (scrbuf->col == 0) {
 		scrbuf->col = scrbuf->cols - 1;
 		scrbuf->row--;
-		
+
 		chargrid_putchar(scrbuf, ' ', false);
 		return 2;
 	}
-	
+
 	scrbuf->col--;
 	chargrid_putchar(scrbuf, ' ', false);
 	return 1;
@@ -248,7 +248,7 @@ void chargrid_clear(chargrid_t *scrbuf)
 		scrbuf->data[pos].attrs = scrbuf->attrs;
 		scrbuf->data[pos].flags = CHAR_FLAG_DIRTY;
 	}
-	
+
 	scrbuf->col = 0;
 	scrbuf->row = 0;
 }
@@ -283,7 +283,7 @@ void chargrid_get_cursor(chargrid_t *scrbuf, sysarg_t *col,
 {
 	assert(col);
 	assert(row);
-	
+
 	*col = scrbuf->col;
 	*row = scrbuf->row;
 }
@@ -304,7 +304,7 @@ void chargrid_clear_row(chargrid_t *scrbuf, sysarg_t row)
 	for (sysarg_t col = 0; col < scrbuf->cols; col++) {
 		charfield_t *field =
 		    chargrid_charfield_at(scrbuf, col, row);
-		
+
 		field->ch = 0;
 		field->attrs = scrbuf->attrs;
 		field->flags |= CHAR_FLAG_DIRTY;

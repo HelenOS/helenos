@@ -58,7 +58,7 @@ static void process_mp(const char *path, vfs_stat_t *stat, list_t *mtab_list)
 		str_cpy(ent->fs_name, sizeof(ent->fs_name), stfs.fs_name);
 	else
 		str_cpy(ent->fs_name, sizeof(ent->fs_name), "?");
-	
+
 	list_append(&ent->link, mtab_list);
 }
 

@@ -72,14 +72,14 @@ struct cap;
 typedef struct task {
 	/** Task's linkage for the tasks_tree AVL tree. */
 	avltree_node_t tasks_tree_node;
-	
+
 	/** Task lock.
 	 *
 	 * Must be acquired before threads_lock and thread lock of any of its
 	 * threads.
 	 */
 	IRQ_SPINLOCK_DECLARE(lock);
-	
+
 	char name[TASK_NAME_BUFLEN];
 	/** List of threads contained in this task. */
 	list_t threads;
@@ -89,18 +89,18 @@ typedef struct task {
 	task_id_t taskid;
 	/** Task security container. */
 	container_id_t container;
-	
+
 	/** Number of references (i.e. threads). */
 	atomic_t refcount;
 	/** Number of threads that haven't exited yet. */
 	atomic_t lifecount;
-	
+
 	/** Task permissions. */
 	perm_t perms;
 
 	/** Capabilities */
 	cap_info_t *cap_info;
-	
+
 	/* IPC stuff */
 
 	/** Receiving communication endpoint */
@@ -119,18 +119,18 @@ typedef struct task {
 
 	/** IPC statistics */
 	stats_ipc_t ipc_info;
-	
+
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff. */
 	udebug_task_t udebug;
-	
+
 	/** Kernel answerbox. */
 	kbox_t kb;
 #endif /* CONFIG_UDEBUG */
-	
+
 	/** Architecture specific task data. */
 	task_arch_t arch;
-	
+
 	struct futex_cache {
 		/** CHT mapping virtual addresses of futex variables to futex objects.*/
 		cht_t ht;
@@ -140,7 +140,7 @@ typedef struct task {
 		list_t list;
 		work_t destroy_work;
 	} *futexes;
-	
+
 	/** Accumulated accounting. */
 	uint64_t ucycles;
 	uint64_t kcycles;

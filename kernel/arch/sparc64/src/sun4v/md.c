@@ -243,7 +243,7 @@ md_node_t md_get_child(md_node_t node, char *name)
 	do {
 		char *head;
 		more = str_parse_head(&name, &head);
-		
+
 		while (md_next_child(&node)) {
 			element_idx_t child = md_get_child_node(node);
 			if (str_cmp(head, get_element_name(child)) == 0) {
@@ -291,7 +291,7 @@ bool md_next_node(md_node_t *node, const char *name)
 		    str_cmp(name, get_element_name(*node)) == 0) {
 			return true;
 		}
-		
+
 		(*node)++;
 	} while (element->tag != LIST_END);
 

@@ -129,7 +129,7 @@ tss_t *tss_p = NULL;
 void gdt_tss_setbase(descriptor_t *d, uintptr_t base)
 {
 	tss_descriptor_t *td = (tss_descriptor_t *) d;
-	
+
 	td->base_0_15 = base & 0xffffU;
 	td->base_16_23 = ((base) >> 16) & 0xffU;
 	td->base_24_31 = ((base) >> 24) & 0xffU;
@@ -139,7 +139,7 @@ void gdt_tss_setbase(descriptor_t *d, uintptr_t base)
 void gdt_tss_setlimit(descriptor_t *d, uint32_t limit)
 {
 	tss_descriptor_t *td = (tss_descriptor_t *) d;
-	
+
 	td->limit_0_15 = limit & 0xffffU;
 	td->limit_16_19 = (limit >> 16) & 0x0fU;
 }
@@ -166,17 +166,17 @@ void idt_init(void)
 {
 	idescriptor_t *d;
 	unsigned int i;
-	
+
 	for (i = 0; i < IDT_ITEMS; i++) {
 		d = &idt[i];
-		
+
 		d->unused = 0;
 		d->selector = GDT_SELECTOR(KTEXT_DES);
-		
+
 		d->present = 1;
 		d->type = AR_INTERRUPT;  /* masking interrupt */
 	}
-	
+
 	d = &idt[0];
 	idt_setoffset(d++, (uintptr_t) &int_0);
 	idt_setoffset(d++, (uintptr_t) &int_1);
@@ -251,12 +251,12 @@ void pm_init(void)
 {
 	descriptor_t *gdt_p = (descriptor_t *) gdtr.base;
 	tss_descriptor_t *tss_desc;
-	
+
 	/*
 	 * Each CPU has its private GDT and TSS.
 	 * All CPUs share one IDT.
 	 */
-	
+
 	if (config.cpu_active == 1) {
 		idt_init();
 		/*
@@ -269,22 +269,22 @@ void pm_init(void)
 		 * non boot-mapped pointer, initialize the CR3 register
 		 * ahead of page_init */
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
-		
+
 		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
 		if (!tss_p)
 			panic("Cannot allocate TSS.");
 	}
-	
+
 	tss_initialize(tss_p);
-	
+
 	tss_desc = (tss_descriptor_t *) (&gdt_p[TSS_DES]);
 	tss_desc->present = 1;
 	tss_desc->type = AR_TSS;
 	tss_desc->dpl = PL_KERNEL;
-	
+
 	gdt_tss_setbase(&gdt_p[TSS_DES], (uintptr_t) tss_p);
 	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE - 1);
-	
+
 	gdtr_load(&gdtr);
 	idtr_load(&idtr);
 	/*

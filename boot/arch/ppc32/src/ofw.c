@@ -42,7 +42,7 @@ void putchar(const wchar_t ch)
 {
 	if (ch == '\n')
 		ofw_putchar('\r');
-	
+
 	if (ascii_check(ch))
 		ofw_putchar(ch);
 	else

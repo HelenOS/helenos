@@ -90,7 +90,7 @@
 
 typedef union {
 	uint32_t bin;
-	
+
 	struct {
 		uint32_t sign : 1;
 		uint32_t exp : 8;
@@ -100,7 +100,7 @@ typedef union {
 
 typedef union {
 	uint64_t bin;
-	
+
 	struct {
 		uint64_t sign : 1;
 		uint64_t exp : 11;
@@ -113,7 +113,7 @@ typedef union {
 		uint64_t hi;
 		uint32_t lo;
 	} bin __attribute__((packed));
-	
+
 	struct {
 		uint64_t padding : 16;
 		uint64_t sign : 1;
@@ -127,7 +127,7 @@ typedef union {
 		uint64_t hi;
 		uint64_t lo;
 	} bin __attribute__((packed));
-	
+
 	struct {
 		uint64_t sign : 1;
 		uint64_t exp : 15;
@@ -140,7 +140,7 @@ typedef union {
 
 typedef union {
 	uint32_t bin;
-	
+
 	struct {
 		uint32_t fraction : 23;
 		uint32_t exp : 8;
@@ -150,7 +150,7 @@ typedef union {
 
 typedef union {
 	uint64_t bin;
-	
+
 	struct {
 		uint64_t fraction : 52;
 		uint64_t exp : 11;
@@ -163,7 +163,7 @@ typedef union {
 		uint32_t lo;
 		uint64_t hi;
 	} bin __attribute__((packed));
-	
+
 	struct {
 		uint64_t fraction : 64;
 		uint64_t exp : 15;
@@ -177,7 +177,7 @@ typedef union {
 		uint64_t lo;
 		uint64_t hi;
 	} bin __attribute__((packed));
-	
+
 	struct {
 		uint64_t frac_lo : 64;
 		uint64_t frac_hi : 48;

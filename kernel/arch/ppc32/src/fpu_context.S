@@ -105,33 +105,33 @@
 
 FUNCTION_BEGIN(fpu_context_save)
 	FPU_CONTEXT_STORE r3
-	
+
 	mffs fr0
 	stfd fr0, FPU_CONTEXT_OFFSET_FPSCR(r3)
-	
+
 	blr
 FUNCTION_END(fpu_context_save)
 
 FUNCTION_BEGIN(fpu_context_restore)
 	lfd fr0, FPU_CONTEXT_OFFSET_FPSCR(r3)
 	mtfsf 0xff, fr0
-	
+
 	FPU_CONTEXT_LOAD r3
-	
+
 	blr
 FUNCTION_END(fpu_context_restore)
 
 FUNCTION_BEGIN(fpu_init)
 	mfmsr r0
 	ori r0, r0, MSR_FP
-	
+
 	# Disable FPU exceptions
 	li r3, MSR_FE0 | MSR_FE1
 	andc r0, r0, r3
-	
+
 	mtmsr r0
 	isync
-	
+
 	blr
 FUNCTION_END(fpu_init)
 

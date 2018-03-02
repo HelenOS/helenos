@@ -76,7 +76,7 @@ STRUCT_SUPERBLOCK = """little:
 	uint32_t os                   /* OS that created the filesystem */
 	uint32_t rev_major            /* Major revision level */
 	padding[4] /* default reserved uid and gid */
-	
+
 	/* Following is for ext2 revision 1 only */
 	uint32_t first_inode
 	uint16_t inode_size
@@ -129,7 +129,7 @@ STRUCT_BLOCK_REFERENCE = """little:
 class Filesystem:
 	def __init__(self, filename, block_groups, blocks_per_group, inodes_per_group, block_size, inode_size, reserved_inode_count):
 		"Initialize the filesystem writer"
-		
+
 		outf = open(filename, "w+b")
 		# Set the correct size of the image, so that we can read arbitrary position
 		outf.truncate(block_size * blocks_per_group * block_groups)
@@ -171,10 +171,10 @@ class Filesystem:
 		lpf_dir.add(self.lost_plus_found.as_dirent('.'))
 		lpf_dir.add(self.root_inode.as_dirent('..'))
 		lpf_dir.finish()
-	
+
 	def init_gdt(self):
 		"Initialize block group descriptor table"
-		
+
 		self.superblock_positions = []
 		self.gdt = []
 		consumed_blocks_per_group = (1 + self.gdt_blocks +
@@ -201,31 +201,31 @@ class Filesystem:
 			gde.free_inode_count = self.inodes_per_group
 			gde.directory_inode_count = 0
 			self.gdt.append(gde)
-	
+
 	def mark_block_cb(self, block):
 		"Called after a block has been allocated"
-		
+
 		self.gdt[block // self.blocks_per_group].free_block_count -= 1
-	
+
 	def mark_inode_cb(self, index, directory=False):
 		"Called after an inode has been allocated"
-		
+
 		index -= 1
 		gde = self.gdt[index // self.inodes_per_group]
 		gde.free_inode_count -= 1
 		if directory:
 			gde.directory_inode_count += 1
-	
+
 	def seek_to_block(self, block, offset=0):
 		"Seek to offset bytes after the start of the given block"
-		
+
 		if offset < 0 or offset > self.block_size:
 			raise Exception("Invalid in-block offset")
 		self.outf.seek(block * self.block_size + offset)
-	
+
 	def seek_to_inode(self, index):
 		"Seek to the start of the inode structure for the inode number index"
-		
+
 		index -= 1
 		if index < 0:
 			raise Exception("Invalid inode number")
@@ -234,14 +234,14 @@ class Filesystem:
 		offset = (index % self.inodes_per_group) * self.inode_size
 		block = base_block + (offset // self.block_size)
 		self.seek_to_block(block, offset % self.block_size)
-	
+
 	def subtree_add(self, inode, parent_inode, dirpath, is_root=False):
 		"Recursively add files to the filesystem"
-		
+
 		dir_writer = DirWriter(inode)
 		dir_writer.add(inode.as_dirent('.'))
 		dir_writer.add(parent_inode.as_dirent('..'))
-		
+
 		if is_root:
 			dir_writer.add(self.lost_plus_found.as_dirent('lost+found'))
 
@@ -254,29 +254,29 @@ class Filesystem:
 			elif item.is_dir:
 				child_inode = Inode(self, newidx, Inode.TYPE_DIR)
 				self.subtree_add(child_inode, inode, item.path)
-		
+
 			dir_writer.add(child_inode.as_dirent(item.name))
 			self.write_inode(child_inode)
 
 		dir_writer.finish()
-	
+
 	def write_inode(self, inode):
 		"Write inode information into the inode table"
-		
+
 		self.seek_to_inode(inode.index)
 		self.outf.write(inode.pack())
 
 	def write_gdt(self):
 		"Write group descriptor table at the current file position"
-		
+
 		for gde in self.gdt:
 			data = bytes(gde.pack())
 			self.outf.write(data)
 			self.outf.seek(GDE_SIZE-len(data), os.SEEK_CUR)
-	
+
 	def write_superblock(self, block_group):
 		"Write superblock at the current position"
-		
+
 		sb = xstruct.create(STRUCT_SUPERBLOCK)
 		sb.total_inode_count = self.total_inode_count
 		sb.total_block_count = self.total_block_count
@@ -311,35 +311,35 @@ class Filesystem:
 		sb.uuid = self.uuid.bytes_le
 		sb.volume_name = 'HelenOS rdimage\0'
 		self.outf.write(bytes(sb.pack()))
-	
+
 	def write_all_metadata(self):
 		"Write superblocks, block group tables, block and inode bitmaps"
-		
+
 		bbpg = self.blocks_per_group // 8
 		bipg = self.inodes_per_group // 8
 		def window(arr, index, size):
 			return arr[index * size:(index + 1) * size]
-		
+
 		for bg_index in xrange(len(self.gdt)):
 			sbpos = self.superblock_positions[bg_index]
 			sbblock = (sbpos + 1023) // self.block_size
 			gde = self.gdt[bg_index]
-			
+
 			self.outf.seek(sbpos)
 			self.write_superblock(bg_index)
-			
+
 			self.seek_to_block(sbblock+1)
 			self.write_gdt()
-			
+
 			self.seek_to_block(gde.block_bitmap_block)
 			self.outf.write(window(self.block_allocator.bitmap, bg_index, bbpg))
-			
+
 			self.seek_to_block(gde.inode_bitmap_block)
 			self.outf.write(window(self.inode_allocator.bitmap, bg_index, bipg))
-	
+
 	def close(self):
 		"Write all remaining data to the filesystem and close the file"
-		
+
 		self.write_inode(self.root_inode)
 		self.write_inode(self.lost_plus_found)
 		self.write_all_metadata()
@@ -353,16 +353,16 @@ class Allocator:
 		self.nextidx = 0
 		self.bitmap = array.array('B', [0] * (count // 8))
 		self.mark_cb = None
-	
+
 	def __contains__(self, item):
 		"Check if the item is already used"
-		
+
 		bitidx = item - self.base
 		return get_bit(self.bitmap[bitidx // 8], bitidx % 8)
-	
+
 	def alloc(self, **options):
 		"Allocate a new item"
-		
+
 		while self.nextidx < self.count and (self.base + self.nextidx) in self:
 			self.nextidx += 1
 		if self.nextidx == self.count:
@@ -371,10 +371,10 @@ class Allocator:
 		self.nextidx += 1
 		self.mark_used(item, **options)
 		return item
-	
+
 	def mark_used(self, item, **options):
 		"Mark the specified item as used"
-		
+
 		bitidx = item - self.base
 		if item in self:
 			raise Exception("Item already used: " + str(item))
@@ -383,10 +383,10 @@ class Allocator:
 		self.bitmap[index] = set_bit(self.bitmap[index], bitidx % 8)
 		if self.mark_cb:
 			self.mark_cb(item, **options)
-	
+
 	def mark_used_all(self, items, **options):
 		"Mark all specified items as used"
-		
+
 		for item in items:
 			self.mark_used(item, **options)
 
@@ -394,7 +394,7 @@ class Inode:
 	TYPE_FILE = 1
 	TYPE_DIR = 2
 	TYPE2MODE = {TYPE_FILE: 8, TYPE_DIR: 4}
-	
+
 	def __init__(self, fs, index, typ):
 		self.fs = fs
 		self.direct = [None] * 12
@@ -405,36 +405,36 @@ class Inode:
 		self.index = index
 		self.type = typ
 		self.refcount = 0
-	
+
 	def as_dirent(self, name):
 		"Return a DirEntry corresponding to this inode"
 		self.refcount += 1
 		return DirEntry(name, self.index, self.type)
-	
+
 	def new_block(self, data=True):
 		"Get a new block index from allocator and count it here as belonging to the file"
-		
+
 		block = self.fs.block_allocator.alloc()
 		self.blocks += 1
 		return block
-	
+
 	def get_or_add_block(self, block):
 		"Get or add a real block to the file"
-		
+
 		if block < 12:
 			return self.get_or_add_block_direct(block)
 		return self.get_or_add_block_indirect(block)
-	
+
 	def get_or_add_block_direct(self, block):
 		"Get or add a real block to the file (direct blocks)"
-		
+
 		if self.direct[block] == None:
 			self.direct[block] = self.new_block()
 		return self.direct[block]
-	
+
 	def get_or_add_block_indirect(self, block):
 		"Get or add a real block to the file (indirect blocks)"
-		
+
 		# Determine the indirection level for the desired block
 		level = None
 		for i in range(4):
@@ -443,7 +443,7 @@ class Inode:
 				break
 
 		assert level != None
-	
+
 		# Compute offsets for the topmost level
 		block_offset_in_level = block - self.fs.indirect_limits[level-1];
 		if self.indirect[level-1] == None:
@@ -451,44 +451,44 @@ class Inode:
 		current_block = xstruct.create(STRUCT_BLOCK_REFERENCE)
 		current_block.block_id = self.indirect[level-1]
 		offset_in_block = block_offset_in_level // self.fs.indirect_blocks_per_level[level-1]
-	
+
 		# Navigate through other levels
 		while level > 0:
 			assert offset_in_block < self.fs.block_ids_per_block
-			
+
 			level -= 1
-			
+
 			self.fs.seek_to_block(current_block.block_id, offset_in_block*4)
 			current_block.unpack(self.fs.outf.read(4))
-			
+
 			if current_block.block_id == 0:
 				# The block does not exist, so alloc one and write it there
 				self.fs.outf.seek(-4, os.SEEK_CUR)
 				current_block.block_id = self.new_block(data=(level==0))
 				self.fs.outf.write(current_block.pack())
-		
+
 			# If we are on the last level, break here as
 			# there is no next level to visit
 			if level == 0:
 				break
-		
+
 			# Visit the next level
 			block_offset_in_level %= self.fs.indirect_blocks_per_level[level];
 			offset_in_block = block_offset_in_level // self.fs.indirect_blocks_per_level[level-1]
 
 		return current_block.block_id
-	
+
 	def do_seek(self):
 		"Perform a seek to the position indicated by self.pos"
-		
+
 		block = self.pos // self.fs.block_size
 		real_block = self.get_or_add_block(block)
 		offset = self.pos % self.fs.block_size
 		self.fs.seek_to_block(real_block, offset)
-		
+
 	def write(self, data):
 		"Write a piece of data (arbitrarily long) as the contents of the inode"
-		
+
 		data_pos = 0
 		while data_pos < len(data):
 			bytes_remaining_in_block = self.fs.block_size - (self.pos % self.fs.block_size)
@@ -498,25 +498,25 @@ class Inode:
 			self.pos += bytes_to_write
 			data_pos += bytes_to_write
 			self.size = max(self.pos, self.size)
-	
+
 	def align_size_to_block(self):
 		"Align the size of the inode up to block size"
-		
+
 		self.size = align_up(self.size, self.fs.block_size)
-	
+
 	def align_pos(self, bytes):
 		"Align the current position up to bytes boundary"
-		
+
 		self.pos = align_up(self.pos, bytes)
-	
+
 	def set_pos(self, pos):
 		"Set the current position"
-		
+
 		self.pos = pos
-	
+
 	def pack(self):
 		"Pack the inode structure and return the result"
-		
+
 		data = xstruct.create(STRUCT_INODE)
 		data.mode = (Inode.TYPE2MODE[self.type] << 12)
 		data.mode |= 0x1ff # ugo+rwx
@@ -545,24 +545,24 @@ class Inode:
 		data.user_id_high = 0
 		data.group_id_high = 0
 		return data.pack()
-		
+
 class DirEntry:
 	"Represents a linked list directory entry"
-	
+
 	def __init__(self, name, inode, typ):
 		self.name = name.encode('UTF-8')
 		self.inode = inode
 		self.skip = None
 		self.type = typ
-	
+
 	def size(self):
 		"Return size of the entry in bytes"
-		
+
 		return align_up(8 + len(self.name)+1, 4)
-	
+
 	def write(self, inode):
 		"Write the directory entry into the inode"
-		
+
 		head = xstruct.create(STRUCT_DIR_ENTRY_HEAD)
 		head.inode = self.inode
 		head.skip = self.skip
@@ -574,25 +574,25 @@ class DirEntry:
 
 class DirWriter:
 	"Manages writing directory entries into an inode (alignment, etc.)"
-	
+
 	def __init__(self, inode):
 		self.pos = 0
 		self.inode = inode
 		self.prev_entry = None
 		self.prev_pos = None
-	
+
 	def prev_write(self):
 		"Write a previously remembered entry"
-		
+
 		if self.prev_entry:
 			self.prev_entry.skip = self.pos - self.prev_pos
 			if self.inode:
 				self.prev_entry.write(self.inode)
 				self.inode.set_pos(self.pos)
-	
+
 	def add(self, entry):
 		"Add a directory entry to the directory"
-		
+
 		size = entry.size()
 		block_size = self.inode.fs.block_size
 		if align_up(self.pos, block_size) < align_up(self.pos + size, block_size):
@@ -601,10 +601,10 @@ class DirWriter:
 		self.prev_entry = entry
 		self.prev_pos = self.pos
 		self.pos += size
-	
+
 	def finish(self):
 		"Write the last entry and finish writing the directory contents"
-		
+
 		if not self.inode:
 			return
 		self.pos = align_up(self.pos, self.inode.fs.block_size)
@@ -613,11 +613,11 @@ class DirWriter:
 
 def subtree_stats(root, block_size):
 	"Recursively calculate statistics"
-	
+
 	blocks = 0
 	inodes = 1
 	dir_writer = DirWriter(None)
-	
+
 	for item in listdir_items(root):
 		inodes += 1
 		if item.is_file:
@@ -626,7 +626,7 @@ def subtree_stats(root, block_size):
 			subtree_blocks, subtree_inodes = subtree_stats(item.path, block_size)
 			blocks += subtree_blocks
 			inodes += subtree_inodes
-	
+
 	dir_writer.finish()
 	blocks += count_up(dir_writer.pos, block_size)
 	return (blocks, inodes)
@@ -639,31 +639,31 @@ def main():
 	if (len(sys.argv) < 4):
 		usage(sys.argv[0])
 		return
-	
+
 	if (not sys.argv[1].isdigit()):
 		print("<EXTRA_BYTES> must be a number")
 		return
-	
+
 	extra_bytes = int(sys.argv[1])
-	
+
 	path = os.path.abspath(sys.argv[2])
 	if (not os.path.isdir(path)):
 		print("<PATH> must be a directory")
 		return
-	
+
 	block_size = 4096
 	inode_size = 128
 	reserved_inode_count = 10
 	blocks_per_group = 1024
 	inodes_per_group = 512
-	
+
 	blocks, inodes = subtree_stats(path, block_size)
 	blocks += count_up(extra_bytes, block_size)
 	inodes += reserved_inode_count
-	
+
 	inodes_per_group = align_up(inodes_per_group, 8)
 	blocks_per_group = align_up(blocks_per_group, 8)
-	
+
 	inode_table_blocks_per_group = (inodes_per_group * inode_size) // block_size
 	inode_bitmap_blocks_per_group = count_up(inodes_per_group // 8, block_size)
 	block_bitmap_blocks_per_group = count_up(blocks_per_group // 8, block_size)
@@ -672,14 +672,14 @@ def main():
 	free_blocks_per_group -= inode_bitmap_blocks_per_group
 	free_blocks_per_group -= block_bitmap_blocks_per_group
 	free_blocks_per_group -= 10 # one for SB and some reserve for GDT
-	
+
 	block_groups = max(count_up(inodes, inodes_per_group), count_up(blocks, free_blocks_per_group))
-	
+
 	fs = Filesystem(sys.argv[3], block_groups, blocks_per_group, inodes_per_group,
 	                        block_size, inode_size, reserved_inode_count)
-	
+
 	fs.subtree_add(fs.root_inode, fs.root_inode, path, is_root=True)
 	fs.close()
-	
+
 if __name__ == '__main__':
 	main()

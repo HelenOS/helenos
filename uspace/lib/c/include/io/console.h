@@ -48,19 +48,19 @@
 typedef struct {
 	/** Console input file */
 	FILE *input;
-	
+
 	/** Console output file */
 	FILE *output;
-	
+
 	/** Console input session */
 	async_sess_t *input_sess;
-	
+
 	/** Console output session */
 	async_sess_t *output_sess;
-	
+
 	/** Input request call with timeout */
 	ipc_call_t input_call;
-	
+
 	/** Input response with timeout */
 	aid_t input_aid;
 } console_ctrl_t;

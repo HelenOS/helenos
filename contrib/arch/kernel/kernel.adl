@@ -12,7 +12,7 @@ interface sys_kio {
 interface sys_console {
 		/* Enable kernel console */
 		sysarg_t sys_debug_enable_console(void);
-		
+
 		/* Disable kernel console */
 		sysarg_t sys_debug_disable_console(void);
 	protocol:
@@ -25,10 +25,10 @@ interface sys_console {
 interface sys_thread {
 		/* Create new thread */
 		sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name, size_t name_len, thread_id_t *uspace_thread_id);
-		
+
 		/* Terminate current thread */
 		sysarg_t sys_thread_exit(int uspace_status);
-		
+
 		/* Get current thread id */
 		sysarg_t sys_thread_get_id(thread_id_t *uspace_thread_id);
 	protocol:
@@ -42,7 +42,7 @@ interface sys_thread {
 interface sys_task {
 		/* Set name fo the current task */
 		sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len);
-		
+
 		/* Get current task id */
 		sysarg_t sys_task_get_id(task_id_t *uspace_task_id);
 	protocol:
@@ -62,7 +62,7 @@ interface sys_program {
 interface sys_futex {
 		/* Sleep in a futex wait queue */
 		sysarg_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags);
-		
+
 		/* Wakeup one thread waiting in futex wait queue */
 		sysarg_t sys_futex_wakeup(uintptr_t uaddr);
 	protocol:
@@ -82,13 +82,13 @@ interface sys_smc {
 interface sys_as {
 		/* Create new address space area */
 		sysarg_t sys_as_area_create(uintptr_t address, size_t size, int flags);
-		
+
 		/* Resize an address space area */
 		sysarg_t sys_as_area_resize(uinptr_t address, size_t size, int flags);
-		
+
 		/* Change flags of an address space area */
 		sysarg_t sys_as_area_change_flags(uintptr_t address, int flags);
-		
+
 		/* Destroy an address space area */
 		sysarg_t sys_as_area_destroy(uintptr_t address);
 	protocol:
@@ -103,34 +103,34 @@ interface sys_as {
 interface sys_ipc {
 		/* Fast synchronous IPC call */
 		sysarg_t sys_ipc_call_sync_fast(sysarg_t phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, ipc_data_t *data);
-		
+
 		/* Slow synchronous IPC call */
 		sysarg_t sys_ipc_call_sync_slow(sysarg_t phoneid, ipc_data_t *question, ipc_data_t *answer);
-		
+
 		/* Fast asynchronous IPC call */
 		sysarg_t sys_ipc_call_async_fast(sysarg_t phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4);
-		
+
 		/* Slow asynchronous IPC call */
 		sysarg_t sys_ipc_call_async_slow(sysarg_t phoneid, ipc_data_t *data);
-		
+
 		/* Fast forward a received IPC call to another destination */
 		sysarg_t sys_ipc_forward_fast(sysarg_t callid, sysarg_t phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2, int mode);
-		
+
 		/* Slow forward a received IPC call to another destination */
 		sysarg_t sys_ipc_forward_slow(sysarg_t callid, sysarg_t phoneid, ipc_data_t *data, int mode);
-		
+
 		/* Fast answer an IPC call */
 		sysarg_t sys_ipc_answer_fast(sysarg_t callid, sysarg_t retval, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4);
-		
+
 		/* Slow answer an IPC call */
 		sysarg_t sys_ipc_answer_slow(sysarg_t callid, ipc_data_t *data);
-		
+
 		/* Hang up a phone */
 		sysarg_t sys_ipc_hangup(int phoneid);
-		
+
 		/* Wait for an incoming IPC call or answer */
 		sysarg_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec, int flags);
-		
+
 		/* Interrupt one thread of the current task from waiting on IPC call */
 		sysarg_t sys_ipc_poke(void);
 	protocol:
@@ -161,16 +161,16 @@ interface sys_cap {
 #ifdef __32_BITS__
 		sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid, cap_t caps);
 #endif
-		
+
 #ifdef __64_BITS__
 		sysarg_t sys_cap_grant(sysarg_t taskid, cap_t caps);
 #endif
-		
+
 		/* Revoke capabilities from a task */
 #ifdef __32_BITS__
 		sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid, cap_t caps);
 #endif
-		
+
 #ifdef __64_BITS__
 		sysarg_t sys_cap_revoke(sysarg_t taskid, cap_t caps);
 #endif
@@ -184,19 +184,19 @@ interface sys_cap {
 interface sys_ddi {
 		/* Enable access I/O address space for the current task */
 		sysarg_t sys_enable_iospace(ddi_ioarg_t *uspace_io_arg);
-		
+
 		/* Map physical memory to the current task's address space */
 		sysarg_t sys_physmem_map(sysarg_t phys_base, sysarg_t virt_base, sysarg_t pages, sysarg_t flags);
-		
+
 		/* Enable or disable preemption */
 		sysarg_t sys_preempt_control(int enable);
-		
+
 		/* Assign unique device number */
 		sysarg_t sys_device_assign_devno(void);
-		
+
 		/* Connect an IRQ handler to the current task */
 		sysarg_t sys_register_irq(inr_t inr, devno_t devno, sysarg_t method, irq_code_t *ucode);
-		
+
 		/* Disconnect an IRQ handler from the current task */
 		sysarg_t sys_unregister_irq(inr_t inr, devno_t devno);
 	protocol:
@@ -213,7 +213,7 @@ interface sys_ddi {
 interface sys_sysinfo {
 		/* Check for sysinfo key validity */
 		sysarg_t sys_sysinfo_valid(sysarg_t ptr, sysarg_t len);
-		
+
 		/* Get sysinfo key value */
 		sysarg_t sys_sysinfo_value(unatice_t ptr, sysarg_t len);
 	protocol:
@@ -228,7 +228,7 @@ interface sys_debug {
 #ifdef __32_BITS__
 		sysarg_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid);
 #endif
-		
+
 #ifdef __64_BITS__
 		sysarg_t sys_ipc_connect_kbox(sysarg_t taskid);
 #endif
@@ -307,7 +307,7 @@ architecture kernel {
 	inst sys_ddi sys_ddi;
 	inst sys_sysinfo sys_sysinfo;
 	inst sys_debug sys_debug;
-	
+
 	delegate sys_kio to sys_console:sys_kio;
 	delegate sys_console to sys_console:sys_console;
 	delegate sys_tls to sys_proc:sys_tls;

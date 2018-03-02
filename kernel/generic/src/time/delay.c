@@ -34,7 +34,7 @@
  * @file
  * @brief	Active delay function.
  */
- 
+
 #include <time/delay.h>
 #include <proc/thread.h>
 #include <typedefs.h>

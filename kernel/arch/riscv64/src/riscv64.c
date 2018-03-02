@@ -68,20 +68,20 @@ void riscv64_pre_main(bootinfo_t *bootinfo)
 	physmem_start = bootinfo->physmem_start;
 	htif_frame = bootinfo->htif_frame;
 	pt_frame = bootinfo->pt_frame;
-	
+
 	htif_init(bootinfo->ucbinfo.tohost, bootinfo->ucbinfo.fromhost);
-	
+
 	/* Copy tasks map. */
 	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS,
 	    CONFIG_INIT_TASKS);
-	
+
 	for (size_t i = 0; i < init.cnt; i++) {
 		init.tasks[i].paddr = KA2PA(bootinfo->taskmap.tasks[i].addr);
 		init.tasks[i].size = bootinfo->taskmap.tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->taskmap.tasks[i].name);
 	}
-	
+
 	/* Copy physical memory map. */
 	memmap.total = bootinfo->memmap.total;
 	memmap.cnt = min(bootinfo->memmap.cnt, MEMMAP_MAX_RECORDS);

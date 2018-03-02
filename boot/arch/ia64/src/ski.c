@@ -36,7 +36,7 @@
 static void ski_console_init(void)
 {
 	static bool initialized = false;
-	
+
 	if (initialized)
 		return;
 
@@ -47,7 +47,7 @@ static void ski_console_init(void)
 		: [cmd] "i" (SKI_INIT_CONSOLE)
 		: "r15", "r8"
 	);
-	
+
 	initialized = true;
 }
 

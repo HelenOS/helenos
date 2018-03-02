@@ -44,7 +44,7 @@ typedef struct {
 	uint32_t child_space;
 	uint32_t child_base;
 	uint32_t parent_space;
-	
+
 	/* Group phys.mid and phys.lo together */
 	uint64_t parent_base;
 	uint32_t size;

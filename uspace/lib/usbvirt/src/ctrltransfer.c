@@ -59,7 +59,7 @@ errno_t process_control_transfer(usbvirt_device_t *dev,
 	if (control_handlers == NULL) {
 		return EFORWARD;
 	}
-	
+
 	const usbvirt_control_request_handler_t *handler = control_handlers;
 	for (;handler->callback != NULL; ++handler) {
 		if (handler->request != setup->request ||

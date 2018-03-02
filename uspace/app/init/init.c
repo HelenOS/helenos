@@ -102,7 +102,7 @@ static bool mount_report(const char *desc, const char *mntpt,
 		    str_error(rc));
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -120,10 +120,10 @@ static bool mount_report(const char *desc, const char *mntpt,
 static bool mount_root(const char *fstype)
 {
 	const char *opts = "";
-	
+
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
-	
+
 	errno_t rc = vfs_mount_path(ROOT_MOUNT_POINT, fstype, ROOT_DEVICE, opts,
 	    IPC_FLAG_BLOCKING, 0);
 	if (rc == EOK)
@@ -156,38 +156,38 @@ static errno_t srv_startl(const char *path, ...)
 		printf("%s: Unable to stat %s\n", NAME, path);
 		return ENOENT;
 	}
-	
+
 	printf("%s: Starting %s\n", NAME, path);
-	
+
 	va_list ap;
 	const char *arg;
 	int cnt = 0;
-	
+
 	va_start(ap, path);
 	do {
 		arg = va_arg(ap, const char *);
 		cnt++;
 	} while (arg != NULL);
 	va_end(ap);
-	
+
 	va_start(ap, path);
 	task_id_t id;
 	task_wait_t wait;
 	errno_t rc = task_spawn(&id, &wait, path, cnt, ap);
 	va_end(ap);
-	
+
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", NAME, path,
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	if (!id) {
 		printf("%s: Error spawning %s (invalid task id)\n", NAME,
 		    path);
 		return EINVAL;
 	}
-	
+
 	task_exit_t texit;
 	int retval;
 	rc = task_wait(&wait, &texit, &retval);
@@ -196,17 +196,17 @@ static errno_t srv_startl(const char *path, ...)
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	if (texit != TASK_EXIT_NORMAL) {
 		printf("%s: Server %s failed to start (unexpectedly "
 		    "terminated)\n", NAME, path);
 		return EINVAL;
 	}
-	
+
 	if (retval != 0)
 		printf("%s: Server %s failed to start (exit code %d)\n", NAME,
 		    path, retval);
-	
+
 	return retval == 0 ? EOK : EPARTY;
 }
 
@@ -220,7 +220,7 @@ static errno_t console(const char *isvc, const char *osvc)
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	/* Wait for the output service to be ready */
 	rc = loc_service_get_id(osvc, &service_id, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
@@ -228,7 +228,7 @@ static errno_t console(const char *isvc, const char *osvc)
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	return srv_start(SRV_CONSOLE, isvc, osvc);
 }
 
@@ -242,7 +242,7 @@ static errno_t compositor(const char *isvc, const char *name)
 		    str_error(rc));
 		return rc;
 	}
-	
+
 	return srv_start(SRV_COMPOSITOR, isvc, name);
 }
 
@@ -250,9 +250,9 @@ static int gui_start(const char *app, const char *srv_name)
 {
 	char winreg[50];
 	snprintf(winreg, sizeof(winreg), "%s%s%s", "comp", srv_name, "/winreg");
-	
+
 	printf("%s: Spawning %s %s\n", NAME, app, winreg);
-	
+
 	task_id_t id;
 	task_wait_t wait;
 	errno_t rc = task_spawnl(&id, &wait, app, app, winreg, NULL);
@@ -261,7 +261,7 @@ static int gui_start(const char *app, const char *srv_name)
 		    winreg, str_error(rc));
 		return -1;
 	}
-	
+
 	task_exit_t texit;
 	int retval;
 	rc = task_wait(&wait, &texit, &retval);
@@ -270,7 +270,7 @@ static int gui_start(const char *app, const char *srv_name)
 		    app, str_error(rc));
 		return -1;
 	}
-	
+
 	return retval;
 }
 
@@ -279,7 +279,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 	if (msg) {
 		printf("%s: Spawning %s %s %s --msg --wait -- %s\n", NAME,
 		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
-		
+
 		errno_t rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
 		    LOCFS_MOUNT_POINT, "--msg", "--wait", "--", app, NULL);
 		if (rc != EOK)
@@ -288,7 +288,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 	} else {
 		printf("%s: Spawning %s %s %s --wait -- %s\n", NAME,
 		    APP_GETTERM, svc, LOCFS_MOUNT_POINT, app);
-		
+
 		errno_t rc = task_spawnl(NULL, NULL, APP_GETTERM, APP_GETTERM, svc,
 		    LOCFS_MOUNT_POINT, "--wait", "--", app, NULL);
 		if (rc != EOK)
@@ -309,12 +309,12 @@ int main(int argc, char *argv[])
 	errno_t rc;
 
 	info_print();
-	
+
 	if (!mount_root(STRING(RDFMT))) {
 		printf("%s: Exiting\n", NAME);
 		return 1;
 	}
-	
+
 	/* Make sure file systems are running. */
 	if (str_cmp(STRING(RDFMT), "tmpfs") != 0)
 		srv_start("/srv/tmpfs");
@@ -324,25 +324,25 @@ int main(int argc, char *argv[])
 		srv_start("/srv/fat");
 	srv_start("/srv/cdfs");
 	srv_start("/srv/mfs");
-	
+
 	srv_start("/srv/klog");
 	srv_start("/srv/locfs");
 	srv_start("/srv/taskmon");
-	
+
 	if (!mount_locfs()) {
 		printf("%s: Exiting\n", NAME);
 		return 2;
 	}
-	
+
 	mount_tmpfs();
-	
+
 	srv_start("/srv/devman");
 	srv_start("/srv/s3c24xx_uart");
 	srv_start("/srv/s3c24xx_ts");
-	
+
 	srv_start("/srv/vbd");
 	srv_start("/srv/volsrv");
-	
+
 	srv_start("/srv/loopip");
 	srv_start("/srv/ethip");
 	srv_start("/srv/inetsrv");
@@ -351,14 +351,14 @@ int main(int argc, char *argv[])
 	srv_start("/srv/dnsrsrv");
 	srv_start("/srv/dhcp");
 	srv_start("/srv/nconfsrv");
-	
+
 	srv_start("/srv/clipboard");
 	srv_start("/srv/remcons");
-	
+
 	srv_start("/srv/input", HID_INPUT);
 	srv_start("/srv/output", HID_OUTPUT);
 	srv_start("/srv/hound");
-	
+
 	if (!config_key_exists("console")) {
 		rc = compositor(HID_INPUT, HID_COMPOSITOR_SERVER);
 		if (rc == EOK) {
@@ -367,7 +367,7 @@ int main(int argc, char *argv[])
 			gui_start("/app/vterm", HID_COMPOSITOR_SERVER);
 		}
 	}
-	
+
 	rc = console(HID_INPUT, HID_OUTPUT);
 	if (rc == EOK) {
 		getterm("term/vc0", "/app/bdsh", true);
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
 		getterm("term/vc4", "/app/bdsh", false);
 		getterm("term/vc5", "/app/bdsh", false);
 	}
-	
+
 	return 0;
 }
 

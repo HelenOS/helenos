@@ -41,11 +41,11 @@ typedef void (*vt100_flush_t)(void);
 typedef struct {
 	sysarg_t cols;
 	sysarg_t rows;
-	
+
 	sysarg_t cur_col;
 	sysarg_t cur_row;
 	char_attrs_t cur_attrs;
-	
+
 	vt100_putchar_t putchar;
 	vt100_control_puts_t control_puts;
 	vt100_flush_t flush;

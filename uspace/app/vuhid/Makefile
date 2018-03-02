@@ -44,6 +44,6 @@ SOURCES = \
 	life.c \
 	stdreq.c \
 	$(SOURCES_INTERFACES)
-	
+
 
 include $(USPACE_PREFIX)/Makefile.common

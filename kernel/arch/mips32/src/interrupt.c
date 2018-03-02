@@ -131,18 +131,18 @@ static void timer_irq_handler(irq_t *irq)
 	if (cp0_count_read() < lastcount)
 		/* Count overflow detected */
 		count_hi++;
-	
+
 	lastcount = cp0_count_read();
-	
+
 	unsigned long drift = cp0_count_read() - nextcount;
 	while (drift > cp0_compare_value) {
 		drift -= cp0_compare_value;
 		CPU->missed_clock_ticks++;
 	}
-	
+
 	nextcount = cp0_count_read() + cp0_compare_value - drift;
 	cp0_compare_write(nextcount);
-	
+
 	/*
 	 * We are holding a lock which prevents preemption.
 	 * Release the lock, call clock() and reacquire the lock again.
@@ -150,7 +150,7 @@ static void timer_irq_handler(irq_t *irq)
 	irq_spinlock_unlock(&irq->lock, false);
 	clock();
 	irq_spinlock_lock(&irq->lock, false);
-	
+
 	if (virtual_timer_fnc != NULL)
 		virtual_timer_fnc();
 }
@@ -171,23 +171,23 @@ static void dorder_irq_handler(irq_t *irq)
 void interrupt_init(void)
 {
 	irq_init(IRQ_COUNT, IRQ_COUNT);
-	
+
 	irq_initialize(&timer_irq);
 	timer_irq.inr = TIMER_IRQ;
 	timer_irq.claim = timer_claim;
 	timer_irq.handler = timer_irq_handler;
 	irq_register(&timer_irq);
-	
+
 	timer_start();
 	cp0_unmask_int(TIMER_IRQ);
-	
+
 #ifdef MACHINE_msim
 	irq_initialize(&dorder_irq);
 	dorder_irq.inr = DORDER_IRQ;
 	dorder_irq.claim = dorder_claim;
 	dorder_irq.handler = dorder_irq_handler;
 	irq_register(&dorder_irq);
-	
+
 	cp0_unmask_int(DORDER_IRQ);
 #endif
 }

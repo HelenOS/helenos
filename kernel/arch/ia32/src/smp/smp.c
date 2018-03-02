@@ -67,12 +67,12 @@ void smp_init(void)
 		acpi_madt_parse();
 		ops = &madt_config_operations;
 	}
-	
+
 	if (config.cpu_count == 1) {
 		mps_init();
 		ops = &mps_config_operations;
 	}
-	
+
 	if (config.cpu_count > 1) {
 		l_apic = (uint32_t *) km_map((uintptr_t) l_apic, PAGE_SIZE,
 		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
@@ -85,7 +85,7 @@ static void cpu_arch_id_init(void)
 {
 	assert(ops != NULL);
 	assert(cpus != NULL);
-	
+
 	for (unsigned int i = 0; i < config.cpu_count; ++i) {
 		cpus[i].arch.id = ops->cpu_apic_id(i);
 	}
@@ -101,7 +101,7 @@ static void cpu_arch_id_init(void)
 void kmp(void *arg __attribute__((unused)))
 {
 	unsigned int i;
-	
+
 	assert(ops != NULL);
 
 	/*
@@ -109,52 +109,52 @@ void kmp(void *arg __attribute__((unused)))
 	 * physical APIC ID.
 	 */
 	cpu_arch_id_init();
-	
+
 	/*
 	 * We need to access data in frame 0.
 	 * We boldly make use of kernel address space mapping.
 	 */
-	
+
 	/*
 	 * Set the warm-reset vector to the real-mode address of 4K-aligned ap_boot()
 	 */
 	*((uint16_t *) (PA2KA(0x467 + 0))) =
 	    (uint16_t) (((uintptr_t) ap_boot) >> 4);  /* segment */
 	*((uint16_t *) (PA2KA(0x467 + 2))) = 0;       /* offset */
-	
+
 	/*
 	 * Save 0xa to address 0xf of the CMOS RAM.
 	 * BIOS will not do the POST after the INIT signal.
 	 */
 	pio_write_8((ioport8_t *) 0x70, 0xf);
 	pio_write_8((ioport8_t *) 0x71, 0xa);
-	
+
 	pic_disable_irqs(0xffff);
 	apic_init();
-	
+
 	for (i = 0; i < config.cpu_count; i++) {
 		/*
 		 * Skip processors marked unusable.
 		 */
 		if (!ops->cpu_enabled(i))
 			continue;
-		
+
 		/*
 		 * The bootstrap processor is already up.
 		 */
 		if (ops->cpu_bootstrap(i))
 			continue;
-		
+
 		if (ops->cpu_apic_id(i) == bsp_l_apic) {
 			log(LF_ARCH, LVL_ERROR, "kmp: bad processor entry #%u, "
 			    "will not send IPI to myself", i);
 			continue;
 		}
-		
+
 		/*
 		 * Prepare new GDT for CPU in question.
 		 */
-		
+
 		/* XXX Flag FRAME_LOW_4_GiB was removed temporarily,
 		 * it needs to be replaced by a generic fuctionality of
 		 * the memory subsystem
@@ -164,13 +164,13 @@ void kmp(void *arg __attribute__((unused)))
 		    FRAME_ATOMIC);
 		if (!gdt_new)
 			panic("Cannot allocate memory for GDT.");
-		
+
 		memcpy(gdt_new, gdt, GDT_ITEMS * sizeof(descriptor_t));
 		memsetb(&gdt_new[TSS_DES], sizeof(descriptor_t), 0);
 		protected_ap_gdtr.limit = GDT_ITEMS * sizeof(descriptor_t);
 		protected_ap_gdtr.base = KA2PA((uintptr_t) gdt_new);
 		gdtr.base = (uintptr_t) gdt_new;
-		
+
 		if (l_apic_send_init_ipi(ops->cpu_apic_id(i))) {
 			/*
 			 * There may be just one AP being initialized at

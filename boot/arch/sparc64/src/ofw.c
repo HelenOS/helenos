@@ -46,7 +46,7 @@ void putchar(const wchar_t ch)
 {
 	if (ch == '\n')
 		ofw_putchar('\r');
-	
+
 	if (ascii_check(ch))
 		ofw_putchar(ch);
 	else
@@ -71,18 +71,18 @@ static size_t wake_cpus_in_node(phandle child, uint64_t current_mid,
     uintptr_t physmem_start)
 {
 	size_t cpus;
-	
+
 	for (cpus = 0; (child != 0) && (child != (phandle) -1);
 	    child = ofw_get_peer_node(child), cpus++) {
 		char type_name[OFW_TREE_PROPERTY_MAX_VALUELEN];
-		
+
 		if (ofw_get_property(child, "device_type", type_name,
 		    OFW_TREE_PROPERTY_MAX_VALUELEN) > 0) {
 			type_name[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = 0;
-			
+
 			if (str_cmp(type_name, "cpu") == 0) {
 				uint32_t mid;
-				
+
 				/*
 				 * "upa-portid" for US, "portid" for US-III,
 				 * "cpuid" for US-IV
@@ -91,7 +91,7 @@ static size_t wake_cpus_in_node(phandle child, uint64_t current_mid,
 				    && (ofw_get_property(child, "portid", &mid, sizeof(mid)) <= 0)
 				    && (ofw_get_property(child, "cpuid", &mid, sizeof(mid)) <= 0))
 					continue;
-				
+
 				if (current_mid != mid) {
 					/*
 					 * Start secondary processor.
@@ -103,7 +103,7 @@ static size_t wake_cpus_in_node(phandle child, uint64_t current_mid,
 			}
 		}
 	}
-	
+
 	return cpus;
 }
 
@@ -114,43 +114,43 @@ void ofw_cpu(uint16_t mid_mask, uintptr_t physmem_start)
 {
 	/* Get the current CPU MID */
 	uint64_t current_mid;
-	
+
 	asm volatile (
 		"ldxa [%[zero]] %[asi], %[current_mid]\n"
 		: [current_mid] "=r" (current_mid)
 		: [zero] "r" (0),
 		  [asi] "i" (ASI_ICBUS_CONFIG)
 	);
-	
+
 	current_mid >>= ICBUS_CONFIG_MID_SHIFT;
 	current_mid &= mid_mask;
-	
+
 	/* Wake up the CPUs */
-	
+
 	phandle cpus_parent = ofw_find_device("/ssm@0,0");
 	if ((cpus_parent == 0) || (cpus_parent == (phandle) -1))
 		cpus_parent = ofw_find_device("/");
-	
+
 	phandle node = ofw_get_child_node(cpus_parent);
 	size_t cpus = wake_cpus_in_node(node, current_mid, physmem_start);
-	
+
 	while ((node != 0) && (node != (phandle) -1)) {
 		char name[OFW_TREE_PROPERTY_MAX_VALUELEN];
-		
+
 		if (ofw_get_property(node, "name", name,
 		    OFW_TREE_PROPERTY_MAX_VALUELEN) > 0) {
 			name[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = 0;
-			
+
 			if (str_cmp(name, "cmp") == 0) {
 				phandle subnode = ofw_get_child_node(node);
 				cpus += wake_cpus_in_node(subnode,
 				    current_mid, physmem_start);
 			}
 		}
-		
+
 		node = ofw_get_peer_node(node);
 	}
-	
+
 	if (cpus == 0)
 		printf("Warning: Unable to get CPU properties.\n");
 }
@@ -168,6 +168,6 @@ uintptr_t ofw_get_physmem_start(void)
 		printf("Error: Unable to get physical memory starting address, halting.\n");
 		halt();
 	}
-	
+
 	return ((((uintptr_t) memreg[0]) << 32) | memreg[1]);
 }

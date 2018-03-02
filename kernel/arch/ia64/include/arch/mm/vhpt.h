@@ -31,7 +31,7 @@
  */
 /** @file
 */
-												
+
 #ifndef KERN_ia64_VHPT_H_
 #define KERN_ia64_VHPT_H_
 
@@ -43,10 +43,10 @@ uintptr_t vhpt_set_up(void);
 static inline vhpt_entry_t tlb_entry_t2vhpt_entry_t(tlb_entry_t tentry)
 {
 	vhpt_entry_t ventry;
-	
+
 	ventry.word[0] = tentry.word[0];
 	ventry.word[1] = tentry.word[1];
-	
+
 	return ventry;
 }
 

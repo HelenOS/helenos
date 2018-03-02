@@ -61,7 +61,7 @@ typedef struct ethip_nic {
 
 	/** MAC address */
 	addr48_t mac_addr;
-	
+
 	/**
 	 * List of IP addresses configured on this link
 	 * (of the type ethip_link_addr_t)

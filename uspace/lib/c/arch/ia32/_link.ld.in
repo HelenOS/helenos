@@ -24,16 +24,16 @@ SECTIONS {
 #else
 	. = 0x1000 + SIZEOF_HEADERS;
 #endif
-	
+
 	.init : {
 		*(.init);
 	} :text
-	
+
 	.text : {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
-	
+
 #if defined(SHLIB) || defined(DLEXE)
 	.rel.plt : {
 		*(.rel.plt);
@@ -45,56 +45,56 @@ SECTIONS {
 	.rel.dyn : {
 		*(.rel.*);
 	} :text
-	
+
 	.plt : {
 		*(.plt);
 	} :text
-	
+
 	.dynsym : {
 		*(.dynsym);
 	} :text
-	
+
 	.dynstr : {
 		*(.dynstr);
 	} :text
-	
+
 	.hash : {
 		*(.hash);
 	} :text
 #endif
-	
+
 #if defined(LOADER) || defined(DLEXE)
 	.interp : {
 		*(.interp);
 	} :interp :text
 #endif
-	
+
 	. = . + 0x1000;
-	
+
 #if defined(SHLIB) || defined(DLEXE)
 	.dynamic : {
 		*(.dynamic);
 	} :data :dynamic
 #endif
-	
+
 	.data : {
 		*(.data);
 	} :data
-	
+
 #if defined(SHLIB) || defined(DLEXE)
 	.data.rel : {
 		*(.data.rel .data.rel.*);
 	} :data
-	
+
 	.got : {
 		*(.got);
 	} :data
-	
+
 	.got.plt : {
 		*(.got.plt);
 	} :data
 #endif
-	
+
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
@@ -106,15 +106,15 @@ SECTIONS {
 		*(.tbss);
 		_tbss_end = .;
 	} :data :tls
-	
+
 	_tls_alignment = MAX(ALIGNOF(.tdata), ALIGNOF(.tbss));
-	
+
 	.bss : {
 		*(.dynbss);
 		*(COMMON);
 		*(.bss);
 	} :data
-	
+
 #ifdef CONFIG_LINE_DEBUG
 	.comment 0 : { *(.comment); } :debug
 	.debug_abbrev 0 : { *(.debug_abbrev); } :debug
@@ -127,7 +127,7 @@ SECTIONS {
 	.debug_ranges 0 : { *(.debug_ranges); } :debug
 	.debug_str 0 : { *(.debug_str); } :debug
 #endif
-	
+
 	/DISCARD/ : {
 		*(*);
 	}

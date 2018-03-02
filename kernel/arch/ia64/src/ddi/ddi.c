@@ -58,19 +58,19 @@ errno_t ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 		task->arch.iomap = malloc(sizeof(bitmap_t), 0);
 		if (task->arch.iomap == NULL)
 			return ENOMEM;
-		
+
 		void *store = malloc(bitmap_size(IO_MEMMAP_PAGES), 0);
 		if (store == NULL)
 			return ENOMEM;
-		
+
 		bitmap_initialize(task->arch.iomap, IO_MEMMAP_PAGES, store);
 		bitmap_clear_range(task->arch.iomap, 0, IO_MEMMAP_PAGES);
 	}
-	
+
 	uintptr_t iopage = ioaddr / PORTS_PER_PAGE;
 	size = ALIGN_UP(size + ioaddr - 4 * iopage, PORTS_PER_PAGE);
 	bitmap_set_range(task->arch.iomap, iopage, size / 4);
-	
+
 	return EOK;
 }
 
@@ -92,7 +92,7 @@ errno_t ddi_iospace_disable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 	uintptr_t iopage = ioaddr / PORTS_PER_PAGE;
 	size = ALIGN_UP(size + ioaddr - 4 * iopage, PORTS_PER_PAGE);
 	bitmap_clear_range(task->arch.iomap, iopage, size / 4);
-	
+
 	return EOK;
 }
 

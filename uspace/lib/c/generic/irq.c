@@ -67,7 +67,7 @@ errno_t ipc_irq_subscribe(int inr, sysarg_t method, const irq_code_t *ucode,
 {
 	if (ucode == NULL)
 		ucode = &default_ucode;
-	
+
 	return (errno_t) __SYSCALL4(SYS_IPC_IRQ_SUBSCRIBE, inr, method, (sysarg_t) ucode,
 	    (sysarg_t) out_handle);
 }

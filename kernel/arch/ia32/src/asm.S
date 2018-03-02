@@ -62,28 +62,28 @@ FUNCTION_BEGIN(memcpy_from_uspace)
 FUNCTION_BEGIN(memcpy_to_uspace)
 	movl %edi, %edx  /* save %edi */
 	movl %esi, %eax  /* save %esi */
-	
+
 	movl MEMCPY_SIZE(%esp), %ecx
 	shrl $2, %ecx  /* size / 4 */
-	
+
 	movl MEMCPY_DST(%esp), %edi
 	movl MEMCPY_SRC(%esp), %esi
-	
+
 	/* Copy whole words */
 	rep movsl
-	
+
 	movl MEMCPY_SIZE(%esp), %ecx
 	andl $3, %ecx  /* size % 4 */
 	jz 0f
-	
+
 	/* Copy the rest byte by byte */
 	rep movsb
-	
+
 	0:
-	
+
 		movl %edx, %edi
 		movl %eax, %esi
-		
+
 		/* MEMCPY_DST(%esp), success */
 		movl MEMCPY_DST(%esp), %eax
 		ret
@@ -98,7 +98,7 @@ SYMBOL(memcpy_from_uspace_failover_address)
 SYMBOL(memcpy_to_uspace_failover_address)
 	movl %edx, %edi
 	movl %eax, %esi
-	
+
 	/* Return 0, failure */
 	xorl %eax, %eax
 	ret
@@ -111,12 +111,12 @@ SYMBOL(memcpy_to_uspace_failover_address)
 FUNCTION_BEGIN(paging_on)
 	movl %cr0, %edx
 	orl $CR0_PG, %edx  /* paging on */
-	
+
 	/* Clear Cache Disable and not Write Though */
 	andl $~(CR0_CD | CR0_NW), %edx
 	movl %edx, %cr0
 	jmp 0f
-	
+
 	0:
 		ret
 FUNCTION_END(paging_on)
@@ -173,7 +173,7 @@ SYMBOL(sysenter_handler)
 	movl %esi, ISTATE_OFFSET_ESI(%esp)
 	movl %edi, ISTATE_OFFSET_EDI(%esp)	/* observability; not needed */
 	movl %ebp, ISTATE_OFFSET_EBP(%esp)	/* observability; not needed */
-	
+
 	/*
 	 * Fake up the stack trace linkage.
 	 */
@@ -189,7 +189,7 @@ SYMBOL(sysenter_handler)
 	movl %eax, %es
 	movl $(GDT_SELECTOR(VREG_DES)), %eax
 	movl %eax, %gs
-	
+
 	/*
 	 * Sanitize EFLAGS.
 	 *
@@ -206,7 +206,7 @@ SYMBOL(sysenter_handler)
 	popfl	            /* set bits from the mask, clear or ignore others */
 
 	call syscall_handler
-	
+
 	/*
 	 * Prepare return address and userspace stack for SYSEXIT.
 	 */
@@ -251,7 +251,7 @@ SYMBOL(int_syscall)
 
 	movl %es, %ecx
 	movl %ds, %edx
-		
+
 	movl %ecx, ISTATE_OFFSET_ES(%esp)
 	movl %edx, ISTATE_OFFSET_DS(%esp)
 
@@ -263,17 +263,17 @@ SYMBOL(int_syscall)
 	movl %eax, %es
 	movl $(GDT_SELECTOR(VREG_DES)), %eax
 	movl %eax, %gs
-		
+
 	movl $0, ISTATE_OFFSET_EBP_FRAME(%esp)
 	movl ISTATE_OFFSET_EIP(%esp), %eax
 	movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
 	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
-		
+
 	cld
-		
+
 	/* Call syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax) */
 	call syscall_handler
-			
+
 	/*
 	 * Restore the segment registers.
 	 */
@@ -285,19 +285,19 @@ SYMBOL(int_syscall)
 
 	movl ISTATE_OFFSET_ES(%esp), %ecx
 	movl ISTATE_OFFSET_DS(%esp), %edx
-			
+
 	movl %ecx, %es
 	movl %edx, %ds
-			
+
 	/*
 	 * Restore the preserved registers the handler cloberred itself
 	 * (i.e. EBP).
 	 */
 	movl ISTATE_OFFSET_EBP(%esp), %ebp
-			
+
 	addl $(ISTATE_SOFT_SIZE + 4), %esp
 	iret
-		
+
 /**
  * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
  * has no error word  and 1 means interrupt with error word
@@ -332,7 +332,7 @@ SYMBOL(int_\i)
 		 */
 		subl $(ISTATE_SOFT_SIZE + 4), %esp
 	.endif
-	
+
 	/*
 	 * Save the general purpose registers.
 	 */
@@ -343,7 +343,7 @@ SYMBOL(int_\i)
 	movl %edi, ISTATE_OFFSET_EDI(%esp)
 	movl %esi, ISTATE_OFFSET_ESI(%esp)
 	movl %ebp, ISTATE_OFFSET_EBP(%esp)
-	
+
 	/*
 	 * Save the segment registers.
 	 */
@@ -355,10 +355,10 @@ SYMBOL(int_\i)
 
 	movl %es, %ecx
 	movl %ds, %edx
-	
+
 	movl %ecx, ISTATE_OFFSET_ES(%esp)
 	movl %edx, ISTATE_OFFSET_DS(%esp)
-	
+
 	/*
 	 * Switch to kernel selectors.
 	 */
@@ -367,7 +367,7 @@ SYMBOL(int_\i)
 	movl %eax, %es
 	movl $(GDT_SELECTOR(VREG_DES)), %eax
 	movl %eax, %gs
-	
+
 	/*
 	 * Imitate a regular stack frame linkage.
 	 * Stop stack traces here if we came from userspace.
@@ -386,17 +386,17 @@ SYMBOL(int_\i)
 	movl ISTATE_OFFSET_EIP(%esp), %eax
 	movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
 	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
-		
+
 	cld
-		
+
 	pushl %esp   /* pass istate address */
 	pushl $(\i)  /* pass intnum */
-		
+
 	/* Call exc_dispatch(intnum, istate) */
 	call exc_dispatch
-		
+
 	addl $8, %esp  /* clear arguments from the stack */
-		
+
 	/*
 	 * Restore the selector registers.
 	 */
@@ -408,10 +408,10 @@ SYMBOL(int_\i)
 
 	movl ISTATE_OFFSET_ES(%esp), %ecx
 	movl ISTATE_OFFSET_DS(%esp), %edx
-		
+
 	movl %ecx, %es
 	movl %edx, %ds
-		
+
 	/*
 	 * Restore the scratch registers and the preserved
 	 * registers the handler cloberred itself
@@ -421,7 +421,7 @@ SYMBOL(int_\i)
 	movl ISTATE_OFFSET_ECX(%esp), %ecx
 	movl ISTATE_OFFSET_EDX(%esp), %edx
 	movl ISTATE_OFFSET_EBP(%esp), %ebp
-		
+
 	addl $(ISTATE_SOFT_SIZE + 4), %esp
 	iret
 .endm
@@ -451,136 +451,136 @@ interrupt_handlers:
  *
  */
 FUNCTION_BEGIN(early_putchar)
-	
+
 #if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
-	
+
 	/* Prologue, save preserved registers */
 	pushl %ebp
 	movl %esp, %ebp
 	pushl %ebx
 	pushl %esi
 	pushl %edi
-	
+
 	movl $(PA2KA(0xb8000)), %edi  /* base of EGA text mode memory */
 	xorl %eax, %eax
-	
+
 	/* Read bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
 	shl $8, %ax
-	
+
 	/* Read bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
-	
+
 	/* Sanity check for the cursor on screen */
 	cmp $2000, %ax
 	jb early_putchar_cursor_ok
-	
+
 		movw $1998, %ax
-	
+
 	early_putchar_cursor_ok:
-	
+
 	movw %ax, %bx
 	shl $1, %eax
 	addl %eax, %edi
-	
+
 	movl 0x08(%ebp), %eax
-	
+
 	cmp $0x0a, %al
 	jne early_putchar_backspace
-	
+
 		/* Interpret newline */
-		
+
 		movw %bx, %ax  /* %bx -> %dx:%ax */
 		xorw %dx, %dx
-		
+
 		movw $80, %cx
 		idivw %cx, %ax  /* %dx = %bx % 80 */
-		
+
 		/* %bx <- %bx + 80 - (%bx % 80) */
 		addw %cx, %bx
 		subw %dx, %bx
-		
+
 		jmp early_putchar_skip
-	
+
 	early_putchar_backspace:
-	
+
 		cmp $0x08, %al
 		jne early_putchar_print
-		
+
 		/* Interpret backspace */
-		
+
 		cmp $0x0000, %bx
 		je early_putchar_skip
-		
+
 		dec %bx
 		jmp early_putchar_skip
-	
+
 	early_putchar_print:
-	
+
 		/* Print character */
-		
+
 		movb $0x0e, %ah  /* black background, yellow foreground */
 		stosw
 		inc %bx
-	
+
 	early_putchar_skip:
-	
+
 	/* Sanity check for the cursor on the last line */
 	cmp $2000, %bx
 	jb early_putchar_no_scroll
-	
+
 		/* Scroll the screen (24 rows) */
 		movl $(PA2KA(0xb80a0)), %esi
 		movl $(PA2KA(0xb8000)), %edi
 		movl $960, %ecx
 		rep movsl
-		
+
 		/* Clear the 24th row */
 		xorl %eax, %eax
 		movl $40, %ecx
 		rep stosl
-		
+
 		/* Go to row 24 */
 		movw $1920, %bx
-	
+
 	early_putchar_no_scroll:
-	
+
 	/* Write bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bh, %al
 	outb %al, %dx
-	
+
 	/* Write bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bl, %al
 	outb %al, %dx
-	
+
 	/* Epilogue, restore preserved registers */
 	popl %edi
 	popl %esi
 	popl %ebx
 	leave
-	
+
 #endif
-	
+
 	ret
 FUNCTION_END(early_putchar)
 

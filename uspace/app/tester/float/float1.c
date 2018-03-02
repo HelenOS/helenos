@@ -51,49 +51,49 @@ static void e(void *data)
 		double le = -1;
 		double e = 0;
 		double f = 1;
-		
+
 		for (double d = 1; e != le; d *= f, f += 1) {
 			le = e;
 			e = e + 1 / d;
 		}
-		
+
 		if ((uint32_t) (e * PRECISION) != E_10E8) {
 			atomic_inc(&threads_fault);
 			break;
 		}
 	}
-	
+
 	atomic_inc(&threads_finished);
 }
 
 const char *test_float1(void)
 {
 	atomic_count_t total = 0;
-	
+
 	atomic_set(&threads_finished, 0);
 	atomic_set(&threads_fault, 0);
-	
+
 	TPRINTF("Creating threads");
 	for (unsigned int i = 0; i < THREADS; i++) {
 		if (thread_create(e, NULL, "e", NULL) != EOK) {
 			TPRINTF("\nCould not create thread %u\n", i);
 			break;
 		}
-		
+
 		TPRINTF(".");
 		total++;
 	}
-	
+
 	TPRINTF("\n");
-	
+
 	while (atomic_get(&threads_finished) < total) {
 		TPRINTF("Threads left: %" PRIua "\n",
 		    total - atomic_get(&threads_finished));
 		thread_sleep(1);
 	}
-	
+
 	if (atomic_get(&threads_fault) == 0)
 		return NULL;
-	
+
 	return "Test failed";
 }

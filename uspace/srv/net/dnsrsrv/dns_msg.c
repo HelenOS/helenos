@@ -297,12 +297,12 @@ static void dns_uint16_t_encode(uint16_t w, uint8_t *buf, size_t buf_size)
 uint32_t dns_uint32_t_decode(uint8_t *buf, size_t buf_size)
 {
 	assert(buf_size >= 4);
-	
+
 	uint32_t w = ((uint32_t) buf[0] << 24) +
 	    ((uint32_t) buf[1] << 16) +
 	    ((uint32_t) buf[2] << 8) +
 	    buf[3];
-	
+
 	return w;
 }
 
@@ -310,7 +310,7 @@ uint32_t dns_uint32_t_decode(uint8_t *buf, size_t buf_size)
 void dns_addr128_t_decode(uint8_t *buf, size_t buf_size, addr128_t addr)
 {
 	assert(buf_size >= 16);
-	
+
 	addr128_t_be2host(buf, addr);
 }
 

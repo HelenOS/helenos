@@ -54,24 +54,24 @@ ofw_ebus_apply_ranges(ofw_tree_node_t *node, ofw_ebus_reg_t *reg, uintptr_t *pa)
 	prop = ofw_tree_getprop(node, "ranges");
 	if (!prop)
 		return false;
-		
+
 	ranges = prop->size / sizeof(ofw_ebus_range_t);
 	range = prop->value;
-	
+
 	unsigned int i;
-	
+
 	for (i = 0; i < ranges; i++) {
 		if (reg->space != range[i].child_space)
 			continue;
 		if (overlaps(reg->addr, reg->size, range[i].child_base,
 		    range[i].size)) {
 			ofw_pci_reg_t pci_reg;
-			
+
 			pci_reg.space = range[i].parent_space;
 			pci_reg.addr = range[i].parent_base +
 			    (reg->addr - range[i].child_base);
 			pci_reg.size = reg->size;
-			
+
 			return ofw_pci_apply_ranges(node->parent, &pci_reg, pa);
 		}
 	}
@@ -85,28 +85,28 @@ ofw_ebus_map_interrupt(ofw_tree_node_t *node, ofw_ebus_reg_t *reg,
 {
 	ofw_tree_property_t *prop;
 	ofw_tree_node_t *controller;
-	
+
 	prop = ofw_tree_getprop(node, "interrupt-map");
 	if (!prop || !prop->value)
 		return false;
 
 	ofw_ebus_intr_map_t *intr_map = prop->value;
 	size_t count = prop->size / sizeof(ofw_ebus_intr_map_t);
-	
+
 	assert(count);
-	
+
 	prop = ofw_tree_getprop(node, "interrupt-map-mask");
 	if (!prop || !prop->value)
 		return false;
-	
+
 	ofw_ebus_intr_mask_t *intr_mask = prop->value;
-	
+
 	assert(prop->size == sizeof(ofw_ebus_intr_mask_t));
-	
+
 	uint32_t space = reg->space & intr_mask->space_mask;
 	uint32_t addr = reg->addr & intr_mask->addr_mask;
 	uint32_t intr = interrupt & intr_mask->intr_mask;
-	
+
 	unsigned int i;
 	for (i = 0; i < count; i++) {
 		if ((intr_map[i].space == space) &&
@@ -126,7 +126,7 @@ found:
 	    intr_map[i].controller_handle);
 	if (!controller)
 		return false;
-		
+
 	if (str_cmp(ofw_tree_node_name(controller), "pci") != 0) {
 		/*
 		 * This is not a PCI node.

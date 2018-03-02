@@ -328,7 +328,7 @@ restart:
 		state = trans[state][t.kind].s;
 		t = next_token(&t);
 	}
-	
+
 	switch (state) {
 	case S_RESTART:
 		goto restart;

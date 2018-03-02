@@ -61,7 +61,7 @@ void smp_init(void)
 {
 	ofw_tree_node_t *node;
 	unsigned int cnt = 0;
-	
+
 	if (is_us() || is_us_iii()) {
 		node = ofw_tree_find_child_by_device_type(cpus_parent(), "cpu");
 		while (node) {
@@ -75,7 +75,7 @@ void smp_init(void)
 			node = ofw_tree_find_peer_by_name(node, "cmp");
 		}
 	}
-	
+
 	config.cpu_count = max(1, cnt);
 }
 
@@ -88,23 +88,23 @@ static void wakeup_cpu(ofw_tree_node_t *node)
 {
 	uint32_t mid;
 	ofw_tree_property_t *prop;
-		
+
 	/* 'upa-portid' for US, 'portid' for US-III, 'cpuid' for US-IV */
 	prop = ofw_tree_getprop(node, "upa-portid");
 	if ((!prop) || (!prop->value))
 		prop = ofw_tree_getprop(node, "portid");
 	if ((!prop) || (!prop->value))
 		prop = ofw_tree_getprop(node, "cpuid");
-		
+
 	if (!prop || prop->value == NULL)
 		return;
-		
+
 	mid = *((uint32_t *) prop->value);
 	if (CPU->arch.mid == mid)
 		return;
 
 	waking_up_mid = mid;
-		
+
 	if (waitq_sleep_timeout(&ap_completion_wq, 1000000,
 	    SYNCH_FLAGS_NONE, NULL) == ETIMEOUT)
 		log(LF_ARCH, LVL_NOTE, "%s: waiting for processor (mid = %" PRIu32
@@ -116,7 +116,7 @@ void kmp(void *arg)
 {
 	ofw_tree_node_t *node;
 	int i;
-	
+
 	if (is_us() || is_us_iii()) {
 		node = ofw_tree_find_child_by_device_type(cpus_parent(), "cpu");
 		for (i = 0; node;

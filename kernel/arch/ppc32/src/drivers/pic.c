@@ -54,7 +54,7 @@ void pic_enable_interrupt(inr_t intnum)
 		else
 			pic[PIC_MASK_HIGH] = pic[PIC_MASK_HIGH] | (1 << (intnum - 32));
 	}
-	
+
 }
 
 void pic_disable_interrupt(inr_t intnum)
@@ -84,16 +84,16 @@ uint8_t pic_get_pending(void)
 {
 	if (pic) {
 		uint32_t pending;
-		
+
 		pending = pic[PIC_PENDING_LOW];
 		if (pending != 0)
 			return fnzb32(pending);
-		
+
 		pending = pic[PIC_PENDING_HIGH];
 		if (pending != 0)
 			return fnzb32(pending) + 32;
 	}
-	
+
 	return 255;
 }
 

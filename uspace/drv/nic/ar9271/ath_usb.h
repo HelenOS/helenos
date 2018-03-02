@@ -48,7 +48,7 @@ typedef struct {
 	usb_pipe_t *output_ctrl_pipe;
 	usb_pipe_t *input_data_pipe;
 	usb_pipe_t *output_data_pipe;
-	
+
 	/** Pointer to connected USB device. */
 	usb_device_t *usb_device;
 } ath_usb_t;

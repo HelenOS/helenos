@@ -61,13 +61,13 @@ static void remote_pio_window_get(ddf_fun_t *fun, void *ops,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	pio_window_t *pio_window = pio_win_ops->get_pio_window(fun);
 	if (!pio_window) {
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	async_answer_0(callid, EOK);
 
 	if (!async_data_read_receive(&callid, &len)) {

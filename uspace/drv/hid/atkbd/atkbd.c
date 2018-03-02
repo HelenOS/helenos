@@ -204,20 +204,20 @@ static errno_t polling(void *arg)
 	at_kbd_t *kbd = arg;
 	size_t nwr;
 	errno_t rc;
-	
+
 	while (true) {
 		uint8_t code = 0;
 		rc = chardev_read(kbd->chardev, &code, 1, &nwr);
 		if (rc != EOK)
 			return EIO;
-		
+
 		const unsigned int *map;
 		size_t map_size;
-		
+
 		if (code == KBD_SCANCODE_SET_EXTENDED) {
 			map = scanmap_e0;
 			map_size = sizeof(scanmap_e0) / sizeof(unsigned int);
-			
+
 			rc = chardev_read(kbd->chardev, &code, 1, &nwr);
 			if (rc != EOK)
 				return EIO;
@@ -269,7 +269,7 @@ static errno_t polling(void *arg)
 			map = scanmap_simple;
 			map_size = sizeof(scanmap_simple) / sizeof(unsigned int);
 		}
-		
+
 		kbd_event_type_t type;
 		if (code == KBD_SCANCODE_KEY_RELEASE) {
 			type = KEY_RELEASE;
@@ -279,9 +279,9 @@ static errno_t polling(void *arg)
 		} else {
 			type = KEY_PRESS;
 		}
-		
+
 		const unsigned int key = (code < map_size) ? map[code] : 0;
-		
+
 		if (key != 0)
 			push_event(kbd->client_sess, type, key);
 		else
@@ -314,7 +314,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 	case IPC_M_CONNECT_TO_ME: {
 		async_sess_t *sess =
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
-		
+
 		/* Probably ENOMEM error, try again. */
 		if (sess == NULL) {
 			ddf_msg(LVL_WARN,
@@ -322,7 +322,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 			async_answer_0(icallid, EAGAIN);
 			break;
 		}
-		
+
 		if (kbd->client_sess == NULL) {
 			kbd->client_sess = sess;
 			ddf_msg(LVL_DEBUG, "Set client session");
@@ -331,7 +331,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 			ddf_msg(LVL_ERROR, "Client session already set");
 			async_answer_0(icallid, ELIMIT);
 		}
-		
+
 		break;
 	}
 	default:
@@ -358,10 +358,10 @@ errno_t at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 {
 	async_sess_t *parent_sess;
 	errno_t rc;
-	
+
 	assert(kbd);
 	assert(dev);
-	
+
 	kbd->client_sess = NULL;
 	parent_sess = ddf_dev_parent_sess_get(dev);
 	if (parent_sess == NULL) {
@@ -369,28 +369,28 @@ errno_t at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 		rc = EIO;
 		goto error;
 	}
-	
+
 	rc = chardev_open(parent_sess, &kbd->chardev);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed opening character device.");
 		return EIO;
 	}
-	
+
 	kbd->kbd_fun = ddf_fun_create(dev, fun_exposed, "kbd");
 	if (!kbd->kbd_fun) {
 		ddf_msg(LVL_ERROR, "Failed creating function 'kbd'.");
 		return ENOMEM;
 	}
-	
+
 	ddf_fun_set_ops(kbd->kbd_fun, &kbd_ops);
-	
+
 	errno_t ret = ddf_fun_bind(kbd->kbd_fun);
 	if (ret != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function 'kbd'.");
 		ddf_fun_destroy(kbd->kbd_fun);
 		return EEXIST;
 	}
-	
+
 	ret = ddf_fun_add_to_category(kbd->kbd_fun, "keyboard");
 	if (ret != EOK) {
 		ddf_msg(LVL_ERROR, "Failed adding function 'kbd' to category "
@@ -399,7 +399,7 @@ errno_t at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 		ddf_fun_destroy(kbd->kbd_fun);
 		return ENOMEM;
 	}
-	
+
 	kbd->polling_fibril = fibril_create(polling, kbd);
 	if (!kbd->polling_fibril) {
 		ddf_msg(LVL_ERROR, "Failed creating polling fibril.");
@@ -407,7 +407,7 @@ errno_t at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 		ddf_fun_destroy(kbd->kbd_fun);
 		return ENOMEM;
 	}
-	
+
 	fibril_add_ready(kbd->polling_fibril);
 	return EOK;
 error:

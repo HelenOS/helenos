@@ -56,17 +56,17 @@ void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 	size_t i0;
 	size_t i;
 	size_t cnt;
-	
+
 	assert(as->arch.itsb);
 	assert(as->arch.dtsb);
-	
+
 	i0 = (page >> MMU_PAGE_WIDTH) & ITSB_ENTRY_MASK;
 
 	if (pages == (size_t) -1 || (pages * 2) > ITSB_ENTRY_COUNT)
 		cnt = ITSB_ENTRY_COUNT;
 	else
 		cnt = pages * 2;
-	
+
 	for (i = 0; i < cnt; i++) {
 		as->arch.itsb[(i0 + i) & ITSB_ENTRY_MASK].tag.invalid = true;
 		as->arch.dtsb[(i0 + i) & DTSB_ENTRY_MASK].tag.invalid = true;
@@ -85,7 +85,7 @@ void itsb_pte_copy(pte_t *t, size_t index)
 	size_t entry;
 
 	assert(index <= 1);
-	
+
 	as = t->as;
 	entry = ((t->page >> MMU_PAGE_WIDTH) + index) & ITSB_ENTRY_MASK;
 	tte = &as->arch.itsb[entry];
@@ -111,9 +111,9 @@ void itsb_pte_copy(pte_t *t, size_t index)
 	tte->data.cp = t->c;	/* cp as cache in phys.-idxed, c as cacheable */
 	tte->data.p = t->k;	/* p as privileged, k as kernel */
 	tte->data.v = t->p;	/* v as valid, p as present */
-	
+
 	write_barrier();
-	
+
 	tte->tag.invalid = false;	/* mark the entry as valid */
 }
 
@@ -128,7 +128,7 @@ void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 	as_t *as;
 	tsb_entry_t *tte;
 	size_t entry;
-	
+
 	assert(index <= 1);
 
 	as = t->as;
@@ -160,9 +160,9 @@ void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 	tte->data.p = t->k;		/* p as privileged */
 	tte->data.w = ro ? false : t->w;
 	tte->data.v = t->p;
-	
+
 	write_barrier();
-	
+
 	tte->tag.invalid = false;	/* mark the entry as valid */
 }
 

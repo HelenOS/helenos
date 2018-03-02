@@ -52,7 +52,7 @@ DIR *opendir(const char *dirname)
 		errno = ENOMEM;
 		return NULL;
 	}
-	
+
 	int fd;
 	errno_t rc = vfs_lookup(dirname, WALK_DIRECTORY, &fd);
 	if (rc != EOK) {
@@ -60,7 +60,7 @@ DIR *opendir(const char *dirname)
 		errno = rc;
 		return NULL;
 	}
-	
+
 	rc = vfs_open(fd, MODE_READ);
 	if (rc != EOK) {
 		free(dirp);
@@ -68,7 +68,7 @@ DIR *opendir(const char *dirname)
 		errno = rc;
 		return NULL;
 	}
-	
+
 	dirp->fd = fd;
 	dirp->pos = 0;
 	return dirp;
@@ -84,16 +84,16 @@ struct dirent *readdir(DIR *dirp)
 {
 	errno_t rc;
 	ssize_t len = 0;
-	
+
 	rc = vfs_read_short(dirp->fd, dirp->pos, &dirp->res.d_name[0],
 	    NAME_MAX + 1, &len);
 	if (rc != EOK) {
 		errno = rc;
 		return NULL;
 	}
-	
+
 	dirp->pos += len;
-	
+
 	return &dirp->res;
 }
 

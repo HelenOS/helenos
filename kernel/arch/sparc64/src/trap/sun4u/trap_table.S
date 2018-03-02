@@ -501,7 +501,7 @@ SYMBOL(fill_0_normal_tl1)
 .macro PREEMPTIBLE_HANDLER_TEMPLATE is_syscall
 .if NOT(\is_syscall)
 	rdpr %tstate, %g3
-	
+
 	/*
 	 * One of the ways this handler can be invoked is after a nested MMU trap from
 	 * either spill_1_normal or fill_1_normal traps. Both of these traps manipulate
@@ -575,7 +575,7 @@ SYMBOL(fill_0_normal_tl1)
 	 * and normal spills will go to the kernel stack.
 	 */
 	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(0), %wstate
-	
+
 	/*
 	 * Copy arguments.
 	 */
@@ -604,11 +604,11 @@ SYMBOL(fill_0_normal_tl1)
 	 * Save the Y register.
 	 */
 	stx %g4, [%sp + STACK_BIAS + ISTATE_OFFSET_Y]
-	
+
 	wrpr %g0, 0, %tl
 	wrpr %g0, PSTATE_PRIV_BIT | PSTATE_PEF_BIT, %pstate
 	SAVE_GLOBALS
-	
+
 .if NOT(\is_syscall)
 	/*
 	 * Call the higher-level handler and pass istate as second parameter.
@@ -628,7 +628,7 @@ SYMBOL(fill_0_normal_tl1)
 	rdpr %pstate, %l1			! we must preserve the PEF bit
 	wrpr %g0, PSTATE_AG_BIT | PSTATE_PRIV_BIT, %pstate
 	wrpr %g0, 1, %tl
-	
+
 	/*
 	 * Read TSTATE, TPC and TNPC from saved copy.
 	 */
@@ -741,7 +741,7 @@ SYMBOL(fill_0_normal_tl1)
 	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi
 	rd %pc, %g1
 	flush %g1
-	
+
 	rdpr %cwp, %g1
 	rdpr %otherwin, %g2
 
@@ -799,7 +799,7 @@ SYMBOL(fill_0_normal_tl1)
 	bg %xcc, 2f				! fix the CANRESTORE=NWINDOWS-1 anomaly
 	mov NWINDOWS - 2, %g1			! use dealy slot for both cases
 	sub %g1, %g2, %g1
-	
+
 	wrpr %g0, 0, %otherwin
 	wrpr %g1, 0, %cansave			! NWINDOWS - 2 - CANRESTORE
 	wrpr %g2, 0, %canrestore		! OTHERWIN + windows in the buffer
@@ -844,7 +844,7 @@ SYMBOL(fill_0_normal_tl1)
 	dec %g1
 	and %g1, NWINDOWS - 1, %g1
 	wrpr %g1, 0, %cwp			! CWP--
-	
+
 .if \is_syscall
 	done
 .else

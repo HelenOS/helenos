@@ -149,7 +149,7 @@ module_t *module_find(rtld_t *rtld, const char *name)
 			return m; /* Found */
 		}
 	}
-	
+
 	return NULL; /* Not found */
 }
 
@@ -165,13 +165,13 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	char name_buf[NAME_BUF_SIZE];
 	module_t *m;
 	int rc;
-	
+
 	m = calloc(1, sizeof(module_t));
 	if (m == NULL) {
 		printf("malloc failed\n");
 		exit(1);
 	}
-	
+
 	m->rtld = rtld;
 	m->id = rtld_get_next_id(rtld);
 
@@ -215,13 +215,13 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 
 	/* Insert into the list of loaded modules */
 	list_append(&m->modules_link, &rtld->modules);
-	
+
 	/* Copy TLS info */
 	m->tdata = info.tls.tdata;
 	m->tdata_size = info.tls.tdata_size;
 	m->tbss_size = info.tls.tbss_size;
 	m->tls_align = info.tls.tls_align;
-	
+
 	DPRINTF("tdata at %p size %zu, tbss size %zu\n",
 	    m->tdata, m->tdata_size, m->tbss_size);
 
@@ -240,7 +240,7 @@ void module_load_deps(module_t *m, mlflags_t flags)
 	DPRINTF("module_load_deps('%s')\n", m->dyn.soname);
 
 	/* Count direct dependencies */
-	
+
 	dp = m->dyn.dynamic;
 	n = 0;
 

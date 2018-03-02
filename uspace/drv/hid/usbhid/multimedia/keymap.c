@@ -85,7 +85,7 @@ unsigned int usb_multimedia_map_usage(int usage)
 
 	/*! @todo What if the usage is not in the table? */
 	key = map[usage];
-	
+
 	return key;
 }
 

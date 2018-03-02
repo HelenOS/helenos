@@ -73,7 +73,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			 * information is not lost.
 			 */
 			IPC_SET_ARG1(answer->data, dst);
-				
+
 			answer->buffer = malloc(size, 0);
 			errno_t rc = copy_from_uspace(answer->buffer,
 			    (void *) src, size);

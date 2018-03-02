@@ -72,7 +72,7 @@ typedef struct {
 	link_t cat_link;
 	/** Link to loc_service_t.cat_memb list */
 	link_t svc_link;
-	
+
 	/** Category */
 	category_t *cat;
 	/** Service */

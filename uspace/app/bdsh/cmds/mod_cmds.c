@@ -128,7 +128,7 @@ int run_module(int module, char *argv[], iostate_t *new_iostate)
 	module_t *mod = modules;
 
 	mod += module;
-	
+
 	iostate_t *old_iostate = get_iostate();
 	set_iostate(new_iostate);
 
@@ -137,7 +137,7 @@ int run_module(int module, char *argv[], iostate_t *new_iostate)
 	} else {
 		rc = CL_ENOENT;
 	}
-	
+
 	set_iostate(old_iostate);
 
 	return rc;

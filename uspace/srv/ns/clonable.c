@@ -83,24 +83,24 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
 		async_answer_0(callid, EBUSY);
 		return;
 	}
-	
+
 	cs_req_t *csr = list_get_instance(req_link, cs_req_t, link);
 	list_remove(req_link);
-	
+
 	/* Currently we can only handle a single type of clonable service. */
 	assert(csr->service == SERVICE_LOADER);
-	
+
 	async_answer_0(callid, EOK);
-	
+
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL)
 		async_answer_0(callid, EIO);
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	async_forward_fast(csr->callid, exch, csr->iface, csr->arg3, 0,
 	    IPC_FF_NONE);
 	async_exchange_end(exch);
-	
+
 	free(csr);
 	async_hangup(sess);
 }
@@ -119,28 +119,28 @@ void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
     ipc_callid_t callid)
 {
 	assert(service == SERVICE_LOADER);
-	
+
 	cs_req_t *csr = malloc(sizeof(cs_req_t));
 	if (csr == NULL) {
 		async_answer_0(callid, ENOMEM);
 		return;
 	}
-	
+
 	/* Spawn a loader. */
 	errno_t rc = loader_spawn("loader");
-	
+
 	if (rc != EOK) {
 		free(csr);
 		async_answer_0(callid, rc);
 		return;
 	}
-	
+
 	link_initialize(&csr->link);
 	csr->service = service;
 	csr->iface = iface;
 	csr->callid = callid;
 	csr->arg3 = IPC_GET_ARG3(*call);
-	
+
 	/*
 	 * We can forward the call only after the server we spawned connects
 	 * to us. Meanwhile we might need to service more connection requests.

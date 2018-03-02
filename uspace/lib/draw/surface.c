@@ -58,7 +58,7 @@ surface_t *surface_create(surface_coord_t width, surface_coord_t height,
 	if (!surface) {
 		return NULL;
 	}
-	
+
 	size_t pixbuf_size = width * height * sizeof(pixel_t);
 
 	if (!pixbuf) {
@@ -123,7 +123,7 @@ void surface_get_resolution(surface_t *surface, surface_coord_t *width, surface_
 {
 	assert(width);
 	assert(height);
-	
+
 	*width = surface->pixmap.width;
 	*height = surface->pixmap.height;
 }

@@ -10,4 +10,3 @@ What's missing:
  * Add more output controls (\t \r ...)
  * Add width/precision options for number printings
  * Add more format flags (%f %b ...)
- 

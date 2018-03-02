@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
-	
+
 	/* Not reached */
 	return 0;
 }
@@ -170,33 +170,33 @@ static errno_t file_bd_init(const char *fname)
 {
 	bd_srvs_init(&bd_srvs);
 	bd_srvs.ops = &file_bd_ops;
-	
+
 	async_set_fallback_port_handler(file_bd_connection, NULL);
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to register driver.\n", NAME);
 		return rc;
 	}
-	
+
 	img = fopen(fname, "rb+");
 	if (img == NULL)
 		return EINVAL;
-	
+
 	if (fseek(img, 0, SEEK_END) != 0) {
 		fclose(img);
 		return EIO;
 	}
-	
+
 	off64_t img_size = ftell(img);
 	if (img_size < 0) {
 		fclose(img);
 		return EIO;
 	}
-	
+
 	num_blocks = img_size / block_size;
-	
+
 	fibril_mutex_initialize(&dev_lock);
-	
+
 	return EOK;
 }
 

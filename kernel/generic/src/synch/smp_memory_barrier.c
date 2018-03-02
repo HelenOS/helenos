@@ -55,7 +55,7 @@ sys_errno_t sys_smp_memory_barrier(void)
 	for (unsigned int cpu_id = 0; cpu_id < config.cpu_active; ++cpu_id) {
 		smp_call(cpu_id, issue_mem_bar, NULL);
 	}
-	
+
 	return 0;
 }
 

@@ -114,7 +114,7 @@ void irq_initialize(irq_t *irq)
 	memsetb(irq, sizeof(irq_t), 0);
 	irq_spinlock_initialize(&irq->lock, "irq.lock");
 	irq->inr = -1;
-	
+
 	irq_initialize_arch(irq);
 }
 
@@ -152,7 +152,7 @@ irq_dispatch_and_lock_table(hash_table_t *h, irq_spinlock_t *l, inr_t inr)
 		irq_spinlock_unlock(&irq->lock, false);
 	}
 	irq_spinlock_unlock(l, false);
-	
+
 	return NULL;
 }
 
@@ -178,22 +178,22 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
 	 *
 	 * In the usual case the uspace handlers have precedence.
 	 */
-	
+
 	if (console_override) {
 		irq_t *irq = irq_dispatch_and_lock_table(&irq_kernel_hash_table,
 		    &irq_kernel_hash_table_lock, inr);
 		if (irq)
 			return irq;
-		
+
 		return irq_dispatch_and_lock_table(&irq_uspace_hash_table,
 		    &irq_uspace_hash_table_lock, inr);
 	}
-	
+
 	irq_t *irq = irq_dispatch_and_lock_table(&irq_uspace_hash_table,
 	    &irq_uspace_hash_table_lock, inr);
 	if (irq)
 		return irq;
-	
+
 	return irq_dispatch_and_lock_table(&irq_kernel_hash_table,
 	    &irq_kernel_hash_table_lock, inr);
 }

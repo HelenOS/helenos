@@ -65,11 +65,11 @@ static errno_t tcp_callback_create(tcp_t *tcp)
 	async_exch_t *exch = async_exchange_begin(tcp->sess);
 
 	aid_t req = async_send_0(exch, TCP_CALLBACK_CREATE, NULL);
-	
+
 	port_id_t port;
 	errno_t rc = async_create_callback_port(exch, INTERFACE_TCP_CB, 0, 0,
 	    tcp_cb_conn, tcp, &port);
-	
+
 	async_exchange_end(exch);
 
 	if (rc != EOK)

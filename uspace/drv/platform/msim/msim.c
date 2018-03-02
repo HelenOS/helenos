@@ -146,7 +146,7 @@ static msim_fun_t *msim_fun(ddf_fun_t *fnode)
 static hw_resource_list_t *msim_get_resources(ddf_fun_t *fnode)
 {
 	msim_fun_t *fun = msim_fun(fnode);
-	
+
 	assert(fun != NULL);
 	return &fun->hw_resources;
 }
@@ -183,43 +183,43 @@ msim_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
     msim_fun_t *fun_proto)
 {
 	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
-	
+
 	ddf_fun_t *fnode = NULL;
 	errno_t rc;
-	
+
 	/* Create new device. */
 	fnode = ddf_fun_create(dev, fun_inner, name);
 	if (fnode == NULL)
 		goto failure;
-	
+
 	msim_fun_t *fun = ddf_fun_data_alloc(fnode, sizeof(msim_fun_t));
 	if (fun == NULL)
 		goto failure;
-	
+
 	*fun = *fun_proto;
-	
+
 	/* Add match ID */
 	rc = ddf_fun_add_match_id(fnode, str_match_id, 100);
 	if (rc != EOK)
 		goto failure;
-	
+
 	/* Set provided operations to the device. */
 	ddf_fun_set_ops(fnode, &msim_fun_ops);
-	
+
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
 		goto failure;
 	}
-	
+
 	return true;
-	
+
 failure:
 	if (fnode != NULL)
 		ddf_fun_destroy(fnode);
-	
+
 	ddf_msg(LVL_ERROR, "Failed adding function '%s'.", name);
-	
+
 	return false;
 }
 
@@ -245,7 +245,7 @@ static errno_t msim_dev_add(ddf_dev_t *dev)
 	/* Register functions. */
 	if (!msim_add_functions(dev))
 		ddf_msg(LVL_ERROR, "Failed to add functions for the MSIM platform.");
-	
+
 	return EOK;
 }
 

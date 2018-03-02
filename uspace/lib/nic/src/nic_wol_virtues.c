@@ -78,7 +78,7 @@ errno_t nic_wol_virtues_init(nic_wol_virtues_t *wvs)
 	wvs->table_operations.key_equal = nic_wv_key_equal;
 	wvs->table_operations.equal = 0;
 	wvs->table_operations.remove_callback = 0;
-	
+
 	if (!hash_table_create(&wvs->table, 0, 0, &wvs->table_operations)) {
 		return ENOMEM;
 	}

@@ -90,12 +90,12 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 NO_TRACE static inline uint64_t pstate_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rdpr %%pstate, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -121,12 +121,12 @@ NO_TRACE static inline void pstate_write(uint64_t v)
 NO_TRACE static inline uint64_t tick_compare_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rd %%tick_cmpr, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -152,12 +152,12 @@ NO_TRACE static inline void tick_compare_write(uint64_t v)
 NO_TRACE static inline uint64_t stick_compare_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rd %%asr25, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -183,12 +183,12 @@ NO_TRACE static inline void stick_compare_write(uint64_t v)
 NO_TRACE static inline uint64_t tick_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rdpr %%tick, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -214,12 +214,12 @@ NO_TRACE static inline void tick_write(uint64_t v)
 NO_TRACE static inline uint64_t fprs_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rd %%fprs, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -245,12 +245,12 @@ NO_TRACE static inline void fprs_write(uint64_t v)
 NO_TRACE static inline uint64_t softint_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rd %%softint, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -311,11 +311,11 @@ NO_TRACE static inline void set_softint_write(uint64_t v)
 NO_TRACE static inline ipl_t interrupts_enable(void) {
 	pstate_reg_t pstate;
 	uint64_t value = pstate_read();
-	
+
 	pstate.value = value;
 	pstate.ie = true;
 	pstate_write(pstate.value);
-	
+
 	return (ipl_t) value;
 }
 
@@ -330,11 +330,11 @@ NO_TRACE static inline ipl_t interrupts_enable(void) {
 NO_TRACE static inline ipl_t interrupts_disable(void) {
 	pstate_reg_t pstate;
 	uint64_t value = pstate_read();
-	
+
 	pstate.value = value;
 	pstate.ie = false;
 	pstate_write(pstate.value);
-	
+
 	return (ipl_t) value;
 }
 
@@ -347,7 +347,7 @@ NO_TRACE static inline ipl_t interrupts_disable(void) {
  */
 NO_TRACE static inline void interrupts_restore(ipl_t ipl) {
 	pstate_reg_t pstate;
-	
+
 	pstate.value = pstate_read();
 	pstate.ie = ((pstate_reg_t)(uint64_t) ipl).ie;
 	pstate_write(pstate.value);
@@ -372,7 +372,7 @@ NO_TRACE static inline ipl_t interrupts_read(void) {
 NO_TRACE static inline bool interrupts_disabled(void)
 {
 	pstate_reg_t pstate;
-	
+
 	pstate.value = pstate_read();
 	return !pstate.ie;
 }
@@ -387,13 +387,13 @@ NO_TRACE static inline bool interrupts_disabled(void)
 NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t unbiased_sp;
-	
+
 	asm volatile (
 		"add %%sp, %[stack_bias], %[unbiased_sp]\n"
 		: [unbiased_sp] "=r" (unbiased_sp)
 		: [stack_bias] "i" (STACK_BIAS)
 	);
-	
+
 	return ALIGN_DOWN(unbiased_sp, STACK_SIZE);
 }
 
@@ -405,12 +405,12 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 NO_TRACE static inline uint64_t ver_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rdpr %%ver, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -422,12 +422,12 @@ NO_TRACE static inline uint64_t ver_read(void)
 NO_TRACE static inline uint64_t tpc_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rdpr %%tpc, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -439,12 +439,12 @@ NO_TRACE static inline uint64_t tpc_read(void)
 NO_TRACE static inline uint64_t tl_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rdpr %%tl, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -456,12 +456,12 @@ NO_TRACE static inline uint64_t tl_read(void)
 NO_TRACE static inline uint64_t tba_read(void)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"rdpr %%tba, %[v]\n"
 		: [v] "=r" (v)
 	);
-	
+
 	return v;
 }
 
@@ -491,14 +491,14 @@ NO_TRACE static inline void tba_write(uint64_t v)
 NO_TRACE static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 {
 	uint64_t v;
-	
+
 	asm volatile (
 		"ldxa [%[va]] %[asi], %[v]\n"
 		: [v] "=r" (v)
 		: [va] "r" (va),
 		  [asi] "i" ((unsigned int) asi)
 	);
-	
+
 	return v;
 }
 

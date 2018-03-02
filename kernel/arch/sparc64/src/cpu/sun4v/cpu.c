@@ -70,7 +70,7 @@ void cpu_arch_init(void)
 			break;
 		}
 	}
-		
+
 	tick_init();
 
 	sun4v_ipi_init();

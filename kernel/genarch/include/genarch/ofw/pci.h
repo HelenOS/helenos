@@ -37,7 +37,7 @@
 typedef struct {
 	/* Needs to be masked to obtain pure space id */
 	uint32_t space;
-	
+
 	/* Group phys.mid and phys.lo together */
 	uint64_t addr;
 	uint64_t size;
@@ -45,7 +45,7 @@ typedef struct {
 
 typedef struct {
 	uint32_t space;
-	
+
 	/* Group phys.mid and phys.lo together */
 	uint64_t child_base;
 	uint64_t parent_base;

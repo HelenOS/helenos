@@ -54,19 +54,19 @@ errno_t ieee80211_get_scan_results_impl(ddf_fun_t *fun,
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	ieee80211_dev_t *ieee80211_dev = nic_get_specific(nic_data);
-	
+
 	if (!ieee80211_is_ready(ieee80211_dev))
 		return EREFUSED;
-	
+
 	if (now)
 		ieee80211_dev->ops->scan(ieee80211_dev);
-	
+
 	fibril_mutex_lock(&ieee80211_dev->ap_list.results_mutex);
-	
+
 	if (results) {
 		ieee80211_scan_result_list_t *result_list =
 		    &ieee80211_dev->ap_list;
-		
+
 		unsigned int i = 0;
 		ieee80211_scan_result_list_foreach(*result_list, result) {
 			memcpy(&results->results[i],
@@ -74,12 +74,12 @@ errno_t ieee80211_get_scan_results_impl(ddf_fun_t *fun,
 			    sizeof(ieee80211_scan_result_t));
 			i++;
 		}
-		
+
 		results->length = i;
 	}
-	
+
 	fibril_mutex_unlock(&ieee80211_dev->ap_list.results_mutex);
-	
+
 	return EOK;
 }
 
@@ -101,67 +101,67 @@ static errno_t ieee80211_connect_proc(ieee80211_dev_t *ieee80211_dev,
     ieee80211_scan_result_link_t *auth_data, char *password)
 {
 	ieee80211_dev->bssid_info.res_link = auth_data;
-	
+
 	/* Set channel. */
 	errno_t rc = ieee80211_dev->ops->set_freq(ieee80211_dev,
 	    ieee80211_channel_to_freq(auth_data->scan_result.channel));
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Try to authenticate. */
 	ieee80211_authenticate(ieee80211_dev);
-	
+
 	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	rc = fibril_condvar_wait_timeout(&ieee80211_dev->gen_cond,
 	    &ieee80211_dev->gen_mutex, AUTH_TIMEOUT);
 	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	if (ieee80211_get_auth_phase(ieee80211_dev) !=
 	    IEEE80211_AUTH_AUTHENTICATED) {
 		ieee80211_set_auth_phase(ieee80211_dev,
 		    IEEE80211_AUTH_DISCONNECTED);
 		return EINVAL;
 	}
-	
+
 	/* Try to associate. */
 	ieee80211_associate(ieee80211_dev, password);
-	
+
 	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	rc = fibril_condvar_wait_timeout(&ieee80211_dev->gen_cond,
 	    &ieee80211_dev->gen_mutex, AUTH_TIMEOUT);
 	fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	if (ieee80211_get_auth_phase(ieee80211_dev) !=
 	    IEEE80211_AUTH_ASSOCIATED) {
 		ieee80211_set_auth_phase(ieee80211_dev,
 		    IEEE80211_AUTH_DISCONNECTED);
 		return EINVAL;
 	}
-	
+
 	/* On open network, we are finished. */
 	if (auth_data->scan_result.security.type !=
 	    IEEE80211_SECURITY_OPEN) {
 		/* Otherwise wait for 4-way handshake to complete. */
-		
+
 		fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 		rc = fibril_condvar_wait_timeout(&ieee80211_dev->gen_cond,
 		    &ieee80211_dev->gen_mutex, HANDSHAKE_TIMEOUT);
 		fibril_mutex_unlock(&ieee80211_dev->gen_mutex);
-		
+
 		if (rc != EOK) {
 			ieee80211_deauthenticate(ieee80211_dev);
 			return rc;
 		}
 	}
-	
+
 	ieee80211_set_auth_phase(ieee80211_dev, IEEE80211_AUTH_CONNECTED);
-	
+
 	return EOK;
 }
 
@@ -181,26 +181,26 @@ errno_t ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, char *password)
 {
 	assert(ssid_start);
 	assert(password);
-	
+
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	ieee80211_dev_t *ieee80211_dev = nic_get_specific(nic_data);
-	
+
 	if (!ieee80211_is_ready(ieee80211_dev))
 		return EREFUSED;
-	
+
 	if (ieee80211_is_connected(ieee80211_dev)) {
 		errno_t rc = ieee80211_dev->iface->disconnect(fun);
 		if (rc != EOK)
 			return rc;
 	}
-	
+
 	ieee80211_set_connect_request(ieee80211_dev);
-	
+
 	errno_t rc = ENOENT;
 	fibril_mutex_lock(&ieee80211_dev->scan_mutex);
-	
+
 	ieee80211_dev->pending_conn_req = false;
-	
+
 	ieee80211_scan_result_list_foreach(ieee80211_dev->ap_list, result) {
 		if (!str_lcmp(ssid_start, result->scan_result.ssid,
 		    str_size(ssid_start))) {
@@ -209,9 +209,9 @@ errno_t ieee80211_connect_impl(ddf_fun_t *fun, char *ssid_start, char *password)
 			break;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&ieee80211_dev->scan_mutex);
-	
+
 	return rc;
 }
 
@@ -227,17 +227,17 @@ errno_t ieee80211_disconnect_impl(ddf_fun_t *fun)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	ieee80211_dev_t *ieee80211_dev = nic_get_specific(nic_data);
-	
+
 	if (!ieee80211_is_ready(ieee80211_dev))
 		return EREFUSED;
-	
+
 	if (!ieee80211_is_connected(ieee80211_dev))
 		return EOK;
-	
+
 	fibril_mutex_lock(&ieee80211_dev->ap_list.results_mutex);
 	errno_t rc = ieee80211_deauthenticate(ieee80211_dev);
 	fibril_mutex_unlock(&ieee80211_dev->ap_list.results_mutex);
-	
+
 	return rc;
 }
 

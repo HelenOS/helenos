@@ -56,7 +56,7 @@ extern void alloc_window_and_flush(void);
 bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
 	uintptr_t kstack;
-	
+
 #if defined(SUN4U)
 	kstack = read_from_ag_g6();
 #elif defined(SUN4V)

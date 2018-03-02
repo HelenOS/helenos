@@ -72,7 +72,7 @@ char *sysinfo_get_keys(const char *path, size_t *size)
 	 * Unfortunatelly we cannot allocate the buffer
 	 * and transfer the keys as a single atomic operation.
 	 */
-	
+
 	/* Get the keys size */
 	errno_t ret = sysinfo_get_keys_size(path, size);
 	if ((ret != EOK) || (size == 0)) {
@@ -82,13 +82,13 @@ char *sysinfo_get_keys(const char *path, size_t *size)
 		*size = 0;
 		return NULL;
 	}
-	
+
 	char *data = malloc(*size);
 	if (data == NULL) {
 		*size = 0;
 		return NULL;
 	}
-	
+
 	/* Get the data */
 	size_t sz;
 	ret = (errno_t) __SYSCALL5(SYS_SYSINFO_GET_KEYS, (sysarg_t) path,
@@ -98,7 +98,7 @@ char *sysinfo_get_keys(const char *path, size_t *size)
 		*size = sz;
 		return data;
 	}
-	
+
 	free(data);
 	*size = 0;
 	return NULL;
@@ -165,7 +165,7 @@ void *sysinfo_get_data(const char *path, size_t *size)
 	 * Unfortunatelly we cannot allocate the buffer
 	 * and transfer the data as a single atomic operation.
 	 */
-	
+
 	/* Get the binary data size */
 	errno_t ret = sysinfo_get_data_size(path, size);
 	if ((ret != EOK) || (size == 0)) {
@@ -176,13 +176,13 @@ void *sysinfo_get_data(const char *path, size_t *size)
 		*size = 0;
 		return NULL;
 	}
-	
+
 	void *data = malloc(*size);
 	if (data == NULL) {
 		*size = 0;
 		return NULL;
 	}
-	
+
 	/* Get the data */
 	size_t sz;
 	ret = (errno_t) __SYSCALL5(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
@@ -192,7 +192,7 @@ void *sysinfo_get_data(const char *path, size_t *size)
 		*size = sz;
 		return data;
 	}
-	
+
 	free(data);
 	*size = 0;
 	return NULL;
@@ -218,45 +218,45 @@ void *sysinfo_get_property(const char *path, const char *name, size_t *size)
 		*size = 0;
 		return NULL;
 	}
-	
+
 	size_t pos = 0;
 	while (pos < total_size) {
 		/* Process each property with sanity checks */
 		size_t cur_size = str_nsize(data + pos, total_size - pos);
 		if (((char *) data)[pos + cur_size] != 0)
 			break;
-		
+
 		bool found = (str_cmp(data + pos, name) == 0);
-		
+
 		pos += cur_size + 1;
 		if (pos >= total_size)
 			break;
-		
+
 		/* Process value size */
 		size_t value_size;
 		memcpy(&value_size, data + pos, sizeof(value_size));
-		
+
 		pos += sizeof(value_size);
 		if ((pos >= total_size) || (pos + value_size > total_size))
 			break;
-		
+
 		if (found) {
 			void *value = malloc(value_size);
 			if (value == NULL)
 				break;
-			
+
 			memcpy(value, data + pos, value_size);
 			free(data);
-			
+
 			*size = value_size;
 			return value;
 		}
-		
+
 		pos += value_size;
 	}
-	
+
 	free(data);
-	
+
 	*size = 0;
 	return NULL;
 }

@@ -53,15 +53,15 @@ void * __sync_val_compare_and_swap_4(void **ptr, void *expected, void *new_val)
 	 * would deadlock.
 	 */
 	irq_spinlock_lock(&cas_lock, true);
-	
+
 	void * cur_val = *ptr;
-	
+
 	if (cur_val == expected) {
 		*ptr = new_val;
 	}
-	
+
 	irq_spinlock_unlock(&cas_lock, true);
-	
+
 	return cur_val;
 }
 

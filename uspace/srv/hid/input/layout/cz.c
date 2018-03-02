@@ -411,10 +411,10 @@ static wchar_t cz_parse_ev(layout_t *state, kbd_event_t *ev)
 
 	if (ev->type != KEY_PRESS)
 		return 0;
-	
+
 	if (key_is_mod(ev->key))
 		return 0;
-	
+
 	switch (cz_state->mstate) {
 	case ms_start:
 		return parse_ms_start(cz_state, ev);
@@ -423,7 +423,7 @@ static wchar_t cz_parse_ev(layout_t *state, kbd_event_t *ev)
 	case ms_carka:
 		return parse_ms_carka(cz_state, ev);
 	}
-	
+
 	return 0;
 }
 

@@ -81,19 +81,19 @@
 static errno_t _thread_op_begin(thread_t *thread, bool being_go)
 {
 	mutex_lock(&TASK->udebug.lock);
-	
+
 	/* thread_exists() must be called with threads_lock held */
 	irq_spinlock_lock(&threads_lock, true);
-	
+
 	if (!thread_exists(thread)) {
 		irq_spinlock_unlock(&threads_lock, true);
 		mutex_unlock(&TASK->udebug.lock);
 		return ENOENT;
 	}
-	
+
 	/* thread->lock is enough to ensure the thread's existence */
 	irq_spinlock_exchange(&threads_lock, &thread->lock);
-	
+
 	/* Verify that 'thread' is a userspace thread. */
 	if (!thread->uspace) {
 		/* It's not, deny its existence */
@@ -101,7 +101,7 @@ static errno_t _thread_op_begin(thread_t *thread, bool being_go)
 		mutex_unlock(&TASK->udebug.lock);
 		return ENOENT;
 	}
-	
+
 	/* Verify debugging state. */
 	if (thread->udebug.active != true) {
 		/* Not in debugging session or undesired GO state */
@@ -109,7 +109,7 @@ static errno_t _thread_op_begin(thread_t *thread, bool being_go)
 		mutex_unlock(&TASK->udebug.lock);
 		return ENOENT;
 	}
-	
+
 	/*
 	 * Since the thread has active == true, TASK->udebug.lock
 	 * is enough to ensure its existence and that active remains
@@ -117,34 +117,34 @@ static errno_t _thread_op_begin(thread_t *thread, bool being_go)
 	 *
 	 */
 	irq_spinlock_unlock(&thread->lock, true);
-	
+
 	/* Only mutex TASK->udebug.lock left. */
-	
+
 	/* Now verify that the thread belongs to the current task. */
 	if (thread->task != TASK) {
 		/* No such thread belonging this task*/
 		mutex_unlock(&TASK->udebug.lock);
 		return ENOENT;
 	}
-	
+
 	/*
 	 * Now we need to grab the thread's debug lock for synchronization
 	 * of the threads stoppability/stop state.
 	 *
 	 */
 	mutex_lock(&thread->udebug.lock);
-	
+
 	/* The big task mutex is no longer needed. */
 	mutex_unlock(&TASK->udebug.lock);
-	
+
 	if (thread->udebug.go != being_go) {
 		/* Not in debugging session or undesired GO state. */
 		mutex_unlock(&thread->udebug.lock);
 		return EINVAL;
 	}
-	
+
 	/* Only thread->udebug.lock left. */
-	
+
 	return EOK;  /* All went well. */
 }
 
@@ -176,27 +176,27 @@ static void _thread_op_end(thread_t *thread)
 errno_t udebug_begin(call_t *call, bool *active)
 {
 	LOG("Debugging task %" PRIu64, TASK->taskid);
-	
+
 	mutex_lock(&TASK->udebug.lock);
-	
+
 	if (TASK->udebug.dt_state != UDEBUG_TS_INACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
 		return EBUSY;
 	}
-	
+
 	TASK->udebug.dt_state = UDEBUG_TS_BEGINNING;
 	TASK->udebug.begin_call = call;
 	TASK->udebug.debugger = call->sender;
-	
+
 	if (TASK->udebug.not_stoppable_count == 0) {
 		TASK->udebug.dt_state = UDEBUG_TS_ACTIVE;
 		TASK->udebug.begin_call = NULL;
 		*active = true;  /* directly to active state */
 	} else
 		*active = false;  /* only in beginning state */
-	
+
 	/* Set udebug.active on all of the task's userspace threads. */
-	
+
 	list_foreach(TASK->threads, th_link, thread_t, thread) {
 		mutex_lock(&thread->udebug.lock);
 		if (thread->uspace) {
@@ -206,7 +206,7 @@ errno_t udebug_begin(call_t *call, bool *active)
 		} else
 			mutex_unlock(&thread->udebug.lock);
 	}
-	
+
 	mutex_unlock(&TASK->udebug.lock);
 	return EOK;
 }
@@ -221,11 +221,11 @@ errno_t udebug_begin(call_t *call, bool *active)
 errno_t udebug_end(void)
 {
 	LOG("Task %" PRIu64, TASK->taskid);
-	
+
 	mutex_lock(&TASK->udebug.lock);
 	errno_t rc = udebug_task_cleanup(TASK);
 	mutex_unlock(&TASK->udebug.lock);
-	
+
 	return rc;
 }
 
@@ -241,17 +241,17 @@ errno_t udebug_end(void)
 errno_t udebug_set_evmask(udebug_evmask_t mask)
 {
 	LOG("mask = 0x%x", mask);
-	
+
 	mutex_lock(&TASK->udebug.lock);
-	
+
 	if (TASK->udebug.dt_state != UDEBUG_TS_ACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
 		return EINVAL;
 	}
-	
+
 	TASK->udebug.evmask = mask;
 	mutex_unlock(&TASK->udebug.lock);
-	
+
 	return EOK;
 }
 
@@ -271,19 +271,19 @@ errno_t udebug_go(thread_t *thread, call_t *call)
 	errno_t rc = _thread_op_begin(thread, false);
 	if (rc != EOK)
 		return rc;
-	
+
 	thread->udebug.go_call = call;
 	thread->udebug.go = true;
 	thread->udebug.cur_event = 0;  /* none */
-	
+
 	/*
 	 * Neither thread's lock nor threads_lock may be held during wakeup.
 	 *
 	 */
 	waitq_wakeup(&thread->udebug.go_wq, WAKEUP_FIRST);
-	
+
 	_thread_op_end(thread);
-	
+
 	return EOK;
 }
 
@@ -299,7 +299,7 @@ errno_t udebug_go(thread_t *thread, call_t *call)
 errno_t udebug_stop(thread_t *thread, call_t *call)
 {
 	LOG("udebug_stop()");
-	
+
 	/*
 	 * On success, this will lock thread->udebug.lock. Note that this
 	 * makes sure the thread is not stopped.
@@ -308,36 +308,36 @@ errno_t udebug_stop(thread_t *thread, call_t *call)
 	errno_t rc = _thread_op_begin(thread, true);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Take GO away from the thread. */
 	thread->udebug.go = false;
-	
+
 	if (thread->udebug.stoppable != true) {
 		/* Answer will be sent when the thread becomes stoppable. */
 		_thread_op_end(thread);
 		return EOK;
 	}
-	
+
 	/*
 	 * Answer GO call.
 	 *
 	 */
-	
+
 	/* Make sure nobody takes this call away from us. */
 	call = thread->udebug.go_call;
 	thread->udebug.go_call = NULL;
-	
+
 	IPC_SET_RETVAL(call->data, 0);
 	IPC_SET_ARG1(call->data, UDEBUG_EVENT_STOP);
-	
+
 	THREAD->udebug.cur_event = UDEBUG_EVENT_STOP;
-	
+
 	_thread_op_end(thread);
-	
+
 	mutex_lock(&TASK->udebug.lock);
 	ipc_answer(&TASK->answerbox, call);
 	mutex_unlock(&TASK->udebug.lock);
-	
+
 	return EOK;
 }
 
@@ -367,52 +367,52 @@ errno_t udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
     size_t *needed)
 {
 	LOG("udebug_thread_read()");
-	
+
 	/* Allocate a buffer to hold thread IDs */
 	sysarg_t *id_buffer = malloc(buf_size + 1, 0);
-	
+
 	mutex_lock(&TASK->udebug.lock);
-	
+
 	/* Verify task state */
 	if (TASK->udebug.dt_state != UDEBUG_TS_ACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
 		free(id_buffer);
 		return EINVAL;
 	}
-	
+
 	irq_spinlock_lock(&TASK->lock, true);
-	
+
 	/* Copy down the thread IDs */
-	
+
 	size_t max_ids = buf_size / sizeof(sysarg_t);
 	size_t copied_ids = 0;
 	size_t extra_ids = 0;
-	
+
 	/* FIXME: make sure the thread isn't past debug shutdown... */
 	list_foreach(TASK->threads, th_link, thread_t, thread) {
 		irq_spinlock_lock(&thread->lock, false);
 		bool uspace = thread->uspace;
 		irq_spinlock_unlock(&thread->lock, false);
-		
+
 		/* Not interested in kernel threads. */
 		if (!uspace)
 			continue;
-		
+
 		if (copied_ids < max_ids) {
 			/* Using thread struct pointer as identification hash */
 			id_buffer[copied_ids++] = (sysarg_t) thread;
 		} else
 			extra_ids++;
 	}
-	
+
 	irq_spinlock_unlock(&TASK->lock, true);
-	
+
 	mutex_unlock(&TASK->udebug.lock);
-	
+
 	*buffer = id_buffer;
 	*stored = copied_ids * sizeof(sysarg_t);
 	*needed = (copied_ids + extra_ids) * sizeof(sysarg_t);
-	
+
 	return EOK;
 }
 
@@ -430,12 +430,12 @@ errno_t udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 errno_t udebug_name_read(char **data, size_t *data_size)
 {
 	size_t name_size = str_size(TASK->name) + 1;
-	
+
 	*data = malloc(name_size, 0);
 	*data_size = name_size;
-	
+
 	memcpy(*data, TASK->name, name_size);
-	
+
 	return EOK;
 }
 
@@ -462,22 +462,22 @@ errno_t udebug_args_read(thread_t *thread, void **buffer)
 	errno_t rc = _thread_op_begin(thread, false);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Additionally we need to verify that we are inside a syscall. */
 	if ((thread->udebug.cur_event != UDEBUG_EVENT_SYSCALL_B) &&
 	    (thread->udebug.cur_event != UDEBUG_EVENT_SYSCALL_E)) {
 		_thread_op_end(thread);
 		return EINVAL;
 	}
-	
+
 	/* Prepare a buffer to hold the arguments. */
 	sysarg_t *arg_buffer = malloc(6 * sizeof(sysarg_t), 0);
-	
+
 	/* Copy to a local buffer before releasing the lock. */
 	memcpy(arg_buffer, thread->udebug.syscall_args, 6 * sizeof(sysarg_t));
-	
+
 	_thread_op_end(thread);
-	
+
 	*buffer = arg_buffer;
 	return EOK;
 }
@@ -505,21 +505,21 @@ errno_t udebug_regs_read(thread_t *thread, void **buffer)
 	errno_t rc = _thread_op_begin(thread, false);
 	if (rc != EOK)
 		return rc;
-	
+
 	istate_t *state = thread->udebug.uspace_state;
 	if (state == NULL) {
 		_thread_op_end(thread);
 		return EBUSY;
 	}
-	
+
 	/* Prepare a buffer to hold the data. */
 	istate_t *state_buf = malloc(sizeof(istate_t), 0);
-	
+
 	/* Copy to the allocated buffer */
 	memcpy(state_buf, state, sizeof(istate_t));
-	
+
 	_thread_op_end(thread);
-	
+
 	*buffer = (void *) state_buf;
 	return EOK;
 }
@@ -539,14 +539,14 @@ errno_t udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 {
 	/* Verify task state */
 	mutex_lock(&TASK->udebug.lock);
-	
+
 	if (TASK->udebug.dt_state != UDEBUG_TS_ACTIVE) {
 		mutex_unlock(&TASK->udebug.lock);
 		return EBUSY;
 	}
-	
+
 	void *data_buffer = malloc(n, 0);
-	
+
 	/*
 	 * NOTE: this is not strictly from a syscall... but that shouldn't
 	 * be a problem
@@ -554,10 +554,10 @@ errno_t udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 	 */
 	errno_t rc = copy_from_uspace(data_buffer, (void *) uspace_addr, n);
 	mutex_unlock(&TASK->udebug.lock);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	*buffer = data_buffer;
 	return EOK;
 }

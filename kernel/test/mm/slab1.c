@@ -41,62 +41,62 @@ static void testit(int size, int count)
 {
 	slab_cache_t *cache;
 	int i;
-	
+
 	TPRINTF("Creating cache, object size: %d.\n", size);
-	
+
 	cache = slab_cache_create("test_cache", size, 0, NULL, NULL,
 	    SLAB_CACHE_NOMAGAZINE);
-	
+
 	TPRINTF("Allocating %d items...", count);
-	
+
 	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb(data[i], size, 0);
 	}
-	
+
 	TPRINTF("done.\n");
-	
+
 	TPRINTF("Freeing %d items...", count);
-	
+
 	for (i = 0; i < count; i++)
 		slab_free(cache, data[i]);
-	
+
 	TPRINTF("done.\n");
-	
+
 	TPRINTF("Allocating %d items...", count);
-	
+
 	for (i = 0; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb(data[i], size, 0);
 	}
-	
+
 	TPRINTF("done.\n");
-	
+
 	TPRINTF("Freeing %d items...", count / 2);
-	
+
 	for (i = count - 1; i >= count / 2; i--)
 		slab_free(cache, data[i]);
-	
+
 	TPRINTF("done.\n");
-	
+
 	TPRINTF("Allocating %d items...", count / 2);
-	
+
 	for (i = count / 2; i < count; i++) {
 		data[i] = slab_alloc(cache, 0);
 		memsetb(data[i], size, 0);
 	}
-	
+
 	TPRINTF("done.\n");
-	
+
 	TPRINTF("Freeing %d items...", count);
-	
+
 	for (i = 0; i < count; i++)
 		slab_free(cache, data[i]);
-	
+
 	TPRINTF("done.\n");
-	
+
 	slab_cache_destroy(cache);
-	
+
 	TPRINTF("Test complete.\n");
 }
 
@@ -124,11 +124,11 @@ static void slabtest(void *data)
 {
 	int offs = (int) (sysarg_t) data;
 	int i, j;
-	
+
 	thread_detach(THREAD);
-	
+
 	TPRINTF("Starting thread #%" PRIu64 "...\n", THREAD->tid);
-	
+
 	for (j = 0; j < 10; j++) {
 		for (i = 0; i < THR_MEM_COUNT; i++)
 			thr_data[offs][i] = slab_alloc(thr_cache,0);
@@ -139,9 +139,9 @@ static void slabtest(void *data)
 		for (i = 0; i < THR_MEM_COUNT; i++)
 			slab_free(thr_cache, thr_data[offs][i]);
 	}
-	
+
 	TPRINTF("Thread #%" PRIu64 " finished\n", THREAD->tid);
-	
+
 	semaphore_up(&thr_sem);
 }
 
@@ -149,10 +149,10 @@ static void testthreads(void)
 {
 	thread_t *t;
 	int i;
-	
+
 	thr_cache = slab_cache_create("thread_cache", THR_MEM_SIZE, 0, NULL, NULL,
 	    SLAB_CACHE_NOMAGAZINE);
-	
+
 	semaphore_initialize(&thr_sem, 0);
 	for (i = 0; i < THREADS; i++) {
 		if (!(t = thread_create(slabtest, (void *) (sysarg_t) i, TASK, THREAD_FLAG_NONE, "slabtest"))) {
@@ -163,9 +163,9 @@ static void testthreads(void)
 
 	for (i = 0; i < THREADS; i++)
 		semaphore_down(&thr_sem);
-	
+
 	slab_cache_destroy(thr_cache);
-	
+
 	TPRINTF("Test complete.\n");
 }
 
@@ -173,6 +173,6 @@ const char *test_slab1(void)
 {
 	testsimple();
 	testthreads();
-	
+
 	return NULL;
 }

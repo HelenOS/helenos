@@ -50,10 +50,10 @@ typedef struct ht_link {
 typedef struct {
 	/** Returns the hash of the key stored in the item (ie its lookup key). */
 	size_t (*hash)(const ht_link_t *item);
-	
+
 	/** Returns the hash of the key. */
 	size_t (*key_hash)(void *key);
-	
+
 	/** True if the items are equal (have the same lookup keys). */
 	bool (*equal)(const ht_link_t *item1, const ht_link_t *item2);
 

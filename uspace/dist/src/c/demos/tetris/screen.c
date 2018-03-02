@@ -147,10 +147,10 @@ static bool get_display_color_sup(void)
 {
 	sysarg_t ccap;
 	errno_t rc = console_get_color_cap(console, &ccap);
-	
+
 	if (rc != EOK)
 		return false;
-	
+
 	return ((ccap & CONSOLE_CAP_RGB) == CONSOLE_CAP_RGB);
 }
 
@@ -160,27 +160,27 @@ static bool get_display_color_sup(void)
 void scr_set(void)
 {
 	winsize_t ws;
-	
+
 	Rows = 0;
 	Cols = 0;
-	
+
 	if (get_display_size(&ws) == 0) {
 		Rows = ws.ws_row;
 		Cols = ws.ws_col;
 	}
 
 	use_color = get_display_color_sup();
-	
+
 	if ((Rows < MINROWS) || (Cols < MINCOLS)) {
 		char smallscr[55];
-		
+
 		snprintf(smallscr, sizeof(smallscr),
 		    "the screen is too small (must be at least %dx%d)",
 		    MINROWS, MINCOLS);
 		stop(smallscr);
 	}
 	isset = 1;
-	
+
 	scr_clear();
 }
 
@@ -196,7 +196,7 @@ void stop(const char *why)
 {
 	if (isset)
 		scr_end();
-	
+
 	errx(1, "aborting: %s", why);
 }
 
@@ -212,24 +212,24 @@ void scr_update(void)
 	int i;
 	int j;
 	int ccol;
-	
+
 	/* Always leave cursor after last displayed point */
 	curscreen[D_LAST * B_COLS - 1] = -1;
-	
+
 	if (score != curscore) {
 		moveto(0, 0);
 		printf("Score: %d", score);
 		curscore = score;
 	}
-	
+
 	/* Draw preview of next pattern */
 	if ((showpreview) && (nextshape != lastshape)) {
 		int i;
 		static int r = 5, c = 2;
 		int tr, tc, t;
-		
+
 		lastshape = nextshape;
-		
+
 		/* Clean */
 		resume_normal();
 		moveto(r - 1, c - 1);
@@ -240,10 +240,10 @@ void scr_update(void)
 		putstr("          ");
 		moveto(r + 2, c - 1);
 		putstr("          ");
-		
+
 		moveto(r - 3, c - 2);
 		putstr("Next shape:");
-		
+
 		/* Draw */
 		start_standout(nextshape->color);
 		moveto(r, 2 * c);
@@ -251,16 +251,16 @@ void scr_update(void)
 		for (i = 0; i < 3; i++) {
 			t = c + r * B_COLS;
 			t += nextshape->off[i];
-			
+
 			tr = t / B_COLS;
 			tc = t % B_COLS;
-			
+
 			moveto(tr, 2*tc);
 			putstr("  ");
 		}
 		resume_normal();
 	}
-	
+
 	bp = &board[D_FIRST * B_COLS];
 	sp = &curscreen[D_FIRST * B_COLS];
 	for (j = D_FIRST; j < D_LAST; j++) {
@@ -268,7 +268,7 @@ void scr_update(void)
 		for (i = 0; i < B_COLS; bp++, sp++, i++) {
 			if (*sp == (so = *bp))
 				continue;
-			
+
 			*sp = so;
 			if (i != ccol) {
 				if (cur_so) {
@@ -277,7 +277,7 @@ void scr_update(void)
 				}
 				moveto(RTOD(j), CTOD(i));
 			}
-			
+
 			if (so != cur_so) {
 				if (so)
 					start_standout(so);
@@ -286,7 +286,7 @@ void scr_update(void)
 				cur_so = so;
 			}
 			putstr("  ");
-			
+
 			ccol = i + 1;
 			/*
 			 * Look ahead a bit, to avoid extra motion if
@@ -296,10 +296,10 @@ void scr_update(void)
 			 * `unnecessarily'.  Skip it all, though, if
 			 * the next cell is a different color.
 			 */
-			
+
 			if ((i > STOP) || (sp[1] != bp[1]) || (so != bp[1]))
 				continue;
-			
+
 			if (sp[2] != bp[2])
 				sp[1] = -1;
 			else if ((i < STOP) && (so == bp[2]) && (sp[3] != bp[3])) {
@@ -308,10 +308,10 @@ void scr_update(void)
 			}
 		}
 	}
-	
+
 	if (cur_so)
 		resume_normal();
-	
+
 	console_flush(console);
 }
 
@@ -322,9 +322,9 @@ void scr_update(void)
 void scr_msg(char *s, bool set)
 {
 	int l = str_size(s);
-	
+
 	moveto(Rows - 2, ((Cols - l) >> 1) - 1);
-	
+
 	if (set)
 		putstr(s);
 	else
@@ -340,10 +340,10 @@ void scr_msg(char *s, bool set)
 void tsleep(void)
 {
 	suseconds_t timeout = fallrate;
-	
+
 	while (timeout > 0) {
 		cons_event_t event;
-		
+
 		if (!console_get_event_timeout(console, &event, &timeout))
 			break;
 	}
@@ -358,33 +358,33 @@ errno_t tgetchar(void)
 	 * Reset timeleft to fallrate whenever it is not positive
 	 * and increase speed.
 	 */
-	
+
 	if (timeleft <= 0) {
 		faster();
 		timeleft = fallrate;
 	}
-	
+
 	/*
 	 * Wait to see if there is any input. If so, take it and
 	 * update timeleft so that the next call to tgetchar()
 	 * will not wait as long. If there is no input,
 	 * make timeleft zero and return -1.
 	 */
-	
+
 	wchar_t c = 0;
-	
+
 	while (c == 0) {
 		cons_event_t event;
-		
+
 		if (!console_get_event_timeout(console, &event, &timeleft)) {
 			timeleft = 0;
 			return -1;
 		}
-		
+
 		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
 			c = event.ev.key.c;
 	}
-	
+
 	return (int) c;
 }
 
@@ -394,17 +394,17 @@ errno_t tgetchar(void)
 errno_t twait(void)
 {
 	wchar_t c = 0;
-	
+
 	while (c == 0) {
 		cons_event_t event;
-		
+
 		if (!console_get_event(console, &event))
 			return -1;
-		
+
 		if (event.type == CEV_KEY && event.ev.key.type == KEY_PRESS)
 			c = event.ev.key.c;
 	}
-	
+
 	return (int) c;
 }
 

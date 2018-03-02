@@ -134,7 +134,7 @@ static void corecfg_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 int main(int argc, char *argv[])
 {
 	printf("%s: Task Monitoring Service\n", NAME);
-	
+
 #ifdef CONFIG_WRITE_CORE_FILES
 	write_core_files = true;
 #else
@@ -144,16 +144,16 @@ int main(int argc, char *argv[])
 		printf("%s: Error registering fault notifications.\n", NAME);
 		return -1;
 	}
-	
+
 	async_set_fallback_port_handler(corecfg_client_conn, NULL);
-	
+
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		printf("%s: Failed registering server: %s.\n",
 		    NAME, str_error(rc));
 		return -1;
 	}
-	
+
 	service_id_t sid;
 	rc = loc_service_register(SERVICE_NAME_CORECFG, &sid);
 	if (rc != EOK) {
@@ -161,10 +161,10 @@ int main(int argc, char *argv[])
 		    NAME, str_error(rc));
 		return -1;
 	}
-	
+
 	task_retval(0);
 	async_manager();
-	
+
 	return 0;
 }
 

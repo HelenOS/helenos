@@ -47,7 +47,7 @@ static inline void __tcb_set(tcb_t *tcb)
 {
 	void *tp = tcb;
 	tp += PPC_TP_OFFSET + sizeof(tcb_t);
-	
+
 	asm volatile (
 		"mr %%r2, %0\n"
 		:
@@ -58,7 +58,7 @@ static inline void __tcb_set(tcb_t *tcb)
 static inline tcb_t * __tcb_get(void)
 {
 	void * retval;
-	
+
 	asm volatile (
 		"mr %0, %%r2\n"
 		: "=r" (retval)

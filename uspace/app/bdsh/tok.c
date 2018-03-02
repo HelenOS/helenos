@@ -58,24 +58,24 @@ errno_t tok_init(tokenizer_t *tok, char *input, token_t *out_tokens,
 	tok->last_in_offset = 0;
 	tok->in_char_offset = 0;
 	tok->last_in_char_offset = 0;
-	
+
 	tok->outtok = out_tokens;
 	tok->outtok_offset = 0;
 	tok->outtok_size = max_tokens;
-	
+
 	/* Prepare a buffer where all the token strings will be stored */
 	size_t len = str_size(input) + max_tokens + 1;
 	char *tmp = malloc(len);
-	
+
 	if (tmp == NULL) {
 		return ENOMEM;
 	}
-	
+
 	tok->outbuf = tmp;
 	tok->outbuf_offset = 0;
 	tok->outbuf_size = len;
 	tok->outbuf_last_start = 0;
-	
+
 	return EOK;
 }
 
@@ -92,7 +92,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 {
 	errno_t rc;
 	wchar_t next_char;
-	
+
 	/* Read the input line char by char and append tokens */
 	while ((next_char = tok_look_char(tok)) != 0) {
 		if (next_char == ' ') {
@@ -112,7 +112,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 				tok_push_char(tok, tok_get_char(tok));
 			}
 			tok_push_token(tok);
-			
+
 		}
 		else if (next_char == '|') {
 			/* Pipes are tokens that are delimiters and should be
@@ -124,14 +124,14 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 					return rc;
 				}
 			}
-			
+
 			tok_start_token(tok, TOKTYPE_PIPE);
-			
+
 			rc = tok_push_char(tok, tok_get_char(tok));
 			if (rc != EOK) {
 				return rc;
 			}
-			
+
 			rc = tok_push_token(tok);
 			if (rc != EOK) {
 				return rc;
@@ -162,7 +162,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			}
 		}
 	}
-	
+
 	/* Push the last token */
 	if (tok_pending_chars(tok)) {
 		rc = tok_push_token(tok);
@@ -170,9 +170,9 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			return rc;
 		}
 	}
-	
+
 	*tokens_length = tok->outtok_offset;
-	
+
 	return EOK;
 }
 
@@ -181,7 +181,7 @@ errno_t tok_finish_string(tokenizer_t *tok)
 {
 	errno_t rc;
 	wchar_t next_char;
-	
+
 	while ((next_char = tok_look_char(tok)) != 0) {
 		if (next_char == '\'') {
 			/* Eat the quote */
@@ -192,7 +192,7 @@ errno_t tok_finish_string(tokenizer_t *tok)
 				if (rc != EOK) {
 					return rc;
 				}
-				
+
 				/* Swallow the additional one in the input */
 				tok_get_char(tok);
 			}
@@ -208,7 +208,7 @@ errno_t tok_finish_string(tokenizer_t *tok)
 			}
 		}
 	}
-	
+
 	/* If we are here, the string run to the end without being closed */
 	return EINVAL;
 }
@@ -248,11 +248,11 @@ errno_t tok_push_token(tokenizer_t *tok)
 	if (tok->outtok_offset >= tok->outtok_size) {
 		return EOVERFLOW;
 	}
-	
+
 	if (tok->outbuf_offset >= tok->outbuf_size) {
 		return EOVERFLOW;
 	}
-	
+
 	tok->outbuf[tok->outbuf_offset++] = 0;
 	token_t *tokinfo = &tok->outtok[tok->outtok_offset++];
 	tokinfo->type = tok->current_type;
@@ -262,11 +262,11 @@ errno_t tok_push_token(tokenizer_t *tok)
 	tokinfo->char_start = tok->last_in_char_offset;
 	tokinfo->char_length = tok->in_char_offset - tok->last_in_char_offset;
 	tok->outbuf_last_start = tok->outbuf_offset;
-	
+
 	/* We have consumed the first char of the next token already */
 	tok->last_in_offset = tok->in_offset;
 	tok->last_in_char_offset = tok->in_char_offset;
-	
+
 	return EOK;
 }
 

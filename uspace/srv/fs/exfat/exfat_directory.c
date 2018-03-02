@@ -90,12 +90,12 @@ errno_t exfat_directory_open_parent(exfat_directory_t *di,
 errno_t exfat_directory_close(exfat_directory_t *di)
 {
 	errno_t rc = EOK;
-	
+
 	if (di->b) {
 		rc = block_put(di->b);
 		di->b = NULL;
 	}
-	
+
 	return rc;
 }
 
@@ -140,23 +140,23 @@ errno_t exfat_directory_next(exfat_directory_t *di)
 	rc = exfat_directory_block_load(di);
 	if (rc != EOK)
 		di->pos -= 1;
-	
+
 	return rc;
 }
 
 errno_t exfat_directory_prev(exfat_directory_t *di)
 {
 	errno_t rc = EOK;
-	
+
 	if (di->pos > 0) {
 		di->pos -= 1;
 		rc = exfat_directory_block_load(di);
 	} else
 		return ENOENT;
-	
+
 	if (rc != EOK)
 		di->pos += 1;
-	
+
 	return rc;
 }
 
@@ -169,20 +169,20 @@ errno_t exfat_directory_seek(exfat_directory_t *di, aoff64_t pos)
 	rc = exfat_directory_block_load(di);
 	if (rc != EOK)
 		di->pos = _pos;
-	
+
 	return rc;
 }
 
 errno_t exfat_directory_get(exfat_directory_t *di, exfat_dentry_t **d)
 {
 	errno_t rc;
-	
+
 	rc = exfat_directory_block_load(di);
 	if (rc == EOK) {
 		aoff64_t o = di->pos % (BPS(di->bs) / sizeof(exfat_dentry_t));
 		*d = ((exfat_dentry_t *)di->b->data) + o;
 	}
-	
+
 	return rc;
 }
 
@@ -196,7 +196,7 @@ errno_t exfat_directory_find(exfat_directory_t *di, exfat_dentry_clsf_t type,
 		} else
 			return ENOENT;
 	} while (exfat_directory_next(di) == EOK);
-	
+
 	return ENOENT;
 }
 
@@ -221,7 +221,7 @@ errno_t exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size
 	int i;
 	size_t offset = 0;
 	aoff64_t start_pos = 0;
-	
+
 	rc = exfat_directory_find(di, EXFAT_DENTRY_FILE, &d);
 	if (rc != EOK)
 		return rc;
@@ -237,7 +237,7 @@ errno_t exfat_directory_read_file(exfat_directory_t *di, char *name, size_t size
 	if (exfat_classify_dentry(d) != EXFAT_DENTRY_STREAM)
 		return ENOENT;
 	*ds  = d->stream;
-	
+
 	if (ds->name_size > size)
 		return EOVERFLOW;
 
@@ -469,7 +469,7 @@ errno_t exfat_directory_write_file(exfat_directory_t *di, const char *name)
 
 		di->b->dirty = true;
 	}
-	
+
 	return exfat_directory_seek(di, pos);
 }
 
@@ -485,7 +485,7 @@ errno_t exfat_directory_erase_file(exfat_directory_t *di, aoff64_t pos)
 	if (rc != EOK)
 		return rc;
 	count = de->file.count + 1;
-	
+
 	while (count) {
 		rc = exfat_directory_get(di, &de);
 		if (rc != EOK)
@@ -516,7 +516,7 @@ errno_t exfat_directory_expand(exfat_directory_t *di)
 	di->nodep->size += BPC(di->bs);
 	di->nodep->dirty = true;		/* need to sync node */
 	di->blocks = di->nodep->size / BPS(di->bs);
-	
+
 	return EOK;
 }
 

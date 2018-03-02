@@ -330,7 +330,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		 */
 
 		struct timeval curtime;
-		
+
 		getuptime(&curtime);
 		tv_add(&curtime, &rtc->boot_time);
 		fibril_mutex_unlock(&rtc->mutex);
@@ -528,7 +528,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	/* Stop the clock */
 	reg_a = rtc_register_read(rtc, RTC_STATUS_A);
 	rtc_register_write(rtc, RTC_STATUS_A, RTC_A_CLK_STOP | reg_a);
-	
+
 	/* Enable updates */
 	rtc_register_write(rtc, RTC_STATUS_B, reg_b);
 	rtc_register_write(rtc, RTC_STATUS_A, reg_a);

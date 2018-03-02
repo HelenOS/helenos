@@ -98,13 +98,13 @@ NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
     unsigned int flags)
 {
 	assert(page_table_locked(as));
-	
+
 	assert(page_mapping_operations);
 	assert(page_mapping_operations->mapping_insert);
 
 	page_mapping_operations->mapping_insert(as, ALIGN_DOWN(page, PAGE_SIZE),
 	    ALIGN_DOWN(frame, FRAME_SIZE), flags);
-	
+
 	/* Repel prefetched accesses to the old mapping. */
 	memory_barrier();
 }
@@ -122,13 +122,13 @@ NO_TRACE void page_mapping_insert(as_t *as, uintptr_t page, uintptr_t frame,
 NO_TRACE void page_mapping_remove(as_t *as, uintptr_t page)
 {
 	assert(page_table_locked(as));
-	
+
 	assert(page_mapping_operations);
 	assert(page_mapping_operations->mapping_remove);
-	
+
 	page_mapping_operations->mapping_remove(as,
 	    ALIGN_DOWN(page, PAGE_SIZE));
-	
+
 	/* Repel prefetched accesses to the old mapping. */
 	memory_barrier();
 }
@@ -147,10 +147,10 @@ NO_TRACE bool page_mapping_find(as_t *as, uintptr_t page, bool nolock,
     pte_t *pte)
 {
 	assert(nolock || page_table_locked(as));
-	
+
 	assert(page_mapping_operations);
 	assert(page_mapping_operations->mapping_find);
-	
+
 	return page_mapping_operations->mapping_find(as,
 	    ALIGN_DOWN(page, PAGE_SIZE), nolock, pte);
 }
@@ -168,10 +168,10 @@ NO_TRACE void page_mapping_update(as_t *as, uintptr_t page, bool nolock,
     pte_t *pte)
 {
 	assert(nolock || page_table_locked(as));
-	
+
 	assert(page_mapping_operations);
 	assert(page_mapping_operations->mapping_find);
-	
+
 	page_mapping_operations->mapping_update(as,
 	    ALIGN_DOWN(page, PAGE_SIZE), nolock, pte);
 }
@@ -185,26 +185,26 @@ void page_mapping_make_global(uintptr_t base, size_t size)
 {
 	assert(page_mapping_operations);
 	assert(page_mapping_operations->mapping_make_global);
-	
+
 	return page_mapping_operations->mapping_make_global(base, size);
 }
 
 errno_t page_find_mapping(uintptr_t virt, uintptr_t *phys)
 {
 	page_table_lock(AS, true);
-	
+
 	pte_t pte;
 	bool found = page_mapping_find(AS, virt, false, &pte);
 	if (!found || !PTE_VALID(&pte) || !PTE_PRESENT(&pte)) {
 		page_table_unlock(AS, true);
 		return ENOENT;
 	}
-	
+
 	*phys = PTE_GET_FRAME(&pte) +
 	    (virt - ALIGN_DOWN(virt, PAGE_SIZE));
-	
+
 	page_table_unlock(AS, true);
-	
+
 	return EOK;
 }
 
@@ -220,7 +220,7 @@ sys_errno_t sys_page_find_mapping(uintptr_t virt, uintptr_t *phys_ptr)
 	errno_t rc = page_find_mapping(virt, &phys);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
 	return (sys_errno_t) rc;
 }

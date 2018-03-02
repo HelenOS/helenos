@@ -78,7 +78,7 @@ pte_t *ht_create(unsigned int flags)
 		pte_cache = slab_cache_create("pte_t", sizeof(pte_t), 0,
 		    NULL, NULL, SLAB_CACHE_MAGDEFERRED);
 	}
-	
+
 	return NULL;
 }
 

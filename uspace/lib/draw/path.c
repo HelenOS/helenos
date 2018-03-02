@@ -82,7 +82,7 @@ void path_move_to(path_t *path, double dx, double dy)
 		step->to_x = path->cur_x;
 		step->to_y = path->cur_y;
 		list_append(&step->link, &path->list);
-		
+
 	}
 }
 

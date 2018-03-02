@@ -34,45 +34,45 @@
 FUNCTION_BEGIN(cos_f64)
 	pushq %rbp
 	movq %rsp, %rbp
-	
+
 	# compute cosine (using red zone)
-	
+
 	movsd %xmm0, -8(%rbp)
 	fldl -8(%rbp)
-	
+
 	fcos
-	
+
 	# detect if source operand is out of range
-	
+
 	fnstsw %ax
 	andw $X87_STATUS_WORD_C2_MASK, %ax
 	jnz fix_range
-	
+
 		fstpl -8(%rbp)
 		movsd -8(%rbp), %xmm0
-		
+
 		leave
 		retq
-	
+
 	# argument reduction
-	
+
 	fix_range:
 		fldpi
 		fadd %st(0)
 		fxch %st(1)
-	
+
 	reduce:
 		fprem1
 		fnstsw %ax
 		andw $X87_STATUS_WORD_C2_MASK, %ax
 		jnz reduce
-	
+
 	fstp %st(1)
 	fcos
-	
+
 	fstpl -8(%rbp)
 	movsd -8(%rbp), %xmm0
-	
+
 	leave
 	retq
 FUNCTION_END(cos_f64)

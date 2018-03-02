@@ -89,12 +89,12 @@ else
 	if [ ! -f ${TARBALL} ]; then
 		wget ${URL}
 	fi
-	
+
 	if [ "`md5sum ${TARBALL} | cut -f 1 -d " "`" != ${MD5} ]; then
 		echo Wrong MD5 checksum
 		exit
 	fi
-	
+
 	tar xvfj ${TARBALL}
 	cd ${SOURCEDIR}
 fi

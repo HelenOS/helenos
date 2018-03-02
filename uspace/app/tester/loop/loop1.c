@@ -35,6 +35,6 @@ const char *test_loop1(void)
 	TPRINTF("Looping...");
 	while (true);
 	TPRINTF("\n");
-	
+
 	return "Survived endless loop";
 }

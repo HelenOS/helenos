@@ -94,18 +94,18 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	task_id_t task_id;
 	size_t len;
-	
+
 	task_id = task_get_id();
-	
+
 	if (!async_data_read_receive(&callid, &len)) {
 		async_answer_0(callid, EINVAL);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
+
 	if (len > sizeof(task_id))
 		len = sizeof(task_id);
-	
+
 	async_data_read_finalize(callid, &task_id, len);
 	async_answer_0(rid, EOK);
 }
@@ -119,14 +119,14 @@ static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
 {
 	char *buf;
 	errno_t rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
-	
+
 	if (rc == EOK) {
 		if (cwd != NULL)
 			free(cwd);
-		
+
 		cwd = buf;
 	}
-	
+
 	async_answer_0(rid, rc);
 }
 
@@ -157,7 +157,7 @@ static void ldr_set_program(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EINVAL);
 		return;
 	}
-	
+
 	progname = name;
 	program_fd = file;
 	async_answer_0(rid, EOK);
@@ -173,20 +173,20 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 	char *buf;
 	size_t buf_size;
 	errno_t rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, &buf_size);
-	
+
 	if (rc == EOK) {
 		/*
 		 * Count number of arguments
 		 */
 		char *cur = buf;
 		int count = 0;
-		
+
 		while (cur < buf + buf_size) {
 			size_t arg_size = str_size(cur);
 			cur += arg_size + 1;
 			count++;
 		}
-		
+
 		/*
 		 * Allocate new argv
 		 */
@@ -196,7 +196,7 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 			async_answer_0(rid, ENOMEM);
 			return;
 		}
-		
+
 		/*
 		 * Fill the new argv with argument pointers
 		 */
@@ -204,27 +204,27 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
 		count = 0;
 		while (cur < buf + buf_size) {
 			_argv[count] = cur;
-			
+
 			size_t arg_size = str_size(cur);
 			cur += arg_size + 1;
 			count++;
 		}
 		_argv[count] = NULL;
-		
+
 		/*
 		 * Copy temporary data to global variables
 		 */
 		if (arg_buf != NULL)
 			free(arg_buf);
-		
+
 		if (argv != NULL)
 			free(argv);
-		
+
 		argc = count;
 		arg_buf = buf;
 		argv = _argv;
 	}
-	
+
 	async_answer_0(rid, rc);
 }
 
@@ -288,17 +288,17 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EINVAL);
 		return 1;
 	}
-	
+
 	elf_set_pcb(&prog_info, &pcb);
-	
+
 	pcb.cwd = cwd;
-	
+
 	pcb.argc = argc;
 	pcb.argv = argv;
-	
+
 	pcb.inbox = inbox;
 	pcb.inbox_entries = inbox_entries;
-	
+
 	async_answer_0(rid, EOK);
 	return 0;
 }
@@ -316,13 +316,13 @@ static __attribute__((noreturn)) void ldr_run(ipc_callid_t rid,
 
 	/* Set the task name. */
 	task_set_name(progname);
-	
+
 	/* Run program */
 	DPRINTF("Reply OK\n");
 	async_answer_0(rid, EOK);
 	DPRINTF("Jump to entry point at %p\n", pcb.entry);
 	entry_point_jmp(prog_info.finfo.entry, &pcb);
-	
+
 	/* Not reached */
 }
 
@@ -338,23 +338,23 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		async_answer_0(iid, ELIMIT);
 		return;
 	}
-	
+
 	connected = true;
-	
+
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
-	
+
 	/* Ignore parameters, the connection is already open */
 	(void) icall;
-	
+
 	while (true) {
 		errno_t retval;
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			exit(0);
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOADER_GET_TASKID:
 			ldr_get_taskid(callid, &call);
@@ -381,7 +381,7 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			retval = EINVAL;
 			break;
 		}
-		
+
 		async_answer_0(callid, retval);
 	}
 }
@@ -391,26 +391,26 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 int main(int argc, char *argv[])
 {
 	async_set_fallback_port_handler(ldr_connection, NULL);
-	
+
 	/* Introduce this task to the NS (give it our task ID). */
 	task_id_t id = task_get_id();
 	errno_t rc = ns_intro(id);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Create port */
 	port_id_t port;
 	rc = async_create_port(INTERFACE_LOADER, ldr_connection, NULL, &port);
 	if (rc != EOK)
 		return rc;
-	
+
 	/* Register at naming service. */
 	rc = service_register(SERVICE_LOADER);
 	if (rc != EOK)
 		return rc;
-	
+
 	async_manager();
-	
+
 	/* Never reached */
 	return 0;
 }

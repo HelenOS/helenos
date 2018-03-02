@@ -48,7 +48,7 @@ typedef void (*work_func_t)(struct work_item *);
 typedef struct work_item {
 	link_t queue_link;
 	work_func_t func;
-	
+
 #ifdef CONFIG_DEBUG
 	/* Magic number for integrity checks. */
 	uint32_t cookie;

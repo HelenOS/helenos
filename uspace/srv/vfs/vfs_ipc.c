@@ -39,7 +39,7 @@ static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
 	int oldfd = IPC_GET_ARG1(*request);
 	int newfd = IPC_GET_ARG2(*request);
 	bool desc = IPC_GET_ARG3(*request);
-	
+
 	int outfd = -1;
 	errno_t rc = vfs_op_clone(oldfd, newfd, desc, &outfd);
 	async_answer_1(rid, rc, outfd);
@@ -53,7 +53,7 @@ static void vfs_in_fsprobe(ipc_callid_t rid, ipc_call_t *request)
 	vfs_fs_probe_info_t info;
 	size_t len;
 	errno_t rc;
-	
+
 	/*
 	 * Now we expect the client to send us data with the name of the file
 	 * system.
@@ -64,12 +64,12 @@ static void vfs_in_fsprobe(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, rc);
 		return;
 	}
-	
+
 	rc = vfs_op_fsprobe(fs_name, service_id, &info);
 	async_answer_0(rid, rc);
 	if (rc != EOK)
 		goto out;
-	
+
 	/* Now we should get a read request */
 	if (!async_data_read_receive(&callid, &len))
 		goto out;
@@ -113,20 +113,20 @@ out:
 static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	int mpfd = IPC_GET_ARG1(*request);
-	
+
 	/*
 	 * We expect the library to do the device-name to device-handle
 	 * translation for us, thus the device handle will arrive as ARG1
 	 * in the request.
 	 */
 	service_id_t service_id = (service_id_t) IPC_GET_ARG2(*request);
-	
+
 	unsigned int flags = (unsigned int) IPC_GET_ARG3(*request);
 	unsigned int instance = IPC_GET_ARG4(*request);
-	
+
 	char *opts = NULL;
 	char *fs_name = NULL;
-	
+
 	/* Now we expect to receive the mount options. */
 	errno_t rc = async_data_write_accept((void **) &opts, true, 0,
 	    MAX_MNTOPTS_LEN, 0, NULL);
@@ -134,7 +134,7 @@ static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, rc);
 		return;
 	}
-	
+
 	/* Now, we expect the client to send us data with the name of the file
 	 * system.
 	 */
@@ -145,12 +145,12 @@ static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, rc);
 		return;
 	}
-	
+
 	int outfd = 0;
 	rc = vfs_op_mount(mpfd, service_id, flags, instance, opts, fs_name,
 	     &outfd);
 	async_answer_1(rid, rc, outfd);
-	
+
 	free(opts);
 	free(fs_name);
 }
@@ -189,32 +189,32 @@ static void vfs_in_rename(ipc_callid_t rid, ipc_call_t *request)
 	char *old = NULL;
 	char *new = NULL;
 	errno_t rc;
-	
+
 	basefd = IPC_GET_ARG1(*request);
-	
+
 	/* Retrieve the old path. */
 	rc = async_data_write_accept((void **) &old, true, 0, 0, 0, NULL);
 	if (rc != EOK)
 		goto out;
-	
+
 	/* Retrieve the new path. */
 	rc = async_data_write_accept((void **) &new, true, 0, 0, 0, NULL);
 	if (rc != EOK)
 		goto out;
-	
+
 	size_t olen;
 	size_t nlen;
 	char *oldc = canonify(old, &olen);
 	char *newc = canonify(new, &nlen);
-	
+
 	if ((!oldc) || (!newc)) {
 		rc = EINVAL;
 		goto out;
 	}
-	
+
 	assert(oldc[olen] == '\0');
 	assert(newc[nlen] == '\0');
-	
+
 	rc = vfs_op_rename(basefd, oldc, newc);
 
 out:
@@ -244,7 +244,7 @@ static void vfs_in_stat(ipc_callid_t rid, ipc_call_t *request)
 static void vfs_in_statfs(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = (int) IPC_GET_ARG1(*request);
-	
+
 	errno_t rc = vfs_op_statfs(fd);
 	async_answer_0(rid, rc);
 }
@@ -260,12 +260,12 @@ static void vfs_in_unlink(ipc_callid_t rid, ipc_call_t *request)
 {
 	int parentfd = IPC_GET_ARG1(*request);
 	int expectfd = IPC_GET_ARG2(*request);
-	
+
 	char *path;
 	errno_t rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
 	if (rc == EOK)
 		rc = vfs_op_unlink(parentfd, expectfd, path);
-	
+
 	async_answer_0(rid, rc);
 }
 
@@ -292,7 +292,7 @@ static void vfs_in_walk(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	int parentfd = IPC_GET_ARG1(*request);
 	int flags = IPC_GET_ARG2(*request);
-	
+
 	int fd = 0;
 	char *path;
 	errno_t rc = async_data_write_accept((void **)&path, true, 0, 0, 0, NULL);
@@ -317,20 +317,20 @@ static void vfs_in_write(ipc_callid_t rid, ipc_call_t *request)
 void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	bool cont = true;
-	
+
 	/*
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
 	async_answer_0(iid, EOK);
-	
+
 	while (cont) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_IN_CLONE:
 			vfs_in_clone(callid, &call);
@@ -392,7 +392,7 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
-	
+
 	/*
 	 * Open files for this client will be cleaned up when its last
 	 * connection fibril terminates.

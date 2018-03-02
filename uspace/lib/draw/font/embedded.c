@@ -50,7 +50,7 @@ static errno_t fde_resolve_glyph(void *unused, const wchar_t chr,
 	uint16_t glyph = fb_font_glyph(chr, &found);
 	if (!found)
 		return ENOENT;
-	
+
 	*glyph_id = glyph;
 	return EOK;
 }
@@ -61,7 +61,7 @@ static errno_t fde_load_glyph_surface(void *unused, glyph_id_t glyph_id,
 	surface_t *surface = surface_create(FONT_WIDTH, FONT_SCANLINES, NULL, 0);
 	if (!surface)
 		return ENOMEM;
-	
+
 	for (unsigned int y = 0; y < FONT_SCANLINES; ++y) {
 		for (unsigned int x = 0; x < FONT_WIDTH; ++x) {
 			pixel_t p = (fb_font[glyph_id][y] & (1 << (7 - x))) ?
@@ -69,7 +69,7 @@ static errno_t fde_load_glyph_surface(void *unused, glyph_id_t glyph_id,
 			surface_put_pixel(surface, x, y, p);
 		}
 	}
-	
+
 	*out_surface = surface;
 	return EOK;
 }
@@ -83,7 +83,7 @@ static errno_t fde_load_glyph_metrics(void *unused, glyph_id_t glyph_id,
 	gm->right_side_bearing = 0;
 	gm->ascender = FONT_ASCENDER;
 	gm->height = FONT_SCANLINES;
-	
+
 	return EOK;
 }
 

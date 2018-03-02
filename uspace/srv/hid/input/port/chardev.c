@@ -74,7 +74,7 @@ static errno_t chardev_port_init(kbd_dev_t *kdev)
 	unsigned int i;
 	fid_t fid;
 	errno_t rc;
-	
+
 	kbd_dev = kdev;
 again:
 	for (i = 0; i < num_devs; i++) {
@@ -82,28 +82,28 @@ again:
 		if (rc == EOK)
 			break;
 	}
-	
+
 	if (i >= num_devs) {
 		/* XXX This is just a hack. */
 		printf("%s: No input device found, sleep for retry.\n", NAME);
 		async_usleep(1000 * 1000);
 		goto again;
 	}
-	
+
 	dev_sess = loc_service_connect(service_id, INTERFACE_DDF,
 	    IPC_FLAG_BLOCKING);
 	if (dev_sess == NULL) {
 		printf("%s: Failed connecting to device\n", NAME);
 		return ENOENT;
 	}
-	
+
 	rc = chardev_open(dev_sess, &chardev);
 	if (rc != EOK) {
 		printf("%s: Failed opening character device\n", NAME);
 		async_hangup(dev_sess);
 		return ENOMEM;
 	}
-	
+
 	fid = fibril_create(kbd_port_fibril, NULL);
 	if (fid == 0) {
 		printf("%s: Failed creating fibril\n", NAME);
@@ -113,7 +113,7 @@ again:
 	}
 
 	fibril_add_ready(fid);
-	
+
 	printf("%s: Found input device '%s'\n", NAME, in_devs[i]);
 	return 0;
 }

@@ -42,7 +42,7 @@
 static inline void atomic_inc(atomic_t *val)
 {
 	atomic_count_t tmp;
-	
+
 	asm volatile (
 		"1:\n"
 		"lwarx %0, 0, %2\n"
@@ -60,7 +60,7 @@ static inline void atomic_inc(atomic_t *val)
 static inline void atomic_dec(atomic_t *val)
 {
 	atomic_count_t tmp;
-	
+
 	asm volatile (
 		"1:\n"
 		"lwarx %0, 0, %2\n"

@@ -53,7 +53,7 @@
 void init_driver_list(driver_list_t *drv_list)
 {
 	assert(drv_list != NULL);
-	
+
 	list_initialize(&drv_list->drivers);
 	fibril_mutex_initialize(&drv_list->drivers_mutex);
 	drv_list->next_handle = 1;
@@ -111,33 +111,33 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "get_driver_info(base_path=\"%s\", name=\"%s\")",
 	    base_path, name);
-	
+
 	assert(base_path != NULL && name != NULL && drv != NULL);
-	
+
 	bool suc = false;
 	char *match_path = NULL;
 	size_t name_size = 0;
-	
+
 	/* Read the list of match ids from the driver's configuration file. */
 	match_path = get_abs_path(base_path, name, MATCH_EXT);
 	if (match_path == NULL)
 		goto cleanup;
-	
+
 	if (!read_match_ids(match_path, &drv->match_ids))
 		goto cleanup;
-	
+
 	/* Allocate and fill driver's name. */
 	name_size = str_size(name) + 1;
 	drv->name = malloc(name_size);
 	if (drv->name == NULL)
 		goto cleanup;
 	str_cpy(drv->name, name_size, name);
-	
+
 	/* Initialize path with driver's binary. */
 	drv->binary_path = get_abs_path(base_path, name, "");
 	if (drv->binary_path == NULL)
 		goto cleanup;
-	
+
 	/* Check whether the driver's binary exists. */
 	vfs_stat_t s;
 	if (vfs_stat_path(drv->binary_path, &s) != EOK) {
@@ -145,9 +145,9 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 		    drv->binary_path);
 		goto cleanup;
 	}
-	
+
 	suc = true;
-	
+
 cleanup:
 	if (!suc) {
 		free(drv->binary_path);
@@ -155,9 +155,9 @@ cleanup:
 		/* Set the driver structure to the default state. */
 		init_driver(drv);
 	}
-	
+
 	free(match_path);
-	
+
 	return suc;
 }
 
@@ -170,13 +170,13 @@ cleanup:
 int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "lookup_available_drivers(dir=\"%s\")", dir_path);
-	
+
 	int drv_cnt = 0;
 	DIR *dir = NULL;
 	struct dirent *diren;
 
 	dir = opendir(dir_path);
-	
+
 	if (dir != NULL) {
 		driver_t *drv = create_driver();
 		while ((diren = readdir(dir))) {
@@ -189,7 +189,7 @@ int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 		delete_driver(drv);
 		closedir(dir);
 	}
-	
+
 	return drv_cnt;
 }
 
@@ -212,9 +212,9 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 {
 	driver_t *best_drv = NULL;
 	int best_score = 0, score = 0;
-	
+
 	fibril_mutex_lock(&drivers_list->drivers_mutex);
-	
+
 	list_foreach(drivers_list->drivers, drivers, driver_t, drv) {
 		score = get_match_score(drv, node);
 		if (score > best_score) {
@@ -222,9 +222,9 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 			best_drv = drv;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
-	
+
 	return best_drv;
 }
 
@@ -238,13 +238,13 @@ void attach_driver(dev_tree_t *tree, dev_node_t *dev, driver_t *drv)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "attach_driver(dev=\"%s\",drv=\"%s\")",
 	    dev->pfun->pathname, drv->name);
-	
+
 	fibril_mutex_lock(&drv->driver_mutex);
 	fibril_rwlock_write_lock(&tree->rwlock);
-	
+
 	dev->drv = drv;
 	list_append(&dev->driver_devices, &drv->devices);
-	
+
 	fibril_rwlock_write_unlock(&tree->rwlock);
 	fibril_mutex_unlock(&drv->driver_mutex);
 }
@@ -258,18 +258,18 @@ void attach_driver(dev_tree_t *tree, dev_node_t *dev, driver_t *drv)
 void detach_driver(dev_tree_t *tree, dev_node_t *dev)
 {
 	driver_t *drv = dev->drv;
-	
+
 	assert(drv != NULL);
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "detach_driver(dev=\"%s\",drv=\"%s\")",
 	    dev->pfun->pathname, drv->name);
-	
+
 	fibril_mutex_lock(&drv->driver_mutex);
 	fibril_rwlock_write_lock(&tree->rwlock);
-	
+
 	dev->drv = NULL;
 	list_remove(&dev->driver_devices);
-	
+
 	fibril_rwlock_write_unlock(&tree->rwlock);
 	fibril_mutex_unlock(&drv->driver_mutex);
 }
@@ -285,16 +285,16 @@ bool start_driver(driver_t *drv)
 	errno_t rc;
 
 	assert(fibril_mutex_is_locked(&drv->driver_mutex));
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
-	
+
 	rc = task_spawnl(NULL, NULL, drv->binary_path, drv->binary_path, NULL);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Spawning driver `%s' (%s) failed: %s.",
 		    drv->name, drv->binary_path, str_error(rc));
 		return false;
 	}
-	
+
 	drv->state = DRIVER_STARTING;
 	return true;
 }
@@ -309,16 +309,16 @@ errno_t stop_driver(driver_t *drv)
 {
 	async_exch_t *exch;
 	errno_t retval;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "stop_driver(drv=\"%s\")", drv->name);
 
 	exch = async_exchange_begin(drv->sess);
 	retval = async_req_0_0(exch, DRIVER_STOP);
 	loc_exchange_end(exch);
-	
+
 	if (retval != EOK)
 		return retval;
-	
+
 	drv->state = DRIVER_NOT_STARTED;
 	async_hangup(drv->sess);
 	drv->sess = NULL;
@@ -335,18 +335,18 @@ errno_t stop_driver(driver_t *drv)
 driver_t *driver_find(driver_list_t *drv_list, devman_handle_t handle)
 {
 	driver_t *res = NULL;
-	
+
 	fibril_mutex_lock(&drv_list->drivers_mutex);
-	
+
 	list_foreach(drv_list->drivers, drivers, driver_t, drv) {
 		if (drv->handle == handle) {
 			res = drv;
 			break;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&drv_list->drivers_mutex);
-	
+
 	return res;
 }
 
@@ -361,18 +361,18 @@ driver_t *driver_find(driver_list_t *drv_list, devman_handle_t handle)
 driver_t *driver_find_by_name(driver_list_t *drv_list, const char *drv_name)
 {
 	driver_t *res = NULL;
-	
+
 	fibril_mutex_lock(&drv_list->drivers_mutex);
-	
+
 	list_foreach(drv_list->drivers, drivers, driver_t, drv) {
 		if (str_cmp(drv->name, drv_name) == 0) {
 			res = drv;
 			break;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&drv_list->drivers_mutex);
-	
+
 	return res;
 }
 
@@ -398,7 +398,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	while (link != &driver->devices.head) {
 		dev = list_get_instance(link, dev_node_t, driver_devices);
 		fibril_rwlock_write_lock(&tree->rwlock);
-		
+
 		if (dev->passed_to_driver) {
 			fibril_rwlock_write_unlock(&tree->rwlock);
 			link = link->next;
@@ -460,7 +460,7 @@ void initialize_running_driver(driver_t *driver, dev_tree_t *tree)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "initialize_running_driver(driver=\"%s\")",
 	    driver->name);
-	
+
 	/*
 	 * Pass devices which have been already assigned to the driver to the
 	 * driver.
@@ -506,7 +506,7 @@ void clean_driver(driver_t *drv)
 void delete_driver(driver_t *drv)
 {
 	assert(drv != NULL);
-	
+
 	clean_driver(drv);
 	free(drv);
 }
@@ -524,7 +524,7 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	assert(dev != NULL);
 	assert(drivers_list != NULL);
 	assert(tree != NULL);
-	
+
 	/*
 	 * Find the driver which is the most suitable for handling this device.
 	 */
@@ -534,10 +534,10 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 		    dev->pfun->pathname);
 		return false;
 	}
-	
+
 	/* Attach the driver to the device. */
 	attach_driver(tree, dev, drv);
-	
+
 	fibril_mutex_lock(&drv->driver_mutex);
 	if (drv->state == DRIVER_NOT_STARTED) {
 		/* Start the driver. */
@@ -549,7 +549,7 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	/* Notify the driver about the new device. */
 	if (is_running)
 		add_device(drv, dev, tree);
-	
+
 	fibril_mutex_lock(&drv->driver_mutex);
 	fibril_mutex_unlock(&drv->driver_mutex);
 
@@ -574,7 +574,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	 */
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
 	    drv->name, dev->pfun->name);
-	
+
 	/* Send the device to the driver. */
 	devman_handle_t parent_handle;
 	if (dev->pfun) {
@@ -582,19 +582,19 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	} else {
 		parent_handle = 0;
 	}
-	
+
 	async_exch_t *exch = async_exchange_begin(drv->sess);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, DRIVER_DEV_ADD, dev->handle,
 	    parent_handle, &answer);
-	
+
 	/* Send the device name to the driver. */
 	errno_t rc = async_data_write_start(exch, dev->pfun->name,
 	    str_size(dev->pfun->name) + 1);
-	
+
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK) {
 		async_forget(req);
 	} else {
@@ -613,7 +613,7 @@ void add_device(driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 		dev->state = DEVICE_INVALID;
 		break;
 	}
-	
+
 	dev->passed_to_driver = true;
 }
 
@@ -623,20 +623,20 @@ errno_t driver_dev_remove(dev_tree_t *tree, dev_node_t *dev)
 	errno_t retval;
 	driver_t *drv;
 	devman_handle_t handle;
-	
+
 	assert(dev != NULL);
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_dev_remove(%p)", dev);
-	
+
 	fibril_rwlock_read_lock(&tree->rwlock);
 	drv = dev->drv;
 	handle = dev->handle;
 	fibril_rwlock_read_unlock(&tree->rwlock);
-	
+
 	exch = async_exchange_begin(drv->sess);
 	retval = async_req_1_0(exch, DRIVER_DEV_REMOVE, handle);
 	async_exchange_end(exch);
-	
+
 	return retval;
 }
 
@@ -646,20 +646,20 @@ errno_t driver_dev_gone(dev_tree_t *tree, dev_node_t *dev)
 	errno_t retval;
 	driver_t *drv;
 	devman_handle_t handle;
-	
+
 	assert(dev != NULL);
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_dev_gone(%p)", dev);
-	
+
 	fibril_rwlock_read_lock(&tree->rwlock);
 	drv = dev->drv;
 	handle = dev->handle;
 	fibril_rwlock_read_unlock(&tree->rwlock);
-	
+
 	exch = async_exchange_begin(drv->sess);
 	retval = async_req_1_0(exch, DRIVER_DEV_GONE, handle);
 	async_exchange_end(exch);
-	
+
 	return retval;
 }
 
@@ -669,25 +669,25 @@ errno_t driver_fun_online(dev_tree_t *tree, fun_node_t *fun)
 	errno_t retval;
 	driver_t *drv;
 	devman_handle_t handle;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_fun_online(%p)", fun);
 
 	fibril_rwlock_read_lock(&tree->rwlock);
-	
+
 	if (fun->dev == NULL) {
 		/* XXX root function? */
 		fibril_rwlock_read_unlock(&tree->rwlock);
 		return EINVAL;
 	}
-	
+
 	drv = fun->dev->drv;
 	handle = fun->handle;
 	fibril_rwlock_read_unlock(&tree->rwlock);
-	
+
 	exch = async_exchange_begin(drv->sess);
 	retval = async_req_1_0(exch, DRIVER_FUN_ONLINE, handle);
 	loc_exchange_end(exch);
-	
+
 	return retval;
 }
 
@@ -697,7 +697,7 @@ errno_t driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
 	errno_t retval;
 	driver_t *drv;
 	devman_handle_t handle;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "driver_fun_offline(%p)", fun);
 
 	fibril_rwlock_read_lock(&tree->rwlock);
@@ -706,15 +706,15 @@ errno_t driver_fun_offline(dev_tree_t *tree, fun_node_t *fun)
 		fibril_rwlock_read_unlock(&tree->rwlock);
 		return EINVAL;
 	}
-	
+
 	drv = fun->dev->drv;
 	handle = fun->handle;
 	fibril_rwlock_read_unlock(&tree->rwlock);
-	
+
 	exch = async_exchange_begin(drv->sess);
 	retval = async_req_1_0(exch, DRIVER_FUN_OFFLINE, handle);
 	loc_exchange_end(exch);
-	
+
 	return retval;
 
 }

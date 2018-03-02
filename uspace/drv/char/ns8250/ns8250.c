@@ -237,7 +237,7 @@ static void ns8250_write_8(ns8250_regs_t *regs, uint8_t c)
 {
 	while (!is_transmit_empty(regs))
 		;
-	
+
 	pio_write_8(&regs->data, c);
 }
 
@@ -255,12 +255,12 @@ static errno_t ns8250_read(chardev_srv_t *srv, void *buf, size_t count, size_t *
 	ns8250_t *ns = srv_ns8250(srv);
 	char *bp = (char *) buf;
 	size_t pos = 0;
-	
+
 	if (count == 0) {
 		*nread = 0;
 		return EOK;
 	}
-	
+
 	fibril_mutex_lock(&ns->mutex);
 	while (buf_is_empty(&ns->input_buffer))
 		fibril_condvar_wait(&ns->input_buffer_available, &ns->mutex);
@@ -269,7 +269,7 @@ static errno_t ns8250_read(chardev_srv_t *srv, void *buf, size_t count, size_t *
 		pos++;
 	}
 	fibril_mutex_unlock(&ns->mutex);
-	
+
 	*nread = pos;
 	return EOK;
 }
@@ -300,10 +300,10 @@ static errno_t ns8250_write(chardev_srv_t *srv, const void *buf, size_t count,
 	ns8250_t *ns = srv_ns8250(srv);
 	size_t idx;
 	uint8_t *bp = (uint8_t *) buf;
-	
+
 	for (idx = 0; idx < count; idx++)
 		ns8250_putchar(ns, bp[idx]);
-	
+
 	*nwritten = count;
 	return EOK;
 }
@@ -354,7 +354,7 @@ static void ns8250_dev_cleanup(ns8250_t *ns)
 static bool ns8250_pio_enable(ns8250_t *ns)
 {
 	ddf_msg(LVL_DEBUG, "ns8250_pio_enable %s", ddf_dev_get_name(ns->dev));
-	
+
 	/* Gain control over port's registers. */
 	if (pio_enable((void *) ns->io_addr, REG_COUNT,
 	    (void **) &ns->port)) {
@@ -364,7 +364,7 @@ static bool ns8250_pio_enable(ns8250_t *ns)
 	}
 
 	ns->regs = (ns8250_regs_t *)ns->port;
-	
+
 	return true;
 }
 
@@ -376,28 +376,28 @@ static bool ns8250_pio_enable(ns8250_t *ns)
 static bool ns8250_dev_probe(ns8250_t *ns)
 {
 	ddf_msg(LVL_DEBUG, "ns8250_dev_probe %s", ddf_dev_get_name(ns->dev));
-	
+
 	bool res = true;
 	uint8_t olddata;
-	
+
 	olddata = pio_read_8(&ns->regs->mcr);
-	
+
 	pio_write_8(&ns->regs->mcr, NS8250_MCR_LOOPBACK);
 	if (pio_read_8(&ns->regs->msr) & NS8250_MSR_SIGNALS)
 		res = false;
-	
+
 	pio_write_8(&ns->regs->mcr, NS8250_MCR_ALL);
 	if ((pio_read_8(&ns->regs->msr) & NS8250_MSR_SIGNALS)
 	    != NS8250_MSR_SIGNALS)
 		res = false;
-	
+
 	pio_write_8(&ns->regs->mcr, olddata);
-	
+
 	if (!res) {
 		ddf_msg(LVL_DEBUG, "Device %s is not present.",
 		    ddf_dev_get_name(ns->dev));
 	}
-	
+
 	return res;
 }
 
@@ -409,12 +409,12 @@ static bool ns8250_dev_probe(ns8250_t *ns)
 static errno_t ns8250_dev_initialize(ns8250_t *ns)
 {
 	errno_t ret = EOK;
-	
+
 	ddf_msg(LVL_DEBUG, "ns8250_dev_initialize %s", ddf_dev_get_name(ns->dev));
-	
+
 	hw_resource_list_t hw_resources;
 	memset(&hw_resources, 0, sizeof(hw_resource_list_t));
-	
+
 	/* Get hw resources. */
 	ret = hw_res_get_resource_list(ns->parent_sess, &hw_resources);
 	if (ret != EOK) {
@@ -422,12 +422,12 @@ static errno_t ns8250_dev_initialize(ns8250_t *ns)
 		    "%s.", ddf_dev_get_name(ns->dev));
 		goto failed;
 	}
-	
+
 	size_t i;
 	hw_resource_t *res;
 	bool irq = false;
 	bool ioport = false;
-	
+
 	for (i = 0; i < hw_resources.count; i++) {
 		res = &hw_resources.resources[i];
 		switch (res->type) {
@@ -437,7 +437,7 @@ static errno_t ns8250_dev_initialize(ns8250_t *ns)
 			ddf_msg(LVL_NOTE, "Device %s was assigned irq = 0x%x.",
 			    ddf_dev_get_name(ns->dev), ns->irq);
 			break;
-			
+
 		case IO_RANGE:
 			ns->io_addr = res->res.io_range.address;
 			if (res->res.io_range.size < REG_COUNT) {
@@ -450,22 +450,22 @@ static errno_t ns8250_dev_initialize(ns8250_t *ns)
 			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address = "
 			    "0x%#" PRIxn ".", ddf_dev_get_name(ns->dev), ns->io_addr);
     			break;
-			
+
 		default:
 			break;
 		}
 	}
-	
+
 	if (!irq || !ioport) {
 		ddf_msg(LVL_ERROR, "Missing HW resource(s) for device %s.",
 		    ddf_dev_get_name(ns->dev));
 		ret = ENOENT;
 		goto failed;
 	}
-	
+
 	hw_res_clean_resource_list(&hw_resources);
 	return ret;
-	
+
 failed:
 	ns8250_dev_cleanup(ns);
 	hw_res_clean_resource_list(&hw_resources);
@@ -506,13 +506,13 @@ static errno_t ns8250_interrupt_enable(ns8250_t *ns)
 	errno_t rc = hw_res_enable_interrupt(ns->parent_sess, ns->irq);
 	if (rc != EOK)
 		return EIO;
-	
+
 	/* Read LSR to clear possible previous LSR interrupt */
 	pio_read_8(&ns->regs->lsr);
-	
+
 	/* Enable interrupt on the serial port. */
 	ns8250_port_interrupts_enable(ns->regs);
-	
+
 	return EOK;
 }
 
@@ -550,27 +550,27 @@ static errno_t ns8250_port_set_baud_rate(ns8250_regs_t *regs, unsigned int baud_
 {
 	uint16_t divisor;
 	uint8_t div_low, div_high;
-	
+
 	if (baud_rate < 50 || MAX_BAUD_RATE % baud_rate != 0) {
 		ddf_msg(LVL_ERROR, "Invalid baud rate %d requested.",
 		    baud_rate);
 		return EINVAL;
 	}
-	
+
 	divisor = MAX_BAUD_RATE / baud_rate;
 	div_low = (uint8_t)divisor;
 	div_high = (uint8_t)(divisor >> 8);
-	
+
 	/* Enable DLAB to be able to access baud rate divisor. */
 	enable_dlab(regs);
-	
+
 	/* Set divisor low byte. */
 	pio_write_8(&regs->data, div_low);
 	/* Set divisor high byte. */
 	pio_write_8(&regs->ier, div_high);
-	
+
 	clear_dlab(regs);
-	
+
 	return EOK;
 }
 
@@ -583,17 +583,17 @@ static unsigned int ns8250_port_get_baud_rate(ns8250_regs_t *regs)
 {
 	uint16_t divisor;
 	uint8_t div_low, div_high;
-	
+
 	/* Enable DLAB to be able to access baud rate divisor. */
 	enable_dlab(regs);
-	
+
 	/* Get divisor low byte. */
 	div_low = pio_read_8(&regs->data);
 	/* Get divisor high byte. */
 	div_high = pio_read_8(&regs->ier);
-	
+
 	clear_dlab(regs);
-	
+
 	divisor = (div_high << 8) | div_low;
 	return MAX_BAUD_RATE / divisor;
 }
@@ -609,10 +609,10 @@ static void ns8250_port_get_com_props(ns8250_regs_t *regs, unsigned int *parity,
     unsigned int *word_length, unsigned int *stop_bits)
 {
 	uint8_t val;
-	
+
 	val = pio_read_8(&regs->lcr);
 	*parity = ((val >> NS8250_LCR_PARITY) & 7);
-	
+
 	/* Silence warnings */
 	*word_length = 0;
 
@@ -630,7 +630,7 @@ static void ns8250_port_get_com_props(ns8250_regs_t *regs, unsigned int *parity,
 		*word_length = 8;
 		break;
 	}
-	
+
 	if ((val >> NS8250_LCR_STOPBITS) & 1)
 		*stop_bits = 2;
 	else
@@ -649,7 +649,7 @@ static errno_t ns8250_port_set_com_props(ns8250_regs_t *regs, unsigned int parit
     unsigned int word_length, unsigned int stop_bits)
 {
 	uint8_t val;
-	
+
 	switch (word_length) {
 	case 5:
 		val = WORD_LENGTH_5;
@@ -666,7 +666,7 @@ static errno_t ns8250_port_set_com_props(ns8250_regs_t *regs, unsigned int parit
 	default:
 		return EINVAL;
 	}
-	
+
 	switch (stop_bits) {
 	case 1:
 		val |= ONE_STOP_BIT << NS8250_LCR_STOPBITS;
@@ -677,7 +677,7 @@ static errno_t ns8250_port_set_com_props(ns8250_regs_t *regs, unsigned int parit
 	default:
 		return EINVAL;
 	}
-	
+
 	switch (parity) {
 	case SERIAL_NO_PARITY:
 	case SERIAL_ODD_PARITY:
@@ -689,9 +689,9 @@ static errno_t ns8250_port_set_com_props(ns8250_regs_t *regs, unsigned int parit
 	default:
 		return EINVAL;
 	}
-	
+
 	pio_write_8(&regs->lcr, val);
-	
+
 	return EOK;
 }
 
@@ -747,13 +747,13 @@ static void ns8250_read_from_device(ns8250_t *ns)
 {
 	ns8250_regs_t *regs = ns->regs;
 	bool cont = true;
-	
+
 	fibril_mutex_lock(&ns->mutex);
 	while (cont) {
 		cont = ns8250_received(regs);
 		if (cont) {
 			uint8_t val = ns8250_read_8(regs);
-			
+
 			if (ns->client_connections > 0) {
 				bool buf_was_empty = buf_is_empty(&ns->input_buffer);
 				if (!buf_push_back(&ns->input_buffer, val)) {
@@ -793,7 +793,7 @@ static inline void ns8250_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
 			ddf_msg(LVL_WARN, "Overrun error on %s", ddf_dev_get_name(ns->dev));
 		}
 	}
-	
+
 	ns8250_read_from_device(ns);
 	hw_res_clear_interrupt(ns->parent_sess, ns->irq);
 }
@@ -831,21 +831,21 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 	bool need_cleanup = false;
 	bool need_unreg_intr_handler = false;
 	errno_t rc;
-	
+
 	ddf_msg(LVL_DEBUG, "ns8250_dev_add %s (handle = %d)",
 	    ddf_dev_get_name(dev), (int) ddf_dev_get_handle(dev));
-	
+
 	/* Allocate soft-state for the device */
 	ns = ddf_dev_data_alloc(dev, sizeof(ns8250_t));
 	if (ns == NULL) {
 		rc = ENOMEM;
 		goto fail;
 	}
-	
+
 	fibril_mutex_initialize(&ns->mutex);
 	fibril_condvar_initialize(&ns->input_buffer_available);
 	ns->dev = dev;
-	
+
 	ns->parent_sess = ddf_dev_parent_sess_get(ns->dev);
 	if (ns->parent_sess == NULL) {
 		ddf_msg(LVL_ERROR, "Failed to connect to parent driver of "
@@ -853,27 +853,27 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 		rc = EIO;
 		goto fail;
 	}
-	
+
 	rc = ns8250_dev_initialize(ns);
 	if (rc != EOK)
 		goto fail;
-	
+
 	need_cleanup = true;
-	
+
 	if (!ns8250_pio_enable(ns)) {
 		rc = EADDRNOTAVAIL;
 		goto fail;
 	}
-	
+
 	/* Find out whether the device is present. */
 	if (!ns8250_dev_probe(ns)) {
 		rc = ENOENT;
 		goto fail;
 	}
-	
+
 	/* Serial port initialization (baud rate etc.). */
 	ns8250_initialize_port(ns);
-	
+
 	/* Register interrupt handler. */
 	rc = ns8250_register_interrupt_handler(ns, &ns->irq_cap);
 	if (rc != EOK) {
@@ -890,19 +890,19 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 		    "%s.", str_error_name(rc));
 		goto fail;
 	}
-	
+
 	fun = ddf_fun_create(dev, fun_exposed, "a");
 	if (fun == NULL) {
 		ddf_msg(LVL_ERROR, "Failed creating function.");
 		goto fail;
 	}
-	
+
 	ddf_fun_set_conn_handler(fun, ns8250_char_conn);
-	
+
 	chardev_srvs_init(&ns->cds);
 	ns->cds.ops = &ns8250_chardev_ops;
 	ns->cds.sarg = ns;
-	
+
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed binding function.");
@@ -910,12 +910,12 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 	}
 
 	ns->fun = fun;
-	
+
 	ddf_fun_add_to_category(fun, "serial");
-	
+
 	ddf_msg(LVL_NOTE, "Device %s successfully initialized.",
 	    ddf_dev_get_name(dev));
-	
+
 	return EOK;
 fail:
 	if (fun != NULL)
@@ -931,7 +931,7 @@ static errno_t ns8250_dev_remove(ddf_dev_t *dev)
 {
 	ns8250_t *ns = dev_ns8250(dev);
 	errno_t rc;
-	
+
 	fibril_mutex_lock(&ns->mutex);
 	if (ns->client_connections > 0) {
 		fibril_mutex_unlock(&ns->mutex);
@@ -939,15 +939,15 @@ static errno_t ns8250_dev_remove(ddf_dev_t *dev)
 	}
 	ns->removed = true;
 	fibril_mutex_unlock(&ns->mutex);
-	
+
 	rc = ddf_fun_unbind(ns->fun);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to unbind function.");
 		return rc;
 	}
-	
+
 	ddf_fun_destroy(ns->fun);
-	
+
 	ns8250_port_cleanup(ns);
 	ns8250_unregister_interrupt_handler(ns);
 	ns8250_dev_cleanup(ns);
@@ -966,7 +966,7 @@ static errno_t ns8250_open(chardev_srvs_t *srvs, chardev_srv_t *srv)
 {
 	ns8250_t *ns = srv_ns8250(srv);
 	errno_t res;
-	
+
 	fibril_mutex_lock(&ns->mutex);
 	if (ns->removed) {
 		res = ENXIO;
@@ -975,7 +975,7 @@ static errno_t ns8250_open(chardev_srvs_t *srvs, chardev_srv_t *srv)
 		ns->client_connections++;
 	}
 	fibril_mutex_unlock(&ns->mutex);
-	
+
 	return res;
 }
 
@@ -989,16 +989,16 @@ static errno_t ns8250_open(chardev_srvs_t *srvs, chardev_srv_t *srv)
 static errno_t ns8250_close(chardev_srv_t *srv)
 {
 	ns8250_t *data = srv_ns8250(srv);
-	
+
 	fibril_mutex_lock(&data->mutex);
-	
+
 	assert(data->client_connections > 0);
-	
+
 	if (!(--data->client_connections))
 		buf_clear(&data->input_buffer);
-	
+
 	fibril_mutex_unlock(&data->mutex);
-	
+
 	return EOK;
 }
 
@@ -1017,14 +1017,14 @@ ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate, unsigned int *parity,
 {
 	ns8250_t *data = dev_ns8250(dev);
 	ns8250_regs_t *regs = data->regs;
-	
+
 	fibril_mutex_lock(&data->mutex);
 	ns8250_port_interrupts_disable(regs);
 	*baud_rate = ns8250_port_get_baud_rate(regs);
 	ns8250_port_get_com_props(regs, parity, word_length, stop_bits);
 	ns8250_port_interrupts_enable(regs);
 	fibril_mutex_unlock(&data->mutex);
-	
+
 	ddf_msg(LVL_DEBUG, "ns8250_get_props: baud rate %d, parity 0x%x, word "
 	    "length %d, stop bits %d", *baud_rate, *parity, *word_length,
 	    *stop_bits);
@@ -1045,11 +1045,11 @@ static errno_t ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
 	ddf_msg(LVL_DEBUG, "ns8250_set_props: baud rate %d, parity 0x%x, word "
 	    "length %d, stop bits %d", baud_rate, parity, word_length,
 	    stop_bits);
-	
+
 	ns8250_t *data = dev_ns8250(dev);
 	ns8250_regs_t *regs = data->regs;
 	errno_t ret;
-	
+
 	fibril_mutex_lock(&data->mutex);
 	ns8250_port_interrupts_disable(regs);
 	ret = ns8250_port_set_baud_rate(regs, baud_rate);
@@ -1057,7 +1057,7 @@ static errno_t ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
 		ret = ns8250_port_set_com_props(regs, parity, word_length, stop_bits);
 	ns8250_port_interrupts_enable(regs);
 	fibril_mutex_unlock(&data->mutex);
-	
+
 	return ret;
 }
 
@@ -1073,7 +1073,7 @@ static void ns8250_default_handler(chardev_srv_t *srv, ipc_callid_t callid,
 	sysarg_t method = IPC_GET_IMETHOD(*call);
 	errno_t ret;
 	unsigned int baud_rate, parity, word_length, stop_bits;
-	
+
 	switch (method) {
 	case SERIAL_GET_COM_PROPS:
 		ns8250_get_props(ns8250->dev, &baud_rate, &parity, &word_length,
@@ -1081,7 +1081,7 @@ static void ns8250_default_handler(chardev_srv_t *srv, ipc_callid_t callid,
 		async_answer_4(callid, EOK, baud_rate, parity, word_length,
 		    stop_bits);
 		break;
-		
+
 	case SERIAL_SET_COM_PROPS:
  		baud_rate = IPC_GET_ARG1(*call);
 		parity = IPC_GET_ARG2(*call);
@@ -1091,7 +1091,7 @@ static void ns8250_default_handler(chardev_srv_t *srv, ipc_callid_t callid,
 		    stop_bits);
 		async_answer_0(callid, ret);
 		break;
-		
+
 	default:
 		async_answer_0(callid, ENOTSUP);
 	}

@@ -42,7 +42,7 @@ NO_TRACE static inline uint64_t get_cycle(void)
 	uint32_t lower;
 	uint32_t upper;
 	uint32_t tmp;
-	
+
 	do {
 		asm volatile (
 			"mftbu %[upper]\n"
@@ -53,7 +53,7 @@ NO_TRACE static inline uint64_t get_cycle(void)
 			  [tmp] "=r" (tmp)
 		);
 	} while (upper != tmp);
-	
+
 	return ((uint64_t) upper << 32) + (uint64_t) lower;
 }
 

@@ -66,7 +66,7 @@ fs_index_t udf_long_ad_to_pos(udf_instance_t *instance, udf_long_ad_t *long_ad)
 	    "partition_num=%" PRIu16 ", partition_block=%" PRIu32,
 	    FLE16(long_ad->location.partition_num),
 	    FLE32(long_ad->location.lblock_num));
-	
+
 	return instance->partitions[
 	    FLE16(long_ad->location.partition_num)].start +
 	    FLE32(long_ad->location.lblock_num);
@@ -107,22 +107,22 @@ errno_t udf_volume_recongnition(service_id_t service_id)
 	udf_vrs_descriptor_t *vd = malloc(sizeof(udf_vrs_descriptor_t));
 	if (!vd)
 		return ENOMEM;
-	
+
 	errno_t rc = udf_volume_recongnition_structure_test(service_id, addr, vd);
 	if (rc != EOK) {
 		free(vd);
 		return rc;
 	}
-	
+
 	for (size_t i = 0; i < VRS_DEPTH; i++) {
 		addr += sizeof(udf_vrs_descriptor_t);
-		
+
 		rc = udf_volume_recongnition_structure_test(service_id, addr, vd);
 		if (rc != EOK) {
 			free(vd);
 			return rc;
 		}
-		
+
 		/*
 		 * UDF standard identifier. According to ECMA 167 2/9.1.2
 		 */
@@ -132,15 +132,15 @@ errno_t udf_volume_recongnition(service_id_t service_id)
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "VRS: NSR found");
 			continue;
 		}
-		
+
 		if (str_lcmp(VRS_END, (char *) vd->identifier, VRS_ID_LEN) == 0) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "VRS: end found");
 			break;
 		}
 	}
-	
+
 	free(vd);
-	
+
 	if (nsr_found)
 		return EOK;
 	else
@@ -177,21 +177,21 @@ static errno_t udf_get_anchor_volume_descriptor_by_ssize(service_id_t service_id
 	    sizeof(udf_anchor_volume_descriptor_t), avd);
 	if (rc != EOK)
 		return rc;
-	
+
 	if (avd->tag.checksum != udf_tag_checksum((uint8_t *) &avd->tag))
 		return EINVAL;
-	
+
 	// TODO: Should be tested in big-endian mode
 	udf_prepare_tag(&avd->tag);
-	
+
 	if (avd->tag.id != UDF_TAG_AVDP)
 		return EINVAL;
-	
+
 	GET_LE32(avd->main_extent.length);
 	GET_LE32(avd->main_extent.location);
 	GET_LE32(avd->reserve_extent.length);
 	GET_LE32(avd->reserve_extent.location);
-	
+
 	return EOK;
 }
 
@@ -210,12 +210,12 @@ errno_t udf_get_anchor_volume_descriptor(service_id_t service_id,
     udf_anchor_volume_descriptor_t *avd)
 {
 	uint32_t default_sector_size[] = {512, 1024, 2048, 4096, 8192, 0};
-	
+
 	udf_instance_t *instance;
 	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
-	
+
 	if (instance->sector_size) {
 		return udf_get_anchor_volume_descriptor_by_ssize(service_id, avd,
 		    instance->sector_size);
@@ -228,11 +228,11 @@ errno_t udf_get_anchor_volume_descriptor(service_id_t service_id,
 				instance->sector_size = default_sector_size[i];
 				return EOK;
 			}
-			
+
 			i++;
 		}
 	}
-	
+
 	return EINVAL;
 }
 
@@ -272,7 +272,7 @@ static bool udf_check_prevailing_pvd(udf_primary_volume_descriptor_t *pvd,
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -309,7 +309,7 @@ static bool udf_check_prevailing_lvd(udf_logical_volume_descriptor_t *lvd,
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -342,7 +342,7 @@ static bool udf_check_prevailing_pd(udf_partition_descriptor_t *pd, size_t cnt,
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -367,13 +367,13 @@ static errno_t udf_read_virtual_partition(udf_instance_t *instance, uint32_t pos
 	    BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
-	
+
 	udf_descriptor_tag_t *desc = (udf_descriptor_tag_t *) (block->data);
 	if (desc->checksum != udf_tag_checksum((uint8_t *) desc)) {
 		block_put(block);
 		return EINVAL;
 	}
-	
+
 	/*
 	 * We think that we have only one allocator. It is means that virtual
 	 * partition, like physical, isn't fragmented.
@@ -382,7 +382,7 @@ static errno_t udf_read_virtual_partition(udf_instance_t *instance, uint32_t pos
 	switch (FLE16(desc->id)) {
 	case UDF_FILE_ENTRY:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "ICB: File entry descriptor found");
-		
+
 		udf_file_entry_descriptor_t *fed =
 		    (udf_file_entry_descriptor_t *) block->data;
 		uint32_t start_alloc = FLE32(fed->ea_lenght) + UDF_FE_OFFSET;
@@ -391,10 +391,10 @@ static errno_t udf_read_virtual_partition(udf_instance_t *instance, uint32_t pos
 		instance->partitions[id].start = FLE32(short_d->position);
 		instance->partitions[id].lenght = FLE32(short_d->length);
 		break;
-		
+
 	case UDF_EFILE_ENTRY:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "ICB: Extended file entry descriptor found");
-		
+
 		udf_extended_file_entry_descriptor_t *efed =
 		    (udf_extended_file_entry_descriptor_t *) block->data;
 		start_alloc = FLE32(efed->ea_lenght) + UDF_EFE_OFFSET;
@@ -403,7 +403,7 @@ static errno_t udf_read_virtual_partition(udf_instance_t *instance, uint32_t pos
 		instance->partitions[id].lenght = FLE32(short_d->length);
 		break;
 	}
-	
+
 	return block_put(block);
 }
 
@@ -425,7 +425,7 @@ static size_t udf_find_partition(udf_partition_descriptor_t *pd, size_t pd_cnt,
 		if (FLE16(pd[i].number) == id)
 			return i;
 	}
-	
+
 	return (size_t) -1;
 }
 
@@ -447,20 +447,20 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 	instance->volumes = calloc(lvd_cnt, sizeof(udf_lvolume_t));
 	if (instance->volumes == NULL)
 		return ENOMEM;
-	
+
 	instance->partitions = calloc(pd_cnt, sizeof(udf_partition_t));
 	if (instance->partitions == NULL) {
 		free(instance->volumes);
 		return ENOMEM;
 	}
-	
+
 	instance->partition_cnt = pd_cnt;
-	
+
 	/*
 	 * Fill information about logical volumes. We will save
 	 * information about all partitions placed inside each volumes.
 	 */
-	
+
 	size_t vir_pd_cnt = 0;
 	for (size_t i = 0; i < lvd_cnt; i++) {
 		instance->volumes[i].partitions =
@@ -470,23 +470,23 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 			// FIXME: Memory leak, cleanup code missing
 			return ENOMEM;
 		}
-		
+
 		instance->volumes[i].partition_cnt = 0;
 		instance->volumes[i].logical_block_size =
 		    FLE32(lvd[i].logical_block_size);
-		
+
 		/*
 		 * In theory we could have more than 1 logical volume. But now
 		 * for current work of driver we will think that it single and all
 		 * partitions from array pd belong to only first lvd
 		 */
-		
+
 		uint8_t *idx = lvd[i].partition_map;
 		for (size_t j = 0; j < FLE32(lvd[i].number_of_partitions_maps);
 		    j++) {
 			udf_type1_partition_map_t *pm1 =
 			    (udf_type1_partition_map_t *) idx;
-			
+
 			if (pm1->partition_map_type == 1) {
 				size_t pd_num = udf_find_partition(pd, pd_cnt,
 				    FLE16(pm1->partition_number));
@@ -494,7 +494,7 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 					// FIXME: Memory leak, cleanup code missing
 					return ENOENT;
 				}
-				
+
 				/*
 				 * Fill information about physical partitions. We will save all
 				 * partitions (physical and virtual) inside one array
@@ -508,31 +508,31 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 				    FLE16(pm1->partition_number);
 				instance->partitions[j].start =
 				    FLE32(pd[pd_num].starting_location);
-				
+
 				instance->volumes[i].partitions[
 				    instance->volumes[i].partition_cnt] =
 				    &instance->partitions[j];
-				
+
 				log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume[%" PRIun "]: partition [type %u] "
 				    "found and filled", i, pm1->partition_map_type);
-				
+
 				instance->volumes[i].partition_cnt++;
 				idx += pm1->partition_map_lenght;
 				continue;
 			}
-			
+
 			udf_type2_partition_map_t *pm2 =
 			    (udf_type2_partition_map_t *) idx;
-			
+
 			if (pm2->partition_map_type == 2) {
 				// TODO: check partition_ident for metadata_partition_map
-				
+
 				udf_metadata_partition_map_t *metadata =
 				    (udf_metadata_partition_map_t *) idx;
-				
+
 				log_msg(LOG_DEFAULT, LVL_DEBUG, "Metadata file location=%u",
 				    FLE32(metadata->metadata_fileloc));
-				
+
 				vir_pd_cnt++;
 				instance->partitions = realloc(instance->partitions,
 				    (pd_cnt + vir_pd_cnt) * sizeof(udf_partition_t));
@@ -540,16 +540,16 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 					// FIXME: Memory leak, cleanup code missing
 					return ENOMEM;
 				}
-				
+
 				instance->partition_cnt++;
-				
+
 				size_t pd_num = udf_find_partition(pd, pd_cnt,
 				    FLE16(metadata->partition_number));
 				if (pd_num == (size_t) -1) {
 					// FIXME: Memory leak, cleanup code missing
 					return ENOENT;
 				}
-				
+
 				instance->partitions[j].number =
 				    FLE16(metadata->partition_number);
 				errno_t rc = udf_read_virtual_partition(instance,
@@ -559,36 +559,36 @@ static errno_t udf_fill_volume_info(udf_logical_volume_descriptor_t *lvd,
 					// FIXME: Memory leak, cleanup code missing
 					return rc;
 				}
-				
+
 				/* Virtual partition placed inside physical */
 				instance->partitions[j].start +=
 				    FLE32(pd[pd_num].starting_location);
-				
+
 				instance->volumes[i].partitions[
 				    instance->volumes[i].partition_cnt] =
 				    &instance->partitions[j];
-				
+
 				log_msg(LOG_DEFAULT, LVL_DEBUG, "Virtual partition: num=%d, start=%d",
 				    instance->partitions[j].number,
 				    instance->partitions[j].start);
 				log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume[%" PRIun "]: partition [type %u] "
 				    "found and filled", i, pm2->partition_map_type);
-				
+
 				instance->volumes[i].partition_cnt++;
 				idx += metadata->partition_map_length;
 				continue;
 			}
-			
+
 			/* Not type 1 nor type 2 */
 			udf_general_type_t *pm = (udf_general_type_t *) idx;
-			
+
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume[%" PRIun "]: partition [type %u] "
 			    "found and skipped", i, pm->partition_map_type);
-			
+
 			idx += pm->partition_map_lenght;
 		}
 	}
-	
+
 	return EOK;
 }
 
@@ -607,27 +607,27 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 	errno_t rc = fs_instance_get(service_id, (void **) &instance);
 	if (rc != EOK)
 		return rc;
-	
+
 	aoff64_t pos = addr.location;
 	aoff64_t end = pos + (addr.length / instance->sector_size) - 1;
-	
+
 	if (pos == end)
 		return EINVAL;
-	
+
 	size_t max_descriptors = ALL_UP(addr.length, instance->sector_size);
-	
+
 	udf_primary_volume_descriptor_t *pvd = calloc(max_descriptors,
 	    sizeof(udf_primary_volume_descriptor_t));
 	if (pvd == NULL)
 		return ENOMEM;
-	
+
 	udf_logical_volume_descriptor_t *lvd = calloc(max_descriptors,
 	    instance->sector_size);
 	if (lvd == NULL) {
 		free(pvd);
 		return ENOMEM;
 	}
-	
+
 	udf_partition_descriptor_t *pd = calloc(max_descriptors,
 	    sizeof(udf_partition_descriptor_t));
 	if (pd == NULL) {
@@ -635,11 +635,11 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 		free(lvd);
 		return ENOMEM;
 	}
-	
+
 	size_t pvd_cnt = 0;
 	size_t lvd_cnt = 0;
 	size_t pd_cnt = 0;
-	
+
 	while (pos <= end) {
 		block_t *block = NULL;
 		rc = block_get(&block, service_id, pos, BLOCK_FLAGS_NONE);
@@ -649,35 +649,35 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 			free(pd);
 			return rc;
 		}
-		
+
 		udf_volume_descriptor_t *vol =
 		    (udf_volume_descriptor_t *) block->data;
-		
+
 		switch (FLE16(vol->common.tag.id)) {
 		/* One sector size descriptors */
 		case UDF_TAG_PVD:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Primary volume descriptor found");
-			
+
 			if (!udf_check_prevailing_pvd(pvd, pvd_cnt, &vol->volume)) {
 				memcpy(&pvd[pvd_cnt], &vol->volume,
 				    sizeof(udf_primary_volume_descriptor_t));
 				pvd_cnt++;
 			}
-			
+
 			pos++;
 			break;
-			
+
 		case UDF_TAG_VDP:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Volume descriptor pointer found");
 			pos++;
 			break;
-			
+
 		case UDF_TAG_IUVD:
 			log_msg(LOG_DEFAULT, LVL_DEBUG,
 			    "Volume: Implementation use volume descriptor found");
 			pos++;
 			break;
-			
+
 		case UDF_TAG_PD:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Partition descriptor found");
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Partition number: %u, contents: '%.6s', "
@@ -687,13 +687,13 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 			    "size: %" PRIu32 " (sectors)",
 			    FLE32(vol->partition.starting_location),
 			    FLE32(vol->partition.length));
-			
+
 			if (!udf_check_prevailing_pd(pd, pd_cnt, &vol->partition)) {
 				memcpy(&pd[pd_cnt], &vol->partition,
 				    sizeof(udf_partition_descriptor_t));
 				pd_cnt++;
 			}
-			
+
 			udf_partition_header_descriptor_t *phd =
 			    (udf_partition_header_descriptor_t *) vol->partition.contents_use;
 			if (FLE32(phd->unallocated_space_table.length)) {
@@ -701,7 +701,7 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 				    "space table: length=%" PRIu32 ", pos=%" PRIu32,
 				    FLE32(phd->unallocated_space_table.length),
 				    FLE32(phd->unallocated_space_table.position));
-				
+
 				instance->space_type = SPACE_TABLE;
 				instance->uaspace_start =
 				    FLE32(vol->partition.starting_location) +
@@ -709,13 +709,13 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 				instance->uaspace_lenght =
 				    FLE32(phd->unallocated_space_table.length);
 			}
-			
+
 			if (FLE32(phd->unallocated_space_bitmap.length)) {
 				log_msg(LOG_DEFAULT, LVL_DEBUG,
 				    "space bitmap: length=%" PRIu32 ", pos=%" PRIu32,
 				    FLE32(phd->unallocated_space_bitmap.length),
 				    FLE32(phd->unallocated_space_bitmap.position));
-				
+
 				instance->space_type = SPACE_BITMAP;
 				instance->uaspace_start =
 				    FLE32(vol->partition.starting_location) +
@@ -723,25 +723,25 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 				instance->uaspace_lenght =
 				    FLE32(phd->unallocated_space_bitmap.length);
 			}
-			
+
 			pos++;
 			break;
-			
+
 		/* Relative size descriptors */
 		case UDF_TAG_LVD:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Logical volume descriptor found");
-			
+
 			aoff64_t sct =
 			    ALL_UP((sizeof(udf_logical_volume_descriptor_t) +
 			    FLE32(vol->logical.map_table_length)),
 			    sizeof(udf_common_descriptor_t));
 			pos += sct;
 			char tmp[130];
-			
+
 			udf_to_unix_name(tmp, 129,
 			    (char *) vol->logical.logical_volume_id, 128,
 			    &vol->logical.charset);
-			
+
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Logical Volume ID: '%s', "
 			    "logical block size: %" PRIu32 " (bytes)", tmp,
 			    FLE32(vol->logical.logical_block_size));
@@ -749,19 +749,19 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 			    "number of partition maps: %" PRIu32,
 			    FLE32(vol->logical.map_table_length),
 			    FLE32(vol->logical.number_of_partitions_maps));
-			
+
 			if (!udf_check_prevailing_lvd(lvd, lvd_cnt, &vol->logical)) {
 				memcpy(&lvd[lvd_cnt], &vol->logical,
 				    sizeof(udf_logical_volume_descriptor_t) +
 				    FLE32(vol->logical.map_table_length));
 				lvd_cnt++;
 			}
-			
+
 			break;
-			
+
 		case UDF_TAG_USD:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Unallocated space descriptor found");
-			
+
 			sct = ALL_UP((sizeof(udf_unallocated_space_descriptor_t) +
 			    FLE32(vol->unallocated.allocation_descriptors_num)*
 			    sizeof(udf_extent_t)), sizeof(udf_common_descriptor_t));
@@ -773,29 +773,29 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 				// FIXME: Memory leak, cleanup missing
 				return ENOMEM;
 			}
-			
+
 			memcpy(instance->uasd, block->data, instance->sector_size);
 			pos += sct;
 			break;
-			
+
 		case UDF_TAG_LVID:
 			log_msg(LOG_DEFAULT, LVL_DEBUG,
 			    "Volume: Logical volume integrity descriptor found");
-			
+
 			pos++;
 			break;
-			
+
 		case UDF_TAG_TD:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Terminating descriptor found");
-			
+
 			/* Found terminating descriptor. Exiting */
 			pos = end + 1;
 			break;
-			
+
 		default:
 			pos++;
 		}
-		
+
 		rc = block_put(block);
 		if (rc != EOK) {
 			free(pvd);
@@ -804,14 +804,14 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 			return rc;
 		}
 	}
-	
+
 	/* Fill the instance */
 	udf_fill_volume_info(lvd, lvd_cnt, pd, pd_cnt, instance);
-	
+
 	for (size_t i = 0; i < lvd_cnt; i++) {
 		pos = udf_long_ad_to_pos(instance,
 		    (udf_long_ad_t *) &lvd[i].logical_volume_conents_use);
-		
+
 		block_t *block = NULL;
 		rc = block_get(&block, instance->service_id, pos,
 		    BLOCK_FLAGS_NONE);
@@ -819,26 +819,26 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 			// FIXME: Memory leak, cleanup missing
 			return rc;
 		}
-		
+
 		udf_descriptor_tag_t *desc = block->data;
-		
+
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "First tag ID=%" PRIu16, desc->id);
-		
+
 		if (desc->checksum != udf_tag_checksum((uint8_t *) desc)) {
 			// FIXME: Memory leak, cleanup missing
 			return EINVAL;
 		}
-		
+
 		udf_prepare_tag(desc);
-		
+
 		udf_fileset_descriptor_t *fd = block->data;
 		memcpy((uint8_t *) &instance->charset,
 		    (uint8_t *) &fd->fileset_charset, sizeof(fd->fileset_charset));
-		
+
 		instance->volumes[i].root_dir = udf_long_ad_to_pos(instance,
 		    &fd->root_dir_icb);
 	}
-	
+
 	free(pvd);
 	free(lvd);
 	free(pd);

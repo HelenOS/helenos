@@ -121,13 +121,13 @@ static void cushion(void)
 	void (*f)(void *) = THREAD->thread_code;
 	void *arg = THREAD->thread_arg;
 	THREAD->last_cycle = get_cycle();
-	
+
 	/* This is where each thread wakes up after its creation */
 	irq_spinlock_unlock(&THREAD->lock, false);
 	interrupts_enable();
-	
+
 	f(arg);
-	
+
 	/* Accumulate accounting to the task */
 	irq_spinlock_lock(&THREAD->lock, true);
 	if (!THREAD->uncounted) {
@@ -136,16 +136,16 @@ static void cushion(void)
 		THREAD->ucycles = 0;
 		uint64_t kcycles = THREAD->kcycles;
 		THREAD->kcycles = 0;
-		
+
 		irq_spinlock_pass(&THREAD->lock, &TASK->lock);
 		TASK->ucycles += ucycles;
 		TASK->kcycles += kcycles;
 		irq_spinlock_unlock(&TASK->lock, true);
 	} else
 		irq_spinlock_unlock(&THREAD->lock, true);
-	
+
 	thread_exit();
-	
+
 	/* Not reached */
 }
 
@@ -155,15 +155,15 @@ static void cushion(void)
 static errno_t thr_constructor(void *obj, unsigned int kmflags)
 {
 	thread_t *thread = (thread_t *) obj;
-	
+
 	irq_spinlock_initialize(&thread->lock, "thread_t_lock");
 	link_initialize(&thread->rq_link);
 	link_initialize(&thread->wq_link);
 	link_initialize(&thread->th_link);
-	
+
 	/* call the architecture-specific part of the constructor */
 	thr_constructor_arch(thread);
-	
+
 #ifdef CONFIG_FPU
 #ifdef CONFIG_FPU_LAZY
 	thread->saved_fpu_context = NULL;
@@ -173,7 +173,7 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 		return ENOMEM;
 #endif /* CONFIG_FPU_LAZY */
 #endif /* CONFIG_FPU */
-	
+
 	/*
 	 * Allocate the kernel stack from the low-memory to prevent an infinite
 	 * nesting of TLB-misses when accessing the stack from the part of the
@@ -192,7 +192,7 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 	 */
 	kmflags |= FRAME_LOWMEM;
 	kmflags &= ~FRAME_HIGHMEM;
-	
+
 	uintptr_t stack_phys =
 	    frame_alloc(STACK_FRAMES, kmflags, STACK_SIZE - 1);
 	if (!stack_phys) {
@@ -202,13 +202,13 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 #endif
 		return ENOMEM;
 	}
-	
+
 	thread->kstack = (uint8_t *) PA2KA(stack_phys);
-	
+
 #ifdef CONFIG_UDEBUG
 	mutex_initialize(&thread->udebug.lock, MUTEX_PASSIVE);
 #endif
-	
+
 	return EOK;
 }
 
@@ -216,17 +216,17 @@ static errno_t thr_constructor(void *obj, unsigned int kmflags)
 static size_t thr_destructor(void *obj)
 {
 	thread_t *thread = (thread_t *) obj;
-	
+
 	/* call the architecture-specific part of the destructor */
 	thr_destructor_arch(thread);
-	
+
 	frame_free(KA2PA(thread->kstack), STACK_FRAMES);
-	
+
 #ifdef CONFIG_FPU
 	if (thread->saved_fpu_context)
 		slab_free(fpu_context_cache, thread->saved_fpu_context);
 #endif
-	
+
 	return STACK_FRAMES;  /* number of frames freed */
 }
 
@@ -238,16 +238,16 @@ static size_t thr_destructor(void *obj)
 void thread_init(void)
 {
 	THREAD = NULL;
-	
+
 	atomic_set(&nrdy, 0);
 	thread_cache = slab_cache_create("thread_t", sizeof(thread_t), 0,
 	    thr_constructor, thr_destructor, 0);
-	
+
 #ifdef CONFIG_FPU
 	fpu_context_cache = slab_cache_create("fpu_context_t",
 	    sizeof(fpu_context_t), FPU_CONTEXT_ALIGN, NULL, NULL, 0);
 #endif
-	
+
 	avltree_create(&threads_tree);
 }
 
@@ -281,11 +281,11 @@ static void before_thread_is_ready(thread_t *thread)
 void thread_ready(thread_t *thread)
 {
 	irq_spinlock_lock(&thread->lock, true);
-	
+
 	assert(thread->state != Ready);
 
 	before_thread_is_ready(thread);
-	
+
 	int i = (thread->priority < RQ_COUNT - 1) ?
 	    ++thread->priority : thread->priority;
 
@@ -304,20 +304,20 @@ void thread_ready(thread_t *thread)
 	} else {
 		cpu = CPU;
 	}
-	
+
 	thread->state = Ready;
-	
+
 	irq_spinlock_pass(&thread->lock, &(cpu->rq[i].lock));
-	
+
 	/*
 	 * Append thread to respective ready queue
 	 * on respective processor.
 	 */
-	
+
 	list_append(&thread->rq_link, &cpu->rq[i].rq);
 	cpu->rq[i].n++;
 	irq_spinlock_unlock(&(cpu->rq[i].lock), true);
-	
+
 	atomic_inc(&nrdy);
 	atomic_inc(&cpu->nrdy);
 }
@@ -343,26 +343,26 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread_t *thread = (thread_t *) slab_alloc(thread_cache, 0);
 	if (!thread)
 		return NULL;
-	
+
 	/* Not needed, but good for debugging */
 	memsetb(thread->kstack, STACK_SIZE, 0);
-	
+
 	irq_spinlock_lock(&tidlock, true);
 	thread->tid = ++last_tid;
 	irq_spinlock_unlock(&tidlock, true);
-	
+
 	context_save(&thread->saved_context);
 	context_set(&thread->saved_context, FADDR(cushion),
 	    (uintptr_t) thread->kstack, STACK_SIZE);
-	
+
 	the_initialize((the_t *) thread->kstack);
-	
+
 	ipl_t ipl = interrupts_disable();
 	thread->saved_context.ipl = interrupts_read();
 	interrupts_restore(ipl);
-	
+
 	str_cpy(thread->name, THREAD_NAME_BUFLEN, name);
-	
+
 	thread->thread_code = func;
 	thread->thread_arg = arg;
 	thread->ticks = -1;
@@ -376,46 +376,46 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->stolen = false;
 	thread->uspace =
 	    ((flags & THREAD_FLAG_USPACE) == THREAD_FLAG_USPACE);
-	
+
 	thread->nomigrate = 0;
 	thread->state = Entering;
-	
+
 	timeout_initialize(&thread->sleep_timeout);
 	thread->sleep_interruptible = false;
 	thread->sleep_queue = NULL;
 	thread->timeout_pending = false;
-	
+
 	thread->in_copy_from_uspace = false;
 	thread->in_copy_to_uspace = false;
-	
+
 	thread->interrupted = false;
 	thread->detached = false;
 	waitq_initialize(&thread->join_wq);
-	
+
 	thread->task = task;
-	
+
 	thread->workq = NULL;
-	
+
 	thread->fpu_context_exists = false;
 	thread->fpu_context_engaged = false;
-	
+
 	avltree_node_initialize(&thread->threads_tree_node);
 	thread->threads_tree_node.key = (uintptr_t) thread;
-	
+
 #ifdef CONFIG_UDEBUG
 	/* Initialize debugging stuff */
 	thread->btrace = false;
 	udebug_thread_initialize(&thread->udebug);
 #endif
-	
+
 	/* Might depend on previous initialization */
 	thread_create_arch(thread);
-	
+
 	rcu_thread_init(thread);
-	
+
 	if ((flags & THREAD_FLAG_NOATTACH) != THREAD_FLAG_NOATTACH)
 		thread_attach(thread, task);
-	
+
 	return thread;
 }
 
@@ -434,24 +434,24 @@ void thread_destroy(thread_t *thread, bool irq_res)
 	assert((thread->state == Exiting) || (thread->state == Lingering));
 	assert(thread->task);
 	assert(thread->cpu);
-	
+
 	irq_spinlock_lock(&thread->cpu->lock, false);
 	if (thread->cpu->fpu_owner == thread)
 		thread->cpu->fpu_owner = NULL;
 	irq_spinlock_unlock(&thread->cpu->lock, false);
-	
+
 	irq_spinlock_pass(&thread->lock, &threads_lock);
-	
+
 	avltree_delete(&threads_tree, &thread->threads_tree_node);
-	
+
 	irq_spinlock_pass(&threads_lock, &thread->task->lock);
-	
+
 	/*
 	 * Detach from the containing task.
 	 */
 	list_remove(&thread->th_link);
 	irq_spinlock_unlock(&thread->task->lock, irq_res);
-	
+
 	/*
 	 * Drop the reference to the containing task.
 	 */
@@ -474,18 +474,18 @@ void thread_attach(thread_t *thread, task_t *task)
 	 * Attach to the specified task.
 	 */
 	irq_spinlock_lock(&task->lock, true);
-	
+
 	/* Hold a reference to the task. */
 	task_hold(task);
-	
+
 	/* Must not count kbox thread into lifecount */
 	if (thread->uspace)
 		atomic_inc(&task->lifecount);
-	
+
 	list_append(&thread->th_link, &task->threads);
-	
+
 	irq_spinlock_pass(&task->lock, &threads_lock);
-	
+
 	/*
 	 * Register this thread in the system-wide list.
 	 */
@@ -505,7 +505,7 @@ void thread_exit(void)
 #ifdef CONFIG_UDEBUG
 		/* Generate udebug THREAD_E event */
 		udebug_thread_e_event();
-		
+
 		/*
 		 * This thread will not execute any code or system calls from
 		 * now on.
@@ -526,7 +526,7 @@ void thread_exit(void)
 			LOG("Cleanup of task %" PRIu64" completed.", TASK->taskid);
 		}
 	}
-	
+
 restart:
 	irq_spinlock_lock(&THREAD->lock, true);
 	if (THREAD->timeout_pending) {
@@ -534,12 +534,12 @@ restart:
 		irq_spinlock_unlock(&THREAD->lock, true);
 		goto restart;
 	}
-	
+
 	THREAD->state = Exiting;
 	irq_spinlock_unlock(&THREAD->lock, true);
-	
+
 	scheduler();
-	
+
 	/* Not reached */
 	while (true);
 }
@@ -561,14 +561,14 @@ restart:
 void thread_interrupt(thread_t *thread)
 {
 	assert(thread != NULL);
-	
+
 	irq_spinlock_lock(&thread->lock, true);
-	
+
 	thread->interrupted = true;
 	bool sleeping = (thread->state == Sleeping);
-	
+
 	irq_spinlock_unlock(&thread->lock, true);
-	
+
 	if (sleeping)
 		waitq_interrupt_sleep(thread);
 }
@@ -582,13 +582,13 @@ void thread_interrupt(thread_t *thread)
 bool thread_interrupted(thread_t *thread)
 {
 	assert(thread != NULL);
-	
+
 	bool interrupted;
-	
+
 	irq_spinlock_lock(&thread->lock, true);
 	interrupted = thread->interrupted;
 	irq_spinlock_unlock(&thread->lock, true);
-	
+
 	return interrupted;
 }
 
@@ -596,7 +596,7 @@ bool thread_interrupted(thread_t *thread)
 void thread_migration_disable(void)
 {
 	assert(THREAD);
-	
+
 	THREAD->nomigrate++;
 }
 
@@ -605,7 +605,7 @@ void thread_migration_enable(void)
 {
 	assert(THREAD);
 	assert(THREAD->nomigrate > 0);
-	
+
 	if (THREAD->nomigrate > 0)
 		THREAD->nomigrate--;
 }
@@ -623,7 +623,7 @@ void thread_sleep(uint32_t sec)
 	   full argument range */
 	while (sec > 0) {
 		uint32_t period = (sec > 1000) ? 1000 : sec;
-		
+
 		thread_usleep(period * 1000000);
 		sec -= period;
 	}
@@ -642,16 +642,16 @@ errno_t thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 {
 	if (thread == THREAD)
 		return EINVAL;
-	
+
 	/*
 	 * Since thread join can only be called once on an undetached thread,
 	 * the thread pointer is guaranteed to be still valid.
 	 */
-	
+
 	irq_spinlock_lock(&thread->lock, true);
 	assert(!thread->detached);
 	irq_spinlock_unlock(&thread->lock, true);
-	
+
 	return waitq_sleep_timeout(&thread->join_wq, usec, flags, NULL);
 }
 
@@ -671,7 +671,7 @@ void thread_detach(thread_t *thread)
 	 */
 	irq_spinlock_lock(&thread->lock, true);
 	assert(!thread->detached);
-	
+
 	if (thread->state == Lingering) {
 		/*
 		 * Unlock &thread->lock and restore
@@ -682,7 +682,7 @@ void thread_detach(thread_t *thread)
 	} else {
 		thread->detached = true;
 	}
-	
+
 	irq_spinlock_unlock(&thread->lock, true);
 }
 
@@ -696,9 +696,9 @@ void thread_detach(thread_t *thread)
 void thread_usleep(uint32_t usec)
 {
 	waitq_t wq;
-	
+
 	waitq_initialize(&wq);
-	
+
 	(void) waitq_sleep_timeout(&wq, usec, SYNCH_FLAGS_NON_BLOCKING, NULL);
 }
 
@@ -706,18 +706,18 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 {
 	bool *additional = (bool *) arg;
 	thread_t *thread = avltree_get_instance(node, thread_t, threads_tree_node);
-	
+
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
 	order_suffix(thread->ucycles, &ucycles, &usuffix);
 	order_suffix(thread->kcycles, &kcycles, &ksuffix);
-	
+
 	char *name;
 	if (str_cmp(thread->name, "uinit") == 0)
 		name = thread->task->name;
 	else
 		name = thread->name;
-	
+
 #ifdef __32_BITS__
 	if (*additional)
 		printf("%-8" PRIu64 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
@@ -728,7 +728,7 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 		    thread->tid, name, thread, thread_states[thread->state],
 		    thread->task, thread->task->container);
 #endif
-	
+
 #ifdef __64_BITS__
 	if (*additional)
 		printf("%-8" PRIu64 " %18p %18p\n"
@@ -740,26 +740,26 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 		    thread->tid, name, thread, thread_states[thread->state],
 		    thread->task, thread->task->container);
 #endif
-	
+
 	if (*additional) {
 		if (thread->cpu)
 			printf("%-5u", thread->cpu->id);
 		else
 			printf("none ");
-		
+
 		if (thread->state == Sleeping) {
 #ifdef __32_BITS__
 			printf(" %10p", thread->sleep_queue);
 #endif
-			
+
 #ifdef __64_BITS__
 			printf(" %18p", thread->sleep_queue);
 #endif
 		}
-		
+
 		printf("\n");
 	}
-	
+
 	return true;
 }
 
@@ -772,7 +772,7 @@ void thread_print_list(bool additional)
 {
 	/* Messing with thread structures, avoid deadlock */
 	irq_spinlock_lock(&threads_lock, true);
-	
+
 #ifdef __32_BITS__
 	if (additional)
 		printf("[id    ] [code    ] [stack   ] [ucycles ] [kcycles ]"
@@ -781,7 +781,7 @@ void thread_print_list(bool additional)
 		printf("[id    ] [name        ] [address ] [state ] [task    ]"
 		    " [ctn]\n");
 #endif
-	
+
 #ifdef __64_BITS__
 	if (additional) {
 		printf("[id    ] [code            ] [stack           ]\n"
@@ -790,9 +790,9 @@ void thread_print_list(bool additional)
 		printf("[id    ] [name        ] [address         ] [state ]"
 		    " [task            ] [ctn]\n");
 #endif
-	
+
 	avltree_walk(&threads_tree, thread_walker, &additional);
-	
+
 	irq_spinlock_unlock(&threads_lock, true);
 }
 
@@ -813,7 +813,7 @@ bool thread_exists(thread_t *thread)
 
 	avltree_node_t *node =
 	    avltree_search(&threads_tree, (avltree_key_t) ((uintptr_t) thread));
-	
+
 	return node != NULL;
 }
 
@@ -831,12 +831,12 @@ void thread_update_accounting(bool user)
 
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&THREAD->lock));
-	
+
 	if (user)
 		THREAD->ucycles += time - THREAD->last_cycle;
 	else
 		THREAD->kcycles += time - THREAD->last_cycle;
-	
+
 	THREAD->last_cycle = time;
 }
 
@@ -845,12 +845,12 @@ static bool thread_search_walker(avltree_node_t *node, void *arg)
 	thread_t *thread =
 	    (thread_t *) avltree_get_instance(node, thread_t, threads_tree_node);
 	thread_iterator_t *iterator = (thread_iterator_t *) arg;
-	
+
 	if (thread->tid == iterator->thread_id) {
 		iterator->thread = thread;
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -868,14 +868,14 @@ thread_t *thread_find_by_id(thread_id_t thread_id)
 {
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&threads_lock));
-	
+
 	thread_iterator_t iterator;
-	
+
 	iterator.thread_id = thread_id;
 	iterator.thread = NULL;
-	
+
 	avltree_walk(&threads_tree, thread_search_walker, (void *) &iterator);
-	
+
 	return iterator.thread;
 }
 
@@ -884,16 +884,16 @@ thread_t *thread_find_by_id(thread_id_t thread_id)
 void thread_stack_trace(thread_id_t thread_id)
 {
 	irq_spinlock_lock(&threads_lock, true);
-	
+
 	thread_t *thread = thread_find_by_id(thread_id);
 	if (thread == NULL) {
 		printf("No such thread.\n");
 		irq_spinlock_unlock(&threads_lock, true);
 		return;
 	}
-	
+
 	irq_spinlock_lock(&thread->lock, false);
-	
+
 	/*
 	 * Schedule a stack trace to be printed
 	 * just before the thread is scheduled next.
@@ -905,7 +905,7 @@ void thread_stack_trace(thread_id_t thread_id)
 	 * forcing the thread's sleep to be interrupted
 	 * is probably justifiable.
 	 */
-	
+
 	bool sleeping = false;
 	istate_t *istate = thread->udebug.uspace_state;
 	if (istate != NULL) {
@@ -915,12 +915,12 @@ void thread_stack_trace(thread_id_t thread_id)
 			sleeping = true;
 	} else
 		printf("Thread interrupt state not available.\n");
-	
+
 	irq_spinlock_unlock(&thread->lock, false);
-	
+
 	if (sleeping)
 		waitq_interrupt_sleep(thread);
-	
+
 	irq_spinlock_unlock(&threads_lock, true);
 }
 
@@ -934,27 +934,27 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 {
 	if (name_len > THREAD_NAME_BUFLEN - 1)
 		name_len = THREAD_NAME_BUFLEN - 1;
-	
+
 	char namebuf[THREAD_NAME_BUFLEN];
 	errno_t rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != EOK)
 		return (sys_errno_t) rc;
-	
+
 	namebuf[name_len] = 0;
-	
+
 	/*
 	 * In case of failure, kernel_uarg will be deallocated in this function.
 	 * In case of success, kernel_uarg will be freed in uinit().
 	 */
 	uspace_arg_t *kernel_uarg =
 	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t), 0);
-	
+
 	rc = copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
 	if (rc != EOK) {
 		free(kernel_uarg);
 		return (sys_errno_t) rc;
 	}
-	
+
 	thread_t *thread = thread_create(uinit, kernel_uarg, TASK,
 	    THREAD_FLAG_USPACE | THREAD_FLAG_NOATTACH, namebuf);
 	if (thread) {
@@ -967,7 +967,7 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				 * has already been created. We need to undo its
 				 * creation now.
 				 */
-				
+
 				/*
 				 * The new thread structure is initialized, but
 				 * is still not visible to the system.
@@ -975,11 +975,11 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				 */
 				slab_free(thread_cache, thread);
 				free(kernel_uarg);
-				
+
 				return (sys_errno_t) rc;
 			 }
 		}
-		
+
 #ifdef CONFIG_UDEBUG
 		/*
 		 * Generate udebug THREAD_B event and attach the thread.
@@ -993,11 +993,11 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 		thread_attach(thread, TASK);
 #endif
 		thread_ready(thread);
-		
+
 		return 0;
 	} else
 		free(kernel_uarg);
-	
+
 	return (sys_errno_t) ENOMEM;
 }
 

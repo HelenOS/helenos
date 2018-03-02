@@ -84,7 +84,7 @@ typedef struct {
 	service_id_t service_id;
 	size_t open_nodes_count;
 	udf_charspec_t charset;
-	
+
 	uint32_t sector_size;
 	udf_lvolume_t *volumes;
 	udf_partition_t *partitions;
@@ -104,12 +104,12 @@ typedef struct udf_node {
 	udf_instance_t *instance;
 	fs_node_t *fs_node;
 	fibril_mutex_t lock;
-	
+
 	fs_index_t index;  /* FID logical block */
 	ht_link_t link;
 	size_t ref_cnt;
 	size_t link_cnt;
-	
+
 	uint8_t type;  /* 1 - file, 0 - directory */
 	uint64_t data_size;
 	uint8_t *data;

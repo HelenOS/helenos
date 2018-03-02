@@ -49,7 +49,7 @@ NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 	   instructions on the CPU (and possibly putting it into
 	   low-power mode) without any possibility of exitting
 	   this function. */
-	
+
 	while (true);
 }
 
@@ -136,7 +136,7 @@ NO_TRACE static inline ipl_t interrupts_enable(void)
 	 *
 	 * The return value stores the previous interrupt level.
 	 */
-	
+
 	return 0;
 }
 
@@ -150,7 +150,7 @@ NO_TRACE static inline ipl_t interrupts_disable(void)
 	 *
 	 * The return value stores the previous interrupt level.
 	 */
-	
+
 	return 0;
 }
 
@@ -168,7 +168,7 @@ NO_TRACE static inline ipl_t interrupts_read(void)
 	 * On real hardware the return value stores the current interrupt
 	 * level.
 	 */
-	
+
 	return 0;
 }
 
@@ -178,7 +178,7 @@ NO_TRACE static inline bool interrupts_disabled(void)
 	 * On real hardware the return value is true iff interrupts are
 	 * disabled.
 	 */
-	
+
 	return false;
 }
 
@@ -191,7 +191,7 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	 * current CPU, current task, current thread and current
 	 * address space.
 	 */
-	
+
 	return 0;
 }
 

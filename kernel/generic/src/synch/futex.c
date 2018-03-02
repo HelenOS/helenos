@@ -156,9 +156,9 @@ void futex_init(void)
 void futex_task_init(struct task *task)
 {
 	task->futexes = malloc(sizeof(struct futex_cache), 0);
-	
+
 	cht_create(&task->futexes->ht, 0, 0, 0, true, &task_futex_ht_ops);
-	
+
 	list_initialize(&task->futexes->list);
 	spinlock_initialize(&task->futexes->list_lock, "futex-list-lock");
 }
@@ -182,13 +182,13 @@ static void destroy_task_cache(work_t *work)
 {
 	struct futex_cache *cache =
 		member_to_inst(work, struct futex_cache, destroy_work);
-	
+
 	/*
 	 * Destroy the cache before manually freeing items of the cache in case
 	 * table resize is in progress.
 	 */
 	cht_destroy_unsafe(&cache->ht);
-	
+
 	/* Manually free futex_ptr cache items. */
 	list_foreach_safe(cache->list, cur_link, next_link) {
 		futex_ptr_t *fut_ptr = member_to_inst(cur_link, futex_ptr_t, all_link);
@@ -196,7 +196,7 @@ static void destroy_task_cache(work_t *work)
 		list_remove(cur_link);
 		free(fut_ptr);
 	}
-	
+
 	free(cache);
 }
 
@@ -204,10 +204,10 @@ static void destroy_task_cache(work_t *work)
 void futex_task_cleanup(void)
 {
 	struct futex_cache *futexes = TASK->futexes;
-	
+
 	/* All threads of this task have terminated. This is the last thread. */
 	spinlock_lock(&futexes->list_lock);
-	
+
 	list_foreach_safe(futexes->list, cur_link, next_link) {
 		futex_ptr_t *fut_ptr = member_to_inst(cur_link, futex_ptr_t, all_link);
 
@@ -221,7 +221,7 @@ void futex_task_cleanup(void)
 		 */
 		futex_release_ref_locked(fut_ptr->futex);
 	}
-	
+
 	spinlock_unlock(&futexes->list_lock);
 }
 
@@ -251,9 +251,9 @@ static void futex_release_ref(futex_t *futex)
 {
 	assert(spinlock_locked(&futex_ht_lock));
 	assert(0 < futex->refcount);
-	
+
 	--futex->refcount;
-	
+
 	if (0 == futex->refcount) {
 		hash_table_remove(&futex_ht, &futex->paddr);
 	}
@@ -271,7 +271,7 @@ static void futex_release_ref_locked(futex_t *futex)
 static futex_t *get_futex(uintptr_t uaddr)
 {
 	futex_t *futex = find_cached_futex(uaddr);
-	
+
 	if (futex)
 		return futex;
 
@@ -302,10 +302,10 @@ static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *paddr)
 		*paddr = PTE_GET_FRAME(&t) +
 		    (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	}
-	
+
 	spinlock_unlock(&futex_ht_lock);
 	page_table_unlock(AS, false);
-	
+
 	return success;
 }
 
@@ -313,21 +313,21 @@ static bool find_futex_paddr(uintptr_t uaddr, uintptr_t *paddr)
 static futex_t *find_cached_futex(uintptr_t uaddr)
 {
 	cht_read_lock();
-	
+
 	futex_t *futex;
 	cht_link_t *futex_ptr_link = cht_find_lazy(&TASK->futexes->ht, &uaddr);
 
 	if (futex_ptr_link) {
 		futex_ptr_t *futex_ptr
 			= member_to_inst(futex_ptr_link, futex_ptr_t, cht_link);
-		
+
 		futex = futex_ptr->futex;
 	} else {
 		futex = NULL;
 	}
-	
+
 	cht_read_unlock();
-	
+
 	return futex;
 }
 
@@ -339,15 +339,15 @@ static futex_t *find_cached_futex(uintptr_t uaddr)
 static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 {
 	futex_t *futex = malloc(sizeof(futex_t), 0);
-	
+
 	/*
 	 * Find the futex object in the global futex table (or insert it
 	 * if it is not present).
 	 */
 	spinlock_lock(&futex_ht_lock);
-	
+
 	ht_link_t *fut_link = hash_table_find(&futex_ht, &phys_addr);
-	
+
 	if (fut_link) {
 		free(futex);
 		futex = member_to_inst(fut_link, futex_t, ht_link);
@@ -356,20 +356,20 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 		futex_initialize(futex, phys_addr);
 		hash_table_insert(&futex_ht, &futex->ht_link);
 	}
-	
+
 	spinlock_unlock(&futex_ht_lock);
-	
+
 	/*
 	 * Cache the link to the futex object for this task.
 	 */
 	futex_ptr_t *fut_ptr = malloc(sizeof(futex_ptr_t), 0);
 	cht_link_t *dup_link;
-	
+
 	fut_ptr->futex = futex;
 	fut_ptr->uaddr = uaddr;
-	
+
 	cht_read_lock();
-	
+
 	/* Cache the mapping from the virtual address to the futex for this task. */
 	if (cht_insert_unique(&TASK->futexes->ht, &fut_ptr->cht_link, &dup_link)) {
 		spinlock_lock(&TASK->futexes->list_lock);
@@ -379,13 +379,13 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 		/* Another thread of this task beat us to it. Use that mapping instead.*/
 		free(fut_ptr);
 		futex_release_ref_locked(futex);
-		
+
 		futex_ptr_t *dup = member_to_inst(dup_link, futex_ptr_t, cht_link);
 		futex = dup->futex;
 	}
 
 	cht_read_unlock();
-	
+
 	return futex;
 }
 
@@ -400,7 +400,7 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 sys_errno_t sys_futex_sleep(uintptr_t uaddr)
 {
 	futex_t *futex = get_futex(uaddr);
-	
+
 	if (!futex)
 		return (sys_errno_t) ENOENT;
 
@@ -427,7 +427,7 @@ sys_errno_t sys_futex_sleep(uintptr_t uaddr)
 sys_errno_t sys_futex_wakeup(uintptr_t uaddr)
 {
 	futex_t *futex = get_futex(uaddr);
-	
+
 	if (futex) {
 		waitq_wakeup(&futex->wq, WAKEUP_FIRST);
 		return EOK;
@@ -491,7 +491,7 @@ static bool task_fut_ht_equal(const cht_link_t *item1, const cht_link_t *item2)
 {
 	const futex_ptr_t *fut_ptr1 = member_to_inst(item1, futex_ptr_t, cht_link);
 	const futex_ptr_t *fut_ptr2 = member_to_inst(item2, futex_ptr_t, cht_link);
-	
+
 	return fut_ptr1->uaddr == fut_ptr2->uaddr;
 }
 
@@ -499,7 +499,7 @@ static bool task_fut_ht_key_equal(void *key, const cht_link_t *item)
 {
 	const futex_ptr_t *fut_ptr = member_to_inst(item, futex_ptr_t, cht_link);
 	uintptr_t uaddr = *(uintptr_t*)key;
-	
+
 	return fut_ptr->uaddr == uaddr;
 }
 

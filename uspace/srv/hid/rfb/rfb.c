@@ -69,14 +69,14 @@ static errno_t recv_char(tcp_conn_t *conn, char *c)
 	if (rbuf_out == rbuf_in) {
 		rbuf_out = 0;
 		rbuf_in = 0;
-		
+
 		rc = tcp_conn_recv_wait(conn, rbuf, BUFFER_SIZE, &nrecv);
 		if (rc != EOK)
 			return rc;
-		
+
 		rbuf_in = nrecv;
 	}
-	
+
 	*c = rbuf[rbuf_out++];
 	return EOK;
 }
@@ -176,7 +176,7 @@ errno_t rfb_init(rfb_t *rfb, uint16_t width, uint16_t height, const char *name)
 {
 	memset(rfb, 0, sizeof(rfb_t));
 	fibril_mutex_initialize(&rfb->lock);
-	
+
 	rfb_pixel_format_t *pf = &rfb->pixel_format;
 	pf->bpp = 32;
 	pf->depth = 24;
@@ -188,10 +188,10 @@ errno_t rfb_init(rfb_t *rfb, uint16_t width, uint16_t height, const char *name)
 	pf->r_shift = 0;
 	pf->g_shift = 8;
 	pf->b_shift = 16;
-	
+
 	rfb->name = str_dup(name);
 	rfb->supports_trle = false;
-	
+
 	return rfb_set_size(rfb, width, height);
 }
 
@@ -208,10 +208,10 @@ errno_t rfb_set_size(rfb_t *rfb, uint16_t width, uint16_t height)
 	rfb->framebuffer.height = height;
 	rfb->width = width;
 	rfb->height = height;
-	
+
 	/* Fill with white */
 	memset(rfb->framebuffer.data, 255, new_size);
-	
+
 	return EOK;
 }
 
@@ -241,7 +241,7 @@ static void rfb_encode_index(rfb_t *rfb, uint8_t *buf, pixel_t pixel)
 			return;
 		}
 	}
-	
+
 	if (first_free_index != -1) {
 		rfb->palette[first_free_index] = PIXEL(255, RED(pixel), GREEN(pixel),
 		    BLUE(pixel));
@@ -249,7 +249,7 @@ static void rfb_encode_index(rfb_t *rfb, uint8_t *buf, pixel_t pixel)
 		*buf = first_free_index;
 		return;
 	}
-	
+
 	/* TODO find nearest color index. We are lazy so return index 0 for now */
 	*buf = 0;
 }
@@ -261,7 +261,7 @@ static void rfb_encode_true_color(rfb_pixel_format_t *pf, void *buf,
 	pix |= rfb_scale_channel(RED(pixel), pf->r_max) << pf->r_shift;
 	pix |= rfb_scale_channel(GREEN(pixel), pf->g_max) << pf->g_shift;
 	pix |= rfb_scale_channel(BLUE(pixel), pf->b_max) << pf->b_shift;
-	
+
 	if (pf->bpp == 8) {
 		uint8_t pix8 = pix;
 		memcpy(buf, &pix8, 1);
@@ -316,20 +316,20 @@ static void *rfb_send_palette_message(rfb_t *rfb, size_t *psize)
 {
 	size_t size = sizeof(rfb_set_color_map_entries_t) +
 	    rfb->palette_used * sizeof(rfb_color_map_entry_t);
-	
+
 	void *buf = malloc(size);
 	if (buf == NULL)
 		return NULL;
-	
+
 	void *pos = buf;
-	
+
 	rfb_set_color_map_entries_t *scme = pos;
 	scme->message_type = RFB_SMSG_SET_COLOR_MAP_ENTRIES;
 	scme->first_color = 0;
 	scme->color_count = rfb->palette_used;
 	rfb_set_color_map_entries_to_be(scme, scme);
 	pos += sizeof(rfb_set_color_map_entries_t);
-	
+
 	rfb_color_map_entry_t *entries = pos;
 	for (unsigned i = 0; i < rfb->palette_used; i++) {
 		entries[i].red = 65535 * RED(rfb->palette[i]) / 255;
@@ -337,7 +337,7 @@ static void *rfb_send_palette_message(rfb_t *rfb, size_t *psize)
 		entries[i].blue = 65535 * BLUE(rfb->palette[i]) / 255;
 		rfb_color_map_entry_to_be(&entries[i], &entries[i]);
 	}
-	
+
 	*psize = size;
 	return buf;
 }
@@ -346,10 +346,10 @@ static size_t rfb_rect_encode_raw(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 {
 	size_t pixel_size = rfb->pixel_format.bpp / 8;
 	size_t size = (rect->width * rect->height * pixel_size);
-	
+
 	if (buf == NULL)
 		return size;
-	
+
 	for (uint16_t y = 0; y < rect->height; y++) {
 		for (uint16_t x = 0; x < rect->width; x++) {
 			pixel_t pixel = pixelmap_get_pixel(&rfb->framebuffer,
@@ -358,7 +358,7 @@ static size_t rfb_rect_encode_raw(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 			buf += pixel_size;
 		}
 	}
-	
+
 	return size;
 }
 
@@ -375,20 +375,20 @@ static void cpixel_context_init(cpixel_ctx_t *ctx, rfb_pixel_format_t *pixel_for
 {
 	ctx->size = pixel_format->bpp / 8;
 	ctx->compress_type = COMP_NONE;
-	
+
 	if (pixel_format->bpp == 32 && pixel_format->depth <= 24) {
 		uint32_t mask = 0;
 		mask |= pixel_format->r_max << pixel_format->r_shift;
 		mask |= pixel_format->g_max << pixel_format->g_shift;
 		mask |= pixel_format->b_max << pixel_format->b_shift;
-		
+
 		if (pixel_format->big_endian) {
 			mask = host2uint32_t_be(mask);
 		}
 		else {
 			mask = host2uint32_t_le(mask);
 		}
-		
+
 		uint8_t *mask_data = (uint8_t *) &mask;
 		if (mask_data[0] == 0) {
 			ctx->compress_type = COMP_SKIP_START;
@@ -406,7 +406,7 @@ static void cpixel_encode(rfb_t *rfb, cpixel_ctx_t *cpixel, void *buf,
 {
 	uint8_t data[4];
 	rfb_encode_pixel(rfb, data, pixel);
-	
+
 	switch (cpixel->compress_type) {
 	case COMP_NONE:
 	case COMP_SKIP_END:
@@ -423,14 +423,14 @@ static size_t rfb_tile_encode_raw(rfb_t *rfb, cpixel_ctx_t *cpixel,
 	size_t size = tile->width * tile->height * cpixel->size;
 	if (buf == NULL)
 		return size;
-	
+
 	for (uint16_t y = tile->y; y < tile->y + tile->height; y++) {
 		for (uint16_t x = tile->x; x < tile->x + tile->width; x++) {
 			pixel_t pixel = pixelmap_get_pixel(&rfb->framebuffer, x, y);
 			cpixel_encode(rfb, cpixel, buf, pixel);
 		}
 	}
-	
+
 	return size;
 }
 
@@ -445,7 +445,7 @@ static errno_t rfb_tile_encode_solid(rfb_t *rfb, cpixel_ctx_t *cpixel,
 				return EINVAL;
 		}
 	}
-	
+
 	/* OK, encode it */
 	if (buf)
 		cpixel_encode(rfb, cpixel, buf, the_color);
@@ -457,7 +457,7 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 {
 	cpixel_ctx_t cpixel;
 	cpixel_context_init(&cpixel, &rfb->pixel_format);
-	
+
 	size_t size = 0;
 	for (uint16_t y = 0; y < rect->height; y += 16) {
 		for (uint16_t x = 0; x < rect->width; x += 16) {
@@ -467,12 +467,12 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 				.width = (x + 16 <= rect->width ? 16 : rect->width - x),
 				.height = (y + 16 <= rect->height ? 16 : rect->height - y)
 			};
-			
+
 			size += 1;
 			uint8_t *tile_enctype_ptr = buf;
 			if (buf)
 				buf +=  1;
-			
+
 			uint8_t tile_enctype = RFB_TILE_ENCODING_SOLID;
 			size_t tile_size;
 			errno_t rc = rfb_tile_encode_solid(rfb, &cpixel, &tile, buf,
@@ -481,7 +481,7 @@ static size_t rfb_rect_encode_trle(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 				tile_size = rfb_tile_encode_raw(rfb, &cpixel, &tile, buf);
 				tile_enctype = RFB_TILE_ENCODING_RAW;
 			}
-			
+
 			if (buf) {
 				*tile_enctype_ptr = tile_enctype;
 				buf += tile_size;
@@ -501,33 +501,33 @@ static errno_t rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
 		rfb->damage_rect.width = rfb->width;
 		rfb->damage_rect.height = rfb->height;
 	}
-	
+
 
 	/* We send only single raw rectangle right now */
 	size_t buf_size = sizeof(rfb_framebuffer_update_t) +
 	    sizeof(rfb_rectangle_t) * 1 +
 	    rfb_rect_encode_raw(rfb, &rfb->damage_rect, NULL)
 	    ;
-	
+
 	void *buf = malloc(buf_size);
 	if (buf == NULL) {
 		fibril_mutex_unlock(&rfb->lock);
 		return ENOMEM;
 	}
 	memset(buf, 0, buf_size);
-	
+
 	void *pos = buf;
 	rfb_framebuffer_update_t *fbu = buf;
 	fbu->message_type = RFB_SMSG_FRAMEBUFFER_UPDATE;
 	fbu->rect_count = 1;
 	rfb_framebuffer_update_to_be(fbu, fbu);
 	pos += sizeof(rfb_framebuffer_update_t);
-	
+
 	rfb_rectangle_t *rect = pos;
 	pos += sizeof(rfb_rectangle_t);
-	
+
 	*rect = rfb->damage_rect;
-	
+
 	if (rfb->supports_trle) {
 		rect->enctype = RFB_ENCODING_TRLE;
 		pos += rfb_rect_encode_trle(rfb, rect, pos);
@@ -537,12 +537,12 @@ static errno_t rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
 		pos += rfb_rect_encode_raw(rfb, rect, pos);
 	}
 	rfb_rectangle_to_be(rect, rect);
-	
+
 	rfb->damage_valid = false;
-	
+
 	size_t send_palette_size = 0;
 	void *send_palette = NULL;
-	
+
 	if (!rfb->pixel_format.true_color) {
 		send_palette = rfb_send_palette_message(rfb, &send_palette_size);
 		if (send_palette == NULL) {
@@ -551,9 +551,9 @@ static errno_t rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
 			return ENOMEM;
 		}
 	}
-	
+
 	fibril_mutex_unlock(&rfb->lock);
-	
+
 	if (!rfb->pixel_format.true_color) {
 		errno_t rc = tcp_conn_send(conn, send_palette, send_palette_size);
 		if (rc != EOK) {
@@ -561,10 +561,10 @@ static errno_t rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
 			return rc;
 		}
 	}
-	
+
 	errno_t rc = tcp_conn_send(conn, buf, buf_size);
 	free(buf);
-	
+
 	return rc;
 }
 
@@ -604,7 +604,7 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		    str_error(rc));
 		return;
 	}
-	
+
 	char client_version[12];
 	rc = recv_chars(conn, client_version, 12);
 	if (rc != EOK) {
@@ -612,12 +612,12 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		    str_error(rc));
 		return;
 	}
-	
+
 	if (memcmp(client_version, "RFB 003.008\n", 12) != 0) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Client version is not RFB 3.8");
 		return;
 	}
-	
+
 	/* Security handshake
 	 * 1 security type supported, which is 1 - None
 	 */
@@ -630,7 +630,7 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		    "Failed sending security handshake: %s", str_error(rc));
 		return;
 	}
-	
+
 	char selected_sec_type = 0;
 	rc = recv_char(conn, &selected_sec_type);
 	if (rc != EOK) {
@@ -650,7 +650,7 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		    str_error(rc));
 		return;
 	}
-	
+
 	/* Client init */
 	char shared_flag;
 	rc = recv_char(conn, &shared_flag);
@@ -659,7 +659,7 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		    str_error(rc));
 		return;
 	}
-	
+
 	/* Server init */
 	fibril_mutex_lock(&rfb->lock);
 	size_t name_length = str_length(rfb->name);
@@ -683,7 +683,7 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		    str_error(rc));
 		return;
 	}
-	
+
 	while (true) {
 		char message_type = 0;
 		rc = recv_char(conn, &message_type);
@@ -692,7 +692,7 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 			    "Failed receiving client message type");
 			return;
 		}
-		
+
 		rfb_set_pixel_format_t spf;
 		rfb_set_encodings_t se;
 		rfb_framebuffer_update_request_t fbur;
@@ -764,26 +764,26 @@ errno_t rfb_listen(rfb_t *rfb, uint16_t port)
 	tcp_listener_t *lst = NULL;
 	inet_ep_t ep;
 	errno_t rc;
-	
+
 	rc = tcp_create(&tcp);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error initializing TCP.");
 		goto error;
 	}
-	
+
 	inet_ep_init(&ep);
 	ep.port = port;
-	
+
 	rc = tcp_listener_create(tcp, &ep, &listen_cb, rfb, &conn_cb, rfb,
 	    &lst);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating listener.");
 		goto error;
 	}
-	
+
 	rfb->tcp = tcp;
 	rfb->lst = lst;
-	
+
 	return EOK;
 error:
 	tcp_listener_destroy(lst);

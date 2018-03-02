@@ -84,7 +84,7 @@ typedef enum {
 
 typedef struct {
 	link_t link;
-	
+
 	stack_item_type_t type;
 	union {
 		int64_t value;
@@ -103,7 +103,7 @@ static bool is_digit(char c)
 static int get_digit(char c)
 {
 	assert(is_digit(c));
-	
+
 	return (c - '0');
 }
 
@@ -148,17 +148,17 @@ static bool stack_push_value(list_t *stack, int64_t value, bool value_neg)
 	stack_item_t *item = malloc(sizeof(stack_item_t));
 	if (!item)
 		return false;
-	
+
 	link_initialize(&item->link);
 	item->type = ITEM_VALUE;
-	
+
 	if (value_neg)
 		item->data.value = -value;
 	else
 		item->data.value = value;
-	
+
 	list_prepend(&item->link, stack);
-	
+
 	return true;
 }
 
@@ -167,12 +167,12 @@ static bool stack_push_operator(list_t *stack, operator_t operator)
 	stack_item_t *item = malloc(sizeof(stack_item_t));
 	if (!item)
 		return false;
-	
+
 	link_initialize(&item->link);
 	item->type = ITEM_OPERATOR;
 	item->data.operator = operator;
 	list_prepend(&item->link, stack);
-	
+
 	return true;
 }
 
@@ -181,16 +181,16 @@ static bool stack_pop_value(list_t *stack, int64_t *value)
 	link_t *link = list_first(stack);
 	if (!link)
 		return false;
-	
+
 	stack_item_t *item = list_get_instance(link, stack_item_t, link);
 	if (item->type != ITEM_VALUE)
 		return false;
-	
+
 	*value = item->data.value;
-	
+
 	list_remove(link);
 	free(item);
-	
+
 	return true;
 }
 
@@ -199,16 +199,16 @@ static bool stack_pop_operator(list_t *stack, operator_t *operator)
 	link_t *link = list_first(stack);
 	if (!link)
 		return false;
-	
+
 	stack_item_t *item = list_get_instance(link, stack_item_t, link);
 	if (item->type != ITEM_OPERATOR)
 		return false;
-	
+
 	*operator = item->data.operator;
-	
+
 	list_remove(link);
 	free(item);
-	
+
 	return true;
 }
 
@@ -219,7 +219,7 @@ static void stack_cleanup(list_t *stack)
 		if (link) {
 			stack_item_t *item = list_get_instance(link, stack_item_t,
 			    link);
-			
+
 			list_remove(link);
 			free(item);
 		}
@@ -241,13 +241,13 @@ static bool compute(int64_t a, operator_t operator, int64_t b, int64_t *value)
 	case OPERATOR_DIV:
 		if (b == 0)
 			return false;
-		
+
 		*value = a / b;
 		break;
 	default:
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -276,7 +276,7 @@ static void evaluate(list_t *stack, int64_t *value, parser_state_t *state,
 			*error_type = ERROR_SYNTAX;
 			break;
 		}
-		
+
 		if (!list_empty(stack)) {
 			operator_t operator;
 			if (!stack_pop_operator(stack, &operator)) {
@@ -284,20 +284,20 @@ static void evaluate(list_t *stack, int64_t *value, parser_state_t *state,
 				*error_type = ERROR_SYNTAX;
 				break;
 			}
-			
+
 			int64_t value_a;
 			if (!stack_pop_value(stack, &value_a)) {
 				*state = STATE_ERROR;
 				*error_type = ERROR_SYNTAX;
 				break;
 			}
-			
+
 			if (!compute(value_a, operator, *value, value)) {
 				*state = STATE_ERROR;
 				*error_type = ERROR_NUMERIC;
 				break;
 			}
-			
+
 			if (!stack_push_value(stack, *value, false)) {
 				*state = STATE_ERROR;
 				*error_type = ERROR_SYNTAX;
@@ -321,7 +321,7 @@ static void display_error(error_type_t error_type)
 		free(expr);
 		expr = NULL;
 	}
-	
+
 	switch (error_type) {
 	case ERROR_SYNTAX:
 		display->rewrite(&display->widget, (void *) SYNTAX_ERROR_DISPLAY);
@@ -337,16 +337,16 @@ static void display_error(error_type_t error_type)
 static void on_btn_click(widget_t *widget, void *data)
 {
 	const char *subexpr = (const char *) widget_get_data(widget);
-	
+
 	if (expr != NULL) {
 		char *new_expr;
-		
+
 		asprintf(&new_expr, "%s%s", expr, subexpr);
 		free(expr);
 		expr = new_expr;
 	} else
 		expr = str_dup(subexpr);
-	
+
 	display_update();
 }
 
@@ -356,7 +356,7 @@ static void on_c_click(widget_t *widget, void *data)
 		free(expr);
 		expr = NULL;
 	}
-	
+
 	display_update();
 }
 
@@ -364,17 +364,17 @@ static void on_eval_click(widget_t *widget, void *data)
 {
 	if (expr == NULL)
 		return;
-	
+
 	list_t stack;
 	list_initialize(&stack);
-	
+
 	error_type_t error_type = ERROR_SYNTAX;
 	size_t i = 0;
 	parser_state_t state = STATE_INITIAL;
 	int64_t value = 0;
 	bool value_neg = false;
 	operator_t last_operator = OPERATOR_NONE;
-	
+
 	while ((state != STATE_FINISH) && (state != STATE_ERROR)) {
 		switch (state) {
 		case STATE_INITIAL:
@@ -393,7 +393,7 @@ static void on_eval_click(widget_t *widget, void *data)
 			} else
 				state = STATE_ERROR;
 			break;
-		
+
 		case STATE_DIGIT:
 			if (is_digit(expr[i])) {
 				value = get_digit(expr[i]);
@@ -402,7 +402,7 @@ static void on_eval_click(widget_t *widget, void *data)
 			} else
 				state = STATE_ERROR;
 			break;
-		
+
 		case STATE_VALUE:
 			if (is_digit(expr[i])) {
 				value *= 10;
@@ -413,28 +413,28 @@ static void on_eval_click(widget_t *widget, void *data)
 					state = STATE_ERROR;
 					break;
 				}
-				
+
 				value = 0;
 				value_neg = false;
-				
+
 				operator_t operator = get_operator(expr[i]);
-				
+
 				if (get_priority(operator) <= get_priority(last_operator)) {
 					evaluate(&stack, &value, &state, &error_type);
 					if (state == STATE_ERROR)
 						break;
-					
+
 					if (!stack_push_value(&stack, value, value_neg)) {
 						state = STATE_ERROR;
 						break;
 					}
 				}
-				
+
 				if (!stack_push_operator(&stack, operator)) {
 					state = STATE_ERROR;
 					break;
 				}
-				
+
 				last_operator = operator;
 				i++;
 				state = STATE_DIGIT;
@@ -443,25 +443,25 @@ static void on_eval_click(widget_t *widget, void *data)
 					state = STATE_ERROR;
 					break;
 				}
-				
+
 				state = STATE_FINISH;
 			} else
 				state = STATE_ERROR;
 			break;
-		
+
 		default:
 			state = STATE_ERROR;
 		}
 	}
-	
+
 	evaluate(&stack, &value, &state, &error_type);
 	stack_cleanup(&stack);
-	
+
 	if (state == STATE_ERROR) {
 		display_error(error_type);
 		return;
 	}
-	
+
 	free(expr);
 	asprintf(&expr, "%" PRId64, value);
 	display_update();
@@ -473,26 +473,26 @@ int main(int argc, char *argv[])
 		printf("%s: Compositor server not specified.\n", NAME);
 		return 1;
 	}
-	
+
 	window_t *main_window = window_open(argv[1], NULL,
 	    WINDOW_MAIN | WINDOW_DECORATED | WINDOW_RESIZEABLE, NAME);
 	if (!main_window) {
 		printf("%s: Cannot open main window.\n", NAME);
 		return 2;
 	}
-	
+
 	pixel_t grd_bg = PIXEL(255, 240, 240, 240);
-	
+
 	pixel_t btn_bg = PIXEL(255, 0, 0, 0);
 	pixel_t btn_fg = PIXEL(200, 200, 200, 200);
-	
+
 	pixel_t lbl_bg = PIXEL(255, 240, 240, 240);
 	pixel_t lbl_fg = PIXEL(255, 0, 0, 0);
-	
+
 	grid_t *grid = create_grid(window_root(main_window), NULL, 4, 5, grd_bg);
-	
+
 	display = create_label(NULL, NULL, NULL_DISPLAY, 16, lbl_bg, lbl_fg);
-	
+
 	button_t *btn_1 = create_button(NULL, "1", "1", 16, btn_bg, btn_fg,
 	    lbl_fg);
 	button_t *btn_2 = create_button(NULL, "2", "2", 16, btn_bg, btn_fg,
@@ -513,7 +513,7 @@ int main(int argc, char *argv[])
 	    lbl_fg);
 	button_t *btn_0 = create_button(NULL, "0", "0", 16, btn_bg, btn_fg,
 	    lbl_fg);
-	
+
 	button_t *btn_add = create_button(NULL, "+", "+", 16, btn_bg, btn_fg,
 	    lbl_fg);
 	button_t *btn_sub = create_button(NULL, "-", "-", 16, btn_bg, btn_fg,
@@ -522,12 +522,12 @@ int main(int argc, char *argv[])
 	    lbl_fg);
 	button_t *btn_div = create_button(NULL, "/", "/", 16, btn_bg, btn_fg,
 	    lbl_fg);
-	
+
 	button_t *btn_eval = create_button(NULL, NULL, "=", 16, btn_bg, btn_fg,
 	    lbl_fg);
 	button_t *btn_c = create_button(NULL, NULL, "C", 16, btn_bg, btn_fg,
 	    lbl_fg);
-	
+
 	if ((!grid) || (!display) || (!btn_1) || (!btn_2) || (!btn_3) ||
 	    (!btn_4) || (!btn_5) || (!btn_6) || (!btn_7) || (!btn_8) ||
 	    (!btn_9) || (!btn_0) || (!btn_add) || (!btn_sub) || (!btn_mul) ||
@@ -536,7 +536,7 @@ int main(int argc, char *argv[])
 		printf("%s: Cannot create widgets.\n", NAME);
 		return 3;
 	}
-	
+
 	sig_connect(&btn_1->clicked, &btn_1->widget, on_btn_click);
 	sig_connect(&btn_2->clicked, &btn_2->widget, on_btn_click);
 	sig_connect(&btn_3->clicked, &btn_3->widget, on_btn_click);
@@ -547,42 +547,42 @@ int main(int argc, char *argv[])
 	sig_connect(&btn_8->clicked, &btn_8->widget, on_btn_click);
 	sig_connect(&btn_9->clicked, &btn_9->widget, on_btn_click);
 	sig_connect(&btn_0->clicked, &btn_0->widget, on_btn_click);
-	
+
 	sig_connect(&btn_add->clicked, &btn_add->widget, on_btn_click);
 	sig_connect(&btn_sub->clicked, &btn_sub->widget, on_btn_click);
 	sig_connect(&btn_div->clicked, &btn_div->widget, on_btn_click);
 	sig_connect(&btn_mul->clicked, &btn_mul->widget, on_btn_click);
-	
+
 	sig_connect(&btn_eval->clicked, &btn_eval->widget, on_eval_click);
 	sig_connect(&btn_c->clicked, &btn_c->widget, on_c_click);
-	
+
 	grid->add(grid, &display->widget, 0, 0, 4, 1);
-	
+
 	grid->add(grid, &btn_1->widget, 0, 1, 1, 1);
 	grid->add(grid, &btn_2->widget, 1, 1, 1, 1);
 	grid->add(grid, &btn_3->widget, 2, 1, 1, 1);
 	grid->add(grid, &btn_add->widget, 3, 1, 1, 1);
-	
+
 	grid->add(grid, &btn_4->widget, 0, 2, 1, 1);
 	grid->add(grid, &btn_5->widget, 1, 2, 1, 1);
 	grid->add(grid, &btn_6->widget, 2, 2, 1, 1);
 	grid->add(grid, &btn_sub->widget, 3, 2, 1, 1);
-	
+
 	grid->add(grid, &btn_7->widget, 0, 3, 1, 1);
 	grid->add(grid, &btn_8->widget, 1, 3, 1, 1);
 	grid->add(grid, &btn_9->widget, 2, 3, 1, 1);
 	grid->add(grid, &btn_mul->widget, 3, 3, 1, 1);
-	
+
 	grid->add(grid, &btn_c->widget, 0, 4, 1, 1);
 	grid->add(grid, &btn_0->widget, 1, 4, 1, 1);
 	grid->add(grid, &btn_eval->widget, 2, 4, 1, 1);
 	grid->add(grid, &btn_div->widget, 3, 4, 1, 1);
-	
+
 	window_resize(main_window, 0, 0, 400, 400, WINDOW_PLACEMENT_ANY);
 	window_exec(main_window);
-	
+
 	task_retval(0);
 	async_manager();
-	
+
 	return 0;
 }

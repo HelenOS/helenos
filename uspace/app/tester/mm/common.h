@@ -47,10 +47,10 @@
 typedef struct {
 	/* Address of the start of the block */
 	void *addr;
-	
+
 	/* Size of the memory block */
 	size_t size;
-	
+
 	/* Link to other blocks */
 	link_t link;
 } mem_block_t;
@@ -58,7 +58,7 @@ typedef struct {
 typedef struct {
 	/* Address of the start of the area */
 	void *addr;
-	
+
 	/* Size of the memory area */
 	size_t size;
 	/* Link to other areas */

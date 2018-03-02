@@ -18,34 +18,34 @@ SECTIONS {
 #else
 	. = 0x4000 + SIZEOF_HEADERS;
 #endif
-	
+
 	.init : {
 		*(.init);
 	} :text
-	
+
 	.text : {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
-	
+
 #ifdef LOADER
 	.interp : {
 		*(.interp);
 	} :interp :text
 #endif
-	
+
 	. = . + 0x4000;
-	
+
 	.got : {
 		 _gp = .;
 		 *(.got*);
 	} :data
-	
+
 	.data : {
 		*(.data);
 		*(.sdata);
 	} :data
-	
+
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
@@ -54,15 +54,15 @@ SECTIONS {
 		*(.tbss);
 		_tbss_end = .;
 	} :data
-	
+
 	_tls_alignment = ALIGNOF(.tdata);
-	
+
 	.bss : {
 		*(.sbss);
 		*(COMMON);
 		*(.bss);
 	} :data
-	
+
 #ifdef CONFIG_LINE_DEBUG
 	.comment 0 : { *(.comment); } :debug
 	.debug_abbrev 0 : { *(.debug_abbrev); } :debug
@@ -75,7 +75,7 @@ SECTIONS {
 	.debug_ranges 0 : { *(.debug_ranges); } :debug
 	.debug_str 0 : { *(.debug_str); } :debug
 #endif
-	
+
 	/DISCARD/ : {
 		*(*);
 	}

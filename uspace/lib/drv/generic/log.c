@@ -55,7 +55,7 @@ errno_t ddf_log_init(const char *drv_name)
 void ddf_msg(log_level_t level, const char *fmt, ...)
 {
 	va_list args;
-	
+
 	va_start(args, fmt);
 	log_msgv(LOG_DEFAULT, level, fmt, args);
 	va_end(args);

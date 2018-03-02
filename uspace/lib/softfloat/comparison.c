@@ -189,10 +189,10 @@ int is_float128_zero(float128 ld)
 {
 	uint64_t tmp_hi;
 	uint64_t tmp_lo;
-	
+
 	and128(ld.bin.hi, ld.bin.lo,
 	    0x7FFFFFFFFFFFFFFFll, 0xFFFFFFFFFFFFFFFFll, &tmp_hi, &tmp_lo);
-	
+
 	return eq128(tmp_hi, tmp_lo, 0x0ll, 0x0ll);
 }
 
@@ -235,17 +235,17 @@ int is_float128_eq(float128 a, float128 b)
 {
 	uint64_t tmp_hi;
 	uint64_t tmp_lo;
-	
+
 	/* both are zeros (with any sign) */
 	or128(a.bin.hi, a.bin.lo,
 	    b.bin.hi, b.bin.lo, &tmp_hi, &tmp_lo);
 	and128(tmp_hi, tmp_lo,
 	    0x7FFFFFFFFFFFFFFFll, 0xFFFFFFFFFFFFFFFFll, &tmp_hi, &tmp_lo);
 	int both_zero = eq128(tmp_hi, tmp_lo, 0x0ll, 0x0ll);
-	
+
 	/* a equals to b */
 	int are_equal = eq128(a.bin.hi, a.bin.lo, b.bin.hi, b.bin.lo);
-	
+
 	return are_equal || both_zero;
 }
 
@@ -262,12 +262,12 @@ int is_float32_lt(float32 a, float32 b)
 		/* +- zeroes */
 		return 0;
 	}
-	
+
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, smaller is that with greater binary value */
 		return (a.bin > b.bin);
 	}
-	
+
 	/*
 	 * lets negate signs - now will be positive numbers always
 	 * bigger than negative (first bit will be set for unsigned
@@ -291,12 +291,12 @@ int is_float64_lt(float64 a, float64 b)
 		/* +- zeroes */
 		return 0;
 	}
-	
+
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, smaller is that with greater binary value */
 		return (a.bin > b.bin);
 	}
-	
+
 	/*
 	 * lets negate signs - now will be positive numbers always
 	 * bigger than negative (first bit will be set for unsigned
@@ -318,7 +318,7 @@ int is_float128_lt(float128 a, float128 b)
 {
 	uint64_t tmp_hi;
 	uint64_t tmp_lo;
-	
+
 	or128(a.bin.hi, a.bin.lo,
 	    b.bin.hi, b.bin.lo, &tmp_hi, &tmp_lo);
 	and128(tmp_hi, tmp_lo,
@@ -327,12 +327,12 @@ int is_float128_lt(float128 a, float128 b)
 		/* +- zeroes */
 		return 0;
 	}
-	
+
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, smaller is that with greater binary value */
 		return lt128(b.bin.hi, b.bin.lo, a.bin.hi, a.bin.lo);
 	}
-	
+
 	/*
 	 * lets negate signs - now will be positive numbers always
 	 * bigger than negative (first bit will be set for unsigned
@@ -356,12 +356,12 @@ int is_float32_gt(float32 a, float32 b)
 		/* zeroes are equal with any sign */
 		return 0;
 	}
-	
+
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, greater is that with smaller binary value */
 		return (a.bin < b.bin);
 	}
-	
+
 	/*
 	 * lets negate signs - now will be positive numbers always
 	 * bigger than negative (first bit will be set for unsigned
@@ -385,12 +385,12 @@ int is_float64_gt(float64 a, float64 b)
 		/* zeroes are equal with any sign */
 		return 0;
 	}
-	
+
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, greater is that with smaller binary value */
 		return (a.bin < b.bin);
 	}
-	
+
 	/*
 	 * lets negate signs - now will be positive numbers always
 	 * bigger than negative (first bit will be set for unsigned
@@ -412,7 +412,7 @@ int is_float128_gt(float128 a, float128 b)
 {
 	uint64_t tmp_hi;
 	uint64_t tmp_lo;
-	
+
 	or128(a.bin.hi, a.bin.lo,
 	    b.bin.hi, b.bin.lo, &tmp_hi, &tmp_lo);
 	and128(tmp_hi, tmp_lo,
@@ -421,12 +421,12 @@ int is_float128_gt(float128 a, float128 b)
 		/* zeroes are equal with any sign */
 		return 0;
 	}
-	
+
 	if ((a.parts.sign) && (b.parts.sign)) {
 		/* if both are negative, greater is that with smaller binary value */
 		return lt128(a.bin.hi, a.bin.lo, b.bin.hi, b.bin.lo);
 	}
-	
+
 	/*
 	 * lets negate signs - now will be positive numbers always
 	 * bigger than negative (first bit will be set for unsigned
@@ -443,18 +443,18 @@ int __gtsf2(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float32_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return 0;
 }
 
@@ -462,21 +462,21 @@ int __gesf2(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float32_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float32_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return -1;
 }
 
@@ -484,18 +484,18 @@ int __ltsf2(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float32_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 0;
 }
 
@@ -503,21 +503,21 @@ int __lesf2(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float32_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float32_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 1;
 }
 
@@ -525,15 +525,15 @@ int __eqsf2(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	return is_float32_eq(ua.data, ub.data) - 1;
 }
 
@@ -547,21 +547,21 @@ int __cmpsf2(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		/* No special constant for unordered - maybe signaled? */
 		return 1;
 	}
-	
+
 	if (is_float32_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float32_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 1;
 }
 
@@ -569,10 +569,10 @@ int __unordsf2(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	return ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data)));
 }
 
@@ -580,18 +580,18 @@ int __aeabi_fcmpgt(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float32_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return 0;
 }
 
@@ -599,18 +599,18 @@ int __aeabi_fcmplt(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float32_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 0;
 }
 
@@ -618,21 +618,21 @@ int __aeabi_fcmpge(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float32_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float32_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return -1;
 }
 
@@ -640,15 +640,15 @@ int __aeabi_fcmpeq(float32_t a, float32_t b)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	float32_u ub;
 	ub.val = b;
-	
+
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	return is_float32_eq(ua.data, ub.data) - 1;
 }
 
@@ -660,18 +660,18 @@ int __gtdf2(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float64_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return 0;
 }
 
@@ -679,21 +679,21 @@ int __gedf2(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float64_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float64_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return -1;
 }
 
@@ -701,18 +701,18 @@ int __ltdf2(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float64_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 0;
 }
 
@@ -720,21 +720,21 @@ int __ledf2(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float64_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float64_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 1;
 }
 
@@ -742,15 +742,15 @@ int __eqdf2(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	return is_float64_eq(ua.data, ub.data) - 1;
 }
 
@@ -764,21 +764,21 @@ int __cmpdf2(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		/* No special constant for unordered - maybe signaled? */
 		return 1;
 	}
-	
+
 	if (is_float64_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float64_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 1;
 }
 
@@ -786,10 +786,10 @@ int __unorddf2(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	return ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data)));
 }
 
@@ -797,18 +797,18 @@ int __aeabi_dcmplt(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float64_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 0;
 }
 
@@ -816,15 +816,15 @@ int __aeabi_dcmpeq(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	return is_float64_eq(ua.data, ub.data) - 1;
 }
 
@@ -832,18 +832,18 @@ int __aeabi_dcmpgt(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float64_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return 0;
 }
 
@@ -851,21 +851,21 @@ int __aeabi_dcmpge(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float64_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float64_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return -1;
 }
 
@@ -873,21 +873,21 @@ int __aeabi_dcmple(float64_t a, float64_t b)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	float64_u ub;
 	ub.val = b;
-	
+
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float64_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float64_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 1;
 }
 
@@ -899,18 +899,18 @@ int __gttf2(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float128_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return 0;
 }
 
@@ -918,21 +918,21 @@ int __getf2(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
 		// TODO: sigNaNs
 		return -1;
 	}
-	
+
 	if (is_float128_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float128_gt(ua.data, ub.data))
 		return 1;
-	
+
 	return -1;
 }
 
@@ -940,18 +940,18 @@ int __lttf2(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float128_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 0;
 }
 
@@ -959,21 +959,21 @@ int __letf2(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	if (is_float128_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float128_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 1;
 }
 
@@ -981,15 +981,15 @@ int __eqtf2(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
 		// TODO: sigNaNs
 		return 1;
 	}
-	
+
 	return is_float128_eq(ua.data, ub.data) - 1;
 }
 
@@ -1003,21 +1003,21 @@ int __cmptf2(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data))) {
 		/* No special constant for unordered - maybe signaled? */
 		return 1;
 	}
-	
+
 	if (is_float128_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float128_lt(ua.data, ub.data))
 		return -1;
-	
+
 	return 1;
 }
 
@@ -1025,10 +1025,10 @@ int __unordtf2(float128_t a, float128_t b)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	float128_u ub;
 	ub.val = b;
-	
+
 	return ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)));
 }
 
@@ -1036,19 +1036,19 @@ int _Qp_cmp(float128_t *a, float128_t *b)
 {
 	float128_u ua;
 	ua.val = *a;
-	
+
 	float128_u ub;
 	ub.val = *b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
 		return 3;
-	
+
 	if (is_float128_eq(ua.data, ub.data))
 		return 0;
-	
+
 	if (is_float128_lt(ua.data, ub.data))
 		return 1;
-	
+
 	return 2;
 }
 
@@ -1062,13 +1062,13 @@ int _Qp_fgt(float128_t *a, float128_t *b)
 {
 	float128_u ua;
 	ua.val = *a;
-	
+
 	float128_u ub;
 	ub.val = *b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
 		return 0;
-	
+
 	return is_float128_gt(ua.data, ub.data);
 }
 
@@ -1076,13 +1076,13 @@ int _Qp_fge(float128_t *a, float128_t *b)
 {
 	float128_u ua;
 	ua.val = *a;
-	
+
 	float128_u ub;
 	ub.val = *b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
 		return 0;
-	
+
 	return is_float128_eq(ua.data, ub.data) ||
 	    is_float128_gt(ua.data, ub.data);
 }
@@ -1091,13 +1091,13 @@ int _Qp_flt(float128_t *a, float128_t *b)
 {
 	float128_u ua;
 	ua.val = *a;
-	
+
 	float128_u ub;
 	ub.val = *b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
 		return 0;
-	
+
 	return is_float128_lt(ua.data, ub.data);
 }
 
@@ -1105,13 +1105,13 @@ int _Qp_fle(float128_t *a, float128_t *b)
 {
 	float128_u ua;
 	ua.val = *a;
-	
+
 	float128_u ub;
 	ub.val = *b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
 		return 0;
-	
+
 	return is_float128_eq(ua.data, ub.data) ||
 	    is_float128_lt(ua.data, ub.data);
 }
@@ -1120,13 +1120,13 @@ int _Qp_feq(float128_t *a, float128_t *b)
 {
 	float128_u ua;
 	ua.val = *a;
-	
+
 	float128_u ub;
 	ub.val = *b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
 		return 0;
-	
+
 	return is_float128_eq(ua.data, ub.data);
 }
 
@@ -1134,13 +1134,13 @@ int _Qp_fne(float128_t *a, float128_t *b)
 {
 	float128_u ua;
 	ua.val = *a;
-	
+
 	float128_u ub;
 	ub.val = *b;
-	
+
 	if ((is_float128_nan(ua.data)) || (is_float128_nan(ub.data)))
 		return 0;
-	
+
 	return !is_float128_eq(ua.data, ub.data);
 }
 

@@ -18,7 +18,7 @@ SECTIONS {
 		*(K_TEXT_START);
 		*(.text);
 		ktext_end = .;
-		
+
 		kdata_start = .;
 		*(.data);                       /* initialized data */
 		*(.rodata*);
@@ -39,7 +39,7 @@ SECTIONS {
 		*(symtab.*);
 		kdata_end = .;
 	}
-	
+
 	/DISCARD/ : {
 		*(.mdebug*);
 		*(.pdr);

@@ -35,16 +35,16 @@
 SYMBOL(kernel_image_start)
 	/* Setup temporary stack */
 	la sp, temp_stack
-	
+
 	/* Create the first stack frame */
 	addi sp, sp, -16
-	
+
 	/* Call riscv64_pre_main() */
 	jal riscv64_pre_main
-	
+
 	/* Call main_bsp() */
 	jal main_bsp
-	
+
 	/* Not reached */
 	csrci sstatus, SSTATUS_SIE_MASK
 	hlt0:

@@ -59,23 +59,23 @@ static void loc_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
 			return;
 		}
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOC_EVENT_CAT_CHANGE:
 			fibril_mutex_lock(&loc_callback_mutex);
 			loc_cat_change_cb_t cb_fun = cat_change_cb;
 			fibril_mutex_unlock(&loc_callback_mutex);
-			
+
 			async_answer_0(callid, EOK);
-			
+
 			if (cb_fun != NULL)
 				(*cb_fun)();
-			
+
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
@@ -88,10 +88,10 @@ static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
     async_sess_t **dst)
 {
 	fibril_mutex_lock(mtx);
-	
+
 	if ((*dst == NULL) && (src != NULL))
 		*dst = src;
-	
+
 	fibril_mutex_unlock(mtx);
 }
 
@@ -107,27 +107,27 @@ static errno_t loc_callback_create(void)
 	if (!loc_callback_created) {
 		async_exch_t *exch =
 		    loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
-		
+
 		ipc_call_t answer;
 		aid_t req = async_send_0(exch, LOC_CALLBACK_CREATE, &answer);
-		
+
 		port_id_t port;
 		errno_t rc = async_create_callback_port(exch, INTERFACE_LOC_CB, 0, 0,
 		    loc_cb_conn, NULL, &port);
-		
+
 		loc_exchange_end(exch);
-		
+
 		if (rc != EOK)
 			return rc;
-		
+
 		errno_t retval;
 		async_wait_for(req, &retval);
 		if (retval != EOK)
 			return retval;
-		
+
 		loc_callback_created = true;
 	}
-	
+
 	return EOK;
 }
 
@@ -143,41 +143,41 @@ async_exch_t *loc_exchange_begin_blocking(iface_t iface)
 	switch (iface) {
 	case INTERFACE_LOC_SUPPLIER:
 		fibril_mutex_lock(&loc_supp_block_mutex);
-		
+
 		while (loc_supp_block_sess == NULL) {
 			clone_session(&loc_supplier_mutex, loc_supplier_sess,
 			    &loc_supp_block_sess);
-			
+
 			if (loc_supp_block_sess == NULL)
 				loc_supp_block_sess =
 				    service_connect_blocking(SERVICE_LOC,
 				    INTERFACE_LOC_SUPPLIER, 0);
 		}
-		
+
 		fibril_mutex_unlock(&loc_supp_block_mutex);
-		
+
 		clone_session(&loc_supplier_mutex, loc_supp_block_sess,
 		    &loc_supplier_sess);
-		
+
 		return async_exchange_begin(loc_supp_block_sess);
 	case INTERFACE_LOC_CONSUMER:
 		fibril_mutex_lock(&loc_cons_block_mutex);
-		
+
 		while (loc_cons_block_sess == NULL) {
 			clone_session(&loc_consumer_mutex, loc_consumer_sess,
 			    &loc_cons_block_sess);
-			
+
 			if (loc_cons_block_sess == NULL)
 				loc_cons_block_sess =
 				    service_connect_blocking(SERVICE_LOC,
 				    INTERFACE_LOC_CONSUMER, 0);
 		}
-		
+
 		fibril_mutex_unlock(&loc_cons_block_mutex);
-		
+
 		clone_session(&loc_consumer_mutex, loc_cons_block_sess,
 		    &loc_consumer_sess);
-		
+
 		return async_exchange_begin(loc_cons_block_sess);
 	default:
 		return NULL;
@@ -196,31 +196,31 @@ async_exch_t *loc_exchange_begin(iface_t iface)
 	switch (iface) {
 	case INTERFACE_LOC_SUPPLIER:
 		fibril_mutex_lock(&loc_supplier_mutex);
-		
+
 		if (loc_supplier_sess == NULL)
 			loc_supplier_sess =
 			    service_connect(SERVICE_LOC,
 			    INTERFACE_LOC_SUPPLIER, 0);
-		
+
 		fibril_mutex_unlock(&loc_supplier_mutex);
-		
+
 		if (loc_supplier_sess == NULL)
 			return NULL;
-		
+
 		return async_exchange_begin(loc_supplier_sess);
 	case INTERFACE_LOC_CONSUMER:
 		fibril_mutex_lock(&loc_consumer_mutex);
-		
+
 		if (loc_consumer_sess == NULL)
 			loc_consumer_sess =
 			    service_connect(SERVICE_LOC,
 			    INTERFACE_LOC_CONSUMER, 0);
-		
+
 		fibril_mutex_unlock(&loc_consumer_mutex);
-		
+
 		if (loc_consumer_sess == NULL)
 			return NULL;
-		
+
 		return async_exchange_begin(loc_consumer_sess);
 	default:
 		return NULL;
@@ -241,17 +241,17 @@ void loc_exchange_end(async_exch_t *exch)
 errno_t loc_server_register(const char *name)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVER_REGISTER, 0, 0, &answer);
 	errno_t retval = async_data_write_start(exch, name, str_size(name));
-	
+
 	if (retval != EOK) {
 		async_forget(req);
 		loc_exchange_end(exch);
 		return retval;
 	}
-	
+
 	async_connect_to_me(exch, 0, 0, 0);
 
 	/*
@@ -261,7 +261,7 @@ errno_t loc_server_register(const char *name)
 	 */
 	async_wait_for(req, &retval);
 	loc_exchange_end(exch);
-	
+
 	return retval;
 }
 
@@ -274,17 +274,17 @@ errno_t loc_server_register(const char *name)
 errno_t loc_service_register(const char *fqsn, service_id_t *sid)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOC_SERVICE_REGISTER, &answer);
 	errno_t retval = async_data_write_start(exch, fqsn, str_size(fqsn));
-	
+
 	if (retval != EOK) {
 		async_forget(req);
 		loc_exchange_end(exch);
 		return retval;
 	}
-	
+
 	/*
 	 * First wait for the answer and then end the exchange. The opposite
 	 * order is generally wrong because it may lead to a deadlock under
@@ -292,17 +292,17 @@ errno_t loc_service_register(const char *fqsn, service_id_t *sid)
 	 */
 	async_wait_for(req, &retval);
 	loc_exchange_end(exch);
-	
+
 	if (retval != EOK) {
 		if (sid != NULL)
 			*sid = -1;
-		
+
 		return retval;
 	}
-	
+
 	if (sid != NULL)
 		*sid = (service_id_t) IPC_GET_ARG1(answer);
-	
+
 	return retval;
 }
 
@@ -314,11 +314,11 @@ errno_t loc_service_unregister(service_id_t sid)
 {
 	async_exch_t *exch;
 	errno_t retval;
-	
+
 	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
 	retval = async_req_1_0(exch, LOC_SERVICE_UNREGISTER, sid);
 	loc_exchange_end(exch);
-	
+
 	return (errno_t)retval;
 }
 
@@ -326,7 +326,7 @@ errno_t loc_service_get_id(const char *fqdn, service_id_t *handle,
     unsigned int flags)
 {
 	async_exch_t *exch;
-	
+
 	if (flags & IPC_FLAG_BLOCKING)
 		exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 	else {
@@ -334,31 +334,31 @@ errno_t loc_service_get_id(const char *fqdn, service_id_t *handle,
 		if (exch == NULL)
 			return errno;
 	}
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_SERVICE_GET_ID, flags, 0,
 	    &answer);
 	errno_t retval = async_data_write_start(exch, fqdn, str_size(fqdn));
-	
+
 	loc_exchange_end(exch);
-	
+
 	if (retval != EOK) {
 		async_forget(req);
 		return retval;
 	}
-	
+
 	async_wait_for(req, &retval);
-	
+
 	if (retval != EOK) {
 		if (handle != NULL)
 			*handle = (service_id_t) -1;
-		
+
 		return retval;
 	}
-	
+
 	if (handle != NULL)
 		*handle = (service_id_t) IPC_GET_ARG1(answer);
-	
+
 	return retval;
 }
 
@@ -379,29 +379,29 @@ static errno_t loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 	ipc_call_t dreply;
 	size_t act_size;
 	errno_t dretval;
-	
+
 	*name = NULL;
 	exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, id, &answer);
 	aid_t dreq = async_data_read(exch, name_buf, LOC_NAME_MAXLEN,
 	    &dreply);
 	async_wait_for(dreq, &dretval);
-	
+
 	loc_exchange_end(exch);
-	
+
 	if (dretval != EOK) {
 		async_forget(req);
 		return dretval;
 	}
-	
+
 	errno_t retval;
 	async_wait_for(req, &retval);
-	
+
 	if (retval != EOK)
 		return retval;
-	
+
 	act_size = IPC_GET_ARG2(dreply);
 	assert(act_size <= LOC_NAME_MAXLEN);
 	name_buf[act_size] = '\0';
@@ -409,7 +409,7 @@ static errno_t loc_get_name_internal(sysarg_t method, sysarg_t id, char **name)
 	*name = str_dup(name_buf);
 	if (*name == NULL)
 		return ENOMEM;
-	
+
 	return EOK;
 }
 
@@ -459,7 +459,7 @@ errno_t loc_namespace_get_id(const char *name, service_id_t *handle,
     unsigned int flags)
 {
 	async_exch_t *exch;
-	
+
 	if (flags & IPC_FLAG_BLOCKING)
 		exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 	else {
@@ -467,31 +467,31 @@ errno_t loc_namespace_get_id(const char *name, service_id_t *handle,
 		if (exch == NULL)
 			return errno;
 	}
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_2(exch, LOC_NAMESPACE_GET_ID, flags, 0,
 	    &answer);
 	errno_t retval = async_data_write_start(exch, name, str_size(name));
-	
+
 	loc_exchange_end(exch);
-	
+
 	if (retval != EOK) {
 		async_forget(req);
 		return retval;
 	}
-	
+
 	async_wait_for(req, &retval);
-	
+
 	if (retval != EOK) {
 		if (handle != NULL)
 			*handle = (service_id_t) -1;
-		
+
 		return retval;
 	}
-	
+
 	if (handle != NULL)
 		*handle = (service_id_t) IPC_GET_ARG1(answer);
-	
+
 	return retval;
 }
 
@@ -508,7 +508,7 @@ errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
     unsigned int flags)
 {
 	async_exch_t *exch;
-	
+
 	if (flags & IPC_FLAG_BLOCKING)
 		exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 	else {
@@ -516,31 +516,31 @@ errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
 		if (exch == NULL)
 			return errno;
 	}
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, LOC_CATEGORY_GET_ID,
 	    &answer);
 	errno_t retval = async_data_write_start(exch, name, str_size(name));
-	
+
 	loc_exchange_end(exch);
-	
+
 	if (retval != EOK) {
 		async_forget(req);
 		return retval;
 	}
-	
+
 	async_wait_for(req, &retval);
-	
+
 	if (retval != EOK) {
 		if (cat_id != NULL)
 			*cat_id = (category_id_t) -1;
-		
+
 		return retval;
 	}
-	
+
 	if (cat_id != NULL)
 		*cat_id = (category_id_t) IPC_GET_ARG1(answer);
-	
+
 	return retval;
 }
 
@@ -548,15 +548,15 @@ errno_t loc_category_get_id(const char *name, category_id_t *cat_id,
 loc_object_type_t loc_id_probe(service_id_t handle)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
-	
+
 	sysarg_t type;
 	errno_t retval = async_req_1_1(exch, LOC_ID_PROBE, handle, &type);
-	
+
 	loc_exchange_end(exch);
-	
+
 	if (retval != EOK)
 		return LOC_OBJECT_NONE;
-	
+
 	return (loc_object_type_t) type;
 }
 
@@ -564,12 +564,12 @@ async_sess_t *loc_service_connect(service_id_t handle, iface_t iface,
     unsigned int flags)
 {
 	async_sess_t *sess;
-	
+
 	if (flags & IPC_FLAG_BLOCKING)
 		sess = service_connect_blocking(SERVICE_LOC, iface, handle);
 	else
 		sess = service_connect(SERVICE_LOC, iface, handle);
-	
+
 	return sess;
 }
 
@@ -579,15 +579,15 @@ async_sess_t *loc_service_connect(service_id_t handle, iface_t iface,
 int loc_null_create(void)
 {
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
-	
+
 	sysarg_t null_id;
 	errno_t retval = async_req_0_1(exch, LOC_NULL_CREATE, &null_id);
-	
+
 	loc_exchange_end(exch);
-	
+
 	if (retval != EOK)
 		return -1;
-	
+
 	return (int) null_id;
 }
 
@@ -604,7 +604,7 @@ static size_t loc_count_namespaces_internal(async_exch_t *exch)
 	errno_t retval = async_req_0_1(exch, LOC_GET_NAMESPACE_COUNT, &count);
 	if (retval != EOK)
 		return 0;
-	
+
 	return count;
 }
 
@@ -618,11 +618,11 @@ errno_t loc_service_add_to_cat(service_id_t svc_id, service_id_t cat_id)
 {
 	async_exch_t *exch;
 	errno_t retval;
-	
+
 	exch = loc_exchange_begin_blocking(INTERFACE_LOC_SUPPLIER);
 	retval = async_req_2_0(exch, LOC_SERVICE_ADD_TO_CAT, svc_id, cat_id);
 	loc_exchange_end(exch);
-	
+
 	return retval;
 }
 
@@ -634,7 +634,7 @@ static size_t loc_count_services_internal(async_exch_t *exch,
 	    &count);
 	if (retval != EOK)
 		return 0;
-	
+
 	return count;
 }
 
@@ -643,7 +643,7 @@ size_t loc_count_namespaces(void)
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 	size_t size = loc_count_namespaces_internal(exch);
 	loc_exchange_end(exch);
-	
+
 	return size;
 }
 
@@ -652,7 +652,7 @@ size_t loc_count_services(service_id_t ns_handle)
 	async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 	size_t size = loc_count_services_internal(exch, ns_handle);
 	loc_exchange_end(exch);
-	
+
 	return size;
 }
 
@@ -663,22 +663,22 @@ size_t loc_get_namespaces(loc_sdesc_t **data)
 		async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 		size_t count = loc_count_namespaces_internal(exch);
 		loc_exchange_end(exch);
-		
+
 		if (count == 0)
 			return 0;
-		
+
 		loc_sdesc_t *devs = (loc_sdesc_t *) calloc(count, sizeof(loc_sdesc_t));
 		if (devs == NULL)
 			return 0;
-		
+
 		exch = loc_exchange_begin(INTERFACE_LOC_CONSUMER);
-		
+
 		ipc_call_t answer;
 		aid_t req = async_send_0(exch, LOC_GET_NAMESPACES, &answer);
 		errno_t rc = async_data_read_start(exch, devs, count * sizeof(loc_sdesc_t));
-		
+
 		loc_exchange_end(exch);
-		
+
 		if (rc == EOVERFLOW) {
 			/*
 			 * Number of namespaces has changed since
@@ -687,19 +687,19 @@ size_t loc_get_namespaces(loc_sdesc_t **data)
 			free(devs);
 			continue;
 		}
-		
+
 		if (rc != EOK) {
 			async_forget(req);
 			free(devs);
 			return 0;
 		}
-		
+
 		errno_t retval;
 		async_wait_for(req, &retval);
-		
+
 		if (retval != EOK)
 			return 0;
-		
+
 		*data = devs;
 		return count;
 	}
@@ -712,22 +712,22 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 		async_exch_t *exch = loc_exchange_begin_blocking(INTERFACE_LOC_CONSUMER);
 		size_t count = loc_count_services_internal(exch, ns_handle);
 		loc_exchange_end(exch);
-		
+
 		if (count == 0)
 			return 0;
-		
+
 		loc_sdesc_t *devs = (loc_sdesc_t *) calloc(count, sizeof(loc_sdesc_t));
 		if (devs == NULL)
 			return 0;
-		
+
 		exch = loc_exchange_begin(INTERFACE_LOC_CONSUMER);
-		
+
 		ipc_call_t answer;
 		aid_t req = async_send_1(exch, LOC_GET_SERVICES, ns_handle, &answer);
 		errno_t rc = async_data_read_start(exch, devs, count * sizeof(loc_sdesc_t));
-		
+
 		loc_exchange_end(exch);
-		
+
 		if (rc == EOVERFLOW) {
 			/*
 			 * Number of services has changed since
@@ -736,19 +736,19 @@ size_t loc_get_services(service_id_t ns_handle, loc_sdesc_t **data)
 			free(devs);
 			continue;
 		}
-		
+
 		if (rc != EOK) {
 			async_forget(req);
 			free(devs);
 			return 0;
 		}
-		
+
 		errno_t retval;
 		async_wait_for(req, &retval);
-		
+
 		if (retval != EOK)
 			return 0;
-		
+
 		*data = devs;
 		return count;
 	}
@@ -762,21 +762,21 @@ static errno_t loc_category_get_ids_once(sysarg_t method, sysarg_t arg1,
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, method, arg1, &answer);
 	errno_t rc = async_data_read_start(exch, id_buf, buf_size);
-	
+
 	loc_exchange_end(exch);
-	
+
 	if (rc != EOK) {
 		async_forget(req);
 		return rc;
 	}
-	
+
 	errno_t retval;
 	async_wait_for(req, &retval);
-	
+
 	if (retval != EOK) {
 		return retval;
 	}
-	
+
 	*act_size = IPC_GET_ARG1(answer);
 	return EOK;
 }
@@ -796,33 +796,33 @@ static errno_t loc_get_ids_internal(sysarg_t method, sysarg_t arg1,
 {
 	*data = NULL;
 	*count = 0;
-	
+
 	size_t act_size = 0;
 	errno_t rc = loc_category_get_ids_once(method, arg1, NULL, 0,
 	    &act_size);
 	if (rc != EOK)
 		return rc;
-	
+
 	size_t alloc_size = act_size;
 	service_id_t *ids = malloc(alloc_size);
 	if (ids == NULL)
 		return ENOMEM;
-	
+
 	while (true) {
 		rc = loc_category_get_ids_once(method, arg1, ids, alloc_size,
 		    &act_size);
 		if (rc != EOK)
 			return rc;
-		
+
 		if (act_size <= alloc_size)
 			break;
-		
+
 		alloc_size = act_size;
 		ids = realloc(ids, alloc_size);
 		if (ids == NULL)
 			return ENOMEM;
 	}
-	
+
 	*count = act_size / sizeof(category_id_t);
 	*data = ids;
 	return EOK;
@@ -865,9 +865,9 @@ errno_t loc_register_cat_change_cb(loc_cat_change_cb_t cb_fun)
 		fibril_mutex_unlock(&loc_callback_mutex);
 		return EIO;
 	}
-	
+
 	cat_change_cb = cb_fun;
 	fibril_mutex_unlock(&loc_callback_mutex);
-	
+
 	return EOK;
 }

@@ -78,46 +78,46 @@ int main(int argc, char **argv)
 	unsigned int i;
 	bool check_enabled = true;
 	bool progress = true;
-	
+
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
 		syntax_print();
 		return 1;
 	}
-	
+
 	/* Skip program name */
 	--argc; ++argv;
-	
+
 	if (argc > 0 && str_cmp(*argv, "--no-check") == 0) {
 		check_enabled = false;
 		--argc; ++argv;
 	}
-	
+
 	if (argc > 0 && str_cmp(*argv, "--no-progress") == 0) {
 		progress = false;
 		--argc; ++argv;
 	}
-	
+
 	if (argc != 1) {
 		printf(NAME ": Error, unexpected argument.\n");
 		syntax_print();
 		return 1;
 	}
-	
+
 	file_name = *argv;
-	
+
 	buf = calloc(BUFELEMS, sizeof(uint64_t));
 	if (buf == NULL) {
 		printf("Failed allocating buffer\n");
 		return 1;
 	}
-	
+
 	file = fopen(file_name, "r");
 	if (file == NULL) {
 		printf("Failed opening file\n");
 		return 1;
 	}
-	
+
 	expected = 0;
 	offset = 0;
 	next_mark = 0;
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 	struct timeval start_time;
 	gettimeofday(&start_time, NULL);
 	prev_time = start_time;
-	
+
 	while (!feof(file)) {
 		size_t elems = fread(buf, sizeof(uint64_t), BUFELEMS, file);
 		if (ferror(file)) {
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 			free(buf);
 			return 1;
 		}
-		
+
 		for (i = 0; i < elems; i++) {
 			if (check_enabled && uint64_t_le2host(buf[i]) != expected) {
 				printf("Unexpected value at offset %" PRIuOFF64 "\n", offset);
@@ -146,11 +146,11 @@ int main(int argc, char **argv)
 			expected++;
 			offset += sizeof(uint64_t);
 		}
-		
+
 		if (progress && offset >= next_mark) {
 			struct timeval cur_time;
 			gettimeofday(&cur_time, NULL);
-			
+
 			uint32_t last_run = cur_time.tv_sec - prev_time.tv_sec;
 			uint32_t total_time = cur_time.tv_sec - start_time.tv_sec;
 			if (last_run > 0 && total_time > 0) {
@@ -165,10 +165,10 @@ int main(int argc, char **argv)
 			next_mark += MBYTE;
 		}
 	}
-	
+
 	struct timeval final_time;
 	gettimeofday(&final_time, NULL);
-	
+
 	uint32_t total_run_time = final_time.tv_sec - start_time.tv_sec;
 	if (total_run_time > 0) {
 		printf("total bytes: %" PRIuOFF64
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
 		    total_run_time,
 		    offset/total_run_time);
 	}
-	
+
 	fclose(file);
 	free(buf);
 

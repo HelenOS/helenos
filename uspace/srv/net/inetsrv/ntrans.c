@@ -141,7 +141,7 @@ errno_t ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
 		fibril_mutex_unlock(&ntrans_list_lock);
 		return ENOENT;
 	}
-	
+
 	fibril_mutex_unlock(&ntrans_list_lock);
 	addr48(ntrans->mac_addr, mac_addr);
 	return EOK;
@@ -161,7 +161,7 @@ errno_t ntrans_wait_timeout(suseconds_t timeout)
 	errno_t rc = fibril_condvar_wait_timeout(&ntrans_cv, &ntrans_list_lock,
 	    timeout);
 	fibril_mutex_unlock(&ntrans_list_lock);
-	
+
 	return rc;
 }
 

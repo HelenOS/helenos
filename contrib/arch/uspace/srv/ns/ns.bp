@@ -7,7 +7,7 @@
 			!loader.ipc_m_connect_to_me /* forward */
 		}
 	} +
-	
+
 	?ipc_m_connect_me_to {
 		tentative {
 			alternative (service; kbd; fb; console; vfs; devmap_driver; devmap_client) {
@@ -15,7 +15,7 @@
 			}
 		}
 	} +
-	
+
 	?ipc_m_share_in +
 	?ping +
 	?task_wait +

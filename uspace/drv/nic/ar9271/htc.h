@@ -111,19 +111,19 @@ typedef struct {
 typedef struct {
 	/** WMI message sequence number */
 	uint16_t sequence_number;
-	
+
 	/** HTC endpoints numbers */
 	htc_pipes_t endpoints;
-	
+
 	/** Lock for receiver */
 	fibril_mutex_t rx_lock;
-	
+
 	/** Lock for transmitter */
 	fibril_mutex_t tx_lock;
-	
+
 	/** Pointer to related IEEE 802.11 device */
 	ieee80211_dev_t *ieee80211_dev;
-	
+
 	/** Pointer to Atheros WiFi device structure */
 	ath_t *ath_device;
 } htc_device_t;
@@ -174,7 +174,7 @@ typedef struct {
 	uint16_t message_id;   /**< Big Endian value! */
 	uint16_t credits;      /**< Big Endian value! */
 	uint16_t credit_size;  /**< Big Endian value! */
-	
+
 	uint8_t max_endpoints;
 	uint8_t pad;
 } __attribute__((packed)) htc_ready_msg_t;
@@ -186,7 +186,7 @@ typedef struct {
 	uint16_t message_id;        /**< Big Endian value! */
 	uint16_t service_id;        /**< Big Endian value! */
 	uint16_t connection_flags;  /**< Big Endian value! */
-	
+
 	uint8_t download_pipe_id;
 	uint8_t upload_pipe_id;
 	uint8_t service_meta_length;
@@ -236,11 +236,11 @@ typedef struct {
 	uint8_t sta_index;
 	uint8_t vif_index;
 	uint8_t is_vif_sta;
-	
+
 	uint16_t flags;      /**< Big Endian value! */
 	uint16_t ht_cap;     /**< Big Endian value! */
 	uint16_t max_ampdu;  /**< Big Endian value! */
-	
+
 	uint8_t pad;
 } __attribute__((packed)) htc_sta_msg_t;
 

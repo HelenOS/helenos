@@ -71,12 +71,12 @@ void init_mem(void)
 void done_mem(void)
 {
 	link_t *link;
-	
+
 	while ((link = list_first(&mem_blocks)) != NULL) {
 		mem_block_t *block = list_get_instance(link, mem_block_t, link);
 		free_block(block);
 	}
-	
+
 	while ((link = list_first(&mem_areas)) != NULL) {
 		mem_area_t *area = list_get_instance(link, mem_area_t, link);
 		unmap_area(area);
@@ -88,22 +88,22 @@ static bool overlap_match(mem_block_t *block, void *addr, size_t size)
 	/* Entry block control structure <mbeg, mend) */
 	uint8_t *mbeg = (uint8_t *) block;
 	uint8_t *mend = (uint8_t *) block + sizeof(mem_block_t);
-	
+
 	/* Entry block memory <bbeg, bend) */
 	uint8_t *bbeg = (uint8_t *) block->addr;
 	uint8_t *bend = (uint8_t *) block->addr + block->size;
-	
+
 	/* Data block <dbeg, dend) */
 	uint8_t *dbeg = (uint8_t *) addr;
 	uint8_t *dend = (uint8_t *) addr + size;
-	
+
 	/* Check for overlaps */
 	if (((mbeg >= dbeg) && (mbeg < dend)) ||
 	    ((mend > dbeg) && (mend <= dend)) ||
 	    ((bbeg >= dbeg) && (bbeg < dend)) ||
 	    ((bend > dbeg) && (bend <= dend)))
 		return true;
-	
+
 	return false;
 }
 
@@ -121,14 +121,14 @@ static bool overlap_match(mem_block_t *block, void *addr, size_t size)
 static int test_overlap(void *addr, size_t size)
 {
 	bool fnd = false;
-	
+
 	list_foreach(mem_blocks, link, mem_block_t, block) {
 		if (overlap_match(block, addr, size)) {
 			fnd = true;
 			break;
 		}
 	}
-	
+
 	return fnd;
 }
 
@@ -159,13 +159,13 @@ static void check_consistency(const char *loc)
 static void *checked_malloc(size_t size)
 {
 	void *data;
-	
+
 	/* Allocate the chunk of memory */
 	data = malloc(size);
 	check_consistency("checked_malloc");
 	if (data == NULL)
 		return NULL;
-	
+
 	/* Check for overlaps with other chunks */
 	if (test_overlap(data, size)) {
 		TPRINTF("\nError: Allocated block overlaps with another "
@@ -173,7 +173,7 @@ static void *checked_malloc(size_t size)
 		TSTACKTRACE();
 		error_flag = true;
 	}
-	
+
 	return data;
 }
 
@@ -196,15 +196,15 @@ mem_block_t *alloc_block(size_t size)
 	/* Check for allocation limit */
 	if (mem_allocated >= MAX_ALLOC)
 		return NULL;
-	
+
 	/* Allocate the block holder */
 	mem_block_t *block =
 	    (mem_block_t *) checked_malloc(sizeof(mem_block_t));
 	if (block == NULL)
 		return NULL;
-	
+
 	link_initialize(&block->link);
-	
+
 	/* Allocate the block memory */
 	block->addr = checked_malloc(size);
 	if (block->addr == NULL) {
@@ -212,14 +212,14 @@ mem_block_t *alloc_block(size_t size)
 		check_consistency("alloc_block");
 		return NULL;
 	}
-	
+
 	block->size = size;
-	
+
 	/* Register the allocated block */
 	list_append(&block->link, &mem_blocks);
 	mem_allocated += size + sizeof(mem_block_t);
 	mem_blocks_count++;
-	
+
 	return block;
 }
 
@@ -237,7 +237,7 @@ void free_block(mem_block_t *block)
 	list_remove(&block->link);
 	mem_allocated -= block->size + sizeof(mem_block_t);
 	mem_blocks_count--;
-	
+
 	/* Free the memory */
 	free(block->addr);
 	check_consistency("free_block (a)");
@@ -271,7 +271,7 @@ void fill_block(mem_block_t *block)
 	for (uint8_t *pos = block->addr, *end = pos + block->size;
 	    pos < end; pos++)
 		*pos = block_expected_value(block, pos);
-	
+
 	check_consistency("fill_block");
 }
 
@@ -307,16 +307,16 @@ mem_block_t *get_random_block(void)
 {
 	if (mem_blocks_count == 0)
 		return NULL;
-	
+
 	unsigned long idx = rand() % mem_blocks_count;
 	link_t *entry = list_nth(&mem_blocks, idx);
-	
+
 	if (entry == NULL) {
 		TPRINTF("\nError: Corrupted list of allocated memory blocks.\n");
 		TSTACKTRACE();
 		error_flag = true;
 	}
-	
+
 	return list_get_instance(entry, mem_block_t, link);
 }
 
@@ -336,9 +336,9 @@ mem_area_t *map_area(size_t size)
 	    (mem_area_t *) checked_malloc(sizeof(mem_area_t));
 	if (area == NULL)
 		return NULL;
-	
+
 	link_initialize(&area->link);
-	
+
 	area->addr = as_area_create(AS_AREA_ANY, size,
 	    AS_AREA_WRITE | AS_AREA_READ | AS_AREA_CACHEABLE,
 	    AS_AREA_UNPAGED);
@@ -347,12 +347,12 @@ mem_area_t *map_area(size_t size)
 		check_consistency("map_area (a)");
 		return NULL;
 	}
-	
+
 	area->size = size;
-	
+
 	/* Register the allocated area */
 	list_append(&area->link, &mem_areas);
-	
+
 	return area;
 }
 
@@ -368,12 +368,12 @@ void unmap_area(mem_area_t *area)
 {
 	/* Unregister the area */
 	list_remove(&area->link);
-	
+
 	/* Free the memory */
 	errno_t ret = as_area_destroy(area->addr);
 	if (ret != EOK)
 		error_flag = true;
-	
+
 	free(area);
 	check_consistency("unmap_area");
 }
@@ -404,6 +404,6 @@ void fill_area(mem_area_t *area)
 	for (uint8_t *pos = area->addr, *end = pos + area->size;
 	    pos < end; pos++)
 		*pos = area_expected_value(area, pos);
-	
+
 	check_consistency("fill_area");
 }

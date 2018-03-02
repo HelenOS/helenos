@@ -112,7 +112,7 @@ cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 		instance->irq.cir_arg = cir_arg;
 		instance->irq.preack = true;
 	}
-	
+
 	return instance;
 }
 
@@ -238,10 +238,10 @@ static void cuda_irq_rcv_end(irq_t *irq, void *buf, size_t *len)
 	cuda_instance_t *instance = irq->instance;
 	cuda_t *dev = instance->cuda;
 	uint8_t b;
-	
+
 	b = pio_read_8(&dev->b);
 	pio_read_8(&dev->sr);
-	
+
 	if ((b & TREQ) == 0) {
 		instance->xstate = cx_receive;
 		pio_write_8(&dev->b, b & ~TIP);
@@ -249,7 +249,7 @@ static void cuda_irq_rcv_end(irq_t *irq, void *buf, size_t *len)
 		instance->xstate = cx_listen;
 		cuda_send_start(instance);
 	}
-	
+
 	memcpy(buf, instance->rcv_buf, instance->bidx);
 	*len = instance->bidx;
 	instance->bidx = 0;

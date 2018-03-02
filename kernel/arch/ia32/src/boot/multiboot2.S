@@ -44,7 +44,7 @@ multiboot2_header_start:
 	.long MULTIBOOT2_HEADER_ARCH_I386
 	.long multiboot2_header_end - multiboot2_header_start
 	.long -(MULTIBOOT2_HEADER_MAGIC + MULTIBOOT2_HEADER_ARCH_I386 + (multiboot2_header_end - multiboot2_header_start))
-	
+
 	/* Information request tag */
 	.align 8
 	tag_info_req_start:
@@ -58,7 +58,7 @@ multiboot2_header_start:
 		.long MULTIBOOT2_TAG_FBINFO
 #endif
 	tag_info_req_end:
-	
+
 	/* Address tag */
 	.align 8
 	tag_address_start:
@@ -70,7 +70,7 @@ multiboot2_header_start:
 		.long 0
 		.long 0
 	tag_address_end:
-	
+
 	/* Entry address tag */
 	.align 8
 	tag_entry_address_start:
@@ -79,7 +79,7 @@ multiboot2_header_start:
 		.long tag_entry_address_end - tag_entry_address_start
 		.long multiboot2_image_start
 	tag_entry_address_end:
-	
+
 	/* Flags tag */
 	.align 8
 	tag_flags_start:
@@ -88,7 +88,7 @@ multiboot2_header_start:
 		.long tag_flags_end - tag_flags_start
 		.long MULTIBOOT2_FLAGS_CONSOLE
 	tag_flags_end:
-	
+
 #ifdef CONFIG_FB
 	/* Framebuffer tag */
 	.align 8
@@ -101,7 +101,7 @@ multiboot2_header_start:
 		.long CONFIG_BFB_BPP
 	tag_framebuffer_end:
 #endif
-	
+
 	/* Module alignment tag */
 	.align 8
 	tag_module_align_start:
@@ -110,7 +110,7 @@ multiboot2_header_start:
 		.long tag_module_align_end - tag_module_align_start
 		.long 0
 	tag_module_align_end:
-	
+
 	/* Tag terminator */
 	.align 8
 	tag_terminator_start:
@@ -123,17 +123,17 @@ multiboot2_header_end:
 SYMBOL(multiboot2_image_start)
 	cli
 	cld
-	
+
 	/* Initialize stack pointer */
 	movl $START_STACK, %esp
-	
+
 	/*
 	 * Initialize Global Descriptor Table and
 	 * Interrupt Descriptor Table registers
 	 */
 	lgdtl bootstrap_gdtr
 	lidtl bootstrap_idtr
-	
+
 	/* Kernel data + stack */
 	movw $GDT_SELECTOR(KDATA_DES), %cx
 	movw %cx, %es
@@ -141,51 +141,51 @@ SYMBOL(multiboot2_image_start)
 	movw %cx, %gs
 	movw %cx, %ds
 	movw %cx, %ss
-	
+
 	jmpl $GDT_SELECTOR(KTEXT_DES), $multiboot2_meeting_point
 	multiboot2_meeting_point:
-	
+
 	/* Save multiboot arguments */
 	movl %eax, multiboot_eax
 	movl %ebx, multiboot_ebx
-	
+
 #ifndef PROCESSOR_i486
-	
+
 	movl $(INTEL_CPUID_LEVEL), %eax
 	cpuid
 	cmp $0x0, %eax  /* any function > 0? */
 	jbe pse_unsupported
-	
+
 	movl $(INTEL_CPUID_STANDARD), %eax
 	cpuid
 	bt $(INTEL_PSE), %edx
 	jnc pse_unsupported
-		
+
 		/* Map kernel and turn paging on */
 		call map_kernel_pse
 		jmp stack_init
-	
+
 #endif /* PROCESSOR_i486 */
-	
+
 	pse_unsupported:
-		
+
 		/* Map kernel and turn paging on */
 		call map_kernel_non_pse
-	
+
 	stack_init:
-	
+
 	/* Create the first stack frame */
 	pushl $0
 	movl %esp, %ebp
-	
+
 	/* Call ia32_pre_main(multiboot_eax, multiboot_ebx) */
 	pushl multiboot_ebx
 	pushl multiboot_eax
 	call ia32_pre_main
-	
+
 	/* Call main_bsp() */
 	call main_bsp
-	
+
 	/* Not reached */
 	cli
 	hlt0:

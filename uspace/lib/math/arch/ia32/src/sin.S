@@ -33,33 +33,33 @@
 
 FUNCTION_BEGIN(sin_f64)
 	# compute sine (no stack frame)
-	
+
 	fldl 4(%esp)
 	fsin
-	
+
 	# detect if source operand is out of range
-	
+
 	fnstsw %ax
 	andw $X87_STATUS_WORD_C2_MASK, %ax
 	jnz fix_range
-	
+
 		ret
-	
+
 	# argument reduction
-	
+
 	fix_range:
 		fldpi
 		fadd %st(0)
 		fxch %st(1)
-	
+
 	reduce:
 		fprem1
 		fnstsw %ax
 		andw $X87_STATUS_WORD_C2_MASK, %ax
 		jnz reduce
-	
+
 	fstp %st(1)
 	fsin
-	
+
 	ret
 FUNCTION_END(sin_f64)

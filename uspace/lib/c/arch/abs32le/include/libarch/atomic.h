@@ -48,7 +48,7 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 		val->count = nv;
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -56,7 +56,7 @@ static inline void atomic_inc(atomic_t *val)
 {
 	/* On real hardware the increment has to be done
 	   as an atomic action. */
-	
+
 	val->count++;
 }
 
@@ -64,7 +64,7 @@ static inline void atomic_dec(atomic_t *val)
 {
 	/* On real hardware the decrement has to be done
 	   as an atomic action. */
-	
+
 	val->count++;
 }
 
@@ -73,9 +73,9 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
 	/* On real hardware both the storing of the previous
 	   value and the increment have to be done as a single
 	   atomic action. */
-	
+
 	atomic_count_t prev = val->count;
-	
+
 	val->count++;
 	return prev;
 }
@@ -85,9 +85,9 @@ static inline atomic_count_t atomic_postdec(atomic_t *val)
 	/* On real hardware both the storing of the previous
 	   value and the decrement have to be done as a single
 	   atomic action. */
-	
+
 	atomic_count_t prev = val->count;
-	
+
 	val->count--;
 	return prev;
 }

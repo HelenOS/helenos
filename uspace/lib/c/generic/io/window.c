@@ -45,7 +45,7 @@ errno_t win_register(async_sess_t *sess, window_flags_t flags, service_id_t *in,
 	async_exch_t *exch = async_exchange_begin(sess);
 	errno_t ret = async_req_1_2(exch, WINDOW_REGISTER, flags, in, out);
 	async_exchange_end(exch);
-	
+
 	return ret;
 }
 
@@ -95,23 +95,23 @@ errno_t win_resize(async_sess_t *sess, sysarg_t x, sysarg_t y, sysarg_t width,
     sysarg_t height, window_placement_flags_t placement_flags, void *cells)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_5(exch, WINDOW_RESIZE, x, y, width, height,
 	    (sysarg_t) placement_flags, &answer);
-	
+
 	errno_t rc = async_share_out_start(exch, cells, AS_AREA_READ | AS_AREA_CACHEABLE);
-	
+
 	async_exchange_end(exch);
-	
+
 	errno_t ret;
 	async_wait_for(req, &ret);
-	
+
 	if (rc != EOK)
 		return rc;
 	else if (ret != EOK)
 		return ret;
-	
+
 	return EOK;
 }
 

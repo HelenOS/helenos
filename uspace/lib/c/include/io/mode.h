@@ -54,12 +54,12 @@ typedef union {
 typedef struct {
 	sysarg_t index;
 	sysarg_t version;
-	
+
 	sysarg_t refresh_rate;
 	aspect_ratio_t screen_aspect;
 	sysarg_t screen_width;
 	sysarg_t screen_height;
-	
+
 	aspect_ratio_t cell_aspect;
 	cell_visual_t cell_visual;
 } vslmode_t;

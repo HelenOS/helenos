@@ -85,31 +85,31 @@ errno_t usbvirt_device_plug(usbvirt_device_t *dev, const char *vhc_path)
 {
 	if (DEV != NULL)
 		return ELIMIT;
-	
+
 	devman_handle_t handle;
 	errno_t rc = devman_fun_get_handle(vhc_path, &handle, 0);
 	if (rc != EOK)
 		return rc;
-	
+
 	async_sess_t *hcd_sess =
 	    devman_device_connect(handle, 0);
 	if (!hcd_sess)
 		return ENOMEM;
-	
+
 	DEV = dev;
 	dev->vhc_sess = hcd_sess;
-	
+
 	async_exch_t *exch = async_exchange_begin(hcd_sess);
-	
+
 	port_id_t port;
 	rc = async_create_callback_port(exch, INTERFACE_USBVIRT_CB, 0, 0,
 	    callback_connection, NULL, &port);
-	
+
 	async_exchange_end(exch);
-	
+
 	if (rc != EOK)
 		DEV = NULL;
-	
+
 	return rc;
 }
 

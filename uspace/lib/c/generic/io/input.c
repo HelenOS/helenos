@@ -60,7 +60,7 @@ errno_t input_open(async_sess_t *sess, input_ev_ops_t *ev_ops,
 	port_id_t port;
 	errno_t rc = async_create_callback_port(exch, INTERFACE_INPUT_CB, 0, 0,
 	    input_cb_conn, input, &port);
-	
+
 	async_exchange_end(exch);
 
 	if (rc != EOK)
@@ -87,7 +87,7 @@ errno_t input_activate(input_t *input)
 	async_exch_t *exch = async_exchange_begin(input->sess);
 	errno_t rc = async_req_0_0(exch, INPUT_ACTIVATE);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 

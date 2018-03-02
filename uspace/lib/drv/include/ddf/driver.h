@@ -56,16 +56,16 @@ typedef struct ddf_dev_ops {
 	 * device.
 	 */
 	errno_t (*open)(ddf_fun_t *);
-	
+
 	/**
 	 * Optional callback function called when a client is disconnecting from
 	 * the device.
 	 */
 	void (*close)(ddf_fun_t *);
-	
+
 	/** The table of standard interfaces implemented by the device. */
 	void *interfaces[DEV_IFACE_COUNT];
-	
+
 	/**
 	 * The default handler of remote client requests. If the client's remote
 	 * request cannot be handled by any of the standard interfaces, the
@@ -88,16 +88,16 @@ struct ddf_fun;
 typedef struct driver_ops {
 	/** Callback method for passing a new device to the device driver */
 	errno_t (*dev_add)(ddf_dev_t *);
-	
+
 	/** Ask driver to remove a device */
 	errno_t (*dev_remove)(ddf_dev_t *);
-	
+
 	/** Inform driver a device disappeared */
 	errno_t (*dev_gone)(ddf_dev_t *);
-	
+
 	/** Ask driver to online a specific function */
 	errno_t (*fun_online)(ddf_fun_t *);
-	
+
 	/** Ask driver to offline a specific function */
 	errno_t (*fun_offline)(ddf_fun_t *);
 } driver_ops_t;

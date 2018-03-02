@@ -46,13 +46,13 @@
 typedef struct {
 	/** If true, this struct is in the timeout list. */
 	bool inlist;
-	
+
 	/** Timeout list link. */
 	link_t link;
-	
+
 	/** If true, we have timed out. */
 	bool occurred;
-	
+
 	/** Expiration time. */
 	struct timeval expires;
 } to_event_t;
@@ -61,7 +61,7 @@ typedef struct {
 typedef struct {
 	/** If true, this struct is in a synchronization object wait queue. */
 	bool inlist;
-	
+
 	/** Wait queue linkage. */
 	link_t link;
 } wu_event_t;
@@ -70,10 +70,10 @@ typedef struct {
 typedef struct {
 	/** Identification of and link to the waiting fibril. */
 	fid_t fid;
-	
+
 	/** If true, this fibril is currently active. */
 	bool active;
-	
+
 	/** Timeout wait data. */
 	to_event_t to_event;
 	/** Wakeup wait data. */

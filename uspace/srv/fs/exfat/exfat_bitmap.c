@@ -58,12 +58,12 @@ errno_t exfat_bitmap_is_free(exfat_bs_t *bs, service_id_t service_id,
 	bool alloc;
 
 	clst -= EXFAT_CLST_FIRST;
-	
+
 	rc = exfat_bitmap_get(&fn, service_id);
 	if (rc != EOK)
 		return rc;
 	bitmapp = EXFAT_NODE(fn);
-	
+
 	aoff64_t offset = clst / 8;
 	rc = exfat_block_get(&b, bs, bitmapp, offset / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
@@ -98,12 +98,12 @@ errno_t exfat_bitmap_set_cluster(exfat_bs_t *bs, service_id_t service_id,
 	errno_t rc;
 
 	clst -= EXFAT_CLST_FIRST;
-	
+
 	rc = exfat_bitmap_get(&fn, service_id);
 	if (rc != EOK)
 		return rc;
 	bitmapp = EXFAT_NODE(fn);
-	
+
 	aoff64_t offset = clst / 8;
 	rc = exfat_block_get(&b, bs, bitmapp, offset / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
@@ -119,7 +119,7 @@ errno_t exfat_bitmap_set_cluster(exfat_bs_t *bs, service_id_t service_id,
 		(void) exfat_node_put(fn);
 		return rc;
 	}
-	
+
 	return exfat_node_put(fn);
 }
 
@@ -133,12 +133,12 @@ errno_t exfat_bitmap_clear_cluster(exfat_bs_t *bs, service_id_t service_id,
 	errno_t rc;
 
 	clst -= EXFAT_CLST_FIRST;
-	
+
 	rc = exfat_bitmap_get(&fn, service_id);
 	if (rc != EOK)
 		return rc;
 	bitmapp = EXFAT_NODE(fn);
-	
+
 	aoff64_t offset = clst / 8;
 	rc = exfat_block_get(&b, bs, bitmapp, offset / BPS(bs),
 	    BLOCK_FLAGS_NONE);
@@ -155,7 +155,7 @@ errno_t exfat_bitmap_clear_cluster(exfat_bs_t *bs, service_id_t service_id,
 		(void) exfat_node_put(fn);
 		return rc;
 	}
-	
+
 	return exfat_node_put(fn);
 }
 

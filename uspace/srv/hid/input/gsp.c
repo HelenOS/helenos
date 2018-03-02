@@ -78,7 +78,7 @@ static bool trans_key_equal(void *key, const ht_link_t *item)
 {
 	trans_key_t *trans_key = (trans_key_t *)key;
 	gsp_trans_t *t = hash_table_get_inst(item, gsp_trans_t, link);
-	
+
 	return trans_key->input == t->input && trans_key->old_state == t->old_state;
 }
 
@@ -244,7 +244,7 @@ int gsp_step(gsp_t *p, int state, int input, unsigned *mods, unsigned *key)
 static gsp_trans_t *trans_lookup(gsp_t *p, int state, int input)
 {
 	ht_link_t *item;
-	
+
 	trans_key_t key = {
 		.input = input,
 		.old_state = state

@@ -71,7 +71,7 @@ def check_range(varname, fmt, value):
 class Struct:
 	def size(self):
 		return struct.calcsize(self._format_)
-	
+
 	def pack(self):
 		args = []
 		for variable, fmt, length in self._args_:
@@ -89,7 +89,7 @@ class Struct:
 				check_range(variable, fmt, value)
 				args.append(value)
 		return struct.pack(self._format_, *args)
-	
+
 	def unpack(self, data):
 		values = struct.unpack(self._format_, data)
 		i = 0
@@ -99,9 +99,9 @@ class Struct:
 
 def create(definition):
 	"Create structure object"
-	
+
 	tokens = definition.split(None)
-	
+
 	# Initial byte order tag
 	format = {
 		"little:":  lambda: "<",
@@ -110,7 +110,7 @@ def create(definition):
 	}[tokens[0]]()
 	inst = Struct()
 	args = []
-	
+
 	# Member tags
 	comment = False
 	variable = None
@@ -119,45 +119,45 @@ def create(definition):
 			if (token == "*/"):
 				comment = False
 			continue
-		
+
 		if (token == "/*"):
 			comment = True
 			continue
-		
+
 		if (variable != None):
 			subtokens = token.split("[")
-			
+
 			length = None
 			if (len(subtokens) > 1):
 				length = int(subtokens[1].split("]")[0])
 				format += "%d" % length
-			
+
 			format += variable
-			
+
 			inst.__dict__[subtokens[0]] = None
 			args.append((subtokens[0], variable, length))
-			
+
 			variable = None
 			continue
-		
+
 		if (token[0:8] == "padding["):
 			size = token[8:].split("]")[0]
 			format += "%dx" % int(size)
 			continue
-		
+
 		variable = {
 			"char":     lambda: "s",
 			"uint8_t":  lambda: "B",
 			"uint16_t": lambda: "H",
 			"uint32_t": lambda: "L",
 			"uint64_t": lambda: "Q",
-			
+
 			"int8_t":   lambda: "b",
 			"int16_t":  lambda: "h",
 			"int32_t":  lambda: "l",
 			"int64_t":  lambda: "q"
 		}[token]()
-	
+
 	inst.__dict__['_format_'] = format
 	inst.__dict__['_args_'] = args
 	return inst

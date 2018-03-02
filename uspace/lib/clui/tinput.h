@@ -103,46 +103,46 @@ typedef struct {
 typedef struct {
 	/** Console */
 	console_ctrl_t *console;
-	
+
 	/** Prompt string */
 	char *prompt;
-	
+
 	/** Completion ops. */
 	tinput_compl_ops_t *compl_ops;
-	
+
 	/** Buffer holding text currently being edited */
 	wchar_t buffer[INPUT_MAX_SIZE + 1];
-	
+
 	/** Linear position on screen where the prompt starts */
 	unsigned prompt_coord;
 	/** Linear position on screen where the text field starts */
 	unsigned text_coord;
-	
+
 	/** Screen dimensions */
 	sysarg_t con_cols;
 	sysarg_t con_rows;
-	
+
 	/** Number of characters in @c buffer */
 	size_t nc;
-	
+
 	/** Caret position within buffer */
 	size_t pos;
-	
+
 	/** Selection mark position within buffer */
 	size_t sel_start;
-	
+
 	/** History (dynamically allocated strings) */
 	char *history[HISTORY_LEN + 1];
-	
+
 	/** Number of entries in @c history, not counting [0] */
 	size_t hnum;
-	
+
 	/** Current position in history */
 	size_t hpos;
-	
+
 	/** @c true if finished with this line (return to caller) */
 	bool done;
-	
+
 	/** @c true if user requested to abort interactive loop */
 	bool exit_clui;
 

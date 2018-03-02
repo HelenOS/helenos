@@ -54,16 +54,16 @@ static float32_t taylor_log_32(float32_t arg)
 {
 	float32_t ret = 0;
 	float32_t num = 1;
-	
+
 	for (unsigned int i = 1; i <= TAYLOR_DEGREE_32; i++) {
 		num *= arg;
-		
+
 		if ((i % 2) == 0)
 			ret += num / i;
 		else
 			ret -= num / i;
 	}
-	
+
 	return ret;
 }
 
@@ -82,16 +82,16 @@ static float64_t taylor_log_64(float64_t arg)
 {
 	float64_t ret = 0;
 	float64_t num = 1;
-	
+
 	for (unsigned int i = 1; i <= TAYLOR_DEGREE_64; i++) {
 		num *= arg;
-		
+
 		if ((i % 2) == 0)
 			ret += num / i;
 		else
 			ret -= num / i;
 	}
-	
+
 	return ret;
 }
 
@@ -106,7 +106,7 @@ float32_t float32_log(float32_t arg)
 {
 	float32_u m;
 	int e;
-	
+
 	m.val = arg;
 	/*
 	 * Factor arg into m * 2^e where m has exponent -1,
@@ -117,7 +117,7 @@ float32_t float32_log(float32_t arg)
 	 */
 	e = m.data.parts.exp - (FLOAT32_BIAS - 1);
 	m.data.parts.exp = FLOAT32_BIAS - 1;
-	
+
 	/*
 	 * arg = m * 2^e ; log(arg) = log(m) + log(2^e) =
 	 * log(m) + log2(2^e) / log2(e) = log(m) + e / log2(e)
@@ -136,9 +136,9 @@ float64_t float64_log(float64_t arg)
 {
 	float64_u m;
 	int e;
-	
+
 	m.val = arg;
-	
+
 	/*
 	 * Factor arg into m * 2^e where m has exponent -1,
 	 * which means it is in [1.0000..e-1, 1.1111..e-1] = [0.5, 1.0]
@@ -148,7 +148,7 @@ float64_t float64_log(float64_t arg)
 	 */
 	e = m.data.parts.exp - (FLOAT64_BIAS - 1);
 	m.data.parts.exp = FLOAT64_BIAS - 1;
-	
+
 	/*
 	 * arg = m * 2^e ; log(arg) = log(m) + log(2^e) =
 	 * log(m) + log2(2^e) / log2(e) = log(m) + e / log2(e)

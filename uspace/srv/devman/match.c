@@ -68,24 +68,24 @@ int get_match_score(driver_t *drv, dev_node_t *dev)
 {
 	link_t *drv_head = &drv->match_ids.ids.head;
 	link_t *dev_head = &dev->pfun->match_ids.ids.head;
-	
+
 	if (list_empty(&drv->match_ids.ids) ||
 	    list_empty(&dev->pfun->match_ids.ids)) {
 		return 0;
 	}
-	
+
 	/*
 	 * Go through all pairs, return the highest score obtained.
 	 */
 	int highest_score = 0;
-	
+
 	link_t *drv_link = drv->match_ids.ids.head.next;
 	while (drv_link != drv_head) {
 		link_t *dev_link = dev_head->next;
 		while (dev_link != dev_head) {
 			match_id_t *drv_id = list_get_instance(drv_link, match_id_t, link);
 			match_id_t *dev_id = list_get_instance(dev_link, match_id_t, link);
-			
+
 			int score = compute_match_score(drv_id, dev_id);
 			if (score > highest_score) {
 				highest_score = score;
@@ -93,10 +93,10 @@ int get_match_score(driver_t *drv, dev_node_t *dev)
 
 			dev_link = dev_link->next;
 		}
-		
+
 		drv_link = drv_link->next;
 	}
-	
+
 	return highest_score;
 }
 
@@ -110,7 +110,7 @@ char *read_match_id(char **buf)
 {
 	char *res = NULL;
 	size_t len = get_nonspace_len(*buf);
-	
+
 	if (len > 0) {
 		res = malloc(len + 1);
 		if (res != NULL) {
@@ -118,7 +118,7 @@ char *read_match_id(char **buf)
 			*buf += len;
 		}
 	}
-	
+
 	return res;
 }
 
@@ -140,7 +140,7 @@ bool parse_match_ids(char *buf, match_id_list_t *ids)
 	int score = 0;
 	char *id = NULL;
 	int ids_read = 0;
-	
+
 	while (true) {
 		/* skip spaces */
 		if (!skip_spaces(&buf))
@@ -150,30 +150,30 @@ bool parse_match_ids(char *buf, match_id_list_t *ids)
 			skip_line(&buf);
 			continue;
 		}
-		
+
 		/* read score */
 		score = strtoul(buf, &buf, 10);
-		
+
 		/* skip spaces */
 		if (!skip_spaces(&buf))
 			break;
-		
+
 		/* read id */
 		id = read_match_id(&buf);
 		if (NULL == id)
 			break;
-		
+
 		/* create new match_id structure */
 		match_id_t *mid = create_match_id();
 		mid->id = id;
 		mid->score = score;
-		
+
 		/* add it to the list */
 		add_match_id(ids, mid);
-		
+
 		ids_read++;
 	}
-	
+
 	return ids_read > 0;
 }
 
@@ -193,14 +193,14 @@ bool parse_match_ids(char *buf, match_id_list_t *ids)
 bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "read_match_ids(conf_path=\"%s\")", conf_path);
-	
+
 	bool suc = false;
 	char *buf = NULL;
 	bool opened = false;
 	int fd;
 	size_t len = 0;
 	vfs_stat_t st;
-	
+
 	errno_t rc = vfs_lookup_open(conf_path, WALK_REGULAR, MODE_READ, &fd);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to open `%s' for reading: %s.",
@@ -208,7 +208,7 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	opened = true;
-	
+
 	rc = vfs_stat(fd, &st);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Unable to fstat %d: %s.", fd,
@@ -221,14 +221,14 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		    conf_path);
 		goto cleanup;
 	}
-	
+
 	buf = malloc(len + 1);
 	if (buf == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Memory allocation failed when parsing file "
 		    "'%s'.", conf_path);
 		goto cleanup;
 	}
-	
+
 	size_t read_bytes;
 	rc = vfs_read(fd, (aoff64_t []) {0}, buf, len, &read_bytes);
 	if (rc != EOK) {
@@ -237,15 +237,15 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	buf[read_bytes] = 0;
-	
+
 	suc = parse_match_ids(buf, ids);
-	
+
 cleanup:
 	free(buf);
-	
+
 	if (opened)
 		vfs_put(fd);
-	
+
 	return suc;
 }
 

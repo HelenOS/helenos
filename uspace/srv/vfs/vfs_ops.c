@@ -63,13 +63,13 @@ FIBRIL_RWLOCK_INITIALIZE(namespace_rwlock);
 static size_t shared_path(char *a, char *b)
 {
 	size_t res = 0;
-	
+
 	while (a[res] == b[res] && a[res] != 0)
 		res++;
-	
+
 	if (a[res] == b[res])
 		return res;
-	
+
 	res--;
 	while (a[res] != '/')
 		res--;
@@ -92,7 +92,7 @@ errno_t vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
 	/* If the file descriptors are the same, do nothing. */
 	if (oldfd == newfd)
 		return EOK;
-	
+
 	/* Lookup the file structure corresponding to fd. */
 	vfs_file_t *oldfile = vfs_file_get(oldfd);
 	if (oldfile == NULL)
@@ -111,12 +111,12 @@ errno_t vfs_op_clone(int oldfd, int newfd, bool desc, int *out_fd)
 			newfile->node = oldfile->node;
 			newfile->permissions = oldfile->permissions;
 			vfs_node_addref(newfile->node);
-	
+
 			vfs_file_put(newfile);
 		}
 	}
 	vfs_file_put(oldfile);
-	
+
 	return rc;
 }
 
@@ -130,21 +130,21 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
     vfs_node_t **root)
 {
 	fs_handle_t fs_handle = 0;
-	
+
 	fibril_mutex_lock(&fs_list_lock);
 	while (true) {
 		fs_handle = fs_name_to_handle(instance, fsname, false);
-		
+
 		if (fs_handle != 0 || !(flags & VFS_MOUNT_BLOCKING))
 			break;
-		
+
 		fibril_condvar_wait(&fs_list_cv, &fs_list_lock);
 	}
 	fibril_mutex_unlock(&fs_list_lock);
 
 	if (fs_handle == 0)
 		return ENOFS;
-	
+
 	/* Tell the mountee that it is being mounted. */
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_grab(fs_handle);
@@ -163,7 +163,7 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 		vfs_exchange_release(exch);
 		return rc;
 	}
-	
+
 	vfs_lookup_res_t res;
 	res.triplet.fs_handle = fs_handle;
 	res.triplet.service_id = service_id;
@@ -171,7 +171,7 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 	res.size = (int64_t) MERGE_LOUP32(IPC_GET_ARG2(answer),
 	    IPC_GET_ARG3(answer));
 	res.type = VFS_NODE_DIRECTORY;
-	
+
 	/* Add reference to the mounted root. */
 	*root = vfs_node_get(&res);
 	if (!*root) {
@@ -181,7 +181,7 @@ static errno_t vfs_connect_internal(service_id_t service_id, unsigned flags,
 		vfs_exchange_release(exch);
 		return ENOMEM;
 	}
-			
+
 	vfs_exchange_release(exch);
 
 	return EOK;
@@ -193,14 +193,14 @@ errno_t vfs_op_fsprobe(const char *fs_name, service_id_t sid,
 	fs_handle_t fs_handle = 0;
 	errno_t rc;
 	errno_t retval;
-	
+
 	fibril_mutex_lock(&fs_list_lock);
 	fs_handle = fs_name_to_handle(0, fs_name, false);
 	fibril_mutex_unlock(&fs_list_lock);
-	
+
 	if (fs_handle == 0)
 		return ENOFS;
-	
+
 	/* Send probe request to the file system server */
 	ipc_call_t answer;
 	async_exch_t *exch = vfs_exchange_grab(fs_handle);
@@ -208,14 +208,14 @@ errno_t vfs_op_fsprobe(const char *fs_name, service_id_t sid,
 	    &answer);
 	if (msg == 0)
 		return EINVAL;
-	
+
 	/* Read probe information */
 	retval = async_data_read_start(exch, info, sizeof(*info));
 	if (retval != EOK) {
 		async_forget(msg);
 		return retval;
 	}
-	
+
 	async_wait_for(msg, &rc);
 	vfs_exchange_release(exch);
 	return rc;
@@ -228,39 +228,39 @@ errno_t vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 	vfs_file_t *mp = NULL;
 	vfs_file_t *file = NULL;
 	*out_fd = -1;
-	
+
 	if (!(flags & VFS_MOUNT_CONNECT_ONLY)) {
 		mp = vfs_file_get(mpfd);
 		if (mp == NULL) {
 			rc = EBADF;
 			goto out;
 		}
-		
+
 		if (mp->node->mount != NULL) {
 			rc = EBUSY;
 			goto out;
 		}
-		
+
 		if (mp->node->type != VFS_NODE_DIRECTORY) {
 			rc = ENOTDIR;
 			goto out;
 		}
-		
+
 		if (vfs_node_has_children(mp->node)) {
 			rc = ENOTEMPTY;
 			goto out;
 		}
 	}
-	
+
 	if (!(flags & VFS_MOUNT_NO_REF)) {
 		rc = vfs_fd_alloc(&file, false, out_fd);
 		if (rc != EOK) {
 			goto out;
 		}
 	}
-	
+
 	vfs_node_t *root = NULL;
-	
+
 	fibril_rwlock_write_lock(&namespace_rwlock);
 
 	rc = vfs_connect_internal(service_id, flags, instance, opts, fs_name,
@@ -270,23 +270,23 @@ errno_t vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 		vfs_node_addref(root);
 		mp->node->mount = root;
 	}
-	
+
 	fibril_rwlock_write_unlock(&namespace_rwlock);
-	
+
 	if (rc != EOK)
 		goto out;
-	
+
 	if (flags & VFS_MOUNT_NO_REF) {
 		vfs_node_delref(root);
 	} else {
 		assert(file != NULL);
-		
+
 		file->node = root;
 		file->permissions = MODE_READ | MODE_WRITE | MODE_APPEND;
 		file->open_read = false;
 		file->open_write = false;
 	}
-	
+
 out:
 	if (mp)
 		vfs_file_put(mp);
@@ -297,7 +297,7 @@ out:
 		vfs_fd_free(*out_fd);
 		*out_fd = -1;
 	}
-	
+
 	return rc;
 }
 
@@ -309,39 +309,39 @@ errno_t vfs_op_open(int fd, int mode)
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
 		return EBADF;
-	
+
 	if ((mode & ~file->permissions) != 0) {
 		vfs_file_put(file);
 		return EPERM;
 	}
-	
+
 	if (file->open_read || file->open_write) {
 		vfs_file_put(file);
 		return EBUSY;
 	}
-	
+
 	file->open_read = (mode & MODE_READ) != 0;
 	file->open_write = (mode & (MODE_WRITE | MODE_APPEND)) != 0;
 	file->append = (mode & MODE_APPEND) != 0;
-	
+
 	if (!file->open_read && !file->open_write) {
 		vfs_file_put(file);
 		return EINVAL;
 	}
-	
+
 	if (file->node->type == VFS_NODE_DIRECTORY && file->open_write) {
 		file->open_read = file->open_write = false;
 		vfs_file_put(file);
 		return EINVAL;
 	}
-	
+
 	errno_t rc = vfs_open_node_remote(file->node);
 	if (rc != EOK) {
 		file->open_read = file->open_write = false;
 		vfs_file_put(file);
 		return rc;
 	}
-	
+
 	vfs_file_put(file);
 	return EOK;
 }
@@ -384,7 +384,7 @@ static errno_t rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t 
 
 	if (exch == NULL)
 		return ENOENT;
-	
+
 	aid_t msg = async_send_fast(exch, read ? VFS_OUT_READ : VFS_OUT_WRITE,
 	    file->node->service_id, file->node->index, LOWER32(pos),
 	    UPPER32(pos), answer);
@@ -396,10 +396,10 @@ static errno_t rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t 
 		async_forget(msg);
 		return retval;
 	}
-	
+
 	errno_t rc;
 	async_wait_for(msg, &rc);
-	
+
 	chunk->size = IPC_GET_ARG1(*answer);
 
 	return (errno_t) rc;
@@ -417,23 +417,23 @@ static errno_t vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
 	 * Additional synchronization needs to be added once the table of
 	 * open files supports parallel access!
 	 */
-	
+
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
 		return EBADF;
-	
+
 	if ((read && !file->open_read) || (!read && !file->open_write)) {
 		vfs_file_put(file);
 		return EINVAL;
 	}
-	
+
 	vfs_info_t *fs_info = fs_handle_to_info(file->node->fs_handle);
 	assert(fs_info);
-	
+
 	bool rlock = read ||
 	    (fs_info->concurrent_read_write && fs_info->write_retains_size);
-	
+
 	/*
 	 * Lock the file's node so that no other client can read/write to it at
 	 * the same time unless the FS supports concurrent reads/writes and its
@@ -443,13 +443,13 @@ static errno_t vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
 		fibril_rwlock_read_lock(&file->node->contents_rwlock);
 	else
 		fibril_rwlock_write_lock(&file->node->contents_rwlock);
-	
+
 	if (file->node->type == VFS_NODE_DIRECTORY) {
 		/*
 		 * Make sure that no one is modifying the namespace
 		 * while we are in readdir().
 		 */
-		
+
 		if (!read) {
 			if (rlock) {
 				fibril_rwlock_read_unlock(
@@ -461,26 +461,26 @@ static errno_t vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
 			vfs_file_put(file);
 			return EINVAL;
 		}
-		
+
 		fibril_rwlock_read_lock(&namespace_rwlock);
 	}
-	
+
 	async_exch_t *fs_exch = vfs_exchange_grab(file->node->fs_handle);
-	
+
 	if (!read && file->append)
 		pos = file->node->size;
-	
+
 	/*
 	 * Handle communication with the endpoint FS.
 	 */
 	ipc_call_t answer;
 	errno_t rc = ipc_cb(fs_exch, file, pos, &answer, read, ipc_cb_data);
-	
+
 	vfs_exchange_release(fs_exch);
-	
+
 	if (file->node->type == VFS_NODE_DIRECTORY)
 		fibril_rwlock_read_unlock(&namespace_rwlock);
-	
+
 	/* Unlock the VFS node. */
 	if (rlock) {
 		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
@@ -492,7 +492,7 @@ static errno_t vfs_rdwr(int fd, aoff64_t pos, bool read, rdwr_ipc_cb_t ipc_cb,
 		}
 		fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 	}
-	
+
 	vfs_file_put(file);
 
 	return rc;
@@ -517,16 +517,16 @@ errno_t vfs_op_rename(int basefd, char *old, char *new)
 	vfs_node_t *base = base_file->node;
 	vfs_node_addref(base);
 	vfs_file_put(base_file);
-	
+
 	vfs_lookup_res_t base_lr;
 	vfs_lookup_res_t old_lr;
 	vfs_lookup_res_t new_lr_orig;
 	bool orig_unlinked = false;
-	
+
 	errno_t rc;
-	
+
 	size_t shared = shared_path(old, new);
-	
+
 	/* Do not allow one path to be a prefix of the other. */
 	if (old[shared] == 0 || new[shared] == 0) {
 		vfs_node_put(base);
@@ -534,9 +534,9 @@ errno_t vfs_op_rename(int basefd, char *old, char *new)
 	}
 	assert(old[shared] == '/');
 	assert(new[shared] == '/');
-	
+
 	fibril_rwlock_write_lock(&namespace_rwlock);
-	
+
 	/* Resolve the shared portion of the path first. */
 	if (shared != 0) {
 		old[shared] = 0;
@@ -546,7 +546,7 @@ errno_t vfs_op_rename(int basefd, char *old, char *new)
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			return rc;
 		}
-		
+
 		vfs_node_put(base);
 		base = vfs_node_get(&base_lr);
 		if (!base) {
@@ -564,7 +564,7 @@ errno_t vfs_op_rename(int basefd, char *old, char *new)
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return rc;
 	}
-		
+
 	rc = vfs_lookup_internal(base, new, L_UNLINK | L_DISABLE_MOUNTS,
 	    &new_lr_orig);
 	if (rc == EOK) {
@@ -594,7 +594,7 @@ errno_t vfs_op_rename(int basefd, char *old, char *new)
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return rc;
 	}
-	
+
 	/* If the node is not held by anyone, try to destroy it. */
 	if (orig_unlinked) {
 		vfs_node_t *node = vfs_node_peek(&new_lr_orig);
@@ -603,7 +603,7 @@ errno_t vfs_op_rename(int basefd, char *old, char *new)
 		else
 			vfs_node_put(node);
 	}
-	
+
 	vfs_node_put(base);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	return EOK;
@@ -616,12 +616,12 @@ errno_t vfs_op_resize(int fd, int64_t size)
 		return EBADF;
 
 	fibril_rwlock_write_lock(&file->node->contents_rwlock);
-	
+
 	errno_t rc = vfs_truncate_internal(file->node->fs_handle,
 	    file->node->service_id, file->node->index, size);
 	if (rc == EOK)
 		file->node->size = size;
-	
+
 	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 	vfs_file_put(file);
 	return rc;
@@ -639,7 +639,7 @@ errno_t vfs_op_stat(int fd)
 	errno_t rc = async_data_read_forward_fast(exch, VFS_OUT_STAT,
 	    node->service_id, node->index, true, 0, NULL);
 	vfs_exchange_release(exch);
-	
+
 	vfs_file_put(file);
 	return rc;
 }
@@ -666,22 +666,22 @@ errno_t vfs_op_sync(int fd)
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file)
 		return EBADF;
-	
+
 	async_exch_t *fs_exch = vfs_exchange_grab(file->node->fs_handle);
-	
+
 	aid_t msg;
 	ipc_call_t answer;
 	msg = async_send_2(fs_exch, VFS_OUT_SYNC, file->node->service_id,
 	    file->node->index, &answer);
-	
+
 	vfs_exchange_release(fs_exch);
-	
+
 	errno_t rc;
 	async_wait_for(msg, &rc);
-	
+
 	vfs_file_put(file);
 	return rc;
-	
+
 }
 
 static errno_t vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service_id,
@@ -692,7 +692,7 @@ static errno_t vfs_truncate_internal(fs_handle_t fs_handle, service_id_t service
 	    (sysarg_t) service_id, (sysarg_t) index, LOWER32(size),
 	    UPPER32(size));
 	vfs_exchange_release(exch);
-	
+
 	return (errno_t) rc;
 }
 
@@ -701,12 +701,12 @@ errno_t vfs_op_unlink(int parentfd, int expectfd, char *path)
 	errno_t rc = EOK;
 	vfs_file_t *parent = NULL;
 	vfs_file_t *expect = NULL;
-	
+
 	if (parentfd == expectfd)
 		return EINVAL;
-	
+
 	fibril_rwlock_write_lock(&namespace_rwlock);
-	
+
 	/*
 	 * Files are retrieved in order of file descriptors, to prevent
 	 * deadlock.
@@ -718,7 +718,7 @@ errno_t vfs_op_unlink(int parentfd, int expectfd, char *path)
 			goto exit;
 		}
 	}
-	
+
 	if (expectfd >= 0) {
 		expect = vfs_file_get(expectfd);
 		if (!expect) {
@@ -726,7 +726,7 @@ errno_t vfs_op_unlink(int parentfd, int expectfd, char *path)
 			goto exit;
 		}
 	}
-	
+
 	if (parentfd > expectfd) {
 		parent = vfs_file_get(parentfd);
 		if (!parent) {
@@ -734,26 +734,26 @@ errno_t vfs_op_unlink(int parentfd, int expectfd, char *path)
 			goto exit;
 		}
 	}
-	
+
 	assert(parent != NULL);
-	
+
 	if (expectfd >= 0) {
 		vfs_lookup_res_t lr;
 		rc = vfs_lookup_internal(parent->node, path, 0, &lr);
 		if (rc != EOK)
 			goto exit;
-		
+
 		vfs_node_t *found_node = vfs_node_peek(&lr);
 		vfs_node_put(found_node);
 		if (expect->node != found_node) {
 			rc = ENOENT;
 			goto exit;
 		}
-		
+
 		vfs_file_put(expect);
 		expect = NULL;
 	}
-	
+
 	vfs_lookup_res_t lr;
 	rc = vfs_lookup_internal(parent->node, path, L_UNLINK, &lr);
 	if (rc != EOK)
@@ -782,14 +782,14 @@ errno_t vfs_op_unmount(int mpfd)
 	vfs_file_t *mp = vfs_file_get(mpfd);
 	if (mp == NULL)
 		return EBADF;
-	
+
 	if (mp->node->mount == NULL) {
 		vfs_file_put(mp);
 		return ENOENT;
 	}
-	
+
 	fibril_rwlock_write_lock(&namespace_rwlock);
-	
+
 	/*
 	 * Count the total number of references for the mounted file system. We
 	 * are expecting at least one, which is held by the mount point.
@@ -803,24 +803,24 @@ errno_t vfs_op_unmount(int mpfd)
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return EBUSY;
 	}
-	
+
 	async_exch_t *exch = vfs_exchange_grab(mp->node->mount->fs_handle);
 	errno_t rc = async_req_1_0(exch, VFS_OUT_UNMOUNTED,
 	    mp->node->mount->service_id);
 	vfs_exchange_release(exch);
-	
+
 	if (rc != EOK) {
 		vfs_file_put(mp);
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return rc;
 	}
-	
+
 	vfs_node_forget(mp->node->mount);
 	vfs_node_put(mp->node);
 	mp->node->mount = NULL;
-	
+
 	fibril_rwlock_write_unlock(&namespace_rwlock);
-	
+
 	vfs_file_put(mp);
 	return EOK;
 }
@@ -865,13 +865,13 @@ errno_t vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 {
 	if (!walk_flags_valid(flags))
 		return EINVAL;
-	
+
 	vfs_file_t *parent = vfs_file_get(parentfd);
 	if (!parent)
 		return EBADF;
-	
+
 	fibril_rwlock_read_lock(&namespace_rwlock);
-	
+
 	vfs_lookup_res_t lr;
 	errno_t rc = vfs_lookup_internal(parent->node, path,
 	    walk_lookup_flags(flags), &lr);
@@ -880,14 +880,14 @@ errno_t vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 		vfs_file_put(parent);
 		return rc;
 	}
-	
+
 	vfs_node_t *node = vfs_node_get(&lr);
 	if (!node) {
 		fibril_rwlock_read_unlock(&namespace_rwlock);
 		vfs_file_put(parent);
 		return ENOMEM;
 	}
-	
+
 	vfs_file_t *file;
 	rc = vfs_fd_alloc(&file, false, out_fd);
 	if (rc != EOK) {
@@ -896,15 +896,15 @@ errno_t vfs_op_walk(int parentfd, int flags, char *path, int *out_fd)
 		return rc;
 	}
 	assert(file != NULL);
-	
+
 	file->node = node;
 	file->permissions = parent->permissions;
 	file->open_read = false;
 	file->open_write = false;
-	
+
 	vfs_file_put(file);
 	vfs_file_put(parent);
-	
+
 	fibril_rwlock_read_unlock(&namespace_rwlock);
 
 	return EOK;

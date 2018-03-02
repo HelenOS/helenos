@@ -69,7 +69,7 @@ void ext4_block_group_set_block_bitmap(ext4_block_group_t *bg,
     ext4_superblock_t *sb, uint64_t block_bitmap)
 {
 	bg->block_bitmap_lo = host2uint32_t_le((block_bitmap << 32) >> 32);
-	
+
 	if (ext4_superblock_get_desc_size(sb) >
 	    EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE)
 		bg->block_bitmap_hi = host2uint32_t_le(block_bitmap >> 32);
@@ -105,7 +105,7 @@ void ext4_block_group_set_inode_bitmap(ext4_block_group_t *bg,
     ext4_superblock_t *sb, uint64_t inode_bitmap)
 {
 	bg->inode_bitmap_lo = host2uint32_t_le((inode_bitmap << 32) >> 32);
-	
+
 	if (ext4_superblock_get_desc_size(sb) >
 	    EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE)
 		bg->inode_bitmap_hi = host2uint32_t_le(inode_bitmap >> 32);
@@ -143,7 +143,7 @@ void ext4_block_group_set_inode_table_first_block(ext4_block_group_t *bg,
 {
 	bg->inode_table_first_block_lo =
 	    host2uint32_t_le((inode_table_first << 32) >> 32);
-	
+
 	if (ext4_superblock_get_desc_size(sb) >
 	    EXT4_MIN_BLOCK_GROUP_DESCRIPTOR_SIZE)
 		bg->inode_table_first_block_hi =
@@ -352,7 +352,7 @@ bool ext4_block_group_has_flag(ext4_block_group_t *bg, uint32_t flag)
 {
 	if (ext4_block_group_get_flags(bg) & flag)
 		return true;
-	
+
 	return false;
 }
 

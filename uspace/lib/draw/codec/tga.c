@@ -45,11 +45,11 @@ typedef struct {
 	uint8_t id_length;
 	uint8_t cmap_type;
 	uint8_t img_type;
-	
+
 	uint16_t cmap_first_entry;
 	uint16_t cmap_entries;
 	uint8_t cmap_bpp;
-	
+
 	uint16_t startx;
 	uint16_t starty;
 	uint16_t width;
@@ -78,11 +78,11 @@ typedef enum {
 typedef struct {
 	cmap_type_t cmap_type;
 	img_type_t img_type;
-	
+
 	uint16_t cmap_first_entry;
 	uint16_t cmap_entries;
 	uint8_t cmap_bpp;
-	
+
 	uint16_t startx;
 	uint16_t starty;
 	uint16_t width;
@@ -90,13 +90,13 @@ typedef struct {
 	uint8_t img_bpp;
 	uint8_t img_alpha_bpp;
 	uint8_t img_alpha_dir;
-	
+
 	void *id_data;
 	size_t id_length;
-	
+
 	void *cmap_data;
 	size_t cmap_length;
-	
+
 	void *img_data;
 	size_t img_length;
 } tga_t;
@@ -116,33 +116,33 @@ static bool decode_tga_header(void *data, size_t size, tga_t *tga)
 	/* Header sanity check */
 	if (size < sizeof(tga_header_t))
 		return false;
-	
+
 	tga_header_t *head = (tga_header_t *) data;
-	
+
 	/* Image ID field */
 	tga->id_data = data + sizeof(tga_header_t);
 	tga->id_length = head->id_length;
-	
+
 	if (size < sizeof(tga_header_t) + tga->id_length)
 		return false;
-	
+
 	/* Color map type */
 	tga->cmap_type = head->cmap_type;
-	
+
 	/* Image type */
 	tga->img_type = head->img_type;
-	
+
 	/* Color map specification */
 	tga->cmap_first_entry = uint16_t_le2host(head->cmap_first_entry);
 	tga->cmap_entries = uint16_t_le2host(head->cmap_entries);
 	tga->cmap_bpp = head->cmap_bpp;
 	tga->cmap_data = tga->id_data + tga->id_length;
 	tga->cmap_length = ALIGN_UP(tga->cmap_entries * tga->cmap_bpp, 8) >> 3;
-	
+
 	if (size < sizeof(tga_header_t) + tga->id_length +
 	    tga->cmap_length)
 		return false;
-	
+
 	/* Image specification */
 	tga->startx = uint16_t_le2host(head->startx);
 	tga->starty = uint16_t_le2host(head->starty);
@@ -153,11 +153,11 @@ static bool decode_tga_header(void *data, size_t size, tga_t *tga)
 	tga->img_alpha_dir = (head->img_descr & 0xf0) >> 4;
 	tga->img_data = tga->cmap_data + tga->cmap_length;
 	tga->img_length = ALIGN_UP(tga->width * tga->height * tga->img_bpp, 8) >> 3;
-	
+
 	if (size < sizeof(tga_header_t) + tga->id_length +
 	    tga->cmap_length + tga->img_length)
 		return false;
-	
+
 	return true;
 }
 
@@ -181,11 +181,11 @@ surface_t *decode_tga(void *data, size_t size, surface_flags_t flags)
 	tga_t tga;
 	if (!decode_tga_header(data, size, &tga))
 		return NULL;
-	
+
 	/*
 	 * Check for unsupported features.
 	 */
-	
+
 	switch (tga.cmap_type) {
 	case CMAP_NOT_PRESENT:
 		break;
@@ -193,7 +193,7 @@ surface_t *decode_tga(void *data, size_t size, surface_flags_t flags)
 		/* Unsupported */
 		return NULL;
 	}
-	
+
 	switch (tga.img_type) {
 	case IMG_BGRA:
 		if (tga.img_bpp != 24)
@@ -207,29 +207,29 @@ surface_t *decode_tga(void *data, size_t size, surface_flags_t flags)
 		/* Unsupported */
 		return NULL;
 	}
-	
+
 	if (tga.img_alpha_bpp != 0)
 		return NULL;
-	
+
 	sysarg_t twidth = tga.startx + tga.width;
 	sysarg_t theight = tga.starty + tga.height;
-	
+
 	surface_t *surface = surface_create(twidth, theight, NULL, flags);
 	if (surface == NULL)
 		return NULL;
-	
+
 	/*
 	 * TGA is encoded in a bottom-up manner, the true-color
 	 * variant is in BGR 8:8:8 encoding.
 	 */
-	
+
 	switch (tga.img_type) {
 	case IMG_BGRA:
 		for (sysarg_t y = tga.starty; y < theight; y++) {
 			for (sysarg_t x = tga.startx; x < twidth; x++) {
 				size_t offset =
 				    ((y - tga.starty) * tga.width + (x - tga.startx)) * 3;
-				
+
 				pixel_t pixel =
 				    bgr_888_2pixel(((uint8_t *) tga.img_data) + offset);
 				surface_put_pixel(surface, x, theight - y - 1, pixel);
@@ -241,7 +241,7 @@ surface_t *decode_tga(void *data, size_t size, surface_flags_t flags)
 			for (sysarg_t x = tga.startx; x < twidth; x++) {
 				size_t offset =
 				    (y - tga.starty) * tga.width + (x - tga.startx);
-				
+
 				pixel_t pixel =
 				    gray_8_2pixel(((uint8_t *) tga.img_data) + offset);
 				surface_put_pixel(surface, x, theight - y - 1, pixel);
@@ -251,7 +251,7 @@ surface_t *decode_tga(void *data, size_t size, surface_flags_t flags)
 	default:
 		break;
 	}
-	
+
 	return surface;
 }
 

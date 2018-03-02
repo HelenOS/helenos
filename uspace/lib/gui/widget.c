@@ -40,7 +40,7 @@ void widget_init(widget_t *widget, widget_t *parent, const void *data)
 {
 	link_initialize(&widget->link);
 	list_initialize(&widget->children);
-	
+
 	if (parent) {
 		widget->parent = parent;
 		list_append(&widget->link, &parent->children);
@@ -49,14 +49,14 @@ void widget_init(widget_t *widget, widget_t *parent, const void *data)
 		widget->parent = NULL;
 		widget->window = NULL;
 	}
-	
+
 	widget->data = data;
-	
+
 	widget->hpos = 0;
 	widget->vpos = 0;
 	widget->width = 0;
 	widget->height = 0;
-	
+
 	widget->width_min = 0;
 	widget->height_min = 0;
 	widget->width_ideal = 0;

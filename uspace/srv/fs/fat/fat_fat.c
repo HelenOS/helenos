@@ -343,7 +343,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 		*value = (*value) >> 4;
 	else
 		*value = (*value) & FAT12_MASK;
-	
+
 	rc = block_put(b);
 
 	return rc;
@@ -462,7 +462,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	offset = (clst + clst / 2);
 	if (offset / BPS(bs) >= SF(bs))
 		return ERANGE;
-	
+
 	rc = block_get(&b, service_id, RSCNT(bs) + SF(bs) * fatno +
 	    offset / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK)
@@ -686,7 +686,7 @@ fat_alloc_clusters(fat_bs_t *bs, service_id_t service_id, unsigned nclsts,
 	lifo = (fat_cluster_t *) malloc(nclsts * sizeof(fat_cluster_t));
 	if (!lifo)
 		return ENOMEM;
-	
+
 	/*
 	 * Search FAT1 for unused clusters.
 	 */

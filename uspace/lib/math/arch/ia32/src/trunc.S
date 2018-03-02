@@ -35,28 +35,28 @@ FUNCTION_BEGIN(trunc_f64)
 	pushl %ebp
 	movl %esp, %ebp
 	subl $8, %esp
-	
+
 	# store x87 control word
-	
+
 	fnstcw -4(%ebp)
 	movw -4(%ebp), %ax
-	
+
 	# set rounding control to truncate
 	# (no masking necessary for this flag)
-	
+
 	orw $X87_CONTROL_WORD_RC_TRUNCATE, %ax
 	movw %ax, -8(%ebp)
 	fldcw -8(%ebp)
-	
+
 	# truncate
-	
+
 	fldl 8(%ebp)
 	frndint
-	
+
 	# restore original control word
-	
+
 	fldcw -4(%ebp)
-	
+
 	leave
 	ret
 FUNCTION_END(trunc_f64)

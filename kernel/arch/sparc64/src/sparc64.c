@@ -78,7 +78,7 @@ void sparc64_post_mm_init(void)
 		ofw_tree_node_t *options = ofw_tree_lookup("/options");
 		if (options) {
 			ofw_tree_property_t *prop;
-		
+
 			prop = ofw_tree_getprop(options, "boot-args");
 			if (prop && prop->value) {
 				str_ncpy(bargs, CONFIG_BOOT_ARGUMENTS_BUFLEN,

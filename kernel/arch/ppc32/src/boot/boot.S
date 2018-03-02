@@ -34,18 +34,18 @@
 
 SYMBOL(kernel_image_start)
 	# load temporal kernel stack
-	
+
 	lis sp, kernel_stack@ha
 	addi sp, sp, kernel_stack@l
-	
+
 	# set kernel stack for interrupt handling
-	
+
 	mr r31, sp
 	subis r31, r31, 0x8000
 	mtsprg0 r31
-	
+
 	# r3 contains physical address of bootinfo_t
-	
+
 	addis r3, r3, 0x8000
 	bl ppc32_pre_main
 	b main_bsp

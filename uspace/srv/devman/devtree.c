@@ -126,33 +126,33 @@ bool create_root_nodes(dev_tree_t *tree)
 {
 	fun_node_t *fun;
 	dev_node_t *dev;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "create_root_nodes()");
-	
+
 	fibril_rwlock_write_lock(&tree->rwlock);
-	
+
 	/*
 	 * Create root function. This is a pseudo function to which
 	 * the root device node is attached. It allows us to match
 	 * the root device driver in a standard manner, i.e. against
 	 * the parent function.
 	 */
-	
+
 	fun = create_fun_node();
 	if (fun == NULL) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		return false;
 	}
-	
+
 	fun_add_ref(fun);
 	insert_fun_node(tree, fun, str_dup(""), NULL);
-	
+
 	match_id_t *id = create_match_id();
 	id->id = str_dup("root");
 	id->score = 100;
 	add_match_id(&fun->match_ids, id);
 	tree->root_node = fun;
-	
+
 	/*
 	 * Create root device node.
 	 */
@@ -161,12 +161,12 @@ bool create_root_nodes(dev_tree_t *tree)
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		return false;
 	}
-	
+
 	dev_add_ref(dev);
 	insert_dev_node(tree, dev, fun);
-	
+
 	fibril_rwlock_write_unlock(&tree->rwlock);
-	
+
 	return dev != NULL;
 }
 
@@ -181,25 +181,25 @@ bool create_root_nodes(dev_tree_t *tree)
 bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "init_device_tree()");
-	
+
 	tree->current_handle = 0;
-	
+
 	hash_table_create(&tree->devman_devices, 0, 0, &devman_devices_ops);
 	hash_table_create(&tree->devman_functions, 0, 0, &devman_functions_ops);
 	hash_table_create(&tree->loc_functions, 0, 0, &loc_devices_ops);
-	
+
 	fibril_rwlock_initialize(&tree->rwlock);
-	
+
 	/* Create root function and root device and add them to the device tree. */
 	if (!create_root_nodes(tree))
 		return false;
-    
+
 	/* Find suitable driver and start it. */
 	dev_node_t *rdev = tree->root_node->child;
 	dev_add_ref(rdev);
 	bool rc = assign_driver(rdev, drivers_list, tree);
 	dev_del_ref(rdev);
-	
+
 	return rc;
 }
 
@@ -215,7 +215,7 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "insert_dev_node(dev=%p, pfun=%p [\"%s\"])",
 	    dev, pfun, pfun->pathname);
 
@@ -226,7 +226,7 @@ bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 	/* Add the node to the list of its parent's children. */
 	dev->pfun = pfun;
 	pfun->child = dev;
-	
+
 	return true;
 }
 
@@ -238,16 +238,16 @@ bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 void remove_dev_node(dev_tree_t *tree, dev_node_t *dev)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "remove_dev_node(dev=%p)", dev);
-	
+
 	/* Remove node from the handle-to-node map. */
 	hash_table_remove(&tree->devman_devices, &dev->handle);
-	
+
 	/* Unlink from parent function. */
 	dev->pfun->child = NULL;
 	dev->pfun = NULL;
-	
+
 	dev->state = DEVICE_REMOVED;
 }
 
@@ -266,21 +266,21 @@ bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
     dev_node_t *dev)
 {
 	fun_node_t *pfun;
-	
+
 	assert(fun_name != NULL);
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
-	
+
 	/*
 	 * The root function is a special case, it does not belong to any
 	 * device so for the root function dev == NULL.
 	 */
 	pfun = (dev != NULL) ? dev->pfun : NULL;
-	
+
 	fun->name = fun_name;
 	if (!set_fun_path(tree, fun, pfun)) {
 		return false;
 	}
-	
+
 	/* Add the node to the handle-to-node map. */
 	fun->handle = ++tree->current_handle;
 	hash_table_insert(&tree->devman_functions, &fun->devman_fun);
@@ -289,7 +289,7 @@ bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
 	fun->dev = dev;
 	if (dev != NULL)
 		list_append(&fun->dev_functions, &dev->functions);
-	
+
 	return true;
 }
 
@@ -301,14 +301,14 @@ bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
 void remove_fun_node(dev_tree_t *tree, fun_node_t *fun)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
-	
+
 	/* Remove the node from the handle-to-node map. */
 	hash_table_remove(&tree->devman_functions, &fun->handle);
-	
+
 	/* Remove the node from the list of its parent's children. */
 	if (fun->dev != NULL)
 		list_remove(&fun->dev_functions);
-	
+
 	fun->dev = NULL;
 	fun->state = FUN_REMOVED;
 }

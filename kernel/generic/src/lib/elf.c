@@ -79,7 +79,7 @@ unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
 	    (header->e_ident[EI_MAG2] != ELFMAG2) ||
 	    (header->e_ident[EI_MAG3] != ELFMAG3))
 		return EE_INVALID;
-	
+
 	/* Identify ELF compatibility */
 	if ((header->e_ident[EI_DATA] != ELF_DATA_ENCODING) ||
 	    (header->e_machine != ELF_MACHINE) ||
@@ -87,44 +87,44 @@ unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
 	    (header->e_version != EV_CURRENT) ||
 	    (header->e_ident[EI_CLASS] != ELF_CLASS))
 		return EE_INCOMPATIBLE;
-	
+
 	if (header->e_phentsize != sizeof(elf_segment_header_t))
 		return EE_INCOMPATIBLE;
-	
+
 	if (header->e_shentsize != sizeof(elf_section_header_t))
 		return EE_INCOMPATIBLE;
-	
+
 	/* Check if the object type is supported. */
 	if (header->e_type != ET_EXEC)
 		return EE_UNSUPPORTED;
-	
+
 	/* Check if the ELF image starts on a page boundary */
 	if (ALIGN_UP((uintptr_t) header, PAGE_SIZE) != (uintptr_t) header)
 		return EE_UNSUPPORTED;
-	
+
 	/* Walk through all segment headers and process them. */
 	elf_half i;
 	for (i = 0; i < header->e_phnum; i++) {
 		elf_segment_header_t *seghdr =
 		    &((elf_segment_header_t *)(((uint8_t *) header) +
 		    header->e_phoff))[i];
-		
+
 		int rc = segment_header(seghdr, header, as, flags);
 		if (rc != EE_OK)
 			return rc;
 	}
-	
+
 	/* Inspect all section headers and process them. */
 	for (i = 0; i < header->e_shnum; i++) {
 		elf_section_header_t *sechdr =
 		    &((elf_section_header_t *)(((uint8_t *) header) +
 		    header->e_shoff))[i];
-		
+
 		int rc = section_header(sechdr, header, as);
 		if (rc != EE_OK)
 			return rc;
 	}
-	
+
 	return EE_OK;
 }
 
@@ -138,7 +138,7 @@ unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
 const char *elf_error(unsigned int rc)
 {
 	assert(rc < sizeof(error_codes) / sizeof(char *));
-	
+
 	return error_codes[rc];
 }
 
@@ -198,26 +198,26 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	mem_backend_data_t backend_data;
 	backend_data.elf = elf;
 	backend_data.segment = entry;
-	
+
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
 		    (entry->p_vaddr % entry->p_align))
 			return EE_INVALID;
 	}
-	
+
 	unsigned int flags = 0;
-	
+
 	if (entry->p_flags & PF_X)
 		flags |= AS_AREA_EXEC;
-	
+
 	if (entry->p_flags & PF_W)
 		flags |= AS_AREA_WRITE;
-	
+
 	if (entry->p_flags & PF_R)
 		flags |= AS_AREA_READ;
-	
+
 	flags |= AS_AREA_CACHEABLE;
-	
+
 	/*
 	 * Align vaddr down, inserting a little "gap" at the beginning.
 	 * Adjust area size, so that its end remains in place.
@@ -225,17 +225,17 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	 */
 	uintptr_t base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	size_t mem_sz = entry->p_memsz + (entry->p_vaddr - base);
-	
+
 	as_area_t *area = as_area_create(as, flags, mem_sz,
 	    AS_AREA_ATTR_NONE, &elf_backend, &backend_data, &base, 0);
 	if (!area)
 		return EE_MEMORY;
-	
+
 	/*
 	 * The segment will be mapped on demand by elf_page_fault().
 	 *
 	 */
-	
+
 	return EE_OK;
 }
 
@@ -265,7 +265,7 @@ static int section_header(elf_section_header_t *entry, elf_header_t *elf,
 	default:
 		break;
 	}
-	
+
 	return EE_OK;
 }
 

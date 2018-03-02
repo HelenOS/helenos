@@ -67,18 +67,18 @@ static bool nic_addr_key_equal(void *key_arg, const ht_link_t *item)
 {
 	addr_key_t *key = (addr_key_t*)key_arg;
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
-	
+
 	return memcmp(entry->addr, key->addr, entry->len) == 0;
 }
 
 static size_t addr_hash(size_t len, const uint8_t *addr)
 {
 	size_t hash = 0;
-	
+
 	for (size_t i = 0; i < len; ++i) {
 		hash = (hash << 5) ^ addr[i];
 	}
-	
+
 	return hash;
 }
 
@@ -97,7 +97,7 @@ static size_t nic_addr_hash(const ht_link_t *item)
 static void nic_addr_removed(ht_link_t *item)
 {
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
-	
+
 	free(entry);
 }
 
@@ -122,13 +122,13 @@ static hash_table_ops_t set_ops = {
 errno_t nic_addr_db_init(nic_addr_db_t *db, size_t addr_len)
 {
 	assert(db);
-	
+
 	if (addr_len > UCHAR_MAX)
 		return EINVAL;
-	
+
 	if (!hash_table_create(&db->set, 0, 0, &set_ops))
 		return ENOMEM;
-	
+
 	db->addr_len = addr_len;
 	return EOK;
 }
@@ -175,17 +175,17 @@ errno_t nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
 		.len = db->addr_len,
 		.addr = addr
 	};
-	
+
 	if (hash_table_find(&db->set, &key))
 		return EEXIST;
-	
+
 	nic_addr_entry_t *entry = malloc(sizeof(nic_addr_entry_t) + db->addr_len - 1);
 	if (entry == NULL)
 		return ENOMEM;
 
 	entry->len = (uint8_t) db->addr_len;
 	memcpy(entry->addr, addr, db->addr_len);
-	
+
 	hash_table_insert(&db->set, &entry->link);
 	return EOK;
 }
@@ -202,12 +202,12 @@ errno_t nic_addr_db_insert(nic_addr_db_t *db, const uint8_t *addr)
 errno_t nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr)
 {
 	assert(db && addr);
-	
+
 	addr_key_t key = {
 		.len = db->addr_len,
 		.addr = addr
 	};
-	
+
 	if (hash_table_remove(&db->set, &key))
 		return EOK;
 	else
@@ -225,12 +225,12 @@ errno_t nic_addr_db_remove(nic_addr_db_t *db, const uint8_t *addr)
 bool nic_addr_db_contains(const nic_addr_db_t *db, const uint8_t *addr)
 {
 	assert(db && addr);
-	
+
 	addr_key_t key = {
 		.len = db->addr_len,
 		.addr = addr
 	};
-	
+
 	return 0 != hash_table_find(&db->set, &key);
 }
 

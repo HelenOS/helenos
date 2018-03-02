@@ -98,14 +98,14 @@ static const char illoptstring[] = "unknown option -- %s\n";
 static int gcd(int a, int b)
 {
 	int c;
-	
+
 	c = a % b;
 	while (c != 0) {
 		a = b;
 		b = c;
 		c = a % b;
 	}
-	
+
 	return b;
 }
 
@@ -365,7 +365,7 @@ int getopt_long(int nargc, char * const *nargv, const char *options,
 			has_equal++;
 		} else
 			current_argv_len = str_size(current_argv);
-	    
+
 		for (i = 0; long_options[i].name; i++) {
 			/* find matching long option */
 			if (str_lcmp(current_argv, long_options[i].name,

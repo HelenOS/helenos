@@ -1,40 +1,40 @@
 interface console extends service {
 		/* Read characters from console */
 		sysarg_t read(out_copy stream data);
-		
+
 		/* Write characters to console */
 		sysarg_t write(in_copy stream data);
-		
+
 		/* Get last event from event queue */
 		sysarg_t get_event(out sysarg_t type, out sysarg_t key, out sysarg_t mods, out sysarg_t char);
-		
+
 		/* Flush output buffer */
 		sysarg_t sync(void);
-		
+
 		/* Clear console */
 		sysarg_t clear(void);
-		
+
 		/* Move cursor to given position */
 		sysarg_t goto(in sysarg_t col, in sysarg_t row);
-		
+
 		/* Get console dimensions (in character cells) */
 		sysarg_t get_size(out sysarg_t cols, in sysarg_t rows);
-		
+
 		/* Get color capabilities */
 		sysarg_t get_color_cap(void);
-		
+
 		/* Set abstract text style */
 		sysarg_t set_style(in sysarg_t style);
-		
+
 		/* Set EGA-based text color */
 		sysarg_t set_color(in sysarg_t fb_color, in sysarg_t bg_color, in sysarg_t attr);
-		
+
 		/* Set RGB-based text color */
 		sysarg_t set_rgb_color(in sysarg_t fb_color, in sysarg_t bg_color);
-		
+
 		/* Set cursor visibility */
 		sysarg_t cursor_visibility(in sysarg_t visible);
-		
+
 		/* Switch to kernel debugging console (if available) */
 		sysarg_t kcon_enable(void);
 	protocol:
@@ -84,24 +84,24 @@ architecture console {
 	inst ui_dispatcher ui_dispatcher;
 	inst kbd kbd;
 	inst fb fb;
-	
+
 	bind ui_dispatcher:kbd to kbd:kbd;
 	bind ui_dispatcher:fb to fb:fb;
-	
+
 	bind kbd:event to ui_dispatcher:event;
-	
+
 	delegate console to ui_dispatcher:console;
 	delegate kbd to kbd:kbd;
 	delegate fb to fb:fb;
-	
+
 	[/uspace/lib/libc/subsume%ui_dispatcher]
 	[/uspace/lib/libc/subsume%kbd]
 	[/uspace/lib/libc/subsume%fb]
-	
+
 	subsume ui_dispatcher:ns to ns;
 	subsume ui_dispatcher:devmap_driver to devmap_driver;
 	subsume ui_dispatcher:sys_console to sys_console;
-	
+
 	subsume kbd:ns to ns;
 	subsume fb:ns to ns;
 };

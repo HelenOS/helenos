@@ -73,16 +73,16 @@ tcb_t *tls_make(void)
 	void *data;
 	tcb_t *tcb;
 	size_t tls_size = &_tbss_end - &_tdata_start;
-	
+
 #ifdef CONFIG_RTLD
 	if (runtime_env != NULL)
 		return rtld_tls_make(runtime_env);
 #endif
-	
+
 	tcb = tls_alloc_arch(&data, tls_size);
 	if (!tcb)
 		return NULL;
-	
+
 	/*
 	 * Copy thread local data from the initialization image.
 	 */
@@ -118,7 +118,7 @@ tcb_t *tls_alloc_variant_1(void **data, size_t size)
 	tcb = malloc(sizeof(tcb_t) + size);
 	if (!tcb)
 		return NULL;
-	
+
 	*data = ((void *) tcb) + sizeof(tcb_t);
 #ifdef CONFIG_RTLD
 	tcb->dtv = NULL;
@@ -149,7 +149,7 @@ void tls_free_variant_1(tcb_t *tcb, size_t size)
 tcb_t * tls_alloc_variant_2(void **data, size_t size)
 {
 	tcb_t *tcb;
-	
+
 	size = ALIGN_UP(size, &_tls_alignment);
 	*data = memalign((uintptr_t) &_tls_alignment, sizeof(tcb_t) + size);
 	if (*data == NULL)

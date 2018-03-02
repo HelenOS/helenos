@@ -262,7 +262,7 @@ void sheet_get_row_width(sheet_t *sh, int row, int *length)
 	/* Especially nasty hack */
 	coord.row = row;
 	coord.column = 65536;
-	
+
 	sheet_get_cell_pt(sh, &coord, dir_before, &pt);
 	spt_get_coord(&pt, &coord);
 	*length = coord.column;

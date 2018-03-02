@@ -42,9 +42,9 @@ float32_t __negsf2(float32_t a)
 {
 	float32_u ua;
 	ua.val = a;
-	
+
 	ua.data.parts.sign = !ua.data.parts.sign;
-	
+
 	return ua.val;
 }
 
@@ -56,9 +56,9 @@ float64_t __negdf2(float64_t a)
 {
 	float64_u ua;
 	ua.val = a;
-	
+
 	ua.data.parts.sign = !ua.data.parts.sign;
-	
+
 	return ua.val;
 }
 
@@ -70,9 +70,9 @@ float128_t __negtf2(float128_t a)
 {
 	float128_u ua;
 	ua.val = a;
-	
+
 	ua.data.parts.sign = !ua.data.parts.sign;
-	
+
 	return ua.val;
 }
 

@@ -50,7 +50,7 @@ void syscall_setup_cpu(void)
 	write_msr(AMD_MSR_EFER, read_msr(AMD_MSR_EFER) | AMD_SCE);
 
 	/* Setup syscall entry address */
-	
+
 	/* This is _mess_ - the 64-bit CS is argument + 16,
 	 * the SS is argument + 8. The order is:
 	 * +0(KDATA_DES), +8(UDATA_DES), +16(UTEXT_DES)

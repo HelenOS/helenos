@@ -41,7 +41,7 @@ void tlb_refill(unsigned int n, istate_t *istate)
 	uint32_t tlbmiss;
 	ptehi_t ptehi;
 	ptelo_t ptelo;
-	
+
 	asm volatile (
 		"mfspr %[tlbmiss], 980\n"
 		"mfspr %[ptehi], 981\n"
@@ -50,17 +50,17 @@ void tlb_refill(unsigned int n, istate_t *istate)
 		  [ptehi] "=r" (ptehi),
 		  [ptelo] "=r" (ptelo)
 	);
-	
+
 	uint32_t badvaddr = tlbmiss & 0xfffffffc;
 	uint32_t physmem = physmem_top();
-	
+
 	if ((badvaddr < PA2KA(0)) || (badvaddr >= PA2KA(physmem)))
 		return; // FIXME
-	
+
 	ptelo.rpn = KA2PA(badvaddr) >> 12;
 	ptelo.wimg = 0;
 	ptelo.pp = 2; // FIXME
-	
+
 	uint32_t index = 0;
 	asm volatile (
 		"mtspr 981, %[ptehi]\n"
@@ -83,14 +83,14 @@ void tlb_invalidate_all(void)
 	asm volatile (
 		"sync\n"
 	);
-	
+
 	for (unsigned int i = 0; i < 0x00040000; i += 0x00001000) {
 		asm volatile (
 			"tlbie %[i]\n"
 			:: [i] "r" (i)
 		);
 	}
-	
+
 	asm volatile (
 		"eieio\n"
 		"tlbsync\n"
@@ -142,27 +142,27 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 void tlb_print(void)
 {
 	uint32_t sr;
-	
+
 	for (sr = 0; sr < 16; sr++) {
 		uint32_t vsid = sr_get(sr << 28);
-		
+
 		printf("sr[%02" PRIu32 "]: vsid=%#0" PRIx32 " (asid=%" PRIu32 ")"
 		    "%s%s\n", sr, vsid & UINT32_C(0x00ffffff),
 		    (vsid & UINT32_C(0x00ffffff)) >> 4,
 		    ((vsid >> 30) & 1) ? " supervisor" : "",
 		    ((vsid >> 29) & 1) ? " user" : "");
 	}
-	
+
 	uint32_t upper;
 	uint32_t lower;
 	uint32_t mask;
 	uint32_t length;
-	
+
 	PRINT_BAT("ibat[0]", 528, 529);
 	PRINT_BAT("ibat[1]", 530, 531);
 	PRINT_BAT("ibat[2]", 532, 533);
 	PRINT_BAT("ibat[3]", 534, 535);
-	
+
 	PRINT_BAT("dbat[0]", 536, 537);
 	PRINT_BAT("dbat[1]", 538, 539);
 	PRINT_BAT("dbat[2]", 540, 541);

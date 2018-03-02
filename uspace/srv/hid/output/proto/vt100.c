@@ -76,7 +76,7 @@ static sgr_color_index_t color_map[] = {
 static void vt100_sgr(vt100_state_t *state, unsigned int mode)
 {
 	char control[MAX_CONTROL];
-	
+
 	snprintf(control, MAX_CONTROL, "\033[%um", mode);
 	state->control_puts(control);
 }
@@ -84,7 +84,7 @@ static void vt100_sgr(vt100_state_t *state, unsigned int mode)
 static void vt100_set_pos(vt100_state_t *state, sysarg_t col, sysarg_t row)
 {
 	char control[MAX_CONTROL];
-	
+
 	snprintf(control, MAX_CONTROL, "\033[%" PRIun ";%" PRIun "f",
 	    row + 1, col + 1);
 	state->control_puts(control);
@@ -122,17 +122,17 @@ static void vt100_set_sgr(vt100_state_t *state, char_attrs_t attrs)
 		vt100_sgr(state, SGR_RESET);
 		vt100_sgr(state, SGR_BGCOLOR + color_map[attrs.val.index.bgcolor & 7]);
 		vt100_sgr(state, SGR_FGCOLOR + color_map[attrs.val.index.fgcolor & 7]);
-		
+
 		if (attrs.val.index.attr & CATTR_BRIGHT)
 			vt100_sgr(state, SGR_BOLD);
-		
+
 		break;
 	case CHAR_ATTR_RGB:
 		vt100_sgr(state, SGR_RESET);
-		
+
 		if (attrs.val.rgb.bgcolor <= attrs.val.rgb.fgcolor)
 			vt100_sgr(state, SGR_REVERSE);
-		
+
 		break;
 	}
 }
@@ -144,20 +144,20 @@ vt100_state_t *vt100_state_create(sysarg_t cols, sysarg_t rows,
 	vt100_state_t *state = malloc(sizeof(vt100_state_t));
 	if (state == NULL)
 		return NULL;
-	
+
 	state->putchar = putchar_fn;
 	state->control_puts = control_puts_fn;
 	state->flush = flush_fn;
-	
+
 	state->cols = cols;
 	state->rows = rows;
-	
+
 	state->cur_col = (sysarg_t) -1;
 	state->cur_row = (sysarg_t) -1;
-	
+
 	state->cur_attrs.type = CHAR_ATTR_STYLE;
 	state->cur_attrs.val.style = STYLE_NORMAL;
-	
+
 	/* Initialize graphic rendition attributes */
 	vt100_sgr(state, SGR_RESET);
 	vt100_sgr(state, SGR_FGCOLOR + CI_BLACK);
@@ -194,7 +194,7 @@ void vt100_goto(vt100_state_t *state, sysarg_t col, sysarg_t row)
 {
 	if ((col >= state->cols) || (row >= state->rows))
 		return;
-	
+
 	if ((col != state->cur_col) || (row != state->cur_row)) {
 		vt100_set_pos(state, col, row);
 		state->cur_col = col;
@@ -222,7 +222,7 @@ void vt100_putchar(vt100_state_t *state, wchar_t ch)
 {
 	state->putchar(ch == 0 ? ' ' : ch);
 	state->cur_col++;
-	
+
 	if (state->cur_col >= state->cols) {
 		state->cur_row += state->cur_col / state->cols;
 		state->cur_col %= state->cols;

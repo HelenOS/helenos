@@ -55,13 +55,13 @@ NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
 {
 	atomic_count_t a;
 	atomic_count_t b;
-	
+
 	do {
 		volatile uintptr_t ptr = (uintptr_t) &val->count;
-		
+
 		a = *((atomic_count_t *) ptr);
 		b = a + i;
-		
+
 		asm volatile (
 			"casx %0, %2, %1\n"
 			: "+m" (*((atomic_count_t *) ptr)),
@@ -69,7 +69,7 @@ NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
 		    : "r" (a)
 		);
 	} while (a != b);
-	
+
 	return a;
 }
 
@@ -107,14 +107,14 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 {
 	atomic_count_t v = 1;
 	volatile uintptr_t ptr = (uintptr_t) &val->count;
-	
+
 	asm volatile (
 		"casx %0, %2, %1\n"
 		: "+m" (*((atomic_count_t *) ptr)),
 	      "+r" (v)
 	    : "r" (0)
 	);
-	
+
 	return v;
 }
 
@@ -122,11 +122,11 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
 	atomic_count_t tmp1 = 1;
 	atomic_count_t tmp2 = 0;
-	
+
 	volatile uintptr_t ptr = (uintptr_t) &val->count;
-	
+
 	preemption_disable();
-	
+
 	asm volatile (
 		"0:\n"
 			"casx %0, %3, %1\n"
@@ -143,7 +143,7 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 		  "+r" (tmp2)
 		: "r" (0)
 	);
-	
+
 	/*
 	 * Prevent critical section code from bleeding out this way up.
 	 */

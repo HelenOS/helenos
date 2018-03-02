@@ -118,7 +118,7 @@ indev_t *stdin_wire(void)
 		indev_initialize("stdin", &stdin_sink, &stdin_ops);
 		stdin = &stdin_sink;
 	}
-	
+
 	return stdin;
 }
 
@@ -142,7 +142,7 @@ void stdout_wire(outdev_t *outdev)
 		outdev_initialize("stdout", &stdout_source, &stdout_ops);
 		stdout = &stdout_source;
 	}
-	
+
 	list_append(&outdev->link, &stdout->list);
 }
 
@@ -188,18 +188,18 @@ static void stdout_scroll_down(outdev_t *dev)
 void kio_init(void)
 {
 	void *faddr = (void *) KA2PA(kio);
-	
+
 	assert((uintptr_t) faddr % FRAME_SIZE == 0);
-	
+
 	kio_parea.pbase = (uintptr_t) faddr;
 	kio_parea.frames = SIZE2FRAMES(sizeof(kio));
 	kio_parea.unpriv = false;
 	kio_parea.mapped = false;
 	ddi_parea_register(&kio_parea);
-	
+
 	sysinfo_set_item_val("kio.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("kio.pages", NULL, KIO_PAGES);
-	
+
 	event_set_unmask_callback(EVENT_KIO, kio_update);
 	atomic_set(&kio_inited, true);
 }
@@ -208,11 +208,11 @@ void grab_console(void)
 {
 	event_notify_1(EVENT_KCONSOLE, false, true);
 	bool prev = console_override;
-	
+
 	console_override = true;
 	if ((stdout) && (stdout->op->redraw))
 		stdout->op->redraw(stdout);
-	
+
 	if ((stdin) && (!prev)) {
 		/*
 		 * Force the console to print the prompt.
@@ -255,7 +255,7 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 	size_t offset = 0;
 	size_t count = 0;
 	buf[offset] = 0;
-	
+
 	wchar_t ch;
 	while ((ch = indev_pop_character(indev)) != '\n') {
 		if (ch == '\b') {
@@ -264,20 +264,20 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 				putchar('\b');
 				putchar(' ');
 				putchar('\b');
-				
+
 				count--;
 				offset = str_lsize(buf, count);
 				buf[offset] = 0;
 			}
 		}
-		
+
 		if (chr_encode(ch, buf, &offset, buflen - 1) == EOK) {
 			putchar(ch);
 			count++;
 			buf[offset] = 0;
 		}
 	}
-	
+
 	return count;
 }
 
@@ -293,15 +293,15 @@ void kio_update(void *event)
 {
 	if (!atomic_get(&kio_inited))
 		return;
-	
+
 	spinlock_lock(&kio_lock);
-	
+
 	if (kio_uspace > 0) {
 		if (event_notify_3(EVENT_KIO, true, kio_start, kio_len,
 		    kio_uspace) == EOK)
 			kio_uspace = 0;
 	}
-	
+
 	spinlock_unlock(&kio_lock);
 }
 
@@ -311,7 +311,7 @@ void kio_update(void *event)
 void kio_flush(void)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
-	
+
 	if (!ordy)
 		return;
 
@@ -346,10 +346,10 @@ void kio_push_char(const wchar_t ch)
 		kio_len++;
 	else
 		kio_start = (kio_start + 1) % KIO_LENGTH;
-	
+
 	if (kio_stored < kio_len)
 		kio_stored++;
-	
+
 	/* The character is stored for uspace */
 	if (kio_uspace < kio_len)
 		kio_uspace++;
@@ -358,14 +358,14 @@ void kio_push_char(const wchar_t ch)
 void putchar(const wchar_t ch)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
-	
+
 	spinlock_lock(&kio_lock);
 	kio_push_char(ch);
 	spinlock_unlock(&kio_lock);
-	
+
 	/* Output stored characters */
 	kio_flush();
-	
+
 	if (!ordy) {
 		/*
 		 * No standard output routine defined yet.
@@ -379,7 +379,7 @@ void putchar(const wchar_t ch)
 		 */
 		early_putchar(ch);
 	}
-	
+
 	/* Force notification on newline */
 	if (ch == '\n')
 		kio_update(NULL);
@@ -408,19 +408,19 @@ sys_errno_t sys_kio(int cmd, const void *buf, size_t size)
 
 	if (size > PAGE_SIZE)
 		return (sys_errno_t) ELIMIT;
-	
+
 	if (size > 0) {
 		data = (char *) malloc(size + 1, 0);
 		if (!data)
 			return (sys_errno_t) ENOMEM;
-		
+
 		rc = copy_from_uspace(data, buf, size);
 		if (rc) {
 			free(data);
 			return (sys_errno_t) rc;
 		}
 		data[size] = 0;
-		
+
 		switch (cmd) {
 		case KIO_WRITE:
 			printf("%s", data);

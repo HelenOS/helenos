@@ -135,10 +135,10 @@ uint32_t compute_crc32(uint8_t *data, size_t length)
 uint32_t compute_crc32_seed(uint8_t *data, size_t length, uint32_t seed)
 {
 	uint32_t crc;
-	
+
 	for (crc = ~seed; length > 0; length--)
 		crc = poly_table[((uint8_t) crc ^ *(data++))] ^ (crc >> 8);
-	
+
 	return (~crc);
 }
 

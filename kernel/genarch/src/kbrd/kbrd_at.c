@@ -70,7 +70,7 @@ static indev_operations_t kbrd_raw_ops = {
 static void key_released(kbrd_instance_t *instance, wchar_t sc)
 {
 	spinlock_lock(&instance->keylock);
-	
+
 	switch (sc) {
 	case SC_LSHIFT:
 	case SC_RSHIFT:
@@ -86,7 +86,7 @@ static void key_released(kbrd_instance_t *instance, wchar_t sc)
 	default:
 		break;
 	}
-	
+
 	spinlock_unlock(&instance->keylock);
 }
 
@@ -99,9 +99,9 @@ static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
 	bool letter;
 	bool shift;
 	bool capslock;
-	
+
 	spinlock_lock(&instance->keylock);
-	
+
 	switch (sc) {
 	case SC_LSHIFT:
 	case SC_RSHIFT:
@@ -117,17 +117,17 @@ static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
 		shift = instance->keyflags & PRESSED_SHIFT;
 		capslock = (instance->keyflags & PRESSED_CAPSLOCK) ||
 		    (instance->lockflags & LOCKED_CAPSLOCK);
-		
+
 		if ((letter) && (capslock))
 			shift = !shift;
-		
+
 		if (shift)
 			indev_push_character(instance->sink, sc_secondary_map[sc]);
 		else
 			indev_push_character(instance->sink, sc_primary_map[sc]);
 		break;
 	}
-	
+
 	spinlock_unlock(&instance->keylock);
 }
 
@@ -136,7 +136,7 @@ static void kkbrd(void *arg)
 	static int key_released_flag = 0;
 	static int is_locked = 0;
 	kbrd_instance_t *instance = (kbrd_instance_t *) arg;
-	
+
 	while (true) {
 		wchar_t sc = indev_pop_character(&instance->raw);
 
@@ -161,7 +161,7 @@ static void kkbrd(void *arg)
 				key_pressed(instance, sc);
 			}
 		}
-		
+
 	}
 }
 
@@ -173,20 +173,20 @@ kbrd_instance_t *kbrd_init(void)
 	if (instance) {
 		instance->thread = thread_create(kkbrd, (void *) instance, TASK, 0,
 		    "kkbrd");
-		
+
 		if (!instance->thread) {
 			free(instance);
 			return NULL;
 		}
-		
+
 		instance->sink = NULL;
 		indev_initialize("kbrd", &instance->raw, &kbrd_raw_ops);
-		
+
 		spinlock_initialize(&instance->keylock, "kbrd_at.instance.keylock");
 		instance->keyflags = 0;
 		instance->lockflags = 0;
 	}
-	
+
 	return instance;
 }
 
@@ -194,10 +194,10 @@ indev_t *kbrd_wire(kbrd_instance_t *instance, indev_t *sink)
 {
 	assert(instance);
 	assert(sink);
-	
+
 	instance->sink = sink;
 	thread_ready(instance->thread);
-	
+
 	return &instance->raw;
 }
 

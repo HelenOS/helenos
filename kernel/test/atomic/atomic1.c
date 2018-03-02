@@ -34,30 +34,30 @@
 const char *test_atomic1(void)
 {
 	atomic_t a;
-	
+
 	atomic_set(&a, 10);
 	if (atomic_get(&a) != 10)
 		return "Failed atomic_set()/atomic_get()";
-	
+
 	if (atomic_postinc(&a) != 10)
 		return "Failed atomic_postinc()";
 	if (atomic_get(&a) != 11)
 		return "Failed atomic_get() after atomic_postinc()";
-	
+
 	if (atomic_postdec(&a) != 11)
 		return "Failed atomic_postdec()";
 	if (atomic_get(&a) != 10)
 		return "Failed atomic_get() after atomic_postdec()";
-	
+
 	if (atomic_preinc(&a) != 11)
 		return "Failed atomic_preinc()";
 	if (atomic_get(&a) != 11)
 		return "Failed atomic_get() after atomic_preinc()";
-	
+
 	if (atomic_predec(&a) != 10)
 		return "Failed atomic_predec()";
 	if (atomic_get(&a) != 10)
 		return "Failed atomic_get() after atomic_predec()";
-	
+
 	return NULL;
 }

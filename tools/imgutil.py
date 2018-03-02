@@ -39,23 +39,23 @@ exclude_names = set(['.svn', '.bzr', '.git'])
 
 def align_up(size, alignment):
 	"Return size aligned up to alignment"
-	
+
 	if (size % alignment == 0):
 		return size
-	
+
 	return ((size // alignment) + 1) * alignment
 
 def count_up(size, alignment):
 	"Return units necessary to fit the size"
-	
+
 	if (size % alignment == 0):
 		return (size // alignment)
-	
+
 	return ((size // alignment) + 1)
 
 def num_of_trailing_bin_zeros(num):
 	"Return number of trailing zeros in binary representation"
-	
+
 	i = 0
 	if (num == 0): raise ValueError()
 	while num & 1 == 0:
@@ -65,17 +65,17 @@ def num_of_trailing_bin_zeros(num):
 
 def get_bit(number, n):
 	"Return True if n-th least-significant bit is set in the given number"
-	
+
 	return bool((number >> n) & 1)
 
 def set_bit(number, n):
 	"Return the number with n-th least-significant bit set"
-	
+
 	return number | (1 << n)
 
 class ItemToPack:
 	"Stores information about one directory item to be added to the image"
-	
+
 	def __init__(self, parent, name):
 		self.parent = parent
 		self.name = name
@@ -87,27 +87,27 @@ class ItemToPack:
 
 def listdir_items(path):
 	"Return a list of items to be packed inside a fs image"
-	
+
 	for name in os.listdir(path):
 		if name in exclude_names:
 			continue
-		
+
 		item = ItemToPack(path, name)
-		
+
 		if not (item.is_dir or item.is_file):
 			continue
-		
+
 		yield item
 
 def chunks(item, chunk_size):
 	"Iterate contents of a file in chunks of a given size"
-	
+
 	inf = open(item.path, 'rb')
 	rd = 0
-	
+
 	while (rd < item.size):
 		data = bytes(inf.read(chunk_size))
 		yield data
 		rd += len(data)
-	
+
 	inf.close()

@@ -78,7 +78,7 @@ static uint16_t crc_table[256] = {
 uint16_t udf_unicode_cksum(uint16_t *buf, size_t len)
 {
 	uint16_t crc = 0;
-	
+
 	while (len-- > 0) {
 		/*
 		 * Take high order byte first (corresponds to a big endian
@@ -87,7 +87,7 @@ uint16_t udf_unicode_cksum(uint16_t *buf, size_t len)
 		crc = crc_table[(crc >> 8 ^ (*buf >> 8)) & 0xff] ^ (crc << 8);
 		crc = crc_table[(crc >> 8 ^ (*buf++ & 0xff)) & 0xff] ^ (crc << 8);
 	}
-	
+
 	return crc;
 }
 
@@ -97,14 +97,14 @@ uint16_t udf_unicode_cksum(uint16_t *buf, size_t len)
 uint8_t udf_tag_checksum(uint8_t *tag)
 {
 	uint8_t result = 0;
-	
+
 	for (size_t i = 0; i < UDF_TAG_SIZE; i++) {
 		if (i == 4)
 			continue;
-		
+
 		result = (result + tag[i]) % 256;
 	}
-	
+
 	return result;
 }
 

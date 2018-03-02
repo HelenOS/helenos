@@ -82,7 +82,7 @@ static int lin_map_range(int v, int i0, int i1, int o0, int o1);
 int main(int argc, char *argv[])
 {
 	printf("%s: S3C24xx touchscreen driver\n", NAME);
-	
+
 	async_set_fallback_port_handler(s3c24xx_ts_connection, NULL);
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
@@ -277,7 +277,7 @@ static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts)
 
 	button = 1;
 	press = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(ts->client_sess);
 	async_msg_2(exch, MOUSEEV_BUTTON_EVENT, button, press);
 	async_exchange_end(exch);
@@ -376,21 +376,21 @@ static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall,
     void *arg)
 {
 	async_answer_0(iid, EOK);
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call)) {
 			if (ts->client_sess != NULL) {
 				async_hangup(ts->client_sess);
 				ts->client_sess = NULL;
 			}
-			
+
 			async_answer_0(callid, EOK);
 			return;
 		}
-		
+
 		async_sess_t *sess =
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {

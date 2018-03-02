@@ -58,7 +58,7 @@ static bool legal_check(uint16_t ch)
 {
 	if ((ch == 0x0000) || (ch == 0x002F))
 		return false;
-	
+
 	return true;
 }
 
@@ -84,14 +84,14 @@ static size_t udf_uncompress_unicode(size_t number_of_bytes,
 {
 	/* Use udf_compressed to store current byte being read. */
 	uint8_t comp_id = udf_compressed[0];
-	
+
 	/* First check for valid compID. */
 	if ((comp_id != 8) && (comp_id != 16))
 		return 0;
-	
+
 	size_t unicode_idx = 0;
 	size_t byte_idx = 1;
-	
+
 	/* Loop through all the bytes. */
 	while ((byte_idx < number_of_bytes) && (unicode_idx < unicode_max_len)) {
 		if (comp_id == 16) {
@@ -102,15 +102,15 @@ static size_t udf_uncompress_unicode(size_t number_of_bytes,
 			unicode[unicode_idx] = udf_compressed[byte_idx++] << 8;
 		} else
 			unicode[unicode_idx] = 0;
-		
+
 		if (byte_idx < number_of_bytes) {
 			/* Then the next byte to the low bits. */
 			unicode[unicode_idx] |= udf_compressed[byte_idx++];
 		}
-		
+
 		unicode_idx++;
 	}
-	
+
 	return unicode_idx;
 }
 
@@ -135,19 +135,19 @@ size_t udf_translate_name(uint16_t *new_name, uint16_t *udf_name,
 	size_t ext_idx = 0;
 	size_t new_idx = 0;
 	size_t new_ext_idx = 0;
-	
+
 	for (size_t idx = 0; idx < udf_len; idx++) {
 		uint16_t current = udf_name[idx];
-		
+
 		if ((!legal_check(current)) || (!ascii_check(current))) {
 			needs_crc = true;
-			
+
 			/*
 			 * Replace Illegal and non-displayable chars with
 			 * underscore.
 			 */
 			current = ILLEGAL_CHAR_MARK;
-			
+
 			/*
 			 * Skip any other illegal or non-displayable
 			 * characters.
@@ -157,7 +157,7 @@ size_t udf_translate_name(uint16_t *new_name, uint16_t *udf_name,
 			    (!ascii_check(udf_name[idx + 1]))))
 				idx++;
 		}
-		
+
 		/* Record position of extension, if one is found. */
 		if ((current == PERIOD) && ((udf_len - idx - 1) <= EXT_SIZE)) {
 			if (udf_len == idx + 1) {
@@ -169,34 +169,34 @@ size_t udf_translate_name(uint16_t *new_name, uint16_t *udf_name,
 				new_ext_idx = new_idx;
 			}
 		}
-		
+
 		if (new_idx < MAXLEN)
 			new_name[new_idx++] = current;
 		else
 			needs_crc = true;
 	}
-	
+
 	if (needs_crc) {
 		uint16_t ext[EXT_SIZE];
 		size_t local_ext_idx = 0;
-		
+
 		if (has_ext) {
 			size_t max_filename_len;
-			
+
 			/* Translate extension, and store it in ext. */
 			for (size_t idx = 0; (idx < EXT_SIZE) &&
 			    (ext_idx + idx + 1 < udf_len); idx++) {
 				uint16_t current = udf_name[ext_idx + idx + 1];
-				
+
 				if ((!legal_check(current)) || (!ascii_check(current))) {
 					needs_crc = true;
-					
+
 					/*
 					 * Replace Illegal and non-displayable
 					 * chars with underscore.
 					 */
 					current = ILLEGAL_CHAR_MARK;
-					
+
 					/*
 					 * Skip any other illegal or
 					 * non-displayable characters.
@@ -206,10 +206,10 @@ size_t udf_translate_name(uint16_t *new_name, uint16_t *udf_name,
 					    (!ascii_check(udf_name[ext_idx + idx + 2]))))
 						idx++;
 				}
-				
+
 				ext[local_ext_idx++] = current;
 			}
-			
+
 			/*
 			 * Truncate filename to leave room for extension and
 			 * CRC.
@@ -223,30 +223,30 @@ size_t udf_translate_name(uint16_t *new_name, uint16_t *udf_name,
 			/* If no extension, make sure to leave room for CRC. */
 			new_idx = MAXLEN - 5;
 		}
-		
+
 		/* Add mark for CRC. */
 		new_name[new_idx++] = CRC_MARK;
-		
+
 		/* Calculate CRC from original filename. */
 		uint16_t value_crc = udf_unicode_cksum(udf_name, udf_len);
-		
+
 		/* Convert 16-bits of CRC to hex characters. */
 		const char hex_char[] = "0123456789ABCDEF";
-		
+
 		new_name[new_idx++] = hex_char[(value_crc & 0xf000) >> 12];
 		new_name[new_idx++] = hex_char[(value_crc & 0x0f00) >> 8];
 		new_name[new_idx++] = hex_char[(value_crc & 0x00f0) >> 4];
 		new_name[new_idx++] = hex_char[(value_crc & 0x000f)];
-		
+
 		/* Place a translated extension at end, if found. */
 		if (has_ext) {
 			new_name[new_idx++] = PERIOD;
-			
+
 			for (size_t idx = 0; idx < local_ext_idx; idx++)
 				new_name[new_idx++] = ext[idx];
 		}
 	}
-	
+
 	return new_idx;
 }
 
@@ -264,25 +264,25 @@ void udf_to_unix_name(char *result, size_t result_len, char *id, size_t len,
 {
 	const char *osta_id = "OSTA Compressed Unicode";
 	size_t ucode_chars, nice_uchars;
-	
+
 	uint16_t *raw_name = malloc(MAX_BUF * sizeof(uint16_t));
 	uint16_t *unix_name = malloc(MAX_BUF * sizeof(uint16_t));
-	
+
 	// FIXME: Check for malloc returning NULL
-	
+
 	bool is_osta_typ0 = (chsp->type == 0) &&
 	    (str_cmp((char *) chsp->info, osta_id) == 0);
-	
+
 	if (is_osta_typ0) {
 		*raw_name = 0;
 		*unix_name = 0;
-		
+
 		ucode_chars =
 		    udf_uncompress_unicode(len, (uint8_t *) id, raw_name, MAX_BUF);
 		ucode_chars = min(ucode_chars, utf16_wsize(raw_name));
 		nice_uchars =
 		    udf_translate_name(unix_name, raw_name, ucode_chars);
-		
+
 		/* Output UTF-8 */
 		unix_name[nice_uchars] = 0;
 		utf16_to_str(result, result_len, unix_name);
@@ -291,7 +291,7 @@ void udf_to_unix_name(char *result, size_t result_len, char *id, size_t len,
 		str_ncpy(result, result_len, (char *) (id + 1),
 		    str_size((char *) (id + 1)));
 	}
-	
+
 	free(raw_name);
 	free(unix_name);
 }

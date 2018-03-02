@@ -98,15 +98,15 @@ typedef struct {
 	uint8_t channel_count2;
 	uint8_t channel_start3;
 	uint8_t channel_count3;
-	
+
 	uint8_t command_status;
-	
+
 	/** Memory to memory transfers, NOT implemented on PCs */
 	uint8_t request;
 	uint8_t single_mask;
 	uint8_t mode;
 	uint8_t flip_flop;
-	
+
 	/*
 	 * Master reset sets Flip-Flop low, clears status,
 	 * sets all mask bits on.
@@ -135,7 +135,7 @@ typedef struct {
 	uint8_t channel_start7;
 	uint8_t reserved6;
 	uint8_t channel_count7;
-	
+
 	uint8_t command_status;
 	uint8_t reserved8;
 	uint8_t request;
@@ -229,7 +229,7 @@ static dma_controller_t controller_8237 = {
 			.mode_address = (uint8_t *) 0x0b,
 			.flip_flop_address = (uint8_t *) 0x0c,
 		},
-		
+
 		/* The second chip 16-bit */
 		{ /* Channel 4 - Unusable */
 			.offset_reg_address = (uint8_t *) 0xc0,
@@ -264,7 +264,7 @@ static dma_controller_t controller_8237 = {
 			.flip_flop_address = (uint8_t *) 0xd8,
 		},
 	},
-	
+
 	.page_table = NULL,
 	.first = NULL,
 	.second = NULL,
@@ -285,23 +285,23 @@ static inline errno_t dma_controller_init(dma_controller_t *controller)
 	    (void **) &controller->page_table);
 	if (ret != EOK)
 		return EIO;
-	
+
 	ret = pio_enable(DMA_CONTROLLER_FIRST_BASE,
 	    sizeof(dma_controller_regs_first_t), (void **) &controller->first);
 	if (ret != EOK)
 		return EIO;
-	
+
 	ret = pio_enable(DMA_CONTROLLER_SECOND_BASE,
 		sizeof(dma_controller_regs_second_t), (void **) &controller->second);
 	if (ret != EOK)
 		return EIO;
-	
+
 	controller->initialized = true;
-	
+
 	/* Reset the controller */
 	pio_write_8(&controller->second->master_reset, 0xff);
 	pio_write_8(&controller->first->master_reset, 0xff);
-	
+
 	return EOK;
 }
 
@@ -346,11 +346,11 @@ errno_t dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
 
 	if ((channel == 0) || (channel == 4))
 		return ENOTSUP;
-	
+
 	/* DMA is limited to 24bit addresses. */
 	if (pa >= (1 << 24))
 		return EINVAL;
-	
+
 	/* 8 bit channels use only 4 bits from the page register. */
 	if (is_dma8(channel) && (pa >= (1 << 20)))
 		return EINVAL;
@@ -358,17 +358,17 @@ errno_t dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
 	/* Buffers cannot cross 64K page boundaries */
 	if ((pa & 0xffff0000) != ((pa + size - 1) & 0xffff0000))
 		return EINVAL;
-	
+
 	fibril_mutex_lock(&guard);
-	
+
 	if (!controller_8237.initialized)
 		dma_controller_init(&controller_8237);
-	
+
 	if (!controller_8237.initialized) {
 		fibril_mutex_unlock(&guard);
 		return EIO;
 	}
-	
+
 	/* 16 bit transfers are a bit special */
 	ddf_msg(LVL_DEBUG, "Unspoiled address %#" PRIx32 " (size %" PRIu32 ")",
 	    pa, size);
@@ -383,65 +383,65 @@ errno_t dma_channel_setup(unsigned int channel, uint32_t pa, uint32_t size,
 		/* Address is fun: lower 16 bits need to be shifted by 1 */
 		pa = ((pa & 0xffff) >> 1) | (pa & 0xff0000);
 	}
-	
+
 	const dma_channel_t dma_channel = controller_8237.channels[channel];
-	
+
 	ddf_msg(LVL_DEBUG, "Setting channel %u to address %#" PRIx32 " "
 	    "(size %" PRIu32 "), mode %hhx.", channel, pa, size, mode);
-	
+
 	/* Mask DMA request */
 	uint8_t value = DMA_SINGLE_MASK_CHAN_TO_REG(channel) |
 	    DMA_SINGLE_MASK_MASKED_FLAG;
 	pio_write_8(dma_channel.single_mask_address, value);
-	
+
 	/* Set mode */
 	value = DMA_MODE_CHAN_TO_REG(channel) | mode;
 	ddf_msg(LVL_DEBUG2, "Writing mode byte: %p:%hhx.",
 	    dma_channel.mode_address, value);
 	pio_write_8(dma_channel.mode_address, value);
-	
+
 	/* Set address - reset flip-flop */
 	pio_write_8(dma_channel.flip_flop_address, 0);
-	
+
 	/* Low byte */
 	value = pa & 0xff;
 	ddf_msg(LVL_DEBUG2, "Writing address low byte: %p:%hhx.",
 	    dma_channel.offset_reg_address, value);
 	pio_write_8(dma_channel.offset_reg_address, value);
-	
+
 	/* High byte */
 	value = (pa >> 8) & 0xff;
 	ddf_msg(LVL_DEBUG2, "Writing address high byte: %p:%hhx.",
 	    dma_channel.offset_reg_address, value);
 	pio_write_8(dma_channel.offset_reg_address, value);
-	
+
 	/* Page address - third byte */
 	value = (pa >> 16) & 0xff;
 	ddf_msg(LVL_DEBUG2, "Writing address page byte: %p:%hhx.",
 	    dma_channel.page_reg_address, value);
 	pio_write_8(dma_channel.page_reg_address, value);
-	
+
 	/* Set size - reset flip-flop */
 	pio_write_8(dma_channel.flip_flop_address, 0);
-	
+
 	/* Low byte */
 	value = (size - 1) & 0xff;
 	ddf_msg(LVL_DEBUG2, "Writing size low byte: %p:%hhx.",
 	    dma_channel.size_reg_address, value);
 	pio_write_8(dma_channel.size_reg_address, value);
-	
+
 	/* High byte */
 	value = ((size - 1) >> 8) & 0xff;
 	ddf_msg(LVL_DEBUG2, "Writing size high byte: %p:%hhx.",
 	    dma_channel.size_reg_address, value);
 	pio_write_8(dma_channel.size_reg_address, value);
-	
+
 	/* Unmask DMA request */
 	value = DMA_SINGLE_MASK_CHAN_TO_REG(channel);
 	pio_write_8(dma_channel.single_mask_address, value);
-	
+
 	fibril_mutex_unlock(&guard);
-	
+
 	return EOK;
 }
 
@@ -458,10 +458,10 @@ errno_t dma_channel_remain(unsigned channel, size_t *size)
 	assert(size);
 	if (!is_dma8(channel) && !is_dma16(channel))
 		return ENOENT;
-	
+
 	if ((channel == 0) || (channel == 4))
 		return ENOTSUP;
-	
+
 	fibril_mutex_lock(&guard);
 	if (!controller_8237.initialized) {
 		fibril_mutex_unlock(&guard);
@@ -471,12 +471,12 @@ errno_t dma_channel_remain(unsigned channel, size_t *size)
 	const dma_channel_t dma_channel = controller_8237.channels[channel];
 	/* Get size - reset flip-flop */
 	pio_write_8(dma_channel.flip_flop_address, 0);
-	
+
 	/* Low byte */
 	const uint8_t value_low = pio_read_8(dma_channel.size_reg_address);
 	ddf_msg(LVL_DEBUG2, "Read size low byte: %p:%x.",
 	    dma_channel.size_reg_address, value_low);
-	
+
 	/* High byte */
 	const uint8_t value_high = pio_read_8(dma_channel.size_reg_address);
 	ddf_msg(LVL_DEBUG2, "Read size high byte: %p:%x.",

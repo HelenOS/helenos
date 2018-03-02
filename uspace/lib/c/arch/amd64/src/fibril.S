@@ -38,21 +38,21 @@
 #
 FUNCTION_BEGIN(context_save)
 	movq (%rsp), %rdx     # the caller's return %eip
-	
+
 	# in %rdi is passed 1st argument
 	movq %rdx, CONTEXT_OFFSET_PC(%rdi)
 	movq %rsp, CONTEXT_OFFSET_SP(%rdi)
-	
+
 	movq %rbx, CONTEXT_OFFSET_RBX(%rdi)
 	movq %rbp, CONTEXT_OFFSET_RBP(%rdi)
 	movq %r12, CONTEXT_OFFSET_R12(%rdi)
 	movq %r13, CONTEXT_OFFSET_R13(%rdi)
 	movq %r14, CONTEXT_OFFSET_R14(%rdi)
 	movq %r15, CONTEXT_OFFSET_R15(%rdi)
-	
+
 	movq %fs:0, %rax
 	movq %rax, CONTEXT_OFFSET_TLS(%rdi)
-	
+
 	xorl %eax, %eax                      # context_save returns 1
 	incl %eax
 	ret
@@ -70,16 +70,16 @@ FUNCTION_BEGIN(context_restore)
 	movq CONTEXT_OFFSET_R12(%rdi), %r12
 	movq CONTEXT_OFFSET_RBP(%rdi), %rbp
 	movq CONTEXT_OFFSET_RBX(%rdi), %rbx
-	
+
 	movq CONTEXT_OFFSET_SP(%rdi), %rsp   # ctx->sp -> %rsp
-	
+
 	movq CONTEXT_OFFSET_PC(%rdi), %rdx
-	
+
 	movq %rdx,(%rsp)
-	
+
 	movq CONTEXT_OFFSET_TLS(%rdi), %rdi
 	movq %rdi, %fs:0
-	
+
 	xorl %eax, %eax                      # context_restore returns 0
 	ret
 FUNCTION_END(context_restore)

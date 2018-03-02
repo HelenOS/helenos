@@ -67,7 +67,7 @@ FUNCTION_BEGIN(context_restore)
 	# windows mitigates this problem as CWP - 1 becomes the overlap window.
 	#
 	flushw
-	
+
 	ldx [%o0 + CONTEXT_OFFSET_SP], %sp
 	ldx [%o0 + CONTEXT_OFFSET_PC], %o7
 	ldx [%o0 + CONTEXT_OFFSET_I0], %i0

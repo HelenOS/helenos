@@ -64,7 +64,7 @@ static void s3c24xx_uart_putchar(outdev_t *dev, wchar_t ch)
 {
 	s3c24xx_uart_t *uart =
 	    (s3c24xx_uart_t *) dev->data;
-	
+
 	if ((!uart->parea.mapped) || (console_override)) {
 		if (!ascii_check(ch)) {
 			s3c24xx_uart_sendb(dev, U_SPECIAL);
@@ -133,14 +133,14 @@ outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)
 	/* Set RX interrupt to pulse mode */
 	pio_write_32(&uart->io->ucon,
 	    pio_read_32(&uart->io->ucon) & ~UCON_RX_INT_LEVEL);
-	
+
 	link_initialize(&uart->parea.link);
 	uart->parea.pbase = paddr;
 	uart->parea.frames = 1;
 	uart->parea.unpriv = false;
 	uart->parea.mapped = false;
 	ddi_parea_register(&uart->parea);
-	
+
 	if (!fb_exported) {
 		/*
 		 * This is the necessary evil until

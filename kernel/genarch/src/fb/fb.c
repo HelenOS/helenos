@@ -83,40 +83,40 @@ typedef void (* rgb_conv_t)(void *, uint32_t);
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);
-	
+
 	parea_t parea;
-	
+
 	uint8_t *addr;
 	uint16_t *backbuf;
 	uint8_t *glyphs;
 	uint8_t *bgscan;
-	
+
 	rgb_conv_t rgb_conv;
-	
+
 	unsigned int xres;
 	unsigned int yres;
-	
+
 	/** Number of rows that fit on framebuffer */
 	unsigned int rowtrim;
-	
+
 	unsigned int scanline;
 	unsigned int glyphscanline;
-	
+
 	unsigned int pixelbytes;
 	unsigned int glyphbytes;
 	unsigned int bgscanbytes;
-	
+
 	/** Number of columns in the backbuffer */
 	unsigned int cols;
 	/** Number of rows in the backbuffer */
 	unsigned int rows;
-	
+
 	/** Starting row in the cyclic backbuffer */
 	unsigned int start_row;
-	
+
 	/** Top-most visible row (relative to start_row) */
 	unsigned int offset_row;
-	
+
 	/** Current backbuffer position */
 	unsigned int position;
 } fb_instance_t;
@@ -235,22 +235,22 @@ static void glyph_draw(fb_instance_t *instance, uint16_t glyph,
 {
 	if (!overlay)
 		instance->backbuf[BB_POS(instance, col, row)] = glyph;
-	
+
 	/* Do not output if the framebuffer is used by user space */
 	if ((instance->parea.mapped) && (!console_override))
 		return;
-	
+
 	/* Check whether the glyph should be visible */
 	if (row < instance->offset_row)
 		return;
-	
+
 	unsigned int rel_row = row - instance->offset_row;
 	if (rel_row >= instance->rowtrim)
 		return;
-	
+
 	unsigned int x = COL2X(col);
 	unsigned int y = ROW2Y(rel_row);
-	
+
 	for (unsigned int yd = 0; yd < FONT_SCANLINES; yd++)
 		memcpy(&instance->addr[FB_POS(instance, x, y + yd)],
 		    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
@@ -266,24 +266,24 @@ static void screen_scroll(fb_instance_t *instance)
 		for (unsigned int rel_row = 0; rel_row < instance->rowtrim; rel_row++) {
 			unsigned int y = ROW2Y(rel_row);
 			unsigned int row = rel_row + instance->offset_row;
-			
+
 			for (unsigned int yd = 0; yd < FONT_SCANLINES; yd++) {
 				unsigned int x;
 				unsigned int col;
-				
+
 				for (col = 0, x = 0; col < instance->cols;
 				    col++, x += FONT_WIDTH) {
 					uint16_t glyph;
-					
+
 					if (row < instance->rows - 1) {
 						if (instance->backbuf[BB_POS(instance, col, row)] ==
 						    instance->backbuf[BB_POS(instance, col, row + 1)])
 							continue;
-						
+
 						glyph = instance->backbuf[BB_POS(instance, col, row + 1)];
 					} else
 						glyph = 0;
-					
+
 					memcpy(&instance->addr[FB_POS(instance, x, y + yd)],
 					    &instance->glyphs[GLYPH_POS(instance, glyph, yd)],
 					    instance->glyphscanline);
@@ -291,16 +291,16 @@ static void screen_scroll(fb_instance_t *instance)
 			}
 		}
 	}
-	
+
 	/*
 	 * Implement backbuffer scrolling by wrapping around
 	 * the cyclic buffer.
 	 */
-	
+
 	instance->start_row++;
 	if (instance->start_row == instance->rows)
 		instance->start_row = 0;
-	
+
 	memsetw(&instance->backbuf[BB_POS(instance, 0, instance->rows - 1)],
 	    instance->cols, 0);
 }
@@ -309,7 +309,7 @@ static void cursor_put(fb_instance_t *instance)
 {
 	unsigned int col = instance->position % instance->cols;
 	unsigned int row = instance->position / instance->cols;
-	
+
 	glyph_draw(instance, fb_font_glyph(U_CURSOR), col, row, true);
 }
 
@@ -317,7 +317,7 @@ static void cursor_remove(fb_instance_t *instance)
 {
 	unsigned int col = instance->position % instance->cols;
 	unsigned int row = instance->position / instance->cols;
-	
+
 	glyph_draw(instance, instance->backbuf[BB_POS(instance, col, row)],
 	    col, row, true);
 }
@@ -332,20 +332,20 @@ static void glyphs_render(fb_instance_t *instance)
 {
 	/* Prerender glyphs */
 	uint16_t glyph;
-	
+
 	for (glyph = 0; glyph < FONT_GLYPHS; glyph++) {
 		uint32_t fg_color;
-		
+
 		if (glyph == FONT_GLYPHS - 1)
 			fg_color = INV_COLOR;
 		else
 			fg_color = FG_COLOR;
-		
+
 		unsigned int y;
-		
+
 		for (y = 0; y < FONT_SCANLINES; y++) {
 			unsigned int x;
-			
+
 			for (x = 0; x < FONT_WIDTH; x++) {
 				void *dst =
 				    &instance->glyphs[GLYPH_POS(instance, glyph, y) +
@@ -356,10 +356,10 @@ static void glyphs_render(fb_instance_t *instance)
 			}
 		}
 	}
-	
+
 	/* Prerender background scanline */
 	unsigned int x;
-	
+
 	for (x = 0; x < instance->xres; x++)
 		instance->rgb_conv(&instance->bgscan[x * instance->pixelbytes], BG_COLOR);
 }
@@ -369,11 +369,11 @@ static void fb_redraw_internal(fb_instance_t *instance)
 	for (unsigned int rel_row = 0; rel_row < instance->rowtrim; rel_row++) {
 		unsigned int y = ROW2Y(rel_row);
 		unsigned int row = rel_row + instance->offset_row;
-		
+
 		for (unsigned int yd = 0; yd < FONT_SCANLINES; yd++) {
 			unsigned int x;
 			unsigned int col;
-			
+
 			for (col = 0, x = 0; col < instance->cols;
 			    col++, x += FONT_WIDTH) {
 				uint16_t glyph =
@@ -384,20 +384,20 @@ static void fb_redraw_internal(fb_instance_t *instance)
 			}
 		}
 	}
-	
+
 	if (COL2X(instance->cols) < instance->xres) {
 		unsigned int y;
 		unsigned int size =
 		    (instance->xres - COL2X(instance->cols)) * instance->pixelbytes;
-		
+
 		for (y = 0; y < instance->yres; y++)
 			memcpy(&instance->addr[FB_POS(instance, COL2X(instance->cols), y)],
 			    instance->bgscan, size);
 	}
-	
+
 	if (ROW2Y(instance->rowtrim) < instance->yres) {
 		unsigned int y;
-		
+
 		for (y = ROW2Y(instance->rowtrim); y < instance->yres; y++)
 			memcpy(&instance->addr[FB_POS(instance, 0, y)],
 			    instance->bgscan, instance->bgscanbytes);
@@ -413,7 +413,7 @@ static void fb_putchar(outdev_t *dev, wchar_t ch)
 {
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
 	spinlock_lock(&instance->lock);
-	
+
 	switch (ch) {
 	case '\n':
 		cursor_remove(instance);
@@ -445,14 +445,14 @@ static void fb_putchar(outdev_t *dev, wchar_t ch)
 		    instance->position / instance->cols, false);
 		instance->position++;
 	}
-	
+
 	if (instance->position >= instance->cols * instance->rows) {
 		instance->position -= instance->cols;
 		screen_scroll(instance);
 	}
-	
+
 	cursor_put(instance);
-	
+
 	spinlock_unlock(&instance->lock);
 }
 
@@ -463,15 +463,15 @@ static void fb_scroll_up(outdev_t *dev)
 {
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
 	spinlock_lock(&instance->lock);
-	
+
 	if (instance->offset_row >= instance->rowtrim / 2)
 		instance->offset_row -= instance->rowtrim / 2;
 	else
 		instance->offset_row = 0;
-	
+
 	fb_redraw_internal(instance);
 	cursor_put(instance);
-	
+
 	spinlock_unlock(&instance->lock);
 }
 
@@ -482,16 +482,16 @@ static void fb_scroll_down(outdev_t *dev)
 {
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
 	spinlock_lock(&instance->lock);
-	
+
 	if (instance->offset_row + instance->rowtrim / 2 <=
 	    instance->rows - instance->rowtrim)
 		instance->offset_row += instance->rowtrim / 2;
 	else
 		instance->offset_row = instance->rows - instance->rowtrim;
-	
+
 	fb_redraw_internal(instance);
 	cursor_put(instance);
-	
+
 	spinlock_unlock(&instance->lock);
 }
 
@@ -501,7 +501,7 @@ static void fb_scroll_down(outdev_t *dev)
 static void fb_redraw(outdev_t *dev)
 {
 	fb_instance_t *instance = (fb_instance_t *) dev->data;
-	
+
 	spinlock_lock(&instance->lock);
 	fb_redraw_internal(instance);
 	spinlock_unlock(&instance->lock);
@@ -516,10 +516,10 @@ outdev_t *fb_init(fb_properties_t *props)
 	assert(props->x > 0);
 	assert(props->y > 0);
 	assert(props->scan > 0);
-	
+
 	rgb_conv_t rgb_conv;
 	unsigned int pixelbytes;
-	
+
 	switch (props->visual) {
 	case VISUAL_INDIRECT_8:
 		rgb_conv = bgr_323;
@@ -569,45 +569,45 @@ outdev_t *fb_init(fb_properties_t *props)
 		LOG("Unsupported visual.");
 		return NULL;
 	}
-	
+
 	outdev_t *fbdev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	if (!fbdev)
 		return NULL;
-	
+
 	fb_instance_t *instance = malloc(sizeof(fb_instance_t), FRAME_ATOMIC);
 	if (!instance) {
 		free(fbdev);
 		return NULL;
 	}
-	
+
 	outdev_initialize("fbdev", fbdev, &fbdev_ops);
 	fbdev->data = instance;
-	
+
 	spinlock_initialize(&instance->lock, "*fb.instance.lock");
-	
+
 	instance->rgb_conv = rgb_conv;
 	instance->pixelbytes = pixelbytes;
 	instance->xres = props->x;
 	instance->yres = props->y;
 	instance->scanline = props->scan;
-	
+
 	instance->rowtrim = Y2ROW(instance->yres);
-	
+
 	instance->cols = X2COL(instance->xres);
 	instance->rows = FB_PAGES * instance->rowtrim;
-	
+
 	instance->start_row = instance->rows - instance->rowtrim;
 	instance->offset_row = instance->start_row;
 	instance->position = instance->start_row * instance->cols;
-	
+
 	instance->glyphscanline = FONT_WIDTH * instance->pixelbytes;
 	instance->glyphbytes = ROW2Y(instance->glyphscanline);
 	instance->bgscanbytes = instance->xres * instance->pixelbytes;
-	
+
 	size_t fbsize = instance->scanline * instance->yres;
 	size_t bbsize = instance->cols * instance->rows * sizeof(uint16_t);
 	size_t glyphsize = FONT_GLYPHS * instance->glyphbytes;
-	
+
 	instance->addr = (uint8_t *) km_map((uintptr_t) props->addr, fbsize,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	if (!instance->addr) {
@@ -616,7 +616,7 @@ outdev_t *fb_init(fb_properties_t *props)
 		free(fbdev);
 		return NULL;
 	}
-	
+
 	instance->backbuf = (uint16_t *) malloc(bbsize, 0);
 	if (!instance->backbuf) {
 		LOG("Unable to allocate backbuffer.");
@@ -624,7 +624,7 @@ outdev_t *fb_init(fb_properties_t *props)
 		free(fbdev);
 		return NULL;
 	}
-	
+
 	instance->glyphs = (uint8_t *) malloc(glyphsize, 0);
 	if (!instance->glyphs) {
 		LOG("Unable to allocate glyphs.");
@@ -633,7 +633,7 @@ outdev_t *fb_init(fb_properties_t *props)
 		free(fbdev);
 		return NULL;
 	}
-	
+
 	instance->bgscan = malloc(instance->bgscanbytes, 0);
 	if (!instance->bgscan) {
 		LOG("Unable to allocate background pixel.");
@@ -643,17 +643,17 @@ outdev_t *fb_init(fb_properties_t *props)
 		free(fbdev);
 		return NULL;
 	}
-	
+
 	memsetw(instance->backbuf, instance->cols * instance->rows, 0);
 	glyphs_render(instance);
-	
+
 	link_initialize(&instance->parea.link);
 	instance->parea.pbase = props->addr;
 	instance->parea.frames = SIZE2FRAMES(fbsize);
 	instance->parea.unpriv = false;
 	instance->parea.mapped = false;
 	ddi_parea_register(&instance->parea);
-	
+
 	if (!fb_exported) {
 		/*
 		 * We export the kernel framebuffer for uspace usage.
@@ -667,10 +667,10 @@ outdev_t *fb_init(fb_properties_t *props)
 		sysinfo_set_item_val("fb.scanline", NULL, instance->scanline);
 		sysinfo_set_item_val("fb.visual", NULL, props->visual);
 		sysinfo_set_item_val("fb.address.physical", NULL, props->addr);
-		
+
 		fb_exported = true;
 	}
-	
+
 	fb_redraw(fbdev);
 	return fbdev;
 }

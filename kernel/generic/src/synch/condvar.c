@@ -142,7 +142,7 @@ errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
 	waitq_sleep_finish(&cv->wq, blocked, ipl);
 	/* Lock only after releasing the waitq to avoid a possible deadlock. */
 	spinlock_lock(lock);
-	
+
 	return rc;
 }
 
@@ -167,9 +167,9 @@ errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lo
 	/* Save spinlock's state so we can restore it correctly later on. */
 	ipl_t ipl = irq_lock->ipl;
 	bool guard = irq_lock->guard;
-	
+
 	irq_lock->guard = false;
-	
+
 	/*
 	 * waitq_prepare() restores interrupts to the current state,
 	 * ie disabled. Therefore, interrupts will remain disabled while
@@ -181,10 +181,10 @@ errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lo
 	 * running) and there is no danger of a deadlock.
 	 */
 	rc = _condvar_wait_timeout_spinlock(cv, &irq_lock->lock, usec, flags);
-	
+
 	irq_lock->guard = guard;
 	irq_lock->ipl = ipl;
-	
+
 	return rc;
 }
 

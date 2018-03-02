@@ -40,33 +40,33 @@
 const char *test_ping_pong(void)
 {
 	TPRINTF("Pinging ns server for %d seconds...", DURATION_SECS);
-	
+
 	struct timeval start;
 	gettimeofday(&start, NULL);
-	
+
 	uint64_t count = 0;
 	while (true) {
 		struct timeval now;
 		gettimeofday(&now, NULL);
-		
+
 		if (tv_sub_diff(&now, &start) >= DURATION_SECS * 1000000L)
 			break;
-		
+
 		size_t i;
 		for (i = 0; i < COUNT_GRANULARITY; i++) {
 			errno_t retval = ns_ping();
-			
+
 			if (retval != EOK) {
 				TPRINTF("\n");
 				return "Failed to send ping message";
 			}
 		}
-		
+
 		count += COUNT_GRANULARITY;
 	}
-	
+
 	TPRINTF("OK\nCompleted %" PRIu64 " round trips in %u seconds, %" PRIu64 " rt/s.\n",
 	    count, DURATION_SECS, count / DURATION_SECS);
-	
+
 	return NULL;
 }

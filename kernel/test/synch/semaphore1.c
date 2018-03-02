@@ -48,9 +48,9 @@ static atomic_t items_consumed;
 static void producer(void *arg)
 {
 	thread_detach(THREAD);
-	
+
 	waitq_sleep(&can_start);
-	
+
 	semaphore_down(&sem);
 	atomic_inc(&items_produced);
 	thread_usleep(250);
@@ -60,9 +60,9 @@ static void producer(void *arg)
 static void consumer(void *arg)
 {
 	thread_detach(THREAD);
-	
+
 	waitq_sleep(&can_start);
-	
+
 	semaphore_down(&sem);
 	atomic_inc(&items_consumed);
 	thread_usleep(500);
@@ -74,22 +74,22 @@ const char *test_semaphore1(void)
 	int i, j, k;
 	atomic_count_t consumers;
 	atomic_count_t producers;
-	
+
 	waitq_initialize(&can_start);
 	semaphore_initialize(&sem, AT_ONCE);
-	
+
 	for (i = 1; i <= 3; i++) {
 		thread_t *thrd;
-		
+
 		atomic_set(&items_produced, 0);
 		atomic_set(&items_consumed, 0);
-		
+
 		consumers = i * CONSUMERS;
 		producers = (4 - i) * PRODUCERS;
-		
+
 		TPRINTF("Creating %" PRIua " consumers and %" PRIua " producers...",
 		    consumers, producers);
-		
+
 		for (j = 0; j < (CONSUMERS + PRODUCERS) / 2; j++) {
 			for (k = 0; k < i; k++) {
 				thrd = thread_create(consumer, NULL, TASK,
@@ -108,18 +108,18 @@ const char *test_semaphore1(void)
 					TPRINTF("could not create producer %d\n", i);
 			}
 		}
-		
+
 		TPRINTF("ok\n");
-		
+
 		thread_sleep(1);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
-		
+
 		while ((items_consumed.count != consumers) || (items_produced.count != producers)) {
 			TPRINTF("%" PRIua " consumers remaining, %" PRIua " producers remaining\n",
 			    consumers - items_consumed.count, producers - items_produced.count);
 			thread_sleep(1);
 		}
 	}
-	
+
 	return NULL;
 }

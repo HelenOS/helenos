@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-    
+
 /** @addtogroup generic
  * @{
  */
@@ -62,10 +62,10 @@ errno_t copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 {
 	ipl_t ipl;
 	errno_t rc;
-	
+
 	assert(THREAD);
 	assert(!THREAD->in_copy_from_uspace);
-	
+
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_src, size,
 			KERNEL_ADDRESS_SPACE_START,
@@ -85,10 +85,10 @@ errno_t copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 	    ADDRESS_SPACE_HOLE_END - ADDRESS_SPACE_HOLE_START))
 		return EPERM;
 #endif
-	
+
 	ipl = interrupts_disable();
 	THREAD->in_copy_from_uspace = true;
-	
+
 	rc = memcpy_from_uspace(dst, uspace_src, size);
 
 	THREAD->in_copy_from_uspace = false;
@@ -113,10 +113,10 @@ errno_t copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 {
 	ipl_t ipl;
 	errno_t rc;
-	
+
 	assert(THREAD);
 	assert(!THREAD->in_copy_to_uspace);
-	
+
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_dst, size,
 			KERNEL_ADDRESS_SPACE_START,
@@ -136,10 +136,10 @@ errno_t copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	    ADDRESS_SPACE_HOLE_END - ADDRESS_SPACE_HOLE_START))
 		return EPERM;
 #endif
-	
+
 	ipl = interrupts_disable();
 	THREAD->in_copy_to_uspace = true;
-	
+
 	rc = memcpy_to_uspace(uspace_dst, src, size);
 
 	THREAD->in_copy_to_uspace = false;

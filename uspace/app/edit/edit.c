@@ -88,7 +88,7 @@ typedef struct {
 	 * for maintaining the same column during vertical movement.
 	 */
 	int ideal_column;
-	
+
 	char *previous_search;
 	bool previous_search_reverse;
 } pane_t;
@@ -532,10 +532,10 @@ static void caret_move(spt_t new_caret_pt, bool select, bool update_ideal_column
 		/* Redraw because text was unselected. */
 		pane.rflags |= REDRAW_TEXT;
 	}
-	
+
 	if (update_ideal_column)
 		pane.ideal_column = c_new.column;
-	
+
 	caret_update();
 }
 
@@ -608,7 +608,7 @@ static void file_save_as(void)
 {
 	const char *old_fname = (doc.file_name != NULL) ? doc.file_name : "";
 	char *fname;
-	
+
 	fname = prompt("Save As", old_fname);
 	if (fname == NULL) {
 		status_display("Save cancelled.");
@@ -815,7 +815,7 @@ static void pane_text_display(void)
 	pane_row_range_display(0, rows);
 
 	/* Clear the remaining rows if file is short. */
-	
+
 	int i;
 	sysarg_t j;
 	for (i = rows; i < pane.rows; ++i) {
@@ -905,13 +905,13 @@ static void pane_row_range_display(int r0, int r1)
 				console_set_style(con, STYLE_SELECTED);
 				console_flush(con);
 			}
-	
+
 			if ((csel_end.row == rbc.row) && (csel_end.column == s_column)) {
 				console_flush(con);
 				console_set_style(con, STYLE_NORMAL);
 				console_flush(con);
 			}
-	
+
 			c = str_decode(row_buf, &pos, size);
 			if (c != '\t') {
 				printf("%lc", (wint_t) c);
@@ -1217,10 +1217,10 @@ static void caret_move_absolute(int row, int column, enum dir_spec align_dir,
 	coord_t coord;
 	coord.row = row;
 	coord.column = column;
-	
+
 	spt_t pt;
 	sheet_get_cell_pt(doc.sh, &coord, align_dir, &pt);
-	
+
 	caret_move(pt, select, true);
 }
 
@@ -1262,13 +1262,13 @@ static void caret_move_word_right(bool select)
 static void caret_go_to_line_ask(void)
 {
 	char *sline;
-	
+
 	sline = prompt("Go to line", "");
 	if (sline == NULL) {
 		status_display("Go to line cancelled.");
 		return;
 	}
-	
+
 	char *endptr;
 	int line = strtol(sline, &endptr, 10);
 	if (*endptr != '\0') {
@@ -1277,7 +1277,7 @@ static void caret_go_to_line_ask(void)
 		return;
 	}
 	free(sline);
-	
+
 	caret_move_absolute(line, pane.ideal_column, dir_before, false);
 }
 
@@ -1336,26 +1336,26 @@ static search_ops_t search_spt_reverse_ops = {
 static void search_prompt(bool reverse)
 {
 	char *pattern;
-	
+
 	const char *prompt_text = "Find next";
 	if (reverse)
 		prompt_text = "Find previous";
-	
+
 	const char *default_value = "";
 	if (pane.previous_search)
 		default_value = pane.previous_search;
-	
+
 	pattern = prompt(prompt_text, default_value);
 	if (pattern == NULL) {
 		status_display("Search cancelled.");
 		return;
 	}
-	
+
 	if (pane.previous_search)
 		free(pane.previous_search);
 	pane.previous_search = pattern;
 	pane.previous_search_reverse = reverse;
-	
+
 	search(pattern, reverse);
 }
 
@@ -1365,17 +1365,17 @@ static void search_repeat(void)
 		status_display("No previous search to repeat.");
 		return;
 	}
-	
+
 	search(pane.previous_search, pane.previous_search_reverse);
 }
 
 static void search(char *pattern, bool reverse)
 {
 	status_display("Searching...");
-	
+
 	spt_t sp, producer_pos;
 	tag_get_pt(&pane.caret_pos, &sp);
-	
+
 	/* Start searching on the position before/after caret */
 	if (!reverse) {
 		spt_next_char(sp, &sp);
@@ -1384,24 +1384,24 @@ static void search(char *pattern, bool reverse)
 		spt_prev_char(sp, &sp);
 	}
 	producer_pos = sp;
-	
+
 	search_ops_t ops = search_spt_ops;
 	if (reverse)
 		ops = search_spt_reverse_ops;
-	
+
 	search_t *search = search_init(pattern, &producer_pos, ops, reverse);
 	if (search == NULL) {
 		status_display("Failed initializing search.");
 		return;
 	}
-	
+
 	match_t match;
 	errno_t rc = search_next_match(search, &match);
 	if (rc != EOK) {
 		status_display("Failed searching.");
 		search_fini(search);
 	}
-	
+
 	if (match.end) {
 		status_display("Match found.");
 		assert(match.end != NULL);
@@ -1422,7 +1422,7 @@ static void search(char *pattern, bool reverse)
 	else {
 		status_display("Not found.");
 	}
-	
+
 	search_fini(search);
 }
 
@@ -1715,7 +1715,7 @@ static void status_display(char const *str)
 {
 	console_set_pos(con, 0, scr_rows - 1);
 	console_set_style(con, STYLE_INVERTED);
-	
+
 	int pos = -(scr_columns - 3);
 	printf(" %*s ", pos, str);
 	console_flush(con);

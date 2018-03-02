@@ -105,11 +105,11 @@ void cpu_arch_init(void)
 void cpu_identify(void)
 {
 	cpu_info_t info;
-	
+
 	CPU->arch.vendor = VendorUnknown;
 	if (has_cpuid()) {
 		cpuid(INTEL_CPUID_LEVEL, &info);
-		
+
 		/*
 		 * Check for AMD processor.
 		 */
@@ -118,7 +118,7 @@ void cpu_identify(void)
 		    (info.cpuid_edx == AMD_CPUID_EDX)) {
 			CPU->arch.vendor = VendorAMD;
 		}
-		
+
 		/*
 		 * Check for Intel processor.
 		 */
@@ -127,7 +127,7 @@ void cpu_identify(void)
 		    (info.cpuid_edx == INTEL_CPUID_EDX)) {
 			CPU->arch.vendor = VendorIntel;
 		}
-		
+
 		cpuid(INTEL_CPUID_STANDARD, &info);
 		CPU->arch.family = (info.cpuid_eax >> 8) & 0xf;
 		CPU->arch.model = (info.cpuid_eax >> 4) & 0xf;

@@ -118,7 +118,7 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	FORMAT_TEMP_FILENAME(tempfile_name, PCUT_TEMP_FILENAME_BUFFER_SIZE - 1);
 	FORMAT_COMMAND(command, PCUT_COMMAND_LINE_BUFFER_SIZE - 1,
 		self_path, (test)->id, tempfile_name);
-	
+
 	PCUT_DEBUG("Will execute <%s> (temp file <%s>) with system().",
 		command, tempfile_name);
 

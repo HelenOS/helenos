@@ -68,7 +68,7 @@ arch_ops_t *arch_ops = &arm32_ops;
 void arm32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
 	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
-	
+
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
 		init.tasks[i].paddr = KA2PA(bootinfo->tasks[i].addr);
@@ -92,14 +92,14 @@ void arm32_pre_mm_init(void)
 void arm32_post_mm_init(void)
 {
 	machine_init();
-	
+
 	/* Initialize exception dispatch table */
 	exception_init();
 	interrupt_init();
 
 	/* Initialize Restartable Atomic Sequences support. */
 	ras_init();
-	
+
 	machine_output_init();
 }
 
@@ -131,7 +131,7 @@ void before_task_runs_arch(void)
 void before_thread_runs_arch(void)
 {
 	uint8_t *stck;
-	
+
 	stck = &THREAD->kstack[STACK_SIZE];
 	supervisor_sp = (uintptr_t) stck;
 }

@@ -145,7 +145,7 @@ static errno_t program_run_fibril(void *arg)
 static errno_t connect_task(task_id_t task_id)
 {
 	async_sess_t *ksess = async_connect_kbox(task_id);
-	
+
 	if (!ksess) {
 		if (errno == ENOTSUP) {
 			printf("You do not have userspace debugging support "
@@ -154,24 +154,24 @@ static errno_t connect_task(task_id_t task_id)
 			    "(CONFIG_UDEBUG) enabled.\n");
 			return errno;
 		}
-		
+
 		printf("Error connecting\n");
 		printf("ipc_connect_task(%" PRIu64 ") -> %s ", task_id, str_error_name(errno));
 		return errno;
 	}
-	
+
 	errno_t rc = udebug_begin(ksess);
 	if (rc != EOK) {
 		printf("udebug_begin() -> %s\n", str_error_name(rc));
 		return rc;
 	}
-	
+
 	rc = udebug_set_evmask(ksess, UDEBUG_EM_ALL);
 	if (rc != EOK) {
 		printf("udebug_set_evmask(0x%x) -> %s\n ", UDEBUG_EM_ALL, str_error_name(rc));
 		return rc;
 	}
-	
+
 	sess = ksess;
 	return 0;
 }
@@ -282,7 +282,7 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, errno_t sc_rc)
 {
 	ipc_call_t call;
 	sysarg_t phoneid;
-	
+
 	if (sc_rc != EOK)
 		return;
 
@@ -323,7 +323,7 @@ static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
 
 	memset(&call, 0, sizeof(call));
 	rc = udebug_mem_read(sess, &call, sc_args[0], sizeof(call));
-	
+
 	if (rc == EOK)
 		ipcp_call_in(&call, sc_rc);
 }
@@ -524,7 +524,7 @@ static loader_t *preload_task(const char *path, char **argv,
 	int fd_stdin;
 	int fd_stdout;
 	int fd_stderr;
-	
+
 	fd_root = vfs_root();
 	if (fd_root >= 0) {
 		rc = loader_add_inbox(ldr, "root", fd_root);
@@ -532,25 +532,25 @@ static loader_t *preload_task(const char *path, char **argv,
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	if ((stdin != NULL) && (vfs_fhandle(stdin, &fd_stdin) == EOK)) {
 		rc = loader_add_inbox(ldr, "stdin", fd_stdin);
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	if ((stdout != NULL) && (vfs_fhandle(stdout, &fd_stdout) == EOK)) {
 		rc = loader_add_inbox(ldr, "stdout", fd_stdout);
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	if ((stderr != NULL) && (vfs_fhandle(stderr, &fd_stderr) == EOK)) {
 		rc = loader_add_inbox(ldr, "stderr", fd_stderr);
 		if (rc != EOK)
 			goto error;
 	}
-	
+
 	/* Load the program. */
 	rc = loader_load_program(ldr);
 	if (rc != EOK)
@@ -570,18 +570,18 @@ static errno_t cev_fibril(void *arg)
 	cons_event_t event;
 
 	(void) arg;
-	
+
 	console_ctrl_t *console = console_init(stdin, stdout);
-	
+
 	while (true) {
 		fibril_mutex_lock(&state_lock);
 		while (cev_valid)
 			fibril_condvar_wait(&state_cv, &state_lock);
 		fibril_mutex_unlock(&state_lock);
-		
+
 		if (!console_get_event(console, &event))
 			return EINVAL;
-		
+
 		if (event.type == CEV_KEY) {
 			fibril_mutex_lock(&state_lock);
 			cev = event.ev.key;
@@ -749,7 +749,7 @@ static display_mask_t parse_display_mask(const char *text)
 {
 	display_mask_t dm = 0;
 	const char *c = text;
-	
+
 	while (*c) {
 		switch (*c) {
 		case 't':
@@ -768,10 +768,10 @@ static display_mask_t parse_display_mask(const char *text)
 			printf("Unexpected event type '%c'.\n", *c);
 			exit(1);
 		}
-		
+
 		++c;
 	}
-	
+
 	return dm;
 }
 
@@ -809,7 +809,7 @@ static int parse_args(int argc, char *argv[])
 		} else {
 			break;
 		}
-		
+
 		--argc;
 		++argv;
 	}
@@ -830,11 +830,11 @@ static int parse_args(int argc, char *argv[])
 
 	/* Preload the specified program file. */
 	printf("Spawning '%s' with arguments:\n", *argv);
-	
+
 	char **cp = argv;
 	while (*cp)
 		printf("'%s'\n", *cp++);
-	
+
 	task_ldr = preload_task(*argv, argv, &task_id);
 	task_wait_for = true;
 

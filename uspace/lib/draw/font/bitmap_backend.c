@@ -61,9 +61,9 @@ typedef struct {
 static errno_t bb_get_font_metrics(void *backend_data, font_metrics_t *font_metrics)
 {
 	bitmap_backend_data_t *data = (bitmap_backend_data_t *) backend_data;
-	
+
 	*font_metrics = data->font_metrics;
-	
+
 	return EOK;
 }
 
@@ -77,22 +77,22 @@ static errno_t bb_get_glyph_metrics(void *backend_data, glyph_id_t glyph_id,
     glyph_metrics_t *glyph_metrics)
 {
 	bitmap_backend_data_t *data = (bitmap_backend_data_t *) backend_data;
-	
+
 	if (glyph_id >= data->glyph_count)
 		return ENOENT;
-	
+
 	if (data->glyph_cache[glyph_id].metrics_loaded) {
 		*glyph_metrics = data->glyph_cache[glyph_id].metrics;
 		return EOK;
 	}
-	
+
 	glyph_metrics_t gm;
-	
+
 	errno_t rc = data->decoder->load_glyph_metrics(data->decoder_data, glyph_id,
 	    &gm);
 	if (rc != EOK)
 		return rc;
-	
+
 	if (data->scale) {
 		gm.left_side_bearing = (metric_t)
 		    (data->scale_ratio * gm.left_side_bearing + 0.5);
@@ -105,9 +105,9 @@ static errno_t bb_get_glyph_metrics(void *backend_data, glyph_id_t glyph_id,
 		gm.height = (metric_t)
 		    (data->scale_ratio * gm.height + 0.5);
 	}
-	
-	
-	
+
+
+
 	data->glyph_cache[glyph_id].metrics = gm;
 	data->glyph_cache[glyph_id].metrics_loaded = true;
 	*glyph_metrics = gm;
@@ -119,27 +119,27 @@ static errno_t get_glyph_surface(bitmap_backend_data_t *data, glyph_id_t glyph_i
 {
 	if (glyph_id >= data->glyph_count)
 		return ENOENT;
-	
+
 	if (data->glyph_cache[glyph_id].surface != NULL) {
 		*result = data->glyph_cache[glyph_id].surface;
 		return EOK;
 	}
-	
+
 	surface_t *raw_surface;
 	errno_t rc = data->decoder->load_glyph_surface(data->decoder_data, glyph_id,
 	    &raw_surface);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t w;
 	sysarg_t h;
 	surface_get_resolution(raw_surface, &w, &h);
-	
+
 	if (!data->scale) {
 		*result = raw_surface;
 		return EOK;
 	}
-	
+
 	source_t source;
 	source_init(&source);
 	source_set_texture(&source, raw_surface, PIXELMAP_EXTEND_TRANSPARENT_BLACK);
@@ -166,7 +166,7 @@ static errno_t get_glyph_surface(bitmap_backend_data_t *data, glyph_id_t glyph_i
 	drawctx_transfer(&context, 0, 0, scaled_width, scaled_height);
 
 	surface_destroy(raw_surface);
-	
+
 	data->glyph_cache[glyph_id].surface = scaled_surface;
 	*result = scaled_surface;
 	return EOK;
@@ -176,20 +176,20 @@ static errno_t bb_render_glyph(void *backend_data, drawctx_t *context,
     source_t *source, sysarg_t ox, sysarg_t oy, glyph_id_t glyph_id)
 {
 	bitmap_backend_data_t *data = (bitmap_backend_data_t *) backend_data;
-	
+
 	glyph_metrics_t glyph_metrics;
 	errno_t rc = bb_get_glyph_metrics(backend_data, glyph_id, &glyph_metrics);
 	if (rc != EOK)
 		return rc;
-	
+
 	surface_t *glyph_surface;
 	rc = get_glyph_surface(data, glyph_id, &glyph_surface);
 	if (rc != EOK)
 		return rc;
-	
+
 	native_t x = ox + glyph_metrics.left_side_bearing;
 	native_t y = oy - glyph_metrics.ascender;
-	
+
 	transform_t transform;
 	transform_identity(&transform);
 	transform_translate(&transform, x, y);
@@ -229,7 +229,7 @@ errno_t bitmap_font_create(bitmap_font_decoder_t *decoder, void *decoder_data,
 {
 	if (glyph_count == 0)
 		return EINVAL;
-	
+
 	bitmap_backend_data_t *data = malloc(sizeof(bitmap_backend_data_t));
 	if (data == NULL)
 		return ENOMEM;
@@ -274,7 +274,7 @@ errno_t bitmap_font_create(bitmap_font_decoder_t *decoder, void *decoder_data,
 		free(data);
 		return ENOMEM;
 	}
-	
+
 	*out_font = font;
 	return EOK;
 }

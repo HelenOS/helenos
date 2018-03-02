@@ -252,17 +252,17 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	errno_t retval;
 	proto_t *proto;
 	int cphone;
-	
+
 	sysarg_t *resp;
 	oper_t *oper;
 	int i;
-	
+
 	phone = pcall->phone_hash;
 	method = IPC_GET_IMETHOD(pcall->question);
 	retval = IPC_GET_RETVAL(*answer);
-	
+
 	resp = answer->args;
-	
+
 	if ((display_mask & DM_IPC) != 0) {
 		printf("Response to %d: retval=%s, args = (%" PRIun ", "
 		    "%" PRIun ", %" PRIun ", %" PRIun ", %" PRIun ")\n",
@@ -270,19 +270,19 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 		    IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
 		    IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
 	}
-	
+
 	if ((display_mask & DM_USER) != 0) {
 		oper = pcall->oper;
-		
+
 		if ((oper != NULL) &&
 		    ((oper->rv_type != V_VOID) || (oper->respc > 0))) {
 			printf("->");
-			
+
 			if (oper->rv_type != V_VOID) {
 				putchar(' ');
 				val_print((sysarg_t) retval, oper->rv_type);
 			}
-			
+
 			if (oper->respc > 0) {
 				putchar(' ');
 				putchar('(');
@@ -293,11 +293,11 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 				}
 				putchar(')');
 			}
-			
+
 			putchar('\n');
 		}
 	}
-	
+
 	if ((phone == PHONE_NS) && (method == IPC_M_CONNECT_ME_TO) &&
 	    (retval == 0)) {
 		/* Connected to a service (through NS) */
@@ -305,13 +305,13 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 		proto = proto_get_by_srv(service);
 		if (proto == NULL)
 			proto = proto_unknown;
-		
+
 		cphone = IPC_GET_ARG5(*answer);
 		if ((display_mask & DM_SYSTEM) != 0) {
 			printf("Registering connection (phone %d, protocol: %s)\n", cphone,
 		    proto->name);
 		}
-		
+
 		ipcp_connection_set(cphone, 0, proto);
 	}
 }
@@ -320,7 +320,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 {
 	ht_link_t *item;
 	pending_call_t *pcall;
-	
+
 	if ((call->flags & IPC_CALL_ANSWERED) == 0) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
@@ -328,18 +328,18 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 		}
 		return;
 	}
-	
+
 	item = hash_table_find(&pending_calls, &hash);
 	if (item == NULL)
 		return; /* No matching question found */
-	
+
 	/*
 	 * Response matched to question.
 	 */
-	
+
 	pcall = hash_table_get_inst(item, pending_call_t, link);
 	hash_table_remove(&pending_calls, &hash);
-	
+
 	parse_answer(hash, pcall, call);
 	free(pcall);
 }

@@ -358,25 +358,25 @@ static bool wake_cpu(uint64_t cpuid)
 	/* stop the CPU before making it execute our code */
 	if (__hypercall_fast1(CPU_STOP, cpuid) != EOK)
 		return false;
-	
+
 	/* wait for the CPU to stop */
 	uint64_t state;
 	__hypercall_fast_ret1(cpuid, 0, 0, 0, 0, CPU_STATE, &state);
 	while (state == CPU_STATE_RUNNING)
 		__hypercall_fast_ret1(cpuid, 0, 0, 0, 0, CPU_STATE, &state);
-	
+
 	/* make the CPU run again and execute HelenOS code */
 	if (__hypercall_fast4(CPU_START, cpuid,
 	    (uint64_t) KA2PA(kernel_image_start), KA2PA(trap_table),
 	    physmem_base) != EOK)
 		return false;
 #endif
-	
+
 	if (waitq_sleep_timeout(&ap_completion_wq, 10000000,
 	    SYNCH_FLAGS_NONE, NULL) == ETIMEOUT)
 		printf("%s: waiting for processor (cpuid = %" PRIu64 ") timed out\n",
 		    __func__, cpuid);
-	
+
 	return true;
 }
 

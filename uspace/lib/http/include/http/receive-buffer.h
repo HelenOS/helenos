@@ -55,10 +55,10 @@ typedef struct {
 	char *buffer;
 	size_t in;
 	size_t out;
-	
+
 	void *client_data;
 	receive_func_t receive;
-	
+
 	list_t marks;
 } receive_buffer_t;
 

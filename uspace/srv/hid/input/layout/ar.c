@@ -75,7 +75,7 @@ static wchar_t map_not_shifted[] = {
 	[KC_COMMA] = L'و',
 	[KC_PERIOD] = L'ز',
 	[KC_SLASH] = L'ظ',
-	
+
 	[KC_Q] = L'ض',
 	[KC_W] = L'ص',
 	[KC_E] = L'ث',
@@ -133,7 +133,7 @@ static wchar_t map_shifted[] = {
 	[KC_COMMA] = ',',
 	[KC_PERIOD] = '.',
 	[KC_SLASH] = L'؟',
-	
+
 	[KC_Q] = L'َ',
 	[KC_W] = L'ً',
 	[KC_E] = L'ُ',
@@ -219,7 +219,7 @@ static wchar_t ar_parse_ev(layout_t *state, kbd_event_t *ev)
 	c = translate(ev->key, map_neutral, sizeof(map_neutral) / sizeof(wchar_t));
 	if (c != 0)
 		return c;
-	
+
 	if ((ev->mods & KM_SHIFT) != 0)
 		c = translate(ev->key, map_shifted, sizeof(map_shifted) / sizeof(wchar_t));
 	else

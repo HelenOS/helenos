@@ -88,96 +88,96 @@ errno_t gzip_expand(void *src, size_t srclen, void **dest, size_t *destlen)
 {
 	gzip_header_t header;
 	gzip_footer_t footer;
-	
+
 	if ((srclen < sizeof(header)) || (srclen < sizeof(footer)))
 		return EINVAL;
-	
+
 	/* Decode header and footer */
-	
+
 	memcpy(&header, src, sizeof(header));
 	memcpy(&footer, src + srclen - sizeof(footer), sizeof(footer));
-	
+
 	if ((header.id1 != GZIP_ID1) ||
 	    (header.id2 != GZIP_ID2) ||
 	    (header.method != GZIP_METHOD_DEFLATE) ||
 	    ((header.flags & (~GZIP_FLAGS_MASK)) != 0))
 		return EINVAL;
-	
+
 	*destlen = uint32_t_le2host(footer.size);
-	
+
 	/* Ignore extra metadata */
-	
+
 	void *stream = src + sizeof(header);
 	size_t stream_length = srclen - sizeof(header) - sizeof(footer);
-	
+
 	if ((header.flags & GZIP_FLAG_FEXTRA) != 0) {
 		uint16_t extra_length;
-		
+
 		if (stream_length < sizeof(extra_length))
 			return EINVAL;
-		
+
 		memcpy(&extra_length, stream, sizeof(extra_length));
 		stream += sizeof(extra_length);
 		stream_length -= sizeof(extra_length);
-		
+
 		if (stream_length < extra_length)
 			return EINVAL;
-		
+
 		stream += extra_length;
 		stream_length -= extra_length;
 	}
-	
+
 	if ((header.flags & GZIP_FLAG_FNAME) != 0) {
 		while (*((uint8_t *) stream) != 0) {
 			if (stream_length == 0)
 				return EINVAL;
-			
+
 			stream++;
 			stream_length--;
 		}
-		
+
 		if (stream_length == 0)
 			return EINVAL;
-		
+
 		stream++;
 		stream_length--;
 	}
-	
+
 	if ((header.flags & GZIP_FLAG_FCOMMENT) != 0) {
 		while (*((uint8_t *) stream) != 0) {
 			if (stream_length == 0)
 				return EINVAL;
-			
+
 			stream++;
 			stream_length--;
 		}
-		
+
 		if (stream_length == 0)
 			return EINVAL;
-		
+
 		stream++;
 		stream_length--;
 	}
-	
+
 	if ((header.flags & GZIP_FLAG_FHCRC) != 0) {
 		if (stream_length < 2)
 			return EINVAL;
-		
+
 		stream += 2;
 		stream_length -= 2;
 	}
-	
+
 	/* Allocate output buffer and inflate the data */
-	
+
 	*dest = malloc(*destlen);
 	if (*dest == NULL)
 		return ENOMEM;
-	
+
 	errno_t ret = inflate(stream, stream_length, *dest, *destlen);
 	if (ret != EOK) {
 		free(dest);
 		return ret;
 	}
-	
+
 	return EOK;
 }

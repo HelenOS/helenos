@@ -29,7 +29,7 @@
 /** @addtogroup libc
  * @{
  */
- 
+
 /** @file Ordered dictionary.
  *
  * Implementation based on red-black trees.

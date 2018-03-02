@@ -82,7 +82,7 @@
 NO_TRACE static inline void flush_pipeline(void)
 {
 	unsigned long pc;
-	
+
 	/*
 	 * The FLUSH instruction takes address parameter.
 	 * As such, it may trap if the address is not found in DTLB.
@@ -93,7 +93,7 @@ NO_TRACE static inline void flush_pipeline(void)
 	 * DTLB.
 	 *
 	 */
-	
+
 	asm volatile (
 		"rd %%pc, %[pc]\n"
 		"flush %[pc]\n"

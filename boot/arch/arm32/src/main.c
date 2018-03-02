@@ -88,7 +88,7 @@ void bootstrap(void)
 	/* Enable MMU and caches */
 	mmu_start();
 	version_print();
-	
+
 	printf("Boot data: %p -> %p\n", &bdata_start, &bdata_end);
 	printf("\nMemory statistics\n");
 	printf(" %p|%p: bootstrap stack\n", &boot_stack, &boot_stack);
@@ -96,37 +96,37 @@ void bootstrap(void)
 	printf(" %p|%p: boot info structure\n", &bootinfo, &bootinfo);
 	printf(" %p|%p: kernel entry point\n",
 	    (void *) PA2KA(BOOT_OFFSET), (void *) BOOT_OFFSET);
-	
+
 	for (size_t i = 0; i < COMPONENTS; i++) {
 		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].addr,
 		    components[i].addr, components[i].name, components[i].inflated,
 		    components[i].size);
 	}
-	
+
 	void *dest[COMPONENTS];
 	size_t top = 0;
 	size_t cnt = 0;
 	bootinfo.cnt = 0;
 	for (size_t i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
 		top = ALIGN_UP(top, PAGE_SIZE);
-		
+
 		if (i > 0) {
 			bootinfo.tasks[bootinfo.cnt].addr = TOP2ADDR(top);
 			bootinfo.tasks[bootinfo.cnt].size = components[i].inflated;
-			
+
 			str_cpy(bootinfo.tasks[bootinfo.cnt].name,
 			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-			
+
 			bootinfo.cnt++;
 		}
-		
+
 		dest[i] = TOP2ADDR(top);
 		top += components[i].inflated;
 		cnt++;
 	}
-	
+
 	printf("\nInflating components ... ");
-	
+
 	for (size_t i = cnt; i > 0; i--) {
 		void *tail = components[i - 1].addr + components[i - 1].size;
 		if (tail >= dest[i - 1]) {
@@ -134,9 +134,9 @@ void bootstrap(void)
 			    components[i].name, tail, dest[i - 1]);
 			halt();
 		}
-		
+
 		printf("%s ", components[i - 1].name);
-		
+
 		int err = inflate(components[i - 1].addr, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
 		if (err != EOK) {
@@ -146,12 +146,12 @@ void bootstrap(void)
 		/* Make sure data are in the memory, ICache will need them */
 		clean_dcache_poc(dest[i - 1], components[i - 1].inflated);
 	}
-	
+
 	printf(".\n");
 
 	/* Flush PT too. We need this if we disable caches later */
 	clean_dcache_poc(boot_pt, PTL0_ENTRIES * PTL0_ENTRY_SIZE);
-	
+
 	printf("Booting the kernel...\n");
 	jump_to_kernel((void *) PA2KA(BOOT_OFFSET), &bootinfo);
 }

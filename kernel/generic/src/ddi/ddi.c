@@ -78,12 +78,12 @@ void ddi_init(void)
 void ddi_parea_register(parea_t *parea)
 {
 	mutex_lock(&parea_lock);
-	
+
 	/*
 	 * We don't check for overlaps here as the kernel is pretty sane.
 	 */
 	btree_insert(&parea_btree, (btree_key_t) parea->pbase, parea, NULL);
-	
+
 	mutex_unlock(&parea_lock);
 }
 
@@ -107,52 +107,52 @@ NO_TRACE static errno_t physmem_map(uintptr_t phys, size_t pages,
     unsigned int flags, uintptr_t *virt, uintptr_t bound)
 {
 	assert(TASK);
-	
+
 	if ((phys % FRAME_SIZE) != 0)
 		return EBADMEM;
-	
+
 	/*
 	 * Unprivileged tasks are only allowed to map pareas
 	 * which are explicitly marked as such.
 	 */
 	bool priv =
 	    ((perm_get(TASK) & PERM_MEM_MANAGER) == PERM_MEM_MANAGER);
-	
+
 	mem_backend_data_t backend_data;
 	backend_data.base = phys;
 	backend_data.frames = pages;
 	backend_data.anonymous = false;
-	
+
 	/*
 	 * Check if the memory region is explicitly enabled
 	 * for mapping by any parea structure.
 	 */
-	
+
 	mutex_lock(&parea_lock);
 	btree_node_t *nodep;
 	parea_t *parea = (parea_t *) btree_search(&parea_btree,
 	    (btree_key_t) phys, &nodep);
-	
+
 	if ((parea != NULL) && (parea->frames >= pages)) {
 		if ((!priv) && (!parea->unpriv)) {
 			mutex_unlock(&parea_lock);
 			return EPERM;
 		}
-		
+
 		goto map;
 	}
-	
+
 	parea = NULL;
 	mutex_unlock(&parea_lock);
-	
+
 	/*
 	 * Check if the memory region is part of physical
 	 * memory generally enabled for mapping.
 	 */
-	
+
 	irq_spinlock_lock(&zones.lock, true);
 	size_t znum = find_zone(ADDR2PFN(phys), pages, 0);
-	
+
 	if (znum == (size_t) -1) {
 		/*
 		 * Frames not found in any zone
@@ -160,29 +160,29 @@ NO_TRACE static errno_t physmem_map(uintptr_t phys, size_t pages,
 		 *    for privileged tasks.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);
-		
+
 		if (!priv)
 			return EPERM;
-		
+
 		goto map;
 	}
-	
+
 	if (zones.info[znum].flags & (ZONE_FIRMWARE | ZONE_RESERVED)) {
 		/*
 		 * Frames are part of firmware or reserved zone
 		 * -> allow mapping for privileged tasks.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);
-		
+
 		if (!priv)
 			return EPERM;
-		
+
 		goto map;
 	}
-	
+
 	irq_spinlock_unlock(&zones.lock, true);
 	return ENOENT;
-	
+
 map:
 	if (!as_area_create(TASK->as, flags, FRAMES2SIZE(pages),
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
@@ -190,22 +190,22 @@ map:
 		 * The address space area was not created.
 		 * We report it using ENOMEM.
 		 */
-		
+
 		if (parea != NULL)
 			mutex_unlock(&parea_lock);
-		
+
 		return ENOMEM;
 	}
-	
+
 	/*
 	 * Mapping is created on-demand during page fault.
 	 */
-	
+
 	if (parea != NULL) {
 		parea->mapped = true;
 		mutex_unlock(&parea_lock);
 	}
-	
+
 	return EOK;
 }
 
@@ -234,18 +234,18 @@ sys_errno_t sys_physmem_map(uintptr_t phys, size_t pages, unsigned int flags,
 	errno_t rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = physmem_map(ALIGN_DOWN(phys, FRAME_SIZE), pages, flags, &virt,
 	    bound);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = copy_to_uspace(virt_ptr, &virt, sizeof(virt));
 	if (rc != EOK) {
 		physmem_unmap((uintptr_t) virt);
 		return rc;
 	}
-	
+
 	return EOK;
 }
 
@@ -272,11 +272,11 @@ NO_TRACE static errno_t iospace_enable(task_id_t id, uintptr_t ioaddr, size_t si
 	perm_t perms = perm_get(TASK);
 	if (!(perms & PERM_IO_MANAGER))
 		return EPERM;
-	
+
 	irq_spinlock_lock(&tasks_lock, true);
-	
+
 	task_t *task = task_find_by_id(id);
-	
+
 	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		/*
 		 * There is no task with the specified ID
@@ -286,7 +286,7 @@ NO_TRACE static errno_t iospace_enable(task_id_t id, uintptr_t ioaddr, size_t si
 		irq_spinlock_unlock(&tasks_lock, true);
 		return ENOENT;
 	}
-	
+
 	/* Lock the task and release the lock protecting tasks_btree. */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	errno_t rc = ddi_iospace_enable_arch(task, ioaddr, size);
@@ -313,11 +313,11 @@ NO_TRACE static errno_t iospace_disable(task_id_t id, uintptr_t ioaddr, size_t s
 	perm_t perms = perm_get(TASK);
 	if (!(perms & PERM_IO_MANAGER))
 		return EPERM;
-	
+
 	irq_spinlock_lock(&tasks_lock, true);
-	
+
 	task_t *task = task_find_by_id(id);
-	
+
 	if ((!task) || (!container_check(CONTAINER, task->container))) {
 		/*
 		 * There is no task with the specified ID
@@ -327,12 +327,12 @@ NO_TRACE static errno_t iospace_disable(task_id_t id, uintptr_t ioaddr, size_t s
 		irq_spinlock_unlock(&tasks_lock, true);
 		return ENOENT;
 	}
-	
+
 	/* Lock the task and release the lock protecting tasks_btree. */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	errno_t rc = ddi_iospace_disable_arch(task, ioaddr, size);
 	irq_spinlock_unlock(&task->lock, true);
-	
+
 	return rc;
 }
 
@@ -349,7 +349,7 @@ sys_errno_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	errno_t rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
 	if (rc != EOK)
 		return (sys_errno_t) rc;
-	
+
 	return (sys_errno_t) iospace_enable((task_id_t) arg.task_id,
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
@@ -369,7 +369,7 @@ NO_TRACE static errno_t dmamem_map(uintptr_t virt, size_t size, unsigned int map
     unsigned int flags, uintptr_t *phys)
 {
 	assert(TASK);
-	
+
 	// TODO: implement locking of non-anonymous mapping
 	return page_find_mapping(virt, phys);
 }
@@ -379,7 +379,7 @@ NO_TRACE static errno_t dmamem_map_anonymous(size_t size, uintptr_t constraint,
     uintptr_t *virt, uintptr_t bound)
 {
 	assert(TASK);
-	
+
 	size_t frames = SIZE2FRAMES(size);
 	if (frames == 0)
 		return EINVAL;
@@ -387,18 +387,18 @@ NO_TRACE static errno_t dmamem_map_anonymous(size_t size, uintptr_t constraint,
 	*phys = frame_alloc(frames, FRAME_ATOMIC, constraint);
 	if (*phys == 0)
 		return ENOMEM;
-	
+
 	mem_backend_data_t backend_data;
 	backend_data.base = *phys;
 	backend_data.frames = frames;
 	backend_data.anonymous = true;
-	
+
 	if (!as_area_create(TASK->as, map_flags, size,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data, virt, bound)) {
 		frame_free(*phys, frames);
 		return ENOMEM;
 	}
-	
+
 	return EOK;
 }
 
@@ -420,14 +420,14 @@ sys_errno_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int fla
 		/*
 		 * Non-anonymous DMA mapping
 		 */
-		
+
 		uintptr_t phys;
 		errno_t rc = dmamem_map((uintptr_t) virt_ptr, size, map_flags,
 		    flags, &phys);
-		
+
 		if (rc != EOK)
 			return rc;
-		
+
 		rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
 		if (rc != EOK) {
 			dmamem_unmap((uintptr_t) virt_ptr, size);
@@ -437,37 +437,37 @@ sys_errno_t sys_dmamem_map(size_t size, unsigned int map_flags, unsigned int fla
 		/*
 		 * Anonymous DMA mapping
 		 */
-		
+
 		uintptr_t constraint;
 		errno_t rc = copy_from_uspace(&constraint, phys_ptr,
 		    sizeof(constraint));
 		if (rc != EOK)
 			return rc;
-		
+
 		uintptr_t virt;
 		rc = copy_from_uspace(&virt, virt_ptr, sizeof(virt));
 		if (rc != EOK)
 			return rc;
-		
+
 		uintptr_t phys;
 		rc = dmamem_map_anonymous(size, constraint, map_flags, flags,
 		    &phys, &virt, bound);
 		if (rc != EOK)
 			return rc;
-		
+
 		rc = copy_to_uspace(phys_ptr, &phys, sizeof(phys));
 		if (rc != EOK) {
 			dmamem_unmap_anonymous((uintptr_t) virt);
 			return rc;
 		}
-		
+
 		rc = copy_to_uspace(virt_ptr, &virt, sizeof(virt));
 		if (rc != EOK) {
 			dmamem_unmap_anonymous((uintptr_t) virt);
 			return rc;
 		}
 	}
-	
+
 	return EOK;
 }
 

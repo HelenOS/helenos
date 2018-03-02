@@ -164,7 +164,7 @@ void *bsearch(const void *key, const void *base,
 			base = middle;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -224,21 +224,21 @@ char *realpath(const char *restrict name, char *restrict resolved)
 	#ifndef PATH_MAX
 		assert(resolved == NULL);
 	#endif
-	
+
 	if (name == NULL) {
 		errno = EINVAL;
 		return NULL;
 	}
-	
+
 	// TODO: symlink resolution
-	
+
 	/* Function absolutize is implemented in libc and declared in vfs.h.
 	 * No more processing is required as HelenOS doesn't have symlinks
 	 * so far (as far as I can tell), although this function will need
 	 * to be updated when that support is implemented.
 	 */
 	char* absolute = vfs_absolutize(name, NULL);
-	
+
 	if (absolute == NULL) {
 		/* POSIX requires some specific errnos to be set
 		 * for some cases, but there is no way to find out from
@@ -247,7 +247,7 @@ char *realpath(const char *restrict name, char *restrict resolved)
 		errno = EINVAL;
 		return NULL;
 	}
-	
+
 	if (resolved == NULL) {
 		return absolute;
 	} else {
@@ -308,23 +308,23 @@ double strtod(const char *restrict nptr, char **restrict endptr)
 int mkstemp(char *tmpl)
 {
 	int fd = -1;
-	
+
 	char *tptr = tmpl + strlen(tmpl) - 6;
-	
+
 	while (fd < 0) {
 		if (*mktemp(tmpl) == '\0') {
 			/* Errno set by mktemp(). */
 			return -1;
 		}
-		
+
 		fd = open(tmpl, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
-		
+
 		if (fd == -1) {
 			/* Restore template to it's original state. */
 			snprintf(tptr, 7, "XXXXXX");
 		}
 	}
-	
+
 	return fd;
 }
 
@@ -344,19 +344,19 @@ char *mktemp(char *tmpl)
 		*tmpl = '\0';
 		return tmpl;
 	}
-	
+
 	char *tptr = tmpl + tmpl_len - 6;
 	if (strcmp(tptr, "XXXXXX") != 0) {
 		errno = EINVAL;
 		*tmpl = '\0';
 		return tmpl;
 	}
-	
+
 	static int seq = 0;
-	
+
 	for (; seq < 1000000; ++seq) {
 		snprintf(tptr, 7, "%06d", seq);
-		
+
 		int orig_errno = errno;
 		errno = 0;
 		/* Check if the file exists. */
@@ -371,13 +371,13 @@ char *mktemp(char *tmpl)
 			}
 		}
 	}
-	
+
 	if (seq == 10000000) {
 		errno = EEXIST;
 		*tmpl = '\0';
 		return tmpl;
 	}
-	
+
 	return tmpl;
 }
 
@@ -391,22 +391,22 @@ char *mktemp(char *tmpl)
 int bsd_getloadavg(double loadavg[], int nelem)
 {
 	assert(nelem > 0);
-	
+
 	size_t count;
 	load_t *loads = stats_get_load(&count);
-	
+
 	if (loads == NULL) {
 		return -1;
 	}
-	
+
 	if (((size_t) nelem) < count) {
 		count = nelem;
 	}
-	
+
 	for (size_t i = 0; i < count; ++i) {
 		loadavg[i] = (double) loads[i];
 	}
-	
+
 	free(loads);
 	return count;
 }

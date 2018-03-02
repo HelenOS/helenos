@@ -98,59 +98,59 @@ static const char * do_sanity_test(cht_t *h)
 {
 	if (cht_find_lazy(h, (void*)0))
 		return "Found lazy in empty table.";
-	
+
 	if (cht_find(h, (void*)0))
 		return "Found in empty table.";
-	
+
 	if (cht_remove_key(h, (void*)0))
 		return "Removed from empty table.";
-	
+
 	const int val_cnt = 6;
 	val_t *v[6] = { NULL };
-	
+
 	for (int i = 0; i < val_cnt; ++i)
 		v[i] = malloc(sizeof(val_t), 0);
-	
+
 	size_t key[] = { 1, 1, 1, 11, 12, 13 };
-	
+
 	/* First three are identical */
 	for (int i = 0; i < 3; ++i)
 		set_val(v[i], 1, key[i]);
-	
+
 	/* Same hash, different key.*/
 	set_val(v[3], 1, key[3]);
-	
+
 	/* Different hashes and keys. */
 	set_val(v[4], 2, key[4]);
 	set_val(v[5], 3, key[5]);
-	
+
 	cht_link_t *dup;
-			
+
 	if (!cht_insert_unique(h, &v[0]->link, &dup))
 		return "Duplicates in empty";
 
 	if (cht_insert_unique(h, &v[1]->link, &dup))
 		return "Inserted a duplicate";
-	
+
 	if (dup != &v[0]->link)
 		return "Returned wrong duplicate";
 
 	if (!cht_insert_unique(h, &v[3]->link, &dup))
 		return "Refused non-equal item but with a hash in table.";
-	
+
 	cht_insert(h, &v[1]->link);
 	cht_insert(h, &v[2]->link);
-	
+
 	bool ok = true;
 	ok = ok && cht_insert_unique(h, &v[4]->link, &dup);
 	ok = ok && cht_insert_unique(h, &v[5]->link, &dup);
-	
+
 	if (!ok)
 		return "Refused unique ins 4, 5.";
-	
+
 	if (cht_find(h, (void*)0))
 		return "Phantom find.";
-	
+
 	cht_link_t *item = cht_find(h, (void*)v[5]->unique_id);
 	if (!item || item != &v[5]->link)
 		return "Missing 5.";
@@ -158,7 +158,7 @@ static const char * do_sanity_test(cht_t *h)
 	item = cht_find_next(h, &v[5]->link);
 	if (item)
 		return "Found nonexisting duplicate 5";
-	
+
 	item = cht_find(h, (void*)v[3]->unique_id);
 	if (!item || item != &v[3]->link)
 		return "Missing 3.";
@@ -166,28 +166,28 @@ static const char * do_sanity_test(cht_t *h)
 	item = cht_find_next(h, &v[3]->link);
 	if (item)
 		return "Found nonexisting duplicate 3, same hash as others.";
-	
+
 	item = cht_find(h, (void*)v[0]->unique_id);
 	((val_t*)item)->mark = true;
-	
+
 	for (int k = 1; k < 3; ++k) {
 		item = cht_find_next(h, item);
 		if (!item)
 			return "Did not find an inserted duplicate";
-		
+
 		val_t *val = ((val_t*)item);
-		
+
 		if (val->unique_id != v[0]->unique_id)
 			return "Found item with a different key.";
 		if (val->mark)
 			return "Found twice the same node.";
 		val->mark = true;
 	}
-	
+
 	for (int i = 0; i < 3; ++i) {
 		if (!v[i]->mark)
 			return "Did not find all duplicates";
-		
+
 		v[i]->mark = false;
 	}
 
@@ -195,15 +195,15 @@ static const char * do_sanity_test(cht_t *h)
 		return "Found non-existing duplicate.";
 
 	item = cht_find_next(h, cht_find(h, (void*)key[0]));
-	
+
 	((val_t*)item)->mark = true;
 	if (!cht_remove_item(h, item))
 		return "Failed to remove inserted item";
-	
+
 	item = cht_find(h, (void*)key[0]);
 	if (!item || ((val_t*)item)->mark)
 		return "Did not find proper item.";
-	
+
 	item = cht_find_next(h, item);
 	if (!item || ((val_t*)item)->mark)
 		return "Did not find proper duplicate.";
@@ -211,20 +211,20 @@ static const char * do_sanity_test(cht_t *h)
 	item = cht_find_next(h, item);
 	if (item)
 		return "Found removed duplicate";
-	
+
 	if (2 != cht_remove_key(h, (void*)key[0]))
 		return "Failed to remove all duplicates";
-	
+
 	if (cht_find(h, (void*)key[0]))
 		return "Found removed key";
-	
+
 	if (!cht_find(h, (void*)key[3]))
 		return "Removed incorrect key";
-	
+
 	for (size_t k = 0; k < sizeof(v) / sizeof(v[0]); ++k) {
 		cht_remove_key(h, (void*)key[k]);
 	}
-	
+
 	for (size_t k = 0; k < sizeof(v) / sizeof(v[0]); ++k) {
 		if (cht_find(h, (void*)key[k]))
 			return "Found a key in a cleared table";
@@ -238,11 +238,11 @@ static const char * sanity_test(void)
 	cht_t h;
 	if (!cht_create_simple(&h, &val_ops))
 		return "Could not create the table.";
-	
+
 	rcu_read_lock();
 	const char *err = do_sanity_test(&h);
 	rcu_read_unlock();
-	
+
 	cht_destroy(&h);
 
 	return err;
@@ -320,20 +320,20 @@ static void resize_stresser(void *arg)
 				TPRINTF("[out-of-mem]\n");
 				goto out_of_mem;
 			}
-			
+
 			s->free = true;
 			s->key = (i << 8) + work->id;
-			
+
 			cht_insert(work->h, &s->link);
 		}
 		TPRINTF("}");
-		
+
 		thread_sleep(2);
 
 		TPRINTF("R<");
 		for (size_t i = 0; i < work->wave_elems; ++i) {
 			size_t key = (i << 8) + work->id;
-			
+
 			if (1 != cht_remove_key(work->h, (void*)key)) {
 				TPRINTF("Err: Failed to remove inserted item\n");
 				goto failed;
@@ -341,7 +341,7 @@ static void resize_stresser(void *arg)
 		}
 		TPRINTF(">");
 	}
-	
+
 	/* Request that others stop. */
 	*work->stop = 1;
 	return;
@@ -364,27 +364,27 @@ static void op_stresser(void *arg)
 {
 	stress_work_t *work = (stress_work_t *)arg;
 	assert(0 == *work->stop);
-	
+
 	size_t loops = 0;
 	size_t seed = work->id;
-		
+
 	while (0 == *work->stop && !work->failed) {
 		seed = next_rand(seed);
 		bool upd = ((seed % 100) <= work->upd_prob);
 		seed = next_rand(seed);
 		size_t elem_idx = seed % work->elem_cnt;
-		
+
 		++loops;
 		if (0 == loops % (1024 * 1024)) {
 			/* Make the most current work->stop visible. */
 			read_barrier();
 			TPRINTF("*");
 		}
-			
+
 		if (upd) {
 			seed = next_rand(seed);
 			bool item_op = seed & 1;
-			
+
 			if (work->elem[elem_idx].inserted) {
 				if (item_op) {
 					rcu_read_lock();
@@ -400,7 +400,7 @@ static void op_stresser(void *arg)
 				work->elem[elem_idx].inserted = false;
 			} else if (work->elem[elem_idx].deleted) {
 				work->elem[elem_idx].deleted = false;
-				
+
 				if (item_op) {
 					rcu_read_lock();
 					cht_link_t *dup;
@@ -413,7 +413,7 @@ static void op_stresser(void *arg)
 				} else {
 					cht_insert(work->h, &work->elem[elem_idx].link);
 				}
-				
+
 				work->elem[elem_idx].inserted = true;
 			}
 		} else {
@@ -451,7 +451,7 @@ static void op_stresser(void *arg)
 static bool do_stress(void)
 {
 	cht_t h;
-	
+
 	if (!cht_create_simple(&h, &stress_ops)) {
 		TPRINTF("Failed to create the table\n");
 		return false;
@@ -463,14 +463,14 @@ static bool do_stress(void)
 	size_t op_thread_cnt = min(max_thread_cnt, 2 * config.cpu_active);
 	size_t total_thr_cnt = op_thread_cnt + resize_thread_cnt;
 	size_t items_per_thread = 1024;
-	
+
 	size_t work_cnt = op_thread_cnt + resize_thread_cnt;
 	size_t item_cnt = op_thread_cnt * items_per_thread;
-	
+
 	/* Alloc hash table items. */
 	size_t size = item_cnt * sizeof(stress_t) + work_cnt * sizeof(stress_work_t)
 		+ sizeof(int);
-		
+
 	TPRINTF("Alloc and init table items. \n");
 	void *p = malloc(size, FRAME_ATOMIC);
 	if (!p) {
@@ -478,13 +478,13 @@ static bool do_stress(void)
 		cht_destroy(&h);
 		return false;
 	}
-	
+
 	stress_t *pitem = p + work_cnt * sizeof(stress_work_t);
 	stress_work_t *pwork = p;
 	int *pstop = (int*)(pitem + item_cnt);
-	
+
 	*pstop = 0;
-	
+
 	/* Init work items. */
 	for (size_t i = 0; i < op_thread_cnt; ++i) {
 		pwork[i].h = &h;
@@ -495,7 +495,7 @@ static bool do_stress(void)
 		pwork[i].elem_cnt = items_per_thread;
 		pwork[i].failed = false;
 	}
-	
+
 	for (size_t i = op_thread_cnt; i < op_thread_cnt + resize_thread_cnt; ++i) {
 		pwork[i].h = &h;
 		pwork[i].stop = pstop;
@@ -504,7 +504,7 @@ static bool do_stress(void)
 		pwork[i].id = i;
 		pwork[i].failed = false;
 	}
-	
+
 	/* Init table elements. */
 	for (size_t k = 0; k < op_thread_cnt; ++k) {
 		for (size_t i = 0; i < items_per_thread; ++i) {
@@ -514,26 +514,26 @@ static bool do_stress(void)
 			pwork[k].elem[i].deleted = true;
 		}
 	}
-	
+
 	TPRINTF("Running %zu ins/del/find stress threads + %zu resizers.\n",
 		op_thread_cnt, resize_thread_cnt);
-	
+
 	/* Create and run threads. */
 	thread_t *thr[max_thread_cnt + resize_thread_cnt];
-	
+
 	for (size_t i = 0; i < total_thr_cnt; ++i) {
 		if (i < op_thread_cnt)
 			thr[i] = thread_create(op_stresser, &pwork[i], TASK, 0, "cht-op-stress");
 		else
 			thr[i] = thread_create(resize_stresser, &pwork[i], TASK, 0, "cht-resize");
-		
+
 		assert(thr[i]);
 		thread_wire(thr[i], &cpus[i % config.cpu_active]);
 		thread_ready(thr[i]);
 	}
-	
+
 	bool failed = false;
-	
+
 	/* Wait for all threads to return. */
 	TPRINTF("Joining resize stressers.\n");
 	for (size_t i = op_thread_cnt; i < total_thr_cnt; ++i) {
@@ -541,7 +541,7 @@ static bool do_stress(void)
 		thread_detach(thr[i]);
 		failed = pwork[i].failed || failed;
 	}
-	
+
 	TPRINTF("Joining op stressers.\n");
 	for (int i = (int)op_thread_cnt - 1; i >= 0; --i) {
 		TPRINTF("%d threads remain\n", i);
@@ -549,7 +549,7 @@ static bool do_stress(void)
 		thread_detach(thr[i]);
 		failed = pwork[i].failed || failed;
 	}
-	
+
 	cht_destroy(&h);
 	free(p);
 
@@ -565,7 +565,7 @@ const char *test_cht1(void)
 	if (err)
 		return err;
 	printf("Basic sanity test: ok.\n");
-	
+
 	if (!do_stress())
 		return "CHT stress test failed.";
 	else

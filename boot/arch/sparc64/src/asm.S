@@ -64,24 +64,24 @@ SYMBOL(start)
 .align 8
 1:
 	! Disable interrupts and disable address masking.
-	
+
 	wrpr %g0, PSTATE_PRIV_BIT, %pstate
-	
+
 	wrpr %g0, NWINDOWS - 2, %cansave   ! Set maximum saveable windows
 	wrpr %g0, 0, %canrestore           ! Get rid of windows we will never need again
 	wrpr %g0, 0, %otherwin             ! Make sure the window state is consistent
 	wrpr %g0, NWINDOWS - 1, %cleanwin  ! Prevent needless clean_window traps for kernel
-	
+
 	set initial_stack, %sp
 	add %sp, -STACK_BIAS, %sp
-	
+
 	set ofw_cif, %l0
-	
+
 	! Initialize OpenFirmware
-	
+
 	call ofw_init
 	stx %o4, [%l0]
-	
+
 	ba %xcc, bootstrap
 	nop
 
@@ -104,7 +104,7 @@ FUNCTION_BEGIN(jump_to_kernel)
 	 * 2. Invalidate I-cache.
 	 * 3. Flush instruction pipeline.
 	 */
-	
+
 	/*
 	 * US3 processors have a write-invalidate cache, so explicitly
 	 * invalidating it is not required. Whether to invalidate I-cache
@@ -114,19 +114,19 @@ FUNCTION_BEGIN(jump_to_kernel)
 	cmp %o2, SUBARCH_US3
 	be %xcc, 1f
 	nop
-	
+
 	0:
 		call icache_flush
 		nop
-	
+
 	1:
 		membar #StoreStore
-	
+
 	/*
 	 * Flush the instruction pipeline.
 	 */
 	flush %i7
-	
+
 	! Jump to kernel
 	jmp %o3
 	nop
@@ -137,18 +137,18 @@ icache_flush:
 #if defined(PROCESSOR_us) || defined(PROCESSOR_us3)
 	set ((ICACHE_SIZE - ICACHE_LINE_SIZE) | ICACHE_SET_BIT), %g1
 	stxa %g0, [%g1] ASI_ICACHE_TAG
-	
+
 	0:
 		membar #Sync
 		subcc %g1, ICACHE_LINE_SIZE, %g1
 		bnz,pt %xcc, 0b
-	
+
 	stxa %g0, [%g1] ASI_ICACHE_TAG
 	membar #Sync
 	retl
-	
+
 	! SF Erratum #51
-	
+
 	nop
 #else
 	// TODO: sun4v
@@ -160,16 +160,16 @@ FUNCTION_BEGIN(ofw)
 	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
 	set ofw_cif, %l0
 	ldx [%l0], %l0
-	
+
 	rdpr %pstate, %l1
 	and %l1, ~PSTATE_AM_BIT, %l2
 	wrpr %l2, 0, %pstate
-	
+
 	jmpl %l0, %o7
 	mov %i0, %o0
-	
+
 	wrpr %l1, 0, %pstate
-	
+
 	ret
 	restore %o0, 0, %o0
 FUNCTION_END(ofw)

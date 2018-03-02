@@ -85,7 +85,7 @@ size_t sdram_size = 0;
 void mips32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
 	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
-	
+
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
 		init.tasks[i].paddr = KA2PA(bootinfo->tasks[i].addr);
@@ -93,7 +93,7 @@ void mips32_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);
 	}
-	
+
 	for (i = 0; i < CPUMAP_MAX_RECORDS; i++) {
 		if ((bootinfo->cpumap & (1 << i)) != 0)
 			cpu_count++;
@@ -111,7 +111,7 @@ void mips32_pre_mm_init(void)
 {
 	/* It is not assumed by default */
 	interrupts_disable();
-	
+
 	/* Initialize dispatch table */
 	exception_init();
 
@@ -122,19 +122,19 @@ void mips32_pre_mm_init(void)
 	smc_coherence_block(NORM_EXC, EXCEPTION_JUMP_SIZE);
 	memcpy(CACHE_EXC, (char *) cache_error_entry, EXCEPTION_JUMP_SIZE);
 	smc_coherence_block(CACHE_EXC, EXCEPTION_JUMP_SIZE);
-	
+
 	/*
 	 * Switch to BEV normal level so that exception vectors point to the
 	 * kernel. Clear the error level.
 	 */
 	cp0_status_write(cp0_status_read() &
 	    ~(cp0_status_bev_bootstrap_bit | cp0_status_erl_error_bit));
-	
+
 	/*
 	 * Mask all interrupts
 	 */
 	cp0_mask_all_int();
-	
+
 	debugger_init();
 }
 
@@ -170,7 +170,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    kernel_uarg->uspace_stack_size),
 	    (uintptr_t) kernel_uarg->uspace_uarg,
 	    (uintptr_t) kernel_uarg->uspace_entry);
-	
+
 	while (1);
 }
 

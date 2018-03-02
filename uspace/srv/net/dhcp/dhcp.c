@@ -429,12 +429,12 @@ static errno_t dhcp_discover_proc(dhcp_link_t *dlink)
 		return EIO;
 
 	dlink->retries_left = dhcp_discover_retries;
-	
+
 	if ((dlink->timeout->state == fts_not_set) ||
 	    (dlink->timeout->state == fts_fired))
 		fibril_timer_set(dlink->timeout, dhcp_discover_timeout_val,
 		    dhcpsrv_discover_timeout, dlink);
-	
+
 	return rc;
 }
 
@@ -506,15 +506,15 @@ errno_t dhcpsrv_link_remove(service_id_t link_id)
 errno_t dhcpsrv_discover(service_id_t link_id)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcpsrv_link_add(%zu)", link_id);
-	
+
 	dhcp_link_t *dlink = dhcpsrv_link_find(link_id);
-	
+
 	if (dlink == NULL) {
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Link %zu doesn't exist",
 		    link_id);
 		return EINVAL;
 	}
-	
+
 	return dhcp_discover_proc(dlink);
 }
 

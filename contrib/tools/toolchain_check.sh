@@ -37,14 +37,14 @@ for arch_path in "$CROSS_HELENOS_PREFIX"/*; do
 	ld_path=`echo "$arch_path"/bin/*-ld`
 	objcopy_path=`echo "$arch_path"/bin/*-objcopy`
 	gdb_path=`echo "$arch_path"/bin/*-gdb`
-	
+
 	print_version "$ld_path" "Linker not found!" || continue
-	
+
 	print_version "$objcopy_path" "objcopy not found!" || continue
-	
+
 	print_version "$gcc_path" "GCC not found!" || continue
 	check_define "$gcc_path" "__helenos__" 1 || continue
 	check_define "$gcc_path" "helenos_uarch" "$arch" || continue
-	
+
 	print_version "$gdb_path" "GDB not found!" || continue
 done

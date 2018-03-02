@@ -54,7 +54,7 @@ void halt(void)
 {
 #if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
 	bool rundebugger = false;
-	
+
 	if (!atomic_get(&haltstate)) {
 		atomic_set(&haltstate, 1);
 		rundebugger = true;
@@ -62,19 +62,19 @@ void halt(void)
 #else
 	atomic_set(&haltstate, 1);
 #endif
-	
+
 	interrupts_disable();
-	
+
 #if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
 	if ((rundebugger) && (kconsole_check_poll()))
 		kconsole("panic", "\nLast resort kernel console ready.\n", false);
 #endif
-	
+
 	if (CPU)
 		log(LF_OTHER, LVL_NOTE, "cpu%u: halted", CPU->id);
 	else
 		log(LF_OTHER, LVL_NOTE, "cpu: halted");
-	
+
 	cpu_halt();
 }
 

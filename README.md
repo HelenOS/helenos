@@ -93,6 +93,6 @@ For additional information about running HelenOS, see
 see the files in contrib/conf.
 
 ## License
-  
+
 HelenOS is open source, free software. Its source code is available under
 the BSD license. Some third-party components are licensed under GPL.

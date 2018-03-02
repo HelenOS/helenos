@@ -61,10 +61,10 @@
 static bool kbd_ns16550_init(ofw_tree_node_t *node)
 {
 	const char *name = ofw_tree_node_name(node);
-	
+
 	if (str_cmp(name, "su") != 0)
 		return false;
-	
+
 	/*
 	 * Read 'interrupts' property.
 	 */
@@ -74,9 +74,9 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 		    "ns16550: Unable to find interrupts property");
 		return false;
 	}
-	
+
 	uint32_t interrupts = *((uint32_t *) prop->value);
-	
+
 	/*
 	 * Read 'reg' property.
 	 */
@@ -86,9 +86,9 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 		    "ns16550: Unable to find reg property");
 		return false;
 	}
-	
+
 	size_t size = ((ofw_ebus_reg_t *) prop->value)->size;
-	
+
 	uintptr_t pa = 0; // Prevent -Werror=maybe-uninitialized
 	if (!ofw_ebus_apply_ranges(node->parent,
 	    ((ofw_ebus_reg_t *) prop->value), &pa)) {
@@ -96,7 +96,7 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 		    "ns16550: Failed to determine address");
 		return false;
 	}
-	
+
 	inr_t inr;
 	cir_t cir;
 	void *cir_arg;
@@ -107,7 +107,7 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 		    "ns16550: Failed to determine interrupt");
 		return false;
 	}
-	
+
 	/*
 	 * We need to pass aligned address to hw_map().
 	 * However, the physical keyboard address can
@@ -116,10 +116,10 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	 */
 	uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
 	size_t offset = pa - aligned_addr;
-	
+
 	ioport8_t *ns16550 = (ioport8_t *) (km_map(aligned_addr, offset + size,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
-	
+
 	ns16550_instance_t *ns16550_instance = ns16550_init(ns16550, 0, inr, cir,
 	    cir_arg, NULL);
 	if (ns16550_instance) {
@@ -130,7 +130,7 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 			ns16550_wire(ns16550_instance, kbrd);
 		}
 	}
-	
+
 	/*
 	 * This is the necessary evil until the userspace drivers are
 	 * entirely self-sufficient.
@@ -139,7 +139,7 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	sysinfo_set_item_val("kbd.inr", NULL, inr);
 	sysinfo_set_item_val("kbd.address.physical", NULL, pa);
 	sysinfo_set_item_val("kbd.type.ns16550", NULL, true);
-	
+
 	return true;
 }
 

@@ -41,7 +41,7 @@ const char *test_stdio1(void)
 {
 	FILE *file;
 	const char *file_name = "/textdemo";
-	
+
 	TPRINTF("Open file \"%s\"...", file_name);
 	errno = 0;
 	file = fopen(file_name, "rt");
@@ -50,7 +50,7 @@ const char *test_stdio1(void)
 		return "Failed opening file";
 	} else
 		TPRINTF("OK\n");
-	
+
 	TPRINTF("Read file...");
 	size_t cnt = fread(buf, 1, BUF_SIZE, file);
 	if (ferror(file)) {
@@ -59,10 +59,10 @@ const char *test_stdio1(void)
 		return "Failed reading file";
 	} else
 		TPRINTF("OK\n");
-	
+
 	buf[cnt] = '\0';
 	TPRINTF("Read %zu bytes, string \"%s\"\n", cnt, buf);
-	
+
 	TPRINTF("Seek to beginning...");
 	if (fseek(file, 0, SEEK_SET) != 0) {
 		TPRINTF("errno = %s\n", str_error_name(errno));
@@ -70,23 +70,23 @@ const char *test_stdio1(void)
 		return "Failed seeking in file";
 	} else
 		TPRINTF("OK\n");
-	
+
 	TPRINTF("Read using fgetc()...");
 	while (true) {
 		int c = fgetc(file);
 		if (c == EOF)
 			break;
-		
+
 		TPRINTF(".");
 	}
 	TPRINTF("[EOF]\n");
-	
+
 	TPRINTF("Close...");
 	if (fclose(file) != 0) {
 		TPRINTF("errno = %s\n", str_error_name(errno));
 		return "Failed closing file";
 	} else
 		TPRINTF("OK\n");
-	
+
 	return NULL;
 }

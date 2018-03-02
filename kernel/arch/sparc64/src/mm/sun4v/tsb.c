@@ -58,16 +58,16 @@ void tsb_invalidate(as_t *as, uintptr_t page, size_t pages)
 	tsb_entry_t *tsb;
 	size_t i0, i;
 	size_t cnt;
-	
+
 	assert(as->arch.tsb_description.tsb_base);
-	
+
 	i0 = (page >> MMU_PAGE_WIDTH) & TSB_ENTRY_MASK;
 
 	if (pages == (size_t) -1 || pages > TSB_ENTRY_COUNT)
 		cnt = TSB_ENTRY_COUNT;
 	else
 		cnt = pages;
-	
+
 	tsb = (tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base);
 	for (i = 0; i < cnt; i++)
 		tsb[(i0 + i) & TSB_ENTRY_MASK].data.v = false;
@@ -86,7 +86,7 @@ void itsb_pte_copy(pte_t *t)
 
 	as = t->as;
 	index = (t->page >> MMU_PAGE_WIDTH) & TSB_ENTRY_MASK;
-	
+
 	tsb = (tsb_entry_t *) PA2KA(as->arch.tsb_description.tsb_base);
 	tte = &tsb[index];
 
@@ -113,9 +113,9 @@ void itsb_pte_copy(pte_t *t)
 	tte->data.x = true;
 	tte->data.w = false;
 	tte->data.size = PAGESIZE_8K;
-	
+
 	write_barrier();
-	
+
 	tte->data.v = t->p;	/* v as valid, p as present */
 }
 
@@ -161,9 +161,9 @@ void dtsb_pte_copy(pte_t *t, bool ro)
 	tte->data.x = true;
 	tte->data.w = ro ? false : t->w;
 	tte->data.size = PAGESIZE_8K;
-	
+
 	write_barrier();
-	
+
 	tte->data.v = t->p;	/* v as valid, p as present */
 }
 

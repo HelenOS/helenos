@@ -458,7 +458,7 @@ static inline int is_float_conv(int c)
 static inline int is_seq_conv(int c, int *modifier)
 {
 	assert(modifier);
-	
+
 	switch (c) {
 	case 'S':
 		*modifier = LMOD_l;
@@ -879,7 +879,7 @@ static inline int _internal_scanf(
 				++fmt;
 			} else if (is_seq_conv(*fmt, &length_mod)) {
 				/* Character sequence conversion. */
-				
+
 				/* Check sanity of optional parts of conversion specifier. */
 				if (length_mod != LMOD_NONE &&
 				    length_mod != LMOD_l) {
@@ -1073,7 +1073,7 @@ static inline int _internal_scanf(
 					}
 					++converted_cnt;
 				}
-				
+
 				converting = false;
 				/* Format string pointer already incremented. */
 			} else if (*fmt == 'n') {
@@ -1101,7 +1101,7 @@ static inline int _internal_scanf(
 				/* Illegal format string. */
 				break;
 			}
-			
+
 		} else {
 
 			/* Processing outside conversion specifier. Either skip white
@@ -1151,7 +1151,7 @@ static inline int _internal_scanf(
 					++fmt;
 				}
 			}
-			
+
 		}
 
 	}

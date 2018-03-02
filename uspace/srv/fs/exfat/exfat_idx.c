@@ -119,7 +119,7 @@ typedef struct {
 static inline size_t pos_key_hash(void *key)
 {
 	pos_key_t *pos = (pos_key_t*)key;
-	
+
 	size_t hash = 0;
 	hash = hash_combine(pos->pfc, pos->pdi);
 	return hash_combine(hash, pos->service_id);
@@ -128,13 +128,13 @@ static inline size_t pos_key_hash(void *key)
 static size_t pos_hash(const ht_link_t *item)
 {
 	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uph_link);
-	
+
 	pos_key_t pkey = {
 		.service_id = fidx->service_id,
 		.pfc = fidx->pfc,
 		.pdi = fidx->pdi,
 	};
-	
+
 	return pos_key_hash(&pkey);
 }
 
@@ -142,7 +142,7 @@ static bool pos_key_equal(void *key, const ht_link_t *item)
 {
 	pos_key_t *pos = (pos_key_t*)key;
 	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uph_link);
-	
+
 	return pos->service_id == fidx->service_id
 		&& pos->pdi == fidx->pdi
 		&& pos->pfc == fidx->pfc;
@@ -183,7 +183,7 @@ static bool idx_key_equal(void *key_arg, const ht_link_t *item)
 {
 	exfat_idx_t *fidx = hash_table_get_inst(item, exfat_idx_t, uih_link);
 	idx_key_t *key = (idx_key_t*)key_arg;
-	
+
 	return key->index == fidx->index && key->service_id == fidx->service_id;
 }
 
@@ -206,7 +206,7 @@ static hash_table_ops_t uih_ops = {
 static bool exfat_index_alloc(service_id_t service_id, fs_index_t *index)
 {
 	unused_t *u;
-	
+
 	assert(index);
 	u = unused_find(service_id, true);
 	if (!u)
@@ -338,7 +338,7 @@ static errno_t exfat_idx_create(exfat_idx_t **fidxp, service_id_t service_id)
 		free(fidx);
 		return ENOSPC;
 	}
-		
+
 	fibril_mutex_initialize(&fidx->lock);
 	fidx->service_id = service_id;
 	fidx->pfc = 0;	/* no parent yet */
@@ -360,7 +360,7 @@ errno_t exfat_idx_get_new(exfat_idx_t **fidxp, service_id_t service_id)
 		fibril_mutex_unlock(&used_lock);
 		return rc;
 	}
-		
+
 	hash_table_insert(&ui_hash, &fidx->uih_link);
 	fibril_mutex_lock(&fidx->lock);
 	fibril_mutex_unlock(&used_lock);
@@ -373,7 +373,7 @@ exfat_idx_t *
 exfat_idx_get_by_pos(service_id_t service_id, exfat_cluster_t pfc, unsigned pdi)
 {
 	exfat_idx_t *fidx;
-	
+
 	pos_key_t pos_key = {
 		.service_id = service_id,
 		.pfc = pfc,
@@ -392,7 +392,7 @@ exfat_idx_get_by_pos(service_id_t service_id, exfat_cluster_t pfc, unsigned pdi)
 			fibril_mutex_unlock(&used_lock);
 			return NULL;
 		}
-		
+
 		fidx->pfc = pfc;
 		fidx->pdi = pdi;
 
@@ -514,7 +514,7 @@ static bool rm_pos_service_id(ht_link_t *item, void *arg)
 	if (fidx->service_id == service_id) {
 		hash_table_remove_item(&up_hash, item);
 	}
-	
+
 	return true;
 }
 
@@ -526,7 +526,7 @@ static bool rm_idx_service_id(ht_link_t *item, void *arg)
 	if (fidx->service_id == service_id) {
 		hash_table_remove_item(&ui_hash, item);
 	}
-	
+
 	return true;
 }
 

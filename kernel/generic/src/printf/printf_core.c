@@ -156,7 +156,7 @@ static int printf_putstr(const char *str, printf_spec_t *ps)
 {
 	if (str == NULL)
 		return printf_putnchars(nullstr, str_size(nullstr), ps);
-	
+
 	return ps->str_write((void *) str, str_size(str), ps->data);
 }
 
@@ -172,7 +172,7 @@ static int printf_putchar(const char ch, printf_spec_t *ps)
 {
 	if (!ascii_check(ch))
 		return ps->str_write((void *) &invalch, 1, ps->data);
-	
+
 	return ps->str_write(&ch, 1, ps->data);
 }
 
@@ -188,7 +188,7 @@ static int printf_putwchar(const wchar_t ch, printf_spec_t *ps)
 {
 	if (!chr_check(ch))
 		return ps->str_write((void *) &invalch, 1, ps->data);
-	
+
 	return ps->wstr_write(&ch, sizeof(wchar_t), ps->data);
 }
 
@@ -214,10 +214,10 @@ static int print_char(const char ch, int width, uint32_t flags, printf_spec_t *p
 				counter++;
 		}
 	}
-	
+
 	if (printf_putchar(ch, ps) > 0)
 		counter++;
-	
+
 	while (--width > 0) {
 		/*
 		 * One space is consumed by the character itself, hence
@@ -226,7 +226,7 @@ static int print_char(const char ch, int width, uint32_t flags, printf_spec_t *p
 		if (printf_putchar(' ', ps) > 0)
 			counter++;
 	}
-	
+
 	return (int) (counter);
 }
 
@@ -252,10 +252,10 @@ static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_
 				counter++;
 		}
 	}
-	
+
 	if (printf_putwchar(ch, ps) > 0)
 		counter++;
-	
+
 	while (--width > 0) {
 		/*
 		 * One space is consumed by the character itself, hence
@@ -264,7 +264,7 @@ static int print_wchar(const wchar_t ch, int width, uint32_t flags, printf_spec_
 		if (printf_putchar(' ', ps) > 0)
 			counter++;
 	}
-	
+
 	return (int) (counter);
 }
 
@@ -282,12 +282,12 @@ static int print_str(char *str, int width, unsigned int precision,
 {
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
-	
+
 	/* Print leading spaces. */
 	size_t strw = str_length(str);
 	if ((precision == 0) || (precision > strw))
 		precision = strw;
-	
+
 	/* Left padding */
 	size_t counter = 0;
 	width -= precision;
@@ -297,7 +297,7 @@ static int print_str(char *str, int width, unsigned int precision,
 				counter++;
 		}
 	}
-	
+
 	/* Part of @a str fitting into the alloted space. */
 	int retval;
 	size_t size = str_lsize(str, precision);
@@ -330,12 +330,12 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 {
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
-	
+
 	/* Print leading spaces. */
 	size_t strw = wstr_length(str);
 	if ((precision == 0) || (precision > strw))
 		precision = strw;
-	
+
 	/* Left padding */
 	size_t counter = 0;
 	width -= precision;
@@ -345,15 +345,15 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 				counter++;
 		}
 	}
-	
+
 	/* Part of @a wstr fitting into the alloted space. */
 	int retval;
 	size_t size = wstr_lsize(str, precision);
 	if ((retval = printf_wputnchars(str, size, ps)) < 0)
 		return -counter;
-	
+
 	counter += retval;
-	
+
 	/* Right padding */
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
@@ -384,16 +384,16 @@ static int print_number(uint64_t num, int width, int precision, int base,
 		digits = digits_big;
 	else
 		digits = digits_small;
-	
+
 	char data[PRINT_NUMBER_BUFFER_SIZE];
 	char *ptr = &data[PRINT_NUMBER_BUFFER_SIZE - 1];
-	
+
 	/* Size of number with all prefixes and signs */
 	int size = 0;
-	
+
 	/* Put zero at end of string */
 	*ptr-- = 0;
-	
+
 	if (num == 0) {
 		*ptr-- = '0';
 		size++;
@@ -403,10 +403,10 @@ static int print_number(uint64_t num, int width, int precision, int base,
 			size++;
 		} while (num /= base);
 	}
-	
+
 	/* Size of plain number */
 	int number_size = size;
-	
+
 	/*
 	 * Collect the sum of all prefixes/signs/etc. to calculate padding and
 	 * leading zeroes.
@@ -425,7 +425,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 			break;
 		}
 	}
-	
+
 	char sgn = 0;
 	if (flags & __PRINTF_FLAG_SIGNED) {
 		if (flags & __PRINTF_FLAG_NEGATIVE) {
@@ -439,10 +439,10 @@ static int print_number(uint64_t num, int width, int precision, int base,
 			size++;
 		}
 	}
-	
+
 	if (flags & __PRINTF_FLAG_LEFTALIGNED)
 		flags &= ~__PRINTF_FLAG_ZEROPADDED;
-	
+
 	/*
 	 * If the number is left-aligned or precision is specified then
 	 * padding with zeros is ignored.
@@ -451,29 +451,29 @@ static int print_number(uint64_t num, int width, int precision, int base,
 		if ((precision == 0) && (width > size))
 			precision = width - size + number_size;
 	}
-	
+
 	/* Print leading spaces */
 	if (number_size > precision) {
 		/* Print the whole number, not only a part */
 		precision = number_size;
 	}
-	
+
 	width -= precision + size - number_size;
 	size_t counter = 0;
-	
+
 	if (!(flags & __PRINTF_FLAG_LEFTALIGNED)) {
 		while (width-- > 0) {
 			if (printf_putchar(' ', ps) == 1)
 				counter++;
 		}
 	}
-	
+
 	/* Print sign */
 	if (sgn) {
 		if (printf_putchar(sgn, ps) == 1)
 			counter++;
 	}
-	
+
 	/* Print prefix */
 	if (flags & __PRINTF_FLAG_PREFIX) {
 		switch (base) {
@@ -506,26 +506,26 @@ static int print_number(uint64_t num, int width, int precision, int base,
 			break;
 		}
 	}
-	
+
 	/* Print leading zeroes */
 	precision -= number_size;
 	while (precision-- > 0) {
 		if (printf_putchar('0', ps) == 1)
 			counter++;
 	}
-	
+
 	/* Print the number itself */
 	int retval;
 	if ((retval = printf_putstr(++ptr, ps)) > 0)
 		counter += retval;
-	
+
 	/* Print trailing spaces */
-	
+
 	while (width-- > 0) {
 		if (printf_putchar(' ', ps) == 1)
 			counter++;
 	}
-	
+
 	return ((int) counter);
 }
 
@@ -623,17 +623,17 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 	size_t i;        /* Index of the currently processed character from fmt */
 	size_t nxt = 0;  /* Index of the next character from fmt */
 	size_t j = 0;    /* Index to the first not printed nonformating character */
-	
+
 	size_t counter = 0;   /* Number of characters printed */
 	int retval;           /* Return values from nested functions */
-	
+
 	while (true) {
 		i = nxt;
 		wchar_t uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
-		
+
 		if (uc == 0)
 			break;
-		
+
 		/* Control character */
 		if (uc == '%') {
 			/* Print common characters if any processed */
@@ -645,13 +645,13 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				}
 				counter += retval;
 			}
-			
+
 			j = i;
-			
+
 			/* Parse modifiers */
 			uint32_t flags = 0;
 			bool end = false;
-			
+
 			do {
 				i = nxt;
 				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
@@ -675,14 +675,14 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					end = true;
 				};
 			} while (!end);
-			
+
 			/* Width & '*' operator */
 			int width = 0;
 			if (isdigit(uc)) {
 				while (true) {
 					width *= 10;
 					width += uc - '0';
-					
+
 					i = nxt;
 					uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 					if (uc == 0)
@@ -701,7 +701,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					flags |= __PRINTF_FLAG_LEFTALIGNED;
 				}
 			}
-			
+
 			/* Precision and '*' operator */
 			int precision = 0;
 			if (uc == '.') {
@@ -711,7 +711,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					while (true) {
 						precision *= 10;
 						precision += uc - '0';
-						
+
 						i = nxt;
 						uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
 						if (uc == 0)
@@ -730,9 +730,9 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					}
 				}
 			}
-			
+
 			qualifier_t qualifier;
-			
+
 			switch (uc) {
 			case 't':
 				/* ptrdiff_t */
@@ -779,9 +779,9 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				/* Default type */
 				qualifier = PrintfQualifierInt;
 			}
-			
+
 			unsigned int base = 10;
-			
+
 			switch (uc) {
 			/*
 			 * String and character conversions.
@@ -791,12 +791,12 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					retval = print_wstr(va_arg(ap, wchar_t *), width, precision, flags, ps);
 				else
 					retval = print_str(va_arg(ap, char *), width, precision, flags, ps);
-				
+
 				if (retval < 0) {
 					counter = -counter;
 					goto out;
 				}
-				
+
 				counter += retval;
 				j = nxt;
 				goto next_char;
@@ -805,16 +805,16 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					retval = print_wchar(va_arg(ap, wint_t), width, flags, ps);
 				else
 					retval = print_char(va_arg(ap, unsigned int), width, flags, ps);
-				
+
 				if (retval < 0) {
 					counter = -counter;
 					goto out;
 				};
-				
+
 				counter += retval;
 				j = nxt;
 				goto next_char;
-			
+
 			/*
 			 * Integer values
 			 */
@@ -846,12 +846,12 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			case 'x':
 				base = 16;
 				break;
-			
+
 			/* Percentile itself */
 			case '%':
 				j = i;
 				goto next_char;
-			
+
 			/*
 			 * Bad formatting.
 			 */
@@ -862,11 +862,11 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				 */
 				goto next_char;
 			}
-			
+
 			/* Print integers */
 			size_t size;
 			uint64_t number;
-			
+
 			switch (qualifier) {
 			case PrintfQualifierByte:
 				size = sizeof(unsigned char);
@@ -906,20 +906,20 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				counter = -counter;
 				goto out;
 			}
-			
+
 			if ((retval = print_number(number, width, precision,
 			    base, flags, ps)) < 0) {
 				counter = -counter;
 				goto out;
 			}
-			
+
 			counter += retval;
 			j = nxt;
 		}
 next_char:
 		;
 	}
-	
+
 	if (i > j) {
 		if ((retval = printf_putnchars(&fmt[j], i - j, ps)) < 0) {
 			/* Error */
@@ -928,7 +928,7 @@ next_char:
 		}
 		counter += retval;
 	}
-	
+
 out:
 	return ((int) counter);
 }

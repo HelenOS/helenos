@@ -74,16 +74,16 @@ const char *tests_hints_enum(const char *input, const char **help,
 {
 	size_t len = str_length(input);
 	test_t **test = (test_t **) ctx;
-	
+
 	if (*test == NULL)
 		*test = tests;
-	
+
 	for (; (*test)->name; (*test)++) {
 		const char *curname = (*test)->name;
-		
+
 		if (str_length(curname) < len)
 			continue;
-		
+
 		if (str_lcmp(input, curname, len) == 0) {
 			(*test)++;
 			if (help)
@@ -91,7 +91,7 @@ const char *tests_hints_enum(const char *input, const char **help,
 			return (curname + str_lsize(curname, len));
 		}
 	}
-	
+
 	return NULL;
 }
 

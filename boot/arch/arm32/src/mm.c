@@ -208,7 +208,7 @@ static void enable_paging(void)
 
 		/* Current settings */
 		"mrc p15, 0, r0, c1, c0, 0\n"
-		
+
 		/* Enable ICache, DCache, BPredictors and MMU,
 		 * we disable caches before jumping to kernel
 		 * so this is safe for all archs.
@@ -220,14 +220,14 @@ static void enable_paging(void)
 #else
 		"ldr r1, =0x00001805\n"
 #endif
-		
+
 		"orr r0, r0, r1\n"
 
 		/* Invalidate the TLB content before turning on the MMU.
 		 * ARMv7-A Reference manual, B3.10.3
 		 */
 		"mcr p15, 0, r0, c8, c7, 0\n"
-		
+
 		/* Store settings, enable the MMU */
 		"mcr p15, 0, r0, c1, c0, 0\n"
 		::: "r0", "r1"

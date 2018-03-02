@@ -227,7 +227,7 @@ errno_t vhc_schedule(usb_transfer_batch_t *batch)
 	}
 
 	fibril_mutex_unlock(&vhc->guard);
-	
+
 	if (targets > 1)
 		usb_log_warning("Transfer would be accepted by more devices!");
 

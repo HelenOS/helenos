@@ -60,14 +60,14 @@ errno_t udebug_thread_read(async_sess_t *sess, void *buffer, size_t n,
     size_t *copied, size_t *needed)
 {
 	sysarg_t a_copied, a_needed;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	errno_t rc = async_req_3_3(exch, IPC_M_DEBUG, UDEBUG_M_THREAD_READ,
 	    (sysarg_t) buffer, n, NULL, &a_copied, &a_needed);
-	
+
 	*copied = (size_t) a_copied;
 	*needed = (size_t) a_needed;
-	
+
 	return rc;
 }
 
@@ -75,14 +75,14 @@ errno_t udebug_name_read(async_sess_t *sess, void *buffer, size_t n,
     size_t *copied, size_t *needed)
 {
 	sysarg_t a_copied, a_needed;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	errno_t rc = async_req_3_3(exch, IPC_M_DEBUG, UDEBUG_M_NAME_READ,
 	    (sysarg_t) buffer, n, NULL, &a_copied, &a_needed);
-	
+
 	*copied = (size_t) a_copied;
 	*needed = (size_t) a_needed;
-	
+
 	return rc;
 }
 
@@ -90,14 +90,14 @@ errno_t udebug_areas_read(async_sess_t *sess, void *buffer, size_t n,
     size_t *copied, size_t *needed)
 {
 	sysarg_t a_copied, a_needed;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	errno_t rc = async_req_3_3(exch, IPC_M_DEBUG, UDEBUG_M_AREAS_READ,
 	    (sysarg_t) buffer, n, NULL, &a_copied, &a_needed);
-	
+
 	*copied = (size_t) a_copied;
 	*needed = (size_t) a_needed;
-	
+
 	return rc;
 }
 
@@ -126,11 +126,11 @@ errno_t udebug_go(async_sess_t *sess, thash_t tid, udebug_event_t *ev_type,
     sysarg_t *val0, sysarg_t *val1)
 {
 	sysarg_t a_ev_type;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	errno_t rc = async_req_2_3(exch, IPC_M_DEBUG, UDEBUG_M_GO,
 	    tid, &a_ev_type, val0, val1);
-	
+
 	*ev_type = a_ev_type;
 	return rc;
 }

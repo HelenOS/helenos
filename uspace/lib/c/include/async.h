@@ -81,7 +81,7 @@ typedef enum {
 	 *
 	 */
 	EXCHANGE_ATOMIC = 0,
-	
+
 	/** Exchange management via mutual exclusion
 	 *
 	 * Suitable for any kind of client/server communication,
@@ -89,7 +89,7 @@ typedef enum {
 	 *
 	 */
 	EXCHANGE_SERIALIZE = 1,
-	
+
 	/** Exchange management via phone cloning
 	 *
 	 * Suitable for servers which support client

@@ -59,18 +59,18 @@
 FUNCTION_BEGIN(memcpy_from_uspace)
 FUNCTION_BEGIN(memcpy_to_uspace)
 	movq MEMCPY_DST, %rax
-	
+
 	movq MEMCPY_SIZE, %rcx
 	shrq $3, %rcx           /* size / 8 */
-	
+
 	rep movsq               /* copy as much as possible word by word */
-	
+
 	movq MEMCPY_SIZE, %rcx
 	andq $7, %rcx           /* size % 8 */
 	jz 0f
-	
+
 	rep movsb               /* copy the rest byte by byte */
-	
+
 	0:
 		ret                 /* return MEMCPY_SRC, success */
 FUNCTION_END(memcpy_from_uspace)
@@ -91,20 +91,20 @@ FUNCTION_BEGIN(has_cpuid)
 	pushfq
 	popq %rax
 	movq %rax, %rdx
-	
+
 	/* Flip the ID bit */
 	xorl $RFLAGS_ID, %edx
-	
+
 	/* Store RFLAGS */
 	pushq %rdx
 	popfq
 	pushfq
-	
+
 	/* Get the ID bit again */
 	popq %rdx
 	andl $RFLAGS_ID, %eax
 	andl $RFLAGS_ID, %edx
-	
+
 	/* 0 if not supported, 1 if supported */
 	xorl %edx, %eax
 	ret
@@ -113,16 +113,16 @@ FUNCTION_END(has_cpuid)
 FUNCTION_BEGIN(cpuid)
 	/* Preserve %rbx across function calls */
 	movq %rbx, %r10
-	
+
 	/* Load the command into %eax */
 	movl %edi, %eax
-	
+
 	cpuid
 	movl %eax, 0(%rsi)
 	movl %ebx, 4(%rsi)
 	movl %ecx, 8(%rsi)
 	movl %edx, 12(%rsi)
-	
+
 	movq %r10, %rbx
 	ret
 FUNCTION_END(cpuid)
@@ -160,7 +160,7 @@ SYMBOL(int_\i)
 	 * Choose between version with error code and version without error
 	 * code.
 	 */
-	
+
 	.iflt \i-32
 		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
 			/*
@@ -179,7 +179,7 @@ SYMBOL(int_\i)
 		 */
 		subq $(ISTATE_SOFT_SIZE + 8), %rsp
 	.endif
-	
+
 	/*
 	 * Save the general purpose registers.
 	 */
@@ -229,7 +229,7 @@ SYMBOL(int_\i)
 
 	movq $(\i), %rdi   /* pass intnum in the first argument */
 	movq %rsp, %rsi    /* pass istate address in the second argument */
-	
+
 	cld
 
 	/* Call exc_dispatch(i, istate) */
@@ -249,7 +249,7 @@ SYMBOL(int_\i)
 	movq ISTATE_OFFSET_R9(%rsp), %r9
 	movq ISTATE_OFFSET_R10(%rsp), %r10
 	movq ISTATE_OFFSET_R11(%rsp), %r11
-	
+
 	/* $8 = Skip error word */
 	addq $(ISTATE_SOFT_SIZE + 8), %rsp
 	iretq
@@ -287,7 +287,7 @@ SYMBOL(interrupt_handlers)
 SYMBOL(syscall_entry)
 	/* Switch to hidden %gs */
 	swapgs
-	
+
 	movq %rsp, %gs:KSEG_OFFSET_USTACK_RSP  /* save this thread's user RSP */
 	movq %gs:KSEG_OFFSET_KSTACK_RSP, %rsp  /* set this thread's kernel RSP */
 
@@ -345,7 +345,7 @@ SYMBOL(syscall_entry)
 	/* Switch back to normal %gs */
 	swapgs
 	sti
-	
+
 	/* Copy the 4th argument where it is expected  */
 	movq %r10, %rcx
 
@@ -363,7 +363,7 @@ SYMBOL(syscall_entry)
 	jnz bad_rip
 
 	cli
-	
+
 	/*
 	 * Restore registers needed for return via the SYSRET instruction and
 	 * the clobbered preserved registers (i.e. RBP).
@@ -393,7 +393,7 @@ bad_rip:
 	xorb %al, %al
 	callq fault_from_uspace
 	/* not reached */
-	
+
 bad_rip_msg:
 	.asciz "Invalid instruction pointer."
 
@@ -413,130 +413,130 @@ bad_rip_msg:
  */
 FUNCTION_BEGIN(early_putchar)
 #if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
-	
+
 	/* Prologue, save preserved registers */
 	pushq %rbp
 	movq %rsp, %rbp
 	pushq %rbx
-	
+
 	movq %rdi, %rsi
 	movq $(PA2KA(0xb8000)), %rdi  /* base of EGA text mode memory */
 	xorl %eax, %eax
-	
+
 	/* Read bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
 	shl $8, %ax
-	
+
 	/* Read bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	inb %dx, %al
-	
+
 	/* Sanity check for the cursor on screen */
 	cmp $2000, %ax
 	jb early_putchar_cursor_ok
-	
+
 		movw $1998, %ax
-	
+
 	early_putchar_cursor_ok:
-	
+
 	movw %ax, %bx
 	shl $1, %rax
 	addq %rax, %rdi
-	
+
 	movq %rsi, %rax
-	
+
 	cmp $0x0a, %al
 	jne early_putchar_backspace
-	
+
 		/* Interpret newline */
-		
+
 		movw %bx, %ax  /* %bx -> %dx:%ax */
 		xorw %dx, %dx
-		
+
 		movw $80, %cx
 		idivw %cx, %ax  /* %dx = %bx % 80 */
-		
+
 		/* %bx <- %bx + 80 - (%bx % 80) */
 		addw %cx, %bx
 		subw %dx, %bx
-		
+
 		jmp early_putchar_skip
-	
+
 	early_putchar_backspace:
-	
+
 		cmp $0x08, %al
 		jne early_putchar_print
-		
+
 		/* Interpret backspace */
-		
+
 		cmp $0x0000, %bx
 		je early_putchar_skip
-		
+
 		dec %bx
 		jmp early_putchar_skip
-	
+
 	early_putchar_print:
-	
+
 		/* Print character */
-		
+
 		movb $0x0e, %ah  /* black background, yellow foreground */
 		stosw
 		inc %bx
-	
+
 	early_putchar_skip:
-	
+
 	/* Sanity check for the cursor on the last line */
 	cmp $2000, %bx
 	jb early_putchar_no_scroll
-	
+
 		/* Scroll the screen (24 rows) */
 		movq $(PA2KA(0xb80a0)), %rsi
 		movq $(PA2KA(0xb8000)), %rdi
 		movl $480, %ecx
 		rep movsq
-		
+
 		/* Clear the 24th row */
 		xorl %eax, %eax
 		movl $20, %ecx
 		rep stosq
-		
+
 		/* Go to row 24 */
 		movw $1920, %bx
-	
+
 	early_putchar_no_scroll:
-	
+
 	/* Write bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xe, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bh, %al
 	outb %al, %dx
-	
+
 	/* Write bits 0 - 7 of the cursor address */
 	movw $0x3d4, %dx
 	movb $0xf, %al
 	outb %al, %dx
-	
+
 	movw $0x3d5, %dx
 	movb %bl, %al
 	outb %al, %dx
-	
+
 	/* Epilogue, restore preserved registers */
 	popq %rbx
 	leave
-	
+
 #endif
-	
+
 	ret
 FUNCTION_END(early_putchar)

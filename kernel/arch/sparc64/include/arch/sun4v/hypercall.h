@@ -104,7 +104,7 @@
 #define __HYPERCALL_FAST(function_number) \
 	set function_number, %o5; \
 	ta FAST_TRAP;
-	
+
 /**
  * Performs a fast hypervisor API call from the assembly language code.
  * Expects the registers %o1-%o4 are properly filled with the arguments of the
@@ -196,7 +196,7 @@ __hypercall_fast_ret1(const uint64_t p1, const uint64_t p2, const uint64_t p3,
 	register uint64_t a3 asm("o2") = p3;
 	register uint64_t a4 asm("o3") = p4;
 	register uint64_t a5 asm("o4") = p5;
-	
+
 	asm volatile (
 		"ta %8\n"
 		: "=r" (a1), "=r" (a2)
@@ -238,7 +238,7 @@ __hypercall_hyperfast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
 		  "i" (sw_trap_number)
 		: "memory"
 	);
-	
+
 	return a1;
 }
 

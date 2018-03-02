@@ -74,8 +74,8 @@ void sal_system_table_parse(sal_system_table_header_t *sst)
 uint64_t sal_base_clock_frequency(void)
 {
 	uint64_t freq;
-	
+
 	sal_call_1_1(SAL_FREQ_BASE, 0, &freq);
-	
+
 	return freq;
 }

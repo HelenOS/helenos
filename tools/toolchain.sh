@@ -84,9 +84,9 @@ check_dependency() {
 	DEPENDENCY="$1"
 	HEADER="$2"
 	BODY="$3"
-	
+
 	FNAME="/tmp/conftest-$$"
-	
+
 	echo "#include ${HEADER}" > "${FNAME}.c"
 	echo >> "${FNAME}.c"
 	echo "int main()" >> "${FNAME}.c"
@@ -94,14 +94,14 @@ check_dependency() {
 	echo "${BODY}" >> "${FNAME}.c"
 	echo "	return 0;" >> "${FNAME}.c"
 	echo "}" >> "${FNAME}.c"
-	
+
 	cc $CFLAGS -c -o "${FNAME}.o" "${FNAME}.c" 2> "${FNAME}.log"
 	RC="$?"
-	
+
 	if [ "$RC" -ne "0" ] ; then
 		if [ "${DEPENDENCY}" == "isl" ]; then
 			BUILD_ISL=true
-			
+
 			echo " isl not found. Will be downloaded and built with GCC."
 		else
 			echo " ${DEPENDENCY} not found, too old or compiler error."
@@ -133,7 +133,7 @@ check_error() {
 	if [ "$1" -ne "0" ] ; then
 		echo
 		echo "Script failed: $2"
-		
+
 		exit 1
 	fi
 }
@@ -141,12 +141,12 @@ check_error() {
 check_md5() {
 	FILE="$1"
 	SUM="$2"
-	
+
 	COMPUTED="`md5sum "${FILE}" | cut -d' ' -f1`"
 	if [ "${SUM}" != "${COMPUTED}" ] ; then
 		echo
 		echo "Checksum of ${FILE} does not match."
-		
+
 		exit 2
 	fi
 }
@@ -192,7 +192,7 @@ show_usage() {
 	echo "Using the HelenOS-specific toolchain is still an experimental"
 	echo "feature that is not fully supported."
 	echo
-	
+
 	exit 3
 }
 
@@ -202,16 +202,16 @@ change_title() {
 
 show_countdown() {
 	TM="$1"
-	
+
 	if [ "${TM}" -eq 0 ] ; then
 		echo
 		return 0
 	fi
-	
+
 	echo -n "${TM} "
 	change_title "${TM}"
 	sleep 1
-	
+
 	TM="`expr "${TM}" - 1`"
 	show_countdown "${TM}"
 }
@@ -242,32 +242,32 @@ download_fetch() {
 	SOURCE="$1"
 	FILE="$2"
 	CHECKSUM="$3"
-	
+
 	if [ ! -f "${FILE}" ] ; then
 		change_title "Downloading ${FILE}"
 		wget -c "${SOURCE}${FILE}" -O "${FILE}".part
 		check_error $? "Error downloading ${FILE}."
-		
+
 		mv "${FILE}".part "${FILE}"
 	fi
-	
+
 	check_md5 "${FILE}" "${CHECKSUM}"
 }
 
 source_check() {
 	FILE="$1"
-	
+
 	if [ ! -f "${FILE}" ] ; then
 		echo
 		echo "File ${FILE} not found."
-		
+
 		exit 4
 	fi
 }
 
 cleanup_dir() {
 	DIR="$1"
-	
+
 	if [ -d "${DIR}" ] ; then
 		change_title "Removing ${DIR}"
 		echo " >>> Removing ${DIR}"
@@ -278,10 +278,10 @@ cleanup_dir() {
 create_dir() {
 	DIR="$1"
 	DESC="$2"
-	
+
 	change_title "Creating ${DESC}"
 	echo ">>> Creating ${DESC}"
-	
+
 	mkdir -p "${DIR}"
 	test -d "${DIR}"
 	check_error $? "Unable to create ${DIR}."
@@ -291,27 +291,27 @@ check_dirs() {
 	OUTSIDE="$1"
 	BASE="$2"
 	ORIGINAL="`pwd`"
-	
+
 	mkdir -p "${OUTSIDE}"
-	
+
 	cd "${OUTSIDE}"
 	check_error $? "Unable to change directory to ${OUTSIDE}."
 	ABS_OUTSIDE="`pwd`"
-	
+
 	cd "${BASE}"
 	check_error $? "Unable to change directory to ${BASE}."
 	ABS_BASE="`pwd`"
-	
+
 	cd "${ORIGINAL}"
 	check_error $? "Unable to change directory to ${ORIGINAL}."
-	
+
 	BASE_LEN="${#ABS_BASE}"
 	OUTSIDE_TRIM="${ABS_OUTSIDE:0:${BASE_LEN}}"
-	
+
 	if [ "${OUTSIDE_TRIM}" == "${ABS_BASE}" ] ; then
 		echo
 		echo "CROSS_PREFIX cannot reside within the working directory."
-		
+
 		exit 5
 	fi
 }
@@ -319,10 +319,10 @@ check_dirs() {
 unpack_tarball() {
 	FILE="$1"
 	DESC="$2"
-	
+
 	change_title "Unpacking ${DESC}"
 	echo " >>> Unpacking ${DESC}"
-	
+
 	case "${FILE}" in
 		*.gz)
 			tar -xzf "${FILE}"
@@ -344,10 +344,10 @@ patch_sources() {
 	PATCH_FILE="$1"
 	PATCH_STRIP="$2"
 	DESC="$3"
-	
+
 	change_title "Patching ${DESC}"
 	echo " >>> Patching ${DESC} with ${PATCH_FILE}"
-	
+
 	patch -t "-p${PATCH_STRIP}" <"$PATCH_FILE"
 	check_error $? "Error patching ${DESC}."
 }
@@ -356,16 +356,16 @@ prepare() {
 	show_dependencies
 	check_dependecies
 	show_countdown 10
-	
+
 	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
 	ISL_SOURCE="http://isl.gforge.inria.fr/"
-	
+
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "9e8340c96626b469a603c15c9d843727"
 	download_fetch "${GCC_SOURCE}" "${GCC}" "6bf56a2bca9dac9dbbf8e8d1036964a8"
 	download_fetch "${GDB_SOURCE}" "${GDB}" "06c8f40521ed65fe36ebc2be29b56942"
-	
+
 	if $BUILD_ISL ; then
 		download_fetch "${ISL_SOURCE}" "${ISL}" "11436d6b205e516635b666090b94ab32"
 	fi
@@ -425,7 +425,7 @@ set_target_from_platform() {
 
 build_target() {
 	PLATFORM="$1"
-	
+
 	# This sets the *_TARGET variables
 	set_target_from_platform "$PLATFORM"
 	if $USE_HELENOS_TARGET ; then
@@ -433,7 +433,7 @@ build_target() {
 	else
 		TARGET="$LINUX_TARGET"
 	fi
-	
+
 	WORKDIR="${BASEDIR}/${TARGET}"
 	INSTALL_DIR="${WORKDIR}/PKG"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
@@ -441,13 +441,13 @@ build_target() {
 	ISLDIR="${WORKDIR}/isl-${ISL_VERSION}"
 	OBJDIR="${WORKDIR}/gcc-obj"
 	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
-	
+
 	if [ -z "${CROSS_PREFIX}" ] ; then
 		CROSS_PREFIX="/usr/local/cross"
 	fi
-	
+
 	PREFIX="${CROSS_PREFIX}/${TARGET}"
-	
+
 	echo ">>> Downloading tarballs"
 	source_check "${BASEDIR}/${BINUTILS}"
 	source_check "${BASEDIR}/${GCC}"
@@ -455,18 +455,18 @@ build_target() {
 	if $BUILD_ISL ; then
 		source_check "${BASEDIR}/${ISL}"
 	fi
-	
+
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
-	
+
 	create_dir "${OBJDIR}" "GCC object directory"
-	
+
 	check_dirs "${PREFIX}" "${WORKDIR}"
-	
+
 	echo ">>> Unpacking tarballs"
 	cd "${WORKDIR}"
 	check_error $? "Change directory failed."
-	
+
 	unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
 	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
@@ -474,7 +474,7 @@ build_target() {
 		unpack_tarball "${BASEDIR}/${ISL}" "isl"
 		mv "${ISLDIR}" "${GCCDIR}"/isl
 	fi
-	
+
 	echo ">>> Applying patches"
 	for p in $BINUTILS_PATCHES ; do
 		patch_sources "${SRCDIR}/${p}" 0 "binutils"
@@ -485,11 +485,11 @@ build_target() {
 	for p in $GDB_PATCHES ; do
 		patch_sources "${SRCDIR}/${p}" 0 "GDB"
 	done
-	
+
 	echo ">>> Processing binutils (${PLATFORM})"
 	cd "${BINUTILSDIR}"
 	check_error $? "Change directory failed."
-	
+
 	change_title "binutils: configure (${PLATFORM})"
 	CFLAGS=-Wno-error ./configure \
 		"--target=${TARGET}" \
@@ -497,20 +497,20 @@ build_target() {
 		--disable-nls --disable-werror --enable-gold \
 		--enable-deterministic-archives
 	check_error $? "Error configuring binutils."
-	
+
 	change_title "binutils: make (${PLATFORM})"
 	make all
 	check_error $? "Error compiling binutils."
-	
+
 	change_title "binutils: install (${PLATFORM})"
 	make install "DESTDIR=${INSTALL_DIR}"
 	check_error $? "Error installing binutils."
-	
-	
+
+
 	echo ">>> Processing GCC (${PLATFORM})"
 	cd "${OBJDIR}"
 	check_error $? "Change directory failed."
-	
+
 	change_title "GCC: configure (${PLATFORM})"
 	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${GCCDIR}/configure" \
 		"--target=${TARGET}" \
@@ -520,58 +520,58 @@ build_target() {
 		--disable-multilib --disable-libgcj --without-headers \
 		--disable-shared --enable-lto --disable-werror
 	check_error $? "Error configuring GCC."
-	
+
 	change_title "GCC: make (${PLATFORM})"
 	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gcc
 	check_error $? "Error compiling GCC."
-	
+
 	change_title "GCC: install (${PLATFORM})"
 	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gcc "DESTDIR=${INSTALL_DIR}"
 	check_error $? "Error installing GCC."
-	
-	
+
+
 	# No GDB support for RISC-V so far
 	if [ "$PLATFORM" != "riscv64" ] ; then
 		echo ">>> Processing GDB (${PLATFORM})"
 		cd "${GDBDIR}"
 		check_error $? "Change directory failed."
-		
+
 		change_title "GDB: configure (${PLATFORM})"
 		PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" ./configure \
 			"--target=${TARGET}" \
 			"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
 			--enable-werror=no --without-guile
 		check_error $? "Error configuring GDB."
-		
+
 		change_title "GDB: make (${PLATFORM})"
 		PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
 		check_error $? "Error compiling GDB."
-		
+
 		change_title "GDB: make (${PLATFORM})"
 		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
 		check_error $? "Error installing GDB."
 	fi
-	
+
 	# Symlink clang and lld to the install path.
 	CLANG="`which clang 2> /dev/null || echo "/usr/bin/clang"`"
 	LLD="`which ld.lld 2> /dev/null || echo "/usr/bin/ld.lld"`"
-	
+
 	ln -s $CLANG "${INSTALL_DIR}/${PREFIX}/bin/${TARGET}-clang"
 	ln -s $LLD "${INSTALL_DIR}/${PREFIX}/bin/${TARGET}-ld.lld"
-	
+
 	if $REAL_INSTALL ; then
 		echo ">>> Moving to the destination directory."
 		cleanup_dir "${PREFIX}"
 		echo mv "${INSTALL_DIR}/${PREFIX}" "${PREFIX}"
 		mv "${INSTALL_DIR}/${PREFIX}" "${PREFIX}"
 	fi
-	
+
 	cd "${BASEDIR}"
 	check_error $? "Change directory failed."
-	
+
 	echo ">>> Cleaning up"
 	cleanup_dir "${WORKDIR}"
-	
+
 	echo
 	echo ">>> Cross-compiler for ${TARGET} installed."
 }
@@ -646,23 +646,23 @@ case "$1" in
 		build_target "amd64" &
 		build_target "arm32" &
 		wait
-		
+
 		build_target "ia32" &
 		build_target "ia64" &
 		wait
-		
+
 		build_target "mips32" &
 		build_target "mips32eb" &
 		wait
-		
+
 		build_target "mips64" &
 		build_target "ppc32" &
 		wait
-		
+
 		build_target "riscv64" &
 		build_target "ppc64" &
 		wait
-		
+
 		build_target "sparc64" &
 		wait
 		;;

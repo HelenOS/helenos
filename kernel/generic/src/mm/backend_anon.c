@@ -124,16 +124,16 @@ void anon_share(as_area_t *area)
 	list_foreach(area->used_space.leaf_list, leaf_link, btree_node_t,
 	    node) {
 		unsigned int i;
-		
+
 		for (i = 0; i < node->keys; i++) {
 			uintptr_t base = node->key[i];
 			size_t count = (size_t) node->value[i];
 			unsigned int j;
-			
+
 			for (j = 0; j < count; j++) {
 				pte_t pte;
 				bool found;
-			
+
 				page_table_lock(area->as, false);
 				found = page_mapping_find(area->as,
 				    base + P2SZ(j), false, &pte);
@@ -200,7 +200,7 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	mutex_lock(&area->sh_info->lock);
 	if (area->sh_info->shared) {
 		btree_node_t *leaf;
-		
+
 		/*
 		 * The area is shared, chances are that the mapping can be found
 		 * in the pagemap of the address space area share info
@@ -213,7 +213,7 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		if (!frame) {
 			bool allocate = true;
 			unsigned int i;
-			
+
 			/*
 			 * Zero can be returned as a valid frame address.
 			 * Just a small workaround.
@@ -229,7 +229,7 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 				    FRAME_NO_RESERVE);
 				memsetb((void *) kpage, PAGE_SIZE, 0);
 				km_temporary_page_put(kpage);
-				
+
 				/*
 				 * Insert the address of the newly allocated
 				 * frame to the pagemap.
@@ -271,7 +271,7 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		km_temporary_page_put(kpage);
 	}
 	mutex_unlock(&area->sh_info->lock);
-	
+
 	/*
 	 * Map 'upage' to 'frame'.
 	 * Note that TLB shootdown is not attempted as only new information is
@@ -280,7 +280,7 @@ int anon_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	page_mapping_insert(AS, upage, frame, as_area_get_flags(area));
 	if (!used_space_insert(area, upage, 1))
 		panic("Cannot insert used space.");
-		
+
 	return AS_PF_OK;
 }
 

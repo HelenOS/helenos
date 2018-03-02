@@ -64,7 +64,7 @@ errno_t req_get_descriptor(usbvirt_device_t *device,
 			return ENOENT;
 		}
 	}
-	
+
 	/* Let the framework handle all the rest. */
 	return EFORWARD;
 }

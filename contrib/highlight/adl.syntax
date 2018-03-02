@@ -5,47 +5,47 @@ context default
 	keyword whole interface yellow
 	keyword whole frame yellow
 	keyword whole architecture yellow
-	
+
 	keyword whole system yellow
 	keyword whole extends yellow
 	keyword whole version yellow
-	
+
 	keyword whole inst yellow
 	keyword whole bind yellow
 	keyword whole to yellow
 	keyword whole subsume yellow
 	keyword whole delegate yellow
-	
+
 	keyword whole sysarg_t yellow
 	keyword whole string yellow
 	keyword whole stream yellow
 	keyword whole void yellow
-	
+
 	keyword whole in yellow
 	keyword whole in_copy yellow
 	keyword whole out yellow
 	keyword whole out_copy yellow
-	
+
 	keyword whole protocol yellow
 	keyword whole initialization yellow
 	keyword whole finalization yellow
 	keyword whole provides yellow
 	keyword whole requires yellow
-	
+
 	keyword /\* brown
 	keyword \*/ brown
 	keyword // brown
-	
+
 	keyword { brightcyan
 	keyword } brightcyan
-	
+
 	keyword ( brightcyan
 	keyword ) brightcyan
-	
+
 	keyword , brightcyan
 	keyword : brightcyan
 	keyword ; brightmagenta
-	
+
 	keyword [ brightblue black
 	keyword ] brightblue black
 

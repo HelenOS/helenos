@@ -132,7 +132,7 @@ typedef struct {
 typedef struct exfat_node {
 	/** Back pointer to the FS node. */
 	fs_node_t		*bp;
-	
+
 	fibril_mutex_t		lock;
 	exfat_node_type_t	type;
 	exfat_idx_t			*idx;

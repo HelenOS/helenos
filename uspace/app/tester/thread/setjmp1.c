@@ -63,8 +63,8 @@ static const char *test_it(void) {
 const char *test_setjmp1(void)
 {
 	counter = 0;
-	
+
 	const char *err_msg = test_it();
-	
+
 	return err_msg;
 }

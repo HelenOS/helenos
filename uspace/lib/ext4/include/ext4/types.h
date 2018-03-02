@@ -65,7 +65,7 @@ typedef struct ext4_superblock {
 	uint32_t rev_level;                 /* Revision level */
 	uint16_t def_resuid;                /* Default uid for reserved blocks */
 	uint16_t def_resgid;                /* Default gid for reserved blocks */
-	
+
 	/* Fields for EXT4_DYNAMIC_REV superblocks only. */
 	uint32_t first_inode;             /* First non-reserved inode */
 	uint16_t inode_size;              /* Size of inode structure */
@@ -77,7 +77,7 @@ typedef struct ext4_superblock {
 	char volume_name[16];             /* Volume name */
 	char last_mounted[64];            /* Directory where last mounted */
 	uint32_t algorithm_usage_bitmap;  /* For compression */
-	
+
 	/*
 	 * Performance hints. Directory preallocation should only
 	 * happen if the EXT4_FEATURE_COMPAT_DIR_PREALLOC flag is on.
@@ -85,7 +85,7 @@ typedef struct ext4_superblock {
 	uint8_t prealloc_blocks;        /* Number of blocks to try to preallocate */
 	uint8_t prealloc_dir_blocks;    /* Number to preallocate for dirs */
 	uint16_t reserved_gdt_blocks;   /* Per group desc for online growth */
-	
+
 	/*
 	 * Journaling support valid if EXT4_FEATURE_COMPAT_HAS_JOURNAL set.
 	 */
@@ -250,7 +250,7 @@ typedef struct ext4_block_group {
 	uint32_t reserved[2];                 /* Likely block/inode bitmap checksum */
 	uint16_t itable_unused_lo;            /* Unused inodes count */
 	uint16_t checksum;                    /* crc16(sb_uuid+group+desc) */
-	
+
 	uint32_t block_bitmap_hi;             /* Blocks bitmap block MSB */
 	uint32_t inode_bitmap_hi;             /* I-nodes bitmap block MSB */
 	uint32_t inode_table_first_block_hi;  /* I-nodes table block MSB */
@@ -306,7 +306,7 @@ typedef struct ext4_inode {
 	uint32_t file_acl_lo;                /* File ACL */
 	uint32_t size_hi;
 	uint32_t obso_faddr;                 /* Obsoleted fragment address */
-	
+
 	union {
 		struct {
 			uint16_t blocks_high;
@@ -323,7 +323,7 @@ typedef struct ext4_inode {
 			uint32_t author;
 		} hurd2;
 	} __attribute__ ((packed)) osd2;
-	
+
 	uint16_t extra_isize;
 	uint16_t pad1;
 	uint32_t ctime_extra;   /* Extra change time (nsec << 2 | epoch) */
@@ -402,12 +402,12 @@ typedef struct ext4_directory_entry_ll {
 	uint32_t inode;         /* I-node for the entry */
 	uint16_t entry_length;  /* Distance to the next directory entry */
 	uint8_t name_length;    /* Lower 8 bits of name length */
-	
+
 	union {
 		uint8_t name_length_high;  /* Higher 8 bits of name length */
 		uint8_t inode_type;        /* Type of referenced inode (in rev >= 0.5) */
 	} __attribute__ ((packed));
-	
+
 	uint8_t name[EXT4_DIRECTORY_FILENAME_LEN];  /* Entry name */
 } __attribute__((packed)) ext4_directory_entry_ll_t;
 
@@ -494,7 +494,7 @@ typedef struct ext4_extent {
  */
 typedef struct ext4_extent_index {
 	uint32_t first_block;  /* Index covers logical blocks from 'block' */
-	
+
 	/**
 	 * Pointer to the physical block of the next
 	 * level. leaf or next index could be there

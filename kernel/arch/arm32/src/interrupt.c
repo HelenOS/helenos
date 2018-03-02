@@ -48,7 +48,7 @@ ipl_t interrupts_disable(void)
 	ipl_t ipl = current_status_reg_read();
 
 	current_status_reg_control_write(STATUS_REG_IRQ_DISABLED_BIT | ipl);
-	
+
 	return ipl;
 }
 
@@ -61,7 +61,7 @@ ipl_t interrupts_enable(void)
 	ipl_t ipl = current_status_reg_read();
 
 	current_status_reg_control_write(ipl & ~STATUS_REG_IRQ_DISABLED_BIT);
-	
+
 	return ipl;
 }
 

@@ -42,10 +42,10 @@
 FUNCTION_BEGIN(entry_point_jmp)
 	# tmp := entry_point
 	move $t9, $a0
-	
+
 	# Pass pcb to the entry point in $a0
 	move $a0, $a1
-	
+
 	jr $t9
 	addiu $sp, -ABI_STACK_FRAME
 	addiu $sp, ABI_STACK_FRAME

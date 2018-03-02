@@ -70,12 +70,12 @@ static void remote_led_color_set(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
 {
 	led_dev_ops_t *led_dev_ops = (led_dev_ops_t *) ops;
 	pixel_t color = DEV_IPC_GET_ARG1(*call);
-	
+
 	if (!led_dev_ops->color_set) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	errno_t rc = (*led_dev_ops->color_set)(fun, color);
 	async_answer_0(callid, rc);
 }

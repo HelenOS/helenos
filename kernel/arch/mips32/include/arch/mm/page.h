@@ -164,7 +164,7 @@ typedef struct {
 NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
-	
+
 	return ((p->cacheable << PAGE_CACHEABLE_SHIFT) |
 	    ((!p->p) << PAGE_PRESENT_SHIFT) |
 	    (1 << PAGE_USER_SHIFT) |
@@ -177,12 +177,12 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
-	
+
 	p->cacheable = (flags & PAGE_CACHEABLE) != 0;
 	p->p = !(flags & PAGE_NOT_PRESENT);
 	p->g = (flags & PAGE_GLOBAL) != 0;
 	p->w = (flags & PAGE_WRITE) != 0;
-	
+
 	/*
 	 * Ensure that valid entries have at least one bit set.
 	 */

@@ -61,17 +61,17 @@ void ofw_init(void)
 	ofw_chosen = ofw_find_device("/chosen");
 	if (ofw_chosen == (phandle) -1)
 		halt();
-	
+
 	if ((ofw_ret_t) ofw_get_property(ofw_chosen, "stdout", &ofw_stdout,
 	    sizeof(ofw_stdout)) <= 0)
 		ofw_stdout = 0;
-	
+
 	ofw_root = ofw_find_device("/");
 	if (ofw_root == (phandle) -1) {
 		printf("Error: Unable to find / device, halting.\n");
 		halt();
 	}
-	
+
 	if ((ofw_ret_t) ofw_get_property(ofw_chosen, "mmu", &ofw_mmu,
 	    sizeof(ofw_mmu)) <= 0) {
 		printf("Error: Unable to get mmu property, halting.\n");
@@ -82,7 +82,7 @@ void ofw_init(void)
 		printf("Error: Unable to get memory property, halting.\n");
 		halt();
 	}
-	
+
 	ofw_memory = ofw_find_device("/memory");
 	if (ofw_memory == (phandle) -1) {
 		printf("Error: Unable to find /memory device, halting.\n");
@@ -109,24 +109,24 @@ ofw_arg_t ofw_call(const char *service, const size_t nargs,
 	args.service = (ofw_arg_t) service;
 	args.nargs = nargs;
 	args.nret = nret;
-	
+
 	va_list list;
 	va_start(list, rets);
-	
+
 	size_t i;
 	for (i = 0; i < nargs; i++)
 		args.args[i] = va_arg(list, ofw_arg_t);
-	
+
 	va_end(list);
-	
+
 	for (i = 0; i < nret; i++)
 		args.args[i + nargs] = 0;
-	
+
 	(void) ofw(&args);
-	
+
 	for (i = 1; i < nret; i++)
 		rets[i - 1] = args.args[i + nargs];
-	
+
 	return args.args[nargs];
 }
 
@@ -160,26 +160,26 @@ ofw_arg_t ofw_package_to_path(const phandle device, char *buf,
 size_t ofw_get_address_cells(const phandle device)
 {
 	ofw_prop_t ret = 1;
-	
+
 	if ((ofw_ret_t) ofw_get_property(device, "#address-cells", &ret,
 	    sizeof(ret)) <= 0)
 		if ((ofw_ret_t) ofw_get_property(ofw_root, "#address-cells", &ret,
 		    sizeof(ret)) <= 0)
 			ret = OFW_ADDRESS_CELLS;
-	
+
 	return (size_t) ret;
 }
 
 size_t ofw_get_size_cells(const phandle device)
 {
 	ofw_prop_t ret = 1;
-	
+
 	if ((ofw_ret_t) ofw_get_property(device, "#size-cells", &ret,
 	    sizeof(ret)) <= 0)
 		if ((ofw_ret_t) ofw_get_property(ofw_root, "#size-cells", &ret,
 		    sizeof(ret)) <= 0)
 			ret = OFW_SIZE_CELLS;
-	
+
 	return (size_t) ret;
 }
 
@@ -197,7 +197,7 @@ void ofw_putchar(const char ch)
 {
 	if (ofw_stdout == 0)
 		return;
-	
+
 	ofw_call("write", 3, 1, NULL, ofw_stdout, &ch, 1);
 }
 
@@ -209,17 +209,17 @@ void *ofw_translate(const void *virt)
 		printf("Error: mmu method translate failed, halting.\n");
 		halt();
 	}
-	
+
 	if (result[0] == false) {
 		printf("Error: Unable to translate virtual address %p, halting.\n",
 		    virt);
 		halt();
 	}
-	
+
 #ifdef __32_BITS__
 	return (void *) result[2];
 #endif
-	
+
 #ifdef __64_BITS__
 	return (void *) ((result[2] << 32) | result[3]);
 #endif
@@ -234,7 +234,7 @@ static void *ofw_claim_virt_internal(const void *virt, const size_t len,
 		printf("Error: mmu method claim failed, halting.\n");
 		halt();
 	}
-	
+
 	return (void *) addr;
 }
 
@@ -251,13 +251,13 @@ void ofw_claim_virt(const void *virt, const size_t len)
 void *ofw_claim_virt_any(const size_t len, const size_t alignment)
 {
 	void *addr = ofw_claim_virt_internal(NULL, len, alignment);
-	
+
 	if (addr == NULL) {
 		printf("Error: Unable to claim %zu bytes in virtual memory, halting.\n",
 		    len);
 		halt();
 	}
-	
+
 	return addr;
 }
 
@@ -275,7 +275,7 @@ static void *ofw_claim_phys_internal(const void *phys, const size_t len,
 	 * more generic; it is here for debugging
 	 * purposes.
 	 */
-	
+
 #ifdef __32_BITS__
 	ofw_arg_t retaddr[1];
 	if (ofw_call("call-method", 5, 2, retaddr, "claim",
@@ -283,10 +283,10 @@ static void *ofw_claim_phys_internal(const void *phys, const size_t len,
 		printf("Error: memory method claim failed, halting.\n");
 		halt();
 	}
-	
+
 	return (void *) retaddr[0];
 #endif
-	
+
 #ifdef __64_BITS__
 	ofw_arg_t retaddr[2];
 	if (ofw_call("call-method", 6, 3, retaddr, "claim",
@@ -295,7 +295,7 @@ static void *ofw_claim_phys_internal(const void *phys, const size_t len,
 		printf("Error: memory method claim failed, halting.\n");
 		halt();
 	}
-	
+
 	return (void *) ((retaddr[0] << 32) | retaddr[1]);
 #endif
 }
@@ -318,7 +318,7 @@ void *ofw_claim_phys_any(const size_t len, const size_t alignment)
 		    len);
 		halt();
 	}
-	
+
 	return addr;
 }
 
@@ -327,20 +327,20 @@ void ofw_map(const void *phys, const void *virt, const size_t size,
 {
 	ofw_arg_t phys_hi;
 	ofw_arg_t phys_lo;
-	
+
 #ifdef __32_BITS__
 	phys_hi = (ofw_arg_t) phys;
 	phys_lo = 0;
 #endif
-	
+
 #ifdef __64_BITS__
 	phys_hi = (ofw_arg_t) phys >> 32;
 	phys_lo = (ofw_arg_t) phys & 0xffffffff;
 #endif
-	
+
 	ofw_arg_t ret = ofw_call("call-method", 7, 1, NULL, "map", ofw_mmu, mode,
 	    ALIGN_UP(size, PAGE_SIZE), virt, phys_hi, phys_lo);
-	
+
 	if (ret != 0) {
 		printf("Error: Unable to map %p to %p (size %zu), halting.\n",
 		    virt, phys, size);
@@ -359,9 +359,9 @@ void ofw_memmap(memmap_t *map)
 	    (sizeof(uintptr_t) / sizeof(uint32_t));
 	size_t sc = ofw_get_size_cells(ofw_memory) /
 	    (sizeof(uintptr_t) / sizeof(uint32_t));
-	
+
 	uintptr_t buf[((ac + sc) * MEMMAP_MAX_RECORDS)];
-	
+
 	/* The number of bytes read */
 	ofw_ret_t ret = (ofw_ret_t) ofw_get_property(ofw_memory, "reg", buf,
 	    sizeof(buf));
@@ -369,7 +369,7 @@ void ofw_memmap(memmap_t *map)
 		printf("Error: Unable to get physical memory information, halting.\n");
 		halt();
 	}
-	
+
 	size_t pos;
 	map->total = 0;
 	map->cnt = 0;
@@ -377,7 +377,7 @@ void ofw_memmap(memmap_t *map)
 	    (map->cnt < MEMMAP_MAX_RECORDS); pos += ac + sc) {
 		void *start = (void *) (buf[pos + ac - 1]);
 		uintptr_t size = buf[pos + ac + sc - 1];
-		
+
 		/*
 		 * This is a hot fix of the issue which occurs on machines
 		 * where there are holes in the physical memory (such as
@@ -388,7 +388,7 @@ void ofw_memmap(memmap_t *map)
 		if ((map->cnt > 0) && (map->zones[map->cnt - 1].start +
 		    map->zones[map->cnt - 1].size < start))
 			break;
-		
+
 		if (size > 0) {
 			map->zones[map->cnt].start = start;
 			map->zones[map->cnt].size = size;
@@ -396,7 +396,7 @@ void ofw_memmap(memmap_t *map)
 			map->total += size;
 		}
 	}
-	
+
 	if (map->total == 0) {
 		printf("Error: No physical memory detected, halting.\n");
 		halt();
@@ -420,7 +420,7 @@ void ofw_alloc(const char *name, void **base, void **base_pa, const size_t size,
 	do {
 		*base_pa = ofw_claim_phys_any(size, PAGE_SIZE);
 	} while (*base_pa <= min_pa);
-	
+
 	*base = ofw_claim_virt_any(size, PAGE_SIZE);
 	ofw_map(*base_pa, *base, ALIGN_UP(size, PAGE_SIZE), (ofw_arg_t) -1);
 }
@@ -432,29 +432,29 @@ static void ofw_setup_screen(phandle handle)
 	if ((ofw_ret_t) ofw_get_property(handle, "device_type", device_type,
 	    OFW_TREE_PROPERTY_MAX_VALUELEN) <= 0)
 		return;
-	
+
 	device_type[OFW_TREE_PROPERTY_MAX_VALUELEN - 1] = '\0';
 	if (str_cmp(device_type, "display") != 0)
 		return;
-	
+
 	/* Check for 8 bit depth */
 	ofw_prop_t depth;
 	if ((ofw_ret_t) ofw_get_property(handle, "depth", &depth,
 	    sizeof(depth)) <= 0)
 		depth = 0;
-	
+
 	/* Get device path */
 	ofw_arg_t len = ofw_package_to_path(handle, path, OFW_TREE_PATH_MAX_LEN);
 	if (len == (ofw_arg_t) -1)
 		return;
-	
+
 	path[len] = '\0';
-	
+
 	/* Open the display to initialize it */
 	ihandle screen = ofw_open(path);
 	if (screen == (ihandle) -1)
 		return;
-	
+
 	if (depth == 8) {
 		/* Setup the palette so that the (inverted) 3:2:3 scheme is usable */
 		size_t i;
@@ -469,14 +469,14 @@ static void ofw_setup_screens_internal(phandle current)
 {
 	while ((current != 0) && (current != (phandle) -1)) {
 		ofw_setup_screen(current);
-		
+
 		/*
 		 * Recursively process the potential child node.
 		 */
 		phandle child = ofw_get_child_node(current);
 		if ((child != 0) && (child != (phandle) -1))
 			ofw_setup_screens_internal(child);
-		
+
 		/*
 		 * Iteratively process the next peer node.
 		 * Note that recursion is a bad idea here.
@@ -492,7 +492,7 @@ static void ofw_setup_screens_internal(phandle current)
 			 */
 			continue;
 		}
-		
+
 		/*
 		 * No more peers on this level.
 		 */

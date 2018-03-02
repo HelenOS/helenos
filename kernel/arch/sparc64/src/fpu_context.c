@@ -66,7 +66,7 @@ void fpu_context_save(fpu_context_t *fctx)
 	 * We need to split loading of the floating-point registers because
 	 * GCC (4.1.1) can't handle more than 30 operands in one asm statement.
 	 */
-	
+
 	asm volatile (
 		"std %%f32, %0\n"
 		"std %%f34, %1\n"
@@ -89,7 +89,7 @@ void fpu_context_save(fpu_context_t *fctx)
 		  "=m" (fctx->d[24]), "=m" (fctx->d[25]), "=m" (fctx->d[26]), "=m" (fctx->d[27]),
 		  "=m" (fctx->d[28]), "=m" (fctx->d[29]), "=m" (fctx->d[30]), "=m" (fctx->d[31])
 	);
-	
+
 	asm volatile ("stx %%fsr, %0\n" : "=m" (fctx->fsr));
 }
 
@@ -118,12 +118,12 @@ void fpu_context_restore(fpu_context_t *fctx)
 		  "m" (fctx->d[8]), "m" (fctx->d[9]), "m" (fctx->d[10]), "m" (fctx->d[11]),
 		  "m" (fctx->d[12]), "m" (fctx->d[13]), "m" (fctx->d[14]), "m" (fctx->d[15])
 	);
-	
+
 	/*
 	 * We need to split loading of the floating-point registers because
 	 * GCC (4.1.1) can't handle more than 30 operands in one asm statement.
 	 */
-	
+
 	asm volatile (
 		"ldd %0, %%f32\n"
 		"ldd %1, %%f34\n"
@@ -147,14 +147,14 @@ void fpu_context_restore(fpu_context_t *fctx)
 		  "m" (fctx->d[24]), "m" (fctx->d[25]), "m" (fctx->d[26]), "m" (fctx->d[27]),
 		  "m" (fctx->d[28]), "m" (fctx->d[29]), "m" (fctx->d[30]), "m" (fctx->d[31])
 	);
-	
+
 	asm volatile ("ldx %0, %%fsr\n" : : "m" (fctx->fsr));
 }
 
 void fpu_enable(void)
 {
 	pstate_reg_t pstate;
-	
+
 	pstate.value = pstate_read();
 	pstate.pef = true;
 	pstate_write(pstate.value);
@@ -163,7 +163,7 @@ void fpu_enable(void)
 void fpu_disable(void)
 {
 	pstate_reg_t pstate;
-	
+
 	pstate.value = pstate_read();
 	pstate.pef = false;
 	pstate_write(pstate.value);

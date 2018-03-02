@@ -48,170 +48,170 @@ PRESETS_DIR = 'defaults'
 
 def read_config(fname, config):
 	"Read saved values from last configuration run or a preset file"
-	
+
 	inf = open(fname, 'r')
-	
+
 	for line in inf:
 		res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
 		if res:
 			config[res.group(1)] = res.group(2)
-	
+
 	inf.close()
 
 def check_condition(text, config, rules):
 	"Check that the condition specified on input line is True (only CNF and DNF is supported)"
-	
+
 	ctype = 'cnf'
-	
+
 	if (')|' in text) or ('|(' in text):
 		ctype = 'dnf'
-	
+
 	if ctype == 'cnf':
 		conds = text.split('&')
 	else:
 		conds = text.split('|')
-	
+
 	for cond in conds:
 		if cond.startswith('(') and cond.endswith(')'):
 			cond = cond[1:-1]
-		
+
 		inside = check_inside(cond, config, ctype)
-		
+
 		if (ctype == 'cnf') and (not inside):
 			return False
-		
+
 		if (ctype == 'dnf') and inside:
 			return True
-	
+
 	if ctype == 'cnf':
 		return True
-	
+
 	return False
 
 def check_inside(text, config, ctype):
 	"Check for condition"
-	
+
 	if ctype == 'cnf':
 		conds = text.split('|')
 	else:
 		conds = text.split('&')
-	
+
 	for cond in conds:
 		res = re.match(r'^(.*?)(!?=)(.*)$', cond)
 		if not res:
 			raise RuntimeError("Invalid condition: %s" % cond)
-		
+
 		condname = res.group(1)
 		oper = res.group(2)
 		condval = res.group(3)
-		
+
 		if not condname in config:
 			varval = ''
 		else:
 			varval = config[condname]
 			if (varval == '*'):
 				varval = 'y'
-		
+
 		if ctype == 'cnf':
 			if (oper == '=') and (condval == varval):
 				return True
-		
+
 			if (oper == '!=') and (condval != varval):
 				return True
 		else:
 			if (oper == '=') and (condval != varval):
 				return False
-			
+
 			if (oper == '!=') and (condval == varval):
 				return False
-	
+
 	if ctype == 'cnf':
 		return False
-	
+
 	return True
 
 def parse_rules(fname, rules):
 	"Parse rules file"
-	
+
 	inf = open(fname, 'r')
-	
+
 	name = ''
 	choices = []
-	
+
 	for line in inf:
-		
+
 		if line.startswith('!'):
 			# Ask a question
 			res = re.search(r'!\s*(?:\[(.*?)\])?\s*([^\s]+)\s*\((.*)\)\s*$', line)
-			
+
 			if not res:
 				raise RuntimeError("Weird line: %s" % line)
-			
+
 			cond = res.group(1)
 			varname = res.group(2)
 			vartype = res.group(3)
-			
+
 			rules.append((varname, vartype, name, choices, cond))
 			name = ''
 			choices = []
 			continue
-		
+
 		if line.startswith('@'):
 			# Add new line into the 'choices' array
 			res = re.match(r'@\s*(?:\[(.*?)\])?\s*"(.*?)"\s*(.*)$', line)
-			
+
 			if not res:
 				raise RuntimeError("Bad line: %s" % line)
-			
+
 			choices.append((res.group(2), res.group(3)))
 			continue
-		
+
 		if line.startswith('%'):
 			# Name of the option
 			name = line[1:].strip()
 			continue
-		
+
 		if line.startswith('#') or (line == '\n'):
 			# Comment or empty line
 			continue
-		
-		
+
+
 		raise RuntimeError("Unknown syntax: %s" % line)
-	
+
 	inf.close()
 
 def yes_no(default):
 	"Return '*' if yes, ' ' if no"
-	
+
 	if default == 'y':
 		return '*'
-	
+
 	return ' '
 
 def subchoice(screen, name, choices, default):
 	"Return choice of choices"
-	
+
 	maxkey = 0
 	for key, val in choices:
 		length = len(key)
 		if (length > maxkey):
 			maxkey = length
-	
+
 	options = []
 	position = None
 	cnt = 0
 	for key, val in choices:
 		if (default) and (key == default):
 			position = cnt
-		
+
 		options.append(" %-*s  %s " % (maxkey, key, val))
 		cnt += 1
-	
+
 	(button, value) = xtui.choice_window(screen, name, 'Choose value', options, position)
-	
+
 	if button == 'cancel':
 		return None
-	
+
 	return choices[value][0]
 
 ## Infer and verify configuration values.
@@ -227,23 +227,23 @@ def subchoice(screen, name, choices, default):
 #
 def infer_verify_choices(config, rules):
 	"Infer and verify configuration values."
-	
+
 	for rule in rules:
 		varname, vartype, name, choices, cond = rule
-		
+
 		if cond and (not check_condition(cond, config, rules)):
 			continue
-		
+
 		if not varname in config:
 			value = None
 		else:
 			value = config[varname]
-		
+
 		if not validate_rule_value(rule, value):
 			value = None
-		
+
 		default = get_default_rule(rule)
-		
+
 		#
 		# If we don't have a value but we do have
 		# a default, use it.
@@ -251,10 +251,10 @@ def infer_verify_choices(config, rules):
 		if value == None and default != None:
 			value = default
 			config[varname] = default
-		
+
 		if not varname in config:
 			return False
-	
+
 	return True
 
 ## Fill the configuration with random (but valid) values.
@@ -274,26 +274,26 @@ def random_choices(config, rules, start_index):
 	"Fill the configuration with random (but valid) values."
 	if start_index >= len(rules):
 		return True
-	
+
 	varname, vartype, name, choices, cond = rules[start_index]
 
 	# First check that this rule would make sense
 	if cond:
 		if not check_condition(cond, config, rules):
 			return random_choices(config, rules, start_index + 1)
-	
+
 	# Remember previous choices for backtracking
 	yes_no = 0
 	choices_indexes = range(0, len(choices))
 	random.shuffle(choices_indexes)
-	
+
 	# Remember current configuration value
 	old_value = None
 	try:
 		old_value = config[varname]
 	except KeyError:
 		old_value = None
-	
+
 	# For yes/no choices, we ran the loop at most 2 times, for select
 	# choices as many times as there are options.
 	try_counter = 0
@@ -319,31 +319,31 @@ def random_choices(config, rules, start_index):
 				value = 'y'
 		else:
 			raise RuntimeError("Unknown variable type: %s" % vartype)
-	
+
 		config[varname] = value
-		
+
 		ok = random_choices(config, rules, start_index + 1)
 		if ok:
 			return True
-		
+
 		try_counter = try_counter + 1
-	
+
 	# Restore the old value and backtrack
 	# (need to delete to prevent "ghost" variables that do not exist under
 	# certain configurations)
 	config[varname] = old_value
 	if old_value is None:
 		del config[varname]
-	
+
 	return random_choices(config, rules, start_index + 1)
-	
+
 
 ## Get default value from a rule.
 def get_default_rule(rule):
 	varname, vartype, name, choices, cond = rule
-	
+
 	default = None
-	
+
 	if vartype == 'choice':
 		# If there is just one option, use it
 		if len(choices) == 1:
@@ -358,7 +358,7 @@ def get_default_rule(rule):
 		default = 'n'
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-	
+
 	return default
 
 ## Get option from a rule.
@@ -370,9 +370,9 @@ def get_default_rule(rule):
 #
 def get_rule_option(rule, value):
 	varname, vartype, name, choices, cond = rule
-	
+
 	option = None
-	
+
 	if vartype == 'choice':
 		# If there is just one option, don't ask
 		if len(choices) != 1:
@@ -390,7 +390,7 @@ def get_rule_option(rule, value):
 		option ="  <%s> %s " % (yes_no(value), name)
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-	
+
 	return option
 
 ## Check if variable value is valid.
@@ -402,10 +402,10 @@ def get_rule_option(rule, value):
 #
 def validate_rule_value(rule, value):
 	varname, vartype, name, choices, cond = rule
-	
+
 	if value == None:
 		return True
-	
+
 	if vartype == 'choice':
 		if not value in [choice[0] for choice in choices]:
 			return False
@@ -423,81 +423,81 @@ def validate_rule_value(rule, value):
 			return False
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-	
+
 	return True
 
 def preprocess_config(config, rules):
 	"Preprocess configuration"
-	
+
 	varname_mode = 'CONFIG_BFB_MODE'
 	varname_width = 'CONFIG_BFB_WIDTH'
 	varname_height = 'CONFIG_BFB_HEIGHT'
-	
+
 	if varname_mode in config:
 		mode = config[varname_mode].partition('x')
-		
+
 		config[varname_width] = mode[0]
 		rules.append((varname_width, 'choice', 'Default framebuffer width', None, None))
-		
+
 		config[varname_height] = mode[2]
 		rules.append((varname_height, 'choice', 'Default framebuffer height', None, None))
 
 def create_output(mkname, mcname, config, rules):
 	"Create output configuration"
-	
+
 	varname_strip = 'CONFIG_STRIP_REVISION_INFO'
 	strip_rev_info = (varname_strip in config) and (config[varname_strip] == 'y')
-	
+
 	if strip_rev_info:
 		timestamp_unix = int(0)
 	else:
 		# TODO: Use commit timestamp instead of build time.
 		timestamp_unix = int(time.time())
-	
+
 	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp_unix))
-	
+
 	sys.stderr.write("Fetching current revision identifier ... ")
-	
+
 	try:
 		version = subprocess.Popen(['git', 'log', '-1', '--pretty=%h'], stdout = subprocess.PIPE).communicate()[0].decode().strip()
 		sys.stderr.write("ok\n")
 	except:
 		version = None
 		sys.stderr.write("failed\n")
-	
+
 	if (not strip_rev_info) and (version is not None):
 		revision = version
 	else:
 		revision = None
-	
+
 	outmk = open(mkname, 'w')
 	outmc = open(mcname, 'w')
-	
+
 	outmk.write('#########################################\n')
 	outmk.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
 	outmk.write('## Generated by: tools/config.py       ##\n')
 	outmk.write('#########################################\n\n')
-	
+
 	outmc.write('/***************************************\n')
 	outmc.write(' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n')
 	outmc.write(' * Generated by: tools/config.py       *\n')
 	outmc.write(' ***************************************/\n\n')
-	
+
 	defs = 'CONFIG_DEFS ='
-	
+
 	for varname, vartype, name, choices, cond in rules:
 		if cond and (not check_condition(cond, config, rules)):
 			continue
-		
+
 		if not varname in config:
 			value = ''
 		else:
 			value = config[varname]
 			if (value == '*'):
 				value = 'y'
-		
+
 		outmk.write('# %s\n%s = %s\n\n' % (name, varname, value))
-		
+
 		if vartype in ["y", "n", "y/n", "n/y"]:
 			if value == "y":
 				outmc.write('/* %s */\n#define %s\n\n' % (name, varname))
@@ -505,22 +505,22 @@ def create_output(mkname, mcname, config, rules):
 		else:
 			outmc.write('/* %s */\n#define %s %s\n#define %s_%s\n\n' % (name, varname, value, varname, value))
 			defs += ' -D%s=%s -D%s_%s' % (varname, value, varname, value)
-	
+
 	if revision is not None:
 		outmk.write('REVISION = %s\n' % revision)
 		outmc.write('#define REVISION %s\n' % revision)
 		defs += ' "-DREVISION=%s"' % revision
-	
+
 	outmk.write('TIMESTAMP_UNIX = %d\n' % timestamp_unix)
 	outmc.write('#define TIMESTAMP_UNIX %d\n' % timestamp_unix)
 	defs += ' "-DTIMESTAMP_UNIX=%d"\n' % timestamp_unix
-	
+
 	outmk.write('TIMESTAMP = %s\n' % timestamp)
 	outmc.write('#define TIMESTAMP %s\n' % timestamp)
 	defs += ' "-DTIMESTAMP=%s"\n' % timestamp
-	
+
 	outmk.write(defs)
-	
+
 	outmk.close()
 	outmc.close()
 
@@ -535,36 +535,36 @@ def choose_profile(root, fname, screen, config):
 	options = []
 	opt2path = {}
 	cnt = 0
-	
+
 	# Look for profiles
 	for name in sorted_dir(root):
 		path = os.path.join(root, name)
 		canon = os.path.join(path, fname)
-		
+
 		if os.path.isdir(path) and os.path.exists(canon) and os.path.isfile(canon):
 			subprofile = False
-			
+
 			# Look for subprofiles
 			for subname in sorted_dir(path):
 				subpath = os.path.join(path, subname)
 				subcanon = os.path.join(subpath, fname)
-				
+
 				if os.path.isdir(subpath) and os.path.exists(subcanon) and os.path.isfile(subcanon):
 					subprofile = True
 					options.append("%s (%s)" % (name, subname))
 					opt2path[cnt] = [name, subname]
 					cnt += 1
-			
+
 			if not subprofile:
 				options.append(name)
 				opt2path[cnt] = [name]
 				cnt += 1
-	
+
 	(button, value) = xtui.choice_window(screen, 'Load preconfigured defaults', 'Choose configuration profile', options, None)
-	
+
 	if button == 'cancel':
 		return None
-	
+
 	return opt2path[value]
 
 ## Read presets from a configuration profile.
@@ -575,7 +575,7 @@ def choose_profile(root, fname, screen, config):
 def read_presets(profile, config):
 	path = os.path.join(PRESETS_DIR, profile[0], MAKEFILE)
 	read_config(path, config)
-	
+
 	if len(profile) > 1:
 		path = os.path.join(PRESETS_DIR, profile[0], profile[1], MAKEFILE)
 		read_config(path, config)
@@ -587,11 +587,11 @@ def read_presets(profile, config):
 #
 def parse_profile_name(profile_name):
 	profile = []
-	
+
 	head, tail = os.path.split(profile_name)
 	if head != '':
 		profile.append(head)
-	
+
 	profile.append(tail)
 	return profile
 
@@ -599,10 +599,10 @@ def main():
 	profile = None
 	config = {}
 	rules = []
-	
+
 	# Parse rules file
 	parse_rules(RULES_FILE, rules)
-	
+
 	# Input configuration file can be specified on command line
 	# otherwise configuration from previous run is used.
 	if len(sys.argv) >= 4:
@@ -610,14 +610,14 @@ def main():
 		read_presets(profile, config)
 	elif os.path.exists(MAKEFILE):
 		read_config(MAKEFILE, config)
-	
+
 	# Default mode: check values and regenerate configuration files
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
 		if (infer_verify_choices(config, rules)):
 			preprocess_config(config, rules)
 			create_output(MAKEFILE, MACROS, config, rules)
 			return 0
-	
+
 	# Hands-off mode: check values and regenerate configuration files,
 	# but no interactive fallback
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'hands-off'):
@@ -626,21 +626,21 @@ def main():
 		if len(sys.argv) < 4:
 			sys.stderr.write("Configuration error: No presets specified\n")
 			return 2
-		
+
 		if (infer_verify_choices(config, rules)):
 			preprocess_config(config, rules)
 			create_output(MAKEFILE, MACROS, config, rules)
 			return 0
-		
+
 		sys.stderr.write("Configuration error: The presets are ambiguous\n")
 		return 1
-	
+
 	# Check mode: only check configuration
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'check'):
 		if infer_verify_choices(config, rules):
 			return 0
 		return 1
-	
+
 	# Random mode
 	if (len(sys.argv) == 3) and (sys.argv[2] == 'random'):
 		ok = random_choices(config, rules, 0)
@@ -652,45 +652,45 @@ def main():
 			return 2
 		preprocess_config(config, rules)
 		create_output(MAKEFILE, MACROS, config, rules)
-		
+
 		return 0
-	
+
 	screen = xtui.screen_init()
 	try:
 		selname = None
 		position = None
 		while True:
-			
+
 			# Cancel out all values which have to be deduced
 			for varname, vartype, name, choices, cond in rules:
 				if (vartype == 'y') and (varname in config) and (config[varname] == '*'):
 					config[varname] = None
-			
+
 			options = []
 			opt2row = {}
 			cnt = 1
-			
+
 			options.append("  --- Load preconfigured defaults ... ")
-			
+
 			for rule in rules:
 				varname, vartype, name, choices, cond = rule
-				
+
 				if cond and (not check_condition(cond, config, rules)):
 					continue
-				
+
 				if varname == selname:
 					position = cnt
-				
+
 				if not varname in config:
 					value = None
 				else:
 					value = config[varname]
-				
+
 				if not validate_rule_value(rule, value):
 					value = None
-				
+
 				default = get_default_rule(rule)
-				
+
 				#
 				# If we don't have a value but we do have
 				# a default, use it.
@@ -698,50 +698,50 @@ def main():
 				if value == None and default != None:
 					value = default
 					config[varname] = default
-				
+
 				option = get_rule_option(rule, value)
 				if option != None:
 					options.append(option)
 				else:
 					continue
-				
+
 				opt2row[cnt] = (varname, vartype, name, choices)
-				
+
 				cnt += 1
-			
+
 			if (position != None) and (position >= len(options)):
 				position = None
-			
+
 			(button, value) = xtui.choice_window(screen, 'HelenOS configuration', 'Choose configuration option', options, position)
-			
+
 			if button == 'cancel':
 				return 'Configuration canceled'
-			
+
 			if button == 'done':
 				if (infer_verify_choices(config, rules)):
 					break
 				else:
 					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
 					continue
-			
+
 			if value == 0:
 				profile = choose_profile(PRESETS_DIR, MAKEFILE, screen, config)
 				if profile != None:
 					read_presets(profile, config)
 				position = 1
 				continue
-			
+
 			position = None
 			if not value in opt2row:
 				raise RuntimeError("Error selecting value: %s" % value)
-			
+
 			(selname, seltype, name, choices) = opt2row[value]
-			
+
 			if not selname in config:
 				value = None
 			else:
 				value = config[selname]
-			
+
 			if seltype == 'choice':
 				config[selname] = subchoice(screen, name, choices, value)
 			elif (seltype == 'y/n') or (seltype == 'n/y'):
@@ -751,7 +751,7 @@ def main():
 					config[selname] = 'y'
 	finally:
 		xtui.screen_done(screen)
-	
+
 	preprocess_config(config, rules)
 	create_output(MAKEFILE, MACROS, config, rules)
 	return 0

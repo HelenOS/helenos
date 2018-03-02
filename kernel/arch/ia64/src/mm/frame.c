@@ -91,9 +91,9 @@ void frame_low_arch_init(void)
 {
 	if (config.cpu_active > 1)
 		return;
-	
+
 	frame_common_arch_init(true);
-	
+
 	/*
 	 * Blacklist ROM regions.
 	 */
@@ -111,7 +111,7 @@ void frame_high_arch_init(void)
 {
 	if (config.cpu_active > 1)
 		return;
-	
+
 	frame_common_arch_init(false);
 }
 

@@ -88,21 +88,21 @@ static void paint_internal(widget_t *widget)
 	surface_t *surface = window_claim(widget->window);
 	if (!surface)
 		window_yield(widget->window);
-	
+
 	source_t source;
 	source_init(&source);
-	
+
 	drawctx_t drawctx;
 	drawctx_init(&drawctx, surface);
 	drawctx_set_source(&drawctx, &source);
-	
+
 	/* Window border outer bevel */
-	
+
 	draw_bevel(&drawctx, &source, widget->vpos, widget->hpos,
 	    widget->width, widget->height, color_highlight, color_shadow);
-	
+
 	/* Window border surface */
-	
+
 	source_set_color(&source, color_surface);
 	drawctx_transfer(&drawctx, widget->hpos + 1, widget->vpos + 1,
 	    widget->width - 2, 2);
@@ -112,70 +112,70 @@ static void paint_internal(widget_t *widget)
 	    widget->vpos + widget->height - 3, widget->width - 2, 2);
 	drawctx_transfer(&drawctx, widget->hpos + widget->width - 3,
 	    widget->vpos + 1, 2, widget->height - 4);
-	
+
 	/* Window border inner bevel */
-	
+
 	draw_bevel(&drawctx, &source, widget->hpos + 3, widget->vpos + 3,
 	    widget->width - 6, widget->height - 6, color_shadow,
 	    color_highlight);
-	
+
 	/* Header bevel */
-	
+
 	sysarg_t header_hpos = widget->hpos + border_thickness;
 	sysarg_t header_vpos = widget->vpos + border_thickness;
 	sysarg_t header_width = widget->width - 2 * border_thickness -
 	    close_thickness;
-	
+
 	draw_bevel(&drawctx, &source, header_hpos, header_vpos,
 	    header_width, header_height, widget->window->is_focused ?
 	    color_header_focus_highlight : color_header_unfocus_highlight,
 	    widget->window->is_focused ?
 	    color_header_focus_shadow : color_header_unfocus_shadow);
-	
+
 	/* Header surface */
-	
+
 	source_set_color(&source, widget->window->is_focused ?
 	    color_header_focus_surface : color_header_unfocus_surface);
 	drawctx_transfer(&drawctx, header_hpos + 1, header_vpos + 1,
 	    header_width - 2, header_height - 2);
-	
+
 	/* Close button bevel */
-	
+
 	sysarg_t close_hpos = widget->hpos + widget->width -
 	    border_thickness - close_thickness;
 	sysarg_t close_vpos = widget->vpos + border_thickness;
-	
+
 	draw_bevel(&drawctx, &source, close_hpos, close_vpos,
 	    close_thickness, close_thickness, color_highlight, color_shadow);
-	
+
 	/* Close button surface */
-	
+
 	source_set_color(&source, color_surface);
 	drawctx_transfer(&drawctx, close_hpos + 1, close_vpos + 1,
 	    close_thickness - 2, close_thickness - 2);
-	
+
 	/* Close button icon */
-	
+
 	draw_icon_cross(surface, close_hpos + 3, close_vpos + 3,
 	    color_highlight, color_shadow);
-	
+
 	/* Window caption */
-	
+
 	font_t *font;
 	errno_t rc = embedded_font_create(&font, 16);
 	if (rc != EOK) {
 		window_yield(widget->window);
 		return;
 	}
-	
+
 	drawctx_set_font(&drawctx, font);
 	source_set_color(&source, widget->window->is_focused ?
 	    color_caption_focus : color_caption_unfocus);
-	
+
 	sysarg_t cpt_width;
 	sysarg_t cpt_height;
 	font_get_box(font, widget->window->caption, &cpt_width, &cpt_height);
-	
+
 	bool draw_title =
 	    (widget->width >= 2 * border_thickness + 2 * bevel_thickness +
 	    close_thickness + cpt_width);
@@ -183,11 +183,11 @@ static void paint_internal(widget_t *widget)
 		sysarg_t cpt_x = ((widget->width - cpt_width) / 2) + widget->hpos;
 		sysarg_t cpt_y = ((header_height - cpt_height) / 2) +
 		    widget->vpos + border_thickness;
-		
+
 		if (widget->window->caption)
 			drawctx_print(&drawctx, widget->window->caption, cpt_x, cpt_y);
 	}
-	
+
 	font_release(font);
 	window_yield(widget->window);
 }
@@ -374,59 +374,59 @@ static void handle_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 		win_damage(win->osess, 0, 0, 0, 0);
 		return;
 	}
-	
+
 	if (height < 2 * border_thickness + header_height) {
 		win_damage(win->osess, 0, 0, 0, 0);
 		return;
 	}
-	
+
 	/* Allocate resources for new surface. */
 	surface_t *new_surface = surface_create(width, height, NULL,
 	    SURFACE_FLAG_SHARED);
 	if (!new_surface)
 		return;
-	
+
 	/* Switch new and old surface. */
 	fibril_mutex_lock(&win->guard);
 	surface_t *old_surface = win->surface;
 	win->surface = new_surface;
 	fibril_mutex_unlock(&win->guard);
-	
+
 	/*
 	 * Let all widgets in the tree alter their position and size.
 	 * Widgets might also paint themselves onto the new surface.
 	 */
 	win->root.rearrange(&win->root, 0, 0, width, height);
-	
+
 	fibril_mutex_lock(&win->guard);
 	surface_reset_damaged_region(win->surface);
 	fibril_mutex_unlock(&win->guard);
-	
+
 	/* Inform compositor about new surface. */
 	errno_t rc = win_resize(win->osess, offset_x, offset_y, width, height,
 	    placement_flags, surface_direct_access(new_surface));
-	
+
 	if (rc != EOK) {
 		/* Rollback to old surface. Reverse all changes. */
-		
+
 		sysarg_t old_width = 0;
 		sysarg_t old_height = 0;
 		if (old_surface)
 			surface_get_resolution(old_surface, &old_width, &old_height);
-		
+
 		fibril_mutex_lock(&win->guard);
 		new_surface = win->surface;
 		win->surface = old_surface;
 		fibril_mutex_unlock(&win->guard);
-		
+
 		win->root.rearrange(&win->root, 0, 0, old_width, old_height);
-		
+
 		if (win->surface) {
 			fibril_mutex_lock(&win->guard);
 			surface_reset_damaged_region(win->surface);
 			fibril_mutex_unlock(&win->guard);
 		}
-		
+
 		surface_destroy(new_surface);
 	} else {
 		/* Deallocate old surface. */
@@ -568,7 +568,7 @@ static errno_t fetch_input(void *arg)
 
 	while (true) {
 		window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
-		
+
 		if (event) {
 			rc = win_get_event(win->isess, event);
 			if (rc == EOK) {
@@ -597,13 +597,13 @@ window_t *window_open(const char *winreg, const void *data,
 	window_t *win = (window_t *) malloc(sizeof(window_t));
 	if (!win)
 		return NULL;
-	
+
 	win->is_main = flags & WINDOW_MAIN;
 	win->is_decorated = flags & WINDOW_DECORATED;
 	win->is_focused = true;
 	prodcons_initialize(&win->events);
 	fibril_mutex_initialize(&win->guard);
-	
+
 	widget_init(&win->root, NULL, data);
 	win->root.window = win;
 	win->root.destroy = root_destroy;
@@ -615,21 +615,21 @@ window_t *window_open(const char *winreg, const void *data,
 	win->grab = NULL;
 	win->focus = NULL;
 	win->surface = NULL;
-	
+
 	service_id_t reg_dsid;
 	errno_t rc = loc_service_get_id(winreg, &reg_dsid, 0);
 	if (rc != EOK) {
 		free(win);
 		return NULL;
 	}
-	
+
 	async_sess_t *reg_sess =
 	    loc_service_connect(reg_dsid, INTERFACE_COMPOSITOR, 0);
 	if (reg_sess == NULL) {
 		free(win);
 		return NULL;
 	}
-	
+
 	service_id_t in_dsid;
 	service_id_t out_dsid;
 	rc = win_register(reg_sess, flags, &in_dsid, &out_dsid);
@@ -638,25 +638,25 @@ window_t *window_open(const char *winreg, const void *data,
 		free(win);
 		return NULL;
 	}
-	
+
 	win->osess = loc_service_connect(out_dsid, INTERFACE_COMPOSITOR, 0);
 	if (win->osess == NULL) {
 		free(win);
 		return NULL;
 	}
-	
+
 	win->isess = loc_service_connect(in_dsid, INTERFACE_COMPOSITOR, 0);
 	if (win->isess == NULL) {
 		async_hangup(win->osess);
 		free(win);
 		return NULL;
 	}
-	
+
 	if (caption == NULL)
 		win->caption = NULL;
 	else
 		win->caption = str_dup(caption);
-	
+
 	return win;
 }
 
@@ -679,7 +679,7 @@ void window_resize(window_t *win, sysarg_t offset_x, sysarg_t offset_y,
 errno_t window_set_caption(window_t *win, const char *caption)
 {
 	char *cap;
-	
+
 	if (caption == NULL) {
 		win->caption = NULL;
 	} else {
@@ -689,10 +689,10 @@ errno_t window_set_caption(window_t *win, const char *caption)
 		free(win->caption);
 		win->caption = cap;
 	}
-	
+
 	win->is_focused = false;
 	handle_refresh(win);
-	
+
 	return EOK;
 }
 

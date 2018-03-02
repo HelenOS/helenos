@@ -97,7 +97,7 @@ static size_t history_pos = 0;
 void kconsole_init(void)
 {
 	unsigned int i;
-	
+
 	cmd_init();
 	for (i = 0; i < KCONSOLE_HISTORY; i++)
 		history[i][0] = 0;
@@ -113,7 +113,7 @@ void kconsole_init(void)
 bool cmd_register(cmd_info_t *cmd)
 {
 	spinlock_lock(&cmd_lock);
-	
+
 	/*
 	 * Make sure the command is not already listed.
 	 */
@@ -123,7 +123,7 @@ bool cmd_register(cmd_info_t *cmd)
 			spinlock_unlock(&cmd_lock);
 			return false;
 		}
-		
+
 		/* Avoid deadlock. */
 		if (hlp < cmd) {
 			spinlock_lock(&hlp->lock);
@@ -132,7 +132,7 @@ bool cmd_register(cmd_info_t *cmd)
 			spinlock_lock(&cmd->lock);
 			spinlock_lock(&hlp->lock);
 		}
-		
+
 		if (str_cmp(hlp->name, cmd->name) == 0) {
 			/* The command is already there. */
 			spinlock_unlock(&hlp->lock);
@@ -140,16 +140,16 @@ bool cmd_register(cmd_info_t *cmd)
 			spinlock_unlock(&cmd_lock);
 			return false;
 		}
-		
+
 		spinlock_unlock(&hlp->lock);
 		spinlock_unlock(&cmd->lock);
 	}
-	
+
 	/*
 	 * Now the command can be added.
 	 */
 	list_append(&cmd->link, &cmd_list);
-	
+
 	spinlock_unlock(&cmd_lock);
 	return true;
 }
@@ -167,29 +167,29 @@ const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 {
 	link_t **startpos = (link_t**) ctx;
 	size_t namelen = str_length(name);
-	
+
 	spinlock_lock(&cmd_lock);
-	
+
 	if (*startpos == NULL)
 		*startpos = cmd_list.head.next;
-	
+
 	for (; *startpos != &cmd_list.head; *startpos = (*startpos)->next) {
 		cmd_info_t *hlp = list_get_instance(*startpos, cmd_info_t, link);
-		
+
 		const char *curname = hlp->name;
 		if (str_length(curname) < namelen)
 			continue;
-		
+
 		if (str_lcmp(curname, name, namelen) == 0) {
 			*startpos = (*startpos)->next;
 			if (h)
 				*h = hlp->description;
-			
+
 			spinlock_unlock(&cmd_lock);
 			return (curname + str_lsize(curname, namelen));
 		}
 	}
-	
+
 	spinlock_unlock(&cmd_lock);
 	return NULL;
 }
@@ -206,9 +206,9 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
     hints_enum_func_t hints_enum)
 {
 	const char *name = input;
-	
+
 	size_t found = 0;
-	
+
 	/*
 	 * Maximum Match Length: Length of longest matching common
 	 * substring in case more than one match is found.
@@ -222,16 +222,16 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 	size_t hints_to_show = MAX_TAB_HINTS - 1;
 	size_t total_hints_shown = 0;
 	bool continue_showing_hints = true;
-	
+
 	output[0] = 0;
-	
+
 	while ((hint = hints_enum(name, NULL, &pos))) {
 		if ((found == 0) || (str_length(hint) > str_length(output)))
 			str_cpy(output, MAX_CMDLINE, hint);
-		
+
 		found++;
 	}
-	
+
 	/*
 	 * If the number of possible completions is more than MAX_TAB_HINTS,
 	 * ask the user whether to display them or not.
@@ -241,43 +241,43 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 		continue_showing_hints =
 		    console_prompt_display_all_hints(indev, found);
 	}
-	
+
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = NULL;
 		while ((hint = hints_enum(name, &help, &pos))) {
-			
+
 			if (continue_showing_hints) {
 				if (help)
 					printf("%s%s (%s)\n", name, hint, help);
 				else
 					printf("%s%s\n", name, hint);
-				
+
 				--hints_to_show;
 				++total_hints_shown;
-				
+
 				if ((hints_to_show == 0) && (total_hints_shown != found)) {
 					/* Ask user to continue */
 					continue_showing_hints =
 					    console_prompt_more_hints(indev, &hints_to_show);
 				}
 			}
-			
+
 			for (max_match_len_tmp = 0;
 			    (output[max_match_len_tmp] ==
 			    hint[max_match_len_tmp]) &&
 			    (max_match_len_tmp < max_match_len); ++max_match_len_tmp);
-			
+
 			max_match_len = max_match_len_tmp;
 		}
-		
+
 		/* Keep only the characters common in all completions */
 		output[max_match_len] = 0;
 	}
-	
+
 	if (found > 0)
 		str_cpy(input, size, output);
-	
+
 	free(output);
 	return found;
 }
@@ -287,63 +287,63 @@ NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
 	size_t start = 0;
 	size_t end;
 	char *tmp;
-	
+
 	while (isspace(cmdline[start]))
 		start++;
-	
+
 	end = start + 1;
-	
+
 	while (!isspace(cmdline[end]))
 		end++;
-	
+
 	tmp = malloc(STR_BOUNDS(end - start + 1), 0);
-	
+
 	wstr_to_str(tmp, end - start + 1, &cmdline[start]);
-	
+
 	spinlock_lock(&cmd_lock);
-	
+
 	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
-		
+
 		if (str_cmp(hlp->name, tmp) == 0) {
 			spinlock_unlock(&hlp->lock);
 			spinlock_unlock(&cmd_lock);
 			free(tmp);
 			return hlp;
 		}
-		
+
 		spinlock_unlock(&hlp->lock);
 	}
-	
+
 	free(tmp);
 	spinlock_unlock(&cmd_lock);
-	
+
 	return NULL;
 }
 
 NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 {
 	printf("%s> ", prompt);
-	
+
 	size_t position = 0;
 	wchar_t *current = history[history_pos];
 	current[0] = 0;
 	char *tmp = malloc(STR_BOUNDS(MAX_CMDLINE), 0);
-	
+
 	while (true) {
 		wchar_t ch = indev_pop_character(indev);
-		
+
 		if (ch == '\n') {
 			/* Enter */
 			putchar(ch);
 			break;
 		}
-		
+
 		if (ch == '\b') {
 			/* Backspace */
 			if (position == 0)
 				continue;
-			
+
 			if (wstr_remove(current, position - 1)) {
 				position--;
 				putchar('\b');
@@ -352,16 +352,16 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				continue;
 			}
 		}
-		
+
 		if (ch == '\t') {
 			/* Tab completion */
-			
+
 			/* Move to the end of the word */
 			for (; (current[position] != 0) && (!isspace(current[position]));
 			    position++)
 				putchar(current[position]);
-			
-			
+
+
 			/*
 			 * Find the beginning of the word
 			 * and copy it to tmp
@@ -375,13 +375,13 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				for (beg = position - 1;
 				    (beg > 0) && (!isspace(current[beg]));
 				    beg--);
-				
+
 				if (isspace(current[beg]))
 					beg++;
-				
+
 				wstr_to_str(tmp, position - beg + 1, current + beg);
 			}
-			
+
 			/* Count which argument number are we tabbing (narg=0 is cmd) */
 			bool sp = false;
 			for (; beg > 0; beg--) {
@@ -393,10 +393,10 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				} else
 					sp = false;
 			}
-			
+
 			if (narg && isspace(current[0]))
 				narg--;
-			
+
 			int found;
 			if (narg == 0) {
 				/* Command completion */
@@ -410,7 +410,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				found = cmdtab_compl(tmp, STR_BOUNDS(MAX_CMDLINE), indev,
 				    cmd->hints_enum);
 			}
-			
+
 			if (found == 0)
 				continue;
 
@@ -423,10 +423,10 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			while ((ch = str_decode(tmp, &off, STR_NO_LIMIT)) != 0) {
 				if (!wstr_linsert(current, ch, position + i, MAX_CMDLINE))
 					break;
-				
+
 				i++;
 			}
-			
+
 			if (found > 1) {
 				/* No unique hint, list was printed */
 				printf("%s> ", prompt);
@@ -435,13 +435,13 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				print_cc('\b', wstr_length(current) - position);
 				continue;
 			}
-			
+
 			/* We have a hint */
-			
+
 			printf("%ls", current + position);
 			position += str_length(tmp);
 			print_cc('\b', wstr_length(current) - position);
-			
+
 			if (position == wstr_length(current)) {
 				/* Insert a space after the last completed argument */
 				if (wstr_linsert(current, ' ', position, MAX_CMDLINE)) {
@@ -451,7 +451,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			}
 			continue;
 		}
-		
+
 		if (ch == U_LEFT_ARROW) {
 			/* Left */
 			if (position > 0) {
@@ -460,7 +460,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			}
 			continue;
 		}
-		
+
 		if (ch == U_RIGHT_ARROW) {
 			/* Right */
 			if (position < wstr_length(current)) {
@@ -469,13 +469,13 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			}
 			continue;
 		}
-		
+
 		if ((ch == U_UP_ARROW) || (ch == U_DOWN_ARROW)) {
 			/* Up, down */
 			print_cc('\b', position);
 			print_cc(' ', wstr_length(current));
 			print_cc('\b', wstr_length(current));
-			
+
 			if (ch == U_UP_ARROW) {
 				/* Up */
 				if (history_pos == 0)
@@ -492,45 +492,45 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			position = wstr_length(current);
 			continue;
 		}
-		
+
 		if (ch == U_HOME_ARROW) {
 			/* Home */
 			print_cc('\b', position);
 			position = 0;
 			continue;
 		}
-		
+
 		if (ch == U_END_ARROW) {
 			/* End */
 			printf("%ls", current + position);
 			position = wstr_length(current);
 			continue;
 		}
-		
+
 		if (ch == U_DELETE) {
 			/* Delete */
 			if (position == wstr_length(current))
 				continue;
-			
+
 			if (wstr_remove(current, position)) {
 				printf("%ls ", current + position);
 				print_cc('\b', wstr_length(current) - position + 1);
 			}
 			continue;
 		}
-		
+
 		if (wstr_linsert(current, ch, position, MAX_CMDLINE)) {
 			printf("%ls", current + position);
 			position++;
 			print_cc('\b', wstr_length(current) - position);
 		}
 	}
-	
+
 	if (wstr_length(current) > 0) {
 		history_pos++;
 		history_pos = history_pos % KCONSOLE_HISTORY;
 	}
-	
+
 	free(tmp);
 	return current;
 }
@@ -545,7 +545,7 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 {
 	bool isaddr = false;
 	bool isptr = false;
-	
+
 	/* If we get a name, try to find it in symbol table */
 	if (text[0] == '&') {
 		isaddr = true;
@@ -556,11 +556,11 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 		text++;
 		len--;
 	}
-	
+
 	if ((text[0] < '0') || (text[0] > '9')) {
 		char symname[MAX_SYMBOL_NAME];
 		str_ncpy(symname, MAX_SYMBOL_NAME, text, len + 1);
-		
+
 		uintptr_t symaddr;
 		errno_t rc = symtab_addr_lookup(symname, &symaddr);
 		switch (rc) {
@@ -610,7 +610,7 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -634,12 +634,12 @@ NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
 {
 	assert(start != NULL);
 	assert(end != NULL);
-	
+
 	bool found_start = false;
 	size_t offset = *start;
 	size_t prev = *start;
 	wchar_t ch;
-	
+
 	while ((ch = str_decode(cmdline, &offset, size)) != 0) {
 		if (!found_start) {
 			if (!isspace(ch)) {
@@ -650,11 +650,11 @@ NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
 			if (isspace(ch))
 				break;
 		}
-		
+
 		prev = offset;
 	}
 	*end = prev;
-	
+
 	return found_start;
 }
 
@@ -675,44 +675,44 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 		return NULL;
 	}
 	spinlock_lock(&cmd_lock);
-	
+
 	cmd_info_t *cmd = NULL;
-	
+
 	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
-		
+
 		if (str_lcmp(hlp->name, cmdline + start,
 		    max(str_length(hlp->name),
 		    str_nlength(cmdline + start, (size_t) (end - start)))) == 0) {
 			cmd = hlp;
 			break;
 		}
-		
+
 		spinlock_unlock(&hlp->lock);
 	}
-	
+
 	spinlock_unlock(&cmd_lock);
-	
+
 	if (!cmd) {
 		/* Unknown command. */
 		printf("Unknown command.\n");
 		return NULL;
 	}
-	
+
 	/* cmd == hlp is locked */
-	
+
 	/*
 	 * The command line must be further analyzed and
 	 * the parameters therefrom must be matched and
 	 * converted to those specified in the cmd info
 	 * structure.
 	 */
-	
+
 	bool error = false;
 	size_t i;
 	for (i = 0; i < cmd->argc; i++) {
 		char *buf;
-		
+
 		start = end;
 		if (!parse_argument(cmdline, size, &start, &end)) {
 			if (cmd->argv[i].type == ARG_TYPE_STRING_OPTIONAL) {
@@ -720,12 +720,12 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 				str_cpy(buf, cmd->argv[i].len, "");
 				continue;
 			}
-			
+
 			printf("Too few arguments.\n");
 			spinlock_unlock(&cmd->lock);
 			return NULL;
 		}
-		
+
 		switch (cmd->argv[i].type) {
 		case ARG_TYPE_STRING:
 		case ARG_TYPE_STRING_OPTIONAL:
@@ -766,19 +766,19 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 			break;
 		}
 	}
-	
+
 	if (error) {
 		spinlock_unlock(&cmd->lock);
 		return NULL;
 	}
-	
+
 	start = end;
 	if (parse_argument(cmdline, size, &start, &end)) {
 		printf("Too many arguments.\n");
 		spinlock_unlock(&cmd->lock);
 		return NULL;
 	}
-	
+
 	spinlock_unlock(&cmd->lock);
 	return cmd;
 }
@@ -797,31 +797,31 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 		LOG("No stdin for kernel console");
 		return;
 	}
-	
+
 	if (msg)
 		printf("%s", msg);
-	
+
 	if (kcon)
 		indev_pop_character(stdin);
 	else
 		printf("Type \"exit\" to leave the console.\n");
-	
+
 	char *cmdline = malloc(STR_BOUNDS(MAX_CMDLINE), 0);
 	while (true) {
 		wchar_t *tmp = clever_readline((char *) prompt, stdin);
 		size_t len = wstr_length(tmp);
 		if (!len)
 			continue;
-		
+
 		wstr_to_str(cmdline, STR_BOUNDS(MAX_CMDLINE), tmp);
-		
+
 		if ((!kcon) && (len == 4) && (str_lcmp(cmdline, "exit", 4) == 0))
 			break;
-		
+
 		cmd_info_t *cmd_info = parse_cmdline(cmdline, STR_BOUNDS(MAX_CMDLINE));
 		if (!cmd_info)
 			continue;
-		
+
 		(void) cmd_info->func(cmd_info->argv);
 	}
 	free(cmdline);

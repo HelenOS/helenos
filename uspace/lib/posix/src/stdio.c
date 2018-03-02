@@ -276,22 +276,22 @@ static int _dprintf_wstr_write(const wchar_t *str, size_t size, void *fd)
 	size_t chars = 0;
 	size_t sz;
 	char buf[4];
-	
+
 	while (offset < size) {
 		sz = 0;
 		if (chr_encode(str[chars], buf, &sz, sizeof(buf)) != EOK) {
 			break;
 		}
-		
+
 		const int fildes = *(int *) fd;
 		size_t nwr;
 		if (vfs_write(fildes, &posix_pos[fildes], buf, sz, &nwr) != EOK)
 			break;
-		
+
 		chars++;
 		offset += sizeof(wchar_t);
 	}
-	
+
 	return chars;
 }
 
@@ -310,7 +310,7 @@ int vdprintf(int fildes, const char *restrict format, va_list ap)
 		.wstr_write = _dprintf_wstr_write,
 		.data = &fildes
 	};
-	
+
 	return printf_core(format, &spec, ap);
 }
 
@@ -489,20 +489,20 @@ int putchar_unlocked(int c)
 char *tmpnam(char *s)
 {
 	assert(L_tmpnam >= strlen("/tmp/tnXXXXXX"));
-	
+
 	static char buffer[L_tmpnam + 1];
 	if (s == NULL) {
 		s = buffer;
 	}
-	
+
 	strcpy(s, "/tmp/tnXXXXXX");
 	mktemp(s);
-	
+
 	if (*s == '\0') {
 		/* Errno set by mktemp(). */
 		return NULL;
 	}
-	
+
 	return s;
 }
 
@@ -517,34 +517,34 @@ char *tempnam(const char *dir, const char *pfx)
 {
 	/* Sequence number of the filename. */
 	static int seq = 0;
-	
+
 	size_t dir_len = strlen(dir);
 	if (dir[dir_len - 1] == '/') {
 		dir_len--;
 	}
-	
+
 	size_t pfx_len = strlen(pfx);
 	if (pfx_len > 5) {
 		pfx_len = 5;
 	}
-	
+
 	char *result = malloc(dir_len + /* slash*/ 1 +
 	    pfx_len + /* three-digit seq */ 3 + /* .tmp */ 4 + /* nul */ 1);
-	
+
 	if (result == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
-	
+
 	char *res_ptr = result;
 	strncpy(res_ptr, dir, dir_len);
 	res_ptr += dir_len;
 	strncpy(res_ptr, pfx, pfx_len);
 	res_ptr += pfx_len;
-	
+
 	for (; seq < 1000; ++seq) {
 		snprintf(res_ptr, 8, "%03d.tmp", seq);
-		
+
 		int orig_errno = errno;
 		errno = EOK;
 		/* Check if the file exists. */
@@ -558,13 +558,13 @@ char *tempnam(const char *dir, const char *pfx)
 			}
 		}
 	}
-	
+
 	if (seq == 1000) {
 		free(result);
 		errno = EINVAL;
 		return NULL;
 	}
-	
+
 	return result;
 }
 
@@ -584,7 +584,7 @@ FILE *tmpfile(void)
 		/* errno set by mkstemp(). */
 		return NULL;
 	}
-	
+
 	/* Unlink the created file, so that it's removed on close(). */
 	unlink(filename);
 	return fdopen(fd, "w+");

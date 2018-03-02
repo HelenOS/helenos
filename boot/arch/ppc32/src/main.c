@@ -59,11 +59,11 @@ void bootstrap(void)
 {
 	version_print();
 	ofw_memmap(&bootinfo.memmap);
-	
+
 	void *bootinfo_pa = ofw_translate(&bootinfo);
 	void *real_mode_pa = ofw_translate(&real_mode);
 	void *loader_address_pa = ofw_translate((void *) LOADER_ADDRESS);
-	
+
 	printf("\nMemory statistics (total %llu MB)\n", bootinfo.memmap.total >> 20);
 	printf(" %p|%p: real mode trampoline\n", &real_mode, real_mode_pa);
 	printf(" %p|%p: boot info structure\n", &bootinfo, bootinfo_pa);
@@ -71,55 +71,55 @@ void bootstrap(void)
 	    (void *) PA2KA(BOOT_OFFSET), (void *) BOOT_OFFSET);
 	printf(" %p|%p: loader entry point\n",
 	    (void *) LOADER_ADDRESS, loader_address_pa);
-	
+
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
 		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].addr,
 		    ofw_translate(components[i].addr), components[i].name,
 		    components[i].inflated, components[i].size);
-	
+
 	size_t dest[COMPONENTS];
 	size_t top = 0;
 	size_t cnt = 0;
 	bootinfo.taskmap.cnt = 0;
 	for (i = 0; i < min(COMPONENTS, TASKMAP_MAX_RECORDS); i++) {
 		top = ALIGN_UP(top, PAGE_SIZE);
-		
+
 		if (i > 0) {
 			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].addr =
 			    (void *) PA2KA(top);
 			bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].size =
 			    components[i].inflated;
-			
+
 			str_cpy(bootinfo.taskmap.tasks[bootinfo.taskmap.cnt].name,
 			    BOOTINFO_TASK_NAME_BUFLEN, components[i].name);
-			
+
 			bootinfo.taskmap.cnt++;
 		}
-		
+
 		dest[i] = top;
 		top += components[i].inflated;
 		cnt++;
 	}
-	
+
 	if (top >= (size_t) loader_address_pa) {
 		printf("Inflated components overlap loader area.\n");
 		printf("The boot image is too large. Halting.\n");
 		halt();
 	}
-	
+
 	void *balloc_base;
 	void *balloc_base_pa;
 	ofw_alloc("boot allocator area", &balloc_base, &balloc_base_pa,
 	    BALLOC_MAX_SIZE, loader_address_pa);
 	printf(" %p|%p: boot allocator area\n", balloc_base, balloc_base_pa);
-	
+
 	void *inflate_base;
 	void *inflate_base_pa;
 	ofw_alloc("inflate area", &inflate_base, &inflate_base_pa, top,
 	    loader_address_pa);
 	printf(" %p|%p: inflate area\n", inflate_base, inflate_base_pa);
-	
+
 	uintptr_t balloc_start = ALIGN_UP(top, PAGE_SIZE);
 	size_t pages = (balloc_start + ALIGN_UP(BALLOC_MAX_SIZE, PAGE_SIZE))
 	    >> PAGE_WIDTH;
@@ -128,51 +128,51 @@ void bootstrap(void)
 	ofw_alloc("translate table", &transtable, &transtable_pa,
 	    pages * sizeof(void *), loader_address_pa);
 	printf(" %p|%p: translate table\n", transtable, transtable_pa);
-	
+
 	check_overlap("boot allocator area", balloc_base_pa, pages);
 	check_overlap("inflate area", inflate_base_pa, pages);
 	check_overlap("translate table", transtable_pa, pages);
-	
+
 	printf("\nInflating components ... ");
-	
+
 	for (i = cnt; i > 0; i--) {
 		printf("%s ", components[i - 1].name);
-		
+
 		int err = inflate(components[i - 1].addr, components[i - 1].size,
 		    inflate_base + dest[i - 1], components[i - 1].inflated);
-		
+
 		if (err != EOK) {
 			printf("\n%s: Inflating error %d, halting.\n",
 			    components[i - 1].name, err);
 			halt();
 		}
 	}
-	
+
 	printf(".\n");
-	
+
 	printf("Setting up boot allocator ...\n");
 	balloc_init(&bootinfo.ballocs, balloc_base, PA2KA(balloc_start),
 	    BALLOC_MAX_SIZE);
-	
+
 	printf("Setting up screens ...\n");
 	ofw_setup_screens();
-	
+
 	printf("Canonizing OpenFirmware device tree ...\n");
 	bootinfo.ofw_root = ofw_tree_build();
-	
+
 	printf("Setting up translate table ...\n");
 	for (i = 0; i < pages; i++) {
 		uintptr_t off = i << PAGE_WIDTH;
 		void *phys;
-		
+
 		if (off < balloc_start)
 			phys = ofw_translate(inflate_base + off);
 		else
 			phys = ofw_translate(balloc_base + off - balloc_start);
-		
+
 		((void **) transtable)[i] = phys;
 	}
-	
+
 	printf("Booting the kernel...\n");
 	jump_to_kernel(bootinfo_pa, transtable_pa, pages, real_mode_pa);
 }

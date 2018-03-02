@@ -54,41 +54,41 @@ static errno_t arp_send_packet(ethip_nic_t *nic, arp_eth_packet_t *packet);
 void arp_received(ethip_nic_t *nic, eth_frame_t *frame)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "arp_received()");
-	
+
 	arp_eth_packet_t packet;
 	errno_t rc = arp_pdu_decode(frame->data, frame->size, &packet);
 	if (rc != EOK)
 		return;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ARP PDU decoded, opcode=%d, tpa=%x",
 	    packet.opcode, packet.target_proto_addr);
-	
+
 	inet_addr_t addr;
 	inet_addr_set(packet.target_proto_addr, &addr);
-	
+
 	ethip_link_addr_t *laddr = ethip_nic_addr_find(nic, &addr);
 	if (laddr == NULL)
 		return;
-	
+
 	addr32_t laddr_v4;
 	ip_ver_t laddr_ver = inet_addr_get(&laddr->addr, &laddr_v4, NULL);
 	if (laddr_ver != ip_v4)
 		return;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "Request/reply to my address");
-	
+
 	(void) atrans_add(packet.sender_proto_addr,
 	    packet.sender_hw_addr);
-	
+
 	if (packet.opcode == aop_request) {
 		arp_eth_packet_t reply;
-		
+
 		reply.opcode = aop_reply;
 		addr48(nic->mac_addr, reply.sender_hw_addr);
 		reply.sender_proto_addr = laddr_v4;
 		addr48(packet.sender_hw_addr, reply.target_hw_addr);
 		reply.target_proto_addr = packet.sender_proto_addr;
-		
+
 		arp_send_packet(nic, &reply);
 	}
 }
@@ -105,19 +105,19 @@ errno_t arp_translate(ethip_nic_t *nic, addr32_t src_addr, addr32_t ip_addr,
 	errno_t rc = atrans_lookup(ip_addr, mac_addr);
 	if (rc == EOK)
 		return EOK;
-	
+
 	arp_eth_packet_t packet;
-	
+
 	packet.opcode = aop_request;
 	addr48(nic->mac_addr, packet.sender_hw_addr);
 	packet.sender_proto_addr = src_addr;
 	addr48(addr48_broadcast, packet.target_hw_addr);
 	packet.target_proto_addr = ip_addr;
-	
+
 	rc = arp_send_packet(nic, &packet);
 	if (rc != EOK)
 		return rc;
-	
+
 	return atrans_lookup_timeout(ip_addr, ARP_REQUEST_TIMEOUT, mac_addr);
 }
 

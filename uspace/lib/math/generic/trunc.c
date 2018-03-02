@@ -55,10 +55,10 @@ float32_t float32_trunc(float32_t val)
 {
 	float32_u v;
 	int32_t exp;
-	
+
 	v.val = val;
 	exp = v.data.parts.exp - FLOAT32_BIAS;
-	
+
 	if (exp < 0) {
 		/* -1 < val < 1 => result is +0 or -0 */
 		v.data.parts.exp = 0;
@@ -68,13 +68,13 @@ float32_t float32_trunc(float32_t val)
 			/* val is +inf, -inf or NaN => trigger an exception */
 			// FIXME TODO
 		}
-		
+
 		/* All bits in val are relevant for the result */
 	} else {
 		/* Truncate irrelevant fraction bits */
 		v.data.parts.fraction &= ~(UINT32_C(0x007fffff) >> exp);
 	}
-	
+
 	return v.val;
 }
 
@@ -97,10 +97,10 @@ float64_t float64_trunc(float64_t val)
 {
 	float64_u v;
 	int32_t exp;
-	
+
 	v.val = val;
 	exp = v.data.parts.exp - FLOAT64_BIAS;
-	
+
 	if (exp < 0) {
 		/* -1 < val < 1 => result is +0 or -0 */
 		v.data.parts.exp = 0;
@@ -110,13 +110,13 @@ float64_t float64_trunc(float64_t val)
 			/* val is +inf, -inf or NaN => trigger an exception */
 			// FIXME TODO
 		}
-		
+
 		/* All bits in val are relevant for the result */
 	} else {
 		/* Truncate irrelevant fraction bits */
 		v.data.parts.fraction &= ~(UINT64_C(0x000fffffffffffff) >> exp);
 	}
-	
+
 	return v.val;
 }
 

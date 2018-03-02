@@ -63,13 +63,13 @@ static mutex_t sysinfo_lock;
 NO_TRACE static errno_t sysinfo_item_constructor(void *obj, unsigned int kmflag)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
-	
+
 	item->name = NULL;
 	item->val_type = SYSINFO_VAL_UNDEFINED;
 	item->subtree_type = SYSINFO_SUBTREE_NONE;
 	item->subtree.table = NULL;
 	item->next = NULL;
-	
+
 	return EOK;
 }
 
@@ -83,10 +83,10 @@ NO_TRACE static errno_t sysinfo_item_constructor(void *obj, unsigned int kmflag)
 NO_TRACE static size_t sysinfo_item_destructor(void *obj)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
-	
+
 	if (item->name != NULL)
 		free(item->name);
-	
+
 	return 0;
 }
 
@@ -100,7 +100,7 @@ void sysinfo_init(void)
 	sysinfo_item_cache = slab_cache_create("sysinfo_item_t",
 	    sizeof(sysinfo_item_t), 0, sysinfo_item_constructor,
 	    sysinfo_item_destructor, SLAB_CACHE_MAGDEFERRED);
-	
+
 	mutex_initialize(&sysinfo_lock, MUTEX_ACTIVE);
 }
 
@@ -126,21 +126,21 @@ NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
     sysinfo_item_t *subtree, sysinfo_return_t **ret, bool dry_run)
 {
 	assert(subtree != NULL);
-	
+
 	sysinfo_item_t *cur = subtree;
-	
+
 	/* Walk all siblings */
 	while (cur != NULL) {
 		size_t i = 0;
-		
+
 		/* Compare name with path */
 		while ((cur->name[i] != 0) && (name[i] == cur->name[i]))
 			i++;
-		
+
 		/* Check for perfect name and path match */
 		if ((name[i] == 0) && (cur->name[i] == 0))
 			return cur;
-		
+
 		/* Partial match up to the delimiter */
 		if ((name[i] == '.') && (cur->name[i] == 0)) {
 			/* Look into the subtree */
@@ -154,24 +154,24 @@ NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
 				if (ret != NULL)
 					**ret = cur->subtree.generator.fn(name + i + 1,
 					    dry_run, cur->subtree.generator.data);
-				
+
 				return NULL;
 			default:
 				/* Not found, no data generated */
 				if (ret != NULL)
 					*ret = NULL;
-				
+
 				return NULL;
 			}
 		}
-		
+
 		cur = cur->next;
 	}
-	
+
 	/* Not found, no data generated */
 	if (ret != NULL)
 		*ret = NULL;
-	
+
 	return NULL;
 }
 
@@ -192,51 +192,51 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
     sysinfo_item_t **psubtree)
 {
 	assert(psubtree != NULL);
-	
+
 	if (*psubtree == NULL) {
 		/* No parent */
-		
+
 		size_t i = 0;
-		
+
 		/* Find the first delimiter in name */
 		while ((name[i] != 0) && (name[i] != '.'))
 			i++;
-		
+
 		*psubtree =
 		    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, 0);
 		assert(*psubtree);
-		
+
 		/* Fill in item name up to the delimiter */
 		(*psubtree)->name = str_ndup(name, i);
 		assert((*psubtree)->name);
-		
+
 		/* Create subtree items */
 		if (name[i] == '.') {
 			(*psubtree)->subtree_type = SYSINFO_SUBTREE_TABLE;
 			return sysinfo_create_path(name + i + 1,
 			    &((*psubtree)->subtree.table));
 		}
-		
+
 		/* No subtree needs to be created */
 		return *psubtree;
 	}
-	
+
 	sysinfo_item_t *cur = *psubtree;
-	
+
 	/* Walk all siblings */
 	while (cur != NULL) {
 		size_t i = 0;
-		
+
 		/* Compare name with path */
 		while ((cur->name[i] != 0) && (name[i] == cur->name[i]))
 			i++;
-		
+
 		/* Check for perfect name and path match
 		 * -> item is already present.
 		 */
 		if ((name[i] == 0) && (cur->name[i] == 0))
 			return cur;
-		
+
 		/* Partial match up to the delimiter */
 		if ((name[i] == '.') && (cur->name[i] == 0)) {
 			switch (cur->subtree_type) {
@@ -256,7 +256,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 				return NULL;
 			}
 		}
-		
+
 		/* No match and no more siblings to check
 		 * -> create a new sibling item.
 		 */
@@ -265,31 +265,31 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 			i = 0;
 			while ((name[i] != 0) && (name[i] != '.'))
 				i++;
-			
+
 			sysinfo_item_t *item =
 			    (sysinfo_item_t *) slab_alloc(sysinfo_item_cache, 0);
 			assert(item);
-			
+
 			cur->next = item;
-			
+
 			/* Fill in item name up to the delimiter */
 			item->name = str_ndup(name, i);
 			assert(item->name);
-			
+
 			/* Create subtree items */
 			if (name[i] == '.') {
 				item->subtree_type = SYSINFO_SUBTREE_TABLE;
 				return sysinfo_create_path(name + i + 1,
 				    &(item->subtree.table));
 			}
-			
+
 			/* No subtree needs to be created */
 			return item;
 		}
-		
+
 		cur = cur->next;
 	}
-	
+
 	/* Unreachable */
 	assert(false);
 	return NULL;
@@ -308,16 +308,16 @@ void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
-	
+
 	if (root == NULL)
 		root = &global_root;
-	
+
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL) {
 		item->val_type = SYSINFO_VAL_VAL;
 		item->val.val = val;
 	}
-	
+
 	mutex_unlock(&sysinfo_lock);
 }
 
@@ -339,17 +339,17 @@ void sysinfo_set_item_data(const char *name, sysinfo_item_t **root,
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
-	
+
 	if (root == NULL)
 		root = &global_root;
-	
+
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL) {
 		item->val_type = SYSINFO_VAL_DATA;
 		item->val.data.data = data;
 		item->val.data.size = size;
 	}
-	
+
 	mutex_unlock(&sysinfo_lock);
 }
 
@@ -367,17 +367,17 @@ void sysinfo_set_item_gen_val(const char *name, sysinfo_item_t **root,
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
-	
+
 	if (root == NULL)
 		root = &global_root;
-	
+
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL) {
 		item->val_type = SYSINFO_VAL_FUNCTION_VAL;
 		item->val.gen_val.fn = fn;
 		item->val.gen_val.data = data;
 	}
-	
+
 	mutex_unlock(&sysinfo_lock);
 }
 
@@ -400,17 +400,17 @@ void sysinfo_set_item_gen_data(const char *name, sysinfo_item_t **root,
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
-	
+
 	if (root == NULL)
 		root = &global_root;
-	
+
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL) {
 		item->val_type = SYSINFO_VAL_FUNCTION_DATA;
 		item->val.gen_data.fn = fn;
 		item->val.gen_data.data = data;
 	}
-	
+
 	mutex_unlock(&sysinfo_lock);
 }
 
@@ -425,14 +425,14 @@ void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root)
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
-	
+
 	if (root == NULL)
 		root = &global_root;
-	
+
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 	if (item != NULL)
 		item->val_type = SYSINFO_VAL_UNDEFINED;
-	
+
 	mutex_unlock(&sysinfo_lock);
 }
 
@@ -450,12 +450,12 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
-	
+
 	if (root == NULL)
 		root = &global_root;
-	
+
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
-	
+
 	/* Change the type of the subtree only if it is not already
 	   a fixed subtree */
 	if ((item != NULL) && (item->subtree_type != SYSINFO_SUBTREE_TABLE)) {
@@ -463,7 +463,7 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 		item->subtree.generator.fn = fn;
 		item->subtree.generator.data = data;
 	}
-	
+
 	mutex_unlock(&sysinfo_lock);
 }
 
@@ -491,7 +491,7 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 	/* Walk all siblings */
 	for (sysinfo_item_t *cur = root; cur; cur = cur->next) {
 		size_t length;
-		
+
 		if (spaces == 0) {
 			printf("%s", cur->name);
 			length = str_length(cur->name);
@@ -500,10 +500,10 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 			printf(".%s", cur->name);
 			length = str_length(cur->name) + 1;
 		}
-		
+
 		sysarg_t val;
 		size_t size;
-		
+
 		/* Display node value and type */
 		switch (cur->val_type) {
 		case SYSINFO_VAL_UNDEFINED:
@@ -530,7 +530,7 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 		default:
 			printf("+ %s [unknown]\n", cur->name);
 		}
-		
+
 		/* Recursivelly nest into the subtree */
 		switch (cur->subtree_type) {
 		case SYSINFO_SUBTREE_NONE:
@@ -561,12 +561,12 @@ void sysinfo_dump(sysinfo_item_t *root)
 	/* Avoid other functions to mess with sysinfo
 	   while we are dumping it */
 	mutex_lock(&sysinfo_lock);
-	
+
 	if (root == NULL)
 		sysinfo_dump_internal(global_root, 0);
 	else
 		sysinfo_dump_internal(root, 0);
-	
+
 	mutex_unlock(&sysinfo_lock);
 }
 
@@ -589,16 +589,16 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item(const char *name,
 {
 	if (root == NULL)
 		root = &global_root;
-	
+
 	/* Try to find the item or generate data */
 	sysinfo_return_t ret;
 	sysinfo_return_t *ret_ptr = &ret;
 	sysinfo_item_t *item = sysinfo_find_item(name, *root, &ret_ptr,
 	    dry_run);
-	
+
 	if (item != NULL) {
 		/* Item found in the fixed sysinfo tree */
-		
+
 		ret.tag = item->val_type;
 		switch (item->val_type) {
 		case SYSINFO_VAL_UNDEFINED:
@@ -624,7 +624,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item(const char *name,
 			ret.tag = SYSINFO_VAL_UNDEFINED;
 		}
 	}
-	
+
 	return ret;
 }
 
@@ -644,13 +644,13 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 {
 	sysinfo_return_t ret;
 	ret.tag = SYSINFO_VAL_UNDEFINED;
-	
+
 	if (size > SYSINFO_MAX_PATH)
 		return ret;
-	
+
 	char *path = (char *) malloc(size + 1, 0);
 	assert(path);
-	
+
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
 	    (path[size] == 0)) {
 		/*
@@ -661,7 +661,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 		ret = sysinfo_get_item(path, NULL, dry_run);
 		mutex_unlock(&sysinfo_lock);
 	}
-	
+
 	free(path);
 	return ret;
 }
@@ -685,9 +685,9 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 {
 	if (root == NULL)
 		root = &global_root;
-	
+
 	sysinfo_item_t *subtree = NULL;
-	
+
 	if (name[0] != 0) {
 		/* Try to find the item */
 		sysinfo_item_t *item =
@@ -697,10 +697,10 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 			subtree = item->subtree.table;
 	} else
 		subtree = *root;
-	
+
 	sysinfo_return_t ret;
 	ret.tag = SYSINFO_VAL_UNDEFINED;
-	
+
 	if (subtree != NULL) {
 		/*
 		 * Calculate the size of subkeys.
@@ -708,7 +708,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 		size_t size = 0;
 		for (sysinfo_item_t *cur = subtree; cur; cur = cur->next)
 			size += str_size(cur->name) + 1;
-		
+
 		if (dry_run) {
 			ret.tag = SYSINFO_VAL_DATA;
 			ret.data.data = NULL;
@@ -718,20 +718,20 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 			char *names = (char *) malloc(size, FRAME_ATOMIC);
 			if (names == NULL)
 				return ret;
-			
+
 			size_t pos = 0;
 			for (sysinfo_item_t *cur = subtree; cur; cur = cur->next) {
 				str_cpy(names + pos, size - pos, cur->name);
 				pos += str_size(cur->name) + 1;
 			}
-			
+
 			/* Correct return value */
 			ret.tag = SYSINFO_VAL_DATA;
 			ret.data.data = (void *) names;
 			ret.data.size = size;
 		}
 	}
-	
+
 	return ret;
 }
 
@@ -753,13 +753,13 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
 	ret.tag = SYSINFO_VAL_UNDEFINED;
 	ret.data.data = NULL;
 	ret.data.size = 0;
-	
+
 	if (size > SYSINFO_MAX_PATH)
 		return ret;
-	
+
 	char *path = (char *) malloc(size + 1, 0);
 	assert(path);
-	
+
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
 	    (path[size] == 0)) {
 		/*
@@ -770,7 +770,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
 		ret = sysinfo_get_keys(path, NULL, dry_run);
 		mutex_unlock(&sysinfo_lock);
 	}
-	
+
 	free(path);
 	return ret;
 }
@@ -793,7 +793,7 @@ sys_errno_t sys_sysinfo_get_keys_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
 	errno_t rc;
-	
+
 	/*
 	 * Get the keys.
 	 *
@@ -802,14 +802,14 @@ sys_errno_t sys_sysinfo_get_keys_size(void *path_ptr, size_t path_size,
 	 */
 	sysinfo_return_t ret =
 	    sysinfo_get_keys_uspace(path_ptr, path_size, true);
-	
+
 	/* Check return data tag */
 	if (ret.tag == SYSINFO_VAL_DATA)
 		rc = copy_to_uspace(size_ptr, &ret.data.size,
 		    sizeof(ret.data.size));
 	else
 		rc = EINVAL;
-	
+
 	return (sys_errno_t) rc;
 }
 
@@ -841,22 +841,22 @@ sys_errno_t sys_sysinfo_get_keys(void *path_ptr, size_t path_size,
     void *buffer_ptr, size_t buffer_size, size_t *size_ptr)
 {
 	errno_t rc;
-	
+
 	/* Get the keys */
 	sysinfo_return_t ret = sysinfo_get_keys_uspace(path_ptr, path_size,
 	    false);
-	
+
 	/* Check return data tag */
 	if (ret.tag == SYSINFO_VAL_DATA) {
 		size_t size = min(ret.data.size, buffer_size);
 		rc = copy_to_uspace(buffer_ptr, ret.data.data, size);
 		if (rc == EOK)
 			rc = copy_to_uspace(size_ptr, &size, sizeof(size));
-		
+
 		free(ret.data.data);
 	} else
 		rc = EINVAL;
-	
+
 	return (sys_errno_t) rc;
 }
 
@@ -881,7 +881,7 @@ sysarg_t sys_sysinfo_get_val_type(void *path_ptr, size_t path_size)
 	 * binary data since we request a dry run.
 	 */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
-	
+
 	/*
 	 * Map generated value types to constant types (user space does
 	 * not care whether the value is constant or generated).
@@ -890,7 +890,7 @@ sysarg_t sys_sysinfo_get_val_type(void *path_ptr, size_t path_size)
 		ret.tag = SYSINFO_VAL_VAL;
 	else if (ret.tag == SYSINFO_VAL_FUNCTION_DATA)
 		ret.tag = SYSINFO_VAL_DATA;
-	
+
 	return (sysarg_t) ret.tag;
 }
 
@@ -912,7 +912,7 @@ sys_errno_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
     void *value_ptr)
 {
 	errno_t rc;
-	
+
 	/*
 	 * Get the item.
 	 *
@@ -920,13 +920,13 @@ sys_errno_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 	 * data since we request a dry run.
 	 */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
-	
+
 	/* Only constant or generated numerical value is returned */
 	if ((ret.tag == SYSINFO_VAL_VAL) || (ret.tag == SYSINFO_VAL_FUNCTION_VAL))
 		rc = copy_to_uspace(value_ptr, &ret.val, sizeof(ret.val));
 	else
 		rc = EINVAL;
-	
+
 	return (sys_errno_t) rc;
 }
 
@@ -948,7 +948,7 @@ sys_errno_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
 	errno_t rc;
-	
+
 	/*
 	 * Get the item.
 	 *
@@ -956,14 +956,14 @@ sys_errno_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 	 * data since we request a dry run.
 	 */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, true);
-	
+
 	/* Only the size of constant or generated binary data is considered */
 	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA))
 		rc = copy_to_uspace(size_ptr, &ret.data.size,
 		    sizeof(ret.data.size));
 	else
 		rc = EINVAL;
-	
+
 	return (sys_errno_t) rc;
 }
 
@@ -998,11 +998,11 @@ sys_errno_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
     void *buffer_ptr, size_t buffer_size, size_t *size_ptr)
 {
 	errno_t rc;
-	
+
 	/* Get the item */
 	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size,
 	    false);
-	
+
 	/* Only constant or generated binary data is considered */
 	if ((ret.tag == SYSINFO_VAL_DATA) ||
 	    (ret.tag == SYSINFO_VAL_FUNCTION_DATA)) {
@@ -1012,11 +1012,11 @@ sys_errno_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
 			rc = copy_to_uspace(size_ptr, &size, sizeof(size));
 	} else
 		rc = EINVAL;
-	
+
 	/* N.B.: The generated binary data should be freed */
 	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
 		free(ret.data.data);
-	
+
 	return (sys_errno_t) rc;
 }
 

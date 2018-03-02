@@ -70,11 +70,11 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
 	*/
 	volatile uint32_t handler_address_ptr = EXC_VECTORS_SIZE -
 	    PREFETCH_OFFSET;
-	
+
 	/* make it LDR instruction and store at exception vector */
 	*vector = handler_address_ptr | LDR_OPCODE;
 	smc_coherence(vector);
-	
+
 	/* store handler's address */
 	*(vector + EXC_VECTORS) = handler_addr;
 
@@ -98,22 +98,22 @@ void install_exception_handlers(void)
 {
 	install_handler((unsigned) reset_exception_entry,
 	    (unsigned *) EXC_RESET_VEC);
-	
+
 	install_handler((unsigned) undef_instr_exception_entry,
 	    (unsigned *) EXC_UNDEF_INSTR_VEC);
-	
+
 	install_handler((unsigned) swi_exception_entry,
 	    (unsigned *) EXC_SWI_VEC);
-	
+
 	install_handler((unsigned) prefetch_abort_exception_entry,
 	    (unsigned *) EXC_PREFETCH_ABORT_VEC);
-	
+
 	install_handler((unsigned) data_abort_exception_entry,
 	    (unsigned *) EXC_DATA_ABORT_VEC);
-	
+
 	install_handler((unsigned) irq_exception_entry,
 	    (unsigned *) EXC_IRQ_VEC);
-	
+
 	install_handler((unsigned) fiq_exception_entry,
 	    (unsigned *) EXC_FIQ_VEC);
 }
@@ -139,10 +139,10 @@ void install_exception_handlers(void)
 static void high_vectors(void)
 {
 	uint32_t control_reg = SCTLR_read();
-	
+
 	/* switch on the high vectors bit */
 	control_reg |= SCTLR_HIGH_VECTORS_EN_FLAG;
-	
+
 	SCTLR_write(control_reg);
 }
 #endif
@@ -189,7 +189,7 @@ void exception_init(void)
 	high_vectors();
 #endif
 	install_exception_handlers();
-	
+
 	exc_register(EXC_UNDEF_INSTR, "undefined instruction", true,
 	    (iroutine_t) undef_insn_exception);
 	exc_register(EXC_IRQ, "interrupt", true,

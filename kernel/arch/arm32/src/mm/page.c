@@ -55,7 +55,7 @@ void page_arch_init(void)
 	page_mapping_operations = &pt_mapping_operations;
 
 	page_table_lock(AS_KERNEL, true);
-	
+
 	/* Kernel identity mapping */
 	//FIXME: We need to consider the possibility that
 	//identity_base > identity_size and physmem_end.
@@ -65,7 +65,7 @@ void page_arch_init(void)
 	        config.identity_size, config.physmem_end);
 	    cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
-	
+
 #ifdef HIGH_EXCEPTION_VECTORS
 	/* Create mapping for exception table at high offset */
 	uintptr_t ev_frame = frame_alloc(1, FRAME_NONE, 0);
@@ -75,9 +75,9 @@ void page_arch_init(void)
 #endif
 
 	page_table_unlock(AS_KERNEL, true);
-	
+
 	as_switch(NULL, AS_KERNEL);
-	
+
 	boot_page_table_free();
 }
 

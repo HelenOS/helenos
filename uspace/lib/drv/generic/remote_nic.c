@@ -100,14 +100,14 @@ typedef enum {
 errno_t nic_send_frame(async_sess_t *dev_sess, void *data, size_t size)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	ipc_call_t answer;
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SEND_MESSAGE, &answer);
 	errno_t retval = async_data_write_start(exch, data, size);
-	
+
 	async_exchange_end(exch);
-	
+
 	if (retval != EOK) {
 		async_forget(req);
 		return retval;
@@ -131,11 +131,11 @@ errno_t nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
 	ipc_call_t answer;
 	errno_t rc;
 	errno_t retval;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	aid_t req = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_CALLBACK_CREATE, &answer);
-	
+
 	port_id_t port;
 	rc = async_create_callback_port(exch, INTERFACE_NIC_CB, 0, 0,
 	    cfun, carg, &port);
@@ -144,7 +144,7 @@ errno_t nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
 		return rc;
 	}
 	async_exchange_end(exch);
-	
+
 	async_wait_for(req, &retval);
 	return retval;
 }
@@ -160,16 +160,16 @@ errno_t nic_callback_create(async_sess_t *dev_sess, async_port_handler_t cfun,
 errno_t nic_get_state(async_sess_t *dev_sess, nic_device_state_t *state)
 {
 	assert(state);
-	
+
 	sysarg_t _state;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_STATE, &_state);
 	async_exchange_end(exch);
-	
+
 	*state = (nic_device_state_t) _state;
-	
+
 	return rc;
 }
 
@@ -187,7 +187,7 @@ errno_t nic_set_state(async_sess_t *dev_sess, nic_device_state_t state)
 	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SET_STATE, state);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -202,19 +202,19 @@ errno_t nic_set_state(async_sess_t *dev_sess, nic_device_state_t state)
 errno_t nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
 {
 	assert(address);
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_ADDRESS, NULL);
 	errno_t rc = async_data_read_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
-	
+
 	errno_t res;
 	async_wait_for(aid, &res);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	return res;
 }
 
@@ -229,19 +229,19 @@ errno_t nic_get_address(async_sess_t *dev_sess, nic_address_t *address)
 errno_t nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
 {
 	assert(address);
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SET_ADDRESS, NULL);
 	errno_t rc = async_data_write_start(exch, address, sizeof(nic_address_t));
 	async_exchange_end(exch);
-	
+
 	errno_t res;
 	async_wait_for(aid, &res);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	return res;
 }
 
@@ -256,20 +256,20 @@ errno_t nic_set_address(async_sess_t *dev_sess, const nic_address_t *address)
 errno_t nic_get_stats(async_sess_t *dev_sess, nic_device_stats_t *stats)
 {
 	assert(stats);
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_STATS);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	rc = async_data_read_start(exch, stats, sizeof(nic_device_stats_t));
-	
+
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -286,9 +286,9 @@ errno_t nic_get_stats(async_sess_t *dev_sess, nic_device_stats_t *stats)
 errno_t nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_info)
 {
 	assert(device_info);
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	aid_t aid = async_send_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_DEVICE_INFO, NULL);
 	errno_t rc = async_data_read_start(exch, device_info, sizeof(nic_device_info_t));
@@ -296,10 +296,10 @@ errno_t nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_in
 
 	errno_t res;
 	async_wait_for(aid, &res);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	return res;
 }
 
@@ -314,16 +314,16 @@ errno_t nic_get_device_info(async_sess_t *dev_sess, nic_device_info_t *device_in
 errno_t nic_get_cable_state(async_sess_t *dev_sess, nic_cable_state_t *cable_state)
 {
 	assert(cable_state);
-	
+
 	sysarg_t _cable_state;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_CABLE_STATE, &_cable_state);
 	async_exchange_end(exch);
-	
+
 	*cable_state = (nic_cable_state_t) _cable_state;
-	
+
 	return rc;
 }
 
@@ -343,21 +343,21 @@ errno_t nic_get_operation_mode(async_sess_t *dev_sess, int *speed,
 	sysarg_t _speed;
 	sysarg_t _duplex;
 	sysarg_t _role;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_OPERATION_MODE, &_speed, &_duplex, &_role);
 	async_exchange_end(exch);
-	
+
 	if (speed)
 		*speed = (int) _speed;
-	
+
 	if (duplex)
 		*duplex = (nic_channel_mode_t) _duplex;
-	
+
 	if (role)
 		*role = (nic_role_t) _role;
-	
+
 	return rc;
 }
 
@@ -382,7 +382,7 @@ errno_t nic_set_operation_mode(async_sess_t *dev_sess, int speed,
 	    NIC_SET_OPERATION_MODE, (sysarg_t) speed, (sysarg_t) duplex,
 	    (sysarg_t) role);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -405,7 +405,7 @@ errno_t nic_autoneg_enable(async_sess_t *dev_sess, uint32_t advertisement)
 	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_ENABLE, (sysarg_t) advertisement);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -422,7 +422,7 @@ errno_t nic_autoneg_disable(async_sess_t *dev_sess)
 	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_DISABLE);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -451,25 +451,25 @@ errno_t nic_autoneg_probe(async_sess_t *dev_sess, uint32_t *our_advertisement,
 	sysarg_t _their_advertisement;
 	sysarg_t _result;
 	sysarg_t _their_result;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_4(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_PROBE, &_our_advertisement, &_their_advertisement,
 	    &_result, &_their_result);
 	async_exchange_end(exch);
-	
+
 	if (our_advertisement)
 		*our_advertisement = (uint32_t) _our_advertisement;
-	
+
 	if (*their_advertisement)
 		*their_advertisement = (uint32_t) _their_advertisement;
-	
+
 	if (result)
 		*result = (nic_result_t) _result;
-	
+
 	if (their_result)
 		*their_result = (nic_result_t) _their_result;
-	
+
 	return rc;
 }
 
@@ -486,7 +486,7 @@ errno_t nic_autoneg_restart(async_sess_t *dev_sess)
 	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_RESTART);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -506,21 +506,21 @@ errno_t nic_get_pause(async_sess_t *dev_sess, nic_result_t *we_send,
 	sysarg_t _we_send;
 	sysarg_t _we_receive;
 	sysarg_t _pause;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_GET_PAUSE, &_we_send, &_we_receive, &_pause);
 	async_exchange_end(exch);
-	
+
 	if (we_send)
 		*we_send = _we_send;
-	
+
 	if (we_receive)
 		*we_receive = _we_receive;
-	
+
 	if (pause)
 		*pause = _pause;
-	
+
 	return rc;
 }
 
@@ -545,7 +545,7 @@ errno_t nic_set_pause(async_sess_t *dev_sess, int allow_send, int allow_receive,
 	errno_t rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_SET_PAUSE, allow_send, allow_receive, pause);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -569,32 +569,32 @@ errno_t nic_unicast_get_mode(async_sess_t *dev_sess, nic_unicast_mode_t *mode,
     size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	assert(mode);
-	
+
 	sysarg_t _mode;
 	sysarg_t _address_count;
-	
+
 	if (!address_list)
 		max_count = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	errno_t rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_UNICAST_GET_MODE, max_count, &_mode, &_address_count);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	*mode = (nic_unicast_mode_t) _mode;
 	if (address_count)
 		*address_count = (size_t) _address_count;
-	
+
 	if ((max_count) && (_address_count))
 		rc = async_data_read_start(exch, address_list,
 		    max_count * sizeof(nic_address_t));
-	
+
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -613,27 +613,27 @@ errno_t nic_unicast_set_mode(async_sess_t *dev_sess, nic_unicast_mode_t mode,
 {
 	if (address_list == NULL)
 		address_count = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_UNICAST_SET_MODE, (sysarg_t) mode, address_count, NULL);
-	
+
 	errno_t rc;
 	if (address_count)
 		rc = async_data_write_start(exch, address_list,
 		    address_count * sizeof(nic_address_t));
 	else
 		rc = EOK;
-	
+
 	async_exchange_end(exch);
-	
+
 	errno_t res;
 	async_wait_for(message_id, &res);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	return res;
 }
 
@@ -658,14 +658,14 @@ errno_t nic_multicast_get_mode(async_sess_t *dev_sess, nic_multicast_mode_t *mod
     size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	assert(mode);
-	
+
 	sysarg_t _mode;
-	
+
 	if (!address_list)
 		max_count = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	sysarg_t ac;
 	errno_t rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_MULTICAST_GET_MODE, max_count, &_mode, &ac);
@@ -673,15 +673,15 @@ errno_t nic_multicast_get_mode(async_sess_t *dev_sess, nic_multicast_mode_t *mod
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	*mode = (nic_multicast_mode_t) _mode;
 	if (address_count)
 		*address_count = (size_t) ac;
-	
+
 	if ((max_count) && (ac))
 		rc = async_data_read_start(exch, address_list,
 		    max_count * sizeof(nic_address_t));
-	
+
 	async_exchange_end(exch);
 	return rc;
 }
@@ -701,27 +701,27 @@ errno_t nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode
 {
 	if (address_list == NULL)
 		address_count = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_MULTICAST_SET_MODE, (sysarg_t) mode, address_count, NULL);
-	
+
 	errno_t rc;
 	if (address_count)
 		rc = async_data_write_start(exch, address_list,
 		    address_count * sizeof(nic_address_t));
 	else
 		rc = EOK;
-	
+
 	async_exchange_end(exch);
-	
+
 	errno_t res;
 	async_wait_for(message_id, &res);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	return res;
 }
 
@@ -736,16 +736,16 @@ errno_t nic_multicast_set_mode(async_sess_t *dev_sess, nic_multicast_mode_t mode
 errno_t nic_broadcast_get_mode(async_sess_t *dev_sess, nic_broadcast_mode_t *mode)
 {
 	assert(mode);
-	
+
 	sysarg_t _mode;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_BROADCAST_GET_MODE, &_mode);
 	async_exchange_end(exch);
-	
+
 	*mode = (nic_broadcast_mode_t) _mode;
-	
+
 	return rc;
 }
 
@@ -763,7 +763,7 @@ errno_t nic_broadcast_set_mode(async_sess_t *dev_sess, nic_broadcast_mode_t mode
 	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_BROADCAST_SET_MODE, mode);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -778,16 +778,16 @@ errno_t nic_broadcast_set_mode(async_sess_t *dev_sess, nic_broadcast_mode_t mode
 errno_t nic_defective_get_mode(async_sess_t *dev_sess, uint32_t *mode)
 {
 	assert(mode);
-	
+
 	sysarg_t _mode;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_DEFECTIVE_GET_MODE, &_mode);
 	async_exchange_end(exch);
-	
+
 	*mode = (uint32_t) _mode;
-	
+
 	return rc;
 }
 
@@ -805,7 +805,7 @@ errno_t nic_defective_set_mode(async_sess_t *dev_sess, uint32_t mode)
 	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_DEFECTIVE_SET_MODE, mode);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -826,9 +826,9 @@ errno_t nic_blocked_sources_get(async_sess_t *dev_sess, size_t max_count,
 {
 	if (!address_list)
 		max_count = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	sysarg_t ac;
 	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_BLOCKED_SOURCES_GET, max_count, &ac);
@@ -836,14 +836,14 @@ errno_t nic_blocked_sources_get(async_sess_t *dev_sess, size_t max_count,
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	if (address_count)
 		*address_count = (size_t) ac;
-	
+
 	if ((max_count) && (ac))
 		rc = async_data_read_start(exch, address_list,
 		    max_count * sizeof(nic_address_t));
-	
+
 	async_exchange_end(exch);
 	return rc;
 }
@@ -862,27 +862,27 @@ errno_t nic_blocked_sources_set(async_sess_t *dev_sess,
 {
 	if (address_list == NULL)
 		address_count = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	aid_t message_id = async_send_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_BLOCKED_SOURCES_SET, address_count, NULL);
-	
+
 	errno_t rc;
 	if (address_count)
 		rc = async_data_write_start(exch, address_list,
 			address_count * sizeof(nic_address_t));
 	else
 		rc = EOK;
-	
+
 	async_exchange_end(exch);
-	
+
 	errno_t res;
 	async_wait_for(message_id, &res);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	return res;
 }
 
@@ -897,7 +897,7 @@ errno_t nic_blocked_sources_set(async_sess_t *dev_sess,
 errno_t nic_vlan_get_mask(async_sess_t *dev_sess, nic_vlan_mask_t *mask)
 {
 	assert(mask);
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_VLAN_GET_MASK);
@@ -905,10 +905,10 @@ errno_t nic_vlan_get_mask(async_sess_t *dev_sess, nic_vlan_mask_t *mask)
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	rc = async_data_read_start(exch, mask, sizeof(nic_vlan_mask_t));
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -925,24 +925,24 @@ errno_t nic_vlan_get_mask(async_sess_t *dev_sess, nic_vlan_mask_t *mask)
 errno_t nic_vlan_set_mask(async_sess_t *dev_sess, const nic_vlan_mask_t *mask)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	aid_t message_id = async_send_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_VLAN_SET_MASK, mask != NULL, NULL);
-	
+
 	errno_t rc;
 	if (mask != NULL)
 		rc = async_data_write_start(exch, mask, sizeof(nic_vlan_mask_t));
 	else
 		rc = EOK;
-	
+
 	async_exchange_end(exch);
-	
+
 	errno_t res;
 	async_wait_for(message_id, &res);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	return res;
 }
 
@@ -968,7 +968,7 @@ errno_t nic_vlan_set_tag(async_sess_t *dev_sess, uint16_t tag, bool add, bool st
 	errno_t rc = async_req_4_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_VLAN_SET_TAG, (sysarg_t) tag, (sysarg_t) add, (sysarg_t) strip);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -988,14 +988,14 @@ errno_t nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
     const void *data, size_t length, nic_wv_id_t *id)
 {
 	assert(id);
-	
+
 	bool send_data = ((data != NULL) && (length != 0));
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	ipc_call_t result;
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_ADD, (sysarg_t) type, send_data, &result);
-	
+
 	errno_t res;
 	if (send_data) {
 		errno_t rc = async_data_write_start(exch, data, length);
@@ -1005,10 +1005,10 @@ errno_t nic_wol_virtue_add(async_sess_t *dev_sess, nic_wv_type_t type,
 			return rc;
 		}
 	}
-	
+
 	async_exchange_end(exch);
 	async_wait_for(message_id, &res);
-	
+
 	*id = IPC_GET_ARG1(result);
 	return res;
 }
@@ -1027,7 +1027,7 @@ errno_t nic_wol_virtue_remove(async_sess_t *dev_sess, nic_wv_id_t id)
 	errno_t rc = async_req_2_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_REMOVE, (sysarg_t) id);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -1049,12 +1049,12 @@ errno_t nic_wol_virtue_probe(async_sess_t *dev_sess, nic_wv_id_t id,
 {
 	sysarg_t _type;
 	sysarg_t _length;
-	
+
 	if (data == NULL)
 		max_length = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	errno_t rc = async_req_3_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_PROBE, (sysarg_t) id, max_length,
 	    &_type, &_length);
@@ -1062,16 +1062,16 @@ errno_t nic_wol_virtue_probe(async_sess_t *dev_sess, nic_wv_id_t id,
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	if (type)
 		*type = _type;
-	
+
 	if (length)
 		*length = _length;
-	
+
 	if ((max_length) && (_length != 0))
 		rc = async_data_read_start(exch, data, max_length);
-	
+
 	async_exchange_end(exch);
 	return rc;
 }
@@ -1099,24 +1099,24 @@ errno_t nic_wol_virtue_list(async_sess_t *dev_sess, nic_wv_type_t type,
 {
 	if (id_list == NULL)
 		max_count = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	sysarg_t count;
 	errno_t rc = async_req_3_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_LIST, (sysarg_t) type, max_count, &count);
-	
+
 	if (id_count)
 		*id_count = (size_t) count;
-	
+
 	if ((rc != EOK) || (!max_count)) {
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	rc = async_data_read_start(exch, id_list,
 	    max_count * sizeof(nic_wv_id_t));
-	
+
 	async_exchange_end(exch);
 	return rc;
 }
@@ -1138,14 +1138,14 @@ errno_t nic_wol_virtue_get_caps(async_sess_t *dev_sess, nic_wv_type_t type,
     int *count)
 {
 	assert(count);
-	
+
 	sysarg_t _count;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_VIRTUE_GET_CAPS, (sysarg_t) type, &_count);
 	async_exchange_end(exch);
-	
+
 	*count = (int) _count;
 	return rc;
 }
@@ -1176,29 +1176,29 @@ errno_t nic_wol_load_info(async_sess_t *dev_sess, nic_wv_type_t *matched_type,
     size_t max_length, uint8_t *frame, size_t *frame_length)
 {
 	assert(matched_type);
-	
+
 	sysarg_t _matched_type;
 	sysarg_t _frame_length;
-	
+
 	if (frame == NULL)
 		max_length = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	errno_t rc = async_req_2_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_WOL_LOAD_INFO, max_length, &_matched_type, &_frame_length);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	*matched_type = (nic_wv_type_t) _matched_type;
 	if (frame_length)
 		*frame_length = (size_t) _frame_length;
-	
+
 	if ((max_length != 0) && (_frame_length != 0))
 		rc = async_data_read_start(exch, frame, max_length);
-	
+
 	async_exchange_end(exch);
 	return rc;
 }
@@ -1217,15 +1217,15 @@ errno_t nic_offload_probe(async_sess_t *dev_sess, uint32_t *supported,
 {
 	assert(supported);
 	assert(active);
-	
+
 	sysarg_t _supported;
 	sysarg_t _active;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_2(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_OFFLOAD_PROBE, &_supported, &_active);
 	async_exchange_end(exch);
-	
+
 	*supported = (uint32_t) _supported;
 	*active = (uint32_t) _active;
 	return rc;
@@ -1246,7 +1246,7 @@ errno_t nic_offload_set(async_sess_t *dev_sess, uint32_t mask, uint32_t active)
 	errno_t rc = async_req_3_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_AUTONEG_RESTART, (sysarg_t) mask, (sysarg_t) active);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -1264,23 +1264,23 @@ errno_t nic_poll_get_mode(async_sess_t *dev_sess, nic_poll_mode_t *mode,
     struct timeval *period)
 {
 	assert(mode);
-	
+
 	sysarg_t _mode;
-	
+
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_POLL_GET_MODE, period != NULL, &_mode);
 	if (rc != EOK) {
 		async_exchange_end(exch);
 		return rc;
 	}
-	
+
 	*mode = (nic_poll_mode_t) _mode;
-	
+
 	if (period != NULL)
 		rc = async_data_read_start(exch, period, sizeof(struct timeval));
-	
+
 	async_exchange_end(exch);
 	return rc;
 }
@@ -1298,24 +1298,24 @@ errno_t nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
     const struct timeval *period)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
-	
+
 	aid_t message_id = async_send_3(exch, DEV_IFACE_ID(NIC_DEV_IFACE),
 	    NIC_POLL_SET_MODE, (sysarg_t) mode, period != NULL, NULL);
-	
+
 	errno_t rc;
 	if (period)
 		rc = async_data_write_start(exch, period, sizeof(struct timeval));
 	else
 		rc = EOK;
-	
+
 	async_exchange_end(exch);
-	
+
 	errno_t res;
 	async_wait_for(message_id, &res);
-	
+
 	if (rc != EOK)
 		return rc;
-	
+
 	return res;
 }
 
@@ -1331,7 +1331,7 @@ errno_t nic_poll_now(async_sess_t *dev_sess)
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 	errno_t rc = async_req_1_0(exch, DEV_IFACE_ID(NIC_DEV_IFACE), NIC_POLL_NOW);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -1340,17 +1340,17 @@ static void remote_nic_send_frame(ddf_fun_t *dev, void *iface,
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->send_frame);
-	
+
 	void *data;
 	size_t size;
 	errno_t rc;
-	
+
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	rc = nic_iface->send_frame(dev, data, size);
 	async_answer_0(callid, rc);
 	free(data);
@@ -1361,7 +1361,7 @@ static void remote_nic_callback_create(ddf_fun_t *dev, void *iface,
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->callback_create);
-	
+
 	errno_t rc = nic_iface->callback_create(dev);
 	async_answer_0(callid, rc);
 }
@@ -1371,9 +1371,9 @@ static void remote_nic_get_state(ddf_fun_t *dev, void *iface,
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->get_state);
-	
+
 	nic_device_state_t state = NIC_STATE_MAX;
-	
+
 	errno_t rc = nic_iface->get_state(dev, &state);
 	async_answer_1(callid, rc, state);
 }
@@ -1383,9 +1383,9 @@ static void remote_nic_set_state(ddf_fun_t *dev, void *iface,
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->set_state);
-	
+
 	nic_device_state_t state = (nic_device_state_t) IPC_GET_ARG2(*call);
-	
+
 	errno_t rc = nic_iface->set_state(dev, state);
 	async_answer_0(callid, rc);
 }
@@ -1395,32 +1395,32 @@ static void remote_nic_get_address(ddf_fun_t *dev, void *iface,
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->get_address);
-	
+
 	nic_address_t address;
 	memset(&address, 0, sizeof(nic_address_t));
-	
+
 	errno_t rc = nic_iface->get_address(dev, &address);
 	if (rc == EOK) {
 		size_t max_len;
 		ipc_callid_t data_callid;
-		
+
 		/* All errors will be translated into EPARTY anyway */
 		if (!async_data_read_receive(&data_callid, &max_len)) {
 			async_answer_0(data_callid, EINVAL);
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (max_len != sizeof(nic_address_t)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		async_data_read_finalize(data_callid, &address,
 		    sizeof(nic_address_t));
 	}
-	
+
 	async_answer_0(callid, rc);
 }
 
@@ -1428,7 +1428,7 @@ static void remote_nic_set_address(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	size_t length;
 	ipc_callid_t data_callid;
 	if (!async_data_write_receive(&data_callid, &length)) {
@@ -1436,19 +1436,19 @@ static void remote_nic_set_address(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	if (length > sizeof(nic_address_t)) {
 		async_answer_0(data_callid, ELIMIT);
 		async_answer_0(callid, ELIMIT);
 		return;
 	}
-	
+
 	nic_address_t address;
 	if (async_data_write_finalize(data_callid, &address, length) != EOK) {
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	if (nic_iface->set_address != NULL) {
 		errno_t rc = nic_iface->set_address(dev, &address);
 		async_answer_0(callid, rc);
@@ -1464,10 +1464,10 @@ static void remote_nic_get_stats(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_device_stats_t stats;
 	memset(&stats, 0, sizeof(nic_device_stats_t));
-	
+
 	errno_t rc = nic_iface->get_stats(dev, &stats);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
@@ -1477,17 +1477,17 @@ static void remote_nic_get_stats(ddf_fun_t *dev, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (max_len < sizeof(nic_device_stats_t)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		async_data_read_finalize(data_callid, &stats,
 		    sizeof(nic_device_stats_t));
 	}
-	
+
 	async_answer_0(callid, rc);
 }
 
@@ -1499,10 +1499,10 @@ static void remote_nic_get_device_info(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_device_info_t info;
 	memset(&info, 0, sizeof(nic_device_info_t));
-	
+
 	errno_t rc = nic_iface->get_device_info(dev, &info);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
@@ -1512,17 +1512,17 @@ static void remote_nic_get_device_info(ddf_fun_t *dev, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (max_len < sizeof (nic_device_info_t)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		async_data_read_finalize(data_callid, &info,
 		    sizeof(nic_device_info_t));
 	}
-	
+
 	async_answer_0(callid, rc);
 }
 
@@ -1534,9 +1534,9 @@ static void remote_nic_get_cable_state(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_cable_state_t cs = NIC_CS_UNKNOWN;
-	
+
 	errno_t rc = nic_iface->get_cable_state(dev, &cs);
 	async_answer_1(callid, rc, (sysarg_t) cs);
 }
@@ -1549,11 +1549,11 @@ static void remote_nic_get_operation_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	int speed = 0;
 	nic_channel_mode_t duplex = NIC_CM_UNKNOWN;
 	nic_role_t role = NIC_ROLE_UNKNOWN;
-	
+
 	errno_t rc = nic_iface->get_operation_mode(dev, &speed, &duplex, &role);
 	async_answer_3(callid, rc, (sysarg_t) speed, (sysarg_t) duplex,
 	    (sysarg_t) role);
@@ -1567,11 +1567,11 @@ static void remote_nic_set_operation_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	int speed = (int) IPC_GET_ARG2(*call);
 	nic_channel_mode_t duplex = (nic_channel_mode_t) IPC_GET_ARG3(*call);
 	nic_role_t role = (nic_role_t) IPC_GET_ARG4(*call);
-	
+
 	errno_t rc = nic_iface->set_operation_mode(dev, speed, duplex, role);
 	async_answer_0(callid, rc);
 }
@@ -1584,9 +1584,9 @@ static void remote_nic_autoneg_enable(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	uint32_t advertisement = (uint32_t) IPC_GET_ARG2(*call);
-	
+
 	errno_t rc = nic_iface->autoneg_enable(dev, advertisement);
 	async_answer_0(callid, rc);
 }
@@ -1599,7 +1599,7 @@ static void remote_nic_autoneg_disable(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	errno_t rc = nic_iface->autoneg_disable(dev);
 	async_answer_0(callid, rc);
 }
@@ -1612,12 +1612,12 @@ static void remote_nic_autoneg_probe(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	uint32_t our_adv = 0;
 	uint32_t their_adv = 0;
 	nic_result_t result = NIC_RESULT_NOT_AVAILABLE;
 	nic_result_t their_result = NIC_RESULT_NOT_AVAILABLE;
-	
+
 	errno_t rc = nic_iface->autoneg_probe(dev, &our_adv, &their_adv, &result,
 	    &their_result);
 	async_answer_4(callid, rc, our_adv, their_adv, (sysarg_t) result,
@@ -1632,7 +1632,7 @@ static void remote_nic_autoneg_restart(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	errno_t rc = nic_iface->autoneg_restart(dev);
 	async_answer_0(callid, rc);
 }
@@ -1645,11 +1645,11 @@ static void remote_nic_get_pause(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_result_t we_send;
 	nic_result_t we_receive;
 	uint16_t pause;
-	
+
 	errno_t rc = nic_iface->get_pause(dev, &we_send, &we_receive, &pause);
 	async_answer_3(callid, rc, we_send, we_receive, pause);
 }
@@ -1662,11 +1662,11 @@ static void remote_nic_set_pause(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	int allow_send = (int) IPC_GET_ARG2(*call);
 	int allow_receive = (int) IPC_GET_ARG3(*call);
 	uint16_t pause = (uint16_t) IPC_GET_ARG4(*call);
-	
+
 	errno_t rc = nic_iface->set_pause(dev, allow_send, allow_receive,
 	    pause);
 	async_answer_0(callid, rc);
@@ -1680,10 +1680,10 @@ static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	size_t max_count = IPC_GET_ARG2(*call);
 	nic_address_t *address_list = NULL;
-	
+
 	if (max_count != 0) {
 		address_list = malloc(max_count * sizeof (nic_address_t));
 		if (!address_list) {
@@ -1691,20 +1691,20 @@ static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	memset(address_list, 0, max_count * sizeof(nic_address_t));
 	nic_unicast_mode_t mode = NIC_UNICAST_DEFAULT;
 	size_t address_count = 0;
-	
+
 	errno_t rc = nic_iface->unicast_get_mode(dev, &mode, max_count, address_list,
 	    &address_count);
-	
+
 	if ((rc != EOK) || (max_count == 0) || (address_count == 0)) {
 		free(address_list);
 		async_answer_2(callid, rc, mode, address_count);
 		return;
 	}
-	
+
 	ipc_callid_t data_callid;
 	size_t max_len;
 	if (!async_data_read_receive(&data_callid, &max_len)) {
@@ -1713,16 +1713,16 @@ static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
 		free(address_list);
 		return;
 	}
-	
+
 	if (max_len > address_count * sizeof(nic_address_t))
 		max_len = address_count * sizeof(nic_address_t);
-	
+
 	if (max_len > max_count * sizeof(nic_address_t))
 		max_len = max_count * sizeof(nic_address_t);
-	
+
 	async_data_read_finalize(data_callid, address_list, max_len);
 	async_answer_0(data_callid, EINVAL);
-	
+
 	free(address_list);
 	async_answer_2(callid, rc, mode, address_count);
 }
@@ -1731,12 +1731,12 @@ static void remote_nic_unicast_set_mode(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	size_t length;
 	nic_unicast_mode_t mode = IPC_GET_ARG2(*call);
 	size_t address_count = IPC_GET_ARG3(*call);
 	nic_address_t *address_list = NULL;
-	
+
 	if (address_count) {
 		ipc_callid_t data_callid;
 		if (!async_data_write_receive(&data_callid, &length)) {
@@ -1744,20 +1744,20 @@ static void remote_nic_unicast_set_mode(ddf_fun_t *dev, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (length != address_count * sizeof(nic_address_t)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		address_list = malloc(length);
 		if (address_list == NULL) {
 			async_answer_0(data_callid, ENOMEM);
 			async_answer_0(callid, ENOMEM);
 			return;
 		}
-		
+
 		if (async_data_write_finalize(data_callid, address_list,
 		    length) != EOK) {
 			async_answer_0(callid, EINVAL);
@@ -1765,14 +1765,14 @@ static void remote_nic_unicast_set_mode(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	if (nic_iface->unicast_set_mode != NULL) {
 		errno_t rc = nic_iface->unicast_set_mode(dev, mode, address_list,
 		    address_count);
 		async_answer_0(callid, rc);
 	} else
 		async_answer_0(callid, ENOTSUP);
-	
+
 	free(address_list);
 }
 
@@ -1784,10 +1784,10 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	size_t max_count = IPC_GET_ARG2(*call);
 	nic_address_t *address_list = NULL;
-	
+
 	if (max_count != 0) {
 		address_list = malloc(max_count * sizeof(nic_address_t));
 		if (!address_list) {
@@ -1795,21 +1795,21 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	memset(address_list, 0, max_count * sizeof(nic_address_t));
 	nic_multicast_mode_t mode = NIC_MULTICAST_BLOCKED;
 	size_t address_count = 0;
-	
+
 	errno_t rc = nic_iface->multicast_get_mode(dev, &mode, max_count, address_list,
 	    &address_count);
-	
-	
+
+
 	if ((rc != EOK) || (max_count == 0) || (address_count == 0)) {
 		free(address_list);
 		async_answer_2(callid, rc, mode, address_count);
 		return;
 	}
-	
+
 	ipc_callid_t data_callid;
 	size_t max_len;
 	if (!async_data_read_receive(&data_callid, &max_len)) {
@@ -1818,15 +1818,15 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 		free(address_list);
 		return;
 	}
-	
+
 	if (max_len > address_count * sizeof(nic_address_t))
 		max_len = address_count * sizeof(nic_address_t);
-	
+
 	if (max_len > max_count * sizeof(nic_address_t))
 		max_len = max_count * sizeof(nic_address_t);
-	
+
 	async_data_read_finalize(data_callid, address_list, max_len);
-	
+
 	free(address_list);
 	async_answer_2(callid, rc, mode, address_count);
 }
@@ -1835,11 +1835,11 @@ static void remote_nic_multicast_set_mode(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	nic_multicast_mode_t mode = IPC_GET_ARG2(*call);
 	size_t address_count = IPC_GET_ARG3(*call);
 	nic_address_t *address_list = NULL;
-	
+
 	if (address_count) {
 		ipc_callid_t data_callid;
 		size_t length;
@@ -1848,20 +1848,20 @@ static void remote_nic_multicast_set_mode(ddf_fun_t *dev, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (length != address_count * sizeof (nic_address_t)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		address_list = malloc(length);
 		if (address_list == NULL) {
 			async_answer_0(data_callid, ENOMEM);
 			async_answer_0(callid, ENOMEM);
 			return;
 		}
-		
+
 		if (async_data_write_finalize(data_callid, address_list,
 		    length) != EOK) {
 			async_answer_0(callid, EINVAL);
@@ -1869,14 +1869,14 @@ static void remote_nic_multicast_set_mode(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	if (nic_iface->multicast_set_mode != NULL) {
 		errno_t rc = nic_iface->multicast_set_mode(dev, mode, address_list,
 		    address_count);
 		async_answer_0(callid, rc);
 	} else
 		async_answer_0(callid, ENOTSUP);
-	
+
 	free(address_list);
 }
 
@@ -1888,9 +1888,9 @@ static void remote_nic_broadcast_get_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_broadcast_mode_t mode = NIC_BROADCAST_ACCEPTED;
-	
+
 	errno_t rc = nic_iface->broadcast_get_mode(dev, &mode);
 	async_answer_1(callid, rc, mode);
 }
@@ -1903,9 +1903,9 @@ static void remote_nic_broadcast_set_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_broadcast_mode_t mode = IPC_GET_ARG2(*call);
-	
+
 	errno_t rc = nic_iface->broadcast_set_mode(dev, mode);
 	async_answer_0(callid, rc);
 }
@@ -1918,9 +1918,9 @@ static void remote_nic_defective_get_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	uint32_t mode = 0;
-	
+
 	errno_t rc = nic_iface->defective_get_mode(dev, &mode);
 	async_answer_1(callid, rc, mode);
 }
@@ -1933,9 +1933,9 @@ static void remote_nic_defective_set_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	uint32_t mode = IPC_GET_ARG2(*call);
-	
+
 	errno_t rc = nic_iface->defective_set_mode(dev, mode);
 	async_answer_0(callid, rc);
 }
@@ -1948,10 +1948,10 @@ static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	size_t max_count = IPC_GET_ARG2(*call);
 	nic_address_t *address_list = NULL;
-	
+
 	if (max_count != 0) {
 		address_list = malloc(max_count * sizeof(nic_address_t));
 		if (!address_list) {
@@ -1959,19 +1959,19 @@ static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	memset(address_list, 0, max_count * sizeof(nic_address_t));
 	size_t address_count = 0;
-	
+
 	errno_t rc = nic_iface->blocked_sources_get(dev, max_count, address_list,
 	    &address_count);
-	
+
 	if ((rc != EOK) || (max_count == 0) || (address_count == 0)) {
 		async_answer_1(callid, rc, address_count);
 		free(address_list);
 		return;
 	}
-	
+
 	ipc_callid_t data_callid;
 	size_t max_len;
 	if (!async_data_read_receive(&data_callid, &max_len)) {
@@ -1980,16 +1980,16 @@ static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
 		free(address_list);
 		return;
 	}
-	
+
 	if (max_len > address_count * sizeof(nic_address_t))
 		max_len = address_count * sizeof(nic_address_t);
-	
+
 	if (max_len > max_count * sizeof(nic_address_t))
 		max_len = max_count * sizeof(nic_address_t);
-	
+
 	async_data_read_finalize(data_callid, address_list, max_len);
 	async_answer_0(data_callid, EINVAL);
-	
+
 	free(address_list);
 	async_answer_1(callid, rc, address_count);
 }
@@ -1998,11 +1998,11 @@ static void remote_nic_blocked_sources_set(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	size_t length;
 	size_t address_count = IPC_GET_ARG2(*call);
 	nic_address_t *address_list = NULL;
-	
+
 	if (address_count) {
 		ipc_callid_t data_callid;
 		if (!async_data_write_receive(&data_callid, &length)) {
@@ -2010,20 +2010,20 @@ static void remote_nic_blocked_sources_set(ddf_fun_t *dev, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (length != address_count * sizeof(nic_address_t)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		address_list = malloc(length);
 		if (address_list == NULL) {
 			async_answer_0(data_callid, ENOMEM);
 			async_answer_0(callid, ENOMEM);
 			return;
 		}
-		
+
 		if (async_data_write_finalize(data_callid, address_list,
 		    length) != EOK) {
 			async_answer_0(callid, EINVAL);
@@ -2031,14 +2031,14 @@ static void remote_nic_blocked_sources_set(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	if (nic_iface->blocked_sources_set != NULL) {
 		errno_t rc = nic_iface->blocked_sources_set(dev, address_list,
 		    address_count);
 		async_answer_0(callid, rc);
 	} else
 		async_answer_0(callid, ENOTSUP);
-	
+
 	free(address_list);
 }
 
@@ -2050,10 +2050,10 @@ static void remote_nic_vlan_get_mask(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_vlan_mask_t vlan_mask;
 	memset(&vlan_mask, 0, sizeof(nic_vlan_mask_t));
-	
+
 	errno_t rc = nic_iface->vlan_get_mask(dev, &vlan_mask);
 	if (rc == EOK) {
 		ipc_callid_t data_callid;
@@ -2063,16 +2063,16 @@ static void remote_nic_vlan_get_mask(ddf_fun_t *dev, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (max_len != sizeof(nic_vlan_mask_t)) {
 			async_answer_0(data_callid, EINVAL);
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		async_data_read_finalize(data_callid, &vlan_mask, max_len);
 	}
-	
+
 	async_answer_0(callid, rc);
 }
 
@@ -2080,11 +2080,11 @@ static void remote_nic_vlan_set_mask(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	nic_vlan_mask_t vlan_mask;
 	nic_vlan_mask_t *vlan_mask_pointer = NULL;
 	bool vlan_mask_set = (bool) IPC_GET_ARG2(*call);
-	
+
 	if (vlan_mask_set) {
 		ipc_callid_t data_callid;
 		size_t length;
@@ -2093,22 +2093,22 @@ static void remote_nic_vlan_set_mask(ddf_fun_t *dev, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (length != sizeof(nic_vlan_mask_t)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		if (async_data_write_finalize(data_callid, &vlan_mask,
 		    length) != EOK) {
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		vlan_mask_pointer = &vlan_mask;
 	}
-	
+
 	if (nic_iface->vlan_set_mask != NULL) {
 		errno_t rc = nic_iface->vlan_set_mask(dev, vlan_mask_pointer);
 		async_answer_0(callid, rc);
@@ -2120,16 +2120,16 @@ static void remote_nic_vlan_set_tag(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	if (nic_iface->vlan_set_tag == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	uint16_t tag = (uint16_t) IPC_GET_ARG2(*call);
 	bool add = (int) IPC_GET_ARG3(*call);
 	bool strip = (int) IPC_GET_ARG4(*call);
-	
+
 	errno_t rc = nic_iface->vlan_set_tag(dev, tag, add, strip);
 	async_answer_0(callid, rc);
 }
@@ -2138,36 +2138,36 @@ static void remote_nic_wol_virtue_add(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	int send_data = (int) IPC_GET_ARG3(*call);
 	ipc_callid_t data_callid;
-	
+
 	if (nic_iface->wol_virtue_add == NULL) {
 		if (send_data) {
 			async_data_write_receive(&data_callid, NULL);
 			async_answer_0(data_callid, ENOTSUP);
 		}
-		
+
 		async_answer_0(callid, ENOTSUP);
 	}
-	
+
 	size_t length = 0;
 	void *data = NULL;
-	
+
 	if (send_data) {
 		if (!async_data_write_receive(&data_callid, &length)) {
 			async_answer_0(data_callid, EINVAL);
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		data = malloc(length);
 		if (data == NULL) {
 			async_answer_0(data_callid, ENOMEM);
 			async_answer_0(callid, ENOMEM);
 			return;
 		}
-		
+
 		if (async_data_write_finalize(data_callid, data,
 		    length) != EOK) {
 			async_answer_0(callid, EINVAL);
@@ -2175,10 +2175,10 @@ static void remote_nic_wol_virtue_add(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	nic_wv_id_t id = 0;
 	nic_wv_type_t type = (nic_wv_type_t) IPC_GET_ARG2(*call);
-	
+
 	errno_t rc = nic_iface->wol_virtue_add(dev, type, data, length, &id);
 	async_answer_1(callid, rc, (sysarg_t) id);
 	free(data);
@@ -2188,14 +2188,14 @@ static void remote_nic_wol_virtue_remove(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	if (nic_iface->wol_virtue_remove == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_wv_id_t id = (nic_wv_id_t) IPC_GET_ARG2(*call);
-	
+
 	errno_t rc = nic_iface->wol_virtue_remove(dev, id);
 	async_answer_0(callid, rc);
 }
@@ -2204,19 +2204,19 @@ static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	if (nic_iface->wol_virtue_probe == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_wv_id_t id = (nic_wv_id_t) IPC_GET_ARG2(*call);
 	size_t max_length = IPC_GET_ARG3(*call);
 	nic_wv_type_t type = NIC_WV_NONE;
 	size_t length = 0;
 	ipc_callid_t data_callid;
 	void *data = NULL;
-	
+
 	if (max_length != 0) {
 		data = malloc(max_length);
 		if (data == NULL) {
@@ -2224,12 +2224,12 @@ static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	memset(data, 0, max_length);
-	
+
 	errno_t rc = nic_iface->wol_virtue_probe(dev, id, &type, max_length,
 	    data, &length);
-	
+
 	if ((max_length != 0) && (length != 0)) {
 		size_t req_length;
 		if (!async_data_read_receive(&data_callid, &req_length)) {
@@ -2238,16 +2238,16 @@ static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
 			free(data);
 			return;
 		}
-		
+
 		if (req_length > length)
 			req_length = length;
-		
+
 		if (req_length > max_length)
 			req_length = max_length;
-		
+
 		async_data_read_finalize(data_callid, data, req_length);
 	}
-	
+
 	async_answer_2(callid, rc, (sysarg_t) type, (sysarg_t) length);
 	free(data);
 }
@@ -2260,13 +2260,13 @@ static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_wv_type_t type = (nic_wv_type_t) IPC_GET_ARG2(*call);
 	size_t max_count = IPC_GET_ARG3(*call);
 	size_t count = 0;
 	nic_wv_id_t *id_list = NULL;
 	ipc_callid_t data_callid;
-	
+
 	if (max_count != 0) {
 		id_list = malloc(max_count * sizeof(nic_wv_id_t));
 		if (id_list == NULL) {
@@ -2274,12 +2274,12 @@ static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	memset(id_list, 0, max_count * sizeof (nic_wv_id_t));
-	
+
 	errno_t rc = nic_iface->wol_virtue_list(dev, type, max_count, id_list,
 	    &count);
-	
+
 	if ((max_count != 0) && (count != 0)) {
 		size_t req_length;
 		if (!async_data_read_receive(&data_callid, &req_length)) {
@@ -2288,16 +2288,16 @@ static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
 			free(id_list);
 			return;
 		}
-		
+
 		if (req_length > count * sizeof(nic_wv_id_t))
 			req_length = count * sizeof(nic_wv_id_t);
-		
+
 		if (req_length > max_count * sizeof(nic_wv_id_t))
 			req_length = max_count * sizeof(nic_wv_id_t);
-		
+
 		rc = async_data_read_finalize(data_callid, id_list, req_length);
 	}
-	
+
 	async_answer_1(callid, rc, (sysarg_t) count);
 	free(id_list);
 }
@@ -2310,10 +2310,10 @@ static void remote_nic_wol_virtue_get_caps(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	int count = -1;
 	nic_wv_type_t type = (nic_wv_type_t) IPC_GET_ARG2(*call);
-	
+
 	errno_t rc = nic_iface->wol_virtue_get_caps(dev, type, &count);
 	async_answer_1(callid, rc, (sysarg_t) count);
 }
@@ -2326,12 +2326,12 @@ static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	size_t max_length = (size_t) IPC_GET_ARG2(*call);
 	size_t frame_length = 0;
 	nic_wv_type_t type = NIC_WV_NONE;
 	uint8_t *data = NULL;
-	
+
 	if (max_length != 0) {
 		data = malloc(max_length);
 		if (data == NULL) {
@@ -2339,9 +2339,9 @@ static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	memset(data, 0, max_length);
-	
+
 	errno_t rc = nic_iface->wol_load_info(dev, &type, max_length, data,
 	    &frame_length);
 	if (rc == EOK) {
@@ -2353,12 +2353,12 @@ static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
 			free(data);
 			return;
 		}
-		
+
 		req_length = req_length > max_length ? max_length : req_length;
 		req_length = req_length > frame_length ? frame_length : req_length;
 		async_data_read_finalize(data_callid, data, req_length);
 	}
-	
+
 	async_answer_2(callid, rc, (sysarg_t) type, (sysarg_t) frame_length);
 	free(data);
 }
@@ -2371,10 +2371,10 @@ static void remote_nic_offload_probe(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	uint32_t supported = 0;
 	uint32_t active = 0;
-	
+
 	errno_t rc = nic_iface->offload_probe(dev, &supported, &active);
 	async_answer_2(callid, rc, supported, active);
 }
@@ -2387,10 +2387,10 @@ static void remote_nic_offload_set(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	uint32_t mask = (uint32_t) IPC_GET_ARG2(*call);
 	uint32_t active = (uint32_t) IPC_GET_ARG3(*call);
-	
+
 	errno_t rc = nic_iface->offload_set(dev, mask, active);
 	async_answer_0(callid, rc);
 }
@@ -2403,35 +2403,35 @@ static void remote_nic_poll_get_mode(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	nic_poll_mode_t mode = NIC_POLL_IMMEDIATE;
 	int request_data = IPC_GET_ARG2(*call);
 	struct timeval period = {
 		.tv_sec = 0,
 		.tv_usec = 0
 	};
-	
+
 	errno_t rc = nic_iface->poll_get_mode(dev, &mode, &period);
 	if ((rc == EOK) && (request_data)) {
 		size_t max_len;
 		ipc_callid_t data_callid;
-		
+
 		if (!async_data_read_receive(&data_callid, &max_len)) {
 			async_answer_0(data_callid, EINVAL);
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (max_len != sizeof(struct timeval)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		async_data_read_finalize(data_callid, &period,
 		    sizeof(struct timeval));
 	}
-	
+
 	async_answer_1(callid, rc, (sysarg_t) mode);
 }
 
@@ -2439,13 +2439,13 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
-	
+
 	nic_poll_mode_t mode = IPC_GET_ARG2(*call);
 	int has_period = IPC_GET_ARG3(*call);
 	struct timeval period_buf;
 	struct timeval *period = NULL;
 	size_t length;
-	
+
 	if (has_period) {
 		ipc_callid_t data_callid;
 		if (!async_data_write_receive(&data_callid, &length)) {
@@ -2453,13 +2453,13 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
 			async_answer_0(callid, EINVAL);
 			return;
 		}
-		
+
 		if (length != sizeof(struct timeval)) {
 			async_answer_0(data_callid, ELIMIT);
 			async_answer_0(callid, ELIMIT);
 			return;
 		}
-		
+
 		period = &period_buf;
 		if (async_data_write_finalize(data_callid, period,
 		    length) != EOK) {
@@ -2467,7 +2467,7 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
 			return;
 		}
 	}
-	
+
 	if (nic_iface->poll_set_mode != NULL) {
 		errno_t rc = nic_iface->poll_set_mode(dev, mode, period);
 		async_answer_0(callid, rc);
@@ -2483,7 +2483,7 @@ static void remote_nic_poll_now(ddf_fun_t *dev, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	errno_t rc = nic_iface->poll_now(dev);
 	async_answer_0(callid, rc);
 }

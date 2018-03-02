@@ -100,7 +100,7 @@ void __posix_default_signal_handler(int signo)
 		/* This will only occur when raise or similar is called. */
 		/* Commit suicide. */
 		task_kill(task_get_id());
-		
+
 		/* Should not be reached. */
 		abort();
 	case SIGFPE:
@@ -222,7 +222,7 @@ int sigdelset(sigset_t *set, int signo)
 int sigismember(const sigset_t *set, int signo)
 {
 	assert(set != NULL);
-	
+
 	return (*set & (1 << signo)) != 0;
 }
 
@@ -322,7 +322,7 @@ static void _queue_signal(int signo, siginfo_t *siginfo)
 {
 	assert(signo >= 0 && signo <= _TOP_SIGNAL);
 	assert(siginfo != NULL);
-	
+
 	signal_queue_item *item = malloc(sizeof(signal_queue_item));
 	link_initialize(&(item->link));
 	item->signo = signo;
@@ -383,20 +383,20 @@ static void _dequeue_unblocked_signals(void)
 {
 	link_t *iterator = _signal_queue.head.next;
 	link_t *next;
-	
+
 	while (iterator != &(_signal_queue).head) {
 		next = iterator->next;
-		
+
 		signal_queue_item *item =
 		    list_get_instance(iterator, signal_queue_item, link);
-		
+
 		if (!sigismember(&_signal_mask, item->signo) &&
 		    _signal_actions[item->signo].sa_handler != SIG_HOLD) {
 			list_remove(&(item->link));
 			_raise_sigaction(item->signo, &(item->siginfo));
 			free(item);
 		}
-		
+
 		iterator = next;
 	}
 }
@@ -534,7 +534,7 @@ int thread_sigmask(int how, const sigset_t *restrict set,
 			return EINVAL;
 		}
 	}
-	
+
 	_dequeue_unblocked_signals();
 
 	fibril_mutex_unlock(&_signal_mutex);

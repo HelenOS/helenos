@@ -53,7 +53,7 @@ FUNCTION_BEGIN(context_restore_arch)
 
 	ldmia r0!, {sp, lr}
 	ldmia r0!, {r4-r11}
-	
+
 	mov r0, #0
 	mov pc, lr
 FUNCTION_END(context_restore_arch)

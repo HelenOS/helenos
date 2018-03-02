@@ -95,11 +95,11 @@ const struct shape shapes[] = {
 errno_t fits_in(const struct shape *shape, int pos)
 {
 	const int *o = shape->off;
-	
+
 	if ((board[pos]) || (board[pos + *o++]) || (board[pos + *o++]) ||
 	    (board[pos + *o]))
 		return 0;
-	
+
 	return 1;
 }
 
@@ -110,7 +110,7 @@ errno_t fits_in(const struct shape *shape, int pos)
 void place(const struct shape *shape, int pos, int onoff)
 {
 	const int *o = shape->off;
-	
+
 	board[pos] = onoff ? shape->color : 0x000000;
 	board[pos + *o++] = onoff ? shape->color : 0x000000;
 	board[pos + *o++] = onoff ? shape->color : 0x000000;

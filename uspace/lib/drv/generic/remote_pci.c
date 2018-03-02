@@ -53,12 +53,12 @@ typedef enum {
 errno_t pci_config_space_read_8(async_sess_t *sess, uint32_t address, uint8_t *val)
 {
 	sysarg_t res = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_8, address, &res);
 	async_exchange_end(exch);
-	
+
 	*val = (uint8_t) res;
 	return rc;
 }
@@ -67,12 +67,12 @@ errno_t pci_config_space_read_16(async_sess_t *sess, uint32_t address,
     uint16_t *val)
 {
 	sysarg_t res = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_16, address, &res);
 	async_exchange_end(exch);
-	
+
 	*val = (uint16_t) res;
 	return rc;
 }
@@ -81,12 +81,12 @@ errno_t pci_config_space_read_32(async_sess_t *sess, uint32_t address,
     uint32_t *val)
 {
 	sysarg_t res = 0;
-	
+
 	async_exch_t *exch = async_exchange_begin(sess);
 	errno_t rc = async_req_2_1(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, address, &res);
 	async_exchange_end(exch);
-	
+
 	*val = (uint32_t) res;
 	return rc;
 }
@@ -97,7 +97,7 @@ errno_t pci_config_space_write_8(async_sess_t *sess, uint32_t address, uint8_t v
 	errno_t rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_8, address, val);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -108,7 +108,7 @@ errno_t pci_config_space_write_16(async_sess_t *sess, uint32_t address,
 	errno_t rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, val);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 
@@ -119,7 +119,7 @@ errno_t pci_config_space_write_32(async_sess_t *sess, uint32_t address,
 	errno_t rc = async_req_3_0(exch, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_32, address, val);
 	async_exchange_end(exch);
-	
+
 	return rc;
 }
 

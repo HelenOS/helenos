@@ -235,7 +235,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 static errno_t spawn_task_fibril(void *arg)
 {
 	telnet_user_t *user = arg;
-	
+
 	task_id_t task;
 	task_wait_t wait;
 	errno_t rc = task_spawnl(&task, &wait, APP_GETTERM, APP_GETTERM, user->service_name,

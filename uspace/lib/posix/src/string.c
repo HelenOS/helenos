@@ -61,7 +61,7 @@ static char *strpbrk_null(const char *s1, const char *s2)
 	while (!strchr(s2, *s1)) {
 		++s1;
 	}
-	
+
 	return (char *) s1;
 }
 
@@ -106,13 +106,13 @@ char *stpcpy(char *restrict dest, const char *restrict src)
 
 	for (size_t i = 0; ; ++i) {
 		dest[i] = src[i];
-		
+
 		if (src[i] == '\0') {
 			/* pointer to the terminating nul character */
 			return &dest[i];
 		}
 	}
-	
+
 	/* unreachable */
 	return NULL;
 }
@@ -132,7 +132,7 @@ char *stpncpy(char *restrict dest, const char *restrict src, size_t n)
 
 	for (size_t i = 0; i < n; ++i) {
 		dest[i] = src[i];
-	
+
 		/* the standard requires that nul characters
 		 * are appended to the length of n, in case src is shorter
 		 */
@@ -144,7 +144,7 @@ char *stpncpy(char *restrict dest, const char *restrict src, size_t n)
 			return result;
 		}
 	}
-	
+
 	return &dest[n];
 }
 
@@ -196,19 +196,19 @@ void *memccpy(void *restrict dest, const void *restrict src, int c, size_t n)
 {
 	assert(dest != NULL);
 	assert(src != NULL);
-	
+
 	unsigned char* bdest = dest;
 	const unsigned char* bsrc = src;
-	
+
 	for (size_t i = 0; i < n; ++i) {
 		bdest[i] = bsrc[i];
-	
+
 		if (bsrc[i] == (unsigned char) c) {
 			/* pointer to the next byte */
 			return &bdest[i + 1];
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -300,9 +300,9 @@ int strncmp(const char *s1, const char *s2, size_t n)
 void *memchr(const void *mem, int c, size_t n)
 {
 	assert(mem != NULL);
-	
+
 	const unsigned char *s = mem;
-	
+
 	for (size_t i = 0; i < n; ++i) {
 		if (s[i] == (unsigned char) c) {
 			return (void *) &s[i];
@@ -322,7 +322,7 @@ void *memchr(const void *mem, int c, size_t n)
 char *strchr(const char *s, int c)
 {
 	assert(s != NULL);
-	
+
 	char *res = gnu_strchrnul(s, c);
 	return (*res == c) ? res : NULL;
 }
@@ -338,9 +338,9 @@ char *strchr(const char *s, int c)
 char *strrchr(const char *s, int c)
 {
 	assert(s != NULL);
-	
+
 	const char *ptr = strchr(s, '\0');
-	
+
 	/* the same as in strchr, except it loops in reverse direction */
 	while (*ptr != (char) c) {
 		if (ptr == s) {
@@ -364,11 +364,11 @@ char *strrchr(const char *s, int c)
 char *gnu_strchrnul(const char *s, int c)
 {
 	assert(s != NULL);
-	
+
 	while (*s != c && *s != '\0') {
 		s++;
 	}
-	
+
 	return (char *) s;
 }
 
@@ -438,22 +438,22 @@ char *strstr(const char *haystack, const char *needle)
 {
 	assert(haystack != NULL);
 	assert(needle != NULL);
-	
+
 	/* Special case - needle is an empty string. */
 	if (needle[0] == '\0') {
 		return (char *) haystack;
 	}
-	
+
 	/* Preprocess needle. */
 	size_t nlen = strlen(needle);
 	size_t prefix_table[nlen + 1];
-	
+
 	{
 		size_t i = 0;
 		ssize_t j = -1;
-		
+
 		prefix_table[i] = j;
-		
+
 		while (i < nlen) {
 			while (j >= 0 && needle[i] != needle[j]) {
 				j = prefix_table[j];
@@ -462,24 +462,24 @@ char *strstr(const char *haystack, const char *needle)
 			prefix_table[i] = j;
 		}
 	}
-	
+
 	/* Search needle using the precomputed table. */
 	size_t npos = 0;
-	
+
 	for (size_t hpos = 0; haystack[hpos] != '\0'; ++hpos) {
 		while (npos != 0 && haystack[hpos] != needle[npos]) {
 			npos = prefix_table[npos];
 		}
-		
+
 		if (haystack[hpos] == needle[npos]) {
 			npos++;
-			
+
 			if (npos == nlen) {
 				return (char *) (haystack + hpos - nlen + 1);
 			}
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -603,9 +603,9 @@ char *strerror(int errnum)
 int strerror_r(int errnum, char *buf, size_t bufsz)
 {
 	assert(buf != NULL);
-	
+
 	char *errstr = strerror(errnum);
-	
+
 	if (strlen(errstr) + 1 > bufsz) {
 		return ERANGE;
 	} else {
@@ -624,7 +624,7 @@ int strerror_r(int errnum, char *buf, size_t bufsz)
 size_t strlen(const char *s)
 {
 	assert(s != NULL);
-	
+
 	return (size_t) (strchr(s, '\0') - s);
 }
 
@@ -638,14 +638,14 @@ size_t strlen(const char *s)
 size_t strnlen(const char *s, size_t n)
 {
 	assert(s != NULL);
-	
+
 	for (size_t sz = 0; sz < n; ++sz) {
-		
+
 		if (s[sz] == '\0') {
 			return sz;
 		}
 	}
-	
+
 	return n;
 }
 

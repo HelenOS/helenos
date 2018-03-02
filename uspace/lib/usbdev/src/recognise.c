@@ -234,7 +234,7 @@ errno_t usb_device_create_match_ids_from_device_descriptor(
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id,
 		    BCD_ARGS(device_descriptor->device_version));
-		
+
 		/* Next, without release number. */
 		ADD_MATCHID_OR_RETURN(matches, 90,
 		    "usb&vendor=0x%04x&product=0x%04x",
@@ -245,7 +245,7 @@ errno_t usb_device_create_match_ids_from_device_descriptor(
 	/* Class match id */
 	ADD_MATCHID_OR_RETURN(matches, 50, "usb&class=%s",
 	    usb_str_class(device_descriptor->device_class));
-	
+
 	/* As a last resort, try fallback driver. */
 	ADD_MATCHID_OR_RETURN(matches, 10, "usb&fallback");
 

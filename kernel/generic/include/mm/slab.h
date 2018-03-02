@@ -85,31 +85,31 @@ typedef struct {
 
 typedef struct {
 	const char *name;
-	
+
 	link_t link;
-	
+
 	/* Configuration */
-	
+
 	/** Size of slab position - align_up(sizeof(obj)) */
 	size_t size;
-	
+
 	errno_t (*constructor)(void *obj, unsigned int kmflag);
 	size_t (*destructor)(void *obj);
-	
+
 	/** Flags changing behaviour of cache */
 	unsigned int flags;
-	
+
 	/* Computed values */
 	size_t frames;   /**< Number of frames to be allocated */
 	size_t objects;  /**< Number of objects that fit in */
-	
+
 	/* Statistics */
 	atomic_t allocated_slabs;
 	atomic_t allocated_objs;
 	atomic_t cached_objs;
 	/** How many magazines in magazines list */
 	atomic_t magazine_counter;
-	
+
 	/* Slabs */
 	list_t full_slabs;     /**< List of full slabs */
 	list_t partial_slabs;  /**< List of partial slabs */
@@ -117,7 +117,7 @@ typedef struct {
 	/* Magazines */
 	list_t magazines;  /**< List o full magazines */
 	IRQ_SPINLOCK_DECLARE(maglock);
-	
+
 	/** CPU cache */
 	slab_mag_cache_t *mag_cache;
 } slab_cache_t;

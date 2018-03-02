@@ -123,7 +123,7 @@ vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
 
 	vrn = page >> VRN_SHIFT;
 	rid = ASID2RID(asid, vrn);
-	
+
 	rr_save.word = rr_read(vrn);
 	if (rr_save.map.rid == rid) {
 		/*
@@ -132,7 +132,7 @@ vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
 		v = (vhpt_entry_t *) thash(page);
 		return v;
 	}
-	
+
 	/*
 	 * The RID must be written to some region register.
 	 * To speed things up, register indexed by vrn is used.
@@ -170,7 +170,7 @@ bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 
 	vrn = page >> VRN_SHIFT;
 	rid = ASID2RID(asid, vrn);
-	
+
 	rr_save.word = rr_read(vrn);
 	if (rr_save.map.rid == rid) {
 		/*
@@ -178,7 +178,7 @@ bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 		 */
 		return ttag(page) == v->present.tag.tag_word;
 	}
-	
+
 	/*
 	 * The RID must be written to some region register.
 	 * To speed things up, register indexed by vrn is used.
@@ -217,7 +217,7 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 
 	vrn = page >> VRN_SHIFT;
 	rid = ASID2RID(asid, vrn);
-	
+
 	/*
 	 * Compute ttag.
 	 */
@@ -230,7 +230,7 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	rr_write(vrn, rr_save.word);
 	srlz_i();
 	srlz_d();
-	
+
 	/*
 	 * Clear the entry.
 	 */
@@ -238,7 +238,7 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	v->word[1] = 0;
 	v->word[2] = 0;
 	v->word[3] = 0;
-	
+
 	v->present.p = true;
 	v->present.ma = (flags & PAGE_CACHEABLE) ?
 	    MA_WRITEBACK : MA_UNCACHEABLE;

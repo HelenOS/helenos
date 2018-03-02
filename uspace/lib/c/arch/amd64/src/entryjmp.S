@@ -38,10 +38,10 @@ SYMBOL(entry_point_jmp)
 	# use standard amd32 prologue not to confuse anybody
 	push %rbp
 	movq %rsp, %rbp
-	
+
 	# pcb must be passed in %rdi, use %rdx as a scratch register
 	mov %rdi, %rdx
 	mov %rsi, %rdi
-	
+
 	# jump to entry point
 	jmp *%rdx

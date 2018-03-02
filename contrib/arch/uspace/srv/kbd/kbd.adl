@@ -1,10 +1,10 @@
 interface kbd extends service {
 		/* Callback connection */
 		sysarg_t ipc_m_connect_to_me(void);
-		
+
 		/* Yield hardware */
 		sysarg_t yield(void);
-		
+
 		/* Reclaim hardware */
 		sysarg_t reclaim(void);
 	protocol:

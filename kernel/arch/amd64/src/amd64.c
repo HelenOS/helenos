@@ -91,7 +91,7 @@ void amd64_pre_main(uint32_t signature, void *info)
 	/* Parse multiboot information obtained from the bootloader. */
 	multiboot_info_parse(signature, (multiboot_info_t *) info);
 	multiboot2_info_parse(signature, (multiboot2_info_t *) info);
-	
+
 #ifdef CONFIG_SMP
 	/* Copy AP bootstrap routines below 1 MB. */
 	memcpy((void *) AP_BOOT_OFFSET, (void *) BOOT_OFFSET,
@@ -105,19 +105,19 @@ void amd64_pre_mm_init(void)
 	write_msr(AMD_MSR_EFER, read_msr(AMD_MSR_EFER) | AMD_NXE);
 	/* Enable FPU */
 	cpu_setup_fpu();
-	
+
 	/* Initialize segmentation */
 	pm_init();
-	
+
 	/* Disable I/O on nonprivileged levels, clear the nested-thread flag */
 	write_rflags(read_rflags() & ~(RFLAGS_IOPL | RFLAGS_NT));
 	/* Disable alignment check */
 	write_cr0(read_cr0() & ~CR0_AM);
-	
+
 	if (config.cpu_active == 1) {
 		interrupt_init();
 		bios_init();
-		
+
 		/* PIC */
 		i8259_init();
 	}
@@ -131,18 +131,18 @@ void amd64_post_mm_init(void)
 	if (config.cpu_active == 1) {
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
-		
+
 		/* hard clock */
 		i8254_init();
-		
+
 #if (defined(CONFIG_FB) || defined(CONFIG_EGA))
 		bool bfb = false;
 #endif
-		
+
 #ifdef CONFIG_FB
 		bfb = bfb_init();
 #endif
-		
+
 #ifdef CONFIG_EGA
 		if (!bfb) {
 			outdev_t *egadev = ega_init(EGA_BASE, EGA_VIDEORAM);
@@ -150,11 +150,11 @@ void amd64_post_mm_init(void)
 				stdout_wire(egadev);
 		}
 #endif
-		
+
 		/* Merge all memory zones to 1 big zone */
 		zone_merge_all();
 	}
-	
+
 	/* Setup fast SYSCALL/SYSRET */
 	syscall_setup_cpu();
 }
@@ -234,7 +234,7 @@ void amd64_post_smp_init(void)
 #endif
 	}
 #endif
-	
+
 	if (irqs_info != NULL)
 		sysinfo_set_item_val(irqs_info, NULL, true);
 }

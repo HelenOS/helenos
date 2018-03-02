@@ -2,7 +2,7 @@ interface service {
 		/* Establish connection with the service
 		   (this call is forwarded from Naming Service or Device Mapper) */
 		sysarg_t ipc_m_connect_me_to(void);
-		
+
 		/* Close connection */
 		sysarg_t ipc_m_phone_hungup(void);
 };

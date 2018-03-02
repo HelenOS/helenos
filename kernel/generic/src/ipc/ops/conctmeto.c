@@ -107,7 +107,7 @@ static errno_t answer_process(call_t *answer)
 	} else {
 		IPC_SET_ARG5(answer->data, phone_handle);
 	}
-	
+
 	return EOK;
 }
 

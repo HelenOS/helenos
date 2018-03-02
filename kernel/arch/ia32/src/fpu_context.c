@@ -58,7 +58,7 @@ enum {
 	X87_ZERO_DIV_EXC_FLAG = (1 << 2),
 	X87_DENORMAL_EXC_FLAG = (1 << 1),
 	X87_INVALID_OP_EXC_FLAG = (1 << 0),
-	
+
 	X87_ALL_MASK = X87_PRECISION_MASK | X87_UNDERFLOW_MASK | X87_OVERFLOW_MASK | X87_ZERO_DIV_MASK | X87_DENORMAL_OP_MASK | X87_INVALID_OP_MASK,
 };
 
@@ -128,7 +128,7 @@ void fpu_init(void)
 {
 	uint32_t help0 = 0;
 	uint32_t help1 = 0;
-	
+
 	asm volatile (
 		"fninit\n"
 		"stmxcsr %[help0]\n"

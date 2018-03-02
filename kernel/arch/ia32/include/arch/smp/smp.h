@@ -42,13 +42,13 @@
 struct smp_config_operations {
 	/** Check whether a processor is enabled. */
 	bool (*cpu_enabled)(size_t);
-	
+
 	/** Check whether a processor is BSP. */
 	bool (*cpu_bootstrap)(size_t);
-	
+
 	/** Return APIC ID of a processor. */
 	uint8_t (*cpu_apic_id)(size_t);
-	
+
 	/** Return mapping between IRQ and APIC pin. */
 	int (*irq_to_pin)(unsigned int);
 };

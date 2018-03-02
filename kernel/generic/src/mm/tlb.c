@@ -86,14 +86,14 @@ ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 	ipl_t ipl = interrupts_disable();
 	CPU->tlb_active = false;
 	irq_spinlock_lock(&tlblock, false);
-	
+
 	size_t i;
 	for (i = 0; i < config.cpu_count; i++) {
 		if (i == CPU->id)
 			continue;
-		
+
 		cpu_t *cpu = &cpus[i];
-		
+
 		irq_spinlock_lock(&cpu->lock, false);
 		if (cpu->tlb_messages_count == TLB_MESSAGE_QUEUE_LEN) {
 			/*
@@ -117,15 +117,15 @@ ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 		}
 		irq_spinlock_unlock(&cpu->lock, false);
 	}
-	
+
 	tlb_shootdown_ipi_send();
-	
+
 busy_wait:
 	for (i = 0; i < config.cpu_count; i++) {
 		if (cpus[i].tlb_active)
 			goto busy_wait;
 	}
-	
+
 	return ipl;
 }
 
@@ -152,21 +152,21 @@ void tlb_shootdown_ipi_send(void)
 void tlb_shootdown_ipi_recv(void)
 {
 	assert(CPU);
-	
+
 	CPU->tlb_active = false;
 	irq_spinlock_lock(&tlblock, false);
 	irq_spinlock_unlock(&tlblock, false);
-	
+
 	irq_spinlock_lock(&CPU->lock, false);
 	assert(CPU->tlb_messages_count <= TLB_MESSAGE_QUEUE_LEN);
-	
+
 	size_t i;
 	for (i = 0; i < CPU->tlb_messages_count; i++) {
 		tlb_invalidate_type_t type = CPU->tlb_messages[i].type;
 		asid_t asid = CPU->tlb_messages[i].asid;
 		uintptr_t page = CPU->tlb_messages[i].page;
 		size_t count = CPU->tlb_messages[i].count;
-		
+
 		switch (type) {
 		case TLB_INVL_ALL:
 			tlb_invalidate_all();
@@ -182,11 +182,11 @@ void tlb_shootdown_ipi_recv(void)
 			panic("Unknown type (%d).", type);
 			break;
 		}
-		
+
 		if (type == TLB_INVL_ALL)
 			break;
 	}
-	
+
 	CPU->tlb_messages_count = 0;
 	irq_spinlock_unlock(&CPU->lock, false);
 	CPU->tlb_active = true;

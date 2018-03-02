@@ -81,16 +81,16 @@ static async_sess_t *clock_conn = NULL;
 static bool is_leap_year(time_t year)
 {
 	year += 1900;
-	
+
 	if (year % 400 == 0)
 		return true;
-	
+
 	if (year % 100 == 0)
 		return false;
-	
+
 	if (year % 4 == 0)
 		return true;
-	
+
 	return false;
 }
 
@@ -109,17 +109,17 @@ static int days_in_month(time_t year, time_t mon)
 {
 	assert(mon >= 0);
 	assert(mon <= 11);
-	
+
 	static int month_days[] = {
 		31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 	};
-	
+
 	if (mon == 1) {
 		/* February */
 		year += 1900;
 		return is_leap_year(year) ? 29 : 28;
 	}
-	
+
 	return month_days[mon];
 }
 
@@ -143,11 +143,11 @@ static int day_of_year(time_t year, time_t mon, time_t mday)
 	static int mdays[] = {
 		0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
 	};
-	
+
 	static int leap_mdays[] = {
 		0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335
 	};
-	
+
 	return (is_leap_year(year) ? leap_mdays[mon] : mdays[mon]) + mday - 1;
 }
 
@@ -165,7 +165,7 @@ static time_t floor_div(time_t op1, time_t op2)
 {
 	if ((op1 >= 0) || (op1 % op2 == 0))
 		return op1 / op2;
-	
+
 	return op1 / op2 - 1;
 }
 
@@ -182,19 +182,19 @@ static time_t floor_div(time_t op1, time_t op2)
 static time_t floor_mod(time_t op1, time_t op2)
 {
 	time_t div = floor_div(op1, op2);
-	
+
 	/*
 	 * (a / b) * b + a % b == a
 	 * Thus: a % b == a - (a / b) * b
 	 */
-	
+
 	time_t result = op1 - div * op2;
-	
+
 	/* Some paranoid checking to ensure there is mistake here. */
 	assert(result >= 0);
 	assert(result < op2);
 	assert(div * op2 + result == op1);
-	
+
 	return result;
 }
 
@@ -260,7 +260,7 @@ static time_t day_of_week(time_t year, time_t mon, time_t mday)
 static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 {
 	// TODO: DST correction
-	
+
 	/* Set initial values. */
 	time_t usec = tm->tm_usec + tv->tv_usec;
 	time_t sec = tm->tm_sec + tv->tv_sec;
@@ -269,7 +269,7 @@ static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 	time_t day = tm->tm_mday - 1;
 	time_t mon = tm->tm_mon;
 	time_t year = tm->tm_year;
-	
+
 	/* Adjust time. */
 	sec += floor_div(usec, USECS_PER_SEC);
 	usec = floor_mod(usec, USECS_PER_SEC);
@@ -279,17 +279,17 @@ static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 	min = floor_mod(min, MINS_PER_HOUR);
 	day += floor_div(hour, HOURS_PER_DAY);
 	hour = floor_mod(hour, HOURS_PER_DAY);
-	
+
 	/* Adjust month. */
 	year += floor_div(mon, 12);
 	mon = floor_mod(mon, 12);
-	
+
 	/* Now the difficult part - days of month. */
-	
+
 	/* First, deal with whole cycles of 400 years = 146097 days. */
 	year += floor_div(day, 146097) * 400;
 	day = floor_mod(day, 146097);
-	
+
 	/* Then, go in one year steps. */
 	if (mon <= 1) {
 		/* January and February. */
@@ -304,22 +304,22 @@ static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 			year++;
 		}
 	}
-	
+
 	/* Finally, finish it off month per month. */
 	while (day >= days_in_month(year, mon)) {
 		day -= days_in_month(year, mon);
 		mon++;
-		
+
 		if (mon >= 12) {
 			mon -= 12;
 			year++;
 		}
 	}
-	
+
 	/* Calculate the remaining two fields. */
 	tm->tm_yday = day_of_year(year, mon, day + 1);
 	tm->tm_wday = day_of_week(year, mon, day + 1);
-	
+
 	/* And put the values back to the struct. */
 	tm->tm_usec = (int) usec;
 	tm->tm_sec = (int) sec;
@@ -327,13 +327,13 @@ static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 	tm->tm_hour = (int) hour;
 	tm->tm_mday = (int) day + 1;
 	tm->tm_mon = (int) mon;
-	
+
 	/* Casts to work around POSIX brain-damage. */
 	if (year > ((int) INT_MAX) || year < ((int) INT_MIN)) {
 		tm->tm_year = (year < 0) ? ((int) INT_MIN) : ((int) INT_MAX);
 		return -1;
 	}
-	
+
 	tm->tm_year = (int) year;
 	return 0;
 }
@@ -362,7 +362,7 @@ static int normalize_tm_time(struct tm *tm, time_t time)
 static int wbyear_offset(int year)
 {
 	int start_wday = day_of_week(year, 0, 1);
-	
+
 	return floor_mod(4 - start_wday, 7) - 3;
 }
 
@@ -376,17 +376,17 @@ static int wbyear_offset(int year)
 static int wbyear(const struct tm *tm)
 {
 	int day = tm->tm_yday - wbyear_offset(tm->tm_year);
-	
+
 	if (day < 0) {
 		/* Last week of previous year. */
 		return tm->tm_year - 1;
 	}
-	
+
 	if (day > 364 + is_leap_year(tm->tm_year)) {
 		/* First week of next year. */
 		return tm->tm_year + 1;
 	}
-	
+
 	/* All the other days are in the calendar year. */
 	return tm->tm_year;
 }
@@ -404,7 +404,7 @@ static int wbyear(const struct tm *tm)
 static int sun_week_number(const struct tm *tm)
 {
 	int first_day = (7 - day_of_week(tm->tm_year, 0, 1)) % 7;
-	
+
 	return (tm->tm_yday - first_day + 7) / 7;
 }
 
@@ -424,17 +424,17 @@ static int sun_week_number(const struct tm *tm)
 static int iso_week_number(const struct tm *tm)
 {
 	int day = tm->tm_yday - wbyear_offset(tm->tm_year);
-	
+
 	if (day < 0) {
 		/* Last week of previous year. */
 		return 53;
 	}
-	
+
 	if (day > 364 + is_leap_year(tm->tm_year)) {
 		/* First week of next year. */
 		return 1;
 	}
-	
+
 	/* All the other days give correct answer. */
 	return (day / 7 + 1);
 }
@@ -452,7 +452,7 @@ static int iso_week_number(const struct tm *tm)
 static int mon_week_number(const struct tm *tm)
 {
 	int first_day = (1 - day_of_week(tm->tm_year, 0, 1)) % 7;
-	
+
 	return (tm->tm_yday - first_day + 7) / 7;
 }
 
@@ -534,10 +534,10 @@ int tv_gt(struct timeval *tv1, struct timeval *tv2)
 {
 	if (tv1->tv_sec > tv2->tv_sec)
 		return true;
-	
+
 	if ((tv1->tv_sec == tv2->tv_sec) && (tv1->tv_usec > tv2->tv_usec))
 		return true;
-	
+
 	return false;
 }
 
@@ -554,10 +554,10 @@ int tv_gteq(struct timeval *tv1, struct timeval *tv2)
 {
 	if (tv1->tv_sec > tv2->tv_sec)
 		return true;
-	
+
 	if ((tv1->tv_sec == tv2->tv_sec) && (tv1->tv_usec >= tv2->tv_usec))
 		return true;
-	
+
 	return false;
 }
 
@@ -581,50 +581,50 @@ void gettimeofday(struct timeval *tv, struct timezone *tz)
 		tz->tz_minuteswest = 0;
 		tz->tz_dsttime = DST_NONE;
 	}
-	
+
 	if (clock_conn == NULL) {
 		category_id_t cat_id;
 		errno_t rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
 		if (rc != EOK)
 			goto fallback;
-		
+
 		service_id_t *svc_ids;
 		size_t svc_cnt;
 		rc = loc_category_get_svcs(cat_id, &svc_ids, &svc_cnt);
 		if (rc != EOK)
 			goto fallback;
-		
+
 		if (svc_cnt == 0)
 			goto fallback;
-		
+
 		char *svc_name;
 		rc = loc_service_get_name(svc_ids[0], &svc_name);
 		free(svc_ids);
 		if (rc != EOK)
 			goto fallback;
-		
+
 		service_id_t svc_id;
 		rc = loc_service_get_id(svc_name, &svc_id, 0);
 		free(svc_name);
 		if (rc != EOK)
 			goto fallback;
-		
+
 		clock_conn = loc_service_connect(svc_id, INTERFACE_DDF,
 		    IPC_FLAG_BLOCKING);
 		if (!clock_conn)
 			goto fallback;
 	}
-	
+
 	struct tm time;
 	errno_t rc = clock_dev_time_get(clock_conn, &time);
 	if (rc != EOK)
 		goto fallback;
-	
+
 	tv->tv_usec = time.tm_usec;
 	tv->tv_sec = mktime(&time);
-	
+
 	return;
-	
+
 fallback:
 	getuptime(tv);
 }
@@ -638,7 +638,7 @@ void getuptime(struct timeval *tv)
 			errno = rc;
 			goto fallback;
 		}
-		
+
 		void *addr = AS_AREA_ANY;
 		rc = physmem_map(faddr, 1, AS_AREA_READ | AS_AREA_CACHEABLE,
 		    &addr);
@@ -647,26 +647,26 @@ void getuptime(struct timeval *tv)
 			errno = rc;
 			goto fallback;
 		}
-		
+
 		ktime = addr;
 	}
-	
+
 	sysarg_t s2 = ktime->seconds2;
-	
+
 	read_barrier();
 	tv->tv_usec = ktime->useconds;
-	
+
 	read_barrier();
 	sysarg_t s1 = ktime->seconds1;
-	
+
 	if (s1 != s2) {
 		tv->tv_sec = max(s1, s2);
 		tv->tv_usec = 0;
 	} else
 		tv->tv_sec = s1;
-	
+
 	return;
-	
+
 fallback:
 	tv->tv_sec = 0;
 	tv->tv_usec = 0;
@@ -676,10 +676,10 @@ time_t time(time_t *tloc)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	
+
 	if (tloc)
 		*tloc = tv.tv_sec;
-	
+
 	return tv.tv_sec;
 }
 
@@ -705,7 +705,7 @@ time_t mktime(struct tm *tm)
 {
 	// TODO: take DST flag into account
 	// TODO: detect overflow
-	
+
 	normalize_tm_time(tm, 0);
 	return secs_since_epoch(tm);
 }
@@ -754,58 +754,58 @@ size_t strftime(char *restrict s, size_t maxsize,
 	assert(s != NULL);
 	assert(format != NULL);
 	assert(tm != NULL);
-	
+
 	// TODO: use locale
-	
+
 	static const char *wday_abbr[] = {
 		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 	};
-	
+
 	static const char *wday[] = {
 		"Sunday", "Monday", "Tuesday", "Wednesday",
 		"Thursday", "Friday", "Saturday"
 	};
-	
+
 	static const char *mon_abbr[] = {
 		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 	};
-	
+
 	static const char *mon[] = {
 		"January", "February", "March", "April", "May", "June", "July",
 		"August", "September", "October", "November", "December"
 	};
-	
+
 	if (maxsize < 1)
 		return 0;
-	
+
 	char *ptr = s;
 	size_t consumed;
 	size_t remaining = maxsize;
-	
+
 	while (*format != '\0') {
 		if (*format != '%') {
 			APPEND("%c", *format);
 			format++;
 			continue;
 		}
-		
+
 		format++;
 		if ((*format == '0') || (*format == '+')) {
 			// TODO: padding
 			format++;
 		}
-		
+
 		while (isdigit(*format)) {
 			// TODO: padding
 			format++;
 		}
-		
+
 		if ((*format == 'O') || (*format == 'E')) {
 			// TODO: locale's alternative format
 			format++;
 		}
-		
+
 		switch (*format) {
 		case 'a':
 			APPEND("%s", wday_abbr[tm->tm_wday]);
@@ -937,14 +937,14 @@ size_t strftime(char *restrict s, size_t maxsize,
 			/* Invalid specifier, print verbatim. */
 			while (*format != '%')
 				format--;
-			
+
 			APPEND("%%");
 			break;
 		}
-		
+
 		format++;
 	}
-	
+
 	return maxsize - remaining;
 }
 
@@ -959,7 +959,7 @@ size_t strftime(char *restrict s, size_t maxsize,
 errno_t time_utc2tm(const time_t time, struct tm *restrict result)
 {
 	assert(result != NULL);
-	
+
 	/* Set result to epoch. */
 	result->tm_usec = 0;
 	result->tm_sec = 0;
@@ -968,10 +968,10 @@ errno_t time_utc2tm(const time_t time, struct tm *restrict result)
 	result->tm_mday = 1;
 	result->tm_mon = 0;
 	result->tm_year = 70; /* 1970 */
-	
+
 	if (normalize_tm_time(result, time) == -1)
 		return EOVERFLOW;
-	
+
 	return EOK;
 }
 
@@ -992,7 +992,7 @@ errno_t time_utc2str(const time_t time, char *restrict buf)
 	errno_t ret = time_utc2tm(time, &tm);
 	if (ret != EOK)
 		return ret;
-	
+
 	time_tm2str(&tm, buf);
 	return EOK;
 }
@@ -1010,16 +1010,16 @@ void time_tm2str(const struct tm *restrict timeptr, char *restrict buf)
 {
 	assert(timeptr != NULL);
 	assert(buf != NULL);
-	
+
 	static const char *wday[] = {
 		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 	};
-	
+
 	static const char *mon[] = {
 		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 	};
-	
+
 	snprintf(buf, ASCTIME_BUF_LEN, "%s %s %2d %02d:%02d:%02d %d\n",
 	    wday[timeptr->tm_wday],
 	    mon[timeptr->tm_mon],
@@ -1042,7 +1042,7 @@ errno_t time_tv2tm(const struct timeval *tv, struct tm *restrict result)
 {
 	// TODO: Deal with timezones.
 	//       Currently assumes system and all times are in UTC
-	
+
 	/* Set result to epoch. */
 	result->tm_usec = 0;
 	result->tm_sec = 0;
@@ -1051,10 +1051,10 @@ errno_t time_tv2tm(const struct timeval *tv, struct tm *restrict result)
 	result->tm_mday = 1;
 	result->tm_mon = 0;
 	result->tm_year = 70; /* 1970 */
-	
+
 	if (normalize_tm_tv(result, tv) == -1)
 		return EOVERFLOW;
-	
+
 	return EOK;
 }
 
@@ -1096,7 +1096,7 @@ errno_t time_local2str(const time_t time, char *buf)
 	errno_t ret = time_local2tm(time, &loctime);
 	if (ret != EOK)
 		return ret;
-	
+
 	time_tm2str(&loctime, buf);
 	return EOK;
 }

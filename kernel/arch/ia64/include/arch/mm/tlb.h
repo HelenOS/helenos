@@ -62,7 +62,7 @@ typedef union {
 		unsigned int : 2;
 		unsigned int ed : 1;
 		unsigned int ig1 : 11;
-		
+
 		/* Word 1 */
 		unsigned int : 2;
 		unsigned int ps : 6;    /**< Page size will be 2^ps. */

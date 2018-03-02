@@ -128,10 +128,10 @@ enum {
 	SIGQUIT,
 	SIGINT,
 	SIGTERM,
-	
+
 	/* Child Signal */
 	SIGCHLD,
-	
+
 	/* User signals */
 	SIGUSR1,
 	SIGUSR2,
@@ -176,7 +176,7 @@ enum {
 	SIGTSTP,
 	SIGTTIN,
 	SIGTTOU,
-	
+
 	_TOP_SIGNAL = SIGTTOU
 };
 

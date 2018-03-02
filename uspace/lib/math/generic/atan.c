@@ -53,12 +53,12 @@ static float32_t series_atan_32(float32_t arg)
 {
 	float32_t sum = 0;
 	float32_t a = arg / (1.0 + arg * arg);
-	
+
 	/*
 	 * atan(z) = sum(n=0, +inf) [ (2^2n) * (n!)^2 / (2n + 1)! *
 	 *    z^(2n+1) / (1 + z^2)^(n+1) ]
 	 */
-	
+
 	for (unsigned int n = 0; n < SERIES_DEGREE_32; n++) {
 		if (n > 0) {
 			a = a * n * n;
@@ -67,7 +67,7 @@ static float32_t series_atan_32(float32_t arg)
 		sum += a;
 		a = a * 4.0 * arg * arg / (1.0 + arg * arg);
 	}
-	
+
 	return sum;
 }
 
@@ -85,12 +85,12 @@ static float64_t series_atan_64(float64_t arg)
 {
 	float64_t sum = 0;
 	float64_t a = arg / (1.0 + arg * arg);
-	
+
 	/*
 	 * atan(z) = sum(n=0, +inf) [ (2^2n) * (n!)^2 / (2n + 1)! *
 	 *    z^(2n+1) / (1 + z^2)^(n+1) ]
 	 */
-	
+
 	for (unsigned int n = 0; n < SERIES_DEGREE_64; n++) {
 		if (n > 0) {
 			a = a * n * n;
@@ -99,7 +99,7 @@ static float64_t series_atan_64(float64_t arg)
 		sum += a;
 		a = a * 4.0 * arg * arg / (1.0 + arg * arg);
 	}
-	
+
 	return sum;
 }
 

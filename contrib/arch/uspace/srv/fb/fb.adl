@@ -1,97 +1,97 @@
 interface fb extends service {
 		/* Get screen resolution */
 		sysarg_t get_resolution(out sysarg_t width, out sysarg_t height);
-		
+
 		/* Yield screen */
 		sysarg_t screen_yield(void);
-		
+
 		/* Reclaim screen */
 		sysarg_t screen_reclaim(void);
-		
+
 		/* Set mouse cursor position on screen */
 		sysarg_t pointer_move(in sysarg_t x, in sysarg_t y);
-		
+
 		/* Create new viewport */
 		sysarg_t viewport_create(in sysarg_t origin, in sysarg_t dimension);
-		
+
 		/* Get viewport size in character cells */
 		sysarg_t get_csize(out sysarg_t width, out sysarg_t height);
-		
+
 		/* Clear viewport character buffer */
 		sysarg_t clear(void);
-		
+
 		/* Scroll viewport character buffer */
 		sysarg_t scroll(in sysarg_t lines);
-		
+
 		/* Set active viewport */
 		sysarg_t viewport_switch(in sysarg_t index);
-		
+
 		/* Delete viewport */
 		sysarg_t viewport_delete(in sysarg_t index);
-		
+
 		/* Get color capabilities of the screen */
 		sysarg_t get_color_cap(void);
-		
+
 		/* Set abstract text style */
 		sysarg_t set_style(in sysarg_t style);
-		
+
 		/* Set EGA-based text color */
 		sysarg_t set_color(in sysarg_t fg_color, in sysarg_t bg_color, in sysarg_t atrr);
-		
+
 		/* Set RGB-based text color */
 		sysarg_t set_rgb_color(in sysarg_t fg_color, in sysarg_t bg_color);
-		
+
 		/* Put a character to a given position in viewport character buffer */
 		sysarg_t putchar(in sysarg_t char, in sysarg_t col, in sysarg_t row);
-		
+
 		/* Set character cursor visibility in viewport */
 		sysarg_t cursor_visibility(in sysarg_t visible);
-		
+
 		/* Set character cursor position in viewport */
 		sysarg_t cursor_goto(in sysarg_t col, in sysarg_t row);
-		
+
 		/* Prepare memory sharing of bitmaps */
 		sysarg_t prepare_shm(in sysarg_t as_area_base);
-		
+
 		/* Share bitmap or text data */
 		sysarg_t ipc_m_share_out(in sysarg_t as_area_base, in sysarg_t as_area_size, out sysarg_t dst_as_area);
-		
+
 		/* Drop memory sharing */
 		sysarg_t drop_shm(void);
-		
+
 		/* Draw PPM data from shared memory to viewport */
 		sysarg_t draw_ppm(in sysarg_t x, in sysarg_t y);
-		
+
 		/* Put characters from shared memory to viewport */
 		sysarg_t draw_text_data(in sysarg_t x, in sysarg_t y, in sysarg_t width, in sysarg_t height);
-		
+
 		/* Convert PPM data from shared memory to pixmap */
 		sysarg_t shm2pixmap(void);
-		
+
 		/* Save viewport contents to a pixmap */
 		sysarg_t vp2pixmap(in sysarg_t vp_index);
-		
+
 		/* Draw pixmap to viewport */
 		sysarg_t vp_draw_pixmap(in sysarg_t vp_index, in sysarg_t pm_index);
-		
+
 		/* Discard pixmap */
 		sysarg_t drop_pixmap(in sysarg_t pm_index);
-		
+
 		/* Create new (empty) animation for a viewport */
 		sysarg_t anim_create(in sysarg_t vp_index);
-		
+
 		/* Append a pixmap to an animation */
 		sysarg_t anim_addpixmap(in sysarg_t anim_index, in sysarg_t pm_index);
-		
+
 		/* Change a viewport associated with an animation */
 		sysarg_t anim_chgvp(in sysarg_t anim_index, in sysarg_t vp_index);
-		
+
 		/* Start animation playback */
 		sysarg_t anim_start(in sysarg_t anim_index);
-		
+
 		/* Stop animation playback */
 		sysarg_t anim_stop(in sysarg_t anim_index);
-		
+
 		/* Delete animation */
 		sysarg_t anim_drop(in sysarg_t anim_index);
 	protocol:

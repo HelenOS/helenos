@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 		case 'b':
 			display_blocks = true;
 			break;
- 
+
 		case ':':
 			fprintf(stderr, "Option -%c requires an operand\n",
 			    optopt);

@@ -104,13 +104,13 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
-	
+
 	asm volatile (
 		"and %[v], sp, %[size]\n"
 		: [v] "=r" (v)
 		: [size] "r" (~(STACK_SIZE - 1))
 	);
-	
+
 	return v;
 }
 

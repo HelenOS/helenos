@@ -55,7 +55,7 @@ bool list_member(const link_t *link, const list_t *list)
 {
 	bool found = false;
 	link_t *hlp = list->head.next;
-	
+
 	while (hlp != &list->head) {
 		if (hlp == link) {
 			found = true;
@@ -63,7 +63,7 @@ bool list_member(const link_t *link, const list_t *list)
 		}
 		hlp = hlp->next;
 	}
-	
+
 	return found;
 }
 
@@ -79,15 +79,15 @@ void list_splice(list_t *list, link_t *pos)
 {
 	if (list_empty(list))
 		return;
-	
+
 	/* Attach list to destination. */
 	list->head.next->prev = pos;
 	list->head.prev->next = pos->next;
-	
+
 	/* Link destination list to the added list. */
 	pos->next->prev = list->head.prev;
 	pos->next = list->head.next;
-	
+
 	list_initialize(list);
 }
 
@@ -101,13 +101,13 @@ void list_splice(list_t *list, link_t *pos)
 unsigned long list_count(const list_t *list)
 {
 	unsigned long count = 0;
-	
+
 	link_t *link = list_first(list);
 	while (link != NULL) {
 		count++;
 		link = list_next(link, list);
 	}
-	
+
 	return count;
 }
 

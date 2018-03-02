@@ -39,45 +39,45 @@ FUNCTION_BEGIN(userspace_asm)
 	 * r4 = stack
 	 * r5 = entry
 	 */
-	
+
 	/* Disable interrupts */
-	
+
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
 	isync
-	
+
 	/* Set entry point */
-	
+
 	mtsrr0 r5
-	
+
 	/* Set privileged state, enable interrupts */
-	
+
 	ori r31, r31, MSR_PR
 	ori r31, r31, MSR_EE
 	mtsrr1 r31
-	
+
 	/* Set stack */
-	
+
 	mr sp, r4
-	
+
 	/* %r6 is defined to hold pcb_ptr - set it to 0 */
-	
+
 	xor r6, r6, r6
-	
+
 	/* Jump to userspace */
-	
+
 	rfi
 FUNCTION_END(userspace_asm)
 
 SYMBOL(iret)
 	/* Disable interrupts */
-	
+
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
 	isync
-	
+
 	lwz r0, ISTATE_OFFSET_R0(sp)
 	lwz r2, ISTATE_OFFSET_R2(sp)
 	lwz r3, ISTATE_OFFSET_R3(sp)
@@ -108,38 +108,38 @@ SYMBOL(iret)
 	lwz r29, ISTATE_OFFSET_R29(sp)
 	lwz r30, ISTATE_OFFSET_R30(sp)
 	lwz r31, ISTATE_OFFSET_R31(sp)
-	
+
 	lwz r12, ISTATE_OFFSET_CR(sp)
 	mtcr r12
-	
+
 	lwz r12, ISTATE_OFFSET_PC(sp)
 	mtsrr0 r12
-	
+
 	lwz r12, ISTATE_OFFSET_SRR1(sp)
 	mtsrr1 r12
-	
+
 	lwz r12, ISTATE_OFFSET_LR(sp)
 	mtlr r12
-	
+
 	lwz r12, ISTATE_OFFSET_CTR(sp)
 	mtctr r12
-	
+
 	lwz r12, ISTATE_OFFSET_XER(sp)
 	mtxer r12
-	
+
 	lwz r12, ISTATE_OFFSET_R12(sp)
 	lwz sp, ISTATE_OFFSET_SP(sp)
-	
+
 	rfi
 
 SYMBOL(iret_syscall)
 	/* Disable interrupts */
-	
+
 	mfmsr r31
 	rlwinm r31, r31, 0, 17, 15
 	mtmsr r31
 	isync
-	
+
 	lwz r0, ISTATE_OFFSET_R0(sp)
 	lwz r2, ISTATE_OFFSET_R2(sp)
 	lwz r4, ISTATE_OFFSET_R4(sp)
@@ -169,28 +169,28 @@ SYMBOL(iret_syscall)
 	lwz r29, ISTATE_OFFSET_R29(sp)
 	lwz r30, ISTATE_OFFSET_R30(sp)
 	lwz r31, ISTATE_OFFSET_R31(sp)
-	
+
 	lwz r12, ISTATE_OFFSET_CR(sp)
 	mtcr r12
-	
+
 	lwz r12, ISTATE_OFFSET_PC(sp)
 	mtsrr0 r12
-	
+
 	lwz r12, ISTATE_OFFSET_SRR1(sp)
 	mtsrr1 r12
-	
+
 	lwz r12, ISTATE_OFFSET_LR(sp)
 	mtlr r12
-	
+
 	lwz r12, ISTATE_OFFSET_CTR(sp)
 	mtctr r12
-	
+
 	lwz r12, ISTATE_OFFSET_XER(sp)
 	mtxer r12
-	
+
 	lwz r12, ISTATE_OFFSET_R12(sp)
 	lwz sp, ISTATE_OFFSET_SP(sp)
-	
+
 	rfi
 
 FUNCTION_BEGIN(memcpy_from_uspace)
@@ -199,52 +199,52 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 	addi r6, r3, -4
 	addi r4, r4, -4
 	beq 2f
-	
+
 	andi. r0, r6, 3
 	mtctr r7
 	bne 5f
-	
+
 	1:
-	
+
 		lwz r7, 4(r4)
 		lwzu r8, 8(r4)
 		stw r7, 4(r6)
 		stwu r8, 8(r6)
 		bdnz 1b
-		
+
 		andi. r5, r5, 7
-	
+
 	2:
-	
+
 		cmplwi 0, r5, 4
 		blt 3f
-		
+
 		lwzu r0, 4(r4)
 		addi r5, r5, -4
 		stwu r0, 4(r6)
-	
+
 	3:
-	
+
 		cmpwi 0, r5, 0
 		beqlr
 		mtctr r5
 		addi r4, r4, 3
 		addi r6, r6, 3
-	
+
 	4:
-	
+
 		lbzu r0, 1(r4)
 		stbu r0, 1(r6)
 		bdnz 4b
 		blr
-	
+
 	5:
-	
+
 		subfic r0, r0, 4
 		mtctr r0
-	
+
 	6:
-	
+
 		lbz r7, 4(r4)
 		addi r4, r4, 1
 		stb r7, 4(r6)

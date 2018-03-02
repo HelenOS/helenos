@@ -50,9 +50,9 @@ SECTIONS {
 	_gp = . + 0x8000;
 	.lit8 : { *(.lit8) }
 	.lit4 : { *(.lit4) }
-	
+
 	kdata_end = .;
-	
+
 	/DISCARD/ : {
 		*(.mdebug*);
 		*(.pdr);

@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	aoff64_t block_count = 1;
 	aoff64_t dev_nblocks;
 	bool toc = false;
-	
+
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
 		syntax_print();
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 		--argc; ++argv;
 		relative = true;
 	}
-	
+
 	if (str_cmp(*argv, "--offset") == 0) {
 		--argc; ++argv;
 		if (*argv == NULL) {
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
 		--argc; ++argv;
 	}
-	
+
 	if (str_cmp(*argv, "--count") == 0) {
 		--argc; ++argv;
 		if (*argv == NULL) {
@@ -240,11 +240,11 @@ static int print_toc(void)
 static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 	size_t pos;
 	uint8_t b;
-	
+
 	if (length > bytes_per_row) {
 		length = bytes_per_row;
 	}
-	
+
 	/* Print hexadecimal values */
 	for (pos = 0; pos < length; pos++) {
 		if (pos == length/2) {
@@ -252,7 +252,7 @@ static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 		}
 		printf("%02hhX ", data[pos]);
 	}
-	
+
 	/* Pad with spaces if we have less than 16 bytes */
 	for (pos = length; pos < bytes_per_row; pos++) {
 		if (pos == length/2) {
@@ -260,7 +260,7 @@ static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 		}
 		printf("   ");
 	}
-	
+
 	/* Print printable characters */
 	for (pos = 0; pos < length; pos++) {
 		if (pos == length/2) {

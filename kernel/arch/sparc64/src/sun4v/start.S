@@ -114,7 +114,7 @@ SYMBOL(kernel_image_start)
 
 	! Get bits (PHYSMEM_ADDR_SIZE - 1):13 of physmem_base.
 	srlx %l6, 13, %l5
-	
+
 	! l5 <= physmem_base[(PHYSMEM_ADDR_SIZE - 1):13]
 	sllx %l5, 13 + (63 - (PHYSMEM_ADDR_SIZE - 1)), %l5
 	srlx %l5, 63 - (PHYSMEM_ADDR_SIZE - 1), %l5
@@ -129,7 +129,7 @@ SYMBOL(kernel_image_start)
 						! consistent
 	wrpr %g0, NWINDOWS - 1, %cleanwin	! prevent needless clean_window
 						! traps for kernel
-						
+
 	wrpr %g0, 0, %wstate			! use default spill/fill trap
 
 	wrpr %g0, 0, %tl			! TL = 0, primary context
@@ -251,7 +251,7 @@ SYMBOL(kernel_image_start)
 	 */
 	call sparc64_pre_main
 	or %l1, %g0, %o0
-	
+
 	/*
 	 * Create the first stack frame.
 	 */

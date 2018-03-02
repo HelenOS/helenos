@@ -8,7 +8,7 @@ def main():
     if len(sys.argv) != 2 or not sys.argv[1].startswith('0x'):
         print("%s 0x..." % sys.argv[0])
         sys.exit(1)
-    
+
     address = int(sys.argv[1],16)
     offset = address & 0xfff
     ptl1 = (address >> 12) & 0x3ff

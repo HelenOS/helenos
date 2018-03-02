@@ -1,49 +1,49 @@
 interface vfs extends service {
 		/* Register a filesystem driver */
 		sysarg_t register(in_copy string name);
-		
+
 		/* Mount filesystem */
 		sysarg_t mount(in sysarg_t device, in sysarg_t flags, in sysarg_t instance, in_copy string point, in_copy string opts, in_copy string fs);
-		
+
 		/* Open file */
 		sysarg_t open(in sysarg_t lflag, in sysarg_t oflag, in sysarg_t mode, in_copy string path, out sysarg_t fd);
-		
+
 		/* Open file using node */
 		sysarg_t open_node(in sysarg_t fs_handle, in sysarg_t dev_handle, in sysarg_t index, in sysarg_t oflag, out sysarg_t fd);
-		
+
 		/* Read data from file */
 		sysarg_t read(in sysarg_t fd, out_copy stream data);
-		
+
 		/* Write data to file */
 		sysarg_t write(in sysarg_t fd, in_copy stream data);
-		
+
 		/* Seek in file */
 		sysarg_t seek(in sysarg_t fd, in sysarg_t offset, in sysarg_t whence);
-		
+
 		/* Truncate file */
 		sysarg_t truncate(in sysarg_t fd, in sysarg_t size);
-		
+
 		/* Get file metadata */
 		sysarg_t fstat(in sysarg_t fd, out_copy stream stat);
-		
+
 		/* Get directory entry metadata */
 		sysarg_t stat(in_copy string path, out_copy stream stat);
-		
+
 		/* Create directory */
 		sysarg_t mkdir(in sysarg_t mode, in_copy string path);
-		
+
 		/* Delete directory entry */
 		sysarg_t unlink(in sysarg_t lflag, in_copy string path);
-		
+
 		/* Rename directory entry */
 		sysarg_t rename(in_copy string old, in_copy string new);
-		
+
 		/* Flush file buffers */
 		sysarg_t sync(in sysarg_t fd);
-		
+
 		/* In-protocol status value */
 		sysarg_t ipc_m_ping(void);
-		
+
 		/* Close connection */
 		sysarg_t ipc_m_phone_hungup(void);
 	protocol:
@@ -53,31 +53,31 @@ interface vfs extends service {
 interface fs extends service {
 		/* Notify filesystem that it was mounted */
 		sysarg_t mounted(in sysarg_t dev_handle, in_copy string opts);
-		
+
 		/* Mount filesystem */
 		sysarg_t mount(in sysarg_t device, in sysarg_t flags, in sysarg_t instance, in_copy string point, in_copy string opts, ...);
-		
+
 		/* Open file by node */
 		sysarg_t open_node(in sysarg_t lflag, in sysarg_t oflag, in sysarg_t mode, ...);
-		
+
 		/* Lookup file */
 		sysarg_t lookup(in sysarg_t lflag, in sysarg_t oflag, in sysarg_t mode, ...);
-		
+
 		/* Read data from file */
 		sysarg_t read(in sysarg_t dev_handle, in sysarg_t fs_index, in sysarg_t offset, out_copy stream data);
-		
+
 		/* Write data to file */
 		sysarg_t write(in sysarg_t dev_handle, in sysarg_t fs_index, in sysarg_t offset, in_copy stream data);
-		
+
 		/* Truncate file */
 		sysarg_t truncate(in sysarg_t dev_handle, in sysarg_t fs_index, in sysarg_t size);
-		
+
 		/* Get directory entry metadata */
 		sysarg_t stat(in sysarg_t dev_handle, in sysarg_t fs_index, out_copy stream stat);
-		
+
 		/* Flush file buffers */
 		sysarg_t sync(in sysarg_t dev_handle, in sysarg_t fs_index);
-		
+
 		/* Notify on file close */
 		sysarg_t close(in sysarg_t dev_handle, in sysarg_t fs_index);
 };
@@ -102,38 +102,38 @@ architecture vfs {
 	inst tmpfs tmpfs;
 	inst fat fat;
 	inst devfs devfs;
-	
+
 	bind io_dispatcher:tmpfs to tmpfs:tmpfs;
 	bind io_dispatcher:fat to fat:fat;
 	bind io_dispatcher:devfs to devfs:devfs;
-	
+
 	bind tmpfs:vfs to io_dispatcher:vfs;
 	bind fat:vfs to io_dispatcher:vfs;
 	bind devfs:vfs to io_dispatcher:vfs;
-	
+
 	bind tmpfs:tmpfs_nested to tmpfs:tmpfs;
 	bind tmpfs:fat_nested to fat:fat;
 	bind tmpfs:devfs_nested to devfs:devfs;
-	
+
 	bind fat:tmpfs_nested to tmpfs:tmpfs;
 	bind fat:fat_nested to fat:fat;
 	bind fat:devfs_nested to devfs:devfs;
-	
+
 	delegate vfs to io_dispatcher:vfs;
-	
+
 	[/uspace/lib/libc/subsume%io_dispatcher]
 	[/uspace/lib/libc/subsume%tmpfs]
 	[/uspace/lib/libc/subsume%fat]
 	[/uspace/lib/libc/subsume%devfs]
-	
+
 	subsume io_dispatcher:ns to ns;
 	subsume tmpfs:ns to ns;
 	subsume fat:ns to ns;
 	subsume devfs:ns to ns;
-	
+
 	subsume tmpfs:rd to rd;
 	subsume fat:rd to rd;
-	
+
 	subsume devfs:devmap_client to devmap_client;
 	subsume devfs:device to device;
 };

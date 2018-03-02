@@ -71,12 +71,12 @@ static void remote_hw_res_enable_interrupt(ddf_fun_t *fun, void *ops,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
-	
+
 	if (hw_res_ops->enable_interrupt == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	const int irq = DEV_IPC_GET_ARG1(*call);
 	const errno_t ret = hw_res_ops->enable_interrupt(fun, irq);
 	async_answer_0(callid, ret);
@@ -86,12 +86,12 @@ static void remote_hw_res_disable_interrupt(ddf_fun_t *fun, void *ops,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
-	
+
 	if (hw_res_ops->disable_interrupt == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	const int irq = DEV_IPC_GET_ARG1(*call);
 	const errno_t ret = hw_res_ops->disable_interrupt(fun, irq);
 	async_answer_0(callid, ret);
@@ -101,12 +101,12 @@ static void remote_hw_res_clear_interrupt(ddf_fun_t *fun, void *ops,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
-	
+
 	if (hw_res_ops->clear_interrupt == NULL) {
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	const int irq = DEV_IPC_GET_ARG1(*call);
 	const errno_t ret = hw_res_ops->enable_interrupt(fun, irq);
 	async_answer_0(callid, ret);
@@ -121,13 +121,13 @@ static void remote_hw_res_get_resource_list(ddf_fun_t *fun, void *ops,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-	
+
 	hw_resource_list_t *hw_resources = hw_res_ops->get_resource_list(fun);
 	if (hw_resources == NULL){
 		async_answer_0(callid, ENOENT);
 		return;
 	}
-	
+
 	async_answer_1(callid, EOK, hw_resources->count);
 
 	size_t len;

@@ -77,7 +77,7 @@ static indev_operations_t kbrd_raw_ops = {
 static void key_released(kbrd_instance_t *instance, wchar_t sc)
 {
 	spinlock_lock(&instance->keylock);
-	
+
 	switch (sc) {
 	case SC_LSHIFT:
 	case SC_RSHIFT:
@@ -93,7 +93,7 @@ static void key_released(kbrd_instance_t *instance, wchar_t sc)
 	default:
 		break;
 	}
-	
+
 	spinlock_unlock(&instance->keylock);
 }
 
@@ -107,9 +107,9 @@ static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
 	bool shift;
 	bool capslock;
 	wchar_t ch;
-	
+
 	spinlock_lock(&instance->keylock);
-	
+
 	switch (sc) {
 	case SC_LSHIFT:
 	case SC_RSHIFT:
@@ -125,15 +125,15 @@ static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
 		shift = instance->keyflags & PRESSED_SHIFT;
 		capslock = (instance->keyflags & PRESSED_CAPSLOCK) ||
 		    (instance->lockflags & LOCKED_CAPSLOCK);
-		
+
 		if ((letter) && (capslock))
 			shift = !shift;
-		
+
 		if (shift)
 			ch = sc_secondary_map[sc];
 		else
 			ch = sc_primary_map[sc];
-		
+
 		switch (ch) {
 		case U_PAGE_UP:
 			indev_signal(instance->sink, INDEV_SIGNAL_SCROLL_UP);
@@ -144,23 +144,23 @@ static void key_pressed(kbrd_instance_t *instance, wchar_t sc)
 		default:
 			indev_push_character(instance->sink, ch);
 		}
-		
+
 		break;
 	}
-	
+
 	spinlock_unlock(&instance->keylock);
 }
 
 static void kkbrd(void *arg)
 {
 	kbrd_instance_t *instance = (kbrd_instance_t *) arg;
-	
+
 	while (true) {
 		wchar_t sc = indev_pop_character(&instance->raw);
-		
+
 		if (sc == IGNORE_CODE)
 			continue;
-		
+
 		if (sc & KEY_RELEASE)
 			key_released(instance, (sc ^ KEY_RELEASE) & 0x7f);
 		else
@@ -175,20 +175,20 @@ kbrd_instance_t *kbrd_init(void)
 	if (instance) {
 		instance->thread = thread_create(kkbrd, (void *) instance,
 		    TASK, THREAD_FLAG_NONE, "kkbrd");
-		
+
 		if (!instance->thread) {
 			free(instance);
 			return NULL;
 		}
-		
+
 		instance->sink = NULL;
 		indev_initialize("kbrd", &instance->raw, &kbrd_raw_ops);
-		
+
 		spinlock_initialize(&instance->keylock, "kbrd.instance.keylock");
 		instance->keyflags = 0;
 		instance->lockflags = 0;
 	}
-	
+
 	return instance;
 }
 
@@ -196,10 +196,10 @@ indev_t *kbrd_wire(kbrd_instance_t *instance, indev_t *sink)
 {
 	assert(instance);
 	assert(sink);
-	
+
 	instance->sink = sink;
 	thread_ready(instance->thread);
-	
+
 	return &instance->raw;
 }
 

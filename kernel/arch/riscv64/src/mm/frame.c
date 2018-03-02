@@ -55,27 +55,27 @@ static void frame_common_arch_init(bool low)
 {
 	pfn_t minconf =
 	    max3(ADDR2PFN(physmem_start), htif_frame + 1, pt_frame + 1);
-	
+
 	for (size_t i = 0; i < memmap.cnt; i++) {
 		/* To be safe, make the available zone possibly smaller */
 		uintptr_t base = ALIGN_UP((uintptr_t) memmap.zones[i].start,
 		    FRAME_SIZE);
 		size_t size = ALIGN_DOWN(memmap.zones[i].size -
 		    (base - ((uintptr_t) memmap.zones[i].start)), FRAME_SIZE);
-		
+
 		if (!frame_adjust_zone_bounds(low, &base, &size))
 			return;
-		
+
 		pfn_t pfn = ADDR2PFN(base);
 		size_t count = SIZE2FRAMES(size);
 		pfn_t conf;
-		
+
 		if (low) {
 			if ((minconf < pfn) || (minconf >= pfn + count))
 				conf = pfn;
 			else
 				conf = minconf;
-			
+
 			zone_create(pfn, count, conf,
 			    ZONE_AVAILABLE | ZONE_LOWMEM);
 		} else {
@@ -90,7 +90,7 @@ static void frame_common_arch_init(bool low)
 void frame_low_arch_init(void)
 {
 	frame_common_arch_init(true);
-	
+
 	frame_mark_unavailable(htif_frame, 1);
 	frame_mark_unavailable(pt_frame, 1);
 }

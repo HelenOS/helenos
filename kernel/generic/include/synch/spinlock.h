@@ -46,7 +46,7 @@
 
 typedef struct spinlock {
 	atomic_t val;
-	
+
 #ifdef CONFIG_DEBUG_SPINLOCK
 	const char *name;
 #endif /* CONFIG_DEBUG_SPINLOCK */
@@ -129,7 +129,7 @@ NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 	 * Prevent critical section code from bleeding out this way down.
 	 */
 	CS_LEAVE_BARRIER();
-	
+
 	atomic_set(&lock->val, 0);
 	preemption_enable();
 }

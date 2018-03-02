@@ -38,23 +38,23 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 	stmdb sp!, {r4, r5, lr}
 	mov r5, r0 /* save dst */
 	beq 4f
-	
+
 	1:
 		cmp r2, #0
 		movne ip, #0
 		beq 3f
-	
+
 	2:
 		ldrb r3, [ip, r1]
 		strb r3, [ip, r0]
 		add ip, ip, #1
 		cmp ip, r2
 		bne 2b
-	
+
 	3:
 		mov r0, r5
 		ldmia sp!, {r4, r5, pc}
-	
+
 	4:
 		add r3, r0, #3
 		bic r3, r3, #3
@@ -65,7 +65,7 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 		beq 6f
 		mov lr, #0
 		mov ip, lr
-	
+
 	5:
 		ldr r3, [ip, r1]
 		add lr, lr, #1
@@ -73,7 +73,7 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 		str r3, [ip, r0]
 		add ip, ip, #4
 		bne 5b
-	
+
 	6:
 		ands r4, r2, #3
 		beq 3b
@@ -81,7 +81,7 @@ FUNCTION_BEGIN(memcpy_to_uspace)
 		add r0, r3, r0
 		add ip, r3, r1
 		mov r2, #0
-	
+
 	7:
 		ldrb r3, [r2, ip]
 		strb r3, [r2, r0]

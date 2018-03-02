@@ -74,7 +74,7 @@ mem_backend_t phys_backend = {
 
 	.page_fault = phys_page_fault,
 	.frame_free = NULL,
-	
+
 	.create_shared_data = phys_create_shared_data,
 	.destroy_shared_data = phys_destroy_shared_data
 };
@@ -144,7 +144,7 @@ int phys_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	assert(upage - area->base < area->backend_data.frames * FRAME_SIZE);
 	page_mapping_insert(AS, upage, base + (upage - area->base),
 	    as_area_get_flags(area));
-	
+
 	if (!used_space_insert(area, upage, 1))
 		panic("Cannot insert used space.");
 

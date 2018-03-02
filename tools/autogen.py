@@ -84,7 +84,7 @@ def generate_probes(struct):
 		if 'elements' in member.keys():
 			code = code + ("\temit_constant(%s_%s_ITEM_SIZE, sizeof(%s));\n" %
 			    (struct['name'].upper(), member['name'].upper(), member['type']))
-			
+
 	return code
 
 def probe(struct):
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 }
 	""" % (generate_includes(struct), generate_struct(struct),
 	    generate_probes(struct), name.upper(), typename)
-	
+
 	return code
 
 def generate_defines(pairs):
@@ -158,7 +158,7 @@ def filter_pairs(lines):
 			continue
 		pairs = pairs + [res.group(1, 3)]
 	return pairs
-	
+
 
 def run():
 	if len(sys.argv) != 3:

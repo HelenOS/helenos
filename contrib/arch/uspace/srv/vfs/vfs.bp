@@ -8,7 +8,7 @@
 			?ipc_m_share_in
 		}
 	} +
-	
+
 	?mount {
 		?ipc_m_data_write /* mount point */ ;
 		tentative {
@@ -50,7 +50,7 @@
 			}
 		}
 	} +
-	
+
 	?open {
 		tentative {
 			?ipc_m_data_write /* path */ ;
@@ -66,7 +66,7 @@
 			}
 		}
 	} +
-	
+
 	?open_node {
 		alternative (fs; tmpfs; fat; devfs) {
 			[fnc.vfs_open_node_internal] ;
@@ -77,7 +77,7 @@
 			}
 		}
 	} +
-	
+
 	?close {
 		tentative {
 			alternative (fs; tmpfs; fat; devfs) {
@@ -87,7 +87,7 @@
 			}
 		}
 	} +
-	
+
 	?read {
 		tentative {
 			?ipc_m_data_read {
@@ -101,7 +101,7 @@
 			}
 		}
 	} +
-	
+
 	?write {
 		tentative {
 			?ipc_m_data_write {
@@ -115,7 +115,7 @@
 			}
 		}
 	} +
-	
+
 	?truncate {
 		tentative {
 			alternative (fs; tmpfs; fat; devfs) {
@@ -125,7 +125,7 @@
 			}
 		}
 	} +
-	
+
 	?fstat {
 		tentative {
 			?ipc_m_data_read /* vfs_stat_t */ {
@@ -139,7 +139,7 @@
 			}
 		}
 	} +
-	
+
 	?stat {
 		?ipc_m_data_write /* path */ ;
 		tentative {
@@ -155,7 +155,7 @@
 			}
 		}
 	} +
-	
+
 	?mkdir {
 		?ipc_m_data_write /* path */ ;
 		tentative {
@@ -164,7 +164,7 @@
 			}
 		}
 	} +
-	
+
 	?unlink {
 		?ipc_m_data_write /* path */ ;
 		tentative {
@@ -173,7 +173,7 @@
 			}
 		}
 	} +
-	
+
 	?rename {
 		?ipc_m_data_write /* old path */ ;
 		tentative {
@@ -197,7 +197,7 @@
 			}
 		}
 	} +
-	
+
 	?sync {
 		tentative {
 			alternative (fs; tmpfs; fat; devfs) {
@@ -205,8 +205,8 @@
 			}
 		}
 	} +
-	
+
 	?seek
-	
+
 )* ;
 ?ipc_m_phone_hungup

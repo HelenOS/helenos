@@ -47,14 +47,14 @@ typedef void (*event_callback_t)(void *);
 /** Event notification structure. */
 typedef struct {
 	SPINLOCK_DECLARE(lock);
-	
+
 	/** Answerbox for notifications. */
 	answerbox_t *answerbox;
 	/** Interface and method to be used for the notification. */
 	sysarg_t imethod;
 	/** Counter. */
 	size_t counter;
-	
+
 	/** Masked flag. */
 	bool masked;
 	/** Unmask callback. */

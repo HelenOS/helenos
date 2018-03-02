@@ -73,13 +73,13 @@
 typedef struct {
 	/** Copy of RSR */
 	uint8_t status;
-	
+
 	/** Pointer to next frame */
 	uint8_t next;
-	
+
 	/** Receive Byte Count Low */
 	uint8_t rbcl;
-	
+
 	/** Receive Byte Count High */
 	uint8_t rbch;
 } recv_header_t;
@@ -94,7 +94,7 @@ typedef struct {
 static void pio_read_buf_16(void *port, void *buf, size_t size)
 {
 	size_t i;
-	
+
 	for (i = 0; (i << 1) < size; i++)
 		*((uint16_t *) buf + i) = pio_read_16((ioport16_t *) (port));
 }
@@ -109,7 +109,7 @@ static void pio_read_buf_16(void *port, void *buf, size_t size)
 static void pio_write_buf_16(void *port, void *buf, size_t size)
 {
 	size_t i;
-	
+
 	for (i = 0; (i << 1) < size; i++)
 		pio_write_16((ioport16_t *) port, *((uint16_t *) buf + i));
 }
@@ -117,22 +117,22 @@ static void pio_write_buf_16(void *port, void *buf, size_t size)
 static void ne2k_download(ne2k_t *ne2k, void *buf, size_t addr, size_t size)
 {
 	size_t esize = size & ~1;
-	
+
 	pio_write_8(ne2k->port + DP_RBCR0, esize & 0xff);
 	pio_write_8(ne2k->port + DP_RBCR1, (esize >> 8) & 0xff);
 	pio_write_8(ne2k->port + DP_RSAR0, addr & 0xff);
 	pio_write_8(ne2k->port + DP_RSAR1, (addr >> 8) & 0xff);
 	pio_write_8(ne2k->port + DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
+
 	if (esize != 0) {
 		pio_read_buf_16(ne2k->data_port, buf, esize);
 		size -= esize;
 		buf += esize;
 	}
-	
+
 	if (size) {
 		assert(size == 1);
-		
+
 		uint16_t word = pio_read_16(ne2k->data_port);
 		memcpy(buf, &word, 1);
 	}
@@ -142,24 +142,24 @@ static void ne2k_upload(ne2k_t *ne2k, void *buf, size_t addr, size_t size)
 {
 	size_t esize_ru = (size + 1) & ~1;
 	size_t esize = size & ~1;
-	
+
 	pio_write_8(ne2k->port + DP_RBCR0, esize_ru & 0xff);
 	pio_write_8(ne2k->port + DP_RBCR1, (esize_ru >> 8) & 0xff);
 	pio_write_8(ne2k->port + DP_RSAR0, addr & 0xff);
 	pio_write_8(ne2k->port + DP_RSAR1, (addr >> 8) & 0xff);
 	pio_write_8(ne2k->port + DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-	
+
 	if (esize != 0) {
 		pio_write_buf_16(ne2k->data_port, buf, esize);
 		size -= esize;
 		buf += esize;
 	}
-	
+
 	if (size) {
 		assert(size == 1);
-		
+
 		uint16_t word = 0;
-		
+
 		memcpy(&word, buf, 1);
 		pio_write_16(ne2k->data_port, word);
 	}
@@ -168,13 +168,13 @@ static void ne2k_upload(ne2k_t *ne2k, void *buf, size_t addr, size_t size)
 static void ne2k_init(ne2k_t *ne2k)
 {
 	unsigned int i;
-	
+
 	/* Reset the ethernet card */
 	uint8_t val = pio_read_8(ne2k->port + NE2K_RESET);
 	async_usleep(2000);
 	pio_write_8(ne2k->port + NE2K_RESET, val);
 	async_usleep(2000);
-	
+
 	/* Reset the DP8390 */
 	pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);
 	for (i = 0; i < NE2K_RETRY; i++) {
@@ -196,38 +196,38 @@ static void ne2k_init(ne2k_t *ne2k)
 errno_t ne2k_probe(ne2k_t *ne2k)
 {
 	unsigned int i;
-	
+
 	ne2k_init(ne2k);
-	
+
 	/* Check if the DP8390 is really there */
 	uint8_t val = pio_read_8(ne2k->port + DP_CR);
 	if ((val & (CR_STP | CR_TXP | CR_DM_ABORT)) != (CR_STP | CR_DM_ABORT))
 		return EXDEV;
-	
+
 	/* Disable the receiver and init TCR and DCR */
 	pio_write_8(ne2k->port + DP_RCR, RCR_MON);
 	pio_write_8(ne2k->port + DP_TCR, TCR_NORMAL);
 	pio_write_8(ne2k->port + DP_DCR, DCR_WORDWIDE | DCR_8BYTES | DCR_BMS);
-	
+
 	/* Setup a transfer to get the MAC address */
 	pio_write_8(ne2k->port + DP_RBCR0, ETH_ADDR << 1);
 	pio_write_8(ne2k->port + DP_RBCR1, 0);
 	pio_write_8(ne2k->port + DP_RSAR0, 0);
 	pio_write_8(ne2k->port + DP_RSAR1, 0);
 	pio_write_8(ne2k->port + DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
+
 	for (i = 0; i < ETH_ADDR; i++)
 		ne2k->mac.address[i] = pio_read_16(ne2k->data_port);
-	
+
 	return EOK;
 }
 
 void ne2k_set_physical_address(ne2k_t *ne2k, const nic_address_t *address)
 {
 	memcpy(&ne2k->mac, address, sizeof(nic_address_t));
-	
+
 	pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_DM_ABORT | CR_STP);
-	
+
 	pio_write_8(ne2k->port + DP_RBCR0, ETH_ADDR << 1);
 	pio_write_8(ne2k->port + DP_RBCR1, 0);
 	pio_write_8(ne2k->port + DP_RSAR0, 0);
@@ -253,9 +253,9 @@ errno_t ne2k_up(ne2k_t *ne2k)
 {
 	if (!ne2k->probed)
 		return EXDEV;
-	
+
 	ne2k_init(ne2k);
-	
+
 	/*
 	 * Setup send queue. Use the first
 	 * SQ_PAGES of NE2000 memory for the send
@@ -265,7 +265,7 @@ errno_t ne2k_up(ne2k_t *ne2k)
 	ne2k->sq.page = NE2K_START / DP_PAGE;
 	fibril_mutex_initialize(&ne2k->sq_mutex);
 	fibril_condvar_initialize(&ne2k->sq_cv);
-	
+
 	/*
 	 * Setup receive ring buffer. Use all the rest
 	 * of the NE2000 memory (except the first SQ_PAGES
@@ -274,51 +274,51 @@ errno_t ne2k_up(ne2k_t *ne2k)
 	 */
 	ne2k->start_page = ne2k->sq.page + SQ_PAGES;
 	ne2k->stop_page = ne2k->sq.page + NE2K_SIZE / DP_PAGE;
-	
+
 	/*
 	 * Initialization of the DP8390 following the mandatory procedure
 	 * in reference manual ("DP8390D/NS32490D NIC Network Interface
 	 * Controller", National Semiconductor, July 1995, Page 29).
 	 */
-	
+
 	/* Step 1: */
 	pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_STP | CR_DM_ABORT);
-	
+
 	/* Step 2: */
 	pio_write_8(ne2k->port + DP_DCR, DCR_WORDWIDE | DCR_8BYTES | DCR_BMS);
-	
+
 	/* Step 3: */
 	pio_write_8(ne2k->port + DP_RBCR0, 0);
 	pio_write_8(ne2k->port + DP_RBCR1, 0);
-	
+
 	/* Step 4: */
 	pio_write_8(ne2k->port + DP_RCR, ne2k->receive_configuration);
-	
+
 	/* Step 5: */
 	pio_write_8(ne2k->port + DP_TCR, TCR_INTERNAL);
-	
+
 	/* Step 6: */
 	pio_write_8(ne2k->port + DP_BNRY, ne2k->start_page);
 	pio_write_8(ne2k->port + DP_PSTART, ne2k->start_page);
 	pio_write_8(ne2k->port + DP_PSTOP, ne2k->stop_page);
-	
+
 	/* Step 7: */
 	pio_write_8(ne2k->port + DP_ISR, 0xff);
-	
+
 	/* Step 8: */
 	pio_write_8(ne2k->port + DP_IMR,
 	    IMR_PRXE | IMR_PTXE | IMR_RXEE | IMR_TXEE | IMR_OVWE | IMR_CNTE);
-	
+
 	/* Step 9: */
 	pio_write_8(ne2k->port + DP_CR, CR_PS_P1 | CR_DM_ABORT | CR_STP);
-	
+
 	pio_write_8(ne2k->port + DP_PAR0, ne2k->mac.address[0]);
 	pio_write_8(ne2k->port + DP_PAR1, ne2k->mac.address[1]);
 	pio_write_8(ne2k->port + DP_PAR2, ne2k->mac.address[2]);
 	pio_write_8(ne2k->port + DP_PAR3, ne2k->mac.address[3]);
 	pio_write_8(ne2k->port + DP_PAR4, ne2k->mac.address[4]);
 	pio_write_8(ne2k->port + DP_PAR5, ne2k->mac.address[5]);
-	
+
 	pio_write_8(ne2k->port + DP_MAR0, 0);
 	pio_write_8(ne2k->port + DP_MAR1, 0);
 	pio_write_8(ne2k->port + DP_MAR2, 0);
@@ -327,20 +327,20 @@ errno_t ne2k_up(ne2k_t *ne2k)
 	pio_write_8(ne2k->port + DP_MAR5, 0);
 	pio_write_8(ne2k->port + DP_MAR6, 0);
 	pio_write_8(ne2k->port + DP_MAR7, 0);
-	
+
 	pio_write_8(ne2k->port + DP_CURR, ne2k->start_page + 1);
-	
+
 	/* Step 10: */
 	pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_DM_ABORT | CR_STA);
-	
+
 	/* Step 11: */
 	pio_write_8(ne2k->port + DP_TCR, TCR_NORMAL);
-	
+
 	/* Reset counters by reading */
 	pio_read_8(ne2k->port + DP_CNTR0);
 	pio_read_8(ne2k->port + DP_CNTR1);
 	pio_read_8(ne2k->port + DP_CNTR2);
-	
+
 	/* Finish the initialization */
 	ne2k->up = true;
 	return EOK;
@@ -414,11 +414,11 @@ void ne2k_send(nic_t *nic_data, void *data, size_t size)
 	assert(ne2k->up);
 
 	fibril_mutex_lock(&ne2k->sq_mutex);
-	
+
 	while (ne2k->sq.dirty) {
 		fibril_condvar_wait(&ne2k->sq_cv, &ne2k->sq_mutex);
 	}
-	
+
 	if ((size < ETH_MIN_PACK_SIZE) || (size > ETH_MAX_PACK_SIZE_TAGGED)) {
 		fibril_mutex_unlock(&ne2k->sq_mutex);
 		return;
@@ -445,10 +445,10 @@ static nic_frame_t *ne2k_receive_frame(nic_t *nic_data, uint8_t page,
 	nic_frame_t *frame = nic_alloc_frame(nic_data, length);
 	if (frame == NULL)
 		return NULL;
-	
+
 	memset(frame->data, 0, length);
 	uint8_t last = page + length / DP_PAGE;
-	
+
 	if (last >= ne2k->stop_page) {
 		size_t left = (ne2k->stop_page - page) * DP_PAGE
 		    - sizeof(recv_header_t);
@@ -480,34 +480,34 @@ static void ne2k_receive(nic_t *nic_data)
 	while (frames_count < 16) {
 		//TODO: isn't some locking necessary here?
 		uint8_t boundary = pio_read_8(ne2k->port + DP_BNRY) + 1;
-		
+
 		if (boundary == ne2k->stop_page)
 			boundary = ne2k->start_page;
-		
+
 		pio_write_8(ne2k->port + DP_CR, CR_PS_P1 | CR_STA);
 		uint8_t current = pio_read_8(ne2k->port + DP_CURR);
 		pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_STA);
 		if (current == boundary)
 			/* No more frames to process */
 			break;
-		
+
 		recv_header_t header;
 		size_t size = sizeof(header);
 		size_t offset = boundary * DP_PAGE;
-		
+
 		/* Get the frame header */
 		pio_write_8(ne2k->port + DP_RBCR0, size & 0xff);
 		pio_write_8(ne2k->port + DP_RBCR1, (size >> 8) & 0xff);
 		pio_write_8(ne2k->port + DP_RSAR0, offset & 0xff);
 		pio_write_8(ne2k->port + DP_RSAR1, (offset >> 8) & 0xff);
 		pio_write_8(ne2k->port + DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-		
+
 		pio_read_buf_16(ne2k->data_port, (void *) &header, size);
 
 		size_t length =
 		    (((size_t) header.rbcl) | (((size_t) header.rbch) << 8)) - size;
 		uint8_t next = header.next;
-		
+
 		if ((length < ETH_MIN_PACK_SIZE)
 		    || (length > ETH_MAX_PACK_SIZE_TAGGED)) {
 			next = current;
@@ -534,7 +534,7 @@ static void ne2k_receive(nic_t *nic_data)
 			} else
 				break;
 		}
-		
+
 		/*
 		 * Update the boundary pointer
 		 * to the value of the page
@@ -584,7 +584,7 @@ void ne2k_interrupt(nic_t *nic_data, uint8_t isr, uint8_t tsr)
 			/* Prepare the buffer for next frame */
 			ne2k->sq.dirty = false;
 			ne2k->sq.size = 0;
-			
+
 			/* Signal a next frame to be sent */
 			fibril_condvar_broadcast(&ne2k->sq_cv);
 		} else {
@@ -614,7 +614,7 @@ void ne2k_interrupt(nic_t *nic_data, uint8_t isr, uint8_t tsr)
 		 */
 		ne2k_reset(ne2k);
 	}
-	
+
 	/* Unmask interrupts to be processed in the next round */
 	pio_write_8(ne2k->port + DP_IMR,
 	    IMR_PRXE | IMR_PTXE | IMR_RXEE | IMR_TXEE | IMR_OVWE | IMR_CNTE);
@@ -626,7 +626,7 @@ void ne2k_set_accept_bcast(ne2k_t *ne2k, int accept)
 		ne2k->receive_configuration |= RCR_AB;
 	else
 		ne2k->receive_configuration &= ~RCR_AB;
-	
+
 	pio_write_8(ne2k->port + DP_RCR, ne2k->receive_configuration);
 }
 
@@ -636,7 +636,7 @@ void ne2k_set_accept_mcast(ne2k_t *ne2k, int accept)
 		ne2k->receive_configuration |= RCR_AM;
 	else
 		ne2k->receive_configuration &= ~RCR_AM;
-	
+
 	pio_write_8(ne2k->port + DP_RCR, ne2k->receive_configuration);
 }
 
@@ -646,7 +646,7 @@ void ne2k_set_promisc_phys(ne2k_t *ne2k, int promisc)
 		ne2k->receive_configuration |= RCR_PRO;
 	else
 		ne2k->receive_configuration &= ~RCR_PRO;
-	
+
 	pio_write_8(ne2k->port + DP_RCR, ne2k->receive_configuration);
 }
 
@@ -654,7 +654,7 @@ void ne2k_set_mcast_hash(ne2k_t *ne2k, uint64_t hash)
 {
 	/* Select Page 1 and stop all transfers */
 	pio_write_8(ne2k->port + DP_CR, CR_PS_P1 | CR_DM_ABORT | CR_STP);
-	
+
 	pio_write_8(ne2k->port + DP_MAR0, (uint8_t) hash);
 	pio_write_8(ne2k->port + DP_MAR1, (uint8_t) (hash >> 8));
 	pio_write_8(ne2k->port + DP_MAR2, (uint8_t) (hash >> 16));
@@ -663,7 +663,7 @@ void ne2k_set_mcast_hash(ne2k_t *ne2k, uint64_t hash)
 	pio_write_8(ne2k->port + DP_MAR5, (uint8_t) (hash >> 40));
 	pio_write_8(ne2k->port + DP_MAR6, (uint8_t) (hash >> 48));
 	pio_write_8(ne2k->port + DP_MAR7, (uint8_t) (hash >> 56));
-	
+
 	/* Select Page 0 and resume transfers */
 	pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_DM_ABORT | CR_STA);
 }

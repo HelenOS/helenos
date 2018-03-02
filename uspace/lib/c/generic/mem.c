@@ -102,11 +102,11 @@ static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 
 	for (i = 0; i < n / sizeof(unsigned long); i++)
 		adst[i].n = asrc[i].n;
-		
+
 	for (j = 0; j < n % sizeof(unsigned long); j++)
 		((unsigned char *) (((unsigned long *) dst) + i))[j] =
 		    ((unsigned char *) (((unsigned long *) src) + i))[j];
-		
+
 	return (char *) dst;
 }
 

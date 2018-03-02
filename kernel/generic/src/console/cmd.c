@@ -685,7 +685,7 @@ void cmd_init(void)
 int cmd_help(cmd_arg_t *argv)
 {
 	spinlock_lock(&cmd_lock);
-	
+
 	size_t len = 0;
 	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
@@ -693,21 +693,21 @@ int cmd_help(cmd_arg_t *argv)
 			len = str_length(hlp->name);
 		spinlock_unlock(&hlp->lock);
 	}
-	
+
 	unsigned int _len = (unsigned int) len;
 	if ((_len != len) || (((int) _len) < 0)) {
 		log(LF_OTHER, LVL_ERROR, "Command length overflow");
 		return 1;
 	}
-	
+
 	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
 		printf("%-*s %s\n", _len, hlp->name, hlp->description);
 		spinlock_unlock(&hlp->lock);
 	}
-	
+
 	spinlock_unlock(&cmd_lock);
-	
+
 	return 1;
 }
 
@@ -720,7 +720,7 @@ int cmd_help(cmd_arg_t *argv)
 static int cmd_pio_read_8(cmd_arg_t *argv)
 {
 	uint8_t *ptr = NULL;
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
@@ -728,15 +728,15 @@ static int cmd_pio_read_8(cmd_arg_t *argv)
 #endif
 		ptr = (uint8_t *) km_map(argv[0].intval, sizeof(uint8_t),
 		    PAGE_NOT_CACHEABLE);
-	
+
 	const uint8_t val = pio_read_8(ptr);
 	printf("read %" PRIxn ": %" PRIx8 "\n", argv[0].intval, val);
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	
+
 	km_unmap((uintptr_t) ptr, sizeof(uint8_t));
 	return 1;
 }
@@ -750,7 +750,7 @@ static int cmd_pio_read_8(cmd_arg_t *argv)
 static int cmd_pio_read_16(cmd_arg_t *argv)
 {
 	uint16_t *ptr = NULL;
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
@@ -758,15 +758,15 @@ static int cmd_pio_read_16(cmd_arg_t *argv)
 #endif
 		ptr = (uint16_t *) km_map(argv[0].intval, sizeof(uint16_t),
 		    PAGE_NOT_CACHEABLE);
-	
+
 	const uint16_t val = pio_read_16(ptr);
 	printf("read %" PRIxn ": %" PRIx16 "\n", argv[0].intval, val);
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	
+
 	km_unmap((uintptr_t) ptr, sizeof(uint16_t));
 	return 1;
 }
@@ -780,7 +780,7 @@ static int cmd_pio_read_16(cmd_arg_t *argv)
 static int cmd_pio_read_32(cmd_arg_t *argv)
 {
 	uint32_t *ptr = NULL;
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
@@ -788,15 +788,15 @@ static int cmd_pio_read_32(cmd_arg_t *argv)
 #endif
 		ptr = (uint32_t *) km_map(argv[0].intval, sizeof(uint32_t),
 		    PAGE_NOT_CACHEABLE);
-	
+
 	const uint32_t val = pio_read_32(ptr);
 	printf("read %" PRIxn ": %" PRIx32 "\n", argv[0].intval, val);
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	
+
 	km_unmap((uintptr_t) ptr, sizeof(uint32_t));
 	return 1;
 }
@@ -810,7 +810,7 @@ static int cmd_pio_read_32(cmd_arg_t *argv)
 static int cmd_pio_write_8(cmd_arg_t *argv)
 {
 	uint8_t *ptr = NULL;
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
@@ -818,16 +818,16 @@ static int cmd_pio_write_8(cmd_arg_t *argv)
 #endif
 		ptr = (uint8_t *) km_map(argv[0].intval, sizeof(uint8_t),
 		    PAGE_NOT_CACHEABLE);
-	
+
 	printf("write %" PRIxn ": %" PRIx8 "\n", argv[0].intval,
 	    (uint8_t) argv[1].intval);
 	pio_write_8(ptr, (uint8_t) argv[1].intval);
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	
+
 	km_unmap((uintptr_t) ptr, sizeof(uint8_t));
 	return 1;
 }
@@ -841,7 +841,7 @@ static int cmd_pio_write_8(cmd_arg_t *argv)
 static int cmd_pio_write_16(cmd_arg_t *argv)
 {
 	uint16_t *ptr = NULL;
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
@@ -849,16 +849,16 @@ static int cmd_pio_write_16(cmd_arg_t *argv)
 #endif
 		ptr = (uint16_t *) km_map(argv[0].intval, sizeof(uint16_t),
 		    PAGE_NOT_CACHEABLE);
-	
+
 	printf("write %" PRIxn ": %" PRIx16 "\n", argv[0].intval,
 	    (uint16_t) argv[1].intval);
 	pio_write_16(ptr, (uint16_t) argv[1].intval);
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	
+
 	km_unmap((uintptr_t) ptr, sizeof(uint16_t));
 	return 1;
 }
@@ -872,7 +872,7 @@ static int cmd_pio_write_16(cmd_arg_t *argv)
 static int cmd_pio_write_32(cmd_arg_t *argv)
 {
 	uint32_t *ptr = NULL;
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		ptr = (void *) argv[0].intval;
@@ -880,16 +880,16 @@ static int cmd_pio_write_32(cmd_arg_t *argv)
 #endif
 		ptr = (uint32_t *) km_map(argv[0].intval, sizeof(uint32_t),
 		    PAGE_NOT_CACHEABLE);
-	
+
 	printf("write %" PRIxn ": %" PRIx32 "\n", argv[0].intval,
 	    (uint32_t) argv[1].intval);
 	pio_write_32(ptr, (uint32_t) argv[1].intval);
-	
+
 #ifdef IO_SPACE_BOUNDARY
 	if ((void *) argv->intval < IO_SPACE_BOUNDARY)
 		return 1;
 #endif
-	
+
 	km_unmap((uintptr_t) ptr, sizeof(uint32_t));
 	return 1;
 }
@@ -903,7 +903,7 @@ static int cmd_pio_write_32(cmd_arg_t *argv)
 int cmd_reboot(cmd_arg_t *argv)
 {
 	reboot();
-	
+
 	/* Not reached */
 	return 1;
 }
@@ -917,13 +917,13 @@ int cmd_reboot(cmd_arg_t *argv)
 int cmd_uptime(cmd_arg_t *argv)
 {
 	assert(uptime);
-	
+
 	/* This doesn't have to be very accurate */
 	sysarg_t sec = uptime->seconds1;
-	
+
 	printf("Up %" PRIun " days, %" PRIun " hours, %" PRIun " minutes, %" PRIun " seconds\n",
 		sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60);
-	
+
 	return 1;
 }
 
@@ -936,10 +936,10 @@ int cmd_uptime(cmd_arg_t *argv)
 int cmd_desc(cmd_arg_t *argv)
 {
 	spinlock_lock(&cmd_lock);
-	
+
 	list_foreach(cmd_list, link, cmd_info_t, hlp) {
 		spinlock_lock(&hlp->lock);
-		
+
 		if (str_lcmp(hlp->name, (const char *) argv->buffer, str_length(hlp->name)) == 0) {
 			printf("%s - %s\n", hlp->name, hlp->description);
 			if (hlp->help)
@@ -947,12 +947,12 @@ int cmd_desc(cmd_arg_t *argv)
 			spinlock_unlock(&hlp->lock);
 			break;
 		}
-		
+
 		spinlock_unlock(&hlp->lock);
 	}
-	
+
 	spinlock_unlock(&cmd_lock);
-	
+
 	return 1;
 }
 
@@ -960,7 +960,7 @@ int cmd_desc(cmd_arg_t *argv)
 int cmd_symaddr(cmd_arg_t *argv)
 {
 	symtab_print_search((char *) argv->buffer);
-	
+
 	return 1;
 }
 
@@ -1003,12 +1003,12 @@ int cmd_mcall0(cmd_arg_t *argv)
 	 * For each CPU, create a thread which will
 	 * call the function.
 	 */
-	
+
 	unsigned int i;
 	for (i = 0; i < config.cpu_count; i++) {
 		if (!cpus[i].active)
 			continue;
-		
+
 		thread_t *thread;
 		if ((thread = thread_create((void (*)(void *)) cmd_call0,
 		    (void *) argv, TASK, THREAD_FLAG_NONE, "call0"))) {
@@ -1020,7 +1020,7 @@ int cmd_mcall0(cmd_arg_t *argv)
 		} else
 			printf("Unable to create thread for cpu%u\n", i);
 	}
-	
+
 	return 1;
 }
 
@@ -1107,7 +1107,7 @@ int cmd_call3(cmd_arg_t *argv)
 	sysarg_t arg3 = argv[3].intval;
 	fncptr_t fptr;
 	errno_t rc;
-	
+
 	symbol = (char *) argv->buffer;
 	rc = symtab_addr_lookup(symbol, &symaddr);
 
@@ -1182,7 +1182,7 @@ int cmd_set4(cmd_arg_t *argv)
 	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
 	errno_t rc;
-	
+
 	if (((char *) argv->buffer)[0] == '*') {
 		rc = symtab_addr_lookup((char *) argv->buffer + 1, &addr);
 		pointer = true;
@@ -1194,7 +1194,7 @@ int cmd_set4(cmd_arg_t *argv)
 			addr = (uintptr_t) value;
 	} else
 		rc = symtab_addr_lookup((char *) argv->buffer, &addr);
-	
+
 	if (rc == ENOENT)
 		printf("Symbol %s not found.\n", (char *) argv->buffer);
 	else if (rc == EINVAL)
@@ -1209,7 +1209,7 @@ int cmd_set4(cmd_arg_t *argv)
 		*(uint32_t *) addr = arg1;
 	} else
 		printf("No symbol information available.\n");
-	
+
 	return 1;
 }
 
@@ -1251,7 +1251,7 @@ int cmd_threads(cmd_arg_t *argv)
 		thread_print_list(false);
 	else
 		printf("Unknown argument \"%s\".\n", flag_buf);
-	
+
 	return 1;
 }
 
@@ -1269,7 +1269,7 @@ int cmd_tasks(cmd_arg_t *argv)
 		task_print_list(false);
 	else
 		printf("Unknown argument \"%s\".\n", flag_buf);
-	
+
 	return 1;
 }
 
@@ -1411,7 +1411,7 @@ int cmd_continue(cmd_arg_t *argv)
 	printf("The kernel will now relinquish the console.\n");
 	release_console();
 	indev_pop_character(stdin);
-	
+
 	return 1;
 }
 
@@ -1419,37 +1419,37 @@ int cmd_continue(cmd_arg_t *argv)
 static bool run_test(const test_t *test)
 {
 	printf("%s (%s)\n", test->name, test->desc);
-	
+
 	/* Update and read thread accounting
 	   for benchmarking */
 	irq_spinlock_lock(&TASK->lock, true);
 	uint64_t ucycles0, kcycles0;
 	task_get_accounting(TASK, &ucycles0, &kcycles0);
 	irq_spinlock_unlock(&TASK->lock, true);
-	
+
 	/* Execute the test */
 	test_quiet = false;
 	const char *ret = test->entry();
-	
+
 	/* Update and read thread accounting */
 	uint64_t ucycles1, kcycles1;
 	irq_spinlock_lock(&TASK->lock, true);
 	task_get_accounting(TASK, &ucycles1, &kcycles1);
 	irq_spinlock_unlock(&TASK->lock, true);
-	
+
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
 	order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
 	order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
-	
+
 	printf("Time: %" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles\n",
 	    ucycles, usuffix, kcycles, ksuffix);
-	
+
 	if (ret == NULL) {
 		printf("Test passed\n");
 		return true;
 	}
-	
+
 	printf("%s\n", ret);
 	return false;
 }
@@ -1460,64 +1460,64 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 	bool ret = true;
 	uint64_t ucycles, kcycles;
 	char usuffix, ksuffix;
-	
+
 	if (cnt < 1)
 		return true;
-	
+
 	uint64_t *data = (uint64_t *) malloc(sizeof(uint64_t) * cnt, 0);
 	if (data == NULL) {
 		printf("Error allocating memory for statistics\n");
 		return false;
 	}
-	
+
 	for (i = 0; i < cnt; i++) {
 		printf("%s (%u/%u) ... ", test->name, i + 1, cnt);
-		
+
 		/* Update and read thread accounting
 		   for benchmarking */
 		irq_spinlock_lock(&TASK->lock, true);
 		uint64_t ucycles0, kcycles0;
 		task_get_accounting(TASK, &ucycles0, &kcycles0);
 		irq_spinlock_unlock(&TASK->lock, true);
-		
+
 		/* Execute the test */
 		test_quiet = true;
 		const char *test_ret = test->entry();
-		
+
 		/* Update and read thread accounting */
 		irq_spinlock_lock(&TASK->lock, true);
 		uint64_t ucycles1, kcycles1;
 		task_get_accounting(TASK, &ucycles1, &kcycles1);
 		irq_spinlock_unlock(&TASK->lock, true);
-		
+
 		if (test_ret != NULL) {
 			printf("%s\n", test_ret);
 			ret = false;
 			break;
 		}
-		
+
 		data[i] = ucycles1 - ucycles0 + kcycles1 - kcycles0;
 		order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
 		order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
 		printf("OK (%" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles)\n",
 		    ucycles, usuffix, kcycles, ksuffix);
 	}
-	
+
 	if (ret) {
 		printf("\n");
-		
+
 		uint64_t sum = 0;
-		
+
 		for (i = 0; i < cnt; i++) {
 			sum += data[i];
 		}
-		
+
 		order_suffix(sum / (uint64_t) cnt, &ucycles, &usuffix);
 		printf("Average\t\t%" PRIu64 "%c\n", ucycles, usuffix);
 	}
-	
+
 	free(data);
-	
+
 	return ret;
 }
 
@@ -1525,22 +1525,22 @@ static void list_tests(void)
 {
 	size_t len = 0;
 	test_t *test;
-	
+
 	for (test = tests; test->name != NULL; test++) {
 		if (str_length(test->name) > len)
 			len = str_length(test->name);
 	}
-	
+
 	unsigned int _len = (unsigned int) len;
 	if ((_len != len) || (((int) _len) < 0)) {
 		printf("Command length overflow\n");
 		return;
 	}
-	
+
 	for (test = tests; test->name != NULL; test++)
 		printf("%-*s %s%s\n", _len, test->name, test->desc,
 		    (test->safe ? "" : " (unsafe)"));
-	
+
 	printf("%-*s Run all safe tests\n", _len, "*");
 }
 
@@ -1554,7 +1554,7 @@ static void list_tests(void)
 int cmd_test(cmd_arg_t *argv)
 {
 	test_t *test;
-	
+
 	if (str_cmp((char *) argv->buffer, "*") == 0) {
 		for (test = tests; test->name != NULL; test++) {
 			if (test->safe) {
@@ -1565,7 +1565,7 @@ int cmd_test(cmd_arg_t *argv)
 		}
 	} else if (str_cmp((char *) argv->buffer, "") != 0) {
 		bool fnd = false;
-		
+
 		for (test = tests; test->name != NULL; test++) {
 			if (str_cmp(test->name, (char *) argv->buffer) == 0) {
 				fnd = true;
@@ -1573,12 +1573,12 @@ int cmd_test(cmd_arg_t *argv)
 				break;
 			}
 		}
-		
+
 		if (!fnd)
 			printf("Unknown test\n");
 	} else
 		list_tests();
-	
+
 	return 1;
 }
 
@@ -1592,7 +1592,7 @@ int cmd_bench(cmd_arg_t *argv)
 {
 	test_t *test;
 	uint32_t cnt = argv[1].intval;
-	
+
 	if (str_cmp((char *) argv->buffer, "*") == 0) {
 		for (test = tests; test->name != NULL; test++) {
 			if (test->safe) {
@@ -1602,24 +1602,24 @@ int cmd_bench(cmd_arg_t *argv)
 		}
 	} else {
 		bool fnd = false;
-		
+
 		for (test = tests; test->name != NULL; test++) {
 			if (str_cmp(test->name, (char *) argv->buffer) == 0) {
 				fnd = true;
-				
+
 				if (test->safe)
 					run_bench(test, cnt);
 				else
 					printf("Unsafe test\n");
-				
+
 				break;
 			}
 		}
-		
+
 		if (!fnd)
 			printf("Unknown test\n");
 	}
-	
+
 	return 1;
 }
 

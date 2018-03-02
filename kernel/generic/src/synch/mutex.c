@@ -107,7 +107,7 @@ errno_t _mutex_lock_timeout(mutex_t *mtx, uint32_t usec, unsigned int flags)
 		assert((mtx->type == MUTEX_ACTIVE) || !THREAD);
 		assert(usec == SYNCH_NO_TIMEOUT);
 		assert(!(flags & SYNCH_FLAGS_INTERRUPTIBLE));
-		
+
 		unsigned int cnt = 0;
 		bool deadlock_reported = false;
 		do {

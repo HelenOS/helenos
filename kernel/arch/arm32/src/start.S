@@ -59,11 +59,11 @@ SYMBOL(kernel_image_start)
 	# switch to supervisor mode
 	orr r3, r4, #0x13
 	msr cpsr_c, r3
-	
+
 	ldr sp, =temp_stack
-	
+
 	bl arm32_pre_main
-	
+
 	#
 	# Create the first stack frame.
 	#

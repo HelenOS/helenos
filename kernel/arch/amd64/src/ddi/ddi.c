@@ -58,46 +58,46 @@ void io_perm_bitmap_install(void)
 {
 	/* First, copy the I/O Permission Bitmap. */
 	irq_spinlock_lock(&TASK->lock, false);
-	
+
 	size_t ver = TASK->arch.iomapver;
 	size_t elements = TASK->arch.iomap.elements;
-	
+
 	if (elements > 0) {
 		assert(TASK->arch.iomap.bits);
-		
+
 		bitmap_t iomap;
 		bitmap_initialize(&iomap, TSS_IOMAP_SIZE * 8,
 		    CPU->arch.tss->iomap);
 		bitmap_copy(&iomap, &TASK->arch.iomap, elements);
-		
+
 		/*
 		 * Set the trailing bits in the last byte of the map to disable
 		 * I/O access.
 		 */
 		bitmap_set_range(&iomap, elements,
 		    ALIGN_UP(elements, 8) - elements);
-		
+
 		/*
 		 * It is safe to set the trailing eight bits because of the
 		 * extra convenience byte in TSS_IOMAP_SIZE.
 		 */
 		bitmap_set_range(&iomap, ALIGN_UP(elements, 8), 8);
 	}
-	
+
 	irq_spinlock_unlock(&TASK->lock, false);
-	
+
 	/*
 	 * Second, adjust TSS segment limit.
 	 * Take the extra ending byte with all bits set into account.
 	 */
 	ptr_16_64_t cpugdtr;
 	gdtr_store(&cpugdtr);
-	
+
 	descriptor_t *gdt_p = (descriptor_t *) cpugdtr.base;
 	size_t size = bitmap_size(elements);
 	gdt_tss_setlimit(&gdt_p[TSS_DES], TSS_BASIC_SIZE + size);
 	gdtr_load(&cpugdtr);
-	
+
 	/*
 	 * Before we load new TSS limit, the current TSS descriptor
 	 * type must be changed to describe inactive TSS.
@@ -105,7 +105,7 @@ void io_perm_bitmap_install(void)
 	tss_descriptor_t *tss_desc = (tss_descriptor_t *) &gdt_p[TSS_DES];
 	tss_desc->type = AR_TSS;
 	tr_load(GDT_SELECTOR(TSS_DES));
-	
+
 	/*
 	 * Update the generation count so that faults caused by
 	 * early accesses can be serviced.

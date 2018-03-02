@@ -50,7 +50,7 @@ typedef struct ehci_endpoint {
 
 	/** EHCI endpoint descriptor, backed by dma_buffer */
 	qh_t *qh;
-	
+
 	dma_buffer_t dma_buffer;
 
 	/** Link in endpoint_list */

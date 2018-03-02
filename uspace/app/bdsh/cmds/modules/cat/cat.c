@@ -109,11 +109,11 @@ static void waitprompt(void)
 {
 	console_set_pos(console, 0, console_rows-1);
 	console_set_color(console, COLOR_WHITE, COLOR_BLUE, 0);
-	
+
 	printf("ENTER/SPACE/PAGE DOWN - next page, "
 	       "ESC/Q - quit, C - continue unpaged");
 	fflush(stdout);
-	
+
 	console_set_style(console, STYLE_NORMAL);
 }
 
@@ -121,14 +121,14 @@ static void waitkey(void)
 {
 	cons_event_t ev;
 	kbd_event_t *kev;
-	
+
 	while (true) {
 		if (!console_get_event(console, &ev)) {
 			return;
 		}
 		if (ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
 			kev = &ev.ev.key;
-			
+
 			if (kev->key == KC_ESCAPE || kev->key == KC_Q) {
 				should_quit = true;
 				return;
@@ -189,7 +189,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 	errno_t rc;
 
 	bool reading_stdin = dash_represents_stdin && (str_cmp(fname, "-") == 0);
-	
+
 	if (reading_stdin) {
 		fd = fileno(stdin);
 		/* Allow storing the whole UTF-8 character. */
@@ -200,7 +200,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 			fd = -1;
 		}
 	}
-	
+
 	if (fd < 0) {
 		printf("Unable to open %s\n", fname);
 		return 1;
@@ -254,7 +254,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 				bytes_to_read = blen - copied_bytes;
 			}
 		}
-		
+
 		rc = vfs_read(fd, &pos, buff + copied_bytes, bytes_to_read,
 		    &bytes);
 		copied_bytes = 0;
@@ -282,12 +282,12 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 					}
 					paged_char(c);
 				}
-				
+
 			}
 			count += bytes;
 			reads++;
 		}
-		
+
 		if (reading_stdin)
 			fflush(stdout);
 	} while (rc == EOK && bytes > 0 && !should_quit && (count < length || length == CAT_FULL_FILE));
@@ -316,7 +316,7 @@ int cmd_cat(char **argv)
 	bool tailFirst = false;
 	sysarg_t rows, cols;
 	errno_t rc;
-	
+
 	/*
 	 * reset global state
 	 * TODO: move to structure?
@@ -391,7 +391,7 @@ int cmd_cat(char **argv)
 
 	if (buffer < 4)
 		buffer = CAT_DEFAULT_BUFLEN;
-	
+
 	if (more) {
 		rc = console_get_size(console, &cols, &rows);
 		if (rc != EOK) {

@@ -182,7 +182,7 @@ pci_t *pci_init(ofw_tree_node_t *node)
 	prop = ofw_tree_getprop(node, "model");
 	if (!prop || !prop->value)
 		return NULL;
-	
+
 	if (str_cmp(prop->value, "SUNW,sabre") == 0) {
 		/*
 		 * PCI controller Sabre.

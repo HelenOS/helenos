@@ -96,24 +96,24 @@ static void remove_from_functions_list(ddf_fun_t *fun)
 static ddf_dev_t *driver_get_device(devman_handle_t handle)
 {
 	assert(fibril_mutex_is_locked(&devices_mutex));
-	
+
 	list_foreach(devices, link, ddf_dev_t, dev) {
 		if (dev->handle == handle)
 			return dev;
 	}
-	
+
 	return NULL;
 }
 
 static ddf_fun_t *driver_get_function(devman_handle_t handle)
 {
 	assert(fibril_mutex_is_locked(&functions_mutex));
-	
+
 	list_foreach(functions, link, ddf_fun_t, fun) {
 		if (fun->handle == handle)
 			return fun;
 	}
-	
+
 	return NULL;
 }
 
@@ -121,14 +121,14 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 {
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
 	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
-	
+
 	char *dev_name = NULL;
 	errno_t rc = async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
 		async_answer_0(iid, rc);
 		return;
 	}
-	
+
 	fibril_rwlock_read_lock(&stopping_lock);
 
 	if (stopping) {
@@ -136,7 +136,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, EIO);
 		return;
 	}
-	
+
 	ddf_dev_t *dev = create_device();
 	if (!dev) {
 		fibril_rwlock_read_unlock(&stopping_lock);
@@ -144,64 +144,64 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOMEM);
 		return;
 	}
-	
+
 	/* Add one reference that will be dropped by driver_dev_remove() */
 	dev_add_ref(dev);
 	dev->handle = dev_handle;
 	dev->name = dev_name;
-	
+
 	/*
 	 * Currently not used, parent fun handle is stored in context
 	 * of the connection to the parent device driver.
 	 */
 	(void) parent_fun_handle;
-	
+
 	errno_t res = driver->driver_ops->dev_add(dev);
-	
+
 	if (res != EOK) {
 		fibril_rwlock_read_unlock(&stopping_lock);
 		dev_del_ref(dev);
 		async_answer_0(iid, res);
 		return;
 	}
-	
+
 	fibril_mutex_lock(&devices_mutex);
 	list_append(&dev->link, &devices);
 	fibril_mutex_unlock(&devices_mutex);
 	fibril_rwlock_read_unlock(&stopping_lock);
-	
+
 	async_answer_0(iid, res);
 }
 
 static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 {
 	devman_handle_t devh = IPC_GET_ARG1(*icall);
-	
+
 	fibril_mutex_lock(&devices_mutex);
 	ddf_dev_t *dev = driver_get_device(devh);
 	if (dev != NULL)
 		dev_add_ref(dev);
 	fibril_mutex_unlock(&devices_mutex);
-	
+
 	if (dev == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	errno_t rc;
-	
+
 	if (driver->driver_ops->dev_remove != NULL)
 		rc = driver->driver_ops->dev_remove(dev);
 	else
 		rc = ENOTSUP;
-	
+
 	if (rc == EOK) {
 		fibril_mutex_lock(&devices_mutex);
 		list_remove(&dev->link);
 		fibril_mutex_unlock(&devices_mutex);
 		dev_del_ref(dev);
 	}
-	
+
 	dev_del_ref(dev);
 	async_answer_0(iid, rc);
 }
@@ -209,32 +209,32 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 {
 	devman_handle_t devh = IPC_GET_ARG1(*icall);
-	
+
 	fibril_mutex_lock(&devices_mutex);
 	ddf_dev_t *dev = driver_get_device(devh);
 	if (dev != NULL)
 		dev_add_ref(dev);
 	fibril_mutex_unlock(&devices_mutex);
-	
+
 	if (dev == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	errno_t rc;
-	
+
 	if (driver->driver_ops->dev_gone != NULL)
 		rc = driver->driver_ops->dev_gone(dev);
 	else
 		rc = ENOTSUP;
-	
+
 	if (rc == EOK) {
 		fibril_mutex_lock(&devices_mutex);
 		list_remove(&dev->link);
 		fibril_mutex_unlock(&devices_mutex);
 		dev_del_ref(dev);
 	}
-	
+
 	dev_del_ref(dev);
 	async_answer_0(iid, rc);
 }
@@ -242,68 +242,68 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 {
 	devman_handle_t funh = IPC_GET_ARG1(*icall);
-	
+
 	/*
 	 * Look the function up. Bump reference count so that
 	 * the function continues to exist until we return
 	 * from the driver.
 	 */
 	fibril_mutex_lock(&functions_mutex);
-	
+
 	ddf_fun_t *fun = driver_get_function(funh);
 	if (fun != NULL)
 		fun_add_ref(fun);
-	
+
 	fibril_mutex_unlock(&functions_mutex);
-	
+
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	/* Call driver entry point */
 	errno_t rc;
-	
+
 	if (driver->driver_ops->fun_online != NULL)
 		rc = driver->driver_ops->fun_online(fun);
 	else
 		rc = ENOTSUP;
-	
+
 	fun_del_ref(fun);
-	
+
 	async_answer_0(iid, rc);
 }
 
 static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 {
 	devman_handle_t funh = IPC_GET_ARG1(*icall);
-	
+
 	/*
 	 * Look the function up. Bump reference count so that
 	 * the function continues to exist until we return
 	 * from the driver.
 	 */
 	fibril_mutex_lock(&functions_mutex);
-	
+
 	ddf_fun_t *fun = driver_get_function(funh);
 	if (fun != NULL)
 		fun_add_ref(fun);
-	
+
 	fibril_mutex_unlock(&functions_mutex);
-	
+
 	if (fun == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	/* Call driver entry point */
 	errno_t rc;
-	
+
 	if (driver->driver_ops->fun_offline != NULL)
 		rc = driver->driver_ops->fun_offline(fun);
 	else
 		rc = ENOTSUP;
-	
+
 	async_answer_0(iid, rc);
 }
 
@@ -341,14 +341,14 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall,
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
-	
+
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case DRIVER_DEV_ADD:
 			driver_dev_add(callid, &call);
@@ -393,43 +393,43 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	if (fun != NULL)
 		fun_add_ref(fun);
 	fibril_mutex_unlock(&functions_mutex);
-	
+
 	if (fun == NULL) {
 		printf("%s: driver_connection_gen error - no function with handle"
 		    " %" PRIun " was found.\n", driver->name, handle);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	if (fun->conn_handler != NULL) {
 		/* Driver has a custom connection handler. */
 		(*fun->conn_handler)(iid, icall, (void *)fun);
 		fun_del_ref(fun);
 		return;
 	}
-	
+
 	/*
 	 * TODO - if the client is not a driver, check whether it is allowed to
 	 * use the device.
 	 */
-	
+
 	errno_t ret = EOK;
 	/* Open device function */
 	if (fun->ops != NULL && fun->ops->open != NULL)
 		ret = (*fun->ops->open)(fun);
-	
+
 	async_answer_0(iid, ret);
 	if (ret != EOK) {
 		fun_del_ref(fun);
 		return;
 	}
-	
+
 	while (true) {
 		ipc_callid_t callid;
 		ipc_call_t call;
 		callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
-		
+
 		if (!method) {
 			/* Close device function */
 			if (fun->ops != NULL && fun->ops->close != NULL)
@@ -438,11 +438,11 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			fun_del_ref(fun);
 			return;
 		}
-		
+
 		/* Convert ipc interface id to interface index */
-		
+
 		int iface_idx = DEV_IFACE_IDX(method);
-		
+
 		if (!is_valid_iface_idx(iface_idx)) {
 			remote_handler_t *default_handler =
 			    function_get_default_handler(fun);
@@ -450,7 +450,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 				(*default_handler)(fun, callid, &call);
 				continue;
 			}
-			
+
 			/*
 			 * Function has no such interface and
 			 * default handler is not provided.
@@ -461,9 +461,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			async_answer_0(callid, ENOTSUP);
 			continue;
 		}
-		
+
 		/* Calling one of the function's interfaces */
-		
+
 		/* Get the interface ops structure. */
 		void *ops = function_get_ops(fun, iface_idx);
 		if (ops == NULL) {
@@ -473,14 +473,14 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			async_answer_0(callid, ENOTSUP);
 			continue;
 		}
-		
+
 		/*
 		 * Get the corresponding interface for remote request
 		 * handling ("remote interface").
 		 */
 		const remote_iface_t *rem_iface = get_remote_iface(iface_idx);
 		assert(rem_iface != NULL);
-		
+
 		/* get the method of the remote interface */
 		sysarg_t iface_method_idx = IPC_GET_ARG1(call);
 		remote_iface_func_ptr_t iface_method_ptr =
@@ -492,7 +492,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			async_answer_0(callid, ENOTSUP);
 			continue;
 		}
-		
+
 		/*
 		 * Call the remote interface's method, which will
 		 * receive parameters from the remote client and it will
@@ -623,11 +623,11 @@ static void fun_del_ref(ddf_fun_t *fun)
 void *ddf_dev_data_alloc(ddf_dev_t *dev, size_t size)
 {
 	assert(dev->driver_data == NULL);
-	
+
 	void *data = calloc(1, size);
 	if (data == NULL)
 		return NULL;
-	
+
 	dev->driver_data = data;
 	return data;
 }
@@ -731,14 +731,14 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 	ddf_fun_t *fun = create_function();
 	if (fun == NULL)
 		return NULL;
-	
+
 	/* Add one reference that will be dropped by ddf_fun_destroy() */
 	fun->dev = dev;
 	fun_add_ref(fun);
-	
+
 	fun->bound = false;
 	fun->ftype = ftype;
-	
+
 	if (name != NULL) {
 		fun->name = str_dup(name);
 		if (fun->name == NULL) {
@@ -746,7 +746,7 @@ ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 			return NULL;
 		}
 	}
-	
+
 	return fun;
 }
 
@@ -755,11 +755,11 @@ void *ddf_fun_data_alloc(ddf_fun_t *fun, size_t size)
 {
 	assert(fun->bound == false);
 	assert(fun->driver_data == NULL);
-	
+
 	void *data = calloc(1, size);
 	if (data == NULL)
 		return NULL;
-	
+
 	fun->driver_data = data;
 	return data;
 }
@@ -791,7 +791,7 @@ const char *ddf_fun_get_name(ddf_fun_t *fun)
 void ddf_fun_destroy(ddf_fun_t *fun)
 {
 	assert(fun->bound == false);
-	
+
 	/*
 	 * Drop the reference added by ddf_fun_create(). This will deallocate
 	 * the function as soon as all other references are dropped (i.e.
@@ -806,7 +806,7 @@ static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
 	assert(is_valid_iface_idx(idx));
 	if (fun->ops == NULL)
 		return NULL;
-	
+
 	return fun->ops->interfaces[idx];
 }
 
@@ -829,7 +829,7 @@ errno_t ddf_fun_bind(ddf_fun_t *fun)
 	assert(fun->bound == false);
 	assert(fun->name != NULL);
 	assert(fun->dev != NULL);
-	
+
 	add_to_functions_list(fun);
 	errno_t res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
 	    fun->dev->handle, &fun->handle);
@@ -837,7 +837,7 @@ errno_t ddf_fun_bind(ddf_fun_t *fun)
 		remove_from_functions_list(fun);
 		return res;
 	}
-	
+
 	fun->bound = true;
 	return res;
 }
@@ -855,13 +855,13 @@ errno_t ddf_fun_bind(ddf_fun_t *fun)
 errno_t ddf_fun_unbind(ddf_fun_t *fun)
 {
 	assert(fun->bound == true);
-	
+
 	errno_t res = devman_remove_function(fun->handle);
 	if (res != EOK)
 		return res;
-	
+
 	remove_from_functions_list(fun);
-	
+
 	fun->bound = false;
 	return EOK;
 }
@@ -876,11 +876,11 @@ errno_t ddf_fun_unbind(ddf_fun_t *fun)
 errno_t ddf_fun_online(ddf_fun_t *fun)
 {
 	assert(fun->bound == true);
-	
+
 	errno_t res = devman_drv_fun_online(fun->handle);
 	if (res != EOK)
 		return res;
-	
+
 	return EOK;
 }
 
@@ -894,11 +894,11 @@ errno_t ddf_fun_online(ddf_fun_t *fun)
 errno_t ddf_fun_offline(ddf_fun_t *fun)
 {
 	assert(fun->bound == true);
-	
+
 	errno_t res = devman_drv_fun_offline(fun->handle);
 	if (res != EOK)
 		return res;
-	
+
 	return EOK;
 }
 
@@ -920,14 +920,14 @@ errno_t ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
 {
 	assert(fun->bound == false);
 	assert(fun->ftype == fun_inner);
-	
+
 	match_id_t *match_id = create_match_id();
 	if (match_id == NULL)
 		return ENOMEM;
-	
+
 	match_id->id = str_dup(match_id_str);
 	match_id->score = match_score;
-	
+
 	add_match_id(&fun->match_ids, match_id);
 	return EOK;
 }
@@ -966,7 +966,7 @@ errno_t ddf_fun_add_to_category(ddf_fun_t *fun, const char *cat_name)
 {
 	assert(fun->bound == true);
 	assert(fun->ftype == fun_exposed);
-	
+
 	return devman_add_device_to_category(fun->handle, cat_name);
 }
 
@@ -977,7 +977,7 @@ errno_t ddf_driver_main(const driver_t *drv)
 	 * handler for incoming connections.
 	 */
 	driver = drv;
-	
+
 	/*
 	 * Register driver with device manager using generic handler for
 	 * incoming connections.
@@ -989,34 +989,34 @@ errno_t ddf_driver_main(const driver_t *drv)
 		printf("Error: Failed to create driver port.\n");
 		return rc;
 	}
-	
+
 	rc = async_create_port(INTERFACE_DDF_DEVMAN, driver_connection_devman,
 	    NULL, &port);
 	if (rc != EOK) {
 		printf("Error: Failed to create devman port.\n");
 		return rc;
 	}
-	
+
 	async_set_fallback_port_handler(driver_connection_client, NULL);
-	
+
 	rc = devman_driver_register(driver->name);
 	if (rc != EOK) {
 		printf("Error: Failed to register driver with device manager "
 		    "(%s).\n", (rc == EEXIST) ? "driver already started" :
 		    str_error(rc));
-		
+
 		return rc;
 	}
-	
+
 	/* Return success from the task since server has started. */
 	rc = task_retval(0);
 	if (rc != EOK) {
 		printf("Error: Failed returning task value.\n");
 		return rc;
 	}
-	
+
 	async_manager();
-	
+
 	/* Never reached. */
 	return EOK;
 }

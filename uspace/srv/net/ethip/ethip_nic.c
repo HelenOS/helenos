@@ -111,10 +111,10 @@ static ethip_nic_t *ethip_nic_new(void)
 		    "Out of memory.");
 		return NULL;
 	}
-	
+
 	link_initialize(&nic->link);
 	list_initialize(&nic->addr_list);
-	
+
 	return nic;
 }
 
@@ -126,10 +126,10 @@ static ethip_link_addr_t *ethip_nic_addr_new(inet_addr_t *addr)
 		    "Out of memory.");
 		return NULL;
 	}
-	
+
 	link_initialize(&laddr->link);
 	laddr->addr = *addr;
-	
+
 	return laddr;
 }
 
@@ -137,7 +137,7 @@ static void ethip_nic_delete(ethip_nic_t *nic)
 {
 	if (nic->svc_name != NULL)
 		free(nic->svc_name);
-	
+
 	free(nic);
 }
 
@@ -150,26 +150,26 @@ static errno_t ethip_nic_open(service_id_t sid)
 {
 	bool in_list = false;
 	nic_address_t nic_address;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_open()");
 	ethip_nic_t *nic = ethip_nic_new();
 	if (nic == NULL)
 		return ENOMEM;
-	
+
 	errno_t rc = loc_service_get_name(sid, &nic->svc_name);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting service name.");
 		goto error;
 	}
-	
+
 	nic->sess = loc_service_connect(sid, INTERFACE_DDF, 0);
 	if (nic->sess == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed connecting '%s'", nic->svc_name);
 		goto error;
 	}
-	
+
 	nic->svc_id = sid;
-	
+
 	rc = nic_callback_create(nic->sess, ethip_nic_cb_conn, nic);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed creating callback connection "
@@ -191,7 +191,7 @@ static errno_t ethip_nic_open(service_id_t sid)
 		    nic->svc_name);
 		goto error;
 	}
-	
+
 	addr48(nic_address.address, nic->mac_addr);
 
 	rc = nic_set_state(nic->sess, NIC_STATE_ACTIVE);
@@ -215,10 +215,10 @@ static errno_t ethip_nic_open(service_id_t sid)
 error:
 	if (in_list)
 		list_remove(&nic->link);
-	
+
 	if (nic->sess != NULL)
 		async_hangup(nic->sess);
-	
+
 	ethip_nic_delete(nic);
 	return rc;
 }
@@ -331,7 +331,7 @@ errno_t ethip_nic_discovery_start(void)
 		    "discovery: %s.", str_error(rc));
 		return rc;
 	}
-	
+
 	return ethip_nic_check_new();
 }
 
@@ -370,63 +370,63 @@ errno_t ethip_nic_send(ethip_nic_t *nic, void *data, size_t size)
 static errno_t ethip_nic_setup_multicast(ethip_nic_t *nic)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_setup_multicast()");
-	
+
 	/* Count the number of multicast addresses */
-	
+
 	size_t count = 0;
-	
+
 	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
 		ip_ver_t ver = inet_addr_get(&laddr->addr, NULL, NULL);
 		if (ver == ip_v6)
 			count++;
 	}
-	
+
 	if (count == 0)
 		return nic_multicast_set_mode(nic->sess, NIC_MULTICAST_BLOCKED,
 		    NULL, 0);
-	
+
 	nic_address_t *mac_list = calloc(count, sizeof(nic_address_t));
 	if (mac_list == NULL)
 		return ENOMEM;
-	
+
 	/* Create the multicast MAC list */
-	
+
 	size_t i = 0;
-	
+
 	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
 		addr128_t v6;
 		ip_ver_t ver = inet_addr_get(&laddr->addr, NULL, &v6);
 		if (ver != ip_v6)
 			continue;
-		
+
 		assert(i < count);
-		
+
 		addr48_t mac;
 		addr48_solicited_node(v6, mac);
-		
+
 		/* Avoid duplicate addresses in the list */
-		
+
 		bool found = false;
-		
+
 		for (size_t j = 0; j < i; j++) {
 			if (addr48_compare(mac_list[j].address, mac)) {
 				found = true;
 				break;
 			}
 		}
-		
+
 		if (!found) {
 			addr48(mac, mac_list[i].address);
 			i++;
 		} else
 			count--;
 	}
-	
+
 	/* Setup the multicast MAC list */
-	
+
 	errno_t rc = nic_multicast_set_mode(nic->sess, NIC_MULTICAST_LIST,
 	    mac_list, count);
-	
+
 	free(mac_list);
 	return rc;
 }
@@ -434,27 +434,27 @@ static errno_t ethip_nic_setup_multicast(ethip_nic_t *nic)
 errno_t ethip_nic_addr_add(ethip_nic_t *nic, inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_add()");
-	
+
 	ethip_link_addr_t *laddr = ethip_nic_addr_new(addr);
 	if (laddr == NULL)
 		return ENOMEM;
-	
+
 	list_append(&laddr->link, &nic->addr_list);
-	
+
 	return ethip_nic_setup_multicast(nic);
 }
 
 errno_t ethip_nic_addr_remove(ethip_nic_t *nic, inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_remove()");
-	
+
 	ethip_link_addr_t *laddr = ethip_nic_addr_find(nic, addr);
 	if (laddr == NULL)
 		return ENOENT;
-	
+
 	list_remove(&laddr->link);
 	ethip_link_addr_delete(laddr);
-	
+
 	return ethip_nic_setup_multicast(nic);
 }
 
@@ -462,12 +462,12 @@ ethip_link_addr_t *ethip_nic_addr_find(ethip_nic_t *nic,
     inet_addr_t *addr)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_addr_find()");
-	
+
 	list_foreach(nic->addr_list, link, ethip_link_addr_t, laddr) {
 		if (inet_addr_compare(addr, &laddr->addr))
 			return laddr;
 	}
-	
+
 	return NULL;
 }
 

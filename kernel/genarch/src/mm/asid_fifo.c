@@ -29,7 +29,7 @@
 /** @addtogroup genarchmm
  * @{
  */
- 
+
 /**
  * @file
  * @brief	FIFO queue ASID management.
@@ -65,7 +65,7 @@ void asid_fifo_init(void)
 #if (!FIFO_STATIC)
 	fifo_create(free_asids);
 #endif
-		
+
 	for (i = 0; i < ASIDS_ALLOCABLE; i++) {
 		fifo_push(free_asids, ASID_START + i);
 	}

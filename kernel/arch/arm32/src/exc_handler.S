@@ -96,7 +96,7 @@
 
 	# Stop stack traces here
 	mov fp, #0
-	
+
 	b 2f
 
 	# mode was not usermode

@@ -45,10 +45,10 @@ void *memcpy(void *dst, const void *src, size_t cnt)
 {
 	uint8_t *dp = (uint8_t *) dst;
 	const uint8_t *sp = (uint8_t *) src;
-	
+
 	while (cnt-- != 0)
 		*dp++ = *sp++;
-	
+
 	return dst;
 }
 
@@ -66,10 +66,10 @@ void *memcpy(void *dst, const void *src, size_t cnt)
 void *memset(void *dst, int val, size_t cnt)
 {
 	uint8_t *dp = (uint8_t *) dst;
-	
+
 	while (cnt-- != 0)
 		*dp++ = val;
-	
+
 	return dst;
 }
 
@@ -90,31 +90,31 @@ void *memmove(void *dst, const void *src, size_t cnt)
 	/* Nothing to do? */
 	if (src == dst)
 		return dst;
-	
+
 	/* Non-overlapping? */
 	if ((dst >= src + cnt) || (src >= dst + cnt))
 		return memcpy(dst, src, cnt);
-	
+
 	uint8_t *dp;
 	const uint8_t *sp;
-	
+
 	/* Which direction? */
 	if (src > dst) {
 		/* Forwards. */
 		dp = dst;
 		sp = src;
-		
+
 		while (cnt-- != 0)
 			*dp++ = *sp++;
 	} else {
 		/* Backwards. */
 		dp = dst + (cnt - 1);
 		sp = src + (cnt - 1);
-		
+
 		while (cnt-- != 0)
 			*dp-- = *sp--;
 	}
-	
+
 	return dst;
 }
 

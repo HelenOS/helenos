@@ -117,7 +117,7 @@ static pixel_t color_table[16] = {
 	[COLOR_MAGENTA]     = PIXEL(255, 240, 0, 240),
 	[COLOR_YELLOW]      = PIXEL(255, 240, 240, 0),
 	[COLOR_WHITE]       = PIXEL(255, 240, 240, 240),
-	
+
 	[COLOR_BLACK + 8]   = PIXEL(255, 0, 0, 0),
 	[COLOR_BLUE + 8]    = PIXEL(255, 0, 0, 255),
 	[COLOR_GREEN + 8]   = PIXEL(255, 0, 255, 0),
@@ -169,25 +169,25 @@ static void term_update_char(terminal_t *term, surface_t *surface,
 {
 	charfield_t *field =
 	    chargrid_charfield_at(term->backbuf, col, row);
-	
+
 	bool inverted = chargrid_cursor_at(term->backbuf, col, row);
-	
+
 	sysarg_t bx = sx + (col * FONT_WIDTH);
 	sysarg_t by = sy + (row * FONT_SCANLINES);
-	
+
 	pixel_t bgcolor = 0;
 	pixel_t fgcolor = 0;
-	
+
 	if (inverted)
 		attrs_rgb(field->attrs, &fgcolor, &bgcolor);
 	else
 		attrs_rgb(field->attrs, &bgcolor, &fgcolor);
-	
+
 	// FIXME: Glyph type should be actually uint32_t
 	//        for full UTF-32 coverage.
-	
+
 	uint16_t glyph = fb_font_glyph(field->ch, NULL);
-	
+
 	for (unsigned int y = 0; y < FONT_SCANLINES; y++) {
 		pixel_t *dst = pixelmap_pixel_at(
 		    surface_pixmap_access(surface), bx, by + y);
@@ -206,12 +206,12 @@ static bool term_update_scroll(terminal_t *term, surface_t *surface,
     sysarg_t sx, sysarg_t sy)
 {
 	sysarg_t top_row = chargrid_get_top_row(term->frontbuf);
-	
+
 	if (term->top_row == top_row)
 		return false;
-	
+
 	term->top_row = top_row;
-	
+
 	for (sysarg_t row = 0; row < term->rows; row++) {
 		for (sysarg_t col = 0; col < term->cols; col++) {
 			charfield_t *front_field =
@@ -219,24 +219,24 @@ static bool term_update_scroll(terminal_t *term, surface_t *surface,
 			charfield_t *back_field =
 			    chargrid_charfield_at(term->backbuf, col, row);
 			bool update = false;
-			
+
 			if (front_field->ch != back_field->ch) {
 				back_field->ch = front_field->ch;
 				update = true;
 			}
-			
+
 			if (!attrs_same(front_field->attrs, back_field->attrs)) {
 				back_field->attrs = front_field->attrs;
 				update = true;
 			}
-			
+
 			front_field->flags &= ~CHAR_FLAG_DIRTY;
-			
+
 			if (update)
 				term_update_char(term, surface, sx, sy, col, row);
 		}
 	}
-	
+
 	return true;
 }
 
@@ -244,53 +244,53 @@ static bool term_update_cursor(terminal_t *term, surface_t *surface,
     sysarg_t sx, sysarg_t sy)
 {
 	bool damage = false;
-	
+
 	sysarg_t front_col;
 	sysarg_t front_row;
 	chargrid_get_cursor(term->frontbuf, &front_col, &front_row);
-	
+
 	sysarg_t back_col;
 	sysarg_t back_row;
 	chargrid_get_cursor(term->backbuf, &back_col, &back_row);
-	
+
 	bool front_visibility =
 	    chargrid_get_cursor_visibility(term->frontbuf) &&
 	    term->widget.window->is_focused;
 	bool back_visibility =
 	    chargrid_get_cursor_visibility(term->backbuf);
-	
+
 	if (front_visibility != back_visibility) {
 		chargrid_set_cursor_visibility(term->backbuf,
 		    front_visibility);
 		term_update_char(term, surface, sx, sy, back_col, back_row);
 		damage = true;
 	}
-	
+
 	if ((front_col != back_col) || (front_row != back_row)) {
 		chargrid_set_cursor(term->backbuf, front_col, front_row);
 		term_update_char(term, surface, sx, sy, back_col, back_row);
 		term_update_char(term, surface, sx, sy, front_col, front_row);
 		damage = true;
 	}
-	
+
 	return damage;
 }
 
 static void term_update(terminal_t *term)
 {
 	fibril_mutex_lock(&term->mtx);
-	
+
 	surface_t *surface = window_claim(term->widget.window);
 	if (!surface) {
 		window_yield(term->widget.window);
 		fibril_mutex_unlock(&term->mtx);
 		return;
 	}
-	
+
 	bool damage = false;
 	sysarg_t sx = term->widget.hpos;
 	sysarg_t sy = term->widget.vpos;
-	
+
 	if (term_update_scroll(term, surface, sx, sy)) {
 		damage = true;
 	} else {
@@ -301,23 +301,23 @@ static void term_update(terminal_t *term)
 				charfield_t *back_field =
 				    chargrid_charfield_at(term->backbuf, x, y);
 				bool update = false;
-				
+
 				if ((front_field->flags & CHAR_FLAG_DIRTY) ==
 				    CHAR_FLAG_DIRTY) {
 					if (front_field->ch != back_field->ch) {
 						back_field->ch = front_field->ch;
 						update = true;
 					}
-					
+
 					if (!attrs_same(front_field->attrs,
 					    back_field->attrs)) {
 						back_field->attrs = front_field->attrs;
 						update = true;
 					}
-					
+
 					front_field->flags &= ~CHAR_FLAG_DIRTY;
 				}
-				
+
 				if (update) {
 					term_update_char(term, surface, sx, sy, x, y);
 					damage = true;
@@ -325,32 +325,32 @@ static void term_update(terminal_t *term)
 			}
 		}
 	}
-	
+
 	if (term_update_cursor(term, surface, sx, sy))
 		damage = true;
-	
+
 	window_yield(term->widget.window);
-	
+
 	if (damage)
 		window_damage(term->widget.window);
-	
+
 	fibril_mutex_unlock(&term->mtx);
 }
 
 static void term_damage(terminal_t *term)
 {
 	fibril_mutex_lock(&term->mtx);
-	
+
 	surface_t *surface = window_claim(term->widget.window);
 	if (!surface) {
 		window_yield(term->widget.window);
 		fibril_mutex_unlock(&term->mtx);
 		return;
 	}
-	
+
 	sysarg_t sx = term->widget.hpos;
 	sysarg_t sy = term->widget.vpos;
-	
+
 	if (!term_update_scroll(term, surface, sx, sy)) {
 		for (sysarg_t y = 0; y < term->rows; y++) {
 			for (sysarg_t x = 0; x < term->cols; x++) {
@@ -358,21 +358,21 @@ static void term_damage(terminal_t *term)
 				    chargrid_charfield_at(term->frontbuf, x, y);
 				charfield_t *back_field =
 				    chargrid_charfield_at(term->backbuf, x, y);
-				
+
 				back_field->ch = front_field->ch;
 				back_field->attrs = front_field->attrs;
 				front_field->flags &= ~CHAR_FLAG_DIRTY;
-				
+
 				term_update_char(term, surface, sx, sy, x, y);
 			}
 		}
 	}
-	
+
 	term_update_cursor(term, surface, sx, sy);
-	
+
 	window_yield(term->widget.window);
 	window_damage(term->widget.window);
-	
+
 	fibril_mutex_unlock(&term->mtx);
 }
 
@@ -391,7 +391,7 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 	terminal_t *term = srv_to_terminal(srv);
 	uint8_t *bbuf = buf;
 	size_t pos = 0;
-	
+
 	/*
 	 * Read input from keyboard and copy it to the buffer.
 	 * We need to handle situation when wchar is split by 2 following
@@ -402,19 +402,19 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 		while ((pos < size) && (term->char_remains_len > 0)) {
 			bbuf[pos] = term->char_remains[0];
 			pos++;
-			
+
 			/* Unshift the array. */
 			for (size_t i = 1; i < term->char_remains_len; i++)
 				term->char_remains[i - 1] = term->char_remains[i];
-			
+
 			term->char_remains_len--;
 		}
-		
+
 		/* Still not enough? Then get another key from the queue. */
 		if (pos < size) {
 			link_t *link = prodcons_consume(&term->input_pc);
 			cons_event_t *event = list_get_instance(link, cons_event_t, link);
-			
+
 			/* Accept key presses of printable chars only. */
 			if (event->type == CEV_KEY && event->ev.key.type == KEY_PRESS &&
 			    event->ev.key.c != 0) {
@@ -422,15 +422,15 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 					event->ev.key.c,
 					0
 				};
-				
+
 				wstr_to_str(term->char_remains, UTF8_CHAR_BUFFER_SIZE, tmp);
 				term->char_remains_len = str_size(term->char_remains);
 			}
-			
+
 			free(event);
 		}
 	}
-	
+
 	*nread = size;
 	return EOK;
 }
@@ -438,9 +438,9 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 static void term_write_char(terminal_t *term, wchar_t ch)
 {
 	sysarg_t updated = 0;
-	
+
 	fibril_mutex_lock(&term->mtx);
-	
+
 	switch (ch) {
 	case '\n':
 		updated = chargrid_newline(term->frontbuf);
@@ -456,9 +456,9 @@ static void term_write_char(terminal_t *term, wchar_t ch)
 	default:
 		updated = chargrid_putchar(term->frontbuf, ch, true);
 	}
-	
+
 	fibril_mutex_unlock(&term->mtx);
-	
+
 	if (updated > 1)
 		term_update(term);
 }
@@ -466,11 +466,11 @@ static void term_write_char(terminal_t *term, wchar_t ch)
 static errno_t term_write(con_srv_t *srv, void *data, size_t size, size_t *nwritten)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	size_t off = 0;
 	while (off < size)
 		term_write_char(term, str_decode(data, &off, size));
-	
+
 	*nwritten = size;
 	return EOK;
 }
@@ -478,52 +478,52 @@ static errno_t term_write(con_srv_t *srv, void *data, size_t size, size_t *nwrit
 static void term_sync(con_srv_t *srv)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	term_update(term);
 }
 
 static void term_clear(con_srv_t *srv)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	fibril_mutex_lock(&term->mtx);
 	chargrid_clear(term->frontbuf);
 	fibril_mutex_unlock(&term->mtx);
-	
+
 	term_update(term);
 }
 
 static void term_set_pos(con_srv_t *srv, sysarg_t col, sysarg_t row)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	fibril_mutex_lock(&term->mtx);
 	chargrid_set_cursor(term->frontbuf, col, row);
 	fibril_mutex_unlock(&term->mtx);
-	
+
 	term_update(term);
 }
 
 static errno_t term_get_pos(con_srv_t *srv, sysarg_t *col, sysarg_t *row)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	fibril_mutex_lock(&term->mtx);
 	chargrid_get_cursor(term->frontbuf, col, row);
 	fibril_mutex_unlock(&term->mtx);
-	
+
 	return EOK;
 }
 
 static errno_t term_get_size(con_srv_t *srv, sysarg_t *cols, sysarg_t *rows)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	fibril_mutex_lock(&term->mtx);
 	*cols = term->cols;
 	*rows = term->rows;
 	fibril_mutex_unlock(&term->mtx);
-	
+
 	return EOK;
 }
 
@@ -531,14 +531,14 @@ static errno_t term_get_color_cap(con_srv_t *srv, console_caps_t *caps)
 {
 	(void) srv;
 	*caps = TERM_CAPS;
-	
+
 	return EOK;
 }
 
 static void term_set_style(con_srv_t *srv, console_style_t style)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	fibril_mutex_lock(&term->mtx);
 	chargrid_set_style(term->frontbuf, style);
 	fibril_mutex_unlock(&term->mtx);
@@ -548,7 +548,7 @@ static void term_set_color(con_srv_t *srv, console_color_t bgcolor,
     console_color_t fgcolor, console_color_attr_t attr)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	fibril_mutex_lock(&term->mtx);
 	chargrid_set_color(term->frontbuf, bgcolor, fgcolor, attr);
 	fibril_mutex_unlock(&term->mtx);
@@ -558,7 +558,7 @@ static void term_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
     pixel_t fgcolor)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	fibril_mutex_lock(&term->mtx);
 	chargrid_set_rgb_color(term->frontbuf, bgcolor, fgcolor);
 	fibril_mutex_unlock(&term->mtx);
@@ -567,11 +567,11 @@ static void term_set_rgb_color(con_srv_t *srv, pixel_t bgcolor,
 static void term_set_cursor_visibility(con_srv_t *srv, bool visible)
 {
 	terminal_t *term = srv_to_terminal(srv);
-	
+
 	fibril_mutex_lock(&term->mtx);
 	chargrid_set_cursor_visibility(term->frontbuf, visible);
 	fibril_mutex_unlock(&term->mtx);
-	
+
 	term_update(term);
 }
 
@@ -580,7 +580,7 @@ static errno_t term_get_event(con_srv_t *srv, cons_event_t *event)
 	terminal_t *term = srv_to_terminal(srv);
 	link_t *link = prodcons_consume(&term->input_pc);
 	cons_event_t *ev = list_get_instance(link, cons_event_t, link);
-	
+
 	*event = *ev;
 	free(ev);
 	return EOK;
@@ -590,10 +590,10 @@ void deinit_terminal(terminal_t *term)
 {
 	list_remove(&term->link);
 	widget_deinit(&term->widget);
-	
+
 	if (term->frontbuf)
 		chargrid_destroy(term->frontbuf);
-	
+
 	if (term->backbuf)
 		chargrid_destroy(term->backbuf);
 }
@@ -601,7 +601,7 @@ void deinit_terminal(terminal_t *term)
 static void terminal_destroy(widget_t *widget)
 {
 	terminal_t *term = (terminal_t *) widget;
-	
+
 	deinit_terminal(term);
 	free(term);
 }
@@ -615,18 +615,18 @@ static void terminal_rearrange(widget_t *widget, sysarg_t hpos, sysarg_t vpos,
     sysarg_t width, sysarg_t height)
 {
 	terminal_t *term = (terminal_t *) widget;
-	
+
 	widget_modify(widget, hpos, vpos, width, height);
 	widget->width_ideal = width;
 	widget->height_ideal = height;
-	
+
 	term_damage(term);
 }
 
 static void terminal_repaint(widget_t *widget)
 {
 	terminal_t *term = (terminal_t *) widget;
-	
+
 	term_damage(term);
 }
 
@@ -637,10 +637,10 @@ static void terminal_queue_cons_event(terminal_t *term, cons_event_t *ev)
 	    (cons_event_t *) malloc(sizeof(cons_event_t));
 	if (event == NULL)
 		return;
-	
+
 	*event = *ev;
 	link_initialize(&event->link);
-	
+
 	prodcons_produce(&term->input_pc, &event->link);
 }
 
@@ -650,10 +650,10 @@ static void terminal_handle_keyboard_event(widget_t *widget,
 {
 	terminal_t *term = (terminal_t *) widget;
 	cons_event_t event;
-	
+
 	event.type = CEV_KEY;
 	event.ev.key = kbd_event;
-	
+
 	terminal_queue_cons_event(term, &event);
 }
 
@@ -679,22 +679,22 @@ static void terminal_handle_position_event(widget_t *widget, pos_event_t pos_eve
 static void term_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
 	terminal_t *term = NULL;
-	
+
 	list_foreach(terms, link, terminal_t, cur) {
 		if (cur->dsid == (service_id_t) IPC_GET_ARG2(*icall)) {
 			term = cur;
 			break;
 		}
 	}
-	
+
 	if (term == NULL) {
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	if (atomic_postinc(&term->refcnt) == 0)
 		chargrid_set_cursor_visibility(term->frontbuf, true);
-	
+
 	con_conn(iid, icall, &term->srvs);
 }
 
@@ -702,74 +702,74 @@ bool init_terminal(terminal_t *term, widget_t *parent, const void *data,
     sysarg_t width, sysarg_t height)
 {
 	widget_init(&term->widget, parent, data);
-	
+
 	link_initialize(&term->link);
 	fibril_mutex_initialize(&term->mtx);
 	atomic_set(&term->refcnt, 0);
-	
+
 	prodcons_initialize(&term->input_pc);
 	term->char_remains_len = 0;
-	
+
 	term->widget.width = width;
 	term->widget.height = height;
 	term->widget.width_ideal = width;
 	term->widget.height_ideal = height;
-	
+
 	term->widget.destroy = terminal_destroy;
 	term->widget.reconfigure = terminal_reconfigure;
 	term->widget.rearrange = terminal_rearrange;
 	term->widget.repaint = terminal_repaint;
 	term->widget.handle_keyboard_event = terminal_handle_keyboard_event;
 	term->widget.handle_position_event = terminal_handle_position_event;
-	
+
 	term->cols = width / FONT_WIDTH;
 	term->rows = height / FONT_SCANLINES;
-	
+
 	term->frontbuf = NULL;
 	term->backbuf = NULL;
-	
+
 	term->frontbuf = chargrid_create(term->cols, term->rows,
 	    CHARGRID_FLAG_NONE);
 	if (!term->frontbuf) {
 		widget_deinit(&term->widget);
 		return false;
 	}
-	
+
 	term->backbuf = chargrid_create(term->cols, term->rows,
 	    CHARGRID_FLAG_NONE);
 	if (!term->backbuf) {
 		widget_deinit(&term->widget);
 		return false;
 	}
-	
+
 	chargrid_clear(term->frontbuf);
 	chargrid_clear(term->backbuf);
 	term->top_row = 0;
-	
+
 	async_set_fallback_port_handler(term_connection, NULL);
 	con_srvs_init(&term->srvs);
 	term->srvs.ops = &con_ops;
 	term->srvs.sarg = term;
-	
+
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		widget_deinit(&term->widget);
 		return false;
 	}
-	
+
 	char vc[LOC_NAME_MAXLEN + 1];
 	snprintf(vc, LOC_NAME_MAXLEN, "%s/%" PRIu64, NAMESPACE,
 	    task_get_id());
-	
+
 	rc = loc_service_register(vc, &term->dsid);
 	if (rc != EOK) {
 		widget_deinit(&term->widget);
 		return false;
 	}
-	
+
 	list_append(&term->link, &terms);
 	getterm(vc, "/app/bdsh");
-	
+
 	return true;
 }
 
@@ -779,13 +779,13 @@ terminal_t *create_terminal(widget_t *parent, const void *data, sysarg_t width,
 	terminal_t *term = (terminal_t *) malloc(sizeof(terminal_t));
 	if (!term)
 		return NULL;
-	
+
 	bool ret = init_terminal(term, parent, data, width, height);
 	if (!ret) {
 		free(term);
 		return NULL;
 	}
-	
+
 	return term;
 }
 

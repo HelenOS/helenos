@@ -43,7 +43,7 @@
 /** Structure representing contiguous physical memory area. */
 typedef struct {
 	link_t link;      /**< Linked list link */
-	
+
 	uintptr_t pbase;  /**< Physical base of the area. */
 	pfn_t frames;     /**< Number of frames in the area. */
 	bool unpriv;      /**< Allow mapping by unprivileged tasks. */

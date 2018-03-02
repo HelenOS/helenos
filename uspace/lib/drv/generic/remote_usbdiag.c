@@ -187,7 +187,7 @@ void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	if (async_data_read_finalize(data_callid, &results, size) != EOK) {
 		async_answer_0(callid, EINVAL);
 		return;
@@ -241,7 +241,7 @@ void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface,
 		async_answer_0(callid, EINVAL);
 		return;
 	}
-	
+
 	if (async_data_read_finalize(data_callid, &results, size) != EOK) {
 		async_answer_0(callid, EINVAL);
 		return;

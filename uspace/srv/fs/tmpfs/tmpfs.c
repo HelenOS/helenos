@@ -74,30 +74,30 @@ int main(int argc, char **argv)
 			return -1;
 		}
 	}
-	
+
 	if (!tmpfs_init()) {
 		printf(NAME ": failed to initialize TMPFS\n");
 		return -1;
 	}
-	
+
 	async_sess_t *vfs_sess = service_connect_blocking(SERVICE_VFS,
 	    INTERFACE_VFS_DRIVER, 0);
 	if (!vfs_sess) {
 		printf(NAME ": Unable to connect to VFS\n");
 		return -1;
 	}
-	
+
 	errno_t rc = fs_register(vfs_sess, &tmpfs_vfs_info, &tmpfs_ops,
 	    &tmpfs_libfs_ops);
 	if (rc != EOK) {
 		printf(NAME ": Failed to register file system: %s\n", str_error(rc));
 		return rc;
 	}
-	
+
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
 	async_manager();
-	
+
 	/* Not reached */
 	return 0;
 }

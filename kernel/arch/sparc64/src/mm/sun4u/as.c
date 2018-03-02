@@ -68,11 +68,11 @@ errno_t as_constructor_arch(as_t *as, unsigned int flags)
 
 	tsb_entry_t *tsb = (tsb_entry_t *) PA2KA(tsb_base);
 	memsetb(tsb, TSB_SIZE, 0);
-	
+
 	as->arch.itsb = tsb;
 	as->arch.dtsb = tsb + ITSB_ENTRY_COUNT;
 #endif
-	
+
 	return EOK;
 }
 
@@ -80,7 +80,7 @@ int as_destructor_arch(as_t *as)
 {
 #ifdef CONFIG_TSB
 	frame_free(KA2PA((uintptr_t) as->arch.itsb), TSB_FRAMES);
-	
+
 	return TSB_FRAMES;
 #else
 	return 0;
@@ -92,7 +92,7 @@ errno_t as_create_arch(as_t *as, unsigned int flags)
 #ifdef CONFIG_TSB
 	tsb_invalidate(as, 0, (size_t) -1);
 #endif
-	
+
 	return 0;
 }
 
@@ -106,7 +106,7 @@ errno_t as_create_arch(as_t *as, unsigned int flags)
 void as_install_arch(as_t *as)
 {
 	tlb_context_reg_t ctx;
-	
+
 	/*
 	 * Note that we don't and may not lock the address space. That's ok
 	 * since we only read members that are currently read-only.
@@ -114,7 +114,7 @@ void as_install_arch(as_t *as)
 	 * Moreover, the as->asid is protected by asidlock, which is being held.
 	 *
 	 */
-	
+
 	/*
 	 * Write ASID to secondary context register. The primary context
 	 * register has to be set from TL>0 so it will be filled from the
@@ -125,15 +125,15 @@ void as_install_arch(as_t *as)
 	ctx.v = 0;
 	ctx.context = as->asid;
 	mmu_secondary_context_write(ctx.v);
-	
+
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
-	
+
 	assert(as->arch.itsb);
 	assert(as->arch.dtsb);
-	
+
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
-	
+
 	if (!overlaps(tsb, TSB_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered
@@ -144,22 +144,22 @@ void as_install_arch(as_t *as)
 		dtlb_demap(TLB_DEMAP_PAGE, TLB_DEMAP_NUCLEUS, tsb);
 		dtlb_insert_mapping(tsb, KA2PA(tsb), PAGESIZE_64K, true, true);
 	}
-	
+
 	/*
 	 * Setup TSB Base registers.
 	 *
 	 */
 	tsb_base_reg_t tsb_base_reg;
-	
+
 	tsb_base_reg.value = 0;
 	tsb_base_reg.size = TSB_BASE_REG_SIZE;
 	tsb_base_reg.split = 0;
-	
+
 	tsb_base_reg.base = ((uintptr_t) as->arch.itsb) >> MMU_PAGE_WIDTH;
 	itsb_base_write(tsb_base_reg.value);
 	tsb_base_reg.base = ((uintptr_t) as->arch.dtsb) >> MMU_PAGE_WIDTH;
 	dtsb_base_write(tsb_base_reg.value);
-	
+
 #if defined (US3)
 	/*
 	 * Clear the extension registers.
@@ -197,15 +197,15 @@ void as_deinstall_arch(as_t *as)
 	 * Moreover, the as->asid is protected by asidlock, which is being held.
 	 *
 	 */
-	
+
 #ifdef CONFIG_TSB
 	uintptr_t base = ALIGN_DOWN(config.base, 1 << KERNEL_PAGE_WIDTH);
-	
+
 	assert(as->arch.itsb);
 	assert(as->arch.dtsb);
-	
+
 	uintptr_t tsb = (uintptr_t) as->arch.itsb;
-	
+
 	if (!overlaps(tsb, TSB_SIZE, base, 1 << KERNEL_PAGE_WIDTH)) {
 		/*
 		 * TSBs were allocated from memory not covered

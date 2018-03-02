@@ -86,30 +86,30 @@ typedef struct {
 	size_t offset;
 	size_t scanline;
 	visual_t visual;
-	
+
 	size_t size;
 	uint8_t *addr;
-	
+
 	pixel2visual_t pixel2visual;
 	visual2pixel_t visual2pixel;
 	visual_mask_t visual_mask;
 	size_t pixel_bytes;
-	
+
 	sysarg_t pointer_x;
 	sysarg_t pointer_y;
 	bool pointer_visible;
 	imgmap_t *pointer_imgmap;
-	
+
 	/*
 	 * Pre-rendered mask for rendering
 	 * glyphs. Specific for the framebuffer
 	 * visual.
 	 */
-	
+
 	size_t glyph_scanline;
 	size_t glyph_bytes;
 	uint8_t *glyphs;
-	
+
 	uint8_t *backbuf;
 } kfb_t;
 
@@ -134,7 +134,7 @@ static pixel_t color_table[16] = {
 	[COLOR_MAGENTA]     = 0xf000f0,
 	[COLOR_YELLOW]      = 0xf0f000,
 	[COLOR_WHITE]       = 0xf0f0f0,
-	
+
 	[COLOR_BLACK + 8]   = 0x000000,
 	[COLOR_BLUE + 8]    = 0x0000ff,
 	[COLOR_GREEN + 8]   = 0x00ff00,
@@ -149,7 +149,7 @@ static void put_pixel(sysarg_t x, sysarg_t y, pixel_t pixel)
 {
 	if ((x >= kfb.width) || (y >= kfb.height))
 		return;
-	
+
 	kfb.pixel2visual(kfb.addr + FB_POS(x, y), pixel);
 }
 
@@ -157,7 +157,7 @@ static pixel_t get_pixel(sysarg_t x, sysarg_t y)
 {
 	if ((x >= kfb.width) || (y >= kfb.height))
 		return 0;
-	
+
 	return kfb.visual2pixel(kfb.addr + FB_POS(x, y));
 }
 
@@ -168,13 +168,13 @@ static void pointer_show(void)
 			for (sysarg_t x = 0; x < POINTER_WIDTH; x++) {
 				sysarg_t dx = kfb.pointer_x + x;
 				sysarg_t dy = kfb.pointer_y + y;
-				
+
 				pixel_t pixel = get_pixel(dx, dy);
 				imgmap_put_pixel(kfb.pointer_imgmap, x, y, pixel);
-				
+
 				size_t offset = y * ((POINTER_WIDTH - 1) / 8 + 1) + x / 8;
 				bool visible = pointer_mask[offset] & (1 << (x % 8));
-				
+
 				if (visible) {
 					pixel = (pointer[offset] & (1 << (x % 8))) ?
 					    0x000000 : 0xffffff;
@@ -192,7 +192,7 @@ static void pointer_hide(void)
 			for (sysarg_t x = 0; x < POINTER_WIDTH; x++) {
 				sysarg_t dx = kfb.pointer_x + x;
 				sysarg_t dy = kfb.pointer_y + y;
-				
+
 				pixel_t pixel =
 				    imgmap_get_pixel(kfb.pointer_imgmap, x, y);
 				put_pixel(dx, dy, pixel);
@@ -209,13 +209,13 @@ static void draw_filled_rect(sysarg_t x1, sysarg_t y1, sysarg_t x2, sysarg_t y2,
 {
 	if ((y1 >= y2) || (x1 >= x2))
 		return;
-	
+
 	uint8_t cbuf[4];
 	kfb.pixel2visual(cbuf, color);
-	
+
 	for (sysarg_t y = y1; y < y2; y++) {
 		uint8_t *dst = kfb.addr + FB_POS(x1, y);
-		
+
 		for (sysarg_t x = x1; x < x2; x++) {
 			memcpy(dst, cbuf, kfb.pixel_bytes);
 			dst += kfb.pixel_bytes;
@@ -289,36 +289,36 @@ static void draw_char_aligned(sysarg_t x, sysarg_t y, bool inverted, wchar_t ch,
     pixel_t bgcolor, pixel_t fgcolor)
 {
 	size_t word_size = sizeof(unsigned long);
-	
+
 	/*
 	 * Prepare a pair of words, one filled with foreground-color
 	 * pattern and the other filled with background-color pattern.
 	 */
 	unsigned long fg_buf;
 	unsigned long bg_buf;
-	
+
 	for (size_t i = 0; i < word_size / kfb.pixel_bytes; i++) {
 		kfb.pixel2visual(&((uint8_t *) &bg_buf)[i * kfb.pixel_bytes],
 		    bgcolor);
 		kfb.pixel2visual(&((uint8_t *) &fg_buf)[i * kfb.pixel_bytes],
 		    fgcolor);
 	}
-	
+
 	/* Pointer to the current position in the mask. */
 	unsigned long *maskp =
 	    (unsigned long *) &kfb.glyphs[GLYPH_POS(
 	    fb_font_glyph(ch), 0, inverted)];
-	
+
 	/* Pointer to the current position on the screen. */
 	unsigned long *dst =
 	    (unsigned long *) &kfb.addr[FB_POS(x, y)];
-	
+
 	/* Width of the character cell in words. */
 	size_t ww = FONT_WIDTH * kfb.pixel_bytes / word_size;
-	
+
 	/* Offset to add when moving to another screen scanline. */
 	size_t d_add = kfb.scanline - FONT_WIDTH * kfb.pixel_bytes;
-	
+
 	for (size_t yd = 0; yd < FONT_SCANLINES; yd++) {
 		/*
 		 * Now process the cell scanline, combining foreground
@@ -328,7 +328,7 @@ static void draw_char_aligned(sysarg_t x, sysarg_t y, bool inverted, wchar_t ch,
 			unsigned long mask = *maskp++;
 			*dst++ = (fg_buf & mask) | (bg_buf & ~mask);
 		}
-		
+
 		/* Move to the beginning of the next scanline of the cell. */
 		dst = (unsigned long *) ((uint8_t *) dst + d_add);
 	}
@@ -352,11 +352,11 @@ static void draw_char_fallback(sysarg_t x, sysarg_t y, bool inverted,
 {
 	/* Character glyph */
 	uint16_t glyph = fb_font_glyph(ch);
-	
+
 	/* Pre-render the foreground and background color pixels. */
 	uint8_t fg_buf[4];
 	uint8_t bg_buf[4];
-	
+
 	if (inverted) {
 		kfb.pixel2visual(bg_buf, fgcolor);
 		kfb.pixel2visual(fg_buf, bgcolor);
@@ -364,29 +364,29 @@ static void draw_char_fallback(sysarg_t x, sysarg_t y, bool inverted,
 		kfb.pixel2visual(bg_buf, bgcolor);
 		kfb.pixel2visual(fg_buf, fgcolor);
 	}
-	
+
 	/* Pointer to the current position on the screen. */
 	uint8_t *dst = (uint8_t *) &kfb.addr[FB_POS(x, y)];
-	
+
 	/* Offset to add when moving to another screen scanline. */
 	size_t d_add = kfb.scanline - FONT_WIDTH * kfb.pixel_bytes;
-	
+
 	for (size_t yd = 0; yd < FONT_SCANLINES; yd++) {
 		/* Byte containing bits of the glyph scanline. */
 		uint8_t byte = fb_font[glyph][yd];
-		
+
 		for (size_t i = 0; i < FONT_WIDTH; i++) {
 			/* Choose color based on the current bit. */
 			uint8_t *src = (byte & 0x80) ? fg_buf : bg_buf;
-			
+
 			/* Copy the pixel. */
 			for (size_t j = 0; j < kfb.pixel_bytes; j++)
 				*dst++ = *src++;
-			
+
 			/* Move to the next bit. */
 			byte <<= 1;
 		}
-		
+
 		/* Move to the beginning of the next scanline of the cell. */
 		dst += d_add;
 	}
@@ -402,19 +402,19 @@ static void draw_char_fallback(sysarg_t x, sysarg_t y, bool inverted,
 static void draw_vp_char(fbvp_t *vp, sysarg_t col, sysarg_t row)
 {
 	kfb_vp_t *kfb_vp = (kfb_vp_t *) vp->data;
-	
+
 	sysarg_t x = vp->x + COL2X(col);
 	sysarg_t y = vp->y + ROW2Y(row);
-	
+
 	charfield_t *field = screenbuffer_field_at(vp->backbuf, col, row);
-	
+
 	pixel_t bgcolor = 0;
 	pixel_t fgcolor = 0;
 	attrs_rgb(field->attrs, &bgcolor, &fgcolor);
-	
+
 	bool inverted = (vp->cursor_flash) &&
 	    screenbuffer_cursor_at(vp->backbuf, col, row);
-	
+
 	(*kfb_vp->draw_char)(x, y, inverted, field->ch, bgcolor, fgcolor);
 }
 
@@ -426,11 +426,11 @@ static errno_t kfb_yield(fbdev_t *dev)
 		if (kfb.backbuf == NULL)
 			return ENOMEM;
 	}
-	
+
 	for (sysarg_t y = 0; y < kfb.height; y++)
 		memcpy(kfb.backbuf + y * kfb.width * kfb.pixel_bytes,
 		    kfb.addr + FB_POS(0, y), kfb.width * kfb.pixel_bytes);
-	
+
 	return EOK;
 }
 
@@ -438,12 +438,12 @@ static errno_t kfb_claim(fbdev_t *dev)
 {
 	if (kfb.backbuf == NULL)
 		return ENOENT;
-	
+
 	for (sysarg_t y = 0; y < kfb.height; y++)
 		memcpy(kfb.addr + FB_POS(0, y),
 		    kfb.backbuf + y * kfb.width * kfb.pixel_bytes,
 		    kfb.width * kfb.pixel_bytes);
-	
+
 	return EOK;
 }
 
@@ -451,11 +451,11 @@ static void kfb_pointer_update(struct fbdev *dev, sysarg_t x, sysarg_t y,
     bool visible)
 {
 	pointer_hide();
-	
+
 	kfb.pointer_x = x;
 	kfb.pointer_y = y;
 	kfb.pointer_visible = visible;
-	
+
 	pointer_show();
 }
 
@@ -478,7 +478,7 @@ static errno_t kfb_vp_create(fbdev_t *dev, fbvp_t *vp)
 	kfb_vp_t *kfb_vp = malloc(sizeof(kfb_vp_t));
 	if (kfb_vp == NULL)
 		return ENOMEM;
-	
+
 	/*
 	 * Conditions necessary to select aligned glyph
 	 * drawing variants:
@@ -488,7 +488,7 @@ static errno_t kfb_vp_create(fbdev_t *dev, fbvp_t *vp)
 	 *
 	 */
 	size_t word_size = sizeof(unsigned long);
-	
+
 	if (((word_size % kfb.pixel_bytes) == 0)
 	    && ((FONT_WIDTH * kfb.pixel_bytes) % word_size == 0)
 	    && ((vp->x * kfb.pixel_bytes) % word_size == 0)
@@ -496,12 +496,12 @@ static errno_t kfb_vp_create(fbdev_t *dev, fbvp_t *vp)
 		kfb_vp->draw_char = draw_char_aligned;
 	else
 		kfb_vp->draw_char = draw_char_fallback;
-	
+
 	vp->attrs.type = CHAR_ATTR_RGB;
 	vp->attrs.val.rgb.bgcolor = DEFAULT_BGCOLOR;
 	vp->attrs.val.rgb.fgcolor = DEFAULT_FGCOLOR;
 	vp->data = (void *) kfb_vp;
-	
+
 	return EOK;
 }
 
@@ -513,24 +513,24 @@ static void kfb_vp_destroy(fbdev_t *dev, fbvp_t *vp)
 static void kfb_vp_clear(fbdev_t *dev, fbvp_t *vp)
 {
 	pointer_hide();
-	
+
 	for (sysarg_t row = 0; row < vp->rows; row++) {
 		for (sysarg_t col = 0; col < vp->cols; col++) {
 			charfield_t *field =
 			    screenbuffer_field_at(vp->backbuf, col, row);
-			
+
 			field->ch = 0;
 			field->attrs = vp->attrs;
 		}
 	}
-	
+
 	pixel_t bgcolor = 0;
 	pixel_t fgcolor = 0;
 	attrs_rgb(vp->attrs, &bgcolor, &fgcolor);
-	
+
 	draw_filled_rect(vp->x, vp->y, vp->x + vp->width,
 	    vp->y + vp->height, bgcolor);
-	
+
 	pointer_show();
 }
 
@@ -568,14 +568,14 @@ static void kfb_vp_imgmap_damage(fbdev_t *dev, fbvp_t *vp, imgmap_t *imgmap,
     sysarg_t x0, sysarg_t y0, sysarg_t width, sysarg_t height)
 {
 	pointer_hide();
-	
+
 	for (sysarg_t y = 0; y < height; y++) {
 		for (sysarg_t x = 0; x < width; x++) {
 			pixel_t pixel = imgmap_get_pixel(imgmap, x0 + x, y0 + y);
 			vp_put_pixel(vp, x0 + x, y0 + y, pixel);
 		}
 	}
-	
+
 	pointer_show();
 }
 
@@ -604,7 +604,7 @@ static fbdev_ops_t kfb_ops = {
 static void render_glyphs(size_t sz)
 {
 	memset(kfb.glyphs, 0, sz);
-	
+
 	for (unsigned int glyph = 0; glyph < FONT_GLYPHS; glyph++) {
 		for (unsigned int y = 0; y < FONT_SCANLINES; y++) {
 			for (unsigned int x = 0; x < FONT_WIDTH; x++) {
@@ -625,54 +625,54 @@ errno_t kfb_init(void)
 	errno_t rc = sysinfo_get_value("fb", &present);
 	if (rc != EOK)
 		present = false;
-	
+
 	if (!present)
 		return ENOENT;
-	
+
 	sysarg_t kind;
 	rc = sysinfo_get_value("fb.kind", &kind);
 	if (rc != EOK)
 		kind = (sysarg_t) -1;
-	
+
 	if (kind != 1)
 		return EINVAL;
-	
+
 	sysarg_t paddr;
 	rc = sysinfo_get_value("fb.address.physical", &paddr);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t offset;
 	rc = sysinfo_get_value("fb.offset", &offset);
 	if (rc != EOK)
 		offset = 0;
-	
+
 	sysarg_t width;
 	rc = sysinfo_get_value("fb.width", &width);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t height;
 	rc = sysinfo_get_value("fb.height", &height);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t scanline;
 	rc = sysinfo_get_value("fb.scanline", &scanline);
 	if (rc != EOK)
 		return rc;
-	
+
 	sysarg_t visual;
 	rc = sysinfo_get_value("fb.visual", &visual);
 	if (rc != EOK)
 		return rc;
-	
+
 	kfb.width = width;
 	kfb.height = height;
 	kfb.offset = offset;
 	kfb.scanline = scanline;
 	kfb.visual = visual;
-	
+
 	switch (visual) {
 	case VISUAL_INDIRECT_8:
 		kfb.pixel2visual = pixel2bgr_323;
@@ -743,19 +743,19 @@ errno_t kfb_init(void)
 	default:
 		return EINVAL;
 	}
-	
+
 	kfb.glyph_scanline = FONT_WIDTH * kfb.pixel_bytes;
 	kfb.glyph_bytes = kfb.glyph_scanline * FONT_SCANLINES;
-	
+
 	size_t sz = 2 * FONT_GLYPHS * kfb.glyph_bytes;
 	kfb.glyphs = (uint8_t *) malloc(sz);
 	if (kfb.glyphs == NULL)
 		return EINVAL;
-	
+
 	render_glyphs(sz);
-	
+
 	kfb.size = scanline * height;
-	
+
 	rc = physmem_map((void *) paddr + offset,
 	    ALIGN_UP(kfb.size, PAGE_SIZE) >> PAGE_WIDTH,
 	    AS_AREA_READ | AS_AREA_WRITE, (void *) &kfb.addr);
@@ -763,22 +763,22 @@ errno_t kfb_init(void)
 		free(kfb.glyphs);
 		return rc;
 	}
-	
+
 	kfb.pointer_x = 0;
 	kfb.pointer_y = 0;
 	kfb.pointer_visible = false;
 	kfb.pointer_imgmap = imgmap_create(POINTER_WIDTH, POINTER_HEIGHT,
 	    VISUAL_RGB_0_8_8_8, IMGMAP_FLAG_NONE);
-	
+
 	kfb.backbuf = NULL;
-	
+
 	fbdev_t *dev = fbdev_register(&kfb_ops, (void *) &kfb);
 	if (dev == NULL) {
 		free(kfb.glyphs);
 		as_area_destroy(kfb.addr);
 		return EINVAL;
 	}
-	
+
 	return EOK;
 }
 

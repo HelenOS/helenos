@@ -38,10 +38,10 @@ int arg_parse_short_long(const char *arg, const char *ashort, const char *along)
 {
 	if (str_cmp(arg, ashort) == 0)
 		return 0;
-	
+
 	if (str_lcmp(arg, along, str_length(along)) == 0)
 		return str_length(along);
-	
+
 	return -1;
 }
 
@@ -68,7 +68,7 @@ errno_t arg_parse_int(int argc, char *argv[], int *index, int *value,
     int offset)
 {
 	char *rest;
-	
+
 	if (offset)
 		*value = strtol(argv[*index] + offset, &rest, 10);
 	else if ((*index) + 1 < argc) {
@@ -76,10 +76,10 @@ errno_t arg_parse_int(int argc, char *argv[], int *index, int *value,
 		*value = strtol(argv[*index], &rest, 10);
 	} else
 		return ENOENT;
-	
+
 	if ((rest) && (*rest))
 		return EINVAL;
-	
+
 	return EOK;
 }
 
@@ -108,11 +108,11 @@ errno_t arg_parse_name_int(int argc, char *argv[], int *index, int *value,
     int offset, arg_parser parser)
 {
 	char *arg;
-	
+
 	errno_t ret = arg_parse_string(argc, argv, index, &arg, offset);
 	if (ret != EOK)
 		return ret;
-	
+
 	return parser(arg, value);
 }
 
@@ -144,7 +144,7 @@ errno_t arg_parse_string(int argc, char **argv, int *index, char **value,
 		*value = argv[*index];
 	} else
 		return ENOENT;
-	
+
 	return EOK;
 }
 

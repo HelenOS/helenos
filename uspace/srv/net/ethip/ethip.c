@@ -79,17 +79,17 @@ static iplink_ops_t ethip_iplink_ops = {
 static errno_t ethip_init(void)
 {
 	async_set_fallback_port_handler(ethip_client_conn, NULL);
-	
+
 	errno_t rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server.");
 		return rc;
 	}
-	
+
 	rc = ethip_nic_discovery_start();
 	if (rc != EOK)
 		return rc;
-	
+
 	return EOK;
 }
 
@@ -172,56 +172,56 @@ static errno_t ethip_close(iplink_srv_t *srv)
 static errno_t ethip_send(iplink_srv_t *srv, iplink_sdu_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_send()");
-	
+
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	eth_frame_t frame;
-	
+
 	errno_t rc = arp_translate(nic, sdu->src, sdu->dest, frame.dest);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "Failed to look up IPv4 address 0x%"
 		    PRIx32, sdu->dest);
 		return rc;
 	}
-	
+
 	addr48(nic->mac_addr, frame.src);
 	frame.etype_len = ETYPE_IP;
 	frame.data = sdu->data;
 	frame.size = sdu->size;
-	
+
 	void *data;
 	size_t size;
 	rc = eth_pdu_encode(&frame, &data, &size);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = ethip_nic_send(nic, data, size);
 	free(data);
-	
+
 	return rc;
 }
 
 static errno_t ethip_send6(iplink_srv_t *srv, iplink_sdu6_t *sdu)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_send6()");
-	
+
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	eth_frame_t frame;
-	
+
 	addr48(sdu->dest, frame.dest);
 	addr48(nic->mac_addr, frame.src);
 	frame.etype_len = ETYPE_IPV6;
 	frame.data = sdu->data;
 	frame.size = sdu->size;
-	
+
 	void *data;
 	size_t size;
 	errno_t rc = eth_pdu_encode(&frame, &data, &size);
 	if (rc != EOK)
 		return rc;
-	
+
 	rc = ethip_nic_send(nic, data, size);
 	free(data);
-	
+
 	return rc;
 }
 
@@ -229,18 +229,18 @@ errno_t ethip_received(iplink_srv_t *srv, void *data, size_t size)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_received(): srv=%p", srv);
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, " - eth_pdu_decode");
-	
+
 	eth_frame_t frame;
 	errno_t rc = eth_pdu_decode(data, size, &frame);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, " - eth_pdu_decode failed");
 		return rc;
 	}
-	
+
 	iplink_recv_sdu_t sdu;
-	
+
 	switch (frame.etype_len) {
 	case ETYPE_ARP:
 		arp_received(nic, &frame);
@@ -263,7 +263,7 @@ errno_t ethip_received(iplink_srv_t *srv, void *data, size_t size)
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Unknown ethertype 0x%" PRIx16,
 		    frame.etype_len);
 	}
-	
+
 	free(frame.data);
 	return rc;
 }
@@ -278,34 +278,34 @@ static errno_t ethip_get_mtu(iplink_srv_t *srv, size_t *mtu)
 static errno_t ethip_get_mac48(iplink_srv_t *srv, addr48_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_get_mac48()");
-	
+
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	addr48(nic->mac_addr, *mac);
-	
+
 	return EOK;
 }
 
 static errno_t ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_set_mac48()");
-	
+
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
 	addr48(*mac, nic->mac_addr);
-	
+
 	return EOK;
 }
 
 static errno_t ethip_addr_add(iplink_srv_t *srv, inet_addr_t *addr)
 {
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
-	
+
 	return ethip_nic_addr_add(nic, addr);
 }
 
 static errno_t ethip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr)
 {
 	ethip_nic_t *nic = (ethip_nic_t *) srv->arg;
-	
+
 	return ethip_nic_addr_remove(nic, addr);
 }
 

@@ -80,9 +80,9 @@ int main(int argc, char *argv[])
 		rc = EINVAL;
 		goto error;
 	}
-	
+
 	i = 1;
-	
+
 	if (str_cmp(argv[i], "-o") == 0) {
 		++i;
 		if (argc < i + 1) {
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 			rc = EINVAL;
 			goto error;
 		}
-		
+
 		ofname = argv[i++];
 		ofile = fopen(ofname, "wb");
 		if (ofile == NULL) {
@@ -99,40 +99,40 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 	}
-	
+
 	if (argc != i + 1) {
 		syntax_print();
 		rc = EINVAL;
 		goto error;
 	}
-	
+
 	uri = uri_parse(argv[i]);
 	if (uri == NULL) {
 		fprintf(stderr, "Failed parsing URI\n");
 		rc = EINVAL;
 		goto error;
 	}
-	
+
 	if (!uri_validate(uri)) {
 		fprintf(stderr, "The URI is invalid\n");
 		rc = EINVAL;
 		goto error;
 	}
-	
+
 	/* TODO uri_normalize(uri) */
-	
+
 	if (str_cmp(uri->scheme, "http") != 0) {
 		fprintf(stderr, "Only http scheme is supported at the moment\n");
 		rc = EINVAL;
 		goto error;
 	}
-	
+
 	if (uri->host == NULL) {
 		fprintf(stderr, "host not set\n");
 		rc = EINVAL;
 		goto error;
 	}
-	
+
 	uint16_t port = 80;
 	if (uri->port != NULL) {
 		rc = str_uint16_t(uri->port, NULL, 10, true, &port);
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 	}
-	
+
 	const char *path = uri->path;
 	if (path == NULL || *path == 0)
 		path = "/";
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 	}
-	
+
 	http_request_t *req = http_request_create("GET", server_path);
 	free(server_path);
 	if (req == NULL) {
@@ -170,40 +170,40 @@ int main(int argc, char *argv[])
 		rc = ENOMEM;
 		goto error;
 	}
-	
+
 	rc = http_headers_append(&req->headers, "Host", uri->host);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed setting Host header: %s\n", str_error(rc));
 		goto error;
 	}
-	
+
 	rc = http_headers_append(&req->headers, "User-Agent", USER_AGENT);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed creating User-Agent header: %s\n", str_error(rc));
 		goto error;
 	}
-	
+
 	http = http_create(uri->host, port);
 	if (http == NULL) {
 		fprintf(stderr, "Failed creating HTTP object\n");
 		rc = ENOMEM;
 		goto error;
 	}
-	
+
 	rc = http_connect(http);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed connecting: %s\n", str_error(rc));
 		rc = EIO;
 		goto error;
 	}
-	
+
 	rc = http_send_request(http, req);
 	if (rc != EOK) {
 		fprintf(stderr, "Failed sending request: %s\n", str_error(rc));
 		rc = EIO;
 		goto error;
 	}
-	
+
 	http_response_t *response = NULL;
 	rc = http_receive_response(&http->recv_buffer, &response, 16 * 1024,
 	    100);
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
 		rc = EIO;
 		goto error;
 	}
-	
+
 	if (response->status != 200) {
 		fprintf(stderr, "Server returned status %d %s\n", response->status,
 		    response->message);
@@ -223,17 +223,17 @@ int main(int argc, char *argv[])
 			rc = ENOMEM;
 			goto error;
 		}
-		
+
 		size_t body_size;
 		while ((rc = recv_buffer(&http->recv_buffer, buf, buf_size, &body_size)) == EOK && body_size > 0) {
 			fwrite(buf, 1, body_size, ofile != NULL ? ofile : stdout);
 		}
-		
+
 		if (rc != EOK) {
 			fprintf(stderr, "Failed receiving body: %s", str_error(rc));
 		}
 	}
-	
+
 	free(buf);
 	http_destroy(http);
 	uri_destroy(uri);

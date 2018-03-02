@@ -67,13 +67,13 @@ typedef struct driver {
 	link_t drivers;
 	/** Handle */
 	devman_handle_t handle;
-	
+
 	/**
 	 * Specifies whether the driver has been started and wheter is running
 	 * and prepared to receive requests.
 	 */
 	driver_state_t state;
-	
+
 	/** Session asociated with this driver. */
 	async_sess_t *sess;
 	/** Name of the device driver. */
@@ -84,7 +84,7 @@ typedef struct driver {
 	match_id_list_t match_ids;
 	/** List of devices controlled by this driver. */
 	list_t devices;
-	
+
 	/**
 	 * Fibril mutex for this driver - driver state, list of devices, session.
 	 */
@@ -115,13 +115,13 @@ typedef enum {
 struct dev_node {
 	/** Reference count */
 	atomic_t refcnt;
-	
+
 	/** The global unique identifier of the device. */
 	devman_handle_t handle;
-	
+
 	/** (Parent) function the device is attached to. */
 	fun_node_t *pfun;
-	
+
 	/** List of device functions. */
 	list_t functions;
 	/** Driver of this device. */
@@ -130,12 +130,12 @@ struct dev_node {
 	device_state_t state;
 	/** Link to list of devices owned by driver (driver_t.devices) */
 	link_t driver_devices;
-	
+
 	/**
 	 * Used by the hash table of devices indexed by devman device handles.
 	 */
 	ht_link_t devman_dev;
-	
+
 	/**
 	 * Whether this device was already passed to the driver.
 	 */
@@ -159,36 +159,36 @@ struct fun_node {
 	fun_state_t state;
 	/** Locked while performing reconfiguration operations */
 	fibril_mutex_t busy_lock;
-	
+
 	/** The global unique identifier of the function */
 	devman_handle_t handle;
 	/** Name of the function, assigned by the device driver */
 	char *name;
 	/** Function type */
 	fun_type_t ftype;
-	
+
 	/** Full path and name of the device in device hierarchy */
 	char *pathname;
-	
+
 	/** Device which this function belongs to */
 	dev_node_t *dev;
-	
+
 	/** Link to list of functions in the device (ddf_dev_t.functions) */
 	link_t dev_functions;
-	
+
 	/** Child device node (if any attached). */
 	dev_node_t *child;
 	/** List of device ids for device-to-driver matching. */
 	match_id_list_t match_ids;
-	
+
 	/** Service ID if the device function is registered with loc. */
 	service_id_t service_id;
-	
+
 	/**
 	 * Used by the hash table of functions indexed by devman device handles.
 	 */
 	ht_link_t devman_fun;
-	
+
 	/**
 	 * Used by the hash table of functions indexed by service IDs.
 	 */
@@ -199,22 +199,22 @@ struct fun_node {
 typedef struct dev_tree {
 	/** Root device node. */
 	fun_node_t *root_node;
-	
+
 	/**
 	 * The next available handle - handles are assigned in a sequential
 	 * manner.
 	 */
 	devman_handle_t current_handle;
-	
+
 	/** Synchronize access to the device tree. */
 	fibril_rwlock_t rwlock;
-	
+
 	/** Hash table of all devices indexed by devman handles. */
 	hash_table_t devman_devices;
-	
+
 	/** Hash table of all devices indexed by devman handles. */
 	hash_table_t devman_functions;
-	
+
 	/**
 	 * Hash table of services registered with location service, indexed by
 	 * service IDs.

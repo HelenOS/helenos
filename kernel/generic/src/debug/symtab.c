@@ -57,12 +57,12 @@ errno_t symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
 {
 #ifdef CONFIG_SYMTAB
 	size_t i;
-	
+
 	for (i = 1; symbol_table[i].address_le; i++) {
 		if (addr < uint64_t_le2host(symbol_table[i].address_le))
 			break;
 	}
-	
+
 	if (addr >= uint64_t_le2host(symbol_table[i - 1].address_le)) {
 		*name = symbol_table[i - 1].symbol_name;
 		if (offset)
@@ -70,10 +70,10 @@ errno_t symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
 			    uint64_t_le2host(symbol_table[i - 1].address_le);
 		return EOK;
 	}
-	
+
 	*name = NULL;
 	return ENOENT;
-	
+
 #else
 	*name = NULL;
 	return ENOTSUP;
@@ -96,7 +96,7 @@ const char *symtab_fmt_name_lookup(uintptr_t addr)
 {
 	const char *name;
 	errno_t rc = symtab_name_lookup(addr, &name, NULL);
-	
+
 	switch (rc) {
 	case EOK:
 		return name;
@@ -120,25 +120,25 @@ const char *symtab_fmt_name_lookup(uintptr_t addr)
 static const char *symtab_search_one(const char *name, size_t *startpos)
 {
 	size_t namelen = str_length(name);
-	
+
 	size_t pos;
 	for (pos = *startpos; symbol_table[pos].address_le; pos++) {
 		const char *curname = symbol_table[pos].symbol_name;
-		
+
 		/* Find a ':' in curname */
 		const char *colon = str_chr(curname, ':');
 		if (colon == NULL)
 			continue;
-		
+
 		if (str_length(curname) < namelen)
 			continue;
-		
+
 		if (str_lcmp(name, curname, namelen) == 0) {
 			*startpos = pos;
 			return (curname + str_lsize(curname, namelen));
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -161,7 +161,7 @@ errno_t symtab_addr_lookup(const char *name, uintptr_t *addr)
 	size_t found = 0;
 	size_t pos = 0;
 	const char *hint;
-	
+
 	while ((hint = symtab_search_one(name, &pos))) {
 		if (str_length(hint) == 0) {
 			*addr = uint64_t_le2host(symbol_table[pos].address_le);
@@ -169,15 +169,15 @@ errno_t symtab_addr_lookup(const char *name, uintptr_t *addr)
 		}
 		pos++;
 	}
-	
+
 	if (found > 1)
 		return EOVERFLOW;
-	
+
 	if (found < 1)
 		return ENOENT;
-	
+
 	return EOK;
-	
+
 #else
 	return ENOTSUP;
 #endif
@@ -194,7 +194,7 @@ void symtab_print_search(const char *name)
 		printf("%p: %s\n", (void *) addr, realname);
 		pos++;
 	}
-	
+
 #else
 	printf("No symbol information available.\n");
 #endif
@@ -207,21 +207,21 @@ const char* symtab_hints_enum(const char *input, const char **help,
 #ifdef CONFIG_SYMTAB
 	size_t len = str_length(input);
 	struct symtab_entry **entry = (struct symtab_entry**)ctx;
-	
+
 	if (*entry == NULL)
 		*entry = symbol_table;
-	
+
 	for (; (*entry)->address_le; (*entry)++) {
 		const char *curname = (*entry)->symbol_name;
-		
+
 		/* Find a ':' in curname */
 		const char *colon = str_chr(curname, ':');
 		if (colon == NULL)
 			continue;
-		
+
 		if (str_length(curname) < len)
 			continue;
-		
+
 		if (str_lcmp(input, curname, len) == 0) {
 			(*entry)++;
 			if (help)
@@ -229,9 +229,9 @@ const char* symtab_hints_enum(const char *input, const char **help,
 			return (curname + str_lsize(curname, len));
 		}
 	}
-	
+
 	return NULL;
-	
+
 #else
 	return NULL;
 #endif

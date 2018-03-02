@@ -67,17 +67,17 @@ void indev_initialize(const char *name, indev_t *indev,
 void indev_push_character(indev_t *indev, wchar_t ch)
 {
 	assert(indev);
-	
+
 	irq_spinlock_lock(&indev->lock, true);
 	if (indev->counter == INDEV_BUFLEN - 1) {
 		/* Buffer full */
 		irq_spinlock_unlock(&indev->lock, true);
 		return;
 	}
-	
+
 	indev->counter++;
 	indev->buffer[indev->index++] = ch;
-	
+
 	/* Index modulo size of buffer */
 	indev->index = indev->index % INDEV_BUFLEN;
 	waitq_wakeup(&indev->wq, WAKEUP_FIRST);
@@ -101,26 +101,26 @@ wchar_t indev_pop_character(indev_t *indev)
 		 */
 		if (check_poll(indev))
 			return indev->op->poll(indev);
-		
+
 		/* No other way of interacting with user */
 		interrupts_disable();
-		
+
 		if (CPU)
 			printf("cpu%u: ", CPU->id);
 		else
 			printf("cpu: ");
-		
+
 		printf("halted (no polling input)\n");
 		cpu_halt();
 	}
-	
+
 	waitq_sleep(&indev->wq);
 	irq_spinlock_lock(&indev->lock, true);
 	wchar_t ch = indev->buffer[(indev->index - indev->counter) %
 	    INDEV_BUFLEN];
 	indev->counter--;
 	irq_spinlock_unlock(&indev->lock, true);
-	
+
 	return ch;
 }
 
@@ -157,10 +157,10 @@ bool check_poll(indev_t *indev)
 {
 	if (indev == NULL)
 		return false;
-	
+
 	if (indev->op == NULL)
 		return false;
-	
+
 	return (indev->op->poll != NULL);
 }
 

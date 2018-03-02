@@ -104,11 +104,11 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 
 	tmp = str_dup(find_command(cmd));
 	free(found);
-	
+
 	files[0] = io->stdin;
 	files[1] = io->stdout;
 	files[2] = io->stderr;
-	
+
 	for (i = 0; i < 3 && files[i] != NULL; i++) {
 		vfs_fhandle(files[i], &file_handles[i]);
 	}
@@ -122,7 +122,7 @@ unsigned int try_exec(char *cmd, char **argv, iostate_t *io)
 		    str_error(rc));
 		return 1;
 	}
-	
+
 	rc = task_wait(&twait, &texit, &retval);
 	if (rc != EOK) {
 		printf("%s: Failed waiting for command (%s)\n", progname,

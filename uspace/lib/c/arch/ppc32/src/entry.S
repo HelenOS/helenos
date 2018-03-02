@@ -43,7 +43,7 @@ SYMBOL(__entry)
 	li %r3, 0
 	stw %r3, 0(%r1)
 	stwu %r1, -16(%r1)
-	
+
 	# Pass the PCB pointer to __main() as the first argument.
 	# The first argument is passed in r3.
 	mr %r3, %r6

@@ -114,19 +114,19 @@ static errno_t ping_ev_recv(inetping_sdu_t *sdu)
 	errno_t rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK)
 		return ENOMEM;
-	
+
 	char *adest;
 	rc = inet_addr_format(&dest_addr, &adest);
 	if (rc != EOK) {
 		free(asrc);
 		return ENOMEM;
 	}
-	
+
 	printf("Received ICMP echo reply: from %s to %s, seq. no %u, "
 	    "payload size %zu\n", asrc, adest, sdu->seq_no, sdu->size);
-	
+
 	ping_signal_received(RECEIVED_SUCCESS);
-	
+
 	free(asrc);
 	free(adest);
 	return EOK;
@@ -135,56 +135,56 @@ static errno_t ping_ev_recv(inetping_sdu_t *sdu)
 static errno_t ping_send(uint16_t seq_no)
 {
 	inetping_sdu_t sdu;
-	
+
 	sdu.src = src_addr;
 	sdu.dest = dest_addr;
 	sdu.seq_no = seq_no;
 	sdu.data = (void *) "foo";
 	sdu.size = 3;
-	
+
 	errno_t rc = inetping_send(&sdu);
 	if (rc != EOK)
 		printf("Failed sending echo request: %s: %s.\n",
 		    str_error_name(rc), str_error(rc));
-	
+
 	return rc;
 }
 
 static errno_t transmit_fibril(void *arg)
 {
 	uint16_t seq_no = 0;
-	
+
 	while ((repeat_count--) || (repeat_forever)) {
 		fibril_mutex_lock(&received_lock);
 		received = RECEIVED_NONE;
 		fibril_mutex_unlock(&received_lock);
-		
+
 		(void) ping_send(++seq_no);
-		
+
 		fibril_mutex_lock(&received_lock);
 		errno_t rc = fibril_condvar_wait_timeout(&received_cv, &received_lock,
 		    PING_TIMEOUT);
 		received_t recv = received;
 		fibril_mutex_unlock(&received_lock);
-		
+
 		if ((rc == ETIMEOUT) || (recv == RECEIVED_NONE))
 			printf("Echo request timed out (seq. no %u)\n", seq_no);
-		
+
 		if (recv == RECEIVED_INTERRUPT)
 			break;
-		
+
 		if ((repeat_count > 0) || (repeat_forever)) {
 			fibril_mutex_lock(&received_lock);
 			rc = fibril_condvar_wait_timeout(&received_cv, &received_lock,
 			    PING_DELAY);
 			recv = received;
 			fibril_mutex_unlock(&received_lock);
-			
+
 			if (recv == RECEIVED_INTERRUPT)
 				break;
 		}
 	}
-	
+
 	ping_signal_quit();
 	return 0;
 }
@@ -192,12 +192,12 @@ static errno_t transmit_fibril(void *arg)
 static errno_t input_fibril(void *arg)
 {
 	console_ctrl_t *con = console_init(stdin, stdout);
-	
+
 	while (true) {
 		cons_event_t ev;
 		if (!console_get_event(con, &ev))
 			break;
-		
+
 		if ((ev.type == CEV_KEY) && (ev.ev.key.type == KEY_PRESS) &&
 		    ((ev.ev.key.mods & (KM_ALT | KM_SHIFT)) == 0) &&
 		    ((ev.ev.key.mods & KM_CTRL) != 0)) {
@@ -208,7 +208,7 @@ static errno_t input_fibril(void *arg)
 			}
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -220,14 +220,14 @@ int main(int argc, char *argv[])
 	char *host;
 	const char *errmsg;
 	ip_ver_t ip_ver = ip_any;
-	
+
 	errno_t rc = inetping_init(&ev_ops);
 	if (rc != EOK) {
 		printf("Failed connecting to internet ping service: "
 		    "%s: %s.\n", str_error_name(rc), str_error(rc));
 		goto error;
 	}
-	
+
 	int c;
 	while ((c = getopt(argc, argv, short_options)) != -1) {
 		switch (c) {
@@ -254,75 +254,75 @@ int main(int argc, char *argv[])
 			goto error;
 		}
 	}
-	
+
 	if (optind >= argc) {
 		printf("IP address or host name not supplied.\n");
 		print_syntax();
 		goto error;
 	}
-	
+
 	host = argv[optind];
-	
+
 	/* Look up host */
 	rc = inet_host_plookup_one(host, ip_ver, &dest_addr, NULL, &errmsg);
 	if (rc != EOK) {
 		printf("Error resolving host '%s' (%s).\n", host, errmsg);
 		goto error;
 	}
-	
+
 	/* Determine source address */
 	rc = inetping_get_srcaddr(&dest_addr, &src_addr);
 	if (rc != EOK) {
 		printf("Failed determining source address.\n");
 		goto error;
 	}
-	
+
 	rc = inet_addr_format(&src_addr, &asrc);
 	if (rc != EOK) {
 		printf("Out of memory.\n");
 		goto error;
 	}
-	
+
 	rc = inet_addr_format(&dest_addr, &adest);
 	if (rc != EOK) {
 		printf("Out of memory.\n");
 		goto error;
 	}
-	
+
 	if (asprintf(&sdest, "%s (%s)", host, adest) < 0) {
 		printf("Out of memory.\n");
 		goto error;
 	}
-	
+
 	printf("Sending ICMP echo request from %s to %s (Ctrl+Q to quit)\n",
 	    asrc, sdest);
-	
+
 	fid_t fid = fibril_create(transmit_fibril, NULL);
 	if (fid == 0) {
 		printf("Failed creating transmit fibril.\n");
 		goto error;
 	}
-	
+
 	fibril_add_ready(fid);
-	
+
 	fid = fibril_create(input_fibril, NULL);
 	if (fid == 0) {
 		printf("Failed creating input fibril.\n");
 		goto error;
 	}
-	
+
 	fibril_add_ready(fid);
-	
+
 	fibril_mutex_lock(&quit_lock);
 	while (!quit)
 		fibril_condvar_wait(&quit_cv, &quit_lock);
 	fibril_mutex_unlock(&quit_lock);
-	
+
 	free(asrc);
 	free(adest);
 	free(sdest);
 	return 0;
-	
+
 error:
 	free(asrc);
 	free(adest);

@@ -43,7 +43,7 @@ def main():
 	if (len(sys.argv) < 6):
 		usage(sys.argv[0])
 		return
-	
+
 	jobfname = sys.argv[1]
 	ccname = sys.argv[2]
 	srcfname = sys.argv[3]
@@ -52,25 +52,25 @@ def main():
 	tgtfname = sys.argv[5]
 	options = " ".join(sys.argv[6:])
 	cwd = os.getcwd()
-	
+
 	if srcfname.endswith(".c"):
 		toolname = "cc"
 		category = "core"
-	
+
 	if srcfname.endswith(".s"):
 		toolname = "as"
 		category = "asm"
-	
+
 	if srcfname.endswith(".S"):
 		toolname = "as"
 		category = "asm/preproc"
-	
+
 	jobfile = open(jobfname, "a")
 	fcntl.lockf(jobfile, fcntl.LOCK_EX)
 	jobfile.write("{%s},{%s},{%s},{%s},{%s},{%s}\n" % (srcfname, tgtfname, toolname, category, cwd, options))
 	fcntl.lockf(jobfile, fcntl.LOCK_UN)
 	jobfile.close()
-	
+
 	# Run the compiler proper.
 	os.execvp(ccname, sys.argv[2:])
 

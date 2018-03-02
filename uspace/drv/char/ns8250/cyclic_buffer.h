@@ -64,7 +64,7 @@ static inline bool buf_is_empty(cyclic_buffer_t *buf)
 static inline uint8_t buf_pop_front(cyclic_buffer_t *buf)
 {
 	assert(!buf_is_empty(buf));
-	
+
 	uint8_t res = buf->buf[buf->start];
 	buf->start = (buf->start + 1) % BUF_LEN;
 	buf->cnt--;

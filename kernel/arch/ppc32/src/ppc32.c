@@ -90,7 +90,7 @@ void ppc32_pre_main(bootinfo_t *bootinfo)
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->taskmap.tasks[i].name);
 	}
-	
+
 	/* Copy physical memory map. */
 	memmap.total = bootinfo->memmap.total;
 	memmap.cnt = min(bootinfo->memmap.cnt, MEMMAP_MAX_RECORDS);
@@ -98,11 +98,11 @@ void ppc32_pre_main(bootinfo_t *bootinfo)
 		memmap.zones[i].start = bootinfo->memmap.zones[i].start;
 		memmap.zones[i].size = bootinfo->memmap.zones[i].size;
 	}
-	
+
 	/* Copy boot allocations info. */
 	ballocs.base = bootinfo->ballocs.base;
 	ballocs.size = bootinfo->ballocs.size;
-	
+
 	/* Copy OFW tree. */
 	ofw_tree_init(bootinfo->ofw_root);
 }
@@ -111,7 +111,7 @@ void ppc32_pre_mm_init(void)
 {
 	/* Initialize dispatch table */
 	interrupt_init();
-	
+
 	ofw_tree_node_t *cpus_node;
 	ofw_tree_node_t *cpu_node;
 	ofw_tree_property_t *freq_prop;
@@ -143,19 +143,19 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 	uint32_t fb_height = 0;
 	uint32_t fb_scanline = 0;
 	unsigned int visual = VISUAL_UNKNOWN;
-	
+
 	ofw_tree_property_t *prop = ofw_tree_getprop(node, "address");
 	if ((prop) && (prop->value))
 		fb_addr = *((uintptr_t *) prop->value);
-	
+
 	prop = ofw_tree_getprop(node, "width");
 	if ((prop) && (prop->value))
 		fb_width = *((uint32_t *) prop->value);
-	
+
 	prop = ofw_tree_getprop(node, "height");
 	if ((prop) && (prop->value))
 		fb_height = *((uint32_t *) prop->value);
-	
+
 	prop = ofw_tree_getprop(node, "depth");
 	if ((prop) && (prop->value)) {
 		uint32_t fb_bpp = *((uint32_t *) prop->value);
@@ -179,11 +179,11 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 			visual = VISUAL_UNKNOWN;
 		}
 	}
-	
+
 	prop = ofw_tree_getprop(node, "linebytes");
 	if ((prop) && (prop->value))
 		fb_scanline = *((uint32_t *) prop->value);
-	
+
 	if ((fb_addr) && (fb_width > 0) && (fb_height > 0)
 	    && (fb_scanline > 0) && (visual != VISUAL_UNKNOWN)) {
 		fb_properties_t fb_prop = {
@@ -194,12 +194,12 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 			.scan = fb_scanline,
 			.visual = visual,
 		};
-		
+
 		outdev_t *fbdev = fb_init(&fb_prop);
 		if (fbdev)
 			stdout_wire(fbdev);
 	}
-	
+
 	return true;
 }
 #endif
@@ -212,10 +212,10 @@ void ppc32_post_mm_init(void)
 #endif
 		/* Map OFW information into sysinfo */
 		ofw_sysinfo_map();
-		
+
 		/* Initialize IRQ routing */
 		irq_init(IRQ_COUNT, IRQ_COUNT);
-		
+
 		/* Merge all zones to 1 big zone */
 		zone_merge_all();
 	}
@@ -224,25 +224,25 @@ void ppc32_post_mm_init(void)
 static bool macio_register(ofw_tree_node_t *node, void *arg)
 {
 	ofw_pci_reg_t *assigned_address = NULL;
-	
+
 	ofw_tree_property_t *prop = ofw_tree_getprop(node, "assigned-addresses");
 	if ((prop) && (prop->value))
 		assigned_address = ((ofw_pci_reg_t *) prop->value);
-	
+
 	if (assigned_address) {
 		/* Initialize PIC */
 		pic_init(assigned_address[0].addr, PAGE_SIZE, &pic_cir,
 		    &pic_cir_arg);
-		
+
 #ifdef CONFIG_MAC_KBD
 		uintptr_t pa = assigned_address[0].addr + 0x16000;
 		uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
 		size_t offset = pa - aligned_addr;
 		size_t size = 2 * PAGE_SIZE;
-		
+
 		cuda_t *cuda = (cuda_t *) (km_map(aligned_addr, offset + size,
 		    PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
-		
+
 		/* Initialize I/O controller */
 		cuda_instance_t *cuda_instance =
 		    cuda_init(cuda, IRQ_CUDA, pic_cir, pic_cir_arg);
@@ -255,7 +255,7 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 				pic_enable_interrupt(IRQ_CUDA);
 			}
 		}
-		
+
 		/*
 		 * This is the necessary evil until the userspace driver is entirely
 		 * self-sufficient.
@@ -265,7 +265,7 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 		sysinfo_set_item_val("cuda.address.physical", NULL, pa);
 #endif
 	}
-	
+
 	/* Consider only a single device for now */
 	return false;
 }
@@ -298,7 +298,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    (uintptr_t) kernel_uarg->uspace_stack +
 	    kernel_uarg->uspace_stack_size - SP_DELTA,
 	    (uintptr_t) kernel_uarg->uspace_entry);
-	
+
 	/* Unreachable */
 	while (true);
 }

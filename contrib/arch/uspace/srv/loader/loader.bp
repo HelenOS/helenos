@@ -2,19 +2,19 @@
 	?get_taskid {
 		?ipc_m_data_read /* task ID */
 	} +
-	
+
 	?set_pathname {
 		?ipc_m_data_write /* pathname */
 	} +
-	
+
 	?set_args {
 		?ipc_m_data_write /* arguments */
 	} +
-	
+
 	?set_files {
 		?ipc_m_data_write /* files */
 	} +
-	
+
 	?load
 )* ;
 (

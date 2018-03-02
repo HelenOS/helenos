@@ -69,10 +69,10 @@ void __main(void *pcb_ptr)
 {
 	/* Initialize user task run-time environment */
 	__malloc_init();
-	
+
 	/* Save the PCB pointer */
 	__pcb = (pcb_t *) pcb_ptr;
-	
+
 #ifdef CONFIG_RTLD
 	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
 		runtime_env = (rtld_t *) __pcb->rtld_runtime;
@@ -81,26 +81,26 @@ void __main(void *pcb_ptr)
 			abort();
 	}
 #endif
-	
+
 	fibril_t *fibril = fibril_setup();
 	if (fibril == NULL)
 		abort();
-	
+
 	__tcb_set(fibril->tcb);
-	
-	
+
+
 #ifdef FUTEX_UPGRADABLE
 	rcu_register_fibril();
 #endif
-	
+
 	__async_init();
-	
+
 	/* The basic run-time environment is setup */
 	env_setup = true;
-	
+
 	int argc;
 	char **argv;
-	
+
 	/*
 	 * Get command line arguments and initialize
 	 * standard input and output
@@ -117,7 +117,7 @@ void __main(void *pcb_ptr)
 		vfs_root_set(inbox_get("root"));
 		(void) vfs_cwd_set(__pcb->cwd);
 	}
-	
+
 	/*
 	 * Run main() and set task return value
 	 * according the result
@@ -133,9 +133,9 @@ void exit(int status)
 		task_retval(status);
 		fibril_teardown(__tcb_get()->fibril_data, false);
 	}
-	
+
 	__SYSCALL1(SYS_TASK_EXIT, false);
-	
+
 	/* Unreachable */
 	while (1);
 }
@@ -143,7 +143,7 @@ void exit(int status)
 void abort(void)
 {
 	__SYSCALL1(SYS_TASK_EXIT, true);
-	
+
 	/* Unreachable */
 	while (1);
 }

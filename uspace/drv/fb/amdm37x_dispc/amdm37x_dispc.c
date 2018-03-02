@@ -283,7 +283,7 @@ static errno_t change_mode(visualizer_t *vis, vslmode_t mode)
 	}
 	if (dispc->fb_data)
 		dmamem_unmap_anonymous(dispc->fb_data);
-	
+
 	dispc->fb_data = buffer;
 	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp *8, (uint32_t)pa);
 	dispc->active_fb.idx = mode.index;

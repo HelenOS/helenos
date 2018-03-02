@@ -55,7 +55,7 @@
 typedef struct async_call {
 	ipc_async_callback_t callback;
 	void *private;
-	
+
 	struct {
 		ipc_call_t data;
 	} msg;
@@ -77,13 +77,13 @@ static inline async_call_t *ipc_prepare_async(void *private,
 	if (!call) {
 		if (callback)
 			callback(private, ENOMEM, NULL);
-		
+
 		return NULL;
 	}
-	
+
 	call->callback = callback;
 	call->private = private;
-	
+
 	return call;
 }
 
@@ -98,12 +98,12 @@ static inline void ipc_finish_async(errno_t rc, async_call_t *call)
 		/* Nothing to do regardless if failed or not */
 		return;
 	}
-	
+
 	if (rc != EOK) {
 		/* Call asynchronous handler with error code */
 		if (call->callback)
 			call->callback(call->private, ENOENT, NULL);
-		
+
 		free(call);
 		return;
 	}
@@ -134,10 +134,10 @@ void ipc_call_async_fast(cap_handle_t phandle, sysarg_t imethod, sysarg_t arg1,
 	async_call_t *call = ipc_prepare_async(private, callback);
 	if (!call)
 		return;
-	
+
 	errno_t rc = (errno_t) __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phandle, imethod, arg1,
 	    arg2, arg3, (sysarg_t) call);
-	
+
 	ipc_finish_async(rc, call);
 }
 
@@ -166,17 +166,17 @@ void ipc_call_async_slow(int phandle, sysarg_t imethod, sysarg_t arg1,
 	async_call_t *call = ipc_prepare_async(private, callback);
 	if (!call)
 		return;
-	
+
 	IPC_SET_IMETHOD(call->msg.data, imethod);
 	IPC_SET_ARG1(call->msg.data, arg1);
 	IPC_SET_ARG2(call->msg.data, arg2);
 	IPC_SET_ARG3(call->msg.data, arg3);
 	IPC_SET_ARG4(call->msg.data, arg4);
 	IPC_SET_ARG5(call->msg.data, arg5);
-	
+
 	errno_t rc = (errno_t) __SYSCALL3(SYS_IPC_CALL_ASYNC_SLOW, phandle,
 	    (sysarg_t) &call->msg.data, (sysarg_t) call);
-	
+
 	ipc_finish_async(rc, call);
 }
 
@@ -221,14 +221,14 @@ errno_t ipc_answer_slow(cap_handle_t chandle, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
 	ipc_call_t data;
-	
+
 	IPC_SET_RETVAL(data, retval);
 	IPC_SET_ARG1(data, arg1);
 	IPC_SET_ARG2(data, arg2);
 	IPC_SET_ARG3(data, arg3);
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
-	
+
 	return (errno_t) __SYSCALL2(SYS_IPC_ANSWER_SLOW, chandle, (sysarg_t) &data);
 }
 
@@ -260,13 +260,13 @@ static void handle_answer(ipc_call_t *data)
 errno_t ipc_wait_cycle(ipc_call_t *call, sysarg_t usec, unsigned int flags)
 {
 	errno_t rc = (errno_t) __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
-	
+
 	/* Handle received answers */
 	if ((rc == EOK) && (call->cap_handle == CAP_NIL) &&
 	    (call->flags & IPC_CALL_ANSWERED)) {
 		handle_answer(call);
 	}
-	
+
 	return rc;
 }
 
@@ -291,11 +291,11 @@ void ipc_poke(void)
 errno_t ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
 {
 	errno_t rc;
-	
+
 	do {
 		rc = ipc_wait_cycle(call, usec, SYNCH_FLAGS_NONE);
 	} while ((rc == EOK) && (call->cap_handle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED));
-	
+
 	return rc;
 }
 
@@ -311,12 +311,12 @@ errno_t ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
 errno_t ipc_trywait_for_call(ipc_call_t *call)
 {
 	errno_t rc;
-	
+
 	do {
 		rc = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT,
 		    SYNCH_FLAGS_NON_BLOCKING);
 	} while ((rc == EOK) && (call->cap_handle == CAP_NIL) && (call->flags & IPC_CALL_ANSWERED));
-	
+
 	return rc;
 }
 
@@ -361,14 +361,14 @@ errno_t ipc_forward_slow(cap_handle_t chandle, cap_handle_t phandle,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode)
 {
 	ipc_call_t data;
-	
+
 	IPC_SET_IMETHOD(data, imethod);
 	IPC_SET_ARG1(data, arg1);
 	IPC_SET_ARG2(data, arg2);
 	IPC_SET_ARG3(data, arg3);
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
-	
+
 	return (errno_t) __SYSCALL4(SYS_IPC_FORWARD_SLOW, chandle, phandle,
 	    (sysarg_t) &data, mode);
 }

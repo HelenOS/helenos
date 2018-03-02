@@ -57,13 +57,13 @@ fun_node_t *create_fun_node(void)
 	fun = calloc(1, sizeof(fun_node_t));
 	if (fun == NULL)
 		return NULL;
-	
+
 	fun->state = FUN_INIT;
 	atomic_set(&fun->refcnt, 0);
 	fibril_mutex_initialize(&fun->busy_lock);
 	link_initialize(&fun->dev_functions);
 	list_initialize(&fun->match_ids.ids);
-	
+
 	return fun;
 }
 
@@ -75,7 +75,7 @@ void delete_fun_node(fun_node_t *fun)
 {
 	assert(fun->dev == NULL);
 	assert(fun->child == NULL);
-	
+
 	clean_match_ids(&fun->match_ids);
 	free(fun->name);
 	free(fun->pathname);
@@ -124,15 +124,15 @@ void fun_busy_unlock(fun_node_t *fun)
 fun_node_t *find_fun_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 {
 	fun_node_t *fun;
-	
+
 	assert(fibril_rwlock_is_locked(&tree->rwlock));
-	
+
 	ht_link_t *link = hash_table_find(&tree->devman_functions, &handle);
 	if (link == NULL)
 		return NULL;
-	
+
 	fun = hash_table_get_inst(link, fun_node_t, devman_fun);
-	
+
 	return fun;
 }
 
@@ -145,15 +145,15 @@ fun_node_t *find_fun_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle)
 {
 	fun_node_t *fun = NULL;
-	
+
 	fibril_rwlock_read_lock(&tree->rwlock);
-	
+
 	fun = find_fun_node_no_lock(tree, handle);
 	if (fun != NULL)
 		fun_add_ref(fun);
-	
+
 	fibril_rwlock_read_unlock(&tree->rwlock);
-	
+
 	return fun;
 }
 
@@ -169,17 +169,17 @@ bool set_fun_path(dev_tree_t *tree, fun_node_t *fun, fun_node_t *parent)
 {
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	assert(fun->name != NULL);
-	
+
 	size_t pathsize = (str_size(fun->name) + 1);
 	if (parent != NULL)
 		pathsize += str_size(parent->pathname) + 1;
-	
+
 	fun->pathname = (char *) malloc(pathsize);
 	if (fun->pathname == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to allocate device path.");
 		return false;
 	}
-	
+
 	if (parent != NULL) {
 		str_cpy(fun->pathname, pathsize, parent->pathname);
 		str_append(fun->pathname, pathsize, "/");
@@ -187,7 +187,7 @@ bool set_fun_path(dev_tree_t *tree, fun_node_t *fun, fun_node_t *parent)
 	} else {
 		str_cpy(fun->pathname, pathsize, fun->name);
 	}
-	
+
 	return true;
 }
 
@@ -208,7 +208,7 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 	}
 
 	fibril_rwlock_read_lock(&tree->rwlock);
-	
+
 	fun_node_t *fun = tree->root_node;
 	fun_add_ref(fun);
 	/*
@@ -218,7 +218,7 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 	char *rel_path = path;
 	char *next_path_elem = NULL;
 	bool cont = (rel_path[1] != '\0');
-	
+
 	while (cont && fun != NULL) {
 		next_path_elem  = get_path_elem_end(rel_path + 1);
 		if (next_path_elem[0] == '/') {
@@ -227,20 +227,20 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 		} else {
 			cont = false;
 		}
-		
+
 		fun_node_t *cfun = find_node_child(tree, fun, rel_path + 1);
 		fun_del_ref(fun);
 		fun = cfun;
-		
+
 		if (cont) {
 			/* Restore the original path. */
 			next_path_elem[0] = '/';
 		}
 		rel_path = next_path_elem;
 	}
-	
+
 	fibril_rwlock_read_unlock(&tree->rwlock);
-	
+
 	return fun;
 }
 
@@ -298,36 +298,36 @@ static errno_t assign_driver_fibril(void *arg)
 errno_t fun_online(fun_node_t *fun)
 {
 	dev_node_t *dev;
-	
+
 	fibril_rwlock_write_lock(&device_tree.rwlock);
-	
+
 	if (fun->state == FUN_ON_LINE) {
 		fibril_rwlock_write_unlock(&device_tree.rwlock);
 		log_msg(LOG_DEFAULT, LVL_WARN, "Function %s is already on line.",
 		    fun->pathname);
 		return EOK;
 	}
-	
+
 	if (fun->ftype == fun_inner) {
 		dev = create_dev_node();
 		if (dev == NULL) {
 			fibril_rwlock_write_unlock(&device_tree.rwlock);
 			return ENOMEM;
 		}
-		
+
 		insert_dev_node(&device_tree, dev, fun);
 		dev_add_ref(dev);
 	}
-	
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "devman_add_function(fun=\"%s\")", fun->pathname);
-	
+
 	if (fun->ftype == fun_inner) {
 		dev = fun->child;
 		assert(dev != NULL);
-		
+
 		/* Give one reference over to assign_driver_fibril(). */
 		dev_add_ref(dev);
-		
+
 		/*
 		 * Try to find a suitable driver and assign it to the device.  We do
 		 * not want to block the current fibril that is used for processing
@@ -346,37 +346,37 @@ errno_t fun_online(fun_node_t *fun)
 		fibril_add_ready(assign_fibril);
 	} else
 		loc_register_tree_function(fun, &device_tree);
-	
+
 	fun->state = FUN_ON_LINE;
 	fibril_rwlock_write_unlock(&device_tree.rwlock);
-	
+
 	return EOK;
 }
 
 errno_t fun_offline(fun_node_t *fun)
 {
 	errno_t rc;
-	
+
 	fibril_rwlock_write_lock(&device_tree.rwlock);
-	
+
 	if (fun->state == FUN_OFF_LINE) {
 		fibril_rwlock_write_unlock(&device_tree.rwlock);
 		log_msg(LOG_DEFAULT, LVL_WARN, "Function %s is already off line.",
 		    fun->pathname);
 		return EOK;
 	}
-	
+
 	if (fun->ftype == fun_inner) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Offlining inner function %s.",
 		    fun->pathname);
-		
+
 		if (fun->child != NULL) {
 			dev_node_t *dev = fun->child;
 			device_state_t dev_state;
-			
+
 			dev_add_ref(dev);
 			dev_state = dev->state;
-			
+
 			fibril_rwlock_write_unlock(&device_tree.rwlock);
 
 			/* If device is owned by driver, ask driver to give it up. */
@@ -387,7 +387,7 @@ errno_t fun_offline(fun_node_t *fun)
 					return ENOTSUP;
 				}
 			}
-			
+
 			/* Verify that driver removed all functions */
 			fibril_rwlock_read_lock(&device_tree.rwlock);
 			if (!list_empty(&dev->functions)) {
@@ -395,16 +395,16 @@ errno_t fun_offline(fun_node_t *fun)
 				dev_del_ref(dev);
 				return EIO;
 			}
-			
+
 			driver_t *driver = dev->drv;
 			fibril_rwlock_read_unlock(&device_tree.rwlock);
-			
+
 			if (driver)
 				detach_driver(&device_tree, dev);
-			
+
 			fibril_rwlock_write_lock(&device_tree.rwlock);
 			remove_dev_node(&device_tree, dev);
-			
+
 			/* Delete ref created when node was inserted */
 			dev_del_ref(dev);
 			/* Delete ref created by dev_add_ref(dev) above */
@@ -418,13 +418,13 @@ errno_t fun_offline(fun_node_t *fun)
 			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed unregistering tree service.");
 			return EIO;
 		}
-		
+
 		fun->service_id = 0;
 	}
-	
+
 	fun->state = FUN_OFF_LINE;
 	fibril_rwlock_write_unlock(&device_tree.rwlock);
-	
+
 	return EOK;
 }
 

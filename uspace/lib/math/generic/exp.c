@@ -63,12 +63,12 @@ static float32_t taylor_exp_32(float32_t arg)
 {
 	float32_t ret = 1;
 	float32_t nom = 1;
-	
+
 	for (unsigned int i = 0; i < TAYLOR_DEGREE_32; i++) {
 		nom *= arg;
 		ret += nom / factorials[i];
 	}
-	
+
 	return ret;
 }
 
@@ -88,12 +88,12 @@ static float64_t taylor_exp_64(float64_t arg)
 {
 	float64_t ret = 1;
 	float64_t nom = 1;
-	
+
 	for (unsigned int i = 0; i < TAYLOR_DEGREE_64; i++) {
 		nom *= arg;
 		ret += nom / factorials[i];
 	}
-	
+
 	return ret;
 }
 

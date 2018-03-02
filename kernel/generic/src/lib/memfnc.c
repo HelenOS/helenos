@@ -56,10 +56,10 @@
 void *memset(void *dst, int val, size_t cnt)
 {
 	uint8_t *dp = (uint8_t *) dst;
-	
+
 	while (cnt-- != 0)
 		*dp++ = val;
-	
+
 	return dst;
 }
 
@@ -79,10 +79,10 @@ void *memcpy(void *dst, const void *src, size_t cnt)
 {
 	uint8_t *dp = (uint8_t *) dst;
 	const uint8_t *sp = (uint8_t *) src;
-	
+
 	while (cnt-- != 0)
 		*dp++ = *sp++;
-	
+
 	return dst;
 }
 

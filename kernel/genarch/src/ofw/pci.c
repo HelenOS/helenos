@@ -62,12 +62,12 @@ ofw_pci_apply_ranges(ofw_tree_node_t *node, ofw_pci_reg_t *reg, uintptr_t *pa)
 			return ofw_pci_apply_ranges(node->parent, reg, pa);
 		return false;
 	}
-		
+
 	ranges = prop->size / sizeof(ofw_pci_range_t);
 	range = prop->value;
-	
+
 	unsigned int i;
-	
+
 	for (i = 0; i < ranges; i++) {
 		if ((reg->space & PCI_SPACE_MASK) !=
 		    (range[i].space & PCI_SPACE_MASK))
@@ -94,20 +94,20 @@ ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg,
 		out->size = reg->size;
 		return true;
 	}
-	
+
 	ofw_tree_property_t *prop;
 	ofw_pci_reg_t *assigned_address;
 	size_t assigned_addresses;
-	
+
 	prop = ofw_tree_getprop(node, "assigned-addresses");
 	if (!prop)
 		panic("Cannot find 'assigned-addresses' property.");
-	
+
 	assigned_addresses = prop->size / sizeof(ofw_pci_reg_t);
 	assigned_address = prop->value;
-	
+
 	unsigned int i;
-	
+
 	for (i = 0; i < assigned_addresses; i++) {
 		if ((assigned_address[i].space & PCI_REG_MASK) ==
 		    (reg->space & PCI_REG_MASK)) {
@@ -117,7 +117,7 @@ ofw_pci_reg_absolutize(ofw_tree_node_t *node, ofw_pci_reg_t *reg,
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 

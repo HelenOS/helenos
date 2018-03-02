@@ -110,7 +110,7 @@ static int ls_cmp(const void *a, const void *b)
 {
 	struct dir_elem_t const *da = a;
 	struct dir_elem_t const *db = b;
-	
+
 	if ((da->s.is_directory && db->s.is_file) ||
 	    ((da->s.is_directory == db->s.is_directory) &&
 	    str_cmp(da->name, db->name) < 0))
@@ -140,7 +140,7 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 	struct dir_elem_t *tmp;
 	struct dir_elem_t *tosort;
 	struct dirent *dp;
-	
+
 	if (!dirp)
 		return -1;
 
@@ -149,18 +149,18 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
 		return -1;
 	}
-	
+
 	tosort = (struct dir_elem_t *) malloc(alloc_blocks * sizeof(*tosort));
 	if (!tosort) {
 		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
 		free(buff);
 		return -1;
 	}
-	
+
 	while ((dp = readdir(dirp))) {
 		if (nbdirs + 1 > alloc_blocks) {
 			alloc_blocks += alloc_blocks;
-			
+
 			tmp = (struct dir_elem_t *) realloc(tosort,
 			    alloc_blocks * sizeof(struct dir_elem_t));
 			if (!tmp) {
@@ -169,7 +169,7 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 			}
 			tosort = tmp;
 		}
-		
+
 		/* fill the name field */
 		tosort[nbdirs].name = (char *) malloc(str_size(dp->d_name) + 1);
 		if (!tosort[nbdirs].name) {
@@ -188,10 +188,10 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 			goto out;
 		}
 	}
-	
+
 	if (ls.sort)
 		qsort(&tosort[0], nbdirs, sizeof(struct dir_elem_t), ls_cmp);
-	
+
 	for (i = 0; i < nbdirs; i++)
 		ls_print(&tosort[i]);
 
@@ -213,7 +213,7 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 			}
 		}
 	}
-	
+
 out:
 	for(i = 0; i < nbdirs; i++)
 		free(tosort[i].name);
@@ -238,7 +238,7 @@ static unsigned int ls_recursive(const char *path, DIR *dirp)
 	char *subdir_path;
 	DIR *subdirp;
 	struct dir_elem_t *dir_list;
-	
+
 	const char * const trailing_slash = "/";
 
 	nbdirs = 0;
@@ -293,7 +293,7 @@ static unsigned int ls_recursive(const char *path, DIR *dirp)
 			goto out;
 		}
 	}
-   
+
 	ret = CMD_SUCCESS;
 
 out:
@@ -354,7 +354,7 @@ int cmd_ls(char **argv)
 	}
 
 	argc = cli_count_args(argv);
-	
+
 	for (c = 0, optreset = 1, optind = 0, opt_ind = 0; c != -1;) {
 		c = getopt_long(argc, argv, "hur", long_options, &opt_ind);
 		switch (c) {

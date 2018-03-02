@@ -37,31 +37,31 @@
 .section K_UNMAPPED_TEXT_START, "ax"
 
 .macro CONTEXT_STORE
-	
+
 	# save r12 in SPRG1, backup CR in r12
 	# save SP in SPRG2
-	
+
 	mtsprg1 r12
 	mfcr r12
 	mtsprg2 sp
-	
+
 	# check whether the previous mode was user or kernel
-	
+
 	mfsrr1 sp # use sp as a temporary register to hold SRR1
 	andi. sp, sp, MSR_PR
 	bne 1f
 		# previous mode was kernel
-		
+
 		mfsprg2 sp
 		subis sp, sp, 0x8000
 	b 2f
-	
+
 	1:
 		# previous mode was user
-		
+
 		mfsprg0 sp
 	2:
-	
+
 	subi sp, sp, ALIGN_UP(ISTATE_SIZE, STACK_ALIGNMENT)
 	stw r0, ISTATE_OFFSET_R0(sp)
 	stw r2, ISTATE_OFFSET_R2(sp)
@@ -93,30 +93,30 @@
 	stw r29, ISTATE_OFFSET_R29(sp)
 	stw r30, ISTATE_OFFSET_R30(sp)
 	stw r31, ISTATE_OFFSET_R31(sp)
-	
+
 	stw r12, ISTATE_OFFSET_CR(sp)
-	
+
 	mfsrr0 r12
 	stw r12, ISTATE_OFFSET_PC(sp)
-	
+
 	mfsrr1 r12
 	stw r12, ISTATE_OFFSET_SRR1(sp)
-	
+
 	mflr r12
 	stw r12, ISTATE_OFFSET_LR(sp)
-	
+
 	mfctr r12
 	stw r12, ISTATE_OFFSET_CTR(sp)
-	
+
 	mfxer r12
 	stw r12, ISTATE_OFFSET_XER(sp)
-	
+
 	mfdar r12
 	stw r12, ISTATE_OFFSET_DAR(sp)
-	
+
 	mfsprg1 r12
 	stw r12, ISTATE_OFFSET_R12(sp)
-	
+
 	mfsprg2 r12
 	stw r12, ISTATE_OFFSET_SP(sp)
 
@@ -128,111 +128,111 @@
 .org 0x100
 SYMBOL(exc_system_reset)
 	CONTEXT_STORE
-	
+
 	li r3, 0
 	b jump_to_kernel
 
 .org 0x200
 SYMBOL(exc_machine_check)
 	CONTEXT_STORE
-	
+
 	li r3, 1
 	b jump_to_kernel
 
 .org 0x300
 SYMBOL(exc_data_storage)
 	CONTEXT_STORE
-	
+
 	li r3, 2
 	b jump_to_kernel
 
 .org 0x400
 SYMBOL(exc_instruction_storage)
 	CONTEXT_STORE
-	
+
 	li r3, 3
 	b jump_to_kernel
 
 .org 0x500
 SYMBOL(exc_external)
 	CONTEXT_STORE
-	
+
 	li r3, 4
 	b jump_to_kernel
 
 .org 0x600
 SYMBOL(exc_alignment)
 	CONTEXT_STORE
-	
+
 	li r3, 5
 	b jump_to_kernel
 
 .org 0x700
 SYMBOL(exc_program)
 	CONTEXT_STORE
-	
+
 	li r3, 6
 	b jump_to_kernel
 
 .org 0x800
 SYMBOL(exc_fp_unavailable)
 	CONTEXT_STORE
-	
+
 	li r3, 7
 	b jump_to_kernel
 
 .org 0x900
 SYMBOL(exc_decrementer)
 	CONTEXT_STORE
-	
+
 	li r3, 8
 	b jump_to_kernel
 
 .org 0xa00
 SYMBOL(exc_reserved0)
 	CONTEXT_STORE
-	
+
 	li r3, 9
 	b jump_to_kernel
 
 .org 0xb00
 SYMBOL(exc_reserved1)
 	CONTEXT_STORE
-	
+
 	li r3, 10
 	b jump_to_kernel
 
 .org 0xc00
 SYMBOL(exc_syscall)
 	CONTEXT_STORE
-	
+
 	b jump_to_kernel_syscall
 
 .org 0xd00
 SYMBOL(exc_trace)
 	CONTEXT_STORE
-	
+
 	li r3, 12
 	b jump_to_kernel
 
 .org 0x1000
 SYMBOL(exc_itlb_miss)
 	CONTEXT_STORE
-	
+
 	li r3, 13
 	b jump_to_kernel
 
 .org 0x1100
 SYMBOL(exc_dtlb_miss_load)
 	CONTEXT_STORE
-	
+
 	li r3, 14
 	b jump_to_kernel
 
 .org 0x1200
 SYMBOL(exc_dtlb_miss_store)
 	CONTEXT_STORE
-	
+
 	li r3, 15
 	b jump_to_kernel
 
@@ -243,7 +243,7 @@ jump_to_kernel:
 	bne 1f
 		# Previous mode was kernel.
 		# We can construct a proper frame linkage.
-		
+
 		mfsrr0 r12
 		stw r12, ISTATE_OFFSET_LR_FRAME(sp)
 		mfsprg2 r12
@@ -264,17 +264,17 @@ jump_to_kernel:
 	or r12, r12, r5		# Propagate MSR_FP from SRR1 to MSR
 	ori r12, r12, (MSR_IR | MSR_DR)
 	mtsrr1 r12
-	
+
 	addis sp, sp, 0x8000
 	mr r4, sp
-	
+
 	rfi
 
 jump_to_kernel_syscall:
 	lis r12, syscall_handler@ha
 	addi r12, r12, syscall_handler@l
 	mtsrr0 r12
-	
+
 	lis r12, iret_syscall@ha
 	addi r12, r12, iret_syscall@l
 	mtlr r12
@@ -285,6 +285,6 @@ jump_to_kernel_syscall:
 	or r12, r12, r0		# Propagate MSR_FP from SRR1 to MSR
 	ori r12, r12, (MSR_IR | MSR_DR | MSR_EE)
 	mtsrr1 r12
-	
+
 	addis sp, sp, 0x8000
 	rfi

@@ -60,19 +60,19 @@ typedef struct usb_hid_subdriver_mapping {
 	 * to NULL.
 	 */
 	const usb_hid_subdriver_usage_t *usage_path;
-	
+
 	/** Report ID for which the path should apply. */
 	int report_id;
-	
+
 	/** Compare type for the usage path. */
 	int compare;
-	
+
 	/** Vendor ID (set to -1 if not specified). */
 	int vendor_id;
-	
+
 	/** Product ID (set to -1 if not specified). */
 	int product_id;
-	
+
 	/** Subdriver for controlling this device. */
 	const usb_hid_subdriver_t subdriver;
 } usb_hid_subdriver_mapping_t;

@@ -61,10 +61,10 @@ static void vfs_pager(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
-		
+
 		if (!IPC_GET_IMETHOD(call))
 			break;
-		
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PAGE_IN:
 			vfs_page_in(callid, &call);
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	errno_t rc;
 
 	printf("%s: HelenOS VFS server\n", NAME);
-	
+
 	/*
 	 * Initialize VFS node hash table.
 	 */
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 		    NAME);
 		return ENOMEM;
 	}
-	
+
 	/*
 	 * Allocate and initialize the Path Lookup Buffer.
 	 */
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 		return ENOMEM;
 	}
 	memset(plb, 0, PLB_SIZE);
-	
+
 	/*
 	 * Set client data constructor and destructor.
 	 */
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 	 */
 	async_event_task_subscribe(EVENT_TASK_STATE_CHANGE, notification_handler,
 	    NULL);
-	
+
 	/*
 	 * Register at the naming service.
 	 */
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 		printf("%s: Cannot register VFS service: %s\n", NAME, str_error(rc));
 		return rc;
 	}
-	
+
 	/*
 	 * Start accepting connections.
 	 */

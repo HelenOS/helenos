@@ -51,7 +51,7 @@ typedef struct {
 static void dsrlnout_putchar(outdev_t *dev, const wchar_t ch)
 {
 	dsrlnout_instance_t *instance = (dsrlnout_instance_t *) dev->data;
-	
+
 	if ((!instance->parea.mapped) || (console_override)) {
 		if (ascii_check(ch))
 			pio_write_8(instance->base, ch);
@@ -72,17 +72,17 @@ outdev_t *dsrlnout_init(ioport8_t *base)
 	outdev_t *dsrlndev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
 	if (!dsrlndev)
 		return NULL;
-	
+
 	dsrlnout_instance_t *instance = malloc(sizeof(dsrlnout_instance_t),
 	    FRAME_ATOMIC);
 	if (!instance) {
 		free(dsrlndev);
 		return NULL;
 	}
-	
+
 	outdev_initialize("dsrlndev", dsrlndev, &dsrlndev_ops);
 	dsrlndev->data = instance;
-	
+
 	instance->base = base;
 	link_initialize(&instance->parea.link);
 	instance->parea.pbase = KA2PA(base);
@@ -90,7 +90,7 @@ outdev_t *dsrlnout_init(ioport8_t *base)
 	instance->parea.unpriv = false;
 	instance->parea.mapped = false;
 	ddi_parea_register(&instance->parea);
-	
+
 	if (!fb_exported) {
 		/*
 		 * This is the necessary evil until
@@ -100,10 +100,10 @@ outdev_t *dsrlnout_init(ioport8_t *base)
 		sysinfo_set_item_val("fb", NULL, true);
 		sysinfo_set_item_val("fb.kind", NULL, 3);
 		sysinfo_set_item_val("fb.address.physical", NULL, KA2PA(base));
-		
+
 		fb_exported = true;
 	}
-	
+
 	return dsrlndev;
 }
 
