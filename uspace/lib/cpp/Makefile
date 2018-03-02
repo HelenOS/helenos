@@ -41,6 +41,7 @@ SOURCES = \
 	src/ios.cpp \
 	src/iostream.cpp \
 	src/locale.cpp \
+	src/mutex.cpp \
 	src/new.cpp \
 	src/string.cpp \
 	src/thread.cpp \

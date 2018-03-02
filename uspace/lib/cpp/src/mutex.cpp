@@ -30,7 +30,7 @@
 
 namespace std
 {
-    mutex::mutex()
+    constexpr mutex::mutex() noexcept
         : mtx_{}
     {
         fibril_mutex_initialize(&mtx_);
@@ -70,7 +70,7 @@ namespace std
         return mtx_;
     }
 
-    recursive_mutex::recursive_mutex()
+    constexpr recursive_mutex::recursive_mutex() noexcept
         : mtx_{}, lock_level_{}, owner_{}
     {
         fibril_mutex_initialize(&mtx_);

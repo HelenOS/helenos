@@ -33,13 +33,13 @@
 #include <internal/common.hpp>
 #include <ostream>
 
-extern "C" {
-    #include <fibril.h>
-    #include <fibril_synch.h>
-}
-
 namespace std
 {
+    extern "C" {
+        #include <fibril.h>
+        #include <fibril_synch.h>
+    }
+
     namespace aux
     {
         template<class Callable>
@@ -224,7 +224,7 @@ namespace std
             auto now = Clock::now();
             auto usecs = chrono::duration_cast<chrono::duration<typename Duration::rep, micro>>(abs_time - now);
 
-            std::fibril_usleep(usecs.count());
+            fibril_usleep(usecs.count());
         }
 
         template<class Rep, class Period>
@@ -235,7 +235,7 @@ namespace std
 
             // TODO: timeouts?
             auto usecs = chrono::duration_cast<chrono::duration<Rep, micro>>(rel_time);
-            std::fibril_usleep(usecs.count());
+            fibril_usleep(usecs.count());
         }
     }
 
@@ -245,7 +245,7 @@ namespace std
     class thread::id
     {
         public:
-            id() noexcept
+            constexpr id() noexcept
                 : id_{}
             { /* DUMMY BODY */ }
 

@@ -29,14 +29,16 @@
 #ifndef LIBCPP_MUTEX
 #define LIBCPP_MUTEX
 
+#include <internal/common.hpp>
 #include <thread>
-
-extern "C" {
-#include <fibril_synch.h>
-}
 
 namespace std
 {
+    extern "C" {
+    #include <fibril.h>
+    #include <fibril_synch.h>
+    }
+
     /**
      * 20.4.1.2.1, class mutex:
      */
