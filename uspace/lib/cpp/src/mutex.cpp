@@ -67,7 +67,7 @@ namespace std
 
     mutex::native_handle_type mutex::native_handle()
     {
-        return mtx_;
+        return &mtx_;
     }
 
     constexpr recursive_mutex::recursive_mutex() noexcept
@@ -120,6 +120,6 @@ namespace std
 
     recursive_mutex::native_handle_type recursive_mutex::native_handle()
     {
-        return mtx_;
+        return &mtx_;
     }
 }

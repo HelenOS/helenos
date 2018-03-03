@@ -35,8 +35,8 @@
 namespace std
 {
     extern "C" {
-    #include <fibril.h>
-    #include <fibril_synch.h>
+        #include <fibril.h>
+        #include <fibril_synch.h>
     }
 
     /**
@@ -56,7 +56,7 @@ namespace std
             bool try_lock();
             void unlock();
 
-            using native_handle_type = fibril_mutex_t;
+            using native_handle_type = fibril_mutex_t*;
             native_handle_type native_handle();
 
         private:
@@ -80,7 +80,7 @@ namespace std
             bool try_lock();
             void unlock();
 
-            using native_handle_type = fibril_mutex_t;
+            using native_handle_type = fibril_mutex_t*;
             native_handle_type native_handle();
 
         private:
