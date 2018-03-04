@@ -752,66 +752,16 @@ restart:
 	goto restart;
 }
 
-static bool phone_cap_wait_cb(cap_t *cap, void *arg)
-{
-	phone_t *phone = cap->kobject->phone;
-	bool *restart = (bool *) arg;
-
-	mutex_lock(&phone->lock);
-
-	/*
-	 * We might have had some IPC_PHONE_CONNECTING phones at the beginning
-	 * of ipc_cleanup(). Depending on whether these were forgotten or
-	 * answered, they will eventually enter the IPC_PHONE_FREE or
-	 * IPC_PHONE_CONNECTED states, respectively.  In the latter case, the
-	 * other side may slam the open phones at any time, in which case we
-	 * will get an IPC_PHONE_SLAMMED phone.
-	 */
-	if ((phone->state == IPC_PHONE_CONNECTED) ||
-	    (phone->state == IPC_PHONE_SLAMMED)) {
-		mutex_unlock(&phone->lock);
-		ipc_phone_hangup(phone);
-		/*
-		 * Now there may be one extra active call, which needs to be
-		 * forgotten.
-		 */
-		ipc_forget_all_active_calls();
-		*restart = true;
-		return false;
-	}
-
-	/*
-	 * If the hangup succeeded, it has sent a HANGUP message, the IPC is now
-	 * in HUNGUP state, we wait for the reply to come
-	 */
-	if (phone->state != IPC_PHONE_FREE) {
-		mutex_unlock(&phone->lock);
-		return false;
-	}
-
-	mutex_unlock(&phone->lock);
-	return true;
-}
-
 /** Wait for all answers to asynchronous calls to arrive. */
 static void ipc_wait_for_all_answered_calls(void)
 {
 	call_t *call;
-	bool restart;
 
 restart:
-	/*
-	 * Go through all phones, until they are all free.
-	 */
-	restart = false;
-	if (caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_PHONE,
-	    phone_cap_wait_cb, &restart) &&
-	    atomic_get(&TASK->answerbox.active_calls) == 0) {
+	if (atomic_get(&TASK->answerbox.active_calls) == 0) {
 		/* Got into cleanup */
 		return;
 	}
-	if (restart)
-		goto restart;
 
 	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
 	    SYNCH_FLAGS_NONE);
