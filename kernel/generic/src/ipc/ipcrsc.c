@@ -218,7 +218,14 @@ bool phone_connect(cap_handle_t handle, answerbox_t *box)
 	if (!phone_obj)
 		return false;
 
-	assert(phone_obj->phone->state == IPC_PHONE_CONNECTING);
+	if (phone_obj->phone->state != IPC_PHONE_CONNECTING) {
+		/*
+		 * This looks like another phone. The one we were expecting
+		 * under this handle must be in the IPC_PHONE_CONNECTING state.
+		 */
+		kobject_put(phone_obj);
+		return false;
+	}
 
 	/* Hand over phone_obj reference to the answerbox */
 	return ipc_phone_connect(phone_obj->phone, box);
