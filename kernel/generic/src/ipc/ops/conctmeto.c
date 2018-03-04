@@ -51,9 +51,17 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 		return rc;
 	}
 
-	/* Set arg5 for server */
+	/* Set ARG5 for server */
 	kobject_t *phone_obj = kobject_get(TASK, phone_handle,
 	    KOBJECT_TYPE_PHONE);
+	if (!phone_obj) {
+		/*
+		 * Another thread of the same task can destroy the new
+		 * capability before we manage to get a reference from it.
+		 */
+		call->priv = -1;
+		return ENOENT;
+	}
 	/* Hand over phone_obj's reference to ARG5 */
 	IPC_SET_ARG5(call->data, (sysarg_t) phone_obj->phone);
 
