@@ -755,22 +755,15 @@ restart:
 /** Wait for all answers to asynchronous calls to arrive. */
 static void ipc_wait_for_all_answered_calls(void)
 {
-	call_t *call;
+	while (atomic_get(&TASK->answerbox.active_calls) != 0) {
+		call_t *call = ipc_wait_for_call(&TASK->answerbox,
+		    SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+		assert(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
 
-restart:
-	if (atomic_get(&TASK->answerbox.active_calls) == 0) {
-		/* Got into cleanup */
-		return;
+		SYSIPC_OP(answer_process, call);
+
+		kobject_put(call->kobject);
 	}
-
-	call = ipc_wait_for_call(&TASK->answerbox, SYNCH_NO_TIMEOUT,
-	    SYNCH_FLAGS_NONE);
-	assert(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
-
-	SYSIPC_OP(answer_process, call);
-
-	kobject_put(call->kobject);
-	goto restart;
 }
 
 static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
