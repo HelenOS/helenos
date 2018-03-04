@@ -160,13 +160,13 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
  */
 bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 {
-	bool active;
+	bool connected;
 
 	mutex_lock(&phone->lock);
 	irq_spinlock_lock(&box->lock, true);
 
-	active = box->active;
-	if (active) {
+	connected = box->active && (phone->state == IPC_PHONE_CONNECTING);
+	if (connected) {
 		phone->state = IPC_PHONE_CONNECTED;
 		phone->callee = box;
 		/* Pass phone->kobject reference to box->connected_phones */
@@ -176,12 +176,12 @@ bool ipc_phone_connect(phone_t *phone, answerbox_t *box)
 	irq_spinlock_unlock(&box->lock, true);
 	mutex_unlock(&phone->lock);
 
-	if (!active) {
+	if (!connected) {
 		/* We still have phone->kobject's reference; drop it */
 		kobject_put(phone->kobject);
 	}
 
-	return active;
+	return connected;
 }
 
 /** Initialize a phone structure.
