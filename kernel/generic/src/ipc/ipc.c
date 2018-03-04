@@ -146,6 +146,7 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
 	list_initialize(&box->dispatched_calls);
 	list_initialize(&box->answers);
 	list_initialize(&box->irq_notifs);
+	atomic_set(&box->active_calls, 0);
 	box->task = task;
 }
 
@@ -349,6 +350,7 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
 		call->forget = true;
 	} else {
 		atomic_inc(&phone->active_calls);
+		atomic_inc(&caller->answerbox.active_calls);
 		kobject_add_ref(phone->kobject);
 		call->sender = caller;
 		call->active = true;
@@ -563,6 +565,7 @@ restart:
 		    call_t, ab_link);
 		list_remove(&request->ab_link);
 		atomic_dec(&request->caller_phone->active_calls);
+		atomic_dec(&box->active_calls);
 		kobject_put(request->caller_phone->kobject);
 	} else if (!list_empty(&box->calls)) {
 		/* Count received call */
@@ -708,6 +711,7 @@ static void ipc_forget_call(call_t *call)
 	spinlock_unlock(&TASK->active_calls_lock);
 
 	atomic_dec(&call->caller_phone->active_calls);
+	atomic_dec(&TASK->answerbox.active_calls);
 	kobject_put(call->caller_phone->kobject);
 
 	SYSIPC_OP(request_forget, call);
@@ -798,11 +802,11 @@ static void ipc_wait_for_all_answered_calls(void)
 restart:
 	/*
 	 * Go through all phones, until they are all free.
-	 * Locking is needed as there may be connection handshakes in progress.
 	 */
 	restart = false;
 	if (caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_PHONE,
-	    phone_cap_wait_cb, &restart)) {
+	    phone_cap_wait_cb, &restart) &&
+	    atomic_get(&TASK->answerbox.active_calls) == 0) {
 		/* Got into cleanup */
 		return;
 	}
