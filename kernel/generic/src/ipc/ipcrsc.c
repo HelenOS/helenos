@@ -199,7 +199,6 @@ void phone_dealloc(cap_handle_t handle)
 	if (!kobj)
 		return;
 
-	assert(kobj->phone);
 	assert(kobj->phone->state == IPC_PHONE_CONNECTING);
 
 	kobject_put(kobj);
