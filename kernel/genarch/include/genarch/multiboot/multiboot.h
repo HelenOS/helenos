@@ -35,8 +35,6 @@
 #ifndef KERN_MULTIBOOT_H_
 #define KERN_MULTIBOOT_H_
 
-#include <genarch/multiboot/multiboot_memmap_struct.h>
-#include <genarch/multiboot/multiboot_info_struct.h>
 
 #define MULTIBOOT_HEADER_MAGIC  0x1badb002
 #define MULTIBOOT_HEADER_FLAGS  0x00010003
@@ -51,7 +49,15 @@
 #define MULTIBOOT_INFO_FLAGS_SYMS2	0x20
 #define MULTIBOOT_INFO_FLAGS_MMAP	0x40
 
-#ifndef __ASM__
+#ifdef __ASM__
+
+#include <genarch/multiboot/multiboot_memmap_struct.ag.h>
+#include <genarch/multiboot/multiboot_info_struct.ag.h>
+
+#else
+
+#include <genarch/multiboot/multiboot_memmap_struct.h>
+#include <genarch/multiboot/multiboot_info_struct.h>
 
 #include <typedefs.h>
 #include <arch/boot/memmap.h>

@@ -1,6 +1,5 @@
-/*
- * Copyright (c) 2005 Josef Cejka
- * All rights reserved.
+/* Copyright (c) 2016 Jakub Jermar
+ * All rights preserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,55 +25,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
- * @{
- */
-/** @file
- */
-
-#ifndef KERN_ia32_MEMMAP_H_
-#define KERN_ia32_MEMMAP_H_
-
-
-
-/* E820h memory range types */
-
-/* Free memory */
-#define MEMMAP_MEMORY_AVAILABLE  1
-
-/* Not available for OS */
-#define MEMMAP_MEMORY_RESERVED   2
-
-/* OS may use it after reading ACPI table */
-#define MEMMAP_MEMORY_ACPI       3
-
-/* Unusable, required to be saved and restored across an NVS sleep */
-#define MEMMAP_MEMORY_NVS        4
-
-/* Corrupted memory */
-#define MEMMAP_MEMORY_UNUSABLE   5
-
-/* Size of one entry */
-#define MEMMAP_E820_RECORD_SIZE  20
-
-/* Maximum entries */
-#define MEMMAP_E820_MAX_RECORDS  32
-
-#ifdef __ASM__
-
-#include <arch/boot/memmap_struct.ag.h>
-
-#else
-
+#pragma once
 #include <stdint.h>
-#include <arch/boot/memmap_struct.h>
 
-extern e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
-extern uint8_t e820counter;
+typedef struct multiboot_info {
+	uint32_t flags;
+	uint32_t mem_lower;
+	uint32_t mem_upper;
+	uint32_t boot_device;
+	uint32_t cmd_line;
+	uint32_t mods_count;
+	uint32_t mods_addr;
+	uint32_t syms[4];
+	uint32_t mmap_length;
+	uint32_t mmap_addr;
+} __attribute__((packed)) multiboot_info_t;
 
-#endif
-
-#endif
-
-/** @}
- */

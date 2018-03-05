@@ -47,6 +47,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 ## Common names
 #
 
+AUTOGEN = $(ROOT_PATH)/tools/autogen2.sh
 AGDEPEND = Makefile.ag.depend
 RAW = kernel.raw
 BIN = kernel.bin
@@ -72,6 +73,7 @@ else
 endif
 
 .PHONY: all clean autogen_clean depend
+.DELETE_ON_ERROR:
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BIN) $(DISASM)
 
@@ -353,16 +355,8 @@ GENERIC_DEPENDS := $(addsuffix .d,$(basename $(GENERIC_SOURCES)))
 ARCH_DEPENDS := $(addsuffix .d,$(basename $(ARCH_SOURCES)))
 GENARCH_DEPENDS := $(addsuffix .d,$(basename $(GENARCH_SOURCES)))
 
-GENARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(GENARCH_AUTOGENS_AG)))
-GENARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(GENARCH_AUTOGENS_AG)))
-GENARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(GENARCH_AUTOGENS_AG)))
-
-ARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(ARCH_AUTOGENS_AG)))
-ARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(ARCH_AUTOGENS_AG)))
-ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG)))
-
-AUTOGENS_H := $(ARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_H)
 AUTOGENS_AG := $(ARCH_AUTOGENS_AG) $(GENARCH_AUTOGENS_AG)
+AUTOGEN_DEPENDS := $(addsuffix .d,$(AUTOGENS_AG))
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
@@ -370,6 +364,7 @@ LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
 -include $(GENERIC_DEPENDS)
 -include $(ARCH_DEPENDS)
 -include $(GENARCH_DEPENDS)
+-include $(AUTOGEN_DEPENDS)
 
 ifeq ($(COMPILER),clang)
 	AS_CFLAGS += -mllvm -asm-macro-max-nesting-depth=1000
@@ -401,10 +396,8 @@ endif
 $(LINK): $(LINK).in | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
-%.h: %.ag
-	$(AUTOGEN) probe $< >$<.probe.c
-	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
-	$(AUTOGEN) generate $< <$<.probe.s >$@
+%.ag.h %.ag.s %.ag.c %.ag.d: %.h
+	CC="$(CC)" CFLAGS="$(CFLAGS)" $(AUTOGEN) $< $@
 
 %.o: %.S | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
@@ -440,20 +433,7 @@ endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
-$(AUTOGENS_H): $(AGDEPEND)
-
-$(AGDEPEND): $(AUTOGENS_AG)
-	echo "# DO NOT EDIT" >$@
-	for g in $^; do \
-		h=`dirname $$g`/`basename $$g .ag`.h; \
-		for l in `$(AUTOGEN) depend $$g`; do \
-			echo "$$h: $$l" >>$@; \
-		done \
-	done
-
-depend: $(AUTOGENS_H)
+depend: $(AUTOGENS_AG)
 
 autogen_clean:
-	-rm $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
-	-rm $(GENARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_PROBE_C) $(GENARCH_AUTOGENS_PROBE_S)
-	-rm $(AGDEPEND)
+	-rm $(AUTOGENS_AG) $(AUTOGEN_DEPENDS) $(AUTOGENS_AG)
