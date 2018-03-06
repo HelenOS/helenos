@@ -5,8 +5,6 @@
 # array subscript. Error handling is mostly omitted for simplicity, so any input that does not follow these rules will result
 # in cryptic errors.
 
-echo $PWD
-
 input="$1"
 output="$2"
 toolsdir="$(readlink -f $(dirname "$0"))"

@@ -47,12 +47,11 @@ SOVERSION = 0.0
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
-ARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(ARCH_AUTOGENS_AG)))
-ARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(ARCH_AUTOGENS_AG)))
-ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG)))
+ARCH_AUTOGENS_PROBE_C := $(ARCH_AUTOGENS_AG:%.ag.h=.ag.c)
+ARCH_AUTOGENS_PROBE_S := $(ARCH_AUTOGENS_AG:%.ag.h=.ag.s)
 
-PRE_DEPEND += $(ARCH_AUTOGENS_H)
-EXTRA_CLEAN += $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
+PRE_DEPEND += $(ARCH_AUTOGENS_AG)
+EXTRA_CLEAN += $(ARCH_AUTOGENS_AG) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
 
 GENERIC_SOURCES = \
 	generic/libc.c \
@@ -192,11 +191,6 @@ TEST_SOURCES = \
 	test/str.c
 
 include $(USPACE_PREFIX)/Makefile.common
-
-%.h: %.ag
-	$(AUTOGEN) probe $< >$<.probe.c
-	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
-	$(AUTOGEN) generate $< <$<.probe.s >$@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@

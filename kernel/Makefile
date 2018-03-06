@@ -48,7 +48,6 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 #
 
 AUTOGEN = $(ROOT_PATH)/tools/autogen2.sh
-AGDEPEND = Makefile.ag.depend
 RAW = kernel.raw
 BIN = kernel.bin
 MAP = kernel.map
@@ -133,7 +132,6 @@ endif
 #
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
--include $(AGDEPEND)
 
 ## The at-sign
 #
