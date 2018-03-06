@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia64
- * @{
- */
-/** @file
- */
+#ifndef LIBC_CONTEXT_H_
+#define LIBC_CONTEXT_H_
 
-#ifndef LIBC_ia64_FIBRIL_H_
-#define LIBC_ia64_FIBRIL_H_
-
-#include <stdint.h>
-#include <align.h>
-#include <libarch/stack.h>
-#include <types/common.h>
+#include <_bits/size_t.h>
 #include <libarch/fibril_context.h>
 
-/*
- * context_save() and context_restore() are both leaf procedures.
- * No need to allocate scratch area.
- */
-#define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
+/* Context initialization data. */
+typedef struct {
+	void (*fn)(void);
+	void *stack_base;
+	size_t stack_size;
+	void *tls;
+} context_create_t;
 
-#define PFM_MASK  (~0x3fffffffff)
+extern void context_swap(context_t *self, context_t *other);
+extern void context_create(context_t *context, const context_create_t *arg);
+extern uintptr_t context_get_fp(context_t *ctx);
+extern uintptr_t context_get_pc(context_t *ctx);
 
-/* Stack is divided into two equal parts (for memory stack and register stack). */
-#define FIBRIL_INITIAL_STACK_DIVISION  2
+// TODO: These should go away.
 
-#define context_set(c, _pc, stack, size, tls) \
-	do { \
-		(c)->pc = (uint64_t) _pc; \
-		(c)->bsp = ((uint64_t) stack) + \
-		    size / FIBRIL_INITIAL_STACK_DIVISION; \
-		(c)->ar_pfs &= PFM_MASK; \
-		(c)->sp = ((uint64_t) stack) + \
-		    ALIGN_UP((size / FIBRIL_INITIAL_STACK_DIVISION), STACK_ALIGNMENT) - \
-		    SP_DELTA; \
-		(c)->tp = (uint64_t) tls; \
-	} while (0)
-
-static inline uintptr_t _context_get_fp(context_t *ctx)
-{
-	return 0;	/* FIXME */
-}
+extern int context_save(context_t *ctx) __attribute__((returns_twice));
+extern void context_restore(context_t *ctx) __attribute__((noreturn));
 
 #endif
 
-/** @}
- */

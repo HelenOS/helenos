@@ -36,8 +36,12 @@
  */
 
 #include <setjmp.h>
-#include <libarch/fibril.h>
-#include <fibril.h>
+#include <context.h>
+
+// TODO: setjmp/longjmp are basically a stronger version of
+// context_save/context_restore. It would be preferable to turn
+// those two into setjmp/longjmp (all it would need is preserving the
+// return value).
 
 /**
  * Restore environment previously stored by setjmp.
@@ -51,7 +55,6 @@
 void longjmp(jmp_buf env, int val) {
 	env[0].return_value = (val == 0) ? 1 : val;
 	context_restore(&env[0].context);
-	__builtin_unreachable();
 }
 
 /** @}

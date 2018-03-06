@@ -43,7 +43,7 @@
 #include <as.h>
 #include <stdio.h>
 #include <libarch/barrier.h>
-#include <libarch/faddr.h>
+#include <context.h>
 #include <futex.h>
 #include <assert.h>
 #include <async.h>
@@ -154,14 +154,11 @@ int fibril_switch(fibril_switch_type_t stype)
 {
 	futex_lock(&fibril_futex);
 
+	fibril_t *srcf = __tcb_get()->fibril_data;
+	fibril_t *dstf = NULL;
+
+	/* Choose a new fibril to run */
 	switch (stype) {
-	case FIBRIL_PREEMPT:
-	case FIBRIL_FROM_MANAGER:
-		if (list_empty(&ready_list)) {
-			futex_unlock(&fibril_futex);
-			return 0;
-		}
-		break;
 	case FIBRIL_TO_MANAGER:
 	case FIBRIL_FROM_DEAD:
 		/* Make sure the async_futex is held. */
@@ -173,78 +170,45 @@ int fibril_switch(fibril_switch_type_t stype)
 			async_create_manager();
 			futex_lock(&fibril_futex);
 		}
-		break;
-	}
 
-	fibril_t *srcf = __tcb_get()->fibril_data;
-	if (stype != FIBRIL_FROM_DEAD) {
-
-		/* Save current state */
-		if (!context_save(&srcf->ctx)) {
-			if (srcf->clean_after_me) {
-				/*
-				 * Cleanup after the dead fibril from which we
-				 * restored context here.
-				 */
-				void *stack = srcf->clean_after_me->stack;
-				if (stack) {
-					/*
-					 * This check is necessary because a
-					 * thread could have exited like a
-					 * normal fibril using the
-					 * FIBRIL_FROM_DEAD switch type. In that
-					 * case, its fibril will not have the
-					 * stack member filled.
-					 */
-					as_area_destroy(stack);
-				}
-				fibril_teardown(srcf->clean_after_me, true);
-				srcf->clean_after_me = NULL;
-			}
-
-			return 1;	/* futex_unlock already done here */
-		}
-
-		/* Put the current fibril into the correct run list */
-		switch (stype) {
-		case FIBRIL_PREEMPT:
-			list_append(&srcf->link, &ready_list);
-			break;
-		case FIBRIL_FROM_MANAGER:
-			list_append(&srcf->link, &manager_list);
-			break;
-		default:
-			assert(stype == FIBRIL_TO_MANAGER);
-
-			srcf->switches++;
-
-			/*
-			 * Don't put the current fibril into any list, it should
-			 * already be somewhere, or it will be lost.
-			 */
-			break;
-		}
-	}
-
-	fibril_t *dstf;
-
-	/* Choose a new fibril to run */
-	switch (stype) {
-	case FIBRIL_TO_MANAGER:
-	case FIBRIL_FROM_DEAD:
-		dstf = list_get_instance(list_first(&manager_list), fibril_t,
-		    link);
+		dstf = list_get_instance(list_first(&manager_list),
+		    fibril_t, link);
 
 		if (stype == FIBRIL_FROM_DEAD)
 			dstf->clean_after_me = srcf;
 		break;
-	default:
+	case FIBRIL_PREEMPT:
+	case FIBRIL_FROM_MANAGER:
+		if (list_empty(&ready_list)) {
+			futex_unlock(&fibril_futex);
+			return 0;
+		}
+
 		dstf = list_get_instance(list_first(&ready_list), fibril_t,
 		    link);
 		break;
 	}
-
 	list_remove(&dstf->link);
+
+	/* Put the current fibril into the correct run list */
+	switch (stype) {
+	case FIBRIL_PREEMPT:
+		list_append(&srcf->link, &ready_list);
+		break;
+	case FIBRIL_FROM_MANAGER:
+		list_append(&srcf->link, &manager_list);
+		break;
+	case FIBRIL_FROM_DEAD:
+		// Nothing.
+		break;
+	case FIBRIL_TO_MANAGER:
+		srcf->switches++;
+		/*
+		 * Don't put the current fibril into any list, it should
+		 * already be somewhere, or it will be lost.
+		 */
+		break;
+	}
 
 	futex_unlock(&fibril_futex);
 
@@ -254,8 +218,33 @@ int fibril_switch(fibril_switch_type_t stype)
 	}
 #endif
 
-	context_restore(&dstf->ctx);
-	/* not reached */
+	/* Swap to the next fibril. */
+	context_swap(&srcf->ctx, &dstf->ctx);
+
+	/* Restored by another fibril! */
+
+	if (srcf->clean_after_me) {
+		/*
+		 * Cleanup after the dead fibril from which we
+		 * restored context here.
+		 */
+		void *stack = srcf->clean_after_me->stack;
+		if (stack) {
+			/*
+			 * This check is necessary because a
+			 * thread could have exited like a
+			 * normal fibril using the
+			 * FIBRIL_FROM_DEAD switch type. In that
+			 * case, its fibril will not have the
+			 * stack member filled.
+			 */
+			as_area_destroy(stack);
+		}
+		fibril_teardown(srcf->clean_after_me, true);
+		srcf->clean_after_me = NULL;
+	}
+
+	return 1;
 }
 
 /** Create a new fibril.
@@ -288,10 +277,14 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 	fibril->func = func;
 	fibril->arg = arg;
 
-	context_save(&fibril->ctx);
-	context_set(&fibril->ctx, FADDR(fibril_main), fibril->stack,
-	    stack_size, fibril->tcb);
+	context_create_t sctx = {
+		.fn = fibril_main,
+		.stack_base = fibril->stack,
+		.stack_size = stack_size,
+		.tls = fibril->tcb,
+	};
 
+	context_create(&fibril->ctx, &sctx);
 	return (fid_t) fibril;
 }
 

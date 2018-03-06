@@ -109,7 +109,7 @@ errno_t fibrils_dump(symtab_t *symtab, async_sess_t *sess)
 		if (rc != EOK)
 			return EIO;
 
-		pc = fibril.ctx.pc;
+		pc = context_get_pc(&fibril.ctx);
 		fp = context_get_fp(&fibril.ctx);
 		if (0) stacktrace_print_generic(&fibrildump_st_ops, sess,
 		    fp, pc);

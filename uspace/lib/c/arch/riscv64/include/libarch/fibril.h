@@ -58,7 +58,7 @@ typedef struct {
 	uintptr_t tls;
 } context_t;
 
-static inline uintptr_t context_get_fp(context_t *ctx)
+static inline uintptr_t _context_get_fp(context_t *ctx)
 {
 	/* This function returns the frame pointer. */
 	return ctx->fp;

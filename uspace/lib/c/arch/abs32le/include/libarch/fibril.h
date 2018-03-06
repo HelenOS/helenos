@@ -36,6 +36,7 @@
 #define LIBC_abs32le_FIBRIL_H_
 
 #include <stdint.h>
+#include <libarch/fibril_context.h>
 
 #define SP_DELTA  0
 
@@ -47,18 +48,7 @@
 		(ctx)->tls = ((uintptr_t) (ptls)) + sizeof(tcb_t); \
 	} while (0)
 
-/*
- * On real hardware this stores the registers which
- * need to be preserved across function calls.
- */
-typedef struct {
-	uintptr_t sp;
-	uintptr_t fp;
-	uintptr_t pc;
-	uintptr_t tls;
-} context_t;
-
-static inline uintptr_t context_get_fp(context_t *ctx)
+static inline uintptr_t _context_get_fp(context_t *ctx)
 {
 	/* On real hardware, this function returns the frame pointer. */
 	return ctx->fp;

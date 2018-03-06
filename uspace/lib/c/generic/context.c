@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcia64
- * @{
+#include <context.h>
+#include <libarch/tls.h>
+#include <libarch/fibril.h>
+#include <libarch/faddr.h>
+
+/**
+ * Saves current context to the variable pointed to by `self`,
+ * and restores the context denoted by `other`.
+ *
+ * When the `self` context is later restored by another call to
+ * `context_swap()`, the control flow behaves as if the earlier call to
+ * `context_swap()` just returned.
  */
-/** @file
- */
-
-#ifndef LIBC_ia64_FIBRIL_H_
-#define LIBC_ia64_FIBRIL_H_
-
-#include <stdint.h>
-#include <align.h>
-#include <libarch/stack.h>
-#include <types/common.h>
-#include <libarch/fibril_context.h>
-
-/*
- * context_save() and context_restore() are both leaf procedures.
- * No need to allocate scratch area.
- */
-#define SP_DELTA  (0 + ALIGN_UP(STACK_ITEM_SIZE, STACK_ALIGNMENT))
-
-#define PFM_MASK  (~0x3fffffffff)
-
-/* Stack is divided into two equal parts (for memory stack and register stack). */
-#define FIBRIL_INITIAL_STACK_DIVISION  2
-
-#define context_set(c, _pc, stack, size, tls) \
-	do { \
-		(c)->pc = (uint64_t) _pc; \
-		(c)->bsp = ((uint64_t) stack) + \
-		    size / FIBRIL_INITIAL_STACK_DIVISION; \
-		(c)->ar_pfs &= PFM_MASK; \
-		(c)->sp = ((uint64_t) stack) + \
-		    ALIGN_UP((size / FIBRIL_INITIAL_STACK_DIVISION), STACK_ALIGNMENT) - \
-		    SP_DELTA; \
-		(c)->tp = (uint64_t) tls; \
-	} while (0)
-
-static inline uintptr_t _context_get_fp(context_t *ctx)
+void context_swap(context_t *self, context_t *other)
 {
-	return 0;	/* FIXME */
+	if (context_save(self))
+		context_restore(other);
 }
 
-#endif
+void context_create(context_t *context, const context_create_t *arg)
+{
+	context_save(context);
+	context_set(context, FADDR(arg->fn), arg->stack_base,
+	    arg->stack_size, arg->tls);
+}
 
-/** @}
- */
+uintptr_t context_get_pc(context_t *ctx)
+{
+	// This is a simple wrapper for now, and exists to allow
+	// potential future implementation of context_swap to omit
+	// program counter from the context structure (e.g. if it's
+	// stored on the stack).
+	return ctx->pc;
+}
+
+uintptr_t context_get_fp(context_t *ctx)
+{
+	return _context_get_fp(ctx);
+}

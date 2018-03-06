@@ -53,7 +53,7 @@
 		(c)->ebp = 0; \
 	} while (0)
 
-static inline uintptr_t context_get_fp(context_t *ctx)
+static inline uintptr_t _context_get_fp(context_t *ctx)
 {
 	return ctx->ebp;
 }
