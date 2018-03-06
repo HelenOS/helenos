@@ -249,7 +249,9 @@ emulators = {
 			'run' : qemu_run,
 			'image' : 'image.boot',
 			'net' : False,
-			'audio' : False
+			'audio' : False,
+			'xhci' : False,
+			'tablet' : False
 		}
 	},
 	'ia32' : {
