@@ -88,6 +88,6 @@ ifeq ($(MACHINE),msim)
 endif
 
 ARCH_AUTOGENS_AG = \
-	arch/$(KARCH)/include/arch/istate_struct.ag \
-	arch/$(KARCH)/include/arch/context_struct.ag \
-	arch/$(KARCH)/include/arch/fpu_context_struct.ag
+	arch/$(KARCH)/include/arch/istate_struct.ag.h \
+	arch/$(KARCH)/include/arch/context_struct.ag.h \
+	arch/$(KARCH)/include/arch/fpu_context_struct.ag.h
