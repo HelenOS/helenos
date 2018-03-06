@@ -395,7 +395,7 @@ $(LINK): $(LINK).in | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
 %.ag.h %.ag.s %.ag.c %.ag.d: %.h
-	CC="$(CC)" CFLAGS="$(CFLAGS)" $(AUTOGEN) $< $@
+	CC="$(CC)" CFLAGS="-DKERNEL $(CFLAGS)" $(AUTOGEN) $< $@
 
 %.o: %.S | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
