@@ -36,6 +36,7 @@
 #define KERN_ia64_INTERRUPT_H_
 
 #ifndef __ASM__
+#include <_bits/native.h>
 #include <arch/istate.h>
 #include <stdint.h>
 #endif

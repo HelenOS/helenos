@@ -27,7 +27,7 @@
 #
 
 #include <abi/asmtool.h>
-#include <arch/context_struct.h>
+#include <arch/context_struct.ag.h>
 
 .text
 

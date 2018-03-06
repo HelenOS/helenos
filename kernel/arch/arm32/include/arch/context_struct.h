@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Josef Cejka
+ * Copyright (c) 2014 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,55 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
- * @{
+#pragma once
+#include <typedefs.h>
+
+/* Thread context containing registers that must be preserved across
+ * function calls.
  */
-/** @file
- */
+typedef struct context {
+	uint32_t cpu_mode;
+	uintptr_t sp;
+	uintptr_t pc;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	/* r11 */
+	uint32_t fp;
+	ipl_t ipl;
+} context_t;
 
-#ifndef KERN_ia32_MEMMAP_H_
-#define KERN_ia32_MEMMAP_H_
-
-
-
-/* E820h memory range types */
-
-/* Free memory */
-#define MEMMAP_MEMORY_AVAILABLE  1
-
-/* Not available for OS */
-#define MEMMAP_MEMORY_RESERVED   2
-
-/* OS may use it after reading ACPI table */
-#define MEMMAP_MEMORY_ACPI       3
-
-/* Unusable, required to be saved and restored across an NVS sleep */
-#define MEMMAP_MEMORY_NVS        4
-
-/* Corrupted memory */
-#define MEMMAP_MEMORY_UNUSABLE   5
-
-/* Size of one entry */
-#define MEMMAP_E820_RECORD_SIZE  20
-
-/* Maximum entries */
-#define MEMMAP_E820_MAX_RECORDS  32
-
-#ifdef __ASM__
-
-#include <arch/boot/memmap_struct.ag.h>
-
-#else
-
-#include <stdint.h>
-#include <arch/boot/memmap_struct.h>
-
-extern e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
-extern uint8_t e820counter;
-
-#endif
-
-#endif
-
-/** @}
- */

@@ -35,7 +35,6 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/stacktrace_asm.S
 
 ARCH_AUTOGENS_AG = \
-	arch/$(UARCH)/include/libarch/istate_struct.ag \
-	arch/$(UARCH)/include/libarch/fibril_context.ag
+	arch/$(UARCH)/include/libarch/fibril_context.ag.h
 
 EXTRA_OUTPUT += arch/$(UARCH)/src/entry.o

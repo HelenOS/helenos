@@ -1,6 +1,5 @@
-/*
- * Copyright (c) 2005 Josef Cejka
- * All rights reserved.
+/* Copyright (c) 2014 Jakub Jermar
+ * All rights preserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,55 +25,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
- * @{
- */
-/** @file
- */
-
-#ifndef KERN_ia32_MEMMAP_H_
-#define KERN_ia32_MEMMAP_H_
-
-
-
-/* E820h memory range types */
-
-/* Free memory */
-#define MEMMAP_MEMORY_AVAILABLE  1
-
-/* Not available for OS */
-#define MEMMAP_MEMORY_RESERVED   2
-
-/* OS may use it after reading ACPI table */
-#define MEMMAP_MEMORY_ACPI       3
-
-/* Unusable, required to be saved and restored across an NVS sleep */
-#define MEMMAP_MEMORY_NVS        4
-
-/* Corrupted memory */
-#define MEMMAP_MEMORY_UNUSABLE   5
-
-/* Size of one entry */
-#define MEMMAP_E820_RECORD_SIZE  20
-
-/* Maximum entries */
-#define MEMMAP_E820_MAX_RECORDS  32
-
-#ifdef __ASM__
-
-#include <arch/boot/memmap_struct.ag.h>
-
-#else
-
+#pragma once
 #include <stdint.h>
-#include <arch/boot/memmap_struct.h>
 
-extern e820memmap_t e820table[MEMMAP_E820_MAX_RECORDS];
-extern uint8_t e820counter;
-
-#endif
-
-#endif
-
-/** @}
+/*
+ * The strange order of the GPRs is given by the requirement to use the
+ * istate structure for both regular interrupts and exceptions as well
+ * as for syscall handlers which use this order as an optimization.
  */
+typedef struct istate {
+	uint32_t edx;
+	uint32_t ecx;
+	uint32_t ebx;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t ebp;
+	uint32_t eax;
+	/* imitation of frame pointer linkage */
+	uint32_t ebp_frame;
+	/* imitation of return address linkage */
+	uint32_t eip_frame;
+	uint32_t gs;
+	uint32_t fs;
+	uint32_t es;
+	uint32_t ds;
+	/* real or fake error word */
+	uint32_t error_word;
+	uint32_t eip;
+	uint32_t cs;
+	uint32_t eflags;
+	/* only if istate_t is from uspace */
+	uint32_t esp;
+	/* only if istate_t is from uspace */
+	uint32_t ss;
+} istate_t;
+

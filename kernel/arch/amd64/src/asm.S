@@ -29,8 +29,8 @@
 #include <abi/asmtool.h>
 #include <arch/pm.h>
 #include <arch/mm/page.h>
-#include <arch/istate_struct.h>
-#include <arch/kseg_struct.h>
+#include <arch/istate_struct.ag.h>
+#include <arch/kseg_struct.ag.h>
 #include <arch/cpu.h>
 #include <arch/smp/apic.h>
 
@@ -540,3 +540,4 @@ FUNCTION_BEGIN(early_putchar)
 
 	ret
 FUNCTION_END(early_putchar)
+

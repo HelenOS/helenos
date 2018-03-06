@@ -32,7 +32,7 @@
 #include <arch/register.h>
 #include <arch/mm/page.h>
 #include <arch/interrupt.h>
-#include <arch/istate_struct.h>
+#include <arch/istate_struct.ag.h>
 #include <align.h>
 
 #define STACK_FRAME_SIZE	ALIGN_UP(ISTATE_SIZE + STACK_SCRATCH_AREA_SIZE, STACK_ALIGNMENT)

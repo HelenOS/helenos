@@ -67,6 +67,8 @@ COMMON_HEADER = $(ROOT_PATH)/common.h
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 CONFIG_HEADER = $(ROOT_PATH)/config.h
 
+AUTOGEN = $(ROOT_PATH)/tools/autogen2.sh
+
 -include $(VERSION_DEF)
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
@@ -350,6 +352,9 @@ endif
 
 %.lo: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
+
+%.ag.h %.ag.s %.ag.c %.ag.d: %.h
+	CC="$(CC)" CFLAGS="$(CFLAGS)" $(AUTOGEN) $< $@
 
 -include $(DEPENDS)
 

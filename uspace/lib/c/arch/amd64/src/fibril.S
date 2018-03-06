@@ -27,7 +27,7 @@
 #
 
 #include <abi/asmtool.h>
-#include <libarch/fibril_context.h>
+#include <libarch/fibril_context.ag.h>
 
 .text
 
