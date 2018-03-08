@@ -53,7 +53,7 @@
 
 #define MMU_PAGES_PER_PAGE	(1 << (PAGE_WIDTH - MMU_PAGE_WIDTH))
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/interrupt.h>
 
@@ -72,7 +72,7 @@ typedef union {
 
 extern void page_arch_init(void);
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 #endif
 

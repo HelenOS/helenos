@@ -78,7 +78,7 @@
 #define AMD_MSR_GS		0xc0000101
 #define AMD_MSR_GS_KERNEL	0xc0000102
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/pm.h>
 
@@ -102,7 +102,7 @@ struct lstar_msr {
 
 void cpu_setup_fpu(void);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

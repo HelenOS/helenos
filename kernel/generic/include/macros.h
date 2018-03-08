@@ -35,7 +35,7 @@
 #ifndef KERN_MACROS_H_
 #define KERN_MACROS_H_
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 #include <trace.h>
@@ -97,7 +97,7 @@ NO_TRACE static inline int iswithin(uint64_t s1, uint64_t sz1, uint64_t s2,
 	return ((s1 <= s2) && (e1 >= e2));
 }
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #define ispwr2(x)  (((x) & ((x) - 1)) == 0)
 

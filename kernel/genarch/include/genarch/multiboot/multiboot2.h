@@ -60,7 +60,7 @@
 #define MULTIBOOT2_VISUAL_RGB      1
 #define MULTIBOOT2_VISUAL_EGA      2
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <typedefs.h>
 #include <arch/boot/memmap.h>
@@ -152,7 +152,7 @@ typedef struct {
 
 extern void multiboot2_info_parse(uint32_t, const multiboot2_info_t *);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

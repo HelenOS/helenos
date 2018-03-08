@@ -46,7 +46,7 @@
 #define TTE_V_SHIFT	63
 #define TTE_SIZE_SHIFT	61
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 
@@ -96,7 +96,7 @@ union tte_data {
 
 typedef union tte_data tte_data_t;
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 #endif
 

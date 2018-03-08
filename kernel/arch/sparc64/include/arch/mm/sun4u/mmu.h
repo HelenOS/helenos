@@ -86,7 +86,7 @@
 #define VA_DMMU_NUCLEUS_EXTENSION	0x58	/**< DMMU TSB nucleus extension register */
 #endif
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/asm.h>
 #include <arch/barrier.h>
@@ -115,7 +115,7 @@ typedef union {
 } lsu_cr_reg_t;
 #endif /* US */
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 #endif
 

@@ -36,7 +36,7 @@
 
 #define LOADER_ADDRESS  0x08000000
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 #define PA2KA(addr)  (((uintptr_t) (addr)) + 0x80000000)
 #else
 #define PA2KA(addr)  ((addr) + 0x80000000)

@@ -44,7 +44,7 @@
 /* Temporary stack size for boot process */
 #define TEMP_STACK_SIZE  0x1000
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stddef.h>
 #include <stdint.h>

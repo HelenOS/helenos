@@ -132,13 +132,13 @@ def generate(struct, lines):
 #ifndef AUTOGEN_%s_H
 #define AUTOGEN_%s_H
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 %s
 #endif
 
 %s
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 %s
 #endif
 

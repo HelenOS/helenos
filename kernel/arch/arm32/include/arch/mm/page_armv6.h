@@ -53,7 +53,7 @@
 #define PTE_EXECUTABLE_ARCH(pte) \
 	(((pte_t *) (pte))->l1.descriptor_type != PTE_DESCRIPTOR_SMALL_PAGE_NX)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 /** Level 0 page table entry. */
 typedef struct {
@@ -318,7 +318,7 @@ NO_TRACE static inline void set_pt_level1_present(pte_t *pt, size_t i)
 
 extern void page_arch_init(void);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

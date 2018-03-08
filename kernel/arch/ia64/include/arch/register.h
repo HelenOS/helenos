@@ -142,7 +142,7 @@
 #define CR_LRR1  81
 /* CR82-CR127 are reserved */
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 /** Processor Status Register. */
 typedef union {
@@ -268,7 +268,7 @@ typedef union {
 	} __attribute__ ((packed));
 } cpuid3_t;
 
-#endif /* !__ASM__ */
+#endif /* !__ASSEMBLER__ */
 
 #endif
 

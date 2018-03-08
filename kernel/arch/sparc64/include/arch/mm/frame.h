@@ -45,7 +45,7 @@
 
 #endif
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <typedefs.h>
 

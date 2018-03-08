@@ -64,9 +64,9 @@ $(RAW): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
 	$(LD) -no-check-sections -N -T $(LINK) $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 %.o: %.S $(DEPEND)
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -c $< -o $@
+	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
-	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS)
 endif
 
 %.o: %.c $(DEPEND)

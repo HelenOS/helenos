@@ -55,7 +55,7 @@
 
 #define TSB_TAG_TARGET_CONTEXT_SHIFT	48
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/mm/tte.h>
 #include <arch/mm/mmu.h>
@@ -170,7 +170,7 @@ extern void tsb_invalidate(struct as *as, uintptr_t page, size_t pages);
 extern void itsb_pte_copy(struct pte *t, size_t index);
 extern void dtsb_pte_copy(struct pte *t, size_t index, bool ro);
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 #endif
 

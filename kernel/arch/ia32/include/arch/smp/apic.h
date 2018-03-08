@@ -38,7 +38,7 @@
 #define L_APIC_BASE	0xfee00000
 #define IO_APIC_BASE	0xfec00000
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <cpu.h>
 #include <stdint.h>
@@ -368,7 +368,7 @@ extern void io_apic_change_ioredtbl(uint8_t pin, uint8_t dest, uint8_t v, unsign
 extern void io_apic_disable_irqs(uint16_t);
 extern void io_apic_enable_irqs(uint16_t);
 
-#endif	/* __ASM__ */
+#endif	/* __ASSEMBLER__ */
 
 #endif
 

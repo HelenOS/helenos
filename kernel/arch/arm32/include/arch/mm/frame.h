@@ -41,7 +41,7 @@
 
 #define FRAME_LOWPRIO  0
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #define BOOT_PAGE_TABLE_SIZE     0x4000
 
@@ -80,7 +80,7 @@ extern void frame_high_arch_init(void);
 extern void boot_page_table_free(void);
 #define physmem_print()
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

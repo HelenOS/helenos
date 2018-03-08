@@ -54,7 +54,7 @@
 
 #define FAST_MMU_HANDLER_SIZE			128
 
-#ifdef __ASM__
+#ifdef __ASSEMBLER__
 
 .macro FAST_INSTRUCTION_ACCESS_MMU_MISS_HANDLER
 	/*
@@ -165,7 +165,7 @@
 	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

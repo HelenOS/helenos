@@ -47,7 +47,7 @@
 #define MMU_FLAG_ITLB	2	/**< operation applies to ITLB */
 #define MMU_FLAG_DTLB	1	/**< operation applies to DTLB */
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 
@@ -75,7 +75,7 @@ typedef union tte_data tte_data_t;
 
 #define VA_TAG_PAGE_SHIFT	22
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 #endif
 

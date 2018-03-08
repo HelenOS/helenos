@@ -39,7 +39,7 @@
 #define AP_BOOT_OFFSET   0x8000
 #define BOOT_STACK_SIZE  0x0400
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #ifdef CONFIG_SMP
 
@@ -48,7 +48,7 @@ extern int _hardcoded_unmapped_size;
 
 #endif /* CONFIG_SMP */
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

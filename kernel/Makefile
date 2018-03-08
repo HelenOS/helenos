@@ -399,7 +399,7 @@ else
 endif
 
 $(LINK): $(LINK).in | depend
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
+	$(CC) $(DEFS) $(CFLAGS) -D__ASSEMBLER__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
 %.h: %.ag
 	$(AUTOGEN) probe $< >$<.probe.c
@@ -407,10 +407,10 @@ $(LINK): $(LINK).in | depend
 	$(AUTOGEN) generate $< <$<.probe.s >$@
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
 
 %.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION))

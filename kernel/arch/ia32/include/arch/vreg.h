@@ -37,7 +37,7 @@
 
 #define VREG_TP	0
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 
@@ -45,7 +45,7 @@ extern uint32_t *vreg_ptr;
 
 extern void vreg_init(void);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

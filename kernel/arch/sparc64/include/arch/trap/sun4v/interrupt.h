@@ -37,7 +37,7 @@
 #ifndef KERN_sparc64_TRAP_SUN4V_INTERRUPT_H_
 #define KERN_sparc64_TRAP_SUN4V_INTERRUPT_H_
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/istate_struct.h>
 

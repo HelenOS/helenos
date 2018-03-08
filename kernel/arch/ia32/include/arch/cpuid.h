@@ -40,7 +40,7 @@
 #define INTEL_PSE             3
 #define INTEL_SEP             11
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/cpu.h>
 #include <stdint.h>
@@ -115,7 +115,7 @@ static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 	);
 }
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 #endif
 
 /** @}

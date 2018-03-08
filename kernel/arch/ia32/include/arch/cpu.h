@@ -63,7 +63,7 @@
 #define IA32_MSR_SYSENTER_ESP	0x175
 #define IA32_MSR_SYSENTER_EIP	0x176
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/pm.h>
 #include <arch/asm.h>

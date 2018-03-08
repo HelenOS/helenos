@@ -41,7 +41,7 @@
 /** Maximum number of logical processors in a processor core */
 #define MAX_CORE_STRANDS  8
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <atomic.h>
 #include <synch/spinlock.h>

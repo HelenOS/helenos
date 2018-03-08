@@ -51,7 +51,7 @@
 #define MULTIBOOT_INFO_FLAGS_SYMS2	0x20
 #define MULTIBOOT_INFO_FLAGS_MMAP	0x40
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <typedefs.h>
 #include <arch/boot/memmap.h>
@@ -76,7 +76,7 @@ extern void multiboot_extract_command(char *, size_t, const char *);
 extern void multiboot_extract_argument(char *, size_t, const char *);
 extern void multiboot_info_parse(uint32_t, const multiboot_info_t *);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

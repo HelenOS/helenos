@@ -37,7 +37,7 @@
 #ifndef KERN_sparc64_ARCH_H_
 #define KERN_sparc64_ARCH_H_
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 #include <arch.h>
 #endif
 
@@ -54,13 +54,13 @@
 
 #define NWINDOWS  8  /** Number of register window sets. */
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 extern arch_ops_t *sparc64_ops;
 
 extern void sparc64_pre_main(bootinfo_t *);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

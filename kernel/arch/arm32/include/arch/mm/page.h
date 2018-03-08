@@ -47,7 +47,7 @@
 #define PAGE_SIZE	FRAME_SIZE
 
 #if (defined MACHINE_beagleboardxm) || (defined MACHINE_beaglebone)
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 #	define KA2PA(x)	((uintptr_t) (x))
 #	define PA2KA(x)	((uintptr_t) (x))
 #else
@@ -55,7 +55,7 @@
 #	define PA2KA(x)	(x)
 #endif
 #else
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 #	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
 #	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
 #else

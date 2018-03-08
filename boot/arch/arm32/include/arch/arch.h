@@ -61,7 +61,7 @@
 #define PA_OFFSET 0x80000000
 #endif
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 #define PA2KA(addr)  (((uintptr_t) (addr)) + PA_OFFSET)
 #else
 #define PA2KA(addr)  ((addr) + PA_OFFSET)

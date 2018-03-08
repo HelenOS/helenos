@@ -38,7 +38,7 @@
 
 #include <arch/mm/frame.h>
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 #include <assert.h>
 #endif
 
@@ -54,7 +54,7 @@
 #define VRN_MASK    (7ULL << VRN_SHIFT)
 #define VA2VRN(va)  ((va) >> VRN_SHIFT)
 
-#ifdef __ASM__
+#ifdef __ASSEMBLER__
 	#define VRN_KERNEL  7
 #else
 	#define VRN_KERNEL  7ULL
@@ -83,7 +83,7 @@
 #define AR_EXECUTE  0x01
 #define AR_WRITE    0x02
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/mm/as.h>
 #include <arch/mm/frame.h>
@@ -296,7 +296,7 @@ extern vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid);
 extern bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v);
 extern void vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame, int flags);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

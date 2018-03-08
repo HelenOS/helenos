@@ -40,7 +40,7 @@
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 	#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
 	#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
 #else
@@ -158,7 +158,7 @@
 #define PTE_WRITABLE_ARCH(pte)    ((pte)->writable != 0)
 #define PTE_EXECUTABLE_ARCH(pte)  ((pte)->executable != 0)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <mm/mm.h>
 #include <arch/interrupt.h>
@@ -215,7 +215,7 @@ extern void page_arch_init(void);
 extern void page_fault(unsigned int, istate_t *);
 extern void write_satp(uintptr_t);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

@@ -49,17 +49,17 @@
 #define PDE_RW		(1 << 1)
 #define PDE_4M		(1 << 7)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x80000000))
 #define PA2KA(x)  (((uintptr_t) (x)) + UINT32_C(0x80000000))
 
-#else /* __ASM__ */
+#else /* __ASSEMBLER__ */
 
 #define KA2PA(x)  ((x) - 0x80000000)
 #define PA2KA(x)  ((x) + 0x80000000)
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 /*
  * Implementation of generic 4-level page table interface.
@@ -141,7 +141,7 @@
 	((p)->writeable != 0)
 #define PTE_EXECUTABLE_ARCH(p)  1
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <mm/mm.h>
 #include <arch/interrupt.h>
@@ -219,7 +219,7 @@ NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
 extern void page_arch_init(void);
 extern void page_fault(unsigned int, istate_t *);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

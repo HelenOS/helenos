@@ -49,7 +49,7 @@
 #define CONFIG_TASK_NAME_BUFLEN  32
 #define CONFIG_TASK_ARGUMENTS_BUFLEN 64
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdbool.h>
 #include <typedefs.h>
@@ -108,7 +108,7 @@ extern char bargs[];
 extern init_t init;
 extern ballocs_t ballocs;
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

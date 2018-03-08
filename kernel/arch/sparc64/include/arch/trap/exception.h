@@ -64,7 +64,7 @@
 #define TT_LDQF_MEM_ADDRESS_NOT_ALIGNED		0x38
 #define TT_STQF_MEM_ADDRESS_NOT_ALIGNED		0x39
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/interrupt.h>
 
@@ -90,7 +90,7 @@ extern void privileged_action(unsigned int, istate_t *);
 extern void LDQF_mem_address_not_aligned(unsigned int, istate_t *);
 extern void STQF_mem_address_not_aligned(unsigned int, istate_t *);
 
-#endif /* !__ASM__ */
+#endif /* !__ASSEMBLER__ */
 
 #endif
 

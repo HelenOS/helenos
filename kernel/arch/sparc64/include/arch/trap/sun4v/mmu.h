@@ -60,7 +60,7 @@
 
 #define FAST_MMU_HANDLER_SIZE			128
 
-#ifdef __ASM__
+#ifdef __ASSEMBLER__
 
 /* MMU fault status area data fault offset */
 #define FSA_DFA_OFFSET				0x48
@@ -180,7 +180,7 @@
 
 	PREEMPTIBLE_HANDLER exc_dispatch
 .endm
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

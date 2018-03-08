@@ -116,7 +116,7 @@
 	ta (sw_trap_number);
 
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 

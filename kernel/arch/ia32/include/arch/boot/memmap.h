@@ -60,7 +60,7 @@
 /* Maximum entries */
 #define MEMMAP_E820_MAX_RECORDS  32
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 

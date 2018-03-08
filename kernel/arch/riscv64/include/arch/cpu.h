@@ -44,14 +44,14 @@
 #define SATP_MODE_SV39  UINT64_C(0x8000000000000000)
 #define SATP_MODE_SV48  UINT64_C(0x9000000000000000)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 typedef struct {
 } cpu_arch_t;
 
 extern void cpu_setup_fpu(void);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

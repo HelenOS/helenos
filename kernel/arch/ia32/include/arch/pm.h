@@ -80,7 +80,7 @@
 
 #define IO_PORTS  (64 * 1024)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <typedefs.h>
 #include <arch/context.h>
@@ -169,7 +169,7 @@ extern void idt_setoffset(idescriptor_t *d, uintptr_t offset);
 
 extern void tss_initialize(tss_t *t);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

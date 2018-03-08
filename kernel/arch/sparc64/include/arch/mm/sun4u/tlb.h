@@ -91,7 +91,7 @@
 #define TLB_TAG_ACCESS_CONTEXT_MASK	((1 << 13) - 1)
 #define TLB_TAG_ACCESS_VPN_SHIFT	13
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/mm/tte.h>
 #include <arch/mm/mmu.h>
@@ -686,7 +686,7 @@ extern void dtlb_insert_mapping(uintptr_t, uintptr_t, int, bool, bool);
 extern void dump_sfsr_and_sfar(void);
 extern void describe_dmmu_fault(void);
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 #endif
 

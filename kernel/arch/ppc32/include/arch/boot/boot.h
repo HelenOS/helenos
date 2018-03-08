@@ -41,7 +41,7 @@
 #define MEMMAP_MAX_RECORDS         32
 #define BOOTINFO_TASK_NAME_BUFLEN  32
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <config.h>
 #include <genarch/ofw/ofw_tree.h>

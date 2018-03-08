@@ -84,13 +84,13 @@ $(RAW): $(OBJECTS) $(LINK)
 	$(LD) -n $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(OBJECTS)
 
 $(LINK): | depend
-	$(CC) $(DEFS) $(CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
+	$(CC) $(DEFS) $(CFLAGS) -D__ASSEMBLER__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
 
 %.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS)

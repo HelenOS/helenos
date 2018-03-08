@@ -42,7 +42,7 @@
 #define TRAP_TABLE_ENTRY_SIZE	32
 #define TRAP_TABLE_SIZE		(TRAP_TABLE_ENTRY_COUNT * TRAP_TABLE_ENTRY_SIZE)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 
@@ -55,9 +55,9 @@ typedef struct trap_table_entry trap_table_entry_t;
 extern trap_table_entry_t trap_table[TRAP_TABLE_ENTRY_COUNT];
 extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 
-#endif /* !__ASM__ */
+#endif /* !__ASSEMBLER__ */
 
-#ifdef __ASM__
+#ifdef __ASSEMBLER__
 .macro SAVE_GLOBALS
 	mov %g1, %l1
 	mov %g2, %l2
@@ -84,7 +84,7 @@ extern trap_table_entry_t trap_table_save[TRAP_TABLE_ENTRY_COUNT];
 	or %g1, %lo(\f), %g1
 .endm
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

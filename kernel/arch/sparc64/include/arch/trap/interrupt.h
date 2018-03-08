@@ -62,13 +62,13 @@
 
 #define IGN_SHIFT	6
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/interrupt.h>
 
 extern void interrupt(unsigned int n, istate_t *istate);
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 
 #if defined (SUN4U)

@@ -39,7 +39,7 @@
 #define MMU_FSA_ALIGNMENT	64
 #define MMU_FSA_SIZE		128
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/mm/tte.h>
 #include <trace.h>
@@ -148,7 +148,7 @@ extern void dtlb_insert_mapping(uintptr_t, uintptr_t, int, bool, bool);
 
 extern void describe_dmmu_fault(void);
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 #endif
 

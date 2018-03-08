@@ -35,14 +35,14 @@
 #ifndef KERN_ia64_ASID_H_
 #define KERN_ia64_ASID_H_
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 
 typedef uint16_t asid_t;
 typedef uint32_t rid_t;
 
-#endif  /* __ASM__ */
+#endif  /* __ASSEMBLER__ */
 
 /**
  * Number of ia64 RIDs (Region Identifiers) per kernel ASID.

@@ -38,7 +38,7 @@
 #define VMA  0x400000
 #define LMA  VMA
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 #ifndef __LINKER__
 
 #include <config.h>

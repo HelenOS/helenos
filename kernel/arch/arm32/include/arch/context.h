@@ -50,9 +50,9 @@
 		(c)->fp = 0; \
 	} while (0)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

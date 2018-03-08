@@ -33,7 +33,7 @@
 #ifndef KERN_sparc64_sun4v_REGWIN_H_
 #define KERN_sparc64_sun4v_REGWIN_H_
 
-#ifdef __ASM__
+#ifdef __ASSEMBLER__
 
 /*
  * Saves the contents of the current window to the userspace window buffer.

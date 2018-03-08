@@ -53,7 +53,7 @@
 
 #define FRAME_LOWPRIO  0
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <typedefs.h>
 

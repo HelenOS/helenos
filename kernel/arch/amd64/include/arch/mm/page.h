@@ -43,33 +43,33 @@
 
 #ifdef MEMORY_MODEL_kernel
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffffffff80000000))
 #define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffffffff80000000))
 
-#else /* __ASM__ */
+#else /* __ASSEMBLER__ */
 
 #define KA2PA(x)  ((x) - 0xffffffff80000000)
 #define PA2KA(x)  ((x) + 0xffffffff80000000)
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif /* MEMORY_MODEL_kernel */
 
 #ifdef MEMORY_MODEL_large
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
 #define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
 
-#else /* __ASM__ */
+#else /* __ASSEMBLER__ */
 
 #define KA2PA(x)  ((x) - 0xffff800000000000)
 #define PA2KA(x)  ((x) + 0xffff800000000000)
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif /* MEMORY_MODEL_large */
 
@@ -161,7 +161,7 @@
 #define PTE_EXECUTABLE_ARCH(p) \
 	((p)->no_execute == 0)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <mm/mm.h>
 #include <arch/interrupt.h>
@@ -254,7 +254,7 @@ NO_TRACE static inline void set_pt_present(pte_t *pt, size_t i)
 extern void page_arch_init(void);
 extern void page_fault(unsigned int, istate_t *);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

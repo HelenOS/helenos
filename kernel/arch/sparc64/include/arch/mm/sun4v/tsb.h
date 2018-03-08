@@ -48,7 +48,7 @@
 #define TSB_SIZE			(TSB_ENTRY_COUNT * sizeof(tsb_entry_t))
 #define TSB_FRAMES			SIZE2FRAMES(TSB_SIZE)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdbool.h>
 #include <typedefs.h>
@@ -75,7 +75,7 @@ extern void tsb_invalidate(struct as *as, uintptr_t page, size_t pages);
 extern void itsb_pte_copy(struct pte *t);
 extern void dtsb_pte_copy(struct pte *t, bool ro);
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 
 #endif
 

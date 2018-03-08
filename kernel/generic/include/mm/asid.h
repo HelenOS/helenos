@@ -40,7 +40,7 @@
 #ifndef KERN_ASID_H_
 #define KERN_ASID_H_
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <arch/mm/asid.h>
 #include <synch/spinlock.h>
@@ -54,7 +54,7 @@
 #define ASID_START	2
 #define ASID_MAX	ASID_MAX_ARCH
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #define ASIDS_ALLOCABLE	((ASID_MAX + 1) - ASID_START)
 

@@ -331,10 +331,10 @@ $(LSONAME):
 endif
 
 %.o: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
 
 %.o: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
 
 %.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
@@ -343,10 +343,10 @@ endif
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
 
 %.lo: %.S | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
 
 %.lo: %.s | depend
-	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS) -D__ASM__
+	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(AS_CFLAGS)
 
 %.lo: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)

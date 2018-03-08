@@ -40,7 +40,7 @@
 
 #define FRAME_LOWPRIO  0
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <typedefs.h>
 
@@ -50,7 +50,7 @@ extern void frame_low_arch_init(void);
 extern void frame_high_arch_init(void);
 #define physmem_print()
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

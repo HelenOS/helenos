@@ -35,7 +35,7 @@
 #ifndef KERN_amd64_PM_H_
 #define KERN_amd64_PM_H_
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 	#include <typedefs.h>
 	#include <arch/context.h>
 #endif
@@ -87,7 +87,7 @@
 
 #define IO_PORTS  (64 * 1024)
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 typedef struct {
 	unsigned limit_0_15: 16;
@@ -179,7 +179,7 @@ extern void idt_setoffset(idescriptor_t *d, uintptr_t offset);
 
 extern void tss_initialize(tss_t *t);
 
-#endif /* __ASM__ */
+#endif /* __ASSEMBLER__ */
 
 #endif
 

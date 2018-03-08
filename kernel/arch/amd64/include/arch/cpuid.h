@@ -45,7 +45,7 @@
 #define INTEL_SSE2            26
 #define INTEL_FXSAVE          24
 
-#ifndef __ASM__
+#ifndef __ASSEMBLER__
 
 #include <stdint.h>
 
@@ -60,7 +60,7 @@ extern int has_cpuid(void);
 
 extern void cpuid(uint32_t cmd, cpu_info_t *info);
 
-#endif /* !def __ASM__ */
+#endif /* !def __ASSEMBLER__ */
 #endif
 
 /** @}
