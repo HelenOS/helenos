@@ -45,10 +45,5 @@ extern void context_create(context_t *context, const context_create_t *arg);
 extern uintptr_t context_get_fp(context_t *ctx);
 extern uintptr_t context_get_pc(context_t *ctx);
 
-// TODO: These should go away.
-
-extern int context_save(context_t *ctx) __attribute__((returns_twice));
-extern void context_restore(context_t *ctx) __attribute__((noreturn));
-
 #endif
 
