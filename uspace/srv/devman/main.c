@@ -113,7 +113,7 @@ static void devman_connection_device(ipc_callid_t iid, ipc_call_t *icall,
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 
 	if (driver == NULL) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding refused - " \
+		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding refused - "
 		    "the device %" PRIun " is not in usable state.", handle);
 		async_answer_0(iid, ENOENT);
 		goto cleanup;
@@ -193,7 +193,7 @@ static void devman_connection_parent(ipc_callid_t iid, ipc_call_t *icall,
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 
 	if (driver == NULL) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding refused - " \
+		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding refused - "
 		    "the device %" PRIun " is not in usable state.", handle);
 		async_answer_0(iid, ENOENT);
 		goto cleanup;

@@ -266,7 +266,7 @@ static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun)
 		goto error;
 	}
 
-	usb_log_info("Mass storage `%s' LUN %u: " \
+	usb_log_info("Mass storage `%s' LUN %u: "
 	    "%s by %s rev. %s is %s (%s).\n",
 	    usb_device_get_name(mdev->usb_dev),
 	    lun,

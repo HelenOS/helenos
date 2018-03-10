@@ -320,7 +320,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch)
 	    ohci_batch->tds[td_current]->next,
 	    ohci_batch->tds[td_current]->be);
 	usb_log_debug2(
-	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.", \
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.",
 	    &ohci_batch->base,
 	    usb_str_transfer_type(ohci_batch->base.ep->transfer_type),
 	    usb_str_direction(dir),
@@ -365,7 +365,7 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 		++td_current;
 	}
 	usb_log_debug2(
-	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.", \
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.",
 	    &ohci_batch->base,
 	    usb_str_transfer_type(ohci_batch->base.ep->transfer_type),
 	    usb_str_direction(dir),

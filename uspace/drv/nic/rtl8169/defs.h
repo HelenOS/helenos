@@ -188,9 +188,9 @@ enum rtl8169_interrupts {
 	INT_TOK = (1 << 2), /**< Transmit OK interrupt */
 	INT_RER = (1 << 1), /**< Receive error interrupt */
 	INT_ROK = (1 << 0), /**< Receive OK interrupt */
-	INT_KNOWN = (INT_SERR | INT_TIME_OUT | INT_SW | INT_TDU \
-	    | INT_FIFOOVW | INT_PUN | INT_RXOVW | INT_TER \
-	    | INT_TOK| INT_RER | INT_ROK),
+	INT_KNOWN = (INT_SERR | INT_TIME_OUT | INT_SW | INT_TDU |
+	    INT_FIFOOVW | INT_PUN | INT_RXOVW | INT_TER |
+	    INT_TOK | INT_RER | INT_ROK),
 };
 
 /** Transmit status descriptor registers bits */

@@ -201,33 +201,33 @@ static void print_uptime(void)
 static void usage(const char *name)
 {
 	printf(
-	    "Usage: %s [-t task_id] [-a] [-c] [-l] [-u]\n" \
-	    "\n" \
-	    "Options:\n" \
-	    "\t-t task_id\n" \
-	    "\t--task=task_id\n" \
-	    "\t\tList threads of the given task\n" \
-	    "\n" \
-	    "\t-a\n" \
-	    "\t--all\n" \
-	    "\t\tList all threads\n" \
-	    "\n" \
-	    "\t-c\n" \
-	    "\t--cpus\n" \
-	    "\t\tList CPUs\n" \
-	    "\n" \
-	    "\t-l\n" \
-	    "\t--load\n" \
-	    "\t\tPrint system load\n" \
-	    "\n" \
-	    "\t-u\n" \
-	    "\t--uptime\n" \
-	    "\t\tPrint system uptime\n" \
-	    "\n" \
-	    "\t-h\n" \
-	    "\t--help\n" \
+	    "Usage: %s [-t task_id] [-a] [-c] [-l] [-u]\n"
+	    "\n"
+	    "Options:\n"
+	    "\t-t task_id\n"
+	    "\t--task=task_id\n"
+	    "\t\tList threads of the given task\n"
+	    "\n"
+	    "\t-a\n"
+	    "\t--all\n"
+	    "\t\tList all threads\n"
+	    "\n"
+	    "\t-c\n"
+	    "\t--cpus\n"
+	    "\t\tList CPUs\n"
+	    "\n"
+	    "\t-l\n"
+	    "\t--load\n"
+	    "\t\tPrint system load\n"
+	    "\n"
+	    "\t-u\n"
+	    "\t--uptime\n"
+	    "\t\tPrint system uptime\n"
+	    "\n"
+	    "\t-h\n"
+	    "\t--help\n"
 	    "\t\tPrint this usage information\n"
-	    "\n" \
+	    "\n"
 	    "Without any options all tasks are listed\n",
 	    name
 	);

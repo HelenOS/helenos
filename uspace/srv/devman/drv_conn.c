@@ -142,7 +142,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 	 */
 	fid_t fid = fibril_create(init_running_drv, driver);
 	if (fid == 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to create initialization fibril " \
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed to create initialization fibril "
 		    "for driver `%s'.", driver->name);
 		fibril_mutex_unlock(&driver->driver_mutex);
 		async_answer_0(callid, ENOMEM);

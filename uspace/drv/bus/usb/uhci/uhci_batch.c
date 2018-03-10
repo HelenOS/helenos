@@ -250,7 +250,7 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	td_set_ioc(&uhci_batch->tds[td - 1]);
 	uhci_ep->toggle = toggle;
 	usb_log_debug2(
-	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.", \
+	    "Batch %p %s %s " USB_TRANSFER_BATCH_FMT " initialized.",
 	    uhci_batch,
 	    usb_str_transfer_type(uhci_batch->base.ep->transfer_type),
 	    usb_str_direction(uhci_batch->base.ep->direction),
