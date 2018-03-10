@@ -208,21 +208,5 @@ void phone_dealloc(cap_handle_t handle)
 	cap_free(TASK, handle);
 }
 
-/** Connect phone to a given answerbox.
- *
- * @param handle  Capability handle of the phone to be connected.
- * @param box     Answerbox to which to connect the phone.
- * @return        True if the phone was connected, false otherwise.
- */
-bool phone_connect(cap_handle_t handle, answerbox_t *box)
-{
-	kobject_t *phone_obj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
-	if (!phone_obj)
-		return false;
-
-	/* Hand over phone_obj reference to the answerbox */
-	return ipc_phone_connect(phone_obj->phone, box);
-}
-
 /** @}
  */
