@@ -41,35 +41,16 @@
 
 static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
+	/*
+	 * Create the new phone and capability, but don't publish them yet.
+	 * That will be done once the phone is connected.
+	 */
 	cap_handle_t phone_handle;
-	errno_t rc = phone_alloc(TASK, &phone_handle);
+	kobject_t *phone_obj;
+	errno_t rc = phone_alloc(TASK, false, &phone_handle, &phone_obj);
 	if (rc != EOK) {
 		call->priv = -1;
 		return rc;
-	}
-
-	/*
-	 * The capability is now published, but the phone is not connected yet.
-	 * The user cannot use it to send anything over it, in fact the
-	 * userspace can only unpublish and free the capability at this point.
-	 *
-	 * We now proceed to test the capability is still there. We don't care
-	 * if the user destroyed the old one and recreated a new published one
-	 * of the same type under the same handle.
-	 *
-	 * If the capability is in place we temporarily unpublish it to make
-	 * sure the user cannot fiddle with it while we are connecting.
-	 */
-
-	kobject_t *phone_obj = cap_unpublish(TASK, phone_handle,
-	    KOBJECT_TYPE_PHONE);
-	if (!phone_obj) {
-		/*
-		 * Another thread of the same task can destroy the new
-		 * capability before we manage to get a reference from it.
-		 */
-		call->priv = -1;
-		return ENOENT;
 	}
 
 	/* Hand over phone_obj's reference to ARG5 */

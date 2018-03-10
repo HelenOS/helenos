@@ -42,7 +42,7 @@
 static int request_process(call_t *call, answerbox_t *box)
 {
 	cap_handle_t phone_handle;
-	errno_t rc = phone_alloc(TASK, &phone_handle);
+	errno_t rc = phone_alloc(TASK, true, &phone_handle, NULL);
 	IPC_SET_ARG5(call->data, (rc == EOK) ? phone_handle : -1);
 	return 0;
 }

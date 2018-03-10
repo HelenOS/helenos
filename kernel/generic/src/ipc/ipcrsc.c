@@ -149,13 +149,15 @@ static kobject_ops_t phone_kobject_ops = {
 
 /** Allocate new phone in the specified task.
  *
- * @param task  Task for which to allocate a new phone.
- *
- * @param[out] out_handle  New phone capability handle.
+ * @param[in]  task     Task for which to allocate a new phone.
+ * @param[in]  publish  If true, the new capability will be published.
+ * @param[out] phandle  New phone capability handle.
+ * @param[out] kobject  New phone kobject.
  *
  * @return  An error code if a new capability cannot be allocated.
  */
-errno_t phone_alloc(task_t *task, cap_handle_t *out_handle)
+errno_t phone_alloc(task_t *task, bool publish, cap_handle_t *phandle,
+    kobject_t **kobject)
 {
 	cap_handle_t handle;
 	errno_t rc = cap_alloc(task, &handle);
@@ -165,8 +167,8 @@ errno_t phone_alloc(task_t *task, cap_handle_t *out_handle)
 			cap_free(TASK, handle);
 			return ENOMEM;
 		}
-		kobject_t *kobject = malloc(sizeof(kobject_t), FRAME_ATOMIC);
-		if (!kobject) {
+		kobject_t *kobj = malloc(sizeof(kobject_t), FRAME_ATOMIC);
+		if (!kobj) {
 			cap_free(TASK, handle);
 			slab_free(phone_cache, phone);
 			return ENOMEM;
@@ -175,13 +177,16 @@ errno_t phone_alloc(task_t *task, cap_handle_t *out_handle)
 		ipc_phone_init(phone, task);
 		phone->state = IPC_PHONE_CONNECTING;
 
-		kobject_initialize(kobject, KOBJECT_TYPE_PHONE, phone,
+		kobject_initialize(kobj, KOBJECT_TYPE_PHONE, phone,
 		    &phone_kobject_ops);
-		phone->kobject = kobject;
+		phone->kobject = kobj;
 
-		cap_publish(task, handle, kobject);
+		if (publish)
+			cap_publish(task, handle, kobj);
 
-		*out_handle = handle;
+		*phandle = handle;
+		if (kobject)
+			*kobject = kobj;
 	}
 	return rc;
 }
