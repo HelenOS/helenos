@@ -752,6 +752,16 @@ restart:
 	goto restart;
 }
 
+static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
+{
+	ipc_phone_hangup(cap->kobject->phone);
+	kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
+	    KOBJECT_TYPE_PHONE);
+	kobject_put(kobj);
+	cap_free(cap->task, cap->handle);
+	return true;
+}
+
 /** Wait for all answers to asynchronous calls to arrive. */
 static void ipc_wait_for_all_answered_calls(void)
 {
@@ -763,17 +773,15 @@ static void ipc_wait_for_all_answered_calls(void)
 		SYSIPC_OP(answer_process, call);
 
 		kobject_put(call->kobject);
-	}
-}
 
-static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
-{
-	ipc_phone_hangup(cap->kobject->phone);
-	kobject_t *kobj = cap_unpublish(cap->task, cap->handle,
-	    KOBJECT_TYPE_PHONE);
-	kobject_put(kobj);
-	cap_free(cap->task, cap->handle);
-	return true;
+		/*
+		 * Now there may be some new phones and new hangup calls to
+		 * immediately forget.
+		 */
+		caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_PHONE,
+		    phone_cap_cleanup_cb, NULL);
+		ipc_forget_all_active_calls();
+	}
 }
 
 static bool irq_cap_cleanup_cb(cap_t *cap, void *arg)
@@ -813,11 +821,11 @@ void ipc_cleanup(void)
 	TASK->answerbox.active = false;
 	irq_spinlock_unlock(&TASK->answerbox.lock, true);
 
-	/* Disconnect all our phones ('ipc_phone_hangup') */
+	/* Hangup all phones and destroy all phone capabilities */
 	caps_apply_to_kobject_type(TASK, KOBJECT_TYPE_PHONE,
 	    phone_cap_cleanup_cb, NULL);
 
-	/* Unsubscribe from any event notifications. */
+	/* Unsubscribe from any event notifications */
 	event_cleanup_answerbox(&TASK->answerbox);
 
 	/* Disconnect all connected IRQs */
@@ -843,6 +851,8 @@ void ipc_cleanup(void)
 
 	ipc_forget_all_active_calls();
 	ipc_wait_for_all_answered_calls();
+
+	assert(atomic_get(&TASK->answerbox.active_calls) == 0);
 }
 
 /** Initilize IPC subsystem
