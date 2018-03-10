@@ -73,7 +73,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	} else if (phone_handle >= 0) {
 		/*
 		 * The connection was accepted
-		 * */
+		 */
 
 		/*
 		 * We need to create another reference as the one we have now
