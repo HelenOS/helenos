@@ -43,16 +43,25 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
 	cap_handle_t phone_handle;
 	errno_t rc = phone_alloc(TASK, &phone_handle);
-
-	/* Remember the phone capability or that an error occured. */
-	call->priv = (rc == EOK) ? phone_handle : -1;
-
 	if (rc != EOK) {
+		call->priv = -1;
 		return rc;
 	}
 
-	/* Set ARG5 for server */
-	kobject_t *phone_obj = kobject_get(TASK, phone_handle,
+	/*
+	 * The capability is now published, but the phone is not connected yet.
+	 * The user cannot use it to send anything over it, in fact the
+	 * userspace can only unpublish and free the capability at this point.
+	 *
+	 * We now proceed to test the capability is still there. We don't care
+	 * if the user destroyed the old one and recreated a new published one
+	 * of the same type under the same handle.
+	 *
+	 * If the capability is in place we temporarily unpublish it to make
+	 * sure the user cannot fiddle with it while we are connecting.
+	 */
+
+	kobject_t *phone_obj = cap_unpublish(TASK, phone_handle,
 	    KOBJECT_TYPE_PHONE);
 	if (!phone_obj) {
 		/*
@@ -62,8 +71,12 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 		call->priv = -1;
 		return ENOENT;
 	}
+
 	/* Hand over phone_obj's reference to ARG5 */
 	IPC_SET_ARG5(call->data, (sysarg_t) phone_obj->phone);
+
+	/* Remember the handle */
+	call->priv = phone_handle;
 
 	return EOK;
 }
@@ -72,15 +85,15 @@ static errno_t request_forget(call_t *call)
 {
 	cap_handle_t phone_handle = (cap_handle_t) call->priv;
 
-	if (phone_handle < 0) {
+	if (phone_handle < 0)
 		return EOK;
-	}
 
-	phone_dealloc(phone_handle);
 	/* Hand over reference from ARG5 to phone->kobject */
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(call->data);
-	/* Drop phone_obj's reference */
+	/* Drop phone->kobject's reference */
 	kobject_put(phone->kobject);
+	cap_free(TASK, phone_handle);
+
 	return EOK;
 }
 
@@ -89,7 +102,13 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	/* Hand over reference from ARG5 to phone */
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
 
-	/* If the user accepted call, connect */
+	/*
+	 * Get an extra reference and pass it in the answer data.
+	 */
+	kobject_add_ref(phone->kobject);
+	IPC_SET_ARG5(answer->data, (sysarg_t) phone);
+
+	/* If the user accepted the call, connect */
 	if (IPC_GET_RETVAL(answer->data) == EOK) {
 		/* Hand over reference from phone to the answerbox */
 		(void) ipc_phone_connect(phone, &TASK->answerbox);
@@ -103,16 +122,25 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 static errno_t answer_process(call_t *answer)
 {
 	cap_handle_t phone_handle = (cap_handle_t) answer->priv;
+	phone_t *phone = (phone_t *) IPC_GET_ARG5(answer->data);
 
 	if (IPC_GET_RETVAL(answer->data)) {
 		if (phone_handle >= 0) {
 			/*
-			 * The phone was indeed allocated and now needs
-			 * to be deallocated.
+			 * Cleanup the unpublished capability and drop
+			 * phone->kobject's reference.
 			 */
-			phone_dealloc(phone_handle);
+			kobject_put(phone->kobject);
+			cap_free(TASK, phone_handle);
 		}
 	} else {
+		/*
+		 * Publish the capability. Publishing the capability this late
+		 * is important for ipc_cleanup() where we want to have a
+		 * capability for each phone that wasn't hung up by the user.
+		 */
+		cap_publish(TASK, phone_handle, phone->kobject);
+
 		IPC_SET_ARG5(answer->data, phone_handle);
 	}
 
