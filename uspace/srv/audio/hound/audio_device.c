@@ -262,6 +262,9 @@ static errno_t device_source_connection_callback(audio_source_t *source, bool ne
  */
 static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
+	struct timeval time1;
+	errno_t ret;
+
 	/* Answer initial request */
 	async_answer_0(iid, EOK);
 	audio_device_t *dev = arg;
@@ -271,8 +274,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 		ipc_callid_t callid = async_get_call(&call);
 		async_answer_0(callid, EOK);
 		switch(IPC_GET_IMETHOD(call)) {
-		case PCM_EVENT_FRAMES_PLAYED: {
-			struct timeval time1;
+		case PCM_EVENT_FRAMES_PLAYED:
 			getuptime(&time1);
 			//TODO add underrun detection.
 			/* We never cross the end of the buffer here */
@@ -284,42 +286,37 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void *arg
 			log_verbose("Time to mix sources: %li\n",
 			    tv_sub_diff(&time2, &time1));
 			break;
-		}
-		case PCM_EVENT_CAPTURE_TERMINATED: {
+		case PCM_EVENT_CAPTURE_TERMINATED:
 			log_verbose("Capture terminated");
 			dev->source.format = AUDIO_FORMAT_ANY;
-			const errno_t ret = release_buffer(dev);
+			ret = release_buffer(dev);
 			if (ret != EOK) {
 				log_error("Failed to release buffer: %s",
 				    str_error(ret));
 			}
 			audio_pcm_unregister_event_callback(dev->sess);
 			break;
-		}
-		case PCM_EVENT_PLAYBACK_TERMINATED: {
+		case PCM_EVENT_PLAYBACK_TERMINATED:
 			log_verbose("Playback Terminated");
 			dev->sink.format = AUDIO_FORMAT_ANY;
-			const errno_t ret = release_buffer(dev);
+			ret = release_buffer(dev);
 			if (ret != EOK) {
 				log_error("Failed to release buffer: %s",
 				    str_error(ret));
 			}
 			audio_pcm_unregister_event_callback(dev->sess);
 			break;
-		}
-		case PCM_EVENT_FRAMES_CAPTURED: {
-			const errno_t ret = audio_source_push_data(&dev->source,
+		case PCM_EVENT_FRAMES_CAPTURED:
+			ret = audio_source_push_data(&dev->source,
 			    dev->buffer.position, dev->buffer.fragment_size);
 			advance_buffer(dev, dev->buffer.fragment_size);
 			if (ret != EOK)
 				log_warning("Failed to push recorded data");
 			break;
-		}
 		case 0:
 			log_info("Device event callback hangup");
 			return;
 		}
-
 	}
 }
 

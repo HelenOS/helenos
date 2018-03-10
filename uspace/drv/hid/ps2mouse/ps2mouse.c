@@ -407,13 +407,13 @@ void default_connection_handler(ddf_fun_t *fun,
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	ps2_mouse_t *mouse = ddf_dev_data_get(ddf_fun_get_dev(fun));
+	async_sess_t *sess;
 
 	switch (method) {
 	/* This might be ugly but async_callback_receive_start makes no
 	 * difference for incorrect call and malloc failure. */
-	case IPC_M_CONNECT_TO_ME: {
-		async_sess_t *sess =
-		    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	case IPC_M_CONNECT_TO_ME:
+		sess = async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 		/* Probably ENOMEM error, try again. */
 		if (sess == NULL) {
 			ddf_msg(LVL_WARN,
@@ -430,7 +430,6 @@ void default_connection_handler(ddf_fun_t *fun,
 			async_answer_0(icallid, ELIMIT);
 		}
 		break;
-	}
 	default:
 		ddf_msg(LVL_ERROR, "Unknown method: %d.", (int)method);
 		async_answer_0(icallid, EINVAL);

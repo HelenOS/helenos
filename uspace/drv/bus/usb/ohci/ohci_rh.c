@@ -342,29 +342,26 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 {
 	ohci_rh_t *hub;
 	unsigned port;
+	uint32_t rhda;
 	TEST_SIZE_INIT(0, port, hub);
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	/* Enabled features to clear: see page 269 of USB specs */
 	switch (feature)
 	{
 	case USB_HUB_FEATURE_PORT_POWER:          /*8*/
-		{
-			const uint32_t rhda =
-			    OHCI_RD(hub->registers->rh_desc_a);
-			/* No power switching */
-			if (rhda & RHDA_NPS_FLAG)
-				return ENOTSUP;
-			/* Ganged power switching, one port powers all */
-			if (!(rhda & RHDA_PSM_FLAG)) {
-				OHCI_WR(hub->registers->rh_status,
-				    RHS_CLEAR_GLOBAL_POWER);
-				return EOK;
-			}
-			OHCI_WR(hub->registers->rh_port_status[port],
-			    RHPS_CLEAR_PORT_POWER);
+		rhda = OHCI_RD(hub->registers->rh_desc_a);
+		/* No power switching */
+		if (rhda & RHDA_NPS_FLAG)
+			return ENOTSUP;
+		/* Ganged power switching, one port powers all */
+		if (!(rhda & RHDA_PSM_FLAG)) {
+			OHCI_WR(hub->registers->rh_status,
+			    RHS_CLEAR_GLOBAL_POWER);
 			return EOK;
 		}
-
+		OHCI_WR(hub->registers->rh_port_status[port],
+		    RHPS_CLEAR_PORT_POWER);
+		return EOK;
 	case USB2_HUB_FEATURE_PORT_ENABLE:         /*1*/
 		OHCI_WR(hub->registers->rh_port_status[port],
 		    RHPS_CLEAR_PORT_ENABLE);
@@ -406,23 +403,22 @@ static errno_t req_set_port_feature(usbvirt_device_t *device,
 {
 	ohci_rh_t *hub;
 	unsigned port;
+	uint32_t rhda;
 	TEST_SIZE_INIT(0, port, hub);
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 
 	switch (feature) {
 	case USB_HUB_FEATURE_PORT_POWER:   /*8*/
-		{
-			const uint32_t rhda = OHCI_RD(hub->registers->rh_desc_a);
+		rhda = OHCI_RD(hub->registers->rh_desc_a);
 
-			/* No power switching */
-			if (rhda & RHDA_NPS_FLAG)
-				return EOK;
+		/* No power switching */
+		if (rhda & RHDA_NPS_FLAG)
+			return EOK;
 
-			/* Ganged power switching, one port powers all */
-			if (!(rhda & RHDA_PSM_FLAG)) {
-				OHCI_WR(hub->registers->rh_status,RHS_SET_GLOBAL_POWER);
-				return EOK;
-			}
+		/* Ganged power switching, one port powers all */
+		if (!(rhda & RHDA_PSM_FLAG)) {
+			OHCI_WR(hub->registers->rh_status,RHS_SET_GLOBAL_POWER);
+			return EOK;
 		}
 		/* Fall through, for per port power */
 		/* Fallthrough */

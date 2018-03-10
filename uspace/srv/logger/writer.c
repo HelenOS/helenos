@@ -95,6 +95,9 @@ leave:
 
 void logger_connection_handler_writer(ipc_callid_t callid)
 {
+	logger_log_t *log;
+	errno_t rc;
+
 	/* Acknowledge the connection. */
 	async_answer_0(callid, EOK);
 
@@ -111,8 +114,8 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
-		case LOGGER_WRITER_CREATE_LOG: {
-			logger_log_t *log = handle_create_log(IPC_GET_ARG1(call));
+		case LOGGER_WRITER_CREATE_LOG:
+			log = handle_create_log(IPC_GET_ARG1(call));
 			if (log == NULL) {
 				async_answer_0(callid, ENOMEM);
 				break;
@@ -125,13 +128,11 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 			log_unlock(log);
 			async_answer_1(callid, EOK, (sysarg_t) log);
 			break;
-		}
-		case LOGGER_WRITER_MESSAGE: {
-			errno_t rc = handle_receive_message(IPC_GET_ARG1(call),
+		case LOGGER_WRITER_MESSAGE:
+			rc = handle_receive_message(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
 			async_answer_0(callid, rc);
 			break;
-		}
 		default:
 			async_answer_0(callid, EINVAL);
 			break;

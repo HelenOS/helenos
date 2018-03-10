@@ -309,6 +309,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 
 	while (isoch->transfers[isoch->hw_enqueue].state == ISOCH_FILLED) {
 		xhci_isoch_transfer_t * const it = &isoch->transfers[isoch->hw_enqueue];
+		suseconds_t delay;
 
 		assert(it->state == ISOCH_FILLED);
 
@@ -316,14 +317,13 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 		window_decide(&wd, hc, it->mfindex);
 
 		switch (wd.position) {
-		case WINDOW_TOO_SOON: {
-			const suseconds_t delay = wd.offset * 125;
+		case WINDOW_TOO_SOON:
+			delay = wd.offset * 125;
 			usb_log_debug("[isoch] delaying feeding buffer %zu for %ldus",
 				it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_out_timer, ep);
 			goto out;
-		}
 
 		case WINDOW_INSIDE:
 			usb_log_debug("[isoch] feeding buffer %zu at 0x%llx",
@@ -395,6 +395,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 
 	while (isoch->transfers[isoch->enqueue].state <= ISOCH_FILLED) {
 		xhci_isoch_transfer_t * const it = &isoch->transfers[isoch->enqueue];
+		suseconds_t delay;
 
 		/* IN buffers are "filled" with free space */
 		if (it->state == ISOCH_EMPTY) {
@@ -407,16 +408,14 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 		window_decide(&wd, hc, it->mfindex);
 
 		switch (wd.position) {
-		case WINDOW_TOO_SOON: {
+		case WINDOW_TOO_SOON:
 			/* Not allowed to feed yet. Defer to later. */
-			const suseconds_t delay = wd.offset * 125;
+			delay = wd.offset * 125;
 			usb_log_debug("[isoch] delaying feeding buffer %zu for %ldus",
 			    it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_in_timer, ep);
 			goto out;
-		}
-
 		case WINDOW_TOO_LATE:
 			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%llx by"
 				"%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);

@@ -179,6 +179,8 @@ void fpu_init(void)
 
 void fpu_setup(void)
 {
+	uint32_t mvfr0;
+
 	/* Enable coprocessor access*/
 	fpu_enable_coprocessor_access();
 
@@ -204,8 +206,8 @@ void fpu_setup(void)
 		break;
 	case FPU_VFPv3_COMMONv2:
 	case FPU_VFPv3_NO_COMMON:
-	case FPU_VFPv3_COMMONv3: {
-		const uint32_t mvfr0 = mvfr0_read();
+	case FPU_VFPv3_COMMONv3:
+		mvfr0 = mvfr0_read();
 		/* See page B4-1637 */
 		if ((mvfr0 & 0xf) == 0x1) {
 			printf("Detected VFPv3+ with 16 regs\n");
@@ -217,8 +219,6 @@ void fpu_setup(void)
 			restore_context = fpu_context_restore_d32;
 		}
 		break;
-	}
-
 	}
 }
 

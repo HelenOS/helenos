@@ -164,6 +164,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	usb_kbd_t *kbd_dev = ddf_fun_data_get(fun);
+	async_sess_t *sess;
 
 	switch (method) {
 	case KBDEV_SET_IND:
@@ -173,9 +174,8 @@ static void default_connection_handler(ddf_fun_t *fun,
 		break;
 	/* This might be ugly but async_callback_receive_start makes no
 	 * difference for incorrect call and malloc failure. */
-	case IPC_M_CONNECT_TO_ME: {
-		async_sess_t *sess =
-		    async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
+	case IPC_M_CONNECT_TO_ME:
+		sess = async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 		/* Probably ENOMEM error, try again. */
 		if (sess == NULL) {
 			usb_log_warning(
@@ -193,7 +193,6 @@ static void default_connection_handler(ddf_fun_t *fun,
 			async_answer_0(icallid, ELIMIT);
 		}
 		break;
-	}
 	default:
 			usb_log_error("%s: Unknown method: %d.",
 			    __FUNCTION__, (int) method);

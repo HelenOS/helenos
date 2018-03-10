@@ -46,7 +46,7 @@ extern void print_data(data_t *);
 extern void show_warning(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 
-extern errno_t tgetchar(unsigned int);
+extern int tgetchar(unsigned int);
 
 #endif
 

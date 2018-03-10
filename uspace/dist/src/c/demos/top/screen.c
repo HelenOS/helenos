@@ -44,6 +44,7 @@
 #include <stats.h>
 #include <inttypes.h>
 #include <macros.h>
+#include <str.h>
 #include "screen.h"
 #include "top.h"
 
@@ -388,6 +389,9 @@ static inline void print_table(const table_t *table)
 		size_t column_index = i % table->num_columns;
 		int width = table->columns[column_index].width;
 		field_t *field = &table->fields[i];
+		uint64_t val;
+		const char *psuffix;
+		char suffix;
 
 		if (column_index != 0) {
 			puts(" ");
@@ -405,22 +409,18 @@ static inline void print_table(const table_t *table)
 		case FIELD_UINT:
 			printf("%*" PRIu64, width, field->uint);
 			break;
-		case FIELD_UINT_SUFFIX_BIN: {
-			uint64_t val = field->uint;
-			const char *suffix;
+		case FIELD_UINT_SUFFIX_BIN:
+			val = field->uint;
 			width -= 3;
-			bin_order_suffix(val, &val, &suffix, true);
-			printf("%*" PRIu64 "%s", width, val, suffix);
+			bin_order_suffix(val, &val, &psuffix, true);
+			printf("%*" PRIu64 "%s", width, val, psuffix);
 			break;
-		}
-		case FIELD_UINT_SUFFIX_DEC: {
-			uint64_t val = field->uint;
-			char suffix;
+		case FIELD_UINT_SUFFIX_DEC:
+			val = field->uint;
 			width -= 1;
 			order_suffix(val, &val, &suffix);
 			printf("%*" PRIu64 "%c", width, val, suffix);
 			break;
-		}
 		case FIELD_PERCENT:
 			width -= 5; /* nnn.% */
 			if (width > 2) {
@@ -536,7 +536,7 @@ void show_warning(const char *fmt, ...)
 /** Get char with timeout
  *
  */
-errno_t tgetchar(unsigned int sec)
+int tgetchar(unsigned int sec)
 {
 	/*
 	 * Reset timeleft whenever it is not positive.

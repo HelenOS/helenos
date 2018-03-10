@@ -64,6 +64,9 @@ static errno_t handle_log_level_change(sysarg_t new_level)
 
 void logger_connection_handler_control(ipc_callid_t callid)
 {
+	errno_t rc;
+	int fd;
+
 	async_answer_0(callid, EOK);
 	logger_log("control: new client.\n");
 
@@ -75,26 +78,22 @@ void logger_connection_handler_control(ipc_callid_t callid)
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
-		case LOGGER_CONTROL_SET_DEFAULT_LEVEL: {
-			errno_t rc = set_default_logging_level(IPC_GET_ARG1(call));
+		case LOGGER_CONTROL_SET_DEFAULT_LEVEL:
+			rc = set_default_logging_level(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
-		}
-		case LOGGER_CONTROL_SET_LOG_LEVEL: {
-			errno_t rc = handle_log_level_change(IPC_GET_ARG1(call));
+		case LOGGER_CONTROL_SET_LOG_LEVEL:
+			rc = handle_log_level_change(IPC_GET_ARG1(call));
 			async_answer_0(callid, rc);
 			break;
-		}
-		case LOGGER_CONTROL_SET_ROOT: {
-			int fd;
-			errno_t rc = vfs_receive_handle(true, &fd);
+		case LOGGER_CONTROL_SET_ROOT:
+			rc = vfs_receive_handle(true, &fd);
 			if (rc == EOK) {
 				rc = vfs_root_set(fd);
 				vfs_put(fd);
 			}
 			async_answer_0(callid, rc);
 			break;
-		}
 		default:
 			async_answer_0(callid, EINVAL);
 			break;
