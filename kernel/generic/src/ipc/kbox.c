@@ -252,7 +252,7 @@ errno_t ipc_connect_kbox(task_id_t taskid, cap_handle_t *out_phone)
 
 	/* Allocate a new phone. */
 	cap_handle_t phone_handle;
-	errno_t rc = phone_alloc(TASK, &phone_handle);
+	errno_t rc = phone_alloc(TASK, true, &phone_handle, NULL);
 	if (rc != EOK) {
 		mutex_unlock(&task->kb.cleanup_lock);
 		return rc;
