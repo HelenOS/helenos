@@ -411,8 +411,9 @@ void avltree_delete(avltree_t *t, avltree_node_t *node)
 		 * in the left subtree and replace the deleted node with that
 		 * node.
 		 */
-		for (cur = node->lft; cur->rgt != NULL; cur = cur->rgt)
-			;
+		cur = node->lft;
+		while (cur->rgt != NULL)
+			cur = cur->rgt;
 
 		if (cur != node->lft) {
 			/*
@@ -461,7 +462,7 @@ void avltree_delete(avltree_t *t, avltree_node_t *node)
 	 * Repair cycle which repairs balances of nodes on the way from from the
 	 * cut-off node up to the root.
 	 */
-	for (;;) {
+	while (true) {
 		if (dir == LEFT) {
 			/*
 			 * Deletion was made in the left subtree.

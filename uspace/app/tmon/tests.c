@@ -80,7 +80,10 @@ static errno_t read_params(int argc, char *argv[], void **params)
 	// Parse other than default values.
 	int c;
 	uint32_t duration_uint;
-	for (c = 0, optreset = 1, optind = 0; c != -1;) {
+	c = 0;
+	optreset = 1;
+	optind = 0;
+	while (c != -1) {
 		c = getopt_long(argc, argv, short_options, long_options, NULL);
 		switch (c) {
 		case -1:

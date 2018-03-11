@@ -209,5 +209,5 @@ const char *test_chardev1(void)
 	if (s != NULL)
 		return s;
 
-	return test_chardev1_partialx();;
+	return test_chardev1_partialx();
 }

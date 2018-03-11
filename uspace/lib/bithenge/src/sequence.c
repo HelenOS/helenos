@@ -606,9 +606,8 @@ errno_t bithenge_new_struct(bithenge_transform_t **out,
 		goto error;
 	self->subtransforms = subtransforms;
 	self->num_subtransforms = 0;
-	for (self->num_subtransforms = 0;
-	    subtransforms[self->num_subtransforms].transform;
-	    self->num_subtransforms++);
+	while (subtransforms[self->num_subtransforms].transform)
+	    self->num_subtransforms++;
 	*out = struct_as_transform(self);
 	return EOK;
 error:

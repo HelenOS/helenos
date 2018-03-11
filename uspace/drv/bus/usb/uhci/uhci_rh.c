@@ -251,7 +251,7 @@ static errno_t req_get_port_status(usbvirt_device_t *device,
 	    "%s)", uint32_usb2host(status), val,
 	    hub->reset_changed[port] ? "-reset" : "");
 	memcpy(data, &status, sizeof(status));
-	*act_size = sizeof(status);;
+	*act_size = sizeof(status);
 	return EOK;
 }
 

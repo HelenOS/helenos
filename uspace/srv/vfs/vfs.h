@@ -59,30 +59,22 @@ typedef struct {
 	async_sess_t *sess;
 } fs_info_t;
 
-/**
- * VFS_PAIR uniquely represents a file system instance.
- */
-#define VFS_PAIR \
-	fs_handle_t fs_handle; \
+/** Uniquely represents a file system instance. */
+typedef struct {
+	fs_handle_t fs_handle;
 	service_id_t service_id;
+} vfs_pair_t;
 
-/**
- * VFS_TRIPLET uniquely identifies a file system node (e.g. directory, file) but
- * doesn't contain any state. For a stateful structure, see vfs_node_t.
+/** Uniquely identifies a file system node (e.g. directory, file)
+ * but doesn't contain any state. For a stateful structure, see vfs_node_t.
  *
  * @note	fs_handle, service_id and index are meant to be returned in one
  *		IPC reply.
  */
-#define VFS_TRIPLET \
-	VFS_PAIR; \
+typedef struct {
+	fs_handle_t fs_handle;
+	service_id_t service_id;
 	fs_index_t index;
-
-typedef struct {
-	VFS_PAIR;
-} vfs_pair_t;
-
-typedef struct {
-	VFS_TRIPLET;
 } vfs_triplet_t;
 
 typedef enum vfs_node_type {
@@ -102,7 +94,13 @@ typedef struct {
  * which may be associated with it.
  */
 typedef struct _vfs_node {
-	VFS_TRIPLET;		/**< Identity of the node. */
+	/*
+	 * Identity of the node
+	 */
+
+	fs_handle_t fs_handle;
+	service_id_t service_id;
+	fs_index_t index;
 
 	/**
 	 * Usage counter.  This includes, but is not limited to, all vfs_file_t

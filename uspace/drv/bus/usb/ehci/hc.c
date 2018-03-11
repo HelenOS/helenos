@@ -209,7 +209,7 @@ int hc_gone(hc_device_t *hcd)
 	endpoint_list_fini(&hc->int_list);
 	dma_buffer_free(&hc->dma_buffer);
 	return EOK;
-};
+}
 
 void hc_enqueue_endpoint(hc_t *instance, const endpoint_t *ep)
 {

@@ -281,7 +281,7 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 			ddf_msg(LVL_ERROR, "Rounding error, or divisor to big "
 			    "freq: %d, div: %d", base_freq, div);
 			return;
-		};
+		}
 		assert(div <= 127);
 
 		/* Set multiplier */

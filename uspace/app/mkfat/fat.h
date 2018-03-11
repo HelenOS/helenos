@@ -116,7 +116,7 @@ typedef struct fat_bs {
 			uint8_t		boot_code[420];
 			/** Signature. */
 			uint16_t	signature;
-		} fat32 __attribute__ ((packed));
+		} __attribute__ ((packed)) fat32;
 	};
 } __attribute__ ((packed)) fat_bs_t;
 

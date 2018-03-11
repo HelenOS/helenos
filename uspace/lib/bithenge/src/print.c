@@ -161,7 +161,8 @@ static errno_t print_string(state_t *state, bithenge_node_t *node)
 {
 	const char *value = bithenge_string_node_value(node);
 	state_printf(state, "\"");
-	for (string_iterator_t i = string_iterator(value); !string_iterator_done(&i); ) {
+	string_iterator_t i = string_iterator(value);
+	while (!string_iterator_done(&i)) {
 		wchar_t ch;
 		errno_t rc = string_iterator_next(&i, &ch);
 		if (rc != EOK)

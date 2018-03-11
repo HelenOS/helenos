@@ -669,18 +669,18 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 
 				counter += retval;
 				j = nxt;
-				goto next_char;
+				continue;
 			case 'c':
 				retval = print_char(va_arg(ap, unsigned int), width, flags, ps);
 
 				if (retval < 0) {
 					counter = -counter;
 					goto out;
-				};
+				}
 
 				counter += retval;
 				j = nxt;
-				goto next_char;
+				continue;
 
 			/*
 			 * Integer values
@@ -717,7 +717,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			/* Percentile itself */
 			case '%':
 				j = i;
-				goto next_char;
+				continue;
 
 			/*
 			 * Bad formatting.
@@ -727,7 +727,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				 * Unknown format. Now, j is the index of '%'
 				 * so we will print whole bad format sequence.
 				 */
-				goto next_char;
+				continue;
 			}
 
 			/* Print integers */
@@ -783,8 +783,6 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			counter += retval;
 			j = nxt;
 		}
-next_char:
-		;
 	}
 
 	if (i > j) {

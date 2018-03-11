@@ -218,6 +218,7 @@ errno_t ext4_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	ext4_node_t *eparent = EXT4_NODE(pfn);
 	ext4_filesystem_t *fs = eparent->instance->filesystem;
+	errno_t rc2;
 
 	if (!ext4_inode_is_type(fs->superblock, eparent->inode_ref->inode,
 	    EXT4_INODE_MODE_DIRECTORY))
@@ -243,10 +244,8 @@ errno_t ext4_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		goto exit;
 
 exit:
-	;
-
 	/* Destroy search result structure */
-	errno_t const rc2 = ext4_directory_destroy_result(&result);
+	rc2 = ext4_directory_destroy_result(&result);
 	return rc == EOK ? rc2 : rc;
 }
 
@@ -1278,6 +1277,7 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
     size_t *wbytes, aoff64_t *nsize)
 {
 	fs_node_t *fn;
+	errno_t rc2;
 	errno_t rc = ext4_node_get(&fn, service_id, index);
 	if (rc != EOK)
 		return rc;
@@ -1394,9 +1394,7 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	*wbytes = bytes;
 
 exit:
-	;
-
-	errno_t const rc2 = ext4_node_put(fn);
+	rc2 = ext4_node_put(fn);
 	return rc == EOK ? rc2 : rc;
 }
 

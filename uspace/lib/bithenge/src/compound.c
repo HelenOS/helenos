@@ -69,7 +69,8 @@ static errno_t compose_apply(bithenge_transform_t *base, bithenge_scope_t *scope
 	bithenge_node_inc_ref(in);
 
 	/* i ranges from (self->num - 1) to 0 inside the loop. */
-	for (size_t i = self->num; i--; ) {
+	size_t i = self->num;
+	while (i-- != 0) {
 		bithenge_node_t *tmp;
 		rc = bithenge_transform_apply(self->xforms[i], scope, in,
 		    &tmp);

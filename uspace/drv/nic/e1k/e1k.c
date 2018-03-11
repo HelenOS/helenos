@@ -543,7 +543,7 @@ static errno_t e1000_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
 
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return rc;
-};
+}
 
 /** Write receive address to RA registr
  *
@@ -2280,7 +2280,7 @@ static errno_t e1000_get_address(e1000_t *e1000, nic_address_t *address)
 
 	fibril_mutex_unlock(&e1000->rx_lock);
 	return EOK;
-};
+}
 
 /** Set card MAC address
  *

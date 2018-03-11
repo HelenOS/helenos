@@ -109,7 +109,9 @@ static void ofw_tree_node_process(ofw_tree_node_t *current_node,
 
 		/* Find last slash */
 		size_t i;
-		for (i = len; (i > 0) && (path[i - 1] != '/'); i--);
+		i = len;
+		while (i > 0 && path[i - 1] != '/')
+			i--;
 
 		/* Do not include the slash */
 		len -= i;

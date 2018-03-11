@@ -263,10 +263,11 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 				}
 			}
 
-			for (max_match_len_tmp = 0;
-			    (output[max_match_len_tmp] ==
+			max_match_len_tmp = 0;
+			while ((output[max_match_len_tmp] ==
 			    hint[max_match_len_tmp]) &&
-			    (max_match_len_tmp < max_match_len); ++max_match_len_tmp);
+			    (max_match_len_tmp < max_match_len))
+				++max_match_len_tmp;
 
 			max_match_len = max_match_len_tmp;
 		}
@@ -372,9 +373,9 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 				tmp[0] = '\0';
 				beg = 0;
 			} else {
-				for (beg = position - 1;
-				    (beg > 0) && (!isspace(current[beg]));
-				    beg--);
+				beg = position - 1;
+				while ((beg > 0) && (!isspace(current[beg])))
+				    beg--;
 
 				if (isspace(current[beg]))
 					beg++;

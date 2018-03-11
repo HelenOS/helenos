@@ -475,6 +475,7 @@ static errno_t ext4_extent_find_extent(ext4_inode_ref_t *inode_ref, uint32_t ibl
 	/* Walk through the extent tree */
 	uint16_t pos = 0;
 	errno_t rc;
+	errno_t rc2;
 	while (ext4_extent_header_get_depth(eh) != 0) {
 		/* Search index in index node by iblock */
 		ext4_extent_binsearch_idx(tmp_path[pos].header,
@@ -512,9 +513,7 @@ static errno_t ext4_extent_find_extent(ext4_inode_ref_t *inode_ref, uint32_t ibl
 	return EOK;
 
 cleanup:
-	;
-
-	errno_t rc2 = EOK;
+	rc2 = EOK;
 
 	/*
 	 * Put loaded blocks
@@ -622,6 +621,7 @@ errno_t ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 {
 	/* Find the first extent to modify */
 	ext4_extent_path_t *path;
+	errno_t rc2;
 	errno_t rc = ext4_extent_find_extent(inode_ref, iblock_from, &path);
 	if (rc != EOK)
 		return rc;
@@ -733,9 +733,7 @@ errno_t ext4_extent_release_blocks_from(ext4_inode_ref_t *inode_ref,
 	}
 
 cleanup:
-	;
-
-	errno_t rc2 = EOK;
+	rc2 = EOK;
 
 	/*
 	 * Put loaded blocks
@@ -981,6 +979,7 @@ errno_t ext4_extent_append_block(ext4_inode_ref_t *inode_ref, uint32_t *iblock,
 
 	/* Load the nearest leaf (with extent) */
 	ext4_extent_path_t *path;
+	errno_t rc2;
 	errno_t rc = ext4_extent_find_extent(inode_ref, new_block_idx, &path);
 	if (rc != EOK)
 		return rc;
@@ -1085,9 +1084,7 @@ append_extent:
 	path_ptr->block->dirty = true;
 
 finish:
-	;
-
-	errno_t rc2 = EOK;
+	rc2 = EOK;
 
 	/* Set return values */
 	*iblock = new_block_idx;

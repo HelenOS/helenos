@@ -95,7 +95,7 @@ typedef union {
 		uint32_t sign : 1;
 		uint32_t exp : 8;
 		uint32_t fraction : 23;
-	} parts __attribute__((packed));
+	} __attribute__((packed)) parts;
 } float32;
 
 typedef union {
@@ -105,35 +105,35 @@ typedef union {
 		uint64_t sign : 1;
 		uint64_t exp : 11;
 		uint64_t fraction : 52;
-	} parts __attribute__((packed));
+	} __attribute__((packed)) parts;
 } float64;
 
 typedef union {
 	struct {
 		uint64_t hi;
 		uint32_t lo;
-	} bin __attribute__((packed));
+	} __attribute__((packed)) bin;
 
 	struct {
 		uint64_t padding : 16;
 		uint64_t sign : 1;
 		uint64_t exp : 15;
 		uint64_t fraction : 64;
-	} parts __attribute__((packed));
+	} __attribute__((packed)) parts;
 } float96;
 
 typedef union {
 	struct {
 		uint64_t hi;
 		uint64_t lo;
-	} bin __attribute__((packed));
+	} __attribute__((packed)) bin;
 
 	struct {
 		uint64_t sign : 1;
 		uint64_t exp : 15;
 		uint64_t frac_hi : 48;
 		uint64_t frac_lo : 64;
-	} parts __attribute__((packed));
+	} __attribute__((packed)) parts;
 } float128;
 
 #elif defined(__LE__)
@@ -145,7 +145,7 @@ typedef union {
 		uint32_t fraction : 23;
 		uint32_t exp : 8;
 		uint32_t sign : 1;
-	} parts __attribute__((packed));
+	} __attribute__((packed)) parts;
 } float32;
 
 typedef union {
@@ -155,35 +155,35 @@ typedef union {
 		uint64_t fraction : 52;
 		uint64_t exp : 11;
 		uint64_t sign : 1;
-	} parts __attribute__((packed));
+	} __attribute__((packed)) parts;
 } float64;
 
 typedef union {
 	struct {
 		uint32_t lo;
 		uint64_t hi;
-	} bin __attribute__((packed));
+	} __attribute__((packed)) bin;
 
 	struct {
 		uint64_t fraction : 64;
 		uint64_t exp : 15;
 		uint64_t sign : 1;
 		uint64_t padding : 16;
-	} parts __attribute__((packed));
+	} __attribute__((packed)) parts;
 } float96;
 
 typedef union {
 	struct {
 		uint64_t lo;
 		uint64_t hi;
-	} bin __attribute__((packed));
+	} __attribute__((packed)) bin;
 
 	struct {
 		uint64_t frac_lo : 64;
 		uint64_t frac_hi : 48;
 		uint64_t exp : 15;
 		uint64_t sign : 1;
-	} parts __attribute__((packed));
+	} __attribute__((packed)) parts;
 } float128;
 
 #else

@@ -338,7 +338,7 @@ static errno_t stop_reset(void *arg)
 	while (EHCI_RD(job->hub->registers->portsc[job->port]) &
 	    USB_PORTSC_PORT_RESET_FLAG) {
 		async_usleep(1);
-	};
+	}
 	usb_log_debug("RH(%p-%u): Reset complete", job->hub, job->port);
 	/* Handle port ownership, if the port is not enabled
 	 * after reset it's a full speed device */

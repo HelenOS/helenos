@@ -388,7 +388,7 @@ nic_poll_mode_t nic_query_poll_mode(nic_t *nic_data, struct timeval *period)
 	if (period)
 		*period = nic_data->poll_period;
 	return nic_data->poll_mode;
-};
+}
 
 /** Inform the NICF about poll mode
  *
@@ -486,7 +486,7 @@ void nic_query_address(nic_t *nic_data, nic_address_t *addr) {
 		return;
 
 	memcpy(addr, &nic_data->mac, sizeof(nic_address_t));
-};
+}
 
 /**
  * The busy flag can be set to 1 only in the send_frame handler, to 0 it can

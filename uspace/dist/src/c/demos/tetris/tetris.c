@@ -116,7 +116,8 @@ static void elide(void)
 	for (i = A_FIRST; i < A_LAST; i++) {
 		base = i * B_COLS + 1;
 		p = &board[base];
-		for (j = B_COLS - 2; *p++ != 0;) {
+		j = B_COLS - 2;
+		while (*p++ != 0) {
 			if (--j <= 0) {
 				/* This row is to be elided */
 				rows++;

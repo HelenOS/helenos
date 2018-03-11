@@ -158,8 +158,10 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 			 */
 
 			/* Seek to the end of this function. */
-			for (cur = inst + 1; !IS_JR_RA(*cur); cur++)
-				;
+			cur = inst + 1;
+			while (!IS_JR_RA(*cur))
+				cur++;
+
 			/* Scan the last basic block */
 			for (cur--; !is_jump(*(cur - 1)); cur--) {
 				if (IS_ADDU_SP_R_R0(*cur) &&

@@ -166,7 +166,7 @@ static void hw_res_parse_add_mem_range(hw_res_list_parsed_t *out,
 			uint64_t s_address;
 			size_t s_size;
 
-			s_address = RNGABS(out->mem_ranges.ranges[i]);;
+			s_address = RNGABS(out->mem_ranges.ranges[i]);
 			s_size = RNGSZ(out->mem_ranges.ranges[i]);
 
 			if ((absolute == s_address) && (size == s_size))
@@ -236,7 +236,7 @@ errno_t hw_res_list_parse(const pio_window_t *win,
 	}
 
 	return EOK;
-};
+}
 
 /** Get hw_resources from the parent device.
  *
@@ -278,7 +278,7 @@ errno_t hw_res_get_list_parsed(async_sess_t *sess,
 	hw_res_clean_resource_list(&hw_resources);
 
 	return rc;
-};
+}
 
 /** @}
  */

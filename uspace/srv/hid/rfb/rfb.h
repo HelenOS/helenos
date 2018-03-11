@@ -138,7 +138,7 @@ typedef struct {
 	uint8_t pad;
 	uint16_t first_color;
 	uint16_t color_count;
-} __attribute((packed)) rfb_set_color_map_entries_t;
+} __attribute__((packed)) rfb_set_color_map_entries_t;
 
 typedef struct {
 	uint16_t red;

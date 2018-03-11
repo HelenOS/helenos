@@ -679,7 +679,9 @@ log2(unsigned n)
 {
 	unsigned r;
 
-	for (r = 0;n >> r != 1; ++r);
+	r = 0;
+	while (n >> r != 1)
+		++r;
 
 	return r;
 }
@@ -770,7 +772,10 @@ int main (int argc, char **argv)
 	cfg.cluster_size = 0;
 	cfg.label = NULL;
 
-	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
+	c = 0;
+	optind = 0;
+	opt_ind = 0;
+	while (c != -1) {
 		c = getopt_long(argc, argv, "hs:c:L:",
 		    long_options, &opt_ind);
 		switch (c) {
@@ -844,18 +849,18 @@ int main (int argc, char **argv)
 
 
 	if (cfg.sector_size > 4096) {
-		printf(NAME ": Error, sector size can't be greater" \
+		printf(NAME ": Error, sector size can't be greater"
 		    " than 4096 bytes.\n");
 		return 2;
 	}
 
 	rc = block_get_nblocks(service_id, &cfg.volume_count);
 	if (rc != EOK) {
-		printf(NAME ": Warning, failed to obtain" \
+		printf(NAME ": Warning, failed to obtain"
 		    " block device size.\n");
 
 		if (user_fs_size == 0) {
-			printf(NAME ": You must specify the" \
+			printf(NAME ": You must specify the"
 			    " filesystem size.\n");
 			return 1;
 		}
@@ -896,7 +901,7 @@ int main (int argc, char **argv)
 	rc = fat_allocate_clusters(service_id, &cfg, cfg.bitmap_cluster,
 	    div_round_up(cfg.bitmap_size, cfg.cluster_size));
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to allocate" \
+		printf(NAME ": Error, failed to allocate"
 		    " clusters for bitmap.\n");
 		return 2;
 	}
@@ -909,7 +914,7 @@ int main (int argc, char **argv)
 	rc = fat_allocate_clusters(service_id, &cfg, next_cls,
 	    div_round_up(sizeof(upcase_table), cfg.cluster_size));
 	if (rc != EOK) {
-		printf(NAME ":Error, failed to allocate clusters" \
+		printf(NAME ":Error, failed to allocate clusters"
 		    " for the upcase table.\n");
 		return 2;
 	}
@@ -920,7 +925,7 @@ int main (int argc, char **argv)
 	/* Allocate a cluster for the root directory entry */
 	rc = fat_allocate_clusters(service_id, &cfg, next_cls, 1);
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to allocate cluster" \
+		printf(NAME ": Error, failed to allocate cluster"
 		    " for the root dentry.\n");
 		return 2;
 	}
@@ -930,7 +935,7 @@ int main (int argc, char **argv)
 	/* Write the allocation bitmap to disk */
 	rc = bitmap_write(service_id, &cfg);
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the allocation" \
+		printf(NAME ": Error, failed to write the allocation"
 		    " bitmap to disk.\n");
 		return 2;
 	}
@@ -940,7 +945,7 @@ int main (int argc, char **argv)
 	/* Write the upcase table to disk */
 	rc = upcase_table_write(service_id, &cfg);
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the" \
+		printf(NAME ": Error, failed to write the"
 		    " upcase table to disk.\n");
 		return 2;
 	}
@@ -949,7 +954,7 @@ int main (int argc, char **argv)
 
 	rc = root_dentries_write(service_id, &cfg);
 	if (rc != EOK) {
-		printf(NAME ": Error, failed to write the root directory" \
+		printf(NAME ": Error, failed to write the root directory"
 		    " entries to disk.\n");
 		return 2;
 	}

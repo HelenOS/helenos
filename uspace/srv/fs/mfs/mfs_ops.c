@@ -824,6 +824,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	errno_t rc;
+	errno_t tmp;
 	fs_node_t *fn = NULL;
 
 	rc = mfs_node_get(&fn, service_id, index);
@@ -925,8 +926,7 @@ out_success:
 	*rbytes = bytes;
 	return rc;
 out_error:
-	;
-	errno_t tmp = mfs_node_put(fn);
+	tmp = mfs_node_put(fn);
 	async_answer_0(callid, tmp != EOK ? tmp : rc);
 	return tmp != EOK ? tmp : rc;
 }

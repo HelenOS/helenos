@@ -72,7 +72,7 @@ typedef union {
 		uint16_t rate;
 		uint8_t channels;
 		uint8_t format;
-	} f __attribute__((packed));
+	} __attribute__((packed)) f;
 	sysarg_t arg;
 } format_convert_t;
 
@@ -384,6 +384,12 @@ void hound_service_set_server_iface(const hound_server_iface_t *iface)
  */
 void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 {
+	hound_context_id_t id;
+	errno_t ret;
+	int flags;
+	void *source;
+	void *sink;
+
 	/* Accept connection if there is a valid iface*/
 	if (server_iface) {
 		async_answer_0(iid, EOK);
@@ -396,7 +402,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_HOUND_CONTEXT_REGISTER: {
+		case IPC_M_HOUND_CONTEXT_REGISTER:
 			/* check interface functions */
 			if (!server_iface || !server_iface->add_context) {
 				async_answer_0(callid, ENOTSUP);
@@ -406,13 +412,13 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			void *name;
 
 			/* Get context name */
-			errno_t ret =
-			    async_data_write_accept(&name, true, 0, 0, 0, 0);
+			ret = async_data_write_accept(&name, true, 0, 0, 0, 0);
 			if (ret != EOK) {
 				async_answer_0(callid, ret);
 				break;
 			}
-			hound_context_id_t id = 0;
+
+			id = 0;
 			ret = server_iface->add_context(server_iface->server,
 			    &id, name, record);
 			/** new context should create a copy */
@@ -423,8 +429,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				async_answer_1(callid, EOK, id);
 			}
 			break;
-		}
-		case IPC_M_HOUND_CONTEXT_UNREGISTER: {
+		case IPC_M_HOUND_CONTEXT_UNREGISTER:
 			/* check interface functions */
 			if (!server_iface || !server_iface->rem_context) {
 				async_answer_0(callid, ENOTSUP);
@@ -432,13 +437,12 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			}
 
 			/* get id, 1st param */
-			hound_context_id_t id = IPC_GET_ARG1(call);
-			const errno_t ret =
-			    server_iface->rem_context(server_iface->server, id);
+			id = IPC_GET_ARG1(call);
+			ret = server_iface->rem_context(server_iface->server,
+			    id);
 			async_answer_0(callid, ret);
 			break;
-		}
-		case IPC_M_HOUND_GET_LIST: {
+		case IPC_M_HOUND_GET_LIST:
 			/* check interface functions */
 			if (!server_iface || !server_iface->get_list) {
 				async_answer_0(callid, ENOTSUP);
@@ -446,11 +450,11 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			}
 
 			char **list = NULL;
-			const int flags = IPC_GET_ARG1(call);
+			flags = IPC_GET_ARG1(call);
 			size_t count = IPC_GET_ARG2(call);
 			const bool conn = IPC_GET_ARG3(call);
 			char *conn_name = NULL;
-			errno_t ret = EOK;
+			ret = EOK;
 
 			/* get connected actor name if provided */
 			if (conn)
@@ -500,20 +504,19 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			}
 			free(list);
 			break;
-		}
-		case IPC_M_HOUND_CONNECT: {
+		case IPC_M_HOUND_CONNECT:
 			/* check interface functions */
 			if (!server_iface || !server_iface->connect) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 
-			void *source = NULL;
-			void *sink = NULL;
+			source = NULL;
+			sink = NULL;
 
 			/* read source name */
-			errno_t ret =
-			    async_data_write_accept(&source, true, 0, 0, 0, 0);
+			ret = async_data_write_accept(&source, true, 0, 0, 0,
+			    0);
 			/* read sink name */
 			if (ret == EOK)
 				ret = async_data_write_accept(&sink,
@@ -526,20 +529,19 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			free(sink);
 			async_answer_0(callid, ret);
 			break;
-		}
-		case IPC_M_HOUND_DISCONNECT: {
+		case IPC_M_HOUND_DISCONNECT:
 			/* check interface functions */
 			if (!server_iface || !server_iface->disconnect) {
 				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 
-			void *source = NULL;
-			void *sink = NULL;
+			source = NULL;
+			sink = NULL;
 
 			/* read source name */
-			errno_t ret =
-			    async_data_write_accept(&source, true, 0, 0, 0, 0);
+			ret = async_data_write_accept(&source, true, 0, 0, 0,
+			    0);
 			/*read sink name */
 			if (ret == EOK)
 				ret = async_data_write_accept(&sink,
@@ -551,8 +553,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			free(sink);
 			async_answer_0(callid, ret);
 			break;
-		}
-		case IPC_M_HOUND_STREAM_ENTER: {
+		case IPC_M_HOUND_STREAM_ENTER:
 			/* check interface functions */
 			if (!server_iface || !server_iface->is_record_context
 			    || !server_iface->add_stream
@@ -562,8 +563,8 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			}
 
 			/* get parameters */
-			hound_context_id_t id = IPC_GET_ARG1(call);
-			const int flags = IPC_GET_ARG2(call);
+			id = IPC_GET_ARG1(call);
+			flags = IPC_GET_ARG2(call);
 			const format_convert_t c = {.arg = IPC_GET_ARG3(call)};
 			const pcm_format_t f = {
 			    .sampling_rate = c.f.rate * 100,
@@ -573,7 +574,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			size_t bsize = IPC_GET_ARG4(call);
 
 			void *stream;
-			errno_t ret = server_iface->add_stream(server_iface->server,
+			ret = server_iface->add_stream(server_iface->server,
 			    id, flags, f, bsize, &stream);
 			if (ret != EOK) {
 				async_answer_0(callid, ret);
@@ -603,7 +604,6 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				}
 			}
 			break;
-		}
 		case IPC_M_HOUND_STREAM_EXIT:
 		case IPC_M_HOUND_STREAM_DRAIN:
 			/* Stream exit/drain is only allowed in stream context*/

@@ -33,6 +33,7 @@
 #include <align.h>
 #include <byteorder.h>
 #include <libarch/barrier.h>
+#include <stdbool.h>
 
 #include <as.h>
 #include <ddf/log.h>
@@ -673,7 +674,7 @@ static void rtl8169_rx_ring_refill(rtl8169_t *rtl8169, unsigned int first,
 	uint64_t buff_phys;
 	unsigned int i = first;
 
-	for (;;) {
+	while (true) {
 		descr = &rtl8169->rx_ring[i];
 		buff_phys = rtl8169->rx_buff_phys + (BUFFER_SIZE * i);
 		descr->control = BUFFER_SIZE | CONTROL_OWN;
@@ -990,7 +991,7 @@ static void rtl8169_receive_done(ddf_dev_t *dev)
 
 	tail = rtl8169->rx_tail;
 
-	for (;;) {
+	while (true) {
 		descr = &rtl8169->rx_ring[tail];
 
 		if (descr->control & CONTROL_OWN)

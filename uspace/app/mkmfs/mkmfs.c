@@ -132,7 +132,10 @@ int main (int argc, char **argv)
 		exit(0);
 	}
 
-	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
+	c = 0;
+	optind = 0;
+	opt_ind = 0;
+	while (c != -1) {
 		c = getopt_long(argc, argv, "lh12b:i:",
 		    long_options, &opt_ind);
 		switch (c) {
@@ -565,7 +568,7 @@ static errno_t write_superblock(const struct mfs_sb_info *sbi)
 	struct mfs_superblock *sb;
 	errno_t rc;
 
-	sb = malloc(MFS_SUPERBLOCK_SIZE);;
+	sb = malloc(MFS_SUPERBLOCK_SIZE);
 
 	if (!sb)
 		return ENOMEM;

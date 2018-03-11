@@ -238,7 +238,8 @@ static errno_t slip_recv_fibril(void *arg)
 	sdu.data = recv_final;
 
 	while (true) {
-		for (sdu.size = 0; sdu.size < sizeof(recv_final); /**/) {
+		sdu.size = 0;
+		while (sdu.size < sizeof(recv_final)) {
 			ch = read_buffered(chardev);
 			switch (ch) {
 			case SLIP_END:

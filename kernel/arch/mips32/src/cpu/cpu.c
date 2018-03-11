@@ -108,14 +108,18 @@ void cpu_print_report(cpu_t *m)
 
 	if (m->arch.imp_num & 0x80) {
 		/* Count records */
-		for (i = 0; imp_data80[i].vendor; i++);
+		i = 0;
+		while (imp_data80[i].vendor)
+			i++;
 		if ((m->arch.imp_num & 0x7f) >= i) {
 			printf("imp=%d\n", m->arch.imp_num);
 			return;
 		}
 		data = &imp_data80[m->arch.imp_num & 0x7f];
 	} else {
-		for (i = 0; imp_data[i].vendor; i++);
+		i = 0;
+		while (imp_data[i].vendor)
+			i++;
 		if (m->arch.imp_num >= i) {
 			printf("imp=%d\n", m->arch.imp_num);
 			return;

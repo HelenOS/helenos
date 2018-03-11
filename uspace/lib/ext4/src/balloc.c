@@ -351,6 +351,7 @@ errno_t ext4_balloc_alloc_block(ext4_inode_ref_t *inode_ref, uint32_t *fblock)
 	uint32_t rel_block_idx = 0;
 	uint32_t free_blocks;
 	uint32_t goal;
+	uint32_t block_size;
 
 	/* Find GOAL */
 	errno_t rc = ext4_balloc_find_goal(inode_ref, &goal);
@@ -584,10 +585,7 @@ next_group:
 	return ENOSPC;
 
 success:
-	/* Empty command - because of syntax */
-	;
-
-	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	block_size = ext4_superblock_get_block_size(sb);
 
 	/* Update superblock free blocks count */
 	uint32_t sb_free_blocks = ext4_superblock_get_free_blocks_count(sb);
