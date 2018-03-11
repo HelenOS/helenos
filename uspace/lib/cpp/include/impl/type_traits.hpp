@@ -797,7 +797,12 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct remove_volatile;
+    struct remove_volatile: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_volatile<T volatile>: aux::type_is<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct remove_cv: aux::type_is<T>
@@ -816,13 +821,16 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct add_const;
+    struct add_const: aux::type_is<T const>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct add_volatile;
+    struct add_volatile: aux::type_is<T volatile>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct add_cv;
+    struct add_cv: aux::type_is<T const volatile>
+    { /* DUMMY BODY */ };
 
     template<class T>
     using remove_const_t = typename remove_const<T>::type;
