@@ -38,9 +38,10 @@
  * straight and clean clean-up procedure upon task termination.
  *
  * The pattern of usage of the resources is:
- * - allocate empty phone capability slot, connect | deallocate slot
+ * - allocate a capability and phone kernel object (do not publish yet),
+ *   connect to the answerbox, and finally publish the capability
  * - disconnect connected phone (some messages might be on the fly)
- * - find phone in slot and send a message using phone
+ * - find phone capability and send a message using phone
  * - answer message to phone
  * - hangup phone (the caller has hung up)
  * - hangup phone (the answerbox is exiting)
@@ -52,7 +53,6 @@
  * - To connect an allocated phone it need not be locked (assigning pointer is
  *   atomic on all platforms)
  *
- * - To find an empty phone capability slot, the TASK must be locked
  * - To answer a message, the answerbox must be locked
  * - The locking of phone and answerbox is done at the ipc_ level.
  *   It is perfectly correct to pass unconnected phone to these functions and
@@ -72,13 +72,13 @@
  *
  * *** Connect_me_to ***
  * The caller sends IPC_M_CONNECT_ME_TO to an answerbox. The server receives
- * 'phoneid' of the connecting phone as an ARG5. If it answers with RETVAL=0,
- * the phonecall is accepted, otherwise it is refused.
+ * 'phoneid' of the connecting phone as an ARG5. If it answers with RETVAL=EOK,
+ * the phone call is accepted, otherwise it is refused.
  *
  * *** Connect_to_me ***
  * The caller sends IPC_M_CONNECT_TO_ME.
  * The server receives an automatically opened phoneid. If it accepts
- * (RETVAL=0), it can use the phoneid immediately.  Possible race condition can
+ * (RETVAL=EOK), it can use the phoneid immediately. Possible race condition can
  * arise, when the client receives messages from new connection before getting
  * response for connect_to_me message. Userspace should implement handshake
  * protocol that would control it.
@@ -94,7 +94,7 @@
  * *** The answerbox hangs up (ipc_answer(EHANGUP))
  * - The phone is disconnected. EHANGUP response code is sent to the calling
  *   task. All new calls through this phone get a EHUNGUP error code, the task
- *   is expected to send an sys_ipc_hangup after cleaning up its internal
+ *   is expected to call sys_ipc_hangup after cleaning up its internal
  *   structures.
  *
  *
