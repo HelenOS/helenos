@@ -96,6 +96,6 @@ FUNCTION_BEGIN(__longjmp)
 	mtlr r5
 
 	# __longjmp returns second argument
-	li r3, r4
+	mr r3, r4
 	blr
 FUNCTION_END(__longjmp)
