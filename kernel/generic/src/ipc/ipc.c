@@ -922,7 +922,7 @@ static bool print_task_phone_cb(cap_t *cap, void *arg)
 			printf("slammed by %p", phone->callee);
 			break;
 		case IPC_PHONE_HUNGUP:
-			printf("hung up by %p", phone->callee);
+			printf("hung up to %p", phone->callee);
 			break;
 		default:
 			break;
