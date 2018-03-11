@@ -31,7 +31,7 @@
 
 .text
 
-FUNCTION_BEGIN(setjmp)
+FUNCTION_BEGIN(__setjmp)
 	alloc loc0 = ar.pfs, 1, 49, 0, 0
 	mov loc1 = ar.unat ;;
 	mov loc3 = ar.rsc
@@ -177,9 +177,9 @@ FUNCTION_BEGIN(setjmp)
 
 	mov ar.unat = loc1
 
-	mov r8 = 0 	/* setjmp returns 0 */
+	mov r8 = 0 	/* __setjmp returns 0 */
 	br.ret.sptk.many b0
-FUNCTION_END(setjmp)
+FUNCTION_END(__setjmp)
 
 FUNCTION_BEGIN(__longjmp)
 	alloc loc0 = ar.pfs, 2, 51, 0, 0	;;

@@ -30,14 +30,14 @@
 
 .text
 
-FUNCTION_BEGIN(setjmp)
+FUNCTION_BEGIN(__setjmp)
 	stmia r0!, {sp, lr}
 	stmia r0!, {r4-r11}
 
 	# return 0
 	mov r0, #0
 	mov pc, lr
-FUNCTION_END(setjmp)
+FUNCTION_END(__setjmp)
 
 FUNCTION_BEGIN(__longjmp)
 	ldmia r0!, {sp, lr}

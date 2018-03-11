@@ -37,9 +37,11 @@
 
 typedef context_t jmp_buf[1];
 
-extern int setjmp(jmp_buf) __attribute__((returns_twice));
-extern void longjmp(jmp_buf, int) __attribute__((noreturn));
-extern void __longjmp(jmp_buf, int) __attribute__((noreturn));
+extern int __setjmp(jmp_buf) __attribute__((returns_twice));
+extern _Noreturn void __longjmp(jmp_buf, int);
+
+#define setjmp __setjmp
+extern _Noreturn void longjmp(jmp_buf, int);
 
 #endif
 

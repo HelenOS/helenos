@@ -34,7 +34,7 @@
 #include <abi/asmtool.h>
 #include <libarch/fibril_context.h>
 
-FUNCTION_BEGIN(setjmp)
+FUNCTION_BEGIN(__setjmp)
 	sw $s0, CONTEXT_OFFSET_S0($a0)
 	sw $s1, CONTEXT_OFFSET_S1($a0)
 	sw $s2, CONTEXT_OFFSET_S2($a0)
@@ -86,10 +86,10 @@ FUNCTION_BEGIN(setjmp)
 	sw $ra, CONTEXT_OFFSET_PC($a0)
 	sw $sp, CONTEXT_OFFSET_SP($a0)
 
-	# setjmp returns 0
+	# __setjmp returns 0
 	j $ra
 	li $v0, 0
-FUNCTION_END(setjmp)
+FUNCTION_END(__setjmp)
 
 FUNCTION_BEGIN(__longjmp)
 	lw $s0, CONTEXT_OFFSET_S0($a0)

@@ -32,7 +32,7 @@
 #include <setjmp.h>
 #include <stdbool.h>
 
-int setjmp(context_t *ctx)
+int __setjmp(context_t *ctx)
 {
 	return 0;
 }

@@ -31,7 +31,7 @@
 
 .text
 
-FUNCTION_BEGIN(setjmp)
+FUNCTION_BEGIN(__setjmp)
 	#
 	# We rely on the kernel to flush our active register windows to memory
 	# should a thread switch occur.
@@ -56,8 +56,8 @@ FUNCTION_BEGIN(setjmp)
 	stx %l7, [%o0 + CONTEXT_OFFSET_L7]
 	stx %g7, [%o0 + CONTEXT_OFFSET_TP]
 	retl
-	mov 0, %o0		! setjmp returns 0
-FUNCTION_END(setjmp)
+	mov 0, %o0		! __setjmp returns 0
+FUNCTION_END(__setjmp)
 
 FUNCTION_BEGIN(__longjmp)
 	#
