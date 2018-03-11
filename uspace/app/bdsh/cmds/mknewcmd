@@ -89,8 +89,8 @@ toupper()
 # for a new command according to arguments passed.
 generate_code()
 {
-	echo "Creating ${OUTDIR}/${CMDNAME}_def.h ..."
-	cat << EOF > ${OUTDIR}/${CMDNAME}_def.h
+	echo "Creating ${OUTDIR}/${CMDNAME}_def.inc ..."
+	cat << EOF > ${OUTDIR}/${CMDNAME}_def.inc
 {
 	"${CMDNAME}",
 	"${CMDDESC}",
@@ -99,7 +99,7 @@ generate_code()
 },
 
 EOF
-	[ -n "${CMDALIAS}" ] && cat << EOF >> ${OUTDIR}/${CMDNAME}_def.h
+	[ -n "${CMDALIAS}" ] && cat << EOF >> ${OUTDIR}/${CMDNAME}_def.inc
 {
 	"${CMDALIAS}",
 	NULL,
