@@ -208,6 +208,62 @@ namespace std
             return *this;
         }
     };
+
+    /**
+     * 20.5.2, class template integer_sequence:
+     */
+
+    template<class T, T... Is>
+    struct integer_sequence
+    {
+        using value_type = T;
+
+        static constexpr size_t size() noexcept
+        {
+            return sizeof...(Is);
+        }
+
+        using next = integer_sequence<T, Is..., sizeof...(Is)>;
+    };
+
+    template<std::size_t... Is>
+    using index_sequence = integer_sequence<std::size_t, Is...>;
+
+    /**
+     * 20.5.3, alias template make_integer_sequence:
+     */
+
+    namespace aux
+    {
+        template<class T, std::uintmax_t N>
+        struct make_integer_sequence
+        {
+            /**
+             * Recursive to the bottom case below, appends sizeof...(Is) in
+             * every next "call", building the sequence.
+             */
+            using type = typename make_integer_sequence<T, N - 1>::type::next;
+        };
+
+        template<class T>
+        struct make_integer_sequence<T, std::uintmax_t(0)>
+        {
+            using type = integer_sequence<T>;
+        };
+    }
+
+
+    /**
+     * Problem: We can't specialize the N parameter because it is a value parameter
+     *          depending on a type parameter.
+     * Solution: According to the standard: if N is negative, the program is ill-formed,
+     *           so we just recast it to uintmax_t :)
+     */
+    template<class T, T N>
+    using make_integer_sequence = typename aux::make_integer_sequence<T, std::uintmax_t(N)>::type;
+
+    template<size_t N>
+    using make_index_sequence = make_integer_sequence<std::size_t, N>;
 }
 
 #endif
