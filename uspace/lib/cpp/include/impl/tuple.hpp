@@ -206,7 +206,7 @@ namespace std
         struct tuple_noexcept_swap
         {
             static constexpr bool value = noexcept(std::swap(declval<T&>(), declval<T&>()))
-                & tuple_noexcept_swap<Ts...>::value;
+                && tuple_noexcept_swap<Ts...>::value;
         };
 
         template<class T>
@@ -219,7 +219,7 @@ namespace std
         struct tuple_noexcept_assignment
         {
             static constexpr bool value = is_nothrow_move_assignable<T>::value
-                & tuple_noexcept_assignment<Ts...>::value;
+                && tuple_noexcept_assignment<Ts...>::value;
         };
 
         template<class T>
