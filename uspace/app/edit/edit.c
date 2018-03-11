@@ -654,10 +654,7 @@ static char *prompt(char const *prompt, char const *init_value)
 			kev = &ev.ev.key;
 
 			/* Handle key press. */
-			if (((kev->mods & KM_ALT) == 0) &&
-			     (kev->mods & KM_CTRL) != 0) {
-				;
-			} else if ((kev->mods & (KM_CTRL | KM_ALT)) == 0) {
+			if ((kev->mods & (KM_CTRL | KM_ALT)) == 0) {
 				switch (kev->key) {
 				case KC_ESCAPE:
 					return NULL;

@@ -510,7 +510,7 @@ static errno_t e1000_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
 		*mode = NIC_DEFECTIVE_BAD_CRC | NIC_DEFECTIVE_SHORT;
 
 	return EOK;
-};
+}
 
 /** Set acceptance of weird frames
  *

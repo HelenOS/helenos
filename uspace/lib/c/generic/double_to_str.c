@@ -664,7 +664,7 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 		} else {
 			return -1;
 		}
-	};
+	}
 
 	assert(/* 0 <= len && */ len < buf_size);
 

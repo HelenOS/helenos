@@ -207,7 +207,7 @@ static errno_t rtl8169_fill_resource_info(ddf_dev_t *dev, const hw_res_list_pars
 	if (hw_resources->irqs.count != 1) {
 		ddf_msg(LVL_ERROR, "%s device: unexpected irq count", ddf_dev_get_name(dev));
 		return EINVAL;
-	};
+	}
 
 	if (hw_resources->io_ranges.count != 1) {
 		ddf_msg(LVL_ERROR, "%s device: unexpected io ranges count", ddf_dev_get_name(dev));

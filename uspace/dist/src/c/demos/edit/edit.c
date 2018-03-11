@@ -47,6 +47,7 @@
 #include <align.h>
 #include <macros.h>
 #include <clipboard.h>
+#include <types/common.h>
 
 #include "sheet.h"
 #include "search.h"
@@ -130,10 +131,10 @@ static void key_handle_movement(unsigned int key, bool shift);
 
 static void pos_handle(pos_event_t *ev);
 
-static int file_save(char const *fname);
+static errno_t file_save(char const *fname);
 static void file_save_as(void);
-static int file_insert(char *fname);
-static int file_save_range(char const *fname, spt_t const *spos,
+static errno_t file_insert(char *fname);
+static errno_t file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos);
 static char *range_get_str(spt_t const *spos, spt_t const *epos);
 
@@ -576,7 +577,7 @@ static void key_handle_movement(unsigned int key, bool select)
 }
 
 /** Save the document. */
-static int file_save(char const *fname)
+static errno_t file_save(char const *fname)
 {
 	spt_t sp, ep;
 	errno_t rc;
@@ -653,10 +654,7 @@ static char *prompt(char const *prompt, char const *init_value)
 			kev = &ev.ev.key;
 
 			/* Handle key press. */
-			if (((kev->mods & KM_ALT) == 0) &&
-			     (kev->mods & KM_CTRL) != 0) {
-				;
-			} else if ((kev->mods & (KM_CTRL | KM_ALT)) == 0) {
+			if ((kev->mods & (KM_CTRL | KM_ALT)) == 0) {
 				switch (kev->key) {
 				case KC_ESCAPE:
 					return NULL;
@@ -695,7 +693,7 @@ static char *prompt(char const *prompt, char const *init_value)
  * Reads in the contents of a file and inserts them at the current position
  * of the caret.
  */
-static int file_insert(char *fname)
+static errno_t file_insert(char *fname)
 {
 	FILE *f;
 	wchar_t c;
@@ -733,7 +731,7 @@ static int file_insert(char *fname)
 }
 
 /** Save a range of text into a file. */
-static int file_save_range(char const *fname, spt_t const *spos,
+static errno_t file_save_range(char const *fname, spt_t const *spos,
     spt_t const *epos)
 {
 	FILE *f;
@@ -759,7 +757,7 @@ static int file_save_range(char const *fname, spt_t const *spos,
 		sp = bep;
 	} while (!spt_equal(&bep, epos));
 
-	if (fclose(f) != EOK)
+	if (fclose(f) < 0)
 		return EIO;
 
 	return EOK;
@@ -953,20 +951,86 @@ static void pane_status_display(void)
 	spt_t caret_pt;
 	coord_t coord;
 	int last_row;
+	char *fname;
+	char *p;
+	char *text;
+	size_t n;
+	int pos;
+	size_t nextra;
+	size_t fnw;
 
 	tag_get_pt(&pane.caret_pos, &caret_pt);
 	spt_get_coord(&caret_pt, &coord);
 
 	sheet_get_num_rows(doc.sh, &last_row);
 
-	const char *fname = (doc.file_name != NULL) ? doc.file_name : "<unnamed>";
+	if (doc.file_name != NULL) {
+		/* Remove directory component */
+		p = str_rchr(doc.file_name, '/');
+		if (p != NULL)
+			fname = str_dup(p + 1);
+		else
+			fname = str_dup(doc.file_name);
+	} else {
+		fname = str_dup("<unnamed>");
+	}
+
+	if (fname == NULL)
+		return;
 
 	console_set_pos(con, 0, scr_rows - 1);
 	console_set_style(con, STYLE_INVERTED);
-	int n = printf(" %d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
-	    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
 
-	int pos = scr_columns - 1 - n;
+	/*
+	 * Make sure the status fits on the screen. This loop should
+	 * be executed at most twice.
+	 */
+	while (true) {
+		int rc = asprintf(&text, " %d, %d (%d): File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
+		    "Ctrl-E Save As", coord.row, coord.column, last_row, fname);
+		if (rc < 0) {
+			n = 0;
+			goto finish;
+		}
+
+		/* If it already fits, we're done */
+		n = str_width(text);
+		if (n <= scr_columns - 2)
+			break;
+
+		/* Compute number of excess characters */
+		nextra = n - (scr_columns - 2);
+		/** With of the file name part */
+		fnw = str_width(fname);
+
+		/*
+		 * If reducing file name to two characters '..' won't help,
+		 * just give up and print a blank status.
+		 */
+		if (nextra > fnw - 2)
+			goto finish;
+
+		/* Compute position where we overwrite with '..\0' */
+		if (fnw >= nextra + 2) {
+			p = fname + str_lsize(fname, fnw - nextra - 2);
+		} else {
+			p = fname;
+		}
+
+		/* Shorten the string */
+		p[0] = p[1] = '.';
+		p[2] = '\0';
+
+		/* Need to format the string once more. */
+		free(text);
+	}
+
+	printf("%s", text);
+	free(text);
+	free(fname);
+finish:
+	/* Fill the rest of the line */
+	pos = scr_columns - 1 - n;
 	printf("%*s", pos, "");
 	console_flush(con);
 	console_set_style(con, STYLE_NORMAL);
@@ -1215,7 +1279,7 @@ static void caret_go_to_line_ask(void)
 }
 
 /* Search operations */
-static int search_spt_producer(void *data, wchar_t *ret)
+static errno_t search_spt_producer(void *data, wchar_t *ret)
 {
 	assert(data != NULL);
 	assert(ret != NULL);
@@ -1224,7 +1288,7 @@ static int search_spt_producer(void *data, wchar_t *ret)
 	return EOK;
 }
 
-static int search_spt_reverse_producer(void *data, wchar_t *ret)
+static errno_t search_spt_reverse_producer(void *data, wchar_t *ret)
 {
 	assert(data != NULL);
 	assert(ret != NULL);
@@ -1233,7 +1297,7 @@ static int search_spt_reverse_producer(void *data, wchar_t *ret)
 	return EOK;
 }
 
-static int search_spt_mark(void *data, void **mark)
+static errno_t search_spt_mark(void *data, void **mark)
 {
 	assert(data != NULL);
 	assert(mark != NULL);

@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
 		case 'h':
 			print_help(*argv);
 			return 0;
-		};
+		}
 	}
 
 	if (parallel && direct) {

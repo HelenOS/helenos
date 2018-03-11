@@ -876,6 +876,7 @@ void btree_remove(btree_t *t, btree_key_t key, btree_node_t *leaf_node)
 void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 {
 	btree_node_t *cur, *next;
+	bool descend;
 
 	/*
 	 * Iteratively descend to the leaf that can contain the searched key.
@@ -906,6 +907,7 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 			 * it can only mean that the value is in cur->subtree[i]
 			 * or it is not in the tree at all.
 			 */
+			descend = false;
 			for (i = 1; i < cur->keys; i++) {
 				if (key < cur->key[i]) {
 					next = cur->subtree[i];
@@ -914,9 +916,13 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 					if (LEAF_NODE(cur))
 						return key == cur->key[i - 1] ? val : NULL;
 
-					goto descend;
+					descend = true;
+					break;
 				}
 			}
+
+			if (descend)
+				continue;
 
 			/*
 			 * Last possibility is that the key is
@@ -928,8 +934,6 @@ void *btree_search(btree_t *t, btree_key_t key, btree_node_t **leaf_node)
 			if (LEAF_NODE(cur))
 				return key == cur->key[i - 1] ? val : NULL;
 		}
-descend:
-		;
 	}
 
 	/*

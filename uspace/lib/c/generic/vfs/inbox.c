@@ -78,14 +78,15 @@ static LIST_INITIALIZE(inb_list);
 int inbox_set(const char *name, int file)
 {
 	inbox_entry *next = NULL;
+	int result;
 
 	list_foreach(inb_list, link, inbox_entry, e) {
 		int cmp = str_cmp(e->name, name);
 		switch (cmp) {
 		case -1:
 			continue;
-		case 0:;
-			int result = e->file;
+		case 0:
+			result = e->file;
 			if (file == -1) {
 				free(e->name);
 				/* Safe because we exit immediately. */

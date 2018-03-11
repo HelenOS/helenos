@@ -383,7 +383,7 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 			 * in the active object (there is no dynamic parent).
 			 */
 			sobj = proc_ar->obj;
-			aobj = sobj->u.object_v;;
+			aobj = sobj->u.object_v;
 		}
 
 		if (sym->sc == sc_var) {

@@ -113,7 +113,7 @@ errno_t rtl8139_timer_act_init(rtl8139_timer_act_t * ta, uint32_t timer_freq,
 	ta->full_skips_remains = 0;
 	ta->last_run = 1;
 	return EOK;
-};
+}
 
 
 /** Make one step timer step
@@ -146,5 +146,5 @@ int rtl8139_timer_act_step(rtl8139_timer_act_t * ta, uint32_t *new_reg)
 		*new_reg = next_val;
 
 	return expired;
-};
+}
 

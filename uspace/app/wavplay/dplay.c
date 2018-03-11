@@ -175,8 +175,9 @@ static void play_fragment(playback_t *pb)
 		return;
 	}
 
-	for (pb->playing = true; pb->playing;
-	    fibril_condvar_wait(&pb->cv, &pb->mutex));
+	pb->playing = true;
+	while (pb->playing)
+		fibril_condvar_wait(&pb->cv, &pb->mutex);
 
 	fibril_mutex_unlock(&pb->mutex);
 	printf("\n");

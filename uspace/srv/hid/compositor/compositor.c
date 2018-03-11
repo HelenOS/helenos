@@ -1929,7 +1929,7 @@ static errno_t comp_key_press(input_t *input, kbd_event_type_t type, keycode_t k
 				event->data.resize.height = height + 20;
 				break;
 			case KC_B:
-				event->data.resize.width = (width >= 20) ? width - 20 : 0;;
+				event->data.resize.width = (width >= 20) ? width - 20 : 0;
 				event->data.resize.height = height;
 				break;
 			case KC_N:

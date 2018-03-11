@@ -73,7 +73,7 @@ typedef struct {
 static inline audio_device_t * audio_device_list_instance(link_t *l)
 {
 	return l ? list_get_instance(l, audio_device_t, link) : NULL;
-};
+}
 
 errno_t audio_device_init(audio_device_t *dev, service_id_t id, const char *name);
 void audio_device_fini(audio_device_t *dev);

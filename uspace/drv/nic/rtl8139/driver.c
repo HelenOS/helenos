@@ -230,7 +230,7 @@ inline static void rtl8139_hw_get_addr(rtl8139_t *rtl8139,
 	/* Read MAC address from the i/o (4byte + 2byte reads) */
 	*mac0_dest = pio_read_32(rtl8139->io_port + MAC0);
 	*mac4_dest = pio_read_16(rtl8139->io_port + MAC0 + 4);
-};
+}
 
 /** Set MAC address to the device
  *
@@ -422,7 +422,7 @@ static void rtl8139_send_frame(nic_t *nic_data, void *data, size_t size)
 err_busy_no_inc:
 err_size:
 	return;
-};
+}
 
 
 /** Reset the controller
@@ -611,7 +611,7 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 rx_err:
 	rtl8139_rx_reset(rtl8139);
 	return frames;
-};
+}
 
 
 irq_pio_range_t rtl8139_irq_pio_ranges[] = {
@@ -832,7 +832,7 @@ static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
 
 	/* Turn the interrupts on again */
 	rtl8139_hw_int_set(rtl8139);
-};
+}
 
 /** Register interrupt handler for the card in the system
  *
@@ -1038,7 +1038,7 @@ static errno_t rtl8139_fill_resource_info(ddf_dev_t *dev, const hw_res_list_pars
 	if (hw_resources->irqs.count != 1) {
 		ddf_msg(LVL_ERROR, "%s device: unexpected irq count", ddf_dev_get_name(dev));
 		return EINVAL;
-	};
+	}
 	if (hw_resources->io_ranges.count != 1) {
 		ddf_msg(LVL_ERROR, "%s device: unexpected io ranges count", ddf_dev_get_name(dev));
 		return EINVAL;
@@ -1330,7 +1330,7 @@ err_pio:
 err_destroy:
 	rtl8139_dev_cleanup(dev);
 	return rc;
-};
+}
 
 /** Set card MAC address
  *
@@ -1525,7 +1525,7 @@ static errno_t rtl8139_pause_get(ddf_fun_t *fun, nic_result_t *we_send,
 	*time = RTL8139_PAUSE_VAL;
 
 	return EOK;
-};
+}
 
 /** Set current pause frame configuration
  *
@@ -1561,7 +1561,7 @@ static errno_t rtl8139_pause_set(ddf_fun_t *fun, int allow_send, int allow_recei
 		ddf_msg(LVL_WARN, "Time setting is not supported in set_pause method.");
 	}
 	return EOK;
-};
+}
 
 /** Set operation mode of the device
  *
@@ -1936,7 +1936,7 @@ static errno_t rtl8139_defective_get_mode(ddf_fun_t *fun, uint32_t *mode)
 		*mode |= NIC_DEFECTIVE_SHORT;
 
 	return EOK;
-};
+}
 
 /** Set acceptance of weird frames
  *
@@ -1966,7 +1966,7 @@ static errno_t rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
 	rtl8139_hw_update_rcr(rtl8139);
 	fibril_mutex_unlock(&rtl8139->rx_lock);
 	return EOK;
-};
+}
 
 
 /** Turn Wakeup On Lan method on
@@ -2005,7 +2005,7 @@ static errno_t rtl8139_wol_virtue_add(nic_t *nic_data,
 		break;
 	default:
 		return EINVAL;
-	};
+	}
 	if(rtl8139->pm.active++ == 0)
 		rtl8139_hw_pmen_set(rtl8139, 1);
 	return EOK;
@@ -2041,7 +2041,7 @@ static void rtl8139_wol_virtue_rem(nic_t *nic_data,
 		break;
 	default:
 		return;
-	};
+	}
 	rtl8139->pm.active--;
 	if (rtl8139->pm.active == 0)
 		rtl8139_hw_pmen_set(rtl8139, 0);

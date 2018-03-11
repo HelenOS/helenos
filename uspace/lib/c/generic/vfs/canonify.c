@@ -95,9 +95,10 @@ static token_t next_token(token_t *cur)
 		ret.stop = cur->stop + 2;
 		return ret;
 	}
-	unsigned i;
-	for (i = 1; cur->stop[i] && cur->stop[i] != '/'; i++)
-		;
+	unsigned i = 1;
+	while (cur->stop[i] && cur->stop[i] != '/')
+		i++;
+	
 	ret.kind = TK_COMP;
 	ret.start = &cur->stop[1];
 	ret.stop = &cur->stop[i - 1];

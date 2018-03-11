@@ -448,7 +448,7 @@ if (0) {
 			fail = true;
 		}
 	}
-;
+
 	for (unsigned int i = 0; i < OPERANDS; i++) {
 		double res = sinh(arguments_exp[i]);
 

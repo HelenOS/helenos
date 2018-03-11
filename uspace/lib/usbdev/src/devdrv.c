@@ -114,8 +114,9 @@ struct usb_device {
  */
 static inline size_t count_pipes(const usb_endpoint_description_t **endpoints)
 {
-	size_t count;
-	for (count = 0; endpoints != NULL && endpoints[count] != NULL; ++count);
+	size_t count = 0;
+	while (endpoints != NULL && endpoints[count] != NULL)
+		++count;
 	return count;
 }
 

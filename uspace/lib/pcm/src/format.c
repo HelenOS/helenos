@@ -133,7 +133,8 @@ do { \
 	case PCM_SAMPLE_UINT24_BE:
 	case PCM_SAMPLE_SINT24_BE:
 	case PCM_SAMPLE_FLOAT32:
-	default: ;
+	default:
+		break;
 	}
 #undef SET_NULL
 }

@@ -98,7 +98,7 @@ static void run_taccess(stree_program_t *prog, stree_csi_t *ctx,
 {
 	stree_symbol_t *sym;
 	tdata_item_t *targ_i = NULL;
-	tdata_item_t *titem = NULL;;
+	tdata_item_t *titem = NULL;
 	tdata_object_t *tobject;
 	tdata_deleg_t *tdeleg;
 	stree_csi_t *base_csi;

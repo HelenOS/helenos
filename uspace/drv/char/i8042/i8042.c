@@ -187,7 +187,7 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 	if (kbd_fun == NULL) {
 		rc = ENOMEM;
 		goto error;
-	};
+	}
 
 	dev->kbd = ddf_fun_data_alloc(kbd_fun, sizeof(i8042_port_t));
 	if (dev->kbd == NULL) {

@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
 	 * done with the device.
 	 */
 	int opt;
+	int idx;
 	do {
 		opt = getopt_long(argc, argv,
 		    short_options, long_options, NULL);
@@ -167,8 +168,8 @@ int main(int argc, char *argv[])
 			case 'h':
 				print_usage(argv[0]);
 				return 0;
-			default: {
-				int idx = 0;
+			default:
+				idx = 0;
 				while (actions[idx].opt != 0) {
 					if (actions[idx].opt == opt) {
 						actions[idx].active = true;
@@ -178,7 +179,6 @@ int main(int argc, char *argv[])
 					idx++;
 				}
 				break;
-			}
 		}
 	} while (opt > 0);
 

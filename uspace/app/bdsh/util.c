@@ -44,7 +44,10 @@ unsigned int cli_count_args(char **args)
 {
 	unsigned int i;
 
-	for (i=0; args[i] != NULL; i++);
+	i = 0;
+	while (args[i] != NULL)
+		i++;
+
 	return i;
 }
 
