@@ -959,6 +959,9 @@ void ipc_print_task(task_id_t taskid)
 	irq_spinlock_lock(&task->lock, true);
 	irq_spinlock_lock(&task->answerbox.lock, false);
 
+	printf("Active calls: %" PRIun "\n",
+	    atomic_get(&task->answerbox.active_calls));
+
 #ifdef __32_BITS__
 	printf("[call id ] [method] [arg1] [arg2] [arg3] [arg4] [arg5]"
 	    " [flags] [sender\n");
