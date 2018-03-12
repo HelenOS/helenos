@@ -182,7 +182,7 @@ FUNCTION_BEGIN(__setjmp)
 FUNCTION_END(__setjmp)
 
 FUNCTION_BEGIN(__longjmp)
-	alloc loc0 = ar.pfs, 2, 51, 0, 0	;;
+	alloc loc0 = ar.pfs, 2, 50, 0, 0 ;;
 
 	add loc9 = CONTEXT_OFFSET_AR_PFS, in0
 	add loc10 = CONTEXT_OFFSET_AR_UNAT_CALLER, in0
@@ -229,8 +229,7 @@ FUNCTION_BEGIN(__longjmp)
 	add loc46 = CONTEXT_OFFSET_F28, in0
 	add loc47 = CONTEXT_OFFSET_F29, in0
 	add loc48 = CONTEXT_OFFSET_F30, in0
-	add loc49 = CONTEXT_OFFSET_F31, in0
-	mov loc50 = in1 ;;
+	add loc49 = CONTEXT_OFFSET_F31, in0 ;;
 
 	ld8 loc0 = [loc9]	/* load ar.pfs */
 	ld8 loc1 = [loc10]	/* load ar.unat (caller) */
@@ -335,6 +334,6 @@ FUNCTION_BEGIN(__longjmp)
 
 	mov ar.unat = loc1
 
-	mov r8 = loc50			/* __longjmp returns second argument */
+	mov r8 = in1			/* __longjmp returns second argument */
 	br.ret.sptk.many b0
 FUNCTION_END(__longjmp)
