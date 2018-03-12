@@ -350,7 +350,10 @@ static void _ipc_call_actions_internal(phone_t *phone, call_t *call,
 		call->forget = true;
 	} else {
 		atomic_inc(&phone->active_calls);
-		atomic_inc(&caller->answerbox.active_calls);
+		if (call->callerbox)
+			atomic_inc(&call->callerbox->active_calls);
+		else
+			atomic_inc(&caller->answerbox.active_calls);
 		kobject_add_ref(phone->kobject);
 		call->sender = caller;
 		call->active = true;
