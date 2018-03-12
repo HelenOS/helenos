@@ -30,21 +30,21 @@
 
 .text
 
-FUNCTION_BEGIN(context_save)
+FUNCTION_BEGIN(__setjmp)
 	stmia r0!, {sp, lr}
 	stmia r0!, {r4-r11}
-
-	# return 1
-	mov r0, #1
-	mov pc, lr
-FUNCTION_END(context_save)
-
-FUNCTION_BEGIN(context_restore)
-	ldmia r0!, {sp, lr}
-	ldmia r0!, {r4-r11}
 
 	# return 0
 	mov r0, #0
 	mov pc, lr
-FUNCTION_END(context_restore)
+FUNCTION_END(__setjmp)
+
+FUNCTION_BEGIN(__longjmp)
+	ldmia r0!, {sp, lr}
+	ldmia r0!, {r4-r11}
+
+	# return second argument
+	mov r0, r1
+	mov pc, lr
+FUNCTION_END(__longjmp)
 

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2008 Josef Cejka
- * Copyright (c) 2013 Vojtech Horky
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,45 +29,19 @@
 /** @addtogroup libc
  * @{
  */
-/** @file Long jump implementation.
- *
- * Implementation inspired by Jiri Zarevucky's code from
- * http://bazaar.launchpad.net/~zarevucky-jiri/helenos/stdc/revision/1544/uspace/lib/posix/setjmp.h
- */
 
 #ifndef LIBC_SETJMP_H_
 #define LIBC_SETJMP_H_
 
-#include <libarch/fibril.h>
+#include <libarch/fibril_context.h>
 
-struct jmp_buf_interal {
-	context_t context;
-	int return_value;
-};
-typedef struct jmp_buf_interal jmp_buf[1];
+typedef context_t jmp_buf[1];
 
-/*
- * Specified as extern to minimize number of included headers
- * because this file is used as is in libposix too.
- */
-extern int context_save(context_t *ctx) __attribute__((returns_twice));
+extern int __setjmp(jmp_buf) __attribute__((returns_twice));
+extern _Noreturn void __longjmp(jmp_buf, int);
 
-/**
- * Save current environment (registers).
- *
- * This function may return twice.
- *
- * @param env Variable where to save the environment (of type jmp_buf).
- * @return Whether the call returned after longjmp.
- * @retval 0 Environment was saved, normal execution.
- * @retval other longjmp was executed and returned here.
- */
-#define setjmp(env) \
-	((env)[0].return_value = 0, \
-	context_save(&(env)[0].context), \
-	(env)[0].return_value)
-
-extern void longjmp(jmp_buf env, int val) __attribute__((noreturn));
+#define setjmp __setjmp
+extern _Noreturn void longjmp(jmp_buf, int);
 
 #endif
 

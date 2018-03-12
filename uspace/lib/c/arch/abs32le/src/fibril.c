@@ -29,15 +29,15 @@
 /** @file
  */
 
-#include <fibril.h>
+#include <setjmp.h>
 #include <stdbool.h>
 
-int context_save(context_t *ctx)
+int __setjmp(context_t *ctx)
 {
-	return 1;
+	return 0;
 }
 
-void context_restore(context_t *ctx)
+void __longjmp(context_t *ctx, int val)
 {
 	while (true);
 }

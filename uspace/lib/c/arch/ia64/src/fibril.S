@@ -31,7 +31,7 @@
 
 .text
 
-FUNCTION_BEGIN(context_save)
+FUNCTION_BEGIN(__setjmp)
 	alloc loc0 = ar.pfs, 1, 49, 0, 0
 	mov loc1 = ar.unat ;;
 	mov loc3 = ar.rsc
@@ -177,12 +177,12 @@ FUNCTION_BEGIN(context_save)
 
 	mov ar.unat = loc1
 
-	add r8 = r0, r0, 1 	/* context_save returns 1 */
+	mov r8 = 0 	/* __setjmp returns 0 */
 	br.ret.sptk.many b0
-FUNCTION_END(context_save)
+FUNCTION_END(__setjmp)
 
-FUNCTION_BEGIN(context_restore)
-	alloc loc0 = ar.pfs, 1, 50, 0, 0	;;
+FUNCTION_BEGIN(__longjmp)
+	alloc loc0 = ar.pfs, 2, 51, 0, 0	;;
 
 	add loc9 = CONTEXT_OFFSET_AR_PFS, in0
 	add loc10 = CONTEXT_OFFSET_AR_UNAT_CALLER, in0
@@ -229,7 +229,8 @@ FUNCTION_BEGIN(context_restore)
 	add loc46 = CONTEXT_OFFSET_F28, in0
 	add loc47 = CONTEXT_OFFSET_F29, in0
 	add loc48 = CONTEXT_OFFSET_F30, in0
-	add loc49 = CONTEXT_OFFSET_F31, in0 ;;
+	add loc49 = CONTEXT_OFFSET_F31, in0
+	mov loc50 = in1 ;;
 
 	ld8 loc0 = [loc9]	/* load ar.pfs */
 	ld8 loc1 = [loc10]	/* load ar.unat (caller) */
@@ -334,6 +335,6 @@ FUNCTION_BEGIN(context_restore)
 
 	mov ar.unat = loc1
 
-	mov r8 = r0			/* context_restore returns 0 */
+	mov r8 = loc50			/* __longjmp returns second argument */
 	br.ret.sptk.many b0
-FUNCTION_END(context_restore)
+FUNCTION_END(__longjmp)

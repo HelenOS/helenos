@@ -32,7 +32,7 @@
 #include <libarch/regname.h>
 #include <libarch/fibril_context.h>
 
-FUNCTION_BEGIN(context_save)
+FUNCTION_BEGIN(__setjmp)
 	stw sp, CONTEXT_OFFSET_SP(r3)
 	stw r2, CONTEXT_OFFSET_TLS(r3)
 	stw r13, CONTEXT_OFFSET_R13(r3)
@@ -61,12 +61,12 @@ FUNCTION_BEGIN(context_save)
 	mfcr r4
 	stw r4, CONTEXT_OFFSET_CR(r3)
 
-	# context_save returns 1
-	li r3, 1
+	# __setjmp returns 0
+	li r3, 0
 	blr
-FUNCTION_END(context_save)
+FUNCTION_END(__setjmp)
 
-FUNCTION_BEGIN(context_restore)
+FUNCTION_BEGIN(__longjmp)
 	lwz sp, CONTEXT_OFFSET_SP(r3)
 	lwz r2, CONTEXT_OFFSET_TLS(r3)
 	lwz r13, CONTEXT_OFFSET_R13(r3)
@@ -89,13 +89,13 @@ FUNCTION_BEGIN(context_restore)
 	lwz r30, CONTEXT_OFFSET_R30(r3)
 	lwz r31, CONTEXT_OFFSET_R31(r3)
 
-	lwz r4, CONTEXT_OFFSET_CR(r3)
-	mtcr r4
+	lwz r5, CONTEXT_OFFSET_CR(r3)
+	mtcr r5
 
-	lwz r4, CONTEXT_OFFSET_PC(r3)
-	mtlr r4
+	lwz r5, CONTEXT_OFFSET_PC(r3)
+	mtlr r5
 
-	# context_restore returns 0
-	li r3, 0
+	# __longjmp returns second argument
+	mr r3, r4
 	blr
-FUNCTION_END(context_restore)
+FUNCTION_END(__longjmp)

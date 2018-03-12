@@ -27,6 +27,7 @@
  */
 
 #include <context.h>
+#include <setjmp.h>
 #include <libarch/tls.h>
 #include <libarch/fibril.h>
 #include <libarch/faddr.h>
@@ -41,13 +42,13 @@
  */
 void context_swap(context_t *self, context_t *other)
 {
-	if (context_save(self))
-		context_restore(other);
+	if (!__setjmp(self))
+		__longjmp(other, 1);
 }
 
 void context_create(context_t *context, const context_create_t *arg)
 {
-	context_save(context);
+	__setjmp(context);
 	context_set(context, FADDR(arg->fn), arg->stack_base,
 	    arg->stack_size, arg->tls);
 }

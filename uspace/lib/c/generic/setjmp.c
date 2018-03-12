@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013 Vojtech Horky
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,32 +30,15 @@
 /** @addtogroup libc
  * @{
  */
-/** @file Long jump implementation.
- *
- * Implementation inspired by Jiri Zarevucky's code from
- * http://bazaar.launchpad.net/~zarevucky-jiri/helenos/stdc/revision/1544/uspace/lib/posix/setjmp.h
- */
 
 #include <setjmp.h>
 #include <context.h>
 
-// TODO: setjmp/longjmp are basically a stronger version of
-// context_save/context_restore. It would be preferable to turn
-// those two into setjmp/longjmp (all it would need is preserving the
-// return value).
-
-/**
- * Restore environment previously stored by setjmp.
- *
- * This function never returns.
- *
- * @param env Variable with the environment previously stored by call
- * to setjmp.
- * @param val Value to fake when returning from setjmp (0 is transformed to 1).
- */
-void longjmp(jmp_buf env, int val) {
-	env[0].return_value = (val == 0) ? 1 : val;
-	context_restore(&env[0].context);
+/** Standard function implementation. */
+void longjmp(jmp_buf env, int val)
+{
+	/* __longjmp defined in assembly doesn't "correct" the value. */
+	__longjmp(env, val == 0 ? 1 : val);
 }
 
 /** @}
