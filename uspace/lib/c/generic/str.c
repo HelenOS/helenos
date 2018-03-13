@@ -1359,14 +1359,15 @@ char *str_tok(char *s, const char *delim, char **next)
 	wchar_t ch;
 
 	/* Skip over leading delimiters. */
-	for (tmp = cur = 0;
-	    (ch = str_decode(s, &tmp, len)) && str_chr(delim, ch); /**/)
+	tmp = 0;
+	cur = 0;
+	while ((ch = str_decode(s, &tmp, len)) && str_chr(delim, ch))
 		cur = tmp;
 	start = &s[cur];
 
 	/* Skip over token characters. */
-	for (tmp = cur;
-	    (ch = str_decode(s, &tmp, len)) && !str_chr(delim, ch); /**/)
+	tmp = cur;
+	while ((ch = str_decode(s, &tmp, len)) && !str_chr(delim, ch))
 		cur = tmp;
 	end = &s[cur];
 	if (next)
