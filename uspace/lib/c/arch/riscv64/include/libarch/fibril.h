@@ -36,6 +36,7 @@
 #define LIBC_riscv64_FIBRIL_H_
 
 #include <stdint.h>
+#include <libarch/fibril_context.h>
 
 #define SP_DELTA  0
 
@@ -43,25 +44,13 @@
 	do { \
 		(ctx)->pc = (uintptr_t) (_pc); \
 		(ctx)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
-		(ctx)->fp = 0; \
-		(ctx)->tls = ((uintptr_t) (ptls)) + sizeof(tcb_t); \
+		(ctx)->x4 = ((uintptr_t) (ptls)) + sizeof(tcb_t); \
 	} while (0)
-
-/*
- * This stores the registers which need to be
- * preserved across function calls.
- */
-typedef struct {
-	uintptr_t sp;
-	uintptr_t fp;
-	uintptr_t pc;
-	uintptr_t tls;
-} context_t;
 
 static inline uintptr_t _context_get_fp(context_t *ctx)
 {
-	/* This function returns the frame pointer. */
-	return ctx->fp;
+	// FIXME: No frame pointer in the standard ABI.
+	return 0;
 }
 
 #endif

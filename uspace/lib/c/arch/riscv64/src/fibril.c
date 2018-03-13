@@ -29,7 +29,7 @@
 /** @file
  */
 
-#include <fibril.h>
+#include <setjmp.h>
 #include <stdbool.h>
 
 int __setjmp(context_t *ctx)

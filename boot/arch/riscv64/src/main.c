@@ -63,7 +63,7 @@ void bootstrap(void)
 	bootinfo.memmap.zones[0].start = (void *) PHYSMEM_START;
 	bootinfo.memmap.zones[0].size = PHYSMEM_SIZE;
 
-	printf("\nMemory statistics (total %lu MB, starting at %p)\n\n",
+	printf("\nMemory statistics (total %llu MB, starting at %p)\n\n",
 	    bootinfo.memmap.total >> 20, (void *) bootinfo.physmem_start);
 	printf(" %p: boot info structure\n", &bootinfo);
 
