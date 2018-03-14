@@ -273,9 +273,15 @@ ht_link_t *hash_table_find_next(const hash_table_t *h, ht_link_t *item)
 	assert(item);
 	assert(h && h->bucket);
 
+	size_t idx = h->op->hash(item) % h->bucket_cnt;
+
 	/* Traverse the circular list until we reach the starting item again. */
 	for (link_t *cur = item->link.next; cur != &item->link; cur = cur->next) {
 		assert(cur);
+
+		if (cur == &h->bucket[idx].head)
+			continue;
+
 		ht_link_t *cur_link = member_to_inst(cur, ht_link_t, link);
 		/*
 		 * Is this is the item we are looking for? We could have first
