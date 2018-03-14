@@ -94,7 +94,8 @@ extern void hash_table_clear(hash_table_t *);
 extern void hash_table_insert(hash_table_t *, ht_link_t *);
 extern bool hash_table_insert_unique(hash_table_t *, ht_link_t *);
 extern ht_link_t *hash_table_find(const hash_table_t *, void *);
-extern ht_link_t *hash_table_find_next(const hash_table_t *, ht_link_t *);
+extern ht_link_t *hash_table_find_next(const hash_table_t *, ht_link_t *,
+    ht_link_t *);
 extern size_t hash_table_remove(hash_table_t *, void *);
 extern void hash_table_remove_item(hash_table_t *, ht_link_t *);
 extern void hash_table_apply(hash_table_t *, bool (*)(ht_link_t *, void *),

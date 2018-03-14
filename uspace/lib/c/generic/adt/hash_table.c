@@ -268,7 +268,8 @@ ht_link_t *hash_table_find(const hash_table_t *h, void *key)
 }
 
 /** Find the next item equal to item. */
-ht_link_t *hash_table_find_next(const hash_table_t *h, ht_link_t *item)
+ht_link_t *
+hash_table_find_next(const hash_table_t *h, ht_link_t *first, ht_link_t *item)
 {
 	assert(item);
 	assert(h && h->bucket);
@@ -276,7 +277,8 @@ ht_link_t *hash_table_find_next(const hash_table_t *h, ht_link_t *item)
 	size_t idx = h->op->hash(item) % h->bucket_cnt;
 
 	/* Traverse the circular list until we reach the starting item again. */
-	for (link_t *cur = item->link.next; cur != &item->link; cur = cur->next) {
+	for (link_t *cur = item->link.next; cur != &first->link;
+	    cur = cur->next) {
 		assert(cur);
 
 		if (cur == &h->bucket[idx].head)

@@ -140,8 +140,9 @@ static irq_t *
 irq_dispatch_and_lock_table(hash_table_t *h, irq_spinlock_t *l, inr_t inr)
 {
 	irq_spinlock_lock(l, false);
-	for (ht_link_t *lnk = hash_table_find(h, &inr); lnk;
-	    lnk = hash_table_find_next(h, lnk)) {
+	ht_link_t *first = hash_table_find(h, &inr);
+	for (ht_link_t *lnk = first; lnk;
+	    lnk = hash_table_find_next(h, first, lnk)) {
 		irq_t *irq = hash_table_get_inst(lnk, irq_t, link);
 		irq_spinlock_lock(&irq->lock, false);
 		if (irq->claim(irq) == IRQ_ACCEPT) {
