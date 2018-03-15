@@ -28,34 +28,6 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-GMP_MAIN=<<EOF
-#define GCC_GMP_VERSION_NUM(a, b, c) \
-	(((a) << 16L) | ((b) << 8) | (c))
-
-#define GCC_GMP_VERSION \
-	GCC_GMP_VERSION_NUM(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL)
-
-#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4, 3, 2)
-	choke me
-#endif
-EOF
-
-MPFR_MAIN=<<EOF
-#if MPFR_VERSION < MPFR_VERSION_NUM(2, 4, 2)
-	choke me
-#endif
-EOF
-
-MPC_MAIN=<<EOF
-#if MPC_VERSION < MPC_VERSION_NUM(0, 8, 1)
-	choke me
-#endif
-EOF
-
-ISL_MAIN=<<EOF
-isl_ctx_get_max_operations (isl_ctx_alloc ());
-EOF
-
 BINUTILS_VERSION="2.28"
 BINUTILS_RELEASE=""
 ## BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
@@ -63,71 +35,15 @@ GCC_VERSION="7.1.0"
 ## GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
 GDB_VERSION="7.12.1"
 ## GDB_PATCHES="toolchain-gdb-7.6.1.patch"
-ISL_VERSION="0.18"
 
 BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
 GCC="gcc-${GCC_VERSION}.tar.bz2"
 GDB="gdb-${GDB_VERSION}.tar.gz"
-ISL="isl-${ISL_VERSION}.tar.bz2"
 
 REAL_INSTALL=true
 USE_HELENOS_TARGET=false
-BUILD_ISL=false
-
-#
-# Check if the library described in the argument
-# exists and has acceptable version.
-#
-check_dependency() {
-	DEPENDENCY="$1"
-	HEADER="$2"
-	BODY="$3"
-
-	FNAME="/tmp/conftest-$$"
-
-	echo "#include ${HEADER}" > "${FNAME}.c"
-	echo >> "${FNAME}.c"
-	echo "int main()" >> "${FNAME}.c"
-	echo "{" >> "${FNAME}.c"
-	echo "${BODY}" >> "${FNAME}.c"
-	echo "	return 0;" >> "${FNAME}.c"
-	echo "}" >> "${FNAME}.c"
-
-	cc $CFLAGS -c -o "${FNAME}.o" "${FNAME}.c" 2> "${FNAME}.log"
-	RC="$?"
-
-	if [ "$RC" -ne "0" ] ; then
-		if [ "${DEPENDENCY}" == "isl" ]; then
-			BUILD_ISL=true
-
-			echo " isl not found. Will be downloaded and built with GCC."
-		else
-			echo " ${DEPENDENCY} not found, too old or compiler error."
-			echo " Please recheck manually the source file \"${FNAME}.c\"."
-			echo " The compilation of the toolchain is probably going to fail,"
-			echo " you have been warned."
-			echo
-			echo " ===== Compiler output ====="
-			cat "${FNAME}.log"
-			echo " ==========================="
-			echo
-		fi
-	else
-		echo " ${DEPENDENCY} found"
-		rm -f "${FNAME}.log" "${FNAME}.o" "${FNAME}.c"
-	fi
-}
-
-check_dependecies() {
-	echo ">>> Basic dependency check"
-	check_dependency "GMP" "<gmp.h>" "${GMP_MAIN}"
-	check_dependency "MPFR" "<mpfr.h>" "${MPFR_MAIN}"
-	check_dependency "MPC" "<mpc.h>" "${MPC_MAIN}"
-	check_dependency "isl" "<isl/ctx.h>" "${ISL_MAIN}"
-	echo
-}
 
 check_error() {
 	if [ "$1" -ne "0" ] ; then
@@ -229,10 +145,6 @@ show_dependencies() {
 	echo " - SED, AWK, Flex, Bison, gzip, bzip2, Bourne Shell"
 	echo " - gettext, zlib, Texinfo, libelf, libgomp"
 	echo " - GNU Make, Coreutils, Sharutils, tar"
-	echo " - GNU Multiple Precision Library (GMP)"
-	echo " - MPFR"
-	echo " - MPC"
-	echo " - integer point manipulation library (isl)"
 	echo " - native C and C++ compiler, assembler and linker"
 	echo " - native C and C++ standard library with headers"
 	echo
@@ -354,21 +266,45 @@ patch_sources() {
 
 prepare() {
 	show_dependencies
-	check_dependecies
 	show_countdown 10
+
+	mkdir -p "${BASEDIR}/downloads"
+	cd "${BASEDIR}/downloads"
+	check_error $? "Change directory failed."
 
 	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
 	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
 	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
-	ISL_SOURCE="http://isl.gforge.inria.fr/"
+
+	echo ">>> Downloading tarballs"
 
 	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "9e8340c96626b469a603c15c9d843727"
 	download_fetch "${GCC_SOURCE}" "${GCC}" "6bf56a2bca9dac9dbbf8e8d1036964a8"
 	download_fetch "${GDB_SOURCE}" "${GDB}" "06c8f40521ed65fe36ebc2be29b56942"
 
-	if $BUILD_ISL ; then
-		download_fetch "${ISL_SOURCE}" "${ISL}" "11436d6b205e516635b666090b94ab32"
-	fi
+	echo ">>> Unpacking tarballs"
+	cd "${WORKDIR}"
+	check_error $? "Change directory failed."
+
+	unpack_tarball "${BASEDIR}/downloads/${BINUTILS}" "binutils"
+	unpack_tarball "${BASEDIR}/downloads/${GCC}" "GCC"
+	unpack_tarball "${BASEDIR}/downloads/${GDB}" "GDB"
+
+	echo ">>> Applying patches"
+	for p in $BINUTILS_PATCHES ; do
+		patch_sources "${SRCDIR}/${p}" 0 "binutils"
+	done
+	for p in $GCC_PATCHES ; do
+		patch_sources "${SRCDIR}/${p}" 0 "GCC"
+	done
+	for p in $GDB_PATCHES ; do
+		patch_sources "${SRCDIR}/${p}" 0 "GDB"
+	done
+
+	echo ">>> Downloading GCC prerequisites"
+	cd "gcc-${GCC_VERSION}"
+	./contrib/download_prerequisites
+	cd ..
 }
 
 set_target_from_platform() {
@@ -438,8 +374,6 @@ build_target() {
 	INSTALL_DIR="${WORKDIR}/PKG"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
-	ISLDIR="${WORKDIR}/isl-${ISL_VERSION}"
-	OBJDIR="${WORKDIR}/gcc-obj"
 	GDBDIR="${WORKDIR}/gdb-${GDB_VERSION}"
 
 	if [ -z "${CROSS_PREFIX}" ] ; then
@@ -448,50 +382,18 @@ build_target() {
 
 	PREFIX="${CROSS_PREFIX}/${TARGET}"
 
-	echo ">>> Downloading tarballs"
-	source_check "${BASEDIR}/${BINUTILS}"
-	source_check "${BASEDIR}/${GCC}"
-	source_check "${BASEDIR}/${GDB}"
-	if $BUILD_ISL ; then
-		source_check "${BASEDIR}/${ISL}"
-	fi
-
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
-
-	create_dir "${OBJDIR}" "GCC object directory"
-
+	mkdir -p "${WORKDIR}"
 	check_dirs "${PREFIX}" "${WORKDIR}"
 
-	echo ">>> Unpacking tarballs"
-	cd "${WORKDIR}"
-	check_error $? "Change directory failed."
-
-	unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
-	unpack_tarball "${BASEDIR}/${GCC}" "GCC"
-	unpack_tarball "${BASEDIR}/${GDB}" "GDB"
-	if $BUILD_ISL ; then
-		unpack_tarball "${BASEDIR}/${ISL}" "isl"
-		mv "${ISLDIR}" "${GCCDIR}"/isl
-	fi
-
-	echo ">>> Applying patches"
-	for p in $BINUTILS_PATCHES ; do
-		patch_sources "${SRCDIR}/${p}" 0 "binutils"
-	done
-	for p in $GCC_PATCHES ; do
-		patch_sources "${SRCDIR}/${p}" 0 "GCC"
-	done
-	for p in $GDB_PATCHES ; do
-		patch_sources "${SRCDIR}/${p}" 0 "GDB"
-	done
-
 	echo ">>> Processing binutils (${PLATFORM})"
+	mkdir -p "${BINUTILSDIR}"
 	cd "${BINUTILSDIR}"
 	check_error $? "Change directory failed."
 
 	change_title "binutils: configure (${PLATFORM})"
-	CFLAGS=-Wno-error ./configure \
+	CFLAGS=-Wno-error "${BASEDIR}/downloads/binutils-${BINUTILS_VERSION}/configure" \
 		"--target=${TARGET}" \
 		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
 		--disable-nls --disable-werror --enable-gold \
@@ -508,11 +410,12 @@ build_target() {
 
 
 	echo ">>> Processing GCC (${PLATFORM})"
-	cd "${OBJDIR}"
+	mkdir -p "${GCCDIR}"
+	cd "${GCCDIR}"
 	check_error $? "Change directory failed."
 
 	change_title "GCC: configure (${PLATFORM})"
-	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${GCCDIR}/configure" \
+	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gcc-${GCC_VERSION}/configure" \
 		"--target=${TARGET}" \
 		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
 		--with-gnu-as --with-gnu-ld --disable-nls --disable-threads \
@@ -533,11 +436,12 @@ build_target() {
 	# No GDB support for RISC-V so far
 	if [ "$PLATFORM" != "riscv64" ] ; then
 		echo ">>> Processing GDB (${PLATFORM})"
+		mkdir -p "${GDBDIR}"
 		cd "${GDBDIR}"
 		check_error $? "Change directory failed."
 
 		change_title "GDB: configure (${PLATFORM})"
-		PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" ./configure \
+		PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
 			"--target=${TARGET}" \
 			"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
 			--enable-werror=no --without-guile
