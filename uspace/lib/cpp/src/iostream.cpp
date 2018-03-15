@@ -58,7 +58,7 @@ namespace std
 
     ios_base::Init::~Init()
     {
-        /* if (--init_cnt_ == 0) */
-        /*     cout.flush(); */
+        if (--init_cnt_ == 0)
+            cout.flush();
     }
 }
