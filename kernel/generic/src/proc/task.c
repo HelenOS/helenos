@@ -128,9 +128,9 @@ void task_done(void)
 {
 	size_t tasks_left;
 
-	if (ipc_phone_0) {
-		task_t *task_0 = ipc_phone_0->task;
-		ipc_phone_0 = NULL;
+	if (ipc_box_0) {
+		task_t *task_0 = ipc_box_0->task;
+		ipc_box_0 = NULL;
 		/*
 		 * The first task is held by kinit(), we need to release it or
 		 * it will never finish cleanup.
@@ -242,10 +242,10 @@ task_t *task_create(as_t *as, const char *name)
 	task->kb.finished = false;
 #endif
 
-	if ((ipc_phone_0) &&
-	    (container_check(ipc_phone_0->task->container, task->container))) {
+	if ((ipc_box_0) &&
+	    (container_check(ipc_box_0->task->container, task->container))) {
 		cap_handle_t phone_handle;
-		errno_t rc = phone_alloc(task, &phone_handle);
+		errno_t rc = phone_alloc(task, true, &phone_handle, NULL);
 		if (rc != EOK) {
 			task->as = NULL;
 			task_destroy_arch(task);
@@ -255,7 +255,7 @@ task_t *task_create(as_t *as, const char *name)
 
 		kobject_t *phone_obj = kobject_get(task, phone_handle,
 		    KOBJECT_TYPE_PHONE);
-		(void) ipc_phone_connect(phone_obj->phone, ipc_phone_0);
+		(void) ipc_phone_connect(phone_obj->phone, ipc_box_0);
 	}
 
 	futex_task_init(task);

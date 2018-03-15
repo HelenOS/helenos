@@ -38,9 +38,10 @@
  * straight and clean clean-up procedure upon task termination.
  *
  * The pattern of usage of the resources is:
- * - allocate empty phone capability slot, connect | deallocate slot
+ * - allocate a capability and phone kernel object (do not publish yet),
+ *   connect to the answerbox, and finally publish the capability
  * - disconnect connected phone (some messages might be on the fly)
- * - find phone in slot and send a message using phone
+ * - find phone capability and send a message using phone
  * - answer message to phone
  * - hangup phone (the caller has hung up)
  * - hangup phone (the answerbox is exiting)
@@ -52,7 +53,6 @@
  * - To connect an allocated phone it need not be locked (assigning pointer is
  *   atomic on all platforms)
  *
- * - To find an empty phone capability slot, the TASK must be locked
  * - To answer a message, the answerbox must be locked
  * - The locking of phone and answerbox is done at the ipc_ level.
  *   It is perfectly correct to pass unconnected phone to these functions and
@@ -72,13 +72,13 @@
  *
  * *** Connect_me_to ***
  * The caller sends IPC_M_CONNECT_ME_TO to an answerbox. The server receives
- * 'phoneid' of the connecting phone as an ARG5. If it answers with RETVAL=0,
- * the phonecall is accepted, otherwise it is refused.
+ * 'phoneid' of the connecting phone as an ARG5. If it answers with RETVAL=EOK,
+ * the phone call is accepted, otherwise it is refused.
  *
  * *** Connect_to_me ***
  * The caller sends IPC_M_CONNECT_TO_ME.
  * The server receives an automatically opened phoneid. If it accepts
- * (RETVAL=0), it can use the phoneid immediately.  Possible race condition can
+ * (RETVAL=EOK), it can use the phoneid immediately. Possible race condition can
  * arise, when the client receives messages from new connection before getting
  * response for connect_to_me message. Userspace should implement handshake
  * protocol that would control it.
@@ -94,7 +94,7 @@
  * *** The answerbox hangs up (ipc_answer(EHANGUP))
  * - The phone is disconnected. EHANGUP response code is sent to the calling
  *   task. All new calls through this phone get a EHUNGUP error code, the task
- *   is expected to send an sys_ipc_hangup after cleaning up its internal
+ *   is expected to call sys_ipc_hangup after cleaning up its internal
  *   structures.
  *
  *
@@ -136,19 +136,6 @@
 #include <cap/cap.h>
 #include <mm/slab.h>
 
-static bool phone_reclaim(kobject_t *kobj)
-{
-	bool gc = false;
-
-	mutex_lock(&kobj->phone->lock);
-	if (kobj->phone->state == IPC_PHONE_HUNGUP &&
-	    atomic_get(&kobj->phone->active_calls) == 0)
-		gc = true;
-	mutex_unlock(&kobj->phone->lock);
-
-	return gc;
-}
-
 static void phone_destroy(void *arg)
 {
 	phone_t *phone = (phone_t *) arg;
@@ -156,20 +143,21 @@ static void phone_destroy(void *arg)
 }
 
 static kobject_ops_t phone_kobject_ops = {
-	.reclaim = phone_reclaim,
 	.destroy = phone_destroy
 };
 
 
 /** Allocate new phone in the specified task.
  *
- * @param task  Task for which to allocate a new phone.
- *
- * @param[out] out_handle  New phone capability handle.
+ * @param[in]  task     Task for which to allocate a new phone.
+ * @param[in]  publish  If true, the new capability will be published.
+ * @param[out] phandle  New phone capability handle.
+ * @param[out] kobject  New phone kobject.
  *
  * @return  An error code if a new capability cannot be allocated.
  */
-errno_t phone_alloc(task_t *task, cap_handle_t *out_handle)
+errno_t phone_alloc(task_t *task, bool publish, cap_handle_t *phandle,
+    kobject_t **kobject)
 {
 	cap_handle_t handle;
 	errno_t rc = cap_alloc(task, &handle);
@@ -179,8 +167,8 @@ errno_t phone_alloc(task_t *task, cap_handle_t *out_handle)
 			cap_free(TASK, handle);
 			return ENOMEM;
 		}
-		kobject_t *kobject = malloc(sizeof(kobject_t), FRAME_ATOMIC);
-		if (!kobject) {
+		kobject_t *kobj = malloc(sizeof(kobject_t), FRAME_ATOMIC);
+		if (!kobj) {
 			cap_free(TASK, handle);
 			slab_free(phone_cache, phone);
 			return ENOMEM;
@@ -189,13 +177,16 @@ errno_t phone_alloc(task_t *task, cap_handle_t *out_handle)
 		ipc_phone_init(phone, task);
 		phone->state = IPC_PHONE_CONNECTING;
 
-		kobject_initialize(kobject, KOBJECT_TYPE_PHONE, phone,
+		kobject_initialize(kobj, KOBJECT_TYPE_PHONE, phone,
 		    &phone_kobject_ops);
-		phone->kobject = kobject;
+		phone->kobject = kobj;
 
-		cap_publish(task, handle, kobject);
+		if (publish)
+			cap_publish(task, handle, kobj);
 
-		*out_handle = handle;
+		*phandle = handle;
+		if (kobject)
+			*kobject = kobj;
 	}
 	return rc;
 }
@@ -213,29 +204,8 @@ void phone_dealloc(cap_handle_t handle)
 	if (!kobj)
 		return;
 
-	assert(kobj->phone);
-	assert(kobj->phone->state == IPC_PHONE_CONNECTING);
-
 	kobject_put(kobj);
 	cap_free(TASK, handle);
-}
-
-/** Connect phone to a given answerbox.
- *
- * @param handle  Capability handle of the phone to be connected.
- * @param box     Answerbox to which to connect the phone.
- * @return        True if the phone was connected, false otherwise.
- */
-bool phone_connect(cap_handle_t handle, answerbox_t *box)
-{
-	kobject_t *phone_obj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
-	if (!phone_obj)
-		return false;
-
-	assert(phone_obj->phone->state == IPC_PHONE_CONNECTING);
-
-	/* Hand over phone_obj reference to the answerbox */
-	return ipc_phone_connect(phone_obj->phone, box);
 }
 
 /** @}

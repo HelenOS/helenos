@@ -264,11 +264,11 @@ void kinit(void *arg)
 				    PERM_PERM | PERM_MEM_MANAGER |
 				    PERM_IO_MANAGER | PERM_IRQ_REG);
 
-				if (!ipc_phone_0) {
-					ipc_phone_0 = &programs[i].task->answerbox;
+				if (!ipc_box_0) {
+					ipc_box_0 = &programs[i].task->answerbox;
 					/*
-					 * Hold the first task so that the
-					 * ipc_phone_0 remains a valid pointer
+					 * Hold the first task so that
+					 * ipc_box_0 remains a valid pointer
 					 * even if the first task exits for
 					 * whatever reason.
 					 */

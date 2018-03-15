@@ -39,8 +39,7 @@
 #include <ipc/ipc.h>
 #include <cap/cap.h>
 
-extern errno_t phone_alloc(task_t *, cap_handle_t *);
-extern bool phone_connect(cap_handle_t, answerbox_t *);
+extern errno_t phone_alloc(task_t *, bool, cap_handle_t *, kobject_t **);
 extern void phone_dealloc(cap_handle_t);
 
 #endif

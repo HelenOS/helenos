@@ -42,7 +42,9 @@
 static int request_process(call_t *call, answerbox_t *box)
 {
 	cap_handle_t phone_handle;
-	errno_t rc = phone_alloc(TASK, &phone_handle);
+	kobject_t *phone_obj;
+	errno_t rc = phone_alloc(TASK, false, &phone_handle, &phone_obj);
+	call->priv = (sysarg_t) phone_obj;
 	IPC_SET_ARG5(call->data, (rc == EOK) ? phone_handle : -1);
 	return 0;
 }
@@ -50,9 +52,12 @@ static int request_process(call_t *call, answerbox_t *box)
 static errno_t answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
 	cap_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
+	kobject_t *phone_obj = (kobject_t *) answer->priv;
 
-	if (phone_handle >= 0)
-		phone_dealloc(phone_handle);
+	if (phone_handle >= 0) {
+		kobject_put(phone_obj);
+		cap_free(TASK, phone_handle);
+	}
 
 	return EOK;
 }
@@ -60,19 +65,29 @@ static errno_t answer_cleanup(call_t *answer, ipc_data_t *olddata)
 static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
 	cap_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
+	kobject_t *phone_obj = (kobject_t *) answer->priv;
 
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/* The connection was not accepted */
 		answer_cleanup(answer, olddata);
 	} else if (phone_handle >= 0) {
-		/* The connection was accepted */
-		if (phone_connect(phone_handle, &answer->sender->answerbox)) {
+		/*
+		 * The connection was accepted
+		 */
+
+		/*
+		 * We need to create another reference as the one we have now
+		 * will be consumed by ipc_phone_connect().
+		 */
+		kobject_add_ref(phone_obj);
+
+		if (ipc_phone_connect(phone_obj->phone,
+		    &answer->sender->answerbox)) {
+			/* Pass the reference to the capability */
+			cap_publish(TASK, phone_handle, phone_obj);
 			/* Set 'phone hash' as ARG5 of response */
-			kobject_t *phone_obj = kobject_get(TASK, phone_handle,
-			    KOBJECT_TYPE_PHONE);
 			IPC_SET_ARG5(answer->data,
 			    (sysarg_t) phone_obj->phone);
-			kobject_put(phone_obj);
 		} else {
 			/* The answerbox is shutting down. */
 			IPC_SET_RETVAL(answer->data, ENOENT);

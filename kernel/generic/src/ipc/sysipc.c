@@ -723,12 +723,13 @@ sys_errno_t sys_ipc_answer_slow(sysarg_t chandle, ipc_data_t *data)
  */
 sys_errno_t sys_ipc_hangup(sysarg_t handle)
 {
-	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
+	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
 		return ENOENT;
 
 	errno_t rc = ipc_phone_hangup(kobj->phone);
 	kobject_put(kobj);
+	cap_free(TASK, handle);
 	return rc;
 }
 

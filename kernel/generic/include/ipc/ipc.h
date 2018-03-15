@@ -81,6 +81,11 @@ typedef struct answerbox {
 
 	waitq_t wq;
 
+	/**
+	 * Number of answers the answerbox is expecting to eventually arrive.
+	 */
+	atomic_t active_calls;
+
 	/** Phones connected to this answerbox. */
 	list_t connected_phones;
 	/** Received calls. */
@@ -176,7 +181,7 @@ typedef struct call {
 
 extern slab_cache_t *phone_cache;
 
-extern answerbox_t *ipc_phone_0;
+extern answerbox_t *ipc_box_0;
 
 extern void ipc_init(void);
 

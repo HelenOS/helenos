@@ -63,9 +63,7 @@ struct call;
 struct irq;
 struct phone;
 
-struct kobject;
 typedef struct kobject_ops {
-	bool (*reclaim)(struct kobject *);
 	void (*destroy)(void *);
 } kobject_ops_t;
 
