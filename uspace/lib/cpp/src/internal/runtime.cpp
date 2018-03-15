@@ -26,18 +26,97 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cstdlib>
+#include <cstdint>
 #include <internal/abi.hpp>
+#include <exception>
 
 namespace __cxxabiv1
 {
+    namespace aux
+    {
+        struct destructor_t
+        {
+            void (*func)(void*);
+            void* ptr;
+            void* dso;
+        };
+
+        destructor_t* destructors{nullptr};
+        std::size_t destructor_count{0};
+        std::size_t destructor_size{32};
+
+        /**
+         * C atexit does not pass any arguments,
+         * but __cxa_finalize requires one so we
+         * use a wrapper.
+         */
+        void atexit_destructors()
+        {
+            __cxa_finalize(nullptr);
+        }
+    }
 
     /**
      * No need for a body, this function is called when a virtual
      * call of a pure virtual function cannot be made.
      */
-    // TODO: terminate in this
     extern "C" void __cxa_pure_call()
-    { /* DUMMY BODY */ }
+    {
+        std::terminate();
+    }
+
+    extern "C" int __cxa_atexit(void (*f)(void*), void* p, void* d)
+    {
+        if (!aux::destructors)
+        {
+            aux::destructors = new aux::destructor_t[aux::destructor_size];
+            std::atexit(aux::atexit_destructors);
+        }
+        else if (aux::destructor_count >= aux::destructor_size)
+        {
+            auto tmp = std::realloc(aux::destructors, aux::destructor_size * 2);
+
+            if (!tmp)
+                return -1;
+
+            aux::destructors = static_cast<aux::destructor_t*>(tmp);
+            aux::destructor_size *= 2;
+        }
+
+        auto& destr = aux::destructors[aux::destructor_count++];
+        destr.func = f;
+        destr.ptr = p;
+        destr.dso = d;
+
+        return 0;
+    }
+
+    extern "C" void __cxa_finalize(void *f)
+    {
+        if (!f)
+        {
+            for (std::size_t i = aux::destructor_count; i > 0; --i)
+            {
+                if (aux::destructors[i - 1].func)
+                    (*aux::destructors[i - 1].func)(aux::destructors[i - 1].ptr);
+            }
+        }
+        else
+        {
+            for (std::size_t i = aux::destructor_count; i > 0; --i)
+            {
+                if (aux::destructors[i - 1].func == f)
+                {
+                    (*aux::destructors[i - 1].func)(aux::destructors[i - 1].ptr);
+                    aux::destructors[i - 1].func = nullptr;
+                    aux::destructors[i - 1].ptr = nullptr;
+                    aux::destructors[i - 1].dso = nullptr;
+                    // TODO: shift and decrement count
+                }
+            }
+        }
+    }
 
     __fundamental_type_info::~__fundamental_type_info()
     { /* DUMMY BODY */ }

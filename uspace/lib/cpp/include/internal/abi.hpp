@@ -32,6 +32,14 @@
 namespace __cxxabiv1
 {
     /**
+     * Static constructor/destructor helpers.
+     */
+
+    extern "C" int __cxa_atexit(void (*)(void*), void*, void*);
+
+    extern "C" void __cxa_finalize(void*);
+
+    /**
      * Itanium C++ ABI type infos.
      * See section 2.9.4 (RTTI Layout) of the Itanium C++ ABI spec.
      *

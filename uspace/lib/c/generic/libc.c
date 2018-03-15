@@ -60,8 +60,18 @@
 #include <rtld/rtld.h>
 #endif
 
-
 static bool env_setup = false;
+
+/**
+ * Used for C++ constructors/destructors
+ * and the GCC constructor/destructor extension.
+ */
+typedef void (*init_array_entry_t)();
+extern init_array_entry_t __init_array_start[];
+extern init_array_entry_t __init_array_end[];
+typedef void (*fini_array_entry_t)();
+extern fini_array_entry_t __fini_array_start[];
+extern fini_array_entry_t __fini_array_end[];
 
 void __libc_main(void *pcb_ptr)
 {
@@ -114,6 +124,14 @@ void __libc_main(void *pcb_ptr)
 	}
 
 	/*
+	 * C++ Static constructor calls.
+	 */
+	ptrdiff_t init_array_entries = (__init_array_end - __init_array_start);
+
+	for (int i = init_array_entries - 1; i > 0; --i)
+		__init_array_start[i]();
+
+	/*
 	 * Run main() and set task return value
 	 * according the result
 	 */
@@ -123,6 +141,16 @@ void __libc_main(void *pcb_ptr)
 
 void __libc_exit(int status)
 {
+	/*
+	 * GCC extension __attribute__((destructor)),
+	 * C++ destructors are added to __cxa_finalize call
+	 * when the respective constructor is called.
+	 */
+	ptrdiff_t fini_array_entries = (__fini_array_end - __fini_array_start);
+
+	for (int i = 0; i < fini_array_entries; ++i)
+		__fini_array_start[i]();
+
 	if (env_setup) {
 		__stdio_done();
 		task_retval(status);
