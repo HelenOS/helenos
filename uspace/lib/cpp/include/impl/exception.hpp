@@ -31,17 +31,17 @@
 
 namespace std
 {
+    [[noreturn]] void terminate() noexcept;
 
-class exception
-{
-	public:
-		exception() = default;
-		exception(const exception&) = default;
-		exception& operator=(const exception&) noexcept;
-		virtual const char* what() const;
-		virtual ~exception() = default;
-};
-
+    class exception
+    {
+        public:
+            exception() = default;
+            exception(const exception&) = default;
+            exception& operator=(const exception&) noexcept;
+            virtual const char* what() const;
+            virtual ~exception() = default;
+    };
 }
 
 #endif
