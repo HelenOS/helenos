@@ -185,9 +185,19 @@ elif [ "$1" = "run" ]; then
 
             "$HOME/helenos-harbours/hsct.sh" update || exit 1
 
+            # We cannot flood the output as Travis has limit of maximum output size
+            # (reason is to prevent endless stacktraces going forever). But also Travis
+            # kills a job that does not print anything for a while.
+            #
+            # So we store the full output into a file but print every 100th line.
+            # As pipe tends to hide errors we check the success by checking that archive
+            # exists.
+            #
             FAILED_HARBOURS=""
             for HARBOUR in $H_HARBOUR_LIST; do
-                "$HOME/helenos-harbours/hsct.sh" archive --no-deps "$HARBOUR" >"run-$HARBOUR.log" 2>&1
+                "$HOME/helenos-harbours/hsct.sh" archive --no-deps "$HARBOUR" 2>&1 | tee "run-$HARBOUR.log" | awk '!(NR%100)'
+                
+                test -s "archives/$HARBOUR.tar.xz"
                 if [ $? -eq 0 ]; then
                     tail -n 10 "run-$HARBOUR.log"
                 else
