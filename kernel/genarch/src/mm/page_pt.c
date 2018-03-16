@@ -54,7 +54,7 @@
 static void pt_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void pt_mapping_remove(as_t *, uintptr_t);
 static bool pt_mapping_find(as_t *, uintptr_t, bool, pte_t *pte);
-static void pt_mapping_update(as_t *, uintptr_t, bool, pte_t *pte);
+static void pt_mapping_update(as_t *, uintptr_t, bool, const pte_t *pte);
 static void pt_mapping_make_global(uintptr_t, size_t);
 
 page_mapping_operations_t pt_mapping_operations = {
@@ -352,7 +352,7 @@ bool pt_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
  * @param nolock   True if the page tables need not be locked.
  * @param[in] pte  New PTE.
  */
-void pt_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
+void pt_mapping_update(as_t *as, uintptr_t page, bool nolock, const pte_t *pte)
 {
 	pte_t *t = pt_mapping_find_internal(as, page, nolock);
 	if (!t)
@@ -430,8 +430,8 @@ void pt_mapping_make_global(uintptr_t base, size_t size)
 		memsetb((void *) l1, FRAMES2SIZE(frames), 0);
 		SET_PTL1_ADDRESS(ptl0, PTL0_INDEX(addr), KA2PA(l1));
 		SET_PTL1_FLAGS(ptl0, PTL0_INDEX(addr),
-		    PAGE_PRESENT | PAGE_USER | PAGE_CACHEABLE |
-		    PAGE_EXEC | PAGE_WRITE | PAGE_READ);
+		    PAGE_USER | PAGE_CACHEABLE |
+		    PAGE_EXEC | PAGE_WRITE);
 	}
 }
 

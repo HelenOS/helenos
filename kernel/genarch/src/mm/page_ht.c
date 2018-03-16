@@ -60,7 +60,7 @@ static void ht_remove_callback(ht_link_t *);
 static void ht_mapping_insert(as_t *, uintptr_t, uintptr_t, unsigned int);
 static void ht_mapping_remove(as_t *, uintptr_t);
 static bool ht_mapping_find(as_t *, uintptr_t, bool, pte_t *);
-static void ht_mapping_update(as_t *, uintptr_t, bool, pte_t *);
+static void ht_mapping_update(as_t *, uintptr_t, bool, const pte_t *);
 static void ht_mapping_make_global(uintptr_t, size_t);
 
 slab_cache_t *pte_cache = NULL;
@@ -267,7 +267,7 @@ bool ht_mapping_find(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
  * @param nolock   True if the page tables need not be locked.
  * @param pte      New PTE.
  */
-void ht_mapping_update(as_t *as, uintptr_t page, bool nolock, pte_t *pte)
+void ht_mapping_update(as_t *as, uintptr_t page, bool nolock, const pte_t *pte)
 {
 	irq_spinlock_lock(&page_ht_lock, true);
 

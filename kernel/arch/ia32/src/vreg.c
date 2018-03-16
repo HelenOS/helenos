@@ -67,7 +67,7 @@ void vreg_init(void)
 		panic("Cannot allocate VREG frame.");
 
 	page = (uint32_t *) km_map(frame, PAGE_SIZE,
-	    PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
+	    PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
 
 	gdt_setbase(&gdt_p[VREG_DES], (uintptr_t) page);
 	gdt_setlimit(&gdt_p[VREG_DES], sizeof(uint32_t));

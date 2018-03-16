@@ -48,7 +48,7 @@ typedef struct {
 	void (*mapping_insert)(as_t *, uintptr_t, uintptr_t, unsigned int);
 	void (*mapping_remove)(as_t *, uintptr_t);
 	bool (*mapping_find)(as_t *, uintptr_t, bool, pte_t *);
-	void (*mapping_update)(as_t *, uintptr_t, bool, pte_t *);
+	void (*mapping_update)(as_t *, uintptr_t, bool, const pte_t *);
 	void (*mapping_make_global)(uintptr_t, size_t);
 } page_mapping_operations_t;
 
