@@ -137,8 +137,8 @@ NO_TRACE static inline int get_pt_level0_flags(pte_t *pt, size_t i)
 	pte_level0_t *p = &pt[i].l0;
 	int np = (p->descriptor_type == PTE_DESCRIPTOR_NOT_PRESENT);
 
-	return (np << PAGE_PRESENT_SHIFT) | (1 << PAGE_USER_SHIFT) |
-	    (1 << PAGE_READ_SHIFT) | (1 << PAGE_WRITE_SHIFT) |
+	return (np << PAGE_NOT_PRESENT_SHIFT) | (1 << PAGE_USER_SHIFT) |
+	    (1 << PAGE_WRITE_SHIFT) |
 	    (1 << PAGE_EXEC_SHIFT) | (1 << PAGE_CACHEABLE_SHIFT);
 }
 
@@ -155,12 +155,9 @@ NO_TRACE static inline int get_pt_level1_flags(pte_t *pt, size_t i)
 	int dt = p->descriptor_type;
 	int ap = p->access_permission_0;
 
-	return ((dt == PTE_DESCRIPTOR_NOT_PRESENT) << PAGE_PRESENT_SHIFT) |
-	    ((ap == PTE_AP_USER_RO_KERNEL_RW) << PAGE_READ_SHIFT) |
-	    ((ap == PTE_AP_USER_RW_KERNEL_RW) << PAGE_READ_SHIFT) |
+	return ((dt == PTE_DESCRIPTOR_NOT_PRESENT) << PAGE_NOT_PRESENT_SHIFT) |
 	    ((ap == PTE_AP_USER_RW_KERNEL_RW) << PAGE_WRITE_SHIFT) |
 	    ((ap != PTE_AP_USER_NO_KERNEL_RW) << PAGE_USER_SHIFT) |
-	    ((ap == PTE_AP_USER_NO_KERNEL_RW) << PAGE_READ_SHIFT) |
 	    ((ap == PTE_AP_USER_NO_KERNEL_RW) << PAGE_WRITE_SHIFT) |
 	    (1 << PAGE_EXEC_SHIFT) |
 	    (p->bufferable << PAGE_CACHEABLE);
@@ -219,15 +216,14 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	    PTE_AP_USER_NO_KERNEL_RW;
 
 	if (flags & PAGE_USER)  {
-		if (flags & PAGE_READ) {
-			p->access_permission_0 = p->access_permission_1 =
-			    p->access_permission_2 = p->access_permission_3 =
-			    PTE_AP_USER_RO_KERNEL_RW;
-		}
 		if (flags & PAGE_WRITE) {
 			p->access_permission_0 = p->access_permission_1 =
 			    p->access_permission_2 = p->access_permission_3 =
 			    PTE_AP_USER_RW_KERNEL_RW;
+		} else {
+			p->access_permission_0 = p->access_permission_1 =
+			    p->access_permission_2 = p->access_permission_3 =
+			    PTE_AP_USER_RO_KERNEL_RW;
 		}
 	}
 }

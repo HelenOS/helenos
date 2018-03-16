@@ -81,7 +81,7 @@
 #define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x1ff)
 
 /* Flags mask for non-leaf page table entries */
-#define NON_LEAF_MASK  (~(PAGE_READ | PAGE_WRITE | PAGE_EXEC))
+#define NON_LEAF_MASK  (~(PAGE_WRITE | PAGE_EXEC))
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
@@ -182,9 +182,8 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *entry = &pt[i];
 
-	return (((!entry->valid) << PAGE_PRESENT_SHIFT) |
+	return (((!entry->valid) << PAGE_NOT_PRESENT_SHIFT) |
 	    (entry->user << PAGE_USER_SHIFT) |
-	    (entry->readable << PAGE_READ_SHIFT) |
 	    (entry->writable << PAGE_WRITE_SHIFT) |
 	    (entry->executable << PAGE_EXEC_SHIFT) |
 	    (entry->global << PAGE_GLOBAL_SHIFT));
@@ -195,7 +194,7 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 	pte_t *entry = &pt[i];
 
 	entry->valid = !(flags & PAGE_NOT_PRESENT);
-	entry->readable = (flags & PAGE_READ) != 0;
+	entry->readable = 1;
 	entry->writable = (flags & PAGE_WRITE) != 0;
 	entry->executable = (flags & PAGE_EXEC) != 0;
 	entry->user = (flags & PAGE_USER) != 0;

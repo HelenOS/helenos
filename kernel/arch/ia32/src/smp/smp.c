@@ -74,10 +74,10 @@ void smp_init(void)
 	}
 
 	if (config.cpu_count > 1) {
-		l_apic = (uint32_t *) km_map((uintptr_t) l_apic, PAGE_SIZE,
-		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
-		io_apic = (uint32_t *) km_map((uintptr_t) io_apic, PAGE_SIZE,
-		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+		l_apic = (uint32_t *) km_map((uintptr_t) l_apic,
+		    PAGE_SIZE, PAGE_WRITE);
+		io_apic = (uint32_t *) km_map((uintptr_t) io_apic,
+		    PAGE_SIZE, PAGE_WRITE);
 	}
 }
 

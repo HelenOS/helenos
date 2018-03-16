@@ -1216,10 +1216,10 @@ NO_TRACE bool as_area_check_access(as_area_t *area, pf_access_t access)
  */
 NO_TRACE static unsigned int area_flags_to_page_flags(unsigned int aflags)
 {
-	unsigned int flags = PAGE_USER | PAGE_PRESENT;
+	unsigned int flags = PAGE_USER;
 
-	if (aflags & AS_AREA_READ)
-		flags |= PAGE_READ;
+	// TODO: AS_AREA_READ currently has no effect.
+	// Readability is implied.
 
 	if (aflags & AS_AREA_WRITE)
 		flags |= PAGE_WRITE;

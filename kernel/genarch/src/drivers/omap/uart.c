@@ -86,7 +86,7 @@ bool omap_uart_init(
     omap_uart_t *uart, inr_t interrupt, uintptr_t addr, size_t size)
 {
 	assert(uart);
-	uart->regs = (void *)km_map(addr, size, PAGE_NOT_CACHEABLE);
+	uart->regs = (void *)km_map(addr, size, 0);
 
 	assert(uart->regs);
 

@@ -41,7 +41,7 @@ static volatile uint32_t *pic = NULL;
 
 void pic_init(uintptr_t base, size_t size, cir_t *cir, void **cir_arg)
 {
-	pic = (uint32_t *) km_map(base, size, PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	pic = (uint32_t *) km_map(base, size, PAGE_WRITE);
 	*cir = pic_ack_interrupt;
 	*cir_arg = NULL;
 }
