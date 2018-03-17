@@ -38,4 +38,8 @@ SOURCES = \
 	generic/multiplication.c \
 	generic/shift.c
 
+TEST_SOURCES = \
+	test/main.c \
+	test/multiplication.c
+
 include $(USPACE_PREFIX)/Makefile.common
