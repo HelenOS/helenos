@@ -36,8 +36,10 @@
 #ifndef __SOFTINT_MULTIPLICATION_H__
 #define __SOFTINT_MULTIPLICATION_H__
 
+extern long __muldi3(long, long);
+
 /* 64 bit multiplication */
-extern long long __muldi3(long long, long long);
+extern long long __multi3(long long, long long);
 
 #endif
 
