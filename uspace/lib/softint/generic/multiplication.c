@@ -63,10 +63,15 @@ static unsigned long long mul(unsigned int a, unsigned int b) {
 	return t3;
 }
 
+long __muldi3(long a, long b)
+{
+	return (long) __multi3(a, b);
+}
+
 /** Emulate multiplication of two 64-bit long long integers.
  *
  */
-long long __muldi3 (long long a, long long b)
+long long __multi3(long long a, long long b)
 {
 	char neg = 0;
 

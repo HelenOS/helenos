@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Josef Cejka
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup softint
- * @{
- */
-/**
- * @file
- */
+#include <stdio.h>
+#include <pcut/pcut.h>
 
-#ifndef __SOFTINT_MULTIPLICATION_H__
-#define __SOFTINT_MULTIPLICATION_H__
+PCUT_INIT
 
-extern long __muldi3(long, long);
+PCUT_IMPORT(multiplication);
 
-/* 64 bit multiplication */
-extern long long __multi3(long long, long long);
-
-#endif
-
-/** @}
- */
-
-
+PCUT_MAIN()
