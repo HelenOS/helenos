@@ -158,8 +158,8 @@ int hc_get_hub_desc(device_t *device, usb_hub_descriptor_header_t *desc)
 		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
 		    | (USB_REQUEST_TYPE_CLASS << 5)
 		    | USB_REQUEST_RECIPIENT_DEVICE,
-		.request = USB_DEVREQ_GET_DESCRIPTOR, \
-		.value = uint16_host2usb(type << 8), \
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.value = uint16_host2usb(type << 8),
 		.length = sizeof(*desc),
 	};
 

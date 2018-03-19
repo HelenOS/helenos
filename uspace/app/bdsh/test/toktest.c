@@ -93,4 +93,4 @@ PCUT_TEST(two_text_tokens) {
 
 
 
-PCUT_MAIN()
+PCUT_MAIN();

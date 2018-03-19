@@ -70,4 +70,4 @@ PCUT_TEST(test_without_any_setup_or_teardown) {
 }
 
 
-PCUT_MAIN()
+PCUT_MAIN();

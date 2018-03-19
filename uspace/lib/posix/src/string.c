@@ -448,19 +448,17 @@ char *strstr(const char *haystack, const char *needle)
 	size_t nlen = strlen(needle);
 	size_t prefix_table[nlen + 1];
 
-	{
-		size_t i = 0;
-		ssize_t j = -1;
+	size_t i = 0;
+	ssize_t j = -1;
 
-		prefix_table[i] = j;
+	prefix_table[i] = j;
 
-		while (i < nlen) {
-			while (j >= 0 && needle[i] != needle[j]) {
-				j = prefix_table[j];
-			}
-			i++; j++;
-			prefix_table[i] = j;
+	while (i < nlen) {
+		while (j >= 0 && needle[i] != needle[j]) {
+			j = prefix_table[j];
 		}
+		i++; j++;
+		prefix_table[i] = j;
 	}
 
 	/* Search needle using the precomputed table. */

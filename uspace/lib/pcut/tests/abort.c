@@ -35,4 +35,4 @@ PCUT_TEST(access_null_pointer) {
 	abort();
 }
 
-PCUT_MAIN()
+PCUT_MAIN();

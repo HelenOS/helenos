@@ -39,4 +39,4 @@ PCUT_IMPORT(sprintf);
 PCUT_IMPORT(str);
 PCUT_IMPORT(table);
 
-PCUT_MAIN()
+PCUT_MAIN();

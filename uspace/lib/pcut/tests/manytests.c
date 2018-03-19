@@ -117,4 +117,4 @@ PCUT_TEST(my_test_079) { }
 PCUT_TEST(my_test_080) { }
 
 
-PCUT_MAIN()
+PCUT_MAIN();

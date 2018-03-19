@@ -880,6 +880,11 @@ static errno_t prefix_length_8(bithenge_transform_t *self, bithenge_scope_t *sco
 	return EOK;
 }
 
+static uint8_t uint8_t_identity(uint8_t arg)
+{
+	return arg;
+}
+
 /** @cond internal */
 #define MAKE_UINT_TRANSFORM(NAME, TYPE, ENDIAN, PREFIX_LENGTH_FUNC)            \
 	static errno_t NAME##_apply(bithenge_transform_t *self,                    \
@@ -913,7 +918,7 @@ static errno_t prefix_length_8(bithenge_transform_t *self, bithenge_scope_t *sco
 		&NAME##_ops, 1, 0                                              \
 	}
 
-MAKE_UINT_TRANSFORM(uint8   , uint8_t ,                 , prefix_length_1);
+MAKE_UINT_TRANSFORM(uint8   , uint8_t,  uint8_t_identity, prefix_length_1);
 MAKE_UINT_TRANSFORM(uint16le, uint16_t, uint16_t_le2host, prefix_length_2);
 MAKE_UINT_TRANSFORM(uint16be, uint16_t, uint16_t_be2host, prefix_length_2);
 MAKE_UINT_TRANSFORM(uint32le, uint32_t, uint32_t_le2host, prefix_length_4);

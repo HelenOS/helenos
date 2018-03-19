@@ -187,4 +187,4 @@ $(MERGED_C_LIBRARY): $(MERGE_LIBRARIES)
 	$(AR) rc $@ libc.o
 
 $(REDEFS_HIDE_LIBC): $(SOURCES)
-	sed -n -e 's/_HIDE_LIBC_SYMBOL(\(.*\))/\1 __helenos_libc_\1/p' $(SOURCES) >$@
+	sed -n -e 's/_HIDE_LIBC_SYMBOL(\(.*\));/\1 __helenos_libc_\1/p' $(SOURCES) >$@

@@ -33,7 +33,7 @@
 #include "internal/common.h"
 #include "posix/dlfcn.h"
 
-_HIDE_LIBC_SYMBOL(dlopen)
+_HIDE_LIBC_SYMBOL(dlopen);
 extern void *__helenos_libc_dlopen(const char *filename, int flags);
 
 void *dlopen(const char *filename, int flags)

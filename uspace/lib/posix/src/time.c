@@ -234,12 +234,12 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
  */
 int clock_gettime(clockid_t clock_id, struct timespec *tp)
 {
+	struct timeval tv;
+
 	assert(tp != NULL);
 
 	switch (clock_id) {
 		case CLOCK_REALTIME:
-			;
-			struct timeval tv;
 			gettimeofday(&tv, NULL);
 			tp->tv_sec = tv.tv_sec;
 			tp->tv_nsec = tv.tv_usec * 1000;

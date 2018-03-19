@@ -54,4 +54,4 @@ PCUT_TEST(errno_variable) {
 	PCUT_ASSERT_ERRNO(EOK);
 }
 
-PCUT_MAIN()
+PCUT_MAIN();

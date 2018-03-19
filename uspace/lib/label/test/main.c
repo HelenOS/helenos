@@ -32,4 +32,4 @@ PCUT_INIT
 
 PCUT_IMPORT(label);
 
-PCUT_MAIN()
+PCUT_MAIN();

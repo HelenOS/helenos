@@ -41,4 +41,4 @@ PCUT_TEST(print_and_fail) {
 	PCUT_ASSERT_NOT_NULL(NULL);
 }
 
-PCUT_MAIN()
+PCUT_MAIN();

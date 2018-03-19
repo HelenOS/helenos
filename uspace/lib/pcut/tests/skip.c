@@ -43,4 +43,4 @@ PCUT_TEST(again_normal_test) {
 	PCUT_ASSERT_INT_EQUALS(1, 1);
 }
 
-PCUT_MAIN()
+PCUT_MAIN();

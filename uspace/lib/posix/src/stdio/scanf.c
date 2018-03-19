@@ -675,79 +675,98 @@ static inline int _internal_scanf(
 				 * the next output argument. */
 				if (!assign_supress) {
 					if (int_conv_unsigned) {
+						unsigned char *phh;
+						unsigned short *ph;
+						unsigned *pdef;
+						unsigned long *pl;
+						unsigned long long *pll;
+						uintmax_t *pj;
+						size_t *pz;
+						// XXX: What is unsigned counterpart of the ptrdiff_t?
+						size_t *pt;
+						void **pp;
+
 						switch (length_mod) {
-						case LMOD_hh: ; /* Label cannot be part of declaration. */
-							unsigned char *phh = va_arg(arg, unsigned char *);
+						case LMOD_hh:
+							phh = va_arg(arg, unsigned char *);
 							*phh = (unsigned char) ures;
 							break;
-						case LMOD_h: ;
-							unsigned short *ph = va_arg(arg, unsigned short *);
+						case LMOD_h:
+							ph = va_arg(arg, unsigned short *);
 							*ph = (unsigned short) ures;
 							break;
-						case LMOD_NONE: ;
-							unsigned *pdef = va_arg(arg, unsigned *);
+						case LMOD_NONE:
+							pdef = va_arg(arg, unsigned *);
 							*pdef = (unsigned) ures;
 							break;
-						case LMOD_l: ;
-							unsigned long *pl = va_arg(arg, unsigned long *);
+						case LMOD_l:
+							pl = va_arg(arg, unsigned long *);
 							*pl = (unsigned long) ures;
 							break;
-						case LMOD_ll: ;
-							unsigned long long *pll = va_arg(arg, unsigned long long *);
+						case LMOD_ll:
+							pll = va_arg(arg, unsigned long long *);
 							*pll = (unsigned long long) ures;
 							break;
-						case LMOD_j: ;
-							uintmax_t *pj = va_arg(arg, uintmax_t *);
+						case LMOD_j:
+							pj = va_arg(arg, uintmax_t *);
 							*pj = (uintmax_t) ures;
 							break;
-						case LMOD_z: ;
-							size_t *pz = va_arg(arg, size_t *);
+						case LMOD_z:
+							pz = va_arg(arg, size_t *);
 							*pz = (size_t) ures;
 							break;
-						case LMOD_t: ;
-							// XXX: What is unsigned counterpart of the ptrdiff_t?
-							size_t *pt = va_arg(arg, size_t *);
+						case LMOD_t:
+							pt = va_arg(arg, size_t *);
 							*pt = (size_t) ures;
 							break;
-						case LMOD_p: ;
-							void **pp = va_arg(arg, void **);
+						case LMOD_p:
+							pp = va_arg(arg, void **);
 							*pp = (void *) (uintptr_t) ures;
 							break;
 						default:
 							assert(false);
 						}
 					} else {
+						signed char *phh;
+						short *ph;
+						int *pdef;
+						long *pl;
+						long long *pll;
+						intmax_t *pj;
+						ssize_t *pz;
+						ptrdiff_t *pt;
+
 						switch (length_mod) {
-						case LMOD_hh: ; /* Label cannot be part of declaration. */
-							signed char *phh = va_arg(arg, signed char *);
+						case LMOD_hh:
+							phh = va_arg(arg, signed char *);
 							*phh = (signed char) sres;
 							break;
-						case LMOD_h: ;
-							short *ph = va_arg(arg, short *);
+						case LMOD_h:
+							ph = va_arg(arg, short *);
 							*ph = (short) sres;
 							break;
-						case LMOD_NONE: ;
-							int *pdef = va_arg(arg, int *);
+						case LMOD_NONE:
+							pdef = va_arg(arg, int *);
 							*pdef = (int) sres;
 							break;
-						case LMOD_l: ;
-							long *pl = va_arg(arg, long *);
+						case LMOD_l:
+							pl = va_arg(arg, long *);
 							*pl = (long) sres;
 							break;
-						case LMOD_ll: ;
-							long long *pll = va_arg(arg, long long *);
+						case LMOD_ll:
+							pll = va_arg(arg, long long *);
 							*pll = (long long) sres;
 							break;
-						case LMOD_j: ;
-							intmax_t *pj = va_arg(arg, intmax_t *);
+						case LMOD_j:
+							pj = va_arg(arg, intmax_t *);
 							*pj = (intmax_t) sres;
 							break;
-						case LMOD_z: ;
-							ssize_t *pz = va_arg(arg, ssize_t *);
+						case LMOD_z:
+							pz = va_arg(arg, ssize_t *);
 							*pz = (ssize_t) sres;
 							break;
-						case LMOD_t: ;
-							ptrdiff_t *pt = va_arg(arg, ptrdiff_t *);
+						case LMOD_t:
+							pt = va_arg(arg, ptrdiff_t *);
 							*pt = (ptrdiff_t) sres;
 							break;
 						default:
@@ -856,17 +875,20 @@ static inline int _internal_scanf(
 				/* If nto supressed, assign the converted floating point number
 				 * into the next output argument. */
 				if (!assign_supress) {
+					float *pf;
+					double *pd;
+					long double *pld;
 					switch (length_mod) {
-					case LMOD_NONE: ; /* Label cannot be part of declaration. */
-						float *pf = va_arg(arg, float *);
+					case LMOD_NONE:
+						pf = va_arg(arg, float *);
 						*pf = fres;
 						break;
-					case LMOD_l: ;
-						double *pd = va_arg(arg, double *);
+					case LMOD_l:
+						pd = va_arg(arg, double *);
 						*pd = dres;
 						break;
-					case LMOD_L: ;
-						long double *pld = va_arg(arg, long double *);
+					case LMOD_L:
+						pld = va_arg(arg, long double *);
 						*pld = ldres;
 						break;
 					default:

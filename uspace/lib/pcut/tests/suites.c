@@ -51,4 +51,4 @@ PCUT_TEST(test_min) {
 	PCUT_ASSERT_INT_EQUALS(-17, intmin(-17, -2));
 }
 
-PCUT_MAIN()
+PCUT_MAIN();

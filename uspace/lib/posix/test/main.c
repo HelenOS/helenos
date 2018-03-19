@@ -32,4 +32,4 @@ PCUT_INIT
 
 PCUT_IMPORT(scanf);
 
-PCUT_MAIN()
+PCUT_MAIN();

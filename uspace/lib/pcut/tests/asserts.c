@@ -72,4 +72,4 @@ PCUT_TEST(assert_false) {
 	PCUT_ASSERT_FALSE(42);
 }
 
-PCUT_MAIN()
+PCUT_MAIN();

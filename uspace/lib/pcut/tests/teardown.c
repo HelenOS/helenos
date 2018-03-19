@@ -69,4 +69,4 @@ PCUT_TEST(failing2) {
 }
 
 
-PCUT_MAIN()
+PCUT_MAIN();
