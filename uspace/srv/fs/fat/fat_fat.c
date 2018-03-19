@@ -338,7 +338,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	} else
 		byte2 = ((uint8_t *) b->data)[(offset % BPS(bs)) + 1];
 
-	*value = uint16_t_le2host(byte1 | (byte2 << 8));
+	*value = (byte1 | (byte2 << 8));
 	if (IS_ODD(clst))
 		*value = (*value) >> 4;
 	else
