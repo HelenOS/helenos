@@ -90,6 +90,7 @@ extern int __unordsf2(float32_t, float32_t);
 extern int __aeabi_fcmpgt(float32_t, float32_t);
 extern int __aeabi_fcmplt(float32_t, float32_t);
 extern int __aeabi_fcmpge(float32_t, float32_t);
+extern int __aeabi_fcmple(float32_t, float32_t);
 extern int __aeabi_fcmpeq(float32_t, float32_t);
 #endif
 

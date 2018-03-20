@@ -636,6 +636,28 @@ int __aeabi_fcmpge(float32_t a, float32_t b)
 	return 0;
 }
 
+int __aeabi_fcmple(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+
+	float32_u ub;
+	ub.val = b;
+
+	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
+		// TODO: sigNaNs
+		return 0;
+	}
+
+	if (is_float32_eq(ua.data, ub.data))
+		return 1;
+
+	if (is_float32_lt(ua.data, ub.data))
+		return 1;
+
+	return 0;
+}
+
 int __aeabi_fcmpeq(float32_t a, float32_t b)
 {
 	float32_u ua;
