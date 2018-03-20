@@ -586,7 +586,7 @@ int __aeabi_fcmpgt(float32_t a, float32_t b)
 
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
-		return -1;
+		return 0;
 	}
 
 	if (is_float32_gt(ua.data, ub.data))
@@ -605,11 +605,11 @@ int __aeabi_fcmplt(float32_t a, float32_t b)
 
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
-		return 1;
+		return 0;
 	}
 
 	if (is_float32_lt(ua.data, ub.data))
-		return -1;
+		return 1;
 
 	return 0;
 }
@@ -624,16 +624,16 @@ int __aeabi_fcmpge(float32_t a, float32_t b)
 
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
-		return -1;
+		return 0;
 	}
 
 	if (is_float32_eq(ua.data, ub.data))
-		return 0;
+		return 1;
 
 	if (is_float32_gt(ua.data, ub.data))
 		return 1;
 
-	return -1;
+	return 0;
 }
 
 int __aeabi_fcmpeq(float32_t a, float32_t b)
@@ -646,10 +646,10 @@ int __aeabi_fcmpeq(float32_t a, float32_t b)
 
 	if ((is_float32_nan(ua.data)) || (is_float32_nan(ub.data))) {
 		// TODO: sigNaNs
-		return 1;
+		return 0;
 	}
 
-	return is_float32_eq(ua.data, ub.data) - 1;
+	return is_float32_eq(ua.data, ub.data);
 }
 
 #endif
@@ -803,11 +803,11 @@ int __aeabi_dcmplt(float64_t a, float64_t b)
 
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
-		return 1;
+		return 0;
 	}
 
 	if (is_float64_lt(ua.data, ub.data))
-		return -1;
+		return 1;
 
 	return 0;
 }
@@ -822,10 +822,10 @@ int __aeabi_dcmpeq(float64_t a, float64_t b)
 
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
-		return 1;
+		return 0;
 	}
 
-	return is_float64_eq(ua.data, ub.data) - 1;
+	return is_float64_eq(ua.data, ub.data);
 }
 
 int __aeabi_dcmpgt(float64_t a, float64_t b)
@@ -838,7 +838,7 @@ int __aeabi_dcmpgt(float64_t a, float64_t b)
 
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
-		return -1;
+		return 0;
 	}
 
 	if (is_float64_gt(ua.data, ub.data))
@@ -857,16 +857,16 @@ int __aeabi_dcmpge(float64_t a, float64_t b)
 
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
-		return -1;
+		return 0;
 	}
 
 	if (is_float64_eq(ua.data, ub.data))
-		return 0;
+		return 1;
 
 	if (is_float64_gt(ua.data, ub.data))
 		return 1;
 
-	return -1;
+	return 0;
 }
 
 int __aeabi_dcmple(float64_t a, float64_t b)
@@ -879,16 +879,16 @@ int __aeabi_dcmple(float64_t a, float64_t b)
 
 	if ((is_float64_nan(ua.data)) || (is_float64_nan(ub.data))) {
 		// TODO: sigNaNs
-		return 1;
+		return 0;
 	}
 
 	if (is_float64_eq(ua.data, ub.data))
-		return 0;
+		return 1;
 
 	if (is_float64_lt(ua.data, ub.data))
-		return -1;
+		return 1;
 
-	return 1;
+	return 0;
 }
 
 #endif
