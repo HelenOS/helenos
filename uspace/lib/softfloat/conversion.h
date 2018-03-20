@@ -110,6 +110,7 @@ extern int64_t __fixsfdi(float32_t);
 extern uint32_t __fixunssfsi(float32_t);
 extern uint64_t __fixunssfdi(float32_t);
 extern int32_t __aeabi_f2iz(float32_t);
+extern int64_t __aeabi_f2lz(float32_t);
 extern uint32_t __aeabi_f2uiz(float32_t);
 extern float32_t __aeabi_i2f(int32_t);
 extern float32_t __aeabi_l2f(int64_t);

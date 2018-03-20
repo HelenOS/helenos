@@ -1109,6 +1109,14 @@ int32_t __aeabi_f2iz(float32_t a)
 	return float32_to_int32(ua.data);
 }
 
+int64_t __aeabi_f2lz(float32_t a)
+{
+	float32_u ua;
+	ua.val = a;
+
+	return float32_to_int64(ua.data);
+}
+
 uint32_t __aeabi_f2uiz(float32_t a)
 {
 	float32_u ua;
