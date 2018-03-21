@@ -105,7 +105,7 @@ void ia64_pre_mm_init(void)
 static void iosapic_init(void)
 {
 	uintptr_t IOSAPIC = km_map(iosapic_base, PAGE_SIZE,
-	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	    PAGE_READ_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
 	int i;
 
 	int myid, myeid;
@@ -134,7 +134,7 @@ void ia64_post_mm_init(void)
 	if (config.cpu_active == 1) {
 		/* Map the page with legacy I/O. */
 		legacyio_virt_base = km_map(LEGACYIO_PHYS_BASE, LEGACYIO_SIZE,
-		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+		    PAGE_READ_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
 
 		iosapic_init();
 		irq_init(INR_COUNT, INR_COUNT);

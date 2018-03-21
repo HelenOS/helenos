@@ -48,6 +48,8 @@
 	(((pte_t *) (pte))->l0.descriptor_type != 0)
 #define PTE_GET_FRAME_ARCH(pte) \
 	(((uintptr_t) ((pte_t *) (pte))->l1.frame_base_addr) << FRAME_WIDTH)
+#define PTE_READABLE_ARCH(pte) \
+	1
 #define PTE_WRITABLE_ARCH(pte) \
 	(((pte_t *) (pte))->l1.access_permission_1 != PTE_AP1_RO)
 #define PTE_EXECUTABLE_ARCH(pte) \
@@ -170,9 +172,7 @@ NO_TRACE static inline int get_pt_level0_flags(pte_t *pt, size_t i)
 	const pte_level0_t *p = &pt[i].l0;
 	const unsigned np = (p->descriptor_type == PTE_DESCRIPTOR_NOT_PRESENT);
 
-	return (np << PAGE_PRESENT_SHIFT) | (1 << PAGE_USER_SHIFT) |
-	    (1 << PAGE_READ_SHIFT) | (1 << PAGE_WRITE_SHIFT) |
-	    (1 << PAGE_EXEC_SHIFT) | (1 << PAGE_CACHEABLE_SHIFT);
+	return (np << PAGE_NOT_PRESENT_SHIFT) | PAGE_NEXT_LEVEL_PT;
 }
 
 /** Returns level 1 page table entry flags.
@@ -189,7 +189,7 @@ NO_TRACE static inline int get_pt_level1_flags(pte_t *pt, size_t i)
 	const unsigned ap0 = p->access_permission_0;
 	const unsigned ap1 = p->access_permission_1;
 
-	return ((dt == PTE_DESCRIPTOR_NOT_PRESENT) << PAGE_PRESENT_SHIFT) |
+	return ((dt == PTE_DESCRIPTOR_NOT_PRESENT) << PAGE_NOT_PRESENT_SHIFT) |
 	    ((dt != PTE_DESCRIPTOR_SMALL_PAGE_NX) << PAGE_EXEC_SHIFT) |
 	    ((ap0 == PTE_AP0_USER_LIMITED_KERNEL_FULL) << PAGE_READ_SHIFT) |
 	    ((ap0 == PTE_AP0_USER_FULL_KERNEL_FULL) << PAGE_READ_SHIFT) |
@@ -197,7 +197,7 @@ NO_TRACE static inline int get_pt_level1_flags(pte_t *pt, size_t i)
 	    ((ap0 != PTE_AP0_USER_NO_KERNEL_FULL) << PAGE_USER_SHIFT) |
 	    (((ap1 != PTE_AP1_RO) && (ap0 == PTE_AP0_USER_FULL_KERNEL_FULL)) << PAGE_WRITE_SHIFT) |
 	    (((ap1 != PTE_AP1_RO) && (ap0 == PTE_AP0_USER_NO_KERNEL_FULL)) << PAGE_WRITE_SHIFT) |
-	    (p->bufferable << PAGE_CACHEABLE);
+	    (p->bufferable ? PAGE_CACHEABLE : PAGE_NOT_CACHEABLE);
 }
 
 /** Sets flags of level 0 page table entry.
@@ -248,7 +248,7 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	if (flags & PAGE_NOT_PRESENT) {
 		p->descriptor_type = PTE_DESCRIPTOR_NOT_PRESENT;
 	} else {
-		if (flags & PAGE_EXEC)
+		if (flags & _PAGE_EXEC)
 			p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE;
 		else
 			p->descriptor_type = PTE_DESCRIPTOR_SMALL_PAGE_NX;
@@ -287,13 +287,12 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 	/* default access permission: kernel only*/
 	p->access_permission_0 = PTE_AP0_USER_NO_KERNEL_FULL;
 
-	if (flags & PAGE_USER) {
+	if (flags & PAGE_USER)
 		p->access_permission_0 = PTE_AP0_USER_FULL_KERNEL_FULL;
-		// TODO Fix kernel to use PAGE_WRITE flag properly and
-		// apply this for kernel pages as well.
-		if (!(flags & PAGE_WRITE))
-			p->access_permission_1 = PTE_AP1_RO;
-	}
+
+	if (!(flags & _PAGE_WRITE))
+		p->access_permission_1 = PTE_AP1_RO;
+
 	pt_coherence(p);
 }
 

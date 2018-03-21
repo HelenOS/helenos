@@ -249,7 +249,7 @@ void kinit(void *arg)
 		 */
 		uintptr_t page = km_map(init.tasks[i].paddr,
 		    init.tasks[i].size,
-		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
+		    PAGE_READ_WRITE | PAGE_KERNEL | PAGE_CACHEABLE);
 		assert(page);
 
 		errno_t rc = program_create_from_image((void *) page, namebuf,

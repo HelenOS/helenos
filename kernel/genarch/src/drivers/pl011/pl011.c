@@ -99,7 +99,7 @@ bool pl011_uart_init(pl011_uart_t *uart, inr_t interrupt, uintptr_t addr)
 {
 	assert(uart);
 	uart->regs = (void*)km_map(addr, sizeof(pl011_uart_regs_t),
-				   PAGE_NOT_CACHEABLE);
+	    PAGE_READ_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
 	assert(uart->regs);
 
 	/* Disable UART */

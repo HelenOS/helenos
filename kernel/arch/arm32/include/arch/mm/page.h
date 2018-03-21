@@ -107,9 +107,9 @@
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
         get_pt_level0_flags((pte_t *) (ptl0), (size_t) (i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
-        PAGE_PRESENT
+        PAGE_NEXT_LEVEL_PT
 #define GET_PTL3_FLAGS_ARCH(ptl2, i) \
-        PAGE_PRESENT
+        PAGE_NEXT_LEVEL_PT
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
         get_pt_level1_flags((pte_t *) (ptl3), (size_t) (i))
 

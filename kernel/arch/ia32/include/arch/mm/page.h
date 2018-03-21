@@ -108,9 +108,9 @@
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
 	get_pt_flags((pte_t *) (ptl0), (size_t) (i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
-	PAGE_PRESENT
+	PAGE_NEXT_LEVEL_PT
 #define GET_PTL3_FLAGS_ARCH(ptl2, i) \
-	PAGE_PRESENT
+	PAGE_NEXT_LEVEL_PT
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
 	get_pt_flags((pte_t *) (ptl3), (size_t) (i))
 
@@ -137,9 +137,12 @@
 	((p)->present != 0)
 #define PTE_GET_FRAME_ARCH(p) \
 	((p)->frame_address << FRAME_WIDTH)
+#define PTE_READABLE_ARCH(p) \
+	1
 #define PTE_WRITABLE_ARCH(p) \
 	((p)->writeable != 0)
-#define PTE_EXECUTABLE_ARCH(p)  1
+#define PTE_EXECUTABLE_ARCH(p) \
+	1
 
 #ifndef __ASSEMBLER__
 
@@ -183,12 +186,12 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 
-	return ((!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT |
-	    (!p->present) << PAGE_PRESENT_SHIFT |
-	    p->uaccessible << PAGE_USER_SHIFT |
-	    1 << PAGE_READ_SHIFT |
+	return ((p->page_cache_disable ? PAGE_NOT_CACHEABLE : PAGE_CACHEABLE) |
+	    (!p->present) << PAGE_NOT_PRESENT_SHIFT |
+	    (p->uaccessible ? PAGE_USER : PAGE_KERNEL) |
+	    _PAGE_READ |
 	    p->writeable << PAGE_WRITE_SHIFT |
-	    1 << PAGE_EXEC_SHIFT |
+	    _PAGE_EXEC |
 	    p->global << PAGE_GLOBAL_SHIFT);
 }
 
@@ -198,8 +201,8 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 
 	p->page_cache_disable = !(flags & PAGE_CACHEABLE);
 	p->present = !(flags & PAGE_NOT_PRESENT);
-	p->uaccessible = (flags & PAGE_USER) != 0;
-	p->writeable = (flags & PAGE_WRITE) != 0;
+	p->uaccessible = !(flags & PAGE_KERNEL);
+	p->writeable = (flags & _PAGE_WRITE) != 0;
 	p->global = (flags & PAGE_GLOBAL) != 0;
 
 	/*
