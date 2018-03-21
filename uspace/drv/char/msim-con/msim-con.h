@@ -67,6 +67,7 @@ typedef struct {
 	fibril_mutex_t buf_lock;
 	fibril_condvar_t buf_cv;
 	ioport8_t *out_reg;
+	cap_irq_handle_t irq_handle;
 } msim_con_t;
 
 extern errno_t msim_con_add(msim_con_t *, msim_con_res_t *);

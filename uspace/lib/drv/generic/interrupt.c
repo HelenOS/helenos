@@ -44,15 +44,15 @@
 
 errno_t register_interrupt_handler(ddf_dev_t *dev, int irq,
     interrupt_handler_t *handler, const irq_code_t *irq_code,
-    cap_handle_t *handle)
+    cap_irq_handle_t *handle)
 {
 	return async_irq_subscribe(irq, (async_notification_handler_t) handler,
 	    dev, irq_code, handle);
 }
 
-errno_t unregister_interrupt_handler(ddf_dev_t *dev, cap_handle_t cap)
+errno_t unregister_interrupt_handler(ddf_dev_t *dev, cap_irq_handle_t handle)
 {
-	return async_irq_unsubscribe(cap);
+	return async_irq_unsubscribe(handle);
 }
 
 /**

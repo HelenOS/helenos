@@ -35,6 +35,8 @@
 #ifndef ABI_AS_H_
 #define ABI_AS_H_
 
+#include <abi/cap.h>
+
 /** Address space area flags. */
 #define AS_AREA_READ         0x01
 #define AS_AREA_WRITE        0x02
@@ -61,7 +63,7 @@ typedef struct {
 } as_area_info_t;
 
 typedef struct {
-	int pager;
+	cap_phone_handle_t pager;
 	sysarg_t id1;
 	sysarg_t id2;
 	sysarg_t id3;

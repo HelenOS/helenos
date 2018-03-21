@@ -71,7 +71,7 @@ static errno_t iface_rem_context(void *server, hound_context_id_t id)
 	const errno_t ret = hound_remove_ctx(server, ctx);
 	if (ret == EOK) {
 		hound_ctx_destroy(ctx);
-		log_info("%s: %p, %#" PRIxn, __FUNCTION__, server, id);
+		log_info("%s: %p, %p", __FUNCTION__, server, id);
 	}
 	return ret;
 }
@@ -115,8 +115,8 @@ static errno_t iface_add_stream(void *server, hound_context_id_t id, int flags,
 	assert(data);
 	assert(server);
 
-	log_verbose("%s: %p, %" PRIxn " %x ch:%u r:%u f:%s", __FUNCTION__,
-	    server, id, flags, format.channels, format.sampling_rate,
+	log_verbose("%s: %p, %p %x ch:%u r:%u f:%s", __FUNCTION__, server, id,
+	    flags, format.channels, format.sampling_rate,
 	    pcm_sample_format_str(format.sample_format));
 	hound_ctx_t *ctx = hound_get_ctx_by_id(server, id);
 	if (!ctx)

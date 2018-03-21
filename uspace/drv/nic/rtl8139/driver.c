@@ -845,7 +845,8 @@ static void rtl8139_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
  *
  *  @return An error code otherwise.
  */
-inline static errno_t rtl8139_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
+inline static errno_t rtl8139_register_int_handler(nic_t *nic_data,
+    cap_irq_handle_t *handle)
 {
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 
@@ -1287,8 +1288,8 @@ errno_t rtl8139_dev_add(ddf_dev_t *dev)
 	rtl8139_data_init(rtl8139);
 
 	/* Register interrupt handler */
-	int irq_cap;
-	rc = rtl8139_register_int_handler(nic_data, &irq_cap);
+	cap_irq_handle_t irq_handle;
+	rc = rtl8139_register_int_handler(nic_data, &irq_handle);
 	if (rc != EOK) {
 		goto err_pio;
 	}
@@ -1323,7 +1324,7 @@ err_fun_bind:
 err_fun_create:
 	ddf_fun_destroy(fun);
 err_srv:
-	unregister_interrupt_handler(dev, irq_cap);
+	unregister_interrupt_handler(dev, irq_handle);
 err_pio:
 	// rtl8139_pio_disable(dev);
 	/* TODO: find out if the pio_disable is needed */

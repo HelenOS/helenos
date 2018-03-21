@@ -91,13 +91,13 @@ static slab_cache_t *cap_cache;
 static size_t caps_hash(const ht_link_t *item)
 {
 	cap_t *cap = hash_table_get_inst(item, cap_t, caps_link);
-	return hash_mix(cap->handle);
+	return hash_mix(CAP_HANDLE_RAW(cap->handle));
 }
 
 static size_t caps_key_hash(void *key)
 {
 	cap_handle_t *handle = (cap_handle_t *) key;
-	return hash_mix(*handle);
+	return hash_mix(CAP_HANDLE_RAW(*handle));
 }
 
 static bool caps_key_equal(void *key, const ht_link_t *item)
@@ -223,7 +223,8 @@ static cap_t *cap_get(task_t *task, cap_handle_t handle, cap_state_t state)
 {
 	assert(mutex_locked(&task->cap_info->lock));
 
-	if ((handle < CAPS_START) || (handle > CAPS_LAST))
+	if ((CAP_HANDLE_RAW(handle) < CAPS_START) ||
+	    (CAP_HANDLE_RAW(handle) > CAPS_LAST))
 		return NULL;
 	ht_link_t *link = hash_table_find(&task->cap_info->caps, &handle);
 	if (!link)
@@ -328,8 +329,8 @@ kobject_t *cap_unpublish(task_t *task, cap_handle_t handle, kobject_type_t type)
  */
 void cap_free(task_t *task, cap_handle_t handle)
 {
-	assert(handle >= CAPS_START);
-	assert(handle <= CAPS_LAST);
+	assert(CAP_HANDLE_RAW(handle) >= CAPS_START);
+	assert(CAP_HANDLE_RAW(handle) <= CAPS_LAST);
 
 	mutex_lock(&task->cap_info->lock);
 	cap_t *cap = cap_get(task, handle, CAP_STATE_ALLOCATED);
@@ -337,7 +338,7 @@ void cap_free(task_t *task, cap_handle_t handle)
 	assert(cap);
 
 	hash_table_remove_item(&task->cap_info->caps, &cap->caps_link);
-	ra_free(task->cap_info->handles, handle, 1);
+	ra_free(task->cap_info->handles, CAP_HANDLE_RAW(handle), 1);
 	slab_free(cap_cache, cap);
 	mutex_unlock(&task->cap_info->lock);
 }

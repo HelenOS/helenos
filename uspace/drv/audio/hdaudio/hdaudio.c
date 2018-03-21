@@ -262,7 +262,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 		goto error;
 	}
 
-	int irq_cap;
+	cap_irq_handle_t irq_cap;
 	rc = register_interrupt_handler(dev, res.irqs.irqs[0],
 	    hdaudio_interrupt, &irq_code, &irq_cap);
 	if (rc != EOK) {

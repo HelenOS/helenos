@@ -313,7 +313,7 @@ static kobject_ops_t irq_kobject_ops = {
  *
  */
 errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
-    irq_code_t *ucode, cap_handle_t *uspace_handle)
+    irq_code_t *ucode, cap_irq_handle_t *uspace_handle)
 {
 	if ((inr < 0) || (inr > last_inr))
 		return ELIMIT;
@@ -389,7 +389,7 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
  * @return EOK on success or an error code.
  *
  */
-errno_t ipc_irq_unsubscribe(answerbox_t *box, int handle)
+errno_t ipc_irq_unsubscribe(answerbox_t *box, cap_irq_handle_t handle)
 {
 	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_IRQ);
 	if (!kobj)

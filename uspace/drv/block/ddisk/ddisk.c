@@ -111,7 +111,7 @@ typedef struct {
 	ddisk_res_t ddisk_res;
 	ddisk_regs_t *ddisk_regs;
 
-	int irq_cap;
+	cap_irq_handle_t irq_cap;
 
 	bd_srvs_t bds;
 } ddisk_t;
@@ -448,7 +448,7 @@ static errno_t ddisk_dev_add(ddf_dev_t *dev)
 	ddisk->bds.ops = &ddisk_bd_ops;
 	ddisk->bds.sarg = ddisk;
 
-	ddisk->irq_cap = -1;
+	ddisk->irq_cap = CAP_NIL;
 
 	/*
 	 * Enable access to ddisk's PIO registers.

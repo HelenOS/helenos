@@ -38,7 +38,7 @@
 #include <abi/cap.h>
 
 /* Well known phone descriptors */
-#define PHONE_NS  (CAP_NIL + 1)
+#define PHONE_NS  ((cap_phone_handle_t) (CAP_NIL + 1))
 
 /** Kernel IPC interfaces
  *

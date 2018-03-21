@@ -55,7 +55,7 @@ typedef enum {
 } hound_flags_t;
 
 typedef async_sess_t hound_sess_t;
-typedef intptr_t hound_context_id_t;
+typedef cap_call_handle_t hound_context_id_t;
 
 hound_sess_t *hound_service_connect(const char *service);
 void hound_service_disconnect(hound_sess_t *sess);

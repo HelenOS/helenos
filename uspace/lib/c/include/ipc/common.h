@@ -51,10 +51,10 @@ typedef struct {
 	sysarg_t in_phone_hash;
 	unsigned flags;
 	struct async_call *label;
-	cap_handle_t cap_handle;
+	cap_call_handle_t cap_handle;
 } ipc_call_t;
 
-typedef cap_handle_t ipc_callid_t;
+typedef cap_call_handle_t ipc_callid_t;
 
 extern futex_t async_futex;
 

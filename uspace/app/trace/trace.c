@@ -281,12 +281,12 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 static void sc_ipc_call_async_fast(sysarg_t *sc_args, errno_t sc_rc)
 {
 	ipc_call_t call;
-	sysarg_t phoneid;
+	cap_phone_handle_t phandle;
 
 	if (sc_rc != EOK)
 		return;
 
-	phoneid = sc_args[0];
+	phandle = (cap_phone_handle_t) sc_args[0];
 
 	IPC_SET_IMETHOD(call, sc_args[1]);
 	IPC_SET_ARG1(call, sc_args[2]);
@@ -295,7 +295,7 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, errno_t sc_rc)
 	IPC_SET_ARG4(call, sc_args[5]);
 	IPC_SET_ARG5(call, 0);
 
-	ipcp_call_out(phoneid, &call, 0);
+	ipcp_call_out(phandle, &call, 0);
 }
 
 static void sc_ipc_call_async_slow(sysarg_t *sc_args, errno_t sc_rc)
@@ -310,11 +310,11 @@ static void sc_ipc_call_async_slow(sysarg_t *sc_args, errno_t sc_rc)
 	rc = udebug_mem_read(sess, &call.args, sc_args[1], sizeof(call.args));
 
 	if (rc == EOK) {
-		ipcp_call_out(sc_args[0], &call, 0);
+		ipcp_call_out((cap_phone_handle_t) sc_args[0], &call, 0);
 	}
 }
 
-static void sc_ipc_wait(sysarg_t *sc_args, int sc_rc)
+static void sc_ipc_wait(sysarg_t *sc_args, cap_call_handle_t sc_rc)
 {
 	ipc_call_t call;
 	errno_t rc;
@@ -389,7 +389,7 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 		sc_ipc_call_async_slow(sc_args, (errno_t) sc_rc);
 		break;
 	case SYS_IPC_WAIT:
-		sc_ipc_wait(sc_args, sc_rc);
+		sc_ipc_wait(sc_args, (cap_call_handle_t) sc_rc);
 		break;
 	default:
 		break;

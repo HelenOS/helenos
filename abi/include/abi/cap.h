@@ -37,7 +37,14 @@
 
 #define CAP_NIL		0
 
-typedef int cap_handle_t;
+#define CAP_HANDLE_VALID(handle)	((handle) != CAP_NIL)
+#define CAP_HANDLE_RAW(handle)		((intptr_t) (handle))
+
+typedef void *cap_handle_t;
+
+typedef struct {} *cap_call_handle_t;
+typedef struct {} *cap_phone_handle_t;
+typedef struct {} *cap_irq_handle_t;
 
 #endif
 

@@ -49,7 +49,7 @@ typedef struct kbox {
 	bool finished;
 } kbox_t;
 
-extern errno_t ipc_connect_kbox(task_id_t, cap_handle_t *);
+extern errno_t ipc_connect_kbox(task_id_t, cap_phone_handle_t *);
 extern void ipc_kbox_cleanup(void);
 
 #endif

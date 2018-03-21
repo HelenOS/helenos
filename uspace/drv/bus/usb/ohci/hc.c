@@ -511,7 +511,7 @@ int hc_start(hc_device_t *hcd)
 	    OHCI_RD(instance->registers->control));
 
 	/* Enable interrupts */
-	if (instance->base.irq_cap >= 0) {
+	if (CAP_HANDLE_VALID(instance->base.irq_handle)) {
 		OHCI_WR(instance->registers->interrupt_enable,
 		    OHCI_USED_INTERRUPTS);
 		usb_log_debug("Enabled interrupts: %x.",

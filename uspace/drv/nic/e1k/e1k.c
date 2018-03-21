@@ -1263,7 +1263,8 @@ static void e1000_interrupt_handler(ipc_call_t *icall,
  * @return An error code otherwise
  *
  */
-inline static errno_t e1000_register_int_handler(nic_t *nic, cap_handle_t *handle)
+inline static errno_t e1000_register_int_handler(nic_t *nic,
+    cap_irq_handle_t *handle)
 {
 	e1000_t *e1000 = DRIVER_DATA_NIC(nic);
 
@@ -2164,8 +2165,8 @@ errno_t e1000_dev_add(ddf_dev_t *dev)
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &e1000_dev_ops);
 
-	int irq_cap;
-	rc = e1000_register_int_handler(nic, &irq_cap);
+	cap_irq_handle_t irq_handle;
+	rc = e1000_register_int_handler(nic, &irq_handle);
 	if (rc != EOK) {
 		goto err_fun_create;
 	}
@@ -2203,7 +2204,7 @@ err_fun_bind:
 err_rx_structure:
 	e1000_uninitialize_rx_structure(nic);
 err_irq:
-	unregister_interrupt_handler(dev, irq_cap);
+	unregister_interrupt_handler(dev, irq_handle);
 err_fun_create:
 	ddf_fun_destroy(fun);
 	nic_set_ddf_fun(nic, NULL);

@@ -45,7 +45,7 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 	 * Create the new phone and capability, but don't publish them yet.
 	 * That will be done once the phone is connected.
 	 */
-	cap_handle_t phone_handle;
+	cap_phone_handle_t phone_handle;
 	kobject_t *phone_obj;
 	errno_t rc = phone_alloc(TASK, false, &phone_handle, &phone_obj);
 	if (rc != EOK) {
@@ -57,16 +57,16 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 	IPC_SET_ARG5(call->data, (sysarg_t) phone_obj->phone);
 
 	/* Remember the handle */
-	call->priv = phone_handle;
+	call->priv = CAP_HANDLE_RAW(phone_handle);
 
 	return EOK;
 }
 
 static errno_t request_forget(call_t *call)
 {
-	cap_handle_t phone_handle = (cap_handle_t) call->priv;
+	cap_phone_handle_t phone_handle = (cap_handle_t) call->priv;
 
-	if (phone_handle < 0)
+	if (CAP_HANDLE_RAW(phone_handle) < 0)
 		return EOK;
 
 	/* Hand over reference from ARG5 to phone->kobject */
@@ -102,11 +102,11 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 
 static errno_t answer_process(call_t *answer)
 {
-	cap_handle_t phone_handle = (cap_handle_t) answer->priv;
+	cap_phone_handle_t phone_handle = (cap_handle_t) answer->priv;
 	phone_t *phone = (phone_t *) IPC_GET_ARG5(answer->data);
 
 	if (IPC_GET_RETVAL(answer->data)) {
-		if (phone_handle >= 0) {
+		if (CAP_HANDLE_RAW(phone_handle) >= 0) {
 			/*
 			 * Cleanup the unpublished capability and drop
 			 * phone->kobject's reference.
@@ -122,7 +122,7 @@ static errno_t answer_process(call_t *answer)
 		 */
 		cap_publish(TASK, phone_handle, phone->kobject);
 
-		IPC_SET_ARG5(answer->data, phone_handle);
+		IPC_SET_ARG5(answer->data, CAP_HANDLE_RAW(phone_handle));
 	}
 
 	return EOK;

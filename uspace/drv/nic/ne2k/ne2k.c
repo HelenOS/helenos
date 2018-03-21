@@ -123,7 +123,8 @@ static irq_cmd_t ne2k_cmds_prototype[] = {
 
 static void ne2k_interrupt_handler(ipc_call_t *, ddf_dev_t *);
 
-static errno_t ne2k_register_interrupt(nic_t *nic_data, cap_handle_t *handle)
+static errno_t ne2k_register_interrupt(nic_t *nic_data,
+    cap_irq_handle_t *handle)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 

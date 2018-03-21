@@ -44,8 +44,8 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 {
 	task_t *other_task_s;
 
-	kobject_t *sender_obj = kobject_get(TASK, IPC_GET_ARG5(call->data),
-	    KOBJECT_TYPE_PHONE);
+	kobject_t *sender_obj = kobject_get(TASK,
+	    (cap_handle_t) IPC_GET_ARG5(call->data), KOBJECT_TYPE_PHONE);
 	if (!sender_obj)
 		return ENOENT;
 
@@ -77,7 +77,8 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		task_t *other_task_r;
 
 		kobject_t *recipient_obj = kobject_get(TASK,
-		    IPC_GET_ARG1(answer->data), KOBJECT_TYPE_PHONE);
+		    (cap_handle_t) IPC_GET_ARG1(answer->data),
+		    KOBJECT_TYPE_PHONE);
 		if (!recipient_obj) {
 			IPC_SET_RETVAL(answer->data, ENOENT);
 			return ENOENT;

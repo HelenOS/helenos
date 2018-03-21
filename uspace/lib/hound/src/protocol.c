@@ -152,12 +152,13 @@ errno_t hound_service_register_context(hound_sess_t *sess,
  * @param id Valid context id.
  * @return Error code.
  */
-errno_t hound_service_unregister_context(hound_sess_t *sess, hound_context_id_t id)
+errno_t hound_service_unregister_context(hound_sess_t *sess,
+    hound_context_id_t id)
 {
 	assert(sess);
 	async_exch_t *exch = async_exchange_begin(sess);
-	const errno_t ret =
-	    async_req_1_0(exch, IPC_M_HOUND_CONTEXT_UNREGISTER, id);
+	const errno_t ret = async_req_1_0(exch, IPC_M_HOUND_CONTEXT_UNREGISTER,
+	    CAP_HANDLE_RAW(id));
 	async_exchange_end(exch);
 	return ret;
 }
@@ -311,8 +312,8 @@ errno_t hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
 		.rate = format.sampling_rate / 100,
 		.format = format.sample_format,
 	}};
-	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, id, flags,
-	    c.arg, bsize);
+	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, CAP_HANDLE_RAW(id),
+	    flags, c.arg, bsize);
 }
 
 /**
@@ -426,7 +427,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			if (ret != EOK) {
 				async_answer_0(callid, ret);
 			} else {
-				async_answer_1(callid, EOK, id);
+				async_answer_1(callid, EOK, CAP_HANDLE_RAW(id));
 			}
 			break;
 		case IPC_M_HOUND_CONTEXT_UNREGISTER:
@@ -437,7 +438,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			}
 
 			/* get id, 1st param */
-			id = IPC_GET_ARG1(call);
+			id = (cap_handle_t) IPC_GET_ARG1(call);
 			ret = server_iface->rem_context(server_iface->server,
 			    id);
 			async_answer_0(callid, ret);
@@ -563,7 +564,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			}
 
 			/* get parameters */
-			id = IPC_GET_ARG1(call);
+			id = (cap_handle_t) IPC_GET_ARG1(call);
 			flags = IPC_GET_ARG2(call);
 			const format_convert_t c = {.arg = IPC_GET_ARG3(call)};
 			const pcm_format_t f = {

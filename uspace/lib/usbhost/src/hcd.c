@@ -148,14 +148,14 @@ static inline void irq_code_clean(irq_code_t *code)
  *
  * If this method fails, a polling fibril is started instead.
  *
- * @param[in] hcd Host controller device.
- * @param[in] hw_res Resources to be used.
+ * @param[in]  hcd         Host controller device.
+ * @param[in]  hw_res      Resources to be used.
+ * @param[out] irq_handle  Storage for the returned IRQ handle
  *
- * @return IRQ capability handle on success.
- * @return Negative error code.
+ * @return Error code.
  */
 static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd,
-    const hw_res_list_parsed_t *hw_res)
+    const hw_res_list_parsed_t *hw_res, cap_irq_handle_t *irq_handle)
 {
 	assert(hcd);
 	irq_code_t irq_code = { 0 };
@@ -168,19 +168,19 @@ static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd,
 	ret = hc_driver->irq_code_gen(&irq_code, hcd, hw_res, &irq);
 	if (ret != EOK) {
 		usb_log_error("Failed to generate IRQ code: %s.",
-		    str_error(irq));
-		return irq;
+		    str_error(ret));
+		return ret;
 	}
 
 	/* Register handler to avoid interrupt lockup */
-	int irq_cap;
+	cap_irq_handle_t ihandle;
 	ret = register_interrupt_handler(hcd->ddf_dev, irq, irq_handler,
-	    &irq_code, &irq_cap);
+	    &irq_code, &ihandle);
 	irq_code_clean(&irq_code);
 	if (ret != EOK) {
 		usb_log_error("Failed to register interrupt handler: %s.",
-		    str_error(irq_cap));
-		return irq_cap;
+		    str_error(ret));
+		return ret;
 	}
 
 	/* Enable interrupts */
@@ -188,10 +188,12 @@ static errno_t hcd_ddf_setup_interrupts(hc_device_t *hcd,
 	if (ret != EOK) {
 		usb_log_error("Failed to enable interrupts: %s.",
 		    str_error(ret));
-		unregister_interrupt_handler(hcd->ddf_dev, irq_cap);
+		unregister_interrupt_handler(hcd->ddf_dev, ihandle);
 		return ret;
 	}
-	return irq_cap;
+
+	*irq_handle = ihandle;
+	return EOK;
 }
 
 /**
@@ -244,8 +246,10 @@ errno_t hc_dev_add(ddf_dev_t *device)
 	assert(hcd->bus);
 
 	/* Setup interrupts  */
-	hcd->irq_cap = hcd_ddf_setup_interrupts(hcd, &hw_res);
-	if (hcd->irq_cap >= 0) {
+	hcd->irq_handle = CAP_NIL;
+	errno_t irqerr = hcd_ddf_setup_interrupts(hcd, &hw_res,
+	    &hcd->irq_handle);
+	if (irqerr == EOK) {
 		usb_log_debug("Hw interrupts enabled.");
 	}
 
@@ -269,7 +273,7 @@ errno_t hc_dev_add(ddf_dev_t *device)
 	const bus_ops_t *ops = hcd->bus->ops;
 
 	/* Need working irq replacement to setup root hub */
-	if (hcd->irq_cap < 0 && ops->status) {
+	if (irqerr != EOK && ops->status) {
 		hcd->polling_fibril = fibril_create(interrupt_polling, hcd->bus);
 		if (!hcd->polling_fibril) {
 			usb_log_error("Failed to create polling fibril");
@@ -278,7 +282,7 @@ errno_t hc_dev_add(ddf_dev_t *device)
 		}
 		fibril_add_ready(hcd->polling_fibril);
 		usb_log_warning("Failed to enable interrupts: %s."
-		    " Falling back to polling.", str_error(hcd->irq_cap));
+		    " Falling back to polling.", str_error(irqerr));
 	}
 
 	/*
@@ -304,7 +308,7 @@ err_started:
 	if (hc_driver->stop)
 		hc_driver->stop(hcd);
 err_irq:
-	unregister_interrupt_handler(device, hcd->irq_cap);
+	unregister_interrupt_handler(device, hcd->irq_handle);
 	if (hc_driver->hc_remove)
 		hc_driver->hc_remove(hcd);
 err_hw_res:
@@ -323,7 +327,7 @@ errno_t hc_dev_remove(ddf_dev_t *dev)
 		if ((err = hc_driver->stop(hcd)))
 			return err;
 
-	unregister_interrupt_handler(dev, hcd->irq_cap);
+	unregister_interrupt_handler(dev, hcd->irq_handle);
 
 	if (hc_driver->hc_remove)
 		if ((err = hc_driver->hc_remove(hcd)))

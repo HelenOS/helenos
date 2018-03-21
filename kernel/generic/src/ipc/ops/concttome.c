@@ -41,20 +41,21 @@
 
 static int request_process(call_t *call, answerbox_t *box)
 {
-	cap_handle_t phone_handle;
+	cap_phone_handle_t phone_handle;
 	kobject_t *phone_obj;
 	errno_t rc = phone_alloc(TASK, false, &phone_handle, &phone_obj);
 	call->priv = (sysarg_t) phone_obj;
-	IPC_SET_ARG5(call->data, (rc == EOK) ? phone_handle : -1);
+	IPC_SET_ARG5(call->data,
+	    (rc == EOK) ? CAP_HANDLE_RAW(phone_handle) : CAP_NIL);
 	return 0;
 }
 
 static errno_t answer_cleanup(call_t *answer, ipc_data_t *olddata)
 {
-	cap_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
+	cap_phone_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
 	kobject_t *phone_obj = (kobject_t *) answer->priv;
 
-	if (phone_handle >= 0) {
+	if (CAP_HANDLE_VALID(phone_handle)) {
 		kobject_put(phone_obj);
 		cap_free(TASK, phone_handle);
 	}
@@ -64,13 +65,13 @@ static errno_t answer_cleanup(call_t *answer, ipc_data_t *olddata)
 
 static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 {
-	cap_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
+	cap_phone_handle_t phone_handle = (cap_handle_t) IPC_GET_ARG5(*olddata);
 	kobject_t *phone_obj = (kobject_t *) answer->priv;
 
 	if (IPC_GET_RETVAL(answer->data) != EOK) {
 		/* The connection was not accepted */
 		answer_cleanup(answer, olddata);
-	} else if (phone_handle >= 0) {
+	} else if (CAP_HANDLE_VALID(phone_handle)) {
 		/*
 		 * The connection was accepted
 		 */

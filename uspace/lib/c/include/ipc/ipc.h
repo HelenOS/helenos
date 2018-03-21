@@ -77,9 +77,9 @@ extern errno_t ipc_trywait_for_call(ipc_call_t *);
 	ipc_answer_slow((chandle), (retval), (arg1), (arg2), (arg3), (arg4), \
 	    (arg5))
 
-extern errno_t ipc_answer_fast(cap_handle_t, errno_t, sysarg_t, sysarg_t,
+extern errno_t ipc_answer_fast(cap_call_handle_t, errno_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t);
-extern errno_t ipc_answer_slow(cap_handle_t, errno_t, sysarg_t, sysarg_t,
+extern errno_t ipc_answer_slow(cap_call_handle_t, errno_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
 
 /*
@@ -109,19 +109,19 @@ extern errno_t ipc_answer_slow(cap_handle_t, errno_t, sysarg_t, sysarg_t,
 	ipc_call_async_slow((phandle), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (arg5), (private), (callback))
 
-extern void ipc_call_async_fast(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, void *, ipc_async_callback_t);
-extern void ipc_call_async_slow(cap_handle_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t, void *, ipc_async_callback_t);
+extern void ipc_call_async_fast(cap_phone_handle_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, void *, ipc_async_callback_t);
+extern void ipc_call_async_slow(cap_phone_handle_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t, void *, ipc_async_callback_t);
 
-extern errno_t ipc_hangup(cap_handle_t);
+extern errno_t ipc_hangup(cap_phone_handle_t);
 
-extern errno_t ipc_forward_fast(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
-    sysarg_t, unsigned int);
-extern errno_t ipc_forward_slow(cap_handle_t, cap_handle_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t, sysarg_t, unsigned int);
+extern errno_t ipc_forward_fast(cap_call_handle_t, cap_phone_handle_t, sysarg_t,
+    sysarg_t, sysarg_t, unsigned int);
+extern errno_t ipc_forward_slow(cap_call_handle_t, cap_phone_handle_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
-extern errno_t ipc_connect_kbox(task_id_t, cap_handle_t *);
+extern errno_t ipc_connect_kbox(task_id_t, cap_phone_handle_t *);
 
 #endif
 

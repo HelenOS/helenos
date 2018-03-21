@@ -51,8 +51,8 @@ extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
 extern void ipc_irq_top_half_handler(irq_t *);
 
 extern errno_t ipc_irq_subscribe(answerbox_t *, inr_t, sysarg_t, irq_code_t *,
-    cap_handle_t *);
-extern errno_t ipc_irq_unsubscribe(answerbox_t *, int);
+    cap_irq_handle_t *);
+extern errno_t ipc_irq_unsubscribe(answerbox_t *, cap_irq_handle_t);
 
 /*
  * User friendly wrappers for ipc_irq_send_msg(). They are in the form

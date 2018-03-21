@@ -156,7 +156,7 @@ static kobject_ops_t phone_kobject_ops = {
  *
  * @return  An error code if a new capability cannot be allocated.
  */
-errno_t phone_alloc(task_t *task, bool publish, cap_handle_t *phandle,
+errno_t phone_alloc(task_t *task, bool publish, cap_phone_handle_t *phandle,
     kobject_t **kobject)
 {
 	cap_handle_t handle;
@@ -198,7 +198,7 @@ errno_t phone_alloc(task_t *task, bool publish, cap_handle_t *phandle,
  * @param handle Phone capability handle of the phone to be freed.
  *
  */
-void phone_dealloc(cap_handle_t handle)
+void phone_dealloc(cap_phone_handle_t handle)
 {
 	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)

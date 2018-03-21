@@ -270,7 +270,8 @@ static int process_request(answerbox_t *box, call_t *call)
  * @return ENOENT if there is no such phone handle.
  *
  */
-errno_t ipc_req_internal(cap_handle_t handle, ipc_data_t *data, sysarg_t priv)
+errno_t
+ipc_req_internal(cap_phone_handle_t handle, ipc_data_t *data, sysarg_t priv)
 {
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj->phone)
@@ -361,7 +362,7 @@ static int check_call_limit(phone_t *phone)
  * @return An error code on error.
  *
  */
-sys_errno_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
+sys_errno_t sys_ipc_call_async_fast(cap_phone_handle_t handle, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t label)
 {
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
@@ -408,7 +409,7 @@ sys_errno_t sys_ipc_call_async_fast(sysarg_t handle, sysarg_t imethod,
  * @return See sys_ipc_call_async_fast().
  *
  */
-sys_errno_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data,
+sys_errno_t sys_ipc_call_async_slow(cap_phone_handle_t handle, ipc_data_t *data,
     sysarg_t label)
 {
 	kobject_t *kobj = kobject_get(TASK, handle, KOBJECT_TYPE_PHONE);
@@ -465,9 +466,9 @@ sys_errno_t sys_ipc_call_async_slow(sysarg_t handle, ipc_data_t *data,
  * Warning: Make sure that ARG5 is not rewritten for certain system IPC
  *
  */
-static sys_errno_t sys_ipc_forward_common(sysarg_t chandle, sysarg_t phandle,
-    sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
-    sysarg_t arg4, sysarg_t arg5, unsigned int mode, bool slow)
+static sys_errno_t sys_ipc_forward_common(cap_call_handle_t chandle,
+    cap_phone_handle_t phandle, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, unsigned int mode, bool slow)
 {
 	kobject_t *ckobj = cap_unpublish(TASK, chandle, KOBJECT_TYPE_CALL);
 	if (!ckobj)
@@ -505,7 +506,8 @@ static sys_errno_t sys_ipc_forward_common(sysarg_t chandle, sysarg_t phandle,
 	if (!method_is_immutable(IPC_GET_IMETHOD(call->data))) {
 		if (method_is_system(IPC_GET_IMETHOD(call->data))) {
 			if (IPC_GET_IMETHOD(call->data) == IPC_M_CONNECT_TO_ME)
-				phone_dealloc(IPC_GET_ARG5(call->data));
+				phone_dealloc((cap_phone_handle_t)
+				    IPC_GET_ARG5(call->data));
 
 			IPC_SET_ARG1(call->data, imethod);
 			IPC_SET_ARG2(call->data, arg1);
@@ -576,8 +578,9 @@ error:
  * @return 0 on succes, otherwise an error code.
  *
  */
-sys_errno_t sys_ipc_forward_fast(sysarg_t chandle, sysarg_t phandle,
-    sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
+sys_errno_t sys_ipc_forward_fast(cap_call_handle_t chandle,
+    cap_phone_handle_t phandle, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    unsigned int mode)
 {
 	return sys_ipc_forward_common(chandle, phandle, imethod, arg1, arg2, 0,
 	    0, 0, mode, false);
@@ -600,8 +603,8 @@ sys_errno_t sys_ipc_forward_fast(sysarg_t chandle, sysarg_t phandle,
  * @return 0 on succes, otherwise an error code.
  *
  */
-sys_errno_t sys_ipc_forward_slow(sysarg_t chandle, sysarg_t phandle,
-    ipc_data_t *data, unsigned int mode)
+sys_errno_t sys_ipc_forward_slow(cap_call_handle_t chandle,
+    cap_phone_handle_t phandle, ipc_data_t *data, unsigned int mode)
 {
 	ipc_data_t newdata;
 	errno_t rc = copy_from_uspace(&newdata.args, &data->args,
@@ -630,8 +633,8 @@ sys_errno_t sys_ipc_forward_slow(sysarg_t chandle, sysarg_t phandle,
  * @return 0 on success, otherwise an error code.
  *
  */
-sys_errno_t sys_ipc_answer_fast(sysarg_t chandle, sysarg_t retval, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+sys_errno_t sys_ipc_answer_fast(cap_call_handle_t chandle, sysarg_t retval,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
 	kobject_t *kobj = cap_unpublish(TASK, chandle, KOBJECT_TYPE_CALL);
 	if (!kobj)
@@ -677,7 +680,7 @@ sys_errno_t sys_ipc_answer_fast(sysarg_t chandle, sysarg_t retval, sysarg_t arg1
  * @return 0 on success, otherwise an error code.
  *
  */
-sys_errno_t sys_ipc_answer_slow(sysarg_t chandle, ipc_data_t *data)
+sys_errno_t sys_ipc_answer_slow(cap_call_handle_t chandle, ipc_data_t *data)
 {
 	kobject_t *kobj = cap_unpublish(TASK, chandle, KOBJECT_TYPE_CALL);
 	if (!kobj)
@@ -721,7 +724,7 @@ sys_errno_t sys_ipc_answer_slow(sysarg_t chandle, ipc_data_t *data)
  * @return 0 on success or an error code.
  *
  */
-sys_errno_t sys_ipc_hangup(sysarg_t handle)
+sys_errno_t sys_ipc_hangup(cap_phone_handle_t handle)
 {
 	kobject_t *kobj = cap_unpublish(TASK, handle, KOBJECT_TYPE_PHONE);
 	if (!kobj)
@@ -799,7 +802,7 @@ restart:
 	if (process_request(&TASK->answerbox, call))
 		goto restart;
 
-	cap_handle_t handle;
+	cap_handle_t handle = CAP_NIL;
 	errno_t rc = cap_alloc(TASK, &handle);
 	if (rc != EOK) {
 		goto error;
@@ -820,7 +823,7 @@ restart:
 	return EOK;
 
 error:
-	if (handle >= 0)
+	if (CAP_HANDLE_VALID(handle))
 		cap_free(TASK, handle);
 
 	/*
@@ -860,14 +863,14 @@ sys_errno_t sys_ipc_poke(void)
  * @param imethod Interface and method to be associated with the notification.
  * @param ucode   Uspace pointer to the top-half pseudocode.
  *
- * @param[out] uspace_handle  Uspace pointer to IRQ kernel object capability
+ * @param[out] uspace_handle  Uspace pointer to IRQ capability handle
  *
  * @return EPERM
  * @return Error code returned by ipc_irq_subscribe().
  *
  */
-sys_errno_t sys_ipc_irq_subscribe(inr_t inr, sysarg_t imethod, irq_code_t *ucode,
-	cap_handle_t *uspace_handle)
+sys_errno_t sys_ipc_irq_subscribe(inr_t inr, sysarg_t imethod,
+    irq_code_t *ucode, cap_irq_handle_t *uspace_handle)
 {
 	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
@@ -877,18 +880,17 @@ sys_errno_t sys_ipc_irq_subscribe(inr_t inr, sysarg_t imethod, irq_code_t *ucode
 
 /** Disconnect an IRQ handler from a task.
  *
- * @param inr   IRQ number.
- * @param devno Device number.
+ * @param handle  IRQ capability handle.
  *
  * @return Zero on success or EPERM on error.
  *
  */
-sys_errno_t sys_ipc_irq_unsubscribe(sysarg_t cap)
+sys_errno_t sys_ipc_irq_unsubscribe(cap_irq_handle_t handle)
 {
 	if (!(perm_get(TASK) & PERM_IRQ_REG))
 		return EPERM;
 
-	ipc_irq_unsubscribe(&TASK->answerbox, cap);
+	ipc_irq_unsubscribe(&TASK->answerbox, handle);
 
 	return 0;
 }
@@ -898,11 +900,12 @@ sys_errno_t sys_ipc_irq_unsubscribe(sysarg_t cap)
  * @return Error code.
  *
  */
-sys_errno_t sys_ipc_connect_kbox(task_id_t *uspace_taskid, cap_handle_t *uspace_phone)
+sys_errno_t sys_ipc_connect_kbox(task_id_t *uspace_taskid,
+    cap_phone_handle_t *uspace_phone)
 {
 #ifdef CONFIG_UDEBUG
 	task_id_t taskid;
-	cap_handle_t phone;
+	cap_phone_handle_t phone;
 
 	errno_t rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(task_id_t));
 	if (rc == EOK) {

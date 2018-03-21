@@ -130,7 +130,7 @@ int user_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 	if (rc != EOK) {
 		log(LF_USPACE, LVL_FATAL,
 		    "Page-in request for page %#" PRIxPTR
-		    " at pager %d failed with error %s.",
+		    " at pager %p failed with error %s.",
 		    upage, pager_info->pager, str_error_name(rc));
 		return AS_PF_FAULT;
 	}

@@ -74,7 +74,8 @@ static errno_t rtl8169_on_activated(nic_t *nic_data);
 static errno_t rtl8169_on_stopped(nic_t *nic_data);
 static void rtl8169_send_frame(nic_t *nic_data, void *data, size_t size);
 static void rtl8169_irq_handler(ipc_call_t *icall, ddf_dev_t *dev);
-static inline errno_t rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle);
+static inline errno_t rtl8169_register_int_handler(nic_t *nic_data,
+    cap_irq_handle_t *handle);
 static inline void rtl8169_get_hwaddr(rtl8169_t *rtl8169, nic_address_t *addr);
 static inline void rtl8169_set_hwaddr(rtl8169_t *rtl8169, const nic_address_t *addr);
 
@@ -360,7 +361,8 @@ failed:
 
 }
 
-inline static errno_t rtl8169_register_int_handler(nic_t *nic_data, cap_handle_t *handle)
+inline static errno_t rtl8169_register_int_handler(nic_t *nic_data,
+    cap_irq_handle_t *handle)
 {
 	rtl8169_t *rtl8169 = nic_get_specific(nic_data);
 
@@ -428,8 +430,8 @@ static errno_t rtl8169_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_pio;
 
-	int irq_cap;
-	rc = rtl8169_register_int_handler(nic_data, &irq_cap);
+	cap_irq_handle_t irq_handle;
+	rc = rtl8169_register_int_handler(nic_data, &irq_handle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to register IRQ handler (%s)", str_error_name(rc));
 		goto err_irq;
@@ -471,7 +473,7 @@ err_fun_create:
 	ddf_fun_destroy(fun);
 err_srv:
 	/* XXX Disconnect from services */
-	unregister_interrupt_handler(dev, irq_cap);
+	unregister_interrupt_handler(dev, irq_handle);
 err_irq:
 err_pio:
 err_destroy:

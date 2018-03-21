@@ -909,7 +909,7 @@ static bool print_task_phone_cb(cap_t *cap, void *arg)
 
 	mutex_lock(&phone->lock);
 	if (phone->state != IPC_PHONE_FREE) {
-		printf("%-11d %7" PRIun " ", cap->handle,
+		printf("%-11d %7" PRIun " ", (int) CAP_HANDLE_RAW(cap->handle),
 		    atomic_get(&phone->active_calls));
 
 		switch (phone->state) {

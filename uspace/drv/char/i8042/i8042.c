@@ -280,18 +280,18 @@ errno_t i8042_init(i8042_t *dev, addr_range_t *regs, int irq_kbd,
 		.cmds = cmds
 	};
 
-	int irq_kbd_cap;
+	cap_irq_handle_t kbd_ihandle;
 	rc = register_interrupt_handler(ddf_dev, irq_kbd,
-	    i8042_irq_handler, &irq_code, &irq_kbd_cap);
+	    i8042_irq_handler, &irq_code, &kbd_ihandle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed set handler for kbd: %s.",
 		    ddf_dev_get_name(ddf_dev));
 		goto error;
 	}
 
-	int irq_mouse_cap;
+	cap_irq_handle_t mouse_ihandle;
 	rc = register_interrupt_handler(ddf_dev, irq_mouse,
-	    i8042_irq_handler, &irq_code, &irq_mouse_cap);
+	    i8042_irq_handler, &irq_code, &mouse_ihandle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed set handler for mouse: %s.",
 		    ddf_dev_get_name(ddf_dev));

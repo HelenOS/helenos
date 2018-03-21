@@ -494,7 +494,7 @@ errno_t hc_start(xhci_hc_t *hc)
 	const uintptr_t erstba_phys = dma_buffer_phys_base(&hc->event_ring.erst);
 	XHCI_REG_WR(intr0, XHCI_INTR_ERSTBA, erstba_phys);
 
-	if (hc->base.irq_cap > 0) {
+	if (CAP_HANDLE_VALID(hc->base.irq_handle)) {
 		XHCI_REG_SET(intr0, XHCI_INTR_IE, 1);
 		XHCI_REG_SET(hc->op_regs, XHCI_OP_INTE, 1);
 	}

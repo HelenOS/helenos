@@ -115,7 +115,7 @@ typedef struct {
 	/** User-defined label */
 	sysarg_t label;
 	/** Capability handle */
-	cap_handle_t cap_handle;
+	cap_call_handle_t cap_handle;
 } ipc_data_t;
 
 typedef struct call {

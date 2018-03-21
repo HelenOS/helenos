@@ -82,13 +82,14 @@ static void msim_irq_handler(ipc_call_t *call, void *arg)
 errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 {
 	ddf_fun_t *fun = NULL;
-	bool subscribed = false;
 	irq_cmd_t *msim_cmds = NULL;
 	errno_t rc;
 
 	circ_buf_init(&con->cbuf, con->buf, msim_con_buf_size, 1);
 	fibril_mutex_initialize(&con->buf_lock);
 	fibril_condvar_initialize(&con->buf_cv);
+
+	con->irq_handle = CAP_NIL;
 
 	msim_cmds = malloc(sizeof(msim_cmds_proto));
 	if (msim_cmds == NULL) {
@@ -124,8 +125,12 @@ errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 	con->irq_code.cmdcount = sizeof(msim_cmds_proto) / sizeof(irq_cmd_t);
 	con->irq_code.cmds = msim_cmds;
 
-	async_irq_subscribe(res->irq, msim_irq_handler, con, &con->irq_code, NULL);
-	subscribed = true;
+	rc = async_irq_subscribe(res->irq, msim_irq_handler, con,
+	    &con->irq_code, &con->irq_handle);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Error registering IRQ code.");
+		goto error;
+	}
 
 	chardev_srvs_init(&con->cds);
 	con->cds.ops = &msim_con_chardev_ops;
@@ -141,8 +146,8 @@ errno_t msim_con_add(msim_con_t *con, msim_con_res_t *res)
 
 	return EOK;
 error:
-	if (subscribed)
-		async_irq_unsubscribe(res->irq);
+	if (CAP_HANDLE_VALID(con->irq_handle))
+		async_irq_unsubscribe(con->irq_handle);
 	if (fun != NULL)
 		ddf_fun_destroy(fun);
 	free(msim_cmds);

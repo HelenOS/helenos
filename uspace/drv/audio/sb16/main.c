@@ -92,7 +92,7 @@ static errno_t sb_add_device(ddf_dev_t *device)
 	const size_t irq_cmd_count = sb16_irq_code_size();
 	irq_cmd_t irq_cmds[irq_cmd_count];
 	irq_pio_range_t irq_ranges[1];
-	int irq_cap;
+	cap_irq_handle_t irq_cap;
 
 	sb16_t *soft_state = ddf_dev_data_alloc(device, sizeof(sb16_t));
 	errno_t rc = soft_state ? EOK : ENOMEM;

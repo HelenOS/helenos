@@ -45,11 +45,11 @@
 #include "ipcp.h"
 
 typedef struct {
-	sysarg_t phone_hash;
+	cap_phone_handle_t phone_handle;
 	ipc_call_t question;
 	oper_t *oper;
 
-	ipc_callid_t call_hash;
+	cap_call_handle_t call_handle;
 
 	ht_link_t link;
 } pending_call_t;
@@ -74,22 +74,22 @@ proto_t	*proto_unknown;		/**< Protocol with no known methods. */
 
 static size_t pending_call_key_hash(void *key)
 {
-	ipc_callid_t *call_id = (ipc_callid_t *)key;
-	return *call_id;
+	cap_call_handle_t *chandle = (cap_call_handle_t *) key;
+	return CAP_HANDLE_RAW(*chandle);
 }
 
 static size_t pending_call_hash(const ht_link_t *item)
 {
 	pending_call_t *hs = hash_table_get_inst(item, pending_call_t, link);
-	return hs->call_hash;
+	return CAP_HANDLE_RAW(hs->call_handle);
 }
 
 static bool pending_call_key_equal(void *key, const ht_link_t *item)
 {
-	ipc_callid_t *call_id = (ipc_callid_t *)key;
+	cap_call_handle_t *chandle = (cap_call_handle_t *) key;
 	pending_call_t *hs = hash_table_get_inst(item, pending_call_t, link);
 
-	return *call_id == hs->call_hash;
+	return *chandle == hs->call_handle;
 }
 
 static hash_table_ops_t pending_call_ops = {
@@ -101,19 +101,22 @@ static hash_table_ops_t pending_call_ops = {
 };
 
 
-void ipcp_connection_set(int phone, int server, proto_t *proto)
+void ipcp_connection_set(cap_phone_handle_t phone, int server, proto_t *proto)
 {
-	if (phone <0 || phone >= MAX_PHONE) return;
-	connections[phone].server = server;
-	connections[phone].proto = proto;
-	have_conn[phone] = 1;
+	// XXX: there is no longer a limit on the number of phones as phones are
+	// now handled using capabilities
+	if (CAP_HANDLE_RAW(phone) < 0 || CAP_HANDLE_RAW(phone) >= MAX_PHONE)
+	    return;
+	connections[CAP_HANDLE_RAW(phone)].server = server;
+	connections[CAP_HANDLE_RAW(phone)].proto = proto;
+	have_conn[CAP_HANDLE_RAW(phone)] = 1;
 }
 
-void ipcp_connection_clear(int phone)
+void ipcp_connection_clear(cap_phone_handle_t phone)
 {
-	have_conn[phone] = 0;
-	connections[phone].server = 0;
-	connections[phone].proto = NULL;
+	have_conn[CAP_HANDLE_RAW(phone)] = 0;
+	connections[CAP_HANDLE_RAW(phone)].server = 0;
+	connections[CAP_HANDLE_RAW(phone)].proto = NULL;
 }
 
 static void ipc_m_print(proto_t *proto, sysarg_t method)
@@ -173,7 +176,8 @@ void ipcp_cleanup(void)
 	hash_table_destroy(&pending_calls);
 }
 
-void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
+void ipcp_call_out(cap_phone_handle_t phandle, ipc_call_t *call,
+    cap_call_handle_t chandle)
 {
 	pending_call_t *pcall;
 	proto_t *proto;
@@ -181,15 +185,16 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	sysarg_t *args;
 	int i;
 
-	if (have_conn[phone]) proto = connections[phone].proto;
-	else proto = NULL;
+	if (have_conn[CAP_HANDLE_RAW(phandle)])
+		proto = connections[CAP_HANDLE_RAW(phandle)].proto;
+	else
+		proto = NULL;
 
 	args = call->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Call ID: %d, phone: %d, proto: %s, method: ",
-		    hash, phone,
-		    (proto ? proto->name : "n/a"));
+		printf("Call ID: %p, phone: %p, proto: %s, method: ",
+		    chandle, phandle, (proto ? proto->name : "n/a"));
 		ipc_m_print(proto, IPC_GET_IMETHOD(*call));
 		printf(" args: (%" PRIun ", %" PRIun ", %" PRIun ", "
 		    "%" PRIun ", %" PRIun ")\n",
@@ -207,8 +212,8 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 
 		if (oper != NULL) {
 
-			printf("%s(%d).%s", (proto ? proto->name : "n/a"),
-			    phone, (oper ? oper->name : "unknown"));
+			printf("%s(%p).%s", (proto ? proto->name : "n/a"),
+			    phandle, (oper ? oper->name : "unknown"));
 
 			putchar('(');
 			for (i = 1; i <= oper->argc; ++i) {
@@ -235,38 +240,38 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	/* Store call in hash table for response matching */
 
 	pcall = malloc(sizeof(pending_call_t));
-	pcall->phone_hash = phone;
+	pcall->phone_handle = phandle;
 	pcall->question = *call;
-	pcall->call_hash = hash;
+	pcall->call_handle = chandle;
 	pcall->oper = oper;
 
 	hash_table_insert(&pending_calls, &pcall->link);
 }
 
-static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
+static void parse_answer(cap_call_handle_t call_handle, pending_call_t *pcall,
     ipc_call_t *answer)
 {
-	sysarg_t phone;
+	cap_phone_handle_t phone;
 	sysarg_t method;
 	sysarg_t service;
 	errno_t retval;
 	proto_t *proto;
-	int cphone;
+	cap_phone_handle_t cphone;
 
 	sysarg_t *resp;
 	oper_t *oper;
 	int i;
 
-	phone = pcall->phone_hash;
+	phone = pcall->phone_handle;
 	method = IPC_GET_IMETHOD(pcall->question);
 	retval = IPC_GET_RETVAL(*answer);
 
 	resp = answer->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Response to %d: retval=%s, args = (%" PRIun ", "
+		printf("Response to %p: retval=%s, args = (%" PRIun ", "
 		    "%" PRIun ", %" PRIun ", %" PRIun ", %" PRIun ")\n",
-		    hash, str_error_name(retval), IPC_GET_ARG1(*answer),
+		    call_handle, str_error_name(retval), IPC_GET_ARG1(*answer),
 		    IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
 		    IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
 	}
@@ -306,9 +311,9 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 		if (proto == NULL)
 			proto = proto_unknown;
 
-		cphone = IPC_GET_ARG5(*answer);
+		cphone = (cap_phone_handle_t) IPC_GET_ARG5(*answer);
 		if ((display_mask & DM_SYSTEM) != 0) {
-			printf("Registering connection (phone %d, protocol: %s)\n", cphone,
+			printf("Registering connection (phone %p, protocol: %s)\n", cphone,
 		    proto->name);
 		}
 
@@ -316,7 +321,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	}
 }
 
-void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
+void ipcp_call_in(ipc_call_t *call, cap_call_handle_t chandle)
 {
 	ht_link_t *item;
 	pending_call_t *pcall;
@@ -324,12 +329,12 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	if ((call->flags & IPC_CALL_ANSWERED) == 0) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
-			printf("Not a response (hash %d)\n", hash);
+			printf("Not a response (handle %p)\n", chandle);
 		}
 		return;
 	}
 
-	item = hash_table_find(&pending_calls, &hash);
+	item = hash_table_find(&pending_calls, &chandle);
 	if (item == NULL)
 		return; /* No matching question found */
 
@@ -338,16 +343,16 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	 */
 
 	pcall = hash_table_get_inst(item, pending_call_t, link);
-	hash_table_remove(&pending_calls, &hash);
+	hash_table_remove(&pending_calls, &chandle);
 
-	parse_answer(hash, pcall, call);
+	parse_answer(chandle, pcall, call);
 	free(pcall);
 }
 
-void ipcp_hangup(int phone, errno_t rc)
+void ipcp_hangup(cap_phone_handle_t phone, errno_t rc)
 {
 	if ((display_mask & DM_SYSTEM) != 0) {
-		printf("Hang phone %d up -> %s\n", phone, str_error_name(rc));
+		printf("Hang up phone %p -> %s\n", phone, str_error_name(rc));
 		ipcp_connection_clear(phone);
 	}
 }

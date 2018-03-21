@@ -39,26 +39,28 @@
 #include <ipc/irq.h>
 #include <typedefs.h>
 
-extern errno_t ipc_req_internal(int, ipc_data_t *, sysarg_t);
+extern errno_t ipc_req_internal(cap_phone_handle_t, ipc_data_t *, sysarg_t);
 
-extern sys_errno_t sys_ipc_call_async_fast(sysarg_t, sysarg_t, sysarg_t,
+extern sys_errno_t sys_ipc_call_async_fast(cap_phone_handle_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t);
+extern sys_errno_t sys_ipc_call_async_slow(cap_phone_handle_t, ipc_data_t *,
+    sysarg_t);
+extern sys_errno_t sys_ipc_answer_fast(cap_call_handle_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t);
-extern sys_errno_t sys_ipc_call_async_slow(sysarg_t, ipc_data_t *, sysarg_t);
-extern sys_errno_t sys_ipc_answer_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t);
-extern sys_errno_t sys_ipc_answer_slow(sysarg_t, ipc_data_t *);
+extern sys_errno_t sys_ipc_answer_slow(cap_call_handle_t, ipc_data_t *);
 extern sys_errno_t sys_ipc_wait_for_call(ipc_data_t *, uint32_t, unsigned int);
 extern sys_errno_t sys_ipc_poke(void);
-extern sys_errno_t sys_ipc_forward_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, unsigned int);
-extern sys_errno_t sys_ipc_forward_slow(sysarg_t, sysarg_t, ipc_data_t *,
-    unsigned int);
-extern sys_errno_t sys_ipc_hangup(sysarg_t);
+extern sys_errno_t sys_ipc_forward_fast(cap_call_handle_t, cap_phone_handle_t,
+    sysarg_t, sysarg_t, sysarg_t, unsigned int);
+extern sys_errno_t sys_ipc_forward_slow(cap_call_handle_t, cap_phone_handle_t,
+    ipc_data_t *, unsigned int);
+extern sys_errno_t sys_ipc_hangup(cap_phone_handle_t);
 
-extern sys_errno_t sys_ipc_irq_subscribe(inr_t, sysarg_t, irq_code_t *, cap_handle_t *);
-extern sys_errno_t sys_ipc_irq_unsubscribe(sysarg_t);
+extern sys_errno_t sys_ipc_irq_subscribe(inr_t, sysarg_t, irq_code_t *,
+    cap_irq_handle_t *);
+extern sys_errno_t sys_ipc_irq_unsubscribe(cap_irq_handle_t);
 
-extern sys_errno_t sys_ipc_connect_kbox(task_id_t *, cap_handle_t *);
+extern sys_errno_t sys_ipc_connect_kbox(task_id_t *, cap_phone_handle_t *);
 
 #endif
 

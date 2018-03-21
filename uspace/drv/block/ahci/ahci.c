@@ -1183,7 +1183,7 @@ static ahci_dev_t *ahci_ahci_create(ddf_dev_t *dev)
 	ct.rangecount = sizeof(ahci_ranges) / sizeof(irq_pio_range_t);
 	ct.ranges = ahci_ranges;
 
-	int irq_cap;
+	cap_irq_handle_t irq_cap;
 	errno_t rc = register_interrupt_handler(dev,
 	    hw_res_parsed.irqs.irqs[0], ahci_interrupt, &ct, &irq_cap);
 	if (rc != EOK) {

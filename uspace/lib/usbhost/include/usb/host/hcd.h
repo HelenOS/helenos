@@ -57,8 +57,8 @@ typedef struct hc_device {
 	/* Control function */
 	ddf_fun_t *ctl_fun;
 
-	/* Result of enabling HW IRQs */
-	int irq_cap;
+	/* IRQ capability handle of the subscribed IRQ code */
+	cap_irq_handle_t irq_handle;
 
 	/** Interrupt replacement fibril */
 	fid_t polling_fibril;

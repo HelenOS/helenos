@@ -164,7 +164,7 @@ typedef struct ns8250 {
 	/** The irq assigned to this device. */
 	int irq;
 	/** IRQ capability handle */
-	int irq_cap;
+	cap_irq_handle_t irq_handle;
 	/** The base i/o address of the devices registers. */
 	uintptr_t io_addr;
 	/** The i/o port used to access the serial ports registers. */
@@ -803,10 +803,10 @@ static inline void ns8250_interrupt_handler(ipc_call_t *icall, ddf_dev_t *dev)
  * @param ns		Serial port device
  */
 static inline errno_t ns8250_register_interrupt_handler(ns8250_t *ns,
-    cap_handle_t *handle)
+    cap_irq_handle_t *ihandle)
 {
 	return register_interrupt_handler(ns->dev, ns->irq,
-	    ns8250_interrupt_handler, NULL, handle);
+	    ns8250_interrupt_handler, NULL, ihandle);
 }
 
 /** Unregister the interrupt handler for the device.
@@ -815,7 +815,7 @@ static inline errno_t ns8250_register_interrupt_handler(ns8250_t *ns,
  */
 static inline errno_t ns8250_unregister_interrupt_handler(ns8250_t *ns)
 {
-	return unregister_interrupt_handler(ns->dev, ns->irq_cap);
+	return unregister_interrupt_handler(ns->dev, ns->irq_handle);
 }
 
 /** The dev_add callback method of the serial port driver.
@@ -875,7 +875,8 @@ static errno_t ns8250_dev_add(ddf_dev_t *dev)
 	ns8250_initialize_port(ns);
 
 	/* Register interrupt handler. */
-	rc = ns8250_register_interrupt_handler(ns, &ns->irq_cap);
+	ns->irq_handle = CAP_NIL;
+	rc = ns8250_register_interrupt_handler(ns, &ns->irq_handle);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.");
 		rc = EADDRNOTAVAIL;
