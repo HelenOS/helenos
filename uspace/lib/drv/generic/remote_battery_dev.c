@@ -117,13 +117,13 @@ const remote_iface_t remote_battery_dev_iface = {
  * @param ops    The local ops structure
  */
 static void
-remote_battery_status_get(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
+remote_battery_status_get(ddf_fun_t *fun, void *ops, cap_call_handle_t chandle,
     ipc_call_t *call)
 {
 	const battery_dev_ops_t *bops = (battery_dev_ops_t *) ops;
 
 	if (bops->battery_status_get == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
@@ -131,9 +131,9 @@ remote_battery_status_get(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
 	const errno_t rc = bops->battery_status_get(fun, &batt_status);
 
 	if (rc != EOK)
-		async_answer_0(callid, rc);
+		async_answer_0(chandle, rc);
 	else
-		async_answer_1(callid, rc, batt_status);
+		async_answer_1(chandle, rc, batt_status);
 }
 
 /** Process the battery_charge_level_get() request from the remote client
@@ -143,13 +143,13 @@ remote_battery_status_get(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
  *
  */
 static void
-remote_battery_charge_level_get(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
+remote_battery_charge_level_get(ddf_fun_t *fun, void *ops, cap_call_handle_t chandle,
     ipc_call_t *call)
 {
 	const battery_dev_ops_t *bops = (battery_dev_ops_t *) ops;
 
 	if (bops->battery_charge_level_get == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
@@ -157,8 +157,8 @@ remote_battery_charge_level_get(ddf_fun_t *fun, void *ops, cap_call_handle_t cal
 	const errno_t rc = bops->battery_charge_level_get(fun, &battery_level);
 
 	if (rc != EOK)
-		async_answer_0(callid, rc);
+		async_answer_0(chandle, rc);
 	else
-		async_answer_1(callid, rc, battery_level);
+		async_answer_1(chandle, rc, battery_level);
 }
 

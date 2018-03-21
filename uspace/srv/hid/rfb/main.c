@@ -145,9 +145,9 @@ static void syntax_print(void)
 	fprintf(stderr, "Usage: %s <name> <width> <height> [port]\n", NAME);
 }
 
-static void client_connection(cap_call_handle_t callid, ipc_call_t *call, void *data)
+static void client_connection(cap_call_handle_t chandle, ipc_call_t *call, void *data)
 {
-	graph_visualizer_connection(vis, callid, call, data);
+	graph_visualizer_connection(vis, chandle, call, data);
 }
 
 int main(int argc, char **argv)

@@ -723,37 +723,37 @@ static errno_t tcp_conn_recv_impl(tcp_client_t *client, sysarg_t conn_id,
  *
  * Handle client request to create callback session.
  *
- * @param client  TCP client
- * @param iid     Async request ID
- * @param icall   Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void tcp_callback_create_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_callback_create_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_callback_create_srv()");
 
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
 	client->sess = sess;
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 }
 
 /** Create connection.
  *
  * Handle client request to create connection.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void tcp_conn_create_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_conn_create_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 	inet_ep2_t epp;
 	sysarg_t conn_id;
@@ -761,44 +761,44 @@ static void tcp_conn_create_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_create_srv()");
 
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_ep2_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_write_finalize(callid, &epp, size);
+	rc = async_data_write_finalize(chandle, &epp, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	rc = tcp_conn_create_impl(client, &epp, &conn_id);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	async_answer_1(iid, EOK, conn_id);
+	async_answer_1(icall_handle, EOK, conn_id);
 }
 
 /** Destroy connection.
  *
  * Handle client request to destroy connection.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle 
+ * @param icall         Async request data
  */
-static void tcp_conn_destroy_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_conn_destroy_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	sysarg_t conn_id;
 	errno_t rc;
@@ -807,21 +807,21 @@ static void tcp_conn_destroy_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	conn_id = IPC_GET_ARG1(*icall);
 	rc = tcp_conn_destroy_impl(client, conn_id);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Create listener.
  *
  * Handle client request to create listener.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle 
+ * @param icall         Async request data
  */
-static void tcp_listener_create_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_listener_create_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 	inet_ep_t ep;
 	sysarg_t lst_id;
@@ -829,44 +829,44 @@ static void tcp_listener_create_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_listener_create_srv()");
 
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_ep_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_write_finalize(callid, &ep, size);
+	rc = async_data_write_finalize(chandle, &ep, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	rc = tcp_listener_create_impl(client, &ep, &lst_id);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	async_answer_1(iid, EOK, lst_id);
+	async_answer_1(icall_handle, EOK, lst_id);
 }
 
 /** Destroy listener.
  *
  * Handle client request to destroy listener.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void tcp_listener_destroy_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_listener_destroy_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	sysarg_t lst_id;
 	errno_t rc;
@@ -875,19 +875,19 @@ static void tcp_listener_destroy_srv(tcp_client_t *client, cap_call_handle_t iid
 
 	lst_id = IPC_GET_ARG1(*icall);
 	rc = tcp_listener_destroy_impl(client, lst_id);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Send FIN.
  *
  * Handle client request to send FIN.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle 
+ * @param icall         Async request data
  */
-static void tcp_conn_send_fin_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_conn_send_fin_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	sysarg_t conn_id;
 	errno_t rc;
@@ -896,19 +896,19 @@ static void tcp_conn_send_fin_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	conn_id = IPC_GET_ARG1(*icall);
 	rc = tcp_conn_send_fin_impl(client, conn_id);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Push connection.
  *
  * Handle client request to push connection.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void tcp_conn_push_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_conn_push_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	sysarg_t conn_id;
 	errno_t rc;
@@ -917,19 +917,19 @@ static void tcp_conn_push_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	conn_id = IPC_GET_ARG1(*icall);
 	rc = tcp_conn_push_impl(client, conn_id);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Reset connection.
  *
  * Handle client request to reset connection.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void tcp_conn_reset_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_conn_reset_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	sysarg_t conn_id;
 	errno_t rc;
@@ -938,21 +938,21 @@ static void tcp_conn_reset_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	conn_id = IPC_GET_ARG1(*icall);
 	rc = tcp_conn_reset_impl(client, conn_id);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Send data via connection..
  *
  * Handle client request to send data via connection.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void tcp_conn_send_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_conn_send_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 	sysarg_t conn_id;
 	void *data;
@@ -962,29 +962,29 @@ static void tcp_conn_send_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	/* Receive message data */
 
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size > MAX_MSG_SIZE) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	data = malloc(size);
 	if (data == NULL) {
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
-	rc = async_data_write_finalize(callid, data, size);
+	rc = async_data_write_finalize(chandle, data, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		free(data);
 		return;
 	}
@@ -993,12 +993,12 @@ static void tcp_conn_send_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	rc = tcp_conn_send_impl(client, conn_id, data, size);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		free(data);
 		return;
 	}
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 	free(data);
 }
 
@@ -1006,14 +1006,14 @@ static void tcp_conn_send_srv(tcp_client_t *client, cap_call_handle_t iid,
  *
  * Handle client request to read received data via connection without blocking.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void tcp_conn_recv_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_conn_recv_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	sysarg_t conn_id;
 	size_t size, rsize;
 	void *data;
@@ -1023,36 +1023,36 @@ static void tcp_conn_recv_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	conn_id = IPC_GET_ARG1(*icall);
 
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	size = min(size, 16384);
 	data = malloc(size);
 	if (data == NULL) {
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
 	rc = tcp_conn_recv_impl(client, conn_id, data, size, &rsize);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		free(data);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, data, size);
+	rc = async_data_read_finalize(chandle, data, size);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		free(data);
 		return;
 	}
 
-	async_answer_1(iid, EOK, rsize);
+	async_answer_1(icall_handle, EOK, rsize);
 	free(data);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_srv(): OK");
@@ -1062,14 +1062,14 @@ static void tcp_conn_recv_srv(tcp_client_t *client, cap_call_handle_t iid,
  *
  * Handle client request to read received data via connection with blocking.
  *
- * @param client   TCP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        TCP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void tcp_conn_recv_wait_srv(tcp_client_t *client, cap_call_handle_t iid,
-    ipc_call_t *icall)
+static void tcp_conn_recv_wait_srv(tcp_client_t *client,
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	sysarg_t conn_id;
 	size_t size, rsize;
 	void *data;
@@ -1079,10 +1079,10 @@ static void tcp_conn_recv_wait_srv(tcp_client_t *client, cap_call_handle_t iid,
 
 	conn_id = IPC_GET_ARG1(*icall);
 
-	if (!async_data_read_receive(&callid, &size)) {
+	if (!async_data_read_receive(&chandle, &size)) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - data_receive failed");
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
@@ -1090,30 +1090,30 @@ static void tcp_conn_recv_wait_srv(tcp_client_t *client, cap_call_handle_t iid,
 	data = malloc(size);
 	if (data == NULL) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - allocation failed");
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
 	rc = tcp_conn_recv_impl(client, conn_id, data, size, &rsize);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - recv_impl failed rc=%s", str_error_name(rc));
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		free(data);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, data, size);
+	rc = async_data_read_finalize(chandle, data, size);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv - finalize failed");
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		free(data);
 		return;
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv(): rsize=%zu", size);
-	async_answer_1(iid, EOK, rsize);
+	async_answer_1(icall_handle, EOK, rsize);
 	free(data);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_recv_wait_srv(): OK");
@@ -1167,16 +1167,17 @@ static void tcp_client_fini(tcp_client_t *client)
 
 /** Handle TCP client connection.
  *
- * @param iid   Connect call ID
- * @param icall Connect call data
- * @param arg   Connection argument
+ * @param icall_handle  Connect call handle
+ * @param icall         Connect call data
+ * @param arg           Connection argument
  */
-static void tcp_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void tcp_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall,
+    void *arg)
 {
 	tcp_client_t client;
 
 	/* Accept the connection */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_client_conn() - client=%p",
 	    &client);
@@ -1186,53 +1187,53 @@ static void tcp_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_client_conn: wait req");
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_client_conn: method=%d",
 		    (int)method);
 		if (!method) {
 			/* The other side has hung up */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			break;
 		}
 
 		switch (method) {
 		case TCP_CALLBACK_CREATE:
-			tcp_callback_create_srv(&client, callid, &call);
+			tcp_callback_create_srv(&client, chandle, &call);
 			break;
 		case TCP_CONN_CREATE:
-			tcp_conn_create_srv(&client, callid, &call);
+			tcp_conn_create_srv(&client, chandle, &call);
 			break;
 		case TCP_CONN_DESTROY:
-			tcp_conn_destroy_srv(&client, callid, &call);
+			tcp_conn_destroy_srv(&client, chandle, &call);
 			break;
 		case TCP_LISTENER_CREATE:
-			tcp_listener_create_srv(&client, callid, &call);
+			tcp_listener_create_srv(&client, chandle, &call);
 			break;
 		case TCP_LISTENER_DESTROY:
-			tcp_listener_destroy_srv(&client, callid, &call);
+			tcp_listener_destroy_srv(&client, chandle, &call);
 			break;
 		case TCP_CONN_SEND_FIN:
-			tcp_conn_send_fin_srv(&client, callid, &call);
+			tcp_conn_send_fin_srv(&client, chandle, &call);
 			break;
 		case TCP_CONN_PUSH:
-			tcp_conn_push_srv(&client, callid, &call);
+			tcp_conn_push_srv(&client, chandle, &call);
 			break;
 		case TCP_CONN_RESET:
-			tcp_conn_reset_srv(&client, callid, &call);
+			tcp_conn_reset_srv(&client, chandle, &call);
 			break;
 		case TCP_CONN_SEND:
-			tcp_conn_send_srv(&client, callid, &call);
+			tcp_conn_send_srv(&client, chandle, &call);
 			break;
 		case TCP_CONN_RECV:
-			tcp_conn_recv_srv(&client, callid, &call);
+			tcp_conn_recv_srv(&client, chandle, &call);
 			break;
 		case TCP_CONN_RECV_WAIT:
-			tcp_conn_recv_wait_srv(&client, callid, &call);
+			tcp_conn_recv_wait_srv(&client, chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 			break;
 		}
 	}

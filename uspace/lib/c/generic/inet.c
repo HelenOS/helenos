@@ -35,7 +35,7 @@
 #include <loc.h>
 #include <stdlib.h>
 
-static void inet_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg);
+static void inet_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
 
 static async_sess_t *inet_sess = NULL;
 static inet_ev_ops_t *inet_ev_ops = NULL;
@@ -175,69 +175,69 @@ errno_t inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	return retval;
 }
 
-static void inet_ev_recv(cap_call_handle_t iid, ipc_call_t *icall)
+static void inet_ev_recv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	inet_dgram_t dgram;
 
 	dgram.tos = IPC_GET_ARG1(*icall);
 	dgram.iplink = IPC_GET_ARG2(*icall);
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	errno_t rc = async_data_write_finalize(callid, &dgram.src, size);
+	errno_t rc = async_data_write_finalize(chandle, &dgram.src, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_write_finalize(callid, &dgram.dest, size);
+	rc = async_data_write_finalize(chandle, &dgram.dest, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	rc = async_data_write_accept(&dgram.data, false, 0, 0, 0, &dgram.size);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	rc = inet_ev_ops->recv(&dgram);
 	free(dgram.data);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void inet_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void inet_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -246,10 +246,10 @@ static void inet_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case INET_EV_RECV:
-			inet_ev_recv(callid, &call);
+			inet_ev_recv(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 		}
 	}
 }

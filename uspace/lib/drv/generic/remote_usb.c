@@ -106,21 +106,21 @@ const remote_iface_t remote_usb_iface = {
 };
 
 void remote_usb_get_my_description(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
 
 	if (usb_iface->get_my_description == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	usb_device_desc_t desc;
 	const errno_t ret = usb_iface->get_my_description(fun, &desc);
 	if (ret != EOK) {
-		async_answer_0(callid, ret);
+		async_answer_0(chandle, ret);
 	} else {
-		async_answer_5(callid, EOK,
+		async_answer_5(chandle, EOK,
 		    (sysarg_t) desc.address,
 		    (sysarg_t) desc.depth,
 		    (sysarg_t) desc.speed,

@@ -252,32 +252,32 @@ static errno_t inetcfg_sroute_get_id(char *name, sysarg_t *sroute_id)
 	return EOK;
 }
 
-static void inetcfg_addr_create_static_srv(cap_call_handle_t iid,
+static void inetcfg_addr_create_static_srv(cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_create_static_srv()");
 
 	sysarg_t link_id = IPC_GET_ARG1(*icall);
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(inet_naddr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	inet_naddr_t naddr;
-	errno_t rc = async_data_write_finalize(callid, &naddr, size);
+	errno_t rc = async_data_write_finalize(chandle, &naddr, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
@@ -285,17 +285,17 @@ static void inetcfg_addr_create_static_srv(cap_call_handle_t iid,
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	sysarg_t addr_id = 0;
 	rc = inetcfg_addr_create_static(name, &naddr, link_id, &addr_id);
 	free(name);
-	async_answer_1(iid, rc, addr_id);
+	async_answer_1(icall_handle, rc, addr_id);
 }
 
-static void inetcfg_addr_delete_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_addr_delete_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	sysarg_t addr_id;
 	errno_t rc;
@@ -305,10 +305,10 @@ static void inetcfg_addr_delete_srv(cap_call_handle_t callid, ipc_call_t *call)
 	addr_id = IPC_GET_ARG1(*call);
 
 	rc = inetcfg_addr_delete(addr_id);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
-static void inetcfg_addr_get_srv(cap_call_handle_t iid, ipc_call_t *icall)
+static void inetcfg_addr_get_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_get_srv()");
 
@@ -322,51 +322,51 @@ static void inetcfg_addr_get_srv(cap_call_handle_t iid, ipc_call_t *icall)
 
 	errno_t rc = inetcfg_addr_get(addr_id, &ainfo);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_naddr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, &ainfo.naddr, size);
+	rc = async_data_read_finalize(chandle, &ainfo.naddr, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, ainfo.name,
+	rc = async_data_read_finalize(chandle, ainfo.name,
 	    min(size, str_size(ainfo.name)));
 	free(ainfo.name);
 
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	async_answer_1(iid, rc, ainfo.ilink);
+	async_answer_1(icall_handle, rc, ainfo.ilink);
 }
 
-static void inetcfg_addr_get_id_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_addr_get_id_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	char *name;
 	sysarg_t link_id;
@@ -380,19 +380,19 @@ static void inetcfg_addr_get_id_srv(cap_call_handle_t callid, ipc_call_t *call)
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
+		async_answer_0(chandle, rc);
 		return;
 	}
 
 	addr_id = 0;
 	rc = inetcfg_addr_get_id(name, link_id, &addr_id);
 	free(name);
-	async_answer_1(callid, rc, addr_id);
+	async_answer_1(chandle, rc, addr_id);
 }
 
-static void inetcfg_get_addr_list_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_get_addr_list_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
-	cap_call_handle_t rcallid;
+	cap_call_handle_t rcall_handle;
 	size_t count;
 	size_t max_size;
 	size_t act_size;
@@ -402,31 +402,31 @@ static void inetcfg_get_addr_list_srv(cap_call_handle_t callid, ipc_call_t *call
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_get_addr_list_srv()");
 
-	if (!async_data_read_receive(&rcallid, &max_size)) {
-		async_answer_0(rcallid, EREFUSED);
-		async_answer_0(callid, EREFUSED);
+	if (!async_data_read_receive(&rcall_handle, &max_size)) {
+		async_answer_0(rcall_handle, EREFUSED);
+		async_answer_0(chandle, EREFUSED);
 		return;
 	}
 
 	rc = inetcfg_get_addr_list(&id_buf, &count);
 	if (rc != EOK) {
-		async_answer_0(rcallid, rc);
-		async_answer_0(callid, rc);
+		async_answer_0(rcall_handle, rc);
+		async_answer_0(chandle, rc);
 		return;
 	}
 
 	act_size = count * sizeof(sysarg_t);
 	size = min(act_size, max_size);
 
-	errno_t retval = async_data_read_finalize(rcallid, id_buf, size);
+	errno_t retval = async_data_read_finalize(rcall_handle, id_buf, size);
 	free(id_buf);
 
-	async_answer_1(callid, retval, act_size);
+	async_answer_1(chandle, retval, act_size);
 }
 
-static void inetcfg_get_link_list_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_get_link_list_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
-	cap_call_handle_t rcallid;
+	cap_call_handle_t rcall_handle;
 	size_t count;
 	size_t max_size;
 	size_t act_size;
@@ -436,31 +436,31 @@ static void inetcfg_get_link_list_srv(cap_call_handle_t callid, ipc_call_t *call
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_get_addr_list_srv()");
 
-	if (!async_data_read_receive(&rcallid, &max_size)) {
-		async_answer_0(rcallid, EREFUSED);
-		async_answer_0(callid, EREFUSED);
+	if (!async_data_read_receive(&rcall_handle, &max_size)) {
+		async_answer_0(rcall_handle, EREFUSED);
+		async_answer_0(chandle, EREFUSED);
 		return;
 	}
 
 	rc = inetcfg_get_link_list(&id_buf, &count);
 	if (rc != EOK) {
-		async_answer_0(rcallid, rc);
-		async_answer_0(callid, rc);
+		async_answer_0(rcall_handle, rc);
+		async_answer_0(chandle, rc);
 		return;
 	}
 
 	act_size = count * sizeof(sysarg_t);
 	size = min(act_size, max_size);
 
-	errno_t retval = async_data_read_finalize(rcallid, id_buf, size);
+	errno_t retval = async_data_read_finalize(rcall_handle, id_buf, size);
 	free(id_buf);
 
-	async_answer_1(callid, retval, act_size);
+	async_answer_1(chandle, retval, act_size);
 }
 
-static void inetcfg_get_sroute_list_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_get_sroute_list_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
-	cap_call_handle_t rcallid;
+	cap_call_handle_t rcall_handle;
 	size_t count;
 	size_t max_size;
 	size_t act_size;
@@ -470,29 +470,29 @@ static void inetcfg_get_sroute_list_srv(cap_call_handle_t callid, ipc_call_t *ca
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_get_sroute_list_srv()");
 
-	if (!async_data_read_receive(&rcallid, &max_size)) {
-		async_answer_0(rcallid, EREFUSED);
-		async_answer_0(callid, EREFUSED);
+	if (!async_data_read_receive(&rcall_handle, &max_size)) {
+		async_answer_0(rcall_handle, EREFUSED);
+		async_answer_0(chandle, EREFUSED);
 		return;
 	}
 
 	rc = inetcfg_get_sroute_list(&id_buf, &count);
 	if (rc != EOK) {
-		async_answer_0(rcallid, rc);
-		async_answer_0(callid, rc);
+		async_answer_0(rcall_handle, rc);
+		async_answer_0(chandle, rc);
 		return;
 	}
 
 	act_size = count * sizeof(sysarg_t);
 	size = min(act_size, max_size);
 
-	errno_t retval = async_data_read_finalize(rcallid, id_buf, size);
+	errno_t retval = async_data_read_finalize(rcall_handle, id_buf, size);
 	free(id_buf);
 
-	async_answer_1(callid, retval, act_size);
+	async_answer_1(chandle, retval, act_size);
 }
 
-static void inetcfg_link_add_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_link_add_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	sysarg_t link_id;
 	errno_t rc;
@@ -502,13 +502,13 @@ static void inetcfg_link_add_srv(cap_call_handle_t callid, ipc_call_t *call)
 	link_id = IPC_GET_ARG1(*call);
 
 	rc = inetcfg_link_add(link_id);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
-static void inetcfg_link_get_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_link_get_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
-	cap_call_handle_t name_callid;
-	cap_call_handle_t laddr_callid;
+	cap_call_handle_t name_chandle;
+	cap_call_handle_t laddr_chandle;
 	size_t name_max_size;
 	size_t laddr_max_size;
 
@@ -521,44 +521,44 @@ static void inetcfg_link_get_srv(cap_call_handle_t callid, ipc_call_t *call)
 
 	linfo.name = NULL;
 
-	if (!async_data_read_receive(&name_callid, &name_max_size)) {
-		async_answer_0(name_callid, EREFUSED);
-		async_answer_0(callid, EREFUSED);
+	if (!async_data_read_receive(&name_chandle, &name_max_size)) {
+		async_answer_0(name_chandle, EREFUSED);
+		async_answer_0(chandle, EREFUSED);
 		return;
 	}
 
-	if (!async_data_read_receive(&laddr_callid, &laddr_max_size)) {
-		async_answer_0(name_callid, EREFUSED);
-		async_answer_0(callid, EREFUSED);
+	if (!async_data_read_receive(&laddr_chandle, &laddr_max_size)) {
+		async_answer_0(name_chandle, EREFUSED);
+		async_answer_0(chandle, EREFUSED);
 		return;
 	}
 
 	rc = inetcfg_link_get(link_id, &linfo);
 	if (rc != EOK) {
-		async_answer_0(laddr_callid, rc);
-		async_answer_0(name_callid, rc);
-		async_answer_0(callid, rc);
+		async_answer_0(laddr_chandle, rc);
+		async_answer_0(name_chandle, rc);
+		async_answer_0(chandle, rc);
 		return;
 	}
 
-	errno_t retval = async_data_read_finalize(name_callid, linfo.name,
+	errno_t retval = async_data_read_finalize(name_chandle, linfo.name,
 	    min(name_max_size, str_size(linfo.name)));
 	if (retval != EOK) {
 		free(linfo.name);
-		async_answer_0(laddr_callid, retval);
-		async_answer_0(callid, retval);
+		async_answer_0(laddr_chandle, retval);
+		async_answer_0(chandle, retval);
 		return;
 	}
 
-	retval = async_data_read_finalize(laddr_callid, &linfo.mac_addr,
+	retval = async_data_read_finalize(laddr_chandle, &linfo.mac_addr,
 	    min(laddr_max_size, sizeof(linfo.mac_addr)));
 
 	free(linfo.name);
 
-	async_answer_1(callid, retval, linfo.def_mtu);
+	async_answer_1(chandle, retval, linfo.def_mtu);
 }
 
-static void inetcfg_link_remove_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_link_remove_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	sysarg_t link_id;
 	errno_t rc;
@@ -568,53 +568,53 @@ static void inetcfg_link_remove_srv(cap_call_handle_t callid, ipc_call_t *call)
 	link_id = IPC_GET_ARG1(*call);
 
 	rc = inetcfg_link_remove(link_id);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
-static void inetcfg_sroute_create_srv(cap_call_handle_t iid,
+static void inetcfg_sroute_create_srv(cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_create_srv()");
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(inet_naddr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	inet_naddr_t dest;
-	errno_t rc = async_data_write_finalize(callid, &dest, size);
+	errno_t rc = async_data_write_finalize(chandle, &dest, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	inet_addr_t router;
-	rc = async_data_write_finalize(callid, &router, size);
+	rc = async_data_write_finalize(chandle, &router, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
@@ -622,17 +622,17 @@ static void inetcfg_sroute_create_srv(cap_call_handle_t iid,
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	sysarg_t sroute_id = 0;
 	rc = inetcfg_sroute_create(name, &dest, &router, &sroute_id);
 	free(name);
-	async_answer_1(iid, rc, sroute_id);
+	async_answer_1(icall_handle, rc, sroute_id);
 }
 
-static void inetcfg_sroute_delete_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_sroute_delete_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	sysarg_t sroute_id;
 	errno_t rc;
@@ -642,10 +642,10 @@ static void inetcfg_sroute_delete_srv(cap_call_handle_t callid, ipc_call_t *call
 	sroute_id = IPC_GET_ARG1(*call);
 
 	rc = inetcfg_sroute_delete(sroute_id);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
-static void inetcfg_sroute_get_srv(cap_call_handle_t iid, ipc_call_t *icall)
+static void inetcfg_sroute_get_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_get_srv()");
 
@@ -659,64 +659,64 @@ static void inetcfg_sroute_get_srv(cap_call_handle_t iid, ipc_call_t *icall)
 
 	errno_t rc = inetcfg_sroute_get(sroute_id, &srinfo);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_naddr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, &srinfo.dest, size);
+	rc = async_data_read_finalize(chandle, &srinfo.dest, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, &srinfo.router, size);
+	rc = async_data_read_finalize(chandle, &srinfo.router, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, srinfo.name,
+	rc = async_data_read_finalize(chandle, srinfo.name,
 	    min(size, str_size(srinfo.name)));
 	free(srinfo.name);
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void inetcfg_sroute_get_id_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void inetcfg_sroute_get_id_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	char *name;
 	sysarg_t sroute_id;
@@ -727,80 +727,80 @@ static void inetcfg_sroute_get_id_srv(cap_call_handle_t callid, ipc_call_t *call
 	rc = async_data_write_accept((void **) &name, true, 0, LOC_NAME_MAXLEN,
 	    0, NULL);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
+		async_answer_0(chandle, rc);
 		return;
 	}
 
 	sroute_id = 0;
 	rc = inetcfg_sroute_get_id(name, &sroute_id);
 	free(name);
-	async_answer_1(callid, rc, sroute_id);
+	async_answer_1(chandle, rc, sroute_id);
 }
 
-void inet_cfg_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+void inet_cfg_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_cfg_conn()");
 
 	/* Accept the connection */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "method %d", (int)method);
 		if (!method) {
 			/* The other side has hung up */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			return;
 		}
 
 		switch (method) {
 		case INETCFG_ADDR_CREATE_STATIC:
-			inetcfg_addr_create_static_srv(callid, &call);
+			inetcfg_addr_create_static_srv(chandle, &call);
 			break;
 		case INETCFG_ADDR_DELETE:
-			inetcfg_addr_delete_srv(callid, &call);
+			inetcfg_addr_delete_srv(chandle, &call);
 			break;
 		case INETCFG_ADDR_GET:
-			inetcfg_addr_get_srv(callid, &call);
+			inetcfg_addr_get_srv(chandle, &call);
 			break;
 		case INETCFG_ADDR_GET_ID:
-			inetcfg_addr_get_id_srv(callid, &call);
+			inetcfg_addr_get_id_srv(chandle, &call);
 			break;
 		case INETCFG_GET_ADDR_LIST:
-			inetcfg_get_addr_list_srv(callid, &call);
+			inetcfg_get_addr_list_srv(chandle, &call);
 			break;
 		case INETCFG_GET_LINK_LIST:
-			inetcfg_get_link_list_srv(callid, &call);
+			inetcfg_get_link_list_srv(chandle, &call);
 			break;
 		case INETCFG_GET_SROUTE_LIST:
-			inetcfg_get_sroute_list_srv(callid, &call);
+			inetcfg_get_sroute_list_srv(chandle, &call);
 			break;
 		case INETCFG_LINK_ADD:
-			inetcfg_link_add_srv(callid, &call);
+			inetcfg_link_add_srv(chandle, &call);
 			break;
 		case INETCFG_LINK_GET:
-			inetcfg_link_get_srv(callid, &call);
+			inetcfg_link_get_srv(chandle, &call);
 			break;
 		case INETCFG_LINK_REMOVE:
-			inetcfg_link_remove_srv(callid, &call);
+			inetcfg_link_remove_srv(chandle, &call);
 			break;
 		case INETCFG_SROUTE_CREATE:
-			inetcfg_sroute_create_srv(callid, &call);
+			inetcfg_sroute_create_srv(chandle, &call);
 			break;
 		case INETCFG_SROUTE_DELETE:
-			inetcfg_sroute_delete_srv(callid, &call);
+			inetcfg_sroute_delete_srv(chandle, &call);
 			break;
 		case INETCFG_SROUTE_GET:
-			inetcfg_sroute_get_srv(callid, &call);
+			inetcfg_sroute_get_srv(chandle, &call);
 			break;
 		case INETCFG_SROUTE_GET_ID:
-			inetcfg_sroute_get_id_srv(callid, &call);
+			inetcfg_sroute_get_id_srv(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 		}
 	}
 }

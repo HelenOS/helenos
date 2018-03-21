@@ -292,12 +292,12 @@ static errno_t polling(void *arg)
 /** Default handler for IPC methods not handled by DDF.
  *
  * @param fun     Device function handling the call.
- * @param icallid Call id.
+ * @param icall_handle Call id.
  * @param icall   Call data.
  *
  */
 static void default_connection_handler(ddf_fun_t *fun,
-    cap_call_handle_t icallid, ipc_call_t *icall)
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	at_kbd_t *kbd = ddf_dev_data_get(ddf_fun_get_dev(fun));
@@ -305,7 +305,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 
 	switch (method) {
 	case KBDEV_SET_IND:
-		async_answer_0(icallid, ENOTSUP);
+		async_answer_0(icall_handle, ENOTSUP);
 		break;
 	/*
 	 * This might be ugly but async_callback_receive_start makes no
@@ -318,23 +318,23 @@ static void default_connection_handler(ddf_fun_t *fun,
 		if (sess == NULL) {
 			ddf_msg(LVL_WARN,
 			    "Failed creating callback session");
-			async_answer_0(icallid, EAGAIN);
+			async_answer_0(icall_handle, EAGAIN);
 			break;
 		}
 
 		if (kbd->client_sess == NULL) {
 			kbd->client_sess = sess;
 			ddf_msg(LVL_DEBUG, "Set client session");
-			async_answer_0(icallid, EOK);
+			async_answer_0(icall_handle, EOK);
 		} else {
 			ddf_msg(LVL_ERROR, "Client session already set");
-			async_answer_0(icallid, ELIMIT);
+			async_answer_0(icall_handle, ELIMIT);
 		}
 
 		break;
 	default:
 		ddf_msg(LVL_ERROR, "Unknown method: %d.", (int)method);
-		async_answer_0(icallid, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		break;
 	}
 }

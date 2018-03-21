@@ -53,24 +53,24 @@ static usbvirt_device_t *DEV = NULL;
  * @param icall Initial incoming call
  * @param arg   Local argument
  */
-static void callback_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void callback_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	assert(DEV != NULL);
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
-		cap_call_handle_t callid;
+		cap_call_handle_t chandle;
 		ipc_call_t call;
 
-		callid = async_get_call(&call);
-		bool processed = usbvirt_ipc_handle_call(DEV, callid, &call);
+		chandle = async_get_call(&call);
+		bool processed = usbvirt_ipc_handle_call(DEV, chandle, &call);
 		if (!processed) {
 			if (!IPC_GET_IMETHOD(call)) {
-				async_answer_0(callid, EOK);
+				async_answer_0(chandle, EOK);
 				return;
 			} else
-				async_answer_0(callid, EINVAL);
+				async_answer_0(chandle, EINVAL);
 		}
 	}
 }

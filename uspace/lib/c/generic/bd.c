@@ -45,7 +45,7 @@
 #include <stdlib.h>
 #include <offset.h>
 
-static void bd_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg);
+static void bd_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
 
 errno_t bd_open(async_sess_t *sess, bd_t **rbd)
 {
@@ -195,7 +195,7 @@ errno_t bd_get_num_blocks(bd_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-static void bd_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void bd_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	bd_t *bd = (bd_t *)arg;
 
@@ -203,7 +203,7 @@ static void bd_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -212,7 +212,7 @@ static void bd_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 
 		switch (IPC_GET_IMETHOD(call)) {
 		default:
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 		}
 	}
 }

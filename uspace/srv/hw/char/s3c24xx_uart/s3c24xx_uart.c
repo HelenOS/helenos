@@ -112,12 +112,12 @@ int main(int argc, char *argv[])
 }
 
 /** Character device connection handler. */
-static void s3c24xx_uart_connection(cap_call_handle_t iid, ipc_call_t *icall,
+static void s3c24xx_uart_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
     void *arg)
 {
 	s3c24xx_uart_t *uart = (s3c24xx_uart_t *) arg;
 
-	chardev_conn(iid, icall, &uart->cds);
+	chardev_conn(icall_handle, icall, &uart->cds);
 }
 
 

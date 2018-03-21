@@ -48,10 +48,10 @@
 #include "clonable.h"
 #include "task.h"
 
-static void ns_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void ns_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	ipc_call_t call;
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	iface_t iface;
 	service_t service;
 
@@ -62,19 +62,19 @@ static void ns_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 		 * Client requests to be connected to a service.
 		 */
 		if (service_clonable(service)) {
-			connect_to_clonable(service, iface, icall, iid);
+			connect_to_clonable(service, iface, icall, icall_handle);
 		} else {
-			connect_to_service(service, iface, icall, iid);
+			connect_to_service(service, iface, icall, icall_handle);
 		}
 		return;
 	}
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
 		process_pending_conn();
 
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
@@ -93,7 +93,7 @@ static void ns_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 			 * Server requests service registration.
 			 */
 			if (service_clonable(service)) {
-				register_clonable(service, phone, &call, callid);
+				register_clonable(service, phone, &call, chandle);
 				continue;
 			} else {
 				retval = register_service(service, phone, &call);
@@ -106,7 +106,7 @@ static void ns_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 		case NS_TASK_WAIT:
 			id = (task_id_t)
 			    MERGE_LOUP32(IPC_GET_ARG1(call), IPC_GET_ARG2(call));
-			wait_for_task(id, &call, callid);
+			wait_for_task(id, &call, chandle);
 			continue;
 		case NS_ID_INTRO:
 			retval = ns_task_id_intro(&call);
@@ -120,7 +120,7 @@ static void ns_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 			break;
 		}
 
-		async_answer_0(callid, retval);
+		async_answer_0(chandle, retval);
 	}
 
 	(void) ns_task_disconnect(&call);

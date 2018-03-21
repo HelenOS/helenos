@@ -91,14 +91,14 @@ static bool connected = false;
 
 static void ldr_get_taskid(cap_call_handle_t rid, ipc_call_t *request)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	task_id_t task_id;
 	size_t len;
 
 	task_id = task_get_id();
 
-	if (!async_data_read_receive(&callid, &len)) {
-		async_answer_0(callid, EINVAL);
+	if (!async_data_read_receive(&chandle, &len)) {
+		async_answer_0(chandle, EINVAL);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
@@ -106,7 +106,7 @@ static void ldr_get_taskid(cap_call_handle_t rid, ipc_call_t *request)
 	if (len > sizeof(task_id))
 		len = sizeof(task_id);
 
-	async_data_read_finalize(callid, &task_id, len);
+	async_data_read_finalize(chandle, &task_id, len);
 	async_answer_0(rid, EOK);
 }
 
@@ -137,15 +137,15 @@ static void ldr_set_cwd(cap_call_handle_t rid, ipc_call_t *request)
  */
 static void ldr_set_program(cap_call_handle_t rid, ipc_call_t *request)
 {
-	cap_call_handle_t writeid;
+	cap_call_handle_t write_chandle;
 	size_t namesize;
-	if (!async_data_write_receive(&writeid, &namesize)) {
+	if (!async_data_write_receive(&write_chandle, &namesize)) {
 		async_answer_0(rid, EINVAL);
 		return;
 	}
 
 	char* name = malloc(namesize);
-	errno_t rc = async_data_write_finalize(writeid, name, namesize);
+	errno_t rc = async_data_write_finalize(write_chandle, name, namesize);
 	if (rc != EOK) {
 		async_answer_0(rid, EINVAL);
 		return;
@@ -240,15 +240,15 @@ static void ldr_add_inbox(cap_call_handle_t rid, ipc_call_t *request)
 		return;
 	}
 
-	cap_call_handle_t writeid;
+	cap_call_handle_t write_chandle;
 	size_t namesize;
-	if (!async_data_write_receive(&writeid, &namesize)) {
+	if (!async_data_write_receive(&write_chandle, &namesize)) {
 		async_answer_0(rid, EINVAL);
 		return;
 	}
 
 	char* name = malloc(namesize);
-	errno_t rc = async_data_write_finalize(writeid, name, namesize);
+	errno_t rc = async_data_write_finalize(write_chandle, name, namesize);
 	if (rc != EOK) {
 		async_answer_0(rid, EINVAL);
 		return;
@@ -331,18 +331,18 @@ static __attribute__((noreturn)) void ldr_run(cap_call_handle_t rid,
  * Receive and carry out commands (of which the last one should be
  * to execute the loaded program).
  */
-static void ldr_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void ldr_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	/* Already have a connection? */
 	if (connected) {
-		async_answer_0(iid, ELIMIT);
+		async_answer_0(icall_handle, ELIMIT);
 		return;
 	}
 
 	connected = true;
 
 	/* Accept the connection */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	/* Ignore parameters, the connection is already open */
 	(void) icall;
@@ -350,39 +350,39 @@ static void ldr_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 		errno_t retval;
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			exit(0);
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOADER_GET_TASKID:
-			ldr_get_taskid(callid, &call);
+			ldr_get_taskid(chandle, &call);
 			continue;
 		case LOADER_SET_CWD:
-			ldr_set_cwd(callid, &call);
+			ldr_set_cwd(chandle, &call);
 			continue;
 		case LOADER_SET_PROGRAM:
-			ldr_set_program(callid, &call);
+			ldr_set_program(chandle, &call);
 			continue;
 		case LOADER_SET_ARGS:
-			ldr_set_args(callid, &call);
+			ldr_set_args(chandle, &call);
 			continue;
 		case LOADER_ADD_INBOX:
-			ldr_add_inbox(callid, &call);
+			ldr_add_inbox(chandle, &call);
 			continue;
 		case LOADER_LOAD:
-			ldr_load(callid, &call);
+			ldr_load(chandle, &call);
 			continue;
 		case LOADER_RUN:
-			ldr_run(callid, &call);
+			ldr_run(chandle, &call);
 			/* Not reached */
 		default:
 			retval = EINVAL;
 			break;
 		}
 
-		async_answer_0(callid, retval);
+		async_answer_0(chandle, retval);
 	}
 }
 

@@ -109,17 +109,17 @@ static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
 /** Default handler for IPC methods not handled by DDF.
  *
  * @param fun Device function handling the call.
- * @param icallid Call id.
+ * @param icall_handle Call id.
  * @param icall Call data.
  */
 static void default_connection_handler(ddf_fun_t *fun,
-    cap_call_handle_t icallid, ipc_call_t *icall)
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	usb_mouse_t *mouse_dev = ddf_fun_data_get(fun);
 
 	if (mouse_dev == NULL) {
 		usb_log_debug("%s: Missing parameters.", __FUNCTION__);
-		async_answer_0(icallid, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
@@ -134,16 +134,16 @@ static void default_connection_handler(ddf_fun_t *fun,
 			mouse_dev->mouse_sess = sess;
 			usb_log_debug("Console session to %s set ok (%p).",
 			    ddf_fun_get_name(fun), sess);
-			async_answer_0(icallid, EOK);
+			async_answer_0(icall_handle, EOK);
 		} else {
 			usb_log_error("Console session to %s already set.",
 			    ddf_fun_get_name(fun));
-			async_answer_0(icallid, ELIMIT);
+			async_answer_0(icall_handle, ELIMIT);
 			async_hangup(sess);
 		}
 	} else {
 		usb_log_debug("%s: Invalid function.", __FUNCTION__);
-		async_answer_0(icallid, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 	}
 }
 

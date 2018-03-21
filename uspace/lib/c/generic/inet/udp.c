@@ -454,7 +454,7 @@ static errno_t udp_assoc_get(udp_t *udp, sysarg_t id, udp_assoc_t **rassoc)
  * @param iid IPC message ID
  * @param icall IPC message
  */
-static void udp_ev_data(udp_t *udp, cap_call_handle_t iid, ipc_call_t *icall)
+static void udp_ev_data(udp_t *udp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	udp_rmsg_t rmsg;
 	udp_assoc_t *assoc;
@@ -480,7 +480,7 @@ static void udp_ev_data(udp_t *udp, cap_call_handle_t iid, ipc_call_t *icall)
 		}
 	}
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 }
 
 /** UDP service callback connection.
@@ -489,15 +489,15 @@ static void udp_ev_data(udp_t *udp, cap_call_handle_t iid, ipc_call_t *icall)
  * @param icall Connect message
  * @param arg Argument, UDP client
  */
-static void udp_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void udp_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	udp_t *udp = (udp_t *)arg;
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* Hangup */
@@ -506,10 +506,10 @@ static void udp_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case UDP_EV_DATA:
-			udp_ev_data(udp, callid, &call);
+			udp_ev_data(udp, chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 			break;
 		}
 	}

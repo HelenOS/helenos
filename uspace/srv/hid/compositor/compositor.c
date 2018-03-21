@@ -588,31 +588,31 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 	fibril_mutex_unlock(&viewport_list_mtx);
 }
 
-static void comp_window_get_event(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
+static void comp_window_get_event(window_t *win, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	window_event_t *event = (window_event_t *) prodcons_consume(&win->queue);
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t len;
 
-	if (!async_data_read_receive(&callid, &len)) {
-		async_answer_0(iid, EINVAL);
+	if (!async_data_read_receive(&chandle, &len)) {
+		async_answer_0(icall_handle, EINVAL);
 		free(event);
 		return;
 	}
 
-	errno_t rc = async_data_read_finalize(callid, event, len);
+	errno_t rc = async_data_read_finalize(chandle, event, len);
 	if (rc != EOK) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		free(event);
 		return;
 	}
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 	free(event);
 }
 
-static void comp_window_damage(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
+static void comp_window_damage(window_t *win, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	double x = IPC_GET_ARG1(*icall);
 	double y = IPC_GET_ARG2(*icall);
@@ -630,10 +630,10 @@ static void comp_window_damage(window_t *win, cap_call_handle_t iid, ipc_call_t 
 		comp_damage(x_dmg_glob, y_dmg_glob, w_dmg_glob, h_dmg_glob);
 	}
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 }
 
-static void comp_window_grab(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
+static void comp_window_grab(window_t *win, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	sysarg_t pos_id = IPC_GET_ARG1(*icall);
 	sysarg_t grab_flags = IPC_GET_ARG2(*icall);
@@ -660,7 +660,7 @@ static void comp_window_grab(window_t *win, cap_call_handle_t iid, ipc_call_t *i
 		scale_back_y = 1;
 	}
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 }
 
 static void comp_recalc_transform(window_t *win)
@@ -692,22 +692,22 @@ static void comp_recalc_transform(window_t *win)
 	win->transform = transform;
 }
 
-static void comp_window_resize(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
+static void comp_window_resize(window_t *win, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 	unsigned int flags;
 
 	/* Start sharing resized window with client. */
-	if (!async_share_out_receive(&callid, &size, &flags)) {
-		async_answer_0(iid, EINVAL);
+	if (!async_share_out_receive(&chandle, &size, &flags)) {
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	void *new_cell_storage;
-	errno_t rc = async_share_out_finalize(callid, &new_cell_storage);
+	errno_t rc = async_share_out_finalize(chandle, &new_cell_storage);
 	if ((rc != EOK) || (new_cell_storage == AS_MAP_FAILED)) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -716,7 +716,7 @@ static void comp_window_resize(window_t *win, cap_call_handle_t iid, ipc_call_t 
 	    IPC_GET_ARG4(*icall), new_cell_storage, SURFACE_FLAG_SHARED);
 	if (!new_surface) {
 		as_area_destroy(new_cell_storage);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -803,7 +803,7 @@ static void comp_window_resize(window_t *win, cap_call_handle_t iid, ipc_call_t 
 
 	comp_damage(x, y, width, height);
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 }
 
 static void comp_post_event_win(window_event_t *event, window_t *target)
@@ -835,7 +835,7 @@ static void comp_post_event_top(window_event_t *event)
 	fibril_mutex_unlock(&window_list_mtx);
 }
 
-static void comp_window_close(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
+static void comp_window_close(window_t *win, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	/* Stop managing the window. */
 	fibril_mutex_lock(&window_list_mtx);
@@ -875,14 +875,14 @@ static void comp_window_close(window_t *win, cap_call_handle_t iid, ipc_call_t *
 	}
 
 	comp_damage(x, y, width, height);
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 }
 
-static void comp_window_close_request(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
+static void comp_window_close_request(window_t *win, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 	if (event == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -890,26 +890,26 @@ static void comp_window_close_request(window_t *win, cap_call_handle_t iid, ipc_
 	event->type = ET_WINDOW_CLOSE;
 
 	prodcons_produce(&win->queue, &event->link);
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 }
 
-static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void client_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	ipc_call_t call;
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	service_id_t service_id = (service_id_t) IPC_GET_ARG2(*icall);
 
 	/* Allocate resources for new window and register it to the location service. */
 	if (service_id == winreg_id) {
-		async_answer_0(iid, EOK);
+		async_answer_0(icall_handle, EOK);
 
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 		if (IPC_GET_IMETHOD(call) == WINDOW_REGISTER) {
 			fibril_mutex_lock(&window_list_mtx);
 
 			window_t *win = window_create();
 			if (!win) {
-				async_answer_2(callid, ENOMEM, 0, 0);
+				async_answer_2(chandle, ENOMEM, 0, 0);
 				fibril_mutex_unlock(&window_list_mtx);
 				return;
 			}
@@ -928,7 +928,7 @@ static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 
 			if (loc_service_register(name_in, &win->in_dsid) != EOK) {
 				window_destroy(win);
-				async_answer_2(callid, EINVAL, 0, 0);
+				async_answer_2(chandle, EINVAL, 0, 0);
 				fibril_mutex_unlock(&window_list_mtx);
 				return;
 			}
@@ -936,7 +936,7 @@ static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 			if (loc_service_register(name_out, &win->out_dsid) != EOK) {
 				loc_service_unregister(win->in_dsid);
 				window_destroy(win);
-				async_answer_2(callid, EINVAL, 0, 0);
+				async_answer_2(chandle, EINVAL, 0, 0);
 				fibril_mutex_unlock(&window_list_mtx);
 				return;
 			}
@@ -950,7 +950,7 @@ static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 				event_unfocus->type = ET_WINDOW_UNFOCUS;
 			}
 
-			async_answer_2(callid, EOK, win->in_dsid, win->out_dsid);
+			async_answer_2(chandle, EOK, win->in_dsid, win->out_dsid);
 			fibril_mutex_unlock(&window_list_mtx);
 
 			if (event_unfocus && win_unfocus) {
@@ -959,7 +959,7 @@ static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 
 			return;
 		} else {
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 			return;
 		}
 	}
@@ -977,19 +977,19 @@ static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 
 	if (win) {
 		atomic_inc(&win->ref_cnt);
-		async_answer_0(iid, EOK);
+		async_answer_0(icall_handle, EOK);
 	} else {
-		async_answer_0(iid, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	/* Each client establishes two separate connections. */
 	if (win->in_dsid == service_id) {
 		while (true) {
-			callid = async_get_call(&call);
+			chandle = async_get_call(&call);
 
 			if (!IPC_GET_IMETHOD(call)) {
-				async_answer_0(callid, EOK);
+				async_answer_0(chandle, EOK);
 				atomic_dec(&win->ref_cnt);
 				window_destroy(win);
 				return;
@@ -997,18 +997,18 @@ static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 
 			switch (IPC_GET_IMETHOD(call)) {
 			case WINDOW_GET_EVENT:
-				comp_window_get_event(win, callid, &call);
+				comp_window_get_event(win, chandle, &call);
 				break;
 			default:
-				async_answer_0(callid, EINVAL);
+				async_answer_0(chandle, EINVAL);
 			}
 		}
 	} else if (win->out_dsid == service_id) {
 		while (true) {
-			callid = async_get_call(&call);
+			chandle = async_get_call(&call);
 
 			if (!IPC_GET_IMETHOD(call)) {
-				comp_window_close(win, callid, &call);
+				comp_window_close(win, chandle, &call);
 				atomic_dec(&win->ref_cnt);
 				window_destroy(win);
 				return;
@@ -1016,32 +1016,32 @@ static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 
 			switch (IPC_GET_IMETHOD(call)) {
 			case WINDOW_DAMAGE:
-				comp_window_damage(win, callid, &call);
+				comp_window_damage(win, chandle, &call);
 				break;
 			case WINDOW_GRAB:
-				comp_window_grab(win, callid, &call);
+				comp_window_grab(win, chandle, &call);
 				break;
 			case WINDOW_RESIZE:
-				comp_window_resize(win, callid, &call);
+				comp_window_resize(win, chandle, &call);
 				break;
 			case WINDOW_CLOSE:
 				/*
 				 * Postpone the closing until the phone is hung up to cover
 				 * the case when the client is killed abruptly.
 				 */
-				async_answer_0(callid, EOK);
+				async_answer_0(chandle, EOK);
 				break;
 			case WINDOW_CLOSE_REQUEST:
-				comp_window_close_request(win, callid, &call);
+				comp_window_close_request(win, chandle, &call);
 				break;
 			default:
-				async_answer_0(callid, EINVAL);
+				async_answer_0(chandle, EINVAL);
 			}
 		}
 	}
 }
 
-static void comp_mode_change(viewport_t *vp, cap_call_handle_t iid, ipc_call_t *icall)
+static void comp_mode_change(viewport_t *vp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	sysarg_t mode_idx = IPC_GET_ARG2(*icall);
 	fibril_mutex_lock(&viewport_list_mtx);
@@ -1051,7 +1051,7 @@ static void comp_mode_change(viewport_t *vp, cap_call_handle_t iid, ipc_call_t *
 	errno_t rc = visualizer_get_mode(vp->sess, &new_mode, mode_idx);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&viewport_list_mtx);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
@@ -1060,7 +1060,7 @@ static void comp_mode_change(viewport_t *vp, cap_call_handle_t iid, ipc_call_t *
 	    new_mode.screen_height, NULL, SURFACE_FLAG_SHARED);
 	if (!new_surface) {
 		fibril_mutex_unlock(&viewport_list_mtx);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -1070,7 +1070,7 @@ static void comp_mode_change(viewport_t *vp, cap_call_handle_t iid, ipc_call_t *
 	if (rc != EOK) {
 		surface_destroy(new_surface);
 		fibril_mutex_unlock(&viewport_list_mtx);
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
@@ -1080,7 +1080,7 @@ static void comp_mode_change(viewport_t *vp, cap_call_handle_t iid, ipc_call_t *
 	vp->surface = new_surface;
 
 	fibril_mutex_unlock(&viewport_list_mtx);
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
@@ -1114,13 +1114,13 @@ static void comp_shutdown(void)
 	}
 	fibril_mutex_unlock(&window_list_mtx);
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	/* All fibrils of the compositor will terminate soon. */
 }
 #endif
 
-static void comp_visualizer_disconnect(viewport_t *vp, cap_call_handle_t iid, ipc_call_t *icall)
+static void comp_visualizer_disconnect(viewport_t *vp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	/* Release viewport resources. */
 	fibril_mutex_lock(&viewport_list_mtx);
@@ -1130,13 +1130,13 @@ static void comp_visualizer_disconnect(viewport_t *vp, cap_call_handle_t iid, ip
 
 	fibril_mutex_unlock(&viewport_list_mtx);
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	comp_restrict_pointers();
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
-static void vsl_notifications(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void vsl_notifications(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	viewport_t *vp = NULL;
 	fibril_mutex_lock(&viewport_list_mtx);
@@ -1154,7 +1154,7 @@ static void vsl_notifications(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 	/* Ignore parameters, the connection is already opened. */
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			async_hangup(vp->sess);
@@ -1163,13 +1163,13 @@ static void vsl_notifications(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case VISUALIZER_MODE_CHANGE:
-			comp_mode_change(vp, callid, &call);
+			comp_mode_change(vp, chandle, &call);
 			break;
 		case VISUALIZER_DISCONNECT:
-			comp_visualizer_disconnect(vp, callid, &call);
+			comp_visualizer_disconnect(vp, chandle, &call);
 			return;
 		default:
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 		}
 	}
 }

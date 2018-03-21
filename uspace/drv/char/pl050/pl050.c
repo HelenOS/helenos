@@ -285,11 +285,11 @@ static errno_t pl050_write(chardev_srv_t *srv, const void *data, size_t size,
 	return EOK;
 }
 
-void pl050_char_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+void pl050_char_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	pl050_t *pl050 = pl050_from_fun((ddf_fun_t *)arg);
 
-	chardev_conn(iid, icall, &pl050->cds);
+	chardev_conn(icall_handle, icall, &pl050->cds);
 }
 
 /** Add device. */

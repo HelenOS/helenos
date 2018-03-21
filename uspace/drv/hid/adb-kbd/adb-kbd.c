@@ -129,7 +129,7 @@ errno_t adb_kbd_gone(adb_kbd_t *con)
 	return ENOTSUP;
 }
 
-static void adb_kbd_events(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void adb_kbd_events(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	adb_kbd_t *kbd = (adb_kbd_t *) arg;
 
@@ -137,7 +137,7 @@ static void adb_kbd_events(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		errno_t retval = EOK;
 
@@ -153,7 +153,7 @@ static void adb_kbd_events(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 		default:
 			retval = ENOENT;
 		}
-		async_answer_0(callid, retval);
+		async_answer_0(chandle, retval);
 	}
 }
 
@@ -189,9 +189,9 @@ static void adb_kbd_reg0_data(adb_kbd_t *kbd, uint16_t data)
 }
 
 /** Handle client connection */
-static void adb_kbd_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void adb_kbd_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	ipc_call_t call;
 	sysarg_t method;
 	adb_kbd_t *kbd;
@@ -199,17 +199,17 @@ static void adb_kbd_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	kbd = (adb_kbd_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (true) {
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			return;
 		}
 
@@ -217,9 +217,9 @@ static void adb_kbd_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
 			kbd->client_sess = sess;
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 		} else {
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 		}
 	}
 }

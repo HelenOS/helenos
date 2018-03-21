@@ -87,14 +87,14 @@ static void adb_mouse_data(adb_mouse_t *mouse, sysarg_t data)
 		adb_mouse_event_move(mouse, dx, dy, 0);
 }
 
-static void adb_mouse_events(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void adb_mouse_events(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	adb_mouse_t *mouse = (adb_mouse_t *) arg;
 
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		errno_t retval = EOK;
 
@@ -111,7 +111,7 @@ static void adb_mouse_events(cap_call_handle_t iid, ipc_call_t *icall, void *arg
 			retval = ENOENT;
 		}
 
-		async_answer_0(callid, retval);
+		async_answer_0(chandle, retval);
 	}
 }
 
@@ -199,9 +199,9 @@ errno_t adb_mouse_gone(adb_mouse_t *con)
 }
 
 /** Handle client connection */
-static void adb_mouse_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void adb_mouse_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	ipc_call_t call;
 	sysarg_t method;
 	adb_mouse_t *mouse;
@@ -209,17 +209,17 @@ static void adb_mouse_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	mouse = (adb_mouse_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (true) {
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			return;
 		}
 
@@ -227,9 +227,9 @@ static void adb_mouse_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
 			mouse->client_sess = sess;
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 		} else {
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 		}
 	}
 }

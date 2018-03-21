@@ -312,12 +312,12 @@ static errno_t ata_fun_offline(ddf_fun_t *fun)
 }
 
 /** Block device connection handler */
-static void ata_bd_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void ata_bd_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	ata_fun_t *afun;
 
 	afun = (ata_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
-	bd_conn(iid, icall, &afun->bds);
+	bd_conn(icall_handle, icall, &afun->bds);
 }
 
 int main(int argc, char *argv[])

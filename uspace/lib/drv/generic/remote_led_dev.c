@@ -65,19 +65,19 @@ const remote_iface_t remote_led_dev_iface = {
  * @param ops The local ops structure
  *
  */
-static void remote_led_color_set(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
+static void remote_led_color_set(ddf_fun_t *fun, void *ops, cap_call_handle_t chandle,
     ipc_call_t *call)
 {
 	led_dev_ops_t *led_dev_ops = (led_dev_ops_t *) ops;
 	pixel_t color = DEV_IPC_GET_ARG1(*call);
 
 	if (!led_dev_ops->color_set) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	errno_t rc = (*led_dev_ops->color_set)(fun, color);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
 /**

@@ -231,7 +231,7 @@ static void remote_usbhc_device_enumerate(ddf_fun_t *, void *, cap_call_handle_t
 static void remote_usbhc_device_remove(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 static void remote_usbhc_register_endpoint(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 static void remote_usbhc_unregister_endpoint(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
-static void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call);
+static void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, cap_call_handle_t chandle, ipc_call_t *call);
 
 /** Remote USB interface operations. */
 static const remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
@@ -256,54 +256,54 @@ typedef struct {
 } async_transaction_t;
 
 void remote_usbhc_default_address_reservation(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const usbhc_iface_t *usbhc_iface = (usbhc_iface_t *) iface;
 
 	if (usbhc_iface->default_address_reservation == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	const bool reserve = IPC_GET_ARG2(*call);
 	const errno_t ret = usbhc_iface->default_address_reservation(fun, reserve);
-	async_answer_0(callid, ret);
+	async_answer_0(chandle, ret);
 }
 
 
 static void remote_usbhc_device_enumerate(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const usbhc_iface_t *usbhc_iface = (usbhc_iface_t *) iface;
 
 	if (usbhc_iface->device_enumerate == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	const unsigned port = DEV_IPC_GET_ARG1(*call);
 	usb_speed_t speed = DEV_IPC_GET_ARG2(*call);
 	const errno_t ret = usbhc_iface->device_enumerate(fun, port, speed);
-	async_answer_0(callid, ret);
+	async_answer_0(chandle, ret);
 }
 
 static void remote_usbhc_device_remove(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const usbhc_iface_t *usbhc_iface = (usbhc_iface_t *) iface;
 
 	if (usbhc_iface->device_remove == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	const unsigned port = DEV_IPC_GET_ARG1(*call);
 	const errno_t ret = usbhc_iface->device_remove(fun, port);
-	async_answer_0(callid, ret);
+	async_answer_0(chandle, ret);
 }
 
 static void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	assert(fun);
 	assert(iface);
@@ -312,35 +312,35 @@ static void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 	const usbhc_iface_t *usbhc_iface = iface;
 
 	if (!usbhc_iface->register_endpoint) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	usb_endpoint_descriptors_t ep_desc;
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t len;
 
-	if (!async_data_write_receive(&data_callid, &len)
+	if (!async_data_write_receive(&data_chandle, &len)
 	    || len != sizeof(ep_desc)) {
-		async_answer_0(callid, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
-	async_data_write_finalize(data_callid, &ep_desc, sizeof(ep_desc));
+	async_data_write_finalize(data_chandle, &ep_desc, sizeof(ep_desc));
 
 	usb_pipe_desc_t pipe_desc;
 
 	const errno_t rc = usbhc_iface->register_endpoint(fun, &pipe_desc, &ep_desc);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 
-	if (!async_data_read_receive(&data_callid, &len)
+	if (!async_data_read_receive(&data_chandle, &len)
 	    || len != sizeof(pipe_desc)) {
 		return;
 	}
-	async_data_read_finalize(data_callid, &pipe_desc, sizeof(pipe_desc));
+	async_data_read_finalize(data_chandle, &pipe_desc, sizeof(pipe_desc));
 }
 
 static void remote_usbhc_unregister_endpoint(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	assert(fun);
 	assert(iface);
@@ -349,23 +349,23 @@ static void remote_usbhc_unregister_endpoint(ddf_fun_t *fun, void *iface,
 	const usbhc_iface_t *usbhc_iface = iface;
 
 	if (!usbhc_iface->unregister_endpoint) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	usb_pipe_desc_t pipe_desc;
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t len;
 
-	if (!async_data_write_receive(&data_callid, &len)
+	if (!async_data_write_receive(&data_chandle, &len)
 	    || len != sizeof(pipe_desc)) {
-		async_answer_0(callid, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
-	async_data_write_finalize(data_callid, &pipe_desc, sizeof(pipe_desc));
+	async_data_write_finalize(data_chandle, &pipe_desc, sizeof(pipe_desc));
 
 	const errno_t rc = usbhc_iface->unregister_endpoint(fun, &pipe_desc);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
 static void async_transaction_destroy(async_transaction_t *trans)
@@ -409,19 +409,19 @@ static errno_t receive_memory_buffer(async_transaction_t *trans)
 		? AS_AREA_WRITE : AS_AREA_READ;
 
 	errno_t err;
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t size;
 	unsigned flags;
 
-	if (!async_share_out_receive(&data_callid, &size, &flags))
+	if (!async_share_out_receive(&data_chandle, &size, &flags))
 		return EPARTY;
 
 	if (size < required_size || (flags & required_flags) != required_flags) {
-		async_answer_0(data_callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
 		return EINVAL;
 	}
 
-	if ((err = async_share_out_finalize(data_callid, &trans->request.buffer.virt)))
+	if ((err = async_share_out_finalize(data_chandle, &trans->request.buffer.virt)))
 		return err;
 
 	/*
@@ -444,7 +444,7 @@ static errno_t receive_memory_buffer(async_transaction_t *trans)
 	return EOK;
 }
 
-void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
+void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, cap_call_handle_t chandle, ipc_call_t *call)
 {
 	assert(fun);
 	assert(iface);
@@ -453,27 +453,27 @@ void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, cap_call_handle_t callid
 	const usbhc_iface_t *usbhc_iface = iface;
 
 	if (!usbhc_iface->transfer) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
-	async_transaction_t *trans = async_transaction_create(callid);
+	async_transaction_t *trans = async_transaction_create(chandle);
 	if (trans == NULL) {
-		async_answer_0(callid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
 		return;
 	}
 
 	errno_t err = EPARTY;
 
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t len;
-	if (!async_data_write_receive(&data_callid, &len)
+	if (!async_data_write_receive(&data_chandle, &len)
 	    || len != sizeof(trans->request)) {
-		async_answer_0(data_callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
 		goto err;
 	}
 
-	if ((err = async_data_write_finalize(data_callid,
+	if ((err = async_data_write_finalize(data_chandle,
 			    &trans->request, sizeof(trans->request))))
 		goto err;
 
@@ -493,7 +493,7 @@ void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, cap_call_handle_t callid
 	return;
 
 err:
-	async_answer_0(callid, err);
+	async_answer_0(chandle, err);
 	async_transaction_destroy(trans);
 }
 

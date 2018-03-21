@@ -92,43 +92,43 @@ static errno_t pic_enable_irq(i8259_t *i8259, sysarg_t irq)
  * @param icall Call data of the request that opened the connection.
  * @param arg	Local argument.
  */
-static void i8259_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void i8259_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	ipc_call_t call;
 	i8259_t *i8259 = NULL /* XXX */;
 
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	i8259 = (i8259_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (true) {
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* The other side has hung up. */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			return;
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
-			async_answer_0(callid, pic_enable_irq(i8259,
+			async_answer_0(chandle, pic_enable_irq(i8259,
 			    IPC_GET_ARG1(call)));
 			break;
 		case IRC_DISABLE_INTERRUPT:
 			/* XXX TODO */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			break;
 		case IRC_CLEAR_INTERRUPT:
 			/* Noop */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			break;
 		default:
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 			break;
 		}
 	}

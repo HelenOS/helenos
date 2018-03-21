@@ -483,17 +483,17 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 	/*
 	 * Receive the read request.
 	 */
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
 
 	size_t bytes;
 	if (nodep->type == TMPFS_FILE) {
 		bytes = min(nodep->size - pos, size);
-		(void) async_data_read_finalize(callid, nodep->data + pos,
+		(void) async_data_read_finalize(chandle, nodep->data + pos,
 		    bytes);
 	} else {
 		tmpfs_dentry_t *dentryp;
@@ -509,13 +509,13 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 		lnk = list_nth(&nodep->cs_list, pos);
 
 		if (lnk == NULL) {
-			async_answer_0(callid, ENOENT);
+			async_answer_0(chandle, ENOENT);
 			return ENOENT;
 		}
 
 		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
 
-		(void) async_data_read_finalize(callid, dentryp->name,
+		(void) async_data_read_finalize(chandle, dentryp->name,
 		    str_size(dentryp->name) + 1);
 		bytes = 1;
 	}
@@ -546,10 +546,10 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	/*
 	 * Receive the write request.
 	 */
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EINVAL);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EINVAL);
 		return EINVAL;
 	}
 
@@ -558,7 +558,7 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	 */
 	if (pos + size <= nodep->size) {
 		/* The file size is not changing. */
-		(void) async_data_write_finalize(callid, nodep->data + pos,
+		(void) async_data_write_finalize(chandle, nodep->data + pos,
 		    size);
 		goto out;
 	}
@@ -572,7 +572,7 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	 */
 	void *newdata = realloc(nodep->data, nodep->size + delta);
 	if (!newdata) {
-		async_answer_0(callid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
 		size = 0;
 		goto out;
 	}
@@ -580,7 +580,7 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	memset(newdata + nodep->size, 0, delta);
 	nodep->size += delta;
 	nodep->data = newdata;
-	(void) async_data_write_finalize(callid, nodep->data + pos, size);
+	(void) async_data_write_finalize(chandle, nodep->data + pos, size);
 
 out:
 	*wbytes = size;

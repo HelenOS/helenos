@@ -232,7 +232,7 @@ typedef struct {
 
 extern errno_t vfs_rdwr_internal(int, aoff64_t, bool, rdwr_io_chunk_t *);
 
-extern void vfs_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg);
+extern void vfs_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
 
 #endif
 

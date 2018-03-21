@@ -49,7 +49,7 @@ static void vfs_in_fsprobe(cap_call_handle_t rid, ipc_call_t *request)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
 	char *fs_name = NULL;
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	vfs_fs_probe_info_t info;
 	size_t len;
 	errno_t rc;
@@ -71,12 +71,12 @@ static void vfs_in_fsprobe(cap_call_handle_t rid, ipc_call_t *request)
 		goto out;
 
 	/* Now we should get a read request */
-	if (!async_data_read_receive(&callid, &len))
+	if (!async_data_read_receive(&chandle, &len))
 		goto out;
 
 	if (len > sizeof(info))
 		len = sizeof(info);
-	(void) async_data_read_finalize(callid, &info, len);
+	(void) async_data_read_finalize(chandle, &info, len);
 
 out:
 	free(fs_name);
@@ -84,7 +84,7 @@ out:
 
 static void vfs_in_fstypes(cap_call_handle_t rid, ipc_call_t *request)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t len;
 	vfs_fstypes_t fstypes;
 	errno_t rc;
@@ -99,12 +99,12 @@ static void vfs_in_fstypes(cap_call_handle_t rid, ipc_call_t *request)
 	async_answer_1(rid, EOK, fstypes.size);
 
 	/* Now we should get a read request */
-	if (!async_data_read_receive(&callid, &len))
+	if (!async_data_read_receive(&chandle, &len))
 		goto out;
 
 	if (len > fstypes.size)
 		len = fstypes.size;
-	(void) async_data_read_finalize(callid, fstypes.buf, len);
+	(void) async_data_read_finalize(chandle, fstypes.buf, len);
 
 out:
 	vfs_fstypes_free(&fstypes);
@@ -314,7 +314,7 @@ static void vfs_in_write(cap_call_handle_t rid, ipc_call_t *request)
 	async_answer_1(rid, rc, bytes);
 }
 
-void vfs_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+void vfs_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	bool cont = true;
 
@@ -322,73 +322,73 @@ void vfs_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (cont) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_IN_CLONE:
-			vfs_in_clone(callid, &call);
+			vfs_in_clone(chandle, &call);
 			break;
 		case VFS_IN_FSPROBE:
-			vfs_in_fsprobe(callid, &call);
+			vfs_in_fsprobe(chandle, &call);
 			break;
 		case VFS_IN_FSTYPES:
-			vfs_in_fstypes(callid, &call);
+			vfs_in_fstypes(chandle, &call);
 			break;
 		case VFS_IN_MOUNT:
-			vfs_in_mount(callid, &call);
+			vfs_in_mount(chandle, &call);
 			break;
 		case VFS_IN_OPEN:
-			vfs_in_open(callid, &call);
+			vfs_in_open(chandle, &call);
 			break;
 		case VFS_IN_PUT:
-			vfs_in_put(callid, &call);
+			vfs_in_put(chandle, &call);
 			break;
 		case VFS_IN_READ:
-			vfs_in_read(callid, &call);
+			vfs_in_read(chandle, &call);
 			break;
 		case VFS_IN_REGISTER:
-			vfs_register(callid, &call);
+			vfs_register(chandle, &call);
 			cont = false;
 			break;
 		case VFS_IN_RENAME:
-			vfs_in_rename(callid, &call);
+			vfs_in_rename(chandle, &call);
 			break;
 		case VFS_IN_RESIZE:
-			vfs_in_resize(callid, &call);
+			vfs_in_resize(chandle, &call);
 			break;
 		case VFS_IN_STAT:
-			vfs_in_stat(callid, &call);
+			vfs_in_stat(chandle, &call);
 			break;
 		case VFS_IN_STATFS:
-			vfs_in_statfs(callid, &call);
+			vfs_in_statfs(chandle, &call);
 			break;
 		case VFS_IN_SYNC:
-			vfs_in_sync(callid, &call);
+			vfs_in_sync(chandle, &call);
 			break;
 		case VFS_IN_UNLINK:
-			vfs_in_unlink(callid, &call);
+			vfs_in_unlink(chandle, &call);
 			break;
 		case VFS_IN_UNMOUNT:
-			vfs_in_unmount(callid, &call);
+			vfs_in_unmount(chandle, &call);
 			break;
 		case VFS_IN_WAIT_HANDLE:
-			vfs_in_wait_handle(callid, &call);
+			vfs_in_wait_handle(chandle, &call);
 			break;
 		case VFS_IN_WALK:
-			vfs_in_walk(callid, &call);
+			vfs_in_walk(chandle, &call);
 			break;
 		case VFS_IN_WRITE:
-			vfs_in_write(callid, &call);
+			vfs_in_write(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 			break;
 		}
 	}

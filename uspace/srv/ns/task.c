@@ -145,7 +145,7 @@ static hash_table_t phone_to_id;
 typedef struct {
 	link_t link;
 	task_id_t id;         /**< Task ID. */
-	cap_call_handle_t callid;  /**< Call ID waiting for the connection */
+	cap_call_handle_t chandle;  /**< Call ID waiting for the connection */
 } pending_wait_t;
 
 static list_t pending_wait;
@@ -183,7 +183,7 @@ loop:
 
 		texit = ht->have_rval ? TASK_EXIT_NORMAL :
 		    TASK_EXIT_UNEXPECTED;
-		async_answer_2(pr->callid, EOK, texit, ht->retval);
+		async_answer_2(pr->chandle, EOK, texit, ht->retval);
 
 		list_remove(&pr->link);
 		free(pr);
@@ -191,7 +191,7 @@ loop:
 	}
 }
 
-void wait_for_task(task_id_t id, ipc_call_t *call, cap_call_handle_t callid)
+void wait_for_task(task_id_t id, ipc_call_t *call, cap_call_handle_t chandle)
 {
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?
@@ -199,14 +199,14 @@ void wait_for_task(task_id_t id, ipc_call_t *call, cap_call_handle_t callid)
 
 	if (ht == NULL) {
 		/* No such task exists. */
-		async_answer_0(callid, ENOENT);
+		async_answer_0(chandle, ENOENT);
 		return;
 	}
 
 	if (ht->finished) {
 		task_exit_t texit = ht->have_rval ? TASK_EXIT_NORMAL :
 		    TASK_EXIT_UNEXPECTED;
-		async_answer_2(callid, EOK, texit, ht->retval);
+		async_answer_2(chandle, EOK, texit, ht->retval);
 		return;
 	}
 
@@ -214,13 +214,13 @@ void wait_for_task(task_id_t id, ipc_call_t *call, cap_call_handle_t callid)
 	pending_wait_t *pr =
 	    (pending_wait_t *) malloc(sizeof(pending_wait_t));
 	if (!pr) {
-		async_answer_0(callid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
 		return;
 	}
 
 	link_initialize(&pr->link);
 	pr->id = id;
-	pr->callid = callid;
+	pr->chandle = chandle;
 	list_append(&pr->link, &pending_wait);
 }
 

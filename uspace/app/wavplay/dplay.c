@@ -89,35 +89,37 @@ static void playback_initialize(playback_t *pb, audio_pcm_sess_t *sess)
 
 /**
  * Fragment playback callback function.
- * @param iid IPC call id.
- * @param icall Pointer to the call structure
- * @param arg Argument, pointer to the playback helper function
+ *
+ * @param icall_handle  Call capability handle.
+ * @param icall         Pointer to the call structure
+ * @param arg           Argument, pointer to the playback helper function
  */
-static void device_event_callback(cap_call_handle_t iid, ipc_call_t *icall, void* arg)
+static void device_event_callback(cap_call_handle_t icall_handle,
+    ipc_call_t *icall, void *arg)
 {
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 	playback_t *pb = arg;
 	const size_t fragment_size = pb->buffer.size / DEFAULT_FRAGMENTS;
 	while (1) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_PLAYBACK_STARTED:
 		case PCM_EVENT_FRAMES_PLAYED:
 			printf("%" PRIun " frames: ", IPC_GET_ARG1(call));
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			break;
 		case PCM_EVENT_PLAYBACK_TERMINATED:
 			printf("Playback terminated\n");
 			fibril_mutex_lock(&pb->mutex);
 			pb->playing = false;
 			fibril_condvar_signal(&pb->cv);
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			fibril_mutex_unlock(&pb->mutex);
 			return;
 		default:
 			printf("Unknown event %" PRIun ".\n", IPC_GET_IMETHOD(call));
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 			continue;
 
 		}

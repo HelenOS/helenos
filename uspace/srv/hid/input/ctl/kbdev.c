@@ -146,7 +146,7 @@ static void kbdev_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 	async_exchange_end(exch);
 }
 
-static void kbdev_callback_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void kbdev_callback_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	kbdev_t *kbdev;
 	errno_t retval;
@@ -157,9 +157,9 @@ static void kbdev_callback_conn(cap_call_handle_t iid, ipc_call_t *icall, void *
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid;
+		cap_call_handle_t chandle;
 
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 		if (!IPC_GET_IMETHOD(call)) {
 			kbdev_destroy(kbdev);
 			return;
@@ -178,7 +178,7 @@ static void kbdev_callback_conn(cap_call_handle_t iid, ipc_call_t *icall, void *
 			break;
 		}
 
-		async_answer_0(callid, retval);
+		async_answer_0(chandle, retval);
 	}
 }
 

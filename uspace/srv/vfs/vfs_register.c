@@ -194,14 +194,14 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 	 */
 
 	size_t size;
-	cap_call_handle_t callid;
-	if (!async_share_in_receive(&callid, &size)) {
+	cap_call_handle_t chandle;
+	if (!async_share_in_receive(&chandle, &size)) {
 		dprintf("Unexpected call\n");
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_list_lock);
 		async_hangup(fs_info->sess);
 		free(fs_info);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
@@ -215,7 +215,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 		fibril_mutex_unlock(&fs_list_lock);
 		async_hangup(fs_info->sess);
 		free(fs_info);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
@@ -223,7 +223,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 	/*
 	 * Commit to read-only sharing the PLB with the client.
 	 */
-	(void) async_share_in_finalize(callid, plb,
+	(void) async_share_in_finalize(chandle, plb,
 	    AS_AREA_READ | AS_AREA_CACHEABLE);
 
 	dprintf("Sharing PLB.\n");

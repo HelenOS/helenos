@@ -126,7 +126,7 @@ typedef struct hound_server_iface {
 
 void hound_service_set_server_iface(const hound_server_iface_t *iface);
 
-void hound_connection_handler(cap_call_handle_t iid, ipc_call_t *icall, void *arg);
+void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
 
 #endif
 /** @}

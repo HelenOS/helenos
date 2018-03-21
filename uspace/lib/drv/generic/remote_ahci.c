@@ -209,12 +209,12 @@ const remote_iface_t remote_ahci_iface = {
 };
 
 void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
 	if (ahci_iface->get_sata_device_name == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
@@ -223,7 +223,7 @@ void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
 
 	char* sata_dev_name = malloc(sata_dev_name_length);
 	if (sata_dev_name == NULL) {
-		async_answer_0(callid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
 		return;
 	}
 
@@ -231,22 +231,23 @@ void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
 	    sata_dev_name_length, sata_dev_name);
 
 	size_t real_size;
-	cap_call_handle_t cid;
-	if ((async_data_read_receive(&cid, &real_size)) &&
+	cap_call_handle_t call_handle;
+	if ((async_data_read_receive(&call_handle, &real_size)) &&
 	    (real_size == sata_dev_name_length))
-		async_data_read_finalize(cid, sata_dev_name, sata_dev_name_length);
+		async_data_read_finalize(call_handle, sata_dev_name,
+		    sata_dev_name_length);
 
 	free(sata_dev_name);
-	async_answer_0(callid, ret);
+	async_answer_0(chandle, ret);
 }
 
 static void remote_ahci_get_num_blocks(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
 	if (ahci_iface->get_num_blocks == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
@@ -254,18 +255,18 @@ static void remote_ahci_get_num_blocks(ddf_fun_t *fun, void *iface,
 	const errno_t ret = ahci_iface->get_num_blocks(fun, &blocks);
 
 	if (ret != EOK)
-		async_answer_0(callid, ret);
+		async_answer_0(chandle, ret);
 	else
-		async_answer_2(callid, EOK, HI(blocks), LO(blocks));
+		async_answer_2(chandle, EOK, HI(blocks), LO(blocks));
 }
 
 static void remote_ahci_get_block_size(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
 	if (ahci_iface->get_block_size == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
@@ -273,29 +274,29 @@ static void remote_ahci_get_block_size(ddf_fun_t *fun, void *iface,
 	const errno_t ret = ahci_iface->get_block_size(fun, &blocks);
 
 	if (ret != EOK)
-		async_answer_0(callid, ret);
+		async_answer_0(chandle, ret);
 	else
-		async_answer_1(callid, EOK, blocks);
+		async_answer_1(chandle, EOK, blocks);
 }
 
 void remote_ahci_read_blocks(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
 	if (ahci_iface->read_blocks == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	size_t maxblock_size;
 	unsigned int flags;
 
-	cap_call_handle_t cid;
-	async_share_out_receive(&cid, &maxblock_size, &flags);
+	cap_call_handle_t call_handle;
+	async_share_out_receive(&call_handle, &maxblock_size, &flags);
 
 	void *buf;
-	async_share_out_finalize(cid, &buf);
+	async_share_out_finalize(call_handle, &buf);
 
 	const uint64_t blocknum =
 	    (((uint64_t) (DEV_IPC_GET_ARG1(*call))) << 32) |
@@ -304,27 +305,27 @@ void remote_ahci_read_blocks(ddf_fun_t *fun, void *iface,
 
 	const errno_t ret = ahci_iface->read_blocks(fun, blocknum, cnt, buf);
 
-	async_answer_0(callid, ret);
+	async_answer_0(chandle, ret);
 }
 
-void remote_ahci_write_blocks(ddf_fun_t *fun, void *iface, cap_call_handle_t callid,
+void remote_ahci_write_blocks(ddf_fun_t *fun, void *iface, cap_call_handle_t chandle,
     ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
 	if (ahci_iface->read_blocks == NULL) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	size_t maxblock_size;
 	unsigned int flags;
 
-	cap_call_handle_t cid;
-	async_share_out_receive(&cid, &maxblock_size, &flags);
+	cap_call_handle_t call_handle;
+	async_share_out_receive(&call_handle, &maxblock_size, &flags);
 
 	void *buf;
-	async_share_out_finalize(cid, &buf);
+	async_share_out_finalize(call_handle, &buf);
 
 	const uint64_t blocknum =
 	    (((uint64_t)(DEV_IPC_GET_ARG1(*call))) << 32) |
@@ -333,7 +334,7 @@ void remote_ahci_write_blocks(ddf_fun_t *fun, void *iface, cap_call_handle_t cal
 
 	const errno_t ret = ahci_iface->write_blocks(fun, blocknum, cnt, buf);
 
-	async_answer_0(callid, ret);
+	async_answer_0(chandle, ret);
 }
 
 /**

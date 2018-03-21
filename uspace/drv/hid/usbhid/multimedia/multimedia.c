@@ -80,11 +80,11 @@ typedef struct usb_multimedia_t {
  * later use by the driver to notify about key events.
  *
  * @param fun Device function handling the call.
- * @param icallid Call id.
+ * @param icall_handle Call id.
  * @param icall Call data.
  */
 static void default_connection_handler(ddf_fun_t *fun,
-    cap_call_handle_t icallid, ipc_call_t *icall)
+    cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	usb_log_debug(NAME " default_connection_handler()");
 
@@ -97,11 +97,11 @@ static void default_connection_handler(ddf_fun_t *fun,
 			multim_dev->console_sess = sess;
 			usb_log_debug(NAME " Saved session to console: %p",
 			    sess);
-			async_answer_0(icallid, EOK);
+			async_answer_0(icall_handle, EOK);
 		} else
-			async_answer_0(icallid, ELIMIT);
+			async_answer_0(icall_handle, ELIMIT);
 	} else
-		async_answer_0(icallid, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 }
 
 static ddf_dev_ops_t multimedia_ops = {

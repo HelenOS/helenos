@@ -506,7 +506,7 @@ static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)
 	return EOK;
 }
 
-static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void client_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	console_t *cons = NULL;
 
@@ -518,14 +518,14 @@ static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 	}
 
 	if (cons == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
 	if (atomic_postinc(&cons->refcnt) == 0)
 		cons_set_cursor_vis(cons, true);
 
-	con_conn(iid, icall, &cons->srvs);
+	con_conn(icall_handle, icall, &cons->srvs);
 }
 
 static errno_t input_connect(const char *svc)

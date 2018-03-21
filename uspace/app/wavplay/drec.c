@@ -85,20 +85,24 @@ static void record_initialize(record_t *rec, audio_pcm_sess_t *sess)
 }
 
 /**
- * Recording callback. Writes recorded data.
- * @param iid IPC call id.
- * @param icall Poitner to IPC call structure.
- * @param arg Argument. Poitner to recording helper structure.
+ * Recording callback.
+ *
+ * Writes recorded data.
+ * 
+ * @param icall_handle  IPC call id.
+ * @param icall         Poitner to IPC call structure.
+ * @param arg           Argument. Poitner to recording helper structure.
  */
-static void device_event_callback(cap_call_handle_t iid, ipc_call_t *icall, void* arg)
+static void device_event_callback(cap_call_handle_t icall_handle,
+    ipc_call_t *icall, void *arg)
 {
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 	record_t *rec = arg;
 	const size_t buffer_part = rec->buffer.size / BUFFER_PARTS;
 	bool record = true;
 	while (record) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_CAPTURE_TERMINATED:
 			printf("Recording terminated\n");
@@ -109,12 +113,12 @@ static void device_event_callback(cap_call_handle_t iid, ipc_call_t *icall, void
 			break;
 		default:
 			printf("Unknown event %" PRIun ".\n", IPC_GET_IMETHOD(call));
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 			continue;
 		}
 
 		if (!record) {
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			break;
 		}
 
@@ -126,7 +130,7 @@ static void device_event_callback(cap_call_handle_t iid, ipc_call_t *icall, void
 
 		if (rec->buffer.position >= (rec->buffer.base + rec->buffer.size))
 			rec->buffer.position = rec->buffer.base;
-		async_answer_0(callid, EOK);
+		async_answer_0(chandle, EOK);
 	}
 }
 

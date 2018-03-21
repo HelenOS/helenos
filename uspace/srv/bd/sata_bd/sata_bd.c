@@ -166,7 +166,7 @@ static errno_t get_sata_disks(void)
 }
 
 /** Block device connection handler. */
-static void sata_bd_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void sata_bd_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	service_id_t dsid;
 	int disk_id, i;
@@ -181,11 +181,11 @@ static void sata_bd_connection(cap_call_handle_t iid, ipc_call_t *icall, void *a
 			disk_id = i;
 
 	if (disk_id < 0) {
-		async_answer_0(iid, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	bd_conn(iid, icall, &disk[disk_id].bds);
+	bd_conn(icall_handle, icall, &disk[disk_id].bds);
 }
 
 /** Open device. */

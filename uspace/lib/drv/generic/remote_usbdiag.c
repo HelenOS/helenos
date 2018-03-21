@@ -143,27 +143,27 @@ const remote_iface_t remote_usbdiag_iface = {
 };
 
 void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
 	size_t size;
-	cap_call_handle_t data_callid;
-	if (!async_data_write_receive(&data_callid, &size)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+	cap_call_handle_t data_chandle;
+	if (!async_data_write_receive(&data_chandle, &size)) {
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(usbdiag_test_params_t)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	usbdiag_test_params_t params;
-	if (async_data_write_finalize(data_callid, &params, size) != EOK) {
-		async_answer_0(callid, EINVAL);
+	if (async_data_write_finalize(data_chandle, &params, size) != EOK) {
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
@@ -172,52 +172,52 @@ void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
 	    : diag_iface->test_in(fun, &params, &results);
 
 	if (ret != EOK) {
-		async_answer_0(callid, ret);
+		async_answer_0(chandle, ret);
 		return;
 	}
 
-	if (!async_data_read_receive(&data_callid, &size)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+	if (!async_data_read_receive(&data_chandle, &size)) {
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(usbdiag_test_results_t)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
-	if (async_data_read_finalize(data_callid, &results, size) != EOK) {
-		async_answer_0(callid, EINVAL);
+	if (async_data_read_finalize(data_chandle, &results, size) != EOK) {
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
-	async_answer_0(callid, ret);
+	async_answer_0(chandle, ret);
 }
 
 void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
 	size_t size;
-	cap_call_handle_t data_callid;
-	if (!async_data_write_receive(&data_callid, &size)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+	cap_call_handle_t data_chandle;
+	if (!async_data_write_receive(&data_chandle, &size)) {
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(usbdiag_test_params_t)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	usbdiag_test_params_t params;
-	if (async_data_write_finalize(data_callid, &params, size) != EOK) {
-		async_answer_0(callid, EINVAL);
+	if (async_data_write_finalize(data_chandle, &params, size) != EOK) {
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
@@ -226,28 +226,28 @@ void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface,
 	    : diag_iface->test_out(fun, &params, &results);
 
 	if (ret != EOK) {
-		async_answer_0(callid, ret);
+		async_answer_0(chandle, ret);
 		return;
 	}
 
-	if (!async_data_read_receive(&data_callid, &size)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+	if (!async_data_read_receive(&data_chandle, &size)) {
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(usbdiag_test_results_t)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
-	if (async_data_read_finalize(data_callid, &results, size) != EOK) {
-		async_answer_0(callid, EINVAL);
+	if (async_data_read_finalize(data_chandle, &results, size) != EOK) {
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
-	async_answer_0(callid, ret);
+	async_answer_0(chandle, ret);
 }
 
 /**

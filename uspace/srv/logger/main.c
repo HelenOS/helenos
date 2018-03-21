@@ -47,16 +47,16 @@
 #include <str_error.h>
 #include "logger.h"
 
-static void connection_handler_control(cap_call_handle_t iid, ipc_call_t *icall,
+static void connection_handler_control(cap_call_handle_t icall_handle, ipc_call_t *icall,
     void *arg)
 {
-	logger_connection_handler_control(iid);
+	logger_connection_handler_control(icall_handle);
 }
 
-static void connection_handler_writer(cap_call_handle_t iid, ipc_call_t *icall,
+static void connection_handler_writer(cap_call_handle_t icall_handle, ipc_call_t *icall,
     void *arg)
 {
-	logger_connection_handler_writer(iid);
+	logger_connection_handler_writer(icall_handle);
 }
 
 int main(int argc, char *argv[])

@@ -238,14 +238,14 @@ errno_t graph_notify_disconnect(async_sess_t *sess, sysarg_t handle)
 	return ret;
 }
 
-static void vs_claim(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_claim(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	vs->client_side_handle = IPC_GET_ARG1(*icall);
 	errno_t rc = vs->ops.claim(vs);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void vs_yield(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_yield(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	/* Deallocate resources for the current mode. */
 	if (vs->mode_set) {
@@ -263,17 +263,17 @@ static void vs_yield(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 	if (vs->mode_set)
 		vs->mode_set = false;
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void vs_enumerate_modes(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_enumerate_modes(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t len;
 
-	if (!async_data_read_receive(&callid, &len)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &len)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
@@ -284,24 +284,24 @@ static void vs_enumerate_modes(visualizer_t *vs, cap_call_handle_t iid, ipc_call
 		vslmode_list_element_t *mode_elem =
 		    list_get_instance(link, vslmode_list_element_t, link);
 
-		errno_t rc = async_data_read_finalize(callid, &mode_elem->mode, len);
-		async_answer_0(iid, rc);
+		errno_t rc = async_data_read_finalize(chandle, &mode_elem->mode, len);
+		async_answer_0(icall_handle, rc);
 	} else {
-		async_answer_0(callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 	}
 
 	fibril_mutex_unlock(&vs->mode_mtx);
 }
 
-static void vs_get_default_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_get_default_mode(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t len;
 
-	if (!async_data_read_receive(&callid, &len)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &len)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
@@ -316,45 +316,45 @@ static void vs_get_default_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_cal
 	}
 
 	if (mode_elem != NULL) {
-		errno_t rc = async_data_read_finalize(callid, &mode_elem->mode, len);
-		async_answer_0(iid, rc);
+		errno_t rc = async_data_read_finalize(chandle, &mode_elem->mode, len);
+		async_answer_0(icall_handle, rc);
 	} else {
 		fibril_mutex_unlock(&vs->mode_mtx);
-		async_answer_0(callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 	}
 
 	fibril_mutex_unlock(&vs->mode_mtx);
 }
 
-static void vs_get_current_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_get_current_mode(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t len;
 
-	if (!async_data_read_receive(&callid, &len)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &len)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (vs->mode_set) {
-		errno_t rc = async_data_read_finalize(callid, &vs->cur_mode, len);
-		async_answer_0(iid, rc);
+		errno_t rc = async_data_read_finalize(chandle, &vs->cur_mode, len);
+		async_answer_0(icall_handle, rc);
 	} else {
-		async_answer_0(callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 	}
 }
 
-static void vs_get_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_get_mode(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t len;
 
-	if (!async_data_read_receive(&callid, &len)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &len)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
@@ -371,26 +371,26 @@ static void vs_get_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *ica
 	}
 
 	if (mode_elem != NULL) {
-		errno_t rc = async_data_read_finalize(callid, &mode_elem->mode, len);
-		async_answer_0(iid, rc);
+		errno_t rc = async_data_read_finalize(chandle, &mode_elem->mode, len);
+		async_answer_0(icall_handle, rc);
 	} else {
-		async_answer_0(callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 	}
 
 	fibril_mutex_unlock(&vs->mode_mtx);
 }
 
-static void vs_set_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_set_mode(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 	unsigned int flags;
 
 	/* Retrieve the shared cell storage for the new mode. */
-	if (!async_share_out_receive(&callid, &size, &flags)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_share_out_receive(&chandle, &size, &flags)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
@@ -411,8 +411,8 @@ static void vs_set_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *ica
 
 	if (mode_elem == NULL) {
 		fibril_mutex_unlock(&vs->mode_mtx);
-		async_answer_0(callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
@@ -422,15 +422,15 @@ static void vs_set_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *ica
 
 	/* Check whether the mode is still up-to-date. */
 	if (new_mode.version != mode_version) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	void *new_cell_storage;
-	errno_t rc = async_share_out_finalize(callid, &new_cell_storage);
+	errno_t rc = async_share_out_finalize(chandle, &new_cell_storage);
 	if ((rc != EOK) || (new_cell_storage == AS_MAP_FAILED)) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -440,7 +440,7 @@ static void vs_set_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *ica
 	/* Device driver could not establish new mode. Rollback. */
 	if (rc != EOK) {
 		as_area_destroy(new_cell_storage);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -463,10 +463,10 @@ static void vs_set_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *ica
 	vs->cur_mode = new_mode;
 	vs->mode_set = true;
 
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 }
 
-static void vs_update_damaged_region(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_update_damaged_region(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	sysarg_t x_offset = (IPC_GET_ARG5(*icall) >> 16);
 	sysarg_t y_offset = (IPC_GET_ARG5(*icall) & 0x0000ffff);
@@ -475,86 +475,86 @@ static void vs_update_damaged_region(visualizer_t *vs, cap_call_handle_t iid, ip
 	    IPC_GET_ARG1(*icall), IPC_GET_ARG2(*icall),
 	    IPC_GET_ARG3(*icall), IPC_GET_ARG4(*icall),
 	    x_offset, y_offset);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void vs_suspend(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_suspend(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	errno_t rc = vs->ops.suspend(vs);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void vs_wakeup(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
+static void vs_wakeup(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	errno_t rc = vs->ops.wakeup(vs);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 void graph_visualizer_connection(visualizer_t *vs,
-    cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+    cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	ipc_call_t call;
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 
 	/* Claim the visualizer. */
 	if (!cas(&vs->ref_cnt, 0, 1)) {
-		async_answer_0(iid, ELIMIT);
+		async_answer_0(icall_handle, ELIMIT);
 		return;
 	}
 
 	/* Accept the connection. */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	/* Establish callback session. */
-	callid = async_get_call(&call);
+	chandle = async_get_call(&call);
 	vs->notif_sess = async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 	if (vs->notif_sess != NULL)
-		async_answer_0(callid, EOK);
+		async_answer_0(chandle, EOK);
 	else
-		async_answer_0(callid, ELIMIT);
+		async_answer_0(chandle, ELIMIT);
 
 	/* Enter command loop. */
 	while (true) {
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 			break;
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case VISUALIZER_CLAIM:
-			vs_claim(vs, callid, &call);
+			vs_claim(vs, chandle, &call);
 			break;
 		case VISUALIZER_YIELD:
-			vs_yield(vs, callid, &call);
+			vs_yield(vs, chandle, &call);
 			goto terminate;
 		case VISUALIZER_ENUMERATE_MODES:
-			vs_enumerate_modes(vs, callid, &call);
+			vs_enumerate_modes(vs, chandle, &call);
 			break;
 		case VISUALIZER_GET_DEFAULT_MODE:
-			vs_get_default_mode(vs, callid, &call);
+			vs_get_default_mode(vs, chandle, &call);
 			break;
 		case VISUALIZER_GET_CURRENT_MODE:
-			vs_get_current_mode(vs, callid, &call);
+			vs_get_current_mode(vs, chandle, &call);
 			break;
 		case VISUALIZER_GET_MODE:
-			vs_get_mode(vs, callid, &call);
+			vs_get_mode(vs, chandle, &call);
 			break;
 		case VISUALIZER_SET_MODE:
-			vs_set_mode(vs, callid, &call);
+			vs_set_mode(vs, chandle, &call);
 			break;
 		case VISUALIZER_UPDATE_DAMAGED_REGION:
-			vs_update_damaged_region(vs, callid, &call);
+			vs_update_damaged_region(vs, chandle, &call);
 			break;
 		case VISUALIZER_SUSPEND:
-			vs_suspend(vs, callid, &call);
+			vs_suspend(vs, chandle, &call);
 			break;
 		case VISUALIZER_WAKE_UP:
-			vs_wakeup(vs, callid, &call);
+			vs_wakeup(vs, chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 			goto terminate;
 		}
 	}
@@ -566,29 +566,29 @@ terminate:
 }
 
 void graph_renderer_connection(renderer_t *rnd,
-    cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+    cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	// TODO
 
 	ipc_call_t call;
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 
 	/* Accept the connection. */
 	atomic_inc(&rnd->ref_cnt);
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	/* Enter command loop. */
 	while (true) {
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 			break;
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
 		default:
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 			goto terminate;
 		}
 	}
@@ -597,18 +597,18 @@ terminate:
 	atomic_dec(&rnd->ref_cnt);
 }
 
-void graph_client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+void graph_client_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	/* Find the visualizer or renderer with the given service ID. */
 	visualizer_t *vs = graph_get_visualizer(IPC_GET_ARG2(*icall));
 	renderer_t *rnd = graph_get_renderer(IPC_GET_ARG2(*icall));
 
 	if (vs != NULL)
-		graph_visualizer_connection(vs, iid, icall, arg);
+		graph_visualizer_connection(vs, icall_handle, icall, arg);
 	else if (rnd != NULL)
-		graph_renderer_connection(rnd, iid, icall, arg);
+		graph_renderer_connection(rnd, icall_handle, icall, arg);
 	else
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 }
 
 /** @}

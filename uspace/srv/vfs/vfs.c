@@ -54,23 +54,23 @@
 
 #define NAME  "vfs"
 
-static void vfs_pager(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void vfs_pager(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PAGE_IN:
-			vfs_page_in(callid, &call);
+			vfs_page_in(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 			break;
 		}
 	}

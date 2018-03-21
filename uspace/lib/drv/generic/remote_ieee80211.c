@@ -267,7 +267,7 @@ errno_t ieee80211_disconnect(async_sess_t *dev_sess)
 }
 
 static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->get_scan_results);
@@ -279,29 +279,29 @@ static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
 
 	errno_t rc = ieee80211_iface->get_scan_results(fun, &scan_results, now);
 	if (rc == EOK) {
-		cap_call_handle_t data_callid;
+		cap_call_handle_t data_chandle;
 		size_t max_len;
-		if (!async_data_read_receive(&data_callid, &max_len)) {
-			async_answer_0(data_callid, EINVAL);
-			async_answer_0(callid, EINVAL);
+		if (!async_data_read_receive(&data_chandle, &max_len)) {
+			async_answer_0(data_chandle, EINVAL);
+			async_answer_0(chandle, EINVAL);
 			return;
 		}
 
 		if (max_len < sizeof(ieee80211_scan_results_t)) {
-			async_answer_0(data_callid, ELIMIT);
-			async_answer_0(callid, ELIMIT);
+			async_answer_0(data_chandle, ELIMIT);
+			async_answer_0(chandle, ELIMIT);
 			return;
 		}
 
-		async_data_read_finalize(data_callid, &scan_results,
+		async_data_read_finalize(data_chandle, &scan_results,
 		    sizeof(ieee80211_scan_results_t));
 	}
 
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
 static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->connect);
@@ -309,58 +309,58 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 	char ssid_start[MAX_STRING_SIZE];
 	char password[MAX_STRING_SIZE];
 
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t len;
-	if (!async_data_write_receive(&data_callid, &len)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+	if (!async_data_write_receive(&data_chandle, &len)) {
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	if (len > MAX_STRING_SIZE) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
-	errno_t rc = async_data_write_finalize(data_callid, ssid_start, len);
+	errno_t rc = async_data_write_finalize(data_chandle, ssid_start, len);
 	if (rc != EOK) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
-	if (!async_data_write_receive(&data_callid, &len)) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+	if (!async_data_write_receive(&data_chandle, &len)) {
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	if (len > MAX_STRING_SIZE) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
-	rc = async_data_write_finalize(data_callid, password, len);
+	rc = async_data_write_finalize(data_chandle, password, len);
 	if (rc != EOK) {
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	rc = ieee80211_iface->connect(fun, ssid_start, password);
 
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
 static void remote_ieee80211_disconnect(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->disconnect);
 	errno_t rc = ieee80211_iface->disconnect(fun);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
 /** Remote IEEE 802.11 interface operations.

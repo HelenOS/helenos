@@ -83,7 +83,7 @@ static errno_t dhcp_init(void)
 	return EOK;
 }
 
-static void dhcp_link_add_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void dhcp_link_add_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	sysarg_t link_id;
 	errno_t rc;
@@ -93,10 +93,10 @@ static void dhcp_link_add_srv(cap_call_handle_t callid, ipc_call_t *call)
 	link_id = IPC_GET_ARG1(*call);
 
 	rc = dhcpsrv_link_add(link_id);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
-static void dhcp_link_remove_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void dhcp_link_remove_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	sysarg_t link_id;
 	errno_t rc;
@@ -106,10 +106,10 @@ static void dhcp_link_remove_srv(cap_call_handle_t callid, ipc_call_t *call)
 	link_id = IPC_GET_ARG1(*call);
 
 	rc = dhcpsrv_link_remove(link_id);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
-static void dhcp_discover_srv(cap_call_handle_t callid, ipc_call_t *call)
+static void dhcp_discover_srv(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	sysarg_t link_id;
 	errno_t rc;
@@ -119,39 +119,39 @@ static void dhcp_discover_srv(cap_call_handle_t callid, ipc_call_t *call)
 	link_id = IPC_GET_ARG1(*call);
 
 	rc = dhcpsrv_discover(link_id);
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
-static void dhcp_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void dhcp_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dhcp_client_conn()");
 
 	/* Accept the connection */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			return;
 		}
 
 		switch (method) {
 		case DHCP_LINK_ADD:
-			dhcp_link_add_srv(callid, &call);
+			dhcp_link_add_srv(chandle, &call);
 			break;
 		case DHCP_LINK_REMOVE:
-			dhcp_link_remove_srv(callid, &call);
+			dhcp_link_remove_srv(chandle, &call);
 			break;
 		case DHCP_DISCOVER:
-			dhcp_discover_srv(callid, &call);
+			dhcp_discover_srv(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 		}
 	}
 }

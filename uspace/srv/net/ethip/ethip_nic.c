@@ -51,7 +51,7 @@
 #include "pdu.h"
 
 static errno_t ethip_nic_open(service_id_t sid);
-static void ethip_nic_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg);
+static void ethip_nic_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
 
 static LIST_INITIALIZE(ethip_nic_list);
 static FIBRIL_MUTEX_INITIALIZE(ethip_discovery_lock);
@@ -228,7 +228,7 @@ static void ethip_nic_cat_change_cb(void)
 	(void) ethip_nic_check_new();
 }
 
-static void ethip_nic_addr_changed(ethip_nic_t *nic, cap_call_handle_t callid,
+static void ethip_nic_addr_changed(ethip_nic_t *nic, cap_call_handle_t chandle,
     ipc_call_t *call)
 {
 	uint8_t *addr;
@@ -254,10 +254,10 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, cap_call_handle_t callid,
 	}
 
 	free(addr);
-	async_answer_0(callid, EOK);
+	async_answer_0(chandle, EOK);
 }
 
-static void ethip_nic_received(ethip_nic_t *nic, cap_call_handle_t callid,
+static void ethip_nic_received(ethip_nic_t *nic, cap_call_handle_t chandle,
     ipc_call_t *call)
 {
 	errno_t rc;
@@ -281,17 +281,17 @@ static void ethip_nic_received(ethip_nic_t *nic, cap_call_handle_t callid,
 	free(data);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_received() done, rc=%s", str_error_name(rc));
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
-static void ethip_nic_device_state(ethip_nic_t *nic, cap_call_handle_t callid,
+static void ethip_nic_device_state(ethip_nic_t *nic, cap_call_handle_t chandle,
     ipc_call_t *call)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_device_state()");
-	async_answer_0(callid, ENOTSUP);
+	async_answer_0(chandle, ENOTSUP);
 }
 
-static void ethip_nic_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void ethip_nic_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	ethip_nic_t *nic = (ethip_nic_t *)arg;
 
@@ -299,7 +299,7 @@ static void ethip_nic_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -308,17 +308,17 @@ static void ethip_nic_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *ar
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case NIC_EV_ADDR_CHANGED:
-			ethip_nic_addr_changed(nic, callid, &call);
+			ethip_nic_addr_changed(nic, chandle, &call);
 			break;
 		case NIC_EV_RECEIVED:
-			ethip_nic_received(nic, callid, &call);
+			ethip_nic_received(nic, chandle, &call);
 			break;
 		case NIC_EV_DEVICE_STATE:
-			ethip_nic_device_state(nic, callid, &call);
+			ethip_nic_device_state(nic, chandle, &call);
 			break;
 		default:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "unknown IPC method: %" PRIun, IPC_GET_IMETHOD(call));
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 		}
 	}
 }

@@ -52,30 +52,30 @@ const remote_iface_t remote_pio_window_iface = {
 };
 
 static void remote_pio_window_get(ddf_fun_t *fun, void *ops,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	pio_window_ops_t *pio_win_ops = (pio_window_ops_t *) ops;
 	size_t len;
 
 	if (!pio_win_ops->get_pio_window) {
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
 	pio_window_t *pio_window = pio_win_ops->get_pio_window(fun);
 	if (!pio_window) {
-		async_answer_0(callid, ENOENT);
+		async_answer_0(chandle, ENOENT);
 		return;
 	}
 
-	async_answer_0(callid, EOK);
+	async_answer_0(chandle, EOK);
 
-	if (!async_data_read_receive(&callid, &len)) {
+	if (!async_data_read_receive(&chandle, &len)) {
 		/* Protocol error - the recipient is not accepting data */
 		return;
 	}
 
-	async_data_read_finalize(callid, pio_window, len);
+	async_data_read_finalize(chandle, pio_window, len);
 }
 
 /**

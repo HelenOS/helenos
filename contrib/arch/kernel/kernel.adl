@@ -114,16 +114,16 @@ interface sys_ipc {
 		sysarg_t sys_ipc_call_async_slow(sysarg_t phoneid, ipc_data_t *data);
 
 		/* Fast forward a received IPC call to another destination */
-		sysarg_t sys_ipc_forward_fast(sysarg_t callid, sysarg_t phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2, int mode);
+		sysarg_t sys_ipc_forward_fast(sysarg_t chandle, sysarg_t phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2, int mode);
 
 		/* Slow forward a received IPC call to another destination */
-		sysarg_t sys_ipc_forward_slow(sysarg_t callid, sysarg_t phoneid, ipc_data_t *data, int mode);
+		sysarg_t sys_ipc_forward_slow(sysarg_t chandle, sysarg_t phoneid, ipc_data_t *data, int mode);
 
 		/* Fast answer an IPC call */
-		sysarg_t sys_ipc_answer_fast(sysarg_t callid, sysarg_t retval, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4);
+		sysarg_t sys_ipc_answer_fast(sysarg_t chandle, sysarg_t retval, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4);
 
 		/* Slow answer an IPC call */
-		sysarg_t sys_ipc_answer_slow(sysarg_t callid, ipc_data_t *data);
+		sysarg_t sys_ipc_answer_slow(sysarg_t chandle, ipc_data_t *data);
 
 		/* Hang up a phone */
 		sysarg_t sys_ipc_hangup(int phoneid);

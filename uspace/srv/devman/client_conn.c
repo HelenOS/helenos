@@ -60,14 +60,14 @@
 
 /** Find handle for the device instance identified by the device's path in the
  * device tree. */
-static void devman_function_get_handle(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_function_get_handle(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	char *pathname;
 	devman_handle_t handle;
 
 	errno_t rc = async_data_write_accept((void **) &pathname, true, 0, 0, 0, 0);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
@@ -76,7 +76,7 @@ static void devman_function_get_handle(cap_call_handle_t iid, ipc_call_t *icall)
 	free(pathname);
 
 	if (fun == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
@@ -85,7 +85,7 @@ static void devman_function_get_handle(cap_call_handle_t iid, ipc_call_t *icall)
 	/* Check function state */
 	if (fun->state == FUN_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 	handle = fun->handle;
@@ -95,11 +95,11 @@ static void devman_function_get_handle(cap_call_handle_t iid, ipc_call_t *icall)
 	/* Delete reference created above by find_fun_node_by_path() */
 	fun_del_ref(fun);
 
-	async_answer_1(iid, EOK, handle);
+	async_answer_1(icall_handle, EOK, handle);
 }
 
 /** Get device match ID. */
-static void devman_fun_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_fun_get_match_id(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 	size_t index = IPC_GET_ARG2(*icall);
@@ -107,22 +107,22 @@ static void devman_fun_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t data_len;
-	if (!async_data_read_receive(&data_callid, &data_len)) {
-		async_answer_0(iid, EINVAL);
+	if (!async_data_read_receive(&data_chandle, &data_len)) {
+		async_answer_0(icall_handle, EINVAL);
 		fun_del_ref(fun);
 		return;
 	}
 
 	buffer = malloc(data_len);
 	if (buffer == NULL) {
-		async_answer_0(data_callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(data_chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		fun_del_ref(fun);
 		return;
 	}
@@ -144,8 +144,8 @@ static void devman_fun_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
 		sent_length = data_len;
 	}
 
-	async_data_read_finalize(data_callid, mid->id, sent_length);
-	async_answer_1(iid, EOK, mid->score);
+	async_data_read_finalize(data_chandle, mid->id, sent_length);
+	async_answer_1(icall_handle, EOK, mid->score);
 
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	fun_del_ref(fun);
@@ -156,34 +156,34 @@ error:
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	free(buffer);
 
-	async_answer_0(data_callid, ENOENT);
-	async_answer_0(iid, ENOENT);
+	async_answer_0(data_chandle, ENOENT);
+	async_answer_0(icall_handle, ENOENT);
 	fun_del_ref(fun);
 }
 
 /** Get device name. */
-static void devman_fun_get_name(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_fun_get_name(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t data_len;
-	if (!async_data_read_receive(&data_callid, &data_len)) {
-		async_answer_0(iid, EINVAL);
+	if (!async_data_read_receive(&data_chandle, &data_len)) {
+		async_answer_0(icall_handle, EINVAL);
 		fun_del_ref(fun);
 		return;
 	}
 
 	void *buffer = malloc(data_len);
 	if (buffer == NULL) {
-		async_answer_0(data_callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(data_chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		fun_del_ref(fun);
 		return;
 	}
@@ -195,8 +195,8 @@ static void devman_fun_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		free(buffer);
 
-		async_answer_0(data_callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(data_chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		fun_del_ref(fun);
 		return;
 	}
@@ -206,8 +206,8 @@ static void devman_fun_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 		sent_length = data_len;
 	}
 
-	async_data_read_finalize(data_callid, fun->name, sent_length);
-	async_answer_0(iid, EOK);
+	async_data_read_finalize(data_chandle, fun->name, sent_length);
+	async_answer_0(icall_handle, EOK);
 
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	fun_del_ref(fun);
@@ -215,28 +215,28 @@ static void devman_fun_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 }
 
 /** Get function driver name. */
-static void devman_fun_get_driver_name(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_fun_get_driver_name(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t data_len;
-	if (!async_data_read_receive(&data_callid, &data_len)) {
-		async_answer_0(iid, EINVAL);
+	if (!async_data_read_receive(&data_chandle, &data_len)) {
+		async_answer_0(icall_handle, EINVAL);
 		fun_del_ref(fun);
 		return;
 	}
 
 	void *buffer = malloc(data_len);
 	if (buffer == NULL) {
-		async_answer_0(data_callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(data_chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		fun_del_ref(fun);
 		return;
 	}
@@ -248,8 +248,8 @@ static void devman_fun_get_driver_name(cap_call_handle_t iid, ipc_call_t *icall)
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		free(buffer);
 
-		async_answer_0(data_callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(data_chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		fun_del_ref(fun);
 		return;
 	}
@@ -259,8 +259,8 @@ static void devman_fun_get_driver_name(cap_call_handle_t iid, ipc_call_t *icall)
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		free(buffer);
 
-		async_answer_0(data_callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(data_chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		fun_del_ref(fun);
 		return;
 	}
@@ -270,9 +270,9 @@ static void devman_fun_get_driver_name(cap_call_handle_t iid, ipc_call_t *icall)
 		sent_length = data_len;
 	}
 
-	async_data_read_finalize(data_callid, fun->child->drv->name,
+	async_data_read_finalize(data_chandle, fun->child->drv->name,
 	    sent_length);
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	fun_del_ref(fun);
@@ -280,28 +280,28 @@ static void devman_fun_get_driver_name(cap_call_handle_t iid, ipc_call_t *icall)
 }
 
 /** Get device path. */
-static void devman_fun_get_path(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_fun_get_path(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 
 	fun_node_t *fun = find_fun_node(&device_tree, handle);
 	if (fun == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t data_len;
-	if (!async_data_read_receive(&data_callid, &data_len)) {
-		async_answer_0(iid, EINVAL);
+	if (!async_data_read_receive(&data_chandle, &data_len)) {
+		async_answer_0(icall_handle, EINVAL);
 		fun_del_ref(fun);
 		return;
 	}
 
 	void *buffer = malloc(data_len);
 	if (buffer == NULL) {
-		async_answer_0(data_callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(data_chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		fun_del_ref(fun);
 		return;
 	}
@@ -313,8 +313,8 @@ static void devman_fun_get_path(cap_call_handle_t iid, ipc_call_t *icall)
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
 		free(buffer);
 
-		async_answer_0(data_callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(data_chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		fun_del_ref(fun);
 		return;
 	}
@@ -324,8 +324,8 @@ static void devman_fun_get_path(cap_call_handle_t iid, ipc_call_t *icall)
 		sent_length = data_len;
 	}
 
-	async_data_read_finalize(data_callid, fun->pathname, sent_length);
-	async_answer_0(iid, EOK);
+	async_data_read_finalize(data_chandle, fun->pathname, sent_length);
+	async_answer_0(icall_handle, EOK);
 
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	fun_del_ref(fun);
@@ -333,7 +333,7 @@ static void devman_fun_get_path(cap_call_handle_t iid, ipc_call_t *icall)
 }
 
 /** Get handle for parent function of a device. */
-static void devman_dev_get_parent(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_dev_get_parent(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	dev_node_t *dev;
 
@@ -342,31 +342,31 @@ static void devman_dev_get_parent(cap_call_handle_t iid, ipc_call_t *icall)
 	dev = find_dev_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
 	if (dev == NULL || dev->state == DEVICE_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
 	if (dev->pfun == NULL) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
-	async_answer_1(iid, EOK, dev->pfun->handle);
+	async_answer_1(icall_handle, EOK, dev->pfun->handle);
 
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 }
 
-static void devman_dev_get_functions(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_dev_get_functions(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
 
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
@@ -376,37 +376,37 @@ static void devman_dev_get_functions(cap_call_handle_t iid, ipc_call_t *icall)
 	    IPC_GET_ARG1(*icall));
 	if (dev == NULL || dev->state == DEVICE_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
 	devman_handle_t *hdl_buf = (devman_handle_t *) malloc(size);
 	if (hdl_buf == NULL) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
 	rc = dev_get_functions(&device_tree, dev, hdl_buf, size, &act_size);
 	if (rc != EOK) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 
-	errno_t retval = async_data_read_finalize(callid, hdl_buf, size);
+	errno_t retval = async_data_read_finalize(chandle, hdl_buf, size);
 	free(hdl_buf);
 
-	async_answer_1(iid, retval, act_size);
+	async_answer_1(icall_handle, retval, act_size);
 }
 
 /** Get handle for child device of a function. */
-static void devman_fun_get_child(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_fun_get_child(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	fun_node_t *fun;
 
@@ -415,17 +415,17 @@ static void devman_fun_get_child(cap_call_handle_t iid, ipc_call_t *icall)
 	fun = find_fun_node_no_lock(&device_tree, IPC_GET_ARG1(*icall));
 	if (fun == NULL || fun->state == FUN_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
 	if (fun->child == NULL) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
-	async_answer_1(iid, EOK, fun->child->handle);
+	async_answer_1(icall_handle, EOK, fun->child->handle);
 
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 }
@@ -436,21 +436,21 @@ static void devman_fun_get_child(cap_call_handle_t iid, ipc_call_t *icall)
  * The driver may offline other functions if necessary (i.e. if the state
  * of this function is linked to state of another function somehow).
  */
-static void devman_fun_online(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_fun_online(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	fun_node_t *fun;
 	errno_t rc;
 
 	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
 	if (fun == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
 	rc = driver_fun_online(&device_tree, fun);
 	fun_del_ref(fun);
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Offline function.
@@ -461,32 +461,32 @@ static void devman_fun_online(cap_call_handle_t iid, ipc_call_t *icall)
  * (i.e. if the state of this function is linked to state of another
  * function somehow).
  */
-static void devman_fun_offline(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_fun_offline(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	fun_node_t *fun;
 	errno_t rc;
 
 	fun = find_fun_node(&device_tree, IPC_GET_ARG1(*icall));
 	if (fun == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
 	rc = driver_fun_offline(&device_tree, fun);
 	fun_del_ref(fun);
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Find handle for the function instance identified by its service ID. */
-static void devman_fun_sid_to_handle(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_fun_sid_to_handle(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	fun_node_t *fun;
 
 	fun = find_loc_tree_function(&device_tree, IPC_GET_ARG1(*icall));
 
 	if (fun == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
@@ -495,97 +495,97 @@ static void devman_fun_sid_to_handle(cap_call_handle_t iid, ipc_call_t *icall)
 	/* Check function state */
 	if (fun->state == FUN_REMOVED) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
-	async_answer_1(iid, EOK, fun->handle);
+	async_answer_1(icall_handle, EOK, fun->handle);
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 	fun_del_ref(fun);
 }
 
 /** Get list of all registered drivers. */
-static void devman_get_drivers(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_get_drivers(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
 
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	devman_handle_t *hdl_buf = (devman_handle_t *) malloc(size);
 	if (hdl_buf == NULL) {
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
 	rc = driver_get_list(&drivers_list, hdl_buf, size, &act_size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	errno_t retval = async_data_read_finalize(callid, hdl_buf, size);
+	errno_t retval = async_data_read_finalize(chandle, hdl_buf, size);
 	free(hdl_buf);
 
-	async_answer_1(iid, retval, act_size);
+	async_answer_1(icall_handle, retval, act_size);
 }
 
-static void devman_driver_get_devices(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_driver_get_devices(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
 
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	driver_t *drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
 	if (drv == NULL) {
-		async_answer_0(callid, ENOENT);
-		async_answer_0(iid, ENOENT);
+		async_answer_0(chandle, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
 	devman_handle_t *hdl_buf = (devman_handle_t *) malloc(size);
 	if (hdl_buf == NULL) {
-		async_answer_0(callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
 	rc = driver_get_devices(drv, hdl_buf, size, &act_size);
 	if (rc != EOK) {
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	errno_t retval = async_data_read_finalize(callid, hdl_buf, size);
+	errno_t retval = async_data_read_finalize(chandle, hdl_buf, size);
 	free(hdl_buf);
 
-	async_answer_1(iid, retval, act_size);
+	async_answer_1(icall_handle, retval, act_size);
 }
 
 
 /** Find driver by name. */
-static void devman_driver_get_handle(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_driver_get_handle(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	char *drvname;
 
 	errno_t rc = async_data_write_accept((void **) &drvname, true, 0, 0, 0, 0);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
@@ -594,36 +594,36 @@ static void devman_driver_get_handle(cap_call_handle_t iid, ipc_call_t *icall)
 	free(drvname);
 
 	if (driver == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
-	async_answer_1(iid, EOK, driver->handle);
+	async_answer_1(icall_handle, EOK, driver->handle);
 }
 
 /** Get driver match ID. */
-static void devman_driver_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_driver_get_match_id(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 	size_t index = IPC_GET_ARG2(*icall);
 
 	driver_t *drv = driver_find(&drivers_list, handle);
 	if (drv == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t data_len;
-	if (!async_data_read_receive(&data_callid, &data_len)) {
-		async_answer_0(iid, EINVAL);
+	if (!async_data_read_receive(&data_chandle, &data_len)) {
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	void *buffer = malloc(data_len);
 	if (buffer == NULL) {
-		async_answer_0(data_callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(data_chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -632,8 +632,8 @@ static void devman_driver_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
 	if (link == NULL) {
 		fibril_mutex_unlock(&drv->driver_mutex);
 		free(buffer);
-		async_answer_0(data_callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(data_chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -644,8 +644,8 @@ static void devman_driver_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
 		sent_length = data_len;
 	}
 
-	async_data_read_finalize(data_callid, mid->id, sent_length);
-	async_answer_1(iid, EOK, mid->score);
+	async_data_read_finalize(data_chandle, mid->id, sent_length);
+	async_answer_1(icall_handle, EOK, mid->score);
 
 	fibril_mutex_unlock(&drv->driver_mutex);
 
@@ -653,27 +653,27 @@ static void devman_driver_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
 }
 
 /** Get driver name. */
-static void devman_driver_get_name(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_driver_get_name(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 
 	driver_t *drv = driver_find(&drivers_list, handle);
 	if (drv == NULL) {
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
-	cap_call_handle_t data_callid;
+	cap_call_handle_t data_chandle;
 	size_t data_len;
-	if (!async_data_read_receive(&data_callid, &data_len)) {
-		async_answer_0(iid, EINVAL);
+	if (!async_data_read_receive(&data_chandle, &data_len)) {
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	void *buffer = malloc(data_len);
 	if (buffer == NULL) {
-		async_answer_0(data_callid, ENOMEM);
-		async_answer_0(iid, ENOMEM);
+		async_answer_0(data_chandle, ENOMEM);
+		async_answer_0(icall_handle, ENOMEM);
 		return;
 	}
 
@@ -684,8 +684,8 @@ static void devman_driver_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 		sent_length = data_len;
 	}
 
-	async_data_read_finalize(data_callid, drv->name, sent_length);
-	async_answer_0(iid, EOK);
+	async_data_read_finalize(data_chandle, drv->name, sent_length);
+	async_answer_0(icall_handle, EOK);
 
 	fibril_mutex_unlock(&drv->driver_mutex);
 
@@ -693,28 +693,28 @@ static void devman_driver_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 }
 
 /** Get driver state. */
-static void devman_driver_get_state(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_driver_get_state(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	driver_t *drv;
 
 	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
 	if (drv == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
-	async_answer_1(iid, EOK, (sysarg_t) drv->state);
+	async_answer_1(icall_handle, EOK, (sysarg_t) drv->state);
 }
 
 /** Forcibly load a driver. */
-static void devman_driver_load(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_driver_load(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	driver_t *drv;
 	errno_t rc;
 
 	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
 	if (drv == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
@@ -722,18 +722,18 @@ static void devman_driver_load(cap_call_handle_t iid, ipc_call_t *icall)
 	rc = start_driver(drv) ? EOK : EIO;
 	fibril_mutex_unlock(&drv->driver_mutex);
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Unload a driver by user request. */
-static void devman_driver_unload(cap_call_handle_t iid, ipc_call_t *icall)
+static void devman_driver_unload(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	driver_t *drv;
 	errno_t rc;
 
 	drv = driver_find(&drivers_list, IPC_GET_ARG1(*icall));
 	if (drv == NULL) {
-		async_answer_0(iid, ENOENT);
+		async_answer_0(icall_handle, ENOENT);
 		return;
 	}
 
@@ -741,82 +741,82 @@ static void devman_driver_unload(cap_call_handle_t iid, ipc_call_t *icall)
 	rc = stop_driver(drv);
 	fibril_mutex_unlock(&drv->driver_mutex);
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
 /** Function for handling connections from a client to the device manager. */
-void devman_connection_client(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+void devman_connection_client(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection. */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case DEVMAN_DEVICE_GET_HANDLE:
-			devman_function_get_handle(callid, &call);
+			devman_function_get_handle(chandle, &call);
 			break;
 		case DEVMAN_DEV_GET_PARENT:
-			devman_dev_get_parent(callid, &call);
+			devman_dev_get_parent(chandle, &call);
 			break;
 		case DEVMAN_DEV_GET_FUNCTIONS:
-			devman_dev_get_functions(callid, &call);
+			devman_dev_get_functions(chandle, &call);
 			break;
 		case DEVMAN_FUN_GET_CHILD:
-			devman_fun_get_child(callid, &call);
+			devman_fun_get_child(chandle, &call);
 			break;
 		case DEVMAN_FUN_GET_MATCH_ID:
-			devman_fun_get_match_id(callid, &call);
+			devman_fun_get_match_id(chandle, &call);
 			break;
 		case DEVMAN_FUN_GET_NAME:
-			devman_fun_get_name(callid, &call);
+			devman_fun_get_name(chandle, &call);
 			break;
 		case DEVMAN_FUN_GET_DRIVER_NAME:
-			devman_fun_get_driver_name(callid, &call);
+			devman_fun_get_driver_name(chandle, &call);
 			break;
 		case DEVMAN_FUN_GET_PATH:
-			devman_fun_get_path(callid, &call);
+			devman_fun_get_path(chandle, &call);
 			break;
 		case DEVMAN_FUN_ONLINE:
-			devman_fun_online(callid, &call);
+			devman_fun_online(chandle, &call);
 			break;
 		case DEVMAN_FUN_OFFLINE:
-			devman_fun_offline(callid, &call);
+			devman_fun_offline(chandle, &call);
 			break;
 		case DEVMAN_FUN_SID_TO_HANDLE:
-			devman_fun_sid_to_handle(callid, &call);
+			devman_fun_sid_to_handle(chandle, &call);
 			break;
 		case DEVMAN_GET_DRIVERS:
-			devman_get_drivers(callid, &call);
+			devman_get_drivers(chandle, &call);
 			break;
 		case DEVMAN_DRIVER_GET_DEVICES:
-			devman_driver_get_devices(callid, &call);
+			devman_driver_get_devices(chandle, &call);
 			break;
 		case DEVMAN_DRIVER_GET_HANDLE:
-			devman_driver_get_handle(callid, &call);
+			devman_driver_get_handle(chandle, &call);
 			break;
 		case DEVMAN_DRIVER_GET_MATCH_ID:
-			devman_driver_get_match_id(callid, &call);
+			devman_driver_get_match_id(chandle, &call);
 			break;
 		case DEVMAN_DRIVER_GET_NAME:
-			devman_driver_get_name(callid, &call);
+			devman_driver_get_name(chandle, &call);
 			break;
 		case DEVMAN_DRIVER_GET_STATE:
-			devman_driver_get_state(callid, &call);
+			devman_driver_get_state(chandle, &call);
 			break;
 		case DEVMAN_DRIVER_LOAD:
-			devman_driver_load(callid, &call);
+			devman_driver_load(chandle, &call);
 			break;
 		case DEVMAN_DRIVER_UNLOAD:
-			devman_driver_unload(callid, &call);
+			devman_driver_unload(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOENT);
+			async_answer_0(chandle, ENOENT);
 		}
 	}
 }

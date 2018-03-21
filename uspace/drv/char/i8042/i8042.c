@@ -413,15 +413,15 @@ static errno_t i8042_read(chardev_srv_t *srv, void *dest, size_t size,
 
 /** Handle data requests.
  *
- * @param id   callid
+ * @param id   chandle
  * @param call IPC request.
  * @param arg  ddf_fun_t function.
  */
-void i8042_char_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+void i8042_char_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	i8042_port_t *port = ddf_fun_data_get((ddf_fun_t *)arg);
 
-	chardev_conn(iid, icall, &port->cds);
+	chardev_conn(icall_handle, icall, &port->cds);
 }
 
 /**

@@ -86,11 +86,11 @@ static void vfs_out_fsprobe(cap_call_handle_t rid, ipc_call_t *req)
 	errno_t rc;
 	vfs_fs_probe_info_t info;
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if ((!async_data_read_receive(&callid, &size)) ||
+	if ((!async_data_read_receive(&chandle, &size)) ||
 	    (size != sizeof(info))) {
-		async_answer_0(callid, EIO);
+		async_answer_0(chandle, EIO);
 		async_answer_0(rid, EIO);
 		return;
 	}
@@ -98,12 +98,12 @@ static void vfs_out_fsprobe(cap_call_handle_t rid, ipc_call_t *req)
 	memset(&info, 0, sizeof(info));
 	rc = vfs_out_ops->fsprobe(service_id, &info);
 	if (rc != EOK) {
-		async_answer_0(callid, EIO);
+		async_answer_0(chandle, EIO);
 		async_answer_0(rid, rc);
 		return;
 	}
 
-	async_data_read_finalize(callid, &info, sizeof(info));
+	async_data_read_finalize(chandle, &info, sizeof(info));
 	async_answer_0(rid, EOK);
 }
 
@@ -277,72 +277,72 @@ static void vfs_out_is_empty(cap_call_handle_t rid, ipc_call_t *req)
 	async_answer_0(rid, children ? ENOTEMPTY : EOK);
 }
 
-static void vfs_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void vfs_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
-	if (iid) {
+	if (icall_handle) {
 		/*
 		 * This only happens for connections opened by
 		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
 		 * created by IPC_M_CONNECT_TO_ME.
 		 */
-		async_answer_0(iid, EOK);
+		async_answer_0(icall_handle, EOK);
 	}
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			return;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case VFS_OUT_FSPROBE:
-			vfs_out_fsprobe(callid, &call);
+			vfs_out_fsprobe(chandle, &call);
 			break;
 		case VFS_OUT_MOUNTED:
-			vfs_out_mounted(callid, &call);
+			vfs_out_mounted(chandle, &call);
 			break;
 		case VFS_OUT_UNMOUNTED:
-			vfs_out_unmounted(callid, &call);
+			vfs_out_unmounted(chandle, &call);
 			break;
 		case VFS_OUT_LINK:
-			vfs_out_link(callid, &call);
+			vfs_out_link(chandle, &call);
 			break;
 		case VFS_OUT_LOOKUP:
-			vfs_out_lookup(callid, &call);
+			vfs_out_lookup(chandle, &call);
 			break;
 		case VFS_OUT_READ:
-			vfs_out_read(callid, &call);
+			vfs_out_read(chandle, &call);
 			break;
 		case VFS_OUT_WRITE:
-			vfs_out_write(callid, &call);
+			vfs_out_write(chandle, &call);
 			break;
 		case VFS_OUT_TRUNCATE:
-			vfs_out_truncate(callid, &call);
+			vfs_out_truncate(chandle, &call);
 			break;
 		case VFS_OUT_CLOSE:
-			vfs_out_close(callid, &call);
+			vfs_out_close(chandle, &call);
 			break;
 		case VFS_OUT_DESTROY:
-			vfs_out_destroy(callid, &call);
+			vfs_out_destroy(chandle, &call);
 			break;
 		case VFS_OUT_OPEN_NODE:
-			vfs_out_open_node(callid, &call);
+			vfs_out_open_node(chandle, &call);
 			break;
 		case VFS_OUT_STAT:
-			vfs_out_stat(callid, &call);
+			vfs_out_stat(chandle, &call);
 			break;
 		case VFS_OUT_SYNC:
-			vfs_out_sync(callid, &call);
+			vfs_out_sync(chandle, &call);
 			break;
 		case VFS_OUT_STATFS:
-			vfs_out_statfs(callid, &call);
+			vfs_out_statfs(chandle, &call);
 			break;
 		case VFS_OUT_IS_EMPTY:
-			vfs_out_is_empty(callid, &call);
+			vfs_out_is_empty(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 			break;
 		}
 	}
@@ -729,12 +729,12 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, cap_call_handle_t rid,
 	errno_t rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if ((!async_data_read_receive(&callid, &size)) ||
+	if ((!async_data_read_receive(&chandle, &size)) ||
 	    (size != sizeof(vfs_stat_t))) {
 		ops->node_put(fn);
-		async_answer_0(callid, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		async_answer_0(rid, EINVAL);
 		return;
 	}
@@ -754,7 +754,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, cap_call_handle_t rid,
 	ops->node_put(fn);
 
 
-	async_data_read_finalize(callid, &stat, sizeof(vfs_stat_t));
+	async_data_read_finalize(chandle, &stat, sizeof(vfs_stat_t));
 	async_answer_0(rid, EOK);
 }
 
@@ -768,9 +768,9 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, cap_call_handle_t rid
 	errno_t rc = ops->node_get(&fn, service_id, index);
 	on_error(rc, answer_and_return(rid, rc));
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if ((!async_data_read_receive(&callid, &size)) ||
+	if ((!async_data_read_receive(&chandle, &size)) ||
 	    (size != sizeof(vfs_statfs_t))) {
 		goto error;
 	}
@@ -799,13 +799,13 @@ void libfs_statfs(libfs_ops_t *ops, fs_handle_t fs_handle, cap_call_handle_t rid
 	}
 
 	ops->node_put(fn);
-	async_data_read_finalize(callid, &st, sizeof(vfs_statfs_t));
+	async_data_read_finalize(chandle, &st, sizeof(vfs_statfs_t));
 	async_answer_0(rid, EOK);
 	return;
 
 error:
 	ops->node_put(fn);
-	async_answer_0(callid, EINVAL);
+	async_answer_0(chandle, EINVAL);
 	async_answer_0(rid, EINVAL);
 }
 

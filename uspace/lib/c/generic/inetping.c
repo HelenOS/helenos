@@ -149,68 +149,68 @@ errno_t inetping_get_srcaddr(const inet_addr_t *remote, inet_addr_t *local)
 	return retval;
 }
 
-static void inetping_ev_recv(cap_call_handle_t iid, ipc_call_t *icall)
+static void inetping_ev_recv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	inetping_sdu_t sdu;
 
 	sdu.seq_no = IPC_GET_ARG1(*icall);
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(sdu.src)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	errno_t rc = async_data_write_finalize(callid, &sdu.src, size);
+	errno_t rc = async_data_write_finalize(chandle, &sdu.src, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(sdu.dest)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_write_finalize(callid, &sdu.dest, size);
+	rc = async_data_write_finalize(chandle, &sdu.dest, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0, &sdu.size);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	rc = inetping_ev_ops->recv(&sdu);
 	free(sdu.data);
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void inetping_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void inetping_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -219,10 +219,10 @@ static void inetping_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case INETPING_EV_RECV:
-			inetping_ev_recv(callid, &call);
+			inetping_ev_recv(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOTSUP);
+			async_answer_0(chandle, ENOTSUP);
 		}
 	}
 }

@@ -72,41 +72,41 @@
  * @param icall		Call data of the request that opened the connection.
  * @param arg		Local argument.
  */
-static void obio_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void obio_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	ipc_call_t call;
 	obio_t *obio;
 
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	obio = (obio_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (1) {
 		int inr;
 
-		callid = async_get_call(&call);
+		chandle = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
 			pio_set_64(&obio->regs[OBIO_IMR(inr & INO_MASK)],
 			    1UL << 31, 0);
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			break;
 		case IRC_DISABLE_INTERRUPT:
 			/* XXX TODO */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			break;
 		case IRC_CLEAR_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
 			pio_write_64(&obio->regs[OBIO_CIR(inr & INO_MASK)], 0);
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			break;
 		default:
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 			break;
 		}
 	}

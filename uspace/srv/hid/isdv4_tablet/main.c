@@ -62,9 +62,9 @@ static errno_t read_fibril(void *unused)
 	return EOK;
 }
 
-static void mouse_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void mouse_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	async_sess_t *sess =
 	    async_callback_receive(EXCHANGE_SERIALIZE);
@@ -78,12 +78,12 @@ static void mouse_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 	}
 }
 

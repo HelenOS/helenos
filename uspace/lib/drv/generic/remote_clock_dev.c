@@ -68,25 +68,25 @@ const remote_iface_t remote_clock_dev_iface = {
  * @param ops   The local ops structure
  */
 static void
-remote_clock_time_get(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
+remote_clock_time_get(ddf_fun_t *fun, void *ops, cap_call_handle_t chandle,
     ipc_call_t *call)
 {
 	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
-	cap_call_handle_t cid;
+	cap_call_handle_t call_handle;
 	struct tm t;
 	errno_t rc;
 	size_t len;
 
-	if (!async_data_read_receive(&cid, &len)) {
+	if (!async_data_read_receive(&call_handle, &len)) {
 		/* TODO: Handle protocol error */
-		async_answer_0(callid, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	if (!clock_dev_ops->time_get) {
 		/* The driver does not provide the time_get() functionality */
-		async_answer_0(cid, ENOTSUP);
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(call_handle, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
@@ -94,14 +94,14 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
 
 	if (rc != EOK) {
 		/* Some error occurred */
-		async_answer_0(cid, rc);
-		async_answer_0(callid, rc);
+		async_answer_0(call_handle, rc);
+		async_answer_0(chandle, rc);
 		return;
 	}
 
 	/* The operation was successful */
-	async_data_read_finalize(cid, &t, sizeof(struct tm));
-	async_answer_0(callid, rc);
+	async_data_read_finalize(call_handle, &t, sizeof(struct tm));
+	async_answer_0(chandle, rc);
 }
 
 /** Process the time_set() request from the remote client
@@ -110,32 +110,32 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
  * @param ops   The local ops structure
  */
 static void remote_clock_time_set(ddf_fun_t *fun, void *ops,
-    cap_call_handle_t callid, ipc_call_t *call)
+    cap_call_handle_t chandle, ipc_call_t *call)
 {
 	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
 	errno_t      rc;
 	struct tm    t;
-	cap_call_handle_t cid;
+	cap_call_handle_t call_handle;
 	size_t       len;
 
-	if (!async_data_write_receive(&cid, &len)) {
+	if (!async_data_write_receive(&call_handle, &len)) {
 		/* TODO: Handle protocol error */
-		async_answer_0(callid, EINVAL);
+		async_answer_0(chandle, EINVAL);
 		return;
 	}
 
 	if (!clock_dev_ops->time_set) {
 		/* The driver does not support the time_set() functionality */
-		async_answer_0(cid, ENOTSUP);
-		async_answer_0(callid, ENOTSUP);
+		async_answer_0(call_handle, ENOTSUP);
+		async_answer_0(chandle, ENOTSUP);
 		return;
 	}
 
-	async_data_write_finalize(cid, &t, sizeof(struct tm));
+	async_data_write_finalize(call_handle, &t, sizeof(struct tm));
 
 	rc = (*clock_dev_ops->time_set)(fun, &t);
 
-	async_answer_0(callid, rc);
+	async_answer_0(chandle, rc);
 }
 
 /**

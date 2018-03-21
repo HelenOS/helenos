@@ -86,10 +86,10 @@ static hash_table_t service_hash_table;
 /** Pending connection structure. */
 typedef struct {
 	link_t link;
-	service_t service;    /**< Service ID */
-	iface_t iface;        /**< Interface ID */
-	cap_call_handle_t callid;  /**< Call ID waiting for the connection */
-	sysarg_t arg3;        /**< Third argument */
+	service_t service;         /**< Service ID */
+	iface_t iface;             /**< Interface ID */
+	cap_call_handle_t chandle; /**< Call handle waiting for the connection */
+	sysarg_t arg3;             /**< Third argument */
 } pending_conn_t;
 
 static list_t pending_conn;
@@ -118,7 +118,7 @@ loop:
 
 		hashed_service_t *hashed_service = hash_table_get_inst(link, hashed_service_t, link);
 		async_exch_t *exch = async_exchange_begin(hashed_service->sess);
-		async_forward_fast(pending->callid, exch, pending->iface,
+		async_forward_fast(pending->chandle, exch, pending->iface,
 		    pending->arg3, 0, IPC_FF_NONE);
 		async_exchange_end(exch);
 
@@ -162,13 +162,13 @@ errno_t register_service(service_t service, sysarg_t phone, ipc_call_t *call)
  * @param service Service to be connected to.
  * @param iface   Interface to be connected to.
  * @param call    Pointer to call structure.
- * @param callid  Call ID of the request.
+ * @param chandle  Call ID of the request.
  *
  * @return Zero on success or a value from @ref errno.h.
  *
  */
 void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
-    cap_call_handle_t callid)
+    cap_call_handle_t chandle)
 {
 	sysarg_t arg3 = IPC_GET_ARG3(*call);
 	sysarg_t flags = IPC_GET_ARG4(*call);
@@ -188,7 +188,7 @@ void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
 			link_initialize(&pending->link);
 			pending->service = service;
 			pending->iface = iface;
-			pending->callid = callid;
+			pending->chandle = chandle;
 			pending->arg3 = arg3;
 
 			list_append(&pending->link, &pending_conn);
@@ -201,12 +201,12 @@ void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
 
 	hashed_service_t *hashed_service = hash_table_get_inst(link, hashed_service_t, link);
 	async_exch_t *exch = async_exchange_begin(hashed_service->sess);
-	async_forward_fast(callid, exch, iface, arg3, 0, IPC_FF_NONE);
+	async_forward_fast(chandle, exch, iface, arg3, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 	return;
 
 out:
-	async_answer_0(callid, retval);
+	async_answer_0(chandle, retval);
 }
 
 /**

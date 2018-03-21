@@ -94,33 +94,33 @@ static void clip_get_data(cap_call_handle_t rid, ipc_call_t *request)
 {
 	fibril_mutex_lock(&clip_mtx);
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
 
 	/* Check for clipboard data tag compatibility */
 	switch (IPC_GET_ARG1(*request)) {
 	case CLIPBOARD_TAG_DATA:
-		if (!async_data_read_receive(&callid, &size)) {
-			async_answer_0(callid, EINVAL);
+		if (!async_data_read_receive(&chandle, &size)) {
+			async_answer_0(chandle, EINVAL);
 			async_answer_0(rid, EINVAL);
 			break;
 		}
 
 		if (clip_tag != CLIPBOARD_TAG_DATA) {
 			/* So far we only understand binary data */
-			async_answer_0(callid, EOVERFLOW);
+			async_answer_0(chandle, EOVERFLOW);
 			async_answer_0(rid, EOVERFLOW);
 			break;
 		}
 
 		if (clip_size != size) {
 			/* The client expects different size of data */
-			async_answer_0(callid, EOVERFLOW);
+			async_answer_0(chandle, EOVERFLOW);
 			async_answer_0(rid, EOVERFLOW);
 			break;
 		}
 
-		errno_t retval = async_data_read_finalize(callid, clip_data, size);
+		errno_t retval = async_data_read_finalize(chandle, clip_data, size);
 		if (retval != EOK) {
 			async_answer_0(rid, retval);
 			break;
@@ -151,30 +151,30 @@ static void clip_content(cap_call_handle_t rid, ipc_call_t *request)
 	async_answer_2(rid, EOK, (sysarg_t) size, (sysarg_t) tag);
 }
 
-static void clip_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void clip_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case CLIPBOARD_PUT_DATA:
-			clip_put_data(callid, &call);
+			clip_put_data(chandle, &call);
 			break;
 		case CLIPBOARD_GET_DATA:
-			clip_get_data(callid, &call);
+			clip_get_data(chandle, &call);
 			break;
 		case CLIPBOARD_CONTENT:
-			clip_content(callid, &call);
+			clip_content(chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, ENOENT);
+			async_answer_0(chandle, ENOENT);
 		}
 	}
 }

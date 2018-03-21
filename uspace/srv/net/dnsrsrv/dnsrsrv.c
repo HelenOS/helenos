@@ -85,7 +85,7 @@ static errno_t dnsr_init(void)
 	return EOK;
 }
 
-static void dnsr_name2host_srv(dnsr_client_t *client, cap_call_handle_t iid,
+static void dnsr_name2host_srv(dnsr_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
@@ -96,150 +96,150 @@ static void dnsr_name2host_srv(dnsr_client_t *client, cap_call_handle_t iid,
 	errno_t rc = async_data_write_accept((void **) &name, true, 0,
 	    DNS_NAME_MAX_SIZE, 0, NULL);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
 	dns_host_info_t *hinfo;
 	rc = dns_name2host(name, &hinfo, ver);
 	if (rc != EOK) {
-		async_answer_0(iid, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, &hinfo->addr, size);
+	rc = async_data_read_finalize(chandle, &hinfo->addr, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 		return;
 	}
 
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	size_t act_size = str_size(hinfo->cname);
 	if (act_size > size) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
-	rc = async_data_read_finalize(callid, hinfo->cname, act_size);
+	rc = async_data_read_finalize(chandle, hinfo->cname, act_size);
 	if (rc != EOK)
-		async_answer_0(callid, rc);
+		async_answer_0(chandle, rc);
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 
 	dns_hostinfo_destroy(hinfo);
 }
 
-static void dnsr_get_srvaddr_srv(dnsr_client_t *client, cap_call_handle_t iid,
+static void dnsr_get_srvaddr_srv(dnsr_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_read_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	// FIXME locking
 
-	errno_t rc = async_data_read_finalize(callid, &dns_server_addr, size);
+	errno_t rc = async_data_read_finalize(chandle, &dns_server_addr, size);
 	if (rc != EOK)
-		async_answer_0(callid, rc);
+		async_answer_0(chandle, rc);
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void dnsr_set_srvaddr_srv(dnsr_client_t *client, cap_call_handle_t iid,
+static void dnsr_set_srvaddr_srv(dnsr_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dnsr_set_srvaddr_srv()");
 
-	cap_call_handle_t callid;
+	cap_call_handle_t chandle;
 	size_t size;
-	if (!async_data_write_receive(&callid, &size)) {
-		async_answer_0(callid, EREFUSED);
-		async_answer_0(iid, EREFUSED);
+	if (!async_data_write_receive(&chandle, &size)) {
+		async_answer_0(chandle, EREFUSED);
+		async_answer_0(icall_handle, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(callid, EINVAL);
-		async_answer_0(iid, EINVAL);
+		async_answer_0(chandle, EINVAL);
+		async_answer_0(icall_handle, EINVAL);
 		return;
 	}
 
 	// FIXME locking
 
-	errno_t rc = async_data_write_finalize(callid, &dns_server_addr, size);
+	errno_t rc = async_data_write_finalize(chandle, &dns_server_addr, size);
 	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_answer_0(iid, rc);
+		async_answer_0(chandle, rc);
+		async_answer_0(icall_handle, rc);
 	}
 
-	async_answer_0(iid, rc);
+	async_answer_0(icall_handle, rc);
 }
 
-static void dnsr_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
+static void dnsr_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	dnsr_client_t client;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dnsr_conn()");
 
 	/* Accept the connection */
-	async_answer_0(iid, EOK);
+	async_answer_0(icall_handle, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t callid = async_get_call(&call);
+		cap_call_handle_t chandle = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up */
-			async_answer_0(callid, EOK);
+			async_answer_0(chandle, EOK);
 			return;
 		}
 
 		switch (method) {
 		case DNSR_NAME2HOST:
-			dnsr_name2host_srv(&client, callid, &call);
+			dnsr_name2host_srv(&client, chandle, &call);
 			break;
 		case DNSR_GET_SRVADDR:
-			dnsr_get_srvaddr_srv(&client, callid, &call);
+			dnsr_get_srvaddr_srv(&client, chandle, &call);
 			break;
 		case DNSR_SET_SRVADDR:
-			dnsr_set_srvaddr_srv(&client, callid, &call);
+			dnsr_set_srvaddr_srv(&client, chandle, &call);
 			break;
 		default:
-			async_answer_0(callid, EINVAL);
+			async_answer_0(chandle, EINVAL);
 		}
 	}
 }
