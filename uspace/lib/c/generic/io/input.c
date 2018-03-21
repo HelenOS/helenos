@@ -42,7 +42,7 @@
 #include <ipc/input.h>
 #include <stdlib.h>
 
-static void input_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+static void input_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg);
 
 errno_t input_open(async_sess_t *sess, input_ev_ops_t *ev_ops,
     void *arg, input_t **rinput)
@@ -91,21 +91,21 @@ errno_t input_activate(input_t *input)
 	return rc;
 }
 
-static void input_ev_active(input_t *input, ipc_callid_t callid,
+static void input_ev_active(input_t *input, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	errno_t rc = input->ev_ops->active(input);
 	async_answer_0(callid, rc);
 }
 
-static void input_ev_deactive(input_t *input, ipc_callid_t callid,
+static void input_ev_deactive(input_t *input, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	errno_t rc = input->ev_ops->deactive(input);
 	async_answer_0(callid, rc);
 }
 
-static void input_ev_key(input_t *input, ipc_callid_t callid,
+static void input_ev_key(input_t *input, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	kbd_event_type_t type;
@@ -123,7 +123,7 @@ static void input_ev_key(input_t *input, ipc_callid_t callid,
 	async_answer_0(callid, rc);
 }
 
-static void input_ev_move(input_t *input, ipc_callid_t callid,
+static void input_ev_move(input_t *input, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	int dx;
@@ -137,7 +137,7 @@ static void input_ev_move(input_t *input, ipc_callid_t callid,
 	async_answer_0(callid, rc);
 }
 
-static void input_ev_abs_move(input_t *input, ipc_callid_t callid,
+static void input_ev_abs_move(input_t *input, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	unsigned x;
@@ -155,7 +155,7 @@ static void input_ev_abs_move(input_t *input, ipc_callid_t callid,
 	async_answer_0(callid, rc);
 }
 
-static void input_ev_button(input_t *input, ipc_callid_t callid,
+static void input_ev_button(input_t *input, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	int bnum;
@@ -169,13 +169,13 @@ static void input_ev_button(input_t *input, ipc_callid_t callid,
 	async_answer_0(callid, rc);
 }
 
-static void input_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void input_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	input_t *input = (input_t *)arg;
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */

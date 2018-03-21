@@ -40,7 +40,7 @@
 #include <loc.h>
 #include <stdlib.h>
 
-static void udp_cb_conn(ipc_callid_t, ipc_call_t *, void *);
+static void udp_cb_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 /** Create callback connection from UDP service.
  *
@@ -454,7 +454,7 @@ static errno_t udp_assoc_get(udp_t *udp, sysarg_t id, udp_assoc_t **rassoc)
  * @param iid IPC message ID
  * @param icall IPC message
  */
-static void udp_ev_data(udp_t *udp, ipc_callid_t iid, ipc_call_t *icall)
+static void udp_ev_data(udp_t *udp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	udp_rmsg_t rmsg;
 	udp_assoc_t *assoc;
@@ -489,7 +489,7 @@ static void udp_ev_data(udp_t *udp, ipc_callid_t iid, ipc_call_t *icall)
  * @param icall Connect message
  * @param arg Argument, UDP client
  */
-static void udp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void udp_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	udp_t *udp = (udp_t *)arg;
 
@@ -497,7 +497,7 @@ static void udp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* Hangup */

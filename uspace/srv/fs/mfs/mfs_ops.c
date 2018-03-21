@@ -836,7 +836,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	struct mfs_node *mnode;
 	struct mfs_ino_info *ino_i;
 	size_t len, bytes = 0;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 
 	mnode = fn->data;
 	ino_i = mnode->ino_i;
@@ -945,7 +945,7 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (!fn)
 		return ENOENT;
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 
 	if (!async_data_write_receive(&callid, &len)) {

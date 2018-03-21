@@ -477,7 +477,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	if (index == 0) {
-		ipc_callid_t callid;
+		cap_call_handle_t callid;
 		size_t size;
 		if (!async_data_read_receive(&callid, &size)) {
 			async_answer_0(callid, EINVAL);
@@ -531,7 +531,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
-		ipc_callid_t callid;
+		cap_call_handle_t callid;
 		size_t size;
 		if (!async_data_read_receive(&callid, &size)) {
 			async_answer_0(callid, EINVAL);
@@ -567,7 +567,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 
-		ipc_callid_t callid;
+		cap_call_handle_t callid;
 		if (!async_data_read_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(callid, EINVAL);
@@ -631,7 +631,7 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 
-		ipc_callid_t callid;
+		cap_call_handle_t callid;
 		if (!async_data_write_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&services_mutex);
 			async_answer_0(callid, EINVAL);

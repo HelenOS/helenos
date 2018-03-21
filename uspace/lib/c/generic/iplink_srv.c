@@ -41,7 +41,7 @@
 #include <inet/addr.h>
 #include <inet/iplink_srv.h>
 
-static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
+static void iplink_get_mtu_srv(iplink_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	size_t mtu;
@@ -49,7 +49,7 @@ static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_callid_t callid,
 	async_answer_1(callid, rc, mtu);
 }
 
-static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
+static void iplink_get_mac48_srv(iplink_srv_t *srv, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	addr48_t mac;
@@ -59,7 +59,7 @@ static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
 		return;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -80,13 +80,13 @@ static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
+static void iplink_set_mac48_srv(iplink_srv_t *srv, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	errno_t rc;
 	size_t size;
 	addr48_t mac;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -106,10 +106,10 @@ static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t iid,
+static void iplink_addr_add_srv(iplink_srv_t *srv, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -134,10 +134,10 @@ static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t iid,
+static void iplink_addr_remove_srv(iplink_srv_t *srv, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -162,7 +162,7 @@ static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t iid,
+static void iplink_send_srv(iplink_srv_t *srv, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	iplink_sdu_t sdu;
@@ -182,12 +182,12 @@ static void iplink_send_srv(iplink_srv_t *srv, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void iplink_send6_srv(iplink_srv_t *srv, ipc_callid_t iid,
+static void iplink_send6_srv(iplink_srv_t *srv, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	iplink_sdu6_t sdu;
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -228,7 +228,7 @@ void iplink_srv_init(iplink_srv_t *srv)
 	srv->client_sess = NULL;
 }
 
-errno_t iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+errno_t iplink_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	iplink_srv_t *srv = (iplink_srv_t *) arg;
 	errno_t rc;
@@ -258,7 +258,7 @@ errno_t iplink_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {

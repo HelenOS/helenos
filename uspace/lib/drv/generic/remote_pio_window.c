@@ -39,7 +39,7 @@
 #include "ops/pio_window.h"
 #include "ddf/driver.h"
 
-static void remote_pio_window_get(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_pio_window_get(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
 
 static const remote_iface_func_ptr_t remote_pio_window_iface_ops [] = {
@@ -52,7 +52,7 @@ const remote_iface_t remote_pio_window_iface = {
 };
 
 static void remote_pio_window_get(ddf_fun_t *fun, void *ops,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	pio_window_ops_t *pio_win_ops = (pio_window_ops_t *) ops;
 	size_t len;

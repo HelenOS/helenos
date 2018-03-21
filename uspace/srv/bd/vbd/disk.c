@@ -1067,7 +1067,7 @@ static errno_t vbds_bd_get_num_blocks(bd_srv_t *bd, aoff64_t *rnb)
 	return EOK;
 }
 
-void vbds_bd_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void vbds_bd_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	vbds_part_t *part;
 	errno_t rc;

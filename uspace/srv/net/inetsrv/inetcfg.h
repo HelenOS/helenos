@@ -37,7 +37,7 @@
 #ifndef INETCFG_H_
 #define INETCFG_H_
 
-extern void inet_cfg_conn(ipc_callid_t, ipc_call_t *, void *);
+extern void inet_cfg_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 #endif
 

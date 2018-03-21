@@ -338,7 +338,7 @@ static void loc_service_unregister_core(loc_service_t *service)
 static loc_server_t *loc_server_register(void)
 {
 	ipc_call_t icall;
-	ipc_callid_t iid = async_get_call(&icall);
+	cap_call_handle_t iid = async_get_call(&icall);
 
 	if (IPC_GET_IMETHOD(icall) != LOC_SERVER_REGISTER) {
 		async_answer_0(iid, EREFUSED);
@@ -452,7 +452,7 @@ static errno_t loc_server_unregister(loc_server_t *server)
 /** Register service
  *
  */
-static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
+static void loc_service_register(cap_call_handle_t iid, ipc_call_t *icall,
     loc_server_t *server)
 {
 	if (server == NULL) {
@@ -540,7 +540,7 @@ static void loc_service_register(ipc_callid_t iid, ipc_call_t *icall,
 /**
  *
  */
-static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
+static void loc_service_unregister(cap_call_handle_t iid, ipc_call_t *icall,
     loc_server_t *server)
 {
 	loc_service_t *svc;
@@ -567,9 +567,9 @@ static void loc_service_unregister(ipc_callid_t iid, ipc_call_t *icall,
 	async_answer_0(iid, EOK);
 }
 
-static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_category_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	category_t *cat;
@@ -606,9 +606,9 @@ static void loc_category_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, retval);
 }
 
-static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_service_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	loc_service_t *svc;
@@ -655,9 +655,9 @@ static void loc_service_get_name(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, retval);
 }
 
-static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_service_get_server_name(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	loc_service_t *svc;
@@ -707,7 +707,7 @@ static void loc_service_get_server_name(ipc_callid_t iid, ipc_call_t *icall)
  * the message to it.
  *
  */
-static void loc_forward(ipc_callid_t callid, ipc_call_t *call, void *arg)
+static void loc_forward(cap_call_handle_t callid, ipc_call_t *call, void *arg)
 {
 	fibril_mutex_lock(&services_list_mutex);
 
@@ -737,7 +737,7 @@ static void loc_forward(ipc_callid_t callid, ipc_call_t *call, void *arg)
  * code from errno.h.
  *
  */
-static void loc_service_get_id(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_service_get_id(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	char *fqsn;
 
@@ -800,7 +800,7 @@ recheck:
  * code from errno.h.
  *
  */
-static void loc_namespace_get_id(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_namespace_get_id(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	char *name;
 
@@ -854,7 +854,7 @@ recheck:
  * On failure, error code will be sent in retval.
  *
  */
-static void loc_callback_create(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_callback_create(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	cb_sess_t *cb_sess = calloc(1, sizeof(cb_sess_t));
 	if (cb_sess == NULL) {
@@ -898,7 +898,7 @@ void loc_category_change_event(void)
  * On failure, error code will be sent in retval.
  *
  */
-static void loc_category_get_id(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_category_get_id(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	char *name;
 	category_t *cat;
@@ -926,7 +926,7 @@ cleanup:
 	free(name);
 }
 
-static void loc_id_probe(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_id_probe(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&services_list_mutex);
 
@@ -945,14 +945,14 @@ static void loc_id_probe(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&services_list_mutex);
 }
 
-static void loc_get_namespace_count(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_get_namespace_count(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&services_list_mutex);
 	async_answer_1(iid, EOK, list_count(&namespaces_list));
 	fibril_mutex_unlock(&services_list_mutex);
 }
 
-static void loc_get_service_count(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_get_service_count(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&services_list_mutex);
 
@@ -966,9 +966,9 @@ static void loc_get_service_count(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&services_list_mutex);
 }
 
-static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_get_categories(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
@@ -1005,9 +1005,9 @@ static void loc_get_categories(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
-static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_get_namespaces(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -1054,12 +1054,12 @@ static void loc_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, retval);
 }
 
-static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_get_services(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	/* FIXME: Use faster algorithm which can make better use
 	   of namespaces */
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -1117,9 +1117,9 @@ static void loc_get_services(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, retval);
 }
 
-static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_category_get_svcs(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
@@ -1169,7 +1169,7 @@ static void loc_category_get_svcs(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 
-static void loc_null_create(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_null_create(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&null_services_mutex);
 
@@ -1243,7 +1243,7 @@ static void loc_null_create(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, EOK, (sysarg_t) i);
 }
 
-static void loc_null_destroy(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_null_destroy(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	sysarg_t i = IPC_GET_ARG1(*icall);
 	if (i >= NULL_SERVICES) {
@@ -1271,7 +1271,7 @@ static void loc_null_destroy(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void loc_service_add_to_cat(ipc_callid_t iid, ipc_call_t *icall)
+static void loc_service_add_to_cat(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	category_t *cat;
 	loc_service_t *svc;
@@ -1392,7 +1392,7 @@ static bool loc_init(void)
 /** Handle connection on supplier port.
  *
  */
-static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void loc_connection_supplier(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
@@ -1403,7 +1403,7 @@ static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall, void *a
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
@@ -1450,14 +1450,14 @@ static void loc_connection_supplier(ipc_callid_t iid, ipc_call_t *icall, void *a
 /** Handle connection on consumer port.
  *
  */
-static void loc_connection_consumer(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void loc_connection_consumer(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;

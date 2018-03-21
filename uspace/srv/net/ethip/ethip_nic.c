@@ -51,7 +51,7 @@
 #include "pdu.h"
 
 static errno_t ethip_nic_open(service_id_t sid);
-static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+static void ethip_nic_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg);
 
 static LIST_INITIALIZE(ethip_nic_list);
 static FIBRIL_MUTEX_INITIALIZE(ethip_discovery_lock);
@@ -228,7 +228,7 @@ static void ethip_nic_cat_change_cb(void)
 	(void) ethip_nic_check_new();
 }
 
-static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
+static void ethip_nic_addr_changed(ethip_nic_t *nic, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	uint8_t *addr;
@@ -257,7 +257,7 @@ static void ethip_nic_addr_changed(ethip_nic_t *nic, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
+static void ethip_nic_received(ethip_nic_t *nic, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	errno_t rc;
@@ -284,14 +284,14 @@ static void ethip_nic_received(ethip_nic_t *nic, ipc_callid_t callid,
 	async_answer_0(callid, rc);
 }
 
-static void ethip_nic_device_state(ethip_nic_t *nic, ipc_callid_t callid,
+static void ethip_nic_device_state(ethip_nic_t *nic, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_nic_device_state()");
 	async_answer_0(callid, ENOTSUP);
 }
 
-static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void ethip_nic_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	ethip_nic_t *nic = (ethip_nic_t *)arg;
 
@@ -299,7 +299,7 @@ static void ethip_nic_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */

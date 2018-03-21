@@ -78,7 +78,7 @@ static const usb_endpoint_description_t *mast_endpoints[] = {
 };
 
 static errno_t usbmast_fun_create(usbmast_dev_t *mdev, unsigned lun);
-static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
+static void usbmast_bd_connection(cap_call_handle_t iid, ipc_call_t *icall,
     void *arg);
 
 static errno_t usbmast_bd_open(bd_srvs_t *, bd_srv_t *);
@@ -316,7 +316,7 @@ error:
 }
 
 /** Blockdev client connection handler. */
-static void usbmast_bd_connection(ipc_callid_t iid, ipc_call_t *icall,
+static void usbmast_bd_connection(cap_call_handle_t iid, ipc_call_t *icall,
     void *arg)
 {
 	usbmast_fun_t *mfun;

@@ -92,9 +92,9 @@ static errno_t pic_enable_irq(i8259_t *i8259, sysarg_t irq)
  * @param icall Call data of the request that opened the connection.
  * @param arg	Local argument.
  */
-static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void i8259_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	i8259_t *i8259 = NULL /* XXX */;
 

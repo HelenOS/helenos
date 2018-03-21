@@ -54,7 +54,7 @@
 
 #define NAME  "cuda_adb"
 
-static void cuda_dev_connection(ipc_callid_t, ipc_call_t *, void *);
+static void cuda_dev_connection(cap_call_handle_t, ipc_call_t *, void *);
 static errno_t cuda_init(cuda_t *);
 static void cuda_irq_handler(ipc_call_t *, void *);
 
@@ -197,10 +197,10 @@ errno_t cuda_gone(cuda_t *cuda)
 }
 
 /** Device connection handler */
-static void cuda_dev_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void cuda_dev_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	adb_dev_t *dev = (adb_dev_t *) ddf_fun_data_get((ddf_fun_t *) arg);
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	sysarg_t method;
 

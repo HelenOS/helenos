@@ -91,7 +91,7 @@ errno_t usb_get_my_description(async_exch_t *exch, usb_device_desc_t *desc)
 }
 
 static void remote_usb_get_my_description(ddf_fun_t *, void *,
-    ipc_callid_t, ipc_call_t *);
+    cap_call_handle_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static const remote_iface_func_ptr_t remote_usb_iface_ops [] = {
@@ -106,7 +106,7 @@ const remote_iface_t remote_usb_iface = {
 };
 
 void remote_usb_get_my_description(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
 

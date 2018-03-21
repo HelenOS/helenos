@@ -48,7 +48,7 @@
 
 static bool write_core_files;
 
-static void corecfg_client_conn(ipc_callid_t , ipc_call_t *, void *);
+static void corecfg_client_conn(cap_call_handle_t , ipc_call_t *, void *);
 
 static void fault_event(ipc_call_t *call, void *arg)
 {
@@ -93,25 +93,25 @@ static void fault_event(ipc_call_t *call, void *arg)
 	}
 }
 
-static void corecfg_get_enable_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void corecfg_get_enable_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	async_answer_1(iid, EOK, write_core_files);
 }
 
-static void corecfg_set_enable_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void corecfg_set_enable_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	write_core_files = IPC_GET_ARG1(*icall);
 	async_answer_0(iid, EOK);
 }
 
-static void corecfg_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void corecfg_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {

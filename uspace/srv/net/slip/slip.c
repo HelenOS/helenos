@@ -198,7 +198,7 @@ static void usage(void)
 	printf("Usage: " NAME " <service-name> <link-name>\n");
 }
 
-static void slip_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void slip_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_client_conn()");
 	iplink_conn(iid, icall, &slip_iplink);

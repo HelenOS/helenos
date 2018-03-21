@@ -60,7 +60,7 @@
 
 /** Find handle for the device instance identified by the device's path in the
  * device tree. */
-static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_function_get_handle(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	char *pathname;
 	devman_handle_t handle;
@@ -99,7 +99,7 @@ static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get device match ID. */
-static void devman_fun_get_match_id(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_fun_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 	size_t index = IPC_GET_ARG2(*icall);
@@ -111,7 +111,7 @@ static void devman_fun_get_match_id(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t data_len;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EINVAL);
@@ -162,7 +162,7 @@ error:
 }
 
 /** Get device name. */
-static void devman_fun_get_name(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_fun_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 
@@ -172,7 +172,7 @@ static void devman_fun_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t data_len;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EINVAL);
@@ -215,7 +215,7 @@ static void devman_fun_get_name(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get function driver name. */
-static void devman_fun_get_driver_name(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_fun_get_driver_name(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 
@@ -225,7 +225,7 @@ static void devman_fun_get_driver_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t data_len;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EINVAL);
@@ -280,7 +280,7 @@ static void devman_fun_get_driver_name(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get device path. */
-static void devman_fun_get_path(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_fun_get_path(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 
@@ -290,7 +290,7 @@ static void devman_fun_get_path(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t data_len;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EINVAL);
@@ -333,7 +333,7 @@ static void devman_fun_get_path(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get handle for parent function of a device. */
-static void devman_dev_get_parent(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_dev_get_parent(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	dev_node_t *dev;
 
@@ -357,9 +357,9 @@ static void devman_dev_get_parent(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 }
 
-static void devman_dev_get_functions(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_dev_get_functions(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
@@ -406,7 +406,7 @@ static void devman_dev_get_functions(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get handle for child device of a function. */
-static void devman_fun_get_child(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_fun_get_child(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	fun_node_t *fun;
 
@@ -436,7 +436,7 @@ static void devman_fun_get_child(ipc_callid_t iid, ipc_call_t *icall)
  * The driver may offline other functions if necessary (i.e. if the state
  * of this function is linked to state of another function somehow).
  */
-static void devman_fun_online(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_fun_online(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	fun_node_t *fun;
 	errno_t rc;
@@ -461,7 +461,7 @@ static void devman_fun_online(ipc_callid_t iid, ipc_call_t *icall)
  * (i.e. if the state of this function is linked to state of another
  * function somehow).
  */
-static void devman_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_fun_offline(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	fun_node_t *fun;
 	errno_t rc;
@@ -479,7 +479,7 @@ static void devman_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Find handle for the function instance identified by its service ID. */
-static void devman_fun_sid_to_handle(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_fun_sid_to_handle(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	fun_node_t *fun;
 
@@ -505,9 +505,9 @@ static void devman_fun_sid_to_handle(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get list of all registered drivers. */
-static void devman_get_drivers(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_get_drivers(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
@@ -537,9 +537,9 @@ static void devman_get_drivers(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
-static void devman_driver_get_devices(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_driver_get_devices(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
@@ -579,7 +579,7 @@ static void devman_driver_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 
 
 /** Find driver by name. */
-static void devman_driver_get_handle(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_driver_get_handle(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	char *drvname;
 
@@ -602,7 +602,7 @@ static void devman_driver_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get driver match ID. */
-static void devman_driver_get_match_id(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_driver_get_match_id(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 	size_t index = IPC_GET_ARG2(*icall);
@@ -613,7 +613,7 @@ static void devman_driver_get_match_id(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t data_len;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EINVAL);
@@ -653,7 +653,7 @@ static void devman_driver_get_match_id(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get driver name. */
-static void devman_driver_get_name(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_driver_get_name(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*icall);
 
@@ -663,7 +663,7 @@ static void devman_driver_get_name(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t data_len;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EINVAL);
@@ -693,7 +693,7 @@ static void devman_driver_get_name(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Get driver state. */
-static void devman_driver_get_state(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_driver_get_state(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	driver_t *drv;
 
@@ -707,7 +707,7 @@ static void devman_driver_get_state(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Forcibly load a driver. */
-static void devman_driver_load(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_driver_load(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	driver_t *drv;
 	errno_t rc;
@@ -726,7 +726,7 @@ static void devman_driver_load(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Unload a driver by user request. */
-static void devman_driver_unload(ipc_callid_t iid, ipc_call_t *icall)
+static void devman_driver_unload(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	driver_t *drv;
 	errno_t rc;
@@ -745,14 +745,14 @@ static void devman_driver_unload(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 /** Function for handling connections from a client to the device manager. */
-void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void devman_connection_client(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection. */
 	async_answer_0(iid, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;

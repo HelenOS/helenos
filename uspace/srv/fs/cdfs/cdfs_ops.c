@@ -1270,7 +1270,7 @@ static errno_t cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 			return rc;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 	if (!async_data_read_receive(&callid, &len)) {
 		async_answer_0(callid, EINVAL);

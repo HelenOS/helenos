@@ -145,7 +145,7 @@ static hash_table_t phone_to_id;
 typedef struct {
 	link_t link;
 	task_id_t id;         /**< Task ID. */
-	ipc_callid_t callid;  /**< Call ID waiting for the connection */
+	cap_call_handle_t callid;  /**< Call ID waiting for the connection */
 } pending_wait_t;
 
 static list_t pending_wait;
@@ -191,7 +191,7 @@ loop:
 	}
 }
 
-void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
+void wait_for_task(task_id_t id, ipc_call_t *call, cap_call_handle_t callid)
 {
 	ht_link_t *link = hash_table_find(&task_hash_table, &id);
 	hashed_task_t *ht = (link != NULL) ?

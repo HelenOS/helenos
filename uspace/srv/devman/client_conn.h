@@ -35,7 +35,7 @@
 
 #include "devman.h"
 
-extern void devman_connection_client(ipc_callid_t, ipc_call_t *, void *);
+extern void devman_connection_client(cap_call_handle_t, ipc_call_t *, void *);
 
 #endif
 

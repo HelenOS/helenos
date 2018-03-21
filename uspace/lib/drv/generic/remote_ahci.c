@@ -181,15 +181,15 @@ errno_t ahci_write_blocks(async_sess_t *sess, uint64_t blocknum, size_t count,
 	return rc;
 }
 
-static void remote_ahci_get_sata_device_name(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_ahci_get_sata_device_name(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_ahci_get_num_blocks(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_ahci_get_num_blocks(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_ahci_get_block_size(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_ahci_get_block_size(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_ahci_read_blocks(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_ahci_read_blocks(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_ahci_write_blocks(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_ahci_write_blocks(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
 
 /** Remote AHCI interface operations. */
@@ -209,7 +209,7 @@ const remote_iface_t remote_ahci_iface = {
 };
 
 void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
@@ -231,7 +231,7 @@ void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
 	    sata_dev_name_length, sata_dev_name);
 
 	size_t real_size;
-	ipc_callid_t cid;
+	cap_call_handle_t cid;
 	if ((async_data_read_receive(&cid, &real_size)) &&
 	    (real_size == sata_dev_name_length))
 		async_data_read_finalize(cid, sata_dev_name, sata_dev_name_length);
@@ -241,7 +241,7 @@ void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
 }
 
 static void remote_ahci_get_num_blocks(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
@@ -260,7 +260,7 @@ static void remote_ahci_get_num_blocks(ddf_fun_t *fun, void *iface,
 }
 
 static void remote_ahci_get_block_size(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
@@ -279,7 +279,7 @@ static void remote_ahci_get_block_size(ddf_fun_t *fun, void *iface,
 }
 
 void remote_ahci_read_blocks(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
 
@@ -291,7 +291,7 @@ void remote_ahci_read_blocks(ddf_fun_t *fun, void *iface,
 	size_t maxblock_size;
 	unsigned int flags;
 
-	ipc_callid_t cid;
+	cap_call_handle_t cid;
 	async_share_out_receive(&cid, &maxblock_size, &flags);
 
 	void *buf;
@@ -307,7 +307,7 @@ void remote_ahci_read_blocks(ddf_fun_t *fun, void *iface,
 	async_answer_0(callid, ret);
 }
 
-void remote_ahci_write_blocks(ddf_fun_t *fun, void *iface, ipc_callid_t callid,
+void remote_ahci_write_blocks(ddf_fun_t *fun, void *iface, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	const ahci_iface_t *ahci_iface = (ahci_iface_t *) iface;
@@ -320,7 +320,7 @@ void remote_ahci_write_blocks(ddf_fun_t *fun, void *iface, ipc_callid_t callid,
 	size_t maxblock_size;
 	unsigned int flags;
 
-	ipc_callid_t cid;
+	cap_call_handle_t cid;
 	async_share_out_receive(&cid, &maxblock_size, &flags);
 
 	void *buf;

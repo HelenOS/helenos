@@ -81,7 +81,7 @@ static inet_addr_t multicast_all_nodes = {
 static FIBRIL_MUTEX_INITIALIZE(client_list_lock);
 static LIST_INITIALIZE(client_list);
 
-static void inet_default_conn(ipc_callid_t, ipc_call_t *, void *);
+static void inet_default_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 static errno_t inet_init(void)
 {
@@ -119,7 +119,7 @@ static errno_t inet_init(void)
 	return EOK;
 }
 
-static void inet_callback_create_srv(inet_client_t *client, ipc_callid_t callid,
+static void inet_callback_create_srv(inet_client_t *client, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_callback_create_srv()");
@@ -229,14 +229,14 @@ errno_t inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	return EOK;
 }
 
-static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t iid,
+static void inet_get_srcaddr_srv(inet_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srcaddr_srv()");
 
 	uint8_t tos = IPC_GET_ARG1(*icall);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -286,7 +286,7 @@ static void inet_get_srcaddr_srv(inet_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void inet_send_srv(inet_client_t *client, ipc_callid_t iid,
+static void inet_send_srv(inet_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_send_srv()");
@@ -299,7 +299,7 @@ static void inet_send_srv(inet_client_t *client, ipc_callid_t iid,
 	uint8_t ttl = IPC_GET_ARG3(*icall);
 	int df = IPC_GET_ARG4(*icall);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -350,7 +350,7 @@ static void inet_send_srv(inet_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void inet_set_proto_srv(inet_client_t *client, ipc_callid_t callid,
+static void inet_set_proto_srv(inet_client_t *client, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	sysarg_t proto;
@@ -386,7 +386,7 @@ static void inet_client_fini(inet_client_t *client)
 	fibril_mutex_unlock(&client_list_lock);
 }
 
-static void inet_default_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void inet_default_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	inet_client_t client;
 
@@ -399,7 +399,7 @@ static void inet_default_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {

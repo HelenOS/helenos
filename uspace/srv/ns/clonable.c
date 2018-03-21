@@ -47,7 +47,7 @@ typedef struct {
 	link_t link;
 	service_t service;
 	iface_t iface;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	sysarg_t arg3;
 } cs_req_t;
 
@@ -74,7 +74,7 @@ bool service_clonable(service_t service)
  *
  */
 void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
-    ipc_callid_t callid)
+    cap_call_handle_t callid)
 {
 	link_t *req_link = list_first(&cs_req);
 	if (req_link == NULL) {
@@ -116,7 +116,7 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
  *
  */
 void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
-    ipc_callid_t callid)
+    cap_call_handle_t callid)
 {
 	assert(service == SERVICE_LOADER);
 

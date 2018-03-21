@@ -282,11 +282,11 @@ errno_t usbhid_dev_get_report_descriptor(async_sess_t *dev_sess, uint8_t *buf,
 	return EOK;
 }
 
-static void remote_usbhid_get_event_length(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhid_get_event(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhid_get_report_descriptor_length(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhid_get_report_descriptor(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-// static void remote_usbhid_(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhid_get_event_length(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_usbhid_get_event(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_usbhid_get_report_descriptor_length(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_usbhid_get_report_descriptor(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+// static void remote_usbhid_(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 
 /** Remote USB HID interface operations. */
 static const remote_iface_func_ptr_t remote_usbhid_iface_ops [] = {
@@ -308,7 +308,7 @@ const remote_iface_t remote_usbhid_iface = {
 
 
 void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	printf("remote_usbhid_get_event_length()\n");
 
@@ -334,7 +334,7 @@ void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
 }
 
 void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
 
@@ -346,7 +346,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 	unsigned int flags = DEV_IPC_GET_ARG1(*call);
 
 	size_t len;
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	if (!async_data_read_receive(&data_callid, &len)) {
 		async_answer_0(callid, EPARTY);
 		return;
@@ -393,7 +393,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 }
 
 void remote_usbhid_get_report_descriptor_length(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
 
@@ -407,7 +407,7 @@ void remote_usbhid_get_report_descriptor_length(ddf_fun_t *fun, void *iface,
 }
 
 void remote_usbhid_get_report_descriptor(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	usbhid_iface_t *hid_iface = (usbhid_iface_t *) iface;
 
@@ -417,7 +417,7 @@ void remote_usbhid_get_report_descriptor(ddf_fun_t *fun, void *iface,
 	}
 
 	size_t len;
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	if (!async_data_read_receive(&data_callid, &len)) {
 		async_answer_0(callid, EINVAL);
 		return;

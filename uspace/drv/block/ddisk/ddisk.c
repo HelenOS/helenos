@@ -61,7 +61,7 @@ static errno_t ddisk_dev_gone(ddf_dev_t *);
 static errno_t ddisk_fun_online(ddf_fun_t *);
 static errno_t ddisk_fun_offline(ddf_fun_t *);
 
-static void ddisk_bd_connection(ipc_callid_t, ipc_call_t *, void *);
+static void ddisk_bd_connection(cap_call_handle_t, ipc_call_t *, void *);
 
 static void ddisk_irq_handler(ipc_call_t *, ddf_dev_t *);
 
@@ -586,7 +586,7 @@ static errno_t ddisk_fun_offline(ddf_fun_t *fun)
 }
 
 /** Block device connection handler */
-static void ddisk_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void ddisk_bd_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	ddisk_t *ddisk;
 	ddf_fun_t *fun = (ddf_fun_t *) arg;

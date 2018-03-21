@@ -310,7 +310,7 @@ static errno_t ns8250_write(chardev_srv_t *srv, const void *buf, size_t count,
 
 static errno_t ns8250_open(chardev_srvs_t *, chardev_srv_t *);
 static errno_t ns8250_close(chardev_srv_t *);
-static void ns8250_default_handler(chardev_srv_t *, ipc_callid_t, ipc_call_t *);
+static void ns8250_default_handler(chardev_srv_t *, cap_call_handle_t, ipc_call_t *);
 
 /** The character interface's callbacks. */
 static chardev_ops_t ns8250_chardev_ops = {
@@ -321,7 +321,7 @@ static chardev_ops_t ns8250_chardev_ops = {
 	.def_handler = ns8250_default_handler
 };
 
-static void ns8250_char_conn(ipc_callid_t, ipc_call_t *, void *);
+static void ns8250_char_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 static errno_t ns8250_dev_add(ddf_dev_t *dev);
 static errno_t ns8250_dev_remove(ddf_dev_t *dev);
@@ -1067,7 +1067,7 @@ static errno_t ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
  *
  * Configure the parameters of the serial communication.
  */
-static void ns8250_default_handler(chardev_srv_t *srv, ipc_callid_t callid,
+static void ns8250_default_handler(chardev_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	ns8250_t *ns8250 = srv_ns8250(srv);
@@ -1098,7 +1098,7 @@ static void ns8250_default_handler(chardev_srv_t *srv, ipc_callid_t callid,
 	}
 }
 
-void ns8250_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void ns8250_char_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	ns8250_t *ns8250 = fun_ns8250((ddf_fun_t *)arg);
 

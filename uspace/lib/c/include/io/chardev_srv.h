@@ -60,12 +60,12 @@ struct chardev_ops {
 	errno_t (*close)(chardev_srv_t *);
 	errno_t (*read)(chardev_srv_t *, void *, size_t, size_t *);
 	errno_t (*write)(chardev_srv_t *, const void *, size_t, size_t *);
-	void (*def_handler)(chardev_srv_t *, ipc_callid_t, ipc_call_t *);
+	void (*def_handler)(chardev_srv_t *, cap_call_handle_t, ipc_call_t *);
 };
 
 extern void chardev_srvs_init(chardev_srvs_t *);
 
-extern errno_t chardev_conn(ipc_callid_t, ipc_call_t *, chardev_srvs_t *);
+extern errno_t chardev_conn(cap_call_handle_t, ipc_call_t *, chardev_srvs_t *);
 
 #endif
 

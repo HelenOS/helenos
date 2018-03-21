@@ -88,7 +88,7 @@ typedef struct {
 	link_t link;
 	service_t service;    /**< Service ID */
 	iface_t iface;        /**< Interface ID */
-	ipc_callid_t callid;  /**< Call ID waiting for the connection */
+	cap_call_handle_t callid;  /**< Call ID waiting for the connection */
 	sysarg_t arg3;        /**< Third argument */
 } pending_conn_t;
 
@@ -168,7 +168,7 @@ errno_t register_service(service_t service, sysarg_t phone, ipc_call_t *call)
  *
  */
 void connect_to_service(service_t service, iface_t iface, ipc_call_t *call,
-    ipc_callid_t callid)
+    cap_call_handle_t callid)
 {
 	sysarg_t arg3 = IPC_GET_ARG3(*call);
 	sysarg_t flags = IPC_GET_ARG4(*call);

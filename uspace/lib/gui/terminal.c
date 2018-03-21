@@ -676,7 +676,7 @@ static void terminal_handle_position_event(widget_t *widget, pos_event_t pos_eve
 	}
 }
 
-static void term_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void term_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	terminal_t *term = NULL;
 

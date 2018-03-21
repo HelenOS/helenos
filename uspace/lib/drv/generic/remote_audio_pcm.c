@@ -595,18 +595,18 @@ errno_t audio_pcm_stop_capture(audio_pcm_sess_t *sess)
 /*
  * SERVER SIDE
  */
-static void remote_audio_pcm_get_info_str(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_query_caps(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_events_register(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_events_unregister(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_get_buffer_pos(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_test_format(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_get_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_release_buffer(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_start_playback(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_stop_playback(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_start_capture(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_pcm_stop_capture(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_pcm_get_info_str(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_query_caps(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_events_register(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_events_unregister(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_get_buffer_pos(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_test_format(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_get_buffer(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_release_buffer(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_start_playback(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_stop_playback(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_start_capture(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_pcm_stop_capture(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 
 /** Remote audio pcm buffer interface operations. */
 static const remote_iface_func_ptr_t remote_audio_pcm_iface_ops[] = {
@@ -631,7 +631,7 @@ const remote_iface_t remote_audio_pcm_iface = {
 };
 
 void remote_audio_pcm_get_info_str(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
@@ -646,7 +646,7 @@ void remote_audio_pcm_get_info_str(ddf_fun_t *fun, void *iface,
 	/* Send the string. */
 	if (ret == EOK && name_size > 0) {
 		size_t size;
-		ipc_callid_t name_id;
+		cap_call_handle_t name_id;
 		if (!async_data_read_receive(&name_id, &size)) {
 			async_answer_0(name_id, EPARTY);
 			return;
@@ -659,7 +659,7 @@ void remote_audio_pcm_get_info_str(ddf_fun_t *fun, void *iface,
 	}
 }
 
-void remote_audio_pcm_query_caps(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_audio_pcm_query_caps(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 	const audio_cap_t cap = DEV_IPC_GET_ARG1(*call);
@@ -671,7 +671,7 @@ void remote_audio_pcm_query_caps(ddf_fun_t *fun, void *iface, ipc_callid_t calli
 	}
 }
 
-static void remote_audio_pcm_events_register(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+static void remote_audio_pcm_events_register(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 	if (!pcm_iface->get_event_session ||
@@ -683,7 +683,7 @@ static void remote_audio_pcm_events_register(ddf_fun_t *fun, void *iface, ipc_ca
 	async_answer_0(callid, EOK);
 
 	ipc_call_t callback_call;
-	ipc_callid_t callback_id = async_get_call(&callback_call);
+	cap_call_handle_t callback_id = async_get_call(&callback_call);
 	async_sess_t *sess =
 	    async_callback_receive_start(EXCHANGE_ATOMIC, &callback_call);
 	if (sess == NULL) {
@@ -701,7 +701,7 @@ static void remote_audio_pcm_events_register(ddf_fun_t *fun, void *iface, ipc_ca
 	async_answer_0(callback_id, EOK);
 }
 
-static void remote_audio_pcm_events_unregister(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+static void remote_audio_pcm_events_unregister(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 	if (!pcm_iface->get_event_session ||
@@ -717,7 +717,7 @@ static void remote_audio_pcm_events_unregister(ddf_fun_t *fun, void *iface, ipc_
 	async_answer_0(callid, EOK);
 }
 
-void remote_audio_pcm_get_buffer_pos(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_audio_pcm_get_buffer_pos(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 	size_t pos = 0;
@@ -726,7 +726,7 @@ void remote_audio_pcm_get_buffer_pos(ddf_fun_t *fun, void *iface, ipc_callid_t c
 	async_answer_1(callid, ret, pos);
 }
 
-void remote_audio_pcm_test_format(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_audio_pcm_test_format(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 	unsigned channels = DEV_IPC_GET_ARG1(*call);
@@ -738,7 +738,7 @@ void remote_audio_pcm_test_format(ddf_fun_t *fun, void *iface, ipc_callid_t call
 }
 
 void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
@@ -756,7 +756,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 
 	/* Share the buffer. */
 	size_t share_size = 0;
-	ipc_callid_t share_id = 0;
+	cap_call_handle_t share_id = 0;
 
 	ddf_msg(LVL_DEBUG2, "Receiving share request.");
 	if (!async_share_in_receive(&share_id, &share_size)) {
@@ -787,7 +787,7 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 }
 
 void remote_audio_pcm_release_buffer(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
@@ -797,7 +797,7 @@ void remote_audio_pcm_release_buffer(ddf_fun_t *fun, void *iface,
 }
 
 void remote_audio_pcm_start_playback(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
@@ -813,7 +813,7 @@ void remote_audio_pcm_start_playback(ddf_fun_t *fun, void *iface,
 }
 
 void remote_audio_pcm_stop_playback(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 	const bool immediate = DEV_IPC_GET_ARG1(*call);
@@ -824,7 +824,7 @@ void remote_audio_pcm_stop_playback(ddf_fun_t *fun, void *iface,
 }
 
 void remote_audio_pcm_start_capture(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 
@@ -840,7 +840,7 @@ void remote_audio_pcm_start_capture(ddf_fun_t *fun, void *iface,
 }
 
 void remote_audio_pcm_stop_capture(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const audio_pcm_iface_t *pcm_iface = iface;
 	const bool immediate = DEV_IPC_GET_ARG1(*call);

@@ -54,13 +54,13 @@
 
 #define NAME  "vfs"
 
-static void vfs_pager(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void vfs_pager(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	async_answer_0(iid, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;

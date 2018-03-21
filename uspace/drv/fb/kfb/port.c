@@ -161,7 +161,7 @@ static visualizer_ops_t kfb_ops = {
 	.wakeup = kfb_wakeup
 };
 
-static void graph_vsl_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void graph_vsl_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	visualizer_t *vsl;
 	errno_t rc;

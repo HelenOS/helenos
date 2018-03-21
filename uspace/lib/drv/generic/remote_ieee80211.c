@@ -267,7 +267,7 @@ errno_t ieee80211_disconnect(async_sess_t *dev_sess)
 }
 
 static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->get_scan_results);
@@ -279,7 +279,7 @@ static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
 
 	errno_t rc = ieee80211_iface->get_scan_results(fun, &scan_results, now);
 	if (rc == EOK) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		size_t max_len;
 		if (!async_data_read_receive(&data_callid, &max_len)) {
 			async_answer_0(data_callid, EINVAL);
@@ -301,7 +301,7 @@ static void remote_ieee80211_get_scan_results(ddf_fun_t *fun, void *iface,
 }
 
 static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->connect);
@@ -309,7 +309,7 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 	char ssid_start[MAX_STRING_SIZE];
 	char password[MAX_STRING_SIZE];
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t len;
 	if (!async_data_write_receive(&data_callid, &len)) {
 		async_answer_0(data_callid, EINVAL);
@@ -355,7 +355,7 @@ static void remote_ieee80211_connect(ddf_fun_t *fun, void *iface,
 }
 
 static void remote_ieee80211_disconnect(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	ieee80211_iface_t *ieee80211_iface = (ieee80211_iface_t *) iface;
 	assert(ieee80211_iface->disconnect);

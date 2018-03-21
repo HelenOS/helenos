@@ -1336,7 +1336,7 @@ errno_t nic_poll_now(async_sess_t *dev_sess)
 }
 
 static void remote_nic_send_frame(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->send_frame);
@@ -1357,7 +1357,7 @@ static void remote_nic_send_frame(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_callback_create(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->callback_create);
@@ -1367,7 +1367,7 @@ static void remote_nic_callback_create(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_get_state(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->get_state);
@@ -1379,7 +1379,7 @@ static void remote_nic_get_state(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_set_state(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->set_state);
@@ -1391,7 +1391,7 @@ static void remote_nic_set_state(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_get_address(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	assert(nic_iface->get_address);
@@ -1402,7 +1402,7 @@ static void remote_nic_get_address(ddf_fun_t *dev, void *iface,
 	errno_t rc = nic_iface->get_address(dev, &address);
 	if (rc == EOK) {
 		size_t max_len;
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 
 		/* All errors will be translated into EPARTY anyway */
 		if (!async_data_read_receive(&data_callid, &max_len)) {
@@ -1425,12 +1425,12 @@ static void remote_nic_get_address(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_set_address(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
 	size_t length;
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	if (!async_data_write_receive(&data_callid, &length)) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
@@ -1457,7 +1457,7 @@ static void remote_nic_set_address(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_get_stats(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->get_stats == NULL) {
@@ -1470,7 +1470,7 @@ static void remote_nic_get_stats(ddf_fun_t *dev, void *iface,
 
 	errno_t rc = nic_iface->get_stats(dev, &stats);
 	if (rc == EOK) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		size_t max_len;
 		if (!async_data_read_receive(&data_callid, &max_len)) {
 			async_answer_0(data_callid, EINVAL);
@@ -1492,7 +1492,7 @@ static void remote_nic_get_stats(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_get_device_info(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->get_device_info == NULL) {
@@ -1505,7 +1505,7 @@ static void remote_nic_get_device_info(ddf_fun_t *dev, void *iface,
 
 	errno_t rc = nic_iface->get_device_info(dev, &info);
 	if (rc == EOK) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		size_t max_len;
 		if (!async_data_read_receive(&data_callid, &max_len)) {
 			async_answer_0(data_callid, EINVAL);
@@ -1527,7 +1527,7 @@ static void remote_nic_get_device_info(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_get_cable_state(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->get_cable_state == NULL) {
@@ -1542,7 +1542,7 @@ static void remote_nic_get_cable_state(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_get_operation_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->get_operation_mode == NULL) {
@@ -1560,7 +1560,7 @@ static void remote_nic_get_operation_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_set_operation_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->set_operation_mode == NULL) {
@@ -1577,7 +1577,7 @@ static void remote_nic_set_operation_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_autoneg_enable(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->autoneg_enable == NULL) {
@@ -1592,7 +1592,7 @@ static void remote_nic_autoneg_enable(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_autoneg_disable(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->autoneg_disable == NULL) {
@@ -1605,7 +1605,7 @@ static void remote_nic_autoneg_disable(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_autoneg_probe(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->autoneg_probe == NULL) {
@@ -1625,7 +1625,7 @@ static void remote_nic_autoneg_probe(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_autoneg_restart(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->autoneg_restart == NULL) {
@@ -1638,7 +1638,7 @@ static void remote_nic_autoneg_restart(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_get_pause(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->get_pause == NULL) {
@@ -1655,7 +1655,7 @@ static void remote_nic_get_pause(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_set_pause(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->set_pause == NULL) {
@@ -1673,7 +1673,7 @@ static void remote_nic_set_pause(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->unicast_get_mode == NULL) {
@@ -1705,7 +1705,7 @@ static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t max_len;
 	if (!async_data_read_receive(&data_callid, &max_len)) {
 		async_answer_0(data_callid, EINVAL);
@@ -1728,7 +1728,7 @@ static void remote_nic_unicast_get_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_unicast_set_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
@@ -1738,7 +1738,7 @@ static void remote_nic_unicast_set_mode(ddf_fun_t *dev, void *iface,
 	nic_address_t *address_list = NULL;
 
 	if (address_count) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		if (!async_data_write_receive(&data_callid, &length)) {
 			async_answer_0(data_callid, EINVAL);
 			async_answer_0(callid, EINVAL);
@@ -1777,7 +1777,7 @@ static void remote_nic_unicast_set_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->multicast_get_mode == NULL) {
@@ -1810,7 +1810,7 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t max_len;
 	if (!async_data_read_receive(&data_callid, &max_len)) {
 		async_answer_0(data_callid, EINVAL);
@@ -1832,7 +1832,7 @@ static void remote_nic_multicast_get_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_multicast_set_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
@@ -1841,7 +1841,7 @@ static void remote_nic_multicast_set_mode(ddf_fun_t *dev, void *iface,
 	nic_address_t *address_list = NULL;
 
 	if (address_count) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		size_t length;
 		if (!async_data_write_receive(&data_callid, &length)) {
 			async_answer_0(data_callid, EINVAL);
@@ -1881,7 +1881,7 @@ static void remote_nic_multicast_set_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_broadcast_get_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->broadcast_get_mode == NULL) {
@@ -1896,7 +1896,7 @@ static void remote_nic_broadcast_get_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_broadcast_set_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->broadcast_set_mode == NULL) {
@@ -1911,7 +1911,7 @@ static void remote_nic_broadcast_set_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_defective_get_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->defective_get_mode == NULL) {
@@ -1926,7 +1926,7 @@ static void remote_nic_defective_get_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_defective_set_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->defective_set_mode == NULL) {
@@ -1941,7 +1941,7 @@ static void remote_nic_defective_set_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->blocked_sources_get == NULL) {
@@ -1972,7 +1972,7 @@ static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	size_t max_len;
 	if (!async_data_read_receive(&data_callid, &max_len)) {
 		async_answer_0(data_callid, EINVAL);
@@ -1995,7 +1995,7 @@ static void remote_nic_blocked_sources_get(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_blocked_sources_set(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
@@ -2004,7 +2004,7 @@ static void remote_nic_blocked_sources_set(ddf_fun_t *dev, void *iface,
 	nic_address_t *address_list = NULL;
 
 	if (address_count) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		if (!async_data_write_receive(&data_callid, &length)) {
 			async_answer_0(data_callid, EINVAL);
 			async_answer_0(callid, EINVAL);
@@ -2043,7 +2043,7 @@ static void remote_nic_blocked_sources_set(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_vlan_get_mask(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->vlan_get_mask == NULL) {
@@ -2056,7 +2056,7 @@ static void remote_nic_vlan_get_mask(ddf_fun_t *dev, void *iface,
 
 	errno_t rc = nic_iface->vlan_get_mask(dev, &vlan_mask);
 	if (rc == EOK) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		size_t max_len;
 		if (!async_data_read_receive(&data_callid, &max_len)) {
 			async_answer_0(data_callid, EINVAL);
@@ -2077,7 +2077,7 @@ static void remote_nic_vlan_get_mask(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_vlan_set_mask(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
@@ -2086,7 +2086,7 @@ static void remote_nic_vlan_set_mask(ddf_fun_t *dev, void *iface,
 	bool vlan_mask_set = (bool) IPC_GET_ARG2(*call);
 
 	if (vlan_mask_set) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		size_t length;
 		if (!async_data_write_receive(&data_callid, &length)) {
 			async_answer_0(data_callid, EINVAL);
@@ -2117,7 +2117,7 @@ static void remote_nic_vlan_set_mask(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_vlan_set_tag(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
@@ -2135,12 +2135,12 @@ static void remote_nic_vlan_set_tag(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_wol_virtue_add(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
 	int send_data = (int) IPC_GET_ARG3(*call);
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 
 	if (nic_iface->wol_virtue_add == NULL) {
 		if (send_data) {
@@ -2185,7 +2185,7 @@ static void remote_nic_wol_virtue_add(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_wol_virtue_remove(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
@@ -2201,7 +2201,7 @@ static void remote_nic_wol_virtue_remove(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
@@ -2214,7 +2214,7 @@ static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
 	size_t max_length = IPC_GET_ARG3(*call);
 	nic_wv_type_t type = NIC_WV_NONE;
 	size_t length = 0;
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	void *data = NULL;
 
 	if (max_length != 0) {
@@ -2253,7 +2253,7 @@ static void remote_nic_wol_virtue_probe(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->wol_virtue_list == NULL) {
@@ -2265,7 +2265,7 @@ static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
 	size_t max_count = IPC_GET_ARG3(*call);
 	size_t count = 0;
 	nic_wv_id_t *id_list = NULL;
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 
 	if (max_count != 0) {
 		id_list = malloc(max_count * sizeof(nic_wv_id_t));
@@ -2303,7 +2303,7 @@ static void remote_nic_wol_virtue_list(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_wol_virtue_get_caps(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->wol_virtue_get_caps == NULL) {
@@ -2319,7 +2319,7 @@ static void remote_nic_wol_virtue_get_caps(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->wol_load_info == NULL) {
@@ -2345,7 +2345,7 @@ static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
 	errno_t rc = nic_iface->wol_load_info(dev, &type, max_length, data,
 	    &frame_length);
 	if (rc == EOK) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		size_t req_length;
 		if (!async_data_read_receive(&data_callid, &req_length)) {
 			async_answer_0(data_callid, EINVAL);
@@ -2364,7 +2364,7 @@ static void remote_nic_wol_load_info(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_offload_probe(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->offload_probe == NULL) {
@@ -2380,7 +2380,7 @@ static void remote_nic_offload_probe(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_offload_set(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->offload_set == NULL) {
@@ -2396,7 +2396,7 @@ static void remote_nic_offload_set(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_poll_get_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->poll_get_mode == NULL) {
@@ -2414,7 +2414,7 @@ static void remote_nic_poll_get_mode(ddf_fun_t *dev, void *iface,
 	errno_t rc = nic_iface->poll_get_mode(dev, &mode, &period);
 	if ((rc == EOK) && (request_data)) {
 		size_t max_len;
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 
 		if (!async_data_read_receive(&data_callid, &max_len)) {
 			async_answer_0(data_callid, EINVAL);
@@ -2436,7 +2436,7 @@ static void remote_nic_poll_get_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 
@@ -2447,7 +2447,7 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
 	size_t length;
 
 	if (has_period) {
-		ipc_callid_t data_callid;
+		cap_call_handle_t data_callid;
 		if (!async_data_write_receive(&data_callid, &length)) {
 			async_answer_0(data_callid, EINVAL);
 			async_answer_0(callid, EINVAL);
@@ -2476,7 +2476,7 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
 }
 
 static void remote_nic_poll_now(ddf_fun_t *dev, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	nic_iface_t *nic_iface = (nic_iface_t *) iface;
 	if (nic_iface->poll_now == NULL) {

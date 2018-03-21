@@ -77,7 +77,7 @@ outdev_t *outdev_register(outdev_ops_t *ops, void *data)
 	return dev;
 }
 
-static void srv_yield(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_yield(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	errno_t ret = EOK;
 
@@ -92,7 +92,7 @@ static void srv_yield(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, ret);
 }
 
-static void srv_claim(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_claim(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	errno_t ret = EOK;
 
@@ -107,7 +107,7 @@ static void srv_claim(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, ret);
 }
 
-static void srv_get_dimensions(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_get_dimensions(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	sysarg_t cols = MAX_COLS;
 	sysarg_t rows = MAX_ROWS;
@@ -120,7 +120,7 @@ static void srv_get_dimensions(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_2(iid, EOK, cols, rows);
 }
 
-static void srv_get_caps(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_get_caps(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	console_caps_t caps = 0;
 
@@ -133,7 +133,7 @@ static void srv_get_caps(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, EOK, caps);
 }
 
-static frontbuf_t *resolve_frontbuf(sysarg_t handle, ipc_callid_t iid)
+static frontbuf_t *resolve_frontbuf(sysarg_t handle, cap_call_handle_t iid)
 {
 	frontbuf_t *frontbuf = NULL;
 	list_foreach(frontbufs, link, frontbuf_t, cur) {
@@ -151,7 +151,7 @@ static frontbuf_t *resolve_frontbuf(sysarg_t handle, ipc_callid_t iid)
 	return frontbuf;
 }
 
-static void srv_frontbuf_create(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_frontbuf_create(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	frontbuf_t *frontbuf = (frontbuf_t *) malloc(sizeof(frontbuf_t));
 	if (frontbuf == NULL) {
@@ -161,7 +161,7 @@ static void srv_frontbuf_create(ipc_callid_t iid, ipc_call_t *icall)
 
 	link_initialize(&frontbuf->link);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	if (!async_share_out_receive(&callid, &frontbuf->size,
 	    &frontbuf->flags)) {
 		free(frontbuf);
@@ -180,7 +180,7 @@ static void srv_frontbuf_create(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, EOK, (sysarg_t) frontbuf);
 }
 
-static void srv_frontbuf_destroy(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_frontbuf_destroy(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(*icall), iid);
 	if (frontbuf == NULL)
@@ -193,7 +193,7 @@ static void srv_frontbuf_destroy(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void srv_cursor_update(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_cursor_update(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(*icall), iid);
 	if (frontbuf == NULL)
@@ -225,7 +225,7 @@ static void srv_cursor_update(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void srv_set_style(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_set_style(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_STYLE;
@@ -236,7 +236,7 @@ static void srv_set_style(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void srv_set_color(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_set_color(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_INDEX;
@@ -251,7 +251,7 @@ static void srv_set_color(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void srv_set_rgb_color(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_set_rgb_color(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	list_foreach(outdevs, link, outdev_t, dev) {
 		dev->attrs.type = CHAR_ATTR_RGB;
@@ -301,7 +301,7 @@ static bool srv_update_scroll(outdev_t *dev, chargrid_t *buf)
 	return true;
 }
 
-static void srv_update(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_update(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(*icall), iid);
 	if (frontbuf == NULL)
@@ -351,7 +351,7 @@ static void srv_update(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void srv_damage(ipc_callid_t iid, ipc_call_t *icall)
+static void srv_damage(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	frontbuf_t *frontbuf = resolve_frontbuf(IPC_GET_ARG1(*icall), iid);
 	if (frontbuf == NULL)
@@ -390,14 +390,14 @@ static void srv_damage(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept the connection */
 	async_answer_0(iid, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			async_answer_0(callid, EOK);

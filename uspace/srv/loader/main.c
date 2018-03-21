@@ -89,9 +89,9 @@ static elf_info_t prog_info;
 /** Used to limit number of connections to one. */
 static bool connected = false;
 
-static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_get_taskid(cap_call_handle_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	task_id_t task_id;
 	size_t len;
 
@@ -115,7 +115,7 @@ static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
  * @param rid
  * @param request
  */
-static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_set_cwd(cap_call_handle_t rid, ipc_call_t *request)
 {
 	char *buf;
 	errno_t rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
@@ -135,9 +135,9 @@ static void ldr_set_cwd(ipc_callid_t rid, ipc_call_t *request)
  * @param rid
  * @param request
  */
-static void ldr_set_program(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_set_program(cap_call_handle_t rid, ipc_call_t *request)
 {
-	ipc_callid_t writeid;
+	cap_call_handle_t writeid;
 	size_t namesize;
 	if (!async_data_write_receive(&writeid, &namesize)) {
 		async_answer_0(rid, EINVAL);
@@ -168,7 +168,7 @@ static void ldr_set_program(ipc_callid_t rid, ipc_call_t *request)
  * @param rid
  * @param request
  */
-static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_set_args(cap_call_handle_t rid, ipc_call_t *request)
 {
 	char *buf;
 	size_t buf_size;
@@ -233,14 +233,14 @@ static void ldr_set_args(ipc_callid_t rid, ipc_call_t *request)
  * @param rid
  * @param request
  */
-static void ldr_add_inbox(ipc_callid_t rid, ipc_call_t *request)
+static void ldr_add_inbox(cap_call_handle_t rid, ipc_call_t *request)
 {
 	if (inbox_entries == INBOX_MAX_ENTRIES) {
 		async_answer_0(rid, ERANGE);
 		return;
 	}
 
-	ipc_callid_t writeid;
+	cap_call_handle_t writeid;
 	size_t namesize;
 	if (!async_data_write_receive(&writeid, &namesize)) {
 		async_answer_0(rid, EINVAL);
@@ -280,7 +280,7 @@ static void ldr_add_inbox(ipc_callid_t rid, ipc_call_t *request)
  * @param request
  * @return 0 on success, !0 on error.
  */
-static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
+static int ldr_load(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int rc = elf_load(program_fd, &prog_info);
 	if (rc != EE_OK) {
@@ -309,7 +309,7 @@ static int ldr_load(ipc_callid_t rid, ipc_call_t *request)
  * @param request
  * @return 0 on success, !0 on error.
  */
-static __attribute__((noreturn)) void ldr_run(ipc_callid_t rid,
+static __attribute__((noreturn)) void ldr_run(cap_call_handle_t rid,
     ipc_call_t *request)
 {
 	DPRINTF("Set task name\n");
@@ -331,7 +331,7 @@ static __attribute__((noreturn)) void ldr_run(ipc_callid_t rid,
  * Receive and carry out commands (of which the last one should be
  * to execute the loaded program).
  */
-static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void ldr_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Already have a connection? */
 	if (connected) {
@@ -350,7 +350,7 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 		errno_t retval;
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			exit(0);

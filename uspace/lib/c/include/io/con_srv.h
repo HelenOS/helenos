@@ -86,7 +86,7 @@ struct con_ops {
 
 extern void con_srvs_init(con_srvs_t *);
 
-extern errno_t con_conn(ipc_callid_t, ipc_call_t *, con_srvs_t *);
+extern errno_t con_conn(cap_call_handle_t, ipc_call_t *, con_srvs_t *);
 
 #endif
 

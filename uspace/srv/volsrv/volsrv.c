@@ -51,7 +51,7 @@
 
 #define NAME  "volsrv"
 
-static void vol_client_conn(ipc_callid_t, ipc_call_t *, void *);
+static void vol_client_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 static errno_t vol_init(void)
 {
@@ -84,9 +84,9 @@ static errno_t vol_init(void)
 	return EOK;
 }
 
-static void vol_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_get_parts_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
@@ -117,7 +117,7 @@ static void vol_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
-static void vol_part_add_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_part_add_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
 	errno_t rc;
@@ -133,7 +133,7 @@ static void vol_part_add_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_part_info_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -155,7 +155,7 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -180,7 +180,7 @@ static void vol_part_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_part_empty_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -204,7 +204,7 @@ static void vol_part_empty_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void vol_part_get_lsupp_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_part_get_lsupp_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	vol_fstype_t fstype;
 	vol_label_supp_t vlsupp;
@@ -216,7 +216,7 @@ static void vol_part_get_lsupp_srv(ipc_callid_t iid, ipc_call_t *icall)
 
 	volsrv_part_get_lsupp(fstype, &vlsupp);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -242,7 +242,7 @@ static void vol_part_get_lsupp_srv(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 
-static void vol_part_mkfs_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vol_part_mkfs_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -281,7 +281,7 @@ static void vol_part_mkfs_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void vol_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void vol_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_client_conn()");
 
@@ -290,7 +290,7 @@ static void vol_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {

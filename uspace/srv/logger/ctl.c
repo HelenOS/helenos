@@ -62,7 +62,7 @@ static errno_t handle_log_level_change(sysarg_t new_level)
 	return EOK;
 }
 
-void logger_connection_handler_control(ipc_callid_t callid)
+void logger_connection_handler_control(cap_call_handle_t callid)
 {
 	errno_t rc;
 	int fd;
@@ -72,7 +72,7 @@ void logger_connection_handler_control(ipc_callid_t callid)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;

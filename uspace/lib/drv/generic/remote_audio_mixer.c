@@ -198,10 +198,10 @@ errno_t audio_mixer_get_item_level(async_exch_t *exch, unsigned item,
 /*
  * SERVER SIDE
  */
-static void remote_audio_mixer_get_info(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_mixer_get_item_info(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_mixer_get_item_level(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_audio_mixer_set_item_level(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_audio_mixer_get_info(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_mixer_get_item_info(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_mixer_get_item_level(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_mixer_set_item_level(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 
 /** Remote audio mixer interface operations. */
 static const remote_iface_func_ptr_t remote_audio_mixer_iface_ops[] = {
@@ -218,7 +218,7 @@ const remote_iface_t remote_audio_mixer_iface = {
 };
 
 void remote_audio_mixer_get_info(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+    ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
@@ -234,7 +234,7 @@ void remote_audio_mixer_get_info(
 	/* Send the name. */
 	if (ret == EOK && name_size > 0) {
 		size_t size;
-		ipc_callid_t name_id;
+		cap_call_handle_t name_id;
 		if (!async_data_read_receive(&name_id, &size)) {
 			async_answer_0(name_id, EPARTY);
 			return;
@@ -248,7 +248,7 @@ void remote_audio_mixer_get_info(
 }
 
 void remote_audio_mixer_get_item_info(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+    ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
@@ -266,7 +266,7 @@ void remote_audio_mixer_get_item_info(
 	/* Send the name. */
 	if (ret == EOK && name_size > 0) {
 		size_t size;
-		ipc_callid_t name_id;
+		cap_call_handle_t name_id;
 		if (!async_data_read_receive(&name_id, &size)) {
 			async_answer_0(name_id, EPARTY);
 			return;
@@ -280,7 +280,7 @@ void remote_audio_mixer_get_item_info(
 }
 
 void remote_audio_mixer_set_item_level(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+    ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
@@ -295,7 +295,7 @@ void remote_audio_mixer_set_item_level(
 }
 
 void remote_audio_mixer_get_item_level(
-    ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+    ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 

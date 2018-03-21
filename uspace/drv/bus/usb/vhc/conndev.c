@@ -92,7 +92,7 @@ static void receive_device_name(async_sess_t *sess)
  * @param icallid Call id.
  * @param icall Call data.
  */
-void default_connection_handler(ddf_fun_t *fun, ipc_callid_t icallid,
+void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icallid,
     ipc_call_t *icall)
 {
 	vhc_data_t *vhc = ddf_fun_data_get(fun);

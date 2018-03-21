@@ -588,11 +588,11 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 	fibril_mutex_unlock(&viewport_list_mtx);
 }
 
-static void comp_window_get_event(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
+static void comp_window_get_event(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	window_event_t *event = (window_event_t *) prodcons_consume(&win->queue);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 
 	if (!async_data_read_receive(&callid, &len)) {
@@ -612,7 +612,7 @@ static void comp_window_get_event(window_t *win, ipc_callid_t iid, ipc_call_t *i
 	free(event);
 }
 
-static void comp_window_damage(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
+static void comp_window_damage(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	double x = IPC_GET_ARG1(*icall);
 	double y = IPC_GET_ARG2(*icall);
@@ -633,7 +633,7 @@ static void comp_window_damage(window_t *win, ipc_callid_t iid, ipc_call_t *ical
 	async_answer_0(iid, EOK);
 }
 
-static void comp_window_grab(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
+static void comp_window_grab(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	sysarg_t pos_id = IPC_GET_ARG1(*icall);
 	sysarg_t grab_flags = IPC_GET_ARG2(*icall);
@@ -692,9 +692,9 @@ static void comp_recalc_transform(window_t *win)
 	win->transform = transform;
 }
 
-static void comp_window_resize(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
+static void comp_window_resize(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	unsigned int flags;
 
@@ -835,7 +835,7 @@ static void comp_post_event_top(window_event_t *event)
 	fibril_mutex_unlock(&window_list_mtx);
 }
 
-static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
+static void comp_window_close(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	/* Stop managing the window. */
 	fibril_mutex_lock(&window_list_mtx);
@@ -878,7 +878,7 @@ static void comp_window_close(window_t *win, ipc_callid_t iid, ipc_call_t *icall
 	async_answer_0(iid, EOK);
 }
 
-static void comp_window_close_request(window_t *win, ipc_callid_t iid, ipc_call_t *icall)
+static void comp_window_close_request(window_t *win, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	window_event_t *event = (window_event_t *) malloc(sizeof(window_event_t));
 	if (event == NULL) {
@@ -893,10 +893,10 @@ static void comp_window_close_request(window_t *win, ipc_callid_t iid, ipc_call_
 	async_answer_0(iid, EOK);
 }
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_call_t call;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	service_id_t service_id = (service_id_t) IPC_GET_ARG2(*icall);
 
 	/* Allocate resources for new window and register it to the location service. */
@@ -1041,7 +1041,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static void comp_mode_change(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall)
+static void comp_mode_change(viewport_t *vp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	sysarg_t mode_idx = IPC_GET_ARG2(*icall);
 	fibril_mutex_lock(&viewport_list_mtx);
@@ -1120,7 +1120,7 @@ static void comp_shutdown(void)
 }
 #endif
 
-static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_call_t *icall)
+static void comp_visualizer_disconnect(viewport_t *vp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	/* Release viewport resources. */
 	fibril_mutex_lock(&viewport_list_mtx);
@@ -1136,7 +1136,7 @@ static void comp_visualizer_disconnect(viewport_t *vp, ipc_callid_t iid, ipc_cal
 	comp_damage(0, 0, UINT32_MAX, UINT32_MAX);
 }
 
-static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void vsl_notifications(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	viewport_t *vp = NULL;
 	fibril_mutex_lock(&viewport_list_mtx);
@@ -1154,7 +1154,7 @@ static void vsl_notifications(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	/* Ignore parameters, the connection is already opened. */
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			async_hangup(vp->sess);

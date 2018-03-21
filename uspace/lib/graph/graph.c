@@ -238,14 +238,14 @@ errno_t graph_notify_disconnect(async_sess_t *sess, sysarg_t handle)
 	return ret;
 }
 
-static void vs_claim(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_claim(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	vs->client_side_handle = IPC_GET_ARG1(*icall);
 	errno_t rc = vs->ops.claim(vs);
 	async_answer_0(iid, rc);
 }
 
-static void vs_yield(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_yield(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	/* Deallocate resources for the current mode. */
 	if (vs->mode_set) {
@@ -266,9 +266,9 @@ static void vs_yield(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void vs_enumerate_modes(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_enumerate_modes(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 
 	if (!async_data_read_receive(&callid, &len)) {
@@ -294,9 +294,9 @@ static void vs_enumerate_modes(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *i
 	fibril_mutex_unlock(&vs->mode_mtx);
 }
 
-static void vs_get_default_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_get_default_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 
 	if (!async_data_read_receive(&callid, &len)) {
@@ -327,9 +327,9 @@ static void vs_get_default_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *
 	fibril_mutex_unlock(&vs->mode_mtx);
 }
 
-static void vs_get_current_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_get_current_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 
 	if (!async_data_read_receive(&callid, &len)) {
@@ -347,9 +347,9 @@ static void vs_get_current_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *
 	}
 }
 
-static void vs_get_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_get_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 
 	if (!async_data_read_receive(&callid, &len)) {
@@ -381,9 +381,9 @@ static void vs_get_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&vs->mode_mtx);
 }
 
-static void vs_set_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_set_mode(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	unsigned int flags;
 
@@ -466,7 +466,7 @@ static void vs_set_mode(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void vs_update_damaged_region(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_update_damaged_region(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	sysarg_t x_offset = (IPC_GET_ARG5(*icall) >> 16);
 	sysarg_t y_offset = (IPC_GET_ARG5(*icall) & 0x0000ffff);
@@ -478,23 +478,23 @@ static void vs_update_damaged_region(visualizer_t *vs, ipc_callid_t iid, ipc_cal
 	async_answer_0(iid, rc);
 }
 
-static void vs_suspend(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_suspend(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	errno_t rc = vs->ops.suspend(vs);
 	async_answer_0(iid, rc);
 }
 
-static void vs_wakeup(visualizer_t *vs, ipc_callid_t iid, ipc_call_t *icall)
+static void vs_wakeup(visualizer_t *vs, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	errno_t rc = vs->ops.wakeup(vs);
 	async_answer_0(iid, rc);
 }
 
 void graph_visualizer_connection(visualizer_t *vs,
-    ipc_callid_t iid, ipc_call_t *icall, void *arg)
+    cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_call_t call;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 
 	/* Claim the visualizer. */
 	if (!cas(&vs->ref_cnt, 0, 1)) {
@@ -566,12 +566,12 @@ terminate:
 }
 
 void graph_renderer_connection(renderer_t *rnd,
-    ipc_callid_t iid, ipc_call_t *icall, void *arg)
+    cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	// TODO
 
 	ipc_call_t call;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 
 	/* Accept the connection. */
 	atomic_inc(&rnd->ref_cnt);
@@ -597,7 +597,7 @@ terminate:
 	atomic_dec(&rnd->ref_cnt);
 }
 
-void graph_client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void graph_client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Find the visualizer or renderer with the given service ID. */
 	visualizer_t *vs = graph_get_visualizer(IPC_GET_ARG2(*icall));

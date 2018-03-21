@@ -103,7 +103,7 @@ do { \
 static errno_t polling_ps2(void *);
 static errno_t polling_intellimouse(void *);
 static errno_t probe_intellimouse(ps2_mouse_t *, bool);
-static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static void default_connection_handler(ddf_fun_t *, cap_call_handle_t, ipc_call_t *);
 
 /** ps/2 mouse driver ops. */
 static ddf_dev_ops_t mouse_ops = {
@@ -403,7 +403,7 @@ static errno_t probe_intellimouse(ps2_mouse_t *mouse, bool buttons)
  * @param icall Call data.
  */
 void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall)
+    cap_call_handle_t icallid, ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	ps2_mouse_t *mouse = ddf_dev_data_get(ddf_fun_get_dev(fun));

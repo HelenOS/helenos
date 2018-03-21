@@ -65,7 +65,7 @@
 driver_list_t drivers_list;
 dev_tree_t device_tree;
 
-static void devman_connection_device(ipc_callid_t iid, ipc_call_t *icall,
+static void devman_connection_device(cap_call_handle_t iid, ipc_call_t *icall,
     void *arg)
 {
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
@@ -148,7 +148,7 @@ cleanup:
 		fun_del_ref(fun);
 }
 
-static void devman_connection_parent(ipc_callid_t iid, ipc_call_t *icall,
+static void devman_connection_parent(cap_call_handle_t iid, ipc_call_t *icall,
     void *arg)
 {
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
@@ -228,7 +228,7 @@ cleanup:
 		fun_del_ref(fun);
 }
 
-static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void devman_forward(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	iface_t iface = IPC_GET_ARG1(*icall);
 	service_id_t service_id = IPC_GET_ARG2(*icall);

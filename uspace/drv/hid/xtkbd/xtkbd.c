@@ -333,7 +333,7 @@ static errno_t polling(void *arg)
  *
  */
 static void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall)
+    cap_call_handle_t icallid, ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	xt_kbd_t *kbd = ddf_dev_data_get(ddf_fun_get_dev(fun));

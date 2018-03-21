@@ -801,7 +801,7 @@ errno_t vfs_put(int file)
  */
 errno_t vfs_receive_handle(bool high, int *handle)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	if (!async_state_change_receive(&callid, NULL, NULL, NULL)) {
 		async_answer_0(callid, EINVAL);
 		return EINVAL;

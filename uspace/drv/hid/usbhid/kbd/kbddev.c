@@ -71,7 +71,7 @@
 
 #include "../usbhid.h"
 
-static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static void default_connection_handler(ddf_fun_t *, cap_call_handle_t, ipc_call_t *);
 static ddf_dev_ops_t kbdops = { .default_handler = default_connection_handler };
 
 
@@ -160,7 +160,7 @@ typedef enum usb_kbd_flags {
  * @param icall Call data.
  */
 static void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall)
+    cap_call_handle_t icallid, ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	usb_kbd_t *kbd_dev = ddf_fun_data_get(fun);

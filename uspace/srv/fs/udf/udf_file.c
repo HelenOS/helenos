@@ -575,7 +575,7 @@ errno_t udf_get_fid_in_sector(udf_file_identifier_descriptor_t **fid,
  * @return EOK on success or an error code.
  *
  */
-errno_t udf_read_file(size_t *read_len, ipc_callid_t callid, udf_node_t *node,
+errno_t udf_read_file(size_t *read_len, cap_call_handle_t callid, udf_node_t *node,
     aoff64_t pos, size_t len)
 {
 	size_t i = 0;

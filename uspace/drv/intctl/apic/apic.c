@@ -163,9 +163,9 @@ static errno_t apic_enable_irq(apic_t *apic, sysarg_t irq)
  * @param icall Call data of the request that opened the connection.
  * @param arg	Local argument.
  */
-static void apic_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void apic_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	apic_t *apic;
 

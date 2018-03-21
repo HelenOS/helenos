@@ -42,9 +42,9 @@
 #include "adb-kbd.h"
 #include "ctl.h"
 
-static void adb_kbd_events(ipc_callid_t, ipc_call_t *, void *);
+static void adb_kbd_events(cap_call_handle_t, ipc_call_t *, void *);
 static void adb_kbd_reg0_data(adb_kbd_t *, uint16_t);
-static void adb_kbd_conn(ipc_callid_t, ipc_call_t *, void *);
+static void adb_kbd_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 /** Add ADB keyboard device */
 errno_t adb_kbd_add(adb_kbd_t *kbd)
@@ -129,7 +129,7 @@ errno_t adb_kbd_gone(adb_kbd_t *con)
 	return ENOTSUP;
 }
 
-static void adb_kbd_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void adb_kbd_events(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	adb_kbd_t *kbd = (adb_kbd_t *) arg;
 
@@ -137,7 +137,7 @@ static void adb_kbd_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		errno_t retval = EOK;
 
@@ -189,9 +189,9 @@ static void adb_kbd_reg0_data(adb_kbd_t *kbd, uint16_t data)
 }
 
 /** Handle client connection */
-static void adb_kbd_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void adb_kbd_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	sysarg_t method;
 	adb_kbd_t *kbd;

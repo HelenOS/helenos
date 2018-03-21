@@ -334,7 +334,7 @@ static errno_t udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
  * @param iid      Async request ID
  * @param icall    Async request data
  */
-static void udp_callback_create_srv(udp_client_t *client, ipc_callid_t iid,
+static void udp_callback_create_srv(udp_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_callback_create_srv()");
@@ -357,10 +357,10 @@ static void udp_callback_create_srv(udp_client_t *client, ipc_callid_t iid,
  * @param iid      Async request ID
  * @param icall    Async request data
  */
-static void udp_assoc_create_srv(udp_client_t *client, ipc_callid_t iid,
+static void udp_assoc_create_srv(udp_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	inet_ep2_t epp;
 	sysarg_t assoc_id;
@@ -404,7 +404,7 @@ static void udp_assoc_create_srv(udp_client_t *client, ipc_callid_t iid,
  * @param iid      Async request ID
  * @param icall    Async request data
  */
-static void udp_assoc_destroy_srv(udp_client_t *client, ipc_callid_t iid,
+static void udp_assoc_destroy_srv(udp_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	sysarg_t assoc_id;
@@ -425,7 +425,7 @@ static void udp_assoc_destroy_srv(udp_client_t *client, ipc_callid_t iid,
  * @param iid      Async request ID
  * @param icall    Async request data
  */
-static void udp_assoc_set_nolocal_srv(udp_client_t *client, ipc_callid_t iid,
+static void udp_assoc_set_nolocal_srv(udp_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	sysarg_t assoc_id;
@@ -446,10 +446,10 @@ static void udp_assoc_set_nolocal_srv(udp_client_t *client, ipc_callid_t iid,
  * @param iid      Async request ID
  * @param icall    Async request data
  */
-static void udp_assoc_send_msg_srv(udp_client_t *client, ipc_callid_t iid,
+static void udp_assoc_send_msg_srv(udp_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	inet_ep_t dest;
 	sysarg_t assoc_id;
@@ -544,10 +544,10 @@ static udp_crcv_queue_entry_t *udp_rmsg_get_next(udp_client_t *client)
  * @param iid      Async request ID
  * @param icall    Async request data
  */
-static void udp_rmsg_info_srv(udp_client_t *client, ipc_callid_t iid,
+static void udp_rmsg_info_srv(udp_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	udp_crcv_queue_entry_t *enext;
 	sysarg_t assoc_id;
@@ -591,10 +591,10 @@ static void udp_rmsg_info_srv(udp_client_t *client, ipc_callid_t iid,
  * @param iid      Async request ID
  * @param icall    Async request data
  */
-static void udp_rmsg_read_srv(udp_client_t *client, ipc_callid_t iid,
+static void udp_rmsg_read_srv(udp_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t msg_size;
 	udp_crcv_queue_entry_t *enext;
 	void *data;
@@ -647,7 +647,7 @@ static void udp_rmsg_read_srv(udp_client_t *client, ipc_callid_t iid,
  * @param iid      Async request ID
  * @param icall    Async request data
  */
-static void udp_rmsg_discard_srv(udp_client_t *client, ipc_callid_t iid,
+static void udp_rmsg_discard_srv(udp_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	udp_crcv_queue_entry_t *enext;
@@ -673,7 +673,7 @@ static void udp_rmsg_discard_srv(udp_client_t *client, ipc_callid_t iid,
  * @param icall Connect call data
  * @param arg   Connection argument
  */
-static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void udp_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	udp_client_t client;
 	unsigned long n;
@@ -690,7 +690,7 @@ static void udp_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	while (true) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn: wait req");
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_client_conn: method=%d",

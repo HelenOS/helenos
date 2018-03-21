@@ -117,7 +117,7 @@ static ddf_fun_t *driver_get_function(devman_handle_t handle)
 	return NULL;
 }
 
-static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_dev_add(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
 	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
@@ -173,7 +173,7 @@ static void driver_dev_add(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, res);
 }
 
-static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_dev_remove(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t devh = IPC_GET_ARG1(*icall);
 
@@ -206,7 +206,7 @@ static void driver_dev_remove(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_dev_gone(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t devh = IPC_GET_ARG1(*icall);
 
@@ -239,7 +239,7 @@ static void driver_dev_gone(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_fun_online(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t funh = IPC_GET_ARG1(*icall);
 
@@ -274,7 +274,7 @@ static void driver_fun_online(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_fun_offline(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	devman_handle_t funh = IPC_GET_ARG1(*icall);
 
@@ -307,7 +307,7 @@ static void driver_fun_offline(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void driver_stop(ipc_callid_t iid, ipc_call_t *icall)
+static void driver_stop(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	/* Prevent new devices from being added */
 	fibril_rwlock_write_lock(&stopping_lock);
@@ -336,7 +336,7 @@ static void driver_stop(ipc_callid_t iid, ipc_call_t *icall)
 	exit(0);
 }
 
-static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall,
+static void driver_connection_devman(cap_call_handle_t iid, ipc_call_t *icall,
     void *arg)
 {
 	/* Accept connection */
@@ -344,7 +344,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall,
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
@@ -380,7 +380,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall,
  *            (applications, services, etc.).
  *
  */
-static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
+static void driver_connection_gen(cap_call_handle_t iid, ipc_call_t *icall, bool drv)
 {
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call and remember the handle of
@@ -425,7 +425,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	}
 
 	while (true) {
-		ipc_callid_t callid;
+		cap_call_handle_t callid;
 		ipc_call_t call;
 		callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
@@ -503,13 +503,13 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	}
 }
 
-static void driver_connection_driver(ipc_callid_t iid, ipc_call_t *icall,
+static void driver_connection_driver(cap_call_handle_t iid, ipc_call_t *icall,
     void *arg)
 {
 	driver_connection_gen(iid, icall, true);
 }
 
-static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall,
+static void driver_connection_client(cap_call_handle_t iid, ipc_call_t *icall,
     void *arg)
 {
 	driver_connection_gen(iid, icall, false);

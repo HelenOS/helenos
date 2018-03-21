@@ -463,7 +463,7 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	udf_node_t *node = UDF_NODE(rfn);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len = 0;
 	if (!async_data_read_receive(&callid, &len)) {
 		async_answer_0(callid, EINVAL);

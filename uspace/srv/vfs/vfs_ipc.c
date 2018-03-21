@@ -34,7 +34,7 @@
 #include <str.h>
 #include <vfs/canonify.h>
 
-static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_clone(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int oldfd = IPC_GET_ARG1(*request);
 	int newfd = IPC_GET_ARG2(*request);
@@ -45,11 +45,11 @@ static void vfs_in_clone(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_1(rid, rc, outfd);
 }
 
-static void vfs_in_fsprobe(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_fsprobe(cap_call_handle_t rid, ipc_call_t *request)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
 	char *fs_name = NULL;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	vfs_fs_probe_info_t info;
 	size_t len;
 	errno_t rc;
@@ -82,9 +82,9 @@ out:
 	free(fs_name);
 }
 
-static void vfs_in_fstypes(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_fstypes(cap_call_handle_t rid, ipc_call_t *request)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 	vfs_fstypes_t fstypes;
 	errno_t rc;
@@ -110,7 +110,7 @@ out:
 	vfs_fstypes_free(&fstypes);
 }
 
-static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_mount(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int mpfd = IPC_GET_ARG1(*request);
 
@@ -155,7 +155,7 @@ static void vfs_in_mount(ipc_callid_t rid, ipc_call_t *request)
 	free(fs_name);
 }
 
-static void vfs_in_open(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_open(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	int mode = IPC_GET_ARG2(*request);
@@ -164,14 +164,14 @@ static void vfs_in_open(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_put(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_put(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	errno_t rc = vfs_op_put(fd);
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_read(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_read(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	aoff64_t pos = MERGE_LOUP32(IPC_GET_ARG2(*request),
@@ -182,7 +182,7 @@ static void vfs_in_read(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_1(rid, rc, bytes);
 }
 
-static void vfs_in_rename(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_rename(cap_call_handle_t rid, ipc_call_t *request)
 {
 	/* The common base directory. */
 	int basefd;
@@ -226,7 +226,7 @@ out:
 		free(new);
 }
 
-static void vfs_in_resize(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_resize(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	int64_t size = MERGE_LOUP32(IPC_GET_ARG2(*request), IPC_GET_ARG3(*request));
@@ -234,14 +234,14 @@ static void vfs_in_resize(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_stat(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_stat(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	errno_t rc = vfs_op_stat(fd);
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_statfs(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_statfs(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int fd = (int) IPC_GET_ARG1(*request);
 
@@ -249,14 +249,14 @@ static void vfs_in_statfs(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_sync(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_sync(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	errno_t rc = vfs_op_sync(fd);
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_unlink(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_unlink(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int parentfd = IPC_GET_ARG1(*request);
 	int expectfd = IPC_GET_ARG2(*request);
@@ -269,14 +269,14 @@ static void vfs_in_unlink(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_unmount(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_unmount(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int mpfd = IPC_GET_ARG1(*request);
 	errno_t rc = vfs_op_unmount(mpfd);
 	async_answer_0(rid, rc);
 }
 
-static void vfs_in_wait_handle(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_wait_handle(cap_call_handle_t rid, ipc_call_t *request)
 {
 	bool high_fd = IPC_GET_ARG1(*request);
 	int fd = -1;
@@ -284,7 +284,7 @@ static void vfs_in_wait_handle(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_1(rid, rc, fd);
 }
 
-static void vfs_in_walk(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_walk(cap_call_handle_t rid, ipc_call_t *request)
 {
 	/*
 	 * Parent is our relative root for file lookup.
@@ -303,7 +303,7 @@ static void vfs_in_walk(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_1(rid, rc, fd);
 }
 
-static void vfs_in_write(ipc_callid_t rid, ipc_call_t *request)
+static void vfs_in_write(cap_call_handle_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	aoff64_t pos = MERGE_LOUP32(IPC_GET_ARG2(*request),
@@ -314,7 +314,7 @@ static void vfs_in_write(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_1(rid, rc, bytes);
 }
 
-void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void vfs_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	bool cont = true;
 
@@ -326,7 +326,7 @@ void vfs_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (cont) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;

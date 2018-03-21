@@ -483,7 +483,7 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 	/*
 	 * Receive the read request.
 	 */
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);
@@ -546,7 +546,7 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	/*
 	 * Receive the write request.
 	 */
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);

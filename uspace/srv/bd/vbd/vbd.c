@@ -52,7 +52,7 @@
 
 #define NAME  "vbd"
 
-static void vbds_client_conn(ipc_callid_t, ipc_call_t *, void *);
+static void vbds_client_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 static service_id_t ctl_sid;
 
@@ -86,9 +86,9 @@ static errno_t vbds_init(void)
 	return EOK;
 }
 
-static void vbds_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_get_disks_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
@@ -120,7 +120,7 @@ static void vbds_get_disks_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
-static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_disk_info_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	vbd_disk_info_t dinfo;
@@ -135,7 +135,7 @@ static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -160,7 +160,7 @@ static void vbds_disk_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void vbds_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_label_create_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	label_type_t ltype;
@@ -174,7 +174,7 @@ static void vbds_label_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void vbds_label_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_label_delete_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	errno_t rc;
@@ -186,9 +186,9 @@ static void vbds_label_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_label_get_parts_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	size_t act_size;
 	service_id_t sid;
@@ -224,7 +224,7 @@ static void vbds_label_get_parts_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, retval, act_size);
 }
 
-static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_part_get_info_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	vbds_part_id_t part;
 	vbd_part_info_t pinfo;
@@ -239,7 +239,7 @@ static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -264,7 +264,7 @@ static void vbds_part_get_info_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_part_create_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	vbd_part_spec_t pspec;
@@ -275,7 +275,7 @@ static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 
 	disk_sid = IPC_GET_ARG1(*icall);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -305,7 +305,7 @@ static void vbds_part_create_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, rc, (sysarg_t)part);
 }
 
-static void vbds_part_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_part_delete_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	vbds_part_id_t part;
 	errno_t rc;
@@ -317,7 +317,7 @@ static void vbds_part_delete_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void vbds_suggest_ptype_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void vbds_suggest_ptype_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	service_id_t disk_sid;
 	label_ptype_t ptype;
@@ -335,7 +335,7 @@ static void vbds_suggest_ptype_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -359,7 +359,7 @@ static void vbds_suggest_ptype_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, EOK);
 }
 
-static void vbds_ctl_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void vbds_ctl_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vbds_client_conn()");
 
@@ -368,7 +368,7 @@ static void vbds_ctl_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
@@ -411,7 +411,7 @@ static void vbds_ctl_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 	}
 }
 
-static void vbds_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void vbds_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	service_id_t sid;
 

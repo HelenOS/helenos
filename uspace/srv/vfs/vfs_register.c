@@ -111,7 +111,7 @@ static bool vfs_info_sane(vfs_info_t *info)
  * @param request Call structure with the request.
  *
  */
-void vfs_register(ipc_callid_t rid, ipc_call_t *request)
+void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 {
 	dprintf("Processing VFS_REGISTER request received from %zx.\n",
 	    request->in_phone_hash);
@@ -194,7 +194,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 */
 
 	size_t size;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	if (!async_share_in_receive(&callid, &size)) {
 		dprintf("Unexpected call\n");
 		list_remove(&fs_info->fs_link);

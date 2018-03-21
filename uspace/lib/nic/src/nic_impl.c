@@ -807,7 +807,7 @@ errno_t nic_poll_now_impl(ddf_fun_t *fun) {
  * @param callid	IPC call identifier
  * @param call		IPC call data
  */
-void nic_default_handler_impl(ddf_fun_t *fun, ipc_callid_t callid,
+void nic_default_handler_impl(ddf_fun_t *fun, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	async_answer_0(callid, ENOTSUP);

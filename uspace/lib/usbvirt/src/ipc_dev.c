@@ -48,7 +48,7 @@
  * @param icall The call with the request.
  */
 static void ipc_get_name(usbvirt_device_t *dev,
-    ipc_callid_t iid, ipc_call_t *icall)
+    cap_call_handle_t iid, ipc_call_t *icall)
 {
 	if (dev->name == NULL) {
 		async_answer_0(iid, ENOENT);
@@ -56,7 +56,7 @@ static void ipc_get_name(usbvirt_device_t *dev,
 
 	size_t size = str_size(dev->name);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t accepted_size;
 	if (!async_data_read_receive(&callid, &accepted_size)) {
 		async_answer_0(iid, EINVAL);
@@ -78,7 +78,7 @@ static void ipc_get_name(usbvirt_device_t *dev,
  * @param icall The call with the request.
  */
 static void ipc_control_read(usbvirt_device_t *dev,
-    ipc_callid_t iid, ipc_call_t *icall)
+    cap_call_handle_t iid, ipc_call_t *icall)
 {
 	errno_t rc;
 
@@ -93,7 +93,7 @@ static void ipc_control_read(usbvirt_device_t *dev,
 		return;
 	}
 
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EPARTY);
 		free(setup_packet);
@@ -133,7 +133,7 @@ static void ipc_control_read(usbvirt_device_t *dev,
  * @param icall The call with the request.
  */
 static void ipc_control_write(usbvirt_device_t *dev,
-    ipc_callid_t iid, ipc_call_t *icall)
+    cap_call_handle_t iid, ipc_call_t *icall)
 {
 	size_t data_buffer_len = IPC_GET_ARG1(*icall);
 	errno_t rc;
@@ -178,14 +178,14 @@ static void ipc_control_write(usbvirt_device_t *dev,
  */
 static void ipc_data_in(usbvirt_device_t *dev,
     usb_transfer_type_t transfer_type,
-    ipc_callid_t iid, ipc_call_t *icall)
+    cap_call_handle_t iid, ipc_call_t *icall)
 {
 	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
 
 	errno_t rc;
 
 	size_t data_len = 0;
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	if (!async_data_read_receive(&data_callid, &data_len)) {
 		async_answer_0(iid, EPARTY);
 		return;
@@ -222,7 +222,7 @@ static void ipc_data_in(usbvirt_device_t *dev,
  */
 static void ipc_data_out(usbvirt_device_t *dev,
     usb_transfer_type_t transfer_type,
-    ipc_callid_t iid, ipc_call_t *icall)
+    cap_call_handle_t iid, ipc_call_t *icall)
 {
 	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
 
@@ -252,7 +252,7 @@ static void ipc_data_out(usbvirt_device_t *dev,
  * @return Whether the call was handled.
  */
 bool usbvirt_ipc_handle_call(usbvirt_device_t *dev,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_USBVIRT_GET_NAME:

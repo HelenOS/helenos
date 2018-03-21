@@ -93,7 +93,7 @@ leave:
 	return rc;
 }
 
-void logger_connection_handler_writer(ipc_callid_t callid)
+void logger_connection_handler_writer(cap_call_handle_t callid)
 {
 	logger_log_t *log;
 	errno_t rc;
@@ -108,7 +108,7 @@ void logger_connection_handler_writer(ipc_callid_t callid)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;

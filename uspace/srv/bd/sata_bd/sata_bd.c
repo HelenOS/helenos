@@ -166,7 +166,7 @@ static errno_t get_sata_disks(void)
 }
 
 /** Block device connection handler. */
-static void sata_bd_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void sata_bd_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	service_id_t dsid;
 	int disk_id, i;

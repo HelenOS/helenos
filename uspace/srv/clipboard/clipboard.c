@@ -46,7 +46,7 @@ static clipboard_tag_t clip_tag = CLIPBOARD_TAG_NONE;
 static FIBRIL_MUTEX_INITIALIZE(clip_mtx);
 static service_id_t svc_id;
 
-static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
+static void clip_put_data(cap_call_handle_t rid, ipc_call_t *request)
 {
 	char *data;
 	errno_t rc;
@@ -90,11 +90,11 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 	}
 }
 
-static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
+static void clip_get_data(cap_call_handle_t rid, ipc_call_t *request)
 {
 	fibril_mutex_lock(&clip_mtx);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 
 	/* Check for clipboard data tag compatibility */
@@ -140,7 +140,7 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 	fibril_mutex_unlock(&clip_mtx);
 }
 
-static void clip_content(ipc_callid_t rid, ipc_call_t *request)
+static void clip_content(cap_call_handle_t rid, ipc_call_t *request)
 {
 	fibril_mutex_lock(&clip_mtx);
 
@@ -151,14 +151,14 @@ static void clip_content(ipc_callid_t rid, ipc_call_t *request)
 	async_answer_2(rid, EOK, (sysarg_t) size, (sysarg_t) tag);
 }
 
-static void clip_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void clip_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
 	async_answer_0(iid, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;

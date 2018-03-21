@@ -383,7 +383,7 @@ void hound_service_set_server_iface(const hound_server_iface_t *iface)
  * @param icall pointer to initial call structure.
  * @param arg (unused)
  */
-void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void hound_connection_handler(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	hound_context_id_t id;
 	errno_t ret;
@@ -401,7 +401,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (1) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_HOUND_CONTEXT_REGISTER:
 			/* check interface functions */
@@ -485,7 +485,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 				sizes[i] = str_size(list[i]);
 
 			/* Send sizes table */
-			ipc_callid_t id;
+			cap_call_handle_t id;
 			if (async_data_read_receive(&id, NULL)) {
 				ret = async_data_read_finalize(id, sizes,
 				    count * sizeof(size_t));
@@ -495,7 +495,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 			/* Proceed to send names */
 			for (unsigned i = 0; i < count; ++i) {
 				size_t size = str_size(list[i]);
-				ipc_callid_t id;
+				cap_call_handle_t id;
 				if (ret == EOK &&
 				    async_data_read_receive(&id, NULL)) {
 					ret = async_data_read_finalize(id,
@@ -623,7 +623,7 @@ void hound_connection_handler(ipc_callid_t iid, ipc_call_t *icall, void *arg)
  */
 static void hound_server_read_data(void *stream)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	size_t size = 0;
 	errno_t ret_answer = EOK;
@@ -670,7 +670,7 @@ static void hound_server_read_data(void *stream)
 static void hound_server_write_data(void *stream)
 {
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	size_t size = 0;
 	errno_t ret_answer = EOK;

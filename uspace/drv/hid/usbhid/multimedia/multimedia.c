@@ -84,7 +84,7 @@ typedef struct usb_multimedia_t {
  * @param icall Call data.
  */
 static void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall)
+    cap_call_handle_t icallid, ipc_call_t *icall)
 {
 	usb_log_debug(NAME " default_connection_handler()");
 

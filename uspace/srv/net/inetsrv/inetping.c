@@ -135,7 +135,7 @@ errno_t inetping_recv(uint16_t ident, inetping_sdu_t *sdu)
 	return retval;
 }
 
-static void inetping_send_srv(inetping_client_t *client, ipc_callid_t iid,
+static void inetping_send_srv(inetping_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_send_srv()");
@@ -145,7 +145,7 @@ static void inetping_send_srv(inetping_client_t *client, ipc_callid_t iid,
 
 	sdu.seq_no = IPC_GET_ARG1(*icall);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -199,11 +199,11 @@ static void inetping_send_srv(inetping_client_t *client, ipc_callid_t iid,
 }
 
 static void inetping_get_srcaddr_srv(inetping_client_t *client,
-    ipc_callid_t iid, ipc_call_t *icall)
+    cap_call_handle_t iid, ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_get_srcaddr_srv()");
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 
 	inet_addr_t local;
@@ -280,7 +280,7 @@ static void inetping_client_fini(inetping_client_t *client)
 	fibril_mutex_unlock(&client_list_lock);
 }
 
-void inetping_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void inetping_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetping_conn()");
 
@@ -294,7 +294,7 @@ void inetping_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {

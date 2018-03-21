@@ -57,7 +57,7 @@ errno_t hcd_ddf_setup_match_ids(device_t *, usb_standard_device_descriptor_t *);
 errno_t hcd_ddf_enable_interrupt(hc_device_t *hcd, int);
 errno_t hcd_ddf_get_registers(hc_device_t *hcd, hw_res_list_parsed_t *hw_res);
 
-void hcd_ddf_gen_irq_handler(ipc_callid_t iid, ipc_call_t *call, ddf_dev_t *dev);
+void hcd_ddf_gen_irq_handler(cap_call_handle_t iid, ipc_call_t *call, ddf_dev_t *dev);
 
 #endif
 

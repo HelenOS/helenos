@@ -40,17 +40,17 @@
 #include "ops/hw_res.h"
 #include "ddf/driver.h"
 
-static void remote_hw_res_get_resource_list(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_hw_res_get_resource_list(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_hw_res_enable_interrupt(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_hw_res_enable_interrupt(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_hw_res_disable_interrupt(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_hw_res_disable_interrupt(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_hw_res_clear_interrupt(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_hw_res_clear_interrupt(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_hw_res_dma_channel_setup(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_hw_res_dma_channel_setup(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_hw_res_dma_channel_remain(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_hw_res_dma_channel_remain(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
 
 static const remote_iface_func_ptr_t remote_hw_res_iface_ops [] = {
@@ -68,7 +68,7 @@ const remote_iface_t remote_hw_res_iface = {
 };
 
 static void remote_hw_res_enable_interrupt(ddf_fun_t *fun, void *ops,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
 
@@ -83,7 +83,7 @@ static void remote_hw_res_enable_interrupt(ddf_fun_t *fun, void *ops,
 }
 
 static void remote_hw_res_disable_interrupt(ddf_fun_t *fun, void *ops,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
 
@@ -98,7 +98,7 @@ static void remote_hw_res_disable_interrupt(ddf_fun_t *fun, void *ops,
 }
 
 static void remote_hw_res_clear_interrupt(ddf_fun_t *fun, void *ops,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
 
@@ -113,7 +113,7 @@ static void remote_hw_res_clear_interrupt(ddf_fun_t *fun, void *ops,
 }
 
 static void remote_hw_res_get_resource_list(ddf_fun_t *fun, void *ops,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
 
@@ -139,7 +139,7 @@ static void remote_hw_res_get_resource_list(ddf_fun_t *fun, void *ops,
 }
 
 static void remote_hw_res_dma_channel_setup(ddf_fun_t *fun, void *ops,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = ops;
 
@@ -158,7 +158,7 @@ static void remote_hw_res_dma_channel_setup(ddf_fun_t *fun, void *ops,
 }
 
 static void remote_hw_res_dma_channel_remain(ddf_fun_t *fun, void *ops,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = ops;
 

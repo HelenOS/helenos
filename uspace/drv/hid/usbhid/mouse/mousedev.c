@@ -54,7 +54,7 @@
 
 #define NAME "mouse"
 
-static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static void default_connection_handler(ddf_fun_t *, cap_call_handle_t, ipc_call_t *);
 
 static ddf_dev_ops_t ops = { .default_handler = default_connection_handler };
 
@@ -113,7 +113,7 @@ static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
  * @param icall Call data.
  */
 static void default_connection_handler(ddf_fun_t *fun,
-    ipc_callid_t icallid, ipc_call_t *icall)
+    cap_call_handle_t icallid, ipc_call_t *icall)
 {
 	usb_mouse_t *mouse_dev = ddf_fun_data_get(fun);
 

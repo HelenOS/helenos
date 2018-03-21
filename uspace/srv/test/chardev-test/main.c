@@ -83,7 +83,7 @@ static chardev_ops_t chardev_test_partialx_ops = {
 	.read = partialx_read
 };
 
-static void chardev_test_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void chardev_test_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	chardev_srvs_t *svc;
 	sysarg_t svcid;

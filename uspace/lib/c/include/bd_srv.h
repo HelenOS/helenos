@@ -69,7 +69,7 @@ struct bd_ops {
 
 extern void bd_srvs_init(bd_srvs_t *);
 
-extern errno_t bd_conn(ipc_callid_t, ipc_call_t *, bd_srvs_t *);
+extern errno_t bd_conn(cap_call_handle_t, ipc_call_t *, bd_srvs_t *);
 
 #endif
 

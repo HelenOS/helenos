@@ -53,14 +53,14 @@ static usbvirt_device_t *DEV = NULL;
  * @param icall Initial incoming call
  * @param arg   Local argument
  */
-static void callback_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void callback_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	assert(DEV != NULL);
 
 	async_answer_0(iid, EOK);
 
 	while (true) {
-		ipc_callid_t callid;
+		cap_call_handle_t callid;
 		ipc_call_t call;
 
 		callid = async_get_call(&call);

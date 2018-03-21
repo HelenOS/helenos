@@ -97,8 +97,8 @@ log_level_t get_default_logging_level(void);
 errno_t set_default_logging_level(log_level_t);
 
 
-void logger_connection_handler_control(ipc_callid_t);
-void logger_connection_handler_writer(ipc_callid_t);
+void logger_connection_handler_control(cap_call_handle_t);
+void logger_connection_handler_writer(cap_call_handle_t);
 
 void parse_initial_settings(void);
 void parse_level_settings(char *);

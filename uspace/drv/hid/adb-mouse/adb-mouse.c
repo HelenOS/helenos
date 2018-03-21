@@ -40,7 +40,7 @@
 
 #include "adb-mouse.h"
 
-static void adb_mouse_conn(ipc_callid_t, ipc_call_t *, void *);
+static void adb_mouse_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 static void adb_mouse_event_button(adb_mouse_t *mouse, int bnum, int bpress)
 {
@@ -87,14 +87,14 @@ static void adb_mouse_data(adb_mouse_t *mouse, sysarg_t data)
 		adb_mouse_event_move(mouse, dx, dy, 0);
 }
 
-static void adb_mouse_events(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void adb_mouse_events(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	adb_mouse_t *mouse = (adb_mouse_t *) arg;
 
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		errno_t retval = EOK;
 
@@ -199,9 +199,9 @@ errno_t adb_mouse_gone(adb_mouse_t *con)
 }
 
 /** Handle client connection */
-static void adb_mouse_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void adb_mouse_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	sysarg_t method;
 	adb_mouse_t *mouse;

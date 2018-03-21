@@ -63,7 +63,7 @@
 static errno_t init_running_drv(void *drv);
 
 /** Register running driver. */
-static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
+static driver_t *devman_driver_register(cap_call_handle_t callid, ipc_call_t *call)
 {
 	driver_t *driver = NULL;
 	char *drv_name = NULL;
@@ -165,7 +165,7 @@ static driver_t *devman_driver_register(ipc_callid_t callid, ipc_call_t *call)
 static errno_t devman_receive_match_id(match_id_list_t *match_ids)
 {
 	match_id_t *match_id = create_match_id();
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	errno_t rc = 0;
 
@@ -229,7 +229,7 @@ static errno_t devman_receive_match_ids(sysarg_t match_count,
  *
  * Child devices are registered by their parent's device driver.
  */
-static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
+static void devman_add_function(cap_call_handle_t callid, ipc_call_t *call)
 {
 	fun_type_t ftype = (fun_type_t) IPC_GET_ARG1(*call);
 	devman_handle_t dev_handle = IPC_GET_ARG2(*call);
@@ -327,7 +327,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, EOK, fun->handle);
 }
 
-static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
+static void devman_add_function_to_cat(cap_call_handle_t callid, ipc_call_t *call)
 {
 	devman_handle_t handle = IPC_GET_ARG1(*call);
 	category_id_t cat_id;
@@ -376,7 +376,7 @@ static void devman_add_function_to_cat(ipc_callid_t callid, ipc_call_t *call)
 /** Online function by driver request.
  *
  */
-static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
+static void devman_drv_fun_online(cap_call_handle_t iid, ipc_call_t *icall,
     driver_t *drv)
 {
 	fun_node_t *fun;
@@ -420,7 +420,7 @@ static void devman_drv_fun_online(ipc_callid_t iid, ipc_call_t *icall,
 /** Offline function by driver request.
  *
  */
-static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
+static void devman_drv_fun_offline(cap_call_handle_t iid, ipc_call_t *icall,
     driver_t *drv)
 {
 	fun_node_t *fun;
@@ -457,7 +457,7 @@ static void devman_drv_fun_offline(ipc_callid_t iid, ipc_call_t *icall,
 }
 
 /** Remove function. */
-static void devman_remove_function(ipc_callid_t callid, ipc_call_t *call)
+static void devman_remove_function(cap_call_handle_t callid, ipc_call_t *call)
 {
 	devman_handle_t fun_handle = IPC_GET_ARG1(*call);
 	dev_tree_t *tree = &device_tree;
@@ -585,7 +585,7 @@ static errno_t init_running_drv(void *drv)
 }
 
 /** Function for handling connections from a driver to the device manager. */
-void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void devman_connection_driver(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	client_t *client;
 	driver_t *driver = NULL;
@@ -601,7 +601,7 @@ void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;

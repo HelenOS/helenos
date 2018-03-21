@@ -48,10 +48,10 @@ struct ddf_fun;
  * First two parameters: device and interface structure registered by the
  * devices driver.
  */
-typedef void remote_iface_func_t(struct ddf_fun *, void *, ipc_callid_t,
+typedef void remote_iface_func_t(struct ddf_fun *, void *, cap_call_handle_t,
     ipc_call_t *);
 typedef remote_iface_func_t *remote_iface_func_ptr_t;
-typedef void remote_handler_t(struct ddf_fun *, ipc_callid_t, ipc_call_t *);
+typedef void remote_handler_t(struct ddf_fun *, cap_call_handle_t, ipc_call_t *);
 
 typedef struct {
 	const size_t method_count;

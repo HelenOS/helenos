@@ -506,7 +506,7 @@ static errno_t cons_get_event(con_srv_t *srv, cons_event_t *event)
 	return EOK;
 }
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	console_t *cons = NULL;
 

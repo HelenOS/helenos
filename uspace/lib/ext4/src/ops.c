@@ -57,9 +57,9 @@
 
 /* Forward declarations of auxiliary functions */
 
-static errno_t ext4_read_directory(ipc_callid_t, aoff64_t, size_t,
+static errno_t ext4_read_directory(cap_call_handle_t, aoff64_t, size_t,
     ext4_instance_t *, ext4_inode_ref_t *, size_t *);
-static errno_t ext4_read_file(ipc_callid_t, aoff64_t, size_t, ext4_instance_t *,
+static errno_t ext4_read_file(cap_call_handle_t, aoff64_t, size_t, ext4_instance_t *,
     ext4_inode_ref_t *, size_t *);
 static bool ext4_is_dots(const uint8_t *, size_t);
 static errno_t ext4_instance_get(service_id_t, ext4_instance_t **);
@@ -1020,7 +1020,7 @@ static errno_t ext4_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 	/*
 	 * Receive the read request.
 	 */
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);
@@ -1093,7 +1093,7 @@ bool ext4_is_dots(const uint8_t *name, size_t name_size)
  * @return Error code
  *
  */
-errno_t ext4_read_directory(ipc_callid_t callid, aoff64_t pos, size_t size,
+errno_t ext4_read_directory(cap_call_handle_t callid, aoff64_t pos, size_t size,
     ext4_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
 	ext4_directory_iterator_t it;
@@ -1184,7 +1184,7 @@ skip:
  * @return Error code
  *
  */
-errno_t ext4_read_file(ipc_callid_t callid, aoff64_t pos, size_t size,
+errno_t ext4_read_file(cap_call_handle_t callid, aoff64_t pos, size_t size,
     ext4_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
 	ext4_superblock_t *sb = inst->filesystem->superblock;
@@ -1282,7 +1282,7 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	if (rc != EOK)
 		return rc;
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 	if (!async_data_write_receive(&callid, &len)) {
 		rc = EINVAL;

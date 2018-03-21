@@ -41,7 +41,7 @@ extern errno_t service_init(void);
 extern void process_pending_conn(void);
 
 extern errno_t register_service(service_t, sysarg_t, ipc_call_t *);
-extern void connect_to_service(service_t, iface_t, ipc_call_t *, ipc_callid_t);
+extern void connect_to_service(service_t, iface_t, ipc_call_t *, cap_call_handle_t);
 
 #endif
 

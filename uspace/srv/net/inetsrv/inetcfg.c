@@ -252,14 +252,14 @@ static errno_t inetcfg_sroute_get_id(char *name, sysarg_t *sroute_id)
 	return EOK;
 }
 
-static void inetcfg_addr_create_static_srv(ipc_callid_t iid,
+static void inetcfg_addr_create_static_srv(cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_create_static_srv()");
 
 	sysarg_t link_id = IPC_GET_ARG1(*icall);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);
@@ -295,7 +295,7 @@ static void inetcfg_addr_create_static_srv(ipc_callid_t iid,
 	async_answer_1(iid, rc, addr_id);
 }
 
-static void inetcfg_addr_delete_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_addr_delete_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
 	sysarg_t addr_id;
 	errno_t rc;
@@ -308,7 +308,7 @@ static void inetcfg_addr_delete_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, rc);
 }
 
-static void inetcfg_addr_get_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void inetcfg_addr_get_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_addr_get_srv()");
 
@@ -326,7 +326,7 @@ static void inetcfg_addr_get_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -366,7 +366,7 @@ static void inetcfg_addr_get_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, rc, ainfo.ilink);
 }
 
-static void inetcfg_addr_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_addr_get_id_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
 	char *name;
 	sysarg_t link_id;
@@ -390,9 +390,9 @@ static void inetcfg_addr_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, rc, addr_id);
 }
 
-static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_get_addr_list_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
-	ipc_callid_t rcallid;
+	cap_call_handle_t rcallid;
 	size_t count;
 	size_t max_size;
 	size_t act_size;
@@ -424,9 +424,9 @@ static void inetcfg_get_addr_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, retval, act_size);
 }
 
-static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_get_link_list_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
-	ipc_callid_t rcallid;
+	cap_call_handle_t rcallid;
 	size_t count;
 	size_t max_size;
 	size_t act_size;
@@ -458,9 +458,9 @@ static void inetcfg_get_link_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, retval, act_size);
 }
 
-static void inetcfg_get_sroute_list_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_get_sroute_list_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
-	ipc_callid_t rcallid;
+	cap_call_handle_t rcallid;
 	size_t count;
 	size_t max_size;
 	size_t act_size;
@@ -492,7 +492,7 @@ static void inetcfg_get_sroute_list_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, retval, act_size);
 }
 
-static void inetcfg_link_add_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_link_add_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
 	sysarg_t link_id;
 	errno_t rc;
@@ -505,10 +505,10 @@ static void inetcfg_link_add_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, rc);
 }
 
-static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_link_get_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
-	ipc_callid_t name_callid;
-	ipc_callid_t laddr_callid;
+	cap_call_handle_t name_callid;
+	cap_call_handle_t laddr_callid;
 	size_t name_max_size;
 	size_t laddr_max_size;
 
@@ -558,7 +558,7 @@ static void inetcfg_link_get_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, retval, linfo.def_mtu);
 }
 
-static void inetcfg_link_remove_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_link_remove_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
 	sysarg_t link_id;
 	errno_t rc;
@@ -571,12 +571,12 @@ static void inetcfg_link_remove_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, rc);
 }
 
-static void inetcfg_sroute_create_srv(ipc_callid_t iid,
+static void inetcfg_sroute_create_srv(cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_create_srv()");
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);
@@ -632,7 +632,7 @@ static void inetcfg_sroute_create_srv(ipc_callid_t iid,
 	async_answer_1(iid, rc, sroute_id);
 }
 
-static void inetcfg_sroute_delete_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_sroute_delete_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
 	sysarg_t sroute_id;
 	errno_t rc;
@@ -645,7 +645,7 @@ static void inetcfg_sroute_delete_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_0(callid, rc);
 }
 
-static void inetcfg_sroute_get_srv(ipc_callid_t iid, ipc_call_t *icall)
+static void inetcfg_sroute_get_srv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inetcfg_sroute_get_srv()");
 
@@ -663,7 +663,7 @@ static void inetcfg_sroute_get_srv(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -716,7 +716,7 @@ static void inetcfg_sroute_get_srv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void inetcfg_sroute_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
+static void inetcfg_sroute_get_id_srv(cap_call_handle_t callid, ipc_call_t *call)
 {
 	char *name;
 	sysarg_t sroute_id;
@@ -737,7 +737,7 @@ static void inetcfg_sroute_get_id_srv(ipc_callid_t callid, ipc_call_t *call)
 	async_answer_1(callid, rc, sroute_id);
 }
 
-void inet_cfg_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void inet_cfg_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_cfg_conn()");
 
@@ -746,7 +746,7 @@ void inet_cfg_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "method %d", (int)method);

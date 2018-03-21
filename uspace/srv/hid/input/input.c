@@ -319,7 +319,7 @@ static void client_arbitration(void)
 }
 
 /** New client connection */
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void client_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	client_t *client = (client_t *) async_get_client_data();
 	if (client == NULL) {
@@ -331,7 +331,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			if (client->sess != NULL) {

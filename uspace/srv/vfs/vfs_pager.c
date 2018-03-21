@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <as.h>
 
-void vfs_page_in(ipc_callid_t rid, ipc_call_t *request)
+void vfs_page_in(cap_call_handle_t rid, ipc_call_t *request)
 {
 	aoff64_t offset = IPC_GET_ARG1(*request);
 	size_t page_size = IPC_GET_ARG2(*request);

@@ -48,10 +48,10 @@
 #include "clonable.h"
 #include "task.h"
 
-static void ns_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void ns_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	ipc_call_t call;
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	iface_t iface;
 	service_t service;
 

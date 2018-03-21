@@ -331,13 +331,13 @@ extern errno_t graph_notify_disconnect(async_sess_t *, sysarg_t);
 /*----------------------------------------------------------------------------*/
 
 /** Shall be registered to libdrv by physical device driver. */
-extern void graph_visualizer_connection(visualizer_t *, ipc_callid_t, ipc_call_t *, void *);
+extern void graph_visualizer_connection(visualizer_t *, cap_call_handle_t, ipc_call_t *, void *);
 
 /** Shall be registered to libdrv by physical device driver. */
-extern void graph_renderer_connection(renderer_t *, ipc_callid_t, ipc_call_t *, void *);
+extern void graph_renderer_connection(renderer_t *, cap_call_handle_t, ipc_call_t *, void *);
 
 /** Shall be registered to location service by emulated device driver. */
-extern void graph_client_connection(ipc_callid_t, ipc_call_t *, void *);
+extern void graph_client_connection(cap_call_handle_t, ipc_call_t *, void *);
 
 #endif
 

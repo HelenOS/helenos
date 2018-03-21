@@ -65,13 +65,13 @@ static errno_t console_ev_encode(cons_event_t *event, ipc_call_t *call)
 	return EOK;
 }
 
-static void con_read_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_read_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	void *buf;
 	size_t size;
 	errno_t rc;
-	ipc_callid_t rcallid;
+	cap_call_handle_t rcallid;
 
 	if (!async_data_read_receive(&rcallid, &size)) {
 		async_answer_0(callid, EINVAL);
@@ -107,7 +107,7 @@ static void con_read_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_1(callid, EOK, nread);
 }
 
-static void con_write_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_write_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	void *data;
@@ -132,7 +132,7 @@ static void con_write_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_1(callid, rc, nwritten);
 }
 
-static void con_sync_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_sync_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	if (srv->srvs->ops->sync == NULL) {
@@ -144,7 +144,7 @@ static void con_sync_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void con_clear_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_clear_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	if (srv->srvs->ops->clear == NULL) {
@@ -156,7 +156,7 @@ static void con_clear_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void con_set_pos_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_set_pos_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	sysarg_t col;
@@ -174,7 +174,7 @@ static void con_set_pos_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void con_get_pos_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_get_pos_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	errno_t rc;
@@ -190,7 +190,7 @@ static void con_get_pos_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_2(callid, rc, col, row);
 }
 
-static void con_get_size_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_get_size_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	errno_t rc;
@@ -206,7 +206,7 @@ static void con_get_size_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_2(callid, rc, cols, rows);
 }
 
-static void con_get_color_cap_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_get_color_cap_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	errno_t rc;
@@ -221,7 +221,7 @@ static void con_get_color_cap_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_1(callid, rc, (sysarg_t)ccap);
 }
 
-static void con_set_style_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_set_style_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	console_style_t style;
@@ -237,7 +237,7 @@ static void con_set_style_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void con_set_color_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_set_color_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	console_color_t bgcolor;
@@ -257,7 +257,7 @@ static void con_set_color_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void con_set_rgb_color_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_set_rgb_color_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	pixel_t bgcolor;
@@ -275,7 +275,7 @@ static void con_set_rgb_color_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void con_set_cursor_visibility_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_set_cursor_visibility_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	bool show;
@@ -291,7 +291,7 @@ static void con_set_cursor_visibility_srv(con_srv_t *srv, ipc_callid_t callid,
 	async_answer_0(callid, EOK);
 }
 
-static void con_get_event_srv(con_srv_t *srv, ipc_callid_t callid,
+static void con_get_event_srv(con_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	errno_t rc;
@@ -339,7 +339,7 @@ void con_srvs_init(con_srvs_t *srvs)
 	srvs->aborted = false;
 }
 
-errno_t con_conn(ipc_callid_t iid, ipc_call_t *icall, con_srvs_t *srvs)
+errno_t con_conn(cap_call_handle_t iid, ipc_call_t *icall, con_srvs_t *srvs)
 {
 	con_srv_t *srv;
 	errno_t rc;
@@ -365,7 +365,7 @@ errno_t con_conn(ipc_callid_t iid, ipc_call_t *icall, con_srvs_t *srvs)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = 0;
+		cap_call_handle_t callid = 0;
 
 		while (callid == 0) {
 			/* XXX Need to be able to abort immediately */

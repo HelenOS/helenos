@@ -41,9 +41,9 @@
 #include <ops/clock_dev.h>
 #include <ddf/driver.h>
 
-static void remote_clock_time_get(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_clock_time_get(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
-static void remote_clock_time_set(ddf_fun_t *, void *, ipc_callid_t,
+static void remote_clock_time_set(ddf_fun_t *, void *, cap_call_handle_t,
     ipc_call_t *);
 
 /** Remote clock interface operations */
@@ -68,11 +68,11 @@ const remote_iface_t remote_clock_dev_iface = {
  * @param ops   The local ops structure
  */
 static void
-remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
+remote_clock_time_get(ddf_fun_t *fun, void *ops, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
-	ipc_callid_t cid;
+	cap_call_handle_t cid;
 	struct tm t;
 	errno_t rc;
 	size_t len;
@@ -110,12 +110,12 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
  * @param ops   The local ops structure
  */
 static void remote_clock_time_set(ddf_fun_t *fun, void *ops,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
 	errno_t      rc;
 	struct tm    t;
-	ipc_callid_t cid;
+	cap_call_handle_t cid;
 	size_t       len;
 
 	if (!async_data_write_receive(&cid, &len)) {

@@ -40,7 +40,7 @@
 #include <ipc/tcp.h>
 #include <stdlib.h>
 
-static void tcp_cb_conn(ipc_callid_t, ipc_call_t *, void *);
+static void tcp_cb_conn(cap_call_handle_t, ipc_call_t *, void *);
 static errno_t tcp_conn_fibril(void *);
 
 /** Incoming TCP connection info
@@ -636,7 +636,7 @@ again:
  * @param iid Call ID
  * @param icall Call data
  */
-static void tcp_ev_connected(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
+static void tcp_ev_connected(tcp_t *tcp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -664,7 +664,7 @@ static void tcp_ev_connected(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
  * @param iid Call ID
  * @param icall Call data
  */
-static void tcp_ev_conn_failed(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
+static void tcp_ev_conn_failed(tcp_t *tcp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -692,7 +692,7 @@ static void tcp_ev_conn_failed(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
  * @param iid Call ID
  * @param icall Call data
  */
-static void tcp_ev_conn_reset(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
+static void tcp_ev_conn_reset(tcp_t *tcp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -720,7 +720,7 @@ static void tcp_ev_conn_reset(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
  * @param iid Call ID
  * @param icall Call data
  */
-static void tcp_ev_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
+static void tcp_ev_data(tcp_t *tcp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -749,7 +749,7 @@ static void tcp_ev_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
  * @param iid Call ID
  * @param icall Call data
  */
-static void tcp_ev_urg_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
+static void tcp_ev_urg_data(tcp_t *tcp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	async_answer_0(iid, ENOTSUP);
 }
@@ -760,7 +760,7 @@ static void tcp_ev_urg_data(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
  * @param iid Call ID
  * @param icall Call data
  */
-static void tcp_ev_new_conn(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
+static void tcp_ev_new_conn(tcp_t *tcp, cap_call_handle_t iid, ipc_call_t *icall)
 {
 	tcp_listener_t *lst;
 	tcp_conn_t *conn;
@@ -812,7 +812,7 @@ static void tcp_ev_new_conn(tcp_t *tcp, ipc_callid_t iid, ipc_call_t *icall)
  * @param icall Connect call data
  * @param arg Argument, TCP client
  */
-static void tcp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void tcp_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	tcp_t *tcp = (tcp_t *)arg;
 
@@ -820,7 +820,7 @@ static void tcp_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* Hangup*/

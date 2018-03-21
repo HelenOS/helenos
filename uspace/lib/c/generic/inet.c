@@ -35,7 +35,7 @@
 #include <loc.h>
 #include <stdlib.h>
 
-static void inet_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg);
+static void inet_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg);
 
 static async_sess_t *inet_sess = NULL;
 static inet_ev_ops_t *inet_ev_ops = NULL;
@@ -175,14 +175,14 @@ errno_t inet_get_srcaddr(inet_addr_t *remote, uint8_t tos, inet_addr_t *local)
 	return retval;
 }
 
-static void inet_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
+static void inet_ev_recv(cap_call_handle_t iid, ipc_call_t *icall)
 {
 	inet_dgram_t dgram;
 
 	dgram.tos = IPC_GET_ARG1(*icall);
 	dgram.iplink = IPC_GET_ARG2(*icall);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EINVAL);
@@ -233,11 +233,11 @@ static void inet_ev_recv(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_0(iid, rc);
 }
 
-static void inet_cb_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void inet_cb_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */

@@ -39,7 +39,7 @@
 extern errno_t task_init(void);
 extern void process_pending_wait(void);
 
-extern void wait_for_task(task_id_t, ipc_call_t *, ipc_callid_t);
+extern void wait_for_task(task_id_t, ipc_call_t *, cap_call_handle_t);
 
 extern errno_t ns_task_id_intro(ipc_call_t *);
 extern errno_t ns_task_disconnect(ipc_call_t *);

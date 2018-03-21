@@ -63,7 +63,7 @@ extern errno_t usbvirt_ipc_send_data_out(async_sess_t *, usb_endpoint_t,
     usb_transfer_type_t, void *, size_t);
 
 extern bool usbvirt_is_usbvirt_method(sysarg_t);
-extern bool usbvirt_ipc_handle_call(usbvirt_device_t *, ipc_callid_t,
+extern bool usbvirt_ipc_handle_call(usbvirt_device_t *, cap_call_handle_t,
     ipc_call_t *);
 
 #endif

@@ -40,7 +40,7 @@
 #include <types/inetping.h>
 #include "inetsrv.h"
 
-extern void inetping_conn(ipc_callid_t, ipc_call_t *, void *);
+extern void inetping_conn(cap_call_handle_t, ipc_call_t *, void *);
 extern errno_t inetping_recv(uint16_t, inetping_sdu_t *);
 
 #endif

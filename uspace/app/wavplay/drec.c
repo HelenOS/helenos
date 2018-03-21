@@ -90,7 +90,7 @@ static void record_initialize(record_t *rec, audio_pcm_sess_t *sess)
  * @param icall Poitner to IPC call structure.
  * @param arg Argument. Poitner to recording helper structure.
  */
-static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg)
+static void device_event_callback(cap_call_handle_t iid, ipc_call_t *icall, void* arg)
 {
 	async_answer_0(iid, EOK);
 	record_t *rec = arg;
@@ -98,7 +98,7 @@ static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg
 	bool record = true;
 	while (record) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_CAPTURE_TERMINATED:
 			printf("Recording terminated\n");

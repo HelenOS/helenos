@@ -126,9 +126,9 @@ errno_t usbdiag_test_out(async_exch_t *exch,
 }
 
 static void remote_usbdiag_test_in(ddf_fun_t *, void *,
-    ipc_callid_t, ipc_call_t *);
+    cap_call_handle_t, ipc_call_t *);
 static void remote_usbdiag_test_out(ddf_fun_t *, void *,
-    ipc_callid_t, ipc_call_t *);
+    cap_call_handle_t, ipc_call_t *);
 
 /** Remote USB diagnostic interface operations. */
 static const remote_iface_func_ptr_t remote_usbdiag_iface_ops [] = {
@@ -143,12 +143,12 @@ const remote_iface_t remote_usbdiag_iface = {
 };
 
 void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
 	size_t size;
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	if (!async_data_write_receive(&data_callid, &size)) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);
@@ -197,12 +197,12 @@ void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
 }
 
 void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
+    cap_call_handle_t callid, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
 	size_t size;
-	ipc_callid_t data_callid;
+	cap_call_handle_t data_callid;
 	if (!async_data_write_receive(&data_callid, &size)) {
 		async_answer_0(data_callid, EINVAL);
 		async_answer_0(callid, EINVAL);

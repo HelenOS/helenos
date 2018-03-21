@@ -123,13 +123,13 @@ errno_t pci_config_space_write_32(async_sess_t *sess, uint32_t address,
 	return rc;
 }
 
-static void remote_config_space_read_8(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_config_space_read_16(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_config_space_read_32(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_config_space_read_8(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_config_space_read_16(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_config_space_read_32(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 
-static void remote_config_space_write_8(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_config_space_write_16(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_config_space_write_32(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_config_space_write_8(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_config_space_write_16(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_config_space_write_32(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static const remote_iface_func_ptr_t remote_pci_iface_ops [] = {
@@ -149,7 +149,7 @@ const remote_iface_t remote_pci_iface = {
 	.methods = remote_pci_iface_ops
 };
 
-void remote_config_space_read_8(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_config_space_read_8(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	assert(iface);
 	pci_dev_iface_t *pci_iface = (pci_dev_iface_t *)iface;
@@ -167,7 +167,7 @@ void remote_config_space_read_8(ddf_fun_t *fun, void *iface, ipc_callid_t callid
 	}
 }
 
-void remote_config_space_read_16(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_config_space_read_16(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	assert(iface);
 	pci_dev_iface_t *pci_iface = (pci_dev_iface_t *)iface;
@@ -184,7 +184,7 @@ void remote_config_space_read_16(ddf_fun_t *fun, void *iface, ipc_callid_t calli
 		async_answer_1(callid, EOK, value);
 	}
 }
-void remote_config_space_read_32(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_config_space_read_32(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	assert(iface);
 	pci_dev_iface_t *pci_iface = (pci_dev_iface_t *)iface;
@@ -202,7 +202,7 @@ void remote_config_space_read_32(ddf_fun_t *fun, void *iface, ipc_callid_t calli
 	}
 }
 
-void remote_config_space_write_8(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_config_space_write_8(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	assert(iface);
 	pci_dev_iface_t *pci_iface = (pci_dev_iface_t *)iface;
@@ -220,7 +220,7 @@ void remote_config_space_write_8(ddf_fun_t *fun, void *iface, ipc_callid_t calli
 	}
 }
 
-void remote_config_space_write_16(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_config_space_write_16(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	assert(iface);
 	pci_dev_iface_t *pci_iface = (pci_dev_iface_t *)iface;
@@ -238,7 +238,7 @@ void remote_config_space_write_16(ddf_fun_t *fun, void *iface, ipc_callid_t call
 	}
 }
 
-void remote_config_space_write_32(ddf_fun_t *fun, void *iface, ipc_callid_t callid, ipc_call_t *call)
+void remote_config_space_write_32(ddf_fun_t *fun, void *iface, cap_call_handle_t callid, ipc_call_t *call)
 {
 	assert(iface);
 	pci_dev_iface_t *pci_iface = (pci_dev_iface_t *)iface;

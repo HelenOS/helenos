@@ -36,7 +36,7 @@
 #include <async.h>
 #include "devman.h"
 
-extern void devman_connection_driver(ipc_callid_t, ipc_call_t *, void *);
+extern void devman_connection_driver(cap_call_handle_t, ipc_call_t *, void *);
 
 #endif
 

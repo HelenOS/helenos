@@ -72,9 +72,9 @@
  * @param icall		Call data of the request that opened the connection.
  * @param arg		Local argument.
  */
-static void obio_connection(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void obio_connection(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	ipc_call_t call;
 	obio_t *obio;
 

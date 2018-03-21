@@ -42,14 +42,14 @@
 
 static chardev_srv_t *chardev_srv_create(chardev_srvs_t *);
 
-static void chardev_read_srv(chardev_srv_t *srv, ipc_callid_t callid,
+static void chardev_read_srv(chardev_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	void *buf;
 	size_t size;
 	size_t nread;
 	errno_t rc;
-	ipc_callid_t rcallid;
+	cap_call_handle_t rcallid;
 
 	if (!async_data_read_receive(&rcallid, &size)) {
 		async_answer_0(callid, EINVAL);
@@ -84,7 +84,7 @@ static void chardev_read_srv(chardev_srv_t *srv, ipc_callid_t callid,
 	async_answer_2(callid, EOK, (sysarg_t) rc, nread);
 }
 
-static void chardev_write_srv(chardev_srv_t *srv, ipc_callid_t callid,
+static void chardev_write_srv(chardev_srv_t *srv, cap_call_handle_t callid,
     ipc_call_t *call)
 {
 	void *data;
@@ -131,7 +131,7 @@ void chardev_srvs_init(chardev_srvs_t *srvs)
 	srvs->sarg = NULL;
 }
 
-errno_t chardev_conn(ipc_callid_t iid, ipc_call_t *icall, chardev_srvs_t *srvs)
+errno_t chardev_conn(cap_call_handle_t iid, ipc_call_t *icall, chardev_srvs_t *srvs)
 {
 	chardev_srv_t *srv;
 	errno_t rc;
@@ -151,7 +151,7 @@ errno_t chardev_conn(ipc_callid_t iid, ipc_call_t *icall, chardev_srvs_t *srvs)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {

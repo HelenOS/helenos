@@ -93,14 +93,14 @@ static void playback_initialize(playback_t *pb, audio_pcm_sess_t *sess)
  * @param icall Pointer to the call structure
  * @param arg Argument, pointer to the playback helper function
  */
-static void device_event_callback(ipc_callid_t iid, ipc_call_t *icall, void* arg)
+static void device_event_callback(cap_call_handle_t iid, ipc_call_t *icall, void* arg)
 {
 	async_answer_0(iid, EOK);
 	playback_t *pb = arg;
 	const size_t fragment_size = pb->buffer.size / DEFAULT_FRAGMENTS;
 	while (1) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_PLAYBACK_STARTED:
 		case PCM_EVENT_FRAMES_PLAYED:

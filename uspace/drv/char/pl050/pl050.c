@@ -53,7 +53,7 @@ enum {
 static errno_t pl050_dev_add(ddf_dev_t *);
 static errno_t pl050_fun_online(ddf_fun_t *);
 static errno_t pl050_fun_offline(ddf_fun_t *);
-static void pl050_char_conn(ipc_callid_t, ipc_call_t *, void *);
+static void pl050_char_conn(cap_call_handle_t, ipc_call_t *, void *);
 static errno_t pl050_read(chardev_srv_t *, void *, size_t, size_t *);
 static errno_t pl050_write(chardev_srv_t *, const void *, size_t, size_t *);
 
@@ -285,7 +285,7 @@ static errno_t pl050_write(chardev_srv_t *srv, const void *data, size_t size,
 	return EOK;
 }
 
-void pl050_char_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+void pl050_char_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	pl050_t *pl050 = pl050_from_fun((ddf_fun_t *)arg);
 

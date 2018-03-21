@@ -1336,7 +1336,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return ENOENT;
 	nodep = EXFAT_NODE(fn);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 	if (!async_data_read_receive(&callid, &len)) {
 		exfat_node_put(fn);
@@ -1480,7 +1480,7 @@ exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return ENOENT;
 	nodep = EXFAT_NODE(fn);
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t len;
 	if (!async_data_write_receive(&callid, &len)) {
 		(void) exfat_node_put(fn);

@@ -52,7 +52,7 @@
 
 #define NAME  "dnsres"
 
-static void dnsr_client_conn(ipc_callid_t, ipc_call_t *, void *);
+static void dnsr_client_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 static errno_t dnsr_init(void)
 {
@@ -85,7 +85,7 @@ static errno_t dnsr_init(void)
 	return EOK;
 }
 
-static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
+static void dnsr_name2host_srv(dnsr_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
@@ -107,7 +107,7 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 		return;
 	}
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -150,12 +150,12 @@ static void dnsr_name2host_srv(dnsr_client_t *client, ipc_callid_t iid,
 	dns_hostinfo_destroy(hinfo);
 }
 
-static void dnsr_get_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
+static void dnsr_get_srvaddr_srv(dnsr_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "inet_get_srvaddr_srv()");
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -178,12 +178,12 @@ static void dnsr_get_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
+static void dnsr_set_srvaddr_srv(dnsr_client_t *client, cap_call_handle_t iid,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "dnsr_set_srvaddr_srv()");
 
-	ipc_callid_t callid;
+	cap_call_handle_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
 		async_answer_0(callid, EREFUSED);
@@ -208,7 +208,7 @@ static void dnsr_set_srvaddr_srv(dnsr_client_t *client, ipc_callid_t iid,
 	async_answer_0(iid, rc);
 }
 
-static void dnsr_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
+static void dnsr_client_conn(cap_call_handle_t iid, ipc_call_t *icall, void *arg)
 {
 	dnsr_client_t client;
 
@@ -219,7 +219,7 @@ static void dnsr_client_conn(ipc_callid_t iid, ipc_call_t *icall, void *arg)
 
 	while (true) {
 		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
+		cap_call_handle_t callid = async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
