@@ -193,7 +193,7 @@ void ipcp_call_out(cap_phone_handle_t phandle, ipc_call_t *call,
 	args = call->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Call ID: %p, phone: %p, proto: %s, method: ",
+		printf("Call handle: %p, phone: %p, proto: %s, method: ",
 		    chandle, phandle, (proto ? proto->name : "n/a"));
 		ipc_m_print(proto, IPC_GET_IMETHOD(*call));
 		printf(" args: (%" PRIun ", %" PRIun ", %" PRIun ", "

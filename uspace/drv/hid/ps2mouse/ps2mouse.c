@@ -398,12 +398,12 @@ static errno_t probe_intellimouse(ps2_mouse_t *mouse, bool buttons)
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param fun Device function handling the call.
- * @param icall_handle Call id.
- * @param icall Call data.
+ * @param fun           Device function handling the call.
+ * @param icall_handle  Call handle.
+ * @param icall         Call data.
  */
-void default_connection_handler(ddf_fun_t *fun,
-    cap_call_handle_t icall_handle, ipc_call_t *icall)
+void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
+    ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	ps2_mouse_t *mouse = ddf_dev_data_get(ddf_fun_get_dev(fun));

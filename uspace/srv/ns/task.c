@@ -144,8 +144,8 @@ static hash_table_t phone_to_id;
 /** Pending task wait structure. */
 typedef struct {
 	link_t link;
-	task_id_t id;         /**< Task ID. */
-	cap_call_handle_t chandle;  /**< Call ID waiting for the connection */
+	task_id_t id;               ///< Task ID
+	cap_call_handle_t chandle;  ///< Call handle waiting for the connection
 } pending_wait_t;
 
 static list_t pending_wait;

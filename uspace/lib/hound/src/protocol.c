@@ -377,13 +377,14 @@ void hound_service_set_server_iface(const hound_server_iface_t *iface)
 	server_iface = iface;
 }
 
-/**
- * Server side implementation of the hound protocol. IPC connection handler.
- * @param iid initial call id
- * @param icall pointer to initial call structure.
- * @param arg (unused)
+/** Server side implementation of the hound protocol. IPC connection handler.
+ *
+ * @param icall_handle   Initial call handle
+ * @param icall          Pointer to initial call structure.
+ * @param arg            (unused)
  */
-void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall,
+    void *arg)
 {
 	hound_context_id_t id;
 	errno_t ret;

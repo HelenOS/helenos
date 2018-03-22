@@ -327,9 +327,9 @@ static errno_t polling(void *arg)
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param fun     Device function handling the call.
- * @param icall_handle Call id.
- * @param icall   Call data.
+ * @param fun           Device function handling the call.
+ * @param icall_handle  Call handle.
+ * @param icall         Call data.
  *
  */
 static void default_connection_handler(ddf_fun_t *fun,

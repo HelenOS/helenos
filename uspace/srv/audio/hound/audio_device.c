@@ -254,13 +254,14 @@ static errno_t device_source_connection_callback(audio_source_t *source, bool ne
 	return EOK;
 }
 
-/**
- * Audio device event handler.
- * @param iid initial call id.
- * @param icall initial call structure.
- * @param arg (unused)
+/** Audio device event handler.
+ *
+ * @param icall_handle  Initial call handle.
+ * @param icall         Initial call structure.
+ * @param arg           (unused)
  */
-static void device_event_callback(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void device_event_callback(cap_call_handle_t icall_handle,
+    ipc_call_t *icall, void *arg)
 {
 	struct timeval time1;
 	errno_t ret;

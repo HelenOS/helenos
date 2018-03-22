@@ -782,7 +782,8 @@ errno_t nic_poll_set_mode_impl(ddf_fun_t *fun,
  * @return ENOTSUP	If the function is not supported
  * @return EINVAL	If the NIC is not in state where it allows on demand polling
  */
-errno_t nic_poll_now_impl(ddf_fun_t *fun) {
+errno_t nic_poll_now_impl(ddf_fun_t *fun)
+{
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	if (nic_data->poll_mode != NIC_POLL_ON_DEMAND) {
@@ -803,9 +804,9 @@ errno_t nic_poll_now_impl(ddf_fun_t *fun) {
  * Default handler for unknown methods (outside of the NIC interface).
  * Logs a warning message and returns ENOTSUP to the caller.
  *
- * @param fun		The DDF function where the method should be called.
- * @param chandle	IPC call identifier
- * @param call		IPC call data
+ * @param fun      The DDF function where the method should be called.
+ * @param chandle  IPC call handle
+ * @param call     IPC call data
  */
 void nic_default_handler_impl(ddf_fun_t *fun, cap_call_handle_t chandle,
     ipc_call_t *call)

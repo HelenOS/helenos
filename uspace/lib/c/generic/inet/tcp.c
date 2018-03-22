@@ -632,11 +632,12 @@ again:
 
 /** Connection established event.
  *
- * @param tcp TCP client
- * @param iid Call ID
- * @param icall Call data
+ * @param tcp           TCP client
+ * @param icall_handle  Call handle
+ * @param icall         Call data
  */
-static void tcp_ev_connected(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void
+tcp_ev_connected(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -660,11 +661,13 @@ static void tcp_ev_connected(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_cal
 
 /** Connection failed event.
  *
- * @param tcp TCP client
- * @param iid Call ID
- * @param icall Call data
+ * @param tcp           TCP client
+ * @param icall_handle  Call handle
+ * @param icall         Call data
  */
-static void tcp_ev_conn_failed(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void
+tcp_ev_conn_failed(tcp_t *tcp, cap_call_handle_t icall_handle,
+    ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -688,9 +691,9 @@ static void tcp_ev_conn_failed(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_c
 
 /** Connection reset event.
  *
- * @param tcp TCP client
- * @param iid Call ID
- * @param icall Call data
+ * @param tcp           TCP client
+ * @param icall_handle  Call handle
+ * @param icall         Call data
  */
 static void tcp_ev_conn_reset(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
@@ -716,11 +719,12 @@ static void tcp_ev_conn_reset(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_ca
 
 /** Data available event.
  *
- * @param tcp TCP client
- * @param iid Call ID
- * @param icall Call data
+ * @param tcp           TCP client
+ * @param icall_handle  Call handle 
+ * @param icall         Call data
  */
-static void tcp_ev_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void
+tcp_ev_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -745,22 +749,24 @@ static void tcp_ev_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *
 
 /** Urgent data event.
  *
- * @param tcp TCP client
- * @param iid Call ID
- * @param icall Call data
+ * @param tcp           TCP client
+ * @param icall_handle  Call handle
+ * @param icall         Call data
  */
-static void tcp_ev_urg_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void
+tcp_ev_urg_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	async_answer_0(icall_handle, ENOTSUP);
 }
 
 /** New connection event.
  *
- * @param tcp TCP client
- * @param iid Call ID
- * @param icall Call data
+ * @param tcp           TCP client
+ * @param icall_handle  Call handle
+ * @param icall         Call data
  */
-static void tcp_ev_new_conn(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void
+tcp_ev_new_conn(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	tcp_listener_t *lst;
 	tcp_conn_t *conn;
@@ -808,11 +814,12 @@ static void tcp_ev_new_conn(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call
 
 /** Callback connection handler.
  *
- * @param iid Connect call ID
- * @param icall Connect call data
- * @param arg Argument, TCP client
+ * @param icall_handle  Connect call handle
+ * @param icall         Connect call data
+ * @param arg           Argument, TCP client
  */
-static void tcp_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void
+tcp_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 {
 	tcp_t *tcp = (tcp_t *)arg;
 

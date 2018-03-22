@@ -155,12 +155,13 @@ typedef enum usb_kbd_flags {
  * session to it for later use by the driver to notify about key events.
  * KBDEV_SET_IND sets LED keyboard indicators.
  *
- * @param fun Device function handling the call.
- * @param icall_handle Call id.
- * @param icall Call data.
+ * @param fun           Device function handling the call.
+ * @param icall_handle  Call handle.
+ * @param icall         Call data.
  */
-static void default_connection_handler(ddf_fun_t *fun,
-    cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void
+default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
+    ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	usb_kbd_t *kbd_dev = ddf_fun_data_get(fun);

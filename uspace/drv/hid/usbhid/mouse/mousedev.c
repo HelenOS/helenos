@@ -108,12 +108,13 @@ static const uint8_t USB_MOUSE_BOOT_REPORT_DESCRIPTOR[] = {
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param fun Device function handling the call.
- * @param icall_handle Call id.
- * @param icall Call data.
+ * @param fun           Device function handling the call.
+ * @param icall_handle  Call handle.
+ * @param icall         Call data.
  */
-static void default_connection_handler(ddf_fun_t *fun,
-    cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void
+default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
+    ipc_call_t *icall)
 {
 	usb_mouse_t *mouse_dev = ddf_fun_data_get(fun);
 

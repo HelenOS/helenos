@@ -159,10 +159,10 @@ errno_t register_service(service_t service, sysarg_t phone, ipc_call_t *call)
 
 /** Connect client to service.
  *
- * @param service Service to be connected to.
- * @param iface   Interface to be connected to.
- * @param call    Pointer to call structure.
- * @param chandle  Call ID of the request.
+ * @param service  Service to be connected to.
+ * @param iface    Interface to be connected to.
+ * @param call     Pointer to call structure.
+ * @param chandle  Call handle of the request.
  *
  * @return Zero on success or a value from @ref errno.h.
  *

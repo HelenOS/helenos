@@ -291,13 +291,14 @@ static errno_t polling(void *arg)
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param fun     Device function handling the call.
- * @param icall_handle Call id.
- * @param icall   Call data.
+ * @param fun           Device function handling the call.
+ * @param icall_handle  Call handle.
+ * @param icall         Call data.
  *
  */
-static void default_connection_handler(ddf_fun_t *fun,
-    cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void
+default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
+    ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	at_kbd_t *kbd = ddf_dev_data_get(ddf_fun_get_dev(fun));

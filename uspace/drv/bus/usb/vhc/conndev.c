@@ -88,9 +88,9 @@ static void receive_device_name(async_sess_t *sess)
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param fun Device handling the call.
- * @param icall_handle Call id.
- * @param icall Call data.
+ * @param fun           Device handling the call.
+ * @param icall_handle  Call handle.
+ * @param icall         Call data.
  */
 void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
     ipc_call_t *icall)

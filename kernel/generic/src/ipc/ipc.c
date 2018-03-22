@@ -966,12 +966,12 @@ void ipc_print_task(task_id_t taskid)
 	    atomic_get(&task->answerbox.active_calls));
 
 #ifdef __32_BITS__
-	printf("[call id ] [method] [arg1] [arg2] [arg3] [arg4] [arg5]"
+	printf("[call adr] [method] [arg1] [arg2] [arg3] [arg4] [arg5]"
 	    " [flags] [sender\n");
 #endif
 
 #ifdef __64_BITS__
-	printf("[call id         ] [method] [arg1] [arg2] [arg3] [arg4]"
+	printf("[call address    ] [method] [arg1] [arg2] [arg3] [arg4]"
 	    " [arg5] [flags] [sender\n");
 #endif
 

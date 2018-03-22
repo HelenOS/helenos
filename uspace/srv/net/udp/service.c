@@ -669,11 +669,12 @@ static void udp_rmsg_discard_srv(udp_client_t *client, cap_call_handle_t icall_h
 
 /** Handle UDP client connection.
  *
- * @param iid   Connect call ID
- * @param icall Connect call data
- * @param arg   Connection argument
+ * @param icall_handle  Connect call handle 
+ * @param icall         Connect call data
+ * @param arg           Connection argument
  */
-static void udp_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void udp_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall,
+    void *arg)
 {
 	udp_client_t client;
 	unsigned long n;
