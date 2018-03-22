@@ -330,11 +330,12 @@ static errno_t udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
  *
  * Handle client request to create callback session.
  *
- * @param client   UDP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        UDP client
+ * @param icall_handle  Async request call handle 
+ * @param icall         Async request data
  */
-static void udp_callback_create_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static void
+udp_callback_create_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "udp_callback_create_srv()");
@@ -353,11 +354,12 @@ static void udp_callback_create_srv(udp_client_t *client, cap_call_handle_t ical
  *
  * Handle client request to create association.
  *
- * @param client   UDP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        UDP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void udp_assoc_create_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static
+void udp_assoc_create_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	cap_call_handle_t chandle;
@@ -400,11 +402,12 @@ static void udp_assoc_create_srv(udp_client_t *client, cap_call_handle_t icall_h
  *
  * Handle client request to destroy association.
  *
- * @param client   UDP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        UDP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void udp_assoc_destroy_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static void
+udp_assoc_destroy_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	sysarg_t assoc_id;
@@ -421,11 +424,12 @@ static void udp_assoc_destroy_srv(udp_client_t *client, cap_call_handle_t icall_
  *
  * Handle client request to set no local address flag.
  *
- * @param client   UDP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        UDP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void udp_assoc_set_nolocal_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static void
+udp_assoc_set_nolocal_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	sysarg_t assoc_id;
@@ -442,11 +446,12 @@ static void udp_assoc_set_nolocal_srv(udp_client_t *client, cap_call_handle_t ic
  *
  * Handle client request to send message.
  *
- * @param client   UDP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        UDP client
+ * @param icall_handle  Async request call handle 
+ * @param icall         Async request data
  */
-static void udp_assoc_send_msg_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static void
+udp_assoc_send_msg_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	cap_call_handle_t chandle;
@@ -540,11 +545,12 @@ static udp_crcv_queue_entry_t *udp_rmsg_get_next(udp_client_t *client)
  *
  * Handle client request to get information on received message.
  *
- * @param client   UDP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        UDP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void udp_rmsg_info_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static void
+udp_rmsg_info_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	cap_call_handle_t chandle;
@@ -587,11 +593,12 @@ static void udp_rmsg_info_srv(udp_client_t *client, cap_call_handle_t icall_hand
  *
  * Handle client request to read data from first received message.
  *
- * @param client   UDP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        UDP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void udp_rmsg_read_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static void
+udp_rmsg_read_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	cap_call_handle_t chandle;
@@ -643,11 +650,12 @@ static void udp_rmsg_read_srv(udp_client_t *client, cap_call_handle_t icall_hand
  * Handle client request to discard first received message, advancing
  * to the next one.
  *
- * @param client   UDP client
- * @param iid      Async request ID
- * @param icall    Async request data
+ * @param client        UDP client
+ * @param icall_handle  Async request call handle
+ * @param icall         Async request data
  */
-static void udp_rmsg_discard_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static void
+udp_rmsg_discard_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	udp_crcv_queue_entry_t *enext;
