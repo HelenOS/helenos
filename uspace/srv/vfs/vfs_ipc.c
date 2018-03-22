@@ -34,7 +34,7 @@
 #include <str.h>
 #include <vfs/canonify.h>
 
-static void vfs_in_clone(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_clone(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int oldfd = IPC_GET_ARG1(*request);
 	int newfd = IPC_GET_ARG2(*request);
@@ -42,10 +42,10 @@ static void vfs_in_clone(cap_call_handle_t rid, ipc_call_t *request)
 
 	int outfd = -1;
 	errno_t rc = vfs_op_clone(oldfd, newfd, desc, &outfd);
-	async_answer_1(rid, rc, outfd);
+	async_answer_1(req_handle, rc, outfd);
 }
 
-static void vfs_in_fsprobe(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_fsprobe(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	service_id_t service_id = (service_id_t) IPC_GET_ARG1(*request);
 	char *fs_name = NULL;
@@ -61,12 +61,12 @@ static void vfs_in_fsprobe(cap_call_handle_t rid, ipc_call_t *request)
 	rc = async_data_write_accept((void **) &fs_name, true, 0,
 	    FS_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
-		async_answer_0(rid, rc);
+		async_answer_0(req_handle, rc);
 		return;
 	}
 
 	rc = vfs_op_fsprobe(fs_name, service_id, &info);
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 	if (rc != EOK)
 		goto out;
 
@@ -82,7 +82,7 @@ out:
 	free(fs_name);
 }
 
-static void vfs_in_fstypes(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_fstypes(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	cap_call_handle_t chandle;
 	size_t len;
@@ -91,12 +91,12 @@ static void vfs_in_fstypes(cap_call_handle_t rid, ipc_call_t *request)
 
 	rc = vfs_get_fstypes(&fstypes);
 	if (rc != EOK) {
-		async_answer_0(rid, ENOMEM);
+		async_answer_0(req_handle, ENOMEM);
 		return;
 	}
 
 	/* Send size of the data */
-	async_answer_1(rid, EOK, fstypes.size);
+	async_answer_1(req_handle, EOK, fstypes.size);
 
 	/* Now we should get a read request */
 	if (!async_data_read_receive(&chandle, &len))
@@ -110,7 +110,7 @@ out:
 	vfs_fstypes_free(&fstypes);
 }
 
-static void vfs_in_mount(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_mount(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int mpfd = IPC_GET_ARG1(*request);
 
@@ -131,7 +131,7 @@ static void vfs_in_mount(cap_call_handle_t rid, ipc_call_t *request)
 	errno_t rc = async_data_write_accept((void **) &opts, true, 0,
 	    MAX_MNTOPTS_LEN, 0, NULL);
 	if (rc != EOK) {
-		async_answer_0(rid, rc);
+		async_answer_0(req_handle, rc);
 		return;
 	}
 
@@ -142,36 +142,36 @@ static void vfs_in_mount(cap_call_handle_t rid, ipc_call_t *request)
 	    FS_NAME_MAXLEN, 0, NULL);
 	if (rc != EOK) {
 		free(opts);
-		async_answer_0(rid, rc);
+		async_answer_0(req_handle, rc);
 		return;
 	}
 
 	int outfd = 0;
 	rc = vfs_op_mount(mpfd, service_id, flags, instance, opts, fs_name,
 	     &outfd);
-	async_answer_1(rid, rc, outfd);
+	async_answer_1(req_handle, rc, outfd);
 
 	free(opts);
 	free(fs_name);
 }
 
-static void vfs_in_open(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_open(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	int mode = IPC_GET_ARG2(*request);
 
 	errno_t rc = vfs_op_open(fd, mode);
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 }
 
-static void vfs_in_put(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_put(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	errno_t rc = vfs_op_put(fd);
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 }
 
-static void vfs_in_read(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_read(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	aoff64_t pos = MERGE_LOUP32(IPC_GET_ARG2(*request),
@@ -179,10 +179,10 @@ static void vfs_in_read(cap_call_handle_t rid, ipc_call_t *request)
 
 	size_t bytes = 0;
 	errno_t rc = vfs_op_read(fd, pos, &bytes);
-	async_answer_1(rid, rc, bytes);
+	async_answer_1(req_handle, rc, bytes);
 }
 
-static void vfs_in_rename(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_rename(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	/* The common base directory. */
 	int basefd;
@@ -218,7 +218,7 @@ static void vfs_in_rename(cap_call_handle_t rid, ipc_call_t *request)
 	rc = vfs_op_rename(basefd, oldc, newc);
 
 out:
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 
 	if (old)
 		free(old);
@@ -226,37 +226,37 @@ out:
 		free(new);
 }
 
-static void vfs_in_resize(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_resize(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	int64_t size = MERGE_LOUP32(IPC_GET_ARG2(*request), IPC_GET_ARG3(*request));
 	errno_t rc = vfs_op_resize(fd, size);
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 }
 
-static void vfs_in_stat(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_stat(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	errno_t rc = vfs_op_stat(fd);
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 }
 
-static void vfs_in_statfs(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_statfs(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int fd = (int) IPC_GET_ARG1(*request);
 
 	errno_t rc = vfs_op_statfs(fd);
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 }
 
-static void vfs_in_sync(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_sync(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	errno_t rc = vfs_op_sync(fd);
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 }
 
-static void vfs_in_unlink(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_unlink(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int parentfd = IPC_GET_ARG1(*request);
 	int expectfd = IPC_GET_ARG2(*request);
@@ -266,25 +266,25 @@ static void vfs_in_unlink(cap_call_handle_t rid, ipc_call_t *request)
 	if (rc == EOK)
 		rc = vfs_op_unlink(parentfd, expectfd, path);
 
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 }
 
-static void vfs_in_unmount(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_unmount(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int mpfd = IPC_GET_ARG1(*request);
 	errno_t rc = vfs_op_unmount(mpfd);
-	async_answer_0(rid, rc);
+	async_answer_0(req_handle, rc);
 }
 
-static void vfs_in_wait_handle(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_wait_handle(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	bool high_fd = IPC_GET_ARG1(*request);
 	int fd = -1;
 	errno_t rc = vfs_op_wait_handle(high_fd, &fd);
-	async_answer_1(rid, rc, fd);
+	async_answer_1(req_handle, rc, fd);
 }
 
-static void vfs_in_walk(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_walk(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	/*
 	 * Parent is our relative root for file lookup.
@@ -300,10 +300,10 @@ static void vfs_in_walk(cap_call_handle_t rid, ipc_call_t *request)
 		rc = vfs_op_walk(parentfd, flags, path, &fd);
 		free(path);
 	}
-	async_answer_1(rid, rc, fd);
+	async_answer_1(req_handle, rc, fd);
 }
 
-static void vfs_in_write(cap_call_handle_t rid, ipc_call_t *request)
+static void vfs_in_write(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
 	aoff64_t pos = MERGE_LOUP32(IPC_GET_ARG2(*request),
@@ -311,7 +311,7 @@ static void vfs_in_write(cap_call_handle_t rid, ipc_call_t *request)
 
 	size_t bytes = 0;
 	errno_t rc = vfs_op_write(fd, pos, &bytes);
-	async_answer_1(rid, rc, bytes);
+	async_answer_1(req_handle, rc, bytes);
 }
 
 void vfs_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)

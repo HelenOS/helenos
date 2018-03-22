@@ -107,11 +107,11 @@ static bool vfs_info_sane(vfs_info_t *info)
 
 /** VFS_REGISTER protocol function.
  *
- * @param rid     Hash of the call with the request.
- * @param request Call structure with the request.
+ * @param req_handle  Call handle of the request.
+ * @param request     Call structure with the request.
  *
  */
-void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
+void vfs_register(cap_call_handle_t req_handle, ipc_call_t *request)
 {
 	dprintf("Processing VFS_REGISTER request received from %zx.\n",
 	    request->in_phone_hash);
@@ -123,7 +123,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
 		    rc);
-		async_answer_0(rid, rc);
+		async_answer_0(req_handle, rc);
 		return;
 	}
 
@@ -133,7 +133,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 	fs_info_t *fs_info = (fs_info_t *) malloc(sizeof(fs_info_t));
 	if (!fs_info) {
 		dprintf("Could not allocate memory for FS info.\n");
-		async_answer_0(rid, ENOMEM);
+		async_answer_0(req_handle, ENOMEM);
 		return;
 	}
 
@@ -145,7 +145,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 
 	if (!vfs_info_sane(&fs_info->vfs_info)) {
 		free(fs_info);
-		async_answer_0(rid, EINVAL);
+		async_answer_0(req_handle, EINVAL);
 		return;
 	}
 
@@ -162,7 +162,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 		dprintf("FS is already registered.\n");
 		fibril_mutex_unlock(&fs_list_lock);
 		free(fs_info);
-		async_answer_0(rid, EEXIST);
+		async_answer_0(req_handle, EEXIST);
 		return;
 	}
 
@@ -183,7 +183,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_list_lock);
 		free(fs_info);
-		async_answer_0(rid, EINVAL);
+		async_answer_0(req_handle, EINVAL);
 		return;
 	}
 
@@ -202,7 +202,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 		async_hangup(fs_info->sess);
 		free(fs_info);
 		async_answer_0(chandle, EINVAL);
-		async_answer_0(rid, EINVAL);
+		async_answer_0(req_handle, EINVAL);
 		return;
 	}
 
@@ -216,7 +216,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 		async_hangup(fs_info->sess);
 		free(fs_info);
 		async_answer_0(chandle, EINVAL);
-		async_answer_0(rid, EINVAL);
+		async_answer_0(req_handle, EINVAL);
 		return;
 	}
 
@@ -234,7 +234,7 @@ void vfs_register(cap_call_handle_t rid, ipc_call_t *request)
 	 * system a global file system handle.
 	 */
 	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
-	async_answer_1(rid, EOK, (sysarg_t) fs_info->fs_handle);
+	async_answer_1(req_handle, EOK, (sysarg_t) fs_info->fs_handle);
 
 	fibril_condvar_broadcast(&fs_list_cv);
 	fibril_mutex_unlock(&fs_list_lock);
