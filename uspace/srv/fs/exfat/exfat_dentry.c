@@ -111,8 +111,10 @@ void exfat_dentry_get_vollabel(const exfat_vollabel_dentry_t *vollabel,
 
 bool exfat_valid_char(wchar_t ch)
 {
+	if (ch >= 0x01 && ch <= 0x1F)
+		return false;
+
 	switch (ch) {
-	case 0x01 ... 0x1F:
 	case '/':
 	case '\\':
 	case '?':
