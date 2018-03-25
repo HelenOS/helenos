@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2005 Jakub Jermar
- * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,14 +29,34 @@
 /** @addtogroup sparc64interrupt
  * @{
  */
-#ifndef KERN_sparc64_sun4v_REGWIN_H_
-#define KERN_sparc64_sun4v_REGWIN_H_
+/** @file
+ */
 
-#ifdef __ASSEMBLER__
-#include <arch/trap/sun4v/regwin.S>
-#endif
+.macro SAVE_GLOBALS
+	mov %g1, %l1
+	mov %g2, %l2
+	mov %g3, %l3
+	mov %g4, %l4
+	mov %g5, %l5
+	mov %g6, %l6
+	mov %g7, %l7
+.endm
 
-#endif
+.macro RESTORE_GLOBALS
+	mov %l1, %g1
+	mov %l2, %g2
+	mov %l3, %g3
+	mov %l4, %g4
+	mov %l5, %g5
+	mov %l6, %g6
+	mov %l7, %g7
+.endm
+
+.macro PREEMPTIBLE_HANDLER f
+	sethi %hi(\f), %g1
+	ba %xcc, preemptible_handler
+	or %g1, %lo(\f), %g1
+.endm
 
 /** @}
  */
