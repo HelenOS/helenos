@@ -229,9 +229,9 @@ static int test_out(async_exch_t *exch, const void *generic_params)
 		return EOK; \
 	}
 
-GEN_PRE_RUN(intr, INTERRUPT)
-GEN_PRE_RUN(bulk, BULK)
-GEN_PRE_RUN(isoch, ISOCHRONOUS)
+GEN_PRE_RUN(intr, INTERRUPT);
+GEN_PRE_RUN(bulk, BULK);
+GEN_PRE_RUN(isoch, ISOCHRONOUS);
 
 #undef GEN_PRE_RUN
 

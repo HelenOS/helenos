@@ -50,5 +50,5 @@ PCUT_TEST(unreachable) {
 
 PCUT_CUSTOM_MAIN(
 	PCUT_MAIN_SET_PREINIT_HOOK(pre_init_hook)
-)
+);
 

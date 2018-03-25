@@ -53,5 +53,5 @@ PCUT_TEST(check_init_counter_2) {
 
 PCUT_CUSTOM_MAIN(
 	PCUT_MAIN_SET_INIT_HOOK(init_hook)
-)
+);
 

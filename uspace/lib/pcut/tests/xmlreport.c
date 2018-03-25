@@ -51,4 +51,4 @@ PCUT_TEST(same_strings) {
 
 PCUT_CUSTOM_MAIN(
 	PCUT_MAIN_SET_XML_REPORT
-)
+);

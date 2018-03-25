@@ -70,4 +70,4 @@ PCUT_TEST(custom_time_out,
 	printf("Text after the sleep.\n");
 }
 
-PCUT_MAIN()
+PCUT_MAIN();
