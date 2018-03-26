@@ -342,7 +342,7 @@ int sprintf(char *s, const char *restrict format, ...)
  */
 int vsprintf(char *s, const char *restrict format, va_list ap)
 {
-	return vsnprintf(s, STR_NO_LIMIT, format, ap);
+	return vsnprintf(s, INT_MAX, format, ap);
 }
 
 /**
