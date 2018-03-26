@@ -84,7 +84,7 @@ void istate_decode(istate_t *istate)
 	    istate->eax, istate->ebx, istate->ecx, istate->edx);
 
 	printf("esi=%0#10" PRIx32 "\tedi=%0#10" PRIx32 "\t"
-	    "ebp=%0#10" PRIx32 "\tesp=%0#10" PRIxn "\n",
+	    "ebp=%0#10" PRIx32 "\tesp=%0#10" PRIx32 "\n",
 	    istate->esi, istate->edi, istate->ebp,
 	    istate_from_uspace(istate) ? istate->esp :
 	    (uint32_t) &istate->esp);
