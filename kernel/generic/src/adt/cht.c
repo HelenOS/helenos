@@ -296,13 +296,6 @@
 #include <atomic.h>
 #include <synch/rcu.h>
 
-#ifdef CONFIG_DEBUG
-/* Do not enclose in parentheses. */
-#define DBG(x) x
-#else
-#define DBG(x)
-#endif
-
 /* Logarithm of the min bucket count. Must be at least 3. 2^6 == 64 buckets. */
 #define CHT_MIN_ORDER 6
 /* Logarithm of the max bucket count. */
@@ -1760,13 +1753,17 @@ static void complete_head_move(marked_ptr_t *psrc_head, marked_ptr_t *pdest_head
 
 	cht_link_t *next = get_next(*psrc_head);
 
-	DBG(marked_ptr_t ret = )
-		cas_link(pdest_head, &sentinel, N_INVALID, next, N_NORMAL);
+#ifdef CONFIG_DEBUG
+	marked_ptr_t ret =
+#endif
+	    cas_link(pdest_head, &sentinel, N_INVALID, next, N_NORMAL);
 	assert(ret == make_link(&sentinel, N_INVALID) || (N_NORMAL == get_mark(ret)));
 	cas_order_barrier();
 
-	DBG(ret = )
-		cas_link(psrc_head, next, N_CONST, next, N_INVALID);
+#ifdef CONFIG_DEBUG
+	ret =
+#endif
+	    cas_link(psrc_head, next, N_CONST, next, N_INVALID);
 	assert(ret == make_link(next, N_CONST) || (N_INVALID == get_mark(ret)));
 	cas_order_barrier();
 }
@@ -1858,8 +1855,10 @@ static void split_bucket(cht_t *h, marked_ptr_t *psrc_head,
 	}
 
 	/* Link the dest head to the second part of the split. */
-	DBG(marked_ptr_t ret = )
-		cas_link(pdest_head, &sentinel, N_INVALID, wnd.cur, N_NORMAL);
+#ifdef CONFIG_DEBUG
+	marked_ptr_t ret =
+#endif
+	    cas_link(pdest_head, &sentinel, N_INVALID, wnd.cur, N_NORMAL);
 	assert(ret == make_link(&sentinel, N_INVALID) || (N_NORMAL == get_mark(ret)));
 	cas_order_barrier();
 
@@ -2039,8 +2038,10 @@ static void join_buckets(cht_t *h, marked_ptr_t *psrc_head,
 		cas_order_barrier();
 	}
 
-	DBG(marked_ptr_t ret = )
-		cas_link(psrc_head, join_node, N_CONST, join_node, N_INVALID);
+#ifdef CONFIG_DEBUG
+	marked_ptr_t ret =
+	    cas_link(psrc_head, join_node, N_CONST, join_node, N_INVALID);
+#endif
 	assert(ret == make_link(join_node, N_CONST) || (N_INVALID == get_mark(ret)));
 	cas_order_barrier();
 
