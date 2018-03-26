@@ -44,7 +44,7 @@
 #include <stdio.h>
 
 static void
-log(const volatile void *place, uint64_t val, volatile void *base, size_t size,
+log_message(const volatile void *place, uint64_t val, volatile void *base, size_t size,
     void *data, bool write)
 {
 	printf("PIO %s: %p(%p) %#"PRIx64"\n", write ? "WRITE" : "READ",
@@ -103,15 +103,15 @@ errno_t amdm37x_init(amdm37x_t *device, bool trace)
 		return ret;
 
 	if (trace) {
-		pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log, (void*)AMDM37x_USBTLL_BASE_ADDRESS);
-		pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
-		pio_trace_enable(device->cm.core, CORE_CM_SIZE, log, (void*)CORE_CM_BASE_ADDRESS);
-		pio_trace_enable(device->cm.mpu, MPU_CM_SIZE, log, (void*)MPU_CM_BASE_ADDRESS);
-		pio_trace_enable(device->cm.iva2, IVA2_CM_SIZE, log, (void*)IVA2_CM_BASE_ADDRESS);
-		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log, (void*)USBHOST_CM_BASE_ADDRESS);
-		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log, (void*)AMDM37x_UHH_BASE_ADDRESS);
-		pio_trace_enable(device->prm.clocks, CLOCK_CONTROL_PRM_SIZE, log, (void*)CLOCK_CONTROL_PRM_BASE_ADDRESS);
-		pio_trace_enable(device->prm.global, GLOBAL_REG_PRM_SIZE, log, (void*)GLOBAL_REG_PRM_BASE_ADDRESS);
+		pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log_message, (void*)AMDM37x_USBTLL_BASE_ADDRESS);
+		pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log_message, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.core, CORE_CM_SIZE, log_message, (void*)CORE_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.mpu, MPU_CM_SIZE, log_message, (void*)MPU_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.iva2, IVA2_CM_SIZE, log_message, (void*)IVA2_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log_message, (void*)USBHOST_CM_BASE_ADDRESS);
+		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log_message, (void*)AMDM37x_UHH_BASE_ADDRESS);
+		pio_trace_enable(device->prm.clocks, CLOCK_CONTROL_PRM_SIZE, log_message, (void*)CLOCK_CONTROL_PRM_BASE_ADDRESS);
+		pio_trace_enable(device->prm.global, GLOBAL_REG_PRM_SIZE, log_message, (void*)GLOBAL_REG_PRM_BASE_ADDRESS);
 	}
 	return EOK;
 }

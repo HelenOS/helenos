@@ -103,7 +103,7 @@ typedef struct exfat_cfg {
 	const char *label;
 } exfat_cfg_t;
 
-static unsigned log2(unsigned n);
+static unsigned log2i(unsigned n);
 
 static uint32_t
 vbr_checksum_start(void const *octets, size_t nbytes);
@@ -269,8 +269,8 @@ vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
 	mbs->version.major = 1;
 	mbs->version.minor = 0;
 	mbs->volume_flags = host2uint16_t_le(0);
-	mbs->bytes_per_sector = log2(cfg->sector_size);
-	mbs->sec_per_cluster = log2(cfg->cluster_size / cfg->sector_size);
+	mbs->bytes_per_sector = log2i(cfg->sector_size);
+	mbs->sec_per_cluster = log2i(cfg->cluster_size / cfg->sector_size);
 
 	/* Maximum cluster size is 32 Mb */
 	assert((mbs->bytes_per_sector + mbs->sec_per_cluster) <= 25);
@@ -675,7 +675,7 @@ exit:
  * It works only if n is a power of two.
  */
 static unsigned
-log2(unsigned n)
+log2i(unsigned n)
 {
 	unsigned r;
 

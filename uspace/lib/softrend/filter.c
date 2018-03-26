@@ -38,12 +38,12 @@
 #include <io/pixel.h>
 
 
-static long round(double val)
+static long _round(double val)
 {
 	return val > 0 ? (long) (val + 0.5) : (long) (val - 0.5);
 }
 
-static long floor(double val)
+static long _floor(double val)
 {
 	long lval = (long) val;
 	if (val < 0 && lval != val)
@@ -51,7 +51,7 @@ static long floor(double val)
 	return lval;
 }
 
-static long ceil(double val)
+static long _ceil(double val)
 {
 	long lval = (long) val;
 	if (val > 0 && lval != val)
@@ -78,16 +78,16 @@ static inline pixel_t blend_pixels(size_t count, float *weights,
 pixel_t filter_nearest(pixelmap_t *pixmap, double x, double y,
     pixelmap_extend_t extend)
 {
-	return pixelmap_get_extended_pixel(pixmap, round(x), round(y), extend);
+	return pixelmap_get_extended_pixel(pixmap, _round(x), _round(y), extend);
 }
 
 pixel_t filter_bilinear(pixelmap_t *pixmap, double x, double y,
     pixelmap_extend_t extend)
 {
-	long x1 = floor(x);
-	long x2 = ceil(x);
-	long y1 = floor(y);
-	long y2 = ceil(y);
+	long x1 = _floor(x);
+	long x2 = _ceil(x);
+	long y1 = _floor(y);
+	long y2 = _ceil(y);
 
 	if (y1 == y2 && x1 == x2) {
 		return pixelmap_get_extended_pixel(pixmap,
