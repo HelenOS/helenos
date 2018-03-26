@@ -821,10 +821,14 @@ errno_t hc_disable_slot(xhci_device_t *dev)
 {
 	errno_t err;
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_cmd_t cmd;
 
-	if ((err = xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = dev->slot_id))) {
+	xhci_cmd_init(&cmd, XHCI_CMD_DISABLE_SLOT);
+	cmd.slot_id = dev->slot_id;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+	if (err != EOK)
 		return err;
-	}
 
 	/* Free the device context. */
 	hc->dcbaa[dev->slot_id] = 0;
@@ -892,10 +896,13 @@ errno_t hc_address_device(xhci_device_t *dev)
 	XHCI_SLOT_CTX_ENTRIES_SET(*slot_ctx, 1);
 
 	/* Issue Address Device command. */
-	if ((err = xhci_cmd_sync_inline(hc, ADDRESS_DEVICE,
-		.slot_id = dev->slot_id,
-		.input_ctx = ictx_dma_buf
-	    )))
+	xhci_cmd_t cmd;
+	xhci_cmd_init(&cmd, XHCI_CMD_ADDRESS_DEVICE);
+	cmd.slot_id = dev->slot_id;
+	cmd.input_ctx = ictx_dma_buf;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+	if (err != EOK)
 		return err;
 
 	xhci_device_ctx_t *device_ctx = dev->dev_ctx.virt;
@@ -913,17 +920,21 @@ errno_t hc_address_device(xhci_device_t *dev)
 errno_t hc_configure_device(xhci_device_t *dev)
 {
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_cmd_t cmd;
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
-	if (err)
+	errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
+	if (err != EOK)
 		return err;
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
-		.slot_id = dev->slot_id,
-		.input_ctx = ictx_dma_buf
-	);
+	xhci_cmd_init(&cmd, XHCI_CMD_CONFIGURE_ENDPOINT);
+	cmd.slot_id = dev->slot_id;
+	cmd.input_ctx = ictx_dma_buf;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+
+	return err;
 }
 
 /**
@@ -934,15 +945,21 @@ errno_t hc_configure_device(xhci_device_t *dev)
 errno_t hc_deconfigure_device(xhci_device_t *dev)
 {
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_cmd_t cmd;
+	errno_t err;
 
 	if (hc_is_broken(hc))
 		return EOK;
 
 	/* Issue configure endpoint command (sec 4.3.5) with the DC flag. */
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
-		.slot_id = dev->slot_id,
-		.deconfigure = true
-	);
+	xhci_cmd_init(&cmd, XHCI_CMD_CONFIGURE_ENDPOINT);
+	cmd.slot_id = dev->slot_id;
+	cmd.deconfigure = true;
+
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+
+	return err;
 }
 
 /**
@@ -956,11 +973,12 @@ errno_t hc_add_endpoint(xhci_endpoint_t *ep)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
+	xhci_cmd_t cmd;
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
-	if (err)
+	errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
+	if (err != EOK)
 		return err;
 
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
@@ -971,10 +989,13 @@ errno_t hc_add_endpoint(xhci_endpoint_t *ep)
 	xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(XHCI_GET_DEVICE_CTX(ictx, hc), hc, dci);
 	xhci_setup_endpoint_context(ep, ep_ctx);
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
-		.slot_id = dev->slot_id,
-		.input_ctx = ictx_dma_buf
-	);
+	xhci_cmd_init(&cmd, XHCI_CMD_CONFIGURE_ENDPOINT);
+	cmd.slot_id = dev->slot_id;
+	cmd.input_ctx = ictx_dma_buf;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+
+	return err;
 }
 
 /**
@@ -988,23 +1009,27 @@ errno_t hc_drop_endpoint(xhci_endpoint_t *ep)
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 	const unsigned dci = endpoint_dci(ep);
+	xhci_cmd_t cmd;
 
 	if (hc_is_broken(hc))
 		return EOK;
 
 	/* Issue configure endpoint command (sec 4.3.5). */
 	dma_buffer_t ictx_dma_buf;
-	const errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
-	if (err)
+	errno_t err = create_configure_ep_input_ctx(dev, &ictx_dma_buf);
+	if (err != EOK)
 		return err;
 
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 	XHCI_INPUT_CTRL_CTX_DROP_SET(*XHCI_GET_CTRL_CTX(ictx, hc), dci);
 
-	return xhci_cmd_sync_inline(hc, CONFIGURE_ENDPOINT,
-		.slot_id = dev->slot_id,
-		.input_ctx = ictx_dma_buf
-	);
+	xhci_cmd_init(&cmd, XHCI_CMD_CONFIGURE_ENDPOINT);
+	cmd.slot_id = dev->slot_id;
+	cmd.input_ctx = ictx_dma_buf;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+
+	return err;
 }
 
 /**
@@ -1019,12 +1044,13 @@ errno_t hc_update_endpoint(xhci_endpoint_t *ep)
 {
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
+	xhci_cmd_t cmd;
 
 	dma_buffer_t ictx_dma_buf;
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
 
-	const errno_t err = dma_buffer_alloc(&ictx_dma_buf, XHCI_INPUT_CTX_SIZE(hc));
-	if (err)
+	errno_t err = dma_buffer_alloc(&ictx_dma_buf, XHCI_INPUT_CTX_SIZE(hc));
+	if (err != EOK)
 		return err;
 
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
@@ -1034,10 +1060,13 @@ errno_t hc_update_endpoint(xhci_endpoint_t *ep)
 	xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(XHCI_GET_DEVICE_CTX(ictx, hc), hc, dci);
 	xhci_setup_endpoint_context(ep, ep_ctx);
 
-	return xhci_cmd_sync_inline(hc, EVALUATE_CONTEXT,
-		.slot_id = dev->slot_id,
-		.input_ctx = ictx_dma_buf
-	);
+	xhci_cmd_init(&cmd, XHCI_CMD_EVALUATE_CONTEXT);
+	cmd.slot_id = dev->slot_id;
+	cmd.input_ctx = ictx_dma_buf;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+
+	return err;
 }
 
 /**
@@ -1051,14 +1080,19 @@ errno_t hc_stop_endpoint(xhci_endpoint_t *ep)
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_cmd_t cmd;
+	errno_t err;
 
 	if (hc_is_broken(hc))
 		return EOK;
 
-	return xhci_cmd_sync_inline(hc, STOP_ENDPOINT,
-		.slot_id = dev->slot_id,
-		.endpoint_id = dci
-	);
+	xhci_cmd_init(&cmd, XHCI_CMD_STOP_ENDPOINT);
+	cmd.slot_id = dev->slot_id;
+	cmd.endpoint_id = dci;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+
+	return err;
 }
 
 /**
@@ -1072,10 +1106,16 @@ errno_t hc_reset_endpoint(xhci_endpoint_t *ep)
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
-	return xhci_cmd_sync_inline(hc, RESET_ENDPOINT,
-		.slot_id = dev->slot_id,
-		.endpoint_id = dci
-	);
+	xhci_cmd_t cmd;
+	errno_t err;
+
+	xhci_cmd_init(&cmd, XHCI_CMD_RESET_ENDPOINT);
+	cmd.slot_id = dev->slot_id;
+	cmd.endpoint_id = dci;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+
+	return err;
 }
 
 /**
@@ -1088,17 +1128,23 @@ errno_t hc_reset_ring(xhci_endpoint_t *ep, uint32_t stream_id)
 	xhci_device_t * const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	uintptr_t addr;
+	xhci_cmd_t cmd;
+	errno_t err;
 
 	xhci_trb_ring_t *ring = xhci_endpoint_get_ring(ep, stream_id);
 	xhci_trb_ring_reset_dequeue_state(ring, &addr);
 
 	xhci_hc_t * const hc = bus_to_hc(endpoint_get_bus(&ep->base));
-	return xhci_cmd_sync_inline(hc, SET_TR_DEQUEUE_POINTER,
-		.slot_id = dev->slot_id,
-		.endpoint_id = dci,
-		.stream_id = stream_id,
-		.dequeue_ptr = addr,
-	);
+
+	xhci_cmd_init(&cmd, XHCI_CMD_SET_TR_DEQUEUE_POINTER);
+	cmd.slot_id = dev->slot_id;
+	cmd.endpoint_id = dci;
+	cmd.stream_id = stream_id;
+	cmd.dequeue_ptr = addr;
+	err = xhci_cmd_sync(hc, &cmd);
+	xhci_cmd_fini(&cmd);
+
+	return err;
 }
 
 /**

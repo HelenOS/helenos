@@ -143,35 +143,6 @@ extern errno_t xhci_cmd_sync(xhci_hc_t *, xhci_cmd_t *);
 extern errno_t xhci_cmd_sync_fini(xhci_hc_t *, xhci_cmd_t *);
 extern errno_t xhci_cmd_async_fini(xhci_hc_t *, xhci_cmd_t *);
 
-static inline errno_t xhci_cmd_sync_inline_wrapper(xhci_hc_t *hc, xhci_cmd_t cmd)
-{
-	/* Poor man's xhci_cmd_init (everything else is zeroed) */
-	link_initialize(&cmd._header.link);
-	fibril_mutex_initialize(&cmd._header.completed_mtx);
-	fibril_condvar_initialize(&cmd._header.completed_cv);
-
-	/* Issue the command */
-	const errno_t err = xhci_cmd_sync(hc, &cmd);
-	xhci_cmd_fini(&cmd);
-
-	return err;
-}
-
-/** The inline macro expects:
- *    - hc      - HC to schedule command on (xhci_hc_t *).
- *    - command - Member of `xhci_cmd_type_t` without the "XHCI_CMD_" prefix.
- *    - VA_ARGS - (optional) Command arguments in struct initialization notation.
- *
- *  The return code and semantics matches those of `xhci_cmd_sync_fini`.
- *
- *  Example:
- *    errno_t err = xhci_cmd_sync_inline(hc, DISABLE_SLOT, .slot_id = 42);
- */
-
-#define xhci_cmd_sync_inline(hc, command, ...) \
-	xhci_cmd_sync_inline_wrapper(hc, \
-	(xhci_cmd_t) { ._header.cmd = XHCI_CMD_##command, ##__VA_ARGS__ })
-
 #endif
 
 
