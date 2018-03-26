@@ -855,11 +855,12 @@ void slab_print_list(void)
 
 		irq_spinlock_lock(&slab_cache_lock, true);
 
-		link_t *cur;
-		size_t i;
-		for (i = 0, cur = slab_cache_list.head.next;
-		    (i < skip) && (cur != &slab_cache_list.head);
-		    i++, cur = cur->next);
+		link_t *cur = slab_cache_list.head.next;
+		size_t i = 0;
+		while (i < skip && cur != &slab_cache_list.head) {
+			i++;
+			cur = cur->next;
+		}
 
 		if (cur == &slab_cache_list.head) {
 			irq_spinlock_unlock(&slab_cache_lock, true);

@@ -73,7 +73,9 @@ int cmd_batch(char **argv, cliuser_t *usr)
 	bool continue_despite_errors = false;
 
 	/* Count the arguments */
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = 0;
+	while (argv[argc] != NULL)
+		argc++;
 
 	if (argc < 2) {
 		printf("%s - no input file provided.\n", cmdname);

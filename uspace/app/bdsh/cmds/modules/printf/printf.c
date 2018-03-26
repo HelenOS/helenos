@@ -126,7 +126,9 @@ int cmd_printf(char **argv)
 	unsigned int carg;     // Current argument
 
 	/* Count the arguments */
-	for (argc = 0; argv[argc] != NULL; argc ++);
+	argc = 0;
+	while (argv[argc] != NULL)
+		argc++;
 
 	if (argc < 2) {
 		printf("Usage:  %s FORMAT [ARGS ...] \n", cmdname);
