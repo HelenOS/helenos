@@ -173,7 +173,12 @@ static unsigned int rm_recursive_not_empty_dirs(const char *path)
 
 	memset(buff, 0, sizeof(buff));
 	while ((dp = readdir(dirp))) {
-		snprintf(buff, PATH_MAX - 1, "%s/%s", path, dp->d_name);
+		int len = snprintf(buff, PATH_MAX - 1, "%s/%s", path, dp->d_name);
+		if (len > PATH_MAX-1) {
+			// TODO: Do not enforce arbitrary static limits.
+			cli_error(CL_EFAIL, "Path too long for %s/%s", path, dp->d_name);
+			continue;
+		}
 		scope = rm_scope(buff);
 		switch (scope) {
 		case RM_BOGUS:
