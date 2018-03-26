@@ -331,7 +331,7 @@ static errno_t udp_assoc_send_msg_impl(udp_client_t *client, sysarg_t assoc_id,
  * Handle client request to create callback session.
  *
  * @param client        UDP client
- * @param icall_handle  Async request call handle 
+ * @param icall_handle  Async request call handle
  * @param icall         Async request data
  */
 static void
@@ -447,7 +447,7 @@ udp_assoc_set_nolocal_srv(udp_client_t *client, cap_call_handle_t icall_handle,
  * Handle client request to send message.
  *
  * @param client        UDP client
- * @param icall_handle  Async request call handle 
+ * @param icall_handle  Async request call handle
  * @param icall         Async request data
  */
 static void
@@ -677,7 +677,7 @@ udp_rmsg_discard_srv(udp_client_t *client, cap_call_handle_t icall_handle,
 
 /** Handle UDP client connection.
  *
- * @param icall_handle  Connect call handle 
+ * @param icall_handle  Connect call handle
  * @param icall         Connect call data
  * @param arg           Connection argument
  */

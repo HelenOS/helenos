@@ -196,7 +196,7 @@ elif [ "$1" = "run" ]; then
             FAILED_HARBOURS=""
             for HARBOUR in $H_HARBOUR_LIST; do
                 "$HOME/helenos-harbours/hsct.sh" archive --no-deps "$HARBOUR" 2>&1 | tee "run-$HARBOUR.log" | awk '!(NR%100)'
-                
+
                 test -s "archives/$HARBOUR.tar.xz"
                 if [ $? -eq 0 ]; then
                     tail -n 10 "run-$HARBOUR.log"

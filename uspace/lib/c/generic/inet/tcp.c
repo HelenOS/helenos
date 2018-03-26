@@ -720,7 +720,7 @@ static void tcp_ev_conn_reset(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_ca
 /** Data available event.
  *
  * @param tcp           TCP client
- * @param icall_handle  Call handle 
+ * @param icall_handle  Call handle
  * @param icall         Call data
  */
 static void

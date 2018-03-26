@@ -88,7 +88,7 @@ static void record_initialize(record_t *rec, audio_pcm_sess_t *sess)
  * Recording callback.
  *
  * Writes recorded data.
- * 
+ *
  * @param icall_handle  IPC call handle.
  * @param icall         Poitner to IPC call structure.
  * @param arg           Argument. Poitner to recording helper structure.

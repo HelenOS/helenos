@@ -794,7 +794,7 @@ static void tcp_conn_create_srv(tcp_client_t *client,
  * Handle client request to destroy connection.
  *
  * @param client        TCP client
- * @param icall_handle  Async request call handle 
+ * @param icall_handle  Async request call handle
  * @param icall         Async request data
  */
 static void tcp_conn_destroy_srv(tcp_client_t *client,
@@ -815,7 +815,7 @@ static void tcp_conn_destroy_srv(tcp_client_t *client,
  * Handle client request to create listener.
  *
  * @param client        TCP client
- * @param icall_handle  Async request call handle 
+ * @param icall_handle  Async request call handle
  * @param icall         Async request data
  */
 static void tcp_listener_create_srv(tcp_client_t *client,
@@ -883,7 +883,7 @@ static void tcp_listener_destroy_srv(tcp_client_t *client,
  * Handle client request to send FIN.
  *
  * @param client        TCP client
- * @param icall_handle  Async request call handle 
+ * @param icall_handle  Async request call handle
  * @param icall         Async request data
  */
 static void tcp_conn_send_fin_srv(tcp_client_t *client,
