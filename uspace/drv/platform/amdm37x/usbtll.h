@@ -46,7 +46,7 @@ typedef struct {
 #define TLL_REVISION_MINOR_MASK  0x0f
 #define TLL_REVISION_MAJOR_MASK  0xf0
 
-	PADD32[3];
+	PADD32(3);
 	ioport32_t sysconfig;
 #define TLL_SYSCONFIG_AUTOIDLE_FLAG  (1 << 0)
 #define TLL_SYSCONFIG_SOFTRESET_FLAG  (1 << 1)
@@ -70,7 +70,7 @@ typedef struct {
 #define TLL_IRQSTATUS_FCLK_END_EN_FLAG  (1 << 1)
 #define TLL_IRQSTATUS_ACCESS_ERROR_EN_FLAG  (1 << 2)
 
-	PADD32[4];
+	PADD32(4);
 	ioport32_t shared_conf;
 #define TLL_SHARED_CONF_FCLK_IS_ON_FLAG  (1 << 0)
 #define TLL_SHARED_CONF_FCLK_REQ_FLAG  (1 << 1)
@@ -79,7 +79,7 @@ typedef struct {
 #define TLL_SHARED_CONF_USB_180D_SDR_EN_FLAG  (1 << 5)
 #define TLL_SHARED_CONF_USB_90D_DDR_EN_FLAG  (1 << 6)
 
-	PADD32[3];
+	PADD32(3);
 	ioport32_t channel_conf[3];
 #define TLL_CHANNEL_CONF_CHANEN_FLAG  (1 << 0)
 #define TLL_CHANNEL_CONF_CHANMODE_MASK  (0x3 << 1)

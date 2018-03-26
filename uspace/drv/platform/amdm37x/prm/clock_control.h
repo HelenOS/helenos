@@ -45,7 +45,7 @@
 /** Clock control PRM register map
  */
 typedef struct {
-	PADD32[16];
+	PADD32(16);
 	ioport32_t clksel;
 #define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_MASK   (0x7)
 #define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_12M   (0x0)
@@ -55,7 +55,7 @@ typedef struct {
 #define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_38_4M   (0x4)
 #define CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_16_8M   (0x5)
 
-	PADD32[12];
+	PADD32(12);
 	ioport32_t clkout_ctrl;
 #define CLOCK_CONTROL_PRM_CLKOUT_CTRL_CLKOUOUT_EN_FLAG   (1 << 7)
 

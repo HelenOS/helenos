@@ -46,7 +46,7 @@ typedef struct {
 	const ioport32_t revision;
 #define AMDM37X_DISPC_REVISION_MASK  0xff
 
-	PADD32[3];
+	PADD32(3);
 	ioport32_t sysconfig;
 #define AMDM37X_DISPC_SYSCONFIG_AUTOIDLE_FLAG  (1 << 0)
 #define AMDM37X_DISPC_SYSCONFIG_SOFTRESET_FLAG  (1 << 1)
@@ -81,7 +81,7 @@ typedef struct {
 #define AMDM37X_DISPC_IRQ_SYNCLOSTDIGITAL_FLAG  (1 << 15)
 #define AMDM37X_DISPC_IRQ_WAKEUP_FLAG  (1 << 16)
 
-	PADD32[8];
+	PADD32(8);
 	ioport32_t control;
 #define AMDM37X_DISPC_CONTROL_LCD_ENABLE_FLAG  (1 << 0)
 #define AMDM37X_DISPC_CONTROL_DIGITAL_ENABLE_FLAG  (1 << 1)
@@ -144,7 +144,7 @@ typedef struct {
 #define AMDM37X_DISPC_CONFIG_LCDPALPHABLENDERENABLDE_FLAG  (1 << 18)
 #define AMDM37X_DISPC_CONFIG_TVALPHABLENDERENABLE_FLAG  (1 << 19)
 
-	PADD32[1];
+	PADD32(1);
 	ioport32_t default_color[2];
 	ioport32_t trans_color[2];
 #define AMDM37X_DISPC_COLOR_MASK 0xffffff
@@ -210,7 +210,7 @@ typedef struct {
 #define AMDM37X_DISPC_SIZE_HEIGHT_MASK  0x7ff
 #define AMDM37X_DISPC_SIZE_HEIGHT_SHIFT  16
 
-		PADD32[4];
+		PADD32(4);
 		ioport32_t attributes;
 #define AMDM37X_DISPC_GFX_ATTRIBUTES_ENABLE_FLAG  (1 << 0)
 #define AMDM37X_DISPC_GFX_ATTRIBUTES_FORMAT_MASK  0xf
@@ -261,14 +261,14 @@ typedef struct {
 			ioport32_t hvi;
 		} fir_coef[8];
 		ioport32_t conv_coef[5];
-		PADD32[2];
+		PADD32(2);
 	} vid[2];
 	/* 0x1d4 */
 	ioport32_t data_cycle[3];
 	/* 0x1e0 */
 	ioport32_t vid_fir_coef_v[8];
 	/* 0x200 */
-	PADD32[8];
+	PADD32(8);
 	/* 0x220 */
 	ioport32_t cpr_coef_r;
 	ioport32_t cpr_coef_g;

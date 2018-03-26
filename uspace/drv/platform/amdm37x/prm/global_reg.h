@@ -45,7 +45,7 @@
 /** Global Reg PRM register map
  */
 typedef struct {
-	PADD32[8];
+	PADD32(8);
 	struct {
 		ioport32_t smps_sa;
 #define GLOBAL_REG_PRM_VC_SMPS_SA_SA0_MASK   (0x7f << 0)
@@ -132,7 +132,7 @@ typedef struct {
 #define GLOBAL_REG_PRM_VC_BYPASS_VAL_SLAVEADDR_GET(r)   (((r) >> 0) & 0x7f)
 	} vc;
 
-	PADD32[4];
+	PADD32(4);
 	ioport32_t rstctrl;
 #define GLOBAL_REG_PRM_RSTCTRL_RST_DPLL3_FLAG   (1 << 2)
 #define GLOBAL_REG_PRM_RSTCTRL_RST_GS_FLAG   (1 << 1)
@@ -155,7 +155,7 @@ typedef struct {
 #define GLOBAL_REG_PRM_RSTST_GLOBAL_SW_RST_FLAG   (1 << 1)
 #define GLOBAL_REG_PRM_RSTST_GLOABL_COLD_RST_FLAG   (1 << 0)
 
-	PADD32;
+	PADD32(1);
 	ioport32_t volctrl;
 #define GLOBAL_REG_PRM_VOLCTRL_SEL_VMODE_FLAG   (1 << 4)
 #define GLOBAL_REG_PRM_VOLCTRL_SEL_OFF_FLAG   (1 << 3)
@@ -168,7 +168,7 @@ typedef struct {
 #define GLOBAL_REG_PRM_SRAM_PCHARGE_PCHARGE_TIME_CREATE(x)   ((x) & 0xff)
 #define GLOBAL_REG_PRM_SRAM_PCHARGE_PCHARGE_TIME_GET(r)   ((r) & 0xff)
 
-	PADD32[2];
+	PADD32(2);
 	ioport32_t clksrc_ctrl;
 #define GLOBAL_REG_PRM_CLKSRC_CTRL_DPLL4_CLKINP_DIV_65_FLAG   (1 << 8)
 #define GLOBAL_REG_PRM_CLKSRC_CTRL_SYSCLKDIV_MASK   (0x3 << 6)
@@ -187,11 +187,11 @@ typedef struct {
 #define GLOBAL_REG_PRM_CLKSRC_CTRL_SYSCLKSEL_UNKNOWN   (0x3 << 0)
 #define GLOBAL_REG_PRM_CLKSRC_CTRL_SYSCLKSEL_GET(r)   (((r) >> 0) & 0x3)
 
-	PADD32[3];
+	PADD32(3);
 	const ioport32_t obs;
 #define GLOBAL_REG_PRM_OBS_OBS_BUS_MASK   (0x3ff)
 
-	PADD32[3];
+	PADD32(3);
 	ioport32_t voltsetup1;
 #define GLOBAL_REG_PRM_VOLTSETUP1_SETUPTIME2_MASK   (0xff << 16)
 #define GLOBAL_REG_PRM_VOLTSETUP1_SETUPTIME2_CREATE(x)   (((x) & 0xff) << 16)
@@ -221,7 +221,7 @@ typedef struct {
 #define GLOBAL_REG_PRM_VOLTSETUP2_OFFMODESETUPTIME_CREATE(x)   (((x) & 0xffff) << 0)
 #define GLOBAL_REG_PRM_VOLTSETUP2_OFFMODESETUPTIME_GET(r)   (((r) >> 0) & 0xffff)
 
-	PADD32[3];
+	PADD32(3);
 	struct {
 		ioport32_t config;
 #define GLOBAL_REG_PRM_VP_CONFIG_ERROROFFSET_MASK   (0xff << 24)
@@ -272,7 +272,7 @@ typedef struct {
 		const ioport32_t status;
 #define GLOBAL_REG_PRM_VP_STATUS_VPINIDLE_FLAG   (1 << 0)
 
-		PADD32[2];
+		PADD32(2);
 	} vp[2];
 
 	ioport32_t ldo_abb_setup;

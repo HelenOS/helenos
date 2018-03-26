@@ -53,11 +53,11 @@ typedef struct hcca {
 	uint32_t int_ep[HCCA_INT_EP_COUNT];
 	/** Frame number. */
 	uint16_t frame_number;
-	PADD16;
+	PADD16(1);
 	/** Pointer to the last completed TD. (useless) */
 	uint32_t done_head;
 	/** Padding to make the size 256B */
-	PADD32[30];
+	PADD32(30);
 } hcca_t;
 
 static_assert(sizeof(hcca_t) == 256);

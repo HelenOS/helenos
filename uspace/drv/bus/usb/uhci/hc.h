@@ -90,7 +90,7 @@ typedef struct uhci_regs {
 	/** SOF modification to match external timers */
 	ioport8_t sofmod;
 
-	PADD8[3];
+	PADD8(3);
 	ioport16_t ports[];
 } uhci_regs_t;
 

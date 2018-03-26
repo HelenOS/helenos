@@ -48,14 +48,14 @@
  * Core DPLL == DPLL3
  */
 typedef struct {
-	PADD32[22];
+	PADD32(22);
 	ioport32_t rm_rstst;
 #define USBHOST_PRM_RM_RSTST_COREDOMAINWKUP_RST_FLAG   (1 << 3)
 #define USBHOST_PRM_RM_RSTST_DOMAINWKUP_RST_FLAG   (1 << 2)
 #define USBHOST_PRM_RM_RSTST_GLOBALWARM_RST_FLAG   (1 << 1)
 #define USBHOST_PRM_RM_RSTST_GLOBALCOLD_RST_FLAG   (1 << 0)
 
-	PADD32[18];
+	PADD32(18);
 	ioport32_t pm_wken;
 #define USBHOST_PRM_PM_WKEN_EN_USBHOST_FLAG   (1 << 0)
 
@@ -65,18 +65,18 @@ typedef struct {
 	ioport32_t pm_iva2grpsel;
 #define USBHOST_PRM_PM_IVA2GRPSEL_GRPSEL_USBHOST_FLAG   (1 << 0)
 
-	PADD32;
+	PADD32(1);
 	ioport32_t pm_wkst;
 #define USBHOST_PRM_PM_WKST_ST_USBHOST_FLAG   (1 << 0)
 
-	PADD32[5];
+	PADD32(5);
 	ioport32_t pm_wkdep;
 #define USBHOST_PRM_PM_WKDEP_EN_WKUP_FLAG   (1 << 4)
 #define USBHOST_PRM_PM_WKDEP_EN_IVA2_FLAG   (1 << 2)
 #define USBHOST_PRM_PM_WKDEP_EN_MPU_FLAG   (1 << 1)
 #define USBHOST_PRM_PM_WKDEP_EN_CORE_FLAG   (1 << 0)
 
-	PADD32[5];
+	PADD32(5);
 	ioport32_t pm_pwstctrl;
 #define USBHOST_PRM_PM_PWSTCTRL_MEMONSTATE_MASK   (0x3 << 16)
 #define USBHOST_PRM_PM_PWSTCTRL_MEMONSTATE_ALWAYS_ON   (0x3 << 16)

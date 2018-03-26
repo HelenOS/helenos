@@ -43,7 +43,7 @@
 #define MPU_CM_SIZE  8192
 
 typedef struct {
-	PADD32;
+	PADD32(1);
 	ioport32_t clken_pll;
 #define MPU_CM_CLKEN_PLL_EN_MPU_DPLL_LP_MODE_FLAG   (1 << 10)
 #define MPU_CM_CLKEN_PLL_EN_MPU_DPLL_DRIFTGUARD   (1 << 3)
@@ -51,20 +51,20 @@ typedef struct {
 #define MPU_CM_CLKEN_PLL_EN_MPU_DPLL_EN_MPU_DPLL_LP_BYPASS   (0x5)
 #define MPU_CM_CLKEN_PLL_EN_MPU_DPLL_EN_MPU_DPLL_LOCKED   (0x7)
 
-	PADD32[6];
+	PADD32(6);
 	const ioport32_t idlest;
 #define MPU_CM_IDLEST_ST_MPU_STANDBY_FLAG   (1 << 0)
 
 	const ioport32_t idlest_pll;
 #define MPU_CM_IDLEST_PLL_ST_MPU_CLK_LOCKED_FLAG   (1 << 0)
 
-	PADD32[3];
+	PADD32(3);
 	ioport32_t autoidle_pll;
 #define MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_MASK   (0x7)
 #define MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_DISABLED   (0x0)
 #define MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_ENABLED   (0x1)
 
-	PADD32[2];
+	PADD32(2);
 	ioport32_t clksel1_pll;
 #define MPU_CM_CLKSEL1_PLL_MPU_CLK_SRC_MASK   (0x7 << 19)
 #define MPU_CM_CLKSEL1_PLL_MPU_CLK_SRC_SHIFT   (19)

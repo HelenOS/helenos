@@ -54,20 +54,20 @@ typedef struct {
 #define IVA2_CM_CLKEN_PLL_EN_IVA2_DPLL_EN_IVA2_DPLL_LP_BYPASS   (0x5)
 #define IVA2_CM_CLKEN_PLL_EN_IVA2_DPLL_EN_IVA2_DPLL_LOCKED   (0x7)
 
-	PADD32[6];
+	PADD32(6);
 	const ioport32_t idlest;
 #define IVA2_CM_IDLEST_ST_IVA2_STANDBY_FLAG   (1 << 0)
 
 	const ioport32_t idlest_pll;
 #define IVA2_CM_IDLEST_PLL_ST_IVA2_CLK_LOCKED_FLAG   (1 << 0)
 
-	PADD32[3];
+	PADD32(3);
 	ioport32_t autoidle_pll;
 #define IVA2_CM_AUTOIDLE_PLL_AUTO_IVA2_DPLL_MASK   (0x7)
 #define IVA2_CM_AUTOIDLE_PLL_AUTO_IVA2_DPLL_DISABLED   (0x0)
 #define IVA2_CM_AUTOIDLE_PLL_AUTO_IVA2_DPLL_ENABLED   (0x1)
 
-	PADD32[2];
+	PADD32(2);
 	ioport32_t clksel1_pll;
 #define IVA2_CM_CLKSEL1_PLL_IVA2_CLK_SRC_MASK   (0x7 << 19)
 #define IVA2_CM_CLKSEL1_PLL_IVA2_CLK_SRC_SHIFT   (19)

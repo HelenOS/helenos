@@ -59,11 +59,11 @@
 	    ((void *) &(((type *) 0)->member_identif))))
 
 #define _paddname(line)     PADD_ ## line ## __
-#define _padd(width, line)  uint ## width ## _t _paddname(line)
+#define _padd(width, line, n)  uint ## width ## _t _paddname(line) [n]
 
-#define PADD32  _padd(32, __LINE__)
-#define PADD16  _padd(16, __LINE__)
-#define PADD8   _padd(8, __LINE__)
+#define PADD32(n)  _padd(32, __LINE__, n)
+#define PADD16(n)  _padd(16, __LINE__, n)
+#define PADD8(n)   _padd(8, __LINE__, n)
 
 #endif
 

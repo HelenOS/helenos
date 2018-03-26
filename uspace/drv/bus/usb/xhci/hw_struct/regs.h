@@ -139,7 +139,7 @@ typedef const struct xhci_cap_regs {
 	/* Size of this structure, offset for the operation registers */
 	const ioport8_t caplength;
 
-	const PADD8;
+	const PADD8(1);
 
 	/* BCD of specification version */
 	const ioport16_t hciversion;
@@ -359,7 +359,7 @@ typedef struct xhci_op_regs {
 	 */
 	ioport32_t pagesize;
 
-	PADD32[2];
+	PADD32(2);
 
 	/*
 	 * 15:0 - Notification enable
@@ -372,7 +372,7 @@ typedef struct xhci_op_regs {
 	 */
 	ioport64_t crcr;
 
-	PADD32[4];
+	PADD32(4);
 
 	ioport64_t dcbaap;
 
@@ -384,7 +384,7 @@ typedef struct xhci_op_regs {
 	ioport32_t config;
 
 	/* Offset of portrs from op_regs addr is 0x400. */
-	PADD32[241];
+	PADD32(241);
 
 	/*
 	 * Individual ports register sets
@@ -451,7 +451,7 @@ typedef struct xhci_interrupter_regs {
 
 	ioport32_t erstsz;
 
-	PADD32;
+	PADD32(1);
 
 	ioport64_t erstba;
 
@@ -479,7 +479,7 @@ typedef struct xhci_interrupter_regs {
 typedef struct xhci_rt_regs {
 	ioport32_t mfindex;
 
-	PADD32 [7];
+	PADD32(7);
 
 	xhci_interrupter_regs_t ir [];
 } xhci_rt_regs_t;

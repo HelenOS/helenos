@@ -47,7 +47,7 @@
 /** EHCI memory mapped capability registers structure */
 typedef struct ehci_cap_regs {
 	const ioport8_t caplength;
-	PADD8;
+	PADD8(1);
 	const ioport16_t hciversion;
 	const ioport32_t hcsparams;
 #define EHCI_CAPS_HCS_DEBUG_PORT_MASK   0xf
@@ -125,7 +125,7 @@ typedef struct ehci_regs {
 	ioport32_t asynclistaddr;
 #define USB_ASYNCLIST_MASK   0xfffffff0
 
-	PADD32[9];
+	PADD32(9);
 
 	ioport32_t configflag;
 #define USB_CONFIG_FLAG_FLAG   (1 << 0)
