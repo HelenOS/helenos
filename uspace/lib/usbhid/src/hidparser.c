@@ -595,7 +595,7 @@ void usb_hid_report_reset_local_items(usb_hid_report_item_t *report_item)
 	}
 
 	report_item->usages_count = 0;
-	memset(report_item->usages, 0, USB_HID_MAX_USAGES);
+	memset(report_item->usages, 0, sizeof(report_item->usages));
 
 	report_item->extended_usage_page = 0;
 	report_item->usage_minimum = 0;
