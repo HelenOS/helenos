@@ -110,10 +110,10 @@
 	get_pt_flags((pte_t *) (ptl0), (size_t) (i))
 
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
-	PAGE_PRESENT
+	PAGE_NEXT_LEVEL_PT
 
 #define GET_PTL3_FLAGS_ARCH(ptl2, i) \
-	PAGE_PRESENT
+	PAGE_NEXT_LEVEL_PT
 
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
 	get_pt_flags((pte_t *) (ptl3), (size_t) (i))
@@ -142,6 +142,7 @@
 #define PTE_VALID_ARCH(pte)       ((pte)->valid != 0)
 #define PTE_PRESENT_ARCH(pte)     ((pte)->present != 0)
 #define PTE_GET_FRAME_ARCH(pte)   ((pte)->pfn << 12)
+#define PTE_READABLE_ARCH(pte)    1
 #define PTE_WRITABLE_ARCH(pte)    1
 #define PTE_EXECUTABLE_ARCH(pte)  1
 
@@ -166,7 +167,7 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	pte_t *entry = &pt[i];
 
 	return (((!entry->page_cache_disable) << PAGE_CACHEABLE_SHIFT) |
-	    ((!entry->present) << PAGE_PRESENT_SHIFT) |
+	    ((!entry->present) << PAGE_NOT_PRESENT_SHIFT) |
 	    (1 << PAGE_USER_SHIFT) |
 	    (1 << PAGE_READ_SHIFT) |
 	    (1 << PAGE_WRITE_SHIFT) |

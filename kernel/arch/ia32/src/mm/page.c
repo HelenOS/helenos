@@ -69,7 +69,7 @@ void page_arch_init(void)
 	page_table_lock(AS_KERNEL, true);
 	for (cur = 0; cur < min(config.identity_size, config.physmem_end);
 	    cur += FRAME_SIZE) {
-		flags = PAGE_GLOBAL | PAGE_CACHEABLE | PAGE_WRITE | PAGE_READ;
+		flags = PAGE_READ_WRITE | PAGE_KERNEL | PAGE_GLOBAL | PAGE_CACHEABLE;
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	}
 	page_table_unlock(AS_KERNEL, true);

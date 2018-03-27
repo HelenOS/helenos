@@ -102,9 +102,9 @@ static void gta02_init(void)
 	s3c24xx_irqc_regs_t *irqc_regs;
 
 	gta02_timer = (void *) km_map(S3C24XX_TIMER_ADDRESS, PAGE_SIZE,
-	    PAGE_NOT_CACHEABLE);
+	    PAGE_READ_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
 	irqc_regs = (void *) km_map(S3C24XX_IRQC_ADDRESS, PAGE_SIZE,
-	    PAGE_NOT_CACHEABLE);
+	    PAGE_READ_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
 
 	/* Initialize interrupt controller. */
 	s3c24xx_irqc_init(&gta02_irqc, irqc_regs);

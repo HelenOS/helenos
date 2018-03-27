@@ -113,9 +113,9 @@
 #define GET_PTL1_FLAGS_ARCH(ptl0, i) \
 	get_pt_flags((pte_t *) (ptl0), (size_t) (i))
 #define GET_PTL2_FLAGS_ARCH(ptl1, i) \
-	PAGE_PRESENT
+	PAGE_NEXT_LEVEL_PT
 #define GET_PTL3_FLAGS_ARCH(ptl2, i) \
-	PAGE_PRESENT
+	PAGE_NEXT_LEVEL_PT
 #define GET_FRAME_FLAGS_ARCH(ptl3, i) \
 	get_pt_flags((pte_t *) (ptl3), (size_t) (i))
 
@@ -139,6 +139,7 @@
 #define PTE_VALID_ARCH(pte)		((pte)->soft_valid != 0)
 #define PTE_PRESENT_ARCH(pte)		((pte)->p != 0)
 #define PTE_GET_FRAME_ARCH(pte)		((pte)->pfn << 12)
+#define PTE_READABLE_ARCH(pte)		1
 #define PTE_WRITABLE_ARCH(pte)		((pte)->w != 0)
 #define PTE_EXECUTABLE_ARCH(pte)	1
 
@@ -146,6 +147,8 @@
 
 #include <mm/mm.h>
 #include <arch/exception.h>
+
+// FIXME: PAGE_USER / PAGE_KERNEL handling?
 
 /** Page Table Entry. */
 typedef struct {
@@ -166,7 +169,7 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	pte_t *p = &pt[i];
 
 	return ((p->cacheable << PAGE_CACHEABLE_SHIFT) |
-	    ((!p->p) << PAGE_PRESENT_SHIFT) |
+	    ((!p->p) << PAGE_NOT_PRESENT_SHIFT) |
 	    (1 << PAGE_USER_SHIFT) |
 	    (1 << PAGE_READ_SHIFT) |
 	    ((p->w) << PAGE_WRITE_SHIFT) |
@@ -181,7 +184,7 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 	p->cacheable = (flags & PAGE_CACHEABLE) != 0;
 	p->p = !(flags & PAGE_NOT_PRESENT);
 	p->g = (flags & PAGE_GLOBAL) != 0;
-	p->w = (flags & PAGE_WRITE) != 0;
+	p->w = (flags & _PAGE_WRITE) != 0;
 
 	/*
 	 * Ensure that valid entries have at least one bit set.

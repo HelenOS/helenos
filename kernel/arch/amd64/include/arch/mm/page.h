@@ -156,6 +156,8 @@
 #define PTE_GET_FRAME_ARCH(p) \
 	((((uintptr_t) (p)->addr_12_31) << 12) | \
 	    ((uintptr_t) (p)->addr_32_51 << 32))
+#define PTE_READABLE_ARCH(p) \
+	1
 #define PTE_WRITABLE_ARCH(p) \
 	((p)->writeable != 0)
 #define PTE_EXECUTABLE_ARCH(p) \
@@ -210,9 +212,9 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 
-	return ((!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT |
-	    (!p->present) << PAGE_PRESENT_SHIFT |
-	    p->uaccessible << PAGE_USER_SHIFT |
+	return ((p->page_cache_disable ? PAGE_NOT_CACHEABLE : PAGE_CACHEABLE) |
+	    (!p->present) << PAGE_NOT_PRESENT_SHIFT |
+	    (!p->uaccessible)  << PAGE_KERNEL_SHIFT |
 	    1 << PAGE_READ_SHIFT |
 	    p->writeable << PAGE_WRITE_SHIFT |
 	    (!p->no_execute) << PAGE_EXEC_SHIFT |
@@ -233,9 +235,9 @@ NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 
 	p->page_cache_disable = !(flags & PAGE_CACHEABLE);
 	p->present = !(flags & PAGE_NOT_PRESENT);
-	p->uaccessible = (flags & PAGE_USER) != 0;
-	p->writeable = (flags & PAGE_WRITE) != 0;
-	p->no_execute = (flags & PAGE_EXEC) == 0;
+	p->uaccessible = !(flags & PAGE_KERNEL);
+	p->writeable = (flags & _PAGE_WRITE) != 0;
+	p->no_execute = (flags & _PAGE_EXEC) == 0;
 	p->global = (flags & PAGE_GLOBAL) != 0;
 
 	/*

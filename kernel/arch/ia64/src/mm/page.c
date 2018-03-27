@@ -245,8 +245,8 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	v->present.a = false;  /* not accessed */
 	v->present.d = false;  /* not dirty */
 	v->present.pl = (flags & PAGE_USER) ? PL_USER : PL_KERNEL;
-	v->present.ar = (flags & PAGE_WRITE) ? AR_WRITE : AR_READ;
-	v->present.ar |= (flags & PAGE_EXEC) ? AR_EXECUTE : 0;
+	v->present.ar = (flags & _PAGE_WRITE) ? AR_WRITE : AR_READ;
+	v->present.ar |= (flags & _PAGE_EXEC) ? AR_EXECUTE : 0;
 	v->present.ppn = frame >> PPN_SHIFT;
 	v->present.ed = false;  /* exception not deffered */
 	v->present.ps = PAGE_WIDTH;

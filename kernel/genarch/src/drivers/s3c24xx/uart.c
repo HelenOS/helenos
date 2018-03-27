@@ -116,7 +116,7 @@ outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)
 	uart_dev->data = uart;
 
 	uart->io = (s3c24xx_uart_io_t *) km_map(paddr, PAGE_SIZE,
-	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	    PAGE_READ_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
 	uart->indev = NULL;
 
 	/* Initialize IRQ structure. */
