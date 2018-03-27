@@ -2040,8 +2040,8 @@ static void join_buckets(cht_t *h, marked_ptr_t *psrc_head,
 
 #ifdef CONFIG_DEBUG
 	marked_ptr_t ret =
-	    cas_link(psrc_head, join_node, N_CONST, join_node, N_INVALID);
 #endif
+	    cas_link(psrc_head, join_node, N_CONST, join_node, N_INVALID);
 	assert(ret == make_link(join_node, N_CONST) || (N_INVALID == get_mark(ret)));
 	cas_order_barrier();
 
