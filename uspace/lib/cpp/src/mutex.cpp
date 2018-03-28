@@ -53,12 +53,6 @@ namespace std
         return &mtx_;
     }
 
-    constexpr recursive_mutex::recursive_mutex() noexcept
-        : mtx_{}, lock_level_{}, owner_{}
-    {
-        aux::threading::mutex::init(mtx_);
-    }
-
     recursive_mutex::~recursive_mutex()
     { /* DUMMY BODY */ }
 
@@ -102,6 +96,35 @@ namespace std
     }
 
     recursive_mutex::native_handle_type recursive_mutex::native_handle()
+    {
+        return &mtx_;
+    }
+
+    timed_mutex::timed_mutex() noexcept
+        : mtx_{}
+    {
+        aux::threading::mutex::init(mtx_);
+    }
+
+    timed_mutex::~timed_mutex()
+    { /* DUMMY BODY */ }
+
+    void timed_mutex::lock()
+    {
+        aux::threading::mutex::lock(mtx_);
+    }
+
+    bool timed_mutex::try_lock()
+    {
+        return aux::threading::mutex::try_lock(mtx_);
+    }
+
+    void timed_mutex::unlock()
+    {
+        aux::threading::mutex::unlock(mtx_);
+    }
+
+    timed_mutex::native_handle_type timed_mutex::native_handle()
     {
         return &mtx_;
     }
