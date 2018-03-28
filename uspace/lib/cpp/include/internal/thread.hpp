@@ -148,7 +148,7 @@ namespace std::aux
         struct time
         {
             template<class Rep, class Period>
-            static time_unit convert(std::chrono::duration<Rep, Period> dur)
+            static time_unit convert(const std::chrono::duration<Rep, Period>& dur)
             {
                 return std::chrono::duration_cast<std::chrono::duration<Rep, micro>>(dur).count();
             }
