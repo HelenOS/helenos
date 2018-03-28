@@ -54,6 +54,7 @@ env:
     - H_ARCH=ppc32
     - H_ARCH=sparc64/niagara
     - H_ARCH=sparc64/ultra
+    - H_CCHECK=true
 before_install:
  - ./tools/travis.sh install
 script:

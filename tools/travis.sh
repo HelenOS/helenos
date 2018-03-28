@@ -81,6 +81,16 @@ if [ -z "$TRAVIS" ]; then
     exit 5
 fi
 
+# C style check
+if [ -n "$H_CCHECK" ]; then
+    echo "Will try to run C style check."
+    echo
+    rm -rf tools/sycek
+    make ccheck || exit 1
+    echo "C style check passed."
+    exit 0
+fi
+
 # Check HelenOS configuration was set-up
 if [ -z "$H_ARCH" ]; then
     echo "\$H_ARCH env not set. Are you running me inside Travis?" >&2
@@ -96,7 +106,9 @@ fi
 
 
 # Custom CROSS_PREFIX
-export CROSS_PREFIX=/usr/local/cross-static/
+if [ ."$CROSS_PREFIX" == . ]; then
+	export CROSS_PREFIX=/usr/local/cross-static/
+fi
 
 # Default Harbours repository
 if [ -z "$H_HARBOURS_REPOSITORY" ]; then
@@ -113,6 +125,10 @@ if [ "$1" = "help" ]; then
     echo
     echo "export H_HARBOURS=true"
     echo "export H_HARBOUR_LIST=\"$H_DEFAULT_HARBOURS_LIST\""
+    echo
+    echo "or"
+    echo
+    echo "export H_CCHECK=true"
     echo
     exit 0
 
