@@ -71,7 +71,12 @@ namespace std
     class recursive_mutex
     {
         public:
-            constexpr recursive_mutex() noexcept;
+            constexpr recursive_mutex() noexcept
+                : mtx_{}, lock_level_{}, owner_{}
+            {
+                aux::threading::mutex::init(mtx_);
+            }
+
             ~recursive_mutex();
 
             recursive_mutex(const recursive_mutex&) = delete;
@@ -94,8 +99,42 @@ namespace std
      * 30.4.1.3.1, class timed_mutex:
      */
 
-    // TODO: implement
-    class timed_mutex;
+    class timed_mutex
+    {
+        public:
+            timed_mutex() noexcept;
+            ~timed_mutex();
+
+            timed_mutex(const timed_mutex&) = delete;
+            timed_mutex& operator=(const timed_mutex&) = delete;
+
+            void lock();
+            bool try_lock();
+            void unlock();
+
+            template<class Rep, class Period>
+            bool try_lock_for(const chrono::duration<Rep, Period>& rel_time)
+            {
+                auto time = aux::threading::time::convert(rel_time);
+
+                return aux::threading::mutex::try_lock_for(time);
+            }
+
+            template<class Clock, class Duration>
+            bool try_lock_until(const chrono::time_point<Clock, Duration>& abs_time)
+            {
+                auto dur = (abs_time - Clock::now());
+                auto time = aux::threading::time::convert(dur);
+
+                return aux::threading::mutex::try_lock_for(time);
+            }
+
+            using native_handle_type = aux::mutex_t*;
+            native_handle_type native_handle();
+
+        private:
+            aux::mutex_t mtx_;
+    };
 
     /**
      * 30.4.1.3.2, class recursive_timed_mutex:
