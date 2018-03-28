@@ -30,15 +30,11 @@
 #define LIBCPP_MUTEX
 
 #include <internal/common.hpp>
+#include <internal/thread.hpp>
 #include <thread>
 
 namespace std
 {
-    extern "C" {
-        #include <fibril.h>
-        #include <fibril_synch.h>
-    }
-
     /**
      * 20.4.1.2.1, class mutex:
      */
@@ -46,7 +42,12 @@ namespace std
     class mutex
     {
         public:
-            constexpr mutex() noexcept;
+            constexpr mutex() noexcept
+                : mtx_{}
+            {
+                aux::threading::mutex::init(mtx_);
+            }
+
             ~mutex();
 
             mutex(const mutex&) = delete;
@@ -56,11 +57,11 @@ namespace std
             bool try_lock();
             void unlock();
 
-            using native_handle_type = fibril_mutex_t*;
+            using native_handle_type = aux::mutex_t*;
             native_handle_type native_handle();
 
         private:
-            native_handle_type mtx_;
+            aux::mutex_t mtx_;
     };
 
     /**
@@ -80,11 +81,11 @@ namespace std
             bool try_lock();
             void unlock();
 
-            using native_handle_type = fibril_mutex_t*;
+            using native_handle_type = aux::mutex_t*;
             native_handle_type native_handle();
 
         private:
-            native_handle_type mtx_;
+            aux::mutex_t mtx_;
             size_t lock_level_;
             thread::id owner_;
     };

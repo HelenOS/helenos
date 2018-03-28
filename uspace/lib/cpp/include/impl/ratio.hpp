@@ -88,7 +88,7 @@ namespace std
     class ratio
     {
         public:
-            static_assert(D != 0, "ratio with denominator == 0");
+            /* static_assert(D != 0, "ratio with denominator == 0"); */
 
             static constexpr intmax_t num = aux::sign_v<N> * aux::sign_v<D>
                                             * aux::abs_v<N> / aux::gcd_v<N, D>;

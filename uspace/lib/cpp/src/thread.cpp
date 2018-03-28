@@ -27,8 +27,11 @@
  */
 
 #include <cstdlib>
+#include <exception>
 #include <thread>
 #include <utility>
+
+#include <iostream>
 
 namespace std
 {
@@ -38,30 +41,36 @@ namespace std
 
     thread::~thread()
     {
-        if (joinable())
-        {
-            // TODO: call std::terminate
-        }
+        // TODO: investigate joinable() in detail
+        //       + std::terminate behaves weirdly on HelenOS
+        if (joinable() && false)
+            std::terminate();
 
+        // TODO: check for finished too?
+        // TODO: WAIT! if it's not detached, then
+        //       we are joinable and std::terminate was called?
+        // TODO: review this entire thing
         if (joinable_wrapper_ && !joinable_wrapper_->detached())
             delete joinable_wrapper_;
     }
 
     thread::thread(thread&& other) noexcept
-        : id_{other.id_}
+        : id_{other.id_}, joinable_wrapper_{other.joinable_wrapper_}
     {
-        other.id_ = fid_t{};
+        other.id_ = aux::thread_t{};
+        other.joinable_wrapper_ = nullptr;
     }
 
     thread& thread::operator=(thread&& other) noexcept
     {
         if (joinable())
-        {
-            // TODO: call std::terminate
-        }
+            std::terminate();
 
         id_ = other.id_;
-        other.id_ = fid_t{};
+        other.id_ = aux::thread_t{};
+
+        joinable_wrapper_ = other.joinable_wrapper_;
+        other.joinable_wrapper_ = nullptr;
 
         return *this;
     }
@@ -69,11 +78,12 @@ namespace std
     void thread::swap(thread& other) noexcept
     {
         std::swap(id_, other.id_);
+        std::swap(joinable_wrapper_, other.joinable_wrapper_);
     }
 
     bool thread::joinable() const noexcept
     {
-        return id_ != fid_t{};
+        return id_ != aux::thread_t{};
     }
 
     void thread::join()
@@ -84,7 +94,7 @@ namespace std
 
     void thread::detach()
     {
-        id_ = fid_t{};
+        id_ = aux::thread_t{};
 
         if (joinable_wrapper_)
         {
@@ -123,12 +133,12 @@ namespace std
     {
         thread::id get_id() noexcept
         {
-            return thread::id{fibril_get_id()};
+            return thread::id{aux::threading::thread::this_thread()};
         }
 
         void yield() noexcept
         {
-            fibril_yield();
+            aux::threading::thread::yield();
         }
     }
 

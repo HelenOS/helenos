@@ -30,39 +30,22 @@
 
 namespace std
 {
-    constexpr mutex::mutex() noexcept
-        : mtx_{}
-    {
-        fibril_mutex_initialize(&mtx_);
-    }
-
     mutex::~mutex()
-    {
-        if (fibril_mutex_is_locked(&mtx_))
-        {
-            /**
-             * According to the standard, this is
-             * undefined behavior, we could unlock the
-             * mutex, but that could cause issues if we
-             * are not the current owner.
-             */
-            // fibril_mutex_unlock(&mtx_);
-        }
-    }
+    { /* DUMMY BODY */ }
 
     void mutex::lock()
     {
-        fibril_mutex_lock(&mtx_);
+        aux::threading::mutex::lock(mtx_);
     }
 
     bool mutex::try_lock()
     {
-        return fibril_mutex_trylock(&mtx_);
+        return aux::threading::mutex::try_lock(mtx_);
     }
 
     void mutex::unlock()
     {
-        fibril_mutex_unlock(&mtx_);
+        aux::threading::mutex::unlock(mtx_);
     }
 
     mutex::native_handle_type mutex::native_handle()
@@ -73,7 +56,7 @@ namespace std
     constexpr recursive_mutex::recursive_mutex() noexcept
         : mtx_{}, lock_level_{}, owner_{}
     {
-        fibril_mutex_initialize(&mtx_);
+        aux::threading::mutex::init(mtx_);
     }
 
     recursive_mutex::~recursive_mutex()
@@ -83,7 +66,7 @@ namespace std
     {
         if (owner_ != this_thread::get_id())
         {
-            fibril_mutex_lock(&mtx_);
+            aux::threading::mutex::lock(mtx_);
             owner_ = this_thread::get_id();
             lock_level_ = 1;
         }
@@ -95,7 +78,7 @@ namespace std
     {
         if (owner_ != this_thread::get_id())
         {
-            bool res = fibril_mutex_trylock(&mtx_);
+            bool res = aux::threading::mutex::try_lock(mtx_);
             if (res)
             {
                 owner_ = this_thread::get_id();
@@ -115,7 +98,7 @@ namespace std
         if (owner_ != this_thread::get_id())
             return;
         else if (--lock_level_ == 0)
-            fibril_mutex_unlock(&mtx_);
+            aux::threading::mutex::unlock(mtx_);
     }
 
     recursive_mutex::native_handle_type recursive_mutex::native_handle()

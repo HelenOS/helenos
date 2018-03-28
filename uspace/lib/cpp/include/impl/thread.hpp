@@ -31,15 +31,11 @@
 
 #include <chrono>
 #include <internal/common.hpp>
+#include <internal/thread.hpp>
 #include <ostream>
 
 namespace std
 {
-    extern "C" {
-        #include <fibril.h>
-        #include <fibril_synch.h>
-    }
-
     namespace aux
     {
         template<class Callable>
@@ -58,16 +54,16 @@ namespace std
                     : join_mtx_{}, join_cv_{},
                       finished_{false}, detached_{false}
                 {
-                    fibril_mutex_initialize(&join_mtx_);
-                    fibril_condvar_initialize(&join_cv_);
+                    aux::threading::mutex::init(join_mtx_);
+                    aux::threading::condvar::init(join_cv_);
                 }
 
                 void join()
                 {
-                    fibril_mutex_lock(&join_mtx_);
+                    aux::threading::mutex::lock(join_mtx_);
                     while (!finished_)
-                        fibril_condvar_wait(&join_cv_, &join_mtx_);
-                    fibril_mutex_unlock(&join_mtx_);
+                        aux::threading::condvar::wait(join_cv_, join_mtx_);
+                    aux::threading::mutex::unlock(join_mtx_);
                 }
 
                 bool finished() const
@@ -86,8 +82,8 @@ namespace std
                 }
 
             protected:
-                fibril_mutex_t join_mtx_;
-                fibril_condvar_t join_cv_;
+                aux::mutex_t join_mtx_;
+                aux::condvar_t join_cv_;
                 bool finished_;
                 bool detached_;
         };
@@ -104,11 +100,11 @@ namespace std
                 {
                     callable_();
 
-                    fibril_mutex_lock(&join_mtx_);
+                    aux::threading::mutex::lock(join_mtx_);
                     finished_ = true;
-                    fibril_mutex_unlock(&join_mtx_);
+                    aux::threading::mutex::unlock(join_mtx_);
 
-                    fibril_condvar_broadcast(&join_cv_);
+                    aux::threading::condvar::broadcast(join_cv_);
                 }
 
             private:
@@ -125,7 +121,7 @@ namespace std
         public:
             class id;
 
-            using native_handle_type = fibril_t*;
+            using native_handle_type = aux::thread_t*;
 
             /**
              * 30.3.1.2, thread constructors:
@@ -149,11 +145,13 @@ namespace std
                 auto callable_wrapper = new aux::callable_wrapper<decltype(callable)>{move(callable)};
                 joinable_wrapper_ = static_cast<aux::joinable_wrapper*>(callable_wrapper);
 
-                id_ = fibril_create(
-                        aux::thread_main<decltype(callable_wrapper)>,
-                        static_cast<void*>(callable_wrapper)
+                id_ = aux::threading::thread::create(
+                    aux::thread_main<decltype(callable_wrapper)>,
+                    *callable_wrapper
                 );
-                fibril_add_ready(id_);
+
+                aux::threading::thread::start(id_);
+                // TODO: fibrils are weird here, 2 returns with same thread ids
             }
 
             thread(const thread&) = delete;
@@ -181,7 +179,7 @@ namespace std
             static unsigned hardware_concurrency() noexcept;
 
         private:
-            fid_t id_;
+            aux::thread_t id_;
             aux::joinable_wrapper* joinable_wrapper_{nullptr};
 
             template<class Callable>
@@ -222,9 +220,9 @@ namespace std
         void sleep_until(const chrono::time_point<Clock, Duration>& abs_time)
         {
             auto now = Clock::now();
-            auto usecs = chrono::duration_cast<chrono::duration<typename Duration::rep, micro>>(abs_time - now);
 
-            fibril_usleep(usecs.count());
+            auto time = aux::threading::time::convert(abs_time - now);
+            aux::threading::time::sleep(time);
         }
 
         template<class Rep, class Period>
@@ -234,8 +232,8 @@ namespace std
                 return;
 
             // TODO: timeouts?
-            auto usecs = chrono::duration_cast<chrono::duration<Rep, micro>>(rel_time);
-            fibril_usleep(usecs.count());
+            auto time = aux::threading::time::convert(rel_time);
+            aux::threading::time::sleep(time);
         }
     }
 
