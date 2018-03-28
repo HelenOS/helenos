@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <internal/abi.hpp>
 #include <exception>
+#include <mutex>
 
 namespace __cxxabiv1
 {
@@ -116,6 +117,28 @@ namespace __cxxabiv1
                 }
             }
         }
+    }
+
+    using guard_t = std::uint64_t;
+    std::mutex static_guard_mtx{};
+
+    extern "C" int __cxa_guard_acquire(guard_t* guard)
+    {
+        static_guard_mtx.lock();
+
+        return !*((std::uint8_t*)guard);
+    }
+
+    extern "C" void __cxa_guard_release(guard_t* guard)
+    {
+        *((std::uint8_t*)guard) = 1;
+
+        static_guard_mtx.unlock();
+    }
+
+    extern "C" void __cxa_guard_abort(guard_t* guard)
+    {
+        static_guard_mtx.unlock();
     }
 
     __fundamental_type_info::~__fundamental_type_info()
