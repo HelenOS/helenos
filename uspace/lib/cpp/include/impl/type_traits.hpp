@@ -35,6 +35,15 @@
 
 namespace std
 {
+    template<class T>
+    struct add_rvalue_reference;
+
+    template<class T>
+    using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
+
+    template<class T>
+    add_rvalue_reference_t<T> declval() noexcept;
+
     /**
      * 20.10.3, helper class:
      */
@@ -60,6 +69,9 @@ namespace std
 
     using true_type = integral_constant<bool, true>;
     using false_type = integral_constant<bool, false>;
+
+    template<class...>
+    using void_t = void;
 
     template<class>
     struct remove_cv;
@@ -781,8 +793,17 @@ namespace std
     template<class Base, class Derived>
     inline constexpr bool is_base_of_v = is_base_of<Base, Derived>::value;
 
+    template<class From, class To, class = void>
+    struct is_convertible: false_type
+    { /* DUMMY BODY */ };
+
     template<class From, class To>
-    struct is_convertible;
+    struct is_convertible<From, To, void_t<decltype((To)declval<From>())>>
+        : true_type
+    { /* DUMMY BODY */ };
+
+    template<class From, class To>
+    inline constexpr bool is_convertible_v = is_convertible<From, To>::value;
 
     /**
      * 20.10.7.1, const-volatile modifications:
@@ -866,8 +887,10 @@ namespace std
     struct remove_reference<T&&>: aux::type_is<T>
     { /* DUMMY BODY */ };
 
+    // TODO: is this good?
     template<class T>
-    struct add_lvalue_reference;
+    struct add_lvalue_reference: aux::type_is<T&>
+    { /* DUMMY BODY */ };
 
     // TODO: Special case when T is not referencable!
     template<class T>
@@ -908,7 +931,16 @@ namespace std
      */
 
     template<class T>
-    struct remove_extent;
+    struct remove_extent: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_extent<T[]>: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T, size_t N>
+    struct remove_extent<T[N]>: aux::type_is<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct remove_all_extents;
@@ -924,7 +956,24 @@ namespace std
      */
 
     template<class T>
-    struct remove_pointer;
+    struct remove_pointer: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_pointer<T*>: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_pointer<T* const>: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_pointer<T* volatile>: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_pointer<T* const volatile>: aux::type_is<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct add_pointer;
@@ -938,9 +987,6 @@ namespace std
     /**
      * 20.10.7.6, other transformations:
      */
-
-    template<class...>
-    using void_t = void;
 
     // TODO: consult standard on the default value of align
     template<std::size_t Len, std::size_t Align = 0>
