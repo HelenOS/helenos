@@ -138,7 +138,7 @@ namespace std
             explicit thread(F&& f, Args&&... args)
                 : id_{}
             {
-                auto callable = [](){
+                auto callable = [=](){
                     return f(forward<Args>(args)...);
                 };
 
