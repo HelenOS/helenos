@@ -53,10 +53,11 @@ namespace std::aux
     template<>
     struct threading_policy<fibril_tag>
     {
-        using mutex_type   = fibril_mutex_t;
-        using thread_type  = fid_t;
-        using condvar_type = fibril_condvar_t;
-        using time_unit    = suseconds_t;
+        using mutex_type        = fibril_mutex_t;
+        using thread_type       = fid_t;
+        using condvar_type      = fibril_condvar_t;
+        using time_unit         = suseconds_t;
+        using shared_mutex_type = fibril_rwlock_t;
 
         struct thread
         {
@@ -158,6 +159,59 @@ namespace std::aux
                 fibril_usleep(time);
             }
         };
+
+        struct shared_mutex
+        {
+            static void init(shared_mutex_type& mtx)
+            {
+                fibril_rwlock_initialize(&mtx);
+            }
+
+            static void lock(shared_mutex_type& mtx)
+            {
+                fibril_rwlock_write_lock(&mtx);
+            }
+
+            static void unlock(shared_mutex_type& mtx)
+            {
+                fibril_rwlock_write_unlock(&mtx);
+            }
+
+            static void lock_shared(shared_mutex_type& mtx)
+            {
+                fibril_rwlock_read_lock(&mtx);
+            }
+
+            static void unlock_shared(shared_mutex_type& mtx)
+            {
+                fibril_rwlock_read_unlock(&mtx);
+            }
+
+            static bool try_lock(shared_mutex_type& mtx)
+            {
+                // TODO: rwlocks don't have try locking capabilities
+                lock(mtx);
+
+                return true;
+            }
+
+            static bool try_lock_shared(shared_mutex_type& mtx)
+            {
+                lock(mtx);
+
+                return true;
+            }
+
+            static bool try_lock_for(shared_mutex_type& mtx, time_unit timeout)
+            {
+                return try_lock(mtx);
+            }
+
+            static bool try_lock_shared_for(shared_mutex_type& mtx, time_unit timeout)
+            {
+                return try_lock(mtx);
+            }
+        };
     };
 
     template<>
@@ -169,10 +223,11 @@ namespace std::aux
     using default_tag = fibril_tag;
     using threading = threading_policy<default_tag>;
 
-    using thread_t    = typename threading::thread_type;
-    using mutex_t     = typename threading::mutex_type;
-    using condvar_t   = typename threading::condvar_type;
-    using time_unit_t = typename threading::time_unit;
+    using thread_t       = typename threading::thread_type;
+    using mutex_t        = typename threading::mutex_type;
+    using condvar_t      = typename threading::condvar_type;
+    using time_unit_t    = typename threading::time_unit;
+    using shared_mutex_t = typename threading::shared_mutex_type;
 }
 
 #endif
