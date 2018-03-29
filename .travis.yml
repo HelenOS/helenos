@@ -39,6 +39,7 @@ env:
   global:
     - CROSS_PREFIX=/usr/local/cross-static/
   matrix:
+    - H_CCHECK=true
     - H_ARCH=amd64
     - H_ARCH=arm32/beagleboardxm
     - H_ARCH=arm32/beaglebone
