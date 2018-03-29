@@ -641,8 +641,36 @@ namespace std
         lhs.swap(rhs);
     }
 
+    namespace aux
+    {
+        template<class L>
+        int try_lock_tail(int idx, L& l)
+        {
+            if (!l.try_lock())
+                return idx;
+            else
+                return -1;
+        }
+
+        template<class L1, class... L2>
+        int try_lock_tail(int idx, L1& l1, L2&... ls)
+        {
+            if (!l1.try_lock())
+                return idx;
+
+            auto ret = try_lock_tail(idx + 1, ls...);
+            if (ret != -1)
+                l1.unlock();
+
+            return ret;
+        }
+    }
+
     template<class L1, class L2, class... L3>
-    int try_lock(L1& l1, L2& l2, L3&... ls);
+    int try_lock(L1& l1, L2& l2, L3&... ls)
+    {
+        return aux::try_lock_tail(0, l1, l2, ls...);
+    }
 
     namespace aux
     {
