@@ -197,9 +197,7 @@ elif [ "$1" = "run" ]; then
                 echo "machine =" `echo "$H_ARCH" | cut -d/ -f 2`
             ) >hsct.conf || exit 1
 
-            # "$HOME/helenos-harbours/hsct.sh" init "$H_HELENOS_HOME" "$H_ARCH" build >/dev/null 2>/dev/null || exit 1
-
-            "$HOME/helenos-harbours/hsct.sh" update || exit 1
+            "$HOME/helenos-harbours/hsct.sh" init "$H_HELENOS_HOME" || exit 1
 
             # We cannot flood the output as Travis has limit of maximum output size
             # (reason is to prevent endless stacktraces going forever). But also Travis
