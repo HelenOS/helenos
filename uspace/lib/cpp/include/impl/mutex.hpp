@@ -201,8 +201,63 @@ namespace std
      * 30.4.1.4.1, class shared_timed_mutex:
      */
 
-    // TODO: implement
-    class shared_timed_mutex;
+    class shared_timed_mutex
+    {
+        public:
+            shared_timed_mutex() noexcept;
+            ~shared_timed_mutex();
+
+            shared_timed_mutex(const shared_timed_mutex&) = delete;
+            shared_timed_mutex& operator=(const shared_timed_mutex&) = delete;
+
+            void lock();
+            bool try_lock();
+            void unlock();
+
+            template<class Rep, class Period>
+            bool try_lock_for(const chrono::duration<Rep, Period>& rel_time)
+            {
+                auto time = aux::threading::time::convert(rel_time);
+
+                return aux::threading::shared_mutex::try_lock_for(time);
+            }
+
+            template<class Clock, class Duration>
+            bool try_lock_until(const chrono::time_point<Clock, Duration>& abs_time)
+            {
+                auto dur = (abs_time - Clock::now());
+                auto time = aux::threading::time::convert(dur);
+
+                return aux::threading::shared_mutex::try_lock_for(time);
+            }
+
+            void lock_shared();
+            bool try_lock_shared();
+            void unlock_shared();
+
+            template<class Rep, class Period>
+            bool try_lock_shared_for(const chrono::duration<Rep, Period>& rel_time)
+            {
+                auto time = aux::threading::time::convert(rel_time);
+
+                return aux::threading::shared_mutex::try_lock_shared_for(time);
+            }
+
+            template<class Clock, class Duration>
+            bool try_lock_shared_until(const chrono::time_point<Clock, Duration>& abs_time)
+            {
+                auto dur = (abs_time - Clock::now());
+                auto time = aux::threading::time::convert(dur);
+
+                return aux::threading::shared_mutex::try_lock_shared_for(time);
+            }
+
+            using native_handle_type = aux::shared_mutex_t*;
+            native_handle_type native_handle();
+
+        private:
+            aux::shared_mutex_t mtx_;
+    };
 
     struct defer_lock_t
     { /* DUMMY BODY */ };
