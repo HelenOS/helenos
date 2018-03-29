@@ -98,7 +98,7 @@ doxy:
 	$(MAKE) -r -C doxygen
 
 # Pre-integration build check
-check: $(CHECK)
+check: ccheck $(CHECK)
 ifdef JOBS
 	$(CHECK) -j $(JOBS)
 else
