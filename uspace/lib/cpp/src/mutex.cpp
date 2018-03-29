@@ -30,9 +30,6 @@
 
 namespace std
 {
-    mutex::~mutex()
-    { /* DUMMY BODY */ }
-
     void mutex::lock()
     {
         aux::threading::mutex::lock(mtx_);

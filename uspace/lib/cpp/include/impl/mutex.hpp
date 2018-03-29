@@ -29,6 +29,7 @@
 #ifndef LIBCPP_MUTEX
 #define LIBCPP_MUTEX
 
+#include <functional>
 #include <internal/common.hpp>
 #include <internal/thread.hpp>
 #include <thread>
@@ -48,7 +49,7 @@ namespace std
                 aux::threading::mutex::init(mtx_);
             }
 
-            ~mutex();
+            ~mutex() = default;
 
             mutex(const mutex&) = delete;
             mutex& operator=(const mutex&) = delete;
@@ -711,14 +712,34 @@ namespace std
 
     struct once_flag
     {
-        constexpr once_flag() noexcept;
+        constexpr once_flag() noexcept
+            : called_{false}, mtx_{}
+        { /* DUMMY BODY */ }
 
         once_flag(const once_flag&) = delete;
         once_flag& operator=(const once_flag&) = delete;
+
+        private:
+            bool called_;
+            mutex mtx_;
+
+            template<class Callable, class... Args>
+            friend void call_once(once_flag&, Callable&&, Args&&...);
     };
 
     template<class Callable, class... Args>
-    void call_once(once_flag& flag, Callable&& func, Args&&... args);
+    void call_once(once_flag& flag, Callable&& func, Args&&... args)
+    {
+        flag.mtx_.lock();
+        if (!flag.called_)
+        {
+            // TODO: exception handling
+
+            aux::invoke(forward<Callable>(func), forward<Args>(args)...);
+            flag.called_ = true;
+        }
+        flag.mtx_.unlock();
+    }
 }
 
 #endif
