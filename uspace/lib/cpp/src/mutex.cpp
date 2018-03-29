@@ -68,7 +68,7 @@ namespace std
             ++lock_level_;
     }
 
-    bool recursive_mutex::try_lock()
+    bool recursive_mutex::try_lock() noexcept
     {
         if (owner_ != this_thread::get_id())
         {
@@ -125,6 +125,53 @@ namespace std
     }
 
     timed_mutex::native_handle_type timed_mutex::native_handle()
+    {
+        return &mtx_;
+    }
+
+    recursive_timed_mutex::~recursive_timed_mutex()
+    { /* DUMMY BODY */ }
+
+    void recursive_timed_mutex::lock()
+    {
+        if (owner_ != this_thread::get_id())
+        {
+            aux::threading::mutex::lock(mtx_);
+            owner_ = this_thread::get_id();
+            lock_level_ = 1;
+        }
+        else
+            ++lock_level_;
+    }
+
+    bool recursive_timed_mutex::try_lock()
+    {
+        if (owner_ != this_thread::get_id())
+        {
+            bool res = aux::threading::mutex::try_lock(mtx_);
+            if (res)
+            {
+                owner_ = this_thread::get_id();
+                lock_level_ = 1;
+            }
+
+            return res;
+        }
+        else
+            ++lock_level_;
+
+        return true;
+    }
+
+    void recursive_timed_mutex::unlock()
+    {
+        if (owner_ != this_thread::get_id())
+            return;
+        else if (--lock_level_ == 0)
+            aux::threading::mutex::unlock(mtx_);
+    }
+
+    recursive_timed_mutex::native_handle_type recursive_timed_mutex::native_handle()
     {
         return &mtx_;
     }

@@ -83,7 +83,7 @@ namespace std
             recursive_mutex& operator=(const recursive_mutex&) = delete;
 
             void lock();
-            bool try_lock();
+            bool try_lock() noexcept;
             void unlock();
 
             using native_handle_type = aux::mutex_t*;
@@ -140,8 +140,61 @@ namespace std
      * 30.4.1.3.2, class recursive_timed_mutex:
      */
 
-    // TODO: implement
-    class recursive_timed_mutex;
+    class recursive_timed_mutex
+    {
+        public:
+            recursive_timed_mutex() noexcept
+                : mtx_{}, lock_level_{}, owner_{}
+            {
+                aux::threading::mutex::init(mtx_);
+            }
+
+            ~recursive_timed_mutex();
+
+            recursive_timed_mutex(const recursive_timed_mutex&) = delete;
+            recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
+
+            void lock();
+            bool try_lock();
+            void unlock();
+
+            template<class Rep, class Period>
+            bool try_lock_for(const chrono::duration<Rep, Period>& rel_time)
+            {
+                if (owner_ == this_thread::get_id())
+                    return true;
+
+                auto time = aux::threading::time::convert(rel_time);
+                auto ret = aux::threading::mutex::try_lock_for(time);
+
+                if (ret)
+                    ++lock_level_;
+                return ret;
+            }
+
+            template<class Clock, class Duration>
+            bool try_lock_until(const chrono::time_point<Clock, Duration>& abs_time)
+            {
+                if (owner_ == this_thread::get_id())
+                    return true;
+
+                auto dur = (abs_time - Clock::now());
+                auto time = aux::threading::time::convert(dur);
+                auto ret = aux::threading::mutex::try_lock_for(time);
+
+                if (ret)
+                    ++lock_level_;
+                return ret;
+            }
+
+            using native_handle_type = aux::mutex_t*;
+            native_handle_type native_handle();
+
+        private:
+            aux::mutex_t mtx_;
+            size_t lock_level_;
+            thread::id owner_;
+    };
 
     struct defer_lock_t
     { /* DUMMY BODY */ };
