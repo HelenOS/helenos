@@ -196,6 +196,13 @@ namespace std
             thread::id owner_;
     };
 
+    /**
+     * 30.4.1.4.1, class shared_timed_mutex:
+     */
+
+    // TODO: implement
+    class shared_timed_mutex;
+
     struct defer_lock_t
     { /* DUMMY BODY */ };
 
@@ -247,10 +254,207 @@ namespace std
     };
 
     template<class Mutex>
-    class unique_lock;
+    class unique_lock
+    {
+        public:
+            using mutex_type = Mutex;
+
+            /**
+             * 30.4.2.2.1, construction/copy/destroy:
+             */
+
+            unique_lock() noexcept
+                : mtx_{nullptr}, owns_{false}
+            { /* DUMMY BODY */ }
+
+            explicit unique_lock(mutex_type& mtx)
+                : mtx_{&mtx}, owns_{true}
+            {
+                mtx_->lock();
+            }
+
+            unique_lock(mutex_type& mtx, defer_lock_t) noexcept
+                : mtx_{&mtx}, owns_{false}
+            { /* DUMMY BODY */ }
+
+            unique_lock(mutex_type& mtx, try_to_lock_t)
+                : mtx_{&mtx}, owns_{}
+            {
+                owns_ = mtx_->try_lock();
+            }
+
+            unique_lock(mutex_type& mtx, adopt_lock_t)
+                : mtx_{&mtx}, owns_{true}
+            { /* DUMMY BODY */ }
+
+            template<class Clock, class Duration>
+            unique_lock(mutex_type& mtx, const chrono::time_point<Clock, Duration>& abs_time)
+                : mtx_{&mtx}, owns_{}
+            {
+                owns_ = mtx_->try_lock_until(abs_time);
+            }
+
+            template<class Rep, class Period>
+            unique_lock(mutex_type& mtx, const chrono::duration<Rep, Period>& rel_time)
+                : mtx_{&mtx}, owns_{}
+            {
+                owns_ = mtx_->try_lock_for(rel_time);
+            }
+
+            ~unique_lock()
+            {
+                if (owns_)
+                    mtx_->unlock();
+            }
+
+            unique_lock(const unique_lock&) = delete;
+            unique_lock& operator=(const unique_lock&) = delete;
+
+            unique_lock(unique_lock&& other) noexcept
+                : mtx_{move(other.mtx_)}, owns_{move(other.owns_)}
+            {
+                other.mtx_ = nullptr;
+                other.owns_ = false;
+            }
+
+            unique_lock& operator=(unique_lock&& other)
+            {
+                if (owns_)
+                    mtx_->unlock();
+
+                mtx_ = move(other.mtx_);
+                owns_ = move(other.owns_);
+
+                other.mtx_ = nullptr;
+                other.owns_ = false;
+            }
+
+            /**
+             * 30.4.2.2.2, locking:
+             */
+
+            void lock()
+            {
+                /**
+                 * TODO:
+                 * throw system_error operation_not_permitted if mtx_ == nullptr
+                 * throw system_error resource_deadlock_would_occur if owns_ == true
+                 */
+
+                mtx_->lock();
+                owns_ = true;
+            }
+
+            bool try_lock()
+            {
+                /**
+                 * TODO:
+                 * throw system_error operation_not_permitted if mtx_ == nullptr
+                 * throw system_error resource_deadlock_would_occur if owns_ == true
+                 */
+
+                owns_ = mtx_->try_lock();
+
+                return owns_;
+            }
+
+            template<class Rep, class Period>
+            bool try_lock_for(const chrono::duration<Rep, Period>& rel_time)
+            {
+                /**
+                 * TODO:
+                 * throw system_error operation_not_permitted if mtx_ == nullptr
+                 * throw system_error resource_deadlock_would_occur if owns_ == true
+                 */
+
+                owns_ = mtx_->try_lock_for(rel_time);
+
+                return owns_;
+            }
+
+            template<class Clock, class Duration>
+            bool try_lock_until(const chrono::time_point<Clock, Duration>& abs_time)
+            {
+                /**
+                 * TODO:
+                 * throw system_error operation_not_permitted if mtx_ == nullptr
+                 * throw system_error resource_deadlock_would_occur if owns_ == true
+                 */
+
+                owns_ = mtx_->try_lock_until(abs_time);
+
+                return owns_;
+            }
+
+            void unlock();
+            {
+                /**
+                 * TODO:
+                 * throw system_error operation_not_permitted if owns_ == false
+                 */
+
+                mtx_->unlock();
+            }
+
+            /**
+             * 30.4.2.2.3, modifiers:
+             */
+
+            void swap(unique_lock& other) noexcept
+            {
+                std::swap(mtx_, other.mtx_);
+                std::swap(owns_, other.owns_);
+            }
+
+            mutex_type* release() noexcept
+            {
+                auto ret = mtx_;
+                mtx_ = nullptr;
+                owns_ = false;
+
+                return ret;
+            }
+
+            /**
+             * 30.4.2.2.4, observers:
+             */
+
+            bool owns_lock() const noexcept
+            {
+                return owns_;
+            }
+
+            explicit operator bool() const noexcept
+            {
+                return owns_;
+            }
+
+            mutex_type* mutex() const noexcept
+            {
+                return mtx_;
+            }
+
+        private:
+            mutex_type* mtx_;
+            bool owns_;
+    };
 
     template<class Mutex>
-    void swap(unique_lock<Mutex>& lhs, unique_lock<Mutex>& rhs) noexcept;
+    void swap(unique_lock<Mutex>& lhs, unique_lock<Mutex>& rhs) noexcept
+    {
+        lhs.swap(rhs);
+    }
+
+    /**
+     * 30.4.2.3, class template shared_lock:
+     */
+
+    // TODO:
+    template<class Mutex>
+    class shared_lock;
+
+    template<class Mutex>
+    void swap(shared_lock<Mutex>& lhs, shared_lock<Mutex>& rhs) noexcept;
 
     template<class L1, class L2, class... L3>
     int try_lock(L1& l1, L2& l2, L3&... ls);
