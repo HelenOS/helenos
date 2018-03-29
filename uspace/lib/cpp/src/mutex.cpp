@@ -144,7 +144,7 @@ namespace std
             ++lock_level_;
     }
 
-    bool recursive_timed_mutex::try_lock()
+    bool recursive_timed_mutex::try_lock() noexcept
     {
         if (owner_ != this_thread::get_id())
         {

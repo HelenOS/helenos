@@ -155,7 +155,7 @@ namespace std
             recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
 
             void lock();
-            bool try_lock();
+            bool try_lock() noexcept;
             void unlock();
 
             template<class Rep, class Period>
