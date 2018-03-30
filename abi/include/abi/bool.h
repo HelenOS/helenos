@@ -35,7 +35,9 @@
 #ifndef ABI_BOOL_H_
 #define ABI_BOOL_H_
 
+#ifndef __cplusplus
 #define bool _Bool
+#endif
 
 #endif
 
