@@ -287,7 +287,7 @@ namespace std
 
     namespace aux
     {
-        template<size_t I>
+        template<size_t I, size_t N>
         struct tuple_ops
         {
             template<class T, class U>
@@ -295,7 +295,7 @@ namespace std
             {
                 get<I>(forward<T>(lhs)) = get<I>(forward<U>(rhs));
 
-                tuple_ops<I - 1>::assign(forward<T>(lhs), forward<U>(rhs));
+                tuple_ops<I + 1, N>::assign(forward<T>(lhs), forward<U>(rhs));
             }
 
             template<class T, class U>
@@ -303,30 +303,48 @@ namespace std
             {
                 std::swap(get<I>(lhs), get<I>(rhs));
 
-                tuple_ops<I - 1>::swap(lhs, rhs);
+                tuple_ops<I + 1, N>::swap(lhs, rhs);
             }
 
-            // TODO: for rel ops we will need this to be ascending, not descending
             template<class T, class U>
-            static bool eq(const T& lhs, const T& rhs)
+            static bool eq(const T& lhs, const U& rhs)
             {
-                return (get<I>(lhs) == get<I>(rhs)) && tuple_ops<I - 1>::eq(lhs, rhs);
+                return (get<I>(lhs) == get<I>(rhs)) && tuple_ops<I + 1, N>::eq(lhs, rhs);
+            }
+
+            template<class T, class U>
+            static bool lt(const T& lhs, const U& rhs)
+            {
+                return (get<I>(lhs) < get<I>(rhs)) ||
+                    (!(get<I>(rhs) < get<I>(lhs)) && tuple_ops<I + 1, N>::lt(lhs, rhs));
             }
         };
 
-        template<>
-        struct tuple_ops<0>
+        template<size_t N>
+        struct tuple_ops<N, N>
         {
             template<class T, class U>
             static void assign(T&& lhs, U&& rhs)
             {
-                get<0>(forward<T>(lhs)) = get<0>(forward<U>(rhs));
+                get<N>(forward<T>(lhs)) = get<N>(forward<U>(rhs));
             }
 
             template<class T, class U>
             static void swap(T& lhs, U& rhs)
             {
-                std::swap(get<0>(lhs), get<0>(rhs));
+                std::swap(get<N>(lhs), get<N>(rhs));
+            }
+
+            template<class T, class U>
+            static bool eq(const T& lhs, const U& rhs)
+            {
+                return get<N>(lhs) == get<N>(rhs);
+            }
+
+            template<class T, class U>
+            static bool lt(const T& lhs, const U& rhs)
+            {
+                return get<N>(lhs) < get<N>(rhs);
             }
         };
     }
@@ -373,7 +391,8 @@ namespace std
             /*     : base_t(forward<tuple<Us>>(tpl)...) */
             //{ /* DUMMY BODY */ }
 
-            template<class U1, class U2, class = enable_if_t<sizeof...(Ts) == 2, void>>
+            // TODO: pair related construction and assignment needs convertibility, not size
+            template<class U1, class U2>
             constexpr tuple(const pair<U1, U2>& p)
                 : base_t{}
             {
@@ -381,7 +400,7 @@ namespace std
                 get<1>(*this) = p.second;
             }
 
-            template<class U1, class U2, class = enable_if_t<sizeof...(Ts) == 2, void>>
+            template<class U1, class U2>
             constexpr tuple(pair<U1, U2>&& p)
                 : base_t{}
             {
@@ -397,14 +416,14 @@ namespace std
 
             tuple& operator=(const tuple& other)
             {
-                aux::tuple_ops<sizeof...(Ts) - 1>::assign(*this, other);
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign(*this, other);
 
                 return *this;
             }
 
             tuple& operator=(tuple&& other) noexcept(aux::tuple_noexcept_assignment<Ts...>::value)
             {
-                aux::tuple_ops<sizeof...(Ts) - 1>::assign(*this, forward<tuple>(other));
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign(*this, forward<tuple>(other));
 
                 return *this;
             }
@@ -412,7 +431,7 @@ namespace std
             template<class... Us>
             tuple& operator=(const tuple<Us...>& other)
             {
-                aux::tuple_ops<sizeof...(Ts) - 1>::assign(*this, other);
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign(*this, other);
 
                 return *this;
             }
@@ -420,19 +439,19 @@ namespace std
             template<class... Us>
             tuple& operator=(tuple<Us...>&& other)
             {
-                aux::tuple_ops<sizeof...(Ts) - 1>::assign(*this, forward<Us>(other)...);
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign(*this, forward<Us>(other)...);
 
                 return *this;
             }
 
-            template<class U1, class U2, class = enable_if_t<sizeof...(Ts) == 2, void>>
+            template<class U1, class U2>
             tuple& operator=(const pair<U1, U2>& p)
             {
                 get<0>(*this) = p.first;
                 get<1>(*this) = p.second;
             }
 
-            template<class U1, class U2, class = enable_if_t<sizeof...(Ts) == 2, void>>
+            template<class U1, class U2>
             tuple& operator=(pair<U1, U2>&& p)
             {
                 get<0>(*this) = forward<U1>(p.first);
@@ -445,7 +464,7 @@ namespace std
 
             void swap(tuple& other) noexcept(aux::tuple_noexcept_swap<Ts...>::value)
             {
-                aux::tuple_ops<sizeof...(Ts) - 1>::swap(*this, other);
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::swap(*this, other);
             }
     };
 
@@ -454,22 +473,46 @@ namespace std
      */
 
     template<class... Ts, class... Us>
-    constexpr bool operator==(const tuple<Ts...>& lhs, const tuple<Us...> rhs);
+    constexpr bool operator==(const tuple<Ts...>& lhs, const tuple<Us...> rhs)
+    {
+        if constexpr (sizeof...(Ts) == 0)
+            return true;
+        else
+            return aux::tuple_ops<0, sizeof...(Ts) - 1>::eq(lhs, rhs);
+    }
 
     template<class... Ts, class... Us>
-    constexpr bool operator<(const tuple<Ts...>& lhs, const tuple<Us...> rhs);
+    constexpr bool operator<(const tuple<Ts...>& lhs, const tuple<Us...> rhs)
+    {
+        if constexpr (sizeof...(Ts) == 0)
+            return false;
+        else
+            return aux::tuple_ops<0, sizeof...(Ts) - 1>::lt(lhs, rhs);
+    }
 
     template<class... Ts, class... Us>
-    constexpr bool operator!=(const tuple<Ts...>& lhs, const tuple<Us...> rhs);
+    constexpr bool operator!=(const tuple<Ts...>& lhs, const tuple<Us...> rhs)
+    {
+        return !(lhs == rhs);
+    }
 
     template<class... Ts, class... Us>
-    constexpr bool operator>(const tuple<Ts...>& lhs, const tuple<Us...> rhs);
+    constexpr bool operator>(const tuple<Ts...>& lhs, const tuple<Us...> rhs)
+    {
+        return rhs < lhs;
+    }
 
     template<class... Ts, class... Us>
-    constexpr bool operator<=(const tuple<Ts...>& lhs, const tuple<Us...> rhs);
+    constexpr bool operator<=(const tuple<Ts...>& lhs, const tuple<Us...> rhs)
+    {
+        return !(rhs < lhs);
+    }
 
     template<class... Ts, class... Us>
-    constexpr bool operator>=(const tuple<Ts...>& lhs, const tuple<Us...> rhs);
+    constexpr bool operator>=(const tuple<Ts...>& lhs, const tuple<Us...> rhs)
+    {
+        return !(lhs < rhs);
+    }
 
     /**
      * 20.4.2.8, allocator-related traits:
