@@ -130,9 +130,9 @@ namespace std::aux
                 fibril_condvar_wait(&cv, &mtx);
             }
 
-            static void wait_for(condvar_type& cv, mutex_type& mtx, time_unit timeout)
+            static int wait_for(condvar_type& cv, mutex_type& mtx, time_unit timeout)
             {
-                fibril_condvar_wait_timeout(&cv, &mtx, timeout);
+                return fibril_condvar_wait_timeout(&cv, &mtx, timeout);
             }
 
             static void signal(condvar_type& cv)
