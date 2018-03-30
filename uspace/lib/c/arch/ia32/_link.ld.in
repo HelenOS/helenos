@@ -6,10 +6,8 @@ ENTRY(__entry)
 PHDRS {
 #if defined(LOADER) || defined(DLEXE)
 	interp PT_INTERP;
-	text PT_LOAD FILEHDR PHDRS FLAGS(5);
-#else
-	text PT_LOAD FLAGS(5);
 #endif
+	text PT_LOAD FILEHDR PHDRS FLAGS(5);
 	data PT_LOAD FLAGS(6);
 	tls PT_TLS;
 #if defined(SHLIB) || defined(DLEXE)
@@ -20,10 +18,14 @@ PHDRS {
 
 SECTIONS {
 #ifdef LOADER
-	. = 0x70001000 + SIZEOF_HEADERS;
+	. = SEGMENT_START("text-segment", 0x70400000);
 #else
-	. = 0x1000 + SIZEOF_HEADERS;
+	. = SEGMENT_START("text-segment", 0x400000);
 #endif
+#ifndef SHLIB
+	PROVIDE (__executable_start = .);
+#endif
+	. = . + SIZEOF_HEADERS;
 
 	.init : {
 		*(.init);

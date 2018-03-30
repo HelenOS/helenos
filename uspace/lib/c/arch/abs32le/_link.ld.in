@@ -4,19 +4,21 @@ ENTRY(__entry)
 PHDRS {
 #ifdef LOADER
 	interp PT_INTERP;
-	text PT_LOAD FILEHDR PHDRS FLAGS(5);
-#else
-	text PT_LOAD FLAGS(5);
 #endif
+	text PT_LOAD FILEHDR PHDRS FLAGS(5);
 	data PT_LOAD FLAGS(6);
 }
 
 SECTIONS {
 #ifdef LOADER
-	. = 0x70001000 + SIZEOF_HEADERS;
+	. = SEGMENT_START("text-segment", 0x70400000);
 #else
-	. = 0x1000 + SIZEOF_HEADERS;
+	. = SEGMENT_START("text-segment", 0x400000);
 #endif
+#ifndef SHLIB
+	PROVIDE (__executable_start = .);
+#endif
+	. = . + SIZEOF_HEADERS;
 
 	.text : {
 		*(.text .text.*);
