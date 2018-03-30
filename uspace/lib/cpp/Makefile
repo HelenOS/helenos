@@ -37,6 +37,7 @@ SOVERSION = 0.0
 -include $(CONFIG_MAKEFILE)
 
 SOURCES = \
+	src/condition_variable.cpp \
 	src/exception.cpp \
 	src/ios.cpp \
 	src/iostream.cpp \
