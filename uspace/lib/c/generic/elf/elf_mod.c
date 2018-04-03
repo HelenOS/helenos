@@ -74,7 +74,6 @@ static const char *error_codes[] = {
 
 static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias);
 static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry);
-static int section_header(elf_ld_t *elf, elf_section_header_t *entry);
 static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
 
 /** Load ELF binary from a file.
@@ -182,12 +181,6 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 		return EE_INCOMPATIBLE;
 	}
 
-	if (header->e_shentsize != sizeof(elf_section_header_t)) {
-		DPRINTF("e_shentsize: %u != %zu\n", header->e_shentsize,
-		    sizeof(elf_section_header_t));
-		return EE_INCOMPATIBLE;
-	}
-
 	/* Check if the object type is supported. */
 	if (header->e_type != ET_EXEC && header->e_type != ET_DYN) {
 		DPRINTF("Object type %d is not supported\n", header->e_type);
@@ -216,25 +209,6 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 		}
 
 		ret = segment_header(elf, &segment_hdr);
-		if (ret != EE_OK)
-			return ret;
-	}
-
-	DPRINTF("Parse sections.\n");
-
-	/* Inspect all section headers and proccess them. */
-	for (i = 0; i < header->e_shnum; i++) {
-		elf_section_header_t section_hdr;
-
-		pos = header->e_shoff + i * sizeof(elf_section_header_t);
-		rc = vfs_read(elf->fd, &pos, &section_hdr,
-		    sizeof(elf_section_header_t), &nr);
-		if (rc != EOK || nr != sizeof(elf_section_header_t)) {
-			DPRINTF("Read error.\n");
-			return EE_IO;
-		}
-
-		ret = section_header(elf, &section_hdr);
 		if (ret != EE_OK)
 			return ret;
 	}
@@ -422,40 +396,6 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		/* Enforce SMC coherence for the segment */
 		if (smc_coherence(seg_ptr, entry->p_filesz))
 			return EE_MEMORY;
-	}
-
-	return EE_OK;
-}
-
-/** Process section header.
- *
- * @param elf	Loader state.
- * @param entry Segment header.
- *
- * @return EE_OK on success, error code otherwise.
- */
-static int section_header(elf_ld_t *elf, elf_section_header_t *entry)
-{
-	switch (entry->sh_type) {
-	case SHT_PROGBITS:
-		if (entry->sh_flags & SHF_TLS) {
-			/* .tdata */
-		}
-		break;
-	case SHT_NOBITS:
-		if (entry->sh_flags & SHF_TLS) {
-			/* .tbss */
-		}
-		break;
-	case SHT_DYNAMIC:
-		/* Record pointer to dynamic section into info structure */
-		elf->info->dynamic =
-		    (void *)((uint8_t *)entry->sh_addr + elf->bias);
-		DPRINTF("Dynamic section found at %p.\n",
-		    (void *) elf->info->dynamic);
-		break;
-	default:
-		break;
 	}
 
 	return EE_OK;
