@@ -7,6 +7,7 @@ PHDRS {
 #endif
 	text PT_LOAD FILEHDR PHDRS FLAGS(5);
 	data PT_LOAD FLAGS(6);
+	tls PT_TLS;
 }
 
 SECTIONS {
@@ -39,16 +40,16 @@ SECTIONS {
 	} :data
 
 	.tdata : {
-		_tdata_start = .;
 		*(.tdata);
-		*(.gnu.linkonce.tb.*);
-		_tdata_end = .;
-		_tbss_start = .;
-		*(.tbss);
-		_tbss_end = .;
-	} :data
+		*(.tdata.*);
+		*(.gnu.linkonce.td.*);
+	} :data :tls
 
-	_tls_alignment = ALIGNOF(.tdata);
+	.tbss : {
+		*(.tbss);
+		*(.tbss.*);
+		*(.gnu.linkonce.tb.*);
+	} :data :tls
 
 	.sbss : {
 		*(.scommon);

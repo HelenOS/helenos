@@ -40,6 +40,7 @@
 #include <tls.h>
 #include <stdlib.h>
 #include <str.h>
+#include <elf/elf.h>
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
@@ -51,7 +52,10 @@ size_t tls_get_size(void)
 	if (runtime_env != NULL)
 		return runtime_env->tls_size;
 #endif
-	return &_tbss_end - &_tdata_start;
+
+	const elf_segment_header_t *tls =
+	    elf_get_phdr(__executable_start, PT_TLS);
+	return tls->p_memsz;
 }
 
 /** Get address of static TLS block */
@@ -72,26 +76,29 @@ tcb_t *tls_make(void)
 {
 	void *data;
 	tcb_t *tcb;
-	size_t tls_size = &_tbss_end - &_tdata_start;
 
 #ifdef CONFIG_RTLD
 	if (runtime_env != NULL)
 		return rtld_tls_make(runtime_env);
 #endif
 
-	tcb = tls_alloc_arch(&data, tls_size);
-	if (!tcb)
+	const elf_segment_header_t *tls =
+	    elf_get_phdr(__executable_start, PT_TLS);
+	if (tls == NULL)
 		return NULL;
+
+	uintptr_t bias = elf_get_bias(__executable_start);
+
+	tcb = tls_alloc_arch(&data, tls->p_memsz);
 
 	/*
 	 * Copy thread local data from the initialization image.
 	 */
-	memcpy(data, &_tdata_start, &_tdata_end - &_tdata_start);
+	memcpy(data, (void *)(tls->p_vaddr + bias), tls->p_filesz);
 	/*
 	 * Zero out the thread local uninitialized data.
 	 */
-	memset(data + (&_tbss_start - &_tdata_start), 0,
-	    &_tbss_end - &_tbss_start);
+	memset(data + tls->p_filesz, 0, tls->p_memsz - tls->p_filesz);
 
 	return tcb;
 }
@@ -150,8 +157,10 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
 {
 	tcb_t *tcb;
 
-	size = ALIGN_UP(size, &_tls_alignment);
-	*data = memalign((uintptr_t) &_tls_alignment, sizeof(tcb_t) + size);
+	uintptr_t align = elf_get_phdr(__executable_start, PT_TLS)->p_align;
+
+	size = ALIGN_UP(size, align);
+	*data = memalign(align, sizeof(tcb_t) + size);
 	if (*data == NULL)
 		return NULL;
 	tcb = (tcb_t *) (*data + size);
@@ -170,7 +179,8 @@ tcb_t * tls_alloc_variant_2(void **data, size_t size)
  */
 void tls_free_variant_2(tcb_t *tcb, size_t size)
 {
-	size = ALIGN_UP(size, &_tls_alignment);
+	uintptr_t align = elf_get_phdr(__executable_start, PT_TLS)->p_align;
+	size = ALIGN_UP(size, align);
 	void *start = ((void *) tcb) - size;
 	free(start);
 }

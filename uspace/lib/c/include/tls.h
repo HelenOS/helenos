@@ -42,15 +42,6 @@
 /** DTV Generation number - equals vector length */
 #define DTV_GN(dtv) (((uintptr_t *)(dtv))[0])
 
-/*
- * Symbols defined in the respective linker script.
- */
-extern char _tls_alignment;
-extern char _tdata_start;
-extern char _tdata_end;
-extern char _tbss_start;
-extern char _tbss_end;
-
 extern tcb_t *tls_make(void);
 extern tcb_t *tls_alloc_arch(void **, size_t);
 extern void tls_free(tcb_t *);

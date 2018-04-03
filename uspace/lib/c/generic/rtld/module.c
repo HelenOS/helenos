@@ -69,10 +69,14 @@ errno_t module_create_static_exec(rtld_t *rtld, module_t **rmodule)
 	module->exec = true;
 	module->local = true;
 
-	module->tdata = &_tdata_start;
-	module->tdata_size = &_tdata_end - &_tdata_start;
-	module->tbss_size = &_tbss_end - &_tbss_start;
-	module->tls_align = (uintptr_t)&_tls_alignment;
+	const elf_segment_header_t *tls =
+	    elf_get_phdr(__executable_start, PT_TLS);
+	uintptr_t bias = elf_get_bias(__executable_start);
+
+	module->tdata = (void *) (tls->p_vaddr + bias);
+	module->tdata_size = tls->p_filesz;
+	module->tbss_size = tls->p_memsz - tls->p_filesz;
+	module->tls_align = tls->p_align;
 
 	list_append(&module->modules_link, &rtld->modules);
 

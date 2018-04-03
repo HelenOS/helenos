@@ -40,6 +40,11 @@
 #include <abi/elf.h>
 #include <libarch/elf.h>
 
+extern const uint8_t __executable_start[];
+
+extern const elf_segment_header_t *elf_get_phdr(const void *, unsigned);
+extern uintptr_t elf_get_bias(const void *);
+
 #endif
 
 /** @}
