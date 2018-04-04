@@ -1,6 +1,7 @@
 #!/bin/sh
 
-function usage {
+usage()
+{
 	echo "Usage:"
 	echo
 	echo "	$0 search_pattern [-- <pathspec> ]"
@@ -13,13 +14,13 @@ function usage {
 }
 
 
-if [ "$1" == "--" ]; then
+if [ "$1" = "--" ]; then
 	usage
-elif [ "$#" -eq 1 ]  || [ "$2" == "--" ]; then
+elif [ "$#" -eq 1 ]  || [ "$2" = "--" ]; then
 	pattern="$1"
 	shift
 	git grep -I -n "$pattern" "$@"
-elif [ "$#" -eq 2 ] || [ "$3" == "--" ]; then
+elif [ "$#" -eq 2 ] || [ "$3" = "--" ]; then
 
 	if ( git status --porcelain | grep '^.[^ ]' ); then
 		echo "You have unstaged changes in your tree."
