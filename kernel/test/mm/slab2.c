@@ -140,7 +140,7 @@ static void slabtest(void *priv)
 	thread_detach(THREAD);
 
 	mutex_lock(&starter_mutex);
-	condvar_wait(&thread_starter,&starter_mutex);
+	condvar_wait(&thread_starter, &starter_mutex);
 	mutex_unlock(&starter_mutex);
 
 	TPRINTF("Starting thread #%" PRIu64 "...\n", THREAD->tid);
@@ -208,7 +208,7 @@ static void multitest(int size)
 	mutex_initialize(&starter_mutex, MUTEX_PASSIVE);
 
 	thr_cache = slab_cache_create("thread_cache", size, 0, NULL, NULL, 0);
-	semaphore_initialize(&thr_sem,0);
+	semaphore_initialize(&thr_sem, 0);
 	for (i = 0; i < THREADS; i++) {
 		if (!(t = thread_create(slabtest, NULL, TASK, THREAD_FLAG_NONE, "slabtest"))) {
 			TPRINTF("Could not create thread %d\n", i);

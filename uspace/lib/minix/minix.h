@@ -112,7 +112,7 @@ struct mfs_superblock {
 	uint16_t	s_state;
 	/* Total number of zones on the device (V2 only) */
 	uint32_t	s_nzones2;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 
 /* MFS V3 superblock data on disk */
@@ -143,7 +143,7 @@ struct mfs3_superblock {
 	uint16_t	s_block_size;
 	/* Filesystem disk format version */
 	int8_t		s_disk_version;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 /* MinixFS V1 inode structure as it is on disk */
 struct mfs_inode {
@@ -157,7 +157,7 @@ struct mfs_inode {
 	uint16_t	i_dzone[V1_NR_DIRECT_ZONES];
 	/* Block numbers for indirect zones */
 	uint16_t	i_izone[V1_NR_INDIRECT_ZONES];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 /* MinixFS V2 inode structure as it is on disk (also valid for V3). */
 struct mfs2_inode {
@@ -173,7 +173,7 @@ struct mfs2_inode {
 	uint32_t	i_dzone[V2_NR_DIRECT_ZONES];
 	/* Block numbers for indirect zones */
 	uint32_t	i_izone[V2_NR_INDIRECT_ZONES];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 /* MinixFS V1/V2 directory entry on-disk structure */
 struct mfs_dentry {

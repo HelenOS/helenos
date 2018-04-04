@@ -60,7 +60,7 @@ int cmd_pwd(char *argv[])
 
 	if (vfs_cwd_get(buff, PATH_MAX) != EOK) {
 		cli_error(CL_EFAIL,
-			"Unable to determine the current working directory");
+		    "Unable to determine the current working directory");
 		free(buff);
 		return CMD_FAILURE;
 	} else {

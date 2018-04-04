@@ -47,8 +47,8 @@ NO_TRACE static inline uint64_t ver_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rdpr %%ver, %[v]\n"
-		: [v] "=r" (v)
+	    "rdpr %%ver, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;

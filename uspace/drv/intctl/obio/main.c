@@ -115,32 +115,32 @@ static errno_t obio_dev_add(ddf_dev_t *dev)
 
 static errno_t obio_dev_remove(ddf_dev_t *dev)
 {
-        obio_t *obio = (obio_t *)ddf_dev_data_get(dev);
+	obio_t *obio = (obio_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "obio_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "obio_dev_remove(%p)", dev);
 
-        return obio_remove(obio);
+	return obio_remove(obio);
 }
 
 static errno_t obio_dev_gone(ddf_dev_t *dev)
 {
-        obio_t *obio = (obio_t *)ddf_dev_data_get(dev);
+	obio_t *obio = (obio_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "obio_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "obio_dev_gone(%p)", dev);
 
-        return obio_gone(obio);
+	return obio_gone(obio);
 }
 
 static errno_t obio_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "obio_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "obio_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t obio_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "obio_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "obio_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

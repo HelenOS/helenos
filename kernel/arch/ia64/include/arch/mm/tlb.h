@@ -68,8 +68,8 @@ typedef union {
 		unsigned int ps : 6;    /**< Page size will be 2^ps. */
 		unsigned int key : 24;  /**< Protection key, unused. */
 		unsigned int : 32;
-	} __attribute__ ((packed));
-} __attribute__ ((packed)) tlb_entry_t;
+	} __attribute__((packed));
+} __attribute__((packed)) tlb_entry_t;
 
 extern void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc);
 extern void dtc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry);

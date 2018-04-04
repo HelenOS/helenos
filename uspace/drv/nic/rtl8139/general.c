@@ -50,7 +50,7 @@
  *
  * @return NULL if the error occures, dest if succeed
  */
-void* rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
+void *rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
     size_t src_size, size_t data_size)
 {
 	src_offset %= src_size;
@@ -82,7 +82,7 @@ void* rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
  *
  *  @return EOK if succeed, error code otherwise
  */
-errno_t rtl8139_timer_act_init(rtl8139_timer_act_t * ta, uint32_t timer_freq,
+errno_t rtl8139_timer_act_init(rtl8139_timer_act_t *ta, uint32_t timer_freq,
     const struct timeval *time)
 {
 	if (!ta || timer_freq == 0 || !time)
@@ -123,7 +123,7 @@ errno_t rtl8139_timer_act_init(rtl8139_timer_act_t * ta, uint32_t timer_freq,
  *
  *  @return Nonzero if whole period expired, zero if part of period expired
  */
-int rtl8139_timer_act_step(rtl8139_timer_act_t * ta, uint32_t *new_reg)
+int rtl8139_timer_act_step(rtl8139_timer_act_t *ta, uint32_t *new_reg)
 {
 	uint32_t next_val = 0;
 	int expired = 0;

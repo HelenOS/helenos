@@ -206,7 +206,9 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 {
 	/* Unused */
-	(void)m; (void)rt; (void)rt_size;
+	(void)m;
+	(void)rt;
+	(void)rt_size;
 }
 
 /** @}

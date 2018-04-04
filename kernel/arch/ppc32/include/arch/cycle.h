@@ -45,12 +45,12 @@ NO_TRACE static inline uint64_t get_cycle(void)
 
 	do {
 		asm volatile (
-			"mftbu %[upper]\n"
-			"mftb %[lower]\n"
-			"mftbu %[tmp]\n"
-			: [upper] "=r" (upper),
-			  [lower] "=r" (lower),
-			  [tmp] "=r" (tmp)
+		    "mftbu %[upper]\n"
+		    "mftb %[lower]\n"
+		    "mftbu %[tmp]\n"
+		    : [upper] "=r" (upper),
+		      [lower] "=r" (lower),
+		      [tmp] "=r" (tmp)
 		);
 	} while (upper != tmp);
 

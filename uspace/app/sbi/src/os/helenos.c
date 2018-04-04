@@ -254,7 +254,7 @@ errno_t os_exec(char *const cmd[])
 	errno_t rc;
 	int retval;
 
-	rc = task_spawnv(&tid, &twait, cmd[0], (char const * const *) cmd);
+	rc = task_spawnv(&tid, &twait, cmd[0], (char const *const *) cmd);
 	if (rc != EOK) {
 		printf("Error: Failed spawning '%s' (%s).\n", cmd[0],
 		    str_error(rc));

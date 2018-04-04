@@ -65,7 +65,7 @@ typedef union {
 	struct {
 		uint8_t reg_addr;	/**< APIC Register Address. */
 		unsigned int : 24;	/**< Reserved. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } io_regsel_t;
 
 /** I/O Redirection Register. */
@@ -82,16 +82,16 @@ typedef struct io_redirection_reg {
 			unsigned int trigger_mode : 1;	/**< Trigger Mode. */
 			unsigned int masked : 1;	/**< Interrupt Mask. */
 			unsigned int : 15;		/**< Reserved. */
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 	};
 	union {
 		uint32_t hi;
 		struct {
 			unsigned int : 24;	/**< Reserved. */
 			uint8_t dest : 8;  	/**< Destination Field. */
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 	};
-} __attribute__ ((packed)) io_redirection_reg_t;
+} __attribute__((packed)) io_redirection_reg_t;
 
 #define IO_APIC_SIZE	20
 
@@ -147,7 +147,7 @@ static errno_t apic_enable_irq(apic_t *apic, sysarg_t irq)
 		return ELIMIT;
 
 	int pin = irq_to_pin(irq);
- 	if (pin == -1)
+	if (pin == -1)
 		return ENOENT;
 
 	reg.lo = io_apic_read(apic, (uint8_t) (IOREDTBL + pin * 2));

@@ -38,8 +38,8 @@
 static inline void memory_barrier(void)
 {
 	asm volatile (
-		"membar #LoadLoad | #StoreStore\n"
-		::: "memory"
+	    "membar #LoadLoad | #StoreStore\n"
+	    ::: "memory"
 	);
 }
 

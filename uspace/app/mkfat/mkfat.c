@@ -115,11 +115,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	--argc; ++argv;
+	--argc;
+	++argv;
 
 	while (*argv[0] == '-') {
 		if (str_cmp(*argv, "--size") == 0) {
-			--argc; ++argv;
+			--argc;
+			++argv;
 			if (*argv == NULL) {
 				printf(NAME ": Error, argument missing.\n");
 				syntax_print();
@@ -133,11 +135,13 @@ int main(int argc, char **argv)
 				return 1;
 			}
 
-			--argc; ++argv;
+			--argc;
+			++argv;
 		}
 
 		if (str_cmp(*argv, "--type") == 0) {
-			--argc; ++argv;
+			--argc;
+			++argv;
 			if (*argv == NULL) {
 				printf(NAME ": Error, argument missing.\n");
 				syntax_print();
@@ -151,11 +155,13 @@ int main(int argc, char **argv)
 				return 1;
 			}
 
-			--argc; ++argv;
+			--argc;
+			++argv;
 		}
 
 		if (str_cmp(*argv, "--label") == 0) {
-			--argc; ++argv;
+			--argc;
+			++argv;
 			if (*argv == NULL) {
 				printf(NAME ": Error, argument missing.\n");
 				syntax_print();
@@ -164,11 +170,13 @@ int main(int argc, char **argv)
 
 			cfg.label = *argv;
 
-			--argc; ++argv;
+			--argc;
+			++argv;
 		}
 
 		if (str_cmp(*argv, "-") == 0) {
-			--argc; ++argv;
+			--argc;
+			++argv;
 			break;
 		}
 	}
@@ -267,7 +275,8 @@ static errno_t fat_label_encode(void *dest, const char *src)
 			return EINVAL;
 		if (dp != NULL)
 			dp[i] = toupper(*sp);
-		++i; ++sp;
+		++i;
+		++sp;
 	}
 
 	while (i < FAT_VOLLABEL_LEN) {
@@ -304,7 +313,7 @@ static errno_t fat_params_compute(struct fat_cfg *cfg)
 
 	/* Only correct for FAT12/16 (FAT32 has root dir stored in clusters */
 	rd_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
-		cfg->sector_size);
+	    cfg->sector_size);
 	non_data_sectors_lb_16 = cfg->reserved_sectors + rd_sectors;
 
 	/* Only correct for FAT12/16 */
@@ -332,7 +341,7 @@ static errno_t fat_params_compute(struct fat_cfg *cfg)
 	/* Actual root directory size, non-data sectors */
 	if (cfg->fat_type != FAT32) {
 		cfg->rootdir_sectors = div_round_up(cfg->root_ent_max * DIRENT_SIZE,
-			cfg->sector_size);
+		    cfg->sector_size);
 		non_data_sectors_lb = cfg->reserved_sectors + cfg->rootdir_sectors;
 
 	} else {

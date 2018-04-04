@@ -46,7 +46,7 @@ static inline sb_dsp_t *fun_to_dsp(ddf_fun_t *fun)
 	return &sb->dsp;
 }
 
-static errno_t sb_get_info_str(ddf_fun_t *fun, const char** name)
+static errno_t sb_get_info_str(ddf_fun_t *fun, const char **name)
 {
 	if (name)
 		*name = "SB 16 DSP";
@@ -78,7 +78,7 @@ static errno_t sb_set_event_session(ddf_fun_t *fun, async_sess_t *sess)
 	return sb_dsp_set_event_session(fun_to_dsp(fun), sess);
 }
 
-static async_sess_t * sb_get_event_session(ddf_fun_t *fun)
+static async_sess_t *sb_get_event_session(ddf_fun_t *fun)
 {
 	return sb_dsp_get_event_session(fun_to_dsp(fun));
 }

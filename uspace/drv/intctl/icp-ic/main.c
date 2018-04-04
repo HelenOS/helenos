@@ -95,7 +95,7 @@ static errno_t icpic_dev_add(ddf_dev_t *dev)
 	icpic_res_t icpic_res;
 	errno_t rc;
 
-        ddf_msg(LVL_DEBUG, "icpic_dev_add(%p)", dev);
+	ddf_msg(LVL_DEBUG, "icpic_dev_add(%p)", dev);
 	icpic = ddf_dev_data_alloc(dev, sizeof(icpic_t));
 	if (icpic == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
@@ -115,32 +115,32 @@ static errno_t icpic_dev_add(ddf_dev_t *dev)
 
 static errno_t icpic_dev_remove(ddf_dev_t *dev)
 {
-        icpic_t *icpic = (icpic_t *)ddf_dev_data_get(dev);
+	icpic_t *icpic = (icpic_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "icpic_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "icpic_dev_remove(%p)", dev);
 
-        return icpic_remove(icpic);
+	return icpic_remove(icpic);
 }
 
 static errno_t icpic_dev_gone(ddf_dev_t *dev)
 {
-        icpic_t *icpic = (icpic_t *)ddf_dev_data_get(dev);
+	icpic_t *icpic = (icpic_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "icpic_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "icpic_dev_gone(%p)", dev);
 
-        return icpic_gone(icpic);
+	return icpic_gone(icpic);
 }
 
 static errno_t icpic_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "icpic_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "icpic_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t icpic_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "icpic_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "icpic_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

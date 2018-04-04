@@ -60,14 +60,14 @@ typedef struct {
 	uint8_t 	size;
 	uint16_t 	label[11];
 	uint8_t 	_reserved[8];
-} __attribute__ ((packed)) exfat_vollabel_dentry_t;
+} __attribute__((packed)) exfat_vollabel_dentry_t;
 
 typedef struct {
 	uint8_t 	flags;
 	uint8_t 	_reserved[18];
 	uint32_t 	firstc;
 	uint64_t 	size;
-} __attribute__ ((packed)) exfat_bitmap_dentry_t;
+} __attribute__((packed)) exfat_bitmap_dentry_t;
 
 typedef struct {
 	uint8_t 	_reserved1[3];
@@ -75,7 +75,7 @@ typedef struct {
 	uint8_t 	_reserved2[12];
 	uint32_t 	firstc;
 	uint64_t 	size;
-} __attribute__ ((packed)) exfat_uctable_dentry_t;
+} __attribute__((packed)) exfat_uctable_dentry_t;
 
 typedef struct {
 	uint8_t 	count; /* Always zero */
@@ -83,7 +83,7 @@ typedef struct {
 	uint16_t 	flags;
 	uint8_t 	guid[16];
 	uint8_t 	_reserved[10];
-} __attribute__ ((packed)) exfat_guid_dentry_t;
+} __attribute__((packed)) exfat_guid_dentry_t;
 
 typedef struct {
 	uint8_t 	count;
@@ -99,7 +99,7 @@ typedef struct {
 	uint8_t 	mtime_tz;
 	uint8_t 	atime_tz;
 	uint8_t 	_reserved2[7];
-} __attribute__ ((packed)) exfat_file_dentry_t;
+} __attribute__((packed)) exfat_file_dentry_t;
 
 typedef struct {
 	uint8_t 	flags;
@@ -111,12 +111,12 @@ typedef struct {
 	uint8_t 	_reserved3[4];
 	uint32_t 	firstc;
 	uint64_t 	data_size;
-} __attribute__ ((packed)) exfat_stream_dentry_t;
+} __attribute__((packed)) exfat_stream_dentry_t;
 
 typedef struct {
 	uint8_t 	flags;
 	uint16_t 	name[EXFAT_NAME_PART_LEN];
-} __attribute__ ((packed)) exfat_name_dentry_t;
+} __attribute__((packed)) exfat_name_dentry_t;
 
 
 typedef struct {
@@ -130,7 +130,7 @@ typedef struct {
 		exfat_stream_dentry_t 	stream;
 		exfat_name_dentry_t 	name;
 	};
-} __attribute__ ((packed)) exfat_dentry_t;
+} __attribute__((packed)) exfat_dentry_t;
 
 
 typedef enum {
@@ -162,7 +162,7 @@ typedef struct exfat_bs {
 	struct {                    /* 0x68 FS version */
 		uint8_t minor;
 		uint8_t major;
-	} __attribute__ ((packed)) version;
+	} __attribute__((packed)) version;
 	uint16_t volume_flags;     /* 0x6A volume state flags */
 	uint8_t bytes_per_sector;  /* 0x6C sector size as (1 << n) */
 	uint8_t sec_per_cluster;   /* 0x6D sectors per cluster as (1 << n) */

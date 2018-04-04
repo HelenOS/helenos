@@ -102,7 +102,7 @@ static errno_t cuda_dev_add(ddf_dev_t *dev)
 	cuda_res_t cuda_res;
 	errno_t rc;
 
-        ddf_msg(LVL_DEBUG, "cuda_dev_add(%p)", dev);
+	ddf_msg(LVL_DEBUG, "cuda_dev_add(%p)", dev);
 	cuda = ddf_dev_data_alloc(dev, sizeof(cuda_t));
 	if (cuda == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
@@ -123,32 +123,32 @@ static errno_t cuda_dev_add(ddf_dev_t *dev)
 
 static errno_t cuda_dev_remove(ddf_dev_t *dev)
 {
-        cuda_t *cuda = (cuda_t *)ddf_dev_data_get(dev);
+	cuda_t *cuda = (cuda_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "cuda_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "cuda_dev_remove(%p)", dev);
 
-        return cuda_remove(cuda);
+	return cuda_remove(cuda);
 }
 
 static errno_t cuda_dev_gone(ddf_dev_t *dev)
 {
-        cuda_t *cuda = (cuda_t *)ddf_dev_data_get(dev);
+	cuda_t *cuda = (cuda_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "cuda_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "cuda_dev_gone(%p)", dev);
 
-        return cuda_gone(cuda);
+	return cuda_gone(cuda);
 }
 
 static errno_t cuda_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "cuda_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "cuda_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t cuda_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "cuda_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "cuda_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

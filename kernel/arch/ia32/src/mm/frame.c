@@ -141,7 +141,7 @@ void physmem_print(void)
 		else
 			name = "invalid";
 
-		printf("%#018" PRIx64 " %#018" PRIx64" %s\n", e820table[i].base_address,
+		printf("%#018" PRIx64 " %#018" PRIx64 " %s\n", e820table[i].base_address,
 		    e820table[i].size, name);
 	}
 }

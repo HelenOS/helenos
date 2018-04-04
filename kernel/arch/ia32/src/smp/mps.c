@@ -256,7 +256,7 @@ static void ct_io_intr_entry(struct __io_intr_entry *iointr
 		break;
 	}
 
-	log_printf(", bus=%" PRIu8 " irq=%" PRIu8 " io_apic=%" PRIu8" pin=%"
+	log_printf(", bus=%" PRIu8 " irq=%" PRIu8 " io_apic=%" PRIu8 " pin=%"
 	    PRIu8, iointr->src_bus_id, iointr->src_bus_irq,
 	    iointr->dst_io_apic_id, iointr->dst_io_apic_pin);
 	log_end();
@@ -319,7 +319,7 @@ static void ct_l_intr_entry(struct __l_intr_entry *lintr
 		break;
 	}
 
-	log_printf(", bus=%" PRIu8 " irq=%" PRIu8 " l_apic=%" PRIu8" pin=%"
+	log_printf(", bus=%" PRIu8 " irq=%" PRIu8 " l_apic=%" PRIu8 " pin=%"
 	    PRIu8, lintr->src_bus_id, lintr->src_bus_irq,
 	    lintr->dst_l_apic_id, lintr->dst_l_apic_pin);
 	log_end();

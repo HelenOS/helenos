@@ -55,9 +55,9 @@
 #define VA2VRN(va)  ((va) >> VRN_SHIFT)
 
 #ifdef __ASSEMBLER__
-	#define VRN_KERNEL  7
+#define VRN_KERNEL  7
 #else
-	#define VRN_KERNEL  7ULL
+#define VRN_KERNEL  7ULL
 #endif
 
 #define REGION_REGISTERS  8
@@ -96,7 +96,7 @@
 struct vhpt_tag_info {
 	unsigned long long tag : 63;
 	unsigned int ti : 1;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 union vhpt_tag {
 	struct vhpt_tag_info tag_info;
@@ -128,7 +128,7 @@ struct vhpt_entry_present {
 
 	/* Word 3 */
 	uint64_t ig3 : 64;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct vhpt_entry_not_present {
 	/* Word 0 */
@@ -146,7 +146,7 @@ struct vhpt_entry_not_present {
 
 	/* Word 3 */
 	uint64_t ig3 : 64;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 typedef union {
 	struct vhpt_entry_present present;
@@ -160,7 +160,7 @@ struct region_register_map {
 	unsigned int ps : 6;
 	unsigned int rid : 24;
 	unsigned int : 32;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 typedef union {
 	struct region_register_map map;
@@ -174,7 +174,7 @@ struct pta_register_map {
 	unsigned int vf : 1;
 	unsigned int : 6;
 	unsigned long long base : 49;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 typedef union pta_register {
 	struct pta_register_map map;
@@ -195,9 +195,9 @@ NO_TRACE static inline uint64_t thash(uint64_t va)
 	uint64_t ret;
 
 	asm volatile (
-		"thash %[ret] = %[va]\n"
-		: [ret] "=r" (ret)
-		: [va] "r" (va)
+	    "thash %[ret] = %[va]\n"
+	    : [ret] "=r" (ret)
+	    : [va] "r" (va)
 	);
 
 	return ret;
@@ -217,9 +217,9 @@ NO_TRACE static inline uint64_t ttag(uint64_t va)
 	uint64_t ret;
 
 	asm volatile (
-		"ttag %[ret] = %[va]\n"
-		: [ret] "=r" (ret)
-		: [va] "r" (va)
+	    "ttag %[ret] = %[va]\n"
+	    : [ret] "=r" (ret)
+	    : [va] "r" (va)
 	);
 
 	return ret;
@@ -238,9 +238,9 @@ NO_TRACE static inline uint64_t rr_read(size_t i)
 	assert(i < REGION_REGISTERS);
 
 	asm volatile (
-		"mov %[ret] = rr[%[index]]\n"
-		: [ret] "=r" (ret)
-		: [index] "r" (i << VRN_SHIFT)
+	    "mov %[ret] = rr[%[index]]\n"
+	    : [ret] "=r" (ret)
+	    : [index] "r" (i << VRN_SHIFT)
 	);
 
 	return ret;
@@ -256,9 +256,9 @@ NO_TRACE static inline void rr_write(size_t i, uint64_t v)
 	assert(i < REGION_REGISTERS);
 
 	asm volatile (
-		"mov rr[%[index]] = %[value]\n"
-		:: [index] "r" (i << VRN_SHIFT),
-		   [value] "r" (v)
+	    "mov rr[%[index]] = %[value]\n"
+	    :: [index] "r" (i << VRN_SHIFT),
+	      [value] "r" (v)
 	);
 }
 
@@ -271,8 +271,8 @@ NO_TRACE static inline uint64_t pta_read(void)
 	uint64_t ret;
 
 	asm volatile (
-		"mov %[ret] = cr.pta\n"
-		: [ret] "=r" (ret)
+	    "mov %[ret] = cr.pta\n"
+	    : [ret] "=r" (ret)
 	);
 
 	return ret;
@@ -285,8 +285,8 @@ NO_TRACE static inline uint64_t pta_read(void)
 NO_TRACE static inline void pta_write(uint64_t v)
 {
 	asm volatile (
-		"mov cr.pta = %[value]\n"
-		:: [value] "r" (v)
+	    "mov cr.pta = %[value]\n"
+	    :: [value] "r" (v)
 	);
 }
 

@@ -380,8 +380,7 @@ errno_t usb_hid_report_output_translate(usb_hid_report_t *report,
 
 					tmp_value = tmp_value << (offset % 8);
 
-					mask = ~(((1 << (8 - (offset % 8))) - 1)
-					    << (offset % 8));
+					mask = ~(((1 << (8 - (offset % 8))) - 1) << (offset % 8));
 
 					buffer[i] = (buffer[i] & mask) |
 					    tmp_value;
@@ -470,7 +469,7 @@ usb_hid_report_item_t *usb_hid_report_item_clone(
 	if (!(new_report_item = malloc(sizeof(usb_hid_report_item_t)))) {
 		return NULL;
 	}
-	memcpy(new_report_item,item, sizeof(usb_hid_report_item_t));
+	memcpy(new_report_item, item, sizeof(usb_hid_report_item_t));
 	link_initialize(&(new_report_item->link));
 
 	return new_report_item;

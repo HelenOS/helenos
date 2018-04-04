@@ -44,16 +44,16 @@ static inline void atomic_inc(atomic_t *val)
 	atomic_count_t tmp;
 
 	asm volatile (
-		"1:\n"
-		"lwarx %0, 0, %2\n"
-		"addic %0, %0, 1\n"
-		"stwcx. %0, 0, %2\n"
-		"bne- 1b"
-		: "=&r" (tmp),
-		  "=m" (val->count)
-		: "r" (&val->count),
-		  "m" (val->count)
-		: "cc"
+	    "1:\n"
+	    "lwarx %0, 0, %2\n"
+	    "addic %0, %0, 1\n"
+	    "stwcx. %0, 0, %2\n"
+	    "bne- 1b"
+	    : "=&r" (tmp),
+	      "=m" (val->count)
+	    : "r" (&val->count),
+	      "m" (val->count)
+	    : "cc"
 	);
 }
 
@@ -62,16 +62,16 @@ static inline void atomic_dec(atomic_t *val)
 	atomic_count_t tmp;
 
 	asm volatile (
-		"1:\n"
-		"lwarx %0, 0, %2\n"
-		"addic %0, %0, -1\n"
-		"stwcx. %0, 0, %2\n"
-		"bne- 1b"
-		: "=&r" (tmp),
-		  "=m" (val->count)
-		: "r" (&val->count),
-		  "m" (val->count)
-		: "cc"
+	    "1:\n"
+	    "lwarx %0, 0, %2\n"
+	    "addic %0, %0, -1\n"
+	    "stwcx. %0, 0, %2\n"
+	    "bne- 1b"
+	    : "=&r" (tmp),
+	      "=m" (val->count)
+	    : "r" (&val->count),
+	      "m" (val->count)
+	    : "cc"
 	);
 }
 

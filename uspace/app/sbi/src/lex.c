@@ -422,52 +422,101 @@ static bool_t lex_read_try(lex_t *lex)
 	}
 
 	switch (bp[0]) {
-	case ',': lex->current.lclass = lc_comma; ++bp; break;
-	case ':': lex->current.lclass = lc_colon; ++bp; break;
-	case ';': lex->current.lclass = lc_scolon; ++bp; break;
+	case ',':
+		lex->current.lclass = lc_comma;
+		++bp;
+		break;
+	case ':':
+		lex->current.lclass = lc_colon;
+		++bp;
+		break;
+	case ';':
+		lex->current.lclass = lc_scolon;
+		++bp;
+		break;
 
-	case '.': lex->current.lclass = lc_period; ++bp; break;
-	case '/': lex->current.lclass = lc_slash; ++bp; break;
-	case '(': lex->current.lclass = lc_lparen; ++bp; break;
-	case ')': lex->current.lclass = lc_rparen; ++bp; break;
-	case '[': lex->current.lclass = lc_lsbr; ++bp; break;
-	case ']': lex->current.lclass = lc_rsbr; ++bp; break;
+	case '.':
+		lex->current.lclass = lc_period;
+		++bp;
+		break;
+	case '/':
+		lex->current.lclass = lc_slash;
+		++bp;
+		break;
+	case '(':
+		lex->current.lclass = lc_lparen;
+		++bp;
+		break;
+	case ')':
+		lex->current.lclass = lc_rparen;
+		++bp;
+		break;
+	case '[':
+		lex->current.lclass = lc_lsbr;
+		++bp;
+		break;
+	case ']':
+		lex->current.lclass = lc_rsbr;
+		++bp;
+		break;
 
 	case '=':
 		if (bp[1] == '=') {
-			lex->current.lclass = lc_equal; bp += 2; break;
+			lex->current.lclass = lc_equal;
+			bp += 2;
+			break;
 		}
-		lex->current.lclass = lc_assign; ++bp; break;
+		lex->current.lclass = lc_assign;
+		++bp;
+		break;
 
 	case '!':
 		if (bp[1] == '=') {
-			lex->current.lclass = lc_notequal; bp += 2; break;
+			lex->current.lclass = lc_notequal;
+			bp += 2;
+			break;
 		}
 		goto invalid;
 
 	case '+':
 		if (bp[1] == '=') {
-			lex->current.lclass = lc_increase; bp += 2; break;
+			lex->current.lclass = lc_increase;
+			bp += 2;
+			break;
 		}
-		lex->current.lclass = lc_plus; ++bp; break;
+		lex->current.lclass = lc_plus;
+		++bp;
+		break;
 
 	case '-':
-		lex->current.lclass = lc_minus; ++bp; break;
+		lex->current.lclass = lc_minus;
+		++bp;
+		break;
 
 	case '*':
-		lex->current.lclass = lc_mult; ++bp; break;
+		lex->current.lclass = lc_mult;
+		++bp;
+		break;
 
 	case '<':
 		if (bp[1] == '=') {
-			lex->current.lclass = lc_lt_equal; bp += 2; break;
+			lex->current.lclass = lc_lt_equal;
+			bp += 2;
+			break;
 		}
-		lex->current.lclass = lc_lt; ++bp; break;
+		lex->current.lclass = lc_lt;
+		++bp;
+		break;
 
 	case '>':
 		if (bp[1] == '=') {
-			lex->current.lclass = lc_gt_equal; bp += 2; break;
+			lex->current.lclass = lc_gt_equal;
+			bp += 2;
+			break;
 		}
-		lex->current.lclass = lc_gt; ++bp; break;
+		lex->current.lclass = lc_gt;
+		++bp;
+		break;
 
 	default:
 		goto invalid;
@@ -679,7 +728,8 @@ static void lex_char_string_core(lex_t *lex, chr_str_t cs)
 			sidx += 2;
 		} else {
 			strlit_buf[didx] = bp[sidx];
-			++sidx; ++didx;
+			++sidx;
+			++didx;
 		}
 	}
 

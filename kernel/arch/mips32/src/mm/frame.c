@@ -289,7 +289,7 @@ void physmem_print(void)
 	size_t i;
 	for (i = 0; i < phys_regions_count; i++) {
 		printf("%#010x %10u\n",
-			PFN2ADDR(phys_regions[i].start), PFN2ADDR(phys_regions[i].count));
+		    PFN2ADDR(phys_regions[i].start), PFN2ADDR(phys_regions[i].count));
 	}
 }
 

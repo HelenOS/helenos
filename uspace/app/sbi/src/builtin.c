@@ -83,8 +83,8 @@ void builtin_declare(stree_program_t *program)
 	 */
 
 	builtin_code_snippet(bi,
-		"class Object is\n"
-		"end\n");
+	    "class Object is\n"
+	    "end\n");
 	bi->gf_class = builtin_find_lvl0(bi, "Object");
 
 	/*

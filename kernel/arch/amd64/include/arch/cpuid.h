@@ -54,7 +54,7 @@ typedef struct {
 	uint32_t cpuid_ebx;
 	uint32_t cpuid_ecx;
 	uint32_t cpuid_edx;
-} __attribute__ ((packed)) cpu_info_t;
+} __attribute__((packed)) cpu_info_t;
 
 extern int has_cpuid(void);
 

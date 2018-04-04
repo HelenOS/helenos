@@ -443,7 +443,8 @@ typedef enum nic_poll_mode {
  *
  * @return true or false
  */
-static inline int nic_wv_is_multi(nic_wv_type_t type) {
+static inline int nic_wv_is_multi(nic_wv_type_t type)
+{
 	switch (type) {
 	case NIC_WV_FULL_MATCH:
 	case NIC_WV_DESTINATION:

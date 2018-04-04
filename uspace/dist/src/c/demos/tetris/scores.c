@@ -134,8 +134,8 @@ void insertscore(int score, int level)
 	i = 6;
 	off = 6;
 
-	moveto(10 , 28);
-	printf("%s%.*s", scores[NUMSPOTS - 1].hs_name, MAXLOGNAME-i,
+	moveto(10, 28);
+	printf("%s%.*s", scores[NUMSPOTS - 1].hs_name, MAXLOGNAME - i,
 	    "........................................");
 
 	while (1) {
@@ -190,7 +190,7 @@ void insertscore(int score, int level)
 		i--;
 
 	for (j = NUMSPOTS - 2; j > i; j--)
-		copyhiscore(j, j-1);
+		copyhiscore(j, j - 1);
 
 	copyhiscore(i, NUMSPOTS - 1);
 }

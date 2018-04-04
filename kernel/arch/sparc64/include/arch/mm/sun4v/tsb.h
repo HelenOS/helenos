@@ -64,7 +64,7 @@ typedef struct tsb_descr {
 	uint32_t pgsize_mask;	/**< Equals "1 << page_size". */
 	uint64_t tsb_base;	/**< Real address of TSB base. */
 	uint64_t reserved;
-} __attribute__ ((packed)) tsb_descr_t;
+} __attribute__((packed)) tsb_descr_t;
 
 
 /* Forward declarations. */

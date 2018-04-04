@@ -52,10 +52,10 @@
 static const char *cmdname = "mkfile";
 
 static struct option const long_options[] = {
-	{"size", required_argument, 0, 's'},
-	{"sparse", no_argument, 0, 'p'},
-	{"help", no_argument, 0, 'h'},
-	{0, 0, 0, 0}
+	{ "size", required_argument, 0, 's' },
+	{ "sparse", no_argument, 0, 'p' },
+	{ "help", no_argument, 0, 'h' },
+	{ 0, 0, 0, 0 }
 };
 
 void help_cmd_mkfile(unsigned int level)
@@ -65,15 +65,15 @@ void help_cmd_mkfile(unsigned int level)
 	} else {
 		help_cmd_mkfile(HELP_SHORT);
 		printf(
-		"Usage:  %s [options] <path>\n"
-		"Options:\n"
-		"  -h, --help       A short option summary\n"
-		"  -s, --size sz    Size of the file\n"
-		"  -p, --sparse     Create a sparse file\n"
-		"\n"
-		"Size is a number followed by 'k', 'm' or 'g' for kB, MB, GB.\n"
-		"E.g. 100k, 2m, 1g.\n",
-		cmdname);
+		    "Usage:  %s [options] <path>\n"
+		    "Options:\n"
+		    "  -h, --help       A short option summary\n"
+		    "  -s, --size sz    Size of the file\n"
+		    "  -p, --sparse     Create a sparse file\n"
+		    "\n"
+		    "Size is a number followed by 'k', 'm' or 'g' for kB, MB, GB.\n"
+		    "E.g. 100k, 2m, 1g.\n",
+		    cmdname);
 	}
 
 	return;
@@ -100,13 +100,20 @@ static errno_t read_size(const char *str, size_t *rsize)
 	}
 
 	if (ep[1] != '\0')
-		    return EINVAL;
+		return EINVAL;
 
 	switch (tolower(ep[0])) {
-	case 'k': unit = 1024; break;
-	case 'm': unit = 1024*1024; break;
-	case 'g': unit = 1024*1024*1024; break;
-	default: return EINVAL;
+	case 'k':
+		unit = 1024;
+		break;
+	case 'm':
+		unit = 1024 * 1024;
+		break;
+	case 'g':
+		unit = 1024 * 1024 * 1024;
+		break;
+	default:
+		return EINVAL;
 	}
 
 	*rsize = number * unit;
@@ -161,7 +168,7 @@ int cmd_mkfile(char **argv)
 
 	if (argc != 1) {
 		printf("%s: incorrect number of arguments. Try `%s --help'\n",
-			cmdname, cmdname);
+		    cmdname, cmdname);
 		return CMD_FAILURE;
 	}
 

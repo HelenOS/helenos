@@ -500,7 +500,7 @@ goal_failed:
 			return rc;
 
 		free_blocks =
-		     ext4_block_group_get_free_blocks_count(bg_ref->block_group, sb);
+		    ext4_block_group_get_free_blocks_count(bg_ref->block_group, sb);
 		if (free_blocks == 0) {
 			/* This group has no free blocks */
 			goto next_group;
@@ -572,7 +572,7 @@ goal_failed:
 			return rc;
 		}
 
-next_group:
+	next_group:
 		rc = ext4_filesystem_put_block_group_ref(bg_ref);
 		if (rc != EOK)
 			return rc;

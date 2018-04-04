@@ -94,7 +94,7 @@ typedef struct __input_provider {
 	  * pop history is exhausted, non-zero on success. */
 	int (*undo)(struct __input_provider *);
 	/** Lend the cursor to the caller.  */
-	const char * (*borrow_cursor)(struct __input_provider *);
+	const char *(*borrow_cursor)(struct __input_provider *);
 	/** Take control over possibly incremented cursor and update the internal
 	  * structures if necessary. */
 	void (*return_cursor)(struct __input_provider *, const char *);
@@ -1000,9 +1000,9 @@ static inline int _internal_scanf(
 					}
 				}
 
-				char * buf = NULL;
+				char *buf = NULL;
 				size_t buf_size = 0;
-				char * cur = NULL;
+				char *cur = NULL;
 				size_t alloc_step = 80; /* Buffer size gain during reallocation. */
 				int my_buffer_idx = 0;
 
@@ -1215,9 +1215,9 @@ int vfscanf(
     FILE *restrict stream, const char *restrict format, va_list arg)
 {
 	_input_provider provider = {
-	    { 0 }, 0, 0, NULL, 0, NULL, _PROV_CONSTRUCTED,
-	    _capture_stream, _pop_stream, _undo_stream,
-	    _borrow_cursor_universal, _return_cursor_stream, _release_stream
+		{ 0 }, 0, 0, NULL, 0, NULL, _PROV_CONSTRUCTED,
+		_capture_stream, _pop_stream, _undo_stream,
+		_borrow_cursor_universal, _return_cursor_stream, _release_stream
 	};
 	provider.source.stream = stream;
 	return _internal_scanf(&provider, format, arg);
@@ -1235,9 +1235,9 @@ int vsscanf(
     const char *restrict s, const char *restrict format, va_list arg)
 {
 	_input_provider provider = {
-	    { 0 }, 0, 0, NULL, 0, NULL, _PROV_CONSTRUCTED,
-	    _capture_string, _pop_string, _undo_string,
-	    _borrow_cursor_universal, _return_cursor_string, _release_string
+		{ 0 }, 0, 0, NULL, 0, NULL, _PROV_CONSTRUCTED,
+		_capture_string, _pop_string, _undo_string,
+		_borrow_cursor_universal, _return_cursor_string, _release_string
 	};
 	provider.source.string = s;
 	return _internal_scanf(&provider, format, arg);

@@ -87,19 +87,19 @@ void help_cmd_cat(unsigned int level)
 	} else {
 		help_cmd_cat(HELP_SHORT);
 		printf(
-		"Usage:  %s [options] <file1> [file2] [...]\n"
-		"Options:\n"
-		"  -h, --help       A short option summary\n"
-		"  -v, --version    Print version information and exit\n"
-		"  -H, --head ##    Print only the first ## bytes\n"
-		"  -t, --tail ##    Print only the last ## bytes\n"
-		"  -b, --buffer ##  Set the read buffer size to ##\n"
-		"  -m, --more       Pause after each screen full\n"
-		"  -x, --hex        Print bytes as hex values\n"
-		"  -s, --stdin      Treat `-' in file list as standard input\n"
-		"  -n, --number     Number all output lines\n"
-		"Currently, %s is under development, some options don't work.\n",
-		cmdname, cmdname);
+		    "Usage:  %s [options] <file1> [file2] [...]\n"
+		    "Options:\n"
+		    "  -h, --help       A short option summary\n"
+		    "  -v, --version    Print version information and exit\n"
+		    "  -H, --head ##    Print only the first ## bytes\n"
+		    "  -t, --tail ##    Print only the last ## bytes\n"
+		    "  -b, --buffer ##  Set the read buffer size to ##\n"
+		    "  -m, --more       Pause after each screen full\n"
+		    "  -x, --hex        Print bytes as hex values\n"
+		    "  -s, --stdin      Treat `-' in file list as standard input\n"
+		    "  -n, --number     Number all output lines\n"
+		    "Currently, %s is under development, some options don't work.\n",
+		    cmdname, cmdname);
 	}
 
 	return;
@@ -107,11 +107,11 @@ void help_cmd_cat(unsigned int level)
 
 static void waitprompt(void)
 {
-	console_set_pos(console, 0, console_rows-1);
+	console_set_pos(console, 0, console_rows - 1);
 	console_set_color(console, COLOR_WHITE, COLOR_BLUE, 0);
 
 	printf("ENTER/SPACE/PAGE DOWN - next page, "
-	       "ESC/Q - quit, C - continue unpaged");
+	    "ESC/Q - quit, C - continue unpaged");
 	fflush(stdout);
 
 	console_set_style(console, STYLE_NORMAL);
@@ -264,11 +264,10 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 			offset = 0;
 			for (i = 0; i < bytes && !should_quit; i++) {
 				if (hex) {
-					paged_char(hexchars[((uint8_t)buff[i])/16]);
-					paged_char(hexchars[((uint8_t)buff[i])%16]);
-					paged_char(((count+i+1) & 0xf) == 0 ? '\n' : ' ');
-				}
-				else {
+					paged_char(hexchars[((uint8_t)buff[i]) / 16]);
+					paged_char(hexchars[((uint8_t)buff[i]) % 16]);
+					paged_char(((count + i + 1) & 0xf) == 0 ? '\n' : ' ');
+				} else {
 					wchar_t c = str_decode(buff, &offset, bytes);
 					if (c == 0) {
 						/* Reached end of string */
@@ -352,13 +351,13 @@ int cmd_cat(char **argv)
 			printf("%s\n", CAT_VERSION);
 			return CMD_SUCCESS;
 		case 'H':
-			if (!optarg || str_uint64_t(optarg, NULL, 10, false, &head) != EOK ) {
+			if (!optarg || str_uint64_t(optarg, NULL, 10, false, &head) != EOK) {
 				puts("Invalid head size\n");
 				return CMD_FAILURE;
 			}
 			break;
 		case 't':
-			if (!optarg || str_uint64_t(optarg, NULL, 10, false, &tail) != EOK ) {
+			if (!optarg || str_uint64_t(optarg, NULL, 10, false, &tail) != EOK) {
 				puts("Invalid tail size\n");
 				return CMD_FAILURE;
 			}
@@ -366,7 +365,7 @@ int cmd_cat(char **argv)
 				tailFirst = true;
 			break;
 		case 'b':
-			if (!optarg || str_size_t(optarg, NULL, 10, false, &buffer) != EOK ) {
+			if (!optarg || str_size_t(optarg, NULL, 10, false, &buffer) != EOK) {
 				puts("Invalid buffer size\n");
 				return CMD_FAILURE;
 			}
@@ -390,7 +389,7 @@ int cmd_cat(char **argv)
 
 	if (argc < 1) {
 		printf("%s - incorrect number of arguments. Try `%s --help'\n",
-			cmdname, cmdname);
+		    cmdname, cmdname);
 		return CMD_FAILURE;
 	}
 

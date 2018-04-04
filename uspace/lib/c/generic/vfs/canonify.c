@@ -118,7 +118,7 @@ typedef enum {
 
 typedef struct {
 	state_t s;
-	void (* f)(token_t *, token_t *, token_t *);
+	void (*f)(token_t *, token_t *, token_t *);
 } change_state_t;
 
 /*

@@ -67,7 +67,7 @@ typedef union {
 	struct {
 		uint64_t vpn : 51;		/**< Virtual Page Number. */
 		unsigned offset : 13;		/**< Offset. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } page_address_t;
 
 extern void page_arch_init(void);

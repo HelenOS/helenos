@@ -135,7 +135,8 @@ void proto_register(int srv, proto_t *proto)
 proto_t *proto_get_by_srv(int srv)
 {
 	ht_link_t *item = hash_table_find(&srv_proto, &srv);
-	if (item == NULL) return NULL;
+	if (item == NULL)
+		return NULL;
 
 	srv_proto_t *sp = hash_table_get_inst(item, srv_proto_t, link);
 	return sp->proto;
@@ -178,7 +179,8 @@ void proto_add_oper(proto_t *proto, int method, oper_t *oper)
 oper_t *proto_get_oper(proto_t *proto, int method)
 {
 	ht_link_t *item = hash_table_find(&proto->method_oper, &method);
-	if (item == NULL) return NULL;
+	if (item == NULL)
+		return NULL;
 
 	method_oper_t *mo = hash_table_get_inst(item, method_oper_t, link);
 	return mo->oper;

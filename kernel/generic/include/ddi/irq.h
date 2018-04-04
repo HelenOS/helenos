@@ -56,10 +56,10 @@ typedef enum {
 
 struct irq;
 
-typedef void (* irq_handler_t)(struct irq *);
+typedef void (*irq_handler_t)(struct irq *);
 
 /** Type for function used to clear the interrupt. */
-typedef void (* cir_t)(void *, inr_t);
+typedef void (*cir_t)(void *, inr_t);
 
 /** IPC notification config structure.
  *
@@ -113,7 +113,7 @@ typedef struct irq {
 	/** Trigger level of the IRQ. */
 	irq_trigger_t trigger;
 	/** Claim ownership of the IRQ. */
-	irq_ownership_t (* claim)(struct irq *);
+	irq_ownership_t (*claim)(struct irq *);
 	/** Handler for this IRQ and device. */
 	irq_handler_t handler;
 	/** Instance argument for the handler and the claim function. */

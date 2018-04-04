@@ -115,7 +115,7 @@ static float64_t series_atan_64(float64_t arg)
 float32_t float32_atan(float32_t arg)
 {
 	if (arg < -1.0 || arg > 1.0)
-		return 2.0 * series_atan_32(arg / (1.0 + sqrt_f32(1.0 + arg*arg)));
+		return 2.0 * series_atan_32(arg / (1.0 + sqrt_f32(1.0 + arg * arg)));
 	else
 		return series_atan_32(arg);
 }
@@ -132,7 +132,7 @@ float32_t float32_atan(float32_t arg)
 float64_t float64_atan(float64_t arg)
 {
 	if (arg < -1.0 || arg > 1.0)
-		return 2.0 * series_atan_64(arg / (1.0 + sqrt_f64(1.0 + arg*arg)));
+		return 2.0 * series_atan_64(arg / (1.0 + sqrt_f64(1.0 + arg * arg)));
 	else
 		return series_atan_64(arg);
 }

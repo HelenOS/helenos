@@ -70,7 +70,7 @@ typedef enum {
  */
 static inline bool pcm_sample_format_is_signed(pcm_sample_format_t format)
 {
-	switch(format) {
+	switch (format) {
 	case PCM_SAMPLE_SINT8:
 	case PCM_SAMPLE_SINT16_LE:
 	case PCM_SAMPLE_SINT16_BE:
@@ -103,7 +103,7 @@ static inline bool pcm_sample_format_is_signed(pcm_sample_format_t format)
  */
 static inline size_t pcm_sample_format_size(pcm_sample_format_t format)
 {
-	switch(format) {
+	switch (format) {
 	case PCM_SAMPLE_UINT8:
 	case PCM_SAMPLE_SINT8:
 		return 1;
@@ -179,9 +179,9 @@ static inline useconds_t pcm_sample_format_size_to_usec(size_t size,
  * @param format PCM sample format.
  * @return Valid string representation.
  */
-static inline const char * pcm_sample_format_str(pcm_sample_format_t format)
+static inline const char *pcm_sample_format_str(pcm_sample_format_t format)
 {
-	switch(format) {
+	switch (format) {
 	case PCM_SAMPLE_UINT8:
 		return "8 bit unsigned";
 	case PCM_SAMPLE_SINT8:

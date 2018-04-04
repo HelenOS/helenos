@@ -123,7 +123,7 @@ static void remote_hw_res_get_resource_list(ddf_fun_t *fun, void *ops,
 	}
 
 	hw_resource_list_t *hw_resources = hw_res_ops->get_resource_list(fun);
-	if (hw_resources == NULL){
+	if (hw_resources == NULL) {
 		async_answer_0(chandle, ENOENT);
 		return;
 	}

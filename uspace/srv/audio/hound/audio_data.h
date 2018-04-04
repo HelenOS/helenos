@@ -66,7 +66,7 @@ typedef struct {
 	fibril_mutex_t guard;
 } audio_pipe_t;
 
-audio_data_t * audio_data_create(const void *data, size_t size,
+audio_data_t *audio_data_create(const void *data, size_t size,
     pcm_format_t format);
 void audio_data_addref(audio_data_t *adata);
 void audio_data_unref(audio_data_t *adata);

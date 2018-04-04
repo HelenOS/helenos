@@ -821,7 +821,8 @@ static void rdata_enum_copy(rdata_enum_t *src, rdata_enum_t **dest)
  */
 static void rdata_array_copy(rdata_array_t *src, rdata_array_t **dest)
 {
-	(void) src; (void) dest;
+	(void) src;
+	(void) dest;
 	printf("Unimplemented: Copy array.\n");
 	exit(1);
 }
@@ -833,7 +834,8 @@ static void rdata_array_copy(rdata_array_t *src, rdata_array_t **dest)
  */
 static void rdata_object_copy(rdata_object_t *src, rdata_object_t **dest)
 {
-	(void) src; (void) dest;
+	(void) src;
+	(void) dest;
 	printf("Unimplemented: Copy object.\n");
 	abort();
 }

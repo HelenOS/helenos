@@ -62,7 +62,7 @@ union tte_tag {
 		unsigned context : 13;	/**< Context identifier. */
 		unsigned : 6;		/**< Reserved. */
 		uint64_t va_tag : 42;	/**< Virtual Address Tag, bits 63:22. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 
 typedef union tte_tag tte_tag_t;
@@ -91,7 +91,7 @@ union tte_data {
 		unsigned p : 1;		/**< Privileged. */
 		unsigned w : 1;		/**< Writable. */
 		unsigned g : 1;		/**< Global. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 
 typedef union tte_data tte_data_t;

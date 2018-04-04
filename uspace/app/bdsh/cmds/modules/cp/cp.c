@@ -52,7 +52,7 @@ static console_ctrl_t *con;
 static struct option const long_options[] = {
 	{ "buffer", required_argument, 0, 'b' },
 	{ "force", no_argument, 0, 'f' },
-	{ "interactive", no_argument, 0, 'i'},
+	{ "interactive", no_argument, 0, 'i' },
 	{ "recursive", no_argument, 0, 'r' },
 	{ "help", no_argument, 0, 'h' },
 	{ "version", no_argument, 0, 'v' },
@@ -159,7 +159,7 @@ static bool get_user_decision(bool bdefault, const char *message, ...)
 			continue;
 		}
 
-		switch(ev.ev.key.key) {
+		switch (ev.ev.key.key) {
 		case KC_Y:
 			printf("y\n");
 			return true;
@@ -383,7 +383,7 @@ exit:
 }
 
 static int copy_file(const char *src, const char *dest,
-	size_t blen, int vb)
+    size_t blen, int vb)
 {
 	int fd1, fd2;
 	size_t rbytes, wbytes;

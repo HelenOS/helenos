@@ -103,7 +103,7 @@ typedef struct udf_file_identifier_descriptor {
 	uint16_t lenght_iu;
 	uint8_t implementation_use[0];
 	udf_dstring file_id[0];
-}__attribute__((packed)) udf_file_identifier_descriptor_t;
+} __attribute__((packed)) udf_file_identifier_descriptor_t;
 
 /* ICB tag - Information Control Block  (ECMA 167 4/14.6) */
 typedef struct udf_icbtag {
@@ -183,7 +183,7 @@ typedef struct udf_unallocated_space_entry_descriptor {
 	udf_icbtag_t icbtag;
 	uint32_t ad_lenght;
 	uint8_t allocation_descriptors[0];
-}__attribute__((packed)) udf_unallocated_space_entry_descriptor_t;
+} __attribute__((packed)) udf_unallocated_space_entry_descriptor_t;
 
 /* Space Bitmap Descriptor format (ECMA 167 4/14.12) */
 typedef struct udf_space_bitmap_descriptor {
@@ -191,7 +191,7 @@ typedef struct udf_space_bitmap_descriptor {
 	uint32_t bits_number;
 	uint32_t byts_number;
 	uint8_t bitmap[0];
-}__attribute__((packed)) udf_space_bitmap_descriptor_t;
+} __attribute__((packed)) udf_space_bitmap_descriptor_t;
 
 extern errno_t udf_node_get_core(udf_node_t *);
 extern errno_t udf_read_icb(udf_node_t *);

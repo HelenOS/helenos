@@ -65,7 +65,7 @@ static void receive_device_name(async_sess_t *sess)
 
 	ipc_call_t data_request_call;
 	aid_t data_request = async_data_read(exch, plugged_device_name,
-	     PLUGGED_DEVICE_NAME_MAXLEN, &data_request_call);
+	    PLUGGED_DEVICE_NAME_MAXLEN, &data_request_call);
 
 	async_exchange_end(exch);
 

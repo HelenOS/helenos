@@ -127,16 +127,16 @@ typedef struct {
 			unsigned int : 2;               /**< Reserved. */
 			unsigned int shorthand : 2;     /**< Destination Shorthand. */
 			unsigned int : 12;              /**< Reserved. */
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 	};
 	union {
 		uint32_t hi;
 		struct {
 			unsigned int : 24;  /**< Reserved. */
 			uint8_t dest;       /**< Destination field. */
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 	};
-} __attribute__ ((packed)) icr_t;
+} __attribute__((packed)) icr_t;
 
 /* End Of Interrupt. */
 #define EOI  (0x0b0U / sizeof(uint32_t))
@@ -157,7 +157,7 @@ typedef union {
 		unsigned int received_illegal_vector : 1;
 		unsigned int illegal_register_address : 1;
 		unsigned int : 24;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } esr_t;
 
 /* Task Priority Register */
@@ -168,7 +168,7 @@ typedef union {
 	struct {
 		unsigned int pri_sc : 4;  /**< Task Priority Sub-Class. */
 		unsigned int pri : 4;     /**< Task Priority. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } tpr_t;
 
 /** Spurious-Interrupt Vector Register. */
@@ -181,7 +181,7 @@ typedef union {
 		unsigned int lapic_enabled : 1;   /**< APIC Software Enable/Disable. */
 		unsigned int focus_checking : 1;  /**< Focus Processor Checking. */
 		unsigned int : 22;                /**< Reserved. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } svr_t;
 
 /** Time Divide Configuration Register. */
@@ -192,7 +192,7 @@ typedef union {
 	struct {
 		unsigned int div_value : 4;  /**< Divide Value, bit 2 is always 0. */
 		unsigned int : 28;           /**< Reserved. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } tdcr_t;
 
 /* Initial Count Register for Timer */
@@ -214,7 +214,7 @@ typedef union {
 		unsigned int masked : 1;  /**< Interrupt Mask. */
 		unsigned int mode : 1;    /**< Timer Mode. */
 		unsigned int : 14;        /**< Reserved. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } lvt_tm_t;
 
 /** LVT LINT registers. */
@@ -233,7 +233,7 @@ typedef union {
 		unsigned int trigger_mode : 1;  /**< Trigger Mode. */
 		unsigned int masked : 1;        /**< Interrupt Mask. */
 		unsigned int : 15;              /**< Reserved. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } lvt_lint_t;
 
 /** LVT Error register. */
@@ -248,7 +248,7 @@ typedef union {
 		unsigned int : 3;         /**< Reserved. */
 		unsigned int masked : 1;  /**< Interrupt Mask. */
 		unsigned int : 15;        /**< Reserved. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } lvt_error_t;
 
 /** Local APIC ID Register. */
@@ -259,7 +259,7 @@ typedef union {
 	struct {
 		unsigned int : 24;  /**< Reserved. */
 		uint8_t apic_id;    /**< Local APIC ID. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } l_apic_id_t;
 
 /** Local APIC Version Register */
@@ -278,7 +278,7 @@ typedef union {
 	struct {
 		unsigned int : 24;  /**< Reserved. */
 		uint8_t id;         /**< Logical APIC ID. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } ldr_t;
 
 /** Destination Format Register. */
@@ -289,7 +289,7 @@ typedef union {
 	struct {
 		unsigned int : 28;       /**< Reserved, all ones. */
 		unsigned int model : 4;  /**< Model. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } dfr_t;
 
 /* IO APIC */
@@ -307,7 +307,7 @@ typedef union {
 	struct {
 		uint8_t reg_addr;   /**< APIC Register Address. */
 		unsigned int : 24;  /**< Reserved. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } io_regsel_t;
 
 /** I/O Redirection Register. */
@@ -324,17 +324,17 @@ typedef struct io_redirection_reg {
 			unsigned int trigger_mode : 1;  /**< Trigger Mode. */
 			unsigned int masked : 1;        /**< Interrupt Mask. */
 			unsigned int : 15;              /**< Reserved. */
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 	};
 	union {
 		uint32_t hi;
 		struct {
 			unsigned int : 24;  /**< Reserved. */
 			uint8_t dest : 8;   /**< Destination Field. */
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 	};
 
-} __attribute__ ((packed)) io_redirection_reg_t;
+} __attribute__((packed)) io_redirection_reg_t;
 
 
 /** IO APIC Identification Register. */
@@ -344,7 +344,7 @@ typedef union {
 		unsigned int : 24;         /**< Reserved. */
 		unsigned int apic_id : 4;  /**< IO APIC ID. */
 		unsigned int : 4;          /**< Reserved. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } io_apic_id_t;
 
 extern volatile uint32_t *l_apic;

@@ -106,7 +106,7 @@ static void libc_futex_sema_bench(bench_t *bench)
 
 static void thread_func(void *arg)
 {
-	bench_t *bench = (bench_t*)arg;
+	bench_t *bench = (bench_t *)arg;
 
 	bench->func(bench);
 
@@ -164,7 +164,7 @@ static void close_results(void)
 	}
 }
 
-static void print_res(const char *fmt, ... )
+static void print_res(const char *fmt, ...)
 {
 	va_list args;
 
@@ -193,7 +193,7 @@ static void print_usage(void)
 }
 
 static bool parse_cmd_line(int argc, char **argv, bench_t *bench,
-	const char **err)
+    const char **err)
 {
 	if (argc < 4) {
 		*err = "Not enough parameters";
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 	open_results();
 
 	print_res("Running '%s' futex bench in '%zu' threads with '%zu' iterations.\n",
-		bench.name, bench.nthreads, bench.iters);
+	    bench.name, bench.nthreads, bench.iters);
 
 	struct timeval start, end;
 	getuptime(&start);
@@ -275,8 +275,8 @@ int main(int argc, char **argv)
 	}
 
 	print_res("Completed %" PRIu64 " iterations in %" PRId64  " usecs (%" PRIu64
-		" secs); %" PRIu64 " iters/sec\n",
-		total_iters, duration, secs, iters_per_sec);
+	    " secs); %" PRIu64 " iters/sec\n",
+	    total_iters, duration, secs, iters_per_sec);
 
 	close_results();
 

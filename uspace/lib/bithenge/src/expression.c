@@ -899,7 +899,7 @@ static const bithenge_transform_ops_t expression_transform_ops = {
  * @param[out] out Holds the new transform.
  * @param expr The expression to evaluate.
  * @return EOK on success or an error code from errno.h. */
-errno_t bithenge_expression_transform(bithenge_transform_t ** out,
+errno_t bithenge_expression_transform(bithenge_transform_t **out,
     bithenge_expression_t *expr)
 {
 	errno_t rc;
@@ -956,7 +956,7 @@ static const bithenge_transform_ops_t inputless_transform_ops = {
  * @param[out] out Holds the new transform.
  * @param expr The expression to evaluate.
  * @return EOK on success or an error code from errno.h. */
-errno_t bithenge_inputless_transform(bithenge_transform_t ** out,
+errno_t bithenge_inputless_transform(bithenge_transform_t **out,
     bithenge_expression_t *expr)
 {
 	errno_t rc;

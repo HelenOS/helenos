@@ -68,7 +68,7 @@ static_assert(sizeof(hcca_t) == 256);
  *
  * @return Usable HCCA memory structure.
  */
-static inline hcca_t * hcca_get(void)
+static inline hcca_t *hcca_get(void)
 {
 	hcca_t *hcca = memalign(sizeof(hcca_t), sizeof(hcca_t));
 	if (hcca)

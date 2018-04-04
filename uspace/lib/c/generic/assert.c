@@ -38,7 +38,7 @@
 #include <stacktrace.h>
 #include <stdint.h>
 
-static atomic_t failed_asserts = {0};
+static atomic_t failed_asserts = { 0 };
 
 void __helenos_assert_quick_abort(const char *cond, const char *file, unsigned int line)
 {

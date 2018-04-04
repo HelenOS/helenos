@@ -168,13 +168,13 @@ static int32_t ski_con_getchar(void)
 
 #ifdef UARCH_ia64
 	asm volatile (
-		"mov r15 = %1\n"
-		"break 0x80000;;\n"	/* modifies r8 */
-		"mov %0 = r8;;\n"
+	    "mov r15 = %1\n"
+	    "break 0x80000;;\n"	/* modifies r8 */
+	    "mov %0 = r8;;\n"
 
-		: "=r" (ch)
-		: "i" (SKI_GETCHAR)
-		: "r15", "r8"
+	    : "=r" (ch)
+	    : "i" (SKI_GETCHAR)
+	    : "r15", "r8"
 	);
 #else
 	ch = 0;
@@ -198,12 +198,12 @@ static void ski_con_putchar(ski_con_t *con, char ch)
 
 #ifdef UARCH_ia64
 	asm volatile (
-		"mov r15 = %0\n"
-		"mov r32 = %1\n"   /* r32 is in0 */
-		"break 0x80000\n"  /* modifies r8 */
-		:
-		: "i" (SKI_PUTCHAR), "r" (ch)
-		: "r15", "in0", "r8"
+	    "mov r15 = %0\n"
+	    "mov r32 = %1\n"   /* r32 is in0 */
+	    "break 0x80000\n"  /* modifies r8 */
+	    :
+	    : "i" (SKI_PUTCHAR), "r" (ch)
+	    : "r15", "in0", "r8"
 	);
 #else
 	(void) ch;

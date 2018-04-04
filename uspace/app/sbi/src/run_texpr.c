@@ -282,11 +282,21 @@ static void run_tliteral(stree_program_t *prog, stree_csi_t *ctx,
 	tpc = 0;
 
 	switch (tliteral->tlc) {
-	case tlc_bool: tpc = tpc_bool; break;
-	case tlc_char: tpc = tpc_char; break;
-	case tlc_int: tpc = tpc_int; break;
-	case tlc_string: tpc = tpc_string; break;
-	case tlc_resource: tpc = tpc_resource; break;
+	case tlc_bool:
+		tpc = tpc_bool;
+		break;
+	case tlc_char:
+		tpc = tpc_char;
+		break;
+	case tlc_int:
+		tpc = tpc_int;
+		break;
+	case tlc_string:
+		tpc = tpc_string;
+		break;
+	case tlc_resource:
+		tpc = tpc_resource;
+		break;
 	}
 
 	/* Construct type item. */

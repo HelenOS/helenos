@@ -162,7 +162,7 @@ int getpwuid_r(uid_t uid, struct passwd *pwd,
 	assert(result != NULL);
 
 	static const char bf[] = { 'u', 's', 'e', 'r', '\0',
-	    '/', '\0', 'b', 'd', 's', 'h', '\0' };
+		'/', '\0', 'b', 'd', 's', 'h', '\0' };
 
 	if (uid != 0) {
 		*result = NULL;

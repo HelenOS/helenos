@@ -71,9 +71,9 @@ void help_cmd_cd(unsigned int level)
 		printf("`%s' changes the current working directory.\n", cmdname);
 	} else {
 		printf(
-		"  %s <directory>\n"
-		"  Change directory to <directory>, e.g `%s /sbin'\n",
-			cmdname, cmdname);
+		    "  %s <directory>\n"
+		    "  Change directory to <directory>, e.g `%s /sbin'\n",
+		    cmdname, cmdname);
 	}
 
 	return;
@@ -112,7 +112,7 @@ int cmd_cd(char **argv, cliuser_t *usr)
 
 	if (argc < 2) {
 		printf("%s - no directory specified. Try `help %s extended'\n",
-			cmdname, cmdname);
+		    cmdname, cmdname);
 		return CMD_FAILURE;
 	}
 

@@ -44,7 +44,7 @@
 #define IPI_MESSAGE_SIZE	8
 
 static uint64_t data[MAX_NUM_STRANDS][IPI_MESSAGE_SIZE]
-	__attribute__ ((aligned (64)));
+    __attribute__((aligned(64)));
 
 static uint16_t ipi_cpu_list[MAX_NUM_STRANDS][MAX_NUM_STRANDS];
 
@@ -59,7 +59,8 @@ static uint16_t ipi_cpu_list[MAX_NUM_STRANDS][MAX_NUM_STRANDS];
  * @return		error code returned by the CPU_MONDO_SEND hypercall
  */
 uint64_t ipi_brodcast_to(void (*func)(void), uint16_t cpu_list[MAX_NUM_STRANDS],
-		uint64_t list_size) {
+    uint64_t list_size)
+{
 
 	data[CPU->arch.id][0] = (uint64_t) func;
 
@@ -69,7 +70,7 @@ uint64_t ipi_brodcast_to(void (*func)(void), uint16_t cpu_list[MAX_NUM_STRANDS],
 	}
 
 	return __hypercall_fast3(CPU_MONDO_SEND, list_size,
-		KA2PA(ipi_cpu_list[CPU->arch.id]), KA2PA(data[CPU->arch.id]));
+	    KA2PA(ipi_cpu_list[CPU->arch.id]), KA2PA(data[CPU->arch.id]));
 }
 
 /**
@@ -80,7 +81,8 @@ uint64_t ipi_brodcast_to(void (*func)(void), uint16_t cpu_list[MAX_NUM_STRANDS],
  *
  * @return		error code returned by the CPU_MONDO_SEND hypercall
  */
-uint64_t ipi_unicast_to(void (*func)(void), uint16_t cpu_id) {
+uint64_t ipi_unicast_to(void (*func)(void), uint16_t cpu_id)
+{
 	ipi_cpu_list[CPU->arch.id][0] = cpu_id;
 	return ipi_brodcast_to(func, ipi_cpu_list[CPU->arch.id], 1);
 }
@@ -94,7 +96,7 @@ uint64_t ipi_unicast_to(void (*func)(void), uint16_t cpu_id) {
  */
 void ipi_broadcast_arch(int ipi)
 {
-	void (* func)(void);
+	void (*func)(void);
 
 	switch (ipi) {
 	case IPI_TLB_SHOOTDOWN:

@@ -164,13 +164,27 @@ static void stype_csi(stype_t *stype, stree_csi_t *csi)
 		csimbr = list_node_data(csimbr_n, stree_csimbr_t *);
 
 		switch (csimbr->cc) {
-		case csimbr_csi: stype_csi(stype, csimbr->u.csi); break;
-		case csimbr_ctor: stype_ctor(stype, csimbr->u.ctor); break;
-		case csimbr_deleg: stype_deleg(stype, csimbr->u.deleg); break;
-		case csimbr_enum: stype_enum(stype, csimbr->u.enum_d); break;
-		case csimbr_fun: stype_fun(stype, csimbr->u.fun); break;
-		case csimbr_var: stype_var(stype, csimbr->u.var); break;
-		case csimbr_prop: stype_prop(stype, csimbr->u.prop); break;
+		case csimbr_csi:
+			stype_csi(stype, csimbr->u.csi);
+			break;
+		case csimbr_ctor:
+			stype_ctor(stype, csimbr->u.ctor);
+			break;
+		case csimbr_deleg:
+			stype_deleg(stype, csimbr->u.deleg);
+			break;
+		case csimbr_enum:
+			stype_enum(stype, csimbr->u.enum_d);
+			break;
+		case csimbr_fun:
+			stype_fun(stype, csimbr->u.fun);
+			break;
+		case csimbr_var:
+			stype_var(stype, csimbr->u.var);
+			break;
+		case csimbr_prop:
+			stype_prop(stype, csimbr->u.prop);
+			break;
 		}
 
 		csimbr_n = list_next(&csi->members, csimbr_n);
@@ -890,16 +904,36 @@ void stype_stat(stype_t *stype, stree_stat_t *stat, bool_t want_value)
 	printf("Type statement.\n");
 #endif
 	switch (stat->sc) {
-	case st_vdecl: stype_vdecl(stype, stat->u.vdecl_s); break;
-	case st_if: stype_if(stype, stat->u.if_s); break;
-	case st_switch: stype_switch(stype, stat->u.switch_s); break;
-	case st_while: stype_while(stype, stat->u.while_s); break;
-	case st_for: stype_for(stype, stat->u.for_s); break;
-	case st_raise: stype_raise(stype, stat->u.raise_s); break;
-	case st_break: stype_break(stype, stat->u.break_s); break;
-	case st_return: stype_return(stype, stat->u.return_s); break;
-	case st_exps: stype_exps(stype, stat->u.exp_s, want_value); break;
-	case st_wef: stype_wef(stype, stat->u.wef_s); break;
+	case st_vdecl:
+		stype_vdecl(stype, stat->u.vdecl_s);
+		break;
+	case st_if:
+		stype_if(stype, stat->u.if_s);
+		break;
+	case st_switch:
+		stype_switch(stype, stat->u.switch_s);
+		break;
+	case st_while:
+		stype_while(stype, stat->u.while_s);
+		break;
+	case st_for:
+		stype_for(stype, stat->u.for_s);
+		break;
+	case st_raise:
+		stype_raise(stype, stat->u.raise_s);
+		break;
+	case st_break:
+		stype_break(stype, stat->u.break_s);
+		break;
+	case st_return:
+		stype_return(stype, stat->u.return_s);
+		break;
+	case st_exps:
+		stype_exps(stype, stat->u.exp_s, want_value);
+		break;
+	case st_wef:
+		stype_wef(stype, stat->u.wef_s);
+		break;
 	}
 }
 
@@ -1691,8 +1725,12 @@ void stype_convert_failure(stype_t *stype, stype_conv_class_t convc,
 	cspan_print(expr->cspan);
 	printf(" Error: ");
 	switch (convc) {
-	case convc_implicit: printf("Cannot implicitly convert '"); break;
-	case convc_as: printf("Cannot use 'as' to convert '"); break;
+	case convc_implicit:
+		printf("Cannot implicitly convert '");
+		break;
+	case convc_as:
+		printf("Cannot use 'as' to convert '");
+		break;
 	}
 
 	tdata_item_print(expr->titem);
@@ -1820,9 +1858,9 @@ tdata_item_t *stype_tobject_find_pred(stype_t *stype, tdata_item_t *src,
 			run_texpr(stype->program, src_csi, pred_te,
 			    &b_ti);
 		} else if (src_csi->base_csi != NULL &&
-			src->u.tobject->csi->cc == csi_class) {
+		    src->u.tobject->csi->cc == csi_class) {
 			/* No explicit reference. Use grandfather class. */
-		    	b_ti = tdata_item_new(tic_tobject);
+			b_ti = tdata_item_new(tic_tobject);
 			b_ti->u.tobject = tdata_object_new();
 			b_ti->u.tobject->csi = src_csi->base_csi;
 			b_ti->u.tobject->static_ref = sn_nonstatic;
@@ -1839,7 +1877,7 @@ tdata_item_t *stype_tobject_find_pred(stype_t *stype, tdata_item_t *src,
 
 		/* Recurse to compute the rest of the path. */
 		res_ti = stype_tobject_find_pred(stype, bs_ti, dest);
-	    	if (b_ti->tic == tic_ignore) {
+		if (b_ti->tic == tic_ignore) {
 			/* An error occured. */
 			return NULL;
 		}
@@ -2216,7 +2254,7 @@ stree_proc_arg_t *stype_proc_args_lookup(stype_t *stype, sid_t name)
 		printf("Found variadic argument.\n");
 #endif
 		return varg;
-}
+	}
 
 	/* Setter argument */
 	if (setter_arg != NULL && setter_arg->name->sid == name) {

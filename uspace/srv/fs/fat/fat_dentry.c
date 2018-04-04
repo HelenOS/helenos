@@ -381,7 +381,7 @@ void str_to_ascii(char *dst, const char *src, size_t count, uint8_t pad)
 bool fat_valid_name(const char *name)
 {
 	wchar_t ch;
-	size_t offset=0;
+	size_t offset = 0;
 	bool result = true;
 
 	while ((ch = str_decode(name, &offset, STR_NO_LIMIT)) != 0) {

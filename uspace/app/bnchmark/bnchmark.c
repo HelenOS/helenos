@@ -54,12 +54,12 @@
 #define BUFSIZE 8096
 #define MBYTE (1024*1024)
 
-typedef errno_t(*measure_func_t)(void *);
+typedef errno_t (*measure_func_t)(void *);
 typedef unsigned long umseconds_t; /* milliseconds */
 
 static void syntax_print(void);
 
-static errno_t measure(measure_func_t fn, void* data, umseconds_t *result)
+static errno_t measure(measure_func_t fn, void *data, umseconds_t *result)
 {
 	struct timeval start_time;
 	gettimeofday(&start_time, NULL);
@@ -154,7 +154,8 @@ int main(int argc, char **argv)
 	}
 
 	// Skip program name
-	--argc; ++argv;
+	--argc;
+	++argv;
 
 	iterations = strtol(*argv, &endptr, 10);
 	if (*endptr != '\0') {
@@ -163,22 +164,23 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	--argc; ++argv;
+	--argc;
+	++argv;
 	test_type = *argv;
 
-	--argc; ++argv;
+	--argc;
+	++argv;
 	log_str = *argv;
 
-	--argc; ++argv;
+	--argc;
+	++argv;
 	path = *argv;
 
 	if (str_cmp(test_type, "sequential-file-read") == 0) {
 		fn = sequential_read_file;
-	}
-	else if (str_cmp(test_type, "sequential-dir-read") == 0) {
+	} else if (str_cmp(test_type, "sequential-dir-read") == 0) {
 		fn = sequential_read_dir;
-	}
-	else {
+	} else {
 		fprintf(stderr, "Error, unknown test type\n");
 		syntax_print();
 		return 1;

@@ -62,7 +62,7 @@ char *ctermid(char *s)
 	/* Currently always returns an error value (empty string). */
 	// TODO: return a real terminal path
 
-	static char dummy_path[L_ctermid] = {'\0'};
+	static char dummy_path[L_ctermid] = { '\0' };
 
 	if (s == NULL) {
 		return dummy_path;

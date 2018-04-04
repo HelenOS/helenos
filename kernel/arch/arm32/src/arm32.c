@@ -155,7 +155,8 @@ void cpu_halt(void)
 void arch_reboot(void)
 {
 	/* not implemented */
-	while (true);
+	while (true)
+		;
 }
 
 /** Construct function pointer

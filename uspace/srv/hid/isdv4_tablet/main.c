@@ -93,7 +93,8 @@ static void emit_event(const isdv4_event_t *event)
 	async_sess_t *sess = client_sess;
 	fibril_mutex_unlock(&client_mutex);
 
-	if (!sess) return;
+	if (!sess)
+		return;
 
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (exch) {
@@ -104,10 +105,10 @@ static void emit_event(const isdv4_event_t *event)
 			max_y = state.touch_max_y;
 		}
 		async_msg_4(exch, MOUSEEV_ABS_MOVE_EVENT, event->x, event->y,
-				    max_x, max_y);
+		    max_x, max_y);
 		if (event->type == PRESS || event->type == RELEASE) {
 			async_msg_2(exch, MOUSEEV_BUTTON_EVENT, event->button,
-				    event->type == PRESS);
+			    event->type == PRESS);
 		}
 	}
 	async_exchange_end(exch);
@@ -117,37 +118,37 @@ static void print_and_emit_event(const isdv4_event_t *event)
 {
 	const char *type = NULL;
 	switch (event->type) {
-		case PRESS:
-			type = "PRESS";
-			break;
-		case RELEASE:
-			type = "RELEASE";
-			break;
-		case PROXIMITY_IN:
-			type = "PROXIMITY IN";
-			break;
-		case PROXIMITY_OUT:
-			type = "PROXIMITY OUT";
-			break;
-		case MOVE:
-			type = "MOVE";
-			break;
-		default:
-			type = "UNKNOWN";
-			break;
+	case PRESS:
+		type = "PRESS";
+		break;
+	case RELEASE:
+		type = "RELEASE";
+		break;
+	case PROXIMITY_IN:
+		type = "PROXIMITY IN";
+		break;
+	case PROXIMITY_OUT:
+		type = "PROXIMITY OUT";
+		break;
+	case MOVE:
+		type = "MOVE";
+		break;
+	default:
+		type = "UNKNOWN";
+		break;
 	}
 
 	const char *source = NULL;
 	switch (event->source) {
-		case STYLUS_TIP:
-			source = "stylus tip";
-			break;
-		case STYLUS_ERASER:
-			source = "stylus eraser";
-			break;
-		case TOUCH:
-			source = "touch";
-			break;
+	case STYLUS_TIP:
+		source = "stylus tip";
+		break;
+	case STYLUS_ERASER:
+		source = "stylus eraser";
+		break;
+	case TOUCH:
+		source = "touch";
+		break;
 	}
 
 	printf("%s %s %u %u %u %u\n", type, source, event->x, event->y,
@@ -159,17 +160,17 @@ static void print_and_emit_event(const isdv4_event_t *event)
 static const char *touch_type(unsigned int data_id)
 {
 	switch (data_id) {
-		case 0:
-			return "resistive+stylus";
-		case 1:
-			return "capacitive+stylus";
-		case 2:
-			return "resistive";
-		case 3:
-		case 4:
-			return "capacitive";
-		case 5:
-			return "penabled";
+	case 0:
+		return "resistive+stylus";
+	case 1:
+		return "capacitive+stylus";
+	case 2:
+		return "resistive";
+	case 3:
+	case 4:
+		return "capacitive";
+	case 5:
+		return "penabled";
 	}
 	return "unknown";
 }
@@ -188,7 +189,7 @@ int main(int argc, char **argv)
 
 	if (argc > arg && str_test_prefix(argv[arg], "--baud=")) {
 		size_t arg_offset = str_lsize(argv[arg], 7);
-		char* arg_str = argv[arg] + arg_offset;
+		char *arg_str = argv[arg] + arg_offset;
 		if (str_length(arg_str) == 0) {
 			fprintf(stderr, "--baud requires an argument\n");
 			syntax_print();
@@ -218,8 +219,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		arg++;
-	}
-	else {
+	} else {
 		category_id_t serial_cat_id;
 
 		rc = loc_category_get_id("serial", &serial_cat_id, 0);
@@ -232,7 +232,8 @@ int main(int argc, char **argv)
 		service_id_t *svc_ids;
 		size_t svc_count;
 
-		rc = loc_category_get_svcs(serial_cat_id, &svc_ids, &svc_count);		if (rc != EOK) {
+		rc = loc_category_get_svcs(serial_cat_id, &svc_ids, &svc_count);
+		if (rc != EOK) {
 			fprintf(stderr, "Failed getting list of services\n");
 			return 1;
 		}
@@ -300,12 +301,11 @@ int main(int argc, char **argv)
 	    state.stylus_max_y, state.stylus_max_pressure);
 	if (state.stylus_tilt_supported) {
 		printf("%ux%u\n", state.stylus_max_xtilt, state.stylus_max_ytilt);
-	}
-	else {
+	} else {
 		printf("not supported\n");
 	}
 	printf(" Touch: %ux%u type: %s\n", state.touch_max_x, state.touch_max_y,
-		touch_type(state.touch_type));
+	    touch_type(state.touch_type));
 
 	fid_t fibril = fibril_create(read_fibril, NULL);
 	/* From this on, state is to be used only by read_fibril */
@@ -336,8 +336,7 @@ int main(int argc, char **argv)
 	rc = loc_category_get_id("mouse", &mouse_category, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf(NAME ": Unable to get mouse category id.\n");
-	}
-	else {
+	} else {
 		rc = loc_service_add_to_cat(service_id, mouse_category);
 		if (rc != EOK) {
 			printf(NAME ": Unable to add device to mouse category.\n");

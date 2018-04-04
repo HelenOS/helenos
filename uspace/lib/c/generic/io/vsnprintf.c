@@ -169,8 +169,8 @@ int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 		str
 	};
 	printf_spec_t ps = {
-		(int(*) (const char *, size_t, void *)) vsnprintf_str_write,
-		(int(*) (const wchar_t *, size_t, void *)) vsnprintf_wstr_write,
+		(int (*) (const char *, size_t, void *)) vsnprintf_str_write,
+		(int (*) (const wchar_t *, size_t, void *)) vsnprintf_wstr_write,
 		&data
 	};
 

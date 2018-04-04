@@ -44,20 +44,24 @@
 #include "posix/limits.h"
 #include "posix/signal.h"
 
-int __posix_wifexited(int status) {
+int __posix_wifexited(int status)
+{
 	return status != INT_MIN;
 }
 
-int __posix_wexitstatus(int status) {
+int __posix_wexitstatus(int status)
+{
 	assert(__posix_wifexited(status));
 	return status;
 }
 
-int __posix_wifsignaled(int status) {
+int __posix_wifsignaled(int status)
+{
 	return status == INT_MIN;
 }
 
-int __posix_wtermsig(int status) {
+int __posix_wtermsig(int status)
+{
 	assert(__posix_wifsignaled(status));
 	/* There is no way to distinguish reason
 	 * for unexpected termination at the moment.

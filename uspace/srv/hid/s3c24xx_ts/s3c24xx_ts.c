@@ -171,7 +171,7 @@ static void s3c24xx_ts_wait_for_int_mode(s3c24xx_ts_t *ts, ts_updn_t updn)
 	/* Enable prescaler. */
 	con = con | ADCCON_PRSCEN;
 
- 	pio_write_32(&ts->io->con, con);
+	pio_write_32(&ts->io->con, con);
 
 	/*
 	 * Configure ADCTSC register
@@ -255,12 +255,10 @@ static void s3c24xx_ts_pen_down(s3c24xx_ts_t *ts)
 	ts->state = ts_sample_pos;
 
 	/* Enable auto xy-conversion mode */
-	pio_write_32(&ts->io->tsc, (pio_read_32(&ts->io->tsc)
-	    & ~3) | 4);
+	pio_write_32(&ts->io->tsc, (pio_read_32(&ts->io->tsc) & ~3) | 4);
 
 	/* Start the conversion. */
-	pio_write_32(&ts->io->con, pio_read_32(&ts->io->con)
-	    | ADCCON_ENABLE_START);
+	pio_write_32(&ts->io->con, pio_read_32(&ts->io->con) | ADCCON_ENABLE_START);
 }
 
 /** Handle pen-up interrupt.

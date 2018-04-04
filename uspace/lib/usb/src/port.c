@@ -65,7 +65,7 @@ struct enumerate_worker_args {
 
 static int enumerate_worker(void *arg)
 {
-	struct enumerate_worker_args * const args = arg;
+	struct enumerate_worker_args *const args = arg;
 	usb_port_t *port = args->port;
 	usb_port_enumerate_t handler = args->handler;
 	free(args);
@@ -83,9 +83,7 @@ static int enumerate_worker(void *arg)
 
 	assert(port->state == PORT_CONNECTING);
 
-	port->state = handler(port)
-		? PORT_DISABLED
-		: PORT_ENUMERATED;
+	port->state = handler(port) ? PORT_DISABLED : PORT_ENUMERATED;
 
 out:
 	fibril_condvar_broadcast(&port->finished_cv);
@@ -142,7 +140,7 @@ struct remove_worker_args {
 
 static int remove_worker(void *arg)
 {
-	struct remove_worker_args * const args = arg;
+	struct remove_worker_args *const args = arg;
 	usb_port_t *port = args->port;
 	usb_port_remove_t handler = args->handler;
 	free(args);

@@ -47,19 +47,19 @@ void help_cmd_batch(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf(
-		"\n  batch [filename] [-c]\n"
-		"  Issues commands stored in the file.\n"
-		"  Each command must correspond to the single line in the file.\n\n");
+		    "\n  batch [filename] [-c]\n"
+		    "  Issues commands stored in the file.\n"
+		    "  Each command must correspond to the single line in the file.\n\n");
 	} else {
 		printf(
-		"\n  `batch' - issues a batch of commands\n"
-		"  Issues commands stored in the file. Each command must correspond\n"
-		"  to the single line in the file. Empty lines can be used to visually\n"
-		"  separate groups of commands. There is no support for comments,\n"
-		"  variables, recursion or other programming constructs - the `batch'\n"
-		"  command is indeed very trivial.\n"
-		"  If the filename is followed by -c, execution continues even if some\n"
-		"  of the commands failed.\n\n");
+		    "\n  `batch' - issues a batch of commands\n"
+		    "  Issues commands stored in the file. Each command must correspond\n"
+		    "  to the single line in the file. Empty lines can be used to visually\n"
+		    "  separate groups of commands. There is no support for comments,\n"
+		    "  variables, recursion or other programming constructs - the `batch'\n"
+		    "  command is indeed very trivial.\n"
+		    "  If the filename is followed by -c, execution continues even if some\n"
+		    "  of the commands failed.\n\n");
 	}
 
 	return;

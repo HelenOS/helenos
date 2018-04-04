@@ -96,7 +96,7 @@ static errno_t i8259_dev_add(ddf_dev_t *dev)
 	i8259_res_t i8259_res;
 	errno_t rc;
 
-        ddf_msg(LVL_DEBUG, "i8259_dev_add(%p)", dev);
+	ddf_msg(LVL_DEBUG, "i8259_dev_add(%p)", dev);
 	i8259 = ddf_dev_data_alloc(dev, sizeof(i8259_t));
 	if (i8259 == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
@@ -116,32 +116,32 @@ static errno_t i8259_dev_add(ddf_dev_t *dev)
 
 static errno_t i8259_dev_remove(ddf_dev_t *dev)
 {
-        i8259_t *i8259 = (i8259_t *)ddf_dev_data_get(dev);
+	i8259_t *i8259 = (i8259_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "i8259_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "i8259_dev_remove(%p)", dev);
 
-        return i8259_remove(i8259);
+	return i8259_remove(i8259);
 }
 
 static errno_t i8259_dev_gone(ddf_dev_t *dev)
 {
-        i8259_t *i8259 = (i8259_t *)ddf_dev_data_get(dev);
+	i8259_t *i8259 = (i8259_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "i8259_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "i8259_dev_gone(%p)", dev);
 
-        return i8259_gone(i8259);
+	return i8259_gone(i8259);
 }
 
 static errno_t i8259_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "i8259_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "i8259_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t i8259_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "i8259_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "i8259_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

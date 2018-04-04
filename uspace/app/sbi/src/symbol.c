@@ -97,7 +97,7 @@ stree_symbol_t *symbol_xlookup_in_csi(stree_program_t *prog,
  * @return	Symbol or @c NULL if symbol not found
  */
 stree_symbol_t *symbol_lookup_in_csi(stree_program_t *prog, stree_csi_t *scope,
-	stree_ident_t *name)
+    stree_ident_t *name)
 {
 	stree_symbol_t *symbol;
 
@@ -208,8 +208,12 @@ static stree_symbol_t *symbol_search_global(stree_program_t *prog,
 		mbr_name = NULL;
 
 		switch (modm->mc) {
-		case mc_csi: mbr_name = modm->u.csi->name; break;
-		case mc_enum: mbr_name = modm->u.enum_d->name; break;
+		case mc_csi:
+			mbr_name = modm->u.csi->name;
+			break;
+		case mc_enum:
+			mbr_name = modm->u.enum_d->name;
+			break;
 		}
 
 		/* The Clang static analyzer is just too picky. */
@@ -337,7 +341,7 @@ stree_symbol_t *symbol_find_epoint(stree_program_t *prog, stree_ident_t *name)
 				entry = etmp;
 			}
 		}
-	    	node = list_next(&prog->module->members, node);
+		node = list_next(&prog->module->members, node);
 	}
 
 	return entry;
@@ -392,7 +396,7 @@ static stree_symbol_t *symbol_find_epoint_rec(stree_program_t *prog,
 			break;
 		}
 
-	    	node = list_next(&csi->members, node);
+		node = list_next(&csi->members, node);
 	}
 
 	return entry;
@@ -649,13 +653,27 @@ static stree_ident_t *symbol_get_ident(stree_symbol_t *symbol)
 	ident = NULL;
 
 	switch (symbol->sc) {
-	case sc_csi: ident = symbol->u.csi->name; break;
-	case sc_ctor: ident = symbol->u.ctor->name; break;
-	case sc_deleg: ident = symbol->u.deleg->name; break;
-	case sc_enum: ident = symbol->u.enum_d->name; break;
-	case sc_fun: ident = symbol->u.fun->name; break;
-	case sc_var: ident = symbol->u.var->name; break;
-	case sc_prop: ident = symbol->u.prop->name; break;
+	case sc_csi:
+		ident = symbol->u.csi->name;
+		break;
+	case sc_ctor:
+		ident = symbol->u.ctor->name;
+		break;
+	case sc_deleg:
+		ident = symbol->u.deleg->name;
+		break;
+	case sc_enum:
+		ident = symbol->u.enum_d->name;
+		break;
+	case sc_fun:
+		ident = symbol->u.fun->name;
+		break;
+	case sc_var:
+		ident = symbol->u.var->name;
+		break;
+	case sc_prop:
+		ident = symbol->u.prop->name;
+		break;
 	}
 
 	return ident;

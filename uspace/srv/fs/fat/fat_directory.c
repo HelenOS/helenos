@@ -382,7 +382,7 @@ errno_t fat_directory_create_sfn(fat_directory_t *di, fat_dentry_t *de,
 
 		/* Copy number */
 		size_t offset;
-		if (str_size(name)+str_size(number) + 1 > FAT_NAME_LEN)
+		if (str_size(name) + str_size(number) + 1 > FAT_NAME_LEN)
 			offset = FAT_NAME_LEN - str_size(number) - 1;
 		else
 			offset = str_size(name);

@@ -84,22 +84,22 @@ static inline uint32_t has_cpuid(void)
 	uint32_t ret;
 
 	asm volatile (
-		"pushf\n"                      /* read flags */
-		"popl %[ret]\n"
-		"movl %[ret], %[val]\n"
+	    "pushf\n"                      /* read flags */
+	    "popl %[ret]\n"
+	    "movl %[ret], %[val]\n"
 
-		"xorl %[eflags_id], %[val]\n"  /* swap the ID bit */
+	    "xorl %[eflags_id], %[val]\n"  /* swap the ID bit */
 
-		"pushl %[val]\n"               /* propagate the change into flags */
-		"popf\n"
-		"pushf\n"
-		"popl %[val]\n"
+	    "pushl %[val]\n"               /* propagate the change into flags */
+	    "popf\n"
+	    "pushf\n"
+	    "popl %[val]\n"
 
-		"andl %[eflags_id], %[ret]\n"  /* interrested only in ID bit */
-		"andl %[eflags_id], %[val]\n"
-		"xorl %[val], %[ret]\n"
-		: [ret] "=r" (ret), [val] "=r" (val)
-		: [eflags_id] "i" (EFLAGS_ID)
+	    "andl %[eflags_id], %[ret]\n"  /* interrested only in ID bit */
+	    "andl %[eflags_id], %[val]\n"
+	    "xorl %[val], %[ret]\n"
+	    : [ret] "=r" (ret), [val] "=r" (val)
+	    : [eflags_id] "i" (EFLAGS_ID)
 	);
 
 	return ret;
@@ -108,10 +108,10 @@ static inline uint32_t has_cpuid(void)
 static inline void cpuid(uint32_t cmd, cpu_info_t *info)
 {
 	asm volatile (
-		"cpuid\n"
-		: "=a" (info->cpuid_eax), "=b" (info->cpuid_ebx),
-		  "=c" (info->cpuid_ecx), "=d" (info->cpuid_edx)
-		: "a" (cmd)
+	    "cpuid\n"
+	    : "=a" (info->cpuid_eax), "=b" (info->cpuid_ebx),
+	      "=c" (info->cpuid_ecx), "=d" (info->cpuid_edx)
+	    : "a" (cmd)
 	);
 }
 

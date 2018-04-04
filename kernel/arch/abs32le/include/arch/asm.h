@@ -50,7 +50,8 @@ NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 	   low-power mode) without any possibility of exitting
 	   this function. */
 
-	while (true);
+	while (true)
+		;
 }
 
 NO_TRACE static inline void cpu_sleep(void)

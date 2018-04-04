@@ -62,14 +62,14 @@ typedef union tte_tag {
 		unsigned context : 13;	/**< Software ASID. */
 		unsigned : 6;
 		uint64_t va_tag : 42;	/**< Virtual address bits <63:22>. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } tte_tag_t;
 
 /** TSB entry. */
 typedef struct tsb_entry {
 	tte_tag_t tag;
 	tte_data_t data;
-} __attribute__ ((packed)) tsb_entry_t;
+} __attribute__((packed)) tsb_entry_t;
 
 typedef struct {
 	tsb_descr_t tsb_description;

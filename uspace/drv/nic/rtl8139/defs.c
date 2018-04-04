@@ -28,7 +28,7 @@
 
 #include "defs.h"
 
-const char* model_names[RTL8139_VER_COUNT] = {
+const char *model_names[RTL8139_VER_COUNT] = {
 	"RTL8139",
 	"RTL8139A",
 	"RTL8139A_G",
@@ -45,17 +45,17 @@ const char* model_names[RTL8139_VER_COUNT] = {
     | (b4 << 3) | (b5 << 2) | (b6 << 1) | (b7))
 
 const struct rtl8139_hwver_map rtl8139_versions[RTL8139_VER_COUNT + 1] = {
-	{ HWVER(1,1,0,0,0,0,0), RTL8139 },
-	{ HWVER(1,1,1,0,0,0,0), RTL8139A },
-	{ HWVER(1,1,1,0,0,1,0), RTL8139A_G },
-	{ HWVER(1,1,1,1,0,0,0), RTL8139B },
-	{ HWVER(1,1,1,1,1,0,0), RTL8130 },
-	{ HWVER(1,1,1,0,1,0,0), RTL8139C },
-	{ HWVER(1,1,1,1,0,1,0), RTL8100 },
-	{ HWVER(1,1,1,0,1,0,1), RTL8139D },
-	{ HWVER(1,1,1,0,1,1,0), RTL8139Cp },
-	{ HWVER(1,1,1,0,1,1,1), RTL8101 },
+	{ HWVER(1, 1, 0, 0, 0, 0, 0), RTL8139 },
+	{ HWVER(1, 1, 1, 0, 0, 0, 0), RTL8139A },
+	{ HWVER(1, 1, 1, 0, 0, 1, 0), RTL8139A_G },
+	{ HWVER(1, 1, 1, 1, 0, 0, 0), RTL8139B },
+	{ HWVER(1, 1, 1, 1, 1, 0, 0), RTL8130 },
+	{ HWVER(1, 1, 1, 0, 1, 0, 0), RTL8139C },
+	{ HWVER(1, 1, 1, 1, 0, 1, 0), RTL8100 },
+	{ HWVER(1, 1, 1, 0, 1, 0, 1), RTL8139D },
+	{ HWVER(1, 1, 1, 0, 1, 1, 0), RTL8139Cp },
+	{ HWVER(1, 1, 1, 0, 1, 1, 1), RTL8101 },
 	/* End value */
-	{ 0, RTL8139_VER_COUNT}
+	{ 0, RTL8139_VER_COUNT }
 };
 

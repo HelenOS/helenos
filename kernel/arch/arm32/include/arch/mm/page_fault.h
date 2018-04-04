@@ -57,7 +57,7 @@ typedef union {
 		unsigned lpae : 1; /**< Needs LPAE support implemented */
 		unsigned fs : 1; /**< armv6+ mandated, earlier IPLM. DEFINED */
 		unsigned wr : 1; /**< armv6+ only */
-		unsigned ext : 1 ; /**< external abort */
+		unsigned ext : 1; /**< external abort */
 		unsigned cm : 1; /**< Cache maintenance, needs LPAE support */
 		unsigned should_be_zero : 18;
 	} data;

@@ -63,8 +63,8 @@ NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
 		b = a + i;
 
 		asm volatile (
-			"casx %0, %2, %1\n"
-			: "+m" (*((atomic_count_t *) ptr)),
+		    "casx %0, %2, %1\n"
+		    : "+m" (*((atomic_count_t *) ptr)),
 		      "+r" (b)
 		    : "r" (a)
 		);
@@ -109,8 +109,8 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 	volatile uintptr_t ptr = (uintptr_t) &val->count;
 
 	asm volatile (
-		"casx %0, %2, %1\n"
-		: "+m" (*((atomic_count_t *) ptr)),
+	    "casx %0, %2, %1\n"
+	    : "+m" (*((atomic_count_t *) ptr)),
 	      "+r" (v)
 	    : "r" (0)
 	);
@@ -128,20 +128,20 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 	preemption_disable();
 
 	asm volatile (
-		"0:\n"
-			"casx %0, %3, %1\n"
-			"brz %1, 2f\n"
-			"nop\n"
-		"1:\n"
-			"ldx %0, %2\n"
-			"brz %2, 0b\n"
-			"nop\n"
-			"ba,a %%xcc, 1b\n"
-		"2:\n"
-		: "+m" (*((atomic_count_t *) ptr)),
-		  "+r" (tmp1),
-		  "+r" (tmp2)
-		: "r" (0)
+	    "0:\n"
+	    "casx %0, %3, %1\n"
+	    "brz %1, 2f\n"
+	    "nop\n"
+	    "1:\n"
+	    "ldx %0, %2\n"
+	    "brz %2, 0b\n"
+	    "nop\n"
+	    "ba,a %%xcc, 1b\n"
+	    "2:\n"
+	    : "+m" (*((atomic_count_t *) ptr)),
+	      "+r" (tmp1),
+	      "+r" (tmp2)
+	    : "r" (0)
 	);
 
 	/*

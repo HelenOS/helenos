@@ -513,7 +513,7 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 
 	ddf_msg(LVL_NOTE, "reg 0x%zx STATESTS = 0x%x",
 	    (void *)&hda->regs->statests - (void *)hda->regs,
-		hda_reg16_read(&hda->regs->statests));
+	    hda_reg16_read(&hda->regs->statests));
 	/**
 	  * Clear STATESTS bits so they don't generate an interrupt later
 	  * when we enable interrupts.
@@ -522,7 +522,7 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 
 	ddf_msg(LVL_NOTE, "after clearing reg 0x%zx STATESTS = 0x%x",
 	    (void *)&hda->regs->statests - (void *)hda->regs,
-		hda_reg16_read(&hda->regs->statests));
+	    hda_reg16_read(&hda->regs->statests));
 
 	gctl = hda_reg32_read(&hda->regs->gctl);
 	if ((gctl & BIT_V(uint32_t, gctl_crst)) != 0) {
@@ -543,7 +543,7 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 		}
 
 		ddf_msg(LVL_NOTE, "Waiting for controller to initialize.");
-		async_usleep(100*1000);
+		async_usleep(100 * 1000);
 		--cnt;
 	}
 

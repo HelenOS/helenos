@@ -50,28 +50,28 @@
 #include "libc/str.h"
 
 #ifndef HUGE_VALL
-	#define HUGE_VALL (+1.0l / +0.0l)
+#define HUGE_VALL (+1.0l / +0.0l)
 #endif
 
 #ifndef abs
-	#define abs(x) (((x) < 0) ? -(x) : (x))
+#define abs(x) (((x) < 0) ? -(x) : (x))
 #endif
 
 /* If the constants are not defined, use double precision as default. */
 #ifndef LDBL_MANT_DIG
-	#define LDBL_MANT_DIG 53
+#define LDBL_MANT_DIG 53
 #endif
 #ifndef LDBL_MAX_EXP
-	#define LDBL_MAX_EXP 1024
+#define LDBL_MAX_EXP 1024
 #endif
 #ifndef LDBL_MIN_EXP
-	#define LDBL_MIN_EXP (-1021)
+#define LDBL_MIN_EXP (-1021)
 #endif
 #ifndef LDBL_DIG
-	#define LDBL_DIG 15
+#define LDBL_DIG 15
 #endif
 #ifndef LDBL_MIN
-	#define LDBL_MIN 2.2250738585072014E-308
+#define LDBL_MIN 2.2250738585072014E-308
 #endif
 
 /* power functions ************************************************************/

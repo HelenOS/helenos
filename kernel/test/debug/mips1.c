@@ -41,7 +41,7 @@ const char *test_mips1(void)
 	TPRINTF("If kconsole is compiled in, you should enter debug mode now.\n");
 
 	asm volatile (
-		"break\n"
+	    "break\n"
 	);
 
 	return "Back from debug mode";

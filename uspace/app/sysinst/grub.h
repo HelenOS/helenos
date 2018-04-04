@@ -51,7 +51,7 @@ typedef struct {
 	uint64_t start;
 	uint16_t len;
 	uint16_t segment;
-} __attribute__ ((packed)) grub_boot_blocklist_t;
+} __attribute__((packed)) grub_boot_blocklist_t;
 
 #endif
 

@@ -185,7 +185,8 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 	/*
 	 * Ascending addresses
 	 */
-	offset = 0; i = 1;
+	offset = 0;
+	i = 1;
 	list_foreach(rtld->imodules, imodules_link, module_t, m) {
 		assert(i == m->id);
 		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
@@ -199,7 +200,8 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 	/*
 	 * Descending addresses
 	 */
-	offset = 0; i = 1;
+	offset = 0;
+	i = 1;
 	list_foreach(rtld->imodules, imodules_link, module_t, m) {
 		assert(i == m->id);
 		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);

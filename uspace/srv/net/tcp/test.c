@@ -78,10 +78,10 @@ static errno_t test_srv(void *arg)
 		rcv_buf[rcvd] = '\0';
 		printf("S: User received %zu bytes '%s'.\n", rcvd, rcv_buf);
 
-		async_usleep(1000*1000*2);
+		async_usleep(1000 * 1000 * 2);
 	}
 
-	async_usleep(/*10**/1000*1000);
+	async_usleep(/*10**/1000 * 1000);
 
 	printf("S: User close...\n");
 	tcp_uc_close(conn);
@@ -106,16 +106,16 @@ static errno_t test_cli(void *arg)
 	inet_addr(&epp.remote.addr, 127, 0, 0, 1);
 	epp.remote.port = 80;
 
-	async_usleep(1000*1000*3);
+	async_usleep(1000 * 1000 * 3);
 	printf("C: User open...\n");
 	tcp_uc_open(&epp, ap_active, 0, &conn);
 	conn->name = (char *) "C";
 
-	async_usleep(1000*1000*10);
+	async_usleep(1000 * 1000 * 10);
 	printf("C: User send...\n");
 	tcp_uc_send(conn, (void *)msg, str_size(msg), 0);
 
-	async_usleep(1000*1000*20/**20*2*/);
+	async_usleep(1000 * 1000 * 20/**20*2*/);
 	printf("C: User close...\n");
 	tcp_uc_close(conn);
 
@@ -129,7 +129,7 @@ void tcp_test(void)
 
 	printf("tcp_test()\n");
 
-	async_usleep(1000*1000);
+	async_usleep(1000 * 1000);
 
 	if (0) {
 		srv_fid = fibril_create(test_srv, NULL);

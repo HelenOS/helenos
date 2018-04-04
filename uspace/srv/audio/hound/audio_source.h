@@ -64,7 +64,7 @@ struct audio_source {
  * @param l link
  * @return pointer to a source structure, NULL on failure.
  */
-static inline audio_source_t * audio_source_list_instance(link_t *l)
+static inline audio_source_t *audio_source_list_instance(link_t *l)
 {
 	return l ? list_get_instance(l, audio_source_t, link) : NULL;
 }

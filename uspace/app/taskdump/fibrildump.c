@@ -111,8 +111,9 @@ errno_t fibrils_dump(symtab_t *symtab, async_sess_t *sess)
 
 		pc = context_get_pc(&fibril.ctx);
 		fp = context_get_fp(&fibril.ctx);
-		if (0) stacktrace_print_generic(&fibrildump_st_ops, sess,
-		    fp, pc);
+		if (0)
+			stacktrace_print_generic(&fibrildump_st_ops, sess,
+			    fp, pc);
 		td_stacktrace(fp, pc);
 	}
 

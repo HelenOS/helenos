@@ -194,7 +194,7 @@ void ddf_dump_buffer(char *dump, size_t dump_size,
 
 	if (print_remainder && (index < items)) {
 		size_t s = str_size(dump);
-		snprintf(dump + s, dump_size - s ,REMAINDER_STR_FMT,
+		snprintf(dump + s, dump_size - s, REMAINDER_STR_FMT,
 		    items - index);
 	}
 }

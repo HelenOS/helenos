@@ -173,7 +173,7 @@ errno_t visualizer_set_mode(async_sess_t *sess, sysarg_t index, sysarg_t version
 
 errno_t visualizer_update_damaged_region(async_sess_t *sess,
     sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height,
-	sysarg_t x_offset, sysarg_t y_offset)
+    sysarg_t x_offset, sysarg_t y_offset)
 {
 	assert(x_offset <= UINT16_MAX);
 	assert(y_offset <= UINT16_MAX);

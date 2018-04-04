@@ -59,9 +59,9 @@
  * Interrupt and exception dispatching.
  */
 
-void (* disable_irqs_function)(uint16_t irqmask) = NULL;
-void (* enable_irqs_function)(uint16_t irqmask) = NULL;
-void (* eoi_function)(void) = NULL;
+void (*disable_irqs_function)(uint16_t irqmask) = NULL;
+void (*enable_irqs_function)(uint16_t irqmask) = NULL;
+void (*eoi_function)(void) = NULL;
 const char *irqs_info = NULL;
 
 void istate_decode(istate_t *istate)
@@ -230,7 +230,7 @@ void interrupt_init(void)
 	exc_register(VECTOR_TLB_SHOOTDOWN_IPI, "tlb_shootdown", true,
 	    (iroutine_t) tlb_shootdown_ipi);
 	exc_register(VECTOR_SMP_CALL_IPI, "smp_call", true,
-		(iroutine_t) arch_smp_call_ipi_recv);
+	    (iroutine_t) arch_smp_call_ipi_recv);
 #endif
 }
 

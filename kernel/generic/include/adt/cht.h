@@ -133,7 +133,7 @@ typedef struct {
 
 extern bool cht_create_simple(cht_t *h, cht_ops_t *op);
 extern bool cht_create(cht_t *h, size_t init_size, size_t min_size,
-	size_t max_load, bool can_block, cht_ops_t *op);
+    size_t max_load, bool can_block, cht_ops_t *op);
 extern void cht_destroy(cht_t *h);
 extern void cht_destroy_unsafe(cht_t *h);
 

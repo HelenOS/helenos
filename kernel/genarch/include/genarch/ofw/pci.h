@@ -41,7 +41,7 @@ typedef struct {
 	/* Group phys.mid and phys.lo together */
 	uint64_t addr;
 	uint64_t size;
-} __attribute__ ((packed)) ofw_pci_reg_t;
+} __attribute__((packed)) ofw_pci_reg_t;
 
 typedef struct {
 	uint32_t space;
@@ -50,7 +50,7 @@ typedef struct {
 	uint64_t child_base;
 	uint64_t parent_base;
 	uint64_t size;
-} __attribute__ ((packed)) ofw_pci_range_t;
+} __attribute__((packed)) ofw_pci_range_t;
 
 extern bool ofw_pci_apply_ranges(ofw_tree_node_t *, ofw_pci_reg_t *,
     uintptr_t *);

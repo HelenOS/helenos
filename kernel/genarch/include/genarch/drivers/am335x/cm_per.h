@@ -76,7 +76,8 @@ static void am335x_clock_module_enable(am335x_cm_per_regs_t *cm,
 	*tmr_reg = (*tmr_reg & ~0x03) | 0x02;
 
 	/* Wait for completion */
-	while ((*tmr_reg & 0x03) != 0x02);
+	while ((*tmr_reg & 0x03) != 0x02)
+		;
 }
 
 #endif

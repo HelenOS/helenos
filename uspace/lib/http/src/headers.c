@@ -86,8 +86,7 @@ ssize_t http_header_encode(http_header_t *header, char *buf, size_t buf_size)
 	/* TODO properly split long header values */
 	if (buf == NULL) {
 		return printf_size(HTTP_HEADER_LINE, header->name, header->value);
-	}
-	else {
+	} else {
 		return snprintf(buf, buf_size,
 		    HTTP_HEADER_LINE, header->name, header->value);
 	}
@@ -228,11 +227,13 @@ void http_header_normalize_value(char *value)
 	size_t read_index = 0;
 	size_t write_index = 0;
 
-	while (is_lws(value[read_index])) read_index++;
+	while (is_lws(value[read_index]))
+		read_index++;
 
 	while (value[read_index] != 0) {
 		if (is_lws(value[read_index])) {
-			while (is_lws(value[read_index])) read_index++;
+			while (is_lws(value[read_index]))
+				read_index++;
 
 			if (value[read_index] != 0)
 				value[write_index++] = ' ';
@@ -254,7 +255,8 @@ bool http_header_name_match(const char *name_a, const char *name_b)
 	return str_casecmp(name_a, name_b) == 0;
 }
 
-void http_headers_init(http_headers_t *headers) {
+void http_headers_init(http_headers_t *headers)
+{
 	list_initialize(&headers->list);
 }
 
@@ -268,8 +270,7 @@ errno_t http_headers_find_single(http_headers_t *headers, const char *name,
 
 		if (found == NULL) {
 			found = header;
-		}
-		else {
+		} else {
 			return HTTP_EMULTIPLE_HEADERS;
 		}
 	}

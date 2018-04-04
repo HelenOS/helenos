@@ -30,12 +30,15 @@
 
 #define UNUSED(a) ((void)a)
 
-long intpow(int base, int exp) {
-	UNUSED(base); UNUSED(exp);
+long intpow(int base, int exp)
+{
+	UNUSED(base);
+	UNUSED(exp);
 	return 0;
 }
 
-int intmin(int a, int b) {
+int intmin(int a, int b)
+{
 	UNUSED(b);
 	return a;
 }

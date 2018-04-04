@@ -96,7 +96,8 @@ int main(int argc, char **argv)
 
 	block_size = DEFAULT_BLOCK_SIZE;
 
-	++argv; --argc;
+	++argv;
+	--argc;
 	while (*argv != NULL && (*argv)[0] == '-') {
 		/* Option */
 		if (str_cmp(*argv, "-b") == 0) {
@@ -112,13 +113,15 @@ int main(int argc, char **argv)
 				print_usage();
 				return -1;
 			}
-			++argv; --argc;
+			++argv;
+			--argc;
 		} else {
 			printf("Invalid option '%s'.\n", *argv);
 			print_usage();
 			return -1;
 		}
-		++argv; --argc;
+		++argv;
+		--argc;
 	}
 
 	if (argc < 2) {

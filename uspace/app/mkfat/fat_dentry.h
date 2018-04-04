@@ -115,15 +115,15 @@ typedef union {
 		union {
 			uint16_t	eaidx;		/* FAT12/FAT16 */
 			uint16_t	firstc_hi;	/* FAT32 */
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 		uint16_t	mtime;
 		uint16_t	mdate;
 		union {
 			uint16_t	firstc;		/* FAT12/FAT16 */
 			uint16_t	firstc_lo;	/* FAT32 */
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 		uint32_t	size;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 	struct {
 		uint8_t		order;
 		uint16_t	part1[FAT_LFN_PART1_SIZE];
@@ -133,8 +133,8 @@ typedef union {
 		uint16_t	part2[FAT_LFN_PART2_SIZE];
 		uint16_t	firstc_lo; /* MUST be 0 */
 		uint16_t	part3[FAT_LFN_PART3_SIZE];
-	} __attribute__ ((packed)) lfn;
-} __attribute__ ((packed)) fat_dentry_t;
+	} __attribute__((packed)) lfn;
+} __attribute__((packed)) fat_dentry_t;
 
 #endif
 

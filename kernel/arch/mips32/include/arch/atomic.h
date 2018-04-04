@@ -61,18 +61,18 @@ NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
 	atomic_count_t v;
 
 	asm volatile (
-		"1:\n"
-		"	ll %0, %1\n"
-		"	addu %0, %0, %3\n"  /* same as addi, but never traps on overflow */
-		"	move %2, %0\n"
-		"	sc %0, %1\n"
-		"	beq %0, %4, 1b\n"   /* if the atomic operation failed, try again */
-		"	nop\n"
-		: "=&r" (tmp),
-		  "+m" (val->count),
-		  "=&r" (v)
-		: "r" (i),
-		  "i" (0)
+	    "1:\n"
+	    "	ll %0, %1\n"
+	    "	addu %0, %0, %3\n"  /* same as addi, but never traps on overflow */
+	    "	move %2, %0\n"
+	    "	sc %0, %1\n"
+	    "	beq %0, %4, 1b\n"   /* if the atomic operation failed, try again */
+	    "	nop\n"
+	    : "=&r" (tmp),
+	      "+m" (val->count),
+	      "=&r" (v)
+	    : "r" (i),
+	      "i" (0)
 	);
 
 	return v;
@@ -84,18 +84,18 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 	atomic_count_t v;
 
 	asm volatile (
-		"1:\n"
-		"	ll %2, %1\n"
-		"	bnez %2, 2f\n"
-		"	li %0, %3\n"
-		"	sc %0, %1\n"
-		"	beqz %0, 1b\n"
-		"	nop\n"
-		"2:\n"
-		: "=&r" (tmp),
-		  "+m" (val->count),
-		  "=&r" (v)
-		: "i" (1)
+	    "1:\n"
+	    "	ll %2, %1\n"
+	    "	bnez %2, 2f\n"
+	    "	li %0, %3\n"
+	    "	sc %0, %1\n"
+	    "	beqz %0, 1b\n"
+	    "	nop\n"
+	    "2:\n"
+	    : "=&r" (tmp),
+	      "+m" (val->count),
+	      "=&r" (v)
+	    : "i" (1)
 	);
 
 	return v;
@@ -104,7 +104,8 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
 	do {
-		while (val->count);
+		while (val->count)
+			;
 	} while (test_and_set(val));
 }
 

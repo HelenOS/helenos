@@ -61,14 +61,14 @@ errno_t process_control_transfer(usbvirt_device_t *dev,
 	}
 
 	const usbvirt_control_request_handler_t *handler = control_handlers;
-	for (;handler->callback != NULL; ++handler) {
+	for (; handler->callback != NULL; ++handler) {
 		if (handler->request != setup->request ||
 		    handler->request_type != setup->request_type) {
 			continue;
 		}
 
 		usb_log_debug("Control transfer: %s(%s)", handler->name,
-		    usb_debug_str_buffer((uint8_t*) setup, sizeof(*setup), 0));
+		    usb_debug_str_buffer((uint8_t *) setup, sizeof(*setup), 0));
 		errno_t rc = handler->callback(dev, setup, data, data_sent_size);
 		if (rc != EFORWARD) {
 			return rc;

@@ -55,7 +55,7 @@ static void print_usb_device(devman_handle_t handle)
 	char path[MAX_PATH_LENGTH];
 	errno_t rc = devman_fun_get_path(handle, path, MAX_PATH_LENGTH);
 	if (rc != EOK) {
-		printf(NAME "Failed to get path for device %"PRIun"\n", handle);
+		printf(NAME "Failed to get path for device %" PRIun "\n", handle);
 		return;
 	}
 	printf("\tDevice %" PRIun ": %s\n", handle, path);

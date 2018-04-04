@@ -129,7 +129,7 @@ static void print_syntax(void)
 {
 	printf("syntax:\n"
 	    "\t" NAME "                      List categories and services "
-		"they contain\n"
+	    "they contain\n"
 	    "\t" NAME " show-cat <category>  List services in category\n");
 }
 

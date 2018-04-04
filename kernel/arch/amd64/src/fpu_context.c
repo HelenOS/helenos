@@ -39,8 +39,8 @@
 void fpu_context_save(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fxsave %[fctx]\n"
-		: [fctx] "=m" (fctx->fpu)
+	    "fxsave %[fctx]\n"
+	    : [fctx] "=m" (fctx->fpu)
 	);
 }
 
@@ -48,8 +48,8 @@ void fpu_context_save(fpu_context_t *fctx)
 void fpu_context_restore(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fxrstor %[fctx]\n"
-		: [fctx] "=m" (fctx->fpu)
+	    "fxrstor %[fctx]\n"
+	    : [fctx] "=m" (fctx->fpu)
 	);
 }
 
@@ -59,7 +59,7 @@ void fpu_init(void)
 	/* Default value of SCR register is 0x1f80,
 	 * it masks all FPU exceptions*/
 	asm volatile (
-		"fninit\n"
+	    "fninit\n"
 	);
 }
 

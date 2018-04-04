@@ -70,32 +70,32 @@ static fpu_context_function fpu_restore;
 static void fpu_context_f_save(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fnsave %[fctx]"
-		: [fctx] "=m" (fctx->fpu)
+	    "fnsave %[fctx]"
+	    : [fctx] "=m" (fctx->fpu)
 	);
 }
 
 static void fpu_context_f_restore(fpu_context_t *fctx)
 {
 	asm volatile (
-		"frstor %[fctx]"
-		: [fctx] "=m" (fctx->fpu)
+	    "frstor %[fctx]"
+	    : [fctx] "=m" (fctx->fpu)
 	);
 }
 
 static void fpu_context_fx_save(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fxsave %[fctx]"
-		: [fctx] "=m" (fctx->fpu)
+	    "fxsave %[fctx]"
+	    : [fctx] "=m" (fctx->fpu)
 	);
 }
 
 static void fpu_context_fx_restore(fpu_context_t *fctx)
 {
 	asm volatile (
-		"fxrstor %[fctx]"
-		: [fctx] "=m" (fctx->fpu)
+	    "fxrstor %[fctx]"
+	    : [fctx] "=m" (fctx->fpu)
 	);
 }
 
@@ -130,14 +130,14 @@ void fpu_init(void)
 	uint32_t help1 = 0;
 
 	asm volatile (
-		"fninit\n"
-		"stmxcsr %[help0]\n"
-		"mov %[help0], %[help1]\n"
-		"or %[magic], %[help1]\n"
-		"mov %[help1], %[help0]\n"
-		"ldmxcsr %[help0]\n"
-		: [help0] "+m" (help0), [help1] "+r" (help1)
-		: [magic] "i" (X87_ALL_MASK)
+	    "fninit\n"
+	    "stmxcsr %[help0]\n"
+	    "mov %[help0], %[help1]\n"
+	    "or %[magic], %[help1]\n"
+	    "mov %[help1], %[help0]\n"
+	    "ldmxcsr %[help0]\n"
+	    : [help0] "+m" (help0), [help1] "+r" (help1)
+	    : [magic] "i" (X87_ALL_MASK)
 	);
 }
 

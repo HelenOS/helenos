@@ -65,7 +65,7 @@ void cpu_arch_init(void)
 		if (id == myid) {
 			uint64_t clock_frequency = 0;
 			md_get_integer_property(node, "clock-frequency",
-				&clock_frequency);
+			    &clock_frequency);
 			CPU->arch.clock_frequency = clock_frequency;
 			break;
 		}

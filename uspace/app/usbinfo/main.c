@@ -79,17 +79,17 @@ static void print_usage(char *app_name)
 }
 
 static struct option long_options[] = {
-	{"help", no_argument, NULL, 'h'},
-	{"identification", no_argument, NULL, 'i'},
-	{"list", no_argument, NULL, 'l'},
-	{"match-ids", no_argument, NULL, 'm'},
-	{"descriptor-tree", no_argument, NULL, 't'},
-	{"descriptor-tree-full", no_argument, NULL, 'T'},
-	{"strings", no_argument, NULL, 's'},
-	{"status", no_argument, NULL, 'S'},
-	{"hid-report", no_argument, NULL, 'r'},
-	{"hid-report-usages", no_argument, NULL, 'R'},
-	{0, 0, NULL, 0}
+	{ "help", no_argument, NULL, 'h' },
+	{ "identification", no_argument, NULL, 'i' },
+	{ "list", no_argument, NULL, 'l' },
+	{ "match-ids", no_argument, NULL, 'm' },
+	{ "descriptor-tree", no_argument, NULL, 't' },
+	{ "descriptor-tree-full", no_argument, NULL, 'T' },
+	{ "strings", no_argument, NULL, 's' },
+	{ "status", no_argument, NULL, 'S' },
+	{ "hid-report", no_argument, NULL, 'r' },
+	{ "hid-report-usages", no_argument, NULL, 'R' },
+	{ 0, 0, NULL, 0 }
 };
 static const char *short_options = "hilmtTsSrR";
 
@@ -157,28 +157,28 @@ int main(int argc, char *argv[])
 		opt = getopt_long(argc, argv,
 		    short_options, long_options, NULL);
 		switch (opt) {
-			case -1:
-				break;
-			case 'l':
-				list();
-				break;
-			case '?':
-				print_usage(argv[0]);
-				return 1;
-			case 'h':
-				print_usage(argv[0]);
-				return 0;
-			default:
-				idx = 0;
-				while (actions[idx].opt != 0) {
-					if (actions[idx].opt == opt) {
-						actions[idx].active = true;
-						something_active = true;
-						break;
-					}
-					idx++;
+		case -1:
+			break;
+		case 'l':
+			list();
+			break;
+		case '?':
+			print_usage(argv[0]);
+			return 1;
+		case 'h':
+			print_usage(argv[0]);
+			return 0;
+		default:
+			idx = 0;
+			while (actions[idx].opt != 0) {
+				if (actions[idx].opt == opt) {
+					actions[idx].active = true;
+					something_active = true;
+					break;
 				}
-				break;
+				idx++;
+			}
+			break;
 		}
 	} while (opt > 0);
 

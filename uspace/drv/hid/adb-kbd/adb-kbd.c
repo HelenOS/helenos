@@ -185,7 +185,8 @@ static void adb_kbd_reg0_data(adb_kbd_t *kbd, uint16_t data)
 
 	if (b1 != 0xff)
 		adb_kbd_data(kbd, b1);
-	(void)b0; (void)b1;
+	(void)b0;
+	(void)b1;
 }
 
 /** Handle client connection */

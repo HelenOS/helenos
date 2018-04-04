@@ -133,7 +133,8 @@ void run_program(run_t *run, stree_program_t *prog)
 	main_obj = run_fun_sobject_find(run, main_fun);
 
 #ifdef DEBUG_RUN_TRACE
-	printf("Found function '"); symbol_print_fqn(main_fun_sym);
+	printf("Found function '");
+	symbol_print_fqn(main_fun_sym);
 	printf("'.\n");
 #endif
 

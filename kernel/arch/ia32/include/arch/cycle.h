@@ -44,9 +44,9 @@ NO_TRACE static inline uint64_t get_cycle(void)
 #else
 	uint64_t v;
 
-	asm volatile(
-		"rdtsc\n"
-		: "=A" (v)
+	asm volatile (
+	    "rdtsc\n"
+	    : "=A" (v)
 	);
 
 	return v;

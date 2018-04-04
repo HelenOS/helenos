@@ -102,7 +102,7 @@ static const char *fault_types[] = {
 	"unknown",
 	"unaligned access",
 	"invalid page size"
-	};
+};
 
 /** Array of MMU fault status areas. */
 extern mmu_fault_status_area_t mmu_fsas[MAX_NUM_STRANDS];
@@ -145,11 +145,11 @@ void dtlb_insert_mapping(uintptr_t page, uintptr_t frame, int pagesize,
 
 	if (locked) {
 		__hypercall_fast4(
-			MMU_MAP_PERM_ADDR, page, 0, data.value, MMU_FLAG_DTLB);
+		    MMU_MAP_PERM_ADDR, page, 0, data.value, MMU_FLAG_DTLB);
 	} else {
 		__hypercall_hyperfast(
-			page, ASID_KERNEL, data.value, MMU_FLAG_DTLB, 0,
-			MMU_MAP_ADDR);
+		    page, ASID_KERNEL, data.value, MMU_FLAG_DTLB, 0,
+		    MMU_MAP_ADDR);
 	}
 }
 
@@ -179,7 +179,7 @@ void dtlb_pte_copy(pte_t *t, bool ro)
 	data.size = PAGESIZE_8K;
 
 	__hypercall_hyperfast(
-		t->page, t->as->asid, data.value, MMU_FLAG_DTLB, 0, MMU_MAP_ADDR);
+	    t->page, t->as->asid, data.value, MMU_FLAG_DTLB, 0, MMU_MAP_ADDR);
 }
 
 /** Copy PTE to ITLB.
@@ -204,7 +204,7 @@ void itlb_pte_copy(pte_t *t)
 	data.size = PAGESIZE_8K;
 
 	__hypercall_hyperfast(
-		t->page, t->as->asid, data.value, MMU_FLAG_ITLB, 0, MMU_MAP_ADDR);
+	    t->page, t->as->asid, data.value, MMU_FLAG_ITLB, 0, MMU_MAP_ADDR);
 }
 
 /** ITLB miss handler. */
@@ -348,14 +348,14 @@ void describe_dmmu_fault(void)
 	assert(mmu_fsas[myid].dft < 16);
 
 	printf("condition which caused the fault: %s\n",
-		fault_types[mmu_fsas[myid].dft]);
+	    fault_types[mmu_fsas[myid].dft]);
 }
 
 /** Invalidate all unlocked ITLB and DTLB entries. */
 void tlb_invalidate_all(void)
 {
 	uint64_t errno =  __hypercall_fast3(MMU_DEMAP_ALL, 0, 0,
-		MMU_FLAG_DTLB | MMU_FLAG_ITLB);
+	    MMU_FLAG_DTLB | MMU_FLAG_ITLB);
 	if (errno != HV_EOK)
 		panic("Error code = %" PRIu64 ".\n", errno);
 }
@@ -371,7 +371,7 @@ void tlb_invalidate_asid(asid_t asid)
 	nucleus_enter();
 
 	__hypercall_fast4(MMU_DEMAP_CTX, 0, 0, asid,
-		MMU_FLAG_ITLB | MMU_FLAG_DTLB);
+	    MMU_FLAG_ITLB | MMU_FLAG_DTLB);
 
 	nucleus_leave();
 }

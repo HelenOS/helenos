@@ -63,14 +63,19 @@ typedef struct {
 
 static inline unsigned sys_clk_freq_kHz(unsigned reg_val)
 {
-	switch(reg_val)
-	{
-	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_12M: return 12000;
-	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_13M: return 13000;
-	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_19_2M: return 19200;
-	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_26M: return 26000;
-	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_38_4M: return 38400;
-	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_16_8M: return 16800;
+	switch (reg_val) {
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_12M:
+		return 12000;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_13M:
+		return 13000;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_19_2M:
+		return 19200;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_26M:
+		return 26000;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_38_4M:
+		return 38400;
+	case CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_16_8M:
+		return 16800;
 	}
 	return 0;
 }

@@ -118,8 +118,8 @@ static void sun4u_subarch_detect(void)
 {
 	uint64_t ver;
 	asm volatile (
-		"rdpr %%ver, %[ver]\n"
-		: [ver] "=r" (ver)
+	    "rdpr %%ver, %[ver]\n"
+	    : [ver] "=r" (ver)
 	);
 
 	ver = (ver << 16) >> 48;

@@ -43,7 +43,7 @@ typedef struct {
 	ioport8_t data;
 	uint8_t pad[3];
 	ioport8_t status;
-} __attribute__ ((packed)) i8042_t;
+} __attribute__((packed)) i8042_t;
 
 typedef struct {
 	irq_t irq;

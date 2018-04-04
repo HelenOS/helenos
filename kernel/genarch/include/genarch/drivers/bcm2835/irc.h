@@ -58,7 +58,7 @@
 #define IRQ_PEND_SHORT_M	0x1FFC00
 #define IRQ_PEND_SHORT_S	10
 
-unsigned shortcut_inums[] = {7, 9, 10, 18, 19, 53, 54, 55, 56, 57, 62};
+unsigned shortcut_inums[] = { 7, 9, 10, 18, 19, 53, 54, 55, 56, 57, 62 };
 
 typedef struct {
 	ioport32_t	irq_basic_pending;
@@ -107,11 +107,12 @@ static inline int ffs(unsigned int x)
 	int ret;
 
 	asm volatile (
-		"clz r0, %[x]\n"
-		"rsb %[ret], r0, #32\n"
-		: [ret] "=r" (ret)
-		: [x] "r" (x)
-		: "r0" );
+	    "clz r0, %[x]\n"
+	    "rsb %[ret], r0, #32\n"
+	    : [ret] "=r" (ret)
+	    : [x] "r" (x)
+	    : "r0"
+	);
 
 	return ret;
 }

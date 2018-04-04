@@ -39,7 +39,8 @@
 #include <vfs/vfs.h>
 #include "tar.h"
 
-static size_t get_block_count(size_t bytes) {
+static size_t get_block_count(size_t bytes)
+{
 	return (bytes + TAR_BLOCK_SIZE - 1) / TAR_BLOCK_SIZE;
 }
 

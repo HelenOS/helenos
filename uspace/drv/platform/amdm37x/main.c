@@ -131,24 +131,24 @@ static hw_resource_t disp_res[] = {
 };
 
 static const amdm37x_fun_t amdm37x_funcs[] = {
-{
-	.name = "ohci",
-	.id = "usb/host=ohci",
-	.score = 90,
-	.hw_resources = { .resources = ohci_res, .count = ARRAY_SIZE(ohci_res) }
-},
-{
-	.name = "ehci",
-	.id = "usb/host=ehci",
-	.score = 90,
-	.hw_resources = { .resources = ehci_res, .count = ARRAY_SIZE(ehci_res) }
-},
-{
-	.name = "fb",
-	.id = "amdm37x&dispc",
-	.score = 90,
-	.hw_resources = { .resources = disp_res, .count = ARRAY_SIZE(disp_res) }
-},
+	{
+		.name = "ohci",
+		.id = "usb/host=ohci",
+		.score = 90,
+		.hw_resources = { .resources = ohci_res, .count = ARRAY_SIZE(ohci_res) }
+	},
+	{
+		.name = "ehci",
+		.id = "usb/host=ehci",
+		.score = 90,
+		.hw_resources = { .resources = ehci_res, .count = ARRAY_SIZE(ehci_res) }
+	},
+	{
+		.name = "fb",
+		.id = "amdm37x&dispc",
+		.score = 90,
+		.hw_resources = { .resources = disp_res, .count = ARRAY_SIZE(disp_res) }
+	},
 };
 
 
@@ -260,7 +260,7 @@ static driver_t amdm37x_driver = {
 	.driver_ops = &amdm37x_ops
 };
 
-static hw_resource_list_t * amdm37x_get_resources(ddf_fun_t *fnode)
+static hw_resource_list_t *amdm37x_get_resources(ddf_fun_t *fnode)
 {
 	amdm37x_fun_t *fun = ddf_fun_data_get(fnode);
 	assert(fun != NULL);

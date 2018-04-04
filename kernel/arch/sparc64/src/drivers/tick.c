@@ -53,7 +53,7 @@ void tick_init(void)
 
 	compare.int_dis = false;
 	compare.tick_cmpr = tick_counter_read() +
-		CPU->arch.clock_frequency / HZ;
+	    CPU->arch.clock_frequency / HZ;
 	CPU->arch.next_tick_cmpr = compare.tick_cmpr;
 	tick_compare_write(compare.value);
 

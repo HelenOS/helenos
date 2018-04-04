@@ -68,7 +68,7 @@ union tte_data {
 		unsigned w : 1;		/**< Writable. */
 		unsigned soft2 : 2;	/**< Software defined field. */
 		unsigned size : 4;	/**< Page size. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 
 typedef union tte_data tte_data_t;

@@ -90,11 +90,9 @@ search_t *search_init(const char *pattern, void *client_data, search_ops_t ops,
 			pattern_idx++;
 			search->back_table[table_idx] = pattern_idx;
 			table_idx++;
-		}
-		else if (pattern_idx > 0) {
+		} else if (pattern_idx > 0) {
 			pattern_idx = search->back_table[pattern_idx];
-		}
-		else {
+		} else {
 			pattern_idx = 0;
 			table_idx++;
 		}

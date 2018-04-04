@@ -61,21 +61,27 @@ static unsigned dcache_linesize_log(unsigned level);
 
 
 /** Implementers (vendor) names */
-static const char * implementer(unsigned id)
+static const char *implementer(unsigned id)
 {
 	switch (id) {
-	case 0x41: return "ARM Limited";
-	case 0x44: return "Digital Equipment Corporation";
-	case 0x4d: return "Motorola, Freescale Semiconductor Inc.";
-	case 0x51: return "Qualcomm Inc.";
-	case 0x56: return "Marvell Semiconductor Inc.";
-	case 0x69: return "Intel Corporation";
+	case 0x41:
+		return "ARM Limited";
+	case 0x44:
+		return "Digital Equipment Corporation";
+	case 0x4d:
+		return "Motorola, Freescale Semiconductor Inc.";
+	case 0x51:
+		return "Qualcomm Inc.";
+	case 0x56:
+		return "Marvell Semiconductor Inc.";
+	case 0x69:
+		return "Intel Corporation";
 	}
 	return "Unknown implementer";
 }
 
 /** Architecture names */
-static const char * architecture_string(cpu_arch_t *arch)
+static const char *architecture_string(cpu_arch_t *arch)
 {
 	static const char *arch_data[] = {
 		"ARM",       /* 0x0 */

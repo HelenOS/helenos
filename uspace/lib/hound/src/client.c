@@ -65,7 +65,7 @@ struct hound_stream {
  * @param l link
  * @return hound stream isntance.
  */
-static inline hound_stream_t * hound_stream_from_link(link_t *l)
+static inline hound_stream_t *hound_stream_from_link(link_t *l)
 {
 	return l ? list_get_instance(l, hound_stream_t, link) : NULL;
 }
@@ -142,7 +142,7 @@ static hound_context_t *hound_context_create(const char *name, bool record,
  * @param bsize Server size buffer size of the main stream.
  * @return valid pointer to initialized structure on success, NULL on failure
  */
-hound_context_t * hound_context_create_playback(const char *name,
+hound_context_t *hound_context_create_playback(const char *name,
     pcm_format_t format, size_t bsize)
 {
 	return hound_context_create(name, false, format, bsize);
@@ -155,7 +155,7 @@ hound_context_t * hound_context_create_playback(const char *name,
  * @param bsize Server size buffer size of the main stream.
  * @return valid pointer to initialized structure on success, NULL on failure
  */
-hound_context_t * hound_context_create_capture(const char *name,
+hound_context_t *hound_context_create_capture(const char *name,
     pcm_format_t format, size_t bsize)
 {
 	return hound_context_create(name, true, format, bsize);
@@ -219,7 +219,7 @@ errno_t hound_context_get_connected_targets(hound_context_t *hound,
 	assert(count);
 	return hound_service_get_list(hound->session, names, count,
 	    HOUND_CONNECTED | (hound->record ?
-	        HOUND_SOURCE_DEVS : HOUND_SINK_DEVS), hound->name);
+	    HOUND_SOURCE_DEVS : HOUND_SINK_DEVS), hound->name);
 }
 
 /**
@@ -231,7 +231,7 @@ errno_t hound_context_get_connected_targets(hound_context_t *hound,
  * The function recognizes special 'HOUND_DEFAULT_TARGET' and will
  * connect to the first possible target if it is passed this value.
  */
-errno_t hound_context_connect_target(hound_context_t *hound, const char* target)
+errno_t hound_context_connect_target(hound_context_t *hound, const char *target)
 {
 	assert(hound);
 	assert(target);
@@ -268,7 +268,7 @@ errno_t hound_context_connect_target(hound_context_t *hound, const char* target)
  * @param target String identifier of the desired target.
  * @return Error code.
  */
-errno_t hound_context_disconnect_target(hound_context_t *hound, const char* target)
+errno_t hound_context_disconnect_target(hound_context_t *hound, const char *target)
 {
 	assert(hound);
 	assert(target);
@@ -384,12 +384,12 @@ errno_t hound_stream_drain(hound_stream_t *stream)
  * The function will create new stream, or return a pointer to the exiting one
  * if it exists.
  */
-static hound_stream_t * hound_get_main_stream(hound_context_t *hound)
+static hound_stream_t *hound_get_main_stream(hound_context_t *hound)
 {
 	assert(hound);
 	if (!hound->main.stream)
 		hound->main.stream = hound_stream_create(hound,
-		    HOUND_STREAM_DRAIN_ON_EXIT,hound->main.format,
+		    HOUND_STREAM_DRAIN_ON_EXIT, hound->main.format,
 		    hound->main.bsize);
 	return hound->main.stream;
 }

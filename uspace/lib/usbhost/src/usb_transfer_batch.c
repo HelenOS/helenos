@@ -92,8 +92,7 @@ void usb_transfer_batch_destroy(usb_transfer_batch_t *batch)
 		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " destroying.",
 		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 		bus->ops->batch_destroy(batch);
-	}
-	else {
+	} else {
 		usb_log_debug2("Batch %p " USB_TRANSFER_BATCH_FMT " disposing.",
 		    batch, USB_TRANSFER_BATCH_ARGS(*batch));
 		free(batch);
@@ -117,7 +116,7 @@ bool usb_transfer_batch_bounce_required(usb_transfer_batch_t *batch)
 
 	size_t chunk_mask = dma_policy_chunk_mask(batch->dma_buffer.policy);
 	size_t required_chunk_mask =
-	     dma_policy_chunk_mask(batch->ep->required_transfer_buffer_policy);
+	    dma_policy_chunk_mask(batch->ep->required_transfer_buffer_policy);
 
 	/* If the chunks are at least as large as required, we're good */
 	if ((required_chunk_mask & ~chunk_mask) == 0)
@@ -179,13 +178,12 @@ void usb_transfer_batch_finish(usb_transfer_batch_t *batch)
 		if (batch->is_bounced) {
 			/* We we're forced to use bounce buffer, copy it back */
 			if (batch->dir == USB_DIRECTION_IN)
-			memcpy(batch->original_buffer,
-			    batch->dma_buffer.virt,
-			    batch->transferred_size);
+				memcpy(batch->original_buffer,
+				    batch->dma_buffer.virt,
+				    batch->transferred_size);
 
 			dma_buffer_free(&batch->dma_buffer);
-		}
-		else {
+		} else {
 			dma_buffer_release(&batch->dma_buffer);
 		}
 	}

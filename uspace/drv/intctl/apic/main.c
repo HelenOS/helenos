@@ -95,7 +95,7 @@ static errno_t apic_dev_add(ddf_dev_t *dev)
 	apic_res_t apic_res;
 	errno_t rc;
 
-        ddf_msg(LVL_DEBUG, "apic_dev_add(%p)", dev);
+	ddf_msg(LVL_DEBUG, "apic_dev_add(%p)", dev);
 	apic = ddf_dev_data_alloc(dev, sizeof(apic_t));
 	if (apic == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
@@ -115,32 +115,32 @@ static errno_t apic_dev_add(ddf_dev_t *dev)
 
 static errno_t apic_dev_remove(ddf_dev_t *dev)
 {
-        apic_t *apic = (apic_t *)ddf_dev_data_get(dev);
+	apic_t *apic = (apic_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "apic_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "apic_dev_remove(%p)", dev);
 
-        return apic_remove(apic);
+	return apic_remove(apic);
 }
 
 static errno_t apic_dev_gone(ddf_dev_t *dev)
 {
-        apic_t *apic = (apic_t *)ddf_dev_data_get(dev);
+	apic_t *apic = (apic_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "apic_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "apic_dev_gone(%p)", dev);
 
-        return apic_gone(apic);
+	return apic_gone(apic);
 }
 
 static errno_t apic_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "apic_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "apic_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t apic_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "apic_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "apic_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

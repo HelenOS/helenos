@@ -48,7 +48,7 @@
 #define INET6_ADDRSTRLEN (8 * 4 + 7 + 1)
 
 #if !(defined(__BE__) ^ defined(__LE__))
-	#error The architecture must be either big-endian or little-endian.
+#error The architecture must be either big-endian or little-endian.
 #endif
 
 const addr32_t addr32_broadcast_all_hosts = 0xffffffff;
@@ -68,7 +68,7 @@ static const inet_addr_t inet_addr_any_addr = {
 
 static const inet_addr_t inet_addr_any_addr6 = {
 	.version = ip_v6,
-	.addr6 = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	.addr6 = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
 void addr48(const addr48_t src, addr48_t dst)

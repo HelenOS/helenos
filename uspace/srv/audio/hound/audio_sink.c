@@ -133,7 +133,7 @@ errno_t audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format)
  * @param size size of the @p dest buffer.
  * @return Error code.
  */
-void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size)
+void audio_sink_mix_inputs(audio_sink_t *sink, void *dest, size_t size)
 {
 	assert(sink);
 	assert(dest);

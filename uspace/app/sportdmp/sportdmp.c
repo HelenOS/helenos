@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
 	if (argc > arg && str_test_prefix(argv[arg], "--baud=")) {
 		size_t arg_offset = str_lsize(argv[arg], 7);
-		char* arg_str = argv[arg] + arg_offset;
+		char *arg_str = argv[arg] + arg_offset;
 		if (str_length(arg_str) == 0) {
 			fprintf(stderr, "--baud requires an argument\n");
 			syntax_print();
@@ -78,8 +78,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		arg++;
-	}
-	else {
+	} else {
 		category_id_t serial_cat_id;
 
 		rc = loc_category_get_id("serial", &serial_cat_id, 0);

@@ -165,11 +165,11 @@ typedef enum dsp_command {
 #define DSP_MODE_SIGNED 0x10
 #define DSP_MODE_STEREO 0x20
 
-static inline const char * mode_to_str(uint8_t mode)
+static inline const char *mode_to_str(uint8_t mode)
 {
 	if (mode & 0xcf)
 		return "unknown";
-	static const char * names[] = {
+	static const char *names[] = {
 		"unsigned mono (8bit)",
 		"signed mono (16bit)",
 		"unsigned stereo (8bit)",

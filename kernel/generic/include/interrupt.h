@@ -46,7 +46,7 @@
 #include <stacktrace.h>
 #include <arch/istate.h>
 
-typedef void (* iroutine_t)(unsigned int, istate_t *);
+typedef void (*iroutine_t)(unsigned int, istate_t *);
 
 typedef struct {
 	const char *name;

@@ -65,7 +65,7 @@ typedef struct {
  * @param l link
  * @return pointer to a connection structure, NULL on failure.
  */
-static inline connection_t * connection_from_source_list(link_t *l)
+static inline connection_t *connection_from_source_list(link_t *l)
 {
 	return l ? list_get_instance(l, connection_t, source_link) : NULL;
 }
@@ -75,7 +75,7 @@ static inline connection_t * connection_from_source_list(link_t *l)
  * @param l link
  * @return pointer to a connection structure, NULL on failure.
  */
-static inline connection_t * connection_from_hound_list(link_t *l)
+static inline connection_t *connection_from_hound_list(link_t *l)
 {
 	return l ? list_get_instance(l, connection_t, hound_link) : NULL;
 }

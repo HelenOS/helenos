@@ -197,8 +197,8 @@ void *memccpy(void *restrict dest, const void *restrict src, int c, size_t n)
 	assert(dest != NULL);
 	assert(src != NULL);
 
-	unsigned char* bdest = dest;
-	const unsigned char* bsrc = src;
+	unsigned char *bdest = dest;
+	const unsigned char *bsrc = src;
 
 	for (size_t i = 0; i < n; ++i) {
 		bdest[i] = bsrc[i];
@@ -457,7 +457,8 @@ char *strstr(const char *haystack, const char *needle)
 		while (j >= 0 && needle[i] != needle[j]) {
 			j = prefix_table[j];
 		}
-		i++; j++;
+		i++;
+		j++;
 		prefix_table[i] = j;
 	}
 
@@ -517,11 +518,13 @@ char *strtok_r(char *s, const char *delim, char **next)
 		s = *next;
 
 	/* Skip over leading delimiters. */
-	while (*s && (strchr(delim, *s) != NULL)) ++s;
+	while (*s && (strchr(delim, *s) != NULL))
+		++s;
 	start = s;
 
 	/* Skip over token characters. */
-	while (*s && (strchr(delim, *s) == NULL)) ++s;
+	while (*s && (strchr(delim, *s) == NULL))
+		++s;
 	end = s;
 	*next = (*s ? s + 1 : s);
 

@@ -111,7 +111,7 @@ static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 	link_t *link = ids->ids.head.next;
 
 	while (link != &ids->ids.head) {
-		mid = list_get_instance(link, match_id_t,link);
+		mid = list_get_instance(link, match_id_t, link);
 		if (mid->score < id->score) {
 			break;
 		}

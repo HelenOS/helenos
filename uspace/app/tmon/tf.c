@@ -135,7 +135,8 @@ static char *format_unit(double val, const char *fmt, const tmon_unit_t *units, 
 			break;
 	}
 
-	if (i == len) --i;
+	if (i == len)
+		--i;
 	const char *unit = units[i].unit;
 	double factor = units[i].factor;
 

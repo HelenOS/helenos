@@ -87,7 +87,8 @@ unsigned int max_core_strands = 0;
  * average processor core. The proposed number of ready threads will be
  * stored to the proposed_nrdy variable of the cpu_arch_t struture.
  */
-bool calculate_optimal_nrdy(exec_unit_t *exec_unit) {
+bool calculate_optimal_nrdy(exec_unit_t *exec_unit)
+{
 
 	/* calculate the number of threads the core will steal */
 	int avg = atomic_get(&nrdy) / exec_unit_count;
@@ -102,7 +103,7 @@ bool calculate_optimal_nrdy(exec_unit_t *exec_unit) {
 	unsigned int k;
 	for (k = 0; k < exec_unit->strand_count; k++) {
 		exec_units->cpus[k]->arch.proposed_nrdy =
-			atomic_get(&(exec_unit->cpus[k]->nrdy));
+		    atomic_get(&(exec_unit->cpus[k]->nrdy));
 	}
 
 	/* distribute the threads to be stolen to the core's CPUs */
@@ -111,15 +112,14 @@ bool calculate_optimal_nrdy(exec_unit_t *exec_unit) {
 		unsigned int k;
 		unsigned int least_busy = 0;
 		unsigned int least_busy_nrdy =
-			exec_unit->cpus[0]->arch.proposed_nrdy;
+		    exec_unit->cpus[0]->arch.proposed_nrdy;
 
 		/* for each stolen thread, give it to the least busy CPU */
 		for (k = 0; k < exec_unit->strand_count; k++) {
-			if (exec_unit->cpus[k]->arch.proposed_nrdy
-					< least_busy_nrdy) {
+			if (exec_unit->cpus[k]->arch.proposed_nrdy < least_busy_nrdy) {
 				least_busy = k;
 				least_busy_nrdy =
-					exec_unit->cpus[k]->arch.proposed_nrdy;
+				    exec_unit->cpus[k]->arch.proposed_nrdy;
 			}
 		}
 		exec_unit->cpus[least_busy]->arch.proposed_nrdy++;
@@ -246,8 +246,8 @@ static void detect_execution_units(void)
 			exec_units[i].cpuids[exec_units[i].strand_count] = cpuid;
 			exec_units[i].strand_count++;
 			max_core_strands =
-				exec_units[i].strand_count > max_core_strands ?
-				exec_units[i].strand_count : max_core_strands;
+			    exec_units[i].strand_count > max_core_strands ?
+			    exec_units[i].strand_count : max_core_strands;
 
 		/* detecting execution unit failed */
 		} else {

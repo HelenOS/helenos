@@ -113,8 +113,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			}
 			tok_push_token(tok);
 
-		}
-		else if (next_char == '|') {
+		} else if (next_char == '|') {
 			/* Pipes are tokens that are delimiters and should be
 			 * output as a separate token
 			 */
@@ -136,8 +135,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			if (rc != EOK) {
 				return rc;
 			}
-		}
-		else if (next_char == '\'') {
+		} else if (next_char == '\'') {
 			/* A string starts with a quote (') and ends again with a quote.
 			 * A literal quote is written as ''
 			 */
@@ -148,8 +146,7 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			if (rc != EOK) {
 				return rc;
 			}
-		}
-		else {
+		} else {
 			if (!tok_pending_chars(tok)) {
 				tok_start_token(tok, TOKTYPE_TEXT);
 			}
@@ -195,13 +192,11 @@ errno_t tok_finish_string(tokenizer_t *tok)
 
 				/* Swallow the additional one in the input */
 				tok_get_char(tok);
-			}
-			else {
+			} else {
 				/* The string end */
 				return tok_push_token(tok);
 			}
-		}
-		else {
+		} else {
 			rc = tok_push_char(tok, tok_get_char(tok));
 			if (rc != EOK) {
 				return rc;

@@ -219,13 +219,26 @@ static stree_expr_t *parse_comparative(parse_t *parse)
 			break;
 
 		switch (lcur_lc(parse)) {
-		case lc_equal: bc = bo_equal; break;
-		case lc_notequal: bc = bo_notequal; break;
-		case lc_lt: bc = bo_lt; break;
-		case lc_gt: bc = bo_gt; break;
-		case lc_lt_equal: bc = bo_lt_equal; break;
-		case lc_gt_equal: bc = bo_gt_equal; break;
-		default: assert(b_false);
+		case lc_equal:
+			bc = bo_equal;
+			break;
+		case lc_notequal:
+			bc = bo_notequal;
+			break;
+		case lc_lt:
+			bc = bo_lt;
+			break;
+		case lc_gt:
+			bc = bo_gt;
+			break;
+		case lc_lt_equal:
+			bc = bo_lt_equal;
+			break;
+		case lc_gt_equal:
+			bc = bo_gt_equal;
+			break;
+		default:
+			assert(b_false);
 		}
 
 		lskip(parse);
@@ -266,9 +279,14 @@ static stree_expr_t *parse_additive(parse_t *parse)
 			break;
 
 		switch (lcur_lc(parse)) {
-		case lc_plus: bc = bo_plus; break;
-		case lc_minus: bc = bo_minus; break;
-		default: assert(b_false);
+		case lc_plus:
+			bc = bo_plus;
+			break;
+		case lc_minus:
+			bc = bo_minus;
+			break;
+		default:
+			assert(b_false);
 		}
 
 		lskip(parse);
@@ -309,8 +327,11 @@ static stree_expr_t *parse_multip(parse_t *parse)
 			break;
 
 		switch (lcur_lc(parse)) {
-		case lc_mult: bc = bo_mult; break;
-		default: assert(b_false);
+		case lc_mult:
+			bc = bo_mult;
+			break;
+		default:
+			assert(b_false);
 		}
 
 		lskip(parse);
@@ -352,10 +373,17 @@ static stree_expr_t *parse_prefix(parse_t *parse)
 			return parse_recovery_expr(parse);
 
 		switch (lcur_lc(parse)) {
-		case lc_plus: uc = uo_plus; break;
-		case lc_minus: uc = uo_minus; break;
-		case lc_not: uc = uo_not; break;
-		default: assert(b_false);
+		case lc_plus:
+			uc = uo_plus;
+			break;
+		case lc_minus:
+			uc = uo_minus;
+			break;
+		case lc_not:
+			uc = uo_not;
+			break;
+		default:
+			assert(b_false);
 		}
 
 		cs0 = lcur_span(parse);
@@ -710,9 +738,14 @@ static stree_expr_t *parse_lit_bool(parse_t *parse)
 	bool_t value;
 
 	switch (lcur_lc(parse)) {
-	case lc_false: value = b_false; break;
-	case lc_true: value = b_true; break;
-	default: assert(b_false);
+	case lc_false:
+		value = b_false;
+		break;
+	case lc_true:
+		value = b_true;
+		break;
+	default:
+		assert(b_false);
 	}
 
 	lskip(parse);

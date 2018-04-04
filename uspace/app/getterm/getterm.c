@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 	task_id_t id;
 	task_wait_t twait;
 
-	errno_t rc = task_spawnv(&id, &twait, cmd, (const char * const *) args);
+	errno_t rc = task_spawnv(&id, &twait, cmd, (const char *const *) args);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", APP_NAME, cmd,
 		    str_error(rc));

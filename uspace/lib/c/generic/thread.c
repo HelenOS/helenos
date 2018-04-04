@@ -104,7 +104,7 @@ void __thread_main(uspace_arg_t *uarg)
  *
  * @return Zero on success or a code from @ref errno.h on failure.
  */
-errno_t thread_create(void (* function)(void *), void *arg, const char *name,
+errno_t thread_create(void (*function)(void *), void *arg, const char *name,
     thread_id_t *tid)
 {
 	uspace_arg_t *uarg =
@@ -156,7 +156,8 @@ void thread_exit(int status)
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
 
 	/* Unreachable */
-	while (1);
+	while (1)
+		;
 }
 
 /** Detach thread.

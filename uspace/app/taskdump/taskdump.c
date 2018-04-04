@@ -157,14 +157,16 @@ static int parse_args(int argc, char *argv[])
 
 	task_id = 0;
 
-	--argc; ++argv;
+	--argc;
+	++argv;
 
 	while (argc > 0) {
 		arg = *argv;
 		if (arg[0] == '-') {
 			if (arg[1] == 't' && arg[2] == '\0') {
 				/* Task ID */
-				--argc; ++argv;
+				--argc;
+				++argv;
 				task_id = strtol(*argv, &err_p, 10);
 				if (*err_p) {
 					printf("Task ID syntax error\n");
@@ -174,7 +176,8 @@ static int parse_args(int argc, char *argv[])
 			} else if (arg[1] == 'c' && arg[2] == '\0') {
 				write_core_file = true;
 
-				--argc; ++argv;
+				--argc;
+				++argv;
 				core_file_name = *argv;
 			} else {
 				printf("Uknown option '%c'\n", arg[0]);
@@ -185,7 +188,8 @@ static int parse_args(int argc, char *argv[])
 			break;
 		}
 
-		--argc; ++argv;
+		--argc;
+		++argv;
 	}
 
 	if (task_id == 0) {

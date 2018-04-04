@@ -117,10 +117,18 @@ errno_t wav_parse_header(const void *hdata, const void **data, size_t *data_size
 	if (format) {
 		const unsigned size = uint16_t_le2host(header->sample_size);
 		switch (size) {
-		case 8: *format = PCM_SAMPLE_UINT8; break;
-		case 16: *format = PCM_SAMPLE_SINT16_LE; break;
-		case 24: *format = PCM_SAMPLE_SINT24_LE; break;
-		case 32: *format = PCM_SAMPLE_SINT32_LE; break;
+		case 8:
+			*format = PCM_SAMPLE_UINT8;
+			break;
+		case 16:
+			*format = PCM_SAMPLE_SINT16_LE;
+			break;
+		case 24:
+			*format = PCM_SAMPLE_SINT24_LE;
+			break;
+		case 32:
+			*format = PCM_SAMPLE_SINT32_LE;
+			break;
 		default:
 			*error = "Unknown format";
 			return ENOTSUP;

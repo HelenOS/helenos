@@ -144,14 +144,14 @@ static usbvirt_device_t hid_dev = {
 
 
 static struct option long_options[] = {
-	{"help", optional_argument, NULL, 'h'},
-	{"controller", required_argument, NULL, 'c' },
-	{"list", no_argument, NULL, 'l' },
-	{0, 0, NULL, 0}
+	{ "help", optional_argument, NULL, 'h' },
+	{ "controller", required_argument, NULL, 'c' },
+	{ "list", no_argument, NULL, 'l' },
+	{ 0, 0, NULL, 0 }
 };
 static const char *short_options = "hc:l";
 
-static void print_help(const char* name, const char* module)
+static void print_help(const char *name, const char *module)
 {
 	if (module == NULL) {
 		/* Default help */
@@ -171,8 +171,7 @@ static void print_help(const char* name, const char* module)
 static void print_list(void)
 {
 	printf("Available devices:\n");
-	for (vuhid_interface_t **i = available_hid_interfaces; *i != NULL; ++i)
-	{
+	for (vuhid_interface_t * *i = available_hid_interfaces; *i != NULL; ++i) {
 		printf("\t`%s'\t%s\n", (*i)->id, (*i)->name);
 	}
 
@@ -180,7 +179,7 @@ static void print_list(void)
 
 static const char *controller = DEFAULT_CONTROLLER;
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
 
 	if (argc == 1) {
@@ -190,8 +189,7 @@ int main(int argc, char * argv[])
 
 	int opt = 0;
 	while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) > 0) {
-		switch (opt)
-		{
+		switch (opt) {
 		case 'h':
 			print_help(*argv, optarg);
 			return 0;
@@ -228,9 +226,9 @@ int main(int argc, char * argv[])
 	for (int i = 0; i < (int) hid_dev.descriptors->configuration->extra_count; i++) {
 		usb_log_debug("Found extra descriptor: %s.",
 		    usb_debug_str_buffer(
-		        hid_dev.descriptors->configuration->extra[i].data,
-		        hid_dev.descriptors->configuration->extra[i].length,
-		        0));
+		    hid_dev.descriptors->configuration->extra[i].data,
+		    hid_dev.descriptors->configuration->extra[i].length,
+		    0));
 	}
 
 	const errno_t rc = usbvirt_device_plug(&hid_dev, controller);

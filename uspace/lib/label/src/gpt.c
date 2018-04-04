@@ -207,7 +207,7 @@ static errno_t gpt_open(label_bd_t *bd, label_t **rlabel)
 			goto error;
 
 		if (uint32_t_le2host(gpt_hdr[j]->header_crc32) != hdr_crc) {
-		        rc = EINVAL;
+			rc = EINVAL;
 			goto error;
 		}
 	}

@@ -221,8 +221,7 @@ void ht_mapping_remove(as_t *as, uintptr_t page)
 	irq_spinlock_unlock(&page_ht_lock, true);
 }
 
-static pte_t *
-ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
+static pte_t *ht_mapping_find_internal(as_t *as, uintptr_t page, bool nolock)
 {
 	uintptr_t key[2] = {
 		[KEY_AS] = (uintptr_t) as,

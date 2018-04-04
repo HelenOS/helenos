@@ -79,7 +79,7 @@ static errno_t vhc_dev_add(ddf_dev_t *dev)
 	errno_t ret = hcd_ddf_setup_hc(dev, sizeof(vhc_data_t));
 	if (ret != EOK) {
 		usb_log_error("Failed to init HCD structures: %s.",
-		   str_error(ret));
+		    str_error(ret));
 		return ret;
 	}
 	vhc_data_t *vhc = ddf_dev_data_get(dev);
@@ -110,7 +110,7 @@ static errno_t vhc_dev_add(ddf_dev_t *dev)
 	ret = hc_setup_virtual_root_hub(&vhc->base, USB_SPEED_HIGH);
 	if (ret != EOK) {
 		usb_log_error("Failed to init VHC root hub: %s",
-			str_error(ret));
+		    str_error(ret));
 		// TODO do something here...
 	}
 
@@ -126,7 +126,7 @@ static driver_t vhc_driver = {
 	.driver_ops = &vhc_driver_ops
 };
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
 	log_init(NAME);
 	printf(NAME ": virtual USB host controller driver.\n");

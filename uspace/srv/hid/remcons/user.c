@@ -218,7 +218,8 @@ static errno_t telnet_user_recv_next_byte_no_lock(telnet_user_t *user, char *byt
  * @param type Event type (press / release).
  * @param c Pressed character.
  */
-static kbd_event_t* new_kbd_event(kbd_event_type_t type, wchar_t c) {
+static kbd_event_t *new_kbd_event(kbd_event_type_t type, wchar_t c)
+{
 	kbd_event_t *event = malloc(sizeof(kbd_event_t));
 	assert(event);
 

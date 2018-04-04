@@ -43,15 +43,15 @@
 #define EOF  (-1)
 
 #ifndef SEEK_SET
-	#define SEEK_SET  0
+#define SEEK_SET  0
 #endif
 
 #ifndef SEEK_CUR
-	#define SEEK_CUR  1
+#define SEEK_CUR  1
 #endif
 
 #ifndef SEEK_END
-	#define SEEK_END  2
+#define SEEK_END  2
 #endif
 
 /** Default size for stream I/O buffers */
@@ -81,7 +81,7 @@ extern int puts(const char *);
 extern int ungetc(int, FILE *);
 
 /* Formatted string output functions */
-extern int fprintf(FILE *, const char*, ...)
+extern int fprintf(FILE *, const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vfprintf(FILE *, const char *, va_list);
 
@@ -89,7 +89,7 @@ extern int printf(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int vprintf(const char *, va_list);
 
-extern int snprintf(char *, size_t , const char *, ...)
+extern int snprintf(char *, size_t, const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(3, 4);
 extern int vasprintf(char **, const char *, va_list);
 extern int asprintf(char **, const char *, ...)

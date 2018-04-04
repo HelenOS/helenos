@@ -527,7 +527,7 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		if (rc != EOK)
 			goto error;
 
-	    	tinput_destroy(tinput);
+		tinput_destroy(tinput);
 		tinput = NULL;
 	}
 
@@ -976,9 +976,9 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 			    (void *)devac_create_pri_part, 0);
 			if (rc != EOK) {
 				assert(rc == ENOMEM);
-					printf("Out of memory.\n");
-					goto error;
-				}
+				printf("Out of memory.\n");
+				goto error;
+			}
 		}
 	}
 

@@ -95,8 +95,8 @@ static void mousedev_callback_conn(cap_call_handle_t icall_handle, ipc_call_t *i
 			break;
 		case MOUSEEV_ABS_MOVE_EVENT:
 			mouse_push_event_abs_move(mousedev->mouse_dev,
-				IPC_GET_ARG1(call), IPC_GET_ARG2(call),
-				IPC_GET_ARG3(call), IPC_GET_ARG4(call));
+			    IPC_GET_ARG1(call), IPC_GET_ARG2(call),
+			    IPC_GET_ARG3(call), IPC_GET_ARG4(call));
 			retval = EOK;
 			break;
 		case MOUSEEV_BUTTON_EVENT:

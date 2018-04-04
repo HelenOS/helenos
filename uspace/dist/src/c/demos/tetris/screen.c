@@ -255,7 +255,7 @@ void scr_update(void)
 			tr = t / B_COLS;
 			tc = t % B_COLS;
 
-			moveto(tr, 2*tc);
+			moveto(tr, 2 * tc);
 			putstr("  ");
 		}
 		resume_normal();

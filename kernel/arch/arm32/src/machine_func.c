@@ -136,7 +136,7 @@ size_t machine_get_irq_count(void)
 	return (machine_ops->machine_get_irq_count)();
 }
 
-const char * machine_get_platform_name(void)
+const char *machine_get_platform_name(void)
 {
 	if (machine_ops->machine_get_platform_name)
 		return machine_ops->machine_get_platform_name();

@@ -58,7 +58,8 @@ static char message_buffer[MESSAGE_BUFFER_COUNT][MAX_MESSAGE_LENGTH + 1];
 /** Currently active assertion buffer. */
 static int message_buffer_index = 0;
 
-void pcut_failed_assertion_fmt(const char *filename, int line, const char *fmt, ...) {
+void pcut_failed_assertion_fmt(const char *filename, int line, const char *fmt, ...)
+{
 	va_list args;
 	char *current_buffer = message_buffer[message_buffer_index];
 	size_t offset = 0;

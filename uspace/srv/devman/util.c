@@ -82,7 +82,7 @@ size_t get_nonspace_len(const char *str)
 {
 	size_t len = 0;
 
-	while(*str != '\0' && !isspace(*str)) {
+	while (*str != '\0' && !isspace(*str)) {
 		len++;
 		str++;
 	}

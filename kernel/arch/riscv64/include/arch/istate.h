@@ -38,9 +38,9 @@
 #include <trace.h>
 
 #ifdef KERNEL
-	#include <arch/istate_struct.h>
+#include <arch/istate_struct.h>
 #else
-	#include <libarch/istate_struct.h>
+#include <libarch/istate_struct.h>
 #endif
 
 NO_TRACE static inline int istate_from_uspace(istate_t *istate)

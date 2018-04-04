@@ -180,7 +180,7 @@ static errno_t vbds_disks_check_new(void)
 	}
 
 	list_foreach(vbds_disks, ldisks, vbds_disk_t, disk)
-		disk->present = false;
+	    disk->present = false;
 
 	for (i = 0; i < count; i++) {
 		already_known = false;

@@ -72,7 +72,8 @@ static pcut_item_t *current_suite = NULL;
 static pcut_item_t default_suite;
 static int default_suite_initialized = 0;
 
-static void init_default_suite_when_needed() {
+static void init_default_suite_when_needed()
+{
 	if (default_suite_initialized) {
 		return;
 	}
@@ -90,7 +91,8 @@ static void init_default_suite_when_needed() {
  * @param it The test.
  * @return Always a valid test suite item.
  */
-static pcut_item_t *pcut_find_parent_suite(pcut_item_t *it) {
+static pcut_item_t *pcut_find_parent_suite(pcut_item_t *it)
+{
 	while (it != NULL) {
 		if (it->kind == PCUT_KIND_TESTSUITE) {
 			return it;
@@ -105,7 +107,8 @@ static pcut_item_t *pcut_find_parent_suite(pcut_item_t *it) {
  *
  * @param func Function to run (can be NULL).
  */
-static void run_setup_teardown(pcut_setup_func_t func) {
+static void run_setup_teardown(pcut_setup_func_t func)
+{
 	if (func != NULL) {
 		func();
 	}
@@ -118,9 +121,10 @@ static void run_setup_teardown(pcut_setup_func_t func) {
  *
  * @param outcome Outcome of the current test.
  */
-static void leave_test(int outcome) {
+static void leave_test(int outcome)
+{
 	PCUT_DEBUG("leave_test(outcome=%d), will_exit=%s", outcome,
-		leave_means_exit ? "yes" : "no");
+	    leave_means_exit ? "yes" : "no");
 	if (leave_means_exit) {
 		exit(outcome);
 	}
@@ -137,7 +141,8 @@ static void leave_test(int outcome) {
  *
  * @param message Message describing the failure.
  */
-void pcut_failed_assertion(const char *message) {
+void pcut_failed_assertion(const char *message)
+{
 	static const char *prev_message = NULL;
 	/*
 	 * The assertion failed. We need to abort the current test,
@@ -156,12 +161,12 @@ void pcut_failed_assertion(const char *message) {
 		/* Tear-down was okay. */
 		if (report_test_result) {
 			pcut_report_test_done(current_test, PCUT_OUTCOME_FAIL,
-				message, NULL, NULL);
+			    message, NULL, NULL);
 		}
 	} else {
 		if (report_test_result) {
 			pcut_report_test_done(current_test, PCUT_OUTCOME_FAIL,
-				prev_message, message, NULL);
+			    prev_message, message, NULL);
 		}
 	}
 
@@ -175,7 +180,8 @@ void pcut_failed_assertion(const char *message) {
  * @param test Test to execute.
  * @return Error status (zero means success).
  */
-static int run_test(pcut_item_t *test) {
+static int run_test(pcut_item_t *test)
+{
 	/*
 	 * Set here as the returning point in case of test failure.
 	 * If we get here, it means something failed during the
@@ -227,7 +233,7 @@ static int run_test(pcut_item_t *test) {
 	 */
 	if (report_test_result) {
 		pcut_report_test_done(current_test, PCUT_OUTCOME_PASS,
-			NULL, NULL, NULL);
+		    NULL, NULL, NULL);
 	}
 
 	return PCUT_OUTCOME_PASS;
@@ -241,7 +247,8 @@ static int run_test(pcut_item_t *test) {
  * @param test Test to execute.
  * @return Error status (zero means success).
  */
-int pcut_run_test_forked(pcut_item_t *test) {
+int pcut_run_test_forked(pcut_item_t *test)
+{
 	int rc;
 
 	report_test_result = 0;
@@ -264,7 +271,8 @@ int pcut_run_test_forked(pcut_item_t *test) {
  * @param test Test to execute.
  * @return Error status (zero means success).
  */
-int pcut_run_test_single(pcut_item_t *test) {
+int pcut_run_test_single(pcut_item_t *test)
+{
 	int rc;
 
 	report_test_result = 1;
@@ -284,7 +292,8 @@ int pcut_run_test_single(pcut_item_t *test) {
  * @param test Test for which the time-out is questioned.
  * @return Timeout in seconds.
  */
-int pcut_get_test_timeout(pcut_item_t *test) {
+int pcut_get_test_timeout(pcut_item_t *test)
+{
 	int timeout = PCUT_DEFAULT_TEST_TIMEOUT;
 	pcut_extra_t *extras = test->extras;
 

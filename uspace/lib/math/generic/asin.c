@@ -54,7 +54,7 @@ float32_t float32_asin(float32_t arg)
 		return FLOAT32_NAN;
 	}
 
-	aval = 2.0 * atan_f32(arg / (1.0 + sqrt_f32(1.0 - arg*arg)));
+	aval = 2.0 * atan_f32(arg / (1.0 + sqrt_f32(1.0 - arg * arg)));
 	if (arg > 0.0)
 		return aval;
 	else
@@ -79,7 +79,7 @@ float64_t float64_asin(float64_t arg)
 		return FLOAT64_NAN;
 	}
 
-	aval = 2.0 * atan_f64(arg / (1.0 + sqrt_f64(1.0 - arg*arg)));
+	aval = 2.0 * atan_f64(arg / (1.0 + sqrt_f64(1.0 - arg * arg)));
 	if (arg > 0.0)
 		return aval;
 	else

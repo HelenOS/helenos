@@ -226,7 +226,7 @@ static pio_window_ops_t isa_fun_pio_window_ops = {
 	.get_pio_window = isa_fun_get_pio_window
 };
 
-static ddf_dev_ops_t isa_fun_ops= {
+static ddf_dev_ops_t isa_fun_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops,
 	.interfaces[PIO_WINDOW_DEV_IFACE] = &isa_fun_pio_window_ops,
 };
@@ -306,7 +306,7 @@ static char *fun_conf_read(const char *conf_path)
 		goto cleanup;
 	}
 
-	rc = vfs_read(fd, (aoff64_t []) {0}, buf, len, &nread);
+	rc = vfs_read(fd, (aoff64_t []) { 0 }, buf, len, &nread);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
 		goto cleanup;

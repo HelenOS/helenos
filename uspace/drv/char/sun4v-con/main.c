@@ -93,7 +93,7 @@ static errno_t sun4v_con_dev_add(ddf_dev_t *dev)
 	sun4v_con_res_t res;
 	errno_t rc;
 
-        ddf_msg(LVL_DEBUG, "sun4v_con_dev_add(%p)", dev);
+	ddf_msg(LVL_DEBUG, "sun4v_con_dev_add(%p)", dev);
 	sun4v_con = ddf_dev_data_alloc(dev, sizeof(sun4v_con_t));
 	if (sun4v_con == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
@@ -113,32 +113,32 @@ static errno_t sun4v_con_dev_add(ddf_dev_t *dev)
 
 static errno_t sun4v_con_dev_remove(ddf_dev_t *dev)
 {
-        sun4v_con_t *sun4v_con = (sun4v_con_t *)ddf_dev_data_get(dev);
+	sun4v_con_t *sun4v_con = (sun4v_con_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "sun4v_con_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "sun4v_con_dev_remove(%p)", dev);
 
-        return sun4v_con_remove(sun4v_con);
+	return sun4v_con_remove(sun4v_con);
 }
 
 static errno_t sun4v_con_dev_gone(ddf_dev_t *dev)
 {
-        sun4v_con_t *sun4v_con = (sun4v_con_t *)ddf_dev_data_get(dev);
+	sun4v_con_t *sun4v_con = (sun4v_con_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "sun4v_con_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "sun4v_con_dev_gone(%p)", dev);
 
-        return sun4v_con_gone(sun4v_con);
+	return sun4v_con_gone(sun4v_con);
 }
 
 static errno_t sun4v_con_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "sun4v_con_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "sun4v_con_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t sun4v_con_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "sun4v_con_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "sun4v_con_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

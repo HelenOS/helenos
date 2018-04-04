@@ -1316,7 +1316,7 @@ errno_t vfs_write(int file, aoff64_t *pos, const void *buf, size_t nbyte,
 		nwr += cnt;
 		*pos += cnt;
 		rc = vfs_write_short(file, *pos, bp, nbyte - nwr, &cnt);
-	} while (rc == EOK && ((ssize_t )nbyte - nwr - cnt) > 0);
+	} while (rc == EOK && ((ssize_t)nbyte - nwr - cnt) > 0);
 
 	if (rc != EOK) {
 		*nwritten = nwr;

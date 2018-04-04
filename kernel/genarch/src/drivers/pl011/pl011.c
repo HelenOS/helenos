@@ -49,7 +49,7 @@ static void pl011_uart_sendb(pl011_uart_t *uart, uint8_t byte)
 {
 	/* Wait for space becoming available in Tx FIFO. */
 	// TODO make pio_read accept consts pointers and remove the cast
-	while ((pio_read_32((ioport32_t*)&uart->regs->flag) & PL011_UART_FLAG_TXFF_FLAG) != 0)
+	while ((pio_read_32((ioport32_t *)&uart->regs->flag) & PL011_UART_FLAG_TXFF_FLAG) != 0)
 		;
 
 	pio_write_32(&uart->regs->data, byte);
@@ -85,7 +85,7 @@ static void pl011_uart_irq_handler(irq_t *irq)
 	pl011_uart_t *uart = irq->instance;
 
 	// TODO make pio_read accept const pointers and remove the cast
-	while ((pio_read_32((ioport32_t*)&uart->regs->flag) & PL011_UART_FLAG_RXFE_FLAG) == 0) {
+	while ((pio_read_32((ioport32_t *)&uart->regs->flag) & PL011_UART_FLAG_RXFE_FLAG) == 0) {
 		/* We ignore all error flags here */
 		const uint8_t data = pio_read_32(&uart->regs->data);
 		if (uart->indev)
@@ -98,17 +98,17 @@ static void pl011_uart_irq_handler(irq_t *irq)
 bool pl011_uart_init(pl011_uart_t *uart, inr_t interrupt, uintptr_t addr)
 {
 	assert(uart);
-	uart->regs = (void*)km_map(addr, sizeof(pl011_uart_regs_t),
-				   PAGE_NOT_CACHEABLE);
+	uart->regs = (void *)km_map(addr, sizeof(pl011_uart_regs_t),
+	    PAGE_NOT_CACHEABLE);
 	assert(uart->regs);
 
 	/* Disable UART */
-	uart->regs->control &= ~ PL011_UART_CONTROL_UARTEN_FLAG;
+	uart->regs->control &= ~PL011_UART_CONTROL_UARTEN_FLAG;
 
 	/* Enable hw flow control */
 	uart->regs->control |=
-		PL011_UART_CONTROL_RTSE_FLAG |
-		PL011_UART_CONTROL_CTSE_FLAG;
+	    PL011_UART_CONTROL_RTSE_FLAG |
+	    PL011_UART_CONTROL_CTSE_FLAG;
 
 	/* Mask all interrupts */
 	uart->regs->interrupt_mask = 0;
@@ -116,9 +116,9 @@ bool pl011_uart_init(pl011_uart_t *uart, inr_t interrupt, uintptr_t addr)
 	uart->regs->interrupt_clear = PL011_UART_INTERRUPT_ALL;
 	/* Enable UART, TX and RX */
 	uart->regs->control |=
-		PL011_UART_CONTROL_UARTEN_FLAG |
-		PL011_UART_CONTROL_TXE_FLAG |
-		PL011_UART_CONTROL_RXE_FLAG;
+	    PL011_UART_CONTROL_UARTEN_FLAG |
+	    PL011_UART_CONTROL_TXE_FLAG |
+	    PL011_UART_CONTROL_RXE_FLAG;
 
 	outdev_initialize("pl011_uart_dev", &uart->outdev, &pl011_uart_ops);
 	uart->outdev.data = uart;
@@ -142,8 +142,8 @@ void pl011_uart_input_wire(pl011_uart_t *uart, indev_t *indev)
 	irq_register(&uart->irq);
 	/* Enable receive interrupts */
 	uart->regs->interrupt_mask |=
-		PL011_UART_INTERRUPT_RX_FLAG |
-		PL011_UART_INTERRUPT_RT_FLAG;
+	    PL011_UART_INTERRUPT_RX_FLAG |
+	    PL011_UART_INTERRUPT_RT_FLAG;
 }
 
 /** @}

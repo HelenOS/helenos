@@ -55,7 +55,7 @@ float32 sub_float32(float32 a, float32 b)
 	result.bin = 0;
 
 	expdiff = a.parts.exp - b.parts.exp;
-	if ((expdiff < 0 ) || ((expdiff == 0) &&
+	if ((expdiff < 0) || ((expdiff == 0) &&
 	    (a.parts.fraction < b.parts.fraction))) {
 		if (is_float32_nan(b)) {
 			if (is_float32_signan(b)) {
@@ -140,7 +140,7 @@ float32 sub_float32(float32 a, float32 b)
 
 done:
 	/* TODO: find first nonzero digit and shift result and detect possibly underflow */
-	while ((exp1 > 0) && (!(frac1 & (FLOAT32_HIDDEN_BIT_MASK << 6 )))) {
+	while ((exp1 > 0) && (!(frac1 & (FLOAT32_HIDDEN_BIT_MASK << 6)))) {
 		--exp1;
 		frac1 <<= 1;
 		/* TODO: fix underflow - frac1 == 0 does not necessary means underflow... */
@@ -179,7 +179,7 @@ float64 sub_float64(float64 a, float64 b)
 	result.bin = 0;
 
 	expdiff = a.parts.exp - b.parts.exp;
-	if ((expdiff < 0 ) ||
+	if ((expdiff < 0) ||
 	    ((expdiff == 0) && (a.parts.fraction < b.parts.fraction))) {
 		if (is_float64_nan(b)) {
 			if (is_float64_signan(b)) {
@@ -264,7 +264,7 @@ float64 sub_float64(float64 a, float64 b)
 
 done:
 	/* TODO: find first nonzero digit and shift result and detect possibly underflow */
-	while ((exp1 > 0) && (!(frac1 & (FLOAT64_HIDDEN_BIT_MASK << 6 )))) {
+	while ((exp1 > 0) && (!(frac1 & (FLOAT64_HIDDEN_BIT_MASK << 6)))) {
 		--exp1;
 		frac1 <<= 1;
 		/* TODO: fix underflow - frac1 == 0 does not necessary means underflow... */
@@ -304,7 +304,7 @@ float128 sub_float128(float128 a, float128 b)
 	result.bin.lo = 0;
 
 	expdiff = a.parts.exp - b.parts.exp;
-	if ((expdiff < 0 ) || ((expdiff == 0) &&
+	if ((expdiff < 0) || ((expdiff == 0) &&
 	    lt128(a.parts.frac_hi, a.parts.frac_lo, b.parts.frac_hi, b.parts.frac_lo))) {
 		if (is_float128_nan(b)) {
 			if (is_float128_signan(b)) {
@@ -417,7 +417,7 @@ done:
 	add128(frac1_hi, frac1_lo, 0x0ll, 0x20ll, &frac1_hi, &frac1_lo);
 
 	lshift128(FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO, 7,
-	   &tmp_hi, &tmp_lo);
+	    &tmp_hi, &tmp_lo);
 	and128(frac1_hi, frac1_lo, tmp_hi, tmp_lo, &tmp_hi, &tmp_lo);
 	if (lt128(0x0ll, 0x0ll, tmp_hi, tmp_lo)) {
 		++exp1;

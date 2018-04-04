@@ -212,7 +212,7 @@ static errno_t virt_dev_remove(ddf_dev_t *dev)
 	while (!list_empty(&virt->functions)) {
 		virt_fun_t *rvfun = list_get_instance(
 		    list_first(&virt->functions), virt_fun_t,
-			dev_link);
+		    dev_link);
 
 		rc = virt_fun_remove(rvfun);
 		if (rc != EOK)

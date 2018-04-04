@@ -46,7 +46,7 @@
 #include <vfs/vfs.h>
 
 #ifndef dprintf
-	#define dprintf(...)
+#define dprintf(...)
 #endif
 
 /**

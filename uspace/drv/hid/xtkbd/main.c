@@ -99,7 +99,7 @@ static errno_t xt_kbd_add(ddf_dev_t *device)
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed to initialize XT_KBD driver: %s.",
 		    str_error(rc));
-    		return rc;
+		return rc;
 	}
 
 	ddf_msg(LVL_NOTE, "Controlling '%s' (%" PRIun ").",

@@ -112,7 +112,7 @@ extern void rcu_init(void);
 extern void rcu_stop(void);
 extern void rcu_cpu_init(void);
 extern void rcu_kinit_init(void);
-extern void rcu_thread_init(struct thread*);
+extern void rcu_thread_init(struct thread *);
 extern void rcu_thread_exiting(void);
 extern void rcu_after_thread_ran(void);
 extern void rcu_before_thread_runs(void);

@@ -54,7 +54,8 @@ static elf_word elf_hash(const unsigned char *name)
 	while (*name) {
 		h = (h << 4) + *name++;
 		g = h & 0xf0000000;
-		if (g != 0) h ^= g >> 24;
+		if (g != 0)
+			h ^= g >> 24;
 		h &= ~g;
 	}
 

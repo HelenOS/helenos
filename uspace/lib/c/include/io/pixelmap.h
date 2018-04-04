@@ -80,7 +80,7 @@ static inline pixel_t *pixelmap_pixel_at(
 }
 
 static inline void pixelmap_put_pixel(
-    pixelmap_t * pixelmap,
+    pixelmap_t *pixelmap,
     sysarg_t x,
     sysarg_t y,
     pixel_t pixel)
@@ -111,16 +111,14 @@ static inline pixel_t pixelmap_get_extended_pixel(pixelmap_t *pixmap,
 	if (extend == PIXELMAP_EXTEND_TILE) {
 		x %= pixmap->width;
 		y %= pixmap->height;
-	}
-	else if (extend == PIXELMAP_EXTEND_SIDES ||
+	} else if (extend == PIXELMAP_EXTEND_SIDES ||
 	    extend == PIXELMAP_EXTEND_TRANSPARENT_SIDES) {
 		bool transparent_outside =
 		    (extend == PIXELMAP_EXTEND_TRANSPARENT_SIDES);
 		if (x < 0) {
 			x = 0;
 			transparent = transparent_outside;
-		}
-		else if (((sysarg_t) x) >= pixmap->width) {
+		} else if (((sysarg_t) x) >= pixmap->width) {
 			x = pixmap->width - 1;
 			transparent = transparent_outside;
 		}
@@ -128,8 +126,7 @@ static inline pixel_t pixelmap_get_extended_pixel(pixelmap_t *pixmap,
 		if (y < 0) {
 			y = 0;
 			transparent = transparent_outside;
-		}
-		else if (((sysarg_t) y) >= pixmap->height) {
+		} else if (((sysarg_t) y) >= pixmap->height) {
 			y = pixmap->height - 1;
 			transparent = transparent_outside;
 		}

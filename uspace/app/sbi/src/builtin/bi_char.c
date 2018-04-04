@@ -68,11 +68,11 @@ void bi_char_bind(builtin_t *bi)
  */
 static void bi_char_get_as_string(run_t *run)
 {
-        rdata_var_t *self_value_var;
-        bigint_t *cval;
-        char *str;
-        int char_val;
-        errno_t rc;
+	rdata_var_t *self_value_var;
+	bigint_t *cval;
+	char *str;
+	int char_val;
+	errno_t rc;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Convert char to string.\n");

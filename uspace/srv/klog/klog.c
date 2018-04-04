@@ -52,7 +52,7 @@
 
 #define NAME  "klog"
 
-typedef size_t __attribute__ ((aligned(1))) unaligned_size_t;
+typedef size_t __attribute__((aligned(1))) unaligned_size_t;
 
 typedef struct {
 	size_t entry_len;

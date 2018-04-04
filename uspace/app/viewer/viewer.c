@@ -128,7 +128,7 @@ static bool img_load(const char *fname, surface_t **p_local_surface)
 	}
 
 	size_t nread;
-	rc = vfs_read(fd, (aoff64_t []) {0}, tga, stat.size, &nread);
+	rc = vfs_read(fd, (aoff64_t []) { 0 }, tga, stat.size, &nread);
 	if (rc != EOK || nread != stat.size) {
 		free(tga);
 		vfs_put(fd);

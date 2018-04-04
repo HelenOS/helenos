@@ -73,7 +73,8 @@ static errno_t tcp_init(void)
 	tcp_ncsim_init();
 	tcp_ncsim_fibril_start();
 
-	if (0) tcp_test();
+	if (0)
+		tcp_test();
 
 	rc = tcp_inet_init();
 	if (rc != EOK)

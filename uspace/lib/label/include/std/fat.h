@@ -85,7 +85,7 @@ typedef struct fat_bs {
 			uint8_t		boot_code[448];
 			/** Boot sector signature. */
 			uint16_t	signature;
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 		struct {
 			/* FAT32 only */
 			/** Sectors per FAT. */
@@ -116,9 +116,9 @@ typedef struct fat_bs {
 			uint8_t		boot_code[420];
 			/** Signature. */
 			uint16_t	signature;
-		} __attribute__ ((packed)) fat32;
+		} __attribute__((packed)) fat32;
 	};
-} __attribute__ ((packed)) fat_bs_t;
+} __attribute__((packed)) fat_bs_t;
 
 #endif
 

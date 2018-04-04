@@ -522,7 +522,7 @@ bool ext4_inode_is_type(ext4_superblock_t *sb, ext4_inode_t *inode,
  * @return Pointer to extent header of the root node
  *
  */
-ext4_extent_header_t * ext4_inode_get_extent_header(ext4_inode_t *inode)
+ext4_extent_header_t *ext4_inode_get_extent_header(ext4_inode_t *inode)
 {
 	return (ext4_extent_header_t *) inode->blocks;
 }

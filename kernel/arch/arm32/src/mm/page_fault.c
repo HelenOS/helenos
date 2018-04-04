@@ -74,7 +74,7 @@ typedef enum {
 	DFSR_SOURCE_MASK = 0x0000040f,
 } dfsr_source_t;
 
-static inline const char * dfsr_source_to_str(dfsr_source_t source)
+static inline const char *dfsr_source_to_str(dfsr_source_t source)
 {
 	switch (source)	{
 	case DFSR_SOURCE_TRANSLATION_L1:
@@ -148,7 +148,7 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 	if (instr.condition == 0xf) {
 		panic("page_fault - instruction does not access memory "
 		    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
-		    *(uint32_t*)instr_union.instr, (void *) badvaddr);
+		    *(uint32_t *)instr_union.instr, (void *) badvaddr);
 		return PF_ACCESS_EXEC;
 	}
 
@@ -176,7 +176,7 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		/* Swap */
 		{ 0x0fb00000, 0x01000000, PF_ACCESS_WRITE },
 	};
-	const uint32_t inst = *(uint32_t*)instr_addr;
+	const uint32_t inst = *(uint32_t *)instr_addr;
 	for (unsigned i = 0; i < sizeof(ls_inst) / sizeof(ls_inst[0]); ++i) {
 		if ((inst & ls_inst[i].mask) == ls_inst[i].value) {
 			return ls_inst[i].access;

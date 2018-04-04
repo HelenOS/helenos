@@ -41,7 +41,8 @@
  *
  * @param first First item to be printed.
  */
-void pcut_print_items(pcut_item_t *first) {
+void pcut_print_items(pcut_item_t *first)
+{
 	pcut_item_t *it = first;
 	printf("====>\n");
 	while (it != NULL) {
@@ -70,7 +71,8 @@ void pcut_print_items(pcut_item_t *first) {
  *
  * @param first First item to be printed.
  */
-void pcut_print_tests(pcut_item_t *first) {
+void pcut_print_tests(pcut_item_t *first)
+{
 	pcut_item_t *it;
 	for (it = pcut_get_real(first); it != NULL; it = pcut_get_real_next(it)) {
 		switch (it->kind) {

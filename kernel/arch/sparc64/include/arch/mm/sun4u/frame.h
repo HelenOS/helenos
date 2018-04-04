@@ -68,7 +68,7 @@ union frame_address {
 		uint64_t pfn : 30;		/**< Physical Frame Number. */
 #endif
 		unsigned offset : 13;		/**< Offset. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 
 typedef union frame_address frame_address_t;

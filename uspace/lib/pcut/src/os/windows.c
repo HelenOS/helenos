@@ -60,7 +60,8 @@ static char extra_output_buffer[OUTPUT_BUFFER_SIZE];
  *
  * @param test Test that is about to be run.
  */
-static void before_test_start(pcut_item_t *test) {
+static void before_test_start(pcut_item_t *test)
+{
 	pcut_report_test_start(test);
 
 	memset(error_message_buffer, 0, OUTPUT_BUFFER_SIZE);
@@ -72,10 +73,11 @@ static void before_test_start(pcut_item_t *test) {
  * @param test Current test.
  * @param failed_function_name Name of the failed function.
  */
-static void report_func_fail(pcut_item_t *test, const char *failed_function_name) {
+static void report_func_fail(pcut_item_t *test, const char *failed_function_name)
+{
 	/* TODO: get error description. */
 	sprintf_s(error_message_buffer, OUTPUT_BUFFER_SIZE - 1,
-		"%s failed: %s.", failed_function_name, "unknown reason");
+	    "%s failed: %s.", failed_function_name, "unknown reason");
 	pcut_report_test_done(test, TEST_OUTCOME_ERROR, error_message_buffer, NULL, NULL);
 }
 
@@ -90,7 +92,8 @@ static void report_func_fail(pcut_item_t *test, const char *failed_function_name
  * @param buffer_size Size of the @p buffer in bytes.
  * @return Number of actually read bytes.
  */
-static size_t read_all(HANDLE fd, char *buffer, size_t buffer_size) {
+static size_t read_all(HANDLE fd, char *buffer, size_t buffer_size)
+{
 	DWORD actually_read;
 	char *buffer_start = buffer;
 	BOOL okay = FALSE;
@@ -124,16 +127,17 @@ struct test_output_data {
 	size_t output_buffer_size;
 };
 
-static DWORD WINAPI read_test_output_on_background(LPVOID test_output_data_ptr) {
+static DWORD WINAPI read_test_output_on_background(LPVOID test_output_data_ptr)
+{
 	size_t stderr_size = 0;
 	struct test_output_data *test_output_data = (struct test_output_data *) test_output_data_ptr;
 
 	stderr_size = read_all(test_output_data->pipe_stderr,
-		test_output_data->output_buffer,
-		test_output_data->output_buffer_size - 1);
+	    test_output_data->output_buffer,
+	    test_output_data->output_buffer_size - 1);
 	read_all(test_output_data->pipe_stdout,
-		test_output_data->output_buffer,
-		test_output_data->output_buffer_size - 1 - stderr_size);
+	    test_output_data->output_buffer,
+	    test_output_data->output_buffer_size - 1 - stderr_size);
 
 	return 0;
 }
@@ -143,7 +147,8 @@ static DWORD WINAPI read_test_output_on_background(LPVOID test_output_data_ptr) 
  * @param self_path Path to itself, that is to current binary.
  * @param test Test to be run.
  */
-int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
+int pcut_run_test_forking(const char *self_path, pcut_item_t *test)
+{
 	/* TODO: clean-up if something goes wrong "in the middle" */
 	BOOL okay = FALSE;
 	DWORD rc;
@@ -215,11 +220,11 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	/* Format the command line. */
 	sprintf_s(command, PCUT_COMMAND_LINE_BUFFER_SIZE - 1,
-		"\"%s\" -t%d", self_path, test->id);
+	    "\"%s\" -t%d", self_path, test->id);
 
 	/* Run the process. */
 	okay = CreateProcess(NULL, command, NULL, NULL, TRUE, 0, NULL, NULL,
-		&start_info, &process_info);
+	    &start_info, &process_info);
 
 	if (!okay) {
 		report_func_fail(test, "CreateProcess()");
@@ -261,8 +266,8 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	test_output_data.output_buffer_size = OUTPUT_BUFFER_SIZE;
 
 	test_output_thread_reader = CreateThread(NULL, 0,
-		read_test_output_on_background, &test_output_data,
-		0, NULL);
+	    read_test_output_on_background, &test_output_data,
+	    0, NULL);
 
 	if (test_output_thread_reader == NULL) {
 		report_func_fail(test, "CreateThread(/* read test stdout */)");
@@ -316,7 +321,8 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	return outcome;
 }
 
-void pcut_hook_before_test(pcut_item_t *test) {
+void pcut_hook_before_test(pcut_item_t *test)
+{
 	PCUT_UNUSED(test);
 
 	/*

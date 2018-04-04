@@ -49,10 +49,10 @@
 
 /** Static array of long options, from which test parameters are parsed. */
 static struct option long_options[] = {
-	{"duration", required_argument, NULL, 't'},
-	{"size", required_argument, NULL, 's'},
-	{"validate", required_argument, NULL, 'v'},
-	{0, 0, NULL, 0}
+	{ "duration", required_argument, NULL, 't' },
+	{ "size", required_argument, NULL, 's' },
+	{ "validate", required_argument, NULL, 'v' },
+	{ 0, 0, NULL, 0 }
 };
 
 /** String of short options, from which test parameters are parsed. */

@@ -42,19 +42,24 @@
 
 bool stacktrace_fp_valid(stacktrace_t *st, uintptr_t fp)
 {
-	(void) st; (void) fp;
+	(void) st;
+	(void) fp;
 	return false;
 }
 
 errno_t stacktrace_fp_prev(stacktrace_t *st, uintptr_t fp, uintptr_t *prev)
 {
-	(void) st; (void) fp; (void) prev;
+	(void) st;
+	(void) fp;
+	(void) prev;
 	return ENOTSUP;
 }
 
 errno_t stacktrace_ra_get(stacktrace_t *st, uintptr_t fp, uintptr_t *ra)
 {
-	(void) st; (void) fp; (void) ra;
+	(void) st;
+	(void) fp;
+	(void) ra;
 	return ENOTSUP;
 }
 

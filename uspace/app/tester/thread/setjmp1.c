@@ -34,12 +34,14 @@
 static jmp_buf jmp_env;
 static int counter;
 
-static void do_the_long_jump(void) {
+static void do_the_long_jump(void)
+{
 	TPRINTF("Will do a long jump back to test_it().\n");
 	longjmp(jmp_env, 1);
 }
 
-static const char *test_it(void) {
+static const char *test_it(void)
+{
 	int second_round = setjmp(jmp_env);
 	counter++;
 	TPRINTF("Just after setjmp(), counter is %d.\n", counter);

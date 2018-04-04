@@ -66,14 +66,14 @@ void usbdiag_disconnect(async_sess_t *);
 
 errno_t usbdiag_test_in(async_exch_t *,
     const usbdiag_test_params_t *, usbdiag_test_results_t *);
-errno_t usbdiag_test_out(async_exch_t*,
+errno_t usbdiag_test_out(async_exch_t *,
     const usbdiag_test_params_t *, usbdiag_test_results_t *);
 
 /** USB diagnostic device communication interface. */
 typedef struct {
 	errno_t (*test_in)(ddf_fun_t *,
 	    const usbdiag_test_params_t *, usbdiag_test_results_t *);
-	errno_t (*test_out)(ddf_fun_t*,
+	errno_t (*test_out)(ddf_fun_t *,
 	    const usbdiag_test_params_t *, usbdiag_test_results_t *);
 } usbdiag_iface_t;
 

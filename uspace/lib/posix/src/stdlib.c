@@ -203,7 +203,8 @@ int putenv(char *string)
  *     otherwise indicate whether there is a command interpreter (non-zero)
  *     or not (zero).
  */
-int system(const char *string) {
+int system(const char *string)
+{
 	// TODO: does nothing at the moment
 	not_implemented();
 	return 0;
@@ -221,9 +222,9 @@ int system(const char *string) {
  */
 char *realpath(const char *restrict name, char *restrict resolved)
 {
-	#ifndef PATH_MAX
-		assert(resolved == NULL);
-	#endif
+#ifndef PATH_MAX
+	assert(resolved == NULL);
+#endif
 
 	if (name == NULL) {
 		errno = EINVAL;
@@ -237,7 +238,7 @@ char *realpath(const char *restrict name, char *restrict resolved)
 	 * so far (as far as I can tell), although this function will need
 	 * to be updated when that support is implemented.
 	 */
-	char* absolute = vfs_absolutize(name, NULL);
+	char *absolute = vfs_absolutize(name, NULL);
 
 	if (absolute == NULL) {
 		/* POSIX requires some specific errnos to be set
@@ -251,9 +252,9 @@ char *realpath(const char *restrict name, char *restrict resolved)
 	if (resolved == NULL) {
 		return absolute;
 	} else {
-		#ifdef PATH_MAX
-			str_cpy(resolved, PATH_MAX, absolute);
-		#endif
+#ifdef PATH_MAX
+		str_cpy(resolved, PATH_MAX, absolute);
+#endif
 		free(absolute);
 		return resolved;
 	}

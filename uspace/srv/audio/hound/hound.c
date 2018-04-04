@@ -110,7 +110,7 @@ static audio_sink_t *find_sink_by_name(list_t *list, const char *name)
 	return NULL;
 }
 
-static errno_t hound_disconnect_internal(hound_t *hound, const char* source_name, const char* sink_name);
+static errno_t hound_disconnect_internal(hound_t *hound, const char *source_name, const char *sink_name);
 
 /**
  * Remove provided sink.
@@ -286,7 +286,7 @@ errno_t hound_add_device(hound_t *hound, service_id_t id, const char *name)
 	const errno_t ret = audio_device_init(dev, id, name);
 	if (ret != EOK) {
 		log_debug("Failed to initialize new audio device: %s",
-			str_error(ret));
+		    str_error(ret));
 		free(dev);
 		return ret;
 	}
@@ -516,7 +516,7 @@ errno_t hound_list_connections(hound_t *hound, const char ***sources,
  * @param sink_name Sink's string id.
  * @return Error code.
  */
-errno_t hound_connect(hound_t *hound, const char* source_name, const char* sink_name)
+errno_t hound_connect(hound_t *hound, const char *source_name, const char *sink_name)
 {
 	assert(hound);
 	log_verbose("Connecting '%s' to '%s'.", source_name, sink_name);
@@ -525,12 +525,12 @@ errno_t hound_connect(hound_t *hound, const char* source_name, const char* sink_
 	audio_source_t *source =
 	    audio_source_list_instance(list_first(&hound->sources));
 	if (str_cmp(source_name, "default") != 0)
-	    source = find_source_by_name(&hound->sources, source_name);
+		source = find_source_by_name(&hound->sources, source_name);
 
 	audio_sink_t *sink =
 	    audio_sink_list_instance(list_first(&hound->sinks));
 	if (str_cmp(sink_name, "default") != 0)
-	    sink = find_sink_by_name(&hound->sinks, sink_name);
+		sink = find_sink_by_name(&hound->sinks, sink_name);
 
 	if (!source || !sink) {
 		fibril_mutex_unlock(&hound->list_guard);
@@ -555,7 +555,7 @@ errno_t hound_connect(hound_t *hound, const char* source_name, const char* sink_
  * @param sink_name Sink's string id.
  * @return Error code.
  */
-errno_t hound_disconnect(hound_t *hound, const char* source_name, const char* sink_name)
+errno_t hound_disconnect(hound_t *hound, const char *source_name, const char *sink_name)
 {
 	assert(hound);
 	fibril_mutex_lock(&hound->list_guard);
@@ -573,8 +573,8 @@ errno_t hound_disconnect(hound_t *hound, const char* source_name, const char* si
  *
  * This function has to be called with the list_guard lock held.
  */
-static errno_t hound_disconnect_internal(hound_t *hound, const char* source_name,
-    const char* sink_name)
+static errno_t hound_disconnect_internal(hound_t *hound, const char *source_name,
+    const char *sink_name)
 {
 	assert(hound);
 	assert(fibril_mutex_is_locked(&hound->list_guard));
@@ -584,10 +584,10 @@ static errno_t hound_disconnect_internal(hound_t *hound, const char* source_name
 		connection_t *conn = connection_from_hound_list(it);
 		if (str_cmp(connection_source_name(conn), source_name) == 0 ||
 		    str_cmp(connection_sink_name(conn), sink_name) == 0) {
-		    log_debug("Removing %s -> %s", connection_source_name(conn),
-		        connection_sink_name(conn));
-		    list_remove(it);
-		    connection_destroy(conn);
+			log_debug("Removing %s -> %s", connection_source_name(conn),
+			    connection_sink_name(conn));
+			list_remove(it);
+			connection_destroy(conn);
 		}
 	}
 

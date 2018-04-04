@@ -90,8 +90,7 @@ static errno_t rfb_handle_damage_pixels(visualizer_t *vs,
 		rfb.damage_rect.width = width;
 		rfb.damage_rect.height = height;
 		rfb.damage_valid = true;
-	}
-	else {
+	} else {
 		if (x0 < rfb.damage_rect.x) {
 			rfb.damage_rect.width += rfb.damage_rect.x - x0;
 			rfb.damage_rect.x = x0;

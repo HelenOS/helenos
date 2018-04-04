@@ -238,7 +238,7 @@ static errno_t drv_list(void)
 		sstate = drv_state_str(state);
 
 		table_printf(table, "%s\t" "%zu\t" "%s\n", drv_name, ndevs, sstate);
-skip:
+	skip:
 		free(devs);
 	}
 

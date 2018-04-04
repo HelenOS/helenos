@@ -58,18 +58,19 @@ cpu_t *cpus;
  * Initialize kernel CPUs support.
  *
  */
-void cpu_init(void) {
+void cpu_init(void)
+{
 #ifdef CONFIG_SMP
 	if (config.cpu_active == 1) {
 #endif /* CONFIG_SMP */
 
-		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count,
+		cpus = (cpu_t *) malloc(sizeof(cpu_t) *config.cpu_count,
 		    FRAME_ATOMIC);
 		if (!cpus)
 			panic("Cannot allocate CPU structures.");
 
 		/* Initialize everything */
-		memsetb(cpus, sizeof(cpu_t) * config.cpu_count, 0);
+		memsetb(cpus, sizeof(cpu_t) *config.cpu_count, 0);
 
 		size_t i;
 		for (i = 0; i < config.cpu_count; i++) {

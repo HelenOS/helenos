@@ -11,7 +11,7 @@ builtin_t builtins[] = {
 #include "batch/batch_def.inc"
 #include "cd/cd_def.inc"
 #include "exit/exit_def.inc"
-	{NULL, NULL, NULL, NULL, 0}
+	{ NULL, NULL, NULL, NULL, 0 }
 };
 
 #endif

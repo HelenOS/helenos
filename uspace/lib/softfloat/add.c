@@ -382,7 +382,7 @@ float128 add_float128(float128 a, float128 b)
 	add128(frac1_hi, frac1_lo, 0x0ll, 0x1ll << 5, &frac1_hi, &frac1_lo);
 
 	lshift128(FLOAT128_HIDDEN_BIT_MASK_HI, FLOAT128_HIDDEN_BIT_MASK_LO, 7,
-	   &tmp_hi, &tmp_lo);
+	    &tmp_hi, &tmp_lo);
 	and128(frac1_hi, frac1_lo, tmp_hi, tmp_lo, &tmp_hi, &tmp_lo);
 	if (lt128(0x0ll, 0x0ll, tmp_hi, tmp_lo)) {
 		/* rounding overflow */
@@ -390,7 +390,7 @@ float128 add_float128(float128 a, float128 b)
 		rshift128(frac1_hi, frac1_lo, 1, &frac1_hi, &frac1_lo);
 	}
 
-	if ((exp1 == FLOAT128_MAX_EXPONENT ) || (exp2 > exp1)) {
+	if ((exp1 == FLOAT128_MAX_EXPONENT) || (exp2 > exp1)) {
 		/* overflow - set infinity as result */
 		a.parts.exp = FLOAT64_MAX_EXPONENT;
 		a.parts.frac_hi = 0;

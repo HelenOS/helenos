@@ -96,7 +96,7 @@ static errno_t scan_device_tree(devman_handle_t funh)
 
 	/* If device is SATA, add device to the disk array. */
 	disk[disk_count].sess = ahci_get_sess(funh, &disk[disk_count].dev_name);
-	if(disk[disk_count].sess != NULL) {
+	if (disk[disk_count].sess != NULL) {
 
 		ahci_get_sata_device_name(disk[disk_count].sess,
 		    SATA_DEV_NAME_LENGTH, disk[disk_count].sata_dev_name);
@@ -112,8 +112,8 @@ static errno_t scan_device_tree(devman_handle_t funh)
 
 		printf("Device %s - %s , blocks: %lu, block_size: %lu\n",
 		    disk[disk_count].dev_name, disk[disk_count].sata_dev_name,
-			    (long unsigned int) disk[disk_count].blocks,
-				(long unsigned int) disk[disk_count].block_size);
+		    (long unsigned int) disk[disk_count].blocks,
+		    (long unsigned int) disk[disk_count].block_size);
 
 		++disk_count;
 	}
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
 		return rc;
 	}
 
-	for(int i = 0; i < disk_count; i++) {
+	for (int i = 0; i < disk_count; i++) {
 		char name[1024];
 		snprintf(name, 1024, "%s/%s", NAMESPACE, disk[i].dev_name);
 		rc = loc_service_register(name, &disk[i].service_id);

@@ -41,16 +41,16 @@
 #include <_bits/NULL.h>
 
 #ifndef CLOCKS_PER_SEC
-	#define CLOCKS_PER_SEC (1000000L)
+#define CLOCKS_PER_SEC (1000000L)
 #endif
 
 #ifndef __locale_t_defined
-	#define __locale_t_defined
-	typedef struct __posix_locale *locale_t;
+#define __locale_t_defined
+typedef struct __posix_locale *locale_t;
 #endif
 
 #ifndef POSIX_SIGNAL_H_
-	struct sigevent;
+struct sigevent;
 #endif
 
 #undef CLOCK_REALTIME

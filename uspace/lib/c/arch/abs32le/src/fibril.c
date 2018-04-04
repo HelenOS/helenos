@@ -39,7 +39,8 @@ int __setjmp(context_t *ctx)
 
 void __longjmp(context_t *ctx, int val)
 {
-	while (true);
+	while (true)
+		;
 }
 
 /** @}

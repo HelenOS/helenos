@@ -56,7 +56,7 @@ int pthread_key_delete(pthread_key_t key)
 	return ENOTSUP;
 }
 
-int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
+int pthread_key_create(pthread_key_t *key, void (*destructor)(void *))
 {
 	not_implemented();
 	return ENOTSUP;

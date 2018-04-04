@@ -64,7 +64,7 @@ typedef struct {
 } bcm2835_timer_t;
 
 
-static inline void bcm2835_timer_start(bcm2835_timer_t* timer)
+static inline void bcm2835_timer_start(bcm2835_timer_t *timer)
 {
 	assert(timer);
 	/* Clear pending interrupt on channel 1 */
@@ -73,7 +73,7 @@ static inline void bcm2835_timer_start(bcm2835_timer_t* timer)
 	timer->c1 = timer->clo + (BCM2835_CLOCK_FREQ / HZ);
 }
 
-static inline void bcm2835_timer_irq_ack(bcm2835_timer_t* timer)
+static inline void bcm2835_timer_irq_ack(bcm2835_timer_t *timer)
 {
 	assert(timer);
 	/* Clear pending interrupt on channel 1 */

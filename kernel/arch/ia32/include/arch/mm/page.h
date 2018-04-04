@@ -177,7 +177,7 @@ typedef struct {
 	unsigned soft_valid : 1;	/**< Valid content even if the present bit is not set. */
 	unsigned avl : 2;
 	unsigned frame_address : 20;
-} __attribute__ ((packed)) pte_t;
+} __attribute__((packed)) pte_t;
 
 NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {

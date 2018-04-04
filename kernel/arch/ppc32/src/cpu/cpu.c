@@ -71,7 +71,7 @@ void cpu_print_report(cpu_t *cpu)
 		name = "unknown";
 	}
 
-	printf("cpu%u: version=%" PRIu16" (%s), revision=%" PRIu16 "\n", cpu->id,
+	printf("cpu%u: version=%" PRIu16 " (%s), revision=%" PRIu16 "\n", cpu->id,
 	    cpu->arch.version, name, cpu->arch.revision);
 }
 

@@ -95,9 +95,9 @@ NO_TRACE static inline void flush_pipeline(void)
 	 */
 
 	asm volatile (
-		"rd %%pc, %[pc]\n"
-		"flush %[pc]\n"
-		: [pc] "=&r" (pc)
+	    "rd %%pc, %[pc]\n"
+	    "flush %[pc]\n"
+	    : [pc] "=&r" (pc)
 	);
 }
 
@@ -105,7 +105,7 @@ NO_TRACE static inline void flush_pipeline(void)
 NO_TRACE static inline void membar(void)
 {
 	asm volatile (
-		"membar #Sync\n"
+	    "membar #Sync\n"
 	);
 }
 

@@ -240,7 +240,7 @@ static errno_t protracker_load_samples(FILE *f, protracker_smp_t *smp,
 		/* Finetune is a 4-bit signed value. */
 		ftval = smp[i].finetune & 0x0f;
 		sample->finetune =
-			(ftval & 0x8) ? (ftval & 0x7) - 8 : ftval;
+		    (ftval & 0x8) ? (ftval & 0x7) - 8 : ftval;
 	}
 
 	return EOK;

@@ -261,7 +261,8 @@ static void vol_part_mkfs_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	}
 
 	printf("vol_part_mkfs_srv: label=%p\n", label);
-	if (label!=NULL) printf("vol_part_mkfs_srv: label='%s'\n", label);
+	if (label != NULL)
+		printf("vol_part_mkfs_srv: label='%s'\n", label);
 
 	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {

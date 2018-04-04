@@ -113,8 +113,7 @@ static void device_setup_tt(device_t *dev)
 		/* For LS devices under HS hub */
 		dev->tt.dev = dev->hub;
 		dev->tt.port = dev->port;
-	}
-	else {
+	} else {
 		/* Inherit hub's TT */
 		dev->tt = dev->hub->tt;
 	}
@@ -171,7 +170,7 @@ static void device_clean_ep_children(device_t *dev, const char *op)
 		usb_log_warning("USB device '%s' driver left endpoint %u registered after %s.",
 		    ddf_fun_get_name(dev->fun), i, op);
 
-		endpoint_t * const ep = dev->endpoints[i];
+		endpoint_t *const ep = dev->endpoints[i];
 		endpoint_add_ref(ep);
 
 		fibril_mutex_unlock(&dev->guard);
@@ -189,7 +188,7 @@ static void device_clean_ep_children(device_t *dev, const char *op)
 
 	/* Remove also orphaned children. */
 	while (!list_empty(&dev->devices)) {
-		device_t * const child = list_get_instance(list_first(&dev->devices), device_t, link);
+		device_t *const child = list_get_instance(list_first(&dev->devices), device_t, link);
 
 		/*
 		 * This is not an error condition, as devices cannot remove
@@ -404,7 +403,7 @@ int bus_endpoint_add(device_t *device, const usb_endpoint_descriptors_t *desc, e
 
 	if (ep->max_transfer_size == 0) {
 		usb_log_warning("Invalid endpoint description (mps %zu, "
-			"%u packets)", ep->max_packet_size, ep->packets_per_uframe);
+		    "%u packets)", ep->max_packet_size, ep->packets_per_uframe);
 		goto drop;
 	}
 

@@ -114,9 +114,9 @@
 
 /** Check the condition if wchar_t is signed */
 #ifdef __WCHAR_UNSIGNED__
-	#define WCHAR_SIGNED_CHECK(cond)  (true)
+#define WCHAR_SIGNED_CHECK(cond)  (true)
 #else
-	#define WCHAR_SIGNED_CHECK(cond)  (cond)
+#define WCHAR_SIGNED_CHECK(cond)  (cond)
 #endif
 
 /** Byte mask consisting of lowest @n bits (out of 8) */

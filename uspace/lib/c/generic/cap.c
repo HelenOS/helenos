@@ -210,16 +210,36 @@ errno_t cap_format(cap_spec_t *cap, char **rstr)
 static errno_t cap_digit_val(char c, int *val)
 {
 	switch (c) {
-	case '0': *val = 0; break;
-	case '1': *val = 1; break;
-	case '2': *val = 2; break;
-	case '3': *val = 3; break;
-	case '4': *val = 4; break;
-	case '5': *val = 5; break;
-	case '6': *val = 6; break;
-	case '7': *val = 7; break;
-	case '8': *val = 8; break;
-	case '9': *val = 9; break;
+	case '0':
+		*val = 0;
+		break;
+	case '1':
+		*val = 1;
+		break;
+	case '2':
+		*val = 2;
+		break;
+	case '3':
+		*val = 3;
+		break;
+	case '4':
+		*val = 4;
+		break;
+	case '5':
+		*val = 5;
+		break;
+	case '6':
+		*val = 6;
+		break;
+	case '7':
+		*val = 7;
+		break;
+	case '8':
+		*val = 8;
+		break;
+	case '9':
+		*val = 9;
+		break;
 	default:
 		return EINVAL;
 	}
@@ -274,7 +294,7 @@ errno_t cap_parse(const char *str, cap_spec_t *cap)
 		}
 
 		return EINVAL;
-found:
+	found:
 		cap->cunit = i;
 	}
 

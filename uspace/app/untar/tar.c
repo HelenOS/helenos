@@ -40,7 +40,8 @@
 
 #include "tar.h"
 
-tar_type_t tar_type_parse(const char type) {
+tar_type_t tar_type_parse(const char type)
+{
 	switch (type) {
 	case '0':
 	case 0:
@@ -52,7 +53,8 @@ tar_type_t tar_type_parse(const char type) {
 	}
 }
 
-const char *tar_type_str(tar_type_t type) {
+const char *tar_type_str(tar_type_t type)
+{
 	switch (type) {
 	case TAR_TYPE_UNKNOWN:
 		return "unknown";

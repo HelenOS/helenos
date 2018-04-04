@@ -100,7 +100,7 @@ errno_t process_input(cliuser_t *usr)
 		tokens_length--;
 	}
 
-	if (tokens_length > 0 && tokens[tokens_length-1].type == TOKTYPE_SPACE) {
+	if (tokens_length > 0 && tokens[tokens_length - 1].type == TOKTYPE_SPACE) {
 		tokens_length--;
 	}
 
@@ -130,7 +130,7 @@ errno_t process_input(cliuser_t *usr)
 	if (pipe_count > 0 && (pipe_pos[0] == 3 || pipe_pos[0] == 4) && str_cmp(tokens[0].text, "from") == 0) {
 		/* Ignore the first three tokens (from, file, pipe) and set from */
 		redir_from = tokens[2].text;
-		cmd_token_start = pipe_pos[0]+1;
+		cmd_token_start = pipe_pos[0] + 1;
 		processed_pipes++;
 	}
 
@@ -138,10 +138,10 @@ errno_t process_input(cliuser_t *usr)
 	if ((pipe_count - processed_pipes) > 0 &&
 	    (pipe_pos[processed_pipes] == tokens_length - 4 ||
 	    (pipe_pos[processed_pipes] == tokens_length - 5 &&
-	    tokens[tokens_length-4].type == TOKTYPE_SPACE )) &&
-	    str_cmp(tokens[tokens_length-3].text, "to") == 0) {
+	    tokens[tokens_length - 4].type == TOKTYPE_SPACE)) &&
+	    str_cmp(tokens[tokens_length - 3].text, "to") == 0) {
 		/* Ignore the last three tokens (pipe, to, file) and set to */
-		redir_to = tokens[tokens_length-1].text;
+		redir_to = tokens[tokens_length - 1].text;
 		cmd_token_end = pipe_pos[processed_pipes];
 		processed_pipes++;
 	}

@@ -83,7 +83,7 @@ void ohci_ep_toggle_reset(endpoint_t *);
  * @param[in] ep USBD endpoint structure.
  * @return Pointer to assigned hcd endpoint structure
  */
-static inline ohci_endpoint_t * ohci_endpoint_get(const endpoint_t *ep)
+static inline ohci_endpoint_t *ohci_endpoint_get(const endpoint_t *ep)
 {
 	assert(ep);
 	return (ohci_endpoint_t *) ep;

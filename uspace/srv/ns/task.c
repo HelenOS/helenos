@@ -57,7 +57,7 @@ typedef struct {
 
 static size_t task_key_hash(void *key)
 {
-	return *(task_id_t*)key;
+	return *(task_id_t *)key;
 }
 
 static size_t task_hash(const ht_link_t  *item)
@@ -69,7 +69,7 @@ static size_t task_hash(const ht_link_t  *item)
 static bool task_key_equal(void *key, const ht_link_t *item)
 {
 	hashed_task_t *ht = hash_table_get_inst(item, hashed_task_t, link);
-	return ht->id == *(task_id_t*)key;
+	return ht->id == *(task_id_t *)key;
 }
 
 /** Perform actions after removal of item from the hash table. */
@@ -100,7 +100,7 @@ typedef struct {
 
 static size_t p2i_key_hash(void *key)
 {
-	sysarg_t in_phone_hash = *(sysarg_t*)key;
+	sysarg_t in_phone_hash = *(sysarg_t *)key;
 	return in_phone_hash;
 }
 
@@ -112,7 +112,7 @@ static size_t p2i_hash(const ht_link_t *item)
 
 static bool p2i_key_equal(void *key, const ht_link_t *item)
 {
-	sysarg_t in_phone_hash = *(sysarg_t*)key;
+	sysarg_t in_phone_hash = *(sysarg_t *)key;
 	p2i_entry_t *entry = hash_table_get_inst(item, p2i_entry_t, link);
 
 	return (in_phone_hash == entry->in_phone_hash);

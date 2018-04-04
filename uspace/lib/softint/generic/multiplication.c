@@ -39,7 +39,7 @@
 
 /** Set 1 to return INT64_MAX or INT64_MIN on overflow */
 #ifndef SOFTINT_CHECK_OF
-	#define SOFTINT_CHECK_OF  0
+#define SOFTINT_CHECK_OF  0
 #endif
 
 /** Multiply two integers and return long long as result.
@@ -47,7 +47,8 @@
  * This function is overflow safe.
  *
  */
-static unsigned long long mul(unsigned int a, unsigned int b) {
+static unsigned long long mul(unsigned int a, unsigned int b)
+{
 	unsigned int a1 = a >> 16;
 	unsigned int a2 = a & UINT16_MAX;
 	unsigned int b1 = b >> 16;

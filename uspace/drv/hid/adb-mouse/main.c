@@ -64,7 +64,7 @@ static errno_t adb_mouse_dev_add(ddf_dev_t *dev)
 {
 	adb_mouse_t *adb_mouse;
 
-        ddf_msg(LVL_DEBUG, "adb_mouse_dev_add(%p)", dev);
+	ddf_msg(LVL_DEBUG, "adb_mouse_dev_add(%p)", dev);
 	adb_mouse = ddf_dev_data_alloc(dev, sizeof(adb_mouse_t));
 	if (adb_mouse == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
@@ -78,32 +78,32 @@ static errno_t adb_mouse_dev_add(ddf_dev_t *dev)
 
 static errno_t adb_mouse_dev_remove(ddf_dev_t *dev)
 {
-        adb_mouse_t *adb_mouse = (adb_mouse_t *)ddf_dev_data_get(dev);
+	adb_mouse_t *adb_mouse = (adb_mouse_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "adb_mouse_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "adb_mouse_dev_remove(%p)", dev);
 
-        return adb_mouse_remove(adb_mouse);
+	return adb_mouse_remove(adb_mouse);
 }
 
 static errno_t adb_mouse_dev_gone(ddf_dev_t *dev)
 {
-        adb_mouse_t *adb_mouse = (adb_mouse_t *)ddf_dev_data_get(dev);
+	adb_mouse_t *adb_mouse = (adb_mouse_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "adb_mouse_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "adb_mouse_dev_gone(%p)", dev);
 
-        return adb_mouse_gone(adb_mouse);
+	return adb_mouse_gone(adb_mouse);
 }
 
 static errno_t adb_mouse_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "adb_mouse_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "adb_mouse_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t adb_mouse_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "adb_mouse_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "adb_mouse_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

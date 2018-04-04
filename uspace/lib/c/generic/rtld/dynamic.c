@@ -64,32 +64,76 @@ void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 		d_ptr = (void *)((uint8_t *)dp->d_un.d_ptr + bias);
 		d_val = dp->d_un.d_val;
 		DPRINTF("tag=%u ptr=0x%x val=%u\n", (unsigned)dp->d_tag,
-			(unsigned)d_ptr, (unsigned)d_val);
+		    (unsigned)d_ptr, (unsigned)d_val);
 
 		switch (dp->d_tag) {
 
-		case DT_PLTRELSZ:	info->plt_rel_sz = d_val; break;
-		case DT_PLTGOT:		info->plt_got = d_ptr; break;
-		case DT_HASH:		info->hash = d_ptr; break;
-		case DT_STRTAB:		info->str_tab = d_ptr; break;
-		case DT_SYMTAB:		info->sym_tab = d_ptr; break;
-		case DT_RELA:		info->rela = d_ptr; break;
-		case DT_RELASZ:		info->rela_sz = d_val; break;
-		case DT_RELAENT:	info->rela_ent = d_val; break;
-		case DT_STRSZ:		info->str_sz = d_val; break;
-		case DT_SYMENT:		info->sym_ent = d_val; break;
-		case DT_INIT:		info->init = d_ptr; break;
-		case DT_FINI:		info->fini = d_ptr; break;
-		case DT_SONAME:		soname_idx = d_val; break;
-		case DT_RPATH:		rpath_idx = d_val; break;
-		case DT_SYMBOLIC:	info->symbolic = true; break;
-		case DT_REL:		info->rel = d_ptr; break;
-		case DT_RELSZ:		info->rel_sz = d_val; break;
-		case DT_RELENT:		info->rel_ent = d_val; break;
-		case DT_PLTREL:		info->plt_rel = d_val; break;
-		case DT_TEXTREL:	info->text_rel = true; break;
-		case DT_JMPREL:		info->jmp_rel = d_ptr; break;
-		case DT_BIND_NOW:	info->bind_now = true; break;
+		case DT_PLTRELSZ:
+			info->plt_rel_sz = d_val;
+			break;
+		case DT_PLTGOT:
+			info->plt_got = d_ptr;
+			break;
+		case DT_HASH:
+			info->hash = d_ptr;
+			break;
+		case DT_STRTAB:
+			info->str_tab = d_ptr;
+			break;
+		case DT_SYMTAB:
+			info->sym_tab = d_ptr;
+			break;
+		case DT_RELA:
+			info->rela = d_ptr;
+			break;
+		case DT_RELASZ:
+			info->rela_sz = d_val;
+			break;
+		case DT_RELAENT:
+			info->rela_ent = d_val;
+			break;
+		case DT_STRSZ:
+			info->str_sz = d_val;
+			break;
+		case DT_SYMENT:
+			info->sym_ent = d_val;
+			break;
+		case DT_INIT:
+			info->init = d_ptr;
+			break;
+		case DT_FINI:
+			info->fini = d_ptr;
+			break;
+		case DT_SONAME:
+			soname_idx = d_val;
+			break;
+		case DT_RPATH:
+			rpath_idx = d_val;
+			break;
+		case DT_SYMBOLIC:
+			info->symbolic = true;
+			break;
+		case DT_REL:
+			info->rel = d_ptr;
+			break;
+		case DT_RELSZ:
+			info->rel_sz = d_val;
+			break;
+		case DT_RELENT:
+			info->rel_ent = d_val;
+			break;
+		case DT_PLTREL:
+			info->plt_rel = d_val;
+			break;
+		case DT_TEXTREL:
+			info->text_rel = true;
+			break;
+		case DT_JMPREL:
+			info->jmp_rel = d_ptr;
+			break;
+		case DT_BIND_NOW:
+			info->bind_now = true;
+			break;
 
 		default:
 			if (dp->d_tag >= DT_LOPROC && dp->d_tag <= DT_HIPROC)
@@ -107,7 +151,7 @@ void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 	info->dynamic = dyn_ptr;
 
 	DPRINTF("str_tab=0x%" PRIxPTR ", soname_idx=0x%x, soname=0x%" PRIxPTR "\n",
-		(uintptr_t)info->soname, soname_idx, (uintptr_t)info->soname);
+	    (uintptr_t)info->soname, soname_idx, (uintptr_t)info->soname);
 	DPRINTF("soname='%s'\n", info->soname);
 	DPRINTF("rpath='%s'\n", info->rpath);
 	DPRINTF("hash=0x%" PRIxPTR "\n", (uintptr_t)info->hash);
@@ -133,7 +177,8 @@ void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 			DPRINTF("needed:'%s'\n", info->needed);
 			break;
 
-		default: break;
+		default:
+			break;
 		}
 
 		++dp;

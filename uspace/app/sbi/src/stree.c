@@ -1150,13 +1150,27 @@ stree_ident_t *stree_csimbr_get_name(stree_csimbr_t *csimbr)
 	mbr_name = NULL;
 
 	switch (csimbr->cc) {
-	case csimbr_csi: mbr_name = csimbr->u.csi->name; break;
-	case csimbr_ctor: mbr_name = csimbr->u.ctor->name; break;
-	case csimbr_deleg: mbr_name = csimbr->u.deleg->name; break;
-	case csimbr_enum: mbr_name = csimbr->u.enum_d->name; break;
-	case csimbr_fun: mbr_name = csimbr->u.fun->name; break;
-	case csimbr_var: mbr_name = csimbr->u.var->name; break;
-	case csimbr_prop: mbr_name = csimbr->u.prop->name; break;
+	case csimbr_csi:
+		mbr_name = csimbr->u.csi->name;
+		break;
+	case csimbr_ctor:
+		mbr_name = csimbr->u.ctor->name;
+		break;
+	case csimbr_deleg:
+		mbr_name = csimbr->u.deleg->name;
+		break;
+	case csimbr_enum:
+		mbr_name = csimbr->u.enum_d->name;
+		break;
+	case csimbr_fun:
+		mbr_name = csimbr->u.fun->name;
+		break;
+	case csimbr_var:
+		mbr_name = csimbr->u.var->name;
+		break;
+	case csimbr_prop:
+		mbr_name = csimbr->u.prop->name;
+		break;
 	}
 
 	return mbr_name;

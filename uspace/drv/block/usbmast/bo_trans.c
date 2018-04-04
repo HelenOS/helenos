@@ -115,7 +115,7 @@ errno_t usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 		/* Clear stall condition and continue below to read CSW. */
 		usb_pipe_clear_halt(
 		    usb_device_get_default_pipe(mfun->mdev->usb_dev), dpipe);
-        } else if (rc != EOK) {
+	} else if (rc != EOK) {
 		usb_log_error("Failed to transfer data: %s", str_error(rc));
 		return EIO;
 	}
@@ -140,7 +140,7 @@ errno_t usb_massstor_cmd(usbmast_fun_t *mfun, uint32_t tag, scsi_cmd_t *cmd)
 
 	if (csw.dCSWTag != tag) {
 		usb_log_error("Received CSW with incorrect tag. (expected: %"
-		    PRIX32" received: %"PRIx32, tag, csw.dCSWTag);
+		    PRIX32 " received: %" PRIx32, tag, csw.dCSWTag);
 		return EIO;
 	}
 

@@ -122,7 +122,7 @@ float32_t float32_log(float32_t arg)
 	 * arg = m * 2^e ; log(arg) = log(m) + log(2^e) =
 	 * log(m) + log2(2^e) / log2(e) = log(m) + e / log2(e)
 	 */
-	return - taylor_log_32(m.val - 1.0) + e / M_LOG2E;
+	return -taylor_log_32(m.val - 1.0) + e / M_LOG2E;
 }
 
 /** Natural logarithm (64-bit floating point)
@@ -153,7 +153,7 @@ float64_t float64_log(float64_t arg)
 	 * arg = m * 2^e ; log(arg) = log(m) + log(2^e) =
 	 * log(m) + log2(2^e) / log2(e) = log(m) + e / log2(e)
 	 */
-	return - taylor_log_64(m.val - 1.0) + e / M_LOG2E;
+	return -taylor_log_64(m.val - 1.0) + e / M_LOG2E;
 }
 
 /** @}

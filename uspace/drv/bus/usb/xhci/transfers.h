@@ -52,7 +52,7 @@ typedef struct {
 	uintptr_t interrupt_trb_phys;
 } xhci_transfer_t;
 
-extern usb_transfer_batch_t* xhci_transfer_create(endpoint_t *);
+extern usb_transfer_batch_t *xhci_transfer_create(endpoint_t *);
 extern errno_t xhci_transfer_schedule(usb_transfer_batch_t *);
 
 extern errno_t xhci_handle_transfer_event(xhci_hc_t *, xhci_trb_t *);

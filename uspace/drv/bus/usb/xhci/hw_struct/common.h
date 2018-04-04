@@ -69,7 +69,7 @@ typedef volatile uint64_t xhci_qword_t __attribute__((aligned(8)));
  * Not thread-safe, proper synchronization over this dword must be assured.
  */
 static inline void xhci_dword_set_bits(xhci_dword_t *storage, uint32_t value,
-	unsigned hi, unsigned lo)
+    unsigned hi, unsigned lo)
 {
 	const uint32_t mask = host2xhci(32, BIT_RANGE(uint32_t, hi, lo));
 	const uint32_t set = host2xhci(32, value << lo);
@@ -85,7 +85,7 @@ static inline void xhci_qword_set(xhci_qword_t *storage, uint64_t value)
 }
 
 static inline void xhci_qword_set_bits(xhci_qword_t *storage, uint64_t value,
-	unsigned hi, unsigned lo)
+    unsigned hi, unsigned lo)
 {
 	const uint64_t mask = host2xhci(64, BIT_RANGE(uint64_t, hi, lo));
 	const uint64_t set = host2xhci(64, value << lo);
@@ -93,7 +93,7 @@ static inline void xhci_qword_set_bits(xhci_qword_t *storage, uint64_t value,
 }
 
 static inline int xhci_reg_wait(xhci_dword_t *reg, uint32_t mask,
-	uint32_t expected)
+    uint32_t expected)
 {
 	mask = host2xhci(32, mask);
 	expected = host2xhci(32, expected);

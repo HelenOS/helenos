@@ -122,7 +122,7 @@ static errno_t seq_node_field_offset(seq_node_t *self, aoff64_t *out, size_t ind
 
 		if (self->num_xforms == -1) {
 			aoff64_t *new_ends = realloc(self->ends,
-			    (self->num_ends + 1)*sizeof(*new_ends));
+			    (self->num_ends + 1) * sizeof(*new_ends));
 			if (!new_ends)
 				return ENOMEM;
 			self->ends = new_ends;
@@ -185,7 +185,7 @@ static errno_t seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
 
 		if (self->num_xforms == -1) {
 			aoff64_t *new_ends = realloc(self->ends,
-			    (self->num_ends + 1)*sizeof(*new_ends));
+			    (self->num_ends + 1) * sizeof(*new_ends));
 			if (!new_ends)
 				return ENOMEM;
 			self->ends = new_ends;
@@ -607,7 +607,7 @@ errno_t bithenge_new_struct(bithenge_transform_t **out,
 	self->subtransforms = subtransforms;
 	self->num_subtransforms = 0;
 	while (subtransforms[self->num_subtransforms].transform)
-	    self->num_subtransforms++;
+		self->num_subtransforms++;
 	*out = struct_as_transform(self);
 	return EOK;
 error:

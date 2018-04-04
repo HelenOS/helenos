@@ -33,7 +33,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-tcb_t * tls_alloc_arch(void **data, size_t size)
+tcb_t *tls_alloc_arch(void **data, size_t size)
 {
 	return tls_alloc_variant_2(data, size);
 }

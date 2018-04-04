@@ -64,12 +64,12 @@
 NO_TRACE static inline void smc_coherence(void *addr)
 {
 	asm volatile (
-		"dcbst 0, %[addr]\n"
-		"sync\n"
-		"icbi 0, %[addr]\n"
-		"sync\n"
-		"isync\n"
-		:: [addr] "r" (addr)
+	    "dcbst 0, %[addr]\n"
+	    "sync\n"
+	    "icbi 0, %[addr]\n"
+	    "sync\n"
+	    "isync\n"
+	    :: [addr] "r" (addr)
 	);
 }
 
@@ -79,16 +79,16 @@ NO_TRACE static inline void smc_coherence_block(void *addr, unsigned int len)
 
 	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
 		asm volatile (
-			"dcbst 0, %[addr]\n"
-			:: [addr] "r" (addr + i)
+		    "dcbst 0, %[addr]\n"
+		    :: [addr] "r" (addr + i)
 		);
 
 	memory_barrier();
 
 	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
 		asm volatile (
-			"icbi 0, %[addr]\n"
-			:: [addr] "r" (addr + i)
+		    "icbi 0, %[addr]\n"
+		    :: [addr] "r" (addr + i)
 		);
 
 	instruction_barrier();

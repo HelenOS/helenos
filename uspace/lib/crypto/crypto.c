@@ -144,10 +144,10 @@ static void sha1_proc(uint32_t *h, uint32_t *sched_arr)
 
 	for (size_t k = 16; k < 80; k++) {
 		sched_arr[k] = rotl_uint32(
-		    sched_arr[k-3] ^
-		    sched_arr[k-8] ^
-		    sched_arr[k-14] ^
-		    sched_arr[k-16],
+		    sched_arr[k - 3] ^
+		    sched_arr[k - 8] ^
+		    sched_arr[k - 14] ^
+		    sched_arr[k - 16],
 		    1);
 	}
 
@@ -214,7 +214,7 @@ errno_t create_hash(uint8_t *input, size_t input_size, uint8_t *output,
 	uint32_t work_arr[blocks * 16];
 	for (size_t i = 0; i < blocks; i++) {
 		for (size_t j = 0; j < 16; j++) {
-			work_arr[i*16 + j] =
+			work_arr[i * 16 + j] =
 			    (get_at(work_input, input_size + 1, i * 64 + j * 4) << 24) |
 			    (get_at(work_input, input_size + 1, i * 64 + j * 4 + 1) << 16) |
 			    (get_at(work_input, input_size + 1, i * 64 + j * 4 + 2) << 8) |
@@ -280,7 +280,7 @@ errno_t hmac(uint8_t *key, size_t key_size, uint8_t *msg, size_t msg_size,
 	uint8_t temp_hash[hash_sel];
 	memset(work_key, 0, HMAC_BLOCK_LENGTH);
 
-	if(key_size > HMAC_BLOCK_LENGTH)
+	if (key_size > HMAC_BLOCK_LENGTH)
 		create_hash(key, key_size, work_key, hash_sel);
 	else
 		memcpy(work_key, key, key_size);

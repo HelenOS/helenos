@@ -111,7 +111,7 @@ typedef struct {
 	uint8_t descriptor_count;
 	uint8_t descriptor1_type;
 	uint16_t descriptor1_length;
-} __attribute__ ((packed)) hid_descriptor_t;
+} __attribute__((packed)) hid_descriptor_t;
 
 errno_t add_interface_by_id(vuhid_interface_t **, const char *, usbvirt_device_t *);
 void wait_for_interfaces_death(usbvirt_device_t *);

@@ -56,8 +56,8 @@ void decrementer_start(uint32_t val)
 void decrementer_restart(void)
 {
 	asm volatile (
-		"mtdec %[dec]\n"
-		:: [dec] "r" (decrementer_value)
+	    "mtdec %[dec]\n"
+	    :: [dec] "r" (decrementer_value)
 	);
 }
 

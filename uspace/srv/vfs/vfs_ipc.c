@@ -148,7 +148,7 @@ static void vfs_in_mount(cap_call_handle_t req_handle, ipc_call_t *request)
 
 	int outfd = 0;
 	rc = vfs_op_mount(mpfd, service_id, flags, instance, opts, fs_name,
-	     &outfd);
+	    &outfd);
 	async_answer_1(req_handle, rc, outfd);
 
 	free(opts);

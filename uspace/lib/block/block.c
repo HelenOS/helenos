@@ -224,7 +224,7 @@ errno_t block_bb_read(service_id_t service_id, aoff64_t ba)
 
 	rc = read_blocks(devcon, 0, 1, bb_buf, devcon->pblock_size);
 	if (rc != EOK) {
-	    	free(bb_buf);
+		free(bb_buf);
 		return rc;
 	}
 
@@ -243,7 +243,7 @@ void *block_bb_get(service_id_t service_id)
 
 static size_t cache_key_hash(void *key)
 {
-	aoff64_t *lba = (aoff64_t*)key;
+	aoff64_t *lba = (aoff64_t *)key;
 	return *lba;
 }
 
@@ -255,7 +255,7 @@ static size_t cache_hash(const ht_link_t *item)
 
 static bool cache_key_equal(void *key, const ht_link_t *item)
 {
-	aoff64_t *lba = (aoff64_t*)key;
+	aoff64_t *lba = (aoff64_t *)key;
 	block_t *b = hash_table_get_inst(item, block_t, hash_link);
 	return b->lba == *lba;
 }
@@ -416,7 +416,7 @@ retry:
 	fibril_mutex_lock(&cache->lock);
 	ht_link_t *hlink = hash_table_find(&cache->block_hash, &ba);
 	if (hlink) {
-found:
+	found:
 		/*
 		 * We found the block in the cache.
 		 */
@@ -452,7 +452,7 @@ found:
 			/*
 			 * Try to recycle a block from the free list.
 			 */
-recycle:
+		recycle:
 			if (list_empty(&cache->free_list)) {
 				fibril_mutex_unlock(&cache->lock);
 				rc = ENOMEM;
@@ -490,9 +490,9 @@ recycle:
 						goto retry;
 					} else {
 						printf("Too many errors writing block %"
-				    		    PRIuOFF64 "from device handle %" PRIun "\n"
+						    PRIuOFF64 "from device handle %" PRIun "\n"
 						    "SEVERE DATA LOSS POSSIBLE\n",
-				    		    b->lba, devcon->service_id);
+						    b->lba, devcon->service_id);
 					}
 				} else
 					b->write_failures = 0;
@@ -648,9 +648,9 @@ retry:
 					goto retry;
 				} else {
 					printf("Too many errors writing block %"
-				            PRIuOFF64 "from device handle %" PRIun "\n"
+					    PRIuOFF64 "from device handle %" PRIun "\n"
 					    "SEVERE DATA LOSS POSSIBLE\n",
-				    	    block->lba, devcon->service_id);
+					    block->lba, devcon->service_id);
 				}
 			}
 			/*

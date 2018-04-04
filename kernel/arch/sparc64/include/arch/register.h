@@ -49,7 +49,7 @@ union ver_reg {
 		uint8_t maxtl;
 		unsigned : 3;
 		unsigned maxwin : 5;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union ver_reg ver_reg_t;
 
@@ -69,7 +69,7 @@ union pstate_reg {
 		unsigned priv : 1;	/**< Privileged Mode. */
 		unsigned ie : 1;	/**< Interrupt Enable. */
 		unsigned ag : 1;	/**< Alternate Globals*/
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union pstate_reg pstate_reg_t;
 
@@ -79,7 +79,7 @@ union tick_reg {
 	struct {
 		unsigned npt : 1;	/**< Non-privileged Trap enable. */
 		uint64_t counter : 63;	/**< Elapsed CPU clck cycle counter. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union tick_reg tick_reg_t;
 
@@ -89,7 +89,7 @@ union tick_compare_reg {
 	struct {
 		unsigned int_dis : 1;		/**< TICK_INT interrupt disabled flag. */
 		uint64_t tick_cmpr : 63;	/**< Compare value for TICK interrupts. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union tick_compare_reg tick_compare_reg_t;
 
@@ -101,7 +101,7 @@ union softint_reg {
 		unsigned stick_int : 1;
 		unsigned int_level : 15;
 		unsigned tick_int : 1;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union softint_reg softint_reg_t;
 
@@ -113,7 +113,7 @@ union fprs_reg {
 		unsigned fef : 1;
 		unsigned du : 1;
 		unsigned dl : 1;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union fprs_reg fprs_reg_t;
 

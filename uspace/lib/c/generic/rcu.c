@@ -339,7 +339,7 @@ static void wait_for_readers(size_t reader_group, blocking_mode_t blocking_mode)
 	while (!list_empty(&rcu.fibrils_list)) {
 		list_foreach_safe(rcu.fibrils_list, fibril_it, next_fibril) {
 			fibril_rcu_data_t *fib = member_to_inst(fibril_it,
-				fibril_rcu_data_t, link);
+			    fibril_rcu_data_t, link);
 
 			if (is_preexisting_reader(fib, reader_group)) {
 				futex_up(&rcu.list_futex);
@@ -404,7 +404,7 @@ static void unlock_sync(void)
 
 		if (!list_empty(&rcu.sync_lock.blocked_fibrils)) {
 			blocked_fibril_t *blocked_fib = member_to_inst(
-				list_first(&rcu.sync_lock.blocked_fibrils), blocked_fibril_t, link);
+			    list_first(&rcu.sync_lock.blocked_fibrils), blocked_fibril_t, link);
 
 			if (!blocked_fib->is_ready) {
 				blocked_fib->is_ready = true;

@@ -183,7 +183,7 @@ typedef union {
 		unsigned int ed : 1;   /**< Exception Deferral. */
 		unsigned int bn : 1;   /**< Register Bank. */
 		unsigned int ia : 1;   /**< Disable Instruction Access-bit faults. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } psr_t;
 
 /** Register Stack Configuration Register */
@@ -195,7 +195,7 @@ typedef union {
 		unsigned int be : 1;    /**< Big-endian. */
 		unsigned int : 11;
 		unsigned int loadrs : 14;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } rsc_t;
 
 /** External Interrupt Vector Register */
@@ -209,10 +209,10 @@ typedef union {
 	uint64_t value;
 	struct {
 		unsigned int : 4;
-		unsigned int mic: 4;  /**< Mask Interrupt Class. */
+		unsigned int mic : 4;  /**< Mask Interrupt Class. */
 		unsigned int : 8;
-		unsigned int mmi: 1;  /**< Mask Maskable Interrupts. */
-	} __attribute__ ((packed));
+		unsigned int mmi : 1;  /**< Mask Maskable Interrupts. */
+	} __attribute__((packed));
 } cr_tpr_t;
 
 /** Interval Timer Vector */
@@ -224,7 +224,7 @@ typedef union {
 		unsigned int : 1;
 		unsigned int : 3;
 		unsigned int m : 1;       /**< Mask. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } cr_itv_t;
 
 /** Interruption Status Register */
@@ -237,7 +237,7 @@ typedef union {
 			struct {
 				unsigned int ge_na : 4;
 				unsigned int ge_code : 4;
-			} __attribute__ ((packed));
+			} __attribute__((packed));
 		};
 		uint8_t vector;
 		unsigned int : 8;
@@ -253,7 +253,7 @@ typedef union {
 		unsigned int ei : 2;  /**< Excepting Instruction. */
 		unsigned int ed : 1;  /**< Exception Deferral. */
 		unsigned int : 20;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } cr_isr_t;
 
 /** CPUID Register 3 */
@@ -265,7 +265,7 @@ typedef union {
 		uint8_t model;
 		uint8_t family;
 		uint8_t archrev;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } cpuid3_t;
 
 #endif /* !__ASSEMBLER__ */

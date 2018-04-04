@@ -48,7 +48,7 @@
 
 static bool write_core_files;
 
-static void corecfg_client_conn(cap_call_handle_t , ipc_call_t *, void *);
+static void corecfg_client_conn(cap_call_handle_t, ipc_call_t *, void *);
 
 static void fault_event(ipc_call_t *call, void *arg)
 {

@@ -73,8 +73,7 @@
  * array which contains CPU mondo queue for every CPU
  */
 uint64_t cpu_mondo_queues[MAX_NUM_STRANDS][CPU_MONDO_QUEUE_SIZE]
-	__attribute__((aligned(
-	CPU_MONDO_QUEUE_SIZE * sizeof(uint64_t))));
+    __attribute__((aligned(CPU_MONDO_QUEUE_SIZE * sizeof(uint64_t))));
 
 /**
  * Initializes CPU mondo queue for the current CPU.
@@ -82,12 +81,12 @@ uint64_t cpu_mondo_queues[MAX_NUM_STRANDS][CPU_MONDO_QUEUE_SIZE]
 void sun4v_ipi_init(void)
 {
 	if (__hypercall_fast3(
-		CPU_QCONF,
-		CPU_MONDO_QUEUE_ID,
-		KA2PA(cpu_mondo_queues[CPU->id]),
-		CPU_MONDO_NENTRIES) != HV_EOK)
-			panic("Initializing mondo queue failed on CPU %" PRIu64 ".\n",
-			    CPU->arch.id);
+	    CPU_QCONF,
+	    CPU_MONDO_QUEUE_ID,
+	    KA2PA(cpu_mondo_queues[CPU->id]),
+	    CPU_MONDO_NENTRIES) != HV_EOK)
+		panic("Initializing mondo queue failed on CPU %" PRIu64 ".\n",
+		    CPU->arch.id);
 }
 
 /**

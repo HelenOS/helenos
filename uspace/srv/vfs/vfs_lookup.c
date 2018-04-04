@@ -275,7 +275,7 @@ static errno_t _vfs_lookup_internal(vfs_node_t *base, char *path, int lflag,
 				rc = ENOENT;
 				goto out;
 			}
-	       		if (!base->mount) {
+			if (!base->mount) {
 				vfs_node_put(base);
 				rc = ENOENT;
 				goto out;

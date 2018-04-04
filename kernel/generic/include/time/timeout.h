@@ -39,7 +39,7 @@
 #include <cpu.h>
 #include <stdint.h>
 
-typedef void (* timeout_handler_t)(void *arg);
+typedef void (*timeout_handler_t)(void *arg);
 
 typedef struct {
 	IRQ_SPINLOCK_DECLARE(lock);

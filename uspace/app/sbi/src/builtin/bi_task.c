@@ -49,9 +49,9 @@ static void bi_task_exec(run_t *run);
 void bi_task_declare(builtin_t *bi)
 {
 	builtin_code_snippet(bi,
-		"class Task is\n"
-			"fun Exec(args : string[], packed), static, builtin;\n"
-		"end\n");
+	    "class Task is\n"
+	    "fun Exec(args : string[], packed), static, builtin;\n"
+	    "end\n");
 }
 
 /** Bind builtin functions.
@@ -115,7 +115,7 @@ static void bi_task_exec(run_t *run)
 
 	cmd[dim] = NULL;
 
-	if (os_exec((char * const *)cmd) != EOK) {
+	if (os_exec((char *const *)cmd) != EOK) {
 		printf("Error: Exec failed.\n");
 		exit(1);
 	}

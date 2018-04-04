@@ -67,7 +67,7 @@ typedef struct mmu_fault_status_area {
 	uint64_t dfa;		/**< Data fault address (DFA) */
 	uint64_t dfc;		/**< Data fault context (DFC) */
 	uint8_t reserved2[0x28];
-} __attribute__ ((packed)) mmu_fault_status_area_t;
+} __attribute__((packed)) mmu_fault_status_area_t;
 
 #define DTLB_MAX_LOCKED_ENTRIES		8
 
@@ -125,7 +125,8 @@ NO_TRACE static inline void mmu_secondary_context_write(uint64_t v)
  * @param context	number of the context
  * @param mmu_flag	MMU_FLAG_DTLB, MMU_FLAG_ITLB or a combination of both
  */
-NO_TRACE static inline void mmu_demap_ctx(int context, int mmu_flag) {
+NO_TRACE static inline void mmu_demap_ctx(int context, int mmu_flag)
+{
 	__hypercall_fast4(MMU_DEMAP_CTX, 0, 0, context, mmu_flag);
 }
 
@@ -136,7 +137,8 @@ NO_TRACE static inline void mmu_demap_ctx(int context, int mmu_flag) {
  * @param context	number of the context
  * @param mmu_flag	MMU_FLAG_DTLB, MMU_FLAG_ITLB or a combination of both
  */
-NO_TRACE static inline void mmu_demap_page(uintptr_t vaddr, int context, int mmu_flag) {
+NO_TRACE static inline void mmu_demap_page(uintptr_t vaddr, int context, int mmu_flag)
+{
 	__hypercall_fast5(MMU_DEMAP_PAGE, 0, 0, vaddr, context, mmu_flag);
 }
 

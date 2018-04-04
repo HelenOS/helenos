@@ -85,10 +85,10 @@ static struct data_t imp_data[] = {
 
 static struct data_t imp_data80[] = {
 	{ "MIPS", "4Kc" },  /* 0x80 */
-	{"Invalid","Invalid"}, /* 0x81 */
-	{"Invalid","Invalid"}, /* 0x82 */
-	{"MIPS","4Km & 4Kp"}, /* 0x83 */
-	{ NULL, NULL}
+	{ "Invalid", "Invalid" }, /* 0x81 */
+	{ "Invalid", "Invalid" }, /* 0x82 */
+	{ "MIPS", "4Km & 4Kp" }, /* 0x83 */
+	{ NULL, NULL }
 };
 
 void cpu_arch_init(void)
@@ -128,8 +128,8 @@ void cpu_print_report(cpu_t *m)
 	}
 
 	printf("cpu%u: %s %s (rev=%d.%d, imp=%d)\n",
-		m->id, data->vendor, data->model, m->arch.rev_num >> 4,
-		m->arch.rev_num & 0x0f, m->arch.imp_num);
+	    m->id, data->vendor, data->model, m->arch.rev_num >> 4,
+	    m->arch.rev_num & 0x0f, m->arch.imp_num);
 }
 
 /** @}

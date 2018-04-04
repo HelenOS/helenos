@@ -47,20 +47,20 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 	register sysarg_t __mips_reg_v0 asm("$2") = id;
 
 	asm volatile (
-		"syscall\n"
-		: "=r" (__mips_reg_v0)
-		: "r" (__mips_reg_a0),
-		  "r" (__mips_reg_a1),
-		  "r" (__mips_reg_a2),
-		  "r" (__mips_reg_a3),
-		  "r" (__mips_reg_t0),
-		  "r" (__mips_reg_t1),
-		  "r" (__mips_reg_v0)
+	    "syscall\n"
+	    : "=r" (__mips_reg_v0)
+	    : "r" (__mips_reg_a0),
+	      "r" (__mips_reg_a1),
+	      "r" (__mips_reg_a2),
+	      "r" (__mips_reg_a3),
+	      "r" (__mips_reg_t0),
+	      "r" (__mips_reg_t1),
+	      "r" (__mips_reg_v0)
 		/*
 		 * We are a function call, although C
 		 * does not know it.
 		 */
-		: "%ra"
+	    : "%ra"
 	);
 
 	return __mips_reg_v0;

@@ -56,7 +56,7 @@ int cmd_echo(char **argv)
 {
 	unsigned int argc;
 
-	for (argc = 1; argv[argc] != NULL; argc ++) {
+	for (argc = 1; argv[argc] != NULL; argc++) {
 		printf("%s ", argv[argc]);
 	}
 	printf("\n");

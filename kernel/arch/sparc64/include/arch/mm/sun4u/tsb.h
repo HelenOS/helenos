@@ -74,7 +74,7 @@ typedef union tsb_base_reg {
 		unsigned : 9;
 		unsigned size : 3;	/**< TSB size. Number of entries is
 					 * 512 * 2^size. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } tsb_base_reg_t;
 
 /** Read ITSB Base register.

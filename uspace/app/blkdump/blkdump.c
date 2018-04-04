@@ -78,21 +78,25 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	--argc; ++argv;
+	--argc;
+	++argv;
 
 	if (str_cmp(*argv, "--toc") == 0) {
-		--argc; ++argv;
+		--argc;
+		++argv;
 		toc = true;
 		goto devname;
 	}
 
 	if (str_cmp(*argv, "--relative") == 0) {
-		--argc; ++argv;
+		--argc;
+		++argv;
 		relative = true;
 	}
 
 	if (str_cmp(*argv, "--offset") == 0) {
-		--argc; ++argv;
+		--argc;
+		++argv;
 		if (*argv == NULL) {
 			printf(NAME ": Error, argument missing (offset).\n");
 			syntax_print();
@@ -106,11 +110,13 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		--argc; ++argv;
+		--argc;
+		++argv;
 	}
 
 	if (str_cmp(*argv, "--count") == 0) {
-		--argc; ++argv;
+		--argc;
+		++argv;
 		if (*argv == NULL) {
 			printf(NAME ": Error, argument missing (count).\n");
 			syntax_print();
@@ -124,7 +130,8 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		--argc; ++argv;
+		--argc;
+		++argv;
 	}
 
 devname:
@@ -195,16 +202,15 @@ static int print_blocks(aoff64_t block_offset, aoff64_t block_count, size_t bloc
 			return 3;
 		}
 
-		printf("---- Block %" PRIuOFF64 " (at %" PRIuOFF64 ") ----\n", current, current*block_size);
+		printf("---- Block %" PRIuOFF64 " (at %" PRIuOFF64 ") ----\n", current, current * block_size);
 
 		for (data_offset = 0; data_offset < block_size; data_offset += 16) {
 			if (relative) {
 				printf("%8" PRIxOFF64 ": ", (aoff64_t) data_offset);
+			} else {
+				printf("%8" PRIxOFF64 ": ", current * block_size + data_offset);
 			}
-			else {
-				printf("%8" PRIxOFF64 ": ", current*block_size + data_offset);
-			}
-			print_hex_row(data+data_offset, block_size-data_offset, 16);
+			print_hex_row(data + data_offset, block_size - data_offset, 16);
 			printf("\n");
 		}
 		printf("\n");
@@ -237,7 +243,8 @@ static int print_toc(void)
 /**
  * Print a row of 16 bytes as commonly seen in hexadecimal dumps
  */
-static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
+static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row)
+{
 	size_t pos;
 	uint8_t b;
 
@@ -247,7 +254,7 @@ static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 
 	/* Print hexadecimal values */
 	for (pos = 0; pos < length; pos++) {
-		if (pos == length/2) {
+		if (pos == length / 2) {
 			printf(" ");
 		}
 		printf("%02hhX ", data[pos]);
@@ -255,7 +262,7 @@ static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 
 	/* Pad with spaces if we have less than 16 bytes */
 	for (pos = length; pos < bytes_per_row; pos++) {
-		if (pos == length/2) {
+		if (pos == length / 2) {
 			printf(" ");
 		}
 		printf("   ");
@@ -263,14 +270,13 @@ static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 
 	/* Print printable characters */
 	for (pos = 0; pos < length; pos++) {
-		if (pos == length/2) {
+		if (pos == length / 2) {
 			printf(" ");
 		}
 		b = data[pos];
 		if (b >= 32 && b < 128) {
 			putchar(b);
-		}
-		else {
+		} else {
 			putchar('.');
 		}
 	}

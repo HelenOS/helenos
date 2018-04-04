@@ -71,7 +71,7 @@ struct audio_sink {
  * @param l link
  * @return pointer to a sink structure, NULL on failure.
  */
-static inline audio_sink_t * audio_sink_list_instance(link_t *l)
+static inline audio_sink_t *audio_sink_list_instance(link_t *l)
 {
 	return l ? list_get_instance(l, audio_sink_t, link) : NULL;
 }
@@ -83,7 +83,7 @@ errno_t audio_sink_init(audio_sink_t *sink, const char *name, void *private_data
 
 void audio_sink_fini(audio_sink_t *sink);
 errno_t audio_sink_set_format(audio_sink_t *sink, const pcm_format_t *format);
-void audio_sink_mix_inputs(audio_sink_t *sink, void* dest, size_t size);
+void audio_sink_mix_inputs(audio_sink_t *sink, void *dest, size_t size);
 
 #endif
 /**

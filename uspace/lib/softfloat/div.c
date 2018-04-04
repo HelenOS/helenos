@@ -526,7 +526,7 @@ float128 div_float128(float128 a, float128 b)
 			}
 		}
 
-		cfrac_lo |= ((rem_hilo | rem_lohi | rem_lolo) != 0 );
+		cfrac_lo |= ((rem_hilo | rem_lohi | rem_lolo) != 0);
 	}
 
 	shift_out = cfrac_lo << (64 - (128 - FLOAT128_FRACTION_SIZE - 1));

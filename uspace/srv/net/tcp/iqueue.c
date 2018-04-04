@@ -109,7 +109,7 @@ void tcp_iqueue_remove_seg(tcp_iqueue_t *iqueue, tcp_segment_t *seg)
 
 	link = list_first(&iqueue->list);
 	while (link != NULL) {
-			log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_iqueue_remove_seg() - next");
+		log_msg(LOG_DEFAULT, LVL_NOTE, "tcp_iqueue_remove_seg() - next");
 		qe = list_get_instance(link,
 		    tcp_iqueue_entry_t, link);
 
@@ -161,7 +161,7 @@ errno_t tcp_iqueue_get_ready_seg(tcp_iqueue_t *iqueue, tcp_segment_t **seg)
 		list_remove(&iqe->link);
 		tcp_segment_delete(iqe->seg);
 
-         	link = list_first(&iqueue->list);
+		link = list_first(&iqueue->list);
 		if (link == NULL) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "iqueue is empty");
 			return ENOENT;

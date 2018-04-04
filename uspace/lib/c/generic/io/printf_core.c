@@ -592,7 +592,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 
 /** Prints a special double (ie NaN, infinity) padded to width characters. */
 static int print_special(ieee_double_t val, int width, uint32_t flags,
-	printf_spec_t *ps)
+    printf_spec_t *ps)
 {
 	assert(val.is_special);
 
@@ -701,7 +701,7 @@ static void fp_round_up(char *buf, int *len, int *dec_exp)
  *  to the %f specifier.
  */
 static int print_double_str_fixed(double_str_t *val_str, int precision, int width,
-	uint32_t flags, printf_spec_t *ps)
+    uint32_t flags, printf_spec_t *ps)
 {
 	int len = val_str->len;
 	char *buf = val_str->str;
@@ -839,7 +839,7 @@ static int print_double_str_fixed(double_str_t *val_str, int precision, int widt
  * @return The number of characters printed; negative on failure.
  */
 static int print_double_fixed(double g, int precision, int width, uint32_t flags,
-	printf_spec_t *ps)
+    printf_spec_t *ps)
 {
 	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
 		flags &= ~__PRINTF_FLAG_ZEROPADDED;
@@ -868,7 +868,7 @@ static int print_double_fixed(double g, int precision, int width, uint32_t flags
 		 * digit it returns may have an error of at most +/- 1.
 		 */
 		val_str.len = double_to_fixed_str(val, -1, precision + 1, buf, buf_size,
-			&val_str.dec_exp);
+		    &val_str.dec_exp);
 
 		/*
 		 * Round using the last digit to produce precision fractional digits.
@@ -918,7 +918,7 @@ static int print_exponent(int exp_val, uint32_t flags, printf_spec_t *ps)
 	char exp_str[4] = { 0 };
 
 	exp_str[0] = '0' + exp_val / 100;
-	exp_str[1] = '0' + (exp_val % 100) / 10 ;
+	exp_str[1] = '0' + (exp_val % 100) / 10;
 	exp_str[2] = '0' + (exp_val % 10);
 
 	int exp_len = (exp_str[0] == '0') ? 2 : 3;
@@ -937,7 +937,7 @@ static int print_exponent(int exp_val, uint32_t flags, printf_spec_t *ps)
  *  to the %e specifier.
  */
 static int print_double_str_scient(double_str_t *val_str, int precision,
-	int width, uint32_t flags, printf_spec_t *ps)
+    int width, uint32_t flags, printf_spec_t *ps)
 {
 	int len = val_str->len;
 	int dec_exp = val_str->dec_exp;
@@ -1061,7 +1061,7 @@ static int print_double_str_scient(double_str_t *val_str, int precision,
  * @return The number of characters printed; negative on failure.
  */
 static int print_double_scientific(double g, int precision, int width,
-	uint32_t flags, printf_spec_t *ps)
+    uint32_t flags, printf_spec_t *ps)
 {
 	if (flags & __PRINTF_FLAG_LEFTALIGNED) {
 		flags &= ~__PRINTF_FLAG_ZEROPADDED;
@@ -1087,7 +1087,7 @@ static int print_double_scientific(double g, int precision, int width,
 		 * have an error of at most +/- 1.
 		 */
 		val_str.len = double_to_fixed_str(val, precision + 2, -1, buf, buf_size,
-			&val_str.dec_exp);
+		    &val_str.dec_exp);
 
 		/*
 		 * Round the extra digit to produce precision+1 significant digits.
@@ -1128,7 +1128,7 @@ static int print_double_scientific(double g, int precision, int width,
  * @return The number of characters printed; negative on failure.
  */
 static int print_double_generic(double g, int precision, int width,
-	uint32_t flags, printf_spec_t *ps)
+    uint32_t flags, printf_spec_t *ps)
 {
 	ieee_double_t val = extract_ieee_double(g);
 
@@ -1155,11 +1155,11 @@ static int print_double_generic(double g, int precision, int width,
 		if (-4 <= dec_exp && dec_exp < precision) {
 			precision = precision - (dec_exp + 1);
 			return print_double_fixed(g, precision, width,
-				flags | __PRINTF_FLAG_NOFRACZEROS, ps);
+			    flags | __PRINTF_FLAG_NOFRACZEROS, ps);
 		} else {
 			--precision;
 			return print_double_scientific(g, precision, width,
-				flags | __PRINTF_FLAG_NOFRACZEROS, ps);
+			    flags | __PRINTF_FLAG_NOFRACZEROS, ps);
 		}
 	} else {
 		/* Convert to get the decimal exponent and digit count.*/
@@ -1213,7 +1213,7 @@ static int print_double_generic(double g, int precision, int width,
  * @return The number of characters printed; negative on failure.
  */
 static int print_double(double g, char spec, int precision, int width,
-	uint32_t flags, printf_spec_t *ps)
+    uint32_t flags, printf_spec_t *ps)
 {
 	switch (spec) {
 	case 'F':
@@ -1542,7 +1542,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			case 'E':
 			case 'e':
 				retval = print_double(va_arg(ap, double), uc, precision,
-					width, flags, ps);
+				    width, flags, ps);
 
 				if (retval < 0) {
 					counter = -counter;

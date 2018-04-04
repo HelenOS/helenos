@@ -73,7 +73,7 @@ arch_ops_t *arch_ops = &mips32_ops;
  */
 
 /* Stack pointer saved when entering user mode */
-uintptr_t supervisor_sp __attribute__ ((section (".text")));
+uintptr_t supervisor_sp __attribute__((section(".text")));
 
 size_t cpu_count = 0;
 
@@ -171,7 +171,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    (uintptr_t) kernel_uarg->uspace_uarg,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 
-	while (1);
+	while (1)
+		;
 }
 
 /** Perform mips32 specific tasks needed before the new task is run. */
@@ -193,7 +194,8 @@ void after_thread_ran_arch(void)
 void arch_reboot(void)
 {
 	___halt();
-	while (1);
+	while (1)
+		;
 }
 
 /** Construct function pointer

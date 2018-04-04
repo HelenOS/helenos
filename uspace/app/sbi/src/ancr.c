@@ -159,7 +159,7 @@ static void ancr_csi_process(stree_program_t *prog, stree_csi_t *csi)
 	outer_csi = csi_to_symbol(csi)->outer_csi;
 	gf_class = builtin_get_gf_class(prog->builtin);
 
-	if (csi != gf_class){
+	if (csi != gf_class) {
 		/* Implicit inheritance from grandfather class. */
 		base_csi = gf_class;
 	} else {

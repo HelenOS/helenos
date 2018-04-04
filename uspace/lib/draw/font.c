@@ -59,11 +59,13 @@ void font_release(font_t *font)
 	font->backend->release(font->backend_data);
 }
 
-errno_t font_get_metrics(font_t *font, font_metrics_t *metrics) {
+errno_t font_get_metrics(font_t *font, font_metrics_t *metrics)
+{
 	return font->backend->get_font_metrics(font->backend_data, metrics);
 }
 
-errno_t font_resolve_glyph(font_t *font, wchar_t c, glyph_id_t *glyph_id) {
+errno_t font_resolve_glyph(font_t *font, wchar_t c, glyph_id_t *glyph_id)
+{
 	return font->backend->resolve_glyph(font->backend_data, c, glyph_id);
 }
 

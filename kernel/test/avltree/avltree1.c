@@ -49,7 +49,7 @@ static avltree_node_t *first_free_node = NULL;
 static int test_tree_balance(avltree_node_t *node);
 static avltree_node_t *test_tree_parents(avltree_node_t *node);
 static void print_tree_structure_flat (avltree_node_t *node, int level)
-    __attribute__ ((used));
+    __attribute__((used));
 static avltree_node_t *alloc_avltree_node(void);
 
 static avltree_node_t *test_tree_parents(avltree_node_t *node)
@@ -71,7 +71,7 @@ static avltree_node_t *test_tree_parents(avltree_node_t *node)
 		if (tmp != node) {
 			TPRINTF("Bad parent pointer key: %" PRIu64
 			    ", address: %p\n",
-			    tmp->key,node->rgt);
+			    tmp->key, node->rgt);
 		}
 	}
 	return node->par;

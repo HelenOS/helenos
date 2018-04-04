@@ -54,7 +54,7 @@ void ext4_bitmap_free_bit(uint8_t *bitmap, uint32_t index)
 
 	uint8_t *target = bitmap + byte_index;
 
-	*target &= ~ (1 << bit_index);
+	*target &= ~(1 << bit_index);
 }
 
 /** Free continous set of bits (set to 0).
@@ -79,7 +79,7 @@ void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 		uint32_t bit_index = idx % 8;
 
 		target = bitmap + byte_index;
-		*target &= ~ (1 << bit_index);
+		*target &= ~(1 << bit_index);
 
 		idx++;
 		remaining--;
@@ -111,7 +111,7 @@ void ext4_bitmap_free_bits(uint8_t *bitmap, uint32_t index, uint32_t count)
 		uint32_t bit_index = idx % 8;
 
 		target = bitmap + byte_index;
-		*target &= ~ (1 << bit_index);
+		*target &= ~(1 << bit_index);
 
 		idx++;
 		remaining--;

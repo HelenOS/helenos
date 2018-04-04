@@ -54,7 +54,7 @@ struct mps_fs {
 	uint8_t mpfib3;
 	uint8_t mpfib4;
 	uint8_t mpfib5;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct mps_ct {
 	uint32_t signature;
@@ -71,7 +71,7 @@ struct mps_ct {
 	uint8_t ext_table_checksum;
 	uint8_t reserved;
 	uint8_t base_table[0];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct __processor_entry {
 	uint8_t type;
@@ -81,13 +81,13 @@ struct __processor_entry {
 	uint8_t cpu_signature[4];
 	uint32_t feature_flags;
 	uint32_t reserved[2];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct __bus_entry {
 	uint8_t type;
 	uint8_t bus_id;
 	uint8_t bus_type[6];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct __io_apic_entry {
 	uint8_t type;
@@ -95,7 +95,7 @@ struct __io_apic_entry {
 	uint8_t io_apic_version;
 	uint8_t io_apic_flags;
 	uint32_t io_apic;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct __io_intr_entry {
 	uint8_t type;
@@ -106,7 +106,7 @@ struct __io_intr_entry {
 	uint8_t src_bus_irq;
 	uint8_t dst_io_apic_id;
 	uint8_t dst_io_apic_pin;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct __l_intr_entry {
 	uint8_t type;
@@ -117,7 +117,7 @@ struct __l_intr_entry {
 	uint8_t src_bus_irq;
 	uint8_t dst_l_apic_id;
 	uint8_t dst_l_apic_pin;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 extern struct smp_config_operations mps_config_operations;
 

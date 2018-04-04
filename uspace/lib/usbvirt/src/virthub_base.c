@@ -86,7 +86,7 @@ errno_t virthub_base_init(virthub_base_t *instance, const char *name,
 	instance->extra[0] = virthub_interface_descriptor_ex;
 	instance->extra[1].data = (void *)hub_desc;
 	instance->extra[1].length = hub_desc->length;
-	instance->extra[2].data = (void*)&instance->endpoint_descriptor;
+	instance->extra[2].data = (void *)&instance->endpoint_descriptor;
 	instance->extra[2].length = sizeof(instance->endpoint_descriptor);
 
 	instance->device.ops = ops;

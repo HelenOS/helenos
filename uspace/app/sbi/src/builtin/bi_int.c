@@ -68,9 +68,9 @@ void bi_int_bind(builtin_t *bi)
  */
 static void bi_int_get_as_string(run_t *run)
 {
-        rdata_var_t *self_value_var;
-        bigint_t *ival;
-        char *str;
+	rdata_var_t *self_value_var;
+	bigint_t *ival;
+	char *str;
 
 	/* Extract self.Value */
 	self_value_var = builtin_get_self_mbr_var(run, "Value");

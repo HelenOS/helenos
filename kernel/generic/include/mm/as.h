@@ -125,11 +125,11 @@ typedef struct as {
 } as_t;
 
 typedef struct {
-	pte_t *(* page_table_create)(unsigned int);
-	void (* page_table_destroy)(pte_t *);
-	void (* page_table_lock)(as_t *, bool);
-	void (* page_table_unlock)(as_t *, bool);
-	bool (* page_table_locked)(as_t *);
+	pte_t *(*page_table_create)(unsigned int);
+	void (*page_table_destroy)(pte_t *);
+	void (*page_table_lock)(as_t *, bool);
+	void (*page_table_unlock)(as_t *, bool);
+	bool (*page_table_locked)(as_t *);
 } as_operations_t;
 
 /**
@@ -236,19 +236,19 @@ typedef struct {
 
 /** Address space area backend structure. */
 typedef struct mem_backend {
-	bool (* create)(as_area_t *);
-	bool (* resize)(as_area_t *, size_t);
-	void (* share)(as_area_t *);
-	void (* destroy)(as_area_t *);
+	bool (*create)(as_area_t *);
+	bool (*resize)(as_area_t *, size_t);
+	void (*share)(as_area_t *);
+	void (*destroy)(as_area_t *);
 
-	bool (* is_resizable)(as_area_t *);
-	bool (* is_shareable)(as_area_t *);
+	bool (*is_resizable)(as_area_t *);
+	bool (*is_shareable)(as_area_t *);
 
-	int (* page_fault)(as_area_t *, uintptr_t, pf_access_t);
-	void (* frame_free)(as_area_t *, uintptr_t, uintptr_t);
+	int (*page_fault)(as_area_t *, uintptr_t, pf_access_t);
+	void (*frame_free)(as_area_t *, uintptr_t, uintptr_t);
 
-	bool (* create_shared_data)(as_area_t *);
-	void (* destroy_shared_data)(void *);
+	bool (*create_shared_data)(as_area_t *);
+	void (*destroy_shared_data)(void *);
 } mem_backend_t;
 
 extern as_t *AS_KERNEL;

@@ -100,25 +100,22 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
 			else
 				putchar(' ');
 		}
-	}
-	else if (mode == ALIGN_RIGHT) {
+	} else if (mode == ALIGN_RIGHT) {
 		for (i = 0; i < width; i++) {
 			if (i < width - len)
 				putchar(' ');
 			else
-				putchar(wstr[i- (width - len)]);
+				putchar(wstr[i - (width - len)]);
 		}
-	}
-	else if (mode == ALIGN_CENTER) {
+	} else if (mode == ALIGN_CENTER) {
 		size_t padding = (width - len) / 2;
 		for (i = 0; i < width; i++) {
 			if ((i < padding) || ((i - padding) >= len))
 				putchar(' ');
 			else
-				putchar(wstr[i-padding]);
+				putchar(wstr[i - padding]);
 		}
-	}
-	else if (mode == ALIGN_JUSTIFY) {
+	} else if (mode == ALIGN_JUSTIFY) {
 		size_t words = 0;
 		size_t word_chars = 0;
 		bool space = true;
@@ -127,20 +124,23 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
 				words++;
 			}
 			space = wstr[i] == ' ';
-			if (!space) word_chars++;
+			if (!space)
+				word_chars++;
 		}
 		size_t done_words = 0;
 		size_t done_chars = 0;
 		if (words == 0)
 			goto skip_words;
-		size_t excess_spaces = width - word_chars - (words-1);
+		size_t excess_spaces = width - word_chars - (words - 1);
 		space = true;
 		i = 0;
 		size_t j;
 		while (i < len) {
 			/* Find a word */
-			while (i < len && wstr[i] == ' ') i++;
-			if (i == len) break;
+			while (i < len && wstr[i] == ' ')
+				i++;
+			if (i == len)
+				break;
 			if (done_words) {
 				size_t spaces = 1 + (((done_words *
 				    excess_spaces) / (words - 1)) -
@@ -157,13 +157,12 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
 			}
 			done_words++;
 		}
-skip_words:
+	skip_words:
 		while (done_chars < width) {
 			putchar(' ');
 			done_chars++;
 		}
-	}
-	else {
+	} else {
 		return EINVAL;
 	}
 

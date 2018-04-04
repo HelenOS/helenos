@@ -68,7 +68,7 @@ extern errno_t pio_enable(void *, size_t, void **);
 extern errno_t pio_disable(void *, size_t);
 
 typedef void (*trace_fnc)(const volatile void *place, uint64_t val,
-    volatile void* base, size_t size, void *data, bool write);
+    volatile void *base, size_t size, void *data, bool write);
 
 extern errno_t pio_trace_enable(void *, size_t, trace_fnc, void *);
 extern void pio_trace_log(const volatile void *, uint64_t val, bool write);

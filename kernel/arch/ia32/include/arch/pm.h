@@ -88,28 +88,28 @@
 typedef struct {
 	uint16_t limit;
 	uint32_t base;
-} __attribute__ ((packed)) ptr_16_32_t;
+} __attribute__((packed)) ptr_16_32_t;
 
 typedef struct {
-	unsigned limit_0_15: 16;
-	unsigned base_0_15: 16;
-	unsigned base_16_23: 8;
-	unsigned access: 8;
-	unsigned limit_16_19: 4;
-	unsigned available: 1;
-	unsigned unused: 1;
-	unsigned special: 1;
+	unsigned limit_0_15 : 16;
+	unsigned base_0_15 : 16;
+	unsigned base_16_23 : 8;
+	unsigned access : 8;
+	unsigned limit_16_19 : 4;
+	unsigned available : 1;
+	unsigned unused : 1;
+	unsigned special : 1;
 	unsigned granularity : 1;
-	unsigned base_24_31: 8;
-} __attribute__ ((packed)) descriptor_t;
+	unsigned base_24_31 : 8;
+} __attribute__((packed)) descriptor_t;
 
 typedef struct {
-	unsigned offset_0_15: 16;
-	unsigned selector: 16;
-	unsigned unused: 8;
-	unsigned access: 8;
-	unsigned offset_16_31: 16;
-} __attribute__ ((packed)) idescriptor_t;
+	unsigned offset_0_15 : 16;
+	unsigned selector : 16;
+	unsigned unused : 8;
+	unsigned access : 8;
+	unsigned offset_16_31 : 16;
+} __attribute__((packed)) idescriptor_t;
 
 typedef struct {
 	uint16_t link;
@@ -151,7 +151,7 @@ typedef struct {
 	unsigned : 16;
 	uint16_t iomap_base;
 	uint8_t iomap[TSS_IOMAP_SIZE];
-} __attribute__ ((packed)) tss_t;
+} __attribute__((packed)) tss_t;
 
 extern ptr_16_32_t gdtr;
 extern ptr_16_32_t protected_ap_gdtr;

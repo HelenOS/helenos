@@ -124,7 +124,7 @@ errno_t _condvar_wait_timeout(condvar_t *cv, mutex_t *mtx, uint32_t usec, int fl
  * @return See comment for waitq_sleep_timeout().
  */
 errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
-	uint32_t usec, int flags)
+    uint32_t usec, int flags)
 {
 	errno_t rc;
 	ipl_t ipl;
@@ -161,7 +161,7 @@ errno_t _condvar_wait_timeout_spinlock_impl(condvar_t *cv, spinlock_t *lock,
  * @return See comment for waitq_sleep_timeout().
  */
 errno_t _condvar_wait_timeout_irq_spinlock(condvar_t *cv, irq_spinlock_t *irq_lock,
-	uint32_t usec, int flags)
+    uint32_t usec, int flags)
 {
 	errno_t rc;
 	/* Save spinlock's state so we can restore it correctly later on. */

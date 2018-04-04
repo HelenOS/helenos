@@ -43,7 +43,7 @@ IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(cas_lock, "arm-cas-lock");
  * Sets \a *ptr to \a new_val if it is equal to \a expected. In any case,
  * returns the previous value of \a *ptr.
  */
-void * __sync_val_compare_and_swap_4(void **ptr, void *expected, void *new_val)
+void *__sync_val_compare_and_swap_4(void **ptr, void *expected, void *new_val)
 {
 	/*
 	 * Using an interrupt disabling spinlock might still lead to deadlock
@@ -54,7 +54,7 @@ void * __sync_val_compare_and_swap_4(void **ptr, void *expected, void *new_val)
 	 */
 	irq_spinlock_lock(&cas_lock, true);
 
-	void * cur_val = *ptr;
+	void *cur_val = *ptr;
 
 	if (cur_val == expected) {
 		*ptr = new_val;

@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
 	/* Parse command-line options */
 	while ((optres = getopt(argc, argv, ":ubh")) != -1) {
-		switch(optres) {
+		switch (optres) {
 		case 'h':
 			print_usage();
 			return 0;

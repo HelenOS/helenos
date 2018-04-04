@@ -184,7 +184,7 @@ static errno_t get_thread_list(void)
 	int i;
 
 	rc = udebug_thread_read(sess, thread_hash_buf,
-		THBUF_SIZE*sizeof(unsigned), &tb_copied, &tb_needed);
+	    THBUF_SIZE * sizeof(unsigned), &tb_copied, &tb_needed);
 	if (rc != EOK) {
 		printf("udebug_thread_read() -> %s\n", str_error_name(rc));
 		return rc;
@@ -245,13 +245,27 @@ void val_print(sysarg_t val, val_type_t v_type)
 			printf("'%c'", (char) sval);
 		} else {
 			switch (sval) {
-			case '\a': printf("'\\a'"); break;
-			case '\b': printf("'\\b'"); break;
-			case '\n': printf("'\\n'"); break;
-			case '\r': printf("'\\r'"); break;
-			case '\t': printf("'\\t'"); break;
-			case '\\': printf("'\\\\'"); break;
-			default: printf("'\\x%02" PRIxn "'", val); break;
+			case '\a':
+				printf("'\\a'");
+				break;
+			case '\b':
+				printf("'\\b'");
+				break;
+			case '\n':
+				printf("'\\n'");
+				break;
+			case '\r':
+				printf("'\\r'");
+				break;
+			case '\t':
+				printf("'\\t'");
+				break;
+			case '\\':
+				printf("'\\\\'");
+				break;
+			default:
+				printf("'\\x%02" PRIxn "'", val);
+				break;
 			}
 		}
 		break;
@@ -271,7 +285,8 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 	int i;
 
 	putchar('(');
-	if (n > 0) printf("%" PRIun, sc_args[0]);
+	if (n > 0)
+		printf("%" PRIun, sc_args[0]);
 	for (i = 1; i < n; i++) {
 		printf(", %" PRIun, sc_args[i]);
 	}
@@ -319,7 +334,8 @@ static void sc_ipc_wait(sysarg_t *sc_args, cap_call_handle_t sc_rc)
 	ipc_call_t call;
 	errno_t rc;
 
-	if (sc_rc == 0) return;
+	if (sc_rc == 0)
+		return;
 
 	memset(&call, 0, sizeof(call));
 	rc = udebug_mem_read(sess, &call, sc_args[0], sizeof(call));
@@ -347,8 +363,7 @@ static void event_syscall_b(unsigned thread_id, uintptr_t thread_hash,
 		if (syscall_desc_defined(sc_id)) {
 			printf("%s", syscall_desc[sc_id].name);
 			print_sc_args(sc_args, syscall_desc[sc_id].n_args);
-		}
-		else {
+		} else {
 			printf("unknown_syscall<%d>", sc_id);
 			print_sc_args(sc_args, 6);
 		}

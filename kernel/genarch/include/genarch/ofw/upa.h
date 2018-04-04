@@ -37,7 +37,7 @@
 typedef struct {
 	uint64_t addr;
 	uint64_t size;
-} __attribute__ ((packed)) ofw_upa_reg_t;
+} __attribute__((packed)) ofw_upa_reg_t;
 
 extern bool ofw_upa_apply_ranges(ofw_tree_node_t *, ofw_upa_reg_t *,
     uintptr_t *);

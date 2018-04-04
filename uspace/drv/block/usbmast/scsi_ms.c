@@ -195,7 +195,7 @@ errno_t usbmast_inquiry(usbmast_fun_t *mfun, usbmast_inquiry_data_t *inq_res)
 
 	if (cmd.rcvd_size < SCSI_STD_INQUIRY_DATA_MIN_SIZE) {
 		usb_log_error("SCSI Inquiry response too short (%zu).",
-		     cmd.rcvd_size);
+		    cmd.rcvd_size);
 		return EIO;
 	}
 
@@ -305,7 +305,7 @@ errno_t usbmast_read_capacity(usbmast_fun_t *mfun, uint32_t *nblocks,
 
 	if (cmd.rcvd_size < sizeof(data)) {
 		usb_log_error("SCSI Read Capacity response too short (%zu).",
-		     cmd.rcvd_size);
+		    cmd.rcvd_size);
 		return EIO;
 	}
 
@@ -348,7 +348,7 @@ errno_t usbmast_read(usbmast_fun_t *mfun, uint64_t ba, size_t nblocks, void *buf
 
 	rc = usbmast_run_cmd(mfun, &cmd);
 
-        if (rc != EOK) {
+	if (rc != EOK) {
 		usb_log_error("Read (10) transport failed, device %s: %s.",
 		    usb_device_get_name(mfun->mdev->usb_dev), str_error(rc));
 		return rc;

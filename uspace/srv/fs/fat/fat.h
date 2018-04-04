@@ -104,7 +104,7 @@ typedef struct fat_bs {
 			uint8_t		boot_code[448];
 			/** Boot sector signature. */
 			uint16_t	signature;
-		} __attribute__ ((packed));
+		} __attribute__((packed));
 		struct {
 			/* FAT32 only */
 			/** Sectors per FAT. */
@@ -135,9 +135,9 @@ typedef struct fat_bs {
 			uint8_t		boot_code[420];
 			/** Signature. */
 			uint16_t	signature;
-		} __attribute__ ((packed)) fat32;
+		} __attribute__((packed)) fat32;
 	};
-} __attribute__ ((packed)) fat_bs_t;
+} __attribute__((packed)) fat_bs_t;
 
 #define FAT32_FSINFO_SIG1	"RRaA"
 #define FAT32_FSINFO_SIG2	"rrAa"
@@ -151,7 +151,7 @@ typedef struct {
 	uint32_t last_allocated_cluster;
 	uint8_t res2[12];
 	uint8_t sig3[4];
-} __attribute__ ((packed)) fat32_fsinfo_t;
+} __attribute__((packed)) fat32_fsinfo_t;
 
 typedef enum {
 	FAT_INVALID,

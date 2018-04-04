@@ -144,7 +144,7 @@ static void ehci_unregister_ep(endpoint_t *ep)
 	fibril_mutex_lock(&hc->guard);
 	endpoint_set_offline_locked(ep);
 	list_remove(&ehci_ep->pending_link);
-	usb_transfer_batch_t * const batch = ep->active_batch;
+	usb_transfer_batch_t *const batch = ep->active_batch;
 	endpoint_deactivate_locked(ep);
 	fibril_mutex_unlock(&hc->guard);
 

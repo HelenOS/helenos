@@ -201,7 +201,7 @@ enum rtl8169_tsd {
 	TSD_CDH = (1 << 28), /**< CD Heart Beat */
 	TSD_NCC_SHIFT = 24, /**< Collision Count - bit shift */
 	TSD_NCC_SIZE = 4, /**< Collision Count - bit size */
-	TSD_NCC_MASK = (1 << 4)-1, /**< Collision Count - bit size */
+	TSD_NCC_MASK = (1 << 4) - 1, /**< Collision Count - bit size */
 	TSD_ERTXTH_SHIFT = 16, /**< Early Tx Threshold - bit shift */
 	TSD_ERTXTH_SIZE = 6, /**< Early Tx  Treshold - bit size */
 	TSD_TOK = (1 << 15), /**< Transmit OK */

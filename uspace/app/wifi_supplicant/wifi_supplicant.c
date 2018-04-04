@@ -49,15 +49,15 @@
 #define enum_name(name_arr, i) \
 	((i < 0) ? "NA" : name_arr[i])
 
-static const char* ieee80211_security_type_strs[] = {
+static const char *ieee80211_security_type_strs[] = {
 	"OPEN", "WEP", "WPA", "WPA2"
 };
 
-static const char* ieee80211_security_alg_strs[] = {
+static const char *ieee80211_security_alg_strs[] = {
 	"WEP40", "WEP104", "CCMP", "TKIP"
 };
 
-static const char* ieee80211_security_auth_strs[] = {
+static const char *ieee80211_security_auth_strs[] = {
 	"PSK", "8021X"
 };
 
@@ -174,7 +174,7 @@ static errno_t wifi_connect(uint32_t index, char *ssid_start, char *password)
 	}
 
 	errno_t rc = ieee80211_disconnect(sess);
-	if(rc != EOK) {
+	if (rc != EOK) {
 		if (rc == EREFUSED)
 			printf("Device is not ready yet.\n");
 		else
@@ -185,7 +185,7 @@ static errno_t wifi_connect(uint32_t index, char *ssid_start, char *password)
 	}
 
 	rc = ieee80211_connect(sess, ssid_start, password);
-	if(rc != EOK) {
+	if (rc != EOK) {
 		if (rc == EREFUSED)
 			printf("Device is not ready yet.\n");
 		else if (rc == ETIMEOUT)

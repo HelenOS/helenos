@@ -166,13 +166,15 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    (uintptr_t) kernel_uarg->uspace_uarg);
 
 	/* Not reached */
-	while (1);
+	while (1)
+		;
 }
 
 void arch_reboot(void)
 {
 	// TODO
-	while (1);
+	while (1)
+		;
 }
 
 /** Construct function pointer

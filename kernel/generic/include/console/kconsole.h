@@ -80,13 +80,13 @@ typedef struct {
 	/** Textual description. */
 	const char *description;
 	/** Function implementing the command. */
-	int (* func)(cmd_arg_t *);
+	int (*func)(cmd_arg_t *);
 	/** Number of arguments. */
 	size_t argc;
 	/** Argument vector. */
 	cmd_arg_t *argv;
 	/** Function for printing detailed help. */
-	void (* help)(void);
+	void (*help)(void);
 	/** Function for enumerating hints for arguments. */
 	hints_enum_func_t hints_enum;
 } cmd_info_t;

@@ -977,7 +977,7 @@ static sata_dev_t *ahci_sata_allocate(ahci_dev_t *ahci, volatile ahci_port_t *po
 	memset(virt_table, 0, size);
 	sata->cmd_header->cmdtableu = HI(phys);
 	sata->cmd_header->cmdtable = LO(phys);
-	sata->cmd_table = (uint32_t*) virt_table;
+	sata->cmd_table = (uint32_t *) virt_table;
 
 	return sata;
 
@@ -1075,7 +1075,7 @@ static errno_t ahci_sata_create(ahci_dev_t *ahci, ddf_dev_t *dev,
 	sata_devices_count++;
 	fibril_mutex_unlock(&sata_devices_count_lock);
 
-	rc= ddf_fun_set_name(sata->fun, sata_dev_name);
+	rc = ddf_fun_set_name(sata->fun, sata_dev_name);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "Failed setting function name.");
 		goto error;

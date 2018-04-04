@@ -56,11 +56,10 @@ typedef struct avltree avltree_t;
 
 typedef uint64_t avltree_key_t;
 
-typedef bool (* avltree_walker_t)(avltree_node_t *, void *);
+typedef bool (*avltree_walker_t)(avltree_node_t *, void *);
 
 /** AVL tree node structure. */
-struct avltree_node
-{
+struct avltree_node {
 	/**
 	 * Pointer to the left descendant of this node.
 	 *
@@ -91,8 +90,7 @@ struct avltree_node
 };
 
 /** AVL tree structure. */
-struct avltree
-{
+struct avltree {
 	/** AVL root node pointer */
 	struct avltree_node *root;
 

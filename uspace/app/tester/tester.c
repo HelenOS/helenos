@@ -76,7 +76,7 @@ test_t tests[] = {
 #include "mm/pager1.def"
 #include "hw/serial/serial1.def"
 #include "chardev/chardev1.def"
-	{NULL, NULL, NULL, false}
+	{ NULL, NULL, NULL, false }
 };
 
 static bool run_test(test_t *test)

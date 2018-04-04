@@ -43,12 +43,12 @@ void tlb_refill(unsigned int n, istate_t *istate)
 	ptelo_t ptelo;
 
 	asm volatile (
-		"mfspr %[tlbmiss], 980\n"
-		"mfspr %[ptehi], 981\n"
-		"mfspr %[ptelo], 982\n"
-		: [tlbmiss] "=r" (tlbmiss),
-		  [ptehi] "=r" (ptehi),
-		  [ptelo] "=r" (ptelo)
+	    "mfspr %[tlbmiss], 980\n"
+	    "mfspr %[ptehi], 981\n"
+	    "mfspr %[ptelo], 982\n"
+	    : [tlbmiss] "=r" (tlbmiss),
+	      [ptehi] "=r" (ptehi),
+	      [ptelo] "=r" (ptelo)
 	);
 
 	uint32_t badvaddr = tlbmiss & 0xfffffffc;
@@ -63,13 +63,13 @@ void tlb_refill(unsigned int n, istate_t *istate)
 
 	uint32_t index = 0;
 	asm volatile (
-		"mtspr 981, %[ptehi]\n"
-		"mtspr 982, %[ptelo]\n"
-		"tlbld %[index]\n"
-		"tlbli %[index]\n"
-		: [index] "=r" (index)
-		: [ptehi] "r" (ptehi),
-		  [ptelo] "r" (ptelo)
+	    "mtspr 981, %[ptehi]\n"
+	    "mtspr 982, %[ptelo]\n"
+	    "tlbld %[index]\n"
+	    "tlbli %[index]\n"
+	    : [index] "=r" (index)
+	    : [ptehi] "r" (ptehi),
+	      [ptelo] "r" (ptelo)
 	);
 }
 
@@ -81,20 +81,20 @@ void tlb_arch_init(void)
 void tlb_invalidate_all(void)
 {
 	asm volatile (
-		"sync\n"
+	    "sync\n"
 	);
 
 	for (unsigned int i = 0; i < 0x00040000; i += 0x00001000) {
 		asm volatile (
-			"tlbie %[i]\n"
-			:: [i] "r" (i)
+		    "tlbie %[i]\n"
+		    :: [i] "r" (i)
 		);
 	}
 
 	asm volatile (
-		"eieio\n"
-		"tlbsync\n"
-		"sync\n"
+	    "eieio\n"
+	    "tlbsync\n"
+	    "sync\n"
 	);
 }
 

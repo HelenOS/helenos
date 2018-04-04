@@ -43,7 +43,7 @@
 #include <console/kconsole.h>
 
 /** Halt flag */
-atomic_t haltstate = {0};
+atomic_t haltstate = { 0 };
 
 /** Halt wrapper
  *

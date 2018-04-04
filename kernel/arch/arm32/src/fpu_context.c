@@ -125,7 +125,7 @@ static int fpu_have_coprocessor_access(void)
 	/* FPU needs access to coprocessor 10 and 11.
 	 * Moreover they need to have same access enabled */
 	if (((cpacr & CPACR_CP_MASK(10)) != CPACR_CP_FULL_ACCESS(10)) &&
-	   ((cpacr & CPACR_CP_MASK(11)) != CPACR_CP_FULL_ACCESS(11))) {
+	    ((cpacr & CPACR_CP_MASK(11)) != CPACR_CP_FULL_ACCESS(11))) {
 		printf("No access to CP10 and CP11: %" PRIx32 "\n", cpacr);
 		return 0;
 	}

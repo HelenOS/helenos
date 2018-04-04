@@ -129,7 +129,8 @@ static void bbxm_timer_irq_start(void)
 
 static void bbxm_cpu_halt(void)
 {
-	while (1);
+	while (1)
+		;
 }
 
 /** Get extents of available memory.

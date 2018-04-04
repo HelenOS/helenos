@@ -105,7 +105,7 @@ errno_t audio_mixer_get_info(async_exch_t *exch, char **name, unsigned *items)
 		if (!name_place) {
 			/* Make the other side fail
 			 * as it waits for read request */
-			async_data_read_start(exch, (void*)-1, 0);
+			async_data_read_start(exch, (void *)-1, 0);
 			return ENOMEM;
 		}
 		const errno_t ret =
@@ -142,7 +142,7 @@ errno_t audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
 		if (!name_place) {
 			/* Make the other side fail
 			 * as it waits for read request */
-			async_data_read_start(exch, (void*)-1, 0);
+			async_data_read_start(exch, (void *)-1, 0);
 			return ENOMEM;
 		}
 		const errno_t ret =

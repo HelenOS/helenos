@@ -58,7 +58,7 @@
  *
  * @param func value the first data item of the vector will be set to
  */
-static inline void set_intr_w_data(void (* func)(void))
+static inline void set_intr_w_data(void (*func)(void))
 {
 #if defined (US)
 	asi_u64_write(ASI_INTR_W, ASI_UDB_INTR_W_DATA_0, (uintptr_t) func);
@@ -86,7 +86,7 @@ static inline void set_intr_w_data(void (* func)(void))
  * @param mid MID of the target processor.
  * @param func Function to be invoked.
  */
-static void cross_call(int mid, void (* func)(void))
+static void cross_call(int mid, void (*func)(void))
 {
 	uint64_t status;
 	bool done;
@@ -147,7 +147,7 @@ void ipi_broadcast_arch(int ipi)
 {
 	unsigned int i;
 
-	void (* func)(void);
+	void (*func)(void);
 
 	switch (ipi) {
 	case IPI_TLB_SHOOTDOWN:

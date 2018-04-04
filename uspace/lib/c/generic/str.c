@@ -48,9 +48,9 @@
 
 /** Check the condition if wchar_t is signed */
 #ifdef __WCHAR_UNSIGNED__
-	#define WCHAR_SIGNED_CHECK(cond)  (true)
+#define WCHAR_SIGNED_CHECK(cond)  (true)
 #else
-	#define WCHAR_SIGNED_CHECK(cond)  (cond)
+#define WCHAR_SIGNED_CHECK(cond)  (cond)
 #endif
 
 /** Byte mask consisting of lowest @n bits (out of 8) */
@@ -163,14 +163,12 @@ wchar_t str_decode_reverse(const char *str, size_t *offset, size_t size)
 		if (processed == 0 && (b & 0x80) == 0) {
 			/* 0xxxxxxx (Plain ASCII) */
 			return b & 0x7f;
-		}
-		else if ((b & 0xe0) == 0xc0 || (b & 0xf0) == 0xe0 ||
+		} else if ((b & 0xe0) == 0xc0 || (b & 0xf0) == 0xe0 ||
 		    (b & 0xf8) == 0xf0) {
 			/* Start byte */
 			size_t start_offset = *offset;
 			return str_decode(str, &start_offset, size);
-		}
-		else if ((b & 0xc0) != 0x80) {
+		} else if ((b & 0xc0) != 0x80) {
 			/* Not a continuation byte */
 			return U_SPECIAL;
 		}
@@ -935,8 +933,7 @@ errno_t utf16_to_str(char *dest, size_t size, const uint16_t *src)
 				ch += (src[idx] & 0x03FF) << 10;
 				ch += (src[idx + 1] & 0x03FF);
 				idx += 2;
-			}
-			else
+			} else
 				break;
 		} else {
 			ch = src[idx];
@@ -982,7 +979,7 @@ errno_t str_to_utf16(uint16_t *dest, size_t dlen, const char *src)
 			dest[idx + 1] = 0xDC00 | (c & 0x3FF);
 			idx++;
 		} else {
-			 dest[idx] = c;
+			dest[idx] = c;
 		}
 
 		idx++;
@@ -1109,7 +1106,7 @@ wchar_t *str_to_awstr(const char *str)
 {
 	size_t len = str_length(str);
 
-	wchar_t *wstr = calloc(len+1, sizeof(wchar_t));
+	wchar_t *wstr = calloc(len + 1, sizeof(wchar_t));
 	if (wstr == NULL)
 		return NULL;
 

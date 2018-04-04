@@ -80,7 +80,7 @@ typedef struct exfat_bs {
 	struct {						/* 0x68 FS version */
 		uint8_t minor;
 		uint8_t major;
-	} __attribute__ ((packed)) version;
+	} __attribute__((packed)) version;
 	uint16_t volume_flags;			/* 0x6A volume state flags */
 	uint8_t bytes_per_sector;		/* 0x6C sector size as (1 << n) */
 	uint8_t sec_per_cluster;		/* 0x6D sectors per cluster as (1 << n) */

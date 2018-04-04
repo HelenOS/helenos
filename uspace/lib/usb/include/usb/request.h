@@ -96,10 +96,10 @@ typedef struct {
 	/** Request identification. */
 	uint8_t request;
 	/** Main parameter to the request. */
-	union __attribute__ ((packed)) {
+	union __attribute__((packed)) {
 		uint16_t value;
 		/* FIXME: add #ifdefs according to host endianness */
-		struct __attribute__ ((packed)) {
+		struct __attribute__((packed)) {
 			uint8_t value_low;
 			uint8_t value_high;
 		};
@@ -110,7 +110,7 @@ typedef struct {
 	uint16_t index;
 	/** Length of extra data. */
 	uint16_t length;
-} __attribute__ ((packed)) usb_device_request_setup_packet_t;
+} __attribute__((packed)) usb_device_request_setup_packet_t;
 
 static_assert(sizeof(usb_device_request_setup_packet_t) == USB_SETUP_PACKET_SIZE);
 

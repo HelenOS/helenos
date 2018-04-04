@@ -88,7 +88,7 @@ static errno_t hplay_ctx(hound_context_t *ctx, const char *filename)
 	    pcm_sample_format_str(format.sample_format));
 
 	/* Allocate buffer and create new context */
-	char * buffer = malloc(READ_SIZE);
+	char *buffer = malloc(READ_SIZE);
 	if (!buffer) {
 		fclose(source);
 		return ENOMEM;
@@ -210,18 +210,18 @@ static errno_t play_wrapper(void *arg)
  * Array of supported commandline options
  */
 static const struct option opts[] = {
-	{"device", required_argument, 0, 'd'},
-	{"parallel", no_argument, 0, 'p'},
-	{"record", no_argument, 0, 'r'},
-	{"help", no_argument, 0, 'h'},
-	{0, 0, 0, 0}
+	{ "device", required_argument, 0, 'd' },
+	{ "parallel", no_argument, 0, 'p' },
+	{ "record", no_argument, 0, 'r' },
+	{ "help", no_argument, 0, 'h' },
+	{ 0, 0, 0, 0 }
 };
 
 /**
  * Print usage help.
  * @param name Name of the program.
  */
-static void print_help(const char* name)
+static void print_help(const char *name)
 {
 	printf("Usage: %s [options] file [files...]\n", name);
 	printf("supported options:\n");
@@ -292,7 +292,7 @@ int main(int argc, char *argv[])
 		    HOUND_DEFAULT_TARGET);
 		if (ret != EOK) {
 			printf("Failed to connect hound context to default "
-			   "target.\n");
+			    "target.\n");
 			hound_context_destroy(hound_ctx);
 			return 1;
 		}
@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
 				fib_play_t *data = malloc(sizeof(fib_play_t));
 				if (!data) {
 					printf("Playback of %s failed.\n",
-						file);
+					    file);
 					continue;
 				}
 				data->file = file;

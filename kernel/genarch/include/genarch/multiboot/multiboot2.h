@@ -90,7 +90,7 @@ typedef struct {
 typedef struct {
 	uint32_t entry_size;
 	uint32_t entry_version;
-} __attribute__ ((packed)) multiboot2_memmap_t;
+} __attribute__((packed)) multiboot2_memmap_t;
 
 /** Multiboot2 memmap entry structure */
 typedef struct {

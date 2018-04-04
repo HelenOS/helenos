@@ -80,7 +80,8 @@ static char extra_output_buffer[OUTPUT_BUFFER_SIZE];
  *
  * @param test Test that is about to start.
  */
-static void before_test_start(pcut_item_t *test) {
+static void before_test_start(pcut_item_t *test)
+{
 	pcut_report_test_start(test);
 
 	memset(error_message_buffer, 0, OUTPUT_BUFFER_SIZE);
@@ -92,7 +93,8 @@ static void before_test_start(pcut_item_t *test) {
  * @param status Return value from the system() function.
  * @return Test outcome code.
  */
-static int convert_wait_status_to_outcome(int status) {
+static int convert_wait_status_to_outcome(int status)
+{
 	if (status < 0) {
 		return PCUT_OUTCOME_INTERNAL_ERROR;
 	} else if (status == 0) {
@@ -107,7 +109,8 @@ static int convert_wait_status_to_outcome(int status) {
  * @param self_path Path to itself, that is to current binary.
  * @param test Test to be run.
  */
-int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
+int pcut_run_test_forking(const char *self_path, pcut_item_t *test)
+{
 	int rc, outcome;
 	FILE *tempfile;
 	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
@@ -117,10 +120,10 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 
 	FORMAT_TEMP_FILENAME(tempfile_name, PCUT_TEMP_FILENAME_BUFFER_SIZE - 1);
 	FORMAT_COMMAND(command, PCUT_COMMAND_LINE_BUFFER_SIZE - 1,
-		self_path, (test)->id, tempfile_name);
+	    self_path, (test)->id, tempfile_name);
 
 	PCUT_DEBUG("Will execute <%s> (temp file <%s>) with system().",
-		command, tempfile_name);
+	    command, tempfile_name);
 
 	rc = system(command);
 
@@ -143,7 +146,8 @@ int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
 	return outcome;
 }
 
-void pcut_hook_before_test(pcut_item_t *test) {
+void pcut_hook_before_test(pcut_item_t *test)
+{
 	PCUT_UNUSED(test);
 
 	/* Do nothing. */

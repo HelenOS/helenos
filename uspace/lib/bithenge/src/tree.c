@@ -138,7 +138,7 @@ errno_t bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
 	if (self->internal_ops->get)
 		return self->internal_ops->get(self, key, out);
 	*out = NULL;
-	get_for_each_data_t data = {key, out};
+	get_for_each_data_t data = { key, out };
 	errno_t rc = bithenge_node_for_each(self, get_for_each_func, &data);
 	bithenge_node_dec_ref(key);
 	if (rc == EEXIST && *out)
@@ -204,8 +204,7 @@ errno_t bithenge_new_empty_internal_node(bithenge_node_t **out)
 	return EOK;
 }
 
-typedef struct
-{
+typedef struct {
 	bithenge_node_t base;
 	bithenge_node_t **nodes;
 	bithenge_int_t len;
@@ -228,9 +227,9 @@ static errno_t simple_internal_node_for_each(bithenge_node_t *base,
 	errno_t rc;
 	simple_internal_node_t *self = node_as_simple(base);
 	for (bithenge_int_t i = 0; i < self->len; i++) {
-		bithenge_node_inc_ref(self->nodes[2*i+0]);
-		bithenge_node_inc_ref(self->nodes[2*i+1]);
-		rc = func(self->nodes[2*i+0], self->nodes[2*i+1], data);
+		bithenge_node_inc_ref(self->nodes[2 * i + 0]);
+		bithenge_node_inc_ref(self->nodes[2 * i + 1]);
+		rc = func(self->nodes[2 * i + 0], self->nodes[2 * i + 1], data);
 		if (rc != EOK)
 			return rc;
 	}

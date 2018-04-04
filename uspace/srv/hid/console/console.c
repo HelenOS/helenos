@@ -279,7 +279,7 @@ static errno_t input_ev_move(input_t *input, int dx, int dy)
 	return EOK;
 }
 
-static errno_t input_ev_abs_move(input_t *input, unsigned x , unsigned y,
+static errno_t input_ev_abs_move(input_t *input, unsigned x, unsigned y,
     unsigned max_x, unsigned max_y)
 {
 	return EOK;

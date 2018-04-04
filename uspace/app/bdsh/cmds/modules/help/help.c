@@ -78,17 +78,17 @@ void help_cmd_help(unsigned int level)
 {
 	if (level == HELP_SHORT) {
 		printf(
-		"\n  %s [command] <extended>\n"
-		"  Use help [command] extended for detailed help on [command] "
-		", even `help'\n\n", cmdname);
+		    "\n  %s [command] <extended>\n"
+		    "  Use help [command] extended for detailed help on [command] "
+		    ", even `help'\n\n", cmdname);
 	} else {
 		printf(
-		"\n  `%s' - shows help for commands\n"
-		"  Examples:\n"
-		"   %s [command]           Show help for [command]\n"
-		"   %s [command] extended  Show extended help for [command]\n"
-		"\n  If no argument is given to %s, a list of commands are shown\n\n",
-		cmdname, cmdname, cmdname, cmdname);
+		    "\n  `%s' - shows help for commands\n"
+		    "  Examples:\n"
+		    "   %s [command]           Show help for [command]\n"
+		    "   %s [command] extended  Show extended help for [command]\n"
+		    "\n  If no argument is given to %s, a list of commands are shown\n\n",
+		    cmdname, cmdname, cmdname, cmdname);
 	}
 
 	return;
@@ -104,24 +104,24 @@ static void help_commands(void)
 
 	/* First, show a list of built in commands that are available in this mode */
 	for (cmd = builtins; cmd->name != NULL; cmd++) {
-			if (is_builtin_alias(cmd->name))
-				printf("   %-16s\tAlias for `%s'\n", cmd->name,
-					alias_for_builtin(cmd->name));
-			else
-				printf("   %-16s\t%s\n", cmd->name, cmd->desc);
+		if (is_builtin_alias(cmd->name))
+			printf("   %-16s\tAlias for `%s'\n", cmd->name,
+			    alias_for_builtin(cmd->name));
+		else
+			printf("   %-16s\t%s\n", cmd->name, cmd->desc);
 	}
 
 	/* Now, show a list of module commands that are available in this mode */
 	for (mod = modules; mod->name != NULL; mod++) {
-			if (is_module_alias(mod->name))
-				printf("   %-16s\tAlias for `%s'\n", mod->name,
-					alias_for_module(mod->name));
-			else
-				printf("   %-16s\t%s\n", mod->name, mod->desc);
+		if (is_module_alias(mod->name))
+			printf("   %-16s\tAlias for `%s'\n", mod->name,
+			    alias_for_module(mod->name));
+		else
+			printf("   %-16s\t%s\n", mod->name, mod->desc);
 	}
 
 	printf("\n  Try %s %s for more information on how `%s' works.\n\n",
-		cmdname, cmdname, cmdname);
+	    cmdname, cmdname, cmdname);
 }
 
 /** Display survival tips. ('help' without arguments) */

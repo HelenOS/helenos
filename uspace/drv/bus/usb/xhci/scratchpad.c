@@ -76,7 +76,7 @@ errno_t xhci_scratchpad_alloc(xhci_hc_t *hc)
 
 	for (unsigned i = 0; i < num_bufs; ++i) {
 		array[i] = host2xhci(64, dma_buffer_phys(&hc->scratchpad_array,
-			    base + i * PAGE_SIZE));
+		    base + i * PAGE_SIZE));
 	}
 
 	hc->dcbaa[0] = host2xhci(64, dma_buffer_phys_base(&hc->scratchpad_array));

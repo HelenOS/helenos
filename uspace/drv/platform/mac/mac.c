@@ -234,11 +234,11 @@ static errno_t mac_enable_interrupt(ddf_fun_t *fun, int irq)
 }
 
 static pio_window_ops_t fun_pio_window_ops = {
-        .get_pio_window = &mac_get_pio_window
+	.get_pio_window = &mac_get_pio_window
 };
 
 static hw_res_ops_t fun_hw_res_ops = {
-   	.get_resource_list = &mac_get_resources,
+	.get_resource_list = &mac_get_resources,
 	.enable_interrupt = &mac_enable_interrupt
 };
 

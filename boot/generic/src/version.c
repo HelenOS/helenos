@@ -37,15 +37,15 @@ static const char *name = STRING(NAME);
 static const char *arch = STRING(KARCH);
 
 #ifdef REVISION
-	static const char *revision = ", revision " STRING(REVISION);
+static const char *revision = ", revision " STRING(REVISION);
 #else
-	static const char *revision = "";
+static const char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	static const char *timestamp = " on " STRING(TIMESTAMP);
+static const char *timestamp = " on " STRING(TIMESTAMP);
 #else
-	static const char *timestamp = "";
+static const char *timestamp = "";
 #endif
 
 void version_print(void)

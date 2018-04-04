@@ -213,7 +213,7 @@ errno_t ega_init(void)
 	if (rc != EOK)
 		return rc;
 
-	rc = pio_enable((void*)EGA_IO_BASE, EGA_IO_SIZE, NULL);
+	rc = pio_enable((void *)EGA_IO_BASE, EGA_IO_SIZE, NULL);
 	if (rc != EOK)
 		return rc;
 

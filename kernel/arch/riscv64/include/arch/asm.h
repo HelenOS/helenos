@@ -46,8 +46,8 @@ NO_TRACE static inline ipl_t interrupts_enable(void)
 	ipl_t ipl;
 
 	asm volatile (
-		"csrrsi %[ipl], sstatus, " STRING(SSTATUS_SIE_MASK) "\n"
-		: [ipl] "=r" (ipl)
+	    "csrrsi %[ipl], sstatus, " STRING(SSTATUS_SIE_MASK) "\n"
+	    : [ipl] "=r" (ipl)
 	);
 
 	return ipl;
@@ -58,8 +58,8 @@ NO_TRACE static inline ipl_t interrupts_disable(void)
 	ipl_t ipl;
 
 	asm volatile (
-		"csrrci %[ipl], sstatus, " STRING(SSTATUS_SIE_MASK) "\n"
-		: [ipl] "=r" (ipl)
+	    "csrrci %[ipl], sstatus, " STRING(SSTATUS_SIE_MASK) "\n"
+	    : [ipl] "=r" (ipl)
 	);
 
 	return ipl;
@@ -78,8 +78,8 @@ NO_TRACE static inline ipl_t interrupts_read(void)
 	ipl_t ipl;
 
 	asm volatile (
-		"csrr %[ipl], sstatus\n"
-		: [ipl] "=r" (ipl)
+	    "csrr %[ipl], sstatus\n"
+	    : [ipl] "=r" (ipl)
 	);
 
 	return ipl;
@@ -95,9 +95,9 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	uintptr_t base;
 
 	asm volatile (
-		"and %[base], sp, %[mask]\n"
-		: [base] "=r" (base)
-		: [mask] "r" (~(STACK_SIZE - 1))
+	    "and %[base], sp, %[mask]\n"
+	    : [base] "=r" (base)
+	    : [mask] "r" (~(STACK_SIZE - 1))
 	);
 
 	return base;

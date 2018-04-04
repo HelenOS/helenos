@@ -48,7 +48,7 @@ struct acpi_rsdp {
 	uint64_t xsdt_address;
 	uint32_t ext_checksum;
 	uint8_t reserved[3];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 /* System Description Table Header */
 struct acpi_sdt_header {
@@ -61,7 +61,7 @@ struct acpi_sdt_header {
 	uint32_t oem_revision;
 	uint32_t creator_id;
 	uint32_t creator_revision;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 struct acpi_signature_map {
 	uint8_t *signature;
@@ -73,13 +73,13 @@ struct acpi_signature_map {
 struct acpi_rsdt {
 	struct acpi_sdt_header header;
 	uint32_t entry[];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 /* Extended System Description Table */
 struct acpi_xsdt {
 	struct acpi_sdt_header header;
 	uint64_t entry[];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 extern struct acpi_rsdp *acpi_rsdp;
 extern struct acpi_rsdt *acpi_rsdt;

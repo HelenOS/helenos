@@ -178,7 +178,7 @@ static errno_t usbmast_device_add(usb_device_t *dev)
 
 	usb_log_debug("Get LUN count...");
 	mdev->lun_count = usb_masstor_get_lun_count(mdev);
-	mdev->luns = calloc(mdev->lun_count, sizeof(ddf_fun_t*));
+	mdev->luns = calloc(mdev->lun_count, sizeof(ddf_fun_t *));
 	if (mdev->luns == NULL) {
 		usb_log_error("Failed allocating luns table.");
 		return ENOMEM;

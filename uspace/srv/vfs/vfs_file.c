@@ -184,7 +184,7 @@ static errno_t vfs_file_delref(vfs_client_data_t *vfs_data, vfs_file_t *file)
 				rc = vfs_file_close_remote(file);
 			}
 			vfs_node_delref(file->node);
- 		}
+		}
 		free(file);
 	}
 

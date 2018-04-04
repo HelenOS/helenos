@@ -65,7 +65,7 @@ errno_t endpoint_list_init(endpoint_list_t *instance, const char *name)
 	list_initialize(&instance->endpoint_list);
 	fibril_mutex_initialize(&instance->guard);
 
-	usb_log_debug2("EPL(%p-%s): Transfer list setup with ED: %p(%"PRIxn").",
+	usb_log_debug2("EPL(%p-%s): Transfer list setup with ED: %p(%" PRIxn ").",
 	    instance, name, instance->list_head,
 	    addr_to_phys(instance->list_head));
 
@@ -132,7 +132,7 @@ void endpoint_list_append_ep(endpoint_list_t *instance, ehci_endpoint_t *ep)
 	usb_log_debug("EPL(%p-%s): EP(%p) added to list, first is %p(%p).",
 	    instance, instance->name, ep, first, first->qh);
 	if (last_qh == instance->list_head) {
-		usb_log_debug2("EPL(%p-%s): head EP(%p-%"PRIxn"): %x:%x.",
+		usb_log_debug2("EPL(%p-%s): head EP(%p-%" PRIxn "): %x:%x.",
 		    instance, instance->name, last_qh,
 		    addr_to_phys(instance->list_head),
 		    last_qh->status, last_qh->horizontal);

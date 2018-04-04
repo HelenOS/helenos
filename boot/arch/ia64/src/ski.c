@@ -41,11 +41,11 @@ static void ski_console_init(void)
 		return;
 
 	asm volatile (
-		"mov r15 = %[cmd]\n"
-		"break 0x80000\n"
-		:
-		: [cmd] "i" (SKI_INIT_CONSOLE)
-		: "r15", "r8"
+	    "mov r15 = %[cmd]\n"
+	    "break 0x80000\n"
+	    :
+	    : [cmd] "i" (SKI_INIT_CONSOLE)
+	    : "r15", "r8"
 	);
 
 	initialized = true;
@@ -59,11 +59,11 @@ void ski_putchar(const wchar_t ch)
 		ski_putchar('\r');
 
 	asm volatile (
-		"mov r15 = %[cmd]\n"
-		"mov r32 = %[ch]\n"   /* r32 is in0 */
-		"break 0x80000\n"     /* modifies r8 */
-		:
-		: [cmd] "i" (SKI_PUTCHAR), [ch] "r" (ch)
-		: "r15", "in0", "r8"
+	    "mov r15 = %[cmd]\n"
+	    "mov r32 = %[ch]\n"   /* r32 is in0 */
+	    "break 0x80000\n"     /* modifies r8 */
+	    :
+	    : [cmd] "i" (SKI_PUTCHAR), [ch] "r" (ch)
+	    : "r15", "in0", "r8"
 	);
 }

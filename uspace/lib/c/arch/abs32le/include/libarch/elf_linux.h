@@ -42,7 +42,8 @@ typedef struct {
 
 static inline void istate_to_elf_regs(istate_t *istate, elf_regs_t *elf_regs)
 {
-	(void) istate; (void) elf_regs;
+	(void) istate;
+	(void) elf_regs;
 }
 
 #endif

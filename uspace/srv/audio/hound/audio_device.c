@@ -53,7 +53,7 @@
 static errno_t device_sink_connection_callback(audio_sink_t *sink, bool new);
 static errno_t device_source_connection_callback(audio_source_t *source, bool new);
 static void device_event_callback(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
-static errno_t device_check_format(audio_sink_t* sink);
+static errno_t device_check_format(audio_sink_t *sink);
 static errno_t get_buffer(audio_device_t *dev);
 static errno_t release_buffer(audio_device_t *dev);
 static void advance_buffer(audio_device_t *dev, size_t size);
@@ -117,7 +117,7 @@ void audio_device_fini(audio_device_t *dev)
  * @return pointer to aa audio source structure, NULL if the device is not
  *         capable of capturing audio.
  */
-audio_source_t * audio_device_get_source(audio_device_t *dev)
+audio_source_t *audio_device_get_source(audio_device_t *dev)
 {
 	assert(dev);
 	sysarg_t val;
@@ -133,7 +133,7 @@ audio_source_t * audio_device_get_source(audio_device_t *dev)
  * @return pointer to aa audio source structure, NULL if the device is not
  *         capable of audio playback.
  */
-audio_sink_t * audio_device_get_sink(audio_device_t *dev)
+audio_sink_t *audio_device_get_sink(audio_device_t *dev)
 {
 	assert(dev);
 	sysarg_t val;
@@ -152,7 +152,7 @@ audio_sink_t * audio_device_get_sink(audio_device_t *dev)
  * Starts playback on first connection. Stops playback when there are no
  * connections.
  */
-static errno_t device_sink_connection_callback(audio_sink_t* sink, bool new)
+static errno_t device_sink_connection_callback(audio_sink_t *sink, bool new)
 {
 	assert(sink);
 	audio_device_t *dev = sink->private_data;
@@ -274,7 +274,7 @@ static void device_event_callback(cap_call_handle_t icall_handle,
 		ipc_call_t call;
 		cap_call_handle_t chandle = async_get_call(&call);
 		async_answer_0(chandle, EOK);
-		switch(IPC_GET_IMETHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_FRAMES_PLAYED:
 			getuptime(&time1);
 			//TODO add underrun detection.
@@ -326,7 +326,7 @@ static void device_event_callback(cap_call_handle_t icall_handle,
  * @param sink audio playback device.
  * @return Error code.
  */
-static errno_t device_check_format(audio_sink_t* sink)
+static errno_t device_check_format(audio_sink_t *sink)
 {
 	assert(sink);
 	audio_device_t *dev = sink->private_data;

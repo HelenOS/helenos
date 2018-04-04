@@ -42,9 +42,12 @@
 
 typedef void *cap_handle_t;
 
-typedef struct {} *cap_call_handle_t;
-typedef struct {} *cap_phone_handle_t;
-typedef struct {} *cap_irq_handle_t;
+typedef struct {
+} *cap_call_handle_t;
+typedef struct {
+} *cap_phone_handle_t;
+typedef struct {
+} *cap_irq_handle_t;
 
 #endif
 

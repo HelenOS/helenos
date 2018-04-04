@@ -81,7 +81,7 @@ static outdev_operations_t niagara_ops = {
  * output operation it does is performed using the mapped buffer. The shared
  * buffer definition follows.
  */
-static volatile niagara_output_buffer_t __attribute__ ((aligned(PAGE_SIZE)))
+static volatile niagara_output_buffer_t __attribute__((aligned(PAGE_SIZE)))
     output_buffer;
 
 static parea_t outbuf_parea;
@@ -89,15 +89,17 @@ static parea_t outbuf_parea;
 /**
  * Analogous to the output_buffer, see the previous definition.
  */
-static volatile niagara_input_buffer_t __attribute__ ((aligned(PAGE_SIZE)))
+static volatile niagara_input_buffer_t __attribute__((aligned(PAGE_SIZE)))
     input_buffer;
 
 static parea_t inbuf_parea;
 
 /** Write a single character to the standard output. */
-static inline void do_putchar(const char c) {
+static inline void do_putchar(const char c)
+{
 	/* Repeat until the buffer is non-full */
-	while (__hypercall_fast1(CONS_PUTCHAR, c) == HV_EWOULDBLOCK);
+	while (__hypercall_fast1(CONS_PUTCHAR, c) == HV_EWOULDBLOCK)
+		;
 }
 
 /** Write a single character to the standard output. */
@@ -159,7 +161,8 @@ static void niagara_poll(void)
 /** Polling thread function.
  *
  */
-static void kniagarapoll(void *arg) {
+static void kniagarapoll(void *arg)
+{
 	while (true) {
 		niagara_poll();
 		thread_usleep(POLL_INTERVAL);
@@ -212,7 +215,7 @@ static void niagara_init(void)
 	sysinfo_set_item_val("niagara.inbuf.size", NULL,
 	    PAGE_SIZE);
 	sysinfo_set_item_val("niagara.inbuf.datasize", NULL,
-	   INPUT_BUFFER_SIZE);
+	    INPUT_BUFFER_SIZE);
 
 	outbuf_parea.pbase = (uintptr_t) (KA2PA(&output_buffer));
 	outbuf_parea.frames = 1;

@@ -68,8 +68,8 @@ errno_t copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_src, size,
-			KERNEL_ADDRESS_SPACE_START,
-			KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START)) {
+		    KERNEL_ADDRESS_SPACE_START,
+		    KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START)) {
 			/*
 			 * The userspace source block conflicts with kernel address space.
 			 */
@@ -119,8 +119,8 @@ errno_t copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {
 		if (overlaps((uintptr_t) uspace_dst, size,
-			KERNEL_ADDRESS_SPACE_START,
-			KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START)) {
+		    KERNEL_ADDRESS_SPACE_START,
+		    KERNEL_ADDRESS_SPACE_END - KERNEL_ADDRESS_SPACE_START)) {
 			/*
 			 * The userspace destination block conflicts with kernel address space.
 			 */

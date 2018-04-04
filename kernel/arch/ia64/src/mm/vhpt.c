@@ -37,7 +37,7 @@
 #include <mm/frame.h>
 #include <print.h>
 
-static vhpt_entry_t* vhpt_base;
+static vhpt_entry_t *vhpt_base;
 
 uintptr_t vhpt_set_up(void)
 {

@@ -69,12 +69,12 @@ typedef struct {
 	/** Maximum current (in mA). */
 	uint8_t max_current;
 	/** Whether device at given port is removable. */
-	uint8_t removable_device[BITS2BYTES(HUB_PORT_COUNT+1)];
+	uint8_t removable_device[BITS2BYTES(HUB_PORT_COUNT + 1)];
 	/** Port power control.
 	 * This is USB1.0 compatibility field, all bits must be 1.
 	 */
-	uint8_t port_power[BITS2BYTES(HUB_PORT_COUNT+1)];
-} __attribute__ ((packed)) hub_descriptor_t;
+	uint8_t port_power[BITS2BYTES(HUB_PORT_COUNT + 1)];
+} __attribute__((packed)) hub_descriptor_t;
 
 extern usbvirt_device_ops_t hub_ops;
 extern hub_descriptor_t hub_descriptor;

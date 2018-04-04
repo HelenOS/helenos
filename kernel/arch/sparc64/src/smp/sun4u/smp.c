@@ -120,7 +120,7 @@ void kmp(void *arg)
 	if (is_us() || is_us_iii()) {
 		node = ofw_tree_find_child_by_device_type(cpus_parent(), "cpu");
 		for (i = 0; node;
-                     node = ofw_tree_find_peer_by_device_type(node, "cpu"), i++)
+		    node = ofw_tree_find_peer_by_device_type(node, "cpu"), i++)
 			wakeup_cpu(node);
 	} else if (is_us_iv()) {
 		node = ofw_tree_find_child(cpus_parent(), "cmp");

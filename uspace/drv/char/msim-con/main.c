@@ -102,7 +102,7 @@ static errno_t msim_con_dev_add(ddf_dev_t *dev)
 	msim_con_res_t res;
 	errno_t rc;
 
-        ddf_msg(LVL_DEBUG, "msim_con_dev_add(%p)", dev);
+	ddf_msg(LVL_DEBUG, "msim_con_dev_add(%p)", dev);
 
 	msim_con = ddf_dev_data_alloc(dev, sizeof(msim_con_t));
 	if (msim_con == NULL) {
@@ -123,32 +123,32 @@ static errno_t msim_con_dev_add(ddf_dev_t *dev)
 
 static errno_t msim_con_dev_remove(ddf_dev_t *dev)
 {
-        msim_con_t *msim_con = (msim_con_t *)ddf_dev_data_get(dev);
+	msim_con_t *msim_con = (msim_con_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "msim_con_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "msim_con_dev_remove(%p)", dev);
 
-        return msim_con_remove(msim_con);
+	return msim_con_remove(msim_con);
 }
 
 static errno_t msim_con_dev_gone(ddf_dev_t *dev)
 {
-        msim_con_t *msim_con = (msim_con_t *)ddf_dev_data_get(dev);
+	msim_con_t *msim_con = (msim_con_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "msim_con_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "msim_con_dev_gone(%p)", dev);
 
-        return msim_con_gone(msim_con);
+	return msim_con_gone(msim_con);
 }
 
 static errno_t msim_con_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "msim_con_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "msim_con_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t msim_con_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "msim_con_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "msim_con_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

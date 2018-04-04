@@ -74,8 +74,8 @@ void tlb_invalidate_all(void)
 	for (i = 0; i < count1; i++) {
 		for (j = 0; j < count2; j++) {
 			asm volatile (
-				"ptc.e %[adr] ;;"
-				:: [adr] "r" (adr)
+			    "ptc.e %[adr] ;;"
+			    :: [adr] "r" (adr)
 			);
 			adr += stride2;
 		}
@@ -174,9 +174,9 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 
 	for (; va < (page + cnt * PAGE_SIZE); va += (1UL << ps))
 		asm volatile (
-			"ptc.l %[va], %[ps] ;;"
-			:: [va]"r" (va),
-			   [ps] "r" (ps << 2)
+		    "ptc.l %[va], %[ps] ;;"
+		    :: [va] "r" (va),
+		      [ps] "r" (ps << 2)
 		);
 
 	srlz_d();
@@ -245,23 +245,23 @@ void tc_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtc)
 	}
 
 	asm volatile (
-		"mov r8 = psr ;;\n"
-		"rsm %[mask] ;;\n"                 /* PSR_IC_MASK */
-		"srlz.d ;;\n"
-		"srlz.i ;;\n"
-		"mov cr.ifa = %[va]\n"             /* va */
-		"mov cr.itir = %[word1] ;;\n"      /* entry.word[1] */
-		"cmp.eq p6, p7 = %[dtc], r0 ;;\n"  /* decide between itc and dtc */
-		"(p6) itc.i %[word0] ;;\n"
-		"(p7) itc.d %[word0] ;;\n"
-		"mov psr.l = r8 ;;\n"
-		"srlz.d ;;\n"
-		:: [mask] "i" (PSR_IC_MASK),
-		   [va] "r" (va),
-		   [word0] "r" (entry.word[0]),
-		   [word1] "r" (entry.word[1]),
-		   [dtc] "r" (dtc)
-		: "p6", "p7", "r8"
+	    "mov r8 = psr ;;\n"
+	    "rsm %[mask] ;;\n"                 /* PSR_IC_MASK */
+	    "srlz.d ;;\n"
+	    "srlz.i ;;\n"
+	    "mov cr.ifa = %[va]\n"             /* va */
+	    "mov cr.itir = %[word1] ;;\n"      /* entry.word[1] */
+	    "cmp.eq p6, p7 = %[dtc], r0 ;;\n"  /* decide between itc and dtc */
+	    "(p6) itc.i %[word0] ;;\n"
+	    "(p7) itc.d %[word0] ;;\n"
+	    "mov psr.l = r8 ;;\n"
+	    "srlz.d ;;\n"
+	    :: [mask] "i" (PSR_IC_MASK),
+	      [va] "r" (va),
+	      [word0] "r" (entry.word[0]),
+	      [word1] "r" (entry.word[1]),
+	      [dtc] "r" (dtc)
+	    : "p6", "p7", "r8"
 	);
 
 	if (restore_rr) {
@@ -332,24 +332,24 @@ void tr_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry, bool dtr,
 	}
 
 	asm volatile (
-		"mov r8 = psr ;;\n"
-		"rsm %[mask] ;;\n"                       /* PSR_IC_MASK */
-		"srlz.d ;;\n"
-		"srlz.i ;;\n"
-		"mov cr.ifa = %[va]\n"                   /* va */
-		"mov cr.itir = %[word1] ;;\n"            /* entry.word[1] */
-		"cmp.eq p6, p7 = %[dtr], r0 ;;\n"        /* decide between itr and dtr */
-		"(p6) itr.i itr[%[tr]] = %[word0] ;;\n"
-		"(p7) itr.d dtr[%[tr]] = %[word0] ;;\n"
-		"mov psr.l = r8 ;;\n"
-		"srlz.d ;;\n"
-		:: [mask] "i" (PSR_IC_MASK),
-		   [va] "r" (va),
-		   [word1] "r" (entry.word[1]),
-		   [word0] "r" (entry.word[0]),
-		   [tr] "r" (tr),
-		   [dtr] "r" (dtr)
-		: "p6", "p7", "r8"
+	    "mov r8 = psr ;;\n"
+	    "rsm %[mask] ;;\n"                       /* PSR_IC_MASK */
+	    "srlz.d ;;\n"
+	    "srlz.i ;;\n"
+	    "mov cr.ifa = %[va]\n"                   /* va */
+	    "mov cr.itir = %[word1] ;;\n"            /* entry.word[1] */
+	    "cmp.eq p6, p7 = %[dtr], r0 ;;\n"        /* decide between itr and dtr */
+	    "(p6) itr.i itr[%[tr]] = %[word0] ;;\n"
+	    "(p7) itr.d dtr[%[tr]] = %[word0] ;;\n"
+	    "mov psr.l = r8 ;;\n"
+	    "srlz.d ;;\n"
+	    :: [mask] "i" (PSR_IC_MASK),
+	      [va] "r" (va),
+	      [word1] "r" (entry.word[1]),
+	      [word0] "r" (entry.word[0]),
+	      [tr] "r" (tr),
+	      [dtr] "r" (dtr)
+	    : "p6", "p7", "r8"
 	);
 
 	if (restore_rr) {
@@ -402,9 +402,9 @@ void dtlb_kernel_mapping_insert(uintptr_t page, uintptr_t frame, bool dtr,
 void dtr_purge(uintptr_t page, size_t width)
 {
 	asm volatile (
-		"ptr.d %[page], %[width]\n"
-		:: [page] "r" (page),
-		   [width] "r" (width << 2)
+	    "ptr.d %[page], %[width]\n"
+	    :: [page] "r" (page),
+	      [width] "r" (width << 2)
 	);
 }
 

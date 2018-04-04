@@ -38,7 +38,8 @@
 void userspace(uspace_arg_t *kernel_uarg)
 {
 	// FIXME
-	while (true);
+	while (true)
+		;
 }
 
 /** @}

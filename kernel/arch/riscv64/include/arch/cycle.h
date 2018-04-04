@@ -42,8 +42,8 @@ NO_TRACE static inline uint64_t get_cycle(void)
 	uint64_t cycle;
 
 	asm volatile (
-		"rdcycle %[cycle]\n"
-		: [cycle] "=r" (cycle)
+	    "rdcycle %[cycle]\n"
+	    : [cycle] "=r" (cycle)
 	);
 
 	return cycle;

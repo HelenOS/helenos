@@ -61,15 +61,15 @@ sysarg_t __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 	register sysarg_t __arm_reg_r6 asm("r6") = id;
 
 	asm volatile (
-		"swi 0"
-		: "=r" (__arm_reg_r0)
-		: "r" (__arm_reg_r0),
-		  "r" (__arm_reg_r1),
-		  "r" (__arm_reg_r2),
-		  "r" (__arm_reg_r3),
-		  "r" (__arm_reg_r4),
-		  "r" (__arm_reg_r5),
-		  "r" (__arm_reg_r6)
+	    "swi 0"
+	    : "=r" (__arm_reg_r0)
+	    : "r" (__arm_reg_r0),
+	      "r" (__arm_reg_r1),
+	      "r" (__arm_reg_r2),
+	      "r" (__arm_reg_r3),
+	      "r" (__arm_reg_r4),
+	      "r" (__arm_reg_r5),
+	      "r" (__arm_reg_r6)
 	);
 
 	return __arm_reg_r0;

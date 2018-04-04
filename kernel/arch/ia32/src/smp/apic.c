@@ -481,7 +481,8 @@ void l_apic_init(void)
 	uint32_t t1 = l_apic[CCRT];
 	l_apic[ICRT] = 0xffffffff;
 
-	while (l_apic[CCRT] == t1);
+	while (l_apic[CCRT] == t1)
+		;
 
 	t1 = l_apic[CCRT];
 	delay(1000000 / HZ);

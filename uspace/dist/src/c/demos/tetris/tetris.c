@@ -51,8 +51,8 @@
  */
 
 static volatile const char copyright[] =
-	"@(#) Copyright (c) 1992, 1993\n"
-	"\tThe Regents of the University of California.  All rights reserved.\n";
+    "@(#) Copyright (c) 1992, 1993\n"
+    "\tThe Regents of the University of California.  All rights reserved.\n";
 
 #include <sys/time.h>
 #include <err.h>
@@ -121,7 +121,7 @@ static void elide(void)
 			if (--j <= 0) {
 				/* This row is to be elided */
 				rows++;
-				memset(&board[base], 0, sizeof(cell) * (B_COLS - 2));
+				memset(&board[base], 0, sizeof(cell) *(B_COLS - 2));
 
 				scr_update();
 				tsleep();
@@ -184,7 +184,7 @@ static void tetris_menu_draw(int level)
 	moveto(8, 10);
 	printf("Level = %d (press keys 1 - 9 to change)", level);
 	moveto(9, 10);
-	printf("Preview is %s (press 'p' to change)", (showpreview ? "on ": "off"));
+	printf("Preview is %s (press 'p' to change)", (showpreview ? "on " : "off"));
 	moveto(12, 10);
 	printf("Press 'h' to show hiscore table.");
 	moveto(13, 10);
@@ -203,38 +203,38 @@ static int tetris_menu(int *level)
 	while (1) {
 		int i = getchar();
 
-		switch(i) {
-			case 'p':
-				showpreview = !showpreview;
-				moveto(9, 21);
-				if (showpreview)
-					printf("on ");
-				else
-					printf("off");
-				break;
-			case 'h':
-				loadscores();
-				showscores(firstgame);
-				tetris_menu_draw(*level);
-				break;
-			case 's':
-				firstgame = 0;
-				return 1;
-			case 'q':
-				return 0;
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-				*level = i - '0';
-				moveto(8, 18);
-				printf("%d", *level);
-				break;
+		switch (i) {
+		case 'p':
+			showpreview = !showpreview;
+			moveto(9, 21);
+			if (showpreview)
+				printf("on ");
+			else
+				printf("off");
+			break;
+		case 'h':
+			loadscores();
+			showscores(firstgame);
+			tetris_menu_draw(*level);
+			break;
+		case 's':
+			firstgame = 0;
+			return 1;
+		case 'q':
+			return 0;
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			*level = i - '0';
+			moveto(8, 18);
+			printf("%d", *level);
+			break;
 		}
 	}
 }
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
 	showpreview = 1;
 
 	while ((ch = getopt(argc, argv, "ck:ps")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'c':
 			/*
 			 * this means:

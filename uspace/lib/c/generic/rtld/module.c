@@ -90,7 +90,8 @@ void module_process_relocs(module_t *m)
 	DPRINTF("module_process_relocs('%s')\n", m->dyn.soname);
 
 	/* Do not relocate twice. */
-	if (m->relocated) return;
+	if (m->relocated)
+		return;
 
 	module_process_pre_arch(m);
 
@@ -245,7 +246,8 @@ void module_load_deps(module_t *m, mlflags_t flags)
 	n = 0;
 
 	while (dp->d_tag != DT_NULL) {
-		if (dp->d_tag == DT_NEEDED) ++n;
+		if (dp->d_tag == DT_NEEDED)
+			++n;
 		++dp;
 	}
 

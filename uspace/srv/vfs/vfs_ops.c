@@ -264,7 +264,7 @@ errno_t vfs_op_mount(int mpfd, unsigned service_id, unsigned flags,
 	fibril_rwlock_write_lock(&namespace_rwlock);
 
 	rc = vfs_connect_internal(service_id, flags, instance, opts, fs_name,
-	     &root);
+	    &root);
 	if (rc == EOK && !(flags & VFS_MOUNT_CONNECT_ONLY)) {
 		vfs_node_addref(mp->node);
 		vfs_node_addref(root);
@@ -346,7 +346,7 @@ errno_t vfs_op_open(int fd, int mode)
 	return EOK;
 }
 
-typedef errno_t (* rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, aoff64_t,
+typedef errno_t (*rdwr_ipc_cb_t)(async_exch_t *, vfs_file_t *, aoff64_t,
     ipc_call_t *, bool, void *);
 
 static errno_t rdwr_ipc_client(async_exch_t *exch, vfs_file_t *file, aoff64_t pos,

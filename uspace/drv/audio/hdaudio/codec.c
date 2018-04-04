@@ -434,17 +434,17 @@ static errno_t hda_pin_init(hda_codec_t *codec, uint8_t aw)
 	pctl = 0;
 	if ((pcaps & BIT_V(uint32_t, pwc_output)) != 0) {
 		ddf_msg(LVL_NOTE, "PIN %d will enable output", aw);
-	    	pctl = pctl | BIT_V(uint8_t, pctl_out_enable);
+		pctl = pctl | BIT_V(uint8_t, pctl_out_enable);
 	}
 
 	if ((pcaps & BIT_V(uint32_t, pwc_input)) != 0) {
 		ddf_msg(LVL_NOTE, "PIN %d will enable input", aw);
-	    	pctl = pctl | BIT_V(uint8_t, pctl_in_enable);
+		pctl = pctl | BIT_V(uint8_t, pctl_in_enable);
 	}
 
 	if ((pcaps & BIT_V(uint32_t, pwc_hpd)) != 0) {
 		ddf_msg(LVL_NOTE, "PIN %d will enable headphone drive", aw);
-	    	pctl = pctl | BIT_V(uint8_t, pctl_hpd_enable);
+		pctl = pctl | BIT_V(uint8_t, pctl_hpd_enable);
 	}
 
 /*	if ((pcaps & BIT_V(uint32_t, pwc_input)) != 0) {

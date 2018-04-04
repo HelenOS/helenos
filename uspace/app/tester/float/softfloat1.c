@@ -69,15 +69,15 @@
 
 typedef int32_t cmptype_t;
 
-typedef void (* uint_to_double_op_t)(unsigned int, double *, double *);
-typedef void (* double_to_uint_op_t)(double, unsigned int *, unsigned int *);
-typedef void (* float_binary_op_t)(float, float, float *, float *);
-typedef void (* float_cmp_op_t)(float, float, cmptype_t *, cmptype_t *);
-typedef void (* double_binary_op_t)(double, double, double *, double *);
-typedef void (* double_cmp_op_t)(double, double, cmptype_t *, cmptype_t *);
+typedef void (*uint_to_double_op_t)(unsigned int, double *, double *);
+typedef void (*double_to_uint_op_t)(double, unsigned int *, unsigned int *);
+typedef void (*float_binary_op_t)(float, float, float *, float *);
+typedef void (*float_cmp_op_t)(float, float, cmptype_t *, cmptype_t *);
+typedef void (*double_binary_op_t)(double, double, double *, double *);
+typedef void (*double_cmp_op_t)(double, double, cmptype_t *, cmptype_t *);
 
-typedef void (* template_unary_t)(void *, unsigned, cmptype_t *, cmptype_t *);
-typedef void (* template_binary_t)(void *, unsigned, unsigned, cmptype_t *,
+typedef void (*template_unary_t)(void *, unsigned, cmptype_t *, cmptype_t *);
+typedef void (*template_binary_t)(void *, unsigned, unsigned, cmptype_t *,
     cmptype_t *);
 
 #define NUMBERS \

@@ -47,7 +47,7 @@
 
 static size_t nic_wv_key_hash(void *key)
 {
-	return *(nic_wv_id_t*) key;
+	return *(nic_wv_id_t *) key;
 }
 
 static size_t nic_wv_hash(const ht_link_t *item)
@@ -59,7 +59,7 @@ static size_t nic_wv_hash(const ht_link_t *item)
 static bool nic_wv_key_equal(void *key, const ht_link_t *item)
 {
 	nic_wol_virtue_t *virtue = (nic_wol_virtue_t *) item;
-	return (virtue->id == *(nic_wv_id_t*) key);
+	return (virtue->id == *(nic_wv_id_t *) key);
 }
 
 /**
@@ -140,7 +140,7 @@ errno_t nic_wol_virtues_verify(nic_wv_type_t type, const void *data, size_t leng
 		return length % 2 == 0 ? EOK : EINVAL;
 	case NIC_WV_MAGIC_PACKET:
 		return data == NULL || length == sizeof (nic_wv_magic_packet_data_t) ?
-			EOK : EINVAL;
+		    EOK : EINVAL;
 	default:
 		return ENOTSUP;
 	}
@@ -162,7 +162,7 @@ errno_t nic_wol_virtues_verify(nic_wv_type_t type, const void *data, size_t leng
 errno_t nic_wol_virtues_add(nic_wol_virtues_t *wvs, nic_wol_virtue_t *virtue)
 {
 	if (!nic_wv_is_multi(virtue->type) &&
-		wvs->lists[virtue->type] != NULL) {
+	    wvs->lists[virtue->type] != NULL) {
 		return EINVAL;
 	}
 	do {
@@ -187,7 +187,7 @@ errno_t nic_wol_virtues_add(nic_wol_virtues_t *wvs, nic_wol_virtue_t *virtue)
 nic_wol_virtue_t *nic_wol_virtues_remove(nic_wol_virtues_t *wvs, nic_wv_id_t id)
 {
 	nic_wol_virtue_t *virtue =
-		(nic_wol_virtue_t *) hash_table_find(&wvs->table, &id);
+	    (nic_wol_virtue_t *) hash_table_find(&wvs->table, &id);
 	if (virtue == NULL) {
 		return NULL;
 	}
@@ -223,7 +223,7 @@ nic_wol_virtue_t *nic_wol_virtues_remove(nic_wol_virtues_t *wvs, nic_wv_id_t id)
  * @return Requested filter or NULL if not found.
  */
 const nic_wol_virtue_t *nic_wol_virtues_find(const nic_wol_virtues_t *wvs,
-	nic_wv_id_t id)
+    nic_wv_id_t id)
 {
 	/*
 	 * The hash_table_find cannot be const, because it would require the
@@ -247,7 +247,7 @@ const nic_wol_virtue_t *nic_wol_virtues_find(const nic_wol_virtues_t *wvs,
  * @return EINVAL	If the filter type is invalid
  */
 errno_t nic_wol_virtues_list(const nic_wol_virtues_t *wvs, nic_wv_type_t type,
-	size_t max_count, nic_wv_id_t *id_list, size_t *id_count)
+    size_t max_count, nic_wv_id_t *id_list, size_t *id_count)
 {
 	size_t count = 0;
 	if (type == NIC_WV_NONE) {

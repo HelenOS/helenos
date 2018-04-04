@@ -62,10 +62,10 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 		b = a + i;
 
 		asm volatile (
-			"casx %0, %2, %1\n"
-			: "+m" (*((atomic_count_t *) ptr)),
-			  "+r" (b)
-			: "r" (a)
+		    "casx %0, %2, %1\n"
+		    : "+m" (*((atomic_count_t *) ptr)),
+		      "+r" (b)
+		    : "r" (a)
 		);
 	} while (a != b);
 

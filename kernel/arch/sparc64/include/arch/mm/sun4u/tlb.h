@@ -108,7 +108,7 @@ union tlb_context_reg {
 	struct {
 		unsigned long : 51;
 		unsigned context : 13;		/**< Context/ASID. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union tlb_context_reg tlb_context_reg_t;
 
@@ -125,7 +125,7 @@ union tlb_data_access_addr {
 		uint64_t : 55;
 		unsigned tlb_entry : 6;
 		unsigned : 3;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union tlb_data_access_addr dtlb_data_access_addr_t;
 typedef union tlb_data_access_addr dtlb_tag_read_addr_t;
@@ -154,7 +154,7 @@ union dtlb_data_access_addr {
 		unsigned : 4;
 		unsigned local_tlb_entry : 9;
 		unsigned : 3;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union dtlb_data_access_addr dtlb_data_access_addr_t;
 typedef union dtlb_data_access_addr dtlb_tag_read_addr_t;
@@ -168,7 +168,7 @@ union itlb_data_access_addr {
 		unsigned : 6;
 		unsigned local_tlb_entry : 7;
 		unsigned : 3;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union itlb_data_access_addr itlb_data_access_addr_t;
 typedef union itlb_data_access_addr itlb_tag_read_addr_t;
@@ -181,7 +181,7 @@ union tlb_tag_read_reg {
 	struct {
 		uint64_t vpn : 51;	/**< Virtual Address bits 63:13. */
 		unsigned context : 13;	/**< Context identifier. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union tlb_tag_read_reg tlb_tag_read_reg_t;
 typedef union tlb_tag_read_reg tlb_tag_access_reg_t;
@@ -191,17 +191,17 @@ typedef union tlb_tag_read_reg tlb_tag_access_reg_t;
 union tlb_demap_addr {
 	uint64_t value;
 	struct {
-		uint64_t vpn: 51;	/**< Virtual Address bits 63:13. */
+		uint64_t vpn : 51;	/**< Virtual Address bits 63:13. */
 #if defined (US)
 		unsigned : 6;		/**< Ignored. */
 		unsigned type : 1;	/**< The type of demap operation. */
 #elif defined (US3)
 		unsigned : 5;		/**< Ignored. */
-		unsigned type: 2;	/**< The type of demap operation. */
+		unsigned type : 2;	/**< The type of demap operation. */
 #endif
 		unsigned context : 2;	/**< Context register selection. */
 		unsigned : 4;		/**< Zero. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union tlb_demap_addr tlb_demap_addr_t;
 
@@ -228,7 +228,7 @@ union tlb_sfsr_reg {
 		unsigned w : 1;		/**< Write bit. */
 		unsigned ow : 1;	/**< Overwrite bit. */
 		unsigned fv : 1;	/**< Fault Valid bit. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union tlb_sfsr_reg tlb_sfsr_reg_t;
 
@@ -435,7 +435,7 @@ NO_TRACE static inline uint64_t itlb_data_access_read(int tlb, size_t entry)
  * @param value		Value to be written.
  */
 NO_TRACE static inline void itlb_data_access_write(int tlb, size_t entry,
-	uint64_t value)
+    uint64_t value)
 {
 	itlb_data_access_addr_t reg;
 
@@ -471,7 +471,7 @@ NO_TRACE static inline uint64_t dtlb_data_access_read(int tlb, size_t entry)
  * @param value		Value to be written.
  */
 NO_TRACE static inline void dtlb_data_access_write(int tlb, size_t entry,
-	uint64_t value)
+    uint64_t value)
 {
 	dtlb_data_access_addr_t reg;
 

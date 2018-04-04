@@ -215,7 +215,7 @@ static signed int ls_scan_dir(const char *d, DIR *dirp,
 	}
 
 out:
-	for(i = 0; i < nbdirs; i++)
+	for (i = 0; i < nbdirs; i++)
 		free(tosort[i].name);
 	free(tosort);
 	free(buff);
@@ -239,7 +239,7 @@ static unsigned int ls_recursive(const char *path, DIR *dirp)
 	DIR *subdirp;
 	struct dir_elem_t *dir_list;
 
-	const char * const trailing_slash = "/";
+	const char *const trailing_slash = "/";
 
 	nbdirs = 0;
 	dir_list = (struct dir_elem_t *) malloc(sizeof(struct dir_elem_t));
@@ -263,7 +263,7 @@ static unsigned int ls_recursive(const char *path, DIR *dirp)
 
 		if (str_size(subdir_path) + str_size(path) + 1 <= PATH_MAX)
 			str_append(subdir_path, PATH_MAX, path);
-		if (path[str_size(path)-1] != '/' &&
+		if (path[str_size(path) - 1] != '/' &&
 		    str_size(subdir_path) + str_size(trailing_slash) + 1 <= PATH_MAX)
 			str_append(subdir_path, PATH_MAX, trailing_slash);
 		if (str_size(subdir_path) +
@@ -327,13 +327,13 @@ void help_cmd_ls(unsigned int level)
 	} else {
 		help_cmd_ls(HELP_SHORT);
 		printf(
-		"Usage:  %s [options] [path]\n"
-		"If not path is given, the current working directory is used.\n"
-		"Options:\n"
-		"  -h, --help       A short option summary\n"
-		"  -u, --unsort     Do not sort directory entries\n"
-		"  -r, --recursive  List subdirectories recursively\n",
-		cmdname);
+		    "Usage:  %s [options] [path]\n"
+		    "If not path is given, the current working directory is used.\n"
+		    "Options:\n"
+		    "  -h, --help       A short option summary\n"
+		    "  -u, --unsort     Do not sort directory entries\n"
+		    "  -r, --recursive  List subdirectories recursively\n",
+		    cmdname);
 	}
 
 	return;

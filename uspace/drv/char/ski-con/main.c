@@ -64,7 +64,7 @@ static errno_t ski_con_dev_add(ddf_dev_t *dev)
 {
 	ski_con_t *ski_con;
 
-        ddf_msg(LVL_DEBUG, "ski_con_dev_add(%p)", dev);
+	ddf_msg(LVL_DEBUG, "ski_con_dev_add(%p)", dev);
 	ski_con = ddf_dev_data_alloc(dev, sizeof(ski_con_t));
 	if (ski_con == NULL) {
 		ddf_msg(LVL_ERROR, "Failed allocating soft state.");
@@ -78,32 +78,32 @@ static errno_t ski_con_dev_add(ddf_dev_t *dev)
 
 static errno_t ski_con_dev_remove(ddf_dev_t *dev)
 {
-        ski_con_t *ski_con = (ski_con_t *)ddf_dev_data_get(dev);
+	ski_con_t *ski_con = (ski_con_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "ski_con_dev_remove(%p)", dev);
+	ddf_msg(LVL_DEBUG, "ski_con_dev_remove(%p)", dev);
 
-        return ski_con_remove(ski_con);
+	return ski_con_remove(ski_con);
 }
 
 static errno_t ski_con_dev_gone(ddf_dev_t *dev)
 {
-        ski_con_t *ski_con = (ski_con_t *)ddf_dev_data_get(dev);
+	ski_con_t *ski_con = (ski_con_t *)ddf_dev_data_get(dev);
 
-        ddf_msg(LVL_DEBUG, "ski_con_dev_gone(%p)", dev);
+	ddf_msg(LVL_DEBUG, "ski_con_dev_gone(%p)", dev);
 
-        return ski_con_gone(ski_con);
+	return ski_con_gone(ski_con);
 }
 
 static errno_t ski_con_fun_online(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "ski_con_fun_online()");
-        return ddf_fun_online(fun);
+	ddf_msg(LVL_DEBUG, "ski_con_fun_online()");
+	return ddf_fun_online(fun);
 }
 
 static errno_t ski_con_fun_offline(ddf_fun_t *fun)
 {
-        ddf_msg(LVL_DEBUG, "ski_con_fun_offline()");
-        return ddf_fun_offline(fun);
+	ddf_msg(LVL_DEBUG, "ski_con_fun_offline()");
+	return ddf_fun_offline(fun);
 }
 
 int main(int argc, char *argv[])

@@ -45,13 +45,13 @@ static inline void atomic_inc(atomic_t *val)
 {
 #ifdef __PCC__
 	asm volatile (
-		"lock incq %0\n"
-		: "+m" (val->count)
+	    "lock incq %0\n"
+	    : "+m" (val->count)
 	);
 #else
 	asm volatile (
-		"lock incq %[count]\n"
-		: [count] "+m" (val->count)
+	    "lock incq %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #endif
 }
@@ -60,13 +60,13 @@ static inline void atomic_dec(atomic_t *val)
 {
 #ifdef __PCC__
 	asm volatile (
-		"lock decq %0\n"
-		: "+m" (val->count)
+	    "lock decq %0\n"
+	    : "+m" (val->count)
 	);
 #else
 	asm volatile (
-		"lock decq %[count]\n"
-		: [count] "+m" (val->count)
+	    "lock decq %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #endif
 }
@@ -77,15 +77,15 @@ static inline atomic_count_t atomic_postinc(atomic_t *val)
 
 #ifdef __PCC__
 	asm volatile (
-		"lock xaddq %1, %0\n"
-		: "+m" (val->count),
-		  "+r" (r)
+	    "lock xaddq %1, %0\n"
+	    : "+m" (val->count),
+	      "+r" (r)
 	);
 #else
 	asm volatile (
-		"lock xaddq %[r], %[count]\n"
-		: [count] "+m" (val->count),
-		  [r] "+r" (r)
+	    "lock xaddq %[r], %[count]\n"
+	    : [count] "+m" (val->count),
+	      [r] "+r" (r)
 	);
 #endif
 
@@ -98,15 +98,15 @@ static inline atomic_count_t atomic_postdec(atomic_t *val)
 
 #ifdef __PCC__
 	asm volatile (
-		"lock xaddq %1, %0\n"
-		: "+m" (val->count),
-		  "+r" (r)
+	    "lock xaddq %1, %0\n"
+	    : "+m" (val->count),
+	      "+r" (r)
 	);
 #else
 	asm volatile (
-		"lock xaddq %[r], %[count]\n"
-		: [count] "+m" (val->count),
-		  [r] "+r" (r)
+	    "lock xaddq %[r], %[count]\n"
+	    : [count] "+m" (val->count),
+	      [r] "+r" (r)
 	);
 #endif
 

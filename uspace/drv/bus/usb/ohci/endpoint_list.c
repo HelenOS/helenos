@@ -127,7 +127,7 @@ void endpoint_list_add_ep(endpoint_list_t *instance, ohci_endpoint_t *ep)
 	ohci_endpoint_t *first = list_get_instance(
 	    list_first(&instance->endpoint_list), ohci_endpoint_t, eplist_link);
 	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).",
-		ep, instance->name, first, first->ed);
+	    ep, instance->name, first, first->ed);
 	if (last_ed == instance->list_head) {
 		usb_log_debug2("%s head ED(%p-0x%0" PRIx32 "): %x:%x:%x:%x.",
 		    instance->name, last_ed, instance->list_head_pa,

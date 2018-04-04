@@ -151,7 +151,7 @@
  * @return			error status
  */
 static inline uint64_t
-__hypercall_fast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
+    __hypercall_fast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
     const uint64_t p4, const uint64_t p5, const uint64_t function_number)
 {
 	register uint64_t a6 asm("o5") = function_number;
@@ -162,11 +162,11 @@ __hypercall_fast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
 	register uint64_t a5 asm("o4") = p5;
 
 	asm volatile (
-		"ta %7\n"
-		: "=r" (a1)
-		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
-		  "i" (FAST_TRAP)
-		: "memory"
+	    "ta %7\n"
+	    : "=r" (a1)
+	    : "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
+	      "i" (FAST_TRAP)
+	    : "memory"
 	);
 
 	return a1;
@@ -186,7 +186,7 @@ __hypercall_fast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
  * @return			error status
  */
 static inline uint64_t
-__hypercall_fast_ret1(const uint64_t p1, const uint64_t p2, const uint64_t p3,
+    __hypercall_fast_ret1(const uint64_t p1, const uint64_t p2, const uint64_t p3,
     const uint64_t p4, const uint64_t p5, const uint64_t function_number,
     uint64_t *ret1)
 {
@@ -198,11 +198,11 @@ __hypercall_fast_ret1(const uint64_t p1, const uint64_t p2, const uint64_t p3,
 	register uint64_t a5 asm("o4") = p5;
 
 	asm volatile (
-		"ta %8\n"
-		: "=r" (a1), "=r" (a2)
-		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
-		  "i" (FAST_TRAP)
-		: "memory"
+	    "ta %8\n"
+	    : "=r" (a1), "=r" (a2)
+	    : "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
+	      "i" (FAST_TRAP)
+	    : "memory"
 	);
 
 	if (ret1)
@@ -222,7 +222,7 @@ __hypercall_fast_ret1(const uint64_t p1, const uint64_t p2, const uint64_t p3,
  * @param sw_trap_number	software trap number
  */
 static inline uint64_t
-__hypercall_hyperfast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
+    __hypercall_hyperfast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
     const uint64_t p4, const uint64_t p5, const uint64_t sw_trap_number)
 {
 	register uint64_t a1 asm("o0") = p1;
@@ -232,11 +232,11 @@ __hypercall_hyperfast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
 	register uint64_t a5 asm("o4") = p5;
 
 	asm volatile (
-		"ta %6\n"
-		: "=r" (a1)
-		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5),
-		  "i" (sw_trap_number)
-		: "memory"
+	    "ta %6\n"
+	    : "=r" (a1)
+	    : "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5),
+	      "i" (sw_trap_number)
+	    : "memory"
 	);
 
 	return a1;

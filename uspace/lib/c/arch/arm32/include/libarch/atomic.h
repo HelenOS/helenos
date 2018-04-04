@@ -55,29 +55,29 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 	 * the kernel will restart it.
 	 */
 	asm volatile (
-		"1:\n"
-		"	adr %[ret], 1b\n"
-		"	str %[ret], %[rp0]\n"
-		"	adr %[ret], 2f\n"
-		"	str %[ret], %[rp1]\n"
-		"	ldr %[ret], %[addr]\n"
-		"	cmp %[ret], %[ov]\n"
-		"	streq %[nv], %[addr]\n"
-		"2:\n"
-		"	moveq %[ret], #1\n"
-		"	movne %[ret], #0\n"
-		: [ret] "+&r" (ret),
-		  [rp0] "=m" (ras_page[0]),
-		  [rp1] "=m" (ras_page[1]),
-		  [addr] "+m" (val->count)
-		: [ov] "r" (ov),
-		  [nv] "r" (nv)
-		: "memory"
+	    "1:\n"
+	    "	adr %[ret], 1b\n"
+	    "	str %[ret], %[rp0]\n"
+	    "	adr %[ret], 2f\n"
+	    "	str %[ret], %[rp1]\n"
+	    "	ldr %[ret], %[addr]\n"
+	    "	cmp %[ret], %[ov]\n"
+	    "	streq %[nv], %[addr]\n"
+	    "2:\n"
+	    "	moveq %[ret], #1\n"
+	    "	movne %[ret], #0\n"
+	    : [ret] "+&r" (ret),
+	      [rp0] "=m" (ras_page[0]),
+	      [rp1] "=m" (ras_page[1]),
+	      [addr] "+m" (val->count)
+	    : [ov] "r" (ov),
+	      [nv] "r" (nv)
+	    : "memory"
 	);
 
 	ras_page[0] = 0;
 	asm volatile (
-		"" ::: "memory"
+	    "" ::: "memory"
 	);
 	ras_page[1] = 0xffffffff;
 
@@ -102,25 +102,25 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 	 * the kernel will restart it.
 	 */
 	asm volatile (
-		"1:\n"
-		"	adr %[ret], 1b\n"
-		"	str %[ret], %[rp0]\n"
-		"	adr %[ret], 2f\n"
-		"	str %[ret], %[rp1]\n"
-		"	ldr %[ret], %[addr]\n"
-		"	add %[ret], %[ret], %[imm]\n"
-		"	str %[ret], %[addr]\n"
-		"2:\n"
-		: [ret] "+&r" (ret),
-		  [rp0] "=m" (ras_page[0]),
-		  [rp1] "=m" (ras_page[1]),
-		  [addr] "+m" (val->count)
-		: [imm] "r" (i)
+	    "1:\n"
+	    "	adr %[ret], 1b\n"
+	    "	str %[ret], %[rp0]\n"
+	    "	adr %[ret], 2f\n"
+	    "	str %[ret], %[rp1]\n"
+	    "	ldr %[ret], %[addr]\n"
+	    "	add %[ret], %[ret], %[imm]\n"
+	    "	str %[ret], %[addr]\n"
+	    "2:\n"
+	    : [ret] "+&r" (ret),
+	      [rp0] "=m" (ras_page[0]),
+	      [rp1] "=m" (ras_page[1]),
+	      [addr] "+m" (val->count)
+	    : [imm] "r" (i)
 	);
 
 	ras_page[0] = 0;
 	asm volatile (
-		"" ::: "memory"
+	    "" ::: "memory"
 	);
 	ras_page[1] = 0xffffffff;
 

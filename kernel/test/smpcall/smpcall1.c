@@ -52,7 +52,7 @@ static void inc(void *p)
 {
 	assert(interrupts_disabled());
 
-	size_t *pcall_cnt = (size_t*)p;
+	size_t *pcall_cnt = (size_t *)p;
 	/*
 	 * No synchronization. Tests if smp_calls makes changes
 	 * visible to the caller.
@@ -63,7 +63,7 @@ static void inc(void *p)
 
 static void test_thread(void *p)
 {
-	size_t *pcall_cnt = (size_t*)p;
+	size_t *pcall_cnt = (size_t *)p;
 	smp_call_t call_info[MAX_CPUS];
 
 	unsigned int cpu_count = min(config.cpu_active, MAX_CPUS);
@@ -83,7 +83,7 @@ static void test_thread(void *p)
 		 * Async calls run in parallel on different cpus, so passing the
 		 * same counter would clobber it without additional synchronization.
 		 */
-		size_t local_cnt[MAX_CPUS] = {0};
+		size_t local_cnt[MAX_CPUS] = { 0 };
 
 		/* Now start asynchronous calls. */
 		for (unsigned cpu_id = 0; cpu_id < cpu_count; ++cpu_id) {
@@ -109,7 +109,7 @@ static size_t calc_exp_calls(size_t thread_cnt)
 const char *test_smpcall1(void)
 {
 	/* Number of received calls that were sent by cpu[i]. */
-	size_t call_cnt[MAX_CPUS] = {0};
+	size_t call_cnt[MAX_CPUS] = { 0 };
 	thread_t *thread[MAX_CPUS] = { NULL };
 
 	unsigned int cpu_count = min(config.cpu_active, MAX_CPUS);
@@ -120,7 +120,7 @@ const char *test_smpcall1(void)
 	/* Create a wired thread on each cpu. */
 	for (unsigned int id = 0; id < cpu_count; ++id) {
 		thread[id] = thread_create(test_thread, &call_cnt[id], TASK,
-			THREAD_FLAG_NONE, "smp-call-test");
+		    THREAD_FLAG_NONE, "smp-call-test");
 
 		if (thread[id]) {
 			thread_wire(thread[id], &cpus[id]);
@@ -134,7 +134,7 @@ const char *test_smpcall1(void)
 	size_t exp_calls_sum = exp_calls * cpu_count;
 
 	TPRINTF("Running %zu wired threads. Expecting %zu calls. Be patient.\n",
-		running_thread_cnt, exp_calls_sum);
+	    running_thread_cnt, exp_calls_sum);
 
 	for (unsigned int i = 0; i < cpu_count; ++i) {
 		if (thread[i] != NULL) {
@@ -160,7 +160,7 @@ const char *test_smpcall1(void)
 			if (call_cnt[i] != exp_calls) {
 				ok = false;
 				TPRINTF("Error: %zu instead of %zu cpu%zu's calls were"
-					" acknowledged.\n", call_cnt[i], exp_calls, i);
+				    " acknowledged.\n", call_cnt[i], exp_calls, i);
 			}
 		}
 
@@ -169,14 +169,14 @@ const char *test_smpcall1(void)
 
 	if (calls_sum != exp_calls_sum) {
 		TPRINTF("Error: total acknowledged sum: %zu instead of %zu.\n",
-			calls_sum, exp_calls_sum);
+		    calls_sum, exp_calls_sum);
 
 		ok = false;
 	}
 
 	if (ok) {
 		TPRINTF("Success: number of received smp_calls is as expected (%zu).\n",
-			exp_calls_sum);
+		    exp_calls_sum);
 		return NULL;
 	} else
 		return "Failed: incorrect acknowledged smp_calls.\n";

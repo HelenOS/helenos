@@ -59,9 +59,9 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 		*port = v;
 
 	asm volatile (
-		"mf\n"
-		"mf.a\n"
-		::: "memory"
+	    "mf\n"
+	    "mf.a\n"
+	    ::: "memory"
 	);
 }
 
@@ -73,9 +73,9 @@ NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 		*port = v;
 
 	asm volatile (
-		"mf\n"
-		"mf.a\n"
-		::: "memory"
+	    "mf\n"
+	    "mf.a\n"
+	    ::: "memory"
 	);
 }
 
@@ -87,9 +87,9 @@ NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
 		*port = v;
 
 	asm volatile (
-		"mf\n"
-		"mf.a\n"
-		::: "memory"
+	    "mf\n"
+	    "mf.a\n"
+	    ::: "memory"
 	);
 }
 
@@ -98,8 +98,8 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 	uint8_t v;
 
 	asm volatile (
-		"mf\n"
-		::: "memory"
+	    "mf\n"
+	    ::: "memory"
 	);
 
 	if (port < (ioport8_t *) IO_SPACE_BOUNDARY)
@@ -108,8 +108,8 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 		v = *port;
 
 	asm volatile (
-		"mf.a\n"
-		::: "memory"
+	    "mf.a\n"
+	    ::: "memory"
 	);
 
 	return v;
@@ -120,8 +120,8 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 	uint16_t v;
 
 	asm volatile (
-		"mf\n"
-		::: "memory"
+	    "mf\n"
+	    ::: "memory"
 	);
 
 	if (port < (ioport16_t *) IO_SPACE_BOUNDARY)
@@ -130,8 +130,8 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 		v = *port;
 
 	asm volatile (
-		"mf.a\n"
-		::: "memory"
+	    "mf.a\n"
+	    ::: "memory"
 	);
 
 	return v;
@@ -142,8 +142,8 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 	uint32_t v;
 
 	asm volatile (
-		"mf\n"
-		::: "memory"
+	    "mf\n"
+	    ::: "memory"
 	);
 
 	if (port < (ioport32_t *) IO_SPACE_BOUNDARY)
@@ -152,8 +152,8 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 		v = *port;
 
 	asm volatile (
-		"mf.a\n"
-		::: "memory"
+	    "mf.a\n"
+	    ::: "memory"
 	);
 
 	return v;
@@ -170,8 +170,8 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	uint64_t value;
 
 	asm volatile (
-		"mov %[value] = r12"
-		: [value] "=r" (value)
+	    "mov %[value] = r12"
+	    : [value] "=r" (value)
 	);
 
 	return (value & (~(STACK_SIZE / 2 - 1)));
@@ -187,8 +187,8 @@ NO_TRACE static inline uint64_t psr_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = psr\n"
-		: [value] "=r" (v)
+	    "mov %[value] = psr\n"
+	    : [value] "=r" (v)
 	);
 
 	return v;
@@ -204,8 +204,8 @@ NO_TRACE static inline uint64_t iva_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = cr.iva\n"
-		: [value] "=r" (v)
+	    "mov %[value] = cr.iva\n"
+	    : [value] "=r" (v)
 	);
 
 	return v;
@@ -219,8 +219,8 @@ NO_TRACE static inline uint64_t iva_read(void)
 NO_TRACE static inline void iva_write(uint64_t v)
 {
 	asm volatile (
-		"mov cr.iva = %[value]\n"
-		:: [value] "r" (v)
+	    "mov cr.iva = %[value]\n"
+	    :: [value] "r" (v)
 	);
 }
 
@@ -235,8 +235,8 @@ NO_TRACE static inline uint64_t ivr_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = cr.ivr\n"
-		: [value] "=r" (v)
+	    "mov %[value] = cr.ivr\n"
+	    : [value] "=r" (v)
 	);
 
 	return v;
@@ -247,8 +247,8 @@ NO_TRACE static inline uint64_t cr64_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = cr64\n"
-		: [value] "=r" (v)
+	    "mov %[value] = cr64\n"
+	    : [value] "=r" (v)
 	);
 
 	return v;
@@ -262,8 +262,8 @@ NO_TRACE static inline uint64_t cr64_read(void)
 NO_TRACE static inline void itc_write(uint64_t v)
 {
 	asm volatile (
-		"mov ar.itc = %[value]\n"
-		:: [value] "r" (v)
+	    "mov ar.itc = %[value]\n"
+	    :: [value] "r" (v)
 	);
 }
 
@@ -277,8 +277,8 @@ NO_TRACE static inline uint64_t itc_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = ar.itc\n"
-		: [value] "=r" (v)
+	    "mov %[value] = ar.itc\n"
+	    : [value] "=r" (v)
 	);
 
 	return v;
@@ -292,8 +292,8 @@ NO_TRACE static inline uint64_t itc_read(void)
 NO_TRACE static inline void itm_write(uint64_t v)
 {
 	asm volatile (
-		"mov cr.itm = %[value]\n"
-		:: [value] "r" (v)
+	    "mov cr.itm = %[value]\n"
+	    :: [value] "r" (v)
 	);
 }
 
@@ -307,8 +307,8 @@ NO_TRACE static inline uint64_t itm_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = cr.itm\n"
-		: [value] "=r" (v)
+	    "mov %[value] = cr.itm\n"
+	    : [value] "=r" (v)
 	);
 
 	return v;
@@ -324,8 +324,8 @@ NO_TRACE static inline uint64_t itv_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = cr.itv\n"
-		: [value] "=r" (v)
+	    "mov %[value] = cr.itv\n"
+	    : [value] "=r" (v)
 	);
 
 	return v;
@@ -339,8 +339,8 @@ NO_TRACE static inline uint64_t itv_read(void)
 NO_TRACE static inline void itv_write(uint64_t v)
 {
 	asm volatile (
-		"mov cr.itv = %[value]\n"
-		:: [value] "r" (v)
+	    "mov cr.itv = %[value]\n"
+	    :: [value] "r" (v)
 	);
 }
 
@@ -352,8 +352,8 @@ NO_TRACE static inline void itv_write(uint64_t v)
 NO_TRACE static inline void eoi_write(uint64_t v)
 {
 	asm volatile (
-		"mov cr.eoi = %[value]\n"
-		:: [value] "r" (v)
+	    "mov cr.eoi = %[value]\n"
+	    :: [value] "r" (v)
 	);
 }
 
@@ -367,8 +367,8 @@ NO_TRACE static inline uint64_t tpr_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = cr.tpr\n"
-		: [value] "=r" (v)
+	    "mov %[value] = cr.tpr\n"
+	    : [value] "=r" (v)
 	);
 
 	return v;
@@ -382,8 +382,8 @@ NO_TRACE static inline uint64_t tpr_read(void)
 NO_TRACE static inline void tpr_write(uint64_t v)
 {
 	asm volatile (
-		"mov cr.tpr = %[value]\n"
-		:: [value] "r" (v)
+	    "mov cr.tpr = %[value]\n"
+	    :: [value] "r" (v)
 	);
 }
 
@@ -400,10 +400,10 @@ NO_TRACE static ipl_t interrupts_disable(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = psr\n"
-		"rsm %[mask]\n"
-		: [value] "=r" (v)
-		: [mask] "i" (PSR_I_MASK)
+	    "mov %[value] = psr\n"
+	    "rsm %[mask]\n"
+	    : [value] "=r" (v)
+	    : [mask] "i" (PSR_I_MASK)
 	);
 
 	return (ipl_t) v;
@@ -422,12 +422,12 @@ NO_TRACE static ipl_t interrupts_enable(void)
 	uint64_t v;
 
 	asm volatile (
-		"mov %[value] = psr\n"
-		"ssm %[mask]\n"
-		";;\n"
-		"srlz.d\n"
-		: [value] "=r" (v)
-		: [mask] "i" (PSR_I_MASK)
+	    "mov %[value] = psr\n"
+	    "ssm %[mask]\n"
+	    ";;\n"
+	    "srlz.d\n"
+	    : [value] "=r" (v)
+	    : [mask] "i" (PSR_I_MASK)
 	);
 
 	return (ipl_t) v;
@@ -472,10 +472,10 @@ NO_TRACE static inline bool interrupts_disabled(void)
 NO_TRACE static inline void pk_disable(void)
 {
 	asm volatile (
-		"rsm %[mask]\n"
-		";;\n"
-		"srlz.d\n"
-		:: [mask] "i" (PSR_PK_MASK)
+	    "rsm %[mask]\n"
+	    ";;\n"
+	    "srlz.d\n"
+	    :: [mask] "i" (PSR_PK_MASK)
 	);
 }
 

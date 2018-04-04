@@ -149,7 +149,7 @@ void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path,
 
 	if (!list_empty(&usage_path->items)) {
 		item = list_get_instance(list_last(&usage_path->items),
-		     usb_hid_report_usage_path_t, rpath_items_link);
+		    usb_hid_report_usage_path_t, rpath_items_link);
 
 		switch (tag) {
 		case USB_HID_TAG_CLASS_GLOBAL:
@@ -292,7 +292,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		}
 
 		while ((report_link != &report_path->items.head) &&
-		      (path_link != &path->items.head)) {
+		    (path_link != &path->items.head)) {
 			report_item = list_get_instance(report_link,
 			    usb_hid_report_usage_path_t, rpath_items_link);
 
@@ -333,8 +333,7 @@ usb_hid_report_path_t *usb_hid_report_path(void)
 	path = malloc(sizeof(usb_hid_report_path_t));
 	if (path == NULL) {
 		return NULL;
-	}
-	else {
+	} else {
 		path->depth = 0;
 		path->report_id = 0;
 		link_initialize(&path->cpath_link);

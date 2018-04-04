@@ -63,10 +63,10 @@ typedef struct {
 	unsigned long int ti_offset;
 } tls_index;
 
-void __attribute__ ((__regparm__ (1)))
+void __attribute__((__regparm__(1)))
     *___tls_get_addr(tls_index *ti);
 
-void __attribute__ ((__regparm__ (1)))
+void __attribute__((__regparm__(1)))
     *___tls_get_addr(tls_index *ti)
 {
 	uint8_t *tls;

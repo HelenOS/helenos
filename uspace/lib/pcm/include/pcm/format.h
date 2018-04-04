@@ -86,7 +86,7 @@ static inline useconds_t pcm_format_size_to_usec(size_t size,
 	    a->channels, a->sample_format);
 }
 
-bool pcm_format_same(const pcm_format_t *a, const pcm_format_t* b);
+bool pcm_format_same(const pcm_format_t *a, const pcm_format_t *b);
 
 /**
  * Helper function, compares with ANY metaformat.
@@ -101,8 +101,8 @@ void pcm_format_silence(void *dst, size_t size, const pcm_format_t *f);
 errno_t pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
     size_t src_size, const pcm_format_t *sf, const pcm_format_t *df);
 errno_t pcm_format_mix(void *dst, const void *src, size_t size, const pcm_format_t *f);
-errno_t pcm_format_convert(pcm_format_t a, void* srca, size_t sizea,
-    pcm_format_t b, void* srcb, size_t *sizeb);
+errno_t pcm_format_convert(pcm_format_t a, void *srca, size_t sizea,
+    pcm_format_t b, void *srcb, size_t *sizeb);
 
 #endif
 

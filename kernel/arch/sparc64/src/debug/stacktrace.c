@@ -97,7 +97,7 @@ bool uspace_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
 	return false;
 }
 
-bool uspace_return_address_get(stack_trace_context_t *ctx , uintptr_t *ra)
+bool uspace_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
 {
 	return false;
 }

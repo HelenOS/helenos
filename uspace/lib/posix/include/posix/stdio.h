@@ -80,13 +80,13 @@ extern int fputs(const char *, FILE *);
 extern int putchar(wchar_t);
 extern int puts(const char *);
 
-extern int fprintf(FILE *, const char*, ...) _HELENOS_PRINTF_ATTRIBUTE(2, 3);
+extern int fprintf(FILE *, const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vfprintf(FILE *, const char *, va_list);
 
 extern int printf(const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int vprintf(const char *, va_list);
 
-extern int snprintf(char *, size_t , const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(3, 4);
+extern int snprintf(char *, size_t, const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(3, 4);
 #ifdef _GNU_SOURCE
 extern int vasprintf(char **, const char *, va_list);
 extern int asprintf(char **, const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(2, 3);

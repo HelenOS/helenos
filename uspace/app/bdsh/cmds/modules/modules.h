@@ -86,7 +86,7 @@ module_t modules[] = {
 #include "echo/echo_def.inc"
 #include "cmp/cmp_def.inc"
 
-	{NULL, NULL, NULL, NULL}
+	{ NULL, NULL, NULL, NULL }
 };
 
 #endif

@@ -355,7 +355,8 @@ void hda_pcm_event(hda_t *hda, pcm_event_t event)
 	async_exch_t *exchange;
 
 	if (hda->ev_sess == NULL) {
-		if (0) ddf_log_warning("No one listening for event %u", event);
+		if (0)
+			ddf_log_warning("No one listening for event %u", event);
 		return;
 	}
 

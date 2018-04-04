@@ -60,10 +60,10 @@ extern char *optarg;
 extern int optind, opterr, optopt;
 extern int optreset;
 
-int getopt_long(int, char * const *, const char *,
+int getopt_long(int, char *const *, const char *,
     const struct option *, int *);
 
 /* HelenOS Port : Expose legacy getopt() */
-int	 getopt(int, char * const [], const char *);
+int	 getopt(int, char *const [], const char *);
 
 #endif /* !_GETOPT_H_ */

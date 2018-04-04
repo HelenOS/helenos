@@ -64,7 +64,7 @@
 
 static inet_naddr_t solicited_node_mask = {
 	.version = ip_v6,
-	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0},
+	.addr6 = { 0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0 },
 	.prefix = 104
 };
 
@@ -75,7 +75,7 @@ static inet_addr_t broadcast4_all_hosts = {
 
 static inet_addr_t multicast_all_nodes = {
 	.version = ip_v6,
-	.addr6 = {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
+	.addr6 = { 0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01 }
 };
 
 static FIBRIL_MUTEX_INITIALIZE(client_list_lock);
@@ -181,7 +181,7 @@ errno_t inet_route_packet(inet_dgram_t *dgram, uint8_t proto, uint8_t ttl,
 			return ENOENT;
 
 		if (dgram->src.version != ip_v4 ||
-			dgram->dest.version != ip_v4)
+		    dgram->dest.version != ip_v4)
 			return EINVAL;
 
 		return inet_link_send_dgram(ilink, dgram->src.addr,

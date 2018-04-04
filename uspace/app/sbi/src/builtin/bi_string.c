@@ -70,9 +70,9 @@ void bi_string_bind(builtin_t *bi)
  */
 static void bi_string_length(run_t *run)
 {
-        rdata_var_t *self_value_var;
-        const char *str;
-        size_t str_l;
+	rdata_var_t *self_value_var;
+	const char *str;
+	size_t str_l;
 
 	rdata_int_t *rint;
 	rdata_var_t *rvar;
@@ -113,10 +113,10 @@ static void bi_string_length(run_t *run)
  */
 static void bi_string_slice(run_t *run)
 {
-        rdata_var_t *self_value_var;
-        const char *str;
-        const char *slice;
-        size_t str_l;
+	rdata_var_t *self_value_var;
+	const char *str;
+	const char *slice;
+	size_t str_l;
 
 	rdata_var_t *start_var;
 	int start;

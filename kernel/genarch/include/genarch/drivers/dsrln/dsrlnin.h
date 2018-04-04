@@ -43,7 +43,7 @@
 
 typedef struct {
 	ioport8_t data;
-} __attribute__ ((packed)) dsrlnin_t;
+} __attribute__((packed)) dsrlnin_t;
 
 typedef struct {
 	irq_t irq;

@@ -181,53 +181,81 @@ error:
 static const char *nic_link_state_str(nic_cable_state_t link_state)
 {
 	switch (link_state) {
-	case NIC_CS_UNKNOWN: return "unknown";
-	case NIC_CS_PLUGGED: return "up";
-	case NIC_CS_UNPLUGGED: return "down";
-	default: assert(false); return NULL;
+	case NIC_CS_UNKNOWN:
+		return "unknown";
+	case NIC_CS_PLUGGED:
+		return "up";
+	case NIC_CS_UNPLUGGED:
+		return "down";
+	default:
+		assert(false);
+		return NULL;
 	}
 }
 
 static const char *nic_duplex_mode_str(nic_channel_mode_t mode)
 {
 	switch (mode) {
-	case NIC_CM_FULL_DUPLEX: return "full-duplex";
-	case NIC_CM_HALF_DUPLEX: return "half-duplex";
-	case NIC_CM_SIMPLEX: return "simplex";
-	default: assert(false); return NULL;
+	case NIC_CM_FULL_DUPLEX:
+		return "full-duplex";
+	case NIC_CM_HALF_DUPLEX:
+		return "half-duplex";
+	case NIC_CM_SIMPLEX:
+		return "simplex";
+	default:
+		assert(false);
+		return NULL;
 	}
 }
 
 static const char *nic_unicast_mode_str(nic_unicast_mode_t mode)
 {
 	switch (mode) {
-	case NIC_UNICAST_UNKNOWN: return "unknown";
-	case NIC_UNICAST_BLOCKED: return "blocked";
-	case NIC_UNICAST_DEFAULT: return "default";
-	case NIC_UNICAST_LIST: return "list";
-	case NIC_UNICAST_PROMISC: return "promisc";
-	default: assert(false); return NULL;
+	case NIC_UNICAST_UNKNOWN:
+		return "unknown";
+	case NIC_UNICAST_BLOCKED:
+		return "blocked";
+	case NIC_UNICAST_DEFAULT:
+		return "default";
+	case NIC_UNICAST_LIST:
+		return "list";
+	case NIC_UNICAST_PROMISC:
+		return "promisc";
+	default:
+		assert(false);
+		return NULL;
 	}
 }
 
 static const char *nic_multicast_mode_str(nic_multicast_mode_t mode)
 {
 	switch (mode) {
-	case NIC_MULTICAST_UNKNOWN: return "unknown";
-	case NIC_MULTICAST_BLOCKED: return "blocked";
-	case NIC_MULTICAST_LIST: return "list";
-	case NIC_MULTICAST_PROMISC: return "promisc";
-	default: assert(false); return NULL;
+	case NIC_MULTICAST_UNKNOWN:
+		return "unknown";
+	case NIC_MULTICAST_BLOCKED:
+		return "blocked";
+	case NIC_MULTICAST_LIST:
+		return "list";
+	case NIC_MULTICAST_PROMISC:
+		return "promisc";
+	default:
+		assert(false);
+		return NULL;
 	}
 }
 
 static const char *nic_broadcast_mode_str(nic_broadcast_mode_t mode)
 {
 	switch (mode) {
-	case NIC_BROADCAST_UNKNOWN: return "unknown";
-	case NIC_BROADCAST_BLOCKED: return "blocked";
-	case NIC_BROADCAST_ACCEPTED: return "accepted";
-	default: assert(false); return NULL;
+	case NIC_BROADCAST_UNKNOWN:
+		return "unknown";
+	case NIC_BROADCAST_BLOCKED:
+		return "blocked";
+	case NIC_BROADCAST_ACCEPTED:
+		return "accepted";
+	default:
+		assert(false);
+		return NULL;
 	}
 }
 

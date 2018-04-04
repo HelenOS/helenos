@@ -111,7 +111,7 @@ static const char *test_custom_workq(void)
 static const char *test_custom_workq_stop(void)
 {
 	TPRINTF("Stress testing a custom queue. Stops prematurely. "
-		"Errors are expected.\n");
+	    "Errors are expected.\n");
 	test_custom_workq_impl(true, "test-workq-stop");
 	/* Errors are expected. */
 	return NULL;

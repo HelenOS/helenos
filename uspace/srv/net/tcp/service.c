@@ -115,7 +115,8 @@ static void tcp_service_cstate_change(tcp_conn_t *conn, void *arg,
 	}
 
 	/* XXX Failed to establish connection */
-	if (0) tcp_ev_conn_failed(cconn);
+	if (0)
+		tcp_ev_conn_failed(cconn);
 }
 
 /** Sentinel connection state has changed.

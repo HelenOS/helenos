@@ -77,7 +77,7 @@ errno_t futil_copy_file(const char *srcp, const char *destp)
 		if (nr == 0)
 			break;
 
-		rc= vfs_write(df, &posw, buf, nr, &nw);
+		rc = vfs_write(df, &posw, buf, nr, &nw);
 		if (rc != EOK)
 			goto error;
 

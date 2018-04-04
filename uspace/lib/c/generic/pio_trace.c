@@ -49,13 +49,13 @@ typedef struct {
 	trace_fnc log;
 } region_t;
 
-static inline region_t * region_instance(link_t *l)
+static inline region_t *region_instance(link_t *l)
 {
 	return list_get_instance(l, region_t, link);
 }
 
-static inline region_t * region_create(volatile void* base, size_t size,
-    trace_fnc log, void* data)
+static inline region_t *region_create(volatile void *base, size_t size,
+    trace_fnc log, void *data)
 {
 	region_t *new_reg = malloc(sizeof(region_t));
 	if (new_reg) {
@@ -78,7 +78,7 @@ typedef struct {
 	fibril_rwlock_t guard;
 } pio_regions_t;
 
-static pio_regions_t * get_regions(void)
+static pio_regions_t *get_regions(void)
 {
 	static pio_regions_t regions = {
 		.list = {

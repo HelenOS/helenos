@@ -53,7 +53,8 @@ void *memset(void *dest, int b, size_t n)
 	/* Fill initial segment. */
 	word_size = sizeof(unsigned long);
 	fill = word_size - ((uintptr_t) dest & (word_size - 1));
-	if (fill > n) fill = n;
+	if (fill > n)
+		fill = n;
 
 	pb = dest;
 
@@ -63,7 +64,8 @@ void *memset(void *dest, int b, size_t n)
 
 	/* Compute remaining size. */
 	n -= fill;
-	if (n == 0) return dest;
+	if (n == 0)
+		return dest;
 
 	n_words = n / word_size;
 	n = n % word_size;
@@ -92,7 +94,7 @@ void *memset(void *dest, int b, size_t n)
 
 struct along {
 	unsigned long n;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 static void *unaligned_memcpy(void *dst, const void *src, size_t n)
 {
@@ -132,7 +134,7 @@ void *memcpy(void *dst, const void *src, size_t n)
 
 	if (((uintptr_t) dst & (word_size - 1)) !=
 	    ((uintptr_t) src & (word_size - 1)))
- 		return unaligned_memcpy(dst, src, n);
+		return unaligned_memcpy(dst, src, n);
 
 	/*
 	 * mod is the address modulo word size. fill is the length of the
@@ -142,7 +144,8 @@ void *memcpy(void *dst, const void *src, size_t n)
 
 	mod = (uintptr_t) dst & (word_size - 1);
 	fill = word_size - mod;
-	if (fill > n) fill = n;
+	if (fill > n)
+		fill = n;
 
 	/* Copy the initial segment. */
 
@@ -156,7 +159,8 @@ void *memcpy(void *dst, const void *src, size_t n)
 	/* Compute remaining length. */
 
 	n -= fill;
-	if (n == 0) return dst;
+	if (n == 0)
+		return dst;
 
 	/* Pointers to aligned segment. */
 

@@ -59,13 +59,17 @@ static const irq_cmd_t irq_cmds[] = {
 static inline sb_mixer_type_t sb_mixer_type_by_dsp_version(
     unsigned major, unsigned minor)
 {
-	switch (major)
-	{
-	case 1: return SB_MIXER_NONE; /* SB 1.5 and early 2.0 = no mixer chip */
-	case 2: return (minor == 0) ? SB_MIXER_NONE : SB_MIXER_CT1335;
-	case 3: return SB_MIXER_CT1345; /* SB Pro */
-	case 4: return SB_MIXER_CT1745; /* SB 16  */
-	default: return SB_MIXER_UNKNOWN;
+	switch (major) {
+	case 1:
+		return SB_MIXER_NONE; /* SB 1.5 and early 2.0 = no mixer chip */
+	case 2:
+		return (minor == 0) ? SB_MIXER_NONE : SB_MIXER_CT1335;
+	case 3:
+		return SB_MIXER_CT1345; /* SB Pro */
+	case 4:
+		return SB_MIXER_CT1745; /* SB 16  */
+	default:
+		return SB_MIXER_UNKNOWN;
 	}
 }
 

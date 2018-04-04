@@ -64,7 +64,7 @@ struct istate;
 extern bool console_override;
 
 extern void panic_common(panic_category_t, struct istate *, int,
-    uintptr_t, const char *, ...) __attribute__ ((noreturn))
+    uintptr_t, const char *, ...) __attribute__((noreturn))
     _HELENOS_PRINTF_ATTRIBUTE(5, 6);
 
 #endif

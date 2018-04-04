@@ -309,8 +309,7 @@ errno_t recv_line(receive_buffer_t *rb, char *line, size_t size, size_t *nrecv)
 			line[written++] = 0;
 			*nrecv = written;
 			return EOK;
-		}
-		else if (c == '\r') {
+		} else if (c == '\r') {
 			rc = recv_discard(rb, '\n', &nr);
 			if (rc != EOK)
 				return rc;

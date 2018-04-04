@@ -54,10 +54,10 @@ struct indev;
 /** Input character device operations interface. */
 typedef struct {
 	/** Read character directly from device, assume interrupts disabled. */
-	wchar_t (* poll)(struct indev *);
+	wchar_t (*poll)(struct indev *);
 
 	/** Signal out-of-band condition. */
-	void (* signal)(struct indev *, indev_signal_t);
+	void (*signal)(struct indev *, indev_signal_t);
 } indev_operations_t;
 
 /** Character input device. */
@@ -81,16 +81,16 @@ struct outdev;
 /** Output character device operations interface. */
 typedef struct {
 	/** Write character to output. */
-	void (* write)(struct outdev *, wchar_t);
+	void (*write)(struct outdev *, wchar_t);
 
 	/** Redraw any previously cached characters. */
-	void (* redraw)(struct outdev *);
+	void (*redraw)(struct outdev *);
 
 	/** Scroll up in the device cache. */
-	void (* scroll_up)(struct outdev *);
+	void (*scroll_up)(struct outdev *);
 
 	/** Scroll down in the device cache. */
-	void (* scroll_down)(struct outdev *);
+	void (*scroll_down)(struct outdev *);
 } outdev_operations_t;
 
 /** Character output device. */

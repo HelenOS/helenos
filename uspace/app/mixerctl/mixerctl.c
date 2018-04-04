@@ -48,7 +48,7 @@
  */
 static void print_levels(async_exch_t *exch)
 {
-	char* name = NULL;
+	char *name = NULL;
 	unsigned count = 0;
 	errno_t ret = audio_mixer_get_info(exch, &name, &count);
 	if (ret != EOK) {
@@ -81,7 +81,7 @@ static void print_levels(async_exch_t *exch)
 	}
 }
 
-static unsigned get_number(const char* str)
+static unsigned get_number(const char *str)
 {
 	uint16_t num;
 	str_uint16_t(str, NULL, 10, false, &num);
@@ -128,7 +128,7 @@ static void get_level(async_exch_t *exch, int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 	const char *service = DEFAULT_SERVICE;
-	void (*command)(async_exch_t *, int, char*[]) = NULL;
+	void (*command)(async_exch_t *, int, char *[]) = NULL;
 
 	if (argc >= 2 && str_cmp(argv[1], "setlevel") == 0) {
 		command = set_level;

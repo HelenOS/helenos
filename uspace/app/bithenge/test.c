@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 
 		return 0;
 
-error:
+	error:
 		bithenge_node_dec_ref(node);
 		bithenge_node_dec_ref(node2);
 		bithenge_transform_dec_ref(transform);

@@ -106,7 +106,7 @@ void ipcp_connection_set(cap_phone_handle_t phone, int server, proto_t *proto)
 	// XXX: there is no longer a limit on the number of phones as phones are
 	// now handled using capabilities
 	if (CAP_HANDLE_RAW(phone) < 0 || CAP_HANDLE_RAW(phone) >= MAX_PHONE)
-	    return;
+		return;
 	connections[CAP_HANDLE_RAW(phone)].server = server;
 	connections[CAP_HANDLE_RAW(phone)].proto = proto;
 	have_conn[CAP_HANDLE_RAW(phone)] = 1;
@@ -217,7 +217,8 @@ void ipcp_call_out(cap_phone_handle_t phandle, ipc_call_t *call,
 
 			putchar('(');
 			for (i = 1; i <= oper->argc; ++i) {
-				if (i > 1) printf(", ");
+				if (i > 1)
+					printf(", ");
 				val_print(args[i], oper->arg_type[i - 1]);
 			}
 			putchar(')');
@@ -314,7 +315,7 @@ static void parse_answer(cap_call_handle_t call_handle, pending_call_t *pcall,
 		cphone = (cap_phone_handle_t) IPC_GET_ARG5(*answer);
 		if ((display_mask & DM_SYSTEM) != 0) {
 			printf("Registering connection (phone %p, protocol: %s)\n", cphone,
-		    proto->name);
+			    proto->name);
 		}
 
 		ipcp_connection_set(cphone, 0, proto);

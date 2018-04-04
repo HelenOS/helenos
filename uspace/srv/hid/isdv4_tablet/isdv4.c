@@ -97,22 +97,19 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 				event.type = RELEASE;
 				event.button = 1;
 				state->emit_event_fn(&event);
-			}
-			else if (finger1 && !state->finger1_pressed) {
+			} else if (finger1 && !state->finger1_pressed) {
 				state->finger1_pressed = true;
 
 				event.type = PRESS;
 				event.button = 1;
 				state->emit_event_fn(&event);
-			}
-			else {
+			} else {
 				event.type = MOVE;
 				event.button = 1;
 				state->emit_event_fn(&event);
 			}
 		}
-	}
-	else {
+	} else {
 		if (size != 9)
 			return true;
 
@@ -132,15 +129,13 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 			event.source = (state->stylus_is_eraser ? STYLUS_ERASER : STYLUS_TIP);
 			event.type = PROXIMITY_IN;
 			state->emit_event_fn(&event);
-		}
-		else if (!proximity && state->stylus_in_proximity) {
+		} else if (!proximity && state->stylus_in_proximity) {
 			/* Stylus came out of proximity */
 			state->stylus_in_proximity = false;
 			event.source = (state->stylus_is_eraser ? STYLUS_ERASER : STYLUS_TIP);
 			event.type = PROXIMITY_OUT;
 			state->emit_event_fn(&event);
-		}
-		else {
+		} else {
 			/* Proximity state didn't change, but we need to check if it is still eraser */
 			if (state->stylus_is_eraser && !button2) {
 				event.type = PROXIMITY_OUT;
@@ -150,8 +145,7 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 				event.source = STYLUS_TIP;
 				state->emit_event_fn(&event);
 				state->stylus_is_eraser = false;
-			}
-			else if (!state->stylus_is_eraser && !tip && button2) {
+			} else if (!state->stylus_is_eraser && !tip && button2) {
 				event.type = PROXIMITY_OUT;
 				event.source = STYLUS_TIP;
 				state->emit_event_fn(&event);
@@ -169,8 +163,7 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 				event.source = STYLUS_TIP;
 				event.button = 1;
 				state->emit_event_fn(&event);
-			}
-			else if (!tip && state->tip_pressed) {
+			} else if (!tip && state->tip_pressed) {
 				state->tip_pressed = false;
 				event.type = RELEASE;
 				event.source = STYLUS_TIP;
@@ -183,8 +176,7 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 				event.source = STYLUS_TIP;
 				event.button = 2;
 				state->emit_event_fn(&event);
-			}
-			else if (!button1 && state->button1_pressed) {
+			} else if (!button1 && state->button1_pressed) {
 				state->button1_pressed = false;
 				event.type = RELEASE;
 				event.source = STYLUS_TIP;
@@ -197,8 +189,7 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 				event.source = STYLUS_TIP;
 				event.button = 3;
 				state->emit_event_fn(&event);
-			}
-			else if (!button2 && state->button2_pressed) {
+			} else if (!button2 && state->button2_pressed) {
 				state->button2_pressed = false;
 				event.type = RELEASE;
 				event.source = STYLUS_TIP;
@@ -209,16 +200,14 @@ static bool parse_event(uint8_t *packet, size_t size, isdv4_state_t *state)
 			event.source = STYLUS_TIP;
 			event.button = 0;
 			state->emit_event_fn(&event);
-		}
-		else {
+		} else {
 			if (tip && !state->tip_pressed) {
 				state->tip_pressed = true;
 				event.type = PRESS;
 				event.source = STYLUS_ERASER;
 				event.button = 1;
 				state->emit_event_fn(&event);
-			}
-			else if (!tip && state->tip_pressed) {
+			} else if (!tip && state->tip_pressed) {
 				state->tip_pressed = false;
 				event.type = RELEASE;
 				event.source = STYLUS_ERASER;
@@ -309,7 +298,8 @@ static errno_t read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 		size_t i = 0;
 
 		/* Skip data until a start of packet is found */
-		while (i < state->buf_end && (state->buf[i] & START_OF_PACKET) == 0) i++;
+		while (i < state->buf_end && (state->buf[i] & START_OF_PACKET) == 0)
+			i++;
 
 		size_t start = i;
 		size_t end = i;
@@ -321,11 +311,9 @@ static errno_t read_packets(isdv4_state_t *state, packet_consumer_fn consumer)
 			size_t packet_remaining;
 			if (state->buf[i] & CONTROL_PACKET) {
 				packet_remaining = 11;
-			}
-			else if (state->buf[i] & TOUCH_EVENT) {
+			} else if (state->buf[i] & TOUCH_EVENT) {
 				packet_remaining = 5;
-			}
-			else {
+			} else {
 				packet_remaining = 9;
 			}
 

@@ -47,7 +47,7 @@ static const usb_hid_subdriver_usage_t path_kbd[] = {
 		USB_HIDUT_PAGE_GENERIC_DESKTOP,
 		USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYBOARD
 	},
-	{0, 0}
+	{ 0, 0 }
 };
 
 static const usb_hid_subdriver_usage_t path_mouse[] = {
@@ -55,7 +55,7 @@ static const usb_hid_subdriver_usage_t path_mouse[] = {
 		USB_HIDUT_PAGE_GENERIC_DESKTOP,
 		USB_HIDUT_USAGE_GENERIC_DESKTOP_MOUSE
 	},
-	{0, 0}
+	{ 0, 0 }
 };
 
 static const usb_hid_subdriver_usage_t path_multim_key[] = {
@@ -63,7 +63,7 @@ static const usb_hid_subdriver_usage_t path_multim_key[] = {
 		USB_HIDUT_PAGE_CONSUMER,
 		USB_HIDUT_USAGE_CONSUMER_CONSUMER_CONTROL
 	},
-	{0, 0}
+	{ 0, 0 }
 };
 
 const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {

@@ -345,7 +345,8 @@ errno_t task_setup_wait(task_id_t id, task_wait_t *wait)
  *
  * @param wait task_wait_t previously initialized by task_setup_wait.
  */
-void task_cancel_wait(task_wait_t *wait) {
+void task_cancel_wait(task_wait_t *wait)
+{
 	async_forget(wait->aid);
 }
 

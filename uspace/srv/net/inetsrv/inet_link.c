@@ -67,7 +67,7 @@ static LIST_INITIALIZE(inet_links);
 static FIBRIL_MUTEX_INITIALIZE(inet_links_lock);
 
 static addr128_t link_local_node_ip =
-    {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0, 0};
+    { 0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0, 0 };
 
 static void inet_link_local_node_ip(addr48_t mac_addr,
     addr128_t ip_addr)

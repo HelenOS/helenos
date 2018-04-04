@@ -44,13 +44,13 @@ NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
 #ifdef CONFIG_SMP
 	asm volatile (
-		"lock incq %[count]\n"
-		: [count] "+m" (val->count)
+	    "lock incq %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #else
 	asm volatile (
-		"incq %[count]\n"
-		: [count] "+m" (val->count)
+	    "incq %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #endif /* CONFIG_SMP */
 }
@@ -59,13 +59,13 @@ NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
 #ifdef CONFIG_SMP
 	asm volatile (
-		"lock decq %[count]\n"
-		: [count] "+m" (val->count)
+	    "lock decq %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #else
 	asm volatile (
-		"decq %[count]\n"
-		: [count] "+m" (val->count)
+	    "decq %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #endif /* CONFIG_SMP */
 }
@@ -75,9 +75,9 @@ NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 	atomic_count_t r = 1;
 
 	asm volatile (
-		"lock xaddq %[r], %[count]\n"
-		: [count] "+m" (val->count),
-		  [r] "+r" (r)
+	    "lock xaddq %[r], %[count]\n"
+	    : [count] "+m" (val->count),
+	      [r] "+r" (r)
 	);
 
 	return r;
@@ -88,9 +88,9 @@ NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 	atomic_count_t r = -1;
 
 	asm volatile (
-		"lock xaddq %[r], %[count]\n"
-		: [count] "+m" (val->count),
-		  [r] "+r" (r)
+	    "lock xaddq %[r], %[count]\n"
+	    : [count] "+m" (val->count),
+	      [r] "+r" (r)
 	);
 
 	return r;
@@ -104,9 +104,9 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 	atomic_count_t v = 1;
 
 	asm volatile (
-		"xchgq %[v], %[count]\n"
-		: [v] "+r" (v),
-		  [count] "+m" (val->count)
+	    "xchgq %[v], %[count]\n"
+	    : [v] "+r" (v),
+	      [count] "+m" (val->count)
 	);
 
 	return v;
@@ -119,18 +119,18 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 
 	preemption_disable();
 	asm volatile (
-		"0:\n"
-		"	pause\n"
-		"	mov %[count], %[tmp]\n"
-		"	testq %[tmp], %[tmp]\n"
-		"	jnz 0b\n"       /* lightweight looping on locked spinlock */
+	    "0:\n"
+	    "	pause\n"
+	    "	mov %[count], %[tmp]\n"
+	    "	testq %[tmp], %[tmp]\n"
+	    "	jnz 0b\n"       /* lightweight looping on locked spinlock */
 
-		"	incq %[tmp]\n"  /* now use the atomic operation */
-		"	xchgq %[count], %[tmp]\n"
-		"	testq %[tmp], %[tmp]\n"
-		"	jnz 0b\n"
-		: [count] "+m" (val->count),
-		  [tmp] "=&r" (tmp)
+	    "	incq %[tmp]\n"  /* now use the atomic operation */
+	    "	xchgq %[count], %[tmp]\n"
+	    "	testq %[tmp], %[tmp]\n"
+	    "	jnz 0b\n"
+	    : [count] "+m" (val->count),
+	      [tmp] "=&r" (tmp)
 	);
 
 	/*

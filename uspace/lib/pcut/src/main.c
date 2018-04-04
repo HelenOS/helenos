@@ -56,9 +56,10 @@ static pcut_main_extra_t empty_main_extra[] = {
  * @param value Where to store the integer value.
  * @return Whether @p arg is @p opt followed by a number.
  */
-int pcut_is_arg_with_number(const char *arg, const char *opt, int *value) {
+int pcut_is_arg_with_number(const char *arg, const char *opt, int *value)
+{
 	int opt_len = pcut_str_size(opt);
-	if (! pcut_str_start_equals(arg, opt, opt_len)) {
+	if (!pcut_str_start_equals(arg, opt, opt_len)) {
 		return 0;
 	}
 	*value = pcut_str_to_int(arg + opt_len);
@@ -73,7 +74,8 @@ int pcut_is_arg_with_number(const char *arg, const char *opt, int *value) {
  * @return The item with given id.
  * @retval NULL No item with such id exists in the list.
  */
-static pcut_item_t *pcut_find_by_id(pcut_item_t *first, int id) {
+static pcut_item_t *pcut_find_by_id(pcut_item_t *first, int id)
+{
 	pcut_item_t *it = pcut_get_real(first);
 	while (it != NULL) {
 		if (it->id == id) {
@@ -91,7 +93,8 @@ static pcut_item_t *pcut_find_by_id(pcut_item_t *first, int id) {
  * @param prog_path Path to the current binary (used in forked mode).
  * @return Error code.
  */
-static int run_suite(pcut_item_t *suite, pcut_item_t **last, const char *prog_path) {
+static int run_suite(pcut_item_t *suite, pcut_item_t **last, const char *prog_path)
+{
 	int is_first_test = 1;
 	int total_count = 0;
 	int ret_code = PCUT_OUTCOME_PASS;
@@ -155,7 +158,8 @@ leave_no_print:
  *
  * @param first First item of the list.
  */
-static void set_setup_teardown_callbacks(pcut_item_t *first) {
+static void set_setup_teardown_callbacks(pcut_item_t *first)
+{
 	pcut_item_t *active_suite = NULL;
 	pcut_item_t *it;
 	for (it = first; it != NULL; it = pcut_get_real_next(it)) {
@@ -187,7 +191,8 @@ static void set_setup_teardown_callbacks(pcut_item_t *first) {
  * @param argv Original argv of the program.
  * @return Program exit code.
  */
-int pcut_main(pcut_item_t *last, int argc, char *argv[]) {
+int pcut_main(pcut_item_t *last, int argc, char *argv[])
+{
 	pcut_item_t *items = pcut_fix_list_get_real_head(last);
 	pcut_item_t *it;
 	pcut_main_extra_t *main_extras = last->main_extras;

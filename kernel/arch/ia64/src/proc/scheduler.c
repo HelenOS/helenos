@@ -64,7 +64,7 @@ void before_thread_runs_arch(void)
 		 */
 
 		/* purge DTR[TR_STACK1] and DTR[TR_STACK2] */
-		dtr_purge((uintptr_t) THREAD->kstack, PAGE_WIDTH+1);
+		dtr_purge((uintptr_t) THREAD->kstack, PAGE_WIDTH + 1);
 
 		/* insert DTR[TR_STACK1] and DTR[TR_STACK2] */
 		dtlb_kernel_mapping_insert((uintptr_t) THREAD->kstack,
@@ -83,14 +83,14 @@ void before_thread_runs_arch(void)
 	 * memory stack and the RSE stack.
 	 */
 	asm volatile (
-		"bsw.0\n"
-		"mov r22 = %0\n"
-		"mov r23 = %1\n"
-		"bsw.1\n"
-		:
-		: "r" (&THREAD->kstack[STACK_SIZE / 2]),
-		  "r" (&THREAD->kstack[STACK_SIZE / 2])
-		);
+	    "bsw.0\n"
+	    "mov r22 = %0\n"
+	    "mov r23 = %1\n"
+	    "bsw.1\n"
+	    :
+	    : "r" (&THREAD->kstack[STACK_SIZE / 2]),
+	      "r" (&THREAD->kstack[STACK_SIZE / 2])
+	);
 }
 
 void after_thread_ran_arch(void)

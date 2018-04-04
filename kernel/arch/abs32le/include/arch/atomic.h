@@ -114,7 +114,8 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
 {
 	do {
-		while (val->count);
+		while (val->count)
+			;
 	} while (test_and_set(val));
 }
 

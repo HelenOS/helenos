@@ -55,14 +55,14 @@ typedef union tsb_tag_target {
 		unsigned context : 13;	/**< Software ASID. */
 		unsigned : 6;
 		uint64_t va_tag : 42;	/**< Virtual address bits <63:22>. */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 } tsb_tag_target_t;
 
 /** TSB entry. */
 typedef struct tsb_entry {
 	tsb_tag_target_t tag;
 	tte_data_t data;
-} __attribute__ ((packed)) tsb_entry_t;
+} __attribute__((packed)) tsb_entry_t;
 
 typedef struct {
 	tsb_entry_t *itsb;

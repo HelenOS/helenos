@@ -158,8 +158,8 @@ static errno_t setup_hub(xhci_device_t *dev, usb_standard_device_descriptor_t *d
 
 	if (dev->base.speed == USB_SPEED_HIGH) {
 		dev->tt_think_time = 8 +
-			8  * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_8) +
-			16 * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_16);
+		    8  * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_8) +
+		    16 * !!(hub_desc.characteristics & HUB_CHAR_TT_THINK_16);
 	}
 
 	usb_log_debug("Device(%u): recognised USB hub with %u ports",
@@ -221,7 +221,7 @@ errno_t xhci_device_enumerate(device_t *dev)
 
 	if ((err = hc_get_device_desc(dev, &desc))) {
 		usb_log_error("Device(%d): failed to get device "
-		   "descriptor: %s", dev->address, str_error(err));
+		    "descriptor: %s", dev->address, str_error(err));
 		goto err_address;
 	}
 

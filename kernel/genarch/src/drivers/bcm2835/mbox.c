@@ -39,7 +39,8 @@
 
 static void mbox_write(bcm2835_mbox_t *mbox, uint8_t chan, uint32_t value)
 {
-	while (mbox->status & MBOX_STATUS_FULL) ;
+	while (mbox->status & MBOX_STATUS_FULL)
+		;
 	mbox->write = MBOX_COMPOSE(chan, value);
 }
 
@@ -48,7 +49,8 @@ static uint32_t mbox_read(bcm2835_mbox_t *mbox, uint8_t chan)
 	uint32_t msg;
 
 	do {
-		while (mbox->status & MBOX_STATUS_EMPTY) ;
+		while (mbox->status & MBOX_STATUS_EMPTY)
+			;
 		msg = mbox->read;
 	} while (MBOX_MSG_CHAN(msg) != chan);
 
@@ -68,9 +70,9 @@ bool bcm2835_prop_get_memory(uint32_t *base, uint32_t *size)
 	req->zero = 0;
 
 	mbox_write((bcm2835_mbox_t *)BCM2835_MBOX0_ADDR,
-		   MBOX_CHAN_PROP_A2V, KA2VCA((uint32_t)req));
+	    MBOX_CHAN_PROP_A2V, KA2VCA((uint32_t)req));
 	mbox_read((bcm2835_mbox_t *)BCM2835_MBOX0_ADDR,
-		  MBOX_CHAN_PROP_A2V);
+	    MBOX_CHAN_PROP_A2V);
 
 	if (req->buf_hdr.code == MBOX_PROP_CODE_RESP_OK) {
 		*base = req->data.base;
@@ -87,10 +89,10 @@ bool bcm2835_fb_init(fb_properties_t *prop)
 {
 	bcm2835_mbox_t *fb_mbox;
 	bool ret = false;
-        MBOX_BUFF_ALLOC(fb_desc, bcm2835_fb_desc_t);
+	MBOX_BUFF_ALLOC(fb_desc, bcm2835_fb_desc_t);
 
 	fb_mbox = (void *) km_map(BCM2835_MBOX0_ADDR, sizeof(bcm2835_mbox_t),
-				  PAGE_NOT_CACHEABLE);
+	    PAGE_NOT_CACHEABLE);
 
 	fb_desc->width = 640;
 	fb_desc->height = 480;
@@ -118,7 +120,7 @@ bool bcm2835_fb_init(fb_properties_t *prop)
 	prop->visual = VISUAL_RGB_5_6_5_LE;
 
 	printf("BCM2835 framebuffer at 0x%08x (%dx%d)\n", prop->addr,
-	       prop->x, prop->y);
+	    prop->x, prop->y);
 	ret = true;
 out:
 	km_unmap((uintptr_t)fb_mbox, sizeof(bcm2835_mbox_t));

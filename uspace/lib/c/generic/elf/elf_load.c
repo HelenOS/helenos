@@ -76,7 +76,7 @@ int elf_load(int file, elf_info_t *info)
 
 	DPRINTF("Binary is dynamically linked.\n");
 #ifdef CONFIG_RTLD
-	DPRINTF( "- prog dynamic: %p\n", info->finfo.dynamic);
+	DPRINTF("- prog dynamic: %p\n", info->finfo.dynamic);
 
 	errno_t rc2 = rtld_prog_process(&info->finfo, &env);
 	switch (rc2) {

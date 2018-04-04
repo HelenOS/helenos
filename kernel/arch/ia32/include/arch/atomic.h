@@ -45,13 +45,13 @@ NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
 #ifdef CONFIG_SMP
 	asm volatile (
-		"lock incl %[count]\n"
-		: [count] "+m" (val->count)
+	    "lock incl %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #else
 	asm volatile (
-		"incl %[count]\n"
-		: [count] "+m" (val->count)
+	    "incl %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #endif /* CONFIG_SMP */
 }
@@ -60,13 +60,13 @@ NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
 #ifdef CONFIG_SMP
 	asm volatile (
-		"lock decl %[count]\n"
-		: [count] "+m" (val->count)
+	    "lock decl %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #else
 	asm volatile (
-		"decl %[count]\n"
-		: [count] "+m" (val->count)
+	    "decl %[count]\n"
+	    : [count] "+m" (val->count)
 	);
 #endif /* CONFIG_SMP */
 }
@@ -76,9 +76,9 @@ NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 	atomic_count_t r = 1;
 
 	asm volatile (
-		"lock xaddl %[r], %[count]\n"
-		: [count] "+m" (val->count),
-		  [r] "+r" (r)
+	    "lock xaddl %[r], %[count]\n"
+	    : [count] "+m" (val->count),
+	      [r] "+r" (r)
 	);
 
 	return r;
@@ -89,9 +89,9 @@ NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 	atomic_count_t r = -1;
 
 	asm volatile (
-		"lock xaddl %[r], %[count]\n"
-		: [count] "+m" (val->count),
-		  [r] "+r" (r)
+	    "lock xaddl %[r], %[count]\n"
+	    : [count] "+m" (val->count),
+	      [r] "+r" (r)
 	);
 
 	return r;
@@ -105,9 +105,9 @@ NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 	atomic_count_t v = 1;
 
 	asm volatile (
-		"xchgl %[v], %[count]\n"
-		: [v] "+r" (v),
-		  [count] "+m" (val->count)
+	    "xchgl %[v], %[count]\n"
+	    : [v] "+r" (v),
+	      [count] "+m" (val->count)
 	);
 
 	return v;
@@ -121,20 +121,20 @@ NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 
 	preemption_disable();
 	asm volatile (
-		"0:\n"
+	    "0:\n"
 #ifndef PROCESSOR_i486
-		"pause\n"        /* Pentium 4's HT love this instruction */
+	    "pause\n"        /* Pentium 4's HT love this instruction */
 #endif
-		"mov %[count], %[tmp]\n"
-		"testl %[tmp], %[tmp]\n"
-		"jnz 0b\n"       /* lightweight looping on locked spinlock */
+	    "mov %[count], %[tmp]\n"
+	    "testl %[tmp], %[tmp]\n"
+	    "jnz 0b\n"       /* lightweight looping on locked spinlock */
 
-		"incl %[tmp]\n"  /* now use the atomic operation */
-		"xchgl %[count], %[tmp]\n"
-		"testl %[tmp], %[tmp]\n"
-		"jnz 0b\n"
-		: [count] "+m" (val->count),
-		  [tmp] "=&r" (tmp)
+	    "incl %[tmp]\n"  /* now use the atomic operation */
+	    "xchgl %[count], %[tmp]\n"
+	    "testl %[tmp], %[tmp]\n"
+	    "jnz 0b\n"
+	    : [count] "+m" (val->count),
+	      [tmp] "=&r" (tmp)
 	);
 
 	/*

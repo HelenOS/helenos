@@ -54,7 +54,7 @@ descriptor_t gdt[GDT_ITEMS] = {
 	[KTEXT_DES] = {
 		.limit_0_15 = 0xffffU,
 		.limit_16_19 = 0xfU,
-	  	.access = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE,
+		.access = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE,
 		.longmode = 1,
 		.granularity = 1
 	},

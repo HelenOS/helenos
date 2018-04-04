@@ -38,11 +38,11 @@
 #include <trace.h>
 
 #ifdef __32_BITS__
-	#define fnzb(arg)  fnzb32(arg)
+#define fnzb(arg)  fnzb32(arg)
 #endif
 
 #ifdef __64_BITS__
-	#define fnzb(arg)  fnzb64(arg)
+#define fnzb(arg)  fnzb64(arg)
 #endif
 
 /** Return position of first non-zero bit from left (32b variant).

@@ -43,7 +43,7 @@
 
 static inline size_t handle_key_hash(void *key)
 {
-	devman_handle_t handle = *(devman_handle_t*)key;
+	devman_handle_t handle = *(devman_handle_t *)key;
 	return handle;
 }
 
@@ -61,21 +61,21 @@ static size_t devman_functions_hash(const ht_link_t *item)
 
 static bool devman_devices_key_equal(void *key, const ht_link_t *item)
 {
-	devman_handle_t handle = *(devman_handle_t*)key;
+	devman_handle_t handle = *(devman_handle_t *)key;
 	dev_node_t *dev = hash_table_get_inst(item, dev_node_t, devman_dev);
 	return dev->handle == handle;
 }
 
 static bool devman_functions_key_equal(void *key, const ht_link_t *item)
 {
-	devman_handle_t handle = *(devman_handle_t*)key;
+	devman_handle_t handle = *(devman_handle_t *)key;
 	fun_node_t *fun = hash_table_get_inst(item, fun_node_t, devman_fun);
 	return fun->handle == handle;
 }
 
 static inline size_t service_id_key_hash(void *key)
 {
-	service_id_t service_id = *(service_id_t*)key;
+	service_id_t service_id = *(service_id_t *)key;
 	return service_id;
 }
 
@@ -87,7 +87,7 @@ static size_t loc_functions_hash(const ht_link_t *item)
 
 static bool loc_functions_key_equal(void *key, const ht_link_t *item)
 {
-	service_id_t service_id = *(service_id_t*)key;
+	service_id_t service_id = *(service_id_t *)key;
 	fun_node_t *fun = hash_table_get_inst(item, fun_node_t, loc_fun);
 	return fun->service_id == service_id;
 }

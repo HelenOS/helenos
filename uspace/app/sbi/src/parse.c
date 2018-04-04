@@ -182,10 +182,17 @@ static stree_csi_t *parse_csi(parse_t *parse, lclass_t dclass,
 	stree_texpr_t *pref;
 
 	switch (dclass) {
-	case lc_class: cc = csi_class; break;
-	case lc_struct: cc = csi_struct; break;
-	case lc_interface: cc = csi_interface; break;
-	default: assert(b_false);
+	case lc_class:
+		cc = csi_class;
+		break;
+	case lc_struct:
+		cc = csi_struct;
+		break;
+	case lc_interface:
+		cc = csi_interface;
+		break;
+	default:
+		assert(b_false);
 	}
 
 	lskip(parse);
@@ -773,8 +780,12 @@ static stree_symbol_attr_t *parse_symbol_attr(parse_t *parse)
 	sac = 0;
 
 	switch (lcur_lc(parse)) {
-	case lc_builtin: sac = sac_builtin; break;
-	case lc_static: sac = sac_static; break;
+	case lc_builtin:
+		sac = sac_builtin;
+		break;
+	case lc_static:
+		sac = sac_static;
+		break;
 	default:
 		cspan_print(lcur_span(parse));
 		printf(" Error: Unexpected attribute '");
@@ -886,7 +897,7 @@ static stree_fun_sig_t *parse_fun_sig(parse_t *parse)
 	lmatch(parse, lc_rparen);
 
 	if (lcur_lc(parse) == lc_colon) {
-	    	lskip(parse);
+		lskip(parse);
 		sig->rtype = parse_texpr(parse);
 	} else {
 		sig->rtype = NULL;
@@ -1646,8 +1657,10 @@ void lcheck(parse_t *parse, lclass_t lc)
 #endif
 	if (lcur(parse)->lclass != lc) {
 		lem_print_coords(lcur(parse));
-		printf(" Error: expected '"); lclass_print(lc);
-		printf("', got '"); lem_print(lcur(parse));
+		printf(" Error: expected '");
+		lclass_print(lc);
+		printf("', got '");
+		lem_print(lcur(parse));
 		printf("'.\n");
 		parse_raise_error(parse);
 	}

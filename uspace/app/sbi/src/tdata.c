@@ -499,12 +499,24 @@ void tdata_item_print(tdata_item_t *titem)
 static void tdata_tprimitive_print(tdata_primitive_t *tprimitive)
 {
 	switch (tprimitive->tpc) {
-	case tpc_bool: printf("bool"); break;
-	case tpc_char: printf("char"); break;
-	case tpc_int: printf("int"); break;
-	case tpc_nil: printf("nil"); break;
-	case tpc_string: printf("string"); break;
-	case tpc_resource: printf("resource"); break;
+	case tpc_bool:
+		printf("bool");
+		break;
+	case tpc_char:
+		printf("char");
+		break;
+	case tpc_int:
+		printf("int");
+		break;
+	case tpc_nil:
+		printf("nil");
+		break;
+	case tpc_string:
+		printf("string");
+		break;
+	case tpc_resource:
+		printf("resource");
+		break;
 	}
 }
 

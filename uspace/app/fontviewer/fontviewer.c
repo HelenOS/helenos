@@ -81,9 +81,8 @@ static void on_keyboard_event(widget_t *widget, void *data)
 			if (event->key == KC_DOWN) {
 				if (points <= increment) {
 					points = 1;
-				}
-				else {
-					points-= increment;
+				} else {
+					points -= increment;
 				}
 			}
 
@@ -138,7 +137,7 @@ static void horizontal_line(drawctx_t *drawctx, surface_coord_t y,
 }
 
 static int text(drawctx_t *, font_t *, source_t *, surface_coord_t x,
-    surface_coord_t , const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(6, 7);
+    surface_coord_t, const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(6, 7);
 static int text(drawctx_t *drawctx, font_t *font, source_t *source,
     surface_coord_t x, surface_coord_t y, const char *fmt, ...)
 {
@@ -252,8 +251,7 @@ int main(int argc, char *argv[])
 
 	if (argc < 3) {
 		font_path = NULL;
-	}
-	else {
+	} else {
 		font_path = argv[2];
 	}
 

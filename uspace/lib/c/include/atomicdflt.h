@@ -36,7 +36,7 @@
 #define LIBC_ATOMICDFLT_H_
 
 #ifndef LIBC_ARCH_ATOMIC_H_
-	#error This file cannot be included directly, include atomic.h instead.
+#error This file cannot be included directly, include atomic.h instead.
 #endif
 
 #include <types/common.h>

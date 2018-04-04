@@ -109,7 +109,8 @@ int context_save_arch(context_t *ctx)
 
 void context_restore_arch(context_t *ctx)
 {
-	while (true);
+	while (true)
+		;
 }
 
 void fpu_init(void)

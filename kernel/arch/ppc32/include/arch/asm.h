@@ -46,8 +46,8 @@ NO_TRACE static inline uint32_t msr_read(void)
 	uint32_t msr;
 
 	asm volatile (
-		"mfmsr %[msr]\n"
-		: [msr] "=r" (msr)
+	    "mfmsr %[msr]\n"
+	    : [msr] "=r" (msr)
 	);
 
 	return msr;
@@ -56,20 +56,20 @@ NO_TRACE static inline uint32_t msr_read(void)
 NO_TRACE static inline void msr_write(uint32_t msr)
 {
 	asm volatile (
-		"mtmsr %[msr]\n"
-		"isync\n"
-		:: [msr] "r" (msr)
+	    "mtmsr %[msr]\n"
+	    "isync\n"
+	    :: [msr] "r" (msr)
 	);
 }
 
 NO_TRACE static inline void sr_set(uint32_t flags, asid_t asid, uint32_t sr)
 {
 	asm volatile (
-		"mtsrin %[value], %[sr]\n"
-		"sync\n"
-		"isync\n"
-		:: [value] "r" ((flags << 16) + (asid << 4) + sr),
-		   [sr] "r" (sr << 28)
+	    "mtsrin %[value], %[sr]\n"
+	    "sync\n"
+	    "isync\n"
+	    :: [value] "r" ((flags << 16) + (asid << 4) + sr),
+	      [sr] "r" (sr << 28)
 	);
 }
 
@@ -78,9 +78,9 @@ NO_TRACE static inline uint32_t sr_get(uint32_t vaddr)
 	uint32_t vsid;
 
 	asm volatile (
-		"mfsrin %[vsid], %[vaddr]\n"
-		: [vsid] "=r" (vsid)
-		: [vaddr] "r" (vaddr)
+	    "mfsrin %[vsid], %[vaddr]\n"
+	    : [vsid] "=r" (vsid)
+	    : [vaddr] "r" (vaddr)
 	);
 
 	return vsid;
@@ -91,8 +91,8 @@ NO_TRACE static inline uint32_t sdr1_get(void)
 	uint32_t sdr1;
 
 	asm volatile (
-		"mfsdr1 %[sdr1]\n"
-		: [sdr1] "=r" (sdr1)
+	    "mfsdr1 %[sdr1]\n"
+	    : [sdr1] "=r" (sdr1)
 	);
 
 	return sdr1;
@@ -174,9 +174,9 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	uintptr_t base;
 
 	asm volatile (
-		"and %[base], %%sp, %[mask]\n"
-		: [base] "=r" (base)
-		: [mask] "r" (~(STACK_SIZE - 1))
+	    "and %[base], %%sp, %[mask]\n"
+	    : [base] "=r" (base)
+	    : [mask] "r" (~(STACK_SIZE - 1))
 	);
 
 	return base;

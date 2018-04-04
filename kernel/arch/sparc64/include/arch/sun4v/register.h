@@ -52,7 +52,7 @@ union pstate_reg {
 		unsigned priv : 1;	/**< Privileged Mode. */
 		unsigned ie : 1;	/**< Interrupt Enable. */
 		unsigned : 1;
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 };
 typedef union pstate_reg pstate_reg_t;
 

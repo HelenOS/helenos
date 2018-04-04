@@ -137,7 +137,8 @@ void exit(int status)
 	__SYSCALL1(SYS_TASK_EXIT, false);
 
 	/* Unreachable */
-	while (1);
+	while (1)
+		;
 }
 
 void abort(void)
@@ -145,7 +146,8 @@ void abort(void)
 	__SYSCALL1(SYS_TASK_EXIT, true);
 
 	/* Unreachable */
-	while (1);
+	while (1)
+		;
 }
 
 /** @}

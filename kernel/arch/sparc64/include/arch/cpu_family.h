@@ -49,7 +49,7 @@ static inline bool is_us(void)
 {
 	int impl = ((ver_reg_t) ver_read()).impl;
 	return (impl == IMPL_ULTRASPARCI) || (impl == IMPL_ULTRASPARCII) ||
-	       (impl == IMPL_ULTRASPARCII_I) ||  (impl == IMPL_ULTRASPARCII_E);
+	    (impl == IMPL_ULTRASPARCII_I) ||  (impl == IMPL_ULTRASPARCII_E);
 }
 
 /**
@@ -61,8 +61,8 @@ static inline bool is_us_iii(void)
 {
 	int impl = ((ver_reg_t) ver_read()).impl;
 	return (impl == IMPL_ULTRASPARCIII) ||
-	       (impl == IMPL_ULTRASPARCIII_PLUS) ||
-	       (impl == IMPL_ULTRASPARCIII_I);
+	    (impl == IMPL_ULTRASPARCIII_PLUS) ||
+	    (impl == IMPL_ULTRASPARCIII_I);
 }
 
 /**

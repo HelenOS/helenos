@@ -46,14 +46,14 @@ static const errno_t err_num[] = {
 #undef __errno_entry
 #define __errno_entry(name, num, desc) #name,
 
-static const char* err_name[] = {
+static const char *err_name[] = {
 #include <abi/errno.in>
 };
 
 #undef __errno_entry
 #define __errno_entry(name, num, desc) "[" #name "]" desc,
 
-static const char* err_desc[] = {
+static const char *err_desc[] = {
 #include <abi/errno.in>
 };
 

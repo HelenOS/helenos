@@ -427,7 +427,7 @@ static errno_t disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 		d->geom.sectors = 0;
 
 		d->blocks =
-		     (uint32_t) idata.total_lba28_0 |
+		    (uint32_t) idata.total_lba28_0 |
 		    ((uint32_t) idata.total_lba28_1 << 16);
 	} else {
 		/* Device supports LBA-48 addressing. */
@@ -438,7 +438,7 @@ static errno_t disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 		d->geom.sectors = 0;
 
 		d->blocks =
-		     (uint64_t) idata.total_lba48_0 |
+		    (uint64_t) idata.total_lba48_0 |
 		    ((uint64_t) idata.total_lba48_1 << 16) |
 		    ((uint64_t) idata.total_lba48_2 << 32) |
 		    ((uint64_t) idata.total_lba48_3 << 48);
@@ -460,7 +460,8 @@ static errno_t disk_init(ata_ctrl_t *ctrl, disk_t *d, int disk_id)
 	pos = 0;
 	for (i = 0; i < len; ++i) {
 		c = model[i];
-		if (c >= 0x80) c = '?';
+		if (c >= 0x80)
+			c = '?';
 
 		chr_encode(c, d->model, &pos, 40);
 	}
@@ -794,7 +795,7 @@ static errno_t ata_cmd_packet(disk_t *disk, const void *cpkt, size_t cpkt_size,
 
 	pio_write_8(&ctrl->cmd->drive_head, drv_head);
 
-	if (wait_status(ctrl, 0, ~(SR_BSY|SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
+	if (wait_status(ctrl, 0, ~(SR_BSY | SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
 		fibril_mutex_unlock(&ctrl->lock);
 		return EIO;
 	}
@@ -1262,7 +1263,8 @@ static errno_t wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
 	cnt = 100;
 	while ((status & ~n_reset) != 0 || (status & set) != set) {
 		--cnt;
-		if (cnt <= 0) break;
+		if (cnt <= 0)
+			break;
 
 		status = pio_read_8(&ctrl->cmd->status);
 	}
@@ -1271,7 +1273,8 @@ static errno_t wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
 	while ((status & ~n_reset) != 0 || (status & set) != set) {
 		async_usleep(10000);
 		--cnt;
-		if (cnt <= 0) break;
+		if (cnt <= 0)
+			break;
 
 		status = pio_read_8(&ctrl->cmd->status);
 	}

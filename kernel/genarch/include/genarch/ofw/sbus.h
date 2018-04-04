@@ -37,13 +37,13 @@
 typedef struct {
 	uint64_t addr;
 	uint32_t size;
-} __attribute__ ((packed)) ofw_sbus_reg_t;
+} __attribute__((packed)) ofw_sbus_reg_t;
 
 typedef struct {
 	uint64_t child_base;
 	uint64_t parent_base;
 	uint32_t size;
-} __attribute__ ((packed)) ofw_sbus_range_t;
+} __attribute__((packed)) ofw_sbus_range_t;
 
 extern bool ofw_sbus_apply_ranges(ofw_tree_node_t *, ofw_sbus_reg_t *,
     uintptr_t *);

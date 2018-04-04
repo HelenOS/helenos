@@ -161,9 +161,9 @@ static const usb_driver_ops_t usb_hid_driver_ops = {
 
 /** The driver itself. */
 static const usb_driver_t usb_hid_driver = {
-        .name = NAME,
-        .ops = &usb_hid_driver_ops,
-        .endpoints = usb_hid_endpoints
+	.name = NAME,
+	.ops = &usb_hid_driver_ops,
+	.endpoints = usb_hid_endpoints
 };
 
 int main(int argc, char *argv[])

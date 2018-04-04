@@ -98,11 +98,11 @@ void cpu_arch_init(void)
 		while (node) {
 			int f;
 			f = find_cpu_frequency(
-				ofw_tree_find_child(node, "cpu@0"));
+			    ofw_tree_find_child(node, "cpu@0"));
 			if (f != -1)
 				clock_frequency = (uint32_t) f;
 			f = find_cpu_frequency(
-				ofw_tree_find_child(node, "cpu@1"));
+			    ofw_tree_find_child(node, "cpu@1"));
 			if (f != -1)
 				clock_frequency = (uint32_t) f;
 			node = ofw_tree_find_peer_by_name(node, "cmp");
@@ -139,7 +139,7 @@ void cpu_print_report(cpu_t *m)
 		manuf = "UltraSPARC";
 		break;
 	case MANUF_SUN:
-	    	manuf = "Sun";
+		manuf = "Sun";
 		break;
 	default:
 		manuf = "Unknown";
@@ -183,7 +183,7 @@ void cpu_print_report(cpu_t *m)
 	}
 
 	printf("cpu%d: manuf=%s, impl=%s, mask=%d (%d MHz)\n", m->id, manuf,
-		impl, m->arch.ver.mask, m->arch.clock_frequency / 1000000);
+	    impl, m->arch.ver.mask, m->arch.clock_frequency / 1000000);
 }
 
 /** @}

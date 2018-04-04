@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #if !(defined(__BE__) ^ defined(__LE__))
-	#error The architecture must be either big-endian or little-endian.
+#error The architecture must be either big-endian or little-endian.
 #endif
 
 typedef struct {

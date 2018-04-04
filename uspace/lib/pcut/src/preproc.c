@@ -35,15 +35,18 @@
 
 static int counter = 0;
 
-static void print_numbered_identifier(int value, FILE *output) {
+static void print_numbered_identifier(int value, FILE *output)
+{
 	fprintf(output, "pcut_item_%d", value);
 }
 
-static void print_numbered_identifier2(int value, FILE *output) {
+static void print_numbered_identifier2(int value, FILE *output)
+{
 	fprintf(output, "pcut_item2_%d", value);
 }
 
-static void print_numbered_identifier3(int value, FILE *output) {
+static void print_numbered_identifier3(int value, FILE *output)
+{
 	fprintf(output, "pcut_item3_%d", value);
 }
 
@@ -52,12 +55,14 @@ typedef struct {
 	size_t length;
 } identifier_t;
 
-static void identifier_init(identifier_t *identifier) {
+static void identifier_init(identifier_t *identifier)
+{
 	identifier->name[0] = 0;
 	identifier->length = 0;
 }
 
-static void identifier_add_char(identifier_t *identifier, char c) {
+static void identifier_add_char(identifier_t *identifier, char c)
+{
 	if (identifier->length + 1 >= MAX_IDENTIFIER_LENGTH) {
 		fprintf(stderr, "Identifier %s is too long, aborting!\n", identifier->name);
 		exit(1);
@@ -68,7 +73,8 @@ static void identifier_add_char(identifier_t *identifier, char c) {
 	identifier->name[identifier->length] = 0;
 }
 
-static void identifier_print_or_expand(identifier_t *identifier, FILE *output) {
+static void identifier_print_or_expand(identifier_t *identifier, FILE *output)
+{
 	const char *name = identifier->name;
 	if (strcmp(name, "PCUT_ITEM_NAME") == 0) {
 		print_numbered_identifier(counter, output);
@@ -85,12 +91,13 @@ static void identifier_print_or_expand(identifier_t *identifier, FILE *output) {
 	}
 }
 
-static int is_identifier_char(int c, int inside_identifier) {
-	return isalpha(c) || (c == '_')
-			|| (inside_identifier && isdigit(c));
+static int is_identifier_char(int c, int inside_identifier)
+{
+	return isalpha(c) || (c == '_') || (inside_identifier && isdigit(c));
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	FILE *input = stdin;
 	FILE *output = stdout;
 

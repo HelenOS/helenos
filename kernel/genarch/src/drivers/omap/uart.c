@@ -42,7 +42,8 @@
 static void omap_uart_txb(omap_uart_t *uart, uint8_t b)
 {
 	/* Wait for buffer */
-	while (uart->regs->ssr & OMAP_UART_SSR_TX_FIFO_FULL_FLAG);
+	while (uart->regs->ssr & OMAP_UART_SSR_TX_FIFO_FULL_FLAG)
+		;
 	/* Write to the outgoing fifo */
 	uart->regs->thr = b;
 }
@@ -92,7 +93,8 @@ bool omap_uart_init(
 
 	/* Soft reset the port */
 	uart->regs->sysc = OMAP_UART_SYSC_SOFTRESET_FLAG;
-	while (!(uart->regs->syss & OMAP_UART_SYSS_RESETDONE_FLAG));
+	while (!(uart->regs->syss & OMAP_UART_SYSS_RESETDONE_FLAG))
+		;
 
 	/* Disable the UART module */
 	uart->regs->mdr1 |= OMAP_UART_MDR_MS_DISABLE;

@@ -76,7 +76,7 @@ typedef struct td {
 	/* 64 bit struct only */
 	volatile uint32_t extended_bp[5];
 
-} __attribute__((packed,aligned(32))) td_t;
+} __attribute__((packed, aligned(32))) td_t;
 
 static_assert(sizeof(td_t) % 32 == 0);
 

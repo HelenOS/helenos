@@ -67,7 +67,7 @@ typedef struct test_desc {
 		T_SANITY,
 		T_STRESS
 	} type;
-	bool (*func)(struct test_info*);
+	bool (*func)(struct test_info *);
 	const char *name;
 	const char *desc;
 } test_desc_t;
@@ -80,15 +80,15 @@ typedef struct test_info {
 
 
 
-static bool run_all_tests(struct test_info*);
-static bool run_sanity_tests(struct test_info*);
-static bool run_stress_tests(struct test_info*);
+static bool run_all_tests(struct test_info *);
+static bool run_sanity_tests(struct test_info *);
+static bool run_stress_tests(struct test_info *);
 
-static bool wait_for_one_reader(struct test_info*);
-static bool basic_sanity_check(struct test_info*);
-static bool dont_wait_for_new_reader(struct test_info*);
-static bool wait_for_exiting_reader(struct test_info*);
-static bool seq_test(struct test_info*);
+static bool wait_for_one_reader(struct test_info *);
+static bool basic_sanity_check(struct test_info *);
+static bool dont_wait_for_new_reader(struct test_info *);
+static bool wait_for_exiting_reader(struct test_info *);
+static bool seq_test(struct test_info *);
 
 
 static test_desc_t test_desc[] = {
@@ -170,7 +170,7 @@ static size_t next_rand(size_t seed)
 
 typedef errno_t (*fibril_func_t)(void *);
 
-static bool create_fibril(errno_t (*func)(void*), void *arg)
+static bool create_fibril(errno_t (*func)(void *), void *arg)
 {
 	fid_t fid = fibril_create(func, arg);
 
@@ -656,7 +656,7 @@ static errno_t seq_reader(seq_test_info_t *arg)
 
 	for (size_t k = 0; k < arg->read_iters; ++k) {
 		/* Print progress if the first reader fibril. */
-		if (first && 0 == k % (arg->read_iters/100 + 1)) {
+		if (first && 0 == k % (arg->read_iters / 100 + 1)) {
 			printf(".");
 		}
 
@@ -716,8 +716,8 @@ static bool seq_test(test_info_t *test_info)
 	size_t updater_cnt = test_info->thread_cnt;
 
 	seq_test_info_t info = {
-		.time = {0},
-		.max_start_time_of_done_sync = {0},
+		.time = { 0 },
+		.max_start_time_of_done_sync = { 0 },
 		.read_iters = 10 * 1000,
 		.upd_iters = 5 * 1000,
 		.total_workers = updater_cnt + reader_cnt,
@@ -725,7 +725,7 @@ static bool seq_test(test_info_t *test_info)
 		.done_updater_cnt = 0,
 		.done_cnt_mtx = FIBRIL_MUTEX_INITIALIZER(info.done_cnt_mtx),
 		.done_cnt_changed = FIBRIL_CONDVAR_INITIALIZER(info.done_cnt_changed),
-		.seed = {0},
+		.seed = { 0 },
 		.failed = 0,
 	};
 

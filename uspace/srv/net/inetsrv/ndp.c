@@ -48,7 +48,7 @@
 #define NDP_REQUEST_TIMEOUT  (3 * 1000 * 1000)
 
 static addr128_t solicited_node_ip =
-    {0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0};
+    { 0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xff, 0, 0, 0 };
 
 /** Compute solicited node IPv6 multicast address from target IPv6 address
  *

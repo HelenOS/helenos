@@ -63,7 +63,7 @@ int is_builtin_alias(const char *command)
 	if (NULL == command)
 		return -1;
 
-	for(i=0; builtin_aliases[i] != NULL; i+=2) {
+	for (i = 0; builtin_aliases[i] != NULL; i += 2) {
 		if (!str_cmp(builtin_aliases[i], command))
 			return 1;
 	}
@@ -78,9 +78,9 @@ char *alias_for_builtin(const char *command)
 	if (NULL == command)
 		return (char *)NULL;
 
-	for(i=0; builtin_aliases[i] != NULL; i+=2) {
+	for (i = 0; builtin_aliases[i] != NULL; i += 2) {
 		if (!str_cmp(builtin_aliases[i], command))
-			return (char *)builtin_aliases[i+1];
+			return (char *)builtin_aliases[i + 1];
 	}
 
 	return (char *)NULL;

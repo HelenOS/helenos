@@ -187,7 +187,7 @@ typedef union {
 } float128;
 
 #else
-	#error Unknown endianess
+#error Unknown endianess
 #endif
 
 #if __SIZEOF_FLOAT__ == 4

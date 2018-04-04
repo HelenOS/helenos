@@ -499,7 +499,7 @@ void xor128(
  */
 void not128(
     uint64_t a_hi, uint64_t a_lo,
-	uint64_t *r_hi, uint64_t *r_lo)
+    uint64_t *r_hi, uint64_t *r_lo)
 {
 	*r_hi = ~a_hi;
 	*r_lo = ~a_lo;

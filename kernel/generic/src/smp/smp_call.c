@@ -121,7 +121,7 @@ void smp_call(unsigned int cpu_id, smp_call_func_t func, void *arg)
  *          be valid until the function completes.
  */
 void smp_call_async(unsigned int cpu_id, smp_call_func_t func, void *arg,
-	smp_call_t *call_info)
+    smp_call_t *call_info)
 {
 	/*
 	 * Interrupts must not be disabled or you run the risk of a deadlock
@@ -221,8 +221,8 @@ void smp_call_ipi_recv(void)
 	spinlock_unlock(&CPU->smp_calls_lock);
 
 	/* Walk the list manually, so that we can safely remove list items. */
-	for (link_t *cur = calls_list.head.next, *next = cur->next;
-		!list_empty(&calls_list); cur = next, next = cur->next) {
+	for (link_t * cur = calls_list.head.next, *next = cur->next;
+	    !list_empty(&calls_list); cur = next, next = cur->next) {
 
 		smp_call_t *call_info = list_get_instance(cur, smp_call_t, calls_link);
 		list_remove(cur);

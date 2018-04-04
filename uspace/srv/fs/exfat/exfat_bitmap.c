@@ -166,7 +166,7 @@ errno_t exfat_bitmap_set_clusters(exfat_bs_t *bs, service_id_t service_id,
 	exfat_cluster_t clst;
 	clst = firstc;
 
-	while (clst < firstc + count ) {
+	while (clst < firstc + count) {
 		rc = exfat_bitmap_set_cluster(bs, service_id, clst);
 		if (rc != EOK) {
 			if (clst - firstc > 0)
@@ -210,7 +210,7 @@ errno_t exfat_bitmap_alloc_clusters(exfat_bs_t *bs, service_id_t service_id,
 			} else
 				endc++;
 		}
-		startc = endc+1;
+		startc = endc + 1;
 	}
 	return ENOSPC;
 }
@@ -228,7 +228,7 @@ errno_t exfat_bitmap_append_clusters(exfat_bs_t *bs, exfat_node_t *nodep,
 
 		clst = lastc + 1;
 		while (exfat_bitmap_is_free(bs, nodep->idx->service_id, clst) == EOK) {
-			if (clst - lastc == count){
+			if (clst - lastc == count) {
 				return exfat_bitmap_set_clusters(bs, nodep->idx->service_id,
 				    lastc + 1, count);
 			} else

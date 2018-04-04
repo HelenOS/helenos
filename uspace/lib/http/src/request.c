@@ -83,8 +83,7 @@ static ssize_t http_encode_method(char *buf, size_t buf_size,
 {
 	if (buf == NULL) {
 		return printf_size(HTTP_METHOD_LINE, method, path);
-	}
-	else {
+	} else {
 		return snprintf(buf, buf_size, HTTP_METHOD_LINE, method, path);
 	}
 }

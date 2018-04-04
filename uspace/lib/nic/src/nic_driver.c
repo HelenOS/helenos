@@ -169,8 +169,8 @@ void nic_set_send_frame_handler(nic_t *nic_data, send_frame_handler sffunc)
  * @param on_stopping	Called when device is going to the STOP state.
  */
 void nic_set_state_change_handlers(nic_t *nic_data,
-	state_change_handler on_activating, state_change_handler on_going_down,
-	state_change_handler on_stopping)
+    state_change_handler on_activating, state_change_handler on_going_down,
+    state_change_handler on_stopping)
 {
 	nic_data->on_activating = on_activating;
 	nic_data->on_going_down = on_going_down;
@@ -189,11 +189,11 @@ void nic_set_state_change_handlers(nic_t *nic_data,
  * @param on_vlan_mask_change
  */
 void nic_set_filtering_change_handlers(nic_t *nic_data,
-	unicast_mode_change_handler on_unicast_mode_change,
-	multicast_mode_change_handler on_multicast_mode_change,
-	broadcast_mode_change_handler on_broadcast_mode_change,
-	blocked_sources_change_handler on_blocked_sources_change,
-	vlan_mask_change_handler on_vlan_mask_change)
+    unicast_mode_change_handler on_unicast_mode_change,
+    multicast_mode_change_handler on_multicast_mode_change,
+    broadcast_mode_change_handler on_broadcast_mode_change,
+    blocked_sources_change_handler on_blocked_sources_change,
+    vlan_mask_change_handler on_vlan_mask_change)
 {
 	nic_data->on_unicast_mode_change = on_unicast_mode_change;
 	nic_data->on_multicast_mode_change = on_multicast_mode_change;
@@ -211,7 +211,7 @@ void nic_set_filtering_change_handlers(nic_t *nic_data,
  * @param on_wv_remove	Called when a virtue is removed
  */
 void nic_set_wol_virtue_change_handlers(nic_t *nic_data,
-	wol_virtue_add_handler on_wv_add, wol_virtue_remove_handler on_wv_remove)
+    wol_virtue_add_handler on_wv_add, wol_virtue_remove_handler on_wv_remove)
 {
 	assert(on_wv_add != NULL && on_wv_remove != NULL);
 	nic_data->on_wol_virtue_add = on_wv_add;
@@ -226,7 +226,7 @@ void nic_set_wol_virtue_change_handlers(nic_t *nic_data,
  * @param on_poll_request		Called when poll request is triggered
  */
 void nic_set_poll_handlers(nic_t *nic_data,
-	poll_mode_change_handler on_poll_mode_change, poll_request_handler on_poll_req)
+    poll_mode_change_handler on_poll_mode_change, poll_request_handler on_poll_req)
 {
 	nic_data->on_poll_mode_change = on_poll_mode_change;
 	nic_data->on_poll_request = on_poll_req;
@@ -368,7 +368,7 @@ static void nic_driver_release_frame_list(nic_frame_list_t *frames)
  * @param frame		Appended frame
  */
 void nic_frame_list_append(nic_frame_list_t *frames,
-	nic_frame_t *frame)
+    nic_frame_t *frame)
 {
 	assert(frame != NULL && frames != NULL);
 	list_append(&frame->link, frames);
@@ -399,7 +399,7 @@ nic_poll_mode_t nic_query_poll_mode(nic_t *nic_data, struct timeval *period)
  *  @return EINVAL
  */
 errno_t nic_report_poll_mode(nic_t *nic_data, nic_poll_mode_t mode,
-	struct timeval *period)
+    struct timeval *period)
 {
 	errno_t rc = EOK;
 	fibril_rwlock_write_lock(&nic_data->main_lock);
@@ -407,8 +407,8 @@ errno_t nic_report_poll_mode(nic_t *nic_data, nic_poll_mode_t mode,
 	nic_data->default_poll_mode = mode;
 	if (mode == NIC_POLL_PERIODIC) {
 		if (period) {
-			memcpy(&nic_data->default_poll_period, period, sizeof (struct timeval));
-			memcpy(&nic_data->poll_period, period, sizeof (struct timeval));
+			memcpy(&nic_data->default_poll_period, period, sizeof(struct timeval));
+			memcpy(&nic_data->poll_period, period, sizeof(struct timeval));
 		} else {
 			rc = EINVAL;
 		}
@@ -481,7 +481,8 @@ errno_t nic_report_address(nic_t *nic_data, const nic_address_t *address)
  * @param nic_data The controller data
  * @param address The output for address.
  */
-void nic_query_address(nic_t *nic_data, nic_address_t *addr) {
+void nic_query_address(nic_t *nic_data, nic_address_t *addr)
+{
 	if (!addr)
 		return;
 
@@ -574,7 +575,7 @@ void nic_received_frame_list(nic_t *nic_data, nic_frame_list_t *frames)
 		return;
 	while (!list_empty(frames)) {
 		nic_frame_t *frame =
-			list_get_instance(list_first(frames), nic_frame_t, link);
+		    list_get_instance(list_first(frames), nic_frame_t, link);
 
 		list_remove(&frame->link);
 		nic_received_frame(nic_data, frame);
@@ -684,10 +685,10 @@ void nic_unbind_and_destroy(ddf_dev_t *device)
  * @param	vlan_exact		VLAN tags
  */
 void nic_report_hw_filtering(nic_t *nic_data,
-	int unicast_exact, int multicast_exact, int vlan_exact)
+    int unicast_exact, int multicast_exact, int vlan_exact)
 {
 	nic_rxc_hw_filtering(&nic_data->rx_control,
-		unicast_exact, multicast_exact, vlan_exact);
+	    unicast_exact, multicast_exact, vlan_exact);
 }
 
 /**
@@ -738,12 +739,12 @@ uint64_t nic_query_mcast_hash(nic_t *nic_data)
  * @param address_count Number of addresses in the list
  */
 void nic_query_unicast(const nic_t *nic_data,
-	nic_unicast_mode_t *mode,
-	size_t max_count, nic_address_t *address_list, size_t *address_count)
+    nic_unicast_mode_t *mode,
+    size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	assert(mode != NULL);
 	nic_rxc_unicast_get_mode(&nic_data->rx_control, mode,
-		max_count, address_list, address_count);
+	    max_count, address_list, address_count);
 }
 
 /**
@@ -758,12 +759,12 @@ void nic_query_unicast(const nic_t *nic_data,
  * @param address_count Number of addresses in the list
  */
 void nic_query_multicast(const nic_t *nic_data,
-	nic_multicast_mode_t *mode,
-	size_t max_count, nic_address_t *address_list, size_t *address_count)
+    nic_multicast_mode_t *mode,
+    size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	assert(mode != NULL);
 	nic_rxc_multicast_get_mode(&nic_data->rx_control, mode,
-		max_count, address_list, address_count);
+	    max_count, address_list, address_count);
 }
 
 /**
@@ -774,7 +775,7 @@ void nic_query_multicast(const nic_t *nic_data,
  * @param mode			The new broadcast mode
  */
 void nic_query_broadcast(const nic_t *nic_data,
-	nic_broadcast_mode_t *mode)
+    nic_broadcast_mode_t *mode)
 {
 	assert(mode != NULL);
 	nic_rxc_broadcast_get_mode(&nic_data->rx_control, mode);
@@ -791,10 +792,10 @@ void nic_query_broadcast(const nic_t *nic_data,
  * @param address_count Number of addresses in the list
  */
 void nic_query_blocked_sources(const nic_t *nic_data,
-	size_t max_count, nic_address_t *address_list, size_t *address_count)
+    size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	nic_rxc_blocked_sources_get(&nic_data->rx_control,
-		max_count, address_list, address_count);
+	    max_count, address_list, address_count);
 }
 
 /**
@@ -978,7 +979,7 @@ void nic_report_send_error(nic_t *nic_data, nic_send_error_cause_t cause,
  * @param cause		The concrete error cause
  */
 void nic_report_receive_error(nic_t *nic_data,
-	nic_receive_error_cause_t cause, unsigned count)
+    nic_receive_error_cause_t cause, unsigned count)
 {
 	fibril_rwlock_write_lock(&nic_data->stats_lock);
 	nic_data->stats.receive_errors += count;
@@ -1026,7 +1027,8 @@ void nic_report_collisions(nic_t *nic_data, unsigned count)
  *  @returns Zero if the t is nonzero interval
  *  @returns Nonzero if t is zero interval
  */
-static int timeval_nonpositive(struct timeval t) {
+static int timeval_nonpositive(struct timeval t)
+{
 	return (t.tv_sec <= 0) && (t.tv_usec <= 0);
 }
 

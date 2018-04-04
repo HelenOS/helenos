@@ -56,7 +56,7 @@ const pcm_format_t AUDIO_FORMAT_DEFAULT = {
 	.channels = 2,
 	.sampling_rate = 44100,
 	.sample_format = PCM_SAMPLE_SINT16_LE,
-	};
+};
 
 /** Special ANY PCM format.
  * This format is used if the real format is no know or important.
@@ -65,7 +65,7 @@ const pcm_format_t AUDIO_FORMAT_ANY = {
 	.channels = 0,
 	.sampling_rate = 0,
 	.sample_format = 0,
-	};
+};
 
 static float get_normalized_sample(const void *buffer, size_t size,
     unsigned frame, unsigned channel, const pcm_format_t *f);
@@ -76,7 +76,7 @@ static float get_normalized_sample(const void *buffer, size_t size,
  * @param b Format description.
  * @return True if a and b describe the same format, false otherwise.
  */
-bool pcm_format_same(const pcm_format_t *a, const pcm_format_t* b)
+bool pcm_format_same(const pcm_format_t *a, const pcm_format_t *b)
 {
 	assert(a);
 	assert(b);
@@ -105,25 +105,35 @@ do { \
 
 	switch (f->sample_format) {
 	case PCM_SAMPLE_UINT8:
-		SET_NULL(uint8_t, le, INT8_MIN); break;
+		SET_NULL(uint8_t, le, INT8_MIN);
+		break;
 	case PCM_SAMPLE_SINT8:
-		SET_NULL(int8_t, le, 0); break;
+		SET_NULL(int8_t, le, 0);
+		break;
 	case PCM_SAMPLE_UINT16_LE:
-		SET_NULL(uint16_t, le, INT16_MIN); break;
+		SET_NULL(uint16_t, le, INT16_MIN);
+		break;
 	case PCM_SAMPLE_SINT16_LE:
-		SET_NULL(int16_t, le, 0); break;
+		SET_NULL(int16_t, le, 0);
+		break;
 	case PCM_SAMPLE_UINT16_BE:
-		SET_NULL(uint16_t, be, INT16_MIN); break;
+		SET_NULL(uint16_t, be, INT16_MIN);
+		break;
 	case PCM_SAMPLE_SINT16_BE:
-		SET_NULL(int16_t, be, 0); break;
+		SET_NULL(int16_t, be, 0);
+		break;
 	case PCM_SAMPLE_UINT32_LE:
-		SET_NULL(uint32_t, le, INT32_MIN); break;
+		SET_NULL(uint32_t, le, INT32_MIN);
+		break;
 	case PCM_SAMPLE_SINT32_LE:
-		SET_NULL(int32_t, le, 0); break;
+		SET_NULL(int32_t, le, 0);
+		break;
 	case PCM_SAMPLE_UINT32_BE:
-		SET_NULL(uint32_t, be, INT32_MIN); break;
+		SET_NULL(uint32_t, be, INT32_MIN);
+		break;
 	case PCM_SAMPLE_SINT32_BE:
-		SET_NULL(int32_t, le, 0); break;
+		SET_NULL(int32_t, le, 0);
+		break;
 	case PCM_SAMPLE_UINT24_32_LE:
 	case PCM_SAMPLE_SINT24_32_LE:
 	case PCM_SAMPLE_UINT24_32_BE:
@@ -206,29 +216,39 @@ do { \
 
 	switch (df->sample_format) {
 	case PCM_SAMPLE_UINT8:
-		LOOP_ADD(uint8_t, le, UINT8_MIN, UINT8_MAX); break;
+		LOOP_ADD(uint8_t, le, UINT8_MIN, UINT8_MAX);
+		break;
 	case PCM_SAMPLE_SINT8:
-		LOOP_ADD(uint8_t, le, INT8_MIN, INT8_MAX); break;
+		LOOP_ADD(uint8_t, le, INT8_MIN, INT8_MAX);
+		break;
 	case PCM_SAMPLE_UINT16_LE:
-		LOOP_ADD(uint16_t, le, UINT16_MIN, UINT16_MAX); break;
+		LOOP_ADD(uint16_t, le, UINT16_MIN, UINT16_MAX);
+		break;
 	case PCM_SAMPLE_SINT16_LE:
-		LOOP_ADD(int16_t, le, INT16_MIN, INT16_MAX); break;
+		LOOP_ADD(int16_t, le, INT16_MIN, INT16_MAX);
+		break;
 	case PCM_SAMPLE_UINT16_BE:
-		LOOP_ADD(uint16_t, be, UINT16_MIN, UINT16_MAX); break;
+		LOOP_ADD(uint16_t, be, UINT16_MIN, UINT16_MAX);
+		break;
 	case PCM_SAMPLE_SINT16_BE:
-		LOOP_ADD(int16_t, be, INT16_MIN, INT16_MAX); break;
+		LOOP_ADD(int16_t, be, INT16_MIN, INT16_MAX);
+		break;
 	case PCM_SAMPLE_UINT24_32_LE:
 	case PCM_SAMPLE_UINT32_LE: // TODO this are not right for 24bit
-		LOOP_ADD(uint32_t, le, UINT32_MIN, UINT32_MAX); break;
+		LOOP_ADD(uint32_t, le, UINT32_MIN, UINT32_MAX);
+		break;
 	case PCM_SAMPLE_SINT24_32_LE:
 	case PCM_SAMPLE_SINT32_LE:
-		LOOP_ADD(int32_t, le, INT32_MIN, INT32_MAX); break;
+		LOOP_ADD(int32_t, le, INT32_MIN, INT32_MAX);
+		break;
 	case PCM_SAMPLE_UINT24_32_BE:
 	case PCM_SAMPLE_UINT32_BE:
-		LOOP_ADD(uint32_t, be, UINT32_MIN, UINT32_MAX); break;
+		LOOP_ADD(uint32_t, be, UINT32_MIN, UINT32_MAX);
+		break;
 	case PCM_SAMPLE_SINT24_32_BE:
 	case PCM_SAMPLE_SINT32_BE:
-		LOOP_ADD(int32_t, be, INT32_MIN, INT32_MAX); break;
+		LOOP_ADD(int32_t, be, INT32_MIN, INT32_MAX);
+		break;
 	case PCM_SAMPLE_UINT24_LE:
 	case PCM_SAMPLE_SINT24_LE:
 	case PCM_SAMPLE_UINT24_BE:

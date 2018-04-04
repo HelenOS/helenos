@@ -67,25 +67,25 @@
 #define BR  (B_COLS + 1)   /* bottom right */
 
 const struct shape shapes[] = {
-	/*  0 */  {  7,  7, { TL, TC, MR }, 0x00aaaa},
-	/*  1 */  {  8,  8, { TC, TR, ML }, 0x00aa00},
-	/*  2 */  {  9, 11, { ML, MR, BC }, 0xaa5500},
-	/*  3 */  {  3,  3, { TL, TC, ML }, 0x0000aa},
-	/*  4 */  { 12, 14, { ML, BL, MR }, 0xaa00aa},
-	/*  5 */  { 15, 17, { ML, BR, MR }, 0xffa500},
-	/*  6 */  { 18, 18, { ML, MR, 2  }, 0xaa0000},  /* sticks out */
-	/*  7 */  {  0,  0, { TC, ML, BL }, 0x00aaaa},
-	/*  8 */  {  1,  1, { TC, MR, BR }, 0x00aa00},
-	/*  9 */  { 10,  2, { TC, MR, BC }, 0xaa5500},
-	/* 10 */  { 11,  9, { TC, ML, MR }, 0xaa5500},
-	/* 11 */  {  2, 10, { TC, ML, BC }, 0xaa5500},
-	/* 12 */  { 13,  4, { TC, BC, BR }, 0xaa00aa},
-	/* 13 */  { 14, 12, { TR, ML, MR }, 0xaa00aa},
-	/* 14 */  {  4, 13, { TL, TC, BC }, 0xaa00aa},
-	/* 15 */  { 16,  5, { TR, TC, BC }, 0xffa500},
-	/* 16 */  { 17, 15, { TL, MR, ML }, 0xffa500},
-	/* 17 */  {  5, 16, { TC, BC, BL }, 0xffa500},
-	/* 18 */  {  6,  6, { TC, BC, 2 * B_COLS }, 0xaa0000}  /* sticks out */
+	/*  0 */  {  7,  7, { TL, TC, MR }, 0x00aaaa },
+	/*  1 */  {  8,  8, { TC, TR, ML }, 0x00aa00 },
+	/*  2 */  {  9, 11, { ML, MR, BC }, 0xaa5500 },
+	/*  3 */  {  3,  3, { TL, TC, ML }, 0x0000aa },
+	/*  4 */  { 12, 14, { ML, BL, MR }, 0xaa00aa },
+	/*  5 */  { 15, 17, { ML, BR, MR }, 0xffa500 },
+	/*  6 */  { 18, 18, { ML, MR, 2  }, 0xaa0000 },  /* sticks out */
+	/*  7 */  {  0,  0, { TC, ML, BL }, 0x00aaaa },
+	/*  8 */  {  1,  1, { TC, MR, BR }, 0x00aa00 },
+	/*  9 */  { 10,  2, { TC, MR, BC }, 0xaa5500 },
+	/* 10 */  { 11,  9, { TC, ML, MR }, 0xaa5500 },
+	/* 11 */  {  2, 10, { TC, ML, BC }, 0xaa5500 },
+	/* 12 */  { 13,  4, { TC, BC, BR }, 0xaa00aa },
+	/* 13 */  { 14, 12, { TR, ML, MR }, 0xaa00aa },
+	/* 14 */  {  4, 13, { TL, TC, BC }, 0xaa00aa },
+	/* 15 */  { 16,  5, { TR, TC, BC }, 0xffa500 },
+	/* 16 */  { 17, 15, { TL, MR, ML }, 0xffa500 },
+	/* 17 */  {  5, 16, { TC, BC, BL }, 0xffa500 },
+	/* 18 */  {  6,  6, { TC, BC, 2 * B_COLS }, 0xaa0000 }  /* sticks out */
 };
 
 /*

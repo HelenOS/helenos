@@ -201,12 +201,12 @@ void symtab_print_search(const char *name)
 }
 
 /** Symtab completion enum, see kernel/generic/include/kconsole.h */
-const char* symtab_hints_enum(const char *input, const char **help,
+const char *symtab_hints_enum(const char *input, const char **help,
     void **ctx)
 {
 #ifdef CONFIG_SYMTAB
 	size_t len = str_length(input);
-	struct symtab_entry **entry = (struct symtab_entry**)ctx;
+	struct symtab_entry **entry = (struct symtab_entry **)ctx;
 
 	if (*entry == NULL)
 		*entry = symbol_table;

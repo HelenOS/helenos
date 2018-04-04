@@ -53,7 +53,8 @@
  * @param b
  * @result
  */
-static unsigned long long mul(unsigned int a, unsigned int b) {
+static unsigned long long mul(unsigned int a, unsigned int b)
+{
 	unsigned int a1, a2, b1, b2;
 	unsigned long long t1, t2, t3;
 
@@ -63,9 +64,9 @@ static unsigned long long mul(unsigned int a, unsigned int b) {
 	b2 = b & MAX_UINT16;
 
 	t1 = a1 * b1;
-	t2 = a1*b2;
-	t2 += a2*b1;
-	t3 = a2*b2;
+	t2 = a1 * b2;
+	t2 += a2 * b1;
+	t3 = a2 * b2;
 
 	t3 = (((t1 << 16) + t2) << 16) + t3;
 
@@ -78,7 +79,7 @@ static unsigned long long mul(unsigned int a, unsigned int b) {
 long long __muldi3 (long long a, long long b)
 {
 	long long result;
-	unsigned long long t1,t2;
+	unsigned long long t1, t2;
 	unsigned long long a1, a2, b1, b2;
 	char neg = 0;
 
@@ -100,26 +101,26 @@ long long __muldi3 (long long a, long long b)
 
 	if (SOFTINT_CHECK_OF && (a1 != 0) && (b1 != 0)) {
 		// error, overflow
-		return (neg?MIN_INT64:MAX_INT64);
+		return (neg ? MIN_INT64 : MAX_INT64);
 	}
 
 	// (if OF checked) a1 or b1 is zero => result fits in 64 bits, no need to another overflow check
-	t1 = mul(a1,b2) + mul(b1,a2);
+	t1 = mul(a1, b2) + mul(b1, a2);
 
 	if (SOFTINT_CHECK_OF && t1 > MAX_UINT32) {
 		// error, overflow
-		return (neg?MIN_INT64:MAX_INT64);
+		return (neg ? MIN_INT64 : MAX_INT64);
 	}
 
 	t1 = t1 << 32;
-	t2 = mul(a2,b2);
+	t2 = mul(a2, b2);
 	t2 += t1;
 
 	/* t2 & (1ull << 63) - if this bit is set in unsigned long long,
 	 * result does not fit in signed one */
 	if (SOFTINT_CHECK_OF && ((t2 < t1) || (t2 & (1ull << 63)))) {
 		// error, overflow
-		return (neg?MIN_INT64:MAX_INT64);
+		return (neg ? MIN_INT64 : MAX_INT64);
 	}
 
 	result = t2;

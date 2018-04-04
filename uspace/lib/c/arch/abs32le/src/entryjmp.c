@@ -35,7 +35,8 @@
 /** Jump to program entry point. */
 void entry_point_jmp(void *entry_point, void *pcb)
 {
-	while (true);
+	while (true)
+		;
 }
 
 /**

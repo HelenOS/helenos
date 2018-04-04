@@ -86,16 +86,19 @@ int main(int argc, char **argv)
 	}
 
 	/* Skip program name */
-	--argc; ++argv;
+	--argc;
+	++argv;
 
 	if (argc > 0 && str_cmp(*argv, "--no-check") == 0) {
 		check_enabled = false;
-		--argc; ++argv;
+		--argc;
+		++argv;
 	}
 
 	if (argc > 0 && str_cmp(*argv, "--no-progress") == 0) {
 		progress = false;
-		--argc; ++argv;
+		--argc;
+		++argv;
 	}
 
 	if (argc != 1) {
@@ -155,10 +158,10 @@ int main(int argc, char **argv)
 			uint32_t total_time = cur_time.tv_sec - start_time.tv_sec;
 			if (last_run > 0 && total_time > 0) {
 				printf("%" PRIuOFF64 "M - time: %u s, "
-				    "cur: %"PRIuOFF64 " B/s, avg: %" PRIuOFF64 " B/s\n",
+				    "cur: %" PRIuOFF64 " B/s, avg: %" PRIuOFF64 " B/s\n",
 				    offset / MBYTE, last_run,
-				    (offset-last_mark)/last_run,
-				    offset/total_time);
+				    (offset - last_mark) / last_run,
+				    offset / total_time);
 				prev_time = cur_time;
 				last_mark = offset;
 			}
@@ -175,7 +178,7 @@ int main(int argc, char **argv)
 		    ", total time: %u s, avg speed: %" PRIuOFF64 " B/s\n",
 		    offset,
 		    total_run_time,
-		    offset/total_run_time);
+		    offset / total_run_time);
 	}
 
 	fclose(file);

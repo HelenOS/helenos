@@ -43,9 +43,9 @@ NO_TRACE static inline uint64_t get_cycle(void)
 	uint32_t upper;
 
 	asm volatile (
-		"rdtsc\n"
-		: "=a" (lower),
-		  "=d" (upper)
+	    "rdtsc\n"
+	    : "=a" (lower),
+	      "=d" (upper)
 	);
 
 	return ((uint64_t) lower) | (((uint64_t) upper) << 32);

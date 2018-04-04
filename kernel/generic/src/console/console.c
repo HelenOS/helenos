@@ -63,7 +63,7 @@
 wchar_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
-static atomic_t kio_inited = {false};
+static atomic_t kio_inited = { false };
 
 /** First kernel log characters */
 static size_t kio_start = 0;

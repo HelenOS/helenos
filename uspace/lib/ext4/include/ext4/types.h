@@ -322,7 +322,7 @@ typedef struct ext4_inode {
 			uint16_t gid_high;
 			uint32_t author;
 		} hurd2;
-	} __attribute__ ((packed)) osd2;
+	} __attribute__((packed)) osd2;
 
 	uint16_t extra_isize;
 	uint16_t pad1;
@@ -332,7 +332,7 @@ typedef struct ext4_inode {
 	uint32_t crtime;        /* File creation time */
 	uint32_t crtime_extra;  /* Extra file creation time (nsec << 2 | epoch) */
 	uint32_t version_hi;    /* High 32 bits for 64-bit version */
-} __attribute__ ((packed)) ext4_inode_t;
+} __attribute__((packed)) ext4_inode_t;
 
 #define EXT4_INODE_MODE_FIFO       0x1000
 #define EXT4_INODE_MODE_CHARDEV    0x2000
@@ -406,7 +406,7 @@ typedef struct ext4_directory_entry_ll {
 	union {
 		uint8_t name_length_high;  /* Higher 8 bits of name length */
 		uint8_t inode_type;        /* Type of referenced inode (in rev >= 0.5) */
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 
 	uint8_t name[EXT4_DIRECTORY_FILENAME_LEN];  /* Entry name */
 } __attribute__((packed)) ext4_directory_entry_ll_t;

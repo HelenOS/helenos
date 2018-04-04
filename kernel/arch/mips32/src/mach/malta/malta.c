@@ -83,9 +83,9 @@ yamon_print_count_ptr_t yamon_print_count =
 static void yamon_putchar(outdev_t *dev, const wchar_t wch)
 {
 
-        const char ch = (char) wch;
+	const char ch = (char) wch;
 
-        (*yamon_print_count)(0, &ch, 1);
+	(*yamon_print_count)(0, &ch, 1);
 }
 
 static outdev_t yamon_outdev;

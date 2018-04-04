@@ -55,7 +55,8 @@
 /* Checks if the value is a failing error code.
  * If so, writes the error code to errno and returns true.
  */
-static inline bool failed(int rc) {
+static inline bool failed(int rc)
+{
 	if (rc != EOK) {
 		errno = rc;
 		return true;

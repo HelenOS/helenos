@@ -135,7 +135,7 @@ void cpu_identify(void)
 	}
 }
 
-void cpu_print_report(cpu_t* m)
+void cpu_print_report(cpu_t *m)
 {
 	printf("cpu%d: (%s family=%d model=%d stepping=%d apicid=%u) %dMHz\n",
 	    m->id, vendor_str[m->arch.vendor], m->arch.family, m->arch.model,
