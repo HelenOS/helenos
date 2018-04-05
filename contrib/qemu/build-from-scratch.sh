@@ -33,9 +33,8 @@ BASENAME=qemu-${VERSION}
 BASENAME_MASTER=qemu-master
 TARBALL=${BASENAME}.tar.bz2
 SOURCEDIR=${BASENAME}
-URL=http://wiki.qemu-project.org/download/${TARBALL}
+URL=https://download.qemu.org/${TARBALL}
 REPO=git://git.qemu.org/qemu.git
-MD5="335994a755bc655e88a87aeb36bfc0b9"
 
 OPENSPARC_TARBALL="OpenSPARCT1_Arch.1.5.tar.bz2"
 OPENSPARC_URL="http://download.oracle.com/technetwork/systems/opensparc/${OPENSPARC_TARBALL}"
@@ -90,8 +89,13 @@ else
 		wget ${URL}
 	fi
 
-	if [ "`md5sum ${TARBALL} | cut -f 1 -d " "`" != ${MD5} ]; then
-		echo Wrong MD5 checksum
+	if [ ! -f ${TARBALL}.sig ]; then
+		wget ${URL}.sig
+	fi
+
+	gpg --verify ${TARBALL}.sig ${TARBALL}
+	if [ $? -ne 0 ]; then
+		echo Unable to verify the signature
 		exit
 	fi
 
