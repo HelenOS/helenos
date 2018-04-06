@@ -35,7 +35,6 @@
 
 #include <macros.h>
 #include <stdlib.h>
-#include <str.h>
 
 #include "audio_data.h"
 #include "log.h"
@@ -56,8 +55,7 @@ audio_data_t *audio_data_create(const void *data, size_t size,
 		if (overflow)
 			log_warning("Data not a multiple of frame size, "
 			    "clipping.");
-		uint8_t *d = ((uint8_t *)adata) + offsetof(audio_data_t, data);
-		memcpy(d, data, size);
+		adata->data = data;
 		adata->size = size - overflow;
 		adata->format = format;
 		atomic_set(&adata->refcount, 1);
@@ -86,6 +84,7 @@ void audio_data_unref(audio_data_t *adata)
 	assert(atomic_get(&adata->refcount) > 0);
 	atomic_count_t refc = atomic_predec(&adata->refcount);
 	if (refc == 0) {
+		free((void *) adata->data);
 		free(adata);
 	}
 }

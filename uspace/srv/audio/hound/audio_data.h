@@ -44,14 +44,14 @@
 
 /** Reference counted audio buffer */
 typedef struct {
+	/** Audio data */
+	const void *data;
 	/** Size of the buffer pointer to by data */
 	size_t size;
 	/** Format of the audio data */
 	pcm_format_t format;
 	/** Reference counter */
 	atomic_t refcount;
-	/** Audio data */
-	const uint8_t data[];
 } audio_data_t;
 
 /** Audio data pipe structure */
