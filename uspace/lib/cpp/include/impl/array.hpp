@@ -178,6 +178,47 @@ namespace std
     }
 
     // TODO: tuple interface for array 23.3.2.9
+    /**
+     * 23.3.2.9, tuple interface for class template array:
+     */
+
+    template<class>
+    struct tuple_size;
+
+    template<class T, size_t N>
+    struct tuple_size<array<T, N>>
+        : integral_constant<size_t, N>
+    { /* DUMMY BODY */ };
+
+    template<size_t, class>
+    struct tuple_element;
+
+    template<size_t I, class T, size_t N>
+    struct tuple_element<I, array<T, N>>
+        : aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<size_t I, class T, size_t N>
+    constexpr T& get(array<T, N>& arr) noexcept
+    {
+        static_assert(I < N, "index out of bounds");
+
+        return arr[I];
+    }
+
+    template<size_t I, class T, size_t N>
+    constexpr T&& get(array<T, N>&& arr) noexcept
+    {
+        return move(get<I>(arr));
+    }
+
+    template<size_t I, class T, size_t N>
+    constexpr const T& get(const array<T, N>& arr) noexcept
+    {
+        static_assert(I < N, "index out of bounds");
+
+        return arr[I];
+    }
 }
 
 #endif
