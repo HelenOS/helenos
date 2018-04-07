@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -152,7 +152,19 @@ namespace std
                 noexcept(allocator_traits<Allocator>::propagate_on_container_move_assignment::value ||
                          allocator_traits<Allocator>::is_always_equal::value)
             {
-                // TODO: implement
+                if (data_)
+                    allocator_.deallocate(data_, capacity_);
+
+                // TODO: test this
+                data_ = other.data_;
+                size_ = other.size_;
+                capacity_ = other.capacity_;
+                allocator_ = move(other.allocator_);
+
+                other.data_ = nullptr;
+                other.size_ = size_type{};
+                other.capacity_ = size_type{};
+                other.allocator_ = allocator_type{};
                 return *this;
             }
 
@@ -369,7 +381,6 @@ namespace std
                 return back();
             }
 
-            // TODO: assert CopyInstertable etc with enable_if!
             void push_back(const T& x)
             {
                 if (size_ >= capacity_)
@@ -583,15 +594,32 @@ namespace std
     template<class T, class Alloc>
     bool operator==(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
     {
-        // TODO: implement
-        return false;
+        if (lhs.size() != rhs.size())
+            return false;
+
+        for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i)
+        {
+            if (lhs[i] != rhs[i])
+                return false;
+        }
+
+        return true;
     }
 
     template<class T, class Alloc>
     bool operator<(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
     {
-        // TODO: implement
-        return false;
+        auto min_size = min(lhs.size(), rhs.size());
+        for (decltype(lhs.size()) i = 0; i < min_size; ++i)
+        {
+            if (lhs[i] >= rhs[i])
+                return false;
+        }
+
+        if (lhs.size() == rhs.size())
+            return true;
+        else
+            return lhs.size() < rhs.size();
     }
 
     template<class T, class Alloc>
@@ -603,22 +631,19 @@ namespace std
     template<class T, class Alloc>
     bool operator>(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
     {
-        // TODO: implement
-        return false;
+        return rhs < lhs;
     }
 
     template<class T, class Alloc>
     bool operator>=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
     {
-        // TODO: implement
-        return false;
+        return !(lhs < rhs);
     }
 
     template<class T, class Alloc>
     bool operator<=(const vector<T, Alloc>& lhs, const vector<T, Alloc>& rhs)
     {
-        // TODO: implement
-        return false;
+        return !(rhs < lhs);
     }
 
     /**
@@ -630,6 +655,12 @@ namespace std
     {
         lhs.swap(rhs);
     }
+
+    /**
+     * 23.3.7, class vector<bool>:
+     */
+
+    // TODO: implement
 }
 
 #endif
