@@ -100,6 +100,12 @@ namespace std::test
 
         // TODO: test bound checking of at when implemented
 
+        std::array<int, 3> arr4{1, 2, 3};
+        auto [a, b, c] = arr4;
+        test_eq("structured binding part 1", a, 1);
+        test_eq("structured binding part 2", b, 2);
+        test_eq("structured binding part 3", c, 3);
+
         return end();
     }
 

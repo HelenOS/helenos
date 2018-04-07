@@ -120,6 +120,15 @@ namespace std::test
         );
 
         // TODO: move assignment when implemented
+        std::vector<int> vec10{};
+        vec10 = std::move(vec9);
+        test_eq(
+            "move assignment",
+            vec10.begin(), vec10.end(),
+            vec8.begin(), vec8.end()
+        );
+
+        test_eq("move assignment origin empty", vec9.size(), 0);
     }
 
     void vector_test::test_insert()

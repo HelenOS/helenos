@@ -70,8 +70,8 @@ namespace std::test
                 }
             }
 
-            template<class T>
-            bool assert_eq(const T& lhs, const T& rhs)
+            template<class T, class U>
+            bool assert_eq(const T& lhs, const U& rhs)
             {
                 return lhs == rhs;
             }
