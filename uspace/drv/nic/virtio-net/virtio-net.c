@@ -26,7 +26,47 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
+
+#include <ddf/driver.h>
+#include <ddf/log.h>
+#include <ops/nic.h>
+
+#include <nic.h>
+
+#define NAME	"virtio-net"
+
+static errno_t virtio_net_dev_add(ddf_dev_t *dev)
+{
+	ddf_msg(LVL_NOTE, "%s %s (handle = %zu)", __func__,
+	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
+
+	return ENOTSUP;
+}
+
+static ddf_dev_ops_t virtio_net_dev_ops;
+
+static driver_ops_t virtio_net_driver_ops = {
+	.dev_add = virtio_net_dev_add
+};
+
+static driver_t virtio_net_driver = {
+	.name = NAME,
+	.driver_ops = &virtio_net_driver_ops
+};
+
+static nic_iface_t virtio_net_nic_iface;
+
 int main(void)
 {
-	return 0;
+	printf("%s: HelenOS virtio-net driver\n", NAME);
+
+	if (nic_driver_init(NAME) != EOK)
+		return 1;
+
+	nic_driver_implement(&virtio_net_driver_ops, &virtio_net_dev_ops,
+	    &virtio_net_nic_iface);
+
+	(void) ddf_log_init(NAME);
+	return ddf_driver_main(&virtio_net_driver);
 }
