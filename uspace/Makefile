@@ -180,6 +180,7 @@ DIRS = \
 	drv/nic/rtl8139 \
 	drv/nic/rtl8169 \
 	drv/nic/ar9271 \
+	drv/nic/virtio-net \
 	drv/platform/amdm37x \
 	drv/platform/icp \
 	drv/platform/mac \
