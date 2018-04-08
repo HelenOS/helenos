@@ -2,13 +2,10 @@
 #define LIBCPP_INTERNAL_COMMON
 
 /**
- * The restrict keyword is not part of the
- * C++ standard, but g++ supports __restrict__,
- * this might cause problems with other compilers
- * like clang.
- * TODO: Test this.
+ * According to section 17.2 of the standard,
+ * the restrict qualifier shall be omitted.
  */
-#define restrict __restrict__
+#define restrict
 
 #undef NULL
 #define NULL nullptr
