@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,17 +30,31 @@
 #define LIBCPP_DEQUE
 
 #include <initializer_list>
+#include <iterator>
 #include <memory>
 
 namespace std
 {
+    template<class T, class Allocator = allocator<T>>
+    class deque;
 
     namespace aux
     {
         template<class T, class Allocator>
         class deque_iterator
         {
-            // TODO: implement
+            using size_type = typename std::deque<T, Allocator>::size_type;
+            using value_type = typename std::deque<T, Allocator>::value_type;
+            using difference_type = size_type;
+
+            public:
+                deque_iterator(deque<T, Allocator>* deq, size_type idx)
+                    : deq_{deq}, idx_{idx}
+                { /* DUMMY BODY */ }
+
+            private:
+                deque<T, Allocator>* deq_;
+                size_type idx_;
         };
 
         template<class T, class Allocator>
@@ -54,7 +68,7 @@ namespace std
      * 23.3.3 deque:
      */
 
-    template<class T, class Allocator = allocator<T>>
+    template<class T, class Allocator>
     class deque
     {
         public:
@@ -82,8 +96,12 @@ namespace std
             { /* DUMMY BODY */ }
 
             explicit deque(const allocator_type& alloc)
+                : allocator_{alloc}, front_bucket_idx_{bucket_size_},
+                  back_bucket_idx_{0}, front_bucket_{default_front_},
+                  back_bucket_{default_back_}, bucket_count_{default_bucket_count_},
+                  bucket_capacity_{default_bucket_capacity_}, size_{}, data_{}
             {
-                // TODO: implement
+                init_();
             }
 
             explicit deque(size_type n, const allocator_type& alloc = allocator_type{})
@@ -129,7 +147,7 @@ namespace std
 
             ~deque()
             {
-                // TODO: implement
+                fini_();
             }
 
             deque& operator=(const deque& other)
@@ -235,7 +253,7 @@ namespace std
 
             size_type size() const noexcept
             {
-                // TODO: implement
+                return size_;
             }
 
             size_type max_size() const noexcept
@@ -260,17 +278,17 @@ namespace std
 
             bool empty() const noexcept
             {
-                // TODO: implement
+                return size_ == size_type{};
             }
 
             reference operator[](size_type idx)
             {
-                // TODO: implement
+                return data_[get_bucket_index_(idx)][get_element_index_(idx)];
             }
 
-            const_reference operator[](size_type idx)
+            const_reference operator[](size_type idx) const
             {
-                // TODO: implement
+                return data_[get_bucket_index_(idx)][get_element_index_(idx)];
             }
 
             reference at(size_type idx)
@@ -278,7 +296,7 @@ namespace std
                 // TODO: implement
             }
 
-            const_reference at(size_type idx)
+            const_reference at(size_type idx) const
             {
                 // TODO: implement
             }
@@ -327,22 +345,38 @@ namespace std
 
             void push_front(const value_type& value)
             {
-                // TODO: implement
+                if (front_bucket_idx_ == 0)
+                    add_new_bucket_front_();
+
+                data_[front_bucket_][--front_bucket_idx_] = value;
+                ++size_;
             }
 
             void push_front(value_type&& value)
             {
-                // TODO: implement
+                if (front_bucket_idx_ == 0)
+                    add_new_bucket_front_();
+
+                data_[front_bucket_][--front_bucket_idx_] = forward<value_type>(value);
+                ++size_;
             }
 
             void push_back(const value_type& value)
             {
-                // TODO: implement
+                data_[back_bucket_][back_bucket_idx_++] = value;
+                ++size_;
+
+                if (back_bucket_idx_ >= bucket_size_)
+                    add_new_bucket_back_();
             }
 
             void push_back(value_type&& value)
             {
-                // TODO: implement
+                data_[back_bucket_][back_bucket_idx_++] = forward<value_type>(value);
+                ++size_;
+
+                if (back_bucket_idx_ >= bucket_size_)
+                    add_new_bucket_back_();
             }
 
             iterator insert(const_iterator position, const value_type& value)
@@ -373,12 +407,47 @@ namespace std
 
             void pop_back()
             {
-                // TODO: implement
+                if (empty())
+                    return;
+
+                if (back_bucket_idx_ == 0)
+                { // Means we gotta pop data_[front_bucket_][bucket_size_ - 1]!
+                    if (data_[back_bucket_])
+                        allocator_.deallocate(data_[back_bucket_], bucket_size_);
+
+                    --back_bucket_;
+                    back_bucket_idx_ = bucket_size_ - 1;
+                }
+                else
+                    --back_bucket_idx_;
+
+                allocator_.destroy(&data_[back_bucket_][back_bucket_idx_]);
+                --size_;
             }
 
             void pop_front()
             {
-                // TODO: implement
+                if (empty())
+                    return;
+
+                if (front_bucket_idx_ >= bucket_size_)
+                { // Means we gotta pop data_[front_bucket_][0]!
+                    if (data_[front_bucket_])
+                        allocator_.deallocate(data_[front_bucket_], bucket_size_);
+
+                    ++front_bucket_;
+                    front_bucket_idx_ = 1;
+
+                    allocator_.destroy(&data_[front_bucket_][0]);
+                }
+                else
+                {
+                    allocator_.destroy(&data_[front_bucket_][front_bucket_idx_]);
+
+                    ++front_bucket_idx_;
+                }
+
+                --size_;
             }
 
             iterator erase(const_iterator position)
@@ -386,7 +455,7 @@ namespace std
                 // TODO: implement
             }
 
-            iterator eraser(cosnt_iteterator first, const_iterator last)
+            iterator erase(const_iterator first, const_iterator last)
             {
                 // TODO: implement
             }
@@ -399,57 +468,172 @@ namespace std
 
             void clear() noexcept
             {
-                // TODO: implement
+                fini_();
+
+                front_bucket_ = default_front_;
+                back_bucket_ = default_back_;
+                bucket_count_ = default_bucket_count_;
+                bucket_capacity_ = default_bucket_capacity_;
+                size_ = size_type{};
+
+                init_();
             }
 
-        private:
+        /* private: */
             allocator_type allocator_;
 
+            /**
+             * Note: In our implementation, front_bucket_idx_
+             *       points at the first element and back_bucket_idx_
+             *       points at the one past last element. Because of this,
+             *       some operations may be done in inverse order
+             *       depending on the side they are applied to.
+             */
             size_type front_bucket_idx_;
             size_type back_bucket_idx_;
+            size_type front_bucket_;
+            size_type back_bucket_;
 
             static constexpr size_type bucket_size_{16};
+            static constexpr size_type default_bucket_count_{2};
+            static constexpr size_type default_bucket_capacity_{4};
+            static constexpr size_type default_front_{1};
+            static constexpr size_type default_back_{2};
 
             size_type bucket_count_;
             size_type bucket_capacity_;
+            size_type size_{};
 
             value_type** data_;
+
+            void init_()
+            {
+                data_ = new value_type*[bucket_capacity_];
+
+                for (size_type i = front_bucket_; i <= back_bucket_; ++i)
+                    data_[i] = allocator_.allocate(bucket_size_);
+            }
+
+            void fini_()
+            {
+                for (size_type i = front_bucket_; i <= back_bucket_; ++i)
+                    allocator_.deallocate(data_[i], bucket_size_);
+
+                delete[] data_;
+                data_ = nullptr;
+            }
+
+            bool has_bucket_space_back_() const
+            {
+                return back_bucket_ < bucket_capacity_ - 1;
+            }
+
+            bool has_bucket_space_front_() const
+            {
+                return front_bucket_ > 0;
+            }
+
+            void add_new_bucket_back_()
+            {
+                if (!has_bucket_space_back_())
+                    expand_();
+
+                ++back_bucket_;
+                data_[back_bucket_] = allocator_.allocate(bucket_size_);
+                back_bucket_idx_ = size_type{};
+            }
+
+            void add_new_bucket_front_()
+            {
+                if (!has_bucket_space_front_())
+                    expand_();
+
+                --front_bucket_;
+                data_[front_bucket_] = allocator_.allocate(bucket_size_);
+                front_bucket_idx_ = bucket_size_;
+            }
+
+            void expand_()
+            {
+                bucket_capacity_ *= 2;
+                value_type** new_data = new value_type*[bucket_capacity_];
+
+                size_type new_front = bucket_capacity_ / 4;
+                size_type new_back = bucket_capacity_ - bucket_capacity_ / 4 - 1;
+
+                for (size_type i = new_front, j = front_bucket_; i <= new_back; ++i, ++j)
+                    new_data[i] = move(data_[j]);
+                std::swap(data_, new_data);
+
+                delete[] new_data;
+                front_bucket_ = new_front;
+                back_bucket_ = new_back;
+            }
+
+            size_type get_bucket_index_(size_type idx) const
+            {
+                if (idx < elements_in_front_bucket_())
+                    return front_bucket_;
+
+                idx -= elements_in_front_bucket_();
+                return idx / bucket_size_ + front_bucket_ + 1;
+            }
+
+            size_type get_element_index_(size_type idx) const
+            {
+                if (idx < elements_in_front_bucket_())
+                    return bucket_size_ - elements_in_front_bucket_() + idx;
+
+                idx -= elements_in_front_bucket_();
+                return idx % bucket_size_;
+            }
+
+            size_type elements_in_front_bucket_() const
+            {
+                return bucket_size_ - front_bucket_idx_;
+            }
     };
 
     template<class T, class Allocator>
     bool operator==(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
         // TODO: implement
+        return false;
     }
 
     template<class T, class Allocator>
     bool operator<(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
         // TODO: implement
+        return false;
     }
 
     template<class T, class Allocator>
-    bool operator=!(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
+    bool operator!=(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
         // TODO: implement
+        return false;
     }
 
     template<class T, class Allocator>
     bool operator>(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
         // TODO: implement
+        return false;
     }
 
     template<class T, class Allocator>
     bool operator<=(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
         // TODO: implement
+        return false;
     }
 
     template<class T, class Allocator>
     bool operator>=(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
         // TODO: implement
+        return false;
     }
 
     /**
