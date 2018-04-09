@@ -35,7 +35,7 @@
 #include "../rqueue.h"
 #include "../ucall.h"
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(ucall);
 

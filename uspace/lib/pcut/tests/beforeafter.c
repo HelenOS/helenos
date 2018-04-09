@@ -41,7 +41,7 @@
 #define snprintf sprintf_s
 #endif
 
-PCUT_INIT
+PCUT_INIT;
 
 static char *buffer = NULL;
 #define BUFFER_SIZE 512

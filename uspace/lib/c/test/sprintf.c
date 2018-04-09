@@ -41,7 +41,7 @@
 		PCUT_ASSERT_STR_EQUALS(expected_string, buffer); \
 	}
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(sprintf);
 

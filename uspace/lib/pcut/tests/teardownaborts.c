@@ -30,7 +30,7 @@
 #include <pcut/pcut.h>
 #include <stdlib.h>
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_AFTER {
 	abort();

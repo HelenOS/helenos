@@ -1,7 +1,7 @@
 #include <pcut/pcut.h>
 #include "../hw_struct/regs.h"
 
-PCUT_INIT
+PCUT_INIT;
 
 static struct {
 	uint32_t field32;

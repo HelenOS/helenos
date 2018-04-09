@@ -36,7 +36,7 @@
 
 #define EPSILON 0.000001
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(scanf);
 

@@ -33,7 +33,7 @@
 #include "../tok.h"
 #include <pcut/pcut.h>
 
-PCUT_INIT
+PCUT_INIT;
 
 #define MAX_TOKENS 32
 #define MAX_INPUT 256

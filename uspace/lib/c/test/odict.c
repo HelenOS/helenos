@@ -66,7 +66,7 @@ static int test_cmp(void *a, void *b)
 	return *ia - *ib;
 }
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(odict);
 

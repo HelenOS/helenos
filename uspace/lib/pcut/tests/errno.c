@@ -34,7 +34,7 @@
 #define EOK 0
 #endif
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST(errno_value) {
 	errno_t value = EOK;

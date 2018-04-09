@@ -33,7 +33,7 @@
 #include "../iqueue.h"
 #include "../segment.h"
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(iqueue);
 

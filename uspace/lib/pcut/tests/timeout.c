@@ -55,7 +55,7 @@ static void my_sleep(int sec) {
 #endif
 }
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST(shall_time_out) {
 	printf("Text before sleeping.\n");

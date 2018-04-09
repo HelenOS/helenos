@@ -69,7 +69,7 @@ static uri_t *parsed_uri;
 	} while (0)
 
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(uri_parse);
 

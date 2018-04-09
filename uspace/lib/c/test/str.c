@@ -37,7 +37,7 @@
 
 
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(str);
 

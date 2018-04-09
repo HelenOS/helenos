@@ -29,7 +29,7 @@
 #include <pcut/pcut.h>
 #include "tested.h"
 
-PCUT_INIT
+PCUT_INIT;
 
 static int init_counter = 0;
 

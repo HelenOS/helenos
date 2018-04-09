@@ -33,7 +33,7 @@
  * be present in the suite.
  */
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST(my_test_001) { }
 PCUT_TEST(my_test_002) { }

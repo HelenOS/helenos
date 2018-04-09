@@ -34,7 +34,7 @@
 #include "../segment.h"
 #include "../seq_no.h"
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(seq_no);
 

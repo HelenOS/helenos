@@ -30,7 +30,7 @@
 #include <fibril_synch.h>
 #include <pcut/pcut.h>
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(fibril_timer);
 

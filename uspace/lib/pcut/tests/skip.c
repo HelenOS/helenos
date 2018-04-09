@@ -29,7 +29,7 @@
 #include <pcut/pcut.h>
 #include "tested.h"
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST(normal_test) {
 	PCUT_ASSERT_INT_EQUALS(1, 1);

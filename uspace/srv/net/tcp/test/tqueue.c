@@ -33,7 +33,7 @@
 #include "../conn.h"
 #include "../tqueue.h"
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(tqueue);
 

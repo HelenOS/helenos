@@ -32,7 +32,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(label);
 

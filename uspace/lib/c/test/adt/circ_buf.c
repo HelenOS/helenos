@@ -29,7 +29,7 @@
 #include <adt/circ_buf.h>
 #include <pcut/pcut.h>
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(circ_buf);
 

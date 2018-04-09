@@ -54,7 +54,7 @@ void test_seg_same(tcp_segment_t *a, tcp_segment_t *b)
 	}
 }
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_IMPORT(conn);
 PCUT_IMPORT(iqueue);

@@ -66,7 +66,7 @@ static void bubble_sort(int *seq, size_t nmemb)
 		}
 }
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST_SUITE(qsort);
 

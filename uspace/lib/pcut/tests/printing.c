@@ -30,7 +30,7 @@
 #include "tested.h"
 #include <stdio.h>
 
-PCUT_INIT
+PCUT_INIT;
 
 PCUT_TEST(print_to_stdout) {
 	printf("Printed from a test to stdout!\n");
