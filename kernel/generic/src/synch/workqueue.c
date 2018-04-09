@@ -917,7 +917,7 @@ static bool dequeue_add_req(nonblock_adder_t *info, struct work_queue **pworkq)
 static void thr_nonblock_add_worker(void *arg)
 {
 	nonblock_adder_t *info = arg;
-	struct work_queue *workq;
+	struct work_queue *workq = NULL;
 
 	while (dequeue_add_req(info, &workq)) {
 		add_worker(workq);
