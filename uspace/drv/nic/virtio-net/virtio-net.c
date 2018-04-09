@@ -27,19 +27,72 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ops/nic.h>
+#include <pci_dev_iface.h>
 
 #include <nic.h>
 
 #define NAME	"virtio-net"
 
+#define VIRTIO_PCI_CAP_TYPE(c)		((c) + 3)
+#define VIRTIO_PCI_CAP_BAR(c)		((c) + 4)
+#define VIRTIO_PCI_CAP_OFFSET(c)	((c) + 8)
+#define VIRTIO_PCI_CAP_LENGTH(c)	((c) + 12)
+
+#define VIRTIO_PCI_CAP_COMMON_CFG	1
+#define VIRTIO_PCI_CAP_NOTIFY_CFG	2
+#define VIRTIO_PCI_CAP_ISR_CFG		3
+#define VIRTIO_PCI_CAP_DEVICE_CFG	4
+#define VIRTIO_PCI_CAP_PCI_CFG		5
+
 static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_NOTE, "%s %s (handle = %zu)", __func__,
 	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
+
+	async_sess_t *pci_sess = ddf_dev_parent_sess_get(dev);
+	if (!pci_sess)
+		return ENOENT;
+
+	/*
+	 * Find the VIRTIO PCI Capabilities
+	 */
+	errno_t rc;
+	uint8_t c;
+	uint8_t id;
+	for (rc = pci_config_space_cap_first(pci_sess, &c, &id);
+	    (rc == EOK) && c;
+	    rc = pci_config_space_cap_next(pci_sess, &c, &id)) {
+		if (id == PCI_CAP_VENDORSPECID) {
+			uint8_t type;
+
+			rc = pci_config_space_read_8(pci_sess,
+			    VIRTIO_PCI_CAP_TYPE(c), &type);
+			if (rc != EOK)
+				return rc;
+
+			switch (type) {
+			case VIRTIO_PCI_CAP_COMMON_CFG:
+				break;
+			case VIRTIO_PCI_CAP_NOTIFY_CFG:
+				break;
+			case VIRTIO_PCI_CAP_ISR_CFG:
+				break;
+			case VIRTIO_PCI_CAP_DEVICE_CFG:
+				break;
+			case VIRTIO_PCI_CAP_PCI_CFG:
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	if (rc != EOK)
+		return rc;
 
 	return ENOTSUP;
 }
