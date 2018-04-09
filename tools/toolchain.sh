@@ -28,18 +28,18 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BINUTILS_VERSION="2.28"
+BINUTILS_VERSION="2.30"
 BINUTILS_RELEASE=""
 ## BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
-GCC_VERSION="7.1.0"
+GCC_VERSION="7.3.0"
 ## GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
-GDB_VERSION="7.12.1"
+GDB_VERSION="8.1"
 ## GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"
 BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
-GCC="gcc-${GCC_VERSION}.tar.bz2"
+GCC="gcc-${GCC_VERSION}.tar.xz"
 GDB="gdb-${GDB_VERSION}.tar.gz"
 
 REAL_INSTALL=true
@@ -278,9 +278,9 @@ prepare() {
 
 	echo ">>> Downloading tarballs"
 
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "9e8340c96626b469a603c15c9d843727"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "6bf56a2bca9dac9dbbf8e8d1036964a8"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "06c8f40521ed65fe36ebc2be29b56942"
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "cc47a2f256b4a593206b4d7e62a60b32"
+	download_fetch "${GCC_SOURCE}" "${GCC}" "be2da21680f27624f3a87055c4ba5af2"
+	download_fetch "${GDB_SOURCE}" "${GDB}" "0c85ecbb43569ec43b1c9230622e84ab"
 
 	echo ">>> Unpacking tarballs"
 	cd "${WORKDIR}"
@@ -433,28 +433,25 @@ build_target() {
 	check_error $? "Error installing GCC."
 
 
-	# No GDB support for RISC-V so far
-	if [ "$PLATFORM" != "riscv64" ] ; then
-		echo ">>> Processing GDB (${PLATFORM})"
-		mkdir -p "${GDBDIR}"
-		cd "${GDBDIR}"
-		check_error $? "Change directory failed."
+	echo ">>> Processing GDB (${PLATFORM})"
+	mkdir -p "${GDBDIR}"
+	cd "${GDBDIR}"
+	check_error $? "Change directory failed."
 
-		change_title "GDB: configure (${PLATFORM})"
-		PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
-			"--target=${TARGET}" \
-			"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
-			--enable-werror=no --without-guile
-		check_error $? "Error configuring GDB."
+	change_title "GDB: configure (${PLATFORM})"
+	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
+		"--target=${TARGET}" \
+		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
+		--enable-werror=no --without-guile
+	check_error $? "Error configuring GDB."
 
-		change_title "GDB: make (${PLATFORM})"
-		PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
-		check_error $? "Error compiling GDB."
+	change_title "GDB: make (${PLATFORM})"
+	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
+	check_error $? "Error compiling GDB."
 
-		change_title "GDB: make (${PLATFORM})"
-		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
-		check_error $? "Error installing GDB."
-	fi
+	change_title "GDB: make (${PLATFORM})"
+	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
+	check_error $? "Error installing GDB."
 
 	# Symlink clang and lld to the install path.
 	CLANG="`which clang 2> /dev/null || echo "/usr/bin/clang"`"
