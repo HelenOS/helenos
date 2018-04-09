@@ -54,12 +54,9 @@ SECTIONS {
 		*(.gnu.linkonce.tb.*);
 	} :data :tls
 
-	.sbss : {
+	.bss : {
 		*(.scommon);
 		*(.sbss);
-	}
-
-	.bss : {
 		*(COMMON);
 		*(.bss);
 	} :data

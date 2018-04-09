@@ -39,6 +39,10 @@ SECTIONS {
 		*(.data.rel*);
 	} :data
 
+	.got.plt : {
+		*(.got.plt);
+	} :data
+
 	.tdata : {
 		*(.tdata);
 		*(.tdata.*);

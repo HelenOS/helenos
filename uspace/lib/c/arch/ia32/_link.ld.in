@@ -61,7 +61,7 @@ SECTIONS {
 	} :text
 
 	.hash : {
-		*(.hash);
+		*(.hash .gnu.hash);
 	} :text
 #endif
 
@@ -91,11 +91,11 @@ SECTIONS {
 	.got : {
 		*(.got);
 	} :data
+#endif
 
 	.got.plt : {
 		*(.got.plt);
 	} :data
-#endif
 
 	.tdata : {
 		*(.tdata);
