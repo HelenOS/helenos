@@ -34,7 +34,6 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 LINKER_SCRIPTS = \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
-	$(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
 	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 
@@ -202,9 +201,6 @@ include $(USPACE_PREFIX)/Makefile.common
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
-
-$(LIBC_PREFIX)/arch/$(UARCH)/_link-loader.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DLOADER -E -x c $< | grep -v "^\#" > $@
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@

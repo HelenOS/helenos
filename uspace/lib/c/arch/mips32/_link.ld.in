@@ -2,20 +2,13 @@ STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
 ENTRY(__entry)
 
 PHDRS {
-#ifdef LOADER
-	interp PT_INTERP;
-#endif
 	text PT_LOAD FILEHDR PHDRS FLAGS(5);
 	data PT_LOAD FLAGS(6);
 	tls PT_TLS;
 }
 
 SECTIONS {
-#ifdef LOADER
-	. = SEGMENT_START("text-segment", 0x70400000);
-#else
 	. = SEGMENT_START("text-segment", 0x400000);
-#endif
 #ifndef SHLIB
 	PROVIDE (__executable_start = .);
 #endif
@@ -29,12 +22,6 @@ SECTIONS {
 		*(.text .text.*);
 		*(.rodata .rodata.*);
 	} :text
-
-#ifdef LOADER
-	.interp : {
-		*(.interp);
-	} :interp :text
-#endif
 
 	. = . + 0x4000;
 

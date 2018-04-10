@@ -302,12 +302,12 @@ endif
 
 ifneq ($(BINARY),)
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
-	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
+	$(LD) $(LFLAGS) $(EXTRA_LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(TEST_BINARY),)
 $(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS) $(BASE_LIBS)
-	$(LD) $(LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
+	$(LD) $(LFLAGS) $(EXTRA_LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(LIBRARY),)
@@ -324,7 +324,7 @@ $(LIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 
 $(SLIBRARY): $(LIB_LINKER_SCRIPT) $(LIBRARY).la
-	$(LD) $(LIB_LFLAGS) -T $(LIB_LINKER_SCRIPT) -Map $@.map -o $@ --whole-archive $(LIBRARY).la --no-whole-archive
+	$(LD) $(LIB_LFLAGS) $(EXTRA_LFLAGS) -T $(LIB_LINKER_SCRIPT) -Map $@.map -o $@ --whole-archive $(LIBRARY).la --no-whole-archive
 
 $(LSONAME):
 	ln -s $(SLIBRARY) $@
