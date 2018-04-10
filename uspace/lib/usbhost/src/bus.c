@@ -89,7 +89,7 @@ int bus_device_set_default_name(device_t *dev)
 	assert(dev);
 	assert(dev->fun);
 
-	char buf[10] = { 0 }; /* usbxyz-ss */
+	char buf[12] = { 0 }; /* usbxyz-ss */
 	snprintf(buf, sizeof(buf), "usb%u-%cs",
 	    dev->address, usb_str_speed(dev->speed)[0]);
 
