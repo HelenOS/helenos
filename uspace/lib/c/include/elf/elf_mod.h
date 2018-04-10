@@ -50,9 +50,8 @@
 #define EE_MEMORY		2	/* Cannot allocate address space */
 #define EE_INCOMPATIBLE		3	/* ELF image is not compatible with current architecture */
 #define EE_UNSUPPORTED		4	/* Non-supported ELF (e.g. dynamic ELFs) */
-#define EE_LOADER		5	/* The image is actually a program loader. */
-#define EE_IRRECOVERABLE	6
-#define EE_IO			7	/* Could not read file. */
+#define EE_IRRECOVERABLE	5
+#define EE_IO			6	/* Could not read file. */
 
 typedef enum {
 	/** Leave all segments in RW access mode. */

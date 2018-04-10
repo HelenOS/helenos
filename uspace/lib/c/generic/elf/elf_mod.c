@@ -267,8 +267,18 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 		return load_segment(elf, entry);
 		break;
 	case PT_INTERP:
-		/* Assume silently interp == "/app/dload" */
-		elf->info->interp = "/app/dload";
+		elf->info->interp =
+		    (void *)((uint8_t *)entry->p_vaddr + elf->bias);
+
+		// FIXME: This actually won't work, because the text segment is
+		// not loaded yet.
+		#if 0
+		if (elf->info->interp[entry->p_filesz - 1] != '\0') {
+			DPRINTF("Unterminated ELF interp string.\n");
+			return EE_INVALID;
+		}
+		DPRINTF("interpreter: \"%s\"\n", elf->info->interp);
+		#endif
 		break;
 	case PT_DYNAMIC:
 		/* Record pointer to dynamic section into info structure */

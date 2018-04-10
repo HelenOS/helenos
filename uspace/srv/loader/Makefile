@@ -35,8 +35,7 @@ BINARY = loader
 STATIC_ONLY = y
 
 GENERIC_SOURCES = \
-	main.c \
-	interp.S
+	main.c
 
 SOURCES = \
 	$(GENERIC_SOURCES) \

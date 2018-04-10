@@ -252,45 +252,55 @@ void kinit(void *arg)
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		assert(page);
 
+		if (str_cmp(name, "loader") == 0) {
+			/* Register image as the program loader */
+			if (program_loader == NULL) {
+				program_loader = (void *) page;
+				log(LF_OTHER, LVL_NOTE, "Program loader at %p",
+				    program_loader);
+			} else {
+				log(LF_OTHER, LVL_ERROR,
+				    "init[%zu]: Second binary named \"loader\""
+				    " present.", i);
+			}
+			continue;
+		}
+
 		errno_t rc = program_create_from_image((void *) page, namebuf,
 		    &programs[i]);
 
 		if (rc == 0) {
-			if (programs[i].task != NULL) {
-				/*
-				 * Set permissions to init userspace tasks.
-				 */
-				perm_set(programs[i].task,
-				    PERM_PERM | PERM_MEM_MANAGER |
-				    PERM_IO_MANAGER | PERM_IRQ_REG);
-
-				if (!ipc_box_0) {
-					ipc_box_0 = &programs[i].task->answerbox;
-					/*
-					 * Hold the first task so that
-					 * ipc_box_0 remains a valid pointer
-					 * even if the first task exits for
-					 * whatever reason.
-					 */
-					task_hold(programs[i].task);
-				}
-			}
+			assert(programs[i].task != NULL);
 
 			/*
-			 * If programs[i].task == NULL then it is
-			 * the program loader and it was registered
-			 * successfully.
+			 * Set permissions to init userspace tasks.
 			 */
+			perm_set(programs[i].task,
+			    PERM_PERM | PERM_MEM_MANAGER |
+			    PERM_IO_MANAGER | PERM_IRQ_REG);
+
+			if (!ipc_box_0) {
+				ipc_box_0 = &programs[i].task->answerbox;
+				/*
+				 * Hold the first task so that
+				 * ipc_box_0 remains a valid pointer
+				 * even if the first task exits for
+				 * whatever reason.
+				 */
+				task_hold(programs[i].task);
+			}
+
 		} else if (i == init.cnt - 1) {
 			/*
 			 * Assume the last task is the RAM disk.
 			 */
 			init_rd((void *) init.tasks[i].paddr, init.tasks[i].size);
-		} else
+		} else {
 			log(LF_OTHER, LVL_ERROR,
 			    "init[%zu]: Init binary load failed "
 			    "(error %s, loader status %u)", i,
 			    str_error_name(rc), programs[i].loader_status);
+		}
 	}
 
 	/*

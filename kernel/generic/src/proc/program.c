@@ -142,23 +142,12 @@ errno_t program_create_from_image(void *image_addr, char *name, program_t *prg)
 	if (!as)
 		return ENOMEM;
 
-	prg->loader_status = elf_load((elf_header_t *) image_addr, as, 0);
+	prg->loader_status = elf_load((elf_header_t *) image_addr, as);
 	if (prg->loader_status != EE_OK) {
 		as_destroy(as);
 		prg->task = NULL;
 		prg->main_thread = NULL;
-
-		if (prg->loader_status != EE_LOADER)
-			return ENOTSUP;
-
-		/* Register image as the program loader */
-		if (program_loader != NULL)
-			return ELIMIT;
-
-		program_loader = image_addr;
-		log(LF_OTHER, LVL_NOTE, "Program loader at %p", (void *) image_addr);
-
-		return EOK;
+		return ENOTSUP;
 	}
 
 	return program_create(as, ((elf_header_t *) image_addr)->e_entry,
@@ -187,8 +176,7 @@ errno_t program_create_loader(program_t *prg, char *name)
 		return ENOENT;
 	}
 
-	prg->loader_status = elf_load((elf_header_t *) program_loader, as,
-	    ELD_F_LOADER);
+	prg->loader_status = elf_load((elf_header_t *) program_loader, as);
 	if (prg->loader_status != EE_OK) {
 		as_destroy(as);
 		log(LF_OTHER, LVL_ERROR, "Cannot spawn loader (%s)",

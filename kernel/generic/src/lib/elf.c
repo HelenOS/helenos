@@ -45,6 +45,7 @@
 #include <align.h>
 #include <macros.h>
 #include <arch.h>
+#include <str.h>
 
 #include <lib/elf_load.h>
 
@@ -57,8 +58,6 @@ static const char *error_codes[] = {
 	"irrecoverable error"
 };
 
-static int segment_header(elf_segment_header_t *, elf_header_t *, as_t *,
-    unsigned int);
 static int load_segment(elf_segment_header_t *, elf_header_t *, as_t *);
 
 /** ELF loader
@@ -70,7 +69,7 @@ static int load_segment(elf_segment_header_t *, elf_header_t *, as_t *);
  * @return EE_OK on success
  *
  */
-unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
+unsigned int elf_load(elf_header_t *header, as_t *as)
 {
 	/* Identify ELF */
 	if ((header->e_ident[EI_MAG0] != ELFMAG0) ||
@@ -105,7 +104,10 @@ unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
 		    &((elf_segment_header_t *)(((uint8_t *) header) +
 		    header->e_phoff))[i];
 
-		int rc = segment_header(seghdr, header, as, flags);
+		if (seghdr->p_type != PT_LOAD)
+			continue;
+
+		int rc = load_segment(seghdr, header, as);
 		if (rc != EE_OK)
 			return rc;
 	}
@@ -125,48 +127,6 @@ const char *elf_error(unsigned int rc)
 	assert(rc < sizeof(error_codes) / sizeof(char *));
 
 	return error_codes[rc];
-}
-
-/** Process segment header.
- *
- * @param entry Segment header.
- * @param elf   ELF header.
- * @param as    Address space into wich the ELF is being loaded.
- *
- * @return EE_OK on success, error code otherwise.
- *
- */
-static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
-    as_t *as, unsigned int flags)
-{
-	switch (entry->p_type) {
-	case PT_NULL:
-	case PT_PHDR:
-	case PT_NOTE:
-		break;
-	case PT_LOAD:
-		return load_segment(entry, elf, as);
-	case PT_TLS:
-		break;
-	case PT_DYNAMIC:
-	case PT_INTERP:
-		// FIXME
-		/*
-		char *interp = (char *) elf + entry->p_offset;
-		if (memcmp((uintptr_t) interp, (uintptr_t) ELF_INTERP_ZSTR,
-		    ELF_INTERP_ZLEN) != 0) {
-			return EE_UNSUPPORTED;
-		} */
-		if ((flags & ELD_F_LOADER) == 0)
-			return EE_LOADER;
-		break;
-	case PT_SHLIB:
-	case PT_LOPROC:
-	case PT_HIPROC:
-	default:
-		return EE_UNSUPPORTED;
-	}
-	return EE_OK;
 }
 
 /** Load segment described by program header entry.

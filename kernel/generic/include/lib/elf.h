@@ -38,10 +38,6 @@
 #include <abi/elf.h>
 #include <arch/elf.h>
 
-/** Interpreter string used to recognize the program loader */
-#define ELF_INTERP_ZSTR  "kernel"
-#define ELF_INTERP_ZLEN  sizeof(ELF_INTERP_ZSTR)
-
 #endif
 
 /** @}
