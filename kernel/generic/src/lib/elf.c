@@ -59,7 +59,6 @@ static const char *error_codes[] = {
 
 static int segment_header(elf_segment_header_t *, elf_header_t *, as_t *,
     unsigned int);
-static int section_header(elf_section_header_t *, elf_header_t *, as_t *);
 static int load_segment(elf_segment_header_t *, elf_header_t *, as_t *);
 
 /** ELF loader
@@ -91,9 +90,6 @@ unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
 	if (header->e_phentsize != sizeof(elf_segment_header_t))
 		return EE_INCOMPATIBLE;
 
-	if (header->e_shentsize != sizeof(elf_section_header_t))
-		return EE_INCOMPATIBLE;
-
 	/* Check if the object type is supported. */
 	if (header->e_type != ET_EXEC)
 		return EE_UNSUPPORTED;
@@ -110,17 +106,6 @@ unsigned int elf_load(elf_header_t *header, as_t *as, unsigned int flags)
 		    header->e_phoff))[i];
 
 		int rc = segment_header(seghdr, header, as, flags);
-		if (rc != EE_OK)
-			return rc;
-	}
-
-	/* Inspect all section headers and process them. */
-	for (i = 0; i < header->e_shnum; i++) {
-		elf_section_header_t *sechdr =
-		    &((elf_section_header_t *)(((uint8_t *) header) +
-		    header->e_shoff))[i];
-
-		int rc = section_header(sechdr, header, as);
 		if (rc != EE_OK)
 			return rc;
 	}
@@ -235,36 +220,6 @@ int load_segment(elf_segment_header_t *entry, elf_header_t *elf, as_t *as)
 	 * The segment will be mapped on demand by elf_page_fault().
 	 *
 	 */
-
-	return EE_OK;
-}
-
-/** Process section header.
- *
- * @param entry Segment header.
- * @param elf   ELF header.
- * @param as    Address space into wich the ELF is being loaded.
- *
- * @return EE_OK on success, error code otherwise.
- *
- */
-static int section_header(elf_section_header_t *entry, elf_header_t *elf,
-    as_t *as)
-{
-	switch (entry->sh_type) {
-	case SHT_PROGBITS:
-		if (entry->sh_flags & SHF_TLS) {
-			/* .tdata */
-		}
-		break;
-	case SHT_NOBITS:
-		if (entry->sh_flags & SHF_TLS) {
-			/* .tbss */
-		}
-		break;
-	default:
-		break;
-	}
 
 	return EE_OK;
 }
