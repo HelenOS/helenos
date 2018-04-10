@@ -47,7 +47,7 @@ typedef unsigned int gid_t;
 typedef off64_t off_t;
 typedef long blksize_t;
 typedef long blkcnt_t;
-typedef int64_t pid_t;
+typedef int pid_t;
 typedef sysarg_t dev_t;
 typedef unsigned int mode_t;
 
