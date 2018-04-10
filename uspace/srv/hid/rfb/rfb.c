@@ -82,6 +82,7 @@ static errno_t recv_char(tcp_conn_t *conn, char *c)
 }
 
 /** Receive count characters (with buffering) */
+__attribute__((warn_unused_result))
 static errno_t recv_chars(tcp_conn_t *conn, char *c, size_t count)
 {
 	for (size_t i = 0; i < count; i++) {
@@ -215,6 +216,7 @@ errno_t rfb_set_size(rfb_t *rfb, uint16_t width, uint16_t height)
 	return EOK;
 }
 
+__attribute__((warn_unused_result))
 static errno_t recv_message(tcp_conn_t *conn, char type, void *buf, size_t size)
 {
 	memcpy(buf, &type, 1);
@@ -689,7 +691,8 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		rc = recv_char(conn, &message_type);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_WARN,
-			    "Failed receiving client message type");
+			    "Failed receiving client message type: %s",
+			    str_error(rc));
 			return;
 		}
 
@@ -701,7 +704,13 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		rfb_client_cut_text_t cct;
 		switch (message_type) {
 		case RFB_CMSG_SET_PIXEL_FORMAT:
-			recv_message(conn, message_type, &spf, sizeof(spf));
+			rc = recv_message(conn, message_type, &spf, sizeof(spf));
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_WARN,
+				    "Failed receiving client message: %s",
+				    str_error(rc));
+				return;
+			}
 			rfb_pixel_format_to_host(&spf.pixel_format, &spf.pixel_format);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received SetPixelFormat message");
 			fibril_mutex_lock(&rfb->lock);
@@ -711,7 +720,13 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 				return;
 			break;
 		case RFB_CMSG_SET_ENCODINGS:
-			recv_message(conn, message_type, &se, sizeof(se));
+			rc = recv_message(conn, message_type, &se, sizeof(se));
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_WARN,
+				    "Failed receiving client message: %s",
+				    str_error(rc));
+				return;
+			}
 			rfb_set_encodings_to_host(&se, &se);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received SetEncodings message");
 			for (uint16_t i = 0; i < se.count; i++) {
@@ -728,24 +743,48 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 			}
 			break;
 		case RFB_CMSG_FRAMEBUFFER_UPDATE_REQUEST:
-			recv_message(conn, message_type, &fbur, sizeof(fbur));
+			rc = recv_message(conn, message_type, &fbur, sizeof(fbur));
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_WARN,
+				    "Failed receiving client message: %s",
+				    str_error(rc));
+				return;
+			}
 			rfb_framebuffer_update_request_to_host(&fbur, &fbur);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2,
 			    "Received FramebufferUpdateRequest message");
 			rfb_send_framebuffer_update(rfb, conn, fbur.incremental);
 			break;
 		case RFB_CMSG_KEY_EVENT:
-			recv_message(conn, message_type, &ke, sizeof(ke));
+			rc = recv_message(conn, message_type, &ke, sizeof(ke));
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_WARN,
+				    "Failed receiving client message: %s",
+				    str_error(rc));
+				return;
+			}
 			rfb_key_event_to_host(&ke, &ke);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received KeyEvent message");
 			break;
 		case RFB_CMSG_POINTER_EVENT:
-			recv_message(conn, message_type, &pe, sizeof(pe));
+			rc = recv_message(conn, message_type, &pe, sizeof(pe));
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_WARN,
+				    "Failed receiving client message: %s",
+				    str_error(rc));
+				return;
+			}
 			rfb_pointer_event_to_host(&pe, &pe);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received PointerEvent message");
 			break;
 		case RFB_CMSG_CLIENT_CUT_TEXT:
-			recv_message(conn, message_type, &cct, sizeof(cct));
+			rc = recv_message(conn, message_type, &cct, sizeof(cct));
+			if (rc != EOK) {
+				log_msg(LOG_DEFAULT, LVL_WARN,
+				    "Failed receiving client message: %s",
+				    str_error(rc));
+				return;
+			}
 			rfb_client_cut_text_to_host(&cct, &cct);
 			log_msg(LOG_DEFAULT, LVL_DEBUG2, "Received ClientCutText message");
 			recv_skip_chars(conn, cct.length);
