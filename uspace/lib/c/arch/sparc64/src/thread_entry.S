@@ -44,10 +44,8 @@ SYMBOL(__thread_entry)
 	#
 	# Propagate the input arguments to the new window.
 	#
-	mov %i0, %o0
 
-	sethi %hi(_gp), %l7
 	call __thread_main		! %o0 contains address of uarg
-	or %l7, %lo(_gp), %l7
+	mov %i0, %o0
 
 	! not reached

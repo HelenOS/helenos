@@ -27,7 +27,6 @@ SECTIONS {
 	. = . + 0x4000;
 
 	.got : {
-		 _gp = .;
 		 *(.got*);
 	} :data
 
