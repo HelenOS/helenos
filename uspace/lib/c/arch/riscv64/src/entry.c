@@ -29,8 +29,11 @@
 /** @file
  */
 
-#include <libarch/entry.h>
 #include "../../../generic/private/libc.h"
+
+extern void __entry(void);
+
+// FIXME: Implement properly.
 
 void __entry(void)
 {

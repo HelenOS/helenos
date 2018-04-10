@@ -29,9 +29,12 @@
 /** @file
  */
 
-#include <libarch/entry.h>
 #include "../../../generic/private/libc.h"
 #include <stddef.h>
+
+extern void __entry(void);
+
+/* Normally, the entry point is defined in assembly for the architecture. */
 
 void __entry(void)
 {

@@ -52,6 +52,8 @@ SECTIONS {
 		*(.bss);
 	} :data
 
+	_end = .;
+
 	/DISCARD/ : {
 		*(*);
 	}

@@ -71,7 +71,7 @@
 errno_t physmem_map(uintptr_t phys, size_t pages, unsigned int flags, void **virt)
 {
 	return (errno_t) __SYSCALL5(SYS_PHYSMEM_MAP, (sysarg_t) phys,
-	    pages, flags, (sysarg_t) virt, (sysarg_t) __entry);
+	    pages, flags, (sysarg_t) virt, (sysarg_t) _end);
 }
 
 /** Unmap a piece of physical memory to task.
@@ -144,7 +144,7 @@ errno_t dmamem_map_anonymous(size_t size, uintptr_t constraint,
 
 	return (errno_t) __SYSCALL6(SYS_DMAMEM_MAP, (sysarg_t) size,
 	    (sysarg_t) map_flags, (sysarg_t) flags | DMAMEM_FLAGS_ANONYMOUS,
-	    (sysarg_t) phys, (sysarg_t) virt, (sysarg_t) __entry);
+	    (sysarg_t) phys, (sysarg_t) virt, (sysarg_t) _end);
 }
 
 errno_t dmamem_unmap(void *virt, size_t size)

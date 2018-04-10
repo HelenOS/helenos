@@ -59,7 +59,7 @@ void *as_area_create(void *base, size_t size, unsigned int flags,
     as_area_pager_info_t *pager_info)
 {
 	return (void *) __SYSCALL5(SYS_AS_AREA_CREATE, (sysarg_t) base,
-	    (sysarg_t) size, (sysarg_t) flags, (sysarg_t) __entry,
+	    (sysarg_t) size, (sysarg_t) flags, (sysarg_t) _end,
 	    (sysarg_t) pager_info);
 }
 

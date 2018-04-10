@@ -57,6 +57,8 @@ SECTIONS {
 		*(COMMON);
 	} :data
 
+	_end = .;
+
 	/DISCARD/ : {
 		*(*);
 	}

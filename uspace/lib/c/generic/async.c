@@ -2676,8 +2676,9 @@ bool async_share_in_receive(cap_call_handle_t *chandle, size_t *size)
 errno_t async_share_in_finalize(cap_call_handle_t chandle, void *src,
     unsigned int flags)
 {
+	// FIXME: The source has no business deciding destination address.
 	return ipc_answer_3(chandle, EOK, (sysarg_t) src, (sysarg_t) flags,
-	    (sysarg_t) __entry);
+	    (sysarg_t) _end);
 }
 
 /** Wrapper for IPC_M_SHARE_OUT calls using the async framework.
@@ -2746,7 +2747,7 @@ bool async_share_out_receive(cap_call_handle_t *chandle, size_t *size,
  */
 errno_t async_share_out_finalize(cap_call_handle_t chandle, void **dst)
 {
-	return ipc_answer_2(chandle, EOK, (sysarg_t) __entry, (sysarg_t) dst);
+	return ipc_answer_2(chandle, EOK, (sysarg_t) _end, (sysarg_t) dst);
 }
 
 /** Start IPC_M_DATA_READ using the async framework.

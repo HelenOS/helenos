@@ -48,6 +48,8 @@ SECTIONS {
 		*(.bss);
 	} :data
 
+	_end = .;
+
 #ifdef CONFIG_LINE_DEBUG
 	.comment 0 : { *(.comment); } :debug
 	.debug_abbrev 0 : { *(.debug_abbrev); } :debug
