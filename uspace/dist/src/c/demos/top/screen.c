@@ -119,10 +119,10 @@ static void screen_newline(void)
 
 	sysarg_t i;
 	for (i = c + 1; i < cols; i++)
-		puts(" ");
+		fputs(" ", stdout);
 
 	if (r + 1 < rows)
-		puts("\n");
+		puts("");
 }
 
 void screen_init(void)
@@ -186,7 +186,7 @@ static inline void print_global_head(data_t *data)
 
 	size_t i;
 	for (i = 0; i < data->load_count; i++) {
-		puts(" ");
+		fputs(" ", stdout);
 		stats_print_load_fragment(data->load[i], 2);
 	}
 
@@ -258,9 +258,9 @@ static inline void print_cpu_info(data_t *data)
 			    "%" PRIu64 "%c, idle cycles: %" PRIu64 "%c",
 			    data->cpus[i].id, data->cpus[i].frequency_mhz,
 			    busy, busy_suffix, idle, idle_suffix);
-			puts(", idle: ");
+			fputs(", idle: ", stdout);
 			print_percent(data->cpus_perc[i].idle, 2);
-			puts(", busy: ");
+			fputs(", busy: ", stdout);
 			print_percent(data->cpus_perc[i].busy, 2);
 		} else
 			printf("cpu%u inactive", data->cpus[i].id);
@@ -360,7 +360,7 @@ static inline void print_table_head(const table_t *table)
 		const char *name = table->columns[i].name;
 		int width = table->columns[i].width;
 		if (i != 0) {
-			puts(" ");
+			fputs(" ", stdout);
 		}
 		if (width == 0) {
 			sysarg_t col;
@@ -394,7 +394,7 @@ static inline void print_table(const table_t *table)
 		char suffix;
 
 		if (column_index != 0) {
-			puts(" ");
+			fputs(" ", stdout);
 		}
 
 		if (width == 0) {

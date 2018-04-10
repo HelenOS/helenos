@@ -59,6 +59,7 @@ int puts(const char *str)
 		chars++;
 	}
 
+	putchar('\n');
 	return chars;
 }
 

@@ -178,7 +178,7 @@ static void tetris_menu_draw(int level)
 {
 	clear_screen();
 	moveto(5, 10);
-	puts("Tetris\n\n");
+	puts("Tetris\n");
 
 	moveto(8, 10);
 	printf("Level = %d (press keys 1 - 9 to change)", level);
@@ -193,7 +193,7 @@ static void tetris_menu_draw(int level)
 	moveto(20, 10);
 	printf("In game controls:");
 	moveto(21, 0);
-	puts(key_msg);
+	printf("%s", key_msg);
 }
 
 static int tetris_menu(int *level)

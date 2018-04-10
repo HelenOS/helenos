@@ -352,13 +352,13 @@ int cmd_cat(char **argv)
 			return CMD_SUCCESS;
 		case 'H':
 			if (!optarg || str_uint64_t(optarg, NULL, 10, false, &head) != EOK) {
-				puts("Invalid head size\n");
+				puts("Invalid head size");
 				return CMD_FAILURE;
 			}
 			break;
 		case 't':
 			if (!optarg || str_uint64_t(optarg, NULL, 10, false, &tail) != EOK) {
-				puts("Invalid tail size\n");
+				puts("Invalid tail size");
 				return CMD_FAILURE;
 			}
 			if (head == CAT_FULL_FILE)
@@ -366,7 +366,7 @@ int cmd_cat(char **argv)
 			break;
 		case 'b':
 			if (!optarg || str_size_t(optarg, NULL, 10, false, &buffer) != EOK) {
-				puts("Invalid buffer size\n");
+				puts("Invalid buffer size");
 				return CMD_FAILURE;
 			}
 			break;

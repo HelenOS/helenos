@@ -75,6 +75,8 @@ extern int getchar(void);
 extern int fputc(wchar_t, FILE *);
 extern int fputs(const char *, FILE *);
 
+// FIXME: putchar and fputc are byte-oriented.
+// They shouldn't accept wide characters.
 extern int putchar(wchar_t);
 extern int puts(const char *);
 

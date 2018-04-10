@@ -93,7 +93,7 @@ static errno_t read_params(int argc, char *argv[], void **params)
 			break;
 		case 't':
 			if (!optarg || str_uint32_t(optarg, NULL, 10, false, &duration_uint) != EOK) {
-				puts(NAME ": Invalid duration.\n");
+				puts(NAME ": Invalid duration.");
 				rc = EINVAL;
 				goto err_malloc;
 			}
@@ -101,7 +101,7 @@ static errno_t read_params(int argc, char *argv[], void **params)
 			break;
 		case 's':
 			if (!optarg || str_size_t(optarg, NULL, 10, false, &p->transfer_size) != EOK) {
-				puts(NAME ": Invalid data size.\n");
+				puts(NAME ": Invalid data size.");
 				rc = EINVAL;
 				goto err_malloc;
 			}
@@ -181,17 +181,17 @@ static int test_in(async_exch_t *exch, const void *generic_params)
 {
 	const usbdiag_test_params_t *params = (usbdiag_test_params_t *) generic_params;
 	print_params(params);
-	puts("\nTesting... ");
+	fputs("\nTesting... ", stdout);
 
 	usbdiag_test_results_t results;
 	errno_t rc = usbdiag_test_in(exch, params, &results);
 	if (rc != EOK) {
-		puts("failed\n");
+		puts("failed");
 		printf(NAME ": %s\n", str_error(rc));
 		return 1;
 	}
 
-	puts("succeeded\n\n");
+	puts("succeeded\n");
 	print_results(params, &results);
 	return 0;
 }
@@ -206,17 +206,17 @@ static int test_out(async_exch_t *exch, const void *generic_params)
 {
 	const usbdiag_test_params_t *params = (usbdiag_test_params_t *) generic_params;
 	print_params(params);
-	puts("\nTesting... ");
+	fputs("\nTesting... ", stdout);
 
 	usbdiag_test_results_t results;
 	errno_t rc = usbdiag_test_out(exch, params, &results);
 	if (rc) {
-		puts("failed\n");
+		puts("failed");
 		printf(NAME ": %s\n", str_error(rc));
 		return 1;
 	}
 
-	puts("succeeded\n\n");
+	puts("succeeded\n");
 	print_results(params, &results);
 	return 0;
 }

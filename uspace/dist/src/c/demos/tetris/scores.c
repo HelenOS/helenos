@@ -128,7 +128,7 @@ void insertscore(int score, int level)
 
 	clear_screen();
 	moveto(10, 10);
-	puts("Insert your name: ");
+	fputs("Insert your name: ", stdout);
 	str_cpy(scores[NUMSPOTS - 1].hs_name, STR_BOUNDS(MAXLOGNAME) + 1,
 	    "Player");
 	i = 6;

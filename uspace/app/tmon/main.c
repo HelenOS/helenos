@@ -126,19 +126,19 @@ static tmon_opt_t options[] = {
  */
 static void print_usage(char *app_name)
 {
-	puts(NAME ": benchmark USB diagnostic device\n\n");
+	puts(NAME ": benchmark USB diagnostic device\n");
 	printf("Usage: %s command [device] [options]\n\n", app_name);
 
 	for (unsigned i = 0; i < ARRAY_SIZE(commands); ++i) {
 		printf(INDENT "%s - %s\n", commands[i].name, commands[i].description);
 	}
 
-	puts("\n");
+	puts("");
 	for (unsigned i = 0; i < ARRAY_SIZE(options); ++i) {
 		printf(INDENT "-%c --%s\n" INDENT INDENT "%s\n", options[i].short_name, options[i].long_name, options[i].description);
 	}
 
-	puts("\nIf no device is specified, the first device is used provided that it is the only one connected. Otherwise, the command fails.\n\n");
+	puts("\nIf no device is specified, the first device is used provided that it is the only one connected. Otherwise, the command fails.\n");
 }
 
 /** Main tmon entry point.

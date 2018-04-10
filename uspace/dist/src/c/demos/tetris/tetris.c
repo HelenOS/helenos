@@ -179,7 +179,7 @@ static void tetris_menu_draw(int level)
 {
 	clear_screen();
 	moveto(5, 10);
-	puts("Tetris\n\n");
+	puts("Tetris\n");
 
 	moveto(8, 10);
 	printf("Level = %d (press keys 1 - 9 to change)", level);
