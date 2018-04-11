@@ -109,6 +109,52 @@ namespace std
     };
 
     /**
+     * 24.4.4, iterator operations
+     */
+
+    template<class InputIterator, class Distance>
+    void advance(InputIterator& it, Distance n)
+    {
+        for (Distance i = Distance{}; i < n; ++i)
+            ++it;
+    }
+
+    template<class InputIterator>
+    typename iterator_traits<InputIterator>::difference_type
+    distance(InputIterator first, InputIterator last)
+    {
+        using cat_t = typename iterator_traits<InputIterator>::iterator_category;
+
+        if constexpr (is_same_v<cat_t, random_access_iterator_tag>)
+            return last - first;
+        else
+        {
+            cat_t diff{};
+            while (++first != last)
+                ++diff;
+        }
+    }
+
+    template<class ForwardIterator>
+    ForwardIterator
+    next(ForwardIterator it, typename iterator_traits<ForwardIterator>::difference_type n = 1)
+    {
+        advance(it, n);
+
+        return it;
+    }
+
+    template<class BidirectionalIterator>
+    BidirectionalIterator
+    prev(BidirectionalIterator it,
+         typename iterator_traits<BidirectionalIterator>::difference_type n = 1)
+    {
+        advance(it, -n);
+
+        return it;
+    }
+
+    /**
      * 24.5.1, reverse iterator:
      */
 
