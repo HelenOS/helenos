@@ -542,22 +542,46 @@ namespace std
 
             size_type max_size() const noexcept
             {
-                // TODO: implement
+                return allocator_traits<Allocator>::max_size(allocator_);
             }
 
             void resize(size_type sz)
             {
-                // TODO: implement
+                if (sz <= size_)
+                {
+                    for (size_type i = 0; i < size_ - sz; ++i)
+                        pop_back();
+                }
+                else
+                {
+                    value_type value{};
+                    for (size_type i = 0; i < sz - size_; ++i)
+                        push_back(value);
+                }
             }
 
             void resize(size_type sz, const value_type& value)
             {
-                // TODO: implement
+                if (sz <= size_)
+                {
+                    for (size_type i = 0; i < size_ - sz; ++i)
+                        pop_back();
+                }
+                else
+                {
+                    for (size_type i = 0; i < sz - size_; ++i)
+                        push_back(value);
+                }
             }
 
             void shrink_to_fit()
             {
-                // TODO: implement
+                /**
+                 * We lazily allocate buckets and eagerily deallocate them.
+                 * We cannot go into smaller pieces as buckets have fixed size.
+                 * Because of this, shrink_to_fit has no effect (as permitted
+                 * by the standard).
+                 */
             }
 
             bool empty() const noexcept
