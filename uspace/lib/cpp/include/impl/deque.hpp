@@ -421,7 +421,14 @@ namespace std
 
             deque& operator=(const deque& other)
             {
-                // TODO: implement
+                if (data_)
+                    fini_();
+
+                prepare_for_size_(other.size_);
+                init_();
+                copy_from_range_(other.begin(), other.end());
+
+                return *this;
             }
 
             deque& operator=(deque&& other)
@@ -433,7 +440,14 @@ namespace std
 
             deque& operator=(initializer_list<T> init)
             {
-                // TODO: implement
+                if (data_)
+                    fini_();
+
+                prepare_for_size_(init.size());
+                init_();
+                copy_from_range_(init.begin(), init.end());
+
+                return *this;
             }
 
             template<class InputIterator>
