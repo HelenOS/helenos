@@ -424,8 +424,6 @@ namespace std
                 if (data_)
                     fini_();
 
-                prepare_for_size_(other.size_);
-                init_();
                 copy_from_range_(other.begin(), other.end());
 
                 return *this;
@@ -443,8 +441,6 @@ namespace std
                 if (data_)
                     fini_();
 
-                prepare_for_size_(init.size());
-                init_();
                 copy_from_range_(init.begin(), init.end());
 
                 return *this;
@@ -453,17 +449,23 @@ namespace std
             template<class InputIterator>
             void assign(InputIterator first, InputIterator last)
             {
-                // TODO: implement
+                copy_from_range_(first, last);
             }
 
             void assign(size_type n, const T& value)
             {
-                // TODO: implement
+                prepare_for_size_(n);
+                init_();
+                size_ = n;
+
+                auto it = begin();
+                for (size_type i = size_type{}; i < n; ++i)
+                    *it++ = value;
             }
 
             void assign(initializer_list<T> init)
             {
-                // TODO: implement
+                copy_from_range_(init.begin(), init.end());
             }
 
             allocator_type get_allocator() const noexcept
@@ -542,7 +544,7 @@ namespace std
 
             size_type max_size() const noexcept
             {
-                return allocator_traits<Allocator>::max_size(allocator_);
+                return allocator_traits<allocator_type>::max_size(allocator_);
             }
 
             void resize(size_type sz)
@@ -642,13 +644,31 @@ namespace std
             template<class... Args>
             void emplace_front(Args&&... args)
             {
-                // TODO: implement
+                if (front_bucket_idx_ == 0)
+                    add_new_bucket_front_();
+
+                allocator_traits<allocator_type>::construct(
+                    allocator_,
+                    &data_[front_bucket_][--front_bucket_idx_],
+                    forward<Args>(args)...
+                );
+
+                ++size_;
             }
 
             template<class... Args>
             void emplace_back(Args&&... args)
             {
-                // TODO: implement
+                allocator_traits<allocator_type>::construct(
+                    allocator_,
+                    &data_[back_bucket_][back_bucket_idx_++],
+                    forward<Args>(args)...
+                );
+
+                ++size_;
+
+                if (back_bucket_idx_ >= bucket_size_)
+                    add_new_bucket_back_();
             }
 
             template<class... Args>
@@ -837,12 +857,15 @@ namespace std
                 if (size < bucket_size_) // Always front_bucket_ != back_bucket_.
                     bucket_count_ = bucket_capacity_ = 2;
                 else if (size % bucket_size_ == 0)
-                    bucket_count_ = bucket_capacity_ = size / bucket_size_ + 1;
+                    bucket_count_ = bucket_capacity_ = size / bucket_size_ + 2;
                 else
                     bucket_count_ = bucket_capacity_ = size / bucket_size_ + 2;
 
                 front_bucket_ = 0;
                 back_bucket_ = bucket_capacity_ - 1;
+
+                front_bucket_idx_ = bucket_size_;
+                back_bucket_idx_ = size % bucket_size_;
             }
 
             template<class Iterator>
@@ -855,9 +878,6 @@ namespace std
                 auto it = begin();
                 while (first != last)
                     *it++ = *first++;
-
-                // Remainder is the amount of elements in the last bucket.
-                back_bucket_idx_ = size_ % bucket_size_;
             }
 
             void fini_()
