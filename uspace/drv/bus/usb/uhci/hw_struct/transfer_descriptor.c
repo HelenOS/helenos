@@ -71,35 +71,35 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 {
 	assert(instance);
 	assert(size < 1024);
-	assert((pid == USB_PID_SETUP) || (pid == USB_PID_IN)
-	    || (pid == USB_PID_OUT));
+	assert((pid == USB_PID_SETUP) || (pid == USB_PID_IN) ||
+	    (pid == USB_PID_OUT));
 
 	const uint32_t next_pa = addr_to_phys(next);
 	assert((next_pa & LINK_POINTER_ADDRESS_MASK) == next_pa);
 
-	instance->next = 0
-	    | LINK_POINTER_VERTICAL_FLAG
-	    | (next_pa ? next_pa : LINK_POINTER_TERMINATE_FLAG);
+	instance->next = 0 |
+	    LINK_POINTER_VERTICAL_FLAG |
+	    (next_pa ? next_pa : LINK_POINTER_TERMINATE_FLAG);
 
-	instance->status = 0
-	    | ((err_count & TD_STATUS_ERROR_COUNT_MASK)
-	        << TD_STATUS_ERROR_COUNT_POS)
-	    | (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0)
-	    | (iso ? TD_STATUS_ISOCHRONOUS_FLAG : 0)
-	    | TD_STATUS_ERROR_ACTIVE;
+	instance->status = 0 |
+	    ((err_count & TD_STATUS_ERROR_COUNT_MASK) <<
+	    TD_STATUS_ERROR_COUNT_POS) |
+	    (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0) |
+	    (iso ? TD_STATUS_ISOCHRONOUS_FLAG : 0) |
+	    TD_STATUS_ERROR_ACTIVE;
 
 	if (pid == USB_PID_IN && !iso) {
 		instance->status |= TD_STATUS_SPD_FLAG;
 	}
 
-	instance->device = 0
-	    | (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
-	    | (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)
-	    | ((target.address & TD_DEVICE_ADDRESS_MASK)
-	        << TD_DEVICE_ADDRESS_POS)
-	    | ((target.endpoint & TD_DEVICE_ENDPOINT_MASK)
-	        << TD_DEVICE_ENDPOINT_POS)
-	    | ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
+	instance->device = 0 |
+	    (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS) |
+	    (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0) |
+	    ((target.address & TD_DEVICE_ADDRESS_MASK) <<
+	    TD_DEVICE_ADDRESS_POS) |
+	    ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) <<
+	    TD_DEVICE_ENDPOINT_POS) |
+	    ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
 
 	instance->buffer_ptr = addr_to_phys(buffer);
 
@@ -174,8 +174,7 @@ void td_print_status(const td_t *instance)
 	    (s & TD_STATUS_ERROR_CRC) ? " CRC/TIMEOUT," : "",
 	    (s & TD_STATUS_ERROR_BIT_STUFF) ? " BIT_STUFF," : "",
 	    (s & TD_STATUS_ERROR_RESERVED) ? " RESERVED," : "",
-	    td_act_size(instance)
-	);
+	    td_act_size(instance));
 }
 /**
  * @}

@@ -438,7 +438,7 @@ void ne2k_send(nic_t *nic_data, void *data, size_t size)
 }
 
 static nic_frame_t *ne2k_receive_frame(nic_t *nic_data, uint8_t page,
-	size_t length)
+    size_t length)
 {
 	ne2k_t *ne2k = (ne2k_t *) nic_get_specific(nic_data);
 
@@ -450,8 +450,8 @@ static nic_frame_t *ne2k_receive_frame(nic_t *nic_data, uint8_t page,
 	uint8_t last = page + length / DP_PAGE;
 
 	if (last >= ne2k->stop_page) {
-		size_t left = (ne2k->stop_page - page) * DP_PAGE
-		    - sizeof(recv_header_t);
+		size_t left = (ne2k->stop_page - page) * DP_PAGE -
+		    sizeof(recv_header_t);
 		ne2k_download(ne2k, frame->data, page * DP_PAGE + sizeof(recv_header_t),
 		    left);
 		ne2k_download(ne2k, frame->data + left, ne2k->start_page * DP_PAGE,
@@ -508,11 +508,11 @@ static void ne2k_receive(nic_t *nic_data)
 		    (((size_t) header.rbcl) | (((size_t) header.rbch) << 8)) - size;
 		uint8_t next = header.next;
 
-		if ((length < ETH_MIN_PACK_SIZE)
-		    || (length > ETH_MAX_PACK_SIZE_TAGGED)) {
+		if ((length < ETH_MIN_PACK_SIZE) ||
+		    (length > ETH_MAX_PACK_SIZE_TAGGED)) {
 			next = current;
-		} else if ((header.next < ne2k->start_page)
-		    || (header.next > ne2k->stop_page)) {
+		} else if ((header.next < ne2k->start_page) ||
+		    (header.next > ne2k->stop_page)) {
 			next = current;
 		} else if (header.status & RSR_FO) {
 			/*
@@ -524,7 +524,7 @@ static void ne2k_receive(nic_t *nic_data)
 		} else if ((header.status & RSR_PRX) && (ne2k->up)) {
 			if (frames != NULL) {
 				nic_frame_t *frame =
-					ne2k_receive_frame(nic_data, boundary, length);
+				    ne2k_receive_frame(nic_data, boundary, length);
 				if (frame != NULL) {
 					nic_frame_list_append(frames, frame);
 					frames_count++;
@@ -557,7 +557,7 @@ void ne2k_interrupt(nic_t *nic_data, uint8_t isr, uint8_t tsr)
 	if (isr & (ISR_PTX | ISR_TXE)) {
 		if (tsr & TSR_COL) {
 			nic_report_collisions(nic_data,
-				pio_read_8(ne2k->port + DP_NCR) & 15);
+			    pio_read_8(ne2k->port + DP_NCR) & 15);
 		}
 
 		if (tsr & TSR_PTX) {

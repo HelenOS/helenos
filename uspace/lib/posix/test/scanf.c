@@ -48,14 +48,16 @@ PCUT_TEST_SUITE(scanf);
  * that are not yet available for SPARC-64.
  */
 
-PCUT_TEST(int_decimal) {
+PCUT_TEST(int_decimal)
+{
 	int number;
 	int rc = sscanf("4242", "%d", &number);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_INT_EQUALS(4242, number);
 }
 
-PCUT_TEST(int_negative_decimal) {
+PCUT_TEST(int_negative_decimal)
+{
 	int number;
 	int rc = sscanf("-53", "%d", &number);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
@@ -68,7 +70,8 @@ PCUT_TEST(int_negative_decimal) {
  * eventually.
  */
 
-PCUT_TEST(int_misc) {
+PCUT_TEST(int_misc)
+{
 	unsigned char uhh;
 	signed char shh;
 	unsigned short uh;
@@ -82,9 +85,9 @@ PCUT_TEST(int_misc) {
 	void *p;
 
 	int rc = sscanf(
-		"\n j tt % \t -121314 98765 aqw 0765 0x77 0xABCDEF88 -99 884",
-		" j tt %%%3hhd%1hhu%3hd %3hu%u aqw%n %lo%llx %p %li %lld",
-		&shh, &uhh, &sh, &uh, &udef, &sdef, &ul, &ull, &p, &sl, &sll);
+	    "\n j tt % \t -121314 98765 aqw 0765 0x77 0xABCDEF88 -99 884",
+	    " j tt %%%3hhd%1hhu%3hd %3hu%u aqw%n %lo%llx %p %li %lld",
+	    &shh, &uhh, &sh, &uh, &udef, &sdef, &ul, &ull, &p, &sl, &sll);
 
 	PCUT_ASSERT_INT_EQUALS(10, rc);
 
@@ -101,15 +104,16 @@ PCUT_TEST(int_misc) {
 	PCUT_ASSERT_INT_EQUALS(884, sll);
 }
 
-PCUT_TEST(double_misc) {
+PCUT_TEST(double_misc)
+{
 	float f;
 	double d;
 	long double ld;
 
 	int rc = sscanf(
-		"\n \t\t1.0 -0x555.AP10 1234.5678e12",
-		"%f %lf %Lf",
-		&f, &d, &ld);
+	    "\n \t\t1.0 -0x555.AP10 1234.5678e12",
+	    "%f %lf %Lf",
+	    &f, &d, &ld);
 
 	PCUT_ASSERT_INT_EQUALS(3, rc);
 
@@ -118,14 +122,15 @@ PCUT_TEST(double_misc) {
 	PCUT_ASSERT_DOUBLE_EQUALS(1234.5678e12, ld, EPSILON);
 }
 
-PCUT_TEST(str_misc) {
+PCUT_TEST(str_misc)
+{
 	char str[20];
 	char *pstr;
 
 	int rc = sscanf(
-		"\n\n\thello world    \n",
-		"%5s %ms",
-		str, &pstr);
+	    "\n\n\thello world    \n",
+	    "%5s %ms",
+	    str, &pstr);
 
 	PCUT_ASSERT_INT_EQUALS(2, rc);
 
@@ -135,14 +140,15 @@ PCUT_TEST(str_misc) {
 	free(pstr);
 }
 
-PCUT_TEST(str_matchers) {
+PCUT_TEST(str_matchers)
+{
 	char scanset[20];
 	char *pscanset;
 
 	int rc = sscanf(
-		"\n\n\th-e-l-l-o world-]    \n",
-		" %9[-eh-o] %m[^]-]",
-		scanset, &pscanset);
+	    "\n\n\th-e-l-l-o world-]    \n",
+	    " %9[-eh-o] %m[^]-]",
+	    scanset, &pscanset);
 
 	PCUT_ASSERT_INT_EQUALS(2, rc);
 
@@ -152,14 +158,15 @@ PCUT_TEST(str_matchers) {
 	free(pscanset);
 }
 
-PCUT_TEST(char_misc) {
+PCUT_TEST(char_misc)
+{
 	char seq[20];
 	char *pseq;
 
 	int rc = sscanf(
-		"\n\n\thello world    \n",
-		" %5c %mc",
-		seq, &pseq);
+	    "\n\n\thello world    \n",
+	    " %5c %mc",
+	    seq, &pseq);
 
 	PCUT_ASSERT_INT_EQUALS(2, rc);
 

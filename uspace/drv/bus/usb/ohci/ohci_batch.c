@@ -47,7 +47,7 @@
 #include "ohci_batch.h"
 #include "ohci_bus.h"
 
-static void (*const batch_setup[])(ohci_transfer_batch_t*);
+static void (*const batch_setup[])(ohci_transfer_batch_t *);
 
 /** Safely destructs ohci_transfer_batch_t structure
  *
@@ -66,7 +66,7 @@ void ohci_transfer_batch_destroy(ohci_transfer_batch_t *ohci_batch)
  * @return Valid pointer if all structures were successfully created,
  * NULL otherwise.
  */
-ohci_transfer_batch_t * ohci_transfer_batch_create(endpoint_t *ep)
+ohci_transfer_batch_t *ohci_transfer_batch_create(endpoint_t *ep)
 {
 	assert(ep);
 
@@ -96,8 +96,8 @@ int ohci_transfer_batch_prepare(ohci_transfer_batch_t *ohci_batch)
 	if (!batch_setup[usb_batch->ep->transfer_type])
 		return ENOTSUP;
 
-	ohci_batch->td_count = (usb_batch->size + OHCI_TD_MAX_TRANSFER - 1)
-	    / OHCI_TD_MAX_TRANSFER;
+	ohci_batch->td_count = (usb_batch->size + OHCI_TD_MAX_TRANSFER - 1) /
+	    OHCI_TD_MAX_TRANSFER;
 	/* Control transfer need Setup and Status stage */
 	if (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
 		ohci_batch->td_count += 2;
@@ -109,9 +109,9 @@ int ohci_transfer_batch_prepare(ohci_transfer_batch_t *ohci_batch)
 		return ENOMEM;
 
 	const size_t td_size = ohci_batch->td_count * sizeof(td_t);
-	const size_t setup_size = (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL)
-		? USB_SETUP_PACKET_SIZE
-		: 0;
+	const size_t setup_size = (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) ?
+	    USB_SETUP_PACKET_SIZE :
+	    0;
 
 	if (dma_buffer_alloc(&ohci_batch->ohci_dma_buffer, td_size + setup_size)) {
 		usb_log_error("Failed to allocate OHCI DMA buffer.");
@@ -189,8 +189,8 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			 * NOTE: Short packets don't break the assumption that
 			 * we leave the very last(unused) TD behind.
 			 */
-			usb_batch->transferred_size
-			    -= td_remain_size(ohci_batch->tds[i]);
+			usb_batch->transferred_size -=
+			    td_remain_size(ohci_batch->tds[i]);
 		} else {
 			usb_log_debug("Batch %p found error TD(%zu):%08x.",
 			    ohci_batch, i, ohci_batch->tds[i]->status);
@@ -288,7 +288,7 @@ static void batch_control(ohci_transfer_batch_t *ohci_batch)
 
 	/* Data stage */
 	size_t td_current = 1;
-	const char* buffer = ohci_batch->data_buffer;
+	const char *buffer = ohci_batch->data_buffer;
 	size_t remain_size = ohci_batch->base.size;
 	while (remain_size > 0) {
 		const size_t transfer_size =
@@ -346,8 +346,8 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 	size_t remain_size = ohci_batch->base.size;
 	char *buffer = ohci_batch->data_buffer;
 	while (remain_size > 0) {
-		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER
-		    ? OHCI_TD_MAX_TRANSFER : remain_size;
+		const size_t transfer_size = remain_size > OHCI_TD_MAX_TRANSFER ?
+		    OHCI_TD_MAX_TRANSFER : remain_size;
 
 		td_init(
 		    ohci_batch->tds[td_current], ohci_batch->tds[td_current + 1],
@@ -373,8 +373,8 @@ static void batch_data(ohci_transfer_batch_t *ohci_batch)
 }
 
 /** Transfer setup table. */
-static void (*const batch_setup[])(ohci_transfer_batch_t*) =
-{
+static void (*const batch_setup[])(ohci_transfer_batch_t *) =
+    {
 	[USB_TRANSFER_CONTROL] = batch_control,
 	[USB_TRANSFER_BULK] = batch_data,
 	[USB_TRANSFER_INTERRUPT] = batch_data,

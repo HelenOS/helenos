@@ -108,10 +108,10 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 
 	/* Find colliding PTE in PTEG */
 	for (i = 0; i < 8; i++) {
-		if ((phte[base + i].v)
-		    && (phte[base + i].vsid == vsid)
-		    && (phte[base + i].api == api)
-		    && (phte[base + i].h == 0)) {
+		if ((phte[base + i].v) &&
+		    (phte[base + i].vsid == vsid) &&
+		    (phte[base + i].api == api) &&
+		    (phte[base + i].h == 0)) {
 			found = true;
 			break;
 		}
@@ -133,10 +133,10 @@ static void pht_insert(const uintptr_t vaddr, const pte_t *pte)
 
 		/* Find colliding PTE in PTEG */
 		for (i = 0; i < 8; i++) {
-			if ((phte[base2 + i].v)
-			    && (phte[base2 + i].vsid == vsid)
-			    && (phte[base2 + i].api == api)
-			    && (phte[base2 + i].h == 1)) {
+			if ((phte[base2 + i].v) &&
+			    (phte[base2 + i].vsid == vsid) &&
+			    (phte[base2 + i].api == api) &&
+			    (phte[base2 + i].h == 1)) {
 				found = true;
 				base = base2;
 				h = 1;

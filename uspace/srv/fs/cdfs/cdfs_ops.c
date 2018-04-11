@@ -281,12 +281,12 @@ static hash_table_t nodes;
 
 typedef struct {
 	service_id_t service_id;
-    fs_index_t index;
+	fs_index_t index;
 } ht_key_t;
 
 static size_t nodes_key_hash(void *k)
 {
-	ht_key_t *key = (ht_key_t*)k;
+	ht_key_t *key = (ht_key_t *)k;
 	return hash_combine(key->service_id, key->index);
 }
 
@@ -299,7 +299,7 @@ static size_t nodes_hash(const ht_link_t *item)
 static bool nodes_key_equal(void *k, const ht_link_t *item)
 {
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
-	ht_key_t *key = (ht_key_t*)k;
+	ht_key_t *key = (ht_key_t *)k;
 
 	return key->service_id == node->fs->service_id && key->index == node->index;
 }
@@ -1207,7 +1207,7 @@ static errno_t cdfs_mounted(service_id_t service_id, const char *opts,
 
 static bool rm_service_id_nodes(ht_link_t *item, void *arg)
 {
-	service_id_t service_id = *(service_id_t*)arg;
+	service_id_t service_id = *(service_id_t *)arg;
 	cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 
 	if (node->fs->service_id == service_id) {
@@ -1344,7 +1344,7 @@ static errno_t cdfs_truncate(service_id_t service_id, fs_index_t index,
 
 static bool cache_remove_closed(ht_link_t *item, void *arg)
 {
-	size_t *premove_cnt = (size_t*)arg;
+	size_t *premove_cnt = (size_t *)arg;
 
 	/* Some nodes were requested to be removed from the cache. */
 	if (0 < *premove_cnt) {

@@ -381,7 +381,7 @@ void xhci_dump_endpoint_ctx(const struct xhci_endpoint_ctx *ctx)
 #undef EP_DUMP_QW
 }
 
-void xhci_dump_input_ctx(const xhci_hc_t * hc, const struct xhci_input_ctx *ictx)
+void xhci_dump_input_ctx(const xhci_hc_t *hc, const struct xhci_input_ctx *ictx)
 {
 	xhci_device_ctx_t *device_ctx = XHCI_GET_DEVICE_CTX(ictx, hc);
 	xhci_slot_ctx_t *slot_ctx = XHCI_GET_SLOT_CTX(device_ctx, hc);
@@ -399,8 +399,8 @@ void xhci_dump_input_ctx(const xhci_hc_t * hc, const struct xhci_input_ctx *ictx
 	xhci_dump_slot_ctx(slot_ctx);
 
 	for (uint8_t dci = 1; dci <= XHCI_EP_COUNT; dci++)
-		if (XHCI_INPUT_CTRL_CTX_DROP(*ctrl_ctx, dci)
-		    || XHCI_INPUT_CTRL_CTX_ADD(*ctrl_ctx, dci)) {
+		if (XHCI_INPUT_CTRL_CTX_DROP(*ctrl_ctx, dci) ||
+		    XHCI_INPUT_CTRL_CTX_ADD(*ctrl_ctx, dci)) {
 			usb_log_debug("Endpoint context DCI %u:", dci);
 			xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(device_ctx, hc, dci);
 			xhci_dump_endpoint_ctx(ep_ctx);

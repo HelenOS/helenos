@@ -63,7 +63,7 @@ const char *get_indent(size_t level)
 		INDENT INDENT INDENT INDENT INDENT,
 		INDENT INDENT INDENT INDENT INDENT INDENT,
 	};
-	static size_t indents_count = sizeof(indents)/sizeof(indents[0]);
+	static size_t indents_count = sizeof(indents) / sizeof(indents[0]);
 	if (level >= indents_count) {
 		return indents[indents_count - 1];
 	}
@@ -83,8 +83,8 @@ void dump_buffer(const char *msg, size_t indent,
 	}
 	for (i = 0; i < length; i++) {
 		printf("0x%02X", buffer[i]);
-		if (((i > 0) && (((i+1) % BYTES_PER_LINE) == 0))
-		    || (i + 1 == length)) {
+		if (((i > 0) && (((i + 1) % BYTES_PER_LINE) == 0)) ||
+		    (i + 1 == length)) {
 			printf("\n");
 			if (i + 1 < length) {
 				printf("%s", get_indent(indent));

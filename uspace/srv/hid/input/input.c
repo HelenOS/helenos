@@ -307,7 +307,7 @@ static void client_arbitration(void)
 {
 	/* Mutual exclusion of active clients */
 	list_foreach(clients, link, client_t, client)
-		client->active = ((active) && (client == active_client));
+	    client->active = ((active) && (client == active_client));
 
 	/* Notify clients about the arbitration */
 	list_foreach(clients, link, client_t, client) {

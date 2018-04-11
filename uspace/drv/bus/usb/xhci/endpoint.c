@@ -58,7 +58,7 @@ static errno_t alloc_transfer_ds(xhci_endpoint_t *);
  * @return Error code.
  */
 static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
-	const usb_endpoint_descriptors_t *desc)
+    const usb_endpoint_descriptors_t *desc)
 {
 	errno_t rc;
 	assert(xhci_ep);
@@ -87,8 +87,8 @@ static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
 	 */
 	if (dev->speed >= USB_SPEED_SUPER) {
 		ep->packets_per_uframe = xhci_ep->max_burst * xhci_ep->mult;
-		if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS
-			|| ep->transfer_type == USB_TRANSFER_INTERRUPT) {
+		if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS ||
+		    ep->transfer_type == USB_TRANSFER_INTERRUPT) {
 			ep->max_transfer_size = ep->max_packet_size * ep->packets_per_uframe;
 		}
 	}
@@ -99,8 +99,8 @@ static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
 	 * Only Low/Full speed interrupt endpoints have interval as a linear field,
 	 * others have 2-based log of it.
 	 */
-	if (dev->speed >= USB_SPEED_HIGH
-	    || ep->transfer_type != USB_TRANSFER_INTERRUPT) {
+	if (dev->speed >= USB_SPEED_HIGH ||
+	    ep->transfer_type != USB_TRANSFER_INTERRUPT) {
 		xhci_ep->interval = 1 << (xhci_ep->interval - 1);
 	}
 
@@ -140,12 +140,12 @@ err:
  * Bus callback.
  */
 endpoint_t *xhci_endpoint_create(device_t *dev,
-	const usb_endpoint_descriptors_t *desc)
+    const usb_endpoint_descriptors_t *desc)
 {
 	const usb_transfer_type_t type = USB_ED_GET_TRANSFER_TYPE(desc->endpoint);
 
-	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t)
-		+ (type == USB_TRANSFER_ISOCHRONOUS) * sizeof(*ep->isoch));
+	xhci_endpoint_t *ep = calloc(1, sizeof(xhci_endpoint_t) +
+	    (type == USB_TRANSFER_ISOCHRONOUS) * sizeof(*ep->isoch));
 	if (!ep)
 		return NULL;
 
@@ -229,7 +229,7 @@ static void endpoint_abort(endpoint_t *ep)
 		return;
 	}
 
-	usb_transfer_batch_t * const batch = ep->active_batch;
+	usb_transfer_batch_t *const batch = ep->active_batch;
 
 	const errno_t err = hc_stop_endpoint(xhci_ep);
 	if (err) {
@@ -288,16 +288,16 @@ int xhci_endpoint_type(xhci_endpoint_t *ep)
 		return EP_TYPE_CONTROL;
 
 	case USB_TRANSFER_ISOCHRONOUS:
-		return in ? EP_TYPE_ISOCH_IN
-			  : EP_TYPE_ISOCH_OUT;
+		return in ? EP_TYPE_ISOCH_IN :
+		    EP_TYPE_ISOCH_OUT;
 
 	case USB_TRANSFER_BULK:
-		return in ? EP_TYPE_BULK_IN
-			  : EP_TYPE_BULK_OUT;
+		return in ? EP_TYPE_BULK_IN :
+		    EP_TYPE_BULK_OUT;
 
 	case USB_TRANSFER_INTERRUPT:
-		return in ? EP_TYPE_INTERRUPT_IN
-			  : EP_TYPE_INTERRUPT_OUT;
+		return in ? EP_TYPE_INTERRUPT_IN :
+		    EP_TYPE_INTERRUPT_OUT;
 	}
 
 	return EP_TYPE_INVALID;

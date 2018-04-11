@@ -169,7 +169,7 @@ void udebug_stoppable_begin(void)
 	}
 
 	mutex_unlock(&THREAD->udebug.lock);
-        mutex_unlock(&TASK->udebug.lock);
+	mutex_unlock(&TASK->udebug.lock);
 }
 
 /** End of a stoppable section.

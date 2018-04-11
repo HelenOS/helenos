@@ -125,7 +125,7 @@ static errno_t enumerate_device_usb2(usb_hub_port_t *port, async_exch_t *exch)
 
 	port_log(debug, port, "Resetting port.");
 	if ((err = usb_hub_set_port_feature(port->hub, port->port_number,
-			    USB_HUB_FEATURE_PORT_RESET))) {
+	    USB_HUB_FEATURE_PORT_RESET))) {
 		port_log(warning, port, "Port reset request failed: %s",
 		    str_error(err));
 		goto out_address;
@@ -139,7 +139,7 @@ static errno_t enumerate_device_usb2(usb_hub_port_t *port, async_exch_t *exch)
 
 	port_log(debug, port, "Enumerating device.");
 	if ((err = usbhc_device_enumerate(exch, port->port_number,
-			    port->speed))) {
+	    port->speed))) {
 		port_log(error, port, "Failed to enumerate device: %s",
 		    str_error(err));
 		/* Disable the port */
@@ -164,7 +164,7 @@ static errno_t enumerate_device_usb3(usb_hub_port_t *port, async_exch_t *exch)
 
 	port_log(debug, port, "Issuing a warm reset.");
 	if ((err = usb_hub_set_port_feature(port->hub, port->port_number,
-			    USB3_HUB_FEATURE_BH_PORT_RESET))) {
+	    USB3_HUB_FEATURE_BH_PORT_RESET))) {
 		port_log(warning, port, "Port reset request failed: %s",
 		    str_error(err));
 		return err;
@@ -178,7 +178,7 @@ static errno_t enumerate_device_usb3(usb_hub_port_t *port, async_exch_t *exch)
 
 	port_log(debug, port, "Enumerating device.");
 	if ((err = usbhc_device_enumerate(exch, port->port_number,
-			    port->speed))) {
+	    port->speed))) {
 		port_log(error, port, "Failed to enumerate device: %s",
 		    str_error(err));
 		return err;
@@ -199,9 +199,9 @@ static errno_t enumerate_device(usb_port_t *port_base)
 		return ENOMEM;
 	}
 
-	const errno_t err = port->hub->speed == USB_SPEED_SUPER
-		? enumerate_device_usb3(port, exch)
-		: enumerate_device_usb2(port, exch);
+	const errno_t err = port->hub->speed == USB_SPEED_SUPER ?
+	    enumerate_device_usb3(port, exch) :
+	    enumerate_device_usb2(port, exch);
 
 	usb_device_bus_exchange_end(exch);
 	return err;
@@ -210,8 +210,8 @@ static errno_t enumerate_device(usb_port_t *port_base)
 static void port_changed_connection(usb_hub_port_t *port, usb_port_status_t status)
 {
 	const bool connected = !!(status & USB_HUB_PORT_STATUS_CONNECTION);
-	port_log(debug, port, "Connection change: device %s.", connected
-	    ? "attached" : "removed");
+	port_log(debug, port, "Connection change: device %s.", connected ?
+	    "attached" : "removed");
 
 	if (connected) {
 		usb_port_connected(&port->base, &enumerate_device);

@@ -47,7 +47,8 @@ PCUT_TEST_SUITE(sprintf);
 
 static char buffer[BUFFER_SIZE];
 
-PCUT_TEST_BEFORE {
+PCUT_TEST_BEFORE
+{
 	memset(buffer, 0, BUFFER_SIZE);
 }
 

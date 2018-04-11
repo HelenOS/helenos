@@ -489,10 +489,10 @@ static errno_t kfb_vp_create(fbdev_t *dev, fbvp_t *vp)
 	 */
 	size_t word_size = sizeof(unsigned long);
 
-	if (((word_size % kfb.pixel_bytes) == 0)
-	    && ((FONT_WIDTH * kfb.pixel_bytes) % word_size == 0)
-	    && ((vp->x * kfb.pixel_bytes) % word_size == 0)
-	    && (kfb.scanline % word_size == 0))
+	if (((word_size % kfb.pixel_bytes) == 0) &&
+	    ((FONT_WIDTH * kfb.pixel_bytes) % word_size == 0) &&
+	    ((vp->x * kfb.pixel_bytes) % word_size == 0) &&
+	    (kfb.scanline % word_size == 0))
 		kfb_vp->draw_char = draw_char_aligned;
 	else
 		kfb_vp->draw_char = draw_char_fallback;

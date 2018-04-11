@@ -197,8 +197,8 @@ NO_TRACE size_t find_zone(pfn_t frame, size_t count, size_t hint)
 
 	size_t i = hint;
 	do {
-		if ((zones.info[i].base <= frame)
-		    && (zones.info[i].base + zones.info[i].count >= frame + count))
+		if ((zones.info[i].base <= frame) &&
+		    (zones.info[i].base + zones.info[i].count >= frame + count))
 			return i;
 
 		i++;
@@ -550,8 +550,8 @@ bool zone_merge(size_t z1, size_t z2)
 	}
 
 	pfn_t cframes = SIZE2FRAMES(zone_conf_size(
-	    zones.info[z2].base - zones.info[z1].base
-	    + zones.info[z2].count));
+	    zones.info[z2].base - zones.info[z1].base +
+	    zones.info[z2].count));
 
 	/* Allocate merged zone data inside one of the zones */
 	pfn_t pfn;
@@ -703,7 +703,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 		 * nobody tries to do that. If some platform requires, remove
 		 * the assert
 		 */
-		assert(confframe != ADDR2PFN((uintptr_t ) NULL));
+		assert(confframe != ADDR2PFN((uintptr_t) NULL));
 
 		/* Update the known end of physical memory. */
 		config.physmem_end = max(config.physmem_end, PFN2ADDR(start + count));
@@ -1205,7 +1205,7 @@ void zones_print_list(void)
 	size_t free_highmem = 0;
 	size_t free_highprio = 0;
 
-	for (size_t i = 0;; i++) {
+	for (size_t i = 0; ; i++) {
 		irq_spinlock_lock(&zones.lock, true);
 
 		if (i >= zones.count) {

@@ -122,7 +122,7 @@ static void elide(void)
 			if (--j <= 0) {
 				/* This row is to be elided */
 				rows++;
-				memset(&board[base], 0, sizeof(cell) *(B_COLS - 2));
+				memset(&board[base], 0, sizeof(cell) * (B_COLS - 2));
 
 				scr_update();
 				tsleep();

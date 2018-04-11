@@ -61,7 +61,7 @@ typedef struct {
 	uint32_t node_blk_sz;		/**< Size in bytes of node block */
 	uint32_t name_blk_sz;		/**< Size in bytes of name block */
 	uint32_t data_blk_sz;		/**< Size in bytes of data block */
-} __attribute__ ((packed)) md_header_t;
+} __attribute__((packed)) md_header_t;
 
 /** machine description element (in the node block) */
 typedef struct {
@@ -90,14 +90,14 @@ typedef struct {
 		 */
 		uint64_t val;
 	} d;
-} __attribute__ ((packed)) md_element_t;
+} __attribute__((packed)) md_element_t;
 
 /** index of the element within the node block */
 typedef unsigned int element_idx_t;
 
 /** buffer to which the machine description will be saved */
 static uint8_t mach_desc[MD_MAX_SIZE]
-	 __attribute__ ((aligned (16)));
+    __attribute__((aligned(16)));
 
 
 /** returns pointer to the element at the given index */
@@ -128,7 +128,7 @@ const char *md_get_node_name(md_node_t node)
  * @param
  */
 bool md_get_integer_property(md_node_t node, const char *key,
-	uint64_t *result)
+    uint64_t *result)
 {
 	element_idx_t idx = node;
 
@@ -151,7 +151,7 @@ bool md_get_integer_property(md_node_t node, const char *key,
  * @param
  */
 bool md_get_string_property(md_node_t node, const char *key,
-	const char **result)
+    const char **result)
 {
 	md_header_t *md_header = (md_header_t *) mach_desc;
 	element_idx_t idx = node;

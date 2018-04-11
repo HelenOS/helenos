@@ -106,7 +106,7 @@ PCUT_TEST(multiple_segments)
 	tcp_rqueue_init(&rcb);
 	seg_cnt = 0;
 
-    	inet_ep2_init(&epp);
+	inet_ep2_init(&epp);
 
 	tcp_rqueue_fibril_start();
 

@@ -62,9 +62,9 @@
 
 #define AUTO_DMA_MODE
 
-static inline const char * dsp_state_to_str(dsp_state_t state)
+static inline const char *dsp_state_to_str(dsp_state_t state)
 {
-	static const char* state_names[] = {
+	static const char *state_names[] = {
 		[DSP_PLAYBACK_ACTIVE_EVENTS] = "PLAYBACK w/ EVENTS",
 		[DSP_CAPTURE_ACTIVE_EVENTS] = "CAPTURE w/ EVENTS",
 		[DSP_PLAYBACK_NOEVENTS] = "PLAYBACK w/o EVENTS",
@@ -239,8 +239,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 	dsp->active.frame_count +=
 	    dsp->active.samples / ((dsp->active.mode & DSP_MODE_STEREO) ? 2 : 1);
 
-	switch (dsp->state)
-	{
+	switch (dsp->state) {
 	case DSP_PLAYBACK_ACTIVE_EVENTS:
 		dsp_report_event(dsp, PCM_EVENT_FRAMES_PLAYED);
 	case DSP_PLAYBACK_NOEVENTS:
@@ -276,7 +275,7 @@ void sb_dsp_interrupt(sb_dsp_t *dsp)
 unsigned sb_dsp_query_cap(sb_dsp_t *dsp, audio_cap_t cap)
 {
 	ddf_log_verbose("Querying cap %s", audio_pcm_cap_str(cap));
-	switch(cap) {
+	switch (cap) {
 	case AUDIO_CAP_CAPTURE:
 	case AUDIO_CAP_PLAYBACK:
 	case AUDIO_CAP_INTERRUPT:
@@ -311,7 +310,7 @@ errno_t sb_dsp_get_buffer_position(sb_dsp_t *dsp, size_t *pos)
 }
 
 errno_t sb_dsp_test_format(sb_dsp_t *dsp, unsigned *channels, unsigned *rate,
-  pcm_sample_format_t *format)
+    pcm_sample_format_t *format)
 {
 	errno_t ret = EOK;
 	if (*channels == 0 || *channels > 2) {
@@ -345,7 +344,7 @@ errno_t sb_dsp_set_event_session(sb_dsp_t *dsp, async_sess_t *session)
 	return EOK;
 }
 
-async_sess_t * sb_dsp_get_event_session(sb_dsp_t *dsp)
+async_sess_t *sb_dsp_get_event_session(sb_dsp_t *dsp)
 {
 	assert(dsp);
 	ddf_log_debug("Get event session: %p.", dsp->event_session);
@@ -415,9 +414,9 @@ errno_t sb_dsp_start_playback(sb_dsp_t *dsp, unsigned frames,
 			return ENOMEM;
 	}
 
-	dsp->active.mode = 0
-	    | (pcm_sample_format_is_signed(format) ? DSP_MODE_SIGNED : 0)
-	    | (channels == 2 ? DSP_MODE_STEREO : 0);
+	dsp->active.mode = 0 |
+	    (pcm_sample_format_is_signed(format) ? DSP_MODE_SIGNED : 0) |
+	    (channels == 2 ? DSP_MODE_STEREO : 0);
 	dsp->active.samples = frames * channels;
 	dsp->active.frame_count = 0;
 
@@ -445,8 +444,7 @@ errno_t sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate)
 	assert(dsp);
 	if ((dsp->state == DSP_PLAYBACK_NOEVENTS ||
 	    dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS) &&
-	    immediate)
-	{
+	    immediate) {
 		dsp_write(dsp, DMA_16B_PAUSE);
 		dsp_reset(dsp);
 		ddf_log_debug("Stopped playback");
@@ -458,8 +456,7 @@ errno_t sb_dsp_stop_playback(sb_dsp_t *dsp, bool immediate)
 		}
 		return EOK;
 	}
-	if (dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS)
-	{
+	if (dsp->state == DSP_PLAYBACK_ACTIVE_EVENTS) {
 		/* Stop after current fragment */
 		assert(!immediate);
 		dsp_write(dsp, DMA_16B_EXIT);
@@ -493,9 +490,9 @@ errno_t sb_dsp_start_capture(sb_dsp_t *dsp, unsigned frames,
 			return ENOMEM;
 	}
 
-	dsp->active.mode = 0
-	    | (pcm_sample_format_is_signed(format) ? DSP_MODE_SIGNED : 0)
-	    | (channels == 2 ? DSP_MODE_STEREO : 0);
+	dsp->active.mode = 0 |
+	    (pcm_sample_format_is_signed(format) ? DSP_MODE_SIGNED : 0) |
+	    (channels == 2 ? DSP_MODE_STEREO : 0);
 	dsp->active.samples = frames * channels;
 	dsp->active.frame_count = 0;
 
@@ -521,8 +518,7 @@ errno_t sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate)
 	assert(dsp);
 	if ((dsp->state == DSP_CAPTURE_NOEVENTS ||
 	    dsp->state == DSP_CAPTURE_ACTIVE_EVENTS) &&
-	    immediate)
-	{
+	    immediate) {
 		dsp_write(dsp, DMA_16B_PAUSE);
 		dsp_reset(dsp);
 		ddf_log_debug("Stopped capture fragment");
@@ -534,8 +530,7 @@ errno_t sb_dsp_stop_capture(sb_dsp_t *dsp, bool immediate)
 		}
 		return EOK;
 	}
-	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS)
-	{
+	if (dsp->state == DSP_CAPTURE_ACTIVE_EVENTS) {
 		/* Stop after current fragment */
 		assert(!immediate);
 		dsp_write(dsp, DMA_16B_EXIT);

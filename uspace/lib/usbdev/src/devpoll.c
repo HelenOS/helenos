@@ -138,13 +138,13 @@ static errno_t polling_fibril(void *arg)
 				    "Poll%p: received: '%s' (%zuB).\n",
 				    polling,
 				    usb_debug_str_buffer(polling->buffer,
-				        actual_size, 16),
+				    actual_size, 16),
 				    actual_size);
 			}
 		} else {
-				usb_log_debug(
-				    "Poll%p: polling failed: %s.\n",
-				    polling, str_error(rc));
+			usb_log_debug(
+			    "Poll%p: polling failed: %s.\n",
+			    polling, str_error(rc));
 		}
 
 		/* If the pipe stalled, we can try to reset the stall. */
@@ -240,8 +240,8 @@ errno_t usb_polling_start(usb_polling_t *polling)
 	if (!polling->request_size)
 		return EINVAL;
 
-	if (!polling->ep_mapping || (polling->ep_mapping->pipe.desc.transfer_type != USB_TRANSFER_INTERRUPT)
-	    || (polling->ep_mapping->pipe.desc.direction != USB_DIRECTION_IN))
+	if (!polling->ep_mapping || (polling->ep_mapping->pipe.desc.transfer_type != USB_TRANSFER_INTERRUPT) ||
+	    (polling->ep_mapping->pipe.desc.direction != USB_DIRECTION_IN))
 		return EINVAL;
 
 	/* Negative value means use descriptor provided value. */

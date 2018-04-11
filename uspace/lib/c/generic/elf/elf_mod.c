@@ -272,20 +272,20 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 
 		// FIXME: This actually won't work, because the text segment is
 		// not loaded yet.
-		#if 0
+#if 0
 		if (elf->info->interp[entry->p_filesz - 1] != '\0') {
 			DPRINTF("Unterminated ELF interp string.\n");
 			return EE_INVALID;
 		}
 		DPRINTF("interpreter: \"%s\"\n", elf->info->interp);
-		#endif
+#endif
 		break;
 	case PT_DYNAMIC:
 		/* Record pointer to dynamic section into info structure */
 		elf->info->dynamic =
 		    (void *)((uint8_t *)entry->p_vaddr + elf->bias);
 		DPRINTF("dynamic section found at %p\n",
-			(void *)elf->info->dynamic);
+		    (void *)elf->info->dynamic);
 		break;
 	case 0x70000000:
 		/* FIXME: MIPS reginfo */
@@ -333,7 +333,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	seg_ptr = (void *) seg_addr;
 
 	DPRINTF("Load segment at addr %p, size 0x%zx\n", (void *) seg_addr,
-		entry->p_memsz);
+	    entry->p_memsz);
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
@@ -393,7 +393,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	 * The caller wants to modify the segments first. He will then
 	 * need to set the right access mode and ensure SMC coherence.
 	 */
-	if ((elf->flags & ELDF_RW) != 0) return EE_OK;
+	if ((elf->flags & ELDF_RW) != 0)
+		return EE_OK;
 
 //	printf("set area flags to %d\n", flags);
 	rc = as_area_change_flags(seg_ptr, flags);

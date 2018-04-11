@@ -135,19 +135,19 @@ static usb_endpoint_mapping_t *find_endpoint_mapping(
     int interface_number, int interface_setting)
 {
 	while (mapping_count > 0) {
-		bool interface_number_fits = (mapping->interface_no < 0)
-		    || (mapping->interface_no == interface_number);
+		bool interface_number_fits = (mapping->interface_no < 0) ||
+		    (mapping->interface_no == interface_number);
 
-		bool interface_setting_fits = (mapping->interface_setting < 0)
-		    || (mapping->interface_setting == interface_setting);
+		bool interface_setting_fits = (mapping->interface_setting < 0) ||
+		    (mapping->interface_setting == interface_setting);
 
 		bool endpoint_descriptions_fits = endpoint_fits_description(
 		    mapping->description, found_endpoint);
 
-		if (interface_number_fits
-		    && interface_setting_fits
-		    && endpoint_descriptions_fits
-		    && !mapping->present) {
+		if (interface_number_fits &&
+		    interface_setting_fits &&
+		    endpoint_descriptions_fits &&
+		    !mapping->present) {
 			return mapping;
 		}
 
@@ -239,7 +239,7 @@ static errno_t process_interface(
 		if (is_endpoint_descriptor(descriptor)) {
 			/* Check if companion descriptor is present too, it should immediatelly follow. */
 			const uint8_t *companion_desc = usb_dp_get_nested_descriptor(parser,
-				parser_data, descriptor);
+			    parser_data, descriptor);
 			if (companion_desc && !is_superspeed_companion_descriptor(companion_desc)) {
 				/* Not what we wanted, don't pass it further. */
 				companion_desc = NULL;
@@ -247,11 +247,11 @@ static errno_t process_interface(
 
 			(void) process_endpoint(mapping, mapping_count,
 			    (usb_standard_interface_descriptor_t *)
-			        interface_descriptor,
+			    interface_descriptor,
 			    (usb_standard_endpoint_descriptor_t *)
-			        descriptor,
+			    descriptor,
 			    (usb_superspeed_endpoint_companion_descriptor_t *)
-			        companion_desc,
+			    companion_desc,
 			    bus_session);
 		}
 

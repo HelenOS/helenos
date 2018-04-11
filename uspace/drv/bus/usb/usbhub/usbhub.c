@@ -82,8 +82,8 @@
  *	MTT in MTT mode       |       2         |         2     (iface alt. 1)
  */
 static const usb_endpoint_description_t
-	status_change_single_tt_only = HUB_STATUS_CHANGE_EP(0),
-	status_change_mtt_available = HUB_STATUS_CHANGE_EP(1);
+    status_change_single_tt_only = HUB_STATUS_CHANGE_EP(0),
+    status_change_mtt_available = HUB_STATUS_CHANGE_EP(1);
 
 const usb_endpoint_description_t *usb_hub_endpoints [] = {
 	&status_change_single_tt_only,
@@ -106,13 +106,13 @@ static errno_t usb_hub_polling_init(usb_hub_dev_t *, usb_endpoint_mapping_t *);
 static void usb_hub_global_interrupt(const usb_hub_dev_t *);
 
 static bool usb_hub_polling_error_callback(usb_device_t *dev,
-	errno_t err_code, void *arg)
+    errno_t err_code, void *arg)
 {
 	assert(dev);
 	assert(arg);
 
 	usb_log_error("Device %s polling error: %s",
-		usb_device_get_name(dev), str_error(err_code));
+	    usb_device_get_name(dev), str_error(err_code));
 
 	return true;
 }
@@ -152,12 +152,12 @@ errno_t usb_hub_device_add(usb_device_t *usb_dev)
 		return err;
 	}
 
-	const usb_endpoint_description_t *status_change = hub_dev->mtt_available
-	    ? &status_change_mtt_available
-	    : &status_change_single_tt_only;
+	const usb_endpoint_description_t *status_change = hub_dev->mtt_available ?
+	    &status_change_mtt_available :
+	    &status_change_single_tt_only;
 
-	usb_endpoint_mapping_t *status_change_mapping
-		= usb_device_get_mapped_ep_desc(hub_dev->usb_device, status_change);
+	usb_endpoint_mapping_t *status_change_mapping =
+	    usb_device_get_mapped_ep_desc(hub_dev->usb_device, status_change);
 	if (!status_change_mapping) {
 		usb_log_error("Failed to map the Status Change Endpoint of a hub.");
 		return EIO;
@@ -211,7 +211,7 @@ static errno_t usb_hub_cleanup(usb_hub_dev_t *hub)
 	const errno_t ret = ddf_fun_unbind(hub->hub_fun);
 	if (ret != EOK) {
 		usb_log_error("(%p) Failed to unbind '%s' function: %s.",
-		   hub, HUB_FNC_NAME, str_error(ret));
+		    hub, HUB_FNC_NAME, str_error(ret));
 		return ret;
 	}
 	ddf_fun_destroy(hub->hub_fun);
@@ -271,7 +271,7 @@ errno_t usb_hub_device_gone(usb_device_t *usb_dev)
  * @param mapping The mapping of Status Change Endpoint
  */
 static errno_t usb_hub_polling_init(usb_hub_dev_t *hub_dev,
-	usb_endpoint_mapping_t *mapping)
+    usb_endpoint_mapping_t *mapping)
 {
 	errno_t err;
 	usb_polling_t *polling = &hub_dev->polling;
@@ -376,8 +376,8 @@ static errno_t usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	usb_log_debug("(%p): Retrieving descriptor.", hub_dev);
 	usb_pipe_t *control_pipe = usb_device_get_default_pipe(hub_dev->usb_device);
 
-	usb_descriptor_type_t desc_type = hub_dev->speed >= USB_SPEED_SUPER
-		? USB_DESCTYPE_SSPEED_HUB : USB_DESCTYPE_HUB;
+	usb_descriptor_type_t desc_type = hub_dev->speed >= USB_SPEED_SUPER ?
+	    USB_DESCTYPE_SSPEED_HUB : USB_DESCTYPE_HUB;
 
 	/* Get hub descriptor. */
 	usb_hub_descriptor_header_t descriptor;
@@ -419,8 +419,7 @@ static errno_t usb_hub_process_hub_specific_info(usb_hub_dev_t *hub_dev)
 	hub_dev->per_port_power =
 	    descriptor.characteristics & HUB_CHAR_POWER_PER_PORT_FLAG;
 
-	const uint8_t protocol = usb_device_descriptors(hub_dev->usb_device)
-		->device.device_protocol;
+	const uint8_t protocol = usb_device_descriptors(hub_dev->usb_device)->device.device_protocol;
 	hub_dev->mtt_available = (protocol == 2);
 
 	usb_hub_power_ports(hub_dev);
@@ -455,9 +454,9 @@ static errno_t usb_set_first_configuration(usb_device_t *usb_device)
 	    usb_device_descriptors(usb_device)->full_config;
 
 	if (config_size < sizeof(usb_standard_configuration_descriptor_t)) {
-	    usb_log_error("Configuration descriptor is not big enough"
-	        " to fit standard configuration descriptor.\n");
-	    return EOVERFLOW;
+		usb_log_error("Configuration descriptor is not big enough"
+		    " to fit standard configuration descriptor.\n");
+		return EOVERFLOW;
 	}
 
 	/* Set configuration. Use the configuration that was in

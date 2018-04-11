@@ -58,12 +58,12 @@ void help_cmd_cmp(unsigned int level)
 	} else {
 		help_cmd_cmp(HELP_SHORT);
 		printf(
-		"Usage:  %s [options] <file1> <file2>\n"
-		"Options:\n"
-		"  -h, --help       A short option summary\n"
-		"  -v, --version    Print version information and exit\n"
-		"No output is printed; the return code is 1 if the files differ.\n",
-		cmdname);
+		    "Usage:  %s [options] <file1> <file2>\n"
+		    "Options:\n"
+		    "  -h, --help       A short option summary\n"
+		    "  -v, --version    Print version information and exit\n"
+		    "No output is printed; the return code is 1 if the files differ.\n",
+		    cmdname);
 	}
 
 	return;
@@ -72,11 +72,11 @@ void help_cmd_cmp(unsigned int level)
 static errno_t cmp_files(const char *fn0, const char *fn1)
 {
 	errno_t rc = EOK;
-	const char *fn[2] = {fn0, fn1};
-	int fd[2] = {-1, -1};
+	const char *fn[2] = { fn0, fn1 };
+	int fd[2] = { -1, -1 };
 	char buffer[2][CMP_BUFLEN];
 	size_t offset[2];
-	aoff64_t pos[2] = {};
+	aoff64_t pos[2] = { };
 
 	for (int i = 0; i < 2; i++) {
 		rc = vfs_lookup_open(fn[i], WALK_REGULAR, MODE_READ, &(fd[i]));
@@ -141,7 +141,7 @@ int cmd_cmp(char **argv)
 
 	if (argc - optind != 2) {
 		printf("%s - incorrect number of arguments. Try `%s --help'\n",
-			cmdname, cmdname);
+		    cmdname, cmdname);
 		return CMD_FAILURE;
 	}
 

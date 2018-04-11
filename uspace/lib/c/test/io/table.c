@@ -33,7 +33,8 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(table);
 
-PCUT_TEST(smoke) {
+PCUT_TEST(smoke)
+{
 	table_t *table;
 	errno_t rc;
 

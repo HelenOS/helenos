@@ -92,8 +92,8 @@ NO_TRACE static inline uint64_t pstate_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rdpr %%pstate, %[v]\n"
-		: [v] "=r" (v)
+	    "rdpr %%pstate, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -107,9 +107,9 @@ NO_TRACE static inline uint64_t pstate_read(void)
 NO_TRACE static inline void pstate_write(uint64_t v)
 {
 	asm volatile (
-		"wrpr %[v], %[zero], %%pstate\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wrpr %[v], %[zero], %%pstate\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -123,8 +123,8 @@ NO_TRACE static inline uint64_t tick_compare_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rd %%tick_cmpr, %[v]\n"
-		: [v] "=r" (v)
+	    "rd %%tick_cmpr, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -138,9 +138,9 @@ NO_TRACE static inline uint64_t tick_compare_read(void)
 NO_TRACE static inline void tick_compare_write(uint64_t v)
 {
 	asm volatile (
-		"wr %[v], %[zero], %%tick_cmpr\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wr %[v], %[zero], %%tick_cmpr\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -154,8 +154,8 @@ NO_TRACE static inline uint64_t stick_compare_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rd %%asr25, %[v]\n"
-		: [v] "=r" (v)
+	    "rd %%asr25, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -169,9 +169,9 @@ NO_TRACE static inline uint64_t stick_compare_read(void)
 NO_TRACE static inline void stick_compare_write(uint64_t v)
 {
 	asm volatile (
-		"wr %[v], %[zero], %%asr25\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wr %[v], %[zero], %%asr25\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -185,8 +185,8 @@ NO_TRACE static inline uint64_t tick_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rdpr %%tick, %[v]\n"
-		: [v] "=r" (v)
+	    "rdpr %%tick, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -200,9 +200,9 @@ NO_TRACE static inline uint64_t tick_read(void)
 NO_TRACE static inline void tick_write(uint64_t v)
 {
 	asm volatile (
-		"wrpr %[v], %[zero], %%tick\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wrpr %[v], %[zero], %%tick\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -216,8 +216,8 @@ NO_TRACE static inline uint64_t fprs_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rd %%fprs, %[v]\n"
-		: [v] "=r" (v)
+	    "rd %%fprs, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -231,9 +231,9 @@ NO_TRACE static inline uint64_t fprs_read(void)
 NO_TRACE static inline void fprs_write(uint64_t v)
 {
 	asm volatile (
-		"wr %[v], %[zero], %%fprs\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wr %[v], %[zero], %%fprs\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -247,8 +247,8 @@ NO_TRACE static inline uint64_t softint_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rd %%softint, %[v]\n"
-		: [v] "=r" (v)
+	    "rd %%softint, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -262,9 +262,9 @@ NO_TRACE static inline uint64_t softint_read(void)
 NO_TRACE static inline void softint_write(uint64_t v)
 {
 	asm volatile (
-		"wr %[v], %[zero], %%softint\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wr %[v], %[zero], %%softint\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -278,9 +278,9 @@ NO_TRACE static inline void softint_write(uint64_t v)
 NO_TRACE static inline void clear_softint_write(uint64_t v)
 {
 	asm volatile (
-		"wr %[v], %[zero], %%clear_softint\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wr %[v], %[zero], %%clear_softint\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -294,9 +294,9 @@ NO_TRACE static inline void clear_softint_write(uint64_t v)
 NO_TRACE static inline void set_softint_write(uint64_t v)
 {
 	asm volatile (
-		"wr %[v], %[zero], %%set_softint\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wr %[v], %[zero], %%set_softint\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -308,7 +308,8 @@ NO_TRACE static inline void set_softint_write(uint64_t v)
  * @return Old interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_enable(void) {
+NO_TRACE static inline ipl_t interrupts_enable(void)
+{
 	pstate_reg_t pstate;
 	uint64_t value = pstate_read();
 
@@ -327,7 +328,8 @@ NO_TRACE static inline ipl_t interrupts_enable(void) {
  * @return Old interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_disable(void) {
+NO_TRACE static inline ipl_t interrupts_disable(void)
+{
 	pstate_reg_t pstate;
 	uint64_t value = pstate_read();
 
@@ -345,7 +347,8 @@ NO_TRACE static inline ipl_t interrupts_disable(void) {
  * @param ipl Saved interrupt priority level.
  *
  */
-NO_TRACE static inline void interrupts_restore(ipl_t ipl) {
+NO_TRACE static inline void interrupts_restore(ipl_t ipl)
+{
 	pstate_reg_t pstate;
 
 	pstate.value = pstate_read();
@@ -360,7 +363,8 @@ NO_TRACE static inline void interrupts_restore(ipl_t ipl) {
  * @return Current interrupt priority level.
  *
  */
-NO_TRACE static inline ipl_t interrupts_read(void) {
+NO_TRACE static inline ipl_t interrupts_read(void)
+{
 	return (ipl_t) pstate_read();
 }
 
@@ -389,9 +393,9 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	uintptr_t unbiased_sp;
 
 	asm volatile (
-		"add %%sp, %[stack_bias], %[unbiased_sp]\n"
-		: [unbiased_sp] "=r" (unbiased_sp)
-		: [stack_bias] "i" (STACK_BIAS)
+	    "add %%sp, %[stack_bias], %[unbiased_sp]\n"
+	    : [unbiased_sp] "=r" (unbiased_sp)
+	    : [stack_bias] "i" (STACK_BIAS)
 	);
 
 	return ALIGN_DOWN(unbiased_sp, STACK_SIZE);
@@ -407,8 +411,8 @@ NO_TRACE static inline uint64_t ver_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rdpr %%ver, %[v]\n"
-		: [v] "=r" (v)
+	    "rdpr %%ver, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -424,8 +428,8 @@ NO_TRACE static inline uint64_t tpc_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rdpr %%tpc, %[v]\n"
-		: [v] "=r" (v)
+	    "rdpr %%tpc, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -441,8 +445,8 @@ NO_TRACE static inline uint64_t tl_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rdpr %%tl, %[v]\n"
-		: [v] "=r" (v)
+	    "rdpr %%tl, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -458,8 +462,8 @@ NO_TRACE static inline uint64_t tba_read(void)
 	uint64_t v;
 
 	asm volatile (
-		"rdpr %%tba, %[v]\n"
-		: [v] "=r" (v)
+	    "rdpr %%tba, %[v]\n"
+	    : [v] "=r" (v)
 	);
 
 	return v;
@@ -473,9 +477,9 @@ NO_TRACE static inline uint64_t tba_read(void)
 NO_TRACE static inline void tba_write(uint64_t v)
 {
 	asm volatile (
-		"wrpr %[v], %[zero], %%tba\n"
-		:: [v] "r" (v),
-		   [zero] "i" (0)
+	    "wrpr %[v], %[zero], %%tba\n"
+	    :: [v] "r" (v),
+	      [zero] "i" (0)
 	);
 }
 
@@ -493,10 +497,10 @@ NO_TRACE static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 	uint64_t v;
 
 	asm volatile (
-		"ldxa [%[va]] %[asi], %[v]\n"
-		: [v] "=r" (v)
-		: [va] "r" (va),
-		  [asi] "i" ((unsigned int) asi)
+	    "ldxa [%[va]] %[asi], %[v]\n"
+	    : [v] "=r" (v)
+	    : [va] "r" (va),
+	      [asi] "i" ((unsigned int) asi)
 	);
 
 	return v;
@@ -512,11 +516,11 @@ NO_TRACE static inline uint64_t asi_u64_read(asi_t asi, uintptr_t va)
 NO_TRACE static inline void asi_u64_write(asi_t asi, uintptr_t va, uint64_t v)
 {
 	asm volatile (
-		"stxa %[v], [%[va]] %[asi]\n"
-		:: [v] "r" (v),
-		   [va] "r" (va),
-		   [asi] "i" ((unsigned int) asi)
-		: "memory"
+	    "stxa %[v], [%[va]] %[asi]\n"
+	    :: [v] "r" (v),
+	      [va] "r" (va),
+	      [asi] "i" ((unsigned int) asi)
+	    : "memory"
 	);
 }
 

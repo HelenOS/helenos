@@ -158,9 +158,9 @@ static inline xhci_cmd_t *find_command(xhci_hc_t *hc, uint64_t phys)
 		cmd_link = list_next(cmd_link, &cr->cmd_list);
 	}
 
-	return cmd_link
-	    ? list_get_instance(cmd_link, xhci_cmd_t, _header.link)
-	    : NULL;
+	return cmd_link ?
+	    list_get_instance(cmd_link, xhci_cmd_t, _header.link) :
+	    NULL;
 }
 
 static void cr_set_state(xhci_cmd_ring_t *cr, xhci_cr_state_t state)

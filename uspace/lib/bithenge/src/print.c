@@ -100,8 +100,8 @@ static errno_t print_internal_func(bithenge_node_t *key, bithenge_node_t *value,
 		state_printf(state, ",");
 	newline(state);
 	state->first = false;
-	bool add_quotes = state->type == BITHENGE_PRINT_JSON
-	    && bithenge_node_type(key) != BITHENGE_NODE_STRING;
+	bool add_quotes = state->type == BITHENGE_PRINT_JSON &&
+	    bithenge_node_type(key) != BITHENGE_NODE_STRING;
 	if (add_quotes)
 		state_printf(state, "\"");
 	rc = print_node(state, key);
@@ -224,7 +224,7 @@ static errno_t print_node(state_t *state, bithenge_node_t *tree)
  * @return EOK on success or an error code from errno.h. */
 errno_t bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 {
-	state_t state = {type, true, 0, NULL, 0};
+	state_t state = { type, true, 0, NULL, 0 };
 	return print_node(&state, tree);
 }
 
@@ -239,7 +239,7 @@ errno_t bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 errno_t bithenge_print_node_to_string(char **str, size_t *size,
     bithenge_print_type_t type, bithenge_node_t *tree)
 {
-	state_t state = {type, true, 0, *str, *size};
+	state_t state = { type, true, 0, *str, *size };
 	errno_t rc = print_node(&state, tree);
 	*str = state.buffer;
 	*size = state.buffer_size;

@@ -102,7 +102,7 @@ typedef struct {
  * @param l link
  * @return valid pointer to data link structure, NULL on failure.
  */
-static inline audio_data_link_t * audio_data_link_list_instance(link_t *l)
+static inline audio_data_link_t *audio_data_link_list_instance(link_t *l)
 {
 	return l ? list_get_instance(l, audio_data_link_t, link) : NULL;
 }
@@ -143,7 +143,7 @@ static void audio_data_link_destroy(audio_data_link_t *link)
  * @param alink audio data link
  * @return pointer to the beginning of data buffer.
  */
-static inline const void * audio_data_link_start(audio_data_link_t *alink)
+static inline const void *audio_data_link_start(audio_data_link_t *alink)
 {
 	assert(alink);
 	assert(alink->adata);

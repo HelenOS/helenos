@@ -100,11 +100,10 @@ usb_standard_configuration_descriptor_t std_configuration_descriptor = {
 	.length = sizeof(usb_standard_configuration_descriptor_t),
 	.descriptor_type = USB_DESCTYPE_CONFIGURATION,
 	.total_length =
-		sizeof(usb_standard_configuration_descriptor_t)
-		+ sizeof(std_interface_descriptor)
-		+ sizeof(hub_descriptor)
-		+ sizeof(endpoint_descriptor)
-		,
+	    sizeof(usb_standard_configuration_descriptor_t) +
+	    sizeof(std_interface_descriptor) +
+	    sizeof(hub_descriptor) +
+	    sizeof(endpoint_descriptor),
 	.interface_count = 1,
 	.configuration_number = HUB_CONFIGURATION_ID,
 	.str_configuration = 0,
@@ -132,7 +131,7 @@ static usbvirt_device_configuration_extras_t extra_descriptors[] = {
 usbvirt_device_configuration_t configuration = {
 	.descriptor = &std_configuration_descriptor,
 	.extra = extra_descriptors,
-	.extra_count = sizeof(extra_descriptors)/sizeof(extra_descriptors[0])
+	.extra_count = sizeof(extra_descriptors) / sizeof(extra_descriptors[0])
 };
 
 /** Hub standard descriptors. */
@@ -147,7 +146,7 @@ usbvirt_descriptors_t descriptors = {
  * @param dev Virtual USB device backend.
  * @return Error code.
  */
-errno_t virthub_init(usbvirt_device_t *dev, const char* name)
+errno_t virthub_init(usbvirt_device_t *dev, const char *name)
 {
 	if (dev == NULL) {
 		return EBADMEM;

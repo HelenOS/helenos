@@ -81,7 +81,8 @@ int __clzdi2(long a)
  *
  * If the number is zero, zero is returned.
  */
-int __ffsdi2(long a) {
+int __ffsdi2(long a)
+{
 	if (a == 0) {
 		return 0;
 	}

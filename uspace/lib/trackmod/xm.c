@@ -460,8 +460,8 @@ errno_t trackmod_xm_load(char *fname, trackmod_module_t **rmodule)
 	module->patterns = uint16_t_le2host(xm_hdr.patterns);
 	module->ord_list_len = uint16_t_le2host(xm_hdr.song_len);
 
-	hdr_size = (size_t)uint32_t_le2host(xm_hdr.hdr_size)
-	    + offsetof(xm_hdr_t, hdr_size);
+	hdr_size = (size_t)uint32_t_le2host(xm_hdr.hdr_size) +
+	    offsetof(xm_hdr_t, hdr_size);
 
 	module->def_bpm = uint16_t_le2host(xm_hdr.def_bpm);
 	module->def_tpr = uint16_t_le2host(xm_hdr.def_tempo);

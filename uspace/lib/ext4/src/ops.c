@@ -70,7 +70,7 @@ static errno_t ext4_root_get(fs_node_t **, service_id_t);
 static errno_t ext4_match(fs_node_t **, fs_node_t *, const char *);
 static errno_t ext4_node_get(fs_node_t **, service_id_t, fs_index_t);
 static errno_t ext4_node_open(fs_node_t *);
-       errno_t ext4_node_put(fs_node_t *);
+errno_t ext4_node_put(fs_node_t *);
 static errno_t ext4_create_node(fs_node_t **, service_id_t, int);
 static errno_t ext4_destroy_node(fs_node_t *);
 static errno_t ext4_link(fs_node_t *, fs_node_t *, const char *);
@@ -117,8 +117,8 @@ static bool open_nodes_key_equal(void *key_arg, const ht_link_t *item)
 	node_key_t *key = (node_key_t *)key_arg;
 	ext4_node_t *enode = hash_table_get_inst(item, ext4_node_t, link);
 
-	return key->service_id == enode->instance->service_id
-		&& key->index == enode->inode_ref->index;
+	return key->service_id == enode->instance->service_id &&
+	    key->index == enode->inode_ref->index;
 }
 
 static hash_table_ops_t open_nodes_ops = {
@@ -1140,7 +1140,7 @@ errno_t ext4_read_directory(cap_call_handle_t chandle, aoff64_t pos, size_t size
 		free(buf);
 		break;
 
-skip:
+	skip:
 		rc = ext4_directory_iterator_next(&it);
 		if (rc != EOK) {
 			ext4_directory_iterator_fini(&it);

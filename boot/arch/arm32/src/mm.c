@@ -42,7 +42,8 @@
 static unsigned log2(unsigned val)
 {
 	unsigned log = 0;
-	while (val >> log++);
+	while (val >> log++)
+		;
 	return log - 2;
 }
 
@@ -69,17 +70,16 @@ static void cache_invalidate(void)
 {
 	const uint32_t cinfo = CLIDR_read();
 	for (unsigned i = 0; i < 7; ++i) {
-		switch (CLIDR_CACHE(i, cinfo))
-		{
+		switch (CLIDR_CACHE(i, cinfo)) {
 		case CLIDR_DCACHE_ONLY:
 		case CLIDR_SEP_CACHE:
 		case CLIDR_UNI_CACHE:
 			dcache_invalidate_level(i);
 		}
 	}
-	asm volatile ( "dsb\n" );
+	asm volatile ("dsb\n");
 	ICIALLU_write(0);
-	asm volatile ( "isb\n" );
+	asm volatile ("isb\n");
 }
 #endif
 
@@ -87,10 +87,10 @@ static void cache_invalidate(void)
 static void disable_paging(void)
 {
 	asm volatile (
-		"mrc p15, 0, r0, c1, c0, 0\n"
-		"bic r0, r0, #1\n"
-		"mcr p15, 0, r0, c1, c0, 0\n"
-		::: "r0"
+	    "mrc p15, 0, r0, c1, c0, 0\n"
+	    "bic r0, r0, #1\n"
+	    "mcr p15, 0, r0, c1, c0, 0\n"
+	    ::: "r0"
 	);
 }
 
@@ -134,7 +134,7 @@ static inline int section_cacheable(pfn_t section)
  *       used.
  *
  */
-static void init_ptl0_section(pte_level0_section_t* pte,
+static void init_ptl0_section(pte_level0_section_t *pte,
     pfn_t frame)
 {
 	pte->descriptor_type = PTE_DESCRIPTOR_SECTION;
@@ -203,11 +203,11 @@ static void enable_paging(void)
 	 */
 	asm volatile (
 		/* Behave as a client of domains */
-		"ldr r0, =0x55555555\n"
-		"mcr p15, 0, r0, c3, c0, 0\n"
+	    "ldr r0, =0x55555555\n"
+	    "mcr p15, 0, r0, c3, c0, 0\n"
 
 		/* Current settings */
-		"mrc p15, 0, r0, c1, c0, 0\n"
+	    "mrc p15, 0, r0, c1, c0, 0\n"
 
 		/* Enable ICache, DCache, BPredictors and MMU,
 		 * we disable caches before jumping to kernel
@@ -216,21 +216,21 @@ static void enable_paging(void)
 		 * (and QEMU)
 		 */
 #ifdef PROCESSOR_ARCH_armv6
-		"ldr r1, =0x00801805\n"
+	    "ldr r1, =0x00801805\n"
 #else
-		"ldr r1, =0x00001805\n"
+	    "ldr r1, =0x00001805\n"
 #endif
 
-		"orr r0, r0, r1\n"
+	    "orr r0, r0, r1\n"
 
 		/* Invalidate the TLB content before turning on the MMU.
 		 * ARMv7-A Reference manual, B3.10.3
 		 */
-		"mcr p15, 0, r0, c8, c7, 0\n"
+	    "mcr p15, 0, r0, c8, c7, 0\n"
 
 		/* Store settings, enable the MMU */
-		"mcr p15, 0, r0, c1, c0, 0\n"
-		::: "r0", "r1"
+	    "mcr p15, 0, r0, c1, c0, 0\n"
+	    ::: "r0", "r1"
 	);
 }
 

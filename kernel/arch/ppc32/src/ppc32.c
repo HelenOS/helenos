@@ -184,8 +184,8 @@ static bool display_register(ofw_tree_node_t *node, void *arg)
 	if ((prop) && (prop->value))
 		fb_scanline = *((uint32_t *) prop->value);
 
-	if ((fb_addr) && (fb_width > 0) && (fb_height > 0)
-	    && (fb_scanline > 0) && (visual != VISUAL_UNKNOWN)) {
+	if ((fb_addr) && (fb_width > 0) && (fb_height > 0) &&
+	    (fb_scanline > 0) && (visual != VISUAL_UNKNOWN)) {
 		fb_properties_t fb_prop = {
 			.addr = fb_addr,
 			.offset = 0,
@@ -300,7 +300,8 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    (uintptr_t) kernel_uarg->uspace_entry);
 
 	/* Unreachable */
-	while (true);
+	while (true)
+		;
 }
 
 /** Construct function pointer
@@ -320,7 +321,8 @@ void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 void arch_reboot(void)
 {
 	// TODO
-	while (true);
+	while (true)
+		;
 }
 
 /** @}

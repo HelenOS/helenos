@@ -205,8 +205,8 @@ static void next_token(state_t *state)
 	if (ch == '\0') {
 		state->token = TOKEN_EOF;
 	} else if (ch == '#') {
-		while (state->buffer[state->buffer_pos] != '\n'
-		    && state->buffer[state->buffer_pos] != '\0') {
+		while (state->buffer[state->buffer_pos] != '\n' &&
+		    state->buffer[state->buffer_pos] != '\0') {
 			state->buffer_pos++;
 			fill_buffer(state);
 		}
@@ -224,8 +224,8 @@ static void next_token(state_t *state)
 		next_token(state);
 		return;
 	} else if (isalpha(ch)) {
-		while (isalnum(state->buffer[state->buffer_pos])
-		    || state->buffer[state->buffer_pos] == '_')
+		while (isalnum(state->buffer[state->buffer_pos]) ||
+		    state->buffer[state->buffer_pos] == '_')
 			state->buffer_pos++;
 		char *value = str_ndup(state->buffer + state->old_buffer_pos,
 		    state->buffer_pos - state->old_buffer_pos);
@@ -400,7 +400,7 @@ static char *expect_identifier(state_t *state)
 static bithenge_transform_t *get_named_transform(state_t *state,
     const char *name)
 {
-	for (transform_list_t *e = state->transform_list; e; e = e->next) {
+	for (transform_list_t * e = state->transform_list; e; e = e->next) {
 		if (!str_cmp(e->name, name)) {
 			bithenge_transform_inc_ref(e->transform);
 			return e->transform;
@@ -773,7 +773,7 @@ static bithenge_transform_t *parse_invocation(state_t *state)
 			if (num_params)
 				expect(state, ',');
 			params = state_realloc(state, params,
-			    (num_params + 1)*sizeof(*params));
+			    (num_params + 1) * sizeof(*params));
 			if (state->error != EOK)
 				break;
 			params[num_params] = parse_expression(state);
@@ -783,8 +783,8 @@ static bithenge_transform_t *parse_invocation(state_t *state)
 	}
 
 	/* TODO: show correct error position */
-	if (state->error == EOK
-	    && bithenge_transform_num_params(result) != num_params)
+	if (state->error == EOK &&
+	    bithenge_transform_num_params(result) != num_params)
 		syntax_error(state, "incorrect number of parameters before");
 
 	if (state->error != EOK) {
@@ -1114,7 +1114,7 @@ static bithenge_transform_t *parse_struct(state_t *state)
 		}
 		num++;
 		subxforms = state_realloc(state, subxforms,
-		    (num + 1)*sizeof(*subxforms));
+		    (num + 1) * sizeof(*subxforms));
 	}
 
 	if (state->error != EOK) {
@@ -1232,7 +1232,7 @@ static void parse_definition(state_t *state)
 				expect(state, ',');
 			state->parameter_names = state_realloc(state,
 			    state->parameter_names,
-			    (state->num_params + 1)*sizeof(*state->parameter_names));
+			    (state->num_params + 1) * sizeof(*state->parameter_names));
 			if (state->error != EOK)
 				break;
 			state->parameter_names[state->num_params++] =

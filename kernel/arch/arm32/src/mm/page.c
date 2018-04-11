@@ -62,7 +62,7 @@ void page_arch_init(void)
 	//This might lead to overflow if identity_size is too big.
 	for (uintptr_t cur = PHYSMEM_START_ADDR;
 	    cur < min(KA2PA(config.identity_base) +
-	        config.identity_size, config.physmem_end);
+	    config.identity_size, config.physmem_end);
 	    cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 

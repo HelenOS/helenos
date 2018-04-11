@@ -157,8 +157,8 @@ static errno_t hw_addr_init(ar9271_t *ar9271)
 		    AR9271_EEPROM_MAC_ADDR_START + i * 4, &value);
 
 		uint16_t two_bytes = uint16_t_be2host(value);
-		ar9271_address.address[2*i] = two_bytes >> 8;
-		ar9271_address.address[2*i+1] = two_bytes & 0xff;
+		ar9271_address.address[2 * i] = two_bytes >> 8;
+		ar9271_address.address[2 * i + 1] = two_bytes & 0xff;
 	}
 
 	nic_t *nic = nic_get_from_ddf_dev(ar9271->ddf_dev);
@@ -271,7 +271,7 @@ static errno_t hw_set_operating_mode(ar9271_t *ar9271,
 {
 	uint32_t set_bit = 0x10000000;
 
-	switch(op_mode) {
+	switch (op_mode) {
 	case IEEE80211_OPMODE_ADHOC:
 		set_bit |= AR9271_OPMODE_ADHOC_MASK;
 		wmi_reg_set_bit(ar9271->htc_device, AR9271_CONFIG,
@@ -544,7 +544,7 @@ errno_t hw_reset(ar9271_t *ar9271)
 	/* Set physical layer as deactivated. */
 	wmi_reg_write(ar9271->htc_device, AR9271_PHY_ACTIVE, 0);
 
-	if(ar9271->starting_up) {
+	if (ar9271->starting_up) {
 		wmi_reg_write(ar9271->htc_device,
 		    AR9271_RESET_POWER_DOWN_CONTROL,
 		    AR9271_RADIO_RF_RESET);

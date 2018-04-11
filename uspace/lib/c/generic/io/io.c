@@ -387,9 +387,9 @@ int fclose(FILE *stream)
 {
 	int rc = _fclose_nofree(stream);
 
-	if ((stream != &stdin_null)
-	    && (stream != &stdout_kio)
-	    && (stream != &stderr_kio))
+	if ((stream != &stdin_null) &&
+	    (stream != &stdout_kio) &&
+	    (stream != &stderr_kio))
 		free(stream);
 
 	return rc;

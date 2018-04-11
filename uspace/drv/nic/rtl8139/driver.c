@@ -94,11 +94,11 @@ inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
 
 #ifndef RXBUF_SIZE_FLAGS
 	/** Flags for receiver buffer - 16kB default */
-	#define RXBUF_SIZE_FLAGS RTL8139_RXFLAGS_SIZE_16
+#define RXBUF_SIZE_FLAGS RTL8139_RXFLAGS_SIZE_16
 #endif
 
 #if (RXBUF_SIZE_FLAGS > RTL8139_RXFLAGS_SIZE_64) || (RXBUF_SIZE_FLAGS < 0)
-	#error Bad receiver buffer flags size flags
+#error Bad receiver buffer flags size flags
 #endif
 
 /** Size of the receiver buffer
@@ -151,9 +151,9 @@ inline static int rtl8139_hw_buffer_empty(rtl8139_t *rtl8139)
  */
 static void rtl8139_hw_update_rcr(rtl8139_t *rtl8139)
 {
-	uint32_t rcr = rtl8139->rcr_data.rcr_base | rtl8139->rcr_data.ucast_mask
-	    | rtl8139->rcr_data.mcast_mask | rtl8139->rcr_data.bcast_mask
-	    | rtl8139->rcr_data.defect_mask |
+	uint32_t rcr = rtl8139->rcr_data.rcr_base | rtl8139->rcr_data.ucast_mask |
+	    rtl8139->rcr_data.mcast_mask | rtl8139->rcr_data.bcast_mask |
+	    rtl8139->rcr_data.defect_mask |
 	    (RXBUF_SIZE_FLAGS << RCR_RBLEN_SHIFT);
 
 	ddf_msg(LVL_DEBUG, "Rewriting rcr: %x -> %x", pio_read_32(rtl8139->io_port + RCR),
@@ -198,7 +198,7 @@ inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
 	rtl8139_regs_lock(rtl8139->io_port);
 
 	async_sess_t *pci_sess =
-		ddf_dev_parent_sess_get(nic_get_ddf_dev(rtl8139->nic_data));
+	    ddf_dev_parent_sess_get(nic_get_ddf_dev(rtl8139->nic_data));
 
 	if (bit_val) {
 		uint8_t pmen;
@@ -242,8 +242,8 @@ static void rtl8139_hw_set_addr(rtl8139_t *rtl8139, const nic_address_t *addr)
 	assert(rtl8139);
 	assert(addr);
 
-	const uint32_t *val1 = (const uint32_t*)addr->address;
-	const uint16_t *val2 = (const uint16_t*)(addr->address + sizeof(uint32_t));
+	const uint32_t *val1 = (const uint32_t *)addr->address;
+	const uint16_t *val2 = (const uint16_t *)(addr->address + sizeof(uint32_t));
 
 	rtl8139_regs_unlock(rtl8139->io_port);
 	pio_write_32(rtl8139->io_port + MAC0, *val1);
@@ -257,7 +257,7 @@ static void rtl8139_hw_set_addr(rtl8139_t *rtl8139, const nic_address_t *addr)
  *   @param reg_offset  Register offset in the device IO space
  *   @param bits_add    The value to or
  */
-inline static void rtl8139_hw_reg_add_8(rtl8139_t * rtl8139, size_t reg_offset,
+inline static void rtl8139_hw_reg_add_8(rtl8139_t *rtl8139, size_t reg_offset,
     uint8_t bits_add)
 {
 	uint8_t value = pio_read_8(rtl8139->io_port + reg_offset);
@@ -271,7 +271,7 @@ inline static void rtl8139_hw_reg_add_8(rtl8139_t * rtl8139, size_t reg_offset,
  *   @param reg_offset  Register offset in the device IO space
  *   @param bits_add    The mask of bits to remove
  */
-inline static void rtl8139_hw_reg_rem_8(rtl8139_t * rtl8139, size_t reg_offset,
+inline static void rtl8139_hw_reg_rem_8(rtl8139_t *rtl8139, size_t reg_offset,
     uint8_t bits_add)
 {
 	uint8_t value = pio_read_8(rtl8139->io_port + reg_offset);
@@ -287,9 +287,9 @@ static errno_t rtl8139_get_operation_mode(ddf_fun_t *fun, int *speed,
 static errno_t rtl8139_set_operation_mode(ddf_fun_t *fun, int speed,
     nic_channel_mode_t duplex, nic_role_t);
 
-static errno_t rtl8139_pause_get(ddf_fun_t*, nic_result_t*, nic_result_t*,
+static errno_t rtl8139_pause_get(ddf_fun_t *, nic_result_t *, nic_result_t *,
     uint16_t *);
-static errno_t rtl8139_pause_set(ddf_fun_t*, int, int, uint16_t);
+static errno_t rtl8139_pause_set(ddf_fun_t *, int, int, uint16_t);
 
 static errno_t rtl8139_autoneg_enable(ddf_fun_t *fun, uint32_t advertisement);
 static errno_t rtl8139_autoneg_disable(ddf_fun_t *fun);
@@ -302,9 +302,9 @@ static errno_t rtl8139_defective_get_mode(ddf_fun_t *fun, uint32_t *mode);
 static errno_t rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode);
 
 static errno_t rtl8139_wol_virtue_add(nic_t *nic_data,
-	const nic_wol_virtue_t *virtue);
+    const nic_wol_virtue_t *virtue);
 static void rtl8139_wol_virtue_rem(nic_t *nic_data,
-	const nic_wol_virtue_t *virtue);
+    const nic_wol_virtue_t *virtue);
 
 static errno_t rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
     const struct timeval *period);
@@ -433,7 +433,7 @@ inline static void rtl8139_hw_soft_reset(void *io_base)
 {
 	pio_write_8(io_base + CR, CR_RST);
 	memory_barrier();
-	while(pio_read_8(io_base + CR) & CR_RST) {
+	while (pio_read_8(io_base + CR) & CR_RST) {
 		async_usleep(1);
 		read_barrier();
 	}
@@ -480,7 +480,7 @@ static nic_frame_t *rtl8139_read_frame(nic_t *nic_data,
     void *rx_buffer, size_t rx_size, size_t frame_start, size_t frame_size)
 {
 	nic_frame_t *frame = nic_alloc_frame(nic_data, frame_size);
-	if (! frame) {
+	if (!frame) {
 		ddf_msg(LVL_ERROR, "Can not allocate frame for received frame.");
 		return NULL;
 	}
@@ -559,7 +559,7 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 	memory_barrier();
 	while (!rtl8139_hw_buffer_empty(rtl8139)) {
 		void *rx_ptr = rx_buffer + rx_offset % RxBUF_SIZE;
-		uint32_t frame_header = uint32_t_le2host( *((uint32_t*)rx_ptr) );
+		uint32_t frame_header = uint32_t_le2host(*((uint32_t *)rx_ptr));
 		uint16_t size = frame_header >> 16;
 		uint16_t frame_size = size - RTL8139_CRC_SIZE;
 		/* received frame flags in frame header */
@@ -579,7 +579,7 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 			goto rx_err;
 		}
 		if (size < RTL8139_RUNT_MAX_SIZE && !(rcs & RSR_RUNT)) {
-			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (%"PRIx16")", size);
+			ddf_msg(LVL_ERROR, "Receiver error -> receiver reset (%" PRIx16 ")", size);
 			goto rx_err;
 		}
 
@@ -679,8 +679,8 @@ static void rtl8139_tx_interrupt(nic_t *nic_data)
 	size_t tx_used = rtl8139->tx_used;
 	while (tx_used != tx_next) {
 		size_t desc_to_check = tx_used % TX_BUFF_COUNT;
-		void * tsd_to_check = rtl8139->io_port + TSD0
-		    + desc_to_check * sizeof(uint32_t);
+		void *tsd_to_check = rtl8139->io_port + TSD0 +
+		    desc_to_check * sizeof(uint32_t);
 		uint32_t tsd_value = pio_read_32(tsd_to_check);
 
 		/* If sending is still in the progress */
@@ -756,7 +756,7 @@ static int rtl8139_poll_interrupt(nic_t *nic_data)
 	assert(timer_val);
 	pio_write_32(rtl8139->io_port + TIMERINT, timer_val);
 	pio_write_32(rtl8139->io_port + TCTR, 0x0);
-	ddf_msg(LVL_DEBUG, "rtl8139 timer: %"PRIu32"\treceive: %d", timer_val, receive);
+	ddf_msg(LVL_DEBUG, "rtl8139 timer: %" PRIu32 "\treceive: %d", timer_val, receive);
 	return receive;
 }
 
@@ -783,7 +783,7 @@ static void rtl8139_interrupt_impl(nic_t *nic_data, uint16_t isr)
 		if (isr & INT_TIME_OUT) {
 			receive = rtl8139_poll_interrupt(nic_data);
 		}
-		if (! receive)
+		if (!receive)
 			return;
 	}
 
@@ -882,9 +882,9 @@ inline static void rtl8139_card_up(rtl8139_t *rtl8139)
 	rtl8139_soft_reset(rtl8139);
 
 	/* Write transmittion buffer addresses */
-	for(i = 0; i < TX_BUFF_COUNT; ++i) {
-		uint32_t addr = PTR2U32(rtl8139->tx_buff_phys + i*TX_BUFF_SIZE);
-		pio_write_32(io_base + TSAD0 + 4*i, addr);
+	for (i = 0; i < TX_BUFF_COUNT; ++i) {
+		uint32_t addr = PTR2U32(rtl8139->tx_buff_phys + i * TX_BUFF_SIZE);
+		pio_write_32(io_base + TSAD0 + 4 * i, addr);
 	}
 	rtl8139->tx_next = 0;
 	rtl8139->tx_used = 0;
@@ -987,12 +987,12 @@ static rtl8139_t *rtl8139_create_dev_data(ddf_dev_t *dev)
 	nic_set_specific(nic_data, rtl8139);
 	nic_set_send_frame_handler(nic_data, rtl8139_send_frame);
 	nic_set_state_change_handlers(nic_data,
-		rtl8139_on_activated, NULL, rtl8139_on_stopped);
+	    rtl8139_on_activated, NULL, rtl8139_on_stopped);
 	nic_set_filtering_change_handlers(nic_data,
-		rtl8139_unicast_set, rtl8139_multicast_set, rtl8139_broadcast_set,
-		NULL, NULL);
+	    rtl8139_unicast_set, rtl8139_multicast_set, rtl8139_broadcast_set,
+	    NULL, NULL);
 	nic_set_wol_virtue_change_handlers(nic_data,
-		rtl8139_wol_virtue_add, rtl8139_wol_virtue_rem);
+	    rtl8139_wol_virtue_add, rtl8139_wol_virtue_rem);
 	nic_set_poll_handlers(nic_data, rtl8139_poll_mode_change, rtl8139_poll);
 
 
@@ -1346,14 +1346,14 @@ static errno_t rtl8139_set_addr(ddf_fun_t *fun, const nic_address_t *addr)
 	assert(fun);
 	assert(addr);
 
-	nic_t *nic_data =nic_get_from_ddf_fun((fun));
+	nic_t *nic_data = nic_get_from_ddf_fun((fun));
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 	assert(rtl8139);
 
 	rtl8139_lock_all(rtl8139);
 
 	errno_t rc = nic_report_address(nic_data, addr);
-	if ( rc != EOK) {
+	if (rc != EOK) {
 		rtl8139_unlock_all(rtl8139);
 		return rc;
 	}
@@ -1816,8 +1816,8 @@ static errno_t rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
 		rtl8139_rcx_promics_rem(nic_data, mcast_mode, was_promisc);
 		break;
 	case NIC_UNICAST_LIST:
-		rtl8139->rcr_data.ucast_mask = RCR_ACCEPT_PHYS_MATCH
-		    | RCR_ACCEPT_ALL_PHYS;
+		rtl8139->rcr_data.ucast_mask = RCR_ACCEPT_PHYS_MATCH |
+		    RCR_ACCEPT_ALL_PHYS;
 
 		if (mcast_mode == NIC_MULTICAST_PROMISC)
 			nic_report_hw_filtering(nic_data, 0, 1, -1);
@@ -1825,8 +1825,8 @@ static errno_t rtl8139_unicast_set(nic_t *nic_data, nic_unicast_mode_t mode,
 			nic_report_hw_filtering(nic_data, 0, 0, -1);
 		break;
 	case NIC_UNICAST_PROMISC:
-		rtl8139->rcr_data.ucast_mask = RCR_ACCEPT_PHYS_MATCH
-		    | RCR_ACCEPT_ALL_PHYS;
+		rtl8139->rcr_data.ucast_mask = RCR_ACCEPT_PHYS_MATCH |
+		    RCR_ACCEPT_ALL_PHYS;
 
 		if (mcast_mode == NIC_MULTICAST_PROMISC)
 			nic_report_hw_filtering(nic_data, 1, 1, -1);
@@ -1980,7 +1980,7 @@ static errno_t rtl8139_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
  *  @returns ELIMIT if no more methods of this kind can be enabled
  */
 static errno_t rtl8139_wol_virtue_add(nic_t *nic_data,
-	const nic_wol_virtue_t *virtue)
+    const nic_wol_virtue_t *virtue)
 {
 	assert(nic_data);
 	assert(virtue);
@@ -1988,7 +1988,7 @@ static errno_t rtl8139_wol_virtue_add(nic_t *nic_data,
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 	assert(rtl8139);
 
-	switch(virtue->type) {
+	switch (virtue->type) {
 	case NIC_WV_BROADCAST:
 		rtl8139_hw_reg_add_8(rtl8139, CONFIG5, CONFIG5_BROADCAST_WAKEUP);
 		break;
@@ -2007,7 +2007,7 @@ static errno_t rtl8139_wol_virtue_add(nic_t *nic_data,
 	default:
 		return EINVAL;
 	}
-	if(rtl8139->pm.active++ == 0)
+	if (rtl8139->pm.active++ == 0)
 		rtl8139_hw_pmen_set(rtl8139, 1);
 	return EOK;
 }
@@ -2018,7 +2018,7 @@ static errno_t rtl8139_wol_virtue_add(nic_t *nic_data,
  *  @param virtue    The method to turn off
  */
 static void rtl8139_wol_virtue_rem(nic_t *nic_data,
-	const nic_wol_virtue_t *virtue)
+    const nic_wol_virtue_t *virtue)
 {
 	assert(nic_data);
 	assert(virtue);
@@ -2026,7 +2026,7 @@ static void rtl8139_wol_virtue_rem(nic_t *nic_data,
 	rtl8139_t *rtl8139 = nic_get_specific(nic_data);
 	assert(rtl8139);
 
-	switch(virtue->type) {
+	switch (virtue->type) {
 	case NIC_WV_BROADCAST:
 		rtl8139_hw_reg_rem_8(rtl8139, CONFIG5, CONFIG5_BROADCAST_WAKEUP);
 		break;
@@ -2069,7 +2069,7 @@ static errno_t rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
 
 	fibril_mutex_lock(&rtl8139->rx_lock);
 
-	switch(mode) {
+	switch (mode) {
 	case NIC_POLL_IMMEDIATE:
 		rtl8139->int_mask = RTL_DEFAULT_INTERRUPTS;
 		break;

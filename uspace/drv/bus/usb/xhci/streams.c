@@ -87,10 +87,10 @@ xhci_stream_data_t *xhci_get_stream_ctx_data(xhci_endpoint_t *ep, uint32_t strea
 static errno_t initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned count)
 {
 	usb_log_debug("Allocating primary stream context array of size %u "
-		"for endpoint " XHCI_EP_FMT, count, XHCI_EP_ARGS(*xhci_ep));
+	    "for endpoint " XHCI_EP_FMT, count, XHCI_EP_ARGS(*xhci_ep));
 
 	if ((dma_buffer_alloc(&xhci_ep->primary_stream_ctx_dma,
-		count * sizeof(xhci_stream_ctx_t)))) {
+	    count * sizeof(xhci_stream_ctx_t)))) {
 		return ENOMEM;
 	}
 
@@ -109,7 +109,7 @@ static errno_t initialize_primary_structures(xhci_endpoint_t *xhci_ep, unsigned 
 static void clear_primary_structures(xhci_endpoint_t *xhci_ep)
 {
 	usb_log_debug("Deallocating primary stream structures for "
-		"endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	    "endpoint " XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	dma_buffer_free(&xhci_ep->primary_stream_ctx_dma);
 	free(xhci_ep->primary_stream_data_array);
@@ -137,7 +137,7 @@ static void clear_secondary_streams(xhci_endpoint_t *xhci_ep, unsigned index)
 void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep)
 {
 	usb_log_debug("Freeing stream rings and context arrays of endpoint "
-		XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
+	    XHCI_EP_FMT, XHCI_EP_ARGS(*xhci_ep));
 
 	for (size_t index = 0; index < xhci_ep->primary_stream_data_size; ++index) {
 		clear_secondary_streams(xhci_ep, index);
@@ -152,7 +152,7 @@ void xhci_stream_free_ds(xhci_endpoint_t *xhci_ep)
  * @param[in] index index of the initialized stream structure.
  */
 static errno_t initialize_primary_stream(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
-	unsigned index)
+    unsigned index)
 {
 	xhci_stream_ctx_t *ctx = &xhci_ep->primary_stream_ctx_array[index];
 	xhci_stream_data_t *data = &xhci_ep->primary_stream_data_array[index];
@@ -205,7 +205,7 @@ err_clean:
  * @param[in] count Number of secondary streams to initialize.
  */
 static errno_t initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci_ep,
-	unsigned idx, unsigned count)
+    unsigned idx, unsigned count)
 {
 	if (count == 0) {
 		/*
@@ -217,7 +217,7 @@ static errno_t initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci
 
 	if ((count & (count - 1)) != 0 || count < 8 || count > 256) {
 		usb_log_error("The secondary stream array size must be a power of 2 "
-			"between 8 and 256.");
+		    "between 8 and 256.");
 		return EINVAL;
 	}
 
@@ -232,7 +232,7 @@ static errno_t initialize_secondary_streams(xhci_hc_t *hc, xhci_endpoint_t *xhci
 	}
 
 	if ((dma_buffer_alloc(&data->secondary_stream_ctx_dma,
-		count * sizeof(xhci_stream_ctx_t)))) {
+	    count * sizeof(xhci_stream_ctx_t)))) {
 		free(data->secondary_data);
 		return ENOMEM;
 	}
@@ -274,7 +274,7 @@ err_init:
  * @param[in] lsa Specifies if the stream IDs point to primary stream array.
  */
 static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx,
-	unsigned pstreams, unsigned lsa)
+    unsigned pstreams, unsigned lsa)
 {
 	XHCI_EP_TYPE_SET(*ctx, xhci_endpoint_type(xhci_ep));
 	XHCI_EP_MAX_PACKET_SIZE_SET(*ctx, xhci_ep->base.max_packet_size);
@@ -294,10 +294,10 @@ static void setup_stream_context(xhci_endpoint_t *xhci_ep, xhci_ep_ctx_t *ctx,
  * @param[in] count Amount of primary streams requested.
  */
 static errno_t verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
-	xhci_endpoint_t *xhci_ep, unsigned count)
+    xhci_endpoint_t *xhci_ep, unsigned count)
 {
-	if (xhci_ep->base.transfer_type != USB_TRANSFER_BULK
-		|| dev->base.speed != USB_SPEED_SUPER) {
+	if (xhci_ep->base.transfer_type != USB_TRANSFER_BULK ||
+	    dev->base.speed != USB_SPEED_SUPER) {
 		usb_log_error("Streams are only supported by superspeed bulk endpoints.");
 		return EINVAL;
 	}
@@ -320,13 +320,13 @@ static errno_t verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
 	uint8_t max_psa_size = 1 << (XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_PSA_SIZE) + 1);
 	if (count > max_psa_size) {
 		usb_log_error("Host controller only supports "
-			"%u primary streams.", max_psa_size);
+		    "%u primary streams.", max_psa_size);
 		return EINVAL;
 	}
 
 	if (count > xhci_ep->max_streams) {
 		usb_log_error("Endpoint " XHCI_EP_FMT " supports only %" PRIu32 " streams.",
-			XHCI_EP_ARGS(*xhci_ep), xhci_ep->max_streams);
+		    XHCI_EP_ARGS(*xhci_ep), xhci_ep->max_streams);
 		return EINVAL;
 	}
 
@@ -345,7 +345,7 @@ static errno_t verify_stream_conditions(xhci_hc_t *hc, xhci_device_t *dev,
  * @param[in] xhci_ep Associated XHCI bulk endpoint.
  */
 errno_t xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev,
-	xhci_endpoint_t *xhci_ep)
+    xhci_endpoint_t *xhci_ep)
 {
 	if (!xhci_ep->primary_stream_data_size) {
 		usb_log_warning("There are no streams enabled on the endpoint, doing nothing.");
@@ -373,7 +373,7 @@ errno_t xhci_endpoint_remove_streams(xhci_hc_t *hc, xhci_device_t *dev,
  * @param[in] count Amount of primary streams requested.
  */
 errno_t xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
-	xhci_endpoint_t *xhci_ep, unsigned count)
+    xhci_endpoint_t *xhci_ep, unsigned count)
 {
 	errno_t err = verify_stream_conditions(hc, dev, xhci_ep, count);
 	if (err) {
@@ -421,7 +421,7 @@ errno_t xhci_endpoint_request_primary_streams(xhci_hc_t *hc, xhci_device_t *dev,
  * @param[in] count Amount of primary streams requested.
  */
 errno_t xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *dev,
-	xhci_endpoint_t *xhci_ep, unsigned *sizes, unsigned count)
+    xhci_endpoint_t *xhci_ep, unsigned *sizes, unsigned count)
 {
 	/* Check if HC supports secondary indexing */
 	if (XHCI_REG_RD(hc->cap_regs, XHCI_CAP_NSS)) {
@@ -453,7 +453,7 @@ errno_t xhci_endpoint_request_secondary_streams(xhci_hc_t *hc, xhci_device_t *de
 
 	if (max * count > xhci_ep->max_streams) {
 		usb_log_error("Endpoint " XHCI_EP_FMT " supports only %" PRIu32 " streams.",
-			XHCI_EP_ARGS(*xhci_ep), xhci_ep->max_streams);
+		    XHCI_EP_ARGS(*xhci_ep), xhci_ep->max_streams);
 		return EINVAL;
 	}
 

@@ -184,8 +184,8 @@ static void descriptor_walk_callback(const uint8_t *raw_descriptor,
 	descriptor_walk_context_t *context = (descriptor_walk_context_t *) arg;
 
 	if (is_descriptor_kind(raw_descriptor, USB_DESCTYPE_INTERFACE)) {
-		context->last_iface
-		    = (usb_standard_interface_descriptor_t *) raw_descriptor;
+		context->last_iface =
+		    (usb_standard_interface_descriptor_t *) raw_descriptor;
 		return;
 	}
 
@@ -197,8 +197,8 @@ static void descriptor_walk_callback(const uint8_t *raw_descriptor,
 		return;
 	}
 
-	usb_standard_hid_descriptor_t *hid_descr
-	    = (usb_standard_hid_descriptor_t *) raw_descriptor;
+	usb_standard_hid_descriptor_t *hid_descr =
+	    (usb_standard_hid_descriptor_t *) raw_descriptor;
 
 	if (hid_descr->report_desc_info.type != USB_DESCTYPE_HID_REPORT) {
 		return;

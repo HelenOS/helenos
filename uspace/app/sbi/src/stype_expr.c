@@ -150,18 +150,42 @@ void stype_expr(stype_t *stype, stree_expr_t *expr)
 	et = NULL;
 
 	switch (expr->ec) {
-	case ec_nameref: stype_nameref(stype, expr->u.nameref, &et); break;
-	case ec_literal: stype_literal(stype, expr->u.literal, &et); break;
-	case ec_self_ref: stype_self_ref(stype, expr->u.self_ref, &et); break;
-	case ec_binop: stype_binop(stype, expr->u.binop, &et); break;
-	case ec_unop: stype_unop(stype, expr->u.unop, &et); break;
-	case ec_new: stype_new(stype, expr->u.new_op, &et); break;
-	case ec_access: stype_access(stype, expr->u.access, &et); break;
-	case ec_call: stype_call(stype, expr->u.call, &et); break;
-	case ec_index: stype_index(stype, expr->u.index, &et); break;
-	case ec_assign: stype_assign(stype, expr->u.assign, &et); break;
-	case ec_as: stype_as(stype, expr->u.as_op, &et); break;
-	case ec_box: stype_box(stype, expr->u.box, &et); break;
+	case ec_nameref:
+		stype_nameref(stype, expr->u.nameref, &et);
+		break;
+	case ec_literal:
+		stype_literal(stype, expr->u.literal, &et);
+		break;
+	case ec_self_ref:
+		stype_self_ref(stype, expr->u.self_ref, &et);
+		break;
+	case ec_binop:
+		stype_binop(stype, expr->u.binop, &et);
+		break;
+	case ec_unop:
+		stype_unop(stype, expr->u.unop, &et);
+		break;
+	case ec_new:
+		stype_new(stype, expr->u.new_op, &et);
+		break;
+	case ec_access:
+		stype_access(stype, expr->u.access, &et);
+		break;
+	case ec_call:
+		stype_call(stype, expr->u.call, &et);
+		break;
+	case ec_index:
+		stype_index(stype, expr->u.index, &et);
+		break;
+	case ec_assign:
+		stype_assign(stype, expr->u.assign, &et);
+		break;
+	case ec_as:
+		stype_as(stype, expr->u.as_op, &et);
+		break;
+	case ec_box:
+		stype_box(stype, expr->u.box, &et);
+		break;
 	}
 
 	expr->titem = et;
@@ -361,11 +385,21 @@ static void stype_literal(stype_t *stype, stree_literal_t *literal,
 	tpc = 0;
 
 	switch (literal->ltc) {
-	case ltc_bool: tpc = tpc_bool; break;
-	case ltc_char: tpc = tpc_char; break;
-	case ltc_int: tpc = tpc_int; break;
-	case ltc_ref: tpc = tpc_nil; break;
-	case ltc_string: tpc = tpc_string; break;
+	case ltc_bool:
+		tpc = tpc_bool;
+		break;
+	case ltc_char:
+		tpc = tpc_char;
+		break;
+	case ltc_int:
+		tpc = tpc_int;
+		break;
+	case ltc_ref:
+		tpc = tpc_nil;
+		break;
+	case ltc_string:
+		tpc = tpc_string;
+		break;
 	}
 
 	titem = tdata_item_new(tic_tprimitive);
@@ -1770,8 +1804,8 @@ static void stype_as(stype_t *stype, stree_as_t *as_op, tdata_item_t **rtitem)
 	 * Verify that type arguments match with those specified for
 	 * conversion destination.
 	 */
-	if (stype_targs_check_equal(stype, pred_ti, as_op->arg->titem)
-	    != EOK) {
+	if (stype_targs_check_equal(stype, pred_ti, as_op->arg->titem) !=
+	    EOK) {
 		stype_convert_failure(stype, convc_as, as_op->arg, titem);
 		*rtitem = titem;
 		return;

@@ -76,8 +76,8 @@ static inline bool sec_ext_is_monitor_mode(void)
  */
 static inline bool sec_ext_is_secure(void)
 {
-	return sec_ext_is_implemented()
-	    && (sec_ext_is_monitor_mode() || !(SCR_read() & SCR_NS_FLAG));
+	return sec_ext_is_implemented() &&
+	    (sec_ext_is_monitor_mode() || !(SCR_read() & SCR_NS_FLAG));
 }
 
 #endif

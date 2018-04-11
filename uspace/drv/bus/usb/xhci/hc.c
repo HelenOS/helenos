@@ -86,7 +86,7 @@ static errno_t hc_parse_ec(xhci_hc_t *hc)
 
 	xhci_port_speed_t *speeds = hc->speeds;
 
-	for (xhci_extcap_t *ec = hc->xecp; ec; ec = xhci_extcap_next(ec)) {
+	for (xhci_extcap_t * ec = hc->xecp; ec; ec = xhci_extcap_next(ec)) {
 		xhci_dump_extcap(ec);
 		switch (XHCI_REG_RD(ec, XHCI_EC_CAP_ID)) {
 		case XHCI_EC_USB_LEGACY:
@@ -150,14 +150,14 @@ static errno_t hc_parse_ec(xhci_hc_t *hc)
 					 * The main reason we need this is the usb_speed to have
 					 * mapping also for devices connected to hubs.
 					 */
-					if (psiv < ARRAY_SIZE(default_psiv_to_port_speed)
-					   && default_psiv_to_port_speed[psiv].major == major
-					   && default_psiv_to_port_speed[psiv].minor == minor
-					   && default_psiv_to_port_speed[psiv].rx_bps == bps
-					   && default_psiv_to_port_speed[psiv].tx_bps == bps) {
+					if (psiv < ARRAY_SIZE(default_psiv_to_port_speed) &&
+					    default_psiv_to_port_speed[psiv].major == major &&
+					    default_psiv_to_port_speed[psiv].minor == minor &&
+					    default_psiv_to_port_speed[psiv].rx_bps == bps &&
+					    default_psiv_to_port_speed[psiv].tx_bps == bps) {
 						speeds[psiv] = default_psiv_to_port_speed[psiv];
 						usb_log_debug("Assumed default %s speed of USB %u.",
-							usb_str_speed(speeds[psiv].usb_speed), major);
+						    usb_str_speed(speeds[psiv].usb_speed), major);
 						continue;
 					}
 
@@ -172,8 +172,8 @@ static errno_t hc_parse_ec(xhci_hc_t *hc)
 					if (sim == XHCI_PSI_PLT_SYMM || sim == XHCI_PSI_PLT_TX) {
 						speeds[psiv].tx_bps = bps;
 						usb_log_debug("Speed %u set up for bps %" PRIu64
-							" / %" PRIu64 ".", psiv, speeds[psiv].rx_bps,
-							speeds[psiv].tx_bps);
+						    " / %" PRIu64 ".", psiv, speeds[psiv].rx_bps,
+						    speeds[psiv].tx_bps);
 					}
 				}
 			}
@@ -383,19 +383,19 @@ errno_t hc_irq_code_gen(irq_code_t *code, xhci_hc_t *hc, const hw_res_list_parse
 
 	code->rangecount = 1;
 	code->ranges[0] = (irq_pio_range_t) {
-	    .base = RNGABS(hc->mmio_range),
-	    .size = RNGSZ(hc->mmio_range),
+		.base = RNGABS(hc->mmio_range),
+		.size = RNGSZ(hc->mmio_range),
 	};
 
 	code->cmdcount = ARRAY_SIZE(irq_commands);
 	memcpy(code->cmds, irq_commands, sizeof(irq_commands));
 
-	void *intr0_iman = RNGABSPTR(hc->mmio_range)
-	    + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF)
-	    + offsetof(xhci_rt_regs_t, ir[0]);
-	void *usbsts = RNGABSPTR(hc->mmio_range)
-	    + XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH)
-	    + offsetof(xhci_op_regs_t, usbsts);
+	void *intr0_iman = RNGABSPTR(hc->mmio_range) +
+	    XHCI_REG_RD(hc->cap_regs, XHCI_CAP_RTSOFF) +
+	    offsetof(xhci_rt_regs_t, ir[0]);
+	void *usbsts = RNGABSPTR(hc->mmio_range) +
+	    XHCI_REG_RD(hc->cap_regs, XHCI_CAP_LENGTH) +
+	    offsetof(xhci_op_regs_t, usbsts);
 
 	code->cmds[0].addr = intr0_iman;
 	code->cmds[1].value = host2xhci(32, 1);
@@ -424,8 +424,8 @@ errno_t hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 	XHCI_REG_SET(hc->legsup, XHCI_LEGSUP_SEM_OS, 1);
 	for (int i = 0; i <= (XHCI_LEGSUP_BIOS_TIMEOUT_US / XHCI_LEGSUP_POLLING_DELAY_1MS); i++) {
 		usb_log_debug("LEGSUP: elapsed: %i ms, bios: %x, os: %x", i,
-			XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS),
-			XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS));
+		    XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS),
+		    XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS));
 		if (XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS) == 0) {
 			return XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS) == 1 ? EOK : EIO;
 		}
@@ -558,9 +558,9 @@ static bool hc_is_broken(xhci_hc_t *hc)
 	const uint32_t usbcmd = XHCI_REG_RD_FIELD(&hc->op_regs->usbcmd, 32);
 	const uint32_t usbsts = XHCI_REG_RD_FIELD(&hc->op_regs->usbsts, 32);
 
-	return !(usbcmd & XHCI_REG_MASK(XHCI_OP_RS))
-	    ||  (usbsts & XHCI_REG_MASK(XHCI_OP_HCE))
-	    ||  (usbsts & XHCI_REG_MASK(XHCI_OP_HSE));
+	return !(usbcmd & XHCI_REG_MASK(XHCI_OP_RS)) ||
+	    (usbsts & XHCI_REG_MASK(XHCI_OP_HCE)) ||
+	    (usbsts & XHCI_REG_MASK(XHCI_OP_HSE));
 }
 
 /**
@@ -588,7 +588,7 @@ static errno_t xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	struct timeval tv;
 	getuptime(&tv);
-	usb_log_debug("Microframe index wrapped (@%lu.%li, %"PRIu64" total).",
+	usb_log_debug("Microframe index wrapped (@%lu.%li, %" PRIu64 " total).",
 	    tv.tv_sec, tv.tv_usec, hc->wrap_count);
 	hc->wrap_time = ((uint64_t) tv.tv_sec) * 1000000 + ((uint64_t) tv.tv_usec);
 	++hc->wrap_count;
@@ -633,7 +633,7 @@ static int event_worker(void *arg)
 {
 	errno_t err;
 	xhci_trb_t trb;
-	xhci_hc_t * const hc = arg;
+	xhci_hc_t *const hc = arg;
 	assert(hc);
 
 	while (xhci_sw_ring_dequeue(&hc->sw_ring, &trb) != EINTR) {
@@ -653,7 +653,7 @@ static int event_worker(void *arg)
  * we solve this problem by deferring some types of events to separate fibrils.
  */
 static void hc_run_event_ring(xhci_hc_t *hc, xhci_event_ring_t *event_ring,
-	xhci_interrupter_regs_t *intr)
+    xhci_interrupter_regs_t *intr)
 {
 	errno_t err;
 
@@ -719,7 +719,7 @@ void hc_interrupt(bus_t *bus, uint32_t status)
 
 	if (status) {
 		usb_log_error("Non-zero status after interrupt handling (%08x) "
-			" - missing something?", status);
+		    " - missing something?", status);
 	}
 }
 
@@ -765,14 +765,14 @@ void hc_ring_doorbell(xhci_hc_t *hc, unsigned doorbell, unsigned target)
 static uint8_t endpoint_dci(xhci_endpoint_t *ep)
 {
 	return (2 * ep->base.endpoint) +
-		(ep->base.transfer_type == USB_TRANSFER_CONTROL
-		 || ep->base.direction == USB_DIRECTION_IN);
+	    (ep->base.transfer_type == USB_TRANSFER_CONTROL ||
+	    ep->base.direction == USB_DIRECTION_IN);
 }
 
 void hc_ring_ep_doorbell(xhci_endpoint_t *ep, uint32_t stream_id)
 {
-	xhci_device_t * const dev = xhci_ep_to_dev(ep);
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_device_t *const dev = xhci_ep_to_dev(ep);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	const uint8_t dci = endpoint_dci(ep);
 	const uint32_t target = (stream_id << 16) | (dci & 0x1ff);
 	hc_ring_doorbell(hc, dev->slot_id, target);
@@ -785,7 +785,7 @@ void hc_ring_ep_doorbell(xhci_endpoint_t *ep, uint32_t stream_id)
 errno_t hc_enable_slot(xhci_device_t *dev)
 {
 	errno_t err;
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 
 	/* Prepare memory for the context */
 	if ((err = dma_buffer_alloc(&dev->dev_ctx, XHCI_DEVICE_CTX_SIZE(hc))))
@@ -820,7 +820,7 @@ errno_t hc_enable_slot(xhci_device_t *dev)
 errno_t hc_disable_slot(xhci_device_t *dev)
 {
 	errno_t err;
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	xhci_cmd_t cmd;
 
 	xhci_cmd_init(&cmd, XHCI_CMD_DISABLE_SLOT);
@@ -845,7 +845,7 @@ errno_t hc_disable_slot(xhci_device_t *dev)
  */
 static errno_t create_configure_ep_input_ctx(xhci_device_t *dev, dma_buffer_t *dma_buf)
 {
-	const xhci_hc_t * hc = bus_to_hc(dev->base.bus);
+	const xhci_hc_t *hc = bus_to_hc(dev->base.bus);
 	const errno_t err = dma_buffer_alloc(dma_buf, XHCI_INPUT_CTX_SIZE(hc));
 	if (err)
 		return err;
@@ -869,7 +869,7 @@ static errno_t create_configure_ep_input_ctx(xhci_device_t *dev, dma_buffer_t *d
 errno_t hc_address_device(xhci_device_t *dev)
 {
 	errno_t err = ENOMEM;
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(dev->base.endpoints[0]);
 
 	/* Although we have the precise PSIV value on devices of tier 1,
@@ -919,7 +919,7 @@ errno_t hc_address_device(xhci_device_t *dev)
  */
 errno_t hc_configure_device(xhci_device_t *dev)
 {
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	xhci_cmd_t cmd;
 
 	/* Issue configure endpoint command (sec 4.3.5). */
@@ -944,7 +944,7 @@ errno_t hc_configure_device(xhci_device_t *dev)
  */
 errno_t hc_deconfigure_device(xhci_device_t *dev)
 {
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	xhci_cmd_t cmd;
 	errno_t err;
 
@@ -971,7 +971,7 @@ errno_t hc_deconfigure_device(xhci_device_t *dev)
  */
 errno_t hc_add_endpoint(xhci_endpoint_t *ep)
 {
-	xhci_device_t * const dev = xhci_ep_to_dev(ep);
+	xhci_device_t *const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	xhci_cmd_t cmd;
 
@@ -983,7 +983,7 @@ errno_t hc_add_endpoint(xhci_endpoint_t *ep)
 
 	xhci_input_ctx_t *ictx = ictx_dma_buf.virt;
 
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	XHCI_INPUT_CTRL_CTX_ADD_SET(*XHCI_GET_CTRL_CTX(ictx, hc), dci);
 
 	xhci_ep_ctx_t *ep_ctx = XHCI_GET_EP_CTX(XHCI_GET_DEVICE_CTX(ictx, hc), hc, dci);
@@ -1006,8 +1006,8 @@ errno_t hc_add_endpoint(xhci_endpoint_t *ep)
  */
 errno_t hc_drop_endpoint(xhci_endpoint_t *ep)
 {
-	xhci_device_t * const dev = xhci_ep_to_dev(ep);
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_device_t *const dev = xhci_ep_to_dev(ep);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	const unsigned dci = endpoint_dci(ep);
 	xhci_cmd_t cmd;
 
@@ -1042,12 +1042,12 @@ errno_t hc_drop_endpoint(xhci_endpoint_t *ep)
  */
 errno_t hc_update_endpoint(xhci_endpoint_t *ep)
 {
-	xhci_device_t * const dev = xhci_ep_to_dev(ep);
+	xhci_device_t *const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	xhci_cmd_t cmd;
 
 	dma_buffer_t ictx_dma_buf;
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 
 	errno_t err = dma_buffer_alloc(&ictx_dma_buf, XHCI_INPUT_CTX_SIZE(hc));
 	if (err != EOK)
@@ -1077,9 +1077,9 @@ errno_t hc_update_endpoint(xhci_endpoint_t *ep)
  */
 errno_t hc_stop_endpoint(xhci_endpoint_t *ep)
 {
-	xhci_device_t * const dev = xhci_ep_to_dev(ep);
+	xhci_device_t *const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	xhci_cmd_t cmd;
 	errno_t err;
 
@@ -1103,9 +1103,9 @@ errno_t hc_stop_endpoint(xhci_endpoint_t *ep)
  */
 errno_t hc_reset_endpoint(xhci_endpoint_t *ep)
 {
-	xhci_device_t * const dev = xhci_ep_to_dev(ep);
+	xhci_device_t *const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
-	xhci_hc_t * const hc = bus_to_hc(dev->base.bus);
+	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	xhci_cmd_t cmd;
 	errno_t err;
 
@@ -1125,7 +1125,7 @@ errno_t hc_reset_endpoint(xhci_endpoint_t *ep)
  */
 errno_t hc_reset_ring(xhci_endpoint_t *ep, uint32_t stream_id)
 {
-	xhci_device_t * const dev = xhci_ep_to_dev(ep);
+	xhci_device_t *const dev = xhci_ep_to_dev(ep);
 	const unsigned dci = endpoint_dci(ep);
 	uintptr_t addr;
 	xhci_cmd_t cmd;
@@ -1134,7 +1134,7 @@ errno_t hc_reset_ring(xhci_endpoint_t *ep, uint32_t stream_id)
 	xhci_trb_ring_t *ring = xhci_endpoint_get_ring(ep, stream_id);
 	xhci_trb_ring_reset_dequeue_state(ring, &addr);
 
-	xhci_hc_t * const hc = bus_to_hc(endpoint_get_bus(&ep->base));
+	xhci_hc_t *const hc = bus_to_hc(endpoint_get_bus(&ep->base));
 
 	xhci_cmd_init(&cmd, XHCI_CMD_SET_TR_DEQUEUE_POINTER);
 	cmd.slot_id = dev->slot_id;

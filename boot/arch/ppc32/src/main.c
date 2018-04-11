@@ -121,8 +121,8 @@ void bootstrap(void)
 	printf(" %p|%p: inflate area\n", inflate_base, inflate_base_pa);
 
 	uintptr_t balloc_start = ALIGN_UP(top, PAGE_SIZE);
-	size_t pages = (balloc_start + ALIGN_UP(BALLOC_MAX_SIZE, PAGE_SIZE))
-	    >> PAGE_WIDTH;
+	size_t pages = (balloc_start + ALIGN_UP(BALLOC_MAX_SIZE, PAGE_SIZE)) >>
+	    PAGE_WIDTH;
 	void *transtable;
 	void *transtable_pa;
 	ofw_alloc("translate table", &transtable, &transtable_pa,

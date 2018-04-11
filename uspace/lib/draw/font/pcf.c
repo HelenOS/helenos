@@ -112,8 +112,7 @@ static inline uint32_t uint32_t_pcf2host(uint32_t val, uint32_t format)
 {
 	if (format & PCF_FORMAT_MSBYTE_FIRST) {
 		return uint32_t_be2host(val);
-	}
-	else {
+	} else {
 		return uint32_t_le2host(val);
 	}
 }
@@ -122,8 +121,7 @@ static inline uint16_t uint16_t_pcf2host(uint16_t val, uint32_t format)
 {
 	if (format & PCF_FORMAT_MSBYTE_FIRST) {
 		return uint16_t_be2host(val);
-	}
-	else {
+	} else {
 		return uint16_t_le2host(val);
 	}
 }
@@ -200,7 +198,7 @@ static errno_t load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
 
 		pcf_compressed_metrics_t compressed_metrics;
 		records_read = fread(&compressed_metrics,
-		    sizeof(pcf_compressed_metrics_t), 1,data->file);
+		    sizeof(pcf_compressed_metrics_t), 1, data->file);
 		if (records_read != 1)
 			return EINVAL;
 
@@ -215,8 +213,7 @@ static errno_t load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
 		metrics->character_descent =
 		    compressed2int(compressed_metrics.character_descent);
 		metrics->character_attributes = 0;
-	}
-	else {
+	} else {
 		offset = table->offset + 2 * sizeof(uint32_t) +
 		    glyph_id * sizeof(pcf_default_metrics_t);
 
@@ -226,7 +223,7 @@ static errno_t load_glyph_metrics(pcf_data_t *data, uint32_t glyph_id,
 
 		pcf_default_metrics_t uncompressed_metrics;
 		records_read = fread(&uncompressed_metrics,
-		    sizeof(pcf_default_metrics_t), 1,data->file);
+		    sizeof(pcf_default_metrics_t), 1, data->file);
 		if (records_read != 1)
 			return EINVAL;
 
@@ -280,8 +277,8 @@ static errno_t pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
 	    data->bitmap_table.format);
 
 	offset = data->bitmap_table.offset + (2 * sizeof(uint32_t)) +
-	    (data->glyph_count * sizeof(uint32_t)) + (4 * sizeof(uint32_t))
-	    + bitmap_offset;
+	    (data->glyph_count * sizeof(uint32_t)) + (4 * sizeof(uint32_t)) +
+	    bitmap_offset;
 
 	if (fseek(data->file, offset, SEEK_SET) < 0)
 		return errno;
@@ -313,20 +310,18 @@ static errno_t pcf_load_glyph_surface(void *opaque_data, glyph_id_t glyph_id,
 			size_t word_index = x / (word_size_bytes * 8);
 			size_t column_offset1 = word_index * word_size_bytes;
 			size_t byte_index_within_word =
-				(x % (word_size_bytes * 8)) / 8;
+			    (x % (word_size_bytes * 8)) / 8;
 			size_t column_offset2;
 			if (data->bitmap_table.format & PCF_FORMAT_MSBYTE_FIRST) {
 				column_offset2 = (word_size_bytes - 1) - byte_index_within_word;
-			}
-			else {
+			} else {
 				column_offset2 = byte_index_within_word;
 			}
 			uint8_t b = bitmap[row_offset + column_offset1 + column_offset2];
 			bool set;
 			if (data->bitmap_table.format & PCF_FORMAT_MSBIT_FIRST) {
 				set = (b >> (7 - (x % 8))) & 1;
-			}
-			else {
+			} else {
 				set = (b >> (x % 8)) & 1;
 			}
 			pixel_t p = set ? PIXEL(255, 0, 0, 0) : PIXEL(0, 0, 0, 0);
@@ -432,20 +427,17 @@ static errno_t pcf_read_toc(pcf_data_t *data)
 				return EINVAL;
 			found_bitmap_table = true;
 			data->bitmap_table = toc_entry;
-		}
-		else if (toc_entry.type == PCF_TABLE_METRICS) {
+		} else if (toc_entry.type == PCF_TABLE_METRICS) {
 			if (found_metrics_table)
 				return EINVAL;
 			found_metrics_table = true;
 			data->metrics_table = toc_entry;
-		}
-		else if (toc_entry.type == PCF_TABLE_ENCODINGS) {
+		} else if (toc_entry.type == PCF_TABLE_ENCODINGS) {
 			if (found_encodings_table)
 				return EINVAL;
 			found_encodings_table = true;
 			data->encodings_table = toc_entry;
-		}
-		else if (toc_entry.type == PCF_TABLE_ACCELERATORS) {
+		} else if (toc_entry.type == PCF_TABLE_ACCELERATORS) {
 			if (found_accelerators_table)
 				return EINVAL;
 			found_accelerators_table = true;
@@ -515,8 +507,7 @@ static errno_t pcf_read_metrics_table_header(pcf_data_t *data)
 		metrics_count_16 = uint16_t_pcf2host(metrics_count_16,
 		    data->metrics_table.format);
 		metrics_count = metrics_count_16;
-	}
-	else {
+	} else {
 		records_read = fread(&metrics_count, sizeof(uint32_t), 1,
 		    data->file);
 		if (records_read != 1)

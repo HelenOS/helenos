@@ -80,8 +80,8 @@ static errno_t usbvirt_control_transfer(usbvirt_device_t *dev,
 	if (rc == EFORWARD) {
 		usb_log_warning("Control transfer {%s (%s)} not handled.",
 		    usb_debug_str_buffer(setup, setup_size, 10),
-		    setup_packet->request_type & 0x80
-		    ? "IN" : usb_debug_str_buffer(data, data_size, 10));
+		    setup_packet->request_type & 0x80 ?
+		    "IN" : usb_debug_str_buffer(data, data_size, 10));
 		rc = EBADCHECKSUM;
 	}
 

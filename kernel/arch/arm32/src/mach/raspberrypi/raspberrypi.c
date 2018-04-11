@@ -102,14 +102,14 @@ static void raspberrypi_init(void)
 {
 	/* Initialize interrupt controller */
 	raspi.irc = (void *) km_map(BCM2835_IRC_ADDR, sizeof(bcm2835_irc_t),
-				    PAGE_NOT_CACHEABLE);
+	    PAGE_NOT_CACHEABLE);
 	assert(raspi.irc);
 	bcm2835_irc_init(raspi.irc);
 
 	/* Initialize system timer */
 	raspi.timer = (void *) km_map(BCM2835_TIMER_ADDR,
-				      sizeof(bcm2835_timer_t),
-				      PAGE_NOT_CACHEABLE);
+	    sizeof(bcm2835_timer_t),
+	    PAGE_NOT_CACHEABLE);
 }
 
 static void raspberrypi_timer_irq_start(void)
@@ -128,7 +128,8 @@ static void raspberrypi_timer_irq_start(void)
 
 static void raspberrypi_cpu_halt(void)
 {
-	while (true) ;
+	while (true)
+		;
 }
 
 /** Get extents of available memory.
@@ -183,7 +184,7 @@ static void raspberrypi_output_init(void)
 
 #ifdef CONFIG_PL011_UART
 	if (pl011_uart_init(&raspi.uart, BCM2835_UART_IRQ,
-			    BCM2835_UART0_BASE_ADDRESS))
+	    BCM2835_UART0_BASE_ADDRESS))
 		stdout_wire(&raspi.uart.outdev);
 #endif
 }

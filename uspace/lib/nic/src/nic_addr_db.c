@@ -65,7 +65,7 @@ typedef struct {
 
 static bool nic_addr_key_equal(void *key_arg, const ht_link_t *item)
 {
-	addr_key_t *key = (addr_key_t*)key_arg;
+	addr_key_t *key = (addr_key_t *)key_arg;
 	nic_addr_entry_t *entry = member_to_inst(item, nic_addr_entry_t, link);
 
 	return memcmp(entry->addr, key->addr, entry->len) == 0;
@@ -84,7 +84,7 @@ static size_t addr_hash(size_t len, const uint8_t *addr)
 
 static size_t nic_addr_key_hash(void *k)
 {
-	addr_key_t *key = (addr_key_t*)k;
+	addr_key_t *key = (addr_key_t *)k;
 	return addr_hash(key->len, key->addr);
 }
 
@@ -262,10 +262,10 @@ static bool nic_addr_db_fe_helper(ht_link_t *item, void *arg)
  * @param	arg		Custom argument passed to the function
  */
 void nic_addr_db_foreach(const nic_addr_db_t *db,
-	void (*func)(const uint8_t *, void *), void *arg)
+    void (*func)(const uint8_t *, void *), void *arg)
 {
 	nic_addr_db_fe_arg_t hs = { .func = func, .arg = arg };
-	hash_table_apply((hash_table_t*)&db->set, nic_addr_db_fe_helper, &hs);
+	hash_table_apply((hash_table_t *)&db->set, nic_addr_db_fe_helper, &hs);
 }
 
 /** @}

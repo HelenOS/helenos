@@ -91,7 +91,7 @@ void td_init(td_t *instance, uintptr_t next_phys, uintptr_t buffer,
 	EHCI_MEM32_WR(instance->status,
 	    ((dir[direction] & TD_STATUS_PID_MASK) << TD_STATUS_PID_SHIFT) |
 	    ((size & TD_STATUS_TOTAL_MASK) << TD_STATUS_TOTAL_SHIFT) |
-	    (ioc ? TD_STATUS_IOC_FLAG : 0) );
+	    (ioc ? TD_STATUS_IOC_FLAG : 0));
 
 	if (toggle == 0 || toggle == 1) {
 		EHCI_MEM32_SET(instance->status,
@@ -100,8 +100,8 @@ void td_init(td_t *instance, uintptr_t next_phys, uintptr_t buffer,
 
 	if (buffer != 0) {
 		assert(size != 0);
-		for (unsigned i = 0; (i < ARRAY_SIZE(instance->buffer_pointer))
-		    && size; ++i) {
+		for (unsigned i = 0; (i < ARRAY_SIZE(instance->buffer_pointer)) &&
+		    size; ++i) {
 			const uintptr_t offset = buffer & TD_BUFFER_POINTER_OFFSET_MASK;
 			assert(offset == 0 || i == 0);
 			const size_t this_size = min(size, 4096 - offset);

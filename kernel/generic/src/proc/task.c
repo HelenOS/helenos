@@ -111,7 +111,7 @@ static bool task_done_walker(avltree_node_t *node, void *arg)
 		(*cnt)++;
 
 #ifdef CONFIG_DEBUG
-		printf("[%"PRIu64"] ", task->taskid);
+		printf("[%" PRIu64 "] ", task->taskid);
 #endif
 
 		task_kill_internal(task);

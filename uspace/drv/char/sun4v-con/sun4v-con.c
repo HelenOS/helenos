@@ -59,8 +59,9 @@ static void sun4v_con_putchar(sun4v_con_t *con, uint8_t data)
 		sun4v_con_putchar(con, '\r');
 
 	while (con->output_buffer->write_ptr ==
-	    (con->output_buffer->read_ptr + OUTPUT_BUFFER_SIZE - 1)
-	    % OUTPUT_BUFFER_SIZE);
+	    (con->output_buffer->read_ptr + OUTPUT_BUFFER_SIZE - 1) %
+	    OUTPUT_BUFFER_SIZE)
+		;
 
 	con->output_buffer->data[con->output_buffer->write_ptr] = data;
 	con->output_buffer->write_ptr =

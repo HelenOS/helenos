@@ -85,7 +85,7 @@
 SPINLOCK_INITIALIZE(cmd_lock);  /**< Lock protecting command list. */
 LIST_INITIALIZE(cmd_list);      /**< Command list. */
 
-static wchar_t history[KCONSOLE_HISTORY][MAX_CMDLINE] = {};
+static wchar_t history[KCONSOLE_HISTORY][MAX_CMDLINE] = { };
 static size_t history_pos = 0;
 
 /** Initialize kconsole data structures
@@ -165,7 +165,7 @@ NO_TRACE static void print_cc(wchar_t ch, size_t count)
 /** Try to find a command beginning with prefix */
 const char *cmdtab_enum(const char *name, const char **h, void **ctx)
 {
-	link_t **startpos = (link_t**) ctx;
+	link_t **startpos = (link_t **) ctx;
 	size_t namelen = str_length(name);
 
 	spinlock_lock(&cmd_lock);
@@ -375,7 +375,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			} else {
 				beg = position - 1;
 				while ((beg > 0) && (!isspace(current[beg])))
-				    beg--;
+					beg--;
 
 				if (isspace(current[beg]))
 					beg++;

@@ -224,7 +224,7 @@ errno_t endpoint_send_batch(endpoint_t *ep, const transfer_request_t *req)
 		    req->size, ep->max_packet_size);
 	}
 
-	device_t * const device = ep->device;
+	device_t *const device = ep->device;
 	if (!device) {
 		usb_log_warning("Endpoint detached");
 		return EAGAIN;
@@ -242,8 +242,8 @@ errno_t endpoint_send_batch(endpoint_t *ep, const transfer_request_t *req)
 	 * OUT transfers are rejected, IN can be just trimmed in advance.
 	 */
 	if (size > ep->max_transfer_size &&
-	    (ep->transfer_type == USB_TRANSFER_INTERRUPT
-	     || ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)) {
+	    (ep->transfer_type == USB_TRANSFER_INTERRUPT ||
+	    ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)) {
 		if (req->dir == USB_DIRECTION_OUT)
 			return ENOSPC;
 		else

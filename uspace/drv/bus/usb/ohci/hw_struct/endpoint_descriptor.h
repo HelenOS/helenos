@@ -118,8 +118,8 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td);
 static inline bool ed_inactive(const ed_t *instance)
 {
 	assert(instance);
-	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_HALTED_FLAG)
-	    || (OHCI_MEM32_RD(instance->status) & ED_STATUS_K_FLAG);
+	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_HALTED_FLAG) ||
+	    (OHCI_MEM32_RD(instance->status) & ED_STATUS_K_FLAG);
 }
 
 static inline void ed_clear_halt(ed_t *instance)
@@ -136,8 +136,8 @@ static inline void ed_clear_halt(ed_t *instance)
 static inline bool ed_transfer_pending(const ed_t *instance)
 {
 	assert(instance);
-	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_PTR_MASK)
-	    != (OHCI_MEM32_RD(instance->td_tail) & ED_TDTAIL_PTR_MASK);
+	return (OHCI_MEM32_RD(instance->td_head) & ED_TDHEAD_PTR_MASK) !=
+	    (OHCI_MEM32_RD(instance->td_tail) & ED_TDTAIL_PTR_MASK);
 }
 
 /**

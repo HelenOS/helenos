@@ -58,7 +58,7 @@ typedef enum {
 #define HI(ptr) \
 	((uint32_t) (((uint64_t) ((uintptr_t) (ptr))) >> 32))
 
-async_sess_t* ahci_get_sess(devman_handle_t funh, char **name)
+async_sess_t *ahci_get_sess(devman_handle_t funh, char **name)
 {
 	// FIXME: Use a better way than substring match
 
@@ -115,8 +115,8 @@ errno_t ahci_get_num_blocks(async_sess_t *sess, uint64_t *blocks)
 	async_exchange_end(exch);
 
 	if (rc == EOK) {
-		*blocks = (((uint64_t) blocks_hi) << 32)
-		    | (((uint64_t) blocks_lo) & 0xffffffff);
+		*blocks = (((uint64_t) blocks_hi) << 32) |
+		    (((uint64_t) blocks_lo) & 0xffffffff);
 	}
 
 	return rc;
@@ -162,7 +162,7 @@ errno_t ahci_read_blocks(async_sess_t *sess, uint64_t blocknum, size_t count,
 }
 
 errno_t ahci_write_blocks(async_sess_t *sess, uint64_t blocknum, size_t count,
-    void* buf)
+    void *buf)
 {
 	async_exch_t *exch = async_exchange_begin(sess);
 	if (!exch)
@@ -221,7 +221,7 @@ void remote_ahci_get_sata_device_name(ddf_fun_t *fun, void *iface,
 	const size_t sata_dev_name_length =
 	    (size_t) DEV_IPC_GET_ARG1(*call);
 
-	char* sata_dev_name = malloc(sata_dev_name_length);
+	char *sata_dev_name = malloc(sata_dev_name_length);
 	if (sata_dev_name == NULL) {
 		async_answer_0(chandle, ENOMEM);
 		return;

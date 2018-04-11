@@ -128,12 +128,12 @@ errno_t add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	vuhid_data_t *hid_data = dev->device_data;
 
 	/* Check that we have not run out of available endpoints. */
-	if ((iface->in_data_size > 0)
-	    && (hid_data->in_endpoint_first_free >= VUHID_ENDPOINT_MAX)) {
+	if ((iface->in_data_size > 0) &&
+	    (hid_data->in_endpoint_first_free >= VUHID_ENDPOINT_MAX)) {
 		return ELIMIT;
 	}
-	if ((iface->out_data_size > 0)
-	    && (hid_data->out_endpoint_first_free >= VUHID_ENDPOINT_MAX)) {
+	if ((iface->out_data_size > 0) &&
+	    (hid_data->out_endpoint_first_free >= VUHID_ENDPOINT_MAX)) {
 		return ELIMIT;
 	}
 
@@ -191,8 +191,8 @@ errno_t add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	total_descr_size += sizeof(usb_standard_interface_descriptor_t);
 	descr_iface->length = sizeof(usb_standard_interface_descriptor_t);
 	descr_iface->descriptor_type = USB_DESCTYPE_INTERFACE;
-	descr_iface->interface_number
-	    = dev->descriptors->configuration->descriptor->interface_count;
+	descr_iface->interface_number =
+	    dev->descriptors->configuration->descriptor->interface_count;
 	descr_iface->alternate_setting = 0;
 	descr_iface->endpoint_count = ep_count;
 	descr_iface->interface_class = USB_CLASS_HID;
@@ -229,8 +229,8 @@ errno_t add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 		total_descr_size += sizeof(usb_standard_endpoint_descriptor_t);
 		descr_ep_in->length = sizeof(usb_standard_endpoint_descriptor_t);
 		descr_ep_in->descriptor_type = USB_DESCTYPE_ENDPOINT;
-		descr_ep_in->endpoint_address
-		    = 0x80 | hid_data->in_endpoint_first_free;
+		descr_ep_in->endpoint_address =
+		    0x80 | hid_data->in_endpoint_first_free;
 		descr_ep_in->attributes = 3;
 		descr_ep_in->max_packet_size = iface->in_data_size;
 		descr_ep_in->poll_interval = 10;
@@ -245,8 +245,8 @@ errno_t add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 		total_descr_size += sizeof(usb_standard_endpoint_descriptor_t);
 		descr_ep_out->length = sizeof(usb_standard_endpoint_descriptor_t);
 		descr_ep_out->descriptor_type = USB_DESCTYPE_ENDPOINT;
-		descr_ep_out->endpoint_address
-		    = 0x00 | hid_data->out_endpoint_first_free;
+		descr_ep_out->endpoint_address =
+		    0x00 | hid_data->out_endpoint_first_free;
 		descr_ep_out->attributes = 3;
 		descr_ep_out->max_packet_size = iface->out_data_size;
 		descr_ep_out->poll_interval = 10;
@@ -255,8 +255,8 @@ errno_t add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	/* Extend existing extra descriptors with these ones. */
 	usbvirt_device_configuration_extras_t *extra_descriptors;
 	extra_descriptors = realloc(dev->descriptors->configuration->extra,
-	    sizeof(usbvirt_device_configuration_extras_t)
-	    * (dev->descriptors->configuration->extra_count + descr_count));
+	    sizeof(usbvirt_device_configuration_extras_t) *
+	    (dev->descriptors->configuration->extra_count + descr_count));
 	if (extra_descriptors == NULL) {
 		rc = ENOMEM;
 		goto error_leave;
@@ -299,27 +299,26 @@ errno_t add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 	 *
 	 */
 	if (iface->in_data_size > 0) {
-		hid_data->in_endpoints_mapping[hid_data->in_endpoint_first_free]
-		    = iface;
-		dev->ops->data_in[hid_data->in_endpoint_first_free]
-		    = on_data_from_device;
+		hid_data->in_endpoints_mapping[hid_data->in_endpoint_first_free] =
+		    iface;
+		dev->ops->data_in[hid_data->in_endpoint_first_free] =
+		    on_data_from_device;
 		hid_data->in_endpoint_first_free++;
 	}
 	if (iface->out_data_size > 0) {
-		hid_data->out_endpoints_mapping[hid_data->out_endpoint_first_free]
-		    = iface;
-		dev->ops->data_out[hid_data->out_endpoint_first_free]
-		    = on_data_to_device;
+		hid_data->out_endpoints_mapping[hid_data->out_endpoint_first_free] =
+		    iface;
+		dev->ops->data_out[hid_data->out_endpoint_first_free] =
+		    on_data_to_device;
 		hid_data->out_endpoint_first_free++;
 	}
 
-	hid_data->interface_mapping[
-	    dev->descriptors->configuration->descriptor->interface_count]
-	    = iface;
+	hid_data->interface_mapping[dev->descriptors->configuration->descriptor->interface_count] =
+	    iface;
 
 	dev->descriptors->configuration->descriptor->interface_count++;
-	dev->descriptors->configuration->descriptor->total_length
-	    += total_descr_size;
+	dev->descriptors->configuration->descriptor->total_length +=
+	    total_descr_size;
 
 	hid_data->iface_count++;
 	fibril_add_ready(life_fibril);

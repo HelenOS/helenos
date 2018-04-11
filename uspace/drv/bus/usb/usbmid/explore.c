@@ -88,14 +88,13 @@ static errno_t create_interfaces(const uint8_t *config_descriptor,
 	 * i.e. all interface descriptors. */
 	for (; interface_ptr != NULL;
 	    interface_ptr = usb_dp_get_sibling_descriptor(
-	        &parser, &data, config_descriptor, interface_ptr))
-	{
+	    &parser, &data, config_descriptor, interface_ptr)) {
 		/* The second byte is DESCTYPE byte in all desriptors. */
 		if (interface_ptr[1] != USB_DESCTYPE_INTERFACE)
 			continue;
 
-		const usb_standard_interface_descriptor_t *interface
-		    = (usb_standard_interface_descriptor_t *) interface_ptr;
+		const usb_standard_interface_descriptor_t *interface =
+		    (usb_standard_interface_descriptor_t *) interface_ptr;
 
 		/* Skip alternate interfaces. */
 		if (interface_in_list(list, interface->interface_number)) {
@@ -111,7 +110,7 @@ static errno_t create_interfaces(const uint8_t *config_descriptor,
 
 		usbmid_interface_t *iface = NULL;
 		const errno_t rc = usbmid_spawn_interface_child(usb_dev, &iface,
-			&usb_device_descriptors(usb_dev)->device, interface);
+		    &usb_device_descriptors(usb_dev)->device, interface);
 		if (rc != EOK) {
 			//TODO: Do something about that failure.
 			usb_log_error("Failed to create interface child for "

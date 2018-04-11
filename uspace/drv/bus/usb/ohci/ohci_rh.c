@@ -93,7 +93,7 @@ static void ohci_rh_hub_desc_init(ohci_rh_t *instance)
 		instance->hub_descriptor.rempow[1] = 0xff;
 	} else {
 		instance->hub_descriptor.rempow[1] =
-		     ((port_desc >> RHDB_DR_SHIFT) >> 8) & 0xff;
+		    ((port_desc >> RHDB_DR_SHIFT) >> 8) & 0xff;
 	}
 
 	instance->hub_descriptor.rempow[2] = 0xff;
@@ -223,7 +223,7 @@ errno_t ohci_rh_interrupt(ohci_rh_t *instance)
 		return EOK;
 	}
 
-	usb_transfer_batch_t * const batch = ep->active_batch;
+	usb_transfer_batch_t *const batch = ep->active_batch;
 	endpoint_deactivate_locked(ep);
 	instance->status_change_endpoint = NULL;
 	fibril_mutex_unlock(instance->guard);
@@ -346,8 +346,7 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 	TEST_SIZE_INIT(0, port, hub);
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	/* Enabled features to clear: see page 269 of USB specs */
-	switch (feature)
-	{
+	switch (feature) {
 	case USB_HUB_FEATURE_PORT_POWER:          /*8*/
 		rhda = OHCI_RD(hub->registers->rh_desc_a);
 		/* No power switching */
@@ -417,7 +416,7 @@ static errno_t req_set_port_feature(usbvirt_device_t *device,
 
 		/* Ganged power switching, one port powers all */
 		if (!(rhda & RHDA_PSM_FLAG)) {
-			OHCI_WR(hub->registers->rh_status,RHS_SET_GLOBAL_POWER);
+			OHCI_WR(hub->registers->rh_status, RHS_SET_GLOBAL_POWER);
 			return EOK;
 		}
 		/* Fall through, for per port power */
@@ -466,8 +465,8 @@ static errno_t req_status_change_handler(usbvirt_device_t *device,
 
 	for (unsigned port = 1; port <= hub->port_count; ++port) {
 		/* Write-clean bits are those that indicate change */
-		if (OHCI_RD(hub->registers->rh_port_status[port - 1])
-		    & RHPS_CHANGE_WC_MASK) {
+		if (OHCI_RD(hub->registers->rh_port_status[port - 1]) &
+		    RHPS_CHANGE_WC_MASK) {
 			mask |= (1 << port);
 		}
 	}
@@ -541,6 +540,6 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 
 /** Virtual OHCI root hub ops */
 static usbvirt_device_ops_t ops = {
-        .control = control_transfer_handlers,
-        .data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
+	.control = control_transfer_handlers,
+	.data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
 };

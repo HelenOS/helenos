@@ -154,8 +154,8 @@ void drawctx_transfer(drawctx_t *context,
 		for (sysarg_t _y = y; _y < y + height; ++_y) {
 			for (sysarg_t _x = x; _x < x + width; ++_x) {
 				if (context->shall_clip) {
-					clipped = _x < context->clip_x && _x >= context->clip_width
-					    && _y < context->clip_y && _y >= context->clip_height;
+					clipped = _x < context->clip_x && _x >= context->clip_width &&
+					    _y < context->clip_y && _y >= context->clip_height;
 				}
 
 				if (context->mask) {

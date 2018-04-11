@@ -157,7 +157,7 @@ errno_t hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	assert(hw_res);
 	if (hw_res->mem_ranges.count != 1 ||
 	    hw_res->mem_ranges.ranges[0].size < sizeof(ohci_regs_t))
-	    return EINVAL;
+		return EINVAL;
 
 	errno_t ret = pio_enable_range(&hw_res->mem_ranges.ranges[0],
 	    (void **) &instance->registers);
@@ -272,7 +272,7 @@ errno_t ohci_hc_status(bus_t *bus_base, uint32_t *status)
 	hc_t *hc = bus->hc;
 	assert(hc);
 
-	if (hc->registers){
+	if (hc->registers) {
 		*status = OHCI_RD(hc->registers->interrupt_status);
 		OHCI_WR(hc->registers->interrupt_status, *status);
 	}
@@ -300,7 +300,7 @@ errno_t ohci_hc_schedule(usb_transfer_batch_t *batch)
 	}
 
 	endpoint_t *ep = batch->ep;
-	ohci_endpoint_t * const ohci_ep = ohci_endpoint_get(ep);
+	ohci_endpoint_t *const ohci_ep = ohci_endpoint_get(ep);
 	ohci_transfer_batch_t *ohci_batch = ohci_transfer_batch_get(batch);
 	int err;
 
@@ -318,8 +318,7 @@ errno_t ohci_hc_schedule(usb_transfer_batch_t *batch)
 	fibril_mutex_unlock(&hc->guard);
 
 	/* Control and bulk schedules need a kick to start working */
-	switch (batch->ep->transfer_type)
-	{
+	switch (batch->ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
 		OHCI_SET(hc->registers->command_status, CS_CLF);
 		break;
@@ -363,11 +362,11 @@ void ohci_hc_interrupt(bus_t *bus_base, uint32_t status)
 		    OHCI_RD(hc->registers->periodic_current));
 
 		list_foreach_safe(hc->pending_endpoints, current, next) {
-			ohci_endpoint_t *ep
-				= list_get_instance(current, ohci_endpoint_t, pending_link);
+			ohci_endpoint_t *ep =
+			    list_get_instance(current, ohci_endpoint_t, pending_link);
 
-			ohci_transfer_batch_t *batch
-				= ohci_transfer_batch_get(ep->base.active_batch);
+			ohci_transfer_batch_t *batch =
+			    ohci_transfer_batch_get(ep->base.active_batch);
 			assert(batch);
 
 			if (ohci_transfer_batch_check_completed(batch)) {
@@ -406,7 +405,7 @@ int hc_gain_control(hc_device_t *hcd)
 		 * See page 145 of the specs for details.
 		 */
 		volatile uint32_t *ohci_emulation_reg =
-		(uint32_t*)((char*)instance->registers + LEGACY_REGS_OFFSET);
+		    (uint32_t *)((char *)instance->registers + LEGACY_REGS_OFFSET);
 		usb_log_debug("OHCI legacy register %p: %x.",
 		    ohci_emulation_reg, OHCI_RD(*ohci_emulation_reg));
 		/* Zero everything but A20State */

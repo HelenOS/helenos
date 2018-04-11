@@ -208,8 +208,8 @@ static errno_t stream_push_data(hound_ctx_stream_t *stream, audio_data_t *adata)
 
 	fibril_mutex_lock(&stream->guard);
 	if (stream->allowed_size &&
-	    (audio_pipe_bytes(&stream->fifo) + adata->size
-	        > stream->allowed_size)) {
+	    (audio_pipe_bytes(&stream->fifo) + adata->size >
+	    stream->allowed_size)) {
 		fibril_mutex_unlock(&stream->guard);
 		return EOVERFLOW;
 
@@ -245,7 +245,7 @@ static inline void stream_remove(hound_ctx_t *ctx, hound_ctx_stream_t *stream)
  * @return Pointer to a new stream structure, NULL on failure.
  */
 hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
-	pcm_format_t format, size_t buffer_size)
+    pcm_format_t format, size_t buffer_size)
 {
 	assert(ctx);
 	hound_ctx_stream_t *stream = malloc(sizeof(hound_ctx_stream_t));
@@ -307,7 +307,7 @@ errno_t hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
 	fibril_mutex_lock(&stream->guard);
 	while (stream->allowed_size &&
 	    (audio_pipe_bytes(&stream->fifo) + size > stream->allowed_size)) {
-	    fibril_condvar_wait(&stream->change, &stream->guard);
+		fibril_condvar_wait(&stream->change, &stream->guard);
 
 	}
 
@@ -335,7 +335,7 @@ errno_t hound_ctx_stream_read(hound_ctx_stream_t *stream, void *data, size_t siz
 
 	fibril_mutex_lock(&stream->guard);
 	while (audio_pipe_bytes(&stream->fifo) < size) {
-	    fibril_condvar_wait(&stream->change, &stream->guard);
+		fibril_condvar_wait(&stream->change, &stream->guard);
 	}
 
 	pcm_format_silence(data, size, &stream->format);
@@ -465,7 +465,7 @@ errno_t new_data(audio_sink_t *sink)
 		const errno_t ret = stream_push_data(stream, adata);
 		if (ret != EOK)
 			log_error("Failed to push data to stream: %s",
-				str_error(ret));
+			    str_error(ret));
 	}
 	audio_data_unref(adata);
 	fibril_mutex_unlock(&ctx->guard);

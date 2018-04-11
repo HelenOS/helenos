@@ -73,7 +73,8 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(uri_parse);
 
-PCUT_TEST_BEFORE {
+PCUT_TEST_BEFORE
+{
 	parsed_uri = NULL;
 	expected_uri.scheme = NULL;
 	expected_uri.user_info = NULL;
@@ -85,21 +86,24 @@ PCUT_TEST_BEFORE {
 	expected_uri.fragment = NULL;
 }
 
-PCUT_TEST_AFTER {
+PCUT_TEST_AFTER
+{
 	if (parsed_uri != NULL) {
 		uri_destroy(parsed_uri);
 		parsed_uri = NULL;
 	}
 }
 
-PCUT_TEST(only_hostname) {
+PCUT_TEST(only_hostname)
+{
 	expected_uri.scheme = "http";
 	expected_uri.host = "localhost";
 
 	PARSE_AND_CHECK("http://localhost");
 }
 
-PCUT_TEST(hostname_with_user) {
+PCUT_TEST(hostname_with_user)
+{
 	expected_uri.scheme = "http";
 	expected_uri.host = "localhost";
 	expected_uri.user_info = "user";
@@ -107,7 +111,8 @@ PCUT_TEST(hostname_with_user) {
 	PARSE_AND_CHECK("http://user@localhost");
 }
 
-PCUT_TEST(hostname_with_user_and_password) {
+PCUT_TEST(hostname_with_user_and_password)
+{
 	expected_uri.scheme = "https";
 	expected_uri.host = "localhost";
 	expected_uri.user_info = "user";
@@ -116,7 +121,8 @@ PCUT_TEST(hostname_with_user_and_password) {
 	PARSE_AND_CHECK("https://user:password@localhost");
 }
 
-PCUT_TEST(path_specification) {
+PCUT_TEST(path_specification)
+{
 	expected_uri.scheme = "http";
 	expected_uri.host = "localhost";
 	expected_uri.path = "/alpha";
@@ -124,7 +130,8 @@ PCUT_TEST(path_specification) {
 	PARSE_AND_CHECK("http://localhost/alpha");
 }
 
-PCUT_TEST(with_fragment) {
+PCUT_TEST(with_fragment)
+{
 	expected_uri.scheme = "http";
 	expected_uri.host = "localhost";
 	expected_uri.path = "/alpha";

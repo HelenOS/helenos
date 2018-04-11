@@ -133,8 +133,8 @@ static int ohci_register_ep(endpoint_t *ep)
 
 static void ohci_unregister_ep(endpoint_t *ep)
 {
-	ohci_bus_t * const bus = (ohci_bus_t *) endpoint_get_bus(ep);
-	hc_t * const hc = bus->hc;
+	ohci_bus_t *const bus = (ohci_bus_t *) endpoint_get_bus(ep);
+	hc_t *const hc = bus->hc;
 	assert(ep);
 
 	usb2_bus_endpoint_unregister(&bus->helper, ep);
@@ -150,7 +150,7 @@ static void ohci_unregister_ep(endpoint_t *ep)
 	fibril_mutex_lock(&hc->guard);
 	endpoint_set_offline_locked(ep);
 	list_remove(&ohci_ep->pending_link);
-	usb_transfer_batch_t * const batch = ep->active_batch;
+	usb_transfer_batch_t *const batch = ep->active_batch;
 	endpoint_deactivate_locked(ep);
 	fibril_mutex_unlock(&hc->guard);
 

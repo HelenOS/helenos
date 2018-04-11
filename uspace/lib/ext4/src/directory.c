@@ -313,7 +313,7 @@ static errno_t ext4_directory_iterator_set(ext4_directory_iterator_t *it,
 
 	/* Ensure the name length is not too large */
 	if (ext4_directory_entry_ll_get_name_length(
-	    it->inode_ref->fs->superblock, entry) > length-8)
+	    it->inode_ref->fs->superblock, entry) > length - 8)
 		return EIO;
 
 	/* Everything OK - "publish" the entry */

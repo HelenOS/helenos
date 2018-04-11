@@ -48,24 +48,28 @@ static char *buffer = NULL;
 
 PCUT_TEST_SUITE(suite_with_setup_and_teardown);
 
-PCUT_TEST_BEFORE {
+PCUT_TEST_BEFORE
+{
 	buffer = malloc(BUFFER_SIZE);
 	PCUT_ASSERT_NOT_NULL(buffer);
 }
 
-PCUT_TEST_AFTER {
+PCUT_TEST_AFTER
+{
 	free(buffer);
 	buffer = NULL;
 }
 
-PCUT_TEST(test_with_setup_and_teardown) {
+PCUT_TEST(test_with_setup_and_teardown)
+{
 	snprintf(buffer, BUFFER_SIZE - 1, "%d-%s", 56, "abcd");
 	PCUT_ASSERT_STR_EQUALS("56-abcd", buffer);
 }
 
 PCUT_TEST_SUITE(another_without_setup);
 
-PCUT_TEST(test_without_any_setup_or_teardown) {
+PCUT_TEST(test_without_any_setup_or_teardown)
+{
 	PCUT_ASSERT_NULL(buffer);
 }
 

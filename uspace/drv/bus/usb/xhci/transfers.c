@@ -50,13 +50,13 @@ typedef enum {
 /** Get direction flag of data stage.
  *  See Table 7 of xHCI specification.
  */
-static inline stage_dir_flag_t get_status_direction_flag(xhci_trb_t* trb,
-	uint8_t bmRequestType, uint16_t wLength)
+static inline stage_dir_flag_t get_status_direction_flag(xhci_trb_t *trb,
+    uint8_t bmRequestType, uint16_t wLength)
 {
 	/* See Table 7 of xHCI specification */
-	return SETUP_REQUEST_TYPE_IS_DEVICE_TO_HOST(bmRequestType) && (wLength > 0)
-		? STAGE_OUT
-		: STAGE_IN;
+	return SETUP_REQUEST_TYPE_IS_DEVICE_TO_HOST(bmRequestType) && (wLength > 0) ?
+	    STAGE_OUT :
+	    STAGE_IN;
 }
 
 typedef enum {
@@ -68,16 +68,16 @@ typedef enum {
 /** Get transfer type flag.
  *  See Table 8 of xHCI specification.
  */
-static inline data_stage_type_t get_transfer_type(xhci_trb_t* trb, uint8_t
-	bmRequestType, uint16_t wLength)
+static inline data_stage_type_t get_transfer_type(xhci_trb_t *trb, uint8_t
+    bmRequestType, uint16_t wLength)
 {
 	if (wLength == 0)
 		return DATA_STAGE_NO;
 
 	/* See Table 7 of xHCI specification */
-	return SETUP_REQUEST_TYPE_IS_DEVICE_TO_HOST(bmRequestType)
-		? DATA_STAGE_IN
-		: DATA_STAGE_NO;
+	return SETUP_REQUEST_TYPE_IS_DEVICE_TO_HOST(bmRequestType) ?
+	    DATA_STAGE_IN :
+	    DATA_STAGE_NO;
 }
 
 static inline bool configure_endpoint_needed(usb_device_request_setup_packet_t *setup)
@@ -85,8 +85,8 @@ static inline bool configure_endpoint_needed(usb_device_request_setup_packet_t *
 	usb_request_type_t request_type = SETUP_REQUEST_TYPE_GET_TYPE(setup->request_type);
 
 	return request_type == USB_REQUEST_TYPE_STANDARD &&
-		(setup->request == USB_DEVREQ_SET_CONFIGURATION
-		|| setup->request == USB_DEVREQ_SET_INTERFACE);
+	    (setup->request == USB_DEVREQ_SET_CONFIGURATION ||
+	    setup->request == USB_DEVREQ_SET_INTERFACE);
 }
 
 /**
@@ -94,7 +94,7 @@ static inline bool configure_endpoint_needed(usb_device_request_setup_packet_t *
  *
  * Bus callback.
  */
-usb_transfer_batch_t * xhci_transfer_create(endpoint_t* ep)
+usb_transfer_batch_t *xhci_transfer_create(endpoint_t *ep)
 {
 	xhci_transfer_t *transfer = calloc(1, sizeof(xhci_transfer_t));
 	if (!transfer)
@@ -107,7 +107,7 @@ usb_transfer_batch_t * xhci_transfer_create(endpoint_t* ep)
 /**
  * Destroy a xHCI transfer.
  */
-void xhci_transfer_destroy(usb_transfer_batch_t* batch)
+void xhci_transfer_destroy(usb_transfer_batch_t *batch)
 {
 	xhci_transfer_t *transfer = xhci_transfer_from_batch(batch);
 	free(transfer);
@@ -136,8 +136,8 @@ static void trb_splitter_init(trb_splitter_t *ts, xhci_transfer_t *transfer)
 	ts->buf = transfer->batch.dma_buffer;
 
 	const size_t chunk_mask = dma_policy_chunk_mask(ts->buf.policy);
-	ts->chunk_size = (chunk_mask > MAX_CHUNK_SIZE + 1)
-		? MAX_CHUNK_SIZE : (chunk_mask + 1);
+	ts->chunk_size = (chunk_mask > MAX_CHUNK_SIZE + 1) ?
+	    MAX_CHUNK_SIZE : (chunk_mask + 1);
 
 	ts->remaining = transfer->batch.size;
 	ts->max_trb_count = (ts->remaining + ts->chunk_size - 1) / ts->chunk_size + 1;
@@ -182,12 +182,12 @@ static void trb_split_next(xhci_trb_t *trb, trb_splitter_t *ts)
 	ts->pos += size;
 }
 
-static errno_t schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
+static errno_t schedule_control(xhci_hc_t *hc, xhci_transfer_t *transfer)
 {
 	usb_transfer_batch_t *batch = &transfer->batch;
 	xhci_endpoint_t *xhci_ep = xhci_endpoint_get(transfer->batch.ep);
 
-	usb_device_request_setup_packet_t* setup = &batch->setup.packet;
+	usb_device_request_setup_packet_t *setup = &batch->setup.packet;
 
 	trb_splitter_t splitter;
 	trb_splitter_init(&splitter, transfer);
@@ -209,8 +209,8 @@ static errno_t schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	TRB_CTRL_SET_TRT(*trb_setup,
 	    get_transfer_type(trb_setup, setup->request_type, setup->length));
 
-	stage_dir_flag_t stage_dir = (transfer->batch.dir == USB_DIRECTION_IN)
-				? STAGE_IN : STAGE_OUT;
+	stage_dir_flag_t stage_dir = (transfer->batch.dir == USB_DIRECTION_IN) ?
+	    STAGE_IN : STAGE_OUT;
 
 	/* Data stage - first TRB is special */
 	if (splitter.remaining > 0) {
@@ -242,9 +242,9 @@ static errno_t schedule_control(xhci_hc_t* hc, xhci_transfer_t* transfer)
 	    trbs_used, &transfer->interrupt_trb_phys);
 }
 
-static errno_t schedule_bulk_intr(xhci_hc_t* hc, xhci_transfer_t *transfer)
+static errno_t schedule_bulk_intr(xhci_hc_t *hc, xhci_transfer_t *transfer)
 {
-	xhci_trb_ring_t * const ring = get_ring(transfer);
+	xhci_trb_ring_t *const ring = get_ring(transfer);
 	if (!ring)
 		return EINVAL;
 
@@ -265,8 +265,7 @@ static errno_t schedule_bulk_intr(xhci_hc_t* hc, xhci_transfer_t *transfer)
 	if (!use_streams) {
 		/* Set the interrupt bit for last TRB */
 		TRB_CTRL_SET_IOC(trbs[trbs_used - 1], 1);
-	}
-	else {
+	} else {
 		/* Clear the chain bit on the last TRB */
 		TRB_CTRL_SET_CHAIN(trbs[trbs_used - 1], 1);
 		TRB_CTRL_SET_ENT(trbs[trbs_used - 1], 1);
@@ -279,19 +278,19 @@ static errno_t schedule_bulk_intr(xhci_hc_t* hc, xhci_transfer_t *transfer)
 	}
 
 	return xhci_trb_ring_enqueue_multiple(ring, trbs, trbs_used,
-		&transfer->interrupt_trb_phys);
+	    &transfer->interrupt_trb_phys);
 }
 
-static int schedule_isochronous(xhci_transfer_t* transfer)
+static int schedule_isochronous(xhci_transfer_t *transfer)
 {
 	endpoint_t *ep = transfer->batch.ep;
 
-	return ep->direction == USB_DIRECTION_OUT
-		? isoch_schedule_out(transfer)
-		: isoch_schedule_in(transfer);
+	return ep->direction == USB_DIRECTION_OUT ?
+	    isoch_schedule_out(transfer) :
+	    isoch_schedule_in(transfer);
 }
 
-errno_t xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
+errno_t xhci_handle_transfer_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
 	uintptr_t addr = trb->parameter;
 	const unsigned slot_id = XHCI_DWORD_EXTRACT(trb->control, 31, 24);
@@ -326,8 +325,7 @@ errno_t xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 		xhci_trb_ring_update_dequeue(get_ring(transfer),
 		    transfer->interrupt_trb_phys);
 		batch = &transfer->batch;
-	}
-	else {
+	} else {
 		xhci_trb_ring_update_dequeue(&ep->ring, addr);
 
 		if (ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS) {
@@ -353,51 +351,51 @@ errno_t xhci_handle_transfer_event(xhci_hc_t* hc, xhci_trb_t* trb)
 
 	const xhci_trb_completion_code_t completion_code = TRB_COMPLETION_CODE(*trb);
 	switch (completion_code) {
-		case XHCI_TRBC_SHORT_PACKET:
-		case XHCI_TRBC_SUCCESS:
-			batch->error = EOK;
-			batch->transferred_size = batch->size - TRB_TRANSFER_LENGTH(*trb);
-			break;
+	case XHCI_TRBC_SHORT_PACKET:
+	case XHCI_TRBC_SUCCESS:
+		batch->error = EOK;
+		batch->transferred_size = batch->size - TRB_TRANSFER_LENGTH(*trb);
+		break;
 
-		case XHCI_TRBC_DATA_BUFFER_ERROR:
-			usb_log_warning("Transfer ended with data buffer error.");
-			batch->error = EAGAIN;
-			batch->transferred_size = 0;
-			break;
+	case XHCI_TRBC_DATA_BUFFER_ERROR:
+		usb_log_warning("Transfer ended with data buffer error.");
+		batch->error = EAGAIN;
+		batch->transferred_size = 0;
+		break;
 
-		case XHCI_TRBC_BABBLE_DETECTED_ERROR:
-			usb_log_warning("Babble detected during the transfer.");
-			batch->error = EAGAIN;
-			batch->transferred_size = 0;
-			break;
+	case XHCI_TRBC_BABBLE_DETECTED_ERROR:
+		usb_log_warning("Babble detected during the transfer.");
+		batch->error = EAGAIN;
+		batch->transferred_size = 0;
+		break;
 
-		case XHCI_TRBC_USB_TRANSACTION_ERROR:
-			usb_log_warning("USB Transaction error.");
-			batch->error = EAGAIN;
-			batch->transferred_size = 0;
-			break;
+	case XHCI_TRBC_USB_TRANSACTION_ERROR:
+		usb_log_warning("USB Transaction error.");
+		batch->error = EAGAIN;
+		batch->transferred_size = 0;
+		break;
 
-		case XHCI_TRBC_TRB_ERROR:
-			usb_log_error("Invalid transfer parameters.");
-			batch->error = EINVAL;
-			batch->transferred_size = 0;
-			break;
+	case XHCI_TRBC_TRB_ERROR:
+		usb_log_error("Invalid transfer parameters.");
+		batch->error = EINVAL;
+		batch->transferred_size = 0;
+		break;
 
-		case XHCI_TRBC_STALL_ERROR:
-			usb_log_warning("Stall condition detected.");
-			batch->error = ESTALL;
-			batch->transferred_size = 0;
-			break;
+	case XHCI_TRBC_STALL_ERROR:
+		usb_log_warning("Stall condition detected.");
+		batch->error = ESTALL;
+		batch->transferred_size = 0;
+		break;
 
-		case XHCI_TRBC_SPLIT_TRANSACTION_ERROR:
-			usb_log_error("Split transcation error detected.");
-			batch->error = EAGAIN;
-			batch->transferred_size = 0;
-			break;
+	case XHCI_TRBC_SPLIT_TRANSACTION_ERROR:
+		usb_log_error("Split transcation error detected.");
+		batch->error = EAGAIN;
+		batch->transferred_size = 0;
+		break;
 
-		default:
-			usb_log_warning("Transfer not successfull: %u", completion_code);
-			batch->error = EIO;
+	default:
+		usb_log_warning("Transfer not successfull: %u", completion_code);
+		batch->error = EIO;
 	}
 
 	assert(batch->transferred_size <= batch->size);
@@ -455,17 +453,17 @@ errno_t xhci_transfer_schedule(usb_transfer_batch_t *batch)
 	 * If this is a ClearFeature(ENDPOINT_HALT) request, we have to issue
 	 * the Reset Endpoint command.
 	 */
-	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL
-	    && batch->dir == USB_DIRECTION_OUT) {
+	if (batch->ep->transfer_type == USB_TRANSFER_CONTROL &&
+	    batch->dir == USB_DIRECTION_OUT) {
 		const usb_device_request_setup_packet_t *request = &batch->setup.packet;
-		if (request->request == USB_DEVREQ_CLEAR_FEATURE
-		    && request->request_type == USB_REQUEST_RECIPIENT_ENDPOINT
-		    && request->value == USB_FEATURE_ENDPOINT_HALT) {
+		if (request->request == USB_DEVREQ_CLEAR_FEATURE &&
+		    request->request_type == USB_REQUEST_RECIPIENT_ENDPOINT &&
+		    request->value == USB_FEATURE_ENDPOINT_HALT) {
 			const uint16_t index = uint16_usb2host(request->index);
 			const usb_endpoint_t ep_num = index & 0xf;
-			const usb_direction_t dir = (index >> 7)
-			    ? USB_DIRECTION_IN
-			    : USB_DIRECTION_OUT;
+			const usb_direction_t dir = (index >> 7) ?
+			    USB_DIRECTION_IN :
+			    USB_DIRECTION_OUT;
 			endpoint_t *halted_ep = bus_find_endpoint(&xhci_dev->base, ep_num, dir);
 			if (halted_ep) {
 				/*
@@ -487,8 +485,8 @@ errno_t xhci_transfer_schedule(usb_transfer_batch_t *batch)
 				}
 			} else {
 				usb_log_warning("Device(%u): Resetting unregistered endpoint"
-					" %u %s.", xhci_dev->base.address, ep_num,
-					usb_str_direction(dir));
+				    " %u %s.", xhci_dev->base.address, ep_num,
+				    usb_str_direction(dir));
 			}
 		}
 	}

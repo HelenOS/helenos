@@ -231,7 +231,7 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 	void *buffer = malloc(buffer_size);
 
 	if (command_buffer != NULL)
-		memcpy(buffer+header_size, command_buffer, command_length);
+		memcpy(buffer + header_size, command_buffer, command_length);
 
 	/* Set up WMI header */
 	wmi_command_header_t *wmi_header = (wmi_command_header_t *)
@@ -282,7 +282,7 @@ errno_t wmi_send_command(htc_device_t *htc_device, wmi_command_t command_id,
 		wmi_command_header_t *wmi_hdr = (wmi_command_header_t *)
 		    ((void *) response_buffer + sizeof(htc_frame_header_t));
 		cmd_id = uint16_t_be2host(wmi_hdr->command_id);
-	} while(cmd_id & WMI_MGMT_CMD_MASK);
+	} while (cmd_id & WMI_MGMT_CMD_MASK);
 
 	if (clean_resp_buffer)
 		free(response_buffer);

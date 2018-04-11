@@ -71,12 +71,12 @@ static uint16_t udp_checksum_calc(uint16_t ivalue, void *data, size_t size)
 	bdata = (uint8_t *)data;
 
 	for (i = 0; i < words; i++) {
-		w = ((uint16_t)bdata[2*i] << 8) | bdata[2*i + 1];
+		w = ((uint16_t)bdata[2 * i] << 8) | bdata[2 * i + 1];
 		sum = udp_ocadd16(sum, w);
 	}
 
 	if (size % 2 != 0) {
-		w = ((uint16_t)bdata[2*words] << 8);
+		w = ((uint16_t)bdata[2 * words] << 8);
 		sum = udp_ocadd16(sum, w);
 	}
 

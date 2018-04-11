@@ -150,8 +150,8 @@ errno_t usb_control_request_get(usb_pipe_t *pipe,
 	 */
 
 	const usb_device_request_setup_packet_t setup_packet = {
-		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
-		    | (request_type << 5) | recipient,
+		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST |
+		    (request_type << 5) | recipient,
 		.request = request,
 		.value = uint16_host2usb(value),
 		.index = uint16_host2usb(index),
@@ -298,7 +298,7 @@ errno_t usb_request_get_descriptor(usb_pipe_t *pipe,
  * @param[out] buffer_size Where to store the size of the descriptor.
  * @return
  */
-errno_t usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
+errno_t usb_request_get_descriptor_alloc(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
@@ -598,8 +598,8 @@ errno_t usb_request_get_configuration(usb_pipe_t *pipe,
 errno_t usb_request_set_configuration(usb_pipe_t *pipe,
     uint8_t configuration_value)
 {
-	const uint16_t config_value
-	    = uint16_host2usb((uint16_t) configuration_value);
+	const uint16_t config_value =
+	    uint16_host2usb((uint16_t) configuration_value);
 
 	return usb_control_request_set(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
@@ -708,15 +708,15 @@ errno_t usb_request_get_supported_languages(usb_pipe_t *pipe,
 		/* Language code from the descriptor is in USB endianness. */
 		/* FIXME: is this really correct? */
 		const uint16_t lang_code =
-		    (string_descriptor[2 + 2 * i + 1] << 8)
-		    + string_descriptor[2 + 2 * i];
+		    (string_descriptor[2 + 2 * i + 1] << 8) +
+		    string_descriptor[2 + 2 * i];
 		langs[i] = uint16_usb2host(lang_code);
 	}
 
 	free(string_descriptor);
 
 	*languages_ptr = langs;
-	*languages_count =langs_count;
+	*languages_count = langs_count;
 
 	return EOK;
 }
@@ -794,8 +794,8 @@ errno_t usb_request_get_string(usb_pipe_t *pipe,
 	 * do not have them).
 	 */
 	for (size_t i = 0; i < string_char_count; i++) {
-		const uint16_t uni_char = (string[2 + 2 * i + 1] << 8)
-		    + string[2 + 2 * i];
+		const uint16_t uni_char = (string[2 + 2 * i + 1] << 8) +
+		    string[2 + 2 * i];
 		string_chars[i] = uni_char;
 	}
 	string_chars[string_char_count] = 0;

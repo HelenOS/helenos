@@ -77,7 +77,7 @@ errno_t ieee80211_get_scan_results(async_sess_t *dev_sess,
 	errno_t res;
 	async_wait_for(aid, &res);
 
-	if(res != EOK)
+	if (res != EOK)
 		return (errno_t) res;
 
 	return rc;

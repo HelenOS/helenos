@@ -62,9 +62,9 @@ typedef struct {
 		void *base;
 		size_t size;
 		unsigned id;
-		void* position;
+		void *position;
 	} buffer;
-	FILE* file;
+	FILE *file;
 	audio_pcm_sess_t *device;
 } record_t;
 
@@ -103,7 +103,7 @@ static void device_event_callback(cap_call_handle_t icall_handle,
 	while (record) {
 		ipc_call_t call;
 		cap_call_handle_t chandle = async_get_call(&call);
-		switch(IPC_GET_IMETHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_CAPTURE_TERMINATED:
 			printf("Recording terminated\n");
 			record = false;
@@ -124,7 +124,7 @@ static void device_event_callback(cap_call_handle_t icall_handle,
 
 		/* Write directly from device buffer to file */
 		const size_t bytes = fwrite(rec->buffer.position,
-		   sizeof(uint8_t), buffer_part, rec->file);
+		    sizeof(uint8_t), buffer_part, rec->file);
 		printf("%zu ", bytes);
 		rec->buffer.position += buffer_part;
 
@@ -153,7 +153,7 @@ static void record_fragment(record_t *rec, pcm_format_t f)
 	printf("Recording: %dHz, %s, %d channel(s).\n", f.sampling_rate,
 	    pcm_sample_format_str(f.sample_format), f.channels);
 	const unsigned frames =
-		pcm_format_size_to_frames(rec->buffer.size / BUFFER_PARTS, &f);
+	    pcm_format_size_to_frames(rec->buffer.size / BUFFER_PARTS, &f);
 	ret = audio_pcm_start_capture_fragment(rec->device,
 	    frames, f.channels, f.sampling_rate, f.sample_format);
 	if (ret != EOK) {
@@ -198,7 +198,7 @@ int drecord(const char *device, const char *file)
 		goto close_session;
 	}
 
-	char* info = NULL;
+	char *info = NULL;
 	ret = audio_pcm_get_info_str(session, &info);
 	if (ret != EOK) {
 		printf("Failed to get PCM info.\n");

@@ -554,7 +554,7 @@ static errno_t e1000_defective_set_mode(ddf_fun_t *fun, uint32_t mode)
  *
  */
 static void e1000_write_receive_address(e1000_t *e1000, unsigned int position,
-    const nic_address_t * address, bool set_av_bit)
+    const nic_address_t *address, bool set_av_bit)
 {
 	uint8_t *mac0 = (uint8_t *) address->address;
 	uint8_t *mac1 = (uint8_t *) address->address + 1;

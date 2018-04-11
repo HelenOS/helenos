@@ -49,8 +49,8 @@ errno_t req_get_descriptor(usbvirt_device_t *device,
 	VUHID_DATA(vuhid, device);
 
 	if (setup_packet->value_high == USB_DESCTYPE_HID_REPORT) {
-		vuhid_interface_t *iface
-		    = vuhid->interface_mapping[setup_packet->index];
+		vuhid_interface_t *iface =
+		    vuhid->interface_mapping[setup_packet->index];
 		if (iface == NULL) {
 			return EFORWARD;
 		}

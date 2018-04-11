@@ -942,8 +942,8 @@ void async_insert_timeout(awaiter_t *wd)
 
 	link_t *tmp = timeout_list.head.next;
 	while (tmp != &timeout_list.head) {
-		awaiter_t *cur
-		    = list_get_instance(tmp, awaiter_t, to_event.link);
+		awaiter_t *cur =
+		    list_get_instance(tmp, awaiter_t, to_event.link);
 
 		if (tv_gteq(&cur->to_event.expires, &wd->to_event.expires))
 			break;
@@ -1254,8 +1254,8 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		 * Get it again.
 		 */
 		futex_down(&async_futex);
-		if ((usecs) && (conn->wdata.to_event.occurred)
-		    && (list_empty(&conn->msg_queue))) {
+		if ((usecs) && (conn->wdata.to_event.occurred) &&
+		    (list_empty(&conn->msg_queue))) {
 			/* If we timed out -> exit */
 			futex_up(&async_futex);
 			return CAP_NIL;

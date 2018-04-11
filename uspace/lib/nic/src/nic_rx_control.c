@@ -144,7 +144,7 @@ static void nic_rxc_add_addr(const uint8_t *addr, void *arg)
  * @param address_count Number of accepted addresses (can be > max_count)
  */
 void nic_rxc_unicast_get_mode(const nic_rxc_t *rxc, nic_unicast_mode_t *mode,
-	size_t max_count, nic_address_t *address_list, size_t *address_count)
+    size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	*mode = rxc->unicast_mode;
 	if (rxc->unicast_mode == NIC_UNICAST_LIST) {
@@ -173,7 +173,7 @@ void nic_rxc_unicast_get_mode(const nic_rxc_t *rxc, nic_unicast_mode_t *mode,
  * @return ENOMEM	If there was not enough memory
  */
 errno_t nic_rxc_unicast_set_mode(nic_rxc_t *rxc, nic_unicast_mode_t mode,
-	const nic_address_t *address_list, size_t address_count)
+    const nic_address_t *address_list, size_t address_count)
 {
 	if (mode == NIC_UNICAST_LIST && address_list == NULL) {
 		return EINVAL;
@@ -188,7 +188,7 @@ errno_t nic_rxc_unicast_set_mode(nic_rxc_t *rxc, nic_unicast_mode_t mode,
 	size_t i;
 	for (i = 0; i < address_count; ++i) {
 		errno_t rc = nic_addr_db_insert(&rxc->unicast_addrs,
-			(const uint8_t *) &address_list[i].address);
+		    (const uint8_t *) &address_list[i].address);
 		if (rc == ENOMEM) {
 			return ENOMEM;
 		}
@@ -207,8 +207,8 @@ errno_t nic_rxc_unicast_set_mode(nic_rxc_t *rxc, nic_unicast_mode_t mode,
  * @param address_count Number of accepted addresses (can be > max_count)
  */
 void nic_rxc_multicast_get_mode(const nic_rxc_t *rxc,
-	nic_multicast_mode_t *mode, size_t max_count, nic_address_t *address_list,
-	size_t *address_count)
+    nic_multicast_mode_t *mode, size_t max_count, nic_address_t *address_list,
+    size_t *address_count)
 {
 	*mode = rxc->multicast_mode;
 	if (rxc->multicast_mode == NIC_MULTICAST_LIST) {
@@ -237,7 +237,7 @@ void nic_rxc_multicast_get_mode(const nic_rxc_t *rxc,
  * @return ENOMEM	If there was not enough memory
  */
 errno_t nic_rxc_multicast_set_mode(nic_rxc_t *rxc, nic_multicast_mode_t mode,
-	const nic_address_t *address_list, size_t address_count)
+    const nic_address_t *address_list, size_t address_count)
 {
 	if (mode == NIC_MULTICAST_LIST && address_list == NULL)
 		return EINVAL;
@@ -251,7 +251,7 @@ errno_t nic_rxc_multicast_set_mode(nic_rxc_t *rxc, nic_multicast_mode_t mode,
 	size_t i;
 	for (i = 0; i < address_count; ++i) {
 		errno_t rc = nic_addr_db_insert(&rxc->multicast_addrs,
-			(const uint8_t *)&address_list[i].address);
+		    (const uint8_t *)&address_list[i].address);
 		if (rc == ENOMEM) {
 			return ENOMEM;
 		}
@@ -294,7 +294,7 @@ errno_t nic_rxc_broadcast_set_mode(nic_rxc_t *rxc, nic_broadcast_mode_t mode)
  * @param address_count Number of blocked addresses (can be > max_count)
  */
 void nic_rxc_blocked_sources_get(const nic_rxc_t *rxc,
-	size_t max_count, nic_address_t *address_list, size_t *address_count)
+    size_t max_count, nic_address_t *address_list, size_t *address_count)
 {
 	nic_rxc_add_addr_t hs = {
 		.max_count = max_count,
@@ -320,17 +320,17 @@ void nic_rxc_blocked_sources_get(const nic_rxc_t *rxc,
  * @return ENOMEM	If there was not enough memory
  */
 errno_t nic_rxc_blocked_sources_set(nic_rxc_t *rxc,
-	const nic_address_t *address_list, size_t address_count)
+    const nic_address_t *address_list, size_t address_count)
 {
-	assert((address_count == 0 && address_list == NULL)
-		|| (address_count != 0 && address_list != NULL));
+	assert((address_count == 0 && address_list == NULL) ||
+	    (address_count != 0 && address_list != NULL));
 
 	nic_addr_db_clear(&rxc->blocked_sources);
 	rxc->block_sources = (address_count != 0);
 	size_t i;
 	for (i = 0; i < address_count; ++i) {
 		errno_t rc = nic_addr_db_insert(&rxc->blocked_sources,
-			(const uint8_t *) &address_list[i].address);
+		    (const uint8_t *) &address_list[i].address);
 		if (rc == ENOMEM) {
 			return ENOMEM;
 		}
@@ -394,7 +394,7 @@ errno_t nic_rxc_vlan_set_mask(nic_rxc_t *rxc, const nic_vlan_mask_t *mask)
  * @return True if the frame passes, false if it does not
  */
 bool nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
-	nic_frame_type_t *frame_type)
+    nic_frame_type_t *frame_type)
 {
 	assert(frame_type != NULL);
 	uint8_t *dest_addr = (uint8_t *) data;
@@ -448,9 +448,9 @@ bool nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
 	/* VLAN filtering */
 	if (!rxc->vlan_exact && rxc->vlan_mask != NULL) {
 		vlan_header_t *vlan_header = (vlan_header_t *)
-			((uint8_t *) data + 2 * ETH_ADDR);
+		    ((uint8_t *) data + 2 * ETH_ADDR);
 		if (vlan_header->tpid_upper == VLAN_TPID_UPPER &&
-			vlan_header->tpid_lower == VLAN_TPID_LOWER) {
+		    vlan_header->tpid_lower == VLAN_TPID_LOWER) {
 			int index = ((int) (vlan_header->vid_upper & 0xF) << 5) |
 			    (vlan_header->vid_lower >> 3);
 			if (!(rxc->vlan_mask->bitmap[index] &
@@ -475,7 +475,7 @@ bool nic_rxc_check(const nic_rxc_t *rxc, const void *data, size_t size,
  * @param	vlan_exact		VLAN tags
  */
 void nic_rxc_hw_filtering(nic_rxc_t *rxc,
-	int unicast_exact, int multicast_exact, int vlan_exact)
+    int unicast_exact, int multicast_exact, int vlan_exact)
 {
 	if (unicast_exact >= 0)
 		rxc->unicast_exact = unicast_exact;
@@ -504,23 +504,23 @@ void nic_rxc_hw_filtering(nic_rxc_t *rxc,
 static uint64_t multicast_hash(const uint8_t addr[6])
 {
 	uint32_t crc;
-    int carry, i, j;
-    uint8_t b;
+	int carry, i, j;
+	uint8_t b;
 
-    crc = 0xffffffff;
-    for (i = 0; i < 6; i++) {
-        b = addr[i];
-        for (j = 0; j < 8; j++) {
-            carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
-            crc <<= 1;
-            b >>= 1;
-            if (carry)
-                crc = ((crc ^ CRC_MCAST_POLYNOMIAL) | carry);
-        }
-    }
+	crc = 0xffffffff;
+	for (i = 0; i < 6; i++) {
+		b = addr[i];
+		for (j = 0; j < 8; j++) {
+			carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
+			crc <<= 1;
+			b >>= 1;
+			if (carry)
+				crc = ((crc ^ CRC_MCAST_POLYNOMIAL) | carry);
+		}
+	}
 
-    uint64_t one64 = 1;
-    return one64 << (crc >> 26);
+	uint64_t one64 = 1;
+	return one64 << (crc >> 26);
 }
 
 
@@ -570,7 +570,7 @@ uint64_t nic_rxc_multicast_get_hash(const nic_rxc_t *rxc)
 	case NIC_MULTICAST_LIST:
 		break;
 	case NIC_MULTICAST_PROMISC:
-		return ~ (uint64_t) 0;
+		return ~(uint64_t) 0;
 	}
 	uint64_t hash;
 	nic_addr_db_foreach(&rxc->multicast_addrs, nic_rxc_hash_addr, &hash);

@@ -56,9 +56,9 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	uintptr_t base;
 
 	asm volatile (
-		"and %[base], $29, %[mask]\n"
-		: [base] "=r" (base)
-		: [mask] "r" (~(STACK_SIZE - 1))
+	    "and %[base], $29, %[mask]\n"
+	    : [base] "=r" (base)
+	    : [mask] "r" (~(STACK_SIZE - 1))
 	);
 
 	return base;

@@ -68,8 +68,8 @@ size_t usb_interface_count_alternates(const uint8_t *config_descr,
 	    usb_dp_get_nested_descriptor(&dp_parser, &dp_data, config_descr);
 	while (iface_ptr != NULL) {
 		const usb_standard_interface_descriptor_t *iface = iface_ptr;
-		if (iface->descriptor_type == USB_DESCTYPE_INTERFACE
-		    && iface->interface_number == interface_no) {
+		if (iface->descriptor_type == USB_DESCTYPE_INTERFACE &&
+		    iface->interface_number == interface_no) {
 			++alternate_count;
 		}
 		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
@@ -133,8 +133,8 @@ errno_t usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 	for (; iface_ptr != NULL && iterator < &alts[alt_count]; ++iterator) {
 		const usb_standard_interface_descriptor_t *iface = iface_ptr;
 
-		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE)
-		    || (iface->interface_number != interface_number)) {
+		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE) ||
+		    (iface->interface_number != interface_number)) {
 			/* This is not a valid alternate interface descriptor
 			 * for interface with number == interface_number. */
 			iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser,

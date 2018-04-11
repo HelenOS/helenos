@@ -84,10 +84,9 @@ const usb_standard_configuration_descriptor_t virthub_configuration_descriptor_w
 	.length = sizeof(virthub_configuration_descriptor_without_hub_size),
 	.descriptor_type = USB_DESCTYPE_CONFIGURATION,
 	.total_length =
-		sizeof(virthub_configuration_descriptor_without_hub_size)
-		+ sizeof(virthub_interface_descriptor)
-		+ sizeof(virthub_endpoint_descriptor)
-		,
+	    sizeof(virthub_configuration_descriptor_without_hub_size) +
+	    sizeof(virthub_interface_descriptor) +
+	    sizeof(virthub_endpoint_descriptor),
 	.interface_count = 1,
 	.configuration_number = HUB_CONFIGURATION_ID,
 	.str_configuration = 0,

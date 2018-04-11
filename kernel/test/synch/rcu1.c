@@ -77,21 +77,21 @@ static size_t get_thread_cnt(void)
 	return min(MAX_THREADS, config.cpu_active * 4);
 }
 
-static void run_thread(size_t k, void (*func)(void*), void *arg)
+static void run_thread(size_t k, void (*func)(void *), void *arg)
 {
 	assert(thread[k] == NULL);
 
 	thread[k] = thread_create(func, arg, TASK, THREAD_FLAG_NONE,
-		"test-rcu-thread");
+	    "test-rcu-thread");
 
-	if(thread[k]) {
+	if (thread[k]) {
 		/* Distribute evenly. */
 		thread_wire(thread[k], &cpus[k % config.cpu_active]);
 		thread_ready(thread[k]);
 	}
 }
 
-static void run_all(void (*func)(void*))
+static void run_all(void (*func)(void *))
 {
 	size_t thread_cnt = get_thread_cnt();
 
@@ -126,7 +126,7 @@ static void join_all(void)
 	}
 }
 
-static void run_one(void (*func)(void*), void *arg)
+static void run_one(void (*func)(void *), void *arg)
 {
 	assert(one_idx < MAX_THREADS);
 	run_thread(one_idx, func, arg);
@@ -178,13 +178,13 @@ static void get_seq(size_t from, size_t to, size_t steps, size_t *seq)
 
 static bool do_nop_readers(void)
 {
-	size_t seq[MAX_THREADS] = {0};
+	size_t seq[MAX_THREADS] = { 0 };
 	get_seq(100, 100000, get_thread_cnt(), seq);
 
 	TPRINTF("\nRun %zu thr: repeat empty no-op reader sections\n", get_thread_cnt());
 
 	for (size_t k = 0; k < get_thread_cnt(); ++k)
-		run_one(nop_reader, (void*)seq[k]);
+		run_one(nop_reader, (void *)seq[k]);
 
 	TPRINTF("\nJoining %zu no-op readers\n", get_thread_cnt());
 	join_all();
@@ -219,14 +219,14 @@ static void long_reader(void *arg)
 
 static bool do_long_readers(void)
 {
-	size_t seq[MAX_THREADS] = {0};
+	size_t seq[MAX_THREADS] = { 0 };
 	get_seq(10, 1000 * 1000, get_thread_cnt(), seq);
 
 	TPRINTF("\nRun %zu thr: repeat long reader sections, will preempt, no cbs.\n",
-		get_thread_cnt());
+	    get_thread_cnt());
 
 	for (size_t k = 0; k < get_thread_cnt(); ++k)
-		run_one(long_reader, (void*)seq[k]);
+		run_one(long_reader, (void *)seq[k]);
 
 	TPRINTF("\nJoining %zu readers with long reader sections.\n", get_thread_cnt());
 	join_all();
@@ -237,7 +237,7 @@ static bool do_long_readers(void)
 /*-------------------------------------------------------------------*/
 
 
-static atomic_t nop_callbacks_cnt = {0};
+static atomic_t nop_callbacks_cnt = { 0 };
 /* Must be even. */
 static const int nop_updater_iters = 10000;
 
@@ -249,7 +249,7 @@ static void count_cb(rcu_item_t *item)
 
 static void nop_updater(void *arg)
 {
-	for (int i = 0; i < nop_updater_iters; i += 2){
+	for (int i = 0; i < nop_updater_iters; i += 2) {
 		rcu_item_t *a = malloc(sizeof(rcu_item_t), FRAME_ATOMIC);
 		rcu_item_t *b = malloc(sizeof(rcu_item_t), FRAME_ATOMIC);
 
@@ -273,7 +273,7 @@ static bool do_nop_callbacks(void)
 	size_t max_used_mem = sizeof(rcu_item_t) * exp_cnt;
 
 	TPRINTF("\nRun %zu thr: post %zu no-op callbacks (%zu B used), no readers.\n",
-		get_thread_cnt(), exp_cnt, max_used_mem);
+	    get_thread_cnt(), exp_cnt, max_used_mem);
 
 	run_all(nop_updater);
 	TPRINTF("\nJoining %zu no-op callback threads\n", get_thread_cnt());
@@ -302,7 +302,7 @@ static int one_cb_is_done = 0;
 
 static void one_cb_done(rcu_item_t *item)
 {
-	assert( ((item_w_cookie_t *)item)->cookie == magic_cookie);
+	assert(((item_w_cookie_t *)item)->cookie == magic_cookie);
 	one_cb_is_done = 1;
 	TPRINTF("Callback()\n");
 	free(item);
@@ -366,8 +366,8 @@ typedef struct {
 
 static errno_t seq_test_result = EOK;
 
-static atomic_t cur_time = {1};
-static atomic_count_t max_upd_done_time = {0};
+static atomic_t cur_time = { 1 };
+static atomic_count_t max_upd_done_time = { 0 };
 
 static void seq_cb(rcu_item_t *rcu_item)
 {
@@ -391,7 +391,7 @@ static void seq_func(void *arg)
 	 * compiler error when compiling for riscv64.
 	 */
 #ifndef KARCH_riscv64
-	seq_work_t *work = (seq_work_t*)arg;
+	seq_work_t *work = (seq_work_t *)arg;
 
 	/* Alternate between reader and updater roles. */
 	for (size_t k = 0; k < work->iters; ++k) {
@@ -400,7 +400,7 @@ static void seq_func(void *arg)
 			rcu_read_lock();
 			atomic_count_t start_time = atomic_postinc(&cur_time);
 
-			for (volatile size_t d = 0; d < 10 * i; ++d ){
+			for (volatile size_t d = 0; d < 10 * i; ++d) {
 				/* no-op */
 			}
 
@@ -451,7 +451,7 @@ static bool do_seq_check(void)
 
 	const size_t iters = 100;
 	const size_t total_cnt = 1000;
-	size_t read_cnt[MAX_THREADS] = {0};
+	size_t read_cnt[MAX_THREADS] = { 0 };
 	seq_work_t item[MAX_THREADS];
 
 	size_t total_cbs = 0;
@@ -475,8 +475,8 @@ static bool do_seq_check(void)
 	bin_order_suffix(max_used_mem, &mem_units, &mem_suffix, false);
 
 	TPRINTF("\nRun %zu th: check callback completion time in readers. "
-		"%zu callbacks total (max %" PRIu64 " %s used). Be patient.\n",
-		get_thread_cnt(), total_cbs, mem_units, mem_suffix);
+	    "%zu callbacks total (max %" PRIu64 " %s used). Be patient.\n",
+	    get_thread_cnt(), total_cbs, mem_units, mem_suffix);
 
 	for (size_t i = 0; i < get_thread_cnt(); ++i) {
 		run_one(seq_func, &item[i]);
@@ -499,7 +499,7 @@ static bool do_seq_check(void)
 
 static void reader_unlocked(rcu_item_t *item)
 {
-	exited_t *p = (exited_t*)item;
+	exited_t *p = (exited_t *)item;
 	p->exited = true;
 }
 
@@ -510,7 +510,7 @@ static void reader_exit(void *arg)
 	rcu_read_lock();
 	rcu_read_unlock();
 
-	rcu_call((rcu_item_t*)arg, reader_unlocked);
+	rcu_call((rcu_item_t *)arg, reader_unlocked);
 
 	rcu_read_lock();
 	rcu_read_lock();
@@ -565,7 +565,7 @@ static void preempted_unlocked(rcu_item_t *item)
 
 static void preempted_reader_prev(void *arg)
 {
-	preempt_t *p = (preempt_t*)arg;
+	preempt_t *p = (preempt_t *)arg;
 	assert(!p->e.exited);
 
 	TPRINTF("reader_prev{ ");
@@ -585,7 +585,7 @@ static void preempted_reader_prev(void *arg)
 
 static void preempted_reader_inside_cur(void *arg)
 {
-	preempt_t *p = (preempt_t*)arg;
+	preempt_t *p = (preempt_t *)arg;
 	assert(!p->e.exited);
 
 	TPRINTF("reader_inside_cur{ ");
@@ -610,7 +610,7 @@ static void preempted_reader_inside_cur(void *arg)
 
 static void preempted_reader_cur(void *arg)
 {
-	preempt_t *p = (preempt_t*)arg;
+	preempt_t *p = (preempt_t *)arg;
 	assert(!p->e.exited);
 
 	TPRINTF("reader_cur{ ");
@@ -632,7 +632,7 @@ static void preempted_reader_cur(void *arg)
 
 static void preempted_reader_next1(void *arg)
 {
-	preempt_t *p = (preempt_t*)arg;
+	preempt_t *p = (preempt_t *)arg;
 	assert(!p->e.exited);
 
 	TPRINTF("reader_next1{ ");
@@ -654,7 +654,7 @@ static void preempted_reader_next1(void *arg)
 
 static void preempted_reader_next2(void *arg)
 {
-	preempt_t *p = (preempt_t*)arg;
+	preempt_t *p = (preempt_t *)arg;
 	assert(!p->e.exited);
 
 	TPRINTF("reader_next2{ ");
@@ -683,7 +683,7 @@ static void preempted_reader_next2(void *arg)
 }
 
 
-static bool do_one_reader_preempt(void (*f)(void*), const char *err)
+static bool do_one_reader_preempt(void (*f)(void *), const char *err)
 {
 	preempt_t *p = malloc(sizeof(preempt_t), FRAME_ATOMIC);
 	if (!p) {
@@ -718,23 +718,23 @@ static bool do_reader_preempt(void)
 	bool ok = true;
 
 	ok = do_one_reader_preempt(preempted_reader_prev,
-		"Err: preempted_reader_prev()\n");
+	    "Err: preempted_reader_prev()\n");
 	success = success && ok;
 
 	ok = do_one_reader_preempt(preempted_reader_inside_cur,
-		"Err: preempted_reader_inside_cur()\n");
+	    "Err: preempted_reader_inside_cur()\n");
 	success = success && ok;
 
 	ok = do_one_reader_preempt(preempted_reader_cur,
-		"Err: preempted_reader_cur()\n");
+	    "Err: preempted_reader_cur()\n");
 	success = success && ok;
 
 	ok = do_one_reader_preempt(preempted_reader_next1,
-		"Err: preempted_reader_next1()\n");
+	    "Err: preempted_reader_next1()\n");
 	success = success && ok;
 
 	ok = do_one_reader_preempt(preempted_reader_next2,
-		"Err: preempted_reader_next2()\n");
+	    "Err: preempted_reader_next2()\n");
 	success = success && ok;
 
 	return success;
@@ -859,7 +859,7 @@ typedef struct {
 
 static void stress_reader(void *arg)
 {
-	bool *done = (bool*) arg;
+	bool *done = (bool *) arg;
 
 	while (!*done) {
 		rcu_read_lock();
@@ -895,7 +895,7 @@ static void stress_updater(void *arg)
 		}
 
 		/* Print a dot if we make a progress of 1% */
-		if (s->master && 0 == (i % (s->iters/100)))
+		if (s->master && 0 == (i % (s->iters / 100)))
 			TPRINTF(".");
 	}
 }
@@ -920,8 +920,8 @@ static bool do_stress(void)
 	bin_order_suffix(max_used_mem, &mem_units, &mem_suffix, false);
 
 	TPRINTF("\nStress: Run %zu nop-readers and %zu updaters. %zu callbacks"
-		" total (max %" PRIu64 " %s used). Be very patient.\n",
-		reader_cnt, updater_cnt, exp_upd_calls, mem_units, mem_suffix);
+	    " total (max %" PRIu64 " %s used). Be very patient.\n",
+	    reader_cnt, updater_cnt, exp_upd_calls, mem_units, mem_suffix);
 
 	for (size_t k = 0; k < reader_cnt; ++k) {
 		run_one(stress_reader, &done);
@@ -960,7 +960,7 @@ static void expedite_cb(rcu_item_t *arg)
 	if (1 < e->count_down) {
 		--e->count_down;
 
-		if (0 == (e->count_down % (e->total_cnt/100))) {
+		if (0 == (e->count_down % (e->total_cnt / 100))) {
 			TPRINTF("*");
 		}
 
@@ -1045,7 +1045,7 @@ const char *test_rcu1(void)
 
 		if (ok) {
 			TPRINTF("\nSubtest %s() ok (GPs: %" PRIu64 ").\n",
-				test_func[i].desc, delta_gps);
+			    test_func[i].desc, delta_gps);
 		} else {
 			TPRINTF("\nFailed: %s(). Pausing for 5 secs.\n", test_func[i].desc);
 			thread_sleep(5);

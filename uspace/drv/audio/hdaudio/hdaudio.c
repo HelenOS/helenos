@@ -198,7 +198,7 @@ static errno_t hda_dev_add(ddf_dev_t *dev)
 	hda->rwsize = RNGSZ(res.mem_ranges.ranges[0]);
 
 	ddf_msg(LVL_NOTE, "hda reg base: %" PRIx64,
-	     RNGABS(res.mem_ranges.ranges[0]));
+	    RNGABS(res.mem_ranges.ranges[0]));
 
 	if (hda->rwsize < sizeof(hda_regs_t)) {
 		ddf_msg(LVL_ERROR, "Memory range is too small.");
@@ -371,7 +371,8 @@ static void hdaudio_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	hda_t *hda = (hda_t *)ddf_dev_data_get(dev);
 
-	if (0) ddf_msg(LVL_NOTE, "## interrupt ##");
+	if (0)
+		ddf_msg(LVL_NOTE, "## interrupt ##");
 //	ddf_msg(LVL_NOTE, "interrupt arg4=0x%x", (int)IPC_GET_ARG4(*icall));
 	hda_ctl_interrupt(hda->ctl);
 

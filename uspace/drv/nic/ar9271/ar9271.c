@@ -407,7 +407,7 @@ static errno_t ar9271_ieee80211_key_config(ieee80211_dev_t *ieee80211_dev,
 
 	ar9271_t *ar9271 = (ar9271_t *) ieee80211_get_specific(ieee80211_dev);
 
-	if(insert) {
+	if (insert) {
 		assert(key_conf);
 
 		uint32_t key[5];

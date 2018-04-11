@@ -417,8 +417,8 @@ static int16_t huffman_construct(huffman_t *huffman, uint16_t *length, size_t n)
  * @return ENOMEM on output buffer overrun.
  *
  */
-static int inflate_codes(inflate_state_t *state, huffman_t* len_code,
-    huffman_t* dist_code)
+static int inflate_codes(inflate_state_t *state, huffman_t *len_code,
+    huffman_t *dist_code)
 {
 	uint16_t symbol;
 
@@ -459,8 +459,8 @@ static int inflate_codes(inflate_state_t *state, huffman_t* len_code,
 
 			while (len > 0) {
 				/* Copy len bytes from distance bytes back */
-				state->dest[state->destcnt]
-				    = state->dest[state->destcnt - dist];
+				state->dest[state->destcnt] =
+				    state->dest[state->destcnt - dist];
 				state->destcnt++;
 				len--;
 			}
@@ -526,8 +526,8 @@ static int inflate_dynamic(inflate_state_t *state)
 	uint16_t ncode = get_bits(state, 4) + 4;
 	CHECK_OVERRUN(*state);
 
-	if ((nlen > MAX_LITLEN) || (ndist > MAX_DIST)
-	    || (ncode > MAX_ORDER))
+	if ((nlen > MAX_LITLEN) || (ndist > MAX_DIST) ||
+	    (ncode > MAX_ORDER))
 		return EINVAL;
 
 	/* Read code length code lengths */

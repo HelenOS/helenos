@@ -393,7 +393,7 @@ const usb_device_descriptors_t *usb_device_descriptors(usb_device_t *usb_dev)
 	return &usb_dev->descriptors;
 }
 
-const usb_alternate_interfaces_t * usb_device_get_alternative_ifaces(
+const usb_alternate_interfaces_t *usb_device_get_alternative_ifaces(
     usb_device_t *usb_dev)
 {
 	assert(usb_dev);
@@ -546,7 +546,7 @@ void usb_device_destroy_ddf(ddf_dev_t *ddf_dev)
 	return;
 }
 
-usb_device_t * usb_device_create(devman_handle_t handle)
+usb_device_t *usb_device_create(devman_handle_t handle)
 {
 	usb_device_t *usb_dev = malloc(sizeof(usb_device_t));
 	if (!usb_dev)
@@ -561,7 +561,7 @@ usb_device_t * usb_device_create(devman_handle_t handle)
 		return NULL;
 	}
 
-	const char* dummy = NULL;
+	const char *dummy = NULL;
 	ret = usb_device_init(usb_dev, NULL, NULL, &dummy);
 	if (ret != EOK) {
 		free(usb_dev);
@@ -587,7 +587,7 @@ const char *usb_device_get_name(usb_device_t *usb_dev)
 }
 
 ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *usb_dev, fun_type_t ftype,
-    const char* name)
+    const char *name)
 {
 	assert(usb_dev);
 	if (usb_dev->ddf_dev)
@@ -595,7 +595,7 @@ ddf_fun_t *usb_device_ddf_fun_create(usb_device_t *usb_dev, fun_type_t ftype,
 	return NULL;
 }
 
-async_exch_t * usb_device_bus_exchange_begin(usb_device_t *usb_dev)
+async_exch_t *usb_device_bus_exchange_begin(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return async_exchange_begin(usb_dev->bus_session);
@@ -611,7 +611,7 @@ void usb_device_bus_exchange_end(async_exch_t *exch)
  * @param size requested data size.
  * @return Pointer to the newly allocated space, NULL on failure.
  */
-void * usb_device_data_alloc(usb_device_t *usb_dev, size_t size)
+void *usb_device_data_alloc(usb_device_t *usb_dev, size_t size)
 {
 	assert(usb_dev);
 	assert(usb_dev->driver_data == NULL);
@@ -619,7 +619,7 @@ void * usb_device_data_alloc(usb_device_t *usb_dev, size_t size)
 
 }
 
-void * usb_device_data_get(usb_device_t *usb_dev)
+void *usb_device_data_get(usb_device_t *usb_dev)
 {
 	assert(usb_dev);
 	return usb_dev->driver_data;

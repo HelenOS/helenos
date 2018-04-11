@@ -79,7 +79,7 @@
 #define GLYPH_POS(instance, glyph, y) \
 	((glyph) * (instance)->glyphbytes + (y) * (instance)->glyphscanline)
 
-typedef void (* rgb_conv_t)(void *, uint32_t);
+typedef void (*rgb_conv_t)(void *, uint32_t);
 
 typedef struct {
 	SPINLOCK_DECLARE(lock);
@@ -223,8 +223,8 @@ static void rgb_565_le(void *dst, uint32_t rgb)
  */
 static void bgr_323(void *dst, uint32_t rgb)
 {
-	*((uint8_t *) dst)
-	    = ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
+	*((uint8_t *) dst) =
+	    ~((RED(rgb, 3) << 5) | (GREEN(rgb, 2) << 3) | BLUE(rgb, 3));
 }
 
 /** Draw character at given position

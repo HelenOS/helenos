@@ -80,10 +80,10 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 
 	/* Status: address, endpoint nr, direction mask and max packet size. */
 	OHCI_MEM32_WR(instance->status,
-	    ((ep->device->address & ED_STATUS_FA_MASK) << ED_STATUS_FA_SHIFT)
-	    | ((ep->endpoint & ED_STATUS_EN_MASK) << ED_STATUS_EN_SHIFT)
-	    | ((dir[ep->direction] & ED_STATUS_D_MASK) << ED_STATUS_D_SHIFT)
-	    | ((ep->max_packet_size & ED_STATUS_MPS_MASK) << ED_STATUS_MPS_SHIFT));
+	    ((ep->device->address & ED_STATUS_FA_MASK) << ED_STATUS_FA_SHIFT) |
+	    ((ep->endpoint & ED_STATUS_EN_MASK) << ED_STATUS_EN_SHIFT) |
+	    ((dir[ep->direction] & ED_STATUS_D_MASK) << ED_STATUS_D_SHIFT) |
+	    ((ep->max_packet_size & ED_STATUS_MPS_MASK) << ED_STATUS_MPS_SHIFT));
 
 	/* Low speed flag */
 	if (ep->device->speed == USB_SPEED_LOW)

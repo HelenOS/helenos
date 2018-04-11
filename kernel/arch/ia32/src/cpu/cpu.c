@@ -100,11 +100,11 @@ void cpu_arch_init(void)
 
 	if (CPU->arch.fi.bits.sse) {
 		asm volatile (
-			"mov %%cr4, %[help]\n"
-			"or %[mask], %[help]\n"
-			"mov %[help], %%cr4\n"
-			: [help] "+r" (help)
-			: [mask] "i" (CR4_OSFXSR | CR4_OSXMMEXCPT)
+		    "mov %%cr4, %[help]\n"
+		    "or %[mask], %[help]\n"
+		    "mov %[help], %%cr4\n"
+		    : [help] "+r" (help)
+		    : [mask] "i" (CR4_OSFXSR | CR4_OSXMMEXCPT)
 		);
 	}
 
@@ -127,17 +127,17 @@ void cpu_identify(void)
 		/*
 		 * Check for AMD processor.
 		 */
-		if ((info.cpuid_ebx == AMD_CPUID_EBX)
-		    && (info.cpuid_ecx == AMD_CPUID_ECX)
-		    && (info.cpuid_edx == AMD_CPUID_EDX))
+		if ((info.cpuid_ebx == AMD_CPUID_EBX) &&
+		    (info.cpuid_ecx == AMD_CPUID_ECX) &&
+		    (info.cpuid_edx == AMD_CPUID_EDX))
 			CPU->arch.vendor = VendorAMD;
 
 		/*
 		 * Check for Intel processor.
 		 */
-		if ((info.cpuid_ebx == INTEL_CPUID_EBX)
-		    && (info.cpuid_ecx == INTEL_CPUID_ECX)
-		    && (info.cpuid_edx == INTEL_CPUID_EDX))
+		if ((info.cpuid_ebx == INTEL_CPUID_EBX) &&
+		    (info.cpuid_ecx == INTEL_CPUID_ECX) &&
+		    (info.cpuid_edx == INTEL_CPUID_EDX))
 			CPU->arch.vendor = VendorIntel;
 
 		cpuid(INTEL_CPUID_STANDARD, &info);
@@ -147,11 +147,11 @@ void cpu_identify(void)
 	}
 }
 
-void cpu_print_report(cpu_t* cpu)
+void cpu_print_report(cpu_t *cpu)
 {
 	printf("cpu%u: (%s family=%u model=%u stepping=%u apicid=%u) %" PRIu16
-		" MHz\n", cpu->id, vendor_str[cpu->arch.vendor], cpu->arch.family,
-		cpu->arch.model, cpu->arch.stepping, cpu->arch.id, cpu->frequency_mhz);
+	    " MHz\n", cpu->id, vendor_str[cpu->arch.vendor], cpu->arch.family,
+	    cpu->arch.model, cpu->arch.stepping, cpu->arch.id, cpu->frequency_mhz);
 }
 
 /** @}

@@ -37,18 +37,18 @@ static char *argv_patched[] = {
 	NULL
 };
 
-static void pre_init_hook(int *argc, char **argv[]) {
+static void pre_init_hook(int *argc, char **argv[])
+{
 	argv_patched[0] = (*argv)[0];
 	*argc = 2;
 	*argv = argv_patched;
 }
 
-PCUT_TEST(unreachable) {
+PCUT_TEST(unreachable)
+{
 	PCUT_ASSERT_TRUE(0 && "unreachable code");
 }
 
 
-PCUT_CUSTOM_MAIN(
-	PCUT_MAIN_SET_PREINIT_HOOK(pre_init_hook)
-);
+PCUT_CUSTOM_MAIN(PCUT_MAIN_SET_PREINIT_HOOK(pre_init_hook));
 

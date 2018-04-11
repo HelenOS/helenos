@@ -141,8 +141,8 @@ errno_t hc_gen_irq_code(irq_code_t *code, hc_device_t *hcd, const hw_res_list_pa
 
 	memcpy(code->cmds, uhci_irq_commands, sizeof(uhci_irq_commands));
 	uhci_regs_t *registers = (uhci_regs_t *) RNGABSPTR(regs);
-	code->cmds[0].addr = (void*)&registers->usbsts;
-	code->cmds[3].addr = (void*)&registers->usbsts;
+	code->cmds[0].addr = (void *)&registers->usbsts;
+	code->cmds[3].addr = (void *)&registers->usbsts;
 
 	usb_log_debug("I/O regs at %p (size %zu), IRQ %d.",
 	    RNGABSPTR(regs), RNGSZ(regs), hw_res->irqs.irqs[0]);
@@ -214,7 +214,7 @@ errno_t hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	assert(hw_res);
 	if (hw_res->io_ranges.count != 1 ||
 	    hw_res->io_ranges.ranges[0].size < sizeof(uhci_regs_t))
-	    return EINVAL;
+		return EINVAL;
 
 	instance->hw_failures = 0;
 
@@ -223,7 +223,7 @@ errno_t hc_add(hc_device_t *hcd, const hw_res_list_parsed_t *hw_res)
 	    (void **) &instance->registers);
 	if (ret != EOK) {
 		usb_log_error("Failed to gain access to registers: %s.",
-	            str_error(ret));
+		    str_error(ret));
 		return ret;
 	}
 
@@ -284,8 +284,9 @@ void hc_init_hw(const hc_t *instance)
 
 	/* Reset hc, all states and counters. Hope that hw is not broken */
 	pio_write_16(&registers->usbcmd, UHCI_CMD_HCRESET);
-	do { async_usleep(10); }
-	while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
+	do {
+		async_usleep(10);
+	} while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
 
 	/* Set frame to exactly 1ms */
 	pio_write_8(&registers->sofmod, 64);
@@ -330,7 +331,7 @@ static endpoint_t *endpoint_create(device_t *device, const usb_endpoint_descript
 
 static errno_t endpoint_register(endpoint_t *ep)
 {
-	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
+	hc_t *const hc = bus_to_hc(endpoint_get_bus(ep));
 
 	const errno_t err = usb2_bus_endpoint_register(&hc->bus_helper, ep);
 	if (err)
@@ -352,7 +353,7 @@ static errno_t endpoint_register(endpoint_t *ep)
 
 static void endpoint_unregister(endpoint_t *ep)
 {
-	hc_t * const hc = bus_to_hc(endpoint_get_bus(ep));
+	hc_t *const hc = bus_to_hc(endpoint_get_bus(ep));
 	usb2_bus_endpoint_unregister(&hc->bus_helper, ep);
 
 	// Check for the roothub, as it does not schedule into lists
@@ -389,8 +390,8 @@ static void endpoint_unregister(endpoint_t *ep)
 		return;
 	}
 
-	uhci_transfer_batch_t * const batch =
-		uhci_transfer_batch_get(ep->active_batch);
+	uhci_transfer_batch_t *const batch =
+	    uhci_transfer_batch_get(ep->active_batch);
 
 	/* Remove the batch from the schedule to stop it from being finished. */
 	endpoint_deactivate_locked(ep);
@@ -411,13 +412,13 @@ static void endpoint_unregister(endpoint_t *ep)
 
 static int device_enumerate(device_t *dev)
 {
-	hc_t * const hc = bus_to_hc(dev->bus);
+	hc_t *const hc = bus_to_hc(dev->bus);
 	return usb2_bus_device_enumerate(&hc->bus_helper, dev);
 }
 
 static void device_gone(device_t *dev)
 {
-	hc_t * const hc = bus_to_hc(dev->bus);
+	hc_t *const hc = bus_to_hc(dev->bus);
 	usb2_bus_device_gone(&hc->bus_helper, dev);
 }
 
@@ -481,7 +482,7 @@ errno_t hc_init_mem_structures(hc_t *instance)
 
 	/* Set all frames to point to the first queue head */
 	const uint32_t queue = LINK_POINTER_QH(
-	        addr_to_phys(instance->transfers_interrupt.queue_head));
+	    addr_to_phys(instance->transfers_interrupt.queue_head));
 
 	for (unsigned i = 0; i < UHCI_FRAME_LIST_COUNT; ++i) {
 		instance->frame_list[i] = queue;
@@ -523,11 +524,11 @@ do { \
 #undef SETUP_TRANSFER_LIST
 	/* Connect lists into one schedule */
 	transfer_list_set_next(&instance->transfers_control_full,
-		&instance->transfers_bulk_full);
+	    &instance->transfers_bulk_full);
 	transfer_list_set_next(&instance->transfers_control_slow,
-		&instance->transfers_control_full);
+	    &instance->transfers_control_full);
 	transfer_list_set_next(&instance->transfers_interrupt,
-		&instance->transfers_control_slow);
+	    &instance->transfers_control_slow);
 
 	/*FSBR, This feature is not needed (adds no benefit) and is supposedly
 	 * buggy on certain hw, enable at your own risk. */
@@ -538,15 +539,15 @@ do { \
 
 	/* Assign pointers to be used during scheduling */
 	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_INTERRUPT] =
-	  &instance->transfers_interrupt;
+	    &instance->transfers_interrupt;
 	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_INTERRUPT] =
-	  &instance->transfers_interrupt;
+	    &instance->transfers_interrupt;
 	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_CONTROL] =
-	  &instance->transfers_control_full;
+	    &instance->transfers_control_full;
 	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_CONTROL] =
-	  &instance->transfers_control_slow;
+	    &instance->transfers_control_slow;
 	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_BULK] =
-	  &instance->transfers_bulk_full;
+	    &instance->transfers_bulk_full;
 
 	return EOK;
 }
@@ -581,7 +582,7 @@ static errno_t hc_schedule(usb_transfer_batch_t *batch)
 	if (batch->target.address == uhci_rh_get_address(&hc->rh))
 		return uhci_rh_schedule(&hc->rh, batch);
 
-	transfer_list_t * const list =
+	transfer_list_t *const list =
 	    hc->transfers[ep->device->speed][ep->transfer_type];
 
 	if (!list)
@@ -628,8 +629,8 @@ errno_t hc_debug_checker(void *arg)
 
 		int frnum = pio_read_16(&instance->registers->frnum) & 0x3ff;
 
-		uintptr_t expected_pa = instance->frame_list[frnum]
-		    & LINK_POINTER_ADDRESS_MASK;
+		uintptr_t expected_pa = instance->frame_list[frnum] &
+		    LINK_POINTER_ADDRESS_MASK;
 		uintptr_t real_pa = addr_to_phys(QH(interrupt));
 		if (expected_pa != real_pa) {
 			usb_log_debug("Interrupt QH: %p (frame %d) vs. %p.",
@@ -652,7 +653,7 @@ errno_t hc_debug_checker(void *arg)
 
 		expected_pa = QH(control_full)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(bulk_full));
-		if (expected_pa != real_pa ) {
+		if (expected_pa != real_pa) {
 			usb_log_debug("Bulk QH: %p vs. %p.",
 			    (void *) expected_pa, (void *) real_pa);
 		}

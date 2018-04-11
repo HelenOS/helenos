@@ -43,8 +43,8 @@ dma_policy_t dma_policy_create(unsigned flags, size_t chunk_size)
 	assert((chunk_size & (chunk_size - 1)) == 0); /* Check if power of 2 */
 	assert(chunk_size >= PAGE_SIZE || chunk_size == 0);
 
-	return ((chunk_size - 1) & DMA_POLICY_CHUNK_SIZE_MASK)
-		| (flags & DMA_POLICY_FLAGS_MASK);
+	return ((chunk_size - 1) & DMA_POLICY_CHUNK_SIZE_MASK) |
+	    (flags & DMA_POLICY_FLAGS_MASK);
 }
 
 /**

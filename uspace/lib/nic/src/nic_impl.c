@@ -117,10 +117,10 @@ errno_t nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 	if (state == NIC_STATE_STOPPED) {
 		/* Notify upper layers that we are reseting the MAC */
 		errno_t rc = nic_ev_addr_changed(nic_data->client_session,
-			&nic_data->default_mac);
+		    &nic_data->default_mac);
 		nic_data->poll_mode = nic_data->default_poll_mode;
 		memcpy(&nic_data->poll_period, &nic_data->default_poll_period,
-			sizeof (struct timeval));
+		    sizeof(struct timeval));
 		if (rc != EOK) {
 			/* We have already ran the on stopped handler, even if we
 			 * terminated the state change we would end up in undefined state.
@@ -135,7 +135,7 @@ errno_t nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		nic_rxc_clear(&nic_data->rx_control);
 		/* Reinsert device's default MAC */
 		nic_rxc_set_addr(&nic_data->rx_control, NULL,
-			&nic_data->default_mac);
+		    &nic_data->default_mac);
 		fibril_rwlock_write_unlock(&nic_data->rxc_lock);
 		memcpy(&nic_data->mac, &nic_data->default_mac, sizeof (nic_address_t));
 
@@ -257,12 +257,12 @@ errno_t nic_get_stats_impl(ddf_fun_t *fun, nic_device_stats_t *stats)
  * @return EOK
  */
 errno_t nic_unicast_get_mode_impl(ddf_fun_t *fun, nic_unicast_mode_t *mode,
-	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
+    size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_rxc_unicast_get_mode(&nic_data->rx_control, mode, max_count,
-		addr_list, addr_count);
+	    addr_list, addr_count);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
 	return EOK;
 }
@@ -281,10 +281,10 @@ errno_t nic_unicast_get_mode_impl(ddf_fun_t *fun, nic_unicast_mode_t *mode,
  * @return ENOMEM
  */
 errno_t nic_unicast_set_mode_impl(ddf_fun_t *fun,
-	nic_unicast_mode_t mode, const nic_address_t *addr_list, size_t addr_count)
+    nic_unicast_mode_t mode, const nic_address_t *addr_list, size_t addr_count)
 {
-	assert((addr_count == 0 && addr_list == NULL)
-		|| (addr_count != 0 && addr_list != NULL));
+	assert((addr_count == 0 && addr_list == NULL) ||
+	    (addr_count != 0 && addr_list != NULL));
 	size_t i;
 	for (i = 0; i < addr_count; ++i) {
 		if (addr_list[i].address[0] & 1)
@@ -296,11 +296,11 @@ errno_t nic_unicast_set_mode_impl(ddf_fun_t *fun,
 	errno_t rc = ENOTSUP;
 	if (nic_data->on_unicast_mode_change) {
 		rc = nic_data->on_unicast_mode_change(nic_data,
-			mode, addr_list, addr_count);
+		    mode, addr_list, addr_count);
 	}
 	if (rc == EOK) {
 		rc = nic_rxc_unicast_set_mode(&nic_data->rx_control, mode,
-			addr_list, addr_count);
+		    addr_list, addr_count);
 		/* After changing the mode the addr db gets cleared, therefore we have
 		 * to reinsert also the physical address of NIC.
 		 */
@@ -324,12 +324,12 @@ errno_t nic_unicast_set_mode_impl(ddf_fun_t *fun,
  * @return EOK
  */
 errno_t nic_multicast_get_mode_impl(ddf_fun_t *fun, nic_multicast_mode_t *mode,
-	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
+    size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_rxc_multicast_get_mode(&nic_data->rx_control, mode, max_count,
-		addr_list, addr_count);
+	    addr_list, addr_count);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
 	return EOK;
 }
@@ -348,10 +348,10 @@ errno_t nic_multicast_get_mode_impl(ddf_fun_t *fun, nic_multicast_mode_t *mode,
  * @return ENOMEM
  */
 errno_t nic_multicast_set_mode_impl(ddf_fun_t *fun,	nic_multicast_mode_t mode,
-	const nic_address_t *addr_list, size_t addr_count)
+    const nic_address_t *addr_list, size_t addr_count)
 {
-	assert((addr_count == 0 && addr_list == NULL)
-		|| (addr_count != 0 && addr_list != NULL));
+	assert((addr_count == 0 && addr_list == NULL) ||
+	    (addr_count != 0 && addr_list != NULL));
 	size_t i;
 	for (i = 0; i < addr_count; ++i) {
 		if (!(addr_list[i].address[0] & 1))
@@ -366,7 +366,7 @@ errno_t nic_multicast_set_mode_impl(ddf_fun_t *fun,	nic_multicast_mode_t mode,
 	}
 	if (rc == EOK) {
 		rc = nic_rxc_multicast_set_mode(&nic_data->rx_control, mode,
-			addr_list, addr_count);
+		    addr_list, addr_count);
 	}
 	fibril_rwlock_write_unlock(&nic_data->rxc_lock);
 	return rc;
@@ -427,12 +427,12 @@ errno_t nic_broadcast_set_mode_impl(ddf_fun_t *fun, nic_broadcast_mode_t mode)
  * @return EOK
  */
 errno_t nic_blocked_sources_get_impl(ddf_fun_t *fun,
-	size_t max_count, nic_address_t *addr_list, size_t *addr_count)
+    size_t max_count, nic_address_t *addr_list, size_t *addr_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_rxc_blocked_sources_get(&nic_data->rx_control,
-		max_count, addr_list, addr_count);
+	    max_count, addr_list, addr_count);
 	fibril_rwlock_read_unlock(&nic_data->rxc_lock);
 	return EOK;
 }
@@ -450,7 +450,7 @@ errno_t nic_blocked_sources_get_impl(ddf_fun_t *fun,
  * @return ENOMEM
  */
 errno_t nic_blocked_sources_set_impl(ddf_fun_t *fun,
-	const nic_address_t *addr_list, size_t addr_count)
+    const nic_address_t *addr_list, size_t addr_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_write_lock(&nic_data->rxc_lock);
@@ -458,7 +458,7 @@ errno_t nic_blocked_sources_set_impl(ddf_fun_t *fun,
 		nic_data->on_blocked_sources_change(nic_data, addr_list, addr_count);
 	}
 	errno_t rc = nic_rxc_blocked_sources_set(&nic_data->rx_control,
-		addr_list, addr_count);
+	    addr_list, addr_count);
 	fibril_rwlock_write_unlock(&nic_data->rxc_lock);
 	return rc;
 }
@@ -518,11 +518,11 @@ errno_t nic_vlan_set_mask_impl(ddf_fun_t *fun, const nic_vlan_mask_t *mask)
  * @return ENOMEM	If there was not enough memory to complete the operation
  */
 errno_t nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
-	const void *data, size_t length, nic_wv_id_t *new_id)
+    const void *data, size_t length, nic_wv_id_t *new_id)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
-	if (nic_data->on_wol_virtue_add == NULL
-		|| nic_data->on_wol_virtue_remove == NULL) {
+	if (nic_data->on_wol_virtue_add == NULL ||
+	    nic_data->on_wol_virtue_remove == NULL) {
 		return ENOTSUP;
 	}
 	if (type == NIC_WV_NONE || type >= NIC_WV_MAX) {
@@ -554,7 +554,7 @@ errno_t nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
 		return EINVAL;
 	}
 	if ((int) nic_data->wol_virtues.lists_sizes[type] >=
-		nic_data->wol_virtues.caps_max[type]) {
+	    nic_data->wol_virtues.caps_max[type]) {
 		fibril_rwlock_write_unlock(&nic_data->wv_lock);
 		return ELIMIT;
 	}
@@ -595,13 +595,13 @@ errno_t nic_wol_virtue_add_impl(ddf_fun_t *fun, nic_wv_type_t type,
 errno_t nic_wol_virtue_remove_impl(ddf_fun_t *fun, nic_wv_id_t id)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
-	if (nic_data->on_wol_virtue_add == NULL
-		|| nic_data->on_wol_virtue_remove == NULL) {
+	if (nic_data->on_wol_virtue_add == NULL ||
+	    nic_data->on_wol_virtue_remove == NULL) {
 		return ENOTSUP;
 	}
 	fibril_rwlock_write_lock(&nic_data->wv_lock);
 	nic_wol_virtue_t *virtue =
-		nic_wol_virtues_remove(&nic_data->wol_virtues, id);
+	    nic_wol_virtues_remove(&nic_data->wol_virtues, id);
 	if (virtue == NULL) {
 		fibril_rwlock_write_unlock(&nic_data->wv_lock);
 		return ENOENT;
@@ -629,12 +629,12 @@ errno_t nic_wol_virtue_remove_impl(ddf_fun_t *fun, nic_wv_id_t id)
  * @return ENOMEM	If there was not enough memory to complete the operation
  */
 errno_t nic_wol_virtue_probe_impl(ddf_fun_t *fun, nic_wv_id_t id,
-	nic_wv_type_t *type, size_t max_length, void *data, size_t *length)
+    nic_wv_type_t *type, size_t max_length, void *data, size_t *length)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->wv_lock);
 	const nic_wol_virtue_t *virtue =
-			nic_wol_virtues_find(&nic_data->wol_virtues, id);
+	    nic_wol_virtues_find(&nic_data->wol_virtues, id);
 	if (virtue == NULL) {
 		*type = NIC_WV_NONE;
 		*length = 0;
@@ -667,12 +667,12 @@ errno_t nic_wol_virtue_probe_impl(ddf_fun_t *fun, nic_wv_id_t id,
  * @return ENOMEM	If there was not enough memory to complete the operation
  */
 errno_t nic_wol_virtue_list_impl(ddf_fun_t *fun, nic_wv_type_t type,
-	size_t max_count, nic_wv_id_t *id_list, size_t *id_count)
+    size_t max_count, nic_wv_id_t *id_list, size_t *id_count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->wv_lock);
 	errno_t rc = nic_wol_virtues_list(&nic_data->wol_virtues, type,
-		max_count, id_list, id_count);
+	    max_count, id_list, id_count);
 	fibril_rwlock_read_unlock(&nic_data->wv_lock);
 	return rc;
 }
@@ -691,8 +691,8 @@ errno_t nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *co
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->wv_lock);
-	*count = nic_data->wol_virtues.caps_max[type]
-	    - (int) nic_data->wol_virtues.lists_sizes[type];
+	*count = nic_data->wol_virtues.caps_max[type] -
+	    (int) nic_data->wol_virtues.lists_sizes[type];
 	fibril_rwlock_read_unlock(&nic_data->wv_lock);
 	return EOK;
 }
@@ -710,12 +710,12 @@ errno_t nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *co
  * @return EPARTY	Error in communication protocol
  */
 errno_t nic_poll_get_mode_impl(ddf_fun_t *fun,
-	nic_poll_mode_t *mode, struct timeval *period)
+    nic_poll_mode_t *mode, struct timeval *period)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	*mode = nic_data->poll_mode;
-	memcpy(period, &nic_data->poll_period, sizeof (struct timeval));
+	memcpy(period, &nic_data->poll_period, sizeof(struct timeval));
 	fibril_rwlock_read_unlock(&nic_data->main_lock);
 	return EOK;
 }
@@ -733,7 +733,7 @@ errno_t nic_poll_get_mode_impl(ddf_fun_t *fun,
  * @return EPARTY	Error in communication protocol
  */
 errno_t nic_poll_set_mode_impl(ddf_fun_t *fun,
-	nic_poll_mode_t mode, const struct timeval *period)
+    nic_poll_mode_t mode, const struct timeval *period)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	/* If the driver does not implement the poll mode change handler it cannot
@@ -756,7 +756,7 @@ errno_t nic_poll_set_mode_impl(ddf_fun_t *fun,
 	errno_t rc = nic_data->on_poll_mode_change(nic_data, mode, period);
 	assert(rc == EOK || rc == ENOTSUP || rc == EINVAL);
 	if (rc == ENOTSUP && (nic_data->on_poll_request != NULL) &&
-	    (mode == NIC_POLL_PERIODIC || mode == NIC_POLL_SOFTWARE_PERIODIC) ) {
+	    (mode == NIC_POLL_PERIODIC || mode == NIC_POLL_SOFTWARE_PERIODIC)) {
 
 		rc = nic_data->on_poll_mode_change(nic_data, NIC_POLL_ON_DEMAND, NULL);
 		assert(rc == EOK || rc == ENOTSUP);

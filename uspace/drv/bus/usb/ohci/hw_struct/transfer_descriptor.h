@@ -102,8 +102,8 @@ void td_set_next(td_t *, const td_t *);
 inline static bool td_is_finished(const td_t *instance)
 {
 	assert(instance);
-	const int cc = (OHCI_MEM32_RD(instance->status) >> TD_STATUS_CC_SHIFT)
-		& TD_STATUS_CC_MASK;
+	const int cc = (OHCI_MEM32_RD(instance->status) >> TD_STATUS_CC_SHIFT) &
+	    TD_STATUS_CC_MASK;
 	/* This value is changed on transfer completion,
 	 * either to CC_NOERROR or and error code.
 	 * See OHCI spec 4.3.1.3.5 p. 23 (pdf 37) */
@@ -121,8 +121,8 @@ inline static bool td_is_finished(const td_t *instance)
 static inline errno_t td_error(const td_t *instance)
 {
 	assert(instance);
-	const int cc = (OHCI_MEM32_RD(instance->status)
-	    >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
+	const int cc = (OHCI_MEM32_RD(instance->status) >>
+	    TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
 	return cc_to_rc(cc);
 }
 

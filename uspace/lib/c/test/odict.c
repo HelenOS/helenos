@@ -225,7 +225,8 @@ PCUT_TEST(prseq_ins_extract)
 
 	PCUT_ASSERT_EQUALS(true, odict_empty(&odict));
 
-	v = 1; ep = NULL;
+	v = 1;
+	ep = NULL;
 	for (i = 0; i < test_seq_len; i++) {
 		e = calloc(1, sizeof(test_entry_t));
 		PCUT_ASSERT_NOT_NULL(e);

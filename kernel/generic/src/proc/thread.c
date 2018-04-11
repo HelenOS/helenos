@@ -337,7 +337,7 @@ void thread_ready(thread_t *thread)
  * @return New thread's structure on success, NULL on failure.
  *
  */
-thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
+thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
     thread_flags_t flags, const char *name)
 {
 	thread_t *thread = (thread_t *) slab_alloc(thread_cache, 0);
@@ -523,7 +523,7 @@ void thread_exit(void)
 			 */
 			ipc_cleanup();
 			futex_task_cleanup();
-			LOG("Cleanup of task %" PRIu64" completed.", TASK->taskid);
+			LOG("Cleanup of task %" PRIu64 " completed.", TASK->taskid);
 		}
 	}
 
@@ -541,7 +541,8 @@ restart:
 	scheduler();
 
 	/* Not reached */
-	while (true);
+	while (true)
+		;
 }
 
 /** Interrupts an existing thread so that it may exit as soon as possible.
@@ -977,7 +978,7 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				free(kernel_uarg);
 
 				return (sys_errno_t) rc;
-			 }
+			}
 		}
 
 #ifdef CONFIG_UDEBUG

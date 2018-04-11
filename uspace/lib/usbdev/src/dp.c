@@ -245,8 +245,8 @@ const uint8_t *usb_dp_get_sibling_descriptor(
     const usb_dp_parser_t *parser, const usb_dp_parser_data_t *data,
     const uint8_t *parent, const uint8_t *sibling)
 {
-	if (!is_valid_descriptor_pointer(data, parent)
-	    || !is_valid_descriptor_pointer(data, sibling)) {
+	if (!is_valid_descriptor_pointer(data, parent) ||
+	    !is_valid_descriptor_pointer(data, sibling)) {
 		return NULL;
 	}
 
@@ -259,7 +259,7 @@ const uint8_t *usb_dp_get_sibling_descriptor(
 	int parent_type = get_descriptor_type(data, parent);
 	int possible_sibling_type = get_descriptor_type(data, possible_sibling);
 	if (is_nested_descriptor_type(parser,
-		    possible_sibling_type, parent_type)) {
+	    possible_sibling_type, parent_type)) {
 		return possible_sibling;
 	} else {
 		return NULL;
@@ -312,8 +312,8 @@ void usb_dp_walk_simple(const uint8_t *descriptors, size_t descriptors_size,
     const usb_dp_descriptor_nesting_t *descriptor_nesting,
     walk_callback_t callback, void *arg)
 {
-	if ((descriptors == NULL) || (descriptors_size == 0)
-	    || (descriptor_nesting == NULL) || (callback == NULL)) {
+	if ((descriptors == NULL) || (descriptors_size == 0) ||
+	    (descriptor_nesting == NULL) || (callback == NULL)) {
 		return;
 	}
 

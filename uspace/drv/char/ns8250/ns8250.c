@@ -387,8 +387,8 @@ static bool ns8250_dev_probe(ns8250_t *ns)
 		res = false;
 
 	pio_write_8(&ns->regs->mcr, NS8250_MCR_ALL);
-	if ((pio_read_8(&ns->regs->msr) & NS8250_MSR_SIGNALS)
-	    != NS8250_MSR_SIGNALS)
+	if ((pio_read_8(&ns->regs->msr) & NS8250_MSR_SIGNALS) !=
+	    NS8250_MSR_SIGNALS)
 		res = false;
 
 	pio_write_8(&ns->regs->mcr, olddata);
@@ -449,7 +449,7 @@ static errno_t ns8250_dev_initialize(ns8250_t *ns)
 			ioport = true;
 			ddf_msg(LVL_NOTE, "Device %s was assigned I/O address = "
 			    "0x%#" PRIxn ".", ddf_dev_get_name(ns->dev), ns->io_addr);
-    			break;
+			break;
 
 		default:
 			break;
@@ -482,8 +482,8 @@ static inline void ns8250_port_interrupts_enable(ns8250_regs_t *regs)
 {
 	/* Interrupt when data received. */
 	pio_write_8(&regs->ier, NS8250_IER_RXREADY | NS8250_IER_RXSTATUS);
-	pio_write_8(&regs->mcr, NS8250_MCR_DTR | NS8250_MCR_RTS
-	    | NS8250_MCR_OUT2);
+	pio_write_8(&regs->mcr, NS8250_MCR_DTR | NS8250_MCR_RTS |
+	    NS8250_MCR_OUT2);
 }
 
 /** Disable interrupts on the serial port device.
@@ -713,15 +713,15 @@ static void ns8250_initialize_port(ns8250_t *ns)
 	 * Enable FIFO, clear them, with 4-byte threshold for greater
 	 * reliability.
 	 */
-	pio_write_8(&ns->regs->iid, NS8250_FCR_FIFOENABLE
-	    | NS8250_FCR_RXFIFORESET | NS8250_FCR_TXFIFORESET
-	    | NS8250_FCR_RXTRIGGERLOW);
+	pio_write_8(&ns->regs->iid, NS8250_FCR_FIFOENABLE |
+	    NS8250_FCR_RXFIFORESET | NS8250_FCR_TXFIFORESET |
+	    NS8250_FCR_RXTRIGGERLOW);
 	/*
 	 * RTS/DSR set (Request to Send and Data Terminal Ready lines enabled),
 	 * Aux Output2 set - needed for interrupts.
 	 */
-	pio_write_8(&ns->regs->mcr, NS8250_MCR_DTR | NS8250_MCR_RTS
-	    | NS8250_MCR_OUT2);
+	pio_write_8(&ns->regs->mcr, NS8250_MCR_DTR | NS8250_MCR_RTS |
+	    NS8250_MCR_OUT2);
 }
 
 /** Deinitialize the serial port device.
@@ -1013,8 +1013,8 @@ static errno_t ns8250_close(chardev_srv_t *srv)
  * @param stop_bits	The number of stop bits used.
  */
 static void
-ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate, unsigned int *parity,
-    unsigned int *word_length, unsigned int* stop_bits)
+    ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate, unsigned int *parity,
+    unsigned int *word_length, unsigned int *stop_bits)
 {
 	ns8250_t *data = dev_ns8250(dev);
 	ns8250_regs_t *regs = data->regs;
@@ -1084,7 +1084,7 @@ static void ns8250_default_handler(chardev_srv_t *srv, cap_call_handle_t chandle
 		break;
 
 	case SERIAL_SET_COM_PROPS:
- 		baud_rate = IPC_GET_ARG1(*call);
+		baud_rate = IPC_GET_ARG1(*call);
 		parity = IPC_GET_ARG2(*call);
 		word_length = IPC_GET_ARG3(*call);
 		stop_bits = IPC_GET_ARG4(*call);

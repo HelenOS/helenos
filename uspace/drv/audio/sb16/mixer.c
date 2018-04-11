@@ -97,20 +97,20 @@ static const struct {
 	[SB_MIXER_NONE] = { NULL, 0 },
 	[SB_MIXER_UNKNOWN] = { NULL, 0 },
 	[SB_MIXER_CT1335] = {
-	    channels_table_ct1335,
-	    ARRAY_SIZE(channels_table_ct1335),
+		channels_table_ct1335,
+		ARRAY_SIZE(channels_table_ct1335),
 	},
 	[SB_MIXER_CT1345] = {
-	    channels_table_ct1345,
-	    ARRAY_SIZE(channels_table_ct1345),
+		channels_table_ct1345,
+		ARRAY_SIZE(channels_table_ct1345),
 	},
 	[SB_MIXER_CT1745] = {
-	    channels_table_ct1745,
-	    ARRAY_SIZE(channels_table_ct1745),
+		channels_table_ct1745,
+		ARRAY_SIZE(channels_table_ct1745),
 	},
 };
 
-const char * sb_mixer_type_str(sb_mixer_type_t type)
+const char *sb_mixer_type_str(sb_mixer_type_t type)
 {
 	static const char *names[] = {
 		[SB_MIXER_NONE] = "No mixer",
@@ -149,7 +149,7 @@ int sb_mixer_get_control_item_count(const sb_mixer_t *mixer)
 }
 
 errno_t sb_mixer_get_control_item_info(const sb_mixer_t *mixer, unsigned item,
-    const char** name, unsigned *levels)
+    const char **name, unsigned *levels)
 {
 	assert(mixer);
 	if (item > volume_table[mixer->type].count)
@@ -181,8 +181,8 @@ errno_t sb_mixer_get_control_item_value(const sb_mixer_t *mixer, unsigned item,
 
 	const channel_t *chan = &volume_table[mixer->type].table[item];
 	pio_write_8(&mixer->regs->mixer_address, chan->address);
-	*value = (pio_read_8(&mixer->regs->mixer_data) >> chan->shift)
-	    & (chan->volume_levels - 1);
+	*value = (pio_read_8(&mixer->regs->mixer_data) >> chan->shift) &
+	    (chan->volume_levels - 1);
 	return EOK;
 }
 

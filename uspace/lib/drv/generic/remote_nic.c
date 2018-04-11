@@ -338,7 +338,7 @@ errno_t nic_get_cable_state(async_sess_t *dev_sess, nic_cable_state_t *cable_sta
  *
  */
 errno_t nic_get_operation_mode(async_sess_t *dev_sess, int *speed,
-   nic_channel_mode_t *duplex, nic_role_t *role)
+    nic_channel_mode_t *duplex, nic_role_t *role)
 {
 	sysarg_t _speed;
 	sysarg_t _duplex;
@@ -871,7 +871,7 @@ errno_t nic_blocked_sources_set(async_sess_t *dev_sess,
 	errno_t rc;
 	if (address_count)
 		rc = async_data_write_start(exch, address_list,
-			address_count * sizeof(nic_address_t));
+		    address_count * sizeof(nic_address_t));
 	else
 		rc = EOK;
 

@@ -132,7 +132,7 @@ static bool add_worker(struct work_queue *workq);
 static void interrupt_workers(struct work_queue *workq);
 static void wait_for_workers(struct work_queue *workq);
 static int _workq_enqueue(struct work_queue *workq, work_t *work_item,
-	work_func_t func, bool can_block);
+    work_func_t func, bool can_block);
 static void init_work_item(work_t *work_item, work_func_t func);
 static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block);
 static void worker_thread(void *arg);
@@ -184,7 +184,7 @@ void workq_global_stop(void)
 }
 
 /** Creates and initializes a work queue. Returns NULL upon failure. */
-struct work_queue * workq_create(const char *name)
+struct work_queue *workq_create(const char *name)
 {
 	struct work_queue *workq = malloc(sizeof(struct work_queue), 0);
 
@@ -268,7 +268,7 @@ static bool add_worker(struct work_queue *workq)
 	assert(!workq_corrupted(workq));
 
 	thread_t *thread = thread_create(worker_thread, workq, TASK,
-		THREAD_FLAG_NONE, workq->name);
+	    THREAD_FLAG_NONE, workq->name);
 
 	if (!thread) {
 		irq_spinlock_lock(&workq->lock, true);
@@ -427,7 +427,7 @@ bool workq_global_enqueue(work_t *work_item, work_func_t func)
  * @return true  Otherwise. func() will be invoked in a separate thread.
  */
 bool workq_enqueue_noblock(struct work_queue *workq, work_t *work_item,
-	work_func_t func)
+    work_func_t func)
 {
 	return _workq_enqueue(workq, work_item, func, false);
 }
@@ -472,7 +472,7 @@ bool workq_enqueue(struct work_queue *workq, work_t *work_item, work_func_t func
  * @return true  Otherwise.
  */
 static int _workq_enqueue(struct work_queue *workq, work_t *work_item,
-	work_func_t func, bool can_block)
+    work_func_t func, bool can_block)
 {
 	assert(!workq_corrupted(workq));
 
@@ -613,7 +613,7 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 	if (max_load < workq->item_cnt) {
 
 		size_t remaining_idle =
-			workq->idle_worker_cnt - workq->activate_pending;
+		    workq->idle_worker_cnt - workq->activate_pending;
 
 		/* Idle workers still exist - activate one. */
 		if (remaining_idle > 0) {
@@ -627,8 +627,8 @@ static signal_op_t signal_worker_logic(struct work_queue *workq, bool can_block)
 			signal_op = signal_worker_op;
 		} else {
 			/* No idle workers remain. Request that a new one be created. */
-			bool need_worker = (active < max_concurrent_workers)
-				&& (workq->cur_worker_cnt < max_worker_cnt);
+			bool need_worker = (active < max_concurrent_workers) &&
+			    (workq->cur_worker_cnt < max_worker_cnt);
 
 			if (need_worker && can_block) {
 				signal_op = add_worker_op;
@@ -779,7 +779,7 @@ static void cv_wait(struct work_queue *workq)
 	assert(irq_spinlock_locked(&workq->lock));
 
 	_condvar_wait_timeout_irq_spinlock(&workq->activate_worker,
-		&workq->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+	    &workq->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
 
 	assert(!workq_corrupted(workq));
 	assert(irq_spinlock_locked(&workq->lock));
@@ -854,30 +854,29 @@ void workq_print_info(struct work_queue *workq)
 	bool stopping = workq->stopping;
 	bool worker_surplus = worker_unnecessary(workq);
 	const char *load_str = worker_surplus ? "decreasing" :
-		(0 < workq->activate_pending) ? "increasing" : "stable";
+	    (0 < workq->activate_pending) ? "increasing" : "stable";
 
 	irq_spinlock_unlock(&workq->lock, true);
 
 	printf(
-		"Configuration: max_worker_cnt=%zu, min_worker_cnt=%zu,\n"
-		" max_concurrent_workers=%zu, max_items_per_worker=%zu\n"
-		"Workers: %zu\n"
-		"Active:  %zu (workers currently processing work)\n"
-		"Blocked: %zu (work functions sleeping/blocked)\n"
-		"Idle:    %zu (idle workers waiting for more work)\n"
-		"Items:   %zu (queued not yet dispatched work)\n"
-		"Stopping: %d\n"
-		"Load: %s\n",
-		max_worker_cnt, min_worker_cnt,
-		max_concurrent_workers, max_items_per_worker,
-		total,
-		active,
-		blocked,
-		idle,
-		items,
-		stopping,
-		load_str
-	);
+	    "Configuration: max_worker_cnt=%zu, min_worker_cnt=%zu,\n"
+	    " max_concurrent_workers=%zu, max_items_per_worker=%zu\n"
+	    "Workers: %zu\n"
+	    "Active:  %zu (workers currently processing work)\n"
+	    "Blocked: %zu (work functions sleeping/blocked)\n"
+	    "Idle:    %zu (idle workers waiting for more work)\n"
+	    "Items:   %zu (queued not yet dispatched work)\n"
+	    "Stopping: %d\n"
+	    "Load: %s\n",
+	    max_worker_cnt, min_worker_cnt,
+	    max_concurrent_workers, max_items_per_worker,
+	    total,
+	    active,
+	    blocked,
+	    idle,
+	    items,
+	    stopping,
+	    load_str);
 }
 
 /** Prints stats of the global work queue. */
@@ -895,14 +894,14 @@ static bool dequeue_add_req(nonblock_adder_t *info, struct work_queue **pworkq)
 
 	while (list_empty(&info->work_queues) && !stop) {
 		errno_t ret = _condvar_wait_timeout_irq_spinlock(&info->req_cv,
-			&info->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
+		    &info->lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 
 		stop = (ret == EINTR);
 	}
 
 	if (!stop) {
 		*pworkq = list_get_instance(list_first(&info->work_queues),
-			struct work_queue, nb_link);
+		    struct work_queue, nb_link);
 
 		assert(!workq_corrupted(*pworkq));
 
@@ -932,7 +931,7 @@ static void nonblock_init(void)
 	list_initialize(&nonblock_adder.work_queues);
 
 	nonblock_adder.thread = thread_create(thr_nonblock_add_worker,
-		&nonblock_adder, TASK, THREAD_FLAG_NONE, "kworkq-nb");
+	    &nonblock_adder, TASK, THREAD_FLAG_NONE, "kworkq-nb");
 
 	if (nonblock_adder.thread) {
 		thread_ready(nonblock_adder.thread);

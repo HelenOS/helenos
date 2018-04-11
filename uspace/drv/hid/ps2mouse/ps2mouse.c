@@ -164,7 +164,7 @@ errno_t ps2_mouse_init(ps2_mouse_t *mouse, ddf_dev_t *dev)
 	}
 
 	/* Probe IntelliMouse extensions. */
-	errno_t (*polling_f)(void*) = polling_ps2;
+	errno_t (*polling_f)(void *) = polling_ps2;
 	if (probe_intellimouse(mouse, false) == EOK) {
 		ddf_msg(LVL_NOTE, "Enabled IntelliMouse extensions");
 		polling_f = polling_intellimouse;
@@ -252,9 +252,9 @@ errno_t polling_ps2(void *arg)
 	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
 	errno_t rc;
 
-	bool buttons[PS2_BUTTON_COUNT] = {};
+	bool buttons[PS2_BUTTON_COUNT] = { };
 	while (true) {
-		uint8_t packet[PS2_BUFSIZE] = {};
+		uint8_t packet[PS2_BUFSIZE] = { };
 		rc = ps2_mouse_read_packet(mouse, packet, PS2_BUFSIZE);
 		if (rc != EOK)
 			continue;
@@ -304,9 +304,9 @@ static errno_t polling_intellimouse(void *arg)
 	ps2_mouse_t *mouse = (ps2_mouse_t *) arg;
 	errno_t rc;
 
-	bool buttons[INTELLIMOUSE_BUTTON_COUNT] = {};
+	bool buttons[INTELLIMOUSE_BUTTON_COUNT] = { };
 	while (true) {
-		uint8_t packet[INTELLIMOUSE_BUFSIZE] = {};
+		uint8_t packet[INTELLIMOUSE_BUFSIZE] = { };
 		rc = ps2_mouse_read_packet(mouse, packet, INTELLIMOUSE_BUFSIZE);
 		if (rc != EOK)
 			continue;

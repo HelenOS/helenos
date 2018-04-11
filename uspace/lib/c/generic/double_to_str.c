@@ -55,7 +55,7 @@ static const int gamma = -32;
 /** Returns true if the most-significant bit of num.significand is set. */
 static bool is_normalized(fp_num_t num)
 {
-	assert(8*sizeof(num.significand) == significand_width);
+	assert(8 * sizeof(num.significand) == significand_width);
 
 	/* Normalized == most significant bit of the significand is set. */
 	return (num.significand & (1ULL << (significand_width - 1))) != 0;
@@ -146,7 +146,7 @@ static fp_num_t subtract(fp_num_t a, fp_num_t b)
 
 /** Returns the interval [low, high] of numbers that convert to binary val. */
 static void get_normalized_bounds(ieee_double_t val, fp_num_t *high,
-	fp_num_t *low, fp_num_t *val_dist)
+    fp_num_t *low, fp_num_t *val_dist)
 {
 	/*
 	 * Only works if val comes directly from extract_ieee_double without
@@ -180,7 +180,7 @@ static void get_normalized_bounds(ieee_double_t val, fp_num_t *high,
 	low->exponent = high->exponent;
 
 	val_dist->significand =
-		val_dist->significand << (val_dist->exponent - high->exponent);
+	    val_dist->significand << (val_dist->exponent - high->exponent);
 	val_dist->exponent = high->exponent;
 }
 
@@ -197,7 +197,7 @@ static void get_normalized_bounds(ieee_double_t val, fp_num_t *high,
  * val_dist == (upper_bound - val) * 10^scale
  */
 static void calc_scaled_bounds(ieee_double_t val, fp_num_t *scaled_upper_bound,
-	fp_num_t *bounds_delta, fp_num_t *val_dist, int *scale)
+    fp_num_t *bounds_delta, fp_num_t *val_dist, int *scale)
 {
 	fp_num_t upper_bound, lower_bound;
 
@@ -250,7 +250,7 @@ static void calc_scaled_bounds(ieee_double_t val, fp_num_t *scaled_upper_bound,
 
 /** Rounds the last digit of buf so that it is closest to the converted number.*/
 static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
-	uint64_t digit_val_diff, char *buf, int len)
+    uint64_t digit_val_diff, char *buf, int len)
 {
 	/*
 	 *  | <------- delta -------> |
@@ -276,8 +276,8 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
 	/* Rounding down by one would keep buf in between bounds (in safe rng). */
 	bool next_in_val_rng = cur_greater_w && (rest + digit_val_diff < delta);
 	/* Rounding down by one would bring buf closer to the processed number. */
-	bool next_closer = next_in_val_rng
-		&& (rest + digit_val_diff < w_dist || rest - w_dist < w_dist - rest);
+	bool next_closer = next_in_val_rng &&
+	    (rest + digit_val_diff < w_dist || rest - w_dist < w_dist - rest);
 
 	/* Of the shortest strings pick the one that is closest to the actual
 	   floating point number. */
@@ -290,8 +290,8 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
 
 		cur_greater_w = rest < w_dist;
 		next_in_val_rng = cur_greater_w && (rest + digit_val_diff < delta);
-		next_closer = next_in_val_rng
-			&& (rest + digit_val_diff < w_dist || rest - w_dist < w_dist - rest);
+		next_closer = next_in_val_rng &&
+		    (rest + digit_val_diff < w_dist || rest - w_dist < w_dist - rest);
 	}
 }
 
@@ -325,7 +325,7 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
  * @return Number of digits; negative on failure (eg buffer too small).
  */
 static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
-	fp_num_t val_dist, int scale, char *buf, size_t buf_size, int *dec_exponent)
+    fp_num_t val_dist, int scale, char *buf, size_t buf_size, int *dec_exponent)
 {
 	/*
 	 * The integral part of scaled_upper is 5 to 32 bits long while
@@ -410,7 +410,7 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 
 			/* Of the shortest representations choose the numerically closest. */
 			round_last_digit(remainder, val_dist.significand, delta.significand,
-				(uint64_t)div << (-one.exponent), buf, len);
+			    (uint64_t)div << (-one.exponent), buf, len);
 			return len;
 		}
 
@@ -456,7 +456,7 @@ static int gen_dec_digits(fp_num_t scaled_upper, fp_num_t delta,
 
 	/* Of the shortest representations choose the numerically closest one. */
 	round_last_digit(frac_part, val_dist.significand, delta.significand,
-		one.significand, buf, len);
+	    one.significand, buf, len);
 
 	return len;
 }
@@ -503,7 +503,7 @@ static int zero_to_str(char *buf, size_t buf_size, int *dec_exponent)
  *         an error: buf too small (or ieee_val.is_special).
  */
 int double_to_short_str(ieee_double_t ieee_val, char *buf, size_t buf_size,
-	int *dec_exponent)
+    int *dec_exponent)
 {
 	/* The whole computation assumes 64bit significand. */
 	static_assert(sizeof(ieee_val.pos_val.significand) == sizeof(uint64_t));
@@ -523,10 +523,10 @@ int double_to_short_str(ieee_double_t ieee_val, char *buf, size_t buf_size,
 	int scale;
 
 	calc_scaled_bounds(ieee_val, &scaled_upper_bound,
-		&delta, &val_dist, &scale);
+	    &delta, &val_dist, &scale);
 
 	int len = gen_dec_digits(scaled_upper_bound, delta, val_dist, scale,
-		buf, buf_size, dec_exponent);
+	    buf, buf_size, dec_exponent);
 
 	assert(len <= MAX_DOUBLE_STR_LEN);
 	return len;
@@ -553,7 +553,7 @@ int double_to_short_str(ieee_double_t ieee_val, char *buf, size_t buf_size,
  * @return Number of digits; negative on failure (eg buffer too small).
  */
 static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
-	int frac_d_cnt, char *buf, size_t buf_size, int *dec_exponent)
+    int frac_d_cnt, char *buf, size_t buf_size, int *dec_exponent)
 {
 	/* We'll produce at least one digit and a null terminator. */
 	if (0 == signif_d_cnt || buf_size < 2) {
@@ -607,7 +607,7 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 
 	int rem_signif_d_cnt = signif_d_cnt;
 	int rem_frac_d_cnt =
-		(frac_d_cnt >= 0) ? (kappa - scale + frac_d_cnt) : INT_MAX;
+	    (frac_d_cnt >= 0) ? (kappa - scale + frac_d_cnt) : INT_MAX;
 
 	/* Produce decimal digits for the integral part of w_scaled. */
 	while (kappa > 0 && rem_signif_d_cnt != 0 && rem_frac_d_cnt > 0) {
@@ -751,7 +751,7 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
  *         signif_d_cnt == 0).
  */
 int double_to_fixed_str(ieee_double_t ieee_val, int signif_d_cnt,
-	int frac_d_cnt, char *buf, size_t buf_size, int *dec_exponent)
+    int frac_d_cnt, char *buf, size_t buf_size, int *dec_exponent)
 {
 	/* The whole computation assumes 64bit significand. */
 	static_assert(sizeof(ieee_val.pos_val.significand) == sizeof(uint64_t));
@@ -779,7 +779,7 @@ int double_to_fixed_str(ieee_double_t ieee_val, int signif_d_cnt,
 
 	/* Produce decimal digits from the scaled number. */
 	int len = gen_fixed_dec_digits(w_scaled, scale, signif_d_cnt, frac_d_cnt,
-		buf, buf_size, dec_exponent);
+	    buf, buf_size, dec_exponent);
 
 	assert(len <= MAX_DOUBLE_STR_LEN);
 	return len;

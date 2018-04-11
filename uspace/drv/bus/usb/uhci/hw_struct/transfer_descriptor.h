@@ -128,8 +128,8 @@ static inline bool td_is_short(const td_t *instance)
 {
 	const size_t act_size = td_act_size(instance);
 	const size_t max_size =
-	    ((instance->device >> TD_DEVICE_MAXLEN_POS) + 1)
-	    & TD_DEVICE_MAXLEN_MASK;
+	    ((instance->device >> TD_DEVICE_MAXLEN_POS) + 1) &
+	    TD_DEVICE_MAXLEN_MASK;
 	return
 	    (instance->status | TD_STATUS_SPD_FLAG) && act_size < max_size;
 }

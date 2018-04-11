@@ -55,8 +55,8 @@ static void dsrlnin_irq_handler(irq_t *irq)
 
 dsrlnin_instance_t *dsrlnin_init(dsrlnin_t *dev, inr_t inr)
 {
-	dsrlnin_instance_t *instance
-	    = malloc(sizeof(dsrlnin_instance_t), FRAME_ATOMIC);
+	dsrlnin_instance_t *instance =
+	    malloc(sizeof(dsrlnin_instance_t), FRAME_ATOMIC);
 	if (instance) {
 		instance->dsrlnin = dev;
 		instance->srlnin = NULL;

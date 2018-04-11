@@ -283,7 +283,7 @@ static errno_t slip_recv_fibril(void *arg)
  		 * artificially empty SLIP datagram and life will go on.
  		 */
 
-pass:
+	pass:
 		rc = iplink_ev_recv(&slip_iplink, &sdu, ip_v4);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_ERROR,
@@ -373,8 +373,8 @@ static errno_t slip_init(const char *svcstr, const char *linkstr)
 	rc = loc_service_register(linkstr, &linksid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
-		   "Failed to register service %s",
-		   linkstr);
+		    "Failed to register service %s",
+		    linkstr);
 		goto fail;
 	}
 

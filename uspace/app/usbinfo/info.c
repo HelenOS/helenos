@@ -69,8 +69,8 @@ static void dump_match_ids_from_interface(
 	usb_device_t *usb_dev = arg;
 	assert(usb_dev);
 
-	usb_standard_interface_descriptor_t *iface
-	    = (usb_standard_interface_descriptor_t *) descriptor;
+	usb_standard_interface_descriptor_t *iface =
+	    (usb_standard_interface_descriptor_t *) descriptor;
 
 	printf("%sInterface #%d match ids (%s, 0x%02x, 0x%02x)\n",
 	    get_indent(0),
@@ -142,8 +142,8 @@ static void dump_descriptor_tree_brief_endpoint(const char *prefix,
 {
 	usb_endpoint_t endpoint_no = descriptor->endpoint_address & 0xF;
 	usb_transfer_type_t transfer = descriptor->attributes & 0x3;
-	usb_direction_t direction = descriptor->endpoint_address & 0x80
-	    ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+	usb_direction_t direction = descriptor->endpoint_address & 0x80 ?
+	    USB_DIRECTION_IN : USB_DIRECTION_OUT;
 	printf("%sEndpoint #%d (%s %s, %zu)\n", prefix,
 	    endpoint_no, usb_str_transfer_type(transfer),
 	    direction == USB_DIRECTION_IN ? "in" : "out",
@@ -225,8 +225,8 @@ static void dump_descriptor_tree_callback(
 		    usb_hub_descriptor_header_t,
 		    dump_descriptor_tree_brief_hub);
 
-		default:
-			break;
+	default:
+		break;
 	}
 
 	if (descr_type == -1) {

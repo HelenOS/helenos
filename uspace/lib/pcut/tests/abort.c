@@ -31,7 +31,8 @@
 
 PCUT_INIT;
 
-PCUT_TEST(access_null_pointer) {
+PCUT_TEST(access_null_pointer)
+{
 	abort();
 }
 

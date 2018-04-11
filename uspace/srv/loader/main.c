@@ -144,7 +144,7 @@ static void ldr_set_program(cap_call_handle_t req_handle, ipc_call_t *request)
 		return;
 	}
 
-	char* name = malloc(namesize);
+	char *name = malloc(namesize);
 	errno_t rc = async_data_write_finalize(write_chandle, name, namesize);
 	if (rc != EOK) {
 		async_answer_0(req_handle, EINVAL);
@@ -247,7 +247,7 @@ static void ldr_add_inbox(cap_call_handle_t req_handle, ipc_call_t *request)
 		return;
 	}
 
-	char* name = malloc(namesize);
+	char *name = malloc(namesize);
 	errno_t rc = async_data_write_finalize(write_chandle, name, namesize);
 	if (rc != EOK) {
 		async_answer_0(req_handle, EINVAL);

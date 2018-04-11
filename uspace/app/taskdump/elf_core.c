@@ -175,9 +175,9 @@ errno_t elf_core_save(const char *file_name, as_area_info_t *ainfo, unsigned int
 	p_hdr[0].p_offset = foff;
 	p_hdr[0].p_vaddr = 0;
 	p_hdr[0].p_paddr = 0;
-	p_hdr[0].p_filesz = sizeof(elf_note_t)
-	    + ALIGN_UP((str_size("CORE") + 1), word_size)
-	    + ALIGN_UP(sizeof(elf_prstatus_t), word_size);
+	p_hdr[0].p_filesz = sizeof(elf_note_t) +
+	    ALIGN_UP((str_size("CORE") + 1), word_size) +
+	    ALIGN_UP(sizeof(elf_prstatus_t), word_size);
 	p_hdr[0].p_memsz = 0;
 	p_hdr[0].p_flags = 0;
 	p_hdr[0].p_align = 1;

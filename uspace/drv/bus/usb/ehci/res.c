@@ -94,8 +94,8 @@ static errno_t disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	/* Wait for BIOS to release control. */
 	ret = pci_config_space_read_32(
 	    parent_sess, eecp + USBLEGSUP_OFFSET, &usblegsup);
-	while ((ret == EOK) && (wait < DEFAULT_WAIT)
-	    && (usblegsup & USBLEGSUP_BIOS_CONTROL)) {
+	while ((ret == EOK) && (wait < DEFAULT_WAIT) &&
+	    (usblegsup & USBLEGSUP_BIOS_CONTROL)) {
 		async_usleep(WAIT_STEP);
 		ret = pci_config_space_read_32(parent_sess,
 		    eecp + USBLEGSUP_OFFSET, &usblegsup);
@@ -108,7 +108,7 @@ static errno_t disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	}
 
 	/* BIOS failed to hand over control, this should not happen. */
-	usb_log_warning( "BIOS failed to release control after "
+	usb_log_warning("BIOS failed to release control after "
 	    "%zu usecs, force it.", wait);
 	ret = pci_config_space_write_32(parent_sess,
 	    eecp + USBLEGSUP_OFFSET, USBLEGSUP_OS_CONTROL);
@@ -196,7 +196,7 @@ errno_t disable_legacy(hc_device_t *hcd)
 	if (ret != EOK) {
 		usb_log_error("Failed to disable extended capabilities: %s.",
 		    str_error(ret));
-		    goto clean;
+		goto clean;
 	}
 clean:
 	async_hangup(parent_sess);

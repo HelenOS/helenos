@@ -52,7 +52,7 @@
  * with any starting buffer alignment. EHCI specs p. 87 (pdf p. 97) */
 #define EHCI_TD_MAX_TRANSFER   (16 * 1024)
 
-static void (*const batch_setup[])(ehci_transfer_batch_t*);
+static void (*const batch_setup[])(ehci_transfer_batch_t *);
 
 /** Safely destructs ehci_transfer_batch_t structure
  *
@@ -73,7 +73,7 @@ void ehci_transfer_batch_destroy(ehci_transfer_batch_t *ehci_batch)
  * NULL otherwise.
  *
  */
-ehci_transfer_batch_t * ehci_transfer_batch_create(endpoint_t *ep)
+ehci_transfer_batch_t *ehci_transfer_batch_create(endpoint_t *ep)
 {
 	assert(ep);
 
@@ -98,9 +98,9 @@ int ehci_transfer_batch_prepare(ehci_transfer_batch_t *ehci_batch)
 {
 	assert(ehci_batch);
 
-	const size_t setup_size = (ehci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL)
-		? USB_SETUP_PACKET_SIZE
-		: 0;
+	const size_t setup_size = (ehci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL) ?
+	    USB_SETUP_PACKET_SIZE :
+	    0;
 
 	const size_t size = ehci_batch->base.size;
 
@@ -108,8 +108,8 @@ int ehci_transfer_batch_prepare(ehci_transfer_batch_t *ehci_batch)
 	ehci_batch->qh = ehci_endpoint_get(ehci_batch->base.ep)->qh;
 
 	/* Determine number of TDs needed */
-	ehci_batch->td_count = (size + EHCI_TD_MAX_TRANSFER - 1)
-		/ EHCI_TD_MAX_TRANSFER;
+	ehci_batch->td_count = (size + EHCI_TD_MAX_TRANSFER - 1) /
+	    EHCI_TD_MAX_TRANSFER;
 
 	/* Control transfer need Setup and Status stage */
 	if (ehci_batch->base.ep->transfer_type == USB_TRANSFER_CONTROL) {
@@ -172,8 +172,8 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 	    ehci_batch->qh->status, ehci_batch->qh->current,
 	    ehci_batch->qh->next, ehci_batch->qh->alternate);
 
-	if (!qh_halted(ehci_batch->qh) && (qh_transfer_pending(ehci_batch->qh)
-	    || qh_transfer_active(ehci_batch->qh)))
+	if (!qh_halted(ehci_batch->qh) && (qh_transfer_pending(ehci_batch->qh) ||
+	    qh_transfer_active(ehci_batch->qh)))
 		return false;
 
 	/* Now we may be sure that either the ED is inactive because of errors
@@ -203,8 +203,8 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 			 * NOTE: Short packets don't break the assumption that
 			 * we leave the very last(unused) TD behind.
 			 */
-			ehci_batch->base.transferred_size
-			    -= td_remain_size(&ehci_batch->tds[i]);
+			ehci_batch->base.transferred_size -=
+			    td_remain_size(&ehci_batch->tds[i]);
 		} else {
 			usb_log_debug("Batch %p found error TD(%zu):%08x: %s.",
 			    ehci_batch, i,
@@ -273,7 +273,7 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch)
 	    dma_buffer_phys(&ehci_batch->ehci_dma_buffer, &ehci_batch->tds[1]),
 	    dma_buffer_phys(&ehci_batch->ehci_dma_buffer, ehci_batch->setup_buffer),
 	    USB_DIRECTION_BOTH, USB_SETUP_PACKET_SIZE, toggle, false);
-	usb_log_debug2("Batch %p: Created CONTROL SETUP TD(%"PRIxn"): "
+	usb_log_debug2("Batch %p: Created CONTROL SETUP TD(%" PRIxn "): "
 	    "%08x:%08x:%08x", ehci_batch,
 	    dma_buffer_phys(&ehci_batch->ehci_dma_buffer, &ehci_batch->tds[0]),
 	    ehci_batch->tds[0].status, ehci_batch->tds[0].next,
@@ -291,7 +291,7 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch)
 		td_init(&ehci_batch->tds[td_current],
 		    dma_buffer_phys(&ehci_batch->ehci_dma_buffer, &ehci_batch->tds[td_current + 1]),
 		    buffer, data_dir, transfer_size, toggle, false);
-		usb_log_debug2("Batch %p: Created CONTROL DATA TD(%"PRIxn"): "
+		usb_log_debug2("Batch %p: Created CONTROL DATA TD(%" PRIxn "): "
 		    "%08x:%08x:%08x", ehci_batch,
 		    dma_buffer_phys(&ehci_batch->ehci_dma_buffer, &ehci_batch->tds[td_current]),
 		    ehci_batch->tds[td_current].status,
@@ -307,7 +307,7 @@ static void batch_control(ehci_transfer_batch_t *ehci_batch)
 	/* Status stage */
 	assert(td_current == ehci_batch->td_count - 1);
 	td_init(&ehci_batch->tds[td_current], 0, 0, status_dir, 0, 1, true);
-	usb_log_debug2("Batch %p: Created CONTROL STATUS TD %d(%"PRIxn"): "
+	usb_log_debug2("Batch %p: Created CONTROL STATUS TD %d(%" PRIxn "): "
 	    "%08x:%08x:%08x", ehci_batch, td_current,
 	    dma_buffer_phys(&ehci_batch->ehci_dma_buffer, &ehci_batch->tds[td_current]),
 	    ehci_batch->tds[td_current].status,
@@ -339,19 +339,19 @@ static void batch_data(ehci_transfer_batch_t *ehci_batch)
 	uintptr_t buffer = dma_buffer_phys(&ehci_batch->base.dma_buffer,
 	    ehci_batch->data_buffer);
 	while (remain_size > 0) {
-		const size_t transfer_size = remain_size > EHCI_TD_MAX_TRANSFER
-		    ? EHCI_TD_MAX_TRANSFER : remain_size;
+		const size_t transfer_size = remain_size > EHCI_TD_MAX_TRANSFER ?
+		    EHCI_TD_MAX_TRANSFER : remain_size;
 
 		const bool last = (remain_size == transfer_size);
 		td_init(&ehci_batch->tds[td_current],
 		    last ? 0 : dma_buffer_phys(&ehci_batch->ehci_dma_buffer,
-			    &ehci_batch->tds[td_current + 1]),
+		    &ehci_batch->tds[td_current + 1]),
 		    buffer, ehci_batch->base.dir, transfer_size, -1, last);
 
-		usb_log_debug2("Batch %p: DATA TD(%"PRIxn": %08x:%08x:%08x",
+		usb_log_debug2("Batch %p: DATA TD(%" PRIxn ": %08x:%08x:%08x",
 		    ehci_batch,
 		    dma_buffer_phys(&ehci_batch->ehci_dma_buffer,
-		        &ehci_batch->tds[td_current]),
+		    &ehci_batch->tds[td_current]),
 		    ehci_batch->tds[td_current].status,
 		    ehci_batch->tds[td_current].next,
 		    ehci_batch->tds[td_current].alternate);
@@ -364,8 +364,8 @@ static void batch_data(ehci_transfer_batch_t *ehci_batch)
 }
 
 /** Transfer setup table. */
-static void (*const batch_setup[])(ehci_transfer_batch_t*) =
-{
+static void (*const batch_setup[])(ehci_transfer_batch_t *) =
+    {
 	[USB_TRANSFER_CONTROL] = batch_control,
 	[USB_TRANSFER_BULK] = batch_data,
 	[USB_TRANSFER_INTERRUPT] = batch_data,

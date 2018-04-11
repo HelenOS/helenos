@@ -65,7 +65,7 @@ errno_t transfer_list_init(transfer_list_t *instance, const char *name)
 		return ENOMEM;
 	}
 	const uint32_t queue_head_pa = addr_to_phys(instance->queue_head);
-	usb_log_debug2("Transfer list %s setup with QH: %p (%#" PRIx32" ).",
+	usb_log_debug2("Transfer list %s setup with QH: %p (%#" PRIx32 " ).",
 	    name, instance->queue_head, queue_head_pa);
 
 	qh_init(instance->queue_head);
@@ -202,7 +202,7 @@ void transfer_list_abort_all(transfer_list_t *instance)
 {
 	fibril_mutex_lock(&instance->guard);
 	while (!list_empty(&instance->batch_list)) {
-		link_t * const current = list_first(&instance->batch_list);
+		link_t *const current = list_first(&instance->batch_list);
 		uhci_transfer_batch_t *batch = uhci_transfer_batch_from_link(current);
 		transfer_list_remove_batch(instance, batch);
 	}
@@ -239,8 +239,8 @@ void transfer_list_remove_batch(
 		    uhci_transfer_batch_from_link(uhci_batch->link.prev)->qh;
 		qpos = "NOT FIRST";
 	}
-	assert((prev_qh->next & LINK_POINTER_ADDRESS_MASK)
-	    == addr_to_phys(uhci_batch->qh));
+	assert((prev_qh->next & LINK_POINTER_ADDRESS_MASK) ==
+	    addr_to_phys(uhci_batch->qh));
 	prev_qh->next = uhci_batch->qh->next;
 
 	/* Make sure the pointer is updated */

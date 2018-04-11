@@ -230,7 +230,7 @@ static errno_t send_response(tcp_conn_t *conn, const char *msg)
 	size_t response_size = str_size(msg);
 
 	if (verbose)
-	    fprintf(stderr, "Sending response\n");
+		fprintf(stderr, "Sending response\n");
 
 	errno_t rc = tcp_conn_send(conn, (void *) msg, response_size);
 	if (rc != EOK) {
@@ -385,7 +385,7 @@ static errno_t parse_option(int argc, char *argv[], int *index)
 				return rc;
 
 			port = (uint16_t) value;
-		} else if (str_cmp(argv[*index] +2, "verbose") == 0) {
+		} else if (str_cmp(argv[*index] + 2, "verbose") == 0) {
 			verbose = true;
 		} else {
 			usage();

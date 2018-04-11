@@ -54,9 +54,9 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	uintptr_t v;
 
 	asm volatile (
-		"andq %%rsp, %[v]\n"
-		: [v] "=r" (v)
-		: "0" (~((uint64_t) STACK_SIZE - 1))
+	    "andq %%rsp, %[v]\n"
+	    : [v] "=r" (v)
+	    : "0" (~((uint64_t) STACK_SIZE - 1))
 	);
 
 	return v;
@@ -65,7 +65,7 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 NO_TRACE static inline void cpu_sleep(void)
 {
 	asm volatile (
-		"hlt\n"
+	    "hlt\n"
 	);
 }
 
@@ -73,7 +73,7 @@ NO_TRACE static inline void __attribute__((noreturn)) cpu_halt(void)
 {
 	while (true) {
 		asm volatile (
-			"hlt\n"
+		    "hlt\n"
 		);
 	}
 }
@@ -92,9 +92,9 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 		uint8_t val;
 
 		asm volatile (
-			"inb %w[port], %b[val]\n"
-			: [val] "=a" (val)
-			: [port] "d" (port)
+		    "inb %w[port], %b[val]\n"
+		    : [val] "=a" (val)
+		    : [port] "d" (port)
 		);
 
 		return val;
@@ -116,9 +116,9 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 		uint16_t val;
 
 		asm volatile (
-			"inw %w[port], %w[val]\n"
-			: [val] "=a" (val)
-			: [port] "d" (port)
+		    "inw %w[port], %w[val]\n"
+		    : [val] "=a" (val)
+		    : [port] "d" (port)
 		);
 
 		return val;
@@ -140,9 +140,9 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 		uint32_t val;
 
 		asm volatile (
-			"inl %w[port], %[val]\n"
-			: [val] "=a" (val)
-			: [port] "d" (port)
+		    "inl %w[port], %[val]\n"
+		    : [val] "=a" (val)
+		    : [port] "d" (port)
 		);
 
 		return val;
@@ -162,8 +162,8 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
 	if (port < (ioport8_t *) IO_SPACE_BOUNDARY) {
 		asm volatile (
-			"outb %b[val], %w[port]\n"
-			:: [val] "a" (val), [port] "d" (port)
+		    "outb %b[val], %w[port]\n"
+		    :: [val] "a" (val), [port] "d" (port)
 		);
 	} else
 		*port = val;
@@ -181,8 +181,8 @@ NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
 	if (port < (ioport16_t *) IO_SPACE_BOUNDARY) {
 		asm volatile (
-			"outw %w[val], %w[port]\n"
-			:: [val] "a" (val), [port] "d" (port)
+		    "outw %w[val], %w[port]\n"
+		    :: [val] "a" (val), [port] "d" (port)
 		);
 	} else
 		*port = val;
@@ -200,8 +200,8 @@ NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
 	if (port < (ioport32_t *) IO_SPACE_BOUNDARY) {
 		asm volatile (
-			"outl %[val], %w[port]\n"
-			:: [val] "a" (val), [port] "d" (port)
+		    "outl %[val], %w[port]\n"
+		    :: [val] "a" (val), [port] "d" (port)
 		);
 	} else
 		*port = val;
@@ -212,9 +212,9 @@ NO_TRACE static inline uint64_t read_rflags(void)
 	uint64_t rflags;
 
 	asm volatile (
-		"pushfq\n"
-		"popq %[v]\n"
-		: [v] "=r" (rflags)
+	    "pushfq\n"
+	    "popq %[v]\n"
+	    : [v] "=r" (rflags)
 	);
 
 	return rflags;
@@ -223,9 +223,9 @@ NO_TRACE static inline uint64_t read_rflags(void)
 NO_TRACE static inline void write_rflags(uint64_t rflags)
 {
 	asm volatile (
-		"pushq %[v]\n"
-		"popfq\n"
-		:: [v] "r" (rflags)
+	    "pushq %[v]\n"
+	    "popfq\n"
+	    :: [v] "r" (rflags)
 	);
 }
 
@@ -299,10 +299,10 @@ NO_TRACE static inline bool interrupts_disabled(void)
 NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 {
 	asm volatile (
-		"wrmsr\n"
-		:: "c" (msr),
-		   "a" ((uint32_t) (value)),
-		   "d" ((uint32_t) (value >> 32))
+	    "wrmsr\n"
+	    :: "c" (msr),
+	      "a" ((uint32_t) (value)),
+	      "d" ((uint32_t) (value >> 32))
 	);
 }
 
@@ -311,9 +311,9 @@ NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
 	uint32_t ax, dx;
 
 	asm volatile (
-		"rdmsr\n"
-		: "=a" (ax), "=d" (dx)
-		: "c" (msr)
+	    "rdmsr\n"
+	    : "=a" (ax), "=d" (dx)
+	    : "c" (msr)
 	);
 
 	return ((uint64_t) dx << 32) | ax;
@@ -327,8 +327,8 @@ NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
 NO_TRACE static inline void invlpg(uintptr_t addr)
 {
 	asm volatile (
-		"invlpg %[addr]\n"
-		:: [addr] "m" (*((sysarg_t *) addr))
+	    "invlpg %[addr]\n"
+	    :: [addr] "m" (*((sysarg_t *) addr))
 	);
 }
 
@@ -340,8 +340,8 @@ NO_TRACE static inline void invlpg(uintptr_t addr)
 NO_TRACE static inline void gdtr_load(ptr_16_64_t *gdtr_reg)
 {
 	asm volatile (
-		"lgdtq %[gdtr_reg]\n"
-		:: [gdtr_reg] "m" (*gdtr_reg)
+	    "lgdtq %[gdtr_reg]\n"
+	    :: [gdtr_reg] "m" (*gdtr_reg)
 	);
 }
 
@@ -353,8 +353,8 @@ NO_TRACE static inline void gdtr_load(ptr_16_64_t *gdtr_reg)
 NO_TRACE static inline void gdtr_store(ptr_16_64_t *gdtr_reg)
 {
 	asm volatile (
-		"sgdtq %[gdtr_reg]\n"
-		:: [gdtr_reg] "m" (*gdtr_reg)
+	    "sgdtq %[gdtr_reg]\n"
+	    :: [gdtr_reg] "m" (*gdtr_reg)
 	);
 }
 
@@ -366,8 +366,8 @@ NO_TRACE static inline void gdtr_store(ptr_16_64_t *gdtr_reg)
 NO_TRACE static inline void idtr_load(ptr_16_64_t *idtr_reg)
 {
 	asm volatile (
-		"lidtq %[idtr_reg]\n"
-		:: [idtr_reg] "m" (*idtr_reg));
+	    "lidtq %[idtr_reg]\n"
+	    :: [idtr_reg] "m" (*idtr_reg));
 }
 
 /** Load TR from descriptor table.
@@ -378,8 +378,8 @@ NO_TRACE static inline void idtr_load(ptr_16_64_t *idtr_reg)
 NO_TRACE static inline void tr_load(uint16_t sel)
 {
 	asm volatile (
-		"ltr %[sel]"
-		:: [sel] "r" (sel)
+	    "ltr %[sel]"
+	    :: [sel] "r" (sel)
 	);
 }
 

@@ -88,8 +88,8 @@ frontbuf_handle_t output_frontbuf_create(async_sess_t *sess,
 
 	ipc_call_t answer;
 	aid_t req = async_send_0(exch, OUTPUT_FRONTBUF_CREATE, &answer);
-	errno_t rc = async_share_out_start(exch, frontbuf, AS_AREA_READ
-	    | AS_AREA_WRITE | AS_AREA_CACHEABLE);
+	errno_t rc = async_share_out_start(exch, frontbuf, AS_AREA_READ |
+	    AS_AREA_WRITE | AS_AREA_CACHEABLE);
 
 	async_exchange_end(exch);
 

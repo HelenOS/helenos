@@ -93,8 +93,8 @@ void msim_input_init(void)
 	 * module and connect it to the msim keyboard. Enable keyboard
 	 * interrupts.
 	 */
-	dsrlnin_instance_t *dsrlnin_instance
-	    = dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);
+	dsrlnin_instance_t *dsrlnin_instance =
+	    dsrlnin_init((dsrlnin_t *) MSIM_KBD_ADDRESS, MSIM_KBD_IRQ);
 	if (dsrlnin_instance) {
 		srln_instance_t *srln_instance = srln_init();
 		if (srln_instance) {

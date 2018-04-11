@@ -123,7 +123,7 @@ static void list_threads(task_id_t task_id, bool all)
 			else
 				printf("(none) ");
 
-			printf("%8" PRIu64"%c %8" PRIu64"%c\n",
+			printf("%8" PRIu64 "%c %8" PRIu64 "%c\n",
 			    ucycles, usuffix, kcycles, ksuffix);
 		}
 	}
@@ -229,8 +229,7 @@ static void usage(const char *name)
 	    "\t\tPrint this usage information\n"
 	    "\n"
 	    "Without any options all tasks are listed\n",
-	    name
-	);
+	    name);
 }
 
 int main(int argc, char *argv[])

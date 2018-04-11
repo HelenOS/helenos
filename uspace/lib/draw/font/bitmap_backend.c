@@ -243,8 +243,7 @@ errno_t bitmap_font_create(bitmap_font_decoder_t *decoder, void *decoder_data,
 	if (points == line_height) {
 		data->scale = false;
 		data->scale_ratio = 1.0;
-	}
-	else {
+	} else {
 		data->scale = true;
 		data->scale_ratio = ((double) points) / ((double) line_height);
 		line_height = (data->scale_ratio * ((double) line_height));

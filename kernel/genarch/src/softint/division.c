@@ -58,7 +58,7 @@ static unsigned int divandmod32(unsigned int a, unsigned int b,
 
 	for (; steps > 0; steps--) {
 		/* shift one bit to remainder */
-		*remainder = ((*remainder) << 1) | (( a >> 31) & 0x1);
+		*remainder = ((*remainder) << 1) | ((a >> 31) & 0x1);
 		result <<= 1;
 
 		if (*remainder >= b) {

@@ -120,7 +120,7 @@ config_t config = {
 };
 
 /** Boot arguments. */
-char bargs[CONFIG_BOOT_ARGUMENTS_BUFLEN] = {};
+char bargs[CONFIG_BOOT_ARGUMENTS_BUFLEN] = { };
 
 /** Initial user-space tasks */
 init_t init = {

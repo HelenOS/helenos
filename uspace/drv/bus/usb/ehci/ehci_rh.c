@@ -118,7 +118,7 @@ errno_t ehci_rh_init(ehci_rh_t *instance, ehci_caps_regs_t *caps, ehci_regs_t *r
 		usb_log_info("RH(%p): No power switching.", instance);
 	}
 	for (unsigned i = 0; i < instance->port_count; ++i)
-		usb_log_debug2("RH(%p-%u): status: %"PRIx32, instance, i,
+		usb_log_debug2("RH(%p-%u): status: %" PRIx32, instance, i,
 		    EHCI_RD(regs->portsc[i]));
 
 	for (unsigned i = 0; i < EHCI_MAX_PORTS; ++i) {
@@ -146,7 +146,7 @@ errno_t ehci_rh_schedule(ehci_rh_t *instance, usb_transfer_batch_t *batch)
 	assert(instance);
 	assert(batch);
 	batch->error = virthub_base_request(&instance->base, batch->target,
-	    batch->dir, (void*) batch->setup.buffer,
+	    batch->dir, (void *) batch->setup.buffer,
 	    batch->dma_buffer.virt, batch->size,
 	    &batch->transferred_size);
 	if (batch->error == ENAK) {
@@ -194,7 +194,7 @@ errno_t ehci_rh_interrupt(ehci_rh_t *instance)
 		return EOK;
 	}
 
-	usb_transfer_batch_t * const batch = ep->active_batch;
+	usb_transfer_batch_t *const batch = ep->active_batch;
 	endpoint_deactivate_locked(ep);
 	instance->status_change_endpoint = NULL;
 	fibril_mutex_unlock(instance->guard);
@@ -205,7 +205,7 @@ errno_t ehci_rh_interrupt(ehci_rh_t *instance)
 		usb_log_debug2("RH(%p): Interrupt. Processing batch: %p",
 		    instance, batch);
 		batch->error = virthub_base_request(&instance->base, batch->target,
-		    batch->dir, (void*) batch->setup.buffer,
+		    batch->dir, (void *) batch->setup.buffer,
 		    batch->dma_buffer.virt, batch->size,
 		    &batch->transferred_size);
 		usb_transfer_batch_finish(batch);
@@ -303,7 +303,7 @@ static errno_t req_get_port_status(usbvirt_device_t *device,
 	    EHCI2USB(reg, USB_PORTSC_PORT_RESET_FLAG, USB_HUB_PORT_STATUS_RESET) |
 	    EHCI2USB(reg, USB_PORTSC_PORT_POWER_FLAG, USB2_HUB_PORT_STATUS_POWER) |
 	    (((reg & USB_PORTSC_LINE_STATUS_MASK) == USB_PORTSC_LINE_STATUS_K) ?
-	        (USB2_HUB_PORT_STATUS_LOW_SPEED) : 0) |
+	    (USB2_HUB_PORT_STATUS_LOW_SPEED) : 0) |
 	    ((reg & USB_PORTSC_PORT_OWNER_FLAG) ? 0 : USB2_HUB_PORT_STATUS_HIGH_SPEED) |
 	    EHCI2USB(reg, USB_PORTSC_PORT_TEST_MASK, USB2_HUB_PORT_STATUS_TEST) |
 	    EHCI2USB(reg, USB_PORTSC_INDICATOR_MASK, USB2_HUB_PORT_STATUS_INDICATOR) |
@@ -311,11 +311,10 @@ static errno_t req_get_port_status(usbvirt_device_t *device,
 	    EHCI2USB(reg, USB_PORTSC_EN_CHANGE_FLAG, USB2_HUB_PORT_STATUS_C_ENABLE) |
 	    (hub->resume_flag[port] ? USB2_HUB_PORT_STATUS_C_SUSPEND : 0) |
 	    EHCI2USB(reg, USB_PORTSC_OC_CHANGE_FLAG, USB_HUB_PORT_STATUS_C_OC) |
-	    (hub->reset_flag[port] ? USB_HUB_PORT_STATUS_C_RESET: 0)
-	);
+	    (hub->reset_flag[port] ? USB_HUB_PORT_STATUS_C_RESET : 0));
 	/* Note feature numbers for test and indicator feature do not
 	 * correspond to the port status bit locations */
-	usb_log_debug2("RH(%p-%u) port status: %"PRIx32"(%"PRIx32")", hub, port,
+	usb_log_debug2("RH(%p-%u) port status: %" PRIx32 "(%" PRIx32 ")", hub, port,
 	    status, reg);
 	memcpy(data, &status, sizeof(status));
 	*act_size = sizeof(status);
@@ -344,7 +343,7 @@ static errno_t stop_reset(void *arg)
 	 * after reset it's a full speed device */
 	if (!(EHCI_RD(job->hub->registers->portsc[job->port]) &
 	    USB_PORTSC_ENABLED_FLAG)) {
-		usb_log_info("RH(%p-%u): Port not enabled after reset (%"PRIX32
+		usb_log_info("RH(%p-%u): Port not enabled after reset (%" PRIX32
 		    "), giving up ownership", job->hub, job->port,
 		    EHCI_RD(job->hub->registers->portsc[job->port]));
 		EHCI_SET(job->hub->registers->portsc[job->port],
@@ -369,7 +368,7 @@ static errno_t stop_resume(void *arg)
 	return 0;
 }
 
-static errno_t delayed_job(errno_t (*func)(void*), ehci_rh_t *rh, unsigned port)
+static errno_t delayed_job(errno_t (*func)(void *), ehci_rh_t *rh, unsigned port)
 {
 	ehci_rh_job_t *job = malloc(sizeof(*job));
 	if (!job)
@@ -404,8 +403,7 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 	TEST_SIZE_INIT(0, port, hub);
 	const unsigned feature = uint16_usb2host(setup_packet->value);
 	/* Enabled features to clear: see page 269 of USB specs */
-	switch (feature)
-	{
+	switch (feature) {
 	case USB_HUB_FEATURE_PORT_POWER:          /*8*/
 		usb_log_debug2("RH(%p-%u): Clear port power.", hub, port);
 		EHCI_CLR(hub->registers->portsc[port],
@@ -423,7 +421,7 @@ static errno_t req_clear_port_feature(usbvirt_device_t *device,
 		/* If not in suspend it's noop */
 		if ((EHCI_RD(hub->registers->portsc[port]) &
 		    USB_PORTSC_SUSPEND_FLAG) == 0)
-		    return EOK;
+			return EOK;
 		/* Host driven resume */
 		EHCI_SET(hub->registers->portsc[port],
 		    USB_PORTSC_RESUME_FLAG);
@@ -541,7 +539,7 @@ static errno_t req_status_change_handler(usbvirt_device_t *device,
 			/* Ignore new LS device */
 			if ((status & USB_PORTSC_CONNECT_CH_FLAG) &&
 			    (status & USB_PORTSC_LINE_STATUS_MASK) ==
-			        USB_PORTSC_LINE_STATUS_K)
+			    USB_PORTSC_LINE_STATUS_K)
 				EHCI_SET(hub->registers->portsc[port],
 				    USB_PORTSC_PORT_OWNER_FLAG);
 			else
@@ -549,7 +547,7 @@ static errno_t req_status_change_handler(usbvirt_device_t *device,
 		}
 	}
 
-	usb_log_debug2("RH(%p): root hub interrupt mask: %"PRIx16, hub, mask);
+	usb_log_debug2("RH(%p): root hub interrupt mask: %" PRIx16, hub, mask);
 
 	if (mask == 0)
 		return ENAK;
@@ -618,6 +616,6 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 
 /** Virtual EHCI root hub ops */
 static usbvirt_device_ops_t ops = {
-        .control = control_transfer_handlers,
-        .data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
+	.control = control_transfer_handlers,
+	.data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
 };

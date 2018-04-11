@@ -153,7 +153,7 @@ void tls_free_variant_1(tcb_t *tcb, size_t size)
  * @param size		Size of thread local data.
  * @return		Pointer to TCB structure.
  */
-tcb_t * tls_alloc_variant_2(void **data, size_t size)
+tcb_t *tls_alloc_variant_2(void **data, size_t size)
 {
 	tcb_t *tcb;
 

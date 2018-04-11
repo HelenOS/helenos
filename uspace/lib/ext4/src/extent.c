@@ -419,7 +419,7 @@ errno_t ext4_extent_find_block(ext4_inode_ref_t *inode_ref, uint32_t iblock,
 	}
 
 	/* Search extent in the leaf block */
-	ext4_extent_t* extent = NULL;
+	ext4_extent_t *extent = NULL;
 	ext4_extent_binsearch(header, &extent, iblock);
 
 	/* Prevent empty leaf */
@@ -564,11 +564,11 @@ static errno_t ext4_extent_release(ext4_inode_ref_t *inode_ref,
  *
  */
 static errno_t ext4_extent_release_branch(ext4_inode_ref_t *inode_ref,
-		ext4_extent_index_t *index)
+    ext4_extent_index_t *index)
 {
 	uint32_t fblock = ext4_extent_index_get_leaf(index);
 
-	block_t* block;
+	block_t *block;
 	errno_t rc = block_get(&block, inode_ref->fs->device, fblock, BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;

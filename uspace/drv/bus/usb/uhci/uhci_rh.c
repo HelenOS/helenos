@@ -106,7 +106,7 @@ errno_t uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 
 	do {
 		batch->error = virthub_base_request(&instance->base, batch->target,
-		    batch->dir, (void*) batch->setup.buffer,
+		    batch->dir, (void *) batch->setup.buffer,
 		    batch->dma_buffer.virt, batch->size, &batch->transferred_size);
 		if (batch->error == ENAK)
 			async_usleep(instance->base.endpoint_descriptor.poll_interval * 1000);
@@ -150,7 +150,8 @@ static void uhci_port_reset_enable(ioport16_t *port)
 	port_status = pio_read_16(port);
 	port_status &= ~STATUS_IN_RESET;
 	pio_write_16(port, port_status);
-	while ((port_status = pio_read_16(port)) & STATUS_IN_RESET);
+	while ((port_status = pio_read_16(port)) & STATUS_IN_RESET)
+		;
 	/* PIO delay, should not be longer than 3ms as the device might
 	 * enter suspend state. */
 	udelay(10);
@@ -200,9 +201,9 @@ static errno_t req_get_port_state(usbvirt_device_t *device,
 		return EINVAL;
 
 	const uint16_t value = pio_read_16(hub->ports[port]);
-	data[0] = ((value & STATUS_LINE_D_MINUS) ? 1 : 0)
-	    | ((value & STATUS_LINE_D_PLUS) ? 2 : 0);
-	RH_DEBUG(hub, port, "Bus state %" PRIx8 "(source %" PRIx16")",
+	data[0] = ((value & STATUS_LINE_D_MINUS) ? 1 : 0) |
+	    ((value & STATUS_LINE_D_PLUS) ? 2 : 0);
+	RH_DEBUG(hub, port, "Bus state %" PRIx8 "(source %" PRIx16 ")",
 	    data[0], value);
 	*act_size = 1;
 	return EOK;
@@ -245,8 +246,7 @@ static errno_t req_get_port_status(usbvirt_device_t *device,
 	    UHCI2USB(val, STATUS_CONNECTED_CHANGED, USB_HUB_PORT_STATUS_C_CONNECTION) |
 	    UHCI2USB(val, STATUS_ENABLED_CHANGED, USB2_HUB_PORT_STATUS_C_ENABLE) |
 //	    UHCI2USB(val, STATUS_SUSPEND, USB2_HUB_PORT_STATUS_C_SUSPEND) |
-	    (hub->reset_changed[port] ?  USB_HUB_PORT_STATUS_C_RESET : 0)
-	);
+	    (hub->reset_changed[port] ?  USB_HUB_PORT_STATUS_C_RESET : 0));
 	RH_DEBUG(hub, port, "Port status %" PRIx32 " (source %" PRIx16
 	    "%s)", uint32_usb2host(status), val,
 	    hub->reset_changed[port] ? "-reset" : "");
@@ -412,15 +412,15 @@ static errno_t req_status_change_handler(usbvirt_device_t *device,
 	const uint16_t status_b = pio_read_16(hub->ports[1]);
 	const uint8_t status =
 	    ((((status_a & STATUS_CHANGE_BITS) != 0) || hub->reset_changed[0]) ?
-	        0x2 : 0) |
+	    0x2 : 0) |
 	    ((((status_b & STATUS_CHANGE_BITS) != 0) || hub->reset_changed[1]) ?
-	        0x4 : 0);
+	    0x4 : 0);
 	if (status)
 		RH_DEBUG(hub, -1, "Event mask %" PRIx8
 		    " (status_a %" PRIx16 "%s),"
 		    " (status_b %" PRIx16 "%s)", status,
 		    status_a, hub->reset_changed[0] ? "-reset" : "",
-		    status_b, hub->reset_changed[1] ? "-reset" : "" );
+		    status_b, hub->reset_changed[1] ? "-reset" : "");
 	((uint8_t *)buffer)[0] = status;
 	*actual_size = 1;
 	return (status != 0 ? EOK : ENAK);
@@ -495,6 +495,6 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 };
 
 static usbvirt_device_ops_t ops = {
-        .control = control_transfer_handlers,
-        .data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
+	.control = control_transfer_handlers,
+	.data_in[HUB_STATUS_CHANGE_PIPE] = req_status_change_handler,
 };

@@ -165,10 +165,10 @@ static inline bool xhci_trb_is_chained(xhci_trb_t *trb)
 	const bool chain_bit = XHCI_DWORD_EXTRACT(trb->control, 4, 4);
 
 	return chain_bit &&
-	    (type == XHCI_TRB_TYPE_NORMAL
-	    || type == XHCI_TRB_TYPE_DATA_STAGE
-	    || type == XHCI_TRB_TYPE_STATUS_STAGE
-	    || type == XHCI_TRB_TYPE_ISOCH);
+	    (type == XHCI_TRB_TYPE_NORMAL ||
+	    type == XHCI_TRB_TYPE_DATA_STAGE ||
+	    type == XHCI_TRB_TYPE_STATUS_STAGE ||
+	    type == XHCI_TRB_TYPE_ISOCH);
 }
 
 static inline void xhci_trb_link_fill(xhci_trb_t *trb, uintptr_t next_phys)

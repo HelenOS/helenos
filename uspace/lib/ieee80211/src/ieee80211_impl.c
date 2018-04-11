@@ -203,7 +203,7 @@ errno_t ieee80211_prf(uint8_t *key, uint8_t *data, uint8_t *hash,
 		memcpy(work_arr + data_size - 1, &i, 1);
 		hmac(key, PBKDF2_KEY_LENGTH, work_arr, data_size, temp,
 		    HASH_SHA1);
-		memcpy(result + i*HASH_SHA1, temp, HASH_SHA1);
+		memcpy(result + i * HASH_SHA1, temp, HASH_SHA1);
 	}
 
 	memcpy(hash, result, output_size);

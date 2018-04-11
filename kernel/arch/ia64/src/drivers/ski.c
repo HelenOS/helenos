@@ -83,13 +83,13 @@ static wchar_t ski_getchar(void)
 	uint64_t ch;
 
 	asm volatile (
-		"mov r15 = %1\n"
-		"break 0x80000;;\n"  /* modifies r8 */
-		"mov %0 = r8;;\n"
+	    "mov r15 = %1\n"
+	    "break 0x80000;;\n"  /* modifies r8 */
+	    "mov %0 = r8;;\n"
 
-		: "=r" (ch)
-		: "i" (SKI_GETCHAR)
-		: "r15", "r8"
+	    : "=r" (ch)
+	    : "i" (SKI_GETCHAR)
+	    : "r15", "r8"
 	);
 
 	return (wchar_t) ch;
@@ -142,11 +142,11 @@ static void ski_init(void)
 		return;
 
 	asm volatile (
-		"mov r15 = %0\n"
-		"break 0x80000\n"
-		:
-		: "i" (SKI_INIT_CONSOLE)
-		: "r15", "r8"
+	    "mov r15 = %0\n"
+	    "break 0x80000\n"
+	    :
+	    : "i" (SKI_INIT_CONSOLE)
+	    : "r15", "r8"
 	);
 
 	instance = malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
@@ -168,12 +168,12 @@ static void ski_init(void)
 static void ski_do_putchar(const wchar_t ch)
 {
 	asm volatile (
-		"mov r15 = %[cmd]\n"
-		"mov r32 = %[ch]\n"   /* r32 is in0 */
-		"break 0x80000\n"     /* modifies r8 */
-		:
-		: [cmd] "i" (SKI_PUTCHAR), [ch] "r" (ch)
-		: "r15", "in0", "r8"
+	    "mov r15 = %[cmd]\n"
+	    "mov r32 = %[ch]\n"   /* r32 is in0 */
+	    "break 0x80000\n"     /* modifies r8 */
+	    :
+	    : [cmd] "i" (SKI_PUTCHAR), [ch] "r" (ch)
+	    : "r15", "in0", "r8"
 	);
 }
 

@@ -66,10 +66,10 @@ static bool new_wave(test_work_t *work)
 static int is_pow2(int num)
 {
 	unsigned n = (unsigned)num;
-	return (n != 0) && 0 == (n & (n-1));
+	return (n != 0) && 0 == (n & (n - 1));
 }
 
-static test_work_t * create_child(test_work_t *work)
+static test_work_t *create_child(test_work_t *work)
 {
 	test_work_t *child = malloc(sizeof(test_work_t), 0);
 	assert(child);
@@ -167,7 +167,7 @@ static const char *run_workq_core(bool end_prematurely)
 	size_t exp_call_cnt = (COUNT_POW + 2) * (1 << (COUNT_POW - 1));
 
 	TPRINTF("waves: %d, count_down: %d, total expected calls: %zu\n",
-		WAVES, COUNT, exp_call_cnt * WAVES);
+	    WAVES, COUNT, exp_call_cnt * WAVES);
 
 
 	core_workq_enqueue(&work->work_item, reproduce);
@@ -178,8 +178,8 @@ static const char *run_workq_core(bool end_prematurely)
 	size_t max_sleep_cnt = (max_sleep_secs * 1000) / MAIN_POLL_SLEEP_MS;
 
 	for (int i = 0; i < WAVES; ++i) {
-		while (atomic_get(&call_cnt[i]) < exp_call_cnt
-			&& sleep_cnt < max_sleep_cnt) {
+		while (atomic_get(&call_cnt[i]) < exp_call_cnt &&
+		    sleep_cnt < max_sleep_cnt) {
 			TPRINTF(".");
 			thread_usleep(MAIN_POLL_SLEEP_MS * 1000);
 			++sleep_cnt;
@@ -191,11 +191,11 @@ static const char *run_workq_core(bool end_prematurely)
 	for (int i = 0; i < WAVES; ++i) {
 		if (atomic_get(&call_cnt[i]) == exp_call_cnt) {
 			TPRINTF("Ok: %" PRIua " calls in wave %d, as expected.\n",
-				atomic_get(&call_cnt[i]), i);
+			    atomic_get(&call_cnt[i]), i);
 		} else {
 			success = false;
 			TPRINTF("Error: %" PRIua " calls in wave %d, but %zu expected.\n",
-				atomic_get(&call_cnt[i]), i, exp_call_cnt);
+			    atomic_get(&call_cnt[i]), i, exp_call_cnt);
 		}
 	}
 

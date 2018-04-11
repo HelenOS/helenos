@@ -234,9 +234,10 @@ typedef const struct xhci_cap_regs {
 #define XHCI_CAP_LEC          hccparams2, 32,  FLAG,  4
 #define XHCI_CAP_CIC          hccparams2, 32,  FLAG,  5
 
-static inline unsigned xhci_get_max_spbuf(xhci_cap_regs_t *cap_regs) {
-	return XHCI_REG_RD(cap_regs, XHCI_CAP_MAX_SPBUF_HI) << 5
-		| XHCI_REG_RD(cap_regs, XHCI_CAP_MAX_SPBUF_LO);
+static inline unsigned xhci_get_max_spbuf(xhci_cap_regs_t *cap_regs)
+{
+	return XHCI_REG_RD(cap_regs, XHCI_CAP_MAX_SPBUF_HI) << 5 |
+	    XHCI_REG_RD(cap_regs, XHCI_CAP_MAX_SPBUF_LO);
 }
 
 /**

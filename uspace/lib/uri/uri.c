@@ -58,7 +58,8 @@ uri_t *uri_parse(const char *str)
 
 	/* scheme ":" */
 	const char *scheme = str;
-	while (*str != 0 && *str != ':') str++;
+	while (*str != 0 && *str != ':')
+		str++;
 	if (*str == 0) {
 		uri_destroy(uri);
 		return NULL;
@@ -77,8 +78,8 @@ uri_t *uri_parse(const char *str)
 		char *host_or_user_info = NULL;
 		char *port_or_user_credential = NULL;
 
-		while (*str != 0 && *str != '?' && *str != '#' && *str != '@'
-			&& *str != ':' && *str != '/')
+		while (*str != 0 && *str != '?' && *str != '#' && *str != '@' &&
+		    *str != ':' && *str != '/')
 			str++;
 
 		host_or_user_info = cut_str(authority_start, str);
@@ -86,7 +87,8 @@ uri_t *uri_parse(const char *str)
 			str++;
 			const char *second_part = str;
 			while (*str != 0 && *str != '?' && *str != '#' &&
-				*str != '@' && *str != '/') str++;
+			    *str != '@' && *str != '/')
+				str++;
 			port_or_user_credential = cut_str(second_part, str);
 		}
 
@@ -96,8 +98,9 @@ uri_t *uri_parse(const char *str)
 
 			str++;
 			const char *host_start = str;
-			while (*str != 0 && *str != '?' && *str != '#'
-				&& *str != ':' && *str != '/') str++;
+			while (*str != 0 && *str != '?' && *str != '#' &&
+			    *str != ':' && *str != '/')
+				str++;
 			uri->host = cut_str(host_start, str);
 
 			if (*str == ':') {
@@ -107,28 +110,30 @@ uri_t *uri_parse(const char *str)
 					str++;
 				uri->port = cut_str(port_start, str);
 			}
-		}
-		else {
+		} else {
 			uri->host = host_or_user_info;
 			uri->port = port_or_user_credential;
 		}
 	}
 
 	const char *path_start = str;
-	while (*str != 0 && *str != '?' && *str != '#') str++;
+	while (*str != 0 && *str != '?' && *str != '#')
+		str++;
 	uri->path = cut_str(path_start, str);
 
 	if (*str == '?') {
 		str++;
 		const char *query_start = str;
-		while (*str != 0 && *str != '#') str++;
+		while (*str != 0 && *str != '#')
+			str++;
 		uri->query = cut_str(query_start, str);
 	}
 
 	if (*str == '#') {
 		str++;
 		const char *fragment_start = str;
-		while (*str != 0) str++;
+		while (*str != 0)
+			str++;
 		uri->fragment = cut_str(fragment_start, str);
 	}
 
@@ -197,7 +202,8 @@ errno_t uri_percent_parse(const char *str, const char **endptr,
 errno_t uri_user_info_parse(const char *str, const char **endptr)
 {
 	while (*str != 0) {
-		while (is_unreserved(*str) || is_subdelim(*str) || *str == ':') str++;
+		while (is_unreserved(*str) || is_subdelim(*str) || *str == ':')
+			str++;
 		if (*str == 0)
 			break;
 		errno_t rc = uri_percent_parse(str, &str, NULL);
@@ -225,7 +231,8 @@ errno_t uri_port_parse(const char *str, const char **endptr)
 		return ELIMIT;
 	if (!isdigit(*str))
 		return EINVAL;
-	while (isdigit(*str)) str++;
+	while (isdigit(*str))
+		str++;
 	*endptr = str;
 	return EOK;
 }

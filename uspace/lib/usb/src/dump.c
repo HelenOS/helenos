@@ -139,8 +139,8 @@ static void usb_dump_descriptor_device(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
-	usb_standard_device_descriptor_t *d
-	    = (usb_standard_device_descriptor_t *) descriptor;
+	usb_standard_device_descriptor_t *d =
+	    (usb_standard_device_descriptor_t *) descriptor;
 	if (descriptor_length < sizeof(*d)) {
 		return;
 	}
@@ -166,8 +166,8 @@ static void usb_dump_descriptor_configuration(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
-	usb_standard_configuration_descriptor_t *d
-	    = (usb_standard_configuration_descriptor_t *) descriptor;
+	usb_standard_configuration_descriptor_t *d =
+	    (usb_standard_configuration_descriptor_t *) descriptor;
 	if (descriptor_length < sizeof(*d)) {
 		return;
 	}
@@ -193,8 +193,8 @@ static void usb_dump_descriptor_interface(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
-	usb_standard_interface_descriptor_t *d
-	    = (usb_standard_interface_descriptor_t *) descriptor;
+	usb_standard_interface_descriptor_t *d =
+	    (usb_standard_interface_descriptor_t *) descriptor;
 	if (descriptor_length < sizeof(*d)) {
 		return;
 	}
@@ -204,8 +204,8 @@ static void usb_dump_descriptor_interface(FILE *output,
 	PRINTLINE("bInterfaceNumber = %d", d->interface_number);
 	PRINTLINE("bAlternateSetting = %d", d->alternate_setting);
 	PRINTLINE("bNumEndpoints = %d", d->endpoint_count);
-	PRINTLINE("bInterfaceClass = %s", d->interface_class == 0
-	    ? "reserved (0)" : usb_str_class(d->interface_class));
+	PRINTLINE("bInterfaceClass = %s", d->interface_class == 0 ?
+	    "reserved (0)" : usb_str_class(d->interface_class));
 	PRINTLINE("bInterfaceSubClass = %d", d->interface_subclass);
 	PRINTLINE("bInterfaceProtocol = %d", d->interface_protocol);
 	PRINTLINE("iInterface = %d", d->str_interface);
@@ -221,15 +221,15 @@ static void usb_dump_descriptor_endpoint(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
-	usb_standard_endpoint_descriptor_t *d
-	   = (usb_standard_endpoint_descriptor_t *) descriptor;
+	usb_standard_endpoint_descriptor_t *d =
+	    (usb_standard_endpoint_descriptor_t *) descriptor;
 	if (descriptor_length < sizeof(*d)) {
 		return;
 	}
 
 	int endpoint = d->endpoint_address & 15;
-	usb_direction_t direction = d->endpoint_address & 128
-	    ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+	usb_direction_t direction = d->endpoint_address & 128 ?
+	    USB_DIRECTION_IN : USB_DIRECTION_OUT;
 	usb_transfer_type_t transfer_type = d->attributes & 3;
 
 	PRINTLINE("bLength = %d", d->length);
@@ -247,8 +247,8 @@ static void usb_dump_descriptor_superspeed_endpoint_companion(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
-	usb_superspeed_endpoint_companion_descriptor_t *d
-	   = (usb_superspeed_endpoint_companion_descriptor_t *) descriptor;
+	usb_superspeed_endpoint_companion_descriptor_t *d =
+	    (usb_superspeed_endpoint_companion_descriptor_t *) descriptor;
 	if (descriptor_length < sizeof(*d)) {
 		return;
 	}
@@ -264,8 +264,8 @@ static void usb_dump_descriptor_hid(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
-	usb_standard_hid_descriptor_t *d
-	    = (usb_standard_hid_descriptor_t *) descriptor;
+	usb_standard_hid_descriptor_t *d =
+	    (usb_standard_hid_descriptor_t *) descriptor;
 	if (descriptor_length < sizeof(*d)) {
 		return;
 	}
@@ -281,10 +281,10 @@ static void usb_dump_descriptor_hid(FILE *output,
 
 	/* Print info about report descriptors. */
 	size_t i;
-	size_t count = (descriptor_length - sizeof(*d))
-	    / sizeof(usb_standard_hid_class_descriptor_info_t);
-	usb_standard_hid_class_descriptor_info_t *d2
-	    = (usb_standard_hid_class_descriptor_info_t *)
+	size_t count = (descriptor_length - sizeof(*d)) /
+	    sizeof(usb_standard_hid_class_descriptor_info_t);
+	usb_standard_hid_class_descriptor_info_t *d2 =
+	    (usb_standard_hid_class_descriptor_info_t *)
 	    (descriptor + sizeof(*d));
 	for (i = 0; i < count; i++, d2++) {
 		PRINTLINE("bDescriptorType = %d", d2->type);
@@ -307,17 +307,16 @@ static void usb_dump_descriptor_hub(FILE *output,
 	PRINTLINE("bHubCharacteristics = 0x%02x%02x (%s;%s%s)",
 	    d->characteristics_reserved, d->characteristics,
 	    (d->characteristics & HUB_CHAR_NO_POWER_SWITCH_FLAG) ?
-	        "No Power Switching" :
-		((d->characteristics & HUB_CHAR_POWER_PER_PORT_FLAG) ?
-		    "Per-Port Switching" : "Ganged Power Switching"),
+	    "No Power Switching" :
+	    ((d->characteristics & HUB_CHAR_POWER_PER_PORT_FLAG) ?
+	    "Per-Port Switching" : "Ganged Power Switching"),
 	    (d->characteristics & HUB_CHAR_COMPOUND_DEVICE) ?
-	        "Compound Device;" : "",
+	    "Compound Device;" : "",
 	    (d->characteristics & HUB_CHAR_NO_OC_FLAG) ?
-	        "No OC Protection" :
-		    ((d->characteristics & HUB_CHAR_OC_PER_PORT_FLAG) ?
-		        "Individual Port OC Protection" :
-	                    "Global OC Protection")
-	);
+	    "No OC Protection" :
+	    ((d->characteristics & HUB_CHAR_OC_PER_PORT_FLAG) ?
+	    "Individual Port OC Protection" :
+	    "Global OC Protection"));
 	PRINTLINE("bPwrOn2PwrGood = %d (%d ms)",
 	    d->power_good_time, d->power_good_time * 2);
 	PRINTLINE("bHubContrCurrent = %d (%d mA)",
@@ -326,8 +325,8 @@ static void usb_dump_descriptor_hub(FILE *output,
 	const uint8_t *removable_mask = descriptor + sizeof(*d);
 	const uint8_t *powered_mask = descriptor + sizeof(*d) + port_bytes;
 
-	if (port_bytes == 0
-	    || port_bytes > (((d->port_count / (unsigned)8) + 1) * 2)) {
+	if (port_bytes == 0 ||
+	    port_bytes > (((d->port_count / (unsigned)8) + 1) * 2)) {
 		PRINTLINE("::CORRUPTED DESCRIPTOR:: (%zu bytes remain)",
 		    port_bytes * 2);
 	}

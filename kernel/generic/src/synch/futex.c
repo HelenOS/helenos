@@ -170,7 +170,7 @@ void futex_task_deinit(task_t *task)
 	if (interrupts_disabled()) {
 		/* Invoke the blocking cht_destroy in the background. */
 		workq_global_enqueue_noblock(&task->futexes->destroy_work,
-			destroy_task_cache);
+		    destroy_task_cache);
 	} else {
 		/* We can block. Invoke cht_destroy in this thread. */
 		destroy_task_cache(&task->futexes->destroy_work);
@@ -181,7 +181,7 @@ void futex_task_deinit(task_t *task)
 static void destroy_task_cache(work_t *work)
 {
 	struct futex_cache *cache =
-		member_to_inst(work, struct futex_cache, destroy_work);
+	    member_to_inst(work, struct futex_cache, destroy_work);
 
 	/*
 	 * Destroy the cache before manually freeing items of the cache in case
@@ -318,8 +318,8 @@ static futex_t *find_cached_futex(uintptr_t uaddr)
 	cht_link_t *futex_ptr_link = cht_find_lazy(&TASK->futexes->ht, &uaddr);
 
 	if (futex_ptr_link) {
-		futex_ptr_t *futex_ptr
-			= member_to_inst(futex_ptr_link, futex_ptr_t, cht_link);
+		futex_ptr_t *futex_ptr =
+		    member_to_inst(futex_ptr_link, futex_ptr_t, cht_link);
 
 		futex = futex_ptr->futex;
 	} else {
@@ -484,7 +484,7 @@ static size_t task_fut_ht_hash(const cht_link_t *link)
 
 static size_t task_fut_ht_key_hash(void *key)
 {
-	return *(uintptr_t*)key;
+	return *(uintptr_t *)key;
 }
 
 static bool task_fut_ht_equal(const cht_link_t *item1, const cht_link_t *item2)
@@ -498,7 +498,7 @@ static bool task_fut_ht_equal(const cht_link_t *item1, const cht_link_t *item2)
 static bool task_fut_ht_key_equal(void *key, const cht_link_t *item)
 {
 	const futex_ptr_t *fut_ptr = member_to_inst(item, futex_ptr_t, cht_link);
-	uintptr_t uaddr = *(uintptr_t*)key;
+	uintptr_t uaddr = *(uintptr_t *)key;
 
 	return fut_ptr->uaddr == uaddr;
 }

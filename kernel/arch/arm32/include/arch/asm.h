@@ -58,7 +58,7 @@
 NO_TRACE static inline void cpu_sleep(void)
 {
 #ifdef PROCESSOR_ARCH_armv7_a
-	asm volatile ( "wfe" );
+	asm volatile ("wfe");
 #elif defined(PROCESSOR_ARCH_armv6) | defined(PROCESSOR_arm926ej_s) | defined(PROCESSOR_arm920t)
 	WFI_write(0);
 #endif
@@ -106,9 +106,9 @@ NO_TRACE static inline uintptr_t get_stack_base(void)
 	uintptr_t v;
 
 	asm volatile (
-		"and %[v], sp, %[size]\n"
-		: [v] "=r" (v)
-		: [size] "r" (~(STACK_SIZE - 1))
+	    "and %[v], sp, %[size]\n"
+	    : [v] "=r" (v)
+	    : [size] "r" (~(STACK_SIZE - 1))
 	);
 
 	return v;

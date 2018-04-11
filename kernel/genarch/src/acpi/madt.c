@@ -224,7 +224,7 @@ void acpi_madt_parse(void)
 			break;
 		case MADT_IO_APIC:
 			madt_io_apic_entry((struct madt_io_apic *) hdr, i);
-		break;
+			break;
 		case MADT_INTR_SRC_OVRD:
 			madt_intr_src_ovrd_entry((struct madt_intr_src_ovrd *) hdr, i);
 			break;
@@ -239,8 +239,8 @@ void acpi_madt_parse(void)
 			    entry[hdr->type], hdr->type);
 			break;
 		default:
-			if ((hdr->type >= MADT_RESERVED_SKIP_BEGIN)
-			    && (hdr->type <= MADT_RESERVED_SKIP_END))
+			if ((hdr->type >= MADT_RESERVED_SKIP_BEGIN) &&
+			    (hdr->type <= MADT_RESERVED_SKIP_END))
 				log(LF_ARCH, LVL_NOTE,
 				    "MADT: Skipping reserved entry (type=%" PRIu8 ")",
 				    hdr->type);

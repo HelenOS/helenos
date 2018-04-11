@@ -42,7 +42,8 @@ static token_t tokens[MAX_TOKENS];
 static char input_buffer[MAX_INPUT];
 
 /* Tokenize the input, asserts that number of tokens is okay. */
-static void prepare(const char *input, size_t expected_token_count) {
+static void prepare(const char *input, size_t expected_token_count)
+{
 	str_cpy(input_buffer, MAX_INPUT, input);
 
 	errno_t rc = tok_init(&tokenizer, input_buffer, tokens, MAX_TOKENS);
@@ -67,23 +68,27 @@ static void prepare(const char *input, size_t expected_token_count) {
 
 PCUT_TEST_SUITE(tokenizer);
 
-PCUT_TEST_AFTER {
+PCUT_TEST_AFTER
+{
 	/* Destroy the tokenizer. */
 	tok_fini(&tokenizer);
 }
 
 
-PCUT_TEST(empty_input) {
+PCUT_TEST(empty_input)
+{
 	prepare("", 0);
 }
 
-PCUT_TEST(only_spaces) {
+PCUT_TEST(only_spaces)
+{
 	prepare("   ", 1);
 
 	ASSERT_TOKEN(0, TOKTYPE_SPACE, "   ");
 }
 
-PCUT_TEST(two_text_tokens) {
+PCUT_TEST(two_text_tokens)
+{
 	prepare("alpha  bravo", 3);
 
 	ASSERT_TOKEN(0, TOKTYPE_TEXT, "alpha");

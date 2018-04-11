@@ -546,12 +546,12 @@ static void ega_putchar(outdev_t *dev, wchar_t ch)
 
 	switch (ch) {
 	case '\n':
-		instance->cursor = (instance->cursor + EGA_COLS)
-		    - instance->cursor % EGA_COLS;
+		instance->cursor = (instance->cursor + EGA_COLS) -
+		    instance->cursor % EGA_COLS;
 		break;
 	case '\t':
-		instance->cursor = (instance->cursor + 8)
-		    - instance->cursor % 8;
+		instance->cursor = (instance->cursor + 8) -
+		    instance->cursor % 8;
 		break;
 	case '\b':
 		if (instance->cursor % EGA_COLS)

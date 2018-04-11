@@ -197,7 +197,7 @@ errno_t audio_pcm_get_info_str(audio_pcm_sess_t *sess, char **name)
 		if (!name_place) {
 			/* Make the other side fail
 			 * as it waits for read request */
-			async_data_read_start(exch, (void*)-1, 0);
+			async_data_read_start(exch, (void *)-1, 0);
 			async_exchange_end(exch);
 			return ENOMEM;
 		}
@@ -287,10 +287,10 @@ errno_t audio_pcm_test_format(audio_pcm_sess_t *sess, unsigned *channels,
 
 	/* All OK or something has changed. Verify that it was not one of the
 	 * params we care about */
-	if ((ret == EOK || ret == ELIMIT)
-	    && (!channels || *channels == channels_arg)
-	    && (!rate || *rate == rate_arg)
-	    && (!format || *format == format_arg))
+	if ((ret == EOK || ret == ELIMIT) &&
+	    (!channels || *channels == channels_arg) &&
+	    (!rate || *rate == rate_arg) &&
+	    (!format || *format == format_arg))
 		return EOK;
 	if (channels)
 		*channels = channels_arg;
@@ -780,8 +780,8 @@ void remote_audio_pcm_get_buffer(ddf_fun_t *fun, void *iface,
 	}
 
 	ddf_msg(LVL_DEBUG2, "Calling share finalize.");
-	ret = async_share_in_finalize(share_id, buffer, AS_AREA_WRITE
-	| AS_AREA_READ);
+	ret = async_share_in_finalize(share_id, buffer, AS_AREA_WRITE |
+	    AS_AREA_READ);
 	if (ret != EOK) {
 		ddf_msg(LVL_DEBUG, "Failed to share buffer.");
 		pcm_iface->release_buffer(fun);
@@ -811,9 +811,9 @@ void remote_audio_pcm_start_playback(ddf_fun_t *fun, void *iface,
 	const unsigned channels = (DEV_IPC_GET_ARG3(*call) >> 16) & UINT8_MAX;
 	const pcm_sample_format_t format = DEV_IPC_GET_ARG3(*call) & UINT16_MAX;
 
-	const errno_t ret = pcm_iface->start_playback
-	    ? pcm_iface->start_playback(fun, frames, channels, rate, format)
-	    : ENOTSUP;
+	const errno_t ret = pcm_iface->start_playback ?
+	    pcm_iface->start_playback(fun, frames, channels, rate, format) :
+	    ENOTSUP;
 	async_answer_0(chandle, ret);
 }
 
@@ -838,9 +838,9 @@ void remote_audio_pcm_start_capture(ddf_fun_t *fun, void *iface,
 	const unsigned channels = (DEV_IPC_GET_ARG3(*call) >> 16) & UINT16_MAX;
 	const pcm_sample_format_t format = DEV_IPC_GET_ARG3(*call) & UINT16_MAX;
 
-	const errno_t ret = pcm_iface->start_capture
-	    ? pcm_iface->start_capture(fun, frames, channels, rate, format)
-	    : ENOTSUP;
+	const errno_t ret = pcm_iface->start_capture ?
+	    pcm_iface->start_capture(fun, frames, channels, rate, format) :
+	    ENOTSUP;
 	async_answer_0(chandle, ret);
 }
 

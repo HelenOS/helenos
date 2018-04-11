@@ -168,8 +168,8 @@ void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
 	}
 
 	usbdiag_test_results_t results;
-	const errno_t ret = !diag_iface->test_in ? ENOTSUP
-	    : diag_iface->test_in(fun, &params, &results);
+	const errno_t ret = !diag_iface->test_in ? ENOTSUP :
+	    diag_iface->test_in(fun, &params, &results);
 
 	if (ret != EOK) {
 		async_answer_0(chandle, ret);
@@ -222,8 +222,8 @@ void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface,
 	}
 
 	usbdiag_test_results_t results;
-	const errno_t ret = !diag_iface->test_out ? ENOTSUP
-	    : diag_iface->test_out(fun, &params, &results);
+	const errno_t ret = !diag_iface->test_out ? ENOTSUP :
+	    diag_iface->test_out(fun, &params, &results);
 
 	if (ret != EOK) {
 		async_answer_0(chandle, ret);

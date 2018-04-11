@@ -310,8 +310,8 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		/* There should be no global functions. */
 		assert(csi != NULL);
 
-		if (symbol_search_csi(run->program, csi, nameref->name)
-		    == NULL) {
+		if (symbol_search_csi(run->program, csi, nameref->name) ==
+		    NULL) {
 			/* Function is not in the current object. */
 			printf("Error: Cannot access non-static member "
 			    "function '");
@@ -348,8 +348,8 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		/* There should be no global variables or properties. */
 		assert(csi != NULL);
 
-		if (symbol_search_csi(run->program, csi, nameref->name)
-		    == NULL && !stree_symbol_is_static(sym)) {
+		if (symbol_search_csi(run->program, csi, nameref->name) ==
+		    NULL && !stree_symbol_is_static(sym)) {
 			/* Symbol is not in the current object. */
 			printf("Error: Cannot access non-static member "
 			    "variable '");
@@ -1270,7 +1270,7 @@ static void run_unop_int(run_t *run, stree_unop_t *unop, rdata_value_t *val,
 
 	switch (unop->uc) {
 	case uo_plus:
-	        bigint_clone(&val->var->u.int_v->value, &int_v->value);
+		bigint_clone(&val->var->u.int_v->value, &int_v->value);
 		break;
 	case uo_minus:
 		bigint_reverse_sign(&val->var->u.int_v->value,
@@ -1317,7 +1317,7 @@ void run_equal(run_t *run, rdata_value_t *v1, rdata_value_t *v2, bool_t *res)
 		c1 = &v1->var->u.char_v->value;
 		c2 = &v2->var->u.char_v->value;
 
-    		bigint_sub(c1, c2, &diff);
+		bigint_sub(c1, c2, &diff);
 		*res = bigint_is_zero(&diff);
 		break;
 	case vc_int:
@@ -1437,7 +1437,8 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 		exit(1);
 	}
 
-	i = 0; length = 1;
+	i = 0;
+	length = 1;
 	while (node != NULL) {
 		expr = list_node_data(node, stree_expr_t *);
 
@@ -1566,7 +1567,7 @@ static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res)
 	if (run_is_bo(run)) {
 		*res = run_recovery_item(run);
 		goto cleanup;
-    	}
+	}
 
 	if (rarg == NULL) {
 		printf("Error: Sub-expression has no value.\n");
@@ -2754,10 +2755,18 @@ static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res)
 	csi_sym = NULL;
 
 	switch (rarg_vi->u.value->var->vc) {
-	case vc_bool: csi_sym = bi->boxed_bool; break;
-	case vc_char: csi_sym = bi->boxed_char; break;
-	case vc_int: csi_sym = bi->boxed_int; break;
-	case vc_string: csi_sym = bi->boxed_string; break;
+	case vc_bool:
+		csi_sym = bi->boxed_bool;
+		break;
+	case vc_char:
+		csi_sym = bi->boxed_char;
+		break;
+	case vc_int:
+		csi_sym = bi->boxed_int;
+		break;
+	case vc_string:
+		csi_sym = bi->boxed_string;
+		break;
 
 	case vc_ref:
 	case vc_deleg:

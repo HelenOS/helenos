@@ -73,10 +73,10 @@
  * 1 / exp(5 sec / 15 min)
  *
  */
-static load_t load_exp[LOAD_STEPS] = {1884, 2014, 2037};
+static load_t load_exp[LOAD_STEPS] = { 1884, 2014, 2037 };
 
 /** Running average of the number of ready threads */
-static load_t avenrdy[LOAD_STEPS] = {0, 0, 0};
+static load_t avenrdy[LOAD_STEPS] = { 0, 0, 0 };
 
 /** Load calculation lock */
 static mutex_t load_lock;

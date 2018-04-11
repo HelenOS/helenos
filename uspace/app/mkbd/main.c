@@ -144,8 +144,8 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 	usb_hid_report_path_set_report_id(path, report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    report, NULL, path, USB_HID_PATH_COMPARE_END
-	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+	    report, NULL, path, USB_HID_PATH_COMPARE_END |
+	    USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 	    USB_HID_REPORT_TYPE_INPUT);
 
 	while (field != NULL) {
@@ -156,8 +156,8 @@ static void print_key(uint8_t *buffer, size_t size, usb_hid_report_t *report)
 		}
 
 		field = usb_hid_report_get_sibling(
-		    report, field, path, USB_HID_PATH_COMPARE_END
-		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		    report, field, path, USB_HID_PATH_COMPARE_END |
+		    USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		    USB_HID_REPORT_TYPE_INPUT);
 	}
 
@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 	async_sess_t *sess = devman_device_connect(dev_handle, 0);
 	if (!sess) {
 		printf(NAME ": failed to connect to the device (handle %"
-		       PRIun "): %s.\n", dev_handle, str_error(errno));
+		    PRIun "): %s.\n", dev_handle, str_error(errno));
 		return errno;
 	}
 
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
 	rc = devman_fun_get_path(dev_handle, path, MAX_PATH_LENGTH);
 	if (rc != EOK) {
 		printf(NAME ": failed to get path (handle %"
-		       PRIun "): %s.\n", dev_handle, str_error(errno));
+		    PRIun "): %s.\n", dev_handle, str_error(errno));
 		return ENOMEM;
 	}
 

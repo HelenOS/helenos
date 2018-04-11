@@ -61,8 +61,8 @@ static size_t bandwidth_count_usb11(endpoint_t *ep)
 	const usb_transfer_type_t type = ep->transfer_type;
 
 	/* We care about bandwidth only for interrupt and isochronous. */
-	if ((type != USB_TRANSFER_INTERRUPT)
-	    && (type != USB_TRANSFER_ISOCHRONOUS)) {
+	if ((type != USB_TRANSFER_INTERRUPT) &&
+	    (type != USB_TRANSFER_ISOCHRONOUS)) {
 		return 0;
 	}
 
@@ -126,8 +126,8 @@ static size_t bandwidth_count_usb2(endpoint_t *ep)
 	const usb_transfer_type_t type = ep->transfer_type;
 
 	/* We care about bandwidth only for interrupt and isochronous. */
-	if ((type != USB_TRANSFER_INTERRUPT)
-	    && (type != USB_TRANSFER_ISOCHRONOUS)) {
+	if ((type != USB_TRANSFER_INTERRUPT) &&
+	    (type != USB_TRANSFER_ISOCHRONOUS)) {
 		return 0;
 	}
 
@@ -142,10 +142,10 @@ static size_t bandwidth_count_usb2(endpoint_t *ep)
 	case USB_SPEED_LOW:
 		if (ep->direction == USB_DIRECTION_IN)
 			return 64060 + (2 * hub_ls_setup) +
-				(677 * base_time) + host_delay;
+			    (677 * base_time) + host_delay;
 		else
 			return 64107 + (2 * hub_ls_setup) +
-				(667 * base_time) + host_delay;
+			    (667 * base_time) + host_delay;
 
 	case USB_SPEED_FULL:
 		if (ep->transfer_type == USB_TRANSFER_INTERRUPT)

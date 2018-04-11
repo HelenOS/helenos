@@ -89,8 +89,8 @@ enum {
 
 cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 {
-	cuda_instance_t *instance
-	    = malloc(sizeof(cuda_instance_t), FRAME_ATOMIC);
+	cuda_instance_t *instance =
+	    malloc(sizeof(cuda_instance_t), FRAME_ATOMIC);
 	if (instance) {
 		instance->cuda = dev;
 		instance->kbrdin = NULL;
@@ -167,12 +167,22 @@ static void cuda_irq_handler(irq_t *irq)
 	pio_write_8(&instance->cuda->ifr, SR_INT);
 
 	switch (instance->xstate) {
-	case cx_listen: cuda_irq_listen(irq); break;
-	case cx_receive: cuda_irq_receive(irq); break;
-	case cx_rcv_end: cuda_irq_rcv_end(irq, rbuf, &len);
-	    handle = true; break;
-	case cx_send_start: cuda_irq_send_start(irq); break;
-	case cx_send: cuda_irq_send(irq); break;
+	case cx_listen:
+		cuda_irq_listen(irq);
+		break;
+	case cx_receive:
+		cuda_irq_receive(irq);
+		break;
+	case cx_rcv_end:
+		cuda_irq_rcv_end(irq, rbuf, &len);
+		handle = true;
+		break;
+	case cx_send_start:
+		cuda_irq_send_start(irq);
+		break;
+	case cx_send:
+		cuda_irq_send(irq);
+		break;
 	}
 
 	spinlock_unlock(&instance->dev_lock);
@@ -313,8 +323,8 @@ static void cuda_irq_send(irq_t *irq)
 
 static void cuda_packet_handle(cuda_instance_t *instance, uint8_t *data, size_t len)
 {
-	if (data[0] != 0x00 || data[1] != 0x40 || (data[2] != 0x2c
-		&& data[2] != 0x8c))
+	if (data[0] != 0x00 || data[1] != 0x40 || (data[2] != 0x2c &&
+	    data[2] != 0x8c))
 		return;
 
 	/* The packet contains one or two scancodes. */

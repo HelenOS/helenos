@@ -833,7 +833,7 @@ static errno_t ext4_directory_dx_split_data(ext4_inode_ref_t *inode_ref,
 
 	/* Check hash collision */
 	uint32_t continued = 0;
-	if (new_hash == sort_array[mid-1].hash)
+	if (new_hash == sort_array[mid - 1].hash)
 		continued = 1;
 
 	uint32_t offset = 0;
@@ -897,7 +897,7 @@ static errno_t ext4_directory_dx_split_data(ext4_inode_ref_t *inode_ref,
  *
  */
 static errno_t ext4_directory_dx_split_index(ext4_inode_ref_t *inode_ref,
-		ext4_directory_dx_block_t *dx_blocks, ext4_directory_dx_block_t *dx_block)
+    ext4_directory_dx_block_t *dx_blocks, ext4_directory_dx_block_t *dx_block)
 {
 	ext4_directory_dx_entry_t *entries;
 	if (dx_block == dx_blocks)

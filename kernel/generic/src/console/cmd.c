@@ -922,7 +922,7 @@ int cmd_uptime(cmd_arg_t *argv)
 	sysarg_t sec = uptime->seconds1;
 
 	printf("Up %" PRIun " days, %" PRIun " hours, %" PRIun " minutes, %" PRIun " seconds\n",
-		sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60);
+	    sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60);
 
 	return 1;
 }
@@ -1087,7 +1087,7 @@ int cmd_call2(cmd_arg_t *argv)
 		    arch_construct_function(&fptr, (void *) symaddr,
 		    (void *) cmd_call2);
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n",
-		       arg1, arg2, (void *) symaddr, symbol);
+		    arg1, arg2, (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
 		interrupts_restore(ipl);
 	} else {
@@ -1124,7 +1124,7 @@ int cmd_call3(cmd_arg_t *argv)
 		    arch_construct_function(&fptr, (void *) symaddr,
 		    (void *) cmd_call3);
 		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n",
-		       arg1, arg2, arg3, (void *) symaddr, symbol);
+		    arg1, arg2, arg3, (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2, arg3));
 		interrupts_restore(ipl);
 	} else {
@@ -1187,7 +1187,7 @@ int cmd_set4(cmd_arg_t *argv)
 		rc = symtab_addr_lookup((char *) argv->buffer + 1, &addr);
 		pointer = true;
 	} else if (((char *) argv->buffer)[0] >= '0' &&
-		   ((char *) argv->buffer)[0] <= '9') {
+	    ((char *) argv->buffer)[0] <= '9') {
 		uint64_t value;
 		rc = str_uint64_t((char *) argv->buffer, NULL, 0, true, &value);
 		if (rc == EOK)
@@ -1205,7 +1205,7 @@ int cmd_set4(cmd_arg_t *argv)
 	} else if (rc == EOK) {
 		if (pointer)
 			addr = *(uintptr_t *) addr;
-		printf("Writing %#" PRIx32" -> %p\n", arg1, (void *) addr);
+		printf("Writing %#" PRIx32 " -> %p\n", arg1, (void *) addr);
 		*(uint32_t *) addr = arg1;
 	} else
 		printf("No symbol information available.\n");

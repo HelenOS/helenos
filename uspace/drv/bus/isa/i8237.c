@@ -292,7 +292,7 @@ static inline errno_t dma_controller_init(dma_controller_t *controller)
 		return EIO;
 
 	ret = pio_enable(DMA_CONTROLLER_SECOND_BASE,
-		sizeof(dma_controller_regs_second_t), (void **) &controller->second);
+	    sizeof(dma_controller_regs_second_t), (void **) &controller->second);
 	if (ret != EOK)
 		return EIO;
 
@@ -483,13 +483,13 @@ errno_t dma_channel_remain(unsigned channel, size_t *size)
 	    dma_channel.size_reg_address, value_high);
 	fibril_mutex_unlock(&guard);
 
-	uint16_t remain = (value_high << 8 | value_low) ;
+	uint16_t remain = (value_high << 8 | value_low);
 	/* 16 bit DMA size is in words,
 	 * the upper bits are bogus for 16bit transfers so we need to get
 	 * rid of them. Using limited type works well.*/
 	if (is_dma16(channel))
 		remain <<= 1;
-	*size =  is_dma16(channel) ? remain + 2: remain + 1;
+	*size =  is_dma16(channel) ? remain + 2 : remain + 1;
 	return EOK;
 }
 /**

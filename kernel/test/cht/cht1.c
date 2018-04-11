@@ -94,15 +94,15 @@ static void set_val(val_t *v, size_t h, size_t uid)
 /*-------------------------------------------------------------------*/
 
 
-static const char * do_sanity_test(cht_t *h)
+static const char *do_sanity_test(cht_t *h)
 {
-	if (cht_find_lazy(h, (void*)0))
+	if (cht_find_lazy(h, (void *)0))
 		return "Found lazy in empty table.";
 
-	if (cht_find(h, (void*)0))
+	if (cht_find(h, (void *)0))
 		return "Found in empty table.";
 
-	if (cht_remove_key(h, (void*)0))
+	if (cht_remove_key(h, (void *)0))
 		return "Removed from empty table.";
 
 	const int val_cnt = 6;
@@ -148,10 +148,10 @@ static const char * do_sanity_test(cht_t *h)
 	if (!ok)
 		return "Refused unique ins 4, 5.";
 
-	if (cht_find(h, (void*)0))
+	if (cht_find(h, (void *)0))
 		return "Phantom find.";
 
-	cht_link_t *item = cht_find(h, (void*)v[5]->unique_id);
+	cht_link_t *item = cht_find(h, (void *)v[5]->unique_id);
 	if (!item || item != &v[5]->link)
 		return "Missing 5.";
 
@@ -159,7 +159,7 @@ static const char * do_sanity_test(cht_t *h)
 	if (item)
 		return "Found nonexisting duplicate 5";
 
-	item = cht_find(h, (void*)v[3]->unique_id);
+	item = cht_find(h, (void *)v[3]->unique_id);
 	if (!item || item != &v[3]->link)
 		return "Missing 3.";
 
@@ -167,15 +167,15 @@ static const char * do_sanity_test(cht_t *h)
 	if (item)
 		return "Found nonexisting duplicate 3, same hash as others.";
 
-	item = cht_find(h, (void*)v[0]->unique_id);
-	((val_t*)item)->mark = true;
+	item = cht_find(h, (void *)v[0]->unique_id);
+	((val_t *)item)->mark = true;
 
 	for (int k = 1; k < 3; ++k) {
 		item = cht_find_next(h, item);
 		if (!item)
 			return "Did not find an inserted duplicate";
 
-		val_t *val = ((val_t*)item);
+		val_t *val = ((val_t *)item);
 
 		if (val->unique_id != v[0]->unique_id)
 			return "Found item with a different key.";
@@ -194,46 +194,46 @@ static const char * do_sanity_test(cht_t *h)
 	if (cht_find_next(h, item))
 		return "Found non-existing duplicate.";
 
-	item = cht_find_next(h, cht_find(h, (void*)key[0]));
+	item = cht_find_next(h, cht_find(h, (void *)key[0]));
 
-	((val_t*)item)->mark = true;
+	((val_t *)item)->mark = true;
 	if (!cht_remove_item(h, item))
 		return "Failed to remove inserted item";
 
-	item = cht_find(h, (void*)key[0]);
-	if (!item || ((val_t*)item)->mark)
+	item = cht_find(h, (void *)key[0]);
+	if (!item || ((val_t *)item)->mark)
 		return "Did not find proper item.";
 
 	item = cht_find_next(h, item);
-	if (!item || ((val_t*)item)->mark)
+	if (!item || ((val_t *)item)->mark)
 		return "Did not find proper duplicate.";
 
 	item = cht_find_next(h, item);
 	if (item)
 		return "Found removed duplicate";
 
-	if (2 != cht_remove_key(h, (void*)key[0]))
+	if (2 != cht_remove_key(h, (void *)key[0]))
 		return "Failed to remove all duplicates";
 
-	if (cht_find(h, (void*)key[0]))
+	if (cht_find(h, (void *)key[0]))
 		return "Found removed key";
 
-	if (!cht_find(h, (void*)key[3]))
+	if (!cht_find(h, (void *)key[3]))
 		return "Removed incorrect key";
 
 	for (size_t k = 0; k < sizeof(v) / sizeof(v[0]); ++k) {
-		cht_remove_key(h, (void*)key[k]);
+		cht_remove_key(h, (void *)key[k]);
 	}
 
 	for (size_t k = 0; k < sizeof(v) / sizeof(v[0]); ++k) {
-		if (cht_find(h, (void*)key[k]))
+		if (cht_find(h, (void *)key[k]))
 			return "Found a key in a cleared table";
 	}
 
 	return NULL;
 }
 
-static const char * sanity_test(void)
+static const char *sanity_test(void)
 {
 	cht_t h;
 	if (!cht_create_simple(&h, &val_ops))
@@ -278,7 +278,7 @@ typedef struct {
 
 static size_t stress_hash(const cht_link_t *item)
 {
-	return ((stress_t*)item)->key >> 8;
+	return ((stress_t *)item)->key >> 8;
 }
 static size_t stress_key_hash(void *key)
 {
@@ -286,18 +286,18 @@ static size_t stress_key_hash(void *key)
 }
 static bool stress_equal(const cht_link_t *item1, const cht_link_t *item2)
 {
-	return ((stress_t*)item1)->key == ((stress_t*)item2)->key;
+	return ((stress_t *)item1)->key == ((stress_t *)item2)->key;
 }
 static bool stress_key_equal(void *key, const cht_link_t *item)
 {
-	return ((size_t)key) == ((stress_t*)item)->key;
+	return ((size_t)key) == ((stress_t *)item)->key;
 }
 static void stress_rm_callback(cht_link_t *item)
 {
-	if (((stress_t*)item)->free)
+	if (((stress_t *)item)->free)
 		free(item);
 	else
-		((stress_t*)item)->deleted = true;
+		((stress_t *)item)->deleted = true;
 }
 
 cht_ops_t stress_ops = {
@@ -334,7 +334,7 @@ static void resize_stresser(void *arg)
 		for (size_t i = 0; i < work->wave_elems; ++i) {
 			size_t key = (i << 8) + work->id;
 
-			if (1 != cht_remove_key(work->h, (void*)key)) {
+			if (1 != cht_remove_key(work->h, (void *)key)) {
 				TPRINTF("Err: Failed to remove inserted item\n");
 				goto failed;
 			}
@@ -356,7 +356,7 @@ out_of_mem:
 	/* Remove anything we may have inserted. */
 	for (size_t i = 0; i < work->wave_elems; ++i) {
 		size_t key = (i << 8) + work->id;
-		cht_remove_key(work->h, (void*)key);
+		cht_remove_key(work->h, (void *)key);
 	}
 }
 
@@ -391,7 +391,7 @@ static void op_stresser(void *arg)
 					cht_remove_item(work->h, &work->elem[elem_idx].link);
 					rcu_read_unlock();
 				} else {
-					void *key = (void*)work->elem[elem_idx].key;
+					void *key = (void *)work->elem[elem_idx].key;
 					if (1 != cht_remove_key(work->h, key)) {
 						TPRINTF("Err: did not rm the key\n");
 						work->failed = true;
@@ -405,7 +405,7 @@ static void op_stresser(void *arg)
 					rcu_read_lock();
 					cht_link_t *dup;
 					if (!cht_insert_unique(work->h, &work->elem[elem_idx].link,
-						&dup)) {
+					    &dup)) {
 						TPRINTF("Err: already inserted\n");
 						work->failed = true;
 					}
@@ -419,7 +419,7 @@ static void op_stresser(void *arg)
 		} else {
 			rcu_read_lock();
 			cht_link_t *item =
-				cht_find(work->h, (void*)work->elem[elem_idx].key);
+			    cht_find(work->h, (void *)work->elem[elem_idx].key);
 			rcu_read_unlock();
 
 			if (item) {
@@ -443,7 +443,7 @@ static void op_stresser(void *arg)
 
 	/* Remove anything we may have inserted. */
 	for (size_t i = 0; i < work->elem_cnt; ++i) {
-		void *key = (void*) work->elem[i].key;
+		void *key = (void *) work->elem[i].key;
 		cht_remove_key(work->h, key);
 	}
 }
@@ -468,8 +468,8 @@ static bool do_stress(void)
 	size_t item_cnt = op_thread_cnt * items_per_thread;
 
 	/* Alloc hash table items. */
-	size_t size = item_cnt * sizeof(stress_t) + work_cnt * sizeof(stress_work_t)
-		+ sizeof(int);
+	size_t size = item_cnt * sizeof(stress_t) + work_cnt * sizeof(stress_work_t) +
+	    sizeof(int);
 
 	TPRINTF("Alloc and init table items. \n");
 	void *p = malloc(size, FRAME_ATOMIC);
@@ -481,7 +481,7 @@ static bool do_stress(void)
 
 	stress_t *pitem = p + work_cnt * sizeof(stress_work_t);
 	stress_work_t *pwork = p;
-	int *pstop = (int*)(pitem + item_cnt);
+	int *pstop = (int *)(pitem + item_cnt);
 
 	*pstop = 0;
 
@@ -516,7 +516,7 @@ static bool do_stress(void)
 	}
 
 	TPRINTF("Running %zu ins/del/find stress threads + %zu resizers.\n",
-		op_thread_cnt, resize_thread_cnt);
+	    op_thread_cnt, resize_thread_cnt);
 
 	/* Create and run threads. */
 	thread_t *thr[max_thread_cnt + resize_thread_cnt];

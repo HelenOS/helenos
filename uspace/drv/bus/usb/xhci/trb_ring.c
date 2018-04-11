@@ -121,8 +121,8 @@ errno_t xhci_trb_ring_init(xhci_trb_ring_t *ring, size_t initial_size)
 		initial_size = SEGMENT_TRB_USEFUL_COUNT;
 
 	list_initialize(&ring->segments);
-	size_t segment_count = (initial_size + SEGMENT_TRB_USEFUL_COUNT - 1)
-		/ SEGMENT_TRB_USEFUL_COUNT;
+	size_t segment_count = (initial_size + SEGMENT_TRB_USEFUL_COUNT - 1) /
+	    SEGMENT_TRB_USEFUL_COUNT;
 
 	for (size_t i = 0; i < segment_count; ++i) {
 		struct trb_segment *segment;
@@ -133,7 +133,7 @@ errno_t xhci_trb_ring_init(xhci_trb_ring_t *ring, size_t initial_size)
 		ring->segment_count = i + 1;
 	}
 
-	trb_segment_t * const segment = get_first_segment(&ring->segments);
+	trb_segment_t *const segment = get_first_segment(&ring->segments);
 	xhci_trb_t *last = segment_end(segment) - 1;
 	xhci_trb_link_fill(last, segment->phys);
 	TRB_LINK_SET_TC(*last, true);
@@ -197,8 +197,8 @@ static uintptr_t trb_ring_enqueue_phys(xhci_trb_ring_t *ring)
  */
 static bool trb_generates_interrupt(xhci_trb_t *trb)
 {
-	return TRB_TYPE(*trb) >= XHCI_TRB_TYPE_ENABLE_SLOT_CMD
-		|| TRB_IOC(*trb);
+	return TRB_TYPE(*trb) >= XHCI_TRB_TYPE_ENABLE_SLOT_CMD ||
+	    TRB_IOC(*trb);
 }
 
 /**
@@ -219,7 +219,7 @@ static bool trb_generates_interrupt(xhci_trb_t *trb)
  *         EAGAIN when the ring is too full to fit all TRBs (temporary)
  */
 errno_t xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_trb,
-	size_t trbs, uintptr_t *phys)
+    size_t trbs, uintptr_t *phys)
 {
 	errno_t err;
 	assert(trbs > 0);
@@ -229,8 +229,8 @@ errno_t xhci_trb_ring_enqueue_multiple(xhci_trb_ring_t *ring, xhci_trb_t *first_
 
 	fibril_mutex_lock(&ring->guard);
 
-	xhci_trb_t * const saved_enqueue_trb = ring->enqueue_trb;
-	trb_segment_t * const saved_enqueue_segment = ring->enqueue_segment;
+	xhci_trb_t *const saved_enqueue_trb = ring->enqueue_trb;
+	trb_segment_t *const saved_enqueue_segment = ring->enqueue_segment;
 	if (phys)
 		*phys = (uintptr_t)NULL;
 
@@ -364,9 +364,9 @@ errno_t xhci_event_ring_init(xhci_event_ring_t *ring, size_t initial_size)
 void xhci_event_ring_reset(xhci_event_ring_t *ring)
 {
 	list_foreach(ring->segments, segments_link, trb_segment_t, segment)
-		memset(segment->trb_storage, 0, sizeof(segment->trb_storage));
+	    memset(segment->trb_storage, 0, sizeof(segment->trb_storage));
 
-	trb_segment_t * const segment = get_first_segment(&ring->segments);
+	trb_segment_t *const segment = get_first_segment(&ring->segments);
 	ring->dequeue_segment = segment;
 	ring->dequeue_trb = segment_begin(segment);
 	ring->dequeue_ptr = segment->phys;

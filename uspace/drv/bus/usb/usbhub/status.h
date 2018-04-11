@@ -58,8 +58,8 @@ static inline usb_speed_t usb_port_speed(usb_speed_t hub_speed, uint32_t status)
 {
 	if (hub_speed == USB_SPEED_SUPER)
 		return USB_SPEED_SUPER;
-	if (hub_speed == USB_SPEED_HIGH
-	    && (status & USB2_HUB_PORT_STATUS_HIGH_SPEED))
+	if (hub_speed == USB_SPEED_HIGH &&
+	    (status & USB2_HUB_PORT_STATUS_HIGH_SPEED))
 		return USB_SPEED_HIGH;
 	if ((status & USB2_HUB_PORT_STATUS_LOW_SPEED) != 0)
 		return USB_SPEED_LOW;

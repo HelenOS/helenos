@@ -48,14 +48,14 @@ static void on_state_change(usbvirt_device_t *dev,
 	hub_acquire(hub);
 
 	switch (new_state) {
-		case USBVIRT_STATE_CONFIGURED:
-			hub_set_port_state_all(hub, HUB_PORT_STATE_POWERED_OFF);
-			break;
-		case USBVIRT_STATE_ADDRESS:
-			hub_set_port_state_all(hub, HUB_PORT_STATE_NOT_CONFIGURED);
-			break;
-		default:
-			break;
+	case USBVIRT_STATE_CONFIGURED:
+		hub_set_port_state_all(hub, HUB_PORT_STATE_POWERED_OFF);
+		break;
+	case USBVIRT_STATE_ADDRESS:
+		hub_set_port_state_all(hub, HUB_PORT_STATE_NOT_CONFIGURED);
+		break;
+	default:
+		break;
 	}
 
 	hub_release(hub);
@@ -136,58 +136,58 @@ static errno_t req_clear_port_feature(usbvirt_device_t *dev,
 	hub_port_state_t port_state = hub_get_port_state(hub, port);
 
 	switch (feature) {
-		case USB2_HUB_FEATURE_PORT_ENABLE:
-			if ((port_state != HUB_PORT_STATE_NOT_CONFIGURED)
-			    && (port_state != HUB_PORT_STATE_POWERED_OFF)) {
-				hub_set_port_state(hub, port, HUB_PORT_STATE_DISABLED);
-			}
+	case USB2_HUB_FEATURE_PORT_ENABLE:
+		if ((port_state != HUB_PORT_STATE_NOT_CONFIGURED) &&
+		    (port_state != HUB_PORT_STATE_POWERED_OFF)) {
+			hub_set_port_state(hub, port, HUB_PORT_STATE_DISABLED);
+		}
+		rc = EOK;
+		break;
+
+	case USB2_HUB_FEATURE_PORT_SUSPEND:
+		if (port_state != HUB_PORT_STATE_SUSPENDED) {
 			rc = EOK;
 			break;
+		}
+		hub_set_port_state(hub, port, HUB_PORT_STATE_RESUMING);
+		rc = EOK;
+		break;
 
-		case USB2_HUB_FEATURE_PORT_SUSPEND:
-			if (port_state != HUB_PORT_STATE_SUSPENDED) {
-				rc = EOK;
-				break;
-			}
-			hub_set_port_state(hub, port, HUB_PORT_STATE_RESUMING);
-			rc = EOK;
-			break;
+	case USB_HUB_FEATURE_PORT_POWER:
+		if (port_state != HUB_PORT_STATE_NOT_CONFIGURED) {
+			hub_set_port_state(hub, port, HUB_PORT_STATE_POWERED_OFF);
+		}
+		rc = EOK;
+		break;
 
-		case USB_HUB_FEATURE_PORT_POWER:
-			if (port_state != HUB_PORT_STATE_NOT_CONFIGURED) {
-				hub_set_port_state(hub, port, HUB_PORT_STATE_POWERED_OFF);
-			}
-			rc = EOK;
-			break;
+	case USB_HUB_FEATURE_C_PORT_CONNECTION:
+		hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_CONNECTION);
+		rc = EOK;
+		break;
 
-		case USB_HUB_FEATURE_C_PORT_CONNECTION:
-			hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_CONNECTION);
-			rc = EOK;
-			break;
+	case USB2_HUB_FEATURE_C_PORT_ENABLE:
+		hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_ENABLE);
+		rc = EOK;
+		break;
 
-		case USB2_HUB_FEATURE_C_PORT_ENABLE:
-			hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_ENABLE);
-			rc = EOK;
-			break;
+	case USB2_HUB_FEATURE_C_PORT_SUSPEND:
+		hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_SUSPEND);
+		rc = EOK;
+		break;
 
-		case USB2_HUB_FEATURE_C_PORT_SUSPEND:
-			hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_SUSPEND);
-			rc = EOK;
-			break;
+	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
+		hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_OVER_CURRENT);
+		rc = EOK;
+		break;
 
-		case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
-			hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_OVER_CURRENT);
-			rc = EOK;
-			break;
+	case USB_HUB_FEATURE_C_PORT_RESET:
+		hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_RESET);
+		rc = EOK;
+		break;
 
-		case USB_HUB_FEATURE_C_PORT_RESET:
-			hub_clear_port_status_change(hub, port, HUB_STATUS_C_PORT_RESET);
-			rc = EOK;
-			break;
-
-		default:
-			rc = ENOTSUP;
-			break;
+	default:
+		rc = ENOTSUP;
+		break;
 	}
 
 	hub_release(hub);
@@ -309,29 +309,29 @@ static errno_t req_set_port_feature(usbvirt_device_t *dev,
 	hub_port_state_t port_state = hub_get_port_state(hub, port);
 
 	switch (feature) {
-		case USB_HUB_FEATURE_PORT_RESET:
-			if (port_state != HUB_PORT_STATE_POWERED_OFF) {
-				hub_set_port_state(hub, port, HUB_PORT_STATE_RESETTING);
-			}
-			rc = EOK;
-			break;
+	case USB_HUB_FEATURE_PORT_RESET:
+		if (port_state != HUB_PORT_STATE_POWERED_OFF) {
+			hub_set_port_state(hub, port, HUB_PORT_STATE_RESETTING);
+		}
+		rc = EOK;
+		break;
 
-		case USB2_HUB_FEATURE_PORT_SUSPEND:
-			if (port_state == HUB_PORT_STATE_ENABLED) {
-				hub_set_port_state(hub, port, HUB_PORT_STATE_SUSPENDED);
-			}
-			rc = EOK;
-			break;
+	case USB2_HUB_FEATURE_PORT_SUSPEND:
+		if (port_state == HUB_PORT_STATE_ENABLED) {
+			hub_set_port_state(hub, port, HUB_PORT_STATE_SUSPENDED);
+		}
+		rc = EOK;
+		break;
 
-		case USB_HUB_FEATURE_PORT_POWER:
-			if (port_state == HUB_PORT_STATE_POWERED_OFF) {
-				hub_set_port_state(hub, port, HUB_PORT_STATE_DISCONNECTED);
-			}
-			rc = EOK;
-			break;
+	case USB_HUB_FEATURE_PORT_POWER:
+		if (port_state == HUB_PORT_STATE_POWERED_OFF) {
+			hub_set_port_state(hub, port, HUB_PORT_STATE_DISCONNECTED);
+		}
+		rc = EOK;
+		break;
 
-		default:
-			break;
+	default:
+		break;
 	}
 
 	hub_release(hub);

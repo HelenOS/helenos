@@ -101,30 +101,30 @@ static struct {
 	uint32_t andmask;
 	uint32_t value;
 } jmpinstr[] = {
-	{0xf3ff0000, 0x41000000},  /* BCzF */
-	{0xf3ff0000, 0x41020000},  /* BCzFL */
-	{0xf3ff0000, 0x41010000},  /* BCzT */
-	{0xf3ff0000, 0x41030000},  /* BCzTL */
-	{0xfc000000, 0x10000000},  /* BEQ */
-	{0xfc000000, 0x50000000},  /* BEQL */
-	{0xfc1f0000, 0x04010000},  /* BEQL */
-	{0xfc1f0000, 0x04110000},  /* BGEZAL */
-	{0xfc1f0000, 0x04130000},  /* BGEZALL */
-	{0xfc1f0000, 0x04030000},  /* BGEZL */
-	{0xfc1f0000, 0x1c000000},  /* BGTZ */
-	{0xfc1f0000, 0x5c000000},  /* BGTZL */
-	{0xfc1f0000, 0x18000000},  /* BLEZ */
-	{0xfc1f0000, 0x58000000},  /* BLEZL */
-	{0xfc1f0000, 0x04000000},  /* BLTZ */
-	{0xfc1f0000, 0x04100000},  /* BLTZAL */
-	{0xfc1f0000, 0x04120000},  /* BLTZALL */
-	{0xfc1f0000, 0x04020000},  /* BLTZL */
-	{0xfc000000, 0x14000000},  /* BNE */
-	{0xfc000000, 0x54000000},  /* BNEL */
-	{0xfc000000, 0x08000000},  /* J */
-	{0xfc000000, 0x0c000000},  /* JAL */
-	{0xfc1f07ff, 0x00000009},  /* JALR */
-	{0, 0}                     /* end of table */
+	{ 0xf3ff0000, 0x41000000 },  /* BCzF */
+	{ 0xf3ff0000, 0x41020000 },  /* BCzFL */
+	{ 0xf3ff0000, 0x41010000 },  /* BCzT */
+	{ 0xf3ff0000, 0x41030000 },  /* BCzTL */
+	{ 0xfc000000, 0x10000000 },  /* BEQ */
+	{ 0xfc000000, 0x50000000 },  /* BEQL */
+	{ 0xfc1f0000, 0x04010000 },  /* BEQL */
+	{ 0xfc1f0000, 0x04110000 },  /* BGEZAL */
+	{ 0xfc1f0000, 0x04130000 },  /* BGEZALL */
+	{ 0xfc1f0000, 0x04030000 },  /* BGEZL */
+	{ 0xfc1f0000, 0x1c000000 },  /* BGTZ */
+	{ 0xfc1f0000, 0x5c000000 },  /* BGTZL */
+	{ 0xfc1f0000, 0x18000000 },  /* BLEZ */
+	{ 0xfc1f0000, 0x58000000 },  /* BLEZL */
+	{ 0xfc1f0000, 0x04000000 },  /* BLTZ */
+	{ 0xfc1f0000, 0x04100000 },  /* BLTZAL */
+	{ 0xfc1f0000, 0x04120000 },  /* BLTZALL */
+	{ 0xfc1f0000, 0x04020000 },  /* BLTZL */
+	{ 0xfc000000, 0x14000000 },  /* BNE */
+	{ 0xfc000000, 0x54000000 },  /* BNEL */
+	{ 0xfc000000, 0x08000000 },  /* J */
+	{ 0xfc000000, 0x0c000000 },  /* JAL */
+	{ 0xfc1f07ff, 0x00000009 },  /* JALR */
+	{ 0, 0 }                     /* end of table */
 };
 
 /** Test, if the given instruction is a jump or branch instruction
@@ -272,8 +272,8 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 			printf("%-4u %7zu %p %-8s %-9s %-10s %s\n", i,
 			    breakpoints[i].counter, (void *) breakpoints[i].address,
 			    ((breakpoints[i].flags & BKPOINT_INPROG) ? "true" :
-			    "false"), ((breakpoints[i].flags & BKPOINT_ONESHOT)
-			    ? "true" : "false"), ((breakpoints[i].flags &
+			    "false"), ((breakpoints[i].flags & BKPOINT_ONESHOT) ?
+			    "true" : "false"), ((breakpoints[i].flags &
 			    BKPOINT_FUNCCALL) ? "true" : "false"), symbol);
 		}
 	}
@@ -381,7 +381,7 @@ void debugger_bpoint(istate_t *istate)
 		((uint32_t *)cur->address)[0] = cur->instruction;
 		smc_coherence(cur->address);
 
-		if (! (cur->flags & BKPOINT_ONESHOT)) {
+		if (!(cur->flags & BKPOINT_ONESHOT)) {
 			/* Set Breakpoint on next instruction */
 			((uint32_t *)cur->address)[1] = 0x0d;
 			cur->flags |= BKPOINT_REINST;
@@ -421,8 +421,8 @@ void debugger_bpoint(istate_t *istate)
 #endif
 	}
 
-	if ((cur) && (cur->address == fireaddr)
-	    && ((cur->flags & BKPOINT_INPROG))) {
+	if ((cur) && (cur->address == fireaddr) &&
+	    ((cur->flags & BKPOINT_INPROG))) {
 		/* Remove one-shot breakpoint */
 		if ((cur->flags & BKPOINT_ONESHOT))
 			cur->address = (uintptr_t) NULL;

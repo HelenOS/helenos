@@ -228,7 +228,7 @@ void universal_handler(unsigned int n, istate_t *istate)
 static void end_of_local_irq(void)
 {
 	asm volatile (
-		"mov cr.eoi = r0 ;;"
+	    "mov cr.eoi = r0 ;;"
 	);
 }
 
@@ -244,7 +244,7 @@ void external_interrupt(unsigned int n, istate_t *istate)
 	switch (ivr.vector) {
 	case INTERRUPT_SPURIOUS:
 #ifdef CONFIG_DEBUG
- 		printf("cpu%d: spurious interrupt\n", CPU->id);
+		printf("cpu%d: spurious interrupt\n", CPU->id);
 #endif
 		break;
 

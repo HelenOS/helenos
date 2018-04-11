@@ -125,16 +125,24 @@ errno_t amdm37x_dispc_init(amdm37x_dispc_t *instance, visualizer_t *vis)
 	/* Default is 24bpp, use config option if available */
 	visual_t visual = VISUAL_BGR_8_8_8;
 	switch (CONFIG_BFB_BPP)	{
-	case 8: visual = VISUAL_INDIRECT_8; break;
-	case 16: visual = VISUAL_RGB_5_6_5_LE; break;
-	case 24: visual = VISUAL_BGR_8_8_8; break;
-	case 32: visual = VISUAL_RGB_8_8_8_0; break;
+	case 8:
+		visual = VISUAL_INDIRECT_8;
+		break;
+	case 16:
+		visual = VISUAL_RGB_5_6_5_LE;
+		break;
+	case 24:
+		visual = VISUAL_BGR_8_8_8;
+		break;
+	case 32:
+		visual = VISUAL_RGB_8_8_8_0;
+		break;
 	default:
 		return EINVAL;
 	}
 
-	errno_t ret = pio_enable((void*)AMDM37x_DISPC_BASE_ADDRESS,
-	    AMDM37x_DISPC_SIZE, (void**)&instance->regs);
+	errno_t ret = pio_enable((void *)AMDM37x_DISPC_BASE_ADDRESS,
+	    AMDM37x_DISPC_SIZE, (void **)&instance->regs);
 	if (ret != EOK) {
 		return EIO;
 	}
@@ -169,8 +177,7 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 	/* Pixel format specifics*/
 	uint32_t attrib_pixel_format = 0;
 	uint32_t control_data_lanes = 0;
-	switch (bpp)
-	{
+	switch (bpp) {
 	case 32:
 		attrib_pixel_format = AMDM37X_DISPC_GFX_ATTRIBUTES_FORMAT_RGBX;
 		control_data_lanes = AMDM37X_DISPC_CONTROL_TFTDATALINES_24B;
@@ -189,10 +196,10 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 
 	/* Prepare sizes */
 	const uint32_t size_reg =
-	    (((x - 1) & AMDM37X_DISPC_SIZE_WIDTH_MASK)
-	        << AMDM37X_DISPC_SIZE_WIDTH_SHIFT) |
-	    (((y - 1) & AMDM37X_DISPC_SIZE_HEIGHT_MASK)
-	        << AMDM37X_DISPC_SIZE_HEIGHT_SHIFT);
+	    (((x - 1) & AMDM37X_DISPC_SIZE_WIDTH_MASK) <<
+	    AMDM37X_DISPC_SIZE_WIDTH_SHIFT) |
+	    (((y - 1) & AMDM37X_DISPC_SIZE_HEIGHT_MASK) <<
+	    AMDM37X_DISPC_SIZE_HEIGHT_SHIFT);
 
 	/* modes taken from u-boot, for 1024x768 */
 	// TODO replace magic values with actual correct values
@@ -211,15 +218,15 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 
 	/* Setup control register */
 	uint32_t control = 0 |
-		AMDM37X_DISPC_CONTROL_PCKFREEENABLE_FLAG |
-		(control_data_lanes << AMDM37X_DISPC_CONTROL_TFTDATALINES_SHIFT) |
-		AMDM37X_DISPC_CONTROL_GPOUT0_FLAG |
-		AMDM37X_DISPC_CONTROL_GPOUT1_FLAG;
+	    AMDM37X_DISPC_CONTROL_PCKFREEENABLE_FLAG |
+	    (control_data_lanes << AMDM37X_DISPC_CONTROL_TFTDATALINES_SHIFT) |
+	    AMDM37X_DISPC_CONTROL_GPOUT0_FLAG |
+	    AMDM37X_DISPC_CONTROL_GPOUT1_FLAG;
 	regs->control = control;
 
 	/* No gamma stuff only data */
-	uint32_t config = (AMDM37X_DISPC_CONFIG_LOADMODE_DATAEVERYFRAME
-	            << AMDM37X_DISPC_CONFIG_LOADMODE_SHIFT);
+	uint32_t config = (AMDM37X_DISPC_CONFIG_LOADMODE_DATAEVERYFRAME <<
+	    AMDM37X_DISPC_CONFIG_LOADMODE_SHIFT);
 	regs->config = config;
 
 
@@ -271,7 +278,7 @@ static errno_t change_mode(visualizer_t *vis, vslmode_t mode)
 	pixel2visual_t p2v = pixel2visual_table[visual].func;
 	const unsigned x = mode.screen_width;
 	const unsigned y = mode.screen_height;
-	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp*8);
+	ddf_log_note("Setting mode: %ux%ux%u\n", x, y, bpp * 8);
 	const size_t size = ALIGN_UP(x * y * bpp, PAGE_SIZE);
 	uintptr_t pa;
 	void *buffer = AS_AREA_ANY;
@@ -285,7 +292,7 @@ static errno_t change_mode(visualizer_t *vis, vslmode_t mode)
 		dmamem_unmap_anonymous(dispc->fb_data);
 
 	dispc->fb_data = buffer;
-	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp *8, (uint32_t)pa);
+	amdm37x_dispc_setup_fb(dispc->regs, x, y, bpp * 8, (uint32_t)pa);
 	dispc->active_fb.idx = mode.index;
 	dispc->active_fb.width = x;
 	dispc->active_fb.height = y;
@@ -325,8 +332,8 @@ static errno_t handle_damage(visualizer_t *vs,
 				dispc->active_fb.pixel2visual(
 				    dispc->fb_data + FB_POS(x, y),
 				    *pixelmap_pixel_at(map,
-				        (x + x_offset) % map->width,
-				        (y + y_offset) % map->height));
+				    (x + x_offset) % map->width,
+				    (y + y_offset) % map->height));
 			}
 		}
 	}

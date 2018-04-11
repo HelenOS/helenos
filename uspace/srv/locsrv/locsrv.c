@@ -216,8 +216,8 @@ static loc_service_t *loc_service_find_name(const char *ns_name,
 	assert(fibril_mutex_is_locked(&services_list_mutex));
 
 	list_foreach(services_list, services, loc_service_t, service) {
-		if ((str_cmp(service->namespace->name, ns_name) == 0)
-		    && (str_cmp(service->name, name) == 0))
+		if ((str_cmp(service->namespace->name, ns_name) == 0) &&
+		    (str_cmp(service->name, name) == 0))
 			return service;
 	}
 

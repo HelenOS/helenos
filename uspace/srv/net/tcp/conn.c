@@ -155,8 +155,8 @@ tcp_conn_t *tcp_conn_new(inet_ep2_t *epp)
 	tcp_iqueue_init(&conn->incoming, conn);
 
 	/* Initialize retransmission queue */
-	if (tcp_tqueue_init(&conn->retransmit, conn, &tcp_conn_tqueue_cb)
-	    != EOK) {
+	if (tcp_tqueue_init(&conn->retransmit, conn, &tcp_conn_tqueue_cb) !=
+	    EOK) {
 		goto error;
 	}
 

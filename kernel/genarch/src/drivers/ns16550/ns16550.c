@@ -127,8 +127,8 @@ static outdev_operations_t ns16550_ops = {
 ns16550_instance_t *ns16550_init(ioport8_t *dev, unsigned reg_shift, inr_t inr,
     cir_t cir, void *cir_arg, outdev_t **output)
 {
-	ns16550_instance_t *instance
-	    = malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
+	ns16550_instance_t *instance =
+	    malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
 	if (instance) {
 		instance->ns16550 = dev;
 		instance->reg_shift = reg_shift;

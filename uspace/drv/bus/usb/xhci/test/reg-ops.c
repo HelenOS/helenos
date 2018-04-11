@@ -22,7 +22,8 @@ static struct {
 #define RESET memset(regs, 0, sizeof(regs[0]))
 #define EQ(exp, act) PCUT_ASSERT_INT_EQUALS((exp), (act))
 
-PCUT_TEST(ops_8_field) {
+PCUT_TEST(ops_8_field)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_8_FIELD));
 
@@ -40,7 +41,8 @@ PCUT_TEST(ops_8_field) {
 	EQ(0x50, regs->field8);
 }
 
-PCUT_TEST(ops_8_range) {
+PCUT_TEST(ops_8_range)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_8_RANGE));
 
@@ -57,7 +59,8 @@ PCUT_TEST(ops_8_range) {
 	EQ(0x54, regs->field8);
 }
 
-PCUT_TEST(ops_8_flag) {
+PCUT_TEST(ops_8_flag)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_8_FLAG));
 
@@ -75,7 +78,8 @@ PCUT_TEST(ops_8_flag) {
 	EQ(0, regs->field8);
 }
 
-PCUT_TEST(ops_16_field) {
+PCUT_TEST(ops_16_field)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_16_FIELD));
 
@@ -92,7 +96,8 @@ PCUT_TEST(ops_16_field) {
 	EQ(0x50a5, xhci2host(16, regs->field16));
 }
 
-PCUT_TEST(ops_16_range) {
+PCUT_TEST(ops_16_range)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_16_RANGE));
 
@@ -109,7 +114,8 @@ PCUT_TEST(ops_16_range) {
 	EQ(0x0a50, xhci2host(16, regs->field16));
 }
 
-PCUT_TEST(ops_16_flag) {
+PCUT_TEST(ops_16_flag)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_16_FLAG));
 
@@ -127,7 +133,8 @@ PCUT_TEST(ops_16_flag) {
 	EQ(0, xhci2host(16, regs->field16));
 }
 
-PCUT_TEST(ops_32_field) {
+PCUT_TEST(ops_32_field)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_32_FIELD));
 
@@ -144,7 +151,8 @@ PCUT_TEST(ops_32_field) {
 	EQ(0xff55aa00, xhci2host(32, regs->field32));
 }
 
-PCUT_TEST(ops_32_range) {
+PCUT_TEST(ops_32_range)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_32_RANGE));
 
@@ -161,7 +169,8 @@ PCUT_TEST(ops_32_range) {
 	EQ(0x00fa5000, xhci2host(32, regs->field32));
 }
 
-PCUT_TEST(ops_32_flag) {
+PCUT_TEST(ops_32_flag)
+{
 	RESET;
 	EQ(0, XHCI_REG_RD(regs, REG_32_FLAG));
 

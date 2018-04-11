@@ -67,8 +67,8 @@ void td_init(td_t *instance, const td_t *next,
 	memset(instance, 0, sizeof(td_t));
 	/* Set PID and Error code */
 	OHCI_MEM32_WR(instance->status,
-	    ((dir[direction] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
-	    | ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT));
+	    ((dir[direction] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT) |
+	    ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT));
 
 	if (toggle == 0 || toggle == 1) {
 		/* Set explicit toggle bit */

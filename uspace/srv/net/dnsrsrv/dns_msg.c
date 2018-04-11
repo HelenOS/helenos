@@ -382,8 +382,8 @@ static errno_t dns_question_decode(dns_pdu_t *pdu, size_t boff,
 
 	question->qtype = dns_uint16_t_decode(pdu->data + name_eoff,
 	    pdu->size - name_eoff);
-	question->qclass = dns_uint16_t_decode(pdu->data + sizeof(uint16_t)
-	    + name_eoff, pdu->size - sizeof(uint16_t) - name_eoff);
+	question->qclass = dns_uint16_t_decode(pdu->data + sizeof(uint16_t) +
+	    name_eoff, pdu->size - sizeof(uint16_t) - name_eoff);
 	*eoff = name_eoff + 2 * sizeof(uint16_t);
 
 	*rquestion = question;
@@ -448,7 +448,7 @@ static errno_t dns_rr_decode(dns_pdu_t *pdu, size_t boff, dns_rr_t **retrr,
 	bsz -= sizeof(uint32_t);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "dns_rr_decode: rtype=0x%x, rclass=0x%x, ttl=0x%x",
-	    rr->rtype, rr->rclass, rr->ttl );
+	    rr->rtype, rr->rclass, rr->ttl);
 
 	rdlength = dns_uint16_t_decode(bp, bsz);
 	bp += sizeof(uint16_t);
@@ -509,8 +509,7 @@ errno_t dns_message_encode(dns_message_t *msg, void **rdata, size_t *rsize)
 	    (msg->tc ? BIT_V(uint16_t, OPB_TC) : 0) |
 	    (msg->rd ? BIT_V(uint16_t, OPB_RD) : 0) |
 	    (msg->ra ? BIT_V(uint16_t, OPB_RA) : 0) |
-	    msg->rcode
-	);
+	    msg->rcode);
 
 	hdr.qd_count = host2uint16_t_be(list_count(&msg->question));
 	hdr.an_count = 0;

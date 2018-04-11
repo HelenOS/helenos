@@ -122,8 +122,8 @@ static bool usb_hid_ids_match(const usb_hid_dev_t *hid_dev,
 	const usb_standard_device_descriptor_t *d =
 	    &usb_device_descriptors(hid_dev->usb_dev)->device;
 
-	return (d->vendor_id == mapping->vendor_id)
-	    && (d->product_id == mapping->product_id);
+	return (d->vendor_id == mapping->vendor_id) &&
+	    (d->product_id == mapping->product_id);
 }
 
 static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
@@ -138,8 +138,8 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		return false;
 	}
 
-	for (int i = 0; mapping->usage_path[i].usage != 0
-	    || mapping->usage_path[i].usage_page != 0; ++i) {
+	for (int i = 0; mapping->usage_path[i].usage != 0 ||
+	    mapping->usage_path[i].usage_page != 0; ++i) {
 		if (usb_hid_report_path_append_item(usage_path,
 		    mapping->usage_path[i].usage_page,
 		    mapping->usage_path[i].usage) != EOK) {
@@ -158,13 +158,13 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		usb_log_debug("Trying report id %u", report_id);
 		if (report_id != 0) {
 			usb_hid_report_path_set_report_id(usage_path,
-				report_id);
+			    report_id);
 		}
 
 		const usb_hid_report_field_t *field =
 		    usb_hid_report_get_sibling(
-		        &hid_dev->report, NULL, usage_path, mapping->compare,
-		        USB_HID_REPORT_TYPE_INPUT);
+		    &hid_dev->report, NULL, usage_path, mapping->compare,
+		    USB_HID_REPORT_TYPE_INPUT);
 
 		usb_log_debug("Field: %p", field);
 
@@ -274,11 +274,11 @@ static errno_t usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 
 	static const struct {
 		const usb_endpoint_description_t *desc;
-		const char* description;
+		const char *description;
 	} endpoints[] = {
-		{&usb_hid_kbd_poll_endpoint_description, "Keyboard endpoint"},
-		{&usb_hid_mouse_poll_endpoint_description, "Mouse endpoint"},
-		{&usb_hid_generic_poll_endpoint_description, "Generic HID endpoint"},
+		{ &usb_hid_kbd_poll_endpoint_description, "Keyboard endpoint" },
+		{ &usb_hid_mouse_poll_endpoint_description, "Mouse endpoint" },
+		{ &usb_hid_generic_poll_endpoint_description, "Generic HID endpoint" },
 	};
 
 	for (unsigned i = 0; i < ARRAY_SIZE(endpoints); ++i) {
@@ -304,7 +304,7 @@ static errno_t usb_hid_init_report(usb_hid_dev_t *hid_dev)
 		usb_log_debug("Getting size of the report.");
 		const size_t size =
 		    usb_hid_report_byte_size(&hid_dev->report, report_id,
-		        USB_HID_REPORT_TYPE_INPUT);
+		    USB_HID_REPORT_TYPE_INPUT);
 		usb_log_debug("Report ID: %u, size: %zu", report_id, size);
 		max_size = (size > max_size) ? size : max_size;
 		usb_log_debug("Getting next report ID");
@@ -491,7 +491,7 @@ errno_t usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	bool ok = false;
 	for (unsigned i = 0; i < hid_dev->subdriver_count; ++i) {
 		if (hid_dev->subdrivers[i].init != NULL) {
-			usb_log_debug("Initializing subdriver %d.",i);
+			usb_log_debug("Initializing subdriver %d.", i);
 			const errno_t pret = hid_dev->subdrivers[i].init(hid_dev,
 			    &hid_dev->subdrivers[i].data);
 			if (pret != EOK) {

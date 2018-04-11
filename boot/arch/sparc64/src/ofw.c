@@ -87,9 +87,9 @@ static size_t wake_cpus_in_node(phandle child, uint64_t current_mid,
 				 * "upa-portid" for US, "portid" for US-III,
 				 * "cpuid" for US-IV
 				 */
-				if ((ofw_get_property(child, "upa-portid", &mid, sizeof(mid)) <= 0)
-				    && (ofw_get_property(child, "portid", &mid, sizeof(mid)) <= 0)
-				    && (ofw_get_property(child, "cpuid", &mid, sizeof(mid)) <= 0))
+				if ((ofw_get_property(child, "upa-portid", &mid, sizeof(mid)) <= 0) &&
+				    (ofw_get_property(child, "portid", &mid, sizeof(mid)) <= 0) &&
+				    (ofw_get_property(child, "cpuid", &mid, sizeof(mid)) <= 0))
 					continue;
 
 				if (current_mid != mid) {
@@ -116,10 +116,10 @@ void ofw_cpu(uint16_t mid_mask, uintptr_t physmem_start)
 	uint64_t current_mid;
 
 	asm volatile (
-		"ldxa [%[zero]] %[asi], %[current_mid]\n"
-		: [current_mid] "=r" (current_mid)
-		: [zero] "r" (0),
-		  [asi] "i" (ASI_ICBUS_CONFIG)
+	    "ldxa [%[zero]] %[asi], %[current_mid]\n"
+	    : [current_mid] "=r" (current_mid)
+	    : [zero] "r" (0),
+	      [asi] "i" (ASI_ICBUS_CONFIG)
 	);
 
 	current_mid >>= ICBUS_CONFIG_MID_SHIFT;

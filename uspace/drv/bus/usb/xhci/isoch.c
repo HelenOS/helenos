@@ -48,7 +48,7 @@
 void isoch_init(xhci_endpoint_t *ep, const usb_endpoint_descriptors_t *desc)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 
 	fibril_mutex_initialize(&isoch->guard);
 	fibril_condvar_initialize(&isoch->avail);
@@ -69,7 +69,7 @@ void isoch_init(xhci_endpoint_t *ep, const usb_endpoint_descriptors_t *desc)
 
 static void isoch_reset(xhci_endpoint_t *ep)
 {
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 	assert(fibril_mutex_is_locked(&isoch->guard));
 
 	isoch->dequeue = isoch->enqueue = isoch->hw_enqueue = 0;
@@ -86,7 +86,7 @@ static void isoch_reset(xhci_endpoint_t *ep)
 
 static void isoch_reset_no_timer(xhci_endpoint_t *ep)
 {
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 	assert(fibril_mutex_is_locked(&isoch->guard));
 	/*
 	 * As we cannot clear timer when we are triggered by it,
@@ -96,8 +96,9 @@ static void isoch_reset_no_timer(xhci_endpoint_t *ep)
 	isoch_reset(ep);
 }
 
-static void isoch_reset_timer(void *ep) {
-	xhci_isoch_t * const isoch = xhci_endpoint_get(ep)->isoch;
+static void isoch_reset_timer(void *ep)
+{
+	xhci_isoch_t *const isoch = xhci_endpoint_get(ep)->isoch;
 	fibril_mutex_lock(&isoch->guard);
 	isoch_reset(ep);
 	fibril_mutex_unlock(&isoch->guard);
@@ -108,20 +109,21 @@ static void isoch_reset_timer(void *ep) {
  * leading into false reset.
  */
 #define RESET_TIMER_DELAY 100000
-static void timer_schedule_reset(xhci_endpoint_t *ep) {
-	xhci_isoch_t * const isoch = ep->isoch;
-	const suseconds_t delay = isoch->buffer_count * ep->interval * 125
-	    + RESET_TIMER_DELAY;
+static void timer_schedule_reset(xhci_endpoint_t *ep)
+{
+	xhci_isoch_t *const isoch = ep->isoch;
+	const suseconds_t delay = isoch->buffer_count * ep->interval * 125 +
+	    RESET_TIMER_DELAY;
 
 	fibril_timer_clear_locked(isoch->reset_timer);
 	fibril_timer_set_locked(isoch->reset_timer, delay,
-		isoch_reset_timer, ep);
+	    isoch_reset_timer, ep);
 }
 
 void isoch_fini(xhci_endpoint_t *ep)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 
 	if (isoch->feeding_timer) {
 		fibril_timer_clear(isoch->feeding_timer);
@@ -140,9 +142,10 @@ void isoch_fini(xhci_endpoint_t *ep)
 /**
  * Allocate isochronous buffers. Create the feeding timer.
  */
-errno_t isoch_alloc_transfers(xhci_endpoint_t *ep) {
+errno_t isoch_alloc_transfers(xhci_endpoint_t *ep)
+{
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 
 	isoch->feeding_timer = fibril_timer_create(&isoch->guard);
 	isoch->reset_timer = fibril_timer_create(&isoch->guard);
@@ -150,7 +153,7 @@ errno_t isoch_alloc_transfers(xhci_endpoint_t *ep) {
 		return ENOMEM;
 
 	isoch->transfers = calloc(isoch->buffer_count, sizeof(xhci_isoch_transfer_t));
-	if(!isoch->transfers)
+	if (!isoch->transfers)
 		goto err;
 
 	for (size_t i = 0; i < isoch->buffer_count; ++i) {
@@ -184,7 +187,8 @@ static errno_t schedule_isochronous_trb(xhci_endpoint_t *ep, xhci_isoch_transfer
 	// see 4.14.1 and 4.11.2.3 for the explanation, how to calculate those
 	size_t tdpc = it->size / 1024 + ((it->size % 1024) ? 1 : 0);
 	size_t tbc = tdpc / ep->max_burst;
-	if (!tdpc % ep->max_burst) --tbc;
+	if (!tdpc % ep->max_burst)
+		--tbc;
 	size_t bsp = tdpc % ep->max_burst;
 	size_t tlbpc = (bsp ? bsp : ep->max_burst) - 1;
 
@@ -219,8 +223,8 @@ static inline uint64_t get_current_microframe(const xhci_hc_t *hc)
 	 * yet).
 	 */
 	uint64_t epoch = hc->wrap_count;
-	if (reg_mfindex < EPOCH_LOW_MFINDEX
-	    && get_system_time() - hc->wrap_time > EPOCH_DELAY) {
+	if (reg_mfindex < EPOCH_LOW_MFINDEX &&
+	    get_system_time() - hc->wrap_time > EPOCH_DELAY) {
 		++epoch;
 	}
 	return (epoch << EPOCH_BITS) + reg_mfindex;
@@ -228,7 +232,7 @@ static inline uint64_t get_current_microframe(const xhci_hc_t *hc)
 
 static inline void calc_next_mfindex(xhci_endpoint_t *ep, xhci_isoch_transfer_t *it)
 {
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 	if (isoch->last_mf == -1U) {
 		const xhci_bus_t *bus = bus_to_xhci_bus(ep->base.device->bus);
 		const xhci_hc_t *hc = bus->hc;
@@ -269,7 +273,7 @@ typedef struct {
  * uframes it's off.
  */
 static inline void window_decide(window_decision_t *res, xhci_hc_t *hc,
-	uint64_t mfindex)
+    uint64_t mfindex)
 {
 	const uint64_t current_mf = get_current_microframe(hc);
 	const uint64_t start = current_mf + hc->ist + 1;
@@ -299,7 +303,7 @@ static void isoch_feed_in_timer(void *);
 static void isoch_feed_out(xhci_endpoint_t *ep)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 	assert(fibril_mutex_is_locked(&isoch->guard));
 
 	xhci_bus_t *bus = bus_to_xhci_bus(ep->base.device->bus);
@@ -308,7 +312,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 	bool fed = false;
 
 	while (isoch->transfers[isoch->hw_enqueue].state == ISOCH_FILLED) {
-		xhci_isoch_transfer_t * const it = &isoch->transfers[isoch->hw_enqueue];
+		xhci_isoch_transfer_t *const it = &isoch->transfers[isoch->hw_enqueue];
 		suseconds_t delay;
 
 		assert(it->state == ISOCH_FILLED);
@@ -320,7 +324,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 		case WINDOW_TOO_SOON:
 			delay = wd.offset * 125;
 			usb_log_debug("[isoch] delaying feeding buffer %zu for %ldus",
-				it - isoch->transfers, delay);
+			    it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_out_timer, ep);
 			goto out;
@@ -345,7 +349,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 			 * skipped.
 			 */
 			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%llx by "
-				"%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
+			    "%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
 			it->state = ISOCH_COMPLETE;
 			it->error = EOK;
 			it->size = 0;
@@ -369,7 +373,7 @@ out:
 
 static void isoch_feed_out_timer(void *ep)
 {
-	xhci_isoch_t * const isoch = xhci_endpoint_get(ep)->isoch;
+	xhci_isoch_t *const isoch = xhci_endpoint_get(ep)->isoch;
 	fibril_mutex_lock(&isoch->guard);
 	isoch_feed_out(ep);
 	fibril_mutex_unlock(&isoch->guard);
@@ -385,7 +389,7 @@ static void isoch_feed_out_timer(void *ep)
 static void isoch_feed_in(xhci_endpoint_t *ep)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 	assert(fibril_mutex_is_locked(&isoch->guard));
 
 	xhci_bus_t *bus = bus_to_xhci_bus(ep->base.device->bus);
@@ -394,7 +398,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 	bool fed = false;
 
 	while (isoch->transfers[isoch->enqueue].state <= ISOCH_FILLED) {
-		xhci_isoch_transfer_t * const it = &isoch->transfers[isoch->enqueue];
+		xhci_isoch_transfer_t *const it = &isoch->transfers[isoch->enqueue];
 		suseconds_t delay;
 
 		/* IN buffers are "filled" with free space */
@@ -418,7 +422,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 			goto out;
 		case WINDOW_TOO_LATE:
 			usb_log_debug("[isoch] missed feeding buffer %zu at 0x%llx by"
-				"%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
+			    "%llu uframes", it - isoch->transfers, it->mfindex, wd.offset);
 			/* Missed the opportunity to schedule. Schedule ASAP. */
 			it->mfindex += wd.offset;
 			// Align to ESIT start boundary
@@ -457,7 +461,7 @@ out:
 
 static void isoch_feed_in_timer(void *ep)
 {
-	xhci_isoch_t * const isoch = xhci_endpoint_get(ep)->isoch;
+	xhci_isoch_t *const isoch = xhci_endpoint_get(ep)->isoch;
 	fibril_mutex_lock(&isoch->guard);
 	isoch_feed_in(ep);
 	fibril_mutex_unlock(&isoch->guard);
@@ -476,7 +480,7 @@ errno_t isoch_schedule_out(xhci_transfer_t *transfer)
 
 	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 
 	/* This shall be already checked by endpoint */
 	assert(transfer->batch.size <= ep->base.max_transfer_size);
@@ -540,7 +544,7 @@ errno_t isoch_schedule_in(xhci_transfer_t *transfer)
 {
 	xhci_endpoint_t *ep = xhci_endpoint_get(transfer->batch.ep);
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 
 	if (transfer->batch.size < ep->base.max_transfer_size) {
 		usb_log_error("Cannot schedule an undersized isochronous transfer.");
@@ -584,10 +588,10 @@ errno_t isoch_schedule_in(xhci_transfer_t *transfer)
 }
 
 void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep,
-	xhci_trb_t *trb)
+    xhci_trb_t *trb)
 {
 	assert(ep->base.transfer_type == USB_TRANSFER_ISOCHRONOUS);
-	xhci_isoch_t * const isoch = ep->isoch;
+	xhci_isoch_t *const isoch = ep->isoch;
 
 	fibril_mutex_lock(&ep->isoch->guard);
 
@@ -631,7 +635,7 @@ void isoch_handle_transfer_event(xhci_hc_t *hc, xhci_endpoint_t *ep,
 			di = 0;
 		}
 
-		xhci_isoch_transfer_t * const it = &isoch->transfers[di];
+		xhci_isoch_transfer_t *const it = &isoch->transfers[di];
 
 		if (it->state == ISOCH_FED && it->interrupt_trb_phys == trb->parameter) {
 			usb_log_debug("[isoch] buffer %zu completed", it - isoch->transfers);

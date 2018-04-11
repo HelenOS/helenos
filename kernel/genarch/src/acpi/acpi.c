@@ -64,7 +64,8 @@ struct acpi_signature_map signature_map[] = {
 	}
 };
 
-static int rsdp_check(uint8_t *_rsdp) {
+static int rsdp_check(uint8_t *_rsdp)
+{
 	struct acpi_rsdp *rsdp = (struct acpi_rsdp *) _rsdp;
 	uint8_t sum = 0;
 	uint32_t i;
@@ -118,12 +119,12 @@ static void configure_via_rsdt(void)
 {
 	size_t i;
 	size_t j;
-	size_t cnt = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header))
-	    / sizeof(uint32_t);
+	size_t cnt = (acpi_rsdt->header.length - sizeof(struct acpi_sdt_header)) /
+	    sizeof(uint32_t);
 
 	for (i = 0; i < cnt; i++) {
-		for (j = 0; j < sizeof(signature_map)
-		    / sizeof(struct acpi_signature_map); j++) {
+		for (j = 0; j < sizeof(signature_map) /
+		    sizeof(struct acpi_signature_map); j++) {
 			struct acpi_sdt_header *hdr =
 			    (struct acpi_sdt_header *) (sysarg_t) acpi_rsdt->entry[i];
 
@@ -144,12 +145,12 @@ static void configure_via_xsdt(void)
 {
 	size_t i;
 	size_t j;
-	size_t cnt = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header))
-	    / sizeof(uint64_t);
+	size_t cnt = (acpi_xsdt->header.length - sizeof(struct acpi_sdt_header)) /
+	    sizeof(uint64_t);
 
 	for (i = 0; i < cnt; i++) {
-		for (j = 0; j < sizeof(signature_map)
-		    / sizeof(struct acpi_signature_map); j++) {
+		for (j = 0; j < sizeof(signature_map) /
+		    sizeof(struct acpi_signature_map); j++) {
 			struct acpi_sdt_header *hdr =
 			    (struct acpi_sdt_header *) ((uintptr_t) acpi_xsdt->entry[i]);
 
@@ -183,8 +184,8 @@ void acpi_init(void)
 	addr[0] = (uint8_t *) PA2KA(ebda);
 	for (i = (ebda ? 0 : 1); i < 2; i++) {
 		for (j = 0; j < length[i]; j += 16) {
-			if ((*((uint64_t *) &addr[i][j]) == *sig)
-			    && (rsdp_check(&addr[i][j]))) {
+			if ((*((uint64_t *) &addr[i][j]) == *sig) &&
+			    (rsdp_check(&addr[i][j]))) {
 				acpi_rsdp = (struct acpi_rsdp *) &addr[i][j];
 				goto rsdp_found;
 			}

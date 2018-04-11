@@ -139,7 +139,8 @@ static errno_t label_test_write(void *arg, aoff64_t ba, size_t cnt, const void *
 	return EOK;
 }
 
-PCUT_TEST(open_empty) {
+PCUT_TEST(open_empty)
+{
 	label_t *label;
 	label_bd_t lbd;
 	label_info_t linfo;
@@ -174,7 +175,8 @@ PCUT_TEST(open_empty) {
 	test_bd_destroy(bd);
 }
 
-PCUT_TEST(create_destroy_mbr) {
+PCUT_TEST(create_destroy_mbr)
+{
 	label_t *label;
 	label_bd_t lbd;
 	label_info_t linfo;
@@ -235,7 +237,8 @@ PCUT_TEST(create_destroy_mbr) {
 	test_bd_destroy(bd);
 }
 
-PCUT_TEST(create_destroy_gpt) {
+PCUT_TEST(create_destroy_gpt)
+{
 	label_t *label;
 	label_bd_t lbd;
 	label_info_t linfo;
@@ -294,7 +297,8 @@ PCUT_TEST(create_destroy_gpt) {
 	test_bd_destroy(bd);
 }
 
-PCUT_TEST(mbr_primary_part) {
+PCUT_TEST(mbr_primary_part)
+{
 	label_t *label;
 	label_bd_t lbd;
 	label_info_t linfo;
@@ -383,7 +387,8 @@ PCUT_TEST(mbr_primary_part) {
 	test_bd_destroy(bd);
 }
 
-PCUT_TEST(mbr_logical_part) {
+PCUT_TEST(mbr_logical_part)
+{
 	label_t *label;
 	label_bd_t lbd;
 	label_info_t linfo;
@@ -521,7 +526,8 @@ PCUT_TEST(mbr_logical_part) {
 }
 
 
-PCUT_TEST(gpt_part) {
+PCUT_TEST(gpt_part)
+{
 	label_t *label;
 	label_bd_t lbd;
 	label_info_t linfo;

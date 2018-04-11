@@ -96,7 +96,8 @@ static errno_t tcp_inet_ev_recv(inet_dgram_t *dgram)
 
 	if (hdr_size < sizeof(tcp_header_t)) {
 		log_msg(LOG_DEFAULT, LVL_WARN, "hdr_size = %zu < sizeof(tcp_header_t) = %zu",
-		    hdr_size, sizeof(tcp_header_t));		return EINVAL;
+		    hdr_size, sizeof(tcp_header_t));
+		return EINVAL;
 	}
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "pdu_raw_size=%zu, hdr_size=%zu",

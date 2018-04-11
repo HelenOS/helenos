@@ -42,7 +42,8 @@
 #include <stdio.h>
 #include "tested.h"
 
-static void my_sleep(int sec) {
+static void my_sleep(int sec)
+{
 #ifdef __helenos__
 	thread_sleep(sec);
 #else
@@ -57,14 +58,16 @@ static void my_sleep(int sec) {
 
 PCUT_INIT;
 
-PCUT_TEST(shall_time_out) {
+PCUT_TEST(shall_time_out)
+{
 	printf("Text before sleeping.\n");
 	my_sleep(PCUT_DEFAULT_TEST_TIMEOUT * 5);
 	printf("Text after the sleep.\n");
 }
 
 PCUT_TEST(custom_time_out,
-		PCUT_TEST_SET_TIMEOUT(PCUT_DEFAULT_TEST_TIMEOUT * 3)) {
+    PCUT_TEST_SET_TIMEOUT(PCUT_DEFAULT_TEST_TIMEOUT * 3))
+{
 	printf("Text before sleeping.\n");
 	my_sleep(PCUT_DEFAULT_TEST_TIMEOUT * 2);
 	printf("Text after the sleep.\n");

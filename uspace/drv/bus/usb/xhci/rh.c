@@ -53,17 +53,17 @@
 
 /* This mask only lists registers, which imply port change. */
 static const uint32_t port_events_mask =
-	XHCI_REG_MASK(XHCI_PORT_CSC) |
-	XHCI_REG_MASK(XHCI_PORT_PEC) |
-	XHCI_REG_MASK(XHCI_PORT_WRC) |
-	XHCI_REG_MASK(XHCI_PORT_OCC) |
-	XHCI_REG_MASK(XHCI_PORT_PRC) |
-	XHCI_REG_MASK(XHCI_PORT_PLC) |
-	XHCI_REG_MASK(XHCI_PORT_CEC);
+    XHCI_REG_MASK(XHCI_PORT_CSC) |
+    XHCI_REG_MASK(XHCI_PORT_PEC) |
+    XHCI_REG_MASK(XHCI_PORT_WRC) |
+    XHCI_REG_MASK(XHCI_PORT_OCC) |
+    XHCI_REG_MASK(XHCI_PORT_PRC) |
+    XHCI_REG_MASK(XHCI_PORT_PLC) |
+    XHCI_REG_MASK(XHCI_PORT_CEC);
 
 static const uint32_t port_reset_mask =
-	XHCI_REG_MASK(XHCI_PORT_WRC) |
-	XHCI_REG_MASK(XHCI_PORT_PRC);
+    XHCI_REG_MASK(XHCI_PORT_WRC) |
+    XHCI_REG_MASK(XHCI_PORT_PRC);
 
 typedef struct rh_port {
 	usb_port_t base;
@@ -166,8 +166,8 @@ static errno_t rh_enumerate_device(usb_port_t *usb_port)
 	if (!enabled)
 		return ENOENT;
 
-	unsigned psiv = (status & XHCI_REG_MASK(XHCI_PORT_PS))
-	    >> XHCI_REG_SHIFT(XHCI_PORT_PS);
+	unsigned psiv = (status & XHCI_REG_MASK(XHCI_PORT_PS)) >>
+	    XHCI_REG_SHIFT(XHCI_PORT_PS);
 	const usb_speed_t speed = port->rh->hc->speeds[psiv].usb_speed;
 
 	device_t *dev = hcd_ddf_fun_create(&port->rh->hc->base, speed);
@@ -232,7 +232,7 @@ static void rh_remove_device(usb_port_t *usb_port)
  */
 static void handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 {
-	rh_port_t * const port = &rh->ports[port_id - 1];
+	rh_port_t *const port = &rh->ports[port_id - 1];
 
 	uint32_t status = XHCI_REG_RD_FIELD(&port->regs->portsc, 32);
 
@@ -279,7 +279,7 @@ static void handle_port_change(xhci_rh_t *rh, uint8_t port_id)
 }
 
 void xhci_rh_set_ports_protocol(xhci_rh_t *rh,
-	unsigned offset, unsigned count, unsigned major)
+    unsigned offset, unsigned count, unsigned major)
 {
 	for (unsigned i = offset; i < offset + count; i++)
 		rh->ports[i - 1].major = major;
@@ -296,15 +296,15 @@ void xhci_rh_start(xhci_rh_t *rh)
 	for (uint8_t i = 0; i < rh->max_ports; ++i) {
 		handle_port_change(rh, i + 1);
 
-		rh_port_t * const port = &rh->ports[i];
+		rh_port_t *const port = &rh->ports[i];
 
 		/*
 		 * When xHCI starts, for some reasons USB 3 ports do not have
 		 * the CSC bit, even though they are connected. Try to find
 		 * such ports.
 		 */
-		if (XHCI_REG_RD(port->regs, XHCI_PORT_CCS)
-		    && port->base.state == PORT_DISABLED)
+		if (XHCI_REG_RD(port->regs, XHCI_PORT_CCS) &&
+		    port->base.state == PORT_DISABLED)
 			usb_port_connected(&port->base, &rh_enumerate_device);
 	}
 }
@@ -319,7 +319,7 @@ void xhci_rh_stop(xhci_rh_t *rh)
 	joinable_fibril_join(rh->event_worker);
 
 	for (uint8_t i = 0; i < rh->max_ports; ++i) {
-		rh_port_t * const port = &rh->ports[i];
+		rh_port_t *const port = &rh->ports[i];
 		usb_port_disabled(&port->base, &rh_remove_device);
 		usb_port_fini(&port->base);
 	}
@@ -327,7 +327,7 @@ void xhci_rh_stop(xhci_rh_t *rh)
 
 static int rh_worker(void *arg)
 {
-	xhci_rh_t * const rh = arg;
+	xhci_rh_t *const rh = arg;
 
 	xhci_trb_t trb;
 	while (xhci_sw_ring_dequeue(&rh->event_ring, &trb) == EOK) {

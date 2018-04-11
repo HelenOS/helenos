@@ -81,7 +81,7 @@ typedef union {
 		unsigned pfn : 24;  /* frame number */
 		unsigned : 2;       /* zero */
 #endif
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 	uint32_t value;
 } entry_lo_t;
 
@@ -96,7 +96,7 @@ typedef union {
 		unsigned : 5;
 		unsigned vpn2 : 19;
 #endif
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 	uint32_t value;
 } entry_hi_t;
 
@@ -111,7 +111,7 @@ typedef union {
 		unsigned mask : 12;
 		unsigned : 7;
 #endif
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 	uint32_t value;
 } page_mask_t;
 
@@ -126,7 +126,7 @@ typedef union {
 		unsigned : 32 - TLB_INDEX_BITS - 1;
 		unsigned p : 1;
 #endif
-	} __attribute__ ((packed));
+	} __attribute__((packed));
 	uint32_t value;
 } tlb_index_t;
 

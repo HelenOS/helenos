@@ -61,15 +61,15 @@ typedef enum {
 } op_mode_t;
 
 static const column_t task_columns[] = {
-	{"taskid",   't',  8},
-	{"thrds",    'h',  7},
-	{"resident", 'r', 10},
-	{"%resi",    'R',  7},
-	{"virtual",  'v',  9},
-	{"%virt",    'V',  7},
-	{"%user",    'U',  7},
-	{"%kern",    'K',  7},
-	{"name",     'd',  0},
+	{ "taskid",   't',  8 },
+	{ "thrds",    'h',  7 },
+	{ "resident", 'r', 10 },
+	{ "%resi",    'R',  7 },
+	{ "virtual",  'v',  9 },
+	{ "%virt",    'V',  7 },
+	{ "%user",    'U',  7 },
+	{ "%kern",    'K',  7 },
+	{ "name",     'd',  0 },
 };
 
 enum {
@@ -86,13 +86,13 @@ enum {
 };
 
 static const column_t ipc_columns[] = {
-	{"taskid",  't', 8},
-	{"cls snt", 'c', 9},
-	{"cls rcv", 'C', 9},
-	{"ans snt", 'a', 9},
-	{"ans rcv", 'A', 9},
-	{"forward", 'f', 9},
-	{"name",    'd', 0},
+	{ "taskid",  't', 8 },
+	{ "cls snt", 'c', 9 },
+	{ "cls rcv", 'C', 9 },
+	{ "ans snt", 'a', 9 },
+	{ "ans rcv", 'A', 9 },
+	{ "forward", 'f', 9 },
+	{ "name",    'd', 0 },
 };
 
 enum {
@@ -107,12 +107,12 @@ enum {
 };
 
 static const column_t exception_columns[] = {
-	{"exc",         'e',  8},
-	{"count",       'n', 10},
-	{"%count",      'N',  8},
-	{"cycles",      'c', 10},
-	{"%cycles",     'C',  9},
-	{"description", 'd',  0},
+	{ "exc",         'e',  8 },
+	{ "count",       'n', 10 },
+	{ "%count",      'N',  8 },
+	{ "cycles",      'c', 10 },
+	{ "%cycles",     'C',  9 },
+	{ "description", 'd',  0 },
 };
 
 enum {
@@ -382,11 +382,11 @@ static int cmp_data(void *a, void *b, void *arg)
 			return -1 * sort_reverse;
 		return 0;
 	case FIELD_PERCENT:
-		if (fa->fixed.upper * fb->fixed.lower
-		    > fb->fixed.upper * fa->fixed.lower)
+		if (fa->fixed.upper * fb->fixed.lower >
+		    fb->fixed.upper * fa->fixed.lower)
 			return 1 * sort_reverse;
-		if (fa->fixed.upper * fb->fixed.lower
-		    < fb->fixed.upper * fa->fixed.lower)
+		if (fa->fixed.upper * fb->fixed.lower <
+		    fb->fixed.upper * fa->fixed.lower)
 			return -1 * sort_reverse;
 		return 0;
 	case FIELD_STRING:

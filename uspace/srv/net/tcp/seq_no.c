@@ -169,8 +169,8 @@ bool seq_no_segment_acceptable(tcp_conn_t *conn, tcp_segment_t *seg)
 	bool wb_in, we_in;
 
 	/* Beginning of segment is inside window */
-	b_in = seq_no_le_lt(conn->rcv_nxt, seg->seq, conn->rcv_nxt
-	    + conn->rcv_wnd);
+	b_in = seq_no_le_lt(conn->rcv_nxt, seg->seq, conn->rcv_nxt +
+	    conn->rcv_wnd);
 
 	/* End of segment is inside window */
 	e_in = seq_no_le_lt(conn->rcv_nxt, seg->seq + seg->len - 1,

@@ -138,7 +138,7 @@ PCUT_TEST(connect_rst)
 	PCUT_ASSERT_INT_EQUALS(st_syn_sent, conn->cstate);
 
 	while (conn->cstate == st_syn_sent)
-                fibril_condvar_wait(&conn->cstate_cv, &conn->lock);
+		fibril_condvar_wait(&conn->cstate_cv, &conn->lock);
 
 	PCUT_ASSERT_INT_EQUALS(st_closed, conn->cstate);
 
@@ -193,7 +193,7 @@ PCUT_TEST(conn_establish)
 
 	/* Wait for client-side state to transition */
 	while (cconn->cstate == st_syn_sent)
-                fibril_condvar_wait(&cconn->cstate_cv, &cconn->lock);
+		fibril_condvar_wait(&cconn->cstate_cv, &cconn->lock);
 
 	PCUT_ASSERT_INT_EQUALS(st_established, cconn->cstate);
 	PCUT_ASSERT_TRUE(tcp_conn_got_syn(cconn));
@@ -202,7 +202,7 @@ PCUT_TEST(conn_establish)
 	/* Wait for server-side state to transition */
 	tcp_conn_lock(sconn);
 	while (sconn->cstate == st_listen || sconn->cstate == st_syn_received)
-                fibril_condvar_wait(&sconn->cstate_cv, &sconn->lock);
+		fibril_condvar_wait(&sconn->cstate_cv, &sconn->lock);
 
 	PCUT_ASSERT_INT_EQUALS(st_established, sconn->cstate);
 	PCUT_ASSERT_TRUE(tcp_conn_got_syn(sconn));

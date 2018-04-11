@@ -114,7 +114,8 @@ static const irq_cmd_t i8042_cmds[] = {
 static void wait_ready(i8042_t *dev)
 {
 	assert(dev);
-	while (pio_read_8(&dev->regs->status) & i8042_INPUT_FULL);
+	while (pio_read_8(&dev->regs->status) & i8042_INPUT_FULL)
+		;
 }
 
 /** Interrupt handler routine.

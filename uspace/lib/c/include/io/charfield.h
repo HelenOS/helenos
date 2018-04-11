@@ -90,12 +90,12 @@ static inline bool attrs_same(char_attrs_t a1, char_attrs_t a2)
 	case CHAR_ATTR_STYLE:
 		return (a1.val.style == a2.val.style);
 	case CHAR_ATTR_INDEX:
-		return (a1.val.index.bgcolor == a2.val.index.bgcolor)
-		    && (a1.val.index.fgcolor == a2.val.index.fgcolor)
-		    && (a1.val.index.attr == a2.val.index.attr);
+		return (a1.val.index.bgcolor == a2.val.index.bgcolor) &&
+		    (a1.val.index.fgcolor == a2.val.index.fgcolor) &&
+		    (a1.val.index.attr == a2.val.index.attr);
 	case CHAR_ATTR_RGB:
-		return (a1.val.rgb.bgcolor == a2.val.rgb.bgcolor)
-		    && (a1.val.rgb.fgcolor == a2.val.rgb.fgcolor);
+		return (a1.val.rgb.bgcolor == a2.val.rgb.bgcolor) &&
+		    (a1.val.rgb.fgcolor == a2.val.rgb.fgcolor);
 	}
 
 	return false;

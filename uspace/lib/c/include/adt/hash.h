@@ -105,8 +105,8 @@ static inline size_t hash_combine(size_t seed, size_t hash)
 	 * todo: use Bob Jenkin's proper mixing hash pass:
 	 * http://burtleburtle.net/bob/c/lookup3.c
 	 */
-	seed ^= hash + 0x9e3779b9
-		+ ((seed << 5) | (seed >> (sizeof(size_t) * 8 - 5)));
+	seed ^= hash + 0x9e3779b9 +
+	    ((seed << 5) | (seed >> (sizeof(size_t) * 8 - 5)));
 	return seed;
 }
 

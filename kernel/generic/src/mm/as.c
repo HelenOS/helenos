@@ -1005,7 +1005,7 @@ errno_t as_area_destroy(as_t *as, uintptr_t address)
 			for (size = 0; size < (size_t) node->value[i]; size++) {
 				pte_t pte;
 				bool found = page_mapping_find(as,
-				     ptr + P2SZ(size), false, &pte);
+				    ptr + P2SZ(size), false, &pte);
 
 				assert(found);
 				assert(PTE_VALID(&pte));
@@ -2195,7 +2195,7 @@ sysarg_t sys_as_area_create(uintptr_t base, size_t size, unsigned int flags,
 	else {
 		backend = &user_backend;
 		if (copy_from_uspace(&backend_data.pager_info, pager_info,
-			sizeof(as_area_pager_info_t)) != EOK) {
+		    sizeof(as_area_pager_info_t)) != EOK) {
 			return (sysarg_t) AS_MAP_FAILED;
 		}
 	}

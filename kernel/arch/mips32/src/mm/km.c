@@ -50,8 +50,8 @@ void km_non_identity_arch_init(void)
 
 bool km_is_non_identity_arch(uintptr_t addr)
 {
-	return iswithin(KM_MIPS32_KSSEG_START, KM_MIPS32_KSSEG_SIZE, addr, 1)
-	    || iswithin(KM_MIPS32_KSEG3_START, KM_MIPS32_KSEG3_SIZE, addr, 1);
+	return iswithin(KM_MIPS32_KSSEG_START, KM_MIPS32_KSSEG_SIZE, addr, 1) ||
+	    iswithin(KM_MIPS32_KSEG3_START, KM_MIPS32_KSEG3_SIZE, addr, 1);
 }
 
 /** @}

@@ -123,8 +123,12 @@ errno_t arp_pdu_encode(arp_eth_packet_t *packet, void **rdata, size_t *rsize)
 	pfmt = (arp_eth_packet_fmt_t *)data;
 
 	switch (packet->opcode) {
-	case aop_request: fopcode = AOP_REQUEST; break;
-	case aop_reply: fopcode = AOP_REPLY; break;
+	case aop_request:
+		fopcode = AOP_REQUEST;
+		break;
+	case aop_reply:
+		fopcode = AOP_REPLY;
+		break;
 	default:
 		assert(false);
 		fopcode = 0;
@@ -186,8 +190,12 @@ errno_t arp_pdu_decode(void *data, size_t size, arp_eth_packet_t *packet)
 	}
 
 	switch (uint16_t_be2host(pfmt->opcode)) {
-	case AOP_REQUEST: packet->opcode = aop_request; break;
-	case AOP_REPLY: packet->opcode = aop_reply; break;
+	case AOP_REQUEST:
+		packet->opcode = aop_request;
+		break;
+	case AOP_REPLY:
+		packet->opcode = aop_reply;
+		break;
 	default:
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "Invalid ARP opcode (%" PRIu16 ")",
 		    uint16_t_be2host(pfmt->opcode));

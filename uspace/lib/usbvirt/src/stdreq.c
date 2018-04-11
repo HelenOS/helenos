@@ -117,8 +117,8 @@ static errno_t req_get_descriptor(usbvirt_device_t *device,
 		ptr += config->descriptor->length;
 		size_t i;
 		for (i = 0; i < config->extra_count; i++) {
-			const usbvirt_device_configuration_extras_t *extra
-			    = &config->extra[i];
+			const usbvirt_device_configuration_extras_t *extra =
+			    &config->extra[i];
 			memcpy(ptr, extra->data, extra->length);
 			ptr += extra->length;
 		}

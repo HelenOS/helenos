@@ -110,8 +110,8 @@ static errno_t test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, us
 			for (size_t i = 0; i < test_data_size; ++i) {
 				if (beef_buffer[i] != test_data) {
 					usb_log_error("Read of %s IN endpoint returned "
-						"invalid data at address %zu. [ 0x%X != 0x%X ]",
-						usb_str_transfer_type(pipe->desc.transfer_type), i * sizeof(test_data), beef_buffer[i], test_data);
+					    "invalid data at address %zu. [ 0x%X != 0x%X ]",
+					    usb_str_transfer_type(pipe->desc.transfer_type), i * sizeof(test_data), beef_buffer[i], test_data);
 					rc = EINVAL;
 				}
 			}

@@ -158,7 +158,7 @@ errno_t usbhc_unregister_endpoint(async_exch_t *exch, const usb_pipe_desc_t *pip
 		return EBADMEM;
 
 	aid_t opening_request = async_send_1(exch,
-		DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_UNREGISTER_ENDPOINT, NULL);
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USB_UNREGISTER_ENDPOINT, NULL);
 
 	if (opening_request == 0) {
 		return ENOMEM;
@@ -206,8 +206,8 @@ errno_t usbhc_transfer(async_exch_t *exch,
 
 	/* Share the data, if any. */
 	if (req->size > 0) {
-		unsigned flags = (req->dir == USB_DIRECTION_IN)
-			? AS_AREA_WRITE : AS_AREA_READ;
+		unsigned flags = (req->dir == USB_DIRECTION_IN) ?
+		    AS_AREA_WRITE : AS_AREA_READ;
 
 		const errno_t ret = async_share_out_start(exch, req->buffer.virt, flags);
 		if (ret != EOK) {
@@ -320,8 +320,8 @@ static void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 	cap_call_handle_t data_chandle;
 	size_t len;
 
-	if (!async_data_write_receive(&data_chandle, &len)
-	    || len != sizeof(ep_desc)) {
+	if (!async_data_write_receive(&data_chandle, &len) ||
+	    len != sizeof(ep_desc)) {
 		async_answer_0(chandle, EINVAL);
 		return;
 	}
@@ -332,8 +332,8 @@ static void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 	const errno_t rc = usbhc_iface->register_endpoint(fun, &pipe_desc, &ep_desc);
 	async_answer_0(chandle, rc);
 
-	if (!async_data_read_receive(&data_chandle, &len)
-	    || len != sizeof(pipe_desc)) {
+	if (!async_data_read_receive(&data_chandle, &len) ||
+	    len != sizeof(pipe_desc)) {
 		return;
 	}
 	async_data_read_finalize(data_chandle, &pipe_desc, sizeof(pipe_desc));
@@ -357,8 +357,8 @@ static void remote_usbhc_unregister_endpoint(ddf_fun_t *fun, void *iface,
 	cap_call_handle_t data_chandle;
 	size_t len;
 
-	if (!async_data_write_receive(&data_chandle, &len)
-	    || len != sizeof(pipe_desc)) {
+	if (!async_data_write_receive(&data_chandle, &len) ||
+	    len != sizeof(pipe_desc)) {
 		async_answer_0(chandle, EINVAL);
 		return;
 	}
@@ -405,8 +405,8 @@ static errno_t receive_memory_buffer(async_transaction_t *trans)
 
 	const size_t required_size = trans->request.offset + trans->request.size;
 	const unsigned required_flags =
-		(trans->request.dir == USB_DIRECTION_IN)
-		? AS_AREA_WRITE : AS_AREA_READ;
+	    (trans->request.dir == USB_DIRECTION_IN) ?
+	    AS_AREA_WRITE : AS_AREA_READ;
 
 	errno_t err;
 	cap_call_handle_t data_chandle;
@@ -467,14 +467,14 @@ void remote_usbhc_transfer(ddf_fun_t *fun, void *iface, cap_call_handle_t chandl
 
 	cap_call_handle_t data_chandle;
 	size_t len;
-	if (!async_data_write_receive(&data_chandle, &len)
-	    || len != sizeof(trans->request)) {
+	if (!async_data_write_receive(&data_chandle, &len) ||
+	    len != sizeof(trans->request)) {
 		async_answer_0(data_chandle, EINVAL);
 		goto err;
 	}
 
 	if ((err = async_data_write_finalize(data_chandle,
-			    &trans->request, sizeof(trans->request))))
+	    &trans->request, sizeof(trans->request))))
 		goto err;
 
 	if (trans->request.size > 0) {

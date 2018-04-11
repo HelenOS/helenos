@@ -45,29 +45,35 @@
 
 /* String functions. */
 
-int pcut_str_equals(const char *a, const char *b) {
+int pcut_str_equals(const char *a, const char *b)
+{
 	return str_cmp(a, b) == 0;
 }
 
 
-int pcut_str_start_equals(const char *a, const char *b, int len) {
+int pcut_str_start_equals(const char *a, const char *b, int len)
+{
 	return str_lcmp(a, b, len) == 0;
 }
 
-int pcut_str_size(const char *s) {
+int pcut_str_size(const char *s)
+{
 	return str_size(s);
 }
 
-int pcut_str_to_int(const char *s) {
+int pcut_str_to_int(const char *s)
+{
 	int result = strtol(s, NULL, 10);
 	return result;
 }
 
-char *pcut_str_find_char(const char *haystack, const char needle) {
+char *pcut_str_find_char(const char *haystack, const char needle)
+{
 	return str_chr(haystack, needle);
 }
 
-void pcut_str_error(errno_t error, char *buffer, int size) {
+void pcut_str_error(errno_t error, char *buffer, int size)
+{
 	const char *str = str_error(error);
 	if (str == NULL) {
 		str = "(strerror failure)";
@@ -100,7 +106,8 @@ static char extra_output_buffer[OUTPUT_BUFFER_SIZE];
  *
  * @param test Test that is about to be run.
  */
-static void before_test_start(pcut_item_t *test) {
+static void before_test_start(pcut_item_t *test)
+{
 	pcut_report_test_start(test);
 
 	memset(error_message_buffer, 0, OUTPUT_BUFFER_SIZE);
@@ -108,12 +115,12 @@ static void before_test_start(pcut_item_t *test) {
 }
 
 /** Mutex guard for forced_termination_cv. */
-static fibril_mutex_t forced_termination_mutex
-	= FIBRIL_MUTEX_INITIALIZER(forced_termination_mutex);
+static fibril_mutex_t forced_termination_mutex =
+    FIBRIL_MUTEX_INITIALIZER(forced_termination_mutex);
 
 /** Condition-variable for checking whether test timed-out. */
-static fibril_condvar_t forced_termination_cv
-	= FIBRIL_CONDVAR_INITIALIZER(forced_termination_cv);
+static fibril_condvar_t forced_termination_cv =
+    FIBRIL_CONDVAR_INITIALIZER(forced_termination_cv);
 
 /** Spawned task id. */
 static task_id_t test_task_id;
@@ -129,7 +136,8 @@ static int test_running;
  * @param arg Test that is currently running (pcut_item_t *).
  * @return EOK Always.
  */
-static errno_t test_timeout_handler_fibril(void *arg) {
+static errno_t test_timeout_handler_fibril(void *arg)
+{
 	pcut_item_t *test = arg;
 	int timeout_sec = pcut_get_test_timeout(test);
 	suseconds_t timeout_us = (suseconds_t) timeout_sec * 1000 * 1000;
@@ -139,7 +147,7 @@ static errno_t test_timeout_handler_fibril(void *arg) {
 		goto leave_no_kill;
 	}
 	errno_t rc = fibril_condvar_wait_timeout(&forced_termination_cv,
-		&forced_termination_mutex, timeout_us);
+	    &forced_termination_mutex, timeout_us);
 	if (rc == ETIMEOUT) {
 		task_kill(test_task_id);
 	}
@@ -153,7 +161,8 @@ leave_no_kill:
  * @param self_path Path to itself, that is to current binary.
  * @param test Test to be run.
  */
-int pcut_run_test_forking(const char *self_path, pcut_item_t *test) {
+int pcut_run_test_forking(const char *self_path, pcut_item_t *test)
+{
 	before_test_start(test);
 
 	char tempfile_name[PCUT_TEMP_FILENAME_BUFFER_SIZE];
@@ -225,7 +234,8 @@ leave_close_tempfile:
 	return status;
 }
 
-void pcut_hook_before_test(pcut_item_t *test) {
+void pcut_hook_before_test(pcut_item_t *test)
+{
 	PCUT_UNUSED(test);
 
 	/* Do nothing. */

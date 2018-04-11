@@ -43,12 +43,14 @@ PCUT_TEST_SUITE(str);
 
 static char buffer[BUFFER_SIZE];
 
-PCUT_TEST_BEFORE {
+PCUT_TEST_BEFORE
+{
 	memset(buffer, 0, BUFFER_SIZE);
 }
 
 
-PCUT_TEST(rtrim) {
+PCUT_TEST(rtrim)
+{
 	SET_BUFFER("foobar");
 	str_rtrim(buffer, ' ');
 	EQ("foobar", buffer);
@@ -66,7 +68,8 @@ PCUT_TEST(rtrim) {
 	EQ("ššAAA", buffer);
 }
 
-PCUT_TEST(ltrim) {
+PCUT_TEST(ltrim)
+{
 	SET_BUFFER("foobar");
 	str_ltrim(buffer, ' ');
 	EQ("foobar", buffer);
