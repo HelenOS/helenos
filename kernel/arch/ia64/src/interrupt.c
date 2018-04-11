@@ -74,10 +74,10 @@ static const char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"Data Key Miss vector",
 	"Dirty-Bit vector",
 	"Instruction Access-Bit vector",
-	"Data Access-Bit vector"
+	"Data Access-Bit vector",
 	"Break Instruction vector",
-	"External Interrupt vector"
-	"Reserved",
+	"External Interrupt vector",
+	"Virtual External Interrupt vector",
 	"Reserved",
 	"Reserved",
 	"Reserved",
