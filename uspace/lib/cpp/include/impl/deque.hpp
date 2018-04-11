@@ -40,28 +40,246 @@ namespace std
 
     namespace aux
     {
-        template<class T, class Allocator>
-        class deque_iterator
-        {
-            using size_type = typename std::deque<T, Allocator>::size_type;
-            using value_type = typename std::deque<T, Allocator>::value_type;
-            using difference_type = size_type;
-
-            public:
-                deque_iterator(deque<T, Allocator>* deq, size_type idx)
-                    : deq_{deq}, idx_{idx}
-                { /* DUMMY BODY */ }
-
-            private:
-                deque<T, Allocator>* deq_;
-                size_type idx_;
-        };
+        /**
+         * Note: We decided that these iterators contain a
+         *       reference to the container and an index, which
+         *       allows us to use the already implemented operator[]
+         *       on deque and also allows us to conform to the requirement
+         *       of the standard that functions such as push_back
+         *       invalidate the .end() iterator.
+         */
 
         template<class T, class Allocator>
         class deque_const_iterator
         {
-            // TODO: implement
+            public:
+                using size_type         = typename deque<T, Allocator>::size_type;
+                using value_type        = typename deque<T, Allocator>::value_type;
+                using reference         = typename deque<T, Allocator>::const_reference;
+                using difference_type   = size_type;
+                using pointer           = const value_type*;
+                using iterator_category = random_access_iterator_tag;
+
+                deque_const_iterator(deque<T, Allocator>& deq, size_type idx)
+                    : deq_{deq}, idx_{idx}
+                { /* DUMMY BODY */ }
+
+                deque_const_iterator& operator=(const deque_const_iterator& other)
+                {
+                    deq_ = other.deq_;
+                    idx_ = other.idx_;
+
+                    return *this;
+                }
+
+                reference operator*() const
+                {
+                    return deq_[idx_];
+                }
+
+                pointer operator->() const
+                {
+                    return addressof(deq_[idx_]);
+                }
+
+                deque_const_iterator& operator++()
+                {
+                    ++idx_;
+
+                    return *this;
+                }
+
+                deque_const_iterator operator++(int)
+                {
+                    return deque_const_iterator{deq_, idx_++};
+                }
+
+                deque_const_iterator& operator--()
+                {
+                    --idx_;
+
+                    return *this;
+                }
+
+                deque_const_iterator operator--(int)
+                {
+                    return deque_const_iterator{deq_, idx_--};
+                }
+
+                deque_const_iterator operator+(difference_type n)
+                {
+                    return deque_const_iterator{deq_, idx_ + n};
+                }
+
+                deque_const_iterator& operator+=(difference_type n)
+                {
+                    idx_ += n;
+
+                    return *this;
+                }
+
+                deque_const_iterator operator-(difference_type n)
+                {
+                    return deque_const_iterator{deq_, idx_ - n};
+                }
+
+                deque_const_iterator& operator-=(difference_type n)
+                {
+                    idx_ -= n;
+
+                    return *this;
+                }
+
+                reference operator[](difference_type n) const
+                {
+                    return deq_[idx_ + n];
+                }
+
+                size_type idx() const
+                {
+                    return idx_;
+                }
+
+            private:
+                deque<T, Allocator>& deq_;
+                size_type idx_;
         };
+
+        template<class T, class Allocator>
+        bool operator==(const deque_const_iterator<T, Allocator>& lhs,
+                        const deque_const_iterator<T, Allocator>& rhs)
+        {
+            return lhs.idx() == rhs.idx();
+        }
+
+        template<class T, class Allocator>
+        bool operator!=(const deque_const_iterator<T, Allocator>& lhs,
+                        const deque_const_iterator<T, Allocator>& rhs)
+        {
+            return !(lhs == rhs);
+        }
+
+        template<class T, class Allocator>
+        class deque_iterator
+        {
+            public:
+                using size_type         = typename deque<T, Allocator>::size_type;
+                using value_type        = typename deque<T, Allocator>::value_type;
+                using reference         = typename deque<T, Allocator>::reference;
+                using difference_type   = size_type;
+                using pointer           = value_type*;
+                using iterator_category = random_access_iterator_tag;
+
+                deque_iterator(deque<T, Allocator>& deq, size_type idx)
+                    : deq_{deq}, idx_{idx}
+                { /* DUMMY BODY */ }
+
+                deque_iterator(const deque_const_iterator<T, Allocator>& other)
+                    : deq_{other.deq_}, idx_{other.idx_}
+                { /* DUMMY BODY */ }
+
+                deque_iterator& operator=(const deque_iterator& other)
+                {
+                    deq_ = other.deq_;
+                    idx_ = other.idx_;
+
+                    return *this;
+                }
+
+                deque_iterator& operator=(const deque_const_iterator<T, Allocator>& other)
+                {
+                    deq_ = other.deq_;
+                    idx_ = other.idx_;
+
+                    return *this;
+                }
+
+                reference operator*()
+                {
+                    return deq_[idx_];
+                }
+
+                pointer operator->()
+                {
+                    return addressof(deq_[idx_]);
+                }
+
+                deque_iterator& operator++()
+                {
+                    ++idx_;
+
+                    return *this;
+                }
+
+                deque_iterator operator++(int)
+                {
+                    return deque_iterator{deq_, idx_++};
+                }
+
+                deque_iterator& operator--()
+                {
+                    --idx_;
+
+                    return *this;
+                }
+
+                deque_iterator operator--(int)
+                {
+                    return deque_iterator{deq_, idx_--};
+                }
+
+                deque_iterator operator+(difference_type n)
+                {
+                    return deque_iterator{deq_, idx_ + n};
+                }
+
+                deque_iterator& operator+=(difference_type n)
+                {
+                    idx_ += n;
+
+                    return *this;
+                }
+
+                deque_iterator operator-(difference_type n)
+                {
+                    return deque_iterator{deq_, idx_ - n};
+                }
+
+                deque_iterator& operator-=(difference_type n)
+                {
+                    idx_ -= n;
+
+                    return *this;
+                }
+
+                reference operator[](difference_type n) const
+                {
+                    return deq_[idx_ + n];
+                }
+
+                size_type idx() const
+                {
+                    return idx_;
+                }
+
+            private:
+                deque<T, Allocator>& deq_;
+                size_type idx_;
+        };
+
+        template<class T, class Allocator>
+        bool operator==(const deque_iterator<T, Allocator>& lhs,
+                        const deque_iterator<T, Allocator>& rhs)
+        {
+            return lhs.idx() == rhs.idx();
+        }
+
+        template<class T, class Allocator>
+        bool operator!=(const deque_iterator<T, Allocator>& lhs,
+                        const deque_iterator<T, Allocator>& rhs)
+        {
+            return !(lhs == rhs);
+        }
     }
 
     /**
@@ -189,62 +407,62 @@ namespace std
 
             iterator begin() noexcept
             {
-                // TODO: implement
+                return aux::deque_iterator{*this, 0};
             }
 
             const_iterator begin() const noexcept
             {
-                // TODO: implement
+                return aux::deque_const_iterator{*this, 0};
             }
 
             iterator end() noexcept
             {
-                // TODO: implement
+                return aux::deque_iterator{*this, size_};
             }
 
             const_iterator end() const noexcept
             {
-                // TODO: implement
+                return aux::deque_const_iterator{*this, size_};
             }
 
             reverse_iterator rbegin() noexcept
             {
-                // TODO: implement
+                return make_reverse_iterator(end());
             }
 
             const_reverse_iterator rbegin() const noexcept
             {
-                // TODO: implement
+                return make_reverse_iterator(cend());
             }
 
             reverse_iterator rend() noexcept
             {
-                // TODO: implement
+                return make_reverse_iterator(begin());
             }
 
             const_reverse_iterator rend() const noexcept
             {
-                // TODO: implement
+                return make_reverse_iterator(cbegin());
             }
 
             const_iterator cbegin() const noexcept
             {
-                // TODO: implement
+                return aux::deque_const_iterator{*this, 0};
             }
 
             const_iterator cend() const noexcept
             {
-                // TODO: implement
+                return aux::deque_const_iterator{*this, size_};
             }
 
             const_reverse_iterator crbegin() const noexcept
             {
-                // TODO: implement
+                return make_reverse_iterator(cend());
             }
 
             const_reverse_iterator crend() const noexcept
             {
-                // TODO: implement
+                return make_reverse_iterator(cbegin());
             }
 
             /**
