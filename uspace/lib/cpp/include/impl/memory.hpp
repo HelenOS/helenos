@@ -30,8 +30,9 @@
 #define LIBCPP_MEMORY
 
 #include <internal/aux.hpp>
-#include <utility>
+#include <new>
 #include <type_traits>
+#include <utility>
 
 namespace std
 {
