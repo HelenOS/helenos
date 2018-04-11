@@ -60,7 +60,7 @@ namespace std
                 using pointer           = const value_type*;
                 using iterator_category = random_access_iterator_tag;
 
-                deque_const_iterator(deque<T, Allocator>& deq, size_type idx)
+                deque_const_iterator(const deque<T, Allocator>& deq, size_type idx)
                     : deq_{deq}, idx_{idx}
                 { /* DUMMY BODY */ }
 
@@ -135,13 +135,18 @@ namespace std
                     return deq_[idx_ + n];
                 }
 
+                difference_type operator-(const deque_const_iterator& rhs)
+                {
+                    return idx_ - rhs.idx_;
+                }
+
                 size_type idx() const
                 {
                     return idx_;
                 }
 
             private:
-                deque<T, Allocator>& deq_;
+                const deque<T, Allocator>& deq_;
                 size_type idx_;
         };
 
@@ -257,6 +262,11 @@ namespace std
                     return deq_[idx_ + n];
                 }
 
+                difference_type operator-(const deque_iterator& rhs)
+                {
+                    return idx_ - rhs.idx_;
+                }
+
                 size_type idx() const
                 {
                     return idx_;
@@ -323,44 +333,85 @@ namespace std
             }
 
             explicit deque(size_type n, const allocator_type& alloc = allocator_type{})
+                : allocator_{alloc}, front_bucket_idx_{bucket_size_}, back_bucket_idx_{},
+                  front_bucket_{}, back_bucket_{}, bucket_count_{},
+                  bucket_capacity_{}, size_{n}, data_{}
             {
-                // TODO: implement
+                prepare_for_size_(n);
+                init_();
+
+                for (size_type i = 0; i < size_; ++i)
+                    allocator_.construct(&(*this)[i]);
+                back_bucket_idx_ = size_ % bucket_size_;
             }
 
             deque(size_type n, const value_type& value, const allocator_type& alloc = allocator_type{})
+                : allocator_{alloc}, front_bucket_idx_{bucket_size_}, back_bucket_idx_{},
+                  front_bucket_{}, back_bucket_{}, bucket_count_{},
+                  bucket_capacity_{}, size_{n}, data_{}
             {
-                // TODO: implement
+                prepare_for_size_(n);
+                init_();
+
+                for (size_type i = 0; i < size_; ++i)
+                    (*this)[i] = value;
+                back_bucket_idx_ = size_ % bucket_size_;
             }
 
             template<class InputIterator>
-            deque(InputIterator first, InputIterator last, const allocator_type& alloc = allocator_type{})
+            deque(InputIterator first, InputIterator last,
+                  const allocator_type& alloc = allocator_type{})
+                : allocator_{alloc}, front_bucket_idx_{bucket_size_},
+                  back_bucket_idx_{}, front_bucket_{}, back_bucket_{},
+                  bucket_count_{}, bucket_capacity_{}, size_{},
+                  data_{}
             {
-                // TODO: implement
+                copy_from_range_(first, last);
             }
 
             deque(const deque& other)
-            {
-                // TODO: implement
-            }
+                : deque{other.begin(), other.end(), other.allocator_}
+            { /* DUMMY BODY */ }
 
             deque(deque&& other)
+                : allocator_{move(other.allocator_)},
+                  front_bucket_idx_{other.front_bucket_idx_},
+                  back_bucket_idx_{other.front_bucket_idx_},
+                  front_bucket_{other.front_bucket_},
+                  back_bucket_{other.back_bucket_},
+                  bucket_count_{other.bucket_count_},
+                  bucket_capacity_{other.bucket_capacity_},
+                  size_{other.size_}, data_{other.data_}
             {
-                // TODO: implement
+                other.data_ = nullptr;
+                other.clear();
             }
 
             deque(const deque& other, const allocator_type& alloc)
-            {
-                // TODO: implement
-            }
+                : deque{other.begin(), other.end(), alloc}
+            { /* DUMMY BODY */ }
 
             deque(deque&& other, const allocator_type& alloc)
+                : allocator_{alloc},
+                  front_bucket_idx_{other.front_bucket_idx_},
+                  back_bucket_idx_{other.front_bucket_idx_},
+                  front_bucket_{other.front_bucket_},
+                  back_bucket_{other.back_bucket_},
+                  bucket_count_{other.bucket_count_},
+                  bucket_capacity_{other.bucket_capacity_},
+                  size_{other.size_}, data_{other.data_}
             {
-                // TODO: implement
+                other.data_ = nullptr;
+                other.clear();
             }
 
             deque(initializer_list<T> init, const allocator_type& alloc = allocator_type{})
+                : allocator_{alloc}, front_bucket_idx_{bucket_size_},
+                  back_bucket_idx_{}, front_bucket_{}, back_bucket_{},
+                  bucket_count_{}, bucket_capacity_{}, size_{},
+                  data_{}
             {
-                // TODO: implement
+                copy_from_range_(init.begin(), init.end());
             }
 
             ~deque()
@@ -376,7 +427,8 @@ namespace std
             deque& operator=(deque&& other)
                 noexcept(allocator_traits<allocator_type>::is_always_equal::value)
             {
-                // TODO: implement
+                swap(other);
+                other.clear();
             }
 
             deque& operator=(initializer_list<T> init)
@@ -511,32 +563,38 @@ namespace std
 
             reference at(size_type idx)
             {
-                // TODO: implement
+                // TODO: bounds checking
+                return operator[](idx);
             }
 
             const_reference at(size_type idx) const
             {
-                // TODO: implement
+                // TODO: bounds checking
+                return operator[](idx);
             }
 
             reference front()
             {
-                // TODO: implement
+                return *begin();
             }
 
             const_reference front() const
             {
-                // TODO: implement
+                return *cbegin();
             }
 
             reference back()
             {
-                // TODO: implement
+                auto tmp = end();
+
+                return *(--tmp);
             }
 
             const_reference back() const
             {
-                // TODO: implement
+                auto tmp = cend();
+
+                return *(--tmp);
             }
 
             /**
@@ -686,7 +744,8 @@ namespace std
 
             void clear() noexcept
             {
-                fini_();
+                if (data_)
+                    fini_();
 
                 front_bucket_ = default_front_;
                 back_bucket_ = default_back_;
@@ -730,6 +789,37 @@ namespace std
 
                 for (size_type i = front_bucket_; i <= back_bucket_; ++i)
                     data_[i] = allocator_.allocate(bucket_size_);
+            }
+
+            void prepare_for_size_(size_type size)
+            {
+                if (data_)
+                    fini_();
+
+                if (size < bucket_size_) // Always front_bucket_ != back_bucket_.
+                    bucket_count_ = bucket_capacity_ = 2;
+                else if (size % bucket_size_ == 0)
+                    bucket_count_ = bucket_capacity_ = size / bucket_size_ + 1;
+                else
+                    bucket_count_ = bucket_capacity_ = size / bucket_size_ + 2;
+
+                front_bucket_ = 0;
+                back_bucket_ = bucket_capacity_ - 1;
+            }
+
+            template<class Iterator>
+            void copy_from_range_(Iterator first, Iterator last)
+            {
+                size_ = distance(first, last);
+                prepare_for_size_(size_);
+                init_();
+
+                auto it = begin();
+                while (first != last)
+                    *it++ = *first++;
+
+                // Remainder is the amount of elements in the last bucket.
+                back_bucket_idx_ = size_ % bucket_size_;
             }
 
             void fini_()
