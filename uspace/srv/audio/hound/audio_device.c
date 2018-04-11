@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <loc.h>
+#include <stdbool.h>
 #include <str.h>
 #include <str_error.h>
 #include <as.h>
@@ -270,7 +271,7 @@ static void device_event_callback(cap_call_handle_t icall_handle,
 	async_answer_0(icall_handle, EOK);
 	audio_device_t *dev = arg;
 	assert(dev);
-	while (1) {
+	while (true) {
 		ipc_call_t call;
 		cap_call_handle_t chandle = async_get_call(&call);
 		async_answer_0(chandle, EOK);

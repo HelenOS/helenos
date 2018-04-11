@@ -85,7 +85,7 @@ static void obio_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, v
 
 	obio = (obio_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
-	while (1) {
+	while (true) {
 		int inr;
 
 		chandle = async_get_call(&call);

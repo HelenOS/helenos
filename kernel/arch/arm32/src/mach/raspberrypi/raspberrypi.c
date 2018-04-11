@@ -46,6 +46,7 @@
 #include <genarch/fb/fb.h>
 #include <abi/fb/visuals.h>
 #include <genarch/srln/srln.h>
+#include <stdbool.h>
 #include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
@@ -127,7 +128,7 @@ static void raspberrypi_timer_irq_start(void)
 
 static void raspberrypi_cpu_halt(void)
 {
-	while (1) ;
+	while (true) ;
 }
 
 /** Get extents of available memory.

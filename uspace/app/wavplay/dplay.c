@@ -43,7 +43,7 @@
 #include <as.h>
 #include <sys/time.h>
 #include <inttypes.h>
-
+#include <stdbool.h>
 #include <stdio.h>
 #include <macros.h>
 
@@ -100,7 +100,7 @@ static void device_event_callback(cap_call_handle_t icall_handle,
 	async_answer_0(icall_handle, EOK);
 	playback_t *pb = arg;
 	const size_t fragment_size = pb->buffer.size / DEFAULT_FRAGMENTS;
-	while (1) {
+	while (true) {
 		ipc_call_t call;
 		cap_call_handle_t chandle = async_get_call(&call);
 		switch(IPC_GET_IMETHOD(call)) {
@@ -259,7 +259,7 @@ static void play(playback_t *pb)
 	size_t pos = 0;
 	struct timeval time = { 0 };
 	getuptime(&time);
-	do {
+	while (true) {
 		size_t available = buffer_avail(pb, pos);
 		/* Writing might need wrap around the end,
 		 * read directly to device buffer */
@@ -323,7 +323,7 @@ static void play(playback_t *pb)
 		if (available)
 			break;
 
-	} while (1);
+	}
 	audio_pcm_stop_playback_immediate(pb->device);
 }
 

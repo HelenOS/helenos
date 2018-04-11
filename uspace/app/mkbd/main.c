@@ -170,7 +170,7 @@ static errno_t wait_for_quit_fibril(void *arg)
 
 	printf("Press <ESC> to quit the application.\n");
 
-	while (1) {
+	while (true) {
 		cons_event_t ev;
 		bool ok = console_get_event(con, &ev);
 		if (!ok) {

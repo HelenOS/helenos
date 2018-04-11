@@ -39,6 +39,7 @@
 #include <interrupt.h>
 #include <arch/interrupt.h>
 #include <macros.h>
+#include <stdbool.h>
 #include <str.h>
 #include <userspace.h>
 #include <console/console.h>
@@ -251,13 +252,13 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    kernel_uarg->uspace_stack_size / 2,
 	    (uintptr_t) kernel_uarg->uspace_uarg, psr.value, rsc.value);
 
-	while (1);
+	while (true);
 }
 
 void arch_reboot(void)
 {
 	pio_write_8((ioport8_t *)0x64, 0xfe);
-	while (1);
+	while (true);
 }
 
 /** Construct function pointer

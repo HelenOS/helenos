@@ -46,6 +46,7 @@
 #include <interrupt.h>
 #include <ddi/ddi.h>
 #include <mm/km.h>
+#include <stdbool.h>
 
 #define BBONE_MEMORY_START       0x80000000      /* physical */
 #define BBONE_MEMORY_SIZE        0x10000000      /* 256 MB */
@@ -158,7 +159,7 @@ static void bbone_timer_irq_start(void)
 
 static void bbone_cpu_halt(void)
 {
-	while (1)
+	while (true)
 		;
 }
 

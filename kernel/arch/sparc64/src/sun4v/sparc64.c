@@ -50,6 +50,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <userspace.h>
 #include <ddi/irq.h>
+#include <stdbool.h>
 #include <str.h>
 #include <arch/drivers/niagara.h>
 #include <sysinfo/sysinfo.h>
@@ -166,14 +167,14 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    (uintptr_t) kernel_uarg->uspace_uarg);
 
 	/* Not reached */
-	while (1)
+	while (true)
 		;
 }
 
 void arch_reboot(void)
 {
 	// TODO
-	while (1)
+	while (true)
 		;
 }
 

@@ -34,6 +34,7 @@
 
 #include <thread.h>
 #include <libc.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <libarch/faddr.h>
 #include <abi/proc/uarg.h>
@@ -156,7 +157,7 @@ void thread_exit(int status)
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
 
 	/* Unreachable */
-	while (1)
+	while (true)
 		;
 }
 

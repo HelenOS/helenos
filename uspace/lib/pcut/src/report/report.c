@@ -37,6 +37,7 @@
 #else
 #include <string.h>
 #endif
+#include <stdbool.h>
 #include <stdio.h>
 
 /** Currently used report ops. */
@@ -109,7 +110,7 @@ static void parse_command_output(const char *full_output, size_t full_output_siz
 		return;
 	}
 
-	while (1) {
+	while (true) {
 		size_t message_length;
 
 		/* First of all, count number of zero bytes before the text. */

@@ -57,6 +57,7 @@ static volatile const char copyright[] =
 #include <sys/time.h>
 #include <err.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -200,7 +201,7 @@ static void tetris_menu_draw(int level)
 static int tetris_menu(int *level)
 {
 	tetris_menu_draw(*level);
-	while (1) {
+	while (true) {
 		int i = getchar();
 
 		switch (i) {
@@ -325,7 +326,7 @@ int main(int argc, char *argv[])
 
 		scr_msg(key_msg, 1);
 
-		while (1) {
+		while (true) {
 			place(curshape, pos, 1);
 			scr_update();
 			place(curshape, pos, 0);

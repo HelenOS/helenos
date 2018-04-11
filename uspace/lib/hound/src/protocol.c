@@ -38,6 +38,7 @@
 #include <loc.h>
 #include <macros.h>
 #include <str.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <types/common.h>
@@ -400,7 +401,7 @@ void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall,
 		return;
 	}
 
-	while (1) {
+	while (true) {
 		ipc_call_t call;
 		cap_call_handle_t chandle = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {

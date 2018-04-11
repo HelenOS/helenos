@@ -41,6 +41,7 @@
 #include <genarch/kbrd/kbrd.h>
 #include <genarch/srln/srln.h>
 #include <console/console.h>
+#include <stdbool.h>
 #include <sysinfo/sysinfo.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -243,7 +244,7 @@ void icp_get_memory_extents(uintptr_t *start, size_t *size)
 /** Stops icp. */
 void icp_cpu_halt(void)
 {
-	while (1);
+	while (true);
 }
 
 /** interrupt exception handler.

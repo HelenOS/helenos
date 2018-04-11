@@ -133,8 +133,8 @@ static errno_t ski_con_fibril(void *arg)
 	ski_con_t *con = (ski_con_t *) arg;
 	errno_t rc;
 
-	while (1) {
-		while (1) {
+	while (true) {
+		while (true) {
 			c = ski_con_getchar();
 			if (c == 0)
 				break;

@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <macros.h>
 #include <mem.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <str_error.h>
@@ -606,7 +607,7 @@ errno_t hc_debug_checker(void *arg)
 #define QH(queue) \
 	instance->transfers_##queue.queue_head
 
-	while (1) {
+	while (true) {
 		const uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
 		const uint16_t sts = pio_read_16(&instance->registers->usbsts);
 		const uint16_t intr =

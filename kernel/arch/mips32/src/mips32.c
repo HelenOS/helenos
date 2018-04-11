@@ -41,6 +41,7 @@
 #include <str.h>
 #include <mem.h>
 #include <userspace.h>
+#include <stdbool.h>
 #include <syscall/syscall.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/debug.h>
@@ -171,7 +172,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	    (uintptr_t) kernel_uarg->uspace_uarg,
 	    (uintptr_t) kernel_uarg->uspace_entry);
 
-	while (1)
+	while (true)
 		;
 }
 
@@ -194,7 +195,7 @@ void after_thread_ran_arch(void)
 void arch_reboot(void)
 {
 	___halt();
-	while (1)
+	while (true)
 		;
 }
 

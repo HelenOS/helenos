@@ -33,6 +33,7 @@
  *  @brief Userspace switch.
  */
 
+#include <stdbool.h>
 #include <userspace.h>
 #include <arch/ras.h>
 
@@ -113,7 +114,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 	);
 
 	/* unreachable */
-	while (1)
+	while (true)
 		;
 }
 

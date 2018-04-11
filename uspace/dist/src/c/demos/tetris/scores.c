@@ -63,6 +63,7 @@
 #include <io/console.h>
 #include <io/keycode.h>
 #include <vfs/vfs.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <err.h>
 #include <time.h>
@@ -138,7 +139,7 @@ void insertscore(int score, int level)
 	printf("%s%.*s", scores[NUMSPOTS - 1].hs_name, MAXLOGNAME - i,
 	    "........................................");
 
-	while (1) {
+	while (true) {
 		console_flush(console);
 		if (!console_get_event(console, &ev))
 			exit(1);

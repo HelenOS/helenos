@@ -42,6 +42,7 @@
 
 #include <errno.h>
 #include <libc.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <tls.h>
 #include <fibril.h>
@@ -137,7 +138,7 @@ void exit(int status)
 	__SYSCALL1(SYS_TASK_EXIT, false);
 
 	/* Unreachable */
-	while (1)
+	while (true)
 		;
 }
 
@@ -146,7 +147,7 @@ void abort(void)
 	__SYSCALL1(SYS_TASK_EXIT, true);
 
 	/* Unreachable */
-	while (1)
+	while (true)
 		;
 }
 

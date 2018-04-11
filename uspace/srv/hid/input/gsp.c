@@ -50,6 +50,7 @@
 
 #include <adt/hash_table.h>
 #include <adt/hash.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "gsp.h"
@@ -118,7 +119,7 @@ int gsp_insert_defs(gsp_t *p, const int *defs)
 
 	dp = defs;
 
-	while (1) {
+	while (true) {
 		/* Read the output values. */
 		mods = *dp++;
 		key = *dp++;

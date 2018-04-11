@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -105,7 +106,7 @@ create_directory(const char *user_path, bool create_parents)
 	} else {
 		/* Create the parent directories as well. */
 		size_t off = 0;
-		while (1) {
+		while (true) {
 			size_t prev_off = off;
 			wchar_t cur_char = str_decode(path, &off, STR_NO_LIMIT);
 			if ((cur_char == 0) || (cur_char == U_SPECIAL)) {

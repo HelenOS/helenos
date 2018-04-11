@@ -253,7 +253,7 @@ errno_t polling_ps2(void *arg)
 	errno_t rc;
 
 	bool buttons[PS2_BUTTON_COUNT] = {};
-	while (1) {
+	while (true) {
 		uint8_t packet[PS2_BUFSIZE] = {};
 		rc = ps2_mouse_read_packet(mouse, packet, PS2_BUFSIZE);
 		if (rc != EOK)
@@ -305,7 +305,7 @@ static errno_t polling_intellimouse(void *arg)
 	errno_t rc;
 
 	bool buttons[INTELLIMOUSE_BUTTON_COUNT] = {};
-	while (1) {
+	while (true) {
 		uint8_t packet[INTELLIMOUSE_BUFSIZE] = {};
 		rc = ps2_mouse_read_packet(mouse, packet, INTELLIMOUSE_BUFSIZE);
 		if (rc != EOK)

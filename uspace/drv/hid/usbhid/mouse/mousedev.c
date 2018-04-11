@@ -42,6 +42,7 @@
 #include <usb/hid/usages/core.h>
 #include <errno.h>
 #include <async.h>
+#include <stdbool.h>
 #include <str_error.h>
 #include <ipc/mouseev.h>
 #include <io/console.h>
@@ -298,7 +299,7 @@ static size_t usb_mouse_get_highest_button(usb_hid_report_t *report, uint8_t rep
 	usb_hid_report_field_t *field = NULL;
 
 	/* Break from within. */
-	while (1) {
+	while (true) {
 		field = usb_hid_report_get_sibling(
 		    report, field, path,
 		    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,

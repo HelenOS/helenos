@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
 	(void) argc;
 	(void) argv;
 
-	while (1) {
+	while (true) {
 		int current_char_denotes_identifier;
 
 		int current_char = fgetc(input);

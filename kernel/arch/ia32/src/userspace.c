@@ -34,6 +34,7 @@
 
 #include <userspace.h>
 #include <arch/pm.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <arch.h>
 #include <abi/proc/uarg.h>
@@ -78,7 +79,7 @@ void userspace(uspace_arg_t *kernel_uarg)
 		: "eax");
 
 	/* Unreachable */
-	while (1);
+	while (true);
 }
 
 /** @}

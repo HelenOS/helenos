@@ -43,6 +43,7 @@
 #include <interrupt.h>
 #include <mm/km.h>
 #include <ddi/ddi.h>
+#include <stdbool.h>
 
 static void bbxm_init(void);
 static void bbxm_timer_irq_start(void);
@@ -129,7 +130,7 @@ static void bbxm_timer_irq_start(void)
 
 static void bbxm_cpu_halt(void)
 {
-	while (1)
+	while (true)
 		;
 }
 
