@@ -34,6 +34,7 @@
 #include <iosfwd>
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 namespace std
 {
@@ -162,8 +163,7 @@ namespace std
 
             pointer operator->() const
             {
-                // TODO: need std::addressof
-                return nullptr;
+                return addressof(operator*());
             }
 
             reverse_iterator& operator++()
