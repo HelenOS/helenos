@@ -797,7 +797,15 @@ namespace std
             void swap(deque& other)
                 noexcept(allocator_traits<allocator_type>::is_always_equal::value)
             {
-                // TODO: implement
+                std::swap(allocator_, other.allocator_);
+                std::swap(front_bucket_idx_, other.front_bucket_idx_);
+                std::swap(back_bucket_idx_, other.back_bucket_idx_);
+                std::swap(front_bucket_, other.front_bucket_);
+                std::swap(back_bucket_, other.back_bucket_);
+                std::swap(bucket_count_, other.bucket_count_);
+                std::swap(bucket_capacity_, other.bucket_capacity_);
+                std::swap(size_, other.size_);
+                std::swap(data_, other.data_);
             }
 
             void clear() noexcept
