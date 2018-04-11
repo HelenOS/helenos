@@ -770,7 +770,7 @@ namespace std
                 init_();
             }
 
-        /* private: */
+        private:
             allocator_type allocator_;
 
             /**
