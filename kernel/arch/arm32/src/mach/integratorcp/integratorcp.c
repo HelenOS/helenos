@@ -83,10 +83,10 @@ uint32_t sdram[8] = {
 	67108864,	/* 64mb */
 	134217728,	/* 128mb */
 	268435456,	/* 256mb */
-	0,		/* Reserverd */
-	0,		/* Reserverd */
-	0		/* Reserverd */
-	};
+	0,		/* Reserved */
+	0,		/* Reserved */
+	0		/* Reserved */
+};
 
 void icp_vga_init(void);
 
