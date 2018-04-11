@@ -223,7 +223,8 @@ namespace std
         template<class T, class... Args>
         static void construct(Alloc& alloc, T* ptr, Args&&... args)
         {
-            // TODO: implement
+            // TODO: why wasn't this implemented? check standard for remarks
+            alloc.construct(ptr, forward<Args>(args)...);
         }
 
         template<class T>
