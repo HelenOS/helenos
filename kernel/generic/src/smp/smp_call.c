@@ -221,7 +221,7 @@ void smp_call_ipi_recv(void)
 	spinlock_unlock(&CPU->smp_calls_lock);
 
 	/* Walk the list manually, so that we can safely remove list items. */
-	for (link_t * cur = calls_list.head.next, *next = cur->next;
+	for (link_t *cur = calls_list.head.next, *next = cur->next;
 	    !list_empty(&calls_list); cur = next, next = cur->next) {
 
 		smp_call_t *call_info = list_get_instance(cur, smp_call_t, calls_link);

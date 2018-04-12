@@ -268,7 +268,7 @@ static inline uint8_t block_expected_value(mem_block_t *block, uint8_t *pos)
  */
 void fill_block(mem_block_t *block)
 {
-	for (uint8_t * pos = block->addr, *end = pos + block->size;
+	for (uint8_t *pos = block->addr, *end = pos + block->size;
 	    pos < end; pos++)
 		*pos = block_expected_value(block, pos);
 
@@ -285,7 +285,7 @@ void fill_block(mem_block_t *block)
  */
 void check_block(mem_block_t *block)
 {
-	for (uint8_t * pos = block->addr, *end = pos + block->size;
+	for (uint8_t *pos = block->addr, *end = pos + block->size;
 	    pos < end; pos++) {
 		if (*pos != block_expected_value(block, pos)) {
 			TPRINTF("\nError: Corrupted content of a data block.\n");
@@ -401,7 +401,7 @@ static inline uint8_t area_expected_value(mem_area_t *area, uint8_t *pos)
  */
 void fill_area(mem_area_t *area)
 {
-	for (uint8_t * pos = area->addr, *end = pos + area->size;
+	for (uint8_t *pos = area->addr, *end = pos + area->size;
 	    pos < end; pos++)
 		*pos = area_expected_value(area, pos);
 

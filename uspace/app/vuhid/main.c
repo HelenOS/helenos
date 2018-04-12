@@ -171,7 +171,7 @@ static void print_help(const char *name, const char *module)
 static void print_list(void)
 {
 	printf("Available devices:\n");
-	for (vuhid_interface_t * *i = available_hid_interfaces; *i != NULL; ++i) {
+	for (vuhid_interface_t **i = available_hid_interfaces; *i != NULL; ++i) {
 		printf("\t`%s'\t%s\n", (*i)->id, (*i)->name);
 	}
 

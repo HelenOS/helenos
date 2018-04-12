@@ -86,7 +86,7 @@ static errno_t hc_parse_ec(xhci_hc_t *hc)
 
 	xhci_port_speed_t *speeds = hc->speeds;
 
-	for (xhci_extcap_t * ec = hc->xecp; ec; ec = xhci_extcap_next(ec)) {
+	for (xhci_extcap_t *ec = hc->xecp; ec; ec = xhci_extcap_next(ec)) {
 		xhci_dump_extcap(ec);
 		switch (XHCI_REG_RD(ec, XHCI_EC_CAP_ID)) {
 		case XHCI_EC_USB_LEGACY:

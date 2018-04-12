@@ -873,7 +873,7 @@ void *memalign(const size_t align, const size_t size)
  * @return Reallocated memory or NULL.
  *
  */
-void *realloc(void * const addr, const size_t size)
+void *realloc(void *const addr, const size_t size)
 {
 	if (size == 0) {
 		free(addr);
@@ -987,7 +987,7 @@ void *realloc(void * const addr, const size_t size)
  * @param addr The address of the block.
  *
  */
-void free(void * const addr)
+void free(void *const addr)
 {
 	if (addr == NULL)
 		return;
@@ -995,8 +995,8 @@ void free(void * const addr)
 	heap_lock();
 
 	/* Calculate the position of the header. */
-	heap_block_head_t *head
-	    = (heap_block_head_t *) (addr - sizeof(heap_block_head_t));
+	heap_block_head_t *head =
+	    (heap_block_head_t *) (addr - sizeof(heap_block_head_t));
 
 	block_check(head);
 	malloc_assert(!head->free);
@@ -1011,8 +1011,8 @@ void free(void * const addr)
 	head->free = true;
 
 	/* Look at the next block. If it is free, merge the two. */
-	heap_block_head_t *next_head
-	    = (heap_block_head_t *) (((void *) head) + head->size);
+	heap_block_head_t *next_head =
+	    (heap_block_head_t *) (((void *) head) + head->size);
 
 	if ((void *) next_head < area->end) {
 		block_check(next_head);

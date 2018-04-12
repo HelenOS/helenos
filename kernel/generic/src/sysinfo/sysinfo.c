@@ -510,7 +510,7 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 			printf(" [undefined]\n");
 			break;
 		case SYSINFO_VAL_VAL:
-			printf(" -> %" PRIun" (%#" PRIxn ")\n", cur->val.val,
+			printf(" -> %" PRIun " (%#" PRIxn ")\n", cur->val.val,
 			    cur->val.val);
 			break;
 		case SYSINFO_VAL_DATA:
@@ -518,7 +518,7 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
 			break;
 		case SYSINFO_VAL_FUNCTION_VAL:
 			val = cur->val.gen_val.fn(cur, cur->val.gen_val.data);
-			printf(" -> %" PRIun" (%#" PRIxn ") [generated]\n", val,
+			printf(" -> %" PRIun " (%#" PRIxn ") [generated]\n", val,
 			    val);
 			break;
 		case SYSINFO_VAL_FUNCTION_DATA:

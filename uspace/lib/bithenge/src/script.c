@@ -400,7 +400,7 @@ static char *expect_identifier(state_t *state)
 static bithenge_transform_t *get_named_transform(state_t *state,
     const char *name)
 {
-	for (transform_list_t * e = state->transform_list; e; e = e->next) {
+	for (transform_list_t *e = state->transform_list; e; e = e->next) {
 		if (!str_cmp(e->name, name)) {
 			bithenge_transform_inc_ref(e->transform);
 			return e->transform;
