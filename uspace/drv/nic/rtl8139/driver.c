@@ -200,6 +200,11 @@ inline static void rtl8139_hw_pmen_set(rtl8139_t *rtl8139, uint8_t bit_val)
 	async_sess_t *pci_sess =
 	    ddf_dev_parent_sess_get(nic_get_ddf_dev(rtl8139->nic_data));
 
+	// XXX: According to the RTL8139C(L) Rev.1.4 datasheet, the entire PCI
+	// Power Management data structure is located at a fixed address 0x50 so
+	// that PME_Status and PME_En find themselves at address 0x55. It would
+	// be more flexible though to locate the data structure by searching
+	// the PCI function's capability list.
 	if (bit_val) {
 		uint8_t pmen;
 		pci_config_space_read_8(pci_sess, 0x55, &pmen);
