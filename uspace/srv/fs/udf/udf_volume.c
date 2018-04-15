@@ -209,7 +209,7 @@ static errno_t udf_get_anchor_volume_descriptor_by_ssize(service_id_t service_id
 errno_t udf_get_anchor_volume_descriptor(service_id_t service_id,
     udf_anchor_volume_descriptor_t *avd)
 {
-	uint32_t default_sector_size[] = {512, 1024, 2048, 4096, 8192, 0};
+	uint32_t default_sector_size[] = { 512, 1024, 2048, 4096, 8192, 0 };
 
 	udf_instance_t *instance;
 	errno_t rc = fs_instance_get(service_id, (void **) &instance);
@@ -763,7 +763,7 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Unallocated space descriptor found");
 
 			sct = ALL_UP((sizeof(udf_unallocated_space_descriptor_t) +
-			    FLE32(vol->unallocated.allocation_descriptors_num)*
+			    FLE32(vol->unallocated.allocation_descriptors_num) *
 			    sizeof(udf_extent_t)), sizeof(udf_common_descriptor_t));
 			instance->uaspace_start = pos;
 			instance->uaspace_lenght = sct;
