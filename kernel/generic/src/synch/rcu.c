@@ -252,7 +252,7 @@ static rcu_data_t rcu;
 static void start_reclaimers(void);
 static void synch_complete(rcu_item_t *rcu_item);
 static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
-	rcu_func_t func);
+    rcu_func_t func);
 static void add_barrier_cb(void *arg);
 static void barrier_complete(rcu_item_t *barrier_item);
 static bool arriving_cbs_empty(void);
@@ -439,12 +439,12 @@ uint64_t rcu_completed_gps(void)
 static void start_reclaimers(void)
 {
 	for (unsigned int cpu_id = 0; cpu_id < config.cpu_count; ++cpu_id) {
-		char name[THREAD_NAME_BUFLEN] = {0};
+		char name[THREAD_NAME_BUFLEN] = { 0 };
 
 		snprintf(name, THREAD_NAME_BUFLEN - 1, "rcu-rec/%u", cpu_id);
 
 		cpus[cpu_id].rcu.reclaimer_thr =
-			thread_create(reclaimer, NULL, TASK, THREAD_FLAG_NONE, name);
+		    thread_create(reclaimer, NULL, TASK, THREAD_FLAG_NONE, name);
 
 		if (!cpus[cpu_id].rcu.reclaimer_thr)
 			panic("Failed to create RCU reclaimer thread on cpu%u.", cpu_id);
@@ -460,7 +460,7 @@ static void start_reclaimers(void)
 static void start_detector(void)
 {
 	rcu.detector_thr =
-		thread_create(detector, NULL, TASK, THREAD_FLAG_NONE, "rcu-det");
+	    thread_create(detector, NULL, TASK, THREAD_FLAG_NONE, "rcu-det");
 
 	if (!rcu.detector_thr)
 		panic("Failed to create RCU detector thread.");
@@ -655,7 +655,7 @@ void _rcu_call(bool expedite, rcu_item_t *rcu_item, rcu_func_t func)
 
 /** rcu_call() inline-able implementation. See rcu_call() for comments. */
 static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
-	rcu_func_t func)
+    rcu_func_t func)
 {
 	assert(rcu_item);
 
@@ -666,8 +666,8 @@ static inline void rcu_call_impl(bool expedite, rcu_item_t *rcu_item,
 
 	rcu_cpu_data_t *r = &CPU->rcu;
 
-	rcu_item_t **prev_tail
-		= local_atomic_exchange(&r->parriving_cbs_tail, &rcu_item->next);
+	rcu_item_t **prev_tail =
+	    local_atomic_exchange(&r->parriving_cbs_tail, &rcu_item->next);
 	*prev_tail = rcu_item;
 
 	/* Approximate the number of callbacks present. */
@@ -828,7 +828,7 @@ static void upd_stat_cb_cnts(size_t arriving_cnt)
 	CPU->rcu.stat_max_cbs = max(arriving_cnt, CPU->rcu.stat_max_cbs);
 	if (0 < arriving_cnt) {
 		CPU->rcu.stat_avg_cbs =
-			(99 * CPU->rcu.stat_avg_cbs + 1 * arriving_cnt) / 100;
+		    (99 * CPU->rcu.stat_avg_cbs + 1 * arriving_cnt) / 100;
 	}
 }
 
@@ -852,8 +852,8 @@ static bool advance_cbs(void)
 	 * Too many callbacks queued. Better speed up the detection
 	 * or risk exhausting all system memory.
 	 */
-	bool expedite = (EXPEDITE_THRESHOLD < CPU->rcu.next_cbs_cnt)
-		|| CPU->rcu.expedite_arriving;
+	bool expedite = (EXPEDITE_THRESHOLD < CPU->rcu.next_cbs_cnt) ||
+	    CPU->rcu.expedite_arriving;
 	CPU->rcu.expedite_arriving = false;
 
 	/* Start moving the arriving_cbs list to next_cbs. */
@@ -957,7 +957,7 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 
 			/* Wait for the GP to complete. */
 			errno_t ret = _condvar_wait_timeout_spinlock(&rcu.gp_ended, &rcu.gp_lock,
-				SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
+			    SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 
 			if (ret == EINTR) {
 				spinlock_unlock(&rcu.gp_lock);
@@ -983,7 +983,7 @@ static bool wait_for_readers(bool expedite)
 
 	while (!cpu_mask_is_none(reader_cpus)) {
 		/* Give cpus a chance to context switch (a QS) and batch callbacks. */
-		if(!gp_sleep(&expedite))
+		if (!gp_sleep(&expedite))
 			return false;
 
 		rm_quiescent_cpus(reader_cpus);
@@ -1014,7 +1014,7 @@ static bool gp_sleep(bool *expedite)
 
 		errno_t ret = 0;
 		ret = _condvar_wait_timeout_spinlock(&rcu.expedite_now, &rcu.gp_lock,
-			DETECT_SLEEP_MS * 1000, SYNCH_FLAGS_INTERRUPTIBLE);
+		    DETECT_SLEEP_MS * 1000, SYNCH_FLAGS_INTERRUPTIBLE);
 
 		/* rcu.expedite_now was signaled. */
 		if (ret == EOK) {
@@ -1144,7 +1144,7 @@ void rcu_thread_exiting(void)
 		}
 
 		printf("Bug: thread (id %" PRIu64 " \"%s\") exited while in RCU read"
-			" section.\n", THREAD->tid, THREAD->name);
+		    " section.\n", THREAD->tid, THREAD->name);
 	}
 }
 
@@ -1206,8 +1206,8 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 	 * outdated lower word.
 	 */
 	rcu_gp_t compl_gp = ACCESS_ONCE(rcu.completed_gp);
-	if (CPU->rcu.cur_cbs_gp <= compl_gp
-		&& compl_gp <= CPU->rcu.cur_cbs_gp + UINT32_MAX_HALF) {
+	if (CPU->rcu.cur_cbs_gp <= compl_gp &&
+	    compl_gp <= CPU->rcu.cur_cbs_gp + UINT32_MAX_HALF) {
 		*completed_gp = compl_gp;
 		return true;
 	}
@@ -1236,7 +1236,7 @@ static bool wait_for_cur_cbs_gp_end(bool expedite, rcu_gp_t *completed_gp)
 	 * pending callbacks and other reclaimers have not already done so.
 	 */
 	if (expedite) {
-		if(0 == rcu.req_expedited_cnt)
+		if (0 == rcu.req_expedited_cnt)
 			condvar_signal(&rcu.expedite_now);
 
 		/*
@@ -1269,7 +1269,7 @@ static bool cv_wait_for_gp(rcu_gp_t wait_on_gp)
 	/* Wait until wait_on_gp ends. */
 	while (rcu.completed_gp < wait_on_gp && !interrupted) {
 		int ret = _condvar_wait_timeout_spinlock(&rcu.gp_ended, &rcu.gp_lock,
-			SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
+		    SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 		interrupted = (ret == EINTR);
 	}
 
@@ -1329,7 +1329,7 @@ static bool wait_for_detect_req(void)
 
 	while (0 == rcu.req_gp_end_cnt && !interrupted) {
 		int ret = _condvar_wait_timeout_spinlock(&rcu.req_gp_changed,
-			&rcu.gp_lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
+		    &rcu.gp_lock, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_INTERRUPTIBLE);
 
 		interrupted = (ret == EINTR);
 	}
@@ -1394,7 +1394,7 @@ static bool gp_sleep(void)
 	while (0 == rcu.req_expedited_cnt && 0 == ret) {
 		/* minor bug: sleeps for the same duration if woken up spuriously. */
 		ret = _condvar_wait_timeout_spinlock(&rcu.expedite_now, &rcu.gp_lock,
-			DETECT_SLEEP_MS * 1000, SYNCH_FLAGS_INTERRUPTIBLE);
+		    DETECT_SLEEP_MS * 1000, SYNCH_FLAGS_INTERRUPTIBLE);
 	}
 
 	if (0 < rcu.req_expedited_cnt) {
@@ -1478,7 +1478,7 @@ static bool wait_for_delaying_cpus(void)
 {
 	int delaying_cpu_cnt = atomic_get(&rcu.delaying_cpu_cnt);
 
-	for (int i = 0; i < delaying_cpu_cnt; ++i){
+	for (int i = 0; i < delaying_cpu_cnt; ++i) {
 		if (!semaphore_down_interruptable(&rcu.remaining_readers))
 			return false;
 	}
@@ -1548,8 +1548,7 @@ void rcu_after_thread_ran(void)
 	 */
 	if (THREAD == rcu.detector_thr) {
 		THREAD->priority = -1;
-	}
-	else if (THREAD == CPU->rcu.reclaimer_thr) {
+	} else if (THREAD == CPU->rcu.reclaimer_thr) {
 		THREAD->priority = -1;
 	}
 
@@ -1605,7 +1604,7 @@ void rcu_thread_exiting(void)
 		read_unlock_impl(&THREAD->rcu.nesting_cnt);
 
 		printf("Bug: thread (id %" PRIu64 " \"%s\") exited while in RCU read"
-			" section.\n", THREAD->tid, THREAD->name);
+		    " section.\n", THREAD->tid, THREAD->name);
 	}
 }
 
@@ -1833,14 +1832,14 @@ void rcu_print_stat(void)
 #endif
 
 	printf("Config: expedite_threshold=%d, critical_threshold=%d,"
-		" detect_sleep=%dms, %s\n",
-		EXPEDITE_THRESHOLD, CRITICAL_THRESHOLD, DETECT_SLEEP_MS, algo);
+	    " detect_sleep=%dms, %s\n",
+	    EXPEDITE_THRESHOLD, CRITICAL_THRESHOLD, DETECT_SLEEP_MS, algo);
 	printf("Completed GPs: %" PRIu64 "\n", rcu.completed_gp);
 	printf("Expedited GPs: %zu\n", rcu.stat_expedited_cnt);
 	printf("Delayed GPs:   %zu (cpus w/ still running readers after gp sleep)\n",
-		rcu.stat_delayed_cnt);
+	    rcu.stat_delayed_cnt);
 	printf("Preempt blocked GPs: %zu (waited for preempted readers; "
-		"running or not)\n", rcu.stat_preempt_blocking_cnt);
+	    "running or not)\n", rcu.stat_preempt_blocking_cnt);
 	printf("Smp calls:     %zu\n", rcu.stat_smp_call_cnt);
 
 	printf("Max arrived callbacks per GP and CPU:\n");

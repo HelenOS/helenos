@@ -358,8 +358,8 @@ udp_callback_create_srv(udp_client_t *client, cap_call_handle_t icall_handle,
  * @param icall_handle  Async request call handle
  * @param icall         Async request data
  */
-static
-void udp_assoc_create_srv(udp_client_t *client, cap_call_handle_t icall_handle,
+static void
+udp_assoc_create_srv(udp_client_t *client, cap_call_handle_t icall_handle,
     ipc_call_t *icall)
 {
 	cap_call_handle_t chandle;

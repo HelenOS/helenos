@@ -216,7 +216,7 @@ static inline bool ieee80211_is_encrypted_frame(uint16_t frame_ctrl)
  *
  */
 static inline bool
-    ieee80211_is_eapol_key_frame(ieee80211_eapol_key_frame_t *key_frame)
+ieee80211_is_eapol_key_frame(ieee80211_eapol_key_frame_t *key_frame)
 {
 	return (key_frame->packet_type == IEEE80211_EAPOL_KEY);
 }
@@ -280,7 +280,7 @@ ddf_dev_t *ieee80211_get_ddf_dev(ieee80211_dev_t *ieee80211_dev)
  *
  */
 ieee80211_operating_mode_t
-    ieee80211_query_current_op_mode(ieee80211_dev_t *ieee80211_dev)
+ieee80211_query_current_op_mode(ieee80211_dev_t *ieee80211_dev)
 {
 	fibril_mutex_lock(&ieee80211_dev->gen_mutex);
 	ieee80211_operating_mode_t op_mode = ieee80211_dev->current_op_mode;

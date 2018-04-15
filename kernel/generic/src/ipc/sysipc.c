@@ -764,7 +764,7 @@ restart:
 #endif
 
 	if (!call) {
-		ipc_data_t data = {};
+		ipc_data_t data = { };
 		data.cap_handle = CAP_NIL;
 		STRUCT_TO_USPACE(calldata, &data);
 		return EOK;

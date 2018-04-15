@@ -164,8 +164,8 @@ NO_TRACE static void exc_undef(unsigned int n, istate_t *istate)
 	panic_badtrap(istate, n, "Unhandled exception %u.", n);
 }
 
-static NO_TRACE
-void fault_from_uspace_core(istate_t *istate, const char *fmt, va_list args)
+static NO_TRACE void
+fault_from_uspace_core(istate_t *istate, const char *fmt, va_list args)
 {
 	printf("Task %s (%" PRIu64 ") killed due to an exception at "
 	    "program counter %p.\n", TASK->name, TASK->taskid,

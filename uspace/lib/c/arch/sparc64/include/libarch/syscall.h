@@ -59,11 +59,11 @@ __syscall(const sysarg_t p1, const sysarg_t p2, const sysarg_t p3,
 	register uint64_t a6 asm("o5") = p6;
 
 	asm volatile (
-		"ta %7\n"
-		: "=r" (a1)
-		: "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
-		  "i" (id)
-		: "memory"
+	    "ta %7\n"
+	    : "=r" (a1)
+	    : "r" (a1), "r" (a2), "r" (a3), "r" (a4), "r" (a5), "r" (a6),
+	      "i" (id)
+	    : "memory"
 	);
 
 	return a1;

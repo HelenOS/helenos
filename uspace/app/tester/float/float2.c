@@ -208,7 +208,7 @@ static bool cmp_double(double a, double b)
 const char *test_float2(void)
 {
 	bool fail = false;
-if (0) {
+#if 0
 	for (unsigned int i = 0; i < OPERANDS; i++) {
 		double res = acos(arguments_acos[i]);
 
@@ -248,7 +248,7 @@ if (0) {
 			fail = true;
 		}
 	}
-}
+#endif
 	for (unsigned int i = 0; i < OPERANDS; i++) {
 		double res = atan(arguments_atan[i]);
 

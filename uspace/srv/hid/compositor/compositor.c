@@ -487,7 +487,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 						if (y_bnd_ghost == y_dmg_ghost) {
 							for (sysarg_t x = x_dmg_ghost - vp->pos.x;
-								    x < x_dmg_ghost - vp->pos.x + w_dmg_ghost; ++x) {
+							    x < x_dmg_ghost - vp->pos.x + w_dmg_ghost; ++x) {
 								ghost_color = surface_get_pixel(vp->surface,
 								    x, y_dmg_ghost - vp->pos.y);
 								surface_put_pixel(vp->surface,
@@ -497,7 +497,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 						if (y_bnd_ghost + h_bnd_ghost == y_dmg_ghost + h_dmg_ghost) {
 							for (sysarg_t x = x_dmg_ghost - vp->pos.x;
-								    x < x_dmg_ghost - vp->pos.x + w_dmg_ghost; ++x) {
+							    x < x_dmg_ghost - vp->pos.x + w_dmg_ghost; ++x) {
 								ghost_color = surface_get_pixel(vp->surface,
 								    x, y_dmg_ghost - vp->pos.y + h_dmg_ghost - 1);
 								surface_put_pixel(vp->surface,
@@ -507,7 +507,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 						if (x_bnd_ghost == x_dmg_ghost) {
 							for (sysarg_t y = y_dmg_ghost - vp->pos.y;
-								    y < y_dmg_ghost - vp->pos.y + h_dmg_ghost; ++y) {
+							    y < y_dmg_ghost - vp->pos.y + h_dmg_ghost; ++y) {
 								ghost_color = surface_get_pixel(vp->surface,
 								    x_dmg_ghost - vp->pos.x, y);
 								surface_put_pixel(vp->surface,
@@ -517,7 +517,7 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 						if (x_bnd_ghost + w_bnd_ghost == x_dmg_ghost + w_dmg_ghost) {
 							for (sysarg_t y = y_dmg_ghost - vp->pos.y;
-								    y < y_dmg_ghost - vp->pos.y + h_dmg_ghost; ++y) {
+							    y < y_dmg_ghost - vp->pos.y + h_dmg_ghost; ++y) {
 								ghost_color = surface_get_pixel(vp->surface,
 								    x_dmg_ghost - vp->pos.x + w_dmg_ghost - 1, y);
 								surface_put_pixel(vp->surface,
@@ -561,7 +561,8 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 						sysarg_t count = w_dmg_ptr;
 						while (count-- != 0) {
 							*dst = (*src & 0xff000000) ? *src : *dst;
-							++dst; ++src;
+							++dst;
+							++src;
 						}
 					}
 					surface_add_damaged_region(vp->surface, x_vp, y_vp, w_dmg_ptr, h_dmg_ptr);
@@ -1346,7 +1347,8 @@ static void comp_window_animate(pointer_t *pointer, window_t *win,
 			double fy = 1.0 + (_dy / ((height - 1) * win->fy));
 			if (fy > 0) {
 #if ANIMATE_WINDOW_TRANSFORMS == 0
-				if (scale) win->fy *= fy;
+				if (scale)
+					win->fy *= fy;
 #endif
 #if ANIMATE_WINDOW_TRANSFORMS == 1
 				win->fy *= fy;
@@ -1448,10 +1450,25 @@ static void comp_ghost_animate(pointer_t *pointer,
 	    &x_i, &y_i, &w_i, &h_i);
 
 	if (w_i == 0 || h_i == 0) {
-		rect1->x = x_u; rect2->x = 0; rect3->x = 0; rect4->x = 0;
-		rect1->y = y_u; rect2->y = 0; rect3->y = 0; rect4->y = 0;
-		rect1->w = w_u; rect2->w = 0; rect3->w = 0; rect4->w = 0;
-		rect1->h = h_u; rect2->h = 0; rect3->h = 0; rect4->h = 0;
+		rect1->x = x_u;
+		rect2->x = 0;
+		rect3->x = 0;
+		rect4->x = 0;
+
+		rect1->y = y_u;
+		rect2->y = 0;
+		rect3->y = 0;
+		rect4->y = 0;
+
+		rect1->w = w_u;
+		rect2->w = 0;
+		rect3->w = 0;
+		rect4->w = 0;
+
+		rect1->h = h_u;
+		rect2->h = 0;
+		rect3->h = 0;
+		rect4->h = 0;
 	} else {
 		rect1->x = x_u;
 		rect1->y = y_u;
@@ -1476,7 +1493,7 @@ static void comp_ghost_animate(pointer_t *pointer,
 }
 #endif
 
-static errno_t comp_abs_move(input_t *input, unsigned x , unsigned y,
+static errno_t comp_abs_move(input_t *input, unsigned x, unsigned y,
     unsigned max_x, unsigned max_y)
 {
 	/* XXX TODO Use absolute coordinates directly */
@@ -1525,7 +1542,7 @@ static errno_t comp_mouse_move(input_t *input, int dx, int dy)
 	sysarg_t cursor_width;
 	sysarg_t cursor_height;
 	surface_get_resolution(pointer->cursor.states[pointer->state],
-	     &cursor_width, &cursor_height);
+	    &cursor_width, &cursor_height);
 
 	if (pointer->pos.x + dx < viewport_bound_rect.x)
 		dx = -1 * (pointer->pos.x - viewport_bound_rect.x);
@@ -1787,10 +1804,10 @@ static errno_t comp_mouse_button(input_t *input, int bnum, int bpress)
 	fibril_mutex_unlock(&window_list_mtx);
 
 #if ANIMATE_WINDOW_TRANSFORMS == 0
-		comp_damage(dmg_rect1.x, dmg_rect1.y, dmg_rect1.w, dmg_rect1.h);
-		comp_damage(dmg_rect2.x, dmg_rect2.y, dmg_rect2.w, dmg_rect2.h);
-		comp_damage(dmg_rect3.x, dmg_rect3.y, dmg_rect3.w, dmg_rect3.h);
-		comp_damage(dmg_rect4.x, dmg_rect4.y, dmg_rect4.w, dmg_rect4.h);
+	comp_damage(dmg_rect1.x, dmg_rect1.y, dmg_rect1.w, dmg_rect1.h);
+	comp_damage(dmg_rect2.x, dmg_rect2.y, dmg_rect2.w, dmg_rect2.h);
+	comp_damage(dmg_rect3.x, dmg_rect3.y, dmg_rect3.w, dmg_rect3.h);
+	comp_damage(dmg_rect4.x, dmg_rect4.y, dmg_rect4.w, dmg_rect4.h);
 #endif
 
 	if (dmg_width > 0 && dmg_height > 0) {
@@ -1825,19 +1842,17 @@ static errno_t comp_deactive(input_t *input)
 static errno_t comp_key_press(input_t *input, kbd_event_type_t type, keycode_t key,
     keymod_t mods, wchar_t c)
 {
-	bool win_transform = (mods & KM_ALT) && (
-	    key == KC_W || key == KC_S || key == KC_A || key == KC_D ||
+	bool win_transform = (mods & KM_ALT) &&
+	    (key == KC_W || key == KC_S || key == KC_A || key == KC_D ||
 	    key == KC_Q || key == KC_E || key == KC_R || key == KC_F);
-	bool win_resize = (mods & KM_ALT) && (
-	    key == KC_T || key == KC_G || key == KC_B || key == KC_N);
-	bool win_opacity = (mods & KM_ALT) && (
-	    key == KC_C || key == KC_V);
+	bool win_resize = (mods & KM_ALT) &&
+	    (key == KC_T || key == KC_G || key == KC_B || key == KC_N);
+	bool win_opacity = (mods & KM_ALT) && (key == KC_C || key == KC_V);
 	bool win_close = (mods & KM_ALT) && (key == KC_X);
 	bool win_switch = (mods & KM_ALT) && (key == KC_TAB);
-	bool viewport_move = (mods & KM_ALT) && (
-	    key == KC_I || key == KC_K || key == KC_J || key == KC_L);
-	bool viewport_change = (mods & KM_ALT) && (
-	    key == KC_O || key == KC_P);
+	bool viewport_move = (mods & KM_ALT) &&
+	    (key == KC_I || key == KC_K || key == KC_J || key == KC_L);
+	bool viewport_change = (mods & KM_ALT) && (key == KC_O || key == KC_P);
 	bool kconsole_switch = (key == KC_PAUSE) || (key == KC_BREAK);
 	bool filter_switch = (mods & KM_ALT) && (key == KC_Y);
 
@@ -2119,8 +2134,7 @@ static errno_t comp_key_press(input_t *input, kbd_event_type_t type, keycode_t k
 			filter_index = 0;
 		if (filter_index == 0) {
 			filter = filter_nearest;
-		}
-		else {
+		} else {
 			filter = filter_bilinear;
 		}
 		comp_damage(0, 0, UINT32_MAX, UINT32_MAX);

@@ -183,7 +183,7 @@ static void usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	const usb_hid_report_field_t *move_y = get_mouse_axis_move_field(
 	    hid_dev->report_id, &hid_dev->report,
 	    USB_HIDUT_USAGE_GENERIC_DESKTOP_Y);
-	const usb_hid_report_field_t *wheel= get_mouse_axis_move_field(
+	const usb_hid_report_field_t *wheel = get_mouse_axis_move_field(
 	    hid_dev->report_id, &hid_dev->report,
 	    USB_HIDUT_USAGE_GENERIC_DESKTOP_WHEEL);
 
@@ -231,7 +231,7 @@ static void usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		return;
 	}
 	errno_t ret =
-	   usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
+	    usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_BUTTON, 0);
 	if (ret != EOK) {
 		usb_hid_report_path_free(path);
 		usb_log_warning("Failed to add buttons to report path.");
@@ -240,8 +240,8 @@ static void usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_set_report_id(path, hid_dev->report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    &hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END
-	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, USB_HID_REPORT_TYPE_INPUT);
+	    &hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END |
+	    USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, USB_HID_REPORT_TYPE_INPUT);
 
 	while (field != NULL) {
 		usb_log_debug2(NAME " VALUE(%X) USAGE(%X)", field->value,
@@ -262,8 +262,8 @@ static void usb_mouse_process_report(usb_hid_dev_t *hid_dev,
 		}
 
 		field = usb_hid_report_get_sibling(
-		    &hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
-		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		    &hid_dev->report, field, path, USB_HID_PATH_COMPARE_END |
+		    USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		    USB_HID_REPORT_TYPE_INPUT);
 	}
 

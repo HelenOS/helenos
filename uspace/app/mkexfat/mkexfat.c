@@ -122,10 +122,10 @@ static uint32_t
 upcase_table_checksum(void const *data, size_t nbytes);
 
 static struct option const long_options[] = {
-	{"help", no_argument, 0, 'h'},
-	{"cluster-size", required_argument, 0, 'c'},
-	{"fs-size", required_argument, 0, 's'},
-	{"label", required_argument, 0, 'L' },
+	{ "help", no_argument, 0, 'h' },
+	{ "cluster-size", required_argument, 0, 'c' },
+	{ "fs-size", required_argument, 0, 's' },
+	{ "label", required_argument, 0, 'L' },
 };
 
 static void usage(void)

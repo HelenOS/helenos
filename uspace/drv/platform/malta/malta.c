@@ -238,7 +238,7 @@ static errno_t malta_dev_add(ddf_dev_t *dev)
  	 */
 	ret = pio_enable((void *) GT_BASE, GT_SIZE, (void **) &gt);
 	if (ret != EOK)
-                return ret;
+		return ret;
 	val = uint32_t_le2host(pio_read_32(
 	    &gt[GT_PCI_CMD / sizeof(ioport32_t)]));
 	val |= GT_PCI_CMD_MBYTESWAP;

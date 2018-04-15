@@ -50,13 +50,13 @@
 static const char *cmdname = "mkdir";
 
 static struct option const long_options[] = {
-	{"parents", no_argument, 0, 'p'},
-	{"verbose", no_argument, 0, 'v'},
-	{"mode", required_argument, 0, 'm'},
-	{"help", no_argument, 0, 'h'},
-	{"version", no_argument, 0, 'V'},
-	{"follow", no_argument, 0, 'f'},
-	{0, 0, 0, 0}
+	{ "parents", no_argument, 0, 'p' },
+	{ "verbose", no_argument, 0, 'v' },
+	{ "mode", required_argument, 0, 'm' },
+	{ "help", no_argument, 0, 'h' },
+	{ "version", no_argument, 0, 'V' },
+	{ "follow", no_argument, 0, 'f' },
+	{ 0, 0, 0, 0 }
 };
 
 
@@ -67,16 +67,16 @@ void help_cmd_mkdir(unsigned int level)
 	} else {
 		help_cmd_mkdir(HELP_SHORT);
 		printf(
-		"Usage:  %s [options] <path>\n"
-		"Options:\n"
-		"  -h, --help       A short option summary\n"
-		"  -V, --version    Print version information and exit\n"
-		"  -p, --parents    Create needed parents for <path>\n"
-		"  -m, --mode       Set permissions to [mode] (UNUSED)\n"
-		"  -v, --verbose    Be extremely noisy about what is happening\n"
-		"  -f, --follow     Go to the new directory once created\n"
-		"Currently, %s is under development, some options don't work.\n",
-		cmdname, cmdname);
+		    "Usage:  %s [options] <path>\n"
+		    "Options:\n"
+		    "  -h, --help       A short option summary\n"
+		    "  -V, --version    Print version information and exit\n"
+		    "  -p, --parents    Create needed parents for <path>\n"
+		    "  -m, --mode       Set permissions to [mode] (UNUSED)\n"
+		    "  -v, --verbose    Be extremely noisy about what is happening\n"
+		    "  -f, --follow     Go to the new directory once created\n"
+		    "Currently, %s is under development, some options don't work.\n",
+		    cmdname, cmdname);
 	}
 
 	return;
@@ -201,15 +201,15 @@ int cmd_mkdir(char **argv)
 
 	if (argc < 1) {
 		printf("%s - incorrect number of arguments. Try `%s --help'\n",
-			cmdname, cmdname);
+		    cmdname, cmdname);
 		return CMD_FAILURE;
 	}
 
 	for (i = optind; argv[i] != NULL; i++) {
 		if (verbose)
 			printf("%s: creating %s%s\n",
-				cmdname, argv[i],
-				create_parents ? " (and all parents)" : "");
+			    cmdname, argv[i],
+			    create_parents ? " (and all parents)" : "");
 		ret += create_directory(argv[i], create_parents);
 	}
 

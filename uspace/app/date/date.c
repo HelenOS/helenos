@@ -46,7 +46,7 @@ static bool is_leap_year(int year);
 
 static void usage(void);
 
-static int days_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static int days_month[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 int
 main(int argc, char **argv)

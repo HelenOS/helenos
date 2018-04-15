@@ -141,7 +141,7 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
 			 * when fortunately we have the last cluster number cached.
 			 */
 			return block_get(block, nodep->idx->service_id, DATA_FS(bs) +
-		        (nodep->lastc_cached_value-EXFAT_CLST_FIRST)*SPC(bs) +
+			    (nodep->lastc_cached_value - EXFAT_CLST_FIRST) * SPC(bs) +
 			    (bn % SPC(bs)), flags);
 		}
 
@@ -200,7 +200,7 @@ exfat_block_get_by_clst(block_t **block, exfat_bs_t *bs,
 
 	if (!fragmented) {
 		rc = block_get(block, service_id, DATA_FS(bs) +
-		    (fcl - EXFAT_CLST_FIRST)*SPC(bs) + bn, flags);
+		    (fcl - EXFAT_CLST_FIRST) * SPC(bs) + bn, flags);
 	} else {
 		max_clusters = bn / SPC(bs);
 		rc = exfat_cluster_walk(bs, service_id, fcl, &c, &clusters, max_clusters);
@@ -513,7 +513,7 @@ exfat_read_uctable(exfat_bs_t *bs, exfat_node_t *nodep, uint8_t *uctable)
 	size_t i, blocks, count;
 	block_t *b;
 	errno_t rc;
-	blocks = ROUND_UP(nodep->size, BPS(bs))/BPS(bs);
+	blocks = ROUND_UP(nodep->size, BPS(bs)) / BPS(bs);
 	count = BPS(bs);
 
 	for (i = 0; i < blocks; i++) {

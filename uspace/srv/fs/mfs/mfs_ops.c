@@ -102,7 +102,7 @@ typedef struct {
 static size_t
 open_nodes_key_hash(void *key)
 {
-	node_key_t *node_key = (node_key_t*)key;
+	node_key_t *node_key = (node_key_t *)key;
 	return hash_combine(node_key->service_id, node_key->index);
 }
 
@@ -116,11 +116,11 @@ open_nodes_hash(const ht_link_t *item)
 static bool
 open_nodes_key_equal(void *key, const ht_link_t *item)
 {
-	node_key_t *node_key = (node_key_t*)key;
+	node_key_t *node_key = (node_key_t *)key;
 	struct mfs_node *mnode = hash_table_get_inst(item, struct mfs_node, link);
 
-	return node_key->service_id == mnode->instance->service_id
-		&& node_key->index == mnode->ino_i->index;
+	return node_key->service_id == mnode->instance->service_id &&
+	    node_key->index == mnode->ino_i->index;
 }
 
 static hash_table_ops_t open_nodes_ops = {
@@ -360,7 +360,7 @@ out_error:
 	block_fini(service_id);
 	if (sbi)
 		free(sbi);
-	if(instance)
+	if (instance)
 		free(instance);
 	return rc;
 }
@@ -870,7 +870,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		rc = mfs_node_put(fn);
 		async_answer_0(chandle, rc != EOK ? rc : ENOENT);
 		return rc;
-found:
+	found:
 		async_data_read_finalize(chandle, d_info.d_name,
 		    str_size(d_info.d_name) + 1);
 		bytes = ((pos - spos) + 1);
@@ -1101,7 +1101,7 @@ mfs_instance_get(service_id_t service_id, struct mfs_instance **instance)
 
 static bool
 check_magic_number(uint16_t magic, bool *native,
-		mfs_version_t *version, bool *longfilenames)
+    mfs_version_t *version, bool *longfilenames)
 {
 	bool rc = true;
 	*longfilenames = false;

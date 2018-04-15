@@ -361,7 +361,7 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		t->tm_year = rtc_register_read(rtc, RTC_YEAR);
 
 		/* Now check if it is stable */
-	} while(t->tm_sec != rtc_register_read(rtc, RTC_SEC) ||
+	} while (t->tm_sec != rtc_register_read(rtc, RTC_SEC) ||
 	    t->tm_min != rtc_register_read(rtc, RTC_MIN) ||
 	    t->tm_mday != rtc_register_read(rtc, RTC_DAY) ||
 	    t->tm_mon != rtc_register_read(rtc, RTC_MON) ||

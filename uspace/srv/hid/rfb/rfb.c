@@ -82,8 +82,8 @@ static errno_t recv_char(tcp_conn_t *conn, char *c)
 }
 
 /** Receive count characters (with buffering) */
-__attribute__((warn_unused_result))
-static errno_t recv_chars(tcp_conn_t *conn, char *c, size_t count)
+static errno_t __attribute__((warn_unused_result))
+recv_chars(tcp_conn_t *conn, char *c, size_t count)
 {
 	for (size_t i = 0; i < count; i++) {
 		errno_t rc = recv_char(conn, c);
@@ -216,11 +216,11 @@ errno_t rfb_set_size(rfb_t *rfb, uint16_t width, uint16_t height)
 	return EOK;
 }
 
-__attribute__((warn_unused_result))
-static errno_t recv_message(tcp_conn_t *conn, char type, void *buf, size_t size)
+static errno_t __attribute__((warn_unused_result))
+recv_message(tcp_conn_t *conn, char type, void *buf, size_t size)
 {
 	memcpy(buf, &type, 1);
-	return recv_chars(conn, ((char *) buf) + 1, size -1);
+	return recv_chars(conn, ((char *) buf) + 1, size - 1);
 }
 
 static uint32_t rfb_scale_channel(uint8_t val, uint32_t max)
@@ -235,8 +235,7 @@ static void rfb_encode_index(rfb_t *rfb, uint8_t *buf, pixel_t pixel)
 		bool free = ALPHA(rfb->palette[i]) == 0;
 		if (free && first_free_index == -1) {
 			first_free_index = i;
-		}
-		else if (!free && RED(rfb->palette[i]) == RED(pixel) &&
+		} else if (!free && RED(rfb->palette[i]) == RED(pixel) &&
 		    GREEN(rfb->palette[i]) == GREEN(pixel) &&
 		    BLUE(rfb->palette[i]) == BLUE(pixel)) {
 			*buf = i;
@@ -267,22 +266,18 @@ static void rfb_encode_true_color(rfb_pixel_format_t *pf, void *buf,
 	if (pf->bpp == 8) {
 		uint8_t pix8 = pix;
 		memcpy(buf, &pix8, 1);
-	}
-	else if (pf->bpp == 16) {
+	} else if (pf->bpp == 16) {
 		uint16_t pix16 = pix;
 		if (pf->big_endian) {
 			pix16 = host2uint16_t_be(pix16);
-		}
-		else {
+		} else {
 			pix16 = host2uint16_t_le(pix16);
 		}
 		memcpy(buf, &pix16, 2);
-	}
-	else if (pf->bpp == 32) {
+	} else if (pf->bpp == 32) {
 		if (pf->big_endian) {
 			pix = host2uint32_t_be(pix);
-		}
-		else {
+		} else {
 			pix = host2uint32_t_le(pix);
 		}
 		memcpy(buf, &pix, 4);
@@ -293,8 +288,7 @@ static void rfb_encode_pixel(rfb_t *rfb, void *buf, pixel_t pixel)
 {
 	if (rfb->pixel_format.true_color) {
 		rfb_encode_true_color(&rfb->pixel_format, buf, pixel);
-	}
-	else {
+	} else {
 		rfb_encode_index(rfb, buf, pixel);
 	}
 }
@@ -365,7 +359,9 @@ static size_t rfb_rect_encode_raw(rfb_t *rfb, rfb_rectangle_t *rect, void *buf)
 }
 
 typedef enum {
-	COMP_NONE, COMP_SKIP_START, COMP_SKIP_END
+	COMP_NONE,
+	COMP_SKIP_START,
+	COMP_SKIP_END
 } cpixel_compress_type_t;
 
 typedef struct {
@@ -386,8 +382,7 @@ static void cpixel_context_init(cpixel_ctx_t *ctx, rfb_pixel_format_t *pixel_for
 
 		if (pixel_format->big_endian) {
 			mask = host2uint32_t_be(mask);
-		}
-		else {
+		} else {
 			mask = host2uint32_t_le(mask);
 		}
 
@@ -395,8 +390,7 @@ static void cpixel_context_init(cpixel_ctx_t *ctx, rfb_pixel_format_t *pixel_for
 		if (mask_data[0] == 0) {
 			ctx->compress_type = COMP_SKIP_START;
 			ctx->size = 3;
-		}
-		else if (mask_data[3] == 0) {
+		} else if (mask_data[3] == 0) {
 			ctx->compress_type = COMP_SKIP_END;
 			ctx->size = 3;
 		}
@@ -508,8 +502,7 @@ static errno_t rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
 	/* We send only single raw rectangle right now */
 	size_t buf_size = sizeof(rfb_framebuffer_update_t) +
 	    sizeof(rfb_rectangle_t) * 1 +
-	    rfb_rect_encode_raw(rfb, &rfb->damage_rect, NULL)
-	    ;
+	    rfb_rect_encode_raw(rfb, &rfb->damage_rect, NULL);
 
 	void *buf = malloc(buf_size);
 	if (buf == NULL) {
@@ -533,8 +526,7 @@ static errno_t rfb_send_framebuffer_update(rfb_t *rfb, tcp_conn_t *conn,
 	if (rfb->supports_trle) {
 		rect->enctype = RFB_ENCODING_TRLE;
 		pos += rfb_rect_encode_trle(rfb, rect, pos);
-	}
-	else {
+	} else {
 		rect->enctype = RFB_ENCODING_RAW;
 		pos += rfb_rect_encode_raw(rfb, rect, pos);
 	}
@@ -582,8 +574,7 @@ static errno_t rfb_set_pixel_format(rfb_t *rfb, rfb_pixel_format_t *pixel_format
 		    pixel_format->depth, pixel_format->r_max, pixel_format->r_shift,
 		    pixel_format->g_max, pixel_format->g_shift, pixel_format->b_max,
 		    pixel_format->b_shift);
-	}
-	else {
+	} else {
 		if (rfb->palette == NULL) {
 			rfb->palette = malloc(sizeof(pixel_t) * 256);
 			if (rfb->palette == NULL)
@@ -674,7 +665,7 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 	}
 	server_init->width = rfb->width;
 	server_init->height = rfb->height;
-	server_init->pixel_format = rfb->pixel_format,
+	server_init->pixel_format = rfb->pixel_format;
 	server_init->name_length = name_length;
 	rfb_server_init_to_be(server_init, server_init);
 	memcpy(server_init->name, rfb->name, name_length);

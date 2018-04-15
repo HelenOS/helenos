@@ -381,14 +381,14 @@ typedef struct {
 	list_foreach((results).list, link, ieee80211_scan_result_link_t, (iter))
 
 static inline void
-    ieee80211_scan_result_list_init(ieee80211_scan_result_list_t *results)
+ieee80211_scan_result_list_init(ieee80211_scan_result_list_t *results)
 {
 	list_initialize(&results->list);
 	fibril_mutex_initialize(&results->results_mutex);
 }
 
 static inline void
-    ieee80211_scan_result_list_remove(ieee80211_scan_result_list_t *results,
+ieee80211_scan_result_list_remove(ieee80211_scan_result_list_t *results,
     ieee80211_scan_result_link_t *result)
 {
 	list_remove(&result->link);
@@ -396,7 +396,7 @@ static inline void
 }
 
 static inline void
-    ieee80211_scan_result_list_append(ieee80211_scan_result_list_t *results,
+ieee80211_scan_result_list_append(ieee80211_scan_result_list_t *results,
     ieee80211_scan_result_link_t *result)
 {
 	list_append(&result->link, &results->list);

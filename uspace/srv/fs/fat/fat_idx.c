@@ -118,7 +118,7 @@ typedef struct {
 
 static inline size_t pos_key_hash(void *key)
 {
-	pos_key_t *pos = (pos_key_t*)key;
+	pos_key_t *pos = (pos_key_t *)key;
 
 	size_t hash = 0;
 	hash = hash_combine(pos->pfc, pos->pdi);
@@ -140,12 +140,12 @@ static size_t pos_hash(const ht_link_t *item)
 
 static bool pos_key_equal(void *key, const ht_link_t *item)
 {
-	pos_key_t *pos = (pos_key_t*)key;
+	pos_key_t *pos = (pos_key_t *)key;
 	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uph_link);
 
-	return pos->service_id == fidx->service_id
-		&& pos->pdi == fidx->pdi
-		&& pos->pfc == fidx->pfc;
+	return pos->service_id == fidx->service_id &&
+	    pos->pdi == fidx->pdi &&
+	    pos->pfc == fidx->pfc;
 }
 
 static hash_table_ops_t uph_ops = {
@@ -169,7 +169,7 @@ typedef struct {
 
 static size_t idx_key_hash(void *key_arg)
 {
-	idx_key_t *key = (idx_key_t*)key_arg;
+	idx_key_t *key = (idx_key_t *)key_arg;
 	return hash_combine(key->service_id, key->index);
 }
 
@@ -182,7 +182,7 @@ static size_t idx_hash(const ht_link_t *item)
 static bool idx_key_equal(void *key_arg, const ht_link_t *item)
 {
 	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uih_link);
-	idx_key_t *key = (idx_key_t*)key_arg;
+	idx_key_t *key = (idx_key_t *)key_arg;
 
 	return key->index == fidx->index && key->service_id == fidx->service_id;
 }
@@ -507,7 +507,7 @@ errno_t fat_idx_init_by_service_id(service_id_t service_id)
 
 static bool rm_pos_service_id(ht_link_t *item, void *arg)
 {
-	service_id_t service_id = *(service_id_t*)arg;
+	service_id_t service_id = *(service_id_t *)arg;
 	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uph_link);
 
 	if (fidx->service_id == service_id) {
@@ -519,7 +519,7 @@ static bool rm_pos_service_id(ht_link_t *item, void *arg)
 
 static bool rm_idx_service_id(ht_link_t *item, void *arg)
 {
-	service_id_t service_id = *(service_id_t*)arg;
+	service_id_t service_id = *(service_id_t *)arg;
 	fat_idx_t *fidx = hash_table_get_inst(item, fat_idx_t, uih_link);
 
 	if (fidx->service_id == service_id) {

@@ -1012,9 +1012,8 @@ static errno_t ns8250_close(chardev_srv_t *srv)
  * @param word_length	The size of one data unit in bits.
  * @param stop_bits	The number of stop bits used.
  */
-static void
-    ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate, unsigned int *parity,
-    unsigned int *word_length, unsigned int *stop_bits)
+static void ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate,
+    unsigned int *parity, unsigned int *word_length, unsigned int *stop_bits)
 {
 	ns8250_t *data = dev_ns8250(dev);
 	ns8250_regs_t *regs = data->regs;

@@ -147,8 +147,8 @@ size_t hub_connect_device(hub_t *hub, void *device)
 		 * and announce changes in single burst.
 		 */
 		//if (port->state == HUB_PORT_STATE_DISCONNECTED) {
-			port->state = HUB_PORT_STATE_DISABLED;
-			set_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
+		port->state = HUB_PORT_STATE_DISABLED;
+		set_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
 		//}
 
 		return i;
@@ -342,8 +342,8 @@ uint32_t hub_get_port_status(hub_t *hub, size_t port_index)
 	    /* Port enabled/disabled. */
 	    port->state == HUB_PORT_STATE_ENABLED ? 1 : 0,
 	    /* Suspend. */
-	    (port->state == HUB_PORT_STATE_SUSPENDED)
-	    || (port->state == HUB_PORT_STATE_RESUMING) ? 1 : 0,
+	    (port->state == HUB_PORT_STATE_SUSPENDED) ||
+	    (port->state == HUB_PORT_STATE_RESUMING) ? 1 : 0,
 	    /* Over-current. */
 	    0,
 	    /* Reset. */
@@ -357,8 +357,7 @@ uint32_t hub_get_port_status(hub_t *hub, size_t port_index)
 	    /* Full-speed device. */
 	    0,
 	    /* Reserved. */
-	    0, 0, 0, 0, 0, 0
-	    ) << 8;
+	    0, 0, 0, 0, 0, 0) << 8;
 
 	status |= (port->status_change << 16);
 

@@ -170,7 +170,7 @@ mfs_remove_dentry(struct mfs_node *mnode, const char *d_name)
 
 	/* Search the directory entry to be removed */
 	unsigned i;
-	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize ; ++i) {
+	for (i = 0; i < mnode->ino_i->i_size / sbi->dirsize; ++i) {
 		r = mfs_read_dentry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;

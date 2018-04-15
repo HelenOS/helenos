@@ -247,7 +247,7 @@ static errno_t exfat_node_get_new(exfat_node_t **nodepp)
 		fibril_mutex_unlock(&idxp_tmp->lock);
 		fn = FS_NODE(nodep);
 	} else {
-skip_cache:
+	skip_cache:
 		/* Try to allocate a new node structure. */
 		fibril_mutex_unlock(&ffn_mutex);
 		fn = (fs_node_t *)malloc(sizeof(fs_node_t));
@@ -532,7 +532,7 @@ errno_t exfat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			aoff64_t o = di.pos %
 			    (BPS(di.bs) / sizeof(exfat_dentry_t));
 			exfat_idx_t *idx = exfat_idx_get_by_pos(service_id,
-				parentp->firstc, di.bnum * DPS(di.bs) + o);
+			    parentp->firstc, di.bnum * DPS(di.bs) + o);
 			if (!idx) {
 				/*
 				 * Can happen if memory is low or if we
@@ -705,7 +705,7 @@ errno_t exfat_destroy_node(fs_node_t *fn)
 		/* Free all clusters allocated to the node. */
 		if (nodep->fragmented)
 			rc = exfat_free_clusters(bs, nodep->idx->service_id,
-				nodep->firstc);
+			    nodep->firstc);
 		else
 			rc = exfat_bitmap_free_clusters(bs, nodep,
 			    ROUND_UP(nodep->size, BPC(bs)) / BPC(bs));
@@ -804,7 +804,7 @@ errno_t exfat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	fibril_mutex_lock(&childp->idx->lock);
 
 	exfat_directory_t di;
-	rc = exfat_directory_open(parentp,&di);
+	rc = exfat_directory_open(parentp, &di);
 	if (rc != EOK)
 		goto error;
 	rc = exfat_directory_erase_file(&di, childp->idx->pdi);
@@ -1061,7 +1061,7 @@ static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
 	/* Initialize the root node. */
 	rc = exfat_node_get_new_by_pos(&rootp, service_id, EXFAT_ROOT_PAR,
 	    EXFAT_ROOT_POS);
-	if (rc!=EOK) {
+	if (rc != EOK) {
 		(void) block_cache_fini(service_id);
 		block_fini(service_id);
 		exfat_idx_fini_by_service_id(service_id);
@@ -1182,7 +1182,7 @@ static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
 			(void) block_cache_fini(service_id);
 			block_fini(service_id);
 			exfat_idx_fini_by_service_id(service_id);
-    		    return ENOTSUP;
+			return ENOTSUP;
 		}
 	}
 
@@ -1408,12 +1408,12 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 		(void) exfat_directory_close(&di);
 
-err:
+	err:
 		(void) exfat_node_put(fn);
 		async_answer_0(chandle, rc);
 		return rc;
 
-miss:
+	miss:
 		rc = exfat_directory_close(&di);
 		if (rc != EOK)
 			goto err;
@@ -1422,7 +1422,7 @@ miss:
 		*rbytes = 0;
 		return rc != EOK ? rc : ENOENT;
 
-hit:
+	hit:
 		pos = di.pos;
 		rc = exfat_directory_close(&di);
 		if (rc != EOK)

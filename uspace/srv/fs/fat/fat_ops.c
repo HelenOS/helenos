@@ -240,7 +240,7 @@ static errno_t fat_node_get_new(fat_node_t **nodepp)
 		fibril_mutex_unlock(&idxp_tmp->lock);
 		fn = FS_NODE(nodep);
 	} else {
-skip_cache:
+	skip_cache:
 		/* Try to allocate a new node structure. */
 		fibril_mutex_unlock(&ffn_mutex);
 		fn = (fs_node_t *)malloc(sizeof(fs_node_t));
@@ -1288,12 +1288,12 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc == ENOENT)
 			goto miss;
 
-err:
+	err:
 		(void) fat_node_put(fn);
 		async_answer_0(chandle, rc);
 		return rc;
 
-miss:
+	miss:
 		rc = fat_directory_close(&di);
 		if (rc != EOK)
 			goto err;
@@ -1302,7 +1302,7 @@ miss:
 		*rbytes = 0;
 		return rc != EOK ? rc : ENOENT;
 
-hit:
+	hit:
 		pos = di.pos;
 		rc = fat_directory_close(&di);
 		if (rc != EOK)

@@ -307,7 +307,7 @@ void avltree_insert(avltree_t *t, avltree_node_t *newnode)
  * 		non-zero.
  */
 static int
-    repair(avltree_t *t, avltree_node_t *u, avltree_node_t *v, avltree_node_t *w,
+repair(avltree_t *t, avltree_node_t *u, avltree_node_t *v, avltree_node_t *w,
     int *dir, int ro)
 {
 	if (u->par == NULL) {

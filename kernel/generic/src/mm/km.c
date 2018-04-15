@@ -262,7 +262,7 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 			goto lowmem;
 		}
 	} else {
-lowmem:
+	lowmem:
 		frame = frame_alloc(1, FRAME_LOWMEM | flags, 0);
 		if (!frame)
 			return (uintptr_t) NULL;

@@ -63,9 +63,9 @@ extern void __helenos_assert_quick_abort(const char *, const char *, unsigned in
 #undef assert
 
 #ifndef NDEBUG
-	#define assert(expr) ((expr) ? (void) 0 : __helenos_assert_abort(#expr, __FILE__, __LINE__))
+#define assert(expr) ((expr) ? (void) 0 : __helenos_assert_abort(#expr, __FILE__, __LINE__))
 #else
-	#define assert(expr) ((void) 0)
+#define assert(expr) ((void) 0)
 #endif
 
 #ifdef _HELENOS_SOURCE
@@ -73,9 +73,9 @@ extern void __helenos_assert_quick_abort(const char *, const char *, unsigned in
 #undef safe_assert
 
 #ifndef NDEBUG
-	#define safe_assert(expr) ((expr) ? (void) 0 : __helenos_assert_quick_abort(#expr, __FILE__, __LINE__))
+#define safe_assert(expr) ((expr) ? (void) 0 : __helenos_assert_quick_abort(#expr, __FILE__, __LINE__))
 #else
-	#define safe_assert(expr) ((void) 0)
+#define safe_assert(expr) ((void) 0)
 #endif
 
 #endif /* _HELENOS_SOURCE */

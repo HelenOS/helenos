@@ -52,7 +52,7 @@
 #define DEFAULT_ERROR_COUNT 3
 
 /** Transfer batch setup table. */
-static void (*const batch_setup[])(uhci_transfer_batch_t*);
+static void (*const batch_setup[])(uhci_transfer_batch_t *);
 
 /** Destroys uhci_transfer_batch_t structure.
  *
@@ -71,7 +71,7 @@ void uhci_transfer_batch_destroy(uhci_transfer_batch_t *uhci_batch)
  * @return Valid pointer if all structures were successfully created,
  * NULL otherwise.
  */
-uhci_transfer_batch_t * uhci_transfer_batch_create(endpoint_t *ep)
+uhci_transfer_batch_t *uhci_transfer_batch_create(endpoint_t *ep)
 {
 	uhci_transfer_batch_t *uhci_batch =
 	    calloc(1, sizeof(uhci_transfer_batch_t));
@@ -98,19 +98,19 @@ int uhci_transfer_batch_prepare(uhci_transfer_batch_t *uhci_batch)
 
 	usb_transfer_batch_t *usb_batch = &uhci_batch->base;
 
-	uhci_batch->td_count = (usb_batch->size + usb_batch->ep->max_packet_size - 1)
-		/ usb_batch->ep->max_packet_size;
+	uhci_batch->td_count = (usb_batch->size + usb_batch->ep->max_packet_size - 1) /
+	    usb_batch->ep->max_packet_size;
 
 	if (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) {
 		uhci_batch->td_count += 2;
 	}
 
-	const size_t setup_size = (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL)
-		? USB_SETUP_PACKET_SIZE
-		: 0;
+	const size_t setup_size = (usb_batch->ep->transfer_type == USB_TRANSFER_CONTROL) ?
+	    USB_SETUP_PACKET_SIZE :
+	    0;
 
-	const size_t total_size = (sizeof(td_t) * uhci_batch->td_count)
-	    + sizeof(qh_t) + setup_size;
+	const size_t total_size = (sizeof(td_t) * uhci_batch->td_count) +
+	    sizeof(qh_t) + setup_size;
 
 	if (dma_buffer_alloc(&uhci_batch->uhci_dma_buffer, total_size)) {
 		usb_log_error("Failed to allocate UHCI buffer.");
@@ -161,7 +161,7 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 
 	uhci_endpoint_t *uhci_ep = (uhci_endpoint_t *) batch->ep;
 
-	for (size_t i = 0;i < uhci_batch->td_count; ++i) {
+	for (size_t i = 0; i < uhci_batch->td_count; ++i) {
 		if (td_is_active(&uhci_batch->tds[i])) {
 			return false;
 		}
@@ -179,8 +179,8 @@ bool uhci_transfer_batch_check_completed(uhci_transfer_batch_t *uhci_batch)
 			goto substract_ret;
 		}
 
-		batch->transferred_size
-		    += td_act_size(&uhci_batch->tds[i]);
+		batch->transferred_size +=
+		    td_act_size(&uhci_batch->tds[i]);
 		if (td_is_short(&uhci_batch->tds[i]))
 			goto substract_ret;
 	}
@@ -234,8 +234,8 @@ static void batch_data(uhci_transfer_batch_t *uhci_batch)
 	while (remain_size > 0) {
 		const size_t packet_size = min(remain_size, mps);
 
-		const td_t *next_td = (td + 1 < uhci_batch->td_count)
-		    ? &uhci_batch->tds[td + 1] : NULL;
+		const td_t *next_td = (td + 1 < uhci_batch->td_count) ?
+		    &uhci_batch->tds[td + 1] : NULL;
 
 		assert(td < uhci_batch->td_count);
 		td_init(
@@ -327,8 +327,8 @@ static void batch_control(uhci_transfer_batch_t *uhci_batch)
 	    uhci_batch->tds[td].status);
 }
 
-static void (*const batch_setup[])(uhci_transfer_batch_t*) =
-{
+static void (*const batch_setup[])(uhci_transfer_batch_t *) =
+    {
 	[USB_TRANSFER_CONTROL] = batch_control,
 	[USB_TRANSFER_BULK] = batch_data,
 	[USB_TRANSFER_INTERRUPT] = batch_data,

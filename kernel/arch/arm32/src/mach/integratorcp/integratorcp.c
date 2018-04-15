@@ -244,7 +244,8 @@ void icp_get_memory_extents(uintptr_t *start, size_t *size)
 /** Stops icp. */
 void icp_cpu_halt(void)
 {
-	while (true);
+	while (true)
+		;
 }
 
 /** interrupt exception handler.
@@ -344,13 +345,13 @@ void icp_input_init(void)
 	sysinfo_set_item_val("kbd.address.physical", NULL, ICP_KBD);
 
 #ifdef CONFIG_PL011_UART
-        srln_instance_t *srln_instance = srln_init();
-        if (srln_instance) {
-                indev_t *sink = stdin_wire();
-                indev_t *srln = srln_wire(srln_instance, sink);
-                pl011_uart_input_wire(&icp.uart, srln);
-                icp_irqc_unmask(ICP_UART0_IRQ);
-        }
+	srln_instance_t *srln_instance = srln_init();
+	if (srln_instance) {
+		indev_t *sink = stdin_wire();
+		indev_t *srln = srln_wire(srln_instance, sink);
+		pl011_uart_input_wire(&icp.uart, srln);
+		icp_irqc_unmask(ICP_UART0_IRQ);
+	}
 #endif
 }
 

@@ -177,8 +177,8 @@ extern errno_t ieee80211_init(ieee80211_dev_t *, ieee80211_ops_t *,
 extern void *ieee80211_get_specific(ieee80211_dev_t *);
 extern void ieee80211_set_specific(ieee80211_dev_t *, void *);
 extern ddf_dev_t *ieee80211_get_ddf_dev(ieee80211_dev_t *);
-extern ieee80211_operating_mode_t
-    ieee80211_query_current_op_mode(ieee80211_dev_t *);
+extern ieee80211_operating_mode_t ieee80211_query_current_op_mode(
+    ieee80211_dev_t *);
 extern uint16_t ieee80211_query_current_freq(ieee80211_dev_t *);
 extern void ieee80211_query_bssid(ieee80211_dev_t *, nic_address_t *);
 extern bool ieee80211_is_connected(ieee80211_dev_t *);

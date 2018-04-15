@@ -47,7 +47,7 @@ static void
 log_message(const volatile void *place, uint64_t val, volatile void *base, size_t size,
     void *data, bool write)
 {
-	printf("PIO %s: %p(%p) %#"PRIx64"\n", write ? "WRITE" : "READ",
+	printf("PIO %s: %p(%p) %#" PRIx64 "\n", write ? "WRITE" : "READ",
 	    (place - base) + data, place, val);
 }
 
@@ -57,61 +57,61 @@ errno_t amdm37x_init(amdm37x_t *device, bool trace)
 	assert(device);
 	errno_t ret = EOK;
 
-	ret = pio_enable((void*)USBHOST_CM_BASE_ADDRESS, USBHOST_CM_SIZE,
-	    (void**)&device->cm.usbhost);
+	ret = pio_enable((void *)USBHOST_CM_BASE_ADDRESS, USBHOST_CM_SIZE,
+	    (void **)&device->cm.usbhost);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)CORE_CM_BASE_ADDRESS, CORE_CM_SIZE,
-	    (void**)&device->cm.core);
+	ret = pio_enable((void *)CORE_CM_BASE_ADDRESS, CORE_CM_SIZE,
+	    (void **)&device->cm.core);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)CLOCK_CONTROL_CM_BASE_ADDRESS,
-		    CLOCK_CONTROL_CM_SIZE, (void**)&device->cm.clocks);
+	ret = pio_enable((void *)CLOCK_CONTROL_CM_BASE_ADDRESS,
+	    CLOCK_CONTROL_CM_SIZE, (void **)&device->cm.clocks);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)MPU_CM_BASE_ADDRESS,
-		    MPU_CM_SIZE, (void**)&device->cm.mpu);
+	ret = pio_enable((void *)MPU_CM_BASE_ADDRESS,
+	    MPU_CM_SIZE, (void **)&device->cm.mpu);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)IVA2_CM_BASE_ADDRESS,
-		    IVA2_CM_SIZE, (void**)&device->cm.iva2);
+	ret = pio_enable((void *)IVA2_CM_BASE_ADDRESS,
+	    IVA2_CM_SIZE, (void **)&device->cm.iva2);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)CLOCK_CONTROL_PRM_BASE_ADDRESS,
-	    CLOCK_CONTROL_PRM_SIZE, (void**)&device->prm.clocks);
+	ret = pio_enable((void *)CLOCK_CONTROL_PRM_BASE_ADDRESS,
+	    CLOCK_CONTROL_PRM_SIZE, (void **)&device->prm.clocks);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)GLOBAL_REG_PRM_BASE_ADDRESS,
-	    GLOBAL_REG_PRM_SIZE, (void**)&device->prm.global);
+	ret = pio_enable((void *)GLOBAL_REG_PRM_BASE_ADDRESS,
+	    GLOBAL_REG_PRM_SIZE, (void **)&device->prm.global);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)AMDM37x_USBTLL_BASE_ADDRESS,
-	    AMDM37x_USBTLL_SIZE, (void**)&device->tll);
+	ret = pio_enable((void *)AMDM37x_USBTLL_BASE_ADDRESS,
+	    AMDM37x_USBTLL_SIZE, (void **)&device->tll);
 	if (ret != EOK)
 		return ret;
 
-	ret = pio_enable((void*)AMDM37x_UHH_BASE_ADDRESS,
-	    AMDM37x_UHH_SIZE, (void**)&device->uhh);
+	ret = pio_enable((void *)AMDM37x_UHH_BASE_ADDRESS,
+	    AMDM37x_UHH_SIZE, (void **)&device->uhh);
 	if (ret != EOK)
 		return ret;
 
 	if (trace) {
-		pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log_message, (void*)AMDM37x_USBTLL_BASE_ADDRESS);
-		pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log_message, (void*)CLOCK_CONTROL_CM_BASE_ADDRESS);
-		pio_trace_enable(device->cm.core, CORE_CM_SIZE, log_message, (void*)CORE_CM_BASE_ADDRESS);
-		pio_trace_enable(device->cm.mpu, MPU_CM_SIZE, log_message, (void*)MPU_CM_BASE_ADDRESS);
-		pio_trace_enable(device->cm.iva2, IVA2_CM_SIZE, log_message, (void*)IVA2_CM_BASE_ADDRESS);
-		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log_message, (void*)USBHOST_CM_BASE_ADDRESS);
-		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log_message, (void*)AMDM37x_UHH_BASE_ADDRESS);
-		pio_trace_enable(device->prm.clocks, CLOCK_CONTROL_PRM_SIZE, log_message, (void*)CLOCK_CONTROL_PRM_BASE_ADDRESS);
-		pio_trace_enable(device->prm.global, GLOBAL_REG_PRM_SIZE, log_message, (void*)GLOBAL_REG_PRM_BASE_ADDRESS);
+		pio_trace_enable(device->tll, AMDM37x_USBTLL_SIZE, log_message, (void *)AMDM37x_USBTLL_BASE_ADDRESS);
+		pio_trace_enable(device->cm.clocks, CLOCK_CONTROL_CM_SIZE, log_message, (void *)CLOCK_CONTROL_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.core, CORE_CM_SIZE, log_message, (void *)CORE_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.mpu, MPU_CM_SIZE, log_message, (void *)MPU_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.iva2, IVA2_CM_SIZE, log_message, (void *)IVA2_CM_BASE_ADDRESS);
+		pio_trace_enable(device->cm.usbhost, USBHOST_CM_SIZE, log_message, (void *)USBHOST_CM_BASE_ADDRESS);
+		pio_trace_enable(device->uhh, AMDM37x_UHH_SIZE, log_message, (void *)AMDM37x_UHH_BASE_ADDRESS);
+		pio_trace_enable(device->prm.clocks, CLOCK_CONTROL_PRM_SIZE, log_message, (void *)CLOCK_CONTROL_PRM_BASE_ADDRESS);
+		pio_trace_enable(device->prm.global, GLOBAL_REG_PRM_SIZE, log_message, (void *)GLOBAL_REG_PRM_BASE_ADDRESS);
 	}
 	return EOK;
 }
@@ -128,11 +128,11 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	assert(device);
 	/* Get SYS_CLK value, it is used as reference clock by all DPLLs,
 	 * NFI who sets this or why it is set to specific value. */
-	const unsigned osc_clk = pio_read_32(&device->prm.clocks->clksel)
-	    & CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_MASK;
+	const unsigned osc_clk = pio_read_32(&device->prm.clocks->clksel) &
+	    CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_MASK;
 	const unsigned clk_reg = pio_read_32(&device->prm.global->clksrc_ctrl);
-	const unsigned base_freq = sys_clk_freq_kHz(osc_clk)
-	    / GLOBAL_REG_PRM_CLKSRC_CTRL_SYSCLKDIV_GET(clk_reg);
+	const unsigned base_freq = sys_clk_freq_kHz(osc_clk) /
+	    GLOBAL_REG_PRM_CLKSRC_CTRL_SYSCLKDIV_GET(clk_reg);
 	ddf_msg(LVL_NOTE, "Base frequency: %d.%dMhz",
 	    base_freq / 1000, base_freq % 1000);
 
@@ -149,19 +149,19 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 			/* DPLL active and locked */
 			const uint32_t reg = pio_read_32(&mpu->clksel1_pll);
 			const unsigned multiplier =
-			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_MASK)
-				>> MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_SHIFT;
+			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_MASK) >>
+			    MPU_CM_CLKSEL1_PLL_MPU_DPLL_MULT_SHIFT;
 			const unsigned divisor =
-			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_DIV_MASK)
-				>> MPU_CM_CLKSEL1_PLL_MPU_DPLL_DIV_SHIFT;
+			    (reg & MPU_CM_CLKSEL1_PLL_MPU_DPLL_DIV_MASK) >>
+			    MPU_CM_CLKSEL1_PLL_MPU_DPLL_DIV_SHIFT;
 			const unsigned divisor2 =
-			    (pio_read_32(&mpu->clksel2_pll)
-			        & MPU_CM_CLKSEL2_PLL_MPU_DPLL_CLKOUT_DIV_MASK);
+			    (pio_read_32(&mpu->clksel2_pll) &
+			    MPU_CM_CLKSEL2_PLL_MPU_DPLL_CLKOUT_DIV_MASK);
 			if (multiplier && divisor && divisor2) {
 				/** See AMDM37x TRM p. 300 for the formula */
 				const unsigned freq =
-				    ((base_freq * multiplier) / (divisor + 1))
-				    / divisor2;
+				    ((base_freq * multiplier) / (divisor + 1)) /
+				    divisor2;
 				ddf_msg(LVL_NOTE, "MPU running at %d.%d MHz",
 				    freq / 1000, freq % 1000);
 			} else {
@@ -173,7 +173,7 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 			/* DPLL in LP bypass mode */
 			const unsigned divisor =
 			    MPU_CM_CLKSEL1_PLL_MPU_CLK_SRC_VAL(
-			        pio_read_32(&mpu->clksel1_pll));
+			    pio_read_32(&mpu->clksel1_pll));
 			ddf_msg(LVL_NOTE, "MPU DPLL in bypass mode, running at"
 			    " CORE CLK / %d MHz", divisor);
 		}
@@ -225,15 +225,15 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 			ddf_msg(LVL_NOTE, "CORE CLK running at %d.%d MHz",
 			    freq / 1000, freq % 1000);
 			const unsigned l3_div =
-			    pio_read_32(&device->cm.core->clksel)
-			    & CORE_CM_CLKSEL_CLKSEL_L3_MASK;
+			    pio_read_32(&device->cm.core->clksel) &
+			    CORE_CM_CLKSEL_CLKSEL_L3_MASK;
 			if (l3_div == CORE_CM_CLKSEL_CLKSEL_L3_DIVIDED1 ||
 			    l3_div == CORE_CM_CLKSEL_CLKSEL_L3_DIVIDED2) {
 				ddf_msg(LVL_NOTE, "L3 interface at %d.%d MHz",
 				    (freq / l3_div) / 1000,
 				    (freq / l3_div) % 1000);
 			} else {
-				ddf_msg(LVL_WARN,"L3 interface clock divisor is"
+				ddf_msg(LVL_WARN, "L3 interface clock divisor is"
 				    " invalid: %d", l3_div);
 			}
 		} else {
@@ -243,7 +243,7 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 		}
 	} else {
 		ddf_msg(LVL_WARN, "CORE CLK in bypass mode, fruunig at SYS_CLK"
-		   " frreq of %d.%d MHz", base_freq / 1000, base_freq % 1000);
+		    " frreq of %d.%d MHz", base_freq / 1000, base_freq % 1000);
 	}
 
 	/* Set DPLL3 to automatic to save power */
@@ -267,9 +267,9 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	 * 120M clock is used by HS USB and USB TLL.
 	 */
 	// TODO setup DPLL5
-	if ((pio_read_32(&device->cm.clocks->clken2_pll)
-	        & CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_MASK)
-	    != CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_LOCK) {
+	if ((pio_read_32(&device->cm.clocks->clken2_pll) &
+	    CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_MASK) !=
+	    CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_LOCK) {
 		/* Compute divisors and multiplier
 		 * See AMDM37x TRM p. 300 for the formula */
 		// TODO: base_freq does not have to be rounded to Mhz
@@ -277,7 +277,7 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 		const unsigned mult = 120;
 		const unsigned div = (base_freq / 1000) - 1;
 		const unsigned div2 = 1;
-		if ( ((base_freq % 1000) != 0) || (div > 127)) {
+		if (((base_freq % 1000) != 0) || (div > 127)) {
 			ddf_msg(LVL_ERROR, "Rounding error, or divisor to big "
 			    "freq: %d, div: %d", base_freq, div);
 			return;
@@ -332,7 +332,7 @@ void amdm37x_usb_clocks_set(amdm37x_t *device, bool enabled)
 		    USBHOST_CM_ICLKEN_EN_USBHOST, 5);
 #if 0
 		printf("DPLL5 (and everything else) should be on: %"
-		    PRIx32" %"PRIx32".\n",
+		    PRIx32 " %" PRIx32 ".\n",
 		    pio_read_32(&device->cm.clocks->idlest_ckgen),
 		    pio_read_32(&device->cm.clocks->idlest2_ckgen));
 #endif
@@ -368,7 +368,8 @@ errno_t amdm37x_usb_tll_init(amdm37x_t *device)
 	/* Reset USB TLL */
 	pio_set_32(&device->tll->sysconfig, TLL_SYSCONFIG_SOFTRESET_FLAG, 5);
 	ddf_msg(LVL_DEBUG2, "Waiting for USB TLL reset");
-	while (!(pio_read_32(&device->tll->sysstatus) & TLL_SYSSTATUS_RESET_DONE_FLAG));
+	while (!(pio_read_32(&device->tll->sysstatus) & TLL_SYSSTATUS_RESET_DONE_FLAG))
+		;
 	ddf_msg(LVL_DEBUG, "USB TLL Reset done.");
 
 	/* Setup idle mode (smart idle) */

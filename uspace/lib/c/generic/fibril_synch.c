@@ -353,7 +353,7 @@ void fibril_condvar_initialize(fibril_condvar_t *fcv)
 }
 
 errno_t
-    fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
+fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
     suseconds_t timeout)
 {
 	awaiter_t wdata;

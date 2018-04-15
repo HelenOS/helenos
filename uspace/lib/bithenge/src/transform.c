@@ -381,7 +381,7 @@ errno_t bithenge_scope_alloc_params(bithenge_scope_t *scope, int num_params)
  * @param i The index of the parameter to set.
  * @param node The value to store in the parameter.
  * @return EOK on success or an error code from errno.h. */
-errno_t bithenge_scope_set_param( bithenge_scope_t *scope, int i,
+errno_t bithenge_scope_set_param(bithenge_scope_t *scope, int i,
     bithenge_node_t *node)
 {
 	assert(scope);
@@ -918,7 +918,7 @@ static uint8_t uint8_t_identity(uint8_t arg)
 		&NAME##_ops, 1, 0                                              \
 	}
 
-MAKE_UINT_TRANSFORM(uint8   , uint8_t,  uint8_t_identity, prefix_length_1);
+MAKE_UINT_TRANSFORM(uint8,    uint8_t,  uint8_t_identity, prefix_length_1);
 MAKE_UINT_TRANSFORM(uint16le, uint16_t, uint16_t_le2host, prefix_length_2);
 MAKE_UINT_TRANSFORM(uint16be, uint16_t, uint16_t_be2host, prefix_length_2);
 MAKE_UINT_TRANSFORM(uint32le, uint32_t, uint32_t_le2host, prefix_length_4);
@@ -1057,23 +1057,23 @@ bithenge_transform_t bithenge_zero_terminated_transform = {
 };
 
 static bithenge_named_transform_t primitive_transforms[] = {
-	{"ascii", &bithenge_ascii_transform},
-	{"bit", &bithenge_bit_transform},
-	{"bits_be", &bithenge_bits_be_transform},
-	{"bits_le", &bithenge_bits_le_transform},
-	{"known_length", &bithenge_known_length_transform},
-	{"nonzero_boolean", &bithenge_nonzero_boolean_transform},
-	{"uint8", &bithenge_uint8_transform},
-	{"uint16be", &bithenge_uint16be_transform},
-	{"uint16le", &bithenge_uint16le_transform},
-	{"uint32be", &bithenge_uint32be_transform},
-	{"uint32le", &bithenge_uint32le_transform},
-	{"uint64be", &bithenge_uint64be_transform},
-	{"uint64le", &bithenge_uint64le_transform},
-	{"uint_be", &bithenge_uint_be_transform},
-	{"uint_le", &bithenge_uint_le_transform},
-	{"zero_terminated", &bithenge_zero_terminated_transform},
-	{NULL, NULL}
+	{ "ascii", &bithenge_ascii_transform },
+	{ "bit", &bithenge_bit_transform },
+	{ "bits_be", &bithenge_bits_be_transform },
+	{ "bits_le", &bithenge_bits_le_transform },
+	{ "known_length", &bithenge_known_length_transform },
+	{ "nonzero_boolean", &bithenge_nonzero_boolean_transform },
+	{ "uint8", &bithenge_uint8_transform },
+	{ "uint16be", &bithenge_uint16be_transform },
+	{ "uint16le", &bithenge_uint16le_transform },
+	{ "uint32be", &bithenge_uint32be_transform },
+	{ "uint32le", &bithenge_uint32le_transform },
+	{ "uint64be", &bithenge_uint64be_transform },
+	{ "uint64le", &bithenge_uint64le_transform },
+	{ "uint_be", &bithenge_uint_be_transform },
+	{ "uint_le", &bithenge_uint_le_transform },
+	{ "zero_terminated", &bithenge_zero_terminated_transform },
+	{ NULL, NULL }
 };
 
 /** An array of named built-in transforms. */

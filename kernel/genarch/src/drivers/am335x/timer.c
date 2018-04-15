@@ -46,13 +46,13 @@ typedef enum {
 } timer_reg_t;
 
 typedef struct timer_regs_mmap {
-        uintptr_t base;
-        size_t size;
+	uintptr_t base;
+	size_t size;
 } timer_regs_mmap_t;
 
 static const timer_regs_mmap_t regs_map[TIMERS_MAX] = {
 	{ .base = AM335x_DMTIMER0_BASE_ADDRESS, .size = AM335x_DMTIMER0_SIZE },
-	{0, 0}, /* DMTIMER1 is not supported by this driver */
+	{ 0, 0 }, /* DMTIMER1 is not supported by this driver */
 	{ .base = AM335x_DMTIMER2_BASE_ADDRESS, .size = AM335x_DMTIMER2_SIZE },
 	{ .base = AM335x_DMTIMER3_BASE_ADDRESS, .size = AM335x_DMTIMER3_SIZE },
 	{ .base = AM335x_DMTIMER4_BASE_ADDRESS, .size = AM335x_DMTIMER4_SIZE },
@@ -66,7 +66,8 @@ write_register_posted(am335x_timer_t *timer, timer_reg_t reg, uint32_t value)
 {
 	am335x_timer_regs_t *regs = timer->regs;
 
-	while (regs->twps & reg);
+	while (regs->twps & reg)
+		;
 
 	switch (reg) {
 	default:
@@ -148,7 +149,8 @@ am335x_timer_reset(am335x_timer_t *timer)
 	/* Initiate soft reset */
 	timer->regs->tiocp_cfg |= AM335x_TIMER_TIOCPCFG_SOFTRESET_FLAG;
 	/* Wait until the reset is done */
-	while (timer->regs->tiocp_cfg & AM335x_TIMER_TIOCPCFG_SOFTRESET_FLAG);
+	while (timer->regs->tiocp_cfg & AM335x_TIMER_TIOCPCFG_SOFTRESET_FLAG)
+		;
 }
 
 void

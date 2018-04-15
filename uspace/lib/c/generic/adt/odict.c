@@ -74,7 +74,7 @@ static void odict_print_tree(odlink_t *cur)
 
 	printf("[%p/%c", cur, cur->color == odc_red ? 'r' : 'b');
 	if (cur->a != NULL || cur->b != NULL) {
-		putchar(' ' );
+		putchar(' ');
 		odict_print_tree(cur->a);
 		putchar(',');
 		odict_print_tree(cur->b);
@@ -253,7 +253,7 @@ void odict_insert(odlink_t *odlink, odict_t *odict, odlink_t *hint)
 		if (d < 0) {
 			if (cur->a == NULL) {
 				odict_link_child_a(odlink, cur);
-	    			break;
+				break;
 			}
 			cur = cur->a;
 		} else {
@@ -922,11 +922,24 @@ static void odict_swap_node(odlink_t *a, odlink_t *b)
 	if (b->b != NULL && b->b != a)
 		b->b->up = a;
 
-	/* Swap links going out of A and out of B */
-	n = a->up; a->up = b->up; b->up = n;
-	n = a->a; a->a = b->a; b->a = n;
-	n = a->b; a->b = b->b; b->b = n;
-	c = a->color; a->color = b->color; b->color = c;
+	/*
+	 * Swap links going out of A and out of B
+	 */
+	n = a->up;
+	a->up = b->up;
+	b->up = n;
+
+	n = a->a;
+	a->a = b->a;
+	b->a = n;
+
+	n = a->b;
+	a->b = b->b;
+	b->b = n;
+
+	c = a->color;
+	a->color = b->color;
+	b->color = c;
 
 	/* When A and B are adjacent, fix self-loops that might have arisen */
 	if (a->up == a)

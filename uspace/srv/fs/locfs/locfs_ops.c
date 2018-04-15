@@ -72,7 +72,7 @@ static FIBRIL_MUTEX_INITIALIZE(services_mutex);
 
 static size_t services_key_hash(void *key)
 {
-	return *(service_id_t*)key;
+	return *(service_id_t *)key;
 }
 
 static size_t services_hash(const ht_link_t *item)
@@ -84,7 +84,7 @@ static size_t services_hash(const ht_link_t *item)
 static bool services_key_equal(void *key, const ht_link_t *item)
 {
 	service_t *dev = hash_table_get_inst(item, service_t, link);
-	return (dev->service_id == *(service_id_t*)key);
+	return (dev->service_id == *(service_id_t *)key);
 }
 
 static void services_remove_callback(ht_link_t *item)
@@ -233,7 +233,7 @@ static errno_t locfs_node_open(fs_node_t *fn)
 
 		fibril_mutex_lock(&services_mutex);
 		ht_link_t *lnk;
-restart:
+	restart:
 		lnk = hash_table_find(&services, &node->service_id);
 		if (lnk == NULL) {
 			service_t *dev = (service_t *) malloc(sizeof(service_t));

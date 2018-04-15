@@ -237,7 +237,7 @@ static bool tmpfs_instance_init(service_id_t service_id)
 
 static bool rm_service_id_nodes(ht_link_t *item, void *arg)
 {
-	service_id_t sid = *(service_id_t*)arg;
+	service_id_t sid = *(service_id_t *)arg;
 	tmpfs_node_t *node = hash_table_get_inst(item, tmpfs_node_t, nh_link);
 
 	if (node->service_id == sid) {

@@ -248,7 +248,7 @@ fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
 	/* zero out already allocated space */
 	for (o = nodep->size; o < pos && o < boundary;
 	    o = ALIGN_DOWN(o + BPS(bs), BPS(bs))) {
-	    	int flags = (o % BPS(bs) == 0) ?
+		int flags = (o % BPS(bs) == 0) ?
 		    BLOCK_FLAGS_NOREAD : BLOCK_FLAGS_NONE;
 		rc = fat_block_get(&b, bs, nodep, o / BPS(bs), flags);
 		if (rc != EOK)
@@ -323,7 +323,7 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 			* Combining value with last byte of current sector and
 			* first byte of next sector
 			*/
-			byte2 = ((uint8_t*) b1->data)[0];
+			byte2 = ((uint8_t *) b1->data)[0];
 
 			rc = block_put(b1);
 			if (rc != EOK) {
@@ -468,7 +468,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 	if (rc != EOK)
 		return rc;
 
-	byte1 = ((uint8_t*) b->data)[offset % BPS(bs)];
+	byte1 = ((uint8_t *) b->data)[offset % BPS(bs)];
 	bool border = false;
 	/* This cluster access spans a sector boundary. */
 	if ((offset % BPS(bs)) + 1 == BPS(bs)) {
@@ -494,7 +494,7 @@ fat_set_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 			return ERANGE;
 		}
 	} else
-		byte2 = ((uint8_t*) b->data)[(offset % BPS(bs)) + 1];
+		byte2 = ((uint8_t *) b->data)[(offset % BPS(bs)) + 1];
 
 	if (IS_ODD(clst)) {
 		byte1 &= 0x0f;

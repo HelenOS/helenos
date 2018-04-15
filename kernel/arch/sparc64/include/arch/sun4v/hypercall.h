@@ -151,7 +151,7 @@
  * @return			error status
  */
 static inline uint64_t
-    __hypercall_fast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
+__hypercall_fast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
     const uint64_t p4, const uint64_t p5, const uint64_t function_number)
 {
 	register uint64_t a6 asm("o5") = function_number;
@@ -186,7 +186,7 @@ static inline uint64_t
  * @return			error status
  */
 static inline uint64_t
-    __hypercall_fast_ret1(const uint64_t p1, const uint64_t p2, const uint64_t p3,
+__hypercall_fast_ret1(const uint64_t p1, const uint64_t p2, const uint64_t p3,
     const uint64_t p4, const uint64_t p5, const uint64_t function_number,
     uint64_t *ret1)
 {
@@ -222,7 +222,7 @@ static inline uint64_t
  * @param sw_trap_number	software trap number
  */
 static inline uint64_t
-    __hypercall_hyperfast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
+__hypercall_hyperfast(const uint64_t p1, const uint64_t p2, const uint64_t p3,
     const uint64_t p4, const uint64_t p5, const uint64_t sw_trap_number)
 {
 	register uint64_t a1 asm("o0") = p1;

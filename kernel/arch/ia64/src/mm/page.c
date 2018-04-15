@@ -74,7 +74,7 @@ void set_environment(void)
 	 * VRN_KERNEL has already been set in start.S.
 	 * For paranoia reasons, we set it again.
 	 */
-	for(i = 0; i < REGION_REGISTERS; i++) {
+	for (i = 0; i < REGION_REGISTERS; i++) {
 		rr.word = rr_read(i);
 		rr.map.ve = 0;		/* disable VHPT walker */
 		rr.map.rid = ASID2RID(ASID_KERNEL, i);

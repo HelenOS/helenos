@@ -429,7 +429,7 @@ void scheduler_separated_stack(void)
 
 		case Exiting:
 			rcu_thread_exiting();
-repeat:
+		repeat:
 			if (THREAD->detached) {
 				thread_destroy(THREAD, false);
 			} else {

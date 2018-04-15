@@ -151,15 +151,13 @@ NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 
-	return (
-	    ((unsigned int) (!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT) |
+	return (((unsigned int) (!p->page_cache_disable) << PAGE_CACHEABLE_SHIFT) |
 	    ((unsigned int) (!p->present) << PAGE_PRESENT_SHIFT) |
 	    ((unsigned int) p->uaccessible << PAGE_USER_SHIFT) |
 	    (1 << PAGE_READ_SHIFT) |
 	    ((unsigned int) p->writeable << PAGE_WRITE_SHIFT) |
 	    (1 << PAGE_EXEC_SHIFT) |
-	    ((unsigned int) p->global << PAGE_GLOBAL_SHIFT)
-	);
+	    ((unsigned int) p->global << PAGE_GLOBAL_SHIFT));
 }
 
 NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)

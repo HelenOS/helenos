@@ -105,9 +105,9 @@ pixel_t filter_bilinear(pixelmap_t *pixmap, double x, double y,
 
 	float weights[4];
 	weights[0] = (1 - x_delta) * (1 - y_delta);
-	weights[1] = (    x_delta) * (1 - y_delta);
-	weights[2] = (1 - x_delta) * (    y_delta);
-	weights[3] = (    x_delta) * (    y_delta);
+	weights[1] = x_delta       * (1 - y_delta);
+	weights[2] = (1 - x_delta) * y_delta;
+	weights[3] = x_delta       * y_delta;
 
 	return blend_pixels(4, weights, pixels);
 }

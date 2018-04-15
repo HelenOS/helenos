@@ -218,7 +218,7 @@ static inline void rtl8139_regs_lock(void *io_base)
 /** Allow to change Config0-4 and BMCR register  */
 static inline void rtl8139_regs_unlock(void *io_base)
 {
-	pio_write_8((io_base) + CR9346, RTL8139_REGS_UNLOCKED);
+	pio_write_8(io_base + CR9346, RTL8139_REGS_UNLOCKED);
 }
 
 /** Force soft reset of the chip. After it:
@@ -260,21 +260,21 @@ enum rtl8139_interrupts {
 
 /** Transmit status descriptor registers bits */
 enum rtl8139_tsd {
-	TSD_CRS          = (1 << 31),   /**< Carrier Sense Lost */
-	TSD_TABT         = (1 << 30),   /**<  Transmit Abort */
-	TSD_OWC          = (1 << 29),   /**< Out of Window Collision */
-	TSD_CDH          = (1 << 28),   /**< CD Heart Beat */
-	TSD_NCC_SHIFT    = 24,          /**< Collision Count - bit shift */
-	TSD_NCC_SIZE     = 4,           /**< Collision Count - bit size */
-	TSD_NCC_MASK     = (1 << 4)-1,  /**< Collision Count - bit size */
-	TSD_ERTXTH_SHIFT = 16,          /**< Early Tx Threshold - bit shift */
-	TSD_ERTXTH_SIZE  = 6,           /**< Early Tx  Treshold - bit size */
-	TSD_TOK          = (1 << 15),   /**< Transmit OK */
-	TSD_TUN          = (1 << 14),   /**< Transmit FIFO Underrun */
-	TSD_OWN          = (1 << 13),   /**< OWN */
-	TSD_SIZE_SHIFT   = 0,           /**< Size - bit shift */
-	TSD_SIZE_SIZE    = 13,          /**< Size - bit size */
-	TSD_SIZE_MASK    = 0x1fff       /**< Size - bit mask */
+	TSD_CRS          = (1 << 31),    /**< Carrier Sense Lost */
+	TSD_TABT         = (1 << 30),    /**<  Transmit Abort */
+	TSD_OWC          = (1 << 29),    /**< Out of Window Collision */
+	TSD_CDH          = (1 << 28),    /**< CD Heart Beat */
+	TSD_NCC_SHIFT    = 24,           /**< Collision Count - bit shift */
+	TSD_NCC_SIZE     = 4,            /**< Collision Count - bit size */
+	TSD_NCC_MASK     = (1 << 4) - 1, /**< Collision Count - bit size */
+	TSD_ERTXTH_SHIFT = 16,           /**< Early Tx Threshold - bit shift */
+	TSD_ERTXTH_SIZE  = 6,            /**< Early Tx  Treshold - bit size */
+	TSD_TOK          = (1 << 15),    /**< Transmit OK */
+	TSD_TUN          = (1 << 14),    /**< Transmit FIFO Underrun */
+	TSD_OWN          = (1 << 13),    /**< OWN */
+	TSD_SIZE_SHIFT   = 0,            /**< Size - bit shift */
+	TSD_SIZE_SIZE    = 13,           /**< Size - bit size */
+	TSD_SIZE_MASK    = 0x1fff        /**< Size - bit mask */
 };
 
 /** Receiver control register values */
@@ -479,7 +479,7 @@ struct rtl8139_hwver_map {
 
 /** Mapping of HW version -> version ID */
 extern const struct rtl8139_hwver_map rtl8139_versions[RTL8139_VER_COUNT + 1];
-extern const char* model_names[RTL8139_VER_COUNT];
+extern const char *model_names[RTL8139_VER_COUNT];
 
 /** Size in the frame header while copying from RxFIFO to Rx buffer */
 #define RTL8139_EARLY_SIZE  UINT16_C(0xfff0)

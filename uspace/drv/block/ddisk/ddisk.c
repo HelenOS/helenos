@@ -197,8 +197,7 @@ errno_t ddisk_bd_close(bd_srv_t *bd)
 	return EOK;
 }
 
-static
-errno_t ddisk_rw_block(ddisk_t *ddisk, bool read, aoff64_t ba, void *buf)
+static errno_t ddisk_rw_block(ddisk_t *ddisk, bool read, aoff64_t ba, void *buf)
 {
 	fibril_mutex_lock(&ddisk->lock);
 
@@ -234,9 +233,8 @@ errno_t ddisk_rw_block(ddisk_t *ddisk, bool read, aoff64_t ba, void *buf)
 	return EOK;
 }
 
-static
-errno_t ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt, void *buf,
-    size_t size, bool is_read)
+static errno_t ddisk_bd_rw_blocks(bd_srv_t *bd, aoff64_t ba, size_t cnt,
+    void *buf, size_t size, bool is_read)
 {
 	ddisk_t *ddisk = (ddisk_t *) bd->srvs->sarg;
 	aoff64_t i;

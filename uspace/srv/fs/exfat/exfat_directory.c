@@ -454,7 +454,7 @@ errno_t exfat_directory_write_file(exfat_directory_t *di, const char *name)
 
 		if (i == df.file.count - 2) {
 			chars = ds.stream.name_size -
-			    EXFAT_NAME_PART_LEN*(df.file.count - 2);
+			    EXFAT_NAME_PART_LEN * (df.file.count - 2);
 		}
 
 		rc = exfat_directory_get(di, &de);
