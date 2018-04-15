@@ -34,16 +34,6 @@ EXTRA_CFLAGS = -Iinclude/
 
 INCLUDE_LIBC = ./include/libc
 
-LIBC_FILE = $(LIBC_PREFIX)/libc.a
-
-FIXED_C_LIBRARY = libc4posix.a
-MERGED_C_LIBRARY = libc.a
-MERGE_LIBRARIES = \
-	$(FIXED_C_LIBRARY) \
-	$(LIBRARY).a \
-	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
-	$(LIBSOFTINT_PREFIX)/libsoftint.a
-
 SPECS = gcc.specs
 LIBC_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 LIBC_STARTUP_FILE = $(shell sed -n -e 's/^.*STARTUP(\(.*\)).*$$/\1/p' $(LIBC_LINKER_SCRIPT))
@@ -53,20 +43,18 @@ EXPORT_STARTUP_FILE = crt0.o
 EXPORT_FILES = \
 	../math/libmath.a \
 	../clui/libclui.a \
-	$(MERGED_C_LIBRARY) \
+	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
+	$(LIBSOFTINT_PREFIX)/libsoftint.a \
+	$(LIBC_PREFIX)/libc.a \
+	$(LIBRARY).a \
 	$(EXPORT_STARTUP_FILE) \
 	$(EXPORT_LINKER_SCRIPT) \
 	$(SPECS)
 
-REDEFS_HIDE_LIBC = redefs-hide-libc-symbols.list
-
 PRE_DEPEND = $(INCLUDE_LIBC)
-EXTRA_CLEAN = \
-	$(INCLUDE_LIBC) \
-	$(REDEFS_HIDE_LIBC) \
-	libc.o
+EXTRA_CLEAN = $(INCLUDE_LIBC)
 
-EXTRA_OUTPUT = $(FIXED_C_LIBRARY) $(FIXED_POSIX_LIBRARY) $(MERGED_C_LIBRARY) $(SPECS) $(EXPORT_LINKER_SCRIPT) $(EXPORT_STARTUP_FILE)
+EXTRA_OUTPUT = $(SPECS) $(EXPORT_LINKER_SCRIPT) $(EXPORT_STARTUP_FILE)
 
 SOURCES = \
 	src/ctype.c \
@@ -105,7 +93,7 @@ EXPORT_LDFLAGS = \
 	-T link.ld
 
 EXPORT_LDLIBS = \
-	-lmath -lc
+	--start-group -lposix -lmath -lc -lsoftfloat -lsoftint --end-group
 
 EXPORT_CFLAGS = \
 	-specs $$(HELENOS_EXPORT_ROOT)/lib/gcc.specs
@@ -178,13 +166,3 @@ export-includes: $(INCLUDE_LIBC) $(shell find ./include ../c/arch/$(UARCH)/inclu
 
 	rm -rf $(EXPORT_DIR)/include
 	mv $(EXPORT_DIR)/include.new $(EXPORT_DIR)/include
-
-$(FIXED_C_LIBRARY): $(LIBC_FILE) $(REDEFS_HIDE_LIBC)
-	$(OBJCOPY) --redefine-syms=$(REDEFS_HIDE_LIBC) $(LIBC_FILE) $@
-
-$(MERGED_C_LIBRARY): $(MERGE_LIBRARIES)
-	$(LD) --fatal-warnings -r -o libc.o --whole-archive $(MERGE_LIBRARIES) --no-whole-archive
-	$(AR) rc $@ libc.o
-
-$(REDEFS_HIDE_LIBC): $(SOURCES)
-	sed -n -e 's/_HIDE_LIBC_SYMBOL(\(.*\));/\1 __helenos_libc_\1/p' $(SOURCES) >$@

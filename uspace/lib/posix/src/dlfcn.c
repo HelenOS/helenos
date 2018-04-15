@@ -33,18 +33,6 @@
 #include "internal/common.h"
 #include "posix/dlfcn.h"
 
-_HIDE_LIBC_SYMBOL(dlopen);
-extern void *__helenos_libc_dlopen(const char *filename, int flags);
-
-void *dlopen(const char *filename, int flags)
-{
-	if (flags != 0) {
-		fprintf(stderr, "dlopen() not implemented with non-zero flags (%s:%d), something will NOT work.\n", __FILE__, __LINE__);
-	}
-
-	return __helenos_libc_dlopen(filename, 0);
-}
-
 int dlclose(void *handle)
 {
 	not_implemented();
