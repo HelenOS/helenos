@@ -680,8 +680,6 @@ def main():
 	finally:
 		sandbox_leave(owd)
 
-	common['AUTOGEN'] = "%s/autogen.py" % os.path.dirname(os.path.abspath(sys.argv[0]))
-
 	create_makefile(MAKEFILE, common)
 	create_header(HEADER, macros)
 

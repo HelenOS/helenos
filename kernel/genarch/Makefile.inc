@@ -171,9 +171,10 @@ GENARCH_SOURCES += \
 	genarch/src/multiboot/common.c \
 	genarch/src/multiboot/multiboot.c \
 	genarch/src/multiboot/multiboot2.c
-GENARCH_AUTOGENS_AG += \
-	genarch/include/genarch/multiboot/multiboot_memmap_struct.ag \
-	genarch/include/genarch/multiboot/multiboot_info_struct.ag
+
+GENARCH_AUTOCHECK_HEADERS += \
+	genarch/include/genarch/multiboot/multiboot_memmap_struct.h \
+	genarch/include/genarch/multiboot/multiboot_info_struct.h
 endif
 
 ifeq ($(CONFIG_EGA), y)
