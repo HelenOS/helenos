@@ -93,7 +93,7 @@ EXPORT_LDFLAGS = \
 	-T link.ld
 
 EXPORT_LDLIBS = \
-	--start-group -lposix -lmath -lc -lsoftfloat -lsoftint --end-group
+	-Wl,--start-group -lposix -lmath -lc -lsoftfloat -lsoftint -Wl,--end-group
 
 EXPORT_CFLAGS = \
 	-specs $$(HELENOS_EXPORT_ROOT)/lib/gcc.specs
