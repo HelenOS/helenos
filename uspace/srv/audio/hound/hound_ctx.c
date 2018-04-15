@@ -296,7 +296,7 @@ void hound_ctx_destroy_stream(hound_ctx_stream_t *stream)
  * @param size size of the @p data buffer.
  * @return Error code.
  */
-errno_t hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *data,
+errno_t hound_ctx_stream_write(hound_ctx_stream_t *stream, void *data,
     size_t size)
 {
 	assert(stream);

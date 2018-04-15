@@ -118,7 +118,7 @@ typedef struct hound_server_iface {
 	/** Block until the stream buffer is empty */
 	errno_t (*drain_stream)(void *);
 	/** Write new data to the stream */
-	errno_t (*stream_data_write)(void *, const void *, size_t);
+	errno_t (*stream_data_write)(void *, void *, size_t);
 	/** Read data from the stream */
 	errno_t (*stream_data_read)(void *, void *, size_t);
 	void *server;

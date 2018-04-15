@@ -45,7 +45,7 @@
 /** Reference counted audio buffer */
 typedef struct {
 	/** Audio data */
-	const void *data;
+	void *data;
 	/** Size of the buffer pointer to by data */
 	size_t size;
 	/** Format of the audio data */
@@ -66,7 +66,7 @@ typedef struct {
 	fibril_mutex_t guard;
 } audio_pipe_t;
 
-audio_data_t *audio_data_create(const void *data, size_t size,
+audio_data_t *audio_data_create(void *data, size_t size,
     pcm_format_t format);
 void audio_data_addref(audio_data_t *adata);
 void audio_data_unref(audio_data_t *adata);
@@ -113,7 +113,7 @@ static inline size_t audio_pipe_frames(audio_pipe_t *pipe)
  * Reference counted buffer is created automatically.
  */
 static inline errno_t audio_pipe_push_data(audio_pipe_t *pipe,
-    const void *data, size_t size, pcm_format_t f)
+    void *data, size_t size, pcm_format_t f)
 {
 	audio_data_t *adata = audio_data_create(data, size, f);
 	if (adata) {

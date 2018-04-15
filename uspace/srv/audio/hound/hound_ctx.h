@@ -71,7 +71,7 @@ hound_ctx_stream_t *hound_ctx_create_stream(hound_ctx_t *ctx, int flags,
     pcm_format_t format, size_t buffer_size);
 void hound_ctx_destroy_stream(hound_ctx_stream_t *stream);
 
-errno_t hound_ctx_stream_write(hound_ctx_stream_t *stream, const void *buffer,
+errno_t hound_ctx_stream_write(hound_ctx_stream_t *stream, void *buffer,
     size_t size);
 errno_t hound_ctx_stream_read(hound_ctx_stream_t *stream, void *buffer, size_t size);
 size_t hound_ctx_stream_add_self(hound_ctx_stream_t *stream, void *data,

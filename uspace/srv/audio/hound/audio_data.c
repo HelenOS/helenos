@@ -41,12 +41,12 @@
 
 /**
  * Create reference counted buffer out of ordinary data buffer.
- * @param data audio buffer
+ * @param data audio buffer. The memory passed will be freed eventually.
  * @param size Size of the @p data buffer.
- * @param fomart audio data format.
+ * @param format audio data format.
  * @return pointer to valid audio data structure, NULL on failure.
  */
-audio_data_t *audio_data_create(const void *data, size_t size,
+audio_data_t *audio_data_create(void *data, size_t size,
     pcm_format_t format)
 {
 	audio_data_t *adata = malloc(sizeof(audio_data_t) + size);
@@ -84,7 +84,7 @@ void audio_data_unref(audio_data_t *adata)
 	assert(atomic_get(&adata->refcount) > 0);
 	atomic_count_t refc = atomic_predec(&adata->refcount);
 	if (refc == 0) {
-		free((void *) adata->data);
+		free(adata->data);
 		free(adata);
 	}
 }
