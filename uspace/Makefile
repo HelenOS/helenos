@@ -250,7 +250,8 @@ LIBS = \
 	lib/pcut \
 	lib/bithenge \
 	lib/posix \
-	lib/ieee80211
+	lib/ieee80211 \
+	lib/virtio
 
 BASE_BUILDS := $(addsuffix .build,$(BASE_LIBS))
 BUILDS := $(addsuffix .build,$(DIRS) $(LIBS))

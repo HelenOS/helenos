@@ -26,57 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
+/** @file VIRTIO PCI definitions
+ */
+
+#ifndef __VIRTIO_PCI_H__
+#define __VIRTIO_PCI_H__
 
 #include <ddf/driver.h>
-#include <ddf/log.h>
-#include <ops/nic.h>
-#include <pci_dev_iface.h>
+#include <ddi.h>
 
-#include <nic.h>
+#define VIRTIO_PCI_CAP_TYPE(c)		((c) + 3)
+#define VIRTIO_PCI_CAP_BAR(c)		((c) + 4)
+#define VIRTIO_PCI_CAP_OFFSET(c)	((c) + 8)
+#define VIRTIO_PCI_CAP_LENGTH(c)	((c) + 12)
 
-#include <virtio-pci.h>
+#define VIRTIO_PCI_CAP_COMMON_CFG	1
+#define VIRTIO_PCI_CAP_NOTIFY_CFG	2
+#define VIRTIO_PCI_CAP_ISR_CFG		3
+#define VIRTIO_PCI_CAP_DEVICE_CFG	4
+#define VIRTIO_PCI_CAP_PCI_CFG		5
 
-#define NAME	"virtio-net"
+/** Common configuration structure layout according to VIRTIO v1. */
+typedef struct virtio_pci_common_cfg {
+	ioport32_t device_feature_select;
+	const ioport32_t device_feature;
+	ioport32_t driver_feature_select;
+	ioport32_t driver_feature;
+	ioport16_t msix_config;
+	const ioport16_t num_queues;
+	ioport8_t device_status;
+	const ioport8_t config_generation;
+	ioport16_t queue_select;
+	ioport16_t queue_size;
+	ioport16_t queue_msix_vector;
+	ioport16_t queue_enable;
+	const ioport16_t queue_notif_off;
+	ioport64_t queue_desc;
+	ioport64_t queue_avail;
+	ioport64_t queue_used;
+} virtio_pci_common_cfg_t;
 
-static errno_t virtio_net_dev_add(ddf_dev_t *dev)
-{
-	ddf_msg(LVL_NOTE, "%s %s (handle = %zu)", __func__,
-	    ddf_dev_get_name(dev), ddf_dev_get_handle(dev));
+typedef struct {
+	virtio_pci_common_cfg_t *common_cfg;
+} virtio_dev_t;
 
-	// XXX: this will be part of the nic data
-	virtio_dev_t virtio_dev;
-	errno_t rc = virtio_pci_dev_init(dev, &virtio_dev);
-	if (rc != EOK)
-		return rc;
+errno_t virtio_pci_dev_init(ddf_dev_t *, virtio_dev_t *);
 
-	return ENOTSUP;
-}
+#endif
 
-static ddf_dev_ops_t virtio_net_dev_ops;
-
-static driver_ops_t virtio_net_driver_ops = {
-	.dev_add = virtio_net_dev_add
-};
-
-static driver_t virtio_net_driver = {
-	.name = NAME,
-	.driver_ops = &virtio_net_driver_ops
-};
-
-static nic_iface_t virtio_net_nic_iface;
-
-int main(void)
-{
-	printf("%s: HelenOS virtio-net driver\n", NAME);
-
-	if (nic_driver_init(NAME) != EOK)
-		return 1;
-
-	nic_driver_implement(&virtio_net_driver_ops, &virtio_net_dev_ops,
-	    &virtio_net_nic_iface);
-
-	(void) ddf_log_init(NAME);
-	return ddf_driver_main(&virtio_net_driver);
-}
+/** @}
+ */

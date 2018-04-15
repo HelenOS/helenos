@@ -26,11 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-LIBS = drv nic virtio
-BINARY = virtio-net
+USPACE_PREFIX = ../..
+LIBRARY = libvirtio
+LIBS = drv
 
 SOURCES = \
-	virtio-net.c
+	virtio-pci.c
 
 include $(USPACE_PREFIX)/Makefile.common
