@@ -263,6 +263,8 @@ void kinit(void *arg)
 				    "init[%zu]: Second binary named \"loader\""
 				    " present.", i);
 			}
+
+			programs[i].task = NULL;
 			continue;
 		}
 
