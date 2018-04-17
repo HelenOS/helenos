@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_MULTIBOOT_INFO_STRUCT_H_
+#define KERN_MULTIBOOT_INFO_STRUCT_H_
 
 #define MULTIBOOT_INFO_OFFSET_FLAGS        0x00
 #define MULTIBOOT_INFO_OFFSET_MEM_LOWER    0x04
@@ -56,4 +57,5 @@ typedef struct multiboot_info {
 	uint32_t mmap_addr;
 } __attribute__((packed)) multiboot_info_t;
 
+#endif
 #endif

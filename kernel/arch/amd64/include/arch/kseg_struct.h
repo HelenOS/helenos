@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_KSEG_STRUCT_H_
+#define KERN_ARCH_KSEG_STRUCT_H_
 
 #define KSEG_OFFSET_USTACK_RSP  0x00
 #define KSEG_OFFSET_KSTACK_RSP  0x08
@@ -42,5 +43,6 @@ typedef struct kseg {
 	uint64_t fsbase;
 } kseg_t;
 
+#endif
 #endif
 

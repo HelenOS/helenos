@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_FPU_CONTEXT_STRUCT_H_
+#define KERN_ARCH_FPU_CONTEXT_STRUCT_H_
 
 #define FPU_CONTEXT_OFFSET_DREGS  0
 #define FPU_CONTEXT_OFFSET_CREGS  128
@@ -44,5 +45,6 @@ typedef struct fpu_context {
 	sysarg_t cregs[32];
 } fpu_context_t;
 
+#endif
 #endif
 

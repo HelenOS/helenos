@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef LIBC_ARCH_FIBRIL_CONTEXT_H_
+#define LIBC_ARCH_FIBRIL_CONTEXT_H_
 
 #include <stdint.h>
 
@@ -52,4 +53,6 @@ typedef struct context {
 	/* r11 */
 	uint32_t fp;
 } context_t;
+
+#endif
 

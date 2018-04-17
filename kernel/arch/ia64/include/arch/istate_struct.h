@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_ISTATE_STRUCT_H_
+#define KERN_ARCH_ISTATE_STRUCT_H_
 
 #define ISTATE_OFFSET_F2                0x000
 #define ISTATE_OFFSET_F3                0x010
@@ -149,5 +150,6 @@ typedef struct istate {
 	uint64_t in6;
 } istate_t;
 
+#endif
 #endif
 

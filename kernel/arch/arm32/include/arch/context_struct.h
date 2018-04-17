@@ -26,7 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_CONTEXT_STRUCT_H_
+#define KERN_ARCH_CONTEXT_STRUCT_H_
+
 #include <typedefs.h>
 
 // XXX: This struct must match assembly code in src/context.S
@@ -49,4 +51,6 @@ typedef struct context {
 	uint32_t fp;
 	ipl_t ipl;
 } context_t;
+
+#endif
 

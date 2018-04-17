@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef LIBC_ARCH_FIBRIL_CONTEXT_H_
+#define LIBC_ARCH_FIBRIL_CONTEXT_H_
 
 #define CONTEXT_OFFSET_AR_PFS          0x000
 #define CONTEXT_OFFSET_AR_UNAT_CALLER  0x008
@@ -131,4 +132,5 @@ typedef struct context {
 } context_t;
 
 #endif  /* __ASSEMBLER__ */
+#endif
 

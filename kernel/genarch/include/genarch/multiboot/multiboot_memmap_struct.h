@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_MULTIBOOT_MEMMAP_STRUCT_H_
+#define KERN_MULTIBOOT_MEMMAP_STRUCT_H_
 
 #include <arch/boot/memmap_struct.h>
 
@@ -44,4 +45,5 @@ typedef struct multiboot_memmap {
 	e820memmap_t mm_info;
 } __attribute__((packed)) multiboot_memmap_t;
 
+#endif
 #endif

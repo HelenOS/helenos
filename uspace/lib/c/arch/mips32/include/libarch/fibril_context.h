@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef LIBC_ARCH_FIBRIL_CONTEXT_H_
+#define LIBC_ARCH_FIBRIL_CONTEXT_H_
 
 #define CONTEXT_OFFSET_SP   0x00
 #define CONTEXT_OFFSET_PC   0x04
@@ -86,5 +87,6 @@ typedef struct context {
 	uint32_t f30;
 } context_t;
 
+#endif
 #endif
 

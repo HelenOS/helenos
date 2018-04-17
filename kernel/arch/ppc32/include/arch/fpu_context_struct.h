@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_FPU_CONTEXT_STRUCT_H_
+#define KERN_ARCH_FPU_CONTEXT_STRUCT_H_
 
 #define FPU_CONTEXT_OFFSET_FR0    0x00
 #define FPU_CONTEXT_OFFSET_FR1    0x08
@@ -103,5 +104,6 @@ typedef struct fpu_context {
 	uint64_t fpscr;
 } fpu_context_t;
 
+#endif
 #endif
 

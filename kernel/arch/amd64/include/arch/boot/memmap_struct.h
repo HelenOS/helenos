@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_BOOT_MEMMAP_STRUCT_H_
+#define KERN_ARCH_BOOT_MEMMAP_STRUCT_H_
 
 #define E820MEMMAP_OFFSET_BASE_ADDRESS  0x00
 #define E820MEMMAP_OFFSET_SIZE          0x08
@@ -42,5 +43,6 @@ typedef struct e820memmap {
 	uint32_t type;
 } __attribute__((packed)) e820memmap_t;
 
+#endif
 #endif
 

@@ -25,7 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_CONTEXT_STRUCT_H_
+#define KERN_ARCH_CONTEXT_STRUCT_H_
 
 #define CONTEXT_OFFSET_AR_PFS          0x00
 #define CONTEXT_OFFSET_AR_UNAT_CALLER  0x08
@@ -133,4 +134,5 @@ typedef struct context {
 } context_t;
 
 #endif /* __ASSEMBLER__ */
+#endif
 

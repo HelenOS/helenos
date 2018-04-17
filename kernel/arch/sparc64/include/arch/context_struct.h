@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_CONTEXT_STRUCT_H_
+#define KERN_ARCH_CONTEXT_STRUCT_H_
 
 #define CONTEXT_OFFSET_SP   0x00
 #define CONTEXT_OFFSET_PC   0x08
@@ -75,5 +76,6 @@ typedef struct context {
 	ipl_t ipl;
 } context_t;
 
+#endif
 #endif
 

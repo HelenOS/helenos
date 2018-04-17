@@ -26,7 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#ifndef KERN_ARCH_ISTATE_STRUCT_H_
+#define KERN_ARCH_ISTATE_STRUCT_H_
+
 #include <stdint.h>
 
 // XXX: Must match assembly code in src/exc_handler.S
@@ -51,4 +53,6 @@ typedef struct istate {
 	uint32_t r12;
 	uint32_t pc;
 } istate_t;
+
+#endif
 
