@@ -46,12 +46,11 @@ SOVERSION = 0.0
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
-ARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(ARCH_AUTOGENS_AG)))
-ARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(ARCH_AUTOGENS_AG)))
-ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG)))
+ARCH_AUTOGENS_PROBE_C := $(ARCH_AUTOGENS_AG:%.ag.h=.ag.c)
+ARCH_AUTOGENS_PROBE_S := $(ARCH_AUTOGENS_AG:%.ag.h=.ag.s)
 
-PRE_DEPEND += $(ARCH_AUTOGENS_H)
-EXTRA_CLEAN += $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
+PRE_DEPEND += $(ARCH_AUTOGENS_AG)
+EXTRA_CLEAN += $(ARCH_AUTOGENS_AG) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
 
 GENERIC_SOURCES = \
 	generic/libc.c \
@@ -178,6 +177,8 @@ ifeq ($(CONFIG_RTLD),y)
 		generic/rtld/symbol.c
 endif
 
+ARCH_SOURCES += $(ARCH_AUTOCHECK_HEADERS:%.h=%.check.c)
+
 SOURCES = \
 	$(GENERIC_SOURCES) \
 	$(ARCH_SOURCES)
@@ -194,11 +195,6 @@ TEST_SOURCES = \
 
 include $(USPACE_PREFIX)/Makefile.common
 
-%.h: %.ag
-	$(AUTOGEN) probe $< >$<.probe.c
-	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
-	$(AUTOGEN) generate $< <$<.probe.s >$@
-
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
 
@@ -207,3 +203,8 @@ $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.
 
 $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
+
+AUTOCHECK = $(realpath $(ROOT_PATH)/tools/autocheck.awk)
+
+%.check.c: %.h $(AUTOCHECK)
+	cd $(<D) && $(AUTOCHECK) $(<F) > $(@F)

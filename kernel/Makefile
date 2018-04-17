@@ -47,7 +47,7 @@ CONFIG_HEADER = $(ROOT_PATH)/config.h
 ## Common names
 #
 
-AGDEPEND = Makefile.ag.depend
+AUTOCHECK = $(realpath $(ROOT_PATH)/tools/autocheck.awk)
 RAW = kernel.raw
 BIN = kernel.bin
 MAP = kernel.map
@@ -72,6 +72,7 @@ else
 endif
 
 .PHONY: all clean autogen_clean depend
+.DELETE_ON_ERROR:
 
 all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BIN) $(DISASM)
 
@@ -131,7 +132,6 @@ endif
 #
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
--include $(AGDEPEND)
 
 ## The at-sign
 #
@@ -345,6 +345,9 @@ else
 	INSTRUMENTED_SOURCES =
 endif
 
+ARCH_SOURCES += $(ARCH_AUTOCHECK_HEADERS:%.h=%.check.c)
+GENARCH_SOURCES += $(GENARCH_AUTOCHECK_HEADERS:%.h=%.check.c)
+
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
@@ -352,17 +355,6 @@ GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
 GENERIC_DEPENDS := $(addsuffix .d,$(basename $(GENERIC_SOURCES)))
 ARCH_DEPENDS := $(addsuffix .d,$(basename $(ARCH_SOURCES)))
 GENARCH_DEPENDS := $(addsuffix .d,$(basename $(GENARCH_SOURCES)))
-
-GENARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(GENARCH_AUTOGENS_AG)))
-GENARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(GENARCH_AUTOGENS_AG)))
-GENARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(GENARCH_AUTOGENS_AG)))
-
-ARCH_AUTOGENS_H := $(addsuffix .h,$(basename $(ARCH_AUTOGENS_AG)))
-ARCH_AUTOGENS_PROBE_C := $(addsuffix .ag.probe.c,$(basename $(ARCH_AUTOGENS_AG)))
-ARCH_AUTOGENS_PROBE_S := $(addsuffix .ag.probe.s,$(basename $(ARCH_AUTOGENS_AG)))
-
-AUTOGENS_H := $(ARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_H)
-AUTOGENS_AG := $(ARCH_AUTOGENS_AG) $(GENARCH_AUTOGENS_AG)
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
@@ -398,21 +390,19 @@ else
 	$(LD) $(LFLAGS) -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 endif
 
-$(LINK): $(LINK).in | depend
+$(LINK): $(LINK).in
 	$(CC) $(DEFS) $(CFLAGS) -D__ASSEMBLER__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
-%.h: %.ag
-	$(AUTOGEN) probe $< >$<.probe.c
-	$(CC_AUTOGEN) $(DEFS) $(CFLAGS) -S -o $<.probe.s $<.probe.c
-	$(AUTOGEN) generate $< <$<.probe.s >$@
+%.check.c: %.h $(AUTOCHECK)
+	cd $(<D) && $(AUTOCHECK) $(<F) > $(@F)
 
-%.o: %.S | depend
+%.o: %.S
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
 
-%.o: %.s | depend
+%.o: %.s
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(AS_CFLAGS)
 
-%.o: %.c | depend
+%.o: %.c
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION))
 
 $(REAL_MAP).o: $(REAL_MAP).bin
@@ -439,21 +429,3 @@ else
 endif
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
-
-$(AUTOGENS_H): $(AGDEPEND)
-
-$(AGDEPEND): $(AUTOGENS_AG)
-	echo "# DO NOT EDIT" >$@
-	for g in $^; do \
-		h=`dirname $$g`/`basename $$g .ag`.h; \
-		for l in `$(AUTOGEN) depend $$g`; do \
-			echo "$$h: $$l" >>$@; \
-		done \
-	done
-
-depend: $(AUTOGENS_H)
-
-autogen_clean:
-	-rm $(ARCH_AUTOGENS_H) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
-	-rm $(GENARCH_AUTOGENS_H) $(GENARCH_AUTOGENS_PROBE_C) $(GENARCH_AUTOGENS_PROBE_S)
-	-rm $(AGDEPEND)
