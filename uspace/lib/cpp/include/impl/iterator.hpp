@@ -124,14 +124,17 @@ namespace std
     distance(InputIterator first, InputIterator last)
     {
         using cat_t = typename iterator_traits<InputIterator>::iterator_category;
+        using diff_t = typename iterator_traits<InputIterator>::difference_type;
 
         if constexpr (is_same_v<cat_t, random_access_iterator_tag>)
             return last - first;
         else
         {
-            cat_t diff{};
+            diff_t diff{};
             while (++first != last)
                 ++diff;
+
+            return diff;
         }
     }
 
