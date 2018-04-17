@@ -29,7 +29,9 @@
 #ifndef LIBCPP_DEQUE
 #define LIBCPP_DEQUE
 
+#include <algorithm>
 #include <initializer_list>
+#include <internal/insert_iterator.hpp>
 #include <iterator>
 #include <memory>
 
@@ -50,6 +52,9 @@ namespace std
          */
 
         template<class T, class Allocator>
+        class deque_iterator;
+
+        template<class T, class Allocator>
         class deque_const_iterator
         {
             public:
@@ -62,6 +67,10 @@ namespace std
 
                 deque_const_iterator(const deque<T, Allocator>& deq, size_type idx)
                     : deq_{deq}, idx_{idx}
+                { /* DUMMY BODY */ }
+
+                deque_const_iterator(const deque_const_iterator& other)
+                    : deq_{other.deq_}, idx_{other.idx_}
                 { /* DUMMY BODY */ }
 
                 deque_const_iterator& operator=(const deque_const_iterator& other)
@@ -145,6 +154,11 @@ namespace std
                     return idx_;
                 }
 
+                operator deque_iterator<T, Allocator>()
+                {
+                    return deque_iterator{deq_, idx_};
+                }
+
             private:
                 const deque<T, Allocator>& deq_;
                 size_type idx_;
@@ -177,6 +191,10 @@ namespace std
 
                 deque_iterator(deque<T, Allocator>& deq, size_type idx)
                     : deq_{deq}, idx_{idx}
+                { /* DUMMY BODY */ }
+
+                deque_iterator(const deque_iterator& other)
+                    : deq_{other.deq_}, idx_{other.idx_}
                 { /* DUMMY BODY */ }
 
                 deque_iterator(const deque_const_iterator<T, Allocator>& other)
@@ -270,6 +288,11 @@ namespace std
                 size_type idx() const
                 {
                     return idx_;
+                }
+
+                operator deque_const_iterator<T, Allocator>()
+                {
+                    return deque_const_iterator{deq_, idx_};
                 }
 
             private:
@@ -674,7 +697,17 @@ namespace std
             template<class... Args>
             iterator emplace(const_iterator position, Args&&... args)
             {
-                // TODO: implement
+                auto idx = position.idx();
+                shift_right_(idx, 1);
+
+                allocator_traits<allocator_type>::construct(
+                    allocator_,
+                    &data_[get_bucket_index_(idx)][get_element_index_(idx)],
+                    forward<Args>(args)...
+                );
+                ++size_;
+
+                return iterator{*this, idx};
             }
 
             void push_front(const value_type& value)
@@ -715,28 +748,73 @@ namespace std
 
             iterator insert(const_iterator position, const value_type& value)
             {
-                // TODO: implement
+                auto idx = position.idx();
+                shift_right_(idx, 1);
+
+                /**
+                 * Note: One may notice that when working with the deque
+                 *       iterator, we use its index without any checks.
+                 *       This is because a valid iterator will always have
+                 *       a valid index as functions like pop_back or erase
+                 *       invalidate iterators.
+                 */
+                data_[get_bucket_index_(idx)][get_element_index_(idx)] = value;
+                ++size_;
+
+                return iterator{*this, idx};
             }
 
             iterator insert(const_iterator position, value_type&& value)
             {
-                // TODO: implement
+                auto idx = position.idx();
+                shift_right_(idx, 1);
+
+                data_[get_bucket_index_(idx)][get_element_index_(idx)] = forward<value_type>(value);
+                ++size_;
+
+                return iterator{*this, idx};
             }
 
             iterator insert(const_iterator position, size_type n, const value_type& value)
             {
-                // TODO: implement
+                return insert(
+                    position,
+                    aux::insert_iterator{value},
+                    aux::insert_iterator{n}
+                );
             }
 
             template<class InputIterator>
             iterator insert(const_iterator position, InputIterator first, InputIterator last)
             {
-                // TODO: implement
+                auto idx = position.idx();
+                auto count = distance(first, last);
+
+                if (idx < size_ / 2)
+                {
+                    shift_left_(idx, count);
+
+                    iterator it{*this, idx - 1};
+                    while (first != last)
+                        *it++ = *first++;
+                }
+                else
+                {
+                    shift_right_(idx, count);
+
+                    iterator it{*this, idx};
+                    while (first != last)
+                        *it++ = *first++;
+                }
+
+                size_ += count;
+
+                return iterator{*this, idx};
             }
 
             iterator insert(const_iterator position, initializer_list<value_type> init)
             {
-                // TODO: implement
+                return insert(position, init.begin(), init.end());
             }
 
             void pop_back()
@@ -745,7 +823,7 @@ namespace std
                     return;
 
                 if (back_bucket_idx_ == 0)
-                { // Means we gotta pop data_[front_bucket_][bucket_size_ - 1]!
+                { // Means we gotta pop data_[back_bucket_ - 1][bucket_size_ - 1]!
                     if (data_[back_bucket_])
                         allocator_.deallocate(data_[back_bucket_], bucket_size_);
 
@@ -765,7 +843,7 @@ namespace std
                     return;
 
                 if (front_bucket_idx_ >= bucket_size_)
-                { // Means we gotta pop data_[front_bucket_][0]!
+                { // Means we gotta pop data_[front_bucket_ + 1][0]!
                     if (data_[front_bucket_])
                         allocator_.deallocate(data_[front_bucket_], bucket_size_);
 
@@ -862,12 +940,7 @@ namespace std
                 if (data_)
                     fini_();
 
-                if (size < bucket_size_) // Always front_bucket_ != back_bucket_.
-                    bucket_count_ = bucket_capacity_ = 2;
-                else if (size % bucket_size_ == 0)
-                    bucket_count_ = bucket_capacity_ = size / bucket_size_ + 2;
-                else
-                    bucket_count_ = bucket_capacity_ = size / bucket_size_ + 2;
+                bucket_count_ = bucket_capacity_ = size / bucket_size_ + 2;
 
                 front_bucket_ = 0;
                 back_bucket_ = bucket_capacity_ - 1;
@@ -886,6 +959,67 @@ namespace std
                 auto it = begin();
                 while (first != last)
                     *it++ = *first++;
+            }
+
+            void ensure_space_front_(size_type idx, size_type count)
+            {
+                auto free_space = bucket_size_ - elements_in_front_bucket_();
+                if (front_bucket_idx_ == 0)
+                    free_space = 0;
+
+                if (count <= free_space)
+                {
+                    front_bucket_idx_ -= count;
+                    return;
+                }
+
+                count -= free_space;
+
+                auto buckets_needed = count / bucket_size_;
+                if (count % bucket_size_ != 0)
+                    ++buckets_needed;
+
+                for (size_type i = size_type{}; i < buckets_needed; ++i)
+                    add_new_bucket_front_();
+
+                front_bucket_idx_ = bucket_size_ - (count % bucket_size_);
+            }
+
+            void ensure_space_back_(size_type idx, size_type count)
+            {
+                auto free_space = bucket_size_ - back_bucket_idx_;
+                if (count < free_space)
+                    return;
+
+                count -= free_space;
+                auto buckets_needed = count / bucket_size_;
+                if (count % bucket_size_ != 0)
+                    ++buckets_needed;
+
+                for (size_type i = size_type{}; i < buckets_needed; ++i)
+                    add_new_bucket_back_();
+
+                back_bucket_idx_ = (back_bucket_idx_ + count) % bucket_size_;
+            }
+
+            void shift_right_(size_type idx, size_type count)
+            {
+                ensure_space_back_(idx, count);
+
+                iterator it{*this, idx};
+                copy_backward(it, end(), end() + count - 1);
+
+            }
+
+            void shift_left_(size_type idx, size_type count)
+            {
+                ensure_space_front_(idx, count);
+
+                copy(
+                    iterator{*this, count},
+                    iterator{*this, idx + count - 1},
+                    iterator{*this, 0}
+                );
             }
 
             void fini_()
@@ -913,6 +1047,7 @@ namespace std
                     expand_();
 
                 ++back_bucket_;
+                ++bucket_count_;
                 data_[back_bucket_] = allocator_.allocate(bucket_size_);
                 back_bucket_idx_ = size_type{};
             }
@@ -923,6 +1058,7 @@ namespace std
                     expand_();
 
                 --front_bucket_;
+                ++bucket_count_;
                 data_[front_bucket_] = allocator_.allocate(bucket_size_);
                 front_bucket_idx_ = bucket_size_;
             }
@@ -932,8 +1068,13 @@ namespace std
                 bucket_capacity_ *= 2;
                 value_type** new_data = new value_type*[bucket_capacity_];
 
+                /**
+                 * Note: This currently expands both sides whenever one reaches
+                 *       its limit. Might be better to expand only one (or both when
+                 *       the other is near its limit)?
+                 */
                 size_type new_front = bucket_capacity_ / 4;
-                size_type new_back = bucket_capacity_ - bucket_capacity_ / 4 - 1;
+                size_type new_back = new_front + bucket_count_ - 1;
 
                 for (size_type i = new_front, j = front_bucket_; i <= new_back; ++i, ++j)
                     new_data[i] = move(data_[j]);
