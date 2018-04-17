@@ -1145,43 +1145,56 @@ namespace std
     template<class T, class Allocator>
     bool operator==(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
-        // TODO: implement
-        return false;
+        if (lhs.size() != rhs.size())
+            return false;
+
+        for (decltype(lhs.size()) i = 0; i < lhs.size(); ++i)
+        {
+            if (lhs[i] != rhs[i])
+                return false;
+        }
+
+        return true;
     }
 
     template<class T, class Allocator>
     bool operator<(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
-        // TODO: implement
-        return false;
+        auto min_size = min(lhs.size(), rhs.size());
+        for (decltype(lhs.size()) i = 0; i < min_size; ++i)
+        {
+            if (lhs[i] >= rhs[i])
+                return false;
+        }
+
+        if (lhs.size() == rhs.size())
+            return true;
+        else
+            return lhs.size() < rhs.size();
     }
 
     template<class T, class Allocator>
     bool operator!=(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
-        // TODO: implement
-        return false;
+        return !(lhs == rhs);
     }
 
     template<class T, class Allocator>
     bool operator>(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
-        // TODO: implement
-        return false;
+        return rhs < lhs;
     }
 
     template<class T, class Allocator>
     bool operator<=(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
-        // TODO: implement
-        return false;
+        return !(rhs < lhs);
     }
 
     template<class T, class Allocator>
     bool operator>=(const deque<T, Allocator>& lhs, const deque<T, Allocator>& rhs)
     {
-        // TODO: implement
-        return false;
+        return !(lhs < rhs);
     }
 
     /**
