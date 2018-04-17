@@ -156,7 +156,9 @@ namespace std
 
                 operator deque_iterator<T, Allocator>()
                 {
-                    return deque_iterator{deq_, idx_};
+                    return deque_iterator{
+                        const_cast<deque<T, Allocator>&>(deq_), idx_
+                    };
                 }
 
             private:
@@ -864,12 +866,43 @@ namespace std
 
             iterator erase(const_iterator position)
             {
-                // TODO: implement
+                auto idx = position.idx();
+                copy(
+                    iterator{*this, idx + 1},
+                    end(),
+                    iterator{*this, idx}
+                );
+
+                /**
+                 * Note: We need to not only decrement size,
+                 *       but also take care of any issues caused
+                 *       by decrement bucket indices, which pop_back
+                 *       does for us.
+                 */
+                pop_back();
+
+                return iterator{*this, idx};
             }
 
             iterator erase(const_iterator first, const_iterator last)
             {
-                // TODO: implement
+                if (first == last)
+                    return first;
+
+                auto first_idx = first.idx();
+                auto last_idx = last.idx();
+                auto count = distance(first, last);
+
+                copy(
+                    iterator{*this, last_idx},
+                    end(),
+                    iterator{*this, first_idx}
+                );
+
+                for (size_type i = 0; i < count; ++i)
+                    pop_back();
+
+                return iterator{*this, first_idx};
             }
 
             void swap(deque& other)
