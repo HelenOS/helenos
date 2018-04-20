@@ -610,8 +610,8 @@ namespace std::chrono
 
             static time_point now()
             {
-                std::timeval tv{};
-                std::gettimeofday(&tv, nullptr);
+                hel::timeval tv{};
+                hel::gettimeofday(&tv, nullptr);
 
                 rep time = tv.tv_usec;
                 time += (tv.tv_sec * 1'000'000ul);
@@ -653,8 +653,8 @@ namespace std::chrono
 
             static time_point now()
             {
-                std::timeval tv{};
-                std::getuptime(&tv);
+                hel::timeval tv{};
+                hel::getuptime(&tv);
 
                 rep time = tv.tv_usec;
                 time += (tv.tv_sec * 1'000'000ul);

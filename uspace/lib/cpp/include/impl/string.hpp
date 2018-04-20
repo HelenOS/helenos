@@ -43,7 +43,6 @@
 
 namespace std
 {
-
     /**
      * 21.2, char_traits:
      */
@@ -81,12 +80,12 @@ namespace std
 
         static int compare(const char_type* s1, const char_type* s2, size_t n)
         {
-            return std::str_lcmp(s1, s2, n);
+            return hel::str_lcmp(s1, s2, n);
         }
 
         static size_t length(const char_type* s)
         {
-            return std::str_size(s);
+            return hel::str_size(s);
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)
@@ -353,13 +352,13 @@ namespace std
         static int compare(const char_type* s1, const char_type* s2, size_t n)
         {
             // TODO: This function does not exits...
-            //return std::wstr_lcmp(s1, s2, n);
+            //return hel::wstr_lcmp(s1, s2, n);
             return 0;
         }
 
         static size_t length(const char_type* s)
         {
-            return std::wstr_size(s);
+            return hel::wstr_size(s);
         }
 
         static const char_type* find(const char_type* s, size_t n, const char_type& c)
@@ -447,7 +446,10 @@ namespace std
 
             /**
              * 21.4.2, construct/copy/destroy:
+             * TODO: tagged constructor that moves the char*
+             *       and use that with asprintf in to_string
              */
+
             basic_string() noexcept
                 : basic_string(allocator_type{})
             { /* DUMMY BODY */ }

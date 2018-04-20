@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,149 @@
 
 #include "internal/common.hpp"
 
+namespace std::hel
+{
+    extern "C" {
+        #include <wchar.h>
+        #include <time.h>
+    }
+}
+
 namespace std
 {
+    /* using std::hel::mbstate_t; */
+    using std::hel::size_t;
+    using std::hel::wint_t;
+    using std::hel::tm;
 
-extern "C" {
-#include <wchar.h>
+    /* using std::hel::wcscpy; */
+    /* using std::hel::wcsncpy; */
+    /* using std::hel::wcscat; */
+    /* using std::hel::wcsncat; */
+    /* using std::hel::wcsnxfrm; */
+
+    /* using std::hel::wcslen; */
+    /* using std::hel::wcscmp; */
+    /* using std::hel::wcsncmp; */
+    /* using std::hel::wcscoll; */
+    /* using std::hel::wcschr; */
+    /* using std::hel::wcsrchr; */
+    /* using std::hel::wcsspn; */
+    /* using std::hel::wcscspn; */
+    /* using std::hel::wcspbrk; */
+    /* using std::hel::wcsstr; */
+    /* using std::hel::wcstok; */
+
+    /* using std::hel::wmemcpy; */
+    /* using std::hel::wmemmove; */
+    /* using std::hel::wmemcmp; */
+    /* using std::hel::wmemchr; */
+    /* using std::hel::wmemset; */
+
+    /* using std::hel::msbinit; */
+    /* using std::hel::btowc; */
+    /* using std::hel::wctob; */
+    /* using std::hel::mbrlen; */
+    /* using std::hel::mbrtowc; */
+    /* using std::hel::wctomb; */
+    /* using std::hel::mbsrtowcs; */
+    /* using std::hel::wcsrtombs; */
+
+    /* using std::hel::fgetwc; */
+    /* using std::hel::getwc; */
+    /* using std::hel::fgetws; */
+    /* using std::hel::fputwc; */
+    /* using std::hel::putwc; */
+    /* using std::hel::fputws; */
+    /* using std::hel::getwchar; */
+    /* using std::hel::putwchar; */
+    /* using std::hel::ungetwc; */
+    /* using std::hel::fwide; */
+    /* using std::hel::wscanf; */
+    /* using std::hel::fwscanf; */
+    /* using std::hel::swscanf; */
+    /* using std::hel::vwscanf; */
+    /* using std::hel::vfwscanf; */
+    /* using std::hel::vswscanf; */
+    /* using std::hel::wprintf; */
+    /* using std::hel::fwprintf; */
+    /* using std::hel::swprintf; */
+
+    /* using std::hel::wcsftime; */
+    /* using std::hel::wcstol; */
+    /* using std::hel::wcstoll; */
+    /* using std::hel::wcstoul; */
+    /* using std::hel::wcstoull; */
+    /* using std::hel::wcstof; */
+    /* using std::hel::wcstod; */
+    /* using std::hel::wcstold; */
 }
 
-}
+/* using std::hel::mbstate_t; */
+using std::hel::size_t;
+using std::hel::wint_t;
+using std::hel::tm;
+
+/* using std::hel::wcscpy; */
+/* using std::hel::wcsncpy; */
+/* using std::hel::wcscat; */
+/* using std::hel::wcsncat; */
+/* using std::hel::wcsnxfrm; */
+
+/* using std::hel::wcslen; */
+/* using std::hel::wcscmp; */
+/* using std::hel::wcsncmp; */
+/* using std::hel::wcscoll; */
+/* using std::hel::wcschr; */
+/* using std::hel::wcsrchr; */
+/* using std::hel::wcsspn; */
+/* using std::hel::wcscspn; */
+/* using std::hel::wcspbrk; */
+/* using std::hel::wcsstr; */
+/* using std::hel::wcstok; */
+
+/* using std::hel::wmemcpy; */
+/* using std::hel::wmemmove; */
+/* using std::hel::wmemcmp; */
+/* using std::hel::wmemchr; */
+/* using std::hel::wmemset; */
+
+/* using std::hel::msbinit; */
+/* using std::hel::btowc; */
+/* using std::hel::wctob; */
+/* using std::hel::mbrlen; */
+/* using std::hel::mbrtowc; */
+/* using std::hel::wctomb; */
+/* using std::hel::mbsrtowcs; */
+/* using std::hel::wcsrtombs; */
+
+/* using std::hel::fgetwc; */
+/* using std::hel::getwc; */
+/* using std::hel::fgetws; */
+/* using std::hel::fputwc; */
+/* using std::hel::putwc; */
+/* using std::hel::fputws; */
+/* using std::hel::getwchar; */
+/* using std::hel::putwchar; */
+/* using std::hel::ungetwc; */
+/* using std::hel::fwide; */
+/* using std::hel::wscanf; */
+/* using std::hel::fwscanf; */
+/* using std::hel::swscanf; */
+/* using std::hel::vwscanf; */
+/* using std::hel::vfwscanf; */
+/* using std::hel::vswscanf; */
+/* using std::hel::wprintf; */
+/* using std::hel::fwprintf; */
+/* using std::hel::swprintf; */
+
+/* using std::hel::wcsftime; */
+/* using std::hel::wcstol; */
+/* using std::hel::wcstoll; */
+/* using std::hel::wcstoul; */
+/* using std::hel::wcstoull; */
+/* using std::hel::wcstof; */
+/* using std::hel::wcstod; */
+/* using std::hel::wcstold; */
 
 #endif

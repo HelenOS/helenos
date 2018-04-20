@@ -47,7 +47,7 @@ namespace std
         public:
             using container_type  = Container;
             using value_type      = typename container_type::value_type;
-            using reference       = typename constainer_type::reference;
+            using reference       = typename container_type::reference;
             using const_reference = typename container_type::const_reference;
             using size_type       = typename container_type::size_type;
 
@@ -131,7 +131,7 @@ namespace std
             }
 
             void swap(stack& other)
-                noexcept(noexcept(swap(c, other.c)))
+                /* noexcept(noexcept(swap(c, other.c))) */
             {
                 std::swap(c, other.c);
             }

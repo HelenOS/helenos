@@ -529,7 +529,7 @@ namespace std
             >
         >
         {
-            using type = remove_reference_t<typename iterator_traits<Iterator>::reference>;
+            using type = remove_reference_t<typename iterator_traits<Iterator>::reference>&&;
         };
     }
 

@@ -247,9 +247,10 @@ namespace std
                 : id_{}
             { /* DUMMY BODY */ }
 
-            fid_t id_; // For testing atm public.
         private:
-            id(fid_t id)
+            aux::thread_t id_;
+
+            id(aux::thread_t id)
                 : id_{id}
             { /* DUMMY BODY */ }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,29 @@
 
 #include "internal/common.hpp"
 
-namespace std
+namespace std::hel
 {
-
-extern "C" {
-#include <ctype.h>
+    extern "C" {
+        #include <ctype.h>
+    }
 }
 
+namespace std
+{
+    using std::hel::isalnum;
+    using std::hel::isalpha;
+    using std::hel::islower;
+    using std::hel::isupper;
+    using std::hel::isdigit;
+    /* using std::hel::isxdigit; */
+    /* using std::hel::iscntrl; */
+    /* using std::hel::isgraph; */
+    using std::hel::isspace;
+    /* using std::hel::isblank; */
+    /* using std::hel::isprint; */
+    /* using std::hel::ispunct; */
+    using std::hel::tolower;
+    using std::hel::toupper;
 }
 
 #endif

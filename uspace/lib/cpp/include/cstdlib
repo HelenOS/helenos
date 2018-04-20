@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,110 @@
 
 #include "internal/common.hpp"
 
+namespace std::hel
+{
+    extern "C" {
+        #include <stdlib.h>
+    }
+}
+
 namespace std
 {
+    /* using std::hel::div_t; */
+    /* using std::hel::ldiv_t; */
+    /* using std::hel::lldiv_t; */
+    using std::hel::size_t;
 
-extern "C" {
-#include <stdlib.h>
+    using std::hel::abort;
+    using std::hel::exit;
+    /* using std::hel::quick_exit; */
+    /* using std::hel::_Exit; */
+    using std::hel::atexit;
+    /* using std::hel::at_quick_exit; */
+    /* using std::hel::system; */
+    /* using std::hel::getenv; */
+
+    using std::hel::malloc;
+    using std::hel::calloc;
+    using std::hel::realloc;
+    using std::hel::free;
+
+    /* using std::hel::atof; */
+    /* using std::hel::atoi; */
+    /* using std::hel::atol; */
+    /* using std::hel::atoll; */
+    /* using std::hel::strtol; */
+    /* using std::hel::strtoll; */
+    /* using std::hel::strtoul; */
+    /* using std::hel::strtoull; */
+    /* using std::hel::strtof; */
+    /* using std::hel::strtod; */
+    /* using std::hel::strtold; */
+
+    /* using std::hel::mblen; */
+    /* using std::hel::mbtowc; */
+    /* using std::hel::wctomb; */
+    /* using std::hel::mbstowcs; */
+    /* using std::hel::wcstombs; */
+
+    using std::hel::random; // Supposed to be rand.
+    using std::hel::srandom; // Supposed to be srand.
+    using std::hel::qsort;
+    /* using std::hel::bsearch; */
+    /* using std::hel::abs; */
+    /* using std::hel::labs; */
+    /* using std::hel::llabs; */
+    /* using std::hel::div; */
+    /* using std::hel::ldiv; */
+    /* using std::hel::lldiv; */
 }
 
-}
+/* using std::hel::div_t; */
+/* using std::hel::ldiv_t; */
+/* using std::hel::lldiv_t; */
+using std::hel::size_t;
+
+using std::hel::abort;
+using std::hel::exit;
+/* using std::hel::quick_exit; */
+/* using std::hel::_Exit; */
+using std::hel::atexit;
+/* using std::hel::at_quick_exit; */
+/* using std::hel::system; */
+/* using std::hel::getenv; */
+
+using std::hel::malloc;
+using std::hel::calloc;
+using std::hel::realloc;
+using std::hel::free;
+
+/* using std::hel::atof; */
+/* using std::hel::atoi; */
+/* using std::hel::atol; */
+/* using std::hel::atoll; */
+/* using std::hel::strtol; */
+/* using std::hel::strtoll; */
+/* using std::hel::strtoul; */
+/* using std::hel::strtoull; */
+/* using std::hel::strtof; */
+/* using std::hel::strtod; */
+/* using std::hel::strtold; */
+
+/* using std::hel::mblen; */
+/* using std::hel::mbtowc; */
+/* using std::hel::wctomb; */
+/* using std::hel::mbstowcs; */
+/* using std::hel::wcstombs; */
+
+using std::hel::random; // Supposed to be rand.
+using std::hel::srandom; // Supposed to be srand.
+using std::hel::qsort;
+/* using std::hel::bsearch; */
+/* using std::hel::abs; */
+/* using std::hel::labs; */
+/* using std::hel::llabs; */
+/* using std::hel::div; */
+/* using std::hel::ldiv; */
+/* using std::hel::lldiv; */
 
 #endif

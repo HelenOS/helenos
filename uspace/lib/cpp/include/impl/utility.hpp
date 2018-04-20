@@ -29,6 +29,7 @@
 #ifndef LIBCPP_UTILITY
 #define LIBCPP_UTILITY
 
+#include <cstdint>
 #include <type_traits>
 
 namespace std
@@ -77,8 +78,6 @@ namespace std
     template<class T>
     constexpr T&& forward(remove_reference_t<T>&& t) noexcept
     {
-        // TODO: check if t is lvalue reference, if it is, the program
-        //       is ill-formed according to the standard
         return static_cast<T&&>(t);
     }
 
@@ -235,7 +234,7 @@ namespace std
 
     namespace aux
     {
-        template<class T, std::uintmax_t N>
+        template<class T, uintmax_t N>
         struct make_integer_sequence
         {
             /**
