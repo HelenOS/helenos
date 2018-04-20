@@ -32,6 +32,9 @@
 #define _HELENOS_SOURCE
 #include <pcut/pcut.h>
 
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+
 PCUT_INIT;
 
 PCUT_TEST_SUITE(string);
@@ -543,7 +546,7 @@ PCUT_TEST(strcspn_regular)
 /** strpbrk function with empty search string */
 PCUT_TEST(strpbrk_empty_string)
 {
-	char *p;
+	const char *p;
 
 	p = strpbrk("", "abc");
 	PCUT_ASSERT_NULL(p);
@@ -552,7 +555,7 @@ PCUT_TEST(strpbrk_empty_string)
 /** strpbrk function with empty character set */
 PCUT_TEST(strpbrk_empty_set)
 {
-	char *p;
+	const char *p;
 
 	p = strpbrk("abc", "");
 	PCUT_ASSERT_NULL(p);

@@ -40,7 +40,7 @@ ENDIAN="$("$XCW"/helenos-bld-config --endian)"
 echo helenos-cc "$@"
 "$CC" \
     -O3 -fexec-charset=UTF-8 -fwide-exec-charset=UTF-32LE -finput-charset=UTF-8 \
-    -ffreestanding -fno-builtin -nostdlib -nostdinc \
+    -nostdlib \
     -Wall -Wextra -Wno-clobbered -Wno-unused-parameter -Wmissing-prototypes \
     -std=gnu99 -Werror-implicit-function-declaration -Wwrite-strings -ggdb \
     -fno-omit-frame-pointer \

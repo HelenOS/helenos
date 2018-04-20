@@ -49,6 +49,11 @@
 #define M_SQRT2     1.41421356237309504880
 #define M_SQRT1_2   0.70710678118654752440
 
+/* GNU extensions, but GCC emits calls to them as an optimization. */
+void sincos(double, double *, double *);
+void sincosf(float, float *, float *);
+void sincosl(long double, long double *, long double *);
+
 #endif
 
 #if FLT_EVAL_METHOD == 0

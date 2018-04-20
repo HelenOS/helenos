@@ -147,7 +147,7 @@ void pcut_str_error(errno_t error, char *buffer, int size);
  */
 #define PCUT_ASSERT_NULL(pointer) \
 	do { \
-		void *pcut_ptr_eval = (pointer); \
+		const void *pcut_ptr_eval = (pointer); \
 		if (pcut_ptr_eval != (NULL)) { \
 			PCUT_ASSERTION_FAILED("Expected <" #pointer "> to be NULL, " \
 				"instead it points to %p", pcut_ptr_eval); \

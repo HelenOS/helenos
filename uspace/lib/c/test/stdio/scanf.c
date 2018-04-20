@@ -41,6 +41,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+
 PCUT_INIT;
 
 PCUT_TEST_SUITE(scanf);
@@ -603,7 +605,7 @@ PCUT_TEST(chars_malloc)
 	char *cp;
 
 	cp = NULL;
-	rc = sscanf("abc", "%m3c", &cp);
+	rc = sscanf("abc", "%3mc", &cp);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_NOT_NULL(cp);
 	PCUT_ASSERT_TRUE(cp[0] == 'a');

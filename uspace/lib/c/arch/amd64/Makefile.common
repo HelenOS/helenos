@@ -26,14 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+# TODO: We need to implement DWARF unwinding and get rid of this flag.
 COMMON_CFLAGS += -fno-omit-frame-pointer
 
-# XXX: clang doesn't support this flag, but the optimization is OS-specific,
-#      so it isn't used for amd64-unknown-elf target.
-
-ifneq ($(COMPILER),clang)
-	COMMON_CFLAGS += -mno-tls-direct-seg-refs
-endif
+# XXX: This architecture requires unoptimized TLS pointer access,
+#      as with the GCC option `-mno-tls-direct-seg-refs`.
+#      The `amd64-helenos` target defaults to this behavior.
 
 LDFLAGS += -Wl,--gc-sections
 

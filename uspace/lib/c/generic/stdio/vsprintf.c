@@ -35,6 +35,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <limits.h>
 
 /** Print formatted to string with arguments passed as va_list.
  *
@@ -49,7 +50,7 @@
  */
 int vsprintf(char *s, const char *fmt, va_list ap)
 {
-	return vsnprintf(s, SIZE_MAX, fmt, ap);
+	return vsnprintf(s, INT_MAX, fmt, ap);
 }
 
 /** @}

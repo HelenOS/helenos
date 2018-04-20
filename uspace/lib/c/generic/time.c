@@ -51,7 +51,7 @@
 #include <device/clock_dev.h>
 #include <stats.h>
 
-#define ASCTIME_BUF_LEN  26
+#define ASCTIME_BUF_LEN  27
 
 #define HOURS_PER_DAY  24
 #define MINS_PER_HOUR  60

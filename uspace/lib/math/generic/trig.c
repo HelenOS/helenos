@@ -370,5 +370,31 @@ double cos(double arg)
 	return base_cos_64(base_arg);
 }
 
+void sincosf(float x, float *s, float *c)
+{
+	float base_arg = fmodf(x, 2 * M_PI);
+
+	if (base_arg < 0) {
+		*s = -base_sin_32(-base_arg);
+		*c = base_cos_32(-base_arg);
+	} else {
+		*s = base_sin_32(base_arg);
+		*c = base_cos_32(base_arg);
+	}
+}
+
+void sincos(double x, double *s, double *c)
+{
+	double base_arg = fmod(x, 2 * M_PI);
+
+	if (base_arg < 0) {
+		*s = -base_sin_64(-base_arg);
+		*c = base_cos_64(-base_arg);
+	} else {
+		*s = base_sin_64(base_arg);
+		*c = base_cos_64(base_arg);
+	}
+}
+
 /** @}
  */

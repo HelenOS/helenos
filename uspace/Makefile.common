@@ -178,13 +178,17 @@ endif
 DEFAULT_CFLAGS = \
 	-O$(OPTIMIZATION) \
 	-ffunction-sections \
+	-fno-builtin-strftime \
 	-pipe \
 	-Wall \
 	-Wextra \
 	-Wno-unused-parameter \
+	-Wno-nonnull-compare \
 	-Wmissing-prototypes \
 	-Wwrite-strings \
 	-Werror-implicit-function-declaration
+
+# XXX: -fno-builtin-strftime is for a seemingly spurious format warning.
 
 ifeq ($(CONFIG_DEBUG),y)
 	DEFAULT_CFLAGS += -Werror
@@ -210,11 +214,9 @@ endif
 
 # Flags that should always be used, even for third-party software.
 COMMON_CPPFLAGS = \
-	-nostdinc \
 	-D__$(ENDIANESS)__
 
 COMMON_CFLAGS = \
-	-ffreestanding \
 	-nostdlib
 
 # Flags that are always used for HelenOS code, but not for third-party.

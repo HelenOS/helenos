@@ -33,7 +33,6 @@ ROOT_PATH = $(USPACE_PREFIX)/..
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 EXTRA_OUTPUT = $(START_FILES)
-EXTRA_TEST_CFLAGS = -Wno-deprecated-declarations
 LIBRARY = libc
 SOVERSION = 0.0
 

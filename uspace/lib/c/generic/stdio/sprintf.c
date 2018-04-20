@@ -35,6 +35,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <limits.h>
 
 /** Print formatted to string.
  *
@@ -52,7 +53,7 @@ int sprintf(char *s, const char *fmt, ...)
 
 	va_list args;
 	va_start(args, fmt);
-	rc = vsnprintf(s, SIZE_MAX, fmt, args);
+	rc = vsnprintf(s, INT_MAX, fmt, args);
 	va_end(args);
 
 	return rc;

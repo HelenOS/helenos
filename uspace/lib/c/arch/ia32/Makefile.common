@@ -32,6 +32,10 @@ else
 	COMMON_CFLAGS += -march=pentium
 endif
 
+# XXX: This architecture requires unoptimized TLS pointer access,
+#      as with the GCC option `-mno-tls-direct-seg-refs`.
+#      The `i686-helenos` target defaults to this behavior.
+
 COMMON_CFLAGS += -mno-tls-direct-seg-refs -fno-omit-frame-pointer
 LDFLAGS += -Wl,--gc-sections
 
