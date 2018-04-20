@@ -89,17 +89,102 @@ namespace std
         };
 
         template<class T>
-        class list_const_iterator;
+        class list_const_iterator
+        {
+            public:
+                using value_type = typename list<T>::value_type;
+                using reference  = typename list<T>::const_reference;
+
+                using iterator_category = forward_iterator_tag;
+
+                list_const_iterator(list_node<value_type>* node = nullptr,
+                                    list_node<value_type>* head = nullptr)
+                    : current_{node}, head_{head}
+                { /* DUMMY BODY */ }
+
+                list_const_iterator(const list_const_iterator&) = default;
+                list_const_iterator& operator=(const list_const_iterator&) = default;
+                list_const_iterator(list_const_iterator&&) = default;
+                list_const_iterator& operator=(list_const_iterator&&) = default;
+
+                reference operator*() const
+                {
+                    return current_->value;
+                }
+
+                list_const_iterator& operator++()
+                {
+                    if (current_)
+                    {
+                        if (current_->next == head_)
+                            current_ = nullptr;
+                        else
+                            current_ = current_->next;
+                    }
+
+                    return *this;
+                }
+
+                list_const_iterator operator++(int)
+                {
+                    auto bckp = current_;
+
+                    if (current_)
+                    {
+                        if (current_->next == head_)
+                            current_ = nullptr;
+                        else
+                            current_ = current_->next;
+                    }
+
+                    return list_const_iterator{bckp};
+                }
+
+                list_node<value_type>* node()
+                {
+                    return current_;
+                }
+
+                const list_node<value_type>* node() const
+                {
+                    return current_;
+                }
+
+            private:
+                list_node<value_type>* current_;
+                list_node<value_type>* head_;
+        };
+
+        template<class T>
+        bool operator==(const list_const_iterator<T>& lhs, const list_const_iterator<T>& rhs)
+        {
+            return lhs.node() == rhs.node();
+        }
+
+        template<class T>
+        bool operator!=(const list_const_iterator<T>& lhs, const list_const_iterator<T>& rhs)
+        {
+            return !(lhs == rhs);
+        }
 
         template<class T>
         class list_iterator
         {
             public:
-                using reference = typename list<T>::reference;
+                using value_type = typename list<T>::value_type;
+                using reference  = typename list<T>::reference;
 
-                list_iterator(list_node<T>* node = nullptr)
-                    : current_{node}
+                using iterator_category = forward_iterator_tag;
+
+                list_iterator(list_node<value_type>* node = nullptr,
+                              list_node<value_type>* head = nullptr)
+                    : current_{node}, head_{head}
                 { /* DUMMY BODY */ }
+
+                list_iterator(const list_iterator&) = default;
+                list_iterator& operator=(const list_iterator&) = default;
+                list_iterator(list_iterator&&) = default;
+                list_iterator& operator=(list_iterator&&) = default;
 
                 reference operator*()
                 {
@@ -109,7 +194,12 @@ namespace std
                 list_iterator& operator++()
                 {
                     if (current_)
-                        current_ = current_->next;
+                    {
+                        if (current_->next == head_)
+                            current_ = nullptr;
+                        else
+                            current_ = current_->next;
+                    }
 
                     return *this;
                 }
@@ -119,39 +209,47 @@ namespace std
                     auto bckp = current_;
 
                     if (current_)
-                        current_ = current_->next;
+                    {
+                        if (current_->next == head_)
+                            current_ = nullptr;
+                        else
+                            current_ = current_->next;
+                    }
 
                     return list_iterator{bckp};
                 }
 
-                list_iterator& operator--()
-                {
-                    if (current_)
-                        current_ = current_->prev;
-
-                    return *this;
-                }
-
-                list_iterator operator--(int)
-                {
-                    auto bckp = current_;
-
-                    if (current_)
-                        current_ = current_->prev;
-
-                    return list_iterator{bckp};
-                }
-
-                list_node<T>* node()
+                list_node<value_type>* node()
                 {
                     return current_;
                 }
 
+                const list_node<value_type>* node() const
+                {
+                    return current_;
+                }
+
+                operator list_const_iterator<T>() const
+                {
+                    return list_const_iterator{current_};
+                }
+
             private:
                 list_node<T>* current_;
+                list_node<value_type>* head_;
         };
 
-        // TODO: const iterator, iterator must be convertible to const iterator
+        template<class T>
+        bool operator==(const list_iterator<T>& lhs, const list_iterator<T>& rhs)
+        {
+            return lhs.node() == rhs.node();
+        }
+
+        template<class T>
+        bool operator!=(const list_iterator<T>& lhs, const list_iterator<T>& rhs)
+        {
+            return !(lhs == rhs);
+        }
     }
 
     /**
@@ -315,7 +413,7 @@ namespace std
 
             iterator begin() noexcept
             {
-                return iterator{head_};
+                return iterator{head_, head_};
             }
 
             const_iterator begin() const noexcept
@@ -325,7 +423,7 @@ namespace std
 
             iterator end() noexcept
             {
-                return iterator{};
+                return iterator{nullptr, head_};
             }
 
             const_iterator end() const noexcept
@@ -355,12 +453,12 @@ namespace std
 
             const_iterator cbegin() const noexcept
             {
-                return const_iterator{head_};
+                return const_iterator{head_, head_};
             }
 
             const_iterator cend() const noexcept
             {
-                return const_iterator{};
+                return const_iterator{nullptr, head_};
             }
 
             const_reverse_iterator crbegin() const noexcept
@@ -507,6 +605,12 @@ namespace std
                         delete tmp;
                     }
                 }
+            }
+
+            template<class... Args>
+            iterator emplace(const_iterator position, Args&&... args)
+            {
+                // TODO: implement
             }
 
         /* private: */
