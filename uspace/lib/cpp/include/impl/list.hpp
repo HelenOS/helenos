@@ -51,14 +51,14 @@ namespace std
             template<class... Args>
             list_node(Args&&... args)
                 : value{forward<Args>(args)...},
-                  next{this}, prev{this}
+                  next{}, prev{}
             {
                 next = this;
                 prev = this;
             }
 
             list_node(const T& val)
-                : value{val}, next{this}, prev{this}
+                : value{val}, next{}, prev{}
             {
                 next = this;
                 prev = this;
@@ -231,11 +231,11 @@ namespace std
 
                 operator list_const_iterator<T>() const
                 {
-                    return list_const_iterator{current_};
+                    return list_const_iterator<T>{current_};
                 }
 
             private:
-                list_node<T>* current_;
+                list_node<value_type>* current_;
                 list_node<value_type>* head_;
         };
 
@@ -610,10 +610,122 @@ namespace std
             template<class... Args>
             iterator emplace(const_iterator position, Args&&... args)
             {
-                // TODO: implement
+                auto node = position.node();
+                node->prepend(new aux::list_node<value_type>{forward<Args>(args)...});
+                ++size_;
+
+                if (node == head_)
+                    head_ = head_->prev;
+
+                return iterator{node->prev};
             }
 
-        /* private: */
+            iterator insert(const_iterator position, const value_type& val)
+            {
+                return emplace(position, val);
+            }
+
+            iterator insert(const_iterator position, value_type&& val)
+            {
+                return emplace(position, forward<value_type>(val));
+            }
+
+            iterator insert(const_iterator position, size_type n, const value_type& val)
+            {
+                return insert(
+                    position,
+                    aux::insert_iterator<value_type>{0u, val},
+                    aux::insert_iterator<value_type>{n}
+                );
+            }
+
+            template<class InputIterator>
+            iterator insert(const_iterator position, InputIterator first, InputIterator last)
+            {
+                auto node = position.node()->prev;
+
+                while (first != last)
+                {
+                    node->append(new aux::list_node<value_type>{*first++});
+                    node = node->next;
+                    ++size_;
+                }
+
+                return iterator{position.node()->next};
+            }
+
+            iterator insert(const_iterator position, initializer_list<value_type> init)
+            {
+                return insert(position, init.begin(), init.end());
+            }
+
+            iterator erase(const_iterator position)
+            {
+                auto node = position.node();
+                --size_;
+
+                if (node != get_last_())
+                {
+                    auto next = node->next;
+                    auto prev = node->prev;
+
+                    next->prev = prev;
+                    prev->next = next;
+
+                    delete node;
+
+                    return iterator{next};
+                }
+                else
+                {
+                    auto prev = node->prev;
+                    head_->prev = prev;
+                    prev->next = head_;
+
+                    delete node;
+
+                    return end();
+                }
+            }
+
+            iterator erase(const_iterator first, const_iterator last)
+            {
+                if (first == last)
+                    return end();
+
+                auto first_node = first.node();
+                auto last_node = last.node();
+                auto prev = first_node->prev;
+                auto next = last_node->next;
+
+                prev->append(next);
+
+                while (first_node != next)
+                {
+                    auto tmp = first_node;
+                    first_node = first_node->next;
+                    --size_;
+
+                    delete tmp;
+                }
+
+                return iterator{next};
+            }
+
+            void swap(list& other)
+                noexcept(allocator_traits<allocator_type>::is_always_equal::value)
+            {
+                std::swap(allocator_, other.allocator_);
+                std::swap(head_, other.head_);
+                std::swap(size_, other.size_);
+            }
+
+            void clear()
+            {
+                fini_();
+            }
+
+        private:
             allocator_type allocator_;
             aux::list_node<value_type>* head_;
             size_type size_;
