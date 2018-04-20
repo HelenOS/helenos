@@ -252,12 +252,12 @@ namespace std
                 return cbegin() + size_;
             }
 
-            const_reverse_iterator rcbegin() const noexcept
+            const_reverse_iterator crbegin() const noexcept
             {
                 return rbegin();
             }
 
-            const_reverse_iterator rcend() const noexcept
+            const_reverse_iterator crend() const noexcept
             {
                 return rend();
             }
