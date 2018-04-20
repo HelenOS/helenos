@@ -720,7 +720,7 @@ namespace std
                 std::swap(size_, other.size_);
             }
 
-            void clear()
+            void clear() noexcept
             {
                 fini_();
             }
