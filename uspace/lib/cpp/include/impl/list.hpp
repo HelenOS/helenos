@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -92,8 +92,11 @@ namespace std
         class list_const_iterator
         {
             public:
-                using value_type = typename list<T>::value_type;
-                using reference  = typename list<T>::const_reference;
+                using value_type      = typename list<T>::value_type;
+                using reference       = typename list<T>::const_reference;
+                using pointer         = typename list<T>::const_pointer;
+                using difference_type = typename list<T>::difference_type;
+                using size_type       = typename list<T>::size_type;
 
                 using iterator_category = forward_iterator_tag;
 
@@ -171,8 +174,11 @@ namespace std
         class list_iterator
         {
             public:
-                using value_type = typename list<T>::value_type;
-                using reference  = typename list<T>::reference;
+                using value_type      = typename list<T>::value_type;
+                using reference       = typename list<T>::reference;
+                using pointer         = typename list<T>::pointer;
+                using difference_type = typename list<T>::difference_type;
+                using size_type       = typename list<T>::size_type;
 
                 using iterator_category = forward_iterator_tag;
 
@@ -341,7 +347,7 @@ namespace std
                 other.head_ = nullptr;
             }
 
-            list(initializer_list<value_type> init, const allocator_type& alloc)
+            list(initializer_list<value_type> init, const allocator_type& alloc = allocator_type{})
                 : allocator_{alloc}, head_{nullptr}, size_{}
             {
                 init_(init.begin(), init.end());
@@ -725,6 +731,144 @@ namespace std
                 fini_();
             }
 
+            /**
+             * 23.3.5.5, list operations:
+             */
+
+            void splice(const_iterator position, list& other)
+            {
+                if (!head_)
+                {
+                    swap(other);
+                    return;
+                }
+
+                auto other_first = other.head_;
+                auto other_last = other.get_last_();
+                auto node = position.node();
+                auto prev = node->prev;
+
+                // Insert a link range.
+                prev->next = other_first;
+                other_first->prev = prev;
+                node->prev = other_last;
+                other_last->next = node;
+
+                size_ += other.size_;
+
+                if (node == head_)
+                    head_ = other_first;
+                other.head_ = nullptr;
+                other.size_ = 0;
+            }
+
+            void splice(const_iterator position, list&& other)
+            {
+                splice(position, other);
+            }
+
+            void splice(const_iterator position, list& other, const_iterator it)
+            {
+                if (&other == this)
+                    return;
+
+                auto node = position.node();
+                auto target = it.node();
+
+                // Unlink from other.
+                target->prev->next = target->next;
+                target->next->prev = target->prev;
+
+                // Link to us.
+                node->prev->next = target;
+                target->prev = node->prev;
+
+                node->prev = target;
+                target->next = node;
+
+                --other.size_;
+                ++size_;
+
+                if (it.node() == other.head_)
+                    other.advance_head_();
+            }
+
+            void splice(const_iterator position, list&& other, const_iterator it)
+            {
+                splice(position, other, it);
+            }
+
+            void splice(const_iterator position, list& other,
+                        const_iterator first, const_iterator last)
+            {
+                if (&other == this || other.empty())
+                    return;
+
+                if (first.node() == other.head_ && !last.node())
+                { // [first, last) is everything in other.
+                    splice(position, other);
+                    return;
+                }
+
+                // [first_node, last_node] is the inserted range.
+                aux::list_node<value_type>* first_node{};
+                aux::list_node<value_type>* last_node{};
+
+                if (first.node() == other.head_)
+                { // The range is a prefix of other.
+                    other.head_ = last.node();
+                    other.head_->prev = first.node()->prev;
+                    first.node()->prev->next = last.node();
+
+                    first_node = first.node();
+                    last_node = last.node()->prev;
+                }
+                else if (!last.node())
+                { // The range is a suffix of other.
+                    auto new_last = first.node()->prev;
+                    auto old_last = other.head_->prev;
+                    other.head_->prev = new_last;
+                    new_last->next = other.head_;
+
+                    first_node = first.node();
+                    last_node = old_last;
+                }
+                else
+                { // The range is a subrange of other.
+                    first_node = first.node();
+                    last_node = last.node()->prev;
+
+                    first_node->prev->next = last.node();
+                    last.node()->prev = first_node->prev;
+                }
+
+                if (!head_)
+                { // Assimilate the range.
+                    head_ = first_node;
+                    first_node->prev = last_node;
+                    last_node->next = first_node;
+                }
+                else
+                {
+                    auto target = position.node();
+                    target->prev->next = first_node;
+                    first_node->prev = target->prev;
+
+                    target->prev = last_node;
+                    last_node->next = target;
+                }
+
+                auto count = distance(iterator{first_node}, iterator{last_node});
+                size_ += count;
+                other.size_ -= count;
+            }
+
+            void splice(const_iterator position, list&& other,
+                        const_iterator first, const_iterator last)
+            {
+                splice(position, other, first, last);
+            }
+
         private:
             allocator_type allocator_;
             aux::list_node<value_type>* head_;
@@ -745,10 +889,13 @@ namespace std
                 if (!head_)
                     return;
 
-                for (size_type i = size_type{}; i < size_; ++i)
+                head_->prev->next = nullptr;
+                while (head_)
                 {
+                    auto tmp = head_;
                     head_ = head_->next;
-                    delete head_->prev;
+
+                    delete tmp;
                 }
 
                 head_ = nullptr;
@@ -811,6 +958,21 @@ namespace std
                 {
                     where->append(new aux::list_node<value_type>{*first++});
                     where = where->next;
+                }
+            }
+
+            void advance_head_()
+            {
+                if (size_ == 1)
+                {
+                    head_ = nullptr;
+                    size_ = 0;
+                }
+                else
+                { // The head_ is deleted outside.
+                    head_->next->prev = head_->prev;
+                    head_->prev->next = head_->next;
+                    head_ = head_->next;
                 }
             }
     };
