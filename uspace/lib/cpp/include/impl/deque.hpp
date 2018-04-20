@@ -781,7 +781,7 @@ namespace std
             {
                 return insert(
                     position,
-                    aux::insert_iterator{value},
+                    aux::insert_iterator{0u, value},
                     aux::insert_iterator{n}
                 );
             }

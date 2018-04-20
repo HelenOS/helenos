@@ -59,21 +59,13 @@ namespace std::aux
     class insert_iterator
     {
         public:
-            using difference_type   = unsigned;
+            using difference_type   = unsigned long long;
             using value_type        = T;
-            using iterator_category = forward_iterator_tag;
+            using iterator_category = input_iterator_tag;
             using reference         = value_type&;
             using pointer           = value_type*;
 
-            explicit insert_iterator(const value_type& val)
-                : value_{val}, count_{}
-            { /* DUMMY BODY */ }
-
-            explicit insert_iterator(difference_type count)
-                : value_{}, count_{count}
-            { /* DUMMY BODY */ }
-
-            explicit insert_iterator(const value_type& val, difference_type count)
+            explicit insert_iterator(difference_type count, const value_type& val = value_type{})
                 : value_{val}, count_{count}
             { /* DUMMY BODY */ }
 
@@ -104,7 +96,7 @@ namespace std::aux
             {
                 ++count_;
 
-                return insert_iterator{value_, count_ - 1};
+                return insert_iterator{count_ - 1, value_};
             }
 
             bool operator==(const insert_iterator& other)
