@@ -603,7 +603,7 @@ static void dhcpsrv_discover_timeout(void *arg)
 	errno_t rc;
 
 	assert(dlink->state == ds_selecting);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: dcpsrv_discover_timeout",
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: dhcpsrv_discover_timeout",
 	    dlink->link_info.name);
 
 	if (dlink->retries_left == 0) {
@@ -631,7 +631,7 @@ static void dhcpsrv_request_timeout(void *arg)
 	errno_t rc;
 
 	assert(dlink->state == ds_requesting);
-	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: dcpsrv_request_timeout",
+	log_msg(LOG_DEFAULT, LVL_NOTE, "%s: dhcpsrv_request_timeout",
 	    dlink->link_info.name);
 
 	if (dlink->retries_left == 0) {
