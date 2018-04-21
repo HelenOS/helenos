@@ -33,12 +33,14 @@
 #define __VIRTIO_PCI_H__
 
 #include <ddf/driver.h>
+#include <pci_dev_iface.h>
 #include <ddi.h>
 
 #define VIRTIO_PCI_CAP_TYPE(c)		((c) + 3)
 #define VIRTIO_PCI_CAP_BAR(c)		((c) + 4)
 #define VIRTIO_PCI_CAP_OFFSET(c)	((c) + 8)
 #define VIRTIO_PCI_CAP_LENGTH(c)	((c) + 12)
+#define VIRTIO_PCI_CAP_END(c)		((c) + 16)
 
 #define VIRTIO_PCI_CAP_COMMON_CFG	1
 #define VIRTIO_PCI_CAP_NOTIFY_CFG	2
@@ -67,7 +69,24 @@ typedef struct virtio_pci_common_cfg {
 } virtio_pci_common_cfg_t;
 
 typedef struct {
+	struct {
+		bool mapped;
+		void *mapped_base;
+	} bar[PCI_BAR_COUNT];
+
+	/** Commong configuration structure */
 	virtio_pci_common_cfg_t *common_cfg;
+
+	/** Notification base address */
+	ioport8_t *notify_base;
+	/** Notification offset multiplier */
+	uint32_t notify_off_multiplier;
+
+	/** INT#x interrupt ISR register */
+	ioport8_t *isr;
+
+	/** Device-specific configuration */
+	void *device_cfg;
 } virtio_dev_t;
 
 errno_t virtio_pci_dev_init(ddf_dev_t *, virtio_dev_t *);

@@ -44,7 +44,10 @@
 #define PCI_STATUS 	0x06
 #define PCI_SUB_CLASS	0x0A
 #define PCI_BASE_CLASS	0x0B
+#define PCI_BAR0	0x10
 #define PCI_CAP_PTR	0x34
+
+#define PCI_BAR_COUNT	6
 
 #define PCI_STATUS_CAP_LIST	(1 << 4)
 

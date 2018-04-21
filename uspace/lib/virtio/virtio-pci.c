@@ -32,31 +32,121 @@
 #include "virtio-pci.h"
 
 #include <ddf/driver.h>
+#include <ddf/log.h>
 #include <pci_dev_iface.h>
 
-static void virtio_pci_common_cfg(virtio_dev_t *vdev, hw_resource_list_t *res,
-    uint8_t bar, uint32_t offset, uint32_t length)
+static bool check_bar(virtio_dev_t *vdev, uint8_t bar)
 {
-	/* Proceed only if we don't have common config structure yet */
+	/* We must ignore the capability if bar is greater than 5 */
+	if (bar >= PCI_BAR_COUNT)
+		return false;
+
+	/* This is not a mapped BAR */
+	if (!vdev->bar[bar].mapped)
+		return false;
+
+	return true;
+}
+
+static void virtio_pci_common_cfg(virtio_dev_t *vdev, uint8_t bar,
+    uint32_t offset, uint32_t length)
+{
 	if (vdev->common_cfg)
 		return;
 
-	/* We must ignore the capability if bar is greater than 5 */
-	if (bar > 5)
+	if (!check_bar(vdev, bar))
 		return;
+
+	vdev->common_cfg = vdev->bar[bar].mapped_base + offset;
+
+	ddf_msg(LVL_NOTE, "common_cfg=%p", vdev->common_cfg);
+}
+
+static void virtio_pci_notify_cfg(virtio_dev_t *vdev, uint8_t bar,
+    uint32_t offset, uint32_t length, uint32_t multiplier)
+{
+	if (vdev->notify_base)
+		return;
+
+	if (!check_bar(vdev, bar))
+		return;
+
+	vdev->notify_base = vdev->bar[bar].mapped_base + offset;
+	vdev->notify_off_multiplier = multiplier;
+
+	ddf_msg(LVL_NOTE, "notify_base=%p, off_multiplier=%u",
+	    vdev->notify_base, vdev->notify_off_multiplier);
+}
+
+static void virtio_pci_isr_cfg(virtio_dev_t *vdev, uint8_t bar, uint32_t offset,
+    uint32_t length)
+{
+	if (vdev->isr)
+		return;
+
+	if (!check_bar(vdev, bar))
+		return;
+
+	vdev->isr = vdev->bar[bar].mapped_base + offset;
+
+	ddf_msg(LVL_NOTE, "isr=%p", vdev->isr);
+}
+
+static void virtio_pci_device_cfg(virtio_dev_t *vdev, uint8_t bar,
+    uint32_t offset, uint32_t length)
+{
+	if (vdev->device_cfg)
+		return;
+
+	if (!check_bar(vdev, bar))
+		return;
+
+	vdev->device_cfg = vdev->bar[bar].mapped_base + offset;
+
+	ddf_msg(LVL_NOTE, "device_cfg=%p", vdev->device_cfg);
 }
 
 errno_t virtio_pci_dev_init(ddf_dev_t *dev, virtio_dev_t *vdev)
 {
+	memset(vdev, 0, sizeof(virtio_dev_t));
+
 	async_sess_t *pci_sess = ddf_dev_parent_sess_get(dev);
 	if (!pci_sess)
 		return ENOENT;
 
-	errno_t rc;
+	pio_window_t pio_window;
+	errno_t rc = pio_window_get(pci_sess, &pio_window);
+	if (rc != EOK)
+		return rc;
+
 	hw_resource_list_t hw_res;
 	rc = hw_res_get_resource_list(pci_sess, &hw_res);
 	if (rc != EOK)
 		return rc;
+
+	/*
+	 * Enable resources and reconstruct the mapping between BAR and resource
+	 * indices. We are going to need this later when the VIRTIO PCI
+	 * capabilities refer to specific BARs.
+	 *
+	 * XXX: The mapping should probably be provided by the PCI driver
+	 *      itself.
+	 */
+	for (unsigned i = 0, j = 0; i < PCI_BAR_COUNT && j < hw_res.count;
+	    i++) {
+		/* Detect and skip unused BARs */
+		uint32_t bar;
+		rc = pci_config_space_read_32(pci_sess,
+		    PCI_BAR0 + i * sizeof(uint32_t), &bar);
+		if (!bar)
+			continue;
+
+		rc = pio_enable_resource(&pio_window, &hw_res.resources[j],
+		    &vdev->bar[i].mapped_base);
+		if (rc == EOK)
+			vdev->bar[i].mapped = true;
+		j++;
+	}
 
 	/*
 	 * Find the VIRTIO PCI Capabilities
@@ -91,16 +181,26 @@ errno_t virtio_pci_dev_init(ddf_dev_t *dev, virtio_dev_t *vdev)
 			if (rc != EOK)
 				return rc;
 
+			uint32_t multiplier;
 			switch (type) {
 			case VIRTIO_PCI_CAP_COMMON_CFG:
-				virtio_pci_common_cfg(vdev, &hw_res, bar,
-				    offset, length);
+				virtio_pci_common_cfg(vdev, bar, offset,
+				    length);
 				break;
 			case VIRTIO_PCI_CAP_NOTIFY_CFG:
+				rc = pci_config_space_read_32(pci_sess,
+				    VIRTIO_PCI_CAP_END(c), &multiplier);
+				if (rc != EOK)
+					return rc;
+				virtio_pci_notify_cfg(vdev, bar, offset, length,
+				    multiplier);
 				break;
 			case VIRTIO_PCI_CAP_ISR_CFG:
+				virtio_pci_isr_cfg(vdev, bar, offset, length);
 				break;
 			case VIRTIO_PCI_CAP_DEVICE_CFG:
+				virtio_pci_device_cfg(vdev, bar, offset,
+				    length);
 				break;
 			case VIRTIO_PCI_CAP_PCI_CFG:
 				break;
