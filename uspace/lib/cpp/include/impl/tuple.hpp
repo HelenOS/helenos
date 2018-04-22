@@ -30,6 +30,8 @@
 #define LIBCPP_TUPLE
 
 #include <internal/aux.hpp>
+#include <internal/tuple_cat.hpp>
+#include <internal/tuple_ops.hpp>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -92,8 +94,15 @@ namespace std
         return tuple<Ts&...>(ts...);
     }
 
-    template<class... Tuples> // TODO: dafuq is ctypes?
-    constexpr tuple<Tuples...> tuple_cat(Tuples&&... tpls);
+    template<class... Tuples>
+    constexpr aux::tuple_cat_type_t<Tuples...> tuple_cat(Tuples&&... tpls)
+    {
+        return aux::tuple_cat(
+            forward<Tuples>(tpls)...,
+            make_index_sequence<sizeof...(Tuples)>{},
+            aux::generate_indices_t<Tuples...>{}
+        );
+    }
 
     /**
      * 20.4.2.5, tuple helper classes:
@@ -179,8 +188,19 @@ namespace std
         {
             constexpr tuple_element_wrapper() = default;
 
-            constexpr explicit tuple_element_wrapper(T val)
-                : value{val}
+            constexpr explicit tuple_element_wrapper(T&& val)
+                : value{forward<T>(val)}
+            { /* DUMMY BODY */ }
+
+            template<
+                class U,
+                class = enable_if_t<
+                    is_convertible_v<U, T> && !is_same_v<U, T>,
+                    void
+                >
+            >
+            constexpr explicit tuple_element_wrapper(U&& val)
+                : value(forward<U>(val))
             { /* DUMMY BODY */ }
 
             T value;
@@ -197,8 +217,14 @@ namespace std
                     : tuple_element_wrapper<Is, Ts>{}...
                 { /* DUMMY BODY */ }
 
-                constexpr explicit tuple_impl(const Ts&... ts)
-                    : tuple_element_wrapper<Is, Ts>(ts)...
+                constexpr explicit tuple_impl(Ts&&... ts)
+                    : tuple_element_wrapper<Is, Ts>(forward<Ts>(ts))...
+                { /* DUMMY BODY */ }
+
+                // TODO: enable only if Us is convertible to Ts and they are not same
+                template<class... Us>
+                constexpr explicit tuple_impl(Us&&... us)
+                    : tuple_element_wrapper<Is, Ts>(forward<Us>(us))...
                 { /* DUMMY BODY */ }
         };
 
@@ -255,7 +281,6 @@ namespace std
         return wrapper.value;
     }
 
-
     namespace aux
     {
         template<size_t I, class U, class T, class... Ts>
@@ -285,74 +310,9 @@ namespace std
         return get<aux::index_of_type<0, T, Ts...>::value>(tpl);
     }
 
-    namespace aux
-    {
-        template<size_t I, size_t N>
-        struct tuple_ops
-        {
-            template<class T, class U>
-            static void assign(T&& lhs, U&& rhs)
-            {
-                get<I>(forward<T>(lhs)) = get<I>(forward<U>(rhs));
-
-                tuple_ops<I + 1, N>::assign(forward<T>(lhs), forward<U>(rhs));
-            }
-
-            template<class T, class U>
-            static void swap(T& lhs, U& rhs)
-            {
-                std::swap(get<I>(lhs), get<I>(rhs));
-
-                tuple_ops<I + 1, N>::swap(lhs, rhs);
-            }
-
-            template<class T, class U>
-            static bool eq(const T& lhs, const U& rhs)
-            {
-                return (get<I>(lhs) == get<I>(rhs)) && tuple_ops<I + 1, N>::eq(lhs, rhs);
-            }
-
-            template<class T, class U>
-            static bool lt(const T& lhs, const U& rhs)
-            {
-                return (get<I>(lhs) < get<I>(rhs)) ||
-                    (!(get<I>(rhs) < get<I>(lhs)) && tuple_ops<I + 1, N>::lt(lhs, rhs));
-            }
-        };
-
-        template<size_t N>
-        struct tuple_ops<N, N>
-        {
-            template<class T, class U>
-            static void assign(T&& lhs, U&& rhs)
-            {
-                get<N>(forward<T>(lhs)) = get<N>(forward<U>(rhs));
-            }
-
-            template<class T, class U>
-            static void swap(T& lhs, U& rhs)
-            {
-                std::swap(get<N>(lhs), get<N>(rhs));
-            }
-
-            template<class T, class U>
-            static bool eq(const T& lhs, const U& rhs)
-            {
-                return get<N>(lhs) == get<N>(rhs);
-            }
-
-            template<class T, class U>
-            static bool lt(const T& lhs, const U& rhs)
-            {
-                return get<N>(lhs) < get<N>(rhs);
-            }
-        };
-    }
-
     /**
      * 20.4.2, class template tuple:
      */
-
 
     template<class... Ts>
     class tuple: public aux::tuple_impl<make_index_sequence<sizeof...(Ts)>, Ts...>
@@ -381,15 +341,15 @@ namespace std
             tuple(const tuple&) = default;
             tuple(tuple&&) = default;
 
-            /* template<class... Us> */
-            /* constexpr tuple(const tuple<Us...>& tpl) */
-            /*     : base_t(tpl) */
-            //{ /* DUMMY BODY */ }
+            template<class... Us>
+            constexpr tuple(const tuple<Us...>& tpl)
+                : base_t(tpl)
+            { /* DUMMY BODY */ }
 
-            /* template<class... Us> */
-            /* constexpr tuple(tuple<Us...>& tpl) */
-            /*     : base_t(forward<tuple<Us>>(tpl)...) */
-            //{ /* DUMMY BODY */ }
+            template<class... Us>
+            constexpr tuple(tuple<Us...>&& tpl)
+                : base_t(forward<tuple<Us>>(tpl)...)
+            { /* DUMMY BODY */ }
 
             // TODO: pair related construction and assignment needs convertibility, not size
             template<class U1, class U2>
