@@ -47,7 +47,7 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 
 	// XXX: this will be part of the nic data
 	virtio_dev_t virtio_dev;
-	errno_t rc = virtio_pci_dev_init(dev, &virtio_dev);
+	errno_t rc = virtio_pci_dev_initialize(dev, &virtio_dev);
 	if (rc != EOK)
 		return rc;
 

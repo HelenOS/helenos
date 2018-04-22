@@ -163,7 +163,7 @@ static errno_t disable_resources(virtio_dev_t *vdev)
 	return EOK;
 }
 
-errno_t virtio_pci_dev_init(ddf_dev_t *dev, virtio_dev_t *vdev)
+errno_t virtio_pci_dev_initialize(ddf_dev_t *dev, virtio_dev_t *vdev)
 {
 	memset(vdev, 0, sizeof(virtio_dev_t));
 

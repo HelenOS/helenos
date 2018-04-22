@@ -90,7 +90,7 @@ typedef struct {
 	void *device_cfg;
 } virtio_dev_t;
 
-errno_t virtio_pci_dev_init(ddf_dev_t *, virtio_dev_t *);
+extern errno_t virtio_pci_dev_initialize(ddf_dev_t *, virtio_dev_t *);
 
 #endif
 
