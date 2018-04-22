@@ -86,6 +86,12 @@ namespace std
                 prev->next = node;
                 prev = node;
             }
+
+            void unlink()
+            {
+                prev->next = next;
+                next->prev = prev;
+            }
         };
 
         template<class T>
@@ -151,6 +157,21 @@ namespace std
                 const list_node<value_type>* node() const
                 {
                     return current_;
+                }
+
+                list_const_iterator operator-(difference_type n) const
+                {
+                    /**
+                     * Note: This operator is for internal purposes only,
+                     *       so we do not provide inverse operator or shortcut
+                     *       -= operator.
+                     */
+                    auto tmp = current_;
+
+                    for (difference_type i = 0; i < n; ++i)
+                        tmp = tmp->prev;
+
+                    return list_const_iterator{tmp};
                 }
 
             private:
@@ -238,6 +259,21 @@ namespace std
                 operator list_const_iterator<T>() const
                 {
                     return list_const_iterator<T>{current_};
+                }
+
+                list_iterator operator-(difference_type n) const
+                {
+                    /**
+                     * Note: This operator is for internal purposes only,
+                     *       so we do not provide inverse operator or shortcut
+                     *       -= operator.
+                     */
+                    auto tmp = current_;
+
+                    for (difference_type i = 0; i < n; ++i)
+                        tmp = tmp->prev;
+
+                    return list_iterator{tmp};
                 }
 
             private:
@@ -623,7 +659,7 @@ namespace std
                 if (node == head_)
                     head_ = head_->prev;
 
-                return iterator{node->prev};
+                return iterator{node->prev, head_};
             }
 
             iterator insert(const_iterator position, const value_type& val)
@@ -657,7 +693,7 @@ namespace std
                     ++size_;
                 }
 
-                return iterator{position.node()->next};
+                return iterator{position.node()->next, head_};
             }
 
             iterator insert(const_iterator position, initializer_list<value_type> init)
@@ -668,30 +704,29 @@ namespace std
             iterator erase(const_iterator position)
             {
                 auto node = position.node();
+
+                if (node == head_)
+                {
+                    if (size_ == 1)
+                    {
+                        delete head_;
+                        head_ = nullptr;
+                        size_ = 0;
+
+                        return end();
+                    }
+                    else
+                        head_ = node->next;
+                }
+
+                auto next = node->next;
+
                 --size_;
 
-                if (node != get_last_())
-                {
-                    auto next = node->next;
-                    auto prev = node->prev;
+                node->unlink();
+                delete node;
 
-                    next->prev = prev;
-                    prev->next = next;
-
-                    delete node;
-
-                    return iterator{next};
-                }
-                else
-                {
-                    auto prev = node->prev;
-                    head_->prev = prev;
-                    prev->next = head_;
-
-                    delete node;
-
-                    return end();
-                }
+                return iterator{next, head_};
             }
 
             iterator erase(const_iterator first, const_iterator last)
@@ -708,6 +743,10 @@ namespace std
 
                 while (first_node != next)
                 {
+                    // TODO: test with head in the range
+                    /* if (first_node == head_) */
+                    /*     head_ = last.node()->next; */
+
                     auto tmp = first_node;
                     first_node = first_node->next;
                     --size_;
@@ -715,7 +754,7 @@ namespace std
                     delete tmp;
                 }
 
-                return iterator{next};
+                return iterator{next, head_};
             }
 
             void swap(list& other)
@@ -868,6 +907,77 @@ namespace std
             {
                 splice(position, other, first, last);
             }
+
+            void remove(const value_type& val)
+            {
+                if (!head_)
+                    return;
+
+                auto it = begin();
+                while (it != end())
+                {
+                    if (*it == val)
+                        it = erase(it);
+                    else
+                        ++it;
+                }
+            }
+
+            template<class Predicate>
+            void remove_if(Predicate pred)
+            {
+                if (!head_)
+                    return;
+
+                auto it = begin();
+                while (it != end())
+                {
+                    if (pred(*it))
+                        it = erase(it);
+                    else
+                        ++it;
+                }
+            }
+
+            void unique()
+            {
+                if (!head_)
+                    return;
+
+                auto it = begin();
+                ++it;
+
+                while (it != end())
+                {
+                    if (*it == *(it - 1))
+                        it = erase(it);
+                    else
+                        ++it;
+                }
+            }
+
+            template<class BinaryPredicate>
+            void unique(BinaryPredicate pred)
+            {
+                if (!head_)
+                    return;
+
+                auto it = begin();
+                ++it;
+
+                while (it != end())
+                {
+                    if (pred(*it, *(it - 1)))
+                        it = erase(it);
+                    else
+                        ++it;
+                }
+            }
+
+            // TODO: make a generic base for algorithms like merge
+            //       and quicksort that uses a swapper (the <algorithm>
+            //       versions would use std::swap and list versions would
+            //       use a swapper that swaps list nodes)
 
         private:
             allocator_type allocator_;
