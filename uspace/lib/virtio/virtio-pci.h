@@ -78,7 +78,7 @@ typedef struct {
 	virtio_pci_common_cfg_t *common_cfg;
 
 	/** Notification base address */
-	ioport8_t *notify_base;
+	ioport16_t *notify_base;
 	/** Notification offset multiplier */
 	uint32_t notify_off_multiplier;
 
