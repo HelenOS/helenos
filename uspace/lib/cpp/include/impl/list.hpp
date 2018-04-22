@@ -979,6 +979,44 @@ namespace std
             //       versions would use std::swap and list versions would
             //       use a swapper that swaps list nodes)
 
+            void merge(list& other)
+            {
+                // TODO: implement
+            }
+
+            void merge(list&& other)
+            {
+                merge(other);
+            }
+
+            template<class Compare>
+            void merge(list& other, Compare comp)
+            {
+                // TODO: implement
+            }
+
+            template<class Compare>
+            void merge(list&& other, Compare comp)
+            {
+                merge(other, comp);
+            }
+
+            void reverse() noexcept
+            {
+                // TODO: implement
+            }
+
+            void sort()
+            {
+                // TODO: implement
+            }
+
+            template<class Compare>
+            void sort(Compare comp)
+            {
+                // TODO: implement
+            }
+
         private:
             allocator_type allocator_;
             aux::list_node<value_type>* head_;
@@ -1086,6 +1124,13 @@ namespace std
                 }
             }
     };
+
+    template<class T, class Allocator>
+    void swap(list<T, Allocator>& lhs, list<T, Allocator>& rhs)
+        noexcept(noexcept(lhs.swap(rhs)))
+    {
+        lhs.swap(rhs);
+    }
 }
 
 #endif
