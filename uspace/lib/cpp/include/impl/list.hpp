@@ -30,6 +30,7 @@
 #define LIBCPP_LIST
 
 #include <cstdlib>
+#include <internal/list.hpp>
 #include <iterator>
 #include <memory>
 #include <utility>
@@ -41,59 +42,6 @@ namespace std
 
     namespace aux
     {
-        template<class T>
-        struct list_node
-        {
-            T value;
-            list_node* next;
-            list_node* prev;
-
-            template<class... Args>
-            list_node(Args&&... args)
-                : value{forward<Args>(args)...},
-                  next{}, prev{}
-            {
-                next = this;
-                prev = this;
-            }
-
-            list_node(const T& val)
-                : value{val}, next{}, prev{}
-            {
-                next = this;
-                prev = this;
-            }
-
-            list_node(T&& val)
-                : value{forward<T>(val)}, next{}, prev{}
-            {
-                next = this;
-                prev = this;
-            }
-
-            void append(list_node* node)
-            {
-                node->next = next;
-                node->prev = this;
-                next->prev = node;
-                next = node;
-            }
-
-            void prepend(list_node* node)
-            {
-                node->next = this;
-                node->prev = prev;
-                prev->next = node;
-                prev = node;
-            }
-
-            void unlink()
-            {
-                prev->next = next;
-                next->prev = prev;
-            }
-        };
-
         template<class T>
         class list_const_iterator
         {
