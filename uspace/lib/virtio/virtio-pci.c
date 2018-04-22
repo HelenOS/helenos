@@ -142,7 +142,7 @@ errno_t virtio_pci_dev_init(ddf_dev_t *dev, virtio_dev_t *vdev)
 			continue;
 
 		rc = pio_enable_resource(&pio_window, &hw_res.resources[j],
-		    &vdev->bar[i].mapped_base);
+		    &vdev->bar[i].mapped_base, NULL);
 		if (rc == EOK)
 			vdev->bar[i].mapped = true;
 		j++;
