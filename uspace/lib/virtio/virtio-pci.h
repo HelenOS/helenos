@@ -72,6 +72,7 @@ typedef struct {
 	struct {
 		bool mapped;
 		void *mapped_base;
+		size_t mapped_size;
 	} bar[PCI_BAR_COUNT];
 
 	/** Commong configuration structure */

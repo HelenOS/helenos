@@ -106,14 +106,8 @@ static void virtio_pci_device_cfg(virtio_dev_t *vdev, uint8_t bar,
 	ddf_msg(LVL_NOTE, "device_cfg=%p", vdev->device_cfg);
 }
 
-errno_t virtio_pci_dev_init(ddf_dev_t *dev, virtio_dev_t *vdev)
+static errno_t enable_resources(async_sess_t *pci_sess, virtio_dev_t *vdev)
 {
-	memset(vdev, 0, sizeof(virtio_dev_t));
-
-	async_sess_t *pci_sess = ddf_dev_parent_sess_get(dev);
-	if (!pci_sess)
-		return ENOENT;
-
 	pio_window_t pio_window;
 	errno_t rc = pio_window_get(pci_sess, &pio_window);
 	if (rc != EOK)
@@ -138,15 +132,48 @@ errno_t virtio_pci_dev_init(ddf_dev_t *dev, virtio_dev_t *vdev)
 		uint32_t bar;
 		rc = pci_config_space_read_32(pci_sess,
 		    PCI_BAR0 + i * sizeof(uint32_t), &bar);
+		if (rc != EOK)
+			return rc;
 		if (!bar)
 			continue;
 
-		rc = pio_enable_resource(&pio_window, &hw_res.resources[j],
-		    &vdev->bar[i].mapped_base, NULL);
+		hw_resource_t *res = &hw_res.resources[j];
+		rc = pio_enable_resource(&pio_window, res,
+		    &vdev->bar[i].mapped_base, &vdev->bar[i].mapped_size);
 		if (rc == EOK)
 			vdev->bar[i].mapped = true;
 		j++;
 	}
+
+	return rc;
+}
+
+static errno_t disable_resources(virtio_dev_t *vdev)
+{
+	for (unsigned i = 0; i < PCI_BAR_COUNT; i++) {
+		if (vdev->bar[i].mapped) {
+			errno_t rc = pio_disable(vdev->bar[i].mapped_base,
+			    vdev->bar[i].mapped_size);
+			if (rc != EOK)
+				return rc;
+			vdev->bar[i].mapped = false;
+		}
+	}
+
+	return EOK;
+}
+
+errno_t virtio_pci_dev_init(ddf_dev_t *dev, virtio_dev_t *vdev)
+{
+	memset(vdev, 0, sizeof(virtio_dev_t));
+
+	async_sess_t *pci_sess = ddf_dev_parent_sess_get(dev);
+	if (!pci_sess)
+		return ENOENT;
+
+	errno_t rc = enable_resources(pci_sess, vdev);
+	if (rc != EOK)
+		goto error;
 
 	/*
 	 * Find the VIRTIO PCI Capabilities
@@ -156,60 +183,63 @@ errno_t virtio_pci_dev_init(ddf_dev_t *dev, virtio_dev_t *vdev)
 	for (rc = pci_config_space_cap_first(pci_sess, &c, &id);
 	    (rc == EOK) && c;
 	    rc = pci_config_space_cap_next(pci_sess, &c, &id)) {
-		if (id == PCI_CAP_VENDORSPECID) {
-			uint8_t type;
-			rc = pci_config_space_read_8(pci_sess,
-			    VIRTIO_PCI_CAP_TYPE(c), &type);
-			if (rc != EOK)
-				return rc;
+		if (id != PCI_CAP_VENDORSPECID)
+			continue;
 
-			uint8_t bar;
-			rc = pci_config_space_read_8(pci_sess,
-			    VIRTIO_PCI_CAP_BAR(c), &bar);
-			if (rc != EOK)
-				return rc;
+		uint8_t type;
+		rc = pci_config_space_read_8(pci_sess, VIRTIO_PCI_CAP_TYPE(c),
+		    &type);
+		if (rc != EOK)
+			goto error;
 
-			uint32_t offset;
+		uint8_t bar;
+		rc = pci_config_space_read_8(pci_sess, VIRTIO_PCI_CAP_BAR(c),
+		    &bar);
+		if (rc != EOK)
+			goto error;
+
+		uint32_t offset;
+		rc = pci_config_space_read_32(pci_sess,
+		    VIRTIO_PCI_CAP_OFFSET(c), &offset);
+		if (rc != EOK)
+			goto error;
+
+		uint32_t length;
+		rc = pci_config_space_read_32(pci_sess,
+		    VIRTIO_PCI_CAP_LENGTH(c), &length);
+		if (rc != EOK)
+			goto error;
+
+		uint32_t multiplier;
+		switch (type) {
+		case VIRTIO_PCI_CAP_COMMON_CFG:
+			virtio_pci_common_cfg(vdev, bar, offset, length);
+			break;
+		case VIRTIO_PCI_CAP_NOTIFY_CFG:
 			rc = pci_config_space_read_32(pci_sess,
-			    VIRTIO_PCI_CAP_OFFSET(c), &offset);
+			    VIRTIO_PCI_CAP_END(c), &multiplier);
 			if (rc != EOK)
-				return rc;
-
-			uint32_t length;
-			rc = pci_config_space_read_32(pci_sess,
-			    VIRTIO_PCI_CAP_LENGTH(c), &length);
-			if (rc != EOK)
-				return rc;
-
-			uint32_t multiplier;
-			switch (type) {
-			case VIRTIO_PCI_CAP_COMMON_CFG:
-				virtio_pci_common_cfg(vdev, bar, offset,
-				    length);
-				break;
-			case VIRTIO_PCI_CAP_NOTIFY_CFG:
-				rc = pci_config_space_read_32(pci_sess,
-				    VIRTIO_PCI_CAP_END(c), &multiplier);
-				if (rc != EOK)
-					return rc;
-				virtio_pci_notify_cfg(vdev, bar, offset, length,
-				    multiplier);
-				break;
-			case VIRTIO_PCI_CAP_ISR_CFG:
-				virtio_pci_isr_cfg(vdev, bar, offset, length);
-				break;
-			case VIRTIO_PCI_CAP_DEVICE_CFG:
-				virtio_pci_device_cfg(vdev, bar, offset,
-				    length);
-				break;
-			case VIRTIO_PCI_CAP_PCI_CFG:
-				break;
-			default:
-				break;
-			}
+				goto error;
+			virtio_pci_notify_cfg(vdev, bar, offset, length,
+			    multiplier);
+			break;
+		case VIRTIO_PCI_CAP_ISR_CFG:
+			virtio_pci_isr_cfg(vdev, bar, offset, length);
+			break;
+		case VIRTIO_PCI_CAP_DEVICE_CFG:
+			virtio_pci_device_cfg(vdev, bar, offset, length);
+			break;
+		case VIRTIO_PCI_CAP_PCI_CFG:
+			break;
+		default:
+			break;
 		}
 	}
 
+	return rc;
+
+error:
+	(void) disable_resources(vdev);
 	return rc;
 }
 
