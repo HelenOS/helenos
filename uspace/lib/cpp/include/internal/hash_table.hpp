@@ -120,6 +120,40 @@ namespace std::aux
                 idx
             );
         }
+
+        template<class Table, class Key>
+        static typename Table::size_type erase(Table& table, const Key& key)
+        {
+            auto idx = table.get_bucket_idx_(key);
+            auto head = table.table_[idx].head;
+            auto current = head;
+
+            do
+            {
+                if (table.key_eq_(key, table.key_extractor_(current->value)))
+                {
+                    --table.size_;
+
+                    if (current == head)
+                    {
+                        if (current->next != head)
+                            table.table_[idx].head = current->next;
+                        else
+                            table.table_[idx].head = nullptr;
+                    }
+
+                    current->unlink();
+                    delete current;
+
+                    return 1;
+                }
+                else
+                    current = current->next;
+            }
+            while (current != head);
+
+            return 0;
+        }
     };
 
     struct hash_multi_policy
@@ -154,6 +188,12 @@ namespace std::aux
             //       link (if key is already in it, place the new copy
             //       next to it, otherwise just return head)
         }
+
+        template<class Table, class Key>
+        static typename Table::size_type erase(Table& table, const Key& key)
+        {
+            // TODO: erase all items with given key
+        }
     };
 
     template<class Value, class ConstReference, class ConstPointer, class Size>
@@ -168,9 +208,9 @@ namespace std::aux
 
             using iterator_category = forward_iterator_tag;
 
-            hash_table_const_iterator(hash_table_bucket<value_type, size_type>* table = nullptr,
+            hash_table_const_iterator(const hash_table_bucket<value_type, size_type>* table = nullptr,
                                       size_type idx = size_type{}, size_type max_idx = size_type{},
-                                      list_node<value_type>* current = nullptr)
+                                      const list_node<value_type>* current = nullptr)
                 : table_{table}, idx_{idx}, max_idx_{max_idx}, current_{current}
             { /* DUMMY BODY */ }
 
@@ -238,7 +278,7 @@ namespace std::aux
 
             list_node<value_type>* node()
             {
-                return current_;
+                return const_cast<list_node<value_type>*>(current_);
             }
 
             const list_node<value_type>* node() const
@@ -246,11 +286,16 @@ namespace std::aux
                 return current_;
             }
 
+            size_type idx() const
+            {
+                return idx_;
+            }
+
         private:
-            hash_table_bucket<value_type, size_type>* table_;
+            const hash_table_bucket<value_type, size_type>* table_;
             size_type idx_;
             size_type max_idx_;
-            list_node<value_type>* current_;
+            const list_node<value_type>* current_;
     };
 
     template<class Value, class ConstRef, class ConstPtr, class Size>
@@ -357,12 +402,17 @@ namespace std::aux
                 return current_;
             }
 
+            size_type idx() const
+            {
+                return idx_;
+            }
+
             template<class ConstRef, class ConstPtr>
             operator hash_table_const_iterator<
                 Value, ConstRef, ConstPtr, Size
             >() const
             {
-                return hash_table_const_iterator{
+                return hash_table_const_iterator<value_type, ConstRef, ConstPtr, size_type>{
                     table_, idx_, max_idx_, current_
                 };
             }
@@ -400,8 +450,8 @@ namespace std::aux
             using iterator_category = forward_iterator_tag;
 
             // TODO: requirement for forward iterator is default constructibility, fix others!
-            hash_table_const_local_iterator(list_node<value_type>* head = nullptr,
-                                            list_node<value_type>* current = nullptr)
+            hash_table_const_local_iterator(const list_node<value_type>* head = nullptr,
+                                            const list_node<value_type>* current = nullptr)
                 : head_{head}, current_{current}
             { /* DUMMY BODY */ }
 
@@ -437,9 +487,10 @@ namespace std::aux
                 return hash_table_const_local_iterator{head_, tmp};
             }
 
+
             list_node<value_type>* node()
             {
-                return current_;
+                return const_cast<list_node<value_type>*>(current_);
             }
 
             const list_node<value_type>* node() const
@@ -448,8 +499,8 @@ namespace std::aux
             }
 
         private:
-            list_node<value_type>* head_;
-            list_node<value_type>* current_;
+            const list_node<value_type>* head_;
+            const list_node<value_type>* current_;
     };
 
     template<class Value, class ConstRef, class ConstPtr>
@@ -529,7 +580,9 @@ namespace std::aux
                 Value, ConstRef, ConstPtr
             >() const
             {
-                return hash_table_const_local_iterator{head_, current_};
+                return hash_table_const_local_iterator<
+                    value_type, ConstRef, ConstPtr
+                >{head_, current_};
             }
 
         private:
@@ -658,6 +711,7 @@ namespace std::aux
                     get<1>(where)->prepend(node);
 
                 ++size_;
+                // TODO: if we go over max load factor, rehash
             }
 
             void insert(const hint_type& where, value_type&& val)
@@ -672,16 +726,38 @@ namespace std::aux
                     get<1>(where)->prepend(node);
 
                 ++size_;
+                // TODO: if we go over max load factor, rehash
             }
 
             size_type erase(const key_type& key)
             {
-                // TODO: implement
+                return Policy::erase(*this, key);
             }
 
             iterator erase(const_iterator it)
             {
-                // TODO: implement
+                auto node = it.node();
+                auto idx = it.idx();
+
+                /**
+                 * Note: This way we will continue on the next bucket
+                 *       if this is the last element in its bucket.
+                 */
+                iterator res{table_, idx, size_, node};
+                ++res;
+
+                if (table_[idx].head == node)
+                {
+                    if (node->next != node)
+                        table_[idx].head = node->next;
+                    else
+                        table_[idx].head = nullptr;
+                }
+
+                node->unlink();
+                delete node;
+
+                return res;
             }
 
             void clear() noexcept
