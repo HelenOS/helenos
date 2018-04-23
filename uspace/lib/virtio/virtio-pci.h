@@ -48,6 +48,14 @@
 #define VIRTIO_PCI_CAP_DEVICE_CFG	4
 #define VIRTIO_PCI_CAP_PCI_CFG		5
 
+#define VIRTIO_DEV_STATUS_RESET			0
+#define VIRTIO_DEV_STATUS_ACKNOWLEDGE		1
+#define VIRTIO_DEV_STATUS_DRIVER		2
+#define VIRTIO_DEV_STATUS_DRIVER_OK		4
+#define VIRTIO_DEV_STATUS_FEATURES_OK		8
+#define VIRTIO_DEV_STATUS_DEVICE_NEEDS_RESET	64
+#define VIRTIO_DEV_STATUS_FAILED		128
+
 /** Common configuration structure layout according to VIRTIO v1. */
 typedef struct virtio_pci_common_cfg {
 	ioport32_t device_feature_select;
