@@ -31,7 +31,9 @@
 
 #include <cstdlib>
 #include <internal/list.hpp>
+#include <iterator>
 #include <memory>
+#include <tuple>
 #include <utility>
 
 namespace std::aux
@@ -47,7 +49,7 @@ namespace std::aux
      *       not my strong side :)
      */
 
-    template<class Key, Value>
+    template<class Key, class Value>
     struct key_value_key_extractor
     {
         Key& operator()(pair<Key, Value>& p) const noexcept
@@ -68,26 +70,6 @@ namespace std::aux
     struct key_value_allocator
     { /* DUMMY BODY */ };
 
-    template<>
-    struct allocator_traits<key_value_allocator>
-    {
-        template<class Alloc, class Key, class Value, class... Args>
-        static void construct(Alloc& alloc, pair<Key, Value>* ptr, Args&&... args)
-        {
-            alloc.construct(&ptr->second, forward<Args>(args)...);
-        }
-    };
-
-    struct hash_single_policy
-    {
-        // TODO: umap/uset operations
-    };
-
-    struct hash_multi_policy
-    {
-        // TODO: umultimap/umultiset operations
-    };
-
     template<class Value, class Size>
     struct hash_table_bucket
     {
@@ -97,8 +79,20 @@ namespace std::aux
          *       element after the hinted spot.
          */
 
-        Size count;
-        link_node<Value>* head;
+        list_node<Value>* head;
+
+        Size size() const noexcept
+        {
+            // TODO: implement
+        }
+
+        void append(list_node<Value>* node)
+        {
+            if (!head)
+                head = node;
+            else
+                head->append(node);
+        }
 
         ~hash_table_bucket()
         {
@@ -106,41 +100,467 @@ namespace std::aux
         }
     };
 
-    // TODO: iterator, const iterator, local iterator, const local iterator
-    //       and also possibly two versions of each for umap and uset
+    struct hash_single_policy
+    {
+        // TODO: umap/uset operations
+
+        template<class Table, class Key>
+        static typename Table::size_type count(const Table& table, const Key& key)
+        {
+            return table.find(key) == table.end() ? 0 : 1;
+        }
+
+        template<class Table, class Key>
+        static typename Table::hint_type find_insertion_spot(const Table& table, const Key& key)
+        {
+            auto idx = table.get_bucket_idx_(key);
+            return make_tuple(
+                &table.table_[idx],
+                table.table_[idx].head,
+                idx
+            );
+        }
+    };
+
+    struct hash_multi_policy
+    {
+        // TODO: umultimap/umultiset operations
+
+        template<class Table, class Key>
+        static typename Table::size_type count(const Table& table, const Key& key)
+        {
+            auto head = table.table_[get_bucket_idx_(key)].head;
+            if (!head)
+                return 0;
+
+            auto current = head;
+            typename Table::size_type res = 0;
+            do
+            {
+                if (table.key_eq_(key, table.key_extractor_(current->value)))
+                    ++res;
+
+                current = current->next;
+            }
+            while (current != head);
+
+            return res;
+        }
+
+        template<class Table, class Key>
+        static typename Table::hint_type find_insertion_spot(const Table& table, const Key& key)
+        {
+            // TODO: find the right bucket, in that, find the right
+            //       link (if key is already in it, place the new copy
+            //       next to it, otherwise just return head)
+        }
+    };
+
+    template<class Value, class ConstReference, class ConstPointer, class Size>
+    class hash_table_const_iterator
+    {
+        public:
+            using value_type      = Value;
+            using size_type       = Size;
+            using const_reference = ConstReference;
+            using const_pointer   = ConstPointer;
+            using difference_type = ptrdiff_t;
+
+            using iterator_category = forward_iterator_tag;
+
+            hash_table_const_iterator(hash_table_bucket<value_type, size_type>* table = nullptr,
+                                      size_type idx = size_type{}, size_type max_idx = size_type{},
+                                      list_node<value_type>* current = nullptr)
+                : table_{table}, idx_{idx}, max_idx_{max_idx}, current_{current}
+            { /* DUMMY BODY */ }
+
+            hash_table_const_iterator(const hash_table_const_iterator&) = default;
+            hash_table_const_iterator& operator=(const hash_table_const_iterator&) = default;
+
+            const_reference operator*() const
+            {
+                return current_->value;
+            }
+
+            const_pointer operator->() const
+            {
+                return &current_->value;
+            }
+
+            hash_table_const_iterator& operator++()
+            {
+                current_ = current_->next;
+                if (current_ == table_[idx_].head)
+                {
+                    if (idx_ < max_idx_)
+                    {
+                        while (!table_[++idx_].head)
+                        { /* DUMMY BODY */ }
+
+                        if (idx_ < max_idx_)
+                            current_ = table_[idx_].head;
+                        else
+                            current_ = nullptr;
+                    }
+                    else
+                        current_ = nullptr;
+                }
+
+                return *this;
+            }
+
+            hash_table_const_iterator operator++(int)
+            {
+                auto tmp_current = current_;
+                auto tmp_idx = idx_;
+
+                current_ = current_->next;
+                if (current_ == table_[idx_].head)
+                {
+                    if (idx_ < max_idx_)
+                    {
+                        while (!table_[++idx_].head)
+                        { /* DUMMY BODY */ }
+
+                        if (idx_ < max_idx_)
+                            current_ = table_[idx_].head;
+                        else
+                            current_ = nullptr;
+                    }
+                    else
+                        current_ = nullptr;
+                }
+
+                return hash_table_const_iterator{
+                    table_, tmp_idx, max_idx_, tmp_current
+                };
+            }
+
+            list_node<value_type>* node()
+            {
+                return current_;
+            }
+
+            const list_node<value_type>* node() const
+            {
+                return current_;
+            }
+
+        private:
+            hash_table_bucket<value_type, size_type>* table_;
+            size_type idx_;
+            size_type max_idx_;
+            list_node<value_type>* current_;
+    };
+
+    template<class Value, class ConstRef, class ConstPtr, class Size>
+    bool operator==(const hash_table_const_iterator<Value, ConstRef, ConstPtr, Size>& lhs,
+                    const hash_table_const_iterator<Value, ConstRef, ConstPtr, Size>& rhs)
+    {
+        return lhs.node() == rhs.node();
+    }
+
+    template<class Value, class ConstRef, class ConstPtr, class Size>
+    bool operator!=(const hash_table_const_iterator<Value, ConstRef, ConstPtr, Size>& lhs,
+                    const hash_table_const_iterator<Value, ConstRef, ConstPtr, Size>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    template<class Value, class Reference, class Pointer, class Size>
+    class hash_table_iterator
+    {
+        public:
+            using value_type      = Value;
+            using size_type       = Size;
+            using reference       = Reference;
+            using pointer         = Pointer;
+            using difference_type = ptrdiff_t;
+
+            using iterator_category = forward_iterator_tag;
+
+            hash_table_iterator(hash_table_bucket<value_type, size_type>* table = nullptr,
+                                size_type idx = size_type{}, size_type max_idx = size_type{},
+                                list_node<value_type>* current = nullptr)
+                : table_{table}, idx_{idx}, max_idx_{max_idx}, current_{current}
+            { /* DUMMY BODY */ }
+
+            hash_table_iterator(const hash_table_iterator&) = default;
+            hash_table_iterator& operator=(const hash_table_iterator&) = default;
+
+            reference operator*()
+            {
+                return current_->value;
+            }
+
+            pointer operator->()
+            {
+                return &current_->value;
+            }
+
+            hash_table_iterator& operator++()
+            {
+                current_ = current_->next;
+                if (current_ == table_[idx_].head)
+                {
+                    if (idx_ < max_idx_)
+                    {
+                        while (!table_[++idx_].head)
+                        { /* DUMMY BODY */ }
+
+                        if (idx_ < max_idx_)
+                            current_ = table_[idx_].head;
+                        else
+                            current_ = nullptr;
+                    }
+                    else
+                        current_ = nullptr;
+                }
+
+                return *this;
+            }
+
+            hash_table_iterator operator++(int)
+            {
+                auto tmp_current = current_;
+                auto tmp_idx = idx_;
+
+                current_ = current_->next;
+                if (current_ == table_[idx_].head)
+                {
+                    if (idx_ < max_idx_)
+                    {
+                        while (!table_[++idx_].head)
+                        { /* DUMMY BODY */ }
+
+                        if (idx_ < max_idx_)
+                            current_ = table_[idx_].head;
+                        else
+                            current_ = nullptr;
+                    }
+                    else
+                        current_ = nullptr;
+                }
+
+                return hash_table_iterator{
+                    table_, tmp_idx, max_idx_, tmp_current
+                };
+            }
+
+            list_node<value_type>* node()
+            {
+                return current_;
+            }
+
+            const list_node<value_type>* node() const
+            {
+                return current_;
+            }
+
+            template<class ConstRef, class ConstPtr>
+            operator hash_table_const_iterator<
+                Value, ConstRef, ConstPtr, Size
+            >() const
+            {
+                return hash_table_const_iterator{
+                    table_, idx_, max_idx_, current_
+                };
+            }
+
+        private:
+            hash_table_bucket<value_type, size_type>* table_;
+            size_type idx_;
+            size_type max_idx_;
+            list_node<value_type>* current_;
+    };
+
+    template<class Value, class Ref, class Ptr, class Size>
+    bool operator==(const hash_table_iterator<Value, Ref, Ptr, Size>& lhs,
+                    const hash_table_iterator<Value, Ref, Ptr, Size>& rhs)
+    {
+        return lhs.node() == rhs.node();
+    }
+
+    template<class Value, class Ref, class Ptr, class Size>
+    bool operator!=(const hash_table_iterator<Value, Ref, Ptr, Size>& lhs,
+                    const hash_table_iterator<Value, Ref, Ptr, Size>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    template<class Value, class ConstReference, class ConstPointer>
+    class hash_table_const_local_iterator
+    {
+        public:
+            using value_type      = Value;
+            using const_reference = ConstReference;
+            using const_pointer   = ConstPointer;
+            using difference_type = ptrdiff_t;
+
+            using iterator_category = forward_iterator_tag;
+
+            // TODO: requirement for forward iterator is default constructibility, fix others!
+            hash_table_const_local_iterator(list_node<value_type>* head = nullptr,
+                                            list_node<value_type>* current = nullptr)
+                : head_{head}, current_{current}
+            { /* DUMMY BODY */ }
+
+            hash_table_const_local_iterator(const hash_table_const_local_iterator&) = default;
+            hash_table_const_local_iterator& operator=(const hash_table_const_local_iterator&) = default;
+
+            const_reference operator*() const
+            {
+                return current_->value;
+            }
+
+            const_pointer operator->() const
+            {
+                return &current_->value;
+            }
+
+            hash_table_const_local_iterator& operator++()
+            {
+                current_ = current_->next;
+                if (current_ == head_)
+                    current_ = nullptr;
+
+                return *this;
+            }
+
+            hash_table_const_local_iterator operator++(int)
+            {
+                auto tmp = current_;
+                current_ = current_->next;
+                if (current_ == head_)
+                    current_ = nullptr;
+
+                return hash_table_const_local_iterator{head_, tmp};
+            }
+
+            list_node<value_type>* node()
+            {
+                return current_;
+            }
+
+            const list_node<value_type>* node() const
+            {
+                return current_;
+            }
+
+        private:
+            list_node<value_type>* head_;
+            list_node<value_type>* current_;
+    };
+
+    template<class Value, class ConstRef, class ConstPtr>
+    bool operator==(const hash_table_const_local_iterator<Value, ConstRef, ConstPtr>& lhs,
+                    const hash_table_const_local_iterator<Value, ConstRef, ConstPtr>& rhs)
+    {
+        return lhs.node() == rhs.node();
+    }
+
+    template<class Value, class ConstRef, class ConstPtr>
+    bool operator!=(const hash_table_const_local_iterator<Value, ConstRef, ConstPtr>& lhs,
+                    const hash_table_const_local_iterator<Value, ConstRef, ConstPtr>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    template<class Value, class Reference, class Pointer>
+    class hash_table_local_iterator
+    {
+        public:
+            using value_type      = Value;
+            using reference       = Reference;
+            using pointer         = Pointer;
+            using difference_type = ptrdiff_t;
+
+            using iterator_category = forward_iterator_tag;
+
+            hash_table_local_iterator(list_node<value_type>* head = nullptr,
+                                      list_node<value_type>* current = nullptr)
+                : head_{head}, current_{current}
+            { /* DUMMY BODY */ }
+
+            hash_table_local_iterator(const hash_table_local_iterator&) = default;
+            hash_table_local_iterator& operator=(const hash_table_local_iterator&) = default;
+
+            reference operator*()
+            {
+                return current_->value;
+            }
+
+            pointer operator->()
+            {
+                return &current_->value;
+            }
+
+            hash_table_local_iterator& operator++()
+            {
+                current_ = current_->next;
+                if (current_ == head_)
+                    current_ = nullptr;
+
+                return *this;
+            }
+
+            hash_table_local_iterator operator++(int)
+            {
+                auto tmp = current_;
+                current_ = current_->next;
+                if (current_ == head_)
+                    current_ = nullptr;
+
+                return hash_table_local_iterator{head_, tmp};
+            }
+
+            list_node<value_type>* node()
+            {
+                return current_;
+            }
+
+            const list_node<value_type>* node() const
+            {
+                return current_;
+            }
+
+            template<class ConstRef, class ConstPtr>
+            operator hash_table_const_local_iterator<
+                Value, ConstRef, ConstPtr
+            >() const
+            {
+                return hash_table_const_local_iterator{head_, current_};
+            }
+
+        private:
+            list_node<value_type>* head_;
+            list_node<value_type>* current_;
+    };
+
+    template<class Value, class Ref, class Ptr>
+    bool operator==(const hash_table_local_iterator<Value, Ref, Ptr>& lhs,
+                    const hash_table_local_iterator<Value, Ref, Ptr>& rhs)
+    {
+        return lhs.node() == rhs.node();
+    }
+
+    template<class Value, class Ref, class Ptr>
+    bool operator!=(const hash_table_local_iterator<Value, Ref, Ptr>& lhs,
+                    const hash_table_local_iterator<Value, Ref, Ptr>& rhs)
+    {
+        return !(lhs == rhs);
+    }
 
     template<
         class Value, class Key, class KeyExtractor,
         class Hasher, class KeyEq,
         class Alloc, class Size,
         class Iterator, class ConstIterator,
-        class LocalIterator, class LocalConstIterator,
+        class LocalIterator, class ConstLocalIterator,
         class Policy
     >
     class hash_table
     {
-        /**
-         * What we need:
-         *  - insert
-         *  - emplace
-         *  - erase
-         *  - iterator types
-         *  - set hint (+ clear it after each operation)
-         *  - copy + move
-         *  - empty/size/max_size
-         *  - try emplace
-         *  - insert or assign
-         *  - clear
-         *  - find, count
-         *  - equal range?
-         *  - rehash/reserve
-         *  - bucket stuff, local iterators (use list iterators?)
-         *  - load factor stuff
-         *  - multi versions for operations
-         *  - eq/neq operators (or just functions that are called in the upper
-         *    level operator?)
-         *  - hasher and key_eq getter
-         */
         public:
             using value_type     = Value;
             using key_type       = Key;
@@ -155,10 +575,16 @@ namespace std::aux
             using local_iterator       = LocalIterator;
             using const_local_iterator = ConstLocalIterator;
 
-            hash_table(size_type buckets, float max_load_factor)
-            {
-                // TODO: implement
-            }
+            using hint_type = tuple<
+                hash_table_bucket<value_type, size_type>*,
+                list_node<value_type>*, size_type
+            >;
+
+            hash_table(size_type buckets, float max_load_factor = 1.f)
+                : table_{new hash_table_bucket<value_type, size_type>[buckets]},
+                  bucket_count_{buckets}, size_{}, hasher_{}, key_eq_{},
+                  key_extractor_{}, max_load_factor_{max_load_factor}
+            { /* DUMMY BODY */ }
 
             bool empty() const noexcept
             {
@@ -178,47 +604,74 @@ namespace std::aux
 
             iterator begin() noexcept
             {
-                // TODO: implement
+                return iterator{
+                    table_, size_type{}, bucket_count_,
+                    table_[0].head
+                };
             }
 
             const_iterator begin() const noexcept
             {
-                // TODO: implement
+                return cbegin();
             }
 
             iterator end() noexcept
             {
-                // TODO: implement
+                return iterator{};
             }
 
             const_iterator end() const noexcept
             {
-                // TODO: implement
+                return cend();
             }
 
             const_iterator cbegin() const noexcept
             {
-                // TODO: implement
+                return const_iterator{
+                    table_, size_type{}, bucket_count_,
+                    table_[0].head
+                };
             }
 
             const_iterator cend() const noexcept
             {
-                // TODO: implement
+                return const_iterator{};
             }
 
             template<class Allocator, class... Args>
-            pair<iterator, bool> emplace(Allocator& alloc, Args&&... args)
+            iterator emplace(Allocator& alloc, Args&&... args)
             {
                 // TODO: use allocator traits of allocator_type but pass alloc!
                 // TODO: also, try_emplace should be one level above (we don't know
                 //       keys)
             }
 
-            void insert(iterator it, value_type&& val)
+            void insert(const hint_type& where, const value_type& val)
             {
-                // TODO: implement, make find_for_insert that will be used with this
-                //       to find it to avoid unnecessary pair creations in umaps
-                // TODO: also, insert_or_assign should be done one level above
+                if (!hint_ok_(where))
+                    return;
+
+                auto node = new list_node<value_type>{val};
+                if (get<1>(where) == nullptr) // Append here will create a new head.
+                    get<0>(where)->append(node);
+                else // Prepending before an exact position is common in the standard.
+                    get<1>(where)->prepend(node);
+
+                ++size_;
+            }
+
+            void insert(const hint_type& where, value_type&& val)
+            {
+                if (!hint_ok_(where))
+                    return;
+
+                auto node = new list_node<value_type>{forward<value_type>(val)};
+                if (get<1>(where) == nullptr)
+                    get<0>(where)->append(node);
+                else
+                    get<1>(where)->prepend(node);
+
+                ++size_;
             }
 
             size_type erase(const key_type& key)
@@ -233,7 +686,10 @@ namespace std::aux
 
             void clear() noexcept
             {
-                // TODO: implement
+                delete[] table_;
+
+                size_ = size_type{};
+                table_ = new hash_table_bucket<value_type, size_type>[bucket_count_];
             }
 
             template<class Allocator>
@@ -242,7 +698,12 @@ namespace std::aux
                          noexcept(swap(declval<Hasher&>(), declval<Hasher&>())) &&
                          noexcept(swap(declval<KeyEq&>(), declval<KeyEq&>())))
             {
-                // TODO: implement
+                std::swap(table_, other.table_);
+                std::swap(bucket_count_, other.bucket_count_);
+                std::swap(size_, other.size_);
+                std::swap(hasher_, other.hasher_);
+                std::swap(key_eq_, other.key_eq_);
+                std::swap(max_load_factor_, other.max_load_factor_);
             }
 
             hasher hash_function() const
@@ -267,7 +728,7 @@ namespace std::aux
 
             size_type count(const key_type& key) const
             {
-                // TODO: implement
+                return Policy::count(*this, key);
             }
 
             pair<iterator, iterator> equal_range(const key_type& key)
@@ -293,37 +754,42 @@ namespace std::aux
 
             size_type bucket_size(size_type n) const
             {
-                // TODO: implement
+                return table_[n].size();
             }
 
             size_type bucket(const key_type& key) const
             {
-                // TODO: implement
+                return get_bucket_idx_(key);
             }
 
             local_iterator begin(size_type n)
             {
-                // TODO: implement
+                return local_iterator{table_[n].head, table_[n].head};
             }
 
             const_local_iterator begin(size_type n) const
             {
-                // TODO: implement
+                return cbegin(n);
             }
 
-            local_iterator end(size_type n) const
+            local_iterator end(size_type n)
             {
-                // TODO: implement
+                return local_iterator{};
+            }
+
+            const_local_iterator end(size_type n) const
+            {
+                return cend(n);
             }
 
             const_local_iterator cbegin(size_type n) const
             {
-                // TODO: implement
+                return const_local_iterator{table_[n].head, table_[n].head};
             }
 
             const_local_iterator cend(size_type n) const
             {
-                // TODO: implement
+                return const_local_iterator{};
             }
 
             float load_factor() const noexcept
@@ -347,6 +813,9 @@ namespace std::aux
             void rehash(size_type n)
             {
                 // TODO: implement
+                // TODO: exception thrown in rehash means the rehash
+                //       has no effect, so we create a new table, insert in it
+                //       and then swap
             }
 
             void reserve(size_type n)
@@ -357,6 +826,7 @@ namespace std::aux
             bool is_eq_to(hash_table& other)
             {
                 // TODO: implement
+                return false;
             }
 
             ~hash_table()
@@ -371,48 +841,54 @@ namespace std::aux
                 //       then set it to nullptr after each operation
             }
 
-        private:
+            hint_type find_insertion_spot(const key_type& key)
+            {
+                return Policy::find_insertion_spot(*this, key);
+            }
+
+            hint_type find_insertion_spot(key_type&& key)
+            {
+                return Policy::find_insertion_spot(*this, key);
+            }
+
+        /* private: */
             hash_table_bucket<value_type, size_type>* table_;
             size_type bucket_count_;
             size_type size_;
             hasher hasher_;
             key_equal key_eq_;
+            key_extract key_extractor_;
             float max_load_factor_;
+
+            size_type get_bucket_idx_(const key_type& key) const
+            {
+                return hasher_(key) % bucket_count_;
+            }
+
+            bool hint_ok_(const hint_type& hint)
+            {
+                // TODO: pass this to the policy, because the multi policy
+                //       will need to check if a similar key is close,
+                //       that is something like:
+                //          return get<1>(hint)->prev->key == key || !bucket.contains(key)
+                return get<0>(hint) != nullptr && get<2>(hint) < bucket_count_;
+            }
+
+            // Praise C++11 for this.
+            friend Policy;
     };
+}
 
-    template<
-        class Key, class Value,
-        class Hasher, class KeyEq,
-        class Alloc, class Size
-    >
-    class hash_table_with_value
+namespace std
+{
+    template<>
+    struct allocator_traits<aux::key_value_allocator>
     {
-        public:
-            using extractor_type  = key_value_key_extractor<Key, Value>;
-            using table_type      = hash_table<
-                pair<Key, Value>, extractor_type,
-                KeyEq, key_value_allocator, Size
-            >;
-
-        private:
-            table_type table_;
-            extractor_type extractor_;
-    };
-
-    template<
-        class Key,
-        class Hasher, class KeyEq,
-        class Alloc, class Size
-    >
-    class hash_table_without_value
-    {
-            using extractor_type  = key_no_value_key_extractor<Key>;
-            using table_type      = hash_table<
-                Key, extractor_type, KeyEq, Alloc, Size
-            >;
-
-        private:
-            table_type table_;
+        template<class Alloc, class Key, class Value, class... Args>
+        static void construct(Alloc& alloc, pair<Key, Value>* ptr, Args&&... args)
+        {
+            alloc.construct(&ptr->second, forward<Args>(args)...);
+        }
     };
 }
 
