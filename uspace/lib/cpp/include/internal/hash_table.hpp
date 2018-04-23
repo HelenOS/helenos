@@ -80,7 +80,17 @@ namespace std::aux
 
         Size size() const noexcept
         {
-            // TODO: implement
+            auto current = head;
+            Size res{};
+
+            do
+            {
+                ++res;
+                current = current->next;
+            }
+            while (current != head);
+
+            return res;
         }
 
         void append(list_node<Value>* node)
@@ -91,9 +101,23 @@ namespace std::aux
                 head->append(node);
         }
 
+        void clear()
+        {
+            auto current = head;
+            do
+            {
+                auto tmp = current;
+                current = current->next;
+                delete tmp;
+            }
+            while (current != head);
+
+            head = nullptr;
+        }
+
         ~hash_table_bucket()
         {
-            // TODO: deallocate the entire list
+            clear();
         }
     };
 
@@ -757,10 +781,9 @@ namespace std::aux
 
             void clear() noexcept
             {
-                delete[] table_;
-
+                for (size_type i = 0; i < bucket_count_; ++i)
+                    table_[i].clear();
                 size_ = size_type{};
-                table_ = new hash_table_bucket<value_type, size_type>[bucket_count_];
             }
 
             template<class Allocator>
