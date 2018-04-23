@@ -29,8 +29,8 @@
 /** @file VIRTIO PCI definitions
  */
 
-#ifndef __VIRTIO_PCI_H__
-#define __VIRTIO_PCI_H__
+#ifndef _VIRTIO_PCI_H_
+#define _VIRTIO_PCI_H_
 
 #include <ddf/driver.h>
 #include <pci_dev_iface.h>
