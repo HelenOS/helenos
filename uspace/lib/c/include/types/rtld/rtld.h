@@ -53,6 +53,7 @@ typedef struct rtld {
 
 	/** Size of initial TLS tdata + tbss */
 	size_t tls_size;
+	size_t tls_align;
 
 	/** List of all loaded modules including rtld and the program */
 	list_t modules;

@@ -61,7 +61,8 @@ typedef struct module {
 	/** TLS alignment */
 	size_t tls_align;
 
-	size_t ioffs;
+	/** Offset of this module's TLS from the thread pointer. */
+	ptrdiff_t tpoff;
 
 	/** Containing rtld */
 	struct rtld *rtld;

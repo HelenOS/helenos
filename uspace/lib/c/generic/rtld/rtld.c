@@ -151,14 +151,12 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
  */
 tcb_t *rtld_tls_make(rtld_t *rtld)
 {
-	void *data;
 	tcb_t *tcb;
-	size_t offset;
 	void **dtv;
 	size_t nmods;
 	size_t i;
 
-	tcb = tls_alloc_arch(&data, rtld->tls_size);
+	tcb = tls_alloc_arch(rtld->tls_size, rtld->tls_align);
 	if (tcb == NULL)
 		return NULL;
 
@@ -181,37 +179,17 @@ tcb_t *rtld_tls_make(rtld_t *rtld)
 	 * modules. Zero out thread-local uninitialized data.
 	 */
 
-#ifdef CONFIG_TLS_VARIANT_1
-	/*
-	 * Ascending addresses
-	 */
-	offset = 0;
 	i = 1;
 	list_foreach(rtld->imodules, imodules_link, module_t, m) {
-		assert(i == m->id);
-		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
-		dtv[i++] = data + offset;
-		memcpy(data + offset, m->tdata, m->tdata_size);
-		offset += m->tdata_size;
-		memset(data + offset, 0, m->tbss_size);
-		offset += m->tbss_size;
+		assert(i++ == m->id);
+
+		dtv[m->id] = (void *) tcb + m->tpoff;
+
+		assert(((uintptr_t) dtv[m->id]) % m->tls_align == 0);
+
+		memcpy(dtv[m->id], m->tdata, m->tdata_size);
+		memset(dtv[m->id] + m->tdata_size, 0, m->tbss_size);
 	}
-#else /* CONFIG_TLS_VARIANT_2 */
-	/*
-	 * Descending addresses
-	 */
-	offset = 0;
-	i = 1;
-	list_foreach(rtld->imodules, imodules_link, module_t, m) {
-		assert(i == m->id);
-		assert(offset + m->tdata_size + m->tbss_size <= rtld->tls_size);
-		offset += m->tbss_size;
-		memset(data + rtld->tls_size - offset, 0, m->tbss_size);
-		offset += m->tdata_size;
-		memcpy(data + rtld->tls_size - offset, m->tdata, m->tdata_size);
-		dtv[i++] = data + rtld->tls_size - offset;
-	}
-#endif
 
 	tcb->dtv = dtv;
 	return tcb;
@@ -258,7 +236,7 @@ void *rtld_tls_get_addr(rtld_t *rtld, tcb_t *tcb, unsigned long mod_id,
 		/* Should not be initial module, those have TLS pre-allocated */
 		assert(!link_used(&m->imodules_link));
 
-		tls_block = malloc(m->tdata_size + m->tbss_size);
+		tls_block = memalign(m->tls_align, m->tdata_size + m->tbss_size);
 		/* XXX This can fail if OOM */
 		assert(tls_block != NULL);
 
