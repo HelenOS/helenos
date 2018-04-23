@@ -67,9 +67,6 @@ namespace std::aux
         }
     };
 
-    struct key_value_allocator
-    { /* DUMMY BODY */ };
-
     template<class Value, class Size>
     struct hash_table_bucket
     {
@@ -694,9 +691,7 @@ namespace std::aux
             template<class Allocator, class... Args>
             iterator emplace(Allocator& alloc, Args&&... args)
             {
-                // TODO: use allocator traits of allocator_type but pass alloc!
-                // TODO: also, try_emplace should be one level above (we don't know
-                //       keys)
+                // TODO: implement
             }
 
             void insert(const hint_type& where, const value_type& val)
@@ -952,19 +947,6 @@ namespace std::aux
 
             // Praise C++11 for this.
             friend Policy;
-    };
-}
-
-namespace std
-{
-    template<>
-    struct allocator_traits<aux::key_value_allocator>
-    {
-        template<class Alloc, class Key, class Value, class... Args>
-        static void construct(Alloc& alloc, pair<Key, Value>* ptr, Args&&... args)
-        {
-            alloc.construct(&ptr->second, forward<Args>(args)...);
-        }
     };
 }
 
