@@ -78,6 +78,10 @@ namespace std::aux
 
         list_node<Value>* head;
 
+        hash_table_bucket()
+            : head{}
+        { /* DUMMY BODY */ }
+
         Size size() const noexcept
         {
             auto current = head;
@@ -103,6 +107,9 @@ namespace std::aux
 
         void clear()
         {
+            if (!head)
+                return;
+
             auto current = head;
             do
             {
@@ -175,6 +182,26 @@ namespace std::aux
 
             return 0;
         }
+
+        template<class Table, class Key>
+        static pair<
+            typename Table::iterator,
+            typename Table::iterator
+        > equal_range(Table& table, const Key& key)
+        {
+            auto it = table.find(key);
+            return make_pair(it, it);
+        }
+
+        template<class Table, class Key>
+        static pair<
+            typename Table::const_iterator,
+            typename Table::const_iterator
+        > equal_range_const(Table& table, const Key& key)
+        { // Note: We cannot overload by return type, so we use a different name.
+            auto it = table.find(key);
+            return make_pair(it, it);
+        }
     };
 
     struct hash_multi_policy
@@ -214,6 +241,24 @@ namespace std::aux
         static typename Table::size_type erase(Table& table, const Key& key)
         {
             // TODO: erase all items with given key
+        }
+
+        template<class Table, class Key>
+        static pair<
+            typename Table::iterator,
+            typename Table::iterator
+        > equal_range(Table& table, const Key& key)
+        {
+            // TODO: implement
+        }
+
+        template<class Table, class Key>
+        static pair<
+            typename Table::const_iterator,
+            typename Table::const_iterator
+        > equal_range_const(Table& table, const Key& key)
+        {
+            // TODO: implement
         }
     };
 
@@ -655,7 +700,7 @@ namespace std::aux
             >;
 
             hash_table(size_type buckets, float max_load_factor = 1.f)
-                : table_{new hash_table_bucket<value_type, size_type>[buckets]},
+                : table_{new hash_table_bucket<value_type, size_type>[buckets]()},
                   bucket_count_{buckets}, size_{}, hasher_{}, key_eq_{},
                   key_extractor_{}, max_load_factor_{max_load_factor}
             { /* DUMMY BODY */ }
@@ -713,9 +758,19 @@ namespace std::aux
             }
 
             template<class Allocator, class... Args>
-            iterator emplace(Allocator& alloc, Args&&... args)
+            void emplace(const hint_type& where, Allocator& alloc, Args&&... args)
             {
-                // TODO: implement
+                if (!hint_ok_(where))
+                    return;
+
+                auto node = new list_node<value_type>{forward<Args&&>(args)...};
+                if (get<1>(where) == nullptr) // Append here will create a new head.
+                    get<0>(where)->append(node);
+                else // Prepending before an exact position is common in the standard.
+                    get<1>(where)->prepend(node);
+
+                ++size_;
+                // TODO: if we go over max load factor, rehash
             }
 
             void insert(const hint_type& where, const value_type& val)
@@ -724,9 +779,9 @@ namespace std::aux
                     return;
 
                 auto node = new list_node<value_type>{val};
-                if (get<1>(where) == nullptr) // Append here will create a new head.
+                if (get<1>(where) == nullptr)
                     get<0>(where)->append(node);
-                else // Prepending before an exact position is common in the standard.
+                else
                     get<1>(where)->prepend(node);
 
                 ++size_;
@@ -786,9 +841,8 @@ namespace std::aux
                 size_ = size_type{};
             }
 
-            template<class Allocator>
             void swap(hash_table& other)
-                noexcept(allocator_traits<Allocator>::is_always_equal::value &&
+                noexcept(allocator_traits<allocator_type>::is_always_equal::value &&
                          noexcept(swap(declval<Hasher&>(), declval<Hasher&>())) &&
                          noexcept(swap(declval<KeyEq&>(), declval<KeyEq&>())))
             {
@@ -812,12 +866,42 @@ namespace std::aux
 
             iterator find(const key_type& key)
             {
-                // TODO: implement
+                auto idx = get_bucket_idx_(key);
+                auto head = table_[idx].head;
+
+                if (!head)
+                    return end();
+
+                auto current = head;
+                do
+                {
+                    if (key_eq_(key, key_extractor_(current->value)))
+                        return iterator{table_, idx, size_, current};
+                    current = current->next;
+                }
+                while (current != head);
+
+                return end();
             }
 
             const_iterator find(const key_type& key) const
             {
-                // TODO: implement
+                auto idx = get_bucket_idx_(key);
+                auto head = table_[idx].head;
+
+                if (!head)
+                    return end();
+
+                auto current = head;
+                do
+                {
+                    if (key_eq_(key, key_extractor_(current->value)))
+                        return iterator{table_, idx, size_, current};
+                    current = current->next;
+                }
+                while (current != head);
+
+                return end();
             }
 
             size_type count(const key_type& key) const
@@ -827,12 +911,12 @@ namespace std::aux
 
             pair<iterator, iterator> equal_range(const key_type& key)
             {
-                // TODO: implement
+                return Policy::equal_range(*this, key);
             }
 
             pair<const_iterator, const_iterator> equal_range(const key_type& key) const
             {
-                // TODO: implement
+                return Policy::equal_range_const(*this, key);
             }
 
             size_type bucket_count() const noexcept
@@ -902,19 +986,66 @@ namespace std::aux
                  * Note: According to the standard, this function
                  *       can have no effect.
                  */
+                // TODO: change max factor and rehash if needed
             }
 
-            void rehash(size_type n)
+            void rehash(size_type count)
             {
-                // TODO: implement
-                // TODO: exception thrown in rehash means the rehash
-                //       has no effect, so we create a new table, insert in it
-                //       and then swap
+                if (count < size_ / max_load_factor_)
+                    count = size_ / max_load_factor_;
+
+                // Note: This is the only place where an exception can be
+                //       thrown (no mem) in this function, so wrap it
+                //       in try-catch-rethrow.
+                hash_table new_table{count, max_load_factor_};
+
+                for (std::size_t i = 0; i < bucket_count_; ++i)
+                {
+                    auto head = table_[i].head;
+                    if (!head)
+                        continue;
+
+                    auto current = head;
+
+                    do
+                    {
+                        auto next = current->next;
+
+                        current->next = current;
+                        current->prev = current;
+
+                        auto where = Policy::find_insertion_spot(
+                            new_table, key_extractor_(current->value)
+                        );
+
+                        /**
+                         * Note: We're rehashing, so we know each
+                         *       key can be inserted.
+                         */
+                        auto new_bucket = get<0>(where);
+                        auto new_successor = get<1>(where);
+
+                        if (new_successor)
+                            new_successor->append(current);
+                        else
+                            new_bucket->append(current);
+
+                        current = next;
+                    } while (current != head);
+
+                    table_[i].head = nullptr;
+                }
+
+                new_table.size_ = size_;
+                swap(new_table);
+
+                delete[] new_table.table_;
+                new_table.table_ = nullptr;
             }
 
-            void reserve(size_type n)
+            void reserve(size_type count)
             {
-                // TODO: implement
+                rehash(count / max_load_factor_ + 1);
             }
 
             bool is_eq_to(hash_table& other)
@@ -926,7 +1057,8 @@ namespace std::aux
             ~hash_table()
             {
                 // Lists are deleted in ~hash_table_bucket.
-                delete[] table_;
+                if (table_)
+                    delete[] table_;
             }
 
             void set_hint(const_iterator hint)
@@ -965,6 +1097,8 @@ namespace std::aux
                 //       will need to check if a similar key is close,
                 //       that is something like:
                 //          return get<1>(hint)->prev->key == key || !bucket.contains(key)
+                // TODO: also, make it public and make hint usage one level above?
+                //       (since we already have insert with decisive hint)
                 return get<0>(hint) != nullptr && get<2>(hint) < bucket_count_;
             }
 
