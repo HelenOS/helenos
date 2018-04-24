@@ -33,6 +33,7 @@
 #include <internal/hash_table.hpp>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 namespace std
@@ -239,51 +240,160 @@ namespace std
             template<class... Args>
             pair<iterator, bool> emplace(Args&&... args)
             {
-                // TODO: implement
+                // TODO: currently there is code repetition in
+                //       3 places, try to find a way to reduce it
+                auto val = value_type{forward<Args>(args)...};
+                auto key = table_.get_key(val);
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (bucket->head)
+                {
+                    auto head = bucket->head;
+                    auto current = bucket->head;
+
+                    do
+                    {
+                        if (table_.keys_equal(key, current->value))
+                        {
+                            return make_pair(iterator{
+                                table_.table(), idx,
+                                table_.bucket_count(),
+                                current
+                            }, false);
+                        }
+                        else
+                            current = current->next;
+                    }
+                    while (current != head);
+                }
+
+                auto node = new node_type{move(val)};
+                bucket->append(node);
+
+                return make_pair(iterator{
+                    table_.table(), idx,
+                    table_.bucket_count(),
+                    node
+                }, true);
             }
 
             template<class... Args>
-            iterator emplace_hint(const_iterator position, Args&&... args)
+            iterator emplace_hint(const_iterator, Args&&... args)
             {
-                // TODO: implement
+                return emplace(forward<Args>(args)...).first;
             }
 
             pair<iterator, bool> insert(const value_type& val)
             {
-                // TODO: implement
+                auto key = table_.get_key(val);
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (bucket->head)
+                {
+                    auto head = bucket->head;
+                    auto current = bucket->head;
+
+                    do
+                    {
+                        if (table_.keys_equal(key, current->value))
+                        {
+                            return make_pair(iterator{
+                                table_.table(), idx,
+                                table_.bucket_count(),
+                                current
+                            }, false);
+                        }
+                        else
+                            current = current->next;
+                    }
+                    while (current != head);
+                }
+
+                auto node = new node_type{val};
+                bucket->append(node);
+
+                return make_pair(iterator{
+                    table_.table(), idx,
+                    table_.bucket_count(),
+                    node
+                }, true);
             }
 
             pair<iterator, bool> insert(value_type&& val)
             {
-                // TODO: implement
+                auto key = table_.get_key(val);
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (bucket->head)
+                {
+                    auto head = bucket->head;
+                    auto current = bucket->head;
+
+                    do
+                    {
+                        if (table_.keys_equal(key, current->value))
+                        {
+                            return make_pair(iterator{
+                                table_.table(), idx,
+                                table_.bucket_count(),
+                                current
+                            }, false);
+                        }
+                        else
+                            current = current->next;
+                    }
+                    while (current != head);
+                }
+
+                auto node = new node_type{forward<value_type>(val)};
+                bucket->append(node);
+
+                return make_pair(iterator{
+                    table_.table(), idx,
+                    table_.bucket_count(),
+                    node
+                }, true);
             }
 
-            template<class T>
+            template<
+                class T,
+                class = enable_if_t<is_constructible_v<value_type, T&&>, void>
+            >
             pair<iterator, bool> insert(T&& val)
             {
-                // TODO: implement
+                return emplace(forward<T>(val));
             }
 
-            iterator insert(const_iterator hint, const value_type& val)
+            iterator insert(const_iterator, const value_type& val)
             {
-                // TODO: implement
+                return insert(val).first;
             }
 
-            iterator insert(const_iterator hint, value_type&& val)
+            iterator insert(const_iterator, value_type&& val)
             {
-                // TODO: implement
+                return insert(forward<value_type>(val)).first;
             }
 
-            template<class T>
+            template<
+                class T,
+                class = enable_if_t<is_constructible_v<value_type, T&&>, void>
+            >
             iterator insert(const_iterator hint, T&& val)
             {
-                // TODO: implement
+                return emplace_hint(hint, forward<T>(val));
             }
 
             template<class InputIterator>
             void insert(InputIterator first, InputIterator last)
             {
-                // TODO: implement
+                while (first != last)
+                    insert(*first++);
             }
 
             void insert(initializer_list<value_type> init)
@@ -356,7 +466,7 @@ namespace std
 
                 return iterator{
                     table_.table(), first.idx(),
-                    table_.size(), table_.head(first.idx())
+                    table_.bucket_count(), table_.head(first.idx())
                 };
             }
 
