@@ -56,12 +56,22 @@ namespace std::aux
         {
             return p.first;
         }
+
+        const Key& operator()(pair<const Key, Value>& p) const noexcept
+        {
+            return p.first;
+        }
     };
 
     template<class Key>
     struct key_no_value_key_extractor
     {
         Key& operator()(Key& k) const noexcept
+        {
+            return k;
+        }
+
+        const Key& operator()(const Key& k) const noexcept
         {
             return k;
         }
@@ -1075,6 +1085,11 @@ namespace std::aux
             hint_type find_insertion_spot(key_type&& key)
             {
                 return Policy::find_insertion_spot(*this, key);
+            }
+
+            const key_type& get_key(const value_type& val)
+            {
+                return key_extractor_(val);
             }
 
         /* private: */
