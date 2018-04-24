@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,10 +102,13 @@ namespace std
         y = move(tmp);
     }
 
+    template<class F1, class F2>
+    F2 swap_ranges(F1, F1, F2);
+
     template<class T, size_t N>
     void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(*a, *b)))
     {
-        // TODO: Use swap_ranges(a, a + N, b); when implemented.
+        swap_ranges(a, a + N, b);
     }
 
     /**
