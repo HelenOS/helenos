@@ -278,7 +278,107 @@ namespace std
      * 20.3.4, tuple-like access to pair:
      */
 
-    // TODO: implement
+    template<class>
+    struct tuple_size;
+
+    template<class T1, class T2>
+    struct tuple_size<pair<T1, T2>>
+        : integral_constant<size_t, 2>
+    { /* DUMMY BODY */ };
+
+    template<size_t, class>
+    struct tuple_element;
+
+    template<class T1, class T2>
+    struct tuple_element<0, pair<T1, T2>>
+        : aux::type_is<T1>
+    { /* DUMMY BODY */ };
+
+    template<class T1, class T2>
+    struct tuple_element<1, pair<T1, T2>>
+        : aux::type_is<T2>
+    { /* DUMMY BODY */ };
+
+    template<size_t I, class T>
+    using tuple_element_t = typename tuple_element<I, T>::type;
+
+    template<size_t I, class T1, class T2>
+    constexpr tuple_element_t<I, pair<T1, T2>>&
+    get(pair<T1, T2>& p) noexcept
+    {
+        if constexpr (I == 0)
+            return p.first;
+        else
+            return p.second;
+    }
+
+    template<size_t I, class T1, class T2>
+    constexpr const tuple_element_t<I, pair<T1, T2>>&
+    get(const pair<T1, T2>& p) noexcept
+    {
+        if constexpr (I == 0)
+            return p.first;
+        else
+            return p.second;
+    }
+
+    template<size_t I, class T1, class T2>
+    constexpr tuple_element_t<I, pair<T1, T2>>&&
+    get(pair<T1, T2>&& p) noexcept
+    {
+        if constexpr (I == 0)
+            return forward<T1>(p.first);
+        else
+            return forward<T2>(p.second);
+    }
+
+    template<class T, class U>
+    constexpr T& get(pair<T, U>& p) noexcept
+    {
+        static_assert(!is_same_v<T, U>, "get(pair) requires distinct types");
+
+        return get<0>(p);
+    }
+
+    template<class T, class U>
+    constexpr const T& get(const pair<T, U>& p) noexcept
+    {
+        static_assert(!is_same_v<T, U>, "get(pair) requires distinct types");
+
+        return get<0>(p);
+    }
+
+    template<class T, class U>
+    constexpr T&& get(pair<T, U>&& p) noexcept
+    {
+        static_assert(!is_same_v<T, U>, "get(pair) requires distinct types");
+
+        return get<0>(move(p));
+    }
+
+    template<class T, class U>
+    constexpr T& get(pair<U, T>& p) noexcept
+    {
+        static_assert(!is_same_v<T, U>, "get(pair) requires distinct types");
+
+        return get<1>(p);
+    }
+
+    template<class T, class U>
+    constexpr const T& get(const pair<U, T>& p) noexcept
+    {
+        static_assert(!is_same_v<T, U>, "get(pair) requires distinct types");
+
+        return get<1>(p);
+    }
+
+    template<class T, class U>
+    constexpr T&& get(pair<U, T>&& p) noexcept
+    {
+        static_assert(!is_same_v<T, U>, "get(pair) requires distinct types");
+
+        return get<1>(move(p));
+    }
 
     /**
      * 20.5.2, class template integer_sequence:
