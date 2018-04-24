@@ -644,8 +644,27 @@ namespace std
     template<class T>
     inline constexpr bool is_unsigned_v = is_unsigned<T>::value;
 
+    namespace aux
+    {
+        template<class, class T, class... Args>
+        struct is_constructible: false_type
+        { /* DUMMY BODY */ };
+
+        template<class T, class... Args>
+        struct is_constructible<
+            void_t<decltype(T(declval<Args>()...))>,
+            T, Args...
+        >
+            : true_type
+        { /* DUMMY BODY */ };
+    }
+
     template<class T, class... Args>
-    struct is_constructible;
+    struct is_constructible: aux::is_constructible<void_t<>, T, Args...>
+    { /* DUMMY BODY */ };
+
+    template<class T, class... Args>
+    inline constexpr bool is_constructible_v = is_constructible<T, Args...>::value;
 
     template<class T>
     struct is_default_constructible;
