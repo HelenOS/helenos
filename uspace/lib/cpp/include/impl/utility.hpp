@@ -213,7 +213,55 @@ namespace std
      * 20.3.3, specialized algorithms:
      */
 
-    // TODO: implement
+    template<class T1, class T2>
+    constexpr bool operator==(const pair<T1, T2>& lhs,
+                              const pair<T1, T2>& rhs)
+    {
+        return lhs.first == rhs.first && lhs.second == rhs.second;
+    }
+
+    template<class T1, class T2>
+    constexpr bool operator<(const pair<T1, T2>& lhs,
+                             const pair<T1, T2>& rhs)
+    {
+        return lhs.first < rhs.first ||
+            (!(rhs.first < lhs.first) && lhs.second < rhs.second);
+    }
+
+    template<class T1, class T2>
+    constexpr bool operator!=(const pair<T1, T2>& lhs,
+                              const pair<T1, T2>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    template<class T1, class T2>
+    constexpr bool operator>(const pair<T1, T2>& lhs,
+                             const pair<T1, T2>& rhs)
+    {
+        return rhs < lhs;
+    }
+
+    template<class T1, class T2>
+    constexpr bool operator>=(const pair<T1, T2>& lhs,
+                              const pair<T1, T2>& rhs)
+    {
+        return !(lhs < rhs);
+    }
+
+    template<class T1, class T2>
+    constexpr bool operator<=(const pair<T1, T2>& lhs,
+                              const pair<T1, T2>& rhs)
+    {
+        return !(rhs < lhs);
+    }
+
+    template<class T1, class T2>
+    constexpr void swap(pair<T1, T2>& lhs, pair<T1, T2>& rhs)
+        noexcept(noexcept(lhs.swap(rhs)))
+    {
+        lhs.swap(rhs);
+    }
 
     template<class T1, class T2>
     constexpr auto make_pair(T1&& t1, T2&& t2)
