@@ -39,7 +39,7 @@ namespace std
     long stol(const string& str, size_t* idx, int base)
     {
         char* end;
-        long result = strtol(str.c_str(), &end, base);
+        long result = hel::strtol(str.c_str(), &end, base);
 
         if (end != str.c_str())
         {
@@ -55,7 +55,7 @@ namespace std
     unsigned long stoul(const string& str, size_t* idx, int base)
     {
         char* end;
-        unsigned long result = strtoul(str.c_str(), &end, base);
+        unsigned long result = hel::strtoul(str.c_str(), &end, base);
 
         if (end != str.c_str())
         {
@@ -101,7 +101,7 @@ namespace std
     string to_string(int val)
     {
         char* tmp;
-        asprintf(&tmp, "%d", val);
+        hel::asprintf(&tmp, "%d", val);
 
         std::string res{tmp};
         free(tmp);
@@ -112,7 +112,7 @@ namespace std
     string to_string(unsigned val)
     {
         char* tmp;
-        asprintf(&tmp, "%u", val);
+        hel::asprintf(&tmp, "%u", val);
 
         std::string res{tmp};
         free(tmp);
@@ -123,7 +123,7 @@ namespace std
     string to_string(long val)
     {
         char* tmp;
-        asprintf(&tmp, "%ld", val);
+        hel::asprintf(&tmp, "%ld", val);
 
         std::string res{tmp};
         free(tmp);
@@ -134,7 +134,7 @@ namespace std
     string to_string(unsigned long val)
     {
         char* tmp;
-        asprintf(&tmp, "%lu", val);
+        hel::asprintf(&tmp, "%lu", val);
 
         std::string res{tmp};
         free(tmp);
@@ -145,7 +145,7 @@ namespace std
     string to_string(long long val)
     {
         char* tmp;
-        asprintf(&tmp, "%lld", val);
+        hel::asprintf(&tmp, "%lld", val);
 
         std::string res{tmp};
         free(tmp);
@@ -156,7 +156,7 @@ namespace std
     string to_string(unsigned long long val)
     {
         char* tmp;
-        asprintf(&tmp, "%llu", val);
+        hel::asprintf(&tmp, "%llu", val);
 
         std::string res{tmp};
         free(tmp);
@@ -167,7 +167,7 @@ namespace std
     string to_string(float val)
     {
         char* tmp;
-        asprintf(&tmp, "%f", val);
+        hel::asprintf(&tmp, "%f", val);
 
         std::string res{tmp};
         free(tmp);
@@ -178,7 +178,7 @@ namespace std
     string to_string(double val)
     {
         char* tmp;
-        asprintf(&tmp, "%f", val);
+        hel::asprintf(&tmp, "%f", val);
 
         std::string res{tmp};
         free(tmp);
@@ -189,7 +189,7 @@ namespace std
     string to_string(long double val)
     {
         char* tmp;
-        asprintf(&tmp, "%Lf", val);
+        hel::asprintf(&tmp, "%Lf", val);
 
         std::string res{tmp};
         free(tmp);
@@ -300,12 +300,6 @@ namespace std
     }
 
     /**
-     * 21.6, hash support:
-     */
-
-    // TODO: implement
-
-    /**
      * 21.7, suffix for basic_string literals:
      */
 
@@ -318,6 +312,9 @@ namespace std
      */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wliteral-suffix"
+inline namespace literals {
+inline namespace string_literals
+{
     string operator "" s(const char* str, size_t len)
     {
         return string{str, len};
@@ -339,5 +336,6 @@ namespace std
         return wstring{str, len};
     }
     */
+}}
 #pragma GCC diagnostic pop
 }
