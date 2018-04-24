@@ -30,7 +30,7 @@
 #define LIBCPP_UNORDERED_SET
 
 #include <initializer_list>
-#include <internal/hash_map.hpp>
+#include <internal/hash_table.hpp>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -54,7 +54,7 @@ namespace std
      */
 
     template<
-        class Key
+        class Key,
         class Hash = hash<Key>,
         class Pred = equal_to<Key>,
         class Alloc = allocator<Key>
