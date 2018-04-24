@@ -82,7 +82,7 @@ namespace std
 
     template<class Char, class Traits, class Allocator>
     basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os,
-                                            basic_string<Char, Traits, Allocator>& str)
+                                            const basic_string<Char, Traits, Allocator>& str)
     {
         // TODO: determine padding as described in 27.7.3.6.1
         using sentry = typename basic_ostream<Char, Traits>::sentry;
