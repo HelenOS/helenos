@@ -52,12 +52,7 @@ namespace std::aux
     template<class Key, class Value>
     struct key_value_key_extractor
     {
-        Key& operator()(pair<Key, Value>& p) const noexcept
-        {
-            return p.first;
-        }
-
-        const Key& operator()(pair<const Key, Value>& p) const noexcept
+        const Key& operator()(const pair<const Key, Value>& p) const noexcept
         {
             return p.first;
         }
@@ -200,7 +195,7 @@ namespace std::aux
         > equal_range(Table& table, const Key& key)
         {
             auto it = table.find(key);
-            return make_pair(it, it);
+            return make_pair(it, ++it);
         }
 
         template<class Table, class Key>
@@ -210,7 +205,7 @@ namespace std::aux
         > equal_range_const(Table& table, const Key& key)
         { // Note: We cannot overload by return type, so we use a different name.
             auto it = table.find(key);
-            return make_pair(it, it);
+            return make_pair(it, ++it);
         }
     };
 
@@ -704,6 +699,8 @@ namespace std::aux
             using local_iterator       = LocalIterator;
             using const_local_iterator = ConstLocalIterator;
 
+            using node_type = list_node<value_type>;
+
             using hint_type = tuple<
                 hash_table_bucket<value_type, size_type>*,
                 list_node<value_type>*, size_type
@@ -1101,17 +1098,25 @@ namespace std::aux
                 return key_extractor_(val);
             }
 
-            hasher hash_function() const
+            bool keys_equal(const key_type& key, const value_type& val)
             {
-                return hasher_;
+                return key_eq_(key, key_extractor_(val));
             }
 
-            key_equal key_eq() const
+            hash_table_bucket<value_type, size_type>* table()
             {
-                return key_eq_;
+                return table_;
             }
 
-        /* private: */
+            hash_table_bucket<value_type, size_type>* head(size_type idx)
+            {
+                if (idx < bucket_count_)
+                    return &table_[idx];
+                else
+                    return nullptr;
+            }
+
+        private:
             hash_table_bucket<value_type, size_type>* table_;
             size_type bucket_count_;
             size_type size_;
