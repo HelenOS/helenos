@@ -30,7 +30,7 @@
 #define LIBCPP_UNORDERED_MAP
 
 #include <initializer_list>
-#include <internal/hash_map.hpp>
+#include <internal/hash_table.hpp>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -42,7 +42,7 @@ namespace std
      */
 
     template<
-        class Key, class Value
+        class Key, class Value,
         class Hash = hash<Key>,
         class Pred = equal_to<Key>,
         class Alloc = allocator<pair<const Key, Value>>
@@ -80,7 +80,7 @@ namespace std
                 : unordered_map{default_bucket_count_}
             { /* DUMMY BODY */ }
 
-            explicit unordered_map(size_type bucket_count = default_bucket_count_,
+            explicit unordered_map(size_type bucket_count,
                                    const hasher& hf = hasher{},
                                    const key_equal& eql = key_equal{},
                                    const allocator_type& alloc = allocator_type{})
@@ -95,7 +95,7 @@ namespace std
                           const allocator_type& alloc = allocator_type{})
                 : unordered_map{bucket_count, hf, eql, alloc}
             {
-                // TODO: insert the range
+                insert(first, last);
             }
 
             unordered_map(const unordered_map& other)
@@ -125,7 +125,7 @@ namespace std
                           const allocator_type& alloc = allocator_type{})
                 : unordered_map{bucket_count, hf, eql, alloc}
             {
-                // TODO: insert the range
+                insert(init.begin(), init.end());
             }
 
             unordered_map(size_type bucket_count, const allocator_type& alloc)
@@ -178,7 +178,11 @@ namespace std
 
             unordered_map& operator=(initializer_list<value_type>& init)
             {
-                // TODO: implement
+                table_.clear();
+                table_.reserve(init.size());
+
+                insert(init.begin(), init.end());
+
                 return *this;
             }
 
@@ -337,17 +341,23 @@ namespace std
 
             iterator erase(const_iterator position)
             {
-                // TODO: implement
+                return table_.erase(position);
             }
 
             size_type erase(const key_type& key)
             {
-                // TODO: implement
+                return table_.erase(key);
             }
 
             iterator erase(const_iterator first, const_iterator last)
             {
-                // TODO: implement
+                while (first != last)
+                    first = erase(first);
+
+                return iterator{
+                    table_.table(), first.idx(),
+                    table_.size(), table_.head(first.idx())
+                };
             }
 
             void clear() noexcept
@@ -376,37 +386,77 @@ namespace std
 
             iterator find(const key_type& key)
             {
-                // TODO: implement
+                return table_.find(key);
             }
 
             const_iterator find(const key_type& key) const
             {
-                // TODO: implement
+                return table_.find(key);
             }
 
             size_type count(const key_type& key) const
             {
-                // TODO: implement
+                return table_.count(key);
             }
 
             pair<iterator, iterator> equal_range(const key_type& key)
             {
-                // TODO: implement
+                return table_.equal_range(key);
             }
 
             pair<const_iterator, const_iterator> equal_range(const key_type& key) const
             {
-                // TODO: implement
+                return table_.equal_range(key);
             }
 
             mapped_type& operator[](const key_type& key)
             {
-                // TODO: implement
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+
+                if (bucket->head)
+                {
+                    auto head = bucket->head;
+                    auto current = bucket->head;
+
+                    do
+                    {
+                        if (table_.keys_equal(key, current->value))
+                            return current->value.second;
+                        else
+                            current = current->next;
+                    }
+                    while (current != head);
+                }
+
+                bucket->append(new node_type{key, mapped_type{}});
+
+                return bucket->head->value.second;
             }
 
             mapped_type& operator[](key_type&& key)
             {
-                // TODO: implement
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+
+                if (bucket->head)
+                {
+                    auto head = bucket->head;
+                    auto current = bucket->head;
+
+                    do
+                    {
+                        if (table_.keys_equal(key, current->value))
+                            return current->value.second;
+                        else
+                            current = current->next;
+                    }
+                    while (current != head);
+                }
+
+                bucket->append(new node_type{move(key), mapped_type{}});
+
+                return bucket->head->value.second;
             }
 
             mapped_type& at(const key_type& key)
@@ -495,13 +545,15 @@ namespace std
             }
 
         private:
-            aux::hash_map<
+            using table_type = aux::hash_table<
                 value_type, key_type, aux::key_value_key_extractor<key_type, mapped_type>,
                 hasher, key_equal, allocator_type, size_type,
                 iterator, const_iterator, local_iterator, const_local_iterator,
                 aux::hash_single_policy
-            > table_;
+            >;
+            using node_type = typename table_type::node_type;
 
+            table_type table_;
             allocator_type allocator_;
 
             static constexpr size_type default_bucket_count_{16};
@@ -512,7 +564,7 @@ namespace std
      */
 
     template<
-        class Key, class Value
+        class Key, class Value,
         class Hash = hash<Key>,
         class Pred = equal_to<Key>,
         class Alloc = allocator<pair<const Key, Value>>
