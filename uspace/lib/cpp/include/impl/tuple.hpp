@@ -32,6 +32,7 @@
 #include <internal/aux.hpp>
 #include <internal/tuple_cat.hpp>
 #include <internal/tuple_ops.hpp>
+#include <internal/type_transformation.hpp>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -58,23 +59,6 @@ namespace std
     }
 
     inline constexpr aux::ignore_t ignore;
-
-    namespace aux
-    {
-        template<class T>
-        struct remove_reference_wrapper: type_is<T>
-        { /* DUMMY BODY */ };
-
-        template<class T>
-        struct remove_reference_wrapper<reference_wrapper<T>>: type_is<T&>
-        { /* DUMMY BODY */ };
-
-        template<class T>
-        using remove_reference_wrapper_t = typename remove_reference_wrapper<T>::type;
-
-        template<class T>
-        using transform_tuple_types_t = remove_reference_wrapper_t<decay_t<T>>;
-    }
 
     template<class... Ts> // TODO: test the reference_wrapper version once we got reference_wrapper
     constexpr auto make_tuple(Ts&&... ts)

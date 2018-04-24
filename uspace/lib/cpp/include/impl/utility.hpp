@@ -30,6 +30,7 @@
 #define LIBCPP_UTILITY
 
 #include <cstdint>
+#include <internal/type_transformation.hpp>
 #include <type_traits>
 
 namespace std
@@ -207,6 +208,29 @@ namespace std
             return *this;
         }
     };
+
+    /**
+     * 20.3.3, specialized algorithms:
+     */
+
+    // TODO: implement
+
+    template<class T1, class T2>
+    constexpr auto make_pair(T1&& t1, T2&& t2)
+    {
+        return pair<
+            aux::transform_tuple_types_t<T1>,
+            aux::transform_tuple_types_t<T2>
+        >{
+            forward<T1>(t1), forward<T2>(t2)
+        };
+    }
+
+    /**
+     * 20.3.4, tuple-like access to pair:
+     */
+
+    // TODO: implement
 
     /**
      * 20.5.2, class template integer_sequence:
