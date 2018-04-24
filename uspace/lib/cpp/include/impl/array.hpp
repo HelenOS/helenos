@@ -177,7 +177,6 @@ namespace std
         lhs.swap(rhs);
     }
 
-    // TODO: tuple interface for array 23.3.2.9
     /**
      * 23.3.2.9, tuple interface for class template array:
      */
