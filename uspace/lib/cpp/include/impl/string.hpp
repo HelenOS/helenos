@@ -1908,7 +1908,45 @@ namespace std
      * 21.6, hash support:
      */
 
-    // TODO: implement
+    template<class>
+    struct hash;
+
+    template<>
+    struct hash<string>
+    {
+        size_t operator()(const string& str) const noexcept
+        {
+            size_t res{};
+
+            /**
+             * Note: No need for fancy algorithms here,
+             *       std::hash is used for indexing, not
+             *       cryptography.
+             */
+            for (const auto& c: str)
+                res = res * 5 + (res >> 3) + static_cast<size_t>(c);
+
+            return res;
+        }
+
+        using argument_type = string;
+        using result_type   = size_t;
+    };
+
+    template<>
+    struct hash<wstring>
+    {
+        size_t operator()(const wstring& str) const noexcept
+        {
+            // TODO: implement
+            return size_t{};
+        }
+
+        using argument_type = wstring;
+        using result_type   = size_t;
+    };
+
+    // TODO: add those other 2 string types
 
     /**
      * 21.7, suffix for basic_string literals:
@@ -1923,6 +1961,9 @@ namespace std
      */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wliteral-suffix"
+inline namespace literals {
+inline namespace string_literals
+{
     string operator "" s(const char* str, size_t len);
     u16string operator "" s(const char16_t* str, size_t len);
     u32string operator "" s(const char32_t* str, size_t len);
@@ -1930,6 +1971,7 @@ namespace std
     /* Problem: wchar_t == int in HelenOS, but standard forbids it.
     wstring operator "" s(const wchar_t* str, size_t len);
     */
+}}
 #pragma GCC diagnostic pop
 }
 
