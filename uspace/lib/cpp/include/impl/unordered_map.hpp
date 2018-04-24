@@ -429,9 +429,10 @@ namespace std
                     while (current != head);
                 }
 
-                bucket->append(new node_type{key, mapped_type{}});
+                auto node = new node_type{key, mapped_type{}};
+                bucket->append(node);
 
-                return bucket->head->value.second;
+                return node->value.second;
             }
 
             mapped_type& operator[](key_type&& key)
@@ -454,9 +455,10 @@ namespace std
                     while (current != head);
                 }
 
-                bucket->append(new node_type{move(key), mapped_type{}});
+                auto node = new node_type{move(key), mapped_type{}};
+                bucket->append(node);
 
-                return bucket->head->value.second;
+                return node->value.second;
             }
 
             mapped_type& at(const key_type& key)
