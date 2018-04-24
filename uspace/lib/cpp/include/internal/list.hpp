@@ -81,6 +81,8 @@ namespace std::aux
         {
             prev->next = next;
             next->prev = prev;
+            next = this;
+            prev = this;
         }
     };
 }
