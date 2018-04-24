@@ -715,6 +715,15 @@ namespace std::aux
                   key_extractor_{}, max_load_factor_{max_load_factor}
             { /* DUMMY BODY */ }
 
+            hash_table(size_type buckets, const hasher& hf, const key_equal& eql,
+                       float max_load_factor = 1.f)
+                : table_{new hash_table_bucket<value_type, size_type>[buckets]()},
+                  bucket_count_{buckets}, size_{}, hasher_{hf}, key_eq_{eql},
+                  key_extractor_{}, max_load_factor_{max_load_factor}
+            { /* DUMMY BODY */ }
+
+            // TODO: copy/move constructor/assignment operator
+
             bool empty() const noexcept
             {
                 return size_ == 0;
@@ -1090,6 +1099,16 @@ namespace std::aux
             const key_type& get_key(const value_type& val)
             {
                 return key_extractor_(val);
+            }
+
+            hasher hash_function() const
+            {
+                return hasher_;
+            }
+
+            key_equal key_eq() const
+            {
+                return key_eq_;
             }
 
         /* private: */
