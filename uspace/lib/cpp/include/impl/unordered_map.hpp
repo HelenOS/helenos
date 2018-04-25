@@ -849,7 +849,488 @@ namespace std
         class Pred = equal_to<Key>,
         class Alloc = allocator<pair<const Key, Value>>
     >
-    class unordered_multimap;
+    class unordered_multimap
+    {
+        public:
+            using key_type        = Key;
+            using mapped_type     = Value;
+            using value_type      = pair<const key_type, mapped_type>;
+            using hasher          = Hash;
+            using key_equal       = Pred;
+            using allocator_type  = Alloc;
+            using pointer         = typename allocator_traits<allocator_type>::pointer;
+            using const_pointer   = typename allocator_traits<allocator_type>::const_pointer;
+            using reference       = value_type&;
+            using const_reference = const value_type&;
+            using size_type       = size_t;
+            using difference_type = ptrdiff_t;
+
+            using iterator             = aux::hash_table_iterator<
+                value_type, reference, pointer, size_type
+            >;
+            using const_iterator       = aux::hash_table_const_iterator<
+                value_type, const_reference, const_pointer, size_type
+            >;
+            using local_iterator       = aux::hash_table_local_iterator<
+                value_type, reference, pointer
+            >;
+            using const_local_iterator = aux::hash_table_const_local_iterator<
+                value_type, const_reference, const_pointer
+            >;
+
+            unordered_multimap()
+                : unordered_multimap{default_bucket_count_}
+            { /* DUMMY BODY */ }
+
+            explicit unordered_multimap(size_type bucket_count,
+                                   const hasher& hf = hasher{},
+                                   const key_equal& eql = key_equal{},
+                                   const allocator_type& alloc = allocator_type{})
+                : table_{bucket_count, hf, eql}, allocator_{alloc}
+            { /* DUMMY BODY */ }
+
+            template<class InputIterator>
+            unordered_multimap(InputIterator first, InputIterator last,
+                          size_type bucket_count = default_bucket_count_,
+                          const hasher& hf = hasher{},
+                          const key_equal& eql = key_equal{},
+                          const allocator_type& alloc = allocator_type{})
+                : unordered_multimap{bucket_count, hf, eql, alloc}
+            {
+                insert(first, last);
+            }
+
+            unordered_multimap(const unordered_multimap& other)
+                : unordered_multimap{other, other.allocator_}
+            { /* DUMMY BODY */ }
+
+            unordered_multimap(unordered_multimap&& other)
+                : table_{move(other.table_)}, allocator_{move(other.allocator_)}
+            { /* DUMMY BODY */ }
+
+            explicit unordered_multimap(const allocator_type& alloc)
+                : table_{default_bucket_count_}, allocator_{alloc}
+            { /* DUMMY BODY */ }
+
+            unordered_multimap(const unordered_multimap& other, const allocator_type& alloc)
+                : table_{other.table_}, allocator_{alloc}
+            { /* DUMMY BODY */ }
+
+            unordered_multimap(unordered_multimap&& other, const allocator_type& alloc)
+                : table_{move(other.table_)}, allocator_{alloc}
+            { /* DUMMY BODY */ }
+
+            unordered_multimap(initializer_list<value_type> init,
+                          size_type bucket_count = default_bucket_count_,
+                          const hasher& hf = hasher{},
+                          const key_equal& eql = key_equal{},
+                          const allocator_type& alloc = allocator_type{})
+                : unordered_multimap{bucket_count, hf, eql, alloc}
+            {
+                insert(init.begin(), init.end());
+            }
+
+            unordered_multimap(size_type bucket_count, const allocator_type& alloc)
+                : unordered_multimap{bucket_count, hasher{}, key_equal{}, alloc}
+            { /* DUMMY BODY */ }
+
+            unordered_multimap(size_type bucket_count, const hasher& hf, const allocator_type& alloc)
+                : unordered_multimap{bucket_count, hf, key_equal{}, alloc}
+            { /* DUMMY BODY */ }
+
+            template<class InputIterator>
+            unordered_multimap(InputIterator first, InputIterator last,
+                          size_type bucket_count, const allocator_type& alloc)
+                : unordered_multimap{first, last, bucket_count, hasher{}, key_equal{}, alloc}
+            { /* DUMMY BODY */ }
+
+            template<class InputIterator>
+            unordered_multimap(InputIterator first, InputIterator last,
+                          size_type bucket_count, const hasher& hf, const allocator_type& alloc)
+                : unordered_multimap{first, last, bucket_count, hf, key_equal{}, alloc}
+            { /* DUMMY BODY */ }
+
+            unordered_multimap(initializer_list<value_type> init, size_type bucket_count,
+                          const allocator_type& alloc)
+                : unordered_multimap{init, bucket_count, hasher{}, key_equal{}, alloc}
+            { /* DUMMY BODY */ }
+
+            unordered_multimap(initializer_list<value_type> init, size_type bucket_count,
+                          const hasher& hf, const allocator_type& alloc)
+                : unordered_multimap{init, bucket_count, hf, key_equal{}, alloc}
+            { /* DUMMY BODY */ }
+
+            ~unordered_multimap()
+            { /* DUMMY BODY */ }
+
+            unordered_multimap& operator=(const unordered_multimap& other)
+            {
+                table_ = other.table_;
+                allocator_ = other.allocator_;
+
+                return *this;
+            }
+
+            unordered_multimap& operator=(unordered_multimap&& other)
+                noexcept(allocator_traits<allocator_type>::is_always_equal::value &&
+                         is_nothrow_move_assignable<hasher>::value &&
+                         is_nothrow_move_assignable<key_equal>::value)
+            {
+                table_ = move(other.table_);
+                allocator_ = move(other.allocator_);
+
+                return *this;
+            }
+
+            unordered_multimap& operator=(initializer_list<value_type>& init)
+            {
+                table_.clear();
+                table_.reserve(init.size());
+
+                insert(init.begin(), init.end());
+
+                return *this;
+            }
+
+            allocator_type get_allocator() const noexcept
+            {
+                return allocator_;
+            }
+
+            bool empty() const noexcept
+            {
+                return table_.empty();
+            }
+
+            size_type size() const noexcept
+            {
+                return table_.size();
+            }
+
+            size_type max_size() const noexcept
+            {
+                return table_.max_size(allocator_);
+            }
+
+            iterator begin() noexcept
+            {
+                return table_.begin();
+            }
+
+            const_iterator begin() const noexcept
+            {
+                return table_.begin();
+            }
+
+            iterator end() noexcept
+            {
+                return table_.end();
+            }
+
+            const_iterator end() const noexcept
+            {
+                return table_.end();
+            }
+
+            const_iterator cbegin() const noexcept
+            {
+                return table_.cbegin();
+            }
+
+            const_iterator cend() const noexcept
+            {
+                return table_.cend();
+            }
+
+            template<class... Args>
+            pair<iterator, bool> emplace(Args&&... args)
+            {
+                table_.increment_size();
+
+                auto val = value_type{forward<Args>(args)...};
+                auto key = table_.get_key(val);
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (!bucket)
+                    return make_pair(end(), false);
+
+                auto target = table_.find_node_or_return_head(key, *bucket);
+                auto node = new node_type{move(val)};
+                if (target && table_.keys_equal(key, target->value))
+                    target->append(node);
+                else
+                    bucket->prepend(node);
+
+                return make_pair(iterator{
+                    table_.table(), idx,
+                    table_.bucket_count(),
+                    node
+                }, true);
+            }
+
+            template<class... Args>
+            iterator emplace_hint(const_iterator, Args&&... args)
+            {
+                return emplace(forward<Args>(args)...).first;
+            }
+
+            pair<iterator, bool> insert(const value_type& val)
+            {
+                table_.increment_size();
+
+                auto key = table_.get_key(val);
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (!bucket)
+                    return make_pair(end(), false);
+
+                auto target = table_.find_node_or_return_head(key, *bucket);
+                auto node = new node_type{val};
+                if (target && table_.keys_equal(key, target->value))
+                    target->append(node);
+                else
+                    bucket->prepend(node);
+
+                return make_pair(iterator{
+                    table_.table(), idx,
+                    table_.bucket_count(),
+                    node
+                }, true);
+            }
+
+            pair<iterator, bool> insert(value_type&& val)
+            {
+                table_.increment_size();
+
+                auto key = table_.get_key(val);
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (!bucket)
+                    return make_pair(end(), false);
+
+                auto target = table_.find_node_or_return_head(key, *bucket);
+                auto node = new node_type{forward<value_type>(val)};
+                if (target && table_.keys_equal(key, target->value))
+                    target->append(node);
+                else
+                    bucket->prepend(node);
+
+                return make_pair(iterator{
+                    table_.table(), idx,
+                    table_.bucket_count(),
+                    node
+                }, true);
+            }
+
+            template<
+                class T,
+                class = enable_if_t<is_constructible_v<value_type, T&&>, void>
+            >
+            pair<iterator, bool> insert(T&& val)
+            {
+                return emplace(forward<T>(val));
+            }
+
+            iterator insert(const_iterator, const value_type& val)
+            {
+                return insert(val).first;
+            }
+
+            iterator insert(const_iterator, value_type&& val)
+            {
+                return insert(forward<value_type>(val)).first;
+            }
+
+            template<
+                class T,
+                class = enable_if_t<is_constructible_v<value_type, T&&>, void>
+            >
+            iterator insert(const_iterator hint, T&& val)
+            {
+                return emplace_hint(hint, forward<T>(val));
+            }
+
+            template<class InputIterator>
+            void insert(InputIterator first, InputIterator last)
+            {
+                while (first != last)
+                    insert(*first++);
+            }
+
+            void insert(initializer_list<value_type> init)
+            {
+                insert(init.begin(), init.end());
+            }
+
+            iterator erase(const_iterator position)
+            {
+                return table_.erase(position);
+            }
+
+            size_type erase(const key_type& key)
+            {
+                return table_.erase(key);
+            }
+
+            iterator erase(const_iterator first, const_iterator last)
+            {
+                while (first != last)
+                    first = erase(first);
+
+                return iterator{
+                    table_.table(), first.idx(),
+                    table_.bucket_count(), table_.head(first.idx())
+                };
+            }
+
+            void clear() noexcept
+            {
+                table_.clear();
+            }
+
+            void swap(unordered_multimap& other)
+                noexcept(allocator_traits<allocator_type>::is_always_equal::value &&
+                         noexcept(std::swap(declval<hasher>(), declval<hasher>())) &&
+                         noexcept(std::swap(declval<key_equal>(), declval<key_equal>())))
+            {
+                table_.swap(other.table_);
+                std::swap(allocator_, other.allocator_);
+            }
+
+            hasher hash_function() const
+            {
+                return table_.hash_function();
+            }
+
+            key_equal key_eq() const
+            {
+                return table_.key_eq();
+            }
+
+            iterator find(const key_type& key)
+            {
+                return table_.find(key);
+            }
+
+            const_iterator find(const key_type& key) const
+            {
+                return table_.find(key);
+            }
+
+            size_type count(const key_type& key) const
+            {
+                return table_.count(key);
+            }
+
+            pair<iterator, iterator> equal_range(const key_type& key)
+            {
+                return table_.equal_range(key);
+            }
+
+            pair<const_iterator, const_iterator> equal_range(const key_type& key) const
+            {
+                return table_.equal_range(key);
+            }
+
+            size_type bucket_count() const noexcept
+            {
+                return table_.bucket_count();
+            }
+
+            size_type max_bucket_count() const noexcept
+            {
+                return table_.max_bucket_count();
+            }
+
+            size_type bucket_size(size_type idx) const
+            {
+                return table_.bucket_size(idx);
+            }
+
+            size_type bucket(const key_type& key) const
+            {
+                return table_.bucket(key);
+            }
+
+            local_iterator begin(size_type idx)
+            {
+                return table_.begin(idx);
+            }
+
+            const_local_iterator begin(size_type idx) const
+            {
+                return table_.begin(idx);
+            }
+
+            local_iterator end(size_type idx)
+            {
+                return table_.end(idx);
+            }
+
+            const_local_iterator end(size_type idx) const
+            {
+                return table_.end(idx);
+            }
+
+            const_local_iterator cbegin(size_type idx) const
+            {
+                return table_.cbegin(idx);
+            }
+
+            const_local_iterator cend(size_type idx) const
+            {
+                return table_.cend(idx);
+            }
+
+            float load_factor() const noexcept
+            {
+                return table_.load_factor();
+            }
+
+            float max_load_factor() const noexcept
+            {
+                return table_.max_load_factor();
+            }
+
+            void max_load_factor(float factor)
+            {
+                table_.max_load_factor(factor);
+            }
+
+            void rehash(size_type bucket_count)
+            {
+                table_.rehash(bucket_count);
+            }
+
+            void reserve(size_type count)
+            {
+                table_.reserve(count);
+            }
+
+        private:
+            using table_type = aux::hash_table<
+                value_type, key_type, aux::key_value_key_extractor<key_type, mapped_type>,
+                hasher, key_equal, allocator_type, size_type,
+                iterator, const_iterator, local_iterator, const_local_iterator,
+                aux::hash_single_policy
+            >;
+            using node_type = typename table_type::node_type;
+
+            table_type table_;
+            allocator_type allocator_;
+
+            static constexpr size_type default_bucket_count_{16};
+
+            template<class K, class V, class H, class P, class A>
+            friend bool operator==(unordered_multimap<K, V, H, P, A>&,
+                                   unordered_multimap<K, V, H, P, A>&);
+    };
 
     template<class Key, class Value, class Hash, class Pred, class Alloc>
     void swap(unordered_map<Key, Value, Hash, Pred, Alloc>& lhs,
