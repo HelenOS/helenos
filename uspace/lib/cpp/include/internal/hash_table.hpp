@@ -191,7 +191,7 @@ namespace std::aux
         static pair<
             typename Table::iterator,
             typename Table::iterator
-        > equal_range(Table& table, const Key& key)
+        > equal_range(const Table& table, const Key& key)
         {
             auto it = table.find(key);
             return make_pair(it, ++it);
@@ -201,7 +201,7 @@ namespace std::aux
         static pair<
             typename Table::const_iterator,
             typename Table::const_iterator
-        > equal_range_const(Table& table, const Key& key)
+        > equal_range_const(const Table& table, const Key& key)
         { // Note: We cannot overload by return type, so we use a different name.
             auto it = table.find(key);
             return make_pair(it, ++it);
@@ -234,33 +234,104 @@ namespace std::aux
         template<class Table, class Key>
         static typename Table::hint_type find_insertion_spot(const Table& table, const Key& key)
         {
-            // TODO: find the right bucket, in that, find the right
-            //       link (if key is already in it, place the new copy
-            //       next to it, otherwise just return head)
+            auto idx = table.get_bucket_idx_(key);
+            auto head = table.table_[idx].head;
+
+            if (head)
+            {
+                auto current = head;
+                do
+                {
+                    if (table.keys_equal(key, table.get_key(current->value)))
+                    {
+                        return make_tuple(
+                            &table.table_[idx],
+                            current,
+                            idx
+                        );
+                    }
+
+                    current = current->next;
+                } while (current != head);
+            }
+
+            return make_tuple(
+                &table.table_[idx],
+                table.table_[idx].head,
+                idx
+            );
         }
 
         template<class Table, class Key>
         static typename Table::size_type erase(Table& table, const Key& key)
         {
-            // TODO: erase all items with given key
+            auto idx = table.get_bucket_idx_(key);
+            auto it = table.begin(it);
+            typename Table::size_type res{};
+
+            while (it != table.end(it))
+            {
+                if (table.keys_equal(key, table.get_key(*it)))
+                {
+                    while (table.keys_equal(key, table.get_key(*it)))
+                    {
+                        auto node = it.node();
+                        ++it;
+                        ++res;
+
+                        node.unlink();
+                        delete node;
+                        --table.size_;
+                    }
+
+                    // Elements with equal keys are next to each other.
+                    return res;
+                }
+
+                ++it;
+            }
+
+            return res;
         }
 
         template<class Table, class Key>
         static pair<
             typename Table::iterator,
             typename Table::iterator
-        > equal_range(Table& table, const Key& key)
+        > equal_range(const Table& table, const Key& key)
         {
-            // TODO: implement
+            auto first = table.find(key);
+            if (first == table.end())
+                return make_pair(end(), end());
+
+            auto last = first;
+            while (table.keys_equal(key, table.get_key(*last)))
+                ++last;
+
+            // The second iterator points one behind the range.
+            ++last;
+
+            return make_pair(first, last);
         }
 
         template<class Table, class Key>
         static pair<
             typename Table::const_iterator,
             typename Table::const_iterator
-        > equal_range_const(Table& table, const Key& key)
+        > equal_range_const(const Table& table, const Key& key)
         {
-            // TODO: implement
+            auto first = table.find(key);
+            if (first == table.end())
+                return make_pair(end(), end());
+
+            auto last = first;
+            while (table.keys_equal(key, table.get_key(*last)))
+                ++last;
+
+            // The second iterator points one behind the range.
+            ++last;
+
+            return make_pair(first, last);
         }
     };
 
