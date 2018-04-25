@@ -1318,7 +1318,7 @@ namespace std
                 value_type, key_type, aux::key_value_key_extractor<key_type, mapped_type>,
                 hasher, key_equal, allocator_type, size_type,
                 iterator, const_iterator, local_iterator, const_local_iterator,
-                aux::hash_single_policy
+                aux::hash_multi_policy
             >;
             using node_type = typename table_type::node_type;
 
