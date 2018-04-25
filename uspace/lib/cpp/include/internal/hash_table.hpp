@@ -170,7 +170,7 @@ namespace std::aux
 
             do
             {
-                if (table.key_eq_(key, table.key_extractor_(current->value)))
+                if (table.keys_equal(key, current->value))
                 {
                     --table.size_;
 
@@ -199,7 +199,7 @@ namespace std::aux
         static pair<
             typename Table::iterator,
             typename Table::iterator
-        > equal_range(const Table& table, const Key& key)
+        > equal_range(Table& table, const Key& key)
         {
             auto it = table.find(key);
             return make_pair(it, ++it);
@@ -229,7 +229,7 @@ namespace std::aux
             typename Table::size_type res = 0;
             do
             {
-                if (table.key_eq_(key, table.key_extractor_(current->value)))
+                if (table.keys_equal(key, current->value))
                     ++res;
 
                 current = current->next;
@@ -250,7 +250,7 @@ namespace std::aux
                 auto current = head;
                 do
                 {
-                    if (table.keys_equal(key, table.get_key(current->value)))
+                    if (table.keys_equal(key, current->value))
                     {
                         return make_tuple(
                             &table.table_[idx],
@@ -279,9 +279,9 @@ namespace std::aux
 
             while (it != table.end(it))
             {
-                if (table.keys_equal(key, table.get_key(*it)))
+                if (table.keys_equal(key, *it))
                 {
-                    while (table.keys_equal(key, table.get_key(*it)))
+                    while (table.keys_equal(key, *it))
                     {
                         auto node = it.node();
                         ++it;
@@ -306,18 +306,17 @@ namespace std::aux
         static pair<
             typename Table::iterator,
             typename Table::iterator
-        > equal_range(const Table& table, const Key& key)
+        > equal_range(Table& table, const Key& key)
         {
             auto first = table.find(key);
             if (first == table.end())
                 return make_pair(table.end(), table.end());
 
             auto last = first;
-            while (table.keys_equal(key, table.get_key(*last)))
+            do
+            {
                 ++last;
-
-            // The second iterator points one behind the range.
-            ++last;
+            } while (table.keys_equal(key, *last));
 
             return make_pair(first, last);
         }
@@ -333,11 +332,10 @@ namespace std::aux
                 return make_pair(table.end(), table.end());
 
             auto last = first;
-            while (table.keys_equal(key, table.get_key(*last)))
+            do
+            {
                 ++last;
-
-            // The second iterator points one behind the range.
-            ++last;
+            } while (table.keys_equal(key, *last));
 
             return make_pair(first, last);
         }
@@ -1212,6 +1210,11 @@ namespace std::aux
             }
 
             bool keys_equal(const key_type& key, const value_type& val)
+            {
+                return key_eq_(key, key_extractor_(val));
+            }
+
+            bool keys_equal(const key_type& key, const value_type& val) const
             {
                 return key_eq_(key, key_extractor_(val));
             }
