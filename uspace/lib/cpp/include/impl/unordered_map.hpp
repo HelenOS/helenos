@@ -271,6 +271,7 @@ namespace std
 
                 auto node = new node_type{move(val)};
                 bucket->append(node);
+                table_.increment_size();
 
                 return make_pair(iterator{
                     table_.table(), idx,
@@ -315,6 +316,7 @@ namespace std
 
                 auto node = new node_type{val};
                 bucket->append(node);
+                table_.increment_size();
 
                 return make_pair(iterator{
                     table_.table(), idx,
@@ -353,6 +355,8 @@ namespace std
 
                 auto node = new node_type{forward<value_type>(val)};
                 bucket->append(node);
+                table_.increment_size();
+                // TODO: problem: rehashing here would invalidate the intel we have...
 
                 return make_pair(iterator{
                     table_.table(), idx,
@@ -542,6 +546,8 @@ namespace std
                 auto node = new node_type{key, mapped_type{}};
                 bucket->append(node);
 
+                table_.increment_size();
+                table_.rehash_if_needed();
                 return node->value.second;
             }
 
@@ -568,6 +574,8 @@ namespace std
                 auto node = new node_type{move(key), mapped_type{}};
                 bucket->append(node);
 
+                table_.increment_size();
+                table_.rehash_if_needed();
                 return node->value.second;
             }
 
