@@ -35,7 +35,8 @@
 #include <ddf/log.h>
 #include <pci_dev_iface.h>
 
-static bool check_bar(virtio_dev_t *vdev, uint8_t bar)
+static bool check_bar(virtio_dev_t *vdev, uint8_t bar, uint32_t offset,
+    uint32_t length)
 {
 	/* We must ignore the capability if bar is greater than 5 */
 	if (bar >= PCI_BAR_COUNT)
@@ -43,6 +44,16 @@ static bool check_bar(virtio_dev_t *vdev, uint8_t bar)
 
 	/* This is not a mapped BAR */
 	if (!vdev->bar[bar].mapped)
+		return false;
+
+	uintptr_t start = (uintptr_t) vdev->bar[bar].mapped_base;
+	if (start + offset < start)
+		return false;
+	if (start + offset > start + vdev->bar[bar].mapped_size)
+		return false;
+	if (start + offset + length < start + offset)
+		return false;
+	if (start + offset + length > start + vdev->bar[bar].mapped_size)
 		return false;
 
 	return true;
@@ -54,7 +65,7 @@ static void virtio_pci_common_cfg(virtio_dev_t *vdev, uint8_t bar,
 	if (vdev->common_cfg)
 		return;
 
-	if (!check_bar(vdev, bar))
+	if (!check_bar(vdev, bar, offset, length))
 		return;
 
 	vdev->common_cfg = vdev->bar[bar].mapped_base + offset;
@@ -68,7 +79,7 @@ static void virtio_pci_notify_cfg(virtio_dev_t *vdev, uint8_t bar,
 	if (vdev->notify_base)
 		return;
 
-	if (!check_bar(vdev, bar))
+	if (!check_bar(vdev, bar, offset, length))
 		return;
 
 	vdev->notify_base = vdev->bar[bar].mapped_base + offset;
@@ -84,7 +95,7 @@ static void virtio_pci_isr_cfg(virtio_dev_t *vdev, uint8_t bar, uint32_t offset,
 	if (vdev->isr)
 		return;
 
-	if (!check_bar(vdev, bar))
+	if (!check_bar(vdev, bar, offset, length))
 		return;
 
 	vdev->isr = vdev->bar[bar].mapped_base + offset;
@@ -98,7 +109,7 @@ static void virtio_pci_device_cfg(virtio_dev_t *vdev, uint8_t bar,
 	if (vdev->device_cfg)
 		return;
 
-	if (!check_bar(vdev, bar))
+	if (!check_bar(vdev, bar, offset, length))
 		return;
 
 	vdev->device_cfg = vdev->bar[bar].mapped_base + offset;
