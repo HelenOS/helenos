@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <internal/list.hpp>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <tuple>
 #include <utility>
@@ -982,8 +983,8 @@ namespace std::aux
 
             size_type max_bucket_count() const noexcept
             {
-                // TODO: implement
-                return 0;
+                return numeric_limits<size_type>::max() /
+                       sizeof(hash_table_bucket<value_type, size_type>);
             }
 
             size_type bucket_size(size_type n) const
@@ -1107,7 +1108,7 @@ namespace std::aux
                 rehash(count / max_load_factor_ + 1);
             }
 
-            bool is_eq_to(hash_table& other)
+            bool is_eq_to(const hash_table& other)
             {
                 // TODO: implement
                 return false;
