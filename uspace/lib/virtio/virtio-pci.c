@@ -236,6 +236,13 @@ errno_t virtio_pci_dev_initialize(ddf_dev_t *dev, virtio_dev_t *vdev)
 		}
 	}
 
+	/* Check that the configuration is complete */
+	if (!vdev->common_cfg || !vdev->notify_base || !vdev->isr ||
+	    !vdev->device_cfg) {
+		rc = EINVAL;
+		goto error;
+	}
+
 	return rc;
 
 error:
