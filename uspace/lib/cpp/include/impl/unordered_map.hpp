@@ -834,9 +834,9 @@ namespace std
 
             static constexpr size_type default_bucket_count_{16};
 
-            template<class Key, class Value, class Hash, class Pred, class Alloc>
-            friend bool operator==(unordered_map<Key, Value, Hash, Pred, Alloc>&,
-                                   unordered_map<Key, Value, Hash, Pred, Alloc>&);
+            template<class K, class V, class H, class P, class A>
+            friend bool operator==(unordered_map<K, V, H, P, A>&,
+                                   unordered_map<K, V, H, P, A>&);
     };
 
     /**
