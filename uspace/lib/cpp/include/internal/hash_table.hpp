@@ -1001,11 +1001,10 @@ namespace std::aux
 
             void max_load_factor(float factor)
             {
-                /**
-                 * Note: According to the standard, this function
-                 *       can have no effect.
-                 */
-                // TODO: change max factor and rehash if needed
+                if (factor > 0.f)
+                    max_load_factor_ = factor;
+
+                rehash_if_needed();
             }
 
             void rehash(size_type count)
@@ -1080,12 +1079,6 @@ namespace std::aux
                     delete[] table_;
             }
 
-            void set_hint(const_iterator hint)
-            {
-                // TODO: hint_ should be a ptr and we extract it here,
-                //       then set it to nullptr after each operation
-            }
-
             hint_type find_insertion_spot(const key_type& key)
             {
                 return Policy::find_insertion_spot(*this, key);
@@ -1128,6 +1121,36 @@ namespace std::aux
             void increment_size()
             {
                 ++size_;
+
+                rehash_if_needed();
+            }
+
+            void decrement_size()
+            {
+                --size_;
+            }
+
+            node_type* find_node_or_return_head(const key_type& key,
+                                                const hash_table_bucket<value_type, size_type>& bucket)
+            {
+                if (bucket.head)
+                {
+                    auto head = bucket.head;
+                    auto current = bucket.head;
+
+                    do
+                    {
+                        if (keys_equal(key, current->value))
+                            return current;
+                        else
+                            current = current->next;
+                    }
+                    while (current != head);
+
+                    return head;
+                }
+                else
+                    return nullptr;
             }
 
         private:
