@@ -164,7 +164,9 @@ namespace std
 
             unordered_map& operator=(const unordered_map& other)
             {
-                // TODO: implement
+                table_ = other.table_;
+                allocator_ = other.allocator_;
+
                 return *this;
             }
 
@@ -173,7 +175,9 @@ namespace std
                          is_nothrow_move_assignable<hasher>::value &&
                          is_nothrow_move_assignable<key_equal>::value)
             {
-                // TODO: implement
+                table_ = move(other.table_);
+                allocator_ = move(other.allocator_);
+
                 return *this;
             }
 
