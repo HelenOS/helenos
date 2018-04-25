@@ -786,7 +786,8 @@ namespace std::aux
                     get<1>(where)->prepend(node);
 
                 ++size_;
-                // TODO: if we go over max load factor, rehash
+
+                rehash_if_needed();
             }
 
             void insert(const hint_type& where, const value_type& val)
@@ -801,7 +802,8 @@ namespace std::aux
                     get<1>(where)->prepend(node);
 
                 ++size_;
-                // TODO: if we go over max load factor, rehash
+
+                rehash_if_needed();
             }
 
             void insert(const hint_type& where, value_type&& val)
@@ -816,7 +818,8 @@ namespace std::aux
                     get<1>(where)->prepend(node);
 
                 ++size_;
-                // TODO: if we go over max load factor, rehash
+
+                rehash_if_needed();
             }
 
             size_type erase(const key_type& key)
@@ -1116,6 +1119,17 @@ namespace std::aux
                     return nullptr;
             }
 
+            void rehash_if_needed()
+            {
+                if (size_ > max_load_factor_ * bucket_count_)
+                    rehash(bucket_count_ * bucket_count_growth_factor_);
+            }
+
+            void increment_size()
+            {
+                ++size_;
+            }
+
         private:
             hash_table_bucket<value_type, size_type>* table_;
             size_type bucket_count_;
@@ -1124,6 +1138,8 @@ namespace std::aux
             key_equal key_eq_;
             key_extract key_extractor_;
             float max_load_factor_;
+
+            static constexpr float bucket_count_growth_factor_{1.25};
 
             size_type get_bucket_idx_(const key_type& key) const
             {
