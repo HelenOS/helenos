@@ -136,8 +136,6 @@ namespace std::aux
 
     struct hash_single_policy
     {
-        // TODO: umap/uset operations
-
         template<class Table, class Key>
         static typename Table::size_type count(const Table& table, const Key& key)
         {
@@ -212,8 +210,6 @@ namespace std::aux
 
     struct hash_multi_policy
     {
-        // TODO: umultimap/umultiset operations
-
         template<class Table, class Key>
         static typename Table::size_type count(const Table& table, const Key& key)
         {
