@@ -99,6 +99,7 @@ typedef struct {
 } virtio_dev_t;
 
 extern errno_t virtio_pci_dev_initialize(ddf_dev_t *, virtio_dev_t *);
+extern errno_t virtio_pci_dev_cleanup(virtio_dev_t *);
 
 #endif
 

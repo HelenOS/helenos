@@ -243,5 +243,10 @@ error:
 	return rc;
 }
 
+errno_t virtio_pci_dev_cleanup(virtio_dev_t *vdev)
+{
+	return disable_resources(vdev);
+}
+
 /** @}
  */

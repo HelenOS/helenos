@@ -85,8 +85,8 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	features &= (1U << VIRTIO_NET_F_MAC);
 
 	if (!features) {
-		pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_FAILED);
-		return ENOTSUP;
+		rc = ENOTSUP;
+		goto fail;
 	}
 
 	/* 4. Write the accepted feature flags */
@@ -99,8 +99,8 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	/* 6. Test if the device supports our feature subset */ 
 	uint8_t status = pio_read_8(&cfg->device_status);
 	if (!(status & VIRTIO_DEV_STATUS_FEATURES_OK)) {
-		pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_FAILED);
-		return ENOTSUP;
+		rc = ENOTSUP;
+		goto fail;
 	}
 
 	/* 7. Perform device-specific setup */
@@ -108,20 +108,22 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	for (unsigned i = 0; i < 6; i++)
 		nic_addr.address[i] = netcfg->mac[i];
 	rc = nic_report_address(nic_data, &nic_addr);
-	if (rc != EOK) {
-		pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_FAILED);
-		return rc;
-	}
+	if (rc != EOK)
+		goto fail;
 
 	ddf_msg(LVL_NOTE, "MAC address: %02x:%02x:%02x:%02x:%02x:%02x",
-	    nic_addr.address[0], nic_addr.address[1],
-	    nic_addr.address[2], nic_addr.address[3],
-	    nic_addr.address[4], nic_addr.address[5]);
+	    nic_addr.address[0], nic_addr.address[1], nic_addr.address[2],
+	    nic_addr.address[3], nic_addr.address[4], nic_addr.address[5]);
 
 	/* 8. Go live */
 	pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_DRIVER_OK);
 
 	return EOK;
+
+fail:
+	pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_FAILED);
+	virtio_pci_dev_cleanup(&virtio_net->virtio_dev);
+	return rc;
 }
 
 static errno_t virtio_net_dev_add(ddf_dev_t *dev)
