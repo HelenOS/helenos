@@ -69,13 +69,16 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	 */
 
 	/* 1. Reset the device */
-	pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_RESET);
+	uint8_t status = VIRTIO_DEV_STATUS_RESET;
+	pio_write_8(&cfg->device_status, status);
 
 	/* 2. Acknowledge we found the device */
-	pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_ACKNOWLEDGE);
+	status |= VIRTIO_DEV_STATUS_ACKNOWLEDGE;
+	pio_write_8(&cfg->device_status, status);
 
 	/* 3. We know how to drive the device */
-	pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_DRIVER);
+	status |= VIRTIO_DEV_STATUS_DRIVER;
+	pio_write_8(&cfg->device_status, status);
 
 	/* 4. Read the offered feature flags */
 	pio_write_32(&cfg->device_feature_select, VIRTIO_NET_F_SELECT_PAGE_0);
@@ -94,10 +97,11 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	pio_write_32(&cfg->driver_feature, features);
 
 	/* 5. Set FEATURES_OK */
-	pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_FEATURES_OK);
+	status |= VIRTIO_DEV_STATUS_FEATURES_OK;
+	pio_write_8(&cfg->device_status, status);
 
 	/* 6. Test if the device supports our feature subset */ 
-	uint8_t status = pio_read_8(&cfg->device_status);
+	status = pio_read_8(&cfg->device_status);
 	if (!(status & VIRTIO_DEV_STATUS_FEATURES_OK)) {
 		rc = ENOTSUP;
 		goto fail;
@@ -116,12 +120,14 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	    nic_addr.address[3], nic_addr.address[4], nic_addr.address[5]);
 
 	/* 8. Go live */
-	pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_DRIVER_OK);
+	status |= VIRTIO_DEV_STATUS_DRIVER_OK;
+	pio_write_8(&cfg->device_status, status);
 
 	return EOK;
 
 fail:
-	pio_write_8(&cfg->device_status, VIRTIO_DEV_STATUS_FAILED);
+	status |= VIRTIO_DEV_STATUS_FAILED;
+	pio_write_8(&cfg->device_status, status);
 	virtio_pci_dev_cleanup(&virtio_net->virtio_dev);
 	return rc;
 }
