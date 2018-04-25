@@ -726,15 +726,17 @@ namespace std
         template<class T>
         T hash_(uint64_t x) noexcept
         {
-            // TODO: This is copied form adt/hash (temporarily),
-            //       check if we can use something better.
-            x = (x ^ 61) ^ (x >> 16);
-            x = x + (x << 3);
-            x = x ^ (x >> 4);
-            x = x * 0x27d4eb2d;
-            x = x ^ (x >> 15);
-
-            return static_cast<T>((x << 32) | (x >> 32));
+            /**
+             * Note: std::hash is used for indexing in
+             *       unordered containers, not for cryptography.
+             *       Because of this, we decided to simply convert
+             *       the value to uin64_t, which will help us
+             *       with testing (since in order to create
+             *       a collision in a multiset or multimap
+             *       we simply need 2 values that congruent
+             *       by the size of the table.
+             */
+            return static_cast<T>(x);
         }
 
         template<class T>
