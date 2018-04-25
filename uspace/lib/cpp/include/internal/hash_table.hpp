@@ -111,6 +111,14 @@ namespace std::aux
                 head->append(node);
         }
 
+        void prepend(list_node<Value>* node)
+        {
+            if (!head)
+                head = node;
+            else
+                head->prepend(node);
+        }
+
         void clear()
         {
             if (!head)
