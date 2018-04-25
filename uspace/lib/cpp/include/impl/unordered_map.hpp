@@ -833,6 +833,10 @@ namespace std
             allocator_type allocator_;
 
             static constexpr size_type default_bucket_count_{16};
+
+            template<class Key, class Value, class Hash, class Pred, class Alloc>
+            friend bool operator==(unordered_map<Key, Value, Hash, Pred, Alloc>&,
+                                   unordered_map<Key, Value, Hash, Pred, Alloc>&);
     };
 
     /**
@@ -867,8 +871,7 @@ namespace std
     bool operator==(unordered_map<Key, Value, Hash, Pred, Alloc>& lhs,
                     unordered_map<Key, Value, Hash, Pred, Alloc>& rhs)
     {
-        // TODO: implement
-        return false;
+        return lhs.table_.is_eq_to(rhs.table_);
     }
 
     template<class Key, class Value, class Hash, class Pred, class Alloc>
@@ -882,8 +885,7 @@ namespace std
     bool operator==(unordered_multimap<Key, Value, Hash, Pred, Alloc>& lhs,
                     unordered_multimap<Key, Value, Hash, Pred, Alloc>& rhs)
     {
-        // TODO: implement
-        return false;
+        return lhs.table_.is_eq_to(rhs.table_);
     }
 
     template<class Key, class Value, class Hash, class Pred, class Alloc>
