@@ -36,7 +36,8 @@
 #include <pci_dev_iface.h>
 #include <ddi.h>
 
-#define VIRTIO_PCI_CAP_TYPE(c)		((c) + 3)
+#define VIRTIO_PCI_CAP_CAP_LEN(c)	((c) + 2)
+#define VIRTIO_PCI_CAP_CFG_TYPE(c)	((c) + 3)
 #define VIRTIO_PCI_CAP_BAR(c)		((c) + 4)
 #define VIRTIO_PCI_CAP_OFFSET(c)	((c) + 8)
 #define VIRTIO_PCI_CAP_LENGTH(c)	((c) + 12)

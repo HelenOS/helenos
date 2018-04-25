@@ -179,16 +179,27 @@ errno_t virtio_pci_dev_initialize(ddf_dev_t *dev, virtio_dev_t *vdev)
 	 * Find the VIRTIO PCI Capabilities
 	 */
 	uint8_t c;
-	uint8_t id;
-	for (rc = pci_config_space_cap_first(pci_sess, &c, &id);
+	uint8_t cap_vndr;
+	for (rc = pci_config_space_cap_first(pci_sess, &c, &cap_vndr);
 	    (rc == EOK) && c;
-	    rc = pci_config_space_cap_next(pci_sess, &c, &id)) {
-		if (id != PCI_CAP_VENDORSPECID)
+	    rc = pci_config_space_cap_next(pci_sess, &c, &cap_vndr)) {
+		if (cap_vndr != PCI_CAP_VENDORSPECID)
 			continue;
 
-		uint8_t type;
-		rc = pci_config_space_read_8(pci_sess, VIRTIO_PCI_CAP_TYPE(c),
-		    &type);
+		uint8_t cap_len;
+		rc = pci_config_space_read_8(pci_sess,
+		    VIRTIO_PCI_CAP_CAP_LEN(c), &cap_len);
+		if (rc != EOK)
+			goto error;
+
+		if (cap_len < VIRTIO_PCI_CAP_END(0)) {
+			rc = EINVAL;
+			goto error;
+		}
+
+		uint8_t cfg_type;
+		rc = pci_config_space_read_8(pci_sess,
+		    VIRTIO_PCI_CAP_CFG_TYPE(c), &cfg_type);
 		if (rc != EOK)
 			goto error;
 
@@ -211,11 +222,15 @@ errno_t virtio_pci_dev_initialize(ddf_dev_t *dev, virtio_dev_t *vdev)
 			goto error;
 
 		uint32_t multiplier;
-		switch (type) {
+		switch (cfg_type) {
 		case VIRTIO_PCI_CAP_COMMON_CFG:
 			virtio_pci_common_cfg(vdev, bar, offset, length);
 			break;
 		case VIRTIO_PCI_CAP_NOTIFY_CFG:
+			if (cap_len < VIRTIO_PCI_CAP_END(sizeof(uint32_t))) {
+				rc = EINVAL;
+				goto error;
+			}
 			rc = pci_config_space_read_32(pci_sess,
 			    VIRTIO_PCI_CAP_END(c), &multiplier);
 			if (rc != EOK)
