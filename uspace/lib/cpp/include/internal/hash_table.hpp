@@ -719,7 +719,44 @@ namespace std::aux
                   key_extractor_{}, max_load_factor_{max_load_factor}
             { /* DUMMY BODY */ }
 
-            // TODO: copy/move constructor/assignment operator
+            hash_table(const hash_table& other)
+                : hash_table{other.bucket_count_, other.hasher_, other.key_eq_,
+                             other.max_load_factor_}
+            {
+                for (const auto& x: other)
+                {
+                    auto spot = find_insertion_spot(key_extractor_(x));
+                    insert(spot, x);
+                }
+            }
+
+            hash_table(hash_table&& other)
+                : table_{other.table_}, bucket_count_{other.bucket_count_},
+                  size_{other.size_}, hasher_{move(other.hasher_)},
+                  key_eq_{move(other.key_eq_)}, key_extractor_{move(other.key_extractor_)},
+                  max_load_factor_{other.max_load_factor_}
+            {
+                other.table_ = nullptr;
+                other.bucket_count_ = size_type{};
+                other.size_ = size_type{};
+                other.max_load_factor_ = 1.f;
+            }
+
+            hash_table& operator=(const hash_table& other)
+            {
+                hash_table tmp{other};
+                tmp.swap(*this);
+
+                return *this;
+            }
+
+            hash_table& operator=(hash_table&& other)
+            {
+                hash_table tmp{move(other)};
+                tmp.swap(*this);
+
+                return *this;
+            }
 
             bool empty() const noexcept
             {
@@ -1012,9 +1049,13 @@ namespace std::aux
                 if (count < size_ / max_load_factor_)
                     count = size_ / max_load_factor_;
 
-                // Note: This is the only place where an exception can be
-                //       thrown (no mem) in this function, so wrap it
-                //       in try-catch-rethrow.
+                /**
+                 * Note: If an exception is thrown, there
+                 *       is no effect. Since this is the only
+                 *       place where an exception (no mem) can
+                 *       be thrown and no changes to this have been
+                 *       made, we're ok.
+                 */
                 hash_table new_table{count, max_load_factor_};
 
                 for (std::size_t i = 0; i < bucket_count_; ++i)
