@@ -208,7 +208,7 @@ namespace std
 
             size_type max_size() const noexcept
             {
-                return table_.max_size();
+                return table_.max_size(allocator_);
             }
 
             iterator begin() noexcept
