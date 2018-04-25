@@ -594,12 +594,18 @@ namespace std
 
             mapped_type& at(const key_type& key)
             {
-                // TODO: implement
+                auto it = find(key);
+
+                // TODO: throw out_of_range if it == end()
+                return it->second;
             }
 
             const mapped_type& at(const key_type& key) const
             {
-                // TODO: implement
+                auto it = find(key);
+
+                // TODO: throw out_of_range if it == end()
+                return it->second;
             }
 
             size_type bucket_count() const noexcept
