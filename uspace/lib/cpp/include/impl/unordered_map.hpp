@@ -421,49 +421,186 @@ namespace std
             template<class... Args>
             pair<iterator, bool> try_emplace(const key_type& key, Args&&... args)
             {
-                // TODO: implement
+                /**
+                 * Note: If anyone (like me) wonders what is the difference between
+                 *       emplace and try_emplace, the former always constructs the value
+                 *       (in order to get the key) and the latter does it only if
+                 *       an insertion takes place.
+                 */
+
+                table_.increment_size();
+
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (!bucket)
+                    return make_pair(end(), false);
+
+                auto target = table_.find_node_or_return_head(key, *bucket);
+                if (target && table_.keys_equal(key, target->value))
+                {
+                    table_.decrement_size();
+
+                    return make_pair(
+                        iterator{
+                            table_.table(), idx, table_.bucket_count(),
+                            target
+                        },
+                        false
+                    );
+                }
+                else
+                {
+                    auto node = new node_type{key, forward<Args>(args)...};
+                    bucket->append(node);
+
+                    return make_pair(iterator{
+                        table_.table(), idx,
+                        table_.bucket_count(),
+                        node
+                    }, true);
+                }
             }
 
             template<class... Args>
             pair<iterator, bool> try_emplace(key_type&& key, Args&&... args)
             {
-                // TODO: implement
+                table_.increment_size();
+
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (!bucket)
+                    return make_pair(end(), false);
+
+                auto target = table_.find_node_or_return_head(key, *bucket);
+                if (target && table_.keys_equal(key, target->value))
+                {
+                    table_.decrement_size();
+
+                    return make_pair(
+                        iterator{
+                            table_.table(), idx, table_.bucket_count(),
+                            target
+                        },
+                        false
+                    );
+                }
+                else
+                {
+                    auto node = new node_type{move(key), forward<Args>(args)...};
+                    bucket->append(node);
+
+                    return make_pair(iterator{
+                        table_.table(), idx,
+                        table_.bucket_count(),
+                        node
+                    }, true);
+                }
             }
 
             template<class... Args>
-            iterator try_emplace(const_iterator hint, const key_type& key, Args&&... args)
+            iterator try_emplace(const_iterator, const key_type& key, Args&&... args)
             {
-                // TODO: implement
+                return try_emplace(key, forward<Args>(args)...).first;
             }
 
             template<class... Args>
-            iterator try_emplace(const_iterator hint, key_type&& key, Args&&... args)
+            iterator try_emplace(const_iterator, key_type&& key, Args&&... args)
             {
-                // TODO: implement
+                return try_emplace(move(key), forward<Args>(args)...).first;
             }
 
             template<class T>
             pair<iterator, bool> insert_or_assign(const key_type& key, T&& val)
             {
-                // TODO: implement
+                table_.increment_size();
+
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (!bucket)
+                    return make_pair(end(), false);
+
+                auto target = table_.find_node_or_return_head(key, *bucket);
+                if (target && table_.keys_equal(key, target->value))
+                {
+                    table_.decrement_size();
+                    target->value.second = forward<T>(val);
+
+                    return make_pair(
+                        iterator{
+                            table_.table(), idx, table_.bucket_count(),
+                            target
+                        },
+                        false
+                    );
+                }
+                else
+                {
+                    auto node = new node_type{key, forward<T>(val)};
+                    bucket->append(node);
+
+                    return make_pair(iterator{
+                        table_.table(), idx,
+                        table_.bucket_count(),
+                        node
+                    }, true);
+                }
             }
 
             template<class T>
             pair<iterator, bool> insert_or_assign(key_type&& key, T&& val)
             {
-                // TODO: implement
+                table_.increment_size();
+
+                auto spot = table_.find_insertion_spot(key);
+                auto bucket = get<0>(spot);
+                auto idx = get<2>(spot);
+
+                if (!bucket)
+                    return make_pair(end(), false);
+
+                auto target = table_.find_node_or_return_head(key, *bucket);
+                if (target && table_.keys_equal(key, target->value))
+                {
+                    table_.decrement_size();
+                    target->value.second = forward<T>(val);
+
+                    return make_pair(
+                        iterator{
+                            table_.table(), idx, table_.bucket_count(),
+                            target
+                        },
+                        false
+                    );
+                }
+                else
+                {
+                    auto node = new node_type{move(key), forward<T>(val)};
+                    bucket->append(node);
+
+                    return make_pair(iterator{
+                        table_.table(), idx,
+                        table_.bucket_count(),
+                        node
+                    }, true);
+                }
             }
 
             template<class T>
-            iterator insert_or_assign(const_iterator hint, const key_type& key, T&& val)
+            iterator insert_or_assign(const_iterator, const key_type& key, T&& val)
             {
-                // TODO: implement
+                return insert_or_assign(key, forward<T>(val)).first;
             }
 
             template<class T>
-            iterator insert_or_assign(const_iterator hint, key_type&& key, T&& val)
+            iterator insert_or_assign(const_iterator, key_type&& key, T&& val)
             {
-                // TODO: implement
+                return insert_or_assign(move(key), forward<T>(val)).first;
             }
 
             iterator erase(const_iterator position)
