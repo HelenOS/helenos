@@ -302,7 +302,7 @@ namespace std::aux
         {
             auto first = table.find(key);
             if (first == table.end())
-                return make_pair(end(), end());
+                return make_pair(table.end(), table.end());
 
             auto last = first;
             while (table.keys_equal(key, table.get_key(*last)))
@@ -322,7 +322,7 @@ namespace std::aux
         {
             auto first = table.find(key);
             if (first == table.end())
-                return make_pair(end(), end());
+                return make_pair(table.end(), table.end());
 
             auto last = first;
             while (table.keys_equal(key, table.get_key(*last)))
