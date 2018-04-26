@@ -249,57 +249,7 @@ namespace std
             template<class... Args>
             pair<iterator, bool> emplace(Args&&... args)
             {
-                /**
-                 * Note: Some of these modifier functions start off
-                 *       by incrementing the table's element count and
-                 *       decrement it when insertion does not take place.
-                 *       This is because we need to cause rehashing if
-                 *       there are too many elements, but rehashing itself
-                 *       would invalidate all pointers we get from
-                 *       find_insertion_spot, which would require us to
-                 *       do another find. But this way we avoid two searches
-                 *       with the possibility of a rehash that is not necessary
-                 *       (but hardly a bad thing as the table needs just one
-                 *       element more to rehash).
-                 *
-                 *       Also, there are 3 functions with similar bodies,
-                 *       but the duplicit code cannot be moved to a common
-                 *       sub-function because all three require different
-                 *       handling of the value (move, forward and copy).
-                 */
-                table_.increment_size();
-
-                auto val = value_type{forward<Args>(args)...};
-                auto spot = table_.find_insertion_spot(val);
-                auto bucket = get<0>(spot);
-                auto idx = get<2>(spot);
-
-                if (!bucket)
-                    return make_pair(end(), false);
-
-                auto target = table_.find_node_or_return_head(val, *bucket);
-                if (target && table_.keys_equal(val, target->value))
-                {
-                    table_.decrement_size();
-                    return make_pair(
-                        iterator{
-                            table_.table(), idx, table_.bucket_count(),
-                            target
-                        },
-                        false
-                    );
-                }
-                else
-                {
-                    auto node = new node_type{move(val)};
-                    bucket->append(node);
-
-                    return make_pair(iterator{
-                        table_.table(), idx,
-                        table_.bucket_count(),
-                        node
-                    }, true);
-                }
+                return table_.emplace(forward<Args>(args)...);
             }
 
             template<class... Args>
@@ -310,74 +260,12 @@ namespace std
 
             pair<iterator, bool> insert(const value_type& val)
             {
-                table_.increment_size();
-
-                auto spot = table_.find_insertion_spot(val);
-                auto bucket = get<0>(spot);
-                auto idx = get<2>(spot);
-
-                if (!bucket)
-                    return make_pair(end(), false);
-
-                auto target = table_.find_node_or_return_head(val, *bucket);
-                if (target && table_.keys_equal(val, target->value))
-                {
-                    table_.decrement_size();
-                    return make_pair(
-                        iterator{
-                            table_.table(), idx, table_.bucket_count(),
-                            target
-                        },
-                        false
-                    );
-                }
-                else
-                {
-                    auto node = new node_type{val};
-                    bucket->append(node);
-
-                    return make_pair(iterator{
-                        table_.table(), idx,
-                        table_.bucket_count(),
-                        node
-                    }, true);
-                }
+                return table_.insert(val);
             }
 
             pair<iterator, bool> insert(value_type&& val)
             {
-                table_.increment_size();
-
-                auto spot = table_.find_insertion_spot(val);
-                auto bucket = get<0>(spot);
-                auto idx = get<2>(spot);
-
-                if (!bucket)
-                    return make_pair(end(), false);
-
-                auto target = table_.find_node_or_return_head(val, *bucket);
-                if (target && table_.keys_equal(val, target->value))
-                {
-                    table_.decrement_size();
-                    return make_pair(
-                        iterator{
-                            table_.table(), idx, table_.bucket_count(),
-                            target
-                        },
-                        false
-                    );
-                }
-                else
-                {
-                    auto node = new node_type{forward<value_type>(val)};
-                    bucket->append(node);
-
-                    return make_pair(iterator{
-                        table_.table(), idx,
-                        table_.bucket_count(),
-                        node
-                    }, true);
-                }
+                return table_.insert(forward<value_type>(val));
             }
 
             iterator insert(const_iterator, const value_type& val)
