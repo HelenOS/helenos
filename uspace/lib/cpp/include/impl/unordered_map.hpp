@@ -1129,7 +1129,6 @@ namespace std
                 iterator, const_iterator, local_iterator, const_local_iterator,
                 aux::hash_multi_policy
             >;
-            using node_type = typename table_type::node_type;
 
             table_type table_;
             allocator_type allocator_;
