@@ -214,6 +214,139 @@ namespace std::aux
             auto it = table.find(key);
             return make_pair(it, ++it);
         }
+
+        /**
+         * Note: We have to duplicate code for emplace, insert(const&)
+         *       and insert(&&) here, because the node (which makes distinction
+         *       between the arguments) is only created if the value isn't
+         *       in the table already.
+         */
+
+        template<class Table, class... Args>
+        static pair<
+            typename Table::iterator, bool
+        > emplace(Table& table, Args&&... args)
+        {
+            using value_type = typename Table::value_type;
+            using node_type  = typename Table::node_type;
+            using iterator   = typename Table::iterator;
+
+            table.increment_size();
+
+            auto val = value_type{forward<Args>(args)...};
+            const auto& key = table.get_key(val);
+            auto [bucket, target, idx] = table.find_insertion_spot(key);
+
+            if (!bucket)
+                return make_pair(table.end(), false);
+
+            if (target && table.keys_equal(key, target->value))
+            {
+                table.decrement_size();
+
+                return make_pair(
+                    iterator{
+                        table.table(), idx, table.bucket_count(),
+                        target
+                    },
+                    false
+                );
+            }
+            else
+            {
+                auto node = new node_type{move(val)};
+                bucket->prepend(node);
+
+                return make_pair(iterator{
+                    table.table(), idx,
+                    table.bucket_count(),
+                    node
+                }, true);
+            }
+        }
+
+        template<class Table, class Value>
+        static pair<
+            typename Table::iterator, bool
+        > insert(Table& table, const Value& val)
+        {
+            using node_type  = typename Table::node_type;
+            using iterator   = typename Table::iterator;
+
+            table.increment_size();
+
+            const auto& key = table.get_key(val);
+            auto [bucket, target, idx] = table.find_insertion_spot(key);
+
+            if (!bucket)
+                return make_pair(table.end(), false);
+
+            if (target && table.keys_equal(key, target->value))
+            {
+                table.decrement_size();
+
+                return make_pair(
+                    iterator{
+                        table.table(), idx, table.bucket_count(),
+                        target
+                    },
+                    false
+                );
+            }
+            else
+            {
+                auto node = new node_type{val};
+                bucket->prepend(node);
+
+                return make_pair(iterator{
+                    table.table(), idx,
+                    table.bucket_count(),
+                    node
+                }, true);
+            }
+        }
+
+        template<class Table, class Value>
+        static pair<
+            typename Table::iterator, bool
+        > insert(Table& table, Value&& val)
+        {
+            using value_type = typename Table::value_type;
+            using node_type  = typename Table::node_type;
+            using iterator   = typename Table::iterator;
+
+            table.increment_size();
+
+            const auto& key = table.get_key(val);
+            auto [bucket, target, idx] = table.find_insertion_spot(key);
+
+            if (!bucket)
+                return make_pair(table.end(), false);
+
+            if (target && table.keys_equal(key, target->value))
+            {
+                table.decrement_size();
+
+                return make_pair(
+                    iterator{
+                        table.table(), idx, table.bucket_count(),
+                        target
+                    },
+                    false
+                );
+            }
+            else
+            {
+                auto node = new node_type{forward<value_type>(val)};
+                bucket->prepend(node);
+
+                return make_pair(iterator{
+                    table.table(), idx,
+                    table.bucket_count(),
+                    node
+                }, true);
+            }
+        }
     };
 
     struct hash_multi_policy
@@ -338,6 +471,70 @@ namespace std::aux
             } while (table.keys_equal(key, *last));
 
             return make_pair(first, last);
+        }
+
+        template<class Table, class... Args>
+        static pair<
+            typename Table::iterator, bool
+        > emplace(Table& table, Args&&... args)
+        {
+            using node_type  = typename Table::node_type;
+
+            auto node = new node_type{forward<Args>(args)...};
+
+            return insert(table, node);
+        }
+
+        template<class Table, class Value>
+        static pair<
+            typename Table::iterator, bool
+        > insert(Table& table, const Value& val)
+        {
+            using node_type  = typename Table::node_type;
+
+            auto node = new node_type{val};
+
+            return insert(table, node);
+        }
+
+        template<class Table, class Value>
+        static pair<
+            typename Table::iterator, bool
+        > insert(Table& table, Value&& val)
+        {
+            using value_type = typename Table::value_type;
+            using node_type  = typename Table::node_type;
+
+            auto node = new node_type{forward<value_type>(val)};
+
+            return insert(table, node);
+        }
+
+        template<class Table>
+        static pair<
+            typename Table::iterator, bool
+        > insert(Table& table, typename Table::node_type* node)
+        {
+            using iterator   = typename Table::iterator;
+
+            table.increment_size();
+
+            const auto& key = table.get_key(node->value);
+            auto [bucket, target, idx] = table.find_insertion_spot(key);
+
+            if (!bucket)
+                return make_pair(table.end(), false);
+
+            if (target && table.keys_equal(key, target->value))
+                target->append(node);
+            else
+                bucket->prepend(node);
+
+            return make_pair(iterator{
+                table.table(), idx,
+                table.bucket_count(),
+                node
+            }, true);
         }
     };
 
@@ -884,53 +1081,20 @@ namespace std::aux
                 return const_iterator{};
             }
 
-            template<class Allocator, class... Args>
-            void emplace(const hint_type& where, Allocator& alloc, Args&&... args)
+            template<class... Args>
+            pair<iterator, bool> emplace(Args&&... args)
             {
-                if (!hint_ok_(where))
-                    return;
-
-                auto node = new list_node<value_type>{forward<Args&&>(args)...};
-                if (get<1>(where) == nullptr) // Append here will create a new head.
-                    get<0>(where)->append(node);
-                else // Prepending before an exact position is common in the standard.
-                    get<1>(where)->prepend(node);
-
-                ++size_;
-
-                rehash_if_needed();
+                return Policy::emplace(*this, forward<Args>(args)...);
             }
 
-            void insert(const hint_type& where, const value_type& val)
+            pair<iterator, bool> insert(const value_type& val)
             {
-                if (!hint_ok_(where))
-                    return;
-
-                auto node = new list_node<value_type>{val};
-                if (get<1>(where) == nullptr)
-                    get<0>(where)->append(node);
-                else
-                    get<1>(where)->prepend(node);
-
-                ++size_;
-
-                rehash_if_needed();
+                return Policy::insert(*this, val);
             }
 
-            void insert(const hint_type& where, value_type&& val)
+            pair<iterator, bool> insert(value_type&& val)
             {
-                if (!hint_ok_(where))
-                    return;
-
-                auto node = new list_node<value_type>{forward<value_type>(val)};
-                if (get<1>(where) == nullptr)
-                    get<0>(where)->append(node);
-                else
-                    get<1>(where)->prepend(node);
-
-                ++size_;
-
-                rehash_if_needed();
+                return Policy::insert(*this, forward<value_type>(val));
             }
 
             size_type erase(const key_type& key)
@@ -1250,29 +1414,6 @@ namespace std::aux
                 --size_;
             }
 
-            node_type* find_node_or_return_head(const key_type& key,
-                                                const hash_table_bucket<value_type, size_type>& bucket)
-            {
-                if (bucket.head)
-                {
-                    auto head = bucket.head;
-                    auto current = bucket.head;
-
-                    do
-                    {
-                        if (keys_equal(key, current->value))
-                            return current;
-                        else
-                            current = current->next;
-                    }
-                    while (current != head);
-
-                    return head;
-                }
-                else
-                    return nullptr;
-            }
-
         private:
             hash_table_bucket<value_type, size_type>* table_;
             size_type bucket_count_;
@@ -1289,18 +1430,6 @@ namespace std::aux
                 return hasher_(key) % bucket_count_;
             }
 
-            bool hint_ok_(const hint_type& hint)
-            {
-                // TODO: pass this to the policy, because the multi policy
-                //       will need to check if a similar key is close,
-                //       that is something like:
-                //          return get<1>(hint)->prev->key == key || !bucket.contains(key)
-                // TODO: also, make it public and make hint usage one level above?
-                //       (since we already have insert with decisive hint)
-                return get<0>(hint) != nullptr && get<2>(hint) < bucket_count_;
-            }
-
-            // Praise C++11 for this.
             friend Policy;
     };
 }
