@@ -566,7 +566,9 @@ static errno_t tcp_listener_destroy_impl(tcp_client_t *client, sysarg_t lst_id)
 		return ENOENT;
 	}
 
-//	tcp_uc_close(cconn->conn);
+#if 0
+	tcp_uc_close(cconn->conn);
+#endif
 	tcp_clistener_destroy(clst);
 	return EOK;
 }

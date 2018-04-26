@@ -297,8 +297,6 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 		    (void *)((uint8_t *)entry->p_vaddr + elf->bias));
 		break;
 	case PT_SHLIB:
-//	case PT_LOPROC:
-//	case PT_HIPROC:
 	default:
 		DPRINTF("Segment p_type %d unknown.\n", entry->p_type);
 		return EE_UNSUPPORTED;
@@ -396,7 +394,6 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	if ((elf->flags & ELDF_RW) != 0)
 		return EE_OK;
 
-//	printf("set area flags to %d\n", flags);
 	rc = as_area_change_flags(seg_ptr, flags);
 	if (rc != EOK) {
 		DPRINTF("Failed to set memory area flags.\n");

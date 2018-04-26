@@ -1421,7 +1421,9 @@ static void tcp_transmit_segment(inet_ep2_t *epp, tcp_segment_t *seg)
 
 	if (tcp_conn_lb == tcp_lb_segment) {
 		/* Loop back segment */
-//		tcp_ncsim_bounce_seg(sp, seg);
+#if 0
+		tcp_ncsim_bounce_seg(sp, seg);
+#endif
 
 		/* Reverse the identification */
 		tcp_ep2_flipped(epp, &rident);

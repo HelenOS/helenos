@@ -171,9 +171,6 @@ errno_t usb_hid_process_report_descriptor(usb_device_t *dev,
 		return EINVAL;
 	}
 
-//	uint8_t *report_desc = NULL;
-//	size_t report_size;
-
 	errno_t rc = usb_hid_get_report_descriptor(dev, report_desc, report_size);
 
 	if (rc != EOK) {

@@ -55,7 +55,7 @@ errno_t hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 	uintptr_t buffer_phys;
 	hda_stream_buffers_t *bufs = NULL;
 	size_t i;
-//	size_t j, k;
+	//size_t j, k;
 	errno_t rc;
 
 	bufs = calloc(1, sizeof(hda_stream_buffers_t));

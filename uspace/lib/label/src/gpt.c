@@ -808,8 +808,8 @@ static errno_t gpt_part_to_pte(label_part_t *part, gpt_entry_t *pte)
 	uuid_encode(&part->part_uuid, pte->part_id);
 	pte->start_lba = host2uint64_t_le(part->block0);
 	pte->end_lba = host2uint64_t_le(eblock);
-//	pte->attributes
-//	pte->part_name
+	//pte->attributes
+	//pte->part_name
 	return EOK;
 }
 

@@ -128,7 +128,7 @@ static errno_t hda_get_clist_len(hda_codec_t *codec, int node, bool *longform,
 	if (rc != EOK)
 		return rc;
 
-//	ddf_msg(LVL_NOTE, "hda_get_clist_len: resp=0x%x", resp);
+	ddf_msg(LVL_DEBUG2, "hda_get_clist_len: resp=0x%x", resp);
 	*longform = resp & BIT_V(uint32_t, cll_longform);
 	*items = resp & BIT_RANGE_EXTRACT(uint32_t, cll_len_h, cll_len_l, resp);
 	return EOK;
@@ -237,11 +237,11 @@ static errno_t hda_get_conn_sel(hda_codec_t *codec, int node, uint32_t *conn)
 static errno_t hda_get_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload,
     uint32_t *resp)
 {
-//	ddf_msg(LVL_NOTE, "hda_get_amp_gain_mute(codec, %d, %x)",
-//	    node, payload);
+	ddf_msg(LVL_DEBUG2, "hda_get_amp_gain_mute(codec, %d, %x)",
+	    node, payload);
 	errno_t rc = hda_ccmd(codec, node, hda_amp_gain_mute_get, payload, resp);
-//	ddf_msg(LVL_NOTE, "hda_get_amp_gain_mute(codec, %d, %x, resp=%x)",
-//	    node, payload, *resp);
+	ddf_msg(LVL_DEBUG2, "hda_get_amp_gain_mute(codec, %d, %x, resp=%x)",
+	    node, payload, *resp);
 	return rc;
 }
 
@@ -253,8 +253,8 @@ static errno_t hda_get_gpio_cnt(hda_codec_t *codec, int node, uint32_t *resp)
 
 static errno_t hda_set_amp_gain_mute(hda_codec_t *codec, int node, uint16_t payload)
 {
-//	ddf_msg(LVL_NOTE, "hda_set_amp_gain_mute(codec, %d, %x)",
-//	    node, payload);
+	ddf_msg(LVL_DEBUG2, "hda_set_amp_gain_mute(codec, %d, %x)",
+	    node, payload);
 	return hda_ccmd(codec, node, hda_amp_gain_mute_set, payload, NULL);
 }
 
@@ -361,7 +361,7 @@ static errno_t hda_clist_dump(hda_codec_t *codec, uint8_t aw)
 		cidx = 0;
 	}
 
-//	ddf_msg(LVL_NOTE, "longform:%d len:%d", longform, len);
+	ddf_msg(LVL_DEBUG2, "longform:%d len:%d", longform, len);
 
 	if (longform) {
 		epresp = 2;

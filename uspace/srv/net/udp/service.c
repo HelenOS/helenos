@@ -86,12 +86,7 @@ static errno_t udp_cassoc_queue_msg(udp_cassoc_t *cassoc, inet_ep2_t *epp,
 	rqe->msg = msg;
 	rqe->cassoc = cassoc;
 
-//	fibril_mutex_lock(&assoc->lock);
 	list_append(&rqe->link, &cassoc->client->crcv_queue);
-//	fibril_mutex_unlock(&assoc->lock);
-
-//	fibril_condvar_broadcast(&assoc->rcv_queue_cv);
-
 	return EOK;
 }
 

@@ -47,7 +47,9 @@
 enum xhci_trb_type {
 	XHCI_TRB_TYPE_RESERVED = 0,
 
-// Transfer ring:
+	/*
+	 * Transfer ring:
+	 */
 	XHCI_TRB_TYPE_NORMAL,
 	XHCI_TRB_TYPE_SETUP_STAGE,
 	XHCI_TRB_TYPE_DATA_STAGE,
@@ -57,7 +59,9 @@ enum xhci_trb_type {
 	XHCI_TRB_TYPE_EVENT_DATA,
 	XHCI_TRB_TYPE_NO_OP,
 
-// Command ring:
+	/*
+	 * Command ring:
+	 */
 	XHCI_TRB_TYPE_ENABLE_SLOT_CMD,
 	XHCI_TRB_TYPE_DISABLE_SLOT_CMD,
 	XHCI_TRB_TYPE_ADDRESS_DEVICE_CMD,
@@ -73,9 +77,13 @@ enum xhci_trb_type {
 	XHCI_TRB_TYPE_GET_PORT_BANDWIDTH_CMD,
 	XHCI_TRB_TYPE_FORCE_HEADER_CMD,
 	XHCI_TRB_TYPE_NO_OP_CMD,
-// Reserved: 24-31
+	/*
+	 * Reserved: 24-31
+	*/
 
-// Event ring:
+	/*
+	 * Event ring:
+	 */
 	XHCI_TRB_TYPE_TRANSFER_EVENT = 32,
 	XHCI_TRB_TYPE_COMMAND_COMPLETION_EVENT,
 	XHCI_TRB_TYPE_PORT_STATUS_CHANGE_EVENT,

@@ -380,8 +380,6 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 	/* Read syscall arguments */
 	rc = udebug_args_read(sess, thread_hash, sc_args);
 
-//	printf("[%d] ", thread_id);
-
 	if (rc != EOK) {
 		printf("error\n");
 		return;
@@ -453,7 +451,6 @@ static errno_t trace_loop(void *thread_hash_arg)
 		rc = udebug_go(sess, thread_hash,
 		    &ev_type, &val0, &val1);
 
-//		printf("rc = %d, ev_type=%d\n", rc, ev_type);
 		if (ev_type == UDEBUG_EVENT_FINISHED) {
 			/* Done tracing this thread */
 			break;

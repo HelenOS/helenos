@@ -54,7 +54,9 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	memset(instance, 0, sizeof(*instance));
 
 	EHCI_MEM32_WR(instance->horizontal, LINK_POINTER_TERM);
-//	EHCI_MEM32_WR(instance->current, LINK_POINTER_TERM);
+#if 0
+	EHCI_MEM32_WR(instance->current, LINK_POINTER_TERM);
+#endif
 	EHCI_MEM32_WR(instance->next, LINK_POINTER_TERM);
 	EHCI_MEM32_WR(instance->alternate, LINK_POINTER_TERM);
 	if (ep == NULL) {

@@ -203,10 +203,12 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 
 	/* modes taken from u-boot, for 1024x768 */
 	// TODO replace magic values with actual correct values
-//	regs->timing_h = 0x1a4024c9;
-//	regs->timing_v = 0x02c00509;
-//	regs->pol_freq = 0x00007028;
-//	regs->divisor  = 0x00010001;
+#if 0
+	regs->timing_h = 0x1a4024c9;
+	regs->timing_v = 0x02c00509;
+	regs->pol_freq = 0x00007028;
+	regs->divisor  = 0x00010001;
+#endif
 
 	/* setup output */
 	regs->size_lcd = size_reg;

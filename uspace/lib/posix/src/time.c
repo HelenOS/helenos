@@ -215,13 +215,13 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 	assert(res != NULL);
 
 	switch (clock_id) {
-		case CLOCK_REALTIME:
-			res->tv_sec = 0;
-			res->tv_nsec = 1000; /* Microsecond resolution. */
-			return 0;
-		default:
-			errno = EINVAL;
-			return -1;
+	case CLOCK_REALTIME:
+		res->tv_sec = 0;
+		res->tv_nsec = 1000; /* Microsecond resolution. */
+		return 0;
+	default:
+		errno = EINVAL;
+		return -1;
 	}
 }
 
@@ -239,14 +239,14 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
 	assert(tp != NULL);
 
 	switch (clock_id) {
-		case CLOCK_REALTIME:
-			gettimeofday(&tv, NULL);
-			tp->tv_sec = tv.tv_sec;
-			tp->tv_nsec = tv.tv_usec * 1000;
-			return 0;
-		default:
-			errno = EINVAL;
-			return -1;
+	case CLOCK_REALTIME:
+		gettimeofday(&tv, NULL);
+		tp->tv_sec = tv.tv_sec;
+		tp->tv_nsec = tv.tv_usec * 1000;
+		return 0;
+	default:
+		errno = EINVAL;
+		return -1;
 	}
 }
 
@@ -264,15 +264,15 @@ int clock_settime(clockid_t clock_id,
 	assert(tp != NULL);
 
 	switch (clock_id) {
-		case CLOCK_REALTIME:
-			// TODO: setting clock
-			// FIXME: HelenOS doesn't actually support hardware
-			//        clock yet
-			errno = EPERM;
-			return -1;
-		default:
-			errno = EINVAL;
-			return -1;
+	case CLOCK_REALTIME:
+		// TODO: setting clock
+		// FIXME: HelenOS doesn't actually support hardware
+		//        clock yet
+		errno = EPERM;
+		return -1;
+	default:
+		errno = EINVAL;
+		return -1;
 	}
 }
 
@@ -292,18 +292,18 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 	assert(rmtp != NULL);
 
 	switch (clock_id) {
-		case CLOCK_REALTIME:
-			// TODO: interruptible sleep
-			if (rqtp->tv_sec != 0) {
-				async_sleep(rqtp->tv_sec);
-			}
-			if (rqtp->tv_nsec != 0) {
-				async_usleep(rqtp->tv_nsec / 1000);
-			}
-			return 0;
-		default:
-			errno = EINVAL;
-			return -1;
+	case CLOCK_REALTIME:
+		// TODO: interruptible sleep
+		if (rqtp->tv_sec != 0) {
+			async_sleep(rqtp->tv_sec);
+		}
+		if (rqtp->tv_nsec != 0) {
+			async_usleep(rqtp->tv_nsec / 1000);
+		}
+		return 0;
+	default:
+		errno = EINVAL;
+		return -1;
 	}
 }
 

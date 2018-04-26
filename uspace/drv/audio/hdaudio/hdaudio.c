@@ -373,7 +373,6 @@ static void hdaudio_interrupt(ipc_call_t *icall, ddf_dev_t *dev)
 
 	if (0)
 		ddf_msg(LVL_NOTE, "## interrupt ##");
-//	ddf_msg(LVL_NOTE, "interrupt arg4=0x%x", (int)IPC_GET_ARG4(*icall));
 	hda_ctl_interrupt(hda->ctl);
 
 	if (IPC_GET_ARG3(*icall) != 0) {

@@ -44,8 +44,10 @@ void *mmap(void *start, size_t length, int prot, int flags, int fd,
 	if (!start)
 		start = AS_AREA_ANY;
 
-//	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
-//		return MAP_FAILED;
+#if 0
+	if (!((flags & MAP_SHARED) ^ (flags & MAP_PRIVATE)))
+		return MAP_FAILED;
+#endif
 
 	if (!(flags & MAP_ANONYMOUS))
 		return MAP_FAILED;

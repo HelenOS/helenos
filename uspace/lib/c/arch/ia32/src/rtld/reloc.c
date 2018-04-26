@@ -83,7 +83,9 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 	DPRINTF("address: 0x%" PRIxPTR ", entries: %zd\n", (uintptr_t)rt, rt_entries);
 
 	for (i = 0; i < rt_entries; ++i) {
-//		DPRINTF("symbol %d: ", i);
+#if 0
+		DPRINTF("symbol %d: ", i);
+#endif
 		r_offset = rt[i].r_offset;
 		r_info = rt[i].r_info;
 
@@ -99,15 +101,19 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 		r_ptr = (uint32_t *)(r_offset + m->bias);
 
 		if (sym->st_name != 0) {
-//			DPRINTF("rel_type: %x, rel_offset: 0x%x\n", rel_type, r_offset);
+#if 0
+			DPRINTF("rel_type: %x, rel_offset: 0x%x\n", rel_type, r_offset);
+#endif
 			sym_def = symbol_def_find(str_tab + sym->st_name,
 			    m, ssf_none, &dest);
 			DPRINTF("dest name: '%s'\n", dest->dyn.soname);
-//			DPRINTF("dest bias: 0x%x\n", dest->bias);
+			DPRINTF("dest bias: 0x%x\n", dest->bias);
 			if (sym_def) {
 				sym_addr = (uint32_t)
 				    symbol_get_addr(sym_def, dest, NULL);
-//				DPRINTF("symbol definition found, addr=0x%x\n", sym_addr);
+#if 0
+				DPRINTF("symbol definition found, addr=0x%x\n", sym_addr);
+#endif
 			} else {
 				printf("Definition of '%s' not found.\n",
 				    str_tab + sym->st_name);

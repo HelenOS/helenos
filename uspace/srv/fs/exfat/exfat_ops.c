@@ -1203,7 +1203,9 @@ static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
 	*rridxp = rootp->idx;
 
 	if (info != NULL) {
-//		str_cpy(info->label, FS_LABEL_MAXLEN + 1, label);
+#if 0
+		str_cpy(info->label, FS_LABEL_MAXLEN + 1, label);
+#endif
 	}
 
 	return EOK;

@@ -245,7 +245,9 @@ static errno_t req_get_port_status(usbvirt_device_t *device,
 	    UHCI2USB(val, STATUS_LOW_SPEED, USB2_HUB_PORT_STATUS_LOW_SPEED) |
 	    UHCI2USB(val, STATUS_CONNECTED_CHANGED, USB_HUB_PORT_STATUS_C_CONNECTION) |
 	    UHCI2USB(val, STATUS_ENABLED_CHANGED, USB2_HUB_PORT_STATUS_C_ENABLE) |
-//	    UHCI2USB(val, STATUS_SUSPEND, USB2_HUB_PORT_STATUS_C_SUSPEND) |
+#if 0
+	    UHCI2USB(val, STATUS_SUSPEND, USB2_HUB_PORT_STATUS_C_SUSPEND) |
+#endif
 	    (hub->reset_changed[port] ?  USB_HUB_PORT_STATUS_C_RESET : 0));
 	RH_DEBUG(hub, port, "Port status %" PRIx32 " (source %" PRIx16
 	    "%s)", uint32_usb2host(status), val,

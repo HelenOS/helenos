@@ -85,7 +85,7 @@ errno_t wav_parse_header(const void *hdata, const void **data, size_t *data_size
 		//http://www-mmsp.ece.mcgill.ca/documents/AudioFormats/WAVE/WAVE.html
 		if (error)
 			*error = "invalid subchunk1 size";
-//		return EINVAL;
+		return EINVAL;
 	}
 
 	if (uint16_t_le2host(header->audio_format) != FORMAT_LINEAR_PCM) {
@@ -99,7 +99,7 @@ errno_t wav_parse_header(const void *hdata, const void **data, size_t *data_size
 		//offset
 		if (error)
 			*error = "invalid subchunk2 id";
-//		return EINVAL;
+		return EINVAL;
 	}
 
 

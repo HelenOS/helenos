@@ -643,7 +643,7 @@ static void hda_ctl_process_rirb(hda_ctl_t *ctl)
 	while (true) {
 		rc = hda_rirb_read(ctl->hda, &resp);
 		if (rc != EOK) {
-//			ddf_msg(LVL_NOTE, "nothing in rirb");
+			ddf_msg(LVL_DEBUG2, "nothing in rirb");
 			break;
 		}
 

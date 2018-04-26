@@ -890,9 +890,11 @@ static int test_dlfcn(void)
 		return 1;
 #endif /* STATIC_EXE */
 
-//	printf("dlclose()... ");
-//	dlclose(handle);
-//	printf("Passed\n");
+#if 0
+	printf("dlclose()... ");
+	dlclose(handle);
+	printf("Passed\n");
+#endif
 
 	return 0;
 }

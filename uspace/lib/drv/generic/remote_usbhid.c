@@ -286,7 +286,6 @@ static void remote_usbhid_get_event_length(ddf_fun_t *, void *, cap_call_handle_
 static void remote_usbhid_get_event(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 static void remote_usbhid_get_report_descriptor_length(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 static void remote_usbhid_get_report_descriptor(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
-// static void remote_usbhid_(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
 
 /** Remote USB HID interface operations. */
 static const remote_iface_func_ptr_t remote_usbhid_iface_ops [] = {
@@ -304,8 +303,6 @@ const remote_iface_t remote_usbhid_iface = {
 	.methods = remote_usbhid_iface_ops
 };
 
-//usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-
 
 void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
     cap_call_handle_t chandle, ipc_call_t *call)
@@ -321,16 +318,7 @@ void remote_usbhid_get_event_length(ddf_fun_t *fun, void *iface,
 	}
 
 	size_t len = hid_iface->get_event_length(fun);
-//	if (len == 0) {
-//		len = EEMPTY;
-//	}
 	async_answer_1(chandle, EOK, len);
-
-//	if (len < 0) {
-//		async_answer_0(chandle, len);
-//	} else {
-//		async_answer_1(chandle, EOK, len);
-//	}
 }
 
 void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
@@ -351,10 +339,7 @@ void remote_usbhid_get_event(ddf_fun_t *fun, void *iface,
 		async_answer_0(chandle, EPARTY);
 		return;
 	}
-//	/* Check that length is even number. Truncate otherwise. */
-//	if ((len % 2) == 1) {
-//		len--;
-//	}
+
 	if (len == 0) {
 		async_answer_0(data_chandle, EINVAL);
 		async_answer_0(chandle, EINVAL);
