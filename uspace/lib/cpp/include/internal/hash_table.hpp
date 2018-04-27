@@ -576,7 +576,7 @@ namespace std::aux
                 {
                     if (idx_ < max_idx_)
                     {
-                        while (!table_[++idx_].head)
+                        while (!table_[++idx_].head && idx_ < max_idx_)
                         { /* DUMMY BODY */ }
 
                         if (idx_ < max_idx_)
@@ -601,7 +601,7 @@ namespace std::aux
                 {
                     if (idx_ < max_idx_)
                     {
-                        while (!table_[++idx_].head)
+                        while (!table_[++idx_].head && idx_ < max_idx_)
                         { /* DUMMY BODY */ }
 
                         if (idx_ < max_idx_)
@@ -692,7 +692,7 @@ namespace std::aux
                 {
                     if (idx_ < max_idx_)
                     {
-                        while (!table_[++idx_].head)
+                        while (!table_[++idx_].head && idx_ < max_idx_)
                         { /* DUMMY BODY */ }
 
                         if (idx_ < max_idx_)
@@ -717,7 +717,7 @@ namespace std::aux
                 {
                     if (idx_ < max_idx_)
                     {
-                        while (!table_[++idx_].head)
+                        while (!table_[++idx_].head && idx_ < max_idx_)
                         { /* DUMMY BODY */ }
 
                         if (idx_ < max_idx_)
@@ -995,10 +995,7 @@ namespace std::aux
                              other.max_load_factor_}
             {
                 for (const auto& x: other)
-                {
-                    auto spot = find_insertion_spot(key_extractor_(x));
-                    insert(spot, x);
-                }
+                    insert(x);
             }
 
             hash_table(hash_table&& other)
@@ -1047,9 +1044,10 @@ namespace std::aux
 
             iterator begin() noexcept
             {
+                auto idx = first_filled_bucket_();
                 return iterator{
-                    table_, size_type{}, bucket_count_,
-                    table_[0].head
+                    table_, idx, bucket_count_,
+                    table_[idx].head
                 };
             }
 
@@ -1070,9 +1068,10 @@ namespace std::aux
 
             const_iterator cbegin() const noexcept
             {
+                auto idx = first_filled_bucket_();
                 return const_iterator{
-                    table_, size_type{}, bucket_count_,
-                    table_[0].head
+                    table_, idx, bucket_count_,
+                    table_[idx].head
                 };
             }
 
@@ -1347,8 +1346,37 @@ namespace std::aux
 
             bool is_eq_to(const hash_table& other) const
             {
-                // TODO: implement
-                return false;
+                if (size() != other.size())
+                    return false;
+
+                auto it = begin();
+                while (it != end())
+                {
+                    /**
+                     * For each key K we will check how many
+                     * instances of K are there in the table.
+                     * Then we will check if the count for K
+                     * is equal to that amount.
+                     */
+
+                    size_type cnt{};
+                    auto tmp = it;
+
+                    while (key_eq_(key_extractor_(*it), key_extractor_(*tmp)))
+                    {
+                        ++cnt;
+                        if (++tmp == end())
+                            break;
+                    }
+
+                    auto other_cnt = other.count(key_extractor_(*it));
+                    if (cnt != other_cnt)
+                        return false;
+
+                    it = tmp; // tmp  is one past *it's key.
+                }
+
+                return true;
             }
 
             ~hash_table()
@@ -1428,6 +1456,27 @@ namespace std::aux
             size_type get_bucket_idx_(const key_type& key) const
             {
                 return hasher_(key) % bucket_count_;
+            }
+
+            size_type first_filled_bucket_() const
+            {
+                size_type res{};
+                while (res < bucket_count_)
+                {
+                    if (table_[res].head)
+                        return res;
+                    ++res;
+                }
+
+                /**
+                 * Note: This is used for iterators,
+                 *       so we need to return a valid index.
+                 *       But since table_[0].head is nullptr
+                 *       we know that if we return 0 the
+                 *       created iterator will test as equal
+                 *       to end().
+                 */
+                return 0;
             }
 
             friend Policy;
