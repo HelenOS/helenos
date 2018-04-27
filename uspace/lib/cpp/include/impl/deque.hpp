@@ -401,7 +401,7 @@ namespace std
             deque(deque&& other)
                 : allocator_{move(other.allocator_)},
                   front_bucket_idx_{other.front_bucket_idx_},
-                  back_bucket_idx_{other.front_bucket_idx_},
+                  back_bucket_idx_{other.back_bucket_idx_},
                   front_bucket_{other.front_bucket_},
                   back_bucket_{other.back_bucket_},
                   bucket_count_{other.bucket_count_},
