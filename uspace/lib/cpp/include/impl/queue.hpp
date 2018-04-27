@@ -29,10 +29,161 @@
 #ifndef LIBCPP_QUEUE
 #define LIBCPP_QUEUE
 
+#include <deque>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 namespace std
 {
+    /**
+     * 23.6.3, class template queue:
+     */
+
     template<class T, class Container = deque<T>>
-    class queue;
+    class queue
+    {
+        public:
+            using value_type      = typename Container::value_type;
+            using reference       = typename Container::reference;
+            using const_reference = typename Container::const_reference;
+            using size_type       = typename Container::size_type;
+            using container_type  = Container;
+
+            explicit queue(const container_type& cc)
+                : c{cc}
+            { /* DUMMY BODY */ }
+
+            explicit queue(container_type&& cc = container_type{})
+                : c{move(cc)}
+            { /* DUMMY BODY */ }
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            explicit queue(const Alloc& alloc)
+                : c{alloc}
+            { /* DUMMY BODY */}
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            queue(const container_type& cc, const Alloc& alloc)
+                : c{cc, alloc}
+            { /* DUMMY BODY */}
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            queue(container_type&& cc, const Alloc& alloc)
+                : c{move(cc), alloc}
+            { /* DUMMY BODY */}
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            queue(const queue& other, const Alloc& alloc)
+                : c{other.c, alloc}
+            { /* DUMMY BODY */}
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            queue(queue&& other, const Alloc& alloc)
+                : c{move(other.c), alloc}
+            { /* DUMMY BODY */}
+
+            bool empty() const
+            {
+                return c.empty();
+            }
+
+            size_type size() const
+            {
+                return c.size();
+            }
+
+            reference front()
+            {
+                return c.front();
+            }
+
+            const_reference front() const
+            {
+                return c.front();
+            }
+
+            reference back()
+            {
+                return c.back();
+            }
+
+            const_reference back() const
+            {
+                return c.back();
+            }
+
+            void push(const value_type& val)
+            {
+                c.push_back(val);
+            }
+
+            void push(value_type&& val)
+            {
+                c.push_back(forward<value_type>(val));
+            }
+
+            template<class... Args>
+            void emplace(Args&&... args)
+            {
+                c.emplace_back(forward<Args>(args)...);
+            }
+
+            void pop()
+            {
+                c.pop_front();
+            }
+
+        protected:
+            container_type c;
+
+        public: // The noexcept part of swap's declaration needs c to be declared.
+            void swap(queue& other)
+                noexcept(noexcept(swap(c, other.c)))
+            {
+                std::swap(c, other.c);
+            }
+
+        private:
+            template<class U, class C>
+            friend bool operator==(const queue<U, C>&, const queue<U, C>&);
+
+            template<class U, class C>
+            friend bool operator<(const queue<U, C>&, const queue<U, C>&);
+
+            template<class U, class C>
+            friend bool operator!=(const queue<U, C>&, const queue<U, C>&);
+
+            template<class U, class C>
+            friend bool operator>(const queue<U, C>&, const queue<U, C>&);
+
+            template<class U, class C>
+            friend bool operator>=(const queue<U, C>&, const queue<U, C>&);
+
+            template<class U, class C>
+            friend bool operator<=(const queue<U, C>&, const queue<U, C>&);
+    };
+
+    template<class T, class Container, class Alloc>
+    struct uses_allocator<queue<T, Container>, Alloc>
+        : uses_allocator<Container, Alloc>
+    { /* DUMMY BODY */ };
 
     template<
         class T, class Container = vector<T>,
