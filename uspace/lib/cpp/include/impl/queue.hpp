@@ -29,6 +29,7 @@
 #ifndef LIBCPP_QUEUE
 #define LIBCPP_QUEUE
 
+#include <algorithm>
 #include <deque>
 #include <memory>
 #include <type_traits>
@@ -51,6 +52,10 @@ namespace std
             using size_type       = typename Container::size_type;
             using container_type  = Container;
 
+        protected:
+            container_type c;
+
+        public:
             explicit queue(const container_type& cc)
                 : c{cc}
             { /* DUMMY BODY */ }
@@ -150,10 +155,6 @@ namespace std
                 c.pop_front();
             }
 
-        protected:
-            container_type c;
-
-        public: // The noexcept part of swap's declaration needs c to be declared.
             void swap(queue& other)
                 noexcept(noexcept(swap(c, other.c)))
             {
@@ -185,11 +186,165 @@ namespace std
         : uses_allocator<Container, Alloc>
     { /* DUMMY BODY */ };
 
+    /**
+     * 23.6.4, class template priority_queue:
+     */
+
     template<
         class T, class Container = vector<T>,
         class Compare = less<typename Container::value_type>
     >
-    class priority_queue;
+    class priority_queue
+    {
+        public:
+            using value_type      = typename Container::value_type;
+            using reference       = typename Container::reference;
+            using const_reference = typename Container::const_reference;
+            using size_type       = typename Container::size_type;
+            using container_type  = Container;
+
+        /* protected: */
+            using compare_type = Compare;
+
+            compare_type comp;
+            container_type c;
+
+        public:
+            priority_queue(const compare_type& cmp, const container_type& cc)
+                : comp{cmp}, c{cc}
+            {
+                make_heap(c.begin(), c.end(), comp);
+            }
+
+            explicit priority_queue(const compare_type& cmp = compare_type{},
+                                    container_type&& cc = container_type{})
+                : comp{cmp}, c{move(cc)}
+            {
+                make_heap(c.begin(), c.end(), comp);
+            }
+
+            template<class InputIterator>
+            priority_queue(InputIterator first, InputIterator last,
+                           const compare_type& cmp,
+                           const container_type& cc)
+                : comp{cmp}, c{cc}
+            {
+                c.insert(c.end(), first, last);
+                make_heap(c.begin(), c.end(), comp);
+            }
+
+            template<class InputIterator>
+            priority_queue(InputIterator first, InputIterator last,
+                           const compare_type& cmp = compare_type{},
+                           container_type&& cc = container_type{})
+                : comp{cmp}, c{move(cc)}
+            {
+                c.insert(c.end(), first, last);
+                make_heap(c.begin(), c.end(), comp);
+            }
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            explicit priority_queue(const Alloc& alloc)
+                : comp{}, c{alloc}
+            { /* DUMMY BODY */ }
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            priority_queue(const compare_type& cmp, const Alloc& alloc)
+                : comp{cmp}, c{alloc}
+            { /* DUMMY BODY */ }
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            priority_queue(const compare_type& cmp, const container_type& cc,
+                           const Alloc& alloc)
+                : comp{cmp}, c{cc, alloc}
+            { /* DUMMY BODY */ }
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            priority_queue(const compare_type& cmp, container_type&& cc,
+                           const Alloc& alloc)
+                : comp{cmp}, c{move(cc), alloc}
+            { /* DUMMY BODY */ }
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            priority_queue(const priority_queue& other, const Alloc& alloc)
+                : comp{other.comp}, c{other.c, alloc}
+            { /* DUMMY BODY */ }
+
+            template<
+                class Alloc,
+                class = enable_if_t<uses_allocator<container_type, Alloc>::value, void>
+            >
+            priority_queue(priority_queue&& other, const Alloc& alloc)
+                : comp{move(other.comp)}, c{move(other.c), alloc}
+            { /* DUMMY BODY */ }
+
+            bool empty() const
+            {
+                return c.empty();
+            }
+
+            size_type size() const
+            {
+                return c.size();
+            }
+
+            const_reference top() const
+            {
+                return c.front();
+            }
+
+            void push(const value_type& val)
+            {
+                c.push_back(val);
+                push_heap(c.begin(), c.end(), comp);
+            }
+
+            void push(value_type&& val)
+            {
+                c.push_back(forward<value_type>(val));
+                push_heap(c.begin(), c.end(), comp);
+            }
+
+            template<class... Args>
+            void emplace(Args&&... args)
+            {
+                c.emplace_back(forward<Args>(args)...);
+                push_heap(c.begin(), c.end(), comp);
+            }
+
+            void pop()
+            {
+                pop_heap(c.begin(), c.end(), comp);
+                c.pop_back();
+            }
+
+            void swap(priority_queue& other)
+                noexcept(noexcept(swap(c, other.c)) && noexcept(swap(comp, other.comp)))
+            {
+                std::swap(c, other.c);
+                std::swap(comp, other.comp);
+            }
+    };
+
+    template<class T, class Container, class Compare, class Alloc>
+    struct uses_allocator<priority_queue<T, Container, Compare>, Alloc>
+        : uses_allocator<Container, Alloc>
+    { /* DUMMY BODY */ };
 
     template<class T, class Container>
     bool operator==(const queue<T, Container>& lhs,
