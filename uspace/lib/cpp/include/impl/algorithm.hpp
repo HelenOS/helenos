@@ -662,7 +662,38 @@ namespace std
      * 25.4.1.1, sort:
      */
 
-    // TODO: implement
+    template<class RandomAccessIterator, class Compare>
+    void make_heap(RandomAccessIterator, RandomAccessIterator,
+                   Compare);
+
+    template<class RandomAccessIterator, class Compare>
+    void sort_heap(RandomAccessIterator, RandomAccessIterator,
+                   Compare);
+
+    template<class RandomAccessIterator>
+    void sort(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        using value_type = typename iterator_traits<RandomAccessIterator>::value_type;
+
+        sort(first, last, less<value_type>{});
+    }
+
+    template<class RandomAccessIterator, class Compare>
+    void sort(RandomAccessIterator first, RandomAccessIterator last,
+              Compare comp)
+    {
+        /**
+         * Note: This isn't the most effective approach,
+         *       but since we already have these two functions
+         *       and they satisfy asymptotic limitations
+         *       imposed by the standard, we're using them at
+         *       the moment. Might be good to change it to qsort
+         *       or merge sort later.
+         */
+
+        make_heap(first, last, comp);
+        sort_heap(first, last, comp);
+    }
 
     /**
      * 25.4.1.2, stable_sort:
