@@ -151,7 +151,7 @@ namespace std::aux
         }
 
         template<class Table, class Key>
-        static typename Table::hint_type find_insertion_spot(const Table& table, const Key& key)
+        static typename Table::place_type find_insertion_spot(const Table& table, const Key& key)
         {
             auto idx = table.get_bucket_idx_(key);
             return make_tuple(
@@ -373,7 +373,7 @@ namespace std::aux
         }
 
         template<class Table, class Key>
-        static typename Table::hint_type find_insertion_spot(const Table& table, const Key& key)
+        static typename Table::place_type find_insertion_spot(const Table& table, const Key& key)
         {
             auto idx = table.get_bucket_idx_(key);
             auto head = table.table_[idx].head;
@@ -972,7 +972,7 @@ namespace std::aux
 
             using node_type = list_node<value_type>;
 
-            using hint_type = tuple<
+            using place_type = tuple<
                 hash_table_bucket<value_type, size_type>*,
                 list_node<value_type>*, size_type
             >;
@@ -1345,7 +1345,7 @@ namespace std::aux
                 rehash(count / max_load_factor_ + 1);
             }
 
-            bool is_eq_to(const hash_table& other)
+            bool is_eq_to(const hash_table& other) const
             {
                 // TODO: implement
                 return false;
@@ -1358,17 +1358,17 @@ namespace std::aux
                     delete[] table_;
             }
 
-            hint_type find_insertion_spot(const key_type& key)
+            place_type find_insertion_spot(const key_type& key) const
             {
                 return Policy::find_insertion_spot(*this, key);
             }
 
-            hint_type find_insertion_spot(key_type&& key)
+            place_type find_insertion_spot(key_type&& key) const
             {
                 return Policy::find_insertion_spot(*this, key);
             }
 
-            const key_type& get_key(const value_type& val)
+            const key_type& get_key(const value_type& val) const
             {
                 return key_extractor_(val);
             }
@@ -1391,7 +1391,7 @@ namespace std::aux
             hash_table_bucket<value_type, size_type>* head(size_type idx)
             {
                 if (idx < bucket_count_)
-                    return &table_[idx];
+                    return table_[idx]->head;
                 else
                     return nullptr;
             }
