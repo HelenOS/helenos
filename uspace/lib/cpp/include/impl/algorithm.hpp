@@ -34,6 +34,9 @@
 
 namespace std
 {
+    template<class T>
+    struct less;
+
     /**
      * 25.2, non-modyfing sequence operations:
      */
@@ -805,35 +808,228 @@ namespace std
      * 25.4.6, heap operations:
      */
 
+    namespace aux
+    {
+        template<class T>
+        T heap_parent(T idx)
+        {
+            return (idx - 1) / 2;
+        }
+
+        template<class T>
+        T heap_left_child(T idx)
+        {
+            return 2 * idx + 1;
+        }
+
+        template<class T>
+        T heap_right_child(T idx)
+        {
+            return 2 * idx + 2;
+        }
+
+        template<class RandomAccessIterator, class Size, class Compare>
+        void correct_children(RandomAccessIterator first,
+                              Size idx, Size count, Compare comp)
+        {
+            using aux::heap_left_child;
+            using aux::heap_right_child;
+
+            auto left = heap_left_child(idx);
+            auto right = heap_right_child(idx);
+
+            bool left_incorrect{comp(first[idx], first[left])};
+            bool right_incorrect{comp(first[idx], first[right])};
+            while ((left < count && left_incorrect) ||
+                   (right < count && right_incorrect))
+            {
+                if (right >= count || (left_incorrect && comp(first[right], first[left])))
+                {
+                    swap(first[idx], first[left]);
+
+                    idx = left;
+                }
+                else if (right < count && right_incorrect)
+                {
+                    swap(first[idx], first[right]);
+
+                    idx = right;
+                } // Else should not happen because of the while condition.
+
+                left = heap_left_child(idx);
+                right = heap_right_child(idx);
+
+                left_incorrect = comp(first[idx], first[left]);
+                right_incorrect = comp(first[idx], first[right]);
+            }
+        }
+    }
+
     /**
      * 25.4.6.1, push_heap:
      */
 
-    // TODO: implement
+    template<class RandomAccessIterator>
+    void push_heap(RandomAccessIterator first,
+                   RandomAccessIterator last)
+    {
+        using value_type = typename iterator_traits<RandomAccessIterator>::value_type;
+
+        push_heap(first, last, less<value_type>{});
+    }
+
+    template<class RandomAccessIterator, class Compare>
+    void push_heap(RandomAccessIterator first,
+                   RandomAccessIterator last,
+                   Compare comp)
+    {
+        using aux::heap_parent;
+
+        auto count = distance(first, last);
+        if (count <= 1)
+            return;
+
+        auto idx = count - 1;
+        auto parent = heap_parent(idx);
+        while (idx > 0 && comp(first[parent], first[idx]))
+        {
+            swap(first[idx], first[parent]);
+
+            idx = parent;
+            parent = heap_parent(idx);
+        }
+    }
 
     /**
      * 25.4.6.2, pop_heap:
      */
 
-    // TODO: implement
+    template<class RandomAccessIterator>
+    void pop_heap(RandomAccessIterator first,
+                  RandomAccessIterator last)
+    {
+        using value_type = typename iterator_traits<RandomAccessIterator>::value_type;
+
+        pop_heap(first, last, less<value_type>{});
+    }
+
+    template<class RandomAccessIterator, class Compare>
+    void pop_heap(RandomAccessIterator first,
+                  RandomAccessIterator last,
+                  Compare comp)
+    {
+        auto count = distance(first, last);
+        if (count <= 1)
+            return;
+
+        swap(first[0], first[count - 1]);
+        aux::correct_children(first, decltype(count){}, count - 2, comp);
+    }
 
     /**
      * 25.4.6.3, make_heap:
      */
 
-    // TODO: implement
+    template<class RandomAccessIterator>
+    void make_heap(RandomAccessIterator first,
+                   RandomAccessIterator last)
+    {
+        using value_type = typename iterator_traits<RandomAccessIterator>::value_type;
+
+        make_heap(first, last, less<value_type>{});
+    }
+
+    template<class RandomAccessIterator, class Compare>
+    void make_heap(RandomAccessIterator first,
+                   RandomAccessIterator last,
+                   Compare comp)
+    {
+        auto count = distance(first, last);
+        if (count <= 1)
+            return;
+
+        for (auto i = count; i > 0; --i)
+        {
+            auto idx = i - 1;
+
+            aux::correct_children(first, idx, count, comp);
+        }
+    }
 
     /**
      * 25.4.6.4, sort_heap:
      */
 
-    // TODO: implement
+    template<class RandomAccessIterator>
+    void sort_heap(RandomAccessIterator first,
+                   RandomAccessIterator last)
+    {
+        using value_type = typename iterator_traits<RandomAccessIterator>::value_type;
+
+        sort_heap(first, last, less<value_type>{});
+    }
+
+    template<class RandomAccessIterator, class Compare>
+    void sort_heap(RandomAccessIterator first,
+                   RandomAccessIterator last,
+                   Compare comp)
+    {
+        while (first != last)
+            pop_heap(first, last--, comp);
+    }
 
     /**
      * 25.4.6.5, is_heap:
      */
 
-    // TODO: implement
+    template<class RandomAccessIterator>
+    auto is_heap_until(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        using value_type = typename iterator_traits<RandomAccessIterator>::value_type;
+
+        return is_heap_until(first, last, less<value_type>{});
+    }
+
+    template<class RandomAccessIterator, class Compare>
+    auto is_heap_until(RandomAccessIterator first, RandomAccessIterator last,
+                       Compare comp)
+    {
+        using aux::heap_left_child;
+        using aux::heap_right_child;
+
+        auto count = distance(first, last);
+        if (count < 2)
+            return last;
+
+        auto res = first;
+        for (decltype(count) idx = 0; idx < count; ++idx)
+        {
+            auto left = heap_left_child(idx);
+            auto right = heap_right_child(idx);
+
+            if (left < count && comp(first[idx], first[left]))
+                return res;
+            if (right < count && comp(first[idx], first[right]))
+                return res;
+
+            ++res;
+        }
+
+        return res;
+    }
+
+    template<class RandomAccessIterator>
+    bool is_heap(RandomAccessIterator first, RandomAccessIterator last)
+    {
+        return is_heap_until(first, last) == last;
+    }
+
+    template<class RandomAccessIterator, class Compare>
+    bool is_heap(RandomAccessIterator first, RandomAccessIterator last,
+                 Compare comp)
+    {
+        return is_heap_until(first, last, comp) == last;
+    }
 
     /**
      * 25.4.7, minimum and maximum:
