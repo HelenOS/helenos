@@ -90,29 +90,10 @@ namespace std::aux
 
             hash_table_const_iterator operator++(int)
             {
-                auto tmp_current = current_;
-                auto tmp_idx = idx_;
+                auto tmp = *this;
+                ++(*this);
 
-                current_ = current_->next;
-                if (current_ == table_[idx_].head)
-                {
-                    if (idx_ < max_idx_)
-                    {
-                        while (!table_[++idx_].head && idx_ < max_idx_)
-                        { /* DUMMY BODY */ }
-
-                        if (idx_ < max_idx_)
-                            current_ = table_[idx_].head;
-                        else
-                            current_ = nullptr;
-                    }
-                    else
-                        current_ = nullptr;
-                }
-
-                return hash_table_const_iterator{
-                    table_, tmp_idx, max_idx_, tmp_current
-                };
+                return tmp;
             }
 
             list_node<value_type>* node()
@@ -206,29 +187,10 @@ namespace std::aux
 
             hash_table_iterator operator++(int)
             {
-                auto tmp_current = current_;
-                auto tmp_idx = idx_;
+                auto tmp = *this;
+                ++(*this);
 
-                current_ = current_->next;
-                if (current_ == table_[idx_].head)
-                {
-                    if (idx_ < max_idx_)
-                    {
-                        while (!table_[++idx_].head && idx_ < max_idx_)
-                        { /* DUMMY BODY */ }
-
-                        if (idx_ < max_idx_)
-                            current_ = table_[idx_].head;
-                        else
-                            current_ = nullptr;
-                    }
-                    else
-                        current_ = nullptr;
-                }
-
-                return hash_table_iterator{
-                    table_, tmp_idx, max_idx_, tmp_current
-                };
+                return tmp;
             }
 
             list_node<value_type>* node()
@@ -318,12 +280,10 @@ namespace std::aux
 
             hash_table_const_local_iterator operator++(int)
             {
-                auto tmp = current_;
-                current_ = current_->next;
-                if (current_ == head_)
-                    current_ = nullptr;
+                auto tmp = *this;
+                ++(*this);
 
-                return hash_table_const_local_iterator{head_, tmp};
+                return tmp;
             }
 
 
@@ -396,12 +356,10 @@ namespace std::aux
 
             hash_table_local_iterator operator++(int)
             {
-                auto tmp = current_;
-                current_ = current_->next;
-                if (current_ == head_)
-                    current_ = nullptr;
+                auto tmp = *this;
+                ++(*this);
 
-                return hash_table_local_iterator{head_, tmp};
+                return tmp;
             }
 
             list_node<value_type>* node()
