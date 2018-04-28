@@ -98,13 +98,60 @@ namespace std
      */
 
     template<class T>
-    class reference_wrapper;
+    class reference_wrapper
+    {
+        public:
+            using type = T;
+            // TODO: conditional typedefs
+
+            reference_wrapper(type& val) noexcept
+                : data_{&val}
+            { /* DUMMY BODY */ }
+
+            reference_wrapper(type&&) = delete;
+
+            reference_wrapper(const reference_wrapper& other) noexcept
+                : data_{other.data_}
+            { /* DUMMY BODY */ }
+
+            reference_wrapper& operator=(const reference_wrapper& other) noexcept
+            {
+                data_ = other.data_;
+
+                return *this;
+            }
+
+            operator type&() const noexcept
+            {
+                return *data_;
+            }
+
+            type& get() const noexcept
+            {
+                return *data_;
+            }
+
+            template<class... Args>
+            result_of_t<type&(Args&&...)> operator()(Args&&... args) const
+            {
+                return invoke(*data_, std::forward<Args>(args)...);
+            }
+
+        private:
+            type* data_;
+    };
 
     template<class T>
-    reference_wrapper<T> ref(T& t) noexcept;
+    reference_wrapper<T> ref(T& t) noexcept
+    {
+        return reference_wrapper<T>{t};
+    }
 
     template<class T>
-    reference_wrapper<const T> cref(const T& t) noexcept;
+    reference_wrapper<const T> cref(const T& t) noexcept
+    {
+        return reference_wrapper<const T>{t};
+    }
 
     template<class T>
     void ref(const T&&) = delete;
@@ -113,10 +160,16 @@ namespace std
     void cref(const T&&) = delete;
 
     template<class T>
-    reference_wrapper<T> ref(reference_wrapper<T> ref) noexcept;
+    reference_wrapper<T> ref(reference_wrapper<T> t) noexcept
+    {
+        return ref(t.get());
+    }
 
     template<class T>
-    reference_wrapper<const T> cref(reference_wrapper<T> ref) noexcept;
+    reference_wrapper<const T> cref(reference_wrapper<T> t) noexcept
+    {
+        return cref(t.get());
+    }
 
     /**
      * 20.9.5, arithmetic operations:
