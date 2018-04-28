@@ -145,10 +145,9 @@ namespace std::aux
                 return size_;
             }
 
-            template<class Allocator>
-            size_type max_size(Allocator& alloc)
+            size_type max_size(allocator_type& alloc)
             {
-                return allocator_traits<Allocator>::max_size(alloc);
+                return allocator_traits<allocator_type>::max_size(alloc);
             }
 
             iterator begin() noexcept
