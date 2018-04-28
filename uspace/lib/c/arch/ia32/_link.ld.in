@@ -1,6 +1,6 @@
 #ifndef SHLIB
 STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
-ENTRY(__entry)
+ENTRY(_start)
 #endif
 
 PHDRS {

@@ -32,11 +32,11 @@
 #include "../../../generic/private/libc.h"
 #include <stddef.h>
 
-extern void __entry(void);
+extern void _start(void);
 
 /* Normally, the entry point is defined in assembly for the architecture. */
 
-void __entry(void)
+void _start(void)
 {
 	__libc_main(NULL);
 }

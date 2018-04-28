@@ -31,11 +31,11 @@
 
 #include "../../../generic/private/libc.h"
 
-extern void __entry(void);
+extern void _start(void);
 
 // FIXME: Implement properly.
 
-void __entry(void)
+void _start(void)
 {
 	__libc_main((void *) 0);
 }

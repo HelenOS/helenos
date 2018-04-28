@@ -1,5 +1,5 @@
 STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
-ENTRY(__entry)
+ENTRY(__start)
 
 PHDRS {
 	text PT_LOAD FILEHDR PHDRS FLAGS(5);

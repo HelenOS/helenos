@@ -36,7 +36,7 @@
 #
 # %rdi contains the PCB pointer
 #
-SYMBOL(__entry)
+SYMBOL(_start)
 	#
 	# Create the first stack frame.
 	#

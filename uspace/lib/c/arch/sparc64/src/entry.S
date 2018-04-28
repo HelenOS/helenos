@@ -37,7 +37,7 @@
 # %o0 contains uarg
 # %o1 contains pcb_ptr
 #
-SYMBOL(__entry)
+SYMBOL(_start)
 	#
 	# Create the first stack frame.
 	#

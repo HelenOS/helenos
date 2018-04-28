@@ -39,7 +39,7 @@ INTEL_SEP = 11
 #
 # %edi contains the PCB pointer
 #
-SYMBOL(__entry)
+SYMBOL(_start)
 	mov %ss, %ax
 	mov %ax, %ds
 	mov %ax, %es

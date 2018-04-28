@@ -36,7 +36,7 @@
 #
 # r2 contains the PCB pointer
 #
-SYMBOL(__entry)
+SYMBOL(_start)
 	alloc loc0 = ar.pfs, 0, 1, 2, 0
 	movl gp = __gp
 

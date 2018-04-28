@@ -39,8 +39,8 @@
 #
 # $a0 ($4) contains the PCB pointer
 #
-FUNCTION_BEGIN(__entry)
-	.ent __entry
+FUNCTION_BEGIN(__start)
+	.ent __start
 	.frame $sp, ABI_STACK_FRAME, $ra
 	.cpload $t9
 
@@ -61,5 +61,5 @@ FUNCTION_BEGIN(__entry)
 	# Not reached.
 	#
 	addiu $sp, ABI_STACK_FRAME
-	.end __entry
-FUNCTION_END(__entry)
+	.end __start
+FUNCTION_END(__start)
