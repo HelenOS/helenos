@@ -45,6 +45,6 @@ SYMBOL(__entry)
 	flushw
 	add %g0, -0x7ff, %fp
 
-	# Pass pcb_ptr as the first argument to __main()
-	call __main
+	# Pass pcb_ptr as the first argument to __libc_main()
+	call __libc_main
 	mov %i1, %o0

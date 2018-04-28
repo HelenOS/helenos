@@ -45,5 +45,5 @@ SYMBOL(__entry)
 	movq %rsp, %rbp
 
 	# %rdi was deliberately chosen as the first argument is also in %rdi
-	# Pass PCB pointer to __main (no operation)
-	call __main
+	# Pass PCB pointer to __libc_main (no operation)
+	call __libc_main

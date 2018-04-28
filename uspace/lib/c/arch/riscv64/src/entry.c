@@ -37,7 +37,7 @@ extern void __entry(void);
 
 void __entry(void)
 {
-	__main((void *) 0);
+	__libc_main((void *) 0);
 }
 
 /** @}

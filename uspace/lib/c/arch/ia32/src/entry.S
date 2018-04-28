@@ -64,6 +64,6 @@ SYMBOL(__entry)
 	pushl $0
 	movl %esp, %ebp
 
-	# Pass the PCB pointer to __main as the first argument
+	# Pass the PCB pointer to __libc_main as the first argument
 	pushl %edi
-	call __main
+	call __libc_main

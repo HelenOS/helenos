@@ -66,7 +66,7 @@
 
 static bool env_setup = false;
 
-void __main(void *pcb_ptr)
+void __libc_main(void *pcb_ptr)
 {
 	/* Initialize user task run-time environment */
 	__malloc_init();

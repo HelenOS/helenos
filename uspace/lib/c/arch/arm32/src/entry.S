@@ -50,9 +50,9 @@ SYMBOL(__entry)
 	push {fp, ip, lr, pc}
 	sub fp, ip, #4
 
-	# Pass pcb_ptr to __main as the first argument (in r0)
+	# Pass pcb_ptr to __libc_main as the first argument (in r0)
 	mov r0, r1
-	bl __main
+	bl __libc_main
 
 .data
 
