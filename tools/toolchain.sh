@@ -30,11 +30,8 @@
 
 BINUTILS_VERSION="2.30"
 BINUTILS_RELEASE=""
-## BINUTILS_PATCHES="toolchain-binutils-2.23.1.patch"
 GCC_VERSION="7.3.0"
-## GCC_PATCHES="toolchain-gcc-4.8.1-targets.patch toolchain-gcc-4.8.1-headers.patch"
 GDB_VERSION="8.1"
-## GDB_PATCHES="toolchain-gdb-7.6.1.patch"
 
 BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"
@@ -252,18 +249,6 @@ unpack_tarball() {
 	check_error $? "Error unpacking ${DESC}."
 }
 
-patch_sources() {
-	PATCH_FILE="$1"
-	PATCH_STRIP="$2"
-	DESC="$3"
-
-	change_title "Patching ${DESC}"
-	echo " >>> Patching ${DESC} with ${PATCH_FILE}"
-
-	patch -t "-p${PATCH_STRIP}" <"$PATCH_FILE"
-	check_error $? "Error patching ${DESC}."
-}
-
 prepare() {
 	show_dependencies
 	show_countdown 10
@@ -289,17 +274,6 @@ prepare() {
 	unpack_tarball "${BASEDIR}/downloads/${BINUTILS}" "binutils"
 	unpack_tarball "${BASEDIR}/downloads/${GCC}" "GCC"
 	unpack_tarball "${BASEDIR}/downloads/${GDB}" "GDB"
-
-	echo ">>> Applying patches"
-	for p in $BINUTILS_PATCHES ; do
-		patch_sources "${SRCDIR}/${p}" 0 "binutils"
-	done
-	for p in $GCC_PATCHES ; do
-		patch_sources "${SRCDIR}/${p}" 0 "GCC"
-	done
-	for p in $GDB_PATCHES ; do
-		patch_sources "${SRCDIR}/${p}" 0 "GDB"
-	done
 
 	echo ">>> Downloading GCC prerequisites"
 	cd "gcc-${GCC_VERSION}"
