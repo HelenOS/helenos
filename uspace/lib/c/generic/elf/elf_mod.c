@@ -288,7 +288,11 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 		    (void *)elf->info->dynamic);
 		break;
 	case 0x70000000:
-		/* FIXME: MIPS reginfo */
+	case 0x70000001:
+	case 0x70000002:
+	case 0x70000003:
+		// FIXME: Architecture-specific headers.
+		/* PT_MIPS_REGINFO, PT_MIPS_ABIFLAGS, PT_ARM_UNWIND, ... */
 		break;
 	case PT_TLS:
 		/* Parse TLS program header */
