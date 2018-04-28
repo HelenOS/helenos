@@ -193,6 +193,12 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 	else
 		elf->bias = 0;
 
+	/* Ensure valid TLS info even if there is no TLS header. */
+	elf->info->tls.tdata = NULL;
+	elf->info->tls.tdata_size = 0;
+	elf->info->tls.tbss_size = 0;
+	elf->info->tls.tls_align = 1;
+
 	elf->info->interp = NULL;
 	elf->info->dynamic = NULL;
 
