@@ -43,33 +43,147 @@ namespace std::aux
         }
 
         template<class Tree, class Key>
-        static pair<
-            typename Tree::node_type*,
-            typename Tree::node_type*
-        > erase(const Tree& tree, const Key& key)
+        static typename Tree::size_type erase(Tree& tree, const Key& key)
         {
-            // TODO:
+            using size_type = typename Tree::size_type;
+
+            auto it = tree.find(key);
+            if (it == tree.end())
+                return size_type{};
+            else
+                tree.delete_node(it.node());
+            return size_type{1};
+
+            // This is the multi version -.-
+            /* size_type res{}; */
+            /* while (tree.keys_equal(tree.get_key(*it), key)) */
+            /* { */
+            /*     auto node = it.node(); */
+            /*     ++it; */
+
+            /*     tree->delete_node(node); */
+            /*     ++res; */
+            /* } */
+
+            /* return res; */
         }
 
         template<class Tree, class Key>
-        static typename Tree::iterator lower_bound(const Tree& tree, const Key& key)
+        static typename Tree::iterator lower_bound(Tree& tree, const Key& key)
         {
-            // TODO:
+            using iterator = typename Tree::iterator;
+
+            auto node = tree.find_parent_for_insertion(key);
+            iterator it{node, false};
+            auto beg = tree.begin();
+            auto end = tree.end();
+
+            if (tree.key_compare_(tree.get_key(*it), key))
+            {
+                // Predecessor.
+                if (it != end)
+                    return ++it;
+                else
+                    return it;
+            }
+            else if (tree.key_compare_(key, tree.get_key(*it)))
+            {
+                // Successor.
+                if (it != beg)
+                    return --it;
+                else
+                    return it;
+            }
+            else // Perfect match.
+                return it;
+
+            return it;
         }
 
         template<class Tree, class Key>
-        static typename Tree::iterator upper_bound(const Tree& tree, const Key& key)
+        static typename Tree::const_iterator lower_bound_const(const Tree& tree, const Key& key)
         {
-            // TODO:
+            using const_iterator = typename Tree::const_iterator;
+
+            auto node = tree.find_parent_for_insertion(key);
+            const_iterator it{node, false};
+            auto beg = tree.begin();
+            auto end = tree.end();
+
+            if (tree.key_compare_(tree.get_key(*it), key))
+            {
+                // Predecessor.
+                if (it != end)
+                    return ++it;
+                else
+                    return it;
+            }
+            else if (tree.key_compare_(key, tree.get_key(*it)))
+            {
+                // Successor.
+                if (it != beg)
+                    return --it;
+                else
+                    return it;
+            }
+            else // Perfect match.
+                return it;
+
+            return it;
+        }
+
+        template<class Tree, class Key>
+        static typename Tree::iterator upper_bound(Tree& tree, const Key& key)
+        {
+            /**
+             * If key isn't in the tree, we get it's
+             * successor or tree.end(). If key is
+             * in the tree, we get it.
+             * In the first case, the successor is also
+             * the upper bound, so we just return it,
+             * otherwise (as long as it != end()) we
+             * increment.
+             */
+            auto it = lower_bound(tree, key);
+            if (it == tree.end())
+                return it;
+            else if (tree.keys_equal(key, *it))
+                return ++it;
+            else
+                return it;
+        }
+
+        template<class Tree, class Key>
+        static typename Tree::const_iterator upper_bound_const(const Tree& tree, const Key& key)
+        {
+            /**
+             * If key isn't in the tree, we get it's
+             * successor or tree.end(). If key is
+             * in the tree, we get it.
+             * In the first case, the successor is also
+             * the upper bound, so we just return it,
+             * otherwise (as long as it != end()) we
+             * increment.
+             */
+            auto it = lower_bound_const(tree, key);
+            if (it == tree.end())
+                return it;
+            else if (tree.keys_equal(key, *it))
+                return ++it;
+            else
+                return it;
         }
 
         template<class Tree, class Key>
         static pair<
             typename Tree::iterator,
             typename Tree::iterator
-        > equal_range(const Tree& tree, const Key& key)
+        > equal_range(Tree& tree, const Key& key)
         {
-            // TODO:
+            return make_pair(
+                lower_bound(tree, key),
+                upper_bound(tree, key)
+            );
         }
 
         template<class Tree, class Key>
@@ -78,7 +192,10 @@ namespace std::aux
             typename Tree::const_iterator
         > equal_range_const(const Tree& tree, const Key& key)
         {
-            // TODO:
+            return make_pair(
+                lower_bound_const(tree, key),
+                upper_bound_const(tree, key)
+            );
         }
 
         /**
@@ -106,7 +223,7 @@ namespace std::aux
                 return make_pair(iterator{tree.root_}, true);
             }
 
-            if (tree.get_key(parent->value) == tree.get_key(val))
+            if (tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent}, false);
 
             auto node = new node_type{move(val)};
@@ -134,7 +251,7 @@ namespace std::aux
                 return make_pair(iterator{tree.root_}, true);
             }
 
-            if (tree.get_key(parent->value) == tree.get_key(val))
+            if (tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent}, false);
 
             auto node = new node_type{val};
@@ -162,7 +279,7 @@ namespace std::aux
                 return make_pair(iterator{tree.root_}, true);
             }
 
-            if (tree.get_key(parent->value) == tree.get_key(val))
+            if (tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent}, false);
 
             auto node = new node_type{forward<Value>(val)};
