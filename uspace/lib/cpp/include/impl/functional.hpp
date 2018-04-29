@@ -259,6 +259,18 @@ namespace std
          * whether a functor is transparent.
          */
         struct transparent_t;
+
+        template<class T, class = void>
+        struct is_transparent: false_type
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        struct is_transparent<T, void_t<typename T::is_transparent>>
+            : true_type
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        inline constexpr bool is_transparent_v = is_transparent<T>::value;
     }
 
     template<>
