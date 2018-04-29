@@ -55,6 +55,9 @@ namespace std::aux
             using iterator             = Iterator;
             using const_iterator       = ConstIterator;
 
+            using reverse_iterator       = std::reverse_iterator<iterator>;
+            using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
             using node_type = rbtree_node<value_type>;
 
             rbtree(const key_compare& kcmp = key_compare{})
@@ -62,13 +65,32 @@ namespace std::aux
                   key_extractor_{}
             { /* DUMMY BODY */ }
 
-            rbtree(const rbtree& other);
+            rbtree(const rbtree& other); // TODO:
 
-            rbtree(rbtree&& other);
+            rbtree(rbtree&& other)
+                : root_{other.root_}, size_{other.size_},
+                  key_compare_{move(other.key_compare_)},
+                  key_extractor_{move(other.key_extractor_)}
+            {
+                other.root_ = nullptr;
+                other.size_ = size_type{};
+            }
 
-            rbtree& operator=(const rbtree& other);
+            rbtree& operator=(const rbtree& other)
+            {
+                auto tmp{other};
+                tmp.swap(*this);
 
-            rbtree& operator=(rbtree&& other);
+                return *this;
+            }
+
+            rbtree& operator=(rbtree&& other)
+            {
+                rbtree tmp{move(other)};
+                tmp.swap(*this);
+
+                return *this;
+            }
 
             bool empty() const noexcept
             {
@@ -105,6 +127,26 @@ namespace std::aux
                 return cend();
             }
 
+            reverse_iterator rbegin()
+            {
+                return make_reverse_iterator(end());
+            }
+
+            const_reverse_iterator rbegin() const
+            {
+                return make_reverse_iterator(cend());
+            }
+
+            reverse_iterator rend()
+            {
+                return make_reverse_iterator(begin());
+            }
+
+            const_reverse_iterator rend() const
+            {
+                return make_reverse_iterator(cbegin());
+            }
+
             const_iterator cbegin() const
             {
                 return const_iterator{find_smallest_(), false};
@@ -113,6 +155,16 @@ namespace std::aux
             const_iterator cend() const
             {
                 return const_iterator{find_largest_(), true};
+            }
+
+            const_reverse_iterator crbegin() const
+            {
+                return make_reverse_iterator(cend());
+            }
+
+            const_reverse_iterator crend() const
+            {
+                return make_reverse_iterator(cbegin());
             }
 
             template<class... Args>
@@ -190,12 +242,20 @@ namespace std::aux
 
             iterator find(const key_type& key)
             {
-                // TODO: implement
+                auto node = find_(key);
+                if (node)
+                    return iterator{node, false};
+                else
+                    return end();
             }
 
-            const_iterator find(const key_type&& key) const
+            const_iterator find(const key_type& key) const
             {
-                // TODO: implement
+                auto node = find_(key);
+                if (node)
+                    return const_iterator{node, false};
+                else
+                    return end();
             }
 
             size_type count(const key_type& key) const
@@ -272,6 +332,22 @@ namespace std::aux
             key_compare key_compare_;
             key_extract key_extractor_;
 
+            node_type* find_(const key_type& key) const
+            {
+                auto current = root_;
+                while (current != nullptr)
+                {
+                    if (key_compare_(key, key_extractor_(current->value)))
+                        current = current->left;
+                    else if (key == key_extractor_(current->value))
+                        return current;
+                    else
+                        current = current->right;
+                }
+
+                return nullptr;
+            }
+
             node_type* find_smallest_() const
             {
                 if (root_)
@@ -299,6 +375,11 @@ namespace std::aux
             }
 
             void repair_after_insert_(node_type* node)
+            {
+                // TODO: implement
+            }
+
+            void repair_after_erase_(node_type* node)
             {
                 // TODO: implement
             }
