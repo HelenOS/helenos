@@ -60,12 +60,21 @@ namespace std::aux
 
             using node_type = rbtree_node<value_type>;
 
+            // TODO: make find/bounds etc templated with key type
+            //       for transparent comparators and leave their management for the
+            //       outer containers
+
             rbtree(const key_compare& kcmp = key_compare{})
                 : root_{nullptr}, size_{}, key_compare_{},
                   key_extractor_{}
             { /* DUMMY BODY */ }
 
-            rbtree(const rbtree& other); // TODO:
+            rbtree(const rbtree& other)
+                : rbtree{other.key_compare_}
+            {
+                for (const auto& x: other)
+                    insert(x);
+            }
 
             rbtree(rbtree&& other)
                 : root_{other.root_}, size_{other.size_},
@@ -171,6 +180,12 @@ namespace std::aux
             pair<iterator, bool> emplace(Args&&... args)
             {
                 auto ret = Policy::emplace(*this, forward<Args>(args)...);
+                if (!ret.second)
+                    return ret;
+                ++size_;
+
+                repair_after_insert_(ret.first.node());
+                update_root_(ret.first.node());
 
                 return ret;
             }
@@ -180,6 +195,7 @@ namespace std::aux
                 auto ret = Policy::insert(*this, val);
                 if (!ret.second)
                     return ret;
+                ++size_;
 
                 repair_after_insert_(ret.first.node());
                 update_root_(ret.first.node());
@@ -192,6 +208,7 @@ namespace std::aux
                 auto ret = Policy::insert(*this, forward<value_type>(val));
                 if (!ret.second)
                     return ret;
+                ++size_;
 
                 repair_after_insert_(ret.first.node());
                 update_root_(ret.first.node());
@@ -201,18 +218,19 @@ namespace std::aux
 
             size_type erase(const key_type& key)
             {
-                auto ret = Policy::erase(*this, key);
-                if (ret == 0)
-                    return ret;
-                // TODO: problem - we don't have a node ptr
-                //       solution: return a pair<size_type, node_type*>
-
-                return ret;
+                return Policy::erase(*this, key);
             }
 
             iterator erase(const_iterator it)
             {
-                // TODO: implement
+                if (it == cend())
+                    return end();
+
+                auto node = const_cast<node_type*>(it.node());
+                ++it;
+
+                delete_node(node);
+                return iterator{const_cast<node_type*>(it.node()), it.end()};
             }
 
             void clear() noexcept
@@ -295,8 +313,16 @@ namespace std::aux
 
             bool is_eq_to(const rbtree& other) const
             {
-                // TODO: implement
-                return false;
+                if (size_ != other.size())
+                    return false;
+
+                auto it1 = begin();
+                auto it2 = other.begin();
+
+                while (keys_equal(*it1++, *it2++))
+                { /* DUMMY BODY */ }
+
+                return (it1 == end()) && (it2 == other.end());
             }
 
             const key_type& get_key(const value_type& val) const
@@ -307,6 +333,11 @@ namespace std::aux
             bool keys_comp(const key_type& key, const value_type& val) const
             {
                 return key_compare_(key, key_extractor_(val));
+            }
+
+            bool keys_equal(const key_type& k1, const key_type& k2) const
+            {
+                return !key_compare_(k1, k2) && !key_compare_(k2, k1);
             }
 
             node_type* find_parent_for_insertion(const value_type& val) const
@@ -326,6 +357,46 @@ namespace std::aux
                 return parent;
             }
 
+            void delete_node(node_type* node)
+            {
+                if (!node)
+                    return;
+
+                --size_;
+
+                if (node->left && node->right)
+                {
+                    node->swap(node->successor());
+
+                    // Node now has at most one child.
+                    delete_node(node);
+
+                    return;
+                }
+
+                auto child = node->right ? node->right : node->left;
+                if (!child)
+                {
+                    // Simply remove the node.
+                    node->unlink();
+
+                    delete node;
+                }
+                else
+                {
+                    // Replace with the child.
+                    child->parent = node->parent;
+                    if (node->is_left_child())
+                        child->parent->left = child;
+                    else if (node->is_left_child())
+                        child->parent->right = child;
+
+                    // Repair if needed.
+                    repair_after_erase_(node, child);
+                    update_root_(child);
+                }
+            }
+
         private:
             node_type* root_;
             size_type size_;
@@ -339,10 +410,10 @@ namespace std::aux
                 {
                     if (key_compare_(key, key_extractor_(current->value)))
                         current = current->left;
-                    else if (key == key_extractor_(current->value))
-                        return current;
-                    else
+                    else if (key_compare_(key_extractor_(current->value), key))
                         current = current->right;
+                    else
+                        return current;
                 }
 
                 return nullptr;
@@ -379,7 +450,7 @@ namespace std::aux
                 // TODO: implement
             }
 
-            void repair_after_erase_(node_type* node)
+            void repair_after_erase_(node_type* node, node_type* child)
             {
                 // TODO: implement
             }
