@@ -36,7 +36,87 @@ namespace std::aux
 {
     struct rbtree_single_policy
     {
-        // TODO:
+        template<class Tree, class Key>
+        static typename Tree::size_type count(const Tree& tree, const Key& key)
+        {
+            return tree.find(key) == tree.end() ? 0 : 1;
+        }
+
+        template<class Tree, class Key>
+        static pair<
+            typename Tree::node_type*,
+            typename Tree::node_type*
+        > erase(const Tree& tree, const Key& key)
+        {
+            // TODO:
+        }
+
+        template<class Tree, class Key>
+        static typename Tree::iterator lower_bound(const Tree& tree, const Key& key)
+        {
+            // TODO:
+        }
+
+        template<class Tree, class Key>
+        static typename Tree::iterator upper_bound(const Tree& tree, const Key& key)
+        {
+            // TODO:
+        }
+
+        template<class Tree, class Key>
+        static pair<
+            typename Tree::iterator,
+            typename Tree::iterator
+        > equal_range(const Tree& tree, const Key& key)
+        {
+            // TODO:
+        }
+
+        template<class Tree, class Key>
+        static pair<
+            typename Tree::const_iterator,
+            typename Tree::const_iterator
+        > equal_range_const(const Tree& tree, const Key& key)
+        {
+            // TODO:
+        }
+
+        /**
+         * Note: We have to duplicate code for emplace, insert(const&)
+         *       and insert(&&) here, because the node (which makes distinction
+         *       between the arguments) is only created if the value isn't
+         *       in the tree already.
+         */
+
+        template<class Tree, class... Args>
+        static pair<
+            typename Tree::iterator, bool
+        > emplace(Tree& tree, Args&&... args)
+        {
+            using value_type = typename Tree::value_type;
+            using iterator   = typename Tree::iterator;
+            using node_type  = typename Tree::node_type;
+
+            auto val = value_type{forward<Args>(args)...};
+            auto parent = tree.find_parent_for_insertion(val);
+            if (!parent)
+            {
+                tree.root_ = new node_type{move(val)};
+
+                return make_pair(iterator{tree.root_}, true);
+            }
+
+            if (tree.get_key(parent->value) == tree.get_key(val))
+                return make_pair(iterator{parent}, false);
+
+            auto node = new node_type{move(val)};
+            if (tree.keys_comp(tree.get_key(val), parent->value))
+                parent->add_left_child(node);
+            else
+                parent->add_right_child(node);
+
+            return make_pair(iterator{node}, true);
+        }
 
         template<class Tree, class Value>
         static pair<
