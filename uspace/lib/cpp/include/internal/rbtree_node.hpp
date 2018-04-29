@@ -29,6 +29,8 @@
 #ifndef LIBCPP_INTERNAL_RBTREE_NODE
 #define LIBCPP_INTERNAL_RBTREE_NODE
 
+#include <utility>
+
 namespace std::aux
 {
     enum class rbcolor
@@ -94,6 +96,14 @@ namespace std::aux
                 return false;
         }
 
+        bool is_right_child() const
+        {
+            if (parent)
+                return parent->right == this;
+            else
+                return false;
+        }
+
         void rotate_left()
         {
             // TODO:
@@ -122,6 +132,20 @@ namespace std::aux
             return res;
         }
 
+        rbtree_node* successor()
+        {
+            if (right)
+                return right->find_smallest();
+            else
+            {
+                auto current = this;
+                while (!current->is_left_child())
+                    current = current->parent;
+
+                return current->parent;
+            }
+        }
+
         void add_left_child(rbtree_node* node)
         {
             if (left)
@@ -138,6 +162,43 @@ namespace std::aux
 
             right = node;
             node->parent = this;
+        }
+
+        void swap(rbtree_node* other)
+        {
+            /**
+             * Parent can be null so we check both ways.
+             */
+            if (is_left_child())
+                parent->left = other;
+            else if (is_right_child())
+                parent->right = other;
+
+            if (other->is_left_child())
+                other->parent->left = this;
+            else if (other->is_right_child())
+                other->parent->right = this;
+
+            if (left)
+                left->parent = other;
+            if (right)
+                right->parent = other;
+            if (other->left)
+                other->left->parent = this;
+            if (other->right)
+                other->right->parent = this;
+
+            std::swap(parent, other->parent);
+            std::swap(left, other->left);
+            std::swap(right, other->right);
+        }
+
+        void unlink()
+        {
+            if (is_left_child())
+                parent->left = nullptr;
+            else if (is_right_child())
+                parent->right = nullptr;
         }
 
         ~rbtree_node()
