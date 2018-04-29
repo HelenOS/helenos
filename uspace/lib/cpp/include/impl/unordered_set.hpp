@@ -449,8 +449,8 @@ namespace std
             static constexpr size_type default_bucket_count_{16};
 
             template<class K, class H, class P, class A>
-            friend bool operator==(unordered_set<K, H, P, A>&,
-                                   unordered_set<K, H, P, A>&);
+            friend bool operator==(const unordered_set<K, H, P, A>&,
+                                   const unordered_set<K, H, P, A>&);
     };
 
     /**
@@ -865,8 +865,8 @@ namespace std
             static constexpr size_type default_bucket_count_{16};
 
             template<class K, class H, class P, class A>
-            friend bool operator==(unordered_multiset<K, H, P, A>&,
-                                   unordered_multiset<K, H, P, A>&);
+            friend bool operator==(const unordered_multiset<K, H, P, A>&,
+                                   const unordered_multiset<K, H, P, A>&);
     };
 
     template<class Key, class Hash, class Pred, class Alloc>
@@ -886,29 +886,29 @@ namespace std
     }
 
     template<class Key, class Hash, class Pred, class Alloc>
-    bool operator==(unordered_set<Key, Hash, Pred, Alloc>& lhs,
-                    unordered_set<Key, Hash, Pred, Alloc>& rhs)
+    bool operator==(const unordered_set<Key, Hash, Pred, Alloc>& lhs,
+                    const unordered_set<Key, Hash, Pred, Alloc>& rhs)
     {
         return lhs.table_.is_eq_to(rhs.table_);
     }
 
     template<class Key, class Hash, class Pred, class Alloc>
-    bool operator!=(unordered_set<Key, Hash, Pred, Alloc>& lhs,
-                    unordered_set<Key, Hash, Pred, Alloc>& rhs)
+    bool operator!=(const unordered_set<Key, Hash, Pred, Alloc>& lhs,
+                    const unordered_set<Key, Hash, Pred, Alloc>& rhs)
     {
         return !(lhs == rhs);
     }
 
     template<class Key, class Hash, class Pred, class Alloc>
-    bool operator==(unordered_multiset<Key, Hash, Pred, Alloc>& lhs,
-                    unordered_multiset<Key, Hash, Pred, Alloc>& rhs)
+    bool operator==(const unordered_multiset<Key, Hash, Pred, Alloc>& lhs,
+                    const unordered_multiset<Key, Hash, Pred, Alloc>& rhs)
     {
         return lhs.table_.is_eq_to(rhs.table_);
     }
 
     template<class Key, class Value, class Hash, class Pred, class Alloc>
-    bool operator!=(unordered_multiset<Key, Hash, Pred, Alloc>& lhs,
-                    unordered_multiset<Key, Hash, Pred, Alloc>& rhs)
+    bool operator!=(const unordered_multiset<Key, Hash, Pred, Alloc>& lhs,
+                    const unordered_multiset<Key, Hash, Pred, Alloc>& rhs)
     {
         return !(lhs == rhs);
     }
