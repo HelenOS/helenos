@@ -435,22 +435,22 @@ namespace std::aux
                     return nullptr;
             }
 
-            void update_root_(node_type* node)
+            void update_root_(const node_type* node)
             {
                 if (!node)
                     return;
 
-                root_ = node;
+                root_ = const_cast<node_type*>(node);
                 while (root_->parent)
                     root_ = root_->parent;
             }
 
-            void repair_after_insert_(node_type* node)
+            void repair_after_insert_(const node_type* node)
             {
                 // TODO: implement
             }
 
-            void repair_after_erase_(node_type* node, node_type* child)
+            void repair_after_erase_(const node_type* node, const node_type* child)
             {
                 // TODO: implement
             }
