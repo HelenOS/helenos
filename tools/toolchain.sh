@@ -28,16 +28,20 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+BINUTILS_GDB_GIT="https://github.com/HelenOS/binutils-gdb.git"
+
+BINUTILS_BRANCH="binutils-2_30-helenos"
 BINUTILS_VERSION="2.30"
-BINUTILS_RELEASE=""
-GCC_VERSION="7.3.0"
+
+GDB_BRANCH="gdb-8_1-helenos"
 GDB_VERSION="8.1"
+
+GCC_GIT="https://github.com/HelenOS/gcc.git"
+GCC_BRANCH="7_3_0-helenos"
+GCC_VERSION="7.3.0"
 
 BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"
-BINUTILS="binutils-${BINUTILS_VERSION}${BINUTILS_RELEASE}.tar.bz2"
-GCC="gcc-${GCC_VERSION}.tar.xz"
-GDB="gdb-${GDB_VERSION}.tar.gz"
 
 REAL_INSTALL=true
 USE_HELENOS_TARGET=false
@@ -48,19 +52,6 @@ check_error() {
 		echo "Script failed: $2"
 
 		exit 1
-	fi
-}
-
-check_md5() {
-	FILE="$1"
-	SUM="$2"
-
-	COMPUTED="`md5sum "${FILE}" | cut -d' ' -f1`"
-	if [ "${SUM}" != "${COMPUTED}" ] ; then
-		echo
-		echo "Checksum of ${FILE} does not match."
-
-		exit 2
 	fi
 }
 
@@ -98,10 +89,7 @@ show_usage() {
 	echo "not want to run the script under the super user."
 	echo
 	echo "The --helenos-target will build HelenOS-specific toolchain"
-	echo "(i.e. it will use *-helenos-* triplet instead of *-linux-*)."
-	echo "This toolchain is installed into /usr/local/cross-helenos by"
-	echo "default. The settings can be changed by setting environment"
-	echo "variable CROSS_HELENOS_PREFIX."
+	echo "(i.e. it will use *-helenos triplet instead of *-linux-*)."
 	echo "Using the HelenOS-specific toolchain is still an experimental"
 	echo "feature that is not fully supported."
 	echo
@@ -145,33 +133,6 @@ show_dependencies() {
 	echo " - native C and C++ compiler, assembler and linker"
 	echo " - native C and C++ standard library with headers"
 	echo
-}
-
-download_fetch() {
-	SOURCE="$1"
-	FILE="$2"
-	CHECKSUM="$3"
-
-	if [ ! -f "${FILE}" ] ; then
-		change_title "Downloading ${FILE}"
-		wget -c "${SOURCE}${FILE}" -O "${FILE}".part
-		check_error $? "Error downloading ${FILE}."
-
-		mv "${FILE}".part "${FILE}"
-	fi
-
-	check_md5 "${FILE}" "${CHECKSUM}"
-}
-
-source_check() {
-	FILE="$1"
-
-	if [ ! -f "${FILE}" ] ; then
-		echo
-		echo "File ${FILE} not found."
-
-		exit 4
-	fi
 }
 
 cleanup_dir() {
@@ -225,30 +186,6 @@ check_dirs() {
 	fi
 }
 
-unpack_tarball() {
-	FILE="$1"
-	DESC="$2"
-
-	change_title "Unpacking ${DESC}"
-	echo " >>> Unpacking ${DESC}"
-
-	case "${FILE}" in
-		*.gz)
-			tar -xzf "${FILE}"
-			;;
-		*.xz)
-			tar -xJf "${FILE}"
-			;;
-		*.bz2)
-			tar -xjf "${FILE}"
-			;;
-		*)
-			check_error 1 "Don't know how to unpack ${DESC}."
-			;;
-	esac
-	check_error $? "Error unpacking ${DESC}."
-}
-
 prepare() {
 	show_dependencies
 	show_countdown 10
@@ -257,23 +194,15 @@ prepare() {
 	cd "${BASEDIR}/downloads"
 	check_error $? "Change directory failed."
 
-	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
-	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
-	GDB_SOURCE="ftp://ftp.gnu.org/gnu/gdb/"
+	echo ">>> Downloading sources"
+	git clone --depth 1 -b "$BINUTILS_BRANCH" "$BINUTILS_GDB_GIT" "binutils-$BINUTILS_VERSION"
+	git clone --depth 1 -b "$GDB_BRANCH" "$BINUTILS_GDB_GIT" "gdb-$GDB_VERSION"
+	git clone --depth 1 -b "$GCC_BRANCH" "$GCC_GIT" "gcc-$GCC_VERSION"
 
-	echo ">>> Downloading tarballs"
-
-	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "cc47a2f256b4a593206b4d7e62a60b32"
-	download_fetch "${GCC_SOURCE}" "${GCC}" "be2da21680f27624f3a87055c4ba5af2"
-	download_fetch "${GDB_SOURCE}" "${GDB}" "0c85ecbb43569ec43b1c9230622e84ab"
-
-	echo ">>> Unpacking tarballs"
-	cd "${WORKDIR}"
-	check_error $? "Change directory failed."
-
-	unpack_tarball "${BASEDIR}/downloads/${BINUTILS}" "binutils"
-	unpack_tarball "${BASEDIR}/downloads/${GCC}" "GCC"
-	unpack_tarball "${BASEDIR}/downloads/${GDB}" "GDB"
+	# If the directory already existed, pull upstream changes.
+	git -C "binutils-$BINUTILS_VERSION" pull
+	git -C "gdb-$GDB_VERSION" pull
+	git -C "gcc-$GCC_VERSION" pull
 
 	echo ">>> Downloading GCC prerequisites"
 	cd "gcc-${GCC_VERSION}"
@@ -283,52 +212,40 @@ prepare() {
 
 set_target_from_platform() {
 	case "$1" in
-		"amd64")
-			LINUX_TARGET="amd64-unknown-elf"
-			HELENOS_TARGET="amd64-helenos"
-			;;
 		"arm32")
-			LINUX_TARGET="arm-linux-gnueabi"
-			HELENOS_TARGET="arm-helenos-gnueabi"
+			GNU_ARCH="arm"
 			;;
 		"ia32")
-			LINUX_TARGET="i686-pc-linux-gnu"
-			HELENOS_TARGET="i686-pc-helenos"
-			;;
-		"ia64")
-			LINUX_TARGET="ia64-pc-linux-gnu"
-			HELENOS_TARGET="ia64-pc-helenos"
+			GNU_ARCH="i686"
 			;;
 		"mips32")
-			LINUX_TARGET="mipsel-linux-gnu"
-			HELENOS_TARGET="mipsel-helenos"
+			GNU_ARCH="mipsel"
 			;;
 		"mips32eb")
-			LINUX_TARGET="mips-linux-gnu"
-			HELENOS_TARGET="mips-helenos"
+			GNU_ARCH="mips"
 			;;
 		"mips64")
-			LINUX_TARGET="mips64el-linux-gnu"
-			HELENOS_TARGET="mips64el-helenos"
+			GNU_ARCH="mips64el"
 			;;
 		"ppc32")
-			LINUX_TARGET="ppc-linux-gnu"
-			HELENOS_TARGET="ppc-helenos"
-			;;
-		"ppc64")
-			LINUX_TARGET="ppc64-linux-gnu"
-			HELENOS_TARGET="ppc64-helenos"
-			;;
-		"riscv64")
-			LINUX_TARGET="riscv64-unknown-linux-gnu"
-			HELENOS_TARGET="riscv64-helenos"
-			;;
-		"sparc64")
-			LINUX_TARGET="sparc64-linux-gnu"
-			HELENOS_TARGET="sparc64-helenos"
+			GNU_ARCH="ppc"
 			;;
 		*)
-			check_error 1 "No target known for $1."
+			GNU_ARCH="$1"
+			;;
+	esac
+
+	HELENOS_TARGET="${GNU_ARCH}-helenos"
+
+	case "$1" in
+		"amd64")
+			LINUX_TARGET="${GNU_ARCH}-unknown-elf"
+			;;
+		"arm32")
+			LINUX_TARGET="${GNU_ARCH}-linux-gnueabi"
+			;;
+		*)
+			LINUX_TARGET="${GNU_ARCH}-linux-gnu"
 			;;
 	esac
 }
@@ -354,12 +271,27 @@ build_target() {
 		CROSS_PREFIX="/usr/local/cross"
 	fi
 
+	if [ -z "$JOBS" ] ; then
+		JOBS=`nproc`
+	fi
+
 	PREFIX="${CROSS_PREFIX}/${TARGET}"
 
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
 	mkdir -p "${WORKDIR}"
 	check_dirs "${PREFIX}" "${WORKDIR}"
+
+	if $USE_HELENOS_TARGET ; then
+		echo ">>> Creating build sysroot"
+		mkdir -p "${WORKDIR}/sysroot/include"
+		mkdir "${WORKDIR}/sysroot/lib"
+		cp -r -L -t "${WORKDIR}/sysroot/include" \
+			${SRCDIR}/../abi/include/* \
+			${SRCDIR}/../uspace/lib/c/arch/${PLATFORM}/include/* \
+			${SRCDIR}/../uspace/lib/c/include/*
+		check_error $? "Failed to create build sysroot."
+	fi
 
 	echo ">>> Processing binutils (${PLATFORM})"
 	mkdir -p "${BINUTILSDIR}"
@@ -369,13 +301,18 @@ build_target() {
 	change_title "binutils: configure (${PLATFORM})"
 	CFLAGS=-Wno-error "${BASEDIR}/downloads/binutils-${BINUTILS_VERSION}/configure" \
 		"--target=${TARGET}" \
-		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
-		--disable-nls --disable-werror --enable-gold \
-		--enable-deterministic-archives
+		"--prefix=${PREFIX}" \
+		"--program-prefix=${TARGET}-" \
+		--disable-nls \
+		--disable-werror \
+		--enable-gold \
+		--enable-deterministic-archives \
+		--disable-gdb \
+		--with-sysroot
 	check_error $? "Error configuring binutils."
 
 	change_title "binutils: make (${PLATFORM})"
-	make all
+	make all -j$JOBS
 	check_error $? "Error compiling binutils."
 
 	change_title "binutils: install (${PLATFORM})"
@@ -388,22 +325,48 @@ build_target() {
 	cd "${GCCDIR}"
 	check_error $? "Change directory failed."
 
+	if $USE_HELENOS_TARGET ; then
+		SYSROOT=--with-sysroot --with-build-sysroot="${WORKDIR}/sysroot"
+	else
+		SYSROOT=--without-headers
+	fi
+
 	change_title "GCC: configure (${PLATFORM})"
 	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gcc-${GCC_VERSION}/configure" \
 		"--target=${TARGET}" \
-		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
-		--with-gnu-as --with-gnu-ld --disable-nls --disable-threads \
-		--enable-languages=c,objc,c++,obj-c++ \
-		--disable-multilib --disable-libgcj --without-headers \
-		--disable-shared --enable-lto --disable-werror
+		"--prefix=${PREFIX}" \
+		"--program-prefix=${TARGET}-" \
+		--with-gnu-as \
+		--with-gnu-ld \
+		--disable-nls \
+		--enable-languages=c,objc,c++,obj-c++,go \
+		--enable-lto \
+		--disable-shared \
+		--disable-werror \
+		$SYSROOT
 	check_error $? "Error configuring GCC."
 
 	change_title "GCC: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gcc
+	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gcc -j$JOBS
 	check_error $? "Error compiling GCC."
+
+	if $USE_HELENOS_TARGET ; then
+		PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libgcc -j$JOBS
+		check_error $? "Error compiling libgcc."
+		# TODO: needs some extra care
+		#PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libatomic -j$JOBS
+		#check_error $? "Error compiling libatomic."
+		#PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-target-libstdc++-v3 -j$JOBS
+		#check_error $? "Error compiling libstdc++."
+	fi
 
 	change_title "GCC: install (${PLATFORM})"
 	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gcc "DESTDIR=${INSTALL_DIR}"
+	if $USE_HELENOS_TARGET ; then
+		PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libgcc "DESTDIR=${INSTALL_DIR}"
+		#PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libatomic "DESTDIR=${INSTALL_DIR}"
+		#PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-target-libstdc++-v3 "DESTDIR=${INSTALL_DIR}"
+	fi
 	check_error $? "Error installing GCC."
 
 
@@ -415,16 +378,17 @@ build_target() {
 	change_title "GDB: configure (${PLATFORM})"
 	PATH="$PATH:${INSTALL_DIR}/${PREFIX}/bin" "${BASEDIR}/downloads/gdb-${GDB_VERSION}/configure" \
 		"--target=${TARGET}" \
-		"--prefix=${PREFIX}" "--program-prefix=${TARGET}-" \
-		--enable-werror=no --without-guile
+		"--prefix=${PREFIX}" \
+		"--program-prefix=${TARGET}-" \
+		--enable-werror=no
 	check_error $? "Error configuring GDB."
 
 	change_title "GDB: make (${PLATFORM})"
-	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all
+	PATH="${PATH}:${PREFIX}/bin:${INSTALL_DIR}/${PREFIX}/bin" make all-gdb -j$JOBS
 	check_error $? "Error compiling GDB."
 
 	change_title "GDB: make (${PLATFORM})"
-	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install "DESTDIR=${INSTALL_DIR}"
+	PATH="${PATH}:${INSTALL_DIR}/${PREFIX}/bin" make install-gdb "DESTDIR=${INSTALL_DIR}"
 	check_error $? "Error installing GDB."
 
 	# Symlink clang and lld to the install path.
