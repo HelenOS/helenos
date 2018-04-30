@@ -663,7 +663,7 @@ namespace std
             }
 
             template<class... Args>
-            pair<iterator, bool> emplace(Args&&... args)
+            iterator emplace(Args&&... args)
             {
                 return table_.emplace(forward<Args>(args)...);
             }
@@ -671,27 +671,27 @@ namespace std
             template<class... Args>
             iterator emplace_hint(const_iterator, Args&&... args)
             {
-                return emplace(forward<Args>(args)...).first;
+                return emplace(forward<Args>(args)...);
             }
 
-            pair<iterator, bool> insert(const value_type& val)
+            iterator insert(const value_type& val)
             {
                 return table_.insert(val);
             }
 
-            pair<iterator, bool> insert(value_type&& val)
+            iterator insert(value_type&& val)
             {
                 return table_.insert(forward<value_type>(val));
             }
 
             iterator insert(const_iterator, const value_type& val)
             {
-                return insert(val).first;
+                return insert(val);
             }
 
             iterator insert(const_iterator, value_type&& val)
             {
-                return insert(forward<value_type>(val)).first;
+                return insert(forward<value_type>(val));
             }
 
             template<class InputIterator>
