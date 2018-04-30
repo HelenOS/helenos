@@ -77,6 +77,11 @@ typedef struct {
 	/** Entry point */
 	entry_point_t entry;
 
+	/** The base address where the file has been loaded.
+	 *  Points to the ELF file header.
+	 */
+	void *base;
+
 	/** ELF interpreter name or NULL if statically-linked */
 	const char *interp;
 
@@ -100,16 +105,13 @@ typedef struct {
 	/** Flags passed to the ELF loader. */
 	eld_flags_t flags;
 
-	/** A copy of the ELF file header */
-	elf_header_t *header;
-
 	/** Store extracted info here */
 	elf_finfo_t *info;
 } elf_ld_t;
 
 extern const char *elf_error(unsigned int);
-extern int elf_load_file(int, size_t, eld_flags_t, elf_finfo_t *);
-extern int elf_load_file_name(const char *, size_t, eld_flags_t, elf_finfo_t *);
+extern int elf_load_file(int, eld_flags_t, elf_finfo_t *);
+extern int elf_load_file_name(const char *, eld_flags_t, elf_finfo_t *);
 
 #endif
 

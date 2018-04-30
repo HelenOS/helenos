@@ -52,7 +52,6 @@ errno_t rtld_init_static(void)
 	runtime_env = &rt_env_static;
 	list_initialize(&runtime_env->modules);
 	list_initialize(&runtime_env->imodules);
-	runtime_env->next_bias = 0x2000000;
 	runtime_env->program = NULL;
 	runtime_env->next_id = 1;
 
@@ -119,9 +118,6 @@ errno_t rtld_prog_process(elf_finfo_t *p_info, rtld_t **rre)
 
 	/* Pointer to program module. Used as root of the module graph. */
 	env->program = prog;
-
-	/* Work around non-existent memory space allocation. */
-	env->next_bias = 0x1000000;
 
 	/*
 	 * Now we can continue with loading all other modules.
