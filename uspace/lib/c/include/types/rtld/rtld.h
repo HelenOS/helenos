@@ -60,9 +60,6 @@ typedef struct rtld {
 
 	/** List of initial modules */
 	list_t imodules;
-
-	/** Temporary hack to place each module at different address. */
-	uintptr_t next_bias;
 } rtld_t;
 
 #endif

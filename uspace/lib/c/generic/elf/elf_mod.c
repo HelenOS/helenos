@@ -57,6 +57,7 @@
 #include <entry_point.h>
 #include <str_error.h>
 #include <stdlib.h>
+#include <macros.h>
 
 #include <elf/elf_load.h>
 
@@ -72,8 +73,7 @@ static const char *error_codes[] = {
 	"file io error"
 };
 
-static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias);
-static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry);
+static unsigned int elf_load_module(elf_ld_t *elf);
 static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
 
 /** Load ELF binary from a file.
@@ -85,14 +85,13 @@ static int load_segment(elf_ld_t *elf, elf_segment_header_t *entry);
  * pointed to by @a info.
  *
  * @param file      ELF file.
- * @param so_bias   Bias to use if the file is a shared object.
  * @param info      Pointer to a structure for storing information
  *                  extracted from the binary.
  *
  * @return EE_OK on success or EE_xx error code.
  *
  */
-int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info)
+int elf_load_file(int file, eld_flags_t flags, elf_finfo_t *info)
 {
 	elf_ld_t elf;
 
@@ -109,23 +108,47 @@ int elf_load_file(int file, size_t so_bias, eld_flags_t flags, elf_finfo_t *info
 	elf.info = info;
 	elf.flags = flags;
 
-	int ret = elf_load_module(&elf, so_bias);
+	int ret = elf_load_module(&elf);
 
 	vfs_put(ofile);
 	return ret;
 }
 
-int elf_load_file_name(const char *path, size_t so_bias, eld_flags_t flags,
-    elf_finfo_t *info)
+int elf_load_file_name(const char *path, eld_flags_t flags, elf_finfo_t *info)
 {
 	int file;
 	errno_t rc = vfs_lookup(path, 0, &file);
 	if (rc == EOK) {
-		int ret = elf_load_file(file, so_bias, flags, info);
+		int ret = elf_load_file(file, flags, info);
 		vfs_put(file);
 		return ret;
 	} else {
 		return EE_IO;
+	}
+}
+
+/** Process TLS program header.
+ *
+ * @param elf  Pointer to loader state buffer.
+ * @param hdr  TLS program header
+ * @param info Place to store TLS info
+ */
+static void tls_program_header(void *base, elf_tls_info_t *info)
+{
+	const elf_segment_header_t *tls = elf_get_phdr(base, PT_TLS);
+	size_t bias = elf_get_bias(base);
+
+	if (tls == NULL) {
+		/* Ensure valid TLS info even if there is no TLS header. */
+		info->tdata = NULL;
+		info->tdata_size = 0;
+		info->tbss_size = 0;
+		info->tls_align = 1;
+	} else {
+		info->tdata = (void *) tls->p_vaddr + bias;
+		info->tdata_size = tls->p_filesz;
+		info->tbss_size = tls->p_memsz - tls->p_filesz;
+		info->tls_align = tls->p_align;
 	}
 }
 
@@ -136,10 +159,9 @@ int elf_load_file_name(const char *path, size_t so_bias, eld_flags_t flags,
  * a pointer to the @c info structure etc.
  *
  * @param elf		Pointer to loader state buffer.
- * @param so_bias	Bias to use if the file is a shared object.
  * @return EE_OK on success or EE_xx error code.
  */
-static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
+static unsigned int elf_load_module(elf_ld_t *elf)
 {
 	elf_header_t header_buf;
 	elf_header_t *header = &header_buf;
@@ -153,8 +175,6 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 		DPRINTF("Read error.\n");
 		return EE_IO;
 	}
-
-	elf->header = header;
 
 	/* Identify ELF */
 	if (header->e_ident[EI_MAG0] != ELFMAG0 ||
@@ -187,36 +207,126 @@ static unsigned int elf_load_module(elf_ld_t *elf, size_t so_bias)
 		return EE_UNSUPPORTED;
 	}
 
-	/* Shared objects can be loaded with a bias */
-	if (header->e_type == ET_DYN)
-		elf->bias = so_bias;
-	else
-		elf->bias = 0;
+	if (header->e_phoff == 0) {
+		DPRINTF("Program header table is not present!\n");
+		return EE_INCOMPATIBLE;
+	}
 
-	/* Ensure valid TLS info even if there is no TLS header. */
-	elf->info->tls.tdata = NULL;
-	elf->info->tls.tdata_size = 0;
-	elf->info->tls.tbss_size = 0;
-	elf->info->tls.tls_align = 1;
+	/* Read program header table.
+	 * Normally, there is very few program headers, so don't bother
+	 * with allocating memory dynamically.
+	 */
+	const int phdr_cap = 16;
+	elf_segment_header_t phdr[phdr_cap];
+	size_t phdr_len = header->e_phnum * header->e_phentsize;
 
-	elf->info->interp = NULL;
-	elf->info->dynamic = NULL;
+	if (phdr_len > sizeof(phdr)) {
+		DPRINTF("more than %d program headers\n", phdr_cap);
+		return EE_UNSUPPORTED;
+	}
 
-	/* Walk through all segment headers and process them. */
+	pos = header->e_phoff;
+	rc = vfs_read(elf->fd, &pos, phdr, phdr_len, &nr);
+	if (rc != EOK || nr != phdr_len) {
+		DPRINTF("Read error.\n");
+		return EE_IO;
+	}
+
+	uintptr_t module_base = UINTPTR_MAX;
+	uintptr_t module_top = 0;
+	uintptr_t base_offset = UINTPTR_MAX;
+
+	/* Walk through PT_LOAD headers, to find out the size of the module. */
 	for (i = 0; i < header->e_phnum; i++) {
-		elf_segment_header_t segment_hdr;
+		if (phdr[i].p_type != PT_LOAD)
+			continue;
 
-		pos = header->e_phoff + i * sizeof(elf_segment_header_t);
-		rc = vfs_read(elf->fd, &pos, &segment_hdr,
-		    sizeof(elf_segment_header_t), &nr);
-		if (rc != EOK || nr != sizeof(elf_segment_header_t)) {
-			DPRINTF("Read error.\n");
-			return EE_IO;
+		if (module_base > phdr[i].p_vaddr) {
+			module_base = phdr[i].p_vaddr;
+			base_offset = phdr[i].p_offset;
+		}
+		module_top = max(module_top, phdr[i].p_vaddr + phdr[i].p_memsz);
+	}
+
+	if (base_offset != 0) {
+		DPRINTF("ELF headers not present in the text segment.\n");
+		return EE_INVALID;
+	}
+
+	/* Shared objects can be loaded with a bias */
+	if (header->e_type != ET_DYN) {
+		elf->bias = 0;
+	} else {
+		if (module_base != 0) {
+			DPRINTF("Unexpected shared object format.\n");
+			return EE_INVALID;
 		}
 
-		ret = segment_header(elf, &segment_hdr);
+		/* Attempt to allocate a span of memory large enough for the
+		 * shared object.
+		 */
+		// FIXME: This is not reliable when we're running
+		//        multi-threaded. Even if this part succeeds, later
+		//        allocation can fail because another thread took the
+		//        space in the meantime. This is only relevant for
+		//        dlopen() though.
+		void *area = as_area_create(AS_AREA_ANY, module_top,
+		    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE |
+		    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
+
+		if (area == AS_MAP_FAILED) {
+			DPRINTF("Can't find suitable memory area.\n");
+			return EE_MEMORY;
+		}
+
+		elf->bias = (uintptr_t) area;
+		as_area_destroy(area);
+	}
+
+	/* Load all loadable segments. */
+	for (i = 0; i < header->e_phnum; i++) {
+		if (phdr[i].p_type != PT_LOAD)
+			continue;
+
+		ret = load_segment(elf, &phdr[i]);
 		if (ret != EE_OK)
 			return ret;
+	}
+
+	void *base = (void *) module_base + elf->bias;
+	elf->info->base = base;
+
+	/* Handle TLS. */
+	tls_program_header(base, &elf->info->tls);
+
+	/* Handle PT_INTERP. */
+
+	const elf_segment_header_t *interphdr = elf_get_phdr(base, PT_INTERP);
+
+	if (interphdr == NULL) {
+		interphdr = NULL;
+	} else {
+		elf->info->interp =
+		    (const char *) (interphdr->p_vaddr + elf->bias);
+		if (elf->info->interp[interphdr->p_filesz - 1] != '\0') {
+			DPRINTF("Unterminated ELF interp string.\n");
+			elf->info->interp = NULL;
+		} else {
+			DPRINTF("interpreter: \"%s\"\n", elf->info->interp);
+		}
+	}
+
+	/* Handle PT_DYNAMIC. */
+
+	const elf_segment_header_t *dynphdr = elf_get_phdr(base, PT_DYNAMIC);
+
+	if (dynphdr == NULL) {
+		elf->info->dynamic = NULL;
+	} else {
+		/* Record pointer to dynamic section into info structure */
+		elf->info->dynamic = (void *) (dynphdr->p_vaddr + elf->bias);
+		DPRINTF("dynamic section found at %p\n",
+		    (void *)elf->info->dynamic);
 	}
 
 	elf->info->entry =
@@ -238,81 +348,6 @@ const char *elf_error(unsigned int rc)
 	assert(rc < sizeof(error_codes) / sizeof(char *));
 
 	return error_codes[rc];
-}
-
-/** Process TLS program header.
- *
- * @param elf  Pointer to loader state buffer.
- * @param hdr  TLS program header
- * @param info Place to store TLS info
- */
-static void tls_program_header(elf_ld_t *elf, elf_segment_header_t *hdr,
-    elf_tls_info_t *info)
-{
-	info->tdata = (void *)((uint8_t *)hdr->p_vaddr + elf->bias);
-	info->tdata_size = hdr->p_filesz;
-	info->tbss_size = hdr->p_memsz - hdr->p_filesz;
-	info->tls_align = hdr->p_align;
-}
-
-/** Process segment header.
- *
- * @param elf   Pointer to loader state buffer.
- * @param entry	Segment header.
- *
- * @return EE_OK on success, error code otherwise.
- */
-static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
-{
-	switch (entry->p_type) {
-	case PT_NULL:
-	case PT_PHDR:
-	case PT_NOTE:
-		break;
-	case PT_LOAD:
-		return load_segment(elf, entry);
-		break;
-	case PT_INTERP:
-		elf->info->interp =
-		    (void *)((uint8_t *)entry->p_vaddr + elf->bias);
-
-		// FIXME: This actually won't work, because the text segment is
-		// not loaded yet.
-#if 0
-		if (elf->info->interp[entry->p_filesz - 1] != '\0') {
-			DPRINTF("Unterminated ELF interp string.\n");
-			return EE_INVALID;
-		}
-		DPRINTF("interpreter: \"%s\"\n", elf->info->interp);
-#endif
-		break;
-	case PT_DYNAMIC:
-		/* Record pointer to dynamic section into info structure */
-		elf->info->dynamic =
-		    (void *)((uint8_t *)entry->p_vaddr + elf->bias);
-		DPRINTF("dynamic section found at %p\n",
-		    (void *)elf->info->dynamic);
-		break;
-	case 0x70000000:
-	case 0x70000001:
-	case 0x70000002:
-	case 0x70000003:
-		// FIXME: Architecture-specific headers.
-		/* PT_MIPS_REGINFO, PT_MIPS_ABIFLAGS, PT_ARM_UNWIND, ... */
-		break;
-	case PT_TLS:
-		/* Parse TLS program header */
-		tls_program_header(elf, entry, &elf->info->tls);
-		DPRINTF("TLS header found at %p\n",
-		    (void *)((uint8_t *)entry->p_vaddr + elf->bias));
-		break;
-	case PT_SHLIB:
-	default:
-		DPRINTF("Segment p_type %d unknown.\n", entry->p_type);
-		return EE_UNSUPPORTED;
-		break;
-	}
-	return EE_OK;
 }
 
 /** Load segment described by program header entry.
