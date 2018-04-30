@@ -26,6 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef LIBCPP_SET
+#define LIBCPP_SET
+
 #include <functional>
 #include <internal/rbtree.hpp>
 #include <iterator>
@@ -335,9 +338,7 @@ namespace std
                 return tree_.find(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             iterator find(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             )
@@ -345,9 +346,7 @@ namespace std
                 return tree_.find(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             const_iterator find(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             ) const
@@ -360,9 +359,7 @@ namespace std
                 return tree_.count(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             size_type count(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             ) const
@@ -380,9 +377,7 @@ namespace std
                 return tree_.lower_bound(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             iterator lower_bound(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             )
@@ -390,9 +385,7 @@ namespace std
                 return tree_.lower_bound(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             const_iterator lower_bound(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             ) const
@@ -410,9 +403,7 @@ namespace std
                 return tree_.upper_bound(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             iterator upper_bound(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             )
@@ -420,9 +411,7 @@ namespace std
                 return tree_.upper_bound(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             const_iterator upper_bound(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             ) const
@@ -440,9 +429,7 @@ namespace std
                 return tree_.equal_range(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             pair<iterator, iterator> equal_range(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             )
@@ -450,9 +437,7 @@ namespace std
                 return tree_.equal_range(key);
             }
 
-            template<
-                class K
-            >
+            template<class K>
             pair<const_iterator, const_iterator> equal_range(
                 enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
             ) const
@@ -991,3 +976,5 @@ namespace std
         return false;
     }
 }
+
+#endif
