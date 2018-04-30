@@ -60,10 +60,6 @@ namespace std::aux
 
             using node_type = rbtree_node<value_type>;
 
-            // TODO: make find/bounds etc templated with key type
-            //       for transparent comparators and leave their management for the
-            //       outer containers
-
             rbtree(const key_compare& kcmp = key_compare{})
                 : root_{nullptr}, size_{}, key_compare_{},
                   key_extractor_{}
@@ -381,9 +377,15 @@ namespace std::aux
 
             void insert_node(node_type* node, node_type* parent)
             {
+                if (!node)
+                    return;
+
                 ++size_;
                 if (!parent)
+                {
+                    node->color = rbcolor::black;
                     root_ = node;
+                }
                 else
                 {
                     if (keys_comp(get_key(node->value), parent->value))
