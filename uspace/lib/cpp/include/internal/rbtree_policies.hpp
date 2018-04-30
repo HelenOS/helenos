@@ -170,26 +170,12 @@ namespace std::aux
 
             auto val = value_type{forward<Args>(args)...};
             auto parent = tree.find_parent_for_insertion(val);
-            if (!parent)
-            {
-                tree.root_ = new node_type{move(val)};
-                ++tree.size_;
 
-                return make_pair(iterator{tree.root_, false}, true);
-            }
-
-            if (tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
+            if (parent && tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent, false}, false);
 
             auto node = new node_type{move(val)};
-            if (tree.keys_comp(tree.get_key(val), parent->value))
-                parent->add_left_child(node);
-            else
-                parent->add_right_child(node);
-
-            ++tree.size_;
-            tree.repair_after_insert_(node);
-            tree.update_root_(node);
+            tree.insert_node(node, parent);
 
             return make_pair(iterator{node, false}, true);
         }
@@ -203,26 +189,11 @@ namespace std::aux
             using node_type = typename Tree::node_type;
 
             auto parent = tree.find_parent_for_insertion(val);
-            if (!parent)
-            {
-                tree.root_ = new node_type{val};
-                ++tree.size_;
-
-                return make_pair(iterator{tree.root_}, true);
-            }
-
-            if (tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
+            if (parent && tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent, false}, false);
 
             auto node = new node_type{val};
-            if (tree.keys_comp(tree.get_key(val), parent->value))
-                parent->add_left_child(node);
-            else
-                parent->add_right_child(node);
-
-            ++tree.size_;
-            tree.repair_after_insert_(node);
-            tree.update_root_(node);
+            tree.insert_node(node, parent);
 
             return make_pair(iterator{node, false}, true);
         }
@@ -236,26 +207,11 @@ namespace std::aux
             using node_type = typename Tree::node_type;
 
             auto parent = tree.find_parent_for_insertion(val);
-            if (!parent)
-            {
-                tree.root_ = new node_type{forward<Value>(val)};
-                ++tree.size_;
-
-                return make_pair(iterator{tree.root_, false}, true);
-            }
-
-            if (tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
+            if (parent && tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent, false}, false);
 
             auto node = new node_type{forward<Value>(val)};
-            if (tree.keys_comp(tree.get_key(val), parent->value))
-                parent->add_left_child(node);
-            else
-                parent->add_right_child(node);
-
-            ++tree.size_;
-            tree.repair_after_insert_(node);
-            tree.update_root_(node);
+            tree.insert_node(node, parent);
 
             return make_pair(iterator{node, false}, true);
         }
@@ -432,16 +388,7 @@ namespace std::aux
             using iterator  = typename Tree::iterator;
 
             auto parent = tree.find_parent_for_insertion(node->value);
-            if (!parent)
-                tree.root_ = node;
-            else if (tree.keys_comp(tree.get_key(node->value), parent->value))
-                parent->add_left_child(node);
-            else
-                parent->add_right_child(node);
-
-            ++tree.size_;
-            tree.repair_after_insert_(node);
-            tree.update_root_(node);
+            tree.insert_node(node, parent);
 
             return iterator{node, false};
         }

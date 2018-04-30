@@ -379,6 +379,23 @@ namespace std::aux
                 return succ;
             }
 
+            void insert_node(node_type* node, node_type* parent)
+            {
+                ++size_;
+                if (!parent)
+                    root_ = node;
+                else
+                {
+                    if (keys_comp(get_key(node->value), parent->value))
+                        parent->add_left_child(node);
+                    else
+                        parent->add_right_child(node);
+
+                    repair_after_insert_(node);
+                    update_root_(node);
+                }
+            }
+
         private:
             node_type* root_;
             size_type size_;
