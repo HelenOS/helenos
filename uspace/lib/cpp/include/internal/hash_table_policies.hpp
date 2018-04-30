@@ -365,9 +365,7 @@ namespace std::aux
         }
 
         template<class Table, class... Args>
-        static pair<
-            typename Table::iterator, bool
-        > emplace(Table& table, Args&&... args)
+        static typename Table::iterator emplace(Table& table, Args&&... args)
         {
             using node_type  = typename Table::node_type;
 
@@ -377,9 +375,7 @@ namespace std::aux
         }
 
         template<class Table, class Value>
-        static pair<
-            typename Table::iterator, bool
-        > insert(Table& table, const Value& val)
+        static typename Table::iterator insert(Table& table, const Value& val)
         {
             using node_type  = typename Table::node_type;
 
@@ -389,9 +385,7 @@ namespace std::aux
         }
 
         template<class Table, class Value>
-        static pair<
-            typename Table::iterator, bool
-        > insert(Table& table, Value&& val)
+        static typename Table::iterator insert(Table& table, Value&& val)
         {
             using value_type = typename Table::value_type;
             using node_type  = typename Table::node_type;
@@ -402,9 +396,7 @@ namespace std::aux
         }
 
         template<class Table>
-        static pair<
-            typename Table::iterator, bool
-        > insert(Table& table, typename Table::node_type* node)
+        static typename Table::iterator insert(Table& table, typename Table::node_type* node)
         {
             using iterator   = typename Table::iterator;
 
@@ -421,11 +413,11 @@ namespace std::aux
             else
                 bucket->prepend(node);
 
-            return make_pair(iterator{
+            return iterator{
                 table.table(), idx,
                 table.bucket_count(),
                 node
-            }, true);
+            };
         }
     };
 }

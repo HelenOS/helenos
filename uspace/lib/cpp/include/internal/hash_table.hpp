@@ -189,17 +189,17 @@ namespace std::aux
             }
 
             template<class... Args>
-            pair<iterator, bool> emplace(Args&&... args)
+            auto emplace(Args&&... args)
             {
                 return Policy::emplace(*this, forward<Args>(args)...);
             }
 
-            pair<iterator, bool> insert(const value_type& val)
+            auto insert(const value_type& val)
             {
                 return Policy::insert(*this, val);
             }
 
-            pair<iterator, bool> insert(value_type&& val)
+            auto insert(value_type&& val)
             {
                 return Policy::insert(*this, forward<value_type>(val));
             }
