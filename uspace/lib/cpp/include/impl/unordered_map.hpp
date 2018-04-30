@@ -756,18 +756,18 @@ namespace std
             { /* DUMMY BODY */ }
 
             explicit unordered_multimap(size_type bucket_count,
-                                   const hasher& hf = hasher{},
-                                   const key_equal& eql = key_equal{},
-                                   const allocator_type& alloc = allocator_type{})
+                                        const hasher& hf = hasher{},
+                                        const key_equal& eql = key_equal{},
+                                        const allocator_type& alloc = allocator_type{})
                 : table_{bucket_count, hf, eql}, allocator_{alloc}
             { /* DUMMY BODY */ }
 
             template<class InputIterator>
             unordered_multimap(InputIterator first, InputIterator last,
-                          size_type bucket_count = default_bucket_count_,
-                          const hasher& hf = hasher{},
-                          const key_equal& eql = key_equal{},
-                          const allocator_type& alloc = allocator_type{})
+                               size_type bucket_count = default_bucket_count_,
+                               const hasher& hf = hasher{},
+                               const key_equal& eql = key_equal{},
+                               const allocator_type& alloc = allocator_type{})
                 : unordered_multimap{bucket_count, hf, eql, alloc}
             {
                 insert(first, last);
@@ -794,10 +794,10 @@ namespace std
             { /* DUMMY BODY */ }
 
             unordered_multimap(initializer_list<value_type> init,
-                          size_type bucket_count = default_bucket_count_,
-                          const hasher& hf = hasher{},
-                          const key_equal& eql = key_equal{},
-                          const allocator_type& alloc = allocator_type{})
+                               size_type bucket_count = default_bucket_count_,
+                               const hasher& hf = hasher{},
+                               const key_equal& eql = key_equal{},
+                               const allocator_type& alloc = allocator_type{})
                 : unordered_multimap{bucket_count, hf, eql, alloc}
             {
                 insert(init.begin(), init.end());
@@ -807,29 +807,31 @@ namespace std
                 : unordered_multimap{bucket_count, hasher{}, key_equal{}, alloc}
             { /* DUMMY BODY */ }
 
-            unordered_multimap(size_type bucket_count, const hasher& hf, const allocator_type& alloc)
+            unordered_multimap(size_type bucket_count, const hasher& hf,
+                               const allocator_type& alloc)
                 : unordered_multimap{bucket_count, hf, key_equal{}, alloc}
             { /* DUMMY BODY */ }
 
             template<class InputIterator>
             unordered_multimap(InputIterator first, InputIterator last,
-                          size_type bucket_count, const allocator_type& alloc)
+                               size_type bucket_count, const allocator_type& alloc)
                 : unordered_multimap{first, last, bucket_count, hasher{}, key_equal{}, alloc}
             { /* DUMMY BODY */ }
 
             template<class InputIterator>
             unordered_multimap(InputIterator first, InputIterator last,
-                          size_type bucket_count, const hasher& hf, const allocator_type& alloc)
+                               size_type bucket_count, const hasher& hf,
+                               const allocator_type& alloc)
                 : unordered_multimap{first, last, bucket_count, hf, key_equal{}, alloc}
             { /* DUMMY BODY */ }
 
             unordered_multimap(initializer_list<value_type> init, size_type bucket_count,
-                          const allocator_type& alloc)
+                               const allocator_type& alloc)
                 : unordered_multimap{init, bucket_count, hasher{}, key_equal{}, alloc}
             { /* DUMMY BODY */ }
 
             unordered_multimap(initializer_list<value_type> init, size_type bucket_count,
-                          const hasher& hf, const allocator_type& alloc)
+                               const hasher& hf, const allocator_type& alloc)
                 : unordered_multimap{init, bucket_count, hf, key_equal{}, alloc}
             { /* DUMMY BODY */ }
 
@@ -916,7 +918,7 @@ namespace std
             }
 
             template<class... Args>
-            pair<iterator, bool> emplace(Args&&... args)
+            iterator emplace(Args&&... args)
             {
                 return table_.emplace(forward<Args>(args)...);
             }
@@ -924,15 +926,15 @@ namespace std
             template<class... Args>
             iterator emplace_hint(const_iterator, Args&&... args)
             {
-                return emplace(forward<Args>(args)...).first;
+                return emplace(forward<Args>(args)...);
             }
 
-            pair<iterator, bool> insert(const value_type& val)
+            iterator insert(const value_type& val)
             {
                 return table_.insert(val);
             }
 
-            pair<iterator, bool> insert(value_type&& val)
+            iterator insert(value_type&& val)
             {
                 return table_.insert(forward<value_type>(val));
             }
@@ -941,19 +943,19 @@ namespace std
                 class T,
                 class = enable_if_t<is_constructible_v<value_type, T&&>, void>
             >
-            pair<iterator, bool> insert(T&& val)
+            iterator insert(T&& val)
             {
                 return emplace(forward<T>(val));
             }
 
             iterator insert(const_iterator, const value_type& val)
             {
-                return insert(val).first;
+                return insert(val);
             }
 
             iterator insert(const_iterator, value_type&& val)
             {
-                return insert(forward<value_type>(val)).first;
+                return insert(forward<value_type>(val));
             }
 
             template<
