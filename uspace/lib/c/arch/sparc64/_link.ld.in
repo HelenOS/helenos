@@ -9,8 +9,10 @@ PHDRS {
 }
 
 SECTIONS {
+#ifdef SHLIB
+	. = SEGMENT_START("text-segment", 0);
+#else
 	. = SEGMENT_START("text-segment", 0x400000);
-#ifndef SHLIB
 	PROVIDE (__executable_start = .);
 #endif
 	. = . + SIZEOF_HEADERS;
