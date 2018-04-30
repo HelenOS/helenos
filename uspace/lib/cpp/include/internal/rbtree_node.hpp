@@ -123,6 +123,15 @@ namespace std::aux
             return res;
         }
 
+        const rbtree_node* find_smallest() const
+        {
+            auto res = this;
+            while (res->left)
+                res = res->left;
+
+            return res;
+        }
+
         rbtree_node* find_largest()
         {
             auto res = this;
@@ -132,7 +141,16 @@ namespace std::aux
             return res;
         }
 
-        rbtree_node* successor()
+        const rbtree_node* find_largest() const
+        {
+            auto res = this;
+            while (res->right)
+                res = res->right;
+
+            return res;
+        }
+
+        rbtree_node* successor() const
         {
             if (right)
                 return right->find_smallest();
@@ -166,31 +184,7 @@ namespace std::aux
 
         void swap(rbtree_node* other)
         {
-            /**
-             * Parent can be null so we check both ways.
-             */
-            if (is_left_child())
-                parent->left = other;
-            else if (is_right_child())
-                parent->right = other;
-
-            if (other->is_left_child())
-                other->parent->left = this;
-            else if (other->is_right_child())
-                other->parent->right = this;
-
-            if (left)
-                left->parent = other;
-            if (right)
-                right->parent = other;
-            if (other->left)
-                other->left->parent = this;
-            if (other->right)
-                other->right->parent = this;
-
-            std::swap(parent, other->parent);
-            std::swap(left, other->left);
-            std::swap(right, other->right);
+            std::swap(value, other->value);
         }
 
         void unlink()
