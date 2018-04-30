@@ -263,11 +263,9 @@ namespace std
                 return table_.insert(forward<value_type>(val));
             }
 
-            template<
-                class T,
-                class = enable_if_t<is_constructible_v<value_type, T&&>, void>
-            >
-            pair<iterator, bool> insert(T&& val)
+            template<class T>
+            pair<iterator, bool> insert(
+                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val)
             {
                 return emplace(forward<T>(val));
             }
@@ -282,11 +280,11 @@ namespace std
                 return insert(forward<value_type>(val)).first;
             }
 
-            template<
-                class T,
-                class = enable_if_t<is_constructible_v<value_type, T&&>, void>
-            >
-            iterator insert(const_iterator hint, T&& val)
+            template<class T>
+            iterator insert(
+                const_iterator hint,
+                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+            )
             {
                 return emplace_hint(hint, forward<T>(val));
             }
@@ -939,11 +937,10 @@ namespace std
                 return table_.insert(forward<value_type>(val));
             }
 
-            template<
-                class T,
-                class = enable_if_t<is_constructible_v<value_type, T&&>, void>
-            >
-            iterator insert(T&& val)
+            template<class T>
+            iterator insert(
+                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+            )
             {
                 return emplace(forward<T>(val));
             }
@@ -958,11 +955,11 @@ namespace std
                 return insert(forward<value_type>(val));
             }
 
-            template<
-                class T,
-                class = enable_if_t<is_constructible_v<value_type, T&&>, void>
-            >
-            iterator insert(const_iterator hint, T&& val)
+            template<class T>
+            iterator insert(
+                const_iterator hint,
+                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+            )
             {
                 return emplace_hint(hint, forward<T>(val));
             }
