@@ -524,8 +524,11 @@ namespace std
     bool operator<(const map<Key, Compare, Allocator>& lhs,
                    const map<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return lexicographical_compare(
+            lhs.begin(), lhs.end(),
+            rhs.begin(), rhs.end(),
+            lhs.value_comp()
+        );
     }
 
     template<class Key, class Compare, class Allocator>
@@ -539,25 +542,23 @@ namespace std
     bool operator>(const map<Key, Compare, Allocator>& lhs,
                    const map<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return rhs < lhs;
     }
 
     template<class Key, class Compare, class Allocator>
     bool operator>=(const map<Key, Compare, Allocator>& lhs,
                     const map<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return !(lhs < rhs);
     }
 
     template<class Key, class Compare, class Allocator>
     bool operator<=(const map<Key, Compare, Allocator>& lhs,
                     const map<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return !(rhs < lhs);
     }
+
     /**
      * 23.4.5, class template multimap:
      */
@@ -1029,8 +1030,11 @@ namespace std
     bool operator<(const multimap<Key, Compare, Allocator>& lhs,
                    const multimap<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return lexicographical_compare(
+            lhs.begin(), lhs.end(),
+            rhs.begin(), rhs.end(),
+            lhs.value_comp()
+        );
     }
 
     template<class Key, class Compare, class Allocator>
@@ -1044,24 +1048,21 @@ namespace std
     bool operator>(const multimap<Key, Compare, Allocator>& lhs,
                    const multimap<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return rhs < lhs;
     }
 
     template<class Key, class Compare, class Allocator>
     bool operator>=(const multimap<Key, Compare, Allocator>& lhs,
                     const multimap<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return !(lhs < rhs);
     }
 
     template<class Key, class Compare, class Allocator>
     bool operator<=(const multimap<Key, Compare, Allocator>& lhs,
                     const multimap<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return !(rhs < lhs);
     }
 }
 

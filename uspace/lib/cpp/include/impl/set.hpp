@@ -472,8 +472,11 @@ namespace std
     bool operator<(const set<Key, Compare, Allocator>& lhs,
                    const set<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return lexicographical_compare(
+            lhs.begin(), lhs.end(),
+            rhs.begin(), rhs.end(),
+            lhs.key_comp()
+        );
     }
 
     template<class Key, class Compare, class Allocator>
@@ -487,25 +490,23 @@ namespace std
     bool operator>(const set<Key, Compare, Allocator>& lhs,
                    const set<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return rhs < lhs;
     }
 
     template<class Key, class Compare, class Allocator>
     bool operator>=(const set<Key, Compare, Allocator>& lhs,
                     const set<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return !(lhs < rhs);
     }
 
     template<class Key, class Compare, class Allocator>
     bool operator<=(const set<Key, Compare, Allocator>& lhs,
                     const set<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return !(rhs < lhs);
     }
+
     /**
      * 23.4.7, class template multiset:
      */
@@ -941,8 +942,11 @@ namespace std
     bool operator<(const multiset<Key, Compare, Allocator>& lhs,
                    const multiset<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return lexicographical_compare(
+            lhs.begin(), lhs.end(),
+            rhs.begin(), rhs.end(),
+            lhs.value_comp()
+        );
     }
 
     template<class Key, class Compare, class Allocator>
@@ -956,24 +960,21 @@ namespace std
     bool operator>(const multiset<Key, Compare, Allocator>& lhs,
                    const multiset<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return rhs < lhs;
     }
 
     template<class Key, class Compare, class Allocator>
     bool operator>=(const multiset<Key, Compare, Allocator>& lhs,
                     const multiset<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return !(lhs < rhs);
     }
 
     template<class Key, class Compare, class Allocator>
     bool operator<=(const multiset<Key, Compare, Allocator>& lhs,
                     const multiset<Key, Compare, Allocator>& rhs)
     {
-        // TODO: need lexicographical_compare
-        return false;
+        return !(rhs < lhs);
     }
 }
 
