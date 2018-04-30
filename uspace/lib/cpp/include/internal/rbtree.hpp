@@ -177,43 +177,19 @@ namespace std::aux
             }
 
             template<class... Args>
-            pair<iterator, bool> emplace(Args&&... args)
+            auto emplace(Args&&... args)
             {
-                auto ret = Policy::emplace(*this, forward<Args>(args)...);
-                if (!ret.second)
-                    return ret;
-                ++size_;
-
-                repair_after_insert_(ret.first.node());
-                update_root_(ret.first.node());
-
-                return ret;
+                return Policy::emplace(*this, forward<Args>(args)...);
             }
 
-            pair<iterator, bool> insert(const value_type& val)
+            auto insert(const value_type& val)
             {
-                auto ret = Policy::insert(*this, val);
-                if (!ret.second)
-                    return ret;
-                ++size_;
-
-                repair_after_insert_(ret.first.node());
-                update_root_(ret.first.node());
-
-                return ret;
+                return Policy::insert(*this, val);
             }
 
-            pair<iterator, bool> insert(value_type&& val)
+            auto insert(value_type&& val)
             {
-                auto ret = Policy::insert(*this, forward<value_type>(val));
-                if (!ret.second)
-                    return ret;
-                ++size_;
-
-                repair_after_insert_(ret.first.node());
-                update_root_(ret.first.node());
-
-                return ret;
+                return Policy::insert(*this, forward<value_type>(val));
             }
 
             size_type erase(const key_type& key)
@@ -227,10 +203,9 @@ namespace std::aux
                     return end();
 
                 auto node = const_cast<node_type*>(it.node());
-                ++it;
 
-                delete_node(node);
-                return iterator{const_cast<node_type*>(it.node()), it.end()};
+                node = delete_node(node);
+                return iterator{const_cast<node_type*>(node), node == nullptr};
             }
 
             void clear() noexcept
@@ -319,6 +294,7 @@ namespace std::aux
                 auto it1 = begin();
                 auto it2 = other.begin();
 
+                // TODO: this doesn't compare values :/
                 while (keys_equal(*it1++, *it2++))
                 { /* DUMMY BODY */ }
 
@@ -357,29 +333,31 @@ namespace std::aux
                 return parent;
             }
 
-            void delete_node(node_type* node)
+            node_type* delete_node(const node_type* n)
             {
+                auto node = const_cast<node_type*>(n);
                 if (!node)
-                    return;
+                    return nullptr;
 
                 --size_;
 
+                auto succ = node->successor();
                 if (node->left && node->right)
                 {
-                    node->swap(node->successor());
+                    node->swap(succ);
 
-                    // Node now has at most one child.
-                    delete_node(node);
+                    // Succ has at most one child.
+                    delete_node(succ);
 
-                    return;
+                    return node;
                 }
 
                 auto child = node->right ? node->right : node->left;
                 if (!child)
                 {
                     // Simply remove the node.
+                    // TODO: repair here too?
                     node->unlink();
-
                     delete node;
                 }
                 else
@@ -388,13 +366,17 @@ namespace std::aux
                     child->parent = node->parent;
                     if (node->is_left_child())
                         child->parent->left = child;
-                    else if (node->is_left_child())
+                    else if (node->is_right_child())
                         child->parent->right = child;
 
                     // Repair if needed.
                     repair_after_erase_(node, child);
                     update_root_(child);
+
+                    delete node;
                 }
+
+                return succ;
             }
 
         private:
