@@ -237,12 +237,19 @@ set_target_from_platform() {
 
 	HELENOS_TARGET="${GNU_ARCH}-helenos"
 
+	# TODO: Clean up this mess.
 	case "$1" in
 		"amd64")
 			LINUX_TARGET="${GNU_ARCH}-unknown-elf"
 			;;
+		"ia32" | "ia64")
+			LINUX_TARGET="${GNU_ARCH}-pc-linux-gnu"
+			;;
 		"arm32")
 			LINUX_TARGET="${GNU_ARCH}-linux-gnueabi"
+			;;
+		"riscv64")
+			LINUX_TARGET="${GNU_ARCH}-unknown-linux-gnu"
 			;;
 		*)
 			LINUX_TARGET="${GNU_ARCH}-linux-gnu"
