@@ -269,7 +269,29 @@ namespace std
              * 23.4.4.3, element access:
              */
 
-            // TODO:
+            mapped_type& operator[](const key_type& key)
+            {
+                auto parent = tree_.find_parent_for_insertion(key);
+                if (parent && tree_.keys_equal(tree_.get_key(parent->value), key))
+                    return parent->value.second;
+
+                auto node = new node_type{value_type{key, mapped_type{}}};
+                tree_.insert_node(node, parent);
+
+                return node->value.second;
+            }
+
+            mapped_type& operator[](key_type&& key)
+            {
+                auto parent = tree_.find_parent_for_insertion(key);
+                if (parent && tree_.keys_equal(tree_.get_key(parent->value), key))
+                    return parent->value.second;
+
+                auto node = new node_type{value_type{move(key), mapped_type{}}};
+                tree_.insert_node(node, parent);
+
+                return node->value.second;
+            }
 
             /**
              * 23.4.4.4, modifiers:
@@ -504,6 +526,8 @@ namespace std
                 iterator, const_iterator,
                 aux::rbtree_single_policy
             >;
+
+            using node_type = typename tree_type::node_type;
 
             tree_type tree_;
             allocator_type allocator_;
