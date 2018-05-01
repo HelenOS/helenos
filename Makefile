@@ -102,7 +102,7 @@ check: ccheck $(CHECK)
 ifdef JOBS
 	$(CHECK) -j $(JOBS)
 else
-	$(CHECK)
+	$(CHECK) -j $(shell nproc)
 endif
 
 # `sed` pulls a list of "compatibility-only" error codes from `errno.in`,
