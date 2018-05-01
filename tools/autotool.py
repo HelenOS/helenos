@@ -184,11 +184,11 @@ def get_target(config):
 
 		if (config['CROSS_TARGET'] == "arm32"):
 			gnu_target = "arm-linux-gnueabi"
-			helenos_target = "arm-helenos-gnueabi"
+			helenos_target = "arm-helenos"
 
 		if (config['CROSS_TARGET'] == "ia32"):
 			gnu_target = "i686-pc-linux-gnu"
-			helenos_target = "i686-pc-helenos"
+			helenos_target = "i686-helenos"
 
 		if (config['CROSS_TARGET'] == "mips32"):
 			cc_args.append("-mabi=32")
@@ -203,17 +203,17 @@ def get_target(config):
 	if (config['PLATFORM'] == "arm32"):
 		platform = config['PLATFORM']
 		gnu_target = "arm-linux-gnueabi"
-		helenos_target = "arm-helenos-gnueabi"
+		helenos_target = "arm-helenos"
 
 	if (config['PLATFORM'] == "ia32"):
 		platform = config['PLATFORM']
 		gnu_target = "i686-pc-linux-gnu"
-		helenos_target = "i686-pc-helenos"
+		helenos_target = "i686-helenos"
 
 	if (config['PLATFORM'] == "ia64"):
 		platform = config['PLATFORM']
 		gnu_target = "ia64-pc-linux-gnu"
-		helenos_target = "ia64-pc-helenos"
+		helenos_target = "ia64-helenos"
 
 	if (config['PLATFORM'] == "mips32"):
 		check_config(config, "MACHINE")
