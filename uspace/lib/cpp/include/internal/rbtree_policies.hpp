@@ -169,7 +169,7 @@ namespace std::aux
             using node_type  = typename Tree::node_type;
 
             auto val = value_type{forward<Args>(args)...};
-            auto parent = tree.find_parent_for_insertion(val);
+            auto parent = tree.find_parent_for_insertion(tree.get_key(val));
 
             if (parent && tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent, false}, false);
@@ -188,7 +188,7 @@ namespace std::aux
             using iterator  = typename Tree::iterator;
             using node_type = typename Tree::node_type;
 
-            auto parent = tree.find_parent_for_insertion(val);
+            auto parent = tree.find_parent_for_insertion(tree.get_key(val));
             if (parent && tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent, false}, false);
 
@@ -206,7 +206,7 @@ namespace std::aux
             using iterator  = typename Tree::iterator;
             using node_type = typename Tree::node_type;
 
-            auto parent = tree.find_parent_for_insertion(val);
+            auto parent = tree.find_parent_for_insertion(tree.get_key(val));
             if (parent && tree.keys_equal(tree.get_key(parent->value), tree.get_key(val)))
                 return make_pair(iterator{parent, false}, false);
 
@@ -387,7 +387,7 @@ namespace std::aux
         {
             using iterator  = typename Tree::iterator;
 
-            auto parent = tree.find_parent_for_insertion(node->value);
+            auto parent = tree.find_parent_for_insertion(tree.get_key(node->value));
             tree.insert_node(node, parent);
 
             return iterator{node, false};

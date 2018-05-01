@@ -312,7 +312,7 @@ namespace std::aux
                 return !key_compare_(k1, k2) && !key_compare_(k2, k1);
             }
 
-            node_type* find_parent_for_insertion(const value_type& val) const
+            node_type* find_parent_for_insertion(const key_type& key) const
             {
                 auto current = root_;
                 auto parent = current;
@@ -320,7 +320,7 @@ namespace std::aux
                 while (current)
                 {
                     parent = current;
-                    if (key_compare_(key_extractor_(val), key_extractor_(current->value)))
+                    if (key_compare_(key, key_extractor_(current->value)))
                         current = current->left;
                     else
                         current = current->right;
