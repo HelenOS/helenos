@@ -201,18 +201,18 @@ module_t *module_load(rtld_t *rtld, const char *name, mlflags_t flags)
 	str_cpy(name_buf, NAME_BUF_SIZE, "/lib/");
 	str_cpy(name_buf + 5, NAME_BUF_SIZE - 5, name);
 
-	/* FIXME: need to real allocation of address space */
-	m->bias = rtld->next_bias;
-	rtld->next_bias += 0x100000;
 
 	DPRINTF("filename:'%s'\n", name_buf);
-	DPRINTF("load '%s' at 0x%zx\n", name_buf, m->bias);
 
-	rc = elf_load_file_name(name_buf, m->bias, ELDF_RW, &info);
+	rc = elf_load_file_name(name_buf, ELDF_RW, &info);
 	if (rc != EE_OK) {
 		printf("Failed to load '%s'\n", name_buf);
 		exit(1);
 	}
+
+	m->bias = elf_get_bias(info.base);
+
+	DPRINTF("loaded '%s' at 0x%zx\n", name_buf, m->bias);
 
 	if (info.dynamic == NULL) {
 		printf("Error: '%s' is not a dynamically-linked object.\n",
