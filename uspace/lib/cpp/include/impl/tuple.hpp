@@ -206,10 +206,10 @@ namespace std
                 { /* DUMMY BODY */ }
 
                 // TODO: enable only if Us is convertible to Ts and they are not same
-                template<class... Us>
-                constexpr explicit tuple_impl(Us&&... us)
-                    : tuple_element_wrapper<Is, Ts>(forward<Us>(us))...
-                { /* DUMMY BODY */ }
+                /* template<class... Us> */
+                /* constexpr explicit tuple_impl(Us&&... us) */
+                /*     : tuple_element_wrapper<Is, Ts>(forward<Us>(us))... */
+                /* { /1* DUMMY BODY *1/ } */
         };
 
         template<class T, class... Ts>

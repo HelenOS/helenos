@@ -134,13 +134,98 @@ namespace std
     add_rvalue_reference_t<T> declval() noexcept;
 
     /**
+     * 20.5.2, class template integer_sequence:
+     */
+
+    template<class T, T... Is>
+    struct integer_sequence
+    {
+        using value_type = T;
+
+        static constexpr size_t size() noexcept
+        {
+            return sizeof...(Is);
+        }
+
+        using next = integer_sequence<T, Is..., sizeof...(Is)>;
+    };
+
+    template<std::size_t... Is>
+    using index_sequence = integer_sequence<std::size_t, Is...>;
+
+    /**
+     * 20.5.3, alias template make_integer_sequence:
+     */
+
+    namespace aux
+    {
+        template<class T, uintmax_t N>
+        struct make_integer_sequence
+        {
+            /**
+             * Recursive to the bottom case below, appends sizeof...(Is) in
+             * every next "call", building the sequence.
+             */
+            using type = typename make_integer_sequence<T, N - 1>::type::next;
+        };
+
+        template<class T>
+        struct make_integer_sequence<T, std::uintmax_t(0)>
+        {
+            using type = integer_sequence<T>;
+        };
+    }
+
+
+    /**
+     * Problem: We can't specialize the N parameter because it is a value parameter
+     *          depending on a type parameter.
+     * Solution: According to the standard: if N is negative, the program is ill-formed,
+     *           so we just recast it to uintmax_t :)
+     */
+    template<class T, T N>
+    using make_integer_sequence = typename aux::make_integer_sequence<T, std::uintmax_t(N)>::type;
+
+    template<size_t N>
+    using make_index_sequence = make_integer_sequence<std::size_t, N>;
+
+    /**
      * 20.3, pairs:
      */
+
+    template<size_t, class>
+    class tuple_element;
+
+    template<size_t I, class T>
+    using tuple_element_t = typename tuple_element<I, T>::type;
+
+    template<class...>
+    class tuple;
+
+    template<size_t I, class... Ts>
+    constexpr tuple_element_t<I, tuple<Ts...>>&& get(tuple<Ts...>&&) noexcept;
+
+    namespace aux
+    {
+        template<class T, class... Args, size_t... Is>
+        T from_tuple(tuple<Args...>&& tpl, index_sequence<Is...>)
+        {
+            return T{get<Is>(move(tpl))...};
+        }
+
+        template<class T, class... Args>
+        T from_tuple(tuple<Args...>&& tpl)
+        {
+            return from_tuple<T>(move(tpl), make_index_sequence<sizeof...(Args)>{});
+        }
+    }
 
     struct piecewise_construct_t
     {
         explicit piecewise_construct_t() = default;
     };
+
+    inline constexpr piecewise_construct_t piecewise_construct{};
 
     template<typename T1, typename T2>
     struct pair
@@ -178,13 +263,11 @@ namespace std
               second(forward<second_type>(other.second))
         { /* DUMMY BODY */ }
 
-        /* TODO: need tuple, piecewise_construct_t
         template<class... Args1, class... Args2>
         pair(piecewise_construct_t, tuple<Args1...> first_args, tuple<Args2...> second_args)
-        {
-            // TODO:
-        }
-        */
+            : first{aux::from_tuple<first_type>(move(first_args))},
+              second{aux::from_tuple<second_type>(move(second_args))}
+        { /* DUMMY BODY */ }
 
         pair& operator=(const pair& other)
         {
@@ -382,62 +465,6 @@ namespace std
 
         return get<1>(move(p));
     }
-
-    /**
-     * 20.5.2, class template integer_sequence:
-     */
-
-    template<class T, T... Is>
-    struct integer_sequence
-    {
-        using value_type = T;
-
-        static constexpr size_t size() noexcept
-        {
-            return sizeof...(Is);
-        }
-
-        using next = integer_sequence<T, Is..., sizeof...(Is)>;
-    };
-
-    template<std::size_t... Is>
-    using index_sequence = integer_sequence<std::size_t, Is...>;
-
-    /**
-     * 20.5.3, alias template make_integer_sequence:
-     */
-
-    namespace aux
-    {
-        template<class T, uintmax_t N>
-        struct make_integer_sequence
-        {
-            /**
-             * Recursive to the bottom case below, appends sizeof...(Is) in
-             * every next "call", building the sequence.
-             */
-            using type = typename make_integer_sequence<T, N - 1>::type::next;
-        };
-
-        template<class T>
-        struct make_integer_sequence<T, std::uintmax_t(0)>
-        {
-            using type = integer_sequence<T>;
-        };
-    }
-
-
-    /**
-     * Problem: We can't specialize the N parameter because it is a value parameter
-     *          depending on a type parameter.
-     * Solution: According to the standard: if N is negative, the program is ill-formed,
-     *           so we just recast it to uintmax_t :)
-     */
-    template<class T, T N>
-    using make_integer_sequence = typename aux::make_integer_sequence<T, std::uintmax_t(N)>::type;
-
-    template<size_t N>
-    using make_index_sequence = make_integer_sequence<std::size_t, N>;
 }
 
 #endif
