@@ -715,14 +715,14 @@ namespace std
                 //       effect in such case)
                 if (new_capacity > capacity_)
                     resize_with_copy_(size_, new_capacity);
-                else if (new_capacity < capacity)
+                else if (new_capacity < capacity_)
                     shrink_to_fit(); // Non-binding request, but why not.
             }
 
             void shrink_to_fit()
             {
                 if (size_ != capacity_)
-                    resize_with_copy_(size_);
+                    resize_with_copy_(size_, capacity_);
             }
 
             void clear() noexcept
