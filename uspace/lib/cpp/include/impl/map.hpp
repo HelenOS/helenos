@@ -293,6 +293,22 @@ namespace std
                 return node->value.second;
             }
 
+            mapped_type& at(const key_type& key)
+            {
+                auto it = find(key);
+
+                // TODO: throw out_of_range if it == end()
+                return it->second;
+            }
+
+            const mapped_type& at(const key_type& key) const
+            {
+                auto it = find(key);
+
+                // TODO: throw out_of_range if it == end()
+                return it->second;
+            }
+
             /**
              * 23.4.4.4, modifiers:
              */
