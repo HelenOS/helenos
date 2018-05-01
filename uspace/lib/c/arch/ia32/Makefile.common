@@ -33,7 +33,7 @@ else
 endif
 
 COMMON_CFLAGS += -mno-tls-direct-seg-refs -fno-omit-frame-pointer
-LFLAGS += --gc-sections
+LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = LE
 

@@ -115,21 +115,13 @@ ifeq ($(CONFIG_LINE_DEBUG),y)
 	COMMON_CFLAGS += -g
 endif
 
-#
-# Mind the mutual ordering with the inclusion of the arch Makefile.inc.
-# AFLAGS and LFLAGS must be initialized before the inclusion.
-#
-AFLAGS = --fatal-warnings
-LFLAGS = -n -T $(LINK) -M --fatal-warnings --warn-common
+AFLAGS += --fatal-warnings
+LDFLAGS += -Wl,-n -T $(LINK) -Wl,-M,--fatal-warnings,--warn-common
 
 ifeq ($(CONFIG_STRIP_BINARIES),y)
-	LFLAGS += --strip-all
+	LDFLAGS += -s
 endif
 
-#
-# Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.
-# The arch Makefile.inc must be included after the initialization.
-#
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
 
@@ -357,7 +349,6 @@ ARCH_DEPENDS := $(addsuffix .d,$(basename $(ARCH_SOURCES)))
 GENARCH_DEPENDS := $(addsuffix .d,$(basename $(GENARCH_SOURCES)))
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
-LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
 
 -include $(GENERIC_DEPENDS)
 -include $(ARCH_DEPENDS)
@@ -384,11 +375,7 @@ else
 endif
 
 $(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
-ifeq ($(CONFIG_LTO),y)
-	$(CC) $(DEFS) $(CFLAGS) $(LD_CFLAGS) -Xlinker -Map -Xlinker $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
-else
-	$(LD) $(LFLAGS) -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
-endif
+	$(CC) $(DEFS) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
 
 $(LINK): $(LINK).in
 	$(CC) $(DEFS) $(CFLAGS) -D__ASSEMBLER__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
@@ -410,11 +397,7 @@ $(REAL_MAP).o: $(REAL_MAP).bin
 
 $(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
 	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $(EMPTY_MAP) -
-ifeq ($(CONFIG_LTO),y)
-	$(CC) $(DEFS) $(CFLAGS) $(LD_CFLAGS) -Xlinker -Map -Xlinker $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
-else
-	$(LD) $(LFLAGS) -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
-endif
+	$(CC) $(DEFS) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@
 
@@ -422,10 +405,6 @@ endif
 	# on architectures that have bss after symtab
 
 	echo "$(AS_PROLOG)""$(SYMTAB_SECTION)"" .incbin \"$@\"" | $(CC) $(CFLAGS) $(AS_CFLAGS) -x assembler -c -o $(SIZEOK_MAP) -
-ifeq ($(CONFIG_LTO),y)
-	$(CC) $(DEFS) $(CFLAGS) $(LD_CFLAGS) -Xlinker -Map -Xlinker $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
-else
-	$(LD) $(LFLAGS) -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
-endif
+	$(CC) $(DEFS) $(CFLAGS) $(LDFLAGS) -Wl,-Map,$(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
 	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
 	$(GENMAP) $(MAP_PREV) $(DUMP) $@

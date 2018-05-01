@@ -34,7 +34,7 @@ endif
 
 COMMON_CFLAGS += -mcpu=powerpc -m$(FLOATS)-float -m32
 AFLAGS += -a32
-LFLAGS += --gc-sections
+LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = BE
 

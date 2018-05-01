@@ -36,7 +36,7 @@ OPTIMIZATION = 3
 DEFS = -DBOOT -DRELEASE=$(RELEASE) "-DCOPYRIGHT=$(COPYRIGHT)" "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
 AFLAGS = --fatal-warnings
-LFLAGS = --fatal-warnings --warn-common
+LDFLAGS = -Wl,--fatal-warnings,--warn-common
 
 COMMON_CFLAGS = $(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-ffreestanding -fno-builtin -nostdlib -nostdinc \
@@ -81,7 +81,7 @@ $(BOOT_OUTPUT): $(RAW)
 	$(OBJCOPY) -O $(BFD_OUTPUT) $< $@
 
 $(RAW): $(OBJECTS) $(LINK)
-	$(LD) -n $(LFLAGS) -T $(LINK) -M -Map $(MAP) -o $@ $(OBJECTS)
+	$(CC) $(CFLAGS) -Wl,-n $(LDFLAGS) -T $(LINK) -Wl,-M,-Map,$(MAP) -o $@ $(OBJECTS)
 
 $(LINK): | depend
 	$(CC) $(DEFS) $(CFLAGS) -D__ASSEMBLER__ -D__LINKER__ -E -x c $(LINK).in | grep -v "^\#" > $(LINK)

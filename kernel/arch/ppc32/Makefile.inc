@@ -32,7 +32,7 @@ BFD = binary
 
 COMMON_CFLAGS += -mcpu=powerpc -msoft-float -m32
 AFLAGS += -a32
-LFLAGS += -no-check-sections
+LDFLAGS += -Wl,-no-check-sections
 
 BITS = 32
 ENDIANESS = BE

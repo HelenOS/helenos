@@ -114,7 +114,7 @@ LIBPOSIX_PREFIX = $(LIB_PREFIX)/posix
 LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
 AFLAGS = --fatal-warnings
-LFLAGS = --fatal-warnings --warn-common
+LDFLAGS = -Wl,--fatal-warnings,--warn-common
 
 ifeq ($(STATIC_NEEDED),y)
 	STATIC_BUILD = y
@@ -140,9 +140,9 @@ endif
 BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 
 ifeq ($(LINK_DYNAMIC),y)
-	LFLAGS += -Bdynamic
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
 else
+	LDFLAGS += -static
 	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 endif
 
@@ -244,14 +244,13 @@ else
 endif
 
 ifeq ($(CONFIG_STRIP_BINARIES),y)
-	LFLAGS += --strip-all
+	LDFLAGS += -s
 endif
 
 LIB_CFLAGS = $(CFLAGS) -fPIC
-LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME)
+LIB_LDFLAGS = $(LDFLAGS) -shared -Wl,-soname,$(LSONAME)
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
-LD_CFLAGS := $(addprefix -Xlinker ,$(LFLAGS))
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
@@ -302,12 +301,12 @@ endif
 
 ifneq ($(BINARY),)
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
-	$(LD) $(LFLAGS) $(EXTRA_LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(TEST_BINARY),)
 $(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS) $(BASE_LIBS)
-	$(LD) $(LFLAGS) $(EXTRA_LFLAGS) -T $(LINKER_SCRIPT) -Map $@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(LIBRARY),)
@@ -324,7 +323,7 @@ $(LIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 
 $(SLIBRARY): $(LIB_LINKER_SCRIPT) $(LIBRARY).la
-	$(LD) $(LIB_LFLAGS) $(EXTRA_LFLAGS) -T $(LIB_LINKER_SCRIPT) -Map $@.map -o $@ --whole-archive $(LIBRARY).la --no-whole-archive
+	$(CC) $(CFLAGS) $(LIB_LDFLAGS) $(EXTRA_LDFLAGS) -T $(LIB_LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ -Wl,--whole-archive $(LIBRARY).la -Wl,--no-whole-archive
 
 $(LSONAME):
 	ln -s $(SLIBRARY) $@

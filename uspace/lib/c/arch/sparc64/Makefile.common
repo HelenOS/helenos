@@ -34,7 +34,7 @@ endif
 
 COMMON_CFLAGS += -m64 -mcmodel=medlow
 
-LFLAGS += -no-check-sections --gc-sections
+LDFLAGS += -Wl,-no-check-sections,--gc-sections
 
 ENDIANESS = BE
 

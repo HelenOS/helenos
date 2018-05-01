@@ -32,7 +32,7 @@ BFD_ARCH = ia64-elf64
 COMMON_CFLAGS += -mconstant-gp -fno-unwind-tables -mfixed-range=f32-f127
 
 AFLAGS += -mconstant-gp
-LFLAGS += -EL
+LDFLAGS += -Wl,-EL
 
 BITS = 64
 ENDIANESS = LE

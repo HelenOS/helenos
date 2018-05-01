@@ -35,7 +35,7 @@ ifneq ($(COMPILER),clang)
 	COMMON_CFLAGS += -mno-tls-direct-seg-refs
 endif
 
-LFLAGS += --gc-sections
+LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = LE
 

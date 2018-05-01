@@ -29,7 +29,7 @@
 
 USPACE_PREFIX = ../..
 
-EXTRA_LFLAGS = -Ttext-segment=0x70000000
+EXTRA_LDFLAGS = -Wl,-Ttext-segment=0x70000000
 
 BINARY = loader
 STATIC_ONLY = y

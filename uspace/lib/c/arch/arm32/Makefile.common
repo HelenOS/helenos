@@ -30,7 +30,7 @@
 COMMON_CFLAGS += -ffixed-r9 -mtp=soft -fno-omit-frame-pointer -mapcs-frame \
 	-march=$(subst _,-,$(PROCESSOR_ARCH))
 
-LFLAGS += --gc-sections
+LDFLAGS += -Wl,--gc-sections
 
 ifeq ($(CONFIG_FPU),y)
 	COMMON_CFLAGS += -mfloat-abi=hard

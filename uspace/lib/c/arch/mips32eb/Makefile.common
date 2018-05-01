@@ -28,7 +28,7 @@
 
 COMMON_CFLAGS += -msoft-float -mabi=32
 AS_PROLOG = .module softfloat;.abicalls;
-LFLAGS += --gc-sections
+LDFLAGS += -Wl,--gc-sections
 
 ENDIANESS = BE
 

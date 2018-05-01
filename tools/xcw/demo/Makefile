@@ -42,7 +42,6 @@
 #
 
 CC = helenos-cc
-LD = helenos-ld
 CFLAGS = -std=gnu99 -Wall `helenos-pkg-config --cflags libgui libdraw libmath`
 LIBS = `helenos-pkg-config --libs libgui libdraw libmath`
 output = viewer
@@ -55,7 +54,7 @@ clean:
 	rm -f $(output) $(objects)
 
 $(output): $(objects)
-	$(LD) -o $@ $^ $(LIBS)
+	$(CC) -o $@ $^ $(LIBS)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<

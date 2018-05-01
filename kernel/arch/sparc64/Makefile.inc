@@ -32,7 +32,7 @@ BFD = binary
 
 COMMON_CFLAGS += -m64 -mcpu=ultrasparc -mcmodel=medlow -mno-fpu
 
-LFLAGS += -no-check-sections
+LDFLAGS += -Wl,-no-check-sections
 
 BITS = 64
 ENDIANESS = BE

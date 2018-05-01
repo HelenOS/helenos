@@ -61,7 +61,7 @@ $(OUTPUT): $(RAW)
 	$(OBJCOPY) -O $(BFD) $< $@
 
 $(RAW): $(OBJECTS) $(COMPONENT_OBJECTS) $(LINK)
-	$(LD) -no-check-sections -N -T $(LINK) $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
+	$(CC) $(CFLAGS) -Wl,-no-check-sections,-N -T $(LINK) $(COMPONENT_OBJECTS) $(OBJECTS) -o $@
 
 %.o: %.S $(DEPEND)
 	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
