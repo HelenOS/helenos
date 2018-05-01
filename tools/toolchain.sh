@@ -339,7 +339,7 @@ build_target() {
 		--with-gnu-as \
 		--with-gnu-ld \
 		--disable-nls \
-		--enable-languages=c,objc,c++,obj-c++,go \
+		--enable-languages=c,c++,go \
 		--enable-lto \
 		--disable-shared \
 		--disable-werror \
