@@ -357,7 +357,97 @@ namespace std
                 insert(init.begin(), init.end());
             }
 
-            // TODO: try_emplace, insert_or_assign
+            template<class... Args>
+            pair<iterator, bool> try_emplace(const key_type& key, Args&&... args)
+            {
+                auto parent = tree_.find_parent_for_insertion(key);
+                if (parent && tree_.keys_equal(tree_.get_key(parent->value), key))
+                    return make_pair(iterator{parent, false}, false);
+                else
+                {
+                    auto node = new node_type{value_type{key, forward<Args>(args)...}};
+                    tree_.insert_node(node, parent);
+
+                    return make_pair(iterator{node, false}, true);
+                }
+            }
+
+            template<class... Args>
+            pair<iterator, bool> try_emplace(key_type&& key, Args&&... args)
+            {
+                auto parent = tree_.find_parent_for_insertion(key);
+                if (parent && tree_.keys_equal(tree_.get_key(parent->value), key))
+                    return make_pair(iterator{parent, false}, false);
+                else
+                {
+                    auto node = new node_type{value_type{move(key), forward<Args>(args)...}};
+                    tree_.insert_node(node, parent);
+
+                    return make_pair(iterator{node, false}, true);
+                }
+            }
+
+            template<class... Args>
+            iterator try_emplace(const_iterator, const key_type& key, Args&&... args)
+            {
+                return try_emplace(key, forward<Args>(args)...).first;
+            }
+
+            template<class... Args>
+            iterator try_emplace(const_iterator, key_type&& key, Args&&... args)
+            {
+                return try_emplace(move(key), forward<Args>(args)...).first;
+            }
+
+            template<class T>
+            pair<iterator, bool> insert_or_assign(const key_type& key, T&& val)
+            {
+                auto parent = tree_.find_parent_for_insertion(key);
+                if (parent && tree_.keys_equal(tree_.get_key(parent->value), key))
+                {
+                    parent->value = value_type{key, forward<T>(val)};
+
+                    return make_pair(iterator{parent, false}, false);
+                }
+                else
+                {
+                    auto node = new node_type{value_type{key, forward<T>(val)}};
+                    tree_.insert_node(node, parent);
+
+                    return make_pair(iterator{node, false}, true);
+                }
+            }
+
+            template<class T>
+            pair<iterator, bool> insert_or_assign(key_type&& key, T&& val)
+            {
+                auto parent = tree_.find_parent_for_insertion(key);
+                if (parent && tree_.keys_equal(tree_.get_key(parent->value), key))
+                {
+                    parent->value = value_type{move(key), forward<T>(val)};
+
+                    return make_pair(iterator{parent, false}, false);
+                }
+                else
+                {
+                    auto node = new node_type{value_type{move(key), forward<T>(val)}};
+                    tree_.insert_node(node, parent);
+
+                    return make_pair(iterator{node, false}, true);
+                }
+            }
+
+            template<class T>
+            iterator insert_or_assign(const_iterator, const key_type& key, T&& val)
+            {
+                return insert_or_assign(key, forward<T>(val)).first;
+            }
+
+            template<class T>
+            iterator insert_or_assign(const_iterator, key_type&& key, T&& val)
+            {
+                return insert_or_assign(move(key), forward<T>(val)).first;
+            }
 
             iterator erase(const_iterator position)
             {
