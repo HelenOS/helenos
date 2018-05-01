@@ -307,8 +307,8 @@ namespace std
 
                 return iterator{
                     table_.table(), first.idx(),
-                    table_.bucket_count(), table_.head(first.idx())
-                }; // TODO: why do we pass table_.head(first.idx()) here?
+                    table_.bucket_count(), first.node()
+                };
             }
 
             void clear() noexcept
