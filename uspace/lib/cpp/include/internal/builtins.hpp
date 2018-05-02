@@ -64,9 +64,9 @@ namespace std::aux
     }
 
     template<class T>
-    constexpr double ceil(T val)
+    constexpr size_t ceil(T val)
     {
-        return __builtin_ceil(static_cast<double>(val));
+        return static_cast<size_t>(__builtin_ceil(static_cast<double>(val)));
     }
 }
 
