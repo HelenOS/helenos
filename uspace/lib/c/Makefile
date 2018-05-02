@@ -46,12 +46,6 @@ SOVERSION = 0.0
 -include $(CONFIG_MAKEFILE)
 -include arch/$(UARCH)/Makefile.inc
 
-ARCH_AUTOGENS_PROBE_C := $(ARCH_AUTOGENS_AG:%.ag.h=.ag.c)
-ARCH_AUTOGENS_PROBE_S := $(ARCH_AUTOGENS_AG:%.ag.h=.ag.s)
-
-PRE_DEPEND += $(ARCH_AUTOGENS_AG)
-EXTRA_CLEAN += $(ARCH_AUTOGENS_AG) $(ARCH_AUTOGENS_PROBE_C) $(ARCH_AUTOGENS_PROBE_S)
-
 GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
