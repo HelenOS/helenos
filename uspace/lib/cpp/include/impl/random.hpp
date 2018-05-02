@@ -422,7 +422,196 @@ namespace std
      */
 
     template<class UIntType, size_t w, size_t s, size_t r>
-    class subtract_with_carry_engine;
+    class subtract_with_carry_engine
+    {
+        // TODO: fix these
+        /* static_assert(0U < s); */
+        /* static_assert(s < r); */
+        /* static_assert(0U < w); */
+        /* static_assert(w <= numeric_limits<UIntType>::digits); */
+
+        public:
+            using result_type = UIntType;
+
+            static constexpr size_t word_size = w;
+            static constexpr size_t short_lag = s;
+            static constexpr size_t long_lag = r;
+
+            static constexpr result_type min()
+            {
+                return result_type{};
+            }
+
+            static constexpr result_type max()
+            {
+                return m_ - 1;
+            }
+
+            static constexpr result_type default_seed = 19780503U;
+
+            explicit subtract_with_carry_engine(result_type value = default_seed)
+                : state_{}, i_{}, carry_{}
+            {
+                seed(value);
+            }
+
+            template<class Seq>
+            explicit subtract_with_carry_engine(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+                : state_{}, i_{}, carry_{}
+            {
+                seed(q);
+            }
+
+            void seed(result_type value = default_seed)
+            {
+                linear_congruential_engine<
+                    result_type, 40014U, 0U, 2147483563U
+                > e{value == 0U ? default_seed : value};
+
+                auto n = aux::ceil(w / 32.0);
+                auto z = new result_type[n];
+
+                for (long long i = -r; i <= -1; ++i)
+                {
+                    for (size_t i = 0; i < n; ++i)
+                        z[i] = e() % aux::pow2u(32);
+
+                    state_[idx_(i)] = result_type{};
+                    for (size_t j = 0; j < n; ++j)
+                        state_[idx_(i)] += z[j] * aux::pow2u(32 * j);
+                    state_[idx_(i)] %= m_;
+                }
+
+                if (state_[idx_(-1)] == 0)
+                    carry_ = 1;
+                else
+                    carry_ = 0;
+
+                delete[] z;
+            }
+
+            template<class Seq>
+            void seed(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+            {
+                auto k = aux::ceil(w / 32.0);
+                auto arr = new result_type[r * k];
+
+                q.generate(arr, arr + r * k);
+
+                for (long long i = -r; i <= -1; ++i)
+                {
+                    state_[idx_(i)] = result_type{};
+                    for (long long j = 0; j < k; ++j)
+                        state_[idx_(i)] += arr[k * (i + r) + j] * aux::pow2(32 * j);
+                    state_[idx_(i)] %= m_;
+                }
+
+                delete[] arr;
+
+                if (state_[idx_(-1)] == 0)
+                    carry_ = 1;
+                else
+                    carry_ = 0;
+            }
+
+            result_type operator()()
+            {
+                return generate_();
+            }
+
+            void discard(unsigned long long z)
+            {
+                for (unsigned long long i = 0ULL; i < z; ++i)
+                    transition_();
+            }
+
+            bool operator==(const subtract_with_carry_engine& rhs) const
+            {
+                for (size_t i = 0; i < r; ++i)
+                {
+                    if (state_[i] != rhs.state_[i])
+                        return false;
+                }
+
+                return true;
+            }
+
+            bool operator!=(const subtract_with_carry_engine& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
+            template<class Char, class Traits>
+            basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os) const
+            {
+                auto flags = os.flags();
+                os.flags(ios_base::dec | ios_base::left);
+
+                for (size_t j = r + 1; j > 1; --j)
+                {
+                    os << state_[idx_(i_ - j - 1)];
+                    os << os.widen(' ');
+                }
+
+                os << carry_;
+
+                os.flags(flags);
+                return os;
+            }
+
+            template<class Char, class Traits>
+            basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is) const
+            {
+                auto flags = is.flags();
+                is.flags(ios_base::dec);
+
+                for (size_t j = r + 1; j > 1; --j)
+                {
+                    if (!(is >> state_[idx_(i_ - j - 1)]))
+                    {
+                        is.setstate(ios::failbit);
+                        break;
+                    }
+                }
+
+                if (!(is >> carry_))
+                    is.setstate(ios::failbit);
+
+                is.flags(flags);
+                return is;
+            }
+
+        private:
+            result_type state_[r];
+            size_t i_;
+            uint8_t carry_;
+
+            static constexpr result_type m_ = aux::pow2u(w);
+
+            auto transition_()
+            {
+                auto y = static_cast<int64_t>(state_[idx_(i_ - s)]) - state_[idx_(i_ - r)] - carry_;
+                state_[i_] = y % m_;
+
+                i_ = (i_ + 1) % r;
+
+                return static_cast<result_type>(y % m_);
+            }
+
+            result_type generate_()
+            {
+                return transition_();
+            }
+
+            size_t idx_(size_t idx) const
+            {
+                return idx % r;
+            }
+    };
 
     /**
      * 26.5.4.2, class template discard_block_engine:
