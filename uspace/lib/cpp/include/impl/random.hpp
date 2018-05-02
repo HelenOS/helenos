@@ -88,12 +88,12 @@ namespace std
             static constexpr result_type increment = c;
             static constexpr result_type modulus = m;
 
-            static constexpr min()
+            static constexpr result_type min()
             {
                 return c == 0U ? 1U : 0U;
             }
 
-            static constexpr max()
+            static constexpr result_type max()
             {
                 return m - 1U;
             }
@@ -132,14 +132,11 @@ namespace std
                 enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
             )
             {
-                size_t k = static_cast<size_t>(aux::ceil(aux::log2(modulus_) / 32));
-                auto arr = new result_type[k + 3];
-
-                q.generate(arr, arr + k + 3);
+                q.generate(arr_, arr_ + k_ + 3);
 
                 result_type s{};
-                for (size_t j = 0; j < k; ++j)
-                    s += a[j + 3] * aux::pow2(32U * j);
+                for (size_t j = 0; j < k_; ++j)
+                    s += arr_[j + 3] * aux::pow2(32U * j);
                 s = s % modulus_;
 
                 seed(s);
@@ -200,6 +197,14 @@ namespace std
             static constexpr result_type modulus_ =
                 (m == 0) ? (numeric_limits<result_type>::max() + 1) : m;
 
+            /**
+             * We use constexpr builtins to keep this array
+             * between calls to seed(Seq&), which means we don't
+             * have to keep allocating and deleting it.
+             */
+            static constexpr size_t k_ = static_cast<size_t>(aux::ceil(aux::log2(modulus_) / 32));
+            result_type arr_[k_ + 3];
+
             void transition_()
             {
                 state_ = (a * state_ + c) % modulus_;
@@ -222,7 +227,195 @@ namespace std
         UIntType a, size_t u, UIntType d, size_t s,
         UIntType b, size_t t, UIntType c, size_t l, UIntType f
     >
-    class mersenne_twister_engine;
+    class mersenne_twister_engine
+    {
+        // TODO: fix these
+        /* static_assert(0 < m && m <= n); */
+        /* static_assert(2 * u < w); */
+        /* static_assert(r <= w && u <= w && s <= w && t <= w && l <= w); */
+        /* /1* static_assert(w <= numeric_limits<UIntType>::digits); *1/ */
+        /* static_assert(a <= (1U << w) - 1U); */
+        /* static_assert(b <= (1U << w) - 1U); */
+        /* static_assert(c <= (1U << w) - 1U); */
+        /* static_assert(d <= (1U << w) - 1U); */
+        /* static_assert(f <= (1U << w) - 1U); */
+
+        public:
+            using result_type = UIntType;
+
+            static constexpr size_t word_size = w;
+            static constexpr size_t state_size = n;
+            static constexpr size_t shift_size = m;
+            static constexpr size_t mask_bits = r;
+            static constexpr UIntType xor_mask = a;
+
+            static constexpr size_t tempering_u = u;
+            static constexpr UIntType tempering_d = d;
+            static constexpr size_t tempering_s = s;
+            static constexpr UIntType tempering_b = b;
+            static constexpr size_t tempering_t = t;
+            static constexpr UIntType tempering_c = c;
+            static constexpr size_t tempering_l = l;
+
+            static constexpr UIntType initialization_multiplier = f;
+
+            static constexpr result_type min()
+            {
+                return result_type{};
+            }
+
+            static constexpr result_type max()
+            {
+                return static_cast<result_type>(aux::pow2(w)) - 1U;
+            }
+
+            static constexpr result_type default_seed = 5489U;
+
+            explicit mersenne_twister_engine(result_type value = default_seed)
+                : state_{}, i_{}
+            {
+                seed(value);
+            }
+
+            template<class Seq>
+            explicit mersenne_twister_engine(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+                : state_{}, i_{}
+            {
+                seed(q);
+            }
+
+            void seed(result_type value = default_seed)
+            {
+                state_[idx_(-n)] = value % aux::pow2u(w);;
+
+                for (long long i = 1 - n; i <= -1; ++i)
+                {
+                    state_[idx_(i)] = (f * (state_[idx_(i - 1)] ^
+                                      (state_[idx_(i - 1)] >> (w - 2))) + 1 % n) % aux::pow2u(w);
+                }
+            }
+
+            template<class Seq>
+            void seed(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+            {
+                q.generate(arr_, arr_ + n * k_);
+
+                for (long long i = -n; i <= -1; ++i)
+                {
+                    state_[idx_(i)] = result_type{};
+                    for (long long j = 0; j < k_; ++j)
+                        state_[idx_(i)] += arr_[k_ * (i + n) + j] * aux::pow2(32 * j);
+                    state_[idx_(i)] %= aux::pow2(w);
+                }
+            }
+
+            result_type operator()()
+            {
+                return generate_();
+            }
+
+            void discard(unsigned long long z)
+            {
+                for (unsigned long long i = 0ULL; i < z; ++i)
+                    transition_();
+            }
+
+            bool operator==(const mersenne_twister_engine& rhs) const
+            {
+                for (size_t i = 0; i < n; ++i)
+                {
+                    if (state_[i] != rhs.state_[i])
+                        return false;
+                }
+
+                return true;
+            }
+
+            bool operator!=(const mersenne_twister_engine& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
+            template<class Char, class Traits>
+            basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os) const
+            {
+                auto flags = os.flags();
+                os.flags(ios_base::dec | ios_base::left);
+
+                for (size_t j = n + 1; j > 1; --j)
+                {
+                    os << state_[idx_(i_ - j - 1)];
+
+                    if (j > 2)
+                        os << os.widen(' ');
+                }
+
+                os.flags(flags);
+                return os;
+            }
+
+            template<class Char, class Traits>
+            basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is) const
+            {
+                auto flags = is.flags();
+                is.flags(ios_base::dec);
+
+                for (size_t j = n + 1; j > 1; --j)
+                {
+                    if (!(is >> state_[idx_(i_ - j - 1)]))
+                    {
+                        is.setstate(ios::failbit);
+                        break;
+                    }
+                }
+
+                is.flags(flags);
+                return is;
+            }
+
+        private:
+            result_type state_[n];
+            size_t i_;
+
+            static constexpr size_t k_ = static_cast<size_t>(w / 32);
+            result_type arr_[n * k_];
+
+            void transition_()
+            {
+                auto mask = (result_type{1} << r) - 1;
+                auto y = (state_[idx_(i_ - n)] & ~mask) | (state_[idx_(i_ + 1 - n)] & mask);
+                auto alpha = a * (y & 1);
+                state_[i_] = state_[idx_(i_ + m - n)] ^ (y >> 1) ^ alpha;
+
+                i_ = (i_ + 1) % n;
+            }
+
+            result_type generate_()
+            {
+                auto z1 = state_[i_] ^ ((state_[i_] >> u) & d);
+                auto z2 = z1 ^ (lshift_(z1, s) & b);
+                auto z3 = z2 ^ (lshift_(z2, t) & c);
+                auto z4 = z3 ^ (z3 >> l);
+
+                transition_();
+
+                return z4;
+            }
+
+            size_t idx_(size_t idx) const
+            {
+                return idx % n;
+            }
+
+            result_type lshift_(result_type val, size_t count)
+            {
+                return (val << count) % aux::pow2u(w);
+            }
+    };
 
     /**
      * 26.5.3.3, class template subtract_with_carry_engine:
