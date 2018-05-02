@@ -116,17 +116,7 @@ namespace std
             )
                 : state_{}
             {
-                size_t k = static_cast<size_t>(aux::ceil(aux::log2(modulus_) / 32));
-                auto arr = new result_type[k + 3];
-
-                q.generate(arr, arr + k + 3);
-
-                result_type s{};
-                for (size_t j = 0; j < k; ++j)
-                    s += a[j + 3] * aux::pow2(32U * j);
-                s = s % modulus_;
-
-                seed(s);
+                seed(q);
             }
 
             void seed(result_type s = default_seed)
@@ -140,7 +130,20 @@ namespace std
             template<class Seq>
             void seed(
                 enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
-            );
+            )
+            {
+                size_t k = static_cast<size_t>(aux::ceil(aux::log2(modulus_) / 32));
+                auto arr = new result_type[k + 3];
+
+                q.generate(arr, arr + k + 3);
+
+                result_type s{};
+                for (size_t j = 0; j < k; ++j)
+                    s += a[j + 3] * aux::pow2(32U * j);
+                s = s % modulus_;
+
+                seed(s);
+            }
 
             result_type operator()()
             {
