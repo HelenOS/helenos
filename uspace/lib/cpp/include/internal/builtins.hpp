@@ -68,6 +68,12 @@ namespace std::aux
     {
         return static_cast<size_t>(__builtin_ceil(static_cast<double>(val)));
     }
+
+    template<class T>
+    constexpr size_t floor(T val)
+    {
+        return static_cast<size_t>(__builtin_floor(static_cast<double>(val)));
+    }
 }
 
 #endif

@@ -326,6 +326,9 @@ namespace std
 
             bool operator==(const mersenne_twister_engine& rhs) const
             {
+                if (i_ != rhs.i_)
+                    return false;
+
                 for (size_t i = 0; i < n; ++i)
                 {
                     if (state_[i] != rhs.state_[i])
@@ -531,6 +534,9 @@ namespace std
 
             bool operator==(const subtract_with_carry_engine& rhs) const
             {
+                if (i_ != rhs.i_)
+                    return false;
+
                 for (size_t i = 0; i < r; ++i)
                 {
                     if (state_[i] != rhs.state_[i])
@@ -618,21 +624,353 @@ namespace std
      */
 
     template<class Engine, size_t p, size_t r>
-    class discard_block_engine;
+    class discard_block_engine
+    {
+        static_assert(0 < r);
+        static_assert(r <= p);
+
+        public:
+            using result_type = typename Engine::result_type;
+
+            static constexpr size_t block_size = p;
+            static constexpr size_t used_block = r;
+
+            static constexpr result_type min()
+            {
+                return Engine::min();
+            }
+
+            static constexpr result_type max()
+            {
+                return Engine::max();
+            }
+
+            discard_block_engine()
+                : engine_{}, n_{}
+            { /* DUMMY BODY */ }
+
+            explicit discard_block_engine(const Engine& e)
+                : engine_{e}, n_{}
+            { /* DUMMY BODY */ }
+
+            explicit discard_block_engine(Engine&& e)
+                : engine_{move(e)}, n_{}
+            { /* DUMMY BODY */ }
+
+            explicit discard_block_engine(result_type s)
+                : engine_{s}, n_{}
+            { /* DUMMY BODY */ }
+
+            template<class Seq>
+            explicit discard_block_engine(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+                : engine_{q}, n_{}
+            { /* DUMMY BODY */ }
+
+            void seed()
+            {
+                engine_.seed();
+            }
+
+            void seed(result_type s)
+            {
+                engine_.seed(s);
+            }
+
+            template<class Seq>
+            void seed(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+            {
+                engine_.seed(q);
+            }
+
+            result_type operator()()
+            {
+                if (n_ > static_cast<int>(r))
+                {
+                    auto count = p - r;
+                    for (size_t i = 0; i < count; ++i)
+                        engine_();
+                    n_ = 0;
+                }
+                ++n_;
+
+                return engine_();
+            }
+
+            void discard(unsigned long long z)
+            {
+                for (unsigned long long i = 0ULL; i < z; ++i)
+                    operator()(); // We need to discard our (), not engine's.
+            }
+
+            const Engine& base() const noexcept
+            {
+                return engine_;
+            }
+
+            bool operator==(const discard_block_engine& rhs) const
+            {
+                return engine_ == rhs.engine_ && n_ == rhs.n_;
+            }
+
+            bool operator!=(const discard_block_engine& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
+            template<class Char, class Traits>
+            basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os) const
+            {
+                auto flags = os.flags();
+                os.flags(ios_base::dec | ios_base::left);
+
+                os << n_ << os.widen(' ') << engine_;
+
+                os.flags(flags);
+                return os;
+            }
+
+            template<class Char, class Traits>
+            basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is) const
+            {
+                auto flags = is.flags();
+                is.flags(ios_base::dec);
+
+                if (!(is >> n_) || !(is >> engine_))
+                    is.setstate(ios::failbit);
+
+                is.flags(flags);
+                return is;
+            }
+
+        private:
+            Engine engine_;
+            int n_;
+    };
 
     /**
      * 26.5.4.3, class template independent_bits_engine:
      */
 
     template<class Engine, size_t w, class UIntType>
-    class independent_bits_engine;
+    class independent_bits_engine
+    {
+        static_assert(0U < w);
+        /* static_assert(w <= numeric_limits<result_type>::digits); */
+
+        public:
+            using result_type = UIntType;
+
+            static constexpr result_type min()
+            {
+                return result_type{};
+            }
+
+            static constexpr result_type max()
+            {
+                return aux::pow2u(w) - 1;
+            }
+
+            independent_bits_engine()
+                : engine_{}
+            { /* DUMMY BODY */ }
+
+            explicit independent_bits_engine(const Engine& e)
+                : engine_{e}
+            { /* DUMMY BODY */ }
+
+            explicit independent_bits_engine(Engine&& e)
+                : engine_{move(e)}
+            { /* DUMMY BODY */ }
+
+            explicit independent_bits_engine(result_type s)
+                : engine_{s}
+            { /* DUMMY BODY */ }
+
+            template<class Seq>
+            explicit independent_bits_engine(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+                : engine_{q}
+            { /* DUMMY BODY */ }
+
+            void seed()
+            {
+                engine_.seed();
+            }
+
+            void seed(result_type s)
+            {
+                engine_.seed(s);
+            }
+
+            template<class Seq>
+            void seed(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+            {
+                engine_.seed(q);
+            }
+
+            result_type operator()()
+            {
+                /* auto r = engine_.max() - engine_.min() + 1; */
+                /* auto m = aux::floor(aux::log2(r)); */
+                // TODO:
+
+                return engine_();
+            }
+
+            void discard(unsigned long long z)
+            {
+                for (unsigned long long i = 0ULL; i < z; ++i)
+                    operator()();
+            }
+
+            const Engine& base() const noexcept
+            {
+                return engine_;
+            }
+
+            bool operator==(const independent_bits_engine& rhs) const
+            {
+                return engine_ == rhs.engine_;
+            }
+
+            bool operator!=(const independent_bits_engine& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
+            template<class Char, class Traits>
+            basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os) const
+            {
+                return os << engine_;
+            }
+
+            template<class Char, class Traits>
+            basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is) const
+            {
+                return is >> engine_;
+            }
+
+        private:
+            Engine engine_;
+    };
 
     /**
      * 26.5.4.4, class template shiffle_order_engine:
      */
 
     template<class Engine, size_t k>
-    class shuffle_order_engine;
+    class shuffle_order_engine
+    {
+        static_assert(0U < k);
+
+        public:
+            using result_type = typename Engine::result_type;
+
+            static constexpr size_t table_size = k;
+
+            static constexpr result_type min()
+            {
+                return Engine::min();
+            }
+
+            static constexpr result_type max()
+            {
+                return Engine::max();
+            }
+
+            shuffle_order_engine()
+                : engine_{}
+            { /* DUMMY BODY */ }
+
+            explicit shuffle_order_engine(const Engine& e)
+                : engine_{e}
+            { /* DUMMY BODY */ }
+
+            explicit shuffle_order_engine(Engine&& e)
+                : engine_{move(e)}
+            { /* DUMMY BODY */ }
+
+            explicit shuffle_order_engine(result_type s)
+                : engine_{s}
+            { /* DUMMY BODY */ }
+
+            template<class Seq>
+            explicit shuffle_order_engine(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+                : engine_{q}
+            { /* DUMMY BODY */ }
+
+            void seed()
+            {
+                engine_.seed();
+            }
+
+            void seed(result_type s)
+            {
+                engine_.seed(s);
+            }
+
+            template<class Seq>
+            void seed(
+                enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
+            )
+            {
+                engine_.seed(q);
+            }
+
+            result_type operator()()
+            {
+                // TODO:
+
+                return engine_();
+            }
+
+            void discard(unsigned long long z)
+            {
+                for (unsigned long long i = 0ULL; i < z; ++i)
+                    operator()();
+            }
+
+            const Engine& base() const noexcept
+            {
+                return engine_;
+            }
+
+            bool operator==(const shuffle_order_engine& rhs) const
+            {
+                return engine_ == rhs.engine_;
+            }
+
+            bool operator!=(const shuffle_order_engine& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
+            template<class Char, class Traits>
+            basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os) const
+            {
+                return os << engine_;
+            }
+
+            template<class Char, class Traits>
+            basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is) const
+            {
+                return is >> engine_;
+            }
+
+        private:
+            Engine engine_;
+            result_type y_;
+            result_type table_[k];
+    };
 
     /**
      * 26.5.5, engines and engine adaptors with predefined
