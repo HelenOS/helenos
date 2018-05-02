@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <initializer_list>
+#include <internal/builtins.hpp>
 #include <limits>
 #include <type_traits>
 #include <vector>
@@ -42,6 +43,10 @@
  *       the standard. If one needs to understand their meaning,
  *       they should seek the mentioned standard section near
  *       the declaration of these variables.
+ * Note: There will be a lot of mathematical expressions in this header.
+ *       All of these are taken directly from the standard's requirements
+ *       and as such won't be commented here, check the appropriate
+ *       sections if you need explanation of these forumulae.
  */
 
 namespace std
@@ -74,6 +79,8 @@ namespace std
     template<class UIntType, UIntType a, UIntType c, UIntType m>
     class linear_congruential_engine
     {
+        static_assert(m == 0 || (a < m && c < m));
+
         public:
             using result_type = UIntType;
 
@@ -93,23 +100,114 @@ namespace std
 
             static constexpr result_type default_seed = 1U;
 
-            explicit linear_congruential_engine(result_type s = default_seed);
+            explicit linear_congruential_engine(result_type s = default_seed)
+                : state_{}
+            {
+                seed(s);
+            }
+
+            linear_congruential_engine(const linear_congruential_engine& other)
+                : state_{other.state_}
+            { /* DUMMY BODY */ }
 
             template<class Seq>
             explicit linear_congruential_engine(
                 enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
-            );
+            )
+                : state_{}
+            {
+                size_t k = static_cast<size_t>(aux::ceil(aux::log2(modulus_) / 32));
+                auto arr = new result_type[k + 3];
 
-            void seed(result_type s = default_seed);
+                q.generate(arr, arr + k + 3);
+
+                result_type s{};
+                for (size_t j = 0; j < k; ++j)
+                    s += a[j + 3] * aux::pow2(32U * j);
+                s = s % modulus_;
+
+                seed(s);
+            }
+
+            void seed(result_type s = default_seed)
+            {
+                if (c % modulus_ == 0 && s == 0)
+                    state_ = 0;
+                else
+                    state_ = s;
+            }
 
             template<class Seq>
             void seed(
                 enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
             );
 
-            result_type operator()();
+            result_type operator()()
+            {
+                return generate_();
+            }
 
-            void discard(unsigned long long z);
+            void discard(unsigned long long z)
+            {
+                for (unsigned long long i = 0ULL; i < z; ++i)
+                    transition_();
+            }
+
+            bool operator==(const linear_congruential_engine& rhs) const
+            {
+                return state_ = rhs.state_;
+            }
+
+            bool operator!=(const linear_congruential_engine& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
+            template<class Char, class Traits>
+            basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os) const
+            {
+                auto flags = os.flags();
+                os.flags(ios_base::dec | ios_base::left);
+
+                os << state_;
+
+                os.flags(flags);
+                return os;
+            }
+
+            template<class Char, class Traits>
+            basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is) const
+            {
+                auto flags = is.flags();
+                is.flags(ios_base::dec);
+
+                result_type tmp{};
+                if (is >> tmp)
+                    state_ = tmp;
+                else
+                    is.setstate(ios::failbit);
+
+                is.flags(flags);
+                return is;
+            }
+
+        private:
+            result_type state_;
+
+            static constexpr result_type modulus_ =
+                (m == 0) ? (numeric_limits<result_type>::max() + 1) : m;
+
+            void transition_()
+            {
+                state_ = (a * state_ + c) % modulus_;
+            }
+
+            result_type generate_()
+            {
+                transition_();
+
+                return state_;
+            }
     };
 
     /**
