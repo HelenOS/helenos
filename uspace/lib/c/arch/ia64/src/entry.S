@@ -31,6 +31,7 @@
 .section .init, "ax"
 
 .org 0
+.align 16
 
 ## User-space task entry point
 #
