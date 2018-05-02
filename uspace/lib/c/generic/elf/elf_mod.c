@@ -341,6 +341,11 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 	case PT_PHDR:
 	case PT_NOTE:
 		break;
+	case PT_GNU_EH_FRAME:
+	case PT_GNU_STACK:
+	case PT_GNU_RELRO:
+		/* Ignore GNU headers, if present. */
+		break;
 	case PT_INTERP:
 		elf->info->interp =
 		    (void *)((uint8_t *)entry->p_vaddr + elf->bias);
