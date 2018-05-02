@@ -41,22 +41,30 @@
  *       (If anyone has a better link for LLVM, feel free to update it.)
  */
 
+#include <cstdlib>
+
 namespace std::aux
 {
     template<class T>
-    double log2(T val)
+    constexpr double log2(T val)
     {
         return __builtin_log2(static_cast<double>(val));
     }
 
     template<class T>
-    double pow2(T exp)
+    constexpr double pow2(T exp)
     {
-        return __builtin_pow(2.0, static_cast<double>(val));
+        return __builtin_pow(2.0, static_cast<double>(exp));
     }
 
     template<class T>
-    double ceil(T val)
+    constexpr size_t pow2u(T exp)
+    {
+        return static_cast<size_t>(pow2(exp));
+    }
+
+    template<class T>
+    constexpr double ceil(T val)
     {
         return __builtin_ceil(static_cast<double>(val));
     }
