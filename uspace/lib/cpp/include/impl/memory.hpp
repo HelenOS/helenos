@@ -61,6 +61,31 @@ namespace std
     constexpr allocator_arg_t allocator_arg{};
 
     /**
+     * 20.7.7, uses_allocator:
+     */
+
+    namespace aux
+    {
+        template<class T, class = void>
+        struct has_allocator_type: false_type
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        struct has_allocator_type<T, void_t<typename T::allocator_type>>
+            : true_type
+        { /* DUMMY BODY */ };
+    }
+
+    template<class T, class Alloc, class = void>
+    struct uses_allocator
+        : aux::value_is<
+        bool, aux::has_allocator_type<T>::value && is_convertible_v<
+            Alloc, typename T::allocator_type
+        >
+    >
+    { /* DUMMY BODY */ };
+
+    /**
      * 20.7.8, allocator traits:
      */
 

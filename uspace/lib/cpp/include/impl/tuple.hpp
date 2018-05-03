@@ -462,9 +462,6 @@ namespace std
      * 20.4.2.8, allocator-related traits:
      */
 
-    template<class...>
-    struct uses_allocator;
-
     template<class... Ts, class Alloc>
     struct uses_allocator<tuple<Ts...>, Alloc>: true_type
     { /* DUMMY BODY */ };
