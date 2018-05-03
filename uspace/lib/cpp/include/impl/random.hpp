@@ -1148,27 +1148,317 @@ namespace std
      */
 
     template<class RealType, size_t bits, class URNG>
-    RealType generate_canonical(URNG& g);
+    RealType generate_canonical(URNG& g)
+    {
+        auto b = (bits < numeric_limits<RealType>::digits) ? bits : numeric_limits<RealType>::digits;
+        RealType r = g.max() - g.min() + 1;
+        size_t tmp = aux::ceil(b / aux::log2(r));
+        size_t k = (1U < tmp) ? tmp : 1U;
+
+        RealType s{};
+        for (size_t i = 0; i < k; ++i)
+            s += (g() - g.min()) * aux::pow(r, i);
+
+        return s / aux::pow(r, k);
+    }
 
     /**
      * 26.5.8.2.1, class template uniform_int_distribution:
      */
 
     template<class IntType = int>
-    class uniform_int_distribution;
+    class uniform_int_distribution
+    {
+        public:
+            using result_type = IntType;
+            using param_type  = pair<result_type, result_type>;
+
+            explicit uniform_int_distribution(result_type a = 0,
+                                              result_type b = numeric_limits<result_type>::max())
+                : a_{a}, b_{b}
+            { /* DUMMY BODY */ }
+
+            explicit uniform_int_distribution(const param_type& p)
+                : a_{p.first}, b_{p.second}
+            { /* DUMMY BODY */ }
+
+            void reset()
+            { /* DUMMY BODY */ }
+
+            template<class URNG>
+            result_type operator()(URNG& g)
+            {
+                auto range = b_ - a_ + 1;
+
+                return g() % range + a_;
+            }
+
+            template<class URNG>
+            result_type operator()(URNG& g, const param_type& p)
+            {
+                auto range = p.second - p.first + 1;
+
+                return g() % range + p.first;
+            }
+
+            result_type a() const
+            {
+                return a_;
+            }
+
+            result_type b() const
+            {
+                return b_;
+            }
+
+            param_type param() const
+            {
+                return param_type{a_, b_};
+            }
+
+            void param(const param_type& p)
+            {
+                a_ = p.first;
+                b_ = p.second;
+            }
+
+            result_type min() const
+            {
+                return a_;
+            }
+
+            result_type max() const
+            {
+                return b_;
+            }
+
+            bool operator==(const uniform_int_distribution& rhs) const
+            {
+                return a_ == rhs.a_ && b_ == rhs.b_;
+            }
+
+            bool operator!=(const uniform_int_distribution& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
+            template<class Char, class Traits>
+            basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os) const
+            {
+                auto flags = os.flags();
+                os.flags(ios_base::dec | ios_base::left);
+
+                os << a_ << os.widen(' ') << b_;
+
+                os.flags(flags);
+                return os;
+            }
+
+            template<class Char, class Traits>
+            basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is) const
+            {
+                auto flags = is.flags();
+                is.flags(ios_base::dec);
+
+                if (!(is >> a_) || !(is >> b_))
+                    is.setstate(ios::failbit);
+
+                is.flags(flags);
+                return is;
+            }
+
+        private:
+            result_type a_;
+            result_type b_;
+    };
 
     /**
      * 26.5.8.2.2, class template uniform_real_distribution:
      */
 
     template<class RealType = double>
-    class uniform_real_distribution;
+    class uniform_real_distribution
+    {
+        public:
+            using result_type = RealType;
+            using param_type  = pair<result_type, result_type>;
+
+            explicit uniform_real_distribution(result_type a = 0.0,
+                                               result_type b = 1.0)
+                : a_{a}, b_{b}
+            { /* DUMMY BODY */ }
+
+            explicit uniform_real_distribution(const param_type& p)
+                : a_{p.first}, b_{p.second}
+            { /* DUMMY BODY */ }
+
+            void reset()
+            { /* DUMMY BODY */ }
+
+            template<class URNG>
+            result_type operator()(URNG& g)
+            {
+                auto range = b_ - a_ + 1;
+
+                return generate_canonical<
+                    result_type, numeric_limits<result_type>::digits
+                >(g) * range + a_;
+            }
+
+            template<class URNG>
+            result_type operator()(URNG& g, const param_type& p)
+            {
+                auto range = p.second - p.first + 1;
+
+                return generate_canonical<
+                    result_type, numeric_limits<result_type>::digits
+                >(g) * range + p.first;
+            }
+
+            result_type a() const
+            {
+                return a_;
+            }
+
+            result_type b() const
+            {
+                return b_;
+            }
+
+            param_type param() const
+            {
+                return param_type{a_, b_};
+            }
+
+            void param(const param_type& p)
+            {
+                a_ = p.first;
+                b_ = p.second;
+            }
+
+            result_type min() const
+            {
+                return a_;
+            }
+
+            result_type max() const
+            {
+                return b_;
+            }
+
+            bool operator==(const uniform_real_distribution& rhs) const
+            {
+                return a_ == rhs.a_ && b_ == rhs.b_;
+            }
+
+            bool operator!=(const uniform_real_distribution& rhs) const
+            {
+                return !(*this == rhs);
+            }
+
+            // TODO: ostream/istream operators can't be members
+            template<class Char, class Traits>
+            basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os) const
+            {
+                auto flags = os.flags();
+                os.flags(ios_base::dec | ios_base::left);
+
+                os << a_ << os.widen(' ') << b_;
+
+                os.flags(flags);
+                return os;
+            }
+
+            template<class Char, class Traits>
+            basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is) const
+            {
+                auto flags = is.flags();
+                is.flags(ios_base::dec);
+
+                if (!(is >> a_) || !(is >> b_))
+                    is.setstate(ios::failbit);
+
+                is.flags(flags);
+                return is;
+            }
+
+        private:
+            result_type a_;
+            result_type b_;
+    };
 
     /**
      * 26.5.8.3.1, class bernoulli_distribution:
      */
 
-    class bernoulli_distribution;
+    class bernoulli_distribution
+    {
+        public:
+            using result_type = bool;
+            using param_type  = float;
+
+            explicit bernoulli_distribution(double prob = 0.5)
+                : prob_{static_cast<float>(prob)}
+            { /* DUMMY BODY */ }
+
+            explicit bernoulli_distribution(const param_type& p)
+                : prob_{p}
+            { /* DUMMY BODY */ }
+
+            void reset()
+            { /* DUMMY BODY */ }
+
+            template<class URNG>
+            result_type operator()(URNG& g)
+            {
+                uniform_real_distribution<float> dist{};
+
+                return dist(g) < prob_;
+            }
+
+            template<class URNG>
+            result_type operator()(const param_type& p)
+            {
+                uniform_real_distribution<float> dist{};
+
+                return dist(p) < prob_;
+            }
+
+            double p() const
+            {
+                return prob_;
+            }
+
+            param_type param() const
+            {
+                return prob_;
+            }
+
+            void param(const param_type& p)
+            {
+                prob_ = p;
+            }
+
+            result_type min() const
+            {
+                return false;
+            }
+
+            result_type max() const
+            {
+                return true;
+            }
+
+        private:
+            /**
+             * Note: We use float because we do not
+             *       have the macro DBL_MANT_DIGITS
+             *       for generate_cannonical.
+             */
+            float prob_;
+    };
+
+    // TODO: complete the rest of the distributions
 
     /**
      * 26.5.8.3.2, class template binomial_distribution:
