@@ -34,6 +34,7 @@
 #   LIBS               libraries to link with
 #   DEFS               compiler defines
 #   EXTRA_CFLAGS       additional flags to pass to C compiler
+#   LINKER_SCRIPT      linker script
 #   PRE_DEPEND         targets required for dependency check
 #
 #   BINARY         (/) binary output name (like appname)
@@ -112,8 +113,6 @@ LIBMATH_INCLUDES_FLAGS = \
 LIBPOSIX_PREFIX = $(LIB_PREFIX)/posix
 LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
-STARTUP_OBJECT = $(LIBC_PREFIX)/arch/$(UARCH)/src/entry.o
-
 AFLAGS = --fatal-warnings
 LDFLAGS = -Wl,--fatal-warnings,--warn-common
 
@@ -140,9 +139,14 @@ endif
 
 BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 
-ifneq ($(LINK_DYNAMIC),y)
+ifeq ($(LINK_DYNAMIC),y)
+	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+else
 	LDFLAGS += -static
+	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 endif
+
+LIB_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
 
 INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
 
@@ -296,13 +300,13 @@ else
 endif
 
 ifneq ($(BINARY),)
-$(BINARY): $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -Wl,-Map,$@.map -o $@ $(STARTUP_OBJECT) $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
+$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(TEST_BINARY),)
-$(TEST_BINARY): $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS) $(BASE_LIBS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -Wl,-Map,$@.map -o $@ $(STARTUP_OBJECT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
+$(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS) $(BASE_LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(LIBRARY),)
@@ -318,8 +322,8 @@ tag: $(SLIBRARY)
 $(LIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 
-$(SLIBRARY): $(LIBRARY).la
-	$(CC) $(CFLAGS) $(LIB_LDFLAGS) $(EXTRA_LDFLAGS) -Wl,-Map,$@.map -o $@ -Wl,--whole-archive $(LIBRARY).la -Wl,--no-whole-archive
+$(SLIBRARY): $(LIB_LINKER_SCRIPT) $(LIBRARY).la
+	$(CC) $(CFLAGS) $(LIB_LDFLAGS) $(EXTRA_LDFLAGS) -T $(LIB_LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ -Wl,--whole-archive $(LIBRARY).la -Wl,--no-whole-archive
 
 $(LSONAME):
 	ln -s $(SLIBRARY) $@

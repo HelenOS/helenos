@@ -1,0 +1,62 @@
+STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
+ENTRY(_start)
+
+PHDRS {
+	text PT_LOAD FILEHDR PHDRS FLAGS(5);
+	data PT_LOAD FLAGS(6);
+	tls PT_TLS;
+}
+
+SECTIONS {
+#ifdef SHLIB
+	. = SEGMENT_START("text-segment", 0);
+#else
+	. = SEGMENT_START("text-segment", 0x400000);
+	PROVIDE (__executable_start = .);
+#endif
+	. = . + SIZEOF_HEADERS;
+
+	.text : {
+		*(.text .text.*);
+		*(.rodata .rodata.*);
+	} :text
+
+	. = . + 0x1000;
+
+	.data : {
+		*(.data);
+		*(.data.rel*);
+	} :data
+
+	.got.plt : {
+		*(.got.plt);
+	} :data
+
+	.tdata : {
+		*(.tdata);
+		*(.tdata.*);
+		*(.gnu.linkonce.td.*);
+	} :data :tls
+
+	.tbss : {
+		*(.tbss);
+		*(.tbss.*);
+		*(.gnu.linkonce.tb.*);
+	} :data :tls
+
+	.sbss : {
+		*(.scommon);
+		*(.sbss);
+	}
+
+	.bss : {
+		*(COMMON);
+		*(.bss);
+	} :data
+
+	_end = .;
+
+	/DISCARD/ : {
+		*(*);
+	}
+}
