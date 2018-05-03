@@ -57,7 +57,7 @@
 #define VIRTIO_DEV_STATUS_DEVICE_NEEDS_RESET	64
 #define VIRTIO_DEV_STATUS_FAILED		128
 
-/** Common configuration structure layout according to VIRTIO v1. */
+/** Common configuration structure layout according to VIRTIO version 1.0 */
 typedef struct virtio_pci_common_cfg {
 	ioport32_t device_feature_select;
 	const ioport32_t device_feature;
@@ -77,6 +77,53 @@ typedef struct virtio_pci_common_cfg {
 	ioport64_t queue_used;
 } virtio_pci_common_cfg_t;
 
+/** The buffer continues in the next descriptor */
+#define VIRTQ_DESC_F_NEXT	1
+/** Device write-only buffer */
+#define VIRTQ_DESC_F_WRITE	2
+/** Buffer contains a list of buffer descriptors */
+#define VIRTQ_DESC_F_INDIRECT	4
+
+/** Virtqueue Descriptor structure as per VIRTIO version 1.0 */
+typedef struct virtq_desc {
+	ioport64_t addr;	/**< Buffer physical address */
+	ioport32_t len;		/**< Buffer length */
+	ioport16_t flags;	/**< Buffer flags */
+	ioport16_t next;	/**< Continuation descriptor */
+} virtq_desc_t;
+
+#define VIRTQ_AVAIL_F_NO_INTERRUPT	1
+
+/** Virtqueue Available Ring as per VIRTIO version 1.0 */
+typedef struct virtq_avail {
+	ioport16_t flags;
+	ioport16_t idx;
+	ioport16_t ring[];
+	/*
+	 * We do not define the optional used_event member here in order to be
+	 * able to define ring as a variable-length array.
+	 */
+} virtq_avail_t;
+
+typedef struct virtq_used_elem {
+	ioport32_t id;
+	ioport32_t len;
+} virtq_used_elem_t;
+
+#define VIRTQ_USED_F_NO_NOTIFY	1
+
+/** Virtqueue Used Ring as per VIRTIO version 1.0 */
+typedef struct virtq_used {
+	ioport16_t flags;
+	ioport16_t idx;
+	virtq_used_elem_t ring[];
+	/*
+	 * We do not define the optional avail_event member here in order to be
+	 * able to define ring as a variable-length array.
+	 */
+} virtq_used_t;
+
+/** VIRTIO-device specific data associated with the NIC framework nic_t */
 typedef struct {
 	struct {
 		bool mapped;
