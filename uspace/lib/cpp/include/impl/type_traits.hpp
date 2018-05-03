@@ -807,7 +807,8 @@ namespace std
     inline constexpr bool is_same_v = is_same<T, U>::value;
 
     template<class Base, class Derived>
-    struct is_base_of;
+    struct is_base_of: aux::value_is<bool, __is_base_of(Base, Derived)>
+    { /* DUMMY BODY */ };
 
     template<class Base, class Derived>
     inline constexpr bool is_base_of_v = is_base_of<Base, Derived>::value;
