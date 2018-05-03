@@ -785,9 +785,33 @@ namespace std
      * 20.9.11, member function adaptors:
      */
 
-    // TODO: void should be /unspecified/
+    namespace aux
+    {
+        template<class F>
+        class mem_fn_t
+        {
+            // TODO: conditional typedefs
+            public:
+                mem_fn_t(F f)
+                    : func_{f}
+                { /* DUMMY BODY */ }
+
+                template<class... Args>
+                decltype(auto) operator()(Args&&... args)
+                {
+                    return invoke(func_, forward<Args>(args)...);
+                }
+
+            private:
+                F func_;
+        };
+    }
+
     template<class R, class T>
-    void mem_fn(R T::* f);
+    aux::mem_fn_t<R T::*> mem_fn(R T::* f)
+    {
+        return aux::mem_fn_t<R T::*>{f};
+    }
 
     /**
      * 20.9.12, polymorphic function adaptors:
