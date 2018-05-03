@@ -29,6 +29,7 @@
 #ifndef LIBCPP_RANDOM
 #define LIBCPP_RANDOM
 
+#include <cstdint>
 #include <cstdlib>
 #include <ctime>
 #include <initializer_list>
@@ -121,10 +122,10 @@ namespace std
 
             void seed(result_type s = default_seed)
             {
-                if (c % modulus_ == 0 && s == 0)
-                    state_ = 0;
+                if (c % modulus_ == 0 && s % modulus_ == 0)
+                    state_ = 1;
                 else
-                    state_ = s;
+                    state_ = s % modulus_;
             }
 
             template<class Seq>
@@ -132,14 +133,21 @@ namespace std
                 enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
             )
             {
-                q.generate(arr_, arr_ + k_ + 3);
+                auto k = static_cast<size_t>(aux::ceil(aux::log2(modulus_) / 32));
+                auto arr = new result_type[k + 3];
+
+                q.generate(arr, arr + k + 3);
 
                 result_type s{};
-                for (size_t j = 0; j < k_; ++j)
-                    s += arr_[j + 3] * aux::pow2(32U * j);
+                for (size_t j = 0; j < k; ++j)
+                    s += arr[j + 3] * aux::pow2(32U * j);
                 s = s % modulus_;
 
-                seed(s);
+                if (c % modulus_ == 0 && s == 0)
+                    state_ = 1;
+                else
+                    state_ = s % modulus_;
+                delete[] arr;
             }
 
             result_type operator()()
@@ -196,14 +204,6 @@ namespace std
 
             static constexpr result_type modulus_ =
                 (m == 0) ? (numeric_limits<result_type>::max() + 1) : m;
-
-            /**
-             * We use constexpr builtins to keep this array
-             * between calls to seed(Seq&), which means we don't
-             * have to keep allocating and deleting it.
-             */
-            static constexpr size_t k_ = static_cast<size_t>(aux::ceil(aux::log2(modulus_) / 32));
-            result_type arr_[k_ + 3];
 
             void transition_()
             {
@@ -302,15 +302,19 @@ namespace std
                 enable_if_t<aux::is_seed_sequence_v<Seq, result_type>, Seq&> q
             )
             {
-                q.generate(arr_, arr_ + n * k_);
+                auto k = static_cast<size_t>(w / 32);
+                auto arr = new result_type[n * k];
+                q.generate(arr, arr + n * k);
 
                 for (long long i = -n; i <= -1; ++i)
                 {
                     state_[idx_(i)] = result_type{};
-                    for (long long j = 0; j < k_; ++j)
-                        state_[idx_(i)] += arr_[k_ * (i + n) + j] * aux::pow2(32 * j);
+                    for (long long j = 0; j < k; ++j)
+                        state_[idx_(i)] += arr[k * (i + n) + j] * aux::pow2(32 * j);
                     state_[idx_(i)] %= aux::pow2(w);
                 }
+
+                delete[] arr;
             }
 
             result_type operator()()
@@ -383,9 +387,6 @@ namespace std
         private:
             result_type state_[n];
             size_t i_;
-
-            static constexpr size_t k_ = static_cast<size_t>(w / 32);
-            result_type arr_[n * k_];
 
             void transition_()
             {
@@ -1068,7 +1069,7 @@ namespace std
                 : vec_{}
             {
                 while (first != last)
-                    vec_.push_back(*first++ % aux::pow2(32));
+                    vec_.push_back((*first++) % aux::pow2u(32));
             }
 
             template<class RandomAccessGenerator>
@@ -1078,7 +1079,44 @@ namespace std
                 if (first == last)
                     return;
 
-                // TODO: research this
+                auto s = vec_.size();
+                size_t n = last - first;
+                result_type t = (n >= 623) ? 11 : (n >= 68) ? 7 : (n >= 39) ? 5 : (n >= 7) ? 3 : (n - 1) / 2;
+                result_type p = (n - t) / 2;
+                result_type q = p + t;
+
+                auto current = first;
+                while (current != last)
+                    *current++ = 0x8b8b8b8b;
+
+                auto m = (s + 1 > n) ? (s + 1) : n;
+                decltype(m) k{};
+                for (; k < m; ++k)
+                {
+                    auto r1 = 1664525 * t_(first[k % n] ^ first[(k + p) % n] ^ first[(k - 1) % n]);
+                    auto r2 = r1;
+
+                    if (k == 0)
+                        r2 += s;
+                    else if (k > 0 && k <= s)
+                        r2 += (k % n) + vec_[(k - 1) % n];
+                    else if (s < k)
+                        r2 += (k % n);
+
+                    first[(k + p) % n] += r1;
+                    first[(k + q) % n] += r2;
+                    first[k % n] = r2;
+                }
+
+                for (; k < m + n - 1; ++k)
+                {
+                    auto r3 = 1566083941 * t_(first[k % n] + first[(k + p) % n] + first[(k - 1) % n]);
+                    auto r4 = r3 - (k % n);
+
+                    first[(k + p) % n] ^= r3;
+                    first[(k + q) % n] ^= r4;
+                    first[k % n] = r4;
+                }
             }
 
             size_t size() const
@@ -1098,6 +1136,11 @@ namespace std
 
         private:
             vector<result_type> vec_;
+
+            result_type t_(result_type val) const
+            {
+                return val ^ (val >> 27);
+            }
     };
 
     /**
