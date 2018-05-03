@@ -1044,16 +1044,6 @@ namespace std
     };
 
     /**
-     * 20.9.12.2.7, specialized algorithms:
-     */
-
-    template<class R, class... Args>
-    void swap(function<R(Args...)>& f1, function<R(Args...)>& f2)
-    {
-        f1.swap(f2);
-    }
-
-    /**
      * 20.9.12.2.6, null pointer comparisons:
      */
 
@@ -1080,6 +1070,21 @@ namespace std
     {
         return (bool)f;
     }
+
+    /**
+     * 20.9.12.2.7, specialized algorithms:
+     */
+
+    template<class R, class... Args>
+    void swap(function<R(Args...)>& f1, function<R(Args...)>& f2)
+    {
+        f1.swap(f2);
+    }
+
+    template<class R, class... Args, class Alloc>
+    struct uses_allocator<function<R(Args...)>, Alloc>
+        : true_type
+    { /* DUMMY BODY */ };
 
     /**
      * 20.9.13, hash function primary template:
