@@ -350,6 +350,8 @@ namespace std
         public:
             static constexpr bool is_specialized = true;
 
+            static constexpr int digits = sizeof(char) * 8;
+
             static constexpr char max()
             {
                 return CHAR_MAX;
@@ -371,6 +373,8 @@ namespace std
     {
         public:
             static constexpr bool is_specialized = true;
+
+            static constexpr int digits = sizeof(signed char) * 8 - 1;
 
             static constexpr signed char max()
             {
@@ -394,6 +398,8 @@ namespace std
         public:
             static constexpr bool is_specialized = true;
 
+            static constexpr int digits = sizeof(short) * 8 - 1;
+
             static constexpr short max()
             {
                 return SHRT_MAX;
@@ -415,6 +421,8 @@ namespace std
     {
         public:
             static constexpr bool is_specialized = true;
+
+            static constexpr int digits = sizeof(int) * 8 - 1;
 
             static constexpr int max()
             {
@@ -438,6 +446,8 @@ namespace std
         public:
             static constexpr bool is_specialized = true;
 
+            static constexpr int digits = sizeof(long) * 8 - 1;
+
             static constexpr long max()
             {
                 return LONG_MAX;
@@ -459,6 +469,8 @@ namespace std
     {
         public:
             static constexpr bool is_specialized = true;
+
+            static constexpr int digits = sizeof(long long) * 8 - 1;
 
             static constexpr long long max()
             {
@@ -482,6 +494,8 @@ namespace std
         public:
             static constexpr bool is_specialized = true;
 
+            static constexpr int digits = sizeof(unsigned char) * 8;
+
             static constexpr unsigned char max()
             {
                 return SCHAR_MAX;
@@ -503,6 +517,8 @@ namespace std
     {
         public:
             static constexpr bool is_specialized = true;
+
+            static constexpr int digits = sizeof(unsigned short) * 8;
 
             static constexpr unsigned short max()
             {
@@ -526,6 +542,8 @@ namespace std
         public:
             static constexpr bool is_specialized = true;
 
+            static constexpr int digits = sizeof(unsigned int) * 8;
+
             static constexpr unsigned int max()
             {
                 return UINT_MAX;
@@ -547,6 +565,8 @@ namespace std
     {
         public:
             static constexpr bool is_specialized = true;
+
+            static constexpr int digits = sizeof(unsigned long) * 8;
 
             static constexpr unsigned long max()
             {
@@ -570,6 +590,8 @@ namespace std
         public:
             static constexpr bool is_specialized = true;
 
+            static constexpr int digits = sizeof(unsigned long long) * 8;
+
             static constexpr unsigned long long max()
             {
                 return ULLONG_MAX;
@@ -591,6 +613,7 @@ namespace std
     {
         public:
         // TODO: implement
+            static constexpr int digits = sizeof(short) * 8 - 1;
     };
 
     template<>
