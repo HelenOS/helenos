@@ -52,6 +52,15 @@ namespace std
     };
 
     /**
+     * 20.7.6, allocator argument tag:
+     */
+
+    struct allocator_arg_t
+    { /* DUMMY BODY */ };
+
+    constexpr allocator_arg_t allocator_arg{};
+
+    /**
      * 20.7.8, allocator traits:
      */
 
