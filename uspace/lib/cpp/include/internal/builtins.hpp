@@ -63,6 +63,14 @@ namespace std::aux
         return static_cast<size_t>(pow2(exp));
     }
 
+    template<class T, class U>
+    constexpr T pow(T base, U exp)
+    {
+        return static_cast<T>(
+            __builtin_pow(static_cast<double>(base), static_cast<double>(exp))
+        );
+    }
+
     template<class T>
     constexpr size_t ceil(T val)
     {
