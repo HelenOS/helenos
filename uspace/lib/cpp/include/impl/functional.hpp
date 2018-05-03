@@ -706,13 +706,52 @@ namespace std
      */
 
     template<class Predicate>
-    class unary_negate;
+    class unary_negate
+    {
+        public:
+            using result_type   = bool;
+            using argument_type = typename Predicate::argument_type;
+
+            constexpr explicit unary_negate(const Predicate& pred)
+                : pred_{pred}
+            { /* DUMMY BODY */ }
+
+            constexpr result_type operator()(const argument_type& arg)
+            {
+                return !pred_(arg);
+            }
+
+        private:
+            Predicate pred_;
+    };
 
     template<class Predicate>
-    constexpr unary_negate<Predicate> not1(const Predicate& pred);
+    constexpr unary_negate<Predicate> not1(const Predicate& pred)
+    {
+        return unary_negate<Predicate>{pred};
+    }
 
     template<class Predicate>
-    class binary_negate;
+    class binary_negate
+    {
+        public:
+            using result_type          = bool;
+            using first_argument_type  = typename Predicate::first_argument_type;
+            using second_argument_type = typename Predicate::second_argument_type;
+
+            constexpr explicit binary_negate(const Predicate& pred)
+                : pred_{pred}
+            { /* DUMMY BODY */ }
+
+            constexpr result_type operator()(const first_argument_type& arg1,
+                                             const second_argument_type& arg2)
+            {
+                return !pred_(arg1, arg2);
+            }
+
+        private:
+            Predicate pred_;
+    };
 
     template<class Predicate>
     constexpr binary_negate<Predicate> not2(const Predicate& pred);
