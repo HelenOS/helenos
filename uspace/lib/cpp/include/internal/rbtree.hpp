@@ -322,8 +322,10 @@ namespace std::aux
                     parent = current;
                     if (key_compare_(key, key_extractor_(current->value)))
                         current = current->left;
-                    else
+                    else if (key_compare_(key_extractor_(current->value), key))
                         current = current->right;
+                    else
+                        return current;
                 }
 
                 return parent;
