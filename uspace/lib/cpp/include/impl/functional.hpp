@@ -1122,7 +1122,30 @@ namespace std
 
     namespace aux
     {
-        template<class F, class... Args>
+        /**
+         * Note: Our internal bind return type has an extra type
+         *       template parameter and an extra bool template parameter.
+         *       We use this for the special version of bind that has
+         *       the return type to have a result_type typedef
+         *       (i.e. when the bool is true, the extra type parameter
+         *       is typedefed as result_type - see the structure below).
+         *       This is just a simplification of the implementation
+         *       so that we don't need to have two return types for
+         *       the two bind functions, because unlike function or
+         *       mem_fn, we know exactly when to make the typedef.
+         */
+
+        template<class, bool = false>
+        struct bind_conditional_result_type
+        { /* DUMMY BODY */ };
+
+        template<class R>
+        struct bind_conditional_result_type<R, true>
+        {
+            using result_type = R;
+        };
+
+        template<class, bool, class, class...>
         class bind_t;
 
         /**
@@ -1161,8 +1184,8 @@ namespace std
                     return ref.get();
                 }
 
-                template<class F, class... BindArgs>
-                constexpr decltype(auto) operator[](const bind_t<F, BindArgs...> b)
+                template<class R, bool B, class F, class... BindArgs>
+                constexpr decltype(auto) operator[](const bind_t<R, B, F, BindArgs...> b)
                 {
                     return b; // TODO: bind subexpressions
                 }
@@ -1172,10 +1195,9 @@ namespace std
                 tuple<Args...> args_;
         };
 
-        template<class F, class... Args>
-        class bind_t
+        template<class R, bool HasResultType, class F, class... Args>
+        class bind_t: public bind_conditional_result_type<R, HasResultType>
         {
-            // TODO: conditional typedefs
             public:
                 template<class G, class... BoundArgs>
                 constexpr bind_t(G&& g, BoundArgs&&... args)
@@ -1227,22 +1249,21 @@ namespace std
     struct is_bind_expression: false_type
     { /* DUMMY BODY */ };
 
-    template<class F, class... Args>
-    struct is_bind_expression<aux::bind_t<F, Args...>>
+    template<class R, bool B, class F, class... Args>
+    struct is_bind_expression<aux::bind_t<R, B, F, Args...>>
         : true_type
     { /* DUMMY BODY */ };
 
     template<class F, class... Args>
-    aux::bind_t<F, Args...> bind(F&& f, Args&&... args)
+    aux::bind_t<void, false, F, Args...> bind(F&& f, Args&&... args)
     {
-        return aux::bind_t<F, Args...>{forward<F>(f), forward<Args>(args)...};
+        return aux::bind_t<void, false, F, Args...>{forward<F>(f), forward<Args>(args)...};
     }
 
     template<class R, class F, class... Args>
-    aux::bind_t<F, Args...> bind(F&& f, Args&&... args)
+    aux::bind_t<R, true, F, Args...> bind(F&& f, Args&&... args)
     {
-        // TODO: this one should have a result_type typedef equal to R
-        return aux::bind_t<F, Args...>{forward<F>(f), forward<Args>(args)...};
+        return aux::bind_t<R, true, F, Args...>{forward<F>(f), forward<Args>(args)...};
     }
 
     namespace placeholders
