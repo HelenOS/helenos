@@ -757,63 +757,6 @@ namespace std
     constexpr binary_negate<Predicate> not2(const Predicate& pred);
 
     /**
-     * 20.9.10, bind:
-     */
-
-    template<class T>
-    struct is_bind_expression;
-
-    template<class T>
-    struct is_placeholder;
-
-    // TODO: void should be /unspecified/
-    template<class F, class... Args>
-    void bind(F&& f, Args&&... args);
-
-    template<class R, class F, class... Args>
-    void bind(F&& f, Args&&... args);
-
-    namespace placeholders
-    {
-        /**
-         * TODO: for X from 1 to implementation defined M
-         * extern /unspecified/ _X;
-         */
-    }
-
-    /**
-     * 20.9.11, member function adaptors:
-     */
-
-    namespace aux
-    {
-        template<class F>
-        class mem_fn_t
-        {
-            // TODO: conditional typedefs
-            public:
-                mem_fn_t(F f)
-                    : func_{f}
-                { /* DUMMY BODY */ }
-
-                template<class... Args>
-                decltype(auto) operator()(Args&&... args)
-                {
-                    return invoke(func_, forward<Args>(args)...);
-                }
-
-            private:
-                F func_;
-        };
-    }
-
-    template<class R, class T>
-    aux::mem_fn_t<R T::*> mem_fn(R T::* f)
-    {
-        return aux::mem_fn_t<R T::*>{f};
-    }
-
-    /**
      * 20.9.12, polymorphic function adaptors:
      */
 
@@ -855,6 +798,7 @@ namespace std
         }
     }
 
+    // TODO: implement
     class bad_function_call;
 
     template<class>
@@ -1148,6 +1092,202 @@ namespace std
     struct uses_allocator<function<R(Args...)>, Alloc>
         : true_type
     { /* DUMMY BODY */ };
+
+    /**
+     * 20.9.10, bind:
+     */
+
+    namespace aux
+    {
+        template<int N>
+        struct placeholder_t
+        {
+            constexpr placeholder_t() = default;
+        };
+    }
+
+    template<class T>
+    struct is_placeholder: integral_constant<int, 0>
+    { /* DUMMY BODY */ };
+
+    template<int N> // Note: const because they are all constexpr.
+    struct is_placeholder<const aux::placeholder_t<N>>
+        : integral_constant<int, N>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    inline constexpr int is_placeholder_v = is_placeholder<T>::value;
+
+    namespace aux
+    {
+        template<size_t I>
+        struct bind_arg_index
+        { /* DUMMY BODY */ };
+
+        template<class... Args>
+        class bind_bound_args
+        {
+            public:
+                template<class... BoundArgs>
+                constexpr bind_bound_args(BoundArgs&&... args)
+                    : tpl_{forward<BoundArgs>(args)...}
+                { /* DUMMY BODY */ }
+
+                template<size_t I>
+                constexpr decltype(auto) operator[](bind_arg_index<I>)
+                {
+                    return get<I>(tpl_);
+                }
+
+            private:
+                tuple<Args...> tpl_;
+        };
+
+        template<class... Args>
+        class bind_arg_filter
+        {
+            public:
+                bind_arg_filter(Args&&... args)
+                    : args_{forward<Args>(args)...}
+                { /* DUMMY BODY */ }
+
+                // TODO: enable if T != ref_wrapper
+                template<class T>
+                constexpr decltype(auto) operator[](T&& t)
+                { // Since placeholders are constexpr, this is a worse match for them.
+                    return forward<T>(t);
+                }
+
+                template<int N>
+                constexpr decltype(auto) operator[](const placeholder_t<N>)
+                {
+                    /**
+                     * Come on, it's int! Why not use -1 as not placeholder
+                     * and start them at 0? -.-
+                     */
+                    /* return get<is_placeholder_v<decay_t<T>> - 1>(args_); */
+                    return get<N - 1>(args_);
+                }
+
+                // TODO: overload the operator for reference_wrapper
+
+            private:
+                tuple<Args...> args_;
+        };
+
+        template<class F, class... Args>
+        class bind_t
+        {
+            // TODO: conditional typedefs
+            public:
+                template<class... BoundArgs>
+                constexpr bind_t(F&& f, BoundArgs&&... args)
+                    : func_{forward<F>(f)},
+                      bound_args_{forward<BoundArgs>(args)...}
+                { /* DUMMY BODY */ }
+
+                template<class... ActualArgs>
+                constexpr decltype(auto) operator()(ActualArgs&&... args)
+                {
+                    return invoke_(
+                        make_index_sequence<sizeof...(Args)>{},
+                        forward<ActualArgs>(args)...
+                    );
+                }
+
+            private:
+                function<decay_t<F>> func_;
+                bind_bound_args<Args...> bound_args_;
+
+                template<size_t... Is, class... ActualArgs>
+                constexpr decltype(auto) invoke_(
+                    index_sequence<Is...>, ActualArgs&&... args
+                )
+                {
+                    bind_arg_filter<ActualArgs...> filter{forward<ActualArgs>(args)...};
+
+                    return invoke(
+                        func_,
+                        filter[bound_args_[bind_arg_index<Is>()]]...
+                    );
+                }
+        };
+    }
+
+    template<class T>
+    struct is_bind_expression: false_type
+    { /* DUMMY BODY */ };
+
+    template<class F, class... Args>
+    struct is_bind_expression<aux::bind_t<F, Args...>>
+        : true_type
+    { /* DUMMY BODY */ };
+
+    template<class F, class... Args>
+    aux::bind_t<F, Args...> bind(F&& f, Args&&... args)
+    {
+        return aux::bind_t<F, Args...>{forward<F>(f), forward<Args>(args)...};
+    }
+
+    template<class R, class F, class... Args>
+    aux::bind_t<F, Args...> bind(F&& f, Args&&... args);
+
+    namespace placeholders
+    {
+        /**
+         * Note: The number of placeholders is
+         *       implementation defined, we've chosen
+         *       8 because it is a nice number
+         *       and should be enough for any function
+         *       call.
+         * Note: According to the C++14 standard, these
+         *       are all extern non-const. We decided to use
+         *       the C++17 form of them being inline constexpr
+         *       because it is more convenient, makes sense
+         *       and would eventually need to be upgraded
+         *       anyway.
+         */
+        inline constexpr aux::placeholder_t<1> _1;
+        inline constexpr aux::placeholder_t<2> _2;
+        inline constexpr aux::placeholder_t<3> _3;
+        inline constexpr aux::placeholder_t<4> _4;
+        inline constexpr aux::placeholder_t<5> _5;
+        inline constexpr aux::placeholder_t<6> _6;
+        inline constexpr aux::placeholder_t<7> _7;
+        inline constexpr aux::placeholder_t<8> _8;
+    }
+
+    /**
+     * 20.9.11, member function adaptors:
+     */
+
+    namespace aux
+    {
+        template<class F>
+        class mem_fn_t
+        {
+            // TODO: conditional typedefs
+            public:
+                mem_fn_t(F f)
+                    : func_{f}
+                { /* DUMMY BODY */ }
+
+                template<class... Args>
+                decltype(auto) operator()(Args&&... args)
+                {
+                    return invoke(func_, forward<Args>(args)...);
+                }
+
+            private:
+                F func_;
+        };
+    }
+
+    template<class R, class T>
+    aux::mem_fn_t<R T::*> mem_fn(R T::* f)
+    {
+        return aux::mem_fn_t<R T::*>{f};
+    }
 
     /**
      * 20.9.13, hash function primary template:
