@@ -634,7 +634,7 @@ namespace std
 
             basic_istream<Char, Traits>& putback(char_type c)
             {
-                clear(this->rdstate() & (~ios_base::eofbit));
+                this->clear(this->rdstate() & (~ios_base::eofbit));
 
                 gcount_ = 0;
                 sentry sen{*this, true};
@@ -659,7 +659,7 @@ namespace std
 
             basic_istream<Char, Traits>& unget()
             {
-                clear(this->rdstate() & (~ios_base::eofbit));
+                this->clear(this->rdstate() & (~ios_base::eofbit));
 
                 gcount_ = 0;
                 sentry sen{*this, true};
