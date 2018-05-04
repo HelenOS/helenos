@@ -1143,6 +1143,9 @@ namespace std
                 tuple<Args...> tpl_;
         };
 
+        template<class F, class... Args>
+        class bind_t;
+
         template<class... Args>
         class bind_arg_filter
         {
@@ -1151,7 +1154,6 @@ namespace std
                     : args_{forward<Args>(args)...}
                 { /* DUMMY BODY */ }
 
-                // TODO: enable if T != ref_wrapper
                 template<class T>
                 constexpr decltype(auto) operator[](T&& t)
                 { // Since placeholders are constexpr, this is a worse match for them.
@@ -1160,16 +1162,26 @@ namespace std
 
                 template<int N>
                 constexpr decltype(auto) operator[](const placeholder_t<N>)
-                {
+                { // Since placeholders are constexpr, this is the best match for them.
                     /**
                      * Come on, it's int! Why not use -1 as not placeholder
                      * and start them at 0? -.-
                      */
-                    /* return get<is_placeholder_v<decay_t<T>> - 1>(args_); */
                     return get<N - 1>(args_);
                 }
 
-                // TODO: overload the operator for reference_wrapper
+                template<class T>
+                constexpr T& operator[](reference_wrapper<T> ref)
+                {
+                    return ref.get();
+                }
+
+                template<class F, class... BindArgs>
+                constexpr decltype(auto) operator[](const bind_t<F, BindArgs...> b)
+                {
+                    return b; // TODO: bind subexpressions
+                }
+
 
             private:
                 tuple<Args...> args_;
@@ -1180,11 +1192,15 @@ namespace std
         {
             // TODO: conditional typedefs
             public:
+                // TODO: T& gets captured by ref, should be by value :/
                 template<class... BoundArgs>
                 constexpr bind_t(F&& f, BoundArgs&&... args)
                     : func_{forward<F>(f)},
                       bound_args_{forward<BoundArgs>(args)...}
                 { /* DUMMY BODY */ }
+
+                constexpr bind_t(const bind_t& other) = default;
+                constexpr bind_t(bind_t&& other) = default;
 
                 template<class... ActualArgs>
                 constexpr decltype(auto) operator()(ActualArgs&&... args)
