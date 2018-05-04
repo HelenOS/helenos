@@ -39,6 +39,7 @@ SOVERSION = 0.0
 SOURCES = \
 	src/condition_variable.cpp \
 	src/exception.cpp \
+	src/iomanip.cpp \
 	src/ios.cpp \
 	src/iostream.cpp \
 	src/locale.cpp \
