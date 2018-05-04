@@ -1103,6 +1103,8 @@ namespace std
         struct placeholder_t
         {
             constexpr placeholder_t() = default;
+            constexpr placeholder_t(const placeholder_t&) = default;
+            constexpr placeholder_t(placeholder_t&&) = default;
         };
     }
 
@@ -1120,32 +1122,15 @@ namespace std
 
     namespace aux
     {
-        template<size_t I>
-        struct bind_arg_index
-        { /* DUMMY BODY */ };
-
-        template<class... Args>
-        class bind_bound_args
-        {
-            public:
-                template<class... BoundArgs>
-                constexpr bind_bound_args(BoundArgs&&... args)
-                    : tpl_{forward<BoundArgs>(args)...}
-                { /* DUMMY BODY */ }
-
-                template<size_t I>
-                constexpr decltype(auto) operator[](bind_arg_index<I>)
-                {
-                    return get<I>(tpl_);
-                }
-
-            private:
-                tuple<Args...> tpl_;
-        };
-
         template<class F, class... Args>
         class bind_t;
 
+        /**
+         * Filter class that uses its overloaded operator[]
+         * to filter our placeholders, reference_wrappers and bind
+         * subexpressions and replace them with the correct
+         * arguments (extracts references, calls the subexpressions etc).
+         */
         template<class... Args>
         class bind_arg_filter
         {
@@ -1156,7 +1141,7 @@ namespace std
 
                 template<class T>
                 constexpr decltype(auto) operator[](T&& t)
-                { // Since placeholders are constexpr, this is a worse match for them.
+                {
                     return forward<T>(t);
                 }
 
@@ -1192,11 +1177,10 @@ namespace std
         {
             // TODO: conditional typedefs
             public:
-                // TODO: T& gets captured by ref, should be by value :/
-                template<class... BoundArgs>
-                constexpr bind_t(F&& f, BoundArgs&&... args)
-                    : func_{forward<F>(f)},
-                      bound_args_{forward<BoundArgs>(args)...}
+                template<class G, class... BoundArgs>
+                constexpr bind_t(G&& g, BoundArgs&&... args)
+                    : func_{forward<F>(g)},
+                      bound_args_{forward<Args>(args)...}
                 { /* DUMMY BODY */ }
 
                 constexpr bind_t(const bind_t& other) = default;
@@ -1213,18 +1197,27 @@ namespace std
 
             private:
                 function<decay_t<F>> func_;
-                bind_bound_args<Args...> bound_args_;
+                tuple<decay_t<Args>...> bound_args_;
 
                 template<size_t... Is, class... ActualArgs>
                 constexpr decltype(auto) invoke_(
                     index_sequence<Is...>, ActualArgs&&... args
                 )
                 {
+                    /**
+                     * The expression filter[bound_args_[bind_arg_index<Is>()]]...
+                     * here expands bind_arg_index to 0, 1, ... sizeof...(ActualArgs) - 1
+                     * and then passes this variadic list of indices to the bound_args_
+                     * tuple which extracts the bound args from it.
+                     * Our filter will then have its operator[] called on each of them
+                     * and filter out the placeholders, reference_wrappers etc and changes
+                     * them to the actual arguments.
+                     */
                     bind_arg_filter<ActualArgs...> filter{forward<ActualArgs>(args)...};
 
                     return invoke(
                         func_,
-                        filter[bound_args_[bind_arg_index<Is>()]]...
+                        filter[get<Is>(bound_args_)]...
                     );
                 }
         };
@@ -1246,7 +1239,11 @@ namespace std
     }
 
     template<class R, class F, class... Args>
-    aux::bind_t<F, Args...> bind(F&& f, Args&&... args);
+    aux::bind_t<F, Args...> bind(F&& f, Args&&... args)
+    {
+        // TODO: this one should have a result_type typedef equal to R
+        return aux::bind_t<F, Args...>{forward<F>(f), forward<Args>(args)...};
+    }
 
     namespace placeholders
     {
