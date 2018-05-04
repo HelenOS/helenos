@@ -40,6 +40,11 @@ namespace std
 
 namespace std::aux
 {
+    /**
+     * Used by tuple to decay reference wrappers to references
+     * in make_tuple.
+     */
+
     template<class T>
     struct remove_reference_wrapper: type_is<T>
     { /* DUMMY BODY */ };
