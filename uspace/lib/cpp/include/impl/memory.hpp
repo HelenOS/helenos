@@ -30,6 +30,8 @@
 #define LIBCPP_MEMORY
 
 #include <internal/aux.hpp>
+#include <internal/memory/addressof.hpp>
+#include <iterator>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -397,26 +399,73 @@ namespace std
      * 20.7.10, raw storage iterator:
      */
 
-    // TODO: implement
+    template<class OutputIterator, class T>
+    class raw_storage_iterator: public iterator<output_iterator_tag, void, void, void, void>
+    {
+        public:
+            explicit raw_storage_iterator(OutputIterator it)
+                : it_{it}
+            { /* DUMMY BODY */ }
+
+            raw_storage_iterator& operator*()
+            {
+                return *this;
+            }
+
+            raw_storage_iterator& operator=(const T& element)
+            {
+                new(it_) T{element};
+
+                return *this;
+            }
+
+            raw_storage_iterator& operator++()
+            {
+                ++it_;
+
+                return *this;
+            }
+
+            raw_storage_iterator operator++(int)
+            {
+                return raw_storage_iterator{it_++};
+            }
+
+        private:
+            OutputIterator it_;
+    };
 
     /**
      * 20.7.11, temporary buffers:
      */
 
-    // TODO: implement
+    template<class T>
+    pair<T*, ptrdiff_t> get_temporary_buffer(ptrdiff_t n) noexcept
+    {
+        T* res{};
+
+        while (n > 0)
+        {
+            res = (T*)malloc(n * sizeof(T));
+
+            if (res)
+                return make_pair(res, n);
+
+            --n;
+        }
+
+        return make_pair(nullptr, ptrdiff_t{});
+    }
+
+    template<class T>
+    void return_temporary_buffer(T* ptr)
+    {
+        free(ptr);
+    }
 
     /**
      * 20.7.12, specialized algorithms:
      */
-
-    template<class T>
-    T* addressof(T& x) noexcept
-    {
-        return reinterpret_cast<T*>(
-            &const_cast<char&>(
-                reinterpret_cast<const volatile char&>(x)
-        ));
-    }
 
     template<class Iterator>
     struct iterator_traits;
