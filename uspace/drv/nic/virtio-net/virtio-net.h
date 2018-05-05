@@ -31,16 +31,14 @@
 
 #include <virtio-pci.h>
 
-#define VIRTIO_NET_F_SELECT_PAGE_0	0
-
 /** Device handles packets with partial checksum. */
-#define VIRTIO_NET_F_CSUM		0
+#define VIRTIO_NET_F_CSUM		(1U << 0)
 /** Driver handles packets with partial checksum. */
-#define VIRTIO_NET_F_GUEST_CSUM		2
+#define VIRTIO_NET_F_GUEST_CSUM		(1U << 2)
 /** Device has given MAC address. */
-#define VIRTIO_NET_F_MAC		5
+#define VIRTIO_NET_F_MAC		(1U << 5)
 /** Control channel is available */
-#define VIRTIO_NET_F_CTRL_VQ		17
+#define VIRTIO_NET_F_CTRL_VQ		(1U << 17)
 
 typedef struct {
 	uint8_t mac[6];

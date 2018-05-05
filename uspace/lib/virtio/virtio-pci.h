@@ -57,6 +57,8 @@
 #define VIRTIO_DEV_STATUS_DEVICE_NEEDS_RESET	64
 #define VIRTIO_DEV_STATUS_FAILED		128
 
+#define VIRTIO_FEATURES_0_31	0
+
 /** Common configuration structure layout according to VIRTIO version 1.0 */
 typedef struct virtio_pci_common_cfg {
 	ioport32_t device_feature_select;
@@ -177,6 +179,10 @@ typedef struct {
 extern errno_t virtio_virtq_setup(virtio_dev_t *, uint16_t, uint16_t, size_t,
     uint16_t);
 extern void virtio_virtq_teardown(virtio_dev_t *, uint16_t);
+
+extern errno_t virtio_device_setup_start(virtio_dev_t *, uint32_t);
+extern void virtio_device_setup_fail(virtio_dev_t *);
+extern void virtio_device_setup_finalize(virtio_dev_t *);
 
 extern errno_t virtio_pci_dev_initialize(ddf_dev_t *, virtio_dev_t *);
 extern errno_t virtio_pci_dev_cleanup(virtio_dev_t *);

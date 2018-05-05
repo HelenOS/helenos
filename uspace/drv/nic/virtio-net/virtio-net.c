@@ -74,53 +74,13 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	virtio_pci_common_cfg_t *cfg = virtio_net->virtio_dev.common_cfg;
 	virtio_net_cfg_t *netcfg = virtio_net->virtio_dev.device_cfg;
 
-	/*
-	 * Perform device initialization as described in section 3.1.1 of the
-	 * specification.
-	 */
-
-	/* 1. Reset the device */
-	uint8_t status = VIRTIO_DEV_STATUS_RESET;
-	pio_write_8(&cfg->device_status, status);
-
-	/* 2. Acknowledge we found the device */
-	status |= VIRTIO_DEV_STATUS_ACKNOWLEDGE;
-	pio_write_8(&cfg->device_status, status);
-
-	/* 3. We know how to drive the device */
-	status |= VIRTIO_DEV_STATUS_DRIVER;
-	pio_write_8(&cfg->device_status, status);
-
-	/* 4. Read the offered feature flags */
-	pio_write_32(&cfg->device_feature_select, VIRTIO_NET_F_SELECT_PAGE_0);
-	uint32_t features = pio_read_32(&cfg->device_feature);
-
-	ddf_msg(LVL_NOTE, "offered features %x", features);
-	features &= (1U << VIRTIO_NET_F_MAC) | (1U << VIRTIO_NET_F_CTRL_VQ);
-
-	if (!features) {
-		rc = ENOTSUP;
+	/* Reset the device and negotiate the feature bits */
+	rc = virtio_device_setup_start(vdev,
+	    VIRTIO_NET_F_MAC | VIRTIO_NET_F_CTRL_VQ);
+	if (rc != EOK)
 		goto fail;
-	}
 
-	/* 4. Write the accepted feature flags */
-	pio_write_32(&cfg->driver_feature_select, VIRTIO_NET_F_SELECT_PAGE_0);
-	pio_write_32(&cfg->driver_feature, features);
-
-	ddf_msg(LVL_NOTE, "accepted features %x", features);
-
-	/* 5. Set FEATURES_OK */
-	status |= VIRTIO_DEV_STATUS_FEATURES_OK;
-	pio_write_8(&cfg->device_status, status);
-
-	/* 6. Test if the device supports our feature subset */ 
-	status = pio_read_8(&cfg->device_status);
-	if (!(status & VIRTIO_DEV_STATUS_FEATURES_OK)) {
-		rc = ENOTSUP;
-		goto fail;
-	}
-
-	/* 7. Perform device-specific setup */
+	/* Perform device-specific setup */
 
 	/*
 	 * Discover and configure the virtqueues
@@ -163,16 +123,14 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	    nic_addr.address[0], nic_addr.address[1], nic_addr.address[2],
 	    nic_addr.address[3], nic_addr.address[4], nic_addr.address[5]);
 
-	/* 8. Go live */
-	status |= VIRTIO_DEV_STATUS_DRIVER_OK;
-	pio_write_8(&cfg->device_status, status);
+	/* Go live */
+	virtio_device_setup_finalize(vdev);
 
 	return EOK;
 
 fail:
-	status |= VIRTIO_DEV_STATUS_FAILED;
-	pio_write_8(&cfg->device_status, status);
-	virtio_pci_dev_cleanup(&virtio_net->virtio_dev);
+	virtio_device_setup_fail(vdev);
+	virtio_pci_dev_cleanup(vdev);
 	return rc;
 }
 

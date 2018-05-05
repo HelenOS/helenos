@@ -271,6 +271,75 @@ void virtio_virtq_teardown(virtio_dev_t *vdev, uint16_t num)
 		free(q->buffers);
 }
 
+/**
+ * Perform device initialization as described in section 3.1.1 of the
+ * specification, steps 1 - 6.
+ */
+errno_t virtio_device_setup_start(virtio_dev_t *vdev, uint32_t features)
+{
+	virtio_pci_common_cfg_t *cfg = vdev->common_cfg;
+
+	/* 1. Reset the device */
+	uint8_t status = VIRTIO_DEV_STATUS_RESET;
+	pio_write_8(&cfg->device_status, status);
+
+	/* 2. Acknowledge we found the device */
+	status |= VIRTIO_DEV_STATUS_ACKNOWLEDGE;
+	pio_write_8(&cfg->device_status, status);
+
+	/* 3. We know how to drive the device */
+	status |= VIRTIO_DEV_STATUS_DRIVER;
+	pio_write_8(&cfg->device_status, status);
+
+	/* 4. Read the offered feature flags */
+	pio_write_32(&cfg->device_feature_select, VIRTIO_FEATURES_0_31);
+	uint32_t device_features = pio_read_32(&cfg->device_feature);
+
+	ddf_msg(LVL_NOTE, "offered features %x", device_features);
+	features &= device_features;
+
+	if (!features)
+		return ENOTSUP;
+
+	/* 4. Write the accepted feature flags */
+	pio_write_32(&cfg->driver_feature_select, VIRTIO_FEATURES_0_31);
+	pio_write_32(&cfg->driver_feature, features);
+
+	ddf_msg(LVL_NOTE, "accepted features %x", features);
+
+	/* 5. Set FEATURES_OK */
+	status |= VIRTIO_DEV_STATUS_FEATURES_OK;
+	pio_write_8(&cfg->device_status, status);
+
+	/* 6. Test if the device supports our feature subset */ 
+	status = pio_read_8(&cfg->device_status);
+	if (!(status & VIRTIO_DEV_STATUS_FEATURES_OK))
+		return ENOTSUP;
+
+	return EOK;
+}
+
+/**
+ * Perform device initialization as described in section 3.1.1 of the
+ * specification, step 8 (go live).
+ */
+void virtio_device_setup_finalize(virtio_dev_t *vdev)
+{
+	virtio_pci_common_cfg_t *cfg = vdev->common_cfg;
+
+	/* 8. Go live */
+	uint8_t status = pio_read_8(&cfg->device_status);
+	pio_write_8(&cfg->device_status, status | VIRTIO_DEV_STATUS_DRIVER_OK);
+}
+
+void virtio_device_setup_fail(virtio_dev_t *vdev)
+{
+	virtio_pci_common_cfg_t *cfg = vdev->common_cfg;
+
+	uint8_t status = pio_read_8(&cfg->device_status);
+	pio_write_8(&cfg->device_status, status | VIRTIO_DEV_STATUS_FAILED);
+}
+
 errno_t virtio_pci_dev_initialize(ddf_dev_t *dev, virtio_dev_t *vdev)
 {
 	memset(vdev, 0, sizeof(virtio_dev_t));
