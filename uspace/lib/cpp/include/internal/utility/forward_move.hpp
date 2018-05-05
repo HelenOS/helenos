@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <impl/type_traits.hpp>
+#ifndef LIBCPP_INTERNAL_UTILITY_FORWARD_MOVE
+#define LIBCPP_INTERNAL_UTILITY_FORWARD_MOVE
+
 #include <internal/type_traits/references.hpp>
-#include <internal/type_traits/result_of.hpp>
+
+namespace std
+{
+    /**
+     * 20.2.4, forward/move helpers:
+     */
+
+    template<class T>
+    constexpr T&& forward(remove_reference_t<T>& t) noexcept
+    {
+        return static_cast<T&&>(t);
+    }
+
+    template<class T>
+    constexpr T&& forward(remove_reference_t<T>&& t) noexcept
+    {
+        return static_cast<T&&>(t);
+    }
+
+    template<class T>
+    constexpr remove_reference_t<T>&& move(T&& t) noexcept
+    {
+        return static_cast<remove_reference_t<T>&&>(t);
+    }
+}
+
+#endif

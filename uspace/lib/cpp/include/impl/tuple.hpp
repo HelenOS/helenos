@@ -30,8 +30,8 @@
 #define LIBCPP_TUPLE
 
 #include <internal/aux.hpp>
-#include <internal/tuple_cat.hpp>
-#include <internal/tuple_ops.hpp>
+#include <internal/tuple/tuple_cat.hpp>
+#include <internal/tuple/tuple_ops.hpp>
 #include <internal/type_transformation.hpp>
 #include <functional>
 #include <type_traits>

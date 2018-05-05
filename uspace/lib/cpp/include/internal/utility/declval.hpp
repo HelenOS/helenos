@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <impl/type_traits.hpp>
+#ifndef LIBCPP_INTERNAL_UTILITY_DECLVAL
+#define LIBCPP_INTERNAL_UTILITY_DECLVAL
+
 #include <internal/type_traits/references.hpp>
-#include <internal/type_traits/result_of.hpp>
+
+namespace std
+{
+    /**
+     * 20.2.5, function template declval:
+     * Note: This function only needs declaration, not
+     *       implementation.
+     */
+
+    template<class T>
+    add_rvalue_reference_t<T> declval() noexcept;
+}
+
+#endif

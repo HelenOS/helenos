@@ -31,6 +31,7 @@
 
 #include <cstdint>
 #include <internal/type_transformation.hpp>
+#include <internal/utility/forward_move.hpp>
 #include <type_traits>
 
 namespace std
@@ -64,28 +65,6 @@ namespace std
         {
             return !(lhs < rhs);
         }
-    }
-
-    /**
-     * 20.2.4, forward/move helpers:
-     */
-
-    template<class T>
-    constexpr T&& forward(remove_reference_t<T>& t) noexcept
-    {
-        return static_cast<T&&>(t);
-    }
-
-    template<class T>
-    constexpr T&& forward(remove_reference_t<T>&& t) noexcept
-    {
-        return static_cast<T&&>(t);
-    }
-
-    template<class T>
-    constexpr remove_reference_t<T>&& move(T&& t) noexcept
-    {
-        return static_cast<remove_reference_t<T>&&>(t);
     }
 
     /**
@@ -123,15 +102,6 @@ namespace std
 
         return old_val;
     }
-
-    /**
-     * 20.2.5, function template declval:
-     * Note: This function only needs declaration, not
-     *       implementation.
-     */
-
-    template<class T>
-    add_rvalue_reference_t<T> declval() noexcept;
 
     /**
      * 20.5.2, class template integer_sequence:

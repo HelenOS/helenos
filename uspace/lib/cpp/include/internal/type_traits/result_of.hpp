@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <impl/type_traits.hpp>
-#include <internal/type_traits/references.hpp>
-#include <internal/type_traits/result_of.hpp>
+#ifndef LIBCPP_INTERNAL_TYPE_TRAITS_RESULT_OF
+#define LIBCPP_INTERNAL_TYPE_TRAITS_RESULT_OF
+
+#include <internal/functional/invoke.hpp>
+
+namespace std
+{
+    template<class>
+    class result_of
+    { /* DUMMY BODY */ };
+
+    template<class F, class... ArgTypes>
+    class result_of<F(ArgTypes...)>: aux::type_is<
+        decltype(aux::invoke(declval<F>(), declval<ArgTypes>()...))
+    >
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    using result_of_t = typename result_of<T>::type;
+}
+
+#endif

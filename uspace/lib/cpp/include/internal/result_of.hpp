@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <impl/type_traits.hpp>
-#include <internal/type_traits/references.hpp>
-#include <internal/type_traits/result_of.hpp>
+#ifndef LIBCPP_INTERNAL_RESULT_OF
+#define LIBCPP_INTERNAL_RESULT_OF
+
+#include <internal/invoke.hpp>
+
+namespace std
+{
+    /**
+     * Note: This doesn't work, C++14 standard allows for F
+     *       to be any complete type, our implementation
+     *       currently works like the C++11 version where
+     *       F has to be callable.
+     * TODO: Fix this.
+     */
+
+    template<class>
+    struct result_of;
+
+    template<class F, class... Args>
+    class result_of<F(Args...)>: aux::type_is<
+        decltype(aux::invoke(declval<F>(), declval<ArgTypes>()...))
+    >
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    using result_of_t = typename result_of<T>::type;
+}
+
+#endif

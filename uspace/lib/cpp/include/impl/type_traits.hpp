@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <cstddef>
 #include <internal/aux.hpp>
+#include <internal/type_traits/references.hpp>
 
 namespace std
 {
@@ -892,45 +893,6 @@ namespace std
     using add_cv_t = typename add_cv<T>::type;
 
     /**
-     * 20.10.7.2, reference modifications:
-     */
-
-    template<class T>
-    struct remove_reference: aux::type_is<T>
-    { /* DUMMY BODY */ };
-
-    template<class T>
-    struct remove_reference<T&>: aux::type_is<T>
-    { /* DUMMY BODY */ };
-
-    template<class T>
-    struct remove_reference<T&&>: aux::type_is<T>
-    { /* DUMMY BODY */ };
-
-    // TODO: is this good?
-    template<class T>
-    struct add_lvalue_reference: aux::type_is<T&>
-    { /* DUMMY BODY */ };
-
-    // TODO: Special case when T is not referencable!
-    template<class T>
-    struct add_rvalue_reference: aux::type_is<T&&>
-    { /* DUMMY BODY */ };
-
-    template<class T>
-    struct add_rvalue_reference<T&>: aux::type_is<T&>
-    { /* DUMMY BODY */ };
-
-    template<class T>
-    using remove_reference_t = typename remove_reference<T>::type;
-
-    template<class T>
-    using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
-
-    template<class T>
-    using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
-
-    /**
      * 20.10.7.3, sign modifications:
      */
 
@@ -1066,12 +1028,6 @@ namespace std
     template<class... T>
     struct underlying_type;
 
-    template<class>
-    class result_of; // not defined
-
-    template<class F, class... ArgTypes>
-    class result_of<F(ArgTypes...)>;
-
     template<std::size_t Len, std::size_t Align = 0>
     using aligned_storage_t = typename aligned_storage<Len, Align>::type;
 
@@ -1086,9 +1042,6 @@ namespace std
 
     template<class T>
     using underlying_type_t = typename underlying_type<T>::type;
-
-    template<class T>
-    using result_of_t = typename result_of<T>::type;
 }
 
 #endif
