@@ -29,6 +29,7 @@
 #ifndef LIBCPP_INTERNAL_FUNCTIONAL_FUNCTION
 #define LIBCPP_INTERNAL_FUNCTIONAL_FUNCTION
 
+#include <internal/functional/conditional_function_typedefs.hpp>
 #include <internal/functional/reference_wrapper.hpp>
 #include <typeinfo>
 #include <type_traits>
@@ -93,10 +94,10 @@ namespace std
      */
     template<class R, class... Args>
     class function<R(Args...)>
+        : public aux::conditional_function_typedefs<Args...>
     {
         public:
             using result_type = R;
-            // TODO: conditional typedefs
 
             /**
              * 20.9.12.2.1, construct/copy/destroy:

@@ -29,6 +29,7 @@
 #ifndef LIBCPP_FUNCTIONAL
 #define LIBCPP_FUNCTIONAL
 
+#include <internal/functional/conditional_function_typedefs.hpp>
 #include <internal/functional/invoke.hpp>
 #include <limits>
 #include <memory>
@@ -638,8 +639,8 @@ namespace std
     {
         template<class F>
         class mem_fn_t
+            : public conditional_function_typedefs<remove_cv_t<remove_reference_t<T>>>
         {
-            // TODO: conditional typedefs
             public:
                 mem_fn_t(F f)
                     : func_{f}

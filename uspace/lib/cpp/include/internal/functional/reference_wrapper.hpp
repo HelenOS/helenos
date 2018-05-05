@@ -29,6 +29,7 @@
 #ifndef LIBCPP_INTERNAL_FUNCTIONAL_REFERENCE_WRAPPER
 #define LIBCPP_INTERNAL_FUNCTIONAL_REFERENCE_WRAPPER
 
+#include <internal/functional/conditional_function_typedefs.hpp>
 #include <internal/functional/invoke.hpp>
 #include <type_traits>
 
@@ -40,10 +41,10 @@ namespace std
 
     template<class T>
     class reference_wrapper
+        : public aux::conditional_function_typedefs<remove_cv_t<remove_reference_t<T>>>
     {
         public:
             using type = T;
-            // TODO: conditional typedefs
 
             reference_wrapper(type& val) noexcept
                 : data_{&val}
