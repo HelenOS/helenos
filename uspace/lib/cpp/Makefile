@@ -50,6 +50,7 @@ SOURCES = \
 	src/typeindex.cpp \
 	src/typeinfo.cpp \
 	src/internal/runtime.cpp \
+	src/internal/trycatch.cpp \
 	src/internal/unwind.cpp \
 	src/internal/test/array.cpp \
 	src/internal/test/vector.cpp \
