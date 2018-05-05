@@ -639,7 +639,7 @@ namespace std
     {
         template<class F>
         class mem_fn_t
-            : public conditional_function_typedefs<remove_cv_t<remove_reference_t<T>>>
+            : public conditional_function_typedefs<remove_cv_t<remove_reference_t<F>>>
         {
             public:
                 mem_fn_t(F f)
