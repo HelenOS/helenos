@@ -31,6 +31,7 @@ LIBRARY = libvirtio
 LIBS = drv
 
 SOURCES = \
+	virtio.c \
 	virtio-pci.c
 
 include $(USPACE_PREFIX)/Makefile.common
