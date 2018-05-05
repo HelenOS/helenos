@@ -42,6 +42,16 @@
 
 #define NAME	"virtio-net"
 
+#define VIRTIO_NET_NUM_QUEUES	3
+
+#define RECVQ1		0
+#define TRANSQ1		1
+#define CTRLQ1		2
+
+#define RECVQ_SIZE	8
+#define TRANSQ_SIZE	8
+#define CTRLQ_SIZE	4
+
 static errno_t virtio_net_initialize(ddf_dev_t *dev)
 {
 	nic_t *nic_data = nic_create_and_bind(dev);
@@ -60,6 +70,7 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	if (rc != EOK)
 		return rc;
 
+	virtio_dev_t *vdev = &virtio_net->virtio_dev;
 	virtio_pci_common_cfg_t *cfg = virtio_net->virtio_dev.common_cfg;
 	virtio_net_cfg_t *netcfg = virtio_net->virtio_dev.device_cfg;
 
@@ -85,7 +96,7 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	uint32_t features = pio_read_32(&cfg->device_feature);
 
 	ddf_msg(LVL_NOTE, "offered features %x", features);
-	features &= (1U << VIRTIO_NET_F_MAC);
+	features &= (1U << VIRTIO_NET_F_MAC) | (1U << VIRTIO_NET_F_CTRL_VQ);
 
 	if (!features) {
 		rc = ENOTSUP;
@@ -95,6 +106,8 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	/* 4. Write the accepted feature flags */
 	pio_write_32(&cfg->driver_feature_select, VIRTIO_NET_F_SELECT_PAGE_0);
 	pio_write_32(&cfg->driver_feature, features);
+
+	ddf_msg(LVL_NOTE, "accepted features %x", features);
 
 	/* 5. Set FEATURES_OK */
 	status |= VIRTIO_DEV_STATUS_FEATURES_OK;
@@ -108,9 +121,40 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	}
 
 	/* 7. Perform device-specific setup */
+
+	/*
+	 * Discover and configure the virtqueues
+	 */
+	uint16_t num_queues = pio_read_16(&cfg->num_queues);
+	if (num_queues != VIRTIO_NET_NUM_QUEUES) {
+		ddf_msg(LVL_NOTE, "Unsupported number of virtqueues: %u",
+		    num_queues);
+		goto fail;
+	}
+
+	vdev->queues = calloc(sizeof(virtq_t), num_queues);
+	if (!vdev->queues) {
+		rc = ENOMEM;
+		goto fail;
+	}
+
+	rc = virtio_virtq_setup(vdev, RECVQ1, RECVQ_SIZE, 1500,
+	    VIRTQ_DESC_F_WRITE);
+	if (rc != EOK)
+		goto fail;
+	rc = virtio_virtq_setup(vdev, TRANSQ1, TRANSQ_SIZE, 1500, 0);
+	if (rc != EOK)
+		goto fail;
+	rc = virtio_virtq_setup(vdev, CTRLQ1, CTRLQ_SIZE, 512, 0);
+	if (rc != EOK)
+		goto fail;
+
+	/*
+	 * Read the MAC address
+	 */
 	nic_address_t nic_addr;
 	for (unsigned i = 0; i < 6; i++)
-		nic_addr.address[i] = netcfg->mac[i];
+		nic_addr.address[i] = pio_read_8(&netcfg->mac[i]);
 	rc = nic_report_address(nic_data, &nic_addr);
 	if (rc != EOK)
 		goto fail;

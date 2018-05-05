@@ -123,6 +123,31 @@ typedef struct virtq_used {
 	 */
 } virtq_used_t;
 
+typedef struct {
+	void *virt;
+	uintptr_t phys;
+	size_t size;
+
+	/**
+	 * Size of the queue which determines the number of descriptors and
+	 * DMA buffers.
+	 */
+	size_t queue_size;
+
+	/** Virtual address of queue size virtq descriptors */
+	virtq_desc_t *desc;
+	/** Virtual address of the available ring */
+	virtq_avail_t *avail;
+	/** Virtual address of the used ring */
+	virtq_used_t *used;
+
+	/**
+	 * Queue-size-sized array of virtual addresses of the atcual DMA
+	 * buffers.
+	 */
+	void **buffers;
+} virtq_t;
+
 /** VIRTIO-device specific data associated with the NIC framework nic_t */
 typedef struct {
 	struct {
@@ -144,7 +169,14 @@ typedef struct {
 
 	/** Device-specific configuration */
 	void *device_cfg;
+
+	/** Virtqueues */
+	virtq_t *queues;
 } virtio_dev_t;
+
+extern errno_t virtio_virtq_setup(virtio_dev_t *, uint16_t, uint16_t, size_t,
+    uint16_t);
+extern void virtio_virtq_teardown(virtio_dev_t *, uint16_t);
 
 extern errno_t virtio_pci_dev_initialize(ddf_dev_t *, virtio_dev_t *);
 extern errno_t virtio_pci_dev_cleanup(virtio_dev_t *);

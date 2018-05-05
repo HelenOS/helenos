@@ -31,6 +31,10 @@
 
 #include "virtio-pci.h"
 
+#include <as.h>
+#include <align.h>
+#include <macros.h>
+
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <pci_dev_iface.h>
@@ -174,6 +178,99 @@ static errno_t disable_resources(virtio_dev_t *vdev)
 	return EOK;
 }
 
+errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size,
+    size_t buf_size, uint16_t buf_flags)
+{
+	virtq_t *q = &vdev->queues[num];
+	virtio_pci_common_cfg_t *cfg = vdev->common_cfg;
+
+	/* Program the queue of our interest */
+	pio_write_16(&cfg->queue_select, num);
+
+	/* Trim the size of the queue as needed */
+	size = min(pio_read_16(&cfg->queue_size), size);
+	pio_write_16(&cfg->queue_size, size);
+	ddf_msg(LVL_NOTE, "Virtq %u: %u buffers", num, (unsigned) size);
+
+	/* Allocate array to hold virtual addresses of DMA buffers */
+	void **buffers = calloc(sizeof(void *), size);
+	if (!buffers)
+		return ENOMEM;
+
+	size_t avail_offset = 0;
+	size_t used_offset = 0;
+	size_t buffers_offset = 0;
+
+	/*
+	 * Compute the size of the needed DMA memory and also the offsets of
+	 * the individual components
+	 */
+	size_t mem_size = sizeof(virtq_desc_t[size]);
+	mem_size = ALIGN_UP(mem_size, _Alignof(virtq_avail_t));
+	avail_offset = mem_size;
+	mem_size += sizeof(virtq_avail_t) + sizeof(ioport16_t[size]) +
+	    sizeof(ioport16_t);
+	mem_size = ALIGN_UP(mem_size, _Alignof(virtq_used_t));
+	used_offset = mem_size;
+	mem_size += sizeof(virtq_used_t) + sizeof(virtq_used_elem_t[size]) +
+	    sizeof(ioport16_t);
+	buffers_offset = mem_size;
+	mem_size += size * buf_size;
+
+	/*
+	 * Allocate DMA memory for the virtqueues and the buffers
+	 */
+	q->virt = AS_AREA_ANY;
+	errno_t rc = dmamem_map_anonymous(mem_size, DMAMEM_4GiB,
+	    AS_AREA_READ | AS_AREA_WRITE, 0, &q->phys, &q->virt);
+	if (rc != EOK) {
+		free(buffers);
+		q->virt = NULL;
+		return rc;
+	}
+
+	q->size = mem_size;
+	q->queue_size = size;
+	q->desc = q->virt;
+	q->avail = q->virt + avail_offset;
+	q->used = q->virt + used_offset;
+	q->buffers = buffers;
+
+	memset(q->virt, 0, q->size);
+
+	/*
+	 * Initialize the descriptor table and the buffers array
+	 */
+	for (unsigned i = 0; i < size; i++) {
+		q->desc[i].addr = q->phys + buffers_offset + i * buf_size;
+		q->desc[i].len = buf_size;
+		q->desc[i].flags = buf_flags;
+
+		q->buffers[i] = q->virt + buffers_offset + i * buf_size;
+	}
+
+	/*
+	 * Write the configured addresses to device's common config
+	 */
+	pio_write_64(&cfg->queue_desc, q->phys);
+	pio_write_64(&cfg->queue_avail, q->phys + avail_offset);
+	pio_write_64(&cfg->queue_used, q->phys + used_offset);
+
+	ddf_msg(LVL_NOTE, "DMA memory for virtq %d: virt=%p, phys=%p, size=%zu",
+	    num, q->virt, (void *) q->phys, q->size);
+
+	return rc;
+}
+
+void virtio_virtq_teardown(virtio_dev_t *vdev, uint16_t num)
+{
+	virtq_t *q = &vdev->queues[num];
+	if (q->size)
+		dmamem_unmap_anonymous(q->virt);
+	if (q->buffers)
+		free(q->buffers);
+}
+
 errno_t virtio_pci_dev_initialize(ddf_dev_t *dev, virtio_dev_t *vdev)
 {
 	memset(vdev, 0, sizeof(virtio_dev_t));
@@ -278,6 +375,12 @@ error:
 
 errno_t virtio_pci_dev_cleanup(virtio_dev_t *vdev)
 {
+	if (vdev->queues) {
+		for (unsigned i = 0;
+		    i < pio_read_16(&vdev->common_cfg->num_queues); i++)
+			virtio_virtq_teardown(vdev, i);
+		free(vdev->queues);
+	}
 	return disable_resources(vdev);
 }
 

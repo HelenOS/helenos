@@ -39,6 +39,8 @@
 #define VIRTIO_NET_F_GUEST_CSUM		2
 /** Device has given MAC address. */
 #define VIRTIO_NET_F_MAC		5
+/** Control channel is available */
+#define VIRTIO_NET_F_CTRL_VQ		17
 
 typedef struct {
 	uint8_t mac[6];
