@@ -203,7 +203,7 @@ elif [ "$1" = "run" ]; then
             # (reason is to prevent endless stacktraces going forever). But also Travis
             # kills a job that does not print anything for a while.
             #
-            # So we store the full output into a file but print every 100th line.
+            # So we store the full output into a file  and print single dot for each line.
             # As pipe tends to hide errors we check the success by checking that archive
             # exists.
             #
