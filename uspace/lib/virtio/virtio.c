@@ -118,6 +118,12 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size,
 	ddf_msg(LVL_NOTE, "DMA memory for virtq %d: virt=%p, phys=%p, size=%zu",
 	    num, q->virt, (void *) q->phys, q->size);
 
+	/* Determine virtq's notification address */
+	q->notify = vdev->notify_base +
+	    pio_read_16(&cfg->queue_notif_off) * vdev->notify_off_multiplier;
+
+	ddf_msg(LVL_NOTE, "notification register: %p", q->notify);
+
 	return rc;
 }
 
@@ -170,7 +176,7 @@ errno_t virtio_device_setup_start(virtio_dev_t *vdev, uint32_t features)
 	status |= VIRTIO_DEV_STATUS_FEATURES_OK;
 	pio_write_8(&cfg->device_status, status);
 
-	/* 6. Test if the device supports our feature subset */ 
+	/* 6. Test if the device supports our feature subset */
 	status = pio_read_8(&cfg->device_status);
 	if (!(status & VIRTIO_DEV_STATUS_FEATURES_OK))
 		return ENOTSUP;

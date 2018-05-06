@@ -148,6 +148,9 @@ typedef struct {
 	 * buffers.
 	 */
 	void **buffers;
+
+	/** Address of the queue's notification register */
+	ioport16_t *notify;
 } virtq_t;
 
 /** VIRTIO-device specific data associated with the NIC framework nic_t */
@@ -162,7 +165,7 @@ typedef struct {
 	virtio_pci_common_cfg_t *common_cfg;
 
 	/** Notification base address */
-	ioport16_t *notify_base;
+	void *notify_base;
 	/** Notification offset multiplier */
 	uint32_t notify_off_multiplier;
 
