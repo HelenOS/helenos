@@ -115,6 +115,22 @@ namespace std
     } \
     if constexpr (expr = {}; ::std::aux::catch_blocks_allowed)
 
+/**
+ * This macro can be used for testing the library. If
+ * exception handling is not available, it uses the
+ * internal bool variable and if it is, it uses a
+ * universal catch clause in which it sets the passed
+ * checking variable to true.
+ */
+#define LIBCPP_EXCEPTION_THROW_CHECK(variable) \
+    variable = ::std::aux::exception_thrown
+
+#else
+#define LIBCPP_EXCEPTION_THROW_CHECK(variable) \
+    catch (...) \
+    { \
+        variable = true; \
+    }
 #endif
 
 #endif
