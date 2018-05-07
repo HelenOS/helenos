@@ -46,6 +46,7 @@ SOURCES = \
 	src/mutex.cpp \
 	src/new.cpp \
 	src/string.cpp \
+	src/system_error.cpp \
 	src/thread.cpp \
 	src/typeindex.cpp \
 	src/typeinfo.cpp \
