@@ -40,7 +40,7 @@ class bad_alloc: public std::exception
 		bad_alloc() = default;
 		bad_alloc(const bad_alloc&);
 		bad_alloc& operator=(const bad_alloc&) = default;
-		virtual const char* what() const override;
+		virtual const char* what() const noexcept override;
 		virtual ~bad_alloc() = default;
 };
 

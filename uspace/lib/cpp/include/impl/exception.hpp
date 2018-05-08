@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ namespace std
             exception(const exception&) noexcept = default;
             exception& operator=(const exception&) noexcept = default;
             virtual ~exception() = default;
+
             virtual const char* what() const noexcept;
     };
 
