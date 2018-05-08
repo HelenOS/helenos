@@ -59,7 +59,9 @@ namespace std
 
             locale pubimbue(const locale& loc)
             {
-                return imbue(loc);
+                imbue(loc);
+
+                return locale_;
             }
 
             locale& getloc() const
