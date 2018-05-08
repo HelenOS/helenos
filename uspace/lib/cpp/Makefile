@@ -45,6 +45,7 @@ SOURCES = \
 	src/locale.cpp \
 	src/mutex.cpp \
 	src/new.cpp \
+	src/stdexcept.cpp \
 	src/string.cpp \
 	src/system_error.cpp \
 	src/thread.cpp \
