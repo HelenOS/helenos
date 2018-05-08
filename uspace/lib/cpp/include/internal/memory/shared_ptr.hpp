@@ -30,6 +30,8 @@
 #define LIBCPP_INTERNAL_MEMORY_SHARED_PTR
 
 #include <exception>
+#include <functional>
+#include <type_traits>
 
 namespace std
 {
@@ -146,94 +148,198 @@ namespace std
              * 20.8.2.2.5, observers:
              */
 
-            element_type* get() const noexcept;
+            element_type* get() const noexcept
+            {
+                if (payload_)
+                    return payload_->get();
+                else
+                    return nullptr;
+            }
 
             T& operator*() const noexcept;
 
-            T* operator->() const noexcept;
+            T* operator->() const noexcept
+            {
+                return get();
+            }
 
-            long use_count() const noexcept;
+            long use_count() const noexcept
+            {
+                if (payload_)
+                    return payload_->refcount();
+                else
+                    return 0L;
+            }
 
-            bool unique() const noexcept;
+            bool unique() const noexcept
+            {
+                return use_count() == 1L;
+            }
 
-            explicit operator bool() const noexcept;
+            explicit operator bool() const noexcept
+            {
+                return get() != nullptr;
+            }
 
             template<class U>
-            bool owner_before(const shared_ptr<U>& ptr) const;
+            bool owner_before(const shared_ptr<U>& ptr) const
+            {
+                return payload_ < ptr.payload_;
+            }
 
             template<class U>
             bool owner_before(const weak_ptr<U>& ptr) const;
 
-        /* private: */
+        private:
+            aux::shared_payload<element_type>* payload_;
+
+            shared_ptr(aux::shared_payload<element_type>* payload)
+                : payload_{payload}
+            { /* DUMMY BODY */ }
+
+            template<class U, class... Args>
+            friend shared_ptr<U> make_shared(Args&&...);
+
+            template<class U, class A, class... Args>
+            friend shared_ptr<U> allocate_shared(const A&, Args&&...);
     };
 
     /**
      * 20.8.2.2.6, shared_ptr creation:
+     * Note: According to the standard, these two functions
+     *       should perform at most one memory allocation
+     *       (should, don't have to :P). It might be better
+     *       to create payloads that embed the type T to
+     *       perform this optimization.
      */
 
     template<class T, class... Args>
-    shared_ptr<T> make_shared(Args&&... args);
+    shared_ptr<T> make_shared(Args&&... args)
+    {
+        return shared_ptr<T>{
+            new aux::shared_payload<T>{forward<Args>(args)...}
+        };
+    }
 
     template<class T, class A, class... Args>
-    shared_ptr<T> allocate_shared(const A& alloc, Args&&... args);
+    shared_ptr<T> allocate_shared(const A& alloc, Args&&... args)
+    {
+        return shared_ptr<T>{
+            new aux::shared_payload<T>{A{alloc}, forward<Args>(args)...}
+        };
+    }
 
     /**
      * 20.8.2.2.7, shared_ptr comparisons:
      */
 
     template<class T, class U>
-    bool operator==(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept;
+    bool operator==(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept
+    {
+        return lhs.get() == rhs.get();
+    }
 
     template<class T, class U>
-    bool operator!=(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept;
+    bool operator!=(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept
+    {
+        return !(lhs == rhs);
+    }
 
     template<class T, class U>
-    bool operator<(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept;
+    bool operator<(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept
+    {
+        return less<common_type_t<T*, U*>>{}(lhs.get(), rhs.get());
+    }
 
     template<class T, class U>
-    bool operator>(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept;
+    bool operator>(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept
+    {
+        return rhs < lhs;
+    }
 
     template<class T, class U>
-    bool operator<=(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept;
+    bool operator<=(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept
+    {
+        return !(rhs < lhs);
+    }
 
     template<class T, class U>
-    bool operator>=(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept;
+    bool operator>=(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept
+    {
+        return !(lhs < rhs);
+    }
 
     template<class T>
-    bool operator==(const shared_ptr<T>& lhs, nullptr_t) noexcept;
+    bool operator==(const shared_ptr<T>& lhs, nullptr_t) noexcept
+    {
+        return !lhs;
+    }
 
     template<class T>
-    bool operator==(nullptr_t, const shared_ptr<T>& rhs) noexcept;
+    bool operator==(nullptr_t, const shared_ptr<T>& rhs) noexcept
+    {
+        return !rhs;
+    }
 
     template<class T>
-    bool operator!=(const shared_ptr<T>& lhs, nullptr_t) noexcept;
+    bool operator!=(const shared_ptr<T>& lhs, nullptr_t) noexcept
+    {
+        return (bool)lhs;
+    }
 
     template<class T>
-    bool operator!=(nullptr_t, const shared_ptr<T>& rhs) noexcept;
+    bool operator!=(nullptr_t, const shared_ptr<T>& rhs) noexcept
+    {
+        return (bool)rhs;
+    }
 
     template<class T>
-    bool operator<(const shared_ptr<T>& lhs, nullptr_t) noexcept;
+    bool operator<(const shared_ptr<T>& lhs, nullptr_t) noexcept
+    {
+        return less<T*>{}(lhs.get(), nullptr);
+    }
 
     template<class T>
-    bool operator<(nullptr_t, const shared_ptr<T>& rhs) noexcept;
+    bool operator<(nullptr_t, const shared_ptr<T>& rhs) noexcept
+    {
+        return less<T*>{}(nullptr, rhs.get());
+    }
 
     template<class T>
-    bool operator>(const shared_ptr<T>& lhs, nullptr_t) noexcept;
+    bool operator>(const shared_ptr<T>& lhs, nullptr_t) noexcept
+    {
+        return nullptr < lhs;
+    }
 
     template<class T>
-    bool operator>(nullptr_t, const shared_ptr<T>& rhs) noexcept;
+    bool operator>(nullptr_t, const shared_ptr<T>& rhs) noexcept
+    {
+        return rhs < nullptr;
+    }
 
     template<class T>
-    bool operator<=(const shared_ptr<T>& lhs, nullptr_t) noexcept;
+    bool operator<=(const shared_ptr<T>& lhs, nullptr_t) noexcept
+    {
+        return !(nullptr < lhs);
+    }
 
     template<class T>
-    bool operator<=(nullptr_t, const shared_ptr<T>& rhs) noexcept;
+    bool operator<=(nullptr_t, const shared_ptr<T>& rhs) noexcept
+    {
+        return !(rhs < nullptr);
+    }
 
     template<class T>
-    bool operator>=(const shared_ptr<T>& lhs, nullptr_t) noexcept;
+    bool operator>=(const shared_ptr<T>& lhs, nullptr_t) noexcept
+    {
+        return !(lhs < nullptr);
+    }
 
     template<class T>
-    bool operator>=(nullptr_t, const shared_ptr<T>& rhs) noexcept;
+    bool operator>=(nullptr_t, const shared_ptr<T>& rhs) noexcept
+    {
+        return !(nullptr < rhs);
+    }
 
     /**
      * 20.8.2.2.8, shared_ptr specialized algorithms:
@@ -250,20 +356,45 @@ namespace std
      */
 
     template<class T, class U>
-    shared_ptr<T> static_pointer_cast(const shared_ptr<U>& ptr) noexcept;
+    shared_ptr<T> static_pointer_cast(const shared_ptr<U>& ptr) noexcept
+    {
+        if (!ptr)
+            return shared_ptr<T>{};
+
+        return shared_ptr<T>{
+            ptr, static_cast<T*>(ptr.get())
+        };
+    }
 
     template<class T, class U>
-    shared_ptr<T> dynamic_pointer_cast(const shared_ptr<U>& ptr) noexcept;
+    shared_ptr<T> dynamic_pointer_cast(const shared_ptr<U>& ptr) noexcept
+    {
+        if (auto res = dynamic_cast<T*>(ptr.get()))
+            return shared_ptr<T>{ptr, res};
+        else
+            return shared_ptr<T>{};
+    }
 
     template<class T, class U>
-    shared_ptr<T> const_pointer_cast(const shared_ptr<U>& ptr) noexcept;
+    shared_ptr<T> const_pointer_cast(const shared_ptr<U>& ptr) noexcept
+    {
+        if (!ptr)
+            return shared_ptr<T>{};
+
+        return shared_ptr<T>{
+            ptr, const_cast<T*>(ptr.get())
+        };
+    }
 
     /**
      * 20.8.2.2.10, shared_ptr get_deleter:
      */
 
     template<class D, class T>
-    D* get_deleter(const shared_ptr<T>& ptr) noexcept;
+    D* get_deleter(const shared_ptr<T>& ptr) noexcept
+    {
+        // TODO: implement this through payload
+    }
 
     /**
      * 20.8.2.2.11, shared_ptr I/O:
@@ -271,7 +402,10 @@ namespace std
 
     template<class Char, class Traits, class T>
     basic_ostream<Char, Traits>& operator<<(basic_ostream<Char, Traits>& os,
-                                            const shared_ptr<T>& ptr);
+                                            const shared_ptr<T>& ptr)
+    {
+        return os << ptr.get();
+    }
 }
 
 #endif
