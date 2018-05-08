@@ -37,6 +37,7 @@
 #include <cstring>
 #include <cwchar>
 #include <memory>
+#include <internal/stringfwd.hpp>
 #include <utility>
 
 #include <initializer_list>
@@ -421,8 +422,7 @@ namespace std
      * 21.4, class template basic_string:
      */
 
-    template<class Char, class Traits = char_traits<Char>,
-             class Allocator = allocator<Char>>
+    template<class Char, class Traits, class Allocator>
     class basic_string
     {
         public:
