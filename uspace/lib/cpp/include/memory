@@ -30,3 +30,4 @@
 #include <internal/memory/allocator_arg.hpp>
 #include <internal/memory/addressof.hpp>
 #include <internal/memory/shared_ptr.hpp>
+#include <internal/memory/weak_ptr.hpp>
