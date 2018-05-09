@@ -75,7 +75,8 @@ namespace std
 
             template<class U>
             explicit shared_ptr(
-                enable_if_t<is_convertible_v<U*, element_type*>, U*> ptr
+                U* ptr,
+                enable_if_t<is_convertible_v<U*, element_type*>>* = nullptr
             )
                 : payload_{}, data_{ptr}
             {
@@ -93,7 +94,8 @@ namespace std
 
             template<class U, class D>
             shared_ptr(
-                enable_if_t<is_convertible_v<U*, element_type*>, U*> ptr, D deleter
+                U* ptr, D deleter,
+                enable_if_t<is_convertible_v<U*, element_type*>>* = nullptr
             )
                 : shared_ptr{}
             {
@@ -111,8 +113,8 @@ namespace std
 
             template<class U, class D, class A>
             shared_ptr(
-                enable_if_t<is_convertible_v<U*, element_type*>, U*> ptr,
-                D deleter, A
+                U* ptr, D deleter, A,
+                enable_if_t<is_convertible_v<U*, element_type*>>* = nullptr
             )
                 : shared_ptr{}
             {
@@ -140,8 +142,8 @@ namespace std
 
             template<class U>
             shared_ptr(
-                enable_if_t<is_convertible_v<U*, element_type*>, const shared_ptr<U>&> other,
-                element_type* ptr
+                const shared_ptr<U>& other, element_type* ptr,
+                enable_if_t<is_convertible_v<U*, element_type*>>* = nullptr
             )
                 : payload_{other.payload_}, data_{ptr}
             {
@@ -158,7 +160,8 @@ namespace std
 
             template<class U>
             shared_ptr(
-                enable_if_t<is_convertible_v<U*, element_type*>, const shared_ptr<U>&> other
+                const shared_ptr<U>& other,
+                enable_if_t<is_convertible_v<U*, element_type*>>* = nullptr
             )
                 : payload_{other.payload_}, data_{other.data_}
             {
@@ -175,7 +178,8 @@ namespace std
 
             template<class U>
             shared_ptr(
-                enable_if_t<is_convertible_v<U*, element_type*>, shared_ptr<U>&&> other
+                shared_ptr<U>&& other,
+                enable_if_t<is_convertible_v<U*, element_type*>>* = nullptr
             )
                 : payload_{move(other.payload_)}, data_{move(other.data_)}
             {
@@ -185,7 +189,8 @@ namespace std
 
             template<class U>
             explicit shared_ptr(
-                enable_if_t<is_convertible_v<U*, element_type*>, const weak_ptr<U>&> other
+                const weak_ptr<U>& other,
+                enable_if_t<is_convertible_v<U*, element_type*>>* = nullptr
             )
             {
                 if (other.expired())
@@ -195,13 +200,13 @@ namespace std
 
             template<class U, class D>
             shared_ptr(
+                unique_ptr<U, D>&& other,
                 enable_if_t<
                     is_convertible_v<
                         typename unique_ptr<U, D>::pointer,
                         element_type*
-                    >,
-                    unique_ptr<U, D>&&
-                > other
+                    >
+                >* = nullptr
             ) // TODO: if D is a reference type, it should be ref(other.get_deleter())
                 : shared_ptr{other.release(), other.get_deleter()}
             { /* DUMMY BODY */ }
@@ -237,9 +242,8 @@ namespace std
             }
 
             template<class U>
-            shared_ptr& operator=(
-                enable_if_t<is_convertible_v<U*, element_type*>, const shared_ptr<U>&> rhs
-            ) noexcept
+            enable_if_t<is_convertible_v<U*, element_type*>, shared_ptr>&
+            operator=(const shared_ptr<U>& rhs) noexcept
             {
                 if (rhs.payload_)
                     rhs.payload_->increment();
@@ -260,9 +264,7 @@ namespace std
             }
 
             template<class U>
-            shared_ptr& operator=(
-                enable_if_t<is_convertible_v<U*, element_type*>, shared_ptr<U>&&> rhs
-            ) noexcept
+            shared_ptr& operator=(shared_ptr<U>&& rhs) noexcept
             {
                 shared_ptr{move(rhs)}.swap(*this);
 
@@ -363,7 +365,7 @@ namespace std
             aux::shared_payload_base<element_type>* payload_;
             element_type* data_;
 
-            shared_ptr(aux::shared_payload_base<element_type>* payload)
+            shared_ptr(aux::payload_tag_t, aux::shared_payload_base<element_type>* payload)
                 : payload_{payload}, data_{payload->get()}
             { /* DUMMY BODY */ }
 
@@ -408,6 +410,7 @@ namespace std
     shared_ptr<T> make_shared(Args&&... args)
     {
         return shared_ptr<T>{
+            aux::payload_tag,
             new aux::shared_payload<T>{forward<Args>(args)...}
         };
     }
@@ -416,6 +419,7 @@ namespace std
     shared_ptr<T> allocate_shared(const A& alloc, Args&&... args)
     {
         return shared_ptr<T>{
+            aux::payload_tag,
             new aux::shared_payload<T>{allocator_arg, A{alloc}, forward<Args>(args)...}
         };
     }

@@ -191,7 +191,7 @@ namespace std
 
             shared_ptr<T> lock() const noexcept
             {
-                return shared_ptr{payload_->lock()};
+                return shared_ptr{aux::payload_tag, payload_->lock()};
             }
 
             template<class U>

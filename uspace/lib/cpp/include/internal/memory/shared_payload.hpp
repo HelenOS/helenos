@@ -48,6 +48,15 @@ namespace std::aux
      */
     using refcount_t = long;
 
+    /**
+     * This allows us to construct shared_ptr from
+     * a payload pointer in make_shared etc.
+     */
+    struct payload_tag_t
+    { /* DUMMY BODY */ };
+
+    inline constexpr payload_tag_t payload_tag{};
+
     template<class D, class T>
     void use_payload_deleter(D* deleter, T* data)
     {
