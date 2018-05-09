@@ -95,17 +95,12 @@ namespace std
 
 #define try if constexpr (::std::aux::try_blocks_allowed)
 
-/**
- * Since we cannot use the thrown object in this macro,
- * we have to silence compiler warnings on it by
- * using (void)thrown-object.
- */
 #define throw \
     do {\
         ::std::aux::exception_thrown = true; \
         printf("[EXCEPTION] Thrown at %s:%d\n", __FILE__, __LINE__); \
         LIBCPP_EXCEPTION_HANDLE_THROW \
-    } while (false); (void)
+    } while (false);
 
 #define catch(expr) \
     if (::std::aux::exception_thrown) \
@@ -113,7 +108,7 @@ namespace std
         printf("[EXCEPTION] Caught < "#expr" > at %s:%d\n", __FILE__, __LINE__); \
         LIBCPP_EXCEPTION_HANDLE_CATCH \
     } \
-    if constexpr (expr = {}; ::std::aux::catch_blocks_allowed)
+    if constexpr (::std::aux::catch_blocks_allowed)
 
 /**
  * This macro can be used for testing the library. If
