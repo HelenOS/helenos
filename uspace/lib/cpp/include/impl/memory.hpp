@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
 #define LIBCPP_MEMORY
 
 #include <internal/aux.hpp>
+#include <internal/memory/allocator_arg.hpp>
 #include <internal/memory/addressof.hpp>
 #include <iterator>
 #include <new>
@@ -52,15 +53,6 @@ namespace std
         template<class U>
         using rebind = typename Ptr::template rebind<U>;
     };
-
-    /**
-     * 20.7.6, allocator argument tag:
-     */
-
-    struct allocator_arg_t
-    { /* DUMMY BODY */ };
-
-    constexpr allocator_arg_t allocator_arg{};
 
     /**
      * 20.7.7, uses_allocator:
