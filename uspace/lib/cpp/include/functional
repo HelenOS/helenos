@@ -27,6 +27,7 @@
  */
 
 #include <impl/functional.hpp>
+#include <internal/functional/arithmetic_operations.hpp>
 #include <internal/functional/bind.hpp>
 #include <internal/functional/function.hpp>
 #include <internal/functional/invoke.hpp>
