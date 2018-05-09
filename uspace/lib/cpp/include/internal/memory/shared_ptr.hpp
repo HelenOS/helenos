@@ -31,10 +31,15 @@
 
 #include <exception>
 #include <functional>
+#include <internal/memory/allocator_arg.hpp>
+#include <internal/memory/shared_payload.hpp>
 #include <type_traits>
 
 namespace std
 {
+    template<class T>
+    class weak_ptr;
+
     /**
      * 20.8.2.1, class bad_weak_ptr:
      */
@@ -64,41 +69,142 @@ namespace std
              * 20.8.2.2.1, constructors:
              */
 
-            constexpr shared_ptr() noexcept;
+            constexpr shared_ptr() noexcept
+                : payload_{}, data_{}
+            { /* DUMMY BODY */ }
 
             template<class U>
-            explicit shared_ptr(U* ptr);
+            explicit shared_ptr(
+                enable_if_t<is_convertible_v<U*, element_type*>, U*> ptr
+            )
+                : payload_{}, data_{ptr}
+            {
+                try
+                {
+                    payload_ = new aux::shared_payload<T>{ptr};
+                }
+                catch (const bad_alloc&)
+                {
+                    delete ptr;
+
+                    throw;
+                }
+            }
 
             template<class U, class D>
-            shared_ptr(U* ptr, D deleter);
+            shared_ptr(
+                enable_if_t<is_convertible_v<U*, element_type*>, U*> ptr, D deleter
+            )
+                : shared_ptr{}
+            {
+                try
+                {
+                    payload_ = new aux::shared_payload<T, D>{ptr, deleter};
+                }
+                catch (const bad_alloc&)
+                {
+                    deleter(ptr);
+
+                    throw;
+                }
+            }
 
             template<class U, class D, class A>
-            shared_ptr(U* ptr, D deleter, A alloc);
+            shared_ptr(
+                enable_if_t<is_convertible_v<U*, element_type*>, U*> ptr,
+                D deleter, A
+            )
+                : shared_ptr{}
+            {
+                try
+                {
+                    payload_ = new aux::shared_payload<T, D>{ptr, deleter};
+                }
+                catch (const bad_alloc&)
+                {
+                    deleter(ptr);
+
+                    throw;
+                }
+            }
 
             template<class D>
-            shared_ptr(nullptr_t, D deleter);
+            shared_ptr(nullptr_t ptr, D deleter)
+                : shared_ptr{}
+            { /* DUMMY BODY */ }
 
             template<class D, class A>
-            shared_ptr(nullptr_t, D deleter, A alloc);
+            shared_ptr(nullptr_t, D deleter, A)
+                : shared_ptr{}
+            { /* DUMMY BODY */ }
 
             template<class U>
-            shared_ptr(const shared_ptr<U>& other, value_type* ptr);
+            shared_ptr(
+                enable_if_t<is_convertible_v<U*, element_type*>, const shared_ptr<U>&> other,
+                element_type* ptr
+            )
+                : payload_{other.payload_}, data_{ptr}
+            {
+                if (payload_)
+                    payload_->increment();
+            }
 
-            shared_ptr(const shared_ptr& other);
+            shared_ptr(const shared_ptr& other)
+                : payload_{other.payload_}, data_{other.data_}
+            {
+                if (payload_)
+                    payload_->increment();
+            }
 
             template<class U>
-            shared_ptr(const shared_ptr<U>& other);
+            shared_ptr(
+                enable_if_t<is_convertible_v<U*, element_type*>, const shared_ptr<U>&> other
+            )
+                : payload_{other.payload_}, data_{other.data_}
+            {
+                if (payload_)
+                    payload_->increment();
+            }
 
-            shared_ptr(shared_ptr&& other);
+            shared_ptr(shared_ptr&& other)
+                : payload_{move(other.payload_)}, data_{move(other.data_)}
+            {
+                other.payload_ = nullptr;
+                other.data_ = nullptr;
+            }
 
             template<class U>
-            shared_ptr(shared_ptr<U>&& other);
+            shared_ptr(
+                enable_if_t<is_convertible_v<U*, element_type*>, shared_ptr<U>&&> other
+            )
+                : payload_{move(other.payload_)}, data_{move(other.data_)}
+            {
+                other.payload_ = nullptr;
+                other.data_ = nullptr;
+            }
 
             template<class U>
-            explicit shared_ptr(const weak_ptr<U>& other);
+            explicit shared_ptr(
+                enable_if_t<is_convertible_v<U*, element_type*>, const weak_ptr<U>&> other
+            )
+            {
+                if (other.expired())
+                    throw bad_weak_ptr{};
+                // TODO:
+            }
 
             template<class U, class D>
-            shared_ptr(unique_ptr<U, D>&& other);
+            shared_ptr(
+                enable_if_t<
+                    is_convertible_v<
+                        typename unique_ptr<U, D>::pointer,
+                        element_type*
+                    >,
+                    unique_ptr<U, D>&&
+                > other
+            ) // TODO: if D is a reference type, it should be ref(other.get_deleter())
+                : shared_ptr{other.release(), other.get_deleter()}
+            { /* DUMMY BODY */ }
 
             constexpr shared_ptr(nullptr_t) noexcept
                 : shared_ptr{}
@@ -108,41 +214,101 @@ namespace std
              * 20.8.2.2.2, destructor:
              */
 
-            ~shared_ptr();
+            ~shared_ptr()
+            {
+                remove_payload_();
+            }
 
             /**
              * 20.8.2.2.3, assignment:
              */
 
-            shared_ptr& operator=(const shared_ptr& rhs) noexcept;
+            shared_ptr& operator=(const shared_ptr& rhs) noexcept
+            {
+                if (rhs.payload_)
+                    rhs.payload_->increment();
+
+                remove_payload_();
+
+                payload_ = rhs.payload_;
+                data_ = rhs.data_;
+
+                return *this;
+            }
 
             template<class U>
-            shared_ptr& operator=(const shared_ptr<U>& rhs) noexcept;
+            shared_ptr& operator=(
+                enable_if_t<is_convertible_v<U*, element_type*>, const shared_ptr<U>&> rhs
+            ) noexcept
+            {
+                if (rhs.payload_)
+                    rhs.payload_->increment();
 
-            shared_ptr& operator=(shared_ptr&& rhs) noexcept;
+                remove_payload_();
+
+                payload_ = rhs.payload_;
+                data_ = rhs.data_;
+
+                return *this;
+            }
+
+            shared_ptr& operator=(shared_ptr&& rhs) noexcept
+            {
+                shared_ptr{move(rhs)}.swap(*this);
+
+                return *this;
+            }
 
             template<class U>
-            shared_ptr& operator=(shared_ptr<U>&& rhs) noexcept;
+            shared_ptr& operator=(
+                enable_if_t<is_convertible_v<U*, element_type*>, shared_ptr<U>&&> rhs
+            ) noexcept
+            {
+                shared_ptr{move(rhs)}.swap(*this);
+
+                return *this;
+            }
 
             template<class U, class D>
-            shared_ptr& operator=(unique_ptr<U, D>&& rhs);
+            shared_ptr& operator=(unique_ptr<U, D>&& rhs)
+            {
+                shared_ptr{move(rhs)}.swap(*this);
+
+                return *this;
+            }
 
             /**
              * 20.8.2.2.4, modifiers:
              */
 
-            void swap(shared_ptr& other) noexcept;
+            void swap(shared_ptr& other) noexcept
+            {
+                std::swap(payload_, other.payload_);
+                std::swap(data_, other.data_);
+            }
 
-            void reset() noexcept;
+            void reset() noexcept
+            {
+                shared_ptr{}.swap(*this);
+            }
 
             template<class U>
-            void reset(U* ptr);
+            void reset(U* ptr)
+            {
+                shared_ptr{ptr}.swap(*this);
+            }
 
             template<class U, class D>
-            void reset(U* ptr, D deleter);
+            void reset(U* ptr, D deleter)
+            {
+                shared_ptr{ptr, deleter}.swap(*this);
+            }
 
             template<class U, class D, class A>
-            void reset(U* ptr, D deleter, A alloc);
+            void reset(U* ptr, D deleter, A alloc)
+            {
+                shared_ptr{ptr, deleter, alloc}.swap(*this);
+            }
 
             /**
              * 20.8.2.2.5, observers:
@@ -150,13 +316,13 @@ namespace std
 
             element_type* get() const noexcept
             {
-                if (payload_)
-                    return payload_->get();
-                else
-                    return nullptr;
+                return data_;
             }
 
-            T& operator*() const noexcept;
+            enable_if_t<!is_void_v<T>, T&> operator*() const noexcept
+            {
+                return *data_;
+            }
 
             T* operator->() const noexcept
             {
@@ -188,20 +354,45 @@ namespace std
             }
 
             template<class U>
-            bool owner_before(const weak_ptr<U>& ptr) const;
+            bool owner_before(const weak_ptr<U>& ptr) const
+            {
+                return payload_ < ptr.payload_;
+            }
 
         private:
-            aux::shared_payload<element_type>* payload_;
+            aux::shared_payload_base<element_type>* payload_;
+            element_type* data_;
 
-            shared_ptr(aux::shared_payload<element_type>* payload)
-                : payload_{payload}
+            shared_ptr(aux::shared_payload_base<element_type>* payload)
+                : payload_{payload}, data_{payload->get()}
             { /* DUMMY BODY */ }
+
+            void remove_payload_()
+            {
+                if (payload_)
+                {
+                    auto res = payload_->decrement();
+                    if (res)
+                        payload_->destroy();
+
+                    payload_ = nullptr;
+                }
+
+                if (data_)
+                    data_ = nullptr;
+            }
 
             template<class U, class... Args>
             friend shared_ptr<U> make_shared(Args&&...);
 
             template<class U, class A, class... Args>
             friend shared_ptr<U> allocate_shared(const A&, Args&&...);
+
+            template<class D, class U>
+            D* get_deleter(const shared_ptr<U>&) noexcept;
+
+            template<class U>
+            friend class weak_ptr;
     };
 
     /**
@@ -225,7 +416,7 @@ namespace std
     shared_ptr<T> allocate_shared(const A& alloc, Args&&... args)
     {
         return shared_ptr<T>{
-            new aux::shared_payload<T>{A{alloc}, forward<Args>(args)...}
+            new aux::shared_payload<T>{allocator_arg, A{alloc}, forward<Args>(args)...}
         };
     }
 
@@ -393,7 +584,10 @@ namespace std
     template<class D, class T>
     D* get_deleter(const shared_ptr<T>& ptr) noexcept
     {
-        // TODO: implement this through payload
+        if (ptr.payload_)
+            return static_cast<D*>(ptr.payload_->deleter());
+        else
+            return nullptr;
     }
 
     /**

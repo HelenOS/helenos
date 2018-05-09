@@ -29,7 +29,16 @@
 #ifndef LIBCPP_INTERNAL_MEMORY_SHARED_PAYLOAD
 #define LIBCPP_INTERNAL_MEMORY_SHARED_PAYLOAD
 
-#include <internal/list.hpp>
+#include <cinttypes>
+#include <utility>
+
+namespace std
+{
+    template<class>
+    struct default_delete;
+
+    struct allocator_arg_t;
+}
 
 namespace std::aux
 {
@@ -39,56 +48,138 @@ namespace std::aux
      */
     using refcount_t = long;
 
+    template<class D, class T>
+    void use_payload_deleter(D* deleter, T* data)
+    {
+        if (deleter)
+            (*deleter)(data);
+    }
+
     template<class T>
-    class shared_payload
+    class shared_payload_base
     {
         public:
+            virtual void destroy() = 0;
+            virtual T* get() const noexcept = 0;
+
+            virtual uint8_t* deleter() const noexcept = 0;
+
+            virtual void increment() noexcept = 0;
+            virtual void increment_weak() noexcept = 0;
+            virtual bool decrement() noexcept = 0;
+            virtual bool decrement_weak() noexcept = 0;
+            virtual refcount_t refs() const noexcept = 0;
+            virtual refcount_t weak_refs() const noexcept = 0;
+            virtual bool expired() const noexcept = 0;
+
+            virtual ~shared_payload_base() = default;
+    };
+
+    template<class T, class D = default_delete<T>>
+    class shared_payload: public shared_payload_base<T>
+    {
+        public:
+            shared_payload(T* ptr, D deleter = D{})
+                : data_{ptr}, deleter_{deleter},
+                  refcount_{1}, weak_refcount_{1}
+            { /* DUMMY BODY */ }
 
             template<class... Args>
             shared_payload(Args&&... args)
+                : data_{new T{forward<Args>(args)...}},
+                  deleter_{}, refcount_{1}, weak_refcount_{1}
             { /* DUMMY BODY */ }
 
             template<class Alloc, class... Args>
-            shared_payloda(Alloc alloc, Args&&... args)
-            { /* DUMMY BODY */ }
+            shared_payload(allocator_arg_t, Alloc alloc, Args&&... args)
+                : data_{alloc.allocate(1)},
+                  deleter_{}, refcount_{1}, weak_refcount_{1}
+            {
+                alloc.construct(data_, forward<Args>(args)...);
+            }
 
-            T* get() const
+            template<class Alloc, class... Args>
+            shared_payload(D deleter, Alloc alloc, Args&&... args)
+                : data_{alloc.allocate(1)},
+                  deleter_{deleter}, refcount_{1}, weak_refcount_{1}
+            {
+                alloc.construct(data_, forward<Args>(args)...);
+            }
+
+            void destroy() override
+            {
+                if (refs() == 0)
+                {
+                    if (data_)
+                    {
+                        deleter_(data_);
+                        data_ = nullptr;
+                    }
+
+                    if (weak_refs() == 0)
+                        delete this;
+                }
+            }
+
+            T* get() const noexcept override
             {
                 return data_;
             }
 
-            void increment_refcount()
+            uint8_t* deleter() const noexcept override
             {
-                ++refcount_;
+                return (uint8_t*)&deleter_;
             }
 
-            void increment_weak_refcount()
+            void increment() noexcept override
             {
-                ++weak_refcount_;
+                __atomic_add_fetch(&refcount_, 1, __ATOMIC_ACQ_REL);
             }
 
-            bool decrement_refcount()
+            void increment_weak() noexcept override
             {
-                return --refcount_ == 0;
+                __atomic_add_fetch(&weak_refcount_, 1, __ATOMIC_ACQ_REL);
             }
 
-            bool decrement_weak_refcount()
+            bool decrement() noexcept override
             {
-                return --weak_refcount_ == 0;
+                if (__atomic_sub_fetch(&refcount_, 1, __ATOMIC_ACQ_REL) == 0)
+                    return decrement_weak();
+                else
+                    return false;
             }
 
-            refcount_t refs() const
+            bool decrement_weak() noexcept override
             {
-                return refcount_;
+                return __atomic_sub_fetch(&weak_refcount_, 1, __ATOMIC_ACQ_REL) == 0 && refs() == 0;
             }
 
-            refcount_t weak_refs() const
+            refcount_t refs() const noexcept override
             {
-                return weak_refcount_;
+                return __atomic_load_n(&refcount_, __ATOMIC_RELAXED);
+            }
+
+            refcount_t weak_refs() const noexcept override
+            {
+                return __atomic_load_n(&weak_refcount_, __ATOMIC_RELAXED);
+            }
+
+            bool expired() const noexcept override
+            {
+                return refs() == 0;
             }
 
         private:
             T* data_;
+            D deleter_;
+
+            /**
+             * We're using a trick where refcount_ > 0
+             * means weak_refcount_ has 1 added to it,
+             * this makes it easier for weak_ptrs that
+             * can't decrement the weak_refcount_ to
+             * zero with shared_ptrs using this object.
+             */
             refcount_t refcount_;
             refcount_t weak_refcount_;
     };
