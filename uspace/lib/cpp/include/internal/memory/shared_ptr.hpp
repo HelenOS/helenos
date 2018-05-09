@@ -30,7 +30,7 @@
 #define LIBCPP_INTERNAL_MEMORY_SHARED_PTR
 
 #include <exception>
-#include <functional>
+#include <internal/functional/arithmetic_operations.hpp>
 #include <internal/memory/allocator_arg.hpp>
 #include <internal/memory/shared_payload.hpp>
 #include <type_traits>
@@ -332,7 +332,7 @@ namespace std
             long use_count() const noexcept
             {
                 if (payload_)
-                    return payload_->refcount();
+                    return payload_->refs();
                 else
                     return 0L;
             }

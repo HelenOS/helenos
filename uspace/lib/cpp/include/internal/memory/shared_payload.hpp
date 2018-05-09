@@ -71,6 +71,7 @@ namespace std::aux
             virtual refcount_t refs() const noexcept = 0;
             virtual refcount_t weak_refs() const noexcept = 0;
             virtual bool expired() const noexcept = 0;
+            virtual shared_payload_base* lock() noexcept = 0;
 
             virtual ~shared_payload_base() = default;
     };
@@ -144,7 +145,16 @@ namespace std::aux
             bool decrement() noexcept override
             {
                 if (__atomic_sub_fetch(&refcount_, 1, __ATOMIC_ACQ_REL) == 0)
-                    return decrement_weak();
+                {
+                    /**
+                     * First call to destroy() will delete the held object,
+                     * so it doesn't matter what the weak_refcount_ is,
+                     * but we added one and we need to remove it now.
+                     */
+                    decrement_weak();
+
+                    return true;
+                }
                 else
                     return false;
             }
@@ -167,6 +177,22 @@ namespace std::aux
             bool expired() const noexcept override
             {
                 return refs() == 0;
+            }
+
+            shared_payload_base<T>* lock() noexcept override
+            {
+                refcount_t rfs = refs();
+                while (rfs != 0L)
+                {
+                    if (__atomic_compare_exchange_n(&refcount_, &rfs, rfs + 1,
+                                                    true, __ATOMIC_RELAXED,
+                                                    __ATOMIC_RELAXED))
+                    {
+                        return this;
+                    }
+                }
+
+                return nullptr;
             }
 
         private:
