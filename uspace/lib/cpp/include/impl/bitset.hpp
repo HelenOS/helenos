@@ -283,7 +283,8 @@ namespace std
                 class Traits = char_traits<Char>,
                 class Allocator = allocator<Char>
             >
-            basic_string<Char, Traits, Allocator> to_string(Char zero = Char('0'), Char one = Char('1')) const
+            basic_string<Char, Traits, Allocator> to_string(Char zero = Char('0'),
+                                                            Char one = Char('1')) const
             {
                 basic_string<Char, Traits, Allocator> res{};
                 res.reserve(N);
