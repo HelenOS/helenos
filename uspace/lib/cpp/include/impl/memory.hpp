@@ -30,6 +30,7 @@
 #define LIBCPP_MEMORY
 
 #include <internal/aux.hpp>
+#include <internal/functional/hash.hpp>
 #include <internal/memory/allocator_arg.hpp>
 #include <internal/memory/addressof.hpp>
 #include <iterator>
@@ -1097,6 +1098,22 @@ namespace std
     {
         return !(nullptr < ptr);
     }
+
+    /**
+     * 20.8.2.7, smart pointer hash support:
+     */
+
+    template<class T, class D>
+    struct hash<unique_ptr<T, D>>
+    {
+        size_t operator()(const unique_ptr<T, D>& ptr) const noexcept
+        {
+            return hash<typename unique_ptr<T, D>::pointer>{}(ptr.get());
+        }
+
+        using argument_type = unique_ptr<T, D>;
+        using result_type   = size_t;
+    };
 }
 
 #endif

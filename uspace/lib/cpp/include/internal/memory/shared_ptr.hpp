@@ -31,6 +31,7 @@
 
 #include <exception>
 #include <internal/functional/arithmetic_operations.hpp>
+#include <internal/functional/hash.hpp>
 #include <internal/memory/allocator_arg.hpp>
 #include <internal/memory/shared_payload.hpp>
 #include <type_traits>
@@ -604,6 +605,34 @@ namespace std
     {
         return os << ptr.get();
     }
+
+    /**
+     * 20.8.2.5, class template enable_shared_from_this:
+     */
+
+    // TODO: implement
+
+    /**
+     * 20.8.2.6, shared_ptr atomic access
+     */
+
+    // TODO: implement
+
+    /**
+     * 20.8.2.7, smart pointer hash support:
+     */
+
+    template<class T>
+    struct hash<shared_ptr<T>>
+    {
+        size_t operator()(const shared_ptr<T>& ptr) const noexcept
+        {
+            return hash<T*>{}(ptr.get());
+        }
+
+        using argument_type = shared_ptr<T>;
+        using result_type   = size_t;
+    };
 }
 
 #endif
