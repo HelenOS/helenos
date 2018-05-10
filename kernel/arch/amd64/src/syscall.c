@@ -65,8 +65,10 @@ void syscall_setup_cpu(void)
 	 * - clear DF so that the string instructions operate in
 	 *   the right direction
 	 * - clear NT to prevent a #GP should the flag proliferate to an IRET
+	 * - clear TF to prevent an immediate #DB if TF is set
 	 */
-	write_msr(AMD_MSR_SFMASK, RFLAGS_IF | RFLAGS_DF | RFLAGS_NT);
+	write_msr(AMD_MSR_SFMASK,
+	    RFLAGS_IF | RFLAGS_DF | RFLAGS_NT | RFLAGS_TF);
 }
 
 /** @}
