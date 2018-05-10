@@ -266,7 +266,7 @@ static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 		 * register and get the desired portion of it afterwards. Some
 		 * architectures do not support shorter PIO reads offset from
 		 * this register.
-	 	 */
+		 */
 		val = uint32_t_le2host(pio_read_32(bus->conf_data_reg));
 	} else {
 		val = uint32_t_le2host(pio_read_32(
@@ -300,13 +300,13 @@ static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 	 * Prepare to write full 32-bits to the PCI conf_data_port register.
 	 * Some architectures do not support shorter PIO writes offset from this
 	 * register.
- 	 */
+	 */
 
 	if (len < 4) {
 		/*
- 		 * We have fewer than full 32-bits, so we need to read the
- 		 * missing bits first.
- 		 */
+		 * We have fewer than full 32-bits, so we need to read the
+		 * missing bits first.
+		 */
 		if (bus->conf_addr_reg) {
 			pio_write_32(bus->conf_addr_reg,
 			    host2uint32_t_le(CONF_ADDR_ENABLE | conf_addr));
@@ -533,8 +533,8 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	bar = pci_conf_read_32(fun, addr);
 
 	/*
- 	 * Unimplemented BARs read back as all 0's.
- 	 */
+	 * Unimplemented BARs read back as all 0's.
+	 */
 	if (!bar)
 		return addr + (addrw64 ? 8 : 4);
 

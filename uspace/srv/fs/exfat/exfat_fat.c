@@ -147,9 +147,9 @@ exfat_block_get(block_t **block, exfat_bs_t *bs, exfat_node_t *nodep,
 
 		if (nodep->currc_cached_valid && bn >= nodep->currc_cached_bn) {
 			/*
-			* We can start with the cluster cached by the previous call to
-			* fat_block_get().
-			*/
+			 * We can start with the cluster cached by the previous call to
+			 * fat_block_get().
+			 */
 			firstc = nodep->currc_cached_value;
 			relbn -= (nodep->currc_cached_bn / SPC(bs)) * SPC(bs);
 		}

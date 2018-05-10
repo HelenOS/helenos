@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
-*/
+ */
 
 #ifndef KERN_ia64_VHPT_H_
 #define KERN_ia64_VHPT_H_

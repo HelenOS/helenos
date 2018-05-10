@@ -82,18 +82,18 @@ void addr128(const addr128_t src, addr128_t dst)
 }
 
 /** Compare addr48.
-  *
-  * @return Non-zero if equal, zero if not equal.
-  */
+ *
+ * @return Non-zero if equal, zero if not equal.
+ */
 int addr48_compare(const addr48_t a, const addr48_t b)
 {
 	return memcmp(a, b, 6) == 0;
 }
 
 /** Compare addr128.
-  *
-  * @return Non-zero if equal, zero if not equal.
-  */
+ *
+ * @return Non-zero if equal, zero if not equal.
+ */
 int addr128_compare(const addr128_t a, const addr128_t b)
 {
 	return memcmp(a, b, 16) == 0;

@@ -515,9 +515,9 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	    (void *)&hda->regs->statests - (void *)hda->regs,
 	    hda_reg16_read(&hda->regs->statests));
 	/**
-	  * Clear STATESTS bits so they don't generate an interrupt later
-	  * when we enable interrupts.
-	  */
+	 * Clear STATESTS bits so they don't generate an interrupt later
+	 * when we enable interrupts.
+	 */
 	hda_reg16_write(&hda->regs->statests, 0x7f);
 
 	ddf_msg(LVL_NOTE, "after clearing reg 0x%zx STATESTS = 0x%x",

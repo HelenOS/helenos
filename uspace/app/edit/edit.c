@@ -291,15 +291,15 @@ static void key_handle_press(kbd_event_t *ev)
 {
 	if (((ev->mods & KM_ALT) == 0) &&
 	    ((ev->mods & KM_SHIFT) == 0) &&
-	     (ev->mods & KM_CTRL) != 0) {
+	    (ev->mods & KM_CTRL) != 0) {
 		key_handle_ctrl(ev);
 	} else if (((ev->mods & KM_ALT) == 0) &&
 	    ((ev->mods & KM_CTRL) == 0) &&
-	     (ev->mods & KM_SHIFT) != 0) {
+	    (ev->mods & KM_SHIFT) != 0) {
 		key_handle_shift(ev);
 	} else if (((ev->mods & KM_ALT) == 0) &&
 	    ((ev->mods & KM_CTRL) != 0) &&
-	     (ev->mods & KM_SHIFT) != 0) {
+	    (ev->mods & KM_SHIFT) != 0) {
 		key_handle_shift_ctrl(ev);
 	} else if ((ev->mods & (KM_CTRL | KM_ALT | KM_SHIFT)) == 0) {
 		key_handle_unmod(ev);
@@ -457,7 +457,7 @@ static void key_handle_ctrl(kbd_event_t const *ev)
 static void key_handle_shift_ctrl(kbd_event_t const *ev)
 {
 	spt_t pt;
-	switch(ev->key) {
+	switch (ev->key) {
 	case KC_LEFT:
 		caret_move_word_left(true);
 		break;
@@ -914,8 +914,8 @@ static void pane_row_range_display(int r0, int r1)
 				printf("%lc", (wint_t) c);
 				s_column += 1;
 			} else {
-				fill = 1 + ALIGN_UP(s_column, TAB_WIDTH)
-				    - s_column;
+				fill = 1 + ALIGN_UP(s_column, TAB_WIDTH) -
+				    s_column;
 
 				for (j = 0; j < fill; ++j)
 					putchar(' ');
@@ -1168,10 +1168,12 @@ static void caret_move_relative(int drow, int dcolumn, enum dir_spec align_dir,
 
 	tag_get_pt(&pane.caret_pos, &pt);
 	spt_get_coord(&pt, &coord);
-	coord.row += drow; coord.column += dcolumn;
+	coord.row += drow;
+	coord.column += dcolumn;
 
 	/* Clamp coordinates. */
-	if (drow < 0 && coord.row < 1) coord.row = 1;
+	if (drow < 0 && coord.row < 1)
+		coord.row = 1;
 	if (dcolumn < 0 && coord.column < 1) {
 		if (coord.row < 2)
 			coord.column = 1;
@@ -1182,7 +1184,8 @@ static void caret_move_relative(int drow, int dcolumn, enum dir_spec align_dir,
 	}
 	if (drow > 0) {
 		sheet_get_num_rows(doc.sh, &num_rows);
-		if (coord.row > num_rows) coord.row = num_rows;
+		if (coord.row > num_rows)
+			coord.row = num_rows;
 	}
 
 	/* For purely vertical movement try attaining @c ideal_column. */
@@ -1376,8 +1379,7 @@ static void search(char *pattern, bool reverse)
 	/* Start searching on the position before/after caret */
 	if (!reverse) {
 		spt_next_char(sp, &sp);
-	}
-	else {
+	} else {
 		spt_prev_char(sp, &sp);
 	}
 	producer_pos = sp;
@@ -1408,15 +1410,13 @@ static void search(char *pattern, bool reverse)
 			match.length--;
 			if (reverse) {
 				spt_next_char(*end, end);
-			}
-			else {
+			} else {
 				spt_prev_char(*end, end);
 			}
 		}
 		caret_move(*end, true, true);
 		free(end);
-	}
-	else {
+	} else {
 		status_display("Not found.");
 	}
 
@@ -1588,8 +1588,8 @@ static bool pt_is_word_beginning(spt_t *pt)
 	pt_get_eol(pt, &elp);
 
 	/* the spt is at the beginning or end of the file or line */
-	if ((spt_cmp(&sfp, pt) == 0) || (spt_cmp(&efp, pt) == 0)
-	    || (spt_cmp(&slp, pt) == 0) || (spt_cmp(&elp, pt) == 0))
+	if ((spt_cmp(&sfp, pt) == 0) || (spt_cmp(&efp, pt) == 0) ||
+	    (spt_cmp(&slp, pt) == 0) || (spt_cmp(&elp, pt) == 0))
 		return true;
 
 	/* the spt is a delimiter */
@@ -1601,9 +1601,9 @@ static bool pt_is_word_beginning(spt_t *pt)
 	coord.column -= 1;
 	sheet_get_cell_pt(doc.sh, &coord, dir_before, &lp);
 
-	return pt_is_delimiter(&lp)
-	    || (pt_is_punctuation(pt) && !pt_is_punctuation(&lp))
-	    || (pt_is_punctuation(&lp) && !pt_is_punctuation(pt));
+	return pt_is_delimiter(&lp) ||
+	    (pt_is_punctuation(pt) && !pt_is_punctuation(&lp)) ||
+	    (pt_is_punctuation(&lp) && !pt_is_punctuation(pt));
 }
 
 static wchar_t get_first_wchar(const char *str)
@@ -1628,7 +1628,7 @@ static bool pt_is_delimiter(spt_t *pt)
 		return false;
 
 	wchar_t first_char = get_first_wchar(ch);
-	switch(first_char) {
+	switch (first_char) {
 	case ' ':
 	case '\t':
 	case '\n':
@@ -1654,7 +1654,7 @@ static bool pt_is_punctuation(spt_t *pt)
 		return false;
 
 	wchar_t first_char = get_first_wchar(ch);
-	switch(first_char) {
+	switch (first_char) {
 	case ',':
 	case '.':
 	case ';':

@@ -79,7 +79,7 @@ enum xhci_trb_type {
 	XHCI_TRB_TYPE_NO_OP_CMD,
 	/*
 	 * Reserved: 24-31
-	*/
+	 */
 
 	/*
 	 * Event ring:

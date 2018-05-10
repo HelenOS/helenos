@@ -932,7 +932,7 @@ static errno_t cdfs_find_joliet_svd(service_id_t sid, cdfs_lba_t altroot,
 		uint16_t sequence_nr = uint16_lb(vol_desc->data.prisec.sequence_nr);
 		if (sequence_nr != 1) {
 			/*
-		    	 * We only support the first disc
+			 * We only support the first disc
 			 * in multi-disc sets.
 			 */
 			block_put(block);

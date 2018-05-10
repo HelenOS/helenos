@@ -90,7 +90,7 @@ tcp_segment_t *tcp_segment_dup(tcp_segment_t *seg)
 
 /** Create a control-only segment.
  *
-  * @return	Segment
+ * @return	Segment
  */
 tcp_segment_t *tcp_segment_make_ctrl(tcp_control_t ctrl)
 {
@@ -133,7 +133,7 @@ tcp_segment_t *tcp_segment_make_rst(tcp_segment_t *seg)
 
 /** Create a control segment.
  *
-  * @return	Segment
+ * @return	Segment
  */
 tcp_segment_t *tcp_segment_make_data(tcp_control_t ctrl, void *data,
     size_t size)

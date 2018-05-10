@@ -27,8 +27,8 @@
  */
 
 /** @addtogroup libcia64 ia64
-  * @brief ia64 architecture dependent parts of libc
-  * @ingroup lc
+ * @brief ia64 architecture dependent parts of libc
+ * @ingroup lc
  * @{
  */
 /** @file

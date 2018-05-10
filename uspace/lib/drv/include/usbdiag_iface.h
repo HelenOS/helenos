@@ -27,12 +27,12 @@
  */
 
 /** @addtogroup libdrv
-* @addtogroup usb
-* @{
-*/
+ * @addtogroup usb
+ * @{
+ */
 /** @file
-* @brief USB diagnostic device interface definition.
-*/
+ * @brief USB diagnostic device interface definition.
+ */
 
 #ifndef LIBDRV_USBDIAG_IFACE_H_
 #define LIBDRV_USBDIAG_IFACE_H_

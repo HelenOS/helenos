@@ -571,7 +571,7 @@ void task_kill_self(bool notify)
 	 * whenever a task faults (to take a dump, run a debugger, etc.).
 	 * The notification is always available, but unless udebug is enabled,
 	 * that's all you get.
-	*/
+	 */
 	if (notify) {
 		/* Notify the subscriber that a fault occurred. */
 		if (event_notify_3(EVENT_FAULT, false, LOWER32(TASK->taskid),

@@ -232,10 +232,10 @@ static errno_t malta_dev_add(ddf_dev_t *dev)
 	    (int)ddf_dev_get_handle(dev));
 
 	/*
- 	 * We need to disable byte swapping of the outgoing and incoming
- 	 * PCI data, because the PCI driver assumes no byte swapping behind
- 	 * the scenes and takes care of it itself.
- 	 */
+	 * We need to disable byte swapping of the outgoing and incoming
+	 * PCI data, because the PCI driver assumes no byte swapping behind
+	 * the scenes and takes care of it itself.
+	 */
 	ret = pio_enable((void *) GT_BASE, GT_SIZE, (void **) &gt);
 	if (ret != EOK)
 		return ret;

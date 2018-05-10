@@ -668,7 +668,7 @@ errno_t vfs_mount_path(const char *mp, const char *fs_name, const char *fqsn,
 	if (str_cmp(fqsn, "") == 0) {
 		/*
 		 * No device specified, create a fresh null/%d device instead.
-		*/
+		 */
 		null_id = loc_null_create();
 
 		if (null_id == -1)

@@ -915,7 +915,7 @@ static void stype_binop_tvref(stype_t *stype, stree_binop_t *binop,
  * @param stype		Static typing object
  * @param unop		Unary operation
  * @param rtitem	Place to store result type
-*/
+ */
 static void stype_unop(stype_t *stype, stree_unop_t *unop,
     tdata_item_t **rtitem)
 {
@@ -1190,7 +1190,7 @@ static void stype_access_tprimitive(stype_t *stype, stree_access_t *access,
  * @param access	Member access operation
  * @param arg_ti	Base type
  * @param rtitem	Place to store result type
-*/
+ */
 static void stype_access_tobject(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem)
 {
@@ -1348,7 +1348,7 @@ static void stype_access_tarray(stype_t *stype, stree_access_t *access,
  * @param access	Member access operation
  * @param arg_ti	Base type
  * @param rtitem	Place to store result type
-*/
+ */
 static void stype_access_tebase(stype_t *stype, stree_access_t *access,
     tdata_item_t *arg_ti, tdata_item_t **rtitem)
 {
@@ -1839,7 +1839,7 @@ static void stype_box(stype_t *stype, stree_box_t *box, tdata_item_t **rtitem)
 	stype_expr(stype, box->arg);
 	ptitem = box->arg->titem;
 
-        /* Make compiler happy. */
+	/* Make compiler happy. */
 	csi_sym = NULL;
 
 	assert(ptitem->tic == tic_tprimitive);

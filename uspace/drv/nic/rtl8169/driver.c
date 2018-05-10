@@ -1204,7 +1204,7 @@ static void rtl8169_mii_write(rtl8169_t *rtl8169, uint8_t addr, uint16_t value)
 }
 
 /** Main function of RTL8169 driver
-*
+ *
  *  Just initialize the driver structures and
  *  put it into the device drivers interface
  */

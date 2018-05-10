@@ -276,12 +276,12 @@ static errno_t slip_recv_fibril(void *arg)
 		}
 
 		/*
- 		 * We have reached the limit of our MTU. Regardless of whether
- 		 * the datagram is properly ended with SLIP_END, pass it along.
- 		 * If the next character is really SLIP_END, nothing
- 		 * catastrophic happens. The algorithm will just see an
- 		 * artificially empty SLIP datagram and life will go on.
- 		 */
+		 * We have reached the limit of our MTU. Regardless of whether
+		 * the datagram is properly ended with SLIP_END, pass it along.
+		 * If the next character is really SLIP_END, nothing
+		 * catastrophic happens. The algorithm will just see an
+		 * artificially empty SLIP datagram and life will go on.
+		 */
 
 	pass:
 		rc = iplink_ev_recv(&slip_iplink, &sdu, ip_v4);
@@ -406,9 +406,9 @@ fail:
 		async_hangup(sess_in);
 
 	/*
- 	 * We assume that our registration at the location service will be
- 	 * cleaned up automatically as the service (i.e. this task) terminates.
- 	 */
+	 * We assume that our registration at the location service will be
+	 * cleaned up automatically as the service (i.e. this task) terminates.
+	 */
 
 	return rc;
 }

@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup softfloat
+/** @addtogroup softfloat
  * @{
  */
 /** @file Conversion of precision and conversion between integers and floats.

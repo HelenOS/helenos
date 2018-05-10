@@ -800,7 +800,7 @@ static errno_t ar9271_upload_fw(ar9271_t *ar9271)
 	 * Send command that firmware is successfully uploaded.
 	 * This should initiate creating confirmation message in
 	 * device side buffer which we will check in htc_check_ready function.
-	*/
+	 */
 	usb_pipe_t *ctrl_pipe = usb_device_get_default_pipe(usb_device);
 	errno_t rc = usb_control_request_set(ctrl_pipe,
 	    USB_REQUEST_TYPE_VENDOR,

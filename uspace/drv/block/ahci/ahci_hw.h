@@ -215,18 +215,18 @@ typedef union {
 /** AHCI PCI register Built in self test. */
 typedef union {
 	struct {
-	/** Indicates the completion status of BIST
-	 * non-zero value indicates a failure.
-	 */
-	unsigned int cc : 4;
-	/** Reserved. */
-	unsigned int reserved : 2;
-	/** Software sets this bit to 1 to invoke BIST,
-	 * the HBA clears this bit to 0 when BIST is complete.
-	 */
-	unsigned int sb : 1;
-	/** BIST capable. */
-	unsigned int bc : 1;
+		/** Indicates the completion status of BIST
+		 * non-zero value indicates a failure.
+		 */
+		unsigned int cc : 4;
+		/** Reserved. */
+		unsigned int reserved : 2;
+		/** Software sets this bit to 1 to invoke BIST,
+		 * the HBA clears this bit to 0 when BIST is complete.
+		 */
+		unsigned int sb : 1;
+		/** BIST capable. */
+		unsigned int bc : 1;
 	};
 	uint8_t u8;
 } ahci_pciregs_bist_t;
@@ -251,8 +251,7 @@ typedef union {
 } ahci_pciregs_abar_t;
 
 /** AHCI PCI register Subsystem Identifiers. */
-typedef struct
-{
+typedef struct {
 	/** Sub system vendor identifier. */
 	uint8_t ssvid;
 	/** Sub system identifier. */
@@ -260,22 +259,19 @@ typedef struct
 } ahci_pcireg_ss_t;
 
 /** AHCI PCI registers Expansion ROM Base Address. */
-typedef struct
-{
+typedef struct {
 	/** Indicates the base address of the HBA expansion ROM. */
 	uint32_t u32;
 } ahci_pcireg_erom_t;
 
 /** AHCI PCI register Capabilities Pointer. */
-typedef struct
-{
+typedef struct {
 	/** Indicates the first capability pointer offset. */
 	uint8_t u8;
 } ahci_pcireg_cap_t;
 
 /** AHCI PCI register Interrupt Information. */
-typedef struct
-{
+typedef struct {
 	/* Software written value to indicate which interrupt vector
 	 * the interrupt is connected to.
 	 */
@@ -285,8 +281,7 @@ typedef struct
 } ahci_pcireg_intr;
 
 /** AHCI PCI register Min Grant (Optional). */
-typedef struct
-{
+typedef struct {
 	/** Indicates the minimum grant time that the device
 	 * wishes grant asserted.
 	 */
@@ -294,8 +289,7 @@ typedef struct
 } ahci_pcireg_mgnt_t;
 
 /** AHCI PCI register Max Latency (Optional). */
-typedef struct
-{
+typedef struct {
 	/** Indicates the maximum latency that the device can withstand. */
 	uint8_t u8;
 } ahci_pcireg_mlat_t;
@@ -430,8 +424,7 @@ typedef union {
 } ahci_ghc_ccc_ctl_t;
 
 /** AHCI Memory register Command completion coalescing ports. */
-typedef struct
-{
+typedef struct {
 	/** If a bit is set to 1, the corresponding port is
 	 * part of the command completion coalescing feature.
 	 */
@@ -439,8 +432,7 @@ typedef struct
 } ahci_ghc_ccc_ports_t;
 
 /** AHCI Memory register Enclosure management location. */
-typedef struct
-{
+typedef struct {
 	/** Size of the transmit message buffer area in dwords. */
 	uint16_t sz;
 	/*
@@ -524,8 +516,7 @@ typedef union {
 } ahci_ghc_bohc_t;
 
 /** AHCI Memory register Generic Host Control. */
-typedef struct
-{
+typedef struct {
 	/** Host Capabilities */
 	uint32_t cap;
 	/** Global Host Control */
@@ -941,8 +932,7 @@ typedef union {
 } ahci_port_fbs_t;
 
 /** AHCI Memory register Port. */
-typedef volatile struct
-{
+typedef volatile struct {
 	/** Port x Command List Base Address. */
 	uint32_t pxclb;
 	/** Port x Command List Base Address Upper 32-Bits. */
@@ -1009,7 +999,7 @@ typedef volatile struct {
 	uint16_t prdtl;
 	/** Physical Region Descriptor Byte Count. */
 	uint32_t bytesprocessed;
-	 /** Command Table Descriptor Base Address. */
+	/** Command Table Descriptor Base Address. */
 	uint32_t cmdtable;
 	/** Command Table Descriptor Base Address Upper 32-bits. */
 	uint32_t cmdtableu;

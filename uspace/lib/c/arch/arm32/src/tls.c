@@ -27,8 +27,8 @@
  */
 
 /** @addtogroup libcarm32 arm32
-  * @brief arm32 architecture dependent parts of libc
-  * @ingroup lc
+ * @brief arm32 architecture dependent parts of libc
+ * @ingroup lc
  * @{
  */
 /** @file

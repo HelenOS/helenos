@@ -31,7 +31,7 @@
  * @{
  */
 /** @file
-  * @ingroup libcia32
+ * @ingroup libcia32
  */
 
 #include <tls.h>

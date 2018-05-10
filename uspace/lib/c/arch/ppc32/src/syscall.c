@@ -27,8 +27,8 @@
  */
 
 /** @addtogroup libcppc32 ppc32
-  * @brief ppc32 architecture dependent parts of libc
-  * @ingroup lc
+ * @brief ppc32 architecture dependent parts of libc
+ * @ingroup lc
  * @{
  */
 /** @file

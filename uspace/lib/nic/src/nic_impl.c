@@ -686,7 +686,7 @@ errno_t nic_wol_virtue_list_impl(ddf_fun_t *fun, nic_wv_type_t type,
  * @param[out]	count	Number of virtues of this type that can be currently set
  *
  * @return EOK		If the operation was successfully completed
-  */
+ */
 errno_t nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *count)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);

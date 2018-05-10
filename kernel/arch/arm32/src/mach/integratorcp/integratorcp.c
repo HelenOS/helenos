@@ -192,9 +192,9 @@ static irq_ownership_t icp_timer_claim(irq_t *irq)
 static void icp_timer_irq_handler(irq_t *irq)
 {
 	/*
-	* We are holding a lock which prevents preemption.
-	* Release the lock, call clock() and reacquire the lock again.
-	*/
+	 * We are holding a lock which prevents preemption.
+	 * Release the lock, call clock() and reacquire the lock again.
+	 */
 
 	spinlock_unlock(&irq->lock);
 	clock();

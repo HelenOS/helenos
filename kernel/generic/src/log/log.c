@@ -62,7 +62,7 @@
 uint8_t log_buffer[LOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
-static atomic_t log_inited = {false};
+static atomic_t log_inited = { false };
 
 /** Position in the cyclic buffer where the first log entry starts */
 size_t log_start = 0;
@@ -96,14 +96,16 @@ void log_init(void)
 	atomic_set(&log_inited, true);
 }
 
-static size_t log_copy_from(uint8_t *data, size_t pos, size_t len) {
+static size_t log_copy_from(uint8_t *data, size_t pos, size_t len)
+{
 	for (size_t i = 0; i < len; i++, pos = (pos + 1) % LOG_LENGTH) {
 		data[i] = log_buffer[pos];
 	}
 	return pos;
 }
 
-static size_t log_copy_to(const uint8_t *data, size_t pos, size_t len) {
+static size_t log_copy_to(const uint8_t *data, size_t pos, size_t len)
+{
 	for (size_t i = 0; i < len; i++, pos = (pos + 1) % LOG_LENGTH) {
 		log_buffer[pos] = data[i];
 	}
@@ -169,7 +171,8 @@ void log_begin(log_facility_t fac, log_level_t level)
  *
  * This releases the log and output buffer locks.
  */
-void log_end(void) {
+void log_end(void)
+{
 	/* Set the length in the header to correct value */
 	log_copy_to((uint8_t *) &log_current_len, log_current_start, sizeof(size_t));
 	log_used += log_current_len;
@@ -302,83 +305,83 @@ sys_errno_t sys_klog(sysarg_t operation, void *buf, size_t size,
 		return (sys_errno_t) ELIMIT;
 
 	switch (operation) {
-		case KLOG_WRITE:
-			data = (char *) malloc(size + 1, 0);
-			if (!data)
-				return (sys_errno_t) ENOMEM;
+	case KLOG_WRITE:
+		data = (char *) malloc(size + 1, 0);
+		if (!data)
+			return (sys_errno_t) ENOMEM;
 
-			rc = copy_from_uspace(data, buf, size);
-			if (rc) {
-				free(data);
-				return (sys_errno_t) rc;
-			}
-			data[size] = 0;
-
-			if (level >= LVL_LIMIT)
-				level = LVL_NOTE;
-
-			log(LF_USPACE, level, "%s", data);
-
+		rc = copy_from_uspace(data, buf, size);
+		if (rc) {
 			free(data);
-			return EOK;
-		case KLOG_READ:
-			data = (char *) malloc(size, 0);
-			if (!data)
-				return (sys_errno_t) ENOMEM;
+			return (sys_errno_t) rc;
+		}
+		data[size] = 0;
 
-			size_t entry_len = 0;
-			size_t copied = 0;
+		if (level >= LVL_LIMIT)
+			level = LVL_NOTE;
 
-			rc = EOK;
+		log(LF_USPACE, level, "%s", data);
 
-			spinlock_lock(&log_lock);
+		free(data);
+		return EOK;
+	case KLOG_READ:
+		data = (char *) malloc(size, 0);
+		if (!data)
+			return (sys_errno_t) ENOMEM;
 
-			while (next_for_uspace < log_used) {
-				size_t pos = (log_start + next_for_uspace) % LOG_LENGTH;
-				log_copy_from((uint8_t *) &entry_len, pos, sizeof(size_t));
+		size_t entry_len = 0;
+		size_t copied = 0;
 
-				if (entry_len > PAGE_SIZE) {
-					/*
-					 * Since we limit data transfer
-					 * to uspace to a maximum of PAGE_SIZE
-					 * bytes, skip any entries larger
-					 * than this limit to prevent
-					 * userspace being stuck trying to
-					 * read them.
-					 */
-					next_for_uspace += entry_len;
-					continue;
-				}
+		rc = EOK;
 
-				if (size < copied + entry_len) {
-					if (copied == 0)
-						rc = EOVERFLOW;
-					break;
-				}
+		spinlock_lock(&log_lock);
 
-				log_copy_from((uint8_t *) (data + copied), pos, entry_len);
-				copied += entry_len;
+		while (next_for_uspace < log_used) {
+			size_t pos = (log_start + next_for_uspace) % LOG_LENGTH;
+			log_copy_from((uint8_t *) &entry_len, pos, sizeof(size_t));
+
+			if (entry_len > PAGE_SIZE) {
+				/*
+				 * Since we limit data transfer
+				 * to uspace to a maximum of PAGE_SIZE
+				 * bytes, skip any entries larger
+				 * than this limit to prevent
+				 * userspace being stuck trying to
+				 * read them.
+				 */
 				next_for_uspace += entry_len;
+				continue;
 			}
 
-			spinlock_unlock(&log_lock);
-
-			if (rc != EOK) {
-				free(data);
-				return (sys_errno_t) rc;
+			if (size < copied + entry_len) {
+				if (copied == 0)
+					rc = EOVERFLOW;
+				break;
 			}
 
-			rc = copy_to_uspace(buf, data, size);
+			log_copy_from((uint8_t *) (data + copied), pos, entry_len);
+			copied += entry_len;
+			next_for_uspace += entry_len;
+		}
 
+		spinlock_unlock(&log_lock);
+
+		if (rc != EOK) {
 			free(data);
+			return (sys_errno_t) rc;
+		}
 
-			if (rc != EOK)
-				return (sys_errno_t) rc;
+		rc = copy_to_uspace(buf, data, size);
 
-			return copy_to_uspace(uspace_nread, &copied, sizeof(copied));
-			return EOK;
-		default:
-			return (sys_errno_t) ENOTSUP;
+		free(data);
+
+		if (rc != EOK)
+			return (sys_errno_t) rc;
+
+		return copy_to_uspace(uspace_nread, &copied, sizeof(copied));
+		return EOK;
+	default:
+		return (sys_errno_t) ENOTSUP;
 	}
 }
 

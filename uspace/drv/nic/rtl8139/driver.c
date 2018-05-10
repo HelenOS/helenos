@@ -93,7 +93,7 @@ inline static void rtl8139_unlock_all(rtl8139_t *rtl8139)
 }
 
 #ifndef RXBUF_SIZE_FLAGS
-	/** Flags for receiver buffer - 16kB default */
+/** Flags for receiver buffer - 16kB default */
 #define RXBUF_SIZE_FLAGS RTL8139_RXFLAGS_SIZE_16
 #endif
 

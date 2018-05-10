@@ -357,7 +357,7 @@ void udp_assoc_received(inet_ep2_t *repp, udp_msg_t *msg)
 		rc = udp_assoc_queue_msg(assoc, repp, msg);
 		if (rc != EOK) {
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Out of memory. Message dropped.");
-		/* XXX Generate ICMP error? */
+			/* XXX Generate ICMP error? */
 		}
 	}
 

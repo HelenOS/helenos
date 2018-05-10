@@ -804,7 +804,7 @@ static void run_binop_bool(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
  * @param v1		Value of first argument
  * @param v2		Value of second argument
  * @param res		Place to store result
-*/
+ */
 static void run_binop_char(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res)
 {
@@ -877,7 +877,7 @@ static void run_binop_char(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
  * @param v1		Value of first argument
  * @param v2		Value of second argument
  * @param res		Place to store result
-*/
+ */
 static void run_binop_int(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
     rdata_value_t *v2, rdata_item_t **res)
 {
@@ -2576,7 +2576,7 @@ cleanup:
  * @param run		Runner object
  * @param assign	Assignment expression
  * @param res		Place to store result
-*/
+ */
 static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 {
 	rdata_item_t *rdest_i, *rsrc_i;

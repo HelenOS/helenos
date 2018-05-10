@@ -1,5 +1,5 @@
 /*
-  * Copyright (c) 2012 Petr Jerman
+ * Copyright (c) 2012 Petr Jerman
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

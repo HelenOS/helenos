@@ -508,7 +508,7 @@ static errno_t tcp_conn_destroy_impl(tcp_client_t *client, sysarg_t conn_id)
  * @param rlst_id Place to store ID of new listener
  *
  * @return EOK on success or an error code
-*/
+ */
 static errno_t tcp_listener_create_impl(tcp_client_t *client, inet_ep_t *ep,
     sysarg_t *rlst_id)
 {

@@ -67,7 +67,7 @@ static void install_handler(unsigned handler_addr, unsigned *vector)
 {
 	/* relative address (related to exc. vector) of the word
 	 * where handler's address is stored
-	*/
+	 */
 	volatile uint32_t handler_address_ptr = EXC_VECTORS_SIZE -
 	    PREFETCH_OFFSET;
 

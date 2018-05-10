@@ -494,8 +494,8 @@ static errno_t ddisk_dev_add(ddf_dev_t *dev)
 	}
 
 	/*
- 	 * Register IRQ handler.
- 	 */
+	 * Register IRQ handler.
+	 */
 	ddisk_regs_t *res_phys = (ddisk_regs_t *) res.base;
 	ddisk_irq_pio_ranges[0].base = res.base;
 	ddisk_irq_commands[0].addr = (void *) &res_phys->status;

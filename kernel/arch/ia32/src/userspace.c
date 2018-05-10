@@ -52,34 +52,35 @@ void userspace(uspace_arg_t *kernel_uarg)
 	uint32_t eflags = read_eflags();
 
 	asm volatile (
-		/* Set up GS register (virtual register segment) */
-		"movl %[vreg_des], %%gs\n"
+	    /* Set up GS register (virtual register segment) */
+	    "movl %[vreg_des], %%gs\n"
 
-		"pushl %[udata_des]\n"
-		"pushl %[stack_top]\n"
-		"pushl %[eflags]\n"
-		"pushl %[utext_des]\n"
-		"pushl %[entry]\n"
-		"movl %[uarg], %%eax\n"
+	    "pushl %[udata_des]\n"
+	    "pushl %[stack_top]\n"
+	    "pushl %[eflags]\n"
+	    "pushl %[utext_des]\n"
+	    "pushl %[entry]\n"
+	    "movl %[uarg], %%eax\n"
 
-		/* %edi is defined to hold pcb_ptr - set it to 0 */
-		"xorl %%edi, %%edi\n"
+	    /* %edi is defined to hold pcb_ptr - set it to 0 */
+	    "xorl %%edi, %%edi\n"
 
-		"iret\n"
-		:
-		: [eflags_mask] "i" (~EFLAGS_NT),
-		  [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
-		  [stack_top] "r" ((uint8_t *) kernel_uarg->uspace_stack +
-		      kernel_uarg->uspace_stack_size),
-		  [eflags] "r" ((eflags & ~(EFLAGS_NT)) | EFLAGS_IF),
-		  [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
-		  [entry] "r" (kernel_uarg->uspace_entry),
-		  [uarg] "r" (kernel_uarg->uspace_uarg),
-		  [vreg_des] "r" (GDT_SELECTOR(VREG_DES))
-		: "eax");
+	    "iret\n"
+	    :
+	    : [eflags_mask] "i" (~EFLAGS_NT),
+	      [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
+	      [stack_top] "r" ((uint8_t *) kernel_uarg->uspace_stack +
+	      kernel_uarg->uspace_stack_size),
+	      [eflags] "r" ((eflags & ~(EFLAGS_NT)) | EFLAGS_IF),
+	      [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
+	      [entry] "r" (kernel_uarg->uspace_entry),
+	      [uarg] "r" (kernel_uarg->uspace_uarg),
+	      [vreg_des] "r" (GDT_SELECTOR(VREG_DES))
+	    : "eax");
 
 	/* Unreachable */
-	while (true);
+	while (true)
+		;
 }
 
 /** @}

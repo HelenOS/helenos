@@ -87,10 +87,10 @@ static void bb_timer_irq_handler(irq_t *irq)
 {
 	amdm37x_gpt_irq_ack(&beagleboard.timer);
 
-        /*
-         * We are holding a lock which prevents preemption.
-         * Release the lock, call clock() and reacquire the lock again.
-         */
+	/*
+	 * We are holding a lock which prevents preemption.
+	 * Release the lock, call clock() and reacquire the lock again.
+	 */
 	spinlock_unlock(&irq->lock);
 	clock();
 	spinlock_lock(&irq->lock);

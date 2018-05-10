@@ -139,7 +139,7 @@ fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
 
 	if (((((nodep->size - 1) / BPS(bs)) / SPC(bs)) == bn / SPC(bs)) &&
 	    nodep->lastc_cached_valid) {
-	    	/*
+		/*
 		 * This is a request to read a block within the last cluster
 		 * when fortunately we have the last cluster number cached.
 		 */
@@ -320,9 +320,9 @@ fat_get_cluster_fat12(fat_bs_t *bs, service_id_t service_id, unsigned fatno,
 				return rc;
 			}
 			/*
-			* Combining value with last byte of current sector and
-			* first byte of next sector
-			*/
+			 * Combining value with last byte of current sector and
+			 * first byte of next sector
+			 */
 			byte2 = ((uint8_t *) b1->data)[0];
 
 			rc = block_put(b1);

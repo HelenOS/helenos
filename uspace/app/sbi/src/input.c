@@ -102,7 +102,7 @@ errno_t input_new_string(input_t **input, const char *str)
  * @param fname		Name of file to read from.
  *
  * @return		EOK on success, ENOENT when opening file fails.
-*/
+ */
 static errno_t input_init_file(input_t *input, const char *fname)
 {
 	FILE *f;

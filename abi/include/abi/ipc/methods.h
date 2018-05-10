@@ -163,7 +163,7 @@ enum {
 	IPC_M_DATA_WRITE,
 
 	/** Authorize change of recipient's state in a third party task.
- 	 *
+	 *
 	 * - ARG1 - user protocol defined data
 	 * - ARG2 - user protocol defined data
 	 * - ARG3 - user protocol defined data

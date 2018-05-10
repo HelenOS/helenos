@@ -168,12 +168,12 @@ void cpu_arch_init(void)
 	control_reg |= SCTLR_CACHE_EN_FLAG;
 #endif
 #ifdef PROCESSOR_ARCH_armv7_a
-	 /* ICache coherency is elaborated on in barrier.h.
-	  * VIPT and PIPT caches need maintenance only on code modify,
-	  * so it should be safe for general use.
-	  * Enable branch predictors too as they follow the same rules
-	  * as ICache and they can be flushed together
-	  */
+	/* ICache coherency is elaborated on in barrier.h.
+	 * VIPT and PIPT caches need maintenance only on code modify,
+	 * so it should be safe for general use.
+	 * Enable branch predictors too as they follow the same rules
+	 * as ICache and they can be flushed together
+	 */
 	if ((CTR_read() & CTR_L1I_POLICY_MASK) != CTR_L1I_POLICY_AIVIVT) {
 		control_reg |=
 		    SCTLR_INST_CACHE_EN_FLAG | SCTLR_BRANCH_PREDICT_EN_FLAG;

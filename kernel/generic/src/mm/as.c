@@ -640,10 +640,10 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	share_info_t *si = NULL;
 
 	/*
- 	 * Create the sharing info structure.
- 	 * We do this in advance for every new area, even if it is not going
- 	 * to be shared.
- 	 */
+	 * Create the sharing info structure.
+	 * We do this in advance for every new area, even if it is not going
+	 * to be shared.
+	 */
 	if (!(attrs & AS_AREA_ATTR_PARTIAL)) {
 		si = (share_info_t *) malloc(sizeof(share_info_t), 0);
 		mutex_initialize(&si->lock, MUTEX_PASSIVE);
