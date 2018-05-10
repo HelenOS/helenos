@@ -31,4 +31,5 @@
 #include <internal/functional/bind.hpp>
 #include <internal/functional/function.hpp>
 #include <internal/functional/invoke.hpp>
+#include <internal/functional/hash.hpp>
 #include <internal/functional/reference_wrapper.hpp>
