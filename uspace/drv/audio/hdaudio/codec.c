@@ -66,14 +66,15 @@ static errno_t hda_ccmd(hda_codec_t *codec, int node, uint32_t vid, uint32_t pay
 		    (payload & 0xffff);
 	}
 	errno_t rc = hda_cmd(codec->hda, verb, resp);
-/*
+
+#if 0
 	if (resp != NULL) {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32 " -> 0x%" PRIx32, verb,
 		    *resp);
 	} else {
 		ddf_msg(LVL_NOTE, "verb 0x%" PRIx32, verb);
 	}
-*/
+#endif
 	return rc;
 }
 
@@ -447,11 +448,12 @@ static errno_t hda_pin_init(hda_codec_t *codec, uint8_t aw)
 		pctl = pctl | BIT_V(uint8_t, pctl_hpd_enable);
 	}
 
-/*	if ((pcaps & BIT_V(uint32_t, pwc_input)) != 0) {
+#if 0
+	if ((pcaps & BIT_V(uint32_t, pwc_input)) != 0) {
 		ddf_msg(LVL_NOTE, "PIN %d will enable input");
-	    	pctl = pctl | BIT_V(uint8_t, pctl_input_enable);
+		pctl = pctl | BIT_V(uint8_t, pctl_input_enable);
 	}
-*/
+#endif
 	ddf_msg(LVL_NOTE, "Setting PIN %d ctl to 0x%x", aw, pctl);
 	rc = hda_set_pin_ctl(codec, aw, pctl);
 	if (rc != EOK)

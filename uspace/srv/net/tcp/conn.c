@@ -1185,17 +1185,6 @@ static void tcp_conn_seg_process(tcp_conn_t *conn, tcp_segment_t *seg)
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "tcp_conn_seg_process(%p, %p)", conn, seg);
 	tcp_segment_dump(seg);
 
-	/* Check whether segment is acceptable */
-	/* XXX Permit valid ACKs, URGs and RSTs */
-/*	if (!seq_no_segment_acceptable(conn, seg)) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Segment not acceptable, dropping.");
-		if ((seg->ctrl & CTL_RST) == 0) {
-			tcp_tqueue_ctrl_seg(conn, CTL_ACK);
-		}
-		return;
-	}
-*/
-
 	if (tcp_conn_seg_proc_rst(conn, seg) == cp_done)
 		return;
 

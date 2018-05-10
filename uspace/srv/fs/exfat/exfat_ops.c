@@ -1197,7 +1197,8 @@ static errno_t exfat_fs_open(service_id_t service_id, enum cache_mode cmode,
 		return ENOMEM;
 	}
 
-	/* exfat_fsinfo(bs, service_id); */
+	if (0)
+		exfat_fsinfo(bs, service_id);
 
 	*rrfn = FS_NODE(rootp);
 	*rridxp = rootp->idx;
@@ -1236,7 +1237,6 @@ static void exfat_fs_close(service_id_t service_id, fs_node_t *rfn)
  */
 
 /* Print debug info */
-/*
 static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
 {
 	printf("exFAT file system mounted\n");
@@ -1251,22 +1251,21 @@ static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
 	printf("Root dir first cluster: %d\n", ROOT_FC(bs));
 	printf("Bytes per sector: %d\n", BPS(bs));
 	printf("Sectors per cluster: %d\n", SPC(bs));
-	printf("KBytes per cluster: %d\n", SPC(bs)*BPS(bs)/1024);
+	printf("KBytes per cluster: %d\n", SPC(bs) * BPS(bs) / 1024);
 
 	int i, rc;
 	exfat_cluster_t clst;
-	for (i=0; i<=7; i++) {
+	for (i = 0; i <= 7; i++) {
 		rc = exfat_get_cluster(bs, service_id, i, &clst);
 		if (rc != EOK)
 			return;
 		printf("Clst %d: %x", i, clst);
-		if (i>=2)
-			printf(", Bitmap: %d\n", bitmap_is_free(bs, service_id, i)!=EOK);
+		if (i >= 2)
+			printf(", Bitmap: %d\n", bitmap_is_free(bs, service_id, i) != EOK);
 		else
 			printf("\n");
 	}
 }
-*/
 
 static errno_t exfat_fsprobe(service_id_t service_id, vfs_fs_probe_info_t *info)
 {

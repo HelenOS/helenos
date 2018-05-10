@@ -60,7 +60,7 @@ enum {
 	/** Ready to serve any request. */
 	_PROV_READY,
 	/** Cursor is temporarily lent to the external entity. No action is
-	  * possible until the cursor is returned.  */
+	 * possible until the cursor is returned.  */
 	_PROV_CURSOR_LENT,
 };
 
@@ -73,7 +73,7 @@ typedef struct __input_provider {
 	/** How many elements was already fetched from the source. */
 	int fetched;
 	/** Elements are fetched from the source in batches (e.g. by getline())
-	  * to allow using strtol/strtod family even on streams. */
+	 * to allow using strtol/strtod family even on streams. */
 	char *window;
 	/** Size of the current window. */
 	size_t window_size;
@@ -83,24 +83,24 @@ typedef struct __input_provider {
 	int state;
 
 	/** Take control over data source. Finish initialization of the internal
-	  * structures (e.g. allocation of window). */
+	 * structures (e.g. allocation of window). */
 	void (*capture)(struct __input_provider *);
 	/** Get a single element from the source and update the internal structures
-	  * accordingly (e.g. greedy update of the window). Return -1 if the
-	  * element cannot be obtained. */
+	 * accordingly (e.g. greedy update of the window). Return -1 if the
+	 * element cannot be obtained. */
 	int (*pop)(struct __input_provider *);
 	/** Undo the most recent not-undone pop operation. Might be necesarry to
-	  * flush current window and seek data source backwards. Return 0 if the
-	  * pop history is exhausted, non-zero on success. */
+	 * flush current window and seek data source backwards. Return 0 if the
+	 * pop history is exhausted, non-zero on success. */
 	int (*undo)(struct __input_provider *);
 	/** Lend the cursor to the caller.  */
 	const char *(*borrow_cursor)(struct __input_provider *);
 	/** Take control over possibly incremented cursor and update the internal
-	  * structures if necessary. */
+	 * structures if necessary. */
 	void (*return_cursor)(struct __input_provider *, const char *);
 	/** Release the control over the source. That is, synchronize any
-	  * fetched but non-consumed elements (e.g. by seeking) and destruct
-	  * internal structures (e.g. window deallocation). */
+	 * fetched but non-consumed elements (e.g. by seeking) and destruct
+	 * internal structures (e.g. window deallocation). */
 	void (*release)(struct __input_provider *);
 } _input_provider;
 
@@ -410,8 +410,9 @@ static inline int is_int_conv(int c, bool *is_unsigned, int *base)
 		*is_unsigned = true;
 		*base = 10;
 		return 1;
-	case 'p': /* According to POSIX, %p modifier is implementation defined but
-			   * must correspond to its printf counterpart. */
+	case 'p':
+		/* According to POSIX, %p modifier is implementation defined but
+		 * must correspond to its printf counterpart. */
 	case 'x':
 	case 'X':
 		*is_unsigned = true;

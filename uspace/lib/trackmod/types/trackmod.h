@@ -152,7 +152,7 @@ typedef struct {
 	/** Volume slide amount */
 	int vol_slide;
 	/** Portamento amount (positive for tone and up portamento,
-	  * negative for down portamento. */
+	 * negative for down portamento. */
 	int portamento;
 	/** Tone portamento target period. */
 	unsigned period_tgt;

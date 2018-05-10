@@ -92,11 +92,10 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 		sym_idx = ELF32_R_SYM(r_info);
 		sym = &sym_table[sym_idx];
 
-/*		DPRINTF("name '%s', value 0x%x, size 0x%x\n",
-		    str_tab + sym->st_name,
-		    sym->st_value,
-		    sym->st_size);
-*/
+#if 0
+		DPRINTF("name '%s', value 0x%x, size 0x%x\n",
+		    str_tab + sym->st_name, sym->st_value, sym->st_size);
+#endif
 		rel_type = ELF32_R_TYPE(r_info);
 		r_ptr = (uint32_t *)(r_offset + m->bias);
 

@@ -201,7 +201,7 @@ errno_t bigint_get_value_int(bigint_t *bigint, int *dval)
 	}
 
 	if (bigint->negative)
-		val = - val;
+		val = -val;
 
 	/* If the value did not fit @c val now contains garbage. Verify. */
 	bigint_init(&vval, val);
@@ -367,7 +367,7 @@ void bigint_mul(bigint_t *a, bigint_t *b, bigint_t *dest)
 void bigint_get_as_string(bigint_t *bigint, char **dptr)
 {
 	static const char digits[] = { '0', '1', '2', '3', '4', '5', '6',
-	    '7', '8', '9' };
+		'7', '8', '9' };
 
 	bigint_t val, tmp;
 	bigint_word_t rem;
@@ -631,7 +631,7 @@ static void bigint_shift_mul_dig(bigint_t *a, bigint_word_t b, size_t shift,
 		da = idx < a->length ? a->digit[idx] : 0;
 		db = b;
 
-		tmp = (da * db) + (bigint_word_t) carry;
+		tmp = da * db + (bigint_word_t) carry;
 
 		carry = (bigint_word_t) (tmp / BIGINT_BASE);
 		res = (bigint_word_t) (tmp % BIGINT_BASE);

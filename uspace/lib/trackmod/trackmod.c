@@ -61,15 +61,15 @@ enum {
 };
 
 /** Table for finetune computation.
-  *
-  * Finetune is a number ft in [-8 .. 7]. The pitch should be adjusted by
-  * ft/8 semitones. To adjust pitch by 1/8 semitone down we can mutiply the
-  * period by 2^(1/12/8) =. 1.0072, one semitone up: 2^-(1/12/8) =. 0.9928,
-  * to adjust by ft/8 semitones, multiply by 2^(-ft/12/8).
-  *
-  * finetune_factor[ft] := 10000 * 2^(-ft/12/8)
-  * res_period = clip(period * fineture_factor[ft+8] / 10000)
-  */
+ *
+ * Finetune is a number ft in [-8 .. 7]. The pitch should be adjusted by
+ * ft/8 semitones. To adjust pitch by 1/8 semitone down we can mutiply the
+ * period by 2^(1/12/8) =. 1.0072, one semitone up: 2^-(1/12/8) =. 0.9928,
+ * to adjust by ft/8 semitones, multiply by 2^(-ft/12/8).
+ *
+ * finetune_factor[ft] := 10000 * 2^(-ft/12/8)
+ * res_period = clip(period * fineture_factor[ft+8] / 10000)
+ */
 static unsigned finetune_factor[16] = {
 	10595, 10518, 10443, 10368, 10293, 10219, 10145, 10072,
 	10000,  9928,  9857,  9786,  9715,  9645,  9576,  9507
@@ -730,11 +730,13 @@ static void trackmod_process_tick(trackmod_modplay_t *modplay)
 				np = min((int)chan->period_tgt, (int)chan->period + chan->portamento);
 		}
 
-/*		if (np < period_min)
+#if 0
+		/* XXX */
+		if (np < period_min)
 			np = period_min;
 		if (np > period_max)
 			np = period_max;
-*/
+#endif
 		modplay->chan[i].period = np;
 	}
 }

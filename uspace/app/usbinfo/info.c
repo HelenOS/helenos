@@ -268,8 +268,6 @@ static void find_string_indexes_callback(
 		return;
 	}
 
-	/*printf("Found string in %s->%s: %zu\n",
-	    #descr_struct, #descr_item, __str_index); */
 #define SET_STRING_INDEX(descr, mask, descr_type, descr_struct, descr_item) \
 	do { \
 		if ((descr)[1] == (descr_type)) { \

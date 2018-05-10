@@ -70,7 +70,6 @@ errno_t exfat_directory_open(exfat_node_t *nodep, exfat_directory_t *di)
 	di->firstc = nodep->firstc;
 
 	di->bs = block_bb_get(di->service_id);
-/*	di->blocks = nodep->size / BPS(di->bs); */
 	di->blocks = ROUND_UP(nodep->size, BPS(di->bs)) / BPS(di->bs);
 	return EOK;
 }

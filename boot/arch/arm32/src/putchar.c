@@ -50,12 +50,13 @@
 static void scons_sendb_bbone(uint8_t byte)
 {
 	volatile uint32_t *thr =
-		(volatile uint32_t *) BBONE_SCONS_THR;
+	    (volatile uint32_t *) BBONE_SCONS_THR;
 	volatile uint32_t *ssr =
-		(volatile uint32_t *) BBONE_SCONS_SSR;
+	    (volatile uint32_t *) BBONE_SCONS_SSR;
 
 	/* Wait until transmitter is empty */
-	while (*ssr & BBONE_TXFIFO_FULL);
+	while (*ssr & BBONE_TXFIFO_FULL)
+		;
 
 	/* Transmit byte */
 	*thr = (uint32_t) byte;
@@ -77,7 +78,8 @@ static void scons_sendb_bbxm(uint8_t byte)
 	    (volatile uint32_t *)BBXM_SCONS_SSR;
 
 	/* Wait until transmitter is empty. */
-	while ((*ssr & BBXM_THR_FULL) == 1) ;
+	while ((*ssr & BBXM_THR_FULL) == 1)
+		;
 
 	/* Transmit byte. */
 	*thr = (uint32_t) byte;
@@ -143,12 +145,12 @@ static void scons_init_raspi(void)
 	write32(BCM2835_UART0_IBRD, 1);		/* Set integer baud rate */
 	write32(BCM2835_UART0_FBRD, 40);	/* Set fractional baud rate */
 	write32(BCM2835_UART0_LCRH,
-		BCM2835_UART0_LCRH_FEN |	/* Enable FIFOs */
-		BCM2835_UART0_LCRH_WL8);	/* Word length: 8 */
+	    BCM2835_UART0_LCRH_FEN |		/* Enable FIFOs */
+	    BCM2835_UART0_LCRH_WL8);		/* Word length: 8 */
 	write32(BCM2835_UART0_CR,
-		BCM2835_UART0_CR_UARTEN |	/* Enable UART */
-		BCM2835_UART0_CR_TXE |		/* Enable TX */
-		BCM2835_UART0_CR_RXE);		/* Enable RX */
+	    BCM2835_UART0_CR_UARTEN |		/* Enable UART */
+	    BCM2835_UART0_CR_TXE |		/* Enable TX */
+	    BCM2835_UART0_CR_RXE);		/* Enable RX */
 }
 
 static void scons_sendb_raspi(uint8_t byte)
@@ -158,7 +160,8 @@ static void scons_sendb_raspi(uint8_t byte)
 		raspi_init = 1;
 	}
 
-	while (read32(BCM2835_UART0_FR) & BCM2835_UART0_FR_TXFF);
+	while (read32(BCM2835_UART0_FR) & BCM2835_UART0_FR_TXFF)
+		;
 
 	write32(BCM2835_UART0_DR, byte);
 }

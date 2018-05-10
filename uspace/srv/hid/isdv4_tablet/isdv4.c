@@ -53,10 +53,12 @@
 #define CMD_QUERY_STYLUS '*'
 #define CMD_QUERY_TOUCH '%'
 
-/* packet_consumer_fn(uint8_t *packet, size_t size, isdv4_state_t *state,
-   void *data)
-   return true if reading of packets should continue */
-typedef bool (*packet_consumer_fn)(uint8_t *, size_t, isdv4_state_t *);
+/** Packet consumer function
+ *
+ * @return true if reading of packets should continue
+ */
+typedef bool (*packet_consumer_fn)(uint8_t *packet, size_t size,
+    isdv4_state_t *state);
 
 static void isdv4_event_init(isdv4_event_t *event)
 {

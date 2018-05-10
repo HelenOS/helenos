@@ -57,16 +57,12 @@ static uint8_t iface1_report_descriptor[] = {
 };
 #define iface1_input_size 8
 static uint8_t iface1_in_data[] = {
-		/*0, 0, 0, 0, 0, 0, 0, 0,
-		0, 9, 0, 0, 0, 0, 0, 0,
-		0, 0, 9, 0, 0, 0, 0, 0,
-		0, 9, 9, 0, 0, 0, 0, 0,*/
-		0, 0, 0, 0, 0, 0, 0, 0
+	0, 0, 0, 0, 0, 0, 0, 0
 };
 
 static vuhid_interface_life_t iface1_life = {
 	.data_in = iface1_in_data,
-	.data_in_count = sizeof(iface1_in_data)/iface1_input_size,
+	.data_in_count = sizeof(iface1_in_data) / iface1_input_size,
 	.data_in_pos_change_delay = 50,
 	.msg_born = "Mouse of Logitech Unifying Receiver comes to life...",
 	.msg_die = "Mouse of Logitech Unifying Receiver disconnected."
