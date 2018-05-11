@@ -64,6 +64,7 @@ namespace std::aux
                 // (1.4)
                 return (*t1).*f;
         }
+        else
 
         /**
          * Note: If this condition holds this will not be reachable,
