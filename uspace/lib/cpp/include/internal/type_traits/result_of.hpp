@@ -34,12 +34,35 @@
 namespace std
 {
     template<class>
-    class result_of
+    struct is_function;
+
+    template<class>
+    struct is_class;
+
+    template<class>
+    struct is_member_pointer;
+
+    template<bool, class>
+    struct enable_if;
+
+    template<class>
+    struct decay;
+
+    template<class>
+    struct remove_pointer;
+
+    template<class>
+    struct result_of
     { /* DUMMY BODY */ };
 
     template<class F, class... ArgTypes>
-    class result_of<F(ArgTypes...)>: aux::type_is<
-        decltype(aux::invoke(declval<F>(), declval<ArgTypes>()...))
+    struct result_of<F(ArgTypes...)>: aux::type_is<
+        typename enable_if<
+            is_function<typename decay<typename remove_pointer<F>::type>::type>::value ||
+            is_class<typename decay<F>::type>::value ||
+            is_member_pointer<typename decay<F>::type>::value,
+            decltype(aux::invoke(declval<F>(), declval<ArgTypes>()...))
+        >::type
     >
     { /* DUMMY BODY */ };
 
