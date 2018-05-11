@@ -125,6 +125,18 @@ namespace std::test
             void test_substr();
             void test_compare();
     };
+
+    class bitset_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+
+        private:
+            void test_constructors_and_assignment();
+            void test_strings();
+            void test_operations();
+    };
 }
 
 #endif
