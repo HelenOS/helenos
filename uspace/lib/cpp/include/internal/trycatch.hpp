@@ -60,13 +60,7 @@ namespace std
          */
         extern bool exception_thrown;
 
-        /**
-         * These two variables can be used to suppress
-         * the execution of eithe the try blocks
-         * or the catch blocks.
-         */
         inline constexpr bool try_blocks_allowed{true};
-        inline constexpr bool catch_blocks_allowed{false};
     }
 }
 
@@ -91,7 +85,7 @@ namespace std
 #define LIBCPP_EXCEPTION_ABORT        ::std::abort();
 #define LIBCPP_EXCEPTION_IGNORE       /* IGNORE */
 #define LIBCPP_EXCEPTION_HANDLE_THROW LIBCPP_EXCEPTION_IGNORE
-#define LIBCPP_EXCEPTION_HANDLE_CATCH LIBCPP_EXCEPTION_IGNORE
+#define LIBCPP_EXCEPTION_HANDLE_CATCH LIBCPP_EXCEPTION_HANG
 
 #define try if constexpr (::std::aux::try_blocks_allowed)
 
@@ -106,9 +100,10 @@ namespace std
     if (::std::aux::exception_thrown) \
     { \
         printf("[EXCEPTION] Caught < "#expr" > at %s:%d\n", __FILE__, __LINE__); \
+        ::std::aux::exception_thrown = false; \
         LIBCPP_EXCEPTION_HANDLE_CATCH \
     } \
-    if constexpr (::std::aux::catch_blocks_allowed)
+    if constexpr (false)
 
 /**
  * This macro can be used for testing the library. If
