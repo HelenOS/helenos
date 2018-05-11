@@ -111,6 +111,16 @@ static void de_fault(unsigned int n, istate_t *istate)
 	panic_badtrap(istate, n, "Divide error.");
 }
 
+static void db_exception(unsigned int n, istate_t *istate)
+{
+	/*
+	 * We need to provide at least an empty handler that does not panic
+	 * if the exception appears to come from the kernel because the
+	 * userspace can inject a kernel-level #DB after e.g. the SYSENTER
+	 * instruction if the EFLAGS.TF is set.
+	 */
+}
+
 /** General Protection Fault. */
 static void gp_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 {
@@ -230,6 +240,7 @@ void interrupt_init(void)
 	}
 
 	exc_register(VECTOR_DE, "de_fault", true, (iroutine_t) de_fault);
+	exc_register(VECTOR_DB, "db_exc", true, (iroutine_t) db_exception);
 	exc_register(VECTOR_NM, "nm_fault", true, (iroutine_t) nm_fault);
 	exc_register(VECTOR_SS, "ss_fault", true, (iroutine_t) ss_fault);
 	exc_register(VECTOR_GP, "gp_fault", true, (iroutine_t) gp_fault);

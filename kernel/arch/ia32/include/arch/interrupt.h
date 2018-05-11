@@ -50,6 +50,7 @@
 #define IVT_FREEBASE  (IVT_IRQBASE + IRQ_COUNT)
 
 #define EXC_DE 0
+#define EXC_DB 1
 #define EXC_NM 7
 #define EXC_SS 12
 #define EXC_GP 13
@@ -72,6 +73,7 @@
 #endif
 
 #define VECTOR_DE                 (IVT_EXCBASE + EXC_DE)
+#define VECTOR_DB                 (IVT_EXCBASE + EXC_DB)
 #define VECTOR_NM                 (IVT_EXCBASE + EXC_NM)
 #define VECTOR_SS                 (IVT_EXCBASE + EXC_SS)
 #define VECTOR_GP                 (IVT_EXCBASE + EXC_GP)
