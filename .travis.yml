@@ -61,3 +61,11 @@ script:
   - ./tools/travis.sh run
 os:
   - linux
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#helenos"
+    skip_join: true
+    template:
+      - "%{repository_name} (%{commit_message}): %{message}"
+      - "Build details : %{build_url}"
