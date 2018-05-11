@@ -188,6 +188,11 @@ static errno_t hda_corb_init(hda_t *hda)
 	rc = dmamem_map_anonymous(hda->ctl->corb_entries * sizeof(uint32_t),
 	    hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 	    &hda->ctl->corb_phys, &hda->ctl->corb_virt);
+	if (rc != EOK) {
+		hda->ctl->corb_virt = NULL;
+		ddf_msg(LVL_NOTE, "Failed allocating DMA memory for CORB");
+		goto error;
+	}
 
 	ddf_msg(LVL_NOTE, "Set CORB base registers");
 
