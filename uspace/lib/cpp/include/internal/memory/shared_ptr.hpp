@@ -34,6 +34,7 @@
 #include <internal/functional/hash.hpp>
 #include <internal/memory/allocator_arg.hpp>
 #include <internal/memory/shared_payload.hpp>
+#include <internal/trycatch.hpp>
 #include <type_traits>
 
 namespace std
@@ -193,10 +194,16 @@ namespace std
                 const weak_ptr<U>& other,
                 enable_if_t<is_convertible_v<U*, element_type*>>* = nullptr
             )
+                : payload_{}, data_{}
             {
                 if (other.expired())
                     throw bad_weak_ptr{};
-                // TODO:
+
+                if (other.payload_)
+                {
+                    payload_ = other.payload_->lock();
+                    data_ = payload_->get();
+                }
             }
 
             template<class U, class D>
