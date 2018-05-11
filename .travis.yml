@@ -56,8 +56,8 @@ env:
     - H_ARCH=sparc64/niagara
     - H_ARCH=sparc64/ultra
 before_install:
- - ./tools/travis.sh install
+  - ./tools/travis.sh install
 script:
- - ./tools/travis.sh run
+  - ./tools/travis.sh run
 os:
- - linux
+  - linux
