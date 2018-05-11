@@ -1483,7 +1483,7 @@ namespace std
                     allocator_.deallocate(data_, capacity_);
 
                 size_ = size;
-                capacity_ = size;
+                capacity_ = size + 1;
 
                 data_ = allocator_.allocate(capacity_);
                 traits_type::copy(data_, str, size);
