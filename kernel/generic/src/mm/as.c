@@ -619,7 +619,11 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 		return NULL;
 	}
 
-	as_area_t *area = (as_area_t *) malloc(sizeof(as_area_t), 0);
+	as_area_t *area = (as_area_t *) malloc(sizeof(as_area_t), FRAME_ATOMIC);
+	if (!area) {
+		mutex_unlock(&as->lock);
+		return NULL;
+	}
 
 	mutex_initialize(&area->lock, MUTEX_PASSIVE);
 
@@ -645,7 +649,13 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	 * to be shared.
 	 */
 	if (!(attrs & AS_AREA_ATTR_PARTIAL)) {
-		si = (share_info_t *) malloc(sizeof(share_info_t), 0);
+		si = (share_info_t *) malloc(sizeof(share_info_t),
+		    FRAME_ATOMIC);
+		if (!si) {
+			free(area);
+			mutex_unlock(&as->lock);
+			return NULL;
+		}
 		mutex_initialize(&si->lock, MUTEX_PASSIVE);
 		si->refcount = 1;
 		si->shared = false;
@@ -1291,7 +1301,13 @@ errno_t as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	}
 
 	/* An array for storing frame numbers */
-	uintptr_t *old_frame = malloc(used_pages * sizeof(uintptr_t), 0);
+	uintptr_t *old_frame = malloc(used_pages * sizeof(uintptr_t),
+	    FRAME_ATOMIC);
+	if (!old_frame) {
+		mutex_unlock(&area->lock);
+		mutex_unlock(&as->lock);
+		return ENOMEM;
+	}
 
 	page_table_lock(as, false);
 

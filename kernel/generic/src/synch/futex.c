@@ -338,7 +338,9 @@ static futex_t *find_cached_futex(uintptr_t uaddr)
  */
 static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 {
-	futex_t *futex = malloc(sizeof(futex_t), 0);
+	futex_t *futex = malloc(sizeof(futex_t), FRAME_ATOMIC);
+	if (!futex)
+		return NULL;
 
 	/*
 	 * Find the futex object in the global futex table (or insert it
@@ -362,7 +364,13 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 	/*
 	 * Cache the link to the futex object for this task.
 	 */
-	futex_ptr_t *fut_ptr = malloc(sizeof(futex_ptr_t), 0);
+	futex_ptr_t *fut_ptr = malloc(sizeof(futex_ptr_t), FRAME_ATOMIC);
+	if (!fut_ptr) {
+		spinlock_lock(&futex_ht_lock);
+		futex_release_ref(futex);
+		spinlock_unlock(&futex_ht_lock);
+		return NULL;
+	}
 	cht_link_t *dup_link;
 
 	fut_ptr->futex = futex;

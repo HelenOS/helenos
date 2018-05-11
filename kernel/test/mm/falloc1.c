@@ -46,7 +46,7 @@ const char *test_falloc1(void)
 		return "Test is compiled with TEST_RUNS < 2";
 
 	uintptr_t *frames = (uintptr_t *)
-	    malloc(MAX_FRAMES * sizeof(uintptr_t), 0);
+	    malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
 	if (frames == NULL)
 		return "Unable to allocate frames";
 

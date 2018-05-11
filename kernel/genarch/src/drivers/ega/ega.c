@@ -608,7 +608,7 @@ outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 		return NULL;
 	}
 
-	instance->backbuf = (uint8_t *) malloc(EGA_VRAM_SIZE, 0);
+	instance->backbuf = (uint8_t *) malloc(EGA_VRAM_SIZE, FRAME_ATOMIC);
 	if (!instance->backbuf) {
 		LOG("Unable to allocate backbuffer.");
 		free(instance);

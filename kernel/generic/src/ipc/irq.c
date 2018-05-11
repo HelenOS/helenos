@@ -81,7 +81,9 @@ static errno_t ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
     irq_cmd_t *cmds, size_t cmdcount)
 {
 	/* Copy the physical base addresses aside. */
-	uintptr_t *pbase = malloc(rangecount * sizeof(uintptr_t), 0);
+	uintptr_t *pbase = malloc(rangecount * sizeof(uintptr_t), FRAME_ATOMIC);
+	if (!pbase)
+		return ENOMEM;
 	for (size_t i = 0; i < rangecount; i++)
 		pbase[i] = ranges[i].base;
 
@@ -224,7 +226,9 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	irq_pio_range_t *ranges = NULL;
 	irq_cmd_t *cmds = NULL;
 
-	irq_code_t *code = malloc(sizeof(*code), 0);
+	irq_code_t *code = malloc(sizeof(*code), FRAME_ATOMIC);
+	if (!code)
+		return NULL;
 	errno_t rc = copy_from_uspace(code, ucode, sizeof(*code));
 	if (rc != EOK)
 		goto error;
@@ -233,13 +237,18 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 	    (code->cmdcount > IRQ_MAX_PROG_SIZE))
 		goto error;
 
-	ranges = malloc(sizeof(code->ranges[0]) * code->rangecount, 0);
+	ranges = malloc(sizeof(code->ranges[0]) * code->rangecount,
+	    FRAME_ATOMIC);
+	if (!ranges)
+		goto error;
 	rc = copy_from_uspace(ranges, code->ranges,
 	    sizeof(code->ranges[0]) * code->rangecount);
 	if (rc != EOK)
 		goto error;
 
-	cmds = malloc(sizeof(code->cmds[0]) * code->cmdcount, 0);
+	cmds = malloc(sizeof(code->cmds[0]) * code->cmdcount, FRAME_ATOMIC);
+	if (!cmds)
+		goto error;
 	rc = copy_from_uspace(cmds, code->cmds,
 	    sizeof(code->cmds[0]) * code->cmdcount);
 	if (rc != EOK)

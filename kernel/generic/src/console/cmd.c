@@ -1464,7 +1464,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 	if (cnt < 1)
 		return true;
 
-	uint64_t *data = (uint64_t *) malloc(sizeof(uint64_t) * cnt, 0);
+	uint64_t *data = (uint64_t *) malloc(sizeof(uint64_t) * cnt,
+	    FRAME_ATOMIC);
 	if (data == NULL) {
 		printf("Error allocating memory for statistics\n");
 		return false;

@@ -297,7 +297,9 @@ NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
 	while (!isspace(cmdline[end]))
 		end++;
 
-	tmp = malloc(STR_BOUNDS(end - start + 1), 0);
+	tmp = malloc(STR_BOUNDS(end - start + 1), FRAME_ATOMIC);
+	if (!tmp)
+		return NULL;
 
 	wstr_to_str(tmp, end - start + 1, &cmdline[start]);
 

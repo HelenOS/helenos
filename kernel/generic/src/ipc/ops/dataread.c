@@ -74,7 +74,11 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			 */
 			IPC_SET_ARG1(answer->data, dst);
 
-			answer->buffer = malloc(size, 0);
+			answer->buffer = malloc(size, FRAME_ATOMIC);
+			if (!answer->buffer) {
+				IPC_SET_RETVAL(answer->data, ENOMEM);
+				return EOK;
+			}
 			errno_t rc = copy_from_uspace(answer->buffer,
 			    (void *) src, size);
 			if (rc) {
@@ -83,6 +87,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 				 * answer->buffer will be cleaned up in
 				 * ipc_call_free().
 				 */
+				return EOK;
 			}
 		} else if (!size) {
 			IPC_SET_RETVAL(answer->data, EOK);

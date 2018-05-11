@@ -70,10 +70,17 @@ void *program_loader = NULL;
  */
 errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 {
+	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
+	    malloc(sizeof(uspace_arg_t), FRAME_ATOMIC);
+	if (!kernel_uarg)
+		return ENOMEM;
+
 	prg->loader_status = EE_OK;
 	prg->task = task_create(as, name);
-	if (!prg->task)
+	if (!prg->task) {
+		free(kernel_uarg);
 		return ELIMIT;
+	}
 
 	/*
 	 * Create the stack address space area.
@@ -89,13 +96,11 @@ errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *pr
 	    AS_AREA_LATE_RESERVE, STACK_SIZE_USER, AS_AREA_ATTR_NONE,
 	    &anon_backend, NULL, &virt, bound);
 	if (!area) {
+		free(kernel_uarg);
 		task_destroy(prg->task);
 		prg->task = NULL;
 		return ENOMEM;
 	}
-
-	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
-	    malloc(sizeof(uspace_arg_t), 0);
 
 	kernel_uarg->uspace_entry = (void *) entry_addr;
 	kernel_uarg->uspace_stack = (void *) virt;

@@ -410,7 +410,7 @@ sys_errno_t sys_kio(int cmd, const void *buf, size_t size)
 		return (sys_errno_t) ELIMIT;
 
 	if (size > 0) {
-		data = (char *) malloc(size + 1, 0);
+		data = (char *) malloc(size + 1, FRAME_ATOMIC);
 		if (!data)
 			return (sys_errno_t) ENOMEM;
 
