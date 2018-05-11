@@ -46,7 +46,7 @@ env:
     - H_ARCH=arm32/gta02
     - H_ARCH=arm32/integratorcp
     - H_ARCH=arm32/raspberrypi
-    - H_ARCH=ia32 H_HARBOURS=true
+    - H_ARCH=ia32 H_HARBOURS=true H_HARBOUR_LIST="fdlibm zlib binutils"
     - H_ARCH=ia64/i460GX
     - H_ARCH=ia64/ski
     - H_ARCH=mips32/malta-be
