@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,13 +30,14 @@
 #define LIBCPP_TEST_TEST
 
 #include <utility>
+#include <iterator>
 
 namespace std::test
 {
     class test_suite
     {
         public:
-            virtual bool run() = 0;
+            virtual bool run(bool) = 0;
             virtual const char* name() = 0;
 
             virtual ~test_suite() = default;
@@ -53,6 +54,7 @@ namespace std::test
             unsigned int failed_{};
             unsigned int succeeded_{};
             bool ok_{true};
+            bool report_{true};
 
             template<class... Args>
             void test_eq(const char* tname, Args&&... args)
@@ -80,7 +82,7 @@ namespace std::test
             bool assert_eq(Iterator1 first1, Iterator1 last1,
                            Iterator2 first2, Iterator2 last2)
             {
-                if ((last1 - first1) != (last2 - first2))
+                if (std::distance(first1, last1) != std::distance(first2, last2))
                     return false;
 
                 while (first1 != last1)

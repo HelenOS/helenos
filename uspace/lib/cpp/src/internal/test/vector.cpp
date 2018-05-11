@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,9 @@
 
 namespace std::test
 {
-    bool vector_test::run()
+    bool vector_test::run(bool report)
     {
+        report_ = report;
         start();
 
         test_construction_and_assignment();
@@ -128,7 +129,7 @@ namespace std::test
             vec8.begin(), vec8.end()
         );
 
-        test_eq("move assignment origin empty", vec9.size(), 0);
+        test_eq("move assignment origin empty", vec9.size(), 0U);
     }
 
     void vector_test::test_insert()

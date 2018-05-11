@@ -33,6 +33,9 @@ namespace std::test
 {
     void test_suite::report(bool result, const char* tname)
     {
+        if (!report_)
+            return;
+
         if (result)
             std::printf("[%s][%s] ... OK\n", name(), tname);
         else
@@ -41,13 +44,15 @@ namespace std::test
 
     void test_suite::start()
     {
-        std::printf("\n[TEST START][%s]\n", name());
+        if (report_)
+            std::printf("\n[TEST START][%s]\n", name());
     }
 
     bool test_suite::end()
     {
-        std::printf("[TEST END][%s][%u OK][%u FAIL]\n",
-                    name(), succeeded_, failed_);
+        if (report_)
+            std::printf("[TEST END][%s][%u OK][%u FAIL]\n",
+                        name(), succeeded_, failed_);
         return ok_;
     }
 

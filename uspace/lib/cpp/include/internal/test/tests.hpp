@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ namespace std::test
                 tests_.push_back(new T{});
             }
 
-            bool run()
+            bool run(bool report)
             {
                 bool res{true};
                 unsigned int succeeded{};
@@ -54,18 +54,21 @@ namespace std::test
 
                 for (auto test: tests_)
                 {
-                    res &= test->run();
+                    res &= test->run(report);
                     succeeded += test->get_succeeded();
                     failed += test->get_failed();
                 }
 
-                std::printf("\n");
-                if (res)
-                    std::printf("[TESTS SUCCEEDED!]");
-                else
-                    std::printf("[TESTS FAILED]");
-                std::printf("[%u OK][%u FAIL][%u TOTAL]\n",
-                            succeeded, failed, (succeeded + failed));
+                if (report)
+                {
+                    std::printf("\n");
+                    if (res)
+                        std::printf("[TESTS SUCCEEDED!]");
+                    else
+                        std::printf("[TESTS FAILED]");
+                    std::printf("[%u OK][%u FAIL][%u TOTAL]\n",
+                                succeeded, failed, (succeeded + failed));
+                }
 
                 return res;
             }
@@ -83,7 +86,7 @@ namespace std::test
     class array_test: public test_suite
     {
         public:
-            bool run() override;
+            bool run(bool) override;
             const char* name() override;
 
             array_test() = default;
@@ -93,7 +96,7 @@ namespace std::test
     class vector_test: public test_suite
     {
         public:
-            bool run() override;
+            bool run(bool) override;
             const char* name() override;
 
             vector_test() = default;
@@ -108,7 +111,7 @@ namespace std::test
     class string_test: public test_suite
     {
         public:
-            bool run() override;
+            bool run(bool) override;
             const char* name() override;
 
         private:

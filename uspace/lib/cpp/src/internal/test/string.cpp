@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,9 @@
 
 namespace std::test
 {
-    bool string_test::run()
+    bool string_test::run(bool report)
     {
+        report_ = report;
         start();
 
         test_construction_and_assignment();
