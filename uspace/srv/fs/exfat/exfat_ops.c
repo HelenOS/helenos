@@ -71,6 +71,7 @@ static LIST_INITIALIZE(ffn_list);
  * Forward declarations of FAT libfs operations.
  */
 
+static void exfat_fsinfo(exfat_bs_t *, service_id_t);
 static errno_t exfat_root_get(fs_node_t **, service_id_t);
 static errno_t exfat_match(fs_node_t **, fs_node_t *, const char *);
 static errno_t exfat_node_get(fs_node_t **, service_id_t, fs_index_t);
@@ -90,7 +91,6 @@ static service_id_t exfat_service_get(fs_node_t *node);
 static errno_t exfat_size_block(service_id_t, uint32_t *);
 static errno_t exfat_total_block_count(service_id_t, uint64_t *);
 static errno_t exfat_free_block_count(service_id_t, uint64_t *);
-static void exfat_fsinfo(exfat_bs_t *, service_id_t);
 
 /*
  * Helper functions.
@@ -1238,7 +1238,7 @@ static void exfat_fs_close(service_id_t service_id, fs_node_t *rfn)
  */
 
 /* Print debug info */
-void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
+static void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
 {
 	printf("exFAT file system mounted\n");
 	printf("Version: %d.%d\n", bs->version.major, bs->version.minor);
@@ -1261,10 +1261,12 @@ void exfat_fsinfo(exfat_bs_t *bs, service_id_t service_id)
 		if (rc != EOK)
 			return;
 		printf("Clst %d: %x", i, clst);
-		if (i >= 2)
-			printf(", Bitmap: %d\n", exfat_bitmap_is_free(bs, service_id, i) != EOK);
-		else
+		if (i >= 2) {
+			printf(", Bitmap: %d\n", exfat_bitmap_is_free(bs,
+			    service_id, i) != EOK);
+		} else {
 			printf("\n");
+		}
 	}
 }
 
