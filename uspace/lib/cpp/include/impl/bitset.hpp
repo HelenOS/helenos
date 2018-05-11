@@ -470,7 +470,7 @@ namespace std
         Char zero{is.widen('0')};
         Char one{is.widen('1')};
 
-        basic_string<Char, Traits> str{N};
+        basic_string<Char, Traits> str{};
         while (i < N)
         {
             if (is.eof())
@@ -485,6 +485,7 @@ namespace std
             }
 
             str.push_back(c);
+            ++i;
         }
 
         if (i == 0)

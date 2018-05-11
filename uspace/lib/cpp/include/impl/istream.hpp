@@ -426,7 +426,7 @@ namespace std
                 if (res != traits_type::eof())
                     c = traits_type::to_char_type(res);
 
-                return this;
+                return *this;
             }
 
             basic_istream<Char, Traits>& get(char_type* s, streamsize n, char_type delim)

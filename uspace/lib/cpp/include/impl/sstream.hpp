@@ -31,6 +31,7 @@
 
 #include <ios>
 #include <iosfwd>
+#include <iostream>
 #include <streambuf>
 #include <string>
 
@@ -103,7 +104,7 @@ namespace std
             {
                 if (mode_ & ios_base::out)
                     return basic_string<char_type, traits_type, allocator_type>{
-                        this->output_begin_, this->output_next_, str_.get_allocator()
+                        this->output_begin_, this->output_next_ - 1, str_.get_allocator()
                     };
                 else if (mode_ == ios_base::in)
                     return basic_string<char_type, traits_type, allocator_type>{
