@@ -165,9 +165,8 @@ void tss_initialize(tss_t *t)
 void idt_init(void)
 {
 	idescriptor_t *d;
-	unsigned int i;
 
-	for (i = 0; i < IDT_ITEMS; i++) {
+	for (unsigned i = 0; i < IDT_ITEMS; i++) {
 		d = &idt[i];
 
 		d->unused = 0;
@@ -175,6 +174,9 @@ void idt_init(void)
 
 		d->present = 1;
 		d->type = AR_INTERRUPT;  /* masking interrupt */
+
+		d->dpl = PL_KERNEL;
+		d->ist = 0;
 	}
 
 	d = &idt[0];
