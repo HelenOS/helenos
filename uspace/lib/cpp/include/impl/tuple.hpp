@@ -80,7 +80,7 @@ namespace std
 
     template<class... Tuples>
     constexpr aux::tuple_cat_type_t<Tuples...> tuple_cat(Tuples&&... tpls)
-    {
+    { // TODO: currently does not work because of index mismatch
         return aux::tuple_cat(
             forward<Tuples>(tpls)...,
             make_index_sequence<sizeof...(Tuples)>{},
@@ -205,6 +205,26 @@ namespace std
                 constexpr explicit tuple_impl(Us&&... us)
                     : tuple_element_wrapper<Is, Ts>(forward<Us>(us))...
                 { /* DUMMY BODY */ }
+
+                template<class... Us>
+                constexpr tuple_impl(const tuple<Us...>& tpl)
+                    : tuple_impl{tpl, make_index_sequence<sizeof...(Us)>{}}
+                { /* DUMMY BODY */ }
+
+                template<class... Us>
+                constexpr tuple_impl(tuple<Us...>&& tpl)
+                    : tuple_impl{move<tuple<Us...>>(tpl), make_index_sequence<sizeof...(Us)>{}}
+                { /* DUMMY BODY */ }
+
+                template<class... Us, size_t... Iss>
+                constexpr tuple_impl(const tuple<Us...>& tpl, index_sequence<Iss...>)
+                    : tuple_impl{get<Iss>(tpl)...}
+                { /* DUMMY BODY */ }
+
+                template<class... Us, size_t... Iss>
+                constexpr tuple_impl(tuple<Us...>&& tpl, index_sequence<Iss...>)
+                    : tuple_impl{get<Iss>(move(tpl))...}
+                { /* DUMMY BODY */ }
         };
 
         template<class T, class... Ts>
@@ -312,8 +332,8 @@ namespace std
                 : base_t(ts...)
             { /* DUMMY BODY */ }
 
-            template<class... Us>
-            constexpr explicit tuple(Us&&... us)
+            template<class... Us> // TODO: is_convertible == true for all Us to all Ts
+            constexpr explicit tuple(Us&&... us, enable_if_t<sizeof...(Us) == sizeof...(Ts)>* = nullptr)
                 : base_t(forward<Us>(us)...)
             { /* DUMMY BODY */ }
 
@@ -321,13 +341,13 @@ namespace std
             tuple(tuple&&) = default;
 
             template<class... Us>
-            constexpr tuple(const tuple<Us...>& tpl)
+            constexpr tuple(const tuple<Us...>& tpl, enable_if_t<sizeof...(Us) == sizeof...(Ts)>* = nullptr)
                 : base_t(tpl)
             { /* DUMMY BODY */ }
 
             template<class... Us>
-            constexpr tuple(tuple<Us...>&& tpl)
-                : base_t(forward<tuple<Us>>(tpl)...)
+            constexpr tuple(tuple<Us...>&& tpl, enable_if_t<sizeof...(Us) == sizeof...(Ts)>* = nullptr)
+                : base_t(move(tpl))
             { /* DUMMY BODY */ }
 
             // TODO: pair related construction and assignment needs convertibility, not size
@@ -355,14 +375,14 @@ namespace std
 
             tuple& operator=(const tuple& other)
             {
-                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign(*this, other);
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign_copy(*this, other);
 
                 return *this;
             }
 
             tuple& operator=(tuple&& other) noexcept(aux::tuple_noexcept_assignment<Ts...>::value)
             {
-                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign(*this, forward<tuple>(other));
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign_move(*this, move(other));
 
                 return *this;
             }
@@ -370,7 +390,7 @@ namespace std
             template<class... Us>
             tuple& operator=(const tuple<Us...>& other)
             {
-                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign(*this, other);
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign_copy(*this, other);
 
                 return *this;
             }
@@ -378,7 +398,7 @@ namespace std
             template<class... Us>
             tuple& operator=(tuple<Us...>&& other)
             {
-                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign(*this, forward<Us>(other)...);
+                aux::tuple_ops<0, sizeof...(Ts) - 1>::assign_move(*this, move(other));
 
                 return *this;
             }
@@ -388,6 +408,8 @@ namespace std
             {
                 get<0>(*this) = p.first;
                 get<1>(*this) = p.second;
+
+                return *this;
             }
 
             template<class U1, class U2>
@@ -395,6 +417,8 @@ namespace std
             {
                 get<0>(*this) = forward<U1>(p.first);
                 get<1>(*this) = forward<U2>(p.second);
+
+                return *this;
             }
 
             /**

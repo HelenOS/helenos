@@ -49,11 +49,19 @@ namespace std::aux
     struct tuple_ops
     {
         template<class T, class U>
-        static void assign(T&& lhs, U&& rhs)
+        static void assign_copy(T& lhs, const U& rhs)
         {
-            get<I>(forward<T>(lhs)) = get<I>(forward<U>(rhs));
+            get<I>(lhs) = get<I>(rhs);
 
-            tuple_ops<I + 1, N>::assign(forward<T>(lhs), forward<U>(rhs));
+            tuple_ops<I + 1, N>::assign_copy(lhs, rhs);
+        }
+
+        template<class T, class U>
+        static void assign_move(T& lhs, U&& rhs)
+        {
+            get<I>(lhs) = move(get<I>(rhs));
+
+            tuple_ops<I + 1, N>::assign_move(lhs, move(rhs));
         }
 
         template<class T, class U>
@@ -82,9 +90,15 @@ namespace std::aux
     struct tuple_ops<N, N>
     {
         template<class T, class U>
-        static void assign(T&& lhs, U&& rhs)
+        static void assign_copy(T& lhs, const U& rhs)
         {
-            get<N>(forward<T>(lhs)) = get<N>(forward<U>(rhs));
+            get<N>(lhs) = get<N>(rhs);
+        }
+
+        template<class T, class U>
+        static void assign_move(T& lhs, U&& rhs)
+        {
+            get<N>(lhs) = move(get<N>(rhs));
         }
 
         template<class T, class U>
