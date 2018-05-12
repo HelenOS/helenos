@@ -459,6 +459,8 @@ namespace std
             {
                 swap(other);
                 other.clear();
+
+                return *this;
             }
 
             deque& operator=(initializer_list<T> init)
@@ -576,13 +578,15 @@ namespace std
             {
                 if (sz <= size_)
                 {
-                    for (size_type i = 0; i < size_ - sz; ++i)
+                    auto count = size_ - sz;
+                    for (size_type i = 0; i < count; ++i)
                         pop_back();
                 }
                 else
                 {
                     value_type value{};
-                    for (size_type i = 0; i < sz - size_; ++i)
+                    auto count = sz - size_;
+                    for (size_type i = 0; i < count; ++i)
                         push_back(value);
                 }
             }
@@ -591,12 +595,14 @@ namespace std
             {
                 if (sz <= size_)
                 {
-                    for (size_type i = 0; i < size_ - sz; ++i)
+                    auto count = size_ - sz;
+                    for (size_type i = 0; i < count; ++i)
                         pop_back();
                 }
                 else
                 {
-                    for (size_type i = 0; i < sz - size_; ++i)
+                    auto count = sz - size_;
+                    for (size_type i = 0; i < count; ++i)
                         push_back(value);
                 }
             }
@@ -781,8 +787,8 @@ namespace std
             {
                 return insert(
                     position,
-                    aux::insert_iterator{0u, value},
-                    aux::insert_iterator{n}
+                    aux::insert_iterator<int>{0u, value},
+                    aux::insert_iterator<int>{n}
                 );
             }
 

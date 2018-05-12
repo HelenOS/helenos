@@ -131,7 +131,7 @@ namespace std
         else
         {
             diff_t diff{};
-            while (++first != last)
+            while (first++ != last)
                 ++diff;
 
             return diff;
