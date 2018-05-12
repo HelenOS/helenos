@@ -563,7 +563,8 @@ namespace std
     inline constexpr bool is_trivially_copyable_v = is_trivially_copyable<T>::value;
 
     template<class T>
-    struct is_standard_layout;
+    struct is_standard_layout: aux::value_is<bool, __is_standard_layout(T)>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_pod: aux::value_is<bool, __is_pod(T)>
@@ -668,25 +669,47 @@ namespace std
     inline constexpr bool is_constructible_v = is_constructible<T, Args...>::value;
 
     template<class T>
-    struct is_default_constructible;
+    struct is_default_constructible
+        : is_constructible<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_copy_constructible;
+    struct is_copy_constructible
+        : is_constructible<T, add_lvalue_reference<const T>>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_move_constructible;
+    struct is_move_constructible
+        : is_constructible<T, add_rvalue_reference<T>>
+    { /* DUMMY BODY */ };
+
+    template<class T, class U, class = void>
+    struct is_assignable: false_type
+    { /* DUMMY BODY */ };
 
     template<class T, class U>
-    struct is_assignable;
+    struct is_assignable<T, U, void_t<decltype(declval<T>() = declval<U>())>>
+        : true_type
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_copy_assignable;
+    struct is_copy_assignable
+        : is_assignable<add_lvalue_reference_t<T>, add_lvalue_reference_t<const T>>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_move_assignable;
+    struct is_move_assignable
+        : is_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>>
+    { /* DUMMY BODY */ };
+
+    template<class, class = void>
+    struct is_destructible: false_type
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_destructible;
+    struct is_destructible<T, void_t<decltype(declval<T&>().~T())>>
+        : true_type
+    { /* DUMMY BODY */ };
 
     template<class T, class... Args>
     struct is_trivially_constructible: aux::value_is<bool, __has_trivial_constructor(T)>
@@ -696,7 +719,9 @@ namespace std
     inline constexpr bool is_trivially_constructible_v = is_trivially_constructible<T>::value;
 
     template<class T>
-    struct is_trivially_default_constructible;
+    struct is_trivially_default_constructible
+        : is_trivially_constructible<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_trivially_copy_constructible: aux::value_is<bool, __has_trivial_copy(T)>
@@ -706,20 +731,26 @@ namespace std
     inline constexpr bool is_trivially_copy_constructible_v = is_trivially_copy_constructible<T>::value;
 
     template<class T>
-    struct is_trivially_move_constructible;
+    struct is_trivially_move_constructible
+        : is_trivially_constructible<T, add_rvalue_reference_t<T>>
+    { /* DUMMY BODY */ };
 
     template<class T, class U>
-    struct is_trivially_assignable: aux::value_is<bool, __has_trivial_assign(T)>
+    struct is_trivially_assignable: aux::value_is<bool, __has_trivial_assign(T) && is_assignable<T, U>::value>
     { /* DUMMY BODY */ };
 
     template<class T, class U>
     inline constexpr bool is_trivially_assignable_v = is_trivially_assignable<T, U>::value;
 
     template<class T>
-    struct is_trivially_copy_assignable;
+    struct is_trivially_copy_assignable
+        : is_trivially_assignable<add_lvalue_reference_t<T>, add_lvalue_reference_t<const T>>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_trivially_move_assignable;
+    struct is_trivially_move_assignable
+        : is_trivially_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_trivially_destructible: aux::value_is<bool, __has_trivial_destructor(T)>
@@ -736,7 +767,9 @@ namespace std
     inline constexpr bool is_nothrow_constructible_v = is_nothrow_constructible<T>::value;
 
     template<class T>
-    struct is_nothrow_default_constructible;
+    struct is_nothrow_default_constructible
+        : is_nothrow_constructible<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct is_nothrow_copy_constructible: aux::value_is<bool, __has_nothrow_copy(T)>
@@ -746,7 +779,9 @@ namespace std
     inline constexpr bool is_nothrow_copy_constructible_v = is_nothrow_copy_constructible<T>::value;
 
     template<class T>
-    struct is_nothrow_move_constructible;
+    struct is_nothrow_move_constructible
+        : is_nothrow_constructible<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>>
+    { /* DUMMY BODY */ };
 
     template<class T, class U>
     struct is_nothrow_assignable: aux::value_is<bool, __has_nothrow_assign(T)>
@@ -756,13 +791,23 @@ namespace std
     inline constexpr bool is_nothrow_assignable_v = is_nothrow_assignable<T, U>::value;
 
     template<class T>
-    struct is_nothrow_copy_assignable;
+    struct is_nothrow_copy_assignable
+        : is_nothrow_assignable<add_lvalue_reference_t<T>, add_lvalue_reference_t<const T>>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_nothrow_move_assignable;
+    struct is_nothrow_move_assignable
+        : is_nothrow_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>>
+    { /* DUMMY BODY */ };
+
+    template<class, class = void>
+    struct is_nothrow_destructible: false_type
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct is_nothrow_destructible;
+    struct is_nothrow_destructible<T, void_t<decltype(declval<T&>().~T())>>
+        : aux::value_is<bool, noexcept(declval<T&>().~T())>
+    { /* DUMMY BODY */ };
 
     template<class T>
     struct has_virtual_destructor: aux::value_is<bool, __has_virtual_destructor(T)>
@@ -776,7 +821,8 @@ namespace std
      */
 
     template<class T>
-    struct alignment_of;
+    struct alignment_of: aux::value_is<std::size_t, alignof(T)>
+    { /* DUMMY BODY */ };
 
     template<class>
     struct rank : aux::value_is<size_t, 0u>
@@ -793,8 +839,25 @@ namespace std
     template<class T>
     inline constexpr size_t rank_v = rank<T>::value;
 
-    template<class T, unsigned I = 0>
-    struct extent;
+    template<class T, unsigned I = 0U>
+    struct extent: aux::value_is<size_t, 0U>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct extent<T[], 0U>: aux::value_is<size_t, 0U>
+    { /* DUMMY BODY */ };
+
+    template<class T, unsigned I>
+    struct extent<T[], I>: extent<T, I - 1>
+    { /* DUMMY BODY */ };
+
+    template<class T, size_t N>
+    struct extent<T[N], 0U>: aux::value_is<size_t, 0U>
+    { /* DUMMY BODY */ };
+
+    template<class T, unsigned I, size_t N>
+    struct extent<T[N], I>: extent<T, I - 1>
+    { /* DUMMY BODY */ };
 
     /**
      * 20.10.6, type relations:
@@ -925,7 +988,16 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct remove_all_extents;
+    struct remove_all_extents: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<class T>
+    struct remove_all_extents<T[]>: remove_all_extents<T>
+    { /* DUMMY BODY */ };
+
+    template<class T, size_t N>
+    struct remove_all_extents<T[N]>: remove_all_extents<T>
+    { /* DUMMY BODY */ };
 
     template<class T>
     using remove_extent_t = typename remove_extent<T>::type;
@@ -957,8 +1029,30 @@ namespace std
     struct remove_pointer<T* const volatile>: aux::type_is<T>
     { /* DUMMY BODY */ };
 
+    namespace aux
+    {
+        template<class T>
+        struct add_pointer_to_function: type_is<T>
+        { /* DUMMY BODY */ };
+
+        template<class T, class... Args>
+        struct add_pointer_to_function<T(Args...)>
+            : type_is<T(*)(Args...)>
+        { /* DUMMY BODY */ };
+
+        template<class T, bool = false>
+        struct add_pointer_cond: aux::type_is<remove_reference_t<T>*>
+        { /* DUMMY BODY */ };
+
+        template<class T>
+        struct add_pointer_cond<T, true>
+            : aux::add_pointer_to_function<T>
+        { /* DUMMY BODY */ };
+    }
+
     template<class T>
-    struct add_pointer;
+    struct add_pointer: aux::add_pointer_cond<T, is_function_v<T>>
+    { /* DUMMY BODY */ };
 
     template<class T>
     using remove_pointer_t = typename remove_pointer<T>::type;
@@ -970,17 +1064,68 @@ namespace std
      * 20.10.7.6, other transformations:
      */
 
+    namespace aux
+    {
+        template<size_t Len, size_t Align>
+        struct aligned_t
+        {
+            alignas(Align) uint8_t storage[Len];
+        };
+
+        template<class T>
+        constexpr T max_of_cont(T cont)
+        {
+            if (cont.size() == 0U)
+                return T{};
+
+            auto it = cont.begin();
+            auto res = *it;
+
+            while (++it != cont.end())
+            {
+                if (*it > res)
+                    res = *it;
+            }
+
+            return res;
+        }
+    }
+
     // TODO: consult standard on the default value of align
     template<std::size_t Len, std::size_t Align = 0>
-    struct aligned_storage;
+    struct aligned_storage: aux::type_is<aux::aligned_t<Len, Align>>
+    { /* DUMMY BODY */ };
 
     template<std::size_t Len, class... Types>
-    struct aligned_union;
+    struct aligned_union: aux::type_is<
+        aux::aligned_t<
+            aux::max_of_cont({Len, alignof(Types)...}),
+            aux::max_of_cont({alignof(Types)...})
+        >
+    >
+    { /* DUMMY BODY */ };
 
 	// TODO: this is very basic implementation for chrono, fix!
+    /* template<class T> */
+    /* struct decay: aux::type_is<remove_cv_t<remove_reference_t<T>>> */
+	/* { /1* DUMMY BODY *1/ }; */
+
+    template<bool, class, class>
+    struct conditional;
+
     template<class T>
-    struct decay: aux::type_is<remove_cv_t<remove_reference_t<T>>>
-	{ /* DUMMY BODY */ };
+    struct decay: aux::type_is<
+        typename conditional<
+            is_array_v<remove_reference_t<T>>,
+            remove_extent_t<remove_reference_t<T>>*,
+            typename conditional<
+                is_function_v<remove_reference_t<T>>,
+                add_pointer_t<remove_reference_t<T>>,
+                remove_cv_t<remove_reference_t<T>>
+            >::type
+        >::type
+    >
+    { /* DUMMY BODY */ };
 
 	template<class T>
     using decay_t = typename decay<T>::type;
