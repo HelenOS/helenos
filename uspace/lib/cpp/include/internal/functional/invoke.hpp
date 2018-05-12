@@ -31,7 +31,18 @@
 
 #include <internal/utility/declval.hpp>
 #include <internal/utility/forward_move.hpp>
-#include <type_traits>
+
+namespace std
+{
+    template<class>
+    struct is_member_function_pointer;
+
+    template<class, class>
+    struct is_base_of;
+
+    template<class>
+    struct is_member_object_pointer;
+}
 
 namespace std::aux
 {
@@ -42,22 +53,22 @@ namespace std::aux
     template<class R, class T, class T1, class... Ts>
     decltype(auto) invoke(R T::* f, T1&& t1, Ts&&... args)
     {
-        if constexpr (is_member_function_pointer_v<decltype(f)>)
+        if constexpr (is_member_function_pointer<decltype(f)>::value)
         {
-            if constexpr (is_base_of_v<T, remove_reference_t<T1>>)
+            if constexpr (is_base_of<T, remove_reference_t<T1>>::value)
                 // (1.1)
                 return (t1.*f)(forward<Ts>(args)...);
             else
                 // (1.2)
                 return ((*t1).*f)(forward<Ts>(args)...);
         }
-        else if constexpr (is_member_object_pointer_v<decltype(f)> && sizeof...(args) == 0)
+        else if constexpr (is_member_object_pointer<decltype(f)>::value && sizeof...(args) == 0)
         {
             /**
              * Note: Standard requires to N be equal to 1, but we take t1 directly
              *       so we need sizeof...(args) to be 0.
              */
-            if constexpr (is_base_of_v<T, remove_reference_t<T1>>)
+            if constexpr (is_base_of<T, remove_reference_t<T1>>::value)
                 // (1.3)
                 return t1.*f;
             else
@@ -72,7 +83,7 @@ namespace std::aux
          *       prohibits us from simply using false as the condition here,
          *       so we use this because we know it is false here.
          */
-        static_assert(is_member_function_pointer_v<decltype(f)>, "invalid invoke");
+        static_assert(is_member_function_pointer<decltype(f)>::value, "invalid invoke");
     }
 
     template<class F, class... Args>

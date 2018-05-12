@@ -29,8 +29,16 @@
 #ifndef LIBCPP_INTERNAL_FUNCTIONAL_HASH
 #define LIBCPP_INTERNAL_FUNCTIONAL_HASH
 
+#include <cstdlib>
+
 namespace std
 {
+    template<class>
+    struct is_arithmetic;
+
+    template<class>
+    struct is_pointer;
+
     /**
      * 20.9.13, hash function primary template:
      */
@@ -63,7 +71,7 @@ namespace std
         template<class T>
         size_t hash(T x) noexcept
         {
-            static_assert(is_arithmetic_v<T> || is_pointer_v<T>,
+            static_assert(is_arithmetic<T>::value || is_pointer<T>::value,
                           "invalid type passed to aux::hash");
 
             converter<T> conv;
