@@ -51,6 +51,7 @@ namespace std
      * does not include cstdlib.
      */
     extern "C" void abort(void) __attribute__((noreturn));
+    extern "C" int printf(const char*, ...);
 
     namespace aux
     {
