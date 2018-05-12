@@ -13,24 +13,41 @@ usage()
 	exit 1
 }
 
-
-if [ "$1" = "--" ]; then
-	usage
-elif [ "$#" -eq 1 ]  || [ "$2" = "--" ]; then
-	pattern="$1"
-	shift
-	git grep -I -n "$pattern" "$@"
-elif [ "$#" -eq 2 ] || [ "$3" = "--" ]; then
-
+check_unstaged()
+{
 	if ( git status --porcelain | grep '^.[^ ]' ); then
 		echo "You have unstaged changes in your tree."
 		echo "Either stage them with 'git add', commit them,"
 		echo "or discard them with 'git checkout -- .'"
 		exit 1
 	fi
+}
 
-	pattern="$1"
-	replacement="$2"
+_slashify()
+{
+	# Some shells have shoddy handling of backslashes in echo.
+	printf '%s\n' "$1" | sed 's/\([^\\]\)\//\1\\\//g'
+}
+
+if [ "$1" = "--" ]; then
+	usage
+elif [ "$1" = "-d" ]; then
+	check_unstaged
+
+	pattern=`_slashify "$2"`
+	shift
+	shift
+	git grep -I -l "$pattern" "$@" | xargs sed -i "/$pattern/d"
+
+elif [ "$#" -eq 1 ]  || [ "$2" = "--" ]; then
+	pattern=`_slashify "$1"`
+	shift
+	git grep -I -n "$pattern" "$@"
+elif [ "$#" -eq 2 ] || [ "$3" = "--" ]; then
+	check_unstaged
+
+	pattern=`_slashify "$1"`
+	replacement=`_slashify "$2"`
 	shift
 	shift
 	git grep -I -l "$pattern" "$@" | xargs sed -i "s/$pattern/$replacement/g"
