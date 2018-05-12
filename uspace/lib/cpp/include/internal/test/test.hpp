@@ -31,6 +31,7 @@
 
 #include <utility>
 #include <iterator>
+#include <type_traits>
 
 namespace std::test
 {
@@ -82,7 +83,14 @@ namespace std::test
             bool assert_eq(Iterator1 first1, Iterator1 last1,
                            Iterator2 first2, Iterator2 last2)
             {
-                if (std::distance(first1, last1) != std::distance(first2, last2))
+                auto len1 = std::distance(first1, last1);
+                auto len2 = std::distance(first2, last2);
+
+                using common_t = std::common_type_t<decltype(len1), decltype(len2)>;
+                auto len1_common = static_cast<common_t>(len1);
+                auto len2_common = static_cast<common_t>(len2);
+
+                if (len1_common != len2_common)
                     return false;
 
                 while (first1 != last1)

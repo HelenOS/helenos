@@ -137,6 +137,19 @@ namespace std::test
             void test_strings();
             void test_operations();
     };
+
+    class deque_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+
+        private:
+            void test_constructors_and_assignment();
+            void test_resizing();
+            void test_push_pop();
+            void test_operations();
+    };
 }
 
 #endif
