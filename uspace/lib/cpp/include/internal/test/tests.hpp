@@ -150,6 +150,19 @@ namespace std::test
             void test_push_pop();
             void test_operations();
     };
+
+    class tuple_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+
+        private:
+            void test_constructors_and_assignment();
+            void test_creation();
+            void test_tie_and_structured_bindings();
+            void test_tuple_ops();
+    };
 }
 
 #endif

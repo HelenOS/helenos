@@ -59,6 +59,7 @@ SOURCES = \
 	src/internal/test/deque.cpp \
 	src/internal/test/vector.cpp \
 	src/internal/test/string.cpp \
-	src/internal/test/test.cpp
+	src/internal/test/test.cpp \
+	src/internal/test/tuple.cpp
 
 include $(USPACE_PREFIX)/Makefile.common
