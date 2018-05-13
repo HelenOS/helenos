@@ -257,7 +257,7 @@ namespace std::aux
                 return size_type{};
 
             size_type res{};
-            while (tree.keys_equal(tree.get_key(*it), key))
+            while (it != tree.end() && tree.keys_equal(tree.get_key(*it), key))
             {
                 ++res;
                 ++it;
@@ -383,7 +383,7 @@ namespace std::aux
         {
             using node_type  = typename Tree::node_type;
 
-            auto node = node_type{forward<Args>(args)...};
+            auto node = new node_type{forward<Args>(args)...};
 
             return insert(tree, node);
         }
