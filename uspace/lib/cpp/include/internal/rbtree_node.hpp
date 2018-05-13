@@ -400,6 +400,16 @@ namespace std::aux
                 return nullptr;
             }
 
+            rbtree_single_node* get_end()
+            {
+                return this;
+            }
+
+            const rbtree_single_node* get_end() const
+            {
+                return this;
+            }
+
             ~rbtree_single_node()
             {
                 parent_ = nullptr;
@@ -427,8 +437,10 @@ namespace std::aux
             template<class... Args>
             rbtree_multi_node(Args&&... args)
                 : value{forward<Args>(args)...}, color{rbcolor::red},
-                  parent_{}, left_{}, right_{}, next_{}, first_{this}
-            { /* DUMMY BODY */ }
+                  parent_{}, left_{}, right_{}, next_{}, first_{}
+            {
+                first_ = this;
+            }
 
             rbtree_multi_node* parent() const
             {
@@ -614,12 +626,33 @@ namespace std::aux
                 }
             }
 
+            rbtree_multi_node* get_end()
+            {
+                return const_cast<rbtree_multi_node*>(
+                    const_cast<const rbtree_multi_node*>(this)->get_end()
+                );
+            }
+
+            const rbtree_multi_node* get_end() const
+            {
+                if (!next_)
+                    return this;
+                else
+                {
+                    auto tmp = next_;
+                    while (tmp->next_)
+                        tmp = tmp->next_;
+
+                    return tmp;
+                }
+            }
+
             ~rbtree_multi_node()
             {
                 parent_ = nullptr;
                 if (left_)
                     delete left_;
-                if (right)
+                if (right_)
                     delete right_;
 
                 // TODO: delete the list

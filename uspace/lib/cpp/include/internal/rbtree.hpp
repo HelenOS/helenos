@@ -124,7 +124,16 @@ namespace std::aux
 
             iterator end()
             {
-                return iterator{find_largest_(), true};
+                /**
+                 * In case we have lists of nodes
+                 * we need to get the actual end
+                 * from the largest node.
+                 */
+                auto res = find_largest_();
+                if (res)
+                    return iterator{res->get_end(), true};
+                else
+                    return iterator{res, true};
             }
 
             const_iterator end() const
@@ -159,7 +168,11 @@ namespace std::aux
 
             const_iterator cend() const
             {
-                return const_iterator{find_largest_(), true};
+                auto res = find_largest_();
+                if (res)
+                    return const_iterator{res->get_end(), true};
+                else
+                    return const_iterator{res, true};
             }
 
             const_reverse_iterator crbegin() const
