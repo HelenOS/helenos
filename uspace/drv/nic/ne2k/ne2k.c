@@ -286,6 +286,33 @@ static errno_t ne2k_set_address(ddf_fun_t *fun, const nic_address_t *address)
 	return EOK;
 }
 
+static errno_t ne2k_get_device_info(ddf_fun_t *fun, nic_device_info_t *info)
+{
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
+	if (!nic_data)
+		return ENOENT;
+
+	str_cpy(info->vendor_name, sizeof(info->vendor_name), "Novell");
+	str_cpy(info->model_name, sizeof(info->model_name), "NE2000");
+
+	return EOK;
+}
+
+static errno_t ne2k_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
+{
+	*state = NIC_CS_PLUGGED;
+	return EOK;
+}
+
+static errno_t ne2k_get_operation_mode(ddf_fun_t *fun, int *speed,
+    nic_channel_mode_t *duplex, nic_role_t *role)
+{
+	*speed = 10;
+	*duplex = NIC_CM_HALF_DUPLEX;	// XXX
+	*role = NIC_ROLE_UNKNOWN;
+	return EOK;
+}
+
 static errno_t ne2k_on_unicast_mode_change(nic_t *nic_data,
     nic_unicast_mode_t new_mode,
     const nic_address_t *address_list, size_t address_count)
@@ -426,7 +453,10 @@ static errno_t ne2k_dev_add(ddf_dev_t *dev)
 }
 
 static nic_iface_t ne2k_nic_iface = {
-	.set_address = ne2k_set_address
+	.set_address = ne2k_set_address,
+	.get_device_info = ne2k_get_device_info,
+	.get_cable_state = ne2k_get_cable_state,
+	.get_operation_mode = ne2k_get_operation_mode,
 };
 
 static driver_ops_t ne2k_driver_ops = {
