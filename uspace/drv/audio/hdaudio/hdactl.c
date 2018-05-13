@@ -222,8 +222,10 @@ static errno_t hda_corb_init(hda_t *hda)
 	ddf_msg(LVL_NOTE, "CORB initialized");
 	return EOK;
 error:
-	if (hda->ctl->corb_virt != NULL)
+	if (hda->ctl->corb_virt != NULL) {
 		dmamem_unmap_anonymous(&hda->ctl->corb_virt);
+		hda->ctl->corb_virt = NULL;
+	}
 	return EIO;
 }
 
@@ -315,8 +317,10 @@ static errno_t hda_rirb_init(hda_t *hda)
 	ddf_msg(LVL_NOTE, "RIRB initialized");
 	return EOK;
 error:
-	if (hda->ctl->rirb_virt != NULL)
+	if (hda->ctl->rirb_virt != NULL) {
 		dmamem_unmap_anonymous(&hda->ctl->rirb_virt);
+		hda->ctl->rirb_virt = NULL;
+	}
 	return EIO;
 }
 
