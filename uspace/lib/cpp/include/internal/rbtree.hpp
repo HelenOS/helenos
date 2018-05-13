@@ -40,7 +40,7 @@ namespace std::aux
         class Value, class Key, class KeyExtractor,
         class KeyComp, class Alloc, class Size,
         class Iterator, class ConstIterator,
-        class Policy
+        class Policy, class Node
     >
     class rbtree
     {
@@ -52,13 +52,13 @@ namespace std::aux
             using key_compare    = KeyComp;
             using key_extract    = KeyExtractor;
 
-            using iterator             = Iterator;
-            using const_iterator       = ConstIterator;
+            using iterator       = Iterator;
+            using const_iterator = ConstIterator;
 
             using reverse_iterator       = std::reverse_iterator<iterator>;
             using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-            using node_type = rbtree_node<value_type>;
+            using node_type = Node;
 
             rbtree(const key_compare& kcmp = key_compare{})
                 : root_{nullptr}, size_{}, key_compare_{},
@@ -99,7 +99,7 @@ namespace std::aux
 
             bool empty() const noexcept
             {
-                return size_;
+                return size_ == 0U;
             }
 
             size_type size() const noexcept
@@ -201,7 +201,10 @@ namespace std::aux
                 auto node = const_cast<node_type*>(it.node());
 
                 node = delete_node(node);
-                return iterator{const_cast<node_type*>(node), node == nullptr};
+                if (!node)
+                    return iterator{find_largest_(), true};
+                else
+                    return iterator{const_cast<node_type*>(node), false};
             }
 
             void clear() noexcept
@@ -321,9 +324,9 @@ namespace std::aux
                 {
                     parent = current;
                     if (key_compare_(key, key_extractor_(current->value)))
-                        current = current->left;
+                        current = current->left();
                     else if (key_compare_(key_extractor_(current->value), key))
-                        current = current->right;
+                        current = current->right();
                     else
                         return current;
                 }
@@ -336,21 +339,45 @@ namespace std::aux
                 auto node = const_cast<node_type*>(n);
                 if (!node)
                     return nullptr;
-
-                --size_;
-
-                auto succ = node->successor();
-                if (node->left && node->right)
+                if (auto tmp = node->get_node_for_deletion(); tmp != nullptr)
                 {
-                    node->swap(succ);
-
-                    // Succ has at most one child.
-                    delete_node(succ);
+                    /**
+                     * This will kick in multi containers,
+                     * we popped one node from a list of nodes
+                     * with equivalent keys and we can delete it
+                     * and return the original as it is still
+                     * in place.
+                     */
+                    delete tmp;
 
                     return node;
                 }
 
-                auto child = node->right ? node->right : node->left;
+                --size_;
+
+                if (node == root_)
+                {
+                    delete node;
+                    root_ = nullptr;
+
+                    return nullptr;
+                }
+
+                auto succ = node->successor();
+                if (node->left() && node->right())
+                {
+                    node->swap(succ);
+                    if (succ && !succ->parent())
+                        root_ = succ;
+
+                    // Node now has at most one child.
+                    // Also: If succ was nullptr, the swap
+                    //       didn't do anything and we can
+                    //       safely delete node.
+                    return delete_node(node);
+                }
+
+                auto child = node->right() ? node->right() : node->left();
                 if (!child)
                 {
                     // Simply remove the node.
@@ -361,11 +388,11 @@ namespace std::aux
                 else
                 {
                     // Replace with the child.
-                    child->parent = node->parent;
+                    child->parent(node->parent());
                     if (node->is_left_child())
-                        child->parent->left = child;
+                        child->parent()->left(child);
                     else if (node->is_right_child())
-                        child->parent->right = child;
+                        child->parent()->right(child);
 
                     // Repair if needed.
                     repair_after_erase_(node, child);
@@ -379,25 +406,7 @@ namespace std::aux
 
             void insert_node(node_type* node, node_type* parent)
             {
-                if (!node)
-                    return;
-
-                ++size_;
-                if (!parent)
-                {
-                    node->color = rbcolor::black;
-                    root_ = node;
-                }
-                else
-                {
-                    if (keys_comp(get_key(node->value), parent->value))
-                        parent->add_left_child(node);
-                    else
-                        parent->add_right_child(node);
-
-                    repair_after_insert_(node);
-                    update_root_(node);
-                }
+                Policy::insert(*this, node, parent);
             }
 
         private:
@@ -412,9 +421,9 @@ namespace std::aux
                 while (current != nullptr)
                 {
                     if (key_compare_(key, key_extractor_(current->value)))
-                        current = current->left;
+                        current = current->left();
                     else if (key_compare_(key_extractor_(current->value), key))
-                        current = current->right;
+                        current = current->right();
                     else
                         return current;
                 }
@@ -444,8 +453,8 @@ namespace std::aux
                     return;
 
                 root_ = const_cast<node_type*>(node);
-                while (root_->parent)
-                    root_ = root_->parent;
+                while (root_->parent())
+                    root_ = root_->parent();
             }
 
             void repair_after_insert_(const node_type* node)

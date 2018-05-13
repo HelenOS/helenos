@@ -58,11 +58,12 @@ namespace std::aux
         template<class Tree, class Key>
         static typename Tree::iterator lower_bound(const Tree& tree, const Key& key)
         {
-            using iterator = typename Tree::iterator;
+            using iterator  = typename Tree::iterator;
+            using node_type = typename Tree::node_type;
 
             auto it = lower_bound_const(tree, key);
 
-            return iterator{it.node(), it.end()};
+            return iterator{const_cast<node_type*>(it.node()), it.end()};
         }
 
         template<class Tree, class Key>
@@ -100,11 +101,12 @@ namespace std::aux
         template<class Tree, class Key>
         static typename Tree::iterator upper_bound(const Tree& tree, const Key& key)
         {
-            using iterator = typename Tree::iterator;
+            using iterator  = typename Tree::iterator;
+            using node_type = typename Tree::node_type;
 
             auto it = upper_bound_const(tree, key);
 
-            return iterator{it.node(), it.end()};
+            return iterator{const_cast<node_type*>(it.node()), it.end()};
         }
 
         template<class Tree, class Key>
@@ -112,20 +114,16 @@ namespace std::aux
         {
             /**
              * If key isn't in the tree, we get it's
-             * successor or tree.end(). If key is
-             * in the tree, we get it.
-             * In the first case, the successor is also
-             * the upper bound, so we just return it,
-             * otherwise (as long as it != end()) we
-             * increment.
+             * predecessor or tree.end(). If key is
+             * in the tree, we get it. So unless it
+             * is equal to end(), we can increment it
+             * to get the upper bound.
              */
             auto it = lower_bound_const(tree, key);
             if (it == tree.end())
                 return it;
-            else if (tree.keys_equal(key, *it))
-                return ++it;
             else
-                return it;
+                return ++it;
         }
 
         template<class Tree, class Key>
@@ -175,9 +173,8 @@ namespace std::aux
                 return make_pair(iterator{parent, false}, false);
 
             auto node = new node_type{move(val)};
-            tree.insert_node(node, parent);
 
-            return make_pair(iterator{node, false}, true);
+            return insert(tree, node, parent);
         }
 
         template<class Tree, class Value>
@@ -193,9 +190,8 @@ namespace std::aux
                 return make_pair(iterator{parent, false}, false);
 
             auto node = new node_type{val};
-            tree.insert_node(node, parent);
 
-            return make_pair(iterator{node, false}, true);
+            return insert(tree, node, parent);
         }
 
         template<class Tree, class Value>
@@ -211,7 +207,39 @@ namespace std::aux
                 return make_pair(iterator{parent, false}, false);
 
             auto node = new node_type{forward<Value>(val)};
-            tree.insert_node(node, parent);
+
+            return insert(tree, node, parent);
+        }
+
+        template<class Tree>
+        static pair<
+            typename Tree::iterator, bool
+        > insert(
+            Tree& tree, typename Tree::node_type* node,
+            typename Tree::node_type* parent
+        )
+        {
+            using iterator  = typename Tree::iterator;
+
+            if (!node)
+                return make_pair(tree.end(), false);
+
+            ++tree.size_;
+            if (!parent)
+            {
+                node->color = rbcolor::black;
+                tree.root_ = node;
+            }
+            else
+            {
+                if (tree.keys_comp(tree.get_key(node->value), parent->value))
+                    parent->add_left_child(node);
+                else
+                    parent->add_right_child(node);
+
+                tree.repair_after_insert_(node);
+                tree.update_root_(node);
+            }
 
             return make_pair(iterator{node, false}, true);
         }
@@ -307,19 +335,17 @@ namespace std::aux
         {
             /**
              * If key isn't in the tree, we get it's
-             * successor or tree.end(). If key is
-             * in the tree, we get it.
-             * In the first case, the successor is also
-             * the upper bound, so we just return it,
-             * otherwise (as long as it != end()) we
-             * increment.
+             * predecessor or tree.end(). If key is
+             * in the tree, we get it. So unless it
+             * is equal to end(), we keep incrementing
+             * until we get to the next key.
              */
             auto it = lower_bound(tree, key);
             if (it == tree.end())
                 return it;
             else if (tree.keys_equal(tree.get_key(*it), key))
             {
-                while (tree.keys_equal(tree.get_key(*it), key))
+                while (it != tree.end() && tree.keys_equal(tree.get_key(*it), key))
                     ++it;
 
                 return it;
@@ -383,12 +409,41 @@ namespace std::aux
         }
 
         template<class Tree>
-        static typename Tree::iterator insert(Tree& tree, typename Tree::node_type* node)
+        static typename Tree::iterator insert(
+            Tree& tree, typename Tree::node_type* node,
+            typename Tree::node_type* = nullptr
+        )
         {
             using iterator  = typename Tree::iterator;
 
+            if (!node)
+                return tree.end();
+
             auto parent = tree.find_parent_for_insertion(tree.get_key(node->value));
-            tree.insert_node(node, parent);
+
+            ++tree.size_;
+            if (!parent)
+            {
+                node->color = rbcolor::black;
+                tree.root_ = node;
+            }
+            else
+            {
+                if (tree.keys_comp(tree.get_key(node->value), parent->value))
+                    parent->add_left_child(node);
+                else if (tree.keys_comp(tree.get_key(parent->value), node->value))
+                    parent->add_right_child(node);
+                else
+                {
+                    parent->add(node); // List of nodes with equivalent keys.
+                    tree.update_root_(parent);
+
+                    return iterator{node, false};
+                }
+
+                tree.repair_after_insert_(node);
+                tree.update_root_(node);
+            }
 
             return iterator{node, false};
         }

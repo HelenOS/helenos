@@ -29,6 +29,7 @@
 #ifndef LIBCPP_INTERNAL_RBTREE_NODE
 #define LIBCPP_INTERNAL_RBTREE_NODE
 
+#include <cassert>
 #include <utility>
 
 namespace std::aux
@@ -38,167 +39,599 @@ namespace std::aux
         red, black
     };
 
-    template<class T>
-    struct rbtree_node
+    template<class Node>
+    struct rbtree_utils
     {
-        T value;
-        rbcolor color;
-
-        rbtree_node* parent;
-        rbtree_node* left;
-        rbtree_node* right;
-
-        template<class... Args>
-        rbtree_node(Args&&... args)
-            : value{forward<Args>(args)...}, color{rbcolor::red},
-              parent{}, left{}, right{}
-        { /* DUMMY BODY */ }
-
-        rbtree_node* grandparent() const
+        static Node* grandparent(Node* node)
         {
-            if (parent)
-                return parent->parent;
+            if (node && node->parent())
+                return node->parent->parent();
             else
                 return nullptr;
         }
 
-        rbtree_node* brother() const
+        static Node* brother(Node* node)
         {
-            if (parent)
+            if (node && node->parent())
             {
-                if (this == parent->left)
-                    return parent->right;
+                if (node == node->parent->left())
+                    return node->parent->right();
                 else
-                    return parent->left;
+                    return node->parent->left();
             }
             else
                 return nullptr;
         }
 
-        rbtree_node* uncle() const
+        static Node* uncle(Node* node)
         {
-            if (grandparent())
+            auto gp = grandparent(node);
+            if (gp)
             {
-                if (parent == grandparent()->left)
-                    return grandparent()->right;
+                if (node->parent() == gp->left())
+                    return gp->right();
                 else
-                    return grandparent()->left;
+                    return gp->left();
             }
             else
                 return nullptr;
         }
 
-        bool is_left_child() const
+        static bool is_left_child(const Node* node)
         {
-            if (parent)
-                return parent->left == this;
+            if (!node)
+                return false;
+
+            if (node->parent())
+                return node->parent()->left() == node;
             else
                 return false;
         }
 
-        bool is_right_child() const
+        static bool is_right_child(const Node* node)
         {
-            if (parent)
-                return parent->right == this;
+            if (!node)
+                return false;
+
+            if (node->parent())
+                return node->parent()->right() == node;
             else
                 return false;
         }
 
-        void rotate_left()
+        static void rotate_left(Node* node)
         {
-            // TODO:
+            // TODO: implement
         }
 
-        void rotate_right()
+        static void rotate_right(Node* node)
         {
-            // TODO:
+            // TODO: implement
         }
 
-        rbtree_node* find_smallest()
+        static Node* find_smallest(Node* node)
         {
-            auto res = this;
-            while (res->left)
-                res = res->left;
-
-            return res;
+            return const_cast<Node*>(find_smallest(const_cast<const Node*>(node)));
         }
 
-        const rbtree_node* find_smallest() const
+        static const Node* find_smallest(const Node* node)
         {
-            auto res = this;
-            while (res->left)
-                res = res->left;
+            if (!node)
+                return nullptr;
 
-            return res;
+            while (node->left())
+                node = node->left();
+
+            return node;
         }
 
-        rbtree_node* find_largest()
+        static Node* find_largest(Node* node)
         {
-            auto res = this;
-            while (res->right)
-                res = res->right;
-
-            return res;
+            return const_cast<Node*>(find_largest(const_cast<const Node*>(node)));
         }
 
-        const rbtree_node* find_largest() const
+        static const Node* find_largest(const Node* node)
         {
-            auto res = this;
-            while (res->right)
-                res = res->right;
+            if (!node)
+                return nullptr;
 
-            return res;
+            while (node->right())
+                node = node->right();
+
+            return node;
         }
 
-        rbtree_node* successor() const
+        static Node* successor(Node* node)
         {
-            if (right)
-                return right->find_smallest();
+            return const_cast<Node*>(successor(const_cast<const Node*>(node)));
+        }
+
+        static const Node* successor(const Node* node)
+        {
+            if (!node)
+                return nullptr;
+
+            if (node->right())
+                return find_smallest(node->right());
             else
             {
-                auto current = this;
-                while (!current->is_left_child())
-                    current = current->parent;
+                while (node && !is_left_child(node))
+                    node = node->parent();
 
-                return current->parent;
+                if (node)
+                    return node->parent();
+                else
+                    return node;
             }
         }
 
-        void add_left_child(rbtree_node* node)
+        static Node* predecessor(Node* node)
         {
-            if (left)
+            return const_cast<Node*>(predecessor(const_cast<const Node*>(node)));
+        }
+
+        static const Node* predecessor(const Node* node)
+        {
+            if (!node)
+                return nullptr;
+
+            if (node->left())
+                return find_largest(node->left());
+            else
+            {
+                while (node && is_left_child(node))
+                    node = node->parent();
+
+                if (node)
+                    return node->parent();
+                else
+                    return node;
+            }
+        }
+
+        static void add_left_child(Node* node, Node* child)
+        {
+            if (!node || !child)
                 return;
 
-            left = node;
-            node->parent = this;
+            node->left(child);
+            child->parent(node);
         }
 
-        void add_right_child(rbtree_node* node)
+        static void add_right_child(Node* node, Node* child)
         {
-            if (right)
+            if (!node || !child)
                 return;
 
-            right = node;
-            node->parent = this;
+            node->right(child);
+            child->parent(node);
         }
 
-        void swap(rbtree_node* other)
+        static void swap(Node* node1, Node* node2)
         {
-            std::swap(value, other->value);
+            if (!node1 || !node2)
+                return;
+
+            auto parent1 = node1->parent();
+            auto left1 = node1->left();
+            auto right1 = node1->right();
+            auto is_right1 = is_right_child(node1);
+
+            auto parent2 = node2->parent();
+            auto left2 = node2->left();
+            auto right2 = node2->right();
+            auto is_right2 = is_right_child(node2);
+
+            assimilate(node1, parent2, left2, right2, is_right2);
+            assimilate(node2, parent1, left1, right1, is_right1);
         }
 
-        void unlink()
+        static void assimilate(
+            Node* node, Node* p, Node* l, Node* r, bool is_r
+        )
         {
-            if (is_left_child())
-                parent->left = nullptr;
-            else if (is_right_child())
-                parent->right = nullptr;
-        }
+            if (!node)
+                return;
 
-        ~rbtree_node()
-        {
-            // TODO: delete recursively or iteratively?
+            node->parent(p);
+            if (node->parent())
+            {
+                if (is_r)
+                    node->parent()->right(node);
+                else
+                    node->parent()->left(node);
+            }
+
+            node->left(l);
+            if (node->left())
+                node->left()->parent(node);
+
+            node->right(r);
+            if (node->right())
+                node->right()->parent(node);
         }
+    };
+
+    template<class T>
+    struct rbtree_single_node
+    {
+        using utils = rbtree_utils<rbtree_single_node<T>>;
+
+        public:
+            T value;
+            rbcolor color;
+
+            template<class... Args>
+            rbtree_single_node(Args&&... args)
+                : value{forward<Args>(args)...}, color{rbcolor::red},
+                  parent_{}, left_{}, right_{}
+            { /* DUMMY BODY */ }
+
+            rbtree_single_node* parent() const
+            {
+                return parent_;
+            }
+
+            void parent(rbtree_single_node* node)
+            {
+                parent_ = node;
+            }
+
+            rbtree_single_node* left() const
+            {
+                return left_;
+            }
+
+            void left(rbtree_single_node* node)
+            {
+                left_ = node;
+            }
+
+            rbtree_single_node* right() const
+            {
+                return right_;
+            }
+
+            void right(rbtree_single_node* node)
+            {
+                right_ = node;
+            }
+
+            rbtree_single_node* grandparent()
+            {
+                return utils::grandparent(this);
+            }
+
+            rbtree_single_node* brother()
+            {
+                return utils::brother(this);
+            }
+
+            rbtree_single_node* uncle()
+            {
+                return utils::uncle(this);
+            }
+
+            bool is_left_child() const
+            {
+                return utils::is_left_child(this);
+            }
+
+            bool is_right_child() const
+            {
+                return utils::is_right_child(this);
+            }
+
+            void rotate_left()
+            {
+                utils::rotate_left(this);
+            }
+
+            void rotate_right()
+            {
+                utils::rotate_right(this);
+            }
+
+            rbtree_single_node* find_smallest()
+            {
+                return utils::find_smallest(this);
+            }
+
+            const rbtree_single_node* find_smallest() const
+            {
+                return utils::find_smallest(this);
+            }
+
+            rbtree_single_node* find_largest()
+            {
+                return utils::find_largest(this);
+            }
+
+            const rbtree_single_node* find_largest() const
+            {
+                return utils::find_largest(this);
+            }
+
+            rbtree_single_node* successor()
+            {
+                return utils::successor(this);
+            }
+
+            const rbtree_single_node* successor() const
+            {
+                return utils::successor(this);
+            }
+
+            rbtree_single_node* predecessor()
+            {
+                return utils::predecessor(this);
+            }
+
+            const rbtree_single_node* predecessor() const
+            {
+                return utils::predecessor(this);
+            }
+
+            void add_left_child(rbtree_single_node* node)
+            {
+                utils::add_left_child(this, node);
+            }
+
+            void add_right_child(rbtree_single_node* node)
+            {
+                utils::add_right_child(this, node);
+            }
+
+            void swap(rbtree_single_node* other)
+            {
+                utils::swap(this, other);
+            }
+
+            void unlink()
+            {
+                if (is_left_child())
+                    parent_->left_ = nullptr;
+                else if (is_right_child())
+                    parent_->right_ = nullptr;
+            }
+
+            rbtree_single_node* get_node_for_deletion()
+            {
+                return nullptr;
+            }
+
+            ~rbtree_single_node()
+            {
+                parent_ = nullptr;
+                if (left_)
+                    delete left_;
+                if (right_)
+                    delete right_;
+            }
+
+        private:
+            rbtree_single_node* parent_;
+            rbtree_single_node* left_;
+            rbtree_single_node* right_;
+    };
+
+    template<class T>
+    struct rbtree_multi_node
+    {
+        using utils = rbtree_utils<rbtree_multi_node<T>>;
+
+        public:
+            T value;
+            rbcolor color;
+
+            template<class... Args>
+            rbtree_multi_node(Args&&... args)
+                : value{forward<Args>(args)...}, color{rbcolor::red},
+                  parent_{}, left_{}, right_{}, next_{}, first_{this}
+            { /* DUMMY BODY */ }
+
+            rbtree_multi_node* parent() const
+            {
+                return parent_;
+            }
+
+            void parent(rbtree_multi_node* node)
+            {
+                parent_ = node;
+
+                auto tmp = first_;
+                while (tmp)
+                {
+                    tmp->parent_ = node;
+                    tmp = tmp->next_;
+                }
+            }
+
+            rbtree_multi_node* left() const
+            {
+                return left_;
+            }
+
+            void left(rbtree_multi_node* node)
+            {
+                left_ = node;
+
+                auto tmp = first_;
+                while (tmp)
+                {
+                    tmp->left_ = node;
+                    tmp = tmp->next_;
+                }
+            }
+
+            rbtree_multi_node* right() const
+            {
+                return right_;
+            }
+
+            void right(rbtree_multi_node* node)
+            {
+                right_ = node;
+
+                auto tmp = first_;
+                while (tmp)
+                {
+                    tmp->right_ = node;
+                    tmp = tmp->next_;
+                }
+            }
+
+            rbtree_multi_node* grandparent()
+            {
+                return utils::grandparent(this);
+            }
+
+            rbtree_multi_node* brother()
+            {
+                return utils::brother(this);
+            }
+
+            rbtree_multi_node* uncle()
+            {
+                return utils::uncle(this);
+            }
+
+            bool is_left_child() const
+            {
+                return utils::is_left_child(this);
+            }
+
+            bool is_right_child()
+            {
+                return utils::is_right_child(this);
+            }
+
+            void rotate_left()
+            {
+                utils::rotate_left(this);
+            }
+
+            void rotate_right()
+            {
+                utils::rotate_right(this);
+            }
+
+            rbtree_multi_node* find_smallest()
+            {
+                return utils::find_smallest(this);
+            }
+
+            const rbtree_multi_node* find_smallest() const
+            {
+                return utils::find_smallest(this);
+            }
+
+            rbtree_multi_node* find_largest()
+            {
+                return utils::find_largest(this);
+            }
+
+            const rbtree_multi_node* find_largest() const
+            {
+                return utils::find_largest(this);
+            }
+
+            rbtree_multi_node* successor()
+            {
+                return const_cast<
+                    rbtree_multi_node*
+                >(const_cast<const rbtree_multi_node*>(this)->successor());
+            }
+
+            const rbtree_multi_node* successor() const
+            {
+                if (next_)
+                    return next_;
+                else
+                    return utils::successor(this);
+            }
+
+            rbtree_multi_node* predecessor()
+            {
+                return const_cast<
+                    rbtree_multi_node*
+                >(const_cast<const rbtree_multi_node*>(this)->predecessor());
+            }
+
+            const rbtree_multi_node* predecessor() const
+            {
+                return utils::predecessor(this);
+            }
+
+            void add_left_child(rbtree_multi_node* node)
+            {
+                utils::add_left_child(this, node);
+            }
+
+            void add_right_child(rbtree_multi_node* node)
+            {
+                utils::add_right_child(this, node);
+            }
+
+            void swap(rbtree_multi_node* other)
+            {
+                utils::swap(this, other);
+            }
+
+            rbtree_multi_node<T>* get_node_for_deletion()
+            {
+                if (next_)
+                {
+                    auto tmp = next_;
+                    while (tmp && tmp->next_ != this)
+                        tmp = tmp->next_;
+
+                    return tmp; // This will get deleted.
+                }
+                else
+                    return nullptr;
+            }
+
+            void unlink()
+            {
+                if (is_left_child())
+                    parent->left_ = nullptr;
+                else if (is_right_child())
+                    parent->right_ = nullptr;
+            }
+
+            void add(rbtree_multi_node* node)
+            {
+                if (next_)
+                    next_->add(node);
+                else
+                {
+                    next_ = node;
+                    next_->first_ = first_;
+                    next_->parent_ = parent_;
+                    next_->left_ = left_;
+                    next_->right_ = right_;
+                }
+            }
+
+            ~rbtree_multi_node()
+            {
+                parent_ = nullptr;
+                if (left_)
+                    delete left_;
+                if (right)
+                    delete right_;
+
+                // TODO: delete the list
+            }
+
+        private:
+            rbtree_multi_node* parent_;
+            rbtree_multi_node* left_;
+            rbtree_multi_node* right_;
+
+            rbtree_multi_node* next_;
+            rbtree_multi_node* first_;
     };
 }
 

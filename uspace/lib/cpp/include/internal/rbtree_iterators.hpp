@@ -44,7 +44,7 @@ namespace std::aux
      *       iterator).
      */
 
-    template<class Value, class Reference, class Pointer, class Size>
+    template<class Value, class Reference, class Pointer, class Size, class Node>
     class rbtree_iterator
     {
         public:
@@ -56,7 +56,9 @@ namespace std::aux
 
             using iterator_category = bidirectional_iterator_tag;
 
-            rbtree_iterator(rbtree_node<value_type>* current = nullptr, bool end = true)
+            using node_type = Node;
+
+            rbtree_iterator(node_type* current = nullptr, bool end = true)
                 : current_{current}, end_{end}
             { /* DUMMY BODY */ }
 
@@ -77,36 +79,11 @@ namespace std::aux
             {
                 if (current_)
                 {
-                    auto bckp = current_;
-                    if (current_->right)
-                        current_ = current_->right->find_smallest();
+                    auto next = current_->successor();
+                    if (next)
+                        current_ = next;
                     else
-                    {
-                        while (!current_->is_left_child())
-                        {
-                            current_ = current_->parent;
-
-                            if (!current_ || !current_->parent)
-                            {
-                                /**
-                                 * We've gone back to root without
-                                 * being a left child, which means we
-                                 * were the last node.
-                                 */
-                                end_ = true;
-                                current_ = bckp;
-
-                                return *this;
-                            }
-                        }
-
-                        /**
-                         * Now we are a left child,
-                         * so the next node we have to visit
-                         * is our parent.
-                         */
-                        current_ = current_->parent;
-                    }
+                        end_ = true;
                 }
 
                 return *this;
@@ -131,24 +108,10 @@ namespace std::aux
 
                 if (current_)
                 {
-                    if (current_->left)
-                        current_ = current_->left->find_largest();
-                    else if (current_->parent)
-                    {
-                        while (current_->is_left_child())
-                            current_ = current_->parent;
-
-                        /**
-                         * We know parent exists here
-                         * because we went up from the
-                         * left and stopped being left
-                         * child (if at any point we happened
-                         * to become root then this branch
-                         * wouldn't happen).
-                         */
-                        current_ = current_->parent;
-                    }
-                    else // We are root without a left child.
+                    auto next = current_->predecessor();
+                    if (next)
+                        current_ = next;
+                    else
                         end_ = true;
                 }
 
@@ -163,12 +126,12 @@ namespace std::aux
                 return tmp;
             }
 
-            const rbtree_node<value_type>* node() const
+            const node_type* node() const
             {
                 return current_;
             }
 
-            rbtree_node<value_type>* node()
+            node_type* node()
             {
                 return current_;
             }
@@ -179,7 +142,7 @@ namespace std::aux
             }
 
         private:
-            rbtree_node<value_type>* current_;
+            node_type* current_;
             bool end_;
 
             void try_undo_end_()
@@ -196,26 +159,26 @@ namespace std::aux
             }
     };
 
-    template<class Val, class Ref, class Ptr, class Sz>
-    bool operator==(const rbtree_iterator<Val, Ref, Ptr, Sz>& lhs,
-                    const rbtree_iterator<Val, Ref, Ptr, Sz>& rhs)
+    template<class Val, class Ref, class Ptr, class Sz, class N>
+    bool operator==(const rbtree_iterator<Val, Ref, Ptr, Sz, N>& lhs,
+                    const rbtree_iterator<Val, Ref, Ptr, Sz, N>& rhs)
     {
         return (lhs.node() == rhs.node()) && (lhs.end() == rhs.end());
     }
 
-    template<class Val, class Ref, class Ptr, class Sz>
-    bool operator!=(const rbtree_iterator<Val, Ref, Ptr, Sz>& lhs,
-                    const rbtree_iterator<Val, Ref, Ptr, Sz>& rhs)
+    template<class Val, class Ref, class Ptr, class Sz, class N>
+    bool operator!=(const rbtree_iterator<Val, Ref, Ptr, Sz, N>& lhs,
+                    const rbtree_iterator<Val, Ref, Ptr, Sz, N>& rhs)
     {
         return !(lhs == rhs);
     }
 
-    template<class Value, class ConstReference, class ConstPointer, class Size>
+    template<class Value, class ConstReference, class ConstPointer, class Size, class Node>
     class rbtree_const_iterator
     {
         using non_const_iterator_type = rbtree_iterator<
             Value, get_non_const_ref_t<ConstReference>,
-            get_non_const_ptr_t<ConstPointer>, Size
+            get_non_const_ptr_t<ConstPointer>, Size, Node
         >;
 
         public:
@@ -227,7 +190,9 @@ namespace std::aux
 
             using iterator_category = bidirectional_iterator_tag;
 
-            rbtree_const_iterator(const rbtree_node<value_type>* current = nullptr, bool end = true)
+            using node_type = Node;
+
+            rbtree_const_iterator(const node_type* current = nullptr, bool end = true)
                 : current_{current}, end_{end}
             { /* DUMMY BODY */ }
 
@@ -260,36 +225,11 @@ namespace std::aux
             {
                 if (current_)
                 {
-                    auto bckp = current_;
-                    if (current_->right)
-                        current_ = current_->right->find_smallest();
+                    auto next = current_->successor();
+                    if (next)
+                        current_ = next;
                     else
-                    {
-                        while (!current_->is_left_child())
-                        {
-                            current_ = current_->parent;
-
-                            if (!current_->parent)
-                            {
-                                /**
-                                 * We've gone back to root without
-                                 * being a left child, which means we
-                                 * were the last node.
-                                 */
-                                end_ = true;
-                                current_ = bckp;
-
-                                return *this;
-                            }
-                        }
-
-                        /**
-                         * Now we are a left child,
-                         * so the next node we have to visit
-                         * is our parent.
-                         */
-                        current_ = current_->parent;
-                    }
+                        end_ = true;
                 }
 
                 return *this;
@@ -314,25 +254,11 @@ namespace std::aux
 
                 if (current_)
                 {
-                    if (current_->left)
-                        current_ = current_->left->find_largest();
-                    else if (current_->parent)
-                    {
-                        while (current_->is_left_child())
-                            current_ = current_->parent;
-
-                        /**
-                         * We know parent exists here
-                         * because we went up from the
-                         * left and stopped being left
-                         * child (if at any point we happened
-                         * to become root then this branch
-                         * wouldn't happen).
-                         */
-                        current_ = current_->parent;
-                    }
-                    else // We are root without a left child.
-                        current_ = nullptr;
+                    auto next = current_->predecessor();
+                    if (next)
+                        current_ = next;
+                    else
+                        end_ = true;
                 }
 
                 return *this;
@@ -346,7 +272,7 @@ namespace std::aux
                 return tmp;
             }
 
-            const rbtree_node<value_type>* node() const
+            const node_type* node() const
             {
                 return current_;
             }
@@ -357,7 +283,7 @@ namespace std::aux
             }
 
         private:
-            const rbtree_node<value_type>* current_;
+            const node_type* current_;
             bool end_;
 
             void try_undo_end_()
@@ -374,44 +300,44 @@ namespace std::aux
             }
     };
 
-    template<class Val, class CRef, class CPtr, class Sz>
-    bool operator==(const rbtree_const_iterator<Val, CRef, CPtr, Sz>& lhs,
-                    const rbtree_const_iterator<Val, CRef, CPtr, Sz>& rhs)
+    template<class Val, class CRef, class CPtr, class Sz, class N>
+    bool operator==(const rbtree_const_iterator<Val, CRef, CPtr, Sz, N>& lhs,
+                    const rbtree_const_iterator<Val, CRef, CPtr, Sz, N>& rhs)
     {
         return (lhs.node() == rhs.node()) && (lhs.end() == rhs.end());
     }
 
-    template<class Val, class CRef, class CPtr, class Sz>
-    bool operator!=(const rbtree_const_iterator<Val, CRef, CPtr, Sz>& lhs,
-                    const rbtree_const_iterator<Val, CRef, CPtr, Sz>& rhs)
+    template<class Val, class CRef, class CPtr, class Sz, class N>
+    bool operator!=(const rbtree_const_iterator<Val, CRef, CPtr, Sz, N>& lhs,
+                    const rbtree_const_iterator<Val, CRef, CPtr, Sz, N>& rhs)
     {
         return !(lhs == rhs);
     }
 
-    template<class Val, class Ref, class Ptr, class CRef, class CPtr, class Sz>
-    bool operator==(const rbtree_iterator<Val, Ref, Ptr, Sz>& lhs,
-                    const rbtree_const_iterator<Val, CRef, CPtr, Sz>& rhs)
+    template<class Val, class Ref, class Ptr, class CRef, class CPtr, class Sz, class N>
+    bool operator==(const rbtree_iterator<Val, Ref, Ptr, Sz, N>& lhs,
+                    const rbtree_const_iterator<Val, CRef, CPtr, Sz, N>& rhs)
     {
         return (lhs.node() == rhs.node()) && (lhs.end() == rhs.end());
     }
 
-    template<class Val, class Ref, class Ptr, class CRef, class CPtr, class Sz>
-    bool operator!=(const rbtree_iterator<Val, Ref, Ptr, Sz>& lhs,
-                    const rbtree_const_iterator<Val, CRef, CPtr, Sz>& rhs)
+    template<class Val, class Ref, class Ptr, class CRef, class CPtr, class Sz, class N>
+    bool operator!=(const rbtree_iterator<Val, Ref, Ptr, Sz, N>& lhs,
+                    const rbtree_const_iterator<Val, CRef, CPtr, Sz, N>& rhs)
     {
         return !(lhs == rhs);
     }
 
-    template<class Val, class CRef, class CPtr, class Ref, class Ptr, class Sz>
-    bool operator==(const rbtree_const_iterator<Val, CRef, CPtr, Sz>& lhs,
-                    const rbtree_iterator<Val, Ref, Ptr, Sz>& rhs)
+    template<class Val, class CRef, class CPtr, class Ref, class Ptr, class Sz, class N>
+    bool operator==(const rbtree_const_iterator<Val, CRef, CPtr, Sz, N>& lhs,
+                    const rbtree_iterator<Val, Ref, Ptr, Sz, N>& rhs)
     {
         return (lhs.node() == rhs.node()) && (lhs.end() == rhs.end());
     }
 
-    template<class Val, class CRef, class CPtr, class Ref, class Ptr, class Sz>
-    bool operator!=(const rbtree_const_iterator<Val, CRef, CPtr, Sz>& lhs,
-                    const rbtree_iterator<Val, Ref, Ptr, Sz>& rhs)
+    template<class Val, class CRef, class CPtr, class Ref, class Ptr, class Sz, class N>
+    bool operator!=(const rbtree_const_iterator<Val, CRef, CPtr, Sz, N>& lhs,
+                    const rbtree_iterator<Val, Ref, Ptr, Sz, N>& rhs)
     {
         return !(lhs == rhs);
     }
