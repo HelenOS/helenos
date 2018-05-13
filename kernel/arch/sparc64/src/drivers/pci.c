@@ -102,7 +102,7 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 	    &paddr))
 		return NULL;
 
-	pci = (pci_t *) malloc(sizeof(pci_t), FRAME_ATOMIC);
+	pci = (pci_t *) malloc(sizeof(pci_t));
 	if (!pci)
 		return NULL;
 
@@ -144,7 +144,7 @@ pci_t *pci_psycho_init(ofw_tree_node_t *node)
 	    &paddr))
 		return NULL;
 
-	pci = (pci_t *) malloc(sizeof(pci_t), FRAME_ATOMIC);
+	pci = (pci_t *) malloc(sizeof(pci_t));
 	if (!pci)
 		return NULL;
 

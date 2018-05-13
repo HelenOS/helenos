@@ -619,7 +619,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 		return NULL;
 	}
 
-	as_area_t *area = (as_area_t *) malloc(sizeof(as_area_t), FRAME_ATOMIC);
+	as_area_t *area = (as_area_t *) malloc(sizeof(as_area_t));
 	if (!area) {
 		mutex_unlock(&as->lock);
 		return NULL;
@@ -649,8 +649,7 @@ as_area_t *as_area_create(as_t *as, unsigned int flags, size_t size,
 	 * to be shared.
 	 */
 	if (!(attrs & AS_AREA_ATTR_PARTIAL)) {
-		si = (share_info_t *) malloc(sizeof(share_info_t),
-		    FRAME_ATOMIC);
+		si = (share_info_t *) malloc(sizeof(share_info_t));
 		if (!si) {
 			free(area);
 			mutex_unlock(&as->lock);
@@ -1301,8 +1300,7 @@ errno_t as_area_change_flags(as_t *as, unsigned int flags, uintptr_t address)
 	}
 
 	/* An array for storing frame numbers */
-	uintptr_t *old_frame = malloc(used_pages * sizeof(uintptr_t),
-	    FRAME_ATOMIC);
+	uintptr_t *old_frame = malloc(used_pages * sizeof(uintptr_t));
 	if (!old_frame) {
 		mutex_unlock(&area->lock);
 		mutex_unlock(&as->lock);
@@ -2259,7 +2257,7 @@ void as_get_area_info(as_t *as, as_area_info_t **obuf, size_t *osize)
 	}
 
 	size_t isize = area_cnt * sizeof(as_area_info_t);
-	as_area_info_t *info = malloc(isize, 0);
+	as_area_info_t *info = nfmalloc(isize);
 
 	/* Second pass, record data. */
 

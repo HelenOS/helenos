@@ -400,7 +400,7 @@ static bool alloc_table(size_t bucket_cnt, list_t **pbuckets)
 {
 	assert(pbuckets && HT_MIN_BUCKETS <= bucket_cnt);
 
-	list_t *buckets = malloc(bucket_cnt * sizeof(list_t), FRAME_ATOMIC);
+	list_t *buckets = malloc(bucket_cnt * sizeof(list_t));
 	if (!buckets)
 		return false;
 

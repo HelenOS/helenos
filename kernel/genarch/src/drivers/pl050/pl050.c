@@ -76,7 +76,7 @@ pl050_instance_t *pl050_init(pl050_t *dev, inr_t inr)
 {
 
 	pl050_instance_t *instance =
-	    malloc(sizeof(pl050_instance_t), FRAME_ATOMIC);
+	    malloc(sizeof(pl050_instance_t));
 
 	pl050 = dev;
 

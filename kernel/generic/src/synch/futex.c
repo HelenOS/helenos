@@ -155,7 +155,7 @@ void futex_init(void)
 /** Initializes the futex structures for the new task. */
 void futex_task_init(struct task *task)
 {
-	task->futexes = malloc(sizeof(struct futex_cache), 0);
+	task->futexes = nfmalloc(sizeof(struct futex_cache));
 
 	cht_create(&task->futexes->ht, 0, 0, 0, true, &task_futex_ht_ops);
 
@@ -338,7 +338,7 @@ static futex_t *find_cached_futex(uintptr_t uaddr)
  */
 static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 {
-	futex_t *futex = malloc(sizeof(futex_t), FRAME_ATOMIC);
+	futex_t *futex = malloc(sizeof(futex_t));
 	if (!futex)
 		return NULL;
 
@@ -364,7 +364,7 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 	/*
 	 * Cache the link to the futex object for this task.
 	 */
-	futex_ptr_t *fut_ptr = malloc(sizeof(futex_ptr_t), FRAME_ATOMIC);
+	futex_ptr_t *fut_ptr = malloc(sizeof(futex_ptr_t));
 	if (!fut_ptr) {
 		spinlock_lock(&futex_ht_lock);
 		futex_release_ref(futex);

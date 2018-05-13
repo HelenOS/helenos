@@ -319,7 +319,7 @@ void icp_output_init(void)
 void icp_input_init(void)
 {
 
-	pl050_t *pl050 = malloc(sizeof(pl050_t), FRAME_ATOMIC);
+	pl050_t *pl050 = malloc(sizeof(pl050_t));
 	pl050->status = (ioport8_t *) icp.hw_map.kbd_stat;
 	pl050->data = (ioport8_t *) icp.hw_map.kbd_data;
 	pl050->ctrl = (ioport8_t *) icp.hw_map.kbd_ctrl;

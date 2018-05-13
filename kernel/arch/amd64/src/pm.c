@@ -272,7 +272,7 @@ void pm_init(void)
 		 * ahead of page_init */
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 
-		tss_p = (tss_t *) malloc(sizeof(tss_t), FRAME_ATOMIC);
+		tss_p = (tss_t *) malloc(sizeof(tss_t));
 		if (!tss_p)
 			panic("Cannot allocate TSS.");
 	}

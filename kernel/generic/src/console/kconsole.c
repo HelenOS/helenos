@@ -218,7 +218,7 @@ NO_TRACE static int cmdtab_compl(char *input, size_t size, indev_t *indev,
 	void *pos = NULL;
 	const char *hint;
 	const char *help;
-	char *output = malloc(MAX_CMDLINE, 0);
+	char *output = nfmalloc(MAX_CMDLINE);
 	size_t hints_to_show = MAX_TAB_HINTS - 1;
 	size_t total_hints_shown = 0;
 	bool continue_showing_hints = true;
@@ -297,7 +297,7 @@ NO_TRACE static cmd_info_t *parse_cmd(const wchar_t *cmdline)
 	while (!isspace(cmdline[end]))
 		end++;
 
-	tmp = malloc(STR_BOUNDS(end - start + 1), FRAME_ATOMIC);
+	tmp = malloc(STR_BOUNDS(end - start + 1));
 	if (!tmp)
 		return NULL;
 
@@ -331,7 +331,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 	size_t position = 0;
 	wchar_t *current = history[history_pos];
 	current[0] = 0;
-	char *tmp = malloc(STR_BOUNDS(MAX_CMDLINE), 0);
+	char *tmp = nfmalloc(STR_BOUNDS(MAX_CMDLINE));
 
 	while (true) {
 		wchar_t ch = indev_pop_character(indev);
@@ -809,7 +809,7 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 	else
 		printf("Type \"exit\" to leave the console.\n");
 
-	char *cmdline = malloc(STR_BOUNDS(MAX_CMDLINE), 0);
+	char *cmdline = nfmalloc(STR_BOUNDS(MAX_CMDLINE));
 	while (true) {
 		wchar_t *tmp = clever_readline((char *) prompt, stdin);
 		size_t len = wstr_length(tmp);

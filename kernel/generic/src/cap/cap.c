@@ -125,8 +125,7 @@ void caps_init(void)
  */
 errno_t caps_task_alloc(task_t *task)
 {
-	task->cap_info = (cap_info_t *) malloc(sizeof(cap_info_t),
-	    FRAME_ATOMIC);
+	task->cap_info = (cap_info_t *) malloc(sizeof(cap_info_t));
 	if (!task->cap_info)
 		return ENOMEM;
 	task->cap_info->handles = ra_arena_create();

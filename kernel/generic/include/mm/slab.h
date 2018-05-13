@@ -139,11 +139,14 @@ extern void slab_enable_cpucache(void);
 extern void slab_print_list(void);
 
 /* malloc support */
-extern void *malloc(size_t, unsigned int)
+extern void *malloc(size_t)
     __attribute__((malloc));
-extern void *realloc(void *, size_t, unsigned int)
+extern void *realloc(void *, size_t)
     __attribute__((warn_unused_result));
 extern void free(void *);
+
+extern void *nfmalloc(size_t)
+    __attribute__((malloc, returns_nonnull));
 
 #endif
 

@@ -129,7 +129,7 @@ static void ksrln(void *arg)
 srln_instance_t *srln_init(void)
 {
 	srln_instance_t *instance =
-	    malloc(sizeof(srln_instance_t), FRAME_ATOMIC);
+	    malloc(sizeof(srln_instance_t));
 	if (instance) {
 		instance->thread = thread_create(ksrln, (void *) instance,
 		    TASK, THREAD_FLAG_NONE, "ksrln");

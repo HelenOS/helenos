@@ -369,7 +369,7 @@ errno_t udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	LOG("udebug_thread_read()");
 
 	/* Allocate a buffer to hold thread IDs */
-	sysarg_t *id_buffer = malloc(buf_size + 1, FRAME_ATOMIC);
+	sysarg_t *id_buffer = malloc(buf_size + 1);
 	if (!id_buffer)
 		return ENOMEM;
 
@@ -433,7 +433,7 @@ errno_t udebug_name_read(char **data, size_t *data_size)
 {
 	size_t name_size = str_size(TASK->name) + 1;
 
-	*data = malloc(name_size, FRAME_ATOMIC);
+	*data = malloc(name_size);
 	if (!*data)
 		return ENOMEM;
 	*data_size = name_size;
@@ -475,7 +475,7 @@ errno_t udebug_args_read(thread_t *thread, void **buffer)
 	}
 
 	/* Prepare a buffer to hold the arguments. */
-	sysarg_t *arg_buffer = malloc(6 * sizeof(sysarg_t), FRAME_ATOMIC);
+	sysarg_t *arg_buffer = malloc(6 * sizeof(sysarg_t));
 	if (!arg_buffer) {
 		_thread_op_end(thread);
 		return ENOMEM;
@@ -521,7 +521,7 @@ errno_t udebug_regs_read(thread_t *thread, void **buffer)
 	}
 
 	/* Prepare a buffer to hold the data. */
-	istate_t *state_buf = malloc(sizeof(istate_t), FRAME_ATOMIC);
+	istate_t *state_buf = malloc(sizeof(istate_t));
 	if (!state_buf) {
 		_thread_op_end(thread);
 		return ENOMEM;
@@ -557,7 +557,7 @@ errno_t udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 		return EBUSY;
 	}
 
-	void *data_buffer = malloc(n, FRAME_ATOMIC);
+	void *data_buffer = malloc(n);
 	if (!data_buffer) {
 		mutex_unlock(&TASK->udebug.lock);
 		return ENOMEM;

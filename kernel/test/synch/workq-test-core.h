@@ -71,7 +71,7 @@ static int is_pow2(int num)
 
 static test_work_t *create_child(test_work_t *work)
 {
-	test_work_t *child = malloc(sizeof(test_work_t), 0);
+	test_work_t *child = nfmalloc(sizeof(test_work_t));
 	assert(child);
 	if (child) {
 		child->master = false;
@@ -151,7 +151,7 @@ static const char *run_workq_core(bool end_prematurely)
 		atomic_set(&call_cnt[i], 0);
 	}
 
-	test_work_t *work = malloc(sizeof(test_work_t), 0);
+	test_work_t *work = nfmalloc(sizeof(test_work_t));
 
 	work->master = true;
 	work->wave = 0;

@@ -54,7 +54,7 @@
  * // ..
  *
  * // Insert at the beginning of the list.
- * exam_t *my_exam = malloc(sizeof(exam_t), FRAME_ATOMIC);
+ * exam_t *my_exam = malloc(sizeof(exam_t));
  * my_exam->grade = 5;
  * my_exam->next = exam_list;
  * rcu_assign(exam_list, my_exam);

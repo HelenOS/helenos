@@ -90,7 +90,7 @@ enum {
 cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 {
 	cuda_instance_t *instance =
-	    malloc(sizeof(cuda_instance_t), FRAME_ATOMIC);
+	    malloc(sizeof(cuda_instance_t));
 	if (instance) {
 		instance->cuda = dev;
 		instance->kbrdin = NULL;

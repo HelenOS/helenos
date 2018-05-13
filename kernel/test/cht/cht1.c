@@ -109,7 +109,7 @@ static const char *do_sanity_test(cht_t *h)
 	val_t *v[6] = { NULL };
 
 	for (int i = 0; i < val_cnt; ++i)
-		v[i] = malloc(sizeof(val_t), 0);
+		v[i] = nfmalloc(sizeof(val_t));
 
 	size_t key[] = { 1, 1, 1, 11, 12, 13 };
 
@@ -315,7 +315,7 @@ static void resize_stresser(void *arg)
 	for (size_t k = 0; k < work->wave_cnt; ++k) {
 		TPRINTF("I{");
 		for (size_t i = 0; i < work->wave_elems; ++i) {
-			stress_t *s = malloc(sizeof(stress_t), FRAME_ATOMIC);
+			stress_t *s = malloc(sizeof(stress_t));
 			if (!s) {
 				TPRINTF("[out-of-mem]\n");
 				goto out_of_mem;
@@ -472,7 +472,7 @@ static bool do_stress(void)
 	    sizeof(int);
 
 	TPRINTF("Alloc and init table items. \n");
-	void *p = malloc(size, FRAME_ATOMIC);
+	void *p = malloc(size);
 	if (!p) {
 		TPRINTF("Failed to alloc items\n");
 		cht_destroy(&h);

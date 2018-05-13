@@ -159,8 +159,7 @@ bool phys_create_shared_data(as_area_t *area)
 	if (area->backend_data.anonymous) {
 		phys_shared_data_t *data;
 
-		data = (phys_shared_data_t *) malloc(sizeof(*data),
-		    FRAME_ATOMIC);
+		data = (phys_shared_data_t *) malloc(sizeof(*data));
 		if (!data)
 			return false;
 

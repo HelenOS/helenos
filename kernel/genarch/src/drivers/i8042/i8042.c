@@ -105,7 +105,7 @@ static void i8042_send_command(i8042_t *dev, uint8_t cmd)
 i8042_instance_t *i8042_init(i8042_t *dev, inr_t inr)
 {
 	i8042_instance_t *instance =
-	    malloc(sizeof(i8042_instance_t), FRAME_ATOMIC);
+	    malloc(sizeof(i8042_instance_t));
 	if (instance) {
 		instance->i8042 = dev;
 		instance->kbrdin = NULL;

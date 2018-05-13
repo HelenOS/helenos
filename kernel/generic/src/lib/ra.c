@@ -123,7 +123,7 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 	ra_segment_t *seg, *lastseg;
 	unsigned int i;
 
-	span = (ra_span_t *) malloc(sizeof(ra_span_t), FRAME_ATOMIC);
+	span = (ra_span_t *) malloc(sizeof(ra_span_t));
 	if (!span)
 		return NULL;
 
@@ -131,8 +131,7 @@ static ra_span_t *ra_span_create(uintptr_t base, size_t size)
 	span->base = base;
 	span->size = size;
 
-	span->free = (list_t *) malloc((span->max_order + 1) * sizeof(list_t),
-	    FRAME_ATOMIC);
+	span->free = (list_t *) malloc((span->max_order + 1) * sizeof(list_t));
 	if (!span->free) {
 		free(span);
 		return NULL;
@@ -204,7 +203,7 @@ ra_arena_t *ra_arena_create(void)
 {
 	ra_arena_t *arena;
 
-	arena = (ra_arena_t *) malloc(sizeof(ra_arena_t), FRAME_ATOMIC);
+	arena = (ra_arena_t *) malloc(sizeof(ra_arena_t));
 	if (!arena)
 		return NULL;
 

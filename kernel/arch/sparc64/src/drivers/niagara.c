@@ -177,7 +177,7 @@ static void niagara_init(void)
 	if (instance)
 		return;
 
-	instance = malloc(sizeof(niagara_instance_t), FRAME_ATOMIC);
+	instance = malloc(sizeof(niagara_instance_t));
 	instance->thread = thread_create(kniagarapoll, NULL, TASK,
 	    THREAD_FLAG_UNCOUNTED, "kniagarapoll");
 
@@ -229,7 +229,7 @@ static void niagara_init(void)
 	inbuf_parea.mapped = false;
 	ddi_parea_register(&inbuf_parea);
 
-	outdev_t *niagara_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	outdev_t *niagara_dev = malloc(sizeof(outdev_t));
 	outdev_initialize("niagara_dev", niagara_dev, &niagara_ops);
 	stdout_wire(niagara_dev);
 }

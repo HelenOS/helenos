@@ -948,7 +948,7 @@ sys_errno_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	 * In case of success, kernel_uarg will be freed in uinit().
 	 */
 	uspace_arg_t *kernel_uarg =
-	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t), FRAME_ATOMIC);
+	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t));
 	if (!kernel_uarg)
 		return (sys_errno_t) ENOMEM;
 

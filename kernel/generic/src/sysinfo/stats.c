@@ -100,7 +100,7 @@ static void *get_stats_cpus(struct sysinfo_item *item, size_t *size,
 		return NULL;
 
 	/* Assumption: config.cpu_count is constant */
-	stats_cpu_t *stats_cpus = (stats_cpu_t *) malloc(*size, FRAME_ATOMIC);
+	stats_cpu_t *stats_cpus = (stats_cpu_t *) malloc(*size);
 	if (stats_cpus == NULL) {
 		*size = 0;
 		return NULL;
@@ -306,7 +306,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 		return NULL;
 	}
 
-	stats_task_t *stats_tasks = (stats_task_t *) malloc(*size, FRAME_ATOMIC);
+	stats_task_t *stats_tasks = (stats_task_t *) malloc(*size);
 	if (stats_tasks == NULL) {
 		/* No free space for allocation */
 		irq_spinlock_unlock(&tasks_lock, true);
@@ -412,7 +412,7 @@ static void *get_stats_threads(struct sysinfo_item *item, size_t *size,
 		return NULL;
 	}
 
-	stats_thread_t *stats_threads = (stats_thread_t *) malloc(*size, FRAME_ATOMIC);
+	stats_thread_t *stats_threads = (stats_thread_t *) malloc(*size);
 	if (stats_threads == NULL) {
 		/* No free space for allocation */
 		irq_spinlock_unlock(&threads_lock, true);
@@ -478,7 +478,7 @@ static sysinfo_return_t get_stats_task(const char *name, bool dry_run,
 	} else {
 		/* Allocate stats_task_t structure */
 		stats_task_t *stats_task =
-		    (stats_task_t *) malloc(sizeof(stats_task_t), FRAME_ATOMIC);
+		    (stats_task_t *) malloc(sizeof(stats_task_t));
 		if (stats_task == NULL) {
 			irq_spinlock_unlock(&tasks_lock, true);
 			return ret;
@@ -549,7 +549,7 @@ static sysinfo_return_t get_stats_thread(const char *name, bool dry_run,
 	} else {
 		/* Allocate stats_thread_t structure */
 		stats_thread_t *stats_thread =
-		    (stats_thread_t *) malloc(sizeof(stats_thread_t), FRAME_ATOMIC);
+		    (stats_thread_t *) malloc(sizeof(stats_thread_t));
 		if (stats_thread == NULL) {
 			irq_spinlock_unlock(&threads_lock, true);
 			return ret;
@@ -591,7 +591,7 @@ static void *get_stats_exceptions(struct sysinfo_item *item, size_t *size,
 		return NULL;
 
 	stats_exc_t *stats_exceptions =
-	    (stats_exc_t *) malloc(*size, FRAME_ATOMIC);
+	    (stats_exc_t *) malloc(*size);
 	if (stats_exceptions == NULL) {
 		/* No free space for allocation */
 		*size = 0;
@@ -669,7 +669,7 @@ static sysinfo_return_t get_stats_exception(const char *name, bool dry_run,
 
 		/* Allocate stats_exc_t structure */
 		stats_exc_t *stats_exception =
-		    (stats_exc_t *) malloc(sizeof(stats_exc_t), FRAME_ATOMIC);
+		    (stats_exc_t *) malloc(sizeof(stats_exc_t));
 		if (stats_exception == NULL)
 			return ret;
 
@@ -712,7 +712,7 @@ static void *get_stats_physmem(struct sysinfo_item *item, size_t *size,
 		return NULL;
 
 	stats_physmem_t *stats_physmem =
-	    (stats_physmem_t *) malloc(*size, FRAME_ATOMIC);
+	    (stats_physmem_t *) malloc(*size);
 	if (stats_physmem == NULL) {
 		*size = 0;
 		return NULL;
@@ -742,7 +742,7 @@ static void *get_stats_load(struct sysinfo_item *item, size_t *size,
 	if (dry_run)
 		return NULL;
 
-	load_t *stats_load = (load_t *) malloc(*size, FRAME_ATOMIC);
+	load_t *stats_load = (load_t *) malloc(*size);
 	if (stats_load == NULL) {
 		*size = 0;
 		return NULL;

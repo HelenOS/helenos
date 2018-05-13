@@ -117,7 +117,13 @@ call_t *ipc_call_alloc(unsigned int flags)
 	call_t *call = slab_alloc(call_cache, flags);
 	if (!call)
 		return NULL;
-	kobject_t *kobj = (kobject_t *) malloc(sizeof(kobject_t), flags);
+
+	kobject_t *kobj;
+	if (flags & FRAME_ATOMIC)
+		kobj = (kobject_t *) malloc(sizeof(kobject_t));
+	else
+		kobj = (kobject_t *) nfmalloc(sizeof(kobject_t));
+
 	if (!kobj) {
 		slab_free(call_cache, call);
 		return NULL;

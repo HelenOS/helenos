@@ -196,8 +196,7 @@ void acpi_madt_parse(void)
 
 	/* Create MADT APIC entries index array */
 	madt_entries_index = (struct madt_apic_header **)
-	    malloc(madt_entries_index_cnt * sizeof(struct madt_apic_header *),
-	    FRAME_ATOMIC);
+	    malloc(madt_entries_index_cnt * sizeof(struct madt_apic_header *));
 	if (!madt_entries_index)
 		panic("Memory allocation error.");
 

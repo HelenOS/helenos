@@ -953,7 +953,7 @@ void slab_enable_cpucache(void)
 	irq_spinlock_unlock(&slab_cache_lock, false);
 }
 
-void *malloc(size_t size, unsigned int flags)
+static void *_malloc(size_t size, unsigned int flags)
 {
 	assert(_slab_initialized);
 	assert(size <= (1 << SLAB_MAX_MALLOC_W));
@@ -966,7 +966,20 @@ void *malloc(size_t size, unsigned int flags)
 	return slab_alloc(malloc_caches[idx], flags);
 }
 
-void *realloc(void *ptr, size_t size, unsigned int flags)
+void *malloc(size_t size)
+{
+	return _malloc(size, FRAME_ATOMIC);
+}
+
+/** Non-failing malloc.
+ *  Never returns NULL, but may block forever if no memory is available.
+ */
+void *nfmalloc(size_t size)
+{
+	return _malloc(size, 0);
+}
+
+static void *_realloc(void *ptr, size_t size, unsigned int flags)
 {
 	assert(_slab_initialized);
 	assert(size <= (1 << SLAB_MAX_MALLOC_W));
@@ -991,6 +1004,11 @@ void *realloc(void *ptr, size_t size, unsigned int flags)
 		free(ptr);
 
 	return new_ptr;
+}
+
+void *realloc(void *ptr, size_t size)
+{
+	return _realloc(ptr, size, FRAME_ATOMIC);
 }
 
 void free(void *ptr)

@@ -186,8 +186,7 @@ void workq_global_stop(void)
 /** Creates and initializes a work queue. Returns NULL upon failure. */
 struct work_queue *workq_create(const char *name)
 {
-	struct work_queue *workq = malloc(sizeof(struct work_queue),
-	    FRAME_ATOMIC);
+	struct work_queue *workq = malloc(sizeof(struct work_queue));
 	if (!workq)
 		return NULL;
 

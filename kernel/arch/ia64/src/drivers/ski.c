@@ -149,7 +149,7 @@ static void ski_init(void)
 	    : "r15", "r8"
 	);
 
-	instance = malloc(sizeof(ski_instance_t), FRAME_ATOMIC);
+	instance = malloc(sizeof(ski_instance_t));
 
 	if (instance) {
 		instance->thread = thread_create(kskipoll, instance, TASK,
@@ -208,7 +208,7 @@ outdev_t *skiout_init(void)
 	if (!instance)
 		return NULL;
 
-	outdev_t *skidev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	outdev_t *skidev = malloc(sizeof(outdev_t));
 	if (!skidev)
 		return NULL;
 

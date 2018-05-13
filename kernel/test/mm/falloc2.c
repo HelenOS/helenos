@@ -52,7 +52,7 @@ static void falloc(void *arg)
 	uint8_t val = THREAD->tid % THREADS;
 
 	uintptr_t *frames = (uintptr_t *)
-	    malloc(MAX_FRAMES * sizeof(uintptr_t), FRAME_ATOMIC);
+	    malloc(MAX_FRAMES * sizeof(uintptr_t));
 	if (frames == NULL) {
 		TPRINTF("Thread #%" PRIu64 " (cpu%u): "
 		    "Unable to allocate frames\n", THREAD->tid, CPU->id);

@@ -74,7 +74,7 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			 */
 			IPC_SET_ARG1(answer->data, dst);
 
-			answer->buffer = malloc(size, FRAME_ATOMIC);
+			answer->buffer = malloc(size);
 			if (!answer->buffer) {
 				IPC_SET_RETVAL(answer->data, ENOMEM);
 				return EOK;

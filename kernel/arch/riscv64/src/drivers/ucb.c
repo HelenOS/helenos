@@ -64,7 +64,7 @@ void htif_init(volatile uint64_t *tohost_addr, volatile uint64_t *fromhost_addr)
 
 outdev_t *htifout_init(void)
 {
-	outdev_t *htifdev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	outdev_t *htifdev = malloc(sizeof(outdev_t));
 	if (!htifdev)
 		return NULL;
 

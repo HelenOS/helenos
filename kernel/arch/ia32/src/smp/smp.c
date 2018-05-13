@@ -160,8 +160,7 @@ void kmp(void *arg __attribute__((unused)))
 		 * the memory subsystem
 		 */
 		descriptor_t *gdt_new =
-		    (descriptor_t *) malloc(GDT_ITEMS * sizeof(descriptor_t),
-		    FRAME_ATOMIC);
+		    (descriptor_t *) malloc(GDT_ITEMS * sizeof(descriptor_t));
 		if (!gdt_new)
 			panic("Cannot allocate memory for GDT.");
 

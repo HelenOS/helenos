@@ -306,7 +306,7 @@ sys_errno_t sys_klog(sysarg_t operation, void *buf, size_t size,
 
 	switch (operation) {
 	case KLOG_WRITE:
-		data = (char *) malloc(size + 1, FRAME_ATOMIC);
+		data = (char *) malloc(size + 1);
 		if (!data)
 			return (sys_errno_t) ENOMEM;
 
@@ -325,7 +325,7 @@ sys_errno_t sys_klog(sysarg_t operation, void *buf, size_t size,
 		free(data);
 		return EOK;
 	case KLOG_READ:
-		data = (char *) malloc(size, FRAME_ATOMIC);
+		data = (char *) malloc(size);
 		if (!data)
 			return (sys_errno_t) ENOMEM;
 

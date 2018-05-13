@@ -67,7 +67,7 @@ errno_t ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 		 * The I/O permission bitmap is too small and needs to be grown.
 		 */
 
-		void *store = malloc(bitmap_size(elements), FRAME_ATOMIC);
+		void *store = malloc(bitmap_size(elements));
 		if (!store)
 			return ENOMEM;
 

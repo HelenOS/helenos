@@ -250,8 +250,8 @@ static void count_cb(rcu_item_t *item)
 static void nop_updater(void *arg)
 {
 	for (int i = 0; i < nop_updater_iters; i += 2) {
-		rcu_item_t *a = malloc(sizeof(rcu_item_t), FRAME_ATOMIC);
-		rcu_item_t *b = malloc(sizeof(rcu_item_t), FRAME_ATOMIC);
+		rcu_item_t *a = malloc(sizeof(rcu_item_t));
+		rcu_item_t *b = malloc(sizeof(rcu_item_t));
 
 		if (a && b) {
 			rcu_call(a, count_cb);
@@ -314,7 +314,7 @@ static void one_cb_reader(void *arg)
 
 	rcu_read_lock();
 
-	item_w_cookie_t *item = malloc(sizeof(item_w_cookie_t), FRAME_ATOMIC);
+	item_w_cookie_t *item = malloc(sizeof(item_w_cookie_t));
 
 	if (item) {
 		item->cookie = magic_cookie;
@@ -419,8 +419,8 @@ static void seq_func(void *arg)
 
 		/* Updater */
 		for (size_t i = 0; i < work->update_cnt; ++i) {
-			seq_item_t *a = malloc(sizeof(seq_item_t), FRAME_ATOMIC);
-			seq_item_t *b = malloc(sizeof(seq_item_t), FRAME_ATOMIC);
+			seq_item_t *a = malloc(sizeof(seq_item_t));
+			seq_item_t *b = malloc(sizeof(seq_item_t));
 
 			if (a && b) {
 				a->start_time = atomic_postinc(&cur_time);
@@ -522,7 +522,7 @@ static bool do_reader_exit(void)
 {
 	TPRINTF("\nReader exits thread with rcu_lock\n");
 
-	exited_t *p = malloc(sizeof(exited_t), FRAME_ATOMIC);
+	exited_t *p = malloc(sizeof(exited_t));
 	if (!p) {
 		TPRINTF("[out-of-mem]\n");
 		return false;
@@ -685,7 +685,7 @@ static void preempted_reader_next2(void *arg)
 
 static bool do_one_reader_preempt(void (*f)(void *), const char *err)
 {
-	preempt_t *p = malloc(sizeof(preempt_t), FRAME_ATOMIC);
+	preempt_t *p = malloc(sizeof(preempt_t));
 	if (!p) {
 		TPRINTF("[out-of-mem]\n");
 		return false;
@@ -776,7 +776,7 @@ static bool do_synch(void)
 {
 	TPRINTF("\nSynchronize with long reader\n");
 
-	synch_t *synch = malloc(sizeof(synch_t), FRAME_ATOMIC);
+	synch_t *synch = malloc(sizeof(synch_t));
 
 	if (!synch) {
 		TPRINTF("[out-of-mem]\n");
@@ -827,7 +827,7 @@ static bool do_barrier(void)
 {
 	TPRINTF("\nrcu_barrier: Wait for outstanding rcu callbacks to complete\n");
 
-	barrier_t *barrier = malloc(sizeof(barrier_t), FRAME_ATOMIC);
+	barrier_t *barrier = malloc(sizeof(barrier_t));
 
 	if (!barrier) {
 		TPRINTF("[out-of-mem]\n");
@@ -885,7 +885,7 @@ static void stress_updater(void *arg)
 	stress_t *s = (stress_t *)arg;
 
 	for (size_t i = 0; i < s->iters; ++i) {
-		rcu_item_t *item = malloc(sizeof(rcu_item_t), FRAME_ATOMIC);
+		rcu_item_t *item = malloc(sizeof(rcu_item_t));
 
 		if (item) {
 			rcu_call(item, stress_cb);

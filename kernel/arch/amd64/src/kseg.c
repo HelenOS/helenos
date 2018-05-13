@@ -46,7 +46,7 @@ void kseg_init(void)
 {
 	kseg_t *kseg;
 
-	kseg = (kseg_t *) malloc(sizeof(kseg_t), FRAME_ATOMIC);
+	kseg = (kseg_t *) malloc(sizeof(kseg_t));
 	if (!kseg)
 		panic("Cannot allocate kseg.");
 

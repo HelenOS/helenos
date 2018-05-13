@@ -570,11 +570,11 @@ outdev_t *fb_init(fb_properties_t *props)
 		return NULL;
 	}
 
-	outdev_t *fbdev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	outdev_t *fbdev = malloc(sizeof(outdev_t));
 	if (!fbdev)
 		return NULL;
 
-	fb_instance_t *instance = malloc(sizeof(fb_instance_t), FRAME_ATOMIC);
+	fb_instance_t *instance = malloc(sizeof(fb_instance_t));
 	if (!instance) {
 		free(fbdev);
 		return NULL;
@@ -617,7 +617,7 @@ outdev_t *fb_init(fb_properties_t *props)
 		return NULL;
 	}
 
-	instance->backbuf = (uint16_t *) malloc(bbsize, FRAME_ATOMIC);
+	instance->backbuf = (uint16_t *) malloc(bbsize);
 	if (!instance->backbuf) {
 		LOG("Unable to allocate backbuffer.");
 		free(instance);
@@ -625,7 +625,7 @@ outdev_t *fb_init(fb_properties_t *props)
 		return NULL;
 	}
 
-	instance->glyphs = (uint8_t *) malloc(glyphsize, FRAME_ATOMIC);
+	instance->glyphs = (uint8_t *) malloc(glyphsize);
 	if (!instance->glyphs) {
 		LOG("Unable to allocate glyphs.");
 		free(instance->backbuf);
@@ -634,7 +634,7 @@ outdev_t *fb_init(fb_properties_t *props)
 		return NULL;
 	}
 
-	instance->bgscan = malloc(instance->bgscanbytes, FRAME_ATOMIC);
+	instance->bgscan = malloc(instance->bgscanbytes);
 	if (!instance->bgscan) {
 		LOG("Unable to allocate background pixel.");
 		free(instance->glyphs);

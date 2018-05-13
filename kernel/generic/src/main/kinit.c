@@ -208,7 +208,7 @@ void kinit(void *arg)
 			continue;
 		size_t arguments_size = str_size(arguments);
 
-		void *arguments_copy = malloc(arguments_size, FRAME_ATOMIC);
+		void *arguments_copy = malloc(arguments_size);
 		if (arguments_copy == NULL)
 			continue;
 		memcpy(arguments_copy, arguments, arguments_size);

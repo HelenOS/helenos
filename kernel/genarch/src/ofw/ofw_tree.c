@@ -347,7 +347,7 @@ static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
 	if (dry_run)
 		return NULL;
 
-	void *dump = malloc(*size, FRAME_ATOMIC);
+	void *dump = malloc(*size);
 	if (dump == NULL) {
 		*size = 0;
 		return NULL;
@@ -385,7 +385,7 @@ static void *ofw_sysinfo_properties(struct sysinfo_item *item, size_t *size,
  */
 static void ofw_tree_node_sysinfo(ofw_tree_node_t *node, const char *path)
 {
-	char *cur_path = (char *) malloc(PATH_MAX_LEN, 0);
+	char *cur_path = (char *) nfmalloc(PATH_MAX_LEN);
 
 	for (ofw_tree_node_t *cur = node; cur; cur = cur->peer) {
 		if ((cur->parent) && (path))

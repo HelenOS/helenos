@@ -64,8 +64,7 @@ void cpu_init(void)
 	if (config.cpu_active == 1) {
 #endif /* CONFIG_SMP */
 
-		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count,
-		    FRAME_ATOMIC);
+		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count);
 		if (!cpus)
 			panic("Cannot allocate CPU structures.");
 

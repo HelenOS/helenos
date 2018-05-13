@@ -55,12 +55,11 @@
 errno_t ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {
 	if (!task->arch.iomap) {
-		task->arch.iomap = malloc(sizeof(bitmap_t), FRAME_ATOMIC);
+		task->arch.iomap = malloc(sizeof(bitmap_t));
 		if (task->arch.iomap == NULL)
 			return ENOMEM;
 
-		void *store = malloc(bitmap_size(IO_MEMMAP_PAGES),
-		    FRAME_ATOMIC);
+		void *store = malloc(bitmap_size(IO_MEMMAP_PAGES));
 		if (store == NULL)
 			return ENOMEM;
 

@@ -648,7 +648,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
 	if (size > SYSINFO_MAX_PATH)
 		return ret;
 
-	char *path = (char *) malloc(size + 1, 0);
+	char *path = (char *) nfmalloc(size + 1);
 	assert(path);
 
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&
@@ -715,7 +715,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys(const char *name,
 			ret.data.size = size;
 		} else {
 			/* Allocate buffer for subkeys */
-			char *names = (char *) malloc(size, FRAME_ATOMIC);
+			char *names = (char *) malloc(size);
 			if (names == NULL)
 				return ret;
 
@@ -757,7 +757,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_keys_uspace(void *ptr, size_t size,
 	if (size > SYSINFO_MAX_PATH)
 		return ret;
 
-	char *path = (char *) malloc(size + 1, 0);
+	char *path = (char *) nfmalloc(size + 1);
 	assert(path);
 
 	if ((copy_from_uspace(path, ptr, size + 1) == 0) &&

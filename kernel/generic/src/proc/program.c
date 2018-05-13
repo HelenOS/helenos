@@ -71,7 +71,7 @@ void *program_loader = NULL;
 errno_t program_create(as_t *as, uintptr_t entry_addr, char *name, program_t *prg)
 {
 	uspace_arg_t *kernel_uarg = (uspace_arg_t *)
-	    malloc(sizeof(uspace_arg_t), FRAME_ATOMIC);
+	    malloc(sizeof(uspace_arg_t));
 	if (!kernel_uarg)
 		return ENOMEM;
 

@@ -167,7 +167,7 @@ errno_t phone_alloc(task_t *task, bool publish, cap_phone_handle_t *phandle,
 			cap_free(TASK, handle);
 			return ENOMEM;
 		}
-		kobject_t *kobj = malloc(sizeof(kobject_t), FRAME_ATOMIC);
+		kobject_t *kobj = malloc(sizeof(kobject_t));
 		if (!kobj) {
 			cap_free(TASK, handle);
 			slab_free(phone_cache, phone);

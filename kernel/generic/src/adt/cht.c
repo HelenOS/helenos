@@ -572,7 +572,7 @@ static cht_buckets_t *alloc_buckets(size_t order, bool set_invalid, bool can_blo
 	size_t bucket_cnt = (1 << order);
 	size_t bytes =
 	    sizeof(cht_buckets_t) + (bucket_cnt - 1) * sizeof(marked_ptr_t);
-	cht_buckets_t *b = malloc(bytes, can_block ? 0 : FRAME_ATOMIC);
+	cht_buckets_t *b = can_block ? nfmalloc(bytes) : malloc(bytes);
 
 	if (!b)
 		return NULL;

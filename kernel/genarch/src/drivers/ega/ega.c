@@ -583,11 +583,11 @@ static void ega_redraw(outdev_t *dev)
 
 outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 {
-	outdev_t *egadev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	outdev_t *egadev = malloc(sizeof(outdev_t));
 	if (!egadev)
 		return NULL;
 
-	ega_instance_t *instance = malloc(sizeof(ega_instance_t), FRAME_ATOMIC);
+	ega_instance_t *instance = malloc(sizeof(ega_instance_t));
 	if (!instance) {
 		free(egadev);
 		return NULL;
@@ -608,7 +608,7 @@ outdev_t *ega_init(ioport8_t *base, uintptr_t addr)
 		return NULL;
 	}
 
-	instance->backbuf = (uint8_t *) malloc(EGA_VRAM_SIZE, FRAME_ATOMIC);
+	instance->backbuf = (uint8_t *) malloc(EGA_VRAM_SIZE);
 	if (!instance->backbuf) {
 		LOG("Unable to allocate backbuffer.");
 		free(instance);

@@ -69,12 +69,11 @@ static outdev_operations_t dsrlndev_ops = {
 
 outdev_t *dsrlnout_init(ioport8_t *base)
 {
-	outdev_t *dsrlndev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	outdev_t *dsrlndev = malloc(sizeof(outdev_t));
 	if (!dsrlndev)
 		return NULL;
 
-	dsrlnout_instance_t *instance = malloc(sizeof(dsrlnout_instance_t),
-	    FRAME_ATOMIC);
+	dsrlnout_instance_t *instance = malloc(sizeof(dsrlnout_instance_t));
 	if (!instance) {
 		free(dsrlndev);
 		return NULL;

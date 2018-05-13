@@ -110,7 +110,7 @@ bool gsort(void *data, size_t cnt, size_t elem_size, sort_cmp_t cmp, void *arg)
 	void *slot;
 
 	if (elem_size > IBUF_SIZE) {
-		slot = (void *) malloc(elem_size, FRAME_ATOMIC);
+		slot = (void *) malloc(elem_size);
 		if (!slot)
 			return false;
 	} else

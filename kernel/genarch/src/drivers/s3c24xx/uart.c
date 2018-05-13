@@ -101,12 +101,12 @@ static outdev_operations_t s3c24xx_uart_ops = {
 
 outdev_t *s3c24xx_uart_init(uintptr_t paddr, inr_t inr)
 {
-	outdev_t *uart_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);
+	outdev_t *uart_dev = malloc(sizeof(outdev_t));
 	if (!uart_dev)
 		return NULL;
 
 	s3c24xx_uart_t *uart =
-	    malloc(sizeof(s3c24xx_uart_t), FRAME_ATOMIC);
+	    malloc(sizeof(s3c24xx_uart_t));
 	if (!uart) {
 		free(uart_dev);
 		return NULL;

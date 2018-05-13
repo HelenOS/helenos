@@ -55,7 +55,7 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 			return ELIMIT;
 	}
 
-	call->buffer = (uint8_t *) malloc(size, FRAME_ATOMIC);
+	call->buffer = (uint8_t *) malloc(size);
 	if (!call->buffer)
 		return ENOMEM;
 	errno_t rc = copy_from_uspace(call->buffer, (void *) src, size);

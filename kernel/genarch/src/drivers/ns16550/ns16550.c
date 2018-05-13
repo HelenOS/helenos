@@ -128,7 +128,7 @@ ns16550_instance_t *ns16550_init(ioport8_t *dev, unsigned reg_shift, inr_t inr,
     cir_t cir, void *cir_arg, outdev_t **output)
 {
 	ns16550_instance_t *instance =
-	    malloc(sizeof(ns16550_instance_t), FRAME_ATOMIC);
+	    malloc(sizeof(ns16550_instance_t));
 	if (instance) {
 		instance->ns16550 = dev;
 		instance->reg_shift = reg_shift;
@@ -136,8 +136,7 @@ ns16550_instance_t *ns16550_init(ioport8_t *dev, unsigned reg_shift, inr_t inr,
 		instance->output = NULL;
 
 		if (output) {
-			instance->output = malloc(sizeof(outdev_t),
-			    FRAME_ATOMIC);
+			instance->output = malloc(sizeof(outdev_t));
 			if (!instance->output) {
 				free(instance);
 				return NULL;
