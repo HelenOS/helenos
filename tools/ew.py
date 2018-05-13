@@ -354,6 +354,7 @@ def run():
 			else:
 				usage()
 				exit()
+			continue
 
 		if expect_qemu:
 			expect_qemu = False
