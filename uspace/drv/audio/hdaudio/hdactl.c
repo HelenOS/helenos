@@ -283,6 +283,11 @@ static errno_t hda_rirb_init(hda_t *hda)
 	rc = dmamem_map_anonymous(hda->ctl->rirb_entries * sizeof(uint64_t),
 	    hda->ctl->ok64bit ? 0 : DMAMEM_4GiB, AS_AREA_READ | AS_AREA_WRITE, 0,
 	    &hda->ctl->rirb_phys, &hda->ctl->rirb_virt);
+	if (rc != EOK) {
+		hda->ctl->rirb_virt = NULL;
+		ddf_msg(LVL_NOTE, "Failed allocating DMA memory for RIRB");
+		goto error;
+	}
 
 	ddf_msg(LVL_NOTE, "Set RIRB base registers");
 
