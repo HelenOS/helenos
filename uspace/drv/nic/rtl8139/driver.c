@@ -1143,7 +1143,7 @@ static errno_t rtl8139_buffers_create(rtl8139_t *rtl8139)
 	return EOK;
 
 err_rx_alloc:
-	dmamem_unmap_anonymous(&rtl8139->tx_buff_virt);
+	dmamem_unmap_anonymous(rtl8139->tx_buff_virt);
 err_tx_alloc:
 	return rc;
 }
