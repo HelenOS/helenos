@@ -101,6 +101,66 @@ namespace std::test
 
                 return true;
             }
+
+            template<class Iterator, class Container>
+            void test_contains(const char* tname, Iterator first,
+                               Iterator last, const Container& cont)
+            {
+                if (!assert_contains(first, last, cont))
+                {
+                    report(false, tname);
+                    ++failed_;
+                    ok_ = false;
+                }
+                else
+                {
+                    report(true, tname);
+                    ++succeeded_;
+                }
+            }
+
+            template<class Iterator1, class Iterator2, class Container>
+            void test_contains_multi(const char* tname, Iterator1 first1,
+                               Iterator1 last1, Iterator2 first2,
+                               const Container& cont)
+            {
+                if (!assert_contains_multi(first1, last1, first2, cont))
+                {
+                    report(false, tname);
+                    ++failed_;
+                    ok_ = false;
+                }
+                else
+                {
+                    report(true, tname);
+                    ++succeeded_;
+                }
+            }
+
+            template<class Iterator, class Container>
+            bool assert_contains(Iterator first, Iterator last, const Container& cont)
+            {
+                while (first != last)
+                {
+                    if (cont.find(*first++) == cont.end())
+                        return false;
+                }
+
+                return true;
+            }
+
+            template<class Iterator1, class Iterator2, class Container>
+            bool assert_contains_multi(Iterator1 first1, Iterator1 last1,
+                                       Iterator2 first2, const Container& cont)
+            {
+                while (first1 != last1)
+                {
+                    if (cont.count(*first1++) != *first2++)
+                        return false;
+                }
+
+                return true;
+            }
     };
 }
 

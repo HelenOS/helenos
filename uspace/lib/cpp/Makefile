@@ -64,6 +64,7 @@ SOURCES = \
 	src/internal/test/test.cpp \
 	src/internal/test/tuple.cpp \
 	src/internal/test/unordered_map.cpp \
+	src/internal/test/unordered_set.cpp \
 	src/internal/test/vector.cpp
 
 include $(USPACE_PREFIX)/Makefile.common
