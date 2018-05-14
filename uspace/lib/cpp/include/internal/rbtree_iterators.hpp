@@ -180,6 +180,10 @@ namespace std::aux
 
             using iterator_category = bidirectional_iterator_tag;
 
+            // For iterator_traits.
+            using reference = ConstReference;
+            using pointer   = ConstPointer;
+
             using node_type = Node;
 
             rbtree_const_iterator(const node_type* current = nullptr, bool end = true)
