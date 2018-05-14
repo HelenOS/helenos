@@ -35,12 +35,6 @@ namespace std
 {
     class locale;
 
-    template<class Facet>
-    const Facet& use_facet(const locale& loc);
-
-    template<class Facet>
-    bool has_facet(const locale& loc);
-
     /**
      * 22.3.1, class locale:
      */
@@ -151,20 +145,20 @@ namespace std
             }
 
             template<class Facet>
-            friend const Facet& use_facet(const locale&);
+            /* friend const Facet& use_facet(const locale&); */
+            friend Facet use_facet(const locale&);
 
             template<class Facet>
-            const Facet& get_() const
+            /* const Facet& get_() const */
+            Facet get_() const
             {
-                // TODO: A VERY ugly hack, when we have map/shared ptr,
-                //       we should implement facets and store them in a map
-                //       and return them here by their IDs.
-                return *(new Facet{0u});
+                return Facet{0U};
             }
     };
 
     template<class Facet>
-    const Facet& use_facet(const locale& loc)
+    /* const Facet& use_facet(const locale& loc) */
+    Facet use_facet(const locale& loc)
     {
         return loc.get_<Facet>();
     }

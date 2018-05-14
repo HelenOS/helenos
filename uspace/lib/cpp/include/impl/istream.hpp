@@ -570,6 +570,8 @@ namespace std
                             break;
                     }
                 }
+
+                return *this;
             }
 
             int_type peek()
@@ -604,6 +606,8 @@ namespace std
 
                     s[gcount_++] = traits_type::to_char_type(c);
                 }
+
+                return *this;
             }
 
             streamsize readsome(char_type* s, streamsize n)

@@ -29,15 +29,13 @@
 #ifndef LIBCPP_INTERNAL_LOCALE_NUM_GET
 #define LIBCPP_INTERNAL_LOCALE_NUM_GET
 
+#include <cerrno>
+#include <cstring>
 #include <internal/locale.hpp>
 #include <internal/locale/numpunct.hpp>
 #include <ios>
 #include <iterator>
 #include <limits>
-
-extern "C" {
-#include <errno.h>
-}
 
 namespace std
 {
@@ -261,24 +259,28 @@ namespace std
                              ios_base::iostate& err, float& v) const
             {
                 // TODO: implement
+                return in;
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, double& v) const
             {
                 // TODO: implement
+                return in;
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, long double& v) const
             {
                 // TODO: implement
+                return in;
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, void*& v) const
             {
                 // TODO: implement
+                return in;
             }
 
         private:
@@ -300,9 +302,9 @@ namespace std
                 {
                     int ret{};
                     if constexpr (is_signed<BaseType>::value)
-                        ret = str_int64_t(base.buffer_, nullptr, num_base, false, &res);
+                        ret = std::hel::str_int64_t(base.buffer_, nullptr, num_base, false, &res);
                     else
-                        ret = str_uint64_t(base.buffer_, nullptr, num_base, false, &res);
+                        ret = std::hel::str_uint64_t(base.buffer_, nullptr, num_base, false, &res);
 
                     if (ret != EOK)
                     {
