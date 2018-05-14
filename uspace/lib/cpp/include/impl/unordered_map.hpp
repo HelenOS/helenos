@@ -265,7 +265,9 @@ namespace std
 
             template<class T>
             pair<iterator, bool> insert(
-                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val)
+                T&& val,
+                enable_if_t<is_constructible_v<value_type, T&&>>* = nullptr
+            )
             {
                 return emplace(forward<T>(val));
             }
@@ -283,7 +285,8 @@ namespace std
             template<class T>
             iterator insert(
                 const_iterator hint,
-                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+                T&& val,
+                enable_if_t<is_constructible_v<value_type, T&&>>* = nullptr
             )
             {
                 return emplace_hint(hint, forward<T>(val));
@@ -939,7 +942,8 @@ namespace std
 
             template<class T>
             iterator insert(
-                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+                T&& val,
+                enable_if_t<is_constructible_v<value_type, T&&>>* = nullptr
             )
             {
                 return emplace(forward<T>(val));
@@ -958,7 +962,8 @@ namespace std
             template<class T>
             iterator insert(
                 const_iterator hint,
-                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+                T&& val,
+                enable_if_t<is_constructible_v<value_type, T&&>>* = nullptr
             )
             {
                 return emplace_hint(hint, forward<T>(val));
@@ -1159,6 +1164,7 @@ namespace std
     bool operator==(unordered_map<Key, Value, Hash, Pred, Alloc>& lhs,
                     unordered_map<Key, Value, Hash, Pred, Alloc>& rhs)
     {
+        // TODO: this does not compare values, use is_permutation when we have it
         return lhs.table_.is_eq_to(rhs.table_);
     }
 
