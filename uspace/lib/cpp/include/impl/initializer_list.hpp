@@ -29,6 +29,8 @@
 #ifndef LIBCPP_INITIALIZER_LIST
 #define LIBCPP_INITIALIZER_LIST
 
+#include <cstdlib>
+
 namespace std
 {
     /**
