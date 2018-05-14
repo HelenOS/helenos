@@ -30,6 +30,7 @@
 #define LIBCPP_INTERNAL_FUNCTIONAL_HASH
 
 #include <cstdlib>
+#include <cstdint>
 
 namespace std
 {
