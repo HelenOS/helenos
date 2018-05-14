@@ -141,7 +141,7 @@ namespace std::aux
     {
         using non_const_iterator_type = hash_table_iterator<
             Value, get_non_const_ref_t<ConstReference>,
-            get_non_const_ptr<ConstPointer>, Size
+            get_non_const_ptr_t<ConstPointer>, Size
         >;
 
         public:

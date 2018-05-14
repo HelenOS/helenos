@@ -59,6 +59,9 @@ namespace std::aux
             auto head = table.table_[idx].head;
             auto current = head;
 
+            if (!current)
+                return 0;
+
             do
             {
                 if (table.keys_equal(key, current->value))
@@ -245,7 +248,7 @@ namespace std::aux
         template<class Table, class Key>
         static typename Table::size_type count(const Table& table, const Key& key)
         {
-            auto head = table.table_[get_bucket_idx_(key)].head;
+            auto head = table.table_[table.get_bucket_idx_(key)].head;
             if (!head)
                 return 0;
 
@@ -298,30 +301,36 @@ namespace std::aux
         static typename Table::size_type erase(Table& table, const Key& key)
         {
             auto idx = table.get_bucket_idx_(key);
-            auto it = table.begin(it);
+            auto head = table.table_[idx].head;
+            auto current = head;
+            table.table_[idx].head = nullptr;
+
+            if (!current)
+                return 0;
+
+            /**
+             * We traverse the list and delete if the keys
+             * equal, if they don't we append the nodes back
+             * to the bucket.
+             */
             typename Table::size_type res{};
 
-            while (it != table.end(it))
+            do
             {
-                if (table.keys_equal(key, *it))
+                auto tmp = current;
+                current = current->next;
+
+                if (!table.keys_equal(key, tmp->value))
+                    table.table_[idx].append(tmp);
+                else
                 {
-                    while (table.keys_equal(key, *it))
-                    {
-                        auto node = it.node();
-                        ++it;
-                        ++res;
+                    ++res;
+                    --table.size_;
 
-                        node.unlink();
-                        delete node;
-                        --table.size_;
-                    }
-
-                    // Elements with equal keys are next to each other.
-                    return res;
+                    delete tmp;
                 }
-
-                ++it;
             }
+            while (current != head);
 
             return res;
         }
@@ -406,7 +415,7 @@ namespace std::aux
             auto [bucket, target, idx] = table.find_insertion_spot(key);
 
             if (!bucket)
-                return make_pair(table.end(), false);
+                table.end();
 
             if (target && table.keys_equal(key, target->value))
                 target->append(node);
