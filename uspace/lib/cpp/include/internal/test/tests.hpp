@@ -163,6 +163,22 @@ namespace std::test
             void test_tie_and_structured_bindings();
             void test_tuple_ops();
     };
+
+    class map_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+
+        private:
+            void test_constructors_and_assignment();
+            void test_histogram();
+            void test_emplace_insert();
+            void test_bounds_and_ranges();
+            void test_multi();
+            void test_reverse_iterators();
+            void test_multi_bounds_and_ranges();
+    };
 }
 
 #endif

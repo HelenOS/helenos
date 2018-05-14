@@ -57,9 +57,10 @@ SOURCES = \
 	src/internal/test/array.cpp \
 	src/internal/test/bitset.cpp \
 	src/internal/test/deque.cpp \
-	src/internal/test/vector.cpp \
+	src/internal/test/map.cpp \
 	src/internal/test/string.cpp \
 	src/internal/test/test.cpp \
-	src/internal/test/tuple.cpp
+	src/internal/test/tuple.cpp \
+	src/internal/test/vector.cpp
 
 include $(USPACE_PREFIX)/Makefile.common
