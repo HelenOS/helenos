@@ -276,7 +276,7 @@ namespace std::aux
                 return size_type{};
 
             size_type res{};
-            while (tree.keys_equal(tree.get_key(*it), key))
+            while (it != tree.end() && tree.keys_equal(tree.get_key(*it), key))
             {
                 ++res;
                 it = tree.erase(it);
@@ -290,7 +290,9 @@ namespace std::aux
         {
             auto it = lower_bound_const(tree, key);
 
-            return typename Tree::iterator{it.node(), it.end()};
+            return typename Tree::iterator{
+                const_cast<typename Tree::node_type*>(it.node()), it.end()
+            };
         }
 
         template<class Tree, class Key>
@@ -327,7 +329,9 @@ namespace std::aux
         {
             auto it = upper_bound_const(tree, key);
 
-            return typename Tree::iterator{it.node(), it.end()};
+            return typename Tree::iterator{
+                const_cast<typename Tree::node_type*>(it.node()), it.end()
+            };
         }
 
         template<class Tree, class Key>

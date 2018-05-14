@@ -62,11 +62,13 @@ namespace std
             using size_type       = size_t;
             using difference_type = ptrdiff_t;
 
+            using node_type = aux::rbtree_single_node<value_type>;
+
             using iterator             = aux::rbtree_iterator<
-                value_type, reference, pointer, size_type
+                value_type, reference, pointer, size_type, node_type
             >;
             using const_iterator       = aux::rbtree_const_iterator<
-                value_type, const_reference, const_pointer, size_type
+                value_type, const_reference, const_pointer, size_type, node_type
             >;
 
             using reverse_iterator       = std::reverse_iterator<iterator>;
@@ -337,7 +339,9 @@ namespace std
 
             template<class T>
             pair<iterator, bool> insert(
-                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val)
+                T&& val,
+                enable_if_t<is_constructible_v<value_type, T&&>>* = nullptr
+            )
             {
                 return emplace(forward<T>(val));
             }
@@ -355,7 +359,8 @@ namespace std
             template<class T>
             iterator insert(
                 const_iterator hint,
-                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+                T&& val,
+                enable_if_t<is_constructible_v<value_type, T&&>>* = nullptr
             )
             {
                 return emplace_hint(hint, forward<T>(val));
@@ -421,7 +426,7 @@ namespace std
                 auto parent = tree_.find_parent_for_insertion(key);
                 if (parent && tree_.keys_equal(tree_.get_key(parent->value), key))
                 {
-                    parent->value = value_type{key, forward<T>(val)};
+                    parent->value.second = forward<T>(val);
 
                     return make_pair(iterator{parent, false}, false);
                 }
@@ -440,7 +445,7 @@ namespace std
                 auto parent = tree_.find_parent_for_insertion(key);
                 if (parent && tree_.keys_equal(tree_.get_key(parent->value), key))
                 {
-                    parent->value = value_type{move(key), forward<T>(val)};
+                    parent->value.second = forward<T>(val);
 
                     return make_pair(iterator{parent, false}, false);
                 }
@@ -520,7 +525,8 @@ namespace std
 
             template<class K>
             iterator find(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             )
             {
                 return tree_.find(key);
@@ -528,7 +534,8 @@ namespace std
 
             template<class K>
             const_iterator find(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.find(key);
@@ -541,7 +548,8 @@ namespace std
 
             template<class K>
             size_type count(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.count(key);
@@ -559,7 +567,8 @@ namespace std
 
             template<class K>
             iterator lower_bound(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             )
             {
                 return tree_.lower_bound(key);
@@ -567,7 +576,8 @@ namespace std
 
             template<class K>
             const_iterator lower_bound(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.lower_bound(key);
@@ -585,7 +595,8 @@ namespace std
 
             template<class K>
             iterator upper_bound(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             )
             {
                 return tree_.upper_bound(key);
@@ -593,7 +604,8 @@ namespace std
 
             template<class K>
             const_iterator upper_bound(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.upper_bound(key);
@@ -611,7 +623,8 @@ namespace std
 
             template<class K>
             pair<iterator, iterator> equal_range(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             )
             {
                 return tree_.equal_range(key);
@@ -619,7 +632,8 @@ namespace std
 
             template<class K>
             pair<const_iterator, const_iterator> equal_range(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.equal_range(key);
@@ -630,10 +644,8 @@ namespace std
                 value_type, key_type, aux::key_value_key_extractor<key_type, mapped_type>,
                 key_compare, allocator_type, size_type,
                 iterator, const_iterator,
-                aux::rbtree_single_policy
+                aux::rbtree_single_policy, node_type
             >;
-
-            using node_type = typename tree_type::node_type;
 
             tree_type tree_;
             allocator_type allocator_;
@@ -713,6 +725,8 @@ namespace std
             using size_type       = size_t;
             using difference_type = ptrdiff_t;
 
+            using node_type = aux::rbtree_multi_node<value_type>;
+
             class value_compare
             {
                 friend class multimap;
@@ -736,10 +750,10 @@ namespace std
             };
 
             using iterator             = aux::rbtree_iterator<
-                value_type, reference, pointer, size_type
+                value_type, reference, pointer, size_type, node_type
             >;
             using const_iterator       = aux::rbtree_const_iterator<
-                value_type, const_reference, const_pointer, size_type
+                value_type, const_reference, const_pointer, size_type, node_type
             >;
 
             using reverse_iterator       = std::reverse_iterator<iterator>;
@@ -936,7 +950,8 @@ namespace std
 
             template<class T>
             iterator insert(
-                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+                T&& val,
+                enable_if_t<is_constructible_v<value_type, T&&>>* = nullptr
             )
             {
                 return emplace(forward<T>(val));
@@ -955,7 +970,8 @@ namespace std
             template<class T>
             iterator insert(
                 const_iterator hint,
-                enable_if_t<is_constructible_v<value_type, T&&>, T&&> val
+                T&& val,
+                enable_if_t<is_constructible_v<value_type, T&&>>* = nullptr
             )
             {
                 return emplace_hint(hint, forward<T>(val));
@@ -1028,7 +1044,8 @@ namespace std
 
             template<class K>
             iterator find(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             )
             {
                 return tree_.find(key);
@@ -1036,7 +1053,8 @@ namespace std
 
             template<class K>
             const_iterator find(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.find(key);
@@ -1049,7 +1067,8 @@ namespace std
 
             template<class K>
             size_type count(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.count(key);
@@ -1067,7 +1086,8 @@ namespace std
 
             template<class K>
             iterator lower_bound(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             )
             {
                 return tree_.lower_bound(key);
@@ -1075,7 +1095,8 @@ namespace std
 
             template<class K>
             const_iterator lower_bound(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.lower_bound(key);
@@ -1093,7 +1114,8 @@ namespace std
 
             template<class K>
             iterator upper_bound(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             )
             {
                 return tree_.upper_bound(key);
@@ -1101,7 +1123,8 @@ namespace std
 
             template<class K>
             const_iterator upper_bound(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.upper_bound(key);
@@ -1119,7 +1142,8 @@ namespace std
 
             template<class K>
             pair<iterator, iterator> equal_range(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             )
             {
                 return tree_.equal_range(key);
@@ -1127,7 +1151,8 @@ namespace std
 
             template<class K>
             pair<const_iterator, const_iterator> equal_range(
-                enable_if_t<aux::is_transparent_v<key_compare>, const K&> key
+                const K& key,
+                enable_if_t<aux::is_transparent_v<key_compare>, K>* = nullptr
             ) const
             {
                 return tree_.equal_range(key);
@@ -1138,7 +1163,7 @@ namespace std
                 value_type, key_type, aux::key_value_key_extractor<key_type, mapped_type>,
                 key_compare, allocator_type, size_type,
                 iterator, const_iterator,
-                aux::rbtree_multi_policy
+                aux::rbtree_multi_policy, node_type
             >;
 
             tree_type tree_;

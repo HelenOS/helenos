@@ -77,6 +77,9 @@ namespace std::aux
 
             rbtree_iterator& operator++()
             {
+                if (end_)
+                    return *this;
+
                 if (current_)
                 {
                     auto next = current_->successor();
@@ -101,7 +104,7 @@ namespace std::aux
             {
                 if (end_)
                 {
-                    try_undo_end_();
+                    end_ = false;
 
                     return *this;
                 }
@@ -144,19 +147,6 @@ namespace std::aux
         private:
             node_type* current_;
             bool end_;
-
-            void try_undo_end_()
-            {
-                if (!current_)
-                    return;
-
-                /**
-                 * We can do this if we are past end().
-                 * This means we are the largest.
-                 */
-                if (current_->find_largest() == current_)
-                    end_ = false;
-            }
     };
 
     template<class Val, class Ref, class Ptr, class Sz, class N>
@@ -223,6 +213,9 @@ namespace std::aux
 
             rbtree_const_iterator& operator++()
             {
+                if (end_)
+                    return *this;
+
                 if (current_)
                 {
                     auto next = current_->successor();
@@ -247,7 +240,7 @@ namespace std::aux
             {
                 if (end_)
                 {
-                    try_undo_end_();
+                    end_ = false;
 
                     return *this;
                 }
@@ -285,19 +278,6 @@ namespace std::aux
         private:
             const node_type* current_;
             bool end_;
-
-            void try_undo_end_()
-            {
-                if (!current_)
-                    return;
-
-                /**
-                 * We can do this if we are past end().
-                 * This means we are the largest.
-                 */
-                if (current_->find_largest() == current_)
-                    end_ = false;
-            }
     };
 
     template<class Val, class CRef, class CPtr, class Sz, class N>

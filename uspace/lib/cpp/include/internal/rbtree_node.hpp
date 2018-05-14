@@ -45,7 +45,7 @@ namespace std::aux
         static Node* grandparent(Node* node)
         {
             if (node && node->parent())
-                return node->parent->parent();
+                return node->parent()->parent();
             else
                 return nullptr;
         }
@@ -54,10 +54,10 @@ namespace std::aux
         {
             if (node && node->parent())
             {
-                if (node == node->parent->left())
-                    return node->parent->right();
+                if (node == node->parent()->left())
+                    return node->parent()->right();
                 else
-                    return node->parent->left();
+                    return node->parent()->left();
             }
             else
                 return nullptr;
@@ -572,7 +572,28 @@ namespace std::aux
 
             const rbtree_multi_node* predecessor() const
             {
-                return utils::predecessor(this);
+                if (this != first_)
+                {
+                    auto tmp = first_;
+                    while (tmp->next_ != this)
+                        tmp = tmp->next_;
+
+                    return tmp;
+                }
+                else
+                {
+                    auto tmp = utils::predecessor(this);
+
+                    /**
+                     * If tmp was duplicate, we got a pointer
+                     * to the first node in the list. So we need
+                     * to move to the end.
+                     */
+                    while (tmp->next_ != nullptr)
+                        tmp = tmp->next_;
+
+                    return tmp;
+                }
             }
 
             void add_left_child(rbtree_multi_node* node)
@@ -590,15 +611,51 @@ namespace std::aux
                 utils::swap(this, other);
             }
 
-            rbtree_multi_node<T>* get_node_for_deletion()
+            rbtree_multi_node* get_node_for_deletion()
             {
+                /**
+                 * To make sure we delete nodes in
+                 * the order of their insertion
+                 * (not required, but sensical), we
+                 * update then list and return this
+                 * for deletion.
+                 */
                 if (next_)
                 {
-                    auto tmp = next_;
-                    while (tmp && tmp->next_ != this)
-                        tmp = tmp->next_;
+                    // Make next the new this.
+                    next_->first_ = next_;
+                    if (is_left_child())
+                        parent_->left_ = next_;
+                    else if (is_right_child())
+                        parent_->right_ = next_;
 
-                    return tmp; // This will get deleted.
+                    if (left_)
+                        left_->parent_ = next_;
+                    if (right_)
+                        right_->parent_ = next_;
+
+                    /**
+                     * Update the first_ pointer
+                     * of the rest of the list.
+                     */
+                    auto tmp = next_->next_;
+                    while (tmp)
+                    {
+                        tmp->first_ = next_;
+                        tmp = tmp->next_;
+                    }
+
+                    /**
+                     * Otherwise destructor could
+                     * destroy them.
+                     */
+                    parent_ = nullptr;
+                    left_ = nullptr;
+                    right_ = nullptr;
+                    next_ = nullptr;
+                    first_ = nullptr;
+
+                    return this; // This will get deleted.
                 }
                 else
                     return nullptr;
@@ -607,9 +664,9 @@ namespace std::aux
             void unlink()
             {
                 if (is_left_child())
-                    parent->left_ = nullptr;
+                    parent_->left_ = nullptr;
                 else if (is_right_child())
-                    parent->right_ = nullptr;
+                    parent_->right_ = nullptr;
             }
 
             void add(rbtree_multi_node* node)

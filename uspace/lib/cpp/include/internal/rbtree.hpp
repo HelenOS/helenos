@@ -352,31 +352,32 @@ namespace std::aux
                 auto node = const_cast<node_type*>(n);
                 if (!node)
                     return nullptr;
+
+                --size_;
+
+                auto succ = node->successor();
                 if (auto tmp = node->get_node_for_deletion(); tmp != nullptr)
                 {
                     /**
                      * This will kick in multi containers,
                      * we popped one node from a list of nodes
                      * with equivalent keys and we can delete it
-                     * and return the original as it is still
-                     * in place.
+                     * and return the successor which was the next
+                     * in the list.
                      */
                     delete tmp;
 
-                    return node;
+                    update_root_(succ); // Incase the first in list was root.
+                    return succ;
                 }
-
-                --size_;
-
-                if (node == root_)
-                {
-                    delete node;
+                else if (node == root_)
+                { // Only executed if root_ is unique.
                     root_ = nullptr;
+                    delete node;
 
                     return nullptr;
                 }
 
-                auto succ = node->successor();
                 if (node->left() && node->right())
                 {
                     node->swap(succ);
@@ -406,6 +407,9 @@ namespace std::aux
                         child->parent()->left(child);
                     else if (node->is_right_child())
                         child->parent()->right(child);
+                    node->parent(nullptr);
+                    node->left(nullptr);
+                    node->right(nullptr);
 
                     // Repair if needed.
                     repair_after_erase_(node, child);
