@@ -44,4 +44,16 @@ namespace std
     //       and that is a macro.
 }
 
+/**
+ * We need to fix the assert macro because it uses
+ * a non-standard function that we have in the
+ * std::hel namespace.
+ */
+#undef assert
+#define assert(expr) \
+	do { \
+		if (!(expr)) \
+			std::hel::assert_abort(#expr, __FILE__, __LINE__); \
+	} while (0)
+
 #endif
