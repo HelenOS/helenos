@@ -263,6 +263,24 @@ namespace std
 
             return *this;
         }
+
+        template<typename U, typename V>
+        pair& operator=(pair<U, V>&& other)
+        {
+            first = forward<first_type>(other.first);
+            second = forward<second_type>(other.second);
+
+            return *this;
+        }
+
+        void swap(pair& other) noexcept(
+            noexcept(std::swap(first, other.first)) &&
+            noexcept(std::swap(second, other.second))
+        )
+        {
+            std::swap(first, other.first);
+            std::swap(second, other.second);
+        }
     };
 
     /**
