@@ -29,6 +29,7 @@
 #ifndef LIBCPP_INTERNAL_HASH_TABLE_POLICIES
 #define LIBCPP_INTERNAL_HASH_TABLE_POLICIES
 
+#include <tuple>
 #include <utility>
 
 namespace std::aux

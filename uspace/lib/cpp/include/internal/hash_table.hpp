@@ -228,6 +228,7 @@ namespace std::aux
                     else
                         table_[idx].head = nullptr;
                 }
+                --size_;
 
                 node->unlink();
                 delete node;
