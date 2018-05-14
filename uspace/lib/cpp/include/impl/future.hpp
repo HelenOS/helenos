@@ -29,6 +29,155 @@
 #ifndef LIBCPP_FUTURE
 #define LIBCPP_FUTURE
 
-#error "<future> is not implemented"
+#include <memory>
+#include <system_error>
+#include <type_traits>
+
+namespace std
+{
+    /**
+     * 30.6, futures:
+     */
+
+    enum class future_errc
+    { // The 5001 start is to not collide with system_error's codes.
+        broken_promise = 5001,
+        future_already_retrieved,
+        promise_already_satisfied,
+        no_state
+    };
+
+    enum class launch
+    {
+        async,
+        deferred
+    };
+
+    enum class future_status
+    {
+        ready,
+        timeout,
+        deferred
+    };
+
+    /**
+     * 30.6.2, error handling:
+     */
+
+    template<>
+    struct is_error_code_enum<future_errc>: true_type
+    { /* DUMMY BODY */ };
+
+    error_code make_error_code(future_errc) noexcept;
+    error_condition make_error_condition(future_errc) noexcept;
+
+    const error_category& future_category() noexcept;
+
+    /**
+     * 30.6.3, class future_error:
+     */
+
+    class future_error: public logic_error
+    {
+        public:
+            future_error(error_code ec);
+
+            const error_code& code() const noexcept;
+
+        private:
+            error_code code_;
+    };
+
+    /**
+     * 30.6.4, shared state:
+     */
+
+    template<class R>
+    class promise
+    {
+    };
+
+    template<class R>
+    class promise<R&>
+    {
+    };
+
+    template<>
+    class promise<void>
+    {
+    };
+
+    template<class R>
+    void swap(promise<R>& lhs, promise<R>& rhs) noexcept
+    {
+        lhs.swap(rhs);
+    }
+
+    template<class R, class Alloc>
+    struct uses_allocator<promise<R>, Alloc>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class R>
+    class future
+    {
+    };
+
+    template<class R>
+    class future<R&>
+    {
+    };
+
+    template<>
+    class future<void>
+    {
+    };
+
+    template<class R>
+    class shared_future
+    {
+    };
+
+    template<class R>
+    class shared_future<R&>
+    {
+    };
+
+    template<>
+    class shared_future<void>
+    {
+    };
+
+    template<class>
+    class packaged_task; // undefined
+
+    template<class R, class... Args>
+    class packaged_task<R(Args...)>
+    {
+    };
+
+    template<class R, class... Args>
+    void swap(packaged_task<R(Args...)>& lhs, packaged_task<R(Args...)>& rhs) noexcept
+    {
+        lhs.swap(rhs);
+    };
+
+    template<class R, class Alloc>
+    struct uses_allocator<packaged_task<R>, Alloc>: true_type
+    { /* DUMMY BODY */ };
+
+    template<class F, class... Args>
+    future<result_of_t<decay_t<F>(decay_t<Args>...)>>
+    async(F&& f, Args&&... args)
+    {
+        // TODO: implement
+    }
+
+    template<class F, class... Args>
+    future<result_of_t<decay_t<F>(decay_t<Args>...)>>
+    async(launch, F&& f, Args&&... args)
+    {
+        // TODO: implement
+    }
+}
 
 #endif
