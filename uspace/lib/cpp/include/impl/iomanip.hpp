@@ -50,6 +50,12 @@ namespace std
 
     aux::manip_wrapper<aux::setprecision_t> setprecision(int prec);
     aux::manip_wrapper<aux::setw_t> setw(int width);
+
+    /**
+     * 27.7.5, extended manipulators:
+     */
+
+    // TODO: implement
 }
 
 #endif
