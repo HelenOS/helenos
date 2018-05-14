@@ -202,9 +202,9 @@ errno_t usb_hid_report_append_fields(usb_hid_report_t *report,
 
 		if (USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) {
 			/*
-			Store usage array. The Correct Usage Page and Usage is
-			depending on data in report and will be filled later
-			*/
+			 * Store usage array. The Correct Usage Page and Usage is
+			 * depending on data in report and will be filled later
+			 */
 			field->usage = 0;
 			field->usage_page = 0; //report_item->usage_page;
 

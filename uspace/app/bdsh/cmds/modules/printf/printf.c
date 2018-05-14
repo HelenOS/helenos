@@ -64,7 +64,7 @@ void help_cmd_printf(unsigned int level)
  * '%d' - integer.
  * '%u' - unsigned integer.
  * '%s' - null-terminated string.
- *****
+ *
  * @param ch  formatted flag.
  * @param arg string with data to print.
  */
@@ -90,7 +90,7 @@ static int print_arg(wchar_t ch, const char *arg)
  *
  * Currently available characters are:
  * '\n' - new line.
- *****
+ *
  * @param ch  Control character.
  */
 static int process_ctl(wchar_t ch)
@@ -112,7 +112,7 @@ static int process_ctl(wchar_t ch)
  * %d - print an integer
  * %u - print an unsigned integer
  * %s - print a null terminated string
- *****
+ *
  * Accepted output controls:
  * \n - new line
  */

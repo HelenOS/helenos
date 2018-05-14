@@ -68,26 +68,27 @@ typedef struct {
 	 *
 	 * When the driver expect single interrupt in endpoint,
 	 * the initialization may look like this:
-\code
-static usb_endpoint_description_t poll_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
-};
+	 *
+	 * @code
+	 * static usb_endpoint_description_t poll_endpoint_description = {
+	 * 	.transfer_type = USB_TRANSFER_INTERRUPT,
+	 * 	.direction = USB_DIRECTION_IN,
+	 * 	.interface_class = USB_CLASS_HUB,
+	 * 	.interface_subclass = 0,
+	 * 	.interface_protocol = 0,
+	 * 	.flags = 0
+	 * };
 
-static usb_endpoint_description_t *hub_endpoints[] = {
-	&poll_endpoint_description,
-	NULL
-};
+	 * static usb_endpoint_description_t *hub_endpoints[] = {
+	 * 	&poll_endpoint_description,
+	 * 	NULL
+	 * };
 
-static usb_driver_t hub_driver = {
-	.endpoints = hub_endpoints,
-	...
-};
-\endcode
+	 * static usb_driver_t hub_driver = {
+	 * 	.endpoints = hub_endpoints,
+	 * 	...
+	 * };
+	 * @endcode
 	 */
 	const usb_endpoint_description_t **endpoints;
 	/** Driver ops. */

@@ -422,7 +422,6 @@ errno_t udebug_task_cleanup(struct task *task)
 				/*
 				 * Yes, so clear go. As active == false,
 				 * this doesn't affect anything.
-				 (
 				 */
 				thread->udebug.go = false;
 

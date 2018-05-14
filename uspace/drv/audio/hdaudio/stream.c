@@ -91,7 +91,7 @@ errno_t hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 		goto error;
 
 	/* Allocate buffers */
-/*
+#if 0
 	for (i = 0; i < bufs->nbuffers; i++) {
 		buffer = AS_AREA_ANY;
 		rc = dmamem_map_anonymous(bufs->bufsize,
@@ -115,7 +115,7 @@ errno_t hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 				k = 0;
 		}
 	}
-*/
+#endif
 	/* audio_pcm_iface requires a single contiguous buffer */
 	buffer = AS_AREA_ANY;
 	rc = dmamem_map_anonymous(bufs->bufsize * bufs->nbuffers,
@@ -133,15 +133,6 @@ errno_t hda_stream_buffers_alloc(hda_t *hda, hda_stream_buffers_t **rbufs)
 		ddf_msg(LVL_NOTE, "Stream buf phys=0x%llx virt=%p",
 		    (long long unsigned)(uintptr_t)bufs->buf[i],
 		    (void *)bufs->buf_phys[i]);
-/*		k = 0;
-		for (j = 0; j < bufs->bufsize / 2; j++) {
-			int16_t *bp = bufs->buf[i];
-			bp[j] = (k > 128) ? -10000 : 10000;
-			++k;
-			if (k >= 256)
-				k = 0;
-		}
-*/
 	}
 
 	/* Fill in BDL */

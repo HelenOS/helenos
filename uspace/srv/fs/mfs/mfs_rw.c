@@ -51,8 +51,8 @@ write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone);
 
 
 /**Given the position in the file expressed in
- *bytes, this function returns the on-disk block
- *relative to that position.
+ * bytes, this function returns the on-disk block
+ * relative to that position.
  *
  * @param b	Pointer to a 32bit number where the block number will be stored
  * @param mnode	Pointer to a generic MINIX inode in memory.

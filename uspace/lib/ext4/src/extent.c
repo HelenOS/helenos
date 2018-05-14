@@ -953,7 +953,7 @@ static errno_t ext4_extent_append_extent(ext4_inode_ref_t *inode_ref,
  * This function allocates data block, tries to append it
  * to some existing extent or creates new extents.
  * It includes possible extent tree modifications (splitting).
- *<
+ *
  * @param inode_ref I-node to append block to
  * @param iblock    Output logical number of newly allocated block
  * @param fblock    Output physical block address of newly allocated block

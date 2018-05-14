@@ -351,12 +351,6 @@ errno_t con_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, con_srvs_t *
 	if (srv == NULL)
 		return ENOMEM;
 
-/*	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
-	if (sess == NULL)
-		return ENOMEM;
-
-	srv->client_sess = sess;
-*/
 	srv->client_sess = NULL;
 
 	rc = srvs->ops->open(srvs, srv);

@@ -104,8 +104,8 @@ struct mfs_superblock {
 	/* Maximum file size expressed in bytes */
 	uint32_t	s_max_file_size;
 	/*
-	 *Magic number used to recognize MinixFS
-	 *and to detect on-disk endianness
+	 * Magic number used to recognize MinixFS
+	 * and to detect on-disk endianness
 	 */
 	uint16_t	s_magic;
 	/* Flag used to detect FS errors*/
@@ -134,8 +134,8 @@ struct mfs3_superblock {
 	/* Total number of zones on the device */
 	uint32_t	s_nzones;
 	/*
-	 *Magic number used to recognize MinixFS
-	 *and to detect on-disk endianness
+	 * Magic number used to recognize MinixFS
+	 * and to detect on-disk endianness
 	 */
 	int16_t		s_magic;
 	int16_t		s_pad2;
