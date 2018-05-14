@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cstring>
 #include <functional>
 #include <string>
 #include <system_error>
@@ -262,38 +263,33 @@ namespace std
     }
 
     system_error::system_error(error_code ec, const string& what_arg)
-        : code_{ec}, what_{what_arg}
+        : runtime_error{what_arg.c_str()}, code_{ec}
     { /* DUMMY BODY */ }
 
     system_error::system_error(error_code ec, const char* what_arg)
-        : code_{ec}, what_{what_arg}
+        : runtime_error{what_arg}, code_{ec}
     { /* DUMMY BODY */ }
 
     system_error::system_error(error_code ec)
-        : code_{ec}, what_{}
+        : runtime_error{"system_error"}, code_{ec}
     { /* DUMMY BODY */ }
 
     system_error::system_error(int code, const error_category& cat,
                                const string& what_arg)
-        : code_{code, cat}, what_{what_arg}
+        : runtime_error{what_arg.c_str()}, code_{code, cat}
     { /* DUMMY BODY */ }
 
     system_error::system_error(int code, const error_category& cat,
                                const char* what_arg)
-        : code_{code, cat}, what_{what_arg}
+        : runtime_error{what_arg}, code_{code, cat}
     { /* DUMMY BODY */ }
 
     system_error::system_error(int code, const error_category& cat)
-        : code_{code, cat}, what_{}
+        : runtime_error{"system_error"}, code_{code, cat}
     { /* DUMMY BODY */ }
 
     const error_code& system_error::code() const noexcept
     {
         return code_;
-    }
-
-    const char* system_error::what() const noexcept
-    {
-        return what_.c_str();
     }
 }

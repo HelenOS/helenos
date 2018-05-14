@@ -30,6 +30,7 @@
 #define LIBCPP_SYSTEM_ERROR
 
 #include <internal/aux.hpp>
+#include <internal/stringfwd.hpp>
 #include <stdexcept>
 
 namespace std
@@ -339,11 +340,8 @@ namespace std
 
             const error_code& code() const noexcept;
 
-            const char* what() const noexcept override;
-
         private:
             error_code code_;
-            string what_;
     };
 
     /**
