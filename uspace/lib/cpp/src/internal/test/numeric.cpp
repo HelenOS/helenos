@@ -26,11 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <iostream> // TODO: remove
+
 #include <array>
+#include <complex>
 #include <initializer_list>
 #include <internal/test/tests.hpp>
 #include <numeric>
 #include <utility>
+
+using namespace std::literals;
+using namespace complex_literals;
 
 namespace std::test
 {
@@ -40,6 +46,7 @@ namespace std::test
         start();
 
         test_algorithms();
+        test_complex();
 
         return end();
     }
@@ -145,6 +152,31 @@ namespace std::test
             "iota", check5.begin(), check5.end(),
             result.begin(), result.end()
         );
+    }
+
+    void numeric_test::test_complex()
+    {
+        auto c1 = 1.f + 2.5if;
+        test_eq("complex literals pt1", c1.real(), 1.f);
+        test_eq("complex literals pt2", c1.imag(), 2.5f);
+
+        std::complex<double> c2{2.0, 0.5};
+        test_eq("complex value initialization", c2, (2.0 + 0.5i));
+
+        std::complex<double> c3{c2};
+        test_eq("complex copy initialization", c3, (2.0 + 0.5i));
+
+        std::complex<double> c4{c1};
+        test_eq("complex conversion initialization", c4, (1.0 + 2.5i));
+
+        test_eq("complex sum", ((1.0 + 2.5i) + (3.0 + 0.5i)), (4.0 + 3.0i));
+        test_eq("complex sub", ((2.0 + 3.0i) - (1.0 + 5.0i)), (1.0 - 2.0i));
+        test_eq("complex mul", ((2.0 + 2.0i) * (2.0 + 3.0i)), (-2.0 + 10.0i));
+        test_eq("complex div", ((2.0 - 1.0i) / (3.0 + 4.0i)), (0.08 - 0.44i));
+        test_eq("complex unary minus", -(1.0 + 1.0i), (-1.0 - 1.0i));
+        test_eq("complex abs", std::abs(2.0 - 4.0i), 20.0);
+        test_eq("complex real", std::real(2.0 + 3.0i), 2.0);
+        test_eq("complex imag", std::imag(2.0 + 3.0i), 3.0);
     }
 }
 

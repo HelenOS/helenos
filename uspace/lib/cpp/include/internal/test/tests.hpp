@@ -228,6 +228,7 @@ namespace std::test
 
         private:
             void test_algorithms();
+            void test_complex();
     };
 }
 
