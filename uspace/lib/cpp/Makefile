@@ -59,6 +59,7 @@ SOURCES = \
 	src/internal/test/bitset.cpp \
 	src/internal/test/deque.cpp \
 	src/internal/test/map.cpp \
+	src/internal/test/numeric.cpp \
 	src/internal/test/set.cpp \
 	src/internal/test/string.cpp \
 	src/internal/test/test.cpp \

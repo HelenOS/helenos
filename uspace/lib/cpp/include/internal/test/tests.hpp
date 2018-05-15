@@ -219,6 +219,16 @@ namespace std::test
             void test_emplace_insert();
             void test_multi();
     };
+
+    class numeric_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+
+        private:
+            void test_algorithms();
+    };
 }
 
 #endif
