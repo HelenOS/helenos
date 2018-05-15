@@ -31,6 +31,7 @@
 
 #include <cstdlib>
 #include <cstddef>
+#include <cstdint>
 #include <internal/aux.hpp>
 #include <internal/type_traits/references.hpp>
 
