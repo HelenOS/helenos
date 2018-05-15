@@ -152,7 +152,7 @@ namespace std::test
         test_eq("priority_queue push pt2", q1.top(), 9);
 
         test_eq(
-            "priority_queue initialized from iterator range operations",
+            "priority_queue initialized from iterator range ops",
             check1.begin(), check1.end(),
             aux::priority_queue_iterator<int>{q1},
             aux::priority_queue_iterator<int>{q1, true}
@@ -165,11 +165,11 @@ namespace std::test
         test_eq("priority_queue initialized from vector and compare size", q2.size(), 5U);
 
         q2.push(3);
-        test_eq("priority_qeueu push pt1", q2.size(), 6U);
-        test_eq("priority_qeueu push pt2", q2.top(), 1);
+        test_eq("priority_queue push pt1", q2.size(), 6U);
+        test_eq("priority_queue push pt2", q2.top(), 1);
 
         test_eq(
-            "priority_queue initialized from vector and compare operations",
+            "priority_queue initialized from vector and compare ops",
             check2.begin(), check2.end(),
             aux::priority_queue_iterator<int, std::greater<int>>{q2},
             aux::priority_queue_iterator<int, std::greater<int>>{q2, true}
@@ -178,5 +178,18 @@ namespace std::test
 
     void adaptors_test::test_stack()
     {
+        std::stack<int> s{std::deque<int>{1}};
+
+        test_eq("stack initialized from deque top", s.top(), 1);
+        test_eq("stack initialized from deque size", s.size(), 1U);
+        test_eq("stack initialized from deque not empty", s.empty(), false);
+
+        s.push(2);
+        test_eq("stack push top", s.top(), 2);
+        test_eq("stack push size", s.size(), 2U);
+
+        s.pop();
+        test_eq("stack pop top", s.top(), 1);
+        test_eq("stack pop size", s.size(), 1U);
     }
 }
