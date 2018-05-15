@@ -230,6 +230,18 @@ namespace std::test
             void test_algorithms();
             void test_complex();
     };
+
+    class adaptors_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+
+        private:
+            void test_queue();
+            void test_priority_queue();
+            void test_stack();
+    };
 }
 
 #endif
