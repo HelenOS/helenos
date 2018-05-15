@@ -86,5 +86,16 @@ namespace std::test
             test_eq("unique_ptr move pt1", mock::destructor_calls, 0U);
         }
         test_eq("unique_ptr move pt2", mock::destructor_calls, 1U);
+
+        mock::clear();
+        {
+            auto ptr = std::make_unique<mock[]>(10U);
+            test_eq("unique_ptr make_unique array version", mock::constructor_calls, 10U);
+
+            new(&ptr[5]) mock{};
+            test_eq("placement new into the array", mock::constructor_calls, 11U);
+            test_eq("original not destroyed during placement new", mock::destructor_calls, 0U);
+        }
+        test_eq("unique_ptr array out of scope", mock::destructor_calls, 10U);
     }
 }
