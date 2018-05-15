@@ -203,7 +203,7 @@ namespace std
             using size_type       = typename Container::size_type;
             using container_type  = Container;
 
-        /* protected: */
+        protected:
             using compare_type = Compare;
 
             compare_type comp;
