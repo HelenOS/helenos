@@ -26,8 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream> // TODO: remove
-
 #include <array>
 #include <complex>
 #include <initializer_list>
