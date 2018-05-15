@@ -40,6 +40,7 @@ namespace std::test
         start();
 
         test_unique_ptr();
+        test_shared_ptr();
 
         return end();
     }
@@ -97,5 +98,30 @@ namespace std::test
             test_eq("original not destroyed during placement new", mock::destructor_calls, 0U);
         }
         test_eq("unique_ptr array out of scope", mock::destructor_calls, 10U);
+    }
+
+    void memory_test::test_shared_ptr()
+    {
+        mock::clear();
+        {
+            auto ptr1 = std::make_shared<mock>();
+            test_eq("shared_ptr make_shared", mock::constructor_calls, 1U);
+            test_eq("shared_ptr unique", ptr1.unique(), true);
+            {
+                auto ptr2 = ptr1;
+                test_eq("shared_ptr copy pt1", ptr1.use_count(), 2U);
+                test_eq("shared_ptr copy pt2", ptr2.use_count(), 2U);
+                test_eq("shared_ptr copy no constructor call", mock::copy_constructor_calls, 0U);
+                test_eq("shared_ptr not unique", ptr1.unique(), false);
+
+                auto ptr3 = std::move(ptr2);
+                test_eq("shared_ptr move pt1", ptr1.use_count(), 2U);
+                test_eq("shared_ptr move pt2", ptr3.use_count(), 2U);
+
+                test_eq("shared_ptr move origin empty", (bool)ptr2, false);
+            }
+            test_eq("shared_ptr copy out of scope", mock::destructor_calls, 0U);
+        }
+        test_eq("shared_ptr original out of scope", mock::destructor_calls, 1U);
     }
 }
