@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,9 +29,9 @@
 #ifndef LIBCPP_STACK
 #define LIBCPP_STACK
 
+#include <deque>
 #include <initializer_list>
 #include <utility>
-#include <vector>
 
 namespace std
 {
@@ -40,8 +40,7 @@ namespace std
      * 23.5.6.2, stack:
      */
 
-    // TODO: the default container should be deque<T>
-    template<class T, class Container = vector<T>>
+    template<class T, class Container = deque<T>>
     class stack
     {
         public:
@@ -130,8 +129,8 @@ namespace std
                 c.pop_back();
             }
 
-            void swap(stack& other)
-                /* noexcept(noexcept(swap(c, other.c))) */
+            void swap(stack& other) // We cannot use c in the noexcept :/
+                noexcept(noexcept(declval<container_type>().swap(declval<container_type&>())))
             {
                 std::swap(c, other.c);
             }
