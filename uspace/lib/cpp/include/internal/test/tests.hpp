@@ -242,6 +242,16 @@ namespace std::test
             void test_priority_queue();
             void test_stack();
     };
+
+    class memory_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+
+        private:
+            void test_unique_ptr();
+    };
 }
 
 #endif
