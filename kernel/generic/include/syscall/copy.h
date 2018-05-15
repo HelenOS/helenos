@@ -48,9 +48,10 @@ extern errno_t copy_to_uspace(void *dst_uspace, const void *src, size_t size);
 
 /*
  * This interface must be implemented by each architecture.
+ * The functions return zero on failure and nonzero on success.
  */
-extern errno_t memcpy_from_uspace(void *dst, const void *uspace_src, size_t size);
-extern errno_t memcpy_to_uspace(void *uspace_dst, const void *src, size_t size);
+extern uintptr_t memcpy_from_uspace(void *dst, const void *uspace_src, size_t size);
+extern uintptr_t memcpy_to_uspace(void *uspace_dst, const void *src, size_t size);
 
 #endif
 

@@ -89,12 +89,12 @@ errno_t copy_from_uspace(void *dst, const void *uspace_src, size_t size)
 	ipl = interrupts_disable();
 	THREAD->in_copy_from_uspace = true;
 
-	rc = memcpy_from_uspace(dst, uspace_src, size);
+	rc = !memcpy_from_uspace(dst, uspace_src, size) ? EPERM : EOK;
 
 	THREAD->in_copy_from_uspace = false;
 
 	interrupts_restore(ipl);
-	return !rc ? EPERM : EOK;
+	return rc;
 }
 
 /** Copy data from kernel to userspace.
@@ -140,12 +140,12 @@ errno_t copy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	ipl = interrupts_disable();
 	THREAD->in_copy_to_uspace = true;
 
-	rc = memcpy_to_uspace(uspace_dst, src, size);
+	rc = !memcpy_to_uspace(uspace_dst, src, size) ? EPERM : EOK;
 
 	THREAD->in_copy_to_uspace = false;
 
 	interrupts_restore(ipl);
-	return !rc ? EPERM : 0;
+	return rc;
 }
 
 /** @}

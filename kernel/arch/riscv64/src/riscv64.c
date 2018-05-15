@@ -142,14 +142,14 @@ void fpu_context_restore(fpu_context_t *ctx)
 {
 }
 
-errno_t memcpy_from_uspace(void *dst, const void *uspace_src, size_t size)
+uintptr_t memcpy_from_uspace(void *dst, const void *uspace_src, size_t size)
 {
-	return EOK;
+	return 0;
 }
 
-errno_t memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
+uintptr_t memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
 {
-	return EOK;
+	return 0;
 }
 
 /** @}
