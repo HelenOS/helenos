@@ -30,6 +30,7 @@
 #define LIBCPP_COMPLEX
 
 #include <iosfwd>
+#include <sstream>
 
 namespace std
 {
@@ -50,7 +51,7 @@ namespace std
 
             template<class U>
             constexpr complex(const complex<U>& other)
-                : real_(other.real_), imag_(other.imag_)
+                : real_(other.real()), imag_(other.imag())
             { /* DUMMY BODY */ }
 
             constexpr value_type real() const
@@ -149,8 +150,9 @@ namespace std
             template<class U>
             complex& operator*=(const complex<U>& rhs)
             {
+                auto old_real = real_;
                 real_ = real_ * rhs.real_ - imag_ * rhs.imag_;
-                imag_ = real_ * rhs.imag_ - imag_ * rhs.real_;
+                imag_ = old_real * rhs.imag_ + imag_ * rhs.real_;
 
                 return *this;
             }
@@ -158,9 +160,10 @@ namespace std
             template<class U>
             complex& operator/=(const complex<U>& rhs)
             {
+                auto old_real = real_;
                 real_ = (real_ * rhs.real_ + imag_ * rhs.imag_)
                       / (rhs.real_ * rhs.real_ + rhs.imag_ * rhs.imag_);
-                imag_ = (imag_ * rhs.real_ - real_ * rhs.imag_)
+                imag_ = (imag_ * rhs.real_ - old_real * rhs.imag_)
                       / (rhs.real_ * rhs.real_ + rhs.imag_ * rhs.imag_);
 
                 return *this;
@@ -188,7 +191,7 @@ namespace std
 
             template<class U>
             constexpr complex(const complex<U>& other)
-                : real_(other.real_), imag_(other.imag_)
+                : real_(other.real()), imag_(other.imag())
             { /* DUMMY BODY */ }
 
             constexpr value_type real() const
@@ -287,8 +290,9 @@ namespace std
             template<class U>
             complex& operator*=(const complex<U>& rhs)
             {
+                auto old_real = real_;
                 real_ = real_ * rhs.real_ - imag_ * rhs.imag_;
-                imag_ = real_ * rhs.imag_ - imag_ * rhs.real_;
+                imag_ = old_real * rhs.imag_ + imag_ * rhs.real_;
 
                 return *this;
             }
@@ -296,9 +300,10 @@ namespace std
             template<class U>
             complex& operator/=(const complex<U>& rhs)
             {
+                auto old_real = real_;
                 real_ = (real_ * rhs.real_ + imag_ * rhs.imag_)
                       / (rhs.real_ * rhs.real_ + rhs.imag_ * rhs.imag_);
-                imag_ = (imag_ * rhs.real_ - real_ * rhs.imag_)
+                imag_ = (imag_ * rhs.real_ - old_real * rhs.imag_)
                       / (rhs.real_ * rhs.real_ + rhs.imag_ * rhs.imag_);
 
                 return *this;
@@ -326,7 +331,7 @@ namespace std
 
             template<class U>
             constexpr complex(const complex<U>& other)
-                : real_(other.real_), imag_(other.imag_)
+                : real_(other.real()), imag_(other.imag())
             { /* DUMMY BODY */ }
 
             constexpr value_type real() const
@@ -425,8 +430,9 @@ namespace std
             template<class U>
             complex& operator*=(const complex<U>& rhs)
             {
+                auto old_real = real_;
                 real_ = real_ * rhs.real_ - imag_ * rhs.imag_;
-                imag_ = real_ * rhs.imag_ - imag_ * rhs.real_;
+                imag_ = old_real * rhs.imag_ + imag_ * rhs.real_;
 
                 return *this;
             }
@@ -434,9 +440,10 @@ namespace std
             template<class U>
             complex& operator/=(const complex<U>& rhs)
             {
+                auto old_real = real_;
                 real_ = (real_ * rhs.real_ + imag_ * rhs.imag_)
                       / (rhs.real_ * rhs.real_ + rhs.imag_ * rhs.imag_);
-                imag_ = (imag_ * rhs.real_ - real_ * rhs.imag_)
+                imag_ = (imag_ * rhs.real_ - old_real * rhs.imag_)
                       / (rhs.real_ * rhs.real_ + rhs.imag_ * rhs.imag_);
 
                 return *this;
@@ -464,7 +471,7 @@ namespace std
 
             template<class U>
             constexpr complex(const complex<U>& other)
-                : real_(other.real_), imag_(other.imag_)
+                : real_(other.real()), imag_(other.imag())
             { /* DUMMY BODY */ }
 
             constexpr value_type real() const
@@ -563,8 +570,9 @@ namespace std
             template<class U>
             complex& operator*=(const complex<U>& rhs)
             {
+                auto old_real = real_;
                 real_ = real_ * rhs.real_ - imag_ * rhs.imag_;
-                imag_ = real_ * rhs.imag_ - imag_ * rhs.real_;
+                imag_ = old_real * rhs.imag_ + imag_ * rhs.real_;
 
                 return *this;
             }
@@ -572,9 +580,10 @@ namespace std
             template<class U>
             complex& operator/=(const complex<U>& rhs)
             {
+                auto old_real = real_;
                 real_ = (real_ * rhs.real_ + imag_ * rhs.imag_)
                       / (rhs.real_ * rhs.real_ + rhs.imag_ * rhs.imag_);
-                imag_ = (imag_ * rhs.real_ - real_ * rhs.imag_)
+                imag_ = (imag_ * rhs.real_ - old_real* rhs.imag_)
                       / (rhs.real_ * rhs.real_ + rhs.imag_ * rhs.imag_);
 
                 return *this;
