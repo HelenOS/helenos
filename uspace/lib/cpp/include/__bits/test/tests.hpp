@@ -75,7 +75,6 @@ namespace std::test
 
             ~test_set()
             {
-                // TODO: Gimme unique_ptr!
                 for (auto ptr: tests_)
                     delete ptr;
             }
@@ -255,6 +254,16 @@ namespace std::test
             void test_weak_ptr();
             void test_allocators();
             void test_pointers();
+    };
+
+    class list_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+
+        private:
+            void test_construction_and_assignment();
     };
 }
 
