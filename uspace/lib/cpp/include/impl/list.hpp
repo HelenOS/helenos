@@ -29,8 +29,9 @@
 #ifndef LIBCPP_LIST
 #define LIBCPP_LIST
 
-#include <cstdlib>
+#include <__bits/insert_iterator.hpp>
 #include <__bits/list.hpp>
+#include <cstdlib>
 #include <iterator>
 #include <memory>
 #include <utility>
@@ -43,6 +44,9 @@ namespace std
     namespace aux
     {
         template<class T>
+        class list_iterator;
+
+        template<class T>
         class list_const_iterator
         {
             public:
@@ -52,17 +56,22 @@ namespace std
                 using difference_type = typename list<T>::difference_type;
                 using size_type       = typename list<T>::size_type;
 
-                using iterator_category = forward_iterator_tag;
+                using iterator_category = bidirectional_iterator_tag;
 
                 list_const_iterator(list_node<value_type>* node = nullptr,
-                                    list_node<value_type>* head = nullptr)
-                    : current_{node}, head_{head}
+                                    list_node<value_type>* head = nullptr,
+                                    bool end = true)
+                    : current_{node}, head_{head}, end_{end}
                 { /* DUMMY BODY */ }
 
                 list_const_iterator(const list_const_iterator&) = default;
                 list_const_iterator& operator=(const list_const_iterator&) = default;
                 list_const_iterator(list_const_iterator&&) = default;
                 list_const_iterator& operator=(list_const_iterator&&) = default;
+
+                list_const_iterator(const list_iterator<T>& other)
+                    : current_{other.current_}, head_{other.head_}
+                { /* DUMMY BODY */ }
 
                 reference operator*() const
                 {
@@ -71,10 +80,10 @@ namespace std
 
                 list_const_iterator& operator++()
                 {
-                    if (current_)
+                    if (!end_ && current_)
                     {
                         if (current_->next == head_)
-                            current_ = nullptr;
+                            end_ = true;
                         else
                             current_ = current_->next;
                     }
@@ -84,17 +93,33 @@ namespace std
 
                 list_const_iterator operator++(int)
                 {
-                    auto bckp = current_;
+                    auto old = *this;
+                    ++(*this);
 
-                    if (current_)
+                    return old;
+                }
+
+                list_const_iterator& operator--()
+                {
+                    if (end_)
+                        end_ = false;
+                    else if (current_)
                     {
-                        if (current_->next == head_)
-                            current_ = nullptr;
+                        if (current_ != head_)
+                            current_ = current_->prev;
                         else
-                            current_ = current_->next;
+                            end_ = true;
                     }
 
-                    return list_const_iterator{bckp};
+                    return *this;
+                }
+
+                list_const_iterator operator--(int)
+                {
+                    auto old = *this;
+                    --(*this);
+
+                    return old;
                 }
 
                 list_node<value_type>* node()
@@ -122,15 +147,21 @@ namespace std
                     return list_const_iterator{tmp};
                 }
 
+                bool end() const
+                {
+                    return end_;
+                }
+
             private:
                 list_node<value_type>* current_;
                 list_node<value_type>* head_;
+                bool end_;
         };
 
         template<class T>
         bool operator==(const list_const_iterator<T>& lhs, const list_const_iterator<T>& rhs)
         {
-            return lhs.node() == rhs.node();
+            return (lhs.node() == rhs.node()) && (lhs.end() == rhs.end());
         }
 
         template<class T>
@@ -149,11 +180,12 @@ namespace std
                 using difference_type = typename list<T>::difference_type;
                 using size_type       = typename list<T>::size_type;
 
-                using iterator_category = forward_iterator_tag;
+                using iterator_category = bidirectional_iterator_tag;
 
                 list_iterator(list_node<value_type>* node = nullptr,
-                              list_node<value_type>* head = nullptr)
-                    : current_{node}, head_{head}
+                              list_node<value_type>* head = nullptr,
+                              bool end = true)
+                    : current_{node}, head_{head}, end_{end}
                 { /* DUMMY BODY */ }
 
                 list_iterator(const list_iterator&) = default;
@@ -161,17 +193,17 @@ namespace std
                 list_iterator(list_iterator&&) = default;
                 list_iterator& operator=(list_iterator&&) = default;
 
-                reference operator*()
+                reference operator*() const
                 {
                     return current_->value;
                 }
 
                 list_iterator& operator++()
                 {
-                    if (current_)
+                    if (!end_ && current_)
                     {
                         if (current_->next == head_)
-                            current_ = nullptr;
+                            end_ = true;
                         else
                             current_ = current_->next;
                     }
@@ -181,17 +213,33 @@ namespace std
 
                 list_iterator operator++(int)
                 {
-                    auto bckp = current_;
+                    auto old = *this;
+                    ++(*this);
 
-                    if (current_)
+                    return old;
+                }
+
+                list_iterator& operator--()
+                {
+                    if (end_)
+                        end_ = false;
+                    else if (current_)
                     {
-                        if (current_->next == head_)
-                            current_ = nullptr;
+                        if (current_ != head_)
+                            current_ = current_->prev;
                         else
-                            current_ = current_->next;
+                            end_ = true;
                     }
 
-                    return list_iterator{bckp};
+                    return *this;
+                }
+
+                list_iterator operator--(int)
+                {
+                    auto old = *this;
+                    --(*this);
+
+                    return old;
                 }
 
                 list_node<value_type>* node()
@@ -224,15 +272,21 @@ namespace std
                     return list_iterator{tmp};
                 }
 
+                bool end() const
+                {
+                    return end_;
+                }
+
             private:
                 list_node<value_type>* current_;
                 list_node<value_type>* head_;
+                bool end_;
         };
 
         template<class T>
         bool operator==(const list_iterator<T>& lhs, const list_iterator<T>& rhs)
         {
-            return lhs.node() == rhs.node();
+            return (lhs.node() == rhs.node()) && (lhs.end() == rhs.end());
         }
 
         template<class T>
@@ -282,8 +336,8 @@ namespace std
                 : allocator_{alloc}, head_{nullptr}, size_{}
             {
                 init_(
-                    aux::insert_iterator<value_type>{value_type{}},
-                    aux::insert_iterator<value_type>{size_}
+                    aux::insert_iterator<value_type>{size_type{}, value_type{}},
+                    aux::insert_iterator<value_type>{size_, value_type{}}
                 );
             }
 
@@ -292,8 +346,8 @@ namespace std
                 : allocator_{alloc}, head_{nullptr}, size_{}
             {
                 init_(
-                    aux::insert_iterator<value_type>{val},
-                    aux::insert_iterator<value_type>{n}
+                    aux::insert_iterator<value_type>{size_type{}, val},
+                    aux::insert_iterator<value_type>{n, value_type{}}
                 );
             }
 
@@ -315,11 +369,12 @@ namespace std
                   size_{move(other.size_)}
             {
                 other.head_ = nullptr;
+                other.size_ = size_type{};
             }
 
             list(const list& other, const allocator_type alloc)
-                : allocator_{alloc}, head_{nullptr}, size_{other.size_}
-            {
+                : allocator_{alloc}, head_{nullptr}, size_{}
+            { // Size is set in init_.
                 init_(other.begin(), other.end());
             }
 
@@ -329,6 +384,7 @@ namespace std
                   size_{move(other.size_)}
             {
                 other.head_ = nullptr;
+                other.size_ = size_type{};
             }
 
             list(initializer_list<value_type> init, const allocator_type& alloc = allocator_type{})
@@ -349,6 +405,8 @@ namespace std
                 allocator_ = other.allocator_;
 
                 init_(other.begin(), other.end());
+
+                return *this;
             }
 
             list& operator=(list&& other)
@@ -356,12 +414,14 @@ namespace std
             {
                 fini_();
 
+                head_ = move(other.head_);
+                size_ = move(other.size_);
                 allocator_ = move(other.allocator_);
 
-                init_(
-                    make_move_iterator(other.begin()),
-                    make_move_iterator(other.end())
-                );
+                other.head_ = nullptr;
+                other.size_ = size_type{};
+
+                return *this;
             }
 
             list& operator=(initializer_list<value_type> init)
@@ -369,6 +429,8 @@ namespace std
                 fini_();
 
                 init_(init.begin(), init.end());
+
+                return *this;
             }
 
             template<class InputIterator>
@@ -384,8 +446,8 @@ namespace std
                 fini_();
 
                 init_(
-                    aux::insert_iterator<value_type>{val},
-                    aux::insert_iterator<value_type>{n}
+                    aux::insert_iterator<value_type>{size_type{}, val},
+                    aux::insert_iterator<value_type>{n, value_type{}}
                 );
             }
 
@@ -403,7 +465,7 @@ namespace std
 
             iterator begin() noexcept
             {
-                return iterator{head_, head_};
+                return iterator{head_, head_, size_ == 0U};
             }
 
             const_iterator begin() const noexcept
@@ -413,7 +475,7 @@ namespace std
 
             iterator end() noexcept
             {
-                return iterator{nullptr, head_};
+                return iterator{get_last_(), head_, true};
             }
 
             const_iterator end() const noexcept
@@ -443,12 +505,12 @@ namespace std
 
             const_iterator cbegin() const noexcept
             {
-                return const_iterator{head_, head_};
+                return const_iterator{head_, head_, size_ == 0U};
             }
 
             const_iterator cend() const noexcept
             {
-                return const_iterator{nullptr, head_};
+                return const_iterator{get_last_(), head_, true};
             }
 
             const_reverse_iterator crbegin() const noexcept
@@ -607,7 +669,7 @@ namespace std
                 if (node == head_)
                     head_ = head_->prev;
 
-                return iterator{node->prev, head_};
+                return iterator{node->prev, head_, false};
             }
 
             iterator insert(const_iterator position, const value_type& val)
@@ -624,8 +686,8 @@ namespace std
             {
                 return insert(
                     position,
-                    aux::insert_iterator<value_type>{0u, val},
-                    aux::insert_iterator<value_type>{n}
+                    aux::insert_iterator<value_type>{size_type{}, val},
+                    aux::insert_iterator<value_type>{n, value_type{}}
                 );
             }
 
@@ -641,7 +703,7 @@ namespace std
                     ++size_;
                 }
 
-                return iterator{position.node()->next, head_};
+                return iterator{position.node()->next, head_, false};
             }
 
             iterator insert(const_iterator position, initializer_list<value_type> init)
@@ -674,7 +736,7 @@ namespace std
                 node->unlink();
                 delete node;
 
-                return iterator{next, head_};
+                return iterator{next, head_, size_ == 0U};
             }
 
             iterator erase(const_iterator first, const_iterator last)
@@ -702,7 +764,7 @@ namespace std
                     delete tmp;
                 }
 
-                return iterator{next, head_};
+                return iterator{next, head_, size_ == 0U};
             }
 
             void swap(list& other)
@@ -1032,7 +1094,7 @@ namespace std
                 return node;
             }
 
-            aux::list_node<value_type>* get_last_()
+            aux::list_node<value_type>* get_last_() const
             {
                 if (!head_)
                     return nullptr;
