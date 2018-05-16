@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <internal/memory/allocator_arg.hpp>
-#include <internal/memory/allocator_traits.hpp>
-#include <internal/memory/addressof.hpp>
-#include <internal/memory/misc.hpp>
-#include <internal/memory/owner_less.hpp>
-#include <internal/memory/pointer_traits.hpp>
-#include <internal/memory/shared_ptr.hpp>
-#include <internal/memory/unique_ptr.hpp>
-#include <internal/memory/weak_ptr.hpp>
+#include <__bits/memory/allocator_arg.hpp>
+#include <__bits/memory/allocator_traits.hpp>
+#include <__bits/memory/addressof.hpp>
+#include <__bits/memory/misc.hpp>
+#include <__bits/memory/owner_less.hpp>
+#include <__bits/memory/pointer_traits.hpp>
+#include <__bits/memory/shared_ptr.hpp>
+#include <__bits/memory/unique_ptr.hpp>
+#include <__bits/memory/weak_ptr.hpp>

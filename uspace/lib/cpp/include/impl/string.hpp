@@ -37,7 +37,7 @@
 #include <cstring>
 #include <cwchar>
 #include <memory>
-#include <internal/stringfwd.hpp>
+#include <__bits/stringfwd.hpp>
 #include <utility>
 
 #include <initializer_list>

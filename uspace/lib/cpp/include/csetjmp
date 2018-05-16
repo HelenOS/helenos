@@ -29,7 +29,7 @@
 #ifndef LIBCPP_CSETJMP
 #define LIBCPP_CSETJMP
 
-#include "internal/common.hpp"
+#include <__bits/common.hpp>
 
 namespace std::hel
 {

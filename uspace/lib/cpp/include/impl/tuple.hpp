@@ -29,10 +29,10 @@
 #ifndef LIBCPP_TUPLE
 #define LIBCPP_TUPLE
 
-#include <internal/aux.hpp>
-#include <internal/tuple/tuple_cat.hpp>
-#include <internal/tuple/tuple_ops.hpp>
-#include <internal/type_transformation.hpp>
+#include <__bits/aux.hpp>
+#include <__bits/tuple/tuple_cat.hpp>
+#include <__bits/tuple/tuple_ops.hpp>
+#include <__bits/type_transformation.hpp>
 #include <functional>
 #include <type_traits>
 #include <utility>

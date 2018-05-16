@@ -29,8 +29,8 @@
 #ifndef LIBCPP_FUNCTIONAL
 #define LIBCPP_FUNCTIONAL
 
-#include <internal/functional/conditional_function_typedefs.hpp>
-#include <internal/functional/invoke.hpp>
+#include <__bits/functional/conditional_function_typedefs.hpp>
+#include <__bits/functional/invoke.hpp>
 #include <limits>
 #include <memory>
 #include <type_traits>

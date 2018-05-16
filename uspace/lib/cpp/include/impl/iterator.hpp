@@ -31,7 +31,7 @@
 
 #include <cstdlib>
 #include <initializer_list>
-#include <internal/memory/addressof.hpp>
+#include <__bits/memory/addressof.hpp>
 #include <iosfwd>
 #include <type_traits>
 #include <utility>

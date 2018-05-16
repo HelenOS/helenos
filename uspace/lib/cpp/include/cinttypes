@@ -29,7 +29,7 @@
 #ifndef LIBCPP_CINTTYPES
 #define LIBCPP_CINTTYPES
 
-#include "internal/common.hpp"
+#include <__bits/common.hpp>
 
 namespace std::hel
 {

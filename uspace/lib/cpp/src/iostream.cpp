@@ -28,7 +28,7 @@
 
 #include <ios>
 #include <iostream>
-#include <internal/streambufs.hpp>
+#include <__bits/streambufs.hpp>
 #include <new>
 
 namespace std

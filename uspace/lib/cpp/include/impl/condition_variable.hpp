@@ -29,7 +29,7 @@
 #ifndef LIBCPP_CONDITION_VARIABLE
 #define LIBCPP_CONDITION_VARIABLE
 
-#include <internal/thread.hpp>
+#include <__bits/thread.hpp>
 #include <mutex>
 
 namespace std

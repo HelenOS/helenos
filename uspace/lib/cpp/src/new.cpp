@@ -30,7 +30,7 @@
 
 namespace std
 {
-    const char* bad_alloc::what() const
+    const char* bad_alloc::what() const noexcept
     {
         return "std::bad_alloc";
     }

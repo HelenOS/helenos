@@ -29,7 +29,7 @@
 #ifndef LIBCPP_EXCEPTION
 #define LIBCPP_EXCEPTION
 
-#include <internal/trycatch.hpp>
+#include <__bits/trycatch.hpp>
 
 namespace std
 {

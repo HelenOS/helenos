@@ -29,7 +29,7 @@
 #ifndef LIBCPP_CTIME
 #define LIBCPP_CTIME
 
-#include "internal/common.hpp"
+#include <__bits/common.hpp>
 
 namespace std::hel
 {

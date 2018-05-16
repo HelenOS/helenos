@@ -38,7 +38,7 @@ namespace std
     bool type_info::operator==(const type_info& other) const noexcept
     {
         return (this == &other) ||
-               std::str_cmp(name(), other.name());
+               std::hel::str_cmp(name(), other.name());
     }
 
     bool type_info::operator!=(const type_info& other) const noexcept

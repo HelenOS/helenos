@@ -30,8 +30,8 @@
 #define LIBCPP_UTILITY
 
 #include <cstdint>
-#include <internal/type_transformation.hpp>
-#include <internal/utility/forward_move.hpp>
+#include <__bits/type_transformation.hpp>
+#include <__bits/utility/forward_move.hpp>
 #include <type_traits>
 
 namespace std

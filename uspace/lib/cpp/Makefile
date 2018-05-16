@@ -52,23 +52,23 @@ SOURCES = \
 	src/thread.cpp \
 	src/typeindex.cpp \
 	src/typeinfo.cpp \
-	src/internal/runtime.cpp \
-	src/internal/trycatch.cpp \
-	src/internal/unwind.cpp \
-	src/internal/test/adaptors.cpp \
-	src/internal/test/array.cpp \
-	src/internal/test/bitset.cpp \
-	src/internal/test/deque.cpp \
-	src/internal/test/map.cpp \
-	src/internal/test/memory.cpp \
-	src/internal/test/mock.cpp \
-	src/internal/test/numeric.cpp \
-	src/internal/test/set.cpp \
-	src/internal/test/string.cpp \
-	src/internal/test/test.cpp \
-	src/internal/test/tuple.cpp \
-	src/internal/test/unordered_map.cpp \
-	src/internal/test/unordered_set.cpp \
-	src/internal/test/vector.cpp
+	src/__bits/runtime.cpp \
+	src/__bits/trycatch.cpp \
+	src/__bits/unwind.cpp \
+	src/__bits/test/adaptors.cpp \
+	src/__bits/test/array.cpp \
+	src/__bits/test/bitset.cpp \
+	src/__bits/test/deque.cpp \
+	src/__bits/test/map.cpp \
+	src/__bits/test/memory.cpp \
+	src/__bits/test/mock.cpp \
+	src/__bits/test/numeric.cpp \
+	src/__bits/test/set.cpp \
+	src/__bits/test/string.cpp \
+	src/__bits/test/test.cpp \
+	src/__bits/test/tuple.cpp \
+	src/__bits/test/unordered_map.cpp \
+	src/__bits/test/unordered_set.cpp \
+	src/__bits/test/vector.cpp
 
 include $(USPACE_PREFIX)/Makefile.common

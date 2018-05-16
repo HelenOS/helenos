@@ -34,11 +34,11 @@
 #include <iosfwd>
 #include <string>
 
-#include <internal/locale.hpp>
-#include <internal/locale/ctype.hpp>
-#include <internal/locale/num_get.hpp>
-#include <internal/locale/num_put.hpp>
-#include <internal/locale/numpunct.hpp>
+#include <__bits/locale.hpp>
+#include <__bits/locale/ctype.hpp>
+#include <__bits/locale/num_get.hpp>
+#include <__bits/locale/num_put.hpp>
+#include <__bits/locale/numpunct.hpp>
 
 namespace std
 {

@@ -27,9 +27,9 @@
  */
 
 #include <impl/functional.hpp>
-#include <internal/functional/arithmetic_operations.hpp>
-#include <internal/functional/bind.hpp>
-#include <internal/functional/function.hpp>
-#include <internal/functional/invoke.hpp>
-#include <internal/functional/hash.hpp>
-#include <internal/functional/reference_wrapper.hpp>
+#include <__bits/functional/arithmetic_operations.hpp>
+#include <__bits/functional/bind.hpp>
+#include <__bits/functional/function.hpp>
+#include <__bits/functional/invoke.hpp>
+#include <__bits/functional/hash.hpp>
+#include <__bits/functional/reference_wrapper.hpp>

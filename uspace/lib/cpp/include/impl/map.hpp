@@ -30,7 +30,7 @@
 #define LIBCPP_MAP
 
 #include <functional>
-#include <internal/rbtree.hpp>
+#include <__bits/rbtree.hpp>
 #include <iterator>
 #include <memory>
 #include <utility>

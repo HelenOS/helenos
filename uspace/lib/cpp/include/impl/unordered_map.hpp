@@ -30,7 +30,7 @@
 #define LIBCPP_UNORDERED_MAP
 
 #include <initializer_list>
-#include <internal/hash_table.hpp>
+#include <__bits/hash_table.hpp>
 #include <functional>
 #include <memory>
 #include <type_traits>

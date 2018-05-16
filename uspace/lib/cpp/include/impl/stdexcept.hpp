@@ -31,7 +31,7 @@
 
 #include <exception>
 #include <iosfwd>
-#include <internal/stringfwd.hpp>
+#include <__bits/stringfwd.hpp>
 
 namespace std
 {

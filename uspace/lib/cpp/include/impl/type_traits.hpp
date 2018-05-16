@@ -32,8 +32,8 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cstdint>
-#include <internal/aux.hpp>
-#include <internal/type_traits/references.hpp>
+#include <__bits/aux.hpp>
+#include <__bits/type_traits/references.hpp>
 
 namespace std
 {

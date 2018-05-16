@@ -27,4 +27,4 @@
  */
 
 #include <impl/string.hpp>
-#include <internal/string.hpp>
+#include <__bits/string.hpp>

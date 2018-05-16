@@ -29,8 +29,8 @@
 #ifndef LIBCPP_SYSTEM_ERROR
 #define LIBCPP_SYSTEM_ERROR
 
-#include <internal/aux.hpp>
-#include <internal/stringfwd.hpp>
+#include <__bits/aux.hpp>
+#include <__bits/stringfwd.hpp>
 #include <stdexcept>
 
 namespace std

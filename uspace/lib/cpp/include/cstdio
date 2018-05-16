@@ -29,7 +29,7 @@
 #ifndef LIBCPP_CSTDIO
 #define LIBCPP_CSTDIO
 
-#include "internal/common.hpp"
+#include <__bits/common.hpp>
 
 namespace std::hel
 {
@@ -41,6 +41,9 @@ namespace std::hel
 namespace std
 {
     using std::hel::FILE;
+    using std::hel::stdin;
+    using std::hel::stdout;
+    using std::hel::stderr;
     /* using std::hel::fpos_t */
     using std::hel::size_t;
 

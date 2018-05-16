@@ -30,8 +30,8 @@
 #define LIBCPP_MUTEX
 
 #include <functional>
-#include <internal/common.hpp>
-#include <internal/thread.hpp>
+#include <__bits/common.hpp>
+#include <__bits/thread.hpp>
 #include <thread>
 
 namespace std

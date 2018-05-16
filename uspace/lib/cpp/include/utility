@@ -27,5 +27,5 @@
  */
 
 #include <impl/utility.hpp>
-#include <internal/utility/declval.hpp>
-#include <internal/utility/forward_move.hpp>
+#include <__bits/utility/declval.hpp>
+#include <__bits/utility/forward_move.hpp>

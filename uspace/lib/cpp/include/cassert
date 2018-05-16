@@ -29,7 +29,7 @@
 #ifndef LIBCPP_CASSERT
 #define LIBCPP_CASSERT
 
-#include "internal/common.hpp"
+#include <__bits/common.hpp>
 
 namespace std::hel
 {
