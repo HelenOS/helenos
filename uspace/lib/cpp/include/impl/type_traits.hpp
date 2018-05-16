@@ -46,32 +46,6 @@ namespace std
     template<class T>
     add_rvalue_reference_t<T> declval() noexcept;
 
-    /**
-     * 20.10.3, helper class:
-     */
-
-    template<class T, T v>
-    struct integral_constant
-    {
-        static constexpr T value = v;
-
-        using value_type = T;
-        using type       = integral_constant<T, v>;
-
-        constexpr operator value_type() const noexcept
-        {
-            return value;
-        }
-
-        constexpr value_type operator()() const noexcept
-        {
-            return value;
-        }
-    };
-
-    using true_type = integral_constant<bool, true>;
-    using false_type = integral_constant<bool, false>;
-
     template<class...>
     using void_t = void;
 
@@ -958,13 +932,60 @@ namespace std
 
     /**
      * 20.10.7.3, sign modifications:
+     * Note: These are fairly naive implementations that
+     *       are meant to keep our code going (i.e. they work
+     *       for the most common types, but I'm not sure
+     *       if there are any intricacies required by
+     *       the standard).
      */
 
     template<class T>
-    struct make_signed;
+    struct make_signed: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_signed<unsigned char>: aux::type_is<signed char>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_signed<unsigned short>: aux::type_is<short>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_signed<unsigned int>: aux::type_is<int>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_signed<unsigned long>: aux::type_is<long>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_signed<unsigned long long>: aux::type_is<long long>
+    { /* DUMMY BODY */ };
 
     template<class T>
-    struct make_unsigned;
+    struct make_unsigned: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_unsigned<signed char>: aux::type_is<unsigned char>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_unsigned<short>: aux::type_is<unsigned short>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_unsigned<int>: aux::type_is<unsigned int>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_unsigned<long>: aux::type_is<unsigned long>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_unsigned<long long>: aux::type_is<unsigned long long>
+    { /* DUMMY BODY */ };
 
     template<class T>
     using make_signed_t = typename make_signed<T>::type;
