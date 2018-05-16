@@ -423,7 +423,7 @@ bool workq_global_enqueue(work_t *work_item, work_func_t func)
  * @param work_item Work item bookkeeping structure. Must be valid
  *                  until func() is entered.
  * @param func      User supplied function to invoke in a worker thread.
-
+ *
  * @return false if work queue is shutting down; function is not
  *               queued for further processing.
  * @return true  Otherwise. func() will be invoked in a separate thread.
@@ -443,7 +443,7 @@ bool workq_enqueue_noblock(struct work_queue *workq, work_t *work_item,
  * @param work_item Work item bookkeeping structure. Must be valid
  *                  until func() is entered.
  * @param func      User supplied function to invoke in a worker thread.
-
+ *
  * @return false if work queue is shutting down; function is not
  *               queued for further processing.
  * @return true  Otherwise. func() will be invoked in a separate thread.
@@ -468,7 +468,7 @@ bool workq_enqueue(struct work_queue *workq, work_t *work_item, work_func_t func
  *                  until func() is entered.
  * @param func      User supplied function to invoke in a worker thread.
  * @param can_block May adding this work item block?
-
+ *
  * @return false if work queue is shutting down; function is not
  *               queued for further processing.
  * @return true  Otherwise.

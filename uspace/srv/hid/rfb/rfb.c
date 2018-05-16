@@ -611,7 +611,8 @@ static void rfb_socket_connection(rfb_t *rfb, tcp_conn_t *conn)
 		return;
 	}
 
-	/* Security handshake
+	/*
+	 * Security handshake
 	 * 1 security type supported, which is 1 - None
 	 */
 	char sec_types[2];

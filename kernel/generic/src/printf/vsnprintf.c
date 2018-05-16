@@ -69,7 +69,8 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 		return ((int) size);
 
 	if (left == 1) {
-		/* We have only one free byte left in buffer
+		/*
+		 * We have only one free byte left in buffer
 		 * -> store trailing zero
 		 */
 		data->dst[data->size - 1] = 0;
@@ -78,7 +79,8 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 	}
 
 	if (left <= size) {
-		/* We do not have enough space for the whole string
+		/*
+		 * We do not have enough space for the whole string
 		 * with the trailing zero => print only a part
 		 * of string
 		 */
@@ -91,7 +93,8 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 				break;
 		}
 
-		/* Put trailing zero at end, but not count it
+		/*
+		 * Put trailing zero at end, but not count it
 		 * into data->len so it could be rewritten next time
 		 */
 		data->dst[data->len] = 0;
@@ -103,7 +106,8 @@ static int vsnprintf_str_write(const char *str, size_t size, vsnprintf_data_t *d
 	memcpy((void *)(data->dst + data->len), (void *) str, size);
 	data->len += size;
 
-	/* Put trailing zero at end, but not count it
+	/*
+	 * Put trailing zero at end, but not count it
 	 * into data->len so it could be rewritten next time
 	 */
 	data->dst[data->len] = 0;
@@ -139,7 +143,8 @@ static int vsnprintf_wstr_write(const wchar_t *str, size_t size, vsnprintf_data_
 			return ((int) size);
 
 		if (left == 1) {
-			/* We have only one free byte left in buffer
+			/*
+			 * We have only one free byte left in buffer
 			 * -> store trailing zero
 			 */
 			data->dst[data->size - 1] = 0;
@@ -153,7 +158,8 @@ static int vsnprintf_wstr_write(const wchar_t *str, size_t size, vsnprintf_data_
 		index++;
 	}
 
-	/* Put trailing zero at end, but not count it
+	/*
+	 * Put trailing zero at end, but not count it
 	 * into data->len so it could be rewritten next time
 	 */
 	data->dst[data->len] = 0;

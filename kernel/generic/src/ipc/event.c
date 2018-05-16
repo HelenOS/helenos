@@ -353,8 +353,7 @@ sys_errno_t sys_ipc_event_subscribe(sysarg_t evno, sysarg_t imethod)
  * @return EOK on success.
  * @return ELIMIT on unknown event type.
  * @return ENOENT if the notification of the given type is not
-           subscribed.
- *
+ *         subscribed.
  */
 sys_errno_t sys_ipc_event_unsubscribe(sysarg_t evno)
 {

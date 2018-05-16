@@ -510,8 +510,10 @@ errno_t usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	}
 
 	if (ok) {
-		/* Save max input report size and
-		 * allocate space for the report */
+		/*
+		 * Save max input report size and
+		 * allocate space for the report
+		 */
 		rc = usb_hid_init_report(hid_dev);
 		if (rc != EOK) {
 			usb_log_error("Failed to initialize input report buffer: %s", str_error(rc));

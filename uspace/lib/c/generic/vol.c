@@ -235,7 +235,8 @@ errno_t vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 }
 
 /** Erase partition (to the extent where we will consider it not containing
- * a file system. */
+ * a file system.
+ */
 errno_t vol_part_empty(vol_t *vol, service_id_t sid)
 {
 	async_exch_t *exch;

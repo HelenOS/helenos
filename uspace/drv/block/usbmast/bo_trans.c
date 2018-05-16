@@ -208,7 +208,8 @@ errno_t usb_massstor_reset(usbmast_dev_t *mdev)
  */
 void usb_massstor_reset_recovery(usbmast_dev_t *mdev)
 {
-	/* We would ignore errors here because if this fails
+	/*
+	 * We would ignore errors here because if this fails
 	 * we are doomed anyway and any following transaction would fail.
 	 */
 	usb_massstor_reset(mdev);

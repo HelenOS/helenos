@@ -452,8 +452,10 @@ static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 		return ENOMEM;
 	}
 
-	/* This pipe was registered by the hub driver,
-	 * during device initialization. */
+	/*
+	 * This pipe was registered by the hub driver,
+	 * during device initialization.
+	 */
 	errno_t rc = usb_pipe_initialize_default_control(&usb_dev->ctrl_pipe, usb_dev->bus_session);
 	if (rc != EOK) {
 		usb_dev_disconnect(usb_dev->bus_session);
@@ -469,10 +471,12 @@ static errno_t usb_device_init(usb_device_t *usb_dev, ddf_dev_t *ddf_dev,
 		return rc;
 	}
 
-	/* Create alternate interfaces. We will silently ignore failure.
+	/*
+	 * Create alternate interfaces. We will silently ignore failure.
 	 * We might either control one interface or an entire device,
 	 * it makes no sense to speak about alternate interfaces when
-	 * controlling a device. */
+	 * controlling a device.
+	 */
 	usb_alternate_interfaces_init(&usb_dev->alternate_interfaces,
 	    usb_dev->descriptors.full_config,
 	    usb_dev->descriptors.full_config_size, usb_dev->interface_no);

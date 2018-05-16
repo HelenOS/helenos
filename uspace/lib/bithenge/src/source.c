@@ -83,7 +83,8 @@ static errno_t blob_from_hex(bithenge_node_t **out, const char *hex)
  * it is assumed to be a filename.
  * @param[out] out Stores the created node.
  * @param source Specifies the node to be created.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_node_from_source(bithenge_node_t **out, const char *source)
 {
 	if (str_chr(source, ':')) {

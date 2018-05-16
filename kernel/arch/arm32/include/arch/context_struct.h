@@ -33,7 +33,8 @@
 
 // XXX: This struct must match assembly code in src/context.S
 
-/* Thread context containing registers that must be preserved across
+/*
+ * Thread context containing registers that must be preserved across
  * function calls.
  */
 typedef struct context {

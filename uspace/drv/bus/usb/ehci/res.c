@@ -79,8 +79,10 @@ static errno_t disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	}
 	usb_log_debug2("USBLEGSUP: %" PRIx32 ".", usblegsup);
 
-	/* Request control from firmware/BIOS by writing 1 to highest
-	 * byte. (OS Control semaphore)*/
+	/*
+	 * Request control from firmware/BIOS by writing 1 to highest
+	 * byte. (OS Control semaphore)
+	 */
 	usb_log_debug("Requesting OS control.");
 	ret = pci_config_space_write_8(parent_sess,
 	    eecp + USBLEGSUP_OFFSET + 3, 1);
@@ -186,8 +188,10 @@ errno_t disable_legacy(hc_device_t *hcd)
 	const uint32_t hcc_params = EHCI_RD(hc->caps->hccparams);
 	usb_log_debug2("Value of hcc params register: %x.", hcc_params);
 
-	/* Read value of EHCI Extended Capabilities Pointer
-	 * position of EEC registers (points to PCI config space) */
+	/*
+	 * Read value of EHCI Extended Capabilities Pointer
+	 * position of EEC registers (points to PCI config space)
+	 */
 	const uint32_t eecp =
 	    (hcc_params >> EHCI_CAPS_HCC_EECP_SHIFT) & EHCI_CAPS_HCC_EECP_MASK;
 	usb_log_debug2("Value of EECP: %x.", eecp);

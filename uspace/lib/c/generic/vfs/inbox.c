@@ -64,7 +64,7 @@ typedef struct {
 
 static LIST_INITIALIZE(inb_list);
 
-/* Inserts a named file into the inbox.
+/** Inserts a named file into the inbox.
  *
  * If a file with the same name is already present, it overwrites it and returns
  * the original value. Otherwise, it returns -1.  If the argument 'file' is -1,
@@ -117,7 +117,7 @@ out:
 	return -1;
 }
 
-/* Retrieve a file with this name.
+/** Retrieve a file with this name.
  *
  * @param name Name of the entry.
  * @return Requested file or -1 if not set.
@@ -137,7 +137,7 @@ int inbox_get(const char *name)
 	return -1;
 }
 
-/* Writes names of entries that are currently set into an array provided by the
+/** Writes names of entries that are currently set into an array provided by the
  * user.
  *
  * @param names Array in which names are stored.

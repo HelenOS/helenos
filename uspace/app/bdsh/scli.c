@@ -42,13 +42,17 @@ static cliuser_t usr;
 static iostate_t *iostate;
 static iostate_t stdiostate;
 
-/* Globals that are modified during start-up that modules/builtins
- * should be aware of. */
+/*
+ * Globals that are modified during start-up that modules/builtins
+ * should be aware of.
+ */
 volatile unsigned int cli_quit = 0;
 volatile unsigned int cli_verbocity = 1;
 
-/* The official name of this program
- * (change to your liking in configure.ac and re-run autoconf) */
+/*
+ * The official name of this program
+ * (change to your liking in configure.ac and re-run autoconf)
+ */
 const char *progname = PACKAGE_NAME;
 
 /* These are not exposed, even to builtins */

@@ -63,7 +63,8 @@ typedef struct bithenge_scope {
 
 /** Increment a scope's reference count.
  * @memberof bithenge_scope_t
- * @param self The scope to reference. */
+ * @param self The scope to reference.
+ */
 static inline void bithenge_scope_inc_ref(bithenge_scope_t *self)
 {
 	assert(self);
@@ -72,7 +73,8 @@ static inline void bithenge_scope_inc_ref(bithenge_scope_t *self)
 
 /** Operations that may be provided by a transform. All transforms must provide
  * apply and/or prefix_apply. To be used in struct transforms and repeat
- * transforms, transforms must provide prefix_length and/or prefix_apply. */
+ * transforms, transforms must provide prefix_length and/or prefix_apply.
+ */
 typedef struct bithenge_transform_ops {
 	/** @copydoc bithenge_transform_t::bithenge_transform_apply */
 	errno_t (*apply)(bithenge_transform_t *self, bithenge_scope_t *scope,
@@ -85,14 +87,16 @@ typedef struct bithenge_transform_ops {
 	    bithenge_scope_t *scope, bithenge_blob_t *blob,
 	    bithenge_node_t **out_node, aoff64_t *out_size);
 	/** Destroy the transform.
-	 * @param self The transform. */
+	 * @param self The transform.
+	 */
 	void (*destroy)(bithenge_transform_t *self);
 } bithenge_transform_ops_t;
 
 /** Get the number of parameters required by a transform. This number is used
  * by the parser and param-wrapper. Takes ownership of nothing.
  * @param self The transform.
- * @return The number of parameters required. */
+ * @return The number of parameters required.
+ */
 static inline int bithenge_transform_num_params(bithenge_transform_t *self)
 {
 	assert(self);
@@ -100,7 +104,8 @@ static inline int bithenge_transform_num_params(bithenge_transform_t *self)
 }
 
 /** Increment a transform's reference count.
- * @param self The transform to reference. */
+ * @param self The transform to reference.
+ */
 static inline void bithenge_transform_inc_ref(bithenge_transform_t *self)
 {
 	assert(self);
@@ -108,7 +113,8 @@ static inline void bithenge_transform_inc_ref(bithenge_transform_t *self)
 }
 
 /** Decrement a transform's reference count and free it if appropriate.
- * @param self The transform to dereference, or NULL. */
+ * @param self The transform to dereference, or NULL.
+ */
 static inline void bithenge_transform_dec_ref(bithenge_transform_t *self)
 {
 	if (!self)

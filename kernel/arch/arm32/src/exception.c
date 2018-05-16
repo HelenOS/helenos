@@ -65,17 +65,18 @@
  */
 static void install_handler(unsigned handler_addr, unsigned *vector)
 {
-	/* relative address (related to exc. vector) of the word
+	/*
+	 * Relative address (related to exc. vector) of the word
 	 * where handler's address is stored
 	 */
 	volatile uint32_t handler_address_ptr = EXC_VECTORS_SIZE -
 	    PREFETCH_OFFSET;
 
-	/* make it LDR instruction and store at exception vector */
+	/* Make it LDR instruction and store at exception vector */
 	*vector = handler_address_ptr | LDR_OPCODE;
 	smc_coherence(vector);
 
-	/* store handler's address */
+	/* Store handler's address */
 	*(vector + EXC_VECTORS) = handler_addr;
 
 }

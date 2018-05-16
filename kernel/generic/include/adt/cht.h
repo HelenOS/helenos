@@ -45,7 +45,8 @@ typedef uintptr_t cht_ptr_t;
 
 /** Concurrent hash table node link. */
 typedef struct cht_link {
-	/* Must be placed first.
+	/*
+	 * Must be placed first.
 	 *
 	 * The function pointer (rcu_link.func) is used to store the item's
 	 * mixed memoized hash. If in use by RCU (ie waiting for deferred

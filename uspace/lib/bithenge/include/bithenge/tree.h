@@ -80,7 +80,8 @@ typedef struct bithenge_node_t {
  * @param key The key.
  * @param value The value.
  * @param data Data provided to @a bithenge_node_t::bithenge_node_for_each.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 typedef errno_t (*bithenge_for_each_func_t)(bithenge_node_t *key, bithenge_node_t *value, void *data);
 
 /** Operations providing access to an internal node. */
@@ -91,14 +92,16 @@ typedef struct bithenge_internal_node_ops_t {
 	errno_t (*get)(bithenge_node_t *self, bithenge_node_t *key,
 	    bithenge_node_t **out);
 	/** Destroys the internal node.
-	 * @param self The node to destroy. */
+	 * @param self The node to destroy.
+	 */
 	void (*destroy)(bithenge_node_t *self);
 } bithenge_internal_node_ops_t;
 
 /** Find the type of a node.
  * @memberof bithenge_node_t
  * @param node The node.
- * @return The type of the node. */
+ * @return The type of the node.
+ */
 static inline bithenge_node_type_t bithenge_node_type(const bithenge_node_t *node)
 {
 	return node->type;
@@ -106,7 +109,8 @@ static inline bithenge_node_type_t bithenge_node_type(const bithenge_node_t *nod
 
 /** Increment a node's reference count.
  * @memberof bithenge_node_t
- * @param node The node to reference. */
+ * @param node The node to reference.
+ */
 static inline void bithenge_node_inc_ref(bithenge_node_t *node)
 {
 	assert(node);
@@ -121,7 +125,8 @@ void bithenge_node_dec_ref(bithenge_node_t *node);
  * @param self The internal node to iterate over.
  * @param func The callback function.
  * @param data Data to provide to the callback function.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 static inline errno_t bithenge_node_for_each(bithenge_node_t *self,
     bithenge_for_each_func_t func, void *data)
 {
@@ -136,7 +141,8 @@ errno_t bithenge_node_get(bithenge_node_t *, bithenge_node_t *,
 /** Get the value of a boolean node.
  * @memberof bithenge_node_t
  * @param self The boolean node.
- * @return The node's value. */
+ * @return The node's value.
+ */
 static inline bool bithenge_boolean_node_value(bithenge_node_t *self)
 {
 	assert(self->type == BITHENGE_NODE_BOOLEAN);
@@ -146,7 +152,8 @@ static inline bool bithenge_boolean_node_value(bithenge_node_t *self)
 /** Get the value of an integer node.
  * @memberof bithenge_node_t
  * @param self The integer node.
- * @return The node's value. */
+ * @return The node's value.
+ */
 static inline bithenge_int_t bithenge_integer_node_value(bithenge_node_t *self)
 {
 	assert(self->type == BITHENGE_NODE_INTEGER);
@@ -156,7 +163,8 @@ static inline bithenge_int_t bithenge_integer_node_value(bithenge_node_t *self)
 /** Get the value of an string node.
  * @memberof bithenge_node_t
  * @param self The string node.
- * @return The node's value. */
+ * @return The node's value.
+ */
 static inline const char *bithenge_string_node_value(bithenge_node_t *self)
 {
 	assert(self->type == BITHENGE_NODE_STRING);

@@ -84,8 +84,10 @@ static errno_t create_interfaces(const uint8_t *config_descriptor,
 	const uint8_t *interface_ptr =
 	    usb_dp_get_nested_descriptor(&parser, &data, config_descriptor);
 
-	/* Walk all descriptors nested in the current configuration decriptor;
-	 * i.e. all interface descriptors. */
+	/*
+	 * Walk all descriptors nested in the current configuration decriptor;
+	 * i.e. all interface descriptors.
+	 */
 	for (; interface_ptr != NULL;
 	    interface_ptr = usb_dp_get_sibling_descriptor(
 	    &parser, &data, config_descriptor, interface_ptr)) {
@@ -98,8 +100,10 @@ static errno_t create_interfaces(const uint8_t *config_descriptor,
 
 		/* Skip alternate interfaces. */
 		if (interface_in_list(list, interface->interface_number)) {
-			/* TODO: add the alternatives and create match ids
-			 * for them. */
+			/*
+			 * TODO: add the alternatives and create match ids
+			 * for them.
+			 */
 			continue;
 		}
 

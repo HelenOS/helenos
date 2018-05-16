@@ -480,9 +480,11 @@ float128 div_float128(float128 a, float128 b)
 	mul128(bfrac_hi, bfrac_lo, 0x0ll, cfrac_hi,
 	    &tmp_lolo /* dummy */, &tmp_hihi, &tmp_hilo, &tmp_lohi);
 
-	/* sub192(afrac_hi, afrac_lo, 0,
+	/*
+	 * sub192(afrac_hi, afrac_lo, 0,
 	 *     tmp_hihi, tmp_hilo, tmp_lohi
-	 *     &rem_hihi, &rem_hilo, &rem_lohi); */
+	 *     &rem_hihi, &rem_hilo, &rem_lohi);
+	 */
 	sub128(afrac_hi, afrac_lo, tmp_hihi, tmp_hilo, &rem_hihi, &rem_hilo);
 	if (tmp_lohi > 0) {
 		sub128(rem_hihi, rem_hilo, 0x0ll, 0x1ll, &rem_hihi, &rem_hilo);
@@ -491,9 +493,11 @@ float128 div_float128(float128 a, float128 b)
 
 	while ((int64_t) rem_hihi < 0) {
 		--cfrac_hi;
-		/* add192(rem_hihi, rem_hilo, rem_lohi,
+		/*
+		 * add192(rem_hihi, rem_hilo, rem_lohi,
 		 *     0, bfrac_hi, bfrac_lo,
-		 *     &rem_hihi, &rem_hilo, &rem_lohi); */
+		 *     &rem_hihi, &rem_hilo, &rem_lohi);
+		 */
 		add128(rem_hilo, rem_lohi, bfrac_hi, bfrac_lo, &rem_hilo, &rem_lohi);
 		if (lt128(rem_hilo, rem_lohi, bfrac_hi, bfrac_lo)) {
 			++rem_hihi;
@@ -506,9 +510,11 @@ float128 div_float128(float128 a, float128 b)
 		mul128(bfrac_hi, bfrac_lo, 0x0ll, cfrac_lo,
 		    &tmp_hihi /* dummy */, &tmp_hilo, &tmp_lohi, &tmp_lolo);
 
-		/* sub192(rem_hilo, rem_lohi, 0,
+		/*
+		 * sub192(rem_hilo, rem_lohi, 0,
 		 *     tmp_hilo, tmp_lohi, tmp_lolo,
-		 *     &rem_hilo, &rem_lohi, &rem_lolo); */
+		 *     &rem_hilo, &rem_lohi, &rem_lolo);
+		 */
 		sub128(rem_hilo, rem_lohi, tmp_hilo, tmp_lohi, &rem_hilo, &rem_lohi);
 		if (tmp_lolo > 0) {
 			sub128(rem_hilo, rem_lohi, 0x0ll, 0x1ll, &rem_hilo, &rem_lohi);
@@ -517,9 +523,11 @@ float128 div_float128(float128 a, float128 b)
 
 		while ((int64_t) rem_hilo < 0) {
 			--cfrac_lo;
-			/* add192(rem_hilo, rem_lohi, rem_lolo,
+			/*
+			 * add192(rem_hilo, rem_lohi, rem_lolo,
 			 *     0, bfrac_hi, bfrac_lo,
-			 *     &rem_hilo, &rem_lohi, &rem_lolo); */
+			 *     &rem_hilo, &rem_lohi, &rem_lolo);
+			 */
 			add128(rem_lohi, rem_lolo, bfrac_hi, bfrac_lo, &rem_lohi, &rem_lolo);
 			if (lt128(rem_lohi, rem_lolo, bfrac_hi, bfrac_lo)) {
 				++rem_hilo;

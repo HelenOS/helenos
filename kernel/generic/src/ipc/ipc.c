@@ -32,7 +32,8 @@
 /** @file
  */
 
-/* Lock ordering
+/*
+ * Lock ordering
  *
  * First the answerbox, then the phone.
  */

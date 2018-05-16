@@ -394,8 +394,10 @@ int hc_start(hc_device_t *hcd)
 	hc_t *instance = hcd_to_hc(hcd);
 	usb_log_debug("HC(%p): Starting HW.", instance);
 
-	/* Turn off the HC if it's running, Reseting a running device is
-	 * undefined */
+	/*
+	 * Turn off the HC if it's running, Reseting a running device is
+	 * undefined
+	 */
 	if (!(EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG)) {
 		/* disable all interrupts */
 		EHCI_WR(instance->registers->usbintr, 0);
@@ -486,10 +488,12 @@ errno_t hc_init_memory(hc_t *instance)
 		    instance, str_error(ret));
 		return ret;
 	}
-	/* Specs say "Software must set queue head horizontal pointer T-bits to
+	/*
+	 * Specs say "Software must set queue head horizontal pointer T-bits to
 	 * a zero for queue heads in the asynchronous schedule" (4.4.0).
 	 * So we must maintain circular buffer (all horizontal pointers
-	 * have to be valid */
+	 * have to be valid
+	 */
 	endpoint_list_chain(&instance->async_list, &instance->async_list);
 
 	usb_log_debug2("HC(%p): Initializing Interrupt list (%p).", instance,

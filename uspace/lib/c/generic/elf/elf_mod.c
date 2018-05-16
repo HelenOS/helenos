@@ -188,7 +188,8 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 		return EE_UNSUPPORTED;
 	}
 
-	/* Read program header table.
+	/*
+	 * Read program header table.
 	 * Normally, there are very few program headers, so don't bother
 	 * with allocating memory dynamically.
 	 */
@@ -238,7 +239,8 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 			return EE_INVALID;
 		}
 
-		/* Attempt to allocate a span of memory large enough for the
+		/*
+		 * Attempt to allocate a span of memory large enough for the
 		 * shared object.
 		 */
 		// FIXME: This is not reliable when we're running

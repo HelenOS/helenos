@@ -54,7 +54,8 @@ static const int MAX_TOKEN_SIZE = 256;
 
 /** @cond internal
  * Single-character symbols are represented by the character itself. Every
- * other token uses one of these values: */
+ * other token uses one of these values:
+ */
 typedef enum {
 	TOKEN_ERROR = -128,
 
@@ -97,7 +98,8 @@ typedef struct transform_list {
 /** State kept by the parser. */
 typedef struct {
 	/** Rather than constantly checking return values, the parser uses this
-	 * to indicate whether an error has occurred. */
+	 * to indicate whether an error has occurred.
+	 */
 	errno_t error;
 
 	/** The list of named transforms. */
@@ -108,7 +110,8 @@ typedef struct {
 	/** The script file being read from. */
 	FILE *file;
 	/** The buffer that holds script code. There is always a '\0' after the
-	 * current position to prevent reading too far. */
+	 * current position to prevent reading too far.
+	 */
 	char buffer[BUFFER_SIZE];
 	/** The start position within the buffer of the next unread token. */
 	size_t buffer_pos;
@@ -123,7 +126,8 @@ typedef struct {
 	token_type_t token;
 	union {
 		/** The value of a TOKEN_IDENTIFIER token. Unless changed to
-		 * NULL, it will be freed when the next token is read. */
+		 * NULL, it will be freed when the next token is read.
+		 */
 		char *token_string;
 		/** The value of a TOKEN_INTEGER token. */
 		bithenge_int_t token_int;
@@ -138,7 +142,8 @@ typedef struct {
 } state_t;
 
 /** Free the previous token's data. This must be called before changing
- * state->token. */
+ * state->token.
+ */
 static void done_with_token(state_t *state)
 {
 	if (state->token == TOKEN_IDENTIFIER)
@@ -345,7 +350,8 @@ static void next_token(state_t *state)
 
 /** Allocate memory and handle failure by setting the error in the state. The
  * caller must check the state for errors before using the return value of this
- * function. */
+ * function.
+ */
 static void *state_malloc(state_t *state, size_t size)
 {
 	if (state->error != EOK)
@@ -357,7 +363,8 @@ static void *state_malloc(state_t *state, size_t size)
 }
 
 /** Reallocate memory and handle failure by setting the error in the state. If
- * an error occurs, the existing pointer will be returned. */
+ * an error occurs, the existing pointer will be returned.
+ */
 static void *state_realloc(state_t *state, void *ptr, size_t size)
 {
 	if (state->error != EOK)
@@ -371,7 +378,8 @@ static void *state_realloc(state_t *state, void *ptr, size_t size)
 }
 
 /** Expect and consume a certain token. If the next token is of the wrong type,
- * an error is caused. */
+ * an error is caused.
+ */
 static void expect(state_t *state, token_type_t type)
 {
 	if (state->token != type) {
@@ -382,7 +390,8 @@ static void expect(state_t *state, token_type_t type)
 }
 
 /** Expect and consume an identifier token. If the next token is not an
- * identifier, an error is caused and this function returns null. */
+ * identifier, an error is caused and this function returns null.
+ */
 static char *expect_identifier(state_t *state)
 {
 	if (state->token != TOKEN_IDENTIFIER) {
@@ -396,7 +405,8 @@ static char *expect_identifier(state_t *state)
 }
 
 /** Find a transform by name. A reference will be added to the transform.
- * @return The found transform, or NULL if none was found. */
+ * @return The found transform, or NULL if none was found.
+ */
 static bithenge_transform_t *get_named_transform(state_t *state,
     const char *name)
 {
@@ -418,7 +428,8 @@ static bithenge_transform_t *get_named_transform(state_t *state,
 }
 
 /** Add a named transform. This function takes ownership of the name and a
- * reference to the transform. If an error has occurred, either may be null. */
+ * reference to the transform. If an error has occurred, either may be null.
+ */
 static void add_named_transform(state_t *state, bithenge_transform_t *xform, char *name)
 {
 	transform_list_t *entry = state_malloc(state, sizeof(*entry));
@@ -808,7 +819,8 @@ static bithenge_transform_t *parse_invocation(state_t *state)
 
 /** Create a transform that just produces an empty node.
  * @param state The parser state.
- * @return The new transform, or NULL on error. */
+ * @return The new transform, or NULL on error.
+ */
 static bithenge_transform_t *make_empty_transform(state_t *state)
 {
 	bithenge_node_t *node;
@@ -1138,7 +1150,8 @@ static bithenge_transform_t *parse_struct(state_t *state)
 }
 
 /** Parse a transform without composition.
- * @return The parsed transform, or NULL if an error occurred. */
+ * @return The parsed transform, or NULL if an error occurred.
+ */
 static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 {
 	if (state->token == '(') {
@@ -1187,7 +1200,8 @@ static bithenge_transform_t *parse_transform_no_compose(state_t *state)
 }
 
 /** Parse a transform.
- * @return The parsed transform, or NULL if an error occurred. */
+ * @return The parsed transform, or NULL if an error occurred.
+ */
 static bithenge_transform_t *parse_transform(state_t *state)
 {
 	bithenge_transform_t *result = parse_transform_no_compose(state);
@@ -1319,7 +1333,8 @@ static void state_destroy(state_t *state)
  * @param filename The name of the script file.
  * @param[out] out Stores the "main" transform.
  * @return EOK on success, EINVAL on syntax error, or an error code from
- * errno.h. */
+ * errno.h.
+ */
 errno_t bithenge_parse_script(const char *filename, bithenge_transform_t **out)
 {
 	state_t state;

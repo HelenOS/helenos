@@ -1,6 +1,6 @@
 /*	$NetBSD: getopt.h,v 1.10.6.1 2008/05/18 12:30:09 yamt Exp $	*/
 
-/*-
+/*
  * Copyright (c) 2000 The NetBSD Foundation, Inc.
  * All rights reserved.
  *

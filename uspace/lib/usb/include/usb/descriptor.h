@@ -212,7 +212,8 @@ typedef struct {
 	/** Maximum packet size.
 	 * Lower 10 bits represent the actuall size
 	 * Bits 11,12 specify addtional transfer opportunitities for
-	 * HS INT and ISO transfers. */
+	 * HS INT and ISO transfers.
+	 */
 	uint16_t max_packet_size;
 #define USB_ED_GET_MPS(ed) \
 	(uint16_usb2host((ed).max_packet_size) & 0x7ff)

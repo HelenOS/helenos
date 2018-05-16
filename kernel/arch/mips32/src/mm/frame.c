@@ -242,7 +242,8 @@ void frame_low_arch_init(void)
 	frame_mark_unavailable(0, 1);
 
 #if defined(MACHINE_lmalta) || defined(MACHINE_bmalta)
-	/* Blacklist memory regions used by YAMON.
+	/*
+	 * Blacklist memory regions used by YAMON.
 	 *
 	 * The YAMON User's Manual vaguely says the following physical addresses
 	 * are taken by YAMON:

@@ -97,7 +97,8 @@ ieee_double_t extract_ieee_double(double val)
 			ret.pos_val.significand = raw_significand + hidden_bit;
 			ret.pos_val.exponent = raw_exponent - exponent_bias;
 
-			/* The predecessor is closer to val than the successor
+			/*
+			 * The predecessor is closer to val than the successor
 			 * if val is a normal value of the form 2^k (hence
 			 * raw_significand == 0) with the only exception being
 			 * the smallest normal (raw_exponent == 1). The smallest

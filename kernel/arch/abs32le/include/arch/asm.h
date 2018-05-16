@@ -45,10 +45,12 @@ NO_TRACE static inline void asm_delay_loop(uint32_t usec)
 
 NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 {
-	/* On real hardware this should stop processing further
-	   instructions on the CPU (and possibly putting it into
-	   low-power mode) without any possibility of exitting
-	   this function. */
+	/*
+	 * On real hardware this should stop processing further
+	 * instructions on the CPU (and possibly putting it into
+	 * low-power mode) without any possibility of exitting
+	 * this function.
+	 */
 
 	while (true)
 		;
@@ -56,10 +58,12 @@ NO_TRACE static inline __attribute__((noreturn)) void cpu_halt(void)
 
 NO_TRACE static inline void cpu_sleep(void)
 {
-	/* On real hardware this should put the CPU into low-power
-	   mode. However, the CPU is free to continue processing
-	   futher instructions any time. The CPU also wakes up
-	   upon an interrupt. */
+	/*
+	 * On real hardware this should put the CPU into low-power
+	 * mode. However, the CPU is free to continue processing
+	 * futher instructions any time. The CPU also wakes up
+	 * upon an interrupt.
+	 */
 }
 
 NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)

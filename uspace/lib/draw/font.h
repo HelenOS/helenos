@@ -54,12 +54,16 @@ typedef struct {
 	/* Width of the actual glyph drawn */
 	metric_t width;
 
-	/* Horizontal distance between right side of the glyph and origin
-	   of the next glyph */
+	/*
+	 * Horizontal distance between right side of the glyph and origin
+	 * of the next glyph
+	 */
 	metric_t right_side_bearing;
 
-	/* Vertical distance between baseline and top of the glyph
-	   (positive to top) */
+	/*
+	 * Vertical distance between baseline and top of the glyph
+	 * (positive to top)
+	 */
 	metric_t ascender;
 
 	/* Height of the actual glyph drawn */

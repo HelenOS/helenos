@@ -399,7 +399,8 @@ int hc_gain_control(hc_device_t *hcd)
 
 	usb_log_debug("Requesting OHCI control.");
 	if (OHCI_RD(instance->registers->revision) & R_LEGACY_FLAG) {
-		/* Turn off legacy emulation, it should be enough to zero
+		/*
+		 * Turn off legacy emulation, it should be enough to zero
 		 * the lowest bit, but it caused problems. Thus clear all
 		 * except GateA20 (causes restart on some hw).
 		 * See page 145 of the specs for details.
@@ -446,8 +447,10 @@ int hc_gain_control(hc_device_t *hcd)
 		return EOK;
 	}
 
-	/* HC is in reset (hw startup) => no other driver
-	 * maintain reset for at least the time specified in USB spec (50 ms)*/
+	/*
+	 * HC is in reset (hw startup) => no other driver
+	 * maintain reset for at least the time specified in USB spec (50 ms)
+	 */
 	usb_log_debug("Host controller found in reset state.");
 	async_usleep(50000);
 	return EOK;

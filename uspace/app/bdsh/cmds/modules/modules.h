@@ -29,7 +29,8 @@
 #ifndef MODULES_H
 #define MODULES_H
 
-/* Each built in function has two files, one being an entry.h file which
+/*
+ * Each built in function has two files, one being an entry.h file which
  * prototypes the run/help entry functions, the other being a .def file
  * which fills the modules[] array according to the cmd_t structure
  * defined in cmds.h.
@@ -39,7 +40,8 @@
  * (or reverse the process to remove one)
  *
  * NOTE: See module_ aliases.h as well, this is where aliases (commands that
- * share an entry point with others) are indexed */
+ * share an entry point with others) are indexed
+ */
 
 #include "config.h"
 
@@ -63,9 +65,11 @@
 #include "echo/entry.h"
 #include "cmp/entry.h"
 
-/* Each .def function fills the module_t struct with the individual name, entry
+/*
+ * Each .def function fills the module_t struct with the individual name, entry
  * point, help entry point, etc. You can use config.h to control what modules
- * are loaded based on what libraries exist on the system. */
+ * are loaded based on what libraries exist on the system.
+ */
 
 module_t modules[] = {
 #include "help/help_def.inc"

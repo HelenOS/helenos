@@ -459,8 +459,10 @@ static errno_t usb_set_first_configuration(usb_device_t *usb_device)
 		return EOVERFLOW;
 	}
 
-	/* Set configuration. Use the configuration that was in
-	 * usb_device->descriptors.configuration i.e. The first one. */
+	/*
+	 * Set configuration. Use the configuration that was in
+	 * usb_device->descriptors.configuration i.e. The first one.
+	 */
 	errno_t opResult = usb_request_set_configuration(
 	    usb_device_get_default_pipe(usb_device),
 	    config_descriptor->configuration_number);
@@ -592,9 +594,11 @@ errno_t usb_hub_get_port_status(const usb_hub_dev_t *hub, size_t port_number,
 	assert(hub);
 	assert(status);
 
-	/* USB hub specific GET_PORT_STATUS request. See USB Spec 11.16.2.6
+	/*
+	 * USB hub specific GET_PORT_STATUS request. See USB Spec 11.16.2.6
 	 * Generic GET_STATUS request cannot be used because of the difference
-	 * in status data size (2B vs. 4B)*/
+	 * in status data size (2B vs. 4B)
+	 */
 	const usb_device_request_setup_packet_t request = {
 		.request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS,
 		.request = USB_HUB_REQUEST_GET_STATUS,
@@ -634,8 +638,10 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 
 	usb_hub_status_t status;
 	size_t rcvd_size;
-	/* NOTE: We can't use standard USB GET_STATUS request, because
-	 * hubs reply is 4byte instead of 2 */
+	/*
+	 * NOTE: We can't use standard USB GET_STATUS request, because
+	 * hubs reply is 4byte instead of 2
+	 */
 	const errno_t opResult = usb_pipe_control_read(control_pipe,
 	    &get_hub_status_request, sizeof(get_hub_status_request),
 	    &status, sizeof(usb_hub_status_t), &rcvd_size);
@@ -665,7 +671,8 @@ static void usb_hub_global_interrupt(const usb_hub_dev_t *hub_dev)
 	}
 
 	if (status & USB_HUB_STATUS_C_LOCAL_POWER) {
-		/* NOTE: Handling this is more complicated.
+		/*
+		 * NOTE: Handling this is more complicated.
 		 * If the transition is from bus power to local power, all
 		 * is good and we may signal the parent hub that we don't
 		 * need the power.

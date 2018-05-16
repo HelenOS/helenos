@@ -398,7 +398,8 @@ errno_t block_get(block_t **block, service_id_t service_id, aoff64_t ba, int fla
 
 	cache = devcon->cache;
 
-	/* Check whether the logical block (or part of it) is beyond
+	/*
+	 * Check whether the logical block (or part of it) is beyond
 	 * the end of the device or not.
 	 */
 	p_ba = ba_ltop(devcon, ba);

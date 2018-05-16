@@ -64,7 +64,8 @@ void *rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
 
 	size_t rem_size = data_size - to_src_end;
 
-	/* First copy the end part of the data (from the source begining),
+	/*
+	 * First copy the end part of the data (from the source begining),
 	 * then copy the begining
 	 */
 	memcpy(dest + to_src_end, src, rem_size);

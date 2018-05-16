@@ -517,8 +517,10 @@ void nic_set_tx_busy(nic_t *nic_data, int busy)
  */
 void nic_received_frame(nic_t *nic_data, nic_frame_t *frame)
 {
-	/* Note: this function must not lock main lock, because loopback driver
-	 * 		 calls it inside send_frame handler (with locked main lock) */
+	/*
+	 * Note: this function must not lock main lock, because loopback driver
+	 * 		 calls it inside send_frame handler (with locked main lock)
+	 */
 	fibril_rwlock_read_lock(&nic_data->rxc_lock);
 	nic_frame_type_t frame_type;
 	bool check = nic_rxc_check(&nic_data->rx_control, frame->data,
@@ -1061,7 +1063,8 @@ static errno_t period_fibril_fun(void *data)
 			suseconds_t wait = 0;
 			if (remaining.tv_sec > 0) {
 				time_t wait_sec = remaining.tv_sec;
-				/* wait maximaly 5 seconds to get reasonable reaction time
+				/*
+				 * wait maximaly 5 seconds to get reasonable reaction time
 				 * when period is reset
 				 */
 				if (wait_sec > 5)

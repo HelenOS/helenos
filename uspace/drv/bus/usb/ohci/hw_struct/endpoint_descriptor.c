@@ -68,8 +68,10 @@ void ed_init(ed_t *instance, const endpoint_t *ep, const td_t *td)
 	memset(instance, 0, sizeof(*instance));
 
 	if (ep == NULL) {
-		/* Mark as dead, used for dummy EDs at the beginning of
-		 * endpoint lists. */
+		/*
+		 * Mark as dead, used for dummy EDs at the beginning of
+		 * endpoint lists.
+		 */
 		OHCI_MEM32_WR(instance->status, ED_STATUS_K_FLAG);
 		return;
 	}

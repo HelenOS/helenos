@@ -196,7 +196,8 @@ static void slabtest(void *priv)
 
 static void multitest(int size)
 {
-	/* Start 8 threads that just allocate as much as possible,
+	/*
+	 * Start 8 threads that just allocate as much as possible,
 	 * then release everything, then again allocate, then release
 	 */
 	thread_t *t;

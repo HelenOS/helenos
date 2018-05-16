@@ -214,8 +214,10 @@ int chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 	if (!chr_check(ch))
 		return EINVAL;
 
-	/* Unsigned version of ch (bit operations should only be done
-	   on unsigned types). */
+	/*
+	 * Unsigned version of ch (bit operations should only be done
+	 * on unsigned types).
+	 */
 	uint32_t cc = (uint32_t) ch;
 
 	/* Determine how many continuation bytes are needed */

@@ -50,7 +50,8 @@
 /**
  * OHCI Endpoint Descriptor representation.
  *
- * See OHCI spec. Chapter 4.2, page 16 (pdf page 30) for details */
+ * See OHCI spec. Chapter 4.2, page 16 (pdf page 30) for details
+ */
 typedef struct ed {
 	/**
 	 * Status field.

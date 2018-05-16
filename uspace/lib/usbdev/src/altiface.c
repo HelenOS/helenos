@@ -135,8 +135,10 @@ errno_t usb_alternate_interfaces_init(usb_alternate_interfaces_t *alternates,
 
 		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE) ||
 		    (iface->interface_number != interface_number)) {
-			/* This is not a valid alternate interface descriptor
-			 * for interface with number == interface_number. */
+			/*
+			 * This is not a valid alternate interface descriptor
+			 * for interface with number == interface_number.
+			 */
 			iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser,
 			    &dp_data, dp_data.data, iface_ptr);
 			continue;

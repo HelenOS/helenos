@@ -145,7 +145,7 @@ errno_t sheet_insert(sheet_t *sh, spt_t *pos, enum dir_spec dir, char *str)
  * @param epos	Ending point.
  *
  * @return	EOK on success or an error code.
- **/
+ */
 errno_t sheet_delete(sheet_t *sh, spt_t *spos, spt_t *epos)
 {
 	char *spp;

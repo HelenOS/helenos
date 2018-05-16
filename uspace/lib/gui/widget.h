@@ -71,7 +71,8 @@ struct widget {
 	/**
 	 * Virtual destructor. Apart from deallocating the resources specific for
 	 * the particular widget, each widget shall remove itself from parents
-	 * children and deallocate itself. */
+	 * children and deallocate itself.
+	 */
 	void (*destroy)(widget_t *);
 
 	/**
@@ -81,7 +82,8 @@ struct widget {
 	 * information from its children and decide whether its own properties have
 	 * to be changed. If not, widget shall calculate new layout for its children
 	 * and call rearrange() on each of them. Otherwise, widget shall change its
-	 * own properties and call reconfigure() on its parent. */
+	 * own properties and call reconfigure() on its parent.
+	 */
 	void (*reconfigure)(widget_t *);
 
 	/**
@@ -89,21 +91,24 @@ struct widget {
 	 * of its childer. As a reaction to this call, widget shall change its
 	 * position and size according to provided arguments, paint itself,
 	 * calculate new layout for its children and call rearrange() on each
-	 * of them. */
+	 * of them.
+	 */
 	void (*rearrange)(widget_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
 
 	/**
 	 * As a reaction to window refresh event, widget hierarchy is traversed
 	 * in top-bottom order and repaint() is called on each widget. Widget shall
 	 * either paint itself or copy its private buffer onto window surface.
-	 * Widget shall also post damage event into window event loop. */
+	 * Widget shall also post damage event into window event loop.
+	 */
 	void (*repaint)(widget_t *);
 
 	/**
 	 * Keyboard events are delivered to widgets that have keyboard focus. As a
 	 * reaction to the event, widget might call reconfigure() on its parent or
 	 * rearrange() on its children. If the widget wants to change its visual
-	 * information, refresh event should be posted to the window event loop. */
+	 * information, refresh event should be posted to the window event loop.
+	 */
 	void (*handle_keyboard_event)(widget_t *, kbd_event_t);
 
 	/**
@@ -113,7 +118,8 @@ struct widget {
 	 * If the widget wants to change its visual information, refresh event
 	 * should be posted to the window event loop. If the widget accepts
 	 * keyboard events, it should take ownership of keyboard focus. Widget can
-	 * also acquire or release mouse grab. */
+	 * also acquire or release mouse grab.
+	 */
 	void (*handle_position_event)(widget_t *, pos_event_t);
 };
 

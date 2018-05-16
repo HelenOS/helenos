@@ -81,7 +81,8 @@ typedef enum {
 	USB_HID_REPORT_TYPE_OUTPUT = 2,
 
 	/** Feature report. Describes device configuration information that
-	 * can be sent to the device */
+	 * can be sent to the device
+	 */
 	USB_HID_REPORT_TYPE_FEATURE = 3
 } usb_hid_report_type_t;
 

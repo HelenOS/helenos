@@ -44,7 +44,8 @@ typedef struct hw_resource_list_parsed hw_res_list_parsed_t;
 typedef struct bus bus_t;
 typedef struct device device_t;
 
-/* Treat this header as read-only in driver code.
+/*
+ * Treat this header as read-only in driver code.
  * It could be opaque, but why to complicate matters.
  */
 typedef struct hc_device {
@@ -70,7 +71,8 @@ typedef struct hc_driver {
 	const char *name;
 
 	/** Size of the device data to be allocated, and passed as the
-	 * hc_device_t. */
+	 * hc_device_t.
+	 */
 	size_t hc_device_size;
 
 	/** Initialize device structures. */

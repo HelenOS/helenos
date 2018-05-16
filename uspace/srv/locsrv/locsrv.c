@@ -66,12 +66,13 @@ LIST_INITIALIZE(services_list);
 LIST_INITIALIZE(namespaces_list);
 LIST_INITIALIZE(servers_list);
 
-/* Locking order:
+/*
+ * Locking order:
  *  servers_list_mutex
  *  services_list_mutex
  *  (loc_server_t *)->services_mutex
  *  create_id_mutex
- **/
+ */
 
 FIBRIL_MUTEX_INITIALIZE(services_list_mutex);
 static FIBRIL_CONDVAR_INITIALIZE(services_list_cv);
@@ -96,7 +97,8 @@ static LIST_INITIALIZE(callback_sess_list);
 
 service_id_t loc_create_id(void)
 {
-	/* TODO: allow reusing old ids after their unregistration
+	/*
+	 * TODO: allow reusing old ids after their unregistration
 	 * and implement some version of LRU algorithm, avoid overflow
 	 */
 
@@ -388,7 +390,8 @@ static loc_server_t *loc_server_register(void)
 
 	fibril_mutex_lock(&servers_list_mutex);
 
-	/* TODO:
+	/*
+	 * TODO:
 	 * Check that no server with name equal to
 	 * server->name is registered
 	 */
@@ -1056,8 +1059,10 @@ static void loc_get_namespaces(cap_call_handle_t icall_handle, ipc_call_t *icall
 
 static void loc_get_services(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
-	/* FIXME: Use faster algorithm which can make better use
-	   of namespaces */
+	/*
+	 * FIXME: Use faster algorithm which can make better use
+	 * of namespaces
+	 */
 
 	cap_call_handle_t chandle;
 	size_t size;

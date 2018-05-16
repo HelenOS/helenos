@@ -149,8 +149,10 @@ static errno_t seq_node_subtransform(seq_node_t *self, bithenge_node_t **out,
 		return rc;
 
 	if (index == self->num_ends) {
-		/* We can apply the subtransform and cache its prefix length at
-		 * the same time. */
+		/*
+		 * We can apply the subtransform and cache its prefix length at
+		 * the same time.
+		 */
 		bithenge_node_t *blob_node;
 		bithenge_blob_inc_ref(self->blob);
 		rc = bithenge_new_offset_blob(&blob_node, self->blob,
@@ -417,29 +419,37 @@ static void struct_node_destroy(bithenge_node_t *base)
 {
 	struct_node_t *node = node_as_struct(base);
 
-	/* Treat the scope carefully because of the circular reference. In
+	/*
+	 * Treat the scope carefully because of the circular reference. In
 	 * struct_transform_make_node, things are set up so node owns a
 	 * reference to the scope, but scope doesn't own a reference to node,
-	 * so node's reference count is too low. */
+	 * so node's reference count is too low.
+	 */
 	bithenge_scope_t *scope = seq_node_scope(struct_as_seq(node));
 	if (scope->refs == 1) {
-		/* Mostly normal destroy, but we didn't inc_ref(node) for the
+		/*
+		 * Mostly normal destroy, but we didn't inc_ref(node) for the
 		 * scope in struct_transform_make_node, so make sure it doesn't
-		 * try to dec_ref. */
+		 * try to dec_ref.
+		 */
 		scope->current_node = NULL;
 		seq_node_destroy(struct_as_seq(node));
 	} else if (scope->refs > 1) {
-		/* The scope is still needed, but node isn't otherwise needed.
+		/*
+		 * The scope is still needed, but node isn't otherwise needed.
 		 * Switch things around so scope owns a reference to node, but
-		 * not vice versa, and scope's reference count is too low. */
+		 * not vice versa, and scope's reference count is too low.
+		 */
 		bithenge_node_inc_ref(base);
 		bithenge_scope_dec_ref(scope);
 		return;
 	} else {
-		/* This happens after the previous case, when scope is no
+		/*
+		 * This happens after the previous case, when scope is no
 		 * longer used and is being destroyed. Since scope is already
 		 * being destroyed, set it to NULL here so we don't try to
-		 * destroy it twice. */
+		 * destroy it twice.
+		 */
 		struct_as_seq(node)->scope = NULL;
 		seq_node_destroy(struct_as_seq(node));
 	}
@@ -500,10 +510,12 @@ static errno_t struct_transform_make_node(struct_transform_t *self,
 	node->transform = self;
 	node->prefix = prefix;
 
-	/* We should inc_ref(node) here, but that would make a cycle. Instead,
+	/*
+	 * We should inc_ref(node) here, but that would make a cycle. Instead,
 	 * we leave it 1 too low, so that when the only remaining use of node
 	 * is the scope, node will be destroyed. Also see the comment in
-	 * struct_node_destroy. */
+	 * struct_node_destroy.
+	 */
 	bithenge_scope_set_current_node(inner, struct_as_node(node));
 	bithenge_scope_dec_ref(inner);
 
@@ -590,7 +602,8 @@ static bithenge_transform_ops_t struct_transform_ops = {
  * takes ownership of @a subtransforms and the names and references therein.
  * @param[out] out Stores the created transform.
  * @param subtransforms The subtransforms and field names.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_struct(bithenge_transform_t **out,
     bithenge_named_transform_t *subtransforms)
 {
@@ -868,7 +881,8 @@ static const bithenge_transform_ops_t repeat_transform_ops = {
  * @param xform The subtransform to apply repeatedly.
  * @param expr Used to calculate the number of times @a xform will be applied.
  * May be NULL, in which case @a xform will be applied indefinitely.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_repeat_transform(bithenge_transform_t **out,
     bithenge_transform_t *xform, bithenge_expression_t *expr)
 {
@@ -1113,7 +1127,8 @@ static const bithenge_transform_ops_t do_while_transform_ops = {
  * @param xform The subtransform to apply repeatedly.
  * @param expr Applied in the result of each application of @a xform to
  * determine whether there will be more.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_do_while_transform(bithenge_transform_t **out,
     bithenge_transform_t *xform, bithenge_expression_t *expr)
 {

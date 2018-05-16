@@ -40,7 +40,8 @@
 
 typedef struct am335x_timer_regs {
 
-	/* This read only register contains the
+	/*
+	 * This read only register contains the
 	 * revision number of the module
 	 */
 	ioport32_t const tidr;
@@ -59,7 +60,8 @@ typedef struct am335x_timer_regs {
 
 	ioport32_t const pad1[3];
 
-	/* This register allows controlling various
+	/*
+	 * This register allows controlling various
 	 * parameters of the OCP interface.
 	 */
 	ioport32_t tiocp_cfg;

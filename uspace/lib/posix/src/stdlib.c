@@ -152,7 +152,8 @@ void *bsearch(const void *key, const void *base,
 			return (void *) middle;
 		}
 		if (middle == base) {
-			/* There is just one member left to check and it
+			/*
+			 * There is just one member left to check and it
 			 * didn't match the key. Avoid infinite loop.
 			 */
 			break;
@@ -233,7 +234,8 @@ char *realpath(const char *restrict name, char *restrict resolved)
 
 	// TODO: symlink resolution
 
-	/* Function absolutize is implemented in libc and declared in vfs.h.
+	/*
+	 * Function absolutize is implemented in libc and declared in vfs.h.
 	 * No more processing is required as HelenOS doesn't have symlinks
 	 * so far (as far as I can tell), although this function will need
 	 * to be updated when that support is implemented.
@@ -241,7 +243,8 @@ char *realpath(const char *restrict name, char *restrict resolved)
 	char *absolute = vfs_absolutize(name, NULL);
 
 	if (absolute == NULL) {
-		/* POSIX requires some specific errnos to be set
+		/*
+		 * POSIX requires some specific errnos to be set
 		 * for some cases, but there is no way to find out from
 		 * absolutize().
 		 */

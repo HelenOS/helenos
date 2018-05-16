@@ -190,9 +190,9 @@ static void detect_execution_units(void)
 		cpu_count++;
 
 		/*
- 		 * if failed in previous CPUs, don't try
- 		 * to detect physical cores any more
- 		 */
+		 * if failed in previous CPUs, don't try
+		 * to detect physical cores any more
+		 */
 		if (exec_unit_assign_error)
 			continue;
 
@@ -249,7 +249,7 @@ static void detect_execution_units(void)
 			    exec_units[i].strand_count > max_core_strands ?
 			    exec_units[i].strand_count : max_core_strands;
 
-		/* detecting execution unit failed */
+			/* detecting execution unit failed */
 		} else {
 			exec_unit_assign_error = 1;
 		}
@@ -259,10 +259,10 @@ static void detect_execution_units(void)
 	config.cpu_count = cpu_count;
 
 	/*
- 	 * A fallback code which will be executed if finding out which
- 	 * execution units belong to particular CPUs fails. Pretend there
- 	 * exists just one execution unit and all CPUs belong to it.
- 	 */
+	 * A fallback code which will be executed if finding out which
+	 * execution units belong to particular CPUs fails. Pretend there
+	 * exists just one execution unit and all CPUs belong to it.
+	 */
 	if (exec_unit_assign_error) {
 		bsp_exec_unit_index = 0;
 		exec_unit_count = 1;
@@ -287,10 +287,10 @@ static void detect_execution_units(void)
 	}
 
 	/*
- 	 * Reorder the execution units array elements and the cpuid array
- 	 * elements so that the BSP will always be the very first CPU of
- 	 * the very first execution unit.
- 	 */
+	 * Reorder the execution units array elements and the cpuid array
+	 * elements so that the BSP will always be the very first CPU of
+	 * the very first execution unit.
+	 */
 	exec_unit_t temp_exec_unit = exec_units[0];
 	exec_units[0] = exec_units[bsp_exec_unit_index];
 	exec_units[bsp_exec_unit_index] = temp_exec_unit;

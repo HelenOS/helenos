@@ -126,8 +126,10 @@ errno_t td_status(const td_t *instance)
 	if ((instance->status & TD_STATUS_ERROR_BIT_STUFF) != 0)
 		return EIO;
 
-	/* CRC or timeout error, like device not present or bad data,
-	 * it won't be reported unless err count reached zero */
+	/*
+	 * CRC or timeout error, like device not present or bad data,
+	 * it won't be reported unless err count reached zero
+	 */
 	if ((instance->status & TD_STATUS_ERROR_CRC) != 0)
 		return EBADCHECKSUM;
 
@@ -143,8 +145,10 @@ errno_t td_status(const td_t *instance)
 	if ((instance->status & TD_STATUS_ERROR_BABBLE) != 0)
 		return EIO;
 
-	/* Stall might represent err count reaching zero or stall response from
-	 * the device. If err count reached zero, one of the above is reported*/
+	/*
+	 * Stall might represent err count reaching zero or stall response from
+	 * the device. If err count reached zero, one of the above is reported
+	 */
 	if ((instance->status & TD_STATUS_ERROR_STALLED) != 0)
 		return ESTALL;
 

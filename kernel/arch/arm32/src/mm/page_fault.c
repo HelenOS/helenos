@@ -152,8 +152,10 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 		return PF_ACCESS_EXEC;
 	}
 
-	/* See ARM Architecture reference manual ARMv7-A and ARMV7-R edition
-	 * A5.3 (PDF p. 206) */
+	/*
+	 * See ARM Architecture reference manual ARMv7-A and ARMV7-R edition
+	 * A5.3 (PDF p. 206)
+	 */
 	static const struct {
 		uint32_t mask;
 		uint32_t value;

@@ -476,7 +476,8 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 	uintptr_t addr = ALIGN_UP(bound, PAGE_SIZE);
 	if (addr >= bound) {
 		if (guarded) {
-			/* Leave an unmapped page between the lower
+			/*
+			 * Leave an unmapped page between the lower
 			 * bound and the area's start address.
 			 */
 			addr += P2SZ(1);
@@ -498,7 +499,8 @@ NO_TRACE static uintptr_t as_get_unmapped_area(as_t *as, uintptr_t bound,
 			    ALIGN_UP(area->base + P2SZ(area->pages), PAGE_SIZE);
 
 			if (guarded || area->flags & AS_AREA_GUARD) {
-				/* We must leave an unmapped page
+				/*
+				 * We must leave an unmapped page
 				 * between the two areas.
 				 */
 				addr += P2SZ(1);

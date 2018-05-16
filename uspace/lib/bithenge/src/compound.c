@@ -114,7 +114,8 @@ static const bithenge_transform_ops_t compose_transform_ops = {
  * @param[out] out Holds the result.
  * @param[in] xforms The transforms to apply.
  * @param num The number of transforms.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_composed_transform(bithenge_transform_t **out,
     bithenge_transform_t **xforms, size_t num)
 {
@@ -230,7 +231,8 @@ static const bithenge_transform_ops_t if_transform_ops = {
  * @param expr The boolean expression to evaluate.
  * @param true_xform The transform to apply if the expression is true.
  * @param false_xform The transform to apply if the expression is false.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_if_transform(bithenge_transform_t **out,
     bithenge_expression_t *expr, bithenge_transform_t *true_xform,
     bithenge_transform_t *false_xform)
@@ -308,7 +310,8 @@ static const bithenge_transform_ops_t partial_transform_ops = {
  * input. Takes a reference to @a xform.
  * @param[out] out Holds the new transform.
  * @param xform The subtransform to apply.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_partial_transform(bithenge_transform_t **out,
     bithenge_transform_t *xform)
 {

@@ -213,7 +213,8 @@ errno_t ext4_balloc_free_blocks(ext4_inode_ref_t *inode_ref,
 		    gid + 1);
 
 		if ((first + count) >= limit) {
-			/* This extent spans over 2 or more block groups,
+			/*
+			 * This extent spans over 2 or more block groups,
 			 * we'll break it into smaller parts.
 			 */
 			uint32_t s = limit - first;
@@ -253,7 +254,8 @@ uint32_t ext4_balloc_get_first_data_block_in_group(ext4_superblock_t *sb,
 
 	if (!ext4_superblock_has_feature_incompatible(sb,
 	    EXT4_FEATURE_INCOMPAT_FLEX_BG)) {
-		/* If we are not using FLEX_BG, the first data block
+		/*
+		 * If we are not using FLEX_BG, the first data block
 		 * is always after the inode table.
 		 */
 		r = itable + itable_sz;

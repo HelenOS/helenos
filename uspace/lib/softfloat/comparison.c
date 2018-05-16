@@ -84,8 +84,10 @@ int is_float128_nan(float128 ld)
  */
 int is_float32_signan(float32 f)
 {
-	/* SigNaN : exp = 0xff and fraction = 0xxxxx..x (binary),
-	 * where at least one x is nonzero */
+	/*
+	 * SigNaN : exp = 0xff and fraction = 0xxxxx..x (binary),
+	 * where at least one x is nonzero
+	 */
 	return ((f.parts.exp == 0xFF) &&
 	    (f.parts.fraction < 0x400000) && (f.parts.fraction));
 }
@@ -98,8 +100,10 @@ int is_float32_signan(float32 f)
  */
 int is_float64_signan(float64 d)
 {
-	/* SigNaN : exp = 0x7ff and fraction = 0xxxxx..x (binary),
-	 * where at least one x is nonzero */
+	/*
+	 * SigNaN : exp = 0x7ff and fraction = 0xxxxx..x (binary),
+	 * where at least one x is nonzero
+	 */
 	return ((d.parts.exp == 0x7FF) &&
 	    (d.parts.fraction) && (d.parts.fraction < 0x8000000000000ll));
 }
@@ -112,8 +116,10 @@ int is_float64_signan(float64 d)
  */
 int is_float128_signan(float128 ld)
 {
-	/* SigNaN : exp = 0x7fff and fraction = 0xxxxx..x (binary),
-	 * where at least one x is nonzero */
+	/*
+	 * SigNaN : exp = 0x7fff and fraction = 0xxxxx..x (binary),
+	 * where at least one x is nonzero
+	 */
 	return ((ld.parts.exp == 0x7FFF) &&
 	    (ld.parts.frac_hi || ld.parts.frac_lo) &&
 	    lt128(ld.parts.frac_hi, ld.parts.frac_lo, 0x800000000000ll, 0x0ll));

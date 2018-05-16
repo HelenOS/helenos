@@ -69,7 +69,8 @@ static const uint16_t crct[256] = {
 	0x8201,	0x42c0,	0x4380,	0x8341,	0x4100,	0x81c1,	0x8081,	0x4040
 };
 
-/* Compute a CRC16
+/*
+ * Compute a CRC16
  *
  * @param crc    Init value of the CRC
  * @param buf    Pointer to the data

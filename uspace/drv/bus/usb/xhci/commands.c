@@ -357,7 +357,8 @@ errno_t xhci_handle_command_completion(xhci_hc_t *hc, xhci_trb_t *trb)
 	int code = TRB_GET_CODE(*trb);
 
 	if (code == XHCI_TRBC_COMMAND_RING_STOPPED) {
-		/* This can either mean that the ring is being stopped, or
+		/*
+		 * This can either mean that the ring is being stopped, or
 		 * a command was aborted. In either way, wake threads waiting
 		 * on stopped_cv.
 		 *
@@ -670,7 +671,8 @@ static errno_t try_abort_current_command(xhci_hc_t *hc)
 	    XHCI_CR_ABORT_TIMEOUT);
 
 	if (XHCI_REG_RD(hc->op_regs, XHCI_OP_CRR)) {
-		/* 4.6.1.2, implementation note
+		/*
+		 * 4.6.1.2, implementation note
 		 * Assume there are larger problems with HC and
 		 * reset it.
 		 */
@@ -719,7 +721,8 @@ static errno_t wait_for_cmd_completion(xhci_hc_t *hc, xhci_cmd_t *cmd)
 		rv = fibril_condvar_wait_timeout(&cmd->_header.completed_cv,
 		    &cmd->_header.completed_mtx, XHCI_COMMAND_TIMEOUT);
 
-		/* The waiting timed out. Current command (not necessarily
+		/*
+		 * The waiting timed out. Current command (not necessarily
 		 * ours) is probably blocked.
 		 */
 		if (!cmd->_header.completed && rv == ETIMEOUT) {

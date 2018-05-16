@@ -60,8 +60,10 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	EHCI_MEM32_WR(instance->next, LINK_POINTER_TERM);
 	EHCI_MEM32_WR(instance->alternate, LINK_POINTER_TERM);
 	if (ep == NULL) {
-		/* Mark as halted and list head,
-		 * used by endpoint lists as dummy */
+		/*
+		 * Mark as halted and list head,
+		 * used by endpoint lists as dummy
+		 */
 		EHCI_MEM32_WR(instance->ep_char, QH_EP_CHAR_H_FLAG);
 		EHCI_MEM32_WR(instance->status, QH_STATUS_HALTED_FLAG);
 		return;
@@ -75,8 +77,10 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
 		if (ep->device->speed != USB_SPEED_HIGH)
 			EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_C_FLAG);
-		/* Let BULK and INT use queue head managed toggle,
-		 * CONTROL needs special toggle handling anyway */
+		/*
+		 * Let BULK and INT use queue head managed toggle,
+		 * CONTROL needs special toggle handling anyway
+		 */
 		EHCI_MEM32_SET(instance->ep_char, QH_EP_CHAR_DTC_FLAG);
 	}
 	uint32_t ep_cap = QH_EP_CAP_C_MASK_SET(3 << 2) |
@@ -95,8 +99,10 @@ void qh_init(qh_t *instance, const endpoint_t *ep)
 	// INT transfers. Current values are just guesses
 	EHCI_MEM32_WR(instance->ep_cap, ep_cap);
 
-	/* The rest of the fields are transfer working area, it should be ok to
-	 * leave it NULL */
+	/*
+	 * The rest of the fields are transfer working area, it should be ok to
+	 * leave it NULL
+	 */
 }
 
 /**

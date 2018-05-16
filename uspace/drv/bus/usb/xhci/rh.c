@@ -290,7 +290,8 @@ void xhci_rh_start(xhci_rh_t *rh)
 	xhci_sw_ring_restart(&rh->event_ring);
 	joinable_fibril_start(rh->event_worker);
 
-	/* The reset changed status of all ports, and SW originated reason does
+	/*
+	 * The reset changed status of all ports, and SW originated reason does
 	 * not cause an interrupt.
 	 */
 	for (uint8_t i = 0; i < rh->max_ports; ++i) {

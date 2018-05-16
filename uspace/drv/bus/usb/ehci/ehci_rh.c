@@ -71,9 +71,11 @@ static void ehci_rh_hub_desc_init(ehci_rh_t *instance, unsigned hcs)
 	instance->hub_descriptor.header.length = dsize;
 	instance->hub_descriptor.header.descriptor_type = USB_DESCTYPE_HUB;
 	instance->hub_descriptor.header.port_count = instance->port_count;
-	/* Bits 0,1 indicate power switching mode
+	/*
+	 * Bits 0,1 indicate power switching mode
 	 * Bit 2 indicates device type (compound device)
-	 * Bits 3,4 indicate over-current protection mode */
+	 * Bits 3,4 indicate over-current protection mode
+	 */
 	instance->hub_descriptor.header.characteristics = 0 |
 	    ((hcs & EHCI_CAPS_HCS_PPC_FLAG) ? 0x09 : 0x12) |
 	    ((hcs & EHCI_CAPS_HCS_INDICATORS_FLAG) ? 0x80 : 0) |
@@ -312,8 +314,10 @@ static errno_t req_get_port_status(usbvirt_device_t *device,
 	    (hub->resume_flag[port] ? USB2_HUB_PORT_STATUS_C_SUSPEND : 0) |
 	    EHCI2USB(reg, USB_PORTSC_OC_CHANGE_FLAG, USB_HUB_PORT_STATUS_C_OC) |
 	    (hub->reset_flag[port] ? USB_HUB_PORT_STATUS_C_RESET : 0));
-	/* Note feature numbers for test and indicator feature do not
-	 * correspond to the port status bit locations */
+	/*
+	 * Note feature numbers for test and indicator feature do not
+	 * correspond to the port status bit locations
+	 */
 	usb_log_debug2("RH(%p-%u) port status: %" PRIx32 "(%" PRIx32 ")", hub, port,
 	    status, reg);
 	memcpy(data, &status, sizeof(status));
@@ -339,8 +343,10 @@ static errno_t stop_reset(void *arg)
 		async_usleep(1);
 	}
 	usb_log_debug("RH(%p-%u): Reset complete", job->hub, job->port);
-	/* Handle port ownership, if the port is not enabled
-	 * after reset it's a full speed device */
+	/*
+	 * Handle port ownership, if the port is not enabled
+	 * after reset it's a full speed device
+	 */
 	if (!(EHCI_RD(job->hub->registers->portsc[job->port]) &
 	    USB_PORTSC_ENABLED_FLAG)) {
 		usb_log_info("RH(%p-%u): Port not enabled after reset (%" PRIX32

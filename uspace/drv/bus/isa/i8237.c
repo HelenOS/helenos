@@ -484,9 +484,11 @@ errno_t dma_channel_remain(unsigned channel, size_t *size)
 	fibril_mutex_unlock(&guard);
 
 	uint16_t remain = (value_high << 8 | value_low);
-	/* 16 bit DMA size is in words,
+	/*
+	 * 16 bit DMA size is in words,
 	 * the upper bits are bogus for 16bit transfers so we need to get
-	 * rid of them. Using limited type works well.*/
+	 * rid of them. Using limited type works well.
+	 */
 	if (is_dma16(channel))
 		remain <<= 1;
 	*size =  is_dma16(channel) ? remain + 2 : remain + 1;

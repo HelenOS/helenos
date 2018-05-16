@@ -78,12 +78,12 @@ typedef struct {
 	 * 	.interface_protocol = 0,
 	 * 	.flags = 0
 	 * };
-
+	 *
 	 * static usb_endpoint_description_t *hub_endpoints[] = {
 	 * 	&poll_endpoint_description,
 	 * 	NULL
 	 * };
-
+	 *
 	 * static usb_driver_t hub_driver = {
 	 * 	.endpoints = hub_endpoints,
 	 * 	...

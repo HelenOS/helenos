@@ -41,7 +41,7 @@
 /**
  * Allocate and initialize a per-CPU structure to be accessible via the
  * GS_KERNEL segment register.
- **/
+ */
 void kseg_init(void)
 {
 	kseg_t *kseg;

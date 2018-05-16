@@ -46,7 +46,8 @@
 #include "failure.h"
 #include "common.h"
 
-/* This file raises fake errors from system calls, to test that Bithenge
+/*
+ * This file raises fake errors from system calls, to test that Bithenge
  * handles the errors correctly. It has two primary modes of operation,
  * depending on an environment variable:
  *
@@ -59,7 +60,8 @@
  *
  * BITHENGE_FAILURE_INDEX set: the program runs normally until system call
  * number BITHENGE_FAILURE_INDEX is made; a fake error is returned from this
- * call. */
+ * call.
+ */
 
 static int g_initialized = 0;
 static int g_failure_index = -1;
@@ -93,8 +95,10 @@ static inline void initialize(void)
 		g_failure_index_selected = strtol(sel_str, NULL, 10);
 }
 
-/* Record a hit for a backtrace address and return whether this is the first
- * hit. */
+/*
+ * Record a hit for a backtrace address and return whether this is the first
+ * hit.
+ */
 static inline errno_t backtrace_item_hit(void *addr)
 {
 	backtrace_item_t **bip;
@@ -132,8 +136,10 @@ errno_t bithenge_should_fail(void)
 		return 0;
 	}
 
-	/* If all backtrace items have been seen already, there's no need to
-	 * try raising an error. */
+	/*
+	 * If all backtrace items have been seen already, there's no need to
+	 * try raising an error.
+	 */
 	void *trace[256];
 	int size = backtrace(trace, 256);
 	int raise_error = 0;
@@ -161,9 +167,11 @@ errno_t bithenge_should_fail(void)
 	if (WIFEXITED(status) && WEXITSTATUS(status) == 1)
 		return 0;
 
-	/* The child had an error! We couldn't easily debug it because it was
+	/*
+	 * The child had an error! We couldn't easily debug it because it was
 	 * in a separate process with redirected stdout and stderr. Do it again
-	 * without redirecting or forking. */
+	 * without redirecting or forking.
+	 */
 	fprintf(stderr, "** Fake error raised here (BITHENGE_FAILURE_INDEX=%d)\n",
 	    g_failure_index);
 	return 1;

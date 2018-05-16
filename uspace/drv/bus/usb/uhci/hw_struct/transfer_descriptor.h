@@ -89,7 +89,8 @@ typedef struct transfer_descriptor {
 	/** Pointer(physical) to the beginning of the transaction's buffer */
 	volatile uint32_t buffer_ptr;
 
-	/* According to UHCI design guide, there is 16 bytes of
+	/*
+	 * According to UHCI design guide, there is 16 bytes of
 	 * data available here.
 	 * According to Linux kernel the hardware does not care,
 	 * memory just needs to be aligned. We don't use it anyway.

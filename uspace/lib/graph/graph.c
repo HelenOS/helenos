@@ -258,8 +258,10 @@ static void vs_yield(visualizer_t *vs, cap_call_handle_t icall_handle, ipc_call_
 	/* Driver might also deallocate resources for the current mode. */
 	errno_t rc = vs->ops.yield(vs);
 
-	/* Now that the driver was given a chance to deallocate resources,
-	 * current mode can be unset. */
+	/*
+	 * Now that the driver was given a chance to deallocate resources,
+	 * current mode can be unset.
+	 */
 	if (vs->mode_set)
 		vs->mode_set = false;
 

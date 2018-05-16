@@ -352,7 +352,8 @@ void modules_process_tls(rtld_t *rtld)
 		list_append(&m->imodules_link, &rtld->imodules);
 		rtld->tls_align = max(rtld->tls_align, m->tls_align);
 
-		/* We are allocating spans "backwards", here,
+		/*
+		 * We are allocating spans "backwards", here,
 		 * as described in U. Drepper's paper.
 		 */
 		rtld->tls_size += m->tdata_size + m->tbss_size;
@@ -360,7 +361,8 @@ void modules_process_tls(rtld_t *rtld)
 		m->tpoff = -(ptrdiff_t) rtld->tls_size;
 	}
 
-	/* We are in negative offsets. In order for the alignments to
+	/*
+	 * We are in negative offsets. In order for the alignments to
 	 * be correct, "zero" offset (i.e. the total size) must be aligned
 	 * to the strictest alignment present.
 	 */

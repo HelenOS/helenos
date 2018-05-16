@@ -41,7 +41,8 @@
 
 #define FPU_CONTEXT_ALIGN    8
 
-/* ARM Architecture reference manual, p B-1529.
+/*
+ * ARM Architecture reference manual, p B-1529.
  */
 typedef struct {
 	uint32_t fpexc;

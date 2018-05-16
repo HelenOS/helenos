@@ -325,7 +325,8 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	fibril_mutex_lock(&rtc->mutex);
 
 	if (rtc->boot_time.tv_sec) {
-		/* There is no need to read the current time from the
+		/*
+		 * There is no need to read the current time from the
 		 * device because it has already been cached.
 		 */
 
@@ -403,7 +404,8 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	t->tm_mon--;
 
 	if (t->tm_year < 100) {
-		/* tm_year is the number of years since 1900 but the
+		/*
+		 * tm_year is the number of years since 1900 but the
 		 * RTC epoch is 2000.
 		 */
 		t->tm_year += 100;
@@ -496,7 +498,8 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 	}
 
 	if (epoch == 2000) {
-		/* The RTC epoch is year 2000  but the tm_year
+		/*
+		 * The RTC epoch is year 2000  but the tm_year
 		 * field counts years since 1900.
 		 */
 		t->tm_year -= 100;

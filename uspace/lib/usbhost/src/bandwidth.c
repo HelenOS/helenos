@@ -69,29 +69,37 @@ static size_t bandwidth_count_usb11(endpoint_t *ep)
 	const size_t max_packet_size = ep->max_packet_size;
 	const size_t packet_count = ep->packets_per_uframe;
 
-	/* TODO: It may be that ISO and INT transfers use only one packet per
-	 * transaction, but I did not find text in USB spec to confirm this */
+	/*
+	 * TODO: It may be that ISO and INT transfers use only one packet per
+	 * transaction, but I did not find text in USB spec to confirm this
+	 */
 	/* NOTE: All data packets will be considered to be max_packet_size */
 	switch (ep->device->speed) {
 	case USB_SPEED_LOW:
 		assert(type == USB_TRANSFER_INTERRUPT);
-		/* Protocol overhead 13B
+		/*
+		 * Protocol overhead 13B
 		 * (3 SYNC bytes, 3 PID bytes, 2 Endpoint + CRC bytes, 2
 		 * CRC bytes, and a 3-byte interpacket delay)
-		 * see USB spec page 45-46. */
+		 * see USB spec page 45-46.
+		 */
 		/* Speed penalty 8: low speed is 8-times slower*/
 		return packet_count * (13 + max_packet_size) * 8;
 	case USB_SPEED_FULL:
-		/* Interrupt transfer overhead see above
-		 * or page 45 of USB spec */
+		/*
+		 * Interrupt transfer overhead see above
+		 * or page 45 of USB spec
+		 */
 		if (type == USB_TRANSFER_INTERRUPT)
 			return packet_count * (13 + max_packet_size);
 
 		assert(type == USB_TRANSFER_ISOCHRONOUS);
-		/* Protocol overhead 9B
+		/*
+		 * Protocol overhead 9B
 		 * (2 SYNC bytes, 2 PID bytes, 2 Endpoint + CRC bytes, 2 CRC
 		 * bytes, and a 1-byte interpacket delay)
-		 * see USB spec page 42 */
+		 * see USB spec page 42
+		 */
 		return packet_count * (9 + max_packet_size);
 	default:
 		return 0;

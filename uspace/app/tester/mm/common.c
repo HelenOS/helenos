@@ -178,7 +178,7 @@ static void *checked_malloc(size_t size)
 }
 
 
-/* Allocate block
+/** Allocate block
  *
  * Allocate a block of memory of @size bytes and add record about it into
  * the mem_blocks list. Return a pointer to the block holder structure or
@@ -320,7 +320,7 @@ mem_block_t *get_random_block(void)
 	return list_get_instance(entry, mem_block_t, link);
 }
 
-/* Map memory area
+/** Map memory area
  *
  * Map a memory area of @size bytes and add record about it into
  * the mem_areas list. Return a pointer to the area holder structure or

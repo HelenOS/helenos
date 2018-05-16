@@ -26,8 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* Almost identical (for now) to mod_cmds.c , however this will not be the case
- * soon as builtin_t is going to grow way beyond module_t */
+/*
+ * Almost identical (for now) to mod_cmds.c, however this will not be the case
+ * soon as builtin_t is going to grow way beyond module_t
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

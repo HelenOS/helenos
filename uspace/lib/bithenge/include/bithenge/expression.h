@@ -54,12 +54,14 @@ typedef struct bithenge_expression_ops {
 	errno_t (*evaluate)(bithenge_expression_t *self, bithenge_scope_t *scope,
 	    bithenge_node_t **out);
 	/** Destroy the expression.
-	 * @param self The expression. */
+	 * @param self The expression.
+	 */
 	void (*destroy)(bithenge_expression_t *self);
 } bithenge_expression_ops_t;
 
 /** Increment an expression's reference count.
- * @param self The expression to reference. */
+ * @param self The expression to reference.
+ */
 static inline void bithenge_expression_inc_ref(bithenge_expression_t *self)
 {
 	assert(self);
@@ -67,7 +69,8 @@ static inline void bithenge_expression_inc_ref(bithenge_expression_t *self)
 }
 
 /** Decrement an expression's reference count and free it if appropriate.
- * @param self The expression to dereference, or NULL. */
+ * @param self The expression to dereference, or NULL.
+ */
 static inline void bithenge_expression_dec_ref(bithenge_expression_t *self)
 {
 	if (!self)
@@ -83,7 +86,8 @@ static inline void bithenge_expression_dec_ref(bithenge_expression_t *self)
  * @param self The expression.
  * @param scope The scope.
  * @param[out] out Where the output tree will be stored.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 static inline errno_t bithenge_expression_evaluate(bithenge_expression_t *self,
     bithenge_scope_t *scope, bithenge_node_t **out)
 {

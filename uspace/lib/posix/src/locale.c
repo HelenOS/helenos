@@ -40,7 +40,8 @@
 #include "posix/limits.h"
 #include "posix/string.h"
 
-/* Just a very basic dummy implementation.
+/*
+ * Just a very basic dummy implementation.
  * This should allow code using locales to work properly, but doesn't provide
  * any localization functionality.
  * Should be extended/rewritten when or if HelenOS supports locales natively.

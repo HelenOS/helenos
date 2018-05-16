@@ -133,7 +133,8 @@ char *stpncpy(char *restrict dest, const char *restrict src, size_t n)
 	for (size_t i = 0; i < n; ++i) {
 		dest[i] = src[i];
 
-		/* the standard requires that nul characters
+		/*
+		 * the standard requires that nul characters
 		 * are appended to the length of n, in case src is shorter
 		 */
 		if (src[i] == '\0') {

@@ -26,9 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* NOTE:
+/*
+ * NOTE:
  * This is a bit of an ugly hack, working around the absence of fstat / etc.
- * As more stuff is completed and exposed in libc, this will improve */
+ * As more stuff is completed and exposed in libc, this will improve
+ */
 
 #include <errno.h>
 #include <str_error.h>

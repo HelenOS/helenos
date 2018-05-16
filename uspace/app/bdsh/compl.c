@@ -218,8 +218,10 @@ static errno_t compl_init(wchar_t *text, size_t pos, size_t *cstart, void **stat
 		}
 		cs->path_list[0] = dirname;
 		cs->path_list[1] = NULL;
-		/* The second const ensures that we can't assign a const
-		 * string to the non-const array. */
+		/*
+		 * The second const ensures that we can't assign a const
+		 * string to the non-const array.
+		 */
 		cs->path = (const char *const *) cs->path_list;
 
 	} else if (cs->is_command) {

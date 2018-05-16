@@ -26,8 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* Various things that are used in many places including a few
- * tidbits left over from autoconf prior to the HelenOS port */
+/*
+ * Various things that are used in many places including a few
+ * tidbits left over from autoconf prior to the HelenOS port
+ */
 
 /* Specific port work-arounds : */
 #ifndef PATH_MAX
@@ -43,8 +45,10 @@
 #define SMALL_BUFLEN 256
 #define LARGE_BUFLEN 1024
 
-/* How many words (arguments) are permitted, how big can a whole
- * sentence be? Similar to ARG_MAX */
+/*
+ * How many words (arguments) are permitted, how big can a whole
+ * sentence be? Similar to ARG_MAX
+ */
 #define WORD_MAX 1023
 #define INPUT_MAX 4096
 

@@ -46,8 +46,10 @@ NO_TRACE ATOMIC static inline void atomic_inc(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
-	/* On real hardware the increment has to be done
-	   as an atomic action. */
+	/*
+	 * On real hardware the increment has to be done
+	 * as an atomic action.
+	 */
 
 	val->count++;
 }
@@ -57,8 +59,10 @@ NO_TRACE ATOMIC static inline void atomic_dec(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
-	/* On real hardware the decrement has to be done
-	   as an atomic action. */
+	/*
+	 * On real hardware the decrement has to be done
+	 * as an atomic action.
+	 */
 
 	val->count--;
 }
@@ -68,9 +72,11 @@ NO_TRACE ATOMIC static inline atomic_count_t atomic_postinc(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count < ATOMIC_COUNT_MAX)
 {
-	/* On real hardware both the storing of the previous
-	   value and the increment have to be done as a single
-	   atomic action. */
+	/*
+	 * On real hardware both the storing of the previous
+	 * value and the increment have to be done as a single
+	 * atomic action.
+	 */
 
 	atomic_count_t prev = val->count;
 
@@ -83,9 +89,11 @@ NO_TRACE ATOMIC static inline atomic_count_t atomic_postdec(atomic_t *val)
     REQUIRES_EXTENT_MUTABLE(val)
     REQUIRES(val->count > ATOMIC_COUNT_MIN)
 {
-	/* On real hardware both the storing of the previous
-	   value and the decrement have to be done as a single
-	   atomic action. */
+	/*
+	 * On real hardware both the storing of the previous
+	 * value and the decrement have to be done as a single
+	 * atomic action.
+	 */
 
 	atomic_count_t prev = val->count;
 
@@ -100,9 +108,11 @@ NO_TRACE ATOMIC static inline atomic_count_t test_and_set(atomic_t *val)
     WRITES(&val->count)
     REQUIRES_EXTENT_MUTABLE(val)
 {
-	/* On real hardware the retrieving of the original
-	   value and storing 1 have to be done as a single
-	   atomic action. */
+	/*
+	 * On real hardware the retrieving of the original
+	 * value and storing 1 have to be done as a single
+	 * atomic action.
+	 */
 
 	atomic_count_t prev = val->count;
 	val->count = 1;

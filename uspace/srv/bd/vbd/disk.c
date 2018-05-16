@@ -402,7 +402,8 @@ static errno_t vbds_part_remove(vbds_part_t *part, vbds_rem_flag_t flag,
 }
 
 /** Remove all disk partitions from our inventory leaving only the underlying
- * liblabel partition structures. */
+ * liblabel partition structures.
+ */
 static errno_t vbds_disk_parts_add(vbds_disk_t *disk, label_t *label)
 {
 	label_part_t *part;
@@ -424,7 +425,8 @@ static errno_t vbds_disk_parts_add(vbds_disk_t *disk, label_t *label)
 }
 
 /** Remove all disk partitions from our inventory leaving only the underlying
- * liblabel partition structures. */
+ * liblabel partition structures.
+ */
 static errno_t vbds_disk_parts_remove(vbds_disk_t *disk, vbds_rem_flag_t flag)
 {
 	link_t *link;

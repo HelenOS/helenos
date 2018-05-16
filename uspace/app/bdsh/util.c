@@ -51,9 +51,11 @@ unsigned int cli_count_args(char **args)
 	return i;
 }
 
-/* (re)allocates memory to store the current working directory, gets
+/*
+ * (re)allocates memory to store the current working directory, gets
  * and updates the current working directory, formats the prompt
- * string */
+ * string
+ */
 unsigned int cli_set_prompt(cliuser_t *usr)
 {
 	usr->cwd = (char *) realloc(usr->cwd, PATH_MAX);

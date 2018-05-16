@@ -247,8 +247,10 @@ static const char *read_data(data_t *target)
  */
 static void compute_percentages(data_t *old_data, data_t *new_data)
 {
-	/* For each CPU: Compute total cycles and divide it between
-	   user and kernel */
+	/*
+	 * For each CPU: Compute total cycles and divide it between
+	 * user and kernel
+	 */
 
 	size_t i;
 	for (i = 0; i < new_data->cpus_count; i++) {

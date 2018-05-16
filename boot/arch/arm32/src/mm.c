@@ -209,7 +209,8 @@ static void enable_paging(void)
 	    /* Current settings */
 	    "mrc p15, 0, r0, c1, c0, 0\n"
 
-	    /* Enable ICache, DCache, BPredictors and MMU,
+	    /*
+	     * Enable ICache, DCache, BPredictors and MMU,
 	     * we disable caches before jumping to kernel
 	     * so this is safe for all archs.
 	     * Enable VMSAv6 the bit (23) is only writable on ARMv6.
@@ -223,7 +224,8 @@ static void enable_paging(void)
 
 	    "orr r0, r0, r1\n"
 
-	    /* Invalidate the TLB content before turning on the MMU.
+	    /*
+	     * Invalidate the TLB content before turning on the MMU.
 	     * ARMv7-A Reference manual, B3.10.3
 	     */
 	    "mcr p15, 0, r0, c8, c7, 0\n"
@@ -239,10 +241,12 @@ void mmu_start(void)
 {
 	disable_paging();
 #ifdef PROCESSOR_ARCH_armv7_a
-	/* Make sure we run in memory code when caches are enabled,
+	/*
+	 * Make sure we run in memory code when caches are enabled,
 	 * make sure we read memory data too. This part is ARMv7 specific as
 	 * ARMv7 no longer invalidates caches on restart.
-	 * See chapter B2.2.2 of ARM Architecture Reference Manual p. B2-1263*/
+	 * See chapter B2.2.2 of ARM Architecture Reference Manual p. B2-1263
+	 */
 	cache_invalidate();
 #endif
 	init_boot_pt();

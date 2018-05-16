@@ -56,7 +56,8 @@ static inline int _digit_value(int c)
 	return INT_MAX;
 }
 
-/* FIXME: workaround for GCC "optimizing" the overflow check
+/*
+ * FIXME: workaround for GCC "optimizing" the overflow check
  * into soft-emulated 128b multiplication using `__multi3`,
  * which we don't currently implement.
  */
@@ -138,7 +139,8 @@ static inline uintmax_t _strtoumax(
 	/* Set endptr. */
 
 	if (endptr != NULL) {
-		/* Move the pointer to the end of the number,
+		/*
+		 * Move the pointer to the end of the number,
 		 * in case it isn't there already.
 		 */
 		while (_digit_value(*nptr) < base) {

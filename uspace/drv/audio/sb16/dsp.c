@@ -356,8 +356,10 @@ errno_t sb_dsp_get_buffer(sb_dsp_t *dsp, void **buffer, size_t *size)
 	assert(dsp);
 	assert(size);
 
-	/* buffer is already setup by for someone, refuse to work until
-	 * it's released */
+	/*
+	 * buffer is already setup by for someone, refuse to work until
+	 * it's released
+	 */
 	if (dsp->state != DSP_NO_BUFFER)
 		return EBUSY;
 	assert(dsp->buffer.data == NULL);

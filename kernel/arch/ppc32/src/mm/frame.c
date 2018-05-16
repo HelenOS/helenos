@@ -92,8 +92,10 @@ void frame_low_arch_init(void)
 {
 	frame_common_arch_init(true);
 
-	/* First is exception vector, second is 'implementation specific',
-	   third and fourth is reserved, other contain real mode code */
+	/*
+	 * First is exception vector, second is 'implementation specific',
+	 * third and fourth is reserved, other contain real mode code
+	 */
 	frame_mark_unavailable(0, 8);
 
 	/* Mark the Page Hash Table frames as unavailable */

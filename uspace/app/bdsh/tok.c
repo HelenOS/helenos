@@ -96,7 +96,8 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 	/* Read the input line char by char and append tokens */
 	while ((next_char = tok_look_char(tok)) != 0) {
 		if (next_char == ' ') {
-			/* Push the token if there is any.
+			/*
+			 * Push the token if there is any.
 			 * There may not be any pending char for a token in case
 			 * there are several spaces in the input.
 			 */
@@ -114,7 +115,8 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			tok_push_token(tok);
 
 		} else if (next_char == '|') {
-			/* Pipes are tokens that are delimiters and should be
+			/*
+			 * Pipes are tokens that are delimiters and should be
 			 * output as a separate token
 			 */
 			if (tok_pending_chars(tok)) {
@@ -136,7 +138,8 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 				return rc;
 			}
 		} else if (next_char == '\'') {
-			/* A string starts with a quote (') and ends again with a quote.
+			/*
+			 * A string starts with a quote (') and ends again with a quote.
 			 * A literal quote is written as ''
 			 */
 			tok_start_token(tok, TOKTYPE_TEXT);
@@ -150,7 +153,8 @@ errno_t tok_tokenize(tokenizer_t *tok, size_t *tokens_length)
 			if (!tok_pending_chars(tok)) {
 				tok_start_token(tok, TOKTYPE_TEXT);
 			}
-			/* If we are handling any other character, just append it to
+			/*
+			 * If we are handling any other character, just append it to
 			 * the current token.
 			 */
 			rc = tok_push_char(tok, tok_get_char(tok));

@@ -115,8 +115,10 @@ bool omap_uart_init(
 	/* Enable FIFOs */
 	uart->regs->fcr = OMAP_UART_FCR_FIFO_EN_FLAG;
 
-	/* Enable fine granularity for RX FIFO and set trigger level to 1,
-	 * TX FIFO, trigger level is irrelevant*/
+	/*
+	 * Enable fine granularity for RX FIFO and set trigger level to 1,
+	 * TX FIFO, trigger level is irrelevant
+	 */
 	uart->regs->lcr = 0xBF;              /* Sets config mode B */
 	uart->regs->scr = OMAP_UART_SCR_RX_TRIG_GRANU1_FLAG;
 	uart->regs->tlr = 1 << OMAP_UART_TLR_RX_FIFO_TRIG_SHIFT;

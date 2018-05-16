@@ -146,15 +146,20 @@ void cpu_arch_init(void)
 
 	/* Unaligned access is supported on armv6+ */
 #if defined(PROCESSOR_ARCH_armv7_a) | defined(PROCESSOR_ARCH_armv6)
-	/* Enable unaligned access, RAZ/WI prior to armv6
+	/*
+	 * Enable unaligned access, RAZ/WI prior to armv6
 	 * switchable on armv6, RAO/WI writes on armv7,
 	 * see ARM Architecture Reference Manual ARMv7-A and ARMv7-R edition
-	 * L.3.1 (p. 2456) */
+	 * L.3.1 (p. 2456)
+	 */
 	control_reg |= SCTLR_UNALIGNED_EN_FLAG;
-	/* Disable alignment checks, this turns unaligned access to undefined,
-	 * unless U bit is set. */
+	/*
+	 * Disable alignment checks, this turns unaligned access to undefined,
+	 * unless U bit is set.
+	 */
 	control_reg &= ~SCTLR_ALIGN_CHECK_EN_FLAG;
-	/* Enable caching, On arm prior to armv7 there is only one level
+	/*
+	 * Enable caching, On arm prior to armv7 there is only one level
 	 * of caches. Data cache is coherent.
 	 * "This means that the behavior of accesses from the same observer to
 	 * different VAs, that are translated to the same PA
@@ -168,7 +173,8 @@ void cpu_arch_init(void)
 	control_reg |= SCTLR_CACHE_EN_FLAG;
 #endif
 #ifdef PROCESSOR_ARCH_armv7_a
-	/* ICache coherency is elaborated on in barrier.h.
+	/*
+	 * ICache coherency is elaborated on in barrier.h.
 	 * VIPT and PIPT caches need maintenance only on code modify,
 	 * so it should be safe for general use.
 	 * Enable branch predictors too as they follow the same rules

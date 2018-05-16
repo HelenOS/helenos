@@ -63,7 +63,8 @@ typedef struct {
 	unsigned domain : 4;
 	unsigned should_be_zero : 1;
 
-	/* Pointer to the coarse 2nd level page table (holding entries for small
+	/*
+	 * Pointer to the coarse 2nd level page table (holding entries for small
 	 * (4KB) or large (64KB) pages. ARM also supports fine 2nd level page
 	 * tables that may hold even tiny pages (1KB) but they are bigger (4KB
 	 * per table in comparison with 1KB per the coarse table)
@@ -79,8 +80,10 @@ typedef struct {
 	unsigned bufferable : 1;
 	unsigned cacheable : 1;
 
-	/* access permissions for each of 4 subparts of a page
-	 * (for each 1KB when small pages used */
+	/*
+	 * access permissions for each of 4 subparts of a page
+	 * (for each 1KB when small pages used
+	 */
 	unsigned access_permission_0 : 2;
 	unsigned access_permission_1 : 2;
 	unsigned access_permission_2 : 2;

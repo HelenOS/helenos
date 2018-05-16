@@ -46,10 +46,12 @@
 #include "ehci_batch.h"
 #include "ehci_bus.h"
 
-/* The buffer pointer list in the qTD is long enough to support a maximum
+/*
+ * The buffer pointer list in the qTD is long enough to support a maximum
  * transfer size of 20K bytes. This case occurs when all five buffer pointers
  * are used and the first offset is zero. A qTD handles a 16Kbyte buffer
- * with any starting buffer alignment. EHCI specs p. 87 (pdf p. 97) */
+ * with any starting buffer alignment. EHCI specs p. 87 (pdf p. 97)
+ */
 #define EHCI_TD_MAX_TRANSFER   (16 * 1024)
 
 static void (*const batch_setup[])(ehci_transfer_batch_t *);
@@ -176,8 +178,10 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 	    qh_transfer_active(ehci_batch->qh)))
 		return false;
 
-	/* Now we may be sure that either the ED is inactive because of errors
-	 * or all transfer descriptors completed successfully */
+	/*
+	 * Now we may be sure that either the ED is inactive because of errors
+	 * or all transfer descriptors completed successfully
+	 */
 
 	/* Assume all data got through */
 	ehci_batch->base.transferred_size = ehci_batch->base.size;
@@ -191,7 +195,8 @@ bool ehci_transfer_batch_check_completed(ehci_transfer_batch_t *ehci_batch)
 
 		ehci_batch->base.error = td_error(&ehci_batch->tds[i]);
 		if (ehci_batch->base.error == EOK) {
-			/* If the TD got all its data through, it will report
+			/*
+			 * If the TD got all its data through, it will report
 			 * 0 bytes remain, the sole exception is INPUT with
 			 * data rounding flag (short), i.e. every INPUT.
 			 * Nice thing is that short packets will correctly

@@ -51,7 +51,8 @@ void syscall_setup_cpu(void)
 
 	/* Setup syscall entry address */
 
-	/* This is _mess_ - the 64-bit CS is argument + 16,
+	/*
+	 * This is _mess_ - the 64-bit CS is argument + 16,
 	 * the SS is argument + 8. The order is:
 	 * +0(KDATA_DES), +8(UDATA_DES), +16(UTEXT_DES)
 	 */
@@ -59,7 +60,8 @@ void syscall_setup_cpu(void)
 	    ((uint64_t) (GDT_SELECTOR(KDATA_DES) | PL_USER) << 48) |
 	    ((uint64_t) (GDT_SELECTOR(KTEXT_DES) | PL_KERNEL) << 32));
 	write_msr(AMD_MSR_LSTAR, (uint64_t)syscall_entry);
-	/* Mask RFLAGS on syscall
+	/*
+	 * Mask RFLAGS on syscall
 	 * - disable interrupts, until we exchange the stack register
 	 *   (mask the IF bit)
 	 * - clear DF so that the string instructions operate in

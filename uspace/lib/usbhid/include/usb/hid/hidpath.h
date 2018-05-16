@@ -96,13 +96,13 @@ typedef struct {
 
 /**
  * USB HID usage path structure.
- * */
+ */
 typedef struct {
 	/** Length of usage path */
 	int depth;
 
 	/** Report id. Zero is reserved and means that report id is not used.
-	 * */
+	 */
 	uint8_t report_id;
 
 	/** Link to usb_hid_report_path_t.collection_paths list. */

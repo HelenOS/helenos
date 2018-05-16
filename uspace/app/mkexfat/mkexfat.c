@@ -157,7 +157,8 @@ cfg_params_initialize(exfat_cfg_t *cfg)
 	cfg->total_clusters = volume_bytes / DEFAULT_CLUSTER_SIZE;
 	cfg->cluster_size = DEFAULT_CLUSTER_SIZE;
 
-	/* Compute the required cluster size to index
+	/*
+	 * Compute the required cluster size to index
 	 * the entire storage device and to keep the FAT
 	 * size less or equal to 64 Mb.
 	 */
@@ -178,7 +179,8 @@ skip_cluster_size_set:
 	cfg->data_start_sector = ROUND_UP(FAT_SECTOR_START +
 	    cfg->fat_sector_count, cfg->cluster_size / cfg->sector_size);
 
-	/* Subtract the FAT space from the total
+	/*
+	 * Subtract the FAT space from the total
 	 * number of available clusters.
 	 */
 	fat_cls = div_round_up((cfg->data_start_sector -
@@ -368,7 +370,8 @@ ebs_write(service_id_t service_id, exfat_cfg_t *cfg, int base,
 			goto exit;
 	}
 
-	/* The OEM record is not yet used
+	/*
+	 * The OEM record is not yet used
 	 * by the official exFAT implementation, we'll fill
 	 * it with zeroes.
 	 */
@@ -466,7 +469,8 @@ loop:
 		fat[cur_cls] = host2uint32_t_le(++next_cls);
 
 	if (cur_cls == fat_entries) {
-		/* This sector is full, there are no more free entries,
+		/*
+		 * This sector is full, there are no more free entries,
 		 * commit the changes to disk and restart from the next
 		 * sector.
 		 */
@@ -476,7 +480,8 @@ loop:
 		cur_cls = 0;
 		goto loop;
 	} else if (ncls == 1) {
-		/* This is the last cluster of this chain, mark it
+		/*
+		 * This is the last cluster of this chain, mark it
 		 * with EOF.
 		 */
 		fat[cur_cls] = host2uint32_t_le(0xFFFFFFFF);
@@ -570,7 +575,8 @@ upcase_table_write(service_id_t service_id, exfat_cfg_t *cfg)
 	    table_size -= cfg->sector_size) {
 
 		if (table_size < cfg->sector_size) {
-			/* Reset the content of the unused part
+			/*
+			 * Reset the content of the unused part
 			 * of the last sector.
 			 */
 			memset(buf, 0, cfg->sector_size);
@@ -655,7 +661,8 @@ root_dentries_write(service_id_t service_id, exfat_cfg_t *cfg)
 	if (rc != EOK)
 		goto exit;
 
-	/* Fill the content of the sectors not used by the
+	/*
+	 * Fill the content of the sectors not used by the
 	 * root directory with zeroes.
 	 */
 	memset(data, 0, cfg->sector_size);

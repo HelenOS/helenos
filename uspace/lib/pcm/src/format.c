@@ -188,7 +188,8 @@ errno_t pcm_format_convert_and_mix(void *dst, size_t dst_size, const void *src,
 	if ((dst_size % dst_frame_size) != 0)
 		return EINVAL;
 
-	/* This is so ugly it eats kittens, and puppies, and ducklings,
+	/*
+	 * This is so ugly it eats kittens, and puppies, and ducklings,
 	 * and all little fluffy things...
 	 */
 #define LOOP_ADD(type, endian, low, high) \

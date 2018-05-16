@@ -48,7 +48,8 @@
 #define EXT4_ERR_BAD_DX_DIR     __errno_t(  60)
 
 
-/* POSIX error codes + whatever nonstandard names crop up in third-party
+/*
+ * POSIX error codes + whatever nonstandard names crop up in third-party
  * software. These are not used in HelenOS code, but are defined here in
  * order to avoid nasty hacks in libposix.
  *

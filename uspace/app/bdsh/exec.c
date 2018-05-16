@@ -26,11 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* The VERY basics of execute in place support. These are buggy, leaky
+/*
+ * The VERY basics of execute in place support. These are buggy, leaky
  * and not nearly done. Only here for beta testing!! You were warned!!
  * TODO:
  * Hash command lookups to save time
- * Create a running pointer to **path and advance/rewind it as we go */
+ * Create a running pointer to **path and advance/rewind it as we go
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,8 +67,10 @@ static int try_access(const char *f)
 		return -1;
 }
 
-/* Returns the full path of "cmd" if cmd is found, else just hand back
- * cmd as it was presented */
+/** Returns the full path of "cmd" if cmd is found
+ *
+ * else just hand back cmd as it was presented
+ */
 static char *find_command(char *cmd)
 {
 	size_t i;

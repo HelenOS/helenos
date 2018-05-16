@@ -152,11 +152,15 @@ static void uhci_port_reset_enable(ioport16_t *port)
 	pio_write_16(port, port_status);
 	while ((port_status = pio_read_16(port)) & STATUS_IN_RESET)
 		;
-	/* PIO delay, should not be longer than 3ms as the device might
-	 * enter suspend state. */
+	/*
+	 * PIO delay, should not be longer than 3ms as the device might
+	 * enter suspend state.
+	 */
 	udelay(10);
-	/* Drop ConnectionChange as some UHCI hw
-	 * sets this bit after reset, that is incorrect */
+	/*
+	 * Drop ConnectionChange as some UHCI hw
+	 * sets this bit after reset, that is incorrect
+	 */
 	port_status &= ~STATUS_WC_BITS;
 	pio_write_16(port, port_status | STATUS_ENABLED | STATUS_CONNECTED_CHANGED);
 }
@@ -375,8 +379,10 @@ static errno_t req_set_port_feature(usbvirt_device_t *device,
 	case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
 		RH_DEBUG(hub, port, "Set port change flag (status %" PRIx16
 		    ")", status);
-		/* These are voluntary and don't have to be set
-		 * there is no way we could do it on UHCI anyway */
+		/*
+		 * These are voluntary and don't have to be set
+		 * there is no way we could do it on UHCI anyway
+		 */
 		break;
 	default:
 		RH_DEBUG(hub, port, "Set unknown feature %d (status %" PRIx16
@@ -458,8 +464,10 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	{
 		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_CLEAR_FEATURE),
 		.name = "ClearHubFeature",
-		/* Hub features are overcurrent and supply good,
-		 * this request may only clear changes that we never report*/
+		/*
+		 * Hub features are overcurrent and supply good,
+		 * this request may only clear changes that we never report
+		 */
 		.callback = req_nop,
 	},
 	{
@@ -470,8 +478,10 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	{
 		CLASS_REQ_IN(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_GET_STATUS),
 		.name = "GetHubStatus",
-		/* UHCI can't report OC condition or,
-		 * lose power source */
+		/*
+		 * UHCI can't report OC condition or,
+		 * lose power source
+		 */
 		.callback = virthub_base_get_null_status,
 	},
 	{
@@ -482,8 +492,10 @@ static const usbvirt_control_request_handler_t control_transfer_handlers[] = {
 	{
 		CLASS_REQ_OUT(USB_REQUEST_RECIPIENT_DEVICE, USB_HUB_REQUEST_SET_FEATURE),
 		.name = "SetHubFeature",
-		/* Hub features are overcurrent and supply good,
-		 * this request may only set changes that we never report*/
+		/*
+		 * Hub features are overcurrent and supply good,
+		 * this request may only set changes that we never report
+		 */
 		.callback = req_nop,
 	},
 	{

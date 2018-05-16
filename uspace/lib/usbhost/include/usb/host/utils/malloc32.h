@@ -42,7 +42,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Generic TDs and EDs require 16byte alignment,
+/*
+ * Generic TDs and EDs require 16byte alignment,
  * Isochronous TD require 32byte alignment,
  * buffers do not have to be aligned.
  */
@@ -82,8 +83,10 @@ static inline void *malloc32(size_t size)
 	    &address);
 
 	if (ret == EOK) {
-		/* Poison, accessing it should be enough to make sure
-		 * the location is mapped, but poison works better */
+		/*
+		 * Poison, accessing it should be enough to make sure
+		 * the location is mapped, but poison works better
+		 */
 		memset(address, 0x5, real_size);
 		return address;
 	}

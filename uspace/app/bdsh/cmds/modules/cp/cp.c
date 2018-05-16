@@ -206,7 +206,8 @@ static errno_t do_copy(const char *src, const char *dest,
 			/* e.g. cp file_name /data */
 			/* e.g. cp file_name /data/ */
 
-			/* dest is a directory,
+			/*
+			 * dest is a directory,
 			 * append the src filename to it.
 			 */
 			merge_paths(dest_path, PATH_MAX, src_fname);
@@ -230,7 +231,8 @@ static errno_t do_copy(const char *src, const char *dest,
 		} else if (dest_type == TYPE_FILE) {
 			/* e.g. cp file_name existing_file */
 
-			/* dest already exists,
+			/*
+			 * dest already exists,
 			 * if force is set we will try to remove it.
 			 * if interactive is set user input is required.
 			 */
@@ -297,7 +299,8 @@ static errno_t do_copy(const char *src, const char *dest,
 		case TYPE_DIR:
 			if (str_cmp(src_dirname, "..") &&
 			    str_cmp(src_dirname, ".")) {
-				/* The last component of src_path is
+				/*
+				 * The last component of src_path is
 				 * not '.' or '..'
 				 */
 				merge_paths(dest_path, PATH_MAX, src_dirname);
@@ -313,7 +316,8 @@ static errno_t do_copy(const char *src, const char *dest,
 			break;
 		default:
 		case TYPE_NONE:
-			/* dest does not exists, this means the user wants
+			/*
+			 * dest does not exists, this means the user wants
 			 * to specify the name of the destination directory
 			 *
 			 * e.g. cp -r /src /data/new_dir_src
@@ -335,7 +339,8 @@ static errno_t do_copy(const char *src, const char *dest,
 			goto exit;
 		}
 
-		/* Copy every single directory entry of src into the
+		/*
+		 * Copy every single directory entry of src into the
 		 * destination directory.
 		 */
 		while ((dp = readdir(dir))) {

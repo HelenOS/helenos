@@ -181,11 +181,13 @@ void drawctx_stroke(drawctx_t *context, path_t *path)
 		return;
 	}
 
-	/* Note:
+	/*
+	 * Note:
 	 * Antialiasing could be achieved by up-scaling path coordinates and
 	 * rendering into temporary higher-resolution surface. Then, the temporary
 	 * surface would be set as a source and its damaged region would be
-	 * transferred to the original surface. */
+	 * transferred to the original surface.
+	 */
 
 	list_foreach(*((list_t *) path), link, path_step_t, step) {
 		switch (step->type) {

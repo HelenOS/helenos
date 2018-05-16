@@ -367,7 +367,8 @@ typedef struct xhci_op_regs {
 	 */
 	ioport32_t dnctrl;
 
-	/*          3  2  1   0
+	/*
+	 *          3  2  1   0
 	 *  3:0 - CRR CA CS RCS
 	 * 64:6 - Command Ring Pointer
 	 */

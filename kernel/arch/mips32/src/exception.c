@@ -131,9 +131,11 @@ static void breakpoint_exception(unsigned int n, istate_t *istate)
 #ifdef CONFIG_DEBUG
 	debugger_bpoint(istate);
 #else
-	/* it is necessary to not re-execute BREAK instruction after
-	   returning from Exception handler
-	   (see page 138 in R4000 Manual for more information) */
+	/*
+	 * It is necessary to not re-execute BREAK instruction after
+	 * returning from Exception handler
+	 * (see page 138 in R4000 Manual for more information)
+	 */
 	istate->epc += 4;
 #endif
 }

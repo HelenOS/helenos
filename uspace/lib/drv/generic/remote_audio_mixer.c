@@ -103,8 +103,10 @@ errno_t audio_mixer_get_info(async_exch_t *exch, char **name, unsigned *items)
 	if (ret == EOK && name) {
 		char *name_place = calloc(1, name_size);
 		if (!name_place) {
-			/* Make the other side fail
-			 * as it waits for read request */
+			/*
+			 * Make the other side fail
+			 * as it waits for read request
+			 */
 			async_data_read_start(exch, (void *)-1, 0);
 			return ENOMEM;
 		}
@@ -140,8 +142,10 @@ errno_t audio_mixer_get_item_info(async_exch_t *exch, unsigned item,
 	if (ret == EOK && name) {
 		char *name_place = calloc(1, name_size);
 		if (!name_place) {
-			/* Make the other side fail
-			 * as it waits for read request */
+			/*
+			 * Make the other side fail
+			 * as it waits for read request
+			 */
 			async_data_read_start(exch, (void *)-1, 0);
 			return ENOMEM;
 		}

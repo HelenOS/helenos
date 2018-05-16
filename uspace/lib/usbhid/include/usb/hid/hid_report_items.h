@@ -52,7 +52,8 @@
 #define USB_HID_ITEM_TAG_CLASS(data)	((uint8_t)((data & 0xC) >> 2))
 
 /** Returns if the item is the short item or long item. Long items are not
- * supported. */
+ * supported.
+ */
 #define USB_HID_ITEM_IS_LONG(data)	(data == 0xFE)
 
 

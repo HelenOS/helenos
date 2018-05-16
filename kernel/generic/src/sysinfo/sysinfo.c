@@ -231,7 +231,8 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 		while ((cur->name[i] != 0) && (name[i] == cur->name[i]))
 			i++;
 
-		/* Check for perfect name and path match
+		/*
+		 * Check for perfect name and path match
 		 * -> item is already present.
 		 */
 		if ((name[i] == 0) && (cur->name[i] == 0))
@@ -250,14 +251,16 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
 				return sysinfo_create_path(name + i + 1,
 				    &(cur->subtree.table));
 			default:
-				/* Subtree items handled by a function, this
+				/*
+				 * Subtree items handled by a function, this
 				 * cannot be overriden by a constant item.
 				 */
 				return NULL;
 			}
 		}
 
-		/* No match and no more siblings to check
+		/*
+		 * No match and no more siblings to check
 		 * -> create a new sibling item.
 		 */
 		if (cur->next == NULL) {
@@ -456,8 +459,10 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
 
 	sysinfo_item_t *item = sysinfo_create_path(name, root);
 
-	/* Change the type of the subtree only if it is not already
-	   a fixed subtree */
+	/*
+	 * Change the type of the subtree only if it is not already
+	 * a fixed subtree
+	 */
 	if ((item != NULL) && (item->subtree_type != SYSINFO_SUBTREE_TABLE)) {
 		item->subtree_type = SYSINFO_SUBTREE_FUNCTION;
 		item->subtree.generator.fn = fn;
@@ -558,8 +563,10 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, size_t spaces)
  */
 void sysinfo_dump(sysinfo_item_t *root)
 {
-	/* Avoid other functions to mess with sysinfo
-	   while we are dumping it */
+	/*
+	 * Avoid other functions to mess with sysinfo
+	 * while we are dumping it
+	 */
 	mutex_lock(&sysinfo_lock);
 
 	if (root == NULL)

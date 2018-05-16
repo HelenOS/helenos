@@ -81,7 +81,8 @@ typedef struct {
 /** Linux Filesystem Data */
 #define GPT_LINUX_FS_DATA "0FC63DAF-8483-4772-8E79-3D69D8477DE4"
 /** I could not find any definition of Minix GUID partition type.
- * This is a randomly generated UUID */
+ * This is a randomly generated UUID
+ */
 #define GPT_MINIX_FAKE "8308e350-4e2d-46c7-8e3b-24b07e8ac674"
 
 #endif

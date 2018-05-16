@@ -75,8 +75,10 @@ typedef struct {
 	int restricted;
 } builtin_t;
 
-/* Declared in cmds/modules/modules.h and cmds/builtins/builtins.h
- * respectively */
+/*
+ * Declared in cmds/modules/modules.h and cmds/builtins/builtins.h
+ * respectively
+ */
 extern module_t modules[];
 extern builtin_t builtins[];
 

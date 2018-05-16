@@ -221,7 +221,7 @@ static size_t get_task_resmem(as_t *as)
 	return (pages << PAGE_WIDTH);
 }
 
-/* Produce task statistics
+/** Produce task statistics
  *
  * Summarize task information into task statistics.
  *
@@ -323,7 +323,7 @@ static void *get_stats_tasks(struct sysinfo_item *item, size_t *size,
 	return ((void *) stats_tasks);
 }
 
-/* Produce thread statistics
+/** Produce thread statistics
  *
  * Summarize thread information into thread statistics.
  *

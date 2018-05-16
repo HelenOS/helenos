@@ -95,7 +95,8 @@ uintptr_t elf_get_bias(const void *base)
 	const elf_header_t *hdr = base;
 	assert(elf_is_valid(hdr));
 
-	/* There are two legal options for a HelenOS ELF file.
+	/*
+	 * There are two legal options for a HelenOS ELF file.
 	 * Either the file is ET_DYN (shared library or PIE), and the base is
 	 * (required to be) at vaddr 0. Or the file is ET_EXEC (non-relocatable)
 	 * and the bias is trivially 0.

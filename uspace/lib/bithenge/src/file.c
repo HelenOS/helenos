@@ -139,7 +139,8 @@ static errno_t new_file_blob(bithenge_node_t **out, int fd, bool needs_close)
  * bithenge_node_t::bithenge_node_destroy after it is used.
  * @param[out] out Stores the created blob.
  * @param filename The name of the file.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
 {
 	assert(filename);
@@ -156,7 +157,8 @@ errno_t bithenge_new_file_blob(bithenge_node_t **out, const char *filename)
  * bithenge_node_t::bithenge_node_destroy after it is used.
  * @param[out] out Stores the created blob.
  * @param fd The file descriptor.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_file_blob_from_fd(bithenge_node_t **out, int fd)
 {
 	return new_file_blob(out, fd, false);
@@ -166,7 +168,8 @@ errno_t bithenge_new_file_blob_from_fd(bithenge_node_t **out, int fd)
  * bithenge_node_t::bithenge_node_destroy after it is used.
  * @param[out] out Stores the created blob.
  * @param file The file pointer.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_file_blob_from_file(bithenge_node_t **out, FILE *file)
 {
 	int fd = fileno(file);

@@ -270,7 +270,8 @@ errno_t add_interface_by_id(vuhid_interface_t **interfaces, const char *id,
 		goto error_leave;
 	}
 
-	/* Allocation is okay, we can (actually have to now) overwrite the
+	/*
+	 * Allocation is okay, we can (actually have to now) overwrite the
 	 * original pointer.
 	 */
 	dev->descriptors->configuration->extra = extra_descriptors;

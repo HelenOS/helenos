@@ -749,7 +749,8 @@ uint32_t ext4_filesystem_bg_get_backup_blocks(ext4_block_group_ref_t *bg)
 				has_backups = true;
 		} else if (!ext4_superblock_has_feature_read_only(sb,
 		    EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER)) {
-			/* Very old fs were all block groups have
+			/*
+			 * Very old fs were all block groups have
 			 * superblock and block descriptors backups.
 			 */
 			has_backups = true;
@@ -766,13 +767,15 @@ uint32_t ext4_filesystem_bg_get_backup_blocks(ext4_block_group_ref_t *bg)
 		uint32_t gdt_table; /* Size of the GDT in blocks */
 		uint32_t block_size = ext4_superblock_get_block_size(sb);
 
-		/* Now we know that this block group has backups,
+		/*
+		 * Now we know that this block group has backups,
 		 * we have to compute how many blocks are reserved
 		 * for them
 		 */
 
 		if (idx == 0 && block_size == 1024) {
-			/* Special case for first group were the boot block
+			/*
+			 * Special case for first group were the boot block
 			 * resides
 			 */
 			r++;

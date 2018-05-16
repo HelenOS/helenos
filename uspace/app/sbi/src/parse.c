@@ -1396,7 +1396,7 @@ static stree_return_t *parse_return(parse_t *parse)
 	return return_s;
 }
 
-/* Parse @c with-except-finally statement.
+/** Parse @c with-except-finally statement.
  *
  * @param parse		Parser object.
  * @return		New syntax tree node.
@@ -1442,7 +1442,7 @@ static stree_wef_t *parse_wef(parse_t *parse)
 	return wef_s;
 }
 
-/* Parse expression statement.
+/** Parse expression statement.
  *
  * @param parse		Parser object.
  * @return		New syntax tree node.
@@ -1464,7 +1464,7 @@ static stree_exps_t *parse_exps(parse_t *parse)
 	return exps;
 }
 
-/* Parse @c except clause.
+/** Parse @c except clause.
  *
  * @param parse		Parser object.
  * @return		New syntax tree node.

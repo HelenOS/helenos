@@ -64,8 +64,10 @@ typedef struct istate {
 NO_TRACE static inline int istate_from_uspace(istate_t *istate)
     REQUIRES_EXTENT_MUTABLE(istate)
 {
-	/* On real hardware this checks whether the interrupted
-	   context originated from user space. */
+	/*
+	 * On real hardware this checks whether the interrupted
+	 * context originated from user space.
+	 */
 
 	return !(istate->ip & UINT32_C(0x80000000));
 }

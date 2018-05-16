@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* NOTES:
+/*
+ * NOTES:
  * module_* functions are pretty much identical to builtin_* functions at this
  * point. On the surface, it would appear that making each function dual purpose
  * would be economical.
@@ -36,11 +37,14 @@
  * point.
  *
  * To keep things easy to hack, everything is separated. In reality this only adds
- * 6 - 8 extra functions, but keeps each function very easy to read and modify. */
+ * 6 - 8 extra functions, but keeps each function very easy to read and modify.
+ */
 
-/* TODO:
+/*
+ * TODO:
  * Many of these could be unsigned, provided the modules and builtins themselves
- * can follow suit. Long term goal. */
+ * can follow suit. Long term goal.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,8 +56,10 @@
 
 extern volatile unsigned int cli_interactive;
 
-/* Checks if an entry function matching command exists in modules[], if so
- * its position in the array is returned */
+/** Checks if an entry function matching command exists in modules[]
+ *
+ * If so, its position in the array is returned
+ */
 int is_module(const char *command)
 {
 	module_t *mod;
@@ -70,8 +76,10 @@ int is_module(const char *command)
 	return -1;
 }
 
-/* Checks if a module is an alias (sharing an entry point with another
- * module). Returns 1 if so */
+/*
+ * Checks if a module is an alias (sharing an entry point with another
+ * module). Returns 1 if so
+ */
 int is_module_alias(const char *command)
 {
 	unsigned int i = 0;
@@ -104,8 +112,10 @@ char *alias_for_module(const char *command)
 }
 
 
-/* Invokes the 'help' entry function for the module at position (int) module,
- * which wants an unsigned int to determine brief or extended display. */
+/** Invokes the 'help' entry function for the module at position (int) module
+ *
+ * which wants an unsigned int to determine brief or extended display.
+ */
 int help_module(int module, unsigned int extended)
 {
 	module_t *mod = modules;
@@ -120,8 +130,10 @@ int help_module(int module, unsigned int extended)
 	}
 }
 
-/* Invokes the module entry point modules[module], passing argv[] as an argument
- * stack. */
+/** Invokes the module entry point modules[module]
+ *
+ * passing argv[] as an argument stack.
+ */
 int run_module(int module, char *argv[], iostate_t *new_iostate)
 {
 	int rc;

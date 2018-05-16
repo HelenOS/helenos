@@ -119,9 +119,11 @@ static errno_t interrupt_polling(void *arg)
 	while (bus->ops->status(bus, &status) == EOK) {
 		bus->ops->interrupt(bus, status);
 		status = 0;
-		/* We should wait 1 frame - 1ms here, but this polling is a
+		/*
+		 * We should wait 1 frame - 1ms here, but this polling is a
 		 * lame crutch anyway so don't hog the system. 10ms is still
-		 * good enough for emergency mode */
+		 * good enough for emergency mode
+		 */
 		async_usleep(10000);
 	}
 	return EOK;

@@ -272,7 +272,8 @@ typedef struct {
 
 /** AHCI PCI register Interrupt Information. */
 typedef struct {
-	/* Software written value to indicate which interrupt vector
+	/*
+	 * Software written value to indicate which interrupt vector
 	 * the interrupt is connected to.
 	 */
 	uint8_t iline;

@@ -46,7 +46,8 @@
 /** Initialize a new expression.
  * @param[out] self Expression to initialize.
  * @param[in] ops Operations provided by the expression.
- * @return EOK or an error code from errno.h. */
+ * @return EOK or an error code from errno.h.
+ */
 errno_t bithenge_init_expression(bithenge_expression_t *self,
     const bithenge_expression_ops_t *ops)
 {
@@ -155,12 +156,14 @@ static errno_t binary_expression_evaluate(bithenge_expression_t *base,
 		rc = bithenge_new_integer_node(out, a_int * b_int);
 		break;
 	case BITHENGE_EXPRESSION_INTEGER_DIVIDE:
-		/* Integer division can behave in three major ways when the
-		  operands are signed: truncated, floored, or Euclidean. When
+		/*
+		 * Integer division can behave in three major ways when the
+		 * operands are signed: truncated, floored, or Euclidean. When
 		 * b > 0, we give the same result as floored and Euclidean;
 		 * otherwise, we currently raise an error. See
 		 * https://en.wikipedia.org/wiki/Modulo_operation and its
-		 * references. */
+		 * references.
+		 */
 		if (b_int <= 0) {
 			rc = EINVAL;
 			break;
@@ -248,7 +251,8 @@ static const bithenge_expression_ops_t binary_expression_ops = {
  * @param op The operator to apply.
  * @param a The first operand.
  * @param b The second operand.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_binary_expression(bithenge_expression_t **out,
     bithenge_binary_op_t op, bithenge_expression_t *a,
     bithenge_expression_t *b)
@@ -304,7 +308,8 @@ static bithenge_expression_t in_node_expression = {
 
 /** Create an expression that gets the current input node.
  * @param[out] out Holds the new expression.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_in_node_expression(bithenge_expression_t **out)
 {
 	if (bithenge_should_fail())
@@ -338,7 +343,8 @@ static bithenge_expression_t current_node_expression = {
 
 /** Create an expression that gets the current node being created.
  * @param[out] out Holds the new expression.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_current_node_expression(bithenge_expression_t **out)
 {
 	bithenge_expression_inc_ref(&current_node_expression);
@@ -388,7 +394,8 @@ static const bithenge_expression_ops_t param_expression_ops = {
 /** Create an expression that returns a parameter.
  * @param[out] out Holds the created expression.
  * @param index The index of the parameter to get.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_param_expression(bithenge_expression_t **out, int index)
 {
 	errno_t rc;
@@ -453,7 +460,8 @@ static const bithenge_expression_ops_t const_expression_ops = {
 /** Create an expression that returns a constant. Takes a reference to @a node.
  * @param[out] out Holds the created expression.
  * @param node The constant.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_const_expression(bithenge_expression_t **out,
     bithenge_node_t *node)
 {
@@ -535,7 +543,8 @@ static const bithenge_expression_ops_t scope_member_expression_ops = {
  * scopes.
  * @param[out] out Holds the new expression.
  * @param key The key to search for in nodes being created.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_scope_member_expression(bithenge_expression_t **out,
     bithenge_node_t *key)
 {
@@ -656,7 +665,8 @@ static const bithenge_expression_ops_t subblob_expression_ops = {
  * is returned.
  * @param absolute_limit If true, the limit is an absolute offset; otherwise,
  * it is relative to the start.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_subblob_expression(bithenge_expression_t **out,
     bithenge_expression_t *blob, bithenge_expression_t *start,
     bithenge_expression_t *limit, bool absolute_limit)
@@ -814,7 +824,8 @@ static const bithenge_transform_ops_t param_wrapper_ops = {
  * @param[out] out Holds the new transform.
  * @param transform The transform for which parameters are calculated.
  * @param params The expressions used to calculate the parameters.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_param_wrapper(bithenge_transform_t **out,
     bithenge_transform_t *transform, bithenge_expression_t **params)
 {
@@ -898,7 +909,8 @@ static const bithenge_transform_ops_t expression_transform_ops = {
  * reference to the expression.
  * @param[out] out Holds the new transform.
  * @param expr The expression to evaluate.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_expression_transform(bithenge_transform_t **out,
     bithenge_expression_t *expr)
 {
@@ -955,7 +967,8 @@ static const bithenge_transform_ops_t inputless_transform_ops = {
  * expression. Takes a reference to the expression.
  * @param[out] out Holds the new transform.
  * @param expr The expression to evaluate.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_inputless_transform(bithenge_transform_t **out,
     bithenge_expression_t *expr)
 {
@@ -1116,7 +1129,8 @@ static const bithenge_random_access_blob_ops_t concat_blob_ops = {
  * @param[out] out Holds the new blob.
  * @param a The first blob.
  * @param b The second blob.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_concat_blob(bithenge_node_t **out, bithenge_blob_t *a,
     bithenge_blob_t *b)
 {
@@ -1158,7 +1172,8 @@ error:
  * @param a The first blob.
  * @param b_expr An expression to calculate the second blob.
  * @param scope The scope in which @a b_expr should be evaluated.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_concat_blob_lazy(bithenge_node_t **out, bithenge_blob_t *a,
     bithenge_expression_t *b_expr, bithenge_scope_t *scope)
 {

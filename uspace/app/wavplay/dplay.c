@@ -261,8 +261,10 @@ static void play(playback_t *pb)
 	getuptime(&time);
 	while (true) {
 		size_t available = buffer_avail(pb, pos);
-		/* Writing might need wrap around the end,
-		 * read directly to device buffer */
+		/*
+		 * Writing might need wrap around the end,
+		 * read directly to device buffer
+		 */
 		size_t bytes = fread(pb->buffer.write_ptr, sizeof(uint8_t),
 		    min(available, buffer_remain(pb)), pb->source);
 		buffer_advance(pb, bytes);
@@ -318,8 +320,10 @@ static void play(playback_t *pb)
 		}
 		getuptime(&time);
 
-		/* we did not use all the space we had,
-		 * that is the end */
+		/*
+		 * we did not use all the space we had,
+		 * that is the end
+		 */
 		if (available)
 			break;
 

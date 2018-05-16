@@ -101,7 +101,8 @@ static fp_num_t multiply(fp_num_t x, fp_num_t y)
 	bc = b * c;
 	ac = a * c;
 
-	/* Denote 32 bit parts of x a y as: x == a b, y == c d. Then:
+	/*
+	 * Denote 32 bit parts of x a y as: x == a b, y == c d. Then:
 	 *        a  b
 	 *  *     c  d
 	 *  ----------
@@ -279,8 +280,10 @@ static void round_last_digit(uint64_t rest, uint64_t w_dist, uint64_t delta,
 	bool next_closer = next_in_val_rng &&
 	    (rest + digit_val_diff < w_dist || rest - w_dist < w_dist - rest);
 
-	/* Of the shortest strings pick the one that is closest to the actual
-	   floating point number. */
+	/*
+	 * Of the shortest strings pick the one that is closest to the actual
+	 * floating point number.
+	 */
 	while (next_closer) {
 		assert('0' < buf[len - 1]);
 		assert(0 < digit_val_diff);
@@ -570,7 +573,7 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 	 *  |  int_part  |  frac_part  |
 	 *  |0 0  ..  0 1|0 0   ..  0 0| == one == 1.0
 	 *  |      0     |0 0   ..  0 1| == w_err == 1 * 2^w_scaled.e
-	*/
+	 */
 	assert(alpha <= w_scaled.exponent && w_scaled.exponent <= gamma);
 	assert(0 != w_scaled.significand);
 
@@ -588,12 +591,16 @@ static int gen_fixed_dec_digits(fp_num_t w_scaled, int scale, int signif_d_cnt,
 	one.significand = ((uint64_t) 1) << (-w_scaled.exponent);
 	one.exponent = w_scaled.exponent;
 
-	/* Extract the integral part of w_scaled.
-	   w_scaled / one == w_scaled >> -one.e */
+	/*
+	 * Extract the integral part of w_scaled.
+	 * w_scaled / one == w_scaled >> -one.e
+	 */
 	uint32_t int_part = (uint32_t)(w_scaled.significand >> (-one.exponent));
 
-	/* Fractional part of w_scaled.
-	   w_scaled % one == w_scaled & (one.f - 1) */
+	/*
+	 * Fractional part of w_scaled.
+	 * w_scaled % one == w_scaled & (one.f - 1)
+	 */
 	uint64_t frac_part = w_scaled.significand & (one.significand - 1);
 
 	size_t len = 0;

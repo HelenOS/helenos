@@ -168,8 +168,10 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
     unsigned x, unsigned y, unsigned bpp, uint32_t pa)
 {
 	assert(regs);
-	/* Init sequence for dispc is in chapter 7.6.5.1.4 p. 1810,
-	 * no idea what parts of that work. */
+	/*
+	 * Init sequence for dispc is in chapter 7.6.5.1.4 p. 1810,
+	 * no idea what parts of that work.
+	 */
 
 	/* Disable all interrupts */
 	regs->irqenable = 0;
@@ -247,8 +249,10 @@ static errno_t amdm37x_dispc_setup_fb(amdm37x_dispc_regs_t *regs,
 
 	/* 0x03ff03c0 is the default */
 	regs->gfx.fifo_threshold = 0x03ff03c0;
-	/* This value should be stride - width, 1 means next pixel i.e.
-	 * stride == width */
+	/*
+	 * This value should be stride - width, 1 means next pixel i.e.
+	 * stride == width
+	 */
 	regs->gfx.row_inc = 1;
 	/* number of bytes to next pixel in BPP multiples */
 	regs->gfx.pixel_inc = 1;

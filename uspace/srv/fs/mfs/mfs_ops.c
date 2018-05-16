@@ -245,7 +245,8 @@ static errno_t mfs_read_sb(service_id_t service_id, struct mfs_sb_info **rsbi)
 	}
 
 	if (sbi->log2_zone_size != 0) {
-		/* In MFS, file space is allocated per zones.
+		/*
+		 * In MFS, file space is allocated per zones.
 		 * Zones are a collection of consecutive blocks on disk.
 		 *
 		 * The current MFS implementation supports only filesystems
@@ -775,7 +776,8 @@ mfs_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	mfsdebug("Links: %d\n", chino->i_nlinks);
 
 	if (chino->i_nlinks <= 1 && S_ISDIR(chino->i_mode)) {
-		/* The child directory will be destroyed, decrease the
+		/*
+		 * The child directory will be destroyed, decrease the
 		 * parent hard links counter.
 		 */
 		parent->ino_i->i_nlinks--;
@@ -1238,7 +1240,8 @@ mfs_free_block_count(service_id_t service_id, uint64_t *count)
 	struct mfs_sb_info *sbi = inst->sbi;
 
 	if (!sbi->nfree_zones_valid) {
-		/* The cached number of free zones is not valid,
+		/*
+		 * The cached number of free zones is not valid,
 		 * we need to scan the bitmap to retrieve the
 		 * current value.
 		 */

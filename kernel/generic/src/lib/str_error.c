@@ -30,7 +30,8 @@
 #include <errno.h>
 #include <str.h>
 
-/* The arrays below are automatically generated from the same file that
+/*
+ * The arrays below are automatically generated from the same file that
  * errno.h constants are generated from. Triple-include of the same list
  * with redefinitions of __errno() macro are used to ensure that the
  * information cannot get out of synch. This is inpired by musl libc.
@@ -60,7 +61,8 @@ static const char *err_desc[] = {
 /* Returns index corresponding to the given errno, or -1 if not found. */
 static int find_errno(errno_t e)
 {
-	/* Just a dumb linear search.
+	/*
+	 * Just a dumb linear search.
 	 * There too few entries to warrant anything smarter.
 	 */
 

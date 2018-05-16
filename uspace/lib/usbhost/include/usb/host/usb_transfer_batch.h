@@ -96,7 +96,7 @@ typedef struct usb_transfer_batch {
 /**
  * Printf formatting string for dumping usb_transfer_batch_t.
  *  [address:endpoint speed transfer_type-direction buffer_sizeB/max_packet_size]
- * */
+ */
 #define USB_TRANSFER_BATCH_FMT "[%d:%d %s %s-%s %zuB/%zu]"
 
 /** Printf arguments for dumping usb_transfer_batch_t.

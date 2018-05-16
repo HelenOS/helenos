@@ -221,7 +221,8 @@ static errno_t print_node(state_t *state, bithenge_node_t *tree)
 /** Print a tree as text to stdout.
  * @param type The format to use.
  * @param tree The root node of the tree to print.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
 {
 	state_t state = { type, true, 0, NULL, 0 };
@@ -235,7 +236,8 @@ errno_t bithenge_print_node(bithenge_print_type_t type, bithenge_node_t *tree)
  * remaining size.
  * @param type The format to use.
  * @param tree The root node of the tree to print.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_print_node_to_string(char **str, size_t *size,
     bithenge_print_type_t type, bithenge_node_t *tree)
 {

@@ -75,8 +75,10 @@ static errno_t disable_legacy(hc_device_t *hcd)
 	if (parent_sess == NULL)
 		return ENOMEM;
 
-	/* See UHCI design guide page 45 for these values.
-	 * Write all WC bits in USB legacy register */
+	/*
+	 * See UHCI design guide page 45 for these values.
+	 * Write all WC bits in USB legacy register
+	 */
 	return pci_config_space_write_16(parent_sess, 0xc0, 0xaf00);
 }
 

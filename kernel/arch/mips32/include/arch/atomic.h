@@ -46,13 +46,12 @@
 #define atomic_preinc(x)  atomic_add(x, 1)
 #define atomic_predec(x)  atomic_add(x, -1)
 
-/* Atomic addition of immediate value.
+/** Atomic addition of immediate value.
  *
  * @param val Memory location to which will be the immediate value added.
  * @param i Signed immediate that will be added to *val.
  *
  * @return Value after addition.
- *
  */
 NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
     atomic_count_t i)

@@ -499,7 +499,8 @@ static nic_frame_t *rtl8139_read_frame(nic_t *nic_data,
 	return frame;
 }
 
-/* Reset receiver
+/*
+ * Reset receiver
  *
  * Use in the case of receiver error (lost in the rx_buff)
  *
@@ -603,7 +604,8 @@ static nic_frame_list_t *rtl8139_frame_receive(nic_t *nic_data)
 		/* Update offset */
 		rx_offset = ALIGN_UP(rx_offset + size + RTL_FRAME_HEADER_SIZE, 4);
 
-		/* Write lesser value to prevent overflow into unread frame
+		/*
+		 * Write lesser value to prevent overflow into unread frame
 		 * (the recomendation from the RealTech rtl8139 programming guide)
 		 */
 		uint16_t capr_val = rx_offset - 16;
@@ -792,7 +794,8 @@ static void rtl8139_interrupt_impl(nic_t *nic_data, uint16_t isr)
 			return;
 	}
 
-	/* Check transmittion interrupts first to allow transmit next frames
+	/*
+	 * Check transmittion interrupts first to allow transmit next frames
 	 * sooner
 	 */
 	if (isr & (INT_TOK | INT_TER)) {
@@ -2096,7 +2099,8 @@ static errno_t rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
 		rtl8139->poll_timer = new_timer;
 		rtl8139->int_mask = INT_TIME_OUT;
 
-		/* Force timer interrupt start be writing nonzero value to timer
+		/*
+		 * Force timer interrupt start be writing nonzero value to timer
 		 * interrutp register (should be small to prevent big delay)
 		 * Read TCTR to reset timer counter
 		 * Change values to simulate the last interrupt from the period.

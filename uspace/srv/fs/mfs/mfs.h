@@ -105,11 +105,13 @@ struct mfs_sb_info {
 	unsigned isearch;
 	unsigned zsearch;
 
-	/* Indicates wether if the cached number of free zones
+	/*
+	 * Indicates wether if the cached number of free zones
 	 * is to be considered valid or not.
 	 */
 	bool nfree_zones_valid;
-	/* Cached number of free zones, used to avoid to scan
+	/*
+	 * Cached number of free zones, used to avoid to scan
 	 * the whole bitmap every time the mfs_free_block_count()
 	 * is invoked.
 	 */

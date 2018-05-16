@@ -40,7 +40,8 @@
 
 #define NOERR_LEN  64
 
-/* The arrays below are automatically generated from the same file that
+/*
+ * The arrays below are automatically generated from the same file that
  * errno.h constants are generated from. Triple-include of the same list
  * with redefinitions of __errno() macro are used to ensure that the
  * information cannot get out of synch. This is inpired by musl libc.
@@ -72,7 +73,8 @@ static fibril_local char noerr[NOERR_LEN];
 /* Returns index corresponding to the given errno, or -1 if not found. */
 static int find_errno(errno_t e)
 {
-	/* Just a dumb linear search.
+	/*
+	 * Just a dumb linear search.
 	 * There are too few entries to warrant anything smarter.
 	 */
 

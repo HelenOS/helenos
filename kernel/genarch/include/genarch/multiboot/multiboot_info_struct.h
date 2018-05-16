@@ -1,4 +1,5 @@
-/* Copyright (c) 2016 Jakub Jermar
+/*
+ * Copyright (c) 2016 Jakub Jermar
  * All rights preserved.
  *
  * Redistribution and use in source and binary forms, with or without

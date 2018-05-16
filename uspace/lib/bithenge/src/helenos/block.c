@@ -94,7 +94,8 @@ static const bithenge_random_access_blob_ops_t block_ops = {
  * @a bithenge_node_t::bithenge_node_destroy after it is used.
  * @param[out] out Stores the created blob.
  * @param service_id The service ID of the block device.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_block_blob(bithenge_node_t **out, service_id_t service_id)
 {
 	assert(out);

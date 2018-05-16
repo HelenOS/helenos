@@ -43,8 +43,10 @@ extern volatile unsigned int cli_quit;
 /* Error printing, translation and handling functions */
 
 
-/* Look up errno in cl_errors and return the corresponding string.
- * Return NULL if not found */
+/** Look up errno in cl_errors and return the corresponding string.
+ *
+ * Return NULL if not found
+ */
 static const char *err2str(int err)
 {
 
@@ -54,10 +56,12 @@ static const char *err2str(int err)
 	return (char *)NULL;
 }
 
-/* Print an error report signifying errno, which is translated to
- * its corresponding human readable string. If errno > 0, raise the
- * cli_quit int that tells the main program loop to exit immediately */
-
+/** Print an error report signifying errno
+ *
+ * errno is translated to its corresponding human readable string.
+ * If errno > 0, raise the cli_quit int that tells the main program loop
+ * to exit immediately
+ */
 void cli_error(int err, const char *fmt, ...)
 {
 	va_list vargs;
@@ -70,9 +74,11 @@ void cli_error(int err, const char *fmt, ...)
 	else
 		printf(" (Unknown Error %d)\n", err);
 
-	/* If fatal, raise cli_quit so that we try to exit
+	/*
+	 * If fatal, raise cli_quit so that we try to exit
 	 * gracefully. This will break the main loop and
-	 * invoke the destructor */
+	 * invoke the destructor
+	 */
 	if (err == CL_EFATAL)
 		cli_quit = 1;
 

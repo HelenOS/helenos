@@ -77,7 +77,8 @@
 #undef LDBL_MANT_DIG
 #define LDBL_MANT_DIG __LDBL_MANT_DIG__
 #else
-/* For something else than GCC, following definitions are provided.
+/*
+ * For something else than GCC, following definitions are provided.
  * They are intentionally guarded by the given macro to ensure that anyone
  * who wants them states this explicitly.
  *

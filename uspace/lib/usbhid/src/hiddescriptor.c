@@ -393,7 +393,8 @@ errno_t usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 
 			switch (ret) {
 			case USB_HID_NEW_REPORT_ITEM:
-				/* store report item to report and create the
+				/*
+				 * store report item to report and create the
 				 * new one store current collection path
 				 */
 				report_item->usage_path = usage_path;
@@ -599,8 +600,10 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data,
 		    USB_HID_TAG_CLASS_LOCAL,
 		    USB_HID_EXTENDED_USAGE(report_item->usages[report_item->usages_count - 1]));
 
-		/* append the new one which will be set by common usage/usage
-		 * page */
+		/*
+		 * append the new one which will be set by common usage/usage
+		 * page
+		 */
 		usb_hid_report_path_append_item(usage_path,
 		    report_item->usage_page,
 		    report_item->usages[report_item->usages_count - 1]);

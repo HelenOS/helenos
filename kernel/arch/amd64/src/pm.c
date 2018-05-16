@@ -267,9 +267,11 @@ void pm_init(void)
 		 */
 		tss_p = &tss;
 	} else {
-		/* We are going to use malloc, which may return
+		/*
+		 * We are going to use malloc, which may return
 		 * non boot-mapped pointer, initialize the CR3 register
-		 * ahead of page_init */
+		 * ahead of page_init
+		 */
 		write_cr3((uintptr_t) AS_KERNEL->genarch.page_table);
 
 		tss_p = (tss_t *) malloc(sizeof(tss_t));

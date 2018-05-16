@@ -126,8 +126,10 @@ errno_t amdm37x_init(amdm37x_t *device, bool trace)
 void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 {
 	assert(device);
-	/* Get SYS_CLK value, it is used as reference clock by all DPLLs,
-	 * NFI who sets this or why it is set to specific value. */
+	/*
+	 * Get SYS_CLK value, it is used as reference clock by all DPLLs,
+	 * NFI who sets this or why it is set to specific value.
+	 */
 	const unsigned osc_clk = pio_read_32(&device->prm.clocks->clksel) &
 	    CLOCK_CONTROL_PRM_CLKSEL_SYS_CLKIN_MASK;
 	const unsigned clk_reg = pio_read_32(&device->prm.global->clksrc_ctrl);
@@ -137,10 +139,12 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	    base_freq / 1000, base_freq % 1000);
 
 
-	/* DPLL1 provides MPU(CPU) clock.
+	/*
+	 * DPLL1 provides MPU(CPU) clock.
 	 * It uses SYS_CLK as reference clock and core clock (DPLL3) as
 	 * high frequency bypass (MPU then runs on L3 interconnect freq).
-	 * It should be setup by fw or u-boot.*/
+	 * It should be setup by fw or u-boot.
+	 */
 	mpu_cm_regs_t *mpu = device->cm.mpu;
 
 	/* Current MPU frequency. */
@@ -182,27 +186,33 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	}
 	// TODO: Enable this (automatic MPU downclocking):
 #if 0
-	/* Enable low power bypass mode, this will take effect the next lock or
-	 * relock sequence. */
+	/*
+	 * Enable low power bypass mode, this will take effect the next lock or
+	 * relock sequence.
+	 */
 	//TODO: We might need to force re-lock after enabling this
 	pio_set_32(&mpu->clken_pll, MPU_CM_CLKEN_PLL_EN_MPU_DPLL_LP_MODE_FLAG, 5);
 	/* Enable automatic relocking */
 	pio_change_32(&mpu->autoidle_pll, MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_ENABLED, MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_MASK, 5);
 #endif
 
-	/* DPLL2 provides IVA(video acceleration) clock.
+	/*
+	 * DPLL2 provides IVA(video acceleration) clock.
 	 * It uses SYS_CLK as reference clokc and core clock (DPLL3) as
 	 * high frequency bypass (IVA runs on L3 freq).
 	 */
 	// TODO: We can probably turn this off entirely. IVA is left unused.
-	/* Enable low power bypass mode, this will take effect the next lock or
-	 * relock sequence. */
+	/*
+	 * Enable low power bypass mode, this will take effect the next lock or
+	 * relock sequence.
+	 */
 	//TODO: We might need to force re-lock after enabling this
 	pio_set_32(&device->cm.iva2->clken_pll, MPU_CM_CLKEN_PLL_EN_MPU_DPLL_LP_MODE_FLAG, 5);
 	/* Enable automatic relocking */
 	pio_change_32(&device->cm.iva2->autoidle_pll, MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_ENABLED, MPU_CM_AUTOIDLE_PLL_AUTO_MPU_DPLL_MASK, 5);
 
-	/* DPLL3 provides tons of clocks:
+	/*
+	 * DPLL3 provides tons of clocks:
 	 * CORE_CLK, COREX2_CLK, DSS_TV_CLK, 12M_CLK, 48M_CLK, 96M_CLK, L3_ICLK,
 	 * and L4_ICLK. It uses SYS_CLK as reference clock and low frequency
 	 * bypass. It should be setup by fw or u-boot as it controls critical
@@ -251,7 +261,8 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_AUTOMATIC,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_CORE_DPLL_MASK, 5);
 
-	/* DPLL4 provides peripheral domain clocks:
+	/*
+	 * DPLL4 provides peripheral domain clocks:
 	 * CAM_MCLK, EMU_PER_ALWON_CLK, DSS1_ALWON_FCLK, and 96M_ALWON_FCLK.
 	 * It uses SYS_CLK as reference clock and low frequency bypass.
 	 * 96M clock is used by McBSP[1,5], MMC[1,2,3], I2C[1,2,3], so
@@ -262,7 +273,8 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_AUTOMATIC,
 	    CLOCK_CONTROL_CM_AUTOIDLE_PLL_AUTO_PERIPH_DPLL_MASK, 5);
 
-	/* DPLL5 provide peripheral domain clocks: 120M_FCLK.
+	/*
+	 * DPLL5 provide peripheral domain clocks: 120M_FCLK.
 	 * It uses SYS_CLK as reference clock and low frequency bypass.
 	 * 120M clock is used by HS USB and USB TLL.
 	 */
@@ -270,8 +282,10 @@ void amdm37x_setup_dpll_on_autoidle(amdm37x_t *device)
 	if ((pio_read_32(&device->cm.clocks->clken2_pll) &
 	    CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_MASK) !=
 	    CLOCK_CONTROL_CM_CLKEN2_PLL_EN_PERIPH2_DPLL_LOCK) {
-		/* Compute divisors and multiplier
-		 * See AMDM37x TRM p. 300 for the formula */
+		/*
+		 * Compute divisors and multiplier
+		 * See AMDM37x TRM p. 300 for the formula
+		 */
 		// TODO: base_freq does not have to be rounded to Mhz
 		// (that's why I used KHz as unit).
 		const unsigned mult = 120;
@@ -382,8 +396,10 @@ errno_t amdm37x_usb_tll_init(amdm37x_t *device)
 	    UHH_SYSCONFIG_CLOCKACTIVITY_FLAG | UHH_SYSCONFIG_AUTOIDLE_FLAG |
 	    UHH_SYSCONFIG_SIDLE_MODE_SMART, UHH_SYSCONFIG_SIDLE_MODE_MASK, 5);
 
-	/* Set all ports to go through TLL(UTMI)
-	 * Direct connection can only work in HS mode */
+	/*
+	 * Set all ports to go through TLL(UTMI)
+	 * Direct connection can only work in HS mode
+	 */
 	pio_set_32(&device->uhh->hostconfig,
 	    UHH_HOSTCONFIG_P1_ULPI_BYPASS_FLAG |
 	    UHH_HOSTCONFIG_P2_ULPI_BYPASS_FLAG |
@@ -393,10 +409,12 @@ errno_t amdm37x_usb_tll_init(amdm37x_t *device)
 	pio_set_32(&device->tll->shared_conf, TLL_SHARED_CONF_FCLK_IS_ON_FLAG, 5);
 
 	for (unsigned i = 0; i < 3; ++i) {
-		/* Serial mode is the only one capable of FS/LS operation.
+		/*
+		 * Serial mode is the only one capable of FS/LS operation.
 		 * Select FS/LS mode, no idea what the difference is
 		 * one of bidirectional modes might be good choice
-		 * 2 = 3pin bidi phy. */
+		 * 2 = 3pin bidi phy.
+		 */
 		pio_change_32(&device->tll->channel_conf[i],
 		    TLL_CHANNEL_CONF_CHANMODE_UTMI_SERIAL_MODE |
 		    TLL_CHANNEL_CONF_FSLSMODE_3PIN_BIDI_PHY,

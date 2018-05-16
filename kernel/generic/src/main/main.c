@@ -94,7 +94,8 @@
 #include <lib/ra.h>
 #include <cap/cap.h>
 
-/* Ensure [u]int*_t types are of correct size.
+/*
+ * Ensure [u]int*_t types are of correct size.
  *
  * Probably, this is not the best place for such tests
  * but this file is compiled on all architectures.

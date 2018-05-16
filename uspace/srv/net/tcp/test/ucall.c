@@ -134,7 +134,8 @@ PCUT_TEST(conn_establish)
 }
 
 /** Test establishing and then closing down a connection first on one side,
- * then on_the other. */
+ * then on_the other.
+ */
 PCUT_TEST(conn_est_close_seq)
 {
 	tcp_conn_t *cconn, *sconn;

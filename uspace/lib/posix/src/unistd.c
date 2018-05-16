@@ -109,8 +109,10 @@ int getlogin_r(char *name, size_t namesize)
 int isatty(int fd)
 {
 	// TODO
-	/* Always returns false, because there is no easy way to find
-	 * out under HelenOS. */
+	/*
+	 * Always returns false, because there is no easy way to find
+	 * out under HelenOS.
+	 */
 	return 0;
 }
 
@@ -358,7 +360,8 @@ int dup2(int fildes, int fildes2)
 int access(const char *path, int amode)
 {
 	if (amode == F_OK || (amode & (X_OK | W_OK | R_OK))) {
-		/* HelenOS doesn't support permissions, permission checks
+		/*
+		 * HelenOS doesn't support permissions, permission checks
 		 * are equal to existence check.
 		 *
 		 * Check file existence by attempting to open it.

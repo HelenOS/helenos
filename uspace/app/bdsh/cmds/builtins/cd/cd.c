@@ -40,7 +40,8 @@
 
 static const char *cmdname = "cd";
 
-/* Previous directory variables.
+/*
+ * Previous directory variables.
  *
  * Declaring them static to avoid many "== NULL" checks.
  * PATH_MAX is not that big to cause any problems with memory overhead.
@@ -100,10 +101,12 @@ int cmd_cd(char **argv, cliuser_t *usr)
 		}
 	}
 
-	/* We don't yet play nice with whitespace, a getopt implementation should
+	/*
+	 * We don't yet play nice with whitespace, a getopt implementation should
 	 * protect "quoted\ destination" as a single argument. Its not our job to
 	 * look for && || or redirection as the tokenizer should have done that
-	 * (currently, it does not) */
+	 * (currently, it does not)
+	 */
 
 	if (argc > 2) {
 		cli_error(CL_EFAIL, "Too many arguments to `%s'", cmdname);

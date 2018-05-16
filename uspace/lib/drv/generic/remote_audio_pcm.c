@@ -195,8 +195,10 @@ errno_t audio_pcm_get_info_str(audio_pcm_sess_t *sess, char **name)
 	if (ret == EOK) {
 		char *name_place = calloc(1, name_size);
 		if (!name_place) {
-			/* Make the other side fail
-			 * as it waits for read request */
+			/*
+			 * Make the other side fail
+			 * as it waits for read request
+			 */
 			async_data_read_start(exch, (void *)-1, 0);
 			async_exchange_end(exch);
 			return ENOMEM;
@@ -285,8 +287,10 @@ errno_t audio_pcm_test_format(audio_pcm_sess_t *sess, unsigned *channels,
 	    &channels_arg, &rate_arg, &format_arg);
 	async_exchange_end(exch);
 
-	/* All OK or something has changed. Verify that it was not one of the
-	 * params we care about */
+	/*
+	 * All OK or something has changed. Verify that it was not one of the
+	 * params we care about
+	 */
 	if ((ret == EOK || ret == ELIMIT) &&
 	    (!channels || *channels == channels_arg) &&
 	    (!rate || *rate == rate_arg) &&

@@ -624,7 +624,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle,
 		tmp = NULL;
 	}
 
-	/* At this point, par is either NULL or a directory.
+	/*
+	 * At this point, par is either NULL or a directory.
 	 * If cur is NULL, the looked up file does not exist yet.
 	 */
 

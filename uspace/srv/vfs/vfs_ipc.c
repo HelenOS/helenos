@@ -135,7 +135,8 @@ static void vfs_in_mount(cap_call_handle_t req_handle, ipc_call_t *request)
 		return;
 	}
 
-	/* Now, we expect the client to send us data with the name of the file
+	/*
+	 * Now we expect the client to send us data with the name of the file
 	 * system.
 	 */
 	rc = async_data_write_accept((void **) &fs_name, true, 0,

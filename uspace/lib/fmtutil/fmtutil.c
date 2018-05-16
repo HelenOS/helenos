@@ -60,9 +60,7 @@ errno_t print_wrapped_console(const char *str, align_mode_t alignment)
 	return print_wrapped(str, con_cols, alignment);
 }
 
-/** Line consumer that prints the lines aligned according to spec
- *
- **/
+/** Line consumer that prints the lines aligned according to spec */
 static errno_t print_line(wchar_t *wstr, size_t chars, bool last, void *data)
 {
 	printmode_t *pm = (printmode_t *) data;
@@ -227,7 +225,8 @@ errno_t wrap(wchar_t *wstr, size_t width, line_consumer_fn consumer, void *data)
 		last_word_end = pos;
 		line_len = last_word_end - line_start;
 	}
-	/* Here we have less than width chars starting from line_start.
+	/*
+	 * Here we have less than width chars starting from line_start.
 	 * Moreover, the last portion does not contain spaces or newlines
 	 */
 	if (pos - line_start > 0)

@@ -278,7 +278,8 @@ static errno_t ne2k_set_address(ddf_fun_t *fun, const nic_address_t *address)
 	if (rc != EOK) {
 		return EINVAL;
 	}
-	/* Note: some frame with previous physical address may slip to NIL here
+	/*
+	 * Note: some frame with previous physical address may slip to NIL here
 	 * (for a moment the filtering is not exact), but ethernet should be OK with
 	 * that. Some frames may also be lost, but this is not a problem.
 	 */

@@ -45,7 +45,8 @@
  */
 #define CONFIG_TLS_VARIANT_1
 
-/* I did not find any specification (neither MIPS nor PowerPC), but
+/*
+ * I did not find any specification (neither MIPS nor PowerPC), but
  * as I found it
  * - it uses Variant II
  * - TCB is at Address(First TLS Block)+0x7000.

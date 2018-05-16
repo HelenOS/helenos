@@ -43,8 +43,9 @@ void help_cmd_exit(unsigned int level)
 	return;
 }
 
-/* Quits the program and returns the status of whatever command
- * came before invoking 'quit' */
+/** Quits the program and returns the status of whatever command
+ * came before invoking 'quit'
+ */
 int cmd_exit(char *argv[], cliuser_t *usr)
 {
 	/* Inform that we're outta here */

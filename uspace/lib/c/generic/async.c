@@ -1204,7 +1204,8 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	assert(call);
 	assert(fibril_connection);
 
-	/* Why doing this?
+	/*
+	 * Why doing this?
 	 * GCC 4.1.0 coughs on fibril_connection-> dereference.
 	 * GCC 4.1.1 happilly puts the rdhwr instruction in delay slot.
 	 *           I would never expect to find so many errors in

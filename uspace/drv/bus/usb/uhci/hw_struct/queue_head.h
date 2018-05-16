@@ -77,9 +77,11 @@ static inline void qh_init(qh_t *instance)
  */
 static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
 {
-	/* Physical address has to be below 4GB,
+	/*
+	 * Physical address has to be below 4GB,
 	 * it is an UHCI limitation and malloc32
-	 * should guarantee this */
+	 * should guarantee this
+	 */
 	const uint32_t pa = addr_to_phys(next);
 	if (pa) {
 		instance->next = LINK_POINTER_QH(pa);
@@ -97,9 +99,11 @@ static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
  */
 static inline void qh_set_element_td(qh_t *instance, td_t *td)
 {
-	/* Physical address has to be below 4GB,
+	/*
+	 * Physical address has to be below 4GB,
 	 * it is an UHCI limitation and malloc32
-	 * should guarantee this */
+	 * should guarantee this
+	 */
 	const uint32_t pa = addr_to_phys(td);
 	if (pa) {
 		instance->element = LINK_POINTER_TD(pa);

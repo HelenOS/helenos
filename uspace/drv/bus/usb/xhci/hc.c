@@ -533,8 +533,10 @@ static void hc_stop(xhci_hc_t *hc)
 	xhci_sw_ring_stop(&hc->sw_ring);
 	joinable_fibril_join(hc->event_worker);
 
-	/* Then, disconnect all roothub devices, which shall trigger
-	 * disconnection of everything */
+	/*
+	 * Then, disconnect all roothub devices, which shall trigger
+	 * disconnection of everything
+	 */
 	xhci_rh_stop(&hc->rh);
 }
 
@@ -575,8 +577,10 @@ errno_t hc_status(bus_t *bus, uint32_t *status)
 		XHCI_REG_WR(hc->op_regs, XHCI_OP_STATUS, *status & XHCI_STATUS_ACK_MASK);
 		XHCI_REG_WR(hc->rt_regs->ir, XHCI_INTR_IP, 1);
 
-		/* interrupt handler expects status from irq_commands, which is
-		 * in xhci order. */
+		/*
+		 * interrupt handler expects status from irq_commands, which is
+		 * in xhci order.
+		 */
 		*status = host2xhci(32, *status);
 	}
 
@@ -872,8 +876,10 @@ errno_t hc_address_device(xhci_device_t *dev)
 	xhci_hc_t *const hc = bus_to_hc(dev->base.bus);
 	xhci_endpoint_t *ep0 = xhci_endpoint_get(dev->base.endpoints[0]);
 
-	/* Although we have the precise PSIV value on devices of tier 1,
-	 * we have to rely on reverse mapping on others. */
+	/*
+	 * Although we have the precise PSIV value on devices of tier 1,
+	 * we have to rely on reverse mapping on others.
+	 */
 	if (!usb_speed_to_psiv[dev->base.speed]) {
 		usb_log_error("Device reported an USB speed (%s) that cannot be mapped "
 		    "to HC port speed.", usb_str_speed(dev->base.speed));

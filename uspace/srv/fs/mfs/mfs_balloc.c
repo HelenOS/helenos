@@ -190,7 +190,8 @@ mfs_count_free_bits(struct mfs_instance *inst, bmap_id_t bid, uint32_t *free)
 		size_t i;
 		bitchunk_t *data = (bitchunk_t *) b->data;
 
-		/* Read the bitmap block, chunk per chunk,
+		/*
+		 * Read the bitmap block, chunk per chunk,
 		 * counting the zero bits.
 		 */
 		for (i = 0; i < sbi->block_size / sizeof(bitchunk_t); ++i) {

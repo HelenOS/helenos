@@ -125,13 +125,17 @@ ssize_t getdelim(char **restrict lineptr, size_t *restrict n,
 			++pos;
 			++cnt;
 			if (c == delimiter) {
-				/* Delimiter was just stored. Provide EOF as the next
+				/*
+				 * Delimiter was just stored. Provide EOF as the next
 				 * character - it will be masked as NUL and output string
-				 * will be properly terminated. */
+				 * will be properly terminated.
+				 */
 				c = EOF;
 			} else {
-				/* Neither delimiter nor EOF were encountered. Just fetch
-				 * the next character from the stream. */
+				/*
+				 * Neither delimiter nor EOF were encountered. Just fetch
+				 * the next character from the stream.
+				 */
 				c = fgetc(stream);
 			}
 		}

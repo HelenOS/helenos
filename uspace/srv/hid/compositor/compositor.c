@@ -76,8 +76,10 @@
 #define NAME       "compositor"
 #define NAMESPACE  "comp"
 
-/* Until there is blitter support and some further optimizations, window
- * animations are too slow to be practically usable. */
+/*
+ * Until there is blitter support and some further optimizations, window
+ * animations are too slow to be practically usable.
+ */
 #ifndef ANIMATE_WINDOW_TRANSFORMS
 #define ANIMATE_WINDOW_TRANSFORMS 0
 #endif
@@ -421,8 +423,10 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 			for (link_t *link = window_list.head.prev;
 			    link != &window_list.head; link = link->prev) {
 
-				/* Determine what part of the window intersects with the
-				 * updated area of the current viewport. */
+				/*
+				 * Determine what part of the window intersects with the
+				 * updated area of the current viewport.
+				 */
 				window_t *win = list_get_instance(link, window_t, link);
 				if (!win->surface) {
 					continue;
@@ -437,8 +441,10 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 				    &x_dmg_win, &y_dmg_win, &w_dmg_win, &h_dmg_win);
 
 				if (isec_win) {
-					/* Prepare conversion from global coordinates to viewport
-					 * coordinates. */
+					/*
+					 * Prepare conversion from global coordinates to viewport
+					 * coordinates.
+					 */
 					transform = win->transform;
 					double_point_t pos;
 					pos.x = vp->pos.x;
@@ -469,13 +475,15 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 					    &x_dmg_ghost, &y_dmg_ghost, &w_dmg_ghost, &h_dmg_ghost);
 
 					if (isec_ghost) {
-						/* FIXME: Ghost is currently drawn based on the bounding
+						/*
+						 * FIXME: Ghost is currently drawn based on the bounding
 						 * rectangle of the window, which is sufficient as long
 						 * as the windows can be rotated only by 90 degrees.
 						 * For ghost to be compatible with arbitrary-angle
 						 * rotation, it should be drawn as four lines adjusted
 						 * by the transformation matrix. That would however
-						 * require to equip libdraw with line drawing functionality. */
+						 * require to equip libdraw with line drawing functionality.
+						 */
 
 						transform_t transform = ptr->ghost.transform;
 						double_point_t pos;
@@ -531,8 +539,10 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 
 			list_foreach(pointer_list, link, pointer_t, ptr) {
 
-				/* Determine what part of the pointer intersects with the
-				 * updated area of the current viewport. */
+				/*
+				 * Determine what part of the pointer intersects with the
+				 * updated area of the current viewport.
+				 */
 				sysarg_t x_dmg_ptr, y_dmg_ptr, w_dmg_ptr, h_dmg_ptr;
 				surface_t *sf_ptr = ptr->cursor.states[ptr->state];
 				surface_get_resolution(sf_ptr, &w_dmg_ptr, &h_dmg_ptr);
@@ -542,11 +552,13 @@ static void comp_damage(sysarg_t x_dmg_glob, sysarg_t y_dmg_glob,
 				    &x_dmg_ptr, &y_dmg_ptr, &w_dmg_ptr, &h_dmg_ptr);
 
 				if (isec_ptr) {
-					/* Pointer is currently painted directly by copying pixels.
+					/*
+					 * Pointer is currently painted directly by copying pixels.
 					 * However, it is possible to draw the pointer similarly
 					 * as window by using drawctx_transfer. It would allow
 					 * more sophisticated control over drawing, but would also
-					 * cost more regarding the performance. */
+					 * cost more regarding the performance.
+					 */
 
 					sysarg_t x_vp = x_dmg_ptr - vp->pos.x;
 					sysarg_t y_vp = y_dmg_ptr - vp->pos.y;
@@ -856,8 +868,10 @@ static void comp_window_close(window_t *win, cap_call_handle_t icall_handle, ipc
 	loc_service_unregister(win->in_dsid);
 	loc_service_unregister(win->out_dsid);
 
-	/* In case the client was killed, input fibril of the window might be
-	 * still blocked on the condition within comp_window_get_event. */
+	/*
+	 * In case the client was killed, input fibril of the window might be
+	 * still blocked on the condition within comp_window_get_event.
+	 */
 	window_event_t *event_dummy = (window_event_t *) malloc(sizeof(window_event_t));
 	if (event_dummy) {
 		link_initialize(&event_dummy->link);

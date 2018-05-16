@@ -60,7 +60,8 @@ enum {
 	/** Ready to serve any request. */
 	_PROV_READY,
 	/** Cursor is temporarily lent to the external entity. No action is
-	 * possible until the cursor is returned.  */
+	 * possible until the cursor is returned.
+	 */
 	_PROV_CURSOR_LENT,
 };
 
@@ -73,7 +74,8 @@ typedef struct __input_provider {
 	/** How many elements was already fetched from the source. */
 	int fetched;
 	/** Elements are fetched from the source in batches (e.g. by getline())
-	 * to allow using strtol/strtod family even on streams. */
+	 * to allow using strtol/strtod family even on streams.
+	 */
 	char *window;
 	/** Size of the current window. */
 	size_t window_size;
@@ -83,24 +85,29 @@ typedef struct __input_provider {
 	int state;
 
 	/** Take control over data source. Finish initialization of the internal
-	 * structures (e.g. allocation of window). */
+	 * structures (e.g. allocation of window).
+	 */
 	void (*capture)(struct __input_provider *);
 	/** Get a single element from the source and update the internal structures
 	 * accordingly (e.g. greedy update of the window). Return -1 if the
-	 * element cannot be obtained. */
+	 * element cannot be obtained.
+	 */
 	int (*pop)(struct __input_provider *);
 	/** Undo the most recent not-undone pop operation. Might be necesarry to
 	 * flush current window and seek data source backwards. Return 0 if the
-	 * pop history is exhausted, non-zero on success. */
+	 * pop history is exhausted, non-zero on success.
+	 */
 	int (*undo)(struct __input_provider *);
 	/** Lend the cursor to the caller.  */
 	const char *(*borrow_cursor)(struct __input_provider *);
 	/** Take control over possibly incremented cursor and update the internal
-	 * structures if necessary. */
+	 * structures if necessary.
+	 */
 	void (*return_cursor)(struct __input_provider *, const char *);
 	/** Release the control over the source. That is, synchronize any
 	 * fetched but non-consumed elements (e.g. by seeking) and destruct
-	 * internal structures (e.g. window deallocation). */
+	 * internal structures (e.g. window deallocation).
+	 */
 	void (*release)(struct __input_provider *);
 } _input_provider;
 
@@ -198,12 +205,14 @@ static int _undo_stream(_input_provider *self)
 	}
 
 	if (!self->cursor || self->window == self->cursor) {
-		/* Complex case. Either at EOF (cursor == NULL) or there is no more
+		/*
+		 * Complex case. Either at EOF (cursor == NULL) or there is no more
 		 * place to retreat to inside the window. Seek the source backwards
 		 * and flush the window. Regarding the scanf, this could happend only
 		 * when matching unbounded string (%s) or unbounded scanset (%[) not
 		 * containing newline, while at the same time newline is the character
-		 * that breaks the matching process. */
+		 * that breaks the matching process.
+		 */
 		int rc = fseek(self->source.stream, -1, SEEK_CUR);
 		if (rc == -1) {
 			/* Seek failed.  */
@@ -291,8 +300,10 @@ static void _release_stream(_input_provider *self)
 	assert(self->state == _PROV_READY);
 	assert(self->consumed >= self->fetched);
 
-	/* Try to correct the difference between the stream position and what was
-	 * actually consumed. If it is not possible, continue anyway. */
+	/*
+	 * Try to correct the difference between the stream position and what was
+	 * actually consumed. If it is not possible, continue anyway.
+	 */
 	fseek(self->source.stream, self->consumed - self->fetched, SEEK_CUR);
 
 	/* Destruct internal structures. */
@@ -411,8 +422,10 @@ static inline int is_int_conv(int c, bool *is_unsigned, int *base)
 		*base = 10;
 		return 1;
 	case 'p':
-		/* According to POSIX, %p modifier is implementation defined but
-		 * must correspond to its printf counterpart. */
+		/*
+		 * According to POSIX, %p modifier is implementation defined but
+		 * must correspond to its printf counterpart.
+		 */
 	case 'x':
 	case 'X':
 		*is_unsigned = true;
@@ -505,11 +518,13 @@ static inline int _internal_scanf(
 	bool int_conv_unsigned = false;
 	int int_conv_base = 0;
 
-	/* Buffers allocated by scanf for optional 'm' specifier must be remembered
+	/*
+	 * Buffers allocated by scanf for optional 'm' specifier must be remembered
 	 * to deallocaate them in case of an error. Because each of those buffers
 	 * corresponds to one of the argument from va_list, there is an upper bound
 	 * on the number of those arguments. In case of C99, this uppper bound is
-	 * 127 arguments. */
+	 * 127 arguments.
+	 */
 	char *buffers[127];
 	for (int i = 0; i < 127; ++i) {
 		buffers[i] = NULL;
@@ -518,20 +533,24 @@ static inline int _internal_scanf(
 
 	in->capture(in);
 
-	/* Interpret format string. Control shall prematurely jump from the cycle
+	/*
+	 * Interpret format string. Control shall prematurely jump from the cycle
 	 * on input failure, matching failure or illegal format string. In order
 	 * to keep error reporting simple enough and to keep input consistent,
 	 * error condition shall be always manifested as jump from the cycle,
 	 * not function return. Format string pointer shall be updated specifically
-	 * for each sub-case (i.e. there shall be no loop-wide increment).*/
+	 * for each sub-case (i.e. there shall be no loop-wide increment).
+	 */
 	while (*fmt) {
 
 		if (converting) {
 
-			/* Processing inside conversion specifier. Either collect optional
+			/*
+			 * Processing inside conversion specifier. Either collect optional
 			 * parameters or execute the conversion. When the conversion
 			 * is successfully completed, increment conversion count and switch
-			 * back to normal mode. */
+			 * back to normal mode.
+			 */
 			if (*fmt == '*') {
 				/* Assignment-supression (optional). */
 				if (assign_supress) {
@@ -563,16 +582,20 @@ static inline int _internal_scanf(
 				if (width != 0) {
 					fmt = fmt_new;
 				} else {
-					/* Since POSIX requires width to be non-zero, it is
+					/*
+					 * Since POSIX requires width to be non-zero, it is
 					 * sufficient to interpret zero width as error without
-					 * referring to errno. */
+					 * referring to errno.
+					 */
 					break;
 				}
 			} else if (is_length_mod(*fmt, *(fmt + 1), &length_mod)) {
 				/* Length modifier (optional). */
 				if (length_mod == LMOD_NONE) {
-					/* Already set. Illegal format string. The actual detection
-					 * is carried out in the is_length_mod(). */
+					/*
+					 * Already set. Illegal format string. The actual detection
+					 * is carried out in the is_length_mod().
+					 */
 					break;
 				}
 				if (length_mod == LMOD_hh || length_mod == LMOD_ll) {
@@ -589,9 +612,11 @@ static inline int _internal_scanf(
 					break;
 				}
 
-				/* Conversion of the integer with %p specifier needs special
+				/*
+				 * Conversion of the integer with %p specifier needs special
 				 * handling, because it is not allowed to have arbitrary
-				 * length modifier.  */
+				 * length modifier.
+				 */
 				if (*fmt == 'p') {
 					if (length_mod == LMOD_NONE) {
 						length_mod = LMOD_p;
@@ -601,11 +626,13 @@ static inline int _internal_scanf(
 					}
 				}
 
-				/* First consume any white spaces, so we can borrow cursor
+				/*
+				 * First consume any white spaces, so we can borrow cursor
 				 * from the input provider. This way, the cursor will either
 				 * point to the non-white space while the input will be
 				 * prefetched up to the newline (which is suitable for strtol),
-				 * or the input will be at EOF. */
+				 * or the input will be at EOF.
+				 */
 				do {
 					c = in->pop(in);
 				} while (isspace(c));
@@ -615,8 +642,10 @@ static inline int _internal_scanf(
 					/* Input failure. */
 					break;
 				} else {
-					/* Everything is OK, just undo the last pop, so the cursor
-					 * can be borrowed. */
+					/*
+					 * Everything is OK, just undo the last pop, so the cursor
+					 * can be borrowed.
+					 */
 					in->undo(in);
 				}
 
@@ -625,14 +654,18 @@ static inline int _internal_scanf(
 				const char *cur_limited = NULL;
 				const char *cur_updated = NULL;
 
-				/* Borrow the cursor. Until it is returned to the provider
+				/*
+				 * Borrow the cursor. Until it is returned to the provider
 				 * we cannot jump from the cycle, because it would leave
-				 * the input inconsistent. */
+				 * the input inconsistent.
+				 */
 				cur_borrowed = in->borrow_cursor(in);
 
-				/* If the width is limited, the cursor horizont must be
+				/*
+				 * If the width is limited, the cursor horizont must be
 				 * decreased accordingly. Otherwise the strtol could read more
-				 * than allowed by width. */
+				 * than allowed by width.
+				 */
 				if (width != -1) {
 					cur_duplicated = strndup(cur_borrowed, width);
 					cur_limited = cur_duplicated;
@@ -660,9 +693,11 @@ static inline int _internal_scanf(
 				cur_limited = NULL;
 				cur_updated = NULL;
 				cur_duplicated = NULL;
-				/* Return the cursor to the provider. Input consistency is again
+				/*
+				 * Return the cursor to the provider. Input consistency is again
 				 * the job of the provider, so we can report errors from
-				 * now on. */
+				 * now on.
+				 */
 				in->return_cursor(in, cur_borrowed);
 				cur_borrowed = NULL;
 
@@ -672,8 +707,10 @@ static inline int _internal_scanf(
 					break;
 				}
 
-				/* If not supressed, assign the converted integer into
-				 * the next output argument. */
+				/*
+				 * If not supressed, assign the converted integer into
+				 * the next output argument.
+				 */
 				if (!assign_supress) {
 					if (int_conv_unsigned) {
 						unsigned char *phh;
@@ -794,11 +831,13 @@ static inline int _internal_scanf(
 					break;
 				}
 
-				/* First consume any white spaces, so we can borrow cursor
+				/*
+				 * First consume any white spaces, so we can borrow cursor
 				 * from the input provider. This way, the cursor will either
 				 * point to the non-white space while the input will be
 				 * prefetched up to the newline (which is suitable for strtof),
-				 * or the input will be at EOF. */
+				 * or the input will be at EOF.
+				 */
 				do {
 					c = in->pop(in);
 				} while (isspace(c));
@@ -808,8 +847,10 @@ static inline int _internal_scanf(
 					/* Input failure. */
 					break;
 				} else {
-					/* Everything is OK, just undo the last pop, so the cursor
-					 * can be borrowed. */
+					/*
+					 * Everything is OK, just undo the last pop, so the cursor
+					 * can be borrowed.
+					 */
 					in->undo(in);
 				}
 
@@ -818,14 +859,18 @@ static inline int _internal_scanf(
 				char *cur_duplicated = NULL;
 				const char *cur_updated = NULL;
 
-				/* Borrow the cursor. Until it is returned to the provider
+				/*
+				 * Borrow the cursor. Until it is returned to the provider
 				 * we cannot jump from the cycle, because it would leave
-				 * the input inconsistent. */
+				 * the input inconsistent.
+				 */
 				cur_borrowed = in->borrow_cursor(in);
 
-				/* If the width is limited, the cursor horizont must be
+				/*
+				 * If the width is limited, the cursor horizont must be
 				 * decreased accordingly. Otherwise the strtof could read more
-				 * than allowed by width. */
+				 * than allowed by width.
+				 */
 				if (width != -1) {
 					cur_duplicated = strndup(cur_borrowed, width);
 					cur_limited = cur_duplicated;
@@ -861,9 +906,11 @@ static inline int _internal_scanf(
 				}
 				cur_limited = NULL;
 				cur_updated = NULL;
-				/* Return the cursor to the provider. Input consistency is again
+				/*
+				 * Return the cursor to the provider. Input consistency is again
 				 * the job of the provider, so we can report errors from
-				 * now on. */
+				 * now on.
+				 */
 				in->return_cursor(in, cur_borrowed);
 				cur_borrowed = NULL;
 
@@ -873,8 +920,10 @@ static inline int _internal_scanf(
 					break;
 				}
 
-				/* If nto supressed, assign the converted floating point number
-				 * into the next output argument. */
+				/*
+				 * If nto supressed, assign the converted floating point number
+				 * into the next output argument.
+				 */
 				if (!assign_supress) {
 					float *pf;
 					double *pd;
@@ -1007,8 +1056,10 @@ static inline int _internal_scanf(
 				size_t alloc_step = 80; /* Buffer size gain during reallocation. */
 				int my_buffer_idx = 0;
 
-				/* Retrieve the buffer into which popped characters
-				 * will be stored. */
+				/*
+				 * Retrieve the buffer into which popped characters
+				 * will be stored.
+				 */
 				if (!assign_supress) {
 					if (assign_alloc) {
 						/* We must allocate our own buffer. */
@@ -1046,8 +1097,10 @@ static inline int _internal_scanf(
 								cur = buf + buf_size - term_size;
 								buf_size += alloc_step;
 							} else {
-								/* Break just from this tight loop. Errno will
-								 * be checked after it. */
+								/*
+								 * Break just from this tight loop. Errno will
+								 * be checked after it.
+								 */
 								break;
 							}
 						}
@@ -1070,8 +1123,10 @@ static inline int _internal_scanf(
 
 				/* Check for failures. */
 				if (cur == buf) {
-					/* Matching failure. Input failure was already checked
-					 * earlier. */
+					/*
+					 * Matching failure. Input failure was already checked
+					 * earlier.
+					 */
 					matching_failure = true;
 					if (!assign_supress && assign_alloc) {
 						/* Roll back. */
@@ -1127,9 +1182,11 @@ static inline int _internal_scanf(
 
 		} else {
 
-			/* Processing outside conversion specifier. Either skip white
+			/*
+			 * Processing outside conversion specifier. Either skip white
 			 * spaces or match characters one by one. If conversion specifier
-			 * is detected, switch to coversion mode. */
+			 * is detected, switch to coversion mode.
+			 */
 			if (isspace(*fmt)) {
 				/* Skip white spaces in the format string. */
 				while (isspace(*fmt)) {
@@ -1193,8 +1250,10 @@ static inline int _internal_scanf(
 		}
 	}
 	if (rc == EOF) {
-		/* Caller will not know how many arguments were successfully converted,
-		 * so the deallocation of buffers is our responsibility. */
+		/*
+		 * Caller will not know how many arguments were successfully converted,
+		 * so the deallocation of buffers is our responsibility.
+		 */
 		for (int i = 0; i < next_unused_buffer_idx; ++i) {
 			free(buffers[i]);
 			buffers[i] = NULL;

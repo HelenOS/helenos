@@ -40,8 +40,10 @@
 
 void userspace(uspace_arg_t *kernel_uarg)
 {
-	/* On real hardware this switches the CPU to user
-	   space mode and jumps to kernel_uarg->uspace_entry. */
+	/*
+	 * On real hardware this switches the CPU to user
+	 * space mode and jumps to kernel_uarg->uspace_entry.
+	 */
 
 	while (true)
 		;

@@ -235,11 +235,13 @@ static void port_changed_overcurrent(usb_hub_port_t *port,
 {
 	const bool overcurrent = !!(status & USB_HUB_PORT_STATUS_OC);
 
-	/* According to the USB specs:
+	/*
+	 * According to the USB specs:
 	 * 11.13.5 Over-current Reporting and Recovery
 	 * Hub device is responsible for putting port in power off
 	 * mode. USB system software is responsible for powering port
-	 * back on when the over-current condition is gone */
+	 * back on when the over-current condition is gone
+	 */
 
 	usb_port_disabled(&port->base, &remove_device);
 

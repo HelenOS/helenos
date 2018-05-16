@@ -32,7 +32,8 @@
 /** @file
  */
 
-/* IPC resources management
+/*
+ * IPC resources management
  *
  * The goal of this source code is to properly manage IPC resources and allow
  * straight and clean clean-up procedure upon task termination.

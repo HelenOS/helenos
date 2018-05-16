@@ -162,8 +162,10 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 	if (!ed_inactive(ohci_ep->ed) && ed_transfer_pending(ohci_ep->ed))
 		return false;
 
-	/* Now we may be sure that either the ED is inactive because of errors
-	 * or all transfer descriptors completed successfully */
+	/*
+	 * Now we may be sure that either the ED is inactive because of errors
+	 * or all transfer descriptors completed successfully
+	 */
 
 	/* Assume all data got through */
 	usb_batch->transferred_size = usb_batch->size;
@@ -177,7 +179,8 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 
 		usb_batch->error = td_error(ohci_batch->tds[i]);
 		if (usb_batch->error == EOK) {
-			/* If the TD got all its data through, it will report
+			/*
+			 * If the TD got all its data through, it will report
 			 * 0 bytes remain, the sole exception is INPUT with
 			 * data rounding flag (short), i.e. every INPUT.
 			 * Nice thing is that short packets will correctly
@@ -198,7 +201,8 @@ bool ohci_transfer_batch_check_completed(ohci_transfer_batch_t *ohci_batch)
 			/* ED should be stopped because of errors */
 			assert((ohci_ep->ed->td_head & ED_TDHEAD_HALTED_FLAG) != 0);
 
-			/* We don't care where the processing stopped, we just
+			/*
+			 * We don't care where the processing stopped, we just
 			 * need to make sure it's not using any of the TDs owned
 			 * by the transfer.
 			 *

@@ -145,7 +145,7 @@ errno_t ext4_global_init(void)
 	return EOK;
 }
 
-/* Finalization of the driver.
+/** Finalization of the driver.
  *
  * This is only needed to destroy the hash table.
  *

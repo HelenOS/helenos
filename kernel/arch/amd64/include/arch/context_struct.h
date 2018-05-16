@@ -1,4 +1,5 @@
-/* Copyright (c) 2014 Jakub Jermar
+/*
+ * Copyright (c) 2014 Jakub Jermar
  * All rights preserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,8 @@
 #include <typedefs.h>
 
 typedef struct context {
-	/* We include only registers that must be preserved
+	/*
+	 * We include only registers that must be preserved
 	 * during function call.
 	 */
 	uint64_t sp;

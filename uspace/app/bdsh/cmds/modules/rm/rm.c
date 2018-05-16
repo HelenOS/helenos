@@ -94,8 +94,10 @@ static unsigned int rm_start(rm_job_t *rm)
 	rm->force = 0;
 	rm->safe = 0;
 
-	/* Make sure we can allocate enough memory to store
-	 * what is needed in the job structure */
+	/*
+	 * Make sure we can allocate enough memory to store
+	 * what is needed in the job structure
+	 */
 	if (NULL == (rm->nwd = (char *) malloc(PATH_MAX)))
 		return 0;
 	memset(rm->nwd, 0, PATH_MAX);

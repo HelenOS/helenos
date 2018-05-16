@@ -86,7 +86,8 @@ uhci_transfer_batch_t *uhci_transfer_batch_create(endpoint_t *ep)
 	return uhci_batch;
 }
 
-/* Prepares batch for commiting.
+/*
+ * Prepares batch for committing.
  *
  * Determines the number of needed transfer descriptors (TDs).
  * Prepares a transport buffer (that is accessible by the hardware).

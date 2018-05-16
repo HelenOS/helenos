@@ -65,8 +65,9 @@ void help_cmd_batch(unsigned int level)
 	return;
 }
 
-/* Main entry point for batch, accepts an array of arguments and a
- * pointer to the cliuser_t structure */
+/** Main entry point for batch, accepts an array of arguments and a
+ * pointer to the cliuser_t structure
+ */
 int cmd_batch(char **argv, cliuser_t *usr)
 {
 	unsigned int argc;

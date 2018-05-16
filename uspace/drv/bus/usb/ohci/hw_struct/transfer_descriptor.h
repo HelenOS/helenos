@@ -43,9 +43,11 @@
 #include "mem_access.h"
 #include "completion_codes.h"
 
-/* OHCI TDs can handle up to 8KB buffers, however, it can use max 2 pages.
+/*
+ * OHCI TDs can handle up to 8KB buffers, however, it can use max 2 pages.
  * Using 4KB buffers guarantees the page count condition.
- * (OHCI assumes 4KB pages) */
+ * (OHCI assumes 4KB pages)
+ */
 #define OHCI_TD_MAX_TRANSFER (4 * 1024)
 
 /**
@@ -75,7 +77,8 @@ typedef struct td {
 
 	/**
 	 * Current buffer pointer.
-	 * Phys address of the first byte to be transferred. */
+	 * Phys address of the first byte to be transferred.
+	 */
 	volatile uint32_t cbp;
 
 	/** Pointer to the next TD in chain. 16-byte aligned. */
@@ -104,9 +107,11 @@ inline static bool td_is_finished(const td_t *instance)
 	assert(instance);
 	const int cc = (OHCI_MEM32_RD(instance->status) >> TD_STATUS_CC_SHIFT) &
 	    TD_STATUS_CC_MASK;
-	/* This value is changed on transfer completion,
+	/*
+	 * This value is changed on transfer completion,
 	 * either to CC_NOERROR or and error code.
-	 * See OHCI spec 4.3.1.3.5 p. 23 (pdf 37) */
+	 * See OHCI spec 4.3.1.3.5 p. 23 (pdf 37)
+	 */
 	if (cc != CC_NOACCESS1 && cc != CC_NOACCESS2) {
 		return true;
 	}

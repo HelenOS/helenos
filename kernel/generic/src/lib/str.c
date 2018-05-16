@@ -224,8 +224,10 @@ errno_t chr_encode(const wchar_t ch, char *str, size_t *offset, size_t size)
 	if (!chr_check(ch))
 		return EINVAL;
 
-	/* Unsigned version of ch (bit operations should only be done
-	   on unsigned types). */
+	/*
+	 * Unsigned version of ch (bit operations should only be done
+	 * on unsigned types).
+	 */
 	uint32_t cc = (uint32_t) ch;
 
 	/* Determine how many continuation bytes are needed */
@@ -734,7 +736,7 @@ char *str_chr(const char *str, wchar_t ch)
  * @param str     String to insert to.
  * @param ch      Character to insert to.
  * @param pos     Character index where to insert.
- @ @param max_pos Characters in the buffer.
+ * @param max_pos Characters in the buffer.
  *
  * @return True if the insertion was sucessful, false if the position
  *         is out of bounds.
@@ -933,8 +935,10 @@ errno_t str_uint64_t(const char *nptr, char **endptr, unsigned int base,
 	if (neg)
 		return EINVAL;
 
-	/* Check whether we are at the end of
-	   the string in strict mode */
+	/*
+	 * Check whether we are at the end of
+	 * the string in strict mode
+	 */
 	if ((strict) && (*lendptr != 0))
 		return EINVAL;
 

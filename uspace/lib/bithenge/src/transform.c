@@ -55,7 +55,8 @@
  * param_wrapper. If this is zero, the existing outer context will be used with
  * whatever parameters it has, so they can be passed to any param_wrappers
  * within.
- * @return EOK or an error code from errno.h. */
+ * @return EOK or an error code from errno.h.
+ */
 errno_t bithenge_init_transform(bithenge_transform_t *self,
     const bithenge_transform_ops_t *ops, int num_params)
 {
@@ -81,7 +82,8 @@ static void transform_indestructible(bithenge_transform_t *self)
  * @param scope The scope.
  * @param in The input tree.
  * @param[out] out Where the output tree will be stored.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_transform_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_node_t *in, bithenge_node_t **out)
 {
@@ -117,7 +119,8 @@ errno_t bithenge_transform_apply(bithenge_transform_t *self,
  * @param blob The blob.
  * @param[out] out Where the prefix length will be stored.
  * @return EOK on success, ENOTSUP if not supported, or another error code from
- * errno.h. */
+ * errno.h.
+ */
 errno_t bithenge_transform_prefix_length(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, aoff64_t *out)
 {
@@ -148,7 +151,8 @@ errno_t bithenge_transform_prefix_length(bithenge_transform_t *self,
  * @param[out] out_size Holds the size of the prefix. Can be null, in which
  * case the size is not determined.
  * @return EOK on success, ENOTSUP if not supported, or another error code from
- * errno.h. */
+ * errno.h.
+ */
 errno_t bithenge_transform_prefix_apply(bithenge_transform_t *self,
     bithenge_scope_t *scope, bithenge_blob_t *blob, bithenge_node_t **out_node,
     aoff64_t *out_size)
@@ -186,7 +190,8 @@ errno_t bithenge_transform_prefix_apply(bithenge_transform_t *self,
  * @memberof bithenge_scope_t
  * @param[out] out Holds the new scope.
  * @param outer The outer scope, or NULL.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
 {
 	bithenge_scope_t *self = malloc(sizeof(*self));
@@ -208,7 +213,8 @@ errno_t bithenge_scope_new(bithenge_scope_t **out, bithenge_scope_t *outer)
 
 /** Dereference a transform scope.
  * @memberof bithenge_scope_t
- * @param self The scope to dereference, or NULL. */
+ * @param self The scope to dereference, or NULL.
+ */
 void bithenge_scope_dec_ref(bithenge_scope_t *self)
 {
 	if (!self)
@@ -227,7 +233,8 @@ void bithenge_scope_dec_ref(bithenge_scope_t *self)
 /** Get the outer scope of a scope, which may be NULL.
  * @memberof bithenge_scope_t
  * @param self The scope to examine.
- * @return The outer scope, which may be NULL. */
+ * @return The outer scope, which may be NULL.
+ */
 bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *self)
 {
 	return self->outer;
@@ -237,7 +244,8 @@ bithenge_scope_t *bithenge_scope_outer(bithenge_scope_t *self)
  * message only exists as long as the scope does.
  * @memberof bithenge_scope_t
  * @param scope The scope to get the error message from.
- * @return The error message, or NULL. */
+ * @return The error message, or NULL.
+ */
 const char *bithenge_scope_get_error(bithenge_scope_t *scope)
 {
 	return scope->error;
@@ -249,7 +257,8 @@ const char *bithenge_scope_get_error(bithenge_scope_t *scope)
  * @memberof bithenge_scope_t
  * @param scope The scope.
  * @param format The format string.
- * @return EINVAL normally, or another error code from errno.h. */
+ * @return EINVAL normally, or another error code from errno.h.
+ */
 errno_t bithenge_scope_error(bithenge_scope_t *scope, const char *format, ...)
 {
 	if (scope->error)
@@ -298,7 +307,8 @@ errno_t bithenge_scope_error(bithenge_scope_t *scope, const char *format, ...)
 /** Get the current node being created, which may be NULL.
  * @memberof bithenge_scope_t
  * @param scope The scope to get the current node from.
- * @return The node being created, or NULL. */
+ * @return The node being created, or NULL.
+ */
 bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *scope)
 {
 	if (scope->current_node)
@@ -309,7 +319,8 @@ bithenge_node_t *bithenge_scope_get_current_node(bithenge_scope_t *scope)
 /** Set the current node being created. Takes a reference to @a node.
  * @memberof bithenge_scope_t
  * @param scope The scope to set the current node in.
- * @param node The current node being created, or NULL. */
+ * @param node The current node being created, or NULL.
+ */
 void bithenge_scope_set_current_node(bithenge_scope_t *scope,
     bithenge_node_t *node)
 {
@@ -320,7 +331,8 @@ void bithenge_scope_set_current_node(bithenge_scope_t *scope,
 /** Get the current input node, which may be NULL.
  * @memberof bithenge_scope_t
  * @param scope The scope to get the current input node from.
- * @return The input node, or NULL. */
+ * @return The input node, or NULL.
+ */
 bithenge_node_t *bithenge_scope_in_node(bithenge_scope_t *scope)
 {
 	if (scope->in_node)
@@ -331,7 +343,8 @@ bithenge_node_t *bithenge_scope_in_node(bithenge_scope_t *scope)
 /** Set the current input node. Takes a reference to @a node.
  * @memberof bithenge_scope_t
  * @param scope The scope to set the input node in.
- * @param node The input node, or NULL. */
+ * @param node The input node, or NULL.
+ */
 void bithenge_scope_set_in_node(bithenge_scope_t *scope, bithenge_node_t *node)
 {
 	bithenge_node_dec_ref(scope->in_node);
@@ -340,7 +353,8 @@ void bithenge_scope_set_in_node(bithenge_scope_t *scope, bithenge_node_t *node)
 
 /** Set a scope as a barrier.
  * @memberof bithenge_scope_t
- * @param self The scope to change. */
+ * @param self The scope to change.
+ */
 void bithenge_scope_set_barrier(bithenge_scope_t *self)
 {
 	self->barrier = true;
@@ -350,7 +364,8 @@ void bithenge_scope_set_barrier(bithenge_scope_t *self)
  * it.
  * @memberof bithenge_scope_t
  * @param self The scope to check.
- * @return Whether the scope is a barrier. */
+ * @return Whether the scope is a barrier.
+ */
 bool bithenge_scope_is_barrier(bithenge_scope_t *self)
 {
 	return self->barrier;
@@ -362,7 +377,8 @@ bool bithenge_scope_is_barrier(bithenge_scope_t *self)
  * @memberof bithenge_scope_t
  * @param scope The scope in which to allocate parameters.
  * @param num_params The number of parameters to allocate.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_scope_alloc_params(bithenge_scope_t *scope, int num_params)
 {
 	scope->params = malloc(sizeof(*scope->params) * num_params);
@@ -380,7 +396,8 @@ errno_t bithenge_scope_alloc_params(bithenge_scope_t *scope, int num_params)
  * @param scope The scope in which to allocate parameters.
  * @param i The index of the parameter to set.
  * @param node The value to store in the parameter.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_scope_set_param(bithenge_scope_t *scope, int i,
     bithenge_node_t *node)
 {
@@ -399,7 +416,8 @@ errno_t bithenge_scope_set_param(bithenge_scope_t *scope, int i,
  * @param scope The scope to get the parameter from.
  * @param i The index of the parameter to set.
  * @param[out] out Stores a new reference to the parameter.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_scope_get_param(bithenge_scope_t *scope, int i,
     bithenge_node_t **out)
 {
@@ -501,7 +519,8 @@ static const bithenge_transform_ops_t barrier_transform_ops = {
  * barrier transform is used. Takes a reference to @a transform.
  * @param base The barrier transform.
  * @param transform The subtransform to use for all operations.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_barrier_transform_set_subtransform(bithenge_transform_t *base,
     bithenge_transform_t *transform)
 {
@@ -525,7 +544,8 @@ errno_t bithenge_barrier_transform_set_subtransform(bithenge_transform_t *base,
  * bithenge_barrier_transform_set_subtransform before the result is used.
  * @param[out] out Holds the created transform.
  * @param num_params The number of parameters to require, which may be 0.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_barrier_transform(bithenge_transform_t **out, int num_params)
 {
 	errno_t rc;
@@ -741,13 +761,15 @@ static const bithenge_transform_ops_t bits_xe_ops = {
 };
 
 /** A transform that converts a byte blob to a bit blob, most-significant bit
- * first. */
+ * first.
+ */
 bithenge_transform_t bithenge_bits_be_transform = {
 	&bits_xe_ops, 1, 0
 };
 
 /** A transform that converts a byte blob to a bit blob, least-significant bit
- * first. */
+ * first.
+ */
 bithenge_transform_t bithenge_bits_le_transform = {
 	&bits_xe_ops, 1, 0
 };
@@ -986,13 +1008,15 @@ static const bithenge_transform_ops_t uint_xe_ops = {
 };
 
 /** A transform that reads an unsigned integer from an arbitrary number of
- * bits, most-significant bit first. */
+ * bits, most-significant bit first.
+ */
 bithenge_transform_t bithenge_uint_be_transform = {
 	&uint_xe_ops, 1, 1
 };
 
 /** A transform that reads an unsigned integer from an arbitrary number of
- * bits, least-significant bit first. */
+ * bits, least-significant bit first.
+ */
 bithenge_transform_t bithenge_uint_le_transform = {
 	&uint_xe_ops, 1, 1
 };

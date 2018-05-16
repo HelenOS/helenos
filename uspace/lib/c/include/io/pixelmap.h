@@ -53,7 +53,8 @@ typedef enum {
 	/* If outside of a pixmap, return closest pixel from the edge */
 	PIXELMAP_EXTEND_SIDES,
 
-	/* If outside of a pixmap, return closest pixel from the edge,
+	/*
+	 * If outside of a pixmap, return closest pixel from the edge,
 	 * with alpha = 0
 	 */
 	PIXELMAP_EXTEND_TRANSPARENT_SIDES

@@ -440,7 +440,8 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 	THREAD->state = Sleeping;
 	THREAD->sleep_queue = wq;
 
-	/* Must be before entry to scheduler, because there are multiple
+	/*
+	 * Must be before entry to scheduler, because there are multiple
 	 * return vectors.
 	 */
 	*blocked = true;

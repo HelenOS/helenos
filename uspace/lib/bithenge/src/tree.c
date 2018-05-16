@@ -70,7 +70,8 @@ static void node_destroy(bithenge_node_t *self)
 
 /** Decrement a node's reference count and free it if appropriate.
  * @memberof bithenge_node_t
- * @param node The node to dereference, or NULL. */
+ * @param node The node to dereference, or NULL.
+ */
 void bithenge_node_dec_ref(bithenge_node_t *node)
 {
 	if (!node)
@@ -111,7 +112,8 @@ static errno_t get_for_each_func(bithenge_node_t *key, bithenge_node_t *value,
  * @param key The key to search for.
  * @param[out] out Holds the found node.
  * @return EOK on success, ENOENT if not found, or another error code from
- * errno.h. */
+ * errno.h.
+ */
 errno_t bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
     bithenge_node_t **out)
 {
@@ -153,7 +155,8 @@ errno_t bithenge_node_get(bithenge_node_t *self, bithenge_node_t *key,
  * @memberof bithenge_node_t
  * @param[out] self The node.
  * @param[in] ops The operations provided.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_init_internal_node(bithenge_node_t *self,
     const bithenge_internal_node_ops_t *ops)
 {
@@ -194,7 +197,8 @@ static bithenge_node_t empty_internal_node = {
 
 /** Create an empty internal node.
  * @param[out] out Holds the created node.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_empty_internal_node(bithenge_node_t **out)
 {
 	if (bithenge_should_fail())
@@ -261,7 +265,8 @@ static bithenge_internal_node_ops_t simple_internal_node_ops = {
  * @param len The number of key-value pairs in the node array.
  * @param needs_free If true, when the internal node is destroyed it will free
  * the nodes array rather than just dereferencing each node inside it.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_simple_internal_node(bithenge_node_t **out,
     bithenge_node_t **nodes, bithenge_int_t len, bool needs_free)
 {
@@ -297,7 +302,8 @@ static bithenge_node_t true_node = { BITHENGE_NODE_BOOLEAN, 1, .boolean_value = 
  * @memberof bithenge_node_t
  * @param[out] out Stores the created boolean node.
  * @param value The value for the node to hold.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_boolean_node(bithenge_node_t **out, bool value)
 {
 	assert(out);
@@ -312,7 +318,8 @@ errno_t bithenge_new_boolean_node(bithenge_node_t **out, bool value)
  * @memberof bithenge_node_t
  * @param[out] out Stores the created integer node.
  * @param value The value for the node to hold.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
 {
 	assert(out);
@@ -332,7 +339,8 @@ errno_t bithenge_new_integer_node(bithenge_node_t **out, bithenge_int_t value)
  * @param value The value for the node to hold.
  * @param needs_free Whether the string should be freed when the node is
  * destroyed.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_string_node(bithenge_node_t **out, const char *value, bool needs_free)
 {
 	assert(out);
@@ -356,7 +364,8 @@ errno_t bithenge_new_string_node(bithenge_node_t **out, const char *value, bool 
  * @param[out] out Holds whether the nodes are equal.
  * @param a, b Nodes to compare.
  * @return EOK on success or an error code from errno.h.
- * @todo Add support for internal nodes. */
+ * @todo Add support for internal nodes.
+ */
 errno_t bithenge_node_equal(bool *out, bithenge_node_t *a, bithenge_node_t *b)
 {
 	if (a->type != b->type) {

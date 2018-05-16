@@ -59,7 +59,8 @@
 #include "main.h"
 
 /** Find handle for the device instance identified by the device's path in the
- * device tree. */
+ * device tree.
+ */
 static void devman_function_get_handle(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	char *pathname;

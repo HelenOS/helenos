@@ -42,14 +42,16 @@
 #include "tree.h"
 
 /** A blob of raw binary data.
- * @implements bithenge_node_t */
+ * @implements bithenge_node_t
+ */
 typedef struct {
 	/** @privatesection */
 	struct bithenge_node_t base;
 } bithenge_blob_t;
 
 /** Operations providing random access to binary data.
- * @todo Should these be thread-safe? */
+ * @todo Should these be thread-safe?
+ */
 typedef struct bithenge_random_access_blob_ops_t {
 	/** @copydoc bithenge_blob_t::bithenge_blob_size */
 	errno_t (*size)(bithenge_blob_t *self, aoff64_t *size);
@@ -60,12 +62,14 @@ typedef struct bithenge_random_access_blob_ops_t {
 	errno_t (*read_bits)(bithenge_blob_t *self, aoff64_t offset, char *buffer,
 	    aoff64_t *size, bool little_endian);
 	/** Destroy the blob.
-	 * @param blob The blob. */
+	 * @param blob The blob.
+	 */
 	void (*destroy)(bithenge_blob_t *self);
 } bithenge_random_access_blob_ops_t;
 
 /** A blob built from an object that supports only sequential reading.
- * @implements bithenge_blob_t */
+ * @implements bithenge_blob_t
+ */
 typedef struct {
 	/** @privatesection */
 	/** The base random-access blob. */
@@ -81,7 +85,8 @@ typedef struct {
 } bithenge_sequential_blob_t;
 
 /** Operations providing sequential access to binary data.
- * @memberof bithenge_sequential_blob_t */
+ * @memberof bithenge_sequential_blob_t
+ */
 typedef struct bithenge_sequential_blob_ops_t {
 
 	/** Get the total size of the blob. If the total size cannot be
@@ -111,7 +116,8 @@ typedef struct bithenge_sequential_blob_ops_t {
 	    aoff64_t *size);
 
 	/** Destroy the blob.
-	 * @param self The blob. */
+	 * @param self The blob.
+	 */
 	void (*destroy)(bithenge_sequential_blob_t *self);
 } bithenge_sequential_blob_ops_t;
 
@@ -188,7 +194,8 @@ static inline errno_t bithenge_blob_read_bits(bithenge_blob_t *self,
  * @memberof bithenge_blob_t
  * @param self The blob.
  * @param[out] out Holds whether the blob is empty.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 static inline errno_t bithenge_blob_empty(bithenge_blob_t *self, bool *out)
 {
 	assert(self);
@@ -202,7 +209,8 @@ static inline errno_t bithenge_blob_empty(bithenge_blob_t *self, bool *out)
 /** Cast a blob node to a generic node.
  * @memberof bithenge_blob_t
  * @param blob The blob to cast.
- * @return The blob node as a generic node. */
+ * @return The blob node as a generic node.
+ */
 static inline bithenge_node_t *bithenge_blob_as_node(bithenge_blob_t *blob)
 {
 	return &blob->base;
@@ -211,7 +219,8 @@ static inline bithenge_node_t *bithenge_blob_as_node(bithenge_blob_t *blob)
 /** Cast a generic node to a blob node.
  * @memberof bithenge_blob_t
  * @param node The node to cast, which must be a blob node.
- * @return The generic node as a blob node. */
+ * @return The generic node as a blob node.
+ */
 static inline bithenge_blob_t *bithenge_node_as_blob(bithenge_node_t *node)
 {
 	assert(node->type == BITHENGE_NODE_BLOB);
@@ -219,14 +228,16 @@ static inline bithenge_blob_t *bithenge_node_as_blob(bithenge_node_t *node)
 }
 
 /** Increment a blob's reference count.
- * @param blob The blob to reference. */
+ * @param blob The blob to reference.
+ */
 static inline void bithenge_blob_inc_ref(bithenge_blob_t *blob)
 {
 	bithenge_node_inc_ref(bithenge_blob_as_node(blob));
 }
 
 /** Decrement a blob's reference count.
- * @param blob The blob to dereference, or NULL. */
+ * @param blob The blob to dereference, or NULL.
+ */
 static inline void bithenge_blob_dec_ref(bithenge_blob_t *blob)
 {
 	if (blob)

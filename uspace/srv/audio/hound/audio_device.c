@@ -169,8 +169,10 @@ static errno_t device_sink_connection_callback(audio_sink_t *sink, bool new)
 		audio_pcm_register_event_callback(dev->sess,
 		    device_event_callback, dev);
 
-		/* Fill the buffer first. Fill the first two fragments,
-		 * so that we stay one fragment ahead */
+		/*
+		 * Fill the buffer first. Fill the first two fragments,
+		 * so that we stay one fragment ahead
+		 */
 		pcm_format_silence(dev->buffer.base, dev->buffer.size,
 		    &dev->sink.format);
 		//TODO add underrun detection.

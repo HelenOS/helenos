@@ -1,6 +1,6 @@
 /*	$NetBSD: getopt_long.c,v 1.21.4.1 2008/01/09 01:34:14 matt Exp $	*/
 
-/*-
+/*
  * Copyright (c) 2000 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
@@ -40,9 +40,11 @@
 #include <getopt.h>
 #include <str.h>
 
-/* HelenOS Port : We're incorporating only the modern getopt_long with wrappers
+/*
+ * HelenOS Port : We're incorporating only the modern getopt_long with wrappers
  * to keep legacy getopt() usage from breaking. All references to REPLACE_GETOPT
- * are dropped, we just include the code */
+ * are dropped, we just include the code
+ */
 
 int	opterr = 1;		/* if error message should be printed */
 int	optind = 1;		/* index into parent argv vector */
@@ -80,9 +82,11 @@ static int nonopt_end = -1;   /* first option after non options (for permute) */
 
 /* Error messages */
 
-/* HelenOS Port: Calls to warnx() were eliminated (as we have no stderr that
+/*
+ * HelenOS Port: Calls to warnx() were eliminated (as we have no stderr that
  * may be redirected) and replaced with printf. As such, error messages now
- * end in a newline */
+ * end in a newline
+ */
 
 static const char recargchar[] = "option requires an argument -- %c\n";
 static const char recargstring[] = "option requires an argument -- %s\n";

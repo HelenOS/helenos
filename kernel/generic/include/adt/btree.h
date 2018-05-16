@@ -77,7 +77,8 @@ typedef struct btree_node {
 
 	/**
 	 * Link connecting leaf-level nodes. Defined only when this node is a
-	 * leaf. */
+	 * leaf.
+	 */
 	link_t leaf_link;
 
 	/* Variables needed by btree_print(). */

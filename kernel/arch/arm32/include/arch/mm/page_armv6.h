@@ -65,7 +65,8 @@ typedef struct {
 	unsigned domain : 4;
 	unsigned should_be_zero_1 : 1;
 
-	/* Pointer to the coarse 2nd level page table (holding entries for small
+	/*
+	 * Pointer to the coarse 2nd level page table (holding entries for small
 	 * (4KB) or large (64KB) pages. ARM also supports fine 2nd level page
 	 * tables that may hold even tiny pages (1KB) but they are bigger (4KB
 	 * per table in comparison with 1KB per the coarse table)
@@ -278,8 +279,10 @@ NO_TRACE static inline void set_pt_level1_flags(pte_t *pt, size_t i, int flags)
 		p->bufferable = 1;
 	}
 
-	/* Shareable is ignored for devices (non-cacheable),
-	 * turn it off for normal memory. */
+	/*
+	 * Shareable is ignored for devices (non-cacheable),
+	 * turn it off for normal memory.
+	 */
 	p->shareable = 0;
 
 	p->non_global = !(flags & PAGE_GLOBAL);

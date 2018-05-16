@@ -238,7 +238,8 @@ static const bithenge_random_access_blob_ops_t memory_ops = {
  * @param len The length of the data.
  * @param needs_free If true, the buffer will be freed with free() if this
  * function fails or the blob is destroyed.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_blob_from_buffer(bithenge_node_t **out, const void *buffer,
     size_t len, bool needs_free)
 {
@@ -276,7 +277,8 @@ error:
  * @param[out] out Stores the created blob node.
  * @param[in] data The data.
  * @param len The length of the data.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_blob_from_data(bithenge_node_t **out, const void *data,
     size_t len)
 {
@@ -434,7 +436,8 @@ error:
  * @param[out] out Stores the created blob node. On error, this is unchanged.
  * @param[in] source The input blob.
  * @param offset The offset within the input blob at which the new blob will start.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_offset_blob(bithenge_node_t **out, bithenge_blob_t *source,
     aoff64_t offset)
 {
@@ -447,7 +450,8 @@ errno_t bithenge_new_offset_blob(bithenge_node_t **out, bithenge_blob_t *source,
  * @param[in] source The input blob.
  * @param offset The offset within the input blob at which the new blob will start.
  * @param size The size of the new blob.
- * @return EOK on success or an error code from errno.h. */
+ * @return EOK on success or an error code from errno.h.
+ */
 errno_t bithenge_new_subblob(bithenge_node_t **out, bithenge_blob_t *source,
     aoff64_t offset, aoff64_t size)
 {

@@ -48,7 +48,8 @@
 #include <arch/debugger.h>
 #include <arch/machine_func.h>
 
-/* Size of the code jumping to the exception handler code
+/*
+ * Size of the code jumping to the exception handler code
  * - J+NOP
  */
 #define EXCEPTION_JUMP_SIZE  8
@@ -69,7 +70,8 @@ arch_ops_t mips32_ops = {
 
 arch_ops_t *arch_ops = &mips32_ops;
 
-/* Why the linker moves the variable 64K away in assembler
+/*
+ * Why the linker moves the variable 64K away in assembler
  * when not in .text section?
  */
 

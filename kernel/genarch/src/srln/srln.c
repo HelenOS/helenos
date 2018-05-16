@@ -105,8 +105,10 @@ static void ksrln(void *arg)
 			continue;
 		}
 
-		/* Replace carriage return with line feed
-		   and suppress any following line feed */
+		/*
+		 * Replace carriage return with line feed
+		 * and suppress any following line feed
+		 */
 		if ((ch == '\n') && (cr)) {
 			cr = false;
 			continue;

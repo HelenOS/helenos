@@ -105,8 +105,10 @@ static void bbxm_init(void)
 	assert(beagleboard.irc_addr);
 	omap_irc_init(beagleboard.irc_addr);
 
-	/* Initialize timer. Use timer1, because it is in WKUP power domain
-	 * (always on) and has special capabilities for precise 1ms ticks */
+	/*
+	 * Initialize timer. Use timer1, because it is in WKUP power domain
+	 * (always on) and has special capabilities for precise 1ms ticks
+	 */
 	amdm37x_gpt_timer_ticks_init(&beagleboard.timer,
 	    AMDM37x_GPT1_BASE_ADDRESS, AMDM37x_GPT1_SIZE, HZ);
 }
@@ -160,7 +162,8 @@ static void bbxm_irq_exception(unsigned int exc_no, istate_t *istate)
 		    CPU->id, inum);
 	}
 	/** amdm37x manual ch. 12.5.2 (p. 2428) places irc ack at the end
-	 * of ISR. DO this to avoid strange behavior. */
+	 * of ISR. DO this to avoid strange behavior.
+	 */
 	omap_irc_irq_ack(beagleboard.irc_addr);
 }
 

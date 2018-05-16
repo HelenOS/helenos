@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* Authors:
+/*
+ * Authors:
  *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
  */
 

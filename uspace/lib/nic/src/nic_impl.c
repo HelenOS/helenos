@@ -122,9 +122,11 @@ errno_t nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		memcpy(&nic_data->poll_period, &nic_data->default_poll_period,
 		    sizeof(struct timeval));
 		if (rc != EOK) {
-			/* We have already ran the on stopped handler, even if we
+			/*
+			 * We have already ran the on stopped handler, even if we
 			 * terminated the state change we would end up in undefined state.
-			 * Therefore we just log the problem. */
+			 * Therefore we just log the problem.
+			 */
 		}
 
 		fibril_rwlock_write_lock(&nic_data->stats_lock);
@@ -301,7 +303,8 @@ errno_t nic_unicast_set_mode_impl(ddf_fun_t *fun,
 	if (rc == EOK) {
 		rc = nic_rxc_unicast_set_mode(&nic_data->rx_control, mode,
 		    addr_list, addr_count);
-		/* After changing the mode the addr db gets cleared, therefore we have
+		/*
+		 * After changing the mode the addr db gets cleared, therefore we have
 		 * to reinsert also the physical address of NIC.
 		 */
 		nic_rxc_set_addr(&nic_data->rx_control, NULL, &nic_data->mac);
@@ -736,8 +739,10 @@ errno_t nic_poll_set_mode_impl(ddf_fun_t *fun,
     nic_poll_mode_t mode, const struct timeval *period)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
-	/* If the driver does not implement the poll mode change handler it cannot
-	 * switch off interrupts and this is not supported. */
+	/*
+	 * If the driver does not implement the poll mode change handler it cannot
+	 * switch off interrupts and this is not supported.
+	 */
 	if (nic_data->on_poll_mode_change == NULL)
 		return ENOTSUP;
 

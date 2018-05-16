@@ -513,7 +513,7 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 	return IRQ_DECLINE;
 }
 
-/* IRQ top-half handler.
+/** IRQ top-half handler.
  *
  * We expect interrupts to be disabled and the irq->lock already held.
  *

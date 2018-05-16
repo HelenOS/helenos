@@ -849,7 +849,8 @@ libfs_ops_t cdfs_libfs_ops = {
 };
 
 /** Verify that escape sequence corresonds to one of the allowed encoding
- * escape sequences allowed for Joliet. */
+ * escape sequences allowed for Joliet.
+ */
 static errno_t cdfs_verify_joliet_esc_seq(uint8_t *seq)
 {
 	size_t i, j, k;
@@ -1048,7 +1049,8 @@ static errno_t iso_readfs(cdfs_t *fs, fs_node_t *rfn,
 	return cdfs_readdir(fs, rfn);
 }
 
-/* Mount a session with session start offset
+/*
+ * Mount a session with session start offset
  *
  */
 static cdfs_t *cdfs_fs_create(service_id_t sid, cdfs_lba_t altroot)

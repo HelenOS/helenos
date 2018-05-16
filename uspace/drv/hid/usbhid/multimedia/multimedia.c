@@ -229,8 +229,10 @@ void usb_multimedia_deinit(struct usb_hid_dev *hid_dev, void *data)
 		    ddf_fun_get_name(fun));
 	} else {
 		usb_log_debug2("%s unbound.", ddf_fun_get_name(fun));
-		/* This frees multim_dev too as it was stored in
-		 * fun->data */
+		/*
+		 * This frees multim_dev too as it was stored in
+		 * fun->data
+		 */
 		ddf_fun_destroy(fun);
 	}
 }

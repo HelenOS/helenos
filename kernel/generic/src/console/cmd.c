@@ -1420,8 +1420,10 @@ static bool run_test(const test_t *test)
 {
 	printf("%s (%s)\n", test->name, test->desc);
 
-	/* Update and read thread accounting
-	   for benchmarking */
+	/*
+	 * Update and read thread accounting
+	 * for benchmarking
+	 */
 	irq_spinlock_lock(&TASK->lock, true);
 	uint64_t ucycles0, kcycles0;
 	task_get_accounting(TASK, &ucycles0, &kcycles0);
@@ -1473,8 +1475,10 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 	for (i = 0; i < cnt; i++) {
 		printf("%s (%u/%u) ... ", test->name, i + 1, cnt);
 
-		/* Update and read thread accounting
-		   for benchmarking */
+		/*
+		 * Update and read thread accounting
+		 * for benchmarking
+		 */
 		irq_spinlock_lock(&TASK->lock, true);
 		uint64_t ucycles0, kcycles0;
 		task_get_accounting(TASK, &ucycles0, &kcycles0);

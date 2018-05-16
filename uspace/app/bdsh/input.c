@@ -61,9 +61,11 @@ static tinput_t *tinput;
 static int run_command(char **, cliuser_t *, iostate_t *);
 static void print_pipe_usage(void);
 
-/* Tokenizes input from console, sees if the first word is a built-in, if so
+/*
+ * Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
- * the handler */
+ * the handler
+ */
 errno_t process_input(cliuser_t *usr)
 {
 	token_t *tokens_buf = calloc(WORD_MAX, sizeof(token_t));
@@ -104,7 +106,8 @@ errno_t process_input(cliuser_t *usr)
 		tokens_length--;
 	}
 
-	/* Until full support for pipes is implemented, allow for a simple case:
+	/*
+	 * Until full support for pipes is implemented, allow for a simple case:
 	 * [from <file> |] command [| to <file>]
 	 *
 	 * First find the pipes and check that there are no more

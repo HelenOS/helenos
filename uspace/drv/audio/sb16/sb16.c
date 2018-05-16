@@ -48,8 +48,10 @@ static ddf_dev_ops_t sb_pcm_ops = {
 	.interfaces[AUDIO_PCM_BUFFER_IFACE] = &sb_pcm_iface,
 };
 
-/* ISA interrupts should be edge-triggered so there should be no need for
- * irq code magic, but we still need to ack those interrupts ASAP. */
+/*
+ * ISA interrupts should be edge-triggered so there should be no need for
+ * irq code magic, but we still need to ack those interrupts ASAP.
+ */
 static const irq_cmd_t irq_cmds[] = {
 	{ .cmd = CMD_PIO_READ_8, .dstarg = 1 }, /* Address patched at runtime */
 	{ .cmd = CMD_PIO_READ_8, .dstarg = 1 }, /* Address patched at runtime */
@@ -191,9 +193,11 @@ errno_t sb16_init_mpu(sb16_t *sb, addr_range_t *regs)
 void sb16_interrupt(sb16_t *sb)
 {
 	assert(sb);
-	/* The acknowledgment of interrupts on DSP version 4.xx is different;
+	/*
+	 * The acknowledgment of interrupts on DSP version 4.xx is different;
 	 * It can contain MPU-401 indicator and DMA16 transfers are acked
-	 * differently */
+	 * differently
+	 */
 	if (sb->dsp.version.major >= 4) {
 		pio_write_8(&sb->regs->mixer_address, MIXER_IRQ_STATUS_ADDRESS);
 		const uint8_t irq_mask = pio_read_8(&sb->regs->mixer_data);

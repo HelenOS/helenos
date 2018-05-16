@@ -52,7 +52,8 @@
 
 // TODO: test everything in this file
 
-/* In some places in this file, phrase "normalized broken-down time" is used.
+/*
+ * In some places in this file, phrase "normalized broken-down time" is used.
  * This means time broken down to components (year, month, day, hour, min, sec),
  * in which every component is in its proper bounds. Non-normalized time could
  * e.g. be 2011-54-5 29:13:-5, which would semantically mean start of year 2011

@@ -86,9 +86,11 @@ static errno_t usb_hid_device_add(usb_device_t *dev)
 
 	usb_log_debug("USB/HID device structure initialized.");
 
-	/* Start automated polling function.
+	/*
+	 * Start automated polling function.
 	 * This will create a separate fibril that will query the device
-	 * for the data continuously. */
+	 * for the data continuously.
+	 */
 	rc = usb_polling_start(&hid_dev->polling);
 
 	if (rc != EOK) {

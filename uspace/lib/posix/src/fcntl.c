@@ -54,8 +54,10 @@ int fcntl(int fd, int cmd, ...)
 	switch (cmd) {
 	case F_DUPFD:
 	case F_DUPFD_CLOEXEC:
-		/* VFS currently does not provide the functionality to duplicate
-		 * opened file descriptor. */
+		/*
+		 * VFS currently does not provide the functionality to duplicate
+		 * opened file descriptor.
+		 */
 		// FIXME: implement this once dup() is available
 		errno = ENOTSUP;
 		return -1;
@@ -66,16 +68,22 @@ int fcntl(int fd, int cmd, ...)
 		/* FD_CLOEXEC is not supported. Ignore arguments and report success. */
 		return 0;
 	case F_GETFL:
-		/* File status flags (i.e. O_APPEND) are currently private to the
-		 * VFS server so it cannot be easily retrieved. */
+		/*
+		 * File status flags (i.e. O_APPEND) are currently private to the
+		 * VFS server so it cannot be easily retrieved.
+		 */
 		flags = 0;
-		/* File access flags are currently not supported for file descriptors.
-		 * Provide full access. */
+		/*
+		 * File access flags are currently not supported for file descriptors.
+		 * Provide full access.
+		 */
 		flags |= O_RDWR;
 		return flags;
 	case F_SETFL:
-		/* File access flags are currently not supported for file descriptors.
-		 * Ignore arguments and report success. */
+		/*
+		 * File access flags are currently not supported for file descriptors.
+		 * Ignore arguments and report success.
+		 */
 		return 0;
 	case F_GETOWN:
 	case F_SETOWN:

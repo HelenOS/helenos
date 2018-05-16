@@ -42,8 +42,10 @@
 #include <nic/nic.h>
 #include <ddf/driver.h>
 
-/* Inclusion of this file is not prohibited, because drivers could want to
- * inject some adaptation layer between the DDF call and NICF implementation */
+/*
+ * Inclusion of this file is not prohibited, because drivers could want to
+ * inject some adaptation layer between the DDF call and NICF implementation
+ */
 
 extern errno_t nic_get_address_impl(ddf_fun_t *dev_fun, nic_address_t *address);
 extern errno_t nic_send_frame_impl(ddf_fun_t *dev_fun, void *data, size_t size);

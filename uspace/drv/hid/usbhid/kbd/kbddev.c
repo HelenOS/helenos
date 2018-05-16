@@ -173,8 +173,10 @@ default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
 		usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
 		async_answer_0(icall_handle, EOK);
 		break;
-	/* This might be ugly but async_callback_receive_start makes no
-	 * difference for incorrect call and malloc failure. */
+		/*
+		 * This might be ugly but async_callback_receive_start makes no
+		 * difference for incorrect call and malloc failure.
+		 */
 	case IPC_M_CONNECT_TO_ME:
 		sess = async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 		/* Probably ENOMEM error, try again. */
@@ -578,8 +580,10 @@ static errno_t kbd_dev_init(usb_kbd_t *kbd_dev, usb_hid_dev_t *hid_dev)
 		return ENOMEM;
 	}
 
-	/* Set LEDs according to initial setup.
-	 * Set Idle rate */
+	/*
+	 * Set LEDs according to initial setup.
+	 * Set Idle rate
+	 */
 	usb_kbd_set_led(hid_dev, kbd_dev);
 
 	usbhid_req_set_idle(usb_device_get_default_pipe(hid_dev->usb_dev),
@@ -648,8 +652,10 @@ errno_t usb_kbd_init(usb_hid_dev_t *hid_dev, void **data)
 		return ret;
 	}
 
-	/* Store the initialized HID device and HID ops
-	 * to the DDF function. */
+	/*
+	 * Store the initialized HID device and HID ops
+	 * to the DDF function.
+	 */
 	ddf_fun_set_ops(fun, &kbdops);
 
 	ret = ddf_fun_bind(fun);

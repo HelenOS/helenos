@@ -80,8 +80,10 @@ static void print_usb_bus(service_id_t svc)
 	}
 	printf("Bus %" PRIun ": %s\n", svc, path);
 
-	/* Construct device's path.
-	 * That's "hc function path" - ( '/' + "hc function name" ) */
+	/*
+	 * Construct device's path.
+	 * That's "hc function path" - ( '/' + "hc function name" )
+	 */
 	// TODO replace this with something sane
 
 	/* Get function name */

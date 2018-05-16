@@ -181,7 +181,8 @@ typedef struct {
 	/** First block of free range */
 	aoff64_t b0;
 	/** Next partition following the free range or @c NULL if the range
-	  * is at the end. */
+	 * is at the end.
+	 */
 	fdisk_part_t *npart;
 } fdisk_free_range_t;
 

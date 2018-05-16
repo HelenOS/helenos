@@ -104,7 +104,8 @@ static LIST_INITIALIZE(files);
 
 void __stdio_init(void)
 {
-	/* The first three standard file descriptors are assigned for compatibility.
+	/*
+	 * The first three standard file descriptors are assigned for compatibility.
 	 * This will probably be removed later.
 	 */
 	int infd = inbox_get("stdin");

@@ -620,8 +620,10 @@ void thread_migration_enable(void)
  */
 void thread_sleep(uint32_t sec)
 {
-	/* Sleep in 1000 second steps to support
-	   full argument range */
+	/*
+	 * Sleep in 1000 second steps to support
+	 * full argument range
+	 */
 	while (sec > 0) {
 		uint32_t period = (sec > 1000) ? 1000 : sec;
 

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* Authors:
+/*
+ * Authors:
  *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
  */
 
@@ -41,7 +42,8 @@
 
 #include <_bits/macros.h>
 
-/* _MIN macros for unsigned types are non-standard (and of course, always 0),
+/*
+ * _MIN macros for unsigned types are non-standard (and of course, always 0),
  * but we already have them for some reason, so whatever.
  */
 

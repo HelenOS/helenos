@@ -43,7 +43,8 @@
 #include "libc/fibril_synch.h"
 #include "libc/task.h"
 
-/* This file implements a fairly dumb and incomplete "simulation" of
+/*
+ * This file implements a fairly dumb and incomplete "simulation" of
  * POSIX signals. Since HelenOS doesn't support signals and mostly doesn't
  * have any equivalent functionality, most of the signals are useless. The
  * main purpose of this implementation is thus to help port applications using
@@ -355,7 +356,8 @@ static int _raise_sigaction(int signo, siginfo_t *siginfo)
 		return -1;
 	}
 
-	/* Modifying signal mask is unnecessary,
+	/*
+	 * Modifying signal mask is unnecessary,
 	 * signal handling is serialized.
 	 */
 

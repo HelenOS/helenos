@@ -52,14 +52,16 @@ struct renderer;
 typedef struct {
 	/**
 	 * Device driver shall allocate any necessary internal structures
-	 * specific for a claimed visualizer. */
+	 * specific for a claimed visualizer.
+	 */
 	errno_t (*claim)(struct visualizer *vs);
 
 	/**
 	 * Device driver shall deallocate any necessary internal structures
 	 * specific for a claimed visualizer. Driver shall also check whether
 	 * the mode is set and if so it shall change its internal state
-	 * accordingly (e.g. deallocate frame buffers). */
+	 * accordingly (e.g. deallocate frame buffers).
+	 */
 	errno_t (*yield)(struct visualizer *vs);
 
 	/**
@@ -70,7 +72,8 @@ typedef struct {
 	 * keep current mode functional if the new mode cannot be set (for any
 	 * reason). If it is convenient for the device driver (e.g. for better
 	 * optimization), the pointer to the handle_damage operation can be
-	 * changed at this point. */
+	 * changed at this point.
+	 */
 	errno_t (*change_mode)(struct visualizer *vs, vslmode_t new_mode);
 
 	/**
@@ -80,7 +83,8 @@ typedef struct {
 	 * are intended to support basic vertical and horizontal scrolling on
 	 * the shared backbuffer (i.e. when reading from backbuffer, the offsets
 	 * shall be added to the coordinates and if necessary the result shall be
-	 * wrapped around the edge of the backbuffer). */
+	 * wrapped around the edge of the backbuffer).
+	 */
 	errno_t (*handle_damage)(struct visualizer *vs,
 	    sysarg_t x, sysarg_t y, sysarg_t width, sysarg_t height,
 	    sysarg_t x_offset, sysarg_t y_offset);
@@ -88,12 +92,14 @@ typedef struct {
 	/**
 	 * Upper layers of the graphic stack might report inactivity. In such
 	 * case, device driver might enable power saving mode on the device
-	 * corresponding to the visualizer. */
+	 * corresponding to the visualizer.
+	 */
 	errno_t (*suspend)(struct visualizer *vs);
 
 	/**
 	 * When upper layers detect activity on suspended visualizer, device
-	 * driver shall disable power saving mode on the corresponding device. */
+	 * driver shall disable power saving mode on the corresponding device.
+	 */
 	errno_t (*wakeup)(struct visualizer *vs);
 } visualizer_ops_t;
 
@@ -104,14 +110,16 @@ typedef struct {
 typedef struct visualizer {
 	/**
 	 * Link to the list of all visualizers belonging to the graphic device.
-	 * Field is fully managed by libgraph. */
+	 * Field is fully managed by libgraph.
+	 */
 	link_t link;
 
 	/**
 	 * When reference count equals 1, visualizer is claimed by a client,
 	 * when equals 0, visualizer is not claimed. At the time, visualizer
 	 * can be claimed only by a single client.
-	 * Field is fully managed by libgraph. */
+	 * Field is fully managed by libgraph.
+	 */
 	atomic_t ref_cnt;
 
 	/**
@@ -120,7 +128,8 @@ typedef struct visualizer {
 	 * for cleanup duties (e.g. unregistering visualizer).
 	 * If the visualizer is registered through libgraph functions, then the
 	 * field is fully managed by libgraph. Otherwise, it is a driver
-	 * responsibility to set and update this field. */
+	 * responsibility to set and update this field.
+	 */
 	sysarg_t reg_svc_handle;
 
 	/**
@@ -129,7 +138,8 @@ typedef struct visualizer {
 	 * data structures corresponding to a particular visualizer (e.g. viewports
 	 * in the compositor).
 	 * Field is fully managed by libgraph. It is assigned when the visualizer
-	 * gets claimed and is valid until it is yielded. */
+	 * gets claimed and is valid until it is yielded.
+	 */
 	sysarg_t client_side_handle;
 
 	/**
@@ -140,7 +150,8 @@ typedef struct visualizer {
 	 * monitor is terminated by the user, pivot monitor is rotated by 90
 	 * degrees, virtual monitor is resized by the user).
 	 * Field is fully managed by libgraph. Device driver can use it indirectly
-	 * through notification functions. */
+	 * through notification functions.
+	 */
 	async_sess_t *notif_sess;
 
 	/**
@@ -149,7 +160,8 @@ typedef struct visualizer {
 	 * upon the request from the final output device (e.g. to change mode
 	 * dimensions when virtual monitor is resized).
 	 * Both device driver and libgraph must lock on this mutex when accessing
-	 * modes list or default mode index. */
+	 * modes list or default mode index.
+	 */
 	fibril_mutex_t mode_mtx;
 
 	/**
@@ -161,7 +173,8 @@ typedef struct visualizer {
 	 * the intersection of modes supported by device driver (graphic adapter)
 	 * and final output device (e.g. monitor).
 	 * Field is fully managed by device driver, libgraph reads it with locked
-	 * mutex. */
+	 * mutex.
+	 */
 	list_t modes;
 
 	/**
@@ -172,7 +185,8 @@ typedef struct visualizer {
 	 * maintain this field at the same time when it is doing any changes to the
 	 * mode list.
 	 * Field is fully managed by device driver, libgraph reads it with locked
-	 * mutex. */
+	 * mutex.
+	 */
 	sysarg_t def_mode_idx;
 
 	/**
@@ -180,33 +194,38 @@ typedef struct visualizer {
 	 * device driver when deallocating resources for the current mode. Device
 	 * driver can also read it to properly interpret the cell type and its
 	 * internal structures when handling the damage.
-	 * Field is fully managed by libgraph, can be read by device driver. */
+	 * Field is fully managed by libgraph, can be read by device driver.
+	 */
 	vslmode_t cur_mode;
 
 	/**
 	 * Determines whether the visualizer is currently set to some mode or not,
 	 * that is whether cur_mode field contains up-to-date data.
-	 * Field is fully managed by libgraph, can be read by device driver. */
+	 * Field is fully managed by libgraph, can be read by device driver.
+	 */
 	bool mode_set;
 
 	/**
 	 * Device driver function pointers.
 	 * Field is fully managed by device driver, libgraph invokes driver's
-	 * functions through it. */
+	 * functions through it.
+	 */
 	visualizer_ops_t ops;
 
 	/**
 	 * Backbuffer shared with the client. Sharing is established by libgraph.
 	 * Device driver reads the cells when handling damage. Cells shall be
 	 * interpreted according to the currently set mode.
-	 * Field is fully managed by libgraph, can be read by device driver. */
+	 * Field is fully managed by libgraph, can be read by device driver.
+	 */
 	pixelmap_t cells;
 
 	/**
 	 * Device driver context, completely opaque to the libgraph. Intended to
 	 * contain pointers to frontbuffers or information representing the
 	 * final output device (e.g. hardware port for physical monitor).
-	 * Field is fully managed by device driver. */
+	 * Field is fully managed by device driver.
+	 */
 	void *dev_ctx;
 } visualizer_t;
 
@@ -264,7 +283,8 @@ typedef struct renderer {
 /**
  * Fill in the basic visualizer structure. The device driver shall take the
  * created torso and to complete it by adding its specific structures
- * (device context, modes). */
+ * (device context, modes).
+ */
 extern void graph_init_visualizer(visualizer_t *);
 
 extern void graph_init_renderer(renderer_t *);
@@ -280,7 +300,8 @@ extern void graph_init_renderer(renderer_t *);
  */
 
 /**
- * Allocate the visualizer so it can be initialized. */
+ * Allocate the visualizer so it can be initialized.
+ */
 extern visualizer_t *graph_alloc_visualizer(void);
 
 /**
@@ -288,24 +309,28 @@ extern visualizer_t *graph_alloc_visualizer(void);
  * add it to the driver visualizer list. After the registration, the visualizer
  * is considered ready to handle client connection. Since visualizer
  * list is guarded by the mutex, visualizers might be added even after the
- * initialialization of the device driver. */
+ * initialialization of the device driver.
+ */
 extern errno_t graph_register_visualizer(visualizer_t *);
 
 /**
  * Retrieve the visualizer from the visualizer list according to its
- * service ID. */
+ * service ID.
+ */
 extern visualizer_t *graph_get_visualizer(sysarg_t);
 
 /**
  * Unregister the visualizer from the location service and remove it
  * from the driver visualizer list. Function shall be called by device driver
- * before deallocating the resources for the visualizer. */
+ * before deallocating the resources for the visualizer.
+ */
 extern errno_t graph_unregister_visualizer(visualizer_t *);
 
 /**
  * Destroy the rest of the visualizer. Device driver shall call this function
  * only after it has unregistered the visualizer and deallocated all the
- * resources for which the driver is responsible. */
+ * resources for which the driver is responsible.
+ */
 extern void graph_destroy_visualizer(visualizer_t *);
 
 extern renderer_t *graph_alloc_renderer(void);
@@ -319,13 +344,15 @@ extern void graph_destroy_renderer(renderer_t *);
 /**
  * Device driver can call this function to notify the client through the
  * callback connection that the visualizer with a specified service ID should
- * be switched to the mode with the given index. */
+ * be switched to the mode with the given index.
+ */
 extern errno_t graph_notify_mode_change(async_sess_t *, sysarg_t, sysarg_t);
 
 /**
  * Device driver can call this function to notify the client through the
  * callback connection that the visualizer with a specified service ID has
- * lost its output device (e.g. virtual monitor was closed by a user). */
+ * lost its output device (e.g. virtual monitor was closed by a user).
+ */
 extern errno_t graph_notify_disconnect(async_sess_t *, sysarg_t);
 
 /*----------------------------------------------------------------------------*/

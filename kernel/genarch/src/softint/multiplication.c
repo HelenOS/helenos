@@ -116,8 +116,10 @@ long long __muldi3 (long long a, long long b)
 	t2 = mul(a2, b2);
 	t2 += t1;
 
-	/* t2 & (1ull << 63) - if this bit is set in unsigned long long,
-	 * result does not fit in signed one */
+	/*
+	 * t2 & (1ull << 63) - if this bit is set in unsigned long long,
+	 * result does not fit in signed one
+	 */
 	if (SOFTINT_CHECK_OF && ((t2 < t1) || (t2 & (1ull << 63)))) {
 		// error, overflow
 		return (neg ? MIN_INT64 : MAX_INT64);

@@ -273,8 +273,10 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex,
 						/* Reached end of string */
 						break;
 					} else if (c == U_SPECIAL && offset + 2 >= (size_t)bytes) {
-						/* If an extended character is cut off due to the size of the buffer,
-						   we will copy it over to the next buffer so it can be read correctly. */
+						/*
+						 * If an extended character is cut off due to the size of the buffer,
+						 * we will copy it over to the next buffer so it can be read correctly.
+						 */
 						copied_bytes = bytes - offset + 1;
 						memcpy(buff, buff + offset - 1, copied_bytes);
 						break;
