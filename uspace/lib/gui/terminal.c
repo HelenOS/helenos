@@ -416,9 +416,15 @@ static errno_t term_read(con_srv_t *srv, void *buf, size_t size, size_t *nread)
 			link_t *link = prodcons_consume(&term->input_pc);
 			cons_event_t *event = list_get_instance(link, cons_event_t, link);
 
+			/* Ctrl-D inputs end-of-file. */
+			if ((event->ev.key.mods & KM_LCTRL) != 0 &&
+			     event->ev.key.key == KC_D && event->ev.key.type == KEY_PRESS) {
+				term->char_remains[term->char_remains_len] = EOF;
+				term->char_remains_len = str_size(term->char_remains);
+
 			/* Accept key presses of printable chars only. */
-			if (event->type == CEV_KEY && event->ev.key.type == KEY_PRESS &&
-			    event->ev.key.c != 0) {
+			} else if (event->type == CEV_KEY && event->ev.key.type == KEY_PRESS &&
+				   event->ev.key.c != 0) {
 				wchar_t tmp[2] = {
 					event->ev.key.c,
 					0
