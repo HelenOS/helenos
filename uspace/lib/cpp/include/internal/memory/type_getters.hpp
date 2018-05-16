@@ -97,115 +97,174 @@ namespace std::aux
      */
 
     template<class T, class = void>
-    struct get_pointer: aux::type_is<typename T::value_type*>
+    struct alloc_get_pointer: aux::type_is<typename T::value_type*>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct get_pointer<T, void_t<typename T::pointer>>
+    struct alloc_get_pointer<T, void_t<typename T::pointer>>
         : aux::type_is<typename T::pointer>
     { /* DUMMY BODY */ };
 
     template<class T, class Ptr, class = void>
-    struct get_const_pointer
+    struct alloc_get_const_pointer
         : aux::type_is<typename pointer_traits<Ptr>::template rebind<const typename T::value_type>>
     { /* DUMMY BODY */ };
 
     template<class T, class Ptr>
-    struct get_const_pointer<T, Ptr, void_t<typename T::const_pointer>>
+    struct alloc_get_const_pointer<T, Ptr, void_t<typename T::const_pointer>>
         : aux::type_is<typename T::const_pointer>
     { /* DUMMY BODY */ };
 
     template<class T, class Ptr, class = void>
-    struct get_void_pointer
+    struct alloc_get_void_pointer
         : aux::type_is<typename pointer_traits<Ptr>::template rebind<void>>
     { /* DUMMY BODY */ };
 
     template<class T, class Ptr>
-    struct get_void_pointer<T, Ptr, void_t<typename T::void_pointer>>
+    struct alloc_get_void_pointer<T, Ptr, void_t<typename T::void_pointer>>
         : aux::type_is<typename T::void_pointer>
     { /* DUMMY BODY */ };
 
     template<class T, class Ptr, class = void>
-    struct get_const_void_pointer
+    struct alloc_get_const_void_pointer
         : aux::type_is<typename pointer_traits<Ptr>::template rebind<const void>>
     { /* DUMMY BODY */ };
 
     template<class T, class Ptr>
-    struct get_const_void_pointer<T, Ptr, void_t<typename T::const_void_pointer>>
+    struct alloc_get_const_void_pointer<T, Ptr, void_t<typename T::const_void_pointer>>
         : aux::type_is<typename T::const_void_pointer>
     { /* DUMMY BODY */ };
 
     template<class T, class Ptr, class = void>
-    struct get_difference_type
+    struct alloc_get_difference_type
         : aux::type_is<typename pointer_traits<Ptr>::difference_type>
     { /* DUMMY BODY */ };
 
     template<class T, class Ptr>
-    struct get_difference_type<T, Ptr, void_t<typename T::difference_type>>
+    struct alloc_get_difference_type<T, Ptr, void_t<typename T::difference_type>>
         : aux::type_is<typename T::difference_type>
     { /* DUMMY BODY */ };
 
     template<class T, class Difference, class = void>
-    struct get_size_type: aux::type_is<make_unsigned_t<Difference>>
+    struct alloc_get_size_type: aux::type_is<make_unsigned_t<Difference>>
     { /* DUMMY BODY */ };
 
     template<class T, class Difference>
-    struct get_size_type<T, Difference, void_t<typename T::size_type>>
+    struct alloc_get_size_type<T, Difference, void_t<typename T::size_type>>
         : aux::type_is<typename T::size_type>
     { /* DUMMY BODY */ };
 
     template<class T, class = void>
-    struct get_copy_propagate: aux::type_is<false_type>
+    struct alloc_get_copy_propagate: aux::type_is<false_type>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct get_copy_propagate<T, void_t<typename T::propagate_on_container_copy_assignment>>
+    struct alloc_get_copy_propagate<T, void_t<typename T::propagate_on_container_copy_assignment>>
         : aux::type_is<typename T::propagate_on_container_copy_assignment>
     { /* DUMMY BODY */ };
 
     template<class T, class = void>
-    struct get_move_propagate: aux::type_is<false_type>
+    struct alloc_get_move_propagate: aux::type_is<false_type>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct get_move_propagate<T, void_t<typename T::propagate_on_container_move_assignment>>
+    struct alloc_get_move_propagate<T, void_t<typename T::propagate_on_container_move_assignment>>
         : aux::type_is<typename T::propagate_on_container_move_assignment>
     { /* DUMMY BODY */ };
 
     template<class T, class = void>
-    struct get_swap_propagate: aux::type_is<false_type>
+    struct alloc_get_swap_propagate: aux::type_is<false_type>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct get_swap_propagate<T, void_t<typename T::propagate_on_container_swap>>
+    struct alloc_get_swap_propagate<T, void_t<typename T::propagate_on_container_swap>>
         : aux::type_is<typename T::propagate_on_container_swap>
     { /* DUMMY BODY */ };
 
     template<class T, class = void>
-    struct get_always_equal: aux::type_is<typename is_empty<T>::type>
+    struct alloc_get_always_equal: aux::type_is<typename is_empty<T>::type>
     { /* DUMMY BODY */ };
 
     template<class T>
-    struct get_always_equal<T, void_t<typename T::is_always_equal>>
+    struct alloc_get_always_equal<T, void_t<typename T::is_always_equal>>
         : aux::type_is<typename T::is_always_equal>
     { /* DUMMY BODY */ };
 
     template<class Alloc, class T, class = void>
-    struct get_rebind_other
+    struct alloc_get_rebind_alloc
     { /* DUMMY BODY */ };
 
     template<class Alloc, class T>
-    struct get_rebind_other<Alloc, T, void_t<typename Alloc::template rebind<T>::other>>
+    struct alloc_get_rebind_alloc<Alloc, T, void_t<typename Alloc::template rebind<T>::other>>
         : aux::type_is<typename Alloc::template rebind<T>::other>
     { /* DUMMY BODY */ };
 
-    /* TODO: How am I suppose to do this?!
-    template<template<class T, class... Args> class Alloc>
-    struct get_rebind_args;
-    */
+    template<template <class, class...> class Alloc, class U, class... Args, class T>
+    struct alloc_get_rebind_alloc<Alloc<U, Args...>, T>
+        : aux::type_is<Alloc<T, Args...>>
+    { /* DUMMY BODY */ };
+
+    /**
+     * These metafunctions are used to check whether an expression
+     * is well-formed for the static functions of allocator_traits:
+     */
+
+    template<class Alloc, class Size, class ConstVoidPointer, class = void>
+    struct alloc_has_hint_allocate: false_type
+    { /* DUMMY BODY */ };
+
+    template<class Alloc, class Size, class ConstVoidPointer>
+    struct alloc_has_hint_allocate<
+        Alloc, Size, ConstVoidPointer, void_t<
+            decltype(declval<Alloc>().alloc(declval<Size>(), declval<ConstVoidPointer>()))
+        >
+    >: true_type
+    { /* DUMMY BODY */ };
+
+    template<class, class Alloc, class T, class... Args>
+    struct alloc_has_construct_impl: false_type
+    { /* DUMMY BODY */ };
+
+    template<class Alloc, class T, class... Args>
+    struct alloc_has_construct_impl<
+        void_t<decltype(declval<Alloc>().construct(declval<T*>(), forward<Args>(declval<Args>())...))>,
+        Alloc, T, Args...
+    >: true_type
+    { /* DUMMY BODY */ };
+
+    template<class Alloc, class T, class = void>
+    struct alloc_has_destroy: false_type
+    { /* DUMMY BODY */ };
 
     template<class Alloc, class T>
-    struct get_rebind_args: aux::type_is<typename get_rebind_other<Alloc, T>::type>
+    struct alloc_has_destroy<Alloc, T, void_t<decltype(declval<Alloc>().destroy(declval<T>()))>>
+        : true_type
+    { /* DUMMY BODY */ };
+
+    template<class Alloc, class T, class... Args>
+    struct alloc_has_construct
+        : alloc_has_construct_impl<void_t<>, Alloc, T, Args...>
+    { /* DUMMY BODY */ };
+
+    template<class Alloc, class = void>
+    struct alloc_has_max_size: false_type
+    { /* DUMMY BODY */ };
+
+    template<class Alloc>
+    struct alloc_has_max_size<Alloc, void_t<decltype(declval<Alloc>().max_size())>>
+        : true_type
+    { /* DUMMY BODY */ };
+
+    template<class Alloc, class = void>
+    struct alloc_has_select: false_type
+    { /* DUMMY BODY */ };
+
+    template<class Alloc>
+    struct alloc_has_select<
+        Alloc, void_t<
+            decltype(declval<Alloc>().select_on_container_copy_construction())
+        >
+    >: true_type
     { /* DUMMY BODY */ };
 }
 
