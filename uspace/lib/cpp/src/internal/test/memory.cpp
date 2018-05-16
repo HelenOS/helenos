@@ -30,10 +30,51 @@
 #include <internal/test/mock.hpp>
 #include <internal/test/tests.hpp>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 namespace std::test
 {
+    namespace aux
+    {
+        struct dummy_pointer1
+        {
+            using element_type    = int;
+            using difference_type = bool;
+
+            template<class U>
+            using rebind = unsigned;
+
+            int tag{};
+
+            static dummy_pointer1 pointer_to(element_type& x)
+            {
+                dummy_pointer1 res;
+                res.tag = x;
+                return res;
+            }
+        };
+
+        template<class T, class... Args>
+        struct dummy_pointer2
+        {
+            using element_type    = signed char;
+            using difference_type = unsigned char;
+        };
+
+        struct dummy_allocator1
+        {
+            using value_type = int;
+        };
+
+        struct dummy_allocator2
+        {
+            using value_type    = int;
+            using pointer       = char*;
+            using const_pointer = const void*;
+        };
+    }
+
     bool memory_test::run(bool report)
     {
         report_ = report;
@@ -41,6 +82,9 @@ namespace std::test
 
         test_unique_ptr();
         test_shared_ptr();
+        test_weak_ptr();
+        test_allocators();
+        test_pointers();
 
         return end();
     }
@@ -109,19 +153,75 @@ namespace std::test
             test_eq("shared_ptr unique", ptr1.unique(), true);
             {
                 auto ptr2 = ptr1;
-                test_eq("shared_ptr copy pt1", ptr1.use_count(), 2U);
-                test_eq("shared_ptr copy pt2", ptr2.use_count(), 2U);
+                test_eq("shared_ptr copy pt1", ptr1.use_count(), 2L);
+                test_eq("shared_ptr copy pt2", ptr2.use_count(), 2L);
                 test_eq("shared_ptr copy no constructor call", mock::copy_constructor_calls, 0U);
                 test_eq("shared_ptr not unique", ptr1.unique(), false);
 
                 auto ptr3 = std::move(ptr2);
-                test_eq("shared_ptr move pt1", ptr1.use_count(), 2U);
-                test_eq("shared_ptr move pt2", ptr3.use_count(), 2U);
+                test_eq("shared_ptr move pt1", ptr1.use_count(), 2L);
+                test_eq("shared_ptr move pt2", ptr3.use_count(), 2L);
+                test_eq("shared_ptr move pt3", ptr2.use_count(), 0L);
 
                 test_eq("shared_ptr move origin empty", (bool)ptr2, false);
             }
             test_eq("shared_ptr copy out of scope", mock::destructor_calls, 0U);
         }
         test_eq("shared_ptr original out of scope", mock::destructor_calls, 1U);
+    }
+
+    void memory_test::test_weak_ptr()
+    {
+        mock::clear();
+        {
+            std::weak_ptr<mock> wptr1{};
+            {
+                auto ptr1 = std::make_shared<mock>();
+                wptr1 = ptr1;
+                {
+                    std::weak_ptr<mock> wptr2 = ptr1;
+                    test_eq("weak_ptr shares use count", wptr2.use_count(), 1L);
+                    test_eq("weak_ptr not expired", wptr2.expired(), false);
+
+                    auto ptr2 = wptr2.lock();
+                    test_eq("locked ptr increases use count", ptr1.use_count(), 2L);
+                }
+            }
+            test_eq("weak_ptr expired after all shared_ptrs die", wptr1.expired(), true);
+            test_eq("shared object destroyed while weak_ptr exists", mock::destructor_calls, 1U);
+        }
+    }
+
+    void memory_test::test_allocators()
+    {
+        using dummy_traits1 = std::allocator_traits<aux::dummy_allocator1>;
+        using dummy_traits2 = std::allocator_traits<aux::dummy_allocator2>;
+
+        /* static_assert(std::is_same_v<typename dummy_traits1::pointer, int*>); */
+        /* static_assert(std::is_same_v<typename dummy_traits2::pointer, char*>); */
+    }
+
+    void memory_test::test_pointers()
+    {
+        using dummy_traits1 = std::pointer_traits<aux::dummy_pointer1>;
+        using dummy_traits2 = std::pointer_traits<aux::dummy_pointer2<int, char>>;
+        using int_traits    = std::pointer_traits<int*>;
+
+        static_assert(std::is_same_v<typename dummy_traits1::pointer, aux::dummy_pointer1>);
+        static_assert(std::is_same_v<typename dummy_traits1::element_type, int>);
+        static_assert(std::is_same_v<typename dummy_traits1::difference_type, bool>);
+        static_assert(std::is_same_v<typename dummy_traits1::template rebind<long>, unsigned>);
+
+        int x{10};
+        test_eq("pointer_traits<Ptr>::pointer_to", dummy_traits1::pointer_to(x).tag, 10);
+
+        static_assert(std::is_same_v<typename dummy_traits2::pointer, aux::dummy_pointer2<int, char>>);
+        static_assert(std::is_same_v<typename dummy_traits2::element_type, signed char>);
+        static_assert(std::is_same_v<typename dummy_traits2::difference_type, unsigned char>);
+
+        static_assert(std::is_same_v<typename int_traits::pointer, int*>);
+        static_assert(std::is_same_v<typename int_traits::element_type, int>);
+        static_assert(std::is_same_v<typename int_traits::difference_type, ptrdiff_t>);
+        static_assert(std::is_same_v<typename int_traits::rebind<char>, char*>);
     }
 }

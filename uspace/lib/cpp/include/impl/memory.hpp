@@ -31,8 +31,9 @@
 
 #include <internal/aux.hpp>
 #include <internal/functional/hash.hpp>
-#include <internal/memory/allocator_arg.hpp>
 #include <internal/memory/addressof.hpp>
+#include <internal/memory/allocator_arg.hpp>
+#include <internal/memory/type_getters.hpp>
 #include <iterator>
 #include <new>
 #include <type_traits>
@@ -42,18 +43,58 @@ namespace std
 {
     /**
      * 20.7.3, pointer traits:
+     * Note: The type getters that are used in pointer_traits
+     *       and allocator_traits are implemented in
+     *       <internal/memory/type_getters.hpp>.
      */
 
     template<class Ptr>
     struct pointer_traits
     {
-        using pointer = Ptr;
-        // TODO: element type, difference type
+        using pointer         = Ptr;
+        using element_type    = typename aux::ptr_get_element_type<Ptr>::type;
+        using difference_type = typename aux::ptr_get_difference_type<Ptr>::type;
 
-        // TODO: this is conditional, see standard
         template<class U>
-        using rebind = typename Ptr::template rebind<U>;
+        using rebind = typename aux::ptr_get_rebind<Ptr, U>::type;
+
+        static pointer pointer_to( // If is_void_t<element_type>, this type is unspecified.
+            conditional_t<is_void_v<element_type>, char, element_type&> x
+        )
+        {
+            return Ptr::pointer_to(x);
+        }
     };
+
+    template<class T>
+    struct pointer_traits<T*>
+    {
+        using pointer         = T*;
+        using element_type    = T;
+        using difference_type = ptrdiff_t;
+
+        template<class U>
+        using rebind = U*;
+
+        static pointer pointer_to(
+            conditional_t<is_void_v<element_type>, char, element_type&> x
+        )
+        {
+            return std::addressof(x);
+        }
+    };
+
+    /**
+     * 20.7.4, pointer safety:
+     */
+
+    // TODO: implement
+
+    /**
+     * 20.7.5, align:
+     */
+
+    // TODO: implement
 
     /**
      * 20.7.7, uses_allocator:
@@ -83,129 +124,6 @@ namespace std
     /**
      * 20.7.8, allocator traits:
      */
-
-    namespace aux
-    {
-        /**
-         * The standard mandates that we reuse type from allocators
-         * *if* they are defined or that we use something different.
-         * These structures help us alternate between those by
-         * using SFINAE.
-         * TODO: Create tests for these!
-         */
-
-        template<class T, class = void>
-        struct get_pointer: aux::type_is<typename T::value_type*>
-        { /* DUMMY BODY */ };
-
-        template<class T>
-        struct get_pointer<T, void_t<typename T::pointer>>
-            : aux::type_is<typename T::pointer>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Ptr, class = void>
-        struct get_const_pointer
-            : aux::type_is<typename pointer_traits<Ptr>::template rebind<const typename T::value_type>>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Ptr>
-        struct get_const_pointer<T, Ptr, void_t<typename T::const_pointer>>
-            : aux::type_is<typename T::const_pointer>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Ptr, class = void>
-        struct get_void_pointer
-            : aux::type_is<typename pointer_traits<Ptr>::template rebind<void>>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Ptr>
-        struct get_void_pointer<T, Ptr, void_t<typename T::void_pointer>>
-            : aux::type_is<typename T::void_pointer>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Ptr, class = void>
-        struct get_const_void_pointer
-            : aux::type_is<typename pointer_traits<Ptr>::template rebind<const void>>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Ptr>
-        struct get_const_void_pointer<T, Ptr, void_t<typename T::const_void_pointer>>
-            : aux::type_is<typename T::const_void_pointer>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Ptr, class = void>
-        struct get_difference_type
-            : aux::type_is<typename pointer_traits<Ptr>::difference_type>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Ptr>
-        struct get_difference_type<T, Ptr, void_t<typename T::difference_type>>
-            : aux::type_is<typename T::difference_type>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Difference, class = void>
-        struct get_size_type: aux::type_is<make_unsigned_t<Difference>>
-        { /* DUMMY BODY */ };
-
-        template<class T, class Difference>
-        struct get_size_type<T, Difference, void_t<typename T::size_type>>
-            : aux::type_is<typename T::size_type>
-        { /* DUMMY BODY */ };
-
-        template<class T, class = void>
-        struct get_copy_propagate: aux::type_is<false_type>
-        { /* DUMMY BODY */ };
-
-        template<class T>
-        struct get_copy_propagate<T, void_t<typename T::propagate_on_container_copy_assignment>>
-            : aux::type_is<typename T::propagate_on_container_copy_assignment>
-        { /* DUMMY BODY */ };
-
-        template<class T, class = void>
-        struct get_move_propagate: aux::type_is<false_type>
-        { /* DUMMY BODY */ };
-
-        template<class T>
-        struct get_move_propagate<T, void_t<typename T::propagate_on_container_move_assignment>>
-            : aux::type_is<typename T::propagate_on_container_move_assignment>
-        { /* DUMMY BODY */ };
-
-        template<class T, class = void>
-        struct get_swap_propagate: aux::type_is<false_type>
-        { /* DUMMY BODY */ };
-
-        template<class T>
-        struct get_swap_propagate<T, void_t<typename T::propagate_on_container_swap>>
-            : aux::type_is<typename T::propagate_on_container_swap>
-        { /* DUMMY BODY */ };
-
-        template<class T, class = void>
-        struct get_always_equal: aux::type_is<typename is_empty<T>::type>
-        { /* DUMMY BODY */ };
-
-        template<class T>
-        struct get_always_equal<T, void_t<typename T::is_always_equal>>
-            : aux::type_is<typename T::is_always_equal>
-        { /* DUMMY BODY */ };
-
-        template<class Alloc, class T, class = void>
-        struct get_rebind_other
-        { /* DUMMY BODY */ };
-
-        template<class Alloc, class T>
-        struct get_rebind_other<Alloc, T, void_t<typename Alloc::template rebind<T>::other>>
-            : aux::type_is<typename Alloc::template rebind<T>::other>
-        { /* DUMMY BODY */ };
-
-        /* TODO: How am I suppose to do this?!
-        template<template<class T, class... Args> class Alloc>
-        struct get_rebind_args;
-        */
-
-        template<class Alloc, class T>
-        struct get_rebind_args: aux::type_is<typename get_rebind_other<Alloc, T>::type>
-        { /* DUMMY BODY */ };
-    }
 
     template<class Alloc>
     struct allocator_traits

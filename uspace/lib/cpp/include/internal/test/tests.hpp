@@ -251,6 +251,10 @@ namespace std::test
 
         private:
             void test_unique_ptr();
+            void test_shared_ptr();
+            void test_weak_ptr();
+            void test_allocators();
+            void test_pointers();
     };
 }
 
