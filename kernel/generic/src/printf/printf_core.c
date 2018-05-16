@@ -783,9 +783,9 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 			unsigned int base = 10;
 
 			switch (uc) {
-			/*
-			 * String and character conversions.
-			 */
+				/*
+				 * String and character conversions.
+				 */
 			case 's':
 				if (qualifier == PrintfQualifierLong)
 					retval = print_wstr(va_arg(ap, wchar_t *), width, precision, flags, ps);
@@ -815,9 +815,9 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				j = nxt;
 				continue;
 
-			/*
-			 * Integer values
-			 */
+				/*
+				 * Integer values
+				 */
 			case 'P':
 				/* Pointer */
 				flags |= __PRINTF_FLAG_BIGCHARS;
@@ -847,14 +847,14 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				base = 16;
 				break;
 
-			/* Percentile itself */
 			case '%':
+				/* Percentile itself */
 				j = i;
 				continue;
 
-			/*
-			 * Bad formatting.
-			 */
+				/*
+				 * Bad formatting.
+				 */
 			default:
 				/*
 				 * Unknown format. Now, j is the index of '%'

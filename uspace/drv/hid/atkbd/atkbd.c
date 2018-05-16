@@ -308,11 +308,11 @@ default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
 	case KBDEV_SET_IND:
 		async_answer_0(icall_handle, ENOTSUP);
 		break;
-	/*
-	 * This might be ugly but async_callback_receive_start makes no
-	 * difference for incorrect call and malloc failure.
-	 */
 	case IPC_M_CONNECT_TO_ME:
+		/*
+		 * This might be ugly but async_callback_receive_start makes no
+		 * difference for incorrect call and malloc failure.
+		 */
 		sess = async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 
 		/* Probably ENOMEM error, try again. */

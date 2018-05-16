@@ -374,8 +374,8 @@ static errno_t parse_option(int argc, char *argv[], int *index)
 	case 'v':
 		verbose = true;
 		break;
-	/* Long options with double dash */
 	case '-':
+		/* Long options with double dash */
 		if (str_lcmp(argv[*index] + 2, "help", 5) == 0) {
 			usage();
 			exit(0);

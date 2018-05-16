@@ -52,7 +52,8 @@
 // Just a marker for external tools.
 #define _HIDE_LIBC_SYMBOL(symbol)
 
-/* Checks if the value is a failing error code.
+/** Checks if the value is a failing error code.
+ *
  * If so, writes the error code to errno and returns true.
  */
 static inline bool failed(int rc)

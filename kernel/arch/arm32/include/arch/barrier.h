@@ -48,7 +48,8 @@
 #define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
 
 #if defined PROCESSOR_ARCH_armv7_a
-/* ARMv7 uses instructions for memory barriers see ARM Architecture reference
+/*
+ * ARMv7 uses instructions for memory barriers see ARM Architecture reference
  * manual for details:
  * DMB: ch. A8.8.43 page A8-376
  * DSB: ch. A8.8.44 page A8-378
@@ -68,7 +69,8 @@
  * - Clean and prefetch range operations.
  * ARM Architecture Reference Manual version I ch. B.3.2.1 p. B3-4
  */
-/* ARMv6- use system control coprocessor (CP15) for memory barrier instructions.
+/*
+ * ARMv6- use system control coprocessor (CP15) for memory barrier instructions.
  * Although at least mcr p15, 0, r0, c7, c10, 4 is mentioned in earlier archs,
  * CP15 implementation is mandatory only for armv6+.
  */
@@ -85,7 +87,8 @@
 #define inst_barrier()
 #endif
 #else
-/* Older manuals mention syscalls as a way to implement cache coherency and
+/*
+ * Older manuals mention syscalls as a way to implement cache coherency and
  * barriers. See for example ARM Architecture Reference Manual Version D
  * chapter 2.7.4 Prefetching and self-modifying code (p. A2-28)
  */
@@ -122,8 +125,10 @@ do { \
 	icache_invalidate();\
 	inst_barrier();                /* Wait for Inst refetch */\
 } while (0)
-/* @note: Cache type register is not available in uspace. We would need
- * to export the cache line value, or use syscall for uspace smc_coherence */
+/*
+ * @note: Cache type register is not available in uspace. We would need
+ * to export the cache line value, or use syscall for uspace smc_coherence
+ */
 #define smc_coherence_block(a, l) \
 do { \
 	for (uintptr_t addr = (uintptr_t) a; addr < (uintptr_t) a + l; \

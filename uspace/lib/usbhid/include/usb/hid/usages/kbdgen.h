@@ -31,19 +31,20 @@
  */
 /** @file
  * @brief USB HID key codes.
- * @details
+ *
  * This is not a typical header as by default it is equal to empty file.
  * However, by cleverly defining the USB_HIDUT_KBD_KEY you can use it
  * to generate conversion tables etc.
  *
  * For example, this creates enum for known keys:
  * @code
-#define USB_HIDUT_KBD_KEY(name, usage_id, l, lc, l1, l2) \
-	USB_KBD_KEY_##name = usage_id,
-typedef enum {
-	#include <usb/hidutkbd.h>
-} usb_key_code_t;
- @endcode
+ * #define USB_HIDUT_KBD_KEY(name, usage_id, l, lc, l1, l2) \
+ *     USB_KBD_KEY_##name = usage_id,
+ *
+ * typedef enum {
+ *         #include <usb/hidutkbd.h>
+ * } usb_key_code_t;
+ * @endcode
  *
  * Maybe, it might be better that you would place such enums into separate
  * files and create them as separate step before compiling to allow tools

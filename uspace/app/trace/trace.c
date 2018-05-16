@@ -722,8 +722,10 @@ static void main_init(void)
 	proto_add_oper(p, VFS_IN_PUT, o);
 	o = oper_new("vfs_mount", 2, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_MOUNT, o);
-/*	o = oper_new("unmount", 0, arg_def);
-	proto_add_oper(p, VFS_IN_UNMOUNT, o);*/
+#if 0
+	o = oper_new("unmount", 0, arg_def);
+	proto_add_oper(p, VFS_IN_UNMOUNT, o);
+#endif
 	o = oper_new("vfs_sync", 1, arg_def, V_ERRNO, 0, resp_def);
 	proto_add_oper(p, VFS_IN_SYNC, o);
 	o = oper_new("rename", 0, arg_def, V_ERRNO, 0, resp_def);

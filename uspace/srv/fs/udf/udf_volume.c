@@ -654,7 +654,10 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 		    (udf_volume_descriptor_t *) block->data;
 
 		switch (FLE16(vol->common.tag.id)) {
-		/* One sector size descriptors */
+			/*
+			 * One sector size descriptors
+			 */
+
 		case UDF_TAG_PVD:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Primary volume descriptor found");
 
@@ -727,7 +730,10 @@ errno_t udf_read_volume_descriptor_sequence(service_id_t service_id,
 			pos++;
 			break;
 
-		/* Relative size descriptors */
+			/*
+			 * Relative size descriptors
+			 */
+
 		case UDF_TAG_LVD:
 			log_msg(LOG_DEFAULT, LVL_DEBUG, "Volume: Logical volume descriptor found");
 

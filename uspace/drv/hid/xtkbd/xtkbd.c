@@ -363,11 +363,11 @@ static void default_connection_handler(ddf_fun_t *fun,
 		rc = chardev_write(kbd->chardev, &cmds[1], 1, &nwr);
 		async_answer_0(icall_handle, rc);
 		break;
-	/*
-	 * This might be ugly but async_callback_receive_start makes no
-	 * difference for incorrect call and malloc failure.
-	 */
 	case IPC_M_CONNECT_TO_ME:
+		/*
+		 * This might be ugly but async_callback_receive_start makes no
+		 * difference for incorrect call and malloc failure.
+		 */
 		sess = async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 
 		/* Probably ENOMEM error, try again. */

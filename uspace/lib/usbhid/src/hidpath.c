@@ -212,8 +212,10 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 	}
 
 	switch (flags) {
-	/* Path is somewhere in report_path */
 	case USB_HID_PATH_COMPARE_ANYWHERE:
+		/*
+		 * Path is somewhere in report_path
+		 */
 		if (path->depth != 1) {
 			return 1;
 		}
@@ -238,17 +240,20 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		}
 
 		return 1;
-		break;
 
-	/* The paths must be identical */
 	case USB_HID_PATH_COMPARE_STRICT:
+		/*
+		 * The paths must be identical
+		 */
 		if (report_path->depth != path->depth) {
 			return 1;
 		}
 		/* Fallthrough */
 
-	/* Path is prefix of the report_path */
 	case USB_HID_PATH_COMPARE_BEGIN:
+		/*
+		 * Path is prefix of the report_path
+		 */
 		report_link = report_path->items.head.next;
 		path_link = path->items.head.next;
 
@@ -282,8 +287,10 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 		}
 		break;
 
-	/* Path is suffix of report_path */
 	case USB_HID_PATH_COMPARE_END:
+		/*
+		 * Path is suffix of report_path
+		 */
 		report_link = report_path->items.head.prev;
 		path_link = path->items.head.prev;
 

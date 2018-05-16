@@ -118,9 +118,9 @@ static inline bool method_is_immutable(sysarg_t imethod)
 }
 
 
-/***********************************************************************
+/*
  * Functions that preprocess answer before sending it to the recepient.
- ***********************************************************************/
+ */
 
 /** Decide if the caller (e.g. ipc_answer()) should save the old call contents
  * for answer_preprocess().
@@ -227,9 +227,9 @@ static errno_t request_preprocess(call_t *call, phone_t *phone)
 	return SYSIPC_OP(request_preprocess, call, phone);
 }
 
-/*******************************************************************************
+/*
  * Functions called to process received call/answer before passing it to uspace.
- *******************************************************************************/
+ */
 
 /** Do basic kernel processing of received call answer.
  *

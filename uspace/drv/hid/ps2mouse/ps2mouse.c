@@ -323,13 +323,15 @@ static errno_t polling_intellimouse(void *arg)
 		}
 
 		/* Buttons */
-		/* NOTE: Parsing 4th and 5th button works even if this extension
+		/*
+		 * NOTE: Parsing 4th and 5th button works even if this extension
 		 * is not supported and whole 4th byte should be interpreted
 		 * as Z-axis movement. the upper 4 bits are just a sign
 		 * extension then. + sign is interpreted as "button up"
 		 * (i.e no change since that is the default) and - sign fails
 		 * the "imb" condition. Thus 4th and 5th buttons are never
-		 * down on wheel only extension. */
+		 * down on wheel only extension.
+		 */
 		const bool imb = (packet[3] & INTELLIMOUSE_ALWAYS_ZERO) == 0;
 		const bool status[] = {
 			[0] = packet[0] & PS2_BUTTON_MASK(0),
@@ -410,9 +412,11 @@ void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
 	async_sess_t *sess;
 
 	switch (method) {
-	/* This might be ugly but async_callback_receive_start makes no
-	 * difference for incorrect call and malloc failure. */
 	case IPC_M_CONNECT_TO_ME:
+		/*
+		 * This might be ugly but async_callback_receive_start makes no
+		 * difference for incorrect call and malloc failure.
+		 */
 		sess = async_callback_receive_start(EXCHANGE_SERIALIZE, icall);
 		/* Probably ENOMEM error, try again. */
 		if (sess == NULL) {

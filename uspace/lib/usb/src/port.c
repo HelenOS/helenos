@@ -223,8 +223,8 @@ void usb_port_fini(usb_port_t *port)
 	case PORT_DISABLED:
 		break;
 
-	/* We first have to stop the fibril in progress. */
 	case PORT_CONNECTING:
+		/* We first have to stop the fibril in progress. */
 		port->state = PORT_ERROR;
 		fibril_condvar_broadcast(&port->enabled_cv);
 		/* fallthrough */
