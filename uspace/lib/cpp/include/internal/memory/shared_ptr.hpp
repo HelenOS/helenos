@@ -34,6 +34,7 @@
 #include <internal/functional/hash.hpp>
 #include <internal/memory/allocator_arg.hpp>
 #include <internal/memory/shared_payload.hpp>
+#include <internal/memory/unique_ptr.hpp>
 #include <internal/trycatch.hpp>
 #include <type_traits>
 
