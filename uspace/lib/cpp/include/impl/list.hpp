@@ -70,7 +70,7 @@ namespace std
                 list_const_iterator& operator=(list_const_iterator&&) = default;
 
                 list_const_iterator(const list_iterator<T>& other)
-                    : current_{other.node()}, head_{other.head()}
+                    : current_{other.node()}, head_{other.head()}, end_{other.end()}
                 { /* DUMMY BODY */ }
 
                 reference operator*() const
@@ -306,6 +306,30 @@ namespace std
 
         template<class T>
         bool operator!=(const list_iterator<T>& lhs, const list_iterator<T>& rhs)
+        {
+            return !(lhs == rhs);
+        }
+
+        template<class T>
+        bool operator==(const list_const_iterator<T>& lhs, const list_iterator<T>& rhs)
+        {
+            return (lhs.node() == rhs.node()) && (lhs.end() == rhs.end());
+        }
+
+        template<class T>
+        bool operator!=(const list_const_iterator<T>& lhs, const list_iterator<T>& rhs)
+        {
+            return !(lhs == rhs);
+        }
+
+        template<class T>
+        bool operator==(const list_iterator<T>& lhs, const list_const_iterator<T>& rhs)
+        {
+            return (lhs.node() == rhs.node()) && (lhs.end() == rhs.end());
+        }
+
+        template<class T>
+        bool operator!=(const list_iterator<T>& lhs, const list_const_iterator<T>& rhs)
         {
             return !(lhs == rhs);
         }
@@ -873,7 +897,7 @@ namespace std
                 if (&other == this || other.empty())
                     return;
 
-                if (first.node() == other.head_ && !last.node())
+                if (first == other.begin() && last == other.end())
                 { // [first, last) is everything in other.
                     splice(position, other);
                     return;
@@ -883,7 +907,7 @@ namespace std
                 aux::list_node<value_type>* first_node{};
                 aux::list_node<value_type>* last_node{};
 
-                if (first.node() == other.head_)
+                if (first == other.begin())
                 { // The range is a prefix of other.
                     other.head_ = last.node();
                     other.head_->prev = first.node()->prev;
@@ -892,7 +916,7 @@ namespace std
                     first_node = first.node();
                     last_node = last.node()->prev;
                 }
-                else if (!last.node())
+                else if (last == other.end())
                 { // The range is a suffix of other.
                     auto new_last = first.node()->prev;
                     auto old_last = other.head_->prev;
@@ -927,7 +951,12 @@ namespace std
                     last_node->next = target;
                 }
 
-                auto count = distance(iterator{first_node}, iterator{last_node});
+                auto count = distance(
+                    iterator{first_node, nullptr, false},
+                    iterator{last_node, nullptr, false}
+                );
+                ++count;
+
                 size_ += count;
                 other.size_ -= count;
             }

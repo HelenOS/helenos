@@ -236,6 +236,80 @@ namespace std::test
         l1.clear();
         test_eq("clear empty", l1.empty(), true);
         test_eq("clear size", l1.size(), 0U);
+
+        std::list<int> l2{1, 2, 3, 4, 5};
+        std::list<int> l3{10, 20, 30, 40, 50};
+
+        auto check6 = {1, 2, 10, 20, 30, 40, 50, 3, 4, 5};
+        auto check7 = {1, 2, 10, 20, 30, 40, 50};
+        auto check8 = {3, 4, 5};
+
+        auto it6 = l2.begin();
+        std::advance(it6, 2);
+
+        l2.splice(it6, l3);
+        test_eq(
+            "splice pt1",
+            check6.begin(), check6.end(),
+            l2.begin(), l2.end()
+        );
+        test_eq("splice pt2", l3.empty(), true);
+
+        l3.splice(l3.begin(), l2, it6, l2.end());
+        test_eq(
+            "splice pt3",
+            check7.begin(), check7.end(),
+            l2.begin(), l2.end()
+        );
+        test_eq(
+            "splice pt4",
+            check8.begin(), check8.end(),
+            l3.begin(), l3.end()
+        );
+        test_eq("splice size pt1", l2.size(), 7U);
+        test_eq("splice size pt2", l3.size(), 3U);
+
+        auto check9 = {1, -1, 2, -2, 3, -3, 4, -4};
+        auto check10 = {1, 2, 3, 4};
+        std::list<int> l4{1, -1, 2, 5, -2, 5, 3, -3, 5, 4, -4};
+
+        l4.remove(5);
+        test_eq(
+            "remove",
+            check9.begin(), check9.end(),
+            l4.begin(), l4.end()
+        );
+        test_eq("remove size", l4.size(), 8U);
+
+        l4.remove_if([](auto x){ return x < 0; });
+        test_eq(
+            "remove_if",
+            check10.begin(), check10.end(),
+            l4.begin(), l4.end()
+        );
+        test_eq("remove_if size", l4.size(), 4U);
+
+        auto check11 = {1, 2, 3, 2, 4, 5};
+        std::list<int> l5{1, 1, 2, 3, 3, 2, 2, 4, 5, 5};
+
+        l5.unique();
+        test_eq(
+            "unique",
+            check11.begin(), check11.end(),
+            l5.begin(), l5.end()
+        );
+        test_eq("unique size", l5.size(), 6U);
+
+        auto check12 = {1, 3, 3, 5, 7, 9, 9};
+        std::list<int> l6{1, 3, 3, 4, 4, 5, 6, 6, 6, 7, 8, 9, 9};
+
+        l6.unique([](auto lhs, auto rhs){ return lhs == rhs + 1; });
+        test_eq(
+            "unique predicate",
+            check12.begin(), check12.end(),
+            l6.begin(), l6.end()
+        );
+        test_eq("unique predicate size", l6.size(), 7U);
     }
 }
 
