@@ -64,6 +64,7 @@ SOURCES = \
 	src/__bits/test/memory.cpp \
 	src/__bits/test/mock.cpp \
 	src/__bits/test/numeric.cpp \
+	src/__bits/test/ratio.cpp \
 	src/__bits/test/set.cpp \
 	src/__bits/test/string.cpp \
 	src/__bits/test/test.cpp \

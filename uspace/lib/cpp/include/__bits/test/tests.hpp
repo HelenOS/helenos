@@ -266,6 +266,13 @@ namespace std::test
             void test_construction_and_assignment();
             void test_modifiers();
     };
+
+    class ratio_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+    };
 }
 
 #endif
