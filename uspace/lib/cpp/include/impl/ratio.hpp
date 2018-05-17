@@ -137,8 +137,14 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class R1, class R2>
+    inline constexpr bool ratio_equal_v = ratio_equal<R1, R2>::value;
+
+    template<class R1, class R2>
     struct ratio_not_equal: integral_constant<bool, !ratio_equal<R1, R2>::value>
     { /* DUMMY BODY */ };
+
+    template<class R1, class R2>
+    inline constexpr bool ratio_not_equal_v = ratio_not_equal<R1, R2>::value;
 
     template<class R1, class R2>
     struct ratio_less: integral_constant<
@@ -147,16 +153,28 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class R1, class R2>
+    inline constexpr bool ratio_less_v = ratio_less<R1, R2>::value;
+
+    template<class R1, class R2>
     struct ratio_less_equal: integral_constant<bool, !ratio_less<R2, R1>::value>
     { /* DUMMY BODY */ };
+
+    template<class R1, class R2>
+    inline constexpr bool ratio_less_equal_v = ratio_less_equal<R1, R2>::value;
 
     template<class R1, class R2>
     struct ratio_greater: integral_constant<bool, ratio_less<R2, R1>::value>
     { /* DUMMY BODY */ };
 
     template<class R1, class R2>
+    inline constexpr bool ratio_greater_v = ratio_greater<R1, R2>::value;
+
+    template<class R1, class R2>
     struct ratio_greater_equal: integral_constant<bool, !ratio_less<R1, R2>::value>
     { /* DUMMY BODY */ };
+
+    template<class R1, class R2>
+    inline constexpr bool ratio_greater_equal_v = ratio_greater_equal<R1, R2>::value;
 
     /**
      * 20.11.6, convenience SI typedefs:
