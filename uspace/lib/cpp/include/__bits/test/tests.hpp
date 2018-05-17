@@ -264,6 +264,7 @@ namespace std::test
 
         private:
             void test_construction_and_assignment();
+            void test_modifiers();
     };
 }
 

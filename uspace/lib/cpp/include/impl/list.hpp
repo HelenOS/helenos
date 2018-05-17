@@ -70,7 +70,7 @@ namespace std
                 list_const_iterator& operator=(list_const_iterator&&) = default;
 
                 list_const_iterator(const list_iterator<T>& other)
-                    : current_{other.current_}, head_{other.head_}
+                    : current_{other.node()}, head_{other.head()}
                 { /* DUMMY BODY */ }
 
                 reference operator*() const
@@ -124,12 +124,22 @@ namespace std
 
                 list_node<value_type>* node()
                 {
-                    return current_;
+                    return const_cast<list_node<value_type>*>(current_);
                 }
 
                 const list_node<value_type>* node() const
                 {
                     return current_;
+                }
+
+                list_node<value_type>* head()
+                {
+                    return const_cast<list_node<value_type>*>(head_);
+                }
+
+                const list_node<value_type>* head() const
+                {
+                    return head_;
                 }
 
                 list_const_iterator operator-(difference_type n) const
@@ -153,8 +163,8 @@ namespace std
                 }
 
             private:
-                list_node<value_type>* current_;
-                list_node<value_type>* head_;
+                const list_node<value_type>* current_;
+                const list_node<value_type>* head_;
                 bool end_;
         };
 
@@ -252,9 +262,14 @@ namespace std
                     return current_;
                 }
 
-                operator list_const_iterator<T>() const
+                list_node<value_type>* head()
                 {
-                    return list_const_iterator<T>{current_};
+                    return head_;
+                }
+
+                const list_node<value_type>* head() const
+                {
+                    return head_;
                 }
 
                 list_iterator operator-(difference_type n) const
@@ -745,17 +760,22 @@ namespace std
                     return end();
 
                 auto first_node = first.node();
-                auto last_node = last.node();
+                auto last_node = last.node()->prev;
                 auto prev = first_node->prev;
                 auto next = last_node->next;
 
-                prev->append(next);
+                first_node->prev = nullptr;
+                last_node->next = nullptr;
+                prev->next = next;
+                next->prev = prev;
 
-                while (first_node != next)
+                while (first_node)
                 {
-                    // TODO: test with head in the range
-                    /* if (first_node == head_) */
-                    /*     head_ = last.node()->next; */
+                    if (first_node == head_)
+                    {
+                        head_ = next;
+                        head_->prev = prev;
+                    }
 
                     auto tmp = first_node;
                     first_node = first_node->next;

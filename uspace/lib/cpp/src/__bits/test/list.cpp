@@ -39,6 +39,7 @@ namespace std::test
         start();
 
         test_construction_and_assignment();
+        test_modifiers();
 
         return end();
     }
@@ -150,6 +151,91 @@ namespace std::test
 
         test_eq("front", l5.front(), 5);
         test_eq("back", l5.back(), 1);
+    }
+
+    void list_test::test_modifiers()
+    {
+        std::list<int> l1{};
+        test_eq("empty list", l1.empty(), true);
+
+        l1.push_back(1);
+        test_eq("empty list push_back pt1", l1.size(), 1U);
+        test_eq("empty list push_back pt2", l1.empty(), false);
+        test_eq("empty list push_back pt3", l1.front(), 1);
+        test_eq("empty list push_back pt4", l1.back(), 1);
+
+        l1.push_front(2);
+        test_eq("push_front pt1", l1.size(), 2U);
+        test_eq("push_front pt2", l1.front(), 2);
+        test_eq("push_front pt3", l1.back(), 1);
+
+        l1.pop_back();
+        test_eq("pop_back pt1", l1.size(), 1U);
+        test_eq("pop_back pt2", l1.back(), 2);
+
+        l1.push_front(3);
+        test_eq("size", l1.size(), 2U);
+
+        l1.pop_front();
+        test_eq("pop_front", l1.front(), 2);
+
+        auto check1 = {2, 42, 42, 42, 42, 42};
+        l1.insert(l1.begin(), 5U, 42);
+        test_eq(
+            "insert n*value",
+            check1.begin(), check1.end(),
+            l1.begin(), l1.end()
+        );
+
+        auto data1 = {33, 34};
+        auto check2 = {2, 42, 33, 34, 42, 42, 42, 42};
+        auto it1 = l1.begin();
+        std::advance(it1, 2);
+
+        l1.insert(it1, data1.begin(), data1.end());
+        test_eq(
+            "insert iterator range",
+            check2.begin(), check2.end(),
+            l1.begin(), l1.end()
+        );
+
+        auto check3 = {2, 42, 33, 34, 42, 33, 34, 42, 42, 42};
+        auto it2 = l1.begin();
+        std::advance(it2, 5);
+
+        l1.insert(it2, data1);
+        test_eq(
+            "insert initializer_list",
+            check3.begin(), check3.end(),
+            l1.begin(), l1.end()
+        );
+
+        auto check4 = {2, 42, 33, 34, 33, 34, 42, 42, 42};
+        auto it3 = l1.begin();
+        std::advance(it3, 4);
+
+        l1.erase(it3);
+        test_eq(
+            "erase iterator",
+            check4.begin(), check4.end(),
+            l1.begin(), l1.end()
+        );
+
+        auto check5 = {33, 34, 42, 42, 42};
+        auto it4 = l1.begin();
+        auto it5 = l1.begin();
+        std::advance(it5, 4);
+
+        l1.erase(it4, it5);
+        test_eq(
+            "erase iterator range",
+            check5.begin(), check5.end(),
+            l1.begin(), l1.end()
+        );
+
+        l1.clear();
+        test_eq("clear empty", l1.empty(), true);
+        test_eq("clear size", l1.size(), 0U);
     }
 }
 
