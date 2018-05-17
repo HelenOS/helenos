@@ -328,7 +328,8 @@ namespace std
                 : base_t{}
             { /* DUMMY BODY */ }
 
-            constexpr explicit tuple(const Ts&... ts)
+            constexpr explicit tuple(
+                const Ts&... ts, enable_if_t<sizeof...(Ts) != 0>* = nullptr)
                 : base_t(ts...)
             { /* DUMMY BODY */ }
 
