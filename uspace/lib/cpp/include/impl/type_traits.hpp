@@ -944,6 +944,10 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<>
+    struct make_signed<char>: aux::type_is<signed char>
+    { /* DUMMY BODY */ };
+
+    template<>
     struct make_signed<unsigned char>: aux::type_is<signed char>
     { /* DUMMY BODY */ };
 
@@ -965,6 +969,10 @@ namespace std
 
     template<class T>
     struct make_unsigned: aux::type_is<T>
+    { /* DUMMY BODY */ };
+
+    template<>
+    struct make_unsigned<char>: aux::type_is<unsigned char>
     { /* DUMMY BODY */ };
 
     template<>
