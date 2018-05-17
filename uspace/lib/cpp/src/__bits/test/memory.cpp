@@ -211,31 +211,91 @@ namespace std::test
          * anything except for the mandatory value_type,
          * so we get all the defaults here.
          */
-        static_assert(std::is_same_v<typename dummy_traits1::pointer, int*>);
-        static_assert(std::is_same_v<typename dummy_traits1::const_pointer, const int*>);
-        static_assert(std::is_same_v<typename dummy_traits1::void_pointer, void*>);
-        static_assert(std::is_same_v<typename dummy_traits1::const_void_pointer, const void*>);
-        static_assert(std::is_same_v<typename dummy_traits1::difference_type, ptrdiff_t>);
-        static_assert(std::is_same_v<typename dummy_traits1::size_type, std::make_unsigned_t<ptrdiff_t>>);
-        static_assert(std::is_same_v<typename dummy_traits1::propagate_on_container_copy_assignment, std::false_type>);
-        static_assert(std::is_same_v<typename dummy_traits1::propagate_on_container_move_assignment, std::false_type>);
-        static_assert(std::is_same_v<typename dummy_traits1::propagate_on_container_swap, std::false_type>);
-        static_assert(std::is_same_v<typename dummy_traits1::is_always_equal, typename std::is_empty<aux::dummy_allocator1>::type>);
+        test(
+            "allocator traits default for pointer",
+            std::is_same_v<typename dummy_traits1::pointer, int*>
+        );
+        test(
+            "allocator traits default for const_pointer",
+            std::is_same_v<typename dummy_traits1::const_pointer, const int*>
+        );
+        test(
+            "allocator traits default for void_pointer",
+            std::is_same_v<typename dummy_traits1::void_pointer, void*>
+        );
+        test(
+            "allocator traits default for const_void_pointer",
+            std::is_same_v<typename dummy_traits1::const_void_pointer, const void*>
+        );
+        test(
+            "allocator traits default for difference_type",
+            std::is_same_v<typename dummy_traits1::difference_type, ptrdiff_t>
+        );
+        test(
+            "allocator traits default for size_type",
+            std::is_same_v<typename dummy_traits1::size_type, std::make_unsigned_t<ptrdiff_t>>
+        );
+        test(
+            "allocator traits default for copy propagate",
+            std::is_same_v<typename dummy_traits1::propagate_on_container_copy_assignment, std::false_type>
+        );
+        test(
+            "allocator traits default for move propagate",
+            std::is_same_v<typename dummy_traits1::propagate_on_container_move_assignment, std::false_type>
+        );
+        test(
+            "allocator traits default for swap propagate",
+            std::is_same_v<typename dummy_traits1::propagate_on_container_swap, std::false_type>
+        );
+        test(
+            "allocator traits default for is_always_equal",
+            std::is_same_v<typename dummy_traits1::is_always_equal, typename std::is_empty<aux::dummy_allocator1>::type>
+        );
 
         /**
          * Second dummy allocator provides all typedefs, so
          * the the traits just use identity.
          */
-        static_assert(std::is_same_v<typename dummy_traits2::pointer, char*>);
-        static_assert(std::is_same_v<typename dummy_traits2::const_pointer, const void*>);
-        static_assert(std::is_same_v<typename dummy_traits2::void_pointer, bool*>);
-        static_assert(std::is_same_v<typename dummy_traits2::const_void_pointer, volatile bool*>);
-        static_assert(std::is_same_v<typename dummy_traits2::difference_type, short>);
-        static_assert(std::is_same_v<typename dummy_traits2::size_type, long>);
-        static_assert(std::is_same_v<typename dummy_traits2::propagate_on_container_copy_assignment, std::true_type>);
-        static_assert(std::is_same_v<typename dummy_traits2::propagate_on_container_move_assignment, std::true_type>);
-        static_assert(std::is_same_v<typename dummy_traits2::propagate_on_container_swap, std::true_type>);
-        static_assert(std::is_same_v<typename dummy_traits2::is_always_equal, std::true_type>);
+        test(
+            "allocator traits given pointer",
+            std::is_same_v<typename dummy_traits2::pointer, char*>
+        );
+        test(
+            "allocator traits given const_pointer",
+            std::is_same_v<typename dummy_traits2::const_pointer, const void*>
+        );
+        test(
+            "allocator traits given void_pointer",
+            std::is_same_v<typename dummy_traits2::void_pointer, bool*>
+        );
+        test(
+            "allocator traits given const_void_pointer",
+            std::is_same_v<typename dummy_traits2::const_void_pointer, volatile bool*>
+        );
+        test(
+            "allocator traits given difference_type",
+            std::is_same_v<typename dummy_traits2::difference_type, short>
+        );
+        test(
+            "allocator traits given size_type",
+            std::is_same_v<typename dummy_traits2::size_type, long>
+        );
+        test(
+            "allocator traits given copy propagate",
+            std::is_same_v<typename dummy_traits2::propagate_on_container_copy_assignment, std::true_type>
+        );
+        test(
+            "allocator traits given move propagate",
+            std::is_same_v<typename dummy_traits2::propagate_on_container_move_assignment, std::true_type>
+        );
+        test(
+            "allocator traits given swap propagate",
+            std::is_same_v<typename dummy_traits2::propagate_on_container_swap, std::true_type>
+        );
+        test(
+            "allocator traits given is_always_equal",
+            std::is_same_v<typename dummy_traits2::is_always_equal, std::true_type>
+        );
     }
 
     void memory_test::test_pointers()
@@ -244,22 +304,59 @@ namespace std::test
         using dummy_traits2 = std::pointer_traits<aux::dummy_pointer2<int, char>>;
         using int_traits    = std::pointer_traits<int*>;
 
-        static_assert(std::is_same_v<typename dummy_traits1::pointer, aux::dummy_pointer1>);
-        static_assert(std::is_same_v<typename dummy_traits1::element_type, int>);
-        static_assert(std::is_same_v<typename dummy_traits1::difference_type, bool>);
-        static_assert(std::is_same_v<typename dummy_traits1::template rebind<long>, unsigned>);
+        test(
+            "pointer traits pointer pt1",
+            std::is_same_v<typename dummy_traits1::pointer, aux::dummy_pointer1>
+        );
+        test(
+            "pointer traits element_type pt1",
+            std::is_same_v<typename dummy_traits1::element_type, int>
+        );
+        test(
+            "pointer traits difference_type pt1",
+            std::is_same_v<typename dummy_traits1::difference_type, bool>
+        );
+        test(
+            "pointer traits rebind pt1",
+            std::is_same_v<typename dummy_traits1::template rebind<long>, unsigned>
+        );
+
+        test(
+            "pointer traits pointer pt2",
+            std::is_same_v<typename dummy_traits2::pointer, aux::dummy_pointer2<int, char>>
+        );
+        test(
+            "pointer traits element_type pt2",
+            std::is_same_v<typename dummy_traits2::element_type, signed char>
+        );
+        test(
+            "pointer traits difference_type pt2",
+            std::is_same_v<typename dummy_traits2::difference_type, unsigned char>
+        );
+        test(
+            "pointer traits rebind pt2",
+            std::is_same_v<typename dummy_traits2::template rebind<long>, aux::dummy_pointer2<long, char>>
+        );
+
+        test(
+            "pointer traits pointer pt3",
+            std::is_same_v<typename int_traits::pointer, int*>
+        );
+        test(
+            "pointer traits element_type pt3",
+            std::is_same_v<typename int_traits::element_type, int>
+        );
+        test(
+            "pointer traits difference_type pt3",
+            std::is_same_v<typename int_traits::difference_type, ptrdiff_t>
+        );
+        test(
+            "pointer traits rebind pt3",
+            std::is_same_v<typename int_traits::rebind<char>, char*>
+        );
 
         int x{10};
         test_eq("pointer_traits<Ptr>::pointer_to", dummy_traits1::pointer_to(x).tag, 10);
         test_eq("pointer_traits<T*>::pointer_to", int_traits::pointer_to(x), &x);
-
-        static_assert(std::is_same_v<typename dummy_traits2::pointer, aux::dummy_pointer2<int, char>>);
-        static_assert(std::is_same_v<typename dummy_traits2::element_type, signed char>);
-        static_assert(std::is_same_v<typename dummy_traits2::difference_type, unsigned char>);
-
-        static_assert(std::is_same_v<typename int_traits::pointer, int*>);
-        static_assert(std::is_same_v<typename int_traits::element_type, int>);
-        static_assert(std::is_same_v<typename int_traits::difference_type, ptrdiff_t>);
-        static_assert(std::is_same_v<typename int_traits::rebind<char>, char*>);
     }
 }

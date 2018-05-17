@@ -57,6 +57,11 @@ namespace std::test
             bool ok_{true};
             bool report_{true};
 
+            void test(const char* tname, bool expr)
+            {
+                test_eq(tname, expr, true);
+            }
+
             template<class... Args>
             void test_eq(const char* tname, Args&&... args)
             {
