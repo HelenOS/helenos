@@ -273,6 +273,17 @@ namespace std::test
             bool run(bool) override;
             const char* name() override;
     };
+
+    class functional_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+        private:
+            void test_reference_wrapper();
+            void test_function();
+            void test_bind();
+    };
 }
 
 #endif

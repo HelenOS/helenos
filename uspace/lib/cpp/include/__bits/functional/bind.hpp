@@ -162,8 +162,8 @@ namespace std
                     );
                 }
 
-            private:
-                function<decay_t<F>> func_;
+            private: // TODO: This has problem with member function pointers.
+                function<remove_reference_t<F>> func_;
                 tuple<decay_t<Args>...> bound_args_;
 
                 template<size_t... Is, class... ActualArgs>
@@ -182,7 +182,7 @@ namespace std
                      */
                     bind_arg_filter<ActualArgs...> filter{forward<ActualArgs>(args)...};
 
-                    return aux::invoke(
+                    return aux::INVOKE(
                         func_,
                         filter[get<Is>(bound_args_)]...
                     );

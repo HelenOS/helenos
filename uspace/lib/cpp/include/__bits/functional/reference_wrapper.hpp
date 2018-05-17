@@ -74,9 +74,9 @@ namespace std
             }
 
             template<class... Args>
-            result_of_t<type&(Args&&...)> operator()(Args&&... args) const
+            decltype(auto) operator()(Args&&... args) const
             {
-                return invoke(*data_, std::forward<Args>(args)...);
+                return aux::INVOKE(*data_, std::forward<Args>(args)...);
             }
 
         private:

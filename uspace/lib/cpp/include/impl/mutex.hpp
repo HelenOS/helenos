@@ -790,7 +790,7 @@ namespace std
         {
             // TODO: exception handling
 
-            aux::invoke(forward<Callable>(func), forward<Args>(args)...);
+            aux::INVOKE(forward<Callable>(func), forward<Args>(args)...);
             flag.called_ = true;
         }
         flag.mtx_.unlock();

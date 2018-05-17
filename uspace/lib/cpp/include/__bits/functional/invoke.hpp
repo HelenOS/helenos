@@ -51,7 +51,7 @@ namespace std::aux
      */
 
     template<class R, class T, class T1, class... Ts>
-    decltype(auto) invoke(R T::* f, T1&& t1, Ts&&... args)
+    decltype(auto) INVOKE(R T::* f, T1&& t1, Ts&&... args)
     {
         if constexpr (is_member_function_pointer<decltype(f)>::value)
         {
@@ -87,7 +87,7 @@ namespace std::aux
     }
 
     template<class F, class... Args>
-    decltype(auto) invoke(F&& f, Args&&... args)
+    decltype(auto) INVOKE(F&& f, Args&&... args)
     {
         // (1.5)
         return f(forward<Args>(args)...);

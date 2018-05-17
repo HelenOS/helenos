@@ -61,7 +61,7 @@ namespace std
             is_function<typename decay<typename remove_pointer<F>::type>::type>::value ||
             is_class<typename decay<F>::type>::value ||
             is_member_pointer<typename decay<F>::type>::value,
-            decltype(aux::invoke(declval<F>(), declval<ArgTypes>()...))
+            decltype(aux::INVOKE(declval<F>(), declval<ArgTypes>()...))
         >::type
     >
     { /* DUMMY BODY */ };
