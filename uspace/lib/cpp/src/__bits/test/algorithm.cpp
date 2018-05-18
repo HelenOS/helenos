@@ -141,5 +141,47 @@ namespace std::test
             }
         );
         test_eq("count_if", res13, 4);
+
+        std::array<int, 6> data4{1, 2, 3, 4, 5, 6};
+        std::array<int, 6> data5{1, 2, 3, 4, 6, 5};
+        auto res14 = std::mismatch(
+            data4.begin(), data4.end(),
+            data5.begin(), data5.end()
+        );
+
+        test_eq("mismatch pt1", res14.first, &data4[4]);
+        test_eq("mismatch pt2", res14.second, &data5[4]);
+
+        auto res15 = std::equal(
+            data4.begin(), data4.end(),
+            data4.begin(), data4.end()
+        );
+        test("equal pt1", res15);
+
+        auto res16 = std::equal(
+            data4.begin(), data4.end(),
+            data5.begin(), data5.end()
+        );
+        test("equal pt2", !res16);
+
+        auto res17 = std::equal(
+            data4.begin(), data4.end(),
+            data4.begin(), data4.end(),
+            [](auto lhs, auto rhs){
+                return lhs == rhs;
+            }
+        );
+        test("equal pt3", res17);
+
+        auto res18 = std::equal(
+            data4.begin(), data4.end(),
+            data5.begin(), data5.end(),
+            [](auto lhs, auto rhs){
+                return lhs == rhs;
+            }
+        );
+        test("equal pt4", !res18);
+
+        // TODO: is_permutation, search
     }
 }
