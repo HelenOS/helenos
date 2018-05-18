@@ -87,7 +87,6 @@ namespace std
      * 25.2.4, for_each:
      */
 
-    // TODO: Function has to be MoveConstructible
     template<class InputIterator, class Function>
     Function for_each(InputIterator first, InputIterator last, Function f)
     {
@@ -203,7 +202,7 @@ namespace std
 
     template<class InputIterator, class Predicate>
     typename iterator_traits<InputIterator>::difference_type
-    count(InputIterator first, InputIterator last, Predicate pred)
+    count_if(InputIterator first, InputIterator last, Predicate pred)
     {
         typename iterator_traits<InputIterator>::difference_type cnt{};
 

@@ -55,6 +55,7 @@ SOURCES = \
 	src/__bits/runtime.cpp \
 	src/__bits/trycatch.cpp \
 	src/__bits/unwind.cpp \
+	src/__bits/test/algorithm.cpp \
 	src/__bits/test/adaptors.cpp \
 	src/__bits/test/array.cpp \
 	src/__bits/test/bitset.cpp \

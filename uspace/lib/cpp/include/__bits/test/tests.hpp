@@ -284,6 +284,15 @@ namespace std::test
             void test_function();
             void test_bind();
     };
+
+    class algorithm_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+        private:
+            void test_non_modifying();
+    };
 }
 
 #endif
