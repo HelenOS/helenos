@@ -165,7 +165,17 @@ static errno_t ar9271_get_device_info(ddf_fun_t *dev, nic_device_info_t *info)
  */
 static errno_t ar9271_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 {
-	*state = NIC_CS_PLUGGED;
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
+	if (!nic_data)
+		return ENOENT;
+	ar9271_t *ar9271 = nic_get_specific(nic_data);
+	if (!ar9271)
+		return ENOENT;
+
+	if (ieee80211_is_connected(ar9271->ieee80211_dev))
+		*state = NIC_CS_PLUGGED;
+	else
+		*state = NIC_CS_UNPLUGGED;
 
 	return EOK;
 }
