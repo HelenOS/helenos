@@ -223,8 +223,11 @@ namespace std
     pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator1 last1,
                                                   InputIterator2 first2)
     {
-        while (first1 != last1 && *first1++ == *first2++)
-        { /* DUMMY BODY */ }
+        while (first1 != last1 && *first1 == *first2)
+        {
+            ++first1;
+            ++first2;
+        }
 
         return make_pair(first1, first2);
     }
@@ -233,8 +236,11 @@ namespace std
     pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator1 last1,
                                                   InputIterator2 first2, BinaryPredicate pred)
     {
-        while (first1 != last1 && pred(*first1++, *first2++))
-        { /* DUMMY BODY */ }
+        while (first1 != last1 && pred(*first1, *first2))
+        {
+            ++first1;
+            ++first2;
+        }
 
         return make_pair(first1, first2);
     }
@@ -243,8 +249,11 @@ namespace std
     pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator1 last1,
                                                   InputIterator2 first2, InputIterator2 last2)
     {
-        while (first1 != last1 && first2 != last2 && *first1++ == *first2++)
-        { /* DUMMY BODY */ }
+        while (first1 != last1 && first2 != last2 && *first1 == *first2)
+        {
+            ++first1;
+            ++first2;
+        }
 
         return make_pair(first1, first2);
     }
@@ -254,8 +263,11 @@ namespace std
                                                   InputIterator2 first2, InputIterator2 last2,
                                                   BinaryPredicate pred)
     {
-        while (first1 != last1 && first2 != last2 && pred(*first1++, *first2++))
-        { /* DUMMY BODY */ }
+        while (first1 != last1 && first2 != last2 && pred(*first1, *first2))
+        {
+            ++first1;
+            ++first2;
+        }
 
         return make_pair(first1, first2);
     }
@@ -267,19 +279,20 @@ namespace std
     template<class InputIterator1, class InputIterator2>
     bool equal(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2)
     {
-        auto last2 = first2 + (last1 - first1);
+        while (first1 != last1)
+        {
+            if (*first1++ != *first2++)
+                return false;
+        }
 
-        return equal(first1, last1, first2, last2);
+        return true;
     }
 
     template<class InputIterator1, class InputIterator2>
     bool equal(InputIterator1 first1, InputIterator1 last1,
                InputIterator2 first2, InputIterator2 last2)
     {
-        if ((last1 - first1) != (last2 - first2))
-            return false;
-
-        while (first1 != last1)
+        while (first1 != last1 && first2 != last2)
         {
             if (*first1++ != *first2++)
                 return false;
@@ -292,9 +305,13 @@ namespace std
     bool equal(InputIterator1 first1, InputIterator1 last1,
                InputIterator2 first2, BinaryPredicate pred)
     {
-        auto last2 = first2 + (last1 - first1);
+        while (first1 != last1)
+        {
+            if (!pred(*first1++, *first2++))
+                return false;
+        }
 
-        return equal(first1, last1, first2, last2, pred);
+        return true;
     }
 
     template<class InputIterator1, class InputIterator2, class BinaryPredicate>
@@ -302,10 +319,7 @@ namespace std
                InputIterator2 first2, InputIterator2 last2,
                BinaryPredicate pred)
     {
-        if ((last1 - first1) != (last2 - first2))
-            return false;
-
-        while (first1 != last1)
+        while (first1 != last1 && first2 != last2)
         {
             if (!pred(*first1++, *first2++))
                 return false;
