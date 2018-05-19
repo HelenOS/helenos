@@ -37,8 +37,7 @@
 
 #include <ddf/log.h>
 
-errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size,
-    size_t buf_size, uint16_t buf_flags)
+errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 {
 	virtq_t *q = &vdev->queues[num];
 	virtio_pci_common_cfg_t *cfg = vdev->common_cfg;
@@ -51,14 +50,8 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size,
 	pio_write_16(&cfg->queue_size, size);
 	ddf_msg(LVL_NOTE, "Virtq %u: %u buffers", num, (unsigned) size);
 
-	/* Allocate array to hold virtual addresses of DMA buffers */
-	void **buffers = calloc(sizeof(void *), size);
-	if (!buffers)
-		return ENOMEM;
-
 	size_t avail_offset = 0;
 	size_t used_offset = 0;
-	size_t buffers_offset = 0;
 
 	/*
 	 * Compute the size of the needed DMA memory and also the offsets of
@@ -73,17 +66,14 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size,
 	used_offset = mem_size;
 	mem_size += sizeof(virtq_used_t) + sizeof(virtq_used_elem_t[size]) +
 	    sizeof(ioport16_t);
-	buffers_offset = mem_size;
-	mem_size += size * buf_size;
 
 	/*
-	 * Allocate DMA memory for the virtqueues and the buffers
+	 * Allocate DMA memory for the virtqueues
 	 */
 	q->virt = AS_AREA_ANY;
 	errno_t rc = dmamem_map_anonymous(mem_size, DMAMEM_4GiB,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &q->phys, &q->virt);
 	if (rc != EOK) {
-		free(buffers);
 		q->virt = NULL;
 		return rc;
 	}
@@ -93,19 +83,16 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size,
 	q->desc = q->virt;
 	q->avail = q->virt + avail_offset;
 	q->used = q->virt + used_offset;
-	q->buffers = buffers;
 
 	memset(q->virt, 0, q->size);
 
 	/*
-	 * Initialize the descriptor table and the buffers array
+	 * Initialize the descriptor table
 	 */
 	for (unsigned i = 0; i < size; i++) {
-		q->desc[i].addr = q->phys + buffers_offset + i * buf_size;
-		q->desc[i].len = buf_size;
-		q->desc[i].flags = buf_flags;
-
-		q->buffers[i] = q->virt + buffers_offset + i * buf_size;
+		q->desc[i].addr = 0;
+		q->desc[i].len = 0;
+		q->desc[i].flags = 0;
 	}
 
 	/*
@@ -132,8 +119,6 @@ void virtio_virtq_teardown(virtio_dev_t *vdev, uint16_t num)
 	virtq_t *q = &vdev->queues[num];
 	if (q->size)
 		dmamem_unmap_anonymous(q->virt);
-	if (q->buffers)
-		free(q->buffers);
 }
 
 /**

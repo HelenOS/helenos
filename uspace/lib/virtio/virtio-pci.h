@@ -143,12 +143,6 @@ typedef struct {
 	/** Virtual address of the used ring */
 	virtq_used_t *used;
 
-	/**
-	 * Queue-size-sized array of virtual addresses of the atcual DMA
-	 * buffers.
-	 */
-	void **buffers;
-
 	/** Address of the queue's notification register */
 	ioport16_t *notify;
 } virtq_t;
@@ -179,8 +173,7 @@ typedef struct {
 	virtq_t *queues;
 } virtio_dev_t;
 
-extern errno_t virtio_virtq_setup(virtio_dev_t *, uint16_t, uint16_t, size_t,
-    uint16_t);
+extern errno_t virtio_virtq_setup(virtio_dev_t *, uint16_t, uint16_t);
 extern void virtio_virtq_teardown(virtio_dev_t *, uint16_t);
 
 extern errno_t virtio_device_setup_start(virtio_dev_t *, uint32_t);

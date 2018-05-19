@@ -98,14 +98,13 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 		goto fail;
 	}
 
-	rc = virtio_virtq_setup(vdev, RECVQ1, RECVQ_SIZE, 1500,
-	    VIRTQ_DESC_F_WRITE);
+	rc = virtio_virtq_setup(vdev, RECVQ1, RECVQ_SIZE);
 	if (rc != EOK)
 		goto fail;
-	rc = virtio_virtq_setup(vdev, TRANSQ1, TRANSQ_SIZE, 1500, 0);
+	rc = virtio_virtq_setup(vdev, TRANSQ1, TRANSQ_SIZE);
 	if (rc != EOK)
 		goto fail;
-	rc = virtio_virtq_setup(vdev, CTRLQ1, CTRLQ_SIZE, 512, 0);
+	rc = virtio_virtq_setup(vdev, CTRLQ1, CTRLQ_SIZE);
 	if (rc != EOK)
 		goto fail;
 
