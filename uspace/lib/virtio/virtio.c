@@ -74,7 +74,7 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 	 * Allocate DMA memory for the virtqueues
 	 */
 	q->virt = AS_AREA_ANY;
-	errno_t rc = dmamem_map_anonymous(mem_size, DMAMEM_4GiB,
+	errno_t rc = dmamem_map_anonymous(mem_size, 0,
 	    AS_AREA_READ | AS_AREA_WRITE, 0, &q->phys, &q->virt);
 	if (rc != EOK) {
 		q->virt = NULL;
