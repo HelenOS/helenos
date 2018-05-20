@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include <as.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>
 #include <ops/nic.h>
@@ -44,13 +45,49 @@
 
 #define VIRTIO_NET_NUM_QUEUES	3
 
-#define RECVQ1		0
-#define TRANSQ1		1
-#define CTRLQ1		2
+#define RX_QUEUE_1	0
+#define TX_QUEUE_1	1
+#define CT_QUEUE_1	2
 
-#define RECVQ_SIZE	8
-#define TRANSQ_SIZE	8
-#define CTRLQ_SIZE	4
+#define BUFFER_SIZE	2048
+#define RX_BUF_SIZE	BUFFER_SIZE
+#define TX_BUF_SIZE	BUFFER_SIZE
+#define CT_BUF_SIZE	BUFFER_SIZE
+
+
+static errno_t virtio_net_setup_bufs(unsigned int buffers, size_t size,
+    bool write, void *buf[], uintptr_t buf_p[])
+{
+	/*
+	 * Allocate all buffers at once in one large chung.
+	 */
+	void *virt = AS_AREA_ANY;
+	uintptr_t phys;
+	errno_t rc = dmamem_map_anonymous(buffers * size, 0,
+	    write ? AS_AREA_WRITE : AS_AREA_READ, 0, &phys, &virt);
+	if (rc != EOK)
+		return rc;
+
+	ddf_msg(LVL_NOTE, "DMA buffers: %p-%p", virt, virt + buffers * size);
+
+	/*
+	 * Calculate addresses of the individual buffers for easy access.
+	 */
+	for (unsigned i = 0; i < buffers; i++) {
+		buf[i] = virt + i * size;
+		buf_p[i] = phys + i * size;
+	}
+
+	return EOK;
+}
+
+static void virtio_net_teardown_bufs(void *buf[])
+{
+	if (buf[0]) {
+		dmamem_unmap_anonymous(buf[0]);
+		buf[0] = NULL;
+	}
+}
 
 static errno_t virtio_net_initialize(ddf_dev_t *dev)
 {
@@ -98,13 +135,29 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 		goto fail;
 	}
 
-	rc = virtio_virtq_setup(vdev, RECVQ1, RECVQ_SIZE);
+	rc = virtio_virtq_setup(vdev, RX_QUEUE_1, RX_BUFFERS);
 	if (rc != EOK)
 		goto fail;
-	rc = virtio_virtq_setup(vdev, TRANSQ1, TRANSQ_SIZE);
+	rc = virtio_virtq_setup(vdev, TX_QUEUE_1, TX_BUFFERS);
 	if (rc != EOK)
 		goto fail;
-	rc = virtio_virtq_setup(vdev, CTRLQ1, CTRLQ_SIZE);
+	rc = virtio_virtq_setup(vdev, CT_QUEUE_1, CT_BUFFERS);
+	if (rc != EOK)
+		goto fail;
+
+	/*
+	 * Setup DMA buffers
+	 */
+	rc = virtio_net_setup_bufs(RX_BUFFERS, RX_BUF_SIZE, false,
+	    virtio_net->rx_buf, virtio_net->rx_buf_p);
+	if (rc != EOK)
+		goto fail;
+	rc = virtio_net_setup_bufs(TX_BUFFERS, TX_BUF_SIZE, true,
+	    virtio_net->tx_buf, virtio_net->tx_buf_p);
+	if (rc != EOK)
+		goto fail;
+	rc = virtio_net_setup_bufs(CT_BUFFERS, CT_BUF_SIZE, true,
+	    virtio_net->ct_buf, virtio_net->ct_buf_p);
 	if (rc != EOK)
 		goto fail;
 
@@ -128,6 +181,10 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	return EOK;
 
 fail:
+	virtio_net_teardown_bufs(virtio_net->rx_buf);
+	virtio_net_teardown_bufs(virtio_net->tx_buf);
+	virtio_net_teardown_bufs(virtio_net->ct_buf);
+
 	virtio_device_setup_fail(vdev);
 	virtio_pci_dev_cleanup(vdev);
 	return rc;

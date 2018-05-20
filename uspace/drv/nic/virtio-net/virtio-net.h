@@ -31,6 +31,10 @@
 
 #include <virtio-pci.h>
 
+#define RX_BUFFERS	8
+#define TX_BUFFERS	8
+#define CT_BUFFERS	4
+
 /** Device handles packets with partial checksum. */
 #define VIRTIO_NET_F_CSUM		(1U << 0)
 /** Driver handles packets with partial checksum. */
@@ -46,6 +50,12 @@ typedef struct {
 
 typedef struct {
 	virtio_dev_t virtio_dev;
+	void *rx_buf[RX_BUFFERS];
+	uintptr_t rx_buf_p[RX_BUFFERS];
+	void *tx_buf[TX_BUFFERS];
+	uintptr_t tx_buf_p[TX_BUFFERS];
+	void *ct_buf[CT_BUFFERS];
+	uintptr_t ct_buf_p[CT_BUFFERS];
 } virtio_net_t;
 
 #endif
