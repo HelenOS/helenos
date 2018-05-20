@@ -46,9 +46,12 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 	pio_write_16(&cfg->queue_select, num);
 
 	/* Trim the size of the queue as needed */
-	size = min(pio_read_16(&cfg->queue_size), size);
+	if (size > pio_read_16(&cfg->queue_size)) {
+		ddf_msg(LVL_ERROR, "Virtq %u: not enough descriptors", num);
+		return ENOMEM;
+	}
 	pio_write_16(&cfg->queue_size, size);
-	ddf_msg(LVL_NOTE, "Virtq %u: %u buffers", num, (unsigned) size);
+	ddf_msg(LVL_NOTE, "Virtq %u: %u descriptors", num, (unsigned) size);
 
 	size_t avail_offset = 0;
 	size_t used_offset = 0;
