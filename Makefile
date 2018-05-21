@@ -83,16 +83,15 @@ format:
 	find abi kernel boot uspace -type f -regex '^.*\.[ch]$$' | xargs $(FORMAT) -i -sort-includes -style=file
 
 ccheck: $(CCHECK)
+	cd tools && ./build-ccheck.sh
 	tools/ccheck.sh
 
 ccheck-fix: $(CCHECK)
+	cd tools && ./build-ccheck.sh
 	tools/ccheck.sh --fix
 
 space:
 	tools/srepl '[ \t]\+$$' ''
-
-$(CCHECK):
-	cd tools && ./build-ccheck.sh
 
 doxy:
 	$(MAKE) -r -C doxygen

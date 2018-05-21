@@ -38,8 +38,6 @@ fi
 srepcnt=0
 snorepcnt=0
 fcnt=0
-exitfile="$(mktemp)"
-echo 0 >"$exitfile"
 
 find abi kernel boot uspace -type f -regex '^.*\.[ch]$' | (
 while read fname; do
@@ -49,8 +47,7 @@ while read fname; do
 	if [ .$rc == .0 ]; then
 		if [ -s "$outfile" ] ; then
 			srepcnt=$((srepcnt + 1))
-			#cat "$outfile"
-			echo "$fname has issues"
+			cat "$outfile"
 		else
 			snorepcnt=$((snorepcnt + 1))
 		fi
@@ -63,12 +60,13 @@ while read fname; do
 	rm -f "$outfile"
 done
 
-echo "Checked files with issues: $srepcnt"
-echo "Checked files without issues: $snorepcnt"
-echo "Not checked files: $fcnt"
+if [ $srepcnt == 0 -a $fcnt == 0 ] ; then
+	echo "Ccheck passed."
+else
+	echo "Ccheck failed."
+	echo "Checked files with issues: $srepcnt"
+	echo "Checked files without issues: $snorepcnt"
+	echo "Files with parse errors: $fcnt"
+	exit 1
+fi
 )
-
-exitcode=$(cat "$exitfile")
-rm -rf "$exitfile"
-
-exit $exitcode

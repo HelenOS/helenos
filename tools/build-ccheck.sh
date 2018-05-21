@@ -27,6 +27,32 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-git clone https://github.com/jxsvoboda/sycek sycek
+SYCEK_GIT="https://github.com/jxsvoboda/sycek sycek"
+SYCEK_REV="722f6c377875ea9e471d77e7486c8d06f0a73ff7"
+
+if [ ! -d sycek ]; then
+	git clone https://github.com/jxsvoboda/sycek sycek
+fi
+
 cd sycek
-make
+
+# Make sure we have the required revision
+echo "Making sure Sycek is up to date..."
+git checkout "$SYCEK_REV" 2>/dev/null
+rc=$?
+if [ $rc != 0 ]; then
+	echo "Pulling from Sycek repo..."
+	git checkout master
+	git pull
+	git checkout "$SYCEK_REV" 2>/dev/null
+	rc=$?
+	if [ $rc != 0 ]; then
+		echo "Error checking out Sycek rev $SYCEK_REV"
+		exit 1
+	fi
+
+	make clean || exit 1
+	make || exit 1
+else
+	make >/dev/null || exit 1
+fi
