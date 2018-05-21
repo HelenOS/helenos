@@ -96,9 +96,8 @@ void itsb_pte_copy(pte_t *t, size_t index)
 	 * be repeated.
 	 */
 
-	tte->tag.invalid = true;	/* invalidate the entry
-					 * (tag target has this
-					 * set to 0) */
+	/* Invalidate the entry (tag target has this set to 0) */
+	tte->tag.invalid = true;
 
 	write_barrier();
 
@@ -141,9 +140,8 @@ void dtsb_pte_copy(pte_t *t, size_t index, bool ro)
 	 * be repeated.
 	 */
 
-	tte->tag.invalid = true;	/* invalidate the entry
-					 * (tag target has this
-					 * set to 0) */
+	/* Invalidate the entry (tag target has this set to 0) */
+	tte->tag.invalid = true;
 
 	write_barrier();
 

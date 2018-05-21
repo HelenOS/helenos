@@ -88,10 +88,12 @@ static void release_address(usb2_bus_helper_t *helper, usb_address_t address)
 	helper->address_occupied[address] = false;
 }
 
-static const usb_target_t usb2_default_target = {{
-	.address = USB_ADDRESS_DEFAULT,
-	.endpoint = 0,
-}};
+static const usb_target_t usb2_default_target = {
+	{
+		.address = USB_ADDRESS_DEFAULT,
+		.endpoint = 0,
+	}
+};
 
 /**
  * Transition the device to the addressed state.
@@ -119,7 +121,7 @@ static int address_device(usb2_bus_helper_t *helper, device_t *dev)
 	usb_log_debug("Device(%d): Adding default target (0:0)", address);
 
 	usb_endpoint_descriptors_t ep0_desc = {
-	    .endpoint.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
+		.endpoint.max_packet_size = CTRL_PIPE_MIN_PACKET_SIZE,
 	};
 
 	/* Temporary reference */

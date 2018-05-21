@@ -49,7 +49,8 @@ typedef struct {
 
 	const uint8_t padd0[12];
 
-	/* This register controls the various parameters
+	/*
+	 * This register controls the various parameters
 	 * of the OCP interface.
 	 */
 	ioport32_t sysconfig;
@@ -77,14 +78,16 @@ typedef struct {
 #define OMAP_IRC_CONTROL_NEWIRQAGR_FLAG       (1 << 0)
 #define OMAP_IRC_CONTROL_NEWFIQAGR_FLAG       (1 << 1)
 
-	/* This register controls protection of the other registers.
+	/*
+	 * This register controls protection of the other registers.
 	 * This register can only be accessed in priviledged mode, regardless
 	 * of the current value of the protection bit.
 	 */
 	ioport32_t protection;
 #define OMAP_IRC_PROTECTION_FLAG              (1 << 0)
 
-	/* This register controls the clock auto-idle for the functional
+	/*
+	 * This register controls the clock auto-idle for the functional
 	 * clock and the input synchronizers.
 	 */
 	ioport32_t idle;
@@ -118,24 +121,28 @@ typedef struct {
 		/* Interrupt mask */
 		ioport32_t mir;
 
-		/* This register is used to clear the interrupt mask bits,
+		/*
+		 * This register is used to clear the interrupt mask bits,
 		 * Write 1 clears the mask bit to 0.
 		 */
 		ioport32_t mir_clear;
 
-		/* This register is used to set the interrupt mask bits,
+		/*
+		 * This register is used to set the interrupt mask bits,
 		 * Write 1 sets the mask bit to 1.
 		 */
 		ioport32_t mir_set;
 
-		/* This register is used to set the software interrupt bits,
+		/*
+		 * This register is used to set the software interrupt bits,
 		 * it is also used to read the current active software
 		 * interrupts.
 		 * Write 1 sets the software interrups bits to 1.
 		 */
 		ioport32_t isr_set;
 
-		/* This register is used to clear the software interrups bits.
+		/*
+		 * This register is used to clear the software interrups bits.
 		 * Write 1 clears the software interrupt bits to 0.
 		 */
 		ioport32_t isr_clear;
@@ -149,16 +156,18 @@ typedef struct {
 
 	const uint32_t padd4[8 * OMAP_IRC_IRQ_GROUPS_PAD];
 
-	/* These registers contain the priority for the interrups and
+	/*
+	 * These registers contain the priority for the interrups and
 	 * the FIQ/IRQ steering.
 	 */
 	ioport32_t ilr[OMAP_IRC_IRQ_COUNT];
+
+} omap_irc_regs_t;
+
 /* 0 = Interrupt routed to IRQ, 1 = interrupt routed to FIQ */
 #define OMAP_IRC_ILR_FIQNIRQ_FLAG    (1 << 0)
 #define OMAP_IRC_ILR_PRIORITY_MASK   0x3F
 #define OMAP_IRC_ILR_PRIORITY_SHIFT  2
-
-} omap_irc_regs_t;
 
 static inline void omap_irc_init(omap_irc_regs_t *regs)
 {
@@ -166,19 +175,22 @@ static inline void omap_irc_init(omap_irc_regs_t *regs)
 
 	/* Initialization sequence */
 
-	/* 1 - Program the SYSCONFIG register: if necessary, enable the
+	/*
+	 * 1 - Program the SYSCONFIG register: if necessary, enable the
 	 *     autogating by setting the AUTOIDLE bit.
 	 */
 	regs->sysconfig &= ~OMAP_IRC_SYSCONFIG_AUTOIDLE_FLAG;
 
-	/* 2 - Program the IDLE register: if necessary, disable functional
+	/*
+	 * 2 - Program the IDLE register: if necessary, disable functional
 	 *     clock autogating or enable synchronizer autogating by setting
 	 *     the FUNCIDLE bit or the TURBO bit accordingly.
 	 */
 	regs->idle &= ~OMAP_IRC_IDLE_FUNCIDLE_FLAG;
 	regs->idle &= ~OMAP_IRC_IDLE_TURBO_FLAG;
 
-	/* 3 - Program ILRm register for each interrupt line: Assign a
+	/*
+	 * 3 - Program ILRm register for each interrupt line: Assign a
 	 *     priority level and set the FIQNIRQ bit for an FIQ interrupt
 	 *     (by default, interrupts are mapped to IRQ and
 	 *     priority is 0 (highest).
@@ -187,7 +199,8 @@ static inline void omap_irc_init(omap_irc_regs_t *regs)
 	for (i = 0; i < OMAP_IRC_IRQ_COUNT; ++i)
 		regs->ilr[i] = 0;
 
-	/* 4 - Program the MIRn register: Enable interrupts (by default,
+	/*
+	 * 4 - Program the MIRn register: Enable interrupts (by default,
 	 *     all interrupt lines are masked).
 	 */
 	for (i = 0; i < OMAP_IRC_IRQ_GROUPS_COUNT; ++i)

@@ -148,16 +148,6 @@ typedef struct {
 	 */
 	uint8_t characteristics;
 
-#define HUB_CHAR_POWER_PER_PORT_FLAG    (1 << 0)
-#define HUB_CHAR_NO_POWER_SWITCH_FLAG   (1 << 1)
-#define HUB_CHAR_COMPOUND_DEVICE        (1 << 2)
-#define HUB_CHAR_OC_PER_PORT_FLAG       (1 << 3)
-#define HUB_CHAR_NO_OC_FLAG             (1 << 4)
-
-/* These are invalid for superspeed hub */
-#define HUB_CHAR_TT_THINK_16            (1 << 5)
-#define HUB_CHAR_TT_THINK_8             (1 << 6)
-#define HUB_CHAR_INDICATORS_FLAG        (1 << 7)
 
 	/** Unused part of characteristics field */
 	uint8_t characteristics_reserved;
@@ -178,6 +168,20 @@ typedef struct {
 	 */
 	uint8_t max_current;
 } __attribute__((packed)) usb_hub_descriptor_header_t;
+
+/*
+ * USB hub characteristics
+ */
+#define HUB_CHAR_POWER_PER_PORT_FLAG    (1 << 0)
+#define HUB_CHAR_NO_POWER_SWITCH_FLAG   (1 << 1)
+#define HUB_CHAR_COMPOUND_DEVICE        (1 << 2)
+#define HUB_CHAR_OC_PER_PORT_FLAG       (1 << 3)
+#define HUB_CHAR_NO_OC_FLAG             (1 << 4)
+
+/* These are invalid for superspeed hub */
+#define HUB_CHAR_TT_THINK_16            (1 << 5)
+#define HUB_CHAR_TT_THINK_8             (1 << 6)
+#define HUB_CHAR_INDICATORS_FLAG        (1 << 7)
 
 /** One bit for the device and one bit for every port */
 #define STATUS_BYTES(ports) ((1 + ports + 7) / 8)

@@ -474,9 +474,11 @@ static void ne2k_receive(nic_t *nic_data)
 	nic_frame_list_t *frames = nic_alloc_frame_list();
 	size_t frames_count = 0;
 
-	/* We may block sending in this loop - after so many received frames there
+	/*
+	 * We may block sending in this loop - after so many received frames there
 	 * must be some interrupt pending (for the frames not yet downloaded) and
-	 * we will continue in its handler. */
+	 * we will continue in its handler.
+	 */
 	while (frames_count < 16) {
 		//TODO: isn't some locking necessary here?
 		uint8_t boundary = pio_read_8(ne2k->port + DP_BNRY) + 1;

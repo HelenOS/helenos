@@ -61,13 +61,15 @@
 #include <trace.h>
 
 typedef struct {
-	uint32_t mid;              /**< Processor ID as read from
-	                                UPA_CONFIG/FIREPLANE_CONFIG. */
+	/** Processor ID as read from UPA_CONFIG/FIREPLANE_CONFIG. */
+	uint32_t mid;
 	ver_reg_t ver;
-	uint32_t clock_frequency;  /**< Processor frequency in Hz. */
-	uint64_t next_tick_cmpr;   /**< Next clock interrupt should be
-	                                generated when the TICK register
-	                                matches this value. */
+	/** Processor frequency in Hz. */
+	uint32_t clock_frequency;
+	/** Next clock interrupt should be generated when the TICK register
+	 * matches this value.
+	 */
+	uint64_t next_tick_cmpr;
 } cpu_arch_t;
 
 /** Read the module ID (agent ID/CPUID) of the current CPU.

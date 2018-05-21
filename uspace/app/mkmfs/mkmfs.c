@@ -97,13 +97,13 @@ static service_id_t service_id;
 static int shift;
 
 static struct option const long_options[] = {
-		{ "help", no_argument, 0, 'h' },
-		{ "long-names", no_argument, 0, 'l' },
-		{ "block-size", required_argument, 0, 'b' },
-		{ "inodes", required_argument, 0, 'i' },
-		{ NULL, no_argument, 0, '1' },
-		{ NULL, no_argument, 0, '2' },
-		{ 0, 0, 0, 0 }
+	{ "help", no_argument, 0, 'h' },
+	{ "long-names", no_argument, 0, 'l' },
+	{ "block-size", required_argument, 0, 'b' },
+	{ "inodes", required_argument, 0, 'i' },
+	{ NULL, no_argument, 0, '1' },
+	{ NULL, no_argument, 0, '2' },
+	{ 0, 0, 0, 0 }
 };
 
 int main (int argc, char **argv)
@@ -494,7 +494,7 @@ static errno_t init_superblock(struct mfs_sb_info *sb)
 		    UINT32_MAX : sb->dev_nblocks;
 
 		if (sb->fs_version == 3) {
-			if(INT32_MAX / sb->block_size < zones)
+			if (INT32_MAX / sb->block_size < zones)
 				sb->max_file_size = INT32_MAX;
 			sb->ino_per_block = V3_INODES_PER_BLOCK(sb->block_size);
 			sb->n_zones /= (sb->block_size / MFS_MIN_BLOCKSIZE);
@@ -729,16 +729,16 @@ static inline errno_t write_block(aoff64_t off, size_t size, const void *data)
 static void help_cmd_mkmfs(help_level_t level)
 {
 	if (level == HELP_SHORT) {
-		printf(NAME": tool to create new Minix file systems\n");
+		printf(NAME ": tool to create new Minix file systems\n");
 	} else {
 		printf("Usage: [options] device\n"
 		    "-1         Make a Minix version 1 filesystem\n"
 		    "-2         Make a Minix version 2 filesystem\n"
 		    "-b ##      Specify the block size in bytes (V3 only),\n"
 		    "           valid block size values are 1024, 2048 and"
-				" 4096 bytes per block\n"
+		    /* ...   */ " 4096 bytes per block\n"
 		    "-i ##      Specify the number of inodes"
-				" for the filesystem\n"
+		    /* ...   */ " for the filesystem\n"
 		    "-l         Use 30-char long filenames (V1/V2 only)\n");
 	}
 }

@@ -46,6 +46,17 @@ typedef struct td {
 	link_pointer_t alternate;
 
 	volatile uint32_t status;
+
+	volatile uint32_t buffer_pointer[5];
+
+	/* 64 bit struct only */
+	volatile uint32_t extended_bp[5];
+
+} __attribute__((packed, aligned(32))) td_t;
+
+/*
+ * td_t.status
+ */
 #define TD_STATUS_TOGGLE_FLAG   (1 << 31)
 #define TD_STATUS_TOTAL_MASK    0x7fff
 #define TD_STATUS_TOTAL_SHIFT   16
@@ -68,15 +79,13 @@ typedef struct td {
 #define TD_STATUS_SPLIT_FLAG    (1 << 1)
 #define TD_STATUS_PING_FLAG     (1 << 0)
 
-	volatile uint32_t buffer_pointer[5];
+/*
+ * td_t.buffer_pointer
+ */
+
 #define TD_BUFFER_POINTER_MASK   0xfffff000
 /* Only the first page pointer */
 #define TD_BUFFER_POINTER_OFFSET_MASK    0xfff
-
-	/* 64 bit struct only */
-	volatile uint32_t extended_bp[5];
-
-} __attribute__((packed, aligned(32))) td_t;
 
 static_assert(sizeof(td_t) % 32 == 0);
 

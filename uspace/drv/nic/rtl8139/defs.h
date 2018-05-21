@@ -279,56 +279,79 @@ enum rtl8139_tsd {
 
 /** Receiver control register values */
 enum rtl8139_rcr {
-	RCR_ERTH_SHIFT = 24,       /**< Early Rx treshold part shift */
-	RCR_ERTH_SIZE = 4,         /**< Early Rx treshold part size */
+	/** Early Rx treshold part shift */
+	RCR_ERTH_SHIFT = 24,
+	/** Early Rx treshold part size */
+	RCR_ERTH_SIZE = 4,
 
-	RCR_MulERINT = 1 << 17,    /**< Multiple early interrupt select */
+	/** Multiple early interrupt select */
+	RCR_MulERINT = 1 << 17,
 
-	/** Minimal error frame length (1 = 8B, 0 = 64B). If AER/AR is set, RER8
-	 * is "Don't care"
+	/** Minimal error frame length (1 = 8B, 0 = 64B).
+	 * If AER/AR is set, RER8 is "Don't care"
 	 */
 	RCR_RER8 = 1 << 16,
 
-	RCR_RXFTH_SHIFT = 13,    /**< Rx FIFO treshold part shitf */
-	RCR_RXFTH_SIZE  = 3,     /**< Rx FIFO treshold part size */
+	/** Rx FIFO treshold part shift */
+	RCR_RXFTH_SHIFT = 13,
+	/** Rx FIFO treshold part size */
+	RCR_RXFTH_SIZE  = 3,
 
-	RCR_RBLEN_SHIFT = 11,    /**< Rx buffer length part shift */
-	RCR_RBLEN_SIZE  = 2,     /**< Rx buffer length part size */
+	/** Rx buffer length part shift */
+	RCR_RBLEN_SHIFT = 11,
+	/** Rx buffer length part size */
+	RCR_RBLEN_SIZE  = 2,
 
-	RCR_RBLEN_8k  = 0x00 << RCR_RBLEN_SHIFT,  /**< 8K + 16 byte rx buffer */
-	RCR_RBLEN_16k = 0x01 << RCR_RBLEN_SHIFT,  /**< 16K + 16 byte rx buffer */
-	RCR_RBLEN_32k = 0x02 << RCR_RBLEN_SHIFT,  /**< 32K + 16 byte rx buffer */
-	RCR_RBLEN_64k = 0x03 << RCR_RBLEN_SHIFT,  /**< 64K + 16 byte rx buffer */
+	/** 8K + 16 byte rx buffer */
+	RCR_RBLEN_8k  = 0x00 << RCR_RBLEN_SHIFT,
+	/** 16K + 16 byte rx buffer */
+	RCR_RBLEN_16k = 0x01 << RCR_RBLEN_SHIFT,
+	/** 32K + 16 byte rx buffer */
+	RCR_RBLEN_32k = 0x02 << RCR_RBLEN_SHIFT,
+	/** 64K + 16 byte rx buffer */
+	RCR_RBLEN_64k = 0x03 << RCR_RBLEN_SHIFT,
 
-	RCR_MXDMA_SHIFT = 8,             /**< Max DMA Burst Size part shift */
-	RCR_MXDMA_SIZE  = 3,             /**< Max DMA Burst Size part size */
+	/** Max DMA Burst Size part shift */
+	RCR_MXDMA_SHIFT = 8,
+	/** Max DMA Burst Size part size */
+	RCR_MXDMA_SIZE  = 3,
 
-	RCR_WRAP              = 1 << 7,  /**< Rx buffer wrapped */
-	RCR_ACCEPT_ERROR      = 1 << 5,  /**< Accept error frame */
-	RCR_ACCEPT_RUNT       = 1 << 4,  /**< Accept Runt (8-64 bytes) frames */
-	RCR_ACCEPT_BROADCAST  = 1 << 3,  /**< Accept broadcast */
-	RCR_ACCEPT_MULTICAST  = 1 << 2,  /**< Accept multicast */
-	RCR_ACCEPT_PHYS_MATCH = 1 << 1,  /**< Accept device MAC address match */
-	RCR_ACCEPT_ALL_PHYS   = 1 << 0,  /**< Accept all frames with
-	                                  * phys. desticnation
-									  */
-	RCR_ACCEPT_MASK = (1 << 6) - 1   /**< Mask of accept part */
+	/** Rx buffer wrapped */
+	RCR_WRAP              = 1 << 7,
+	/** Accept error frame */
+	RCR_ACCEPT_ERROR      = 1 << 5,
+	/** Accept Runt (8-64 bytes) frames */
+	RCR_ACCEPT_RUNT       = 1 << 4,
+	/** Accept broadcast */
+	RCR_ACCEPT_BROADCAST  = 1 << 3,
+	/** Accept multicast */
+	RCR_ACCEPT_MULTICAST  = 1 << 2,
+	/** Accept device MAC address match */
+	RCR_ACCEPT_PHYS_MATCH = 1 << 1,
+	/** Accept all frames with phys. destination */
+	RCR_ACCEPT_ALL_PHYS   = 1 << 0,
+	/** Mask of accept part */
+	RCR_ACCEPT_MASK = (1 << 6) - 1
 };
 
 
 /** CSCR register bits */
 enum rtl8139_cscr {
 	CS_Testfun       = (1 << 15),
-	CS_LD            = (1 << 9),  /**< Low TPI link disable signal */
-	CS_HEART_BEAT    = (1 << 8),  /**< Heart beat enable; 10Mbit mode only */
-	CS_JABBER_ENABLE = (1 << 7),  /**< Enable jabber function */
+	/** Low TPI link disable signal */
+	CS_LD            = (1 << 9),
+	/** Heart beat enable; 10Mbit mode only */
+	CS_HEART_BEAT    = (1 << 8),
+	/** Enable jabber function */
+	CS_JABBER_ENABLE = (1 << 7),
 	CS_F_LINK100     = (1 << 6),
 	CS_F_CONNECT     = (1 << 5),
-	CS_CON_STATUS    = (1 << 3),  /**< connection status:
-	                               *   1 = valid, 0 = disconnected
-								   */
-	CS_CON_STATUS_EN = (1 << 2),  /**< LED1 pin connection status indication */
-	CS_PASS_SCR      = (1 << 0)   /**< Bypass Scramble  */
+	/** connection status: 1 = valid, 0 = disconnected */
+	CS_CON_STATUS    = (1 << 3),
+	/** LED1 pin connection status indication */
+	CS_CON_STATUS_EN = (1 << 2),
+	/** Bypass Scramble */
+	CS_PASS_SCR      = (1 << 0)
 };
 
 /** MSR register bits */
@@ -359,20 +382,26 @@ enum rtl8139_bmcr {
 
 /** Auto-negotiation advertisement register */
 enum rtl8139_anar {
-	ANAR_NEXT_PAGE    = (1 << 15),  /**< Next page bit, 0 - primary capability
-	                                 *  1 - protocol specific
-									 */
-	ANAR_ACK          = (1 << 14),  /**< Capability reception acknowledge */
-	ANAR_REMOTE_FAULT = (1 << 13),  /**< Remote fault detection capability */
-	ANAR_PAUSE        = (1 << 10),  /**< Symetric pause frame capability */
-	ANAR_100T4        = (1 << 9),   /**< T4, not supported by the device */
-	ANAR_100TX_FD     = (1 << 8),   /**< 100BASE_TX full duplex */
-	ANAR_100TX_HD     = (1 << 7),   /**< 100BASE_TX half duplex */
-	ANAR_10_FD        = (1 << 6),   /**< 10BASE_T full duplex */
-	ANAR_10_HD        = (1 << 5),   /**< 10BASE_T half duplex */
-	ANAR_SELECTOR     = 0x1         /**< Selector,
-	                                 *   CSMA/CD (0x1) supported only
-									 */
+	/** Next page bit, 0 - primary capability, 1 - protocol specific */
+	ANAR_NEXT_PAGE    = (1 << 15),
+	/** Capability reception acknowledge */
+	ANAR_ACK          = (1 << 14),
+	/** Remote fault detection capability */
+	ANAR_REMOTE_FAULT = (1 << 13),
+	/** Symetric pause frame capability */
+	ANAR_PAUSE        = (1 << 10),
+	/** T4, not supported by the device */
+	ANAR_100T4        = (1 << 9),
+	/** 100BASE_TX full duplex */
+	ANAR_100TX_FD     = (1 << 8),
+	/** 100BASE_TX half duplex */
+	ANAR_100TX_HD     = (1 << 7),
+	/** 10BASE_T full duplex */
+	ANAR_10_FD        = (1 << 6),
+	/** 10BASE_T half duplex */
+	ANAR_10_HD        = (1 << 5),
+	/** Selector, CSMA/CD (0x1) supported only */
+	ANAR_SELECTOR     = 0x1
 };
 
 /**  Autonegotiation expansion register bits */
@@ -408,14 +437,18 @@ enum rtl8139_config3 {
 };
 
 enum rtl8139_config4 {
-	CONFIG4_RxFIFOAutoClr = (1 << 7),  /**< Automatic RxFIFO owerflow clear */
-	CONFIG4_AnaOff        = (1 << 6),  /**< Analog poweroff */
-	CONFIG4_LongWF        = (1 << 5),  /**< Long wakeup frame
-	                                    *   (2xCRC8 + 3xCRC16)
-										*/
-	CONFIG4_LWPME         = (1 << 4),  /**< LWAKE and PMEB assertion  */
-	CONFIG4_LWPTN         = (1 << 2),  /**< LWake pattern */
-	CONFIG4_PBWakeup      = (1 << 0)   /**< Preboot wakeup */
+	/** Automatic RxFIFO owerflow clear */
+	CONFIG4_RxFIFOAutoClr = (1 << 7),
+	/** Analog poweroff */
+	CONFIG4_AnaOff        = (1 << 6),
+	/** Long wakeup frame (2xCRC8 + 3xCRC16) */
+	CONFIG4_LongWF        = (1 << 5),
+	/** LWAKE and PMEB assertion */
+	CONFIG4_LWPME         = (1 << 4),
+	/** LWake pattern */
+	CONFIG4_LWPTN         = (1 << 2),
+	/** Preboot wakeup */
+	CONFIG4_PBWakeup      = (1 << 0)
 };
 
 /** Maximal runt frame size + 1 */
@@ -437,33 +470,45 @@ enum rtl8139_frame_header {
 };
 
 enum rtl8139_tcr_bits {
-	HWVERID_A_SHIFT = 26,           /**< HW version id, part A shift */
-	HWVERID_A_SIZE  = 5,            /**< HW version id, part A bit size */
-	HWVERID_A_MASK  = (1 << 5) - 1, /**< HW version id, part A mask */
+	/** HW version id, part A shift */
+	HWVERID_A_SHIFT = 26,
+	/** HW version id, part A bit size */
+	HWVERID_A_SIZE  = 5,
+	/** HW version id, part A mask */
+	HWVERID_A_MASK  = (1 << 5) - 1,
 
-	IFG_SHIFT = 24,           /**< The interframe gap time setting shift */
-	IFG_SIZE  = 2,            /**< The interframe gap time setting bit size */
+	/** The interframe gap time setting shift */
+	IFG_SHIFT = 24,
+	/** The interframe gap time setting bit size */
+	IFG_SIZE  = 2,
 
-	HWVERID_B_SHIFT = 22,           /**< HW version id, part B shift */
-	HWVERID_B_SIZE  = 2,            /**< HW version id, part B bit size */
-	HWVERID_B_MASK  = (1 << 2) - 1, /**< HW version id, part B mask */
+	/** HW version id, part B shift */
+	HWVERID_B_SHIFT = 22,
+	/** HW version id, part B bit size */
+	HWVERID_B_SIZE  = 2,
+	/** HW version id, part B mask */
+	HWVERID_B_MASK  = (1 << 2) - 1,
 
-	LOOPBACK_SHIFT  = 17,           /**< Loopback mode shift */
-	LOOPBACK_SIZE   = 2,            /**< Loopback mode size
-	                                  *  00 = normal, 11 = loopback
-									  */
+	/** Loopback mode shift */
+	LOOPBACK_SHIFT  = 17,
+	/** Loopback mode size. 00 = normal, 11 = loopback */
+	LOOPBACK_SIZE   = 2,
 
-	APPEND_CRC = 1 << 16,        /**< Append CRC at the end of a frame */
+	/** Append CRC at the end of a frame */
+	APPEND_CRC = 1 << 16,
 
-	MXTxDMA_SHIFT = 8,  /**< Max. DMA Burst per TxDMA shift, burst = 16^value */
-	MXTxDMA_SIZE  = 3,  /**< Max. DMA Burst per TxDMA bit size */
+	/** Max. DMA Burst per TxDMA shift, burst = 16^value */
+	MXTxDMA_SHIFT = 8,
+	/** Max. DMA Burst per TxDMA bit size */
+	MXTxDMA_SIZE  = 3,
 
-	TX_RETRY_COUNT_SHIFT = 4,            /**< Retries before aborting shift */
-	TX_RETRY_COUNT_SIZE  = 4,            /**< Retries before aborting size */
+	/** Retries before aborting shift */
+	TX_RETRY_COUNT_SHIFT = 4,
+	/** Retries before aborting size */
+	TX_RETRY_COUNT_SIZE  = 4,
 
-	CLEAR_ABORT = 1 << 0    /**< Retransmit aborted frame at the last
-	                          *  transmitted descriptor
-							  */
+	/** Retransmit aborted frame at the last transmitted descriptor */
+	CLEAR_ABORT = 1 << 0
 };
 
 #define RTL8139_HWVERID_A(tcr) (((tcr) >> HWVERID_A_SHIFT) & HWVERID_A_MASK)

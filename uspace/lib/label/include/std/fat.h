@@ -50,22 +50,36 @@
 #define FAT_CLUSTER_DOUBLE_SIZE(a) ((a) / 4)
 
 typedef struct fat_bs {
-	uint8_t		ji[3];		/**< Jump instruction. */
+	/** Jump instruction */
+	uint8_t		ji[3];
 	uint8_t		oem_name[8];
+
 	/* BIOS Parameter Block */
-	uint16_t	bps;		/**< Bytes per sector. */
-	uint8_t		spc;		/**< Sectors per cluster. */
-	uint16_t	rscnt;		/**< Reserved sector count. */
-	uint8_t		fatcnt;		/**< Number of FATs. */
-	uint16_t	root_ent_max;	/**< Maximum number of root directory
-					     entries. */
-	uint16_t	totsec16;	/**< Total sectors. 16-bit version. */
-	uint8_t		mdesc;		/**< Media descriptor. */
-	uint16_t	sec_per_fat;	/**< Sectors per FAT12/FAT16. */
-	uint16_t	sec_per_track;	/**< Sectors per track. */
-	uint16_t	headcnt;	/**< Number of heads. */
-	uint32_t	hidden_sec;	/**< Hidden sectors. */
-	uint32_t	totsec32;	/**< Total sectors. 32-bit version. */
+
+	/** Bytes per sector */
+	uint16_t	bps;
+	/** Sectors per cluster */
+	uint8_t		spc;
+	/** Reserved sector count */
+	uint16_t	rscnt;
+	/** Number of FATs */
+	uint8_t		fatcnt;
+	/** Maximum number of root directory entries */
+	uint16_t	root_ent_max;
+	/** Total sectors. 16-bit version */
+	uint16_t	totsec16;
+	/** Media descriptor */
+	uint8_t		mdesc;
+	/** Sectors per FAT12/FAT16 */
+	uint16_t	sec_per_fat;
+	/** Sectors per track */
+	uint16_t	sec_per_track;
+	/** Number of heads */
+	uint16_t	headcnt;
+	/** Hidden sectors */
+	uint32_t	hidden_sec;
+	/** Total sectors. 32-bit version */
+	uint32_t	totsec32;
 
 	union {
 		struct {

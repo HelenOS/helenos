@@ -48,6 +48,22 @@ typedef struct queue_head {
 	link_pointer_t horizontal;
 
 	volatile uint32_t ep_char;
+	volatile uint32_t ep_cap;
+
+	link_pointer_t current;
+	/* Transfer overlay starts here */
+	link_pointer_t next;
+	link_pointer_t alternate;
+	volatile uint32_t status;
+	volatile uint32_t buffer_pointer[5];
+
+	/* 64 bit struct only */
+	volatile uint32_t extended_bp[5];
+} __attribute__((packed, aligned(32))) qh_t;
+
+/*
+ * qh_t.ep_char
+ */
 #define QH_EP_CHAR_RL_MASK    0xf
 #define QH_EP_CHAR_RL_SHIFT   28
 #define QH_EP_CHAR_C_FLAG     (1 << 27)
@@ -77,7 +93,9 @@ typedef struct queue_head {
 #define QH_EP_CHAR_ADDR_GET(val) \
     (((val) >> QH_EP_CHAR_ADDR_SHIFT) & QH_EP_CHAR_ADDR_MASK)
 
-	volatile uint32_t ep_cap;
+/*
+ * qh_t.ep_cap
+ */
 #define QH_EP_CAP_MULTI_MASK   0x3
 #define QH_EP_CAP_MULTI_SHIFT  30
 #define QH_EP_CAP_MULTI_SET(count) \
@@ -99,14 +117,15 @@ typedef struct queue_head {
 #define QH_EP_CAP_S_MASK_SET(val) \
 	(((val) & QH_EP_CAP_S_MASK_MASK) << QH_EP_CAP_S_MASK_SHIFT)
 
-	link_pointer_t current;
-/* Transfer overlay starts here */
-	link_pointer_t next;
-	link_pointer_t alternate;
+/*
+ * qh_t.alternate
+ */
 #define QH_ALTERNATE_NACK_CNT_MASK   0x7
 #define QH_ALTERNATE_NACK_CNT_SHIFT  1
 
-	volatile uint32_t status;
+/*
+ * qh_t.status
+ */
 #define QH_STATUS_TOGGLE_FLAG   (1 << 31)
 #define QH_STATUS_TOTAL_MASK    0x7fff
 #define QH_STATUS_TOTAL_SHIFT   16
@@ -126,7 +145,9 @@ typedef struct queue_head {
 #define QH_STATUS_SPLIT_FLAG    (1 << 1)
 #define QH_STATUS_PING_FLAG     (1 << 0)
 
-	volatile uint32_t buffer_pointer[5];
+/*
+ * qh_t.buffer_pointer
+ */
 #define QH_BUFFER_POINTER_MASK   0xfffff000
 /* Only the first buffer pointer */
 #define QH_BUFFER_POINTER_OFFSET_MASK   0xfff
@@ -140,9 +161,6 @@ typedef struct queue_head {
 #define QH_BUFFER_POINTER_FTAG_MASK   0x1f
 #define QH_BUFFER_POINTER_FTAG_SHIFT  0
 
-	/* 64 bit struct only */
-	volatile uint32_t extended_bp[5];
-} __attribute__((packed, aligned(32))) qh_t;
 
 static inline void qh_append_qh(qh_t *qh, const qh_t *next)
 {
@@ -211,8 +229,8 @@ static inline bool qh_transfer_pending(const qh_t *qh)
 	return !(EHCI_MEM32_RD(qh->next) & LINK_POINTER_TERMINATE_FLAG);
 }
 
+extern void qh_init(qh_t *instance, const endpoint_t *ep);
 
-void qh_init(qh_t *instance, const endpoint_t *ep);
 #endif
 /**
  * @}

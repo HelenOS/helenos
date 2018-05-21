@@ -42,13 +42,17 @@
 
 /** Structure representing contiguous physical memory area. */
 typedef struct {
-	link_t link;      /**< Linked list link */
+	/** Linked list link */
+	link_t link;
 
-	uintptr_t pbase;  /**< Physical base of the area. */
-	pfn_t frames;     /**< Number of frames in the area. */
-	bool unpriv;      /**< Allow mapping by unprivileged tasks. */
-	bool mapped;      /**< Indicate whether the area is actually
-	                       mapped. */
+	/** Physical base of the area. */
+	uintptr_t pbase;
+	/** Number of frames in the area. */
+	pfn_t frames;
+	/** Allow mapping by unprivileged tasks. */
+	bool unpriv;
+	/** Indicate whether the area is actually mapped. */
+	bool mapped;
 } parea_t;
 
 extern void ddi_init(void);

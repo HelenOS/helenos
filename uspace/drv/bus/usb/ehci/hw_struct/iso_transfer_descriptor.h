@@ -42,6 +42,15 @@ typedef struct itd {
 	link_pointer_t next;
 
 	volatile uint32_t transaction[8];
+	volatile uint32_t buffer_pointer[7];
+
+	/* 64 bit struct only */
+	volatile uint32_t extended_bp[7];
+} __attribute__((packed, aligned(32))) itd_t;
+
+/*
+ * itd_t.transaction
+ */
 #define ITD_TRANSACTION_STATUS_ACTIVE_FLAG  (1 << 31)
 #define ITD_TRANSACTION_STATUS_BUFFER_ERROR_FLAG  (1 << 30)
 #define ITD_TRANSACTION_STATUS_BABBLE_FLAG   (1 << 29)
@@ -54,7 +63,9 @@ typedef struct itd {
 #define ITD_TRANSACTION_OFFSET_MASK    0xfff
 #define ITD_TRANSACTION_OFFSET_SHIFT   0
 
-	volatile uint32_t buffer_pointer[7];
+/*
+ * itd_t.buffer_pointer
+ */
 #define ITD_BUFFER_POINTER_MASK      0xfffff000
 /* First buffer pointer */
 #define ITD_BUFFER_POINTER_EP_MASK      0xf
@@ -69,10 +80,8 @@ typedef struct itd {
 #define ITD_BUFFER_POINTER_MULTI_MASK    0x3
 #define ITD_BUFFER_POINTER_MULTI_SHIFT   0
 
-	/* 64 bit struct only */
-	volatile uint32_t extended_bp[7];
-} __attribute__((packed, aligned(32))) itd_t;
 #endif
+
 /**
  * @}
  */

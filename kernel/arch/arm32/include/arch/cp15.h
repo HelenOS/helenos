@@ -39,7 +39,8 @@
 #include <stdint.h>
 
 /** See ARM Architecture reference manual ch. B3.17.1 page B3-1456
- * for the list */
+ * for the list
+ */
 
 #define CONTROL_REG_GEN_READ(name, crn, opc1, crm, opc2) \
 static inline uint32_t name##_read(void) \
@@ -182,6 +183,8 @@ enum {
 	CCSIDR_ASSOC_SHIFT = 3,
 	CCSIDR_LINESIZE_MASK = 0x7,
 	CCSIDR_LINESIZE_SHIFT = 0,
+};
+
 #define CCSIDR_SETS(val) \
 	(((val >> CCSIDR_NUMSETS_SHIFT) & CCSIDR_NUMSETS_MASK) + 1)
 #define CCSIDR_WAYS(val) \
@@ -189,7 +192,7 @@ enum {
 /* The register value is log(linesize_in_words) - 2 */
 #define CCSIDR_LINESIZE_LOG(val) \
 	(((val >> CCSIDR_LINESIZE_SHIFT) & CCSIDR_LINESIZE_MASK) + 2 + 2)
-};
+
 CONTROL_REG_GEN_READ(CCSIDR, c0, 1, c0, 0);
 
 enum {
@@ -205,9 +208,11 @@ enum {
 	CLIDR_SEP_CACHE = 0x3,
 	CLIDR_UNI_CACHE = 0x4,
 	CLIDR_CACHE_MASK = 0x7,
+};
+
 /** levels counted from 0 */
 #define CLIDR_CACHE(level, val)   ((val >> (level * 3)) & CLIDR_CACHE_MASK)
-};
+
 CONTROL_REG_GEN_READ(CLIDR, c0, 1, c0, 1);
 CONTROL_REG_GEN_READ(AIDR, c0, 1, c0, 7); /* Implementation defined or MIDR */
 
@@ -224,8 +229,10 @@ CONTROL_REG_GEN_READ(VMPIDR, c0, 4, c0, 5);
 CONTROL_REG_GEN_WRITE(VMPIDR, c0, 4, c0, 5);
 
 /* System control registers */
-/* COntrol register bit values see ch. B4.1.130 of ARM Architecture Reference
- * Manual ARMv7-A and ARMv7-R edition, page 1687 */
+/*
+ * Control register bit values see ch. B4.1.130 of ARM Architecture Reference
+ * Manual ARMv7-A and ARMv7-R edition, page 1687
+ */
 enum {
 	SCTLR_MMU_EN_FLAG            = 1 << 0,
 	SCTLR_ALIGN_CHECK_EN_FLAG    = 1 << 1,  /* Allow alignemnt check */

@@ -65,7 +65,7 @@
  * @return Error code.
  */
 static errno_t register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
-     const usb_endpoint_descriptors_t *ep_desc)
+    const usb_endpoint_descriptors_t *ep_desc)
 {
 	assert(fun);
 	hc_device_t *hcd = dev_to_hcd(ddf_fun_get_dev(fun));
@@ -91,14 +91,14 @@ static errno_t register_endpoint(ddf_fun_t *fun, usb_pipe_desc_t *pipe_desc,
 	return EOK;
 }
 
- /**
-  * DDF usbhc_iface callback. Unregister endpoint that makes the other end of
-  * the pipe described.
-  *
-  * @param fun DDF function of the device in question.
-  * @param pipe_desc Pipe description.
-  * @return Error code.
-  */
+/**
+ * DDF usbhc_iface callback. Unregister endpoint that makes the other end of
+ * the pipe described.
+ *
+ * @param fun DDF function of the device in question.
+ * @param pipe_desc Pipe description.
+ * @return Error code.
+ */
 static errno_t unregister_endpoint(ddf_fun_t *fun, const usb_pipe_desc_t *pipe_desc)
 {
 	assert(fun);
@@ -181,7 +181,8 @@ static errno_t device_enumerate(ddf_fun_t *fun, unsigned port, usb_speed_t speed
 		goto err_usb_dev;
 	}
 
-	/* If the driver didn't name the dev when enumerating,
+	/*
+	 * If the driver didn't name the dev when enumerating,
 	 * do it in some generic way.
 	 */
 	if (!ddf_fun_get_name(dev->fun)) {
@@ -280,11 +281,13 @@ static errno_t transfer(ddf_fun_t *fun,
 	device_t *dev = ddf_fun_data_get(fun);
 	assert(dev);
 
-	const usb_target_t target = {{
-		.address = dev->address,
-		.endpoint = ifreq->endpoint,
-		.stream = ifreq->stream,
-	}};
+	const usb_target_t target = {
+		{
+			.address = dev->address,
+			.endpoint = ifreq->endpoint,
+			.stream = ifreq->stream,
+		}
+	};
 
 	if (!usb_target_is_valid(&target))
 		return EINVAL;

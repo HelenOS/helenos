@@ -530,8 +530,10 @@ do { \
 	transfer_list_set_next(&instance->transfers_interrupt,
 	    &instance->transfers_control_slow);
 
-	/*FSBR, This feature is not needed (adds no benefit) and is supposedly
-	 * buggy on certain hw, enable at your own risk. */
+	/*
+	 * FSBR, This feature is not needed (adds no benefit) and is supposedly
+	 * buggy on certain hw, enable at your own risk.
+	 */
 #ifdef FSBR
 	transfer_list_set_next(&instance->transfers_bulk_full,
 	    &instance->transfers_control_full);

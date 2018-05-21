@@ -83,10 +83,12 @@ int hc_get_ep0_max_packet_size(uint16_t *mps, device_t *dev)
 		return EOK;
 	}
 
-	const usb_target_t control_ep = {{
-		.address = dev->address,
-		.endpoint = 0,
-	}};
+	const usb_target_t control_ep = {
+		{
+			.address = dev->address,
+			.endpoint = 0,
+		}
+	};
 
 	usb_standard_device_descriptor_t desc = { 0 };
 	const usb_device_request_setup_packet_t get_device_desc_8 =
@@ -122,10 +124,12 @@ int hc_get_ep0_max_packet_size(uint16_t *mps, device_t *dev)
 
 int hc_get_device_desc(device_t *device, usb_standard_device_descriptor_t *desc)
 {
-	const usb_target_t control_ep = {{
-		.address = device->address,
-		.endpoint = 0,
-	}};
+	const usb_target_t control_ep = {
+		{
+			.address = device->address,
+			.endpoint = 0,
+		}
+	};
 
 	/* Get std device descriptor */
 	const usb_device_request_setup_packet_t get_device_desc =
@@ -146,18 +150,20 @@ int hc_get_device_desc(device_t *device, usb_standard_device_descriptor_t *desc)
 
 int hc_get_hub_desc(device_t *device, usb_hub_descriptor_header_t *desc)
 {
-	const usb_target_t control_ep = {{
-		.address = device->address,
-		.endpoint = 0,
-	}};
+	const usb_target_t control_ep = {
+		{
+			.address = device->address,
+			.endpoint = 0,
+		}
+	};
 
-	const usb_descriptor_type_t type = device->speed >= USB_SPEED_SUPER
-		? USB_DESCTYPE_SSPEED_HUB : USB_DESCTYPE_HUB;
+	const usb_descriptor_type_t type = device->speed >= USB_SPEED_SUPER ?
+	    USB_DESCTYPE_SSPEED_HUB : USB_DESCTYPE_HUB;
 
 	const usb_device_request_setup_packet_t get_hub_desc = {
-		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST
-		    | (USB_REQUEST_TYPE_CLASS << 5)
-		    | USB_REQUEST_RECIPIENT_DEVICE,
+		.request_type = SETUP_REQUEST_TYPE_DEVICE_TO_HOST |
+		    (USB_REQUEST_TYPE_CLASS << 5) |
+		    USB_REQUEST_RECIPIENT_DEVICE,
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
 		.value = uint16_host2usb(type << 8),
 		.length = sizeof(*desc),
@@ -243,16 +249,15 @@ err_usb_dev:
  */
 void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t reset_cb)
 {
-	if (batch->ep->transfer_type != USB_TRANSFER_CONTROL
-	    || batch->dir != USB_DIRECTION_OUT)
+	if (batch->ep->transfer_type != USB_TRANSFER_CONTROL ||
+	    batch->dir != USB_DIRECTION_OUT)
 		return;
 
 	const usb_device_request_setup_packet_t *request = &batch->setup.packet;
-	device_t * const dev = batch->ep->device;
+	device_t *const dev = batch->ep->device;
 
-	switch (request->request)
-	{
-	/* Clear Feature ENPOINT_STALL */
+	switch (request->request) {
+		/* Clear Feature ENPOINT_STALL */
 	case USB_DEVREQ_CLEAR_FEATURE: /*resets only cleared ep */
 		/* 0x2 ( HOST to device | STANDART | TO ENPOINT) */
 		if ((request->request_type == 0x2) &&
@@ -272,11 +277,13 @@ void hc_reset_toggles(const usb_transfer_batch_t *batch, endpoint_reset_toggle_t
 		break;
 	case USB_DEVREQ_SET_CONFIGURATION:
 	case USB_DEVREQ_SET_INTERFACE:
-		/* Recipient must be device, this resets all endpoints,
+		/*
+		 * Recipient must be device, this resets all endpoints,
 		 * In fact there should be no endpoints but EP 0 registered
 		 * as different interfaces use different endpoints,
 		 * unless you're changing configuration or alternative
-		 * interface of an already setup device. */
+		 * interface of an already setup device.
+		 */
 		if (!(request->request_type & SETUP_REQUEST_TYPE_DEVICE_TO_HOST))
 			for (usb_endpoint_t i = 0; i < 2 * USB_ENDPOINT_MAX; ++i)
 				if (dev->endpoints[i])

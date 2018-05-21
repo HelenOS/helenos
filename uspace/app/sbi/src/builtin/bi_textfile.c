@@ -61,23 +61,23 @@ void bi_textfile_declare(builtin_t *bi)
 	/* Declare class TextFile. */
 
 	builtin_code_snippet(bi,
-		"class TextFile is\n"
-			"var f : resource;\n"
-			"\n"
-			"fun OpenRead(fname : string), builtin;\n"
-			"fun OpenWrite(fname : string), builtin;\n"
-			"fun Close(), builtin;\n"
-			"fun ReadLine() : string, builtin;\n"
-			"fun WriteLine(line : string), builtin;\n"
-			"\n"
-			"prop EOF : bool is\n"
-				"get is\n"
-					"return is_eof();\n"
-				"end\n"
-			"end\n"
-			"\n"
-			"fun is_eof() : bool, builtin;\n"
-		"end\n");
+	    "class TextFile is\n"
+	    "    var f : resource;\n"
+	    "\n"
+	    "    fun OpenRead(fname : string), builtin;\n"
+	    "    fun OpenWrite(fname : string), builtin;\n"
+	    "    fun Close(), builtin;\n"
+	    "    fun ReadLine() : string, builtin;\n"
+	    "    fun WriteLine(line : string), builtin;\n"
+	    "\n"
+	    "    prop EOF : bool is\n"
+	    "        get is\n"
+	    "            return is_eof();\n"
+	    "        end\n"
+	    "    end\n"
+	    "\n"
+	    "    fun is_eof() : bool, builtin;\n"
+	    "end\n");
 
 }
 
@@ -188,7 +188,7 @@ static void bi_textfile_openwrite(run_t *run)
 static void bi_textfile_close(run_t *run)
 {
 	FILE *file;
-        rdata_var_t *self_f_var;
+	rdata_var_t *self_f_var;
 	run_proc_ar_t *proc_ar;
 
 	/* Extract pointer to file structure. */
@@ -226,7 +226,7 @@ static void bi_textfile_close(run_t *run)
 static void bi_textfile_readline(run_t *run)
 {
 	FILE *file;
-        rdata_var_t *self_f_var;
+	rdata_var_t *self_f_var;
 
 	rdata_string_t *str;
 	rdata_var_t *str_var;
@@ -296,7 +296,7 @@ static void bi_textfile_readline(run_t *run)
 static void bi_textfile_writeline(run_t *run)
 {
 	FILE *file;
-        rdata_var_t *self_f_var;
+	rdata_var_t *self_f_var;
 	rdata_var_t *line_var;
 	const char *line;
 
@@ -339,7 +339,7 @@ static void bi_textfile_writeline(run_t *run)
 static void bi_textfile_is_eof(run_t *run)
 {
 	FILE *file;
-        rdata_var_t *self_f_var;
+	rdata_var_t *self_f_var;
 
 	bool_t eof_flag;
 	rdata_bool_t *eof_bool;

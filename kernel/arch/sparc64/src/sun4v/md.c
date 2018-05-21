@@ -65,12 +65,17 @@ typedef struct {
 
 /** machine description element (in the node block) */
 typedef struct {
-	uint8_t tag;			/**< Type of element */
-	uint8_t name_len;		/**< Length in bytes of element name */
-	uint16_t _reserved_field;	/**< reserved field (zeros) */
-	uint32_t name_offset;		/**< Location offset of name associated
-					     with this element relative to
-					     start of name block */
+	/** Type of element */
+	uint8_t tag;
+	/** Length in bytes of element name */
+	uint8_t name_len;
+	/** Reserved field (zeros) */
+	uint16_t _reserved_field;
+	/** Location offset of name associated with this element relative to
+	 * start of name block
+	 */
+	uint32_t name_offset;
+
 	union {
 		/** for elements of type “PROP_STR” and of type “PROP_DATA” */
 		struct {

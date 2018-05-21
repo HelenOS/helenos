@@ -47,17 +47,18 @@ void bi_error_declare(builtin_t *bi)
 	 */
 
 	builtin_code_snippet(bi,
-		"class Error is\n"
-			/* Common ancestor of all error classes */
-			"class Base is\n"
-			"end\n"
-			/* Accessing nil reference */
-			"class NilReference : Base is\n"
-			"end\n"
-			/* Array index out of bounds */
-			"class OutOfBounds : Base is\n"
-			"end\n"
-		"end\n");}
+	    "class Error is\n"
+	    "    -- Common ancestor of all error classes\n"
+	    "    class Base is\n"
+	    "    end\n"
+	    "    -- Accessing nil reference\n"
+	    "    class NilReference : Base is\n"
+	    "    end\n"
+	    "    -- Array index out of bounds\n"
+	    "    class OutOfBounds : Base is\n"
+	    "    end\n"
+	    "end\n");
+}
 
 /** Bind error class hierarchy.
  *

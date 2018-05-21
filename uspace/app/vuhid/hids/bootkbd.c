@@ -44,57 +44,59 @@ uint8_t report_descriptor[] = {
 	STD_USAGE_PAGE(USB_HIDUT_PAGE_GENERIC_DESKTOP),
 	USAGE1(USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYBOARD),
 	START_COLLECTION(COLLECTION_APPLICATION),
-		STD_USAGE_PAGE(USB_HIDUT_PAGE_KEYBOARD),
-		USAGE_MINIMUM1(224),
-		USAGE_MAXIMUM1(231),
-		LOGICAL_MINIMUM1(0),
-		LOGICAL_MAXIMUM1(1),
-		REPORT_SIZE1(1),
-		REPORT_COUNT1(8),
-		/* Modifiers */
-		INPUT(IOF_DATA | IOF_VARIABLE | IOF_ABSOLUTE),
-		REPORT_COUNT1(1),
-		REPORT_SIZE1(8),
-		/* Reserved */
-		INPUT(IOF_CONSTANT),
-		REPORT_COUNT1(5),
-		REPORT_SIZE1(1),
-		STD_USAGE_PAGE(USB_HIDUT_PAGE_LED),
-		USAGE_MINIMUM1(1),
-		USAGE_MAXIMUM1(5),
-		/* LED states */
-		OUTPUT(IOF_DATA | IOF_VARIABLE | IOF_ABSOLUTE),
-		REPORT_COUNT1(1),
-		REPORT_SIZE1(3),
-		/* LED states padding */
-		OUTPUT(IOF_CONSTANT),
-		REPORT_COUNT1(6),
-		REPORT_SIZE1(8),
-		LOGICAL_MINIMUM1(0),
-		LOGICAL_MAXIMUM1(101),
-		STD_USAGE_PAGE(USB_HIDUT_PAGE_KEYBOARD),
-		USAGE_MINIMUM1(0),
-		USAGE_MAXIMUM1(101),
-		/* Key array */
-		INPUT(IOF_DATA | IOF_ARRAY),
+
+	STD_USAGE_PAGE(USB_HIDUT_PAGE_KEYBOARD),
+	USAGE_MINIMUM1(224),
+	USAGE_MAXIMUM1(231),
+	LOGICAL_MINIMUM1(0),
+	LOGICAL_MAXIMUM1(1),
+	REPORT_SIZE1(1),
+	REPORT_COUNT1(8),
+	/* Modifiers */
+	INPUT(IOF_DATA | IOF_VARIABLE | IOF_ABSOLUTE),
+	REPORT_COUNT1(1),
+	REPORT_SIZE1(8),
+	/* Reserved */
+	INPUT(IOF_CONSTANT),
+	REPORT_COUNT1(5),
+	REPORT_SIZE1(1),
+	STD_USAGE_PAGE(USB_HIDUT_PAGE_LED),
+	USAGE_MINIMUM1(1),
+	USAGE_MAXIMUM1(5),
+	/* LED states */
+	OUTPUT(IOF_DATA | IOF_VARIABLE | IOF_ABSOLUTE),
+	REPORT_COUNT1(1),
+	REPORT_SIZE1(3),
+	/* LED states padding */
+	OUTPUT(IOF_CONSTANT),
+	REPORT_COUNT1(6),
+	REPORT_SIZE1(8),
+	LOGICAL_MINIMUM1(0),
+	LOGICAL_MAXIMUM1(101),
+	STD_USAGE_PAGE(USB_HIDUT_PAGE_KEYBOARD),
+	USAGE_MINIMUM1(0),
+	USAGE_MAXIMUM1(101),
+	/* Key array */
+	INPUT(IOF_DATA | IOF_ARRAY),
+
 	END_COLLECTION()
 };
 
 #define INPUT_SIZE 8
 
 static uint8_t in_data[] = {
-	     0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	     0, 0, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, // Caps Lock
-	     0, 0, 0x53, 0x00, 0x00, 0x00, 0x00, 0x00, // Num Lock
-	     0, 0, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, // Caps Lock
+	0,      0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0,      0, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, // Caps Lock
+	0,      0, 0x53, 0x00, 0x00, 0x00, 0x00, 0x00, // Num Lock
+	0,      0, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, // Caps Lock
 	1 << 2, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	1 << 2, 0, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00,
 	1 << 2, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	     0, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	0,      0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 static vuhid_interface_life_t boot_life = {
 	.data_in = in_data,
-	.data_in_count = sizeof(in_data)/INPUT_SIZE,
+	.data_in_count = sizeof(in_data) / INPUT_SIZE,
 	.data_in_pos_change_delay = 500,
 	.msg_born = "Boot keyboard comes to life...",
 	.msg_die = "Boot keyboard died."

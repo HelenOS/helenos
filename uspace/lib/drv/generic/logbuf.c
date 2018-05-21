@@ -39,7 +39,8 @@
 /** Formatting string for printing number of not-printed items. */
 #define REMAINDER_STR_FMT " (%zu)..."
 /** Expected max size of the remainder string.
- * String + terminator + number width (enough for 4GB).*/
+ * String + terminator + number width (enough for 4GB).
+ */
 #define REMAINDER_STR_LEN (5 + 1 + 10)
 
 /** Groups size. */
@@ -49,6 +50,11 @@
 #define SPACE_NORMAL " "
 /** Space between two groups. */
 #define SPACE_GROUP "  "
+
+/** Formats the dump with space before, takes care of type casting (ugly). */
+#define _FORMAT(digits, bits) \
+	snprintf(dump, dump_size, "%s%0" #digits PRIx##bits, \
+	    space_before, ((uint##bits##_t *)buf)[0]);
 
 /** Dump one item into given buffer.
  *
@@ -76,11 +82,6 @@ static int dump_one_item(const void *buffer, size_t item_size, size_t index,
 	const uint8_t *buf = (const uint8_t *) buffer;
 	buf += index * item_size;
 
-/* Formats the dump with space before, takes care of type casting (ugly). */
-#define _FORMAT(digits, bits) \
-	snprintf(dump, dump_size, "%s%0" #digits PRIx##bits, \
-	    space_before, ((uint##bits##_t *)buf)[0]);
-
 	switch (item_size) {
 	case 4:
 		return _FORMAT(8, 32);
@@ -89,7 +90,6 @@ static int dump_one_item(const void *buffer, size_t item_size, size_t index,
 	default:
 		return _FORMAT(2, 8);
 	}
-#undef _FORMAT
 }
 
 /** Count number of characters needed for dumping buffer of given size.

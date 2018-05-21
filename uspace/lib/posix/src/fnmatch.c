@@ -32,7 +32,8 @@
 /** @file Filename-matching.
  */
 
-/* This file contains an implementation of the fnmatch() pattern matching
+/*
+ * This file contains an implementation of the fnmatch() pattern matching
  * function. There is more code than necessary to account for the possibility
  * of adding POSIX-like locale support to the system in the future. Functions
  * that are only necessary for locale support currently simply use single
@@ -53,7 +54,8 @@
 /* Returned by _match... functions. */
 #define INVALID_PATTERN -1
 
-/* Type for collating element, simple identity with characters now,
+/*
+ * Type for collating element, simple identity with characters now,
  * but may be extended for better locale support.
  */
 typedef int coll_elm_t;
@@ -69,7 +71,7 @@ typedef int coll_elm_t;
  * @param str String representation of the element.
  * @return Matching collating element or COLL_ELM_INVALID.
  */
-static coll_elm_t _coll_elm_get(const char* str)
+static coll_elm_t _coll_elm_get(const char *str)
 {
 	if (str[0] == '\0' || str[1] != '\0') {
 		return COLL_ELM_INVALID;
@@ -305,6 +307,17 @@ static coll_elm_t _next_coll_elm(const char **pattern, int flags)
 	return _coll_elm_char(*p);
 }
 
+#define _matched(match) { \
+		int _match = match; \
+		if (_match < 0) { \
+			/* Invalid pattern */ \
+			return _match; \
+		} else if (matched == 0 && _match > 0) { \
+			/* First match */ \
+			matched = _match; \
+		} \
+	}
+
 /**
  * Matches the beginning of the given string against a bracket expression
  * the pattern begins with.
@@ -325,23 +338,13 @@ static int _match_bracket_expr(const char **pattern, const char *str, int flags)
 	bool negative = false;
 	int matched = 0;
 
-	#define _matched(match) { \
-		int _match = match; \
-		if (_match < 0) { \
-			/* Invalid pattern */ \
-			return _match; \
-		} else if (matched == 0 && _match > 0) { \
-			/* First match */ \
-			matched = _match; \
-		} \
-	}
-
 	assert(*p == '[');  /* calling code should ensure this */
 	p++;
 
 	if (*str == '\0' || (pathname && *str == '/') ||
 	    (pathname && special_period && *str == '.' && *(str - 1) == '/')) {
-		/* No bracket expression matches end of string,
+		/*
+		 * No bracket expression matches end of string,
 		 * slash in pathname match or initial period with FNM_PERIOD
 		 * option.
 		 */
@@ -397,8 +400,6 @@ static int _match_bracket_expr(const char **pattern, const char *str, int flags)
 		/* Matched 'match' characters. */
 		return negative ? 0 : matched;
 	}
-
-	#undef _matched
 }
 
 /**
@@ -415,7 +416,8 @@ static int _match_bracket_expr(const char **pattern, const char *str, int flags)
  */
 static bool _partial_match(const char **pattern, const char **string, int flags)
 {
-	/* Only a single *-delimited subpattern is matched here.
+	/*
+	 * Only a single *-delimited subpattern is matched here.
 	 * So in this function, '*' is understood as the end of pattern.
 	 */
 
@@ -472,7 +474,8 @@ static bool _partial_match(const char **pattern, const char **string, int flags)
 		}
 
 		if (*p == '\0') {
-			/* End of pattern, must match end of string or
+			/*
+			 * End of pattern, must match end of string or
 			 * an end of subdirectory name (optional).
 			 */
 
@@ -627,14 +630,14 @@ int fnmatch(const char *pattern, const char *string, int flags)
 
 #include <stdio.h>
 
+#define fnmatch_test(x) { if (x) printf("SUCCESS: "#x"\n"); else { printf("FAILED: "#x"\n"); fail++; } }
+#define match(s1, s2, flags) fnmatch_test(fnmatch(s1, s2, flags) == 0)
+#define nomatch(s1, s2, flags) fnmatch_test(fnmatch(s1, s2, flags) == FNM_NOMATCH)
+
 void __posix_fnmatch_test()
 {
 	int fail = 0;
 
-	#undef assert
-	#define assert(x) { if (x) printf("SUCCESS: "#x"\n"); else { printf("FAILED: "#x"\n"); fail++; } }
-	#define match(s1, s2, flags) assert(fnmatch(s1, s2, flags) == 0)
-	#define nomatch(s1, s2, flags) assert(fnmatch(s1, s2, flags) == FNM_NOMATCH)
 
 	static_assert(FNM_PATHNAME == FNM_FILE_NAME);
 	match("", "", 0);

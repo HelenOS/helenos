@@ -78,14 +78,17 @@ typedef enum {
 typedef struct xhci_command_ring {
 	xhci_trb_ring_t trb_ring;
 
-	fibril_mutex_t guard;		/**< Guard access to this structure. */
+	/** Guard access to this structure. */
+	fibril_mutex_t guard;
 	list_t cmd_list;
 
-	xhci_cr_state_t state;		/**< Whether commands are allowed to be
-					     added. */
-	fibril_condvar_t state_cv;	/**< For waiting on CR state change. */
+	/** Whether commands are allowed to be added. */
+	xhci_cr_state_t state;
+	/** For waiting on CR state change. */
+	fibril_condvar_t state_cv;
 
-	fibril_condvar_t stopped_cv;	/**< For waiting on CR stopped event. */
+	/** For waiting on CR stopped event. */
+	fibril_condvar_t stopped_cv;
 } xhci_cmd_ring_t;
 
 typedef struct xhci_command {
@@ -107,7 +110,8 @@ typedef struct xhci_command {
 	} _header;
 
 	/** Below are arguments of all commands mixed together.
-	 *  Be sure to know which command accepts what arguments. */
+	 *  Be sure to know which command accepts what arguments.
+	 */
 
 	uint32_t slot_id;
 	uint32_t endpoint_id;

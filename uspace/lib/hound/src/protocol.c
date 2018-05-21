@@ -78,9 +78,9 @@ typedef union {
 } format_convert_t;
 
 
-/****
+/*
  * CLIENT
- ****/
+ */
 
 /** Well defined service name */
 const char *HOUND_SERVICE = "audio/hound";
@@ -308,11 +308,14 @@ errno_t hound_service_disconnect_source_sink(hound_sess_t *sess, const char *sou
 errno_t hound_service_stream_enter(async_exch_t *exch, hound_context_id_t id,
     int flags, pcm_format_t format, size_t bsize)
 {
-	const format_convert_t c = { .f = {
-		.channels = format.channels,
-		.rate = format.sampling_rate / 100,
-		.format = format.sample_format,
-	}};
+	const format_convert_t c = {
+		.f = {
+			.channels = format.channels,
+			.rate = format.sampling_rate / 100,
+			.format = format.sample_format,
+		}
+	};
+
 	return async_req_4_0(exch, IPC_M_HOUND_STREAM_ENTER, CAP_HANDLE_RAW(id),
 	    flags, c.arg, bsize);
 }
@@ -361,9 +364,9 @@ errno_t hound_service_stream_read(async_exch_t *exch, void *data, size_t size)
 	return async_data_read_start(exch, data, size);
 }
 
-/****
+/*
  * SERVER
- ****/
+ */
 
 static void hound_server_read_data(void *stream);
 static void hound_server_write_data(void *stream);
@@ -462,7 +465,7 @@ void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall,
 			/* get connected actor name if provided */
 			if (conn)
 				ret = async_data_write_accept(
-				    (void**)&conn_name, true, 0, 0, 0, 0);
+				    (void **)&conn_name, true, 0, 0, 0, 0);
 
 			if (ret == EOK)
 				ret = server_iface->get_list(
@@ -558,9 +561,9 @@ void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall,
 			break;
 		case IPC_M_HOUND_STREAM_ENTER:
 			/* check interface functions */
-			if (!server_iface || !server_iface->is_record_context
-			    || !server_iface->add_stream
-			    || !server_iface->rem_stream) {
+			if (!server_iface || !server_iface->is_record_context ||
+			    !server_iface->add_stream ||
+			    !server_iface->rem_stream) {
 				async_answer_0(chandle, ENOTSUP);
 				break;
 			}
@@ -568,11 +571,11 @@ void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall,
 			/* get parameters */
 			id = (cap_handle_t) IPC_GET_ARG1(call);
 			flags = IPC_GET_ARG2(call);
-			const format_convert_t c = {.arg = IPC_GET_ARG3(call)};
+			const format_convert_t c = { .arg = IPC_GET_ARG3(call) };
 			const pcm_format_t f = {
-			    .sampling_rate = c.f.rate * 100,
-			    .channels = c.f.channels,
-			    .sample_format = c.f.format,
+				.sampling_rate = c.f.rate * 100,
+				.channels = c.f.channels,
+				.sample_format = c.f.format,
 			};
 			size_t bsize = IPC_GET_ARG4(call);
 
@@ -586,7 +589,7 @@ void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall,
 			const bool rec = server_iface->is_record_context(
 			    server_iface->server, id);
 			if (rec) {
-				if(server_iface->stream_data_read) {
+				if (server_iface->stream_data_read) {
 					async_answer_0(chandle, EOK);
 					/* start answering read calls */
 					hound_server_write_data(stream);
@@ -630,8 +633,8 @@ static void hound_server_read_data(void *stream)
 	size_t size = 0;
 	errno_t ret_answer = EOK;
 	/* accept data write or drain */
-	while (async_data_write_receive_call(&chandle, &call, &size)
-	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
+	while (async_data_write_receive_call(&chandle, &call, &size) ||
+	    (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
 		/* check drain first */
 		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
 			errno_t ret = ENOTSUP;
@@ -659,8 +662,8 @@ static void hound_server_read_data(void *stream)
 			    stream, buffer, size);
 		}
 	}
-	const errno_t ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
-	    ? EOK : EINVAL;
+	const errno_t ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT ?
+	    EOK : EINVAL;
 
 	async_answer_0(chandle, ret);
 }
@@ -677,8 +680,8 @@ static void hound_server_write_data(void *stream)
 	size_t size = 0;
 	errno_t ret_answer = EOK;
 	/* accept data read and drain */
-	while (async_data_read_receive_call(&chandle, &call, &size)
-	    || (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
+	while (async_data_read_receive_call(&chandle, &call, &size) ||
+	    (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN)) {
 		/* drain does not make much sense but it is allowed */
 		if (IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_DRAIN) {
 			errno_t ret = ENOTSUP;
@@ -703,16 +706,16 @@ static void hound_server_write_data(void *stream)
 			    async_data_read_finalize(chandle, buffer, size);
 		}
 	}
-	const errno_t ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT
-	    ? EOK : EINVAL;
+	const errno_t ret = IPC_GET_IMETHOD(call) == IPC_M_HOUND_STREAM_EXIT ?
+	    EOK : EINVAL;
 
 	async_answer_0(chandle, ret);
 }
 
 
-/***
+/*
  * SERVER SIDE
- ***/
+ */
 
 /**
  * Register new hound service to the location service.

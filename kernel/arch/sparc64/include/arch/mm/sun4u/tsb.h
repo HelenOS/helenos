@@ -65,15 +65,15 @@
 typedef union tsb_base_reg {
 	uint64_t value;
 	struct {
-		uint64_t base : 51;	/**< TSB base address, bits 63:13. */
-		unsigned split : 1;	/**< Split vs. common TSB for 8K and 64K
-					 * pages. HelenOS uses only 8K pages
-					 * for user mappings, so we always set
-					 * this to 0.
-					 */
+		/** TSB base address, bits 63:13. */
+		uint64_t base : 51;
+		/** Split vs. common TSB for 8K and 64K pages. HelenOS uses
+		 * only 8K pages for user mappings, so we always set this to 0.
+		 */
+		unsigned split : 1;
 		unsigned : 9;
-		unsigned size : 3;	/**< TSB size. Number of entries is
-					 * 512 * 2^size. */
+		/** TSB size. Number of entries is 512 * 2^size. */
+		unsigned size : 3;
 	} __attribute__((packed));
 } tsb_base_reg_t;
 
