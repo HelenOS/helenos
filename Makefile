@@ -90,6 +90,9 @@ ccheck-fix: $(CCHECK)
 	cd tools && ./build-ccheck.sh
 	tools/ccheck.sh --fix
 
+$(CCHECK):
+	cd tools && ./build-ccheck.sh
+
 space:
 	tools/srepl '[ \t]\+$$' ''
 
