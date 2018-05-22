@@ -58,7 +58,7 @@ BEGIN {
 
 		macro_name = toupper(struct_name) "_SIZE_" toupper(member)
 		print "#ifdef " macro_name
-		print "_Static_assert(" macro_name " == sizeof(((struct " struct_name "){})." member "), \"\");"
+		print "_Static_assert(" macro_name " == sizeof(((struct " struct_name "){ })." member "), \"\");"
 		print "#endif"
 	}
 }
