@@ -114,15 +114,6 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 	memset(q->virt, 0, q->size);
 
 	/*
-	 * Initialize the descriptor table
-	 */
-	for (unsigned i = 0; i < size; i++) {
-		q->desc[i].addr = 0;
-		q->desc[i].len = 0;
-		q->desc[i].flags = 0;
-	}
-
-	/*
 	 * Write the configured addresses to device's common config
 	 */
 	pio_write_le64(&cfg->queue_desc, q->phys);
