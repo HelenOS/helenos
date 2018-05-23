@@ -173,6 +173,11 @@ typedef struct {
 	virtq_t *queues;
 } virtio_dev_t;
 
+extern void virtio_virtq_set_desc(virtio_dev_t *vdev, uint16_t, uint16_t,
+    uint64_t, uint32_t, uint16_t, uint16_t);
+
+extern void virtio_virtq_produce_available(virtio_dev_t *, uint16_t, uint16_t);
+
 extern errno_t virtio_virtq_setup(virtio_dev_t *, uint16_t, uint16_t);
 extern void virtio_virtq_teardown(virtio_dev_t *, uint16_t);
 
