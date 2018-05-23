@@ -280,7 +280,7 @@ errno_t virtio_pci_dev_cleanup(virtio_dev_t *vdev)
 {
 	if (vdev->queues) {
 		for (unsigned i = 0;
-		    i < pio_read_16(&vdev->common_cfg->num_queues); i++)
+		    i < pio_read_le16(&vdev->common_cfg->num_queues); i++)
 			virtio_virtq_teardown(vdev, i);
 		free(vdev->queues);
 	}

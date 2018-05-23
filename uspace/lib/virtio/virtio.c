@@ -42,10 +42,10 @@ void virtio_virtq_set_desc(virtio_dev_t *vdev, uint16_t num, uint16_t descno,
     uint64_t addr, uint32_t len, uint16_t flags, uint16_t next)
 {
 	virtq_desc_t *d = &vdev->queues[num].desc[descno];
-	pio_write_64(&d->addr, addr);
-	pio_write_32(&d->len, len);
-	pio_write_16(&d->flags, flags);
-	pio_write_16(&d->next, next);
+	pio_write_le64(&d->addr, addr);
+	pio_write_le32(&d->len, len);
+	pio_write_le16(&d->flags, flags);
+	pio_write_le16(&d->next, next);
 }
 
 void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,
@@ -53,12 +53,12 @@ void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,
 {
 	virtq_t *q = &vdev->queues[num];
 
-	uint16_t idx = pio_read_16(&q->avail->idx);
-	pio_write_16(&q->avail->ring[idx], descno);
+	uint16_t idx = pio_read_le16(&q->avail->idx);
+	pio_write_le16(&q->avail->ring[idx], descno);
 	write_barrier();
-	pio_write_16(&q->avail->idx, (idx + 1) % q->queue_size);
+	pio_write_le16(&q->avail->idx, (idx + 1) % q->queue_size);
 	write_barrier();
-	pio_write_16(q->notify, num);
+	pio_write_le16(q->notify, num);
 }
 
 errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
@@ -67,14 +67,14 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 	virtio_pci_common_cfg_t *cfg = vdev->common_cfg;
 
 	/* Program the queue of our interest */
-	pio_write_16(&cfg->queue_select, num);
+	pio_write_le16(&cfg->queue_select, num);
 
 	/* Trim the size of the queue as needed */
 	if (size > pio_read_16(&cfg->queue_size)) {
 		ddf_msg(LVL_ERROR, "Virtq %u: not enough descriptors", num);
 		return ENOMEM;
 	}
-	pio_write_16(&cfg->queue_size, size);
+	pio_write_le16(&cfg->queue_size, size);
 	ddf_msg(LVL_NOTE, "Virtq %u: %u descriptors", num, (unsigned) size);
 
 	size_t avail_offset = 0;
@@ -125,16 +125,16 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 	/*
 	 * Write the configured addresses to device's common config
 	 */
-	pio_write_64(&cfg->queue_desc, q->phys);
-	pio_write_64(&cfg->queue_avail, q->phys + avail_offset);
-	pio_write_64(&cfg->queue_used, q->phys + used_offset);
+	pio_write_le64(&cfg->queue_desc, q->phys);
+	pio_write_le64(&cfg->queue_avail, q->phys + avail_offset);
+	pio_write_le64(&cfg->queue_used, q->phys + used_offset);
 
 	ddf_msg(LVL_NOTE, "DMA memory for virtq %d: virt=%p, phys=%p, size=%zu",
 	    num, q->virt, (void *) q->phys, q->size);
 
 	/* Determine virtq's notification address */
 	q->notify = vdev->notify_base +
-	    pio_read_16(&cfg->queue_notif_off) * vdev->notify_off_multiplier;
+	    pio_read_le16(&cfg->queue_notif_off) * vdev->notify_off_multiplier;
 
 	ddf_msg(LVL_NOTE, "notification register: %p", q->notify);
 
@@ -169,8 +169,8 @@ errno_t virtio_device_setup_start(virtio_dev_t *vdev, uint32_t features)
 	pio_write_8(&cfg->device_status, status);
 
 	/* 4. Read the offered feature flags */
-	pio_write_32(&cfg->device_feature_select, VIRTIO_FEATURES_0_31);
-	uint32_t device_features = pio_read_32(&cfg->device_feature);
+	pio_write_le32(&cfg->device_feature_select, VIRTIO_FEATURES_0_31);
+	uint32_t device_features = pio_read_le32(&cfg->device_feature);
 
 	ddf_msg(LVL_NOTE, "offered features %x", device_features);
 	features &= device_features;
@@ -179,8 +179,8 @@ errno_t virtio_device_setup_start(virtio_dev_t *vdev, uint32_t features)
 		return ENOTSUP;
 
 	/* 4. Write the accepted feature flags */
-	pio_write_32(&cfg->driver_feature_select, VIRTIO_FEATURES_0_31);
-	pio_write_32(&cfg->driver_feature, features);
+	pio_write_le32(&cfg->driver_feature_select, VIRTIO_FEATURES_0_31);
+	pio_write_le32(&cfg->driver_feature, features);
 
 	ddf_msg(LVL_NOTE, "accepted features %x", features);
 

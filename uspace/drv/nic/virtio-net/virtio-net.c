@@ -122,7 +122,7 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	/*
 	 * Discover and configure the virtqueues
 	 */
-	uint16_t num_queues = pio_read_16(&cfg->num_queues);
+	uint16_t num_queues = pio_read_le16(&cfg->num_queues);
 	if (num_queues != VIRTIO_NET_NUM_QUEUES) {
 		ddf_msg(LVL_NOTE, "Unsupported number of virtqueues: %u",
 		    num_queues);
