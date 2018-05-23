@@ -58,7 +58,7 @@ void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,
 	write_barrier();
 	pio_write_16(&q->avail->idx, (idx + 1) % q->queue_size);
 	write_barrier();
-	pio_write_16(&q->notify, num);
+	pio_write_16(q->notify, num);
 }
 
 errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
