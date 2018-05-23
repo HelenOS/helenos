@@ -162,6 +162,24 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 		goto fail;
 
 	/*
+	 * Give all RX buffers to the NIC
+	 */
+	for (unsigned i = 0; i < RX_BUFFERS; i++) {
+		/*
+		 * Associtate the buffer with the descriptor, set length and
+		 * flags.
+		 */
+		virtio_virtq_set_desc(vdev, RX_QUEUE_1, i,
+		    virtio_net->rx_buf_p[i], RX_BUF_SIZE, VIRTQ_DESC_F_WRITE,
+		    0);
+		/*
+		 * Put the set descriptor into the available ring of the RX
+		 * queue.
+		 */
+		virtio_virtq_produce_available(vdev, RX_QUEUE_1, i);
+	}
+
+	/*
 	 * Read the MAC address
 	 */
 	nic_address_t nic_addr;
