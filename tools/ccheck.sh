@@ -54,7 +54,6 @@ while read fname; do
 	else
 		fcnt=$((fcnt + 1))
 		cat "$outfile"
-		echo 1 > "$exitfile"
 	fi
 
 	rm -f "$outfile"
