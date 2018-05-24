@@ -129,11 +129,20 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 
 	ddf_msg(LVL_NOTE, "notification register: %p", q->notify);
 
+	/* Enable the queue */
+	pio_write_le16(&cfg->queue_enable, 1);
+	ddf_msg(LVL_NOTE, "virtq %d set", num);
+
 	return rc;
 }
 
 void virtio_virtq_teardown(virtio_dev_t *vdev, uint16_t num)
 {
+	virtio_pci_common_cfg_t *cfg = vdev->common_cfg;
+
+	/* Disable the queue */
+	pio_write_le16(&cfg->queue_enable, 0);
+
 	virtq_t *q = &vdev->queues[num];
 	if (q->size)
 		dmamem_unmap_anonymous(q->virt);
