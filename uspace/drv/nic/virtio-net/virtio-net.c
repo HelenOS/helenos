@@ -89,6 +89,16 @@ static void virtio_net_teardown_bufs(void *buf[])
 	}
 }
 
+static void virtio_net_create_buf_free_list(virtio_dev_t *vdev, uint16_t num,
+    uint16_t size, uint16_t *head)
+{
+	for (unsigned i = 0; i < size; i++) {
+		virtio_virtq_set_desc(vdev, num, i, 0, 0,
+		    VIRTQ_DESC_F_NEXT, (i + 1 == size) ? -1U : i + 1);
+	}
+	*head = 0;
+}
+
 static errno_t virtio_net_initialize(ddf_dev_t *dev)
 {
 	nic_t *nic_data = nic_create_and_bind(dev);
@@ -178,6 +188,14 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 		 */
 		virtio_virtq_produce_available(vdev, RX_QUEUE_1, i);
 	}
+
+	/*
+	 * Put all TX and CT buffers on a free list
+	 */
+	virtio_net_create_buf_free_list(vdev, TX_QUEUE_1, TX_BUFFERS,
+	    &virtio_net->tx_free_head);
+	virtio_net_create_buf_free_list(vdev, CT_QUEUE_1, CT_BUFFERS,
+	    &virtio_net->ct_free_head);
 
 	/*
 	 * Read the MAC address
