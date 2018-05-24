@@ -364,7 +364,7 @@ errno_t xhci_event_ring_init(xhci_event_ring_t *ring, size_t initial_size)
 void xhci_event_ring_reset(xhci_event_ring_t *ring)
 {
 	list_foreach(ring->segments, segments_link, trb_segment_t, segment)
-	    memset(segment->trb_storage, 0, sizeof(segment->trb_storage));
+		memset(segment->trb_storage, 0, sizeof(segment->trb_storage));
 
 	trb_segment_t *const segment = get_first_segment(&ring->segments);
 	ring->dequeue_segment = segment;

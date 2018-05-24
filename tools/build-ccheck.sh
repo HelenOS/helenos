@@ -28,7 +28,7 @@
 #
 
 SYCEK_GIT="https://github.com/jxsvoboda/sycek sycek"
-SYCEK_REV="722f6c377875ea9e471d77e7486c8d06f0a73ff7"
+SYCEK_REV="2444d5e3f094f0c994bc1a5328ad7a5de2cb7835"
 
 if [ ! -d sycek ]; then
 	git clone https://github.com/jxsvoboda/sycek sycek
