@@ -372,12 +372,12 @@ static errno_t create_match_ids(match_id_list_t *l,
 	if (d->vendor_id != 0) {
 		/* First, with release number. */
 		ADD_MATCHID_OR_RETURN(l, 100,
-		    "usb&vendor=%#04x&product=%#04x&release=%x.%x",
+		    "usb&vendor=%#06x&product=%#06x&release=%x.%x",
 		    d->vendor_id, d->product_id, (d->device_version >> 8),
 		    (d->device_version & 0xff));
 
 		/* Next, without release number. */
-		ADD_MATCHID_OR_RETURN(l, 90, "usb&vendor=%#04x&product=%#04x",
+		ADD_MATCHID_OR_RETURN(l, 90, "usb&vendor=%#06x&product=%#06x",
 		    d->vendor_id, d->product_id);
 	}
 
