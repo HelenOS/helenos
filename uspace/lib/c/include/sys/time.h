@@ -75,10 +75,10 @@ struct timezone {
 
 extern void tv_add_diff(struct timeval *, suseconds_t);
 extern void tv_add(struct timeval *, struct timeval *);
-extern suseconds_t tv_sub_diff(struct timeval *, struct timeval *);
+extern suseconds_t tv_sub_diff(const struct timeval *, const struct timeval *);
 extern void tv_sub(struct timeval *, struct timeval *);
-extern int tv_gt(struct timeval *, struct timeval *);
-extern int tv_gteq(struct timeval *, struct timeval *);
+extern int tv_gt(const struct timeval *, const struct timeval *);
+extern int tv_gteq(const struct timeval *, const struct timeval *);
 extern void gettimeofday(struct timeval *, struct timezone *);
 extern void getuptime(struct timeval *);
 

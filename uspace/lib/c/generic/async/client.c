@@ -1345,5 +1345,267 @@ void *async_as_area_create(void *base, size_t size, unsigned int flags,
 	return as_area_create(base, size, flags, &pager_info);
 }
 
+void async_call_begin(async_call_t *call, async_sess_t *sess, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	memset(call, 0, sizeof(*call));
+
+	call->exch = async_exchange_begin(sess);
+	if (!call->exch) {
+		call->rc = ENOMEM;
+		return;
+	}
+
+	async_call_method(call, &call->initial, imethod,
+	    arg1, arg2, arg3, arg4);
+}
+
+static suseconds_t time_until(const struct timeval *t)
+{
+	struct timeval tv;
+	getuptime(&tv);
+	if (tv_gteq(&tv, t))
+		return 1;
+
+	return tv_sub_diff(t, &tv);
+}
+
+static errno_t async_call_finish_internal(async_call_t *call, const struct timeval *expires)
+{
+	errno_t rc;
+
+	/* Wait for all the fragments. */
+	while (!list_empty(&call->fragments)) {
+		link_t *tmp = list_first(&call->fragments);
+		async_call_data_t *frag =
+		    list_get_instance(tmp, async_call_data_t, link);
+
+		if (expires) {
+			errno_t trc = async_wait_timeout(frag->msgid, &rc,
+			    time_until(expires));
+			if (trc != EOK)
+				return trc;
+		} else {
+			async_wait_for(frag->msgid, &rc);
+		}
+
+		list_remove(tmp);
+
+		if (rc != EOK)
+			return rc;
+
+		if (frag->finalizer) {
+			rc = frag->finalizer(frag);
+			if (rc != EOK)
+				return rc;
+		}
+	}
+
+	return EOK;
+}
+
+errno_t async_call_finish_timeout(async_call_t *call, const struct timeval *expires)
+{
+	assert(call);
+
+	if (call->rc)
+		return call->rc;
+
+	if (call->exch) {
+		async_exchange_end(call->exch);
+		call->exch = NULL;
+	}
+
+	errno_t rc = async_call_finish_internal(call, expires);
+	if (rc == ETIMEOUT)
+		return rc;
+
+	/* If one fails, abort the call. */
+	if (rc != EOK)
+		async_call_abort(call);
+
+	assert(list_empty(&call->fragments));
+	call->rc = rc;
+	return rc;
+}
+
+// Ends the call, and waits for all in-flight fragments to finish.
+errno_t async_call_finish(async_call_t *call)
+{
+	return async_call_finish_timeout(call, NULL);
+}
+
+// Aborts the call. After this function returns, auxiliary structures
+// and buffers are safe to deallocate.
+extern void async_call_abort(async_call_t *call)
+{
+	// FIXME: Proper abort needs kernel support. A system call should
+	//        clean up bookkeeping structures in the kernel and notify
+	//        the server of the abort as well.
+
+	//        Currently, we just wait, which is less than ideal,
+	//        but at the same time, nothing in HelenOS currently
+	//        benefits from timeouts.
+
+	assert(call);
+
+	if (call->exch) {
+		async_exchange_end(call->exch);
+		call->exch = NULL;
+	}
+
+	/* Wait for all the fragments. */
+	while (!list_empty(&call->fragments)) {
+		// TODO: abort instead of waiting
+		(void) async_call_finish_internal(call, NULL);
+	}
+
+	assert(list_empty(&call->fragments));
+}
+
+// Waits for all in-flight fragments to finish, but doesn't end the call.
+errno_t async_call_wait(async_call_t *call)
+{
+	return async_call_wait_timeout(call, NULL);
+}
+
+errno_t async_call_wait_timeout(async_call_t *call, const struct timeval *expires)
+{
+	assert(call);
+
+	if (call->rc)
+		return call->rc;
+
+	/* Wait for all the fragments except the initial one. */
+	assert(list_first(&call->fragments) == &call->initial.link);
+	list_remove(&call->initial.link);
+
+	errno_t rc = async_call_finish_internal(call, expires);
+	list_prepend(&call->initial.link, &call->fragments);
+
+	if (rc == ETIMEOUT)
+		return rc;
+
+	/* If one fails, abort the call. */
+	if (rc != EOK)
+		async_call_abort(call);
+
+	call->rc = rc;
+	return rc;
+}
+
+void async_call_method_with_finalizer(async_call_t *call,
+    async_call_data_t *data, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t arg4, async_call_finalizer_t finalizer)
+{
+	assert(call);
+	assert(data);
+	data->finalizer = finalizer;
+
+	if (!call->exch)
+		call->rc = ENOENT;
+
+	if (call->rc)
+		return;
+
+	data->msgid = async_send_fast(call->exch, imethod,
+	    arg1, arg2, arg3, arg4, &data->answer);
+	if (!data->msgid) {
+		async_call_abort(call);
+		call->rc = ENOMEM;
+	}
+
+	list_append(&data->link, &call->fragments);
+}
+
+void async_call_method(async_call_t *call, async_call_data_t *data,
+    sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	assert(call);
+	assert(data);
+	memset(data, 0, sizeof(*data));
+
+	async_call_method_with_finalizer(call, data, imethod,
+	    arg1, arg2, arg3, arg4, NULL);
+}
+
+static errno_t call_read_write_finalizer(async_call_data_t *data)
+{
+	size_t *sz = data->arg1;
+	if (sz)
+		*sz = IPC_GET_ARG2(data->answer);
+	return EOK;
+}
+
+void async_call_read(async_call_t *call, async_call_data_t *data,
+    void *dst, size_t size, size_t *nread)
+{
+	assert(call);
+	assert(data);
+	memset(data, 0, sizeof(*data));
+
+	data->arg1 = nread;
+
+	async_call_method_with_finalizer(call, data,
+	    IPC_M_DATA_READ, (sysarg_t) dst, (sysarg_t) size, 0, 0,
+	    call_read_write_finalizer);
+}
+
+/**
+ * After the call is successfully finished,
+ * `IPC_GET_ARG2(&data->answer)` holds the actual number of bytes written.
+ */
+void async_call_write(async_call_t *call, async_call_data_t *data,
+    const void *src, size_t size, size_t *nwritten)
+{
+	assert(call);
+	assert(data);
+	memset(data, 0, sizeof(*data));
+
+	data->arg1 = nwritten;
+
+	async_call_method_with_finalizer(call, data,
+	    IPC_M_DATA_WRITE, (sysarg_t) src, (sysarg_t) size, 0, 0,
+	    call_read_write_finalizer);
+}
+
+static errno_t call_share_in_finalizer(async_call_data_t *data)
+{
+	unsigned int *flags = data->arg1;
+	void **dst = data->arg2;
+
+	if (flags)
+		*flags = IPC_GET_ARG2(data->answer);
+
+	if (dst)
+		*dst = (void *) IPC_GET_ARG4(data->answer);
+
+	return EOK;
+}
+
+void async_call_share_in(async_call_t *call, async_call_data_t *data,
+    size_t size, sysarg_t arg, unsigned int *flags, void **dst)
+{
+	assert(call);
+	assert(data);
+	memset(data, 0, sizeof(*data));
+
+	data->arg1 = flags;
+	data->arg2 = dst;
+
+	async_call_method_with_finalizer(call, data,
+	    IPC_M_SHARE_IN, (sysarg_t) size, (sysarg_t) arg, 0, 0,
+	    call_share_in_finalizer);
+}
+
+void async_call_share_out(async_call_t *call, async_call_data_t *data,
+    void *src, unsigned int flags)
+{
+	async_call_method(call, data,
+	    IPC_M_SHARE_OUT, (sysarg_t) src, 0, (sysarg_t) flags, 0);
+}
+
+// TODO: connect me to, connect to me, vfs handle, etc.
+
 /** @}
  */

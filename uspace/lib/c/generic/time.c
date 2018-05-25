@@ -502,7 +502,7 @@ void tv_add(struct timeval *tv1, struct timeval *tv2)
  *         microseconds.
  *
  */
-suseconds_t tv_sub_diff(struct timeval *tv1, struct timeval *tv2)
+suseconds_t tv_sub_diff(const struct timeval *tv1, const struct timeval *tv2)
 {
 	return (tv1->tv_usec - tv2->tv_usec) +
 	    ((tv1->tv_sec - tv2->tv_sec) * USECS_PER_SEC);
@@ -530,7 +530,7 @@ void tv_sub(struct timeval *tv1, struct timeval *tv2)
  * @return False otherwise.
  *
  */
-int tv_gt(struct timeval *tv1, struct timeval *tv2)
+int tv_gt(const struct timeval *tv1, const struct timeval *tv2)
 {
 	if (tv1->tv_sec > tv2->tv_sec)
 		return true;
@@ -550,7 +550,7 @@ int tv_gt(struct timeval *tv1, struct timeval *tv2)
  * @return False otherwise.
  *
  */
-int tv_gteq(struct timeval *tv1, struct timeval *tv2)
+int tv_gteq(const struct timeval *tv1, const struct timeval *tv2)
 {
 	if (tv1->tv_sec > tv2->tv_sec)
 		return true;

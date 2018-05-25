@@ -491,6 +491,66 @@ extern void async_remote_state_release_exchange(async_exch_t *);
 extern void *async_as_area_create(void *, size_t, unsigned int, async_sess_t *,
     sysarg_t, sysarg_t, sysarg_t);
 
+struct async_call_data;
+
+typedef errno_t (*async_call_finalizer_t)(struct async_call_data *);
+
+typedef struct async_call_data {
+	// public
+	ipc_call_t answer;
+
+	// private
+	link_t link;
+	void *arg1;
+	void *arg2;
+	aid_t msgid;
+	async_call_finalizer_t finalizer;
+} async_call_data_t;
+
+typedef struct async_call {
+	// public
+	async_call_data_t initial;
+
+	// private
+	list_t fragments;
+	async_exch_t *exch;
+	errno_t rc;
+} async_call_t;
+
+extern void async_call_begin(async_call_t *, async_sess_t *, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t);
+
+// Waits for all in-flight fragments to finish, and ends the call.
+extern errno_t async_call_finish(async_call_t *);
+extern errno_t async_call_finish_timeout(async_call_t *, const struct timeval *);
+
+// Aborts the call. After this function returns, auxiliary structures
+// and buffers are safe to deallocate.
+// TODO: might need some extra support from kernel
+extern void async_call_abort(async_call_t *);
+
+// Waits for all in-flight fragments to finish, but doesn't end the call.
+extern errno_t async_call_wait(async_call_t *);
+extern errno_t async_call_wait_timeout(async_call_t *, const struct timeval *);
+
+extern void async_call_method_with_finalizer(async_call_t *,
+    async_call_data_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    async_call_finalizer_t);
+extern void async_call_method(async_call_t *, async_call_data_t *, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t);
+
+extern void async_call_read(async_call_t *, async_call_data_t *,
+    void *, size_t, size_t *);
+extern void async_call_write(async_call_t *, async_call_data_t *,
+    const void *, size_t, size_t *);
+
+extern void async_call_share_in(async_call_t *, async_call_data_t *,
+    size_t, sysarg_t, unsigned int *, void **);
+extern void async_call_share_out(async_call_t *, async_call_data_t *,
+    void *, unsigned int);
+
+// TODO: connect me to, connect to me, vfs handle, etc.
+
 #endif
 
 /** @}
