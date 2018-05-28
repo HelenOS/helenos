@@ -54,6 +54,18 @@
 #define TX_BUF_SIZE	BUFFER_SIZE
 #define CT_BUF_SIZE	BUFFER_SIZE
 
+static ddf_dev_ops_t virtio_net_dev_ops;
+
+static errno_t virtio_net_dev_add(ddf_dev_t *dev);
+
+static driver_ops_t virtio_net_driver_ops = {
+	.dev_add = virtio_net_dev_add
+};
+
+static driver_t virtio_net_driver = {
+	.name = NAME,
+	.driver_ops = &virtio_net_driver_ops
+};
 
 static errno_t virtio_net_setup_bufs(unsigned int buffers, size_t size,
     bool write, void *buf[], uintptr_t buf_p[])
@@ -226,6 +238,19 @@ fail:
 	return rc;
 }
 
+static void virtio_net_uninitialize(ddf_dev_t *dev)
+{
+	nic_t *nic = ddf_dev_data_get(dev);
+	virtio_net_t *virtio_net = (virtio_net_t *) nic_get_specific(nic);
+
+	virtio_net_teardown_bufs(virtio_net->rx_buf);
+	virtio_net_teardown_bufs(virtio_net->tx_buf);
+	virtio_net_teardown_bufs(virtio_net->ct_buf);
+
+	virtio_device_setup_fail(&virtio_net->virtio_dev);
+	virtio_pci_dev_cleanup(&virtio_net->virtio_dev);
+}
+
 static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_NOTE, "%s %s (handle = %zu)", __func__,
@@ -235,19 +260,39 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		return rc;
 
-	return ENOTSUP;
+	ddf_fun_t *fun = ddf_fun_create(dev, fun_exposed, "port0");
+	if (fun == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+	nic_t *nic = ddf_dev_data_get(dev);
+	nic_set_ddf_fun(nic, fun);
+	ddf_fun_set_ops(fun, &virtio_net_dev_ops);
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding device function");
+		goto uninitialize;
+	}
+
+	rc = ddf_fun_add_to_category(fun, DEVICE_CATEGORY_NIC);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding function to category");
+		goto unbind;
+	}
+
+	ddf_msg(LVL_NOTE, "The %s device has been successfully initialized.",
+	    ddf_dev_get_name(dev));
+
+	return EOK;
+
+unbind:
+	ddf_fun_unbind(fun);
+uninitialize:
+	virtio_net_uninitialize(dev);
+error:
+	return rc;
 }
-
-static ddf_dev_ops_t virtio_net_dev_ops;
-
-static driver_ops_t virtio_net_driver_ops = {
-	.dev_add = virtio_net_dev_add
-};
-
-static driver_t virtio_net_driver = {
-	.name = NAME,
-	.driver_ops = &virtio_net_driver_ops
-};
 
 static nic_iface_t virtio_net_nic_iface;
 
