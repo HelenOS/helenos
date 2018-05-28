@@ -38,7 +38,7 @@
 
 #if defined(MACHINE_msim)
 #define _putchar(ch)	msim_putchar((ch))
-static void msim_putchar(const wchar_t ch)
+static void msim_putchar(char ch)
 {
 	*((char *) MSIM_VIDEORAM_ADDRESS) = ch;
 }
@@ -50,19 +50,17 @@ typedef void (**yamon_print_count_ptr_t)(uint32_t, const char *, uint32_t);
 yamon_print_count_ptr_t yamon_print_count =
     (yamon_print_count_ptr_t) YAMON_SUBR_PRINT_COUNT;
 
-static void yamon_putchar(const wchar_t wch)
+static void yamon_putchar(char ch)
 {
-	const char ch = (char) wch;
-
 	(*yamon_print_count)(0, &ch, 1);
 }
 #endif
 
-void putchar(const wchar_t ch)
+void putwchar(const wchar_t ch)
 {
 	if (ascii_check(ch))
 		_putchar(ch);
 	else
-		_putchar(U_SPECIAL);
+		_putchar('?');
 }
 

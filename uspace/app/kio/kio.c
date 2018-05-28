@@ -121,11 +121,11 @@ static errno_t consumer(void *data)
 		item_t *item = list_get_instance(link, item_t, link);
 
 		for (size_t i = 0; i < item->length; i++)
-			putchar(item->data[i]);
+			putwchar(item->data[i]);
 
 		if (log != NULL) {
 			for (size_t i = 0; i < item->length; i++)
-				fputc(item->data[i], log);
+				fputwc(item->data[i], log);
 
 			fflush(log);
 			vfs_sync(fileno(log));

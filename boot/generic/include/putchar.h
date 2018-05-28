@@ -37,7 +37,7 @@
 
 #include <stddef.h>
 
-extern void putchar(const wchar_t);
+extern void putwchar(wchar_t);
 
 #endif
 

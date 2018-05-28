@@ -35,7 +35,9 @@
 #ifndef KERN_PUTCHAR_H_
 #define KERN_PUTCHAR_H_
 
-extern void putchar(const wchar_t ch);
+#include <stddef.h>
+
+extern void putwchar(wchar_t);
 
 #endif
 

@@ -74,10 +74,10 @@ extern char *fgets(char *, int, FILE *);
 extern int getchar(void);
 extern char *gets(char *, size_t);
 
-extern int fputc(wchar_t, FILE *);
+extern int fputc(int, FILE *);
 extern int fputs(const char *, FILE *);
 
-extern int putchar(wchar_t);
+extern int putchar(int);
 extern int puts(const char *);
 
 extern int fprintf(FILE *, const char *, ...) _HELENOS_PRINTF_ATTRIBUTE(2, 3);

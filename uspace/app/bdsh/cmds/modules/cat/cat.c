@@ -159,7 +159,7 @@ static void paged_char(wchar_t c)
 		lineno++;
 		printf("%6u  ", lineno);
 	}
-	putchar(c);
+	putwchar(c);
 	last_char_was_newline = c == '\n';
 	if (paging_enabled) {
 		chars_remaining--;

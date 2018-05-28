@@ -35,7 +35,7 @@
 
 #include "../proto/vt100.h"
 
-extern errno_t serial_init(vt100_putchar_t, vt100_control_puts_t, vt100_flush_t);
+extern errno_t serial_init(vt100_putwchar_t, vt100_control_puts_t, vt100_flush_t);
 
 #endif
 

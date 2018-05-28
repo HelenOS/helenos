@@ -190,6 +190,6 @@ FUNCTION_BEGIN(switch_to_userspace)
 	rfi ;;
 FUNCTION_END(switch_to_userspace)
 
-FUNCTION_BEGIN(early_putchar)
+FUNCTION_BEGIN(early_putwchar)
 	br.ret.sptk.many b0
-FUNCTION_END(early_putchar)
+FUNCTION_END(early_putwchar)

@@ -144,7 +144,7 @@ static void tinput_display_tail(tinput_t *ti, size_t start, size_t pad)
 	}
 
 	for (p = 0; p < pad; p++)
-		putchar(' ');
+		putwchar(' ');
 
 	console_flush(ti->console);
 
@@ -181,7 +181,7 @@ static void tinput_jump_after(tinput_t *ti)
 {
 	tinput_console_set_lpos(ti, ti->text_coord + ti->nc);
 	console_flush(ti->console);
-	putchar('\n');
+	putwchar('\n');
 }
 
 static errno_t tinput_display(tinput_t *ti)

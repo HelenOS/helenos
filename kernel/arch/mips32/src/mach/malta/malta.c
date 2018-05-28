@@ -80,7 +80,7 @@ typedef void (**yamon_print_count_ptr_t)(uint32_t, const char *, uint32_t);
 yamon_print_count_ptr_t yamon_print_count =
     (yamon_print_count_ptr_t) YAMON_SUBR_PRINT_COUNT;
 
-static void yamon_putchar(outdev_t *dev, const wchar_t wch)
+static void yamon_putwchar(outdev_t *dev, const wchar_t wch)
 {
 
 	const char ch = (char) wch;
@@ -90,7 +90,7 @@ static void yamon_putchar(outdev_t *dev, const wchar_t wch)
 
 static outdev_t yamon_outdev;
 static outdev_operations_t yamon_outdev_ops = {
-	.write = yamon_putchar,
+	.write = yamon_putwchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL

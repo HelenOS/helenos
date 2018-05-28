@@ -135,7 +135,7 @@ uintptr_t memcpy_to_uspace(void *uspace_dst, const void *src, size_t size)
 	return 0;
 }
 
-void early_putchar(wchar_t ch)
+void early_putwchar(wchar_t ch)
 {
 }
 

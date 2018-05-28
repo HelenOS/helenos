@@ -88,7 +88,7 @@ extern phandle ofw_memory;
 
 extern void ofw_init(void);
 
-extern void ofw_putchar(const char);
+extern void ofw_putchar(char);
 
 extern ofw_arg_t ofw_get_property(const phandle, const char *, void *,
     const size_t);

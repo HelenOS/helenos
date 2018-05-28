@@ -193,7 +193,7 @@ phandle ofw_get_peer_node(const phandle node)
 	return (phandle) ofw_call("peer", 1, 1, NULL, node);
 }
 
-void ofw_putchar(const char ch)
+void ofw_putchar(char ch)
 {
 	if (ofw_stdout == 0)
 		return;

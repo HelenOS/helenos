@@ -55,7 +55,7 @@ static void pl011_uart_sendb(pl011_uart_t *uart, uint8_t byte)
 	pio_write_32(&uart->regs->data, byte);
 }
 
-static void pl011_uart_putchar(outdev_t *dev, wchar_t ch)
+static void pl011_uart_putwchar(outdev_t *dev, wchar_t ch)
 {
 	pl011_uart_t *uart = dev->data;
 
@@ -69,7 +69,7 @@ static void pl011_uart_putchar(outdev_t *dev, wchar_t ch)
 }
 
 static outdev_operations_t pl011_uart_ops = {
-	.write = pl011_uart_putchar,
+	.write = pl011_uart_putwchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL

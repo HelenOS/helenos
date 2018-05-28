@@ -71,11 +71,11 @@ typedef struct {
 	ioport8_t *base;
 } ega_instance_t;
 
-static void ega_putchar(outdev_t *, wchar_t);
+static void ega_putwchar(outdev_t *, wchar_t);
 static void ega_redraw(outdev_t *);
 
 static outdev_operations_t egadev_ops = {
-	.write = ega_putchar,
+	.write = ega_putwchar,
 	.redraw = ega_redraw,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -515,7 +515,7 @@ static void ega_sync_cursor(ega_instance_t *instance)
 	ega_show_cursor(instance);
 }
 
-static void ega_display_char(ega_instance_t *instance, wchar_t ch)
+static void ega_display_wchar(ega_instance_t *instance, wchar_t ch)
 {
 	uint16_t index = ega_oem_glyph(ch);
 	uint8_t glyph;
@@ -538,7 +538,7 @@ static void ega_display_char(ega_instance_t *instance, wchar_t ch)
 	}
 }
 
-static void ega_putchar(outdev_t *dev, wchar_t ch)
+static void ega_putwchar(outdev_t *dev, wchar_t ch)
 {
 	ega_instance_t *instance = (ega_instance_t *) dev->data;
 
@@ -558,7 +558,7 @@ static void ega_putchar(outdev_t *dev, wchar_t ch)
 			instance->cursor--;
 		break;
 	default:
-		ega_display_char(instance, ch);
+		ega_display_wchar(instance, ch);
 		instance->cursor++;
 		break;
 	}

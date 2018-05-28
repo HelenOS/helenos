@@ -53,7 +53,7 @@ static int vprintf_wstr_write(const wchar_t *str, size_t size, void *stream)
 	size_t chars = 0;
 
 	while (offset < size) {
-		if (fputc(str[chars], (FILE *) stream) <= 0)
+		if (fputwc(str[chars], (FILE *) stream) <= 0)
 			break;
 
 		chars++;

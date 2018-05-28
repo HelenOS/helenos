@@ -32,12 +32,12 @@
 #include <str.h>
 #include <arch/ski.h>
 
-void putchar(const wchar_t ch)
+void putwchar(const wchar_t ch)
 {
 #ifdef MACHINE_ski
 	if (ascii_check(ch))
 		ski_putchar(ch);
 	else
-		ski_putchar(U_SPECIAL);
+		ski_putchar('?');
 #endif
 }

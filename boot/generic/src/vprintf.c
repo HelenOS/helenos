@@ -41,7 +41,7 @@ static int vprintf_str_write(const char *str, size_t size, void *data)
 	size_t chars = 0;
 
 	while (offset < size) {
-		putchar(str_decode(str, &offset, size));
+		putwchar(str_decode(str, &offset, size));
 		chars++;
 	}
 
@@ -55,11 +55,11 @@ int puts(const char *str)
 	wchar_t uc;
 
 	while ((uc = str_decode(str, &offset, STR_NO_LIMIT)) != 0) {
-		putchar(uc);
+		putwchar(uc);
 		chars++;
 	}
 
-	putchar('\n');
+	putwchar('\n');
 	return chars;
 }
 

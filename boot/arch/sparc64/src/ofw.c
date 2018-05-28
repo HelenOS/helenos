@@ -42,7 +42,7 @@
 #include <putchar.h>
 #include <str.h>
 
-void putchar(const wchar_t ch)
+void putwchar(wchar_t ch)
 {
 	if (ch == '\n')
 		ofw_putchar('\r');
@@ -50,7 +50,7 @@ void putchar(const wchar_t ch)
 	if (ascii_check(ch))
 		ofw_putchar(ch);
 	else
-		ofw_putchar(U_SPECIAL);
+		ofw_putchar('?');
 }
 
 /** Start all CPUs represented by following siblings of the given node.

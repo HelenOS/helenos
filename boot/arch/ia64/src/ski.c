@@ -51,7 +51,7 @@ static void ski_console_init(void)
 	initialized = true;
 }
 
-void ski_putchar(const wchar_t ch)
+void ski_putchar(char ch)
 {
 	ski_console_init();
 

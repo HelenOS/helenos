@@ -57,10 +57,10 @@ enum {
 	SKI_PUTCHAR      = 31
 };
 
-static void ski_putchar(outdev_t *, const wchar_t);
+static void ski_putwchar(outdev_t *, const wchar_t);
 
 static outdev_operations_t skidev_ops = {
-	.write = ski_putchar,
+	.write = ski_putwchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -165,7 +165,7 @@ static void ski_init(void)
 	}
 }
 
-static void ski_do_putchar(const wchar_t ch)
+static void ski_do_putchar(char ch)
 {
 	asm volatile (
 	    "mov r15 = %[cmd]\n"
@@ -186,7 +186,7 @@ static void ski_do_putchar(const wchar_t ch)
  * @param ch     Character to be printed.
  *
  */
-static void ski_putchar(outdev_t *dev, const wchar_t ch)
+static void ski_putwchar(outdev_t *dev, wchar_t ch)
 {
 	// TODO FIXME:
 	// This currently breaks the kernel console
@@ -197,8 +197,9 @@ static void ski_putchar(outdev_t *dev, const wchar_t ch)
 				ski_do_putchar('\r');
 
 			ski_do_putchar(ch);
-		} else
-			ski_do_putchar(U_SPECIAL);
+		} else {
+			ski_do_putchar('?');
+		}
 	}
 }
 

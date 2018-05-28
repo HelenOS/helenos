@@ -57,11 +57,11 @@
 /* Device instance */
 static niagara_instance_t *instance = NULL;
 
-static void niagara_putchar(outdev_t *, const wchar_t);
+static void niagara_putwchar(outdev_t *, const wchar_t);
 
 /** Character device operations */
 static outdev_operations_t niagara_ops = {
-	.write = niagara_putchar,
+	.write = niagara_putwchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL
@@ -95,7 +95,7 @@ static volatile niagara_input_buffer_t __attribute__((aligned(PAGE_SIZE)))
 static parea_t inbuf_parea;
 
 /** Write a single character to the standard output. */
-static inline void do_putchar(const char c)
+static inline void do_putchar(char c)
 {
 	/* Repeat until the buffer is non-full */
 	while (__hypercall_fast1(CONS_PUTCHAR, c) == HV_EWOULDBLOCK)
@@ -103,12 +103,16 @@ static inline void do_putchar(const char c)
 }
 
 /** Write a single character to the standard output. */
-static void niagara_putchar(outdev_t *dev, const wchar_t ch)
+static void niagara_putwchar(outdev_t *dev, wchar_t ch)
 {
 	if ((!outbuf_parea.mapped) || (console_override)) {
-		do_putchar(ch);
-		if (ch == '\n')
-			do_putchar('\r');
+		if (ascii_check(ch)) {
+			do_putchar(ch);
+			if (ch == '\n')
+				do_putchar('\r');
+		} else {
+			do_putchar('?');
+		}
 	}
 }
 

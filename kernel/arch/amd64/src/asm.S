@@ -411,7 +411,7 @@ bad_rip_msg:
  * @param %rdi Unicode character to be printed.
  *
  */
-FUNCTION_BEGIN(early_putchar)
+FUNCTION_BEGIN(early_putwchar)
 #if ((defined(CONFIG_EGA)) && (!defined(CONFIG_FB)))
 
 	/* Prologue, save preserved registers */
@@ -442,11 +442,11 @@ FUNCTION_BEGIN(early_putchar)
 
 	/* Sanity check for the cursor on screen */
 	cmp $2000, %ax
-	jb early_putchar_cursor_ok
+	jb early_putwchar_cursor_ok
 
 		movw $1998, %ax
 
-	early_putchar_cursor_ok:
+	early_putwchar_cursor_ok:
 
 	movw %ax, %bx
 	shl $1, %rax
@@ -455,7 +455,7 @@ FUNCTION_BEGIN(early_putchar)
 	movq %rsi, %rax
 
 	cmp $0x0a, %al
-	jne early_putchar_backspace
+	jne early_putwchar_backspace
 
 		/* Interpret newline */
 
@@ -469,22 +469,22 @@ FUNCTION_BEGIN(early_putchar)
 		addw %cx, %bx
 		subw %dx, %bx
 
-		jmp early_putchar_skip
+		jmp early_putwchar_skip
 
-	early_putchar_backspace:
+	early_putwchar_backspace:
 
 		cmp $0x08, %al
-		jne early_putchar_print
+		jne early_putwchar_print
 
 		/* Interpret backspace */
 
 		cmp $0x0000, %bx
-		je early_putchar_skip
+		je early_putwchar_skip
 
 		dec %bx
-		jmp early_putchar_skip
+		jmp early_putwchar_skip
 
-	early_putchar_print:
+	early_putwchar_print:
 
 		/* Print character */
 
@@ -492,11 +492,11 @@ FUNCTION_BEGIN(early_putchar)
 		stosw
 		inc %bx
 
-	early_putchar_skip:
+	early_putwchar_skip:
 
 	/* Sanity check for the cursor on the last line */
 	cmp $2000, %bx
-	jb early_putchar_no_scroll
+	jb early_putwchar_no_scroll
 
 		/* Scroll the screen (24 rows) */
 		movq $(PA2KA(0xb80a0)), %rsi
@@ -512,7 +512,7 @@ FUNCTION_BEGIN(early_putchar)
 		/* Go to row 24 */
 		movw $1920, %bx
 
-	early_putchar_no_scroll:
+	early_putwchar_no_scroll:
 
 	/* Write bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
@@ -539,4 +539,4 @@ FUNCTION_BEGIN(early_putchar)
 #endif
 
 	ret
-FUNCTION_END(early_putchar)
+FUNCTION_END(early_putwchar)

@@ -261,9 +261,9 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 		if (ch == '\b') {
 			if (count > 0) {
 				/* Space, backspace, space */
-				putchar('\b');
-				putchar(' ');
-				putchar('\b');
+				putwchar('\b');
+				putwchar(' ');
+				putwchar('\b');
 
 				count--;
 				offset = str_lsize(buf, count);
@@ -272,7 +272,7 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 		}
 
 		if (chr_encode(ch, buf, &offset, buflen - 1) == EOK) {
-			putchar(ch);
+			putwchar(ch);
 			count++;
 			buf[offset] = 0;
 		}
@@ -285,7 +285,7 @@ size_t gets(indev_t *indev, char *buf, size_t buflen)
 wchar_t getc(indev_t *indev)
 {
 	wchar_t ch = indev_pop_character(indev);
-	putchar(ch);
+	putwchar(ch);
 	return ch;
 }
 
@@ -355,7 +355,7 @@ void kio_push_char(const wchar_t ch)
 		kio_uspace++;
 }
 
-void putchar(const wchar_t ch)
+void putwchar(const wchar_t ch)
 {
 	bool ordy = ((stdout) && (stdout->op->write));
 
@@ -372,12 +372,12 @@ void putchar(const wchar_t ch)
 		 * The character is still stored in the kernel log
 		 * for possible future output.
 		 *
-		 * The early_putchar() function is used to output
+		 * The early_putwchar() function is used to output
 		 * the character for low-level debugging purposes.
 		 * Note that the early_putc() function might be
 		 * a no-op on certain hardware configurations.
 		 */
-		early_putchar(ch);
+		early_putwchar(ch);
 	}
 
 	/* Force notification on newline */

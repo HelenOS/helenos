@@ -34,7 +34,7 @@
 
 #include <io/charfield.h>
 
-typedef void (*vt100_putchar_t)(wchar_t ch);
+typedef void (*vt100_putwchar_t)(wchar_t ch);
 typedef void (*vt100_control_puts_t)(const char *str);
 typedef void (*vt100_flush_t)(void);
 
@@ -46,12 +46,12 @@ typedef struct {
 	sysarg_t cur_row;
 	char_attrs_t cur_attrs;
 
-	vt100_putchar_t putchar;
+	vt100_putwchar_t putwchar;
 	vt100_control_puts_t control_puts;
 	vt100_flush_t flush;
 } vt100_state_t;
 
-extern vt100_state_t *vt100_state_create(sysarg_t, sysarg_t, vt100_putchar_t,
+extern vt100_state_t *vt100_state_create(sysarg_t, sysarg_t, vt100_putwchar_t,
     vt100_control_puts_t, vt100_flush_t);
 extern void vt100_state_destroy(vt100_state_t *);
 
@@ -62,7 +62,7 @@ extern void vt100_get_dimensions(vt100_state_t *, sysarg_t *, sysarg_t *);
 extern void vt100_goto(vt100_state_t *, sysarg_t, sysarg_t);
 extern void vt100_set_attr(vt100_state_t *, char_attrs_t);
 extern void vt100_cursor_visibility(vt100_state_t *, bool);
-extern void vt100_putchar(vt100_state_t *, wchar_t);
+extern void vt100_putwchar(vt100_state_t *, wchar_t);
 extern void vt100_flush(vt100_state_t *);
 
 #endif

@@ -194,7 +194,7 @@ static void scons_sendb(uint8_t byte)
  *
  * @param ch	Character to display
  */
-void putchar(const wchar_t ch)
+void putwchar(const wchar_t ch)
 {
 	if (ch == '\n')
 		scons_sendb('\r');
@@ -202,7 +202,7 @@ void putchar(const wchar_t ch)
 	if (ascii_check(ch))
 		scons_sendb((uint8_t) ch);
 	else
-		scons_sendb(U_SPECIAL);
+		scons_sendb('?');
 }
 
 /** @}

@@ -38,7 +38,7 @@ ofw_arg_t ofw(ofw_args_t *args)
 	return ((ofw_entry_t) ofw_cif)(args);
 }
 
-void putchar(const wchar_t ch)
+void putwchar(wchar_t ch)
 {
 	if (ch == '\n')
 		ofw_putchar('\r');
@@ -46,5 +46,5 @@ void putchar(const wchar_t ch)
 	if (ascii_check(ch))
 		ofw_putchar(ch);
 	else
-		ofw_putchar(U_SPECIAL);
+		ofw_putchar('?');
 }

@@ -171,11 +171,11 @@ int cmd_printf(char **argv)
 				esc_flag = false;
 				break;
 			}
-			putchar(ch);
+			putwchar(ch);
 			break;
 
 		emit:
-			putchar(ch);
+			putwchar(ch);
 			esc_flag = false;
 		}
 	}

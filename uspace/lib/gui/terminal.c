@@ -455,7 +455,7 @@ static void term_write_char(terminal_t *term, wchar_t ch)
 		updated = chargrid_backspace(term->frontbuf);
 		break;
 	default:
-		updated = chargrid_putchar(term->frontbuf, ch, true);
+		updated = chargrid_putwchar(term->frontbuf, ch, true);
 	}
 
 	fibril_mutex_unlock(&term->mtx);

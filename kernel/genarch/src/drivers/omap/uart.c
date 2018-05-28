@@ -48,7 +48,7 @@ static void omap_uart_txb(omap_uart_t *uart, uint8_t b)
 	uart->regs->thr = b;
 }
 
-static void omap_uart_putchar(outdev_t *dev, wchar_t ch)
+static void omap_uart_putwchar(outdev_t *dev, wchar_t ch)
 {
 	omap_uart_t *uart = dev->data;
 	if (!ascii_check(ch)) {
@@ -61,7 +61,7 @@ static void omap_uart_putchar(outdev_t *dev, wchar_t ch)
 }
 
 static outdev_operations_t omap_uart_ops = {
-	.write = omap_uart_putchar,
+	.write = omap_uart_putwchar,
 	.redraw = NULL,
 	.scroll_up = NULL,
 	.scroll_down = NULL

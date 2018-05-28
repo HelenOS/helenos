@@ -39,6 +39,7 @@
 #include <io/verify.h>
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
+#include <_bits/wint_t.h>
 
 #define EOF  (-1)
 
@@ -72,15 +73,16 @@ extern char *fgets(char *, int, FILE *);
 extern int getchar(void);
 
 /* Character and string output functions */
-extern int fputc(wchar_t, FILE *);
+extern int fputc(int, FILE *);
 extern int fputs(const char *, FILE *);
 
-// FIXME: putchar and fputc are byte-oriented.
-// They shouldn't accept wide characters.
-extern int putchar(wchar_t);
+extern int putchar(int);
 extern int puts(const char *);
 
 extern int ungetc(int, FILE *);
+
+extern wint_t fputwc(wchar_t, FILE *);
+extern wint_t putwchar(wchar_t);
 
 /* Formatted string output functions */
 extern int fprintf(FILE *, const char *, ...)

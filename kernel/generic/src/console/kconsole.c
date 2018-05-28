@@ -159,7 +159,7 @@ NO_TRACE static void print_cc(wchar_t ch, size_t count)
 {
 	size_t i;
 	for (i = 0; i < count; i++)
-		putchar(ch);
+		putwchar(ch);
 }
 
 /** Try to find a command beginning with prefix */
@@ -338,7 +338,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 
 		if (ch == '\n') {
 			/* Enter */
-			putchar(ch);
+			putwchar(ch);
 			break;
 		}
 
@@ -349,7 +349,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 
 			if (wstr_remove(current, position - 1)) {
 				position--;
-				putchar('\b');
+				putwchar('\b');
 				printf("%ls ", current + position);
 				print_cc('\b', wstr_length(current) - position + 1);
 				continue;
@@ -362,7 +362,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			/* Move to the end of the word */
 			for (; (current[position] != 0) && (!isspace(current[position]));
 			    position++)
-				putchar(current[position]);
+				putwchar(current[position]);
 
 
 			/*
@@ -458,7 +458,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 		if (ch == U_LEFT_ARROW) {
 			/* Left */
 			if (position > 0) {
-				putchar('\b');
+				putwchar('\b');
 				position--;
 			}
 			continue;
@@ -467,7 +467,7 @@ NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 		if (ch == U_RIGHT_ARROW) {
 			/* Right */
 			if (position < wstr_length(current)) {
-				putchar(current[position]);
+				putwchar(current[position]);
 				position++;
 			}
 			continue;

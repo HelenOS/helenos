@@ -94,24 +94,24 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
 	if (mode == ALIGN_LEFT || (mode == ALIGN_JUSTIFY && last)) {
 		for (i = 0; i < width; i++) {
 			if (i < len)
-				putchar(wstr[i]);
+				putwchar(wstr[i]);
 			else
-				putchar(' ');
+				putwchar(' ');
 		}
 	} else if (mode == ALIGN_RIGHT) {
 		for (i = 0; i < width; i++) {
 			if (i < width - len)
-				putchar(' ');
+				putwchar(' ');
 			else
-				putchar(wstr[i - (width - len)]);
+				putwchar(wstr[i - (width - len)]);
 		}
 	} else if (mode == ALIGN_CENTER) {
 		size_t padding = (width - len) / 2;
 		for (i = 0; i < width; i++) {
 			if ((i < padding) || ((i - padding) >= len))
-				putchar(' ');
+				putwchar(' ');
 			else
-				putchar(wstr[i - padding]);
+				putwchar(wstr[i - padding]);
 		}
 	} else if (mode == ALIGN_JUSTIFY) {
 		size_t words = 0;
@@ -145,19 +145,19 @@ errno_t print_aligned_w(const wchar_t *wstr, size_t width, bool last,
 				    (((done_words - 1) * excess_spaces) /
 				    (words - 1)));
 				for (j = 0; j < spaces; j++) {
-					putchar(' ');
+					putwchar(' ');
 				}
 				done_chars += spaces;
 			}
 			while (i < len && wstr[i] != ' ') {
-				putchar(wstr[i++]);
+				putwchar(wstr[i++]);
 				done_chars++;
 			}
 			done_words++;
 		}
 	skip_words:
 		while (done_chars < width) {
-			putchar(' ');
+			putwchar(' ');
 			done_chars++;
 		}
 	} else {

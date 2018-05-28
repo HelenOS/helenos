@@ -310,7 +310,7 @@ static void cons_write_char(console_t *cons, wchar_t ch)
 		updated = chargrid_backspace(cons->frontbuf);
 		break;
 	default:
-		updated = chargrid_putchar(cons->frontbuf, ch, true);
+		updated = chargrid_putwchar(cons->frontbuf, ch, true);
 	}
 
 	fibril_mutex_unlock(&cons->mtx);

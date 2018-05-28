@@ -43,6 +43,7 @@
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
 #include <_bits/wint_t.h>
+#include <_bits/WEOF.h>
 
 #include <_bits/NULL.h>
 #include <_bits/WCHAR_MIN.h>

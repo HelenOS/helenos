@@ -45,6 +45,7 @@
 #include <vfs/inbox.h>
 #include <ipc/loc.h>
 #include <adt/list.h>
+#include <wchar.h>
 #include "../private/io.h"
 #include "../private/stdio.h"
 
@@ -701,24 +702,42 @@ size_t fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 	return (total_written / size);
 }
 
-int fputc(wchar_t c, FILE *stream)
+wint_t fputwc(wchar_t wc, FILE *stream)
 {
 	char buf[STR_BOUNDS(1)];
 	size_t sz = 0;
 
-	if (chr_encode(c, buf, &sz, STR_BOUNDS(1)) == EOK) {
-		size_t wr = fwrite(buf, 1, sz, stream);
-
-		if (wr < sz)
-			return EOF;
-
-		return (int) c;
+	if (chr_encode(wc, buf, &sz, STR_BOUNDS(1)) != EOK) {
+		errno = EILSEQ;
+		return WEOF;
 	}
 
-	return EOF;
+	size_t wr = fwrite(buf, 1, sz, stream);
+	if (wr < sz)
+		return WEOF;
+
+	return wc;
 }
 
-int putchar(wchar_t c)
+wint_t putwchar(wchar_t wc)
+{
+	return fputwc(wc, stdout);
+}
+
+int fputc(int c, FILE *stream)
+{
+	unsigned char b;
+	size_t wr;
+
+	b = (unsigned char) c;
+	wr = fwrite(&b, sizeof(b), 1, stream);
+	if (wr < 1)
+		return EOF;
+
+	return b;
+}
+
+int putchar(int c)
 {
 	return fputc(c, stdout);
 }

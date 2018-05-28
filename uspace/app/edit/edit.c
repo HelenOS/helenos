@@ -670,7 +670,7 @@ static char *prompt(char const *prompt, char const *init_value)
 					break;
 				default:
 					if (kev->c >= 32 && nc < max_len) {
-						putchar(kev->c);
+						putwchar(kev->c);
 						console_flush(con);
 						buffer[nc++] = kev->c;
 					}
