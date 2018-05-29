@@ -1,0 +1,71 @@
+STARTUP(LIBC_PATH/arch/UARCH/src/entry.o)
+ENTRY(_start)
+
+PHDRS {
+	text PT_LOAD FILEHDR PHDRS FLAGS(5);
+	data PT_LOAD FLAGS(6);
+	tls PT_TLS;
+	debug PT_NOTE;
+}
+
+SECTIONS {
+#ifdef SHLIB
+	. = SEGMENT_START("text-segment", 0);
+#else
+	. = SEGMENT_START("text-segment", 0x400000);
+	PROVIDE (__executable_start = .);
+#endif
+	. = . + SIZEOF_HEADERS;
+
+	.text : {
+		*(.text .text.*);
+		*(.rodata .rodata.*);
+		*(.srodata .srodata.*);
+	} :text
+
+	. = . + 0x1000;
+
+	.data : {
+		*(.data);
+		*(.sdata);
+		*(.data.rel*);
+	} :data
+
+	.tdata : {
+		*(.tdata);
+		*(.tdata.*);
+		*(.gnu.linkonce.td.*);
+	} :data :tls
+
+	.tbss : {
+		*(.tbss);
+		*(.tbss.*);
+		*(.gnu.linkonce.tb.*);
+	} :data :tls
+
+	.bss : {
+		*(.scommon);
+		*(.sbss);
+		*(COMMON);
+		*(.bss);
+	} :data
+
+	_end = .;
+
+#ifdef CONFIG_LINE_DEBUG
+	.comment 0 : { *(.comment); } :debug
+	.debug_abbrev 0 : { *(.debug_abbrev); } :debug
+	.debug_aranges 0 : { *(.debug_aranges); } :debug
+	.debug_info 0 : { *(.debug_info); } :debug
+	.debug_line 0 : { *(.debug_line); } :debug
+	.debug_loc 0 : { *(.debug_loc); } :debug
+	.debug_pubnames 0 : { *(.debug_pubnames); } :debug
+	.debug_pubtypes 0 : { *(.debug_pubtypes); } :debug
+	.debug_ranges 0 : { *(.debug_ranges); } :debug
+	.debug_str 0 : { *(.debug_str); } :debug
+#endif
+
+	/DISCARD/ : {
+		*(*);
+	}
+}

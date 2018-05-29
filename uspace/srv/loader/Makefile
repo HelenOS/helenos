@@ -28,21 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
-ROOT_PATH = $(USPACE_PREFIX)/..
-CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
-include $(CONFIG_MAKEFILE)
-
-ifeq ($(UARCH),ia64)
-	# IA64 has a peculiar linker script with a fixed data segment address.
-	# Because the loader is a separate nonrelocatable binary in the same
-	# address space as the application, we provide a modified copy of
-	# the default linker script to work around that.
-	EXTRA_LDFLAGS = -T elf64_ia64_loader.x
-else
-	# On all other architectures, we can simply move the text segment.
-	EXTRA_LDFLAGS = -Wl,-Ttext-segment=0x70000000
-endif
+EXTRA_LDFLAGS = -Wl,-Ttext-segment=0x70000000
 
 BINARY = loader
 STATIC_ONLY = y

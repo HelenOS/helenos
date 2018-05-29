@@ -35,7 +35,9 @@ EXTRA_CFLAGS = -Iinclude/
 INCLUDE_LIBC = ./include/libc
 
 SPECS = gcc.specs
-LIBC_STARTUP_FILE = $(STARTUP_OBJECT)
+LIBC_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
+LIBC_STARTUP_FILE = $(shell sed -n -e 's/^.*STARTUP(\(.*\)).*$$/\1/p' $(LIBC_LINKER_SCRIPT))
+EXPORT_LINKER_SCRIPT = link.ld
 EXPORT_STARTUP_FILE = crt0.o
 
 EXPORT_FILES = \
@@ -46,12 +48,13 @@ EXPORT_FILES = \
 	$(LIBC_PREFIX)/libc.a \
 	$(LIBRARY).a \
 	$(EXPORT_STARTUP_FILE) \
+	$(EXPORT_LINKER_SCRIPT) \
 	$(SPECS)
 
 PRE_DEPEND = $(INCLUDE_LIBC)
 EXTRA_CLEAN = $(INCLUDE_LIBC)
 
-EXTRA_OUTPUT = $(SPECS) $(EXPORT_STARTUP_FILE)
+EXTRA_OUTPUT = $(SPECS) $(EXPORT_LINKER_SCRIPT) $(EXPORT_STARTUP_FILE)
 
 SOURCES = \
 	src/ctype.c \
@@ -86,7 +89,8 @@ EXPORT_CPPFLAGS = \
 	-isystem $$(HELENOS_EXPORT_ROOT)/include
 
 EXPORT_LDFLAGS = \
-	-L$$(HELENOS_EXPORT_ROOT)/lib
+	-L$$(HELENOS_EXPORT_ROOT)/lib \
+	-T link.ld
 
 EXPORT_LDLIBS = \
 	-Wl,--start-group -lposix -lmath -lc -lsoftfloat -lsoftint -Wl,--end-group
@@ -106,6 +110,9 @@ $(SPECS): $(CONFIG_MAKEFILE)
 	echo '*lib:' >> $@.new
 	echo '$(EXPORT_LDLIBS)' >> $@.new
 	mv $@.new $@
+
+$(EXPORT_LINKER_SCRIPT): $(LIBC_LINKER_SCRIPT)
+	sed 's/STARTUP(.*)/STARTUP(crt0.o)/' $< > $@
 
 $(EXPORT_STARTUP_FILE): $(LIBC_STARTUP_FILE)
 	cp $< $@

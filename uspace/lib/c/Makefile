@@ -32,6 +32,14 @@ ROOT_PATH = $(USPACE_PREFIX)/..
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
+LINKER_SCRIPTS = \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
+	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
+
+PRE_DEPEND =
+EXTRA_OUTPUT = $(LINKER_SCRIPTS)
+EXTRA_CLEAN = $(LINKER_SCRIPTS)
 LIBRARY = libc
 SOVERSION = 0.0
 
@@ -180,6 +188,15 @@ TEST_SOURCES = \
 	test/str.c
 
 include $(USPACE_PREFIX)/Makefile.common
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
 
 AUTOCHECK = $(realpath $(ROOT_PATH)/tools/autocheck.awk)
 
