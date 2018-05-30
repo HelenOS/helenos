@@ -251,6 +251,11 @@ static void virtio_net_uninitialize(ddf_dev_t *dev)
 	virtio_pci_dev_cleanup(&virtio_net->virtio_dev);
 }
 
+static void virtio_net_send(nic_t *nic, void *data, size_t size)
+{
+	// TODO
+}
+
 static errno_t virtio_net_on_broadcast_mode_change(nic_t *nic,
     nic_broadcast_mode_t new_mode)
 {
@@ -282,6 +287,7 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &virtio_net_dev_ops);
 
+	nic_set_send_frame_handler(nic, virtio_net_send);
 	nic_set_filtering_change_handlers(nic, NULL, NULL,
 	    virtio_net_on_broadcast_mode_change, NULL, NULL);
 
