@@ -294,7 +294,41 @@ error:
 	return rc;
 }
 
-static nic_iface_t virtio_net_nic_iface;
+static errno_t virtio_net_get_device_info(ddf_fun_t *fun,
+    nic_device_info_t *info)
+{
+	nic_t *nic_data = nic_get_from_ddf_fun(fun);
+	if (!nic_data)
+		return ENOENT;
+
+	str_cpy(info->vendor_name, sizeof(info->vendor_name), "Red Hat, Inc.");
+	str_cpy(info->model_name, sizeof(info->model_name),
+	    "Virtio network device");
+
+	return EOK;
+}
+
+static errno_t virtio_net_get_cable_state(ddf_fun_t *fun,
+    nic_cable_state_t *state)
+{
+	*state = NIC_CS_PLUGGED;
+	return EOK;
+}
+
+static errno_t virtio_net_get_operation_mode(ddf_fun_t *fun, int *speed,
+    nic_channel_mode_t *duplex, nic_role_t *role)
+{
+	*speed = 1000;
+	*duplex = NIC_CM_FULL_DUPLEX;
+	*role = NIC_ROLE_UNKNOWN;
+	return EOK;
+}
+
+static nic_iface_t virtio_net_nic_iface = {
+	.get_device_info = virtio_net_get_device_info,
+	.get_cable_state = virtio_net_get_cable_state,
+	.get_operation_mode = virtio_net_get_operation_mode,
+};
 
 int main(void)
 {
