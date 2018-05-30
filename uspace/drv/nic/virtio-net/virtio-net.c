@@ -251,6 +251,19 @@ static void virtio_net_uninitialize(ddf_dev_t *dev)
 	virtio_pci_dev_cleanup(&virtio_net->virtio_dev);
 }
 
+static errno_t virtio_net_on_broadcast_mode_change(nic_t *nic,
+    nic_broadcast_mode_t new_mode)
+{
+	switch (new_mode) {
+	case NIC_BROADCAST_BLOCKED:
+		return ENOTSUP;
+	case NIC_BROADCAST_ACCEPTED:
+		return EOK;
+	default:
+		return ENOTSUP;
+	}
+}
+
 static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 {
 	ddf_msg(LVL_NOTE, "%s %s (handle = %zu)", __func__,
@@ -268,6 +281,9 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 	nic_t *nic = ddf_dev_data_get(dev);
 	nic_set_ddf_fun(nic, fun);
 	ddf_fun_set_ops(fun, &virtio_net_dev_ops);
+
+	nic_set_filtering_change_handlers(nic, NULL, NULL,
+	    virtio_net_on_broadcast_mode_change, NULL, NULL);
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
