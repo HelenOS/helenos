@@ -133,7 +133,9 @@ GENERIC_SOURCES = \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/ns.c \
-	generic/async.c \
+	generic/async/client.c \
+	generic/async/server.c \
+	generic/async/ports.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/checksum.c \

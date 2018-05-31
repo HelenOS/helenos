@@ -94,7 +94,9 @@ void __libc_main(void *pcb_ptr)
 	rcu_register_fibril();
 #endif
 
-	__async_init();
+	__async_server_init();
+	__async_client_init();
+	__async_ports_init();
 
 	/* The basic run-time environment is setup */
 	env_setup = true;

@@ -107,8 +107,6 @@ struct async_sess;
 typedef struct async_sess async_sess_t;
 typedef struct async_exch async_exch_t;
 
-extern atomic_t threads_in_ipc_wait;
-
 #define async_manager() \
 	do { \
 		futex_down(&async_futex); \

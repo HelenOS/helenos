@@ -54,8 +54,7 @@ static void optimize_execution_power(void)
 	 * fibril right away. We try to detect this and bring the manager
 	 * fibril back to fruitful work.
 	 */
-	if (atomic_get(&threads_in_ipc_wait) > 0)
-		async_poke();
+	async_poke();
 }
 
 static void print_deadlock(fibril_owner_info_t *oi)
