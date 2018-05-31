@@ -124,7 +124,7 @@
 futex_t async_futex = FUTEX_INITIALIZER;
 
 /** Number of threads waiting for IPC in the kernel. */
-atomic_t threads_in_ipc_wait = { 0 };
+static atomic_t threads_in_ipc_wait = { 0 };
 
 /** Call data */
 typedef struct {
@@ -1272,7 +1272,8 @@ errno_t async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
 /** Interrupt one thread of this task from waiting for IPC. */
 void async_poke(void)
 {
-	ipc_poke();
+	if (atomic_get(&threads_in_ipc_wait) > 0)
+		ipc_poke();
 }
 
 /** Wrapper for receiving the IPC_M_SHARE_IN calls using the async framework.
