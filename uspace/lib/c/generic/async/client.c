@@ -98,6 +98,7 @@
 #include <ipc/ipc.h>
 #include <async.h>
 #include "../private/async.h"
+#include "../private/ns.h"
 #undef LIBC_ASYNC_C_
 
 #include <ipc/irq.h>
@@ -121,7 +122,7 @@
 #include "../private/libc.h"
 
 /** Naming service session */
-async_sess_t *session_ns;
+async_sess_t session_ns;
 
 /** Message data */
 typedef struct {
@@ -209,23 +210,19 @@ static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
  */
 void __async_client_init(void)
 {
-	session_ns = (async_sess_t *) malloc(sizeof(async_sess_t));
-	if (session_ns == NULL)
-		abort();
+	session_ns.iface = 0;
+	session_ns.mgmt = EXCHANGE_ATOMIC;
+	session_ns.phone = PHONE_NS;
+	session_ns.arg1 = 0;
+	session_ns.arg2 = 0;
+	session_ns.arg3 = 0;
 
-	session_ns->iface = 0;
-	session_ns->mgmt = EXCHANGE_ATOMIC;
-	session_ns->phone = PHONE_NS;
-	session_ns->arg1 = 0;
-	session_ns->arg2 = 0;
-	session_ns->arg3 = 0;
+	fibril_mutex_initialize(&session_ns.remote_state_mtx);
+	session_ns.remote_state_data = NULL;
 
-	fibril_mutex_initialize(&session_ns->remote_state_mtx);
-	session_ns->remote_state_data = NULL;
-
-	list_initialize(&session_ns->exch_list);
-	fibril_mutex_initialize(&session_ns->mutex);
-	atomic_set(&session_ns->refcnt, 0);
+	list_initialize(&session_ns.exch_list);
+	fibril_mutex_initialize(&session_ns.mutex);
+	atomic_set(&session_ns.refcnt, 0);
 }
 
 /** Reply received callback.

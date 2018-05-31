@@ -154,7 +154,7 @@ async_sess_t *ns_session_get(void)
 	async_exch_t *exch;
 
 	if (sess_ns == NULL) {
-		exch = async_exchange_begin(session_ns);
+		exch = async_exchange_begin(&session_ns);
 		sess_ns = async_connect_me_to_iface(exch, 0, 0, 0);
 		async_exchange_end(exch);
 		if (sess_ns == NULL)

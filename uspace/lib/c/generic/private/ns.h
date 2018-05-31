@@ -37,7 +37,7 @@
 
 #include <async.h>
 
-extern async_sess_t *session_ns;
+extern async_sess_t session_ns;
 
 #endif
 
