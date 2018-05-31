@@ -59,9 +59,6 @@ typedef struct {
 	/** Interface ID */
 	iface_t iface;
 
-	/** Futex protecting the hash table */
-	futex_t futex;
-
 	/** Interface ports */
 	hash_table_t port_hash_table;
 
@@ -103,6 +100,8 @@ static async_port_handler_t fallback_port_handler =
     default_fallback_port_handler;
 static void *fallback_port_data = NULL;
 
+/** Futex guarding the interface hash table. */
+static futex_t interface_futex = FUTEX_INITIALIZER;
 static hash_table_t interface_hash_table;
 
 static size_t interface_key_hash(void *key)
@@ -176,7 +175,6 @@ static interface_t *async_new_interface(iface_t iface)
 	}
 
 	interface->iface = iface;
-	futex_initialize(&interface->futex, 1);
 	interface->port_id_avail = 0;
 
 	hash_table_insert(&interface_hash_table, &interface->link);
@@ -187,11 +185,10 @@ static interface_t *async_new_interface(iface_t iface)
 static port_t *async_new_port(interface_t *interface,
     async_port_handler_t handler, void *data)
 {
+	// TODO: Move the malloc out of critical section.
 	port_t *port = (port_t *) malloc(sizeof(port_t));
 	if (!port)
 		return NULL;
-
-	futex_down(&interface->futex);
 
 	port_id_t id = interface->port_id_avail;
 	interface->port_id_avail++;
@@ -202,8 +199,6 @@ static port_t *async_new_port(interface_t *interface,
 
 	hash_table_insert(&interface->port_hash_table, &port->link);
 
-	futex_up(&interface->futex);
-
 	return port;
 }
 
@@ -212,7 +207,7 @@ errno_t async_create_port_internal(iface_t iface, async_port_handler_t handler,
 {
 	interface_t *interface;
 
-	futex_down(&async_futex);
+	futex_lock(&interface_futex);
 
 	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
 	if (link)
@@ -221,19 +216,19 @@ errno_t async_create_port_internal(iface_t iface, async_port_handler_t handler,
 		interface = async_new_interface(iface);
 
 	if (!interface) {
-		futex_up(&async_futex);
+		futex_unlock(&interface_futex);
 		return ENOMEM;
 	}
 
 	port_t *port = async_new_port(interface, handler, data);
 	if (!port) {
-		futex_up(&async_futex);
+		futex_unlock(&interface_futex);
 		return ENOMEM;
 	}
 
 	*port_id = port->id;
 
-	futex_up(&async_futex);
+	futex_unlock(&interface_futex);
 
 	return EOK;
 }
@@ -259,7 +254,7 @@ static port_t *async_find_port(iface_t iface, port_id_t port_id)
 {
 	port_t *port = NULL;
 
-	futex_down(&async_futex);
+	futex_lock(&interface_futex);
 
 	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
 	if (link) {
@@ -271,7 +266,7 @@ static port_t *async_find_port(iface_t iface, port_id_t port_id)
 			port = hash_table_get_inst(link, port_t, link);
 	}
 
-	futex_up(&async_futex);
+	futex_unlock(&interface_futex);
 
 	return port;
 }
