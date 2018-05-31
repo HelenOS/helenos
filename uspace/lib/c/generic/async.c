@@ -510,12 +510,9 @@ static LIST_INITIALIZE(inactive_exch_list);
  */
 static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 
-errno_t async_create_port(iface_t iface, async_port_handler_t handler,
-    void *data, port_id_t *port_id)
+static errno_t async_create_port_internal(iface_t iface,
+    async_port_handler_t handler, void *data, port_id_t *port_id)
 {
-	if ((iface & IFACE_MOD_MASK) == IFACE_MOD_CALLBACK)
-		return EINVAL;
-
 	interface_t *interface;
 
 	futex_down(&async_futex);
@@ -542,6 +539,15 @@ errno_t async_create_port(iface_t iface, async_port_handler_t handler,
 	futex_up(&async_futex);
 
 	return EOK;
+}
+
+errno_t async_create_port(iface_t iface, async_port_handler_t handler,
+    void *data, port_id_t *port_id)
+{
+	if ((iface & IFACE_MOD_MASK) == IFACE_MOD_CALLBACK)
+		return EINVAL;
+
+	return async_create_port_internal(iface, handler, data, port_id);
 }
 
 void async_set_fallback_port_handler(async_port_handler_t handler, void *data)
@@ -859,37 +865,16 @@ errno_t async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t a
 	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, iface, arg1, arg2,
 	    &answer);
 
-	errno_t ret;
-	async_wait_for(req, &ret);
-	if (ret != EOK)
-		return (errno_t) ret;
+	errno_t rc;
+	async_wait_for(req, &rc);
+	if (rc != EOK)
+		return rc;
+
+	rc = async_create_port_internal(iface, handler, data, port_id);
+	if (rc != EOK)
+		return rc;
 
 	sysarg_t phone_hash = IPC_GET_ARG5(answer);
-	interface_t *interface;
-
-	futex_down(&async_futex);
-
-	ht_link_t *link = hash_table_find(&interface_hash_table, &iface);
-	if (link)
-		interface = hash_table_get_inst(link, interface_t, link);
-	else
-		interface = async_new_interface(iface);
-
-	if (!interface) {
-		futex_up(&async_futex);
-		return ENOMEM;
-	}
-
-	port_t *port = async_new_port(interface, handler, data);
-	if (!port) {
-		futex_up(&async_futex);
-		return ENOMEM;
-	}
-
-	*port_id = port->id;
-
-	futex_up(&async_futex);
-
 	fid_t fid = async_new_connection(answer.in_task_id, phone_hash,
 	    CAP_NIL, NULL, handler, data);
 	if (fid == (uintptr_t) NULL)
