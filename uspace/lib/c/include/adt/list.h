@@ -413,6 +413,20 @@ static inline bool link_used(link_t *link)
 	return true;
 }
 
+static inline void *list_pop_internal(list_t *list, ptrdiff_t offset)
+{
+	link_t *tmp = list_first(list);
+	if (tmp == NULL)
+		return NULL;
+
+	list_remove(tmp);
+	return ((void *) tmp) - offset;
+}
+
+#define list_pop(list, type, member) \
+	((type *) list_pop_internal(list, \
+	    (list_link_to_void(&(((type *) NULL)->member)) - NULL)))
+
 #endif
 
 /** @}
