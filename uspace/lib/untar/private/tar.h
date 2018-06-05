@@ -26,69 +26,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup untar
+/** @addtogroup libuntar
  * @{
  */
 /** @file
  */
 
-#include <str.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <errno.h>
-#include <assert.h>
+#ifndef TAR_H_
+#define TAR_H_
 
-#include "tar.h"
+#define TAR_BLOCK_SIZE 512
 
-tar_type_t tar_type_parse(const char type)
-{
-	switch (type) {
-	case '0':
-	case 0:
-		return TAR_TYPE_NORMAL;
-	case '5':
-		return TAR_TYPE_DIRECTORY;
-	default:
-		return TAR_TYPE_UNKNOWN;
-	}
-}
+typedef struct tar_header_raw {
+	char filename[100];
+	char permissions[8];
+	char owner[8];
+	char group[8];
+	char size[12];
+	char modification_time[12];
+	char checksum[8];
+	char type;
+	char name[100];
+	char ustar_magic[6];
+	char ustar_version[2];
+	char ustar_owner_name[32];
+	char ustar_group_name[32];
+	char ustar_device_major[8];
+	char ustar_device_minor[8];
+	char ustar_prefix[155];
+	char ignored[12];
+} tar_header_raw_t;
 
-const char *tar_type_str(tar_type_t type)
-{
-	switch (type) {
-	case TAR_TYPE_UNKNOWN:
-		return "unknown";
-	case TAR_TYPE_NORMAL:
-		return "normal";
-	case TAR_TYPE_DIRECTORY:
-		return "directory";
-	default:
-		assert(false && "unexpected tar_type_t enum value");
-		return "?";
-	}
-}
+typedef enum tar_type {
+	TAR_TYPE_UNKNOWN,
+	TAR_TYPE_NORMAL,
+	TAR_TYPE_DIRECTORY
+} tar_type_t;
 
-errno_t tar_header_parse(tar_header_t *parsed, const tar_header_raw_t *raw)
-{
-	errno_t rc;
-
-	if (str_length(raw->filename) == 0) {
-		return EEMPTY;
-	}
-
+typedef struct tar_header {
+	char filename[100];
 	size_t size;
-	rc = str_size_t(raw->size, NULL, 8, true, &size);
-	if (rc != EOK) {
-		return rc;
-	}
-	parsed->size = size;
+	tar_type_t type;
+} tar_header_t;
 
-	str_cpy(parsed->filename, 100, raw->filename);
+extern errno_t tar_header_parse(tar_header_t *, const tar_header_raw_t *);
+extern tar_type_t tar_type_parse(const char);
+extern const char *tar_type_str(tar_type_t);
 
-	parsed->type = tar_type_parse(raw->type);
-
-	return EOK;
-}
+#endif
 
 /** @}
  */

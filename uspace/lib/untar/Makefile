@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013 Vojtech Horky
+# Copyright (c) 2018 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,10 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = untar
-
-LIBS = untar
+LIBRARY = libuntar
 
 SOURCES = \
-	main.c
+	tar.c \
+	untar.c
 
 include $(USPACE_PREFIX)/Makefile.common

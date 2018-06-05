@@ -26,62 +26,65 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup untar
+/** @addtogroup libuntar
  * @{
  */
 /** @file
  */
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <untar.h>
+#include <str.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <errno.h>
+#include <assert.h>
+#include "private/tar.h"
 
-const char *filename;
-
-static int tar_open(tar_file_t *tar)
+tar_type_t tar_type_parse(const char type)
 {
-	FILE *file = fopen(filename, "rb");
-	if (file == NULL)
-		return errno;
-
-	tar->data = (void *) file;
-	return EOK;
+	switch (type) {
+	case '0':
+	case 0:
+		return TAR_TYPE_NORMAL;
+	case '5':
+		return TAR_TYPE_DIRECTORY;
+	default:
+		return TAR_TYPE_UNKNOWN;
+	}
 }
 
-static void tar_close(tar_file_t *tar)
+const char *tar_type_str(tar_type_t type)
 {
-	FILE *file = (FILE *) tar->data;
-	fclose(file);
+	switch (type) {
+	case TAR_TYPE_UNKNOWN:
+		return "unknown";
+	case TAR_TYPE_NORMAL:
+		return "normal";
+	case TAR_TYPE_DIRECTORY:
+		return "directory";
+	default:
+		assert(false && "unexpected tar_type_t enum value");
+		return "?";
+	}
 }
 
-static size_t tar_read(tar_file_t *tar, void *data, size_t size)
+errno_t tar_header_parse(tar_header_t *parsed, const tar_header_raw_t *raw)
 {
-	FILE *file = (FILE *) tar->data;
-	return fread(data, 1, size, file);
-}
-
-static void tar_vreport(tar_file_t *tar, const char *fmt, va_list args)
-{
-	vfprintf(stderr, fmt, args);
-}
-
-tar_file_t tar = {
-	.open = tar_open,
-	.close = tar_close,
-
-	.read = tar_read,
-	.vreport = tar_vreport
-};
-
-int main(int argc, char *argv[])
-{
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s tar-file\n", argv[0]);
-		return 1;
+	if (str_length(raw->filename) == 0) {
+		return EEMPTY;
 	}
 
-	filename = argv[1];
-	return untar(&tar);
+	size_t size;
+	errno_t rc = str_size_t(raw->size, NULL, 8, true, &size);
+	if (rc != EOK) {
+		return rc;
+	}
+	parsed->size = size;
+
+	str_cpy(parsed->filename, 100, raw->filename);
+
+	parsed->type = tar_type_parse(raw->type);
+
+	return EOK;
 }
 
 /** @}
