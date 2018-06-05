@@ -62,7 +62,7 @@ namespace __cxxabiv1
      * No need for a body, this function is called when a virtual
      * call of a pure virtual function cannot be made.
      */
-    extern "C" void __cxa_pure_call()
+    extern "C" void __cxa_pure_virtual()
     {
         std::terminate();
     }
