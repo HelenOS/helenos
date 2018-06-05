@@ -399,7 +399,7 @@ namespace std
     OutputIterator move(InputIterator first, InputIterator last, OutputIterator result)
     {
         while (first != last)
-            *result++ = move(first++);
+            *result++ = move(*first++);
 
         return result;
     }
@@ -443,6 +443,8 @@ namespace std
     {
         while (first != last)
             *result++ = op(*first++);
+
+        return result;
     }
 
     template<class InputIterator1, class InputIterator2,
@@ -453,6 +455,8 @@ namespace std
     {
         while (first1 != last1)
             *result++ = op(*first1++, *first2++);
+
+        return result;
     }
 
     /**

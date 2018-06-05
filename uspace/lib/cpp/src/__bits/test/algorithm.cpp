@@ -29,6 +29,7 @@
 #include <__bits/test/tests.hpp>
 #include <algorithm>
 #include <array>
+#include <string>
 #include <utility>
 
 namespace std::test
@@ -39,6 +40,7 @@ namespace std::test
         start();
 
         test_non_modifying();
+        test_mutating();
 
         return end();
     }
@@ -183,5 +185,112 @@ namespace std::test
         test("equal pt4", !res18);
 
         // TODO: is_permutation, search
+    }
+
+    void algorithm_test::test_mutating()
+    {
+        auto check1 = {1, 2, 3, 10, 20, 30, 40};
+        std::array<int, 4> data1{10, 20, 30, 40};
+        std::array<int, 7> data2{1, 2, 3, 4, 5, 6, 7};
+
+        auto res1 = std::copy(
+            data1.begin(), data1.end(), data2.begin() + 3
+        );
+
+        test_eq(
+            "copy pt1", check1.begin(), check1.end(),
+            data2.begin(), data2.end()
+        );
+        test_eq("copy pt2", res1, data2.end());
+
+        auto check2 = {1, 2, 3, 10, 20, 30, 7, 8};
+        std::array<int, 8> data3{1, 2, 3, 4, 5, 6, 7, 8};
+
+        auto res2 = std::copy_n(
+            data1.begin(), 3, data3.begin() + 3
+        );
+        test_eq(
+            "copy_n pt1", check2.begin(), check2.end(),
+            data3.begin(), data3.end()
+        );
+        test_eq("copy_n pt2", res2, &data3[6]);
+
+        auto check3 = {2, 4, 6, 8};
+        std::array<int, 4> data4{0, 0, 0, 0};
+        std::array<int, 9> data5{1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+        auto res3 = std::copy_if(
+            data5.begin(), data5.end(), data4.begin(),
+            [](auto x){ return x % 2 == 0; }
+        );
+
+        test_eq(
+            "copy_if pt1", check3.begin(), check3.end(),
+            data4.begin(), data4.end()
+        );
+        test_eq("copy_if pt2", res3, data4.end());
+
+        /**
+         * Note: Not testing copy_backwards as it isn't
+         *       really easy to test, but since it is
+         *       widely used in the rest of the library
+         *       (mainly right shifting in sequence
+         *       containers) it's tested by other tests.
+         */
+
+        auto check4 = {std::string{"A"}, std::string{"B"}, std::string{"C"}};
+        std::array<std::string, 3> data6{"A", "B", "C"};
+        std::array<std::string, 3> data7{"", "", ""};
+
+        auto res4 = std::move(
+            data6.begin(), data6.end(), data7.begin()
+        );
+        test_eq(
+            "move pt1", check4.begin(), check4.end(),
+            data7.begin(), data7.end()
+        );
+        test(
+            "move pt2", (data6[0].empty() && data6[1].empty(),
+            data6[2].empty())
+        );
+        test_eq("move pt3", res4, data7.end());
+
+        auto check5 = {1, 2, 3, 4};
+        auto check6 = {10, 20, 30, 40};
+        std::array<int, 4> data8{1, 2, 3, 4};
+        std::array<int, 4> data9{10, 20, 30, 40};
+
+        auto res5 = std::swap_ranges(
+            data8.begin(), data8.end(),
+            data9.begin()
+        );
+
+        test_eq(
+            "swap_ranges pt1", check6.begin(), check6.end(),
+            data8.begin(), data8.end()
+        );
+        test_eq(
+            "swap_ranges pt2", check5.begin(), check5.end(),
+            data9.begin(), data9.end()
+        );
+        test_eq("swap_ranges pt3", res5, data9.end());
+
+        std::iter_swap(data8.begin(), data9.begin());
+        test_eq("swap_iter pt1", data8[0], 1);
+        test_eq("swap_iter pt2", data9[0], 10);
+
+        auto check7 = {2, 3, 4, 5};
+        std::array<int, 4> data10{1, 2, 3, 4};
+
+        auto res6 = std::transform(
+            data10.begin(), data10.end(), data10.begin(),
+            [](auto x) { return x + 1; }
+        );
+        test_eq(
+            "transform pt1",
+            check7.begin(), check7.end(),
+            data10.begin(), data10.end()
+        );
+        test_eq("transform pt2", res6, data10.end());
     }
 }

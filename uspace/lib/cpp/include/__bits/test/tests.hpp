@@ -292,6 +292,7 @@ namespace std::test
             const char* name() override;
         private:
             void test_non_modifying();
+            void test_mutating();
     };
 }
 
