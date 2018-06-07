@@ -208,6 +208,9 @@ def qemu_run(platform, machine, processor):
 	if (not 'audio' in cfg.keys()) or cfg['audio']:
 		cmdline += qemu_audio_options()
 
+	if (is_override('nographic')):
+		cmdline += ' -nographic'
+
 	if cfg['image'] == 'image.iso':
 		cmdline += ' -boot d -cdrom image.iso'
 	elif cfg['image'] == 'image.boot':
@@ -381,6 +384,8 @@ def run():
 			overrides['noxhci'] = True
 		elif sys.argv[i] == '-notablet':
 			overrides['notablet'] = True
+		elif sys.argv[i] == '-nographic':
+			overrides['nographic'] = True
 		elif sys.argv[i] == '-qemu_path' and i < len(sys.argv) - 1:
 			expect_qemu = True
 		else:
