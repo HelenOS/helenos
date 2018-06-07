@@ -36,28 +36,32 @@
 #include <stdarg.h>
 #include <untar.h>
 
-const char *filename;
+typedef struct {
+	const char *filename;
+	FILE *file;
+} tar_state_t;
 
 static int tar_open(tar_file_t *tar)
 {
-	FILE *file = fopen(filename, "rb");
-	if (file == NULL)
+	tar_state_t *state = (tar_state_t *) tar->data;
+
+	state->file = fopen(state->filename, "rb");
+	if (state->file == NULL)
 		return errno;
 
-	tar->data = (void *) file;
 	return EOK;
 }
 
 static void tar_close(tar_file_t *tar)
 {
-	FILE *file = (FILE *) tar->data;
-	fclose(file);
+	tar_state_t *state = (tar_state_t *) tar->data;
+	fclose(state->file);
 }
 
 static size_t tar_read(tar_file_t *tar, void *data, size_t size)
 {
-	FILE *file = (FILE *) tar->data;
-	return fread(data, 1, size, file);
+	tar_state_t *state = (tar_state_t *) tar->data;
+	return fread(data, 1, size, state->file);
 }
 
 static void tar_vreport(tar_file_t *tar, const char *fmt, va_list args)
@@ -80,7 +84,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	filename = argv[1];
+	tar_state_t state;
+	state.filename = argv[1];
+
+	tar.data = (void *) &state;
 	return untar(&tar);
 }
 
