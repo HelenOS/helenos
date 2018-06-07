@@ -34,7 +34,6 @@ STATIC_NEEDED = y
 
 SOURCES = \
 	tmpfs.c \
-	tmpfs_ops.c \
-	tmpfs_dump.c
+	tmpfs_ops.c
 
 include $(USPACE_PREFIX)/Makefile.common

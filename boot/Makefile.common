@@ -51,7 +51,6 @@ TOOLS_PATH = $(ROOT_PATH)/tools
 DRVS_PATH = drv
 
 MKARRAY = $(TOOLS_PATH)/mkarray.py
-MKTMPFS = $(TOOLS_PATH)/mktmpfs.py
 MKFAT = $(TOOLS_PATH)/mkfat.py
 MKEXT4 = $(TOOLS_PATH)/mkext4.py
 MKUIMAGE = $(TOOLS_PATH)/mkuimage.py

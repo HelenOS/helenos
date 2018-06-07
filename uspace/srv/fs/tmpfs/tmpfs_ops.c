@@ -446,10 +446,6 @@ tmpfs_mounted(service_id_t service_id, const char *opts, fs_index_t *index,
 	rc = tmpfs_root_get(&rootfn, service_id);
 	assert(rc == EOK);
 	tmpfs_node_t *rootp = TMPFS_NODE(rootfn);
-	if (str_cmp(opts, "restore") == 0) {
-		if (!tmpfs_restore(service_id))
-			return ELIMIT;
-	}
 
 	*index = rootp->index;
 	*size = rootp->size;

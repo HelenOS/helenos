@@ -31,7 +31,10 @@ USPACE_PREFIX = ../..
 BINARY = init
 STATIC_NEEDED = y
 
+LIBS = untar block
+
 SOURCES = \
-	init.c
+	init.c \
+	untar.c
 
 include $(USPACE_PREFIX)/Makefile.common

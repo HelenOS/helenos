@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jakub Jermar
+ * Copyright (c) 2018 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,56 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
+/** @addtogroup init
  * @{
  */
+/**
+ * @file
+ */
 
-#ifndef TMPFS_TMPFS_H_
-#define TMPFS_TMPFS_H_
+#ifndef __UNTAR_H__
+#define __UNTAR_H__
 
-#include <libfs.h>
-#include <atomic.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include <adt/hash_table.h>
 
-#define TMPFS_NODE(node)	((node) ? (tmpfs_node_t *)(node)->data : NULL)
-#define FS_NODE(node)		((node) ? (node)->bp : NULL)
-
-typedef enum {
-	TMPFS_NONE,
-	TMPFS_FILE,
-	TMPFS_DIRECTORY
-} tmpfs_dentry_type_t;
-
-/* forward declaration */
-struct tmpfs_node;
-
-typedef struct tmpfs_dentry {
-	link_t link;		/**< Linkage for the list of siblings. */
-	struct tmpfs_node *node;/**< Back pointer to TMPFS node. */
-	char *name;		/**< Name of dentry. */
-} tmpfs_dentry_t;
-
-typedef struct tmpfs_node {
-	fs_node_t *bp;		/**< Back pointer to the FS node. */
-	fs_index_t index;	/**< TMPFS node index. */
-	service_id_t service_id;/**< Service ID of block device. */
-	ht_link_t nh_link;		/**< Nodes hash table link. */
-	tmpfs_dentry_type_t type;
-	unsigned lnkcnt;	/**< Link count. */
-	size_t size;		/**< File size if type is TMPFS_FILE. */
-	void *data;		/**< File content's if type is TMPFS_FILE. */
-	list_t cs_list;		/**< Child's siblings list. */
-} tmpfs_node_t;
-
-extern vfs_out_ops_t tmpfs_ops;
-extern libfs_ops_t tmpfs_libfs_ops;
-
-extern bool tmpfs_init(void);
+extern bool bd_untar(const char *);
 
 #endif
 
-/**
- * @}
+/** @}
  */

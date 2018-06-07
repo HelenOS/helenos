@@ -47,6 +47,7 @@
 #include <str_error.h>
 #include <config.h>
 #include <io/logctl.h>
+#include "untar.h"
 #include "init.h"
 
 #define ROOT_DEVICE       "bd/initrd"
@@ -82,7 +83,7 @@ static bool mount_report(const char *desc, const char *mntpt,
 {
 	switch (rc) {
 	case EOK:
-		if (dev != NULL)
+		if ((dev != NULL) && (str_cmp(dev, "") != 0))
 			printf("%s: %s mounted on %s (%s at %s)\n", NAME, desc, mntpt,
 			    fstype, dev);
 		else
@@ -106,12 +107,12 @@ static bool mount_report(const char *desc, const char *mntpt,
 	return true;
 }
 
-/** Mount root filesystem
+/** Mount root file system
  *
- * The operation blocks until the root filesystem
+ * The operation blocks until the root file system
  * server is ready for mounting.
  *
- * @param[in] fstype Root filesystem type.
+ * @param[in] fstype Root file system type.
  *
  * @return True on success.
  * @return False on failure.
@@ -119,22 +120,37 @@ static bool mount_report(const char *desc, const char *mntpt,
  */
 static bool mount_root(const char *fstype)
 {
-	const char *opts = "";
+	const char *root_device = "";
 
-	if (str_cmp(fstype, "tmpfs") == 0)
-		opts = "restore";
+	if (str_cmp(fstype, "tmpfs") != 0)
+		root_device = ROOT_DEVICE;
 
-	errno_t rc = vfs_mount_path(ROOT_MOUNT_POINT, fstype, ROOT_DEVICE, opts,
+	errno_t rc = vfs_mount_path(ROOT_MOUNT_POINT, fstype, root_device, "",
 	    IPC_FLAG_BLOCKING, 0);
 	if (rc == EOK)
 		logctl_set_root();
-	return mount_report("Root filesystem", ROOT_MOUNT_POINT, fstype,
-	    ROOT_DEVICE, rc);
+
+	bool ret = mount_report("Root file system", ROOT_MOUNT_POINT, fstype,
+	    root_device, rc);
+
+	rc = vfs_cwd_set(ROOT_MOUNT_POINT);
+	if (rc != EOK) {
+		printf("%s: Unable to set current directory to %s (%s)\n",
+		    NAME, ROOT_MOUNT_POINT, str_error(ret));
+		return false;
+	}
+
+	if ((ret) && (str_cmp(fstype, "tmpfs") == 0)) {
+		printf("%s: Extracting root file system archive\n", NAME);
+		ret = bd_untar(ROOT_DEVICE);
+	}
+
+	return ret;
 }
 
-/** Mount locfs filesystem
+/** Mount locfs file system
  *
- * The operation blocks until the locfs filesystem
+ * The operation blocks until the locfs file system
  * server is ready for mounting.
  *
  * @return True on success.
@@ -145,7 +161,7 @@ static bool mount_locfs(void)
 {
 	errno_t rc = vfs_mount_path(LOCFS_MOUNT_POINT, LOCFS_FS_TYPE, "", "",
 	    IPC_FLAG_BLOCKING, 0);
-	return mount_report("Location service filesystem", LOCFS_MOUNT_POINT,
+	return mount_report("Location service file system", LOCFS_MOUNT_POINT,
 	    LOCFS_FS_TYPE, NULL, rc);
 }
 
@@ -300,7 +316,7 @@ static void getterm(const char *svc, const char *app, bool msg)
 static bool mount_tmpfs(void)
 {
 	errno_t rc = vfs_mount_path(TMPFS_MOUNT_POINT, TMPFS_FS_TYPE, "", "", 0, 0);
-	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
+	return mount_report("Temporary file system", TMPFS_MOUNT_POINT,
 	    TMPFS_FS_TYPE, NULL, rc);
 }
 

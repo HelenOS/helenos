@@ -28,7 +28,7 @@
 
 $(INITRD).img:
 ifeq ($(RDFMT),tmpfs)
-	$(MKTMPFS) $(DIST_PATH) $@
+	tar -c -f $@ -C $(DIST_PATH) .
 endif
 ifeq ($(RDFMT),fat)
 	$(MKFAT) 1048576 $(DIST_PATH) $@
