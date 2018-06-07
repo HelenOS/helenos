@@ -549,6 +549,9 @@ extern void async_call_share_in(async_call_t *, async_call_data_t *,
 extern void async_call_share_out(async_call_t *, async_call_data_t *,
     void *, unsigned int);
 
+extern void async_call_connect_to_me(async_call_t *, async_call_data_t *,
+    sysarg_t, sysarg_t, sysarg_t);
+
 // TODO: connect me to, connect to me, vfs handle, etc.
 
 #endif

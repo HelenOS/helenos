@@ -1348,7 +1348,14 @@ void *async_as_area_create(void *base, size_t size, unsigned int flags,
 void async_call_begin(async_call_t *call, async_sess_t *sess, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
+	assert(call);
 	memset(call, 0, sizeof(*call));
+	list_initialize(&call->fragments);
+
+	if (!sess) {
+		call->rc = ENOENT;
+		return;
+	}
 
 	call->exch = async_exchange_begin(sess);
 	if (!call->exch) {
@@ -1502,11 +1509,13 @@ void async_call_method_with_finalizer(async_call_t *call,
 	assert(data);
 	data->finalizer = finalizer;
 
-	if (!call->exch)
-		call->rc = ENOENT;
-
 	if (call->rc)
 		return;
+
+	if (!call->exch) {
+		call->rc = ENOENT;
+		return;
+	}
 
 	data->msgid = async_send_fast(call->exch, imethod,
 	    arg1, arg2, arg3, arg4, &data->answer);
@@ -1603,6 +1612,12 @@ void async_call_share_out(async_call_t *call, async_call_data_t *data,
 {
 	async_call_method(call, data,
 	    IPC_M_SHARE_OUT, (sysarg_t) src, 0, (sysarg_t) flags, 0);
+}
+
+void async_call_connect_to_me(async_call_t *call, async_call_data_t *data,
+	sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+{
+	async_call_method(call, data, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3, 0);
 }
 
 // TODO: connect me to, connect to me, vfs handle, etc.

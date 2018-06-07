@@ -68,14 +68,7 @@ static void clone_session(fibril_mutex_t *mtx, async_sess_t *src,
 	fibril_mutex_unlock(mtx);
 }
 
-/** Start an async exchange on the devman session (blocking).
- *
- * @param iface Device manager interface to choose
- *
- * @return New exchange.
- *
- */
-async_exch_t *devman_exchange_begin_blocking(iface_t iface)
+static async_sess_t *devman_session_blocking(iface_t iface)
 {
 	switch (iface) {
 	case INTERFACE_DDF_DRIVER:
@@ -96,7 +89,7 @@ async_exch_t *devman_exchange_begin_blocking(iface_t iface)
 		clone_session(&devman_driver_mutex, devman_driver_block_sess,
 		    &devman_driver_sess);
 
-		return async_exchange_begin(devman_driver_block_sess);
+		return devman_driver_block_sess;
 	case INTERFACE_DDF_CLIENT:
 		fibril_mutex_lock(&devman_client_block_mutex);
 
@@ -115,20 +108,28 @@ async_exch_t *devman_exchange_begin_blocking(iface_t iface)
 		clone_session(&devman_client_mutex, devman_client_block_sess,
 		    &devman_client_sess);
 
-		return async_exchange_begin(devman_client_block_sess);
+		return devman_client_block_sess;
 	default:
 		return NULL;
 	}
 }
 
-/** Start an async exchange on the devman session.
+/** Start an async exchange on the devman session (blocking).
  *
  * @param iface Device manager interface to choose
  *
  * @return New exchange.
  *
  */
-async_exch_t *devman_exchange_begin(iface_t iface)
+async_exch_t *devman_exchange_begin_blocking(iface_t iface)
+{
+	async_sess_t *sess = devman_session_blocking(iface);
+	if (!sess)
+		return NULL;
+	return async_exchange_begin(sess);
+}
+
+static async_sess_t *devman_session(iface_t iface)
 {
 	switch (iface) {
 	case INTERFACE_DDF_DRIVER:
@@ -144,7 +145,7 @@ async_exch_t *devman_exchange_begin(iface_t iface)
 		if (devman_driver_sess == NULL)
 			return NULL;
 
-		return async_exchange_begin(devman_driver_sess);
+		return devman_driver_sess;
 	case INTERFACE_DDF_CLIENT:
 		fibril_mutex_lock(&devman_client_mutex);
 
@@ -158,10 +159,25 @@ async_exch_t *devman_exchange_begin(iface_t iface)
 		if (devman_client_sess == NULL)
 			return NULL;
 
-		return async_exchange_begin(devman_client_sess);
+		return devman_client_sess;
 	default:
 		return NULL;
 	}
+}
+
+/** Start an async exchange on the devman session.
+ *
+ * @param iface Device manager interface to choose
+ *
+ * @return New exchange.
+ *
+ */
+async_exch_t *devman_exchange_begin(iface_t iface)
+{
+	async_sess_t *sess = devman_session(iface);
+	if (!sess)
+		return NULL;
+	return async_exchange_begin(sess);
 }
 
 /** Finish an async exchange on the devman session.
@@ -177,25 +193,16 @@ void devman_exchange_end(async_exch_t *exch)
 /** Register running driver with device manager. */
 errno_t devman_driver_register(const char *name)
 {
-	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
+	async_sess_t *sess = devman_session_blocking(INTERFACE_DDF_DRIVER);
 
-	ipc_call_t answer;
-	aid_t req = async_send_2(exch, DEVMAN_DRIVER_REGISTER, 0, 0, &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
+	async_call_t call;
+	async_call_data_t write, connect;
 
-	devman_exchange_end(exch);
+	async_call_begin(&call, sess, DEVMAN_DRIVER_REGISTER, 0, 0, 0, 0);
+	async_call_write(&call, &write, name, str_size(name), NULL);
+	async_call_connect_to_me(&call, &connect, 0, 0, 0);
 
-	if (retval != EOK) {
-		async_forget(req);
-		return retval;
-	}
-
-	exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
-	async_connect_to_me(exch, 0, 0, 0);
-	devman_exchange_end(exch);
-
-	async_wait_for(req, &retval);
-	return retval;
+	return async_call_finish(&call);
 }
 
 /** Add function to a device.
@@ -216,73 +223,53 @@ errno_t devman_add_function(const char *name, fun_type_t ftype,
     match_id_list_t *match_ids, devman_handle_t devh, devman_handle_t *funh)
 {
 	unsigned long match_count = list_count(&match_ids->ids);
-	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
 
-	ipc_call_t answer;
-	aid_t req = async_send_3(exch, DEVMAN_ADD_FUNCTION, (sysarg_t) ftype,
-	    devh, match_count, &answer);
-	errno_t retval = async_data_write_start(exch, name, str_size(name));
-	if (retval != EOK) {
-		devman_exchange_end(exch);
-		async_forget(req);
-		return retval;
-	}
+	async_sess_t *sess = devman_session_blocking(INTERFACE_DDF_DRIVER);
+
+	async_call_t call;
+	async_call_data_t write1, method_n, write_n;
+
+	async_call_begin(&call, sess, DEVMAN_ADD_FUNCTION,
+	    (sysarg_t) ftype, devh, match_count, 0);
+
+	async_call_write(&call, &write1, name, str_size(name), NULL);
 
 	list_foreach(match_ids->ids, link, match_id_t, match_id) {
-		ipc_call_t answer2;
-		aid_t req2 = async_send_1(exch, DEVMAN_ADD_MATCH_ID,
-		    match_id->score, &answer2);
-		retval = async_data_write_start(exch, match_id->id,
-		    str_size(match_id->id));
-		if (retval != EOK) {
-			devman_exchange_end(exch);
-			async_forget(req2);
-			async_forget(req);
-			return retval;
-		}
+		async_call_method(&call, &method_n, DEVMAN_ADD_MATCH_ID,
+		    match_id->score, 0, 0, 0);
 
-		async_wait_for(req2, &retval);
-		if (retval != EOK) {
-			devman_exchange_end(exch);
-			async_forget(req);
-			return retval;
-		}
+		async_call_write(&call, &write_n,
+		    match_id->id, str_size(match_id->id), NULL);
+
+		/* Wait so that we can recycle `method_n` and `write_n`. */
+		(void) async_call_wait(&call);
 	}
 
-	devman_exchange_end(exch);
+	errno_t rc = async_call_finish(&call);
 
-	async_wait_for(req, &retval);
-	if (retval == EOK) {
-		if (funh != NULL)
-			*funh = (int) IPC_GET_ARG1(answer);
-	} else {
-		if (funh != NULL)
+	if (funh) {
+		if (rc == EOK) {
+			*funh = (devman_handle_t)
+			    IPC_GET_ARG1(call.initial.answer);
+		} else {
 			*funh = -1;
+		}
 	}
 
-	return retval;
+	return rc;
 }
 
 errno_t devman_add_device_to_category(devman_handle_t devman_handle,
     const char *cat_name)
 {
-	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
+	async_sess_t *sess = devman_session_blocking(INTERFACE_DDF_DRIVER);
 
-	ipc_call_t answer;
-	aid_t req = async_send_1(exch, DEVMAN_ADD_DEVICE_TO_CATEGORY,
-	    devman_handle, &answer);
-	errno_t retval = async_data_write_start(exch, cat_name,
-	    str_size(cat_name));
+	async_call_t call;
+	async_call_data_t write;
 
-	devman_exchange_end(exch);
-
-	if (retval != EOK) {
-		async_forget(req);
-		return retval;
-	}
-
-	async_wait_for(req, &retval);
-	return retval;
+	async_call_begin(&call, sess, DEVMAN_ADD_DEVICE_TO_CATEGORY, devman_handle, 0, 0, 0);
+	async_call_write(&call, &write, cat_name, str_size(cat_name), NULL);
+	return async_call_finish(&call);
 }
 
 async_sess_t *devman_device_connect(devman_handle_t handle, unsigned int flags)
@@ -308,38 +295,29 @@ async_sess_t *devman_device_connect(devman_handle_t handle, unsigned int flags)
  */
 errno_t devman_remove_function(devman_handle_t funh)
 {
-	async_exch_t *exch;
-	errno_t retval;
+	async_sess_t *sess = devman_session_blocking(INTERFACE_DDF_DRIVER);
 
-	exch = devman_exchange_begin_blocking(INTERFACE_DDF_DRIVER);
-	retval = async_req_1_0(exch, DEVMAN_REMOVE_FUNCTION, (sysarg_t) funh);
-	devman_exchange_end(exch);
-
-	return retval;
+	async_call_t call;
+	async_call_begin(&call, sess, DEVMAN_REMOVE_FUNCTION, funh, 0, 0, 0);
+	return async_call_finish(&call);
 }
 
 errno_t devman_drv_fun_online(devman_handle_t funh)
 {
-	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
-	if (exch == NULL)
-		return ENOMEM;
+	async_sess_t *sess = devman_session_blocking(INTERFACE_DDF_DRIVER);
 
-	errno_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_ONLINE, funh);
-
-	devman_exchange_end(exch);
-	return retval;
+	async_call_t call;
+	async_call_begin(&call, sess, DEVMAN_DRV_FUN_ONLINE, funh, 0, 0, 0);
+	return async_call_finish(&call);
 }
 
 errno_t devman_drv_fun_offline(devman_handle_t funh)
 {
-	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
-	if (exch == NULL)
-		return ENOMEM;
+	async_sess_t *sess = devman_session_blocking(INTERFACE_DDF_DRIVER);
 
-	errno_t retval = async_req_1_0(exch, DEVMAN_DRV_FUN_OFFLINE, funh);
-
-	devman_exchange_end(exch);
-	return retval;
+	async_call_t call;
+	async_call_begin(&call, sess, DEVMAN_DRV_FUN_OFFLINE, funh, 0, 0, 0);
+	return async_call_finish(&call);
 }
 
 async_sess_t *devman_parent_device_connect(devman_handle_t handle,
@@ -360,79 +338,52 @@ async_sess_t *devman_parent_device_connect(devman_handle_t handle,
 errno_t devman_fun_get_handle(const char *pathname, devman_handle_t *handle,
     unsigned int flags)
 {
-	async_exch_t *exch;
+	async_sess_t *sess;
+	async_call_t call;
+	async_call_data_t write;
 
 	if (flags & IPC_FLAG_BLOCKING)
-		exch = devman_exchange_begin_blocking(INTERFACE_DDF_CLIENT);
-	else {
-		exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
-		if (exch == NULL)
-			return ENOMEM;
-	}
+		sess = devman_session_blocking(INTERFACE_DDF_CLIENT);
+	else
+		sess = devman_session(INTERFACE_DDF_CLIENT);
 
-	ipc_call_t answer;
-	aid_t req = async_send_2(exch, DEVMAN_DEVICE_GET_HANDLE, flags, 0,
-	    &answer);
-	errno_t retval = async_data_write_start(exch, pathname,
-	    str_size(pathname));
+	async_call_begin(&call, sess, DEVMAN_DEVICE_GET_HANDLE, flags, 0, 0, 0);
+	async_call_write(&call, &write, pathname, str_size(pathname), NULL);
+	errno_t rc = async_call_finish(&call);
 
-	devman_exchange_end(exch);
-
-	if (retval != EOK) {
-		async_forget(req);
-		return retval;
-	}
-
-	async_wait_for(req, &retval);
-
-	if (retval != EOK) {
+	if (rc != EOK) {
 		if (handle != NULL)
 			*handle = (devman_handle_t) -1;
 
-		return retval;
+		return rc;
 	}
 
 	if (handle != NULL)
-		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
+		*handle = (devman_handle_t) IPC_GET_ARG1(call.initial.answer);
 
-	return retval;
+	return EOK;
 }
 
 static errno_t devman_get_str_internal(sysarg_t method, sysarg_t arg1,
     sysarg_t arg2, sysarg_t *r1, char *buf, size_t buf_size)
 {
-	async_exch_t *exch;
-	ipc_call_t dreply;
+	async_call_t call;
+	async_call_data_t read;
 	size_t act_size;
-	errno_t dretval;
 
-	exch = devman_exchange_begin_blocking(INTERFACE_DDF_CLIENT);
+	async_sess_t *sess = devman_session_blocking(INTERFACE_DDF_CLIENT);
 
-	ipc_call_t answer;
-	aid_t req = async_send_2(exch, method, arg1, arg2, &answer);
-	aid_t dreq = async_data_read(exch, buf, buf_size - 1, &dreply);
-	async_wait_for(dreq, &dretval);
-
-	devman_exchange_end(exch);
-
-	if (dretval != EOK) {
-		async_forget(req);
-		return dretval;
-	}
-
-	errno_t retval;
-	async_wait_for(req, &retval);
-
-	if (retval != EOK) {
-		return retval;
-	}
+	async_call_begin(&call, sess, method, arg1, arg2, 0, 0);
+	async_call_read(&call, &read, buf, buf_size - 1, &act_size);
+	errno_t rc = async_call_finish(&call);
+	if (rc != EOK)
+		return rc;
 
 	if (r1 != NULL)
-		*r1 = IPC_GET_ARG1(answer);
-	act_size = IPC_GET_ARG2(dreply);
+		*r1 = IPC_GET_ARG1(call.initial.answer);
+
 	assert(act_size <= buf_size - 1);
 	buf[act_size] = '\0';
-
 	return EOK;
 }
 
@@ -471,52 +422,37 @@ errno_t devman_fun_get_driver_name(devman_handle_t handle, char *buf, size_t buf
 
 errno_t devman_fun_online(devman_handle_t funh)
 {
-	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
-	if (exch == NULL)
-		return ENOMEM;
+	async_sess_t *sess = devman_session(INTERFACE_DDF_CLIENT);
 
-	errno_t retval = async_req_1_0(exch, DEVMAN_FUN_ONLINE, funh);
-
-	devman_exchange_end(exch);
-	return retval;
+	async_call_t call;
+	async_call_begin(&call, sess, DEVMAN_FUN_ONLINE, funh, 0, 0, 0);
+	return async_call_finish(&call);
 }
 
 errno_t devman_fun_offline(devman_handle_t funh)
 {
-	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
-	if (exch == NULL)
-		return ENOMEM;
+	async_sess_t *sess = devman_session(INTERFACE_DDF_CLIENT);
 
-	errno_t retval = async_req_1_0(exch, DEVMAN_FUN_OFFLINE, funh);
-
-	devman_exchange_end(exch);
-	return retval;
+	async_call_t call;
+	async_call_begin(&call, sess, DEVMAN_FUN_OFFLINE, funh, 0, 0, 0);
+	return async_call_finish(&call);
 }
 
 static errno_t devman_get_handles_once(sysarg_t method, sysarg_t arg1,
     devman_handle_t *handle_buf, size_t buf_size, size_t *act_size)
 {
-	async_exch_t *exch = devman_exchange_begin_blocking(INTERFACE_DDF_CLIENT);
+	async_sess_t *sess = devman_session_blocking(INTERFACE_DDF_CLIENT);
 
-	ipc_call_t answer;
-	aid_t req = async_send_1(exch, method, arg1, &answer);
-	errno_t rc = async_data_read_start(exch, handle_buf, buf_size);
+	async_call_t call;
+	async_call_data_t read;
 
-	devman_exchange_end(exch);
-
-	if (rc != EOK) {
-		async_forget(req);
+	async_call_begin(&call, sess, method, arg1, 0, 0, 0);
+	async_call_read(&call, &read, handle_buf, buf_size, NULL);
+	errno_t rc = async_call_finish(&call);
+	if (rc != EOK)
 		return rc;
-	}
 
-	errno_t retval;
-	async_wait_for(req, &retval);
-
-	if (retval != EOK) {
-		return retval;
-	}
-
-	*act_size = IPC_GET_ARG1(answer);
+	*act_size = IPC_GET_ARG1(call.initial.answer);
 	return EOK;
 }
 
@@ -575,15 +511,16 @@ static errno_t devman_get_handles_internal(sysarg_t method, sysarg_t arg1,
 
 errno_t devman_fun_get_child(devman_handle_t funh, devman_handle_t *devh)
 {
-	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
-	if (exch == NULL)
-		return ENOMEM;
+	async_sess_t *sess = devman_session(INTERFACE_DDF_CLIENT);
 
-	errno_t retval = async_req_1_1(exch, DEVMAN_FUN_GET_CHILD,
-	    funh, devh);
+	async_call_t call;
+	async_call_begin(&call, sess, DEVMAN_FUN_GET_CHILD, funh, 0, 0, 0);
+	errno_t rc = async_call_finish(&call);
+	if (rc != EOK)
+		return rc;
 
-	devman_exchange_end(exch);
-	return retval;
+	*devh = (devman_handle_t) IPC_GET_ARG1(call.initial.answer);
+	return EOK;
 }
 
 errno_t devman_dev_get_functions(devman_handle_t devh, devman_handle_t **funcs,
@@ -595,15 +532,16 @@ errno_t devman_dev_get_functions(devman_handle_t devh, devman_handle_t **funcs,
 
 errno_t devman_dev_get_parent(devman_handle_t devh, devman_handle_t *funh)
 {
-	async_exch_t *exch = devman_exchange_begin(INTERFACE_DDF_CLIENT);
-	if (exch == NULL)
-		return ENOMEM;
+	async_sess_t *sess = devman_session(INTERFACE_DDF_CLIENT);
 
-	errno_t retval = async_req_1_1(exch, DEVMAN_DEV_GET_PARENT,
-	    devh, funh);
+	async_call_t call;
+	async_call_begin(&call, sess, DEVMAN_DEV_GET_PARENT, devh, 0, 0, 0);
+	errno_t rc = async_call_finish(&call);
+	if (rc != EOK)
+		return rc;
 
-	devman_exchange_end(exch);
-	return retval;
+	*funh = (devman_handle_t) IPC_GET_ARG1(call.initial.answer);
+	return EOK;
 }
 
 errno_t devman_fun_sid_to_handle(service_id_t sid, devman_handle_t *handle)
