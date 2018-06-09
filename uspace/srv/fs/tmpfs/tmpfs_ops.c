@@ -596,7 +596,6 @@ static errno_t tmpfs_truncate(service_id_t service_id, fs_index_t index,
 	};
 
 	ht_link_t *hlp = hash_table_find(&nodes, &key);
-
 	if (!hlp)
 		return ENOENT;
 	tmpfs_node_t *nodep = hash_table_get_inst(hlp, tmpfs_node_t, nh_link);
@@ -608,7 +607,7 @@ static errno_t tmpfs_truncate(service_id_t service_id, fs_index_t index,
 		return ENOMEM;
 
 	void *newdata = realloc(nodep->data, size);
-	if (!newdata)
+	if (!newdata && size)
 		return ENOMEM;
 
 	if (size > nodep->size) {
