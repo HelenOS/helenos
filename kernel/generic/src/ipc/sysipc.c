@@ -551,8 +551,8 @@ error:
 	else
 		ipc_answer(&TASK->answerbox, call);
 
-	/* Republish the capability so that the call does not get lost. */
-	cap_publish(TASK, chandle, ckobj);
+	cap_free(TASK, chandle);
+	kobject_put(ckobj);
 
 	if (pkobj)
 		kobject_put(pkobj);
@@ -641,6 +641,7 @@ sys_errno_t sys_ipc_answer_fast(cap_call_handle_t chandle, sysarg_t retval,
 		return ENOENT;
 
 	call_t *call = kobj->call;
+	assert(!(call->flags & IPC_CALL_ANSWERED));
 
 	ipc_data_t saved_data;
 	bool saved;
@@ -687,6 +688,7 @@ sys_errno_t sys_ipc_answer_slow(cap_call_handle_t chandle, ipc_data_t *data)
 		return ENOENT;
 
 	call_t *call = kobj->call;
+	assert(!(call->flags & IPC_CALL_ANSWERED));
 
 	ipc_data_t saved_data;
 	bool saved;
