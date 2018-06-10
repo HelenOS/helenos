@@ -166,6 +166,7 @@ typedef struct {
 
 	/** INT#x interrupt ISR register */
 	ioport8_t *isr;
+	uintptr_t isr_phys;
 
 	/** Device-specific configuration */
 	void *device_cfg;

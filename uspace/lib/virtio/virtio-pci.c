@@ -99,8 +99,10 @@ static void virtio_pci_isr_cfg(virtio_dev_t *vdev, uint8_t bar, uint32_t offset,
 		return;
 
 	vdev->isr = vdev->bar[bar].mapped_base + offset;
+	vdev->isr_phys = vdev->bar[bar].phys_base + offset;
 
-	ddf_msg(LVL_NOTE, "isr=%p", vdev->isr);
+	ddf_msg(LVL_NOTE, "isr=%p (phys=%#" PRIxn ")", vdev->isr,
+	    vdev->isr_phys);
 }
 
 static void virtio_pci_device_cfg(virtio_dev_t *vdev, uint8_t bar,

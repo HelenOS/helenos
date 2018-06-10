@@ -33,6 +33,7 @@
 
 #include <as.h>
 #include <ddf/driver.h>
+#include <ddf/interrupt.h>
 #include <ddf/log.h>
 #include <ops/nic.h>
 #include <pci_dev_iface.h>
@@ -66,6 +67,11 @@ static driver_t virtio_net_driver = {
 	.name = NAME,
 	.driver_ops = &virtio_net_driver_ops
 };
+
+static void virtio_net_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
+{
+	ddf_msg(LVL_NOTE, "Got interrupt");
+}
 
 static errno_t virtio_net_setup_bufs(unsigned int buffers, size_t size,
     bool write, void *buf[], uintptr_t buf_p[])
@@ -111,10 +117,66 @@ static void virtio_net_create_buf_free_list(virtio_dev_t *vdev, uint16_t num,
 	*head = 0;
 }
 
+static errno_t virtio_net_register_interrupt(ddf_dev_t *dev)
+{
+	nic_t *nic = ddf_dev_data_get(dev);
+	virtio_net_t *virtio_net = nic_get_specific(nic);
+	virtio_dev_t *vdev = &virtio_net->virtio_dev;
+
+	hw_res_list_parsed_t res;
+	hw_res_list_parsed_init(&res);
+
+	errno_t rc = nic_get_resources(nic, &res);
+	if (rc != EOK)
+		return rc;
+
+	if (res.irqs.count < 1) {
+		hw_res_list_parsed_clean(&res);
+		rc = EINVAL;
+		return rc;
+	}
+
+	virtio_net->irq = res.irqs.irqs[0];
+	hw_res_list_parsed_clean(&res);
+
+	irq_pio_range_t pio_ranges[] = {
+		{
+			.base = vdev->isr_phys,
+			.size = sizeof(vdev->isr_phys),
+		}
+	};
+
+	irq_cmd_t irq_commands[] = {
+		{
+			.cmd = CMD_PIO_READ_8,
+			.addr = (void *) vdev->isr_phys,
+			.dstarg = 2
+		},
+		{
+			.cmd = CMD_PREDICATE,
+			.value = 1,
+			.srcarg = 2
+		},
+		{
+			.cmd = CMD_ACCEPT
+		}
+	};
+
+	irq_code_t irq_code = {
+		.rangecount = sizeof(pio_ranges) / sizeof(irq_pio_range_t),
+		.ranges = pio_ranges,
+		.cmdcount = sizeof(irq_commands) / sizeof(irq_cmd_t),
+		.cmds = irq_commands
+	};
+
+	return register_interrupt_handler(dev, virtio_net->irq,
+	    virtio_net_irq_handler, &irq_code, &virtio_net->irq_handle);
+}
+
 static errno_t virtio_net_initialize(ddf_dev_t *dev)
 {
-	nic_t *nic_data = nic_create_and_bind(dev);
-	if (!nic_data)
+	nic_t *nic = nic_create_and_bind(dev);
+	if (!nic)
 		return ENOMEM;
 
 	virtio_net_t *virtio_net = calloc(1, sizeof(virtio_net_t));
@@ -123,7 +185,7 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 
-	nic_set_specific(nic_data, virtio_net);
+	nic_set_specific(nic, virtio_net);
 
 	errno_t rc = virtio_pci_dev_initialize(dev, &virtio_net->virtio_dev);
 	if (rc != EOK)
@@ -132,6 +194,13 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	virtio_dev_t *vdev = &virtio_net->virtio_dev;
 	virtio_pci_common_cfg_t *cfg = virtio_net->virtio_dev.common_cfg;
 	virtio_net_cfg_t *netcfg = virtio_net->virtio_dev.device_cfg;
+
+	/*
+	 * Register IRQ
+	 */
+	rc = virtio_net_register_interrupt(dev);
+	if (rc != EOK)
+		goto fail;
 
 	/* Reset the device and negotiate the feature bits */
 	rc = virtio_device_setup_start(vdev,
@@ -215,13 +284,25 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	nic_address_t nic_addr;
 	for (unsigned i = 0; i < 6; i++)
 		nic_addr.address[i] = pio_read_8(&netcfg->mac[i]);
-	rc = nic_report_address(nic_data, &nic_addr);
+	rc = nic_report_address(nic, &nic_addr);
 	if (rc != EOK)
 		goto fail;
 
 	ddf_msg(LVL_NOTE, "MAC address: %02x:%02x:%02x:%02x:%02x:%02x",
 	    nic_addr.address[0], nic_addr.address[1], nic_addr.address[2],
 	    nic_addr.address[3], nic_addr.address[4], nic_addr.address[5]);
+
+	/*
+	 * Enable IRQ
+	 */
+	rc = hw_res_enable_interrupt(ddf_dev_parent_sess_get(dev),
+	    virtio_net->irq);
+	if (rc != EOK) {
+		ddf_msg(LVL_NOTE, "Failed to enable interrupt");
+		goto fail;
+	}
+
+	ddf_msg(LVL_NOTE, "Registered IRQ %d", virtio_net->irq);
 
 	/* Go live */
 	virtio_device_setup_finalize(vdev);
@@ -319,8 +400,8 @@ error:
 static errno_t virtio_net_get_device_info(ddf_fun_t *fun,
     nic_device_info_t *info)
 {
-	nic_t *nic_data = nic_get_from_ddf_fun(fun);
-	if (!nic_data)
+	nic_t *nic = nic_get_from_ddf_fun(fun);
+	if (!nic)
 		return ENOENT;
 
 	str_cpy(info->vendor_name, sizeof(info->vendor_name), "Red Hat, Inc.");

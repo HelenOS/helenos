@@ -30,6 +30,7 @@
 #define _VIRTIO_NET_H_
 
 #include <virtio-pci.h>
+#include <abi/cap.h>
 
 #define RX_BUFFERS	8
 #define TX_BUFFERS	8
@@ -59,6 +60,9 @@ typedef struct {
 
 	uint16_t tx_free_head;
 	uint16_t ct_free_head;
+
+	int irq;
+	cap_irq_handle_t irq_handle;
 } virtio_net_t;
 
 #endif
