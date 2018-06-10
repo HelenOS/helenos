@@ -223,6 +223,7 @@ errno_t pio_enable_range(addr_range_t *range, void **virt)
  *                   absolute.
  * @param res        Resources specifying the I/O range wrt. to the PIO window.
  * @param[out] virt  Virtual address for application's PIO operations.
+ * @param[out] phys  If non-NULL, physical address of the resource
  * @param[out] size  If non-NULL, size of the enabled resource.
  *
  * @return EOK on success.
@@ -230,7 +231,7 @@ errno_t pio_enable_range(addr_range_t *range, void **virt)
  *
  */
 errno_t pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt,
-    size_t *size)
+    uintptr_t *phys, size_t *size)
 {
 	uintptr_t addr;
 	size_t sz;
@@ -258,6 +259,8 @@ errno_t pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt,
 		return EINVAL;
 	}
 
+	if (phys)
+		*phys = addr;
 	if (size)
 		*size = sz;
 

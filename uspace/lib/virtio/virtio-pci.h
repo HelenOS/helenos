@@ -151,6 +151,7 @@ typedef struct {
 typedef struct {
 	struct {
 		bool mapped;
+		uintptr_t phys_base;
 		void *mapped_base;
 		size_t mapped_size;
 	} bar[PCI_BAR_COUNT];

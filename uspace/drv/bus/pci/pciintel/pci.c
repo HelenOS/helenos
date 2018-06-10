@@ -738,7 +738,7 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 
 		if (pio_enable_resource(&bus->pio_win,
 		    &hw_resources.resources[0], (void **) &bus->conf_space,
-		    NULL)) {
+		    NULL, NULL)) {
 			ddf_msg(LVL_ERROR,
 			    "Failed to map configuration space.");
 			rc = EADDRNOTAVAIL;
@@ -759,7 +759,7 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 
 		if (pio_enable_resource(&bus->pio_win,
 		    &hw_resources.resources[0], (void **) &bus->conf_addr_reg,
-		    NULL)) {
+		    NULL, NULL)) {
 			ddf_msg(LVL_ERROR,
 			    "Failed to enable configuration ports.");
 			rc = EADDRNOTAVAIL;
@@ -767,7 +767,7 @@ static errno_t pci_dev_add(ddf_dev_t *dnode)
 		}
 		if (pio_enable_resource(&bus->pio_win,
 		    &hw_resources.resources[1], (void **) &bus->conf_data_reg,
-		    NULL)) {
+		    NULL, NULL)) {
 			ddf_msg(LVL_ERROR,
 			    "Failed to enable configuration ports.");
 			rc = EADDRNOTAVAIL;

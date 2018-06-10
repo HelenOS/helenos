@@ -65,7 +65,7 @@ extern errno_t dmamem_unmap_anonymous(void *);
 
 extern errno_t pio_enable_range(addr_range_t *, void **);
 extern errno_t pio_enable_resource(pio_window_t *, hw_resource_t *, void **,
-    size_t *);
+    uintptr_t *, size_t *);
 extern errno_t pio_enable(void *, size_t, void **);
 extern errno_t pio_disable(void *, size_t);
 

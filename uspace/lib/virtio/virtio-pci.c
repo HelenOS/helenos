@@ -150,7 +150,8 @@ static errno_t enable_resources(async_sess_t *pci_sess, virtio_dev_t *vdev)
 
 		hw_resource_t *res = &hw_res.resources[j];
 		rc = pio_enable_resource(&pio_window, res,
-		    &vdev->bar[i].mapped_base, &vdev->bar[i].mapped_size);
+		    &vdev->bar[i].mapped_base, &vdev->bar[i].phys_base,
+		    &vdev->bar[i].mapped_size);
 		if (rc == EOK)
 			vdev->bar[i].mapped = true;
 		j++;
