@@ -45,6 +45,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../private/stdio.h"
+#include "../private/sstream.h"
 
 typedef enum {
 	/** No length modifier */
@@ -1337,30 +1339,14 @@ int xxfscanf(FILE *f, const char *fmt, ...)
 int xxsscanf(const char *s, const char *fmt, ...)
 {
 	va_list args;
-	FILE *f;
+	FILE f;
 	int rc;
 
-	f = fopen("/tmp/test.tmp", "wt");
-	if (f == NULL)
-		return EOF;
-
-	if (fputs(s, f) == EOF)
-		return EOF;
-
-	if (fclose(f) == EOF)
-		return EOF;
-
-	f = fopen("/tmp/test.tmp", "rt");
-	if (f == NULL) {
-		printf("failed to open for reading\n");
-		return EOF;
-	}
+	__sstream_init(s, &f);
 
 	va_start(args, fmt);
-	rc = xxvfscanf(f, fmt, args);
+	rc = xxvfscanf(&f, fmt, args);
 	va_end(args);
-
-	fclose(f);
 
 	return rc;
 }

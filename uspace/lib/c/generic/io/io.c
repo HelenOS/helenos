@@ -52,12 +52,36 @@
 static void _ffillbuf(FILE *stream);
 static void _fflushbuf(FILE *stream);
 
+static size_t stdio_kio_read(void *, size_t, size_t, FILE *);
+static size_t stdio_kio_write(const void *, size_t, size_t, FILE *);
+static int stdio_kio_flush(FILE *);
+
+static size_t stdio_vfs_read(void *, size_t, size_t, FILE *);
+static size_t stdio_vfs_write(const void *, size_t, size_t, FILE *);
+
+static int stdio_vfs_flush(FILE *);
+
+/** KIO stream ops */
+static __stream_ops_t stdio_kio_ops = {
+	.read = stdio_kio_read,
+	.write = stdio_kio_write,
+	.flush = stdio_kio_flush
+};
+
+/** VFS stream ops */
+static __stream_ops_t stdio_vfs_ops = {
+	.read = stdio_vfs_read,
+	.write = stdio_vfs_write,
+	.flush = stdio_vfs_flush
+};
+
 static FILE stdin_null = {
 	.fd = -1,
 	.pos = 0,
 	.error = true,
 	.eof = true,
-	.kio = false,
+	.ops = &stdio_vfs_ops,
+	.arg = NULL,
 	.sess = NULL,
 	.btype = _IONBF,
 	.buf = NULL,
@@ -72,7 +96,8 @@ static FILE stdout_kio = {
 	.pos = 0,
 	.error = false,
 	.eof = false,
-	.kio = true,
+	.ops = &stdio_kio_ops,
+	.arg = NULL,
 	.sess = NULL,
 	.btype = _IOLBF,
 	.buf = NULL,
@@ -87,7 +112,8 @@ static FILE stderr_kio = {
 	.pos = 0,
 	.error = false,
 	.eof = false,
-	.kio = true,
+	.ops = &stdio_kio_ops,
+	.arg = NULL,
 	.sess = NULL,
 	.btype = _IONBF,
 	.buf = NULL,
@@ -327,7 +353,8 @@ FILE *fopen(const char *path, const char *fmode)
 	stream->pos = 0;
 	stream->error = false;
 	stream->eof = false;
-	stream->kio = false;
+	stream->ops = &stdio_vfs_ops;
+	stream->arg = NULL;
 	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
@@ -351,7 +378,8 @@ FILE *fdopen(int fd, const char *mode)
 	stream->pos = 0;
 	stream->error = false;
 	stream->eof = false;
-	stream->kio = false;
+	stream->ops = &stdio_vfs_ops;
+	stream->arg = NULL;
 	stream->sess = NULL;
 	stream->need_sync = false;
 	_setvbuf(stream);
@@ -434,21 +462,7 @@ FILE *freopen(const char *path, const char *mode, FILE *stream)
  */
 static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	errno_t rc;
-	size_t nread;
-
-	if (size == 0 || nmemb == 0)
-		return 0;
-
-	rc = vfs_read(stream->fd, &stream->pos, buf, size * nmemb, &nread);
-	if (rc != EOK) {
-		errno = rc;
-		stream->error = true;
-	} else if (nread == 0) {
-		stream->eof = true;
-	}
-
-	return (nread / size);
+	return stream->ops->read(buf, size, nmemb, stream);
 }
 
 /** Write to a stream (unbuffered).
@@ -463,26 +477,12 @@ static size_t _fread(void *buf, size_t size, size_t nmemb, FILE *stream)
  */
 static size_t _fwrite(const void *buf, size_t size, size_t nmemb, FILE *stream)
 {
-	errno_t rc;
 	size_t nwritten;
 
 	if (size == 0 || nmemb == 0)
 		return 0;
 
-	if (stream->kio) {
-		rc = kio_write(buf, size * nmemb, &nwritten);
-		if (rc != EOK) {
-			stream->error = true;
-			nwritten = 0;
-		}
-	} else {
-		rc = vfs_write(stream->fd, &stream->pos, buf, size * nmemb,
-		    &nwritten);
-		if (rc != EOK) {
-			errno = rc;
-			stream->error = true;
-		}
-	}
+	nwritten = stream->ops->write(buf, size, nmemb, stream);
 
 	if (nwritten > 0)
 		stream->need_sync = true;
@@ -904,26 +904,15 @@ int fflush(FILE *stream)
 		return EOF;
 	}
 
-	if (stream->kio) {
-		kio_update();
-		return 0;
-	}
-
-	if ((stream->fd >= 0) && (stream->need_sync)) {
-		errno_t rc;
-
+	if (stream->need_sync) {
 		/**
 		 * Better than syncing always, but probably still not the
 		 * right thing to do.
 		 */
-		stream->need_sync = false;
-		rc = vfs_sync(stream->fd);
-		if (rc != EOK) {
-			errno = rc;
+		if (stream->ops->flush(stream) == EOF)
 			return EOF;
-		}
 
-		return 0;
+		stream->need_sync = false;
 	}
 
 	return 0;
@@ -947,7 +936,7 @@ void clearerr(FILE *stream)
 
 int fileno(FILE *stream)
 {
-	if (stream->kio) {
+	if (stream->ops != &stdio_vfs_ops) {
 		errno = EBADF;
 		return EOF;
 	}
@@ -975,6 +964,86 @@ errno_t vfs_fhandle(FILE *stream, int *handle)
 	}
 
 	return ENOENT;
+}
+
+/** Read from KIO stream. */
+static size_t stdio_kio_read(void *buf, size_t size, size_t nmemb, FILE *stream)
+{
+	stream->eof = true;
+	return 0;
+}
+
+/** Write to KIO stream. */
+static size_t stdio_kio_write(const void *buf, size_t size, size_t nmemb,
+    FILE *stream)
+{
+	errno_t rc;
+	size_t nwritten;
+
+	rc = kio_write(buf, size * nmemb, &nwritten);
+	if (rc != EOK) {
+		stream->error = true;
+		nwritten = 0;
+	}
+
+	return nwritten / size;
+}
+
+/** Flush KIO stream. */
+static int stdio_kio_flush(FILE *stream)
+{
+	kio_update();
+	return 0;
+}
+
+/** Read from VFS stream. */
+static size_t stdio_vfs_read(void *buf, size_t size, size_t nmemb, FILE *stream)
+{
+	errno_t rc;
+	size_t nread;
+
+	if (size == 0 || nmemb == 0)
+		return 0;
+
+	rc = vfs_read(stream->fd, &stream->pos, buf, size * nmemb, &nread);
+	if (rc != EOK) {
+		errno = rc;
+		stream->error = true;
+	} else if (nread == 0) {
+		stream->eof = true;
+	}
+
+	return (nread / size);
+}
+
+/** Write to VFS stream. */
+static size_t stdio_vfs_write(const void *buf, size_t size, size_t nmemb,
+    FILE *stream)
+{
+	errno_t rc;
+	size_t nwritten;
+
+	rc = vfs_write(stream->fd, &stream->pos, buf, size * nmemb, &nwritten);
+	if (rc != EOK) {
+		errno = rc;
+		stream->error = true;
+	}
+
+	return nwritten / size;
+}
+
+/** Flush VFS stream. */
+static int stdio_vfs_flush(FILE *stream)
+{
+	errno_t rc;
+
+	rc = vfs_sync(stream->fd);
+	if (rc != EOK) {
+		errno = rc;
+		return EOF;
+	}
+
+	return 0;
 }
 
 /** @}
