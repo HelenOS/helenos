@@ -100,6 +100,9 @@ extern int asprintf(char **, const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
+extern int xxfscanf(FILE *, const char *, ...);
+extern int xxsscanf(const char *, const char *, ...);
+
 /* File stream functions */
 extern FILE *fopen(const char *, const char *);
 extern FILE *freopen(const char *, const char *, FILE *);

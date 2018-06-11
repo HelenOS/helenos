@@ -35,6 +35,7 @@ PCUT_IMPORT(circ_buf);
 PCUT_IMPORT(fibril_timer);
 PCUT_IMPORT(odict);
 PCUT_IMPORT(qsort);
+PCUT_IMPORT(scanf);
 PCUT_IMPORT(sprintf);
 PCUT_IMPORT(str);
 PCUT_IMPORT(table);
