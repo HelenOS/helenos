@@ -39,21 +39,21 @@
 #include "../private/stdio.h"
 #include "../private/sstream.h"
 
-int xxvsscanf(const char *s, const char *fmt, va_list ap)
+int vsscanf(const char *s, const char *fmt, va_list ap)
 {
 	FILE f;
 
 	__sstream_init(s, &f);
-	return xxvfscanf(&f, fmt, ap);
+	return vfscanf(&f, fmt, ap);
 }
 
-int xxsscanf(const char *s, const char *fmt, ...)
+int sscanf(const char *s, const char *fmt, ...)
 {
 	va_list args;
 	int rc;
 
 	va_start(args, fmt);
-	rc = xxvsscanf(s, fmt, args);
+	rc = vsscanf(s, fmt, args);
 	va_end(args);
 
 	return rc;

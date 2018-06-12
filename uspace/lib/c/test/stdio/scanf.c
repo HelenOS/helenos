@@ -54,7 +54,7 @@ PCUT_TEST(empty_fmt)
 	int rc;
 
 	/* Empty format string */
-	rc = xxsscanf("42", "");
+	rc = sscanf("42", "");
 	PCUT_ASSERT_INT_EQUALS(0, rc);
 }
 
@@ -64,7 +64,7 @@ PCUT_TEST(dec_int)
 	int i;
 
 	/* Decimal integer */
-	rc = xxsscanf("42", "%d", &i);
+	rc = sscanf("42", "%d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -75,7 +75,7 @@ PCUT_TEST(int_int)
 	int i, j;
 
 	/* Two integers */
-	rc = xxsscanf("42 43", "%d%d", &i, &j);
+	rc = sscanf("42 43", "%d%d", &i, &j);
 	PCUT_ASSERT_INT_EQUALS(2, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 	PCUT_ASSERT_TRUE(j == 43);
@@ -87,7 +87,7 @@ PCUT_TEST(dec_sign_char)
 	signed char sc;
 
 	/* Decimal signed char */
-	rc = xxsscanf("42", "%hhd", &sc);
+	rc = sscanf("42", "%hhd", &sc);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(sc == 42);
 }
@@ -98,7 +98,7 @@ PCUT_TEST(dec_short)
 	short si;
 
 	/* Decimal short */
-	rc = xxsscanf("42", "%hd", &si);
+	rc = sscanf("42", "%hd", &si);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(si == 42);
 }
@@ -109,7 +109,7 @@ PCUT_TEST(dec_long)
 	long li;
 
 	/* Decimal long */
-	rc = xxsscanf("42", "%ld", &li);
+	rc = sscanf("42", "%ld", &li);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(li == 42);
 }
@@ -120,7 +120,7 @@ PCUT_TEST(dec_long_long)
 	long long lli;
 
 	/* Decimal long long */
-	rc = xxsscanf("42", "%lld", &lli);
+	rc = sscanf("42", "%lld", &lli);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(lli == 42);
 }
@@ -131,7 +131,7 @@ PCUT_TEST(dec_intmax)
 	intmax_t imax;
 
 	/* Decimal intmax_t */
-	rc = xxsscanf("42", "%jd", &imax);
+	rc = sscanf("42", "%jd", &imax);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(imax == 42);
 }
@@ -142,7 +142,7 @@ PCUT_TEST(dec_size_t_size)
 	size_t szi;
 
 	/* Decimal size_t-sized */
-	rc = xxsscanf("42", "%zd", &szi);
+	rc = sscanf("42", "%zd", &szi);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(szi == 42);
 }
@@ -153,7 +153,7 @@ PCUT_TEST(dec_ptrdiff_t_size)
 	ptrdiff_t pdi;
 
 	/* Decimal ptrdiff_t-sized */
-	rc = xxsscanf("42", "%td", &pdi);
+	rc = sscanf("42", "%td", &pdi);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(pdi == 42);
 }
@@ -164,7 +164,7 @@ PCUT_TEST(dec_int_hexdigit)
 	int i;
 
 	/* Decimal integer followed by hexadecimal digit */
-	rc = xxsscanf("42a", "%d", &i);
+	rc = sscanf("42a", "%d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -175,7 +175,7 @@ PCUT_TEST(int_noprefix)
 	int i;
 
 	/* Decimal integer - detect no prefix */
-	rc = xxsscanf("42", "%i", &i);
+	rc = sscanf("42", "%i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -186,7 +186,7 @@ PCUT_TEST(octal_decimal_digit)
 	int i;
 
 	/* Prefixed octal integer followed by decimal digit */
-	rc = xxsscanf("019", "%i", &i);
+	rc = sscanf("019", "%i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 1);
 }
@@ -197,7 +197,7 @@ PCUT_TEST(hex_other_char)
 	int i;
 
 	/* Prefixed hexadecimal integer followed by other character */
-	rc = xxsscanf("0xag", "%i", &i);
+	rc = sscanf("0xag", "%i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 10);
 }
@@ -208,7 +208,7 @@ PCUT_TEST(positive_dec)
 	int i;
 
 	/* Decimal integer with '+' sign */
-	rc = xxsscanf("+42", "%d", &i);
+	rc = sscanf("+42", "%d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -219,7 +219,7 @@ PCUT_TEST(negative_dec)
 	int i;
 
 	/* Decimal integer with '-' sign */
-	rc = xxsscanf("-42", "%d", &i);
+	rc = sscanf("-42", "%d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == -42);
 }
@@ -230,7 +230,7 @@ PCUT_TEST(negative_hex)
 	int i;
 
 	/* Hexadecimal integer with prefix and '-' sign */
-	rc = xxsscanf("-0xa", "%i", &i);
+	rc = sscanf("-0xa", "%i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == -10);
 }
@@ -241,7 +241,7 @@ PCUT_TEST(dec_unsigned)
 	unsigned u;
 
 	/* Decimal unsigned integer */
-	rc = xxsscanf("42", "%u", &u);
+	rc = sscanf("42", "%u", &u);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(u == 42);
 }
@@ -252,7 +252,7 @@ PCUT_TEST(dec_unsigned_char)
 	unsigned char uc;
 
 	/* Decimal unsigned char */
-	rc = xxsscanf("42", "%hhu", &uc);
+	rc = sscanf("42", "%hhu", &uc);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(uc == 42);
 }
@@ -263,7 +263,7 @@ PCUT_TEST(dec_unsigned_short)
 	unsigned short su;
 
 	/* Decimal unsigned short */
-	rc = xxsscanf("42", "%hu", &su);
+	rc = sscanf("42", "%hu", &su);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(su == 42);
 }
@@ -274,7 +274,7 @@ PCUT_TEST(dec_unsigned_long)
 	unsigned long lu;
 
 	/* Decimal unsigned long */
-	rc = xxsscanf("42", "%lu", &lu);
+	rc = sscanf("42", "%lu", &lu);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(lu == 42);
 }
@@ -285,7 +285,7 @@ PCUT_TEST(dec_unsigned_long_long)
 	unsigned long long llu;
 
 	/* Decimal unsigned long long */
-	rc = xxsscanf("42", "%llu", &llu);
+	rc = sscanf("42", "%llu", &llu);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(llu == 42);
 }
@@ -296,7 +296,7 @@ PCUT_TEST(dec_unitmax)
 	uintmax_t umax;
 
 	/* Decimal uintmax_t */
-	rc = xxsscanf("42", "%ju", &umax);
+	rc = sscanf("42", "%ju", &umax);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(umax == 42);
 }
@@ -307,7 +307,7 @@ PCUT_TEST(dec_unsigned_size)
 	size_t szu;
 
 	/* Decimal size_t */
-	rc = xxsscanf("42", "%zu", &szu);
+	rc = sscanf("42", "%zu", &szu);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(szu == 42);
 }
@@ -318,7 +318,7 @@ PCUT_TEST(dec_unsigned_ptrdiff)
 	ptrdiff_t pdu;
 
 	/* Decimal ptrdiff_t-sized unsigned int*/
-	rc = xxsscanf("42", "%tu", &pdu);
+	rc = sscanf("42", "%tu", &pdu);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(pdu == 42);
 }
@@ -329,7 +329,7 @@ PCUT_TEST(octal_unsigned)
 	unsigned u;
 
 	/* Octal unsigned integer */
-	rc = xxsscanf("52", "%o", &u);
+	rc = sscanf("52", "%o", &u);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(u == 052);
 }
@@ -340,7 +340,7 @@ PCUT_TEST(hex_unsigned)
 	unsigned u;
 
 	/* Hexadecimal unsigned integer */
-	rc = xxsscanf("2a", "%x", &u);
+	rc = sscanf("2a", "%x", &u);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(u == 0x2a);
 }
@@ -351,7 +351,7 @@ PCUT_TEST(hex_unsigned_cap_x)
 	unsigned u;
 
 	/* Hexadecimal unsigned integer unsing alternate specifier */
-	rc = xxsscanf("2a", "%X", &u);
+	rc = sscanf("2a", "%X", &u);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(u == 0x2a);
 }
@@ -362,9 +362,21 @@ PCUT_TEST(uppercase_hex_unsigned)
 	unsigned u;
 
 	/* Uppercase hexadecimal unsigned integer */
-	rc = xxsscanf("2A", "%x", &u);
+	rc = sscanf("2A", "%x", &u);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(u == 0x2a);
+}
+
+PCUT_TEST(hex_not_match_0x)
+{
+	int rc;
+	unsigned u;
+
+	/* Make sure %x does not match 0x prefix */
+	rc = sscanf("0x1", "%x", &u);
+
+	PCUT_ASSERT_INT_EQUALS(1, rc);
+	PCUT_ASSERT_TRUE(u == 0);
 }
 
 PCUT_TEST(skipws)
@@ -373,7 +385,7 @@ PCUT_TEST(skipws)
 	int i;
 
 	/* Skipping whitespace */
-	rc = xxsscanf(" \t\n42", "%d", &i);
+	rc = sscanf(" \t\n42", "%d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -384,7 +396,7 @@ PCUT_TEST(percentile)
 	int i;
 
 	/* Percentile conversion */
-	rc = xxsscanf(" \t\n%42", "%%%d", &i);
+	rc = sscanf(" \t\n%42", "%%%d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -395,7 +407,7 @@ PCUT_TEST(match_spec_char)
 	int i;
 
 	/* Matching specific character */
-	rc = xxsscanf("x42", "x%d", &i);
+	rc = sscanf("x42", "x%d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -406,7 +418,7 @@ PCUT_TEST(match_char_noskipws)
 	int i;
 
 	/* Matching specific character should not skip whitespace */
-	rc = xxsscanf(" x42", "x%d", &i);
+	rc = sscanf(" x42", "x%d", &i);
 	PCUT_ASSERT_INT_EQUALS(0, rc);
 }
 
@@ -416,7 +428,7 @@ PCUT_TEST(skipws_match_char)
 	int i;
 
 	/* Skipping whitespace + match specific character */
-	rc = xxsscanf(" x42", "\t\nx%d", &i);
+	rc = sscanf(" x42", "\t\nx%d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -427,7 +439,7 @@ PCUT_TEST(dec_sufficient_lim_width)
 	int i;
 
 	/* Decimal with limited, but sufficient width */
-	rc = xxsscanf("42", "%2d", &i);
+	rc = sscanf("42", "%2d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 42);
 }
@@ -438,7 +450,7 @@ PCUT_TEST(dec_smaller_width)
 	int i;
 
 	/* Decimal with limited, smaller width */
-	rc = xxsscanf("42", "%1d", &i);
+	rc = sscanf("42", "%1d", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 4);
 }
@@ -449,7 +461,7 @@ PCUT_TEST(int_hex_limited_width)
 	int i;
 
 	/* Integer with hex prefix, format with limited, sufficient width */
-	rc = xxsscanf("0x1", "%3i", &i);
+	rc = sscanf("0x1", "%3i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 1);
 }
@@ -460,7 +472,7 @@ PCUT_TEST(int_hex_small_width)
 	int i;
 
 	/* Integer with hex prefix, format with limited, smaller width */
-	rc = xxsscanf("0x1", "%2i", &i);
+	rc = sscanf("0x1", "%2i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 0);
 }
@@ -471,7 +483,7 @@ PCUT_TEST(int_oct_limited_width)
 	int i;
 
 	/* Integer with octal prefix, format with limited, sufficient width */
-	rc = xxsscanf("012", "%3i", &i);
+	rc = sscanf("012", "%3i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 012);
 }
@@ -482,7 +494,7 @@ PCUT_TEST(int_oct_smaller_width)
 	int i;
 
 	/* Integer with octal prefix, format with limited, smaller width */
-	rc = xxsscanf("012", "%2i", &i);
+	rc = sscanf("012", "%2i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 01);
 }
@@ -493,7 +505,7 @@ PCUT_TEST(int_oct_tiny_width)
 	int i;
 
 	/* Integer with octal prefix, format with width allowing just for 0 */
-	rc = xxsscanf("012", "%1i", &i);
+	rc = sscanf("012", "%1i", &i);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(i == 0);
 }
@@ -504,9 +516,9 @@ PCUT_TEST(pointer)
 	void *ptr;
 
 	/* Pointer */
-	rc = xxsscanf("0x12341234", "%p", &ptr);
+	rc = sscanf("0xABCDEF88", "%p", &ptr);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
-	PCUT_ASSERT_TRUE(ptr == (void *)0x12341234);
+	PCUT_ASSERT_TRUE(ptr == (void *)0xABCDEF88);
 }
 
 PCUT_TEST(single_char)
@@ -515,7 +527,7 @@ PCUT_TEST(single_char)
 	char c;
 
 	/* Single character */
-	rc = xxsscanf("x", "%c", &c);
+	rc = sscanf("x", "%c", &c);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(c == 'x');
 }
@@ -526,7 +538,7 @@ PCUT_TEST(single_ws_char)
 	char c;
 
 	/* Single whitespace character */
-	rc = xxsscanf("\t", "%c", &c);
+	rc = sscanf("\t", "%c", &c);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(c == '\t');
 }
@@ -538,7 +550,7 @@ PCUT_TEST(chars)
 
 	/* Multiple characters */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abc", "%3c", chars);
+	rc = sscanf("abc", "%3c", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -553,7 +565,7 @@ PCUT_TEST(fewer_chars)
 
 	/* Fewer characters than requested */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abc", "%5c", chars);
+	rc = sscanf("abc", "%5c", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -568,7 +580,7 @@ PCUT_TEST(chars_not_found)
 
 	/* Reading characters but no found */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("", "%5c", chars);
+	rc = sscanf("", "%5c", chars);
 	PCUT_ASSERT_INT_EQUALS(EOF, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'X');
 }
@@ -579,7 +591,7 @@ PCUT_TEST(chars_noassign)
 	int n;
 
 	/* Multiple characters with suppressed assignment */
-	rc = xxsscanf("abc", "%*3c%n", &n);
+	rc = sscanf("abc", "%*3c%n", &n);
 	PCUT_ASSERT_INT_EQUALS(0, rc);
 	PCUT_ASSERT_INT_EQUALS(3, n);
 }
@@ -591,7 +603,7 @@ PCUT_TEST(chars_malloc)
 
 	/* Multiple characters with memory allocation */
 	cp = NULL;
-	rc = xxsscanf("abc", "%m3c", &cp);
+	rc = sscanf("abc", "%m3c", &cp);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_NOT_NULL(cp);
 	PCUT_ASSERT_TRUE(cp[0] == 'a');
@@ -607,7 +619,7 @@ PCUT_TEST(str)
 
 	/* String of non-whitespace characters, unlimited width */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf(" abc d", "%s", chars);
+	rc = sscanf(" abc d", "%s", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -623,7 +635,7 @@ PCUT_TEST(str_till_end)
 
 	/* String of non-whitespace characters, until the end */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf(" abc", "%s", chars);
+	rc = sscanf(" abc", "%s", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -639,7 +651,7 @@ PCUT_TEST(str_large_width)
 
 	/* String of non-whitespace characters, large enough width */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf(" abc d", "%5s", chars);
+	rc = sscanf(" abc d", "%5s", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -655,7 +667,7 @@ PCUT_TEST(str_not_found)
 
 	/* Want string of non-whitespace, but got only whitespace */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf(" ", "%s", chars);
+	rc = sscanf(" ", "%s", chars);
 	PCUT_ASSERT_INT_EQUALS(EOF, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'X');
 }
@@ -667,7 +679,7 @@ PCUT_TEST(str_small_width)
 
 	/* String of non-whitespace characters, small width */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf(" abc", "%2s", chars);
+	rc = sscanf(" abc", "%2s", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -681,7 +693,7 @@ PCUT_TEST(str_noassign)
 	int n;
 
 	/* String of non-whitespace characters, assignment suppression */
-	rc = xxsscanf(" abc d", "%*s%n", &n);
+	rc = sscanf(" abc d", "%*s%n", &n);
 	PCUT_ASSERT_INT_EQUALS(0, rc);
 	PCUT_ASSERT_INT_EQUALS(4, n);
 }
@@ -692,7 +704,7 @@ PCUT_TEST(str_malloc)
 	char *cp;
 
 	/* String of non-whitespace characters, memory allocation */
-	rc = xxsscanf(" abc d", "%ms", &cp);
+	rc = sscanf(" abc d", "%ms", &cp);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_NOT_NULL(cp);
 	PCUT_ASSERT_TRUE(cp[0] == 'a');
@@ -710,7 +722,7 @@ PCUT_TEST(set_convert)
 
 	/* Set conversion without width specified terminating before the end  */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abcd42", "%[abc]d%d", chars, &i);
+	rc = sscanf("abcd42", "%[abc]d%d", chars, &i);
 	PCUT_ASSERT_INT_EQUALS(2, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -727,7 +739,7 @@ PCUT_TEST(set_till_end)
 
 	/* Set conversion without width specified, until the end */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abc", "%[abc]", chars);
+	rc = sscanf("abc", "%[abc]", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -743,7 +755,7 @@ PCUT_TEST(set_large_width)
 
 	/* Set conversion with larger width */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abcd", "%5[abc]", chars);
+	rc = sscanf("abcd", "%5[abc]", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -759,7 +771,7 @@ PCUT_TEST(set_small_width)
 
 	/* Set conversion with smaller width */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abcd", "%3[abcd]", chars);
+	rc = sscanf("abcd", "%3[abcd]", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -775,7 +787,7 @@ PCUT_TEST(set_negated)
 
 	/* Set conversion with negated scanset */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abcd", "%[^d]", chars);
+	rc = sscanf("abcd", "%[^d]", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -791,7 +803,7 @@ PCUT_TEST(set_with_rbr)
 
 	/* Set conversion with ']' in scanset */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("]bcd", "%[]bc]", chars);
+	rc = sscanf("]bcd", "%[]bc]", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == ']');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -807,7 +819,7 @@ PCUT_TEST(set_inverted_with_rbr)
 
 	/* Set conversion with ']' in inverted scanset */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abc]", "%[^]def]", chars);
+	rc = sscanf("abc]", "%[^]def]", chars);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -822,7 +834,7 @@ PCUT_TEST(set_noassign)
 	int n;
 
 	/* Set conversion with assignment suppression */
-	rc = xxsscanf("abcd42", "%*[abc]%n", &n);
+	rc = sscanf("abcd42", "%*[abc]%n", &n);
 	PCUT_ASSERT_INT_EQUALS(0, rc);
 	PCUT_ASSERT_INT_EQUALS(3, n);
 }
@@ -834,7 +846,7 @@ PCUT_TEST(set_malloc)
 
 	/* Set conversion with memory allocation */
 	cp = NULL;
-	rc = xxsscanf("abcd42", "%m[abcd]", &cp);
+	rc = sscanf("abcd42", "%m[abcd]", &cp);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_NOT_NULL(cp);
 	PCUT_ASSERT_TRUE(cp[0] == 'a');
@@ -851,7 +863,7 @@ PCUT_TEST(dec_int_noassign)
 	int n;
 
 	/* Decimal integer with suppressed assignment */
-	rc = xxsscanf("42", "%*d%n", &n);
+	rc = sscanf("42", "%*d%n", &n);
 	PCUT_ASSERT_INT_EQUALS(0, rc);
 	PCUT_ASSERT_INT_EQUALS(2, n);
 }
@@ -864,7 +876,7 @@ PCUT_TEST(count_chars)
 
 	/* Count of characters read */
 	memset(chars, 'X', chars_size);
-	rc = xxsscanf("abcd", "%3c%n", chars, &n);
+	rc = sscanf("abcd", "%3c%n", chars, &n);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
@@ -879,7 +891,7 @@ PCUT_TEST(float_intpart_only)
 	float f;
 
 	/* Float with just integer part */
-	rc = xxsscanf("42", "%f", &f);
+	rc = sscanf("42", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 42.0);
 }
@@ -890,7 +902,7 @@ PCUT_TEST(double_intpart_only)
 	double d;
 
 	/* Double with just integer part */
-	rc = xxsscanf("42", "%lf", &d);
+	rc = sscanf("42", "%lf", &d);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(d == 42.0);
 }
@@ -901,7 +913,7 @@ PCUT_TEST(ldouble_intpart_only)
 	long double ld;
 
 	/* Long double with just integer part */
-	rc = xxsscanf("42", "%Lf", &ld);
+	rc = sscanf("42", "%Lf", &ld);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(ld == 42.0);
 }
@@ -912,7 +924,7 @@ PCUT_TEST(float_hex_intpart_only)
 	float f;
 
 	/* Float with just hexadecimal integer part */
-	rc = xxsscanf("0x2a", "%f", &f);
+	rc = sscanf("0x2a", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 0x2a.0p0);
 }
@@ -923,7 +935,7 @@ PCUT_TEST(float_sign_intpart)
 	float f;
 
 	/* Float with sign and integer part */
-	rc = xxsscanf("-42", "%f", &f);
+	rc = sscanf("-42", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == -42.0);
 }
@@ -934,7 +946,7 @@ PCUT_TEST(float_intpart_fract)
 	float f;
 
 	/* Float with integer and fractional part */
-	rc = xxsscanf("4.2", "%f", &f);
+	rc = sscanf("4.2", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	/* 1/10 is not exactly representable in binary floating point */
 	PCUT_ASSERT_TRUE(f > 4.199);
@@ -947,7 +959,7 @@ PCUT_TEST(float_intpart_exp)
 	float f;
 
 	/* Float with integer part and unsigned exponent */
-	rc = xxsscanf("42e1", "%f", &f);
+	rc = sscanf("42e1", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
@@ -958,7 +970,7 @@ PCUT_TEST(float_intpart_posexp)
 	float f;
 
 	/* Float with integer part and positive exponent */
-	rc = xxsscanf("42e+1", "%f", &f);
+	rc = sscanf("42e+1", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
@@ -969,7 +981,7 @@ PCUT_TEST(float_intpart_negexp)
 	float f;
 
 	/* Float with integer part and negative exponent */
-	rc = xxsscanf("42e-1", "%f", &f);
+	rc = sscanf("42e-1", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	/* 1/10 is not exactly representable in binary floating point */
 	PCUT_ASSERT_TRUE(f > 4.199);
@@ -982,7 +994,7 @@ PCUT_TEST(float_intpart_fract_exp)
 	float f;
 
 	/* Float with integer, fractional parts and unsigned exponent */
-	rc = xxsscanf("4.2e1", "%f", &f);
+	rc = sscanf("4.2e1", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 42.0);
 }
@@ -993,7 +1005,7 @@ PCUT_TEST(hexfloat_intpart_fract)
 	float f;
 
 	/* Hexadecimal float with integer and fractional part */
-	rc = xxsscanf("0x2.a", "%f", &f);
+	rc = sscanf("0x2.a", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 0x2.ap0);
 }
@@ -1006,7 +1018,7 @@ PCUT_TEST(hexfloat_intpart_exp)
 	/*
 	 * Hexadecimal float with integer part and unsigned exponent
 	 */
-	rc = xxsscanf("0x2ap1", "%f", &f);
+	rc = sscanf("0x2ap1", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 0x2ap1);
 }
@@ -1019,7 +1031,7 @@ PCUT_TEST(hexfloat_intpart_negexp)
 	/*
 	 * Hexadecimal float with integer part and negative exponent
 	 */
-	rc = xxsscanf("0x2ap-1", "%f", &f);
+	rc = sscanf("0x2ap-1", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 0x2ap-1);
 }
@@ -1033,7 +1045,7 @@ PCUT_TEST(hexfloat_intpart_fract_exp)
 	 * Hexadecimal float with integer, fractional parts and unsigned
 	 * exponent
 	 */
-	rc = xxsscanf("0x2.ap4", "%f", &f);
+	rc = sscanf("0x2.ap4", "%f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 0x2.ap4);
 }
@@ -1044,7 +1056,7 @@ PCUT_TEST(float_intpart_limwidth)
 	float f;
 
 	/* Float with just integer part and limited width */
-	rc = xxsscanf("1234", "%3f", &f);
+	rc = sscanf("1234", "%3f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 123.0);
 }
@@ -1055,7 +1067,7 @@ PCUT_TEST(float_intpart_fract_limwidth)
 	float f;
 
 	/* Float with integer, fractional part and limited width */
-	rc = xxsscanf("12.34", "%4f", &f);
+	rc = sscanf("12.34", "%4f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	/* 1/10 is not exactly representable in binary floating point */
 	PCUT_ASSERT_TRUE(f > 12.29);
@@ -1068,7 +1080,7 @@ PCUT_TEST(float_width_for_only_intpart)
 	float f;
 
 	/* Float with width only enough to cover an integral part */
-	rc = xxsscanf("12.34", "%3f", &f);
+	rc = sscanf("12.34", "%3f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 12.0);
 }
@@ -1079,7 +1091,7 @@ PCUT_TEST(float_width_small_for_expnum)
 	float f;
 
 	/* Float with width too small to cover the exponent number */
-	rc = xxsscanf("12.34e+2", "%7f", &f);
+	rc = sscanf("12.34e+2", "%7f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	/* 1/10 is not exactly representable in binary floating point */
 	PCUT_ASSERT_TRUE(f > 12.339);
@@ -1092,7 +1104,7 @@ PCUT_TEST(float_width_small_for_expsignum)
 	float f;
 
 	/* Float with width too small to cover the exponent sign and number */
-	rc = xxsscanf("12.34e+2", "%6f", &f);
+	rc = sscanf("12.34e+2", "%6f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	/* 1/10 is not exactly representable in binary floating point */
 	PCUT_ASSERT_TRUE(f > 12.339);
@@ -1105,7 +1117,7 @@ PCUT_TEST(float_width_small_for_exp)
 	float f;
 
 	/* Float with width too small to cover the exponent part */
-	rc = xxsscanf("12.34e+2", "%5f", &f);
+	rc = sscanf("12.34e+2", "%5f", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	/* 1/10 is not exactly representable in binary floating point */
 	PCUT_ASSERT_TRUE(f > 12.339);
@@ -1118,7 +1130,7 @@ PCUT_TEST(float_cap_f)
 	float f;
 
 	/* Float using alternate form 'F' */
-	rc = xxsscanf("42e1", "%F", &f);
+	rc = sscanf("42e1", "%F", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
@@ -1129,7 +1141,7 @@ PCUT_TEST(float_a)
 	float f;
 
 	/* Float using alternate form 'a' */
-	rc = xxsscanf("42e1", "%a", &f);
+	rc = sscanf("42e1", "%a", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
@@ -1140,7 +1152,7 @@ PCUT_TEST(float_e)
 	float f;
 
 	/* Float using alternate form 'e' */
-	rc = xxsscanf("42e1", "%e", &f);
+	rc = sscanf("42e1", "%e", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
@@ -1151,7 +1163,7 @@ PCUT_TEST(float_g)
 	float f;
 
 	/* Float using alternate form 'g' */
-	rc = xxsscanf("42e1", "%g", &f);
+	rc = sscanf("42e1", "%g", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
@@ -1162,7 +1174,7 @@ PCUT_TEST(float_cap_a)
 	float f;
 
 	/* Float using alternate form 'A' */
-	rc = xxsscanf("42e1", "%A", &f);
+	rc = sscanf("42e1", "%A", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
@@ -1173,7 +1185,7 @@ PCUT_TEST(float_cap_e)
 	float f;
 
 	/* Float using alternate form 'E' */
-	rc = xxsscanf("42e1", "%E", &f);
+	rc = sscanf("42e1", "%E", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }
@@ -1184,7 +1196,7 @@ PCUT_TEST(float_cap_g)
 	float f;
 
 	/* Float using alternate form 'G' */
-	rc = xxsscanf("42e1", "%G", &f);
+	rc = sscanf("42e1", "%G", &f);
 	PCUT_ASSERT_INT_EQUALS(1, rc);
 	PCUT_ASSERT_TRUE(f == 420.0);
 }

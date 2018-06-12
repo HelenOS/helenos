@@ -623,7 +623,7 @@ static int __fstrtoumax(FILE *f, int *numchar, int base, size_t width,
 	/* Value */
 	v = 0;
 	do {
-		digit = digit_value(c); // XXX
+		digit = digit_value(c);
 		if (digit >= base)
 			break;
 
@@ -1265,7 +1265,7 @@ skip_assign:
 	return EOK;
 }
 
-int xxvfscanf(FILE *f, const char *fmt, va_list ap)
+int vfscanf(FILE *f, const char *fmt, va_list ap)
 {
 	const char *cp;
 	int c;
@@ -1322,30 +1322,30 @@ int xxvfscanf(FILE *f, const char *fmt, va_list ap)
 	return ncvt;
 }
 
-int xxfscanf(FILE *f, const char *fmt, ...)
+int fscanf(FILE *f, const char *fmt, ...)
 {
 	va_list args;
 	int rc;
 
 	va_start(args, fmt);
-	rc = xxvfscanf(f, fmt, args);
+	rc = vfscanf(f, fmt, args);
 	va_end(args);
 
 	return rc;
 }
 
-int xxvscanf(const char *fmt, va_list ap)
+int vscanf(const char *fmt, va_list ap)
 {
-	return xxvfscanf(stdin, fmt, ap);
+	return vfscanf(stdin, fmt, ap);
 }
 
-int xxscanf(const char *fmt, ...)
+int scanf(const char *fmt, ...)
 {
 	va_list args;
 	int rc;
 
 	va_start(args, fmt);
-	rc = xxvscanf(fmt, args);
+	rc = vscanf(fmt, args);
 	va_end(args);
 
 	return rc;
