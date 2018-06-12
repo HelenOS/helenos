@@ -45,8 +45,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../private/stdio.h"
-#include "../private/sstream.h"
 
 typedef enum {
 	/** No length modifier */
@@ -1267,7 +1265,7 @@ skip_assign:
 	return EOK;
 }
 
-static int xxvfscanf(FILE *f, const char *fmt, va_list ap)
+int xxvfscanf(FILE *f, const char *fmt, va_list ap)
 {
 	const char *cp;
 	int c;
@@ -1336,17 +1334,22 @@ int xxfscanf(FILE *f, const char *fmt, ...)
 	return rc;
 }
 
-int xxsscanf(const char *s, const char *fmt, ...)
+int xxvscanf(const char *fmt, va_list ap)
+{
+	return xxvfscanf(stdin, fmt, ap);
+}
+
+int xxscanf(const char *fmt, ...)
 {
 	va_list args;
-	FILE f;
 	int rc;
 
-	__sstream_init(s, &f);
-
 	va_start(args, fmt);
-	rc = xxvfscanf(&f, fmt, args);
+	rc = xxvscanf(fmt, args);
 	va_end(args);
 
 	return rc;
 }
+
+/** @}
+ */

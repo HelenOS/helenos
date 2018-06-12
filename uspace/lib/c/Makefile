@@ -131,6 +131,7 @@ GENERIC_SOURCES = \
 	generic/double_to_str.c \
 	generic/malloc.c \
 	generic/stdio/scanf.c \
+	generic/stdio/sscanf.c \
 	generic/stdio/sstream.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
