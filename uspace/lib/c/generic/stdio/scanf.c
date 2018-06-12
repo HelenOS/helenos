@@ -885,6 +885,8 @@ static int __fgetstr(FILE *f, int *numchar, size_t width, strbuf_t *strbuf,
 
 /** Determine if character is in scanset.
  *
+ * Note that we support ranges, although that is a GNU extension.
+ *
  * @param c Character
  * @param scanset Pointer to scanset
  * @return @c true iff @a c is in scanset @a scanset.
@@ -893,6 +895,8 @@ static bool is_in_scanset(char c, const char *scanset)
 {
 	const char *p = scanset;
 	bool inverted = false;
+	char startc;
+	char endc;
 
 	/* Inverted scanset */
 	if (*p == '^') {
@@ -900,15 +904,36 @@ static bool is_in_scanset(char c, const char *scanset)
 		++p;
 	}
 
-	/* ']' character in scanset */
+	/*
+	 * Either ']' or '-' at beginning or after '^' loses special meaning.
+	 * However, '-' after ']' (or vice versa) does not.
+	 */
 	if (*p == ']') {
+		/* ']' character in scanset */
 		if (c == ']')
+			return !inverted;
+		++p;
+	} else if (*p == '-') {
+		/* '-' character in scanset */
+		if (c == '-')
 			return !inverted;
 		++p;
 	}
 
 	/* Remaining characters */
 	while (*p != '\0' && *p != ']') {
+		/* '-' is a range unless it's the last character in scanset */
+		if (*p == '-' && p[1] != ']' && p[1] != '\0') {
+			startc = p[-1];
+			endc = p[1];
+
+			if (c >= startc && c <= endc)
+				return !inverted;
+
+			p += 2;
+			continue;
+		}
+
 		if (*p == c)
 			return !inverted;
 		++p;

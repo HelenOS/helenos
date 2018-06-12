@@ -780,7 +780,7 @@ PCUT_TEST(set_small_width)
 	PCUT_ASSERT_TRUE(chars[4] == 'X');
 }
 
-PCUT_TEST(set_negated)
+PCUT_TEST(set_inverted)
 {
 	int rc;
 	char chars[chars_size];
@@ -824,6 +824,91 @@ PCUT_TEST(set_inverted_with_rbr)
 	PCUT_ASSERT_TRUE(chars[0] == 'a');
 	PCUT_ASSERT_TRUE(chars[1] == 'b');
 	PCUT_ASSERT_TRUE(chars[2] == 'c');
+	PCUT_ASSERT_TRUE(chars[3] == '\0');
+	PCUT_ASSERT_TRUE(chars[4] == 'X');
+}
+
+PCUT_TEST(set_with_leading_dash)
+{
+	int rc;
+	char chars[chars_size];
+
+	/* Set conversion with leading '-' in scanset */
+	memset(chars, 'X', chars_size);
+	rc = sscanf("a-bc[", "%[-abc]", chars);
+	PCUT_ASSERT_INT_EQUALS(1, rc);
+	PCUT_ASSERT_TRUE(chars[0] == 'a');
+	PCUT_ASSERT_TRUE(chars[1] == '-');
+	PCUT_ASSERT_TRUE(chars[2] == 'b');
+	PCUT_ASSERT_TRUE(chars[3] == 'c');
+	PCUT_ASSERT_TRUE(chars[4] == '\0');
+	PCUT_ASSERT_TRUE(chars[5] == 'X');
+}
+
+PCUT_TEST(set_with_trailing_dash)
+{
+	int rc;
+	char chars[chars_size];
+
+	/* Set conversion with trailing '-' in scanset */
+	memset(chars, 'X', chars_size);
+	rc = sscanf("a-bc]", "%[abc-]", chars);
+	PCUT_ASSERT_INT_EQUALS(1, rc);
+	PCUT_ASSERT_TRUE(chars[0] == 'a');
+	PCUT_ASSERT_TRUE(chars[1] == '-');
+	PCUT_ASSERT_TRUE(chars[2] == 'b');
+	PCUT_ASSERT_TRUE(chars[3] == 'c');
+	PCUT_ASSERT_TRUE(chars[4] == '\0');
+	PCUT_ASSERT_TRUE(chars[5] == 'X');
+}
+
+PCUT_TEST(set_inverted_with_leading_dash)
+{
+	int rc;
+	char chars[chars_size];
+
+	/* Set conversion with leading '-' in inverted scanset */
+	memset(chars, 'X', chars_size);
+	rc = sscanf("def-", "%[^-abc]", chars);
+	PCUT_ASSERT_INT_EQUALS(1, rc);
+	PCUT_ASSERT_TRUE(chars[0] == 'd');
+	PCUT_ASSERT_TRUE(chars[1] == 'e');
+	PCUT_ASSERT_TRUE(chars[2] == 'f');
+	PCUT_ASSERT_TRUE(chars[3] == '\0');
+	PCUT_ASSERT_TRUE(chars[4] == 'X');
+}
+
+PCUT_TEST(set_inverted_with_only_dash)
+{
+	int rc;
+	char chars[chars_size];
+
+	/*
+	 * ']' after '^' in scanset does not lose meaning of scanset
+	 * delimiter
+	 */
+	memset(chars, 'X', chars_size);
+	rc = sscanf("abc-", "%[^-]", chars);
+	PCUT_ASSERT_INT_EQUALS(1, rc);
+	PCUT_ASSERT_TRUE(chars[0] == 'a');
+	PCUT_ASSERT_TRUE(chars[1] == 'b');
+	PCUT_ASSERT_TRUE(chars[2] == 'c');
+	PCUT_ASSERT_TRUE(chars[3] == '\0');
+	PCUT_ASSERT_TRUE(chars[4] == 'X');
+}
+
+PCUT_TEST(set_inverted_with_dash_caret)
+{
+	int rc;
+	char chars[chars_size];
+
+	/* '^' after '-' in scanset does not have special meaning */
+	memset(chars, 'X', chars_size);
+	rc = sscanf("-^a", "%[-^a]", chars);
+	PCUT_ASSERT_INT_EQUALS(1, rc);
+	PCUT_ASSERT_TRUE(chars[0] == '-');
+	PCUT_ASSERT_TRUE(chars[1] == '^');
+	PCUT_ASSERT_TRUE(chars[2] == 'a');
 	PCUT_ASSERT_TRUE(chars[3] == '\0');
 	PCUT_ASSERT_TRUE(chars[4] == 'X');
 }
