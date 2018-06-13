@@ -126,6 +126,11 @@ typedef struct {
 	size_t size;
 } strbuf_t;
 
+/** Wrapper needed to pass va_list around by reference in a portable fashion */
+typedef struct {
+	va_list ap;
+} va_encaps_t;
+
 static int digit_value(char digit)
 {
 	switch (digit) {
@@ -342,7 +347,7 @@ static void cvtspec_parse(const char **fmt, cvtspec_t *spec)
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-static int strbuf_init(strbuf_t *strbuf, cvtspec_t *spec, va_list ap)
+static int strbuf_init(strbuf_t *strbuf, cvtspec_t *spec, va_encaps_t *va)
 {
 	if (spec->noassign) {
 		strbuf->memalloc = false;
@@ -364,13 +369,13 @@ static int strbuf_init(strbuf_t *strbuf, cvtspec_t *spec, va_list ap)
 		 * Save pointer to allocated buffer to caller-provided
 		 * location
 		 */
-		strbuf->pptr = va_arg(ap, char **);
+		strbuf->pptr = va_arg(va->ap, char **);
 		*strbuf->pptr = strbuf->buf;
 	} else {
 		/* Caller-provided buffer */
 		strbuf->memalloc = false;
 		strbuf->size = 0;
-		strbuf->buf = va_arg(ap, char *);
+		strbuf->buf = va_arg(va->ap, char *);
 		strbuf->pptr = NULL;
 	}
 
@@ -984,8 +989,8 @@ static int __fgetscanstr(FILE *f, int *numchar, size_t width,
 }
 
 /** Perform a single conversion. */
-static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
-    unsigned *ncvt)
+static int vfscanf_cvt(FILE *f, const char **fmt, va_encaps_t *va,
+    int *numchar, unsigned *ncvt)
 {
 	int rc;
 	int c;
@@ -1088,7 +1093,7 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
 		break;
 	case cs_char:
 		/* Characters */
-		rc = strbuf_init(&strbuf, &cvtspec, ap);
+		rc = strbuf_init(&strbuf, &cvtspec, va);
 		if (rc != EOK)
 			return rc;
 
@@ -1107,7 +1112,7 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
 		break;
 	case cs_str:
 		/* Non-whitespace string */
-		rc = strbuf_init(&strbuf, &cvtspec, ap);
+		rc = strbuf_init(&strbuf, &cvtspec, va);
 		if (rc != EOK)
 			return rc;
 
@@ -1126,7 +1131,7 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
 		break;
 	case cs_set:
 		/* String of characters from scanset */
-		rc = strbuf_init(&strbuf, &cvtspec, ap);
+		rc = strbuf_init(&strbuf, &cvtspec, va);
 		if (rc != EOK)
 			return rc;
 
@@ -1162,35 +1167,35 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
 	case cs_int:
 		switch (cvtspec.lenmod) {
 		case lm_none:
-			iptr = va_arg(ap, int *);
+			iptr = va_arg(va->ap, int *);
 			*iptr = ival;
 			break;
 		case lm_hh:
-			scptr = va_arg(ap, signed char *);
+			scptr = va_arg(va->ap, signed char *);
 			*scptr = ival;
 			break;
 		case lm_h:
-			sptr = va_arg(ap, short *);
+			sptr = va_arg(va->ap, short *);
 			*sptr = ival;
 			break;
 		case lm_l:
-			lptr = va_arg(ap, long *);
+			lptr = va_arg(va->ap, long *);
 			*lptr = ival;
 			break;
 		case lm_ll:
-			llptr = va_arg(ap, long long *);
+			llptr = va_arg(va->ap, long long *);
 			*llptr = ival;
 			break;
 		case lm_j:
-			imptr = va_arg(ap, intmax_t *);
+			imptr = va_arg(va->ap, intmax_t *);
 			*imptr = ival;
 			break;
 		case lm_z:
-			ssptr = va_arg(ap, ssize_t *);
+			ssptr = va_arg(va->ap, ssize_t *);
 			*ssptr = ival;
 			break;
 		case lm_t:
-			pdptr = va_arg(ap, ptrdiff_t *);
+			pdptr = va_arg(va->ap, ptrdiff_t *);
 			*pdptr = ival;
 			break;
 		default:
@@ -1204,35 +1209,35 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
 	case cs_hex:
 		switch (cvtspec.lenmod) {
 		case lm_none:
-			uptr = va_arg(ap, unsigned *);
+			uptr = va_arg(va->ap, unsigned *);
 			*uptr = uval;
 			break;
 		case lm_hh:
-			ucptr = va_arg(ap, unsigned char *);
+			ucptr = va_arg(va->ap, unsigned char *);
 			*ucptr = uval;
 			break;
 		case lm_h:
-			usptr = va_arg(ap, unsigned short *);
+			usptr = va_arg(va->ap, unsigned short *);
 			*usptr = uval;
 			break;
 		case lm_l:
-			ulptr = va_arg(ap, unsigned long *);
+			ulptr = va_arg(va->ap, unsigned long *);
 			*ulptr = uval;
 			break;
 		case lm_ll:
-			ullptr = va_arg(ap, unsigned long long *);
+			ullptr = va_arg(va->ap, unsigned long long *);
 			*ullptr = uval;
 			break;
 		case lm_j:
-			umptr = va_arg(ap, uintmax_t *);
+			umptr = va_arg(va->ap, uintmax_t *);
 			*umptr = uval;
 			break;
 		case lm_z:
-			szptr = va_arg(ap, size_t *);
+			szptr = va_arg(va->ap, size_t *);
 			*szptr = uval;
 			break;
 		case lm_t:
-			updptr = va_arg(ap, ptrdiff_t *);
+			updptr = va_arg(va->ap, ptrdiff_t *);
 			*updptr = uval;
 			break;
 		default:
@@ -1244,15 +1249,15 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
 	case cs_float:
 		switch (cvtspec.lenmod) {
 		case lm_none:
-			fptr = va_arg(ap, float *);
+			fptr = va_arg(va->ap, float *);
 			*fptr = fval;
 			break;
 		case lm_l:
-			dptr = va_arg(ap, double *);
+			dptr = va_arg(va->ap, double *);
 			*dptr = fval;
 			break;
 		case lm_L:
-			ldptr = va_arg(ap, long double *);
+			ldptr = va_arg(va->ap, long double *);
 			*ldptr = fval;
 			break;
 		default:
@@ -1262,7 +1267,7 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
 		++(*ncvt);
 		break;
 	case cs_ptr:
-		pptr = va_arg(ap, void *);
+		pptr = va_arg(va->ap, void *);
 		*pptr = (void *)(uintptr_t)uval;
 		++(*ncvt);
 		break;
@@ -1277,7 +1282,7 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_list ap, int *numchar,
 		break;
 	case cs_numchar:
 		/* Store number of characters read so far. */
-		iptr = va_arg(ap, int *);
+		iptr = va_arg(va->ap, int *);
 		*iptr = *numchar;
 		/* No incrementing of ncvt */
 		break;
@@ -1297,7 +1302,10 @@ int vfscanf(FILE *f, const char *fmt, va_list ap)
 	unsigned ncvt;
 	int numchar;
 	bool input_error = false;
+	va_encaps_t va;
 	int rc;
+
+	va_copy(va.ap, ap);
 
 	ncvt = 0;
 	numchar = 0;
@@ -1314,7 +1322,8 @@ int vfscanf(FILE *f, const char *fmt, va_list ap)
 			assert(rc == EOK);
 		} else if (*cp == '%') {
 			/* Conversion specification */
-			rc = vfscanf_cvt(f, &cp, ap, &numchar, &ncvt);
+			rc = vfscanf_cvt(f, &cp, &va, &numchar,
+			    &ncvt);
 			if (rc == EIO) {
 				/* Input error */
 				input_error = true;
