@@ -142,6 +142,26 @@ typedef struct {
 	void *arg;
 } fibril_timer_t;
 
+/** A counting semaphore for fibrils. */
+typedef struct {
+	long count;
+	list_t waiters;
+} fibril_semaphore_t;
+
+#define FIBRIL_SEMAPHORE_INITIALIZER(name, cnt) \
+	{ \
+		.count = (cnt), \
+		.waiters = { \
+			.head = { \
+				.next = &(name).waiters.head, \
+				.prev = &(name).waiters.head, \
+			} \
+		} \
+	}
+
+#define FIBRIL_SEMAPHORE_INITIALIZE(name, cnt) \
+	fibril_semaphore_t name = FIBRIL_SEMAPHORE_INITIALIZER(name, cnt)
+
 extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);
 extern bool fibril_mutex_trylock(fibril_mutex_t *);
@@ -172,6 +192,10 @@ extern void fibril_timer_set_locked(fibril_timer_t *, suseconds_t,
     fibril_timer_fun_t, void *);
 extern fibril_timer_state_t fibril_timer_clear(fibril_timer_t *);
 extern fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *);
+
+extern void fibril_semaphore_initialize(fibril_semaphore_t *, long);
+extern void fibril_semaphore_up(fibril_semaphore_t *);
+extern void fibril_semaphore_down(fibril_semaphore_t *);
 
 #endif
 

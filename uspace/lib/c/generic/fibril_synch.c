@@ -628,5 +628,78 @@ fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *timer)
 	return old_state;
 }
 
+/**
+ * Initialize a semaphore with initial count set to the provided value.
+ *
+ * @param sem    Semaphore to initialize.
+ * @param count  Initial count. Must not be negative.
+ */
+void fibril_semaphore_initialize(fibril_semaphore_t *sem, long count)
+{
+	/*
+	 * Negative count denotes the length of waitlist,
+	 * so it makes no sense as an initial value.
+	 */
+	assert(count >= 0);
+	sem->count = count;
+	list_initialize(&sem->waiters);
+}
+
+/**
+ * Produce one token.
+ * If there are fibrils waiting for tokens, this operation satisfies
+ * exactly one waiting `fibril_semaphore_down()`.
+ * This operation never blocks the fibril.
+ *
+ * @param sem  Semaphore to use.
+ */
+void fibril_semaphore_up(fibril_semaphore_t *sem)
+{
+	futex_down(&async_futex);
+	sem->count++;
+
+	if (sem->count > 0) {
+		futex_up(&async_futex);
+		return;
+	}
+
+	link_t *tmp = list_first(&sem->waiters);
+	assert(tmp);
+	list_remove(tmp);
+
+	futex_up(&async_futex);
+
+	awaiter_t *wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
+	fibril_add_ready(wdp->fid);
+	optimize_execution_power();
+}
+
+/**
+ * Consume one token.
+ * If there are no available tokens (count <= 0), this operation blocks until
+ * another fibril produces a token using `fibril_semaphore_up()`.
+ *
+ * @param sem  Semaphore to use.
+ */
+void fibril_semaphore_down(fibril_semaphore_t *sem)
+{
+	futex_down(&async_futex);
+	sem->count--;
+
+	if (sem->count >= 0) {
+		futex_up(&async_futex);
+		return;
+	}
+
+	awaiter_t wdata;
+	awaiter_initialize(&wdata);
+
+	wdata.fid = fibril_get_id();
+	list_append(&wdata.wu_event.link, &sem->waiters);
+	fibril_switch(FIBRIL_TO_MANAGER);
+
+	/* async_futex not held after fibril_switch() */
+}
+
 /** @}
  */
