@@ -491,6 +491,8 @@ extern void async_remote_state_release_exchange(async_exch_t *);
 extern void *async_as_area_create(void *, size_t, unsigned int, async_sess_t *,
     sysarg_t, sysarg_t, sysarg_t);
 
+errno_t async_spawn_notification_handler(void);
+
 #endif
 
 /** @}

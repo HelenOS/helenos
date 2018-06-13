@@ -115,8 +115,6 @@ fibril_t *fibril_setup(void)
 
 	fibril->waits_for = NULL;
 
-	fibril->switches = 0;
-
 	/*
 	 * We are called before __tcb_set(), so we need to use
 	 * futex_down/up() instead of futex_lock/unlock() that
@@ -205,7 +203,6 @@ int fibril_switch(fibril_switch_type_t stype)
 		// Nothing.
 		break;
 	case FIBRIL_TO_MANAGER:
-		srcf->switches++;
 		/*
 		 * Don't put the current fibril into any list, it should
 		 * already be somewhere, or it will be lost.
