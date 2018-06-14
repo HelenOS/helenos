@@ -163,18 +163,6 @@ extern int sprintf(char *__restrict__ s, const char *__restrict__ format, ...)
     _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vsprintf(char *__restrict__ s, const char *__restrict__ format, va_list ap);
 
-/* Formatted Input */
-extern int fscanf(
-    FILE *__restrict__ stream, const char *__restrict__ format, ...);
-extern int vfscanf(
-    FILE *__restrict__ stream, const char *__restrict__ format, va_list arg);
-extern int scanf(const char *__restrict__ format, ...);
-extern int vscanf(const char *__restrict__ format, va_list arg);
-extern int sscanf(
-    const char *__restrict__ s, const char *__restrict__ format, ...);
-extern int vsscanf(
-    const char *__restrict__ s, const char *__restrict__ format, va_list arg);
-
 /* File Locking */
 extern void flockfile(FILE *file);
 extern int ftrylockfile(FILE *file);

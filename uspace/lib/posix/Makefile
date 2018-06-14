@@ -69,7 +69,6 @@ SOURCES = \
 	src/pwd.c \
 	src/signal.c \
 	src/stdio.c \
-	src/stdio/scanf.c \
 	src/stdlib.c \
 	src/stdlib/strtold.c \
 	src/string.c \

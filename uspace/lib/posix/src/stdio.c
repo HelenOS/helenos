@@ -350,65 +350,6 @@ int vsprintf(char *s, const char *restrict format, va_list ap)
 }
 
 /**
- * Convert formatted input from the stream.
- *
- * @param stream Input stream.
- * @param format Format description.
- * @return The number of converted output items or EOF on failure.
- */
-int fscanf(FILE *restrict stream, const char *restrict format, ...)
-{
-	va_list list;
-	va_start(list, format);
-	int result = vfscanf(stream, format, list);
-	va_end(list);
-	return result;
-}
-
-/**
- * Convert formatted input from the standard input.
- *
- * @param format Format description.
- * @return The number of converted output items or EOF on failure.
- */
-int scanf(const char *restrict format, ...)
-{
-	va_list list;
-	va_start(list, format);
-	int result = vscanf(format, list);
-	va_end(list);
-	return result;
-}
-
-/**
- * Convert formatted input from the standard input.
- *
- * @param format Format description.
- * @param arg Output items.
- * @return The number of converted output items or EOF on failure.
- */
-int vscanf(const char *restrict format, va_list arg)
-{
-	return vfscanf(stdin, format, arg);
-}
-
-/**
- * Convert formatted input from the string.
- *
- * @param s Input string.
- * @param format Format description.
- * @return The number of converted output items or EOF on failure.
- */
-int sscanf(const char *restrict s, const char *restrict format, ...)
-{
-	va_list list;
-	va_start(list, format);
-	int result = vsscanf(s, format, list);
-	va_end(list);
-	return result;
-}
-
-/**
  * Acquire file stream for the thread.
  *
  * @param file File stream to lock.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libc
+ * @{
+ */
+/**
+ * @file
+ * @brief sscanf, vsscanf
+ */
+
+#include <stdarg.h>
 #include <stdio.h>
-#include <pcut/pcut.h>
+#include "../private/stdio.h"
+#include "../private/sstream.h"
 
-PCUT_INIT;
+int vsscanf(const char *s, const char *fmt, va_list ap)
+{
+	FILE f;
 
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(str);
-PCUT_IMPORT(table);
+	__sstream_init(s, &f);
+	return vfscanf(&f, fmt, ap);
+}
 
-PCUT_MAIN();
+int sscanf(const char *s, const char *fmt, ...)
+{
+	va_list args;
+	int rc;
+
+	va_start(args, fmt);
+	rc = vsscanf(s, fmt, args);
+	va_end(args);
+
+	return rc;
+}
+
+/** @}
+ */

@@ -100,6 +100,14 @@ extern int asprintf(char **, const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
+/* Formatted input */
+extern int scanf(const char *, ...);
+extern int vscanf(const char *, va_list);
+extern int fscanf(FILE *, const char *, ...);
+extern int vfscanf(FILE *, const char *, va_list);
+extern int sscanf(const char *, const char *, ...);
+extern int vsscanf(const char *, const char *, va_list);
+
 /* File stream functions */
 extern FILE *fopen(const char *, const char *);
 extern FILE *freopen(const char *, const char *, FILE *);
