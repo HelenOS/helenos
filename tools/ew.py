@@ -211,6 +211,9 @@ def qemu_run(platform, machine, processor):
 	if (is_override('nographic')):
 		cmdline += ' -nographic'
 
+	if (is_override('bigmem')):
+		cmdline += ' -m 4G'
+
 	if cfg['image'] == 'image.iso':
 		cmdline += ' -boot d -cdrom image.iso'
 	elif cfg['image'] == 'image.boot':
@@ -333,6 +336,8 @@ def usage():
 	print("-nousb\tDisable USB support, if applicable.")
 	print("-noxhci\tDisable XHCI support, if applicable.")
 	print("-notablet\tDisable USB tablet (use only relative-position PS/2 mouse instead), if applicable.")
+	print("-nographic\tDisable graphical output. Serial port output must be enabled for this to be useful.")
+	print("-bigmem\tSets maximum RAM size to 4GB.")
 
 def fail(platform, machine):
 	print("Cannot start emulation for the chosen configuration. (%s/%s)" % (platform, machine))
@@ -386,6 +391,8 @@ def run():
 			overrides['notablet'] = True
 		elif sys.argv[i] == '-nographic':
 			overrides['nographic'] = True
+		elif sys.argv[i] == '-bigmem':
+			overrides['bigmem'] = True
 		elif sys.argv[i] == '-qemu_path' and i < len(sys.argv) - 1:
 			expect_qemu = True
 		else:
