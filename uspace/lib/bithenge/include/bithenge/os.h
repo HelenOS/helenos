@@ -32,6 +32,7 @@
 
 
 #ifdef __HELENOS__
+#include <stdint.h>
 typedef int64_t bithenge_int_t;
 #define BITHENGE_PRId PRId64
 

@@ -36,21 +36,15 @@
 #ifndef POSIX_STDLIB_H_
 #define POSIX_STDLIB_H_
 
+#include "libc/stdlib.h"
 #include "sys/types.h"
 
 #include <_bits/NULL.h>
 
-#define RAND_MAX  714025
-
 /* Process Termination */
-#undef EXIT_FAILURE
-#define EXIT_FAILURE 1
-#undef EXIT_SUCCESS
-#define EXIT_SUCCESS 0
 #define _Exit exit
+
 extern int atexit(void (*func)(void));
-extern void exit(int status) __attribute__((noreturn));
-extern void abort(void) __attribute__((noreturn));
 
 /* Absolute Value */
 extern int abs(int i);
@@ -76,8 +70,6 @@ extern ldiv_t ldiv(long numer, long denom);
 extern lldiv_t lldiv(long long numer, long long denom);
 
 /* Array Functions */
-extern void qsort(void *array, size_t count, size_t size,
-    int (*compare)(const void *, const void *));
 extern void *bsearch(const void *key, const void *base,
     size_t nmemb, size_t size, int (*compar)(const void *, const void *));
 
@@ -95,34 +87,8 @@ extern float strtof(const char *__restrict__ nptr, char **__restrict__ endptr);
 extern double strtod(const char *__restrict__ nptr, char **__restrict__ endptr);
 extern long double strtold(const char *__restrict__ nptr, char **__restrict__ endptr);
 
-/* Integer Conversion */
-extern int atoi(const char *nptr);
-extern long int atol(const char *nptr);
-extern long long int atoll(const char *nptr);
-extern long int strtol(const char *__restrict__ nptr,
-    char **__restrict__ endptr, int base);
-extern long long int strtoll(const char *__restrict__ nptr,
-    char **__restrict__ endptr, int base);
-extern unsigned long int strtoul(const char *__restrict__ nptr,
-    char **__restrict__ endptr, int base);
-extern unsigned long long int strtoull(
-    const char *__restrict__ nptr, char **__restrict__ endptr, int base);
-
-/* Memory Allocation */
-extern void *malloc(size_t size)
-    __attribute__((malloc));
-extern void *calloc(size_t nelem, size_t elsize)
-    __attribute__((malloc));
-extern void *realloc(void *ptr, size_t size)
-    __attribute__((warn_unused_result));
-extern void free(void *ptr);
-
 /* Temporary Files */
 extern int mkstemp(char *tmpl);
-
-/* Pseudo-random number generator */
-extern int rand(void);
-extern void srand(unsigned int seed);
 
 /* Legacy Declarations */
 extern char *mktemp(char *tmpl);

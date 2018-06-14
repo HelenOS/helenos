@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <untar.h>

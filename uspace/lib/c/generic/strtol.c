@@ -36,11 +36,13 @@
 /** @file
  */
 
-#include <inttypes.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <ctype.h>
 #include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 // TODO: unit tests
 

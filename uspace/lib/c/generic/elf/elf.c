@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <elf/elf.h>
-
 #include <assert.h>
+#include <elf/elf.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 /** @addtogroup generic

@@ -58,6 +58,9 @@
 /** Default size for stream I/O buffers */
 #define BUFSIZ  4096
 
+/** Recommended size of fixed-size array for holding file names. */
+#define FILENAME_MAX 4096
+
 /** Forward declaration */
 struct _IO_FILE;
 typedef struct _IO_FILE FILE;
@@ -67,12 +70,14 @@ extern FILE *stdout;
 extern FILE *stderr;
 
 /* Character and string input functions */
+#define getc fgetc
 extern int fgetc(FILE *);
 extern char *fgets(char *, int, FILE *);
 
 extern int getchar(void);
 
 /* Character and string output functions */
+#define putc fputc
 extern int fputc(int, FILE *);
 extern int fputs(const char *, FILE *);
 
@@ -95,8 +100,10 @@ extern int vprintf(const char *, va_list);
 
 extern int snprintf(char *, size_t, const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(3, 4);
+#if defined(_HELENOS_SOURCE) || defined(_GNU_SOURCE)
 extern int vasprintf(char **, const char *, va_list);
 extern int asprintf(char **, const char *, ...)
+#endif
     _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vsnprintf(char *, size_t, const char *, va_list);
 
@@ -136,6 +143,9 @@ extern int remove(const char *);
 #define _IONBF 0
 #define _IOLBF 1
 #define _IOFBF 2
+
+extern char *gets(char *, size_t);
+
 #endif
 
 #ifdef _HELENOS_SOURCE
@@ -167,7 +177,6 @@ extern int printf_size(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern FILE *fdopen(int, const char *);
 extern int fileno(FILE *);
-extern char *gets(char *, size_t);
 
 #include <offset.h>
 

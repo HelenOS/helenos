@@ -37,9 +37,11 @@
 
 #include <malloc.h>
 #include <qsort.h>
-#include <stacktrace.h>
 
 #define RAND_MAX  714025
+
+#define EXIT_FAILURE 1
+#define EXIT_SUCCESS 0
 
 extern int rand(void);
 extern void srand(unsigned int seed);

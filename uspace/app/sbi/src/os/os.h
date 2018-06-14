@@ -29,6 +29,8 @@
 #ifndef OS_H_
 #define OS_H_
 
+#include <errno.h>
+
 char *os_str_acat(const char *a, const char *b);
 char *os_str_aslice(const char *str, size_t start, size_t length);
 int os_str_cmp(const char *a, const char *b);
