@@ -35,7 +35,9 @@
 #ifndef POSIX_INTTYPES_H_
 #define POSIX_INTTYPES_H_
 
-#include "stdint.h"
+/*
+ * Just a pass-through to libc inttypes.
+ */
 #include "libc/inttypes.h"
 
 #endif /* POSIX_INTTYPES_H_ */

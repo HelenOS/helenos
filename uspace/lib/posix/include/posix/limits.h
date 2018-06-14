@@ -35,7 +35,6 @@
 #ifndef POSIX_LIMITS_H_
 #define POSIX_LIMITS_H_
 
-#include "posix/stdint.h"
 #include "libc/limits.h"
 
 #undef PATH_MAX

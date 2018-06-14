@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,25 +29,16 @@
 /** @addtogroup libposix
  * @{
  */
-/** @file Integer types.
- */
 
 #ifndef POSIX_STDINT_H_
 #define POSIX_STDINT_H_
 
+/*
+ * Just a pass-through to libc stdint.
+ */
 #include "libc/stdint.h"
 
-#undef OFF64_MAX
-#undef OFF64_MIN
-#define OFF64_MAX  INT64_MAX
-#define OFF64_MIN  INT64_MIN
-
-#undef AOFF64_MAX
-#undef AOFF64_MIN
-#define AOFF64_MAX  UINT64_MAX
-#define AOFF64_MIN  UINT64_MIN
-
-#endif /* POSIX_STDINT_H_ */
+#endif
 
 /** @}
  */
