@@ -47,6 +47,7 @@
 
 #define memset(dst, val, cnt)  __builtin_memset((dst), (val), (cnt))
 #define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#define memcmp(s1, s2, cnt)    __builtin_memcmp((s1), (s2), (cnt))
 
 extern void memsetb(void *, size_t, uint8_t)
     __attribute__((nonnull(1)));

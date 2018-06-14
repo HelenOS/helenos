@@ -107,6 +107,10 @@ ifeq ($(CONFIG_DEBUG),y)
 	COMMON_CFLAGS += -Werror
 endif
 
+ifeq ($(CONFIG_UBSAN_KERNEL),y)
+	COMMON_CFLAGS += -fsanitize=undefined
+endif
+
 ifeq ($(CONFIG_LTO),y)
 	COMMON_CFLAGS += -flto
 endif
@@ -208,6 +212,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/elf.c \
 	generic/src/lib/ra.c \
 	generic/src/lib/rd.c \
+	generic/src/lib/ubsan.c \
 	generic/src/printf/printf_core.c \
 	generic/src/printf/printf.c \
 	generic/src/printf/snprintf.c \

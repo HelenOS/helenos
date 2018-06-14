@@ -50,6 +50,9 @@ extern void *memset(void *, int, size_t)
 extern void *memcpy(void *, const void *, size_t)
     __attribute__((nonnull(1, 2)))
     ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns") DO_NOT_DISCARD;
+extern int memcmp(const void *, const void *, size_t len)
+    __attribute__((nonnull(1, 2)))
+    ATTRIBUTE_OPTIMIZE("-fno-tree-loop-distribute-patterns") DO_NOT_DISCARD;
 
 #define alloca(size) __builtin_alloca((size))
 

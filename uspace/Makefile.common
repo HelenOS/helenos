@@ -189,6 +189,10 @@ ifeq ($(CONFIG_DEBUG),y)
 	DEFAULT_CFLAGS += -Werror
 endif
 
+ifeq ($(CONFIG_UBSAN),y)
+	DEFAULT_CFLAGS += -fsanitize=undefined
+endif
+
 ifeq ($(COMPILER),clang)
 	DEFAULT_CFLAGS += \
 		-Wno-missing-field-initializers \

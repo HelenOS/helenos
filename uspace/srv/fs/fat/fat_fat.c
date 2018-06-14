@@ -966,7 +966,7 @@ errno_t fat_sanity_check(fat_bs_t *bs, service_id_t service_id)
 		 * set to one.
 		 */
 		if (!FAT_IS_FAT12(bs) &&
-		    ((e0 >> 8) != (FAT_MASK(bs) >> 8) || e1 != FAT_MASK(bs)))
+		    ((e0 >> 8) != ((fat_cluster_t) FAT_MASK(bs) >> 8) || e1 != FAT_MASK(bs)))
 			return ENOTSUP;
 	}
 

@@ -164,6 +164,7 @@ GENERIC_SOURCES = \
 	generic/assert.c \
 	generic/pio_trace.c \
 	generic/qsort.c \
+	generic/ubsan.c \
 	generic/uuid.c \
 	generic/vbd.c \
 	generic/vol.c

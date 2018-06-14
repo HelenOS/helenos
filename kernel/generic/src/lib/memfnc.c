@@ -86,5 +86,32 @@ void *memcpy(void *dst, const void *src, size_t cnt)
 	return dst;
 }
 
+/** Compare two memory areas.
+ *
+ * @param s1  Pointer to the first area to compare.
+ * @param s2  Pointer to the second area to compare.
+ * @param len Size of the areas in bytes.
+ *
+ * @return Zero if areas have the same contents. If they differ,
+ *	   the sign of the result is the same as the sign of the
+ *	   difference of the first pair of different bytes.
+ *
+ */
+int memcmp(const void *s1, const void *s2, size_t len)
+{
+	uint8_t *u1 = (uint8_t *) s1;
+	uint8_t *u2 = (uint8_t *) s2;
+	size_t i;
+
+	for (i = 0; i < len; i++) {
+		if (*u1 != *u2)
+			return (int)(*u1) - (int)(*u2);
+		++u1;
+		++u2;
+	}
+
+	return 0;
+}
+
 /** @}
  */
