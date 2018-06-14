@@ -62,7 +62,7 @@
 
 #define NAME "pciintel"
 
-#define CONF_ADDR_ENABLE	(1 << 31)
+#define CONF_ADDR_ENABLE	(((unsigned)1) << 31)
 #define CONF_ADDR(bus, dev, fn, reg) \
 	((bus << 16) | (dev << 11) | (fn << 8) | (reg & ~3))
 

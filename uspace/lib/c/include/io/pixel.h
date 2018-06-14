@@ -49,8 +49,8 @@
 #define BLUE(pixel)   ((pixel) & 0x000000ff)
 
 #define PIXEL(a, r, g, b) \
-	((((a) & 0xff) << 24) | (((r) & 0xff) << 16) | \
-	(((g) & 0xff) << 8) | ((b) & 0xff))
+	((((unsigned)(a) & 0xff) << 24) | (((unsigned)(r) & 0xff) << 16) | \
+	(((unsigned)(g) & 0xff) << 8) | ((unsigned)(b) & 0xff))
 
 typedef uint32_t pixel_t;
 
