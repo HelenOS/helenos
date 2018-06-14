@@ -32,13 +32,13 @@
 /** @file
  */
 
-#ifndef POSIX_BOOL_H_
-#define POSIX_BOOL_H_
+#ifndef POSIX_STDBOOL_H_
+#define POSIX_STDBOOL_H_
 
-#define bool _Bool
-#define false  0
-#define true   1
-#define __bool_true_false_are_defined 1
+/*
+ * Just a pass-through to libc stdbool.
+ */
+#include "libc/stdbool.h"
 
 #endif
 

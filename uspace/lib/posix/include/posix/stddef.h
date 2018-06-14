@@ -35,11 +35,10 @@
 #ifndef POSIX_STDDEF_H_
 #define POSIX_STDDEF_H_
 
-#include "sys/types.h"
-
-#include <_bits/NULL.h>
-
-#define offsetof(type,member) ((size_t) &(((type *) 0)->member))
+/*
+ * Just a pass-through to libc stddef.
+ */
+#include "libc/stddef.h"
 
 #endif /* POSIX_STDDEF_H_ */
 

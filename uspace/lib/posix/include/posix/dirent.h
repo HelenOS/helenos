@@ -35,7 +35,10 @@
 #ifndef POSIX_DIRENT_H_
 #define POSIX_DIRENT_H_
 
-#include <libc/dirent.h>
+/*
+ * Just a pass-through to libc dirent.
+ */
+#include "libc/dirent.h"
 
 #endif
 

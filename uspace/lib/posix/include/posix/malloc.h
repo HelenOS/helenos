@@ -32,7 +32,10 @@
 #ifndef POSIX_MALLOC_H_
 #define POSIX_MALLOC_H_
 
-/* Empty. Just to satisfy preprocessor. */
+/*
+ * Just a pass-through to libc malloc.
+ */
+#include "libc/malloc.h"
 
 #endif /* POSIX_MALLOC_H_ */
 
