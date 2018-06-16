@@ -150,7 +150,7 @@ int fibril_switch(fibril_switch_type_t stype)
 
 	/* Choose a new fibril to run */
 	if (list_empty(&ready_list)) {
-		if (stype == FIBRIL_PREEMPT) {
+		if (stype == FIBRIL_PREEMPT || stype == FIBRIL_FROM_MANAGER) {
 			// FIXME: This means that as long as there is a fibril
 			// that only yields, IPC messages are never retrieved.
 			futex_unlock(&fibril_futex);

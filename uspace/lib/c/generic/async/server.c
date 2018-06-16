@@ -1065,9 +1065,14 @@ static void handle_call(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	assert(call);
 
-	/* Kernel notification */
-	if ((chandle == CAP_NIL) && (call->flags & IPC_CALL_NOTIF)) {
-		queue_notification(call);
+	if (call->flags & IPC_CALL_ANSWERED)
+		return;
+
+	if (chandle == CAP_NIL) {
+		if (call->flags & IPC_CALL_NOTIF) {
+			/* Kernel notification */
+			queue_notification(call);
+		}
 		return;
 	}
 
@@ -1095,20 +1100,29 @@ static void handle_call(cap_call_handle_t chandle, ipc_call_t *call)
 }
 
 /** Fire all timeouts that expired. */
-static void handle_expired_timeouts(void)
+static suseconds_t handle_expired_timeouts(unsigned int *flags)
 {
+	/* Make sure the async_futex is held. */
+	futex_assert_is_locked(&async_futex);
+
 	struct timeval tv;
 	getuptime(&tv);
 
-	futex_lock(&async_futex);
+	bool fired = false;
 
 	link_t *cur = list_first(&timeout_list);
 	while (cur != NULL) {
 		awaiter_t *waiter =
 		    list_get_instance(cur, awaiter_t, to_event.link);
 
-		if (tv_gt(&waiter->to_event.expires, &tv))
-			break;
+		if (tv_gt(&waiter->to_event.expires, &tv)) {
+			if (fired) {
+				*flags = SYNCH_FLAGS_NON_BLOCKING;
+				return 0;
+			}
+			*flags = 0;
+			return tv_sub_diff(&waiter->to_event.expires, &tv);
+		}
 
 		list_remove(&waiter->to_event.link);
 		waiter->to_event.inlist = false;
@@ -1121,12 +1135,18 @@ static void handle_expired_timeouts(void)
 		if (!waiter->active) {
 			waiter->active = true;
 			fibril_add_ready(waiter->fid);
+			fired = true;
 		}
 
 		cur = list_first(&timeout_list);
 	}
 
-	futex_unlock(&async_futex);
+	if (fired) {
+		*flags = SYNCH_FLAGS_NON_BLOCKING;
+		return 0;
+	}
+
+	return SYNCH_NO_TIMEOUT;
 }
 
 /** Endless loop dispatching incoming calls and answers.
@@ -1145,62 +1165,18 @@ static errno_t async_manager_worker(void)
 		 * it can run.
 		 */
 
-		suseconds_t timeout;
 		unsigned int flags = SYNCH_FLAGS_NONE;
-		if (!list_empty(&timeout_list)) {
-			awaiter_t *waiter = list_get_instance(
-			    list_first(&timeout_list), awaiter_t, to_event.link);
-
-			struct timeval tv;
-			getuptime(&tv);
-
-			if (tv_gteq(&tv, &waiter->to_event.expires)) {
-				futex_unlock(&async_futex);
-				handle_expired_timeouts();
-				/*
-				 * Notice that even if the event(s) already
-				 * expired (and thus the other fibril was
-				 * supposed to be running already),
-				 * we check for incoming IPC.
-				 *
-				 * Otherwise, a fibril that continuously
-				 * creates (almost) expired events could
-				 * prevent IPC retrieval from the kernel.
-				 */
-				timeout = 0;
-				flags = SYNCH_FLAGS_NON_BLOCKING;
-
-			} else {
-				timeout = tv_sub_diff(&waiter->to_event.expires,
-				    &tv);
-				futex_unlock(&async_futex);
-			}
-		} else {
-			futex_unlock(&async_futex);
-			timeout = SYNCH_NO_TIMEOUT;
-		}
+		suseconds_t next_timeout = handle_expired_timeouts(&flags);
+		futex_unlock(&async_futex);
 
 		atomic_inc(&threads_in_ipc_wait);
 
 		ipc_call_t call;
-		errno_t rc = ipc_wait_cycle(&call, timeout, flags);
+		errno_t rc = ipc_wait_cycle(&call, next_timeout, flags);
 
 		atomic_dec(&threads_in_ipc_wait);
 
 		assert(rc == EOK);
-
-		if (call.cap_handle == CAP_NIL) {
-			if ((call.flags &
-			    (IPC_CALL_NOTIF | IPC_CALL_ANSWERED)) == 0) {
-				/* Neither a notification nor an answer. */
-				handle_expired_timeouts();
-				continue;
-			}
-		}
-
-		if (call.flags & IPC_CALL_ANSWERED)
-			continue;
-
 		handle_call(call.cap_handle, &call);
 	}
 
