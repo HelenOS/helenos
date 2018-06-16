@@ -41,11 +41,6 @@
 
 #include <_bits/NULL.h>
 
-/* Process Termination */
-#define _Exit exit
-
-extern int atexit(void (*func)(void));
-
 /* Absolute Value */
 extern int abs(int i);
 extern long labs(long i);

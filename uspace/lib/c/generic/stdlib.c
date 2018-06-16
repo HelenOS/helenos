@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,9 +33,20 @@
 /** @file
  */
 
+#include <adt/list.h>
+#include <fibril_synch.h>
 #include <stdlib.h>
+#include "private/libc.h"
+#include "private/stdlib.h"
 
 static int glbl_seed = 1;
+
+static LIST_INITIALIZE(exit_handlers);
+static FIBRIL_MUTEX_INITIALIZE(exit_handlers_lock);
+
+static LIST_INITIALIZE(quick_exit_handlers);
+static FIBRIL_MUTEX_INITIALIZE(quick_exit_handlers_lock);
+
 
 int rand(void)
 {
@@ -45,6 +57,112 @@ void srand(unsigned int seed)
 {
 	glbl_seed = seed % RAND_MAX;
 }
+
+/** Register exit handler.
+ *
+ * @param func Function to be called during program terimnation
+ * @return Zero on success, nonzero on failure
+ */
+int atexit(void (*func)(void))
+{
+	__exit_handler_t *entry;
+
+	entry = malloc(sizeof(__exit_handler_t));
+	if (entry == NULL)
+		return -1;
+
+	entry->func = func;
+
+	fibril_mutex_lock(&exit_handlers_lock);
+	list_prepend(&entry->llist, &exit_handlers);
+	fibril_mutex_unlock(&exit_handlers_lock);
+	return 0;
+}
+
+/** Terminate program with exit status.
+ *
+ * @param status Exit status
+ */
+void exit(int status)
+{
+	link_t *link;
+	__exit_handler_t *eh;
+
+	/* Call exit handlers */
+	fibril_mutex_lock(&exit_handlers_lock);
+	while (!list_empty(&exit_handlers)) {
+		link = list_first(&exit_handlers);
+		list_remove(link);
+		fibril_mutex_unlock(&exit_handlers_lock);
+
+		eh = list_get_instance(link, __exit_handler_t, llist);
+		eh->func();
+		fibril_mutex_lock(&exit_handlers_lock);
+	}
+
+	fibril_mutex_unlock(&exit_handlers_lock);
+
+	_Exit(status);
+}
+
+/** Register quick exit handler.
+ *
+ * @param func Function to be called during quick program terimnation
+ * @return Zero on success, nonzero on failure
+ */
+int at_quick_exit(void (*func)(void))
+{
+	__exit_handler_t *entry;
+
+	entry = malloc(sizeof(__exit_handler_t));
+	if (entry == NULL)
+		return -1;
+
+	entry->func = func;
+
+	fibril_mutex_lock(&exit_handlers_lock);
+	list_prepend(&entry->llist, &exit_handlers);
+	fibril_mutex_unlock(&exit_handlers_lock);
+	return 0;
+}
+
+/** Quickly terminate program with exit status.
+ *
+ * @param status Exit status
+ */
+void quick_exit(int status)
+{
+	link_t *link;
+	__exit_handler_t *eh;
+
+	/* Call quick exit handlers */
+	fibril_mutex_lock(&quick_exit_handlers_lock);
+	while (!list_empty(&quick_exit_handlers)) {
+		link = list_first(&quick_exit_handlers);
+		list_remove(link);
+		fibril_mutex_unlock(&quick_exit_handlers_lock);
+
+		eh = list_get_instance(link, __exit_handler_t, llist);
+		eh->func();
+		fibril_mutex_lock(&quick_exit_handlers_lock);
+	}
+
+	fibril_mutex_unlock(&quick_exit_handlers_lock);
+
+	_Exit(status);
+}
+
+void _Exit(int status)
+{
+	__libc_exit(status);
+}
+
+/** Abnormal program termination */
+void abort(void)
+{
+	__libc_abort();
+}
+
 
 /** Compute quotient and remainder of int division.
  *

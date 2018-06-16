@@ -50,20 +50,6 @@
 #include "libc/stats.h"
 
 /**
- *
- * @param array
- * @param count
- * @param size
- * @param compare
- */
-int atexit(void (*func)(void))
-{
-	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
-	return 0;
-}
-
-/**
  * Integer absolute value.
  *
  * @param i Input value.

@@ -129,7 +129,7 @@ void __libc_main(void *pcb_ptr)
 	exit(retval);
 }
 
-void exit(int status)
+void __libc_exit(int status)
 {
 	if (env_setup) {
 		__stdio_done();
@@ -144,7 +144,7 @@ void exit(int status)
 		;
 }
 
-void abort(void)
+void __libc_abort(void)
 {
 	__SYSCALL1(SYS_TASK_EXIT, true);
 

@@ -37,6 +37,8 @@
 
 extern unsigned char _end[];
 extern void __libc_main(void *) __attribute__((noreturn));
+extern void __libc_exit(int) __attribute__((noreturn));
+extern void __libc_abort(void) __attribute__((noreturn));
 extern int main(int, char *[]);
 
 #endif
