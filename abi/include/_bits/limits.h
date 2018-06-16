@@ -58,7 +58,7 @@
 #define CHAR_MIN  __CHAR_MIN__
 #define CHAR_MAX  __CHAR_MAX__
 
-#define MB_LEN_MAX  16
+#define MB_LEN_MAX  4
 
 #define SHRT_MIN  __SHRT_MIN__
 #define SHRT_MAX  __SHRT_MAX__

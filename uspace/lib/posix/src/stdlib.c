@@ -97,42 +97,6 @@ long long llabs(long long i)
 }
 
 /**
- * Compute the quotient and remainder of an integer division.
- *
- * @param numer Numerator.
- * @param denom Denominator.
- * @return Quotient and remainder packed into structure.
- */
-div_t div(int numer, int denom)
-{
-	return (div_t) { .quot = numer / denom, .rem = numer % denom };
-}
-
-/**
- * Compute the quotient and remainder of a long integer division.
- *
- * @param numer Numerator.
- * @param denom Denominator.
- * @return Quotient and remainder packed into structure.
- */
-ldiv_t ldiv(long numer, long denom)
-{
-	return (ldiv_t) { .quot = numer / denom, .rem = numer % denom };
-}
-
-/**
- * Compute the quotient and remainder of a long long integer division.
- *
- * @param numer Numerator.
- * @param denom Denominator.
- * @return Quotient and remainder packed into structure.
- */
-lldiv_t lldiv(long long numer, long long denom)
-{
-	return (lldiv_t) { .quot = numer / denom, .rem = numer % denom };
-}
-
-/**
  * Binary search in a sorted array.
  *
  * @param key Object to search for.

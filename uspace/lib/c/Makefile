@@ -192,6 +192,7 @@ TEST_SOURCES = \
 	test/odict.c \
 	test/qsort.c \
 	test/sprintf.c \
+	test/stdlib.c \
 	test/str.c
 
 include $(USPACE_PREFIX)/Makefile.common

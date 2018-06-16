@@ -37,6 +37,7 @@ PCUT_IMPORT(odict);
 PCUT_IMPORT(qsort);
 PCUT_IMPORT(scanf);
 PCUT_IMPORT(sprintf);
+PCUT_IMPORT(stdlib);
 PCUT_IMPORT(str);
 PCUT_IMPORT(table);
 

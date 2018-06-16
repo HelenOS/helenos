@@ -51,24 +51,6 @@ extern int abs(int i);
 extern long labs(long i);
 extern long long llabs(long long i);
 
-/* Integer Division */
-
-typedef struct {
-	int quot, rem;
-} div_t;
-
-typedef struct {
-	long quot, rem;
-} ldiv_t;
-
-typedef struct {
-	long long quot, rem;
-} lldiv_t;
-
-extern div_t div(int numer, int denom);
-extern ldiv_t ldiv(long numer, long denom);
-extern lldiv_t lldiv(long long numer, long long denom);
-
 /* Array Functions */
 extern void *bsearch(const void *key, const void *base,
     size_t nmemb, size_t size, int (*compar)(const void *, const void *));

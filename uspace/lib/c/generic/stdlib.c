@@ -46,5 +46,53 @@ void srand(unsigned int seed)
 	glbl_seed = seed % RAND_MAX;
 }
 
+/** Compute quotient and remainder of int division.
+ *
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return Structure containing quotient and remainder
+ */
+div_t div(int numer, int denom)
+{
+	div_t d;
+
+	d.quot = numer / denom;
+	d.rem = numer % denom;
+
+	return d;
+}
+
+/** Compute quotient and remainder of long division.
+ *
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return Structure containing quotient and remainder
+ */
+ldiv_t ldiv(long numer, long denom)
+{
+	ldiv_t d;
+
+	d.quot = numer / denom;
+	d.rem = numer % denom;
+
+	return d;
+}
+
+/** Compute quotient and remainder of long long division.
+ *
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return Structure containing quotient and remainder
+ */
+lldiv_t lldiv(long long numer, long long denom)
+{
+	lldiv_t d;
+
+	d.quot = numer / denom;
+	d.rem = numer % denom;
+
+	return d;
+}
+
 /** @}
  */

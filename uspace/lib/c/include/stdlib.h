@@ -35,13 +35,42 @@
 #ifndef LIBC_STDLIB_H_
 #define LIBC_STDLIB_H_
 
+#include <_bits/size_t.h>
+#include <_bits/wchar_t.h>
 #include <malloc.h>
 #include <qsort.h>
 
-#define RAND_MAX  714025
+/** Type returned by the div function */
+typedef struct {
+	/** Quotient */
+	int quot;
+	/** Remainder */
+	int rem;
+} div_t;
+
+/** Type returned by the ldiv function */
+typedef struct {
+	/** Quotient */
+	long quot;
+	/** Remainder */
+	long rem;
+} ldiv_t;
+
+/** Type returned by the lldiv function */
+typedef struct {
+	/** Quotient */
+	long long quot;
+	/** Remainder */
+	long long rem;
+} lldiv_t;
+
 
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
+
+#define RAND_MAX  714025
+
+#define MB_CUR_MAX 4
 
 extern int rand(void);
 extern void srand(unsigned int seed);
@@ -57,6 +86,10 @@ extern long strtol(const char *__restrict__, char **__restrict__, int);
 extern long long strtoll(const char *__restrict__, char **__restrict__, int);
 extern unsigned long strtoul(const char *__restrict__, char **__restrict__, int);
 extern unsigned long long strtoull(const char *__restrict__, char **__restrict__, int);
+
+extern div_t div(int, int);
+extern ldiv_t ldiv(long, long);
+extern lldiv_t lldiv(long long, long long);
 
 #endif
 
