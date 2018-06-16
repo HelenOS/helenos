@@ -97,6 +97,7 @@ void exit(int status)
 
 		eh = list_get_instance(link, __exit_handler_t, llist);
 		eh->func();
+		free(eh);
 		fibril_mutex_lock(&exit_handlers_lock);
 	}
 
@@ -144,6 +145,7 @@ void quick_exit(int status)
 
 		eh = list_get_instance(link, __exit_handler_t, llist);
 		eh->func();
+		free(eh);
 		fibril_mutex_lock(&quick_exit_handlers_lock);
 	}
 
