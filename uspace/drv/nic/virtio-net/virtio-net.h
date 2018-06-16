@@ -45,6 +45,17 @@
 /** Control channel is available */
 #define VIRTIO_NET_F_CTRL_VQ		(1U << 17)
 
+#define VIRTIO_NET_HDR_GSO_NONE 0
+typedef struct {
+	uint8_t flags;
+	uint8_t gso_type;
+	uint16_t hdr_len;
+	uint16_t gso_size;
+	uint16_t csum_start;
+	uint16_t csum_offset;
+	uint16_t num_buffers;
+} virtio_net_hdr_t;
+
 typedef struct {
 	uint8_t mac[6];
 } virtio_net_cfg_t;

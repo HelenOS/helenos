@@ -38,7 +38,7 @@
 #include <ddf/log.h>
 #include <libarch/barrier.h>
 
-void virtio_virtq_set_desc(virtio_dev_t *vdev, uint16_t num, uint16_t descno,
+void virtio_virtq_desc_set(virtio_dev_t *vdev, uint16_t num, uint16_t descno,
     uint64_t addr, uint32_t len, uint16_t flags, uint16_t next)
 {
 	virtq_desc_t *d = &vdev->queues[num].desc[descno];
@@ -46,6 +46,15 @@ void virtio_virtq_set_desc(virtio_dev_t *vdev, uint16_t num, uint16_t descno,
 	pio_write_le32(&d->len, len);
 	pio_write_le16(&d->flags, flags);
 	pio_write_le16(&d->next, next);
+}
+
+uint16_t virtio_virtq_desc_get_next(virtio_dev_t *vdev, uint16_t num,
+    uint16_t descno)
+{
+	virtq_desc_t *d = &vdev->queues[num].desc[descno];
+	if (!(pio_read_le16(&d->flags) & VIRTQ_DESC_F_NEXT))
+		return (uint16_t) -1U;
+	return pio_read_le16(&d->next);
 }
 
 void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,

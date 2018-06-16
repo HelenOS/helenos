@@ -111,10 +111,19 @@ static void virtio_net_create_buf_free_list(virtio_dev_t *vdev, uint16_t num,
     uint16_t size, uint16_t *head)
 {
 	for (unsigned i = 0; i < size; i++) {
-		virtio_virtq_set_desc(vdev, num, i, 0, 0,
+		virtio_virtq_desc_set(vdev, num, i, 0, 0,
 		    VIRTQ_DESC_F_NEXT, (i + 1 == size) ? -1U : i + 1);
 	}
 	*head = 0;
+}
+
+static uint16_t virtio_net_alloc_buf(virtio_dev_t *vdev, uint16_t num,
+    uint16_t *head)
+{
+	uint16_t descno = *head;
+	if (descno != (uint16_t) -1U)
+		*head = virtio_virtq_desc_get_next(vdev, num, descno);
+	return descno;
 }
 
 static errno_t virtio_net_register_interrupt(ddf_dev_t *dev)
@@ -260,7 +269,7 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 		 * Associtate the buffer with the descriptor, set length and
 		 * flags.
 		 */
-		virtio_virtq_set_desc(vdev, RX_QUEUE_1, i,
+		virtio_virtq_desc_set(vdev, RX_QUEUE_1, i,
 		    virtio_net->rx_buf_p[i], RX_BUF_SIZE, VIRTQ_DESC_F_WRITE,
 		    0);
 		/*
@@ -334,7 +343,36 @@ static void virtio_net_uninitialize(ddf_dev_t *dev)
 
 static void virtio_net_send(nic_t *nic, void *data, size_t size)
 {
-	// TODO
+	virtio_net_t *virtio_net = nic_get_specific(nic);
+	virtio_dev_t *vdev = &virtio_net->virtio_dev;
+
+	if (size > sizeof(virtio_net) + TX_BUF_SIZE) {
+		ddf_msg(LVL_WARN, "TX data too big, frame dropped");
+		return;
+	}
+
+	uint16_t descno = virtio_net_alloc_buf(vdev, TX_QUEUE_1,
+	    &virtio_net->tx_free_head);
+	if (descno == (uint16_t) -1U) {
+		ddf_msg(LVL_WARN, "No TX buffers available, frame dropped");
+		return;
+	}
+	assert(descno < TX_BUFFERS);
+
+	/* Setup the packed header */
+	virtio_net_hdr_t *hdr = (virtio_net_hdr_t *) virtio_net->tx_buf[descno];
+	memset(hdr, 0, sizeof(virtio_net_hdr_t));
+	hdr->gso_type = VIRTIO_NET_HDR_GSO_NONE;
+
+	/* Copy packet data into the buffer just past the header */ 
+	memcpy(&hdr[1], data, size);
+
+	/*
+	 * Set the descriptor, put it into the virtqueue and notify the device
+	 */
+	virtio_virtq_desc_set(vdev, TX_QUEUE_1, descno,
+	    virtio_net->tx_buf_p[descno], TX_BUF_SIZE, 0, 0);
+	virtio_virtq_produce_available(vdev, TX_QUEUE_1, descno);
 }
 
 static errno_t virtio_net_on_broadcast_mode_change(nic_t *nic,
