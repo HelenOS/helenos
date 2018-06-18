@@ -281,6 +281,85 @@ PCUT_TEST(quick_exit)
 		quick_exit(0);
 }
 
+/** getenv function */
+PCUT_TEST(getenv)
+{
+	char *s;
+
+	s = getenv("FOO");
+	PCUT_ASSERT_NULL(s);
+}
+
+/** Test availability of command processor */
+PCUT_TEST(system_null)
+{
+	int rc;
+
+	rc = system(NULL);
+	PCUT_ASSERT_INT_EQUALS(0, rc);
+}
+
+/** Test running a command */
+PCUT_TEST(system_cmd)
+{
+	int rc;
+
+	/* This should fail as system is just a stub */
+	rc = system("/app/bdsh");
+	PCUT_ASSERT_INT_EQUALS(1, rc);
+}
+
+/** Comparison function for bsearch test */
+static int test_compar(const void *a, const void *b)
+{
+	const int *ia, *ib;
+
+	ia = (const int *)a;
+	ib = (const int *)b;
+
+	return *ia - *ib;
+}
+
+PCUT_TEST(bsearch)
+{
+	int numbers[] = { 1, 2, 6, 7, 7, 10, 100, 120 };
+	int k;
+	void *r;
+
+	k = 0;
+	r = bsearch(&k, numbers, sizeof(numbers) / sizeof(int), sizeof(int),
+	    test_compar);
+	PCUT_ASSERT_NULL(r);
+
+	k = 1;
+	r = bsearch(&k, numbers, sizeof(numbers) / sizeof(int), sizeof(int),
+	    test_compar);
+	PCUT_ASSERT_NOT_NULL(r);
+	PCUT_ASSERT_INT_EQUALS(1, *(int *)r);
+
+	k = 3;
+	r = bsearch(&k, numbers, sizeof(numbers) / sizeof(int), sizeof(int),
+	    test_compar);
+	PCUT_ASSERT_NULL(r);
+
+	k = 6;
+	r = bsearch(&k, numbers, sizeof(numbers) / sizeof(int), sizeof(int),
+	    test_compar);
+	PCUT_ASSERT_NOT_NULL(r);
+	PCUT_ASSERT_INT_EQUALS(6, *(int *)r);
+
+	k = 7;
+	r = bsearch(&k, numbers, sizeof(numbers) / sizeof(int), sizeof(int),
+	    test_compar);
+	PCUT_ASSERT_NOT_NULL(r);
+	PCUT_ASSERT_INT_EQUALS(7, *(int *)r);
+
+	k = 200;
+	r = bsearch(&k, numbers, sizeof(numbers) / sizeof(int), sizeof(int),
+	    test_compar);
+	PCUT_ASSERT_NULL(r);
+}
+
 /** Integer division */
 PCUT_TEST(div_func)
 {

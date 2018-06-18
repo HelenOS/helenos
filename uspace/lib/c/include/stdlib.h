@@ -37,6 +37,7 @@
 
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
+#include <bsearch.h>
 #include <malloc.h>
 #include <qsort.h>
 
@@ -73,7 +74,7 @@ typedef struct {
 #define MB_CUR_MAX 4
 
 extern int rand(void);
-extern void srand(unsigned int seed);
+extern void srand(unsigned int);
 
 extern void abort(void) __attribute__((noreturn));
 extern int atexit(void (*)(void));
@@ -81,6 +82,9 @@ extern void exit(int) __attribute__((noreturn));
 extern void _Exit(int) __attribute__((noreturn));
 extern int at_quick_exit(void (*)(void));
 extern void quick_exit(int);
+
+extern char *getenv(const char *);
+extern int system(const char *);
 
 extern int atoi(const char *);
 extern long atol(const char *);

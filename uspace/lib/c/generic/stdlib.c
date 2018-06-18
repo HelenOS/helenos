@@ -165,6 +165,34 @@ void abort(void)
 	__libc_abort();
 }
 
+/** Get environment list entry.
+ *
+ * Note that this function is not reentrant. The returned string is only
+ * guaranteed to be valid until the next call to @c getenv.
+ *
+ * @param name Entry name
+ * @return Pointer to string or @c NULL if not found
+ */
+char *getenv(const char *name)
+{
+	(void) name;
+	return NULL;
+}
+
+/** Execute command.
+ *
+ * @param string Command to execute or @c NULL
+ *
+ * @return If @a string is @c NULL, return zero (no command processor
+ *         available). If @a string is not @c NULL, return 1 (failure).
+ */
+int system(const char *string)
+{
+	if (string == NULL)
+		return 0;
+
+	return 1;
+}
 
 /** Compute quotient and remainder of int division.
  *

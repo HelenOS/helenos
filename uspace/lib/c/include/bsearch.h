@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,45 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup libc
  * @{
  */
-/** @file Standard library definitions.
+/** @file
  */
 
-#ifndef POSIX_STDLIB_H_
-#define POSIX_STDLIB_H_
+#ifndef LIBC_BSEARCH_H_
+#define LIBC_BSEARCH_H_
 
-#include "libc/stdlib.h"
-#include "sys/types.h"
+#include <stddef.h>
 
-#include <_bits/NULL.h>
+extern void *bsearch(const void *, const void *, size_t, size_t,
+    int (*)(const void *, const void *));
 
-/* Absolute Value */
-extern int abs(int i);
-extern long labs(long i);
-extern long long llabs(long long i);
-
-/* Environment Access */
-extern int putenv(char *string);
-
-/* Symbolic Links */
-extern char *realpath(const char *__restrict__ name, char *__restrict__ resolved);
-
-/* Floating Point Conversion */
-extern double atof(const char *nptr);
-extern float strtof(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern double strtod(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern long double strtold(const char *__restrict__ nptr, char **__restrict__ endptr);
-
-/* Temporary Files */
-extern int mkstemp(char *tmpl);
-
-/* Legacy Declarations */
-extern char *mktemp(char *tmpl);
-extern int bsd_getloadavg(double loadavg[], int nelem);
-
-#endif  // POSIX_STDLIB_H_
+#endif
 
 /** @}
  */

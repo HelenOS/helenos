@@ -83,57 +83,6 @@ long long llabs(long long i)
 }
 
 /**
- * Binary search in a sorted array.
- *
- * @param key Object to search for.
- * @param base Pointer to the first element of the array.
- * @param nmemb Number of elements in the array.
- * @param size Size of each array element.
- * @param compar Comparison function.
- * @return Pointer to a matching element, or NULL if none can be found.
- */
-void *bsearch(const void *key, const void *base,
-    size_t nmemb, size_t size, int (*compar)(const void *, const void *))
-{
-	while (nmemb > 0) {
-		const void *middle = base + (nmemb / 2) * size;
-		int cmp = compar(key, middle);
-		if (cmp == 0) {
-			return (void *) middle;
-		}
-		if (middle == base) {
-			/*
-			 * There is just one member left to check and it
-			 * didn't match the key. Avoid infinite loop.
-			 */
-			break;
-		}
-		if (cmp < 0) {
-			nmemb = nmemb / 2;
-		} else if (cmp > 0) {
-			nmemb = nmemb - (nmemb / 2);
-			base = middle;
-		}
-	}
-
-	return NULL;
-}
-
-/**
- * Retrieve a value of the given environment variable.
- *
- * Since HelenOS doesn't support env variables at the moment,
- * this function always returns NULL.
- *
- * @param name Name of the variable.
- * @return Value of the variable or NULL if such variable does not exist.
- */
-char *getenv(const char *name)
-{
-	return NULL;
-}
-
-/**
  *
  * @param name
  * @param resolved
@@ -142,21 +91,6 @@ char *getenv(const char *name)
 int putenv(char *string)
 {
 	// TODO: low priority, just a compile-time dependency of binutils
-	not_implemented();
-	return 0;
-}
-
-/**
- * Issue a command.
- *
- * @param string String to be passed to a command interpreter or NULL.
- * @return Termination status of the command if the command is not NULL,
- *     otherwise indicate whether there is a command interpreter (non-zero)
- *     or not (zero).
- */
-int system(const char *string)
-{
-	// TODO: does nothing at the moment
 	not_implemented();
 	return 0;
 }

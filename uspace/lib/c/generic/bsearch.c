@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,45 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup libc
  * @{
  */
-/** @file Standard library definitions.
+
+/**
+ * @file
+ * @brief Binary search.
  */
 
-#ifndef POSIX_STDLIB_H_
-#define POSIX_STDLIB_H_
+#include <bsearch.h>
+#include <stddef.h>
 
-#include "libc/stdlib.h"
-#include "sys/types.h"
+/** Binary search.
+ *
+ * @param key Key to search for
+ * @param base Array of objects
+ * @param nmemb Number of objects in array
+ * @param size Size of each object
+ * @param compar Comparison function
+ */
+void *bsearch(const void *key, const void *base, size_t nmemb, size_t size,
+    int (*compar)(const void *, const void *))
+{
+	size_t pividx;
+	const void *pivot;
+	int r;
 
-#include <_bits/NULL.h>
+	while (nmemb != 0) {
+		pividx = nmemb / 2;
+		pivot = base + size * pividx;
 
-/* Absolute Value */
-extern int abs(int i);
-extern long labs(long i);
-extern long long llabs(long long i);
+		r = compar(key, pivot);
+		if (r == 0)
+			return (void *)pivot;
 
-/* Environment Access */
-extern int putenv(char *string);
+		if (r < 0) {
+			/* Now only look at members preceding pivot */
+			nmemb = pividx;
+		} else {
+			/* Now only look at members following pivot */
+			nmemb = nmemb - pividx - 1;
+			base += size * (pividx + 1);
+		}
+	}
 
-/* Symbolic Links */
-extern char *realpath(const char *__restrict__ name, char *__restrict__ resolved);
-
-/* Floating Point Conversion */
-extern double atof(const char *nptr);
-extern float strtof(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern double strtod(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern long double strtold(const char *__restrict__ nptr, char **__restrict__ endptr);
-
-/* Temporary Files */
-extern int mkstemp(char *tmpl);
-
-/* Legacy Declarations */
-extern char *mktemp(char *tmpl);
-extern int bsd_getloadavg(double loadavg[], int nelem);
-
-#endif  // POSIX_STDLIB_H_
+	return NULL;
+}
 
 /** @}
  */
