@@ -41,11 +41,6 @@
 
 #include <_bits/NULL.h>
 
-/* Absolute Value */
-extern int abs(int i);
-extern long labs(long i);
-extern long long llabs(long long i);
-
 /* Environment Access */
 extern int putenv(char *string);
 

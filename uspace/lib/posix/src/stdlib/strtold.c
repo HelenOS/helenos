@@ -53,10 +53,6 @@
 #define HUGE_VALL (+1.0l / +0.0l)
 #endif
 
-#ifndef abs
-#define abs(x) (((x) < 0) ? -(x) : (x))
-#endif
-
 /* If the constants are not defined, use double precision as default. */
 #ifndef LDBL_MANT_DIG
 #define LDBL_MANT_DIG 53

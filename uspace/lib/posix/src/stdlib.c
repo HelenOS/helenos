@@ -50,39 +50,6 @@
 #include "libc/stats.h"
 
 /**
- * Integer absolute value.
- *
- * @param i Input value.
- * @return Absolute value of the parameter.
- */
-int abs(int i)
-{
-	return i < 0 ? -i : i;
-}
-
-/**
- * Long integer absolute value.
- *
- * @param i Input value.
- * @return Absolute value of the parameter.
- */
-long labs(long i)
-{
-	return i < 0 ? -i : i;
-}
-
-/**
- * Long long integer absolute value.
- *
- * @param i Input value.
- * @return Absolute value of the parameter.
- */
-long long llabs(long long i)
-{
-	return i < 0 ? -i : i;
-}
-
-/**
  *
  * @param name
  * @param resolved

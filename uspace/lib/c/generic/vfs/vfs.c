@@ -284,14 +284,14 @@ errno_t vfs_cwd_get(char *buf, size_t size)
 errno_t vfs_cwd_set(const char *path)
 {
 	size_t abs_size;
-	char *abs = vfs_absolutize(path, &abs_size);
-	if (!abs)
+	char *abs_path = vfs_absolutize(path, &abs_size);
+	if (abs_path == NULL)
 		return ENOMEM;
 
 	int fd;
-	errno_t rc = vfs_lookup(abs, WALK_DIRECTORY, &fd);
+	errno_t rc = vfs_lookup(abs_path, WALK_DIRECTORY, &fd);
 	if (rc != EOK) {
-		free(abs);
+		free(abs_path);
 		return rc;
 	}
 
@@ -304,7 +304,7 @@ errno_t vfs_cwd_set(const char *path)
 		free(cwd_path);
 
 	cwd_fd = fd;
-	cwd_path = abs;
+	cwd_path = abs_path;
 	cwd_size = abs_size;
 
 	fibril_mutex_unlock(&cwd_mutex);

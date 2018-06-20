@@ -194,6 +194,69 @@ int system(const char *string)
 	return 1;
 }
 
+/** Compute the absolute value of an integer.
+ *
+ * If the result cannot be represented, the behavior is undefined.
+ *
+ * @param j Integer
+ * @return The absolute value of @a j
+ */
+int abs(int j)
+{
+	int aj;
+
+	if (j < 0) {
+		aj = -j;
+		assert(aj >= 0);
+	} else {
+		aj = j;
+	}
+
+	return aj;
+}
+
+/** Compute the absolute value of a long integer.
+ *
+ * If the result cannot be represented, the behavior is undefined.
+ *
+ * @param j Long integer
+ * @return The absolute value of @a j
+ */
+long labs(long j)
+{
+	long aj;
+
+	if (j < 0) {
+		aj = -j;
+		assert(aj >= 0);
+	} else {
+		aj = j;
+	}
+
+	return aj;
+}
+
+/** Compute the absolute value of a long long integer.
+ *
+ * If the result cannot be represented, the behavior is undefined.
+ *
+ * @param j Long long integer
+ * @return The absolute value of @a j
+ */
+long long llabs(long long j)
+{
+	long long aj;
+
+	if (j < 0) {
+		aj = -j;
+		assert(aj >= 0);
+	} else {
+		aj = j;
+	}
+
+	return aj;
+}
+
 /** Compute quotient and remainder of int division.
  *
  * @param numer Numerator

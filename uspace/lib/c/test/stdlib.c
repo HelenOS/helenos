@@ -360,6 +360,60 @@ PCUT_TEST(bsearch)
 	PCUT_ASSERT_NULL(r);
 }
 
+/** abs function of positive number */
+PCUT_TEST(abs_pos)
+{
+	int i;
+
+	i = abs(1);
+	PCUT_ASSERT_TRUE(i == 1);
+}
+
+/** abs function of negative number */
+PCUT_TEST(abs_neg)
+{
+	int i;
+
+	i = abs(-1);
+	PCUT_ASSERT_TRUE(i == 1);
+}
+
+/** labs function of positive number */
+PCUT_TEST(labs_pos)
+{
+	long li;
+
+	li = labs(1);
+	PCUT_ASSERT_TRUE(li == 1);
+}
+
+/** labs function of negative number */
+PCUT_TEST(labs_neg)
+{
+	long li;
+
+	li = labs(-1);
+	PCUT_ASSERT_TRUE(li == 1);
+}
+
+/** llabs function of positive number */
+PCUT_TEST(llabs_pos)
+{
+	long long lli;
+
+	lli = llabs(1);
+	PCUT_ASSERT_TRUE(lli == 1);
+}
+
+/** llabs function of negative number */
+PCUT_TEST(llabs_neg)
+{
+	long long lli;
+
+	lli = llabs(-1);
+	PCUT_ASSERT_TRUE(lli == 1);
+}
+
 /** Integer division */
 PCUT_TEST(div_func)
 {

@@ -86,6 +86,10 @@ extern void quick_exit(int);
 extern char *getenv(const char *);
 extern int system(const char *);
 
+extern int abs(int);
+extern long labs(long);
+extern long long llabs(long long);
+
 extern int atoi(const char *);
 extern long atol(const char *);
 extern long long atoll(const char *);
