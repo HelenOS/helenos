@@ -50,7 +50,7 @@
 #include <libarch/config.h>
 
 // FIXME: replace with a hash table
-aoff64_t posix_pos[MAX_OPEN_FILES];
+aoff64_t posix_pos[VFS_MAX_OPEN_FILES];
 
 /* Array of environment variable strings (NAME=VALUE). */
 char **environ = NULL;

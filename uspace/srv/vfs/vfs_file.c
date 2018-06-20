@@ -70,12 +70,12 @@ static bool vfs_files_init(vfs_client_data_t *vfs_data)
 {
 	fibril_mutex_lock(&vfs_data->lock);
 	if (!vfs_data->files) {
-		vfs_data->files = malloc(MAX_OPEN_FILES * sizeof(vfs_file_t *));
+		vfs_data->files = malloc(VFS_MAX_OPEN_FILES * sizeof(vfs_file_t *));
 		if (!vfs_data->files) {
 			fibril_mutex_unlock(&vfs_data->lock);
 			return false;
 		}
-		memset(vfs_data->files, 0, MAX_OPEN_FILES * sizeof(vfs_file_t *));
+		memset(vfs_data->files, 0, VFS_MAX_OPEN_FILES * sizeof(vfs_file_t *));
 	}
 	fibril_mutex_unlock(&vfs_data->lock);
 	return true;
@@ -89,7 +89,7 @@ static void vfs_files_done(vfs_client_data_t *vfs_data)
 	if (!vfs_data->files)
 		return;
 
-	for (i = 0; i < MAX_OPEN_FILES; i++) {
+	for (i = 0; i < VFS_MAX_OPEN_FILES; i++) {
 		if (vfs_data->files[i])
 			(void) _vfs_fd_free(vfs_data, i);
 	}
@@ -198,7 +198,7 @@ static errno_t _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, boo
 
 	unsigned int i;
 	if (desc)
-		i = MAX_OPEN_FILES - 1;
+		i = VFS_MAX_OPEN_FILES - 1;
 	else
 		i = 0;
 
@@ -232,7 +232,7 @@ static errno_t _vfs_fd_alloc(vfs_client_data_t *vfs_data, vfs_file_t **file, boo
 
 			i--;
 		} else {
-			if (i == MAX_OPEN_FILES - 1)
+			if (i == VFS_MAX_OPEN_FILES - 1)
 				break;
 
 			i++;
@@ -260,7 +260,7 @@ errno_t vfs_fd_alloc(vfs_file_t **file, bool desc, int *out_fd)
 
 static errno_t _vfs_fd_free_locked(vfs_client_data_t *vfs_data, int fd)
 {
-	if ((fd < 0) || (fd >= MAX_OPEN_FILES) || !vfs_data->files[fd]) {
+	if ((fd < 0) || (fd >= VFS_MAX_OPEN_FILES) || !vfs_data->files[fd]) {
 		return EBADF;
 	}
 
@@ -310,7 +310,7 @@ errno_t vfs_fd_assign(vfs_file_t *file, int fd)
 		return ENOMEM;
 
 	fibril_mutex_lock(&VFS_DATA->lock);
-	if ((fd < 0) || (fd >= MAX_OPEN_FILES)) {
+	if ((fd < 0) || (fd >= VFS_MAX_OPEN_FILES)) {
 		fibril_mutex_unlock(&VFS_DATA->lock);
 		return EBADF;
 	}
@@ -341,7 +341,7 @@ static vfs_file_t *_vfs_file_get(vfs_client_data_t *vfs_data, int fd)
 		return NULL;
 
 	fibril_mutex_lock(&vfs_data->lock);
-	if ((fd >= 0) && (fd < MAX_OPEN_FILES)) {
+	if ((fd >= 0) && (fd < VFS_MAX_OPEN_FILES)) {
 		vfs_file_t *file = vfs_data->files[fd];
 		if (file != NULL) {
 			vfs_file_addref(vfs_data, file);

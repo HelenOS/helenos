@@ -58,16 +58,6 @@ extern ssize_t getdelim(char **__restrict__ lineptr, size_t *__restrict__ n,
 extern ssize_t getline(char **__restrict__ lineptr, size_t *__restrict__ n,
     FILE *__restrict__ stream);
 
-/* Error Messages */
-extern void perror(const char *s);
-
-/* File Positioning */
-typedef struct {
-	off64_t offset;
-} fpos_t;
-
-extern int fsetpos(FILE *stream, const fpos_t *pos);
-extern int fgetpos(FILE *__restrict__ stream, fpos_t *__restrict__ pos);
 extern int fseeko(FILE *stream, off_t offset, int whence);
 extern off_t ftello(FILE *stream);
 

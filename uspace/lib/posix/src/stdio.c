@@ -168,48 +168,6 @@ ssize_t getline(char **restrict lineptr, size_t *restrict n,
 }
 
 /**
- * Write error messages to standard error.
- *
- * @param s Error message.
- */
-void perror(const char *s)
-{
-	if (s == NULL || s[0] == '\0') {
-		fprintf(stderr, "%s\n", strerror(errno));
-	} else {
-		fprintf(stderr, "%s: %s\n", s, strerror(errno));
-	}
-}
-
-/** Restores stream a to position previously saved with fgetpos().
- *
- * @param stream Stream to restore
- * @param pos Position to restore
- * @return Zero on success, non-zero (with errno set) on failure
- */
-int fsetpos(FILE *stream, const fpos_t *pos)
-{
-	return fseek64(stream, pos->offset, SEEK_SET);
-}
-
-/** Saves the stream's position for later use by fsetpos().
- *
- * @param stream Stream to save
- * @param pos Place to store the position
- * @return Zero on success, non-zero (with errno set) on failure
- */
-int fgetpos(FILE *restrict stream, fpos_t *restrict pos)
-{
-	off64_t ret = ftell64(stream);
-	if (ret != -1) {
-		pos->offset = ret;
-		return 0;
-	} else {
-		return -1;
-	}
-}
-
-/**
  * Reposition a file-position indicator in a stream.
  *
  * @param stream Stream to seek in.

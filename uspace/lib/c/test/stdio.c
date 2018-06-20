@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup libc
  * @{
  */
-/** @file Helper definitions common for all libposix files.
+/**
+ * @file
+ * @brief Test stdio module
  */
 
-#ifndef LIBPOSIX_COMMON_H_
-#define LIBPOSIX_COMMON_H_
-
+#include <errno.h>
+#include <pcut/pcut.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <offset.h>
-#include <vfs/vfs.h>
 
-#define not_implemented() do { \
-		static int __not_implemented_counter = 0; \
-		if (__not_implemented_counter == 0) { \
-			fprintf(stderr, "%s() not implemented in %s:%d, something will NOT work.\n", \
-				__func__, __FILE__, __LINE__); \
-		} \
-		__not_implemented_counter++; \
-	} while (0)
+PCUT_INIT;
 
-// Just a marker for external tools.
-#define _HIDE_LIBC_SYMBOL(symbol)
+PCUT_TEST_SUITE(stdio);
 
-/** Checks if the value is a failing error code.
- *
- * If so, writes the error code to errno and returns true.
- */
-static inline bool failed(int rc)
+/** fgetpos and fsetpos functions */
+PCUT_TEST(fgetpos_setpos)
 {
-	if (rc != EOK) {
-		errno = rc;
-		return true;
-	}
-	return false;
+	fpos_t pos;
+	int rc;
+	FILE *f;
+
+	// XXX Use tmpfile() when it is available
+	f = fopen("/tmp/fgpsp.tmp", "w+");
+	PCUT_ASSERT_NOT_NULL(f);
+	rc = remove("/tmp/fgpsp.tmp");
+	PCUT_ASSERT_INT_EQUALS(0, rc);
+
+	rc = fputs("abc", f);
+	PCUT_ASSERT_TRUE(rc >= 0);
+
+	rc = fgetpos(f, &pos);
+	PCUT_ASSERT_TRUE(rc >= 0);
+
+	rewind(f);
+
+	rc = fsetpos(f, &pos);
+	PCUT_ASSERT_TRUE(rc >= 0);
+
+	(void) fclose(f);
 }
 
-extern aoff64_t posix_pos[VFS_MAX_OPEN_FILES];
+/** perror function with NULL as argument */
+PCUT_TEST(perror_null_msg)
+{
+	errno = EINVAL;
+	perror(NULL);
+}
 
-#endif /* LIBPOSIX_COMMON_H_ */
+/** perror function with empty string as argument */
+PCUT_TEST(perror_empty_msg)
+{
+	errno = EINVAL;
+	perror("");
+}
 
-/** @}
- */
+/** perror function with a message argument */
+PCUT_TEST(perror_msg)
+{
+	errno = EINVAL;
+	perror("This is a test");
+}
+
+PCUT_EXPORT(stdio);

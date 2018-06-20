@@ -193,6 +193,7 @@ TEST_SOURCES = \
 	test/odict.c \
 	test/qsort.c \
 	test/sprintf.c \
+	test/stdio.c \
 	test/stdlib.c \
 	test/str.c
 

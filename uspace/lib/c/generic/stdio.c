@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,45 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <str_error.h>
 #include <vfs/vfs.h>
+
+/** Get stream position.
+ *
+ * @param stream Stream
+ * @param pos Place to store position
+ *
+ * @return Zero on success, non-zero on failure
+ */
+int fgetpos(FILE *stream, fpos_t *pos)
+{
+	off64_t p;
+
+	p = ftell64(stream);
+	if (p < 0)
+		return -1;
+
+	pos->pos = p;
+	return 0;
+}
+
+/** Get stream position.
+ *
+ * @param stream Stream
+ * @param pos Position
+ *
+ * @return Zero on sucess, non-zero on failure
+ */
+int fsetpos(FILE *stream, const fpos_t *pos)
+{
+	int rc;
+
+	rc = fseek64(stream, pos->pos, SEEK_SET);
+	if (rc < 0)
+		return -1;
+
+	return 0;
+}
 
 /** Rename file or directory (C standard) */
 int rename(const char *old_path, const char *new_path)
@@ -62,6 +100,18 @@ int remove(const char *path)
 	}
 
 	return 0;
+}
+
+/** Print error message and string representation of @c errno.
+ *
+ * @param s Error message
+ */
+void perror(const char *s)
+{
+	if (s != NULL && *s != '\0')
+		fprintf(stderr, "%s: %s\n", s, str_error(errno));
+	else
+		fprintf(stderr, "%s\n", str_error(errno));
 }
 
 /** @}
