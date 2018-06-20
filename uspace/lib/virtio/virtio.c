@@ -70,6 +70,23 @@ void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,
 	pio_write_le16(q->notify, num);
 }
 
+bool virtio_virtq_consume_used(virtio_dev_t *vdev, uint16_t num,
+    uint16_t *descno, uint32_t *len)
+{
+	virtq_t *q = &vdev->queues[num];
+
+	uint16_t last_idx = q->used_last_idx % q->queue_size;
+	if (last_idx == (pio_read_le16(&q->used->idx) % q->queue_size))
+		return false;
+
+	*descno = (uint16_t) pio_read_le32(&q->used->ring[last_idx].id);
+	*len = pio_read_le32(&q->used->ring[last_idx].len);
+
+	q->used_last_idx++;
+
+	return true;
+}
+
 errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 {
 	virtq_t *q = &vdev->queues[num];
@@ -119,6 +136,7 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 	q->desc = q->virt;
 	q->avail = q->virt + avail_offset;
 	q->used = q->virt + used_offset;
+	q->used_last_idx = 0;
 
 	memset(q->virt, 0, q->size);
 

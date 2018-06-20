@@ -142,6 +142,7 @@ typedef struct {
 	virtq_avail_t *avail;
 	/** Virtual address of the used ring */
 	virtq_used_t *used;
+	uint16_t used_last_idx;
 
 	/** Address of the queue's notification register */
 	ioport16_t *notify;
@@ -181,6 +182,8 @@ extern uint16_t virtio_virtq_desc_get_next(virtio_dev_t *vdev, uint16_t,
     uint16_t);
 
 extern void virtio_virtq_produce_available(virtio_dev_t *, uint16_t, uint16_t);
+extern bool virtio_virtq_consume_used(virtio_dev_t *, uint16_t, uint16_t *,
+    uint32_t *);
 
 extern errno_t virtio_virtq_setup(virtio_dev_t *, uint16_t, uint16_t);
 extern void virtio_virtq_teardown(virtio_dev_t *, uint16_t);

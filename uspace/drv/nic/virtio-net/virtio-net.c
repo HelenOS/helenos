@@ -68,11 +68,6 @@ static driver_t virtio_net_driver = {
 	.driver_ops = &virtio_net_driver_ops
 };
 
-static void virtio_net_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
-{
-	ddf_msg(LVL_NOTE, "Got interrupt");
-}
-
 static errno_t virtio_net_setup_bufs(unsigned int buffers, size_t size,
     bool write, void *buf[], uintptr_t buf_p[])
 {
@@ -124,6 +119,55 @@ static uint16_t virtio_net_alloc_buf(virtio_dev_t *vdev, uint16_t num,
 	if (descno != (uint16_t) -1U)
 		*head = virtio_virtq_desc_get_next(vdev, num, descno);
 	return descno;
+}
+
+static void virtio_net_free_buf(virtio_dev_t *vdev, uint16_t num,
+    uint16_t *head, uint16_t descno)
+{
+	virtio_virtq_desc_set(vdev, num, descno, 0, 0, VIRTQ_DESC_F_NEXT,
+	    *head);
+	*head = descno;
+}
+
+static void virtio_net_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
+{
+	nic_t *nic = ddf_dev_data_get(dev);
+	virtio_net_t *virtio_net = nic_get_specific(nic);
+	virtio_dev_t *vdev = &virtio_net->virtio_dev;
+
+	uint16_t descno;
+	uint32_t len;
+	while (virtio_virtq_consume_used(vdev, RX_QUEUE_1, &descno, &len)) {
+		virtio_net_hdr_t *hdr =
+		    (virtio_net_hdr_t *) virtio_net->rx_buf[descno];
+		if (len <= sizeof(*hdr)) {
+			ddf_msg(LVL_WARN,
+			    "RX data length too short, packet dropped");
+			virtio_virtq_produce_available(vdev, RX_QUEUE_1,
+			    descno);
+			continue;
+		}
+
+		nic_frame_t *frame = nic_alloc_frame(nic, len - sizeof(*hdr));
+		if (frame) {
+			memcpy(frame->data, &hdr[1], len - sizeof(*hdr));
+			nic_received_frame(nic, frame);
+		} else {
+			ddf_msg(LVL_WARN,
+			    "Cannot allocate RX frame, packet dropped");
+		}
+
+		virtio_virtq_produce_available(vdev, RX_QUEUE_1, descno);
+	}
+
+	while (virtio_virtq_consume_used(vdev, TX_QUEUE_1, &descno, &len)) {
+		virtio_net_free_buf(vdev, TX_QUEUE_1, &virtio_net->tx_free_head,
+		    descno);
+	}
+	while (virtio_virtq_consume_used(vdev, CT_QUEUE_1, &descno, &len)) {
+		virtio_net_free_buf(vdev, CT_QUEUE_1, &virtio_net->ct_free_head,
+		    descno);
+	}
 }
 
 static errno_t virtio_net_register_interrupt(ddf_dev_t *dev)
@@ -364,7 +408,7 @@ static void virtio_net_send(nic_t *nic, void *data, size_t size)
 	memset(hdr, 0, sizeof(virtio_net_hdr_t));
 	hdr->gso_type = VIRTIO_NET_HDR_GSO_NONE;
 
-	/* Copy packet data into the buffer just past the header */ 
+	/* Copy packet data into the buffer just past the header */
 	memcpy(&hdr[1], data, size);
 
 	/*
