@@ -49,7 +49,7 @@
  */
 int vsprintf(char *s, const char *fmt, va_list ap)
 {
-	return vsnprintf(s, SIZE_MAX, fmt, args);
+	return vsnprintf(s, SIZE_MAX, fmt, ap);
 }
 
 /** @}
