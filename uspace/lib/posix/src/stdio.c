@@ -277,37 +277,6 @@ int vdprintf(int fildes, const char *restrict format, va_list ap)
 }
 
 /**
- * Print formatted output to the string.
- *
- * @param s Output string.
- * @param format Format description.
- * @return Either the number of printed characters (excluding null byte) or
- *     negative value on error.
- */
-int sprintf(char *s, const char *restrict format, ...)
-{
-	va_list list;
-	va_start(list, format);
-	int result = vsprintf(s, format, list);
-	va_end(list);
-	return result;
-}
-
-/**
- * Print formatted output to the string.
- *
- * @param s Output string.
- * @param format Format description.
- * @param ap Print arguments.
- * @return Either the number of printed characters (excluding null byte) or
- *     negative value on error.
- */
-int vsprintf(char *s, const char *restrict format, va_list ap)
-{
-	return vsnprintf(s, INT_MAX, format, ap);
-}
-
-/**
  * Acquire file stream for the thread.
  *
  * @param file File stream to lock.

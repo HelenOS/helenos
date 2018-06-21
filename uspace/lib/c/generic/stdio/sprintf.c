@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,27 +33,29 @@
  */
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 
-/** Print formatted to the given buffer with limited size.
+/** Print formatted to string.
  *
- * @param str  Buffer
- * @param size Buffer size
- * @param fmt  Format string
+ * This function is unsafe, thus it is marked as deprecated. It should never
+ * be used in native HelenOS code.
  *
- * \see For more details about format string see printf_core.
+ * @param str Buffer to write to
+ * @param fmt Format string
  *
+ * @return Number of characters printed on success, negative value on failure
  */
-int snprintf(char *str, size_t size, const char *fmt, ...)
+int sprintf(char *s, const char *fmt, ...)
 {
+	int rc;
+
 	va_list args;
 	va_start(args, fmt);
-
-	int ret = vsnprintf(str, size, fmt, args);
-
+	rc = vsnprintf(s, SIZE_MAX, fmt, args);
 	va_end(args);
 
-	return ret;
+	return rc;
 }
 
 /** @}

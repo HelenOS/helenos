@@ -65,9 +65,6 @@ extern off_t ftello(FILE *stream);
 extern int dprintf(int fildes, const char *__restrict__ format, ...)
     _HELENOS_PRINTF_ATTRIBUTE(2, 3);
 extern int vdprintf(int fildes, const char *__restrict__ format, va_list ap);
-extern int sprintf(char *__restrict__ s, const char *__restrict__ format, ...)
-    _HELENOS_PRINTF_ATTRIBUTE(2, 3);
-extern int vsprintf(char *__restrict__ s, const char *__restrict__ format, va_list ap);
 
 /* File Locking */
 extern void flockfile(FILE *file);

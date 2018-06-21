@@ -83,6 +83,7 @@ extern FILE *stderr;
 #define getc fgetc
 extern int fgetc(FILE *);
 extern char *fgets(char *, int, FILE *);
+extern char *gets(char *, size_t) __attribute__((deprecated));
 
 extern int getchar(void);
 
@@ -113,9 +114,13 @@ extern int snprintf(char *, size_t, const char *, ...)
 #if defined(_HELENOS_SOURCE) || defined(_GNU_SOURCE)
 extern int vasprintf(char **, const char *, va_list);
 extern int asprintf(char **, const char *, ...)
-#endif
     _HELENOS_PRINTF_ATTRIBUTE(2, 3);
+#endif
 extern int vsnprintf(char *, size_t, const char *, va_list);
+
+extern int sprintf(char *, const char *, ...)
+    __attribute__((deprecated)) _HELENOS_PRINTF_ATTRIBUTE(2, 3);
+extern int vsprintf(char *, const char *, va_list) __attribute__((deprecated));
 
 /* Formatted input */
 extern int scanf(const char *, ...);
@@ -158,8 +163,6 @@ extern int remove(const char *);
 #define _IONBF 0
 #define _IOLBF 1
 #define _IOFBF 2
-
-extern char *gets(char *, size_t);
 
 #endif
 
