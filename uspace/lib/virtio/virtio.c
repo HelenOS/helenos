@@ -63,9 +63,9 @@ void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,
 	virtq_t *q = &vdev->queues[num];
 
 	uint16_t idx = pio_read_le16(&q->avail->idx);
-	pio_write_le16(&q->avail->ring[idx], descno);
+	pio_write_le16(&q->avail->ring[idx % q->queue_size], descno);
 	write_barrier();
-	pio_write_le16(&q->avail->idx, (idx + 1) % q->queue_size);
+	pio_write_le16(&q->avail->idx, idx + 1);
 	write_barrier();
 	pio_write_le16(q->notify, num);
 }
