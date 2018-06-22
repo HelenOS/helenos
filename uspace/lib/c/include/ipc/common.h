@@ -49,7 +49,7 @@ typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
 	task_id_t in_task_id;
 	sysarg_t in_phone_hash;
-	unsigned flags;
+	unsigned int flags;
 	struct async_call *label;
 	cap_call_handle_t cap_handle;
 } ipc_call_t;

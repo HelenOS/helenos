@@ -48,7 +48,7 @@ typedef struct context {
 	uint32_t r6;
 	uint32_t r7;
 	uint32_t r8;
-	/* r9*/
+	/* r9 */
 	uint32_t tls;
 	uint32_t r10;
 	/* r11 */
@@ -56,4 +56,3 @@ typedef struct context {
 } context_t;
 
 #endif
-

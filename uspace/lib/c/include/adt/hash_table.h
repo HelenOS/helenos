@@ -101,7 +101,6 @@ extern void hash_table_remove_item(hash_table_t *, ht_link_t *);
 extern void hash_table_apply(hash_table_t *, bool (*)(ht_link_t *, void *),
     void *);
 
-
 #endif
 
 /** @}

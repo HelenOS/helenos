@@ -189,7 +189,6 @@ static void amsg_destroy(amsg_t *msg)
 	free(msg);
 }
 
-
 /** Mutex protecting inactive_exch_list and avail_phone_cv.
  *
  */

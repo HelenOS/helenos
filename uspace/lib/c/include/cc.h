@@ -43,7 +43,6 @@
 #define ATTRIBUTE_OPTIMIZE(opt)
 #endif
 
-
 #endif
 
 /** @}

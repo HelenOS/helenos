@@ -66,8 +66,8 @@ typedef struct {
 
 typedef struct {
 	fibril_owner_info_t oi;  /**< Keep this the first thing. */
-	unsigned writers;
-	unsigned readers;
+	unsigned int writers;
+	unsigned int readers;
 	list_t waiters;
 } fibril_rwlock_t;
 
@@ -144,7 +144,7 @@ typedef struct {
 
 /** A counting semaphore for fibrils. */
 typedef struct {
-	long count;
+	long int count;
 	list_t waiters;
 } fibril_semaphore_t;
 
