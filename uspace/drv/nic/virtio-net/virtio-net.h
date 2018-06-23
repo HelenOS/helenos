@@ -53,7 +53,8 @@ typedef struct {
 	uint16_t gso_size;
 	uint16_t csum_start;
 	uint16_t csum_offset;
-	uint16_t num_buffers;
+// XXX: QEMU uses the legacy layout for some reason
+//	uint16_t num_buffers;
 } virtio_net_hdr_t;
 
 typedef struct {
