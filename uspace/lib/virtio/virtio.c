@@ -200,10 +200,10 @@ errno_t virtio_device_setup_start(virtio_dev_t *vdev, uint32_t features)
 	uint32_t device_features = pio_read_le32(&cfg->device_feature);
 
 	ddf_msg(LVL_NOTE, "offered features %x", device_features);
-	features &= device_features;
 
-	if (!features)
+	if (features != (features & device_features))
 		return ENOTSUP;
+	features &= device_features;
 
 	/* 4. Write the accepted feature flags */
 	pio_write_le32(&cfg->driver_feature_select, VIRTIO_FEATURES_0_31);
