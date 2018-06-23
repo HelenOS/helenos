@@ -415,7 +415,7 @@ static void virtio_net_send(nic_t *nic, void *data, size_t size)
 	 * Set the descriptor, put it into the virtqueue and notify the device
 	 */
 	virtio_virtq_desc_set(vdev, TX_QUEUE_1, descno,
-	    virtio_net->tx_buf_p[descno], TX_BUF_SIZE, 0, 0);
+	    virtio_net->tx_buf_p[descno], sizeof(virtio_net_hdr_t) + size, 0, 0);
 	virtio_virtq_produce_available(vdev, TX_QUEUE_1, descno);
 }
 
