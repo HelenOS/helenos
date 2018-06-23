@@ -419,6 +419,27 @@ static void virtio_net_send(nic_t *nic, void *data, size_t size)
 	virtio_virtq_produce_available(vdev, TX_QUEUE_1, descno);
 }
 
+
+static errno_t virtio_net_on_multicast_mode_change(nic_t *nic,
+    nic_multicast_mode_t new_mode, const nic_address_t *address_list,
+    size_t address_count)
+{
+	switch (new_mode) {
+	case NIC_MULTICAST_BLOCKED:
+		nic_report_hw_filtering(nic, -1, 0, -1);
+		return EOK;
+	case NIC_MULTICAST_LIST:
+		nic_report_hw_filtering(nic, -1, 0, -1);
+		return EOK;
+	case NIC_MULTICAST_PROMISC:
+		nic_report_hw_filtering(nic, -1, 0, -1);
+		return EOK;
+	default:
+		return ENOTSUP;
+	}
+	return EOK;
+}
+
 static errno_t virtio_net_on_broadcast_mode_change(nic_t *nic,
     nic_broadcast_mode_t new_mode)
 {
@@ -451,7 +472,8 @@ static errno_t virtio_net_dev_add(ddf_dev_t *dev)
 	ddf_fun_set_ops(fun, &virtio_net_dev_ops);
 
 	nic_set_send_frame_handler(nic, virtio_net_send);
-	nic_set_filtering_change_handlers(nic, NULL, NULL,
+	nic_set_filtering_change_handlers(nic, NULL,
+	    virtio_net_on_multicast_mode_change,
 	    virtio_net_on_broadcast_mode_change, NULL, NULL);
 
 	rc = ddf_fun_bind(fun);
