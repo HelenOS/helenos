@@ -72,14 +72,6 @@ static inline errno_t string_iterator_next(string_iterator_t *i, wchar_t *out)
 	return EOK;
 }
 
-static inline void *memchr(const void *s, int c, size_t n)
-{
-	for (size_t i = 0; i < n; i++)
-		if (((char *)s)[i] == c)
-			return (void *)(s + i);
-	return NULL;
-}
-
 static inline errno_t bithenge_parse_int(const char *start, bithenge_int_t *result)
 {
 	const char *real_start = *start == '-' ? start + 1 : start;

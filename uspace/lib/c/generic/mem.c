@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005 Martin Decky
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -249,6 +249,29 @@ int memcmp(const void *s1, const void *s2, size_t len)
 	}
 
 	return 0;
+}
+
+/** Search memory area.
+ *
+ * @param s Memory area
+ * @param c Character (byte) to search for
+ * @param n Size of memory area in bytes
+ *
+ * @return Pointer to the first occurrence of @a c in the first @a n
+ *         bytes of @a s or @c NULL if not found.
+ */
+void *memchr(const void *s, int c, size_t n)
+{
+	uint8_t *u = (uint8_t *) s;
+	unsigned char uc = (unsigned char) c;
+	size_t i;
+
+	for (i = 0; i < n; i++) {
+		if (u[i] == uc)
+			return (void *) &u[i];
+	}
+
+	return NULL;
 }
 
 /** @}

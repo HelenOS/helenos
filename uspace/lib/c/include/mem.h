@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +49,8 @@ extern void *memmove(void *, const void *, size_t)
     __attribute__((nonnull(1, 2)));
 extern int memcmp(const void *, const void *, size_t)
     __attribute__((nonnull(1, 2)));
+extern void *memchr(const void *, int, size_t)
+    __attribute__((nonnull(1)));
 
 #endif
 

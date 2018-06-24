@@ -192,6 +192,7 @@ TEST_SOURCES = \
 	test/adt/circ_buf.c \
 	test/fibril/timer.c \
 	test/main.c \
+	test/mem.c \
 	test/io/table.c \
 	test/stdio/scanf.c \
 	test/odict.c \

@@ -290,29 +290,6 @@ int strncmp(const char *s1, const char *s2, size_t n)
 }
 
 /**
- * Find byte in memory.
- *
- * @param mem Memory area in which to look for the byte.
- * @param c Byte to look for.
- * @param n Maximum number of bytes to be inspected.
- * @return Pointer to the specified byte on success,
- *     NULL pointer otherwise.
- */
-void *memchr(const void *mem, int c, size_t n)
-{
-	assert(mem != NULL);
-
-	const unsigned char *s = mem;
-
-	for (size_t i = 0; i < n; ++i) {
-		if (s[i] == (unsigned char) c) {
-			return (void *) &s[i];
-		}
-	}
-	return NULL;
-}
-
-/**
  * Scan string for a first occurence of a character.
  *
  * @param s String in which to look for the character.

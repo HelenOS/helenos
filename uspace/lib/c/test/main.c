@@ -33,6 +33,7 @@ PCUT_INIT;
 
 PCUT_IMPORT(circ_buf);
 PCUT_IMPORT(fibril_timer);
+PCUT_IMPORT(mem);
 PCUT_IMPORT(odict);
 PCUT_IMPORT(qsort);
 PCUT_IMPORT(scanf);

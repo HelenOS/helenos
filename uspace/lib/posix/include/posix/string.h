@@ -35,9 +35,6 @@
 
 #ifndef POSIX_STRING_H_
 #define POSIX_STRING_H_
-
-#include "sys/types.h"
-
 /*
  * TODO: not implemented due to missing locale support
  *
@@ -47,26 +44,9 @@
  */
 
 #include <_bits/NULL.h>
+#include <_bits/size_t.h>
 
-/*
- * These are the same as in HelenOS libc.
- * It would be possible to directly include <str.h> and <mem.h> but
- * it is better not to pollute POSIX namespace with other functions
- * defined in that header.
- *
- * Because libposix is always linked with libc, providing only these
- * forward declarations ought to be enough.
- */
-
-/* From mem.h */
-// #define bzero(ptr, len)  memset((ptr), 0, (len))
-extern void *memset(void *, int, size_t)
-    __attribute__((nonnull(1)));
-extern void *memcpy(void *, const void *, size_t)
-    __attribute__((nonnull(1, 2)));
-extern void *memmove(void *, const void *, size_t)
-    __attribute__((nonnull(1, 2)));
-
+#include "libc/mem.h"
 
 /* Copying and Concatenation */
 extern char *strcpy(char *__restrict__ dest, const char *__restrict__ src);
@@ -79,13 +59,11 @@ extern void *memccpy(void *__restrict__ dest, const void *__restrict__ src, int 
 extern char *strdup(const char *s);
 extern char *strndup(const char *s, size_t n);
 
-/* String/Array Comparison */
-extern int memcmp(const void *mem1, const void *mem2, size_t n);
+/* String Comparison */
 extern int strcmp(const char *s1, const char *s2);
 extern int strncmp(const char *s1, const char *s2, size_t n);
 
 /* Search Functions */
-extern void *memchr(const void *mem, int c, size_t n);
 extern char *strchr(const char *s, int c);
 extern char *strrchr(const char *s, int c);
 extern char *gnu_strchrnul(const char *s, int c);
@@ -120,7 +98,6 @@ extern int ffs(int i);
 extern int strcasecmp(const char *s1, const char *s2);
 extern int strncasecmp(const char *s1, const char *s2, size_t n);
 #endif
-
 
 #endif  // POSIX_STRING_H_
 
