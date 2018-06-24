@@ -39,11 +39,39 @@
 #include <offset.h>
 #include <stdarg.h>
 #include <io/verify.h>
+#include <_bits/NULL.h>
 #include <_bits/size_t.h>
 #include <_bits/wchar_t.h>
 #include <_bits/wint_t.h>
 
+/** Forward declaration */
+struct _IO_FILE;
+typedef struct _IO_FILE FILE;
+
+/** File position */
+typedef struct {
+	off64_t pos;
+} fpos_t;
+
+#ifndef _HELENOS_SOURCE
+#define _IONBF 0
+#define _IOLBF 1
+#define _IOFBF 2
+#endif
+
+/** Default size for stream I/O buffers */
+#define BUFSIZ  4096
+
 #define EOF  (-1)
+
+/** Max number of files that is guaranteed to be able to open at the same time */
+#define FOPEN_MAX VFS_MAX_OPEN_FILES
+
+/** Recommended size of fixed-size array for holding file names. */
+#define FILENAME_MAX 4096
+
+/** Length of "/tmp/tmp.XXXXXX" + 1 */
+#define L_tmpnam 16
 
 #ifndef SEEK_SET
 #define SEEK_SET  0
@@ -57,23 +85,8 @@
 #define SEEK_END  2
 #endif
 
-/** Default size for stream I/O buffers */
-#define BUFSIZ  4096
-
-/** Max number of files that is guaranteed to be able to open at the same time */
-#define FOPEN_MAX VFS_MAX_OPEN_FILES
-
-/** Recommended size of fixed-size array for holding file names. */
-#define FILENAME_MAX 4096
-
-/** Forward declaration */
-struct _IO_FILE;
-typedef struct _IO_FILE FILE;
-
-/** File position */
-typedef struct {
-	off64_t pos;
-} fpos_t;
+/** Minimum number of unique temporary file names */
+#define TMP_MAX 1000000
 
 extern FILE *stdin;
 extern FILE *stdout;
@@ -156,15 +169,11 @@ extern void setvbuf(FILE *, void *, int, size_t);
 extern void setbuf(FILE *, void *);
 
 /* Misc file functions */
-extern int rename(const char *, const char *);
 extern int remove(const char *);
+extern int rename(const char *, const char *);
 
-#ifndef _HELENOS_SOURCE
-#define _IONBF 0
-#define _IOLBF 1
-#define _IOFBF 2
-
-#endif
+extern FILE *tmpfile(void);
+extern char *tmpnam(char *s) __attribute__((deprecated));
 
 #ifdef _HELENOS_SOURCE
 

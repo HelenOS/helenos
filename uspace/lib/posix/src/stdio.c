@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Jiri Zarevucky
  * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,11 +38,14 @@
 #include "posix/stdio.h"
 
 #include <assert.h>
-
 #include <errno.h>
+#include <stdbool.h>
+#include <tmpfile.h>
 
+#include "posix/fcntl.h"
 #include "posix/stdlib.h"
 #include "posix/string.h"
+#include "posix/sys/stat.h"
 #include "posix/sys/types.h"
 #include "posix/unistd.h"
 
@@ -352,34 +356,40 @@ int putchar_unlocked(int c)
 	return putchar(c);
 }
 
-/**
- * Get a unique temporary file name (obsolete).
+/** Determine if directory is an 'appropriate' temporary directory.
  *
- * @param s Buffer for the file name. Must be at least L_tmpnam bytes long.
- * @return The value of s on success, NULL on failure.
+ * @param dir Directory path
+ * @return @c true iff directory is appropriate.
  */
-char *tmpnam(char *s)
+static bool is_appropriate_tmpdir(const char *dir)
 {
-	assert(L_tmpnam >= strlen("/tmp/tnXXXXXX"));
+	struct stat sbuf;
 
-	static char buffer[L_tmpnam + 1];
-	if (s == NULL) {
-		s = buffer;
-	}
+	/* Must not be NULL */
+	if (dir == NULL)
+		return false;
 
-	strcpy(s, "/tmp/tnXXXXXX");
-	mktemp(s);
+	/* Must not be empty */
+	if (dir[0] == '\0')
+		return false;
 
-	if (*s == '\0') {
-		/* Errno set by mktemp(). */
-		return NULL;
-	}
+	if (stat(dir, &sbuf) != 0)
+		return false;
 
-	return s;
+	/* Must be a directory */
+	if ((sbuf.st_mode & S_IFMT) != S_IFDIR)
+		return false;
+
+	/* Must be writable */
+	if (access(dir, W_OK) != 0)
+		return false;
+
+	return true;
 }
 
-/**
- * Get an unique temporary file name with additional constraints (obsolete).
+/** Construct unique file name.
+ *
+ * Never use this function.
  *
  * @param dir Path to directory, where the file should be created.
  * @param pfx Optional prefix up to 5 characters long.
@@ -387,79 +397,36 @@ char *tmpnam(char *s)
  */
 char *tempnam(const char *dir, const char *pfx)
 {
-	/* Sequence number of the filename. */
-	static int seq = 0;
+	const char *dpref;
+	char *d;
+	char *buf;
+	int rc;
 
-	size_t dir_len = strlen(dir);
-	if (dir[dir_len - 1] == '/') {
-		dir_len--;
-	}
+	d = getenv("TMPDIR");
+	if (is_appropriate_tmpdir(d))
+		dpref = d;
+	else if (is_appropriate_tmpdir(dir))
+		dpref = dir;
+	else if (is_appropriate_tmpdir(P_tmpdir))
+		dpref = P_tmpdir;
+	else
+		dpref = "/";
 
-	size_t pfx_len = strlen(pfx);
-	if (pfx_len > 5) {
-		pfx_len = 5;
-	}
+	if (dpref[strlen(dpref) - 1] != '/')
+		rc = asprintf(&buf, "%s/%sXXXXXX", dpref, pfx);
+	else
+		rc = asprintf(&buf, "%s%sXXXXXX", dpref, pfx);
 
-	char *result = malloc(dir_len + /* slash*/ 1 +
-	    pfx_len + /* three-digit seq */ 3 + /* .tmp */ 4 + /* nul */ 1);
+	if (rc < 0)
+		return NULL;
 
-	if (result == NULL) {
-		errno = ENOMEM;
+	rc = __tmpfile_templ(buf, false);
+	if (rc != 0) {
+		free(buf);
 		return NULL;
 	}
 
-	char *res_ptr = result;
-	strncpy(res_ptr, dir, dir_len);
-	res_ptr += dir_len;
-	strncpy(res_ptr, pfx, pfx_len);
-	res_ptr += pfx_len;
-
-	for (; seq < 1000; ++seq) {
-		snprintf(res_ptr, 8, "%03d.tmp", seq);
-
-		int orig_errno = errno;
-		errno = EOK;
-		/* Check if the file exists. */
-		if (access(result, F_OK) == -1) {
-			if (errno == ENOENT) {
-				errno = orig_errno;
-				break;
-			} else {
-				/* errno set by access() */
-				return NULL;
-			}
-		}
-	}
-
-	if (seq == 1000) {
-		free(result);
-		errno = EINVAL;
-		return NULL;
-	}
-
-	return result;
-}
-
-/**
- * Create and open an unique temporary file.
- * The file is automatically removed when the stream is closed.
- *
- * @param dir Path to directory, where the file should be created.
- * @param pfx Optional prefix up to 5 characters long.
- * @return Newly allocated unique path for temporary file. NULL on failure.
- */
-FILE *tmpfile(void)
-{
-	char filename[] = "/tmp/tfXXXXXX";
-	int fd = mkstemp(filename);
-	if (fd == -1) {
-		/* errno set by mkstemp(). */
-		return NULL;
-	}
-
-	/* Unlink the created file, so that it's removed on close(). */
-	unlink(filename);
-	return fdopen(fd, "w+");
+	return buf;
 }
 
 /** @}

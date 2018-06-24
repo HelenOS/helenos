@@ -37,6 +37,7 @@
 #include "posix/stdlib.h"
 
 #include <errno.h>
+#include <tmpfile.h>
 
 #include "posix/fcntl.h"
 #include "posix/limits.h"
@@ -162,25 +163,28 @@ double strtod(const char *restrict nptr, char **restrict endptr)
  */
 int mkstemp(char *tmpl)
 {
-	int fd = -1;
+	int tmpl_len;
+	int file;
 
-	char *tptr = tmpl + strlen(tmpl) - 6;
-
-	while (fd < 0) {
-		if (*mktemp(tmpl) == '\0') {
-			/* Errno set by mktemp(). */
-			return -1;
-		}
-
-		fd = open(tmpl, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
-
-		if (fd == -1) {
-			/* Restore template to it's original state. */
-			snprintf(tptr, 7, "XXXXXX");
-		}
+	tmpl_len = strlen(tmpl);
+	if (tmpl_len < 6) {
+		errno = EINVAL;
+		return -1;
 	}
 
-	return fd;
+	char *tptr = tmpl + tmpl_len - 6;
+	if (strcmp(tptr, "XXXXXX") != 0) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	file = __tmpfile_templ(tmpl, true);
+	if (file < 0) {
+		errno = EIO; // XXX could be more specific
+		return -1;
+	}
+
+	return file;
 }
 
 /**
@@ -193,7 +197,10 @@ int mkstemp(char *tmpl)
  */
 char *mktemp(char *tmpl)
 {
-	int tmpl_len = strlen(tmpl);
+	int tmpl_len;
+	int rc;
+
+	tmpl_len = strlen(tmpl);
 	if (tmpl_len < 6) {
 		errno = EINVAL;
 		*tmpl = '\0';
@@ -207,28 +214,9 @@ char *mktemp(char *tmpl)
 		return tmpl;
 	}
 
-	static int seq = 0;
-
-	for (; seq < 1000000; ++seq) {
-		snprintf(tptr, 7, "%06d", seq);
-
-		int orig_errno = errno;
-		errno = 0;
-		/* Check if the file exists. */
-		if (access(tmpl, F_OK) == -1) {
-			if (errno == ENOENT) {
-				errno = orig_errno;
-				break;
-			} else {
-				/* errno set by access() */
-				*tmpl = '\0';
-				return tmpl;
-			}
-		}
-	}
-
-	if (seq == 10000000) {
-		errno = EEXIST;
+	rc = __tmpfile_templ(tmpl, false);
+	if (rc != 0) {
+		errno = EIO; // XXX could be more specific
 		*tmpl = '\0';
 		return tmpl;
 	}

@@ -38,7 +38,9 @@
 
 #include <errno.h>
 
+#include "posix/dirent.h"
 #include "posix/string.h"
+#include "posix/sys/types.h"
 #include "posix/fcntl.h"
 
 #include "libc/task.h"
@@ -367,10 +369,16 @@ int access(const char *path, int amode)
 		 * Check file existence by attempting to open it.
 		 */
 		int fd = open(path, O_RDONLY);
-		if (fd < 0)
-			return -1;
-		close(fd);
-		return 0;
+		if (fd >= 0) {
+			close(fd);
+			return 0;
+		}
+		DIR *dir = opendir(path);
+		if (dir != NULL) {
+			closedir(dir);
+			return 0;
+		}
+		return -1;
 	} else {
 		/* Invalid amode argument. */
 		errno = EINVAL;

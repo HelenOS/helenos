@@ -81,7 +81,11 @@ SOURCES = \
 
 TEST_SOURCES = \
 	test/main.c \
-	test/scanf.c
+	test/stdio.c \
+	test/stdlib.c \
+	test/unistd.c
+
+EXTRA_TEST_CFLAGS = -Wno-deprecated-declarations
 
 EXPORT_CPPFLAGS = \
 	-specs $$(HELENOS_EXPORT_ROOT)/lib/gcc.specs \

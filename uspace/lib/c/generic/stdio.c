@@ -33,9 +33,15 @@
  */
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <str.h>
 #include <str_error.h>
+#include <tmpfile.h>
 #include <vfs/vfs.h>
+
+/** Static buffer for tmpnam function */
+static char tmpnam_buf[L_tmpnam];
 
 /** Get stream position.
  *
@@ -81,6 +87,10 @@ int rename(const char *old_path, const char *new_path)
 
 	rc = vfs_rename_path(old_path, new_path);
 	if (rc != EOK) {
+		/*
+		 * Note that ISO C leaves the value of errno undefined,
+		 * whereas according to UN*X standards, it is set.
+		 */
 		errno = rc;
 		return -1;
 	}
@@ -95,11 +105,59 @@ int remove(const char *path)
 
 	rc = vfs_unlink_path(path);
 	if (rc != EOK) {
+		/*
+		 * Note that ISO C leaves the value of errno undefined,
+		 * whereas according to UN*X standards, it is set.
+		 */
 		errno = rc;
 		return -1;
 	}
 
 	return 0;
+}
+
+/** Create a temporary file.
+ *
+ * @return Open stream descriptor or @c NULL on error. In that case
+ *         errno is set (UN*X). Note that ISO C leaves the value of errno
+ *         undefined.
+ */
+FILE *tmpfile(void)
+{
+	int file;
+	FILE *stream;
+
+	file = __tmpfile();
+	if (file < 0) {
+		printf("file is < 0\n");
+		errno = EEXIST;
+		return NULL;
+	}
+
+	stream = fdopen(file, "w+");
+	if (stream == NULL) {
+		printf("stream = NULL\n");
+		vfs_put(file);
+		errno = EACCES;
+		return NULL;
+	}
+
+	printf("returning stream\n");
+	return stream;
+}
+
+/** Create name for a temporary file.
+ *
+ * @param s Pointer to array of at least L_tmpnam bytes or @c NULL.
+ * @return The pointer @a s or pointer to internal static buffer on success,
+ *         @c NULL on error.
+ */
+char *tmpnam(char *s)
+{
+	char *p;
+
+	p = (s != NULL) ? s : tmpnam_buf;
+	return __tmpnam(p);
 }
 
 /** Print error message and string representation of @c errno.
@@ -113,6 +171,7 @@ void perror(const char *s)
 	else
 		fprintf(stderr, "%s\n", str_error(errno));
 }
+
 
 /** @}
  */

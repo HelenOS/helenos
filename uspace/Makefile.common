@@ -164,7 +164,7 @@ endif
 # PCUT-based unit tests
 ifneq ($(TEST_SOURCES),)
 	TEST_OUTPUTS = $(TEST_BINARY) $(TEST_BINARY).disasm
-	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__
+	TEST_CFLAGS = -I$(LIB_PREFIX)/pcut/include -D__helenos__ $(EXTRA_TEST_CFLAGS)
 	TEST_BINARY_LIBS = $(LIB_PREFIX)/pcut/libpcut.a
 	EXTRA_CLEAN += $(TEST_OUTPUTS) $(TEST_BINARY).map
 ifneq ($(LIBRARY),)

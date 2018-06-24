@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,8 @@
 
 PCUT_INIT;
 
-PCUT_IMPORT(scanf);
+PCUT_IMPORT(stdio);
+PCUT_IMPORT(stdlib);
+PCUT_IMPORT(unistd);
 
 PCUT_MAIN();

@@ -40,6 +40,7 @@ LINKER_SCRIPTS = \
 PRE_DEPEND =
 EXTRA_OUTPUT = $(LINKER_SCRIPTS)
 EXTRA_CLEAN = $(LINKER_SCRIPTS)
+EXTRA_TEST_CFLAGS = -Wno-deprecated-declarations
 LIBRARY = libc
 SOVERSION = 0.0
 
@@ -150,6 +151,7 @@ GENERIC_SOURCES = \
 	generic/adt/odict.c \
 	generic/adt/prodcons.c \
 	generic/time.c \
+	generic/tmpfile.c \
 	generic/stdio.c \
 	generic/stdlib.c \
 	generic/udebug.c \

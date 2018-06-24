@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,40 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
- */
-/** @file Standard library definitions.
- */
+#ifndef LIBC_TMPFILE_H_
+#define LIBC_TMPFILE_H_
 
-#ifndef POSIX_STDLIB_H_
-#define POSIX_STDLIB_H_
+#include <stdbool.h>
 
-#include "libc/stdlib.h"
-#include "sys/types.h"
+extern int __tmpfile_templ(char *, bool);
+extern int __tmpfile(void);
+extern char *__tmpnam(char *);
 
-#include <_bits/NULL.h>
-
-/* Environment Access */
-extern int putenv(char *string);
-
-/* Symbolic Links */
-extern char *realpath(const char *__restrict__ name, char *__restrict__ resolved);
-
-/* Floating Point Conversion */
-extern double atof(const char *nptr);
-extern float strtof(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern double strtod(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern long double strtold(const char *__restrict__ nptr, char **__restrict__ endptr);
-
-/* Temporary Files */
-extern int mkstemp(char *tmpl);
-
-/* Legacy Declarations */
-extern char *mktemp(char *tmpl) __attribute__((deprecated));
-extern int bsd_getloadavg(double loadavg[], int nelem);
-
-#endif  // POSIX_STDLIB_H_
-
-/** @}
- */
+#endif

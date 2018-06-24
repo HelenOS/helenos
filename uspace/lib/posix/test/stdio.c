@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
- * Copyright (c) 2011 Jiri Zarevucky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,40 +26,69 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
- */
-/** @file Standard library definitions.
- */
+#include <pcut/pcut.h>
+#include <str.h>
+#include "posix/stdio.h"
 
-#ifndef POSIX_STDLIB_H_
-#define POSIX_STDLIB_H_
+PCUT_INIT;
 
-#include "libc/stdlib.h"
-#include "sys/types.h"
+PCUT_TEST_SUITE(stdio);
 
-#include <_bits/NULL.h>
+/** tempnam function with directory argument not having trailing slash */
+PCUT_TEST(tempnam_no_slash)
+{
+	char *p;
+	FILE *f;
 
-/* Environment Access */
-extern int putenv(char *string);
+	p = tempnam("/tmp", "tmp.");
+	PCUT_ASSERT_NOT_NULL(p);
 
-/* Symbolic Links */
-extern char *realpath(const char *__restrict__ name, char *__restrict__ resolved);
+	PCUT_ASSERT_TRUE(str_lcmp(p, "/tmp/tmp.",
+	    str_length("/tmp/tmp.")) == 0);
 
-/* Floating Point Conversion */
-extern double atof(const char *nptr);
-extern float strtof(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern double strtod(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern long double strtold(const char *__restrict__ nptr, char **__restrict__ endptr);
+	f = fopen(p, "w+");
+	PCUT_ASSERT_NOT_NULL(f);
 
-/* Temporary Files */
-extern int mkstemp(char *tmpl);
+	(void) remove(p);
+	fclose(f);
+}
 
-/* Legacy Declarations */
-extern char *mktemp(char *tmpl) __attribute__((deprecated));
-extern int bsd_getloadavg(double loadavg[], int nelem);
+/** tempnam function with directory argument having trailing slash */
+PCUT_TEST(tempnam_with_slash)
+{
+	char *p;
+	FILE *f;
 
-#endif  // POSIX_STDLIB_H_
+	p = tempnam("/tmp/", "tmp.");
+	PCUT_ASSERT_NOT_NULL(p);
 
-/** @}
- */
+	PCUT_ASSERT_TRUE(str_lcmp(p, "/tmp/tmp.",
+	    str_length("/tmp/tmp.")) == 0);
+
+	f = fopen(p, "w+");
+	PCUT_ASSERT_NOT_NULL(f);
+
+	(void) remove(p);
+	fclose(f);
+}
+
+/** tempnam function with NULL directory argument */
+PCUT_TEST(tempnam_no_dir)
+{
+	char *p;
+	FILE *f;
+
+	p = tempnam(NULL, "tmp.");
+	PCUT_ASSERT_NOT_NULL(p);
+
+	PCUT_ASSERT_TRUE(str_lcmp(p, P_tmpdir "/tmp.",
+	    str_length(P_tmpdir "/tmp.")) == 0);
+
+	f = fopen(p, "w+");
+	PCUT_ASSERT_NOT_NULL(f);
+
+	(void) remove(p);
+	fclose(f);
+}
+
+PCUT_EXPORT(stdio);

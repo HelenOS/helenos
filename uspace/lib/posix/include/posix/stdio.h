@@ -47,6 +47,8 @@
 extern FILE *fdopen(int, const char *);
 extern int fileno(FILE *);
 
+#define P_tmpdir "/tmp"
+
 /* Identifying the Terminal */
 #undef L_ctermid
 #define L_ctermid PATH_MAX
@@ -76,11 +78,7 @@ extern int putc_unlocked(int c, FILE *stream);
 extern int putchar_unlocked(int c);
 
 /* Temporary Files */
-#undef L_tmpnam
-#define L_tmpnam PATH_MAX
-extern char *tmpnam(char *s);
 extern char *tempnam(const char *dir, const char *pfx);
-extern FILE *tmpfile(void);
 
 #endif /* POSIX_STDIO_H_ */
 
