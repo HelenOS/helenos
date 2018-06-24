@@ -142,7 +142,6 @@ FILE *tmpfile(void)
 		return NULL;
 	}
 
-	printf("returning stream\n");
 	return stream;
 }
 
