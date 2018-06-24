@@ -37,6 +37,7 @@
 #include <ddf/log.h>
 #include <ops/nic.h>
 #include <pci_dev_iface.h>
+#include <nic/nic.h>
 
 #include <nic.h>
 
@@ -335,13 +336,13 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	 * Read the MAC address
 	 */
 	nic_address_t nic_addr;
-	for (unsigned i = 0; i < 6; i++)
+	for (unsigned i = 0; i < ETH_ADDR; i++)
 		nic_addr.address[i] = pio_read_8(&netcfg->mac[i]);
 	rc = nic_report_address(nic, &nic_addr);
 	if (rc != EOK)
 		goto fail;
 
-	ddf_msg(LVL_NOTE, "MAC address: %02x:%02x:%02x:%02x:%02x:%02x",
+	ddf_msg(LVL_NOTE, "MAC address: " PRIMAC,
 	    nic_addr.address[0], nic_addr.address[1], nic_addr.address[2],
 	    nic_addr.address[3], nic_addr.address[4], nic_addr.address[5]);
 

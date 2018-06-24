@@ -31,6 +31,7 @@
 
 #include <virtio-pci.h>
 #include <abi/cap.h>
+#include <nic/nic.h>
 
 #define RX_BUFFERS	8
 #define TX_BUFFERS	8
@@ -58,7 +59,7 @@ typedef struct {
 } virtio_net_hdr_t;
 
 typedef struct {
-	uint8_t mac[6];
+	uint8_t mac[ETH_ADDR];
 } virtio_net_cfg_t;
 
 typedef struct {
