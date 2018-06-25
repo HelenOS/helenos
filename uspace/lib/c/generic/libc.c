@@ -128,7 +128,7 @@ void __libc_main(void *pcb_ptr)
 	 */
 	ptrdiff_t init_array_entries = (__init_array_end - __init_array_start);
 
-	for (int i = init_array_entries - 1; i > 0; --i)
+	for (int i = init_array_entries - 1; i >= 0; --i)
 		__init_array_start[i]();
 
 	/*
