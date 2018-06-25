@@ -56,10 +56,6 @@
 #include "private/io.h"
 #include "private/fibril.h"
 
-#ifdef FUTEX_UPGRADABLE
-#include <rcu.h>
-#endif
-
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
 #endif
@@ -89,11 +85,6 @@ void __libc_main(void *pcb_ptr)
 		abort();
 
 	__tcb_set(fibril->tcb);
-
-
-#ifdef FUTEX_UPGRADABLE
-	rcu_register_fibril();
-#endif
 
 	__async_server_init();
 	__async_client_init();

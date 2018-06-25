@@ -46,25 +46,5 @@ void futex_initialize(futex_t *futex, int val)
 	atomic_set(&futex->val, val);
 }
 
-
-#ifdef FUTEX_UPGRADABLE
-
-int _upgrade_futexes = 0;
-static futex_t upg_and_wait_futex = FUTEX_INITIALIZER;
-
-void futex_upgrade_all_and_wait(void)
-{
-	futex_down(&upg_and_wait_futex);
-
-	if (!_upgrade_futexes) {
-		rcu_assign(_upgrade_futexes, 1);
-		_rcu_synchronize(BM_BLOCK_THREAD);
-	}
-
-	futex_up(&upg_and_wait_futex);
-}
-
-#endif
-
 /** @}
  */

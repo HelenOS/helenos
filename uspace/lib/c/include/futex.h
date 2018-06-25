@@ -41,67 +41,16 @@
 
 typedef struct futex {
 	atomic_t val;
-#ifdef FUTEX_UPGRADABLE
-	int upgraded;
-#endif
 } futex_t;
-
 
 extern void futex_initialize(futex_t *futex, int value);
 
-#ifdef FUTEX_UPGRADABLE
-#include <rcu.h>
-
-#define FUTEX_INITIALIZE(val) {{ (val) }, 0}
-
-#define futex_lock(fut) \
-({ \
-	rcu_read_lock(); \
-	(fut)->upgraded = rcu_access(_upgrade_futexes); \
-	if ((fut)->upgraded) \
-		(void) futex_down((fut)); \
-})
-
-#define futex_trylock(fut) \
-({ \
-	rcu_read_lock(); \
-	int _upgraded = rcu_access(_upgrade_futexes); \
-	if (_upgraded) { \
-		int _acquired = futex_trydown((fut)); \
-		if (!_acquired) { \
-			rcu_read_unlock(); \
-		} else { \
-			(fut)->upgraded = true; \
-		} \
-		_acquired; \
-	} else { \
-		(fut)->upgraded = false; \
-		1; \
-	} \
-})
-
-#define futex_unlock(fut) \
-({ \
-	if ((fut)->upgraded) \
-		(void) futex_up((fut)); \
-	rcu_read_unlock(); \
-})
-
-extern int _upgrade_futexes;
-
-extern void futex_upgrade_all_and_wait(void);
-
-#else
-
 #define FUTEX_INITIALIZE(val) {{ (val) }}
+#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 #define futex_lock(fut)     (void) futex_down((fut))
 #define futex_trylock(fut)  futex_trydown((fut))
 #define futex_unlock(fut)   (void) futex_up((fut))
-
-#endif
-
-#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 /** Try to down the futex.
  *

@@ -50,9 +50,6 @@
 
 #include "private/fibril.h"
 
-#ifdef FUTEX_UPGRADABLE
-#include <rcu.h>
-#endif
 
 /**
  * This futex serializes access to ready_list,
@@ -77,10 +74,6 @@ static void fibril_main(void)
 	futex_unlock(&fibril_futex);
 
 	fibril_t *fibril = fibril_self();
-
-#ifdef FUTEX_UPGRADABLE
-	rcu_register_fibril();
-#endif
 
 	/* Call the implementing function. */
 	fibril->retval = fibril->func(fibril->arg);
@@ -202,12 +195,6 @@ int fibril_switch(fibril_switch_type_t stype)
 		 */
 		break;
 	}
-
-#ifdef FUTEX_UPGRADABLE
-	if (stype == FIBRIL_FROM_DEAD) {
-		rcu_deregister_fibril();
-	}
-#endif
 
 	/* Swap to the next fibril. */
 	context_swap(&srcf->ctx, &dstf->ctx);

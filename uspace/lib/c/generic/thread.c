@@ -47,11 +47,6 @@
 #include "private/thread.h"
 #include "private/fibril.h"
 
-#ifdef FUTEX_UPGRADABLE
-#include <rcu.h>
-#endif
-
-
 /** Main thread function.
  *
  * This function is called from __thread_entry() and is used
@@ -69,11 +64,6 @@ void __thread_main(uspace_arg_t *uarg)
 
 	__tcb_set(fibril->tcb);
 
-#ifdef FUTEX_UPGRADABLE
-	rcu_register_fibril();
-	futex_upgrade_all_and_wait();
-#endif
-
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
 	/*
 	 * XXX: we cannot free the userspace stack while running on it
@@ -84,10 +74,6 @@ void __thread_main(uspace_arg_t *uarg)
 
 	/* If there is a manager, destroy it */
 	async_destroy_manager();
-
-#ifdef FUTEX_UPGRADABLE
-	rcu_deregister_fibril();
-#endif
 
 	fibril_teardown(fibril, false);
 
