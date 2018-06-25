@@ -38,12 +38,38 @@
 #include <atomic.h>
 #include <errno.h>
 #include <libc.h>
+#include <time.h>
 
 typedef struct futex {
 	atomic_t val;
+#ifdef CONFIG_DEBUG_FUTEX
+	_Atomic void *owner;
+#endif
 } futex_t;
 
 extern void futex_initialize(futex_t *futex, int value);
+
+#ifdef CONFIG_DEBUG_FUTEX
+
+#define FUTEX_INITIALIZE(val) {{ (val) }, NULL }
+#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
+
+void __futex_assert_is_locked(futex_t *, const char *);
+void __futex_assert_is_not_locked(futex_t *, const char *);
+void __futex_lock(futex_t *, const char *);
+void __futex_unlock(futex_t *, const char *);
+bool __futex_trylock(futex_t *, const char *);
+void __futex_give_to(futex_t *, void *, const char *);
+
+#define futex_lock(futex) __futex_lock((futex), #futex)
+#define futex_unlock(futex) __futex_unlock((futex), #futex)
+#define futex_trylock(futex) __futex_trylock((futex), #futex)
+
+#define futex_give_to(futex, new_owner) __futex_give_to((futex), (new_owner), #futex)
+#define futex_assert_is_locked(futex) __futex_assert_is_locked((futex), #futex)
+#define futex_assert_is_not_locked(futex) __futex_assert_is_not_locked((futex), #futex)
+
+#else
 
 #define FUTEX_INITIALIZE(val) {{ (val) }}
 #define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
@@ -51,6 +77,12 @@ extern void futex_initialize(futex_t *futex, int value);
 #define futex_lock(fut)     (void) futex_down((fut))
 #define futex_trylock(fut)  futex_trydown((fut))
 #define futex_unlock(fut)   (void) futex_up((fut))
+
+#define futex_give_to(fut, owner) ((void)0)
+#define futex_assert_is_locked(fut) assert((atomic_signed_t) (fut)->val.count <= 0)
+#define futex_assert_is_not_locked(fut) ((void)0)
+
+#endif
 
 /** Try to down the futex.
  *

@@ -149,7 +149,7 @@ int fibril_switch(fibril_switch_type_t stype)
 	case FIBRIL_TO_MANAGER:
 	case FIBRIL_FROM_DEAD:
 		/* Make sure the async_futex is held. */
-		assert((atomic_signed_t) async_futex.val.count <= 0);
+		futex_assert_is_locked(&async_futex);
 
 		/* If we are going to manager and none exists, create it */
 		while (list_empty(&manager_list)) {
@@ -161,11 +161,16 @@ int fibril_switch(fibril_switch_type_t stype)
 		dstf = list_get_instance(list_first(&manager_list),
 		    fibril_t, link);
 
+		/* Bookkeeping. */
+		futex_give_to(&async_futex, dstf);
+
 		if (stype == FIBRIL_FROM_DEAD)
 			dstf->clean_after_me = srcf;
 		break;
 	case FIBRIL_PREEMPT:
 	case FIBRIL_FROM_MANAGER:
+		futex_assert_is_not_locked(&async_futex);
+
 		if (list_empty(&ready_list)) {
 			futex_unlock(&fibril_futex);
 			return 0;
@@ -195,6 +200,9 @@ int fibril_switch(fibril_switch_type_t stype)
 		 */
 		break;
 	}
+
+	/* Bookkeeping. */
+	futex_give_to(&fibril_futex, dstf);
 
 	/* Swap to the next fibril. */
 	context_swap(&srcf->ctx, &dstf->ctx);
