@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <__bits/test/tests.hpp>
 #include <bitset>
 #include <initializer_list>
-#include <__bits/test/tests.hpp>
 #include <sstream>
 #include <string>
 

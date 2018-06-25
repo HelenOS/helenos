@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <initializer_list>
 #include <__bits/test/mock.hpp>
 #include <__bits/test/tests.hpp>
+#include <initializer_list>
 #include <memory>
 #include <type_traits>
 #include <utility>

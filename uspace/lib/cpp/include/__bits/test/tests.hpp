@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_TESTS
-#define LIBCPP_TESTS
+#ifndef LIBCPP_BITS_TEST_TESTS
+#define LIBCPP_BITS_TEST_TESTS
 
-#include <cstdio>
 #include <__bits/test/test.hpp>
+#include <cstdio>
 #include <vector>
 
 namespace std::test

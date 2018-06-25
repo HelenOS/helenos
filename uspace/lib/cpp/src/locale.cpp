@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,12 +32,12 @@ namespace std
 {
     locale::facet::facet(size_t refs)
     {
-        // TODO:
+        // TODO: implement
     }
 
     locale::facet::~facet()
     {
-        // TODO:
+        // TODO: implement
     }
 
     locale::locale() noexcept

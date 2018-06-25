@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <initializer_list>
 #include <__bits/test/tests.hpp>
+#include <initializer_list>
 #include <unordered_set>
 #include <string>
 #include <utility>

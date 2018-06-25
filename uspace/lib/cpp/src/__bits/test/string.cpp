@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <string>
 #include <initializer_list>
 #include <__bits/test/tests.hpp>
+#include <string>
 #include <cstdio>
 
 namespace std::test

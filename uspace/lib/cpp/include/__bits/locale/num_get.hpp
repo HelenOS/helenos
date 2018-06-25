@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,10 +29,10 @@
 #ifndef LIBCPP_BITS_LOCALE_NUM_GET
 #define LIBCPP_BITS_LOCALE_NUM_GET
 
+#include <__bits/locale/locale.hpp>
+#include <__bits/locale/numpunct.hpp>
 #include <cerrno>
 #include <cstring>
-#include <__bits/locale.hpp>
-#include <__bits/locale/numpunct.hpp>
 #include <ios>
 #include <iterator>
 #include <limits>

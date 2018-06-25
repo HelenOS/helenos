@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,8 @@
  * have no use outside of <memory>).
  */
 
-#include <cstddef>
 #include <__bits/aux.hpp>
+#include <cstddef>
 #include <type_traits>
 
 namespace std

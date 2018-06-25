@@ -29,6 +29,10 @@
 #ifndef LIBCPP_BITS_RESULT_OF
 #define LIBCPP_BITS_RESULT_OF
 
+/**
+ * TODO: We have two implementations and I can't remember which
+ *       one is the correnct one, investigate!
+ */
 #include <__bits/invoke.hpp>
 
 namespace std

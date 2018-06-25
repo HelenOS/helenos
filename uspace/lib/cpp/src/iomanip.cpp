@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <__bits/iomanip.hpp>
+#include <__bits/io/iomanip_objs.hpp>
 #include <iomanip>
 
 namespace std

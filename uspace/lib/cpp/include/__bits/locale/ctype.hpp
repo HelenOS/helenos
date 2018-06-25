@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,9 +29,9 @@
 #ifndef LIBCPP_BITS_LOCALE_CTYPE
 #define LIBCPP_BITS_LOCALE_CTYPE
 
+#include <__bits/locale/locale.hpp>
+#include <__bits/string/string.hpp>
 #include <cctype>
-#include <__bits/locale.hpp>
-#include <impl/string.hpp>
 
 namespace std
 {

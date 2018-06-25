@@ -31,8 +31,11 @@
 
 #include <__bits/functional/conditional_function_typedefs.hpp>
 #include <__bits/functional/reference_wrapper.hpp>
+#include <__bits/memory/allocator_arg.hpp>
+#include <__bits/memory/allocator_traits.hpp>
 #include <typeinfo>
 #include <type_traits>
+#include <utility>
 
 namespace std
 {

@@ -29,13 +29,13 @@
 #ifndef LIBCPP_BITS_MEMORY_SHARED_PTR
 #define LIBCPP_BITS_MEMORY_SHARED_PTR
 
-#include <exception>
 #include <__bits/functional/arithmetic_operations.hpp>
 #include <__bits/functional/hash.hpp>
 #include <__bits/memory/allocator_arg.hpp>
 #include <__bits/memory/shared_payload.hpp>
 #include <__bits/memory/unique_ptr.hpp>
 #include <__bits/trycatch.hpp>
+#include <exception>
 #include <type_traits>
 
 namespace std

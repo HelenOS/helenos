@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 #ifndef LIBCPP_BITS_LOCALE_CODECVT
 #define LIBCPP_BITS_LOCALE_CODECVT
 
-#include <intetnal/locale.hpp>
+#include <__bits/locale/locale.hpp>
 #include <string>
 
 namespace std

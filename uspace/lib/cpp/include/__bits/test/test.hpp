@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBCPP_TEST_TEST
-#define LIBCPP_TEST_TEST
+#ifndef LIBCPP_BITS_TEST
+#define LIBCPP_BITS_TEST
 
 #include <utility>
 #include <iterator>

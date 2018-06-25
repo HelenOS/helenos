@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <__bits/test/tests.hpp>
 #include <array>
 #include <complex>
 #include <initializer_list>
-#include <__bits/test/tests.hpp>
 #include <numeric>
 #include <utility>
 

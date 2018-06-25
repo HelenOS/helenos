@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Jaroslav Jindrak
+ * Copyright (c) 2018 Jaroslav Jindrak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#ifndef LIBCPP_BITS_ABI
+#define LIBCPP_BITS_ABI
 
 #include <cstddef>
 #include <cstdint>
@@ -157,3 +160,5 @@ namespace __cxxabiv1
 }
 
 namespace abi = __cxxabiv1;
+
+#endif

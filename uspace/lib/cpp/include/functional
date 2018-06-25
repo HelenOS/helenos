@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <impl/functional.hpp>
 #include <__bits/functional/arithmetic_operations.hpp>
 #include <__bits/functional/bind.hpp>
 #include <__bits/functional/function.hpp>
+#include <__bits/functional/functional.hpp>
 #include <__bits/functional/invoke.hpp>
 #include <__bits/functional/hash.hpp>
 #include <__bits/functional/reference_wrapper.hpp>
