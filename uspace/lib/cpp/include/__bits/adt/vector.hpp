@@ -554,7 +554,7 @@ namespace std
                 if (hint != 0)
                     return max(capacity_ * 2, hint);
                 else
-                    return max(capacity_ * 2, 2ul);
+                    return max(capacity_ * 2, size_type{2u});
             }
 
             iterator shift_(iterator position, size_type count)
