@@ -32,6 +32,7 @@
 namespace std::hel
 {
     extern "C" {
+        #include <async.h>
         #include <fibril.h>
         #include <fibril_synch.h>
     }
@@ -156,7 +157,7 @@ namespace std::aux
 
             static void sleep(time_unit time)
             {
-                hel::fibril_usleep(time);
+                hel::async_usleep(time);
             }
         };
 

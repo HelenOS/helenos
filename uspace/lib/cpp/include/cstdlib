@@ -77,8 +77,8 @@ namespace std
     /* using std::hel::mbstowcs; */
     /* using std::hel::wcstombs; */
 
-    using std::hel::random; // Supposed to be rand.
-    using std::hel::srandom; // Supposed to be srand.
+    using std::hel::rand;
+    using std::hel::srand;
     using std::hel::qsort;
     /* using std::hel::bsearch; */
     /* using std::hel::abs; */
@@ -126,8 +126,8 @@ using std::hel::free;
 /* using std::hel::mbstowcs; */
 /* using std::hel::wcstombs; */
 
-using std::hel::random; // Supposed to be rand.
-using std::hel::srandom; // Supposed to be srand.
+using std::hel::rand;
+using std::hel::srand;
 using std::hel::qsort;
 /* using std::hel::bsearch; */
 /* using std::hel::abs; */

@@ -199,8 +199,6 @@ static unsigned int elf_load_module(elf_ld_t *elf)
 
 	elf->info->interp = NULL;
 	elf->info->dynamic = NULL;
-	elf->info->cpp_data.ctors_count = 0;
-	elf->info->cpp_data.dtors_count = 0;
 
 	if (phdr_len > sizeof(phdr)) {
 		DPRINTF("more than %d program headers\n", phdr_cap);

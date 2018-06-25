@@ -111,7 +111,6 @@ void elf_set_pcb(elf_info_t *info, pcb_t *pcb)
 	pcb->entry = info->finfo.entry;
 	pcb->dynamic = info->finfo.dynamic;
 	pcb->rtld_runtime = info->env;
-	pcb->cpp_data = info->finfo.cpp_data;
 }
 
 /** @}

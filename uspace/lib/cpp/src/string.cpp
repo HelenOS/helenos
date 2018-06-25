@@ -98,6 +98,11 @@ namespace std
         return 0.0l;
     }
 
+    namespace hel
+    {
+        extern "C" int asprintf(char**, const char*, ...);
+    }
+
     string to_string(int val)
     {
         char* tmp;

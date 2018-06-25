@@ -31,20 +31,25 @@
 
 #include <__bits/common.hpp>
 
+/**
+ * TODO: Currently the <setjmp.h> header uses
+ *       _Noreturn, which is not available in C++.
+ */
+
 namespace std::hel
 {
     extern "C" {
-        #include <setjmp.h>
+        //#include <setjmp.h>
     }
 }
 
 namespace std
 {
-    using std::hel::jmp_buf;
-    using std::hel::longjmp;
+    /* using std::hel::jmp_buf; */
+    /* using std::hel::longjmp; */
 }
 
-using std::hel::jmp_buf;
-using std::hel::longjmp;
+/* using std::hel::jmp_buf; */
+/* using std::hel::longjmp; */
 
 #endif

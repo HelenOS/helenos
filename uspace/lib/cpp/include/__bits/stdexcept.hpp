@@ -48,7 +48,7 @@ namespace std
             const char* what() const noexcept override;
 
         protected:
-            const char* what_;
+            char* what_;
     };
 
     class domain_error: public logic_error
@@ -95,7 +95,7 @@ namespace std
             const char* what() const noexcept override;
 
         protected:
-            const char* what_;
+            char* what_;
     };
 
     class range_error: public runtime_error

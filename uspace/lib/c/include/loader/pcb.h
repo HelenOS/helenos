@@ -74,8 +74,6 @@ typedef struct {
 	void *dynamic;
 	/** Pointer to dynamic linker state structure (rtld_t). */
 	void *rtld_runtime;
-	/** C++ related data. */
-	cpp_data_t cpp_data;
 } pcb_t;
 
 /**
