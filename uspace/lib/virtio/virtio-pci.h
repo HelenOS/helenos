@@ -35,6 +35,7 @@
 #include <ddf/driver.h>
 #include <pci_dev_iface.h>
 #include <ddi.h>
+#include <fibril_synch.h>
 
 #define VIRTIO_PCI_CAP_CAP_LEN(c)	((c) + 2)
 #define VIRTIO_PCI_CAP_CFG_TYPE(c)	((c) + 3)
@@ -129,6 +130,9 @@ typedef struct {
 	void *virt;
 	uintptr_t phys;
 	size_t size;
+
+	/** Mutex protecting access to this virtqueue */
+	fibril_mutex_t lock;
 
 	/**
 	 * Size of the queue which determines the number of descriptors and

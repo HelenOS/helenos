@@ -154,9 +154,12 @@ static void virtio_net_create_desc_free_list(virtio_dev_t *vdev, uint16_t num,
 static uint16_t virtio_net_alloc_desc(virtio_dev_t *vdev, uint16_t num,
     uint16_t *head)
 {
+	virtq_t *q = &vdev->queues[num];
+	fibril_mutex_lock(&q->lock);
 	uint16_t descno = *head;
 	if (descno != (uint16_t) -1U)
 		*head = virtio_virtq_desc_get_next(vdev, num, descno);
+	fibril_mutex_unlock(&q->lock);
 	return descno;
 }
 
@@ -170,9 +173,12 @@ static uint16_t virtio_net_alloc_desc(virtio_dev_t *vdev, uint16_t num,
 static void virtio_net_free_desc(virtio_dev_t *vdev, uint16_t num,
     uint16_t *head, uint16_t descno)
 {
+	virtq_t *q = &vdev->queues[num];
+	fibril_mutex_lock(&q->lock);
 	virtio_virtq_desc_set(vdev, num, descno, 0, 0, VIRTQ_DESC_F_NEXT,
 	    *head);
 	*head = descno;
+	fibril_mutex_unlock(&q->lock);
 }
 
 static void virtio_net_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)

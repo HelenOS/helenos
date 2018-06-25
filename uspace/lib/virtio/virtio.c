@@ -62,12 +62,14 @@ void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,
 {
 	virtq_t *q = &vdev->queues[num];
 
+	fibril_mutex_lock(&q->lock);
 	uint16_t idx = pio_read_le16(&q->avail->idx);
 	pio_write_le16(&q->avail->ring[idx % q->queue_size], descno);
 	write_barrier();
 	pio_write_le16(&q->avail->idx, idx + 1);
 	write_barrier();
 	pio_write_le16(q->notify, num);
+	fibril_mutex_unlock(&q->lock);
 }
 
 bool virtio_virtq_consume_used(virtio_dev_t *vdev, uint16_t num,
@@ -75,14 +77,18 @@ bool virtio_virtq_consume_used(virtio_dev_t *vdev, uint16_t num,
 {
 	virtq_t *q = &vdev->queues[num];
 
+	fibril_mutex_lock(&q->lock);
 	uint16_t last_idx = q->used_last_idx % q->queue_size;
-	if (last_idx == (pio_read_le16(&q->used->idx) % q->queue_size))
+	if (last_idx == (pio_read_le16(&q->used->idx) % q->queue_size)) {
+		fibril_mutex_unlock(&q->lock);
 		return false;
+	}
 
 	*descno = (uint16_t) pio_read_le32(&q->used->ring[last_idx].id);
 	*len = pio_read_le32(&q->used->ring[last_idx].len);
 
 	q->used_last_idx++;
+	fibril_mutex_unlock(&q->lock);
 
 	return true;
 }
@@ -130,6 +136,8 @@ errno_t virtio_virtq_setup(virtio_dev_t *vdev, uint16_t num, uint16_t size)
 		q->virt = NULL;
 		return rc;
 	}
+
+	fibril_mutex_initialize(&q->lock);
 
 	q->size = mem_size;
 	q->queue_size = size;
