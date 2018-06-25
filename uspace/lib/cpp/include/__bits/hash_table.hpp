@@ -30,7 +30,7 @@
 #define LIBCPP_BITS_HASH_TABLE
 
 #include <cstdlib>
-#include <__bits/list.hpp>
+#include <__bits/list_node.hpp>
 #include <__bits/key_extractors.hpp>
 #include <__bits/hash_table_iterators.hpp>
 #include <__bits/hash_table_policies.hpp>

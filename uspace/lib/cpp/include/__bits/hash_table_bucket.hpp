@@ -29,7 +29,7 @@
 #ifndef LIBCPP_BITS_HASH_TABLE_BUCKET
 #define LIBCPP_BITS_HASH_TABLE_BUCKET
 
-#include <__bits/list.hpp>
+#include <__bits/list_node.hpp>
 
 namespace std::aux
 {

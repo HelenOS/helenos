@@ -30,7 +30,7 @@
 #define LIBCPP_LIST
 
 #include <__bits/insert_iterator.hpp>
-#include <__bits/list.hpp>
+#include <__bits/list_node.hpp>
 #include <cstdlib>
 #include <iterator>
 #include <memory>
