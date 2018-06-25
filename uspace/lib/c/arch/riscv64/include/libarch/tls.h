@@ -50,7 +50,7 @@ static inline void __tcb_set(tcb_t *tcb)
 
 static inline tcb_t *__tcb_get(void)
 {
-	return (void *) 0;
+	return (tcb_t *) 0;
 }
 
 #endif

@@ -56,7 +56,7 @@ static inline tcb_t *__tcb_get(void)
 
 	asm volatile ("mov %%g7, %0\n" : "=r" (retval));
 
-	return retval;
+	return (tcb_t *)retval;
 }
 
 #endif
