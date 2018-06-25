@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup volsrv
- * @{
- */
-/**
- * @file
- * @brief
- */
-
-#ifndef TYPES_PART_H_
-#define TYPES_PART_H_
+#ifndef LIBC_PRIVATE_FIBRIL_H_
+#define LIBC_PRIVATE_FIBRIL_H_
 
 #include <adt/list.h>
-#include <types/label.h>
+#include <context.h>
+#include <libarch/tls.h>
+#include <abi/proc/uarg.h>
+#include <atomic.h>
+#include <futex.h>
 
-/** Partition */
-typedef struct {
-	/** Link to vol_parts */
-	link_t lparts;
-	/** Service ID */
-	service_id_t svc_id;
-	/** Service name */
-	char *svc_name;
-	/** Partition contents */
-	vol_part_cnt_t pcnt;
-	/** Filesystem type */
-	vol_fstype_t fstype;
-	/** Volume label */
-	char *label;
-} vol_part_t;
+struct fibril {
+	// XXX: The first two fields must not move (for taskdump).
+	link_t all_link;
+	context_t ctx;
+
+	link_t link;
+	void *stack;
+	void *arg;
+	errno_t (*func)(void *);
+	tcb_t *tcb;
+
+	fibril_t *clean_after_me;
+	errno_t retval;
+
+	fibril_owner_info_t *waits_for;
+
+	atomic_t futex_locks;
+	bool is_writer : 1;
+};
+
+typedef enum {
+	FIBRIL_PREEMPT,
+	FIBRIL_TO_MANAGER,
+	FIBRIL_FROM_MANAGER,
+	FIBRIL_FROM_DEAD
+} fibril_switch_type_t;
+
+extern fibril_t *fibril_setup(void);
+extern void fibril_teardown(fibril_t *f, bool locked);
+extern int fibril_switch(fibril_switch_type_t stype);
+extern void fibril_add_manager(fid_t fid);
+extern void fibril_remove_manager(void);
+extern fibril_t *fibril_self(void);
 
 #endif
-
-/** @}
- */

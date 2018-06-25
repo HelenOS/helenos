@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "private/async.h"
+#include "private/fibril.h"
 
 static void optimize_execution_power(void)
 {
@@ -200,7 +201,7 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 		awaiter_initialize(&wdata);
 		wdata.fid = (fid_t) f;
 		wdata.wu_event.inlist = true;
-		f->flags &= ~FIBRIL_WRITER;
+		f->is_writer = false;
 		list_append(&wdata.wu_event.link, &frw->waiters);
 		check_for_deadlock(&frw->oi);
 		f->waits_for = &frw->oi;
@@ -224,7 +225,7 @@ void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 		awaiter_initialize(&wdata);
 		wdata.fid = (fid_t) f;
 		wdata.wu_event.inlist = true;
-		f->flags |= FIBRIL_WRITER;
+		f->is_writer = true;
 		list_append(&wdata.wu_event.link, &frw->waiters);
 		check_for_deadlock(&frw->oi);
 		f->waits_for = &frw->oi;
@@ -275,7 +276,7 @@ static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
 
 		f->waits_for = NULL;
 
-		if (f->flags & FIBRIL_WRITER) {
+		if (f->is_writer) {
 			if (frw->readers)
 				break;
 			wdp->active = true;

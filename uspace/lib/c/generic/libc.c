@@ -54,6 +54,7 @@
 #include "private/async.h"
 #include "private/malloc.h"
 #include "private/io.h"
+#include "private/fibril.h"
 
 #ifdef FUTEX_UPGRADABLE
 #include <rcu.h>

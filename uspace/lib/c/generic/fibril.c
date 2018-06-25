@@ -48,6 +48,8 @@
 #include <assert.h>
 #include <async.h>
 
+#include "private/fibril.h"
+
 #ifdef FUTEX_UPGRADABLE
 #include <rcu.h>
 #endif
@@ -74,7 +76,7 @@ static void fibril_main(void)
 	/* fibril_futex is locked when a fibril is first started. */
 	futex_unlock(&fibril_futex);
 
-	fibril_t *fibril = __tcb_get()->fibril_data;
+	fibril_t *fibril = fibril_self();
 
 #ifdef FUTEX_UPGRADABLE
 	rcu_register_fibril();
@@ -97,7 +99,7 @@ fibril_t *fibril_setup(void)
 	if (!tcb)
 		return NULL;
 
-	fibril_t *fibril = malloc(sizeof(fibril_t));
+	fibril_t *fibril = calloc(1, sizeof(fibril_t));
 	if (!fibril) {
 		tls_free(tcb);
 		return NULL;
@@ -105,15 +107,6 @@ fibril_t *fibril_setup(void)
 
 	tcb->fibril_data = fibril;
 	fibril->tcb = tcb;
-
-	fibril->func = NULL;
-	fibril->arg = NULL;
-	fibril->stack = NULL;
-	fibril->clean_after_me = NULL;
-	fibril->retval = 0;
-	fibril->flags = 0;
-
-	fibril->waits_for = NULL;
 
 	/*
 	 * We are called before __tcb_set(), so we need to use
@@ -155,7 +148,7 @@ int fibril_switch(fibril_switch_type_t stype)
 {
 	futex_lock(&fibril_futex);
 
-	fibril_t *srcf = __tcb_get()->fibril_data;
+	fibril_t *srcf = fibril_self();
 	fibril_t *dstf = NULL;
 
 	/* Choose a new fibril to run */
@@ -344,6 +337,11 @@ void fibril_remove_manager(void)
 	futex_unlock(&fibril_futex);
 }
 
+fibril_t *fibril_self(void)
+{
+	return __tcb_get()->fibril_data;
+}
+
 /** Return fibril id of the currently running fibril.
  *
  * @return fibril ID of the currently running fibril.
@@ -351,7 +349,12 @@ void fibril_remove_manager(void)
  */
 fid_t fibril_get_id(void)
 {
-	return (fid_t) __tcb_get()->fibril_data;
+	return (fid_t) fibril_self();
+}
+
+void fibril_yield(void)
+{
+	fibril_switch(FIBRIL_PREEMPT);
 }
 
 /** @}

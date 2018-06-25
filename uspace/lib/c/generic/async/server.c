@@ -119,6 +119,7 @@
 #include <as.h>
 #include <abi/mm/as.h>
 #include "../private/libc.h"
+#include "../private/fibril.h"
 
 /** Async framework global futex */
 futex_t async_futex = FUTEX_INITIALIZER;
@@ -1881,6 +1882,13 @@ errno_t async_state_change_finalize(cap_call_handle_t chandle,
     async_exch_t *other_exch)
 {
 	return ipc_answer_1(chandle, EOK, CAP_HANDLE_RAW(other_exch->phone));
+}
+
+_Noreturn void async_manager(void)
+{
+	futex_down(&async_futex);
+	fibril_switch(FIBRIL_FROM_DEAD);
+	__builtin_unreachable();
 }
 
 /** @}

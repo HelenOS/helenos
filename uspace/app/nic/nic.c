@@ -33,6 +33,7 @@
  *
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <loc.h>
 #include <nic_iface.h>

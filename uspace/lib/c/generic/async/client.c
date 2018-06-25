@@ -120,6 +120,7 @@
 #include <as.h>
 #include <abi/mm/as.h>
 #include "../private/libc.h"
+#include "../private/fibril.h"
 
 /** Naming service session */
 async_sess_t session_ns;

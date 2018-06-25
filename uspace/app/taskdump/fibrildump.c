@@ -32,6 +32,8 @@
 /** @file
  */
 
+#include <adt/list.h>
+#include <context.h>
 #include <errno.h>
 #include <fibril.h>
 #include <fibrildump.h>
@@ -41,6 +43,12 @@
 #include <symtab.h>
 #include <taskdump.h>
 #include <udebug.h>
+
+struct fibril {
+	link_t all_link;
+	context_t ctx;
+	uint8_t __opaque[];
+};
 
 static errno_t fibrildump_read_uintptr(void *, uintptr_t, uintptr_t *);
 

@@ -45,6 +45,7 @@
 #include <errno.h>
 #include <as.h>
 #include "private/thread.h"
+#include "private/fibril.h"
 
 #ifdef FUTEX_UPGRADABLE
 #include <rcu.h>

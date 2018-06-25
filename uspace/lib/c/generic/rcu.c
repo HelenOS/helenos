@@ -81,6 +81,8 @@
 #include <time.h>
 #include <thread.h>
 
+#include "private/fibril.h"
+
 
 /** RCU sleeps for RCU_SLEEP_MS before polling an active RCU reader again. */
 #define RCU_SLEEP_MS        10
