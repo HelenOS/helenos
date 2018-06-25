@@ -370,5 +370,8 @@ endif
 %.lo: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
+%.lo: %.cpp | depend
+	$(CPP) $(CPPFLAGS) $(EXTRA_CPPFLAGS) -c $< -o $@
+
 -include $(DEPENDS)
 
