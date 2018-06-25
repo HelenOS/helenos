@@ -68,17 +68,19 @@ struct timeval {
 	suseconds_t tv_usec;  /* microseconds */
 };
 
+#define TIMEVAL_MAX ((struct timeval) { .tv_sec = LONG_MAX, .tv_usec = 999999 })
+
 struct timezone {
 	int tz_minuteswest;  /* minutes W of Greenwich */
 	int tz_dsttime;      /* type of dst correction */
 };
 
 extern void tv_add_diff(struct timeval *, suseconds_t);
-extern void tv_add(struct timeval *, struct timeval *);
-extern suseconds_t tv_sub_diff(struct timeval *, struct timeval *);
-extern void tv_sub(struct timeval *, struct timeval *);
-extern int tv_gt(struct timeval *, struct timeval *);
-extern int tv_gteq(struct timeval *, struct timeval *);
+extern void tv_add(struct timeval *, const struct timeval *);
+extern suseconds_t tv_sub_diff(const struct timeval *, const struct timeval *);
+extern void tv_sub(struct timeval *, const struct timeval *);
+extern int tv_gt(const struct timeval *, const struct timeval *);
+extern int tv_gteq(const struct timeval *, const struct timeval *);
 extern void gettimeofday(struct timeval *, struct timezone *);
 extern void getuptime(struct timeval *);
 
