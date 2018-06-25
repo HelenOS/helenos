@@ -64,6 +64,7 @@
 #include <stdexcept>
 #include <complex>
 #include <future>
+#include <shared_mutex>
 
 #include <__bits/hash_table.hpp>
 #include <__bits/rbtree.hpp>
