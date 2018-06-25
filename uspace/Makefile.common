@@ -236,12 +236,13 @@ HELENOS_CFLAGS = \
 CFLAGS = $(COMMON_CPPFLAGS) $(COMMON_CFLAGS) $(HELENOS_CFLAGS) $(DEFAULT_CFLAGS)
 
 # Flags for the compilation of C++ code.
-CPPFLAGS = $(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+CPPFLAGS = $(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) -O$(OPTIMIZATION) $(CPP_FLOAT) \
+	-imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -ffunction-sections \
 	-nostdlib -nostdinc -Wall -Wextra -Wno-clobbered -Wno-unused-parameter \
 	-std=c++17 -Werror-implicit-function-declaration \
-	-Wwrite-strings -pipe -ggdb -D__$(ENDIANESS)__ -msoft-float
+	-Wwrite-strings -pipe -ggdb -D__$(ENDIANESS)__
 
 ## Setup platform configuration
 #
