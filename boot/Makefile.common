@@ -138,6 +138,7 @@ RD_DRVS_NON_ESSENTIAL = \
 	nic/rtl8139 \
 	nic/rtl8169 \
 	nic/ar9271 \
+	nic/virtio-net \
 	block/ahci
 
 RD_DRV_CFG =

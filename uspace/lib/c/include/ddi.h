@@ -39,6 +39,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/time.h>
+#include <byteorder.h>
 #include <abi/ddi/irq.h>
 #include <device/hw_res.h>
 #include <device/hw_res_parsed.h>
@@ -63,7 +64,8 @@ extern errno_t dmamem_unmap(void *, size_t);
 extern errno_t dmamem_unmap_anonymous(void *);
 
 extern errno_t pio_enable_range(addr_range_t *, void **);
-extern errno_t pio_enable_resource(pio_window_t *, hw_resource_t *, void **);
+extern errno_t pio_enable_resource(pio_window_t *, hw_resource_t *, void **,
+    uintptr_t *, size_t *);
 extern errno_t pio_enable(void *, size_t, void **);
 extern errno_t pio_disable(void *, size_t);
 
@@ -83,6 +85,56 @@ extern uint8_t pio_read_8(const ioport8_t *);
 extern uint16_t pio_read_16(const ioport16_t *);
 extern uint32_t pio_read_32(const ioport32_t *);
 extern uint64_t pio_read_64(const ioport64_t *);
+
+static inline void pio_write_le16(ioport16_t *reg, uint16_t val)
+{
+	pio_write_16(reg, host2uint16_t_le(val));
+}
+static inline void pio_write_be16(ioport16_t *reg, uint16_t val)
+{
+	pio_write_16(reg, host2uint16_t_be(val));
+}
+static inline void pio_write_le32(ioport32_t *reg, uint32_t val)
+{
+	pio_write_32(reg, host2uint32_t_le(val));
+}
+static inline void pio_write_be32(ioport32_t *reg, uint32_t val)
+{
+	pio_write_32(reg, host2uint32_t_be(val));
+}
+static inline void pio_write_le64(ioport64_t *reg, uint64_t val)
+{
+	pio_write_64(reg, host2uint64_t_le(val));
+}
+static inline void pio_write_be64(ioport64_t *reg, uint64_t val)
+{
+	pio_write_64(reg, host2uint64_t_be(val));
+}
+
+static inline uint16_t pio_read_le16(const ioport16_t *reg)
+{
+	return uint16_t_le2host(pio_read_16(reg));
+}
+static inline uint16_t pio_read_be16(const ioport16_t *reg)
+{
+	return uint16_t_be2host(pio_read_16(reg));
+}
+static inline uint32_t pio_read_le32(const ioport32_t *reg)
+{
+	return uint32_t_le2host(pio_read_32(reg));
+}
+static inline uint32_t pio_read_be32(const ioport32_t *reg)
+{
+	return uint32_t_be2host(pio_read_32(reg));
+}
+static inline uint64_t pio_read_le64(const ioport64_t *reg)
+{
+	return uint64_t_le2host(pio_read_64(reg));
+}
+static inline uint64_t pio_read_be64(const ioport64_t *reg)
+{
+	return uint64_t_be2host(pio_read_64(reg));
+}
 
 static inline uint8_t pio_change_8(ioport8_t *reg, uint8_t val, uint8_t mask,
     useconds_t delay)

@@ -219,19 +219,22 @@ errno_t pio_enable_range(addr_range_t *range, void **virt)
 
 /** Enable PIO for specified HW resource wrt. to the PIO window.
  *
- * @param win      PIO window. May be NULL if the resources are known to be
- *                 absolute.
- * @param res      Resources specifying the I/O range wrt. to the PIO window.
- * @param virt     Virtual address for application's PIO operations.
+ * @param win        PIO window. May be NULL if the resources are known to be
+ *                   absolute.
+ * @param res        Resources specifying the I/O range wrt. to the PIO window.
+ * @param[out] virt  Virtual address for application's PIO operations.
+ * @param[out] phys  If non-NULL, physical address of the resource
+ * @param[out] size  If non-NULL, size of the enabled resource.
  *
  * @return EOK on success.
  * @return An error code on failure.
  *
  */
-errno_t pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
+errno_t pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt,
+    uintptr_t *phys, size_t *size)
 {
 	uintptr_t addr;
-	size_t size;
+	size_t sz;
 
 	switch (res->type) {
 	case IO_RANGE:
@@ -241,7 +244,7 @@ errno_t pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
 				return EINVAL;
 			addr += win->io.base;
 		}
-		size = res->res.io_range.size;
+		sz = res->res.io_range.size;
 		break;
 	case MEM_RANGE:
 		addr = res->res.mem_range.address;
@@ -250,13 +253,18 @@ errno_t pio_enable_resource(pio_window_t *win, hw_resource_t *res, void **virt)
 				return EINVAL;
 			addr += win->mem.base;
 		}
-		size = res->res.mem_range.size;
+		sz = res->res.mem_range.size;
 		break;
 	default:
 		return EINVAL;
 	}
 
-	return pio_enable((void *) addr, size, virt);
+	if (phys)
+		*phys = addr;
+	if (size)
+		*size = sz;
+
+	return pio_enable((void *) addr, sz, virt);
 }
 
 /** Enable PIO for specified I/O range.
