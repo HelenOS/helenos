@@ -193,4 +193,8 @@ namespace __cxxabiv1
         //       fint dst or fail and return nullptr
         return nullptr;
     }
+
+    // Needed on arm.
+    extern "C" void __cxa_end_cleanup()
+    { /* DUMMY BODY */ }
 }

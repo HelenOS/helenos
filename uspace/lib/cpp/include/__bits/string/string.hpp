@@ -1494,7 +1494,7 @@ namespace std
                 if (hint != 0)
                     return max(capacity_ * 2, hint);
                 else
-                    return max(capacity_ * 2, 2ul);
+                    return max(capacity_ * 2, size_type{2u});
             }
 
             void ensure_free_space_(size_type n)
