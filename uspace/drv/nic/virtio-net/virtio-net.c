@@ -387,9 +387,7 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto fail;
 
-	ddf_msg(LVL_NOTE, "MAC address: " PRIMAC,
-	    nic_addr.address[0], nic_addr.address[1], nic_addr.address[2],
-	    nic_addr.address[3], nic_addr.address[4], nic_addr.address[5]);
+	ddf_msg(LVL_NOTE, "MAC address: " PRIMAC, ARGSMAC(nic_addr.address));
 
 	/*
 	 * Enable IRQ
