@@ -371,9 +371,8 @@ void async_wait_for(aid_t amsgid, errno_t *retval)
 	msg->wdata.to_event.inlist = false;
 
 	/* Leave the async_futex locked when entering this function */
-	fibril_switch(FIBRIL_TO_MANAGER);
-
-	/* Futex is up automatically after fibril_switch */
+	fibril_switch(FIBRIL_FROM_BLOCKED);
+	futex_unlock(&async_futex);
 
 done:
 	if (retval)
@@ -444,9 +443,8 @@ errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, suseconds_t timeout)
 	async_insert_timeout(&msg->wdata);
 
 	/* Leave the async_futex locked when entering this function */
-	fibril_switch(FIBRIL_TO_MANAGER);
-
-	/* Futex is up automatically after fibril_switch */
+	fibril_switch(FIBRIL_FROM_BLOCKED);
+	futex_unlock(&async_futex);
 
 	if (!msg->done)
 		return ETIMEOUT;
@@ -510,9 +508,8 @@ void async_usleep(suseconds_t timeout)
 	async_insert_timeout(&awaiter);
 
 	/* Leave the async_futex locked when entering this function */
-	fibril_switch(FIBRIL_TO_MANAGER);
-
-	/* Futex is up automatically after fibril_switch() */
+	fibril_switch(FIBRIL_FROM_BLOCKED);
+	futex_unlock(&async_futex);
 }
 
 /** Delay execution for the specified number of seconds

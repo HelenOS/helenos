@@ -70,8 +70,9 @@ static LIST_INITIALIZE(fibril_list);
  */
 static void fibril_main(void)
 {
-	/* fibril_futex is locked when a fibril is first started. */
+	/* fibril_futex and async_futex are locked when a fibril is started. */
 	futex_unlock(&fibril_futex);
+	futex_unlock(&async_futex);
 
 	fibril_t *fibril = fibril_self();
 
@@ -126,8 +127,8 @@ void fibril_teardown(fibril_t *fibril, bool locked)
 
 /** Switch from the current fibril.
  *
- * If stype is FIBRIL_TO_MANAGER or FIBRIL_FROM_DEAD, the async_futex must
- * be held.
+ * The async_futex must be held when entering this function,
+ * and is still held on return.
  *
  * @param stype Switch type. One of FIBRIL_PREEMPT, FIBRIL_TO_MANAGER,
  *              FIBRIL_FROM_MANAGER, FIBRIL_FROM_DEAD. The parameter
@@ -139,17 +140,22 @@ void fibril_teardown(fibril_t *fibril, bool locked)
  */
 int fibril_switch(fibril_switch_type_t stype)
 {
+	/* Make sure the async_futex is held. */
+	futex_assert_is_locked(&async_futex);
+
 	futex_lock(&fibril_futex);
 
 	fibril_t *srcf = fibril_self();
 	fibril_t *dstf = NULL;
 
 	/* Choose a new fibril to run */
-	switch (stype) {
-	case FIBRIL_TO_MANAGER:
-	case FIBRIL_FROM_DEAD:
-		/* Make sure the async_futex is held. */
-		futex_assert_is_locked(&async_futex);
+	if (list_empty(&ready_list)) {
+		if (stype == FIBRIL_PREEMPT) {
+			// FIXME: This means that as long as there is a fibril
+			// that only yields, IPC messages are never retrieved.
+			futex_unlock(&fibril_futex);
+			return 0;
+		}
 
 		/* If we are going to manager and none exists, create it */
 		while (list_empty(&manager_list)) {
@@ -160,27 +166,14 @@ int fibril_switch(fibril_switch_type_t stype)
 
 		dstf = list_get_instance(list_first(&manager_list),
 		    fibril_t, link);
-
-		/* Bookkeeping. */
-		futex_give_to(&async_futex, dstf);
-
-		if (stype == FIBRIL_FROM_DEAD)
-			dstf->clean_after_me = srcf;
-		break;
-	case FIBRIL_PREEMPT:
-	case FIBRIL_FROM_MANAGER:
-		futex_assert_is_not_locked(&async_futex);
-
-		if (list_empty(&ready_list)) {
-			futex_unlock(&fibril_futex);
-			return 0;
-		}
-
+	} else {
 		dstf = list_get_instance(list_first(&ready_list), fibril_t,
 		    link);
-		break;
 	}
+
 	list_remove(&dstf->link);
+	if (stype == FIBRIL_FROM_DEAD)
+		dstf->clean_after_me = srcf;
 
 	/* Put the current fibril into the correct run list */
 	switch (stype) {
@@ -191,18 +184,14 @@ int fibril_switch(fibril_switch_type_t stype)
 		list_append(&srcf->link, &manager_list);
 		break;
 	case FIBRIL_FROM_DEAD:
+	case FIBRIL_FROM_BLOCKED:
 		// Nothing.
-		break;
-	case FIBRIL_TO_MANAGER:
-		/*
-		 * Don't put the current fibril into any list, it should
-		 * already be somewhere, or it will be lost.
-		 */
 		break;
 	}
 
 	/* Bookkeeping. */
 	futex_give_to(&fibril_futex, dstf);
+	futex_give_to(&async_futex, dstf);
 
 	/* Swap to the next fibril. */
 	context_swap(&srcf->ctx, &dstf->ctx);
@@ -349,7 +338,9 @@ fid_t fibril_get_id(void)
 
 void fibril_yield(void)
 {
-	fibril_switch(FIBRIL_PREEMPT);
+	futex_lock(&async_futex);
+	(void) fibril_switch(FIBRIL_PREEMPT);
+	futex_unlock(&async_futex);
 }
 
 /** @}

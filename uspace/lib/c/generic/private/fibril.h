@@ -58,7 +58,7 @@ struct fibril {
 
 typedef enum {
 	FIBRIL_PREEMPT,
-	FIBRIL_TO_MANAGER,
+	FIBRIL_FROM_BLOCKED,
 	FIBRIL_FROM_MANAGER,
 	FIBRIL_FROM_DEAD
 } fibril_switch_type_t;

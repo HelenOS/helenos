@@ -115,11 +115,11 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 		list_append(&wdata.wu_event.link, &fm->waiters);
 		check_for_deadlock(&fm->oi);
 		f->waits_for = &fm->oi;
-		fibril_switch(FIBRIL_TO_MANAGER);
+		fibril_switch(FIBRIL_FROM_BLOCKED);
 	} else {
 		fm->oi.owned_by = f;
-		futex_unlock(&async_futex);
 	}
+	futex_unlock(&async_futex);
 }
 
 bool fibril_mutex_trylock(fibril_mutex_t *fm)
@@ -205,13 +205,13 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 		list_append(&wdata.wu_event.link, &frw->waiters);
 		check_for_deadlock(&frw->oi);
 		f->waits_for = &frw->oi;
-		fibril_switch(FIBRIL_TO_MANAGER);
+		fibril_switch(FIBRIL_FROM_BLOCKED);
 	} else {
 		/* Consider the first reader the owner. */
 		if (frw->readers++ == 0)
 			frw->oi.owned_by = f;
-		futex_unlock(&async_futex);
 	}
+	futex_unlock(&async_futex);
 }
 
 void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
@@ -229,12 +229,12 @@ void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 		list_append(&wdata.wu_event.link, &frw->waiters);
 		check_for_deadlock(&frw->oi);
 		f->waits_for = &frw->oi;
-		fibril_switch(FIBRIL_TO_MANAGER);
+		fibril_switch(FIBRIL_FROM_BLOCKED);
 	} else {
 		frw->oi.owned_by = f;
 		frw->writers++;
-		futex_unlock(&async_futex);
 	}
+	futex_unlock(&async_futex);
 }
 
 static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
@@ -376,10 +376,14 @@ fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
 	}
 	list_append(&wdata.wu_event.link, &fcv->waiters);
 	_fibril_mutex_unlock_unsafe(fm);
-	fibril_switch(FIBRIL_TO_MANAGER);
+	fibril_switch(FIBRIL_FROM_BLOCKED);
+	futex_unlock(&async_futex);
+
+	// XXX: This could be replaced with an unlocked version to get rid
+	// of the unlock-lock pair. I deliberately don't do that because
+	// further changes would most likely need to revert that optimization.
 	fibril_mutex_lock(fm);
 
-	/* async_futex not held after fibril_switch() */
 	futex_lock(&async_futex);
 	if (wdata.to_event.inlist)
 		list_remove(&wdata.to_event.link);
@@ -697,9 +701,9 @@ void fibril_semaphore_down(fibril_semaphore_t *sem)
 
 	wdata.fid = fibril_get_id();
 	list_append(&wdata.wu_event.link, &sem->waiters);
-	fibril_switch(FIBRIL_TO_MANAGER);
 
-	/* async_futex not held after fibril_switch() */
+	fibril_switch(FIBRIL_FROM_BLOCKED);
+	futex_unlock(&async_futex);
 }
 
 /** @}

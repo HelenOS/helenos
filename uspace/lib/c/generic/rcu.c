@@ -372,7 +372,9 @@ static void lock_sync(void)
 		do {
 			blocked_fib.is_ready = false;
 			futex_unlock(&rcu.sync_lock.futex);
-			fibril_switch(FIBRIL_TO_MANAGER);
+			futex_lock(&async_futex);
+			fibril_switch(FIBRIL_FROM_BLOCKED);
+			futex_unlock(&async_futex);
 			futex_lock(&rcu.sync_lock.futex);
 		} while (rcu.sync_lock.locked);
 
