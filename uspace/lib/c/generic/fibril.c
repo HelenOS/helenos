@@ -78,7 +78,7 @@ static void fibril_main(void)
 	/* Call the implementing function. */
 	fibril->retval = fibril->func(fibril->arg);
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 	fibril_switch(FIBRIL_FROM_DEAD);
 	/* Not reached */
 }

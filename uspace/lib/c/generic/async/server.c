@@ -431,12 +431,12 @@ static errno_t connection_fibril(void *arg)
 	/*
 	 * Remove myself from the connection hash table.
 	 */
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 	hash_table_remove(&conn_hash_table, &(conn_key_t){
 		.task_id = fibril_connection->in_task_id,
 		.phone_hash = fibril_connection->in_phone_hash
 	});
-	futex_up(&async_futex);
+	futex_unlock(&async_futex);
 
 	/*
 	 * Answer all remaining messages with EHANGUP.
@@ -519,9 +519,9 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 
 	/* Add connection to the connection hash table */
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 	hash_table_insert(&conn_hash_table, &conn->link);
-	futex_up(&async_futex);
+	futex_unlock(&async_futex);
 
 	fibril_add_ready(conn->wdata.fid);
 
@@ -647,14 +647,14 @@ static bool route_call(cap_call_handle_t chandle, ipc_call_t *call)
 {
 	assert(call);
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 
 	ht_link_t *link = hash_table_find(&conn_hash_table, &(conn_key_t){
 		.task_id = call->in_task_id,
 		.phone_hash = call->in_phone_hash
 	});
 	if (!link) {
-		futex_up(&async_futex);
+		futex_unlock(&async_futex);
 		return false;
 	}
 
@@ -662,7 +662,7 @@ static bool route_call(cap_call_handle_t chandle, ipc_call_t *call)
 
 	msg_t *msg = malloc(sizeof(*msg));
 	if (!msg) {
-		futex_up(&async_futex);
+		futex_unlock(&async_futex);
 		return false;
 	}
 
@@ -686,7 +686,7 @@ static bool route_call(cap_call_handle_t chandle, ipc_call_t *call)
 		fibril_add_ready(conn->wdata.fid);
 	}
 
-	futex_up(&async_futex);
+	futex_unlock(&async_futex);
 	return true;
 }
 
@@ -961,7 +961,7 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	 */
 	connection_t *conn = fibril_connection;
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 
 	if (usecs) {
 		getuptime(&conn->wdata.to_event.expires);
@@ -981,7 +981,7 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			 */
 			memset(call, 0, sizeof(ipc_call_t));
 			IPC_SET_IMETHOD(*call, IPC_M_PHONE_HUNGUP);
-			futex_up(&async_futex);
+			futex_unlock(&async_futex);
 			return conn->close_chandle;
 		}
 
@@ -1002,11 +1002,11 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		 * Futex is up after getting back from async_manager.
 		 * Get it again.
 		 */
-		futex_down(&async_futex);
+		futex_lock(&async_futex);
 		if ((usecs) && (conn->wdata.to_event.occurred) &&
 		    (list_empty(&conn->msg_queue))) {
 			/* If we timed out -> exit */
-			futex_up(&async_futex);
+			futex_unlock(&async_futex);
 			return CAP_NIL;
 		}
 	}
@@ -1019,7 +1019,7 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	*call = msg->call;
 	free(msg);
 
-	futex_up(&async_futex);
+	futex_unlock(&async_futex);
 	return chandle;
 }
 
@@ -1105,7 +1105,7 @@ static void handle_expired_timeouts(void)
 	struct timeval tv;
 	getuptime(&tv);
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 
 	link_t *cur = list_first(&timeout_list);
 	while (cur != NULL) {
@@ -1131,7 +1131,7 @@ static void handle_expired_timeouts(void)
 		cur = list_first(&timeout_list);
 	}
 
-	futex_up(&async_futex);
+	futex_unlock(&async_futex);
 }
 
 /** Endless loop dispatching incoming calls and answers.
@@ -1143,7 +1143,7 @@ static errno_t async_manager_worker(void)
 {
 	while (true) {
 		if (fibril_switch(FIBRIL_FROM_MANAGER)) {
-			futex_up(&async_futex);
+			futex_unlock(&async_futex);
 			/*
 			 * async_futex is always held when entering a manager
 			 * fibril.
@@ -1151,7 +1151,7 @@ static errno_t async_manager_worker(void)
 			continue;
 		}
 
-		futex_down(&async_futex);
+		futex_lock(&async_futex);
 
 		suseconds_t timeout;
 		unsigned int flags = SYNCH_FLAGS_NONE;
@@ -1163,7 +1163,7 @@ static errno_t async_manager_worker(void)
 			getuptime(&tv);
 
 			if (tv_gteq(&tv, &waiter->to_event.expires)) {
-				futex_up(&async_futex);
+				futex_unlock(&async_futex);
 				handle_expired_timeouts();
 				/*
 				 * Notice that even if the event(s) already
@@ -1181,10 +1181,10 @@ static errno_t async_manager_worker(void)
 			} else {
 				timeout = tv_sub_diff(&waiter->to_event.expires,
 				    &tv);
-				futex_up(&async_futex);
+				futex_unlock(&async_futex);
 			}
 		} else {
-			futex_up(&async_futex);
+			futex_unlock(&async_futex);
 			timeout = SYNCH_NO_TIMEOUT;
 		}
 
@@ -1225,7 +1225,7 @@ static errno_t async_manager_worker(void)
  */
 static errno_t async_manager_fibril(void *arg)
 {
-	futex_up(&async_futex);
+	futex_unlock(&async_futex);
 
 	/*
 	 * async_futex is always locked when entering manager
@@ -1886,7 +1886,7 @@ errno_t async_state_change_finalize(cap_call_handle_t chandle,
 
 _Noreturn void async_manager(void)
 {
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 	fibril_switch(FIBRIL_FROM_DEAD);
 	__builtin_unreachable();
 }
