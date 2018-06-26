@@ -37,7 +37,6 @@
 
 #include <stdio.h>
 #include <task.h>
-#include <thread.h>
 #include <stats.h>
 #include <errno.h>
 #include <stdlib.h>

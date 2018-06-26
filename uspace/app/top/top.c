@@ -38,7 +38,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <task.h>
-#include <thread.h>
 #include <sys/time.h>
 #include <errno.h>
 #include <gsort.h>

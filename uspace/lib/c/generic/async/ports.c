@@ -34,7 +34,6 @@
 
 #include <ipc/irq.h>
 #include <ipc/event.h>
-#include <futex.h>
 #include <fibril.h>
 #include <adt/hash_table.h>
 #include <adt/hash.h>
