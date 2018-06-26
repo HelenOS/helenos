@@ -111,6 +111,14 @@ typedef struct thread {
 
 	/** If true, the thread can be interrupted from sleep. */
 	bool sleep_interruptible;
+
+	/**
+	 * If true, and this thread's sleep returns without a wakeup
+	 * (timed out or interrupted), waitq ignores the next wakeup.
+	 * This is necessary for futex to be able to handle those conditions.
+	 */
+	bool sleep_composable;
+
 	/** Wait queue in which this thread sleeps. */
 	waitq_t *sleep_queue;
 	/** Timeout used for timeoutable sleeping.  */

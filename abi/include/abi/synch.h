@@ -44,6 +44,8 @@
 #define SYNCH_FLAGS_NON_BLOCKING   (1 << 0)
 /** Interruptible operation. */
 #define SYNCH_FLAGS_INTERRUPTIBLE  (1 << 1)
+/** Futex operation (makes sleep with timeout composable). */
+#define SYNCH_FLAGS_FUTEX          (1 << 2)
 
 #endif
 

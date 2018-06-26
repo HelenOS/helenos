@@ -397,15 +397,18 @@ static futex_t *get_and_cache_futex(uintptr_t phys_addr, uintptr_t uaddr)
 	return futex;
 }
 
-/** Sleep in futex wait queue.
+/** Sleep in futex wait queue with a timeout.
+ *  If the sleep times out or is interrupted, the next wakeup is ignored.
+ *  The userspace portion of the call must handle this condition.
  *
- * @param uaddr		Userspace address of the futex counter.
+ * @param uaddr	 	Userspace address of the futex counter.
+ * @param timeout	Maximum number of useconds to sleep. 0 means no limit.
  *
  * @return		If there is no physical mapping for uaddr ENOENT is
  *			returned. Otherwise returns the return value of
  *                      waitq_sleep_timeout().
  */
-sys_errno_t sys_futex_sleep(uintptr_t uaddr)
+sys_errno_t sys_futex_sleep(uintptr_t uaddr, uintptr_t timeout)
 {
 	futex_t *futex = get_futex(uaddr);
 
@@ -416,8 +419,8 @@ sys_errno_t sys_futex_sleep(uintptr_t uaddr)
 	udebug_stoppable_begin();
 #endif
 
-	errno_t rc = waitq_sleep_timeout(
-	    &futex->wq, 0, SYNCH_FLAGS_INTERRUPTIBLE, NULL);
+	errno_t rc = waitq_sleep_timeout(&futex->wq, timeout,
+	    SYNCH_FLAGS_INTERRUPTIBLE | SYNCH_FLAGS_FUTEX, NULL);
 
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
