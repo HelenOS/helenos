@@ -42,6 +42,7 @@
 
 typedef struct {
 	errno_t (*read_uintptr)(void *, uintptr_t, uintptr_t *);
+	int (*printf)(const char *, ...);
 } stacktrace_ops_t;
 
 typedef struct {
@@ -50,6 +51,7 @@ typedef struct {
 } stacktrace_t;
 
 extern void stacktrace_print(void);
+extern void stacktrace_kio_print(void);
 extern void stacktrace_print_fp_pc(uintptr_t, uintptr_t);
 extern void stacktrace_print_generic(stacktrace_ops_t *, void *, uintptr_t,
     uintptr_t);

@@ -61,6 +61,9 @@ typedef struct {
 	 */
 	int missed_wakeups;
 
+	/** Number of wakeups that need to be ignored due to futex timeout. */
+	int ignore_wakeups;
+
 	/** List of sleeping threads for which there was no missed_wakeup. */
 	list_t sleepers;
 } waitq_t;

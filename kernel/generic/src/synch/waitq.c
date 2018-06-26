@@ -56,6 +56,7 @@
 #include <context.h>
 #include <adt/list.h>
 #include <arch/cycle.h>
+#include <mem.h>
 
 static void waitq_sleep_timed_out(void *);
 static void waitq_complete_wakeup(waitq_t *);
@@ -70,9 +71,9 @@ static void waitq_complete_wakeup(waitq_t *);
  */
 void waitq_initialize(waitq_t *wq)
 {
+	memsetb(wq, sizeof(*wq), 0);
 	irq_spinlock_initialize(&wq->lock, "wq.lock");
 	list_initialize(&wq->sleepers);
-	wq->missed_wakeups = 0;
 }
 
 /** Handle timeout during waitq_sleep_timeout() call
@@ -113,6 +114,8 @@ grab_locks:
 		list_remove(&thread->wq_link);
 		thread->saved_context = thread->sleep_timeout_context;
 		do_wakeup = true;
+		if (thread->sleep_composable)
+			wq->ignore_wakeups++;
 		thread->sleep_queue = NULL;
 		irq_spinlock_unlock(&wq->lock, false);
 	}
@@ -175,6 +178,8 @@ grab_locks:
 
 		list_remove(&thread->wq_link);
 		thread->saved_context = thread->sleep_interruption_context;
+		if (thread->sleep_composable)
+			wq->ignore_wakeups++;
 		do_wakeup = true;
 		thread->sleep_queue = NULL;
 		irq_spinlock_unlock(&wq->lock, false);
@@ -393,6 +398,8 @@ errno_t waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flag
 	 */
 	irq_spinlock_lock(&THREAD->lock, false);
 
+	THREAD->sleep_composable = (flags & SYNCH_FLAGS_FUTEX);
+
 	if (flags & SYNCH_FLAGS_INTERRUPTIBLE) {
 		/*
 		 * If the thread was already interrupted,
@@ -536,6 +543,14 @@ void _waitq_wakeup_unsafe(waitq_t *wq, wakeup_mode_t mode)
 
 	assert(interrupts_disabled());
 	assert(irq_spinlock_locked(&wq->lock));
+
+	if (wq->ignore_wakeups > 0) {
+		if (mode == WAKEUP_FIRST) {
+			wq->ignore_wakeups--;
+			return;
+		}
+		wq->ignore_wakeups = 0;
+	}
 
 loop:
 	if (list_empty(&wq->sleepers)) {

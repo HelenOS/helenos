@@ -35,73 +35,55 @@
 #ifndef LIBC_FUTEX_H_
 #define LIBC_FUTEX_H_
 
+#include <assert.h>
 #include <atomic.h>
 #include <errno.h>
 #include <libc.h>
+#include <time.h>
 
 typedef struct futex {
 	atomic_t val;
-#ifdef FUTEX_UPGRADABLE
-	int upgraded;
+#ifdef CONFIG_DEBUG_FUTEX
+	_Atomic void *owner;
 #endif
 } futex_t;
 
-
 extern void futex_initialize(futex_t *futex, int value);
 
-#ifdef FUTEX_UPGRADABLE
-#include <rcu.h>
+#ifdef CONFIG_DEBUG_FUTEX
 
-#define FUTEX_INITIALIZE(val) {{ (val) }, 0}
+#define FUTEX_INITIALIZE(val) {{ (val) }, NULL }
+#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
-#define futex_lock(fut) \
-({ \
-	rcu_read_lock(); \
-	(fut)->upgraded = rcu_access(_upgrade_futexes); \
-	if ((fut)->upgraded) \
-		(void) futex_down((fut)); \
-})
+void __futex_assert_is_locked(futex_t *, const char *);
+void __futex_assert_is_not_locked(futex_t *, const char *);
+void __futex_lock(futex_t *, const char *);
+void __futex_unlock(futex_t *, const char *);
+bool __futex_trylock(futex_t *, const char *);
+void __futex_give_to(futex_t *, void *, const char *);
 
-#define futex_trylock(fut) \
-({ \
-	rcu_read_lock(); \
-	int _upgraded = rcu_access(_upgrade_futexes); \
-	if (_upgraded) { \
-		int _acquired = futex_trydown((fut)); \
-		if (!_acquired) { \
-			rcu_read_unlock(); \
-		} else { \
-			(fut)->upgraded = true; \
-		} \
-		_acquired; \
-	} else { \
-		(fut)->upgraded = false; \
-		1; \
-	} \
-})
+#define futex_lock(futex) __futex_lock((futex), #futex)
+#define futex_unlock(futex) __futex_unlock((futex), #futex)
+#define futex_trylock(futex) __futex_trylock((futex), #futex)
 
-#define futex_unlock(fut) \
-({ \
-	if ((fut)->upgraded) \
-		(void) futex_up((fut)); \
-	rcu_read_unlock(); \
-})
-
-extern int _upgrade_futexes;
-
-extern void futex_upgrade_all_and_wait(void);
+#define futex_give_to(futex, new_owner) __futex_give_to((futex), (new_owner), #futex)
+#define futex_assert_is_locked(futex) __futex_assert_is_locked((futex), #futex)
+#define futex_assert_is_not_locked(futex) __futex_assert_is_not_locked((futex), #futex)
 
 #else
 
 #define FUTEX_INITIALIZE(val) {{ (val) }}
+#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 #define futex_lock(fut)     (void) futex_down((fut))
 #define futex_trylock(fut)  futex_trydown((fut))
 #define futex_unlock(fut)   (void) futex_up((fut))
 
-#endif
+#define futex_give_to(fut, owner) ((void)0)
+#define futex_assert_is_locked(fut) assert((atomic_signed_t) (fut)->val.count <= 0)
+#define futex_assert_is_not_locked(fut) ((void)0)
 
-#define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
+#endif
 
 /** Try to down the futex.
  *
@@ -116,19 +98,44 @@ static inline bool futex_trydown(futex_t *futex)
 	return cas(&futex->val, 1, 0);
 }
 
-/** Down the futex.
+/** Down the futex with timeout, composably.
+ *
+ * This means that when the operation fails due to a timeout or being
+ * interrupted, the next futex_up() is ignored, which allows certain kinds of
+ * composition of synchronization primitives.
+ *
+ * In most other circumstances, regular futex_down_timeout() is a better choice.
  *
  * @param futex Futex.
  *
  * @return ENOENT if there is no such virtual address.
+ * @return ETIMEOUT if timeout expires.
  * @return EOK on success.
  * @return Error code from <errno.h> otherwise.
  *
  */
-static inline errno_t futex_down(futex_t *futex)
+static inline errno_t futex_down_composable(futex_t *futex, struct timeval *expires)
 {
+	// TODO: Add tests for this.
+
+	/* No timeout by default. */
+	suseconds_t timeout = 0;
+
+	if (expires) {
+		struct timeval tv;
+		getuptime(&tv);
+		if (tv_gteq(&tv, expires)) {
+			/* We can't just return ETIMEOUT. That wouldn't be composable. */
+			timeout = 1;
+		} else {
+			timeout = tv_sub_diff(expires, &tv);
+		}
+
+		assert(timeout > 0);
+	}
+
 	if ((atomic_signed_t) atomic_predec(&futex->val) < 0)
-		return (errno_t) __SYSCALL1(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count);
+		return (errno_t) __SYSCALL2(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count, (sysarg_t) timeout);
 
 	return EOK;
 }
@@ -148,6 +155,33 @@ static inline errno_t futex_up(futex_t *futex)
 		return (errno_t) __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
 
 	return EOK;
+}
+
+static inline errno_t futex_down_timeout(futex_t *futex, struct timeval *expires)
+{
+	/*
+	 * This combination of a "composable" sleep followed by futex_up() on
+	 * failure is necessary to prevent breakage due to certain race
+	 * conditions.
+	 */
+	errno_t rc = futex_down_composable(futex, expires);
+	if (rc != EOK)
+		futex_up(futex);
+	return rc;
+}
+
+/** Down the futex.
+ *
+ * @param futex Futex.
+ *
+ * @return ENOENT if there is no such virtual address.
+ * @return EOK on success.
+ * @return Error code from <errno.h> otherwise.
+ *
+ */
+static inline errno_t futex_down(futex_t *futex)
+{
+	return futex_down_timeout(futex, NULL);
 }
 
 #endif

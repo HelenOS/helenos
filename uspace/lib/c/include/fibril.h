@@ -35,43 +35,15 @@
 #ifndef LIBC_FIBRIL_H_
 #define LIBC_FIBRIL_H_
 
-#include <context.h>
 #include <types/common.h>
-#include <adt/list.h>
-#include <libarch/tls.h>
 
-#define FIBRIL_WRITER	1
-
-struct fibril;
+typedef struct fibril fibril_t;
 
 typedef struct {
-	struct fibril *owned_by;
+	fibril_t *owned_by;
 } fibril_owner_info_t;
 
-typedef enum {
-	FIBRIL_PREEMPT,
-	FIBRIL_TO_MANAGER,
-	FIBRIL_FROM_MANAGER,
-	FIBRIL_FROM_DEAD
-} fibril_switch_type_t;
-
 typedef sysarg_t fid_t;
-
-typedef struct fibril {
-	link_t link;
-	link_t all_link;
-	context_t ctx;
-	void *stack;
-	void *arg;
-	errno_t (*func)(void *);
-	tcb_t *tcb;
-
-	struct fibril *clean_after_me;
-	errno_t retval;
-	int flags;
-
-	fibril_owner_info_t *waits_for;
-} fibril_t;
 
 /** Fibril-local variable specifier */
 #define fibril_local __thread
@@ -80,22 +52,13 @@ typedef struct fibril {
 
 extern fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t);
 extern void fibril_destroy(fid_t fid);
-extern fibril_t *fibril_setup(void);
-extern void fibril_teardown(fibril_t *f, bool locked);
-extern int fibril_switch(fibril_switch_type_t stype);
 extern void fibril_add_ready(fid_t fid);
-extern void fibril_add_manager(fid_t fid);
-extern void fibril_remove_manager(void);
 extern fid_t fibril_get_id(void);
+extern void fibril_yield(void);
 
 static inline fid_t fibril_create(errno_t (*func)(void *), void *arg)
 {
 	return fibril_create_generic(func, arg, FIBRIL_DFLT_STK_SIZE);
-}
-
-static inline int fibril_yield(void)
-{
-	return fibril_switch(FIBRIL_PREEMPT);
 }
 
 #endif

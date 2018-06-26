@@ -33,7 +33,16 @@
  */
 
 #include <futex.h>
+
+#include <assert.h>
 #include <atomic.h>
+#include <fibril.h>
+#include <io/kio.h>
+
+#include "private/fibril.h"
+
+//#define DPRINTF(...) kio_printf(__VA_ARGS__)
+#define DPRINTF(...) ((void)0)
 
 /** Initialize futex counter.
  *
@@ -46,22 +55,86 @@ void futex_initialize(futex_t *futex, int val)
 	atomic_set(&futex->val, val);
 }
 
+#ifdef CONFIG_DEBUG_FUTEX
 
-#ifdef FUTEX_UPGRADABLE
-
-int _upgrade_futexes = 0;
-static futex_t upg_and_wait_futex = FUTEX_INITIALIZER;
-
-void futex_upgrade_all_and_wait(void)
+void __futex_assert_is_locked(futex_t *futex, const char *name)
 {
-	futex_down(&upg_and_wait_futex);
+	void *owner = __atomic_load_n(&futex->owner, __ATOMIC_RELAXED);
+	fibril_t *self = (fibril_t *) fibril_get_id();
+	if (owner != self) {
+		DPRINTF("Assertion failed: %s (%p) is not locked by fibril %p (instead locked by fibril %p).\n", name, futex, self, owner);
+	}
+	assert(owner == self);
+}
 
-	if (!_upgrade_futexes) {
-		rcu_assign(_upgrade_futexes, 1);
-		_rcu_synchronize(BM_BLOCK_THREAD);
+void __futex_assert_is_not_locked(futex_t *futex, const char *name)
+{
+	void *owner = __atomic_load_n(&futex->owner, __ATOMIC_RELAXED);
+	fibril_t *self = (fibril_t *) fibril_get_id();
+	if (owner == self) {
+		DPRINTF("Assertion failed: %s (%p) is already locked by fibril %p.\n", name, futex, self);
+	}
+	assert(owner != self);
+}
+
+void __futex_lock(futex_t *futex, const char *name)
+{
+	/* We use relaxed atomics to avoid violating C11 memory model.
+	 * They should compile to regular load/stores, but simple assignments
+	 * would be UB by definition.
+	 */
+
+	fibril_t *self = (fibril_t *) fibril_get_id();
+	DPRINTF("Locking futex %s (%p) by fibril %p.\n", name, futex, self);
+	__futex_assert_is_not_locked(futex, name);
+	futex_down(futex);
+
+	void *prev_owner = __atomic_exchange_n(&futex->owner, self, __ATOMIC_RELAXED);
+	assert(prev_owner == NULL);
+
+	atomic_inc(&self->futex_locks);
+}
+
+void __futex_unlock(futex_t *futex, const char *name)
+{
+	fibril_t *self = (fibril_t *) fibril_get_id();
+	DPRINTF("Unlocking futex %s (%p) by fibril %p.\n", name, futex, self);
+	__futex_assert_is_locked(futex, name);
+	__atomic_store_n(&futex->owner, NULL, __ATOMIC_RELAXED);
+	atomic_dec(&self->futex_locks);
+	futex_up(futex);
+}
+
+bool __futex_trylock(futex_t *futex, const char *name)
+{
+	fibril_t *self = (fibril_t *) fibril_get_id();
+	bool success = futex_trydown(futex);
+	if (success) {
+		void *owner = __atomic_load_n(&futex->owner, __ATOMIC_RELAXED);
+		assert(owner == NULL);
+
+		__atomic_store_n(&futex->owner, self, __ATOMIC_RELAXED);
+
+		atomic_inc(&self->futex_locks);
+
+		DPRINTF("Trylock on futex %s (%p) by fibril %p succeeded.\n", name, futex, self);
+	} else {
+		DPRINTF("Trylock on futex %s (%p) by fibril %p failed.\n", name, futex, self);
 	}
 
-	futex_up(&upg_and_wait_futex);
+	return success;
+}
+
+void __futex_give_to(futex_t *futex, void *new_owner, const char *name)
+{
+	fibril_t *self = fibril_self();
+	fibril_t *no = new_owner;
+	DPRINTF("Passing futex %s (%p) from fibril %p to fibril %p.\n", name, futex, self, no);
+
+	__futex_assert_is_locked(futex, name);
+	atomic_dec(&self->futex_locks);
+	atomic_inc(&no->futex_locks);
+	__atomic_store_n(&futex->owner, new_owner, __ATOMIC_RELAXED);
 }
 
 #endif

@@ -382,6 +382,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 
 	timeout_initialize(&thread->sleep_timeout);
 	thread->sleep_interruptible = false;
+	thread->sleep_composable = false;
 	thread->sleep_queue = NULL;
 	thread->timeout_pending = false;
 

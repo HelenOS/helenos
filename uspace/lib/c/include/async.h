@@ -107,11 +107,7 @@ struct async_sess;
 typedef struct async_sess async_sess_t;
 typedef struct async_exch async_exch_t;
 
-#define async_manager() \
-	do { \
-		futex_down(&async_futex); \
-		fibril_switch(FIBRIL_FROM_DEAD); \
-	} while (0)
+extern _Noreturn void async_manager(void);
 
 #define async_get_call(data) \
 	async_get_call_timeout(data, 0)

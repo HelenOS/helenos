@@ -34,6 +34,7 @@
  * Either a host name or an address.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>

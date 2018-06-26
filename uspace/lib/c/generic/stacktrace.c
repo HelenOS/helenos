@@ -38,11 +38,18 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <errno.h>
+#include <io/kio.h>
 
 static errno_t stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data);
 
 static stacktrace_ops_t basic_ops = {
-	.read_uintptr = stacktrace_read_uintptr
+	.read_uintptr = stacktrace_read_uintptr,
+	.printf = printf,
+};
+
+static stacktrace_ops_t kio_ops = {
+	.read_uintptr = stacktrace_read_uintptr,
+	.printf = kio_printf,
 };
 
 void stacktrace_print_generic(stacktrace_ops_t *ops, void *arg, uintptr_t fp,
@@ -56,7 +63,7 @@ void stacktrace_print_generic(stacktrace_ops_t *ops, void *arg, uintptr_t fp,
 	st.ops = ops;
 
 	while (stacktrace_fp_valid(&st, fp)) {
-		printf("%p: %p()\n", (void *) fp, (void *) pc);
+		ops->printf("%p: %p()\n", (void *) fp, (void *) pc);
 		rc =  stacktrace_ra_get(&st, fp, &pc);
 		if (rc != EOK)
 			break;
@@ -70,6 +77,19 @@ void stacktrace_print_generic(stacktrace_ops_t *ops, void *arg, uintptr_t fp,
 void stacktrace_print_fp_pc(uintptr_t fp, uintptr_t pc)
 {
 	stacktrace_print_generic(&basic_ops, NULL, fp, pc);
+}
+
+void stacktrace_kio_print(void)
+{
+	stacktrace_prepare();
+	stacktrace_print_generic(&kio_ops, NULL, stacktrace_fp_get(), stacktrace_pc_get());
+
+	/*
+	 * Prevent the tail call optimization of the previous call by
+	 * making it a non-tail call.
+	 */
+
+	kio_printf("-- end of stack trace --\n");
 }
 
 void stacktrace_print(void)

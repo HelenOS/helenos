@@ -37,6 +37,7 @@
 #ifndef TYPES_PART_H_
 #define TYPES_PART_H_
 
+#include <adt/list.h>
 #include <types/label.h>
 
 /** Partition */

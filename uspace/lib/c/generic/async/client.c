@@ -120,6 +120,7 @@
 #include <as.h>
 #include <abi/mm/as.h>
 #include "../private/libc.h"
+#include "../private/fibril.h"
 
 /** Naming service session */
 async_sess_t session_ns;
@@ -240,7 +241,7 @@ static void reply_received(void *arg, errno_t retval, ipc_call_t *data)
 {
 	assert(arg);
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 
 	amsg_t *msg = (amsg_t *) arg;
 	msg->retval = retval;
@@ -265,7 +266,7 @@ static void reply_received(void *arg, errno_t retval, ipc_call_t *data)
 		fibril_add_ready(msg->wdata.fid);
 	}
 
-	futex_up(&async_futex);
+	futex_unlock(&async_futex);
 }
 
 /** Send message and return id of the sent message.
@@ -354,13 +355,13 @@ void async_wait_for(aid_t amsgid, errno_t *retval)
 
 	amsg_t *msg = (amsg_t *) amsgid;
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 
 	assert(!msg->forget);
 	assert(!msg->destroyed);
 
 	if (msg->done) {
-		futex_up(&async_futex);
+		futex_unlock(&async_futex);
 		goto done;
 	}
 
@@ -369,9 +370,8 @@ void async_wait_for(aid_t amsgid, errno_t *retval)
 	msg->wdata.to_event.inlist = false;
 
 	/* Leave the async_futex locked when entering this function */
-	fibril_switch(FIBRIL_TO_MANAGER);
-
-	/* Futex is up automatically after fibril_switch */
+	fibril_switch(FIBRIL_FROM_BLOCKED);
+	futex_unlock(&async_futex);
 
 done:
 	if (retval)
@@ -400,13 +400,13 @@ errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, suseconds_t timeout)
 
 	amsg_t *msg = (amsg_t *) amsgid;
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 
 	assert(!msg->forget);
 	assert(!msg->destroyed);
 
 	if (msg->done) {
-		futex_up(&async_futex);
+		futex_unlock(&async_futex);
 		goto done;
 	}
 
@@ -442,9 +442,8 @@ errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, suseconds_t timeout)
 	async_insert_timeout(&msg->wdata);
 
 	/* Leave the async_futex locked when entering this function */
-	fibril_switch(FIBRIL_TO_MANAGER);
-
-	/* Futex is up automatically after fibril_switch */
+	fibril_switch(FIBRIL_FROM_BLOCKED);
+	futex_unlock(&async_futex);
 
 	if (!msg->done)
 		return ETIMEOUT;
@@ -474,7 +473,7 @@ void async_forget(aid_t amsgid)
 	assert(!msg->forget);
 	assert(!msg->destroyed);
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 
 	if (msg->done) {
 		amsg_destroy(msg);
@@ -483,7 +482,7 @@ void async_forget(aid_t amsgid)
 		msg->forget = true;
 	}
 
-	futex_up(&async_futex);
+	futex_unlock(&async_futex);
 }
 
 /** Wait for specified time.
@@ -503,14 +502,13 @@ void async_usleep(suseconds_t timeout)
 	getuptime(&awaiter.to_event.expires);
 	tv_add_diff(&awaiter.to_event.expires, timeout);
 
-	futex_down(&async_futex);
+	futex_lock(&async_futex);
 
 	async_insert_timeout(&awaiter);
 
 	/* Leave the async_futex locked when entering this function */
-	fibril_switch(FIBRIL_TO_MANAGER);
-
-	/* Futex is up automatically after fibril_switch() */
+	fibril_switch(FIBRIL_FROM_BLOCKED);
+	futex_unlock(&async_futex);
 }
 
 /** Delay execution for the specified number of seconds

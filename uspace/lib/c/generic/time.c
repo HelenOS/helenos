@@ -50,7 +50,6 @@
 #include <assert.h>
 #include <loc.h>
 #include <device/clock_dev.h>
-#include <thread.h>
 
 #define ASCTIME_BUF_LEN  26
 
@@ -486,7 +485,7 @@ void tv_add_diff(struct timeval *tv, suseconds_t usecs)
  * @param tv1 First timeval.
  * @param tv2 Second timeval.
  */
-void tv_add(struct timeval *tv1, struct timeval *tv2)
+void tv_add(struct timeval *tv1, const struct timeval *tv2)
 {
 	tv1->tv_sec += tv2->tv_sec;
 	tv1->tv_usec += tv2->tv_usec;
@@ -502,7 +501,7 @@ void tv_add(struct timeval *tv1, struct timeval *tv2)
  *         microseconds.
  *
  */
-suseconds_t tv_sub_diff(struct timeval *tv1, struct timeval *tv2)
+suseconds_t tv_sub_diff(const struct timeval *tv1, const struct timeval *tv2)
 {
 	return (tv1->tv_usec - tv2->tv_usec) +
 	    ((tv1->tv_sec - tv2->tv_sec) * USECS_PER_SEC);
@@ -514,7 +513,7 @@ suseconds_t tv_sub_diff(struct timeval *tv1, struct timeval *tv2)
  * @param tv2 Second timeval.
  *
  */
-void tv_sub(struct timeval *tv1, struct timeval *tv2)
+void tv_sub(struct timeval *tv1, const struct timeval *tv2)
 {
 	tv1->tv_sec -= tv2->tv_sec;
 	tv1->tv_usec -= tv2->tv_usec;
@@ -530,7 +529,7 @@ void tv_sub(struct timeval *tv1, struct timeval *tv2)
  * @return False otherwise.
  *
  */
-int tv_gt(struct timeval *tv1, struct timeval *tv2)
+int tv_gt(const struct timeval *tv1, const struct timeval *tv2)
 {
 	if (tv1->tv_sec > tv2->tv_sec)
 		return true;
@@ -550,7 +549,7 @@ int tv_gt(struct timeval *tv1, struct timeval *tv2)
  * @return False otherwise.
  *
  */
-int tv_gteq(struct timeval *tv1, struct timeval *tv2)
+int tv_gteq(const struct timeval *tv1, const struct timeval *tv2)
 {
 	if (tv1->tv_sec > tv2->tv_sec)
 		return true;

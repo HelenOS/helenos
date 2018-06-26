@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
+#ifndef LIBC_PRIVATE_FIBRIL_H_
+#define LIBC_PRIVATE_FIBRIL_H_
 
-#include <assert.h>
-#include <stdio.h>
-#include <io/kio.h>
-#include <stdlib.h>
+#include <adt/list.h>
+#include <context.h>
+#include <libarch/tls.h>
+#include <abi/proc/uarg.h>
 #include <atomic.h>
-#include <stacktrace.h>
-#include <stdint.h>
-#include <task.h>
+#include <futex.h>
 
-static atomic_t failed_asserts = { 0 };
+struct fibril {
+	// XXX: The first two fields must not move (for taskdump).
+	link_t all_link;
+	context_t ctx;
 
-void __helenos_assert_quick_abort(const char *cond, const char *file, unsigned int line)
-{
-	/*
-	 * Send the message safely to kio. Nested asserts should not occur.
-	 */
-	kio_printf("Assertion failed (%s) in task %ld, file \"%s\", line %u.\n",
-	    cond, (long) task_get_id(), file, line);
+	link_t link;
+	void *stack;
+	void *arg;
+	errno_t (*func)(void *);
+	tcb_t *tcb;
 
-	stacktrace_kio_print();
+	fibril_t *clean_after_me;
+	errno_t retval;
 
-	/* Sometimes we know in advance that regular printf() would likely fail. */
-	abort();
-}
+	fibril_owner_info_t *waits_for;
 
-void __helenos_assert_abort(const char *cond, const char *file, unsigned int line)
-{
-	/*
-	 * Send the message safely to kio. Nested asserts should not occur.
-	 */
-	kio_printf("Assertion failed (%s) in task %ld, file \"%s\", line %u.\n",
-	    cond, (long) task_get_id(), file, line);
+	atomic_t futex_locks;
+	bool is_writer : 1;
+};
 
-	stacktrace_kio_print();
+typedef enum {
+	FIBRIL_PREEMPT,
+	FIBRIL_FROM_BLOCKED,
+	FIBRIL_FROM_MANAGER,
+	FIBRIL_FROM_DEAD
+} fibril_switch_type_t;
 
-	/*
-	 * Check if this is a nested or parallel assert.
-	 */
-	if (atomic_postinc(&failed_asserts))
-		abort();
+extern fibril_t *fibril_setup(void);
+extern void fibril_teardown(fibril_t *f, bool locked);
+extern int fibril_switch(fibril_switch_type_t stype);
+extern void fibril_add_manager(fid_t fid);
+extern void fibril_remove_manager(void);
+extern fibril_t *fibril_self(void);
 
-	/*
-	 * Attempt to print the message to standard output and display
-	 * the stack trace. These operations can theoretically trigger nested
-	 * assertions.
-	 */
-	kio_printf("Assertion failed (%s) in task %ld, file \"%s\", line %u.\n",
-	    cond, (long) task_get_id(), file, line);
-	stacktrace_print();
-
-	abort();
-}
-
-/** @}
- */
+#endif

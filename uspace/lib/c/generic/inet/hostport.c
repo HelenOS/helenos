@@ -35,6 +35,7 @@
  * literal IPv6 Addresses in URLs
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <inet/addr.h>
 #include <inet/dnsr.h>
