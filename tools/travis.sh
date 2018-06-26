@@ -85,7 +85,6 @@ fi
 if [ -n "$H_CCHECK" ]; then
     echo "Will try to run C style check."
     echo
-    rm -rf tools/sycek
     make ccheck || exit 1
     echo "C style check passed."
     exit 0
