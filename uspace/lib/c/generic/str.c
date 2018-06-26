@@ -1725,8 +1725,10 @@ int str_int64_t(const char *nptr, const char **endptr, unsigned int base,
 	} else
 		*result = unsigned_result;
 
-	/* Check whether we are at the end of
-	   the string in strict mode */
+	/*
+	 * Check whether we are at the end of
+	 * the string in strict mode
+	 */
 	if ((strict) && (*lendptr != 0))
 		return EINVAL;
 
