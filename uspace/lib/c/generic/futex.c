@@ -79,7 +79,8 @@ void __futex_assert_is_not_locked(futex_t *futex, const char *name)
 
 void __futex_lock(futex_t *futex, const char *name)
 {
-	/* We use relaxed atomics to avoid violating C11 memory model.
+	/*
+	 * We use relaxed atomics to avoid violating C11 memory model.
 	 * They should compile to regular load/stores, but simple assignments
 	 * would be UB by definition.
 	 */
@@ -89,8 +90,9 @@ void __futex_lock(futex_t *futex, const char *name)
 	__futex_assert_is_not_locked(futex, name);
 	futex_down(futex);
 
-	void *prev_owner = __atomic_exchange_n(&futex->owner, self, __ATOMIC_RELAXED);
+	void *prev_owner = __atomic_load_n(&futex->owner, __ATOMIC_RELAXED);
 	assert(prev_owner == NULL);
+	__atomic_store_n(&futex->owner, self, __ATOMIC_RELAXED);
 
 	atomic_inc(&self->futex_locks);
 }
