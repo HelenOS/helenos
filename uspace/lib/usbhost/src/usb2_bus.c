@@ -141,7 +141,7 @@ static int address_device(usb2_bus_helper_t *helper, device_t *dev)
 
 	usb_log_debug("Device(%d): Setting USB address.", address);
 	err = bus_device_send_batch_sync(dev, usb2_default_target, USB_DIRECTION_OUT,
-	    NULL, 0, *(uint64_t *)&set_address, "set address", NULL);
+	    NULL, 0, set_address.raw, "set address", NULL);
 	if (err) {
 		usb_log_error("Device(%d): Failed to set new address: %s.",
 		    address, str_error(err));

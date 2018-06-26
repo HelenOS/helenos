@@ -101,7 +101,9 @@ static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
 	 */
 	if (dev->speed >= USB_SPEED_HIGH ||
 	    ep->transfer_type != USB_TRANSFER_INTERRUPT) {
-		xhci_ep->interval = 1 << (xhci_ep->interval - 1);
+
+		if (xhci_ep->interval > 0)
+			xhci_ep->interval = 1 << (xhci_ep->interval - 1);
 	}
 
 	/* Full speed devices have interval in frames */

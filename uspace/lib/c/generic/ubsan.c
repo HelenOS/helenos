@@ -97,6 +97,7 @@ void __ubsan_handle_nonnull_arg(struct nonnull_arg_data *data, size_t arg_no);
 void __ubsan_handle_nonnull_arg(struct nonnull_arg_data *data);
 #endif
 void __ubsan_handle_nonnull_return(struct nonnull_return_data *data);
+void __ubsan_handle_builtin_unreachable(struct unreachable_data *data);
 
 static void print_loc(const char *func, struct source_location *loc)
 {
@@ -106,7 +107,7 @@ static void print_loc(const char *func, struct source_location *loc)
 	if (!memcmp(f, func_prefix, sizeof(func_prefix) - 1))
 		f += sizeof(func_prefix);
 
-	PRINTF("Undefined behavior %s at %s:%" PRIu32 " col %" PRIu32 "\n",
+	PRINTF("####### Undefined behavior %s at %s:%" PRIu32 " col %" PRIu32 "\n",
 	    f, loc->file_name, loc->line, loc->column);
 }
 
@@ -114,6 +115,8 @@ void __ubsan_handle_type_mismatch(struct type_mismatch_data *data,
     unsigned long ptr)
 {
 	print_loc(__func__, &data->loc);
+	PRINTF("Type: %s, alignment: %lu, type_check_kind: %hhu\n",
+	    data->type->type_name, data->alignment, data->type_check_kind);
 	ubsan_panic();
 }
 
@@ -218,3 +221,10 @@ void __ubsan_handle_nonnull_return(struct nonnull_return_data *data)
 	print_loc(__func__, &data->loc);
 	ubsan_panic();
 }
+
+void __ubsan_handle_builtin_unreachable(struct unreachable_data *data)
+{
+	print_loc(__func__, &data->loc);
+	ubsan_panic();
+}
+

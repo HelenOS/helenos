@@ -76,17 +76,21 @@ errno_t usb_get_my_description(async_exch_t *exch, usb_device_desc_t *desc)
 	if (!exch)
 		return EBADMEM;
 
-	usb_device_desc_t tmp_desc;
+	sysarg_t address, depth, speed, handle, iface;
 
 	const errno_t ret = async_req_1_5(exch, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_MY_DESCRIPTION,
-	    (sysarg_t *) &tmp_desc.address,
-	    (sysarg_t *) &tmp_desc.depth,
-	    (sysarg_t *) &tmp_desc.speed,
-	    &tmp_desc.handle,
-	    (sysarg_t *) &tmp_desc.iface);
-	if (ret == EOK && desc)
-		*desc = tmp_desc;
+	    IPC_M_USB_GET_MY_DESCRIPTION, &address, &depth, &speed, &handle,
+	    &iface);
+	if (ret == EOK && desc) {
+		*desc = (usb_device_desc_t) {
+			.address = address,
+			.depth = depth,
+			.speed = speed,
+			.handle = handle,
+			.iface = iface,
+		};
+	}
+
 	return ret;
 }
 

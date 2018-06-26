@@ -74,15 +74,6 @@ typedef enum {
 /** Size of the USB setup packet */
 #define USB_SETUP_PACKET_SIZE 8
 
-/** Device request setup packet.
- * The setup packet describes the request.
- */
-typedef struct {
-	/** Request type.
-	 * The type combines transfer direction, request type and
-	 * intended recipient.
-	 */
-	uint8_t request_type;
 #define SETUP_REQUEST_TYPE_DEVICE_TO_HOST (1 << 7)
 #define SETUP_REQUEST_TYPE_HOST_TO_DEVICE (0 << 7)
 #define SETUP_REQUEST_TYPE_IS_DEVICE_TO_HOST(rt) ((rt) & (1 << 7))
@@ -93,23 +84,36 @@ typedef struct {
 #define SETUP_REQUEST_TO_DEVICE(type, recipient) \
     (uint8_t)(((type & 0x3) << 5) | (recipient & 0x1f))
 
-	/** Request identification. */
-	uint8_t request;
-	/** Main parameter to the request. */
-	union __attribute__((packed)) {
-		uint16_t value;
-		/* FIXME: add #ifdefs according to host endianness */
-		struct __attribute__((packed)) {
-			uint8_t value_low;
-			uint8_t value_high;
+/** Device request setup packet.
+ * The setup packet describes the request.
+ */
+typedef union {
+	struct __attribute__((packed)) {
+		/** Request type.
+		 * The type combines transfer direction, request type and
+		 * intended recipient.
+		 */
+		uint8_t request_type;
+
+		/** Request identification. */
+		uint8_t request;
+		/** Main parameter to the request. */
+		union __attribute__((packed)) {
+			uint16_t value;
+			/* FIXME: add #ifdefs according to host endianness */
+			struct __attribute__((packed)) {
+				uint8_t value_low;
+				uint8_t value_high;
+			};
 		};
+		/** Auxiliary parameter to the request.
+		 * Typically, it is offset to something.
+		 */
+		uint16_t index;
+		/** Length of extra data. */
+		uint16_t length;
 	};
-	/** Auxiliary parameter to the request.
-	 * Typically, it is offset to something.
-	 */
-	uint16_t index;
-	/** Length of extra data. */
-	uint16_t length;
+	uint64_t raw;
 } __attribute__((packed)) usb_device_request_setup_packet_t;
 
 static_assert(sizeof(usb_device_request_setup_packet_t) == USB_SETUP_PACKET_SIZE);
