@@ -251,7 +251,7 @@ int count_zeroes32(uint32_t i)
 {
 	int j;
 	for (j = 0; j < 32; j += 8) {
-		if (i & (0xFF << (24 - j))) {
+		if (i & (0xFFu << (24 - j))) {
 			return (j + count_zeroes8(i >> (24 - j)));
 		}
 	}
