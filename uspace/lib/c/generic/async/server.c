@@ -121,6 +121,8 @@
 #include "../private/libc.h"
 #include "../private/fibril.h"
 
+#define DPRINTF(...)  ((void) 0)
+
 /** Async framework global futex */
 futex_t async_futex = FUTEX_INITIALIZER;
 
@@ -179,6 +181,12 @@ typedef struct {
 	void *data;
 } connection_t;
 
+/* Member of notification_t::msg_list. */
+typedef struct {
+	link_t link;
+	ipc_call_t calldata;
+} notification_msg_t;
+
 /* Notification data */
 typedef struct {
 	/** notification_hash_table link */
@@ -196,19 +204,8 @@ typedef struct {
 	/** Notification handler argument */
 	void *arg;
 
-	/** Data of the most recent notification. */
-	ipc_call_t calldata;
-
-	/**
-	 * How many notifications with this `imethod` arrived since it was last
-	 * handled. If `count` > 1, `calldata` only holds the data for the most
-	 * recent such notification, all the older data being lost.
-	 *
-	 * `async_spawn_notification_handler()` can be used to increase the
-	 * number of notifications that can be processed simultaneously,
-	 * reducing the likelihood of losing them when the handler blocks.
-	 */
-	long count;
+	/** List of arrived notifications. */
+	list_t msg_list;
 } notification_t;
 
 /** Identifier of the incoming connection handled by the current fibril. */
@@ -248,6 +245,10 @@ static futex_t notification_futex = FUTEX_INITIALIZER;
 static hash_table_t notification_hash_table;
 static LIST_INITIALIZE(notification_queue);
 static FIBRIL_SEMAPHORE_INITIALIZE(notification_semaphore, 0);
+
+static LIST_INITIALIZE(notification_freelist);
+static long notification_freelist_total = 0;
+static long notification_freelist_used = 0;
 
 static sysarg_t notification_avail = 0;
 
@@ -708,22 +709,36 @@ static errno_t notification_fibril_func(void *arg)
 
 		notification_t *notification = list_get_instance(
 		    list_first(&notification_queue), notification_t, qlink);
-		list_remove(&notification->qlink);
 
 		async_notification_handler_t handler = notification->handler;
 		void *arg = notification->arg;
-		ipc_call_t calldata = notification->calldata;
-		long count = notification->count;
 
-		notification->count = 0;
+		notification_msg_t *m = list_pop(&notification->msg_list,
+		    notification_msg_t, link);
+		assert(m);
+		ipc_call_t calldata = m->calldata;
+
+		notification_freelist_used--;
+
+		if (notification_freelist_total > 64 &&
+		    notification_freelist_total > 2 * notification_freelist_used) {
+			/* Going to free the structure if we have too much. */
+			notification_freelist_total--;
+		} else {
+			/* Otherwise add to freelist. */
+			list_append(&m->link, &notification_freelist);
+			m = NULL;
+		}
+
+		if (list_empty(&notification->msg_list))
+			list_remove(&notification->qlink);
 
 		futex_unlock(&notification_futex);
 
-		// FIXME: Pass count to the handler. It might be important.
-		(void) count;
-
 		if (handler)
 			handler(&calldata, arg);
+
+		free(m);
 	}
 
 	/* Not reached. */
@@ -759,28 +774,42 @@ static void queue_notification(ipc_call_t *call)
 
 	futex_lock(&notification_futex);
 
+	notification_msg_t *m = list_pop(&notification_freelist,
+	    notification_msg_t, link);
+
+	if (!m) {
+		futex_unlock(&notification_futex);
+		m = malloc(sizeof(notification_msg_t));
+		if (!m) {
+			DPRINTF("Out of memory.\n");
+			abort();
+		}
+
+		futex_lock(&notification_futex);
+		notification_freelist_total++;
+	}
+
 	ht_link_t *link = hash_table_find(&notification_hash_table,
 	    &IPC_GET_IMETHOD(*call));
 	if (!link) {
 		/* Invalid notification. */
 		// TODO: Make sure this can't happen and turn it into assert.
+		notification_freelist_total--;
 		futex_unlock(&notification_futex);
+		free(m);
 		return;
 	}
 
 	notification_t *notification =
 	    hash_table_get_inst(link, notification_t, htlink);
 
-	notification->count++;
-	notification->calldata = *call;
+	notification_freelist_used++;
+	m->calldata = *call;
+	list_append(&m->link, &notification->msg_list);
 
-	if (link_in_use(&notification->qlink)) {
-		/* Notification already queued. */
-		futex_unlock(&notification_futex);
-		return;
-	}
+	if (!link_in_use(&notification->qlink))
+		list_append(&notification->qlink, &notification_queue);
 
-	list_append(&notification->qlink, &notification_queue);
 	futex_unlock(&notification_futex);
 
 	fibril_semaphore_up(&notification_semaphore);
@@ -801,6 +830,8 @@ static notification_t *notification_create(async_notification_handler_t handler,
 
 	notification->handler = handler;
 	notification->arg = arg;
+
+	list_initialize(&notification->msg_list);
 
 	fid_t fib = 0;
 
