@@ -102,8 +102,13 @@ static errno_t xhci_endpoint_init(xhci_endpoint_t *xhci_ep, device_t *dev,
 	if (dev->speed >= USB_SPEED_HIGH ||
 	    ep->transfer_type != USB_TRANSFER_INTERRUPT) {
 
-		if (xhci_ep->interval > 0)
-			xhci_ep->interval = 1 << (xhci_ep->interval - 1);
+		// XXX: According to the spec, the interval should be
+		//      from [1, 16]. However, in QEMU, we get 0 here
+		//      (a QEMU bug?).
+		if (xhci_ep->interval == 0)
+			xhci_ep->interval = 8;
+
+		xhci_ep->interval = 1 << (xhci_ep->interval - 1);
 	}
 
 	/* Full speed devices have interval in frames */
