@@ -44,7 +44,7 @@
 typedef struct futex {
 	atomic_t val;
 #ifdef CONFIG_DEBUG_FUTEX
-	_Atomic void *owner;
+	void *owner;
 #endif
 } futex_t;
 

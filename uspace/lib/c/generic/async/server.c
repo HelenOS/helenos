@@ -1846,7 +1846,7 @@ errno_t async_state_change_finalize(cap_call_handle_t chandle,
 	return ipc_answer_1(chandle, EOK, CAP_HANDLE_RAW(other_exch->phone));
 }
 
-_Noreturn void async_manager(void)
+__noreturn void async_manager(void)
 {
 	futex_lock(&async_futex);
 	fibril_switch(FIBRIL_FROM_DEAD);

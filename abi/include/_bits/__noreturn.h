@@ -26,23 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
+/*
+ * Authors:
+ *	Jiří Zárevúcky (jzr) <zarevucky.jiri@gmail.com>
  */
 
-#ifndef LIBC_SETJMP_H_
-#define LIBC_SETJMP_H_
+/** @addtogroup bits
+ * @{
+ */
+/** @file
+ * Definition of __noreturn.
+ *
+ * Expands to the most appropriate noreturn attribute for a given language.
+ */
 
-#include <libarch/fibril_context.h>
-#include <_bits/__noreturn.h>
+#ifndef _BITS_NORETURN_H_
+#define _BITS_NORETURN_H_
 
-typedef context_t jmp_buf[1];
+#ifndef __noreturn
 
-extern int __setjmp(jmp_buf) __attribute__((returns_twice));
-extern __noreturn void __longjmp(jmp_buf, int);
+#if __cplusplus >= 201103L
+#define __noreturn  [[noreturn]]
+#elif __STDC_VERSION__ >= 201112L
+#define __noreturn  _Noreturn
+#elif (__GNUC__ >= 3) || (defined(__clang__) && __has_attribute(noreturn))
+#define __noreturn __attribute__((noreturn))
+#else
+#define __noreturn
+#endif
 
-#define setjmp __setjmp
-extern __noreturn void longjmp(jmp_buf, int);
+#endif
 
 #endif
 
