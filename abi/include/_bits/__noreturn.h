@@ -45,11 +45,7 @@
 
 #ifndef __noreturn
 
-#if __cplusplus >= 201103L
-#define __noreturn  [[noreturn]]
-#elif __STDC_VERSION__ >= 201112L
-#define __noreturn  _Noreturn
-#elif (__GNUC__ >= 3) || (defined(__clang__) && __has_attribute(noreturn))
+#if (__GNUC__ >= 3) || (defined(__clang__) && __has_attribute(noreturn))
 #define __noreturn __attribute__((noreturn))
 #else
 #define __noreturn
