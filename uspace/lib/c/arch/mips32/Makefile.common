@@ -27,7 +27,7 @@
 #
 
 COMMON_CFLAGS += -msoft-float -mabi=32
-CPP_FLOAT = -msoft-float
+CPP_ARCHSPEC = -msoft-float -mabi=32
 AS_PROLOG = .module softfloat;.abicalls;
 LDFLAGS += -Wl,--gc-sections
 

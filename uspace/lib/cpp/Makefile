@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017 Jaroslav Jindrak
+# Copyright (c) 2018 Jaroslav Jindrak
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,7 @@ SOURCES = \
 	src/thread.cpp \
 	src/typeindex.cpp \
 	src/typeinfo.cpp \
+	src/__bits/glue.cpp \
 	src/__bits/runtime.cpp \
 	src/__bits/trycatch.cpp \
 	src/__bits/unwind.cpp \
