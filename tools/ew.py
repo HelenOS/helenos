@@ -216,6 +216,9 @@ def qemu_run(platform, machine, processor):
 	if (is_override('nographic')):
 		cmdline += ' -nographic'
 
+	if ((not is_override('nographic')) and not is_override('noserial')):
+		cmdline += ' -serial stdio'
+
 	if (is_override('bigmem')):
 		cmdline += ' -m 4G'
 
@@ -342,6 +345,7 @@ def usage():
 	print("-noxhci\tDisable XHCI support, if applicable.")
 	print("-notablet\tDisable USB tablet (use only relative-position PS/2 mouse instead), if applicable.")
 	print("-nographic\tDisable graphical output. Serial port output must be enabled for this to be useful.")
+	print("-noserial\tDisable serial port output in the terminal.")
 	print("-bigmem\tSets maximum RAM size to 4GB.")
 
 def fail(platform, machine):
@@ -400,6 +404,8 @@ def run():
 			overrides['nographic'] = True
 		elif sys.argv[i] == '-bigmem':
 			overrides['bigmem'] = True
+		elif sys.argv[i] == '-noserial':
+			overrides['noserial'] = True
 		elif sys.argv[i] == '-qemu_path' and i < len(sys.argv) - 1:
 			expect_qemu = True
 		else:
