@@ -43,8 +43,12 @@
 #include <stacktrace.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <io/kio.h>
+
 #include "private/async.h"
 #include "private/fibril.h"
+
+static fibril_local bool deadlocked = false;
 
 static void optimize_execution_power(void)
 {
@@ -61,6 +65,12 @@ static void optimize_execution_power(void)
 static void print_deadlock(fibril_owner_info_t *oi)
 {
 	fibril_t *f = (fibril_t *) fibril_get_id();
+
+	if (deadlocked) {
+		kio_printf("Deadlock detected while printing deadlock. Aborting.\n");
+		abort();
+	}
+	deadlocked = true;
 
 	printf("Deadlock detected.\n");
 	stacktrace_print();
