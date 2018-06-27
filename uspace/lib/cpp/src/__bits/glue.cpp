@@ -31,7 +31,7 @@
  * architectures pass.
  */
 
-#ifdef PLATFORM_arm
+#ifdef PLATFORM_arm32
 
 /**
  * ARM32 does not have GCC atomic operations inlined by
