@@ -549,7 +549,6 @@ call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags)
 	uint64_t call_cnt = 0;
 	errno_t rc;
 
-restart:
 	rc = waitq_sleep_timeout(&box->wq, usec, flags, NULL);
 	if (rc != EOK)
 		return NULL;
@@ -589,9 +588,12 @@ restart:
 		/* Append request to dispatch queue */
 		list_append(&request->ab_link, &box->dispatched_calls);
 	} else {
-		/* This can happen regularly after ipc_cleanup */
+		/*
+		 * This can happen regularly after ipc_cleanup, or in
+		 * response to ipc_poke(). Let the caller sort out the wakeup.
+		 */
 		irq_spinlock_unlock(&box->lock, true);
-		goto restart;
+		return NULL;
 	}
 
 	irq_spinlock_pass(&box->lock, &TASK->lock);

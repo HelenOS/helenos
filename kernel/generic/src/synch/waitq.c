@@ -191,41 +191,6 @@ grab_locks:
 		thread_ready(thread);
 }
 
-/** Interrupt the first thread sleeping in the wait queue.
- *
- * Note that the caller somehow needs to know that the thread to be interrupted
- * is sleeping interruptibly.
- *
- * @param wq Pointer to wait queue.
- *
- */
-void waitq_unsleep(waitq_t *wq)
-{
-	irq_spinlock_lock(&wq->lock, true);
-
-	if (!list_empty(&wq->sleepers)) {
-		thread_t *thread = list_get_instance(list_first(&wq->sleepers),
-		    thread_t, wq_link);
-
-		irq_spinlock_lock(&thread->lock, false);
-
-		assert(thread->sleep_interruptible);
-
-		if ((thread->timeout_pending) &&
-		    (timeout_unregister(&thread->sleep_timeout)))
-			thread->timeout_pending = false;
-
-		list_remove(&thread->wq_link);
-		thread->saved_context = thread->sleep_interruption_context;
-		thread->sleep_queue = NULL;
-
-		irq_spinlock_unlock(&thread->lock, false);
-		thread_ready(thread);
-	}
-
-	irq_spinlock_unlock(&wq->lock, true);
-}
-
 #define PARAM_NON_BLOCKING(flags, usec) \
 	(((flags) & SYNCH_FLAGS_NON_BLOCKING) && ((usec) == 0))
 

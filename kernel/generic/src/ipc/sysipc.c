@@ -855,7 +855,7 @@ error:
  */
 sys_errno_t sys_ipc_poke(void)
 {
-	waitq_unsleep(&TASK->answerbox.wq);
+	waitq_wakeup(&TASK->answerbox.wq, WAKEUP_FIRST);
 	return EOK;
 }
 
