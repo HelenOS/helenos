@@ -80,6 +80,13 @@ ifneq ($(BINARY),)
 	EXTRA_CLEAN += $(BINARY).map
 endif
 
+ifneq ($(CXX_BINARY),)
+	JOB = $(CXX_BINARY).job
+	TEST_BINARY = test-$(CXX_BINARY)
+	OUTPUTS += $(CXX_BINARY) $(CXX_BINARY).disasm
+	EXTRA_CLEAN += $(CXX_BINARY).map
+endif
+
 ifneq ($(LIBRARY),)
 	JOB = $(LIBRARY).job
 	TEST_BINARY = test-$(LIBRARY)
