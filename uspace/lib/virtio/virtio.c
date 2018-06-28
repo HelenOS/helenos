@@ -57,6 +57,64 @@ uint16_t virtio_virtq_desc_get_next(virtio_dev_t *vdev, uint16_t num,
 	return pio_read_le16(&d->next);
 }
 
+/** Create free descriptor list from the unused VIRTIO descriptors
+ *
+ * @param vdev[in]   VIRTIO device for which the free list will be created.
+ * @param num[in]    Index of the virtqueue for which the free list will be
+ *                   created.
+ * @param size[in]   Number of descriptors on the free list. The free list will
+ *                   contain descriptors starting from 0 to \a size - 1.
+ * @param head[out]  Variable that will hold the VIRTIO descriptor at the head
+ *                   of the free list.
+ */
+void virtio_create_desc_free_list(virtio_dev_t *vdev, uint16_t num,
+    uint16_t size, uint16_t *head)
+{
+	for (unsigned i = 0; i < size; i++) {
+		virtio_virtq_desc_set(vdev, num, i, 0, 0,
+		    VIRTQ_DESC_F_NEXT, (i + 1 == size) ? -1U : i + 1);
+	}
+	*head = 0;
+}
+
+/** Allocate a descriptor from the free list
+ *
+ * @param vdev[in]      VIRTIO device with the free list.
+ * @param num[in]       Index of the virtqueue with free list.
+ * @param head[in,out]  Head of the free list.
+ *
+ * @return  Allocated descriptor or 0xFFFF if the list is empty.
+ */
+uint16_t virtio_alloc_desc(virtio_dev_t *vdev, uint16_t num, uint16_t *head)
+{
+	virtq_t *q = &vdev->queues[num];
+	fibril_mutex_lock(&q->lock);
+	uint16_t descno = *head;
+	if (descno != (uint16_t) -1U)
+		*head = virtio_virtq_desc_get_next(vdev, num, descno);
+	fibril_mutex_unlock(&q->lock);
+	return descno;
+}
+
+/** Free a descriptor into the free list
+ *
+ * @param vdev[in]      VIRTIO device with the free list.
+ * @param num[in]       Index of the virtqueue with free list.
+ * @param head[in,out]  Head of the free list.
+ * @param descno[in]    The freed descriptor.
+ */
+void virtio_free_desc(virtio_dev_t *vdev, uint16_t num, uint16_t *head,
+    uint16_t descno)
+{
+	virtq_t *q = &vdev->queues[num];
+	fibril_mutex_lock(&q->lock);
+	virtio_virtq_desc_set(vdev, num, descno, 0, 0, VIRTQ_DESC_F_NEXT,
+	    *head);
+	*head = descno;
+	fibril_mutex_unlock(&q->lock);
+}
+
+
 void virtio_virtq_produce_available(virtio_dev_t *vdev, uint16_t num,
     uint16_t descno)
 {
