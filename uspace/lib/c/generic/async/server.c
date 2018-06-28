@@ -133,7 +133,6 @@ static atomic_t threads_in_ipc_wait = { 0 };
 typedef struct {
 	link_t link;
 
-	cap_call_handle_t chandle;
 	ipc_call_t call;
 } msg_t;
 
@@ -164,9 +163,6 @@ typedef struct {
 
 	/** Messages that should be delivered to this fibril. */
 	list_t msg_queue;
-
-	/** Identification of the opening call. */
-	cap_call_handle_t chandle;
 
 	/** Call data of the opening call. */
 	ipc_call_t call;
@@ -412,7 +408,7 @@ static errno_t connection_fibril(void *arg)
 
 	client_t *client = async_client_get(fibril_connection->in_task_id, true);
 	if (!client) {
-		ipc_answer_0(fibril_connection->chandle, ENOMEM);
+		ipc_answer_0(fibril_connection->call.cap_handle, ENOMEM);
 		return 0;
 	}
 
@@ -421,7 +417,7 @@ static errno_t connection_fibril(void *arg)
 	/*
 	 * Call the connection handler function.
 	 */
-	fibril_connection->handler(fibril_connection->chandle,
+	fibril_connection->handler(fibril_connection->call.cap_handle,
 	    &fibril_connection->call, fibril_connection->data);
 
 	/*
@@ -448,7 +444,7 @@ static errno_t connection_fibril(void *arg)
 		    msg_t, link);
 
 		list_remove(&msg->link);
-		ipc_answer_0(msg->chandle, EHANGUP);
+		ipc_answer_0(msg->call.cap_handle, EHANGUP);
 		free(msg);
 	}
 
@@ -471,11 +467,10 @@ static errno_t connection_fibril(void *arg)
  *
  * @param in_task_id     Identification of the incoming connection.
  * @param in_phone_hash  Identification of the incoming connection.
- * @param chandle        Handle of the opening IPC_M_CONNECT_ME_TO call.
- *                       If chandle is CAP_NIL, the connection was opened by
- *                       accepting the IPC_M_CONNECT_TO_ME call and this
- *                       function is called directly by the server.
- * @param call           Call data of the opening call.
+ * @param call           Call data of the opening call. If call is NULL,
+ *                       the connection was opened by accepting the
+ *                       IPC_M_CONNECT_TO_ME call and this function is
+ *                       called directly by the server.
  * @param handler        Connection handler.
  * @param data           Client argument to pass to the connection handler.
  *
@@ -483,13 +478,12 @@ static errno_t connection_fibril(void *arg)
  *
  */
 static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
-    cap_call_handle_t chandle, ipc_call_t *call, async_port_handler_t handler,
-    void *data)
+    ipc_call_t *call, async_port_handler_t handler, void *data)
 {
 	connection_t *conn = malloc(sizeof(*conn));
 	if (!conn) {
-		if (chandle != CAP_NIL)
-			ipc_answer_0(chandle, ENOMEM);
+		if (call)
+			ipc_answer_0(call->cap_handle, ENOMEM);
 
 		return (uintptr_t) NULL;
 	}
@@ -497,13 +491,14 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 	conn->in_task_id = in_task_id;
 	conn->in_phone_hash = in_phone_hash;
 	list_initialize(&conn->msg_queue);
-	conn->chandle = chandle;
 	conn->close_chandle = CAP_NIL;
 	conn->handler = handler;
 	conn->data = data;
 
 	if (call)
 		conn->call = *call;
+	else
+		conn->call.cap_handle = CAP_NIL;
 
 	/* We will activate the fibril ASAP */
 	conn->wdata.active = true;
@@ -512,8 +507,8 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 	if (conn->wdata.fid == 0) {
 		free(conn);
 
-		if (chandle != CAP_NIL)
-			ipc_answer_0(chandle, ENOMEM);
+		if (call)
+			ipc_answer_0(call->cap_handle, ENOMEM);
 
 		return (uintptr_t) NULL;
 	}
@@ -568,7 +563,7 @@ errno_t async_create_callback_port(async_exch_t *exch, iface_t iface, sysarg_t a
 
 	sysarg_t phone_hash = IPC_GET_ARG5(answer);
 	fid_t fid = async_new_connection(answer.in_task_id, phone_hash,
-	    CAP_NIL, NULL, handler, data);
+	    NULL, handler, data);
 	if (fid == (uintptr_t) NULL)
 		return ENOMEM;
 
@@ -637,14 +632,13 @@ void async_insert_timeout(awaiter_t *wd)
  * its message queue. If the fibril was not active, it is activated and all
  * timeouts are unregistered.
  *
- * @param chandle  Handle of the incoming call.
- * @param call     Data of the incoming call.
+ * @param call Data of the incoming call.
  *
  * @return False if the call doesn't match any connection.
  * @return True if the call was passed to the respective connection fibril.
  *
  */
-static bool route_call(cap_call_handle_t chandle, ipc_call_t *call)
+static bool route_call(ipc_call_t *call)
 {
 	assert(call);
 
@@ -667,12 +661,11 @@ static bool route_call(cap_call_handle_t chandle, ipc_call_t *call)
 		return false;
 	}
 
-	msg->chandle = chandle;
 	msg->call = *call;
 	list_append(&msg->link, &conn->msg_queue);
 
 	if (IPC_GET_IMETHOD(*call) == IPC_M_PHONE_HUNGUP)
-		conn->close_chandle = chandle;
+		conn->close_chandle = call->cap_handle;
 
 	/* If the connection fibril is waiting for an event, activate it */
 	if (!conn->wdata.active) {
@@ -1041,7 +1034,7 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	    msg_t, link);
 	list_remove(&msg->link);
 
-	cap_call_handle_t chandle = msg->chandle;
+	cap_call_handle_t chandle = msg->call.cap_handle;
 	*call = msg->call;
 	free(msg);
 
@@ -1088,18 +1081,17 @@ void async_put_client_data_by_id(task_id_t client_id)
  * If the call has the IPC_M_CONNECT_ME_TO method, a new connection is created.
  * Otherwise the call is routed to its connection fibril.
  *
- * @param chandle  Handle of the incoming call.
- * @param call     Data of the incoming call.
+ * @param call Data of the incoming call.
  *
  */
-static void handle_call(cap_call_handle_t chandle, ipc_call_t *call)
+static void handle_call(ipc_call_t *call)
 {
 	assert(call);
 
 	if (call->flags & IPC_CALL_ANSWERED)
 		return;
 
-	if (chandle == CAP_NIL) {
+	if (call->cap_handle == CAP_NIL) {
 		if (call->flags & IPC_CALL_NOTIF) {
 			/* Kernel notification */
 			queue_notification(call);
@@ -1117,17 +1109,17 @@ static void handle_call(cap_call_handle_t chandle, ipc_call_t *call)
 		async_port_handler_t handler =
 		    async_get_port_handler(iface, 0, &data);
 
-		async_new_connection(call->in_task_id, in_phone_hash, chandle,
-		    call, handler, data);
+		async_new_connection(call->in_task_id, in_phone_hash, call,
+		    handler, data);
 		return;
 	}
 
 	/* Try to route the call through the connection hash table */
-	if (route_call(chandle, call))
+	if (route_call(call))
 		return;
 
 	/* Unknown call from unknown phone - hang it up */
-	ipc_answer_0(chandle, EHANGUP);
+	ipc_answer_0(call->cap_handle, EHANGUP);
 }
 
 /** Fire all timeouts that expired. */
@@ -1208,7 +1200,7 @@ static errno_t async_manager_worker(void)
 		atomic_dec(&threads_in_ipc_wait);
 
 		assert(rc == EOK);
-		handle_call(call.cap_handle, &call);
+		handle_call(&call);
 	}
 
 	return 0;
