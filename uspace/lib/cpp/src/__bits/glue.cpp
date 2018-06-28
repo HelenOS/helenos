@@ -37,6 +37,7 @@
  * ARM32 does not have GCC atomic operations inlined by
  * the compiler, so we need to define stubs for our library
  * to compile on this architecture.
+ * TODO: make this synchronized
  */
 extern "C"
 {
@@ -52,7 +53,7 @@ LIBCPP_GLUE_OP_AND_FETCH(add, +, unsigned, 4)
 LIBCPP_GLUE_OP_AND_FETCH(sub, -, unsigned, 4)
 
 #define LIBCPP_GLUE_CMP_AND_SWAP(TYPE, SIZE) \
-    TYPE __sync_compare_and_swap_##SIZE (TYPE* ptr, TYPE old_val, TYPE new_val) \
+    TYPE __sync_val_compare_and_swap_##SIZE (TYPE* ptr, TYPE old_val, TYPE new_val) \
     { \
         if (*ptr == old_val) \
             *ptr = new_val; \
