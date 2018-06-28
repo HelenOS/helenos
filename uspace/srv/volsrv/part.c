@@ -477,10 +477,13 @@ errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 
 errno_t vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
 {
+	memset(pinfo, 0, sizeof(*pinfo));
+
 	pinfo->pcnt = part->pcnt;
 	pinfo->fstype = part->fstype;
 	str_cpy(pinfo->label, sizeof(pinfo->label), part->label);
-	str_cpy(pinfo->cur_mp, sizeof(pinfo->cur_mp), part->cur_mp);
+	if (part->cur_mp != NULL)
+		str_cpy(pinfo->cur_mp, sizeof(pinfo->cur_mp), part->cur_mp);
 	pinfo->cur_mp_auto = part->cur_mp_auto;
 	return EOK;
 }

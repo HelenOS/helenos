@@ -51,7 +51,91 @@ typedef enum {
 	vcmd_list,
 } vol_cmd_t;
 
-static int vol_cmd_list(void)
+/** Find volume by current mount point. */
+static errno_t vol_cmd_part_by_mp(vol_t *vol, const char *mp,
+    service_id_t *rid)
+{
+	vol_part_info_t vinfo;
+	service_id_t *part_ids = NULL;
+	char *canon_mp_buf = NULL;
+	char *canon_mp;
+	size_t nparts;
+	size_t i;
+	errno_t rc;
+
+	canon_mp_buf = str_dup(mp);
+	if (canon_mp_buf == NULL) {
+		printf("Out of memory.\n");
+		rc = ENOMEM;
+		goto out;
+	}
+
+	canon_mp = vfs_absolutize(canon_mp_buf, NULL);
+	if (canon_mp == NULL) {
+		printf("Invalid volume path '%s'.\n", mp);
+		rc = EINVAL;
+		goto out;
+	}
+
+	rc = vol_get_parts(vol, &part_ids, &nparts);
+	if (rc != EOK) {
+		printf("Error getting list of volumes.\n");
+		goto out;
+	}
+
+	for (i = 0; i < nparts; i++) {
+		rc = vol_part_info(vol, part_ids[i], &vinfo);
+		if (rc != EOK) {
+			printf("Error getting volume information.\n");
+			rc = EIO;
+			goto out;
+		}
+
+		if (str_cmp(vinfo.cur_mp, canon_mp) == 0) {
+			*rid = part_ids[i];
+			rc = EOK;
+			goto out;
+		}
+	}
+
+	rc = ENOENT;
+out:
+	free(part_ids);
+	free(canon_mp_buf);
+	return rc;
+}
+
+static errno_t vol_cmd_eject(const char *volspec)
+{
+	vol_t *vol = NULL;
+	service_id_t part_id;
+	errno_t rc;
+
+	rc = vol_create(&vol);
+	if (rc != EOK) {
+		printf("Error contacting volume service.\n");
+		goto out;
+	}
+
+	rc = vol_cmd_part_by_mp(vol, volspec, &part_id);
+	if (rc != EOK) {
+		printf("Error looking up volume '%s'.\n", volspec);
+		goto out;
+	}
+
+	rc = vol_part_eject(vol, part_id);
+	if (rc != EOK) {
+		printf("Error ejecting volume.\n");
+		goto out;
+	}
+
+	rc = EOK;
+out:
+	vol_destroy(vol);
+	return rc;
+}
+
+static errno_t vol_cmd_list(void)
 {
 	vol_t *vol = NULL;
 	vol_part_info_t vinfo;
@@ -61,7 +145,7 @@ static int vol_cmd_list(void)
 	size_t nparts;
 	size_t i;
 	table_t *table = NULL;
-	int rc;
+	errno_t rc;
 
 	rc = vol_create(&vol);
 	if (rc != EOK) {
@@ -138,7 +222,7 @@ int main(int argc, char *argv[])
 	char *cmd;
 	vol_cmd_t vcmd;
 	int i;
-	int rc;
+	errno_t rc;
 
 	if (argc < 2) {
 		vcmd = vcmd_list;
@@ -168,7 +252,7 @@ int main(int argc, char *argv[])
 
 	switch (vcmd) {
 	case vcmd_eject:
-		rc = EOK;
+		rc = vol_cmd_eject(volspec);
 		break;
 	case vcmd_help:
 		print_syntax();

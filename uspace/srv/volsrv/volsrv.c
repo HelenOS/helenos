@@ -180,6 +180,30 @@ static void vol_part_info_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	async_answer_0(icall_handle, EOK);
 }
 
+static void vol_part_eject_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+{
+	service_id_t sid;
+	vol_part_t *part;
+	errno_t rc;
+
+	sid = IPC_GET_ARG1(*icall);
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_srv(%zu)", sid);
+
+	rc = vol_part_find_by_id(sid, &part);
+	if (rc != EOK) {
+		async_answer_0(icall_handle, ENOENT);
+		return;
+	}
+
+	rc = vol_part_eject_part(part);
+	if (rc != EOK) {
+		async_answer_0(icall_handle, EIO);
+		return;
+	}
+
+	async_answer_0(icall_handle, EOK);
+}
+
 static void vol_part_empty_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 {
 	service_id_t sid;
@@ -312,6 +336,9 @@ static void vol_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, v
 			break;
 		case VOL_PART_INFO:
 			vol_part_info_srv(chandle, &call);
+			break;
+		case VOL_PART_EJECT:
+			vol_part_eject_srv(chandle, &call);
 			break;
 		case VOL_PART_EMPTY:
 			vol_part_empty_srv(chandle, &call);

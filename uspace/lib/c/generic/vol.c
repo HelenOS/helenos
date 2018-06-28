@@ -234,6 +234,22 @@ errno_t vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 	return EOK;
 }
 
+/** Unmount partition (and possibly eject the media). */
+errno_t vol_part_eject(vol_t *vol, service_id_t sid)
+{
+	async_exch_t *exch;
+	errno_t retval;
+
+	exch = async_exchange_begin(vol->sess);
+	retval = async_req_1_0(exch, VOL_PART_EJECT, sid);
+	async_exchange_end(exch);
+
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
+
 /** Erase partition (to the extent where we will consider it not containing
  * a file system.
  */
