@@ -303,5 +303,79 @@ errno_t vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
 	return EOK;
 }
 
+/** Format file system type as string.
+ *
+ * @param fstype File system type
+ * @param rstr Place to store pointer to newly allocated string
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t vol_fstype_format(vol_fstype_t fstype, char **rstr)
+{
+	const char *sfstype;
+	char *s;
+
+	sfstype = NULL;
+	switch (fstype) {
+	case fs_exfat:
+		sfstype = "ExFAT";
+		break;
+	case fs_fat:
+		sfstype = "FAT";
+		break;
+	case fs_minix:
+		sfstype = "MINIX";
+		break;
+	case fs_ext4:
+		sfstype = "Ext4";
+		break;
+	case fs_cdfs:
+		sfstype = "ISO 9660";
+		break;
+	}
+
+	s = str_dup(sfstype);
+	if (s == NULL)
+		return ENOMEM;
+
+	*rstr = s;
+	return EOK;
+}
+
+/** Format partition content / file system type as string.
+ *
+ * @param pcnt Partition content
+ * @param fstype File system type
+ * @param rstr Place to store pointer to newly allocated string
+ * @return EOK on success, ENOMEM if out of memory
+ */
+errno_t vol_pcnt_fs_format(vol_part_cnt_t pcnt, vol_fstype_t fstype,
+    char **rstr)
+{
+	int rc;
+	char *s = NULL;
+
+	switch (pcnt) {
+	case vpc_empty:
+		s = str_dup("Empty");
+		if (s == NULL)
+			return ENOMEM;
+		break;
+	case vpc_fs:
+		rc = vol_fstype_format(fstype, &s);
+		if (rc != EOK)
+			return ENOMEM;
+		break;
+	case vpc_unknown:
+		s = str_dup("Unknown");
+		if (s == NULL)
+			return ENOMEM;
+		break;
+	}
+
+	assert(s != NULL);
+	*rstr = s;
+	return EOK;
+}
+
 /** @}
  */

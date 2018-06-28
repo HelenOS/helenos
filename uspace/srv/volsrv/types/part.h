@@ -38,6 +38,7 @@
 #define TYPES_PART_H_
 
 #include <adt/list.h>
+#include <stdbool.h>
 #include <types/label.h>
 
 /** Partition */
@@ -54,6 +55,10 @@ typedef struct {
 	vol_fstype_t fstype;
 	/** Volume label */
 	char *label;
+	/** Where volume is currently mounted */
+	char *cur_mp;
+	/** Mounted at automatic mount point */
+	bool cur_mp_auto;
 } vol_part_t;
 
 #endif

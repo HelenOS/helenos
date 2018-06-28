@@ -78,6 +78,7 @@ DIRS = \
 	app/top \
 	app/untar \
 	app/usbinfo \
+	app/vol \
 	app/vuhid \
 	app/nic \
 	app/ping \

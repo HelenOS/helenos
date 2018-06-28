@@ -154,6 +154,7 @@ static void vol_part_delete(vol_part_t *part)
 	if (part == NULL)
 		return;
 
+	free(part->cur_mp);
 	free(part->svc_name);
 	free(part);
 }
@@ -218,10 +219,11 @@ error:
 	return rc;
 }
 
-static int vol_part_mount(vol_part_t *part)
+static errno_t vol_part_mount(vol_part_t *part)
 {
 	char *mp;
-	int rc;
+	int err;
+	errno_t rc;
 
 	if (str_size(part->label) < 1) {
 		/* Don't mount nameless volumes */
@@ -230,9 +232,9 @@ static int vol_part_mount(vol_part_t *part)
 	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Determine MP label='%s'", part->label);
-	rc = asprintf(&mp, "/vol/%s", part->label);
-	if (rc < 0) {
-		log_msg(LOG_DEFAULT, LVL_NOTE, "rc -> %d", rc);
+	err = asprintf(&mp, "/vol/%s", part->label);
+	if (err < 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory");
 		return ENOMEM;
 	}
 
@@ -254,7 +256,9 @@ static int vol_part_mount(vol_part_t *part)
 	}
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Mount to %s -> %d\n", mp, rc);
 
-	free(mp);
+	part->cur_mp = mp;
+	part->cur_mp_auto = true;
+
 	return rc;
 }
 
@@ -382,6 +386,40 @@ errno_t vol_part_find_by_id(service_id_t sid, vol_part_t **rpart)
 	return ENOENT;
 }
 
+errno_t vol_part_eject_part(vol_part_t *part)
+{
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_part()");
+
+	if (part->cur_mp == NULL) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Attempt to mount unmounted "
+		    "partition.");
+		return EINVAL;
+	}
+
+	rc = vfs_unmount_path(part->cur_mp);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed unmounting partition "
+		    "from %s", part->cur_mp);
+		return rc;
+	}
+
+	if (part->cur_mp_auto) {
+		rc = vfs_unlink_path(part->cur_mp);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed deleting "
+			    "mount directory %s.", part->cur_mp);
+		}
+	}
+
+	free(part->cur_mp);
+	part->cur_mp = NULL;
+	part->cur_mp_auto = false;
+
+	return EOK;
+}
+
 errno_t vol_part_empty_part(vol_part_t *part)
 {
 	errno_t rc;
@@ -442,6 +480,8 @@ errno_t vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
 	pinfo->pcnt = part->pcnt;
 	pinfo->fstype = part->fstype;
 	str_cpy(pinfo->label, sizeof(pinfo->label), part->label);
+	str_cpy(pinfo->cur_mp, sizeof(pinfo->cur_mp), part->cur_mp);
+	pinfo->cur_mp_auto = part->cur_mp_auto;
 	return EOK;
 }
 
