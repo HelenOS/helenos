@@ -67,6 +67,21 @@ static struct fsname_type fstab[] = {
 	{ NULL, 0 }
 };
 
+static const char *fstype_str(vol_fstype_t fstype)
+{
+	struct fsname_type *fst;
+
+	fst = &fstab[0];
+	while (fst->name != NULL) {
+		if (fst->fstype == fstype)
+			return fst->name;
+		++fst;
+	}
+
+	assert(false);
+	return NULL;
+}
+
 /** Check for new partitions */
 static errno_t vol_part_check_new(void)
 {
@@ -203,19 +218,62 @@ error:
 	return rc;
 }
 
+static int vol_part_mount(vol_part_t *part)
+{
+	char *mp;
+	int rc;
+
+	if (str_size(part->label) < 1) {
+		/* Don't mount nameless volumes */
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting nameless partition.");
+		return EOK;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Determine MP label='%s'", part->label);
+	rc = asprintf(&mp, "/vol/%s", part->label);
+	if (rc < 0) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "rc -> %d", rc);
+		return ENOMEM;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Create mount point '%s'", mp);
+	rc = vfs_link_path(mp, KIND_DIRECTORY, NULL);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating mount point '%s'",
+		    mp);
+		free(mp);
+		return EIO;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Call vfs_mount_path mp='%s' fstype='%s' svc_name='%s'",
+	    mp, fstype_str(part->fstype), part->svc_name);
+	rc = vfs_mount_path(mp, fstype_str(part->fstype),
+	    part->svc_name, "", 0, 0);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Failed mounting to %s", mp);
+	}
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Mount to %s -> %d\n", mp, rc);
+
+	free(mp);
+	return rc;
+}
+
+
 static errno_t vol_part_add_locked(service_id_t sid)
 {
 	vol_part_t *part;
 	errno_t rc;
 
 	assert(fibril_mutex_is_locked(&vol_parts_lock));
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_add_locked(%zu)", sid);
 
 	/* Check for duplicates */
 	rc = vol_part_find_by_id(sid, &part);
 	if (rc == EOK)
 		return EEXIST;
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_add_locked()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "partition %zu is new", sid);
+
 	part = vol_part_new();
 	if (part == NULL)
 		return ENOMEM;
@@ -229,6 +287,10 @@ static errno_t vol_part_add_locked(service_id_t sid)
 	}
 
 	rc = vol_part_probe(part);
+	if (rc != EOK)
+		goto error;
+
+	rc = vol_part_mount(part);
 	if (rc != EOK)
 		goto error;
 
@@ -360,6 +422,12 @@ errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 	 * uppercase).
 	 */
 	rc = vol_part_probe(part);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&vol_parts_lock);
+		return rc;
+	}
+
+	rc = vol_part_mount(part);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&vol_parts_lock);
 		return rc;

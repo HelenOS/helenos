@@ -250,6 +250,8 @@ static void vol_part_mkfs_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	char *label;
 	errno_t rc;
 
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv()");
+
 	sid = IPC_GET_ARG1(*icall);
 	fstype = IPC_GET_ARG2(*icall);
 
@@ -260,9 +262,10 @@ static void vol_part_mkfs_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 		return;
 	}
 
-	printf("vol_part_mkfs_srv: label=%p\n", label);
-	if (label != NULL)
-		printf("vol_part_mkfs_srv: label='%s'\n", label);
+	if (label != NULL) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv: label='%s'",
+		    label);
+	}
 
 	rc = vol_part_find_by_id(sid, &part);
 	if (rc != EOK) {
