@@ -143,7 +143,7 @@ static void vol_part_info_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	sid = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_info_srv(%zu)",
 	    sid);
-	rc = vol_part_find_by_id(sid, &part);
+	rc = vol_part_find_by_id_ref(sid, &part);
 	if (rc != EOK) {
 		async_answer_0(icall_handle, ENOENT);
 		return;
@@ -152,7 +152,7 @@ static void vol_part_info_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	rc = vol_part_get_info(part, &pinfo);
 	if (rc != EOK) {
 		async_answer_0(icall_handle, EIO);
-		return;
+		goto error;
 	}
 
 	cap_call_handle_t chandle;
@@ -160,13 +160,13 @@ static void vol_part_info_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	if (!async_data_read_receive(&chandle, &size)) {
 		async_answer_0(chandle, EREFUSED);
 		async_answer_0(icall_handle, EREFUSED);
-		return;
+		goto error;
 	}
 
 	if (size != sizeof(vol_part_info_t)) {
 		async_answer_0(chandle, EINVAL);
 		async_answer_0(icall_handle, EINVAL);
-		return;
+		goto error;
 	}
 
 	rc = async_data_read_finalize(chandle, &pinfo,
@@ -174,10 +174,12 @@ static void vol_part_info_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	if (rc != EOK) {
 		async_answer_0(chandle, rc);
 		async_answer_0(icall_handle, rc);
-		return;
+		goto error;
 	}
 
 	async_answer_0(icall_handle, EOK);
+error:
+	vol_part_del_ref(part);
 }
 
 static void vol_part_eject_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
@@ -189,19 +191,21 @@ static void vol_part_eject_srv(cap_call_handle_t icall_handle, ipc_call_t *icall
 	sid = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_srv(%zu)", sid);
 
-	rc = vol_part_find_by_id(sid, &part);
+	rc = vol_part_find_by_id_ref(sid, &part);
 	if (rc != EOK) {
 		async_answer_0(icall_handle, ENOENT);
-		return;
+		goto error;
 	}
 
 	rc = vol_part_eject_part(part);
 	if (rc != EOK) {
 		async_answer_0(icall_handle, EIO);
-		return;
+		goto error;
 	}
 
 	async_answer_0(icall_handle, EOK);
+error:
+	vol_part_del_ref(part);
 }
 
 static void vol_part_empty_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
@@ -213,7 +217,7 @@ static void vol_part_empty_srv(cap_call_handle_t icall_handle, ipc_call_t *icall
 	sid = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_srv(%zu)", sid);
 
-	rc = vol_part_find_by_id(sid, &part);
+	rc = vol_part_find_by_id_ref(sid, &part);
 	if (rc != EOK) {
 		async_answer_0(icall_handle, ENOENT);
 		return;
@@ -222,10 +226,12 @@ static void vol_part_empty_srv(cap_call_handle_t icall_handle, ipc_call_t *icall
 	rc = vol_part_empty_part(part);
 	if (rc != EOK) {
 		async_answer_0(icall_handle, EIO);
-		return;
+		goto error;
 	}
 
 	async_answer_0(icall_handle, EOK);
+error:
+	vol_part_del_ref(part);
 }
 
 static void vol_part_get_lsupp_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
@@ -291,7 +297,7 @@ static void vol_part_mkfs_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 		    label);
 	}
 
-	rc = vol_part_find_by_id(sid, &part);
+	rc = vol_part_find_by_id_ref(sid, &part);
 	if (rc != EOK) {
 		free(label);
 		async_answer_0(icall_handle, ENOENT);
@@ -302,6 +308,7 @@ static void vol_part_mkfs_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	if (rc != EOK) {
 		free(label);
 		async_answer_0(icall_handle, rc);
+		vol_part_del_ref(part);
 		return;
 	}
 

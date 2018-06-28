@@ -38,6 +38,7 @@
 #define TYPES_PART_H_
 
 #include <adt/list.h>
+#include <atomic.h>
 #include <stdbool.h>
 #include <types/label.h>
 
@@ -45,6 +46,8 @@
 typedef struct {
 	/** Link to vol_parts */
 	link_t lparts;
+	/** Reference count */
+	atomic_t refcnt;
 	/** Service ID */
 	service_id_t svc_id;
 	/** Service name */

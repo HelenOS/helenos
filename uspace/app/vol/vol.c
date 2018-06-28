@@ -189,9 +189,9 @@ static errno_t vol_cmd_list(void)
 			return ENOMEM;
 		}
 
-		table_printf(table, "%s\t" "%s\t" "%s\t" "%d\t" "%s\n",
-		    vinfo.label, svc_name, sfstype, vinfo.cur_mp_auto,
-		    vinfo.cur_mp);
+		table_printf(table, "%s\t" "%s\t" "%s\t" "%s\t" "%s\n",
+		    vinfo.label, svc_name, sfstype,
+		    vinfo.cur_mp_auto ? "Yes" : "", vinfo.cur_mp);
 
 		free(svc_name);
 		free(sfstype);
