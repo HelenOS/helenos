@@ -236,7 +236,8 @@ HELENOS_CFLAGS = \
 CFLAGS = $(COMMON_CPPFLAGS) $(COMMON_CFLAGS) $(HELENOS_CFLAGS) $(DEFAULT_CFLAGS)
 
 # Flags for the compilation of C++ code.
-CPPFLAGS = $(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) -O$(OPTIMIZATION) $(CPP_ARCHSPEC) \
+CXX_BASE_LIBS = $(LIBCPP_PREFIX)/libcpp.a $(BASE_LIBS)
+CXXFLAGS = $(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) -O$(OPTIMIZATION) $(COMMON_CFLAGS) \
 	-imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
 	-finput-charset=UTF-8 -ffreestanding -fno-builtin -ffunction-sections \
@@ -321,6 +322,11 @@ $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
 
+ifneq ($(CXX_BINARY),)
+$(CXX_BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(CXX_BASE_LIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(OBJECTS) $(LIBARGS) $(CXX_BASE_LIBS)
+endif
+
 ifneq ($(TEST_BINARY),)
 $(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS) $(BASE_LIBS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
@@ -356,7 +362,7 @@ endif
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.o: %.cpp | depend
-	$(CPP) $(CPPFLAGS) $(EXTRA_CPPFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
 
 %.test.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
@@ -371,7 +377,7 @@ endif
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 %.lo: %.cpp | depend
-	$(CPP) $(CPPFLAGS) $(EXTRA_CPPFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
 
 -include $(DEPENDS)
 

@@ -28,10 +28,7 @@
 
 USPACE_PREFIX = ../..
 
-# TODO: Force linker to link libcpp by default when linking cpp apps?
-LIBS = cpp
-
-BINARY = cpptest
+CXX_BINARY = cpptest
 
 SOURCES = \
 	main.cpp
