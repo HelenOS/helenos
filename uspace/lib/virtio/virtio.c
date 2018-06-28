@@ -38,6 +38,60 @@
 #include <ddf/log.h>
 #include <libarch/barrier.h>
 
+/** Allocate DMA buffers
+ *
+ * @param buffers[in]  Number of buffers to allocate.
+ * @param size[in]     Size of each buffer.
+ * @param write[in]    True if the buffers are writable by the driver, false
+ *                     otherwise.
+ * @param buf[out]     Output array holding virtual addresses of the allocated
+ *                     buffers.
+ * @param buf_p[out]   Output array holding physical addresses of the allocated
+ *                     buffers.
+ *
+ * The buffers can be deallocated by virtio_net_teardown_bufs().
+ *
+ * @return  EOK on success or error code.
+ */
+errno_t virtio_setup_dma_bufs(unsigned int buffers, size_t size,
+    bool write, void *buf[], uintptr_t buf_p[])
+{
+	/*
+	 * Allocate all buffers at once in one large chunk.
+	 */
+	void *virt = AS_AREA_ANY;
+	uintptr_t phys;
+	errno_t rc = dmamem_map_anonymous(buffers * size, 0,
+	    write ? AS_AREA_WRITE : AS_AREA_READ, 0, &phys, &virt);
+	if (rc != EOK)
+		return rc;
+
+	ddf_msg(LVL_NOTE, "DMA buffers: %p-%p", virt, virt + buffers * size);
+
+	/*
+	 * Calculate addresses of the individual buffers for easy access.
+	 */
+	for (unsigned i = 0; i < buffers; i++) {
+		buf[i] = virt + i * size;
+		buf_p[i] = phys + i * size;
+	}
+
+	return EOK;
+}
+
+/** Deallocate DMA buffers
+ *
+ * @param buf[in]  Array holding the virtual addresses of the DMA buffers
+ *                 previously allocated by virtio_net_setup_bufs().
+ */
+extern void virtio_teardown_dma_bufs(void *buf[])
+{
+	if (buf[0]) {
+		dmamem_unmap_anonymous(buf[0]);
+		buf[0] = NULL;
+	}
+}
+
 void virtio_virtq_desc_set(virtio_dev_t *vdev, uint16_t num, uint16_t descno,
     uint64_t addr, uint32_t len, uint16_t flags, uint16_t next)
 {

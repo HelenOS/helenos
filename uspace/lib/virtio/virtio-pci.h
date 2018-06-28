@@ -180,6 +180,10 @@ typedef struct {
 	virtq_t *queues;
 } virtio_dev_t;
 
+extern errno_t virtio_setup_dma_bufs(unsigned int, size_t, bool, void *[],
+    uintptr_t []);
+extern void virtio_teardown_dma_bufs(void *[]);
+
 extern void virtio_virtq_desc_set(virtio_dev_t *vdev, uint16_t, uint16_t,
     uint64_t, uint32_t, uint16_t, uint16_t);
 extern uint16_t virtio_virtq_desc_get_next(virtio_dev_t *vdev, uint16_t,

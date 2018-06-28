@@ -69,60 +69,6 @@ static driver_t virtio_net_driver = {
 	.driver_ops = &virtio_net_driver_ops
 };
 
-/** Allocate DMA buffers
- *
- * @param buffers[in]  Number of buffers to allocate.
- * @param size[in]     Size of each buffer.
- * @param write[in]    True if the buffers are writable by the driver, false
- *                     otherwise.
- * @param buf[out]     Output array holding virtual addresses of the allocated
- *                     buffers.
- * @param buf_p[out]   Output array holding physical addresses of the allocated
- *                     buffers.
- *
- * The buffers can be deallocated by virtio_net_teardown_bufs().
- *
- * @return  EOK on success or error code.
- */
-static errno_t virtio_net_setup_bufs(unsigned int buffers, size_t size,
-    bool write, void *buf[], uintptr_t buf_p[])
-{
-	/*
-	 * Allocate all buffers at once in one large chunk.
-	 */
-	void *virt = AS_AREA_ANY;
-	uintptr_t phys;
-	errno_t rc = dmamem_map_anonymous(buffers * size, 0,
-	    write ? AS_AREA_WRITE : AS_AREA_READ, 0, &phys, &virt);
-	if (rc != EOK)
-		return rc;
-
-	ddf_msg(LVL_NOTE, "DMA buffers: %p-%p", virt, virt + buffers * size);
-
-	/*
-	 * Calculate addresses of the individual buffers for easy access.
-	 */
-	for (unsigned i = 0; i < buffers; i++) {
-		buf[i] = virt + i * size;
-		buf_p[i] = phys + i * size;
-	}
-
-	return EOK;
-}
-
-/** Deallocate DMA buffers
- *
- * @param buf[in]  Array holding the virtual addresses of the DMA buffers
- *                 previously allocated by virtio_net_setup_bufs().
- */
-static void virtio_net_teardown_bufs(void *buf[])
-{
-	if (buf[0]) {
-		dmamem_unmap_anonymous(buf[0]);
-		buf[0] = NULL;
-	}
-}
-
 static void virtio_net_irq_handler(ipc_call_t *icall, ddf_dev_t *dev)
 {
 	nic_t *nic = ddf_dev_data_get(dev);
@@ -286,15 +232,15 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	/*
 	 * Setup DMA buffers
 	 */
-	rc = virtio_net_setup_bufs(RX_BUFFERS, RX_BUF_SIZE, false,
+	rc = virtio_setup_dma_bufs(RX_BUFFERS, RX_BUF_SIZE, false,
 	    virtio_net->rx_buf, virtio_net->rx_buf_p);
 	if (rc != EOK)
 		goto fail;
-	rc = virtio_net_setup_bufs(TX_BUFFERS, TX_BUF_SIZE, true,
+	rc = virtio_setup_dma_bufs(TX_BUFFERS, TX_BUF_SIZE, true,
 	    virtio_net->tx_buf, virtio_net->tx_buf_p);
 	if (rc != EOK)
 		goto fail;
-	rc = virtio_net_setup_bufs(CT_BUFFERS, CT_BUF_SIZE, true,
+	rc = virtio_setup_dma_bufs(CT_BUFFERS, CT_BUF_SIZE, true,
 	    virtio_net->ct_buf, virtio_net->ct_buf_p);
 	if (rc != EOK)
 		goto fail;
@@ -355,9 +301,9 @@ static errno_t virtio_net_initialize(ddf_dev_t *dev)
 	return EOK;
 
 fail:
-	virtio_net_teardown_bufs(virtio_net->rx_buf);
-	virtio_net_teardown_bufs(virtio_net->tx_buf);
-	virtio_net_teardown_bufs(virtio_net->ct_buf);
+	virtio_teardown_dma_bufs(virtio_net->rx_buf);
+	virtio_teardown_dma_bufs(virtio_net->tx_buf);
+	virtio_teardown_dma_bufs(virtio_net->ct_buf);
 
 	virtio_device_setup_fail(vdev);
 	virtio_pci_dev_cleanup(vdev);
@@ -369,9 +315,9 @@ static void virtio_net_uninitialize(ddf_dev_t *dev)
 	nic_t *nic = ddf_dev_data_get(dev);
 	virtio_net_t *virtio_net = (virtio_net_t *) nic_get_specific(nic);
 
-	virtio_net_teardown_bufs(virtio_net->rx_buf);
-	virtio_net_teardown_bufs(virtio_net->tx_buf);
-	virtio_net_teardown_bufs(virtio_net->ct_buf);
+	virtio_teardown_dma_bufs(virtio_net->rx_buf);
+	virtio_teardown_dma_bufs(virtio_net->tx_buf);
+	virtio_teardown_dma_bufs(virtio_net->ct_buf);
 
 	virtio_device_setup_fail(&virtio_net->virtio_dev);
 	virtio_pci_dev_cleanup(&virtio_net->virtio_dev);
