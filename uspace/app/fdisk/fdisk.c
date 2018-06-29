@@ -36,12 +36,14 @@
 
 #include <cap.h>
 #include <errno.h>
+#include <fdisk.h>
+#include <io/label.h>
 #include <nchoice.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fdisk.h>
 #include <str.h>
+#include <vol.h>
 
 #define NO_LABEL_CAPTION "(No name)"
 
@@ -67,34 +69,6 @@ typedef enum {
 	/** Exit */
 	devac_exit
 } devac_t;
-
-static errno_t fdsk_pcnt_fs_format(vol_part_cnt_t pcnt, vol_fstype_t fstype,
-    char **rstr)
-{
-	errno_t rc;
-	char *s;
-
-	switch (pcnt) {
-	case vpc_empty:
-		s = str_dup("Empty");
-		if (s == NULL)
-			return ENOMEM;
-		break;
-	case vpc_fs:
-		rc = fdisk_fstype_format(fstype, &s);
-		if (rc != EOK)
-			return ENOMEM;
-		break;
-	case vpc_unknown:
-		s = str_dup("Unknown");
-		if (s == NULL)
-			return ENOMEM;
-		break;
-	}
-
-	*rstr = s;
-	return EOK;
-}
 
 /** Confirm user selection. */
 static errno_t fdsk_confirm(const char *msg, bool *rconfirm)
@@ -304,7 +278,7 @@ static errno_t fdsk_create_label(fdisk_dev_t *dev)
 	}
 
 	for (i = LT_FIRST; i < LT_LIMIT; i++) {
-		rc = fdisk_ltype_format(i, &sltype);
+		rc = label_type_format(i, &sltype);
 		if (rc != EOK)
 			goto error;
 
@@ -412,7 +386,7 @@ static errno_t fdsk_select_fstype(vol_fstype_t *fstype)
 	}
 
 	for (i = 0; i < VOL_FSTYPE_LIMIT; i++) {
-		rc = fdisk_fstype_format(i, &sfstype);
+		rc = vol_fstype_format(i, &sfstype);
 		if (rc != EOK)
 			goto error;
 
@@ -597,14 +571,14 @@ static errno_t fdsk_delete_part(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		rc = fdisk_pkind_format(pinfo.pkind, &spkind);
+		rc = label_pkind_format(pinfo.pkind, &spkind);
 		if (rc != EOK) {
 			printf("\nOut of memory.\n");
 			goto error;
 		}
 
 		if (pinfo.pkind != lpk_extended) {
-			rc = fdsk_pcnt_fs_format(pinfo.pcnt, pinfo.fstype, &sfstype);
+			rc = vol_pcnt_fs_format(pinfo.pcnt, pinfo.fstype, &sfstype);
 			if (rc != EOK) {
 				printf("Out of memory.\n");
 				goto error;
@@ -772,7 +746,7 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 		printf("Disk contains no label.\n");
 		break;
 	default:
-		rc = fdisk_ltype_format(linfo.ltype, &sltype);
+		rc = label_type_format(linfo.ltype, &sltype);
 		if (rc != EOK) {
 			assert(rc == ENOMEM);
 			printf("Out of memory.\n");
@@ -803,7 +777,7 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 			goto error;
 		}
 
-		rc = fdsk_pcnt_fs_format(pinfo.pcnt, pinfo.fstype, &sfstype);
+		rc = vol_pcnt_fs_format(pinfo.pcnt, pinfo.fstype, &sfstype);
 		if (rc != EOK) {
 			printf("Out of memory.\n");
 			goto error;
@@ -820,7 +794,7 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 			printf("Partition %d: %s %s", npart, label, scap);
 
 		if ((linfo.flags & lf_ext_supp) != 0) {
-			rc = fdisk_pkind_format(pinfo.pkind, &spkind);
+			rc = label_pkind_format(pinfo.pkind, &spkind);
 			if (rc != EOK) {
 				printf("\nOut of memory.\n");
 				goto error;

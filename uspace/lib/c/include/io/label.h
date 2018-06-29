@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2017 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup volsrv
+/** @addtogroup libc
  * @{
  */
-/**
- * @file
- * @brief
+/** @file
  */
 
-#ifndef PART_H_
-#define PART_H_
+#ifndef LIBC_IO_LABEL_H_
+#define LIBC_IO_LABEL_H_
 
-#include <loc.h>
-#include <stddef.h>
-#include <types/vol.h>
-#include "types/part.h"
+#include <types/label.h>
 
-extern errno_t vol_part_init(void);
-extern errno_t vol_part_discovery_start(void);
-extern errno_t vol_part_add(service_id_t);
-extern errno_t vol_part_get_ids(service_id_t *, size_t, size_t *);
-extern errno_t vol_part_find_by_id_ref(service_id_t, vol_part_t **);
-extern void vol_part_del_ref(vol_part_t *);
-extern errno_t vol_part_eject_part(vol_part_t *);
-extern errno_t vol_part_empty_part(vol_part_t *);
-extern errno_t vol_part_mkfs_part(vol_part_t *, vol_fstype_t, const char *);
-extern errno_t vol_part_get_info(vol_part_t *, vol_part_info_t *);
+extern int label_type_format(label_type_t, char **);
+extern int label_pkind_format(label_pkind_t, char **);
+
 
 #endif
 

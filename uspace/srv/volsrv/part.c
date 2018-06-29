@@ -50,6 +50,9 @@
 #include "types/part.h"
 
 static errno_t vol_part_add_locked(service_id_t);
+static void vol_part_remove_locked(vol_part_t *);
+static errno_t vol_part_find_by_id_ref_locked(service_id_t, vol_part_t **);
+
 static LIST_INITIALIZE(vol_parts); /* of vol_part_t */
 static FIBRIL_MUTEX_INITIALIZE(vol_parts_lock);
 
@@ -67,13 +70,31 @@ static struct fsname_type fstab[] = {
 	{ NULL, 0 }
 };
 
-/** Check for new partitions */
+static const char *fstype_str(vol_fstype_t fstype)
+{
+	struct fsname_type *fst;
+
+	fst = &fstab[0];
+	while (fst->name != NULL) {
+		if (fst->fstype == fstype)
+			return fst->name;
+		++fst;
+	}
+
+	assert(false);
+	return NULL;
+}
+
+/** Check for new and removed partitions */
 static errno_t vol_part_check_new(void)
 {
 	bool already_known;
+	bool still_exists;
 	category_id_t part_cat;
 	service_id_t *svcs;
 	size_t count, i;
+	link_t *cur, *next;
+	vol_part_t *part;
 	errno_t rc;
 
 	fibril_mutex_lock(&vol_parts_lock);
@@ -93,9 +114,11 @@ static errno_t vol_part_check_new(void)
 		return EIO;
 	}
 
+	/* Check for new partitions */
 	for (i = 0; i < count; i++) {
 		already_known = false;
 
+		// XXX Make this faster
 		list_foreach(vol_parts, lparts, vol_part_t, part) {
 			if (part->svc_id == svcs[i]) {
 				already_known = true;
@@ -114,6 +137,32 @@ static errno_t vol_part_check_new(void)
 		}
 	}
 
+	/* Check for removed partitions */
+	cur = list_first(&vol_parts);
+	while (cur != NULL) {
+		next = list_next(cur, &vol_parts);
+		part = list_get_instance(cur, vol_part_t, lparts);
+
+		still_exists = false;
+		// XXX Make this faster
+		for (i = 0; i < count; i++) {
+			if (part->svc_id == svcs[i]) {
+				still_exists = true;
+				break;
+			}
+		}
+
+		if (!still_exists) {
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Partition '%zu' is gone",
+			    part->svc_id);
+			vol_part_remove_locked(part);
+		}
+
+		cur = next;
+	}
+
+	free(svcs);
+
 	fibril_mutex_unlock(&vol_parts_lock);
 	return EOK;
 }
@@ -128,6 +177,7 @@ static vol_part_t *vol_part_new(void)
 		return NULL;
 	}
 
+	atomic_set(&part->refcnt, 1);
 	link_initialize(&part->lparts);
 	part->pcnt = vpc_empty;
 
@@ -136,9 +186,11 @@ static vol_part_t *vol_part_new(void)
 
 static void vol_part_delete(vol_part_t *part)
 {
+	log_msg(LOG_DEFAULT, LVL_ERROR, "Freeing partition %p", part);
 	if (part == NULL)
 		return;
 
+	free(part->cur_mp);
 	free(part->svc_name);
 	free(part);
 }
@@ -203,19 +255,66 @@ error:
 	return rc;
 }
 
+static errno_t vol_part_mount(vol_part_t *part)
+{
+	char *mp;
+	int err;
+	errno_t rc;
+
+	if (str_size(part->label) < 1) {
+		/* Don't mount nameless volumes */
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting nameless partition.");
+		return EOK;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Determine MP label='%s'", part->label);
+	err = asprintf(&mp, "/vol/%s", part->label);
+	if (err < 0) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory");
+		return ENOMEM;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Create mount point '%s'", mp);
+	rc = vfs_link_path(mp, KIND_DIRECTORY, NULL);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating mount point '%s'",
+		    mp);
+		free(mp);
+		return EIO;
+	}
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Call vfs_mount_path mp='%s' fstype='%s' svc_name='%s'",
+	    mp, fstype_str(part->fstype), part->svc_name);
+	rc = vfs_mount_path(mp, fstype_str(part->fstype),
+	    part->svc_name, "", 0, 0);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Failed mounting to %s", mp);
+	}
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Mount to %s -> %d\n", mp, rc);
+
+	part->cur_mp = mp;
+	part->cur_mp_auto = true;
+
+	return rc;
+}
+
 static errno_t vol_part_add_locked(service_id_t sid)
 {
 	vol_part_t *part;
 	errno_t rc;
 
 	assert(fibril_mutex_is_locked(&vol_parts_lock));
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_add_locked(%zu)", sid);
 
 	/* Check for duplicates */
-	rc = vol_part_find_by_id(sid, &part);
-	if (rc == EOK)
+	rc = vol_part_find_by_id_ref_locked(sid, &part);
+	if (rc == EOK) {
+		vol_part_del_ref(part);
 		return EEXIST;
+	}
 
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_add_locked()");
+	log_msg(LOG_DEFAULT, LVL_NOTE, "partition %zu is new", sid);
+
 	part = vol_part_new();
 	if (part == NULL)
 		return ENOMEM;
@@ -232,6 +331,10 @@ static errno_t vol_part_add_locked(service_id_t sid)
 	if (rc != EOK)
 		goto error;
 
+	rc = vol_part_mount(part);
+	if (rc != EOK)
+		goto error;
+
 	list_append(&part->lparts, &vol_parts);
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Added partition %zu", part->svc_id);
@@ -241,6 +344,17 @@ static errno_t vol_part_add_locked(service_id_t sid)
 error:
 	vol_part_delete(part);
 	return rc;
+}
+
+static void vol_part_remove_locked(vol_part_t *part)
+{
+	assert(fibril_mutex_is_locked(&vol_parts_lock));
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_remove_locked(%zu)", part->svc_id);
+
+	list_remove(&part->lparts);
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "Removed partition.");
+	vol_part_del_ref(part);
 }
 
 errno_t vol_part_add(service_id_t sid)
@@ -307,17 +421,72 @@ errno_t vol_part_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size
 	return EOK;
 }
 
-errno_t vol_part_find_by_id(service_id_t sid, vol_part_t **rpart)
+static errno_t vol_part_find_by_id_ref_locked(service_id_t sid,
+    vol_part_t **rpart)
 {
+	assert(fibril_mutex_is_locked(&vol_parts_lock));
+
 	list_foreach(vol_parts, lparts, vol_part_t, part) {
 		if (part->svc_id == sid) {
+			/* Add reference */
+			atomic_inc(&part->refcnt);
 			*rpart = part;
-			/* XXX Add reference */
 			return EOK;
 		}
 	}
 
 	return ENOENT;
+}
+
+errno_t vol_part_find_by_id_ref(service_id_t sid, vol_part_t **rpart)
+{
+	errno_t rc;
+
+	fibril_mutex_lock(&vol_parts_lock);
+	rc = vol_part_find_by_id_ref_locked(sid, rpart);
+	fibril_mutex_unlock(&vol_parts_lock);
+
+	return rc;
+}
+
+void vol_part_del_ref(vol_part_t *part)
+{
+	if (atomic_predec(&part->refcnt) == 0)
+		vol_part_delete(part);
+}
+
+errno_t vol_part_eject_part(vol_part_t *part)
+{
+	int rc;
+
+	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_part()");
+
+	if (part->cur_mp == NULL) {
+		log_msg(LOG_DEFAULT, LVL_DEBUG, "Attempt to mount unmounted "
+		    "partition.");
+		return EINVAL;
+	}
+
+	rc = vfs_unmount_path(part->cur_mp);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed unmounting partition "
+		    "from %s", part->cur_mp);
+		return rc;
+	}
+
+	if (part->cur_mp_auto) {
+		rc = vfs_unlink_path(part->cur_mp);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Failed deleting "
+			    "mount directory %s.", part->cur_mp);
+		}
+	}
+
+	free(part->cur_mp);
+	part->cur_mp = NULL;
+	part->cur_mp_auto = false;
+
+	return EOK;
 }
 
 errno_t vol_part_empty_part(vol_part_t *part)
@@ -365,15 +534,26 @@ errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 		return rc;
 	}
 
+	rc = vol_part_mount(part);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&vol_parts_lock);
+		return rc;
+	}
+
 	fibril_mutex_unlock(&vol_parts_lock);
 	return EOK;
 }
 
 errno_t vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
 {
+	memset(pinfo, 0, sizeof(*pinfo));
+
 	pinfo->pcnt = part->pcnt;
 	pinfo->fstype = part->fstype;
 	str_cpy(pinfo->label, sizeof(pinfo->label), part->label);
+	if (part->cur_mp != NULL)
+		str_cpy(pinfo->cur_mp, sizeof(pinfo->cur_mp), part->cur_mp);
+	pinfo->cur_mp_auto = part->cur_mp_auto;
 	return EOK;
 }
 

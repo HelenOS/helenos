@@ -36,6 +36,7 @@
 #define LIBC_TYPES_VOL_H_
 
 #include <async.h>
+#include <ipc/vfs.h>
 #include <ipc/vol.h>
 #include <stdbool.h>
 
@@ -74,6 +75,10 @@ typedef struct {
 	vol_fstype_t fstype;
 	/** Volume label */
 	char label[VOL_LABEL_MAXLEN + 1];
+	/** Current mount point */
+	char cur_mp[MAX_PATH_LEN + 1]; /* XXX too big */
+	/** Current mount point is automatic */
+	bool cur_mp_auto;
 } vol_part_info_t;
 
 /** Volume label support */

@@ -68,14 +68,11 @@
 #define FS_SRV "/srv/mfs"
 #define MOUNT_POINT "/inst"
 
-/** Device containing HelenOS live CD */
-#define CD_DEV "devices/\\hw\\pci0\\00:01.0\\ata-c2\\d0"
+/** HelenOS live CD volume label */
+#define CD_VOL_LABEL "HelenOS-CD"
+#define CD_MOUNT_POINT "/vol/" CD_VOL_LABEL
 
-#define CD_FS_TYPE "cdfs"
-#define CD_FS_SRV "/srv/cdfs"
-#define CD_MOUNT_POINT "/cdrom"
-
-#define BOOT_FILES_SRC "/cdrom"
+#define BOOT_FILES_SRC CD_MOUNT_POINT
 #define BOOT_BLOCK_IDX 0 /* MBR */
 
 /** Label the destination device.
@@ -195,35 +192,7 @@ static errno_t sysinst_fs_mount(const char *dev)
  */
 static errno_t sysinst_copy_boot_files(void)
 {
-	task_wait_t twait;
-	task_exit_t texit;
 	errno_t rc;
-	int trc;
-
-	printf("sysinst_copy_boot_files(): start filesystem server\n");
-	rc = task_spawnl(NULL, &twait, CD_FS_SRV, CD_FS_SRV, NULL);
-	if (rc != EOK)
-		return rc;
-
-	printf("sysinst_copy_boot_files(): wait for filesystem server\n");
-	rc = task_wait(&twait, &texit, &trc);
-	if (rc != EOK)
-		return rc;
-
-	printf("sysinst_copy_boot_files(): verify filesystem server result\n");
-	if (texit != TASK_EXIT_NORMAL || trc != 0) {
-		printf("sysinst_fs_mount(): not successful, but could be already loaded.\n");
-	}
-
-	printf("sysinst_copy_boot_files(): create CD mount point\n");
-	rc = vfs_link_path(CD_MOUNT_POINT, KIND_DIRECTORY, NULL);
-	if (rc != EOK)
-		return rc;
-
-	printf("sysinst_copy_boot_files(): mount CD filesystem\n");
-	rc = vfs_mount_path(CD_MOUNT_POINT, CD_FS_TYPE, CD_DEV, "", 0, 0);
-	if (rc != EOK)
-		return rc;
 
 	printf("sysinst_copy_boot_files(): copy bootloader files\n");
 	rc = futil_rcopy_contents(BOOT_FILES_SRC, MOUNT_POINT);

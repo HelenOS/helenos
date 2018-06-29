@@ -36,6 +36,7 @@
 #ifndef LIBFDISK_FDISK_H_
 #define LIBFDISK_FDISK_H_
 
+#include <errno.h>
 #include <loc.h>
 #include <types/fdisk.h>
 #include <types/vol.h>
@@ -70,10 +71,6 @@ extern errno_t fdisk_part_create(fdisk_dev_t *, fdisk_part_spec_t *,
     fdisk_part_t **);
 extern errno_t fdisk_part_destroy(fdisk_part_t *);
 extern void fdisk_pspec_init(fdisk_part_spec_t *);
-
-extern errno_t fdisk_ltype_format(label_type_t, char **);
-extern errno_t fdisk_fstype_format(vol_fstype_t, char **);
-extern errno_t fdisk_pkind_format(label_pkind_t, char **);
 
 extern errno_t fdisk_get_vollabel_support(fdisk_dev_t *, vol_fstype_t,
     vol_label_supp_t *);
