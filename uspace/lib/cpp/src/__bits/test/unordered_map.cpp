@@ -182,24 +182,23 @@ namespace std::test
         test_eq("*insert*_or_assign equivalence pt1", res9.first->first, 7);
         test_eq("*insert*_or_assign equivalence pt2", res9.first->second, std::string{"E"});
 
-        auto res10 = map2.erase(map2.find(7));
+        map2.erase(map2.find(7));
         test_eq("erase", map2.find(7), map2.end());
-        test_eq("highest erased", res10, map2.end());
 
+        auto res10 = map2.erase(6);
+        test_eq("erase by key pt1", res10, 1U);
         auto res11 = map2.erase(6);
-        test_eq("erase by key pt1", res11, 1U);
-        auto res12 = map2.erase(6);
-        test_eq("erase by key pt2", res12, 0U);
+        test_eq("erase by key pt2", res11, 0U);
 
-        auto res13 = map2.insert(std::pair<const int, const char*>{11, "test"});
-        test_eq("insert with constructible argument pt1", res13.second, true);
-        test_eq("insert with constructible argument pt2", res13.first->first, 11);
-        test_eq("insert with constructible argument pt3", res13.first->second, std::string{"test"});
+        auto res12 = map2.insert(std::pair<const int, const char*>{11, "test"});
+        test_eq("insert with constructible argument pt1", res12.second, true);
+        test_eq("insert with constructible argument pt2", res12.first->first, 11);
+        test_eq("insert with constructible argument pt3", res12.first->second, std::string{"test"});
 
         std::unordered_map<int, int> map3{};
         map3[1] = 1;
-        auto res15 = map3.count(1);
-        test_eq("count", res15, 1U);
+        auto res13 = map3.count(1);
+        test_eq("count", res13, 1U);
 
         map2.clear();
         test_eq("clear", map2.empty(), true);
