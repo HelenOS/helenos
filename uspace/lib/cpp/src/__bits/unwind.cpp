@@ -223,4 +223,13 @@ namespace __cxxabiv1
     {
         // TODO: implement
     }
+
+    extern "C" _Unwind_Reason_Code __gxx_personality_v0(
+        int, _Unwind_Action, unsigned,
+        struct _Unwind_Exception*, struct _Unwind_Context*
+    )
+    {
+        // TODO: implement
+        return _URC_NO_REASON;
+    }
 }
