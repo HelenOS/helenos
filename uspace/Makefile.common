@@ -80,13 +80,6 @@ ifneq ($(BINARY),)
 	EXTRA_CLEAN += $(BINARY).map
 endif
 
-ifneq ($(CXX_BINARY),)
-	JOB = $(CXX_BINARY).job
-	TEST_BINARY = test-$(CXX_BINARY)
-	OUTPUTS += $(CXX_BINARY) $(CXX_BINARY).disasm
-	EXTRA_CLEAN += $(CXX_BINARY).map
-endif
-
 ifneq ($(LIBRARY),)
 	JOB = $(LIBRARY).job
 	TEST_BINARY = test-$(LIBRARY)
@@ -244,13 +237,28 @@ CFLAGS = $(COMMON_CPPFLAGS) $(COMMON_CFLAGS) $(HELENOS_CFLAGS) $(DEFAULT_CFLAGS)
 
 # Flags for the compilation of C++ code.
 CXX_BASE_LIBS = $(LIBCPP_PREFIX)/libcpp.a $(BASE_LIBS)
-CXXFLAGS = $(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) -O$(OPTIMIZATION) $(COMMON_CFLAGS) \
+DEFAULT_CXXFLAGS = \
+	-O$(OPTIMIZATION) \
+	-ffunction-sections \
+	-pipe \
+	-Wall \
+	-Wextra \
+	-Wno-unused-parameter \
+	-Wwrite-strings \
+	-Werror-implicit-function-declaration
+
+COMMON_CXXFLAGS = $(COMMON_CFLAGS)
+HELENOS_CXXFLAGS = \
+	-std=c++17 -frtti \
+	$(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) \
 	-imacros $(CONFIG_HEADER) \
-	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -ffreestanding -fno-builtin -ffunction-sections \
-	-nostdlib -nostdinc -Wall -Wextra -Wno-clobbered -Wno-unused-parameter \
-	-std=c++17 -Werror-implicit-function-declaration \
-	-Wwrite-strings -pipe -ggdb -D__$(ENDIANESS)__
+	-D_HELENOS_SOURCE \
+	-fexec-charset=UTF-8 \
+	-finput-charset=UTF-8 \
+	-fno-common \
+	-fdebug-prefix-map=$(realpath $(ROOT_PATH))=.
+
+CXXFLAGS = $(COMMON_CPPFLAGS) $(COMMON_CXXFLAGS) $(HELENOS_CXXFLAGS) $(DEFAULT_CXXFLAGS)
 
 ## Setup platform configuration
 #
@@ -325,13 +333,15 @@ else
 endif
 
 ifneq ($(BINARY),)
+
+ifeq ($(findstring ".cpp", $($suffix $(SOURCES))),)
+$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(CXX_BASE_LIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(OBJECTS) $(LIBARGS) $(CXX_BASE_LIBS)
+else
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
 
-ifneq ($(CXX_BINARY),)
-$(CXX_BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(CXX_BASE_LIBS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(OBJECTS) $(LIBARGS) $(CXX_BASE_LIBS)
 endif
 
 ifneq ($(TEST_BINARY),)
