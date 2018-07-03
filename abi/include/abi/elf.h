@@ -109,18 +109,18 @@
 /**
  * ELF section types
  */
-#define SHT_NULL       0
-#define SHT_PROGBITS   1
-#define SHT_SYMTAB     2
-#define SHT_STRTAB     3
-#define SHT_RELA       4
-#define SHT_HASH       5
-#define SHT_DYNAMIC    6
-#define SHT_NOTE       7
-#define SHT_NOBITS     8
-#define SHT_REL        9
-#define SHT_SHLIB      10
-#define SHT_DYNSYM     11
+#define SHT_NULL      0
+#define SHT_PROGBITS  1
+#define SHT_SYMTAB    2
+#define SHT_STRTAB    3
+#define SHT_RELA      4
+#define SHT_HASH      5
+#define SHT_DYNAMIC   6
+#define SHT_NOTE      7
+#define SHT_NOBITS    8
+#define SHT_REL       9
+#define SHT_SHLIB     10
+#define SHT_DYNSYM    11
 #define SHT_LOOS      0x60000000
 #define SHT_HIOS      0x6fffffff
 #define SHT_LOPROC    0x70000000

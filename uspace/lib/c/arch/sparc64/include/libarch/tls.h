@@ -52,11 +52,11 @@ static inline void __tcb_set(tcb_t *tcb)
 
 static inline tcb_t *__tcb_get(void)
 {
-	void *retval;
+	tcb_t *retval;
 
 	asm volatile ("mov %%g7, %0\n" : "=r" (retval));
 
-	return (tcb_t *)retval;
+	return retval;
 }
 
 #endif
