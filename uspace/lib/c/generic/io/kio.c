@@ -41,14 +41,50 @@
 #include <abi/kio.h>
 #include <io/kio.h>
 #include <io/printf_core.h>
+#include <macros.h>
+#include <libarch/config.h>
+#include <futex.h>
+
+#define KIO_BUFFER_SIZE PAGE_SIZE
+
+static struct {
+	futex_t futex;
+	char data[KIO_BUFFER_SIZE];
+	size_t used;
+} kio_buffer = { .futex = FUTEX_INITIALIZER, };
 
 errno_t kio_write(const void *buf, size_t size, size_t *nwritten)
 {
-	errno_t rc = (errno_t) __SYSCALL3(SYS_KIO, KIO_WRITE, (sysarg_t) buf, size);
+	futex_lock(&kio_buffer.futex);
 
-	if (rc == EOK)
+	const char *s = buf;
+	while (true) {
+		const char *endl = memchr(s, '\n', size);
+		if (endl) {
+			size_t used = kio_buffer.used;
+
+			size_t sz = min(KIO_BUFFER_SIZE - used, (size_t) (endl - s));
+			memcpy(&kio_buffer.data[used], s, sz);
+
+			__SYSCALL3(SYS_KIO, KIO_WRITE,
+			    (sysarg_t) &kio_buffer.data[0], used + sz);
+
+			kio_buffer.used = 0;
+			size -= endl + 1 - s;
+			s = endl + 1;
+		} else {
+			size_t used = kio_buffer.used;
+			size_t sz = min(KIO_BUFFER_SIZE - used, size);
+			memcpy(&kio_buffer.data[used], s, sz);
+			kio_buffer.used += sz;
+			break;
+		}
+	}
+
+	futex_unlock(&kio_buffer.futex);
+	if (nwritten)
 		*nwritten = size;
-	return rc;
+	return EOK;
 }
 
 void kio_update(void)

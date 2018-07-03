@@ -423,7 +423,8 @@ sys_errno_t sys_kio(int cmd, const void *buf, size_t size)
 
 		switch (cmd) {
 		case KIO_WRITE:
-			printf("%s", data);
+			printf("[%s(%lu)] %s\n", TASK->name,
+			    (unsigned long) TASK->taskid, data);
 			break;
 		case KIO_COMMAND:
 			if (!stdin)
