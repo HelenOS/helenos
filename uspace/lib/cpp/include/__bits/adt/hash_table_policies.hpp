@@ -341,9 +341,9 @@ namespace std::aux
             {
                 auto tmp = current;
                 current = current->next;
-                tmp->unlink();
+                tmp->next = tmp;
+                tmp->prev = tmp;
 
-                --table.size_;
                 if (!table.keys_equal(key, tmp->value))
                 {
                     if (!last)
@@ -354,6 +354,7 @@ namespace std::aux
                 }
                 else
                 {
+                    --table.size_;
                     ++res;
 
                     delete tmp;
