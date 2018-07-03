@@ -269,7 +269,7 @@ namespace std
             unsigned long to_ulong() const
             {
                 // TODO: throw overflow_error if N > bits in ulong
-                return static_cast<unsigned long>(data_[0] & (~0UL));
+                return static_cast<unsigned long>(data_[0]);
             }
 
             unsigned long long to_ullong() const

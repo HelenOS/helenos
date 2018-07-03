@@ -91,10 +91,10 @@ namespace std::test
             b3.to_ulong(), 0b1111'1101'1011'1010UL
         );
 
-        std::bitset<64> b4{0xABCD'DCBA'DEAD'BEEF};
+        std::bitset<64> b4{0xABCD'DCBA'DEAD'BEEFULL};
         test_eq(
             "from hex to number equivalence",
-            b4.to_ulong(), 0xABCD'DCBA'DEAD'BEEF
+            b4.to_ulong(), static_cast<unsigned long>(0xABCD'DCBA'DEAD'BEEFULL)
         );
 
         std::bitset<8> b5{"XXYXYXYX", 8U, 'X', 'Y'};
