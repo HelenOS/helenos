@@ -63,6 +63,9 @@ namespace std::aux
 
         void append(list_node* node)
         {
+            if (!node)
+                return;
+
             node->next = next;
             node->prev = this;
             next->prev = node;
@@ -71,6 +74,9 @@ namespace std::aux
 
         void prepend(list_node* node)
         {
+            if (!node)
+                return;
+
             node->next = this;
             node->prev = prev;
             prev->next = node;

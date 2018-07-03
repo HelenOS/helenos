@@ -91,7 +91,7 @@ namespace std::aux
                 current = current->next;
                 delete tmp;
             }
-            while (current != head);
+            while (current && current != head);
 
             head = nullptr;
         }

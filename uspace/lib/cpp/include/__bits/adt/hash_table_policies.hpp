@@ -46,6 +46,26 @@ namespace std::aux
         static typename Table::place_type find_insertion_spot(const Table& table, const Key& key)
         {
             auto idx = table.get_bucket_idx_(key);
+            auto head = table.table_[idx].head;
+
+            if (head)
+            { // Check if the key is present.
+                auto current = head;
+                do
+                {
+                    if (table.keys_equal(key, current->value))
+                    {
+                        return make_tuple(
+                            &table.table_[idx],
+                            current,
+                            idx
+                        );
+                    }
+
+                    current = current->next;
+                } while (current && current != head);
+            }
+
             return make_tuple(
                 &table.table_[idx],
                 table.table_[idx].head,
@@ -85,7 +105,7 @@ namespace std::aux
                 else
                     current = current->next;
             }
-            while (current != head);
+            while (current && current != head);
 
             return 0;
         }
@@ -262,7 +282,7 @@ namespace std::aux
 
                 current = current->next;
             }
-            while (current != head);
+            while (current && current != head);
 
             return res;
         }
@@ -288,7 +308,7 @@ namespace std::aux
                     }
 
                     current = current->next;
-                } while (current != head);
+                } while (current && current != head);
             }
 
             return make_tuple(
@@ -305,6 +325,7 @@ namespace std::aux
             auto head = table.table_[idx].head;
             auto current = head;
             table.table_[idx].head = nullptr;
+            decltype(head) last = nullptr;
 
             if (!current)
                 return 0;
@@ -320,18 +341,25 @@ namespace std::aux
             {
                 auto tmp = current;
                 current = current->next;
+                tmp->unlink();
 
+                --table.size_;
                 if (!table.keys_equal(key, tmp->value))
-                    table.table_[idx].append(tmp);
+                {
+                    if (!last)
+                        table.table_[idx].head = tmp;
+                    else
+                        last->append(tmp);
+                    last = tmp;
+                }
                 else
                 {
                     ++res;
-                    --table.size_;
 
                     delete tmp;
                 }
             }
-            while (current != head);
+            while (current && current != head);
 
             return res;
         }
@@ -350,7 +378,7 @@ namespace std::aux
             do
             {
                 ++last;
-            } while (table.keys_equal(key, *last));
+            } while (last != table.end() && table.keys_equal(key, *last));
 
             return make_pair(first, last);
         }
@@ -369,7 +397,7 @@ namespace std::aux
             do
             {
                 ++last;
-            } while (table.keys_equal(key, *last));
+            } while (last != table.end() && table.keys_equal(key, *last));
 
             return make_pair(first, last);
         }
@@ -416,7 +444,7 @@ namespace std::aux
             auto [bucket, target, idx] = table.find_insertion_spot(key);
 
             if (!bucket)
-                table.end();
+                return table.end();
 
             if (target && table.keys_equal(key, target->value))
                 target->append(node);

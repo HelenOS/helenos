@@ -211,6 +211,9 @@ namespace std::aux
 
             iterator erase(const_iterator it)
             {
+                if (it == cend())
+                    return end();
+
                 auto node = it.node();
                 auto idx = it.idx();
 
@@ -233,7 +236,10 @@ namespace std::aux
                 node->unlink();
                 delete node;
 
-                return res;
+                if (empty())
+                    return end();
+                else
+                    return res;
             }
 
             void clear() noexcept
@@ -281,7 +287,7 @@ namespace std::aux
                         return iterator{table_, idx, size_, current};
                     current = current->next;
                 }
-                while (current != head);
+                while (current && current != head);
 
                 return end();
             }
