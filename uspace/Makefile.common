@@ -334,7 +334,7 @@ endif
 
 ifneq ($(BINARY),)
 
-ifeq ($(findstring ".cpp", $($suffix $(SOURCES))),)
+ifneq ($(filter %.cpp %.cc %.cxx, $(SOURCES)),)
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(CXX_BASE_LIBS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(OBJECTS) $(LIBARGS) $(CXX_BASE_LIBS)
 else
