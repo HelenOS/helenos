@@ -420,7 +420,7 @@ static inline void *list_pop_internal(list_t *list, ptrdiff_t offset)
 		return NULL;
 
 	list_remove(tmp);
-	return ((void *) tmp) - offset;
+	return (void *)(((char *) tmp) - offset);
 }
 
 #define list_pop(list, type, member) \
