@@ -1198,8 +1198,8 @@ static errno_t async_manager_worker(void)
 
 		atomic_dec(&threads_in_ipc_wait);
 
-		assert(rc == EOK);
-		handle_call(&call);
+		if (rc == EOK)
+			handle_call(&call);
 	}
 
 	return 0;

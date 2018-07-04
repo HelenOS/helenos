@@ -192,7 +192,7 @@ extern void ipc_call_release(call_t *);
 
 extern errno_t ipc_call_sync(phone_t *, call_t *);
 extern errno_t ipc_call(phone_t *, call_t *);
-extern call_t *ipc_wait_for_call(answerbox_t *, uint32_t, unsigned int);
+extern errno_t ipc_wait_for_call(answerbox_t *, uint32_t, unsigned int, call_t **);
 extern errno_t ipc_forward(call_t *, phone_t *, answerbox_t *, unsigned int);
 extern void ipc_answer(answerbox_t *, call_t *);
 extern void _ipc_answer_free_call(call_t *, bool);

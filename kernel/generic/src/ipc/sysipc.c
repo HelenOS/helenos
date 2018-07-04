@@ -750,7 +750,7 @@ sys_errno_t sys_ipc_hangup(cap_phone_handle_t handle)
 sys_errno_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
     unsigned int flags)
 {
-	call_t *call;
+	call_t *call = NULL;
 
 restart:
 
@@ -758,19 +758,17 @@ restart:
 	udebug_stoppable_begin();
 #endif
 
-	call = ipc_wait_for_call(&TASK->answerbox, usec,
-	    flags | SYNCH_FLAGS_INTERRUPTIBLE);
+	errno_t rc = ipc_wait_for_call(&TASK->answerbox, usec,
+	    flags | SYNCH_FLAGS_INTERRUPTIBLE, &call);
 
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
 
-	if (!call) {
-		ipc_data_t data = { };
-		data.cap_handle = CAP_NIL;
-		STRUCT_TO_USPACE(calldata, &data);
-		return EOK;
-	}
+	if (rc != EOK)
+		return rc;
+
+	assert(call);
 
 	call->data.flags = call->flags;
 	if (call->flags & IPC_CALL_NOTIF) {
@@ -805,7 +803,7 @@ restart:
 		goto restart;
 
 	cap_handle_t handle = CAP_NIL;
-	errno_t rc = cap_alloc(TASK, &handle);
+	rc = cap_alloc(TASK, &handle);
 	if (rc != EOK) {
 		goto error;
 	}

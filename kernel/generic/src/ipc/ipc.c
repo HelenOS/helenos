@@ -229,8 +229,9 @@ errno_t ipc_call_sync(phone_t *phone, call_t *request)
 		return rc;
 	}
 
-	call_t *answer = ipc_wait_for_call(mybox, SYNCH_NO_TIMEOUT,
-	    SYNCH_FLAGS_INTERRUPTIBLE);
+	call_t *answer = NULL;
+	(void) ipc_wait_for_call(mybox, SYNCH_NO_TIMEOUT,
+	    SYNCH_FLAGS_INTERRUPTIBLE, &answer);
 	if (!answer) {
 
 		/*
@@ -266,8 +267,8 @@ errno_t ipc_call_sync(phone_t *phone, call_t *request)
 			 * It is safe to wait for the answer uninterruptibly
 			 * now.
 			 */
-			answer = ipc_wait_for_call(mybox, SYNCH_NO_TIMEOUT,
-			    SYNCH_FLAGS_NONE);
+			(void) ipc_wait_for_call(mybox, SYNCH_NO_TIMEOUT,
+			    SYNCH_FLAGS_NONE, &answer);
 		}
 	}
 	assert(!answer || request == answer);
@@ -535,13 +536,16 @@ errno_t ipc_forward(call_t *call, phone_t *newphone, answerbox_t *oldbox,
  * @param flags Select mode of sleep operation. See documentation for
  *              waitq_sleep_timeout() for description of its special
  *              meaning.
+ * @param call  Received call structure or NULL.
  *
- * @return Recived call structure or NULL.
+ * @return Error code from waitq_sleep_timeout.
+ *         ENOENT if sleep returns successfully, but there is no call.
  *
  * To distinguish between a call and an answer, have a look at call->flags.
  *
  */
-call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags)
+errno_t ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags,
+    call_t **call)
 {
 	call_t *request;
 	uint64_t irq_cnt = 0;
@@ -551,7 +555,7 @@ call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags)
 
 	rc = waitq_sleep_timeout(&box->wq, usec, flags, NULL);
 	if (rc != EOK)
-		return NULL;
+		return rc;
 
 	irq_spinlock_lock(&box->lock, true);
 	if (!list_empty(&box->irq_notifs)) {
@@ -593,7 +597,7 @@ call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags)
 		 * response to ipc_poke(). Let the caller sort out the wakeup.
 		 */
 		irq_spinlock_unlock(&box->lock, true);
-		return NULL;
+		return ENOENT;
 	}
 
 	irq_spinlock_pass(&box->lock, &TASK->lock);
@@ -604,7 +608,8 @@ call_t *ipc_wait_for_call(answerbox_t *box, uint32_t usec, unsigned int flags)
 
 	irq_spinlock_unlock(&TASK->lock, true);
 
-	return request;
+	*call = request;
+	return EOK;
 }
 
 /** Answer all calls from list with EHANGUP answer.
@@ -778,8 +783,11 @@ static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
 static void ipc_wait_for_all_answered_calls(void)
 {
 	while (atomic_get(&TASK->answerbox.active_calls) != 0) {
-		call_t *call = ipc_wait_for_call(&TASK->answerbox,
-		    SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+		call_t *call = NULL;
+		if (ipc_wait_for_call(&TASK->answerbox,
+		    SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, &call) == ENOENT)
+			continue;
+		assert(call);
 		assert(call->flags & (IPC_CALL_ANSWERED | IPC_CALL_NOTIF));
 
 		SYSIPC_OP(answer_process, call);

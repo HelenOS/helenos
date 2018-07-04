@@ -167,8 +167,9 @@ static void kbox_thread_proc(void *arg)
 	bool done = false;
 
 	while (!done) {
-		call_t *call = ipc_wait_for_call(&TASK->kb.box, SYNCH_NO_TIMEOUT,
-		    SYNCH_FLAGS_NONE);
+		call_t *call = NULL;
+		(void) ipc_wait_for_call(&TASK->kb.box, SYNCH_NO_TIMEOUT,
+		    SYNCH_FLAGS_NONE, &call);
 
 		if (call == NULL)
 			continue;  /* Try again. */
