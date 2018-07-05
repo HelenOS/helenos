@@ -272,8 +272,10 @@ ifeq ($(PRECHECK),y)
 	JOBFILE = $(LIBC_PREFIX)/../../../tools/jobfile.py
 	# XXX: Do not change the order of arguments.
 	CC_JOB = $(JOBFILE) $(JOB) $(CC) $< -o $@
+	CXX_JOB = $(JOBFILE) $(JOB) $(CXX) $< -o $@
 else
 	CC_JOB = $(CC) $< -o $@
+	CXX_JOB = $(CXX) $< -o $@
 endif
 
 ifeq ($(CONFIG_STRIP_BINARIES),y)
@@ -379,7 +381,13 @@ endif
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS)
 
 %.o: %.cpp | depend
-	$(CXX) $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+
+%.o: %.cxx | depend
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+
+%.o: %.cc | depend
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 %.test.o: %.c | depend
 	$(CC_JOB) -c -MD -MP $(DEFS) $(CFLAGS) $(EXTRA_CFLAGS) $(TEST_CFLAGS)
@@ -394,7 +402,13 @@ endif
 	$(CC_JOB) -c -MD -MP $(DEFS) $(LIB_CFLAGS) $(EXTRA_CFLAGS)
 
 %.lo: %.cpp | depend
-	$(CXX) $(CXXFLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+
+%.lo: %.cxx | depend
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
+
+%.lo: %.cc | depend
+	$(CXX_JOB) -c -MD -MP $(DEFS) $(CXXFLAGS) $(EXTRA_CXXFLAGS)
 
 -include $(DEPENDS)
 
