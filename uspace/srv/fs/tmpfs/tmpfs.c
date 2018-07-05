@@ -52,8 +52,7 @@
 #include <str.h>
 #include "../../vfs/vfs.h"
 
-#define NAME "tmpfs"
-
+#define NAME  "tmpfs"
 
 vfs_info_t tmpfs_vfs_info = {
 	.name = NAME,
@@ -64,37 +63,38 @@ vfs_info_t tmpfs_vfs_info = {
 
 int main(int argc, char **argv)
 {
-	printf(NAME ": HelenOS TMPFS file system server\n");
+	printf("%s: HelenOS TMPFS file system server\n", NAME);
 
 	if (argc == 3) {
 		if (!str_cmp(argv[1], "--instance"))
 			tmpfs_vfs_info.instance = strtol(argv[2], NULL, 10);
 		else {
-			printf(NAME " Unrecognized parameters");
+			printf("%s: Unrecognized parameters", NAME);
 			return -1;
 		}
 	}
 
 	if (!tmpfs_init()) {
-		printf(NAME ": failed to initialize TMPFS\n");
+		printf("%s: Failed to initialize TMPFS\n", NAME);
 		return -1;
 	}
 
 	async_sess_t *vfs_sess = service_connect_blocking(SERVICE_VFS,
 	    INTERFACE_VFS_DRIVER, 0);
 	if (!vfs_sess) {
-		printf(NAME ": Unable to connect to VFS\n");
+		printf("%s: Unable to connect to VFS\n", NAME);
 		return -1;
 	}
 
 	errno_t rc = fs_register(vfs_sess, &tmpfs_vfs_info, &tmpfs_ops,
 	    &tmpfs_libfs_ops);
 	if (rc != EOK) {
-		printf(NAME ": Failed to register file system: %s\n", str_error(rc));
+		printf("%s: Failed to register file system: %s\n", NAME,
+		    str_error(rc));
 		return rc;
 	}
 
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	task_retval(0);
 	async_manager();
 

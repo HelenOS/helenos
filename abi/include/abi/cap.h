@@ -35,17 +35,19 @@
 #ifndef ABI_CAP_H_
 #define ABI_CAP_H_
 
-#define CAP_NIL		0
+#define CAP_NIL  0
 
-#define CAP_HANDLE_VALID(handle)	((handle) != CAP_NIL)
-#define CAP_HANDLE_RAW(handle)		((intptr_t) (handle))
+#define CAP_HANDLE_VALID(handle)  ((handle) != CAP_NIL)
+#define CAP_HANDLE_RAW(handle)    ((intptr_t) (handle))
 
 typedef void *cap_handle_t;
 
 typedef struct {
 } *cap_call_handle_t;
+
 typedef struct {
 } *cap_phone_handle_t;
+
 typedef struct {
 } *cap_irq_handle_t;
 

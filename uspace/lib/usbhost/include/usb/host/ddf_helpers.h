@@ -45,19 +45,17 @@
 #include <usb/descriptor.h>
 
 
-errno_t hcd_ddf_setup_hc(ddf_dev_t *, size_t);
-void hcd_ddf_clean_hc(hc_device_t *);
+extern errno_t hcd_ddf_setup_hc(ddf_dev_t *, size_t);
+extern void hcd_ddf_clean_hc(hc_device_t *);
 
+extern device_t *hcd_ddf_fun_create(hc_device_t *, usb_speed_t);
+extern void hcd_ddf_fun_destroy(device_t *);
 
-device_t *hcd_ddf_fun_create(hc_device_t *, usb_speed_t);
-void hcd_ddf_fun_destroy(device_t *);
+extern errno_t hcd_ddf_setup_match_ids(device_t *,
+    usb_standard_device_descriptor_t *);
 
-errno_t hcd_ddf_setup_match_ids(device_t *, usb_standard_device_descriptor_t *);
-
-errno_t hcd_ddf_enable_interrupt(hc_device_t *hcd, int);
-errno_t hcd_ddf_get_registers(hc_device_t *hcd, hw_res_list_parsed_t *hw_res);
-
-void hcd_ddf_gen_irq_handler(cap_call_handle_t icall_handle, ipc_call_t *call, ddf_dev_t *dev);
+extern errno_t hcd_ddf_enable_interrupt(hc_device_t *, int);
+extern errno_t hcd_ddf_get_registers(hc_device_t *, hw_res_list_parsed_t *);
 
 #endif
 
