@@ -84,15 +84,13 @@ typedef struct {
  * This fallback fibril function gets called on incomming connections that do
  * not have a specific handler defined.
  *
- * @param chandle  Handle of the incoming call.
- * @param call     Data of the incoming call.
- * @param arg      Local argument
+ * @param call Data of the incoming call.
+ * @param arg  Local argument
  *
  */
-static void default_fallback_port_handler(cap_call_handle_t chandle,
-    ipc_call_t *call, void *arg)
+static void default_fallback_port_handler(ipc_call_t *call, void *arg)
 {
-	ipc_answer_0(chandle, ENOENT);
+	async_answer_0(call, ENOENT);
 }
 
 static async_port_handler_t fallback_port_handler =

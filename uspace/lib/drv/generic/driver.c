@@ -117,7 +117,7 @@ static ddf_fun_t *driver_get_function(devman_handle_t handle)
 	return NULL;
 }
 
-static void driver_dev_add(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void driver_dev_add(ipc_call_t *icall)
 {
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
 	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
@@ -125,7 +125,7 @@ static void driver_dev_add(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	char *dev_name = NULL;
 	errno_t rc = async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
@@ -133,7 +133,7 @@ static void driver_dev_add(cap_call_handle_t icall_handle, ipc_call_t *icall)
 
 	if (stopping) {
 		fibril_rwlock_read_unlock(&stopping_lock);
-		async_answer_0(icall_handle, EIO);
+		async_answer_0(icall, EIO);
 		return;
 	}
 
@@ -141,7 +141,7 @@ static void driver_dev_add(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	if (!dev) {
 		fibril_rwlock_read_unlock(&stopping_lock);
 		free(dev_name);
-		async_answer_0(icall_handle, ENOMEM);
+		async_answer_0(icall, ENOMEM);
 		return;
 	}
 
@@ -161,7 +161,7 @@ static void driver_dev_add(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	if (res != EOK) {
 		fibril_rwlock_read_unlock(&stopping_lock);
 		dev_del_ref(dev);
-		async_answer_0(icall_handle, res);
+		async_answer_0(icall, res);
 		return;
 	}
 
@@ -170,10 +170,10 @@ static void driver_dev_add(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	fibril_mutex_unlock(&devices_mutex);
 	fibril_rwlock_read_unlock(&stopping_lock);
 
-	async_answer_0(icall_handle, res);
+	async_answer_0(icall, res);
 }
 
-static void driver_dev_remove(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void driver_dev_remove(ipc_call_t *icall)
 {
 	devman_handle_t devh = IPC_GET_ARG1(*icall);
 
@@ -184,7 +184,7 @@ static void driver_dev_remove(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	fibril_mutex_unlock(&devices_mutex);
 
 	if (dev == NULL) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -203,10 +203,10 @@ static void driver_dev_remove(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	}
 
 	dev_del_ref(dev);
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void driver_dev_gone(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void driver_dev_gone(ipc_call_t *icall)
 {
 	devman_handle_t devh = IPC_GET_ARG1(*icall);
 
@@ -217,7 +217,7 @@ static void driver_dev_gone(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	fibril_mutex_unlock(&devices_mutex);
 
 	if (dev == NULL) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -236,10 +236,10 @@ static void driver_dev_gone(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	}
 
 	dev_del_ref(dev);
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void driver_fun_online(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void driver_fun_online(ipc_call_t *icall)
 {
 	devman_handle_t funh = IPC_GET_ARG1(*icall);
 
@@ -257,7 +257,7 @@ static void driver_fun_online(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	fibril_mutex_unlock(&functions_mutex);
 
 	if (fun == NULL) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -271,10 +271,10 @@ static void driver_fun_online(cap_call_handle_t icall_handle, ipc_call_t *icall)
 
 	fun_del_ref(fun);
 
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void driver_fun_offline(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void driver_fun_offline(ipc_call_t *icall)
 {
 	devman_handle_t funh = IPC_GET_ARG1(*icall);
 
@@ -292,7 +292,7 @@ static void driver_fun_offline(cap_call_handle_t icall_handle, ipc_call_t *icall
 	fibril_mutex_unlock(&functions_mutex);
 
 	if (fun == NULL) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -304,10 +304,10 @@ static void driver_fun_offline(cap_call_handle_t icall_handle, ipc_call_t *icall
 	else
 		rc = ENOTSUP;
 
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void driver_stop(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void driver_stop(ipc_call_t *icall)
 {
 	/* Prevent new devices from being added */
 	fibril_rwlock_write_lock(&stopping_lock);
@@ -320,7 +320,7 @@ static void driver_stop(cap_call_handle_t icall_handle, ipc_call_t *icall)
 		fibril_mutex_unlock(&devices_mutex);
 		stopping = false;
 		fibril_rwlock_write_unlock(&stopping_lock);
-		async_answer_0(icall_handle, EBUSY);
+		async_answer_0(icall, EBUSY);
 		return;
 	}
 
@@ -332,44 +332,43 @@ static void driver_stop(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	fibril_mutex_unlock(&functions_mutex);
 
 	/* Reply with success and terminate */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 	exit(0);
 }
 
-static void driver_connection_devman(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void driver_connection_devman(ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case DRIVER_DEV_ADD:
-			driver_dev_add(chandle, &call);
+			driver_dev_add(&call);
 			break;
 		case DRIVER_DEV_REMOVE:
-			driver_dev_remove(chandle, &call);
+			driver_dev_remove(&call);
 			break;
 		case DRIVER_DEV_GONE:
-			driver_dev_gone(chandle, &call);
+			driver_dev_gone(&call);
 			break;
 		case DRIVER_FUN_ONLINE:
-			driver_fun_online(chandle, &call);
+			driver_fun_online(&call);
 			break;
 		case DRIVER_FUN_OFFLINE:
-			driver_fun_offline(chandle, &call);
+			driver_fun_offline(&call);
 			break;
 		case DRIVER_STOP:
-			driver_stop(chandle, &call);
+			driver_stop(&call);
 			break;
 		default:
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 		}
 	}
 }
@@ -380,7 +379,7 @@ static void driver_connection_devman(cap_call_handle_t icall_handle, ipc_call_t 
  *            (applications, services, etc.).
  *
  */
-static void driver_connection_gen(cap_call_handle_t icall_handle, ipc_call_t *icall, bool drv)
+static void driver_connection_gen(ipc_call_t *icall, bool drv)
 {
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call and remember the handle of
@@ -397,13 +396,13 @@ static void driver_connection_gen(cap_call_handle_t icall_handle, ipc_call_t *ic
 	if (fun == NULL) {
 		printf("%s: driver_connection_gen error - no function with handle"
 		    " %" PRIun " was found.\n", driver->name, handle);
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
 	if (fun->conn_handler != NULL) {
 		/* Driver has a custom connection handler. */
-		(*fun->conn_handler)(icall_handle, icall, (void *)fun);
+		(*fun->conn_handler)(icall, (void *)fun);
 		fun_del_ref(fun);
 		return;
 	}
@@ -418,23 +417,23 @@ static void driver_connection_gen(cap_call_handle_t icall_handle, ipc_call_t *ic
 	if (fun->ops != NULL && fun->ops->open != NULL)
 		ret = (*fun->ops->open)(fun);
 
-	async_answer_0(icall_handle, ret);
+	async_answer_0(icall, ret);
 	if (ret != EOK) {
 		fun_del_ref(fun);
 		return;
 	}
 
 	while (true) {
-		cap_call_handle_t chandle;
 		ipc_call_t call;
-		chandle = async_get_call(&call);
+		async_get_call(&call);
+
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* Close device function */
 			if (fun->ops != NULL && fun->ops->close != NULL)
 				(*fun->ops->close)(fun);
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			fun_del_ref(fun);
 			return;
 		}
@@ -447,7 +446,7 @@ static void driver_connection_gen(cap_call_handle_t icall_handle, ipc_call_t *ic
 			remote_handler_t *default_handler =
 			    function_get_default_handler(fun);
 			if (default_handler != NULL) {
-				(*default_handler)(fun, chandle, &call);
+				(*default_handler)(fun, &call);
 				continue;
 			}
 
@@ -458,7 +457,7 @@ static void driver_connection_gen(cap_call_handle_t icall_handle, ipc_call_t *ic
 			printf("%s: driver_connection_gen error - "
 			    "invalid interface id %d.",
 			    driver->name, iface_idx);
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 			continue;
 		}
 
@@ -470,7 +469,7 @@ static void driver_connection_gen(cap_call_handle_t icall_handle, ipc_call_t *ic
 			printf("%s: driver_connection_gen error - ", driver->name);
 			printf("Function with handle %" PRIun " has no interface "
 			    "with id %d.\n", handle, iface_idx);
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 			continue;
 		}
 
@@ -489,7 +488,7 @@ static void driver_connection_gen(cap_call_handle_t icall_handle, ipc_call_t *ic
 			/* The interface has not such method */
 			printf("%s: driver_connection_gen error - "
 			    "invalid interface method.", driver->name);
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 			continue;
 		}
 
@@ -499,20 +498,18 @@ static void driver_connection_gen(cap_call_handle_t icall_handle, ipc_call_t *ic
 		 * pass it to the corresponding local interface method
 		 * associated with the function by its driver.
 		 */
-		(*iface_method_ptr)(fun, ops, chandle, &call);
+		(*iface_method_ptr)(fun, ops, &call);
 	}
 }
 
-static void driver_connection_driver(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void driver_connection_driver(ipc_call_t *icall, void *arg)
 {
-	driver_connection_gen(icall_handle, icall, true);
+	driver_connection_gen(icall, true);
 }
 
-static void driver_connection_client(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void driver_connection_client(ipc_call_t *icall, void *arg)
 {
-	driver_connection_gen(icall_handle, icall, false);
+	driver_connection_gen(icall, false);
 }
 
 /** Create new device structure.

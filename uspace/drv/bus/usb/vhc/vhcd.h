@@ -87,8 +87,7 @@ static inline vhc_data_t *bus_to_vhc(bus_t *bus)
 }
 
 void on_client_close(ddf_fun_t *fun);
-void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
-    ipc_call_t *icall);
+void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall);
 
 errno_t vhc_virtdev_plug(vhc_data_t *, async_sess_t *, uintptr_t *);
 errno_t vhc_virtdev_plug_local(vhc_data_t *, usbvirt_device_t *, uintptr_t *);

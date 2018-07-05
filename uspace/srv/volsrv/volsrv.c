@@ -51,7 +51,7 @@
 
 #define NAME  "volsrv"
 
-static void vol_client_conn(cap_call_handle_t, ipc_call_t *, void *);
+static void vol_client_conn(ipc_call_t *, void *);
 
 static errno_t vol_init(void)
 {
@@ -84,40 +84,40 @@ static errno_t vol_init(void)
 	return EOK;
 }
 
-static void vol_get_parts_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void vol_get_parts_srv(ipc_call_t *icall)
 {
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
 	size_t act_size;
 	errno_t rc;
 
-	if (!async_data_read_receive(&chandle, &size)) {
-		async_answer_0(chandle, EREFUSED);
-		async_answer_0(icall_handle, EREFUSED);
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
 	service_id_t *id_buf = (service_id_t *) malloc(size);
 	if (id_buf == NULL) {
-		async_answer_0(chandle, ENOMEM);
-		async_answer_0(icall_handle, ENOMEM);
+		async_answer_0(&call, ENOMEM);
+		async_answer_0(icall, ENOMEM);
 		return;
 	}
 
 	rc = vol_part_get_ids(id_buf, size, &act_size);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
-		async_answer_0(icall_handle, rc);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
-	errno_t retval = async_data_read_finalize(chandle, id_buf, size);
+	errno_t retval = async_data_read_finalize(&call, id_buf, size);
 	free(id_buf);
 
-	async_answer_1(icall_handle, retval, act_size);
+	async_answer_1(icall, retval, act_size);
 }
 
-static void vol_part_add_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void vol_part_add_srv(ipc_call_t *icall)
 {
 	service_id_t sid;
 	errno_t rc;
@@ -126,14 +126,14 @@ static void vol_part_add_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 
 	rc = vol_part_add(sid);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
-static void vol_part_info_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void vol_part_info_srv(ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -145,44 +145,44 @@ static void vol_part_info_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	    sid);
 	rc = vol_part_find_by_id_ref(sid, &part);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
 	rc = vol_part_get_info(part, &pinfo);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, EIO);
+		async_answer_0(icall, EIO);
 		goto error;
 	}
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_read_receive(&chandle, &size)) {
-		async_answer_0(chandle, EREFUSED);
-		async_answer_0(icall_handle, EREFUSED);
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		goto error;
 	}
 
 	if (size != sizeof(vol_part_info_t)) {
-		async_answer_0(chandle, EINVAL);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
 		goto error;
 	}
 
-	rc = async_data_read_finalize(chandle, &pinfo,
+	rc = async_data_read_finalize(&call, &pinfo,
 	    min(size, sizeof(pinfo)));
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
-		async_answer_0(icall_handle, rc);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 		goto error;
 	}
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 error:
 	vol_part_del_ref(part);
 }
 
-static void vol_part_eject_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void vol_part_eject_srv(ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -193,22 +193,22 @@ static void vol_part_eject_srv(cap_call_handle_t icall_handle, ipc_call_t *icall
 
 	rc = vol_part_find_by_id_ref(sid, &part);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		goto error;
 	}
 
 	rc = vol_part_eject_part(part);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, EIO);
+		async_answer_0(icall, EIO);
 		goto error;
 	}
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 error:
 	vol_part_del_ref(part);
 }
 
-static void vol_part_empty_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void vol_part_empty_srv(ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -219,22 +219,22 @@ static void vol_part_empty_srv(cap_call_handle_t icall_handle, ipc_call_t *icall
 
 	rc = vol_part_find_by_id_ref(sid, &part);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
 	rc = vol_part_empty_part(part);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, EIO);
+		async_answer_0(icall, EIO);
 		goto error;
 	}
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 error:
 	vol_part_del_ref(part);
 }
 
-static void vol_part_get_lsupp_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void vol_part_get_lsupp_srv(ipc_call_t *icall)
 {
 	vol_fstype_t fstype;
 	vol_label_supp_t vlsupp;
@@ -246,33 +246,33 @@ static void vol_part_get_lsupp_srv(cap_call_handle_t icall_handle, ipc_call_t *i
 
 	volsrv_part_get_lsupp(fstype, &vlsupp);
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_read_receive(&chandle, &size)) {
-		async_answer_0(chandle, EREFUSED);
-		async_answer_0(icall_handle, EREFUSED);
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(vol_label_supp_t)) {
-		async_answer_0(chandle, EINVAL);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
 		return;
 	}
 
-	rc = async_data_read_finalize(chandle, &vlsupp,
+	rc = async_data_read_finalize(&call, &vlsupp,
 	    min(size, sizeof(vlsupp)));
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
-		async_answer_0(icall_handle, rc);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
 
-static void vol_part_mkfs_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void vol_part_mkfs_srv(ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -288,7 +288,7 @@ static void vol_part_mkfs_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	rc = async_data_write_accept((void **)&label, true, 0, VOL_LABEL_MAXLEN,
 	    0, NULL);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
@@ -300,64 +300,64 @@ static void vol_part_mkfs_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
 	rc = vol_part_find_by_id_ref(sid, &part);
 	if (rc != EOK) {
 		free(label);
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
 	rc = vol_part_mkfs_part(part, fstype, label);
 	if (rc != EOK) {
 		free(label);
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		vol_part_del_ref(part);
 		return;
 	}
 
 	free(label);
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
-static void vol_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void vol_client_conn(ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_client_conn()");
 
 	/* Accept the connection */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			return;
 		}
 
 		switch (method) {
 		case VOL_GET_PARTS:
-			vol_get_parts_srv(chandle, &call);
+			vol_get_parts_srv(&call);
 			break;
 		case VOL_PART_ADD:
-			vol_part_add_srv(chandle, &call);
+			vol_part_add_srv(&call);
 			break;
 		case VOL_PART_INFO:
-			vol_part_info_srv(chandle, &call);
+			vol_part_info_srv(&call);
 			break;
 		case VOL_PART_EJECT:
-			vol_part_eject_srv(chandle, &call);
+			vol_part_eject_srv(&call);
 			break;
 		case VOL_PART_EMPTY:
-			vol_part_empty_srv(chandle, &call);
+			vol_part_empty_srv(&call);
 			break;
 		case VOL_PART_LSUPP:
-			vol_part_get_lsupp_srv(chandle, &call);
+			vol_part_get_lsupp_srv(&call);
 			break;
 		case VOL_PART_MKFS:
-			vol_part_mkfs_srv(chandle, &call);
+			vol_part_mkfs_srv(&call);
 			break;
 		default:
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 		}
 	}
 }

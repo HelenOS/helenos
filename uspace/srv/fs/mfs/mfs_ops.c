@@ -838,12 +838,12 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	struct mfs_node *mnode;
 	struct mfs_ino_info *ino_i;
 	size_t len, bytes = 0;
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 
 	mnode = fn->data;
 	ino_i = mnode->ino_i;
 
-	if (!async_data_read_receive(&chandle, &len)) {
+	if (!async_data_read_receive(&call, &len)) {
 		rc = EINVAL;
 		goto out_error;
 	}
@@ -870,10 +870,10 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		}
 
 		rc = mfs_node_put(fn);
-		async_answer_0(chandle, rc != EOK ? rc : ENOENT);
+		async_answer_0(&call, rc != EOK ? rc : ENOENT);
 		return rc;
 	found:
-		async_data_read_finalize(chandle, d_info.d_name,
+		async_data_read_finalize(&call, d_info.d_name,
 		    str_size(d_info.d_name) + 1);
 		bytes = ((pos - spos) + 1);
 	} else {
@@ -882,7 +882,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (pos >= (size_t) ino_i->i_size) {
 			/* Trying to read beyond the end of file */
 			bytes = 0;
-			(void) async_data_read_finalize(chandle, NULL, 0);
+			(void) async_data_read_finalize(&call, NULL, 0);
 			goto out_success;
 		}
 
@@ -904,7 +904,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 				goto out_error;
 			}
 			memset(buf, 0, sizeof(sbi->block_size));
-			async_data_read_finalize(chandle,
+			async_data_read_finalize(&call,
 			    buf + pos % sbi->block_size, bytes);
 			free(buf);
 			goto out_success;
@@ -914,7 +914,7 @@ mfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc != EOK)
 			goto out_error;
 
-		async_data_read_finalize(chandle, b->data +
+		async_data_read_finalize(&call, b->data +
 		    pos % sbi->block_size, bytes);
 
 		rc = block_put(b);
@@ -929,7 +929,7 @@ out_success:
 	return rc;
 out_error:
 	tmp = mfs_node_put(fn);
-	async_answer_0(chandle, tmp != EOK ? tmp : rc);
+	async_answer_0(&call, tmp != EOK ? tmp : rc);
 	return tmp != EOK ? tmp : rc;
 }
 
@@ -947,10 +947,10 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (!fn)
 		return ENOENT;
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t len;
 
-	if (!async_data_write_receive(&chandle, &len)) {
+	if (!async_data_write_receive(&call, &len)) {
 		r = EINVAL;
 		goto out_err;
 	}
@@ -993,7 +993,7 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (flags == BLOCK_FLAGS_NOREAD)
 		memset(b->data, 0, sbi->block_size);
 
-	async_data_write_finalize(chandle, b->data + (pos % bs), bytes);
+	async_data_write_finalize(&call, b->data + (pos % bs), bytes);
 	b->dirty = true;
 
 	r = block_put(b);
@@ -1013,7 +1013,7 @@ mfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 out_err:
 	mfs_node_put(fn);
-	async_answer_0(chandle, r);
+	async_answer_0(&call, r);
 	return r;
 }
 

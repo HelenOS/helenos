@@ -53,7 +53,7 @@
 static errno_t kbdev_ctl_init(kbd_dev_t *);
 static void kbdev_ctl_set_ind(kbd_dev_t *, unsigned int);
 
-static void kbdev_callback_conn(cap_call_handle_t, ipc_call_t *, void *arg);
+static void kbdev_callback_conn(ipc_call_t *, void *arg);
 
 kbd_ctl_ops_t kbdev_ctl = {
 	.parse = NULL,
@@ -146,7 +146,7 @@ static void kbdev_ctl_set_ind(kbd_dev_t *kdev, unsigned mods)
 	async_exchange_end(exch);
 }
 
-static void kbdev_callback_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void kbdev_callback_conn(ipc_call_t *icall, void *arg)
 {
 	kbdev_t *kbdev;
 	errno_t retval;
@@ -157,9 +157,8 @@ static void kbdev_callback_conn(cap_call_handle_t icall_handle, ipc_call_t *ical
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle;
+		async_get_call(&call);
 
-		chandle = async_get_call(&call);
 		if (!IPC_GET_IMETHOD(call)) {
 			kbdev_destroy(kbdev);
 			return;
@@ -178,7 +177,7 @@ static void kbdev_callback_conn(cap_call_handle_t icall_handle, ipc_call_t *ical
 			break;
 		}
 
-		async_answer_0(chandle, retval);
+		async_answer_0(&call, retval);
 	}
 }
 

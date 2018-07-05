@@ -477,10 +477,10 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
     size_t *rbytes)
 {
 	if (index == 0) {
-		cap_call_handle_t chandle;
+		ipc_call_t call;
 		size_t size;
-		if (!async_data_read_receive(&chandle, &size)) {
-			async_answer_0(chandle, EINVAL);
+		if (!async_data_read_receive(&call, &size)) {
+			async_answer_0(&call, EINVAL);
 			return EINVAL;
 		}
 
@@ -499,7 +499,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		}
 
 		if (pos < count) {
-			async_data_read_finalize(chandle, desc[pos].name, str_size(desc[pos].name) + 1);
+			async_data_read_finalize(&call, desc[pos].name, str_size(desc[pos].name) + 1);
 			free(desc);
 			*rbytes = 1;
 			return EOK;
@@ -514,7 +514,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			count = loc_get_services(namespace, &desc);
 
 			if (pos < count) {
-				async_data_read_finalize(chandle, desc[pos].name, str_size(desc[pos].name) + 1);
+				async_data_read_finalize(&call, desc[pos].name, str_size(desc[pos].name) + 1);
 				free(desc);
 				*rbytes = 1;
 				return EOK;
@@ -523,7 +523,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			free(desc);
 		}
 
-		async_answer_0(chandle, ENOENT);
+		async_answer_0(&call, ENOENT);
 		return ENOENT;
 	}
 
@@ -531,10 +531,10 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	if (type == LOC_OBJECT_NAMESPACE) {
 		/* Namespace directory */
-		cap_call_handle_t chandle;
+		ipc_call_t call;
 		size_t size;
-		if (!async_data_read_receive(&chandle, &size)) {
-			async_answer_0(chandle, EINVAL);
+		if (!async_data_read_receive(&call, &size)) {
+			async_answer_0(&call, EINVAL);
 			return EINVAL;
 		}
 
@@ -542,14 +542,14 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		size_t count = loc_get_services(index, &desc);
 
 		if (pos < count) {
-			async_data_read_finalize(chandle, desc[pos].name, str_size(desc[pos].name) + 1);
+			async_data_read_finalize(&call, desc[pos].name, str_size(desc[pos].name) + 1);
 			free(desc);
 			*rbytes = 1;
 			return EOK;
 		}
 
 		free(desc);
-		async_answer_0(chandle, ENOENT);
+		async_answer_0(&call, ENOENT);
 		return ENOENT;
 	}
 
@@ -567,10 +567,10 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 
-		cap_call_handle_t chandle;
-		if (!async_data_read_receive(&chandle, NULL)) {
+		ipc_call_t call;
+		if (!async_data_read_receive(&call, NULL)) {
 			fibril_mutex_unlock(&services_mutex);
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 			return EINVAL;
 		}
 
@@ -582,7 +582,7 @@ locfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		    index, LOWER32(pos), UPPER32(pos), &answer);
 
 		/* Forward the IPC_M_DATA_READ request to the driver */
-		async_forward_fast(chandle, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_fast(&call, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 
 		async_exchange_end(exch);
 
@@ -631,10 +631,10 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		service_t *dev = hash_table_get_inst(lnk, service_t, link);
 		assert(dev->sess);
 
-		cap_call_handle_t chandle;
-		if (!async_data_write_receive(&chandle, NULL)) {
+		ipc_call_t call;
+		if (!async_data_write_receive(&call, NULL)) {
 			fibril_mutex_unlock(&services_mutex);
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 			return EINVAL;
 		}
 
@@ -646,7 +646,7 @@ locfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		    index, LOWER32(pos), UPPER32(pos), &answer);
 
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
-		async_forward_fast(chandle, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_fast(&call, exch, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 
 		async_exchange_end(exch);
 

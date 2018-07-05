@@ -159,47 +159,46 @@ static errno_t apic_enable_irq(apic_t *apic, sysarg_t irq)
 
 /** Handle one connection to APIC.
  *
- * @param iid   Hash of the request that opened the connection.
  * @param icall Call data of the request that opened the connection.
- * @param arg	Local argument.
+ * @param arg   Local argument.
+ *
  */
-static void apic_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void apic_connection(ipc_call_t *icall, void *arg)
 {
-	cap_call_handle_t chandle;
 	ipc_call_t call;
 	apic_t *apic;
 
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
-	apic = (apic_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
+	apic = (apic_t *) ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *) arg));
 
 	while (true) {
-		chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* The other side has hung up. */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			return;
 		}
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
-			async_answer_0(chandle, apic_enable_irq(apic,
+			async_answer_0(&call, apic_enable_irq(apic,
 			    IPC_GET_ARG1(call)));
 			break;
 		case IRC_DISABLE_INTERRUPT:
 			/* XXX TODO */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			break;
 		case IRC_CLEAR_INTERRUPT:
 			/* Noop */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			break;
 		default:
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 			break;
 		}
 	}

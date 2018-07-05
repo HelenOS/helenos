@@ -82,8 +82,7 @@ extern errno_t nic_poll_set_mode_impl(ddf_fun_t *,
     nic_poll_mode_t, const struct timeval *);
 extern errno_t nic_poll_now_impl(ddf_fun_t *);
 
-extern void nic_default_handler_impl(ddf_fun_t *dev_fun,
-    cap_call_handle_t chandle, ipc_call_t *call);
+extern void nic_default_handler_impl(ddf_fun_t *dev_fun, ipc_call_t *call);
 extern errno_t nic_open_impl(ddf_fun_t *fun);
 extern void nic_close_impl(ddf_fun_t *fun);
 

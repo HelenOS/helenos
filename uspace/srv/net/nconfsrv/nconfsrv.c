@@ -53,7 +53,7 @@
 
 #define NAME "nconfsrv"
 
-static void ncs_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
+static void ncs_client_conn(ipc_call_t *icall, void *arg);
 
 static errno_t ncs_init(void)
 {
@@ -97,9 +97,9 @@ static errno_t ncs_init(void)
 	return EOK;
 }
 
-static void ncs_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void ncs_client_conn(ipc_call_t *icall, void *arg)
 {
-	async_answer_0(icall_handle, ENOTSUP);
+	async_answer_0(icall, ENOTSUP);
 }
 
 int main(int argc, char *argv[])

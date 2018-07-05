@@ -57,9 +57,9 @@
 
 /* Forward declarations of auxiliary functions */
 
-static errno_t ext4_read_directory(cap_call_handle_t, aoff64_t, size_t,
+static errno_t ext4_read_directory(ipc_call_t *, aoff64_t, size_t,
     ext4_instance_t *, ext4_inode_ref_t *, size_t *);
-static errno_t ext4_read_file(cap_call_handle_t, aoff64_t, size_t, ext4_instance_t *,
+static errno_t ext4_read_file(ipc_call_t *, aoff64_t, size_t, ext4_instance_t *,
     ext4_inode_ref_t *, size_t *);
 static bool ext4_is_dots(const uint8_t *, size_t);
 static errno_t ext4_instance_get(service_id_t, ext4_instance_t **);
@@ -1020,17 +1020,17 @@ static errno_t ext4_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 	/*
 	 * Receive the read request.
 	 */
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_read_receive(&chandle, &size)) {
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	ext4_instance_t *inst;
 	errno_t rc = ext4_instance_get(service_id, &inst);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 		return rc;
 	}
 
@@ -1038,22 +1038,22 @@ static errno_t ext4_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 	ext4_inode_ref_t *inode_ref;
 	rc = ext4_filesystem_get_inode_ref(inst->filesystem, index, &inode_ref);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 		return rc;
 	}
 
 	/* Read from i-node by type */
 	if (ext4_inode_is_type(inst->filesystem->superblock, inode_ref->inode,
 	    EXT4_INODE_MODE_FILE)) {
-		rc = ext4_read_file(chandle, pos, size, inst, inode_ref,
+		rc = ext4_read_file(&call, pos, size, inst, inode_ref,
 		    rbytes);
 	} else if (ext4_inode_is_type(inst->filesystem->superblock,
 	    inode_ref->inode, EXT4_INODE_MODE_DIRECTORY)) {
-		rc = ext4_read_directory(chandle, pos, size, inst, inode_ref,
+		rc = ext4_read_directory(&call, pos, size, inst, inode_ref,
 		    rbytes);
 	} else {
 		/* Other inode types not supported */
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(&call, ENOTSUP);
 		rc = ENOTSUP;
 	}
 
@@ -1083,7 +1083,7 @@ bool ext4_is_dots(const uint8_t *name, size_t name_size)
 
 /** Read data from directory.
  *
- * @param chandle    IPC id of call (for communication)
+ * @param call      IPC call
  * @param pos       Position to start reading from
  * @param size      How many bytes to read
  * @param inst      Filesystem instance
@@ -1093,13 +1093,13 @@ bool ext4_is_dots(const uint8_t *name, size_t name_size)
  * @return Error code
  *
  */
-errno_t ext4_read_directory(cap_call_handle_t chandle, aoff64_t pos, size_t size,
+errno_t ext4_read_directory(ipc_call_t *call, aoff64_t pos, size_t size,
     ext4_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
 	ext4_directory_iterator_t it;
 	errno_t rc = ext4_directory_iterator_init(&it, inode_ref, pos);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(call, rc);
 		return rc;
 	}
 
@@ -1128,7 +1128,7 @@ errno_t ext4_read_directory(cap_call_handle_t chandle, aoff64_t pos, size_t size
 		uint8_t *buf = malloc(name_size + 1);
 		if (buf == NULL) {
 			ext4_directory_iterator_fini(&it);
-			async_answer_0(chandle, ENOMEM);
+			async_answer_0(call, ENOMEM);
 			return ENOMEM;
 		}
 
@@ -1136,7 +1136,7 @@ errno_t ext4_read_directory(cap_call_handle_t chandle, aoff64_t pos, size_t size
 		*(buf + name_size) = 0;
 		found = true;
 
-		(void) async_data_read_finalize(chandle, buf, name_size + 1);
+		(void) async_data_read_finalize(call, buf, name_size + 1);
 		free(buf);
 		break;
 
@@ -1144,7 +1144,7 @@ errno_t ext4_read_directory(cap_call_handle_t chandle, aoff64_t pos, size_t size
 		rc = ext4_directory_iterator_next(&it);
 		if (rc != EOK) {
 			ext4_directory_iterator_fini(&it);
-			async_answer_0(chandle, rc);
+			async_answer_0(call, rc);
 			return rc;
 		}
 	}
@@ -1167,14 +1167,14 @@ errno_t ext4_read_directory(cap_call_handle_t chandle, aoff64_t pos, size_t size
 		*rbytes = next - pos;
 		return EOK;
 	} else {
-		async_answer_0(chandle, ENOENT);
+		async_answer_0(call, ENOENT);
 		return ENOENT;
 	}
 }
 
 /** Read data from file.
  *
- * @param chandle    IPC id of call (for communication)
+ * @param call      IPC call
  * @param pos       Position to start reading from
  * @param size      How many bytes to read
  * @param inst      Filesystem instance
@@ -1184,7 +1184,7 @@ errno_t ext4_read_directory(cap_call_handle_t chandle, aoff64_t pos, size_t size
  * @return Error code
  *
  */
-errno_t ext4_read_file(cap_call_handle_t chandle, aoff64_t pos, size_t size,
+errno_t ext4_read_file(ipc_call_t *call, aoff64_t pos, size_t size,
     ext4_instance_t *inst, ext4_inode_ref_t *inode_ref, size_t *rbytes)
 {
 	ext4_superblock_t *sb = inst->filesystem->superblock;
@@ -1192,7 +1192,7 @@ errno_t ext4_read_file(cap_call_handle_t chandle, aoff64_t pos, size_t size,
 
 	if (pos >= file_size) {
 		/* Read 0 bytes successfully */
-		async_data_read_finalize(chandle, NULL, 0);
+		async_data_read_finalize(call, NULL, 0);
 		*rbytes = 0;
 		return EOK;
 	}
@@ -1212,7 +1212,7 @@ errno_t ext4_read_file(cap_call_handle_t chandle, aoff64_t pos, size_t size,
 	errno_t rc = ext4_filesystem_get_inode_data_block_index(inode_ref,
 	    file_block, &fs_block);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(call, rc);
 		return rc;
 	}
 
@@ -1226,13 +1226,13 @@ errno_t ext4_read_file(cap_call_handle_t chandle, aoff64_t pos, size_t size,
 	if (fs_block == 0) {
 		buffer = malloc(bytes);
 		if (buffer == NULL) {
-			async_answer_0(chandle, ENOMEM);
+			async_answer_0(call, ENOMEM);
 			return ENOMEM;
 		}
 
 		memset(buffer, 0, bytes);
 
-		rc = async_data_read_finalize(chandle, buffer, bytes);
+		rc = async_data_read_finalize(call, buffer, bytes);
 		*rbytes = bytes;
 
 		free(buffer);
@@ -1243,12 +1243,12 @@ errno_t ext4_read_file(cap_call_handle_t chandle, aoff64_t pos, size_t size,
 	block_t *block;
 	rc = block_get(&block, inst->service_id, fs_block, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(call, rc);
 		return rc;
 	}
 
 	assert(offset_in_block + bytes <= block_size);
-	rc = async_data_read_finalize(chandle, block->data + offset_in_block, bytes);
+	rc = async_data_read_finalize(call, block->data + offset_in_block, bytes);
 	if (rc != EOK) {
 		block_put(block);
 		return rc;
@@ -1282,11 +1282,11 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	if (rc != EOK)
 		return rc;
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t len;
-	if (!async_data_write_receive(&chandle, &len)) {
+	if (!async_data_write_receive(&call, &len)) {
 		rc = EINVAL;
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 		goto exit;
 	}
 
@@ -1310,7 +1310,7 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	rc = ext4_filesystem_get_inode_data_block_index(inode_ref, iblock,
 	    &fblock);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 		goto exit;
 	}
 
@@ -1327,7 +1327,7 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 				rc = ext4_extent_append_block(inode_ref, &last_iblock,
 				    &fblock, true);
 				if (rc != EOK) {
-					async_answer_0(chandle, rc);
+					async_answer_0(&call, rc);
 					goto exit;
 				}
 			}
@@ -1335,13 +1335,13 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 			rc = ext4_extent_append_block(inode_ref, &last_iblock,
 			    &fblock, false);
 			if (rc != EOK) {
-				async_answer_0(chandle, rc);
+				async_answer_0(&call, rc);
 				goto exit;
 			}
 		} else {
 			rc = ext4_balloc_alloc_block(inode_ref, &fblock);
 			if (rc != EOK) {
-				async_answer_0(chandle, rc);
+				async_answer_0(&call, rc);
 				goto exit;
 			}
 
@@ -1349,7 +1349,7 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 			    iblock, fblock);
 			if (rc != EOK) {
 				ext4_balloc_free_block(inode_ref, fblock);
-				async_answer_0(chandle, rc);
+				async_answer_0(&call, rc);
 				goto exit;
 			}
 		}
@@ -1362,14 +1362,14 @@ static errno_t ext4_write(service_id_t service_id, fs_index_t index, aoff64_t po
 	block_t *write_block;
 	rc = block_get(&write_block, service_id, fblock, flags);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 		goto exit;
 	}
 
 	if (flags == BLOCK_FLAGS_NOREAD)
 		memset(write_block->data, 0, block_size);
 
-	rc = async_data_write_finalize(chandle, write_block->data +
+	rc = async_data_write_finalize(&call, write_block->data +
 	    (pos % block_size), bytes);
 	if (rc != EOK) {
 		block_put(write_block);

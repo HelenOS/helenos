@@ -202,10 +202,10 @@ errno_t audio_mixer_get_item_level(async_exch_t *exch, unsigned item,
 /*
  * SERVER SIDE
  */
-static void remote_audio_mixer_get_info(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
-static void remote_audio_mixer_get_item_info(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
-static void remote_audio_mixer_get_item_level(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
-static void remote_audio_mixer_set_item_level(ddf_fun_t *, void *, cap_call_handle_t, ipc_call_t *);
+static void remote_audio_mixer_get_info(ddf_fun_t *, void *, ipc_call_t *);
+static void remote_audio_mixer_get_item_info(ddf_fun_t *, void *, ipc_call_t *);
+static void remote_audio_mixer_get_item_level(ddf_fun_t *, void *, ipc_call_t *);
+static void remote_audio_mixer_set_item_level(ddf_fun_t *, void *, ipc_call_t *);
 
 /** Remote audio mixer interface operations. */
 static const remote_iface_func_ptr_t remote_audio_mixer_iface_ops[] = {
@@ -221,97 +221,105 @@ const remote_iface_t remote_audio_mixer_iface = {
 	.methods = remote_audio_mixer_iface_ops
 };
 
-void remote_audio_mixer_get_info(
-    ddf_fun_t *fun, void *iface, cap_call_handle_t chandle, ipc_call_t *call)
+void remote_audio_mixer_get_info(ddf_fun_t *fun, void *iface, ipc_call_t *icall)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
 	if (!mixer_iface->get_info) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(icall, ENOTSUP);
 		return;
 	}
+
 	const char *name = NULL;
 	unsigned items = 0;
 	const errno_t ret = mixer_iface->get_info(fun, &name, &items);
 	const size_t name_size = name ? str_size(name) + 1 : 0;
-	async_answer_2(chandle, ret, name_size, items);
+	async_answer_2(icall, ret, name_size, items);
+
 	/* Send the name. */
 	if (ret == EOK && name_size > 0) {
+		ipc_call_t call;
 		size_t size;
-		cap_call_handle_t name_id;
-		if (!async_data_read_receive(&name_id, &size)) {
-			async_answer_0(name_id, EPARTY);
+		if (!async_data_read_receive(&call, &size)) {
+			async_answer_0(&call, EPARTY);
 			return;
 		}
+
 		if (size != name_size) {
-			async_answer_0(name_id, ELIMIT);
+			async_answer_0(&call, ELIMIT);
 			return;
 		}
-		async_data_read_finalize(name_id, name, name_size);
+
+		async_data_read_finalize(&call, name, name_size);
 	}
 }
 
-void remote_audio_mixer_get_item_info(
-    ddf_fun_t *fun, void *iface, cap_call_handle_t chandle, ipc_call_t *call)
+void remote_audio_mixer_get_item_info(ddf_fun_t *fun, void *iface,
+    ipc_call_t *icall)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
 	if (!mixer_iface->get_item_info) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(icall, ENOTSUP);
 		return;
 	}
 
-	const unsigned item = DEV_IPC_GET_ARG1(*call);
+	const unsigned item = DEV_IPC_GET_ARG1(*icall);
 	const char *name = NULL;
 	unsigned values = 0;
 	const errno_t ret = mixer_iface->get_item_info(fun, item, &name, &values);
 	const size_t name_size = name ? str_size(name) + 1 : 0;
-	async_answer_2(chandle, ret, name_size, values);
+	async_answer_2(icall, ret, name_size, values);
+
 	/* Send the name. */
 	if (ret == EOK && name_size > 0) {
+		ipc_call_t call;
 		size_t size;
-		cap_call_handle_t name_id;
-		if (!async_data_read_receive(&name_id, &size)) {
-			async_answer_0(name_id, EPARTY);
+		if (!async_data_read_receive(&call, &size)) {
+			async_answer_0(&call, EPARTY);
 			return;
 		}
+
 		if (size != name_size) {
-			async_answer_0(name_id, ELIMIT);
+			async_answer_0(&call, ELIMIT);
 			return;
 		}
-		async_data_read_finalize(name_id, name, name_size);
+
+		async_data_read_finalize(&call, name, name_size);
 	}
 }
 
-void remote_audio_mixer_set_item_level(
-    ddf_fun_t *fun, void *iface, cap_call_handle_t chandle, ipc_call_t *call)
+void remote_audio_mixer_set_item_level(ddf_fun_t *fun, void *iface,
+    ipc_call_t *icall)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
 	if (!mixer_iface->set_item_level) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(icall, ENOTSUP);
 		return;
 	}
-	const unsigned item = DEV_IPC_GET_ARG1(*call);
-	const unsigned value = DEV_IPC_GET_ARG2(*call);
+
+	const unsigned item = DEV_IPC_GET_ARG1(*icall);
+	const unsigned value = DEV_IPC_GET_ARG2(*icall);
 	const errno_t ret = mixer_iface->set_item_level(fun, item, value);
-	async_answer_0(chandle, ret);
+	async_answer_0(icall, ret);
 }
 
-void remote_audio_mixer_get_item_level(
-    ddf_fun_t *fun, void *iface, cap_call_handle_t chandle, ipc_call_t *call)
+void remote_audio_mixer_get_item_level(ddf_fun_t *fun, void *iface,
+    ipc_call_t *icall)
 {
 	audio_mixer_iface_t *mixer_iface = iface;
 
 	if (!mixer_iface->get_item_level) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(icall, ENOTSUP);
 		return;
 	}
-	const unsigned item = DEV_IPC_GET_ARG1(*call);
+
+	const unsigned item = DEV_IPC_GET_ARG1(*icall);
 	unsigned current = 0;
 	const errno_t ret =
 	    mixer_iface->get_item_level(fun, item, &current);
-	async_answer_1(chandle, ret, current);
+	async_answer_1(icall, ret, current);
 }
 
 /**

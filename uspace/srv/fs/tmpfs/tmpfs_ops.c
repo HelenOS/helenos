@@ -54,7 +54,8 @@
 #include <libfs.h>
 
 /** All root nodes have index 0. */
-#define TMPFS_SOME_ROOT		0
+#define TMPFS_SOME_ROOT  0
+
 /** Global counter for assigning node indices. Shared by all instances. */
 fs_index_t tmpfs_next_index = 1;
 
@@ -307,14 +308,16 @@ errno_t tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 	tmpfs_node_t *nodep = malloc(sizeof(tmpfs_node_t));
 	if (!nodep)
 		return ENOMEM;
+
 	tmpfs_node_initialize(nodep);
 	nodep->bp = malloc(sizeof(fs_node_t));
 	if (!nodep->bp) {
 		free(nodep);
 		return ENOMEM;
 	}
+
 	fs_node_initialize(nodep->bp);
-	nodep->bp->data = nodep;	/* link the FS and TMPFS nodes */
+	nodep->bp->data = nodep;  /* Link the FS and TMPFS nodes */
 
 	rc = tmpfs_root_get(&rootfn, service_id);
 	assert(rc == EOK);
@@ -322,6 +325,7 @@ errno_t tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 		nodep->index = TMPFS_SOME_ROOT;
 	else
 		nodep->index = tmpfs_next_index++;
+
 	nodep->service_id = service_id;
 	if (lflag & L_DIRECTORY)
 		nodep->type = TMPFS_DIRECTORY;
@@ -479,17 +483,17 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 	/*
 	 * Receive the read request.
 	 */
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_read_receive(&chandle, &size)) {
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	size_t bytes;
 	if (nodep->type == TMPFS_FILE) {
 		bytes = min(nodep->size - pos, size);
-		(void) async_data_read_finalize(chandle, nodep->data + pos,
+		(void) async_data_read_finalize(&call, nodep->data + pos,
 		    bytes);
 	} else {
 		tmpfs_dentry_t *dentryp;
@@ -505,13 +509,13 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 		lnk = list_nth(&nodep->cs_list, pos);
 
 		if (lnk == NULL) {
-			async_answer_0(chandle, ENOENT);
+			async_answer_0(&call, ENOENT);
 			return ENOENT;
 		}
 
 		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
 
-		(void) async_data_read_finalize(chandle, dentryp->name,
+		(void) async_data_read_finalize(&call, dentryp->name,
 		    str_size(dentryp->name) + 1);
 		bytes = 1;
 	}
@@ -542,10 +546,10 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	/*
 	 * Receive the write request.
 	 */
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_write_receive(&chandle, &size)) {
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
@@ -554,7 +558,7 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	 */
 	if (pos + size <= nodep->size) {
 		/* The file size is not changing. */
-		(void) async_data_write_finalize(chandle, nodep->data + pos,
+		(void) async_data_write_finalize(&call, nodep->data + pos,
 		    size);
 		goto out;
 	}
@@ -568,7 +572,7 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	 */
 	void *newdata = realloc(nodep->data, nodep->size + delta);
 	if (!newdata) {
-		async_answer_0(chandle, ENOMEM);
+		async_answer_0(&call, ENOMEM);
 		size = 0;
 		goto out;
 	}
@@ -576,7 +580,7 @@ tmpfs_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	memset(newdata + nodep->size, 0, delta);
 	nodep->size += delta;
 	nodep->data = newdata;
-	(void) async_data_write_finalize(chandle, nodep->data + pos, size);
+	(void) async_data_write_finalize(&call, nodep->data + pos, size);
 
 out:
 	*wbytes = size;

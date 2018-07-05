@@ -68,16 +68,15 @@ static irq_code_t ts_irq_code = {
 /** S3C24xx touchscreen instance structure */
 static s3c24xx_ts_t *ts;
 
-static void s3c24xx_ts_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg);
-static void s3c24xx_ts_irq_handler(ipc_call_t *call, void *);
-static void s3c24xx_ts_pen_down(s3c24xx_ts_t *ts);
-static void s3c24xx_ts_pen_up(s3c24xx_ts_t *ts);
-static void s3c24xx_ts_eoc(s3c24xx_ts_t *ts);
-static int s3c24xx_ts_init(s3c24xx_ts_t *ts);
-static void s3c24xx_ts_wait_for_int_mode(s3c24xx_ts_t *ts, ts_updn_t updn);
-static void s3c24xx_ts_convert_samples(int smp0, int smp1, int *x, int *y);
-static int lin_map_range(int v, int i0, int i1, int o0, int o1);
+static void s3c24xx_ts_connection(ipc_call_t *, void *);
+static void s3c24xx_ts_irq_handler(ipc_call_t *, void *);
+static void s3c24xx_ts_pen_down(s3c24xx_ts_t *);
+static void s3c24xx_ts_pen_up(s3c24xx_ts_t *);
+static void s3c24xx_ts_eoc(s3c24xx_ts_t *);
+static int s3c24xx_ts_init(s3c24xx_ts_t *);
+static void s3c24xx_ts_wait_for_int_mode(s3c24xx_ts_t *, ts_updn_t);
+static void s3c24xx_ts_convert_samples(int, int, int *, int *);
+static int lin_map_range(int, int, int, int, int);
 
 int main(int argc, char *argv[])
 {
@@ -370,14 +369,13 @@ static int lin_map_range(int v, int i0, int i1, int o0, int o1)
 }
 
 /** Handle mouse client connection. */
-static void s3c24xx_ts_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void s3c24xx_ts_connection(ipc_call_t *icall, void *arg)
 {
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			if (ts->client_sess != NULL) {
@@ -385,7 +383,7 @@ static void s3c24xx_ts_connection(cap_call_handle_t icall_handle, ipc_call_t *ic
 				ts->client_sess = NULL;
 			}
 
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			return;
 		}
 
@@ -394,11 +392,11 @@ static void s3c24xx_ts_connection(cap_call_handle_t icall_handle, ipc_call_t *ic
 		if (sess != NULL) {
 			if (ts->client_sess == NULL) {
 				ts->client_sess = sess;
-				async_answer_0(chandle, EOK);
+				async_answer_0(&call, EOK);
 			} else
-				async_answer_0(chandle, ELIMIT);
+				async_answer_0(&call, ELIMIT);
 		} else
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 	}
 }
 

@@ -327,13 +327,11 @@ static errno_t polling(void *arg)
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param fun           Device function handling the call.
- * @param icall_handle  Call handle.
- * @param icall         Call data.
+ * @param fun   Device function handling the call.
+ * @param icall Call data.
  *
  */
-static void default_connection_handler(ddf_fun_t *fun,
-    cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	xt_kbd_t *kbd = ddf_dev_data_get(ddf_fun_get_dev(fun));
@@ -356,12 +354,12 @@ static void default_connection_handler(ddf_fun_t *fun,
 		size_t nwr;
 		errno_t rc = chardev_write(kbd->chardev, &cmds[0], 1, &nwr);
 		if (rc != EOK) {
-			async_answer_0(icall_handle, rc);
+			async_answer_0(icall, rc);
 			break;
 		}
 
 		rc = chardev_write(kbd->chardev, &cmds[1], 1, &nwr);
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		break;
 	case IPC_M_CONNECT_TO_ME:
 		/*
@@ -374,23 +372,23 @@ static void default_connection_handler(ddf_fun_t *fun,
 		if (sess == NULL) {
 			ddf_msg(LVL_WARN,
 			    "Failed creating callback session");
-			async_answer_0(icall_handle, EAGAIN);
+			async_answer_0(icall, EAGAIN);
 			break;
 		}
 
 		if (kbd->client_sess == NULL) {
 			kbd->client_sess = sess;
 			ddf_msg(LVL_DEBUG, "Set client session");
-			async_answer_0(icall_handle, EOK);
+			async_answer_0(icall, EOK);
 		} else {
 			ddf_msg(LVL_ERROR, "Client session already set");
-			async_answer_0(icall_handle, ELIMIT);
+			async_answer_0(icall, ELIMIT);
 		}
 
 		break;
 	default:
 		ddf_msg(LVL_ERROR, "Unknown method: %d.", (int)method);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(icall, EINVAL);
 		break;
 	}
 }

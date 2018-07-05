@@ -41,11 +41,11 @@
 #include <errno.h>
 #include <as.h>
 
-void vfs_page_in(cap_call_handle_t req_handle, ipc_call_t *request)
+void vfs_page_in(ipc_call_t *req)
 {
-	aoff64_t offset = IPC_GET_ARG1(*request);
-	size_t page_size = IPC_GET_ARG2(*request);
-	int fd = IPC_GET_ARG3(*request);
+	aoff64_t offset = IPC_GET_ARG1(*req);
+	size_t page_size = IPC_GET_ARG2(*req);
+	int fd = IPC_GET_ARG3(*req);
 	void *page;
 	errno_t rc;
 
@@ -54,7 +54,7 @@ void vfs_page_in(cap_call_handle_t req_handle, ipc_call_t *request)
 	    AS_AREA_UNPAGED);
 
 	if (page == AS_MAP_FAILED) {
-		async_answer_0(req_handle, ENOMEM);
+		async_answer_0(req, ENOMEM);
 		return;
 	}
 
@@ -77,7 +77,7 @@ void vfs_page_in(cap_call_handle_t req_handle, ipc_call_t *request)
 		chunk.size = page_size - total;
 	} while (total < page_size);
 
-	async_answer_1(req_handle, rc, (sysarg_t) page);
+	async_answer_1(req, rc, (sysarg_t) page);
 
 	/*
 	 * FIXME:

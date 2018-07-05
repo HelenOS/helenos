@@ -94,8 +94,7 @@ errno_t usb_get_my_description(async_exch_t *exch, usb_device_desc_t *desc)
 	return ret;
 }
 
-static void remote_usb_get_my_description(ddf_fun_t *, void *,
-    cap_call_handle_t, ipc_call_t *);
+static void remote_usb_get_my_description(ddf_fun_t *, void *, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static const remote_iface_func_ptr_t remote_usb_iface_ops [] = {
@@ -110,21 +109,21 @@ const remote_iface_t remote_usb_iface = {
 };
 
 void remote_usb_get_my_description(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t chandle, ipc_call_t *call)
+    ipc_call_t *call)
 {
 	const usb_iface_t *usb_iface = (usb_iface_t *) iface;
 
 	if (usb_iface->get_my_description == NULL) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
 	usb_device_desc_t desc;
 	const errno_t ret = usb_iface->get_my_description(fun, &desc);
 	if (ret != EOK) {
-		async_answer_0(chandle, ret);
+		async_answer_0(call, ret);
 	} else {
-		async_answer_5(chandle, EOK,
+		async_answer_5(call, EOK,
 		    (sysarg_t) desc.address,
 		    (sysarg_t) desc.depth,
 		    (sysarg_t) desc.speed,

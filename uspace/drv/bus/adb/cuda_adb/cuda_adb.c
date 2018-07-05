@@ -54,7 +54,7 @@
 
 #define NAME  "cuda_adb"
 
-static void cuda_dev_connection(cap_call_handle_t, ipc_call_t *, void *);
+static void cuda_dev_connection(ipc_call_t *, void *);
 static errno_t cuda_init(cuda_t *);
 static void cuda_irq_handler(ipc_call_t *, void *);
 
@@ -197,24 +197,22 @@ errno_t cuda_gone(cuda_t *cuda)
 }
 
 /** Device connection handler */
-static void cuda_dev_connection(cap_call_handle_t icall_handle,
-    ipc_call_t *icall, void *arg)
+static void cuda_dev_connection(ipc_call_t *icall, void *arg)
 {
 	adb_dev_t *dev = (adb_dev_t *) ddf_fun_data_get((ddf_fun_t *) arg);
-	cap_call_handle_t chandle;
 	ipc_call_t call;
 	sysarg_t method;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
-		chandle = async_get_call(&call);
+		async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up. */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			return;
 		}
 
@@ -222,9 +220,9 @@ static void cuda_dev_connection(cap_call_handle_t icall_handle,
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
 			dev->client_sess = sess;
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 		} else {
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 		}
 	}
 }

@@ -63,7 +63,7 @@ static irq_code_t uart_irq_code = {
 /** S3C24xx UART instance structure */
 static s3c24xx_uart_t *uart;
 
-static void s3c24xx_uart_connection(cap_call_handle_t, ipc_call_t *, void *);
+static void s3c24xx_uart_connection(ipc_call_t *, void *);
 static void s3c24xx_uart_irq_handler(ipc_call_t *, void *);
 static int s3c24xx_uart_init(s3c24xx_uart_t *);
 static void s3c24xx_uart_sendb(s3c24xx_uart_t *, uint8_t);
@@ -112,14 +112,12 @@ int main(int argc, char *argv[])
 }
 
 /** Character device connection handler. */
-static void s3c24xx_uart_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void s3c24xx_uart_connection(ipc_call_t *icall, void *arg)
 {
 	s3c24xx_uart_t *uart = (s3c24xx_uart_t *) arg;
 
-	chardev_conn(icall_handle, icall, &uart->cds);
+	chardev_conn(icall, &uart->cds);
 }
-
 
 static void s3c24xx_uart_irq_handler(ipc_call_t *call, void *arg)
 {

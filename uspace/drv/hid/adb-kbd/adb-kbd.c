@@ -42,9 +42,9 @@
 #include "adb-kbd.h"
 #include "ctl.h"
 
-static void adb_kbd_events(cap_call_handle_t, ipc_call_t *, void *);
+static void adb_kbd_events(ipc_call_t *, void *);
 static void adb_kbd_reg0_data(adb_kbd_t *, uint16_t);
-static void adb_kbd_conn(cap_call_handle_t, ipc_call_t *, void *);
+static void adb_kbd_conn(ipc_call_t *, void *);
 
 /** Add ADB keyboard device */
 errno_t adb_kbd_add(adb_kbd_t *kbd)
@@ -129,15 +129,14 @@ errno_t adb_kbd_gone(adb_kbd_t *con)
 	return ENOTSUP;
 }
 
-static void adb_kbd_events(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void adb_kbd_events(ipc_call_t *icall, void *arg)
 {
 	adb_kbd_t *kbd = (adb_kbd_t *) arg;
 
 	/* Ignore parameters, the connection is already opened */
 	while (true) {
-
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		errno_t retval = EOK;
 
@@ -153,7 +152,7 @@ static void adb_kbd_events(cap_call_handle_t icall_handle, ipc_call_t *icall, vo
 		default:
 			retval = ENOENT;
 		}
-		async_answer_0(chandle, retval);
+		async_answer_0(&call, retval);
 	}
 }
 
@@ -190,9 +189,8 @@ static void adb_kbd_reg0_data(adb_kbd_t *kbd, uint16_t data)
 }
 
 /** Handle client connection */
-static void adb_kbd_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void adb_kbd_conn(ipc_call_t *icall, void *arg)
 {
-	cap_call_handle_t chandle;
 	ipc_call_t call;
 	sysarg_t method;
 	adb_kbd_t *kbd;
@@ -200,17 +198,17 @@ static void adb_kbd_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	kbd = (adb_kbd_t *)ddf_dev_data_get(ddf_fun_get_dev((ddf_fun_t *)arg));
 
 	while (true) {
-		chandle = async_get_call(&call);
+		async_get_call(&call);
 		method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up. */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			return;
 		}
 
@@ -218,9 +216,9 @@ static void adb_kbd_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void
 		    async_callback_receive_start(EXCHANGE_SERIALIZE, &call);
 		if (sess != NULL) {
 			kbd->client_sess = sess;
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 		} else {
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 		}
 	}
 }

@@ -42,50 +42,48 @@
 
 static chardev_srv_t *chardev_srv_create(chardev_srvs_t *);
 
-static void chardev_read_srv(chardev_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void chardev_read_srv(chardev_srv_t *srv, ipc_call_t *icall)
 {
 	void *buf;
 	size_t size;
 	size_t nread;
 	errno_t rc;
-	cap_call_handle_t rcall_handle;
 
-	if (!async_data_read_receive(&rcall_handle, &size)) {
-		async_answer_0(chandle, EINVAL);
+	ipc_call_t call;
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(icall, EINVAL);
 		return;
 	}
 
 	buf = malloc(size);
 	if (buf == NULL) {
-		async_answer_0(rcall_handle, ENOMEM);
-		async_answer_0(chandle, ENOMEM);
+		async_answer_0(&call, ENOMEM);
+		async_answer_0(icall, ENOMEM);
 		return;
 	}
 
 	if (srv->srvs->ops->read == NULL) {
-		async_answer_0(rcall_handle, ENOTSUP);
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(&call, ENOTSUP);
+		async_answer_0(icall, ENOTSUP);
 		free(buf);
 		return;
 	}
 
 	rc = srv->srvs->ops->read(srv, buf, size, &nread);
 	if (rc != EOK && nread == 0) {
-		async_answer_0(rcall_handle, rc);
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 		free(buf);
 		return;
 	}
 
-	async_data_read_finalize(rcall_handle, buf, nread);
+	async_data_read_finalize(&call, buf, nread);
 
 	free(buf);
-	async_answer_2(chandle, EOK, (sysarg_t) rc, nread);
+	async_answer_2(icall, EOK, (sysarg_t) rc, nread);
 }
 
-static void chardev_write_srv(chardev_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void chardev_write_srv(chardev_srv_t *srv, ipc_call_t *icall)
 {
 	void *data;
 	size_t size;
@@ -94,23 +92,23 @@ static void chardev_write_srv(chardev_srv_t *srv, cap_call_handle_t chandle,
 
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
 	if (srv->srvs->ops->write == NULL) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(icall, ENOTSUP);
 		return;
 	}
 
 	rc = srv->srvs->ops->write(srv, data, size, &nwr);
 	free(data);
 	if (rc != EOK && nwr == 0) {
-		async_answer_0(chandle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
-	async_answer_2(chandle, EOK, (sysarg_t) rc, nwr);
+	async_answer_2(icall, EOK, (sysarg_t) rc, nwr);
 }
 
 static chardev_srv_t *chardev_srv_create(chardev_srvs_t *srvs)
@@ -131,13 +129,13 @@ void chardev_srvs_init(chardev_srvs_t *srvs)
 	srvs->sarg = NULL;
 }
 
-errno_t chardev_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, chardev_srvs_t *srvs)
+errno_t chardev_conn(ipc_call_t *icall, chardev_srvs_t *srvs)
 {
 	chardev_srv_t *srv;
 	errno_t rc;
 
 	/* Accept the connection */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	srv = chardev_srv_create(srvs);
 	if (srv == NULL)
@@ -151,27 +149,27 @@ errno_t chardev_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, chardev_
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			break;
 		}
 
 		switch (method) {
 		case CHARDEV_READ:
-			chardev_read_srv(srv, chandle, &call);
+			chardev_read_srv(srv, &call);
 			break;
 		case CHARDEV_WRITE:
-			chardev_write_srv(srv, chandle, &call);
+			chardev_write_srv(srv, &call);
 			break;
 		default:
 			if (srv->srvs->ops->def_handler != NULL)
-				srv->srvs->ops->def_handler(srv, chandle, &call);
+				srv->srvs->ops->def_handler(srv, &call);
 			else
-				async_answer_0(chandle, ENOTSUP);
+				async_answer_0(&call, ENOTSUP);
 		}
 	}
 

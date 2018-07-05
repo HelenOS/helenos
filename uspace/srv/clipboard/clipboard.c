@@ -46,13 +46,13 @@ static clipboard_tag_t clip_tag = CLIPBOARD_TAG_NONE;
 static FIBRIL_MUTEX_INITIALIZE(clip_mtx);
 static service_id_t svc_id;
 
-static void clip_put_data(cap_call_handle_t req_handle, ipc_call_t *request)
+static void clip_put_data(ipc_call_t *req)
 {
 	char *data;
 	errno_t rc;
 	size_t size;
 
-	switch (IPC_GET_ARG1(*request)) {
+	switch (IPC_GET_ARG1(*req)) {
 	case CLIPBOARD_TAG_NONE:
 		fibril_mutex_lock(&clip_mtx);
 
@@ -64,12 +64,12 @@ static void clip_put_data(cap_call_handle_t req_handle, ipc_call_t *request)
 		clip_tag = CLIPBOARD_TAG_NONE;
 
 		fibril_mutex_unlock(&clip_mtx);
-		async_answer_0(req_handle, EOK);
+		async_answer_0(req, EOK);
 		break;
 	case CLIPBOARD_TAG_DATA:
 		rc = async_data_write_accept((void **) &data, false, 0, 0, 0, &size);
 		if (rc != EOK) {
-			async_answer_0(req_handle, rc);
+			async_answer_0(req, rc);
 			break;
 		}
 
@@ -83,64 +83,64 @@ static void clip_put_data(cap_call_handle_t req_handle, ipc_call_t *request)
 		clip_tag = CLIPBOARD_TAG_DATA;
 
 		fibril_mutex_unlock(&clip_mtx);
-		async_answer_0(req_handle, EOK);
+		async_answer_0(req, EOK);
 		break;
 	default:
-		async_answer_0(req_handle, EINVAL);
+		async_answer_0(req, EINVAL);
 	}
 }
 
-static void clip_get_data(cap_call_handle_t req_handle, ipc_call_t *request)
+static void clip_get_data(ipc_call_t *req)
 {
 	fibril_mutex_lock(&clip_mtx);
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
 
 	/* Check for clipboard data tag compatibility */
-	switch (IPC_GET_ARG1(*request)) {
+	switch (IPC_GET_ARG1(*req)) {
 	case CLIPBOARD_TAG_DATA:
-		if (!async_data_read_receive(&chandle, &size)) {
-			async_answer_0(chandle, EINVAL);
-			async_answer_0(req_handle, EINVAL);
+		if (!async_data_read_receive(&call, &size)) {
+			async_answer_0(&call, EINVAL);
+			async_answer_0(req, EINVAL);
 			break;
 		}
 
 		if (clip_tag != CLIPBOARD_TAG_DATA) {
 			/* So far we only understand binary data */
-			async_answer_0(chandle, EOVERFLOW);
-			async_answer_0(req_handle, EOVERFLOW);
+			async_answer_0(&call, EOVERFLOW);
+			async_answer_0(req, EOVERFLOW);
 			break;
 		}
 
 		if (clip_size != size) {
 			/* The client expects different size of data */
-			async_answer_0(chandle, EOVERFLOW);
-			async_answer_0(req_handle, EOVERFLOW);
+			async_answer_0(&call, EOVERFLOW);
+			async_answer_0(req, EOVERFLOW);
 			break;
 		}
 
-		errno_t retval = async_data_read_finalize(chandle, clip_data, size);
+		errno_t retval = async_data_read_finalize(&call, clip_data, size);
 		if (retval != EOK) {
-			async_answer_0(req_handle, retval);
+			async_answer_0(req, retval);
 			break;
 		}
 
-		async_answer_0(req_handle, EOK);
+		async_answer_0(req, EOK);
 		break;
 	default:
 		/*
 		 * Sorry, we don't know how to get unknown or NONE
 		 * data from the clipbard
 		 */
-		async_answer_0(req_handle, EINVAL);
+		async_answer_0(req, EINVAL);
 		break;
 	}
 
 	fibril_mutex_unlock(&clip_mtx);
 }
 
-static void clip_content(cap_call_handle_t req_handle, ipc_call_t *request)
+static void clip_content(ipc_call_t *req)
 {
 	fibril_mutex_lock(&clip_mtx);
 
@@ -148,34 +148,33 @@ static void clip_content(cap_call_handle_t req_handle, ipc_call_t *request)
 	clipboard_tag_t tag = clip_tag;
 
 	fibril_mutex_unlock(&clip_mtx);
-	async_answer_2(req_handle, EOK, (sysarg_t) size, (sysarg_t) tag);
+	async_answer_2(req, EOK, (sysarg_t) size, (sysarg_t) tag);
 }
 
-static void clip_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void clip_connection(ipc_call_t *icall, void *arg)
 {
 	/* Accept connection */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case CLIPBOARD_PUT_DATA:
-			clip_put_data(chandle, &call);
+			clip_put_data(&call);
 			break;
 		case CLIPBOARD_GET_DATA:
-			clip_get_data(chandle, &call);
+			clip_get_data(&call);
 			break;
 		case CLIPBOARD_CONTENT:
-			clip_content(chandle, &call);
+			clip_content(&call);
 			break;
 		default:
-			async_answer_0(chandle, ENOENT);
+			async_answer_0(&call, ENOENT);
 		}
 	}
 }

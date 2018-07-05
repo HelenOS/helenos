@@ -41,10 +41,8 @@
 #include <ops/clock_dev.h>
 #include <ddf/driver.h>
 
-static void remote_clock_time_get(ddf_fun_t *, void *, cap_call_handle_t,
-    ipc_call_t *);
-static void remote_clock_time_set(ddf_fun_t *, void *, cap_call_handle_t,
-    ipc_call_t *);
+static void remote_clock_time_get(ddf_fun_t *, void *, ipc_call_t *);
+static void remote_clock_time_set(ddf_fun_t *, void *, ipc_call_t *);
 
 /** Remote clock interface operations */
 static const remote_iface_func_ptr_t remote_clock_dev_iface_ops[] = {
@@ -64,29 +62,28 @@ const remote_iface_t remote_clock_dev_iface = {
 
 /** Process the time_get() request from the remote client
  *
- * @param fun   The function from which the time is read
- * @param ops   The local ops structure
+ * @param fun The function from which the time is read
+ * @param ops The local ops structure
+ *
  */
-static void
-remote_clock_time_get(ddf_fun_t *fun, void *ops, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void remote_clock_time_get(ddf_fun_t *fun, void *ops, ipc_call_t *call)
 {
 	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
-	cap_call_handle_t call_handle;
 	struct tm t;
 	errno_t rc;
-	size_t len;
 
-	if (!async_data_read_receive(&call_handle, &len)) {
+	ipc_call_t data;
+	size_t len;
+	if (!async_data_read_receive(&data, &len)) {
 		/* TODO: Handle protocol error */
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	if (!clock_dev_ops->time_get) {
 		/* The driver does not provide the time_get() functionality */
-		async_answer_0(call_handle, ENOTSUP);
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(&data, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
@@ -94,51 +91,51 @@ remote_clock_time_get(ddf_fun_t *fun, void *ops, cap_call_handle_t chandle,
 
 	if (rc != EOK) {
 		/* Some error occurred */
-		async_answer_0(call_handle, rc);
-		async_answer_0(chandle, rc);
+		async_answer_0(&data, rc);
+		async_answer_0(call, rc);
 		return;
 	}
 
 	/* The operation was successful */
-	async_data_read_finalize(call_handle, &t, sizeof(struct tm));
-	async_answer_0(chandle, rc);
+	async_data_read_finalize(&data, &t, sizeof(struct tm));
+	async_answer_0(call, rc);
 }
 
 /** Process the time_set() request from the remote client
  *
- * @param fun   The function to which the data are written
- * @param ops   The local ops structure
+ * @param fun The function to which the data are written
+ * @param ops The local ops structure
+ *
  */
-static void remote_clock_time_set(ddf_fun_t *fun, void *ops,
-    cap_call_handle_t chandle, ipc_call_t *call)
+static void remote_clock_time_set(ddf_fun_t *fun, void *ops, ipc_call_t *call)
 {
 	clock_dev_ops_t *clock_dev_ops = (clock_dev_ops_t *) ops;
-	errno_t      rc;
-	struct tm    t;
-	cap_call_handle_t call_handle;
-	size_t       len;
+	errno_t rc;
+	struct tm t;
 
-	if (!async_data_write_receive(&call_handle, &len)) {
+	ipc_call_t data;
+	size_t len;
+
+	if (!async_data_write_receive(&data, &len)) {
 		/* TODO: Handle protocol error */
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	if (!clock_dev_ops->time_set) {
 		/* The driver does not support the time_set() functionality */
-		async_answer_0(call_handle, ENOTSUP);
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(&data, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
-	async_data_write_finalize(call_handle, &t, sizeof(struct tm));
+	async_data_write_finalize(&data, &t, sizeof(struct tm));
 
 	rc = (*clock_dev_ops->time_set)(fun, &t);
 
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
 /**
  * @}
  */
-

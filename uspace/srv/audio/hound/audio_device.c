@@ -53,7 +53,7 @@
 
 static errno_t device_sink_connection_callback(audio_sink_t *sink, bool new);
 static errno_t device_source_connection_callback(audio_source_t *source, bool new);
-static void device_event_callback(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
+static void device_event_callback(ipc_call_t *icall, void *arg);
 static errno_t device_check_format(audio_sink_t *sink);
 static errno_t get_buffer(audio_device_t *dev);
 static errno_t release_buffer(audio_device_t *dev);
@@ -259,24 +259,24 @@ static errno_t device_source_connection_callback(audio_source_t *source, bool ne
 
 /** Audio device event handler.
  *
- * @param icall_handle  Initial call handle.
- * @param icall         Initial call structure.
- * @param arg           (unused)
+ * @param icall Initial call structure.
+ * @param arg   (unused)
+ *
  */
-static void device_event_callback(cap_call_handle_t icall_handle,
-    ipc_call_t *icall, void *arg)
+static void device_event_callback(ipc_call_t *icall, void *arg)
 {
 	struct timeval time1;
 	errno_t ret;
 
 	/* Answer initial request */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 	audio_device_t *dev = arg;
 	assert(dev);
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
-		async_answer_0(chandle, EOK);
+		async_get_call(&call);
+		async_answer_0(&call, EOK);
+
 		switch (IPC_GET_IMETHOD(call)) {
 		case PCM_EVENT_FRAMES_PLAYED:
 			getuptime(&time1);

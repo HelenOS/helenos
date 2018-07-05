@@ -93,13 +93,13 @@ leave:
 	return rc;
 }
 
-void logger_connection_handler_writer(cap_call_handle_t chandle)
+void logger_connection_handler_writer(ipc_call_t *icall)
 {
 	logger_log_t *log;
 	errno_t rc;
 
 	/* Acknowledge the connection. */
-	async_answer_0(chandle, EOK);
+	async_answer_0(icall, EOK);
 
 	logger_log("writer: new client.\n");
 
@@ -108,7 +108,7 @@ void logger_connection_handler_writer(cap_call_handle_t chandle)
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
@@ -117,24 +117,24 @@ void logger_connection_handler_writer(cap_call_handle_t chandle)
 		case LOGGER_WRITER_CREATE_LOG:
 			log = handle_create_log(IPC_GET_ARG1(call));
 			if (log == NULL) {
-				async_answer_0(chandle, ENOMEM);
+				async_answer_0(&call, ENOMEM);
 				break;
 			}
 			if (!register_log(&registered_logs, log)) {
 				log_unlock(log);
-				async_answer_0(chandle, ELIMIT);
+				async_answer_0(&call, ELIMIT);
 				break;
 			}
 			log_unlock(log);
-			async_answer_1(chandle, EOK, (sysarg_t) log);
+			async_answer_1(&call, EOK, (sysarg_t) log);
 			break;
 		case LOGGER_WRITER_MESSAGE:
 			rc = handle_receive_message(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			break;
 		default:
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 			break;
 		}
 	}
@@ -142,7 +142,6 @@ void logger_connection_handler_writer(cap_call_handle_t chandle)
 	unregister_logs(&registered_logs);
 	logger_log("writer: client terminated.\n");
 }
-
 
 /**
  * @}

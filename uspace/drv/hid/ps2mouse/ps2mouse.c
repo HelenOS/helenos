@@ -103,7 +103,7 @@ do { \
 static errno_t polling_ps2(void *);
 static errno_t polling_intellimouse(void *);
 static errno_t probe_intellimouse(ps2_mouse_t *, bool);
-static void default_connection_handler(ddf_fun_t *, cap_call_handle_t, ipc_call_t *);
+static void default_connection_handler(ddf_fun_t *, ipc_call_t *);
 
 /** ps/2 mouse driver ops. */
 static ddf_dev_ops_t mouse_ops = {
@@ -400,12 +400,11 @@ static errno_t probe_intellimouse(ps2_mouse_t *mouse, bool buttons)
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param fun           Device function handling the call.
- * @param icall_handle  Call handle.
- * @param icall         Call data.
+ * @param fun   Device function handling the call.
+ * @param icall Call data.
+ *
  */
-void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	ps2_mouse_t *mouse = ddf_dev_data_get(ddf_fun_get_dev(fun));
@@ -422,21 +421,21 @@ void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
 		if (sess == NULL) {
 			ddf_msg(LVL_WARN,
 			    "Failed creating client callback session");
-			async_answer_0(icall_handle, EAGAIN);
+			async_answer_0(icall, EAGAIN);
 			break;
 		}
 		if (mouse->client_sess == NULL) {
 			mouse->client_sess = sess;
 			ddf_msg(LVL_DEBUG, "Set client session");
-			async_answer_0(icall_handle, EOK);
+			async_answer_0(icall, EOK);
 		} else {
 			ddf_msg(LVL_ERROR, "Client session already set");
-			async_answer_0(icall_handle, ELIMIT);
+			async_answer_0(icall, ELIMIT);
 		}
 		break;
 	default:
 		ddf_msg(LVL_ERROR, "Unknown method: %d.", (int)method);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(icall, EINVAL);
 		break;
 	}
 }

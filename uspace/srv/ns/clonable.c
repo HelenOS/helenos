@@ -47,8 +47,7 @@ typedef struct {
 	link_t link;
 	service_t service;
 	iface_t iface;
-	cap_call_handle_t chandle;
-	sysarg_t arg3;
+	ipc_call_t call;
 } cs_req_t;
 
 /** List of clonable-service connection requests. */
@@ -73,14 +72,13 @@ bool service_clonable(service_t service)
  * @param call    Pointer to call structure.
  *
  */
-void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
-    cap_call_handle_t chandle)
+void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call)
 {
 	link_t *req_link = list_first(&cs_req);
 	if (req_link == NULL) {
 		/* There was no pending connection request. */
 		printf("%s: Unexpected clonable server.\n", NAME);
-		async_answer_0(chandle, EBUSY);
+		async_answer_0(call, EBUSY);
 		return;
 	}
 
@@ -90,15 +88,15 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
 	/* Currently we can only handle a single type of clonable service. */
 	assert(csr->service == SERVICE_LOADER);
 
-	async_answer_0(chandle, EOK);
+	async_answer_0(call, EOK);
 
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL)
-		async_answer_0(chandle, EIO);
+		async_answer_0(call, EIO);
 
 	async_exch_t *exch = async_exchange_begin(sess);
-	async_forward_fast(csr->chandle, exch, csr->iface, csr->arg3, 0,
-	    IPC_FF_NONE);
+	async_forward_fast(&csr->call, exch, csr->iface,
+	    IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	free(csr);
@@ -107,22 +105,20 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call,
 
 /** Connect client to clonable service.
  *
- * @param service  Service to be connected to.
- * @param iface    Interface to be connected to.
- * @param call     Pointer to call structure.
- * @param chandle  Call handle of the request.
+ * @param service Service to be connected to.
+ * @param iface   Interface to be connected to.
+ * @param call    Pointer to call structure.
  *
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
-    cap_call_handle_t chandle)
+void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call)
 {
 	assert(service == SERVICE_LOADER);
 
 	cs_req_t *csr = malloc(sizeof(cs_req_t));
 	if (csr == NULL) {
-		async_answer_0(chandle, ENOMEM);
+		async_answer_0(call, ENOMEM);
 		return;
 	}
 
@@ -131,15 +127,14 @@ void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call,
 
 	if (rc != EOK) {
 		free(csr);
-		async_answer_0(chandle, rc);
+		async_answer_0(call, rc);
 		return;
 	}
 
 	link_initialize(&csr->link);
 	csr->service = service;
 	csr->iface = iface;
-	csr->chandle = chandle;
-	csr->arg3 = IPC_GET_ARG3(*call);
+	csr->call = *call;
 
 	/*
 	 * We can forward the call only after the server we spawned connects

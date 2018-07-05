@@ -385,7 +385,7 @@ static errno_t rdwr_ipc_internal(async_exch_t *exch, vfs_file_t *file, aoff64_t 
 	if (exch == NULL)
 		return ENOENT;
 
-	aid_t msg = async_send_fast(exch, read ? VFS_OUT_READ : VFS_OUT_WRITE,
+	aid_t msg = async_send_4(exch, read ? VFS_OUT_READ : VFS_OUT_WRITE,
 	    file->node->service_id, file->node->index, LOWER32(pos),
 	    UPPER32(pos), answer);
 	if (msg == 0)

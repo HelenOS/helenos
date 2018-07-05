@@ -310,7 +310,7 @@ static errno_t ns8250_write(chardev_srv_t *srv, const void *buf, size_t count,
 
 static errno_t ns8250_open(chardev_srvs_t *, chardev_srv_t *);
 static errno_t ns8250_close(chardev_srv_t *);
-static void ns8250_default_handler(chardev_srv_t *, cap_call_handle_t, ipc_call_t *);
+static void ns8250_default_handler(chardev_srv_t *, ipc_call_t *);
 
 /** The character interface's callbacks. */
 static chardev_ops_t ns8250_chardev_ops = {
@@ -321,7 +321,7 @@ static chardev_ops_t ns8250_chardev_ops = {
 	.def_handler = ns8250_default_handler
 };
 
-static void ns8250_char_conn(cap_call_handle_t, ipc_call_t *, void *);
+static void ns8250_char_conn(ipc_call_t *, void *);
 
 static errno_t ns8250_dev_add(ddf_dev_t *dev);
 static errno_t ns8250_dev_remove(ddf_dev_t *dev);
@@ -1066,8 +1066,7 @@ static errno_t ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
  *
  * Configure the parameters of the serial communication.
  */
-static void ns8250_default_handler(chardev_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void ns8250_default_handler(chardev_srv_t *srv, ipc_call_t *call)
 {
 	ns8250_t *ns8250 = srv_ns8250(srv);
 	sysarg_t method = IPC_GET_IMETHOD(*call);
@@ -1078,7 +1077,7 @@ static void ns8250_default_handler(chardev_srv_t *srv, cap_call_handle_t chandle
 	case SERIAL_GET_COM_PROPS:
 		ns8250_get_props(ns8250->dev, &baud_rate, &parity, &word_length,
 		    &stop_bits);
-		async_answer_4(chandle, EOK, baud_rate, parity, word_length,
+		async_answer_4(call, EOK, baud_rate, parity, word_length,
 		    stop_bits);
 		break;
 
@@ -1089,19 +1088,19 @@ static void ns8250_default_handler(chardev_srv_t *srv, cap_call_handle_t chandle
 		stop_bits = IPC_GET_ARG4(*call);
 		ret = ns8250_set_props(ns8250->dev, baud_rate, parity, word_length,
 		    stop_bits);
-		async_answer_0(chandle, ret);
+		async_answer_0(call, ret);
 		break;
 
 	default:
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 	}
 }
 
-void ns8250_char_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+void ns8250_char_conn(ipc_call_t *icall, void *arg)
 {
 	ns8250_t *ns8250 = fun_ns8250((ddf_fun_t *)arg);
 
-	chardev_conn(icall_handle, icall, &ns8250->cds);
+	chardev_conn(icall, &ns8250->cds);
 }
 
 /** Initialize the serial port driver.

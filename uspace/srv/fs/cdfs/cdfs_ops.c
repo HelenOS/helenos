@@ -1272,17 +1272,17 @@ static errno_t cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 			return rc;
 	}
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t len;
-	if (!async_data_read_receive(&chandle, &len)) {
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_read_receive(&call, &len)) {
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	if (node->type == CDFS_FILE) {
 		if (pos >= node->size) {
 			*rbytes = 0;
-			async_data_read_finalize(chandle, NULL, 0);
+			async_data_read_finalize(&call, NULL, 0);
 		} else {
 			cdfs_lba_t lba = pos / BLOCK_SIZE;
 			size_t offset = pos % BLOCK_SIZE;
@@ -1294,11 +1294,11 @@ static errno_t cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 			errno_t rc = block_get(&block, service_id, node->lba + lba,
 			    BLOCK_FLAGS_NONE);
 			if (rc != EOK) {
-				async_answer_0(chandle, rc);
+				async_answer_0(&call, rc);
 				return rc;
 			}
 
-			async_data_read_finalize(chandle, block->data + offset,
+			async_data_read_finalize(&call, block->data + offset,
 			    *rbytes);
 			rc = block_put(block);
 			if (rc != EOK)
@@ -1307,7 +1307,7 @@ static errno_t cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 	} else {
 		link_t *link = list_nth(&node->cs_list, pos);
 		if (link == NULL) {
-			async_answer_0(chandle, ENOENT);
+			async_answer_0(&call, ENOENT);
 			return ENOENT;
 		}
 
@@ -1315,7 +1315,7 @@ static errno_t cdfs_read(service_id_t service_id, fs_index_t index, aoff64_t pos
 		    list_get_instance(link, cdfs_dentry_t, link);
 
 		*rbytes = 1;
-		async_data_read_finalize(chandle, dentry->name,
+		async_data_read_finalize(&call, dentry->name,
 		    str_size(dentry->name) + 1);
 	}
 

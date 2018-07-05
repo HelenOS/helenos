@@ -76,19 +76,20 @@
  *     async_manager();
  *   }
  *
- *   port_handler(ichandle, *icall)
+ *   port_handler(ipc_call_t *icall)
  *   {
  *     if (want_refuse) {
- *       async_answer_0(ichandle, ELIMIT);
+ *       async_answer_0(icall, ELIMIT);
  *       return;
  *     }
- *     async_answer_0(ichandle, EOK);
  *
- *     chandle = async_get_call(&call);
- *     somehow_handle_the_call(chandle, call);
- *     async_answer_2(chandle, 1, 2, 3);
+ *     async_answer_0(icall, EOK);
  *
- *     chandle = async_get_call(&call);
+ *     async_get_call(&call);
+ *     somehow_handle_the_call(&call);
+ *     async_answer_2(&call, 1, 2, 3);
+ *
+ *     async_get_call(&call);
  *     ...
  *   }
  *
@@ -132,7 +133,6 @@ static atomic_t threads_in_ipc_wait = { 0 };
 /** Call data */
 typedef struct {
 	link_t link;
-
 	ipc_call_t call;
 } msg_t;
 
@@ -417,8 +417,8 @@ static errno_t connection_fibril(void *arg)
 	/*
 	 * Call the connection handler function.
 	 */
-	fibril_connection->handler(fibril_connection->call.cap_handle,
-	    &fibril_connection->call, fibril_connection->data);
+	fibril_connection->handler(&fibril_connection->call,
+	    fibril_connection->data);
 
 	/*
 	 * Remove the reference for this client task connection.
@@ -963,15 +963,15 @@ errno_t async_event_task_unmask(event_task_type_t evno)
 
 /** Return new incoming message for the current (fibril-local) connection.
  *
- * @param call   Storage where the incoming call data will be stored.
- * @param usecs  Timeout in microseconds. Zero denotes no timeout.
+ * @param call  Storage where the incoming call data will be stored.
+ * @param usecs Timeout in microseconds. Zero denotes no timeout.
  *
- * @return  If no timeout was specified, then a handle of the incoming call is
- *          returned. If a timeout is specified, then a handle of the incoming
- *          call is returned unless the timeout expires prior to receiving a
- *          message. In that case zero CAP_NIL is returned.
+ * @return If no timeout was specified, then true is returned.
+ * @return If a timeout is specified, then true is returned unless
+ *         the timeout expires prior to receiving a message.
+ *
  */
-cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
+bool async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 {
 	assert(call);
 	assert(fibril_connection);
@@ -1006,7 +1006,7 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			memset(call, 0, sizeof(ipc_call_t));
 			IPC_SET_IMETHOD(*call, IPC_M_PHONE_HUNGUP);
 			futex_unlock(&async_futex);
-			return conn->close_chandle;
+			return true;
 		}
 
 		if (usecs)
@@ -1026,7 +1026,7 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		    (list_empty(&conn->msg_queue))) {
 			/* If we timed out -> exit */
 			futex_unlock(&async_futex);
-			return CAP_NIL;
+			return false;
 		}
 	}
 
@@ -1034,12 +1034,11 @@ cap_call_handle_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	    msg_t, link);
 	list_remove(&msg->link);
 
-	cap_call_handle_t chandle = msg->call.cap_handle;
 	*call = msg->call;
 	free(msg);
 
 	futex_unlock(&async_futex);
-	return chandle;
+	return true;
 }
 
 void *async_get_client_data(void)
@@ -1250,68 +1249,74 @@ void __async_server_init(void)
 		abort();
 }
 
-errno_t async_answer_0(cap_call_handle_t chandle, errno_t retval)
+errno_t async_answer_0(ipc_call_t *call, errno_t retval)
 {
-	return ipc_answer_0(chandle, retval);
+	return ipc_answer_0(call->cap_handle, retval);
 }
 
-errno_t async_answer_1(cap_call_handle_t chandle, errno_t retval, sysarg_t arg1)
+errno_t async_answer_1(ipc_call_t *call, errno_t retval, sysarg_t arg1)
 {
-	return ipc_answer_1(chandle, retval, arg1);
+	return ipc_answer_1(call->cap_handle, retval, arg1);
 }
 
-errno_t async_answer_2(cap_call_handle_t chandle, errno_t retval, sysarg_t arg1,
+errno_t async_answer_2(ipc_call_t *call, errno_t retval, sysarg_t arg1,
     sysarg_t arg2)
 {
-	return ipc_answer_2(chandle, retval, arg1, arg2);
+	return ipc_answer_2(call->cap_handle, retval, arg1, arg2);
 }
 
-errno_t async_answer_3(cap_call_handle_t chandle, errno_t retval, sysarg_t arg1,
+errno_t async_answer_3(ipc_call_t *call, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3)
 {
-	return ipc_answer_3(chandle, retval, arg1, arg2, arg3);
+	return ipc_answer_3(call->cap_handle, retval, arg1, arg2, arg3);
 }
 
-errno_t async_answer_4(cap_call_handle_t chandle, errno_t retval, sysarg_t arg1,
+errno_t async_answer_4(ipc_call_t *call, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
-	return ipc_answer_4(chandle, retval, arg1, arg2, arg3, arg4);
+	return ipc_answer_4(call->cap_handle, retval, arg1, arg2, arg3, arg4);
 }
 
-errno_t async_answer_5(cap_call_handle_t chandle, errno_t retval, sysarg_t arg1,
+errno_t async_answer_5(ipc_call_t *call, errno_t retval, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
-	return ipc_answer_5(chandle, retval, arg1, arg2, arg3, arg4, arg5);
+	return ipc_answer_5(call->cap_handle, retval, arg1, arg2, arg3, arg4,
+	    arg5);
 }
 
-errno_t async_forward_fast(cap_call_handle_t chandle, async_exch_t *exch,
+errno_t async_forward_fast(ipc_call_t *call, async_exch_t *exch,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
 {
+	assert(call);
+
 	if (exch == NULL)
 		return ENOENT;
 
-	return ipc_forward_fast(chandle, exch->phone, imethod, arg1, arg2, mode);
+	return ipc_forward_fast(call->cap_handle, exch->phone, imethod, arg1,
+	    arg2, mode);
 }
 
-errno_t async_forward_slow(cap_call_handle_t chandle, async_exch_t *exch,
+errno_t async_forward_slow(ipc_call_t *call, async_exch_t *exch,
     sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     sysarg_t arg4, sysarg_t arg5, unsigned int mode)
 {
+	assert(call);
+
 	if (exch == NULL)
 		return ENOENT;
 
-	return ipc_forward_slow(chandle, exch->phone, imethod, arg1, arg2, arg3,
-	    arg4, arg5, mode);
+	return ipc_forward_slow(call->cap_handle, exch->phone, imethod, arg1,
+	    arg2, arg3, arg4, arg5, mode);
 }
 
 /** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
  *
  * Ask through phone for a new connection to some service.
  *
- * @param exch            Exchange for sending the message.
- * @param arg1            User defined argument.
- * @param arg2            User defined argument.
- * @param arg3            User defined argument.
+ * @param exch Exchange for sending the message.
+ * @param arg1 User defined argument.
+ * @param arg2 User defined argument.
+ * @param arg3 User defined argument.
  *
  * @return Zero on success or an error code.
  *
@@ -1349,24 +1354,23 @@ void async_poke(void)
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param chandle  Storage for the handle of the IPC_M_SHARE_IN call.
- * @param size     Destination address space area size.
+ * @param call Storage for the data of the IPC_M_SHARE_IN call.
+ * @param size Destination address space area size.
  *
  * @return True on success, false on failure.
  *
  */
-bool async_share_in_receive(cap_call_handle_t *chandle, size_t *size)
+bool async_share_in_receive(ipc_call_t *call, size_t *size)
 {
-	assert(chandle);
+	assert(call);
 	assert(size);
 
-	ipc_call_t data;
-	*chandle = async_get_call(&data);
+	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_IN)
+	if (IPC_GET_IMETHOD(*call) != IPC_M_SHARE_IN)
 		return false;
 
-	*size = (size_t) IPC_GET_ARG1(data);
+	*size = (size_t) IPC_GET_ARG1(*call);
 	return true;
 }
 
@@ -1376,18 +1380,19 @@ bool async_share_in_receive(cap_call_handle_t *chandle, size_t *size)
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
- * @param chandle  Handle of the IPC_M_DATA_READ call to answer.
- * @param src      Source address space base.
- * @param flags    Flags to be used for sharing. Bits can be only cleared.
+ * @param call  IPC_M_DATA_READ call to answer.
+ * @param src   Source address space base.
+ * @param flags Flags to be used for sharing. Bits can be only cleared.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
  *
  */
-errno_t async_share_in_finalize(cap_call_handle_t chandle, void *src,
-    unsigned int flags)
+errno_t async_share_in_finalize(ipc_call_t *call, void *src, unsigned int flags)
 {
+	assert(call);
+
 	// FIXME: The source has no business deciding destination address.
-	return ipc_answer_3(chandle, EOK, (sysarg_t) src, (sysarg_t) flags,
+	return ipc_answer_3(call->cap_handle, EOK, (sysarg_t) src, (sysarg_t) flags,
 	    (sysarg_t) _end);
 }
 
@@ -1399,28 +1404,27 @@ errno_t async_share_in_finalize(cap_call_handle_t chandle, void *src,
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param chandle  Storage for the hash of the IPC_M_SHARE_OUT call.
- * @param size     Storage for the source address space area size.
- * @param flags    Storage for the sharing flags.
+ * @param call  Storage for the data of the IPC_M_SHARE_OUT call.
+ * @param size  Storage for the source address space area size.
+ * @param flags Storage for the sharing flags.
  *
  * @return True on success, false on failure.
  *
  */
-bool async_share_out_receive(cap_call_handle_t *chandle, size_t *size,
+bool async_share_out_receive(ipc_call_t *call, size_t *size,
     unsigned int *flags)
 {
-	assert(chandle);
+	assert(call);
 	assert(size);
 	assert(flags);
 
-	ipc_call_t data;
-	*chandle = async_get_call(&data);
+	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_OUT)
+	if (IPC_GET_IMETHOD(*call) != IPC_M_SHARE_OUT)
 		return false;
 
-	*size = (size_t) IPC_GET_ARG2(data);
-	*flags = (unsigned int) IPC_GET_ARG3(data);
+	*size = (size_t) IPC_GET_ARG2(*call);
+	*flags = (unsigned int) IPC_GET_ARG3(*call);
 	return true;
 }
 
@@ -1430,16 +1434,19 @@ bool async_share_out_receive(cap_call_handle_t *chandle, size_t *size,
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
- * @param chandle  Handle of the IPC_M_DATA_WRITE call to answer.
- * @param dst      Address of the storage for the destination address space area
- *                 base address.
+ * @param call IPC_M_DATA_WRITE call to answer.
+ * @param dst  Address of the storage for the destination address space area
+ *             base address.
  *
  * @return  Zero on success or a value from @ref errno.h on failure.
  *
  */
-errno_t async_share_out_finalize(cap_call_handle_t chandle, void **dst)
+errno_t async_share_out_finalize(ipc_call_t *call, void **dst)
 {
-	return ipc_answer_2(chandle, EOK, (sysarg_t) _end, (sysarg_t) dst);
+	assert(call);
+
+	return ipc_answer_2(call->cap_handle, EOK, (sysarg_t) _end,
+	    (sysarg_t) dst);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
@@ -1450,45 +1457,23 @@ errno_t async_share_out_finalize(cap_call_handle_t chandle, void **dst)
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param chandle  Storage for the handle of the IPC_M_DATA_READ.
- * @param size     Storage for the maximum size. Can be NULL.
+ * @param call Storage for the data of the IPC_M_DATA_READ.
+ * @param size Storage for the maximum size. Can be NULL.
  *
  * @return True on success, false on failure.
  *
  */
-bool async_data_read_receive(cap_call_handle_t *chandle, size_t *size)
+bool async_data_read_receive(ipc_call_t *call, size_t *size)
 {
-	ipc_call_t data;
-	return async_data_read_receive_call(chandle, &data, size);
-}
+	assert(call);
 
-/** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
- *
- * This wrapper only makes it more comfortable to receive IPC_M_DATA_READ
- * calls so that the user doesn't have to remember the meaning of each IPC
- * argument.
- *
- * So far, this wrapper is to be used from within a connection fibril.
- *
- * @param chandle  Storage for the handle of the IPC_M_DATA_READ.
- * @param size     Storage for the maximum size. Can be NULL.
- *
- * @return True on success, false on failure.
- *
- */
-bool async_data_read_receive_call(cap_call_handle_t *chandle, ipc_call_t *data,
-    size_t *size)
-{
-	assert(chandle);
-	assert(data);
+	async_get_call(call);
 
-	*chandle = async_get_call(data);
-
-	if (IPC_GET_IMETHOD(*data) != IPC_M_DATA_READ)
+	if (IPC_GET_IMETHOD(*call) != IPC_M_DATA_READ)
 		return false;
 
 	if (size)
-		*size = (size_t) IPC_GET_ARG2(*data);
+		*size = (size_t) IPC_GET_ARG2(*call);
 
 	return true;
 }
@@ -1499,18 +1484,20 @@ bool async_data_read_receive_call(cap_call_handle_t *chandle, ipc_call_t *data,
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
- * @param chandle  Handle of the IPC_M_DATA_READ call to answer.
- * @param src      Source address for the IPC_M_DATA_READ call.
- * @param size     Size for the IPC_M_DATA_READ call. Can be smaller than
- *                 the maximum size announced by the sender.
+ * @param call IPC_M_DATA_READ call to answer.
+ * @param src  Source address for the IPC_M_DATA_READ call.
+ * @param size Size for the IPC_M_DATA_READ call. Can be smaller than
+ *             the maximum size announced by the sender.
  *
  * @return  Zero on success or a value from @ref errno.h on failure.
  *
  */
-errno_t async_data_read_finalize(cap_call_handle_t chandle, const void *src,
-    size_t size)
+errno_t async_data_read_finalize(ipc_call_t *call, const void *src, size_t size)
 {
-	return ipc_answer_2(chandle, EOK, (sysarg_t) src, (sysarg_t) size);
+	assert(call);
+
+	return ipc_answer_2(call->cap_handle, EOK, (sysarg_t) src,
+	    (sysarg_t) size);
 }
 
 /** Wrapper for forwarding any read request
@@ -1523,24 +1510,24 @@ errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	if (exch == NULL)
 		return ENOENT;
 
-	cap_call_handle_t chandle;
-	if (!async_data_read_receive(&chandle, NULL)) {
-		ipc_answer_0(chandle, EINVAL);
+	ipc_call_t call;
+	if (!async_data_read_receive(&call, NULL)) {
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	aid_t msg = async_send_fast(exch, imethod, arg1, arg2, arg3, arg4,
 	    dataptr);
 	if (msg == 0) {
-		ipc_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
-	errno_t retval = ipc_forward_fast(chandle, exch->phone, 0, 0, 0,
+	errno_t retval = ipc_forward_fast(call.cap_handle, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
 		async_forget(msg);
-		ipc_answer_0(chandle, retval);
+		async_answer_0(&call, retval);
 		return retval;
 	}
 
@@ -1558,46 +1545,23 @@ errno_t async_data_read_forward_fast(async_exch_t *exch, sysarg_t imethod,
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param chandle  Storage for the handle of the IPC_M_DATA_WRITE.
- * @param size     Storage for the suggested size. May be NULL.
- *
- * @return  True on success, false on failure.
- *
- */
-bool async_data_write_receive(cap_call_handle_t *chandle, size_t *size)
-{
-	ipc_call_t data;
-	return async_data_write_receive_call(chandle, &data, size);
-}
-
-/** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
- *
- * This wrapper only makes it more comfortable to receive IPC_M_DATA_WRITE
- * calls so that the user doesn't have to remember the meaning of each IPC
- * argument.
- *
- * So far, this wrapper is to be used from within a connection fibril.
- *
- * @param chandle  Storage for the handle of the IPC_M_DATA_WRITE.
- * @param data     Storage for the ipc call data.
- * @param size     Storage for the suggested size. May be NULL.
+ * @param call Storage for the data of the IPC_M_DATA_WRITE.
+ * @param size Storage for the suggested size. May be NULL.
  *
  * @return True on success, false on failure.
  *
  */
-bool async_data_write_receive_call(cap_call_handle_t *chandle, ipc_call_t *data,
-    size_t *size)
+bool async_data_write_receive(ipc_call_t *call, size_t *size)
 {
-	assert(chandle);
-	assert(data);
+	assert(call);
 
-	*chandle = async_get_call(data);
+	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(*data) != IPC_M_DATA_WRITE)
+	if (IPC_GET_IMETHOD(*call) != IPC_M_DATA_WRITE)
 		return false;
 
 	if (size)
-		*size = (size_t) IPC_GET_ARG2(*data);
+		*size = (size_t) IPC_GET_ARG2(*call);
 
 	return true;
 }
@@ -1608,17 +1572,18 @@ bool async_data_write_receive_call(cap_call_handle_t *chandle, ipc_call_t *data,
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
- * @param chandle  Handle of the IPC_M_DATA_WRITE call to answer.
- * @param dst      Final destination address for the IPC_M_DATA_WRITE call.
- * @param size     Final size for the IPC_M_DATA_WRITE call.
+ * @param call IPC_M_DATA_WRITE call to answer.
+ * @param dst  Final destination address for the IPC_M_DATA_WRITE call.
+ * @param size Final size for the IPC_M_DATA_WRITE call.
  *
  * @return  Zero on success or a value from @ref errno.h on failure.
  *
  */
-errno_t async_data_write_finalize(cap_call_handle_t chandle, void *dst,
-    size_t size)
+errno_t async_data_write_finalize(ipc_call_t *call, void *dst, size_t size)
 {
-	return ipc_answer_2(chandle, EOK, (sysarg_t) dst, (sysarg_t) size);
+	assert(call);
+
+	return async_answer_2(call, EOK, (sysarg_t) dst, (sysarg_t) size);
 }
 
 /** Wrapper for receiving binary data or strings
@@ -1648,25 +1613,25 @@ errno_t async_data_write_accept(void **data, const bool nullterm,
 {
 	assert(data);
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_write_receive(&chandle, &size)) {
-		ipc_answer_0(chandle, EINVAL);
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	if (size < min_size) {
-		ipc_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	if ((max_size > 0) && (size > max_size)) {
-		ipc_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	if ((granularity > 0) && ((size % granularity) != 0)) {
-		ipc_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
@@ -1678,11 +1643,11 @@ errno_t async_data_write_accept(void **data, const bool nullterm,
 		arg_data = malloc(size);
 
 	if (arg_data == NULL) {
-		ipc_answer_0(chandle, ENOMEM);
+		async_answer_0(&call, ENOMEM);
 		return ENOMEM;
 	}
 
-	errno_t rc = async_data_write_finalize(chandle, arg_data, size);
+	errno_t rc = async_data_write_finalize(&call, arg_data, size);
 	if (rc != EOK) {
 		free(arg_data);
 		return rc;
@@ -1707,9 +1672,9 @@ errno_t async_data_write_accept(void **data, const bool nullterm,
  */
 void async_data_write_void(errno_t retval)
 {
-	cap_call_handle_t chandle;
-	async_data_write_receive(&chandle, NULL);
-	ipc_answer_0(chandle, retval);
+	ipc_call_t call;
+	async_data_write_receive(&call, NULL);
+	async_answer_0(&call, retval);
 }
 
 /** Wrapper for forwarding any data that is about to be received
@@ -1722,24 +1687,24 @@ errno_t async_data_write_forward_fast(async_exch_t *exch, sysarg_t imethod,
 	if (exch == NULL)
 		return ENOENT;
 
-	cap_call_handle_t chandle;
-	if (!async_data_write_receive(&chandle, NULL)) {
-		ipc_answer_0(chandle, EINVAL);
+	ipc_call_t call;
+	if (!async_data_write_receive(&call, NULL)) {
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	aid_t msg = async_send_fast(exch, imethod, arg1, arg2, arg3, arg4,
 	    dataptr);
 	if (msg == 0) {
-		ipc_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
-	errno_t retval = ipc_forward_fast(chandle, exch->phone, 0, 0, 0,
+	errno_t retval = ipc_forward_fast(call.cap_handle, exch->phone, 0, 0, 0,
 	    IPC_FF_ROUTE_FROM_ME);
 	if (retval != EOK) {
 		async_forget(msg);
-		ipc_answer_0(chandle, retval);
+		async_answer_0(&call, retval);
 		return retval;
 	}
 
@@ -1764,18 +1729,19 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 {
 	/* Accept the phone */
 	ipc_call_t call;
-	cap_call_handle_t chandle = async_get_call(&call);
+	async_get_call(&call);
+
 	cap_phone_handle_t phandle = (cap_handle_t) IPC_GET_ARG5(call);
 
 	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) ||
 	    !CAP_HANDLE_VALID((phandle))) {
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return NULL;
 	}
 
 	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
 	if (sess == NULL) {
-		async_answer_0(chandle, ENOMEM);
+		async_answer_0(&call, ENOMEM);
 		return NULL;
 	}
 
@@ -1794,7 +1760,7 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 	atomic_set(&sess->refcnt, 0);
 
 	/* Acknowledge the connected phone */
-	async_answer_0(chandle, EOK);
+	async_answer_0(&call, EOK);
 
 	return sess;
 }
@@ -1842,31 +1808,23 @@ async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 	return sess;
 }
 
-bool async_state_change_receive(cap_call_handle_t *chandle, sysarg_t *arg1,
-    sysarg_t *arg2, sysarg_t *arg3)
+bool async_state_change_receive(ipc_call_t *call)
 {
-	assert(chandle);
+	assert(call);
 
-	ipc_call_t call;
-	*chandle = async_get_call(&call);
+	async_get_call(call);
 
-	if (IPC_GET_IMETHOD(call) != IPC_M_STATE_CHANGE_AUTHORIZE)
+	if (IPC_GET_IMETHOD(*call) != IPC_M_STATE_CHANGE_AUTHORIZE)
 		return false;
-
-	if (arg1)
-		*arg1 = IPC_GET_ARG1(call);
-	if (arg2)
-		*arg2 = IPC_GET_ARG2(call);
-	if (arg3)
-		*arg3 = IPC_GET_ARG3(call);
 
 	return true;
 }
 
-errno_t async_state_change_finalize(cap_call_handle_t chandle,
-    async_exch_t *other_exch)
+errno_t async_state_change_finalize(ipc_call_t *call, async_exch_t *other_exch)
 {
-	return ipc_answer_1(chandle, EOK, CAP_HANDLE_RAW(other_exch->phone));
+	assert(call);
+
+	return async_answer_1(call, EOK, CAP_HANDLE_RAW(other_exch->phone));
 }
 
 __noreturn void async_manager(void)

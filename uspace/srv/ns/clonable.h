@@ -41,9 +41,8 @@
 extern errno_t clonable_init(void);
 
 extern bool service_clonable(service_t);
-extern void register_clonable(service_t, sysarg_t, ipc_call_t *,
-    cap_call_handle_t);
-extern void connect_to_clonable(service_t, iface_t, ipc_call_t *, cap_call_handle_t);
+extern void register_clonable(service_t, sysarg_t, ipc_call_t *);
+extern void connect_to_clonable(service_t, iface_t, ipc_call_t *);
 
 #endif
 

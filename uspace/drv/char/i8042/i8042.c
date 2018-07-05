@@ -66,7 +66,7 @@
 #define i8042_AUX_DISABLE    0x20
 #define i8042_KBD_TRANSLATE  0x40  /* Use this to switch to XT scancodes */
 
-static void i8042_char_conn(cap_call_handle_t, ipc_call_t *, void *);
+static void i8042_char_conn(ipc_call_t *, void *);
 static errno_t i8042_read(chardev_srv_t *, void *, size_t, size_t *);
 static errno_t i8042_write(chardev_srv_t *, const void *, size_t, size_t *);
 
@@ -414,15 +414,15 @@ static errno_t i8042_read(chardev_srv_t *srv, void *dest, size_t size,
 
 /** Handle data requests.
  *
- * @param id   chandle
  * @param call IPC request.
  * @param arg  ddf_fun_t function.
+ *
  */
-void i8042_char_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+void i8042_char_conn(ipc_call_t *icall, void *arg)
 {
 	i8042_port_t *port = ddf_fun_data_get((ddf_fun_t *)arg);
 
-	chardev_conn(icall_handle, icall, &port->cds);
+	chardev_conn(icall, &port->cds);
 }
 
 /**

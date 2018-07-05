@@ -41,129 +41,123 @@
 #include <inet/addr.h>
 #include <inet/iplink_srv.h>
 
-static void iplink_get_mtu_srv(iplink_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void iplink_get_mtu_srv(iplink_srv_t *srv, ipc_call_t *call)
 {
 	size_t mtu;
 	errno_t rc = srv->ops->get_mtu(srv, &mtu);
-	async_answer_1(chandle, rc, mtu);
+	async_answer_1(call, rc, mtu);
 }
 
-static void iplink_get_mac48_srv(iplink_srv_t *srv, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void iplink_get_mac48_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
 	addr48_t mac;
 	errno_t rc = srv->ops->get_mac48(srv, &mac);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_read_receive(&chandle, &size)) {
-		async_answer_0(chandle, EREFUSED);
-		async_answer_0(icall_handle, EREFUSED);
+	if (!async_data_read_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(addr48_t)) {
-		async_answer_0(chandle, EINVAL);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
 		return;
 	}
 
-	rc = async_data_read_finalize(chandle, &mac, size);
+	rc = async_data_read_finalize(&call, &mac, size);
 	if (rc != EOK)
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void iplink_set_mac48_srv(iplink_srv_t *srv, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void iplink_set_mac48_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
 	errno_t rc;
 	size_t size;
 	addr48_t mac;
-	cap_call_handle_t chandle;
 
-	if (!async_data_write_receive(&chandle, &size)) {
-		async_answer_0(chandle, EREFUSED);
-		async_answer_0(icall_handle, EREFUSED);
+	ipc_call_t call;
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 	}
 
 	rc = srv->ops->set_mac48(srv, &mac);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
-	rc = async_data_read_finalize(chandle, &mac, sizeof(addr48_t));
+	rc = async_data_read_finalize(&call, &mac, sizeof(addr48_t));
 	if (rc != EOK)
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void iplink_addr_add_srv(iplink_srv_t *srv, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void iplink_addr_add_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_write_receive(&chandle, &size)) {
-		async_answer_0(chandle, EREFUSED);
-		async_answer_0(icall_handle, EREFUSED);
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(chandle, EINVAL);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
 		return;
 	}
 
 	inet_addr_t addr;
-	errno_t rc = async_data_write_finalize(chandle, &addr, size);
+	errno_t rc = async_data_write_finalize(&call, &addr, size);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
-		async_answer_0(icall_handle, rc);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 	}
 
 	rc = srv->ops->addr_add(srv, &addr);
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void iplink_addr_remove_srv(iplink_srv_t *srv, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void iplink_addr_remove_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_write_receive(&chandle, &size)) {
-		async_answer_0(chandle, EREFUSED);
-		async_answer_0(icall_handle, EREFUSED);
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(inet_addr_t)) {
-		async_answer_0(chandle, EINVAL);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
 		return;
 	}
 
 	inet_addr_t addr;
-	errno_t rc = async_data_write_finalize(chandle, &addr, size);
+	errno_t rc = async_data_write_finalize(&call, &addr, size);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
-		async_answer_0(icall_handle, rc);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 	}
 
 	rc = srv->ops->addr_remove(srv, &addr);
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void iplink_send_srv(iplink_srv_t *srv, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void iplink_send_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
 	iplink_sdu_t sdu;
 
@@ -173,50 +167,49 @@ static void iplink_send_srv(iplink_srv_t *srv, cap_call_handle_t icall_handle,
 	errno_t rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
 	    &sdu.size);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
 	rc = srv->ops->send(srv, &sdu);
 	free(sdu.data);
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void iplink_send6_srv(iplink_srv_t *srv, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void iplink_send6_srv(iplink_srv_t *srv, ipc_call_t *icall)
 {
 	iplink_sdu6_t sdu;
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t size;
-	if (!async_data_write_receive(&chandle, &size)) {
-		async_answer_0(chandle, EREFUSED);
-		async_answer_0(icall_handle, EREFUSED);
+	if (!async_data_write_receive(&call, &size)) {
+		async_answer_0(&call, EREFUSED);
+		async_answer_0(icall, EREFUSED);
 		return;
 	}
 
 	if (size != sizeof(addr48_t)) {
-		async_answer_0(chandle, EINVAL);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(&call, EINVAL);
+		async_answer_0(icall, EINVAL);
 		return;
 	}
 
-	errno_t rc = async_data_write_finalize(chandle, &sdu.dest, size);
+	errno_t rc = async_data_write_finalize(&call, &sdu.dest, size);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
-		async_answer_0(icall_handle, rc);
+		async_answer_0(&call, rc);
+		async_answer_0(icall, rc);
 	}
 
 	rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
 	    &sdu.size);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
 	rc = srv->ops->send6(srv, &sdu);
 	free(sdu.data);
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
 void iplink_srv_init(iplink_srv_t *srv)
@@ -228,7 +221,7 @@ void iplink_srv_init(iplink_srv_t *srv)
 	srv->client_sess = NULL;
 }
 
-errno_t iplink_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+errno_t iplink_conn(ipc_call_t *icall, void *arg)
 {
 	iplink_srv_t *srv = (iplink_srv_t *) arg;
 	errno_t rc;
@@ -236,7 +229,7 @@ errno_t iplink_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg
 	fibril_mutex_lock(&srv->lock);
 	if (srv->connected) {
 		fibril_mutex_unlock(&srv->lock);
-		async_answer_0(icall_handle, EBUSY);
+		async_answer_0(icall, EBUSY);
 		return EBUSY;
 	}
 
@@ -244,7 +237,7 @@ errno_t iplink_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg
 	fibril_mutex_unlock(&srv->lock);
 
 	/* Accept the connection */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
 	if (sess == NULL)
@@ -258,7 +251,7 @@ errno_t iplink_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
@@ -266,34 +259,34 @@ errno_t iplink_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg
 			fibril_mutex_lock(&srv->lock);
 			srv->connected = false;
 			fibril_mutex_unlock(&srv->lock);
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			break;
 		}
 
 		switch (method) {
 		case IPLINK_GET_MTU:
-			iplink_get_mtu_srv(srv, chandle, &call);
+			iplink_get_mtu_srv(srv, &call);
 			break;
 		case IPLINK_GET_MAC48:
-			iplink_get_mac48_srv(srv, chandle, &call);
+			iplink_get_mac48_srv(srv, &call);
 			break;
 		case IPLINK_SET_MAC48:
-			iplink_set_mac48_srv(srv, chandle, &call);
+			iplink_set_mac48_srv(srv, &call);
 			break;
 		case IPLINK_SEND:
-			iplink_send_srv(srv, chandle, &call);
+			iplink_send_srv(srv, &call);
 			break;
 		case IPLINK_SEND6:
-			iplink_send6_srv(srv, chandle, &call);
+			iplink_send6_srv(srv, &call);
 			break;
 		case IPLINK_ADDR_ADD:
-			iplink_addr_add_srv(srv, chandle, &call);
+			iplink_addr_add_srv(srv, &call);
 			break;
 		case IPLINK_ADDR_REMOVE:
-			iplink_addr_remove_srv(srv, chandle, &call);
+			iplink_addr_remove_srv(srv, &call);
 			break;
 		default:
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 		}
 	}
 

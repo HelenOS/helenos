@@ -161,13 +161,13 @@ static visualizer_ops_t kfb_ops = {
 	.wakeup = kfb_wakeup
 };
 
-static void graph_vsl_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void graph_vsl_connection(ipc_call_t *icall, void *arg)
 {
 	visualizer_t *vsl;
 	errno_t rc;
 
 	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
-	graph_visualizer_connection(vsl, icall_handle, icall, NULL);
+	graph_visualizer_connection(vsl, icall, NULL);
 
 	if (kfb.addr != NULL) {
 		rc = physmem_unmap(kfb.addr);

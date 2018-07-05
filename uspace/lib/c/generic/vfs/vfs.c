@@ -801,15 +801,15 @@ errno_t vfs_put(int file)
  */
 errno_t vfs_receive_handle(bool high, int *handle)
 {
-	cap_call_handle_t chandle;
-	if (!async_state_change_receive(&chandle, NULL, NULL, NULL)) {
-		async_answer_0(chandle, EINVAL);
+	ipc_call_t call;
+	if (!async_state_change_receive(&call)) {
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
 	async_exch_t *vfs_exch = vfs_exchange_begin();
 
-	async_state_change_finalize(chandle, vfs_exch);
+	async_state_change_finalize(&call, vfs_exch);
 
 	sysarg_t ret;
 	errno_t rc = async_req_1_1(vfs_exch, VFS_IN_WAIT_HANDLE, high, &ret);

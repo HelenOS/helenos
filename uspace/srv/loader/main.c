@@ -89,33 +89,31 @@ static elf_info_t prog_info;
 /** Used to limit number of connections to one. */
 static bool connected = false;
 
-static void ldr_get_taskid(cap_call_handle_t req_handle, ipc_call_t *request)
+static void ldr_get_taskid(ipc_call_t *req)
 {
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	task_id_t task_id;
 	size_t len;
 
 	task_id = task_get_id();
 
-	if (!async_data_read_receive(&chandle, &len)) {
-		async_answer_0(chandle, EINVAL);
-		async_answer_0(req_handle, EINVAL);
+	if (!async_data_read_receive(&call, &len)) {
+		async_answer_0(&call, EINVAL);
+		async_answer_0(req, EINVAL);
 		return;
 	}
 
 	if (len > sizeof(task_id))
 		len = sizeof(task_id);
 
-	async_data_read_finalize(chandle, &task_id, len);
-	async_answer_0(req_handle, EOK);
+	async_data_read_finalize(&call, &task_id, len);
+	async_answer_0(req, EOK);
 }
 
 /** Receive a call setting the current working directory.
  *
- * @param req_handle
- * @param request
  */
-static void ldr_set_cwd(cap_call_handle_t req_handle, ipc_call_t *request)
+static void ldr_set_cwd(ipc_call_t *req)
 {
 	char *buf;
 	errno_t rc = async_data_write_accept((void **) &buf, true, 0, 0, 0, NULL);
@@ -127,48 +125,46 @@ static void ldr_set_cwd(cap_call_handle_t req_handle, ipc_call_t *request)
 		cwd = buf;
 	}
 
-	async_answer_0(req_handle, rc);
+	async_answer_0(req, rc);
 }
 
 /** Receive a call setting the program to execute.
  *
- * @param req_handle
- * @param request
  */
-static void ldr_set_program(cap_call_handle_t req_handle, ipc_call_t *request)
+static void ldr_set_program(ipc_call_t *req)
 {
-	cap_call_handle_t write_chandle;
+	ipc_call_t call;
 	size_t namesize;
-	if (!async_data_write_receive(&write_chandle, &namesize)) {
-		async_answer_0(req_handle, EINVAL);
+	if (!async_data_write_receive(&call, &namesize)) {
+		async_answer_0(req, EINVAL);
 		return;
 	}
 
 	char *name = malloc(namesize);
-	errno_t rc = async_data_write_finalize(write_chandle, name, namesize);
+	// FIXME: check return value
+
+	errno_t rc = async_data_write_finalize(&call, name, namesize);
 	if (rc != EOK) {
-		async_answer_0(req_handle, EINVAL);
+		async_answer_0(req, EINVAL);
 		return;
 	}
 
 	int file;
 	rc = vfs_receive_handle(true, &file);
 	if (rc != EOK) {
-		async_answer_0(req_handle, EINVAL);
+		async_answer_0(req, EINVAL);
 		return;
 	}
 
 	progname = name;
 	program_fd = file;
-	async_answer_0(req_handle, EOK);
+	async_answer_0(req, EOK);
 }
 
 /** Receive a call setting arguments of the program to execute.
  *
- * @param req_handle
- * @param request
  */
-static void ldr_set_args(cap_call_handle_t req_handle, ipc_call_t *request)
+static void ldr_set_args(ipc_call_t *req)
 {
 	char *buf;
 	size_t buf_size;
@@ -193,7 +189,7 @@ static void ldr_set_args(cap_call_handle_t req_handle, ipc_call_t *request)
 		char **_argv = (char **) malloc((count + 1) * sizeof(char *));
 		if (_argv == NULL) {
 			free(buf);
-			async_answer_0(req_handle, ENOMEM);
+			async_answer_0(req, ENOMEM);
 			return;
 		}
 
@@ -225,39 +221,37 @@ static void ldr_set_args(cap_call_handle_t req_handle, ipc_call_t *request)
 		argv = _argv;
 	}
 
-	async_answer_0(req_handle, rc);
+	async_answer_0(req, rc);
 }
 
 /** Receive a call setting inbox files of the program to execute.
  *
- * @param req_handle
- * @param request
  */
-static void ldr_add_inbox(cap_call_handle_t req_handle, ipc_call_t *request)
+static void ldr_add_inbox(ipc_call_t *req)
 {
 	if (inbox_entries == INBOX_MAX_ENTRIES) {
-		async_answer_0(req_handle, ERANGE);
+		async_answer_0(req, ERANGE);
 		return;
 	}
 
-	cap_call_handle_t write_chandle;
+	ipc_call_t call;
 	size_t namesize;
-	if (!async_data_write_receive(&write_chandle, &namesize)) {
-		async_answer_0(req_handle, EINVAL);
+	if (!async_data_write_receive(&call, &namesize)) {
+		async_answer_0(req, EINVAL);
 		return;
 	}
 
 	char *name = malloc(namesize);
-	errno_t rc = async_data_write_finalize(write_chandle, name, namesize);
+	errno_t rc = async_data_write_finalize(&call, name, namesize);
 	if (rc != EOK) {
-		async_answer_0(req_handle, EINVAL);
+		async_answer_0(req, EINVAL);
 		return;
 	}
 
 	int file;
 	rc = vfs_receive_handle(true, &file);
 	if (rc != EOK) {
-		async_answer_0(req_handle, EINVAL);
+		async_answer_0(req, EINVAL);
 		return;
 	}
 
@@ -271,21 +265,20 @@ static void ldr_add_inbox(cap_call_handle_t req_handle, ipc_call_t *request)
 	inbox[inbox_entries].name = name;
 	inbox[inbox_entries].file = file;
 	inbox_entries++;
-	async_answer_0(req_handle, EOK);
+	async_answer_0(req, EOK);
 }
 
 /** Load the previously selected program.
  *
- * @param req_handle
- * @param request
  * @return 0 on success, !0 on error.
+ *
  */
-static int ldr_load(cap_call_handle_t req_handle, ipc_call_t *request)
+static int ldr_load(ipc_call_t *req)
 {
 	int rc = elf_load(program_fd, &prog_info);
 	if (rc != EE_OK) {
 		DPRINTF("Failed to load executable for '%s'.\n", progname);
-		async_answer_0(req_handle, EINVAL);
+		async_answer_0(req, EINVAL);
 		return 1;
 	}
 
@@ -299,18 +292,16 @@ static int ldr_load(cap_call_handle_t req_handle, ipc_call_t *request)
 	pcb.inbox = inbox;
 	pcb.inbox_entries = inbox_entries;
 
-	async_answer_0(req_handle, EOK);
+	async_answer_0(req, EOK);
 	return 0;
 }
 
 /** Run the previously loaded program.
  *
- * @param req_handle
- * @param request
  * @return 0 on success, !0 on error.
+ *
  */
-static __attribute__((noreturn)) void ldr_run(cap_call_handle_t req_handle,
-    ipc_call_t *request)
+static __attribute__((noreturn)) void ldr_run(ipc_call_t *req)
 {
 	DPRINTF("Set task name\n");
 
@@ -319,7 +310,7 @@ static __attribute__((noreturn)) void ldr_run(cap_call_handle_t req_handle,
 
 	/* Run program */
 	DPRINTF("Reply OK\n");
-	async_answer_0(req_handle, EOK);
+	async_answer_0(req, EOK);
 	DPRINTF("Jump to entry point at %p\n", pcb.entry);
 	entry_point_jmp(prog_info.finfo.entry, &pcb);
 
@@ -330,20 +321,20 @@ static __attribute__((noreturn)) void ldr_run(cap_call_handle_t req_handle,
  *
  * Receive and carry out commands (of which the last one should be
  * to execute the loaded program).
+ *
  */
-static void ldr_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void ldr_connection(ipc_call_t *icall, void *arg)
 {
 	/* Already have a connection? */
 	if (connected) {
-		async_answer_0(icall_handle, ELIMIT);
+		async_answer_0(icall, ELIMIT);
 		return;
 	}
 
 	connected = true;
 
 	/* Accept the connection */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	/* Ignore parameters, the connection is already open */
 	(void) icall;
@@ -351,39 +342,39 @@ static void ldr_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
 	while (true) {
 		errno_t retval;
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			exit(0);
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOADER_GET_TASKID:
-			ldr_get_taskid(chandle, &call);
+			ldr_get_taskid(&call);
 			continue;
 		case LOADER_SET_CWD:
-			ldr_set_cwd(chandle, &call);
+			ldr_set_cwd(&call);
 			continue;
 		case LOADER_SET_PROGRAM:
-			ldr_set_program(chandle, &call);
+			ldr_set_program(&call);
 			continue;
 		case LOADER_SET_ARGS:
-			ldr_set_args(chandle, &call);
+			ldr_set_args(&call);
 			continue;
 		case LOADER_ADD_INBOX:
-			ldr_add_inbox(chandle, &call);
+			ldr_add_inbox(&call);
 			continue;
 		case LOADER_LOAD:
-			ldr_load(chandle, &call);
+			ldr_load(&call);
 			continue;
 		case LOADER_RUN:
-			ldr_run(chandle, &call);
+			ldr_run(&call);
 			/* Not reached */
 		default:
 			retval = EINVAL;
 			break;
 		}
 
-		async_answer_0(chandle, retval);
+		async_answer_0(&call, retval);
 	}
 }
 

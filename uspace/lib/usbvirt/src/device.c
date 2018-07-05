@@ -49,28 +49,27 @@ static usbvirt_device_t *DEV = NULL;
 
 /** Main IPC call handling from virtual host controller.
  *
- * @param iid   Caller identification
  * @param icall Initial incoming call
  * @param arg   Local argument
+ *
  */
-static void callback_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void callback_connection(ipc_call_t *icall, void *arg)
 {
 	assert(DEV != NULL);
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
-		cap_call_handle_t chandle;
 		ipc_call_t call;
+		async_get_call(&call);
 
-		chandle = async_get_call(&call);
-		bool processed = usbvirt_ipc_handle_call(DEV, chandle, &call);
+		bool processed = usbvirt_ipc_handle_call(DEV, &call);
 		if (!processed) {
 			if (!IPC_GET_IMETHOD(call)) {
-				async_answer_0(chandle, EOK);
+				async_answer_0(&call, EOK);
 				return;
 			} else
-				async_answer_0(chandle, EINVAL);
+				async_answer_0(&call, EINVAL);
 		}
 	}
 }

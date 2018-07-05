@@ -567,7 +567,7 @@ errno_t udf_get_fid_in_sector(udf_file_identifier_descriptor_t **fid,
 /** Read file if it is saved in allocators.
  *
  * @param read_len Returned value. Length file or part file which we could read.
- * @param chandle
+ * @param call     IPC call
  * @param node     UDF node
  * @param pos      Position in file since we have to read.
  * @param len      Length of data for reading
@@ -575,7 +575,7 @@ errno_t udf_get_fid_in_sector(udf_file_identifier_descriptor_t **fid,
  * @return EOK on success or an error code.
  *
  */
-errno_t udf_read_file(size_t *read_len, cap_call_handle_t chandle, udf_node_t *node,
+errno_t udf_read_file(size_t *read_len, ipc_call_t *call, udf_node_t *node,
     aoff64_t pos, size_t len)
 {
 	size_t i = 0;
@@ -597,7 +597,7 @@ errno_t udf_read_file(size_t *read_len, cap_call_handle_t chandle, udf_node_t *n
 	    node->allocators[i].position + (sector_num - sector_cnt),
 	    BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(call, rc);
 		return rc;
 	}
 
@@ -618,7 +618,7 @@ errno_t udf_read_file(size_t *read_len, cap_call_handle_t chandle, udf_node_t *n
 			*read_len = len;
 	}
 
-	async_data_read_finalize(chandle, block->data + sector_pos, *read_len);
+	async_data_read_finalize(call, block->data + sector_pos, *read_len);
 	return block_put(block);
 }
 

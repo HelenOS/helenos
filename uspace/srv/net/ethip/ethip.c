@@ -62,7 +62,7 @@ static errno_t ethip_set_mac48(iplink_srv_t *srv, addr48_t *mac);
 static errno_t ethip_addr_add(iplink_srv_t *srv, inet_addr_t *addr);
 static errno_t ethip_addr_remove(iplink_srv_t *srv, inet_addr_t *addr);
 
-static void ethip_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
+static void ethip_client_conn(ipc_call_t *icall, void *arg);
 
 static iplink_ops_t ethip_iplink_ops = {
 	.open = ethip_open,
@@ -141,7 +141,7 @@ error:
 	return rc;
 }
 
-static void ethip_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void ethip_client_conn(ipc_call_t *icall, void *arg)
 {
 	ethip_nic_t *nic;
 	service_id_t sid;
@@ -154,7 +154,7 @@ static void ethip_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall,
 		return;
 	}
 
-	iplink_conn(icall_handle, icall, &nic->iplink);
+	iplink_conn(icall, &nic->iplink);
 }
 
 static errno_t ethip_open(iplink_srv_t *srv)

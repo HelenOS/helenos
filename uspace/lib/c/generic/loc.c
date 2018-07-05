@@ -54,11 +54,11 @@ static async_sess_t *loc_cons_block_sess = NULL;
 static async_sess_t *loc_supplier_sess = NULL;
 static async_sess_t *loc_consumer_sess = NULL;
 
-static void loc_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void loc_cb_conn(ipc_call_t *icall, void *arg)
 {
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -71,14 +71,14 @@ static void loc_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void 
 			loc_cat_change_cb_t cb_fun = cat_change_cb;
 			fibril_mutex_unlock(&loc_callback_mutex);
 
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 
 			if (cb_fun != NULL)
 				(*cb_fun)();
 
 			break;
 		default:
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 		}
 	}
 }

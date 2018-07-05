@@ -93,9 +93,9 @@ static bd_ops_t rd_bd_ops = {
 
 static bd_srvs_t bd_srvs;
 
-static void rd_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void rd_client_conn(ipc_call_t *icall, void *arg)
 {
-	bd_conn(icall_handle, icall, &bd_srvs);
+	bd_conn(icall, &bd_srvs);
 }
 
 /** Open device. */

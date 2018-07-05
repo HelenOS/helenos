@@ -44,7 +44,7 @@
 #include <loc.h>
 #include <stdlib.h>
 
-static void iplink_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
+static void iplink_cb_conn(ipc_call_t *icall, void *arg);
 
 errno_t iplink_open(async_sess_t *sess, iplink_ev_ops_t *ev_ops, void *arg,
     iplink_t **riplink)
@@ -196,7 +196,6 @@ errno_t iplink_set_mac48(iplink_t *iplink, addr48_t mac)
 	return retval;
 }
 
-
 errno_t iplink_addr_add(iplink_t *iplink, inet_addr_t *addr)
 {
 	async_exch_t *exch = async_exchange_begin(iplink->sess);
@@ -244,8 +243,7 @@ void *iplink_get_userptr(iplink_t *iplink)
 	return iplink->arg;
 }
 
-static void iplink_ev_recv(iplink_t *iplink, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void iplink_ev_recv(iplink_t *iplink, ipc_call_t *icall)
 {
 	iplink_recv_sdu_t sdu;
 
@@ -254,40 +252,39 @@ static void iplink_ev_recv(iplink_t *iplink, cap_call_handle_t icall_handle,
 	errno_t rc = async_data_write_accept(&sdu.data, false, 0, 0, 0,
 	    &sdu.size);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
 	rc = iplink->ev_ops->recv(iplink, &sdu, ver);
 	free(sdu.data);
-	async_answer_0(icall_handle, rc);
+	async_answer_0(icall, rc);
 }
 
-static void iplink_ev_change_addr(iplink_t *iplink, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void iplink_ev_change_addr(iplink_t *iplink, ipc_call_t *icall)
 {
 	addr48_t *addr;
 	size_t size;
 
-	errno_t rc = async_data_write_accept((void **)&addr, false,
+	errno_t rc = async_data_write_accept((void **) &addr, false,
 	    sizeof(addr48_t), sizeof(addr48_t), 0, &size);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, rc);
+		async_answer_0(icall, rc);
 		return;
 	}
 
 	rc = iplink->ev_ops->change_addr(iplink, *addr);
 	free(addr);
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
-static void iplink_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void iplink_cb_conn(ipc_call_t *icall, void *arg)
 {
 	iplink_t *iplink = (iplink_t *) arg;
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -296,13 +293,13 @@ static void iplink_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, vo
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPLINK_EV_RECV:
-			iplink_ev_recv(iplink, chandle, &call);
+			iplink_ev_recv(iplink, &call);
 			break;
 		case IPLINK_EV_CHANGE_ADDR:
-			iplink_ev_change_addr(iplink, chandle, &call);
+			iplink_ev_change_addr(iplink, &call);
 			break;
 		default:
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 		}
 	}
 }

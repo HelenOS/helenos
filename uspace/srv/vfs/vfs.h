@@ -221,9 +221,9 @@ extern errno_t vfs_op_wait_handle(bool high_fd, int *out_fd);
 extern errno_t vfs_op_walk(int parentfd, int flags, char *path, int *out_fd);
 extern errno_t vfs_op_write(int fd, aoff64_t, size_t *out_bytes);
 
-extern void vfs_register(cap_call_handle_t, ipc_call_t *);
+extern void vfs_register(ipc_call_t *);
 
-extern void vfs_page_in(cap_call_handle_t, ipc_call_t *);
+extern void vfs_page_in(ipc_call_t *);
 
 typedef struct {
 	void *buffer;
@@ -232,7 +232,7 @@ typedef struct {
 
 extern errno_t vfs_rdwr_internal(int, aoff64_t, bool, rdwr_io_chunk_t *);
 
-extern void vfs_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
+extern void vfs_connection(ipc_call_t *, void *);
 
 #endif
 

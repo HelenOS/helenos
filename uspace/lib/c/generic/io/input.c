@@ -42,7 +42,7 @@
 #include <ipc/input.h>
 #include <stdlib.h>
 
-static void input_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
+static void input_cb_conn(ipc_call_t *icall, void *arg);
 
 errno_t input_open(async_sess_t *sess, input_ev_ops_t *ev_ops,
     void *arg, input_t **rinput)
@@ -91,22 +91,19 @@ errno_t input_activate(input_t *input)
 	return rc;
 }
 
-static void input_ev_active(input_t *input, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void input_ev_active(input_t *input, ipc_call_t *call)
 {
 	errno_t rc = input->ev_ops->active(input);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
-static void input_ev_deactive(input_t *input, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void input_ev_deactive(input_t *input, ipc_call_t *call)
 {
 	errno_t rc = input->ev_ops->deactive(input);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
-static void input_ev_key(input_t *input, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void input_ev_key(input_t *input, ipc_call_t *call)
 {
 	kbd_event_type_t type;
 	keycode_t key;
@@ -120,11 +117,10 @@ static void input_ev_key(input_t *input, cap_call_handle_t chandle,
 	c = IPC_GET_ARG4(*call);
 
 	rc = input->ev_ops->key(input, type, key, mods, c);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
-static void input_ev_move(input_t *input, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void input_ev_move(input_t *input, ipc_call_t *call)
 {
 	int dx;
 	int dy;
@@ -134,11 +130,10 @@ static void input_ev_move(input_t *input, cap_call_handle_t chandle,
 	dy = IPC_GET_ARG2(*call);
 
 	rc = input->ev_ops->move(input, dx, dy);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
-static void input_ev_abs_move(input_t *input, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void input_ev_abs_move(input_t *input, ipc_call_t *call)
 {
 	unsigned x;
 	unsigned y;
@@ -152,11 +147,10 @@ static void input_ev_abs_move(input_t *input, cap_call_handle_t chandle,
 	max_y = IPC_GET_ARG4(*call);
 
 	rc = input->ev_ops->abs_move(input, x, y, max_x, max_y);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
-static void input_ev_button(input_t *input, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void input_ev_button(input_t *input, ipc_call_t *call)
 {
 	int bnum;
 	int press;
@@ -166,16 +160,16 @@ static void input_ev_button(input_t *input, cap_call_handle_t chandle,
 	press = IPC_GET_ARG2(*call);
 
 	rc = input->ev_ops->button(input, bnum, press);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
-static void input_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void input_cb_conn(ipc_call_t *icall, void *arg)
 {
-	input_t *input = (input_t *)arg;
+	input_t *input = (input_t *) arg;
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* TODO: Handle hangup */
@@ -184,25 +178,25 @@ static void input_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, voi
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case INPUT_EVENT_ACTIVE:
-			input_ev_active(input, chandle, &call);
+			input_ev_active(input, &call);
 			break;
 		case INPUT_EVENT_DEACTIVE:
-			input_ev_deactive(input, chandle, &call);
+			input_ev_deactive(input, &call);
 			break;
 		case INPUT_EVENT_KEY:
-			input_ev_key(input, chandle, &call);
+			input_ev_key(input, &call);
 			break;
 		case INPUT_EVENT_MOVE:
-			input_ev_move(input, chandle, &call);
+			input_ev_move(input, &call);
 			break;
 		case INPUT_EVENT_ABS_MOVE:
-			input_ev_abs_move(input, chandle, &call);
+			input_ev_abs_move(input, &call);
 			break;
 		case INPUT_EVENT_BUTTON:
-			input_ev_button(input, chandle, &call);
+			input_ev_button(input, &call);
 			break;
 		default:
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 		}
 	}
 }

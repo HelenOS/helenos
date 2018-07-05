@@ -198,10 +198,10 @@ static void usage(void)
 	printf("Usage: " NAME " <service-name> <link-name>\n");
 }
 
-static void slip_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void slip_client_conn(ipc_call_t *icall, void *arg)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "slip_client_conn()");
-	iplink_conn(icall_handle, icall, &slip_iplink);
+	iplink_conn(icall, &slip_iplink);
 }
 
 static uint8_t read_buffered(chardev_t *chardev)

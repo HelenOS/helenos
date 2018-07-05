@@ -40,7 +40,7 @@
 #include <loc.h>
 #include <stdlib.h>
 
-static void udp_cb_conn(cap_call_handle_t, ipc_call_t *, void *);
+static void udp_cb_conn(ipc_call_t *, void *);
 
 /** Create callback connection from UDP service.
  *
@@ -450,11 +450,11 @@ static errno_t udp_assoc_get(udp_t *udp, sysarg_t id, udp_assoc_t **rassoc)
  * For each received message, get information about it, call @c recv_msg
  * callback and discard it.
  *
- * @param udp UDP client
- * @param iid IPC message ID
+ * @param udp   UDP client
  * @param icall IPC message
+ *
  */
-static void udp_ev_data(udp_t *udp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void udp_ev_data(udp_t *udp, ipc_call_t *icall)
 {
 	udp_rmsg_t rmsg;
 	udp_assoc_t *assoc;
@@ -480,24 +480,24 @@ static void udp_ev_data(udp_t *udp, cap_call_handle_t icall_handle, ipc_call_t *
 		}
 	}
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
 /** UDP service callback connection.
  *
- * @param iid Connect message ID
  * @param icall Connect message
- * @param arg Argument, UDP client
+ * @param arg   Argument, UDP client
+ *
  */
-static void udp_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void udp_cb_conn(ipc_call_t *icall, void *arg)
 {
 	udp_t *udp = (udp_t *)arg;
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* Hangup */
@@ -506,13 +506,14 @@ static void udp_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void 
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case UDP_EV_DATA:
-			udp_ev_data(udp, chandle, &call);
+			udp_ev_data(udp, &call);
 			break;
 		default:
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 			break;
 		}
 	}
+
 out:
 	fibril_mutex_lock(&udp->lock);
 	udp->cb_done = true;

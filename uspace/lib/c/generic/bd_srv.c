@@ -42,98 +42,95 @@
 
 #include <bd_srv.h>
 
-static void bd_read_blocks_srv(bd_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void bd_read_blocks_srv(bd_srv_t *srv, ipc_call_t *call)
 {
 	aoff64_t ba;
 	size_t cnt;
 	void *buf;
 	size_t size;
 	errno_t rc;
-	cap_call_handle_t rcall_handle;
 
 	ba = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 	cnt = IPC_GET_ARG3(*call);
 
-	if (!async_data_read_receive(&rcall_handle, &size)) {
-		async_answer_0(chandle, EINVAL);
+	ipc_call_t rcall;
+	if (!async_data_read_receive(&rcall, &size)) {
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	buf = malloc(size);
 	if (buf == NULL) {
-		async_answer_0(rcall_handle, ENOMEM);
-		async_answer_0(chandle, ENOMEM);
+		async_answer_0(&rcall, ENOMEM);
+		async_answer_0(call, ENOMEM);
 		return;
 	}
 
 	if (srv->srvs->ops->read_blocks == NULL) {
-		async_answer_0(rcall_handle, ENOTSUP);
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(&rcall, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		free(buf);
 		return;
 	}
 
 	rc = srv->srvs->ops->read_blocks(srv, ba, cnt, buf, size);
 	if (rc != EOK) {
-		async_answer_0(rcall_handle, ENOMEM);
-		async_answer_0(chandle, ENOMEM);
+		async_answer_0(&rcall, ENOMEM);
+		async_answer_0(call, ENOMEM);
 		free(buf);
 		return;
 	}
 
-	async_data_read_finalize(rcall_handle, buf, size);
+	async_data_read_finalize(&rcall, buf, size);
 
 	free(buf);
-	async_answer_0(chandle, EOK);
+	async_answer_0(call, EOK);
 }
 
-static void bd_read_toc_srv(bd_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void bd_read_toc_srv(bd_srv_t *srv, ipc_call_t *call)
 {
 	uint8_t session;
 	void *buf;
 	size_t size;
 	errno_t rc;
-	cap_call_handle_t rcall_handle;
 
 	session = IPC_GET_ARG1(*call);
 
-	if (!async_data_read_receive(&rcall_handle, &size)) {
-		async_answer_0(chandle, EINVAL);
+	ipc_call_t rcall;
+	if (!async_data_read_receive(&rcall, &size)) {
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	buf = malloc(size);
 	if (buf == NULL) {
-		async_answer_0(rcall_handle, ENOMEM);
-		async_answer_0(chandle, ENOMEM);
+		async_answer_0(&rcall, ENOMEM);
+		async_answer_0(call, ENOMEM);
 		return;
 	}
 
 	if (srv->srvs->ops->read_toc == NULL) {
-		async_answer_0(rcall_handle, ENOTSUP);
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(&rcall, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		free(buf);
 		return;
 	}
 
 	rc = srv->srvs->ops->read_toc(srv, session, buf, size);
 	if (rc != EOK) {
-		async_answer_0(rcall_handle, ENOMEM);
-		async_answer_0(chandle, ENOMEM);
+		async_answer_0(&rcall, ENOMEM);
+		async_answer_0(call, ENOMEM);
 		free(buf);
 		return;
 	}
 
-	async_data_read_finalize(rcall_handle, buf, size);
+	async_data_read_finalize(&rcall, buf, size);
 
 	free(buf);
-	async_answer_0(chandle, EOK);
+	async_answer_0(call, EOK);
 }
 
-static void bd_sync_cache_srv(bd_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void bd_sync_cache_srv(bd_srv_t *srv, ipc_call_t *call)
 {
 	aoff64_t ba;
 	size_t cnt;
@@ -143,16 +140,15 @@ static void bd_sync_cache_srv(bd_srv_t *srv, cap_call_handle_t chandle,
 	cnt = IPC_GET_ARG3(*call);
 
 	if (srv->srvs->ops->sync_cache == NULL) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
 	rc = srv->srvs->ops->sync_cache(srv, ba, cnt);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
-static void bd_write_blocks_srv(bd_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void bd_write_blocks_srv(bd_srv_t *srv, ipc_call_t *call)
 {
 	aoff64_t ba;
 	size_t cnt;
@@ -165,48 +161,46 @@ static void bd_write_blocks_srv(bd_srv_t *srv, cap_call_handle_t chandle,
 
 	rc = async_data_write_accept(&data, false, 0, 0, 0, &size);
 	if (rc != EOK) {
-		async_answer_0(chandle, rc);
+		async_answer_0(call, rc);
 		return;
 	}
 
 	if (srv->srvs->ops->write_blocks == NULL) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
 	rc = srv->srvs->ops->write_blocks(srv, ba, cnt, data, size);
 	free(data);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
-static void bd_get_block_size_srv(bd_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void bd_get_block_size_srv(bd_srv_t *srv, ipc_call_t *call)
 {
 	errno_t rc;
 	size_t block_size;
 
 	if (srv->srvs->ops->get_block_size == NULL) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
 	rc = srv->srvs->ops->get_block_size(srv, &block_size);
-	async_answer_1(chandle, rc, block_size);
+	async_answer_1(call, rc, block_size);
 }
 
-static void bd_get_num_blocks_srv(bd_srv_t *srv, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void bd_get_num_blocks_srv(bd_srv_t *srv, ipc_call_t *call)
 {
 	errno_t rc;
 	aoff64_t num_blocks;
 
 	if (srv->srvs->ops->get_num_blocks == NULL) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
 	rc = srv->srvs->ops->get_num_blocks(srv, &num_blocks);
-	async_answer_2(chandle, rc, LOWER32(num_blocks), UPPER32(num_blocks));
+	async_answer_2(call, rc, LOWER32(num_blocks), UPPER32(num_blocks));
 }
 
 static bd_srv_t *bd_srv_create(bd_srvs_t *srvs)
@@ -227,13 +221,13 @@ void bd_srvs_init(bd_srvs_t *srvs)
 	srvs->sarg = NULL;
 }
 
-errno_t bd_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, bd_srvs_t *srvs)
+errno_t bd_conn(ipc_call_t *icall, bd_srvs_t *srvs)
 {
 	bd_srv_t *srv;
 	errno_t rc;
 
 	/* Accept the connection */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	srv = bd_srv_create(srvs);
 	if (srv == NULL)
@@ -251,36 +245,36 @@ errno_t bd_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, bd_srvs_t *sr
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			break;
 		}
 
 		switch (method) {
 		case BD_READ_BLOCKS:
-			bd_read_blocks_srv(srv, chandle, &call);
+			bd_read_blocks_srv(srv, &call);
 			break;
 		case BD_READ_TOC:
-			bd_read_toc_srv(srv, chandle, &call);
+			bd_read_toc_srv(srv, &call);
 			break;
 		case BD_SYNC_CACHE:
-			bd_sync_cache_srv(srv, chandle, &call);
+			bd_sync_cache_srv(srv, &call);
 			break;
 		case BD_WRITE_BLOCKS:
-			bd_write_blocks_srv(srv, chandle, &call);
+			bd_write_blocks_srv(srv, &call);
 			break;
 		case BD_GET_BLOCK_SIZE:
-			bd_get_block_size_srv(srv, chandle, &call);
+			bd_get_block_size_srv(srv, &call);
 			break;
 		case BD_GET_NUM_BLOCKS:
-			bd_get_num_blocks_srv(srv, chandle, &call);
+			bd_get_num_blocks_srv(srv, &call);
 			break;
 		default:
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 		}
 	}
 

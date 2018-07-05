@@ -215,17 +215,17 @@ static errno_t remcons_get_event(con_srv_t *srv, cons_event_t *event)
 }
 
 /** Callback when client connects to a telnet terminal. */
-static void client_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void client_connection(ipc_call_t *icall, void *arg)
 {
 	/* Find the user. */
 	telnet_user_t *user = telnet_user_get_for_client_connection(IPC_GET_ARG2(*icall));
 	if (user == NULL) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
 	/* Handle messages. */
-	con_conn(icall_handle, icall, &user->srvs);
+	con_conn(icall, &user->srvs);
 }
 
 /** Fibril for spawning the task running after user connects.

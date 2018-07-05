@@ -40,7 +40,7 @@
 
 #include "msim-con.h"
 
-static void msim_con_connection(cap_call_handle_t, ipc_call_t *, void *);
+static void msim_con_connection(ipc_call_t *, void *);
 
 static errno_t msim_con_read(chardev_srv_t *, void *, size_t, size_t *);
 static errno_t msim_con_write(chardev_srv_t *, const void *, size_t, size_t *);
@@ -216,13 +216,12 @@ static errno_t msim_con_write(chardev_srv_t *srv, const void *data, size_t size,
 }
 
 /** Character device connection handler. */
-static void msim_con_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void msim_con_connection(ipc_call_t *icall, void *arg)
 {
 	msim_con_t *con = (msim_con_t *) ddf_dev_data_get(
 	    ddf_fun_get_dev((ddf_fun_t *) arg));
 
-	chardev_conn(icall_handle, icall, &con->cds);
+	chardev_conn(icall, &con->cds);
 }
 
 /** @}

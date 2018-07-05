@@ -197,7 +197,7 @@ extern errno_t udf_node_get_core(udf_node_t *);
 extern errno_t udf_read_icb(udf_node_t *);
 extern errno_t udf_read_allocation_sequence(udf_node_t *, uint8_t *, uint16_t,
     uint32_t, uint32_t);
-extern errno_t udf_read_file(size_t *, cap_call_handle_t, udf_node_t *, aoff64_t,
+extern errno_t udf_read_file(size_t *, ipc_call_t *, udf_node_t *, aoff64_t,
     size_t);
 extern errno_t udf_get_fid(udf_file_identifier_descriptor_t **, block_t **,
     udf_node_t *, aoff64_t);

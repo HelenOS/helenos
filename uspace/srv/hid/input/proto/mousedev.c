@@ -69,15 +69,14 @@ static void mousedev_destroy(mousedev_t *mousedev)
 	free(mousedev);
 }
 
-static void mousedev_callback_conn(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void mousedev_callback_conn(ipc_call_t *icall, void *arg)
 {
 	/* Mousedev device structure */
 	mousedev_t *mousedev = (mousedev_t *) arg;
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			mousedev_destroy(mousedev);
@@ -109,7 +108,7 @@ static void mousedev_callback_conn(cap_call_handle_t icall_handle, ipc_call_t *i
 			break;
 		}
 
-		async_answer_0(chandle, retval);
+		async_answer_0(&call, retval);
 	}
 }
 

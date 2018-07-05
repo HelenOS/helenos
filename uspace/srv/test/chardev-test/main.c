@@ -83,7 +83,7 @@ static chardev_ops_t chardev_test_partialx_ops = {
 	.read = partialx_read
 };
 
-static void chardev_test_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void chardev_test_connection(ipc_call_t *icall, void *arg)
 {
 	chardev_srvs_t *svc;
 	sysarg_t svcid;
@@ -96,11 +96,11 @@ static void chardev_test_connection(cap_call_handle_t icall_handle, ipc_call_t *
 	} else if (svcid == partialx_svc_id) {
 		svc = &partialx_srvs;
 	} else {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
-	chardev_conn(icall_handle, icall, svc);
+	chardev_conn(icall, svc);
 }
 
 int main(int argc, char *argv[])

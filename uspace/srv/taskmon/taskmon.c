@@ -48,7 +48,7 @@
 
 static bool write_core_files;
 
-static void corecfg_client_conn(cap_call_handle_t, ipc_call_t *, void *);
+static void corecfg_client_conn(ipc_call_t *, void *);
 
 static void fault_event(ipc_call_t *call, void *arg)
 {
@@ -93,40 +93,42 @@ static void fault_event(ipc_call_t *call, void *arg)
 	}
 }
 
-static void corecfg_get_enable_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void corecfg_get_enable_srv(ipc_call_t *icall)
 {
-	async_answer_1(icall_handle, EOK, write_core_files);
+	async_answer_1(icall, EOK, write_core_files);
 }
 
-static void corecfg_set_enable_srv(cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void corecfg_set_enable_srv(ipc_call_t *icall)
 {
 	write_core_files = IPC_GET_ARG1(*icall);
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
-static void corecfg_client_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void corecfg_client_conn(ipc_call_t *icall, void *arg)
 {
 	/* Accept the connection */
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 		sysarg_t method = IPC_GET_IMETHOD(call);
 
 		if (!method) {
 			/* The other side has hung up */
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			return;
 		}
 
 		switch (method) {
 		case CORECFG_GET_ENABLE:
-			corecfg_get_enable_srv(chandle, &call);
+			corecfg_get_enable_srv(&call);
 			break;
 		case CORECFG_SET_ENABLE:
-			corecfg_set_enable_srv(chandle, &call);
+			corecfg_set_enable_srv(&call);
 			break;
+		default:
+			async_answer_0(&call, ENOTSUP);
 		}
 	}
 }

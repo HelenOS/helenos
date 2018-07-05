@@ -65,8 +65,7 @@
 driver_list_t drivers_list;
 dev_tree_t device_tree;
 
-static void devman_connection_device(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void devman_connection_device(ipc_call_t *icall, void *arg)
 {
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
 	dev_node_t *dev = NULL;
@@ -93,7 +92,7 @@ static void devman_connection_device(cap_call_handle_t icall_handle, ipc_call_t 
 	if (dev == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding failed - no device or "
 		    "function with handle %" PRIun " was found.", handle);
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		goto cleanup;
 	}
 
@@ -101,7 +100,7 @@ static void devman_connection_device(cap_call_handle_t icall_handle, ipc_call_t 
 		log_msg(LOG_DEFAULT, LVL_ERROR, NAME ": devman_forward error - cannot "
 		    "connect to handle %" PRIun ", refers to a device.",
 		    handle);
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		goto cleanup;
 	}
 
@@ -115,14 +114,14 @@ static void devman_connection_device(cap_call_handle_t icall_handle, ipc_call_t 
 	if (driver == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding refused - "
 		    "the device %" PRIun " is not in usable state.", handle);
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		goto cleanup;
 	}
 
 	if (!driver->sess) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Could not forward to driver `%s'.", driver->name);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(icall, EINVAL);
 		goto cleanup;
 	}
 
@@ -137,7 +136,7 @@ static void devman_connection_device(cap_call_handle_t icall_handle, ipc_call_t 
 	}
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall_handle, exch, INTERFACE_DDF_CLIENT, handle, 0, IPC_FF_NONE);
+	async_forward_fast(icall, exch, INTERFACE_DDF_CLIENT, handle, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 cleanup:
@@ -148,8 +147,7 @@ cleanup:
 		fun_del_ref(fun);
 }
 
-static void devman_connection_parent(cap_call_handle_t icall_handle, ipc_call_t *icall,
-    void *arg)
+static void devman_connection_parent(ipc_call_t *icall, void *arg)
 {
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
 	dev_node_t *dev = NULL;
@@ -176,7 +174,7 @@ static void devman_connection_parent(cap_call_handle_t icall_handle, ipc_call_t 
 	if (dev == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding failed - no device or "
 		    "function with handle %" PRIun " was found.", handle);
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		goto cleanup;
 	}
 
@@ -195,14 +193,14 @@ static void devman_connection_parent(cap_call_handle_t icall_handle, ipc_call_t 
 	if (driver == NULL) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "IPC forwarding refused - "
 		    "the device %" PRIun " is not in usable state.", handle);
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		goto cleanup;
 	}
 
 	if (!driver->sess) {
 		log_msg(LOG_DEFAULT, LVL_ERROR,
 		    "Could not forward to driver `%s'.", driver->name);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(icall, EINVAL);
 		goto cleanup;
 	}
 
@@ -217,7 +215,7 @@ static void devman_connection_parent(cap_call_handle_t icall_handle, ipc_call_t 
 	}
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall_handle, exch, INTERFACE_DDF_DRIVER, fun_handle, 0, IPC_FF_NONE);
+	async_forward_fast(icall, exch, INTERFACE_DDF_DRIVER, fun_handle, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 cleanup:
@@ -228,7 +226,7 @@ cleanup:
 		fun_del_ref(fun);
 }
 
-static void devman_forward(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void devman_forward(ipc_call_t *icall, void *arg)
 {
 	iface_t iface = IPC_GET_ARG1(*icall);
 	service_id_t service_id = IPC_GET_ARG2(*icall);
@@ -241,7 +239,7 @@ static void devman_forward(cap_call_handle_t icall_handle, ipc_call_t *icall, vo
 		log_msg(LOG_DEFAULT, LVL_WARN, "devman_forward(): function "
 		    "not found.\n");
 		fibril_rwlock_read_unlock(&device_tree.rwlock);
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -252,7 +250,7 @@ static void devman_forward(cap_call_handle_t icall_handle, ipc_call_t *icall, vo
 	fibril_rwlock_read_unlock(&device_tree.rwlock);
 
 	async_exch_t *exch = async_exchange_begin(driver->sess);
-	async_forward_fast(icall_handle, exch, iface, handle, 0, IPC_FF_NONE);
+	async_forward_fast(icall, exch, iface, handle, 0, IPC_FF_NONE);
 	async_exchange_end(exch);
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG,

@@ -463,10 +463,10 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	udf_node_t *node = UDF_NODE(rfn);
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t len = 0;
-	if (!async_data_read_receive(&chandle, &len)) {
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_read_receive(&call, &len)) {
+		async_answer_0(&call, EINVAL);
 		udf_node_put(rfn);
 		return EINVAL;
 	}
@@ -474,18 +474,18 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	if (node->type == NODE_FILE) {
 		if (pos >= node->data_size) {
 			*rbytes = 0;
-			async_data_read_finalize(chandle, NULL, 0);
+			async_data_read_finalize(&call, NULL, 0);
 			udf_node_put(rfn);
 			return EOK;
 		}
 
 		size_t read_len = 0;
 		if (node->data == NULL)
-			rc = udf_read_file(&read_len, chandle, node, pos, len);
+			rc = udf_read_file(&read_len, &call, node, pos, len);
 		else {
 			/* File in allocation descriptors area */
 			read_len = (len < node->data_size) ? len : node->data_size;
-			async_data_read_finalize(chandle, node->data + pos, read_len);
+			async_data_read_finalize(&call, node->data + pos, read_len);
 			rc = EOK;
 		}
 
@@ -504,7 +504,7 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			    (char *) fid->implementation_use + FLE16(fid->lenght_iu),
 			    fid->lenght_file_id, &node->instance->charset);
 
-			async_data_read_finalize(chandle, name, str_size(name) + 1);
+			async_data_read_finalize(&call, name, str_size(name) + 1);
 			*rbytes = 1;
 			free(name);
 			udf_node_put(rfn);
@@ -516,7 +516,7 @@ static errno_t udf_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		} else {
 			*rbytes = 0;
 			udf_node_put(rfn);
-			async_answer_0(chandle, ENOENT);
+			async_answer_0(&call, ENOENT);
 			return ENOENT;
 		}
 	}

@@ -677,7 +677,7 @@ static void terminal_handle_position_event(widget_t *widget, pos_event_t pos_eve
 	}
 }
 
-static void term_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void term_connection(ipc_call_t *icall, void *arg)
 {
 	terminal_t *term = NULL;
 
@@ -689,14 +689,14 @@ static void term_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, v
 	}
 
 	if (term == NULL) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
 	if (atomic_postinc(&term->refcnt) == 0)
 		chargrid_set_cursor_visibility(term->frontbuf, true);
 
-	con_conn(icall_handle, icall, &term->srvs);
+	con_conn(icall, &term->srvs);
 }
 
 bool init_terminal(terminal_t *term, widget_t *parent, const void *data,

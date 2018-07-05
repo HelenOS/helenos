@@ -1340,11 +1340,11 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return ENOENT;
 	nodep = EXFAT_NODE(fn);
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t len;
-	if (!async_data_read_receive(&chandle, &len)) {
+	if (!async_data_read_receive(&call, &len)) {
 		exfat_node_put(fn);
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
@@ -1359,7 +1359,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (pos >= nodep->size) {
 			/* reading beyond the EOF */
 			bytes = 0;
-			(void) async_data_read_finalize(chandle, NULL, 0);
+			(void) async_data_read_finalize(&call, NULL, 0);
 		} else {
 			bytes = min(len, BPS(bs) - pos % BPS(bs));
 			bytes = min(bytes, nodep->size - pos);
@@ -1367,10 +1367,10 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			    BLOCK_FLAGS_NONE);
 			if (rc != EOK) {
 				exfat_node_put(fn);
-				async_answer_0(chandle, rc);
+				async_answer_0(&call, rc);
 				return rc;
 			}
-			(void) async_data_read_finalize(chandle,
+			(void) async_data_read_finalize(&call,
 			    b->data + pos % BPS(bs), bytes);
 			rc = block_put(b);
 			if (rc != EOK) {
@@ -1380,7 +1380,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		}
 	} else {
 		if (nodep->type != EXFAT_DIRECTORY) {
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 			return ENOTSUP;
 		}
 
@@ -1414,7 +1414,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	err:
 		(void) exfat_node_put(fn);
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 		return rc;
 
 	miss:
@@ -1422,7 +1422,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc != EOK)
 			goto err;
 		rc = exfat_node_put(fn);
-		async_answer_0(chandle, rc != EOK ? rc : ENOENT);
+		async_answer_0(&call, rc != EOK ? rc : ENOENT);
 		*rbytes = 0;
 		return rc != EOK ? rc : ENOENT;
 
@@ -1431,7 +1431,7 @@ exfat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		rc = exfat_directory_close(&di);
 		if (rc != EOK)
 			goto err;
-		(void) async_data_read_finalize(chandle, name,
+		(void) async_data_read_finalize(&call, name,
 		    str_size(name) + 1);
 		bytes = (pos - spos) + 1;
 	}
@@ -1484,11 +1484,11 @@ exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return ENOENT;
 	nodep = EXFAT_NODE(fn);
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t len;
-	if (!async_data_write_receive(&chandle, &len)) {
+	if (!async_data_write_receive(&call, &len)) {
 		(void) exfat_node_put(fn);
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
@@ -1513,7 +1513,7 @@ exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc != EOK) {
 			/* could not expand node */
 			(void) exfat_node_put(fn);
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			return rc;
 		}
 	}
@@ -1532,11 +1532,11 @@ exfat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 	rc = exfat_block_get(&b, bs, nodep, pos / BPS(bs), flags);
 	if (rc != EOK) {
 		(void) exfat_node_put(fn);
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 		return rc;
 	}
 
-	(void) async_data_write_finalize(chandle,
+	(void) async_data_write_finalize(&call,
 	    b->data + pos % BPS(bs), bytes);
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);

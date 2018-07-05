@@ -46,7 +46,7 @@ static errno_t ata_dev_gone(ddf_dev_t *dev);
 static errno_t ata_fun_online(ddf_fun_t *fun);
 static errno_t ata_fun_offline(ddf_fun_t *fun);
 
-static void ata_bd_connection(cap_call_handle_t, ipc_call_t *, void *);
+static void ata_bd_connection(ipc_call_t *, void *);
 
 static driver_ops_t driver_ops = {
 	.dev_add = &ata_dev_add,
@@ -312,12 +312,12 @@ static errno_t ata_fun_offline(ddf_fun_t *fun)
 }
 
 /** Block device connection handler */
-static void ata_bd_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void ata_bd_connection(ipc_call_t *icall, void *arg)
 {
 	ata_fun_t *afun;
 
 	afun = (ata_fun_t *) ddf_fun_data_get((ddf_fun_t *)arg);
-	bd_conn(icall_handle, icall, &afun->bds);
+	bd_conn(icall, &afun->bds);
 }
 
 int main(int argc, char *argv[])

@@ -319,19 +319,19 @@ static void client_arbitration(void)
 }
 
 /** New client connection */
-static void client_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void client_connection(ipc_call_t *icall, void *arg)
 {
 	client_t *client = (client_t *) async_get_client_data();
 	if (client == NULL) {
-		async_answer_0(icall_handle, ENOMEM);
+		async_answer_0(icall, ENOMEM);
 		return;
 	}
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			if (client->sess != NULL) {
@@ -339,7 +339,7 @@ static void client_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
 				client->sess = NULL;
 			}
 
-			async_answer_0(chandle, EOK);
+			async_answer_0(&call, EOK);
 			return;
 		}
 
@@ -348,18 +348,18 @@ static void client_connection(cap_call_handle_t icall_handle, ipc_call_t *icall,
 		if (sess != NULL) {
 			if (client->sess == NULL) {
 				client->sess = sess;
-				async_answer_0(chandle, EOK);
+				async_answer_0(&call, EOK);
 			} else
-				async_answer_0(chandle, ELIMIT);
+				async_answer_0(&call, ELIMIT);
 		} else {
 			switch (IPC_GET_IMETHOD(call)) {
 			case INPUT_ACTIVATE:
 				active_client = client;
 				client_arbitration();
-				async_answer_0(chandle, EOK);
+				async_answer_0(&call, EOK);
 				break;
 			default:
-				async_answer_0(chandle, EINVAL);
+				async_answer_0(&call, EINVAL);
 			}
 		}
 	}

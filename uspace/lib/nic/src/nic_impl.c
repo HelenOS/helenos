@@ -809,14 +809,13 @@ errno_t nic_poll_now_impl(ddf_fun_t *fun)
  * Default handler for unknown methods (outside of the NIC interface).
  * Logs a warning message and returns ENOTSUP to the caller.
  *
- * @param fun      The DDF function where the method should be called.
- * @param chandle  IPC call handle
- * @param call     IPC call data
+ * @param fun  The DDF function where the method should be called.
+ * @param call IPC call data
+ *
  */
-void nic_default_handler_impl(ddf_fun_t *fun, cap_call_handle_t chandle,
-    ipc_call_t *call)
+void nic_default_handler_impl(ddf_fun_t *fun, ipc_call_t *call)
 {
-	async_answer_0(chandle, ENOTSUP);
+	async_answer_0(call, ENOTSUP);
 }
 
 /**

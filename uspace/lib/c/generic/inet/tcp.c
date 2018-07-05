@@ -40,7 +40,7 @@
 #include <ipc/tcp.h>
 #include <stdlib.h>
 
-static void tcp_cb_conn(cap_call_handle_t, ipc_call_t *, void *);
+static void tcp_cb_conn(ipc_call_t *, void *);
 static errno_t tcp_conn_fibril(void *);
 
 /** Incoming TCP connection info
@@ -632,12 +632,11 @@ again:
 
 /** Connection established event.
  *
- * @param tcp           TCP client
- * @param icall_handle  Call handle
- * @param icall         Call data
+ * @param tcp   TCP client
+ * @param icall Call data
+ *
  */
-static void
-tcp_ev_connected(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void tcp_ev_connected(tcp_t *tcp, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -647,7 +646,7 @@ tcp_ev_connected(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 
 	rc = tcp_conn_get(tcp, conn_id, &conn);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -656,18 +655,16 @@ tcp_ev_connected(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 	fibril_condvar_broadcast(&conn->cv);
 	fibril_mutex_unlock(&conn->lock);
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
 /** Connection failed event.
  *
- * @param tcp           TCP client
- * @param icall_handle  Call handle
- * @param icall         Call data
+ * @param tcp   TCP client
+ * @param icall Call data
+ *
  */
-static void
-tcp_ev_conn_failed(tcp_t *tcp, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void tcp_ev_conn_failed(tcp_t *tcp, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -677,7 +674,7 @@ tcp_ev_conn_failed(tcp_t *tcp, cap_call_handle_t icall_handle,
 
 	rc = tcp_conn_get(tcp, conn_id, &conn);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -686,16 +683,16 @@ tcp_ev_conn_failed(tcp_t *tcp, cap_call_handle_t icall_handle,
 	fibril_condvar_broadcast(&conn->cv);
 	fibril_mutex_unlock(&conn->lock);
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
 /** Connection reset event.
  *
- * @param tcp           TCP client
- * @param icall_handle  Call handle
- * @param icall         Call data
+ * @param tcp   TCP client
+ * @param icall Call data
+ *
  */
-static void tcp_ev_conn_reset(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void tcp_ev_conn_reset(tcp_t *tcp, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -705,7 +702,7 @@ static void tcp_ev_conn_reset(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_ca
 
 	rc = tcp_conn_get(tcp, conn_id, &conn);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -714,17 +711,16 @@ static void tcp_ev_conn_reset(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_ca
 	fibril_condvar_broadcast(&conn->cv);
 	fibril_mutex_unlock(&conn->lock);
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
 /** Data available event.
  *
- * @param tcp           TCP client
- * @param icall_handle  Call handle
- * @param icall         Call data
+ * @param tcp   TCP client
+ * @param icall Call data
+ *
  */
-static void
-tcp_ev_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void tcp_ev_data(tcp_t *tcp, ipc_call_t *icall)
 {
 	tcp_conn_t *conn;
 	sysarg_t conn_id;
@@ -734,7 +730,7 @@ tcp_ev_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 
 	rc = tcp_conn_get(tcp, conn_id, &conn);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
@@ -744,29 +740,27 @@ tcp_ev_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 	if (conn->cb != NULL && conn->cb->data_avail != NULL)
 		conn->cb->data_avail(conn);
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
 /** Urgent data event.
  *
- * @param tcp           TCP client
- * @param icall_handle  Call handle
- * @param icall         Call data
+ * @param tcp   TCP client
+ * @param icall Call data
+ *
  */
-static void
-tcp_ev_urg_data(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void tcp_ev_urg_data(tcp_t *tcp, ipc_call_t *icall)
 {
-	async_answer_0(icall_handle, ENOTSUP);
+	async_answer_0(icall, ENOTSUP);
 }
 
 /** New connection event.
  *
- * @param tcp           TCP client
- * @param icall_handle  Call handle
- * @param icall         Call data
+ * @param tcp   TCP client
+ * @param icall Call data
+ *
  */
-static void
-tcp_ev_new_conn(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
+static void tcp_ev_new_conn(tcp_t *tcp, ipc_call_t *icall)
 {
 	tcp_listener_t *lst;
 	tcp_conn_t *conn;
@@ -781,20 +775,20 @@ tcp_ev_new_conn(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 
 	rc = tcp_listener_get(tcp, lst_id, &lst);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOENT);
+		async_answer_0(icall, ENOENT);
 		return;
 	}
 
 	rc = tcp_conn_new(tcp, conn_id, lst->cb, lst->cb_arg, &conn);
 	if (rc != EOK) {
-		async_answer_0(icall_handle, ENOMEM);
+		async_answer_0(icall, ENOMEM);
 		return;
 	}
 
 	if (lst->lcb != NULL && lst->lcb->new_conn != NULL) {
 		cinfo = calloc(1, sizeof(tcp_in_conn_t));
 		if (cinfo == NULL) {
-			async_answer_0(icall_handle, ENOMEM);
+			async_answer_0(icall, ENOMEM);
 			return;
 		}
 
@@ -803,31 +797,30 @@ tcp_ev_new_conn(tcp_t *tcp, cap_call_handle_t icall_handle, ipc_call_t *icall)
 
 		fid = fibril_create(tcp_conn_fibril, cinfo);
 		if (fid == 0) {
-			async_answer_0(icall_handle, ENOMEM);
+			async_answer_0(icall, ENOMEM);
 		}
 
 		fibril_add_ready(fid);
 	}
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 }
 
 /** Callback connection handler.
  *
- * @param icall_handle  Connect call handle
- * @param icall         Connect call data
- * @param arg           Argument, TCP client
+ * @param icall Connect call data
+ * @param arg   Argument, TCP client
+ *
  */
-static void
-tcp_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void tcp_cb_conn(ipc_call_t *icall, void *arg)
 {
 	tcp_t *tcp = (tcp_t *)arg;
 
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call)) {
 			/* Hangup*/
@@ -836,28 +829,29 @@ tcp_cb_conn(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case TCP_EV_CONNECTED:
-			tcp_ev_connected(tcp, chandle, &call);
+			tcp_ev_connected(tcp, &call);
 			break;
 		case TCP_EV_CONN_FAILED:
-			tcp_ev_conn_failed(tcp, chandle, &call);
+			tcp_ev_conn_failed(tcp, &call);
 			break;
 		case TCP_EV_CONN_RESET:
-			tcp_ev_conn_reset(tcp, chandle, &call);
+			tcp_ev_conn_reset(tcp, &call);
 			break;
 		case TCP_EV_DATA:
-			tcp_ev_data(tcp, chandle, &call);
+			tcp_ev_data(tcp, &call);
 			break;
 		case TCP_EV_URG_DATA:
-			tcp_ev_urg_data(tcp, chandle, &call);
+			tcp_ev_urg_data(tcp, &call);
 			break;
 		case TCP_EV_NEW_CONN:
-			tcp_ev_new_conn(tcp, chandle, &call);
+			tcp_ev_new_conn(tcp, &call);
 			break;
 		default:
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 			break;
 		}
 	}
+
 out:
 	fibril_mutex_lock(&tcp->lock);
 	tcp->cb_done = true;

@@ -1225,11 +1225,11 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return ENOENT;
 	nodep = FAT_NODE(fn);
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t len;
-	if (!async_data_read_receive(&chandle, &len)) {
+	if (!async_data_read_receive(&call, &len)) {
 		fat_node_put(fn);
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
@@ -1244,7 +1244,7 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (pos >= nodep->size) {
 			/* reading beyond the EOF */
 			bytes = 0;
-			(void) async_data_read_finalize(chandle, NULL, 0);
+			(void) async_data_read_finalize(&call, NULL, 0);
 		} else {
 			bytes = min(len, BPS(bs) - pos % BPS(bs));
 			bytes = min(bytes, nodep->size - pos);
@@ -1252,10 +1252,10 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 			    BLOCK_FLAGS_NONE);
 			if (rc != EOK) {
 				fat_node_put(fn);
-				async_answer_0(chandle, rc);
+				async_answer_0(&call, rc);
 				return rc;
 			}
-			(void) async_data_read_finalize(chandle,
+			(void) async_data_read_finalize(&call,
 			    b->data + pos % BPS(bs), bytes);
 			rc = block_put(b);
 			if (rc != EOK) {
@@ -1290,7 +1290,7 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 
 	err:
 		(void) fat_node_put(fn);
-		async_answer_0(chandle, rc);
+		async_answer_0(&call, rc);
 		return rc;
 
 	miss:
@@ -1298,7 +1298,7 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc != EOK)
 			goto err;
 		rc = fat_node_put(fn);
-		async_answer_0(chandle, rc != EOK ? rc : ENOENT);
+		async_answer_0(&call, rc != EOK ? rc : ENOENT);
 		*rbytes = 0;
 		return rc != EOK ? rc : ENOENT;
 
@@ -1307,7 +1307,7 @@ fat_read(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		rc = fat_directory_close(&di);
 		if (rc != EOK)
 			goto err;
-		(void) async_data_read_finalize(chandle, name,
+		(void) async_data_read_finalize(&call, name,
 		    str_size(name) + 1);
 		bytes = (pos - spos) + 1;
 	}
@@ -1337,11 +1337,11 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		return ENOENT;
 	nodep = FAT_NODE(fn);
 
-	cap_call_handle_t chandle;
+	ipc_call_t call;
 	size_t len;
-	if (!async_data_write_receive(&chandle, &len)) {
+	if (!async_data_write_receive(&call, &len)) {
 		(void) fat_node_put(fn);
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&call, EINVAL);
 		return EINVAL;
 	}
 
@@ -1369,16 +1369,16 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		rc = fat_fill_gap(bs, nodep, FAT_CLST_RES0, pos);
 		if (rc != EOK) {
 			(void) fat_node_put(fn);
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			return rc;
 		}
 		rc = fat_block_get(&b, bs, nodep, pos / BPS(bs), flags);
 		if (rc != EOK) {
 			(void) fat_node_put(fn);
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			return rc;
 		}
-		(void) async_data_write_finalize(chandle,
+		(void) async_data_write_finalize(&call,
 		    b->data + pos % BPS(bs), bytes);
 		b->dirty = true;		/* need to sync block */
 		rc = block_put(b);
@@ -1408,7 +1408,7 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc != EOK) {
 			/* could not allocate a chain of nclsts clusters */
 			(void) fat_node_put(fn);
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			return rc;
 		}
 		/* zero fill any gaps */
@@ -1416,7 +1416,7 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, service_id, mcl);
 			(void) fat_node_put(fn);
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			return rc;
 		}
 		rc = _fat_block_get(&b, bs, service_id, lcl, NULL,
@@ -1424,10 +1424,10 @@ fat_write(service_id_t service_id, fs_index_t index, aoff64_t pos,
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, service_id, mcl);
 			(void) fat_node_put(fn);
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			return rc;
 		}
-		(void) async_data_write_finalize(chandle,
+		(void) async_data_write_finalize(&call,
 		    b->data + pos % BPS(bs), bytes);
 		b->dirty = true;		/* need to sync block */
 		rc = block_put(b);

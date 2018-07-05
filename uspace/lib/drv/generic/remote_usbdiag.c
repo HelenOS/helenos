@@ -125,10 +125,8 @@ errno_t usbdiag_test_out(async_exch_t *exch,
 	return (errno_t) retval;
 }
 
-static void remote_usbdiag_test_in(ddf_fun_t *, void *,
-    cap_call_handle_t, ipc_call_t *);
-static void remote_usbdiag_test_out(ddf_fun_t *, void *,
-    cap_call_handle_t, ipc_call_t *);
+static void remote_usbdiag_test_in(ddf_fun_t *, void *, ipc_call_t *);
+static void remote_usbdiag_test_out(ddf_fun_t *, void *, ipc_call_t *);
 
 /** Remote USB diagnostic interface operations. */
 static const remote_iface_func_ptr_t remote_usbdiag_iface_ops [] = {
@@ -142,28 +140,27 @@ const remote_iface_t remote_usbdiag_iface = {
 	.methods = remote_usbdiag_iface_ops,
 };
 
-void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t chandle, ipc_call_t *call)
+void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
+	ipc_call_t data;
 	size_t size;
-	cap_call_handle_t data_chandle;
-	if (!async_data_write_receive(&data_chandle, &size)) {
-		async_answer_0(data_chandle, EINVAL);
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_write_receive(&data, &size)) {
+		async_answer_0(&data, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(usbdiag_test_params_t)) {
-		async_answer_0(data_chandle, EINVAL);
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&data, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	usbdiag_test_params_t params;
-	if (async_data_write_finalize(data_chandle, &params, size) != EOK) {
-		async_answer_0(chandle, EINVAL);
+	if (async_data_write_finalize(&data, &params, size) != EOK) {
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
@@ -172,52 +169,51 @@ void remote_usbdiag_test_in(ddf_fun_t *fun, void *iface,
 	    diag_iface->test_in(fun, &params, &results);
 
 	if (ret != EOK) {
-		async_answer_0(chandle, ret);
+		async_answer_0(call, ret);
 		return;
 	}
 
-	if (!async_data_read_receive(&data_chandle, &size)) {
-		async_answer_0(data_chandle, EINVAL);
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_read_receive(&data, &size)) {
+		async_answer_0(&data, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(usbdiag_test_results_t)) {
-		async_answer_0(data_chandle, EINVAL);
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&data, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
-	if (async_data_read_finalize(data_chandle, &results, size) != EOK) {
-		async_answer_0(chandle, EINVAL);
+	if (async_data_read_finalize(&data, &results, size) != EOK) {
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
-	async_answer_0(chandle, ret);
+	async_answer_0(call, ret);
 }
 
-void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface,
-    cap_call_handle_t chandle, ipc_call_t *call)
+void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface, ipc_call_t *call)
 {
 	const usbdiag_iface_t *diag_iface = (usbdiag_iface_t *) iface;
 
+	ipc_call_t data;
 	size_t size;
-	cap_call_handle_t data_chandle;
-	if (!async_data_write_receive(&data_chandle, &size)) {
-		async_answer_0(data_chandle, EINVAL);
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_write_receive(&data, &size)) {
+		async_answer_0(&data, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(usbdiag_test_params_t)) {
-		async_answer_0(data_chandle, EINVAL);
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&data, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	usbdiag_test_params_t params;
-	if (async_data_write_finalize(data_chandle, &params, size) != EOK) {
-		async_answer_0(chandle, EINVAL);
+	if (async_data_write_finalize(&data, &params, size) != EOK) {
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
@@ -226,28 +222,28 @@ void remote_usbdiag_test_out(ddf_fun_t *fun, void *iface,
 	    diag_iface->test_out(fun, &params, &results);
 
 	if (ret != EOK) {
-		async_answer_0(chandle, ret);
+		async_answer_0(call, ret);
 		return;
 	}
 
-	if (!async_data_read_receive(&data_chandle, &size)) {
-		async_answer_0(data_chandle, EINVAL);
-		async_answer_0(chandle, EINVAL);
+	if (!async_data_read_receive(&data, &size)) {
+		async_answer_0(&data, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
 	if (size != sizeof(usbdiag_test_results_t)) {
-		async_answer_0(data_chandle, EINVAL);
-		async_answer_0(chandle, EINVAL);
+		async_answer_0(&data, EINVAL);
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
-	if (async_data_read_finalize(data_chandle, &results, size) != EOK) {
-		async_answer_0(chandle, EINVAL);
+	if (async_data_read_finalize(&data, &results, size) != EOK) {
+		async_answer_0(call, EINVAL);
 		return;
 	}
 
-	async_answer_0(chandle, ret);
+	async_answer_0(call, ret);
 }
 
 /**

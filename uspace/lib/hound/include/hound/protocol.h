@@ -55,7 +55,9 @@ typedef enum {
 } hound_flags_t;
 
 typedef async_sess_t hound_sess_t;
-typedef cap_call_handle_t hound_context_id_t;
+
+typedef struct {
+} *hound_context_id_t;
 
 hound_sess_t *hound_service_connect(const char *service);
 void hound_service_disconnect(hound_sess_t *sess);
@@ -124,9 +126,8 @@ typedef struct hound_server_iface {
 	void *server;
 } hound_server_iface_t;
 
-void hound_service_set_server_iface(const hound_server_iface_t *iface);
-
-void hound_connection_handler(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg);
+extern void hound_service_set_server_iface(const hound_server_iface_t *);
+extern void hound_connection_handler(ipc_call_t *, void *);
 
 #endif
 /** @}

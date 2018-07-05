@@ -54,23 +54,23 @@
 
 #define NAME  "vfs"
 
-static void vfs_pager(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void vfs_pager(ipc_call_t *icall, void *arg)
 {
-	async_answer_0(icall_handle, EOK);
+	async_answer_0(icall, EOK);
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PAGE_IN:
-			vfs_page_in(chandle, &call);
+			vfs_page_in(&call);
 			break;
 		default:
-			async_answer_0(chandle, ENOTSUP);
+			async_answer_0(&call, ENOTSUP);
 			break;
 		}
 	}
@@ -87,8 +87,6 @@ static void notification_handler(ipc_call_t *call, void *arg)
 
 int main(int argc, char **argv)
 {
-	errno_t rc;
-
 	printf("%s: HelenOS VFS server\n", NAME);
 
 	/*
@@ -121,7 +119,7 @@ int main(int argc, char **argv)
 	 * Create a port for the pager.
 	 */
 	port_id_t port;
-	rc = async_create_port(INTERFACE_PAGER, vfs_pager, NULL, &port);
+	errno_t rc = async_create_port(INTERFACE_PAGER, vfs_pager, NULL, &port);
 	if (rc != EOK) {
 		printf("%s: Cannot create pager port: %s\n", NAME, str_error(rc));
 		return rc;

@@ -40,8 +40,7 @@
 #include <ops/led_dev.h>
 #include <ddf/driver.h>
 
-static void remote_led_color_set(ddf_fun_t *, void *, cap_call_handle_t,
-    ipc_call_t *);
+static void remote_led_color_set(ddf_fun_t *, void *, ipc_call_t *);
 
 /** Remote LED interface operations */
 static const remote_iface_func_ptr_t remote_led_dev_iface_ops[] = {
@@ -65,19 +64,18 @@ const remote_iface_t remote_led_dev_iface = {
  * @param ops The local ops structure
  *
  */
-static void remote_led_color_set(ddf_fun_t *fun, void *ops, cap_call_handle_t chandle,
-    ipc_call_t *call)
+static void remote_led_color_set(ddf_fun_t *fun, void *ops, ipc_call_t *call)
 {
 	led_dev_ops_t *led_dev_ops = (led_dev_ops_t *) ops;
 	pixel_t color = DEV_IPC_GET_ARG1(*call);
 
 	if (!led_dev_ops->color_set) {
-		async_answer_0(chandle, ENOTSUP);
+		async_answer_0(call, ENOTSUP);
 		return;
 	}
 
 	errno_t rc = (*led_dev_ops->color_set)(fun, color);
-	async_answer_0(chandle, rc);
+	async_answer_0(call, rc);
 }
 
 /**

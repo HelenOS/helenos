@@ -45,12 +45,12 @@
 
 #define NAME  "amdm37x_dispc"
 
-static void graph_vsl_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void graph_vsl_connection(ipc_call_t *icall, void *arg)
 {
 	visualizer_t *vsl;
 
 	vsl = (visualizer_t *) ddf_fun_data_get((ddf_fun_t *)arg);
-	graph_visualizer_connection(vsl, icall_handle, icall, NULL);
+	graph_visualizer_connection(vsl, icall, NULL);
 }
 
 static errno_t amdm37x_dispc_dev_add(ddf_dev_t *dev)

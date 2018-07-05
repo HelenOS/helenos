@@ -65,7 +65,7 @@ typedef struct iplink_ops {
 
 extern void iplink_srv_init(iplink_srv_t *);
 
-extern errno_t iplink_conn(cap_call_handle_t, ipc_call_t *, void *);
+extern errno_t iplink_conn(ipc_call_t *, void *);
 extern errno_t iplink_ev_recv(iplink_srv_t *, iplink_recv_sdu_t *, ip_ver_t);
 extern errno_t iplink_ev_change_addr(iplink_srv_t *, addr48_t *);
 

@@ -71,7 +71,7 @@
 
 #include "../usbhid.h"
 
-static void default_connection_handler(ddf_fun_t *, cap_call_handle_t, ipc_call_t *);
+static void default_connection_handler(ddf_fun_t *, ipc_call_t *);
 static ddf_dev_ops_t kbdops = { .default_handler = default_connection_handler };
 
 
@@ -147,21 +147,18 @@ typedef enum usb_kbd_flags {
 
 /* IPC method handler                                                         */
 
-/**
- * Default handler for IPC methods not handled by DDF.
+/** Default handler for IPC methods not handled by DDF.
  *
  * Currently recognizes only two methods (IPC_M_CONNECT_TO_ME and KBDEV_SET_IND)
  * IPC_M_CONNECT_TO_ME assumes the caller is the console and  stores IPC
  * session to it for later use by the driver to notify about key events.
  * KBDEV_SET_IND sets LED keyboard indicators.
  *
- * @param fun           Device function handling the call.
- * @param icall_handle  Call handle.
- * @param icall         Call data.
+ * @param fun   Device function handling the call.
+ * @param icall Call data.
+ *
  */
-static void
-default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+static void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall)
 {
 	const sysarg_t method = IPC_GET_IMETHOD(*icall);
 	usb_kbd_t *kbd_dev = ddf_fun_data_get(fun);
@@ -171,7 +168,7 @@ default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
 	case KBDEV_SET_IND:
 		kbd_dev->mods = IPC_GET_ARG1(*icall);
 		usb_kbd_set_led(kbd_dev->hid_dev, kbd_dev);
-		async_answer_0(icall_handle, EOK);
+		async_answer_0(icall, EOK);
 		break;
 		/*
 		 * This might be ugly but async_callback_receive_start makes no
@@ -183,23 +180,23 @@ default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
 		if (sess == NULL) {
 			usb_log_warning(
 			    "Failed to create start console session.\n");
-			async_answer_0(icall_handle, EAGAIN);
+			async_answer_0(icall, EAGAIN);
 			break;
 		}
 		if (kbd_dev->client_sess == NULL) {
 			kbd_dev->client_sess = sess;
 			usb_log_debug("%s: OK", __FUNCTION__);
-			async_answer_0(icall_handle, EOK);
+			async_answer_0(icall, EOK);
 		} else {
 			usb_log_error("%s: console session already set",
 			    __FUNCTION__);
-			async_answer_0(icall_handle, ELIMIT);
+			async_answer_0(icall, ELIMIT);
 		}
 		break;
 	default:
 		usb_log_error("%s: Unknown method: %d.",
 		    __FUNCTION__, (int) method);
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(icall, EINVAL);
 		break;
 	}
 

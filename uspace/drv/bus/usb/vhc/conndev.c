@@ -88,12 +88,11 @@ static void receive_device_name(async_sess_t *sess)
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param fun           Device handling the call.
- * @param icall_handle  Call handle.
- * @param icall         Call data.
+ * @param fun   Device handling the call.
+ * @param icall Call data.
+ *
  */
-void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
-    ipc_call_t *icall)
+void default_connection_handler(ddf_fun_t *fun, ipc_call_t *icall)
 {
 	vhc_data_t *vhc = ddf_fun_data_get(fun);
 
@@ -103,19 +102,19 @@ void default_connection_handler(ddf_fun_t *fun, cap_call_handle_t icall_handle,
 	if (callback) {
 		errno_t rc = vhc_virtdev_plug(vhc, callback, &plugged_device_handle);
 		if (rc != EOK) {
-			async_answer_0(icall_handle, rc);
+			async_answer_0(icall, rc);
 			async_hangup(callback);
 			return;
 		}
 
-		async_answer_0(icall_handle, EOK);
+		async_answer_0(icall, EOK);
 
 		receive_device_name(callback);
 
 		usb_log_info("New virtual device `%s' (id: %" PRIxn ").",
 		    plugged_device_name, plugged_device_handle);
 	} else
-		async_answer_0(icall_handle, EINVAL);
+		async_answer_0(icall, EINVAL);
 }
 
 /** Callback when client disconnects.

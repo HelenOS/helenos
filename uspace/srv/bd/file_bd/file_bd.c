@@ -67,7 +67,7 @@ static fibril_mutex_t dev_lock;
 
 static void print_usage(void);
 static errno_t file_bd_init(const char *fname);
-static void file_bd_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *);
+static void file_bd_connection(ipc_call_t *icall, void *);
 
 static errno_t file_bd_open(bd_srvs_t *, bd_srv_t *);
 static errno_t file_bd_close(bd_srv_t *);
@@ -203,9 +203,9 @@ static errno_t file_bd_init(const char *fname)
 	return EOK;
 }
 
-static void file_bd_connection(cap_call_handle_t icall_handle, ipc_call_t *icall, void *arg)
+static void file_bd_connection(ipc_call_t *icall, void *arg)
 {
-	bd_conn(icall_handle, icall, &bd_srvs);
+	bd_conn(icall, &bd_srvs);
 }
 
 /** Open device. */

@@ -62,17 +62,17 @@ static errno_t handle_log_level_change(sysarg_t new_level)
 	return EOK;
 }
 
-void logger_connection_handler_control(cap_call_handle_t chandle)
+void logger_connection_handler_control(ipc_call_t *icall)
 {
 	errno_t rc;
 	int fd;
 
-	async_answer_0(chandle, EOK);
+	async_answer_0(icall, EOK);
 	logger_log("control: new client.\n");
 
 	while (true) {
 		ipc_call_t call;
-		cap_call_handle_t chandle = async_get_call(&call);
+		async_get_call(&call);
 
 		if (!IPC_GET_IMETHOD(call))
 			break;
@@ -80,11 +80,11 @@ void logger_connection_handler_control(cap_call_handle_t chandle)
 		switch (IPC_GET_IMETHOD(call)) {
 		case LOGGER_CONTROL_SET_DEFAULT_LEVEL:
 			rc = set_default_logging_level(IPC_GET_ARG1(call));
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			break;
 		case LOGGER_CONTROL_SET_LOG_LEVEL:
 			rc = handle_log_level_change(IPC_GET_ARG1(call));
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			break;
 		case LOGGER_CONTROL_SET_ROOT:
 			rc = vfs_receive_handle(true, &fd);
@@ -92,10 +92,10 @@ void logger_connection_handler_control(cap_call_handle_t chandle)
 				rc = vfs_root_set(fd);
 				vfs_put(fd);
 			}
-			async_answer_0(chandle, rc);
+			async_answer_0(&call, rc);
 			break;
 		default:
-			async_answer_0(chandle, EINVAL);
+			async_answer_0(&call, EINVAL);
 			break;
 		}
 	}
