@@ -244,11 +244,11 @@ def qemu_run(platform, machine, processor):
 			subprocess.call(cmdline, shell = True)
 
 def ski_run(platform, machine, processor):
-	run_in_console('ski -i contrib/conf/ski.conf', 'HelenOS/ia64 on ski')
+	run_in_console('ski -i tools/conf/ski.conf', 'HelenOS/ia64 on ski')
 
 def msim_run(platform, machine, processor):
 	hdisk_mk()
-	run_in_console('msim -c contrib/conf/msim.conf', 'HelenOS/mips32 on msim')
+	run_in_console('msim -c tools/conf/msim.conf', 'HelenOS/mips32 on msim')
 
 def spike_run(platform, machine, processor):
 	run_in_console('spike -m1073741824:1073741824 image.boot', 'HelenOS/risvc64 on Spike')

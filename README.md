@@ -90,7 +90,7 @@ $ ./tools/ew.py
 For additional information about running HelenOS, see
 [UsersGuide/RunningInQEMU](http://www.helenos.org/wiki/UsersGuide/RunningInQEMU) or
 [UsersGuide/RunningInVirtualBox](http://www.helenos.org/wiki/UsersGuide/RunningInVirtualBox) or
-see the files in contrib/conf.
+see the files in tools/conf.
 
 ## License
 
