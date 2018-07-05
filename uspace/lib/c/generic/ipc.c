@@ -49,66 +49,6 @@
 #include <fibril.h>
 #include <macros.h>
 
-/**
- * Structures of this type are used for keeping track of sent asynchronous calls.
- */
-typedef struct async_call {
-	ipc_async_callback_t callback;
-	void *private;
-
-	struct {
-		ipc_call_t data;
-	} msg;
-} async_call_t;
-
-/** Prologue for ipc_call_async_*() functions.
- *
- * @param private  Argument for the answer/error callback.
- * @param callback Answer/error callback.
- *
- * @return New, partially initialized async_call structure or NULL.
- *
- */
-static inline async_call_t *ipc_prepare_async(void *private,
-    ipc_async_callback_t callback)
-{
-	async_call_t *call =
-	    (async_call_t *) malloc(sizeof(async_call_t));
-	if (!call) {
-		if (callback)
-			callback(private, ENOMEM, NULL);
-
-		return NULL;
-	}
-
-	call->callback = callback;
-	call->private = private;
-
-	return call;
-}
-
-/** Epilogue for ipc_call_async_*() functions.
- *
- * @param rc       Value returned by the SYS_IPC_CALL_ASYNC_* syscall.
- * @param call     Structure returned by ipc_prepare_async().
- */
-static inline void ipc_finish_async(errno_t rc, async_call_t *call)
-{
-	if (!call) {
-		/* Nothing to do regardless if failed or not */
-		return;
-	}
-
-	if (rc != EOK) {
-		/* Call asynchronous handler with error code */
-		if (call->callback)
-			call->callback(call->private, ENOENT, NULL);
-
-		free(call);
-		return;
-	}
-}
-
 /** Fast asynchronous call.
  *
  * This function can only handle three arguments of payload. It is, however,
@@ -125,22 +65,14 @@ static inline void ipc_finish_async(errno_t rc, async_call_t *call)
  * @param arg1      Service-defined payload argument.
  * @param arg2      Service-defined payload argument.
  * @param arg3      Service-defined payload argument.
- * @param private   Argument to be passed to the answer/error callback.
- * @param callback  Answer or error callback.
+ * @param label     A value to set to the label field of the answer.
  */
-void ipc_call_async_fast(cap_phone_handle_t phandle, sysarg_t imethod,
-    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, void *private,
-    ipc_async_callback_t callback)
+errno_t ipc_call_async_fast(cap_phone_handle_t phandle, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, void *label)
 {
-	async_call_t *call = ipc_prepare_async(private, callback);
-	if (!call)
-		return;
-
-	errno_t rc = (errno_t) __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST,
+	return __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST,
 	    CAP_HANDLE_RAW(phandle), imethod, arg1, arg2, arg3,
-	    (sysarg_t) call);
-
-	ipc_finish_async(rc, call);
+	    (sysarg_t) label);
 }
 
 /** Asynchronous call transmitting the entire payload.
@@ -158,29 +90,24 @@ void ipc_call_async_fast(cap_phone_handle_t phandle, sysarg_t imethod,
  * @param arg3      Service-defined payload argument.
  * @param arg4      Service-defined payload argument.
  * @param arg5      Service-defined payload argument.
- * @param private   Argument to be passed to the answer/error callback.
- * @param callback  Answer or error callback.
+ * @param label     A value to set to the label field of the answer.
  */
-void ipc_call_async_slow(cap_phone_handle_t phandle, sysarg_t imethod,
+errno_t ipc_call_async_slow(cap_phone_handle_t phandle, sysarg_t imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
-    void *private, ipc_async_callback_t callback)
+    void *label)
 {
-	async_call_t *call = ipc_prepare_async(private, callback);
-	if (!call)
-		return;
+	ipc_call_t data;
 
-	IPC_SET_IMETHOD(call->msg.data, imethod);
-	IPC_SET_ARG1(call->msg.data, arg1);
-	IPC_SET_ARG2(call->msg.data, arg2);
-	IPC_SET_ARG3(call->msg.data, arg3);
-	IPC_SET_ARG4(call->msg.data, arg4);
-	IPC_SET_ARG5(call->msg.data, arg5);
+	IPC_SET_IMETHOD(data, imethod);
+	IPC_SET_ARG1(data, arg1);
+	IPC_SET_ARG2(data, arg2);
+	IPC_SET_ARG3(data, arg3);
+	IPC_SET_ARG4(data, arg4);
+	IPC_SET_ARG5(data, arg5);
 
-	errno_t rc = (errno_t) __SYSCALL3(SYS_IPC_CALL_ASYNC_SLOW,
-	    CAP_HANDLE_RAW(phandle), (sysarg_t) &call->msg.data,
-	    (sysarg_t) call);
-
-	ipc_finish_async(rc, call);
+	return __SYSCALL3(SYS_IPC_CALL_ASYNC_SLOW,
+	    CAP_HANDLE_RAW(phandle), (sysarg_t) &data,
+	    (sysarg_t) label);
 }
 
 /** Answer received call (fast version).
@@ -236,44 +163,6 @@ errno_t ipc_answer_slow(cap_call_handle_t chandle, errno_t retval,
 	    CAP_HANDLE_RAW(chandle), (sysarg_t) &data);
 }
 
-/** Handle received answer.
- *
- * @param data  Call data of the answer.
- */
-static void handle_answer(ipc_call_t *data)
-{
-	async_call_t *call = data->label;
-
-	if (!call)
-		return;
-
-	if (call->callback)
-		call->callback(call->private, IPC_GET_RETVAL(*data), data);
-	free(call);
-}
-
-/** Wait for first IPC call to come.
- *
- * @param[out] call   Storage for the received call.
- * @param[in]  usec   Timeout in microseconds
- * @param[in[  flags  Flags passed to SYS_IPC_WAIT (blocking, nonblocking).
- *
- * @return  Error code.
- */
-errno_t ipc_wait_cycle(ipc_call_t *call, sysarg_t usec, unsigned int flags)
-{
-	errno_t rc = (errno_t) __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec,
-	    flags);
-
-	/* Handle received answers */
-	if ((rc == EOK) && (call->cap_handle == CAP_NIL) &&
-	    (call->flags & IPC_CALL_ANSWERED)) {
-		handle_answer(call);
-	}
-
-	return rc;
-}
-
 /** Interrupt one thread of this task from waiting for IPC.
  *
  */
@@ -282,48 +171,10 @@ void ipc_poke(void)
 	__SYSCALL0(SYS_IPC_POKE);
 }
 
-/** Wait for first IPC call to come.
- *
- * Only requests are returned, answers are processed internally.
- *
- * @param call  Incoming call storage.
- * @param usec  Timeout in microseconds
- *
- * @return  Error code.
- *
- */
-errno_t ipc_wait_for_call_timeout(ipc_call_t *call, sysarg_t usec)
+errno_t ipc_wait(ipc_call_t *call, sysarg_t usec, unsigned int flags)
 {
-	errno_t rc;
-
-	do {
-		rc = ipc_wait_cycle(call, usec, SYNCH_FLAGS_NONE);
-	} while ((rc == EOK) && (call->cap_handle == CAP_NIL) &&
-	    (call->flags & IPC_CALL_ANSWERED));
-
-	return rc;
-}
-
-/** Check if there is an IPC call waiting to be picked up.
- *
- * Only requests are returned, answers are processed internally.
- *
- * @param call  Incoming call storage.
- *
- * @return  Error code.
- *
- */
-errno_t ipc_trywait_for_call(ipc_call_t *call)
-{
-	errno_t rc;
-
-	do {
-		rc = ipc_wait_cycle(call, SYNCH_NO_TIMEOUT,
-		    SYNCH_FLAGS_NON_BLOCKING);
-	} while ((rc == EOK) && (call->cap_handle == CAP_NIL) &&
-	    (call->flags & IPC_CALL_ANSWERED));
-
-	return rc;
+	// TODO: Use expiration time instead of timeout.
+	return __SYSCALL3(SYS_IPC_WAIT, (sysarg_t) call, usec, flags);
 }
 
 /** Hang up a phone.

@@ -142,6 +142,8 @@ extern errno_t async_create_port_internal(iface_t, async_port_handler_t,
     void *, port_id_t *);
 extern async_port_handler_t async_get_port_handler(iface_t, port_id_t, void **);
 
+extern void async_reply_received(ipc_call_t *);
+
 #endif
 
 /** @}

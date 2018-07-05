@@ -240,14 +240,15 @@ void __async_client_init(void)
  * @param data   Call data of the answer.
  *
  */
-static void reply_received(void *arg, errno_t retval, ipc_call_t *data)
+void async_reply_received(ipc_call_t *data)
 {
-	assert(arg);
+	amsg_t *msg = data->label;
+	if (!msg)
+		return;
 
 	futex_lock(&async_futex);
 
-	amsg_t *msg = (amsg_t *) arg;
-	msg->retval = retval;
+	msg->retval = IPC_GET_RETVAL(*data);
 
 	/* Copy data after futex_down, just in case the call was detached */
 	if ((msg->dataptr) && (data))
@@ -301,8 +302,12 @@ aid_t async_send_fast(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	msg->dataptr = dataptr;
 	msg->wdata.active = true;
 
-	ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4, msg,
-	    reply_received);
+	errno_t rc = ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3,
+	    arg4, msg);
+	if (rc != EOK) {
+		msg->retval = rc;
+		msg->done = true;
+	}
 
 	return (aid_t) msg;
 }
@@ -339,8 +344,12 @@ aid_t async_send_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 	msg->dataptr = dataptr;
 	msg->wdata.active = true;
 
-	ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4, arg5,
-	    msg, reply_received);
+	errno_t rc = ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3,
+	    arg4, arg5, msg);
+	if (rc != EOK) {
+		msg->retval = rc;
+		msg->done = true;
+	}
 
 	return (aid_t) msg;
 }
@@ -652,28 +661,27 @@ errno_t async_req_slow(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 void async_msg_0(async_exch_t *exch, sysarg_t imethod)
 {
 	if (exch != NULL)
-		ipc_call_async_0(exch->phone, imethod, NULL, NULL);
+		ipc_call_async_0(exch->phone, imethod, NULL);
 }
 
 void async_msg_1(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1)
 {
 	if (exch != NULL)
-		ipc_call_async_1(exch->phone, imethod, arg1, NULL, NULL);
+		ipc_call_async_1(exch->phone, imethod, arg1, NULL);
 }
 
 void async_msg_2(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2)
 {
 	if (exch != NULL)
-		ipc_call_async_2(exch->phone, imethod, arg1, arg2, NULL, NULL);
+		ipc_call_async_2(exch->phone, imethod, arg1, arg2, NULL);
 }
 
 void async_msg_3(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3)
 {
 	if (exch != NULL)
-		ipc_call_async_3(exch->phone, imethod, arg1, arg2, arg3, NULL,
-		    NULL);
+		ipc_call_async_3(exch->phone, imethod, arg1, arg2, arg3, NULL);
 }
 
 void async_msg_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
@@ -681,7 +689,7 @@ void async_msg_4(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch != NULL)
 		ipc_call_async_4(exch->phone, imethod, arg1, arg2, arg3, arg4,
-		    NULL, NULL);
+		    NULL);
 }
 
 void async_msg_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
@@ -689,7 +697,7 @@ void async_msg_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 {
 	if (exch != NULL)
 		ipc_call_async_5(exch->phone, imethod, arg1, arg2, arg3, arg4,
-		    arg5, NULL, NULL);
+		    arg5, NULL);
 }
 
 static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
@@ -709,10 +717,13 @@ static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
 	msg->dataptr = &result;
 	msg->wdata.active = true;
 
-	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, (sysarg_t) iface, arg2,
-	    arg3, flags, msg, reply_received);
+	errno_t rc = ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO,
+	    (sysarg_t) iface, arg2, arg3, flags, msg);
+	if (rc != EOK) {
+		msg->retval = rc;
+		msg->done = true;
+	}
 
-	errno_t rc;
 	async_wait_for((aid_t) msg, &rc);
 
 	if (rc != EOK)

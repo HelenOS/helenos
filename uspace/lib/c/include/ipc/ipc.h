@@ -45,16 +45,8 @@
 #include <abi/proc/task.h>
 #include <abi/cap.h>
 
-typedef void (*ipc_async_callback_t)(void *, errno_t, ipc_call_t *);
-
-extern errno_t ipc_wait_cycle(ipc_call_t *, sysarg_t, unsigned int);
+extern errno_t ipc_wait(ipc_call_t *, sysarg_t, unsigned int);
 extern void ipc_poke(void);
-
-#define ipc_wait_for_call(data) \
-	ipc_wait_for_call_timeout(data, SYNCH_NO_TIMEOUT);
-
-extern errno_t ipc_wait_for_call_timeout(ipc_call_t *, sysarg_t);
-extern errno_t ipc_trywait_for_call(ipc_call_t *);
 
 /*
  * User-friendly wrappers for ipc_answer_fast() and ipc_answer_slow().
@@ -89,30 +81,27 @@ extern errno_t ipc_answer_slow(cap_call_handle_t, errno_t, sysarg_t, sysarg_t,
  * to m.
  */
 
-#define ipc_call_async_0(phandle, method, private, callback) \
-	ipc_call_async_fast((phandle), (method), 0, 0, 0, (private), (callback))
-#define ipc_call_async_1(phandle, method, arg1, private, callback) \
-	ipc_call_async_fast((phandle), (method), (arg1), 0, 0, (private), \
-	    (callback))
-#define ipc_call_async_2(phandle, method, arg1, arg2, private, callback) \
-	ipc_call_async_fast((phandle), (method), (arg1), (arg2), 0, \
-	    (private), (callback))
-#define ipc_call_async_3(phandle, method, arg1, arg2, arg3, private, callback) \
+#define ipc_call_async_0(phandle, method, label) \
+	ipc_call_async_fast((phandle), (method), 0, 0, 0, (label))
+#define ipc_call_async_1(phandle, method, arg1, label) \
+	ipc_call_async_fast((phandle), (method), (arg1), 0, 0, (label))
+#define ipc_call_async_2(phandle, method, arg1, arg2, label) \
+	ipc_call_async_fast((phandle), (method), (arg1), (arg2), 0, (label))
+#define ipc_call_async_3(phandle, method, arg1, arg2, arg3, label) \
 	ipc_call_async_fast((phandle), (method), (arg1), (arg2), (arg3), \
-	    (private), (callback))
-#define ipc_call_async_4(phandle, method, arg1, arg2, arg3, arg4, private, \
-    callback) \
+	    (label))
+#define ipc_call_async_4(phandle, method, arg1, arg2, arg3, arg4, label) \
 	ipc_call_async_slow((phandle), (method), (arg1), (arg2), (arg3), \
-	    (arg4), 0, (private), (callback))
+	    (arg4), 0, (label))
 #define ipc_call_async_5(phandle, method, arg1, arg2, arg3, arg4, arg5, \
-    private, callback) \
+    label) \
 	ipc_call_async_slow((phandle), (method), (arg1), (arg2), (arg3), \
-	    (arg4), (arg5), (private), (callback))
+	    (arg4), (arg5), (label))
 
-extern void ipc_call_async_fast(cap_phone_handle_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, void *, ipc_async_callback_t);
-extern void ipc_call_async_slow(cap_phone_handle_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t, sysarg_t, void *, ipc_async_callback_t);
+extern errno_t ipc_call_async_fast(cap_phone_handle_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, void *);
+extern errno_t ipc_call_async_slow(cap_phone_handle_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, sysarg_t, void *);
 
 extern errno_t ipc_hangup(cap_phone_handle_t);
 

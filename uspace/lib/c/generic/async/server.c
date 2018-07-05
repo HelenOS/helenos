@@ -1087,8 +1087,11 @@ static void handle_call(ipc_call_t *call)
 {
 	assert(call);
 
-	if (call->flags & IPC_CALL_ANSWERED)
+	if (call->flags & IPC_CALL_ANSWERED) {
+		/* Answer to a call made by us. */
+		async_reply_received(call);
 		return;
+	}
 
 	if (call->cap_handle == CAP_NIL) {
 		if (call->flags & IPC_CALL_NOTIF) {
@@ -1194,7 +1197,7 @@ static errno_t async_manager_worker(void)
 		atomic_inc(&threads_in_ipc_wait);
 
 		ipc_call_t call;
-		errno_t rc = ipc_wait_cycle(&call, next_timeout, flags);
+		errno_t rc = ipc_wait(&call, next_timeout, flags);
 
 		atomic_dec(&threads_in_ipc_wait);
 
