@@ -255,6 +255,25 @@ error:
 	return rc;
 }
 
+/** Determine if partition is allowed to be mounted by default.
+ *
+ * @param part Partition
+ * @return @c true iff partition is allowed to be mounted by default
+ */
+static bool vol_part_allow_mount_by_def(vol_part_t *part)
+{
+	/* CDFS is safe to mount (after all, it is read-only) */
+	if (part->pcnt == vpc_fs && part->fstype == fs_cdfs)
+		return true;
+
+	/* For other file systems disallow mounting from ATA hard drive */
+	if (str_str(part->svc_name, "\\ata-c") != NULL)
+		return false;
+
+	/* Allow otherwise (e.g. USB mass storage) */
+	return true;
+}
+
 static errno_t vol_part_mount(vol_part_t *part)
 {
 	char *mp;
@@ -264,6 +283,12 @@ static errno_t vol_part_mount(vol_part_t *part)
 	if (str_size(part->label) < 1) {
 		/* Don't mount nameless volumes */
 		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting nameless partition.");
+		return EOK;
+	}
+
+	if (!vol_part_allow_mount_by_def(part)) {
+		/* Don't mount partition by default */
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting per default policy.");
 		return EOK;
 	}
 

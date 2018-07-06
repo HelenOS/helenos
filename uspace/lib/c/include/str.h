@@ -107,6 +107,7 @@ extern size_t utf16_wsize(const uint16_t *ustr);
 
 extern char *str_chr(const char *str, wchar_t ch);
 extern char *str_rchr(const char *str, wchar_t ch);
+extern char *str_str(const char *hs, const char *n);
 
 extern void str_rtrim(char *str, wchar_t ch);
 extern void str_ltrim(char *str, wchar_t ch);

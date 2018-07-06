@@ -87,5 +87,34 @@ PCUT_TEST(ltrim)
 	EQ("AAAšš", buffer);
 }
 
+PCUT_TEST(str_str_found)
+{
+	const char *hs = "abracadabra";
+	const char *n = "raca";
+	char *p;
+
+	p = str_str(hs, n);
+	PCUT_ASSERT_TRUE((const char *)p == hs + 2);
+}
+
+PCUT_TEST(str_str_not_found)
+{
+	const char *hs = "abracadabra";
+	const char *n = "racab";
+	char *p;
+
+	p = str_str(hs, n);
+	PCUT_ASSERT_TRUE(p == NULL);
+}
+
+PCUT_TEST(str_str_empty_n)
+{
+	const char *hs = "abracadabra";
+	const char *n = "";
+	char *p;
+
+	p = str_str(hs, n);
+	PCUT_ASSERT_TRUE((const char *)p == hs);
+}
 
 PCUT_EXPORT(str);

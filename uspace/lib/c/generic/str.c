@@ -1138,6 +1138,28 @@ char *str_chr(const char *str, wchar_t ch)
 	return NULL;
 }
 
+/** Find first occurence of substring in string.
+ *
+ * @param hs  Haystack (string)
+ * @param n   Needle (substring to look for)
+ *
+ * @return Pointer to character in @a hs or @c NULL if not found.
+ */
+char *str_str(const char *hs, const char *n)
+{
+	size_t off = 0;
+
+	if (str_lcmp(hs, n, str_length(n)) == 0)
+		return (char *)hs;
+
+	while (str_decode(hs, &off, STR_NO_LIMIT) != 0) {
+		if (str_lcmp(hs + off, n, str_length(n)) == 0)
+			return (char *)(hs + off);
+	}
+
+	return NULL;
+}
+
 /** Removes specified trailing characters from a string.
  *
  * @param str String to remove from.
