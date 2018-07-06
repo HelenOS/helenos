@@ -61,7 +61,7 @@
 #include <vfs/vfs.h>
 #include <vfs/inbox.h>
 
-#define DPRINTF(...)
+#define DPRINTF(...) ((void) 0)
 
 /** File that will be loaded */
 static char *progname = NULL;
@@ -106,6 +106,7 @@ static void ldr_get_taskid(ipc_call_t *req)
 	if (len > sizeof(task_id))
 		len = sizeof(task_id);
 
+	DPRINTF("LOADER_GET_TASKID() = %lu\n", (unsigned long) task_id);
 	async_data_read_finalize(&call, &task_id, len);
 	async_answer_0(req, EOK);
 }
@@ -125,6 +126,7 @@ static void ldr_set_cwd(ipc_call_t *req)
 		cwd = buf;
 	}
 
+	DPRINTF("LOADER_SET_CWD('%s')\n", cwd);
 	async_answer_0(req, rc);
 }
 
@@ -155,6 +157,8 @@ static void ldr_set_program(ipc_call_t *req)
 		async_answer_0(req, EINVAL);
 		return;
 	}
+
+	DPRINTF("LOADER_SET_PROGRAM('%s')\n", name);
 
 	progname = name;
 	program_fd = file;
@@ -216,6 +220,9 @@ static void ldr_set_args(ipc_call_t *req)
 		if (argv != NULL)
 			free(argv);
 
+		for (int i = 0; i < count; i++)
+			DPRINTF("LOADER_SET_ARGS('%s')\n", _argv[i]);
+
 		argc = count;
 		arg_buf = buf;
 		argv = _argv;
@@ -255,6 +262,8 @@ static void ldr_add_inbox(ipc_call_t *req)
 		return;
 	}
 
+	DPRINTF("LOADER_ADD_INBOX('%s')\n", name);
+
 	/*
 	 * We need to set the root early for dynamically linked binaries so
 	 * that the loader can use it too.
@@ -275,6 +284,8 @@ static void ldr_add_inbox(ipc_call_t *req)
  */
 static int ldr_load(ipc_call_t *req)
 {
+	DPRINTF("LOADER_LOAD()\n");
+
 	int rc = elf_load(program_fd, &prog_info);
 	if (rc != EE_OK) {
 		DPRINTF("Failed to load executable for '%s'.\n", progname);
@@ -282,7 +293,11 @@ static int ldr_load(ipc_call_t *req)
 		return 1;
 	}
 
+	DPRINTF("Loaded.\n");
+
 	elf_set_pcb(&prog_info, &pcb);
+
+	DPRINTF("PCB set.\n");
 
 	pcb.cwd = cwd;
 
@@ -292,6 +307,7 @@ static int ldr_load(ipc_call_t *req)
 	pcb.inbox = inbox;
 	pcb.inbox_entries = inbox_entries;
 
+	DPRINTF("Answering.\n");
 	async_answer_0(req, EOK);
 	return 0;
 }
