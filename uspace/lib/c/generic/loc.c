@@ -47,6 +47,7 @@ static FIBRIL_MUTEX_INITIALIZE(loc_consumer_mutex);
 static FIBRIL_MUTEX_INITIALIZE(loc_callback_mutex);
 static bool loc_callback_created = false;
 static loc_cat_change_cb_t cat_change_cb = NULL;
+static void *cat_change_arg = NULL;
 
 static async_sess_t *loc_supp_block_sess = NULL;
 static async_sess_t *loc_cons_block_sess = NULL;
@@ -69,12 +70,13 @@ static void loc_cb_conn(ipc_call_t *icall, void *arg)
 		case LOC_EVENT_CAT_CHANGE:
 			fibril_mutex_lock(&loc_callback_mutex);
 			loc_cat_change_cb_t cb_fun = cat_change_cb;
+			void *cb_arg = cat_change_arg;
 			fibril_mutex_unlock(&loc_callback_mutex);
 
 			async_answer_0(&call, EOK);
 
 			if (cb_fun != NULL)
-				(*cb_fun)();
+				(*cb_fun)(cb_arg);
 
 			break;
 		default:
@@ -858,15 +860,21 @@ errno_t loc_get_categories(category_id_t **data, size_t *count)
 	    data, count);
 }
 
-errno_t loc_register_cat_change_cb(loc_cat_change_cb_t cb_fun)
+errno_t loc_register_cat_change_cb(loc_cat_change_cb_t cb_fun, void *cb_arg)
 {
 	fibril_mutex_lock(&loc_callback_mutex);
+	if (cat_change_cb != NULL) {
+		fibril_mutex_unlock(&loc_callback_mutex);
+		return EEXIST;
+	}
+
 	if (loc_callback_create() != EOK) {
 		fibril_mutex_unlock(&loc_callback_mutex);
 		return EIO;
 	}
 
 	cat_change_cb = cb_fun;
+	cat_change_arg = cb_arg;
 	fibril_mutex_unlock(&loc_callback_mutex);
 
 	return EOK;

@@ -204,7 +204,7 @@ static void frame_timer_callback(void *data)
 	plan_frame_timer(tv_sub_diff(&cur, &prev));
 }
 
-static void loc_callback(void)
+static void loc_callback(void *arg)
 {
 	category_id_t led_cat;
 	errno_t rc = loc_category_get_id("led", &led_cat, IPC_FLAG_BLOCKING);
@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
 	}
 
 	list_initialize(&led_devs);
-	errno_t rc = loc_register_cat_change_cb(loc_callback);
+	errno_t rc = loc_register_cat_change_cb(loc_callback, NULL);
 	if (rc != EOK) {
 		printf("Unable to register callback for device discovery.\n");
 		return 1;

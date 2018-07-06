@@ -223,7 +223,7 @@ error:
 	return rc;
 }
 
-static void ethip_nic_cat_change_cb(void)
+static void ethip_nic_cat_change_cb(void *arg)
 {
 	(void) ethip_nic_check_new();
 }
@@ -322,7 +322,7 @@ static void ethip_nic_cb_conn(ipc_call_t *icall, void *arg)
 
 errno_t ethip_nic_discovery_start(void)
 {
-	errno_t rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb);
+	errno_t rc = loc_register_cat_change_cb(ethip_nic_cat_change_cb, NULL);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback for NIC "
 		    "discovery: %s.", str_error(rc));

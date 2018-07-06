@@ -42,11 +42,14 @@
 #include <types/vol.h>
 #include "types/part.h"
 
-extern errno_t vol_part_init(void);
-extern errno_t vol_part_discovery_start(void);
-extern errno_t vol_part_add(service_id_t);
-extern errno_t vol_part_get_ids(service_id_t *, size_t, size_t *);
-extern errno_t vol_part_find_by_id_ref(service_id_t, vol_part_t **);
+extern errno_t vol_parts_create(vol_parts_t **);
+extern void vol_parts_destroy(vol_parts_t *);
+extern errno_t vol_part_discovery_start(vol_parts_t *);
+extern errno_t vol_part_add(vol_parts_t *, service_id_t);
+extern errno_t vol_part_get_ids(vol_parts_t *, service_id_t *, size_t,
+    size_t *);
+extern errno_t vol_part_find_by_id_ref(vol_parts_t *, service_id_t,
+    vol_part_t **);
 extern void vol_part_del_ref(vol_part_t *);
 extern errno_t vol_part_eject_part(vol_part_t *);
 extern errno_t vol_part_empty_part(vol_part_t *);

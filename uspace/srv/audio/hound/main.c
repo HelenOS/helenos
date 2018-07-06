@@ -61,7 +61,7 @@ static errno_t device_callback(service_id_t id, const char *name)
 	return hound_add_device(&hound, id, name);
 }
 
-static void scan_for_devices(void)
+static void scan_for_devices(void *arg)
 {
 	hound_server_devices_iterate(device_callback);
 }
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 		return -ret;
 	}
 
-	ret = hound_server_set_device_change_callback(scan_for_devices);
+	ret = hound_server_set_device_change_callback(scan_for_devices, NULL);
 	if (ret != EOK) {
 		log_fatal("Failed to register for device changes: %s",
 		    str_error(ret));
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	}
 	log_info("Running with service id %" PRIun, id);
 
-	scan_for_devices();
+	scan_for_devices(NULL);
 	task_retval(0);
 	async_manager();
 	return 0;

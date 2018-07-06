@@ -817,7 +817,7 @@ static errno_t dev_check_new(void)
 	return EOK;
 }
 
-static void cat_change_cb(void)
+static void cat_change_cb(void *arg)
 {
 	dev_check_new();
 }
@@ -825,7 +825,7 @@ static void cat_change_cb(void)
 /** Start listening for new devices. */
 static errno_t input_start_dev_discovery(void)
 {
-	errno_t rc = loc_register_cat_change_cb(cat_change_cb);
+	errno_t rc = loc_register_cat_change_cb(cat_change_cb, NULL);
 	if (rc != EOK) {
 		printf("%s: Failed registering callback for device discovery: "
 		    "%s\n", NAME, str_error(rc));

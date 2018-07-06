@@ -56,35 +56,41 @@ static void vol_client_conn(ipc_call_t *, void *);
 static errno_t vol_init(void)
 {
 	errno_t rc;
+	vol_parts_t *parts = NULL;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_init()");
 
-	rc = vol_part_init();
+	rc = vol_parts_create(&parts);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	rc = vol_part_discovery_start();
+	rc = vol_part_discovery_start(parts);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
-	async_set_fallback_port_handler(vol_client_conn, NULL);
+	async_set_fallback_port_handler(vol_client_conn, parts);
 
 	rc = loc_server_register(NAME);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering server: %s.", str_error(rc));
-		return EEXIST;
+		rc = EEXIST;
 	}
 
 	service_id_t sid;
 	rc = loc_service_register(SERVICE_NAME_VOLSRV, &sid);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering service: %s.", str_error(rc));
-		return EEXIST;
+		rc = EEXIST;
+		goto error;
 	}
 
 	return EOK;
+error:
+	vol_parts_destroy(parts);
+	return rc;
 }
 
-static void vol_get_parts_srv(ipc_call_t *icall)
+static void vol_get_parts_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	ipc_call_t call;
 	size_t size;
@@ -104,7 +110,7 @@ static void vol_get_parts_srv(ipc_call_t *icall)
 		return;
 	}
 
-	rc = vol_part_get_ids(id_buf, size, &act_size);
+	rc = vol_part_get_ids(parts, id_buf, size, &act_size);
 	if (rc != EOK) {
 		async_answer_0(&call, rc);
 		async_answer_0(icall, rc);
@@ -117,14 +123,14 @@ static void vol_get_parts_srv(ipc_call_t *icall)
 	async_answer_1(icall, retval, act_size);
 }
 
-static void vol_part_add_srv(ipc_call_t *icall)
+static void vol_part_add_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
 	errno_t rc;
 
 	sid = IPC_GET_ARG1(*icall);
 
-	rc = vol_part_add(sid);
+	rc = vol_part_add(parts, sid);
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
 		return;
@@ -133,7 +139,7 @@ static void vol_part_add_srv(ipc_call_t *icall)
 	async_answer_0(icall, EOK);
 }
 
-static void vol_part_info_srv(ipc_call_t *icall)
+static void vol_part_info_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -143,7 +149,7 @@ static void vol_part_info_srv(ipc_call_t *icall)
 	sid = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_info_srv(%zu)",
 	    sid);
-	rc = vol_part_find_by_id_ref(sid, &part);
+	rc = vol_part_find_by_id_ref(parts, sid, &part);
 	if (rc != EOK) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -182,7 +188,7 @@ error:
 	vol_part_del_ref(part);
 }
 
-static void vol_part_eject_srv(ipc_call_t *icall)
+static void vol_part_eject_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -191,7 +197,7 @@ static void vol_part_eject_srv(ipc_call_t *icall)
 	sid = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_eject_srv(%zu)", sid);
 
-	rc = vol_part_find_by_id_ref(sid, &part);
+	rc = vol_part_find_by_id_ref(parts, sid, &part);
 	if (rc != EOK) {
 		async_answer_0(icall, ENOENT);
 		goto error;
@@ -208,7 +214,7 @@ error:
 	vol_part_del_ref(part);
 }
 
-static void vol_part_empty_srv(ipc_call_t *icall)
+static void vol_part_empty_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -217,7 +223,7 @@ static void vol_part_empty_srv(ipc_call_t *icall)
 	sid = IPC_GET_ARG1(*icall);
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_empty_srv(%zu)", sid);
 
-	rc = vol_part_find_by_id_ref(sid, &part);
+	rc = vol_part_find_by_id_ref(parts, sid, &part);
 	if (rc != EOK) {
 		async_answer_0(icall, ENOENT);
 		return;
@@ -234,7 +240,7 @@ error:
 	vol_part_del_ref(part);
 }
 
-static void vol_part_get_lsupp_srv(ipc_call_t *icall)
+static void vol_part_get_lsupp_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	vol_fstype_t fstype;
 	vol_label_supp_t vlsupp;
@@ -272,7 +278,7 @@ static void vol_part_get_lsupp_srv(ipc_call_t *icall)
 }
 
 
-static void vol_part_mkfs_srv(ipc_call_t *icall)
+static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
@@ -297,7 +303,7 @@ static void vol_part_mkfs_srv(ipc_call_t *icall)
 		    label);
 	}
 
-	rc = vol_part_find_by_id_ref(sid, &part);
+	rc = vol_part_find_by_id_ref(parts, sid, &part);
 	if (rc != EOK) {
 		free(label);
 		async_answer_0(icall, ENOENT);
@@ -318,6 +324,8 @@ static void vol_part_mkfs_srv(ipc_call_t *icall)
 
 static void vol_client_conn(ipc_call_t *icall, void *arg)
 {
+	vol_parts_t *parts = (vol_parts_t *) arg;
+
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_client_conn()");
 
 	/* Accept the connection */
@@ -336,25 +344,25 @@ static void vol_client_conn(ipc_call_t *icall, void *arg)
 
 		switch (method) {
 		case VOL_GET_PARTS:
-			vol_get_parts_srv(&call);
+			vol_get_parts_srv(parts, &call);
 			break;
 		case VOL_PART_ADD:
-			vol_part_add_srv(&call);
+			vol_part_add_srv(parts, &call);
 			break;
 		case VOL_PART_INFO:
-			vol_part_info_srv(&call);
+			vol_part_info_srv(parts, &call);
 			break;
 		case VOL_PART_EJECT:
-			vol_part_eject_srv(&call);
+			vol_part_eject_srv(parts, &call);
 			break;
 		case VOL_PART_EMPTY:
-			vol_part_empty_srv(&call);
+			vol_part_empty_srv(parts, &call);
 			break;
 		case VOL_PART_LSUPP:
-			vol_part_get_lsupp_srv(&call);
+			vol_part_get_lsupp_srv(parts, &call);
 			break;
 		case VOL_PART_MKFS:
-			vol_part_mkfs_srv(&call);
+			vol_part_mkfs_srv(parts, &call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

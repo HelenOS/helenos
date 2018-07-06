@@ -749,9 +749,10 @@ void hound_server_unregister(service_id_t id)
  * @param cb Callback function.
  * @return Error code.
  */
-errno_t hound_server_set_device_change_callback(dev_change_callback_t cb)
+errno_t hound_server_set_device_change_callback(dev_change_callback_t cb,
+    void *arg)
 {
-	return loc_register_cat_change_cb(cb);
+	return loc_register_cat_change_cb(cb, arg);
 }
 
 /**

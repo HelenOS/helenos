@@ -154,7 +154,7 @@ static bool find_output_dev(service_id_t *svcid)
  * connects to it and registers it as an output device. Then it unblocks the
  * fibril blocked in chardev_init().
  */
-static void check_for_dev(void)
+static void check_for_dev(void *arg)
 {
 	errno_t rc;
 	bool found;
@@ -235,14 +235,14 @@ errno_t chardev_init(void)
 		return rc;
 	}
 
-	rc = loc_register_cat_change_cb(check_for_dev);
+	rc = loc_register_cat_change_cb(check_for_dev, NULL);
 	if (rc != EOK) {
 		printf("%s: Failed to register callback for device discovery.\n",
 		    NAME);
 		return rc;
 	}
 
-	check_for_dev();
+	check_for_dev(NULL);
 
 	fibril_mutex_lock(&discovery_lock);
 	while (!discovery_finished)

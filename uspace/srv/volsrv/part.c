@@ -34,14 +34,15 @@
  * @brief
  */
 
-#include <stdbool.h>
+#include <adt/list.h>
 #include <errno.h>
-#include <str_error.h>
 #include <fibril_synch.h>
 #include <io/log.h>
 #include <loc.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <vfs/vfs.h>
 
 #include "empty.h"
@@ -49,12 +50,10 @@
 #include "part.h"
 #include "types/part.h"
 
-static errno_t vol_part_add_locked(service_id_t);
+static errno_t vol_part_add_locked(vol_parts_t *, service_id_t);
 static void vol_part_remove_locked(vol_part_t *);
-static errno_t vol_part_find_by_id_ref_locked(service_id_t, vol_part_t **);
-
-static LIST_INITIALIZE(vol_parts); /* of vol_part_t */
-static FIBRIL_MUTEX_INITIALIZE(vol_parts_lock);
+static errno_t vol_part_find_by_id_ref_locked(vol_parts_t *, service_id_t,
+    vol_part_t **);
 
 struct fsname_type {
 	const char *name;
@@ -86,7 +85,7 @@ static const char *fstype_str(vol_fstype_t fstype)
 }
 
 /** Check for new and removed partitions */
-static errno_t vol_part_check_new(void)
+static errno_t vol_part_check_new(vol_parts_t *parts)
 {
 	bool already_known;
 	bool still_exists;
@@ -97,12 +96,12 @@ static errno_t vol_part_check_new(void)
 	vol_part_t *part;
 	errno_t rc;
 
-	fibril_mutex_lock(&vol_parts_lock);
+	fibril_mutex_lock(&parts->lock);
 
 	rc = loc_category_get_id("partition", &part_cat, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed resolving category 'partition'.");
-		fibril_mutex_unlock(&vol_parts_lock);
+		fibril_mutex_unlock(&parts->lock);
 		return ENOENT;
 	}
 
@@ -110,7 +109,7 @@ static errno_t vol_part_check_new(void)
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed getting list of partition "
 		    "devices.");
-		fibril_mutex_unlock(&vol_parts_lock);
+		fibril_mutex_unlock(&parts->lock);
 		return EIO;
 	}
 
@@ -119,7 +118,7 @@ static errno_t vol_part_check_new(void)
 		already_known = false;
 
 		// XXX Make this faster
-		list_foreach(vol_parts, lparts, vol_part_t, part) {
+		list_foreach(parts->parts, lparts, vol_part_t, part) {
 			if (part->svc_id == svcs[i]) {
 				already_known = true;
 				break;
@@ -129,7 +128,7 @@ static errno_t vol_part_check_new(void)
 		if (!already_known) {
 			log_msg(LOG_DEFAULT, LVL_NOTE, "Found partition '%lu'",
 			    (unsigned long) svcs[i]);
-			rc = vol_part_add_locked(svcs[i]);
+			rc = vol_part_add_locked(parts, svcs[i]);
 			if (rc != EOK) {
 				log_msg(LOG_DEFAULT, LVL_ERROR, "Could not add "
 				    "partition.");
@@ -138,9 +137,9 @@ static errno_t vol_part_check_new(void)
 	}
 
 	/* Check for removed partitions */
-	cur = list_first(&vol_parts);
+	cur = list_first(&parts->parts);
 	while (cur != NULL) {
-		next = list_next(cur, &vol_parts);
+		next = list_next(cur, &parts->parts);
 		part = list_get_instance(cur, vol_part_t, lparts);
 
 		still_exists = false;
@@ -163,7 +162,7 @@ static errno_t vol_part_check_new(void)
 
 	free(svcs);
 
-	fibril_mutex_unlock(&vol_parts_lock);
+	fibril_mutex_unlock(&parts->lock);
 	return EOK;
 }
 
@@ -179,6 +178,7 @@ static vol_part_t *vol_part_new(void)
 
 	atomic_set(&part->refcnt, 1);
 	link_initialize(&part->lparts);
+	part->parts = NULL;
 	part->pcnt = vpc_empty;
 
 	return part;
@@ -205,7 +205,7 @@ static errno_t vol_part_probe(vol_part_t *part)
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
 
-	assert(fibril_mutex_is_locked(&vol_parts_lock));
+	assert(fibril_mutex_is_locked(&part->parts->lock));
 
 	fst = &fstab[0];
 	while (fst->name != NULL) {
@@ -323,16 +323,16 @@ static errno_t vol_part_mount(vol_part_t *part)
 	return rc;
 }
 
-static errno_t vol_part_add_locked(service_id_t sid)
+static errno_t vol_part_add_locked(vol_parts_t *parts, service_id_t sid)
 {
 	vol_part_t *part;
 	errno_t rc;
 
-	assert(fibril_mutex_is_locked(&vol_parts_lock));
+	assert(fibril_mutex_is_locked(&parts->lock));
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_add_locked(%zu)", sid);
 
 	/* Check for duplicates */
-	rc = vol_part_find_by_id_ref_locked(sid, &part);
+	rc = vol_part_find_by_id_ref_locked(parts, sid, &part);
 	if (rc == EOK) {
 		vol_part_del_ref(part);
 		return EEXIST;
@@ -345,6 +345,7 @@ static errno_t vol_part_add_locked(service_id_t sid)
 		return ENOMEM;
 
 	part->svc_id = sid;
+	part->parts = parts;
 
 	rc = loc_service_get_name(sid, &part->svc_name);
 	if (rc != EOK) {
@@ -360,7 +361,7 @@ static errno_t vol_part_add_locked(service_id_t sid)
 	if (rc != EOK)
 		goto error;
 
-	list_append(&part->lparts, &vol_parts);
+	list_append(&part->lparts, &parts->parts);
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Added partition %zu", part->svc_id);
 
@@ -373,8 +374,9 @@ error:
 
 static void vol_part_remove_locked(vol_part_t *part)
 {
-	assert(fibril_mutex_is_locked(&vol_parts_lock));
-	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_remove_locked(%zu)", part->svc_id);
+	assert(fibril_mutex_is_locked(&part->parts->lock));
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_remove_locked(%zu)",
+	    part->svc_id);
 
 	list_remove(&part->lparts);
 
@@ -382,76 +384,98 @@ static void vol_part_remove_locked(vol_part_t *part)
 	vol_part_del_ref(part);
 }
 
-errno_t vol_part_add(service_id_t sid)
+errno_t vol_part_add(vol_parts_t *parts, service_id_t sid)
 {
 	errno_t rc;
 
-	fibril_mutex_lock(&vol_parts_lock);
-	rc = vol_part_add_locked(sid);
-	fibril_mutex_unlock(&vol_parts_lock);
+	fibril_mutex_lock(&parts->lock);
+	rc = vol_part_add_locked(parts, sid);
+	fibril_mutex_unlock(&parts->lock);
 
 	return rc;
 }
 
-static void vol_part_cat_change_cb(void)
+static void vol_part_cat_change_cb(void *arg)
 {
-	(void) vol_part_check_new();
+	vol_parts_t *parts = (vol_parts_t *) arg;
+
+	(void) vol_part_check_new(parts);
 }
 
-errno_t vol_part_init(void)
+errno_t vol_parts_create(vol_parts_t **rparts)
 {
+	vol_parts_t *parts;
+
+	parts = calloc(1, sizeof(vol_parts_t));
+	if (parts == NULL)
+		return ENOMEM;
+
+	fibril_mutex_initialize(&parts->lock);
+	list_initialize(&parts->parts);
+
+	*rparts = parts;
 	return EOK;
 }
 
-errno_t vol_part_discovery_start(void)
+void vol_parts_destroy(vol_parts_t *parts)
+{
+	if (parts == NULL)
+		return;
+
+	assert(list_empty(&parts->parts));
+	free(parts);
+}
+
+errno_t vol_part_discovery_start(vol_parts_t *parts)
 {
 	errno_t rc;
 
-	rc = loc_register_cat_change_cb(vol_part_cat_change_cb);
+	rc = loc_register_cat_change_cb(vol_part_cat_change_cb, parts);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback "
 		    "for partition discovery: %s.", str_error(rc));
 		return rc;
 	}
 
-	return vol_part_check_new();
+	return vol_part_check_new(parts);
 }
 
 /** Get list of partitions as array of service IDs. */
-errno_t vol_part_get_ids(service_id_t *id_buf, size_t buf_size, size_t *act_size)
+errno_t vol_part_get_ids(vol_parts_t *parts, service_id_t *id_buf,
+    size_t buf_size, size_t *act_size)
 {
 	size_t act_cnt;
 	size_t buf_cnt;
 
-	fibril_mutex_lock(&vol_parts_lock);
+	fibril_mutex_lock(&parts->lock);
 
 	buf_cnt = buf_size / sizeof(service_id_t);
 
-	act_cnt = list_count(&vol_parts);
+	act_cnt = list_count(&parts->parts);
 	*act_size = act_cnt * sizeof(service_id_t);
 
 	if (buf_size % sizeof(service_id_t) != 0) {
-		fibril_mutex_unlock(&vol_parts_lock);
+		fibril_mutex_unlock(&parts->lock);
 		return EINVAL;
 	}
 
 	size_t pos = 0;
-	list_foreach(vol_parts, lparts, vol_part_t, part) {
+	list_foreach(parts->parts, lparts, vol_part_t, part) {
 		if (pos < buf_cnt)
 			id_buf[pos] = part->svc_id;
 		pos++;
 	}
 
-	fibril_mutex_unlock(&vol_parts_lock);
+	fibril_mutex_unlock(&parts->lock);
 	return EOK;
 }
 
-static errno_t vol_part_find_by_id_ref_locked(service_id_t sid,
-    vol_part_t **rpart)
+static errno_t vol_part_find_by_id_ref_locked(vol_parts_t *parts,
+    service_id_t sid, vol_part_t **rpart)
 {
-	assert(fibril_mutex_is_locked(&vol_parts_lock));
+	assert(fibril_mutex_is_locked(&parts->lock));
 
-	list_foreach(vol_parts, lparts, vol_part_t, part) {
+	list_foreach(parts->parts, lparts, vol_part_t, part) {
 		if (part->svc_id == sid) {
 			/* Add reference */
 			atomic_inc(&part->refcnt);
@@ -463,13 +487,14 @@ static errno_t vol_part_find_by_id_ref_locked(service_id_t sid,
 	return ENOENT;
 }
 
-errno_t vol_part_find_by_id_ref(service_id_t sid, vol_part_t **rpart)
+errno_t vol_part_find_by_id_ref(vol_parts_t *parts, service_id_t sid,
+    vol_part_t **rpart)
 {
 	errno_t rc;
 
-	fibril_mutex_lock(&vol_parts_lock);
-	rc = vol_part_find_by_id_ref_locked(sid, rpart);
-	fibril_mutex_unlock(&vol_parts_lock);
+	fibril_mutex_lock(&parts->lock);
+	rc = vol_part_find_by_id_ref_locked(parts, sid, rpart);
+	fibril_mutex_unlock(&parts->lock);
 
 	return rc;
 }
@@ -538,13 +563,13 @@ errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part()");
 
-	fibril_mutex_lock(&vol_parts_lock);
+	fibril_mutex_lock(&part->parts->lock);
 
 	rc = volsrv_part_mkfs(part->svc_id, fstype, label);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_part_mkfs_part() - failed %s",
 		    str_error(rc));
-		fibril_mutex_unlock(&vol_parts_lock);
+		fibril_mutex_unlock(&part->parts->lock);
 		return rc;
 	}
 
@@ -555,17 +580,17 @@ errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 	 */
 	rc = vol_part_probe(part);
 	if (rc != EOK) {
-		fibril_mutex_unlock(&vol_parts_lock);
+		fibril_mutex_unlock(&part->parts->lock);
 		return rc;
 	}
 
 	rc = vol_part_mount(part);
 	if (rc != EOK) {
-		fibril_mutex_unlock(&vol_parts_lock);
+		fibril_mutex_unlock(&part->parts->lock);
 		return rc;
 	}
 
-	fibril_mutex_unlock(&vol_parts_lock);
+	fibril_mutex_unlock(&part->parts->lock);
 	return EOK;
 }
 

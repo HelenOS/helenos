@@ -2261,7 +2261,7 @@ ret:
 	fibril_mutex_unlock(&discovery_mtx);
 }
 
-static void category_change_cb(void)
+static void category_change_cb(void *arg)
 {
 	discover_viewports();
 }
@@ -2310,7 +2310,7 @@ static errno_t compositor_srv_init(char *input_svc, char *name)
 		return rc;
 	}
 
-	rc = loc_register_cat_change_cb(category_change_cb);
+	rc = loc_register_cat_change_cb(category_change_cb, NULL);
 	if (rc != EOK) {
 		printf("%s: Failed to register category change callback\n", NAME);
 		input_disconnect();

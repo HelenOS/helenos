@@ -39,11 +39,14 @@
 
 #include <adt/list.h>
 #include <atomic.h>
+#include <fibril_synch.h>
 #include <stdbool.h>
 #include <types/label.h>
 
 /** Partition */
 typedef struct {
+	/** Containing partition list */
+	struct vol_parts *parts;
 	/** Link to vol_parts */
 	link_t lparts;
 	/** Reference count */
@@ -63,6 +66,14 @@ typedef struct {
 	/** Mounted at automatic mount point */
 	bool cur_mp_auto;
 } vol_part_t;
+
+/** Partitions */
+typedef struct vol_parts {
+	/** Synchronize access to list of partitions */
+	fibril_mutex_t lock;
+	/** Partitions (list of vol_part_t) */
+	list_t parts;
+} vol_parts_t;
 
 #endif
 

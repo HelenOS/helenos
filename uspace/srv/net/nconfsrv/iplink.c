@@ -169,7 +169,7 @@ error:
 	return rc;
 }
 
-static void ncs_link_cat_change_cb(void)
+static void ncs_link_cat_change_cb(void *arg)
 {
 	(void) ncs_link_check_new();
 }
@@ -178,7 +178,7 @@ errno_t ncs_link_discovery_start(void)
 {
 	errno_t rc;
 
-	rc = loc_register_cat_change_cb(ncs_link_cat_change_cb);
+	rc = loc_register_cat_change_cb(ncs_link_cat_change_cb, NULL);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback for IP link "
 		    "discovery: %s.", str_error(rc));

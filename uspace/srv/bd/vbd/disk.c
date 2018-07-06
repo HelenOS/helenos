@@ -446,7 +446,7 @@ static errno_t vbds_disk_parts_remove(vbds_disk_t *disk, vbds_rem_flag_t flag)
 	return EOK;
 }
 
-static void vbds_disk_cat_change_cb(void)
+static void vbds_disk_cat_change_cb(void *arg)
 {
 	(void) vbds_disks_check_new();
 }
@@ -455,7 +455,7 @@ errno_t vbds_disk_discovery_start(void)
 {
 	errno_t rc;
 
-	rc = loc_register_cat_change_cb(vbds_disk_cat_change_cb);
+	rc = loc_register_cat_change_cb(vbds_disk_cat_change_cb, NULL);
 	if (rc != EOK) {
 		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering callback "
 		    "for disk discovery: %s.", str_error(rc));
