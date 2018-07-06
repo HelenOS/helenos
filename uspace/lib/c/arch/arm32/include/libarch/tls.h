@@ -59,7 +59,7 @@ typedef struct {
  */
 static inline void __tcb_set(tcb_t *tcb)
 {
-	void *tls = (void *) tcb;
+	char *tls = (char *) tcb;
 	tls += sizeof(tcb_t) + ARM_TP_OFFSET;
 	asm volatile (
 	    "mov r9, %0"
@@ -76,7 +76,7 @@ static inline void __tcb_set(tcb_t *tcb)
  */
 static inline tcb_t *__tcb_get(void)
 {
-	void *ret;
+	char *ret;
 	asm volatile (
 	    "mov %0, r9"
 	    : "=r" (ret)
