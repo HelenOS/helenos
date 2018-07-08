@@ -37,6 +37,8 @@
 
 #define CONFIG_TLS_VARIANT_1
 
+#include <libc.h>
+
 #define PPC_TP_OFFSET 0x7000
 
 typedef struct {
@@ -45,7 +47,7 @@ typedef struct {
 
 static inline void __tcb_set(tcb_t *tcb)
 {
-	char *tp = (char *) tcb;
+	uint8_t *tp = (uint8_t *) tcb;
 	tp += PPC_TP_OFFSET + sizeof(tcb_t);
 
 	asm volatile (
@@ -57,14 +59,14 @@ static inline void __tcb_set(tcb_t *tcb)
 
 static inline tcb_t *__tcb_get(void)
 {
-	char *retval;
+	uint8_t *retval;
 
 	asm volatile (
 	    "mr %0, %%r2\n"
 	    : "=r" (retval)
 	);
 
-	return (tcb_t *)(retval - PPC_TP_OFFSET - sizeof(tcb_t));
+	return (tcb_t *) (retval - PPC_TP_OFFSET - sizeof(tcb_t));
 }
 
 #endif

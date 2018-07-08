@@ -45,6 +45,8 @@
  */
 #define CONFIG_TLS_VARIANT_1
 
+#include <libc.h>
+
 /*
  * I did not find any specification (neither MIPS nor PowerPC), but
  * as I found it
@@ -66,7 +68,7 @@ typedef struct {
 
 static inline void __tcb_set(tcb_t *tcb)
 {
-	char *tp = (char *) tcb;
+	uint8_t *tp = (uint8_t *) tcb;
 	tp += MIPS_TP_OFFSET + sizeof(tcb_t);
 
 	asm volatile ("add $27, %0, $0" : : "r" (tp)); /* Move tls to K1 */
@@ -74,7 +76,7 @@ static inline void __tcb_set(tcb_t *tcb)
 
 static inline tcb_t *__tcb_get(void)
 {
-	char *retval;
+	uint8_t *retval;
 
 	asm volatile ("add %0, $27, $0" : "=r" (retval));
 

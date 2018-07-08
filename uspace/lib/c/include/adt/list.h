@@ -39,6 +39,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <trace.h>
 
 /** Doubly linked list link. */
@@ -420,7 +421,7 @@ static inline void *list_pop_internal(list_t *list, ptrdiff_t offset)
 		return NULL;
 
 	list_remove(tmp);
-	return (void *)(((char *) tmp) - offset);
+	return (void *) (((uint8_t *) tmp) - offset);
 }
 
 #define list_pop(list, type, member) \
