@@ -47,6 +47,7 @@
 #include <byteorder.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <rndgen.h>
 #include <str.h>
 #include "fat.h"
 #include "fat_dentry.h"
@@ -88,7 +89,7 @@ static void syntax_print(void);
 
 static errno_t fat_params_compute(struct fat_cfg *cfg);
 static errno_t fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_id);
-static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs);
+static errno_t fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs);
 
 int main(int argc, char **argv)
 {
@@ -375,7 +376,9 @@ static errno_t fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_
 	struct fat_bs bs;
 	fat_dentry_t *de;
 
-	fat_bootsec_create(cfg, &bs);
+	rc = fat_bootsec_create(cfg, &bs);
+	if (rc != EOK)
+		return rc;
 
 	rc = block_write_direct(service_id, BS_BLOCK, 1, &bs);
 	if (rc != EOK)
@@ -441,8 +444,8 @@ static errno_t fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_
 			/* Set up volume label entry */
 			(void) fat_label_encode(&de->name, cfg->label);
 			de->attr = FAT_ATTR_VOLLABEL;
-			de->mtime = 0x1234;
-			de->mdate = 0x1234;
+			de->mtime = 0x1234; // XXX Proper time
+			de->mdate = 0x1234; // XXX Proper date
 		} else if (idx == 1) {
 			/* Clear volume label entry */
 			memset(buffer, 0, cfg->sector_size);
@@ -461,9 +464,25 @@ static errno_t fat_blocks_write(struct fat_cfg const *cfg, service_id_t service_
 }
 
 /** Construct boot sector with the given parameters. */
-static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
+static errno_t fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 {
 	const char *bs_label;
+	rndgen_t *rndgen;
+	uint32_t vsn;
+	errno_t rc;
+
+	/* Generate a volume serial number */
+	rc = rndgen_create(&rndgen);
+	if (rc != EOK)
+		return rc;
+
+	rc = rndgen_uint32(rndgen, &vsn);
+	if (rc != EOK) {
+		rndgen_destroy(rndgen);
+		return rc;
+	}
+
+	rndgen_destroy(rndgen);
 
 	/*
 	 * The boot sector must always contain a valid label. If there
@@ -502,13 +521,14 @@ static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 	bs->headcnt = host2uint16_t_le(6);
 	bs->hidden_sec = host2uint32_t_le(0);
 
+
 	if (cfg->fat_type == FAT32) {
 		bs->sec_per_fat = 0;
 		bs->fat32.sectors_per_fat = host2uint32_t_le(cfg->fat_sectors);
 
 		bs->fat32.pdn = 0x80;
 		bs->fat32.ebs = 0x29;
-		bs->fat32.id = host2uint32_t_be(0x12345678);
+		bs->fat32.id = host2uint32_t_be(vsn);
 		bs->fat32.root_cluster = 2;
 
 		(void) fat_label_encode(&bs->fat32.label, bs_label);
@@ -517,7 +537,7 @@ static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 		bs->sec_per_fat = host2uint16_t_le(cfg->fat_sectors);
 		bs->pdn = 0x80;
 		bs->ebs = 0x29;
-		bs->id = host2uint32_t_be(0x12345678);
+		bs->id = host2uint32_t_be(vsn);
 
 		(void) fat_label_encode(&bs->label, bs_label);
 		if (cfg->fat_type == FAT12)
@@ -525,6 +545,8 @@ static void fat_bootsec_create(struct fat_cfg const *cfg, struct fat_bs *bs)
 		else
 			memcpy(bs->type, "FAT16   ", 8);
 	}
+
+	return EOK;
 }
 
 /**

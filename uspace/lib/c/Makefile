@@ -132,6 +132,7 @@ GENERIC_SOURCES = \
 	generic/power_of_ten.c \
 	generic/double_to_str.c \
 	generic/malloc.c \
+	generic/rndgen.c \
 	generic/stdio/scanf.c \
 	generic/stdio/sprintf.c \
 	generic/stdio/sscanf.c \

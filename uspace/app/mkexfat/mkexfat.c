@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <byteorder.h>
 #include <align.h>
+#include <rndgen.h>
 #include <str.h>
 #include <getopt.h>
 #include <macros.h>
@@ -242,11 +243,30 @@ cfg_print_info(exfat_cfg_t *cfg)
  *
  * @param mbs Pointer to the Main Boot Sector structure.
  * @param cfg Pointer to the exFAT configuration structure.
- * @return    Initial checksum value.
+ * @param chksum Place to store initial checksum value.
+ * @return EOK on success or error code
  */
 static uint32_t
-vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
+vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg, uint32_t *chksum)
 {
+	rndgen_t *rndgen;
+	errno_t rc;
+	uint32_t vsn;
+
+	/* Generate volume serial number */
+
+	rc = rndgen_create(&rndgen);
+	if (rc != EOK)
+		return rc;
+
+	rc = rndgen_uint32(rndgen, &vsn);
+	if (rc != EOK) {
+		rndgen_destroy(rndgen);
+		return rc;
+	}
+
+	rndgen_destroy(rndgen);
+
 	/* Fill the structure with zeroes */
 	memset(mbs, 0, sizeof(exfat_bs_t));
 
@@ -267,7 +287,7 @@ vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
 	mbs->data_clusters = host2uint32_t_le(cfg->total_clusters);
 
 	mbs->rootdir_cluster = host2uint32_t_le(cfg->rootdir_cluster);
-	mbs->volume_serial = host2uint32_t_le(0xe1028172);
+	mbs->volume_serial = host2uint32_t_le(vsn);
 	mbs->version.major = 1;
 	mbs->version.minor = 0;
 	mbs->volume_flags = host2uint16_t_le(0);
@@ -282,7 +302,8 @@ vbr_initialize(exfat_bs_t *mbs, exfat_cfg_t *cfg)
 	mbs->allocated_percent = 0;
 	mbs->signature = host2uint16_t_le(0xAA55);
 
-	return vbr_checksum_start(mbs, sizeof(exfat_bs_t));
+	*chksum = vbr_checksum_start(mbs, sizeof(exfat_bs_t));
+	return EOK;
 }
 
 static errno_t
@@ -298,7 +319,9 @@ bootsec_write(service_id_t service_id, exfat_cfg_t *cfg)
 	if (!chksum_sector)
 		return ENOMEM;
 
-	vbr_checksum = vbr_initialize(&mbs, cfg);
+	rc = vbr_initialize(&mbs, cfg, &vbr_checksum);
+	if (rc != EOK)
+		goto exit;
 
 	/* Write the Main Boot Sector to disk */
 	rc = block_write_direct(service_id, MBS_SECTOR, 1, &mbs);

@@ -34,9 +34,9 @@
 
 #include <errno.h>
 #include <uuid.h>
+#include <rndgen.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <time.h>
 #include <str.h>
 
 /** Generate UUID.
@@ -47,20 +47,29 @@
 errno_t uuid_generate(uuid_t *uuid)
 {
 	int i;
-	struct timeval tv;
+	rndgen_t *rndgen;
+	errno_t rc;
 
-	/* XXX This is a rather poor way of generating random numbers */
-	gettimeofday(&tv, NULL);
-	srand(tv.tv_sec ^ tv.tv_usec);
+	rc = rndgen_create(&rndgen);
+	if (rc != EOK)
+		return EIO;
 
-	for (i = 0; i < uuid_bytes; i++)
-		uuid->b[i] = rand();
+	for (i = 0; i < uuid_bytes; i++) {
+		rc = rndgen_uint8(rndgen, &uuid->b[i]);
+		if (rc != EOK) {
+			rc = EIO;
+			goto error;
+		}
+	}
 
 	/* Version 4 UUID from random or pseudo-random numbers */
 	uuid->b[8] = (uuid->b[8] & ~0xc0) | 0x40;
 	uuid->b[6] = (uuid->b[6] & 0xf0) | 0x40;
 
 	return EOK;
+error:
+	rndgen_destroy(rndgen);
+	return rc;
 }
 
 /** Encode UUID into binary form per RFC 4122.
