@@ -693,7 +693,7 @@ void async_msg_5(async_exch_t *exch, sysarg_t imethod, sysarg_t arg1,
 }
 
 static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
-    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4,
+    iface_t iface, sysarg_t arg2, sysarg_t arg3, sysarg_t flags,
     cap_phone_handle_t *out_phone)
 {
 	ipc_call_t result;
@@ -709,8 +709,8 @@ static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
 	msg->dataptr = &result;
 	msg->wdata.active = true;
 
-	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, arg4,
-	    msg, reply_received);
+	ipc_call_async_4(phone, IPC_M_CONNECT_ME_TO, (sysarg_t) iface, arg2,
+	    arg3, flags, msg, reply_received);
 
 	errno_t rc;
 	async_wait_for((aid_t) msg, &rc);
@@ -720,59 +720,6 @@ static errno_t async_connect_me_to_internal(cap_phone_handle_t phone,
 
 	*out_phone = (cap_phone_handle_t) IPC_GET_ARG5(result);
 	return EOK;
-}
-
-/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
- *
- * Ask through for a new connection to some service.
- *
- * @param mgmt Exchange management style.
- * @param exch Exchange for sending the message.
- * @param arg1 User defined argument.
- * @param arg2 User defined argument.
- * @param arg3 User defined argument.
- *
- * @return New session on success or NULL on error.
- *
- */
-async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
-    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
-{
-	if (exch == NULL) {
-		errno = ENOENT;
-		return NULL;
-	}
-
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
-	if (sess == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-
-	cap_phone_handle_t phone;
-	errno_t rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
-	    0, &phone);
-	if (rc != EOK) {
-		errno = rc;
-		free(sess);
-		return NULL;
-	}
-
-	sess->iface = 0;
-	sess->mgmt = mgmt;
-	sess->phone = phone;
-	sess->arg1 = arg1;
-	sess->arg2 = arg2;
-	sess->arg3 = arg3;
-
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
-
-	return sess;
 }
 
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
@@ -788,7 +735,7 @@ async_sess_t *async_connect_me_to(exch_mgmt_t mgmt, async_exch_t *exch,
  * @return New session on success or NULL on error.
  *
  */
-async_sess_t *async_connect_me_to_iface(async_exch_t *exch, iface_t iface,
+async_sess_t *async_connect_me_to(async_exch_t *exch, iface_t iface,
     sysarg_t arg2, sysarg_t arg3)
 {
 	if (exch == NULL) {
@@ -837,67 +784,12 @@ async_sess_t *async_connect_me_to_iface(async_exch_t *exch, iface_t iface,
  * The proper solution seems to be to implement parallel exchanges using
  * tagging.
  */
-void async_sess_args_set(async_sess_t *sess, sysarg_t arg1, sysarg_t arg2,
+void async_sess_args_set(async_sess_t *sess, iface_t iface, sysarg_t arg2,
     sysarg_t arg3)
 {
-	sess->arg1 = arg1;
+	sess->arg1 = iface;
 	sess->arg2 = arg2;
 	sess->arg3 = arg3;
-}
-
-/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
- *
- * Ask through phone for a new connection to some service and block until
- * success.
- *
- * @param mgmt Exchange management style.
- * @param exch Exchange for sending the message.
- * @param arg1 User defined argument.
- * @param arg2 User defined argument.
- * @param arg3 User defined argument.
- *
- * @return New session on success or NULL on error.
- *
- */
-async_sess_t *async_connect_me_to_blocking(exch_mgmt_t mgmt, async_exch_t *exch,
-    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
-{
-	if (exch == NULL) {
-		errno = ENOENT;
-		return NULL;
-	}
-
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
-	if (sess == NULL) {
-		errno = ENOMEM;
-		return NULL;
-	}
-
-	cap_phone_handle_t phone;
-	errno_t rc = async_connect_me_to_internal(exch->phone, arg1, arg2, arg3,
-	    IPC_FLAG_BLOCKING, &phone);
-
-	if (rc != EOK) {
-		errno = rc;
-		free(sess);
-		return NULL;
-	}
-
-	sess->iface = 0;
-	sess->mgmt = mgmt;
-	sess->phone = phone;
-	sess->arg1 = arg1;
-	sess->arg2 = arg2;
-	sess->arg3 = arg3;
-
-	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-
-	list_initialize(&sess->exch_list);
-	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
-
-	return sess;
 }
 
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
@@ -913,7 +805,7 @@ async_sess_t *async_connect_me_to_blocking(exch_mgmt_t mgmt, async_exch_t *exch,
  * @return New session on success or NULL on error.
  *
  */
-async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *exch, iface_t iface,
+async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
     sysarg_t arg2, sysarg_t arg3)
 {
 	if (exch == NULL) {

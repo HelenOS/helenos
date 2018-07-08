@@ -95,7 +95,7 @@ struct async_sess {
 	cap_phone_handle_t phone;
 
 	/** First clone connection argument */
-	sysarg_t arg1;
+	iface_t arg1;
 
 	/** Second clone connection argument */
 	sysarg_t arg2;

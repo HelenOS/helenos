@@ -338,13 +338,9 @@ extern errno_t async_req_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *, sysarg_t *);
 
-extern async_sess_t *async_connect_me_to(exch_mgmt_t, async_exch_t *, sysarg_t,
-    sysarg_t, sysarg_t);
-extern async_sess_t *async_connect_me_to_iface(async_exch_t *, iface_t,
-    sysarg_t, sysarg_t);
-extern async_sess_t *async_connect_me_to_blocking(exch_mgmt_t, async_exch_t *,
-    sysarg_t, sysarg_t, sysarg_t);
-extern async_sess_t *async_connect_me_to_blocking_iface(async_exch_t *, iface_t,
+extern async_sess_t *async_connect_me_to(async_exch_t *, iface_t, sysarg_t,
+    sysarg_t);
+extern async_sess_t *async_connect_me_to_blocking(async_exch_t *, iface_t,
     sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_kbox(task_id_t);
 
@@ -360,7 +356,7 @@ extern void async_exchange_end(async_exch_t *);
  * FIXME These functions just work around problems with parallel exchange
  * management. Proper solution needs to be implemented.
  */
-void async_sess_args_set(async_sess_t *sess, sysarg_t, sysarg_t, sysarg_t);
+void async_sess_args_set(async_sess_t *sess, iface_t, sysarg_t, sysarg_t);
 
 /*
  * User-friendly wrappers for async_share_in_start().

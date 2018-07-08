@@ -80,7 +80,7 @@ async_sess_t *service_connect(service_t service, iface_t iface, sysarg_t arg3)
 		return NULL;
 
 	async_sess_t *csess =
-	    async_connect_me_to_iface(exch, iface, service, arg3);
+	    async_connect_me_to(exch, iface, service, arg3);
 	async_exchange_end(exch);
 
 	if (csess == NULL)
@@ -105,7 +105,7 @@ async_sess_t *service_connect_blocking(service_t service, iface_t iface,
 
 	async_exch_t *exch = async_exchange_begin(sess);
 	async_sess_t *csess =
-	    async_connect_me_to_blocking_iface(exch, iface, service, arg3);
+	    async_connect_me_to_blocking(exch, iface, service, arg3);
 	async_exchange_end(exch);
 
 	if (csess == NULL)
@@ -155,7 +155,7 @@ async_sess_t *ns_session_get(void)
 
 	if (sess_ns == NULL) {
 		exch = async_exchange_begin(&session_ns);
-		sess_ns = async_connect_me_to_iface(exch, 0, 0, 0);
+		sess_ns = async_connect_me_to(exch, 0, 0, 0);
 		async_exchange_end(exch);
 		if (sess_ns == NULL)
 			return NULL;
