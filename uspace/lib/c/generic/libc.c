@@ -62,17 +62,6 @@
 
 static bool env_setup = false;
 
-/**
- * Used for C++ constructors/destructors
- * and the GCC constructor/destructor extension.
- */
-typedef void (*init_array_entry_t)();
-extern init_array_entry_t __init_array_start[];
-extern init_array_entry_t __init_array_end[];
-typedef void (*fini_array_entry_t)();
-extern fini_array_entry_t __fini_array_start[];
-extern fini_array_entry_t __fini_array_end[];
-
 void __libc_main(void *pcb_ptr)
 {
 	/* Initialize user task run-time environment */

@@ -35,6 +35,18 @@
 #ifndef LIBC_PRIVATE_LIBC_H_
 #define LIBC_PRIVATE_LIBC_H_
 
+/**
+ * Used for C++ constructors/destructors
+ * and the GCC constructor/destructor extension.
+ */
+typedef void (*init_array_entry_t)();
+typedef void (*fini_array_entry_t)();
+
+extern init_array_entry_t __init_array_start[];
+extern init_array_entry_t __init_array_end[];
+extern fini_array_entry_t __fini_array_start[];
+extern fini_array_entry_t __fini_array_end[];
+
 extern unsigned char _end[];
 extern void __libc_main(void *) __attribute__((noreturn));
 extern void __libc_exit(int) __attribute__((noreturn));
