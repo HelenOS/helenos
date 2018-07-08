@@ -51,7 +51,7 @@ SECTIONS {
 		*(.bss);
 	} :data
 
-    __dso_handle = .;
+	__dso_handle = .;
 
 	.init_array : {
 		PROVIDE_HIDDEN (__init_array_start = .);

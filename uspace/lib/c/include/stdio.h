@@ -216,7 +216,6 @@ extern off64_t ftell64(FILE *);
 
 #endif
 
-
 #ifdef __cplusplus
 }
 #endif

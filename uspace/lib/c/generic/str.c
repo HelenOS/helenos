@@ -1743,7 +1743,7 @@ int str_int64_t(const char *nptr, const char **endptr, unsigned int base,
 		if (unsigned_result == UINT64_MAX)
 			return EINVAL;
 
-		*result = -(int64_t)unsigned_result;
+		*result = -(int64_t) unsigned_result;
 	} else
 		*result = unsigned_result;
 

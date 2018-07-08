@@ -37,7 +37,6 @@
 
 #define CONFIG_TLS_VARIANT_1
 
-
 /* This structure must be exactly 16 bytes long */
 typedef struct {
 	void *dtv; /* unused in static linking*/

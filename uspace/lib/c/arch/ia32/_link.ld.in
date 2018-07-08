@@ -113,7 +113,7 @@ SECTIONS {
 		*(.bss);
 	} :data
 
-    __dso_handle = .;
+	__dso_handle = .;
 
 	.init_array : {
 		PROVIDE (__init_array_start = .);
