@@ -53,6 +53,7 @@
 #include "private/libc.h"
 
 #define DPRINTF(...) ((void)0)
+#undef READY_DEBUG
 
 /** Member of timeout_list. */
 typedef struct {
@@ -86,6 +87,7 @@ static bool multithreaded = false;
 /* This futex serializes access to global data. */
 static futex_t fibril_futex = FUTEX_INITIALIZER;
 static futex_t ready_semaphore = FUTEX_INITIALIZE(0);
+static long ready_st_count;
 
 static LIST_INITIALIZE(ready_list);
 static LIST_INITIALIZE(fibril_list);
@@ -102,6 +104,51 @@ static fibril_t _fibril_event_timed_out;
 #define _EVENT_INITIAL   (NULL)
 #define _EVENT_TRIGGERED (&_fibril_event_triggered)
 #define _EVENT_TIMED_OUT (&_fibril_event_timed_out)
+
+static inline void _ready_debug_check(void)
+{
+#ifdef READY_DEBUG
+	assert(!multithreaded);
+	long count = (long) list_count(&ready_list) +
+	    (long) list_count(&ipc_buffer_free_list);
+	assert(ready_st_count == count);
+#endif
+}
+
+static inline long _ready_count(void)
+{
+	/*
+	 * The number of available tokens is always equal to the number
+	 * of fibrils in the ready list + the number of free IPC buffer
+	 * buckets.
+	 */
+
+	if (multithreaded)
+		return atomic_get(&ready_semaphore.val);
+
+	_ready_debug_check();
+	return ready_st_count;
+}
+
+static inline void _ready_up(void)
+{
+	if (multithreaded) {
+		futex_up(&ready_semaphore);
+	} else {
+		ready_st_count++;
+		_ready_debug_check();
+	}
+}
+
+static inline errno_t _ready_down(const struct timeval *expires)
+{
+	if (multithreaded)
+		return futex_down_timeout(&ready_semaphore, expires);
+
+	_ready_debug_check();
+	ready_st_count--;
+	return EOK;
+}
 
 static atomic_t threads_in_ipc_wait = { 0 };
 
@@ -237,19 +284,7 @@ static fibril_t *_ready_list_pop(const struct timeval *expires, bool locked)
 		futex_assert_is_not_locked(&fibril_futex);
 	}
 
-	if (!multithreaded) {
-		/*
-		 * The number of available tokens is always equal to the number
-		 * of fibrils in the ready list + the number of free IPC buffer
-		 * buckets.
-		 */
-
-		assert(atomic_get(&ready_semaphore.val) ==
-		    list_count(&ready_list) + list_count(&ipc_buffer_free_list));
-	}
-
-	errno_t rc = futex_down_timeout(&ready_semaphore, expires);
-
+	errno_t rc = _ready_down(expires);
 	if (rc != EOK)
 		return NULL;
 
@@ -283,7 +318,7 @@ static fibril_t *_ready_list_pop(const struct timeval *expires, bool locked)
 
 	if (rc != EOK && rc != ENOENT) {
 		/* Return token. */
-		futex_up(&ready_semaphore);
+		_ready_up();
 		return NULL;
 	}
 
@@ -315,7 +350,7 @@ static fibril_t *_ready_list_pop(const struct timeval *expires, bool locked)
 		f = _fibril_trigger_internal(&w->event, _EVENT_TRIGGERED);
 
 		/* Return token. */
-		futex_up(&ready_semaphore);
+		_ready_up();
 	} else {
 		_ipc_buffer_t *buf = list_pop(&ipc_buffer_free_list, _ipc_buffer_t, link);
 		assert(buf);
@@ -346,7 +381,7 @@ static void _ready_list_push(fibril_t *f)
 
 	/* Enqueue in ready_list. */
 	list_append(&f->link, &ready_list);
-	futex_up(&ready_semaphore);
+	_ready_up();
 
 	if (atomic_get(&threads_in_ipc_wait)) {
 		DPRINTF("Poking.\n");
@@ -369,7 +404,7 @@ static errno_t _wait_ipc(ipc_call_t *call, const struct timeval *expires)
 		/* Return to freelist. */
 		list_append(&buf->link, &ipc_buffer_free_list);
 		/* Return IPC wait token. */
-		futex_up(&ready_semaphore);
+		_ready_up();
 
 		futex_unlock(&ipc_lists_futex);
 		return rc;
@@ -753,8 +788,11 @@ static void _runner_fn(void *arg)
  */
 int fibril_test_spawn_runners(int n)
 {
-	if (!multithreaded)
+	if (!multithreaded) {
+		_ready_debug_check();
+		atomic_set(&ready_semaphore.val, ready_st_count);
 		multithreaded = true;
+	}
 
 	errno_t rc;
 
@@ -828,7 +866,7 @@ void __fibrils_init(void)
 
 	for (int i = 0; i < IPC_BUFFER_COUNT; i++) {
 		list_append(&buffers[i].link, &ipc_buffer_free_list);
-		futex_up(&ready_semaphore);
+		_ready_up();
 	}
 }
 
