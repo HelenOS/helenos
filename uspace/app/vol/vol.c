@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 	char *cmd;
 	vol_cmd_t vcmd;
 	int i;
-	errno_t rc;
+	errno_t rc = EINVAL;
 
 	if (argc < 2) {
 		vcmd = vcmd_list;
