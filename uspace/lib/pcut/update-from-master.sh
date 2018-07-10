@@ -79,6 +79,6 @@ include helenos.test.mak
 all-test: $(SELF_TESTS)
 
 test-libpcut-%: $(LIBRARY).a
-	$(CC) $(CFLAGS) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $(STARTUP) $^ $(LIBRARY).a $(BASE_LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $(START_FILES) $^ $(LIBRARY).a $(BASE_LIBS)
 
 EOF_MAKEFILE_TAIL

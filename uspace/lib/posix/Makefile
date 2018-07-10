@@ -36,7 +36,7 @@ INCLUDE_LIBC = ./include/libc
 
 SPECS = gcc.specs
 LIBC_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
-LIBC_STARTUP_FILE = $(shell sed -n -e 's/^.*STARTUP(\(.*\)).*$$/\1/p' $(LIBC_LINKER_SCRIPT))
+LIBC_STARTUP_FILE = $(START_FILES)
 EXPORT_LINKER_SCRIPT = link.ld
 EXPORT_STARTUP_FILE = crt0.o
 
@@ -93,7 +93,8 @@ EXPORT_CPPFLAGS = \
 
 EXPORT_LDFLAGS = \
 	-L$$(HELENOS_EXPORT_ROOT)/lib \
-	-T link.ld
+	-T link.ld \
+	$(EXPORT_STARTUP_FILE)
 
 EXPORT_LDLIBS = \
 	-Wl,--start-group -lposix -lmath -lc -lsoftfloat -lsoftint -Wl,--end-group
@@ -115,7 +116,7 @@ $(SPECS): $(CONFIG_MAKEFILE)
 	mv $@.new $@
 
 $(EXPORT_LINKER_SCRIPT): $(LIBC_LINKER_SCRIPT)
-	sed 's/STARTUP(.*)/STARTUP(crt0.o)/' $< > $@
+	cp $< $@
 
 $(EXPORT_STARTUP_FILE): $(LIBC_STARTUP_FILE)
 	cp $< $@

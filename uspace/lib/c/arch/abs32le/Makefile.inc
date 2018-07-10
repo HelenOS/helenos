@@ -33,5 +33,3 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/tls.c \
 	arch/$(UARCH)/src/syscall.c \
 	arch/$(UARCH)/src/stacktrace.c
-
-EXTRA_OUTPUT += arch/$(UARCH)/src/entry.o

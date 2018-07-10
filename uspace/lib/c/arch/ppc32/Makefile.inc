@@ -37,5 +37,3 @@ ARCH_SOURCES = \
 
 ARCH_AUTOCHECK_HEADERS = \
 	arch/$(UARCH)/include/libarch/fibril_context.h
-
-EXTRA_OUTPUT += arch/$(UARCH)/src/entry.o

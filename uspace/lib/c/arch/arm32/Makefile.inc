@@ -36,6 +36,3 @@ ARCH_SOURCES = \
 	arch/$(UARCH)/src/eabi.S \
 	arch/$(UARCH)/src/stacktrace.c \
 	arch/$(UARCH)/src/stacktrace_asm.S
-
-EXTRA_OUTPUT += arch/$(UARCH)/src/entry.o
-
