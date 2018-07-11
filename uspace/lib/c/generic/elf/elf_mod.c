@@ -355,6 +355,10 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 		elf->info->interp =
 		    (void *)((uint8_t *)entry->p_vaddr + elf->bias);
 
+		if (entry->p_filesz == 0) {
+			DPRINTF("Zero-sized ELF interp string.\n");
+			return EE_INVALID;
+		}
 		if (elf->info->interp[entry->p_filesz - 1] != '\0') {
 			DPRINTF("Unterminated ELF interp string.\n");
 			return EE_INVALID;

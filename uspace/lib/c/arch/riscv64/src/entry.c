@@ -29,15 +29,14 @@
 /** @file
  */
 
-#include "../../../generic/private/libc.h"
-
 extern void _start(void);
+extern void __c_start(void *);
 
 // FIXME: Implement properly.
 
 void _start(void)
 {
-	__libc_main((void *) 0);
+	__c_start(0);
 }
 
 /** @}

@@ -30,7 +30,6 @@
 #include <libarch/stack.h>
 
 .text
-.section .init, "ax"
 
 .set noreorder
 .option pic2
@@ -50,11 +49,11 @@ FUNCTION_BEGIN(__start)
 	# Allow PIC code
 	.cprestore 16
 
-	# Pass pcb_ptr to __libc_main() as the first argument. It is already
+	# Pass pcb_ptr to __c_start() as the first argument. It is already
 	# in $a0. As the first argument is passed in $a0, no operation
 	# is needed.
 
-	jal __libc_main
+	jal __c_start
 	nop
 
 	#

@@ -28,7 +28,7 @@
 
 #include <abi/asmtool.h>
 
-.section .init, "ax"
+.text
 
 .org 0
 
@@ -45,6 +45,6 @@ SYMBOL(_start)
 	flushw
 	add %g0, -0x7ff, %fp
 
-	# Pass pcb_ptr as the first argument to __libc_main()
-	call __libc_main
+	# Pass pcb_ptr as the first argument to __c_start()
+	call __c_start
 	mov %i1, %o0

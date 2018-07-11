@@ -117,7 +117,7 @@ LIBMATH_INCLUDES_FLAGS = \
 LIBPOSIX_PREFIX = $(LIB_PREFIX)/posix
 LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
-START_FILES = $(LIBC_PREFIX)/arch/$(UARCH)/src/entry.o
+START_FILES = $(LIBC_PREFIX)/crt0.o $(LIBC_PREFIX)/crt1.o
 
 AFLAGS = --fatal-warnings
 LDFLAGS = -Wl,--fatal-warnings,--warn-common
@@ -136,11 +136,18 @@ else
 	endif
 endif
 
-ifeq ($(STATIC_BUILD),y)
-	BASE_LIBS = $(LIBC_PREFIX)/libc.a
-else
-	BASE_LIBS = $(LIBC_PREFIX)/libc.so.0
+ifneq ($(STATIC_BUILD),y)
 	LINK_DYNAMIC = y
+endif
+
+BASE_LIBS =
+
+ifneq ($(LIBRARY),libc)
+	ifeq ($(STATIC_BUILD),y)
+		BASE_LIBS += $(LIBC_PREFIX)/libc.a
+	else
+		BASE_LIBS += $(LIBC_PREFIX)/libc.so.0
+	endif
 endif
 
 BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a $(LIBSOFTINT_PREFIX)/libsoftint.a
@@ -285,7 +292,7 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 
 LIB_CFLAGS = $(CFLAGS) -fPIC
-LIB_LDFLAGS = $(LDFLAGS) -shared -Wl,-soname,$(LSONAME)
+LIB_LDFLAGS = $(LDFLAGS) -shared -Wl,-soname,$(LSONAME) -Wl,--no-undefined,--no-allow-shlib-undefined
 
 AS_CFLAGS := $(addprefix -Xassembler ,$(AFLAGS))
 
@@ -339,17 +346,17 @@ endif
 ifneq ($(BINARY),)
 
 ifneq ($(filter %.cpp %.cc %.cxx, $(SOURCES)),)
-$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(CXX_BASE_LIBS)
+$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(START_FILES) $(OBJECTS) $(LIBARGS) $(CXX_BASE_LIBS)
 else
-$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS) $(BASE_LIBS)
+$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(START_FILES) $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 endif
 
 ifneq ($(TEST_BINARY),)
-$(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS) $(BASE_LIBS)
+$(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(START_FILES) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
 endif
 
@@ -367,7 +374,7 @@ $(LIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 
 $(SLIBRARY): $(LIB_LINKER_SCRIPT) $(LIBRARY).la
-	$(CC) $(CFLAGS) $(LIB_LDFLAGS) $(EXTRA_LDFLAGS) -T $(LIB_LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ -Wl,--whole-archive $(LIBRARY).la -Wl,--no-whole-archive
+	$(CC) $(CFLAGS) $(LIB_LDFLAGS) $(EXTRA_LDFLAGS) -T $(LIB_LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ -Wl,--whole-archive $(LIBRARY).la -Wl,--no-whole-archive $(LIBARGS) $(BASE_LIBS)
 
 $(LSONAME):
 	ln -s $(SLIBRARY) $@

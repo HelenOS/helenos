@@ -44,6 +44,8 @@
 #include <macros.h>
 #include <elf/elf.h>
 
+#include "private/libc.h"
+
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
 #endif
@@ -60,7 +62,7 @@ void *tls_get(void)
 #endif
 
 	const elf_segment_header_t *tls =
-	    elf_get_phdr(__executable_start, PT_TLS);
+	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
 
 	if (tls == NULL)
 		return NULL;
@@ -87,11 +89,11 @@ tcb_t *tls_make(void)
 #endif
 
 	const elf_segment_header_t *tls =
-	    elf_get_phdr(__executable_start, PT_TLS);
+	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
 	if (tls == NULL)
 		return NULL;
 
-	uintptr_t bias = elf_get_bias(__executable_start);
+	uintptr_t bias = elf_get_bias(__progsymbols.elfstart);
 	size_t align = max(tls->p_align, _Alignof(tcb_t));
 
 #ifdef CONFIG_TLS_VARIANT_1
@@ -127,7 +129,7 @@ void tls_free(tcb_t *tcb)
 	}
 #endif
 	const elf_segment_header_t *tls =
-	    elf_get_phdr(__executable_start, PT_TLS);
+	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
 
 	assert(tls != NULL);
 	tls_free_arch(tcb,

@@ -28,7 +28,7 @@
 
 #include <abi/asmtool.h>
 
-.section .init, "ax"
+.text
 
 .org 0
 
@@ -45,5 +45,5 @@ SYMBOL(_start)
 	movq %rsp, %rbp
 
 	# %rdi was deliberately chosen as the first argument is also in %rdi
-	# Pass PCB pointer to __libc_main (no operation)
-	call __libc_main
+	# Pass PCB pointer to __c_start (no operation)
+	call __c_start

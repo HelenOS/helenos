@@ -206,6 +206,12 @@ TEST_SOURCES = \
 
 include $(USPACE_PREFIX)/Makefile.common
 
+$(LIBC_PREFIX)/crt0.o: $(LIBC_PREFIX)/arch/$(UARCH)/src/entry.o
+	cp $< $@
+
+$(LIBC_PREFIX)/crt1.o: $(LIBC_PREFIX)/generic/crt/entry.o
+	cp $< $@
+
 $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
 

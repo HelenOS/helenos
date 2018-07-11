@@ -64,17 +64,25 @@ SECTIONS {
 	__dso_handle = .;
 
 	.init_array : {
+#ifndef SHLIB
 		PROVIDE_HIDDEN (__init_array_start = .);
+#endif
 		KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
 		KEEP (*(.init_array .ctors))
+#ifndef SHLIB
 		PROVIDE_HIDDEN (__init_array_end = .);
+#endif
 	}
 
 	.fini_array : {
+#ifndef SHLIB
 		PROVIDE_HIDDEN (__fini_array_start = .);
+#endif
 		KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
 		KEEP (*(.fini_array .dtors))
+#ifndef SHLIB
 		PROVIDE_HIDDEN (__fini_array_end = .);
+#endif
 	}
 
 	_end = .;

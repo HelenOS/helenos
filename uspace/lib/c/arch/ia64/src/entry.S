@@ -28,7 +28,7 @@
 
 #include <abi/asmtool.h>
 
-.section .init, "ax"
+.text
 
 .org 0
 .align 16
@@ -41,7 +41,7 @@ SYMBOL(_start)
 	alloc loc0 = ar.pfs, 0, 1, 2, 0
 	movl gp = __gp
 
-	# Pass PCB pointer as the first argument to __libc_main
+	# Pass PCB pointer as the first argument to __c_start
 	mov out0 = r2 ;;
-	br.call.sptk.many b0 = __libc_main
+	br.call.sptk.many b0 = __c_start
 

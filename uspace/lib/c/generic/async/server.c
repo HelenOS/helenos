@@ -1396,7 +1396,7 @@ errno_t async_share_in_finalize(ipc_call_t *call, void *src, unsigned int flags)
 
 	// FIXME: The source has no business deciding destination address.
 	return ipc_answer_3(call->cap_handle, EOK, (sysarg_t) src, (sysarg_t) flags,
-	    (sysarg_t) _end);
+	    (sysarg_t) __progsymbols.end);
 }
 
 /** Wrapper for receiving the IPC_M_SHARE_OUT calls using the async framework.
@@ -1448,7 +1448,7 @@ errno_t async_share_out_finalize(ipc_call_t *call, void **dst)
 {
 	assert(call);
 
-	return ipc_answer_2(call->cap_handle, EOK, (sysarg_t) _end,
+	return ipc_answer_2(call->cap_handle, EOK, (sysarg_t) __progsymbols.end,
 	    (sysarg_t) dst);
 }
 

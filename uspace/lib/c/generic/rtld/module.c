@@ -50,6 +50,8 @@
 #include <rtld/rtld_arch.h>
 #include <rtld/module.h>
 
+#include "../private/libc.h"
+
 /** Create module for static executable.
  *
  * @param rtld Run-time dynamic linker
@@ -72,10 +74,10 @@ errno_t module_create_static_exec(rtld_t *rtld, module_t **rmodule)
 	module->local = true;
 
 	const elf_segment_header_t *tls =
-	    elf_get_phdr(__executable_start, PT_TLS);
+	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
 
 	if (tls) {
-		uintptr_t bias = elf_get_bias(__executable_start);
+		uintptr_t bias = elf_get_bias(__progsymbols.elfstart);
 		module->tdata = (void *) (tls->p_vaddr + bias);
 		module->tdata_size = tls->p_filesz;
 		module->tbss_size = tls->p_memsz - tls->p_filesz;

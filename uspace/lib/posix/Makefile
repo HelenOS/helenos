@@ -36,9 +36,7 @@ INCLUDE_LIBC = ./include/libc
 
 SPECS = gcc.specs
 LIBC_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
-LIBC_STARTUP_FILE = $(START_FILES)
 EXPORT_LINKER_SCRIPT = link.ld
-EXPORT_STARTUP_FILE = crt0.o
 
 EXPORT_FILES = \
 	../math/libmath.a \
@@ -46,8 +44,9 @@ EXPORT_FILES = \
 	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
 	$(LIBSOFTINT_PREFIX)/libsoftint.a \
 	$(LIBC_PREFIX)/libc.a \
+	$(LIBC_PREFIX)/crt0.o \
+	$(LIBC_PREFIX)/crt1.o \
 	$(LIBRARY).a \
-	$(EXPORT_STARTUP_FILE) \
 	$(EXPORT_LINKER_SCRIPT) \
 	$(SPECS)
 
@@ -94,7 +93,8 @@ EXPORT_CPPFLAGS = \
 EXPORT_LDFLAGS = \
 	-L$$(HELENOS_EXPORT_ROOT)/lib \
 	-T link.ld \
-	$(EXPORT_STARTUP_FILE)
+	$$(HELENOS_EXPORT_ROOT)/lib/crt0.o \
+	$$(HELENOS_EXPORT_ROOT)/lib/crt1.o
 
 EXPORT_LDLIBS = \
 	-Wl,--start-group -lposix -lmath -lc -lsoftfloat -lsoftint -Wl,--end-group

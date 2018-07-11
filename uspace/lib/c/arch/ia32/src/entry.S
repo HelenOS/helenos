@@ -31,7 +31,7 @@
 INTEL_CPUID_STANDARD = 1
 INTEL_SEP = 11
 
-.section .init, "ax"
+.text
 
 .org 0
 
@@ -64,6 +64,6 @@ SYMBOL(_start)
 	pushl $0
 	movl %esp, %ebp
 
-	# Pass the PCB pointer to __libc_main as the first argument
+	# Pass the PCB pointer to __c_start as the first argument
 	pushl %edi
-	call __libc_main
+	call __c_start

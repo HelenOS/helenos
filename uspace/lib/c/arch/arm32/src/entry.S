@@ -28,7 +28,7 @@
 
 #include <abi/asmtool.h>
 
-.section .init, "ax"
+.text
 
 .org 0
 
@@ -50,9 +50,9 @@ SYMBOL(_start)
 	push {fp, ip, lr, pc}
 	sub fp, ip, #4
 
-	# Pass pcb_ptr to __libc_main as the first argument (in r0)
+	# Pass pcb_ptr to __c_start as the first argument (in r0)
 	mov r0, r1
-	bl __libc_main
+	bl __c_start
 
 .data
 
