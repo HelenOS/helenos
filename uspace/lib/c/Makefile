@@ -78,6 +78,7 @@ GENERIC_SOURCES = \
 	generic/loc.c \
 	generic/mem.c \
 	generic/str.c \
+	generic/string.c \
 	generic/str_error.c \
 	generic/strtol.c \
 	generic/l18n/langs.c \
@@ -202,7 +203,8 @@ TEST_SOURCES = \
 	test/sprintf.c \
 	test/stdio.c \
 	test/stdlib.c \
-	test/str.c
+	test/str.c \
+	test/string.c
 
 include $(USPACE_PREFIX)/Makefile.common
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <pcut/pcut.h>
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
-PCUT_INIT;
+#ifndef LIBC_STRING_H_
+#define LIBC_STRING_H_
 
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+#ifdef _HELENOS_SOURCE
+#error Please use str.h and mem.h instead
+#endif
 
-PCUT_MAIN();
+#include <_bits/size_t.h>
+#include <_bits/NULL.h>
+#include <mem.h>
+
+extern char *strcpy(char *, const char *);
+extern char *strncpy(char *, const char *, size_t);
+extern char *strcat(char *, const char *);
+extern char *strncat(char *, const char *, size_t);
+extern int strcmp(const char *, const char *);
+extern int strcoll(const char *, const char *);
+extern int strncmp(const char *, const char *, size_t);
+extern int strxfrm(char *, const char *, size_t);
+extern char *strchr(const char *, int);
+extern size_t strcspn(const char *, const char *);
+extern char *strpbrk(const char *, const char *);
+extern char *strrchr(const char *, int);
+extern size_t strspn(const char *, const char *);
+extern char *strstr(const char *, const char *);
+extern char *strtok(char *, const char *);
+extern char *__strtok_r(char *, const char *, char **);
+extern char *strerror(int);
+extern size_t strlen(const char *);
+
+#endif
+
+/** @}
+ */

@@ -47,46 +47,26 @@
 #include <_bits/size_t.h>
 
 #include "libc/mem.h"
+#undef _HELENOS_SOURCE
+#include "libc/string.h"
 
 /* Copying and Concatenation */
-extern char *strcpy(char *__restrict__ dest, const char *__restrict__ src);
-extern char *strncpy(char *__restrict__ dest, const char *__restrict__ src, size_t n);
 extern char *stpcpy(char *__restrict__ dest, const char *__restrict__ src);
 extern char *stpncpy(char *__restrict__ dest, const char *__restrict__ src, size_t n);
-extern char *strcat(char *__restrict__ dest, const char *__restrict__ src);
-extern char *strncat(char *__restrict__ dest, const char *__restrict__ src, size_t n);
 extern void *memccpy(void *__restrict__ dest, const void *__restrict__ src, int c, size_t n);
 extern char *strdup(const char *s);
 extern char *strndup(const char *s, size_t n);
 
-/* String Comparison */
-extern int strcmp(const char *s1, const char *s2);
-extern int strncmp(const char *s1, const char *s2, size_t n);
-
 /* Search Functions */
-extern char *strchr(const char *s, int c);
-extern char *strrchr(const char *s, int c);
 extern char *gnu_strchrnul(const char *s, int c);
-extern char *strpbrk(const char *s1, const char *s2);
-extern size_t strcspn(const char *s1, const char *s2);
-extern size_t strspn(const char *s1, const char *s2);
-extern char *strstr(const char *haystack, const char *needle);
 
 /* Tokenization functions. */
 extern char *strtok_r(char *, const char *, char **);
-extern char *strtok(char *, const char *);
-
-
-/* Collation Functions */
-extern int strcoll(const char *s1, const char *s2);
-extern size_t strxfrm(char *__restrict__ s1, const char *__restrict__ s2, size_t n);
 
 /* Error Messages */
-extern char *strerror(int errnum);
 extern int strerror_r(int errnum, char *buf, size_t bufsz);
 
 /* String Length */
-extern size_t strlen(const char *s);
 extern size_t strnlen(const char *s, size_t n);
 
 /* Signal Messages */
