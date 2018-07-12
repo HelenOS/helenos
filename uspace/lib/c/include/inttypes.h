@@ -42,6 +42,8 @@ extern "C" {
 #include <_bits/inttypes.h>
 
 #ifndef __HELENOS_DISABLE_INTMAX__
+intmax_t imaxabs(intmax_t);
+imaxdiv_t imaxdiv(intmax_t, intmax_t);
 intmax_t strtoimax(const char *__restrict__ nptr,
     char **__restrict__ endptr, int base);
 uintmax_t strtoumax(const char *__restrict__ nptr,

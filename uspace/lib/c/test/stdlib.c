@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief Test formatted input (scanf family)
+ * @brief Test General utilities (stdlib.h)
  */
 
 #include <pcut/pcut.h>

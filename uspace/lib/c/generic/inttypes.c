@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <pcut/pcut.h>
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
-PCUT_INIT;
+#include <assert.h>
+#include <inttypes.h>
 
-PCUT_IMPORT(circ_buf);
-PCUT_IMPORT(fibril_timer);
-PCUT_IMPORT(inttypes);
-PCUT_IMPORT(mem);
-PCUT_IMPORT(odict);
-PCUT_IMPORT(qsort);
-PCUT_IMPORT(scanf);
-PCUT_IMPORT(sprintf);
-PCUT_IMPORT(stdio);
-PCUT_IMPORT(stdlib);
-PCUT_IMPORT(str);
-PCUT_IMPORT(string);
-PCUT_IMPORT(table);
+/** Compute the absolute value of an intmax_t.
+ *
+ * If the result cannot be represented, the behavior is undefined.
+ *
+ * @param j Greatest-width integer
+ * @return The absolute value of @a j
+ */
+intmax_t imaxabs(intmax_t j)
+{
+	intmax_t aj;
 
-PCUT_MAIN();
+	if (j < 0) {
+		aj = -j;
+		assert(aj >= 0);
+	} else {
+		aj = j;
+	}
+
+	return aj;
+}
+
+/** Compute quotient and remainder of greatest-width integer division.
+ *
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return Structure containing quotient and remainder
+ */
+imaxdiv_t imaxdiv(intmax_t numer, intmax_t denom)
+{
+	imaxdiv_t d;
+
+	d.quot = numer / denom;
+	d.rem = numer % denom;
+
+	return d;
+}
+
+/** @}
+ */

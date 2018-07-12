@@ -75,6 +75,7 @@ GENERIC_SOURCES = \
 	generic/event.c \
 	generic/errno.c \
 	generic/gsort.c \
+	generic/inttypes.c \
 	generic/loc.c \
 	generic/mem.c \
 	generic/str.c \
@@ -196,6 +197,7 @@ TEST_SOURCES = \
 	test/fibril/timer.c \
 	test/main.c \
 	test/mem.c \
+	test/inttypes.c \
 	test/io/table.c \
 	test/stdio/scanf.c \
 	test/odict.c \
