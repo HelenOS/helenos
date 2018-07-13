@@ -333,14 +333,14 @@ typedef struct {
 static errno_t stop_reset(void *arg)
 {
 	ehci_rh_job_t *job = arg;
-	async_usleep(50000);
+	fibril_usleep(50000);
 	usb_log_debug("RH(%p-%u): Clearing reset", job->hub, job->port);
 	EHCI_CLR(job->hub->registers->portsc[job->port],
 	    USB_PORTSC_PORT_RESET_FLAG);
 	/* wait for reset to complete */
 	while (EHCI_RD(job->hub->registers->portsc[job->port]) &
 	    USB_PORTSC_PORT_RESET_FLAG) {
-		async_usleep(1);
+		fibril_usleep(1);
 	}
 	usb_log_debug("RH(%p-%u): Reset complete", job->hub, job->port);
 	/*
@@ -364,7 +364,7 @@ static errno_t stop_reset(void *arg)
 static errno_t stop_resume(void *arg)
 {
 	ehci_rh_job_t *job = arg;
-	async_usleep(20000);
+	fibril_usleep(20000);
 	usb_log_debug("RH(%p-%u): Stopping resume", job->hub, job->port);
 	EHCI_CLR(job->hub->registers->portsc[job->port],
 	    USB_PORTSC_RESUME_FLAG);

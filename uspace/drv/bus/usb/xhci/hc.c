@@ -429,7 +429,7 @@ errno_t hc_claim(xhci_hc_t *hc, ddf_dev_t *dev)
 		if (XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_BIOS) == 0) {
 			return XHCI_REG_RD(hc->legsup, XHCI_LEGSUP_SEM_OS) == 1 ? EOK : EIO;
 		}
-		async_usleep(XHCI_LEGSUP_POLLING_DELAY_1MS);
+		fibril_usleep(XHCI_LEGSUP_POLLING_DELAY_1MS);
 	}
 	usb_log_error("BIOS did not release XHCI legacy hold!");
 

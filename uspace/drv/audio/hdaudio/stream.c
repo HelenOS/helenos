@@ -205,13 +205,13 @@ static void hda_stream_reset_noinit(hda_stream_t *stream)
 	ctl = ctl | BIT_V(uint8_t, sdctl1_srst);
 	hda_reg8_write(&sdregs->ctl1, ctl);
 
-	async_usleep(100 * 1000);
+	fibril_usleep(100 * 1000);
 
 	ctl = hda_reg8_read(&sdregs->ctl1);
 	ctl = ctl & ~BIT_V(uint8_t, sdctl1_srst);
 	hda_reg8_write(&sdregs->ctl1, ctl);
 
-	async_usleep(100 * 1000);
+	fibril_usleep(100 * 1000);
 }
 
 hda_stream_t *hda_stream_create(hda_t *hda, hda_stream_dir_t dir,

@@ -124,7 +124,7 @@ static errno_t plug_unplug(void *arg)
 	ddf_fun_t *fun_a;
 	errno_t rc;
 
-	async_usleep(1000);
+	fibril_usleep(1000);
 
 	(void) register_fun_verbose(test2->dev, "child driven by the same task",
 	    "child", "virtual&test2", 10, &test2->child);
@@ -146,11 +146,11 @@ static errno_t plug_unplug(void *arg)
 	ddf_fun_add_to_category(fun_a, "virtual");
 	test2->fun_a = fun_a;
 
-	async_usleep(10000000);
+	fibril_usleep(10000000);
 
 	ddf_msg(LVL_NOTE, "Unbinding function test1.");
 	ddf_fun_unbind(test2->test1);
-	async_usleep(1000000);
+	fibril_usleep(1000000);
 	ddf_msg(LVL_NOTE, "Unbinding function child.");
 	ddf_fun_unbind(test2->child);
 

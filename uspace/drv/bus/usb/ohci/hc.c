@@ -424,11 +424,11 @@ int hc_gain_control(hc_device_t *hcd)
 		OHCI_SET(instance->registers->command_status, CS_OCR);
 		/* Hope that SMM actually knows its stuff or we can hang here */
 		while (OHCI_RD(instance->registers->control) & C_IR) {
-			async_usleep(1000);
+			fibril_usleep(1000);
 		}
 		usb_log_info("SMM driver: Ownership taken.");
 		C_HCFS_SET(instance->registers->control, C_HCFS_RESET);
-		async_usleep(50000);
+		fibril_usleep(50000);
 		return EOK;
 	}
 
@@ -442,7 +442,7 @@ int hc_gain_control(hc_device_t *hcd)
 		}
 		/* HC is suspended assert resume for 20ms */
 		C_HCFS_SET(instance->registers->control, C_HCFS_RESUME);
-		async_usleep(20000);
+		fibril_usleep(20000);
 		usb_log_info("BIOS driver: HC resumed.");
 		return EOK;
 	}
@@ -452,7 +452,7 @@ int hc_gain_control(hc_device_t *hcd)
 	 * maintain reset for at least the time specified in USB spec (50 ms)
 	 */
 	usb_log_debug("Host controller found in reset state.");
-	async_usleep(50000);
+	fibril_usleep(50000);
 	return EOK;
 }
 
@@ -478,7 +478,7 @@ int hc_start(hc_device_t *hcd)
 	size_t time = 0;
 	OHCI_WR(instance->registers->command_status, CS_HCR);
 	while (OHCI_RD(instance->registers->command_status) & CS_HCR) {
-		async_usleep(10);
+		fibril_usleep(10);
 		time += 10;
 	}
 	usb_log_debug2("HC reset complete in %zu us.", time);

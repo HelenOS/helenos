@@ -320,7 +320,7 @@ static errno_t sleeping_reader(one_reader_info_t *arg)
 
 	printf("r-sleep{");
 	/* 2 sec */
-	async_usleep(2 * USECS_PER_SEC);
+	fibril_usleep(2 * USECS_PER_SEC);
 	++arg->done_sleeps_cnt;
 	printf("}");
 
@@ -345,7 +345,7 @@ static bool wait_for_one_reader(test_info_t *test_info)
 		return false;
 
 	/* 1 sec, waits for the reader to enter its critical section and sleep. */
-	async_usleep(1 * USECS_PER_SEC);
+	fibril_usleep(1 * USECS_PER_SEC);
 
 	if (!info.entered_cs || info.exited_cs) {
 		printf("Error: reader is unexpectedly outside of critical section.\n");
@@ -368,7 +368,7 @@ static bool wait_for_one_reader(test_info_t *test_info)
 		 * is using it.
 		 */
 		/* 1.5 sec */
-		async_usleep(1500 * 1000);
+		fibril_usleep(1500 * 1000);
 		return false;
 	} else {
 		return true;
@@ -401,7 +401,7 @@ static errno_t preexisting_reader(two_reader_info_t *arg)
 	printf("wait-for-sync{");
 	/* Wait for rcu_sync() to start waiting for us. */
 	while (!arg->synching) {
-		async_usleep(WAIT_STEP_US);
+		fibril_usleep(WAIT_STEP_US);
 	}
 	printf(" }");
 
@@ -410,7 +410,7 @@ static errno_t preexisting_reader(two_reader_info_t *arg)
 	printf("wait-for-new-R{");
 	/* Wait for the new reader to enter its reader section. */
 	while (!arg->new_entered_cs) {
-		async_usleep(WAIT_STEP_US);
+		fibril_usleep(WAIT_STEP_US);
 	}
 	printf(" }");
 
@@ -436,14 +436,14 @@ static errno_t new_reader(two_reader_info_t *arg)
 
 	/* Wait until rcu_sync() starts. */
 	while (!arg->synching) {
-		async_usleep(WAIT_STEP_US);
+		fibril_usleep(WAIT_STEP_US);
 	}
 
 	/*
 	 * synching is set when rcu_sync() is about to be entered so wait
 	 * some more to make sure it really does start executing.
 	 */
-	async_usleep(WAIT_STEP_US);
+	fibril_usleep(WAIT_STEP_US);
 
 	printf("new-lock(");
 	rcu_read_lock();
@@ -451,7 +451,7 @@ static errno_t new_reader(two_reader_info_t *arg)
 
 	/* Wait for rcu_sync() exit, ie stop waiting for the preexisting reader. */
 	while (!arg->synched) {
-		async_usleep(WAIT_STEP_US);
+		fibril_usleep(WAIT_STEP_US);
 	}
 
 	arg->new_exited_cs = true;
@@ -486,7 +486,7 @@ static bool dont_wait_for_new_reader(test_info_t *test_info)
 
 	/* Waits for the preexisting_reader to enter its CS.*/
 	while (!info.old_entered_cs) {
-		async_usleep(WAIT_STEP_US);
+		fibril_usleep(WAIT_STEP_US);
 	}
 
 	assert(!info.old_exited_cs);
@@ -532,7 +532,7 @@ static bool dont_wait_for_new_reader(test_info_t *test_info)
 		 * Sleep some more so we don't free info on stack while readers
 		 * are using it.
 		 */
-		async_usleep(WAIT_STEP_US);
+		fibril_usleep(WAIT_STEP_US);
 	}
 
 	return 0 == info.failed;
@@ -564,7 +564,7 @@ static errno_t exiting_locked_reader(exit_reader_info_t *arg)
 	printf("wait-for-sync{");
 	/* Wait for rcu_sync() to start waiting for us. */
 	while (!arg->synching) {
-		async_usleep(WAIT_STEP_US);
+		fibril_usleep(WAIT_STEP_US);
 	}
 	printf(" }");
 
@@ -590,7 +590,7 @@ static bool wait_for_exiting_reader(test_info_t *test_info)
 
 	/* Waits for the preexisting_reader to enter its CS.*/
 	while (!info.entered_cs) {
-		async_usleep(WAIT_STEP_US);
+		fibril_usleep(WAIT_STEP_US);
 	}
 
 	assert(!info.exited_cs);

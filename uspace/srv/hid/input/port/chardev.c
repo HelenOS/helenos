@@ -86,7 +86,7 @@ again:
 	if (i >= num_devs) {
 		/* XXX This is just a hack. */
 		printf("%s: No input device found, sleep for retry.\n", NAME);
-		async_usleep(1000 * 1000);
+		fibril_usleep(1000 * 1000);
 		goto again;
 	}
 

@@ -109,7 +109,7 @@ errno_t uhci_rh_schedule(uhci_rh_t *instance, usb_transfer_batch_t *batch)
 		    batch->dir, (void *) batch->setup.buffer,
 		    batch->dma_buffer.virt, batch->size, &batch->transferred_size);
 		if (batch->error == ENAK)
-			async_usleep(instance->base.endpoint_descriptor.poll_interval * 1000);
+			fibril_usleep(instance->base.endpoint_descriptor.poll_interval * 1000);
 		//TODO This is flimsy, but we can't exit early because
 		//ENAK is technically an error condition
 	} while (batch->error == ENAK);
@@ -146,7 +146,7 @@ static void uhci_port_reset_enable(ioport16_t *port)
 	port_status &= ~STATUS_WC_BITS;
 	port_status |= STATUS_IN_RESET;
 	pio_write_16(port, port_status);
-	async_usleep(50000);
+	fibril_usleep(50000);
 	port_status = pio_read_16(port);
 	port_status &= ~STATUS_IN_RESET;
 	pio_write_16(port, port_status);

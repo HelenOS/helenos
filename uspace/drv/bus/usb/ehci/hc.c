@@ -407,7 +407,7 @@ int hc_start(hc_device_t *hcd)
 		EHCI_WR(instance->registers->usbcmd, 0);
 		/* Wait until hc is halted */
 		while ((EHCI_RD(instance->registers->usbsts) & USB_STS_HC_HALTED_FLAG) == 0) {
-			async_usleep(1);
+			fibril_usleep(1);
 		}
 		usb_log_info("HC(%p): EHCI turned off.", instance);
 	} else {
@@ -418,7 +418,7 @@ int hc_start(hc_device_t *hcd)
 	EHCI_SET(instance->registers->usbcmd, USB_CMD_HC_RESET_FLAG);
 	usb_log_info("HC(%p): Waiting for HW reset.", instance);
 	while (EHCI_RD(instance->registers->usbcmd) & USB_CMD_HC_RESET_FLAG) {
-		async_usleep(1);
+		fibril_usleep(1);
 	}
 	usb_log_debug("HC(%p): HW reset OK.", instance);
 

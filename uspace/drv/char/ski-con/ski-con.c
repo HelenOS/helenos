@@ -149,7 +149,7 @@ static errno_t ski_con_fibril(void *arg)
 			fibril_condvar_broadcast(&con->buf_cv);
 		}
 
-		async_usleep(POLL_INTERVAL);
+		fibril_usleep(POLL_INTERVAL);
 	}
 
 	return 0;

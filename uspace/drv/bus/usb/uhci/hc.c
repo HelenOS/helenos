@@ -279,13 +279,13 @@ void hc_init_hw(const hc_t *instance)
 
 	/* Reset everything, who knows what touched it before us */
 	pio_write_16(&registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
-	async_usleep(50000); /* 50ms according to USB spec(root hub reset) */
+	fibril_usleep(50000); /* 50ms according to USB spec(root hub reset) */
 	pio_write_16(&registers->usbcmd, 0);
 
 	/* Reset hc, all states and counters. Hope that hw is not broken */
 	pio_write_16(&registers->usbcmd, UHCI_CMD_HCRESET);
 	do {
-		async_usleep(10);
+		fibril_usleep(10);
 	} while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
 
 	/* Set frame to exactly 1ms */
@@ -404,7 +404,7 @@ static void endpoint_unregister(endpoint_t *ep)
 	 * that HC has it in its caches. Better wait a while before we release
 	 * the buffers.
 	 */
-	async_usleep(20000);
+	fibril_usleep(20000);
 	batch->base.error = EINTR;
 	batch->base.transferred_size = 0;
 	usb_transfer_batch_finish(&batch->base);
@@ -659,7 +659,7 @@ errno_t hc_debug_checker(void *arg)
 			usb_log_debug("Bulk QH: %p vs. %p.",
 			    (void *) expected_pa, (void *) real_pa);
 		}
-		async_usleep(UHCI_DEBUGER_TIMEOUT);
+		fibril_usleep(UHCI_DEBUGER_TIMEOUT);
 	}
 	return EOK;
 #undef QH

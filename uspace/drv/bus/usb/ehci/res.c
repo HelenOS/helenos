@@ -98,7 +98,7 @@ static errno_t disable_extended_caps(async_sess_t *parent_sess, unsigned eecp)
 	    parent_sess, eecp + USBLEGSUP_OFFSET, &usblegsup);
 	while ((ret == EOK) && (wait < DEFAULT_WAIT) &&
 	    (usblegsup & USBLEGSUP_BIOS_CONTROL)) {
-		async_usleep(WAIT_STEP);
+		fibril_usleep(WAIT_STEP);
 		ret = pci_config_space_read_32(parent_sess,
 		    eecp + USBLEGSUP_OFFSET, &usblegsup);
 		wait += WAIT_STEP;

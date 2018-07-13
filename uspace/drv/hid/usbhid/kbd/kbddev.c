@@ -773,7 +773,7 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev, void *data)
 		if (usb_kbd_is_initialized(kbd_dev)) {
 			kbd_dev->initialized = USB_KBD_STATUS_TO_DESTROY;
 			/* Wait for autorepeat */
-			async_usleep(CHECK_DELAY);
+			fibril_usleep(CHECK_DELAY);
 		}
 		usb_kbd_destroy(kbd_dev);
 	}

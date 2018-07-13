@@ -55,7 +55,7 @@ const char *test_logger2(void)
 			log_msg(log_bravo, level,
 			    "Printing level %d (%s) into bravo sub-log.",
 			    (int) level, log_level_str(level));
-			async_usleep(1000 * 100);
+			fibril_usleep(1000 * 100);
 		}
 	}
 

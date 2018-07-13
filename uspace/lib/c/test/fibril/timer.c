@@ -77,7 +77,7 @@ PCUT_TEST(set_clear_locked)
 	cnt = 0;
 
 	fibril_timer_set_locked(t, 100 * 1000 * 1000, test_timeout_fn, &cnt);
-	async_usleep(1000);
+	fibril_usleep(1000);
 	fts = fibril_timer_clear_locked(t);
 	PCUT_ASSERT_INT_EQUALS(fts_active, fts);
 
@@ -100,7 +100,7 @@ PCUT_TEST(set_clear_not_locked)
 
 	cnt = 0;
 	fibril_timer_set(t, 100 * 1000 * 1000, test_timeout_fn, &cnt);
-	async_usleep(1000);
+	fibril_usleep(1000);
 	fts = fibril_timer_clear(t);
 	PCUT_ASSERT_INT_EQUALS(fts_active, fts);
 
@@ -126,7 +126,7 @@ PCUT_TEST(fire)
 	fibril_timer_set_locked(t, 100, test_timeout_fn, &cnt);
 	fibril_mutex_unlock(&lock);
 
-	async_usleep(1000);
+	fibril_usleep(1000);
 
 	fibril_mutex_lock(&lock);
 	fts = fibril_timer_clear_locked(t);

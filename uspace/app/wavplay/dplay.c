@@ -311,7 +311,7 @@ static void play(playback_t *pb)
 		DPRINTF("POS %zu: %u usecs (%u) to play %zu bytes.\n",
 		    pos, usecs, real_delay, to_play);
 		if (real_delay)
-			async_usleep(real_delay);
+			fibril_usleep(real_delay);
 		/* update buffer position */
 		const errno_t ret = audio_pcm_get_buffer_pos(pb->device, &pos);
 		if (ret != EOK) {

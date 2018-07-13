@@ -189,7 +189,7 @@ static errno_t polling_fibril(void *arg)
 		// FIXME TODO: This is broken, the time is in ms not us.
 		// but first we need to fix drivers to actually stop using this,
 		// since polling delay should be implemented in HC schedule
-		async_usleep(polling->delay);
+		fibril_usleep(polling->delay);
 	}
 
 	const bool failed = failed_attempts > 0;

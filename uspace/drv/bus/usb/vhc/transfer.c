@@ -241,7 +241,7 @@ errno_t vhc_transfer_queue_processor(void *arg)
 	while (dev->plugged) {
 		if (list_empty(&dev->transfer_queue)) {
 			fibril_mutex_unlock(&dev->guard);
-			async_usleep(10 * 1000);
+			fibril_usleep(10 * 1000);
 			fibril_mutex_lock(&dev->guard);
 			continue;
 		}
@@ -289,7 +289,7 @@ errno_t vhc_transfer_queue_processor(void *arg)
 			    data_transfer_size, rc);
 		}
 
-		async_usleep(1000 * 100);
+		fibril_usleep(1000 * 100);
 		fibril_mutex_lock(&dev->guard);
 	}
 

@@ -36,6 +36,7 @@
 #define LIBC_FIBRIL_H_
 
 #include <types/common.h>
+#include <time.h>
 
 typedef struct fibril fibril_t;
 
@@ -55,6 +56,9 @@ extern void fibril_destroy(fid_t fid);
 extern void fibril_add_ready(fid_t fid);
 extern fid_t fibril_get_id(void);
 extern void fibril_yield(void);
+
+extern void fibril_usleep(suseconds_t);
+extern void fibril_sleep(unsigned int);
 
 static inline fid_t fibril_create(errno_t (*func)(void *), void *arg)
 {

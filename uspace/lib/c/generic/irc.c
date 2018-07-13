@@ -71,7 +71,7 @@ static errno_t irc_init(void)
 		free(svcs);
 
 		// XXX This is just a temporary hack
-		async_usleep(500 * 1000);
+		fibril_usleep(500 * 1000);
 	}
 
 	irc_sess = loc_service_connect(svcs[0], INTERFACE_IRC,

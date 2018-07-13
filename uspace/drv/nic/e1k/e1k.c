@@ -371,7 +371,7 @@ static void e1000_link_restart(e1000_t *e1000)
 		E1000_REG_WRITE(e1000, E1000_CTRL, ctrl);
 		fibril_mutex_unlock(&e1000->ctrl_lock);
 
-		async_usleep(10);
+		fibril_usleep(10);
 
 		fibril_mutex_lock(&e1000->ctrl_lock);
 		ctrl = E1000_REG_READ(e1000, E1000_CTRL);
@@ -1725,7 +1725,7 @@ static errno_t e1000_reset(nic_t *nic)
 	E1000_REG_WRITE(e1000, E1000_CTRL, CTRL_RST);
 
 	/* Wait for the reset */
-	async_usleep(20);
+	fibril_usleep(20);
 
 	/* check if RST_BIT cleared */
 	if (E1000_REG_READ(e1000, E1000_CTRL) & (CTRL_RST))
@@ -1813,7 +1813,7 @@ static errno_t e1000_on_down_unlocked(nic_t *nic)
 	 * Wait for the for the end of all data
 	 * transfers to descriptors.
 	 */
-	async_usleep(100);
+	fibril_usleep(100);
 
 	return EOK;
 }
@@ -2239,7 +2239,7 @@ static uint16_t e1000_eeprom_read(e1000_t *e1000, uint8_t eeprom_address)
 
 	uint32_t eerd = E1000_REG_READ(e1000, E1000_EERD);
 	while ((eerd & e1000->info.eerd_done) == 0) {
-		async_usleep(1);
+		fibril_usleep(1);
 		eerd = E1000_REG_READ(e1000, E1000_EERD);
 	}
 

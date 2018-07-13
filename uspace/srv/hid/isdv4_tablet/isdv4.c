@@ -390,7 +390,7 @@ errno_t isdv4_init_tablet(isdv4_state_t *state)
 	if (!write_command(state->chardev, CMD_STOP))
 		return EIO;
 
-	async_usleep(250000); /* 250 ms */
+	fibril_usleep(250000); /* 250 ms */
 
 	// FIXME: Read all possible garbage before sending commands
 	if (!write_command(state->chardev, CMD_QUERY_STYLUS))

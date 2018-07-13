@@ -766,7 +766,7 @@ inline static void rtl8169_reset(rtl8169_t *rtl8169)
 	pio_write_8(rtl8169->regs + CR, CR_RST);
 	memory_barrier();
 	while (pio_read_8(rtl8169->regs + CR) & CR_RST) {
-		async_usleep(1);
+		fibril_usleep(1);
 		read_barrier();
 	}
 }
@@ -1179,7 +1179,7 @@ static uint16_t rtl8169_mii_read(rtl8169_t *rtl8169, uint8_t addr)
 
 	do {
 		phyar = pio_read_32(rtl8169->regs + PHYAR);
-		async_usleep(20);
+		fibril_usleep(20);
 	} while ((phyar & PHYAR_RW_WRITE) == 0);
 
 	return phyar & PHYAR_DATA_MASK;
@@ -1197,10 +1197,10 @@ static void rtl8169_mii_write(rtl8169_t *rtl8169, uint8_t addr, uint16_t value)
 
 	do {
 		phyar = pio_read_32(rtl8169->regs + PHYAR);
-		async_usleep(20);
+		fibril_usleep(20);
 	} while ((phyar & PHYAR_RW_WRITE) != 0);
 
-	async_usleep(20);
+	fibril_usleep(20);
 }
 
 /** Main function of RTL8169 driver

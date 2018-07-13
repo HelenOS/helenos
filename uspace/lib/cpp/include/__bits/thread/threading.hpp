@@ -157,7 +157,7 @@ namespace std::aux
 
             static void sleep(time_unit time)
             {
-                hel::async_usleep(time);
+                hel::fibril_usleep(time);
             }
         };
 

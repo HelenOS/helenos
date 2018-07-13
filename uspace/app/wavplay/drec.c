@@ -166,7 +166,7 @@ static void record_fragment(record_t *rec, pcm_format_t f)
 	audio_pcm_stop_capture(rec->device);
 	/* XXX Control returns even before we can be sure callbacks finished */
 	printf("Delay before playback termination\n");
-	async_usleep(1000000);
+	fibril_usleep(1000000);
 	printf("Terminate playback\n");
 }
 

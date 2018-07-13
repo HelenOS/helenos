@@ -296,10 +296,10 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 	case CLOCK_REALTIME:
 		// TODO: interruptible sleep
 		if (rqtp->tv_sec != 0) {
-			async_sleep(rqtp->tv_sec);
+			fibril_sleep(rqtp->tv_sec);
 		}
 		if (rqtp->tv_nsec != 0) {
-			async_usleep(rqtp->tv_nsec / 1000);
+			fibril_usleep(rqtp->tv_nsec / 1000);
 		}
 		return 0;
 	default:

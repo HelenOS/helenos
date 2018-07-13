@@ -101,7 +101,7 @@ static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 			delay = CHECK_DELAY;
 		}
 		fibril_mutex_unlock(&kbd->repeat_mtx);
-		async_usleep(delay);
+		fibril_usleep(delay);
 	}
 }
 

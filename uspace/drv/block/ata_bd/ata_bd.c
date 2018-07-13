@@ -1271,7 +1271,7 @@ static errno_t wait_status(ata_ctrl_t *ctrl, unsigned set, unsigned n_reset,
 
 	cnt = timeout;
 	while ((status & ~n_reset) != 0 || (status & set) != set) {
-		async_usleep(10000);
+		fibril_usleep(10000);
 		--cnt;
 		if (cnt <= 0)
 			break;

@@ -124,7 +124,7 @@ static errno_t interrupt_polling(void *arg)
 		 * lame crutch anyway so don't hog the system. 10ms is still
 		 * good enough for emergency mode
 		 */
-		async_usleep(10000);
+		fibril_usleep(10000);
 	}
 	return EOK;
 }

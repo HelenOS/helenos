@@ -43,10 +43,10 @@ void interface_life_live(vuhid_interface_t *iface)
 	vuhid_interface_life_t *data = iface->interface_data;
 	data->data_in_pos = 0;
 	data->data_in_last_pos = (size_t) -1;
-	async_usleep(1000 * 1000 * 5);
+	fibril_usleep(1000 * 1000 * 5);
 	usb_log_debug("%s", data->msg_born);
 	while (data->data_in_pos < data->data_in_count) {
-		async_usleep(1000 * data->data_in_pos_change_delay);
+		fibril_usleep(1000 * data->data_in_pos_change_delay);
 		// FIXME: proper locking
 		data->data_in_pos++;
 	}

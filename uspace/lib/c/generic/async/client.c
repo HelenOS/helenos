@@ -514,7 +514,7 @@ void async_forget(aid_t amsgid)
  * @param timeout Duration of the wait in microseconds.
  *
  */
-void async_usleep(suseconds_t timeout)
+void fibril_usleep(suseconds_t timeout)
 {
 	awaiter_t awaiter;
 	awaiter_initialize(&awaiter);
@@ -537,7 +537,7 @@ void async_usleep(suseconds_t timeout)
  *
  * @param sec Number of seconds to sleep
  */
-void async_sleep(unsigned int sec)
+void fibril_sleep(unsigned int sec)
 {
 	/*
 	 * Sleep in 1000 second steps to support
@@ -547,7 +547,7 @@ void async_sleep(unsigned int sec)
 	while (sec > 0) {
 		unsigned int period = (sec > 1000) ? 1000 : sec;
 
-		async_usleep(period * 1000000);
+		fibril_usleep(period * 1000000);
 		sec -= period;
 	}
 }

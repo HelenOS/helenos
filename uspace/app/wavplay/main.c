@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
 
 	/* Wait for all fibrils to finish */
 	while (atomic_get(&playcount) > 0)
-		async_usleep(1000000);
+		fibril_usleep(1000000);
 
 	/* Destroy parallel playback context, if initialized */
 	if (hound_ctx)

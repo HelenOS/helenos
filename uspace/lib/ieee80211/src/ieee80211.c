@@ -503,7 +503,7 @@ static errno_t ieee80211_scan(void *arg)
 
 	while (true) {
 		ieee80211_dev->ops->scan(ieee80211_dev);
-		async_usleep(SCAN_PERIOD_USEC);
+		fibril_usleep(SCAN_PERIOD_USEC);
 	}
 
 	return EOK;

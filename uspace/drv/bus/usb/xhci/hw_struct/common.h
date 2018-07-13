@@ -102,7 +102,7 @@ static inline int xhci_reg_wait(xhci_dword_t *reg, uint32_t mask,
 	uint32_t value = *reg & mask;
 
 	for (; retries > 0 && value != expected; --retries) {
-		async_usleep(10000);
+		fibril_usleep(10000);
 		value = *reg & mask;
 	}
 

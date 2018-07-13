@@ -77,7 +77,7 @@ static errno_t hda_ctl_reg16_set_reset(uint16_t *reg, uint16_t mask)
 		if ((val & mask) == mask)
 			break;
 
-		async_usleep(1000);
+		fibril_usleep(1000);
 		--wcnt;
 	}
 
@@ -93,7 +93,7 @@ static errno_t hda_ctl_reg16_set_reset(uint16_t *reg, uint16_t mask)
 		if ((val & mask) == 0)
 			break;
 
-		async_usleep(1000);
+		fibril_usleep(1000);
 		--wcnt;
 	}
 
@@ -414,7 +414,7 @@ static errno_t hda_corb_write(hda_t *hda, uint32_t *data, size_t count)
 			/* We filled up CORB but still data remaining */
 			wcnt = corb_wait_max;
 			while (hda_corb_avail(hda) < 1 && wcnt > 0) {
-				async_usleep(100);
+				fibril_usleep(100);
 				--wcnt;
 			}
 
@@ -557,7 +557,7 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 		}
 
 		ddf_msg(LVL_NOTE, "Waiting for controller to initialize.");
-		async_usleep(100 * 1000);
+		fibril_usleep(100 * 1000);
 		--cnt;
 	}
 
@@ -578,7 +578,7 @@ hda_ctl_t *hda_ctl_init(hda_t *hda)
 	ddf_msg(LVL_NOTE, "iss: %d, oss: %d, bss: %d\n",
 	    ctl->iss, ctl->oss, ctl->bss);
 	/* Give codecs enough time to enumerate themselves */
-	async_usleep(codec_enum_wait_us);
+	fibril_usleep(codec_enum_wait_us);
 
 	ddf_msg(LVL_NOTE, "STATESTS = 0x%x",
 	    hda_reg16_read(&hda->regs->statests));

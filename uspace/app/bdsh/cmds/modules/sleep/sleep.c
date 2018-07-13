@@ -131,7 +131,7 @@ int cmd_sleep(char **argv)
 		return CMD_FAILURE;
 	}
 
-	async_usleep(duration);
+	fibril_usleep(duration);
 
 	return CMD_SUCCESS;
 }

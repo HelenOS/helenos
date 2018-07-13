@@ -1082,7 +1082,7 @@ static errno_t period_fibril_fun(void *data)
 
 				remaining.tv_usec -= wait;
 			}
-			async_usleep(wait);
+			fibril_usleep(wait);
 
 			/* Check if the period was not reset */
 			if (info->run != run)

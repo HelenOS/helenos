@@ -422,7 +422,7 @@ static void sync_sleep(void)
 	 * but keep sync locked.
 	 */
 	futex_unlock(&rcu.sync_lock.futex);
-	async_usleep(RCU_SLEEP_MS * 1000);
+	fibril_usleep(RCU_SLEEP_MS * 1000);
 	futex_lock(&rcu.sync_lock.futex);
 }
 

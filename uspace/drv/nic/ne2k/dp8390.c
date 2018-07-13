@@ -171,9 +171,9 @@ static void ne2k_init(ne2k_t *ne2k)
 
 	/* Reset the ethernet card */
 	uint8_t val = pio_read_8(ne2k->port + NE2K_RESET);
-	async_usleep(2000);
+	fibril_usleep(2000);
 	pio_write_8(ne2k->port + NE2K_RESET, val);
-	async_usleep(2000);
+	fibril_usleep(2000);
 
 	/* Reset the DP8390 */
 	pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);

@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 			act_event = event_nr;
 		}
 
-		async_usleep(10000);
+		fibril_usleep(10000);
 	}
 
 	return 0;

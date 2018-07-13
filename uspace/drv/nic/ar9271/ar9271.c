@@ -828,7 +828,7 @@ static errno_t ar9271_upload_fw(ar9271_t *ar9271)
 	usb_log_info("Firmware uploaded successfully.\n");
 
 	/* Wait until firmware is ready - wait for 1 second to be sure. */
-	async_sleep(1);
+	fibril_sleep(1);
 
 	return rc;
 }

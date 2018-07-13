@@ -151,7 +151,7 @@ errno_t ieee80211_scan_impl(ieee80211_dev_t *ieee80211_dev)
 			ieee80211_probe_request(ieee80211_dev, NULL);
 
 			/* Wait for probe responses. */
-			async_usleep(SCAN_CHANNEL_WAIT_USEC);
+			fibril_usleep(SCAN_CHANNEL_WAIT_USEC);
 		}
 
 		ieee80211_dev->ops->set_freq(ieee80211_dev, orig_freq);

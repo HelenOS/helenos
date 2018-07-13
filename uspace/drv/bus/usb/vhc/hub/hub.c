@@ -464,7 +464,7 @@ static errno_t set_port_state_delayed_fibril(void *arg)
 	struct delay_port_state_change *change =
 	    (struct delay_port_state_change *) arg;
 
-	async_usleep(change->delay);
+	fibril_usleep(change->delay);
 
 	hub_acquire(change->hub);
 

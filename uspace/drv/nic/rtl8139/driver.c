@@ -439,7 +439,7 @@ inline static void rtl8139_hw_soft_reset(void *io_base)
 	pio_write_8(io_base + CR, CR_RST);
 	memory_barrier();
 	while (pio_read_8(io_base + CR) & CR_RST) {
-		async_usleep(1);
+		fibril_usleep(1);
 		read_barrier();
 	}
 }
