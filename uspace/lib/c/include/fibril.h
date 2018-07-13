@@ -60,6 +60,11 @@ extern void fibril_yield(void);
 extern void fibril_usleep(suseconds_t);
 extern void fibril_sleep(unsigned int);
 
+extern void fibril_enable_multithreaded(void);
+extern int fibril_test_spawn_runners(int);
+
+extern void fibril_detach(fid_t fid);
+
 static inline fid_t fibril_create(errno_t (*func)(void *), void *arg)
 {
 	return fibril_create_generic(func, arg, FIBRIL_DFLT_STK_SIZE);

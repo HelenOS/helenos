@@ -343,5 +343,61 @@ void fibril_yield(void)
 	futex_unlock(&async_futex);
 }
 
+static void _runner_fn(void *arg)
+{
+	futex_lock(&async_futex);
+	(void) fibril_switch(FIBRIL_FROM_BLOCKED);
+	__builtin_unreachable();
+}
+
+/**
+ * Spawn a given number of runners (i.e. OS threads) immediately, and
+ * unconditionally. This is meant to be used for tests and debugging.
+ * Regular programs should just use `fibril_enable_multithreaded()`.
+ *
+ * @param n  Number of runners to spawn.
+ * @return   Number of runners successfully spawned.
+ */
+int fibril_test_spawn_runners(int n)
+{
+	errno_t rc;
+
+	for (int i = 0; i < n; i++) {
+		thread_id_t tid;
+		rc = thread_create(_runner_fn, NULL, "fibril runner", &tid);
+		if (rc != EOK)
+			return i;
+		thread_detach(tid);
+	}
+
+	return n;
+}
+
+/**
+ * Opt-in to have more than one runner thread.
+ *
+ * Currently, a task only ever runs in one thread because multithreading
+ * might break some existing code.
+ *
+ * Eventually, the number of runner threads for a given task should become
+ * configurable in the environment and this function becomes no-op.
+ */
+void fibril_enable_multithreaded(void)
+{
+	// TODO: Implement better.
+	//       For now, 4 total runners is a sensible default.
+	fibril_test_spawn_runners(3);
+}
+
+/**
+ * Detach a fibril.
+ */
+void fibril_detach(fid_t f)
+{
+	// TODO: Currently all fibrils are detached by default, but they
+	//       won't always be. Code that explicitly spawns fibrils with
+	//       limited lifetime should call this function.
+}
+
 /** @}
  */

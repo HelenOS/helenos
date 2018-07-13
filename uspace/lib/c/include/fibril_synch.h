@@ -40,6 +40,65 @@
 #include <libarch/tls.h>
 #include <sys/time.h>
 #include <stdbool.h>
+#include <futex.h>
+
+/**
+ * "Restricted" fibril mutex.
+ *
+ * Similar to `fibril_mutex_t`, but has a set of restrictions placed on its
+ * use. Within a rmutex critical section, you
+ *         - may not use any other synchronization primitive,
+ *           save for another `fibril_rmutex_t`. This includes nonblocking
+ *           operations like cvar signal and mutex unlock.
+ *         - may not read IPC messages
+ *         - may not start a new thread/fibril
+ *           (creating fibril without starting is fine)
+ *
+ * Additionally, locking with a timeout is not possible on this mutex,
+ * and there is no associated condition variable type.
+ * This is a design constraint, not a lack of implementation effort.
+ */
+typedef struct {
+	// TODO: At this point, this is just silly handwaving to hide current
+	//       futex use behind a fibril based abstraction. Later, the imple-
+	//       mentation will change, but the restrictions placed on this type
+	//       will allow it to be simpler and faster than a regular mutex.
+	//       There might also be optional debug checking of the assumptions.
+	//
+	//       Note that a consequence of the restrictions is that if we are
+	//       running on a single thread, no other fibril can ever get to run
+	//       while a fibril has a rmutex locked. That means that for
+	//       single-threaded programs, we can reduce all rmutex locks and
+	//       unlocks to simple branches on a global bool variable.
+
+	futex_t futex;
+} fibril_rmutex_t;
+
+#define FIBRIL_RMUTEX_INITIALIZER(name) \
+	{ .futex = FUTEX_INITIALIZE(1) }
+
+#define FIBRIL_RMUTEX_INITIALIZE(name) \
+	fibril_rmutex_t name = FIBRIL_RMUTEX_INITIALIZER(name)
+
+static inline void fibril_rmutex_initialize(fibril_rmutex_t *m)
+{
+	futex_initialize(&m->futex, 1);
+}
+
+static inline void fibril_rmutex_lock(fibril_rmutex_t *m)
+{
+	futex_lock(&m->futex);
+}
+
+static inline bool fibril_rmutex_trylock(fibril_rmutex_t *m)
+{
+	return futex_trylock(&m->futex);
+}
+
+static inline void fibril_rmutex_unlock(fibril_rmutex_t *m)
+{
+	futex_unlock(&m->futex);
+}
 
 typedef struct {
 	fibril_owner_info_t oi;  /**< Keep this the first thing. */
