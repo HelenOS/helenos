@@ -32,10 +32,9 @@
 #ifndef POSIX_PTHREAD_H_
 #define POSIX_PTHREAD_H_
 
-#include "libc/thread.h"
 #include "time.h"
 
-typedef thread_id_t pthread_t;
+typedef void *pthread_t;
 
 typedef struct {
 	int dummy;

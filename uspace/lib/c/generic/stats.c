@@ -183,33 +183,6 @@ stats_thread_t *stats_get_threads(size_t *count)
 	return stats_threads;
 }
 
-/** Get single thread statistics
- *
- * @param thread_id Thread ID we are interested in.
- *
- * @return Pointer to the stats_thread_t structure.
- *         If non-NULL then it should be eventually freed
- *         by free().
- *
- */
-stats_thread_t *stats_get_thread(thread_id_t thread_id)
-{
-	char name[SYSINFO_STATS_MAX_PATH];
-	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.threads.%" PRIu64, thread_id);
-
-	size_t size = 0;
-	stats_thread_t *stats_thread =
-	    (stats_thread_t *) sysinfo_get_data(name, &size);
-
-	if (size != sizeof(stats_thread_t)) {
-		if (stats_thread != NULL)
-			free(stats_thread);
-		return NULL;
-	}
-
-	return stats_thread;
-}
-
 /** Get exception statistics.
  *
  * @param count Number of records returned.

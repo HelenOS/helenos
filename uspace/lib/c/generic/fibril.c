@@ -35,7 +35,6 @@
 
 #include <adt/list.h>
 #include <fibril.h>
-#include <thread.h>
 #include <stack.h>
 #include <tls.h>
 #include <stdlib.h>
@@ -48,6 +47,7 @@
 #include <assert.h>
 #include <async.h>
 
+#include "private/thread.h"
 #include "private/fibril.h"
 
 

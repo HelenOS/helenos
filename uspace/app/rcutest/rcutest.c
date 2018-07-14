@@ -40,7 +40,6 @@
 #include <str_error.h>
 #include <mem.h>
 #include <errno.h>
-#include <thread.h>
 #include <assert.h>
 #include <async.h>
 #include <fibril.h>
@@ -758,34 +757,11 @@ static bool seq_test(test_info_t *test_info)
 
 /*--------------------------------------------------------------------*/
 
-static FIBRIL_MUTEX_INITIALIZE(blocking_mtx);
-
-static void dummy_fibril(void *arg)
-{
-	/* Block on an already locked mutex - enters the fibril manager. */
-	fibril_mutex_lock(&blocking_mtx);
-	assert(false);
-}
-
 static bool create_threads(size_t cnt)
 {
 	/* Sanity check. */
 	assert(cnt < 1024);
-
-	/* Keep this mutex locked so that dummy fibrils never exit. */
-	bool success = fibril_mutex_trylock(&blocking_mtx);
-	assert(success);
-
-	for (size_t k = 0; k < cnt; ++k) {
-		thread_id_t tid;
-
-		errno_t ret = thread_create(dummy_fibril, NULL, "urcu-test-worker", &tid);
-		if (EOK != ret) {
-			printf("Failed to create thread '%zu' (error: %s)\n", k + 1, str_error_name(ret));
-			return false;
-		}
-	}
-
+	fibril_test_spawn_runners(cnt);
 	return true;
 }
 

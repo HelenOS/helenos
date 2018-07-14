@@ -32,23 +32,26 @@
 
 #include <atomic.h>
 #include <errno.h>
-#include <thread.h>
+#include <fibril.h>
+#include <fibril_synch.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <inttypes.h>
 #include "../tester.h"
 
 static atomic_t finish;
-static atomic_t threads_finished;
 
-static void threadtest(void *data)
+static FIBRIL_SEMAPHORE_INITIALIZE(threads_finished, 0);
+
+static errno_t threadtest(void *data)
 {
-	thread_detach(thread_get_id());
+	fibril_detach(fibril_get_id());
 
 	while (atomic_get(&finish))
-		thread_usleep(100000);
+		fibril_usleep(100000);
 
-	atomic_inc(&threads_finished);
+	fibril_semaphore_up(&threads_finished);
+	return EOK;
 }
 
 const char *test_thread1(void)
@@ -57,27 +60,30 @@ const char *test_thread1(void)
 	atomic_count_t total = 0;
 
 	atomic_set(&finish, 1);
-	atomic_set(&threads_finished, 0);
+
+	fibril_test_spawn_runners(THREADS);
 
 	TPRINTF("Creating threads");
 	for (i = 0; i < THREADS; i++) {
-		if (thread_create(threadtest, NULL, "threadtest", NULL) != EOK) {
+		fid_t f = fibril_create(threadtest, NULL);
+		if (!f) {
 			TPRINTF("\nCould not create thread %u\n", i);
 			break;
 		}
+		fibril_add_ready(f);
 		TPRINTF(".");
 		total++;
 	}
 
 	TPRINTF("\nRunning threads for %u seconds...", DELAY);
-	thread_sleep(DELAY);
+	fibril_sleep(DELAY);
 	TPRINTF("\n");
 
 	atomic_set(&finish, 0);
-	while (atomic_get(&threads_finished) < total) {
+	for (i = 0; i < total; i++) {
 		TPRINTF("Threads left: %" PRIua "\n",
-		    total - atomic_get(&threads_finished));
-		thread_sleep(1);
+		    total - i);
+		fibril_semaphore_down(&threads_finished);
 	}
 
 	return NULL;

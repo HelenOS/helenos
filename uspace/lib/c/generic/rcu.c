@@ -79,7 +79,6 @@
 #include <smp_memory_barrier.h>
 #include <assert.h>
 #include <time.h>
-#include <thread.h>
 
 #include "private/fibril.h"
 

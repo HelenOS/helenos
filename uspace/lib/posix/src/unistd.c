@@ -44,7 +44,6 @@
 #include "posix/fcntl.h"
 
 #include "libc/task.h"
-#include "libc/thread.h"
 #include "libc/stats.h"
 #include "libc/malloc.h"
 #include "libc/vfs/vfs.h"
@@ -69,7 +68,8 @@ char **environ = NULL;
  */
 unsigned int sleep(unsigned int seconds)
 {
-	return thread_sleep(seconds);
+	fibril_sleep(seconds);
+	return 0;
 }
 
 /**

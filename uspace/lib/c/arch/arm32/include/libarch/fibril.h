@@ -38,7 +38,6 @@
 
 #include <types/common.h>
 #include <align.h>
-#include <thread.h>
 #include <libarch/fibril_context.h>
 
 /** Size of a stack item */

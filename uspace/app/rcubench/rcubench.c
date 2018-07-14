@@ -39,7 +39,6 @@
 #include <stdint.h>
 #include <mem.h>
 #include <errno.h>
-#include <thread.h>
 #include <assert.h>
 #include <async.h>
 #include <fibril.h>
@@ -104,7 +103,7 @@ static void libc_futex_sema_bench(bench_t *bench)
 	}
 }
 
-static void thread_func(void *arg)
+static errno_t thread_func(void *arg)
 {
 	bench_t *bench = (bench_t *)arg;
 
@@ -112,6 +111,7 @@ static void thread_func(void *arg)
 
 	/* Signal another thread completed. */
 	futex_up(&bench->done_threads);
+	return EOK;
 }
 
 static void run_threads_and_wait(bench_t *bench)
@@ -122,16 +122,17 @@ static void run_threads_and_wait(bench_t *bench)
 		printf("Creating %zu additional threads...\n", bench->nthreads - 1);
 	}
 
+	fibril_test_spawn_runners(bench->nthreads - 1);
+
 	/* Create and run the first nthreads - 1 threads.*/
 	for (size_t k = 1; k < bench->nthreads; ++k) {
-		thread_id_t tid;
-		/* Also sets up a fibril for the thread. */
-		errno_t ret = thread_create(thread_func, bench, "rcubench-t", &tid);
-		if (ret != EOK) {
+		fid_t f = fibril_create(thread_func, bench);
+		if (!f) {
 			printf("Error: Failed to create benchmark thread.\n");
 			abort();
 		}
-		thread_detach(tid);
+		fibril_detach(f);
+		fibril_add_ready(f);
 	}
 
 	/*

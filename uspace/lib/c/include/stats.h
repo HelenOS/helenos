@@ -36,7 +36,6 @@
 #define LIBC_STATS_H_
 
 #include <task.h>
-#include <thread.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -52,7 +51,6 @@ extern stats_task_t *stats_get_tasks(size_t *);
 extern stats_task_t *stats_get_task(task_id_t);
 
 extern stats_thread_t *stats_get_threads(size_t *);
-extern stats_thread_t *stats_get_thread(thread_id_t);
 
 extern stats_exc_t *stats_get_exceptions(size_t *);
 extern stats_exc_t *stats_get_exception(unsigned int);

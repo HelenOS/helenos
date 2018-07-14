@@ -32,7 +32,6 @@
 /** @file
  */
 
-#include <thread.h>
 #include <libc.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -156,19 +155,6 @@ void thread_exit(int status)
  */
 void thread_detach(thread_id_t thread)
 {
-}
-
-/** Join thread.
- *
- * Currently not implemented.
- *
- * @param thread TID.
- *
- * @return Thread exit status.
- */
-errno_t thread_join(thread_id_t thread)
-{
-	return 0;
 }
 
 /** Get current thread ID.
