@@ -213,10 +213,12 @@ def qemu_run(platform, machine, processor):
 	if (not 'audio' in cfg.keys()) or cfg['audio']:
 		cmdline += qemu_audio_options()
 
+	console = ('console' in cfg.keys() and cfg['console'])
+
 	if (is_override('nographic')):
 		cmdline += ' -nographic'
 
-	if ((not is_override('nographic')) and not is_override('noserial')):
+	if (not console and (not is_override('nographic')) and not is_override('noserial')):
 		cmdline += ' -serial stdio'
 
 	if (is_override('bigmem')):
@@ -229,7 +231,7 @@ def qemu_run(platform, machine, processor):
 	else:
 		cmdline += ' ' + cfg['image']
 
-	if ('console' in cfg.keys()) and not cfg['console']:
+	if console:
 		cmdline += ' -nographic'
 
 		title = 'HelenOS/' + platform
@@ -284,12 +286,12 @@ emulators = {
 		'lmalta' : {
 			'run' : qemu_run,
 			'image' : 'image.boot',
-			'console' : False
+			'console' : True
 		},
 		'bmalta' : {
 			'run' : qemu_run,
 			'image' : 'image.boot',
-			'console' : False
+			'console' : True
 		},
 	},
 	'ppc32' : {
@@ -307,7 +309,7 @@ emulators = {
 				'run' : qemu_run,
 				'image' : 'image.iso',
 				'audio' : False,
-				'console' : False,
+				'console' : True,
 				'net' : False,
 				'usb' : False,
 				'xhci' : False,
@@ -317,7 +319,7 @@ emulators = {
 				'run' : qemu_run,
 				'image' : '-drive if=pflash,readonly=on,file=image.iso',
 				'audio' : False,
-				'console' : False,
+				'console' : True,
 				'net' : False,
 				'usb' : False,
 				'xhci' : False,
