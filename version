@@ -36,7 +36,7 @@
 
 VERSION = 0
 PATCHLEVEL = 7
-SUBLEVEL = 1
+SUBLEVEL = 2
 
 ifdef EXTRAVERSION
 	RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL).$(EXTRAVERSION)
@@ -44,5 +44,5 @@ else
 	RELEASE = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)
 endif
 
-NAME = Enlightened Zeal
-COPYRIGHT = Copyright (c) 2001-2017 HelenOS project
+NAME = Boosted Effort
+COPYRIGHT = Copyright (c) 2001-2018 HelenOS project
