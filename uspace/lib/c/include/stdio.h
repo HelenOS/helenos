@@ -169,7 +169,7 @@ extern void clearerr(FILE *);
 
 extern void perror(const char *);
 
-extern void setvbuf(FILE *, void *, int, size_t);
+extern int setvbuf(FILE *, void *, int, size_t);
 extern void setbuf(FILE *, void *);
 
 /* Misc file functions */

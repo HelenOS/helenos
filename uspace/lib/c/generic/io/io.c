@@ -241,14 +241,19 @@ static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncat
 }
 
 /** Set stream buffer. */
-void setvbuf(FILE *stream, void *buf, int mode, size_t size)
+int setvbuf(FILE *stream, void *buf, int mode, size_t size)
 {
+	if (mode != _IONBF && mode != _IOLBF && mode != _IOFBF)
+		return -1;
+
 	stream->btype = mode;
 	stream->buf = buf;
 	stream->buf_size = size;
 	stream->buf_head = stream->buf;
 	stream->buf_tail = stream->buf;
 	stream->buf_state = _bs_empty;
+
+	return 0;
 }
 
 /** Set stream buffer.
