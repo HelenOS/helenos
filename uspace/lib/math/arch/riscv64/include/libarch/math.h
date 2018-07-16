@@ -49,6 +49,7 @@
 #include <ldexp.h>
 #include <log.h>
 #include <log10.h>
+#include <log2.h>
 #include <mathtypes.h>
 #include <modf.h>
 #include <pow.h>
@@ -208,6 +209,16 @@ static inline float64_t log10_f64(float64_t val)
 static inline float32_t log10_f32(float32_t val)
 {
 	return float32_log10(val);
+}
+
+static inline float32_t log2_f32(float32_t val)
+{
+	return float32_log2(val);
+}
+
+static inline float64_t log2_f64(float64_t val)
+{
+	return float64_log2(val);
 }
 
 static inline float64_t modf_f64(float64_t value, float64_t *iptr)
@@ -438,6 +449,16 @@ static inline float64_t log10(float64_t val)
 static inline float32_t log10f(float32_t val)
 {
 	return log10_f32(val);
+}
+
+static inline float64_t log2(float64_t val)
+{
+	return log2_f64(val);
+}
+
+static inline float32_t log2f(float32_t val)
+{
+	return log2_f32(val);
 }
 
 static inline float64_t modf(float64_t value, float64_t *iptr)

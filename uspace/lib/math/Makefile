@@ -54,6 +54,7 @@ GENERIC_SOURCES = \
 	generic/ldexp.c \
 	generic/log.c \
 	generic/log10.c \
+	generic/log2.c \
 	generic/modf.c \
 	generic/pow.c \
 	generic/sinh.c \

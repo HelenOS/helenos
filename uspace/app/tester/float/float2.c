@@ -137,6 +137,12 @@ static double results_log10[OPERANDS] = {
 	0.995635194598, -3.000000000000
 };
 
+static double results_log2[OPERANDS] = {
+	1.807354922058, 6.643856189775, 5.643856189775, 9.585555236434,
+	10.077483355524, 0.000000000000, 6.044394119358, 1.442695040889,
+	3.307428525192, -9.965784284662
+};
+
 static double results_sin[OPERANDS] = {
 	-0.350783227690, -0.863209366649, -0.506365641110, -0.262374853704,
 	0.158533380044, 0.0, 0.980815184715, -0.206379975025, -0.044182448332,
@@ -425,6 +431,26 @@ const char *test_float2(void)
 		if (!cmp_float(res, results_log10[i])) {
 			TPRINTF("Single precision log10 failed "
 			    "(%f != %lf, arg %u)\n", res, results_log10[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		double res = log2(arguments_log[i]);
+
+		if (!cmp_double(res, results_log2[i])) {
+			TPRINTF("Double precision log2 failed "
+			    "(%lf != %lf, arg %u)\n", res, results_log2[i], i);
+			fail = true;
+		}
+	}
+
+	for (unsigned int i = 0; i < OPERANDS; i++) {
+		float res = log2f(arguments_log[i]);
+
+		if (!cmp_float(res, results_log2[i])) {
+			TPRINTF("Single precision log2 failed "
+			    "(%f != %lf, arg %u)\n", res, results_log2[i], i);
 			fail = true;
 		}
 	}
