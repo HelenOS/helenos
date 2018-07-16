@@ -37,6 +37,7 @@
 
 #include <stdio.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <str.h>
 #include <io/log.h>
 #include "tester.h"
@@ -99,19 +100,38 @@ static void run_safe_tests(void)
 	unsigned int i = 0;
 	unsigned int n = 0;
 
+	char *failed_names = NULL;
+
 	printf("\n*** Running all safe tests ***\n\n");
 
 	for (test = tests; test->name != NULL; test++) {
-		if (test->safe) {
-			printf("%s (%s)\n", test->name, test->desc);
-			if (run_test(test))
-				i++;
-			else
-				n++;
+		if (!test->safe)
+			continue;
+
+		printf("%s (%s)\n", test->name, test->desc);
+		if (run_test(test)) {
+			i++;
+			continue;
 		}
+
+		if (!failed_names) {
+			failed_names = str_dup(test->name);
+		} else {
+			char *f = NULL;
+			asprintf(&f, "%s, %s", failed_names, test->name);
+			if (!f) {
+				printf("Out of memory.\n");
+				abort();
+			}
+			free(failed_names);
+			failed_names = f;
+		}
+		n++;
 	}
 
 	printf("\nCompleted, %u tests run, %u passed.\n", i + n, i);
+	if (failed_names)
+		printf("Failed tests: %s\n", failed_names);
 }
 
 static void list_tests(void)
