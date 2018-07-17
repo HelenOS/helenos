@@ -263,7 +263,6 @@ syscall_shortcut:
 	mfc0 $t3, $epc
 	mfc0 $t2, $status
 	sw $t3, ISTATE_OFFSET_EPC($sp)  /* save EPC */
-	sw $k1, ISTATE_OFFSET_KT1($sp)  /* save $k1 not saved on context switch */
 
 	and $t4, $t2, REG_SAVE_MASK  /* save only KSU, EXL, ERL, IE */
 	li $t5, ~(0x1f)
@@ -299,7 +298,6 @@ syscall_shortcut:
 
 	/* restore epc + 4 */
 	lw $t2, ISTATE_OFFSET_EPC($sp)
-	lw $k1, ISTATE_OFFSET_KT1($sp)
 	addi $t2, $t2, 4
 	mtc0 $t2, $epc
 

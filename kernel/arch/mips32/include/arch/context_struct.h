@@ -41,8 +41,9 @@
 #define CONTEXT_OFFSET_S7  0x24
 #define CONTEXT_OFFSET_S8  0x28
 #define CONTEXT_OFFSET_GP  0x2c
-#define CONTEXT_OFFSET_IPL 0x30
-#define CONTEXT_SIZE       0x34
+#define CONTEXT_OFFSET_TP  0x30
+#define CONTEXT_OFFSET_IPL 0x34
+#define CONTEXT_SIZE       0x38
 
 #ifndef __ASSEMBLER__
 
@@ -62,6 +63,8 @@ typedef struct context {
 	uint32_t s7;
 	uint32_t s8;
 	uint32_t gp;
+	/* We use the K1 register for userspace thread pointer. */
+	uint32_t tp;
 	ipl_t ipl;
 } context_t;
 
