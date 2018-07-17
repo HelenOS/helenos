@@ -351,7 +351,7 @@ thread_t *thread_create(void (*func)(void *), void *arg, task_t *task,
 	thread->tid = ++last_tid;
 	irq_spinlock_unlock(&tidlock, true);
 
-	context_save(&thread->saved_context);
+	memset(&thread->saved_context, 0, sizeof(thread->saved_context));
 	context_set(&thread->saved_context, FADDR(cushion),
 	    (uintptr_t) thread->kstack, STACK_SIZE);
 
