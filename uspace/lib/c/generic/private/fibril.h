@@ -31,7 +31,7 @@
 
 #include <adt/list.h>
 #include <context.h>
-#include <libarch/tls.h>
+#include <tls.h>
 #include <abi/proc/uarg.h>
 #include <atomic.h>
 #include <futex.h>

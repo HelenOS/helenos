@@ -39,34 +39,22 @@
 
 #include <libc.h>
 
-#define PPC_TP_OFFSET 0x7000
+#define ARCH_TP_OFFSET (0x7000 + sizeof(tcb_t))
 
 typedef struct {
 	void *fibril_data;
 } tcb_t;
 
-static inline void __tcb_set(tcb_t *tcb)
+static inline void __tcb_raw_set(void *tls)
 {
-	uint8_t *tp = (uint8_t *) tcb;
-	tp += PPC_TP_OFFSET + sizeof(tcb_t);
-
-	asm volatile (
-	    "mr %%r2, %0\n"
-	    :
-	    : "r" (tp)
-	);
+	asm volatile ("mr %%r2, %0\n" :: "r" (tls));
 }
 
-static inline tcb_t *__tcb_get(void)
+static inline void *__tcb_raw_get(void)
 {
-	uint8_t *retval;
-
-	asm volatile (
-	    "mr %0, %%r2\n"
-	    : "=r" (retval)
-	);
-
-	return (tcb_t *) (retval - PPC_TP_OFFSET - sizeof(tcb_t));
+	void *retval;
+	asm volatile ("mr %0, %%r2\n" : "=r" (retval));
+	return retval;
 }
 
 #endif

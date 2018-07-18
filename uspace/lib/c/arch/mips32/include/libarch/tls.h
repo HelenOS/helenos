@@ -60,27 +60,23 @@
  * - TCB is at TP-0x7000-sizeof(tcb)
  * - No assumption about DTV etc., but it will not have a fixed address
  */
-#define MIPS_TP_OFFSET 0x7000
+#define ARCH_TP_OFFSET (0x7000 + sizeof(tcb_t))
 
 typedef struct {
 	void *fibril_data;
 } tcb_t;
 
-static inline void __tcb_set(tcb_t *tcb)
+static inline void __tcb_raw_set(void *tls)
 {
-	uint8_t *tp = (uint8_t *) tcb;
-	tp += MIPS_TP_OFFSET + sizeof(tcb_t);
-
-	asm volatile ("add $27, %0, $0" : : "r" (tp)); /* Move tls to K1 */
+	/* Move tls to K1 */
+	asm volatile ("add $27, %0, $0" :: "r" (tls));
 }
 
-static inline tcb_t *__tcb_get(void)
+static inline void *__tcb_raw_get(void)
 {
-	uint8_t *retval;
-
+	void *retval;
 	asm volatile ("add %0, $27, $0" : "=r" (retval));
-
-	return (tcb_t *)(retval - MIPS_TP_OFFSET - sizeof(tcb_t));
+	return retval;
 }
 
 #endif

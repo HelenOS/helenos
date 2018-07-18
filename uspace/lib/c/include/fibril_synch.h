@@ -37,7 +37,7 @@
 
 #include <fibril.h>
 #include <adt/list.h>
-#include <libarch/tls.h>
+#include <tls.h>
 #include <sys/time.h>
 #include <stdbool.h>
 #include <futex.h>

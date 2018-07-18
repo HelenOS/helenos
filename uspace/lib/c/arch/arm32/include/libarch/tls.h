@@ -41,7 +41,7 @@
 #define CONFIG_TLS_VARIANT_1
 
 /** Offsets for accessing thread-local variables are shifted 8 bytes higher. */
-#define ARM_TP_OFFSET  (-8)
+#define ARCH_TP_OFFSET  (sizeof(tcb_t) - 8)
 
 /** TCB (Thread Control Block) struct.
  *
@@ -52,38 +52,17 @@ typedef struct {
 	void *fibril_data;
 } tcb_t;
 
-
-/** Sets TLS address to the r9 register.
- *
- *  @param tcb		TCB (TLS starts behind)
- */
-static inline void __tcb_set(tcb_t *tcb)
-{
-	uint8_t *tls = (uint8_t *) tcb;
-	tls += sizeof(tcb_t) + ARM_TP_OFFSET;
-	asm volatile (
-	    "mov r9, %0"
-	    :
-	    : "r" (tls)
-	);
-}
-
-
-/** Returns TCB address.
- *
- * @return		TCB address (starts before TLS which address is stored
- * 			in r9 register).
- */
-static inline tcb_t *__tcb_get(void)
+static inline void *__tcb_raw_get(void)
 {
 	uint8_t *ret;
-	asm volatile (
-	    "mov %0, r9"
-	    : "=r" (ret)
-	);
-	return (tcb_t *) (ret - ARM_TP_OFFSET - sizeof(tcb_t));
+	asm volatile ("mov %0, r9" : "=r" (ret));
+	return ret;
 }
 
+static inline void __tcb_raw_set(void *tls)
+{
+	asm volatile ("mov r9, %0" :: "r" (tls));
+}
 
 /** Returns TLS address stored.
  *

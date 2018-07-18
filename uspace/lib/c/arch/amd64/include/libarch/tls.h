@@ -37,6 +37,8 @@
 
 #define CONFIG_TLS_VARIANT_2
 
+#define ARCH_TP_OFFSET 0
+
 #include <libc.h>
 
 typedef struct {
@@ -44,15 +46,14 @@ typedef struct {
 	void *fibril_data;
 } tcb_t;
 
-static inline void __tcb_set(tcb_t *tcb)
+static inline void __tcb_raw_set(void *tls)
 {
-	asm volatile ("movq %0, %%fs:0" :: "r" (tcb));
+	asm volatile ("movq %0, %%fs:0" :: "r" (tls));
 }
 
-static inline tcb_t *__tcb_get(void)
+static inline void *__tcb_raw_get(void)
 {
-	tcb_t *retval;
-
+	void *retval;
 	asm volatile ("movq %%fs:0, %0" : "=r" (retval));
 	return retval;
 }

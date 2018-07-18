@@ -40,17 +40,22 @@
 #include <libc.h>
 #include <stddef.h>
 
+/* Some architectures store the value with an offset. Some do not. */
+#define ARCH_TP_OFFSET 0
+
 typedef struct {
 	void *self;
 	void *fibril_data;
 } tcb_t;
 
-static inline void __tcb_set(tcb_t *tcb)
+static inline void __tcb_raw_set(void *tls)
 {
+	/* Usually a short assembly assigning to an ABI-defined register. */
 }
 
-static inline tcb_t *__tcb_get(void)
+static inline void *__tcb_raw_get(void)
 {
+	/* Usually a short assembly reading from an ABI-defined register. */
 	return NULL;
 }
 

@@ -37,23 +37,23 @@
 
 #define CONFIG_TLS_VARIANT_1
 
+#define ARCH_TP_OFFSET 0
+
 /* This structure must be exactly 16 bytes long */
 typedef struct {
 	void *dtv; /* unused in static linking*/
 	void *fibril_data;
 } tcb_t;
 
-static inline void __tcb_set(tcb_t *tcb)
+static inline void __tcb_raw_set(void *tcb)
 {
 	asm volatile ("mov r13 = %0\n" : : "r" (tcb) : "r13");
 }
 
-static inline tcb_t *__tcb_get(void)
+static inline void *__tcb_raw_get(void)
 {
-	tcb_t *retval;
-
+	void *retval;
 	asm volatile ("mov %0 = r13\n" : "=r" (retval));
-
 	return retval;
 }
 

@@ -28,7 +28,7 @@
 
 #include <context.h>
 #include <setjmp.h>
-#include <libarch/tls.h>
+#include <tls.h>
 #include <libarch/fibril.h>
 #include <libarch/faddr.h>
 

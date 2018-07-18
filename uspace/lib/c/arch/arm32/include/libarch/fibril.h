@@ -61,7 +61,7 @@
 	do { \
 		(c)->pc = (sysarg_t) (_pc); \
 		(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; \
-		(c)->tls = ((sysarg_t)(ptls)) + sizeof(tcb_t) + ARM_TP_OFFSET; \
+		(c)->tls = ((sysarg_t)(ptls)) + ARCH_TP_OFFSET; \
 		(c)->fp = 0; \
 	} while (0)
 
