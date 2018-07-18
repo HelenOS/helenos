@@ -32,13 +32,13 @@
 /** @file
  */
 
-#ifndef LIBC_PRIVATE_SSTREAM_H_
-#define LIBC_PRIVATE_SSTREAM_H_
+#ifndef LIBC_PRIVATE_SCANF_H_
+#define LIBC_PRIVATE_SCANF_H_
 
+#include <stddef.h>
 #include <stdio.h>
 
-extern void __sstream_init(const char *, FILE *);
-extern const char *__sstream_getpos(FILE *);
+extern errno_t __fstrtold(FILE *, int *, size_t, long double *);
 
 #endif
 

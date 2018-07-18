@@ -51,7 +51,6 @@ extern char *realpath(const char *__restrict__ name, char *__restrict__ resolved
 extern double atof(const char *nptr);
 extern float strtof(const char *__restrict__ nptr, char **__restrict__ endptr);
 extern double strtod(const char *__restrict__ nptr, char **__restrict__ endptr);
-extern long double strtold(const char *__restrict__ nptr, char **__restrict__ endptr);
 
 /* Temporary Files */
 extern int mkstemp(char *tmpl);

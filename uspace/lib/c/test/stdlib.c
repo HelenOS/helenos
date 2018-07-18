@@ -89,6 +89,19 @@ PCUT_TEST(atoll)
 	PCUT_ASSERT_TRUE(lli == 42);
 }
 
+/** strtold function */
+#include <stdio.h>
+PCUT_TEST(strtold)
+{
+	long double ld;
+	const char *str = " \t4.2e1@";
+	char *endptr;
+
+	ld = strtold(str, &endptr);
+	printf("ld=%.10lf\n", (double)ld);
+	PCUT_ASSERT_TRUE(ld == 42.0);
+}
+
 /** strtol function */
 PCUT_TEST(strtol)
 {

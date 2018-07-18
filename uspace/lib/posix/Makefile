@@ -69,7 +69,6 @@ SOURCES = \
 	src/signal.c \
 	src/stdio.c \
 	src/stdlib.c \
-	src/stdlib/strtold.c \
 	src/string.c \
 	src/strings.c \
 	src/sys/mman.c \

@@ -37,7 +37,10 @@
 #include <fibril_synch.h>
 #include <stdlib.h>
 #include "private/libc.h"
+#include "private/scanf.h"
 #include "private/stdlib.h"
+#include "private/stdio.h"
+#include "private/sstream.h"
 
 static int glbl_seed = 1;
 
@@ -47,6 +50,32 @@ static FIBRIL_MUTEX_INITIALIZE(exit_handlers_lock);
 static LIST_INITIALIZE(quick_exit_handlers);
 static FIBRIL_MUTEX_INITIALIZE(quick_exit_handlers_lock);
 
+/** Convert string to long double.
+ *
+ */
+long double strtold(const char *nptr, char **endptr)
+{
+	int numchar;
+	long double ld;
+	errno_t rc;
+	FILE f;
+
+	numchar = 0;
+	__sstream_init(nptr, &f);
+
+	rc = __fstrtold(&f, &numchar, SIZE_MAX, &ld);
+	if (rc != EOK) {
+		ld = 0;
+		if (endptr != NULL)
+			*endptr = (char *) nptr;
+		errno = rc;
+	} else {
+		if (endptr != NULL)
+			*endptr = (char *) __sstream_getpos(&f);
+	}
+
+	return ld;
+}
 
 int rand(void)
 {

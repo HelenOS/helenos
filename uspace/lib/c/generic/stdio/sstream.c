@@ -98,5 +98,16 @@ void __sstream_init(const char *str, FILE *stream)
 	stream->arg = (void *)str;
 }
 
+/** Return current string stream position.
+ *
+ * @param stream String stream
+ * @return Pointer into the backing string at the current position
+ */
+const char *__sstream_getpos(FILE *stream)
+{
+	assert(stream->ops == &stdio_str_ops);
+	return (char *) stream->arg;
+}
+
 /** @}
  */

@@ -46,6 +46,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../private/scanf.h"
+
 typedef enum {
 	/** No length modifier */
 	lm_none,
@@ -347,7 +349,7 @@ static void cvtspec_parse(const char **fmt, cvtspec_t *spec)
  *
  * @return EOK on success, ENOMEM if out of memory
  */
-static int strbuf_init(strbuf_t *strbuf, cvtspec_t *spec, va_encaps_t *va)
+static errno_t strbuf_init(strbuf_t *strbuf, cvtspec_t *spec, va_encaps_t *va)
 {
 	if (spec->noassign) {
 		strbuf->memalloc = false;
@@ -392,7 +394,7 @@ static int strbuf_init(strbuf_t *strbuf, cvtspec_t *spec, va_encaps_t *va)
  *
  * @return EOK on sucess, ENOMEM if out of memory
  */
-static int strbuf_write(strbuf_t *strbuf, size_t idx, char c)
+static errno_t strbuf_write(strbuf_t *strbuf, size_t idx, char c)
 {
 	if (strbuf->memalloc && idx >= strbuf->size) {
 		/* Enlarge buffer */
@@ -448,7 +450,7 @@ static int __ungetc(int c, FILE *f, int *numchar)
 }
 
 /* Skip whitespace in input stream */
-static int vfscanf_skip_ws(FILE *f, int *numchar)
+static errno_t vfscanf_skip_ws(FILE *f, int *numchar)
 {
 	int c;
 
@@ -470,9 +472,9 @@ static int vfscanf_skip_ws(FILE *f, int *numchar)
 }
 
 /* Match whitespace. */
-static int vfscanf_match_ws(FILE *f, int *numchar, const char **fmt)
+static errno_t vfscanf_match_ws(FILE *f, int *numchar, const char **fmt)
 {
-	int rc;
+	errno_t rc;
 
 	rc = vfscanf_skip_ws(f, numchar);
 	if (rc == EOF)
@@ -491,13 +493,18 @@ static int vfscanf_match_ws(FILE *f, int *numchar, const char **fmt)
  * @param dest Place to store result
  * @return EOK on success, EIO on I/O error, EINVAL if input is not valid
  */
-static int __fstrtoimax(FILE *f, int *numchar, int base, size_t width,
+static errno_t __fstrtoimax(FILE *f, int *numchar, int base, size_t width,
     intmax_t *dest)
 {
+	errno_t rc;
 	int c;
 	intmax_t v;
 	int digit;
 	int sign;
+
+	rc = vfscanf_skip_ws(f, numchar);
+	if (rc == EIO)
+		return EIO;
 
 	c = __fgetc(f, numchar);
 	if (c == EOF)
@@ -578,12 +585,17 @@ static int __fstrtoimax(FILE *f, int *numchar, int base, size_t width,
  * @param dest Place to store result
  * @return EOK on success, EIO on I/O error, EINVAL if input is not valid
  */
-static int __fstrtoumax(FILE *f, int *numchar, int base, size_t width,
+static errno_t __fstrtoumax(FILE *f, int *numchar, int base, size_t width,
     uintmax_t *dest)
 {
+	errno_t rc;
 	int c;
 	uintmax_t v;
 	int digit;
+
+	rc = vfscanf_skip_ws(f, numchar);
+	if (rc == EIO)
+		return EIO;
 
 	c = __fgetc(f, numchar);
 	if (c == EOF)
@@ -652,8 +664,10 @@ static int __fstrtoumax(FILE *f, int *numchar, int base, size_t width,
  * @param dest Place to store result
  * @return EOK on success, EIO on I/O error, EINVAL if input is not valid
  */
-static int __fstrtold(FILE *f, int *numchar, size_t width, long double *dest)
+errno_t __fstrtold(FILE *f, int *numchar, size_t width,
+    long double *dest)
 {
+	errno_t rc;
 	int c;
 	long double v;
 	int digit;
@@ -664,6 +678,10 @@ static int __fstrtold(FILE *f, int *numchar, size_t width, long double *dest)
 	int eadj;
 	int exp;
 	int expsign;
+
+	rc = vfscanf_skip_ws(f, numchar);
+	if (rc == EIO)
+		return EIO;
 
 	c = __fgetc(f, numchar);
 	if (c == EOF)
@@ -822,13 +840,14 @@ static int __fstrtold(FILE *f, int *numchar, size_t width, long double *dest)
 }
 
 /* Read characters from stream */
-static int __fgetchars(FILE *f, int *numchar, size_t width, strbuf_t *strbuf,
-    size_t *nread)
+static errno_t __fgetchars(FILE *f, int *numchar, size_t width,
+    strbuf_t *strbuf, size_t *nread)
 {
 	size_t cnt;
 	int c;
-	int rc;
+	errno_t rc;
 
+	*nread = 0;
 	for (cnt = 0; cnt < width; cnt++) {
 		c = __fgetc(f, numchar);
 		if (c == EOF) {
@@ -848,13 +867,19 @@ static int __fgetchars(FILE *f, int *numchar, size_t width, strbuf_t *strbuf,
 }
 
 /* Read non-whitespace string from stream */
-static int __fgetstr(FILE *f, int *numchar, size_t width, strbuf_t *strbuf,
+static errno_t __fgetstr(FILE *f, int *numchar, size_t width, strbuf_t *strbuf,
     size_t *nread)
 {
 	size_t cnt;
 	int c;
-	int rc;
-	int rc2;
+	errno_t rc;
+	errno_t rc2;
+
+	*nread = 0;
+
+	rc = vfscanf_skip_ws(f, numchar);
+	if (rc == EIO)
+		return EIO;
 
 	rc = EOK;
 
@@ -948,13 +973,13 @@ static bool is_in_scanset(char c, const char *scanset)
 }
 
 /* Read string of characters from scanset from stream */
-static int __fgetscanstr(FILE *f, int *numchar, size_t width,
+static errno_t __fgetscanstr(FILE *f, int *numchar, size_t width,
     const char *scanset, strbuf_t *strbuf, size_t *nread)
 {
 	size_t cnt;
 	int c;
-	int rc;
-	int rc2;
+	errno_t rc;
+	errno_t rc2;
 
 	rc = EOK;
 
@@ -989,10 +1014,10 @@ static int __fgetscanstr(FILE *f, int *numchar, size_t width,
 }
 
 /** Perform a single conversion. */
-static int vfscanf_cvt(FILE *f, const char **fmt, va_encaps_t *va,
+static errno_t vfscanf_cvt(FILE *f, const char **fmt, va_encaps_t *va,
     int *numchar, unsigned *ncvt)
 {
-	int rc;
+	errno_t rc;
 	int c;
 	intmax_t ival;
 	uintmax_t uval;
@@ -1026,21 +1051,15 @@ static int vfscanf_cvt(FILE *f, const char **fmt, va_encaps_t *va,
 
 	cvtspec_parse(fmt, &cvtspec);
 
-	if (cvtspec.spcr != cs_set && cvtspec.spcr != cs_char &&
-	    cvtspec.spcr != cs_numchar) {
-		/* Skip whitespace */
-		rc = vfscanf_skip_ws(f, numchar);
-		if (rc == EIO)
-			return EIO;
-
-		assert(rc == EOK);
-	}
-
 	width = cvtspec.have_width ? cvtspec.width : SIZE_MAX;
 
 	switch (cvtspec.spcr) {
 	case cs_percent:
 		/* Match % character */
+		rc = vfscanf_skip_ws(f, numchar);
+		if (rc == EOF)
+			return EIO;
+
 		c = __fgetc(f, numchar);
 		if (c == EOF)
 			return EIO;

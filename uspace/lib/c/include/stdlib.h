@@ -77,6 +77,8 @@ typedef struct {
 
 #define MB_CUR_MAX 4
 
+extern long double strtold(const char *, char **);
+
 extern int rand(void);
 extern void srand(unsigned int);
 
