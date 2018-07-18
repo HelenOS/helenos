@@ -68,8 +68,6 @@ struct timeval {
 	suseconds_t tv_usec;  /* microseconds */
 };
 
-#define TIMEVAL_MAX ((struct timeval) { .tv_sec = LONG_MAX, .tv_usec = 999999 })
-
 struct timezone {
 	int tz_minuteswest;  /* minutes W of Greenwich */
 	int tz_dsttime;      /* type of dst correction */
