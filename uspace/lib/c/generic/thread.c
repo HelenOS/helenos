@@ -115,9 +115,6 @@ errno_t thread_create(void (*function)(void *), void *arg, const char *name,
 		return ENOMEM;
 	}
 
-	/* Make heap thread safe. */
-	malloc_enable_multithreaded();
-
 	fibril->arg = arg;
 	uarg->uspace_entry = (void *) FADDR(__thread_entry);
 	uarg->uspace_stack = stack;

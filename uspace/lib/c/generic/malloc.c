@@ -43,7 +43,7 @@
 #include <errno.h>
 #include <bitops.h>
 #include <mem.h>
-#include <futex.h>
+#include <fibril_synch.h>
 #include <stdlib.h>
 #include <adt/gcdlcm.h>
 #include "private/malloc.h"
@@ -193,73 +193,21 @@ static heap_area_t *last_heap_area = NULL;
 static heap_block_head_t *next_fit = NULL;
 
 /** Futex for thread-safe heap manipulation */
-static futex_t malloc_futex = FUTEX_INITIALIZER;
+static FIBRIL_RMUTEX_INITIALIZE(malloc_mutex);
 
 #define malloc_assert(expr) safe_assert(expr)
 
-#ifdef FUTEX_UPGRADABLE
-/** True if the heap may be accessed from multiple threads. */
-static bool multithreaded = false;
-
-/** Makes accesses to the heap thread safe. */
-void malloc_enable_multithreaded(void)
-{
-	multithreaded = true;
-}
-
 /** Serializes access to the heap from multiple threads. */
 static inline void heap_lock(void)
 {
-	if (multithreaded) {
-		futex_down(&malloc_futex);
-	} else {
-		/*
-		 * Malloc never switches fibrils while the heap is locked.
-		 * Similarly, it never creates new threads from within the
-		 * locked region. Therefore, if there are no other threads
-		 * except this one, the whole operation will complete without
-		 * any interruptions.
-		 */
-	}
+	fibril_rmutex_lock(&malloc_mutex);
 }
 
 /** Serializes access to the heap from multiple threads. */
 static inline void heap_unlock(void)
 {
-	if (multithreaded) {
-		futex_up(&malloc_futex);
-	} else {
-		/*
-		 * Malloc never switches fibrils while the heap is locked.
-		 * Similarly, it never creates new threads from within the
-		 * locked region. Therefore, if there are no other threads
-		 * except this one, the whole operation will complete without
-		 * any interruptions.
-		 */
-	}
+	fibril_rmutex_unlock(&malloc_mutex);
 }
-
-#else
-
-/** Makes accesses to the heap thread safe. */
-void malloc_enable_multithreaded(void)
-{
-	/* No-op. Already using thread-safe heap locking operations. */
-}
-
-/** Serializes access to the heap from multiple threads. */
-static inline void heap_lock(void)
-{
-	futex_down(&malloc_futex);
-}
-
-/** Serializes access to the heap from multiple threads. */
-static inline void heap_unlock(void)
-{
-	futex_up(&malloc_futex);
-}
-#endif
-
 
 /** Initialize a heap block
  *
