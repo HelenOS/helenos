@@ -254,7 +254,7 @@ errno_t loc_server_register(const char *name)
 		return retval;
 	}
 
-	async_connect_to_me(exch, 0, 0, 0);
+	async_connect_to_me(exch, INTERFACE_ANY, 0, 0);
 
 	/*
 	 * First wait for the answer and then end the exchange. The opposite

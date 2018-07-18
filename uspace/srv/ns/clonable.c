@@ -53,26 +53,24 @@ typedef struct {
 /** List of clonable-service connection requests. */
 static list_t cs_req;
 
-errno_t clonable_init(void)
+errno_t ns_clonable_init(void)
 {
 	list_initialize(&cs_req);
 	return EOK;
 }
 
 /** Return true if @a service is clonable. */
-bool service_clonable(service_t service)
+bool ns_service_is_clonable(service_t service, iface_t iface)
 {
-	return (service == SERVICE_LOADER);
+	return (service == SERVICE_LOADER) && (iface == INTERFACE_LOADER);
 }
 
 /** Register clonable service.
  *
- * @param service Service to be registered.
- * @param phone   Phone to be used for connections to the service.
- * @param call    Pointer to call structure.
+ * @param call Pointer to call structure.
  *
  */
-void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call)
+void ns_clonable_register(ipc_call_t *call)
 {
 	link_t *req_link = list_first(&cs_req);
 	if (req_link == NULL) {
@@ -86,7 +84,7 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call)
 	list_remove(req_link);
 
 	/* Currently we can only handle a single type of clonable service. */
-	assert(csr->service == SERVICE_LOADER);
+	assert(ns_service_is_clonable(csr->service, csr->iface));
 
 	async_answer_0(call, EOK);
 
@@ -112,9 +110,9 @@ void register_clonable(service_t service, sysarg_t phone, ipc_call_t *call)
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-void connect_to_clonable(service_t service, iface_t iface, ipc_call_t *call)
+void ns_clonable_forward(service_t service, iface_t iface, ipc_call_t *call)
 {
-	assert(service == SERVICE_LOADER);
+	assert(ns_service_is_clonable(service, iface));
 
 	cs_req_t *csr = malloc(sizeof(cs_req_t));
 	if (csr == NULL) {

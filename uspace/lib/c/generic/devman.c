@@ -191,7 +191,7 @@ errno_t devman_driver_register(const char *name)
 	}
 
 	exch = devman_exchange_begin(INTERFACE_DDF_DRIVER);
-	async_connect_to_me(exch, 0, 0, 0);
+	async_connect_to_me(exch, INTERFACE_ANY, 0, 0);
 	devman_exchange_end(exch);
 
 	async_wait_for(req, &retval);

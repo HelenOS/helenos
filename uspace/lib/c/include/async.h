@@ -341,7 +341,7 @@ extern async_sess_t *async_connect_me_to_blocking(async_exch_t *, iface_t,
     sysarg_t, sysarg_t);
 extern async_sess_t *async_connect_kbox(task_id_t);
 
-extern errno_t async_connect_to_me(async_exch_t *, sysarg_t, sysarg_t, sysarg_t);
+extern errno_t async_connect_to_me(async_exch_t *, iface_t, sysarg_t, sysarg_t);
 
 extern errno_t async_hangup(async_sess_t *);
 extern void async_poke(void);

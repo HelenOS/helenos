@@ -38,11 +38,11 @@
 #include <abi/ipc/interfaces.h>
 #include <stdbool.h>
 
-extern errno_t clonable_init(void);
+extern errno_t ns_clonable_init(void);
 
-extern bool service_clonable(service_t);
-extern void register_clonable(service_t, sysarg_t, ipc_call_t *);
-extern void connect_to_clonable(service_t, iface_t, ipc_call_t *);
+extern bool ns_service_is_clonable(service_t, iface_t);
+extern void ns_clonable_register(ipc_call_t *);
+extern void ns_clonable_forward(service_t, iface_t, ipc_call_t *);
 
 #endif
 

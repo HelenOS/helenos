@@ -60,18 +60,19 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 		/*
 		 * Client requests to be connected to a service.
 		 */
-		if (service_clonable(service)) {
-			connect_to_clonable(service, iface, icall);
+		if (ns_service_is_clonable(service, iface)) {
+			ns_clonable_forward(service, iface, icall);
 		} else {
-			connect_to_service(service, iface, icall);
+			ns_service_forward(service, iface, icall);
 		}
+
 		return;
 	}
 
 	async_answer_0(icall, EOK);
 
 	while (true) {
-		process_pending_conn();
+		ns_pending_conn_process();
 
 		async_get_call(&call);
 		if (!IPC_GET_IMETHOD(call))
@@ -81,23 +82,26 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 		errno_t retval;
 
 		service_t service;
-		sysarg_t phone;
 
 		switch (IPC_GET_IMETHOD(call)) {
 		case NS_REGISTER:
 			service = IPC_GET_ARG1(call);
-			phone = IPC_GET_ARG5(call);
+			iface = IPC_GET_ARG2(call);
 
 			/*
 			 * Server requests service registration.
 			 */
-			if (service_clonable(service)) {
-				register_clonable(service, phone, &call);
+			if (ns_service_is_clonable(service, iface)) {
+				ns_clonable_register(&call);
 				continue;
 			} else {
-				retval = register_service(service, phone, &call);
+				retval = ns_service_register(service, iface);
 			}
 
+			break;
+		case NS_REGISTER_BROKER:
+			service = IPC_GET_ARG1(call);
+			retval = ns_service_register_broker(service);
 			break;
 		case NS_PING:
 			retval = EOK;
@@ -114,7 +118,8 @@ static void ns_connection(ipc_call_t *icall, void *arg)
 			retval = ns_task_retval(&call);
 			break;
 		default:
-			printf("ns: method not supported\n");
+			printf("%s: Method not supported (%" PRIun ")\n",
+			    NAME, IPC_GET_IMETHOD(call));
 			retval = ENOTSUP;
 			break;
 		}
@@ -129,11 +134,11 @@ int main(int argc, char **argv)
 {
 	printf("%s: HelenOS IPC Naming Service\n", NAME);
 
-	errno_t rc = service_init();
+	errno_t rc = ns_service_init();
 	if (rc != EOK)
 		return rc;
 
-	rc = clonable_init();
+	rc = ns_clonable_init();
 	if (rc != EOK)
 		return rc;
 

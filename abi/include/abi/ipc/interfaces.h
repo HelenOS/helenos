@@ -78,6 +78,7 @@ typedef enum {
 } iface_mod_t;
 
 typedef enum {
+	INTERFACE_ANY = 0,
 	INTERFACE_LOADER =
 	    FOURCC_COMPACT('l', 'o', 'a', 'd') | IFACE_EXCHANGE_SERIALIZE,
 	INTERFACE_PAGER =

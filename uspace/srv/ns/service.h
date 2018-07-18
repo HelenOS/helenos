@@ -37,11 +37,12 @@
 #include <ipc/services.h>
 #include <abi/ipc/interfaces.h>
 
-extern errno_t service_init(void);
-extern void process_pending_conn(void);
+extern errno_t ns_service_init(void);
+extern void ns_pending_conn_process(void);
 
-extern errno_t register_service(service_t, sysarg_t, ipc_call_t *);
-extern void connect_to_service(service_t, iface_t, ipc_call_t *);
+extern errno_t ns_service_register(service_t, iface_t);
+extern errno_t ns_service_register_broker(service_t);
+extern void ns_service_forward(service_t, iface_t, ipc_call_t *);
 
 #endif
 

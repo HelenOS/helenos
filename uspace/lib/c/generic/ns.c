@@ -45,18 +45,23 @@
  */
 static async_sess_t *sess_ns = NULL;
 
-errno_t service_register(service_t service)
+errno_t service_register(service_t service, iface_t iface,
+    async_port_handler_t handler, void *data)
 {
-	errno_t retval;
-	ipc_call_t answer;
-
 	async_sess_t *sess = ns_session_get();
 	if (sess == NULL)
 		return EIO;
 
+	port_id_t port;
+	errno_t rc = async_create_port(iface, handler, data, &port);
+	if (rc != EOK)
+		return rc;
+
 	async_exch_t *exch = async_exchange_begin(sess);
-	aid_t req = async_send_1(exch, NS_REGISTER, service, &answer);
-	errno_t rc = async_connect_to_me(exch, 0, service, 0);
+
+	ipc_call_t answer;
+	aid_t req = async_send_2(exch, NS_REGISTER, service, iface, &answer);
+	rc = async_connect_to_me(exch, iface, service, 0);
 
 	async_exchange_end(exch);
 
@@ -65,6 +70,34 @@ errno_t service_register(service_t service)
 		return rc;
 	}
 
+	errno_t retval;
+	async_wait_for(req, &retval);
+	return rc;
+}
+
+errno_t service_register_broker(service_t service, async_port_handler_t handler,
+    void *data)
+{
+	async_set_fallback_port_handler(handler, data);
+
+	async_sess_t *sess = ns_session_get();
+	if (sess == NULL)
+		return EIO;
+
+	async_exch_t *exch = async_exchange_begin(sess);
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(exch, NS_REGISTER_BROKER, service, &answer);
+	errno_t rc = async_connect_to_me(exch, INTERFACE_ANY, service, 0);
+
+	async_exchange_end(exch);
+
+	if (rc != EOK) {
+		async_forget(req);
+		return rc;
+	}
+
+	errno_t retval;
 	async_wait_for(req, &retval);
 	return rc;
 }

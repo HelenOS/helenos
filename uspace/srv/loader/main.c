@@ -398,22 +398,15 @@ static void ldr_connection(ipc_call_t *icall, void *arg)
  */
 int main(int argc, char *argv[])
 {
-	async_set_fallback_port_handler(ldr_connection, NULL);
-
 	/* Introduce this task to the NS (give it our task ID). */
 	task_id_t id = task_get_id();
 	errno_t rc = ns_intro(id);
 	if (rc != EOK)
 		return rc;
 
-	/* Create port */
-	port_id_t port;
-	rc = async_create_port(INTERFACE_LOADER, ldr_connection, NULL, &port);
-	if (rc != EOK)
-		return rc;
-
 	/* Register at naming service. */
-	rc = service_register(SERVICE_LOADER);
+	rc = service_register(SERVICE_LOADER, INTERFACE_LOADER,
+	    ldr_connection, NULL);
 	if (rc != EOK)
 		return rc;
 

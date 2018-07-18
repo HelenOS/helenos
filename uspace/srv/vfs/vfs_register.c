@@ -186,6 +186,9 @@ void vfs_register(ipc_call_t *req)
 		return;
 	}
 
+	/* FIXME: Work around problem with callback sessions */
+	async_sess_args_set(fs_info->sess, INTERFACE_VFS_DRIVER_CB, 0, 0);
+
 	dprintf("Callback connection to FS created.\n");
 
 	/*

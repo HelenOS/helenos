@@ -1316,22 +1316,22 @@ errno_t async_forward_slow(ipc_call_t *call, async_exch_t *exch,
  *
  * Ask through phone for a new connection to some service.
  *
- * @param exch Exchange for sending the message.
- * @param arg1 User defined argument.
- * @param arg2 User defined argument.
- * @param arg3 User defined argument.
+ * @param exch  Exchange for sending the message.
+ * @param iface Callback interface.
+ * @param arg2  User defined argument.
+ * @param arg3  User defined argument.
  *
  * @return Zero on success or an error code.
  *
  */
-errno_t async_connect_to_me(async_exch_t *exch, sysarg_t arg1, sysarg_t arg2,
+errno_t async_connect_to_me(async_exch_t *exch, iface_t iface, sysarg_t arg2,
     sysarg_t arg3)
 {
 	if (exch == NULL)
 		return ENOENT;
 
 	ipc_call_t answer;
-	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	aid_t req = async_send_3(exch, IPC_M_CONNECT_TO_ME, iface, arg2, arg3,
 	    &answer);
 
 	errno_t rc;

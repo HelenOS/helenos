@@ -116,21 +116,6 @@ int main(int argc, char **argv)
 	async_set_client_data_destructor(vfs_client_data_destroy);
 
 	/*
-	 * Create a port for the pager.
-	 */
-	port_id_t port;
-	errno_t rc = async_create_port(INTERFACE_PAGER, vfs_pager, NULL, &port);
-	if (rc != EOK) {
-		printf("%s: Cannot create pager port: %s\n", NAME, str_error(rc));
-		return rc;
-	}
-
-	/*
-	 * Set a connection handling function/fibril.
-	 */
-	async_set_fallback_port_handler(vfs_connection, NULL);
-
-	/*
 	 * Subscribe to notifications.
 	 */
 	async_event_task_subscribe(EVENT_TASK_STATE_CHANGE, notification_handler,
@@ -139,9 +124,21 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	rc = service_register(SERVICE_VFS);
+	errno_t rc = service_register(SERVICE_VFS, INTERFACE_PAGER, vfs_pager, NULL);
 	if (rc != EOK) {
-		printf("%s: Cannot register VFS service: %s\n", NAME, str_error(rc));
+		printf("%s: Cannot register VFS pager port: %s\n", NAME, str_error(rc));
+		return rc;
+	}
+
+	rc = service_register(SERVICE_VFS, INTERFACE_VFS, vfs_connection, NULL);
+	if (rc != EOK) {
+		printf("%s: Cannot register VFS file system port: %s\n", NAME, str_error(rc));
+		return rc;
+	}
+
+	rc = service_register(SERVICE_VFS, INTERFACE_VFS_DRIVER, vfs_connection, NULL);
+	if (rc != EOK) {
+		printf("%s: Cannot register VFS driver port: %s\n", NAME, str_error(rc));
 		return rc;
 	}
 

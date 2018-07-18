@@ -324,35 +324,6 @@ int main(int argc, char *argv[])
 	async_set_client_data_constructor(devman_client_data_create);
 	async_set_client_data_destructor(devman_client_data_destroy);
 
-	port_id_t port;
-	rc = async_create_port(INTERFACE_DDF_DRIVER,
-	    devman_connection_driver, NULL, &port);
-	if (rc != EOK) {
-		printf("%s: Error creating DDF driver port: %s\n", NAME, str_error(rc));
-		return rc;
-	}
-
-	rc = async_create_port(INTERFACE_DDF_CLIENT,
-	    devman_connection_client, NULL, &port);
-	if (rc != EOK) {
-		printf("%s: Error creating DDF client port: %s\n", NAME, str_error(rc));
-		return rc;
-	}
-
-	rc = async_create_port(INTERFACE_DEVMAN_DEVICE,
-	    devman_connection_device, NULL, &port);
-	if (rc != EOK) {
-		printf("%s: Error creating devman device port: %s\n", NAME, str_error(rc));
-		return rc;
-	}
-
-	rc = async_create_port(INTERFACE_DEVMAN_PARENT,
-	    devman_connection_parent, NULL, &port);
-	if (rc != EOK) {
-		printf("%s: Error creating devman parent port: %s\n", NAME, str_error(rc));
-		return rc;
-	}
-
 	async_set_fallback_port_handler(devman_forward, NULL);
 
 	if (!devman_init()) {
@@ -361,9 +332,31 @@ int main(int argc, char *argv[])
 	}
 
 	/* Register device manager at naming service. */
-	rc = service_register(SERVICE_DEVMAN);
+	rc = service_register(SERVICE_DEVMAN, INTERFACE_DDF_DRIVER,
+	    devman_connection_driver, NULL);
 	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering as a service: %s", str_error(rc));
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering driver port: %s", str_error(rc));
+		return rc;
+	}
+
+	rc = service_register(SERVICE_DEVMAN, INTERFACE_DDF_CLIENT,
+	    devman_connection_client, NULL);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering client port: %s", str_error(rc));
+		return rc;
+	}
+
+	rc = service_register(SERVICE_DEVMAN, INTERFACE_DEVMAN_DEVICE,
+	    devman_connection_device, NULL);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering device port: %s", str_error(rc));
+		return rc;
+	}
+
+	rc = service_register(SERVICE_DEVMAN, INTERFACE_DEVMAN_PARENT,
+	    devman_connection_parent, NULL);
+	if (rc != EOK) {
+		log_msg(LOG_DEFAULT, LVL_ERROR, "Failed registering parent port: %s", str_error(rc));
 		return rc;
 	}
 

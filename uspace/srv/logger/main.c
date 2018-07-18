@@ -66,28 +66,23 @@ int main(int argc, char *argv[])
 		parse_level_settings(argv[i]);
 	}
 
-	port_id_t port;
-	errno_t rc = async_create_port(INTERFACE_LOGGER_CONTROL,
-	    connection_handler_control, NULL, &port);
+	errno_t rc = service_register(SERVICE_LOGGER, INTERFACE_LOGGER_CONTROL,
+	    connection_handler_control, NULL);
 	if (rc != EOK) {
-		printf("%s: Error while creating control port: %s\n", NAME, str_error(rc));
-		return rc;
-	}
-
-	rc = async_create_port(INTERFACE_LOGGER_WRITER,
-	    connection_handler_writer, NULL, &port);
-	if (rc != EOK) {
-		printf("%s: Error while creating writer port: %s\n", NAME, str_error(rc));
-		return rc;
-	}
-
-	rc = service_register(SERVICE_LOGGER);
-	if (rc != EOK) {
-		printf(NAME ": failed to register: %s.\n", str_error(rc));
+		printf("%s: Failed to register control port: %s.\n", NAME,
+		    str_error(rc));
 		return -1;
 	}
 
-	printf(NAME ": Accepting connections\n");
+	rc = service_register(SERVICE_LOGGER, INTERFACE_LOGGER_WRITER,
+	    connection_handler_writer, NULL);
+	if (rc != EOK) {
+		printf("%s: Failed to register writer port: %s.\n", NAME,
+		    str_error(rc));
+		return -1;
+	}
+
+	printf("%s: Accepting connections\n", NAME);
 	async_manager();
 
 	/* Never reached */
