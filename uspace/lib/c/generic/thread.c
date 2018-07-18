@@ -57,13 +57,14 @@
  */
 void __thread_main(uspace_arg_t *uarg)
 {
-	fibril_t *fibril = fibril_setup();
-	if (fibril == NULL)
-		thread_exit(0);
+	assert(!__tcb_is_set());
+
+	fibril_t *fibril = uarg->uspace_thread_arg;
+	assert(fibril);
 
 	__tcb_set(fibril->tcb);
 
-	uarg->uspace_thread_function(uarg->uspace_thread_arg);
+	uarg->uspace_thread_function(fibril->arg);
 	/*
 	 * XXX: we cannot free the userspace stack while running on it
 	 *
@@ -94,16 +95,22 @@ void __thread_main(uspace_arg_t *uarg)
 errno_t thread_create(void (*function)(void *), void *arg, const char *name,
     thread_id_t *tid)
 {
-	uspace_arg_t *uarg =
-	    (uspace_arg_t *) malloc(sizeof(uspace_arg_t));
+	uspace_arg_t *uarg = calloc(1, sizeof(uspace_arg_t));
 	if (!uarg)
 		return ENOMEM;
+
+	fibril_t *fibril = fibril_alloc();
+	if (!fibril) {
+		free(uarg);
+		return ENOMEM;
+	}
 
 	size_t stack_size = stack_size_get();
 	void *stack = as_area_create(AS_AREA_ANY, stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
 	if (stack == AS_MAP_FAILED) {
+		fibril_teardown(fibril, false);
 		free(uarg);
 		return ENOMEM;
 	}
@@ -111,11 +118,12 @@ errno_t thread_create(void (*function)(void *), void *arg, const char *name,
 	/* Make heap thread safe. */
 	malloc_enable_multithreaded();
 
+	fibril->arg = arg;
 	uarg->uspace_entry = (void *) FADDR(__thread_entry);
 	uarg->uspace_stack = stack;
 	uarg->uspace_stack_size = stack_size;
 	uarg->uspace_thread_function = function;
-	uarg->uspace_thread_arg = arg;
+	uarg->uspace_thread_arg = fibril;
 	uarg->uspace_uarg = uarg;
 
 	errno_t rc = (errno_t) __SYSCALL4(SYS_THREAD_CREATE, (sysarg_t) uarg,

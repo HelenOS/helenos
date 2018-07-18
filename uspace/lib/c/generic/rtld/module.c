@@ -367,6 +367,8 @@ void modules_process_tls(rtld_t *rtld)
 	 * We are in negative offsets. In order for the alignments to
 	 * be correct, "zero" offset (i.e. the total size) must be aligned
 	 * to the strictest alignment present.
+	 * Note that the padding is actually in front of the TLS data,
+	 * not after it.
 	 */
 	rtld->tls_size = ALIGN_UP(rtld->tls_size, rtld->tls_align);
 

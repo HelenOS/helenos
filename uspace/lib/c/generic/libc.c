@@ -62,15 +62,37 @@
 
 progsymbols_t __progsymbols;
 
-static bool env_setup = false;
+static bool env_setup;
+static fibril_t main_fibril;
 
 void __libc_main(void *pcb_ptr)
 {
+	assert(!__tcb_is_set());
+
+	__pcb = (pcb_t *) pcb_ptr;
+
+	if (__pcb) {
+		main_fibril.tcb = __pcb->tcb;
+	} else {
+		/*
+		 * Loaded by kernel, not the loader.
+		 * Kernel only supports loading fully static binaries,
+		 * so we can do basic initialization without worrying about
+		 * dynamic libraries.
+		 */
+
+		main_fibril.tcb = tls_make_initial(__progsymbols.elfstart);
+	}
+
+	assert(main_fibril.tcb);
+
+	/* Initialize the fibril. */
+	main_fibril.tcb->fibril_data = &main_fibril;
+	__tcb_set(main_fibril.tcb);
+	fibril_setup(&main_fibril);
+
 	/* Initialize user task run-time environment */
 	__malloc_init();
-
-	/* Save the PCB pointer */
-	__pcb = (pcb_t *) pcb_ptr;
 
 #ifdef CONFIG_RTLD
 	if (__pcb != NULL && __pcb->rtld_runtime != NULL) {
@@ -80,12 +102,6 @@ void __libc_main(void *pcb_ptr)
 			abort();
 	}
 #endif
-
-	fibril_t *fibril = fibril_setup();
-	if (fibril == NULL)
-		abort();
-
-	__tcb_set(fibril->tcb);
 
 	__async_server_init();
 	__async_client_init();
@@ -150,7 +166,6 @@ void __libc_exit(int status)
 	if (env_setup) {
 		__stdio_done();
 		task_retval(status);
-		fibril_teardown(__tcb_get()->fibril_data, false);
 	}
 
 	__SYSCALL1(SYS_TASK_EXIT, false);

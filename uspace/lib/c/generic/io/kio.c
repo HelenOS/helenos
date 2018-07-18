@@ -55,7 +55,8 @@ static struct {
 
 errno_t kio_write(const void *buf, size_t size, size_t *nwritten)
 {
-	futex_lock(&kio_buffer.futex);
+	/* Using down/up instead of lock/unlock so we can print very early. */
+	futex_down(&kio_buffer.futex);
 
 	const char *s = buf;
 	while (true) {
@@ -81,7 +82,7 @@ errno_t kio_write(const void *buf, size_t size, size_t *nwritten)
 		}
 	}
 
-	futex_unlock(&kio_buffer.futex);
+	futex_up(&kio_buffer.futex);
 	if (nwritten)
 		*nwritten = size;
 	return EOK;

@@ -67,7 +67,7 @@ int elf_load(int file, elf_info_t *info)
 		return rc;
 	}
 
-	if (info->finfo.interp == NULL) {
+	if (info->finfo.dynamic == NULL) {
 		/* Statically linked program */
 		DPRINTF("Binary is statically linked.\n");
 		info->env = NULL;

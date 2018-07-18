@@ -43,16 +43,34 @@
 #include <str.h>
 #include <macros.h>
 #include <elf/elf.h>
+#include <as.h>
 
-#include "private/libc.h"
+#include <libarch/config.h>
 
 #ifdef CONFIG_RTLD
 #include <rtld/rtld.h>
 #endif
 
+#include "private/libc.h"
+
 #if !defined(CONFIG_TLS_VARIANT_1) && !defined(CONFIG_TLS_VARIANT_2)
 #error Unknown TLS variant.
 #endif
+
+static ptrdiff_t _tcb_data_offset(void)
+{
+	const elf_segment_header_t *tls =
+	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
+
+	size_t tls_align = tls ? tls->p_align : 1;
+
+#ifdef CONFIG_TLS_VARIANT_1
+	return ALIGN_UP((ptrdiff_t) sizeof(tcb_t), tls_align);
+#else
+	size_t tls_size = tls ? tls->p_memsz : 0;
+	return -ALIGN_UP((ptrdiff_t) tls_size, max(tls_align, _Alignof(tcb_t)));
+#endif
+}
 
 /** Get address of static TLS block */
 void *tls_get(void)
@@ -60,62 +78,96 @@ void *tls_get(void)
 #ifdef CONFIG_RTLD
 	assert(runtime_env == NULL);
 #endif
+	return (uint8_t *)__tcb_get() + _tcb_data_offset();
+}
 
-	const elf_segment_header_t *tls =
-	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
+static tcb_t *tls_make_generic(const void *elf, void *(*alloc)(size_t, size_t))
+{
+	assert(!elf_get_phdr(elf, PT_DYNAMIC));
+#ifdef CONFIG_RTLD
+	assert(runtime_env == NULL);
+#endif
 
-	if (tls == NULL)
+	const elf_segment_header_t *tls = elf_get_phdr(elf, PT_TLS);
+	size_t tls_size = tls ? tls->p_memsz : 0;
+	size_t tls_align = tls ? tls->p_align : 1;
+
+	/*
+	 * We don't currently support alignment this big,
+	 * and neither should we need to.
+	 */
+	assert(tls_align <= PAGE_SIZE);
+
+#ifdef CONFIG_TLS_VARIANT_1
+	size_t alloc_size =
+	    ALIGN_UP(sizeof(tcb_t), tls_align) + tls_size;
+#else
+	size_t alloc_size =
+	    ALIGN_UP(tls_size, max(tls_align, _Alignof(tcb_t))) + sizeof(tcb_t);
+#endif
+
+	void *area = alloc(max(tls_align, _Alignof(tcb_t)), alloc_size);
+	if (!area)
 		return NULL;
 
 #ifdef CONFIG_TLS_VARIANT_1
-	return (uint8_t *)__tcb_get() + ALIGN_UP(sizeof(tcb_t), tls->p_align);
-#else /* CONFIG_TLS_VARIANT_2 */
-	return (uint8_t *)__tcb_get() - ALIGN_UP(tls->p_memsz, tls->p_align);
+	tcb_t *tcb = area;
+	uint8_t *data = (uint8_t *)tcb + _tcb_data_offset();
+	memset(tcb, 0, sizeof(*tcb));
+#else
+	uint8_t *data = area;
+	tcb_t *tcb = (tcb_t *) (data - _tcb_data_offset());
+	memset(tcb, 0, sizeof(tcb_t));
+	tcb->self = tcb;
 #endif
+
+	if (!tls)
+		return tcb;
+
+	uintptr_t bias = elf_get_bias(elf);
+
+	/* Copy thread local data from the initialization image. */
+	memcpy(data, (void *)(tls->p_vaddr + bias), tls->p_filesz);
+	/* Zero out the thread local uninitialized data. */
+	memset(data + tls->p_filesz, 0, tls->p_memsz - tls->p_filesz);
+
+	return tcb;
+}
+
+static void *early_alloc(size_t align, size_t alloc_size)
+{
+	assert(align <= PAGE_SIZE);
+	alloc_size = ALIGN_UP(alloc_size, PAGE_SIZE);
+
+	void *area = as_area_create(AS_AREA_ANY, alloc_size,
+	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE, AS_AREA_UNPAGED);
+	if (area == AS_MAP_FAILED)
+		return NULL;
+	return area;
+}
+
+/** Same as tls_make(), but uses as_area_create() instead of memalign().
+ *  Only used in __libc_main() if the program was created by the kernel.
+ */
+tcb_t *tls_make_initial(const void *elf)
+{
+	return tls_make_generic(elf, early_alloc);
 }
 
 /** Create TLS (Thread Local Storage) data structures.
  *
  * @return Pointer to TCB.
  */
-tcb_t *tls_make(void)
+tcb_t *tls_make(const void *elf)
 {
-	void *data;
-	tcb_t *tcb;
+	// TODO: Always use rtld.
 
 #ifdef CONFIG_RTLD
 	if (runtime_env != NULL)
 		return rtld_tls_make(runtime_env);
 #endif
 
-	const elf_segment_header_t *tls =
-	    elf_get_phdr(__progsymbols.elfstart, PT_TLS);
-	if (tls == NULL)
-		return NULL;
-
-	uintptr_t bias = elf_get_bias(__progsymbols.elfstart);
-	size_t align = max(tls->p_align, _Alignof(tcb_t));
-
-#ifdef CONFIG_TLS_VARIANT_1
-	tcb = tls_alloc_arch(
-	    ALIGN_UP(sizeof(tcb_t), align) + tls->p_memsz, align);
-	data = (void *) tcb + ALIGN_UP(sizeof(tcb_t), align);
-#else
-	tcb = tls_alloc_arch(
-	    ALIGN_UP(tls->p_memsz, align) + sizeof(tcb_t), align);
-	data = (void *) tcb - ALIGN_UP(tls->p_memsz, tls->p_align);
-#endif
-
-	/*
-	 * Copy thread local data from the initialization image.
-	 */
-	memcpy(data, (void *)(tls->p_vaddr + bias), tls->p_filesz);
-	/*
-	 * Zero out the thread local uninitialized data.
-	 */
-	memset(data + tls->p_filesz, 0, tls->p_memsz - tls->p_filesz);
-
-	return tcb;
+	return tls_make_generic(elf, memalign);
 }
 
 void tls_free(tcb_t *tcb)

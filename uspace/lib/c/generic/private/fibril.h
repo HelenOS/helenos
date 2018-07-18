@@ -54,6 +54,8 @@ struct fibril {
 
 	atomic_t futex_locks;
 	bool is_writer : 1;
+	/* In some places, we use fibril structs that can't be freed. */
+	bool is_freeable : 1;
 };
 
 typedef enum {
@@ -63,7 +65,8 @@ typedef enum {
 	FIBRIL_FROM_DEAD
 } fibril_switch_type_t;
 
-extern fibril_t *fibril_setup(void);
+extern fibril_t *fibril_alloc(void);
+extern void fibril_setup(fibril_t *);
 extern void fibril_teardown(fibril_t *f, bool locked);
 extern int fibril_switch(fibril_switch_type_t stype);
 extern void fibril_add_manager(fid_t fid);

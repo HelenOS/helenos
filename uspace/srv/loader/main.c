@@ -61,6 +61,10 @@
 #include <vfs/vfs.h>
 #include <vfs/inbox.h>
 
+#ifdef CONFIG_RTLD
+#include <rtld/rtld.h>
+#endif
+
 #define DPRINTF(...) ((void) 0)
 
 /** File that will be loaded */
@@ -295,6 +299,16 @@ static int ldr_load(ipc_call_t *req)
 
 	DPRINTF("Loaded.\n");
 
+#ifdef CONFIG_RTLD
+	if (prog_info.env) {
+		pcb.tcb = rtld_tls_make(prog_info.env);
+	} else {
+		pcb.tcb = tls_make(prog_info.finfo.base);
+	}
+#else
+	pcb.tcb = tls_make(prog_info.finfo.base);
+#endif
+
 	elf_set_pcb(&prog_info, &pcb);
 
 	DPRINTF("PCB set.\n");
@@ -327,7 +341,10 @@ static __attribute__((noreturn)) void ldr_run(ipc_call_t *req)
 	/* Run program */
 	DPRINTF("Reply OK\n");
 	async_answer_0(req, EOK);
+
 	DPRINTF("Jump to entry point at %p\n", pcb.entry);
+
+	__tcb_reset();
 	entry_point_jmp(prog_info.finfo.entry, &pcb);
 
 	/* Not reached */

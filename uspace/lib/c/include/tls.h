@@ -68,7 +68,8 @@ static inline bool __tcb_is_set(void)
 /** DTV Generation number - equals vector length */
 #define DTV_GN(dtv) (((uintptr_t *)(dtv))[0])
 
-extern tcb_t *tls_make(void);
+extern tcb_t *tls_make(const void *);
+extern tcb_t *tls_make_initial(const void *);
 extern tcb_t *tls_alloc_arch(size_t, size_t);
 extern void tls_free(tcb_t *);
 extern void tls_free_arch(tcb_t *, size_t, size_t);

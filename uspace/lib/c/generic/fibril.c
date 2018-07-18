@@ -49,7 +49,7 @@
 
 #include "private/thread.h"
 #include "private/fibril.h"
-
+#include "private/libc.h"
 
 /**
  * This futex serializes access to ready_list,
@@ -84,12 +84,10 @@ static void fibril_main(void)
 	/* Not reached */
 }
 
-/** Setup fibril information into TCB structure
- *
- */
-fibril_t *fibril_setup(void)
+/** Allocate a fibril structure and TCB, but don't do anything else with it. */
+fibril_t *fibril_alloc(void)
 {
-	tcb_t *tcb = tls_make();
+	tcb_t *tcb = tls_make(__progsymbols.elfstart);
 	if (!tcb)
 		return NULL;
 
@@ -101,17 +99,20 @@ fibril_t *fibril_setup(void)
 
 	tcb->fibril_data = fibril;
 	fibril->tcb = tcb;
+	fibril->is_freeable = true;
 
-	/*
-	 * We are called before __tcb_set(), so we need to use
-	 * futex_down/up() instead of futex_lock/unlock() that
-	 * may attempt to access TLS.
-	 */
-	futex_down(&fibril_futex);
-	list_append(&fibril->all_link, &fibril_list);
-	futex_up(&fibril_futex);
-
+	fibril_setup(fibril);
 	return fibril;
+}
+
+/**
+ * Put the fibril into fibril_list.
+ */
+void fibril_setup(fibril_t *f)
+{
+	futex_lock(&fibril_futex);
+	list_append(&f->all_link, &fibril_list);
+	futex_unlock(&fibril_futex);
 }
 
 void fibril_teardown(fibril_t *fibril, bool locked)
@@ -121,8 +122,11 @@ void fibril_teardown(fibril_t *fibril, bool locked)
 	list_remove(&fibril->all_link);
 	if (!locked)
 		futex_unlock(&fibril_futex);
-	tls_free(fibril->tcb);
-	free(fibril);
+
+	if (fibril->is_freeable) {
+		tls_free(fibril->tcb);
+		free(fibril);
+	}
 }
 
 /** Switch from the current fibril.
@@ -238,7 +242,7 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 {
 	fibril_t *fibril;
 
-	fibril = fibril_setup();
+	fibril = fibril_alloc();
 	if (fibril == NULL)
 		return 0;
 
@@ -247,7 +251,7 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 	fibril->stack = as_area_create(AS_AREA_ANY, stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
-	if (fibril->stack == (void *) -1) {
+	if (fibril->stack == AS_MAP_FAILED) {
 		fibril_teardown(fibril, false);
 		return 0;
 	}
@@ -323,7 +327,10 @@ void fibril_remove_manager(void)
 
 fibril_t *fibril_self(void)
 {
-	return __tcb_get()->fibril_data;
+	assert(__tcb_is_set());
+	tcb_t *tcb = __tcb_get();
+	assert(tcb->fibril_data);
+	return tcb->fibril_data;
 }
 
 /** Return fibril id of the currently running fibril.

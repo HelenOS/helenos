@@ -36,6 +36,7 @@
 #ifndef LIBC_PCB_H_
 #define LIBC_PCB_H_
 
+#include <tls.h>
 
 typedef void (*entry_point_t)(void);
 
@@ -75,6 +76,9 @@ typedef struct {
 	void *dynamic;
 	/** Pointer to dynamic linker state structure (rtld_t). */
 	void *rtld_runtime;
+
+	/** Thread local storage for the main thread. */
+	tcb_t *tcb;
 } pcb_t;
 
 /**
