@@ -143,9 +143,6 @@ extern void async_wait_for(aid_t, errno_t *);
 extern errno_t async_wait_timeout(aid_t, errno_t *, suseconds_t);
 extern void async_forget(aid_t);
 
-extern void async_create_manager(void);
-extern void async_destroy_manager(void);
-
 extern void async_set_client_data_constructor(async_client_data_ctor_t);
 extern void async_set_client_data_destructor(async_client_data_dtor_t);
 extern void *async_get_client_data(void);
@@ -344,7 +341,6 @@ extern async_sess_t *async_connect_kbox(task_id_t);
 extern errno_t async_connect_to_me(async_exch_t *, iface_t, sysarg_t, sysarg_t);
 
 extern errno_t async_hangup(async_sess_t *);
-extern void async_poke(void);
 
 extern async_exch_t *async_exchange_begin(async_sess_t *);
 extern void async_exchange_end(async_exch_t *);
@@ -474,6 +470,7 @@ extern void *async_as_area_create(void *, size_t, unsigned int, async_sess_t *,
     sysarg_t, sysarg_t, sysarg_t);
 
 errno_t async_spawn_notification_handler(void);
+fid_t async_create_manager(void);
 
 #endif
 

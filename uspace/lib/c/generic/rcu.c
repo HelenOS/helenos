@@ -114,7 +114,7 @@ typedef struct rcu_data {
 } rcu_data_t;
 
 typedef struct blocked_fibril {
-	fid_t id;
+	fibril_event_t unblock;
 	link_t link;
 	bool is_ready;
 } blocked_fibril_t;
@@ -217,7 +217,7 @@ void rcu_read_lock(void)
 	}
 }
 
-/** Delimits the start of an RCU reader critical section. */
+/** Delimits the end of an RCU reader critical section. */
 void rcu_read_unlock(void)
 {
 	assert(fibril_rcu.registered);
@@ -360,16 +360,14 @@ static void lock_sync(void)
 	fibril_rmutex_lock(&rcu.sync_lock.mutex);
 	if (rcu.sync_lock.locked) {
 		blocked_fibril_t blocked_fib;
-		blocked_fib.id = fibril_get_id();
+		blocked_fib.unblock = FIBRIL_EVENT_INIT;
 
 		list_append(&blocked_fib.link, &rcu.sync_lock.blocked_fibrils);
 
 		do {
 			blocked_fib.is_ready = false;
 			fibril_rmutex_unlock(&rcu.sync_lock.mutex);
-			futex_lock(&async_futex);
-			fibril_switch(FIBRIL_FROM_BLOCKED);
-			futex_unlock(&async_futex);
+			fibril_wait_for(&blocked_fib.unblock);
 			fibril_rmutex_lock(&rcu.sync_lock.mutex);
 		} while (rcu.sync_lock.locked);
 
@@ -392,7 +390,7 @@ static void unlock_sync(void)
 
 		if (!blocked_fib->is_ready) {
 			blocked_fib->is_ready = true;
-			fibril_add_ready(blocked_fib->id);
+			fibril_notify(&blocked_fib->unblock);
 		}
 	}
 

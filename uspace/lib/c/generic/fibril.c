@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2006 Ondrej Palkovsky
  * Copyright (c) 2007 Jakub Jermar
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,28 +39,71 @@
 #include <stack.h>
 #include <tls.h>
 #include <stdlib.h>
-#include <abi/mm/as.h>
 #include <as.h>
-#include <stdio.h>
-#include <libarch/barrier.h>
 #include <context.h>
 #include <futex.h>
 #include <assert.h>
-#include <async.h>
 
+#include <mem.h>
+#include <str.h>
+#include <ipc/ipc.h>
+#include <libarch/faddr.h>
 #include "private/thread.h"
 #include "private/fibril.h"
 #include "private/libc.h"
 
-/**
- * This futex serializes access to ready_list,
- * manager_list and fibril_list.
- */
+#define DPRINTF(...) ((void)0)
+
+/** Member of timeout_list. */
+typedef struct {
+	link_t link;
+	struct timeval expires;
+	fibril_event_t *event;
+} _timeout_t;
+
+typedef struct {
+	errno_t rc;
+	link_t link;
+	ipc_call_t *call;
+	fibril_event_t event;
+} _ipc_waiter_t;
+
+typedef struct {
+	errno_t rc;
+	link_t link;
+	ipc_call_t call;
+} _ipc_buffer_t;
+
+typedef enum {
+	SWITCH_FROM_DEAD,
+	SWITCH_FROM_HELPER,
+	SWITCH_FROM_YIELD,
+	SWITCH_FROM_BLOCKED,
+} _switch_type_t;
+
+static bool multithreaded = false;
+
+/* This futex serializes access to global data. */
 static futex_t fibril_futex = FUTEX_INITIALIZER;
+static futex_t ready_semaphore = FUTEX_INITIALIZE(0);
 
 static LIST_INITIALIZE(ready_list);
-static LIST_INITIALIZE(manager_list);
 static LIST_INITIALIZE(fibril_list);
+static LIST_INITIALIZE(timeout_list);
+
+static futex_t ipc_lists_futex = FUTEX_INITIALIZER;
+static LIST_INITIALIZE(ipc_waiter_list);
+static LIST_INITIALIZE(ipc_buffer_list);
+static LIST_INITIALIZE(ipc_buffer_free_list);
+
+/* Only used as unique markers for triggered events. */
+static fibril_t _fibril_event_triggered;
+static fibril_t _fibril_event_timed_out;
+#define _EVENT_INITIAL   (NULL)
+#define _EVENT_TRIGGERED (&_fibril_event_triggered)
+#define _EVENT_TIMED_OUT (&_fibril_event_timed_out)
+
+static atomic_t threads_in_ipc_wait = { 0 };
 
 /** Function that spans the whole life-cycle of a fibril.
  *
@@ -68,19 +112,16 @@ static LIST_INITIALIZE(fibril_list);
  * The fibril then switches to another fibril, which cleans up after it.
  *
  */
-static void fibril_main(void)
+static void _fibril_main(void)
 {
-	/* fibril_futex and async_futex are locked when a fibril is started. */
+	/* fibril_futex is locked when a fibril is started. */
 	futex_unlock(&fibril_futex);
-	futex_unlock(&async_futex);
 
 	fibril_t *fibril = fibril_self();
 
 	/* Call the implementing function. */
-	fibril->retval = fibril->func(fibril->arg);
+	fibril_exit(fibril->func(fibril->arg));
 
-	futex_lock(&async_futex);
-	fibril_switch(FIBRIL_FROM_DEAD);
 	/* Not reached */
 }
 
@@ -115,13 +156,11 @@ void fibril_setup(fibril_t *f)
 	futex_unlock(&fibril_futex);
 }
 
-void fibril_teardown(fibril_t *fibril, bool locked)
+void fibril_teardown(fibril_t *fibril)
 {
-	if (!locked)
-		futex_lock(&fibril_futex);
+	futex_lock(&fibril_futex);
 	list_remove(&fibril->all_link);
-	if (!locked)
-		futex_unlock(&fibril_futex);
+	futex_unlock(&fibril_futex);
 
 	if (fibril->is_freeable) {
 		tls_free(fibril->tcb);
@@ -129,104 +168,344 @@ void fibril_teardown(fibril_t *fibril, bool locked)
 	}
 }
 
-/** Switch from the current fibril.
+/**
+ * Event notification with a given reason.
  *
- * The async_futex must be held when entering this function,
- * and is still held on return.
- *
- * @param stype Switch type. One of FIBRIL_PREEMPT, FIBRIL_TO_MANAGER,
- *              FIBRIL_FROM_MANAGER, FIBRIL_FROM_DEAD. The parameter
- *              describes the circumstances of the switch.
- *
- * @return 0 if there is no ready fibril,
- * @return 1 otherwise.
- *
+ * @param reason  Reason of the notification.
+ *                Can be either _EVENT_TRIGGERED or _EVENT_TIMED_OUT.
  */
-int fibril_switch(fibril_switch_type_t stype)
+static fibril_t *_fibril_trigger_internal(fibril_event_t *event, fibril_t *reason)
 {
-	/* Make sure the async_futex is held. */
-	futex_assert_is_locked(&async_futex);
+	assert(reason != _EVENT_INITIAL);
+	assert(reason == _EVENT_TIMED_OUT || reason == _EVENT_TRIGGERED);
+
+	futex_assert_is_locked(&fibril_futex);
+
+	if (event->fibril == _EVENT_INITIAL) {
+		event->fibril = reason;
+		return NULL;
+	}
+
+	if (event->fibril == _EVENT_TIMED_OUT) {
+		assert(reason == _EVENT_TRIGGERED);
+		event->fibril = reason;
+		return NULL;
+	}
+
+	if (event->fibril == _EVENT_TRIGGERED) {
+		/* Already triggered. Nothing to do. */
+		return NULL;
+	}
+
+	fibril_t *f = event->fibril;
+	event->fibril = reason;
+
+	assert(f->sleep_event == event);
+	return f;
+}
+
+static errno_t _ipc_wait(ipc_call_t *call, const struct timeval *expires)
+{
+	if (!expires)
+		return ipc_wait(call, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
+
+	if (expires->tv_sec == 0)
+		return ipc_wait(call, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
+
+	struct timeval now;
+	getuptime(&now);
+
+	if (tv_gteq(&now, expires))
+		return ipc_wait(call, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
+
+	return ipc_wait(call, tv_sub_diff(expires, &now), SYNCH_FLAGS_NONE);
+}
+
+/*
+ * Waits until a ready fibril is added to the list, or an IPC message arrives.
+ * Returns NULL on timeout and may also return NULL if returning from IPC
+ * wait after new ready fibrils are added.
+ */
+static fibril_t *_ready_list_pop(const struct timeval *expires, bool locked)
+{
+	if (locked) {
+		futex_assert_is_locked(&fibril_futex);
+		assert(expires);
+		/* Must be nonblocking. */
+		assert(expires->tv_sec == 0);
+	} else {
+		futex_assert_is_not_locked(&fibril_futex);
+	}
+
+	if (!multithreaded) {
+		/*
+		 * The number of available tokens is always equal to the number
+		 * of fibrils in the ready list + the number of free IPC buffer
+		 * buckets.
+		 */
+
+		assert(atomic_get(&ready_semaphore.val) ==
+		    list_count(&ready_list) + list_count(&ipc_buffer_free_list));
+	}
+
+	errno_t rc = futex_down_timeout(&ready_semaphore, expires);
+
+	if (rc != EOK)
+		return NULL;
+
+	/*
+	 * Once we acquire a token from ready_semaphore, there are two options.
+	 * Either there is a ready fibril in the list, or it's our turn to
+	 * call `ipc_wait_cycle()`. There is one extra token on the semaphore
+	 * for each entry of the call buffer.
+	 */
+
+
+	if (!locked)
+		futex_lock(&fibril_futex);
+	fibril_t *f = list_pop(&ready_list, fibril_t, link);
+	if (!f)
+		atomic_inc(&threads_in_ipc_wait);
+	if (!locked)
+		futex_unlock(&fibril_futex);
+
+	if (f)
+		return f;
+
+	if (!multithreaded)
+		assert(list_empty(&ipc_buffer_list));
+
+	/* No fibril is ready, IPC wait it is. */
+	ipc_call_t call = { 0 };
+	rc = _ipc_wait(&call, expires);
+
+	atomic_dec(&threads_in_ipc_wait);
+
+	if (rc != EOK && rc != ENOENT) {
+		/* Return token. */
+		futex_up(&ready_semaphore);
+		return NULL;
+	}
+
+	/*
+	 * We might get ENOENT due to a poke.
+	 * In that case, we propagate the null call out of fibril_ipc_wait(),
+	 * because poke must result in that call returning.
+	 */
+
+	/*
+	 * If a fibril is already waiting for IPC, we wake up the fibril,
+	 * and return the token to ready_semaphore.
+	 * If there is no fibril waiting, we pop a buffer bucket and
+	 * put our call there. The token then returns when the bucket is
+	 * returned.
+	 */
+
+	if (!locked)
+		futex_lock(&fibril_futex);
+
+	futex_lock(&ipc_lists_futex);
+
+
+	_ipc_waiter_t *w = list_pop(&ipc_waiter_list, _ipc_waiter_t, link);
+	if (w) {
+		*w->call = call;
+		w->rc = rc;
+		/* We switch to the woken up fibril immediately if possible. */
+		f = _fibril_trigger_internal(&w->event, _EVENT_TRIGGERED);
+
+		/* Return token. */
+		futex_up(&ready_semaphore);
+	} else {
+		_ipc_buffer_t *buf = list_pop(&ipc_buffer_free_list, _ipc_buffer_t, link);
+		assert(buf);
+		*buf = (_ipc_buffer_t) { .call = call, .rc = rc };
+		list_append(&buf->link, &ipc_buffer_list);
+	}
+
+	futex_unlock(&ipc_lists_futex);
+
+	if (!locked)
+		futex_unlock(&fibril_futex);
+
+	return f;
+}
+
+static fibril_t *_ready_list_pop_nonblocking(bool locked)
+{
+	struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };
+	return _ready_list_pop(&tv, locked);
+}
+
+static void _ready_list_push(fibril_t *f)
+{
+	if (!f)
+		return;
+
+	futex_assert_is_locked(&fibril_futex);
+
+	/* Enqueue in ready_list. */
+	list_append(&f->link, &ready_list);
+	futex_up(&ready_semaphore);
+
+	if (atomic_get(&threads_in_ipc_wait)) {
+		DPRINTF("Poking.\n");
+		/* Wakeup one thread sleeping in SYS_IPC_WAIT. */
+		ipc_poke();
+	}
+}
+
+/* Blocks the current fibril until an IPC call arrives. */
+static errno_t _wait_ipc(ipc_call_t *call, const struct timeval *expires)
+{
+	futex_assert_is_not_locked(&fibril_futex);
+
+	futex_lock(&ipc_lists_futex);
+	_ipc_buffer_t *buf = list_pop(&ipc_buffer_list, _ipc_buffer_t, link);
+	if (buf) {
+		*call = buf->call;
+		errno_t rc = buf->rc;
+
+		/* Return to freelist. */
+		list_append(&buf->link, &ipc_buffer_free_list);
+		/* Return IPC wait token. */
+		futex_up(&ready_semaphore);
+
+		futex_unlock(&ipc_lists_futex);
+		return rc;
+	}
+
+	_ipc_waiter_t w = { .call = call };
+	list_append(&w.link, &ipc_waiter_list);
+	futex_unlock(&ipc_lists_futex);
+
+	errno_t rc = fibril_wait_timeout(&w.event, expires);
+	if (rc == EOK)
+		return w.rc;
+
+	futex_lock(&ipc_lists_futex);
+	if (link_in_use(&w.link))
+		list_remove(&w.link);
+	else
+		rc = w.rc;
+	futex_unlock(&ipc_lists_futex);
+	return rc;
+}
+
+/** Fire all timeouts that expired. */
+static struct timeval *_handle_expired_timeouts(struct timeval *next_timeout)
+{
+	struct timeval tv;
+	getuptime(&tv);
 
 	futex_lock(&fibril_futex);
 
+	while (!list_empty(&timeout_list)) {
+		link_t *cur = list_first(&timeout_list);
+		_timeout_t *to = list_get_instance(cur, _timeout_t, link);
+
+		if (tv_gt(&to->expires, &tv)) {
+			*next_timeout = to->expires;
+			futex_unlock(&fibril_futex);
+			return next_timeout;
+		}
+
+		list_remove(&to->link);
+
+		_ready_list_push(_fibril_trigger_internal(
+		    to->event, _EVENT_TIMED_OUT));
+	}
+
+	futex_unlock(&fibril_futex);
+	return NULL;
+}
+
+/**
+ * Clean up after a dead fibril from which we restored context, if any.
+ * Called after a switch is made and fibril_futex is unlocked.
+ */
+static void _fibril_cleanup_dead(void)
+{
 	fibril_t *srcf = fibril_self();
-	fibril_t *dstf = NULL;
+	if (!srcf->clean_after_me)
+		return;
 
-	/* Choose a new fibril to run */
-	if (list_empty(&ready_list)) {
-		if (stype == FIBRIL_PREEMPT || stype == FIBRIL_FROM_MANAGER) {
-			// FIXME: This means that as long as there is a fibril
-			// that only yields, IPC messages are never retrieved.
-			futex_unlock(&fibril_futex);
-			return 0;
-		}
+	void *stack = srcf->clean_after_me->stack;
+	assert(stack);
+	as_area_destroy(stack);
+	fibril_teardown(srcf->clean_after_me);
+	srcf->clean_after_me = NULL;
+}
 
-		/* If we are going to manager and none exists, create it */
-		while (list_empty(&manager_list)) {
-			futex_unlock(&fibril_futex);
-			async_create_manager();
-			futex_lock(&fibril_futex);
-		}
+/** Switch to a fibril. */
+static void _fibril_switch_to(_switch_type_t type, fibril_t *dstf, bool locked)
+{
+	if (!locked)
+		futex_lock(&fibril_futex);
+	else
+		futex_assert_is_locked(&fibril_futex);
 
-		dstf = list_get_instance(list_first(&manager_list),
-		    fibril_t, link);
-	} else {
-		dstf = list_get_instance(list_first(&ready_list), fibril_t,
-		    link);
-	}
+	fibril_t *srcf = fibril_self();
+	assert(srcf);
+	assert(dstf);
 
-	list_remove(&dstf->link);
-	if (stype == FIBRIL_FROM_DEAD)
+	switch (type) {
+	case SWITCH_FROM_YIELD:
+		_ready_list_push(srcf);
+		break;
+	case SWITCH_FROM_DEAD:
 		dstf->clean_after_me = srcf;
-
-	/* Put the current fibril into the correct run list */
-	switch (stype) {
-	case FIBRIL_PREEMPT:
-		list_append(&srcf->link, &ready_list);
 		break;
-	case FIBRIL_FROM_MANAGER:
-		list_append(&srcf->link, &manager_list);
-		break;
-	case FIBRIL_FROM_DEAD:
-	case FIBRIL_FROM_BLOCKED:
-		// Nothing.
+	case SWITCH_FROM_HELPER:
+	case SWITCH_FROM_BLOCKED:
 		break;
 	}
 
-	/* Bookkeeping. */
+	dstf->thread_ctx = srcf->thread_ctx;
+	srcf->thread_ctx = NULL;
+
+	/* Just some bookkeeping to allow better debugging of futex locks. */
 	futex_give_to(&fibril_futex, dstf);
-	futex_give_to(&async_futex, dstf);
 
 	/* Swap to the next fibril. */
 	context_swap(&srcf->ctx, &dstf->ctx);
 
-	/* Restored by another fibril! */
+	assert(srcf == fibril_self());
+	assert(srcf->thread_ctx);
 
-	/* Must be after context_swap()! */
-	futex_unlock(&fibril_futex);
+	if (!locked) {
+		/* Must be after context_swap()! */
+		futex_unlock(&fibril_futex);
+		_fibril_cleanup_dead();
+	}
+}
 
-	if (srcf->clean_after_me) {
-		/*
-		 * Cleanup after the dead fibril from which we
-		 * restored context here.
-		 */
-		void *stack = srcf->clean_after_me->stack;
-		if (stack) {
-			/*
-			 * This check is necessary because a
-			 * thread could have exited like a
-			 * normal fibril using the
-			 * FIBRIL_FROM_DEAD switch type. In that
-			 * case, its fibril will not have the
-			 * stack member filled.
-			 */
-			as_area_destroy(stack);
+/**
+ * Main function for a helper fibril.
+ * The helper fibril executes on threads in the lightweight fibril pool when
+ * there is no fibril ready to run. Its only purpose is to block until
+ * another fibril is ready, or a timeout expires, or an IPC message arrives.
+ *
+ * There is at most one helper fibril per thread.
+ *
+ */
+static errno_t _helper_fibril_fn(void *arg)
+{
+	/* Set itself as the thread's own context. */
+	fibril_self()->thread_ctx = fibril_self();
+
+	(void) arg;
+
+	struct timeval next_timeout;
+	while (true) {
+		struct timeval *to = _handle_expired_timeouts(&next_timeout);
+		fibril_t *f = _ready_list_pop(to, false);
+		if (f) {
+			_fibril_switch_to(SWITCH_FROM_HELPER, f, false);
 		}
-		fibril_teardown(srcf->clean_after_me, true);
-		srcf->clean_after_me = NULL;
 	}
 
-	return 1;
+	return EOK;
 }
 
 /** Create a new fibril.
@@ -246,13 +525,13 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 	if (fibril == NULL)
 		return 0;
 
-	size_t stack_size = (stksz == FIBRIL_DFLT_STK_SIZE) ?
+	fibril->stack_size = (stksz == FIBRIL_DFLT_STK_SIZE) ?
 	    stack_size_get() : stksz;
-	fibril->stack = as_area_create(AS_AREA_ANY, stack_size,
+	fibril->stack = as_area_create(AS_AREA_ANY, fibril->stack_size,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
 	if (fibril->stack == AS_MAP_FAILED) {
-		fibril_teardown(fibril, false);
+		fibril_teardown(fibril);
 		return 0;
 	}
 
@@ -260,9 +539,9 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 	fibril->arg = arg;
 
 	context_create_t sctx = {
-		.fn = fibril_main,
+		.fn = _fibril_main,
 		.stack_base = fibril->stack,
-		.stack_size = stack_size,
+		.stack_size = fibril->stack_size,
 		.tls = fibril->tcb,
 	};
 
@@ -273,7 +552,7 @@ fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t stksz)
 /** Delete a fibril that has never run.
  *
  * Free resources of a fibril that has been created with fibril_create()
- * but never readied using fibril_add_ready().
+ * but never started using fibril_start().
  *
  * @param fid Pointer to the fibril structure of the fibril to be
  *            added.
@@ -282,49 +561,154 @@ void fibril_destroy(fid_t fid)
 {
 	fibril_t *fibril = (fibril_t *) fid;
 
+	assert(!fibril->is_running);
+	assert(fibril->stack);
 	as_area_destroy(fibril->stack);
-	fibril_teardown(fibril, false);
+	fibril_teardown(fibril);
 }
 
-/** Add a fibril to the ready list.
+static void _insert_timeout(_timeout_t *timeout)
+{
+	futex_assert_is_locked(&fibril_futex);
+	assert(timeout);
+
+	link_t *tmp = timeout_list.head.next;
+	while (tmp != &timeout_list.head) {
+		_timeout_t *cur = list_get_instance(tmp, _timeout_t, link);
+
+		if (tv_gteq(&cur->expires, &timeout->expires))
+			break;
+
+		tmp = tmp->next;
+	}
+
+	list_insert_before(&timeout->link, tmp);
+}
+
+/**
+ * Same as `fibril_wait_for()`, except with a timeout.
  *
- * @param fid Pointer to the fibril structure of the fibril to be
- *            added.
+ * It is guaranteed that timing out cannot cause another thread's
+ * `fibril_notify()` to be lost. I.e. the function returns success if and
+ * only if `fibril_notify()` was called after the last call to
+ * wait/wait_timeout returned, and before the call timed out.
  *
+ * @return ETIMEOUT if timed out. EOK otherwise.
  */
-void fibril_add_ready(fid_t fid)
+errno_t fibril_wait_timeout(fibril_event_t *event, const struct timeval *expires)
 {
-	fibril_t *fibril = (fibril_t *) fid;
+	DPRINTF("### Fibril %p sleeping on event %p.\n", fibril_self(), event);
+
+	if (!fibril_self()->thread_ctx) {
+		fibril_self()->thread_ctx =
+		    fibril_create_generic(_helper_fibril_fn, NULL, PAGE_SIZE);
+		if (!fibril_self()->thread_ctx)
+			return ENOMEM;
+	}
 
 	futex_lock(&fibril_futex);
-	list_append(&fibril->link, &ready_list);
+
+	if (event->fibril == _EVENT_TRIGGERED) {
+		DPRINTF("### Already triggered. Returning. \n");
+		event->fibril = _EVENT_INITIAL;
+		futex_unlock(&fibril_futex);
+		return EOK;
+	}
+
+	assert(event->fibril == _EVENT_INITIAL);
+
+	fibril_t *srcf = fibril_self();
+	fibril_t *dstf = NULL;
+
+	/*
+	 * We cannot block here waiting for another fibril becoming
+	 * ready, since that would require unlocking the fibril_futex,
+	 * and that in turn would allow another thread to restore
+	 * the source fibril before this thread finished switching.
+	 *
+	 * Instead, we switch to an internal "helper" fibril whose only
+	 * job is to wait for an event, freeing the source fibril for
+	 * wakeups. There is always one for each running thread.
+	 */
+
+	dstf = _ready_list_pop_nonblocking(true);
+	if (!dstf) {
+		// XXX: It is possible for the _ready_list_pop_nonblocking() to
+		//      check for IPC, find a pending message, and trigger the
+		//      event on which we are currently trying to sleep.
+		if (event->fibril == _EVENT_TRIGGERED) {
+			event->fibril = _EVENT_INITIAL;
+			futex_unlock(&fibril_futex);
+			return EOK;
+		}
+
+		dstf = srcf->thread_ctx;
+		assert(dstf);
+	}
+
+	_timeout_t timeout = { 0 };
+	if (expires) {
+		timeout.expires = *expires;
+		timeout.event = event;
+		_insert_timeout(&timeout);
+	}
+
+	assert(srcf);
+
+	event->fibril = srcf;
+	srcf->sleep_event = event;
+
+	assert(event->fibril != _EVENT_INITIAL);
+
+	_fibril_switch_to(SWITCH_FROM_BLOCKED, dstf, true);
+
+	assert(event->fibril != srcf);
+	assert(event->fibril != _EVENT_INITIAL);
+	assert(event->fibril == _EVENT_TIMED_OUT || event->fibril == _EVENT_TRIGGERED);
+
+	list_remove(&timeout.link);
+	errno_t rc = (event->fibril == _EVENT_TIMED_OUT) ? ETIMEOUT : EOK;
+	event->fibril = _EVENT_INITIAL;
+
+	futex_unlock(&fibril_futex);
+	_fibril_cleanup_dead();
+	return rc;
+}
+
+void fibril_wait_for(fibril_event_t *event)
+{
+	(void) fibril_wait_timeout(event, NULL);
+}
+
+void fibril_notify(fibril_event_t *event)
+{
+	futex_lock(&fibril_futex);
+	_ready_list_push(_fibril_trigger_internal(event, _EVENT_TRIGGERED));
 	futex_unlock(&fibril_futex);
 }
 
-/** Add a fibril to the manager list.
- *
- * @param fid Pointer to the fibril structure of the fibril to be
- *            added.
- *
- */
-void fibril_add_manager(fid_t fid)
+/** Start a fibril that has not been running yet. */
+void fibril_start(fibril_t *fibril)
 {
-	fibril_t *fibril = (fibril_t *) fid;
-
 	futex_lock(&fibril_futex);
-	list_append(&fibril->link, &manager_list);
+	assert(!fibril->is_running);
+	fibril->is_running = true;
+
+	if (!link_in_use(&fibril->all_link))
+		list_append(&fibril->all_link, &fibril_list);
+
+	_ready_list_push(fibril);
+
 	futex_unlock(&fibril_futex);
 }
 
-/** Remove one manager from the manager list. */
-void fibril_remove_manager(void)
+/** Start a fibril that has not been running yet. (obsolete) */
+void fibril_add_ready(fibril_t *fibril)
 {
-	futex_lock(&fibril_futex);
-	if (!list_empty(&manager_list))
-		list_remove(list_first(&manager_list));
-	futex_unlock(&fibril_futex);
+	fibril_start(fibril);
 }
 
+/** @return the currently running fibril. */
 fibril_t *fibril_self(void)
 {
 	assert(__tcb_is_set());
@@ -333,28 +717,30 @@ fibril_t *fibril_self(void)
 	return tcb->fibril_data;
 }
 
-/** Return fibril id of the currently running fibril.
+/**
+ * Obsolete, use fibril_self().
  *
- * @return fibril ID of the currently running fibril.
- *
+ * @return ID of the currently running fibril.
  */
 fid_t fibril_get_id(void)
 {
 	return (fid_t) fibril_self();
 }
 
+/**
+ * Switch to another fibril, if one is ready to run.
+ * Has no effect on a heavy fibril.
+ */
 void fibril_yield(void)
 {
-	futex_lock(&async_futex);
-	(void) fibril_switch(FIBRIL_PREEMPT);
-	futex_unlock(&async_futex);
+	fibril_t *f = _ready_list_pop_nonblocking(false);
+	if (f)
+		_fibril_switch_to(SWITCH_FROM_YIELD, f, false);
 }
 
 static void _runner_fn(void *arg)
 {
-	futex_lock(&async_futex);
-	(void) fibril_switch(FIBRIL_FROM_BLOCKED);
-	__builtin_unreachable();
+	_helper_fibril_fn(arg);
 }
 
 /**
@@ -367,6 +753,9 @@ static void _runner_fn(void *arg)
  */
 int fibril_test_spawn_runners(int n)
 {
+	if (!multithreaded)
+		multithreaded = true;
+
 	errno_t rc;
 
 	for (int i = 0; i < n; i++) {
@@ -393,7 +782,9 @@ void fibril_enable_multithreaded(void)
 {
 	// TODO: Implement better.
 	//       For now, 4 total runners is a sensible default.
-	fibril_test_spawn_runners(3);
+	if (!multithreaded) {
+		fibril_test_spawn_runners(3);
+	}
 }
 
 /**
@@ -404,6 +795,73 @@ void fibril_detach(fid_t f)
 	// TODO: Currently all fibrils are detached by default, but they
 	//       won't always be. Code that explicitly spawns fibrils with
 	//       limited lifetime should call this function.
+}
+
+/**
+ * Exit a fibril. Never returns.
+ *
+ * @param retval  Value to return from fibril_join() called on this fibril.
+ */
+_Noreturn void fibril_exit(long retval)
+{
+	// TODO: implement fibril_join() and remember retval
+	(void) retval;
+
+	fibril_t *f = _ready_list_pop_nonblocking(false);
+	if (!f)
+		f = fibril_self()->thread_ctx;
+
+	_fibril_switch_to(SWITCH_FROM_DEAD, f, false);
+	__builtin_unreachable();
+}
+
+void __fibrils_init(void)
+{
+	/*
+	 * We allow a fixed, small amount of parallelism for IPC reads, but
+	 * since IPC is currently serialized in kernel, there's not much
+	 * we can get from more threads reading messages.
+	 */
+
+#define IPC_BUFFER_COUNT 1024
+	static _ipc_buffer_t buffers[IPC_BUFFER_COUNT];
+
+	for (int i = 0; i < IPC_BUFFER_COUNT; i++) {
+		list_append(&buffers[i].link, &ipc_buffer_free_list);
+		futex_up(&ready_semaphore);
+	}
+}
+
+void fibril_usleep(suseconds_t timeout)
+{
+	struct timeval expires;
+	getuptime(&expires);
+	tv_add_diff(&expires, timeout);
+
+	fibril_event_t event = FIBRIL_EVENT_INIT;
+	fibril_wait_timeout(&event, &expires);
+}
+
+void fibril_sleep(unsigned int sec)
+{
+	struct timeval expires;
+	getuptime(&expires);
+	expires.tv_sec += sec;
+
+	fibril_event_t event = FIBRIL_EVENT_INIT;
+	fibril_wait_timeout(&event, &expires);
+}
+
+void fibril_ipc_poke(void)
+{
+	DPRINTF("Poking.\n");
+	/* Wakeup one thread sleeping in SYS_IPC_WAIT. */
+	ipc_poke();
+}
+
+errno_t fibril_ipc_wait(ipc_call_t *call, const struct timeval *expires)
+{
+	return _wait_ipc(call, expires);
 }
 
 /** @}

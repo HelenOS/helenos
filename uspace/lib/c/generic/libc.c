@@ -86,6 +86,8 @@ void __libc_main(void *pcb_ptr)
 
 	assert(main_fibril.tcb);
 
+	__fibrils_init();
+
 	/* Initialize the fibril. */
 	main_fibril.tcb->fibril_data = &main_fibril;
 	__tcb_set(main_fibril.tcb);

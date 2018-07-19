@@ -41,8 +41,10 @@ struct fibril {
 	link_t all_link;
 	context_t ctx;
 
+	uspace_arg_t uarg;
 	link_t link;
 	void *stack;
+	size_t stack_size;
 	void *arg;
 	errno_t (*func)(void *);
 	tcb_t *tcb;
@@ -50,27 +52,24 @@ struct fibril {
 	fibril_t *clean_after_me;
 	errno_t retval;
 
-	fibril_owner_info_t *waits_for;
+	fibril_t *thread_ctx;
 
-	atomic_t futex_locks;
+	bool is_running : 1;
 	bool is_writer : 1;
 	/* In some places, we use fibril structs that can't be freed. */
 	bool is_freeable : 1;
-};
 
-typedef enum {
-	FIBRIL_PREEMPT,
-	FIBRIL_FROM_BLOCKED,
-	FIBRIL_FROM_MANAGER,
-	FIBRIL_FROM_DEAD
-} fibril_switch_type_t;
+	/* Debugging stuff. */
+	atomic_t futex_locks;
+	fibril_owner_info_t *waits_for;
+	fibril_event_t *sleep_event;
+};
 
 extern fibril_t *fibril_alloc(void);
 extern void fibril_setup(fibril_t *);
-extern void fibril_teardown(fibril_t *f, bool locked);
-extern int fibril_switch(fibril_switch_type_t stype);
-extern void fibril_add_manager(fid_t fid);
-extern void fibril_remove_manager(void);
+extern void fibril_teardown(fibril_t *f);
 extern fibril_t *fibril_self(void);
+
+extern void __fibrils_init(void);
 
 #endif

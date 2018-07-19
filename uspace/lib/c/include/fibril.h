@@ -37,6 +37,8 @@
 
 #include <types/common.h>
 #include <time.h>
+#include <_bits/__noreturn.h>
+#include <ipc/common.h>
 
 typedef struct fibril fibril_t;
 
@@ -44,16 +46,22 @@ typedef struct {
 	fibril_t *owned_by;
 } fibril_owner_info_t;
 
-typedef sysarg_t fid_t;
+typedef fibril_t *fid_t;
+
+typedef struct {
+	fibril_t *fibril;
+} fibril_event_t;
+
+#define FIBRIL_EVENT_INIT ((fibril_event_t) {0})
 
 /** Fibril-local variable specifier */
 #define fibril_local __thread
 
 #define FIBRIL_DFLT_STK_SIZE	0
 
-extern fid_t fibril_create_generic(errno_t (*func)(void *), void *arg, size_t);
-extern void fibril_destroy(fid_t fid);
-extern void fibril_add_ready(fid_t fid);
+extern fid_t fibril_create_generic(errno_t (*)(void *), void *, size_t);
+extern void fibril_destroy(fid_t);
+extern void fibril_add_ready(fid_t);
 extern fid_t fibril_get_id(void);
 extern void fibril_yield(void);
 
@@ -69,6 +77,16 @@ static inline fid_t fibril_create(errno_t (*func)(void *), void *arg)
 {
 	return fibril_create_generic(func, arg, FIBRIL_DFLT_STK_SIZE);
 }
+
+extern void fibril_start(fid_t);
+extern __noreturn void fibril_exit(long);
+
+extern void fibril_wait_for(fibril_event_t *);
+extern errno_t fibril_wait_timeout(fibril_event_t *, const struct timeval *);
+extern void fibril_notify(fibril_event_t *);
+
+extern errno_t fibril_ipc_wait(ipc_call_t *, const struct timeval *);
+extern void fibril_ipc_poke(void);
 
 #endif
 

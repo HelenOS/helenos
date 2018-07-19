@@ -72,11 +72,7 @@ void __thread_main(uspace_arg_t *uarg)
 	 * free(uarg);
 	 */
 
-	/* If there is a manager, destroy it */
-	async_destroy_manager();
-
-	fibril_teardown(fibril, false);
-
+	fibril_teardown(fibril);
 	thread_exit(0);
 }
 
@@ -110,7 +106,7 @@ errno_t thread_create(void (*function)(void *), void *arg, const char *name,
 	    AS_AREA_READ | AS_AREA_WRITE | AS_AREA_CACHEABLE | AS_AREA_GUARD |
 	    AS_AREA_LATE_RESERVE, AS_AREA_UNPAGED);
 	if (stack == AS_MAP_FAILED) {
-		fibril_teardown(fibril, false);
+		fibril_teardown(fibril);
 		free(uarg);
 		return ENOMEM;
 	}
