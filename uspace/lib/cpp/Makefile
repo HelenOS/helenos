@@ -52,7 +52,6 @@ SOURCES = \
 	src/thread.cpp \
 	src/typeindex.cpp \
 	src/typeinfo.cpp \
-	src/__bits/glue.cpp \
 	src/__bits/runtime.cpp \
 	src/__bits/trycatch.cpp \
 	src/__bits/unwind.cpp \

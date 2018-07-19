@@ -51,7 +51,7 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 
 	/*
 	 * The following instructions between labels 1 and 2 constitute a
-	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * Restartable Atomic Sequence. Should the sequence be non-atomic,
 	 * the kernel will restart it.
 	 */
 	asm volatile (

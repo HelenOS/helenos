@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jaroslav Jindrak
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * This file contains glue code that makes different
- * architectures pass.
- */
+#include <atomic.h>
 
 #ifdef PLATFORM_arm32
 
-/**
- * ARM32 does not have GCC atomic operations inlined by
- * the compiler, so we need to define stubs for our library
- * to compile on this architecture.
- * TODO: make this synchronized
+/*
+ * Older ARMs don't have atomic instructions, so we need to define a bunch
+ * of symbols for GCC to use.
  */
-extern "C"
+
+unsigned __sync_add_and_fetch_4(volatile void *vptr, unsigned val)
 {
-#define LIBCPP_GLUE_OP_AND_FETCH(NAME, OP, TYPE, SIZE) \
-    TYPE __sync_##NAME##_and_fetch_##SIZE (volatile void* vptr, TYPE val) \
-    { \
-        TYPE* ptr = (TYPE*)vptr; \
-        *ptr = *ptr OP val; \
-        return *ptr; \
-    }
-
-LIBCPP_GLUE_OP_AND_FETCH(add, +, unsigned, 4)
-LIBCPP_GLUE_OP_AND_FETCH(sub, -, unsigned, 4)
-
-#define LIBCPP_GLUE_CMP_AND_SWAP(TYPE, SIZE) \
-    TYPE __sync_val_compare_and_swap_##SIZE (TYPE* ptr, TYPE old_val, TYPE new_val) \
-    { \
-        if (*ptr == old_val) \
-            *ptr = new_val; \
-        return *ptr; \
-    }
-
-LIBCPP_GLUE_CMP_AND_SWAP(unsigned, 4)
+	return atomic_add((atomic_t *)vptr, val);
 }
+
+unsigned __sync_sub_and_fetch_4(volatile void *vptr, unsigned val)
+{
+	return atomic_add((atomic_t *)vptr, -(atomic_signed_t)val);
+}
+
+bool __sync_bool_compare_and_swap_4(volatile void *ptr, unsigned old_val, unsigned new_val)
+{
+	return cas((atomic_t *)ptr, old_val, new_val);
+}
+
+unsigned __sync_val_compare_and_swap_4(volatile void *ptr, unsigned old_val, unsigned new_val)
+{
+	while (true) {
+		if (__sync_bool_compare_and_swap_4(ptr, old_val, new_val)) {
+			return old_val;
+		}
+
+		unsigned current = *(volatile unsigned *)ptr;
+		if (current != old_val)
+			return current;
+
+		/* If the current value is the same as old_val, retry. */
+	}
+}
+
 #endif

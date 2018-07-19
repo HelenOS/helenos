@@ -50,6 +50,7 @@ SOVERSION = 0.0
 GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
+	generic/atomic.c \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
