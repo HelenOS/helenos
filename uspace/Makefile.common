@@ -256,6 +256,10 @@ DEFAULT_CXXFLAGS = \
 	-Wwrite-strings \
 	-Werror-implicit-function-declaration
 
+ifeq ($(CONFIG_DEBUG),y)
+	DEFAULT_CXXFLAGS += -Werror
+endif
+
 COMMON_CXXFLAGS = $(COMMON_CFLAGS)
 HELENOS_CXXFLAGS = \
 	-std=c++17 -frtti \
