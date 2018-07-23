@@ -155,7 +155,9 @@ typedef struct {
 	/** File system type */
 	vol_fstype_t fstype;
 	/** Volume label */
-	char *label;
+	const char *label;
+	/** Mount point */
+	const char *mountp;
 } fdisk_part_spec_t;
 
 /** Partition info */

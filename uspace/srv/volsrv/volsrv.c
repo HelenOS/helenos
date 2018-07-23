@@ -48,6 +48,7 @@
 
 #include "mkfs.h"
 #include "part.h"
+#include "volume.h"
 
 #define NAME  "volsrv"
 
@@ -56,11 +57,16 @@ static void vol_client_conn(ipc_call_t *, void *);
 static errno_t vol_init(void)
 {
 	errno_t rc;
+	vol_volumes_t *volumes = NULL;
 	vol_parts_t *parts = NULL;
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_init()");
 
-	rc = vol_parts_create(&parts);
+	rc = vol_volumes_create(&volumes);
+	if (rc != EOK)
+		goto error;
+
+	rc = vol_parts_create(volumes, &parts);
 	if (rc != EOK)
 		goto error;
 
@@ -86,6 +92,7 @@ static errno_t vol_init(void)
 
 	return EOK;
 error:
+	vol_volumes_destroy(volumes);
 	vol_parts_destroy(parts);
 	return rc;
 }
@@ -130,7 +137,7 @@ static void vol_part_add_srv(vol_parts_t *parts, ipc_call_t *icall)
 
 	sid = IPC_GET_ARG1(*icall);
 
-	rc = vol_part_add(parts, sid);
+	rc = vol_part_add_part(parts, sid);
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
 		return;
@@ -284,6 +291,7 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 	vol_part_t *part;
 	vol_fstype_t fstype;
 	char *label;
+	char *mountp;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv()");
@@ -303,6 +311,19 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 		    label);
 	}
 
+	rc = async_data_write_accept((void **)&mountp, true, 0, VOL_MOUNTP_MAXLEN,
+	    0, NULL);
+	if (rc != EOK) {
+		free(label);
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	if (mountp != NULL) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv: mountp='%s'",
+		    mountp);
+	}
+
 	rc = vol_part_find_by_id_ref(parts, sid, &part);
 	if (rc != EOK) {
 		free(label);
@@ -310,7 +331,7 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 		return;
 	}
 
-	rc = vol_part_mkfs_part(part, fstype, label);
+	rc = vol_part_mkfs_part(part, fstype, label, mountp);
 	if (rc != EOK) {
 		free(label);
 		async_answer_0(icall, rc);

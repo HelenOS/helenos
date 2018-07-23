@@ -426,4 +426,5 @@ uspace/srv/ns/ns
 uspace/srv/taskmon/taskmon
 uspace/srv/test/chardev-test/chardev-test
 uspace/srv/vfs/vfs
+uspace/srv/volsrv/test-volsrv
 uspace/srv/volsrv/volsrv

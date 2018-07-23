@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup volsrv
  * @{
  */
+/**
+ * @file
+ * @brief
+ */
 
-#ifndef LIBC_IPC_VOL_H_
-#define LIBC_IPC_VOL_H_
+#ifndef TYPES_VOLUME_H_
+#define TYPES_VOLUME_H_
 
-#include <ipc/common.h>
+#include <adt/list.h>
+#include <atomic.h>
+#include <fibril_synch.h>
 
-#define VOL_LABEL_MAXLEN 63
-#define VOL_MOUNTP_MAXLEN 4096
+/** Volume */
+typedef struct vol_volume {
+	/** Containing volume list */
+	struct vol_volumes *volumes;
+	/** Link to vol_volumes */
+	link_t lvolumes;
+	/** Reference count */
+	atomic_t refcnt;
+	/** Volume label */
+	char *label;
+	/** Mount point */
+	char *mountp;
+} vol_volume_t;
 
-typedef enum {
-	VOL_GET_PARTS = IPC_FIRST_USER_METHOD,
-	VOL_PART_ADD,
-	VOL_PART_INFO,
-	VOL_PART_EJECT,
-	VOL_PART_EMPTY,
-	VOL_PART_LSUPP,
-	VOL_PART_MKFS
-} vol_request_t;
+/** Partitions */
+typedef struct vol_volumes {
+	/** Synchronize access to list of volumes */
+	fibril_mutex_t lock;
+	/** Volumes (list of vol_volume_t) */
+	list_t volumes;
+} vol_volumes_t;
 
 #endif
 

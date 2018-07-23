@@ -131,6 +131,7 @@ static errno_t sysinst_label_dev(const char *dev, char **pdev)
 	pspec.capacity = cap;
 	pspec.pkind = lpk_primary;
 	pspec.fstype = fs_minix;
+	pspec.mountp = "";
 
 	rc = fdisk_part_create(fdev, &pspec, &part);
 	if (rc != EOK) {

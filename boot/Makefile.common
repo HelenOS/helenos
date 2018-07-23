@@ -242,7 +242,8 @@ RD_TESTS = \
 	$(USPACE_PATH)/lib/uri/test-liburi \
 	$(USPACE_PATH)/drv/bus/usb/xhci/test-xhci \
 	$(USPACE_PATH)/app/bdsh/test-bdsh \
-	$(USPACE_PATH)/srv/net/tcp/test-tcp
+	$(USPACE_PATH)/srv/net/tcp/test-tcp \
+	$(USPACE_PATH)/srv/volsrv/test-volsrv \
 
 RD_DATA_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/demo.txt

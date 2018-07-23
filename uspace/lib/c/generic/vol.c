@@ -39,6 +39,7 @@
 #include <loc.h>
 #include <stdlib.h>
 #include <str.h>
+#include <vfs/vfs.h>
 #include <vol.h>
 
 /** Create Volume service session.
@@ -219,9 +220,9 @@ errno_t vol_part_info(vol_t *vol, service_id_t sid, vol_part_info_t *vinfo)
 
 	exch = async_exchange_begin(vol->sess);
 	aid_t req = async_send_1(exch, VOL_PART_INFO, sid, &answer);
+
 	errno_t rc = async_data_read_start(exch, vinfo, sizeof(vol_part_info_t));
 	async_exchange_end(exch);
-
 	if (rc != EOK) {
 		async_forget(req);
 		return EIO;
@@ -293,9 +294,18 @@ errno_t vol_part_get_lsupp(vol_t *vol, vol_fstype_t fstype,
 	return EOK;
 }
 
-/** Create file system. */
+/** Create file system.
+ *
+ * @param vol Volume service
+ * @param sid Partition service ID
+ * @param fstype File system type
+ * @param label Volume label
+ * @param mountp Mount point
+ *
+ * @return EOK on success or an error code
+ */
 errno_t vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
-    const char *label)
+    const char *label, const char *mountp)
 {
 	async_exch_t *exch;
 	ipc_call_t answer;
@@ -303,14 +313,22 @@ errno_t vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
 
 	exch = async_exchange_begin(vol->sess);
 	aid_t req = async_send_2(exch, VOL_PART_MKFS, sid, fstype, &answer);
-	retval = async_data_write_start(exch, label, str_size(label));
-	async_exchange_end(exch);
 
+	retval = async_data_write_start(exch, label, str_size(label));
 	if (retval != EOK) {
+		async_exchange_end(exch);
 		async_forget(req);
 		return retval;
 	}
 
+	retval = async_data_write_start(exch, mountp, str_size(mountp));
+	if (retval != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return retval;
+	}
+
+	async_exchange_end(exch);
 	async_wait_for(req, &retval);
 
 	if (retval != EOK)
@@ -391,6 +409,39 @@ errno_t vol_pcnt_fs_format(vol_part_cnt_t pcnt, vol_fstype_t fstype,
 	assert(s != NULL);
 	*rstr = s;
 	return EOK;
+}
+
+/** Validate mount point.
+ *
+ * Verify that mount point is valid. A valid mount point is
+ * one of:
+ *  - 'Auto'
+ *  - 'None'
+ *  - /path (string beginning with '/') to an existing directory
+ *
+ * @return EOK if mount point is in valid, EINVAL if the format is invalid,
+ *         ENOENT if the directory does not exist
+ */
+errno_t vol_mountp_validate(const char *mountp)
+{
+	errno_t rc;
+	vfs_stat_t stat;
+
+	if (str_cmp(mountp, "Auto") == 0 || str_cmp(mountp, "auto") == 0)
+		return EOK;
+
+	if (str_casecmp(mountp, "None") == 0 || str_cmp(mountp, "none") == 0)
+		return EOK;
+
+	if (mountp[0] == '/') {
+		rc = vfs_stat_path(mountp, &stat);
+		if (rc != EOK || !stat.is_directory)
+			return ENOENT;
+
+		return EOK;
+	}
+
+	return EINVAL;
 }
 
 /** @}

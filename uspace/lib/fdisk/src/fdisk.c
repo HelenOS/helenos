@@ -728,6 +728,16 @@ errno_t fdisk_part_get_tot_avail(fdisk_dev_t *dev, fdisk_spc_t spc,
 	return EOK;
 }
 
+/** Create partition.
+ *
+ * Create new partition based on a specification.
+ *
+ * @param dev Fdisk device
+ * @param pspec Partition specification
+ * @param rpart Place to store pointer to new partition
+ *
+ * @return EOK on success or error code
+ */
 errno_t fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
     fdisk_part_t **rpart)
 {
@@ -736,9 +746,11 @@ errno_t fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 	vbd_part_id_t partid = 0;
 	vol_part_info_t vpinfo;
 	const char *label;
+	const char *mountp;
 	errno_t rc;
 
 	label = pspec->label != NULL ? pspec->label : "";
+	mountp = pspec->mountp != NULL ? pspec->mountp : "";
 
 	rc = fdisk_part_spec_prepare(dev, pspec, &vpspec);
 	if (rc != EOK) {
@@ -760,7 +772,7 @@ errno_t fdisk_part_create(fdisk_dev_t *dev, fdisk_part_spec_t *pspec,
 
 	if (part->svc_id != 0) {
 		rc = vol_part_mkfs(dev->fdisk->vol, part->svc_id, pspec->fstype,
-		    label);
+		    label, mountp);
 		if (rc != EOK && rc != ENOTSUP) {
 			rc = EIO;
 			goto error;

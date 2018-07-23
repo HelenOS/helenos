@@ -44,11 +44,13 @@
 #include <str.h>
 #include <str_error.h>
 #include <vfs/vfs.h>
+#include <vol.h>
 
 #include "empty.h"
 #include "mkfs.h"
 #include "part.h"
 #include "types/part.h"
+#include "volume.h"
 
 static errno_t vol_part_add_locked(vol_parts_t *, service_id_t);
 static void vol_part_remove_locked(vol_part_t *);
@@ -190,6 +192,9 @@ static void vol_part_delete(vol_part_t *part)
 	if (part == NULL)
 		return;
 
+	if (part->volume != NULL)
+		vol_volume_del_ref(part->volume);
+
 	free(part->cur_mp);
 	free(part->svc_name);
 	free(part);
@@ -201,6 +206,7 @@ static errno_t vol_part_probe(vol_part_t *part)
 	vfs_fs_probe_info_t info;
 	struct fsname_type *fst;
 	char *label;
+	vol_volume_t *volume;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Probe partition %s", part->svc_name);
@@ -249,6 +255,12 @@ static errno_t vol_part_probe(vol_part_t *part)
 		part->label = label;
 	}
 
+	/* Look up new or existing volume. */
+	rc = vol_volume_lookup_ref(part->parts->volumes, part->label, &volume);
+	if (rc != EOK)
+		goto error;
+
+	part->volume = volume;
 	return EOK;
 
 error:
@@ -274,38 +286,70 @@ static bool vol_part_allow_mount_by_def(vol_part_t *part)
 	return true;
 }
 
+/** Determine the default mount point for a partition.
+ *
+ * @param part Partition
+ * @return Pointer to the constant string "Auto" or "None"
+ */
+static const char *vol_part_def_mountp(vol_part_t *part)
+{
+	return vol_part_allow_mount_by_def(part) ? "Auto" : "None";
+}
+
+/** Mount partition.
+ *
+ * @param part Partition
+ */
 static errno_t vol_part_mount(vol_part_t *part)
 {
+	const char *cfg_mp;
 	char *mp;
 	int err;
+	bool mp_auto;
 	errno_t rc;
 
-	if (str_size(part->label) < 1) {
-		/* Don't mount nameless volumes */
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting nameless partition.");
+	/* Get configured mount point */
+	if (str_size(part->volume->mountp) > 0) {
+		cfg_mp = part->volume->mountp;
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Configured mount point '%s",
+		    cfg_mp);
+	} else {
+		cfg_mp = vol_part_def_mountp(part);
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Default mount point '%s",
+		    cfg_mp);
+	}
+
+	if (str_cmp(cfg_mp, "Auto") == 0 || str_cmp(cfg_mp, "auto") == 0) {
+
+		if (str_size(part->label) < 1) {
+			/* Don't mount nameless volumes */
+			log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting nameless volume.");
+			return EOK;
+		}
+
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Determine MP label='%s'", part->label);
+		err = asprintf(&mp, "/vol/%s", part->label);
+		if (err < 0) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory");
+			return ENOMEM;
+		}
+
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Create mount point '%s'", mp);
+		rc = vfs_link_path(mp, KIND_DIRECTORY, NULL);
+		if (rc != EOK) {
+			log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating mount point '%s'",
+			    mp);
+			free(mp);
+			return EIO;
+		}
+
+		mp_auto = true;
+	} else if (str_cmp(cfg_mp, "None") == 0 || str_cmp(cfg_mp, "none") == 0) {
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting volume.");
 		return EOK;
-	}
-
-	if (!vol_part_allow_mount_by_def(part)) {
-		/* Don't mount partition by default */
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Not mounting per default policy.");
-		return EOK;
-	}
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Determine MP label='%s'", part->label);
-	err = asprintf(&mp, "/vol/%s", part->label);
-	if (err < 0) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Out of memory");
-		return ENOMEM;
-	}
-
-	log_msg(LOG_DEFAULT, LVL_NOTE, "Create mount point '%s'", mp);
-	rc = vfs_link_path(mp, KIND_DIRECTORY, NULL);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_ERROR, "Error creating mount point '%s'",
-		    mp);
-		free(mp);
-		return EIO;
+	} else {
+		mp = str_dup(cfg_mp);
+		mp_auto = false;
 	}
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Call vfs_mount_path mp='%s' fstype='%s' svc_name='%s'",
@@ -318,7 +362,7 @@ static errno_t vol_part_mount(vol_part_t *part)
 	log_msg(LOG_DEFAULT, LVL_NOTE, "Mount to %s -> %d\n", mp, rc);
 
 	part->cur_mp = mp;
-	part->cur_mp_auto = true;
+	part->cur_mp_auto = mp_auto;
 
 	return rc;
 }
@@ -384,7 +428,7 @@ static void vol_part_remove_locked(vol_part_t *part)
 	vol_part_del_ref(part);
 }
 
-errno_t vol_part_add(vol_parts_t *parts, service_id_t sid)
+errno_t vol_part_add_part(vol_parts_t *parts, service_id_t sid)
 {
 	errno_t rc;
 
@@ -402,7 +446,7 @@ static void vol_part_cat_change_cb(void *arg)
 	(void) vol_part_check_new(parts);
 }
 
-errno_t vol_parts_create(vol_parts_t **rparts)
+errno_t vol_parts_create(vol_volumes_t *volumes, vol_parts_t **rparts)
 {
 	vol_parts_t *parts;
 
@@ -412,6 +456,7 @@ errno_t vol_parts_create(vol_parts_t **rparts)
 
 	fibril_mutex_initialize(&parts->lock);
 	list_initialize(&parts->parts);
+	parts->volumes = volumes;
 
 	*rparts = parts;
 	return EOK;
@@ -556,8 +601,41 @@ errno_t vol_part_empty_part(vol_part_t *part)
 	return EOK;
 }
 
+/** Set mount point.
+ *
+ * Verify and set a mount point. If the value of the mount point is
+ * the same as the default value, we will actually unset the mount point
+ * value (therefore effectively changing it to use the default).
+ *
+ * @return EOK on success, error code otherwise
+ */
+static errno_t vol_part_mountp_set(vol_part_t *part, const char *mountp)
+{
+	errno_t rc;
+	const char *def_mp;
+	const char *mp;
+
+	rc = vol_mountp_validate(mountp);
+	if (rc != EOK)
+		return rc;
+
+	def_mp = vol_part_def_mountp(part);
+
+	/* If the value is the same as default, set to empty string. */
+	if (str_cmp(def_mp, mountp) == 0)
+		mp = "";
+	else
+		mp = mountp;
+
+	rc = vol_volume_set_mountp(part->volume, mp);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
-    const char *label)
+    const char *label, const char *mountp)
 {
 	errno_t rc;
 
@@ -579,6 +657,12 @@ errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 	 * uppercase).
 	 */
 	rc = vol_part_probe(part);
+	if (rc != EOK) {
+		fibril_mutex_unlock(&part->parts->lock);
+		return rc;
+	}
+
+	rc = vol_part_mountp_set(part, mountp);
 	if (rc != EOK) {
 		fibril_mutex_unlock(&part->parts->lock);
 		return rc;

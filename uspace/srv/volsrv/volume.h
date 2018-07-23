@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup volsrv
  * @{
  */
+/**
+ * @file
+ * @brief
+ */
 
-#ifndef LIBC_IPC_VOL_H_
-#define LIBC_IPC_VOL_H_
+#ifndef VOLUME_H_
+#define VOLUME_H_
 
-#include <ipc/common.h>
+#include "types/volume.h"
 
-#define VOL_LABEL_MAXLEN 63
-#define VOL_MOUNTP_MAXLEN 4096
-
-typedef enum {
-	VOL_GET_PARTS = IPC_FIRST_USER_METHOD,
-	VOL_PART_ADD,
-	VOL_PART_INFO,
-	VOL_PART_EJECT,
-	VOL_PART_EMPTY,
-	VOL_PART_LSUPP,
-	VOL_PART_MKFS
-} vol_request_t;
+extern errno_t vol_volumes_create(vol_volumes_t **);
+extern void vol_volumes_destroy(vol_volumes_t *);
+extern errno_t vol_volume_lookup_ref(vol_volumes_t *, const char *,
+    vol_volume_t **);
+extern void vol_volume_del_ref(vol_volume_t *);
+extern errno_t vol_volume_set_mountp(vol_volume_t *, const char *);
 
 #endif
 

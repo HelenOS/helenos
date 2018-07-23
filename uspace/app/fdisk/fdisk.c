@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -431,6 +431,7 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	char *scap;
 	char *smcap = NULL;
 	char *label = NULL;
+	char *mountp = NULL;
 
 	if (pkind == lpk_logical)
 		spc = spc_log;
@@ -505,11 +506,40 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		tinput = NULL;
 	}
 
+	/* Ask for mount point */
+	tinput = tinput_new();
+	if (tinput == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = tinput_set_prompt(tinput, "?> ");
+	if (rc != EOK)
+		goto error;
+
+	while (true) {
+		printf("Enter mount point for new partition (Auto, None or /path).\n");
+		rc = tinput_read_i(tinput, "Auto", &mountp);
+		if (rc != EOK)
+			goto error;
+
+		rc = vol_mountp_validate(mountp);
+		if (rc == EOK)
+			break;
+
+		free(mountp);
+		mountp = NULL;
+	}
+
+	tinput_destroy(tinput);
+	tinput = NULL;
+
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = cap;
 	pspec.pkind = pkind;
 	pspec.fstype = fstype;
 	pspec.label = label;
+	pspec.mountp = mountp;
 
 	rc = fdisk_part_create(dev, &pspec, NULL);
 	if (rc != EOK) {
@@ -518,10 +548,12 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 	}
 
 	free(label);
+	free(mountp);
 	return EOK;
 error:
 	free(smcap);
 	free(label);
+	free(mountp);
 	if (tinput != NULL)
 		tinput_destroy(tinput);
 	return rc;

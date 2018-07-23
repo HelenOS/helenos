@@ -36,6 +36,12 @@ SOURCES = \
 	empty.c \
 	mkfs.c \
 	part.c \
-	volsrv.c
+	volsrv.c \
+	volume.c
+
+TEST_SOURCES = \
+	volume.c \
+	test/main.c \
+	test/volume.c
 
 include $(USPACE_PREFIX)/Makefile.common

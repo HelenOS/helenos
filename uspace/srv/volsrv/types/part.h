@@ -65,6 +65,8 @@ typedef struct {
 	char *cur_mp;
 	/** Mounted at automatic mount point */
 	bool cur_mp_auto;
+	/** Volume */
+	struct vol_volume *volume;
 } vol_part_t;
 
 /** Partitions */
@@ -73,6 +75,8 @@ typedef struct vol_parts {
 	fibril_mutex_t lock;
 	/** Partitions (list of vol_part_t) */
 	list_t parts;
+	/** Underlying volumes */
+	struct vol_volumes *volumes;
 } vol_parts_t;
 
 #endif
