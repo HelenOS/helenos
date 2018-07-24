@@ -311,11 +311,11 @@ static errno_t vol_part_mount(vol_part_t *part)
 	/* Get configured mount point */
 	if (str_size(part->volume->mountp) > 0) {
 		cfg_mp = part->volume->mountp;
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Configured mount point '%s",
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Configured mount point '%s'",
 		    cfg_mp);
 	} else {
 		cfg_mp = vol_part_def_mountp(part);
-		log_msg(LOG_DEFAULT, LVL_NOTE, "Default mount point '%s",
+		log_msg(LOG_DEFAULT, LVL_NOTE, "Default mount point '%s'",
 		    cfg_mp);
 	}
 
