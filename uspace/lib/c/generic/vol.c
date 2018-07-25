@@ -337,6 +337,41 @@ errno_t vol_part_mkfs(vol_t *vol, service_id_t sid, vol_fstype_t fstype,
 	return EOK;
 }
 
+/** Set mount point for partition.
+ *
+ * @param vol Volume service
+ * @param sid Partition service ID
+ * @param mountp Mount point
+ *
+ * @return EOK on success or an error code
+ */
+errno_t vol_part_set_mountp(vol_t *vol, service_id_t sid,
+    const char *mountp)
+{
+	async_exch_t *exch;
+	ipc_call_t answer;
+	errno_t retval;
+
+	exch = async_exchange_begin(vol->sess);
+	aid_t req = async_send_1(exch, VOL_PART_SET_MOUNTP, sid,
+	    &answer);
+
+	retval = async_data_write_start(exch, mountp, str_size(mountp));
+	if (retval != EOK) {
+		async_exchange_end(exch);
+		async_forget(req);
+		return retval;
+	}
+
+	async_exchange_end(exch);
+	async_wait_for(req, &retval);
+
+	if (retval != EOK)
+		return retval;
+
+	return EOK;
+}
+
 /** Format file system type as string.
  *
  * @param fstype File system type

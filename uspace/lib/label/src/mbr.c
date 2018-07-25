@@ -427,6 +427,12 @@ static bool mbr_can_delete_part(label_t *label)
 	return list_count(&label->parts) > 0;
 }
 
+static bool mbr_can_modify_part(label_t *label)
+{
+	return list_count(&label->parts) > 0;
+}
+
+
 static errno_t mbr_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
@@ -447,6 +453,9 @@ static errno_t mbr_get_info(label_t *label, label_info_t *linfo)
 	/* Can delete partition */
 	if (mbr_can_delete_part(label))
 		linfo->flags |= lf_can_delete_part;
+	/* Can modify partition */
+	if (mbr_can_modify_part(label))
+		linfo->flags |= lf_can_modify_part;
 
 	linfo->ablock0 = label->ablock0;
 	linfo->anblocks = label->anblocks;

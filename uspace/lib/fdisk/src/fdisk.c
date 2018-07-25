@@ -819,6 +819,19 @@ errno_t fdisk_part_destroy(fdisk_part_t *part)
 	return EOK;
 }
 
+/** Set partition mount point.
+ *
+ * @param part Fdisk partition
+ * @param mountp Mount point
+ *
+ * @return EOK on success or error code
+ */
+errno_t fdisk_part_set_mountp(fdisk_part_t *part, const char *mountp)
+{
+	return vol_part_set_mountp(part->dev->fdisk->vol,
+	    part->svc_id, mountp);
+}
+
 void fdisk_pspec_init(fdisk_part_spec_t *pspec)
 {
 	memset(pspec, 0, sizeof(fdisk_part_spec_t));

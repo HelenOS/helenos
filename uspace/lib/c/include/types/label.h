@@ -85,7 +85,9 @@ typedef enum {
 	/** Currently it is possible to create a logical partition */
 	lf_can_create_log = 0x10,
 	/** Currently it is possible to delete a partition */
-	lf_can_delete_part = 0x20
+	lf_can_delete_part = 0x20,
+	/** Currently it is possible to modify a partition */
+	lf_can_modify_part = 0x40
 } label_flags_t;
 
 /** Partition type format */

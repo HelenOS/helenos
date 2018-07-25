@@ -579,6 +579,11 @@ static bool gpt_can_delete_part(label_t *label)
 	return list_count(&label->parts) > 0;
 }
 
+static bool gpt_can_modify_part(label_t *label)
+{
+	return list_count(&label->parts) > 0;
+}
+
 static errno_t gpt_get_info(label_t *label, label_info_t *linfo)
 {
 	memset(linfo, 0, sizeof(label_info_t));
@@ -588,6 +593,8 @@ static errno_t gpt_get_info(label_t *label, label_info_t *linfo)
 		linfo->flags = linfo->flags | lf_can_create_pri;
 	if (gpt_can_delete_part(label))
 		linfo->flags = linfo->flags | lf_can_delete_part;
+	if (gpt_can_modify_part(label))
+		linfo->flags = linfo->flags | lf_can_modify_part;
 	linfo->ablock0 = label->ablock0;
 	linfo->anblocks = label->anblocks;
 	return EOK;

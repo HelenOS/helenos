@@ -356,7 +356,8 @@ PCUT_TEST(mbr_primary_part)
 
 	PCUT_ASSERT_INT_EQUALS(lt_mbr, linfo.ltype);
 	PCUT_ASSERT_INT_EQUALS(lf_ext_supp | lf_can_create_pri |
-	    lf_can_create_ext | lf_can_delete_part, linfo.flags);
+	    lf_can_create_ext | lf_can_delete_part | lf_can_modify_part,
+	    linfo.flags);
 
 	part = label_part_first(label);
 	PCUT_ASSERT_NOT_NULL(part);
@@ -442,7 +443,8 @@ PCUT_TEST(mbr_logical_part)
 
 	PCUT_ASSERT_INT_EQUALS(lt_mbr, linfo.ltype);
 	PCUT_ASSERT_INT_EQUALS(lf_ext_supp | lf_can_create_pri |
-	    lf_can_create_log | lf_can_delete_part, linfo.flags);
+	    lf_can_create_log | lf_can_delete_part | lf_can_modify_part,
+	    linfo.flags);
 
 	epart = label_part_first(label);
 	PCUT_ASSERT_NOT_NULL(epart);
@@ -585,7 +587,7 @@ PCUT_TEST(gpt_part)
 
 	PCUT_ASSERT_INT_EQUALS(lt_gpt, linfo.ltype);
 	PCUT_ASSERT_INT_EQUALS(lf_can_create_pri | lf_ptype_uuid |
-	    lf_can_delete_part, linfo.flags);
+	    lf_can_delete_part | lf_can_modify_part, linfo.flags);
 
 	part = label_part_first(label);
 	PCUT_ASSERT_NOT_NULL(part);

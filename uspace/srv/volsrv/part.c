@@ -678,6 +678,36 @@ errno_t vol_part_mkfs_part(vol_part_t *part, vol_fstype_t fstype,
 	return EOK;
 }
 
+/** Set partition mount point.
+ *
+ * Set the partition mount point, (un-, re-)mounting the partition as necessary.
+ *
+ * @param part Partition
+ * @param mountp
+ *
+ * @return EOK on success or error code
+ */
+errno_t vol_part_set_mountp_part(vol_part_t *part, const char *mountp)
+{
+	errno_t rc;
+
+	if (part->cur_mp != NULL) {
+		rc = vol_part_eject_part(part);
+		if (rc != EOK)
+			return rc;
+	}
+
+	rc = vol_part_mountp_set(part, mountp);
+	if (rc != EOK)
+		return rc;
+
+	rc = vol_part_mount(part);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 errno_t vol_part_get_info(vol_part_t *part, vol_part_info_t *pinfo)
 {
 	memset(pinfo, 0, sizeof(*pinfo));

@@ -284,14 +284,13 @@ static void vol_part_get_lsupp_srv(vol_parts_t *parts, ipc_call_t *icall)
 	async_answer_0(icall, EOK);
 }
 
-
 static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 {
 	service_id_t sid;
 	vol_part_t *part;
 	vol_fstype_t fstype;
-	char *label;
-	char *mountp;
+	char *label = NULL;
+	char *mountp = NULL;
 	errno_t rc;
 
 	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_mkfs_srv()");
@@ -303,7 +302,7 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 	    0, NULL);
 	if (rc != EOK) {
 		async_answer_0(icall, rc);
-		return;
+		goto error;
 	}
 
 	if (label != NULL) {
@@ -314,9 +313,8 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 	rc = async_data_write_accept((void **)&mountp, true, 0, VOL_MOUNTP_MAXLEN,
 	    0, NULL);
 	if (rc != EOK) {
-		free(label);
 		async_answer_0(icall, rc);
-		return;
+		goto error;
 	}
 
 	if (mountp != NULL) {
@@ -326,20 +324,69 @@ static void vol_part_mkfs_srv(vol_parts_t *parts, ipc_call_t *icall)
 
 	rc = vol_part_find_by_id_ref(parts, sid, &part);
 	if (rc != EOK) {
-		free(label);
 		async_answer_0(icall, ENOENT);
-		return;
+		goto error;
 	}
 
 	rc = vol_part_mkfs_part(part, fstype, label, mountp);
 	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		vol_part_del_ref(part);
+		goto error;
+	}
+
+	free(label);
+	free(mountp);
+	async_answer_0(icall, EOK);
+
+	return;
+error:
+	if (label != NULL)
 		free(label);
+	if (mountp != NULL)
+		free(mountp);
+}
+
+static void vol_part_set_mountp_srv(vol_parts_t *parts,
+    ipc_call_t *icall)
+{
+	service_id_t sid;
+	vol_part_t *part;
+	char *mountp;
+	errno_t rc;
+
+	log_msg(LOG_DEFAULT, LVL_NOTE, "vol_part_set_mountp_srv()");
+
+	sid = IPC_GET_ARG1(*icall);
+
+	rc = async_data_write_accept((void **)&mountp, true, 0,
+	    VOL_MOUNTP_MAXLEN, 0, NULL);
+	if (rc != EOK) {
+		async_answer_0(icall, rc);
+		return;
+	}
+
+	if (mountp != NULL) {
+		log_msg(LOG_DEFAULT, LVL_NOTE,
+		    "vol_part_set_mountp_srv: mountp='%s'", mountp);
+	}
+
+	rc = vol_part_find_by_id_ref(parts, sid, &part);
+	if (rc != EOK) {
+		free(mountp);
+		async_answer_0(icall, ENOENT);
+		return;
+	}
+
+	rc = vol_part_set_mountp_part(part, mountp);
+	if (rc != EOK) {
+		free(mountp);
 		async_answer_0(icall, rc);
 		vol_part_del_ref(part);
 		return;
 	}
 
-	free(label);
+	free(mountp);
 	async_answer_0(icall, EOK);
 }
 
@@ -384,6 +431,9 @@ static void vol_client_conn(ipc_call_t *icall, void *arg)
 			break;
 		case VOL_PART_MKFS:
 			vol_part_mkfs_srv(parts, &call);
+			break;
+		case VOL_PART_SET_MOUNTP:
+			vol_part_set_mountp_srv(parts, &call);
 			break;
 		default:
 			async_answer_0(&call, EINVAL);

@@ -64,11 +64,21 @@ typedef enum {
 	devac_create_ext_part,
 	/** Create logical partition */
 	devac_create_log_part,
+	/** Modify partition */
+	devac_modify_part,
 	/** Delete partition */
 	devac_delete_part,
 	/** Exit */
 	devac_exit
 } devac_t;
+
+/** Partition property to modify */
+typedef enum {
+	/** Modify mount point */
+	pm_mountp,
+	/** Cancel */
+	pm_cancel
+} pmprop_t;
 
 /** Confirm user selection. */
 static errno_t fdsk_confirm(const char *msg, bool *rconfirm)
@@ -506,33 +516,6 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		tinput = NULL;
 	}
 
-	/* Ask for mount point */
-	tinput = tinput_new();
-	if (tinput == NULL) {
-		rc = ENOMEM;
-		goto error;
-	}
-
-	rc = tinput_set_prompt(tinput, "?> ");
-	if (rc != EOK)
-		goto error;
-
-	while (true) {
-		printf("Enter mount point for new partition (Auto, None or /path).\n");
-		rc = tinput_read_i(tinput, "Auto", &mountp);
-		if (rc != EOK)
-			goto error;
-
-		rc = vol_mountp_validate(mountp);
-		if (rc == EOK)
-			break;
-
-		free(mountp);
-		mountp = NULL;
-	}
-
-	tinput_destroy(tinput);
-	tinput = NULL;
 
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = cap;
@@ -559,9 +542,16 @@ error:
 	return rc;
 }
 
-static errno_t fdsk_delete_part(fdisk_dev_t *dev)
+/** Add an option to choice for each partition.
+ *
+ * @param dev Fdisk device
+ * @param choice Choice to add optionts to
+ *
+ * @return EOK on sucess or error code
+ */
+static errno_t fdsk_add_part_choices(fdisk_dev_t *dev,
+    nchoice_t *choice)
 {
-	nchoice_t *choice = NULL;
 	fdisk_part_t *part;
 	fdisk_part_info_t pinfo;
 	char *scap = NULL;
@@ -569,23 +559,7 @@ static errno_t fdsk_delete_part(fdisk_dev_t *dev)
 	char *sfstype = NULL;
 	char *sdesc = NULL;
 	const char *label;
-	bool confirm;
-	void *sel;
 	errno_t rc;
-
-	rc = nchoice_create(&choice);
-	if (rc != EOK) {
-		assert(rc == ENOMEM);
-		printf("Out of memory.\n");
-		goto error;
-	}
-
-	rc = nchoice_set_prompt(choice, "Select partition to delete");
-	if (rc != EOK) {
-		assert(rc == ENOMEM);
-		printf("Out of memory.\n");
-		goto error;
-	}
 
 	part = fdisk_part_first(dev);
 	while (part != NULL) {
@@ -655,6 +629,206 @@ static errno_t fdsk_delete_part(fdisk_dev_t *dev)
 		part = fdisk_part_next(part);
 	}
 
+	return EOK;
+error:
+	free(scap);
+	free(spkind);
+	free(sfstype);
+	free(sdesc);
+
+	return rc;
+}
+
+/** Modify partition mount point.
+ *
+ * Run the interaction to modify a partition mount point
+ *
+ * @part Fdisk partition
+ * @return EOK on success or error code
+ */
+static errno_t fdsk_modify_mountp(fdisk_part_t *part)
+{
+	tinput_t *tinput = NULL;
+	errno_t rc;
+	char *mountp = NULL;
+
+	/* Ask for mount point */
+	tinput = tinput_new();
+	if (tinput == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = tinput_set_prompt(tinput, "?> ");
+	if (rc != EOK)
+		goto error;
+
+	while (true) {
+		printf("Enter mount point for new partition (Auto, None or /path).\n");
+		rc = tinput_read_i(tinput, "Auto", &mountp);
+		if (rc != EOK)
+			goto error;
+
+		rc = vol_mountp_validate(mountp);
+		if (rc == EOK)
+			break;
+
+		free(mountp);
+		mountp = NULL;
+	}
+
+	rc = fdisk_part_set_mountp(part, mountp);
+	if (rc != EOK)
+		goto error;
+
+	free(mountp);
+
+	tinput_destroy(tinput);
+	tinput = NULL;
+	return EOK;
+error:
+	if (mountp != NULL)
+		free(mountp);
+	if (tinput != NULL)
+		tinput_destroy(tinput);
+	return rc;
+}
+
+/** Modify partition.
+ *
+ * Run the interaction to modify a partition.
+ *
+ * @param dev Fdisk device
+ * @return EOK on success or error code
+ */
+static errno_t fdsk_modify_part(fdisk_dev_t *dev)
+{
+	nchoice_t *choice = NULL;
+	fdisk_part_t *part;
+	void *sel;
+	errno_t rc;
+
+	rc = nchoice_create(&choice);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_set_prompt(choice, "Select partition to modify");
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = fdsk_add_part_choices(dev, choice);
+	if (rc != EOK)
+		goto error;
+
+	rc = nchoice_add(choice, "Cancel", NULL, 0);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_get(choice, &sel);
+	if (rc == ENOENT)
+		return EOK;
+	if (rc != EOK) {
+		printf("Error getting user selection.\n");
+		goto error;
+	}
+
+	nchoice_destroy(choice);
+	choice = NULL;
+
+	if (sel == NULL)
+		return EOK;
+
+	part = (fdisk_part_t *)sel;
+
+	rc = nchoice_create(&choice);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_set_prompt(choice, "Select property to modify");
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_add(choice, "Mount point", (void *)pm_mountp, 0);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_add(choice, "Cancel", (void *)pm_cancel, 0);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_get(choice, &sel);
+	if (rc == ENOENT)
+		return EOK;
+	if (rc != EOK) {
+		printf("Error getting user selection.\n");
+		goto error;
+	}
+
+	nchoice_destroy(choice);
+	choice = NULL;
+
+	switch ((pmprop_t)sel) {
+	case pm_mountp:
+		rc = fdsk_modify_mountp(part);
+		break;
+	case pm_cancel:
+		rc = EOK;
+		break;
+	}
+
+	return rc;
+error:
+	if (choice != NULL)
+		nchoice_destroy(choice);
+	return rc;
+}
+
+static errno_t fdsk_delete_part(fdisk_dev_t *dev)
+{
+	nchoice_t *choice = NULL;
+	bool confirm;
+	void *sel;
+	errno_t rc;
+
+	rc = nchoice_create(&choice);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_set_prompt(choice, "Select partition to delete");
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = fdsk_add_part_choices(dev, choice);
+	if (rc != EOK)
+		goto error;
+
 	rc = nchoice_add(choice, "Cancel", NULL, 0);
 	if (rc != EOK) {
 		assert(rc == ENOMEM);
@@ -695,11 +869,6 @@ static errno_t fdsk_delete_part(fdisk_dev_t *dev)
 
 	return EOK;
 error:
-	free(scap);
-	free(spkind);
-	free(sfstype);
-	free(sdesc);
-
 	if (choice != NULL)
 		nchoice_destroy(choice);
 	return rc;
@@ -988,6 +1157,16 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 		}
 	}
 
+	if ((linfo.flags & lf_can_modify_part) != 0) {
+		rc = nchoice_add(choice, "Modify partition",
+		    (void *)devac_modify_part, 0);
+		if (rc != EOK) {
+			assert(rc == ENOMEM);
+			printf("Out of memory.\n");
+			goto error;
+		}
+	}
+
 	if ((linfo.flags & lf_can_delete_part) != 0) {
 		rc = nchoice_add(choice, "Delete partition",
 		    (void *)devac_delete_part, 0);
@@ -1059,6 +1238,9 @@ static errno_t fdsk_dev_menu(fdisk_dev_t *dev)
 		break;
 	case devac_create_log_part:
 		(void) fdsk_create_part(dev, lpk_logical);
+		break;
+	case devac_modify_part:
+		(void) fdsk_modify_part(dev);
 		break;
 	case devac_delete_part:
 		(void) fdsk_delete_part(dev);

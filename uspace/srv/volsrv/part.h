@@ -56,6 +56,7 @@ extern errno_t vol_part_eject_part(vol_part_t *);
 extern errno_t vol_part_empty_part(vol_part_t *);
 extern errno_t vol_part_mkfs_part(vol_part_t *, vol_fstype_t, const char *,
     const char *);
+extern errno_t vol_part_set_mountp_part(vol_part_t *, const char *);
 extern errno_t vol_part_get_info(vol_part_t *, vol_part_info_t *);
 
 #endif
