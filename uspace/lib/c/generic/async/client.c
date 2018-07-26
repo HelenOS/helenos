@@ -642,6 +642,7 @@ async_sess_t *async_connect_me_to(async_exch_t *exch, iface_t iface,
  *
  * The proper solution seems to be to implement parallel exchanges using
  * tagging.
+ *
  */
 void async_sess_args_set(async_sess_t *sess, iface_t iface, sysarg_t arg2,
     sysarg_t arg3)
