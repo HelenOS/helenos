@@ -52,6 +52,10 @@ PACKAGE_GCC = "preferably version 4.7.0 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
 PACKAGE_CLANG = "reasonably recent version of clang needs to be installed"
 
+TOOLCHAIN_FAIL = [
+	"Compiler toolchain for target is not installed, or CROSS_PREFIX ",
+	"environment variable is not set correctly. Use tools/toolchain.sh",
+	"to (re)build the cross-compiler toolchain."]
 COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
 COMPILER_WARNING = "The compilation of HelenOS might fail."
 
@@ -595,12 +599,12 @@ def main():
 			if (config['COMPILER'] == "gcc_helenos"):
 				check_path = "%s/%s/%s" % (cross_helenos_prefix, platform, target)
 				if not os.path.exists(check_path):
-					print_error(["Toolchain for target is not installed, or CROSS_PREFIX is not set correctly."])
+					print_error(TOOLCHAIN_FAIL)
 				path = "%s/%s/bin" % (cross_helenos_prefix, platform)
 			else:
 				check_path = "%s/%s/%s" % (cross_prefix, platform, target)
 				if not os.path.exists(check_path):
-					print_error(["Toolchain for target is not installed, or CROSS_PREFIX is not set correctly."])
+					print_error(TOOLCHAIN_FAIL)
 				path = "%s/%s/bin" % (cross_prefix, platform)
 
 		common['TARGET'] = target
