@@ -53,7 +53,7 @@ PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
 PACKAGE_CLANG = "reasonably recent version of clang needs to be installed"
 
 TOOLCHAIN_FAIL = [
-	"Compiler toolchain for target is not installed, or CROSS_PREFIX ",
+	"Compiler toolchain for target is not installed, or CROSS_PREFIX",
 	"environment variable is not set correctly. Use tools/toolchain.sh",
 	"to (re)build the cross-compiler toolchain."]
 COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
