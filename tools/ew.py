@@ -137,16 +137,16 @@ def qemu_bd_options():
 	return ' -drive file=hdisk.img,index=0,media=disk,format=raw'
 
 def qemu_nic_ne2k_options():
-	return ' -device ne2k_isa,irq=5,vlan=0'
+	return ' -device ne2k_isa,irq=5,netdev=n1'
 
 def qemu_nic_e1k_options():
-	return ' -device e1000,vlan=0'
+	return ' -device e1000,netdev=n1'
 
 def qemu_nic_rtl8139_options():
-	return ' -device rtl8139,vlan=0'
+	return ' -device rtl8139,netdev=n1'
 
 def qemu_nic_virtio_options():
-	return ' -device virtio-net,vlan=0'
+	return ' -device virtio-net,netdev=n1'
 
 def qemu_net_options():
 	if is_override('nonet'):
@@ -166,7 +166,7 @@ def qemu_net_options():
 		# Use the default NIC
 		nic_options += qemu_nic_e1k_options()
 
-	return nic_options + ' -net user,hostfwd=udp::8080-:8080,hostfwd=udp::8081-:8081,hostfwd=tcp::8080-:8080,hostfwd=tcp::8081-:8081,hostfwd=tcp::2223-:2223'
+	return nic_options + ' -netdev user,id=n1,hostfwd=udp::8080-:8080,hostfwd=udp::8081-:8081,hostfwd=tcp::8080-:8080,hostfwd=tcp::8081-:8081,hostfwd=tcp::2223-:2223'
 
 def qemu_usb_options():
 	if is_override('nousb'):
