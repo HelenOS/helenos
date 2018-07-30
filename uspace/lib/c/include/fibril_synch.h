@@ -80,26 +80,6 @@ typedef struct {
 #define FIBRIL_RMUTEX_INITIALIZE(name) \
 	fibril_rmutex_t name = FIBRIL_RMUTEX_INITIALIZER(name)
 
-static inline void fibril_rmutex_initialize(fibril_rmutex_t *m)
-{
-	futex_initialize(&m->futex, 1);
-}
-
-static inline void fibril_rmutex_lock(fibril_rmutex_t *m)
-{
-	futex_lock(&m->futex);
-}
-
-static inline bool fibril_rmutex_trylock(fibril_rmutex_t *m)
-{
-	return futex_trylock(&m->futex);
-}
-
-static inline void fibril_rmutex_unlock(fibril_rmutex_t *m)
-{
-	futex_unlock(&m->futex);
-}
-
 typedef struct {
 	fibril_owner_info_t oi;  /**< Keep this the first thing. */
 	int counter;
@@ -220,6 +200,11 @@ typedef struct {
 
 #define FIBRIL_SEMAPHORE_INITIALIZE(name, cnt) \
 	fibril_semaphore_t name = FIBRIL_SEMAPHORE_INITIALIZER(name, cnt)
+
+extern void fibril_rmutex_initialize(fibril_rmutex_t *);
+extern void fibril_rmutex_lock(fibril_rmutex_t *);
+extern bool fibril_rmutex_trylock(fibril_rmutex_t *);
+extern void fibril_rmutex_unlock(fibril_rmutex_t *);
 
 extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);

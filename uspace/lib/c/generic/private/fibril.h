@@ -60,7 +60,7 @@ struct fibril {
 	bool is_freeable : 1;
 
 	/* Debugging stuff. */
-	atomic_t futex_locks;
+	int rmutex_locks;
 	fibril_owner_info_t *waits_for;
 	fibril_event_t *sleep_event;
 };

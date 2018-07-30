@@ -48,6 +48,20 @@ extern int kio_printf(const char *, ...)
     _HELENOS_PRINTF_ATTRIBUTE(1, 2);
 extern int kio_vprintf(const char *, va_list);
 
+/*
+ * In some files, we have conditional DPRINTF(...) macro that is defined empty
+ * in most cases. Provide a dummy printf so we get argument checking and
+ * avoid unused variable errors.
+ */
+
+static inline int dummy_printf(const char *fmt, ...) _HELENOS_PRINTF_ATTRIBUTE(1, 2);
+static inline int dummy_printf(const char *fmt, ...)
+{
+	/* Empty. */
+	(void) fmt;
+	return 0;
+}
+
 #endif
 
 /** @}

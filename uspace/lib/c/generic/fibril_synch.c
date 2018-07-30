@@ -50,6 +50,38 @@
 #include "private/async.h"
 #include "private/fibril.h"
 
+void fibril_rmutex_initialize(fibril_rmutex_t *m)
+{
+	futex_initialize(&m->futex, 1);
+}
+
+/**
+ * Lock restricted mutex.
+ * When a restricted mutex is locked, the fibril may not sleep or create new
+ * threads. Any attempt to do so will abort the program.
+ */
+void fibril_rmutex_lock(fibril_rmutex_t *m)
+{
+	futex_lock(&m->futex);
+	fibril_self()->rmutex_locks++;
+}
+
+bool fibril_rmutex_trylock(fibril_rmutex_t *m)
+{
+	if (futex_trylock(&m->futex)) {
+		fibril_self()->rmutex_locks++;
+		return true;
+	} else {
+		return false;
+	}
+}
+
+void fibril_rmutex_unlock(fibril_rmutex_t *m)
+{
+	fibril_self()->rmutex_locks--;
+	futex_unlock(&m->futex);
+}
+
 static fibril_local bool deadlocked = false;
 
 static futex_t fibril_synch_futex = FUTEX_INITIALIZER;

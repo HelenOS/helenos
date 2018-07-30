@@ -42,7 +42,7 @@
 #include "private/fibril.h"
 
 //#define DPRINTF(...) kio_printf(__VA_ARGS__)
-#define DPRINTF(...) ((void)0)
+#define DPRINTF(...) dummy_printf(__VA_ARGS__)
 
 /** Initialize futex counter.
  *
@@ -83,6 +83,7 @@ void __futex_lock(futex_t *futex, const char *name)
 	 * We use relaxed atomics to avoid violating C11 memory model.
 	 * They should compile to regular load/stores, but simple assignments
 	 * would be UB by definition.
+	 * The proper ordering is ensured by the surrounding futex operation.
 	 */
 
 	fibril_t *self = (fibril_t *) fibril_get_id();
@@ -93,8 +94,6 @@ void __futex_lock(futex_t *futex, const char *name)
 	void *prev_owner = __atomic_load_n(&futex->owner, __ATOMIC_RELAXED);
 	assert(prev_owner == NULL);
 	__atomic_store_n(&futex->owner, self, __ATOMIC_RELAXED);
-
-	atomic_inc(&self->futex_locks);
 }
 
 void __futex_unlock(futex_t *futex, const char *name)
@@ -103,7 +102,6 @@ void __futex_unlock(futex_t *futex, const char *name)
 	DPRINTF("Unlocking futex %s (%p) by fibril %p.\n", name, futex, self);
 	__futex_assert_is_locked(futex, name);
 	__atomic_store_n(&futex->owner, NULL, __ATOMIC_RELAXED);
-	atomic_dec(&self->futex_locks);
 	futex_up(futex);
 }
 
@@ -116,8 +114,6 @@ bool __futex_trylock(futex_t *futex, const char *name)
 		assert(owner == NULL);
 
 		__atomic_store_n(&futex->owner, self, __ATOMIC_RELAXED);
-
-		atomic_inc(&self->futex_locks);
 
 		DPRINTF("Trylock on futex %s (%p) by fibril %p succeeded.\n", name, futex, self);
 	} else {
@@ -134,8 +130,6 @@ void __futex_give_to(futex_t *futex, void *new_owner, const char *name)
 	DPRINTF("Passing futex %s (%p) from fibril %p to fibril %p.\n", name, futex, self, no);
 
 	__futex_assert_is_locked(futex, name);
-	atomic_dec(&self->futex_locks);
-	atomic_inc(&no->futex_locks);
 	__atomic_store_n(&futex->owner, new_owner, __ATOMIC_RELAXED);
 }
 
