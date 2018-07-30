@@ -55,6 +55,7 @@
 #include <taskdump.h>
 
 #define LINE_BYTES 16
+#define STACK_FRAMES_MAX 20
 
 static async_sess_t *sess;
 static task_id_t task_id;
@@ -326,6 +327,7 @@ static errno_t areas_dump(void)
 
 errno_t td_stacktrace(uintptr_t fp, uintptr_t pc)
 {
+	int cnt = 0;
 	uintptr_t nfp;
 	stacktrace_t st;
 	char *sym_pc;
@@ -334,7 +336,7 @@ errno_t td_stacktrace(uintptr_t fp, uintptr_t pc)
 	st.op_arg = NULL;
 	st.ops = &td_stacktrace_ops;
 
-	while (stacktrace_fp_valid(&st, fp)) {
+	while (cnt++ < STACK_FRAMES_MAX && stacktrace_fp_valid(&st, fp)) {
 		sym_pc = fmt_sym_address(pc);
 		printf("  %p: %s\n", (void *) fp, sym_pc);
 		free(sym_pc);

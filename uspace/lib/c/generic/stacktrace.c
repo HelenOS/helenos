@@ -40,6 +40,8 @@
 #include <errno.h>
 #include <io/kio.h>
 
+#define STACK_FRAMES_MAX 20
+
 static errno_t stacktrace_read_uintptr(void *arg, uintptr_t addr, uintptr_t *data);
 
 static stacktrace_ops_t basic_ops = {
@@ -55,6 +57,7 @@ static stacktrace_ops_t kio_ops = {
 void stacktrace_print_generic(stacktrace_ops_t *ops, void *arg, uintptr_t fp,
     uintptr_t pc)
 {
+	int cnt = 0;
 	stacktrace_t st;
 	uintptr_t nfp;
 	errno_t rc;
@@ -62,7 +65,7 @@ void stacktrace_print_generic(stacktrace_ops_t *ops, void *arg, uintptr_t fp,
 	st.op_arg = arg;
 	st.ops = ops;
 
-	while (stacktrace_fp_valid(&st, fp)) {
+	while (cnt++ < STACK_FRAMES_MAX && stacktrace_fp_valid(&st, fp)) {
 		ops->printf("%p: %p()\n", (void *) fp, (void *) pc);
 		rc =  stacktrace_ra_get(&st, fp, &pc);
 		if (rc != EOK)
