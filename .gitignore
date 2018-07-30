@@ -81,6 +81,7 @@ uspace/app/bdsh/test-bdsh
 uspace/app/bithenge/bithenge
 uspace/app/blkdump/blkdump
 uspace/app/bnchmark/bnchmark
+uspace/app/contacts/contacts
 uspace/app/corecfg/corecfg
 uspace/app/cpptest/cpptest
 uspace/app/date/date
@@ -379,6 +380,7 @@ uspace/lib/posix/include/libc
 uspace/lib/posix/link.ld
 uspace/lib/posix/redefs-hide-libc-symbols.list
 uspace/lib/posix/test-libposix
+uspace/lib/sif/test-libsif
 uspace/lib/uri/test-liburi
 uspace/srv/audio/hound/hound
 uspace/srv/bd/file_bd/file_bd

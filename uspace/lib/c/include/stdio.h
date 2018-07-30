@@ -177,7 +177,7 @@ extern int remove(const char *);
 extern int rename(const char *, const char *);
 
 extern FILE *tmpfile(void);
-extern char *tmpnam(char *s) __attribute__((deprecated));
+extern char *tmpnam(char *s);
 
 #ifdef _HELENOS_SOURCE
 
