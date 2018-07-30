@@ -663,6 +663,7 @@ void fibril_semaphore_initialize(fibril_semaphore_t *sem, long count)
 	 * so it makes no sense as an initial value.
 	 */
 	assert(count >= 0);
+	sem->closed = false;
 	sem->count = count;
 	list_initialize(&sem->waiters);
 }
@@ -678,6 +679,12 @@ void fibril_semaphore_initialize(fibril_semaphore_t *sem, long count)
 void fibril_semaphore_up(fibril_semaphore_t *sem)
 {
 	futex_lock(&fibril_synch_futex);
+
+	if (sem->closed) {
+		futex_unlock(&fibril_synch_futex);
+		return;
+	}
+
 	sem->count++;
 
 	if (sem->count <= 0) {
@@ -699,6 +706,12 @@ void fibril_semaphore_up(fibril_semaphore_t *sem)
 void fibril_semaphore_down(fibril_semaphore_t *sem)
 {
 	futex_lock(&fibril_synch_futex);
+
+	if (sem->closed) {
+		futex_unlock(&fibril_synch_futex);
+		return;
+	}
+
 	sem->count--;
 
 	if (sem->count >= 0) {
@@ -712,6 +725,70 @@ void fibril_semaphore_down(fibril_semaphore_t *sem)
 	futex_unlock(&fibril_synch_futex);
 
 	fibril_wait_for(&wdata.event);
+}
+
+errno_t fibril_semaphore_down_timeout(fibril_semaphore_t *sem, suseconds_t timeout)
+{
+	if (timeout < 0)
+		return ETIMEOUT;
+
+	futex_lock(&fibril_synch_futex);
+	if (sem->closed) {
+		futex_unlock(&fibril_synch_futex);
+		return EOK;
+	}
+
+	sem->count--;
+
+	if (sem->count >= 0) {
+		futex_unlock(&fibril_synch_futex);
+		return EOK;
+	}
+
+	awaiter_t wdata = AWAITER_INIT;
+	list_append(&wdata.link, &sem->waiters);
+
+	futex_unlock(&fibril_synch_futex);
+
+	struct timeval tv;
+	struct timeval *expires = NULL;
+	if (timeout) {
+		getuptime(&tv);
+		tv_add_diff(&tv, timeout);
+		expires = &tv;
+	}
+
+	errno_t rc = fibril_wait_timeout(&wdata.event, expires);
+	if (rc == EOK)
+		return EOK;
+
+	futex_lock(&fibril_synch_futex);
+	if (!link_in_use(&wdata.link)) {
+		futex_unlock(&fibril_synch_futex);
+		return EOK;
+	}
+
+	list_remove(&wdata.link);
+	sem->count++;
+	futex_unlock(&fibril_synch_futex);
+
+	return rc;
+}
+
+/**
+ * Close the semaphore.
+ * All future down() operations return instantly.
+ */
+void fibril_semaphore_close(fibril_semaphore_t *sem)
+{
+	futex_lock(&fibril_synch_futex);
+	sem->closed = true;
+	awaiter_t *w;
+
+	while ((w = list_pop(&sem->waiters, awaiter_t, link)))
+		fibril_notify(&w->event);
+
+	futex_unlock(&fibril_synch_futex);
 }
 
 /** @}
