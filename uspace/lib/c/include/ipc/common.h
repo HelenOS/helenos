@@ -52,8 +52,6 @@ typedef struct {
 	cap_call_handle_t cap_handle;
 } ipc_call_t;
 
-extern futex_t async_futex;
-
 #endif
 
 /** @}

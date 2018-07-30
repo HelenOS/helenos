@@ -110,7 +110,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <libarch/barrier.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <mem.h>
@@ -123,9 +122,6 @@
 #include "../private/fibril.h"
 
 #define DPRINTF(...)  ((void) 0)
-
-/** Async framework global futex */
-futex_t async_futex = FUTEX_INITIALIZER;
 
 /** Call data */
 typedef struct {
@@ -249,7 +245,7 @@ static long notification_freelist_used = 0;
 
 static sysarg_t notification_avail = 0;
 
-/* The remaining structures are guarded by async_futex. */
+static FIBRIL_RMUTEX_INITIALIZE(conn_mutex);
 static hash_table_t conn_hash_table;
 
 static size_t client_key_hash(void *key)
@@ -429,12 +425,12 @@ static errno_t connection_fibril(void *arg)
 	/*
 	 * Remove myself from the connection hash table.
 	 */
-	futex_lock(&async_futex);
+	fibril_rmutex_lock(&conn_mutex);
 	hash_table_remove(&conn_hash_table, &(conn_key_t){
 		.task_id = fibril_connection->in_task_id,
 		.phone_hash = fibril_connection->in_phone_hash
 	});
-	futex_unlock(&async_futex);
+	fibril_rmutex_unlock(&conn_mutex);
 
 	/*
 	 * Answer all remaining messages with EHANGUP.
@@ -516,11 +512,11 @@ static fid_t async_new_connection(task_id_t in_task_id, sysarg_t in_phone_hash,
 
 	/* Add connection to the connection hash table */
 
-	futex_lock(&async_futex);
+	fibril_rmutex_lock(&conn_mutex);
 	hash_table_insert(&conn_hash_table, &conn->link);
-	futex_unlock(&async_futex);
+	fibril_rmutex_unlock(&conn_mutex);
 
-	fibril_add_ready(conn->fid);
+	fibril_start(conn->fid);
 
 	return conn->fid;
 }
@@ -617,14 +613,14 @@ static bool route_call(ipc_call_t *call)
 {
 	assert(call);
 
-	futex_lock(&async_futex);
+	fibril_rmutex_lock(&conn_mutex);
 
 	ht_link_t *link = hash_table_find(&conn_hash_table, &(conn_key_t){
 		.task_id = call->in_task_id,
 		.phone_hash = call->in_phone_hash
 	});
 	if (!link) {
-		futex_unlock(&async_futex);
+		fibril_rmutex_unlock(&conn_mutex);
 		return false;
 	}
 
@@ -633,7 +629,7 @@ static bool route_call(ipc_call_t *call)
 	// FIXME: malloc in critical section
 	msg_t *msg = malloc(sizeof(*msg));
 	if (!msg) {
-		futex_unlock(&async_futex);
+		fibril_rmutex_unlock(&conn_mutex);
 		return false;
 	}
 
@@ -643,10 +639,10 @@ static bool route_call(ipc_call_t *call)
 	if (IPC_GET_IMETHOD(*call) == IPC_M_PHONE_HUNGUP)
 		conn->close_chandle = call->cap_handle;
 
+	fibril_rmutex_unlock(&conn_mutex);
+
 	/* If the connection fibril is waiting for an event, activate it */
 	fibril_notify(&conn->msg_arrived);
-
-	futex_unlock(&async_futex);
 	return true;
 }
 
@@ -959,7 +955,7 @@ bool async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 		expires = &tv;
 	}
 
-	futex_lock(&async_futex);
+	fibril_rmutex_lock(&conn_mutex);
 
 	/* If nothing in queue, wait until something arrives */
 	while (list_empty(&conn->msg_queue)) {
@@ -973,18 +969,18 @@ bool async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			 */
 			memset(call, 0, sizeof(ipc_call_t));
 			IPC_SET_IMETHOD(*call, IPC_M_PHONE_HUNGUP);
-			futex_unlock(&async_futex);
+			fibril_rmutex_unlock(&conn_mutex);
 			return true;
 		}
 
 		// TODO: replace with cvar
-		futex_unlock(&async_futex);
+		fibril_rmutex_unlock(&conn_mutex);
 
 		errno_t rc = fibril_wait_timeout(&conn->msg_arrived, expires);
 		if (rc == ETIMEOUT)
 			return false;
 
-		futex_lock(&async_futex);
+		fibril_rmutex_lock(&conn_mutex);
 	}
 
 	msg_t *msg = list_get_instance(list_first(&conn->msg_queue),
@@ -994,7 +990,7 @@ bool async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	*call = msg->call;
 	free(msg);
 
-	futex_unlock(&async_futex);
+	fibril_rmutex_unlock(&conn_mutex);
 	return true;
 }
 
