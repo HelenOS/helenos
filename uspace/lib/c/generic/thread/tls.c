@@ -51,7 +51,7 @@
 #include <rtld/rtld.h>
 #endif
 
-#include "private/libc.h"
+#include "../private/libc.h"
 
 #if !defined(CONFIG_TLS_VARIANT_1) && !defined(CONFIG_TLS_VARIANT_2)
 #error Unknown TLS variant.

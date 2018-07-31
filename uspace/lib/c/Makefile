@@ -50,7 +50,6 @@ SOVERSION = 0.0
 GENERIC_SOURCES = \
 	generic/libc.c \
 	generic/ddi.c \
-	generic/atomic.c \
 	generic/as.c \
 	generic/bd.c \
 	generic/bd_srv.c \
@@ -84,15 +83,10 @@ GENERIC_SOURCES = \
 	generic/str_error.c \
 	generic/strtol.c \
 	generic/l18n/langs.c \
-	generic/fibril.c \
-	generic/fibril_synch.c \
 	generic/pcb.c \
 	generic/smc.c \
 	generic/smp_memory_barrier.c \
-	generic/thread.c \
-	generic/tls.c \
 	generic/task.c \
-	generic/futex.c \
 	generic/imath.c \
 	generic/inet/addr.c \
 	generic/inet/endpoint.c \
@@ -141,6 +135,13 @@ GENERIC_SOURCES = \
 	generic/stdio/sscanf.c \
 	generic/stdio/sstream.c \
 	generic/stdio/vsprintf.c \
+	generic/thread/atomic.c \
+	generic/thread/fibril.c \
+	generic/thread/fibril_synch.c \
+	generic/thread/thread.c \
+	generic/thread/tls.c \
+	generic/thread/futex.c \
+	generic/thread/rcu.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/ns.c \
@@ -164,7 +165,6 @@ GENERIC_SOURCES = \
 	generic/vfs/inbox.c \
 	generic/vfs/mtab.c \
 	generic/vfs/vfs.c \
-	generic/rcu.c \
 	generic/setjmp.c \
 	generic/stack.c \
 	generic/stacktrace.c \

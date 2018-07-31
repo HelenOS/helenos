@@ -48,9 +48,10 @@
 #include <str.h>
 #include <ipc/ipc.h>
 #include <libarch/faddr.h>
-#include "private/thread.h"
-#include "private/fibril.h"
-#include "private/libc.h"
+
+#include "../private/thread.h"
+#include "../private/fibril.h"
+#include "../private/libc.h"
 
 #define DPRINTF(...) ((void)0)
 #undef READY_DEBUG

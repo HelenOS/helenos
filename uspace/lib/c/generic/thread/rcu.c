@@ -80,7 +80,7 @@
 #include <assert.h>
 #include <time.h>
 
-#include "private/fibril.h"
+#include "../private/fibril.h"
 
 
 /** RCU sleeps for RCU_SLEEP_MS before polling an active RCU reader again. */

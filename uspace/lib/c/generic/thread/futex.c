@@ -39,7 +39,7 @@
 #include <fibril.h>
 #include <io/kio.h>
 
-#include "private/fibril.h"
+#include "../private/fibril.h"
 
 //#define DPRINTF(...) kio_printf(__VA_ARGS__)
 #define DPRINTF(...) dummy_printf(__VA_ARGS__)

@@ -43,8 +43,9 @@
 #include <async.h>
 #include <errno.h>
 #include <as.h>
-#include "private/thread.h"
-#include "private/fibril.h"
+
+#include "../private/thread.h"
+#include "../private/fibril.h"
 
 /** Main thread function.
  *

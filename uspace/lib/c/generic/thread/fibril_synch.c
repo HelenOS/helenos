@@ -47,8 +47,8 @@
 #include <mem.h>
 #include <context.h>
 
-#include "private/async.h"
-#include "private/fibril.h"
+#include "../private/async.h"
+#include "../private/fibril.h"
 
 void fibril_rmutex_initialize(fibril_rmutex_t *m)
 {
