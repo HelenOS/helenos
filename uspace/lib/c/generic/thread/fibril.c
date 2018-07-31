@@ -722,6 +722,12 @@ void fibril_wait_for(fibril_event_t *event)
 	(void) fibril_wait_timeout(event, NULL);
 }
 
+/**
+ * Wake up the fibril waiting for the given event.
+ * Up to one wakeup is remembered if the fibril is not currently waiting.
+ *
+ * This function is safe for use under restricted mutex lock.
+ */
 void fibril_notify(fibril_event_t *event)
 {
 	futex_lock(&fibril_futex);

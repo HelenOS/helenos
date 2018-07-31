@@ -35,6 +35,12 @@
  * of symbols for GCC to use.
  */
 
+void __sync_synchronize(void)
+{
+	// FIXME: Full memory barrier. We need a syscall for this.
+	// Should we implement this or is empty definition ok here?
+}
+
 unsigned __sync_add_and_fetch_4(volatile void *vptr, unsigned val)
 {
 	return atomic_add((atomic_t *)vptr, val);

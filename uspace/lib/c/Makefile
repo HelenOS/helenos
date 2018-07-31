@@ -142,6 +142,7 @@ GENERIC_SOURCES = \
 	generic/thread/tls.c \
 	generic/thread/futex.c \
 	generic/thread/rcu.c \
+	generic/thread/mpsc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/ns.c \

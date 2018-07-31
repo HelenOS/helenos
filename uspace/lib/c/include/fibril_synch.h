@@ -49,7 +49,8 @@
  * use. Within a rmutex critical section, you
  *         - may not use any other synchronization primitive,
  *           save for another `fibril_rmutex_t`. This includes nonblocking
- *           operations like cvar signal and mutex unlock.
+ *           operations like cvar signal and mutex unlock, unless otherwise
+ *           specified.
  *         - may not read IPC messages
  *         - may not start a new thread/fibril
  *           (creating fibril without starting is fine)
@@ -243,6 +244,13 @@ extern void fibril_semaphore_up(fibril_semaphore_t *);
 extern void fibril_semaphore_down(fibril_semaphore_t *);
 extern errno_t fibril_semaphore_down_timeout(fibril_semaphore_t *, suseconds_t);
 extern void fibril_semaphore_close(fibril_semaphore_t *);
+
+typedef struct mpsc mpsc_t;
+extern mpsc_t *mpsc_create(size_t);
+extern void mpsc_destroy(mpsc_t *);
+extern errno_t mpsc_send(mpsc_t *, const void *);
+extern errno_t mpsc_receive(mpsc_t *, void *, const struct timeval *);
+extern void mpsc_close(mpsc_t *);
 
 #endif
 
