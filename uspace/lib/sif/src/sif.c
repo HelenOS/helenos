@@ -547,7 +547,7 @@ static errno_t sif_import_string(FILE *f, char **rstr)
 	char *str;
 	size_t str_size;
 	size_t sidx;
-	char c;
+	int c;
 	errno_t rc;
 
 	str_size = 1;
@@ -646,7 +646,7 @@ static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
 	sif_node_t *node = NULL;
 	sif_node_t *child;
 	char *ntype;
-	char c;
+	int c;
 
 	node = sif_node_new(parent);
 	if (node == NULL)
