@@ -201,6 +201,7 @@ static errno_t contacts_create_contact(contacts_t *contacts)
 
 	free(cname);
 	tinput_destroy(tinput);
+	return EOK;
 error:
 	if (trans != NULL)
 		sif_trans_abort(trans);

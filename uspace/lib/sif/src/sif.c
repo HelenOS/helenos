@@ -67,6 +67,7 @@
 #include "../private/sif.h"
 
 static errno_t sif_export_node(sif_node_t *, FILE *);
+static errno_t sif_import_node(sif_node_t *, FILE *, sif_node_t **);
 
 /** Create new SIF node.
  *
@@ -168,23 +169,22 @@ errno_t sif_open(const char *fname, sif_sess_t **rsess)
 	if (sess == NULL)
 		return ENOMEM;
 
-	root = sif_node_new(NULL);
-	if (root == NULL) {
-		rc = ENOMEM;
-		goto error;
-	}
-
-	root->ntype = str_dup("sif");
-	if (root->ntype == NULL) {
-		rc = ENOMEM;
-		goto error;
-	}
-
 	f = fopen(fname, "r+");
 	if (f == NULL) {
 		rc = EIO;
 		goto error;
 	}
+
+	rc = sif_import_node(NULL, f, &root);
+	if (rc != EOK)
+		goto error;
+
+	if (str_cmp(root->ntype, "sif") != 0) {
+		rc = EIO;
+		goto error;
+	}
+
+	sess->root = root;
 
 	sess->f = f;
 	sess->root = root;
@@ -533,6 +533,73 @@ static errno_t sif_export_string(const char *str, FILE *f)
 	return EOK;
 }
 
+/** Import string from file.
+ *
+ * Import string from file (the string in the file must be
+ * properly bracketed and escaped).
+ *
+ * @param f File
+ * @param rstr Place to store pointer to newly allocated string
+ * @return EOK on success, EIO on I/O error
+ */
+static errno_t sif_import_string(FILE *f, char **rstr)
+{
+	char *str;
+	size_t str_size;
+	size_t sidx;
+	char c;
+	errno_t rc;
+
+	str_size = 1;
+	sidx = 0;
+	str = malloc(str_size + 1);
+	if (str == NULL)
+		return ENOMEM;
+
+	c = fgetc(f);
+	if (c != '[') {
+		rc = EIO;
+		goto error;
+	}
+
+	while (true) {
+		c = fgetc(f);
+		if (c == EOF) {
+			rc = EIO;
+			goto error;
+		}
+
+		if (c == ']')
+			break;
+
+		if (c == '\\') {
+			c = fgetc(f);
+			if (c == EOF) {
+				rc = EIO;
+				goto error;
+			}
+		}
+
+		if (sidx >= str_size) {
+			str_size *= 2;
+			str = realloc(str, str_size + 1);
+			if (str == NULL) {
+				rc = ENOMEM;
+				goto error;
+			}
+		}
+
+		str[sidx++] = c;
+	}
+
+	str[sidx] = '\0';
+	*rstr = str;
+	return EOK;
+error:
+	free(str);
+	return rc;
+}
+
 /** Export SIF node to file.
  *
  * @param node SIF node
@@ -564,6 +631,66 @@ static errno_t sif_export_node(sif_node_t *node, FILE *f)
 		return EIO;
 
 	return EOK;
+}
+
+/** Import SIF node from file.
+ *
+ * @param parent Parent node
+ * @param f File
+ * @param rnode Place to store pointer to imported node
+ * @return EOK on success, EIO on I/O error
+ */
+static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
+{
+	errno_t rc;
+	sif_node_t *node = NULL;
+	sif_node_t *child;
+	char *ntype;
+	char c;
+
+	node = sif_node_new(parent);
+	if (node == NULL)
+		return ENOMEM;
+
+	rc = sif_import_string(f, &ntype);
+	if (rc != EOK)
+		goto error;
+
+	node->ntype = ntype;
+
+	c = fgetc(f);
+	if (c != '{') {
+		rc = EIO;
+		goto error;
+	}
+
+	c = fgetc(f);
+	if (c == EOF) {
+		rc = EIO;
+		goto error;
+	}
+
+	while (c != '}') {
+		ungetc(c, f);
+
+		rc = sif_import_node(node, f, &child);
+		if (rc != EOK)
+			goto error;
+
+		list_append(&child->lparent, &node->children);
+
+		c = fgetc(f);
+		if (c == EOF) {
+			rc = EIO;
+			goto error;
+		}
+	}
+
+	*rnode = node;
+	return EOK;
+error:
+	sif_node_delete(node);
+	return rc;
 }
 
 /** @}
