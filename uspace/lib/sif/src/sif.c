@@ -59,6 +59,8 @@
  * any kind of structure data validation is left up to the application.
  */
 
+#include <adt/list.h>
+#include <adt/odict.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,10 +70,15 @@
 
 static errno_t sif_export_node(sif_node_t *, FILE *);
 static errno_t sif_import_node(sif_node_t *, FILE *, sif_node_t **);
+static sif_attr_t *sif_node_first_attr(sif_node_t *);
+static sif_attr_t *sif_node_next_attr(sif_attr_t *);
+static void sif_attr_delete(sif_attr_t *);
+static void *sif_attr_getkey(odlink_t *);
+static int sif_attr_cmp(void *, void *);
 
 /** Create new SIF node.
  *
- * @param parent Parent onde
+ * @param parent Parent node
  * @return Pointer to new node on success or @c NULL if out of memory
  */
 static sif_node_t *sif_node_new(sif_node_t *parent)
@@ -83,6 +90,7 @@ static sif_node_t *sif_node_new(sif_node_t *parent)
 		return NULL;
 
 	node->parent = parent;
+	odict_initialize(&node->attrs, sif_attr_getkey, sif_attr_cmp);
 	list_initialize(&node->children);
 
 	return node;
@@ -91,18 +99,76 @@ static sif_node_t *sif_node_new(sif_node_t *parent)
 /** Delete SIF node.
  *
  * Delete a SIF node that has been already unlinked from the tree.
+ * This will also delete any attributes or child nodes.
  *
  * @param node Node
  */
 static void sif_node_delete(sif_node_t *node)
 {
+	sif_attr_t *attr;
+	sif_node_t *child;
+
 	if (node == NULL)
 		return;
+
+	assert(!link_used(&node->lparent));
 
 	if (node->ntype != NULL)
 		free(node->ntype);
 
+	attr = sif_node_first_attr(node);
+	while (attr != NULL) {
+		odict_remove(&attr->lattrs);
+		sif_attr_delete(attr);
+		attr = sif_node_first_attr(node);
+	}
+
+	child = sif_node_first_child(node);
+	while (child != NULL) {
+		list_remove(&child->lparent);
+		sif_node_delete(child);
+		child = sif_node_first_child(node);
+	}
+
 	free(node);
+}
+
+/** Create new SIF attribute.
+ *
+ * @param node Containing node
+ * @return Pointer to new node on success or @c NULL if out of memory
+ */
+static sif_attr_t *sif_attr_new(sif_node_t *node)
+{
+	sif_attr_t *attr;
+
+	attr = calloc(1, sizeof(sif_attr_t));
+	if (attr == NULL)
+		return NULL;
+
+	attr->node = node;
+	return attr;
+}
+
+/** Delete SIF attribute.
+ *
+ * Delete a SIF attribute that has been already unlinked from is node.
+ *
+ * @param attr Attribute
+ */
+static void sif_attr_delete(sif_attr_t *attr)
+{
+	if (attr == NULL)
+		return;
+
+	assert(!odlink_used(&attr->lattrs));
+
+	if (attr->aname != NULL)
+		free(attr->aname);
+	if (attr->avalue != NULL)
+		free(attr->avalue);
+
+	free(attr);
 }
 
 /** Create and open a SIF repository.
@@ -116,6 +182,7 @@ errno_t sif_create(const char *fname, sif_sess_t **rsess)
 {
 	sif_sess_t *sess;
 	sif_node_t *root = NULL;
+	sif_trans_t *trans = NULL;
 	errno_t rc;
 	FILE *f;
 
@@ -143,9 +210,21 @@ errno_t sif_create(const char *fname, sif_sess_t **rsess)
 
 	sess->f = f;
 	sess->root = root;
+
+	/* Run a dummy trasaction to marshall initial repo state to file */
+	rc = sif_trans_begin(sess, &trans);
+	if (rc != EOK)
+		goto error;
+
+	rc = sif_trans_end(trans);
+	if (rc != EOK)
+		goto error;
+
 	*rsess = sess;
 	return EOK;
 error:
+	if (trans != NULL)
+		sif_trans_abort(trans);
 	sif_node_delete(root);
 	free(sess);
 	return rc;
@@ -273,7 +352,15 @@ const char *sif_node_get_type(sif_node_t *node)
  */
 const char *sif_node_get_attr(sif_node_t *node, const char *aname)
 {
-	return NULL;
+	odlink_t *link;
+	sif_attr_t *attr;
+
+	link = odict_find_eq(&node->attrs, (void *)aname, NULL);
+	if (link == NULL)
+		return NULL;
+
+	attr = odict_get_instance(link, sif_attr_t, lattrs);
+	return attr->avalue;
 }
 
 /** Begin SIF transaction.
@@ -295,6 +382,9 @@ errno_t sif_trans_begin(sif_sess_t *sess, sif_trans_t **rtrans)
 }
 
 /** Commit SIF transaction.
+ *
+ * Commit and free the transaction. If an error is returned, that means
+ * the transaction has not been freed (and sif_trans_abort() must be used).
  *
  * @param trans Transaction
  * @return EOK on success or error code
@@ -319,6 +409,7 @@ errno_t sif_trans_end(sif_trans_t *trans)
  */
 void sif_trans_abort(sif_trans_t *trans)
 {
+	free(trans);
 }
 
 /** Prepend new child.
@@ -460,14 +551,6 @@ errno_t sif_node_insert_after(sif_trans_t *trans, sif_node_t *sibling,
  */
 void sif_node_destroy(sif_trans_t *trans, sif_node_t *node)
 {
-	sif_node_t *child;
-
-	child = sif_node_first_child(node);
-	while (child != NULL) {
-		sif_node_destroy(trans, child);
-		child = sif_node_first_child(node);
-	}
-
 	list_remove(&node->lparent);
 	sif_node_delete(node);
 }
@@ -482,8 +565,42 @@ void sif_node_destroy(sif_trans_t *trans, sif_node_t *node)
  * @return EOK on success, ENOMEM if out of memory
  */
 errno_t sif_node_set_attr(sif_trans_t *trans, sif_node_t *node,
-    const char *aname, const char *value)
+    const char *aname, const char *avalue)
 {
+	odlink_t *link;
+	sif_attr_t *attr;
+	char *cvalue;
+
+	link = odict_find_eq(&node->attrs, (void *)aname, NULL);
+
+	if (link != NULL) {
+		attr = odict_get_instance(link, sif_attr_t, lattrs);
+		cvalue = str_dup(avalue);
+		if (cvalue == NULL)
+			return ENOMEM;
+
+		free(attr->avalue);
+		attr->avalue = cvalue;
+	} else {
+		attr = sif_attr_new(node);
+		if (attr == NULL)
+			return ENOMEM;
+
+		attr->aname = str_dup(aname);
+		if (attr->aname == NULL) {
+			sif_attr_delete(attr);
+			return ENOMEM;
+		}
+
+		attr->avalue = str_dup(avalue);
+		if (attr->avalue == NULL) {
+			sif_attr_delete(attr);
+			return ENOMEM;
+		}
+
+		odict_insert(&attr->lattrs, &node->attrs, NULL);
+	}
+
 	return EOK;
 }
 
@@ -499,6 +616,16 @@ errno_t sif_node_set_attr(sif_trans_t *trans, sif_node_t *node,
 void sif_node_unset_attr(sif_trans_t *trans, sif_node_t *node,
     const char *aname)
 {
+	odlink_t *link;
+	sif_attr_t *attr;
+
+	link = odict_find_eq(&node->attrs, (void *)aname, NULL);
+	if (link == NULL)
+		return;
+
+	attr = odict_get_instance(link, sif_attr_t, lattrs);
+	odict_remove(link);
+	sif_attr_delete(attr);
 }
 
 /** Export string to file.
@@ -600,6 +727,79 @@ error:
 	return rc;
 }
 
+/** Import SIF attribute from file.
+ *
+ * @param node Node under which attribute shou
+ * @param f File
+ * @param rattr Place to store pointer to imported SIF attribute
+ * @return EOK on success, EIO on I/O error
+ */
+static errno_t sif_import_attr(sif_node_t *node, FILE *f, sif_attr_t **rattr)
+{
+	errno_t rc;
+	char *aname = NULL;
+	char *avalue = NULL;
+	sif_attr_t *attr;
+	int c;
+
+	rc = sif_import_string(f, &aname);
+	if (rc != EOK)
+		goto error;
+
+	c = fgetc(f);
+	if (c != '=') {
+		rc = EIO;
+		goto error;
+	}
+
+	rc = sif_import_string(f, &avalue);
+	if (rc != EOK)
+		goto error;
+
+	attr = sif_attr_new(node);
+	if (attr == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	attr->aname = aname;
+	attr->avalue = avalue;
+
+	*rattr = attr;
+	return EOK;
+error:
+	if (aname != NULL)
+		free(aname);
+	if (avalue != NULL)
+		free(avalue);
+	return rc;
+}
+
+
+/** Export SIF attribute to file.
+ *
+ * @param attr SIF attribute
+ * @param f File
+ * @return EOK on success, EIO on I/O error
+ */
+static errno_t sif_export_attr(sif_attr_t *attr, FILE *f)
+{
+	errno_t rc;
+
+	rc = sif_export_string(attr->aname, f);
+	if (rc != EOK)
+		return rc;
+
+	if (fputc('=', f) == EOF)
+		return EIO;
+
+	rc = sif_export_string(attr->avalue, f);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Export SIF node to file.
  *
  * @param node SIF node
@@ -609,11 +809,31 @@ error:
 static errno_t sif_export_node(sif_node_t *node, FILE *f)
 {
 	errno_t rc;
+	sif_attr_t *attr;
 	sif_node_t *child;
 
 	rc = sif_export_string(node->ntype, f);
 	if (rc != EOK)
 		return rc;
+
+	/* Attributes */
+
+	if (fputc('(', f) == EOF)
+		return EIO;
+
+	attr = sif_node_first_attr(node);
+	while (attr != NULL) {
+		rc = sif_export_attr(attr, f);
+		if (rc != EOK)
+			return rc;
+
+		attr = sif_node_next_attr(attr);
+	}
+
+	if (fputc(')', f) == EOF)
+		return EIO;
+
+	/* Child nodes */
 
 	if (fputc('{', f) == EOF)
 		return EIO;
@@ -645,6 +865,7 @@ static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
 	errno_t rc;
 	sif_node_t *node = NULL;
 	sif_node_t *child;
+	sif_attr_t *attr;
 	char *ntype;
 	int c;
 
@@ -657,6 +878,38 @@ static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
 		goto error;
 
 	node->ntype = ntype;
+
+	/* Attributes */
+
+	c = fgetc(f);
+	if (c != '(') {
+		rc = EIO;
+		goto error;
+	}
+
+	c = fgetc(f);
+	if (c == EOF) {
+		rc = EIO;
+		goto error;
+	}
+
+	while (c != ')') {
+		ungetc(c, f);
+
+		rc = sif_import_attr(node, f, &attr);
+		if (rc != EOK)
+			goto error;
+
+		odict_insert(&attr->lattrs, &node->attrs, NULL);
+
+		c = fgetc(f);
+		if (c == EOF) {
+			rc = EIO;
+			goto error;
+		}
+	}
+
+	/* Child nodes */
 
 	c = fgetc(f);
 	if (c != '{') {
@@ -691,6 +944,65 @@ static errno_t sif_import_node(sif_node_t *parent, FILE *f, sif_node_t **rnode)
 error:
 	sif_node_delete(node);
 	return rc;
+}
+
+/** Get first attribute or a node.
+ *
+ * @param node SIF node
+ * @return First attribute or @c NULL if there is none
+ */
+static sif_attr_t *sif_node_first_attr(sif_node_t *node)
+{
+	odlink_t *link;
+
+	link = odict_first(&node->attrs);
+	if (link == NULL)
+		return NULL;
+
+	return odict_get_instance(link, sif_attr_t, lattrs);
+}
+
+/** Get next attribute or a node.
+ *
+ * @param cur Current attribute
+ * @return Next attribute or @c NULL if there is none
+ */
+static sif_attr_t *sif_node_next_attr(sif_attr_t *cur)
+{
+	odlink_t *link;
+
+	link = odict_next(&cur->lattrs, &cur->node->attrs);
+	if (link == NULL)
+		return NULL;
+
+	return odict_get_instance(link, sif_attr_t, lattrs);
+}
+
+/** Get key callback for ordered dictionary of node attributes.
+ *
+ * @param link Ordered dictionary link of attribute
+ * @return Pointer to attribute name
+ */
+static void *sif_attr_getkey(odlink_t *link)
+{
+	return (void *)odict_get_instance(link, sif_attr_t, lattrs)->aname;
+}
+
+/** Comparison callback for  ordered dictionary of node attributes.
+ *
+ * @param a Name of first attribute
+ * @param b Name of second attribute
+ * @return Less than zero, zero or greater than zero, if a < b, a == b, a > b,
+ *         respectively.
+ */
+static int sif_attr_cmp(void *a, void *b)
+{
+	char *ca, *cb;
+
+	ca = (char *)a;
+	cb = (char *)b;
+
+	return str_cmp(ca, cb);
 }
 
 /** @}
