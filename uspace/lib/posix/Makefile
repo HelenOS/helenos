@@ -35,8 +35,6 @@ EXTRA_CFLAGS = -Iinclude/
 INCLUDE_LIBC = ./include/libc
 
 SPECS = gcc.specs
-LIBC_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
-EXPORT_LINKER_SCRIPT = link.ld
 
 EXPORT_FILES = \
 	../math/libmath.a \
@@ -47,13 +45,12 @@ EXPORT_FILES = \
 	$(LIBC_PREFIX)/crt0.o \
 	$(LIBC_PREFIX)/crt1.o \
 	$(LIBRARY).a \
-	$(EXPORT_LINKER_SCRIPT) \
 	$(SPECS)
 
 PRE_DEPEND = $(INCLUDE_LIBC)
 EXTRA_CLEAN = $(INCLUDE_LIBC)
 
-EXTRA_OUTPUT = $(SPECS) $(EXPORT_LINKER_SCRIPT) $(EXPORT_STARTUP_FILE)
+EXTRA_OUTPUT = $(SPECS)
 
 SOURCES = \
 	src/ctype.c \
@@ -91,7 +88,6 @@ EXPORT_CPPFLAGS = \
 
 EXPORT_LDFLAGS = \
 	-L$$(HELENOS_EXPORT_ROOT)/lib \
-	-T link.ld \
 	$$(HELENOS_EXPORT_ROOT)/lib/crt0.o \
 	$$(HELENOS_EXPORT_ROOT)/lib/crt1.o
 
@@ -113,12 +109,6 @@ $(SPECS): $(CONFIG_MAKEFILE)
 	echo '*lib:' >> $@.new
 	echo '$(EXPORT_LDLIBS)' >> $@.new
 	mv $@.new $@
-
-$(EXPORT_LINKER_SCRIPT): $(LIBC_LINKER_SCRIPT)
-	cp $< $@
-
-$(EXPORT_STARTUP_FILE): $(LIBC_STARTUP_FILE)
-	cp $< $@
 
 $(INCLUDE_LIBC): $(shell find ../c/include -name '*.h')
 	cp -r -L --remove-destination -T ../c/include $@

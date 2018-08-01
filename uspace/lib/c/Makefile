@@ -32,14 +32,7 @@ ROOT_PATH = $(USPACE_PREFIX)/..
 
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
-LINKER_SCRIPTS = \
-	$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld \
-	$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld \
-	$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
-
-PRE_DEPEND =
-EXTRA_OUTPUT = $(LINKER_SCRIPTS) $(START_FILES)
-EXTRA_CLEAN = $(LINKER_SCRIPTS)
+EXTRA_OUTPUT = $(START_FILES)
 EXTRA_TEST_CFLAGS = -Wno-deprecated-declarations
 LIBRARY = libc
 SOVERSION = 0.0
@@ -217,15 +210,6 @@ $(LIBC_PREFIX)/crt0.o: $(LIBC_PREFIX)/arch/$(UARCH)/src/entry.o
 
 $(LIBC_PREFIX)/crt1.o: $(LIBC_PREFIX)/generic/crt/entry.o
 	cp $< $@
-
-$(LIBC_PREFIX)/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -E -x c $< | grep -v "^\#" > $@
-
-$(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DSHLIB -E -x c $< | grep -v "^\#" > $@
-
-$(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld: $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PATH=$(CURDIR) -DDLEXE -E -x c $< | grep -v "^\#" > $@
 
 AUTOCHECK = $(realpath $(ROOT_PATH)/tools/autocheck.awk)
 

@@ -34,7 +34,6 @@
 #   LIBS               libraries to link with
 #   DEFS               compiler defines
 #   EXTRA_CFLAGS       additional flags to pass to C compiler
-#   LINKER_SCRIPT      linker script
 #   PRE_DEPEND         targets required for dependency check
 #
 #   BINARY         (/) binary output name (like appname)
@@ -152,14 +151,9 @@ endif
 
 BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a $(LIBSOFTINT_PREFIX)/libsoftint.a
 
-ifeq ($(LINK_DYNAMIC),y)
-	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link-dlexe.ld
-else
+ifneq ($(LINK_DYNAMIC),y)
 	LDFLAGS += -static
-	LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
 endif
-
-LIB_LINKER_SCRIPT = $(LIBC_PREFIX)/arch/$(UARCH)/_link-shlib.ld
 
 INCLUDES_FLAGS = $(LIBC_INCLUDES_FLAGS)
 
@@ -260,7 +254,7 @@ ifeq ($(CONFIG_DEBUG),y)
 	DEFAULT_CXXFLAGS += -Werror
 endif
 
-COMMON_CXXFLAGS = $(COMMON_CFLAGS)
+COMMON_CXXFLAGS = $(COMMON_CFLAGS) -fno-exceptions
 HELENOS_CXXFLAGS = \
 	-std=c++17 -frtti \
 	$(LIBCPP_INCLUDES_FLAGS) $(INCLUDES_FLAGS) \
@@ -350,18 +344,18 @@ endif
 ifneq ($(BINARY),)
 
 ifneq ($(filter %.cpp %.cc %.cxx, $(SOURCES)),)
-$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(START_FILES) $(OBJECTS) $(LIBARGS) $(CXX_BASE_LIBS)
+$(BINARY): $(OBJECTS) $(LIBTAGS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -Wl,-Map,$@.map -o $@ $(START_FILES) $(OBJECTS) $(LIBARGS) $(CXX_BASE_LIBS)
 else
-$(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBTAGS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(START_FILES) $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
+$(BINARY): $(OBJECTS) $(LIBTAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -Wl,-Map,$@.map -o $@ $(START_FILES) $(OBJECTS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 endif
 
 ifneq ($(TEST_BINARY),)
-$(TEST_BINARY): $(LINKER_SCRIPT) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -T $(LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ $(START_FILES) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
+$(TEST_BINARY): $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBTAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXTRA_LDFLAGS) -Wl,-Map,$@.map -o $@ $(START_FILES) $(TEST_OBJECTS) $(TEST_BINARY_LIBS) $(LIBARGS) $(BASE_LIBS)
 endif
 
 ifneq ($(LIBRARY),)
@@ -377,8 +371,8 @@ tag: $(SLIBRARY)
 $(LIBRARY).la: $(LOBJECTS)
 	$(AR) rc $@ $(LOBJECTS)
 
-$(SLIBRARY): $(LIB_LINKER_SCRIPT) $(LIBRARY).la
-	$(CC) $(CFLAGS) $(LIB_LDFLAGS) $(EXTRA_LDFLAGS) -T $(LIB_LINKER_SCRIPT) -Wl,-Map,$@.map -o $@ -Wl,--whole-archive $(LIBRARY).la -Wl,--no-whole-archive $(LIBARGS) $(BASE_LIBS)
+$(SLIBRARY): $(LIBRARY).la
+	$(CC) $(CFLAGS) $(LIB_LDFLAGS) $(EXTRA_LDFLAGS) -Wl,-Map,$@.map -o $@ -Wl,--whole-archive $(LIBRARY).la -Wl,--no-whole-archive $(LIBARGS) $(BASE_LIBS)
 
 $(LSONAME):
 	ln -s $(SLIBRARY) $@
