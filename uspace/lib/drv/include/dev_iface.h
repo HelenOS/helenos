@@ -37,6 +37,7 @@
 
 #include <ipc/common.h>
 #include <ipc/dev_iface.h>
+#include <stdbool.h>
 
 /*
  * Device interface

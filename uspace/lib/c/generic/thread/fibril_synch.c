@@ -36,7 +36,6 @@
 #include <fibril.h>
 #include <async.h>
 #include <adt/list.h>
-#include <futex.h>
 #include <sys/time.h>
 #include <errno.h>
 #include <assert.h>
@@ -49,6 +48,7 @@
 
 #include "../private/async.h"
 #include "../private/fibril.h"
+#include "../private/futex.h"
 
 void fibril_rmutex_initialize(fibril_rmutex_t *m)
 {

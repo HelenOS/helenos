@@ -36,6 +36,8 @@
 #include <mem.h>
 #include <stdlib.h>
 
+#include "../private/fibril.h"
+
 /*
  * A multi-producer, single-consumer concurrent FIFO channel with unlimited
  * buffering.

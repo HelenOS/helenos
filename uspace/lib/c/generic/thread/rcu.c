@@ -72,7 +72,6 @@
 #include <stddef.h>
 #include <compiler/barrier.h>
 #include <libarch/barrier.h>
-#include <futex.h>
 #include <macros.h>
 #include <async.h>
 #include <adt/list.h>

@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <adt/list.h>
-#include <futex.h>
 #include <fibril.h>
 #include <macros.h>
 

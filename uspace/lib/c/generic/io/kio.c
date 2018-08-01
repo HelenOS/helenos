@@ -43,7 +43,8 @@
 #include <io/printf_core.h>
 #include <macros.h>
 #include <libarch/config.h>
-#include <futex.h>
+
+#include "../private/futex.h"
 
 #define KIO_BUFFER_SIZE PAGE_SIZE
 

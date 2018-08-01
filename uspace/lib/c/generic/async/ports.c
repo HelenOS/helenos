@@ -50,6 +50,7 @@
 #include <as.h>
 #include <abi/mm/as.h>
 #include "../private/libc.h"
+#include "../private/fibril.h"
 
 /** Interface data */
 typedef struct {

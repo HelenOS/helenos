@@ -48,12 +48,6 @@ typedef struct {
 
 typedef fibril_t *fid_t;
 
-typedef struct {
-	fibril_t *fibril;
-} fibril_event_t;
-
-#define FIBRIL_EVENT_INIT ((fibril_event_t) {0})
-
 /** Fibril-local variable specifier */
 #define fibril_local __thread
 
@@ -80,13 +74,6 @@ static inline fid_t fibril_create(errno_t (*func)(void *), void *arg)
 
 extern void fibril_start(fid_t);
 extern __noreturn void fibril_exit(long);
-
-extern void fibril_wait_for(fibril_event_t *);
-extern errno_t fibril_wait_timeout(fibril_event_t *, const struct timeval *);
-extern void fibril_notify(fibril_event_t *);
-
-extern errno_t fibril_ipc_wait(ipc_call_t *, const struct timeval *);
-extern void fibril_ipc_poke(void);
 
 #endif
 

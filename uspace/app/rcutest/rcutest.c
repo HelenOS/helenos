@@ -45,7 +45,6 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <compiler/barrier.h>
-#include <futex.h>
 #include <str.h>
 
 #include <rcu.h>

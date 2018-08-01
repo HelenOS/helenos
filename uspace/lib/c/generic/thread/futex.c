@@ -32,14 +32,13 @@
 /** @file
  */
 
-#include <futex.h>
-
 #include <assert.h>
 #include <atomic.h>
 #include <fibril.h>
 #include <io/kio.h>
 
 #include "../private/fibril.h"
+#include "../private/futex.h"
 
 //#define DPRINTF(...) kio_printf(__VA_ARGS__)
 #define DPRINTF(...) dummy_printf(__VA_ARGS__)

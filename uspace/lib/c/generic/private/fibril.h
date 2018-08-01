@@ -34,7 +34,15 @@
 #include <tls.h>
 #include <abi/proc/uarg.h>
 #include <atomic.h>
-#include <futex.h>
+#include <fibril.h>
+
+#include "./futex.h"
+
+typedef struct {
+	fibril_t *fibril;
+} fibril_event_t;
+
+#define FIBRIL_EVENT_INIT ((fibril_event_t) {0})
 
 struct fibril {
 	// XXX: The first two fields must not move (for taskdump).
@@ -71,5 +79,57 @@ extern void fibril_teardown(fibril_t *f);
 extern fibril_t *fibril_self(void);
 
 extern void __fibrils_init(void);
+
+extern void fibril_wait_for(fibril_event_t *);
+extern errno_t fibril_wait_timeout(fibril_event_t *, const struct timeval *);
+extern void fibril_notify(fibril_event_t *);
+
+extern errno_t fibril_ipc_wait(ipc_call_t *, const struct timeval *);
+extern void fibril_ipc_poke(void);
+
+/**
+ * "Restricted" fibril mutex.
+ *
+ * Similar to `fibril_mutex_t`, but has a set of restrictions placed on its
+ * use. Within a rmutex critical section, you
+ *         - may not use any other synchronization primitive,
+ *           save for another `fibril_rmutex_t`. This includes nonblocking
+ *           operations like cvar signal and mutex unlock, unless otherwise
+ *           specified.
+ *         - may not read IPC messages
+ *         - may not start a new thread/fibril
+ *           (creating fibril without starting is fine)
+ *
+ * Additionally, locking with a timeout is not possible on this mutex,
+ * and there is no associated condition variable type.
+ * This is a design constraint, not a lack of implementation effort.
+ */
+typedef struct {
+	// TODO: At this point, this is just silly handwaving to hide current
+	//       futex use behind a fibril based abstraction. Later, the imple-
+	//       mentation will change, but the restrictions placed on this type
+	//       will allow it to be simpler and faster than a regular mutex.
+	//       There might also be optional debug checking of the assumptions.
+	//
+	//       Note that a consequence of the restrictions is that if we are
+	//       running on a single thread, no other fibril can ever get to run
+	//       while a fibril has a rmutex locked. That means that for
+	//       single-threaded programs, we can reduce all rmutex locks and
+	//       unlocks to simple branches on a global bool variable.
+
+	futex_t futex;
+} fibril_rmutex_t;
+
+#define FIBRIL_RMUTEX_INITIALIZER(name) \
+	{ .futex = FUTEX_INITIALIZE(1) }
+
+#define FIBRIL_RMUTEX_INITIALIZE(name) \
+	fibril_rmutex_t name = FIBRIL_RMUTEX_INITIALIZER(name)
+
+extern void fibril_rmutex_initialize(fibril_rmutex_t *);
+extern void fibril_rmutex_lock(fibril_rmutex_t *);
+extern bool fibril_rmutex_trylock(fibril_rmutex_t *);
+extern void fibril_rmutex_unlock(fibril_rmutex_t *);
+
 
 #endif

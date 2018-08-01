@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <as.h>
 #include <context.h>
-#include <futex.h>
 #include <assert.h>
 
 #include <mem.h>
@@ -50,6 +49,7 @@
 #include <libarch/faddr.h>
 
 #include "../private/thread.h"
+#include "../private/futex.h"
 #include "../private/fibril.h"
 #include "../private/libc.h"
 

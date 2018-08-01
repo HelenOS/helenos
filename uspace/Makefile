@@ -65,7 +65,6 @@ DIRS = \
 	app/nterm \
 	app/redir \
 	app/rcutest \
-	app/rcubench \
 	app/sbi \
 	app/sportdmp \
 	app/stats \

@@ -36,10 +36,9 @@
 #define LIBC_IPC_COMMON_H_
 
 #include <abi/ipc/ipc.h>
-#include <atomic.h>
 #include <abi/proc/task.h>
-#include <futex.h>
 #include <abi/cap.h>
+#include <types/common.h>
 
 #define IPC_FLAG_BLOCKING  0x01
 

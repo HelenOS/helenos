@@ -37,6 +37,7 @@
  * Keyboard emulation on a serial terminal.
  */
 
+#include <errno.h>
 #include <io/keycode.h>
 #include "../stroke.h"
 #include "../gsp.h"

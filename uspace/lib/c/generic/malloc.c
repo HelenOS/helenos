@@ -43,10 +43,11 @@
 #include <errno.h>
 #include <bitops.h>
 #include <mem.h>
-#include <fibril_synch.h>
 #include <stdlib.h>
 #include <adt/gcdlcm.h>
+
 #include "private/malloc.h"
+#include "private/fibril.h"
 
 /** Magic used in heap headers. */
 #define HEAP_BLOCK_HEAD_MAGIC  UINT32_C(0xBEEF0101)
