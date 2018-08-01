@@ -461,8 +461,6 @@ void fpu_context_restore(fpu_context_t *fctx)
 
 void fpu_enable(void)
 {
-	uint64_t a = 0;
-
 	asm volatile (
 	    "rsm %0 ;;"
 	    "srlz.i\n"
@@ -470,34 +468,16 @@ void fpu_enable(void)
 	    :
 	    : "i" (PSR_DFH_MASK)
 	);
-
-	asm volatile (
-	    "mov %0 = ar.fpsr ;;\n"
-	    "or %0 = %0,%1 ;;\n"
-	    "mov ar.fpsr = %0 ;;\n"
-	    : "+r" (a)
-	    : "r" (0x38)
-	);
 }
 
 void fpu_disable(void)
 {
-	uint64_t a = 0;
-
 	asm volatile (
 	    "ssm %0 ;;\n"
 	    "srlz.i\n"
 	    "srlz.d ;;\n"
 	    :
 	    : "i" (PSR_DFH_MASK)
-	);
-
-	asm volatile (
-	    "mov %0 = ar.fpsr ;;\n"
-	    "or %0 = %0,%1 ;;\n"
-	    "mov ar.fpsr = %0 ;;\n"
-	    : "+r" (a)
-	    : "r" (0x38)
 	);
 }
 
@@ -510,7 +490,7 @@ void fpu_init(void)
 	    "or %0 = %0,%1 ;;\n"
 	    "mov ar.fpsr = %0 ;;\n"
 	    : "+r" (a)
-	    : "r" (0x38)
+	    : "r" (FPSR_TRAPS_ALL)
 	);
 
 	asm volatile (

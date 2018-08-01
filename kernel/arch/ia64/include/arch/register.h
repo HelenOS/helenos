@@ -68,6 +68,16 @@
 #define RSC_MODE_MASK   3
 #define RSC_PL_MASK     12
 
+#define FPSR_TRAPS_VD  (1 << 0)
+#define FPSR_TRAPS_DD  (1 << 1)
+#define FPSR_TRAPS_ZD  (1 << 2)
+#define FPSR_TRAPS_OD  (1 << 3)
+#define FPSR_TRAPS_UD  (1 << 4)
+#define FPSR_TRAPS_ID  (1 << 5)
+
+#define FPSR_TRAPS_ALL (FPSR_TRAPS_VD | FPSR_TRAPS_DD | FPSR_TRAPS_ZD | \
+    FPSR_TRAPS_OD | FPSR_TRAPS_UD | FPSR_TRAPS_ID)
+
 /** Application registers. */
 #define AR_KR0       0
 #define AR_KR1       1

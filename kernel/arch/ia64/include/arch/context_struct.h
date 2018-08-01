@@ -36,20 +36,21 @@
 #define CONTEXT_OFFSET_BSP             0x20
 #define CONTEXT_OFFSET_AR_RNAT         0x28
 #define CONTEXT_OFFSET_AR_LC           0x30
-#define CONTEXT_OFFSET_R1              0x38
-#define CONTEXT_OFFSET_R4              0x40
-#define CONTEXT_OFFSET_R5              0x48
-#define CONTEXT_OFFSET_R6              0x50
-#define CONTEXT_OFFSET_R7              0x58
-#define CONTEXT_OFFSET_SP              0x60
-#define CONTEXT_OFFSET_R13             0x68
-#define CONTEXT_OFFSET_PC              0x70
-#define CONTEXT_OFFSET_B1              0x78
-#define CONTEXT_OFFSET_B2              0x80
-#define CONTEXT_OFFSET_B3              0x88
-#define CONTEXT_OFFSET_B4              0x90
-#define CONTEXT_OFFSET_B5              0x98
-#define CONTEXT_OFFSET_PR              0xa0
+#define CONTEXT_OFFSET_AR_FPSR         0x38
+#define CONTEXT_OFFSET_R1              0x40
+#define CONTEXT_OFFSET_R4              0x48
+#define CONTEXT_OFFSET_R5              0x50
+#define CONTEXT_OFFSET_R6              0x58
+#define CONTEXT_OFFSET_R7              0x60
+#define CONTEXT_OFFSET_SP              0x68
+#define CONTEXT_OFFSET_R13             0x70
+#define CONTEXT_OFFSET_PC              0x78
+#define CONTEXT_OFFSET_B1              0x80
+#define CONTEXT_OFFSET_B2              0x88
+#define CONTEXT_OFFSET_B3              0x90
+#define CONTEXT_OFFSET_B4              0x98
+#define CONTEXT_OFFSET_B5              0xa0
+#define CONTEXT_OFFSET_PR              0xa8
 #define CONTEXT_OFFSET_F2              0xb0
 #define CONTEXT_OFFSET_F3              0xc0
 #define CONTEXT_OFFSET_F4              0xd0
@@ -88,6 +89,7 @@ typedef struct context {
 	uint64_t bsp;
 	uint64_t ar_rnat;
 	uint64_t ar_lc;
+	uint64_t ar_fpsr;
 
 	// General registers.
 	uint64_t r1;
@@ -110,6 +112,8 @@ typedef struct context {
 
 	// Predicate registers.
 	uint64_t pr;
+
+	// Floating-point registers.
 	uint128_t f2;
 	uint128_t f3;
 	uint128_t f4;
