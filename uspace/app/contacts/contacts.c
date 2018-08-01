@@ -57,8 +57,14 @@ typedef struct {
 
 /** Contact entry */
 typedef struct {
-	/** Link to contacts_t.entries */
+	/** Containing contacts */
+	contacts_t *contacts;
+	/** Link to contacts->entries */
 	link_t lentries;
+	/** SIF node for this entry */
+	sif_node_t *nentry;
+	/** Contact name */
+	char *name;
 } contacts_entry_t;
 
 /** Actions in contact menu */
@@ -70,6 +76,8 @@ typedef enum {
 	/** Exit */
 	ac_exit
 } contact_action_t;
+
+static errno_t contacts_unmarshal(sif_node_t *, contacts_t *);
 
 /** Open contacts repo or create it if it does not exist.
  *
@@ -138,6 +146,10 @@ static errno_t contacts_open(const char *fname, contacts_t **rcontacts)
 			goto error;
 		}
 
+		rc = contacts_unmarshal(node, contacts);
+		if (rc != EOK)
+			goto error;
+
 		contacts->nentries = node;
 	}
 
@@ -155,6 +167,52 @@ error:
 	return rc;
 }
 
+/** Unmarshal contact entries from SIF repository.
+ *
+ * @param nentries Entries node
+ * @param contacts Contacts object to unmarshal to
+ * @return EOK on success or error code
+ */
+static errno_t contacts_unmarshal(sif_node_t *nentries, contacts_t *contacts)
+{
+	sif_node_t *nentry;
+	contacts_entry_t *entry;
+	const char *name;
+
+	contacts->nentries = nentries;
+
+	nentry = sif_node_first_child(nentries);
+	while (nentry != NULL) {
+		if (str_cmp(sif_node_get_type(nentry), "entry") != 0)
+			return EIO;
+
+		entry = calloc(1, sizeof(contacts_entry_t));
+		if (entry == NULL)
+			return ENOMEM;
+
+		name = sif_node_get_attr(nentry, "name");
+		if (name == NULL) {
+			free(entry);
+			return EIO;
+		}
+
+		entry->name = str_dup(name);
+		if (entry->name == NULL) {
+			free(entry);
+			return ENOMEM;
+		}
+
+		entry->contacts = contacts;
+		entry->nentry = nentry;
+		list_append(&entry->lentries, &contacts->entries);
+
+		nentry = sif_node_next_child(nentry);
+	}
+
+	return EOK;
+}
+
+
 /** Interaction to create new contact.
  *
  * @param contacts Contacts
@@ -164,6 +222,7 @@ static errno_t contacts_create_contact(contacts_t *contacts)
 	tinput_t *tinput;
 	sif_trans_t *trans = NULL;
 	sif_node_t *nentry;
+	contacts_entry_t *entry = NULL;
 	errno_t rc;
 	char *cname = NULL;
 
@@ -180,6 +239,12 @@ static errno_t contacts_create_contact(contacts_t *contacts)
 	rc = tinput_read(tinput, &cname);
 	if (rc != EOK)
 		goto error;
+
+	entry = calloc(1, sizeof(contacts_entry_t));
+	if (entry == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
 
 	rc = sif_trans_begin(contacts->repo, &trans);
 	if (rc != EOK)
@@ -198,8 +263,11 @@ static errno_t contacts_create_contact(contacts_t *contacts)
 		goto error;
 
 	trans = NULL;
+	entry->contacts = contacts;
+	entry->nentry = nentry;
+	entry->name = cname;
+	list_append(&entry->lentries, &contacts->entries);
 
-	free(cname);
 	tinput_destroy(tinput);
 	return EOK;
 error:
@@ -207,6 +275,8 @@ error:
 		sif_trans_abort(trans);
 	if (cname != NULL)
 		free(cname);
+	if (entry != NULL)
+		free(entry);
 	return rc;
 }
 
@@ -228,6 +298,53 @@ static void contacts_close(contacts_t *contacts)
 	printf("Closing repo %p\n", contacts->repo);
 	sif_close(contacts->repo);
 	free(contacts);
+}
+
+/** Get first contacts entry.
+ *
+ * @param contacts Contacts
+ * @return First entry or @c NULL if there is none
+ */
+static contacts_entry_t *contacts_first(contacts_t *contacts)
+{
+	link_t *link;
+
+	link = list_first(&contacts->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, contacts_entry_t, lentries);
+}
+
+/** Get next contacts entry.
+ *
+ * @param cur Current entry
+ * @return Next entry or @c NULL if there is none
+ */
+static contacts_entry_t *contacts_next(contacts_entry_t *cur)
+{
+	link_t *link;
+
+	link = list_next(&cur->lentries, &cur->contacts->entries);
+	if (link == NULL)
+		return NULL;
+
+	return list_get_instance(link, contacts_entry_t, lentries);
+}
+
+/** List all contacts.
+ *
+ * @param contacts Contacts
+ */
+static void contacts_list_all(contacts_t *contacts)
+{
+	contacts_entry_t *entry;
+
+	entry = contacts_first(contacts);
+	while (entry != NULL) {
+		printf(" * %s\n", entry->name);
+		entry = contacts_next(entry);
+	}
 }
 
 /** Run contacts main menu.
@@ -281,6 +398,8 @@ static errno_t contacts_main(contacts_t *contacts)
 	}
 
 	while (!quit) {
+		contacts_list_all(contacts);
+
 		rc = nchoice_get(choice, &sel);
 		if (rc != EOK) {
 			printf("Error getting user selection.\n");
