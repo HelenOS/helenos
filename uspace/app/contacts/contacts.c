@@ -78,6 +78,9 @@ typedef enum {
 } contact_action_t;
 
 static errno_t contacts_unmarshal(sif_node_t *, contacts_t *);
+static contacts_entry_t *contacts_first(contacts_t *);
+static contacts_entry_t *contacts_next(contacts_entry_t *);
+static void contacts_entry_delete(contacts_entry_t *);
 
 /** Open contacts repo or create it if it does not exist.
  *
@@ -286,7 +289,78 @@ error:
  */
 static errno_t contacts_delete_contact(contacts_t *contacts)
 {
+	nchoice_t *choice = NULL;
+	contacts_entry_t *entry;
+	sif_trans_t *trans = NULL;
+	errno_t rc;
+	void *sel;
+
+	rc = nchoice_create(&choice);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_set_prompt(choice, "Select contact to delete");
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	entry = contacts_first(contacts);
+	while (entry != NULL) {
+		rc = nchoice_add(choice, entry->name, (void *)entry, 0);
+		if (rc != EOK) {
+			assert(rc == ENOMEM);
+			printf("Out of memory.\n");
+			goto error;
+		}
+
+		entry = contacts_next(entry);
+	}
+
+	rc = nchoice_add(choice, "Cancel", NULL, 0);
+	if (rc != EOK) {
+		assert(rc == ENOMEM);
+		printf("Out of memory.\n");
+		goto error;
+	}
+
+	rc = nchoice_get(choice, &sel);
+	if (rc != EOK) {
+		printf("Error getting user selection.\n");
+		return rc;
+	}
+
+	if (sel != NULL) {
+		entry = (contacts_entry_t *)sel;
+
+		rc = sif_trans_begin(contacts->repo, &trans);
+		if (rc != EOK)
+			goto error;
+
+		sif_node_destroy(trans, entry->nentry);
+
+		rc = sif_trans_end(trans);
+		if (rc != EOK)
+			goto error;
+
+		trans = NULL;
+
+		list_remove(&entry->lentries);
+		contacts_entry_delete(entry);
+	}
+
+	nchoice_destroy(choice);
 	return EOK;
+error:
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	if (choice != NULL)
+		nchoice_destroy(choice);
+	return rc;
 }
 
 /** Close contacts repo.
@@ -295,8 +369,17 @@ static errno_t contacts_delete_contact(contacts_t *contacts)
  */
 static void contacts_close(contacts_t *contacts)
 {
-	printf("Closing repo %p\n", contacts->repo);
+	contacts_entry_t *entry;
+
 	sif_close(contacts->repo);
+
+	entry = contacts_first(contacts);
+	while (entry != NULL) {
+		list_remove(&entry->lentries);
+		contacts_entry_delete(entry);
+		entry = contacts_first(contacts);
+	}
+
 	free(contacts);
 }
 
@@ -330,6 +413,21 @@ static contacts_entry_t *contacts_next(contacts_entry_t *cur)
 		return NULL;
 
 	return list_get_instance(link, contacts_entry_t, lentries);
+}
+
+/** Delete entry structure from memory.
+ *
+ * @param entry Contacts entry
+ */
+static void contacts_entry_delete(contacts_entry_t *entry)
+{
+	if (entry == NULL)
+		return;
+
+	if (entry->name != NULL)
+		free(entry->name);
+
+	free(entry);
 }
 
 /** List all contacts.
