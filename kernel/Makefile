@@ -96,7 +96,7 @@ COMMON_CFLAGS = $(INCLUDES_FLAGS) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 
 GCC_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
 	-Wmissing-prototypes -Werror-implicit-function-declaration \
-	-Wwrite-strings -pipe
+	-Wwrite-strings -pipe -Wno-cast-function-type
 
 CLANG_CFLAGS = -std=gnu99 -Wall -Wextra -Wno-unused-parameter \
 	-Wno-missing-field-initializers -Wno-unused-command-line-argument \

@@ -37,8 +37,8 @@ GDB_BRANCH="gdb-8_1-helenos"
 GDB_VERSION="8.1"
 
 GCC_GIT="https://github.com/HelenOS/gcc.git"
-GCC_BRANCH="7_3_0-helenos"
-GCC_VERSION="7.3.0"
+GCC_BRANCH="8_2_0-helenos"
+GCC_VERSION="8.2.0"
 
 BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"

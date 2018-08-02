@@ -64,7 +64,7 @@ namespace std
                 return locale_;
             }
 
-            locale& getloc() const
+            locale getloc() const
             {
                 return locale_;
             }

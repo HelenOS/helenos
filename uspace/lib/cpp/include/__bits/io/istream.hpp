@@ -804,14 +804,14 @@ namespace std
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
                                             unsigned char& c)
     {
-        return is >> static_cast<char&>(c);
+        return is >> reinterpret_cast<char&>(c);
     }
 
     template<class Char, class Traits>
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
                                             signed char& c)
     {
-        return is >> static_cast<char&>(c);
+        return is >> reinterpret_cast<char&>(c);
     }
 
     template<class Char, class Traits>
@@ -857,14 +857,14 @@ namespace std
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
                                             unsigned char* str)
     {
-        return is >> static_cast<char*>(str);
+        return is >> reinterpret_cast<char*>(str);
     }
 
     template<class Char, class Traits>
     basic_istream<Char, Traits>& operator>>(basic_istream<Char, Traits>& is,
                                             signed char* str)
     {
-        return is >> static_cast<char*>(str);
+        return is >> reinterpret_cast<char*>(str);
     }
 
     /**

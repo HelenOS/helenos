@@ -399,14 +399,14 @@ CONTROL_REG_GEN_WRITE(HPFAR, c6, 4, c0, 4);
 
 #if defined(PROCESSOR_cortex_a8)
 #define CP15_C7_MVA_ALIGN	64
-#elif defined(PROCESSOR_arm1176)
+#elif defined(PROCESSOR_arm1176jzf_s)
 #define CP15_C7_MVA_ALIGN	32
 #elif defined(PROCESSOR_arm926ej_s)
 #define CP15_C7_MVA_ALIGN	32
 #elif defined(PROCESSOR_arm920t)
 #define CP15_C7_MVA_ALIGN	32
 #else
-#error Unknow MVA alignment
+#error Unknown MVA alignment
 #endif
 
 #if defined(PROCESSOR_ARCH_armv6) || defined(PROCESSOR_ARCH_armv7_a)

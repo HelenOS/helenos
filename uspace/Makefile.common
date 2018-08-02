@@ -206,7 +206,9 @@ ifeq ($(COMPILER),clang)
 		-Wno-typedef-redefinition \
 		-Wno-unused-command-line-argument
 else
+	# FIXME: -Wimplicit-fallthrough is broken in GCC 8.2.0
 	DEFAULT_CFLAGS += \
+		-Wno-implicit-fallthrough \
 		-Wno-clobbered
 endif
 
