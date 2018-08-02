@@ -189,7 +189,7 @@ void disabled_fp_register(unsigned int n, istate_t *istate)
 #else
 	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
 	    (uint16_t) n, vector_to_string(n));
-	panic_badtrap(istate, vector, "Interruption: %#hx (%s).",
+	panic_badtrap(istate, n, "Interruption: %#hx (%s).",
 	    (uint16_t) n, vector_to_string(n));
 #endif
 }
