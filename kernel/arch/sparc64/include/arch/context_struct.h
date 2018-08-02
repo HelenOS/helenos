@@ -47,8 +47,9 @@
 #define CONTEXT_OFFSET_L5   0x78
 #define CONTEXT_OFFSET_L6   0x80
 #define CONTEXT_OFFSET_L7   0x88
-#define CONTEXT_OFFSET_IPL  0x90
-#define CONTEXT_SIZE        0x98
+#define CONTEXT_OFFSET_TP   0x90
+#define CONTEXT_OFFSET_IPL  0x98
+#define CONTEXT_SIZE        0xa0
 
 #ifndef __ASSEMBLER__
 
@@ -73,6 +74,7 @@ typedef struct context {
 	uint64_t l5;
 	uint64_t l6;
 	uint64_t l7;
+	uint64_t tp;  // %g7
 	ipl_t ipl;
 } context_t;
 

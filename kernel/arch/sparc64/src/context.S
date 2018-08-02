@@ -62,6 +62,7 @@ FUNCTION_BEGIN(context_save_arch)
 	stx %l5, [%o0 + CONTEXT_OFFSET_L5]
 	stx %l6, [%o0 + CONTEXT_OFFSET_L6]
 	stx %l7, [%o0 + CONTEXT_OFFSET_L7]
+	stx %g7, [%o0 + CONTEXT_OFFSET_TP]
 	retl
 	mov 1, %o0		! context_save_arch returns 1
 FUNCTION_END(context_save_arch)
@@ -102,6 +103,7 @@ FUNCTION_BEGIN(context_restore_arch)
 	ldx [%o0 + CONTEXT_OFFSET_L5], %l5
 	ldx [%o0 + CONTEXT_OFFSET_L6], %l6
 	ldx [%o0 + CONTEXT_OFFSET_L7], %l7
+	ldx [%o0 + CONTEXT_OFFSET_TP], %g7
 	retl
 	xor %o0, %o0, %o0	! context_restore_arch returns 0
 FUNCTION_END(context_restore_arch)
