@@ -38,6 +38,7 @@ DIRS = \
 	app/bithenge \
 	app/blkdump \
 	app/bnchmark \
+	app/contacts \
 	app/corecfg \
 	app/cpptest \
 	app/devctl \
@@ -228,6 +229,7 @@ LIBS = \
 	lib/fdisk \
 	lib/fmtutil \
 	lib/scsi \
+	lib/sif \
 	lib/compress \
 	lib/drv \
 	lib/graph \
