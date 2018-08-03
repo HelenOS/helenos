@@ -50,8 +50,8 @@ static errno_t answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		uintptr_t dst_base = (uintptr_t) -1;
 		errno_t rc = as_area_share(AS, IPC_GET_ARG1(answer->data),
 		    IPC_GET_ARG1(*olddata), as, IPC_GET_ARG2(answer->data),
-		    &dst_base, IPC_GET_ARG3(answer->data));
-		IPC_SET_ARG4(answer->data, dst_base);
+		    &dst_base, IPC_GET_ARG2(*olddata));
+		IPC_SET_ARG5(answer->data, dst_base);
 		IPC_SET_RETVAL(answer->data, rc);
 	}
 

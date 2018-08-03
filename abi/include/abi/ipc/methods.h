@@ -120,17 +120,23 @@ enum {
 	 */
 	IPC_M_PAGE_IN,
 
-	/** Receive as_area over IPC.
+	/** Receive an address space area over IPC.
 	 *
-	 * - ARG1 - destination as_area size
-	 * - ARG2 - user defined argument
+	 * Sender:
+	 *  - uspace: arg1 .. address space area size
+	 *            arg2 .. sender's address space area starting address
+	 *                    lower bound
+	 *            arg3 .. <custom>
+	 *            arg4 .. <unused>
+	 *            arg5 .. <unused>
 	 *
-	 * on answer, the recipient must set:
+	 * Recipient:
+	 *  - uspace: arg1 .. recipient's address space area starting address
+	 *            arg2 .. shared address space areas sharing flags
+	 *            arg3 .. <unused>
+	 *            arg4 .. <unused>
+	 *  - kernel: arg5 .. new sender's address space area starting address
 	 *
-	 * - ARG1 - source as_area base address
-	 * - ARG2 - flags that will be used for sharing
-	 * - ARG3 - dst as_area lower bound
-	 * - ARG4 - dst as_area base address (filled automatically by kernel)
 	 */
 	IPC_M_SHARE_IN,
 

@@ -936,8 +936,9 @@ errno_t async_share_in_start(async_exch_t *exch, size_t size, sysarg_t arg,
 
 	sysarg_t _flags = 0;
 	sysarg_t _dst = (sysarg_t) -1;
-	errno_t res = async_req_2_4(exch, IPC_M_SHARE_IN, (sysarg_t) size,
-	    arg, NULL, &_flags, NULL, &_dst);
+	errno_t res = async_req_3_5(exch, IPC_M_SHARE_IN, (sysarg_t) size,
+	    (sysarg_t) __progsymbols.end, arg, NULL, &_flags, NULL, NULL,
+	    &_dst);
 
 	if (flags)
 		*flags = (unsigned int) _flags;
