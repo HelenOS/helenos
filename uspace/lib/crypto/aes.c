@@ -248,7 +248,7 @@ static void shift_rows(uint8_t state[ELEMS][ELEMS])
 
 	for (size_t i = 1; i < ELEMS; i++) {
 		memcpy(temp, state[i], i);
-		memcpy(state[i], state[i] + i, ELEMS - i);
+		memmove(state[i], state[i] + i, ELEMS - i);
 		memcpy(state[i] + ELEMS - i, temp, i);
 	}
 }
@@ -264,7 +264,7 @@ static void inv_shift_rows(uint8_t state[ELEMS][ELEMS])
 
 	for (size_t i = 1; i < ELEMS; i++) {
 		memcpy(temp, state[i], ELEMS - i);
-		memcpy(state[i], state[i] + ELEMS - i, i);
+		memmove(state[i], state[i] + ELEMS - i, i);
 		memcpy(state[i] + i, temp, ELEMS - i);
 	}
 }
