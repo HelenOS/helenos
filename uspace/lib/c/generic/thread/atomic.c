@@ -71,4 +71,35 @@ unsigned __sync_val_compare_and_swap_4(volatile void *ptr, unsigned old_val, uns
 	}
 }
 
+unsigned __atomic_fetch_add_4(unsigned *mem, unsigned val, int model)
+{
+	// TODO
+	(void) model;
+
+	return __sync_add_and_fetch_4(mem, val) - val;
+}
+
+unsigned __atomic_fetch_sub_4(unsigned *mem, unsigned val, int model)
+{
+	// TODO
+	(void) model;
+
+	return __sync_sub_and_fetch_4(mem, val) + val;
+}
+
+bool __atomic_compare_exchange_4(unsigned *mem, unsigned *expected, unsigned desired, bool weak, int success, int failure)
+{
+	// TODO
+	(void) success;
+	(void) failure;
+	(void) weak;
+
+	unsigned old = __sync_val_compare_and_swap_4(mem, *expected, desired);
+	if (old == *expected)
+		return true;
+
+	*expected = old;
+	return false;
+}
+
 #endif
