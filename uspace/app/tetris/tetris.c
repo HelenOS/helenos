@@ -76,7 +76,7 @@ const struct shape *nextshape;
 
 long fallrate;
 int score;
-char key_msg[100];
+char key_msg[116];
 int showpreview;
 int classic;
 
