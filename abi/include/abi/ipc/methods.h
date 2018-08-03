@@ -60,39 +60,49 @@ enum {
 	 */
 	IPC_M_PHONE_HUNGUP = 0,
 
-	/** Protocol for initializing callback connections.
+	/** Protocol for initializing new callback connections.
 	 *
-	 * Calling process asks the callee to create a callback connection,
-	 * so that it can start initiating new messages.
+	 * Sender asks the recipient to create a new connection from
+	 * the recipient to the sender.
 	 *
-	 * The protocol for negotiating is:
-	 * - sys_connect_to_me - sends a message IPC_M_CONNECT_TO_ME
-	 * - recipient         - upon receipt tries to allocate new phone
-	 *                       - if it fails, responds with ELIMIT
-	 *                     - passes call to userspace. If userspace
-	 *                       responds with error, phone is deallocated and
-	 *                       error is sent back to caller. Otherwise
-	 *                       the call is accepted and the response is sent back.
-	 *                     - the hash of the allocated phone is passed to userspace
-	 *                       (on the receiving side) as ARG5 of the call.
+	 * Sender:
+	 *  - uspace: arg1 .. callback iface
+	 *            arg2 .. <custom>
+	 *            arg3 .. <custom>
+	 *            arg4 .. <unused>
+	 *  - kernel: arg5 .. new recipient's connection phone capability
+	 *
+	 * recipient:
+	 *  - uspace: arg1 .. <unused>
+	 *            arg2 .. <unused>
+	 *            arg3 .. <unused>
+	 *            arg4 .. <unused>
+	 *  - kernel: arg5 .. new recipient's connection phone hash
+	 *
 	 */
 	IPC_M_CONNECT_TO_ME,
 
-	/** Protocol for initializing new foward connections.
+	/** Protocol for initializing new forward connections.
 	 *
-	 * Calling process asks the callee to create for him a new connection.
-	 * E.g. the caller wants a name server to connect him to print server.
+	 * Sender asks the recipient to create a new connection from
+	 * the sender to the recipient. The message can be forwarded,
+	 * thus the immediate recipient acts as a broker and the connection
+	 * is created to the final recipient.
 	 *
-	 * The protocol for negotiating is:
-	 * - sys_connect_me_to - send a synchronous message to name server
-	 *                       indicating that it wants to be connected to some
-	 *                       service
-	 *                     - arg1/2/3 are user specified, arg5 contains
-	 *                       address of the phone that should be connected
-	 *                       (TODO: it leaks to userspace)
-	 *  - recipient        - if ipc_answer == 0, then accept connection
-	 *                     - otherwise connection refused
-	 *                     - recepient may forward message.
+	 * Sender:
+	 *  - uspace: arg1 .. iface
+	 *            arg2 .. <custom>
+	 *            arg3 .. <custom>
+	 *            arg4 .. flags (e.g. IPC_FLAG_BLOCKING)
+	 *  - kernel: arg5 .. new sender's connection phone hash
+	 *
+	 * Recipient:
+	 *  - uspace: arg1 .. <unused>
+	 *            arg2 .. <unused>
+	 *            arg3 .. <unused>
+	 *            arg4 .. <unused>
+	 *  - kernel: arg5 .. new sender's connection phone capability
+	 *
 	 */
 	IPC_M_CONNECT_ME_TO,
 
