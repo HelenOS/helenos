@@ -33,6 +33,8 @@
 
 #define BUFFER_SIZE  32
 
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+
 const char *test_print3(void)
 {
 	char buffer[BUFFER_SIZE];
