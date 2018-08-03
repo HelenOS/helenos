@@ -105,9 +105,6 @@ LIBC_INCLUDES_FLAGS = \
 LIBCPP_PREFIX = $(LIB_PREFIX)/cpp
 LIBCPP_INCLUDES_FLAGS = -I$(LIBCPP_PREFIX)/include
 
-LIBSOFTFLOAT_PREFIX = $(LIB_PREFIX)/softfloat
-LIBSOFTINT_PREFIX = $(LIB_PREFIX)/softint
-
 LIBDLTEST_PREFIX = $(LIB_PREFIX)/dltest
 
 START_FILES = $(LIBC_PREFIX)/crt0.o $(LIBC_PREFIX)/crt1.o
@@ -143,7 +140,7 @@ ifneq ($(LIBRARY),libc)
 	endif
 endif
 
-BASE_LIBS += $(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a $(LIBSOFTINT_PREFIX)/libsoftint.a
+BASE_LIBS += -lgcc
 
 ifneq ($(LINK_DYNAMIC),y)
 	LDFLAGS += -static

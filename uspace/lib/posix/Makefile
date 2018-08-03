@@ -39,8 +39,6 @@ SPECS = gcc.specs
 EXPORT_FILES = \
 	../math/libmath.a \
 	../clui/libclui.a \
-	$(LIBSOFTFLOAT_PREFIX)/libsoftfloat.a \
-	$(LIBSOFTINT_PREFIX)/libsoftint.a \
 	$(LIBC_PREFIX)/libc.a \
 	$(LIBC_PREFIX)/crt0.o \
 	$(LIBC_PREFIX)/crt1.o \
@@ -92,7 +90,7 @@ EXPORT_LDFLAGS = \
 	$$(HELENOS_EXPORT_ROOT)/lib/crt1.o
 
 EXPORT_LDLIBS = \
-	-Wl,--start-group -lposix -lmath -lc -lsoftfloat -lsoftint -Wl,--end-group
+	-Wl,--start-group -lposix -lmath -lc -lgcc -Wl,--end-group
 
 EXPORT_CFLAGS = \
 	-specs $$(HELENOS_EXPORT_ROOT)/lib/gcc.specs

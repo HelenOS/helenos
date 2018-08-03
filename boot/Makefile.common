@@ -150,15 +150,12 @@ RD_LIBS =
 
 ifeq ($(CONFIG_DEVEL_FILES), y)
 	RD_LIBS += \
-		$(USPACE_PATH)/lib/c/libc.a \
-		$(USPACE_PATH)/lib/softint/libsoftint.a \
-		$(USPACE_PATH)/lib/softfloat/libsoftfloat.a
+		$(USPACE_PATH)/lib/c/libc.a
 endif
 
 ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	RD_LIBS += \
 		$(USPACE_PATH)/lib/c/libc.so.0 \
-		$(USPACE_PATH)/lib/softint/libsoftint.so.0 \
 		$(USPACE_PATH)/lib/math/libmath.so.0 \
 		$(USPACE_PATH)/lib/dltest/libdltest.so.0
 endif

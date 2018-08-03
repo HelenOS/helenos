@@ -217,8 +217,6 @@ endif
 BASE_LIBS = \
 	lib/c \
 	lib/cpp \
-	lib/softint \
-	lib/softfloat \
 	lib/untar
 
 LIBS = \
@@ -288,9 +286,6 @@ $(BASE_BUILDS) $(BUILDS):
 
 $(DEPS): %/deps.mk: %/Makefile
 	$(MAKE) -r -C $(@D) deps.mk SELF_TARGET="$(@D).build"
-
-# Special case for base libraries.
-lib/c.build: lib/softfloat.build lib/softint.build
 
 $(BUILDS): $(BASE_BUILDS)
 

@@ -31,6 +31,12 @@ BFD_ARCH = i386:x86-64
 BFD = binary
 
 FPU_NO_CFLAGS = -mno-sse -mno-sse2
+
+# TODO: Red Zone is only a problem if we allow interrupts to land on an active
+#       stack. Using separate stack for interrupts and ensuring that we never
+#       enable interrupts on an interrupt stack would allow us to get rid of
+#       the argument.
+
 COMMON_CFLAGS += -mcmodel=$(MEMORY_MODEL) -mno-red-zone -fno-unwind-tables -fno-omit-frame-pointer
 
 BITS = 64

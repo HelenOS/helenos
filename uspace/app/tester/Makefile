@@ -29,9 +29,7 @@
 
 USPACE_PREFIX = ../..
 
-# TODO: softfloat testing should be done via unit tests.
-LIBS = block softfloat drv math
-EXTRA_CFLAGS = -I$(LIBSOFTFLOAT_PREFIX)
+LIBS = block drv math
 
 BINARY = tester
 
@@ -56,7 +54,6 @@ SOURCES = \
 	fault/fault3.c \
 	float/float1.c \
 	float/float2.c \
-	float/softfloat1.c \
 	vfs/vfs1.c \
 	ipc/ping_pong.c \
 	ipc/starve.c \
