@@ -99,6 +99,8 @@
 /** Special room in header reserved for encryption. */
 #define IEEE80211_TKIP_HEADER_LENGTH 8
 #define IEEE80211_CCMP_HEADER_LENGTH 8
+/* Maximum of the above. */
+#define IEEE80211_MAX_HEADER_LENGTH 8
 
 /** IEEE 802.11 PTK key length. */
 #define IEEE80211_PTK_CCMP_LENGTH 48
