@@ -97,22 +97,16 @@
 #define PRF_CRYPT_DATA_LENGTH  (2 * 32 + 2 * ETH_ADDR)
 
 /** Special room in header reserved for encryption. */
-typedef enum {
-	IEEE80211_TKIP_HEADER_LENGTH = 8,
-	IEEE80211_CCMP_HEADER_LENGTH = 8
-} ieee80211_encrypt_header_reserve_length_t;
+#define IEEE80211_TKIP_HEADER_LENGTH 8
+#define IEEE80211_CCMP_HEADER_LENGTH 8
 
 /** IEEE 802.11 PTK key length. */
-typedef enum {
-	IEEE80211_PTK_CCMP_LENGTH = 48,
-	IEEE80211_PTK_TKIP_LENGTH = 64
-} ieee80211_ptk_length_t;
+#define IEEE80211_PTK_CCMP_LENGTH 48
+#define IEEE80211_PTK_TKIP_LENGTH 64
 
 /** IEEE 802.11 GTK key length. */
-typedef enum {
-	IEEE80211_GTK_CCMP_LENGTH = 16,
-	IEEE80211_GTK_TKIP_LENGTH = 32
-} ieee80211_gtk_length_t;
+#define IEEE80211_GTK_CCMP_LENGTH 16
+#define IEEE80211_GTK_TKIP_LENGTH 32
 
 /** IEEE 802.11 frame types. */
 typedef enum {
