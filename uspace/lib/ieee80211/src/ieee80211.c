@@ -573,7 +573,7 @@ static void ieee80211_send_frame(nic_t *nic, void *data, size_t size)
 	size_t head_space = 0, mic_space = 0;
 	uint16_t crypto = 0;
 	uint8_t head_data[IEEE80211_MAX_HEADER_LENGTH];
-	memset(head_data, 0, sizeof(IEEE80211_MAX_HEADER_LENGTH));
+	memset(head_data, 0, IEEE80211_MAX_HEADER_LENGTH);
 
 	// TODO: Distinguish used key (pair/group) by dest address ?
 	if (ieee80211_query_using_key(ieee80211_dev)) {
