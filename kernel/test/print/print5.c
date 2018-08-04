@@ -36,7 +36,7 @@
  * positives.
  *
  */
-#define _HELENOS_NVERIFY_PRINTF
+#pragma GCC diagnostic ignored "-Wformat"
 
 #include <print.h>
 #include <stddef.h>
