@@ -46,7 +46,7 @@ PCUT_TEST(tempnam_no_slash)
 	PCUT_ASSERT_TRUE(str_lcmp(p, "/tmp/tmp.",
 	    str_length("/tmp/tmp.")) == 0);
 
-	f = fopen(p, "w+");
+	f = fopen(p, "w+x");
 	PCUT_ASSERT_NOT_NULL(f);
 
 	(void) remove(p);
@@ -65,7 +65,7 @@ PCUT_TEST(tempnam_with_slash)
 	PCUT_ASSERT_TRUE(str_lcmp(p, "/tmp/tmp.",
 	    str_length("/tmp/tmp.")) == 0);
 
-	f = fopen(p, "w+");
+	f = fopen(p, "w+x");
 	PCUT_ASSERT_NOT_NULL(f);
 
 	(void) remove(p);
@@ -84,7 +84,7 @@ PCUT_TEST(tempnam_no_dir)
 	PCUT_ASSERT_TRUE(str_lcmp(p, P_tmpdir "/tmp.",
 	    str_length(P_tmpdir "/tmp.")) == 0);
 
-	f = fopen(p, "w+");
+	f = fopen(p, "w+x");
 	PCUT_ASSERT_NOT_NULL(f);
 
 	(void) remove(p);

@@ -184,11 +184,13 @@ void __stdio_done(void)
 	}
 }
 
-static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncate)
+static bool parse_mode(const char *fmode, int *mode, bool *create, bool *excl,
+    bool *truncate)
 {
 	/* Parse mode except first character. */
 	const char *mp = fmode;
-	if (*mp++ == 0) {
+
+	if (*mp++ == '\0') {
 		errno = EINVAL;
 		return false;
 	}
@@ -200,25 +202,40 @@ static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncat
 	if (*mp == '+') {
 		mp++;
 		plus = true;
-	} else
+	} else {
 		plus = false;
+	}
 
-	if (*mp != 0) {
+	bool ex;
+	if (*mp == 'x') {
+		mp++;
+		ex = true;
+	} else {
+		ex = false;
+	}
+
+	if (*mp != '\0') {
 		errno = EINVAL;
 		return false;
 	}
 
 	*create = false;
 	*truncate = false;
+	*excl = false;
 
 	/* Parse first character of fmode and determine mode for vfs_open(). */
 	switch (fmode[0]) {
 	case 'r':
 		*mode = plus ? MODE_READ | MODE_WRITE : MODE_READ;
+		if (ex) {
+			errno = EINVAL;
+			return false;
+		}
 		break;
 	case 'w':
 		*mode = plus ? MODE_READ | MODE_WRITE : MODE_WRITE;
 		*create = true;
+		*excl = ex;
 		if (!plus)
 			*truncate = true;
 		break;
@@ -226,6 +243,11 @@ static bool parse_mode(const char *fmode, int *mode, bool *create, bool *truncat
 		/* TODO: a+ must read from beginning, append to the end. */
 		if (plus) {
 			errno = ENOTSUP;
+			return false;
+		}
+
+		if (ex) {
+			errno = EINVAL;
 			return false;
 		}
 
@@ -306,16 +328,17 @@ static int _fallocbuf(FILE *stream)
 /** Open a stream.
  *
  * @param path Path of the file to open.
- * @param mode Mode string, (r|w|a)[b|t][+].
+ * @param mode Mode string, (r|w|a)[b|t][+][x].
  *
  */
 FILE *fopen(const char *path, const char *fmode)
 {
 	int mode;
 	bool create;
+	bool excl;
 	bool truncate;
 
-	if (!parse_mode(fmode, &mode, &create, &truncate))
+	if (!parse_mode(fmode, &mode, &create, &excl, &truncate))
 		return NULL;
 
 	/* Open file. */
@@ -326,7 +349,9 @@ FILE *fopen(const char *path, const char *fmode)
 	}
 
 	int flags = WALK_REGULAR;
-	if (create)
+	if (create && excl)
+		flags |= WALK_MUST_CREATE;
+	else if (create)
 		flags |= WALK_MAY_CREATE;
 	int file;
 	errno_t rc = vfs_lookup(path, flags, &file);

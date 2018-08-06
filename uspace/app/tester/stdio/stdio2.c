@@ -36,11 +36,11 @@
 const char *test_stdio2(void)
 {
 	FILE *file;
-	const char *file_name = "/test";
+	const char *file_name = "/tmp/test";
 
 	TPRINTF("Open file \"%s\" for writing...", file_name);
 	errno = 0;
-	file = fopen(file_name, "wt");
+	file = fopen(file_name, "wtx");
 	if (file == NULL) {
 		TPRINTF("errno = %s\n", str_error_name(errno));
 		return "Failed opening file";

@@ -202,7 +202,7 @@ errno_t sif_create(const char *fname, sif_sess_t **rsess)
 		goto error;
 	}
 
-	f = fopen(fname, "w");
+	f = fopen(fname, "wx");
 	if (f == NULL) {
 		rc = EIO;
 		goto error;

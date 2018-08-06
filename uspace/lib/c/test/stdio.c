@@ -61,7 +61,7 @@ PCUT_TEST(remove)
 	rc = remove(buf);
 	PCUT_ASSERT_TRUE(rc != 0);
 
-	f = fopen(buf, "w");
+	f = fopen(buf, "wx");
 	PCUT_ASSERT_NOT_NULL(f);
 	fclose(f);
 
@@ -91,7 +91,7 @@ PCUT_TEST(rename)
 	p = tmpnam(buf2);
 	PCUT_ASSERT_NOT_NULL(p);
 
-	f = fopen(buf1, "w");
+	f = fopen(buf1, "wx");
 	PCUT_ASSERT_NOT_NULL(f);
 	fclose(f);
 
@@ -141,7 +141,7 @@ PCUT_TEST(tmpnam_buf)
 	p = tmpnam(buf);
 	PCUT_ASSERT_NOT_NULL(p);
 
-	f = fopen(p, "w+");
+	f = fopen(p, "w+x");
 	PCUT_ASSERT_NOT_NULL(f);
 	(void) remove(p);
 	fclose(f);
@@ -173,7 +173,7 @@ PCUT_TEST(tmpnam_null)
 	p = tmpnam(NULL);
 	PCUT_ASSERT_NOT_NULL(p);
 
-	f = fopen(p, "w+");
+	f = fopen(p, "w+x");
 	PCUT_ASSERT_NOT_NULL(f);
 	(void) remove(p);
 	fclose(f);
