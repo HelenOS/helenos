@@ -516,6 +516,33 @@ static errno_t fdsk_create_part(fdisk_dev_t *dev, label_pkind_t pkind)
 		tinput = NULL;
 	}
 
+	/* Ask for mount point */
+	tinput = tinput_new();
+	if (tinput == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	rc = tinput_set_prompt(tinput, "?> ");
+	if (rc != EOK)
+		goto error;
+
+	while (true) {
+		printf("Enter mount point for new partition (Auto, None or /path).\n");
+		rc = tinput_read_i(tinput, "Auto", &mountp);
+		if (rc != EOK)
+			goto error;
+
+		rc = vol_mountp_validate(mountp);
+		if (rc == EOK)
+			break;
+
+		free(mountp);
+		mountp = NULL;
+	}
+
+	tinput_destroy(tinput);
+	tinput = NULL;
 
 	fdisk_pspec_init(&pspec);
 	pspec.capacity = cap;
