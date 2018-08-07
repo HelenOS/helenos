@@ -40,6 +40,7 @@
 #include <adt/list.h>
 #include <atomic.h>
 #include <fibril_synch.h>
+#include <sif.h>
 
 /** Volume */
 typedef struct vol_volume {
@@ -53,14 +54,20 @@ typedef struct vol_volume {
 	char *label;
 	/** Mount point */
 	char *mountp;
+	/** SIF node for this volume */
+	sif_node_t *nvolume;
 } vol_volume_t;
 
-/** Partitions */
+/** Volumes */
 typedef struct vol_volumes {
 	/** Synchronize access to list of volumes */
 	fibril_mutex_t lock;
 	/** Volumes (list of vol_volume_t) */
 	list_t volumes;
+	/** Cconfiguration repo session */
+	sif_sess_t *repo;
+	/** Volumes SIF node */
+	sif_node_t *nvolumes;
 } vol_volumes_t;
 
 #endif

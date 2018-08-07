@@ -39,7 +39,7 @@
 
 #include "types/volume.h"
 
-extern errno_t vol_volumes_create(vol_volumes_t **);
+extern errno_t vol_volumes_create(const char *, vol_volumes_t **);
 extern void vol_volumes_destroy(vol_volumes_t *);
 extern errno_t vol_volume_lookup_ref(vol_volumes_t *, const char *,
     vol_volume_t **);

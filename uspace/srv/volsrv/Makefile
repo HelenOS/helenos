@@ -28,7 +28,7 @@
 
 USPACE_PREFIX = ../..
 
-LIBS = label block
+LIBS =  block label sif
 
 BINARY = volsrv
 

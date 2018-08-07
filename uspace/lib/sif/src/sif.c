@@ -190,6 +190,12 @@ errno_t sif_create(const char *fname, sif_sess_t **rsess)
 	if (sess == NULL)
 		return ENOMEM;
 
+	sess->fname = str_dup(fname);
+	if (sess->fname == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
 	root = sif_node_new(NULL);
 	if (root == NULL) {
 		rc = ENOMEM;
@@ -226,6 +232,8 @@ error:
 	if (trans != NULL)
 		sif_trans_abort(trans);
 	sif_node_delete(root);
+	if (sess->fname != NULL)
+		free(sess->fname);
 	free(sess);
 	return rc;
 }
@@ -248,7 +256,13 @@ errno_t sif_open(const char *fname, sif_sess_t **rsess)
 	if (sess == NULL)
 		return ENOMEM;
 
-	f = fopen(fname, "r+");
+	sess->fname = str_dup(fname);
+	if (sess->fname == NULL) {
+		rc = ENOMEM;
+		goto error;
+	}
+
+	f = fopen(fname, "r");
 	if (f == NULL) {
 		rc = EIO;
 		goto error;
@@ -271,6 +285,8 @@ errno_t sif_open(const char *fname, sif_sess_t **rsess)
 	return EOK;
 error:
 	sif_node_delete(root);
+	if (sess->fname != NULL)
+		free(sess->fname);
 	free(sess);
 	return rc;
 }
@@ -289,6 +305,9 @@ errno_t sif_close(sif_sess_t *sess)
 		return EIO;
 	}
 
+	if (sess->fname != NULL)
+		free(sess->fname);
+	free(sess);
 	return EOK;
 }
 
@@ -393,11 +412,21 @@ errno_t sif_trans_end(sif_trans_t *trans)
 {
 	errno_t rc;
 
-	rewind(trans->sess->f);
+	(void) fclose(trans->sess->f);
+
+	trans->sess->f = fopen(trans->sess->fname, "w");
+	if (trans->sess->f == NULL)
+		return EIO;
 
 	rc = sif_export_node(trans->sess->root, trans->sess->f);
 	if (rc != EOK)
 		return rc;
+
+	if (fputc('\n', trans->sess->f) == EOF)
+		return EIO;
+
+	if (fflush(trans->sess->f) == EOF)
+		return EIO;
 
 	free(trans);
 	return EOK;

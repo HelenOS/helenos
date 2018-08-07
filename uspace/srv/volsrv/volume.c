@@ -58,6 +58,7 @@ static void vol_volume_delete(vol_volume_t *);
 static void vol_volume_add_locked(vol_volumes_t *, vol_volume_t *);
 static errno_t vol_volume_lookup_ref_locked(vol_volumes_t *, const char *,
     vol_volume_t **);
+static errno_t vol_volumes_load(sif_node_t *, vol_volumes_t *);
 
 /** Allocate new volume structure.
  *
@@ -103,12 +104,19 @@ static void vol_volume_delete(vol_volume_t *volume)
 
 /** Create list of volumes.
  *
+ * @param cfg_path Path to file containing configuration repository in SIF
  * @param rvolumes Place to store pointer to list of volumes.
  * @return EOK on success, ENOMEM if out of memory
  */
-errno_t vol_volumes_create(vol_volumes_t **rvolumes)
+errno_t vol_volumes_create(const char *cfg_path,
+    vol_volumes_t **rvolumes)
 {
 	vol_volumes_t *volumes;
+	sif_sess_t *repo = NULL;
+	sif_trans_t *trans = NULL;
+	sif_node_t *node;
+	const char *ntype;
+	errno_t rc;
 
 	volumes = calloc(1, sizeof(vol_volumes_t));
 	if (volumes == NULL)
@@ -117,8 +125,61 @@ errno_t vol_volumes_create(vol_volumes_t **rvolumes)
 	fibril_mutex_initialize(&volumes->lock);
 	list_initialize(&volumes->volumes);
 
+	/* Try opening existing repository */
+	rc = sif_open(cfg_path, &repo);
+	if (rc != EOK) {
+		/* Failed to open existing, create new repository */
+		rc = sif_create(cfg_path, &repo);
+		if (rc != EOK)
+			goto error;
+
+		rc = sif_trans_begin(repo, &trans);
+		if (rc != EOK)
+			goto error;
+
+		/* Create 'volumes' node. */
+		rc = sif_node_append_child(trans, sif_get_root(repo),
+		    "volumes", &volumes->nvolumes);
+		if (rc != EOK)
+			goto error;
+
+		rc = sif_trans_end(trans);
+		if (rc != EOK)
+			goto error;
+
+		trans = NULL;
+	} else {
+		/*
+		 * Opened existing repo. Find 'volumes' node, should be
+		 * the first child of the root node.
+		 */
+		node = sif_node_first_child(sif_get_root(repo));
+
+		/* Verify it's the correct node type */
+		ntype = sif_node_get_type(node);
+		if (str_cmp(ntype, "volumes") != 0) {
+			rc = EIO;
+			goto error;
+		}
+
+		rc = vol_volumes_load(node, volumes);
+		if (rc != EOK)
+			goto error;
+	}
+
+	volumes->repo = repo;
 	*rvolumes = volumes;
+
 	return EOK;
+error:
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	if (repo != NULL)
+		(void) sif_close(repo);
+	if (volumes != NULL)
+		free(volumes);
+
+	return rc;
 }
 
 /** Destroy list of volumes.
@@ -194,7 +255,14 @@ static errno_t vol_volume_lookup_ref_locked(vol_volumes_t *volumes,
 	if (volume == NULL)
 		return ENOMEM;
 
+	free(volume->label);
 	volume->label = str_dup(label);
+
+	if (volume->label == NULL) {
+		vol_volume_delete(volume);
+		return ENOMEM;
+	}
+
 	vol_volume_add_locked(volumes, volume);
 
 	*rvolume = volume;
@@ -259,15 +327,149 @@ void vol_volume_del_ref(vol_volume_t *volume)
 errno_t vol_volume_set_mountp(vol_volume_t *volume, const char *mountp)
 {
 	char *mp;
+	char *old_mp;
+	errno_t rc;
+	sif_trans_t *trans = NULL;
+	sif_node_t *nvolume;
 
 	mp = str_dup(mountp);
 	if (mp == NULL)
 		return ENOMEM;
 
-	free(volume->mountp);
+	old_mp = volume->mountp;
 	volume->mountp = mp;
 
+	if (vol_volume_is_persist(volume)) {
+		/* Volume is now persistent */
+		if (volume->nvolume == NULL) {
+			/* Create volume node */
+			rc = sif_trans_begin(volume->volumes->repo, &trans);
+			if (rc != EOK)
+				goto error;
+
+			rc = sif_node_append_child(trans,
+			    volume->volumes->nvolumes, "volume", &nvolume);
+			if (rc != EOK)
+				goto error;
+
+			rc = sif_node_set_attr(trans, nvolume, "label",
+			    volume->label);
+			if (rc != EOK)
+				goto error;
+
+			rc = sif_node_set_attr(trans, nvolume, "mountp",
+			    volume->mountp);
+			if (rc != EOK)
+				goto error;
+
+			rc = sif_trans_end(trans);
+			if (rc != EOK)
+				goto error;
+
+			trans = NULL;
+			volume->nvolume = nvolume;
+		} else {
+			/* Update volume node */
+			rc = sif_trans_begin(volume->volumes->repo, &trans);
+			if (rc != EOK)
+				goto error;
+
+			rc = sif_node_set_attr(trans, volume->nvolume,
+			    "mountp", volume->mountp);
+			if (rc != EOK)
+				goto error;
+
+			rc = sif_trans_end(trans);
+			if (rc != EOK)
+				goto error;
+
+			trans = NULL;
+		}
+	} else {
+		/* Volume is now non-persistent */
+		if (volume->nvolume != NULL) {
+			/* Delete volume node */
+			rc = sif_trans_begin(volume->volumes->repo, &trans);
+			if (rc != EOK)
+				goto error;
+
+			sif_node_destroy(trans, volume->nvolume);
+
+			rc = sif_trans_end(trans);
+			if (rc != EOK)
+				goto error;
+
+			volume->nvolume = NULL;
+		}
+	}
+
+	free(old_mp);
 	return EOK;
+error:
+	free(mp);
+	volume->mountp = old_mp;
+
+	if (trans != NULL)
+		sif_trans_abort(trans);
+	return rc;
+}
+
+/** Load volumes from SIF repository.
+ *
+ * @param nvolumes Volumes node
+ * @param volumes Volumes object
+ *
+ * @return EOK on success or error code
+ */
+static errno_t vol_volumes_load(sif_node_t *nvolumes, vol_volumes_t *volumes)
+{
+	sif_node_t *nvolume;
+	vol_volume_t *volume = NULL;
+	const char *label;
+	const char *mountp;
+	errno_t rc;
+
+	volumes->nvolumes = nvolumes;
+
+	nvolume = sif_node_first_child(nvolumes);
+	while (nvolume != NULL) {
+		if (str_cmp(sif_node_get_type(nvolume), "volume") != 0) {
+			rc = EIO;
+			goto error;
+		}
+
+		volume = vol_volume_new();
+		if (volume == NULL) {
+			rc = ENOMEM;
+			goto error;
+		}
+
+		label = sif_node_get_attr(nvolume, "label");
+		mountp = sif_node_get_attr(nvolume, "mountp");
+
+		if (label == NULL || mountp == NULL) {
+			rc = EIO;
+			goto error;
+		}
+
+		free(volume->label);
+		free(volume->mountp);
+
+		volume->label = str_dup(label);
+		volume->mountp = str_dup(mountp);
+
+		volume->nvolume = nvolume;
+		fibril_mutex_lock(&volumes->lock);
+		vol_volume_add_locked(volumes, volume);
+		fibril_mutex_unlock(&volumes->lock);
+		nvolume = sif_node_next_child(nvolume);
+	}
+
+	return EOK;
+error:
+	if (volume != NULL)
+		vol_volume_delete(volume);
+	return rc;
 }
 
 /** @}

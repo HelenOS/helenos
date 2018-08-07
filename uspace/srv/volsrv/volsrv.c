@@ -52,6 +52,8 @@
 
 #define NAME  "volsrv"
 
+const char *vol_cfg_file = "/data/cfg/volsrv.sif";
+
 static void vol_client_conn(ipc_call_t *, void *);
 
 static errno_t vol_init(void)
@@ -62,7 +64,7 @@ static errno_t vol_init(void)
 
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "vol_init()");
 
-	rc = vol_volumes_create(&volumes);
+	rc = vol_volumes_create(vol_cfg_file, &volumes);
 	if (rc != EOK)
 		goto error;
 

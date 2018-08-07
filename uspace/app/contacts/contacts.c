@@ -77,7 +77,7 @@ typedef enum {
 	ac_exit
 } contact_action_t;
 
-static errno_t contacts_unmarshal(sif_node_t *, contacts_t *);
+static errno_t contacts_load(sif_node_t *, contacts_t *);
 static contacts_entry_t *contacts_first(contacts_t *);
 static contacts_entry_t *contacts_next(contacts_entry_t *);
 static void contacts_entry_delete(contacts_entry_t *);
@@ -149,11 +149,9 @@ static errno_t contacts_open(const char *fname, contacts_t **rcontacts)
 			goto error;
 		}
 
-		rc = contacts_unmarshal(node, contacts);
+		rc = contacts_load(node, contacts);
 		if (rc != EOK)
 			goto error;
-
-		contacts->nentries = node;
 	}
 
 	contacts->repo = repo;
@@ -170,13 +168,13 @@ error:
 	return rc;
 }
 
-/** Unmarshal contact entries from SIF repository.
+/** Load contact entries from SIF repository.
  *
  * @param nentries Entries node
- * @param contacts Contacts object to unmarshal to
+ * @param contacts Contacts object to load to
  * @return EOK on success or error code
  */
-static errno_t contacts_unmarshal(sif_node_t *nentries, contacts_t *contacts)
+static errno_t contacts_load(sif_node_t *nentries, contacts_t *contacts)
 {
 	sif_node_t *nentry;
 	contacts_entry_t *entry;

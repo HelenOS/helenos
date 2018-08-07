@@ -43,8 +43,10 @@
 
 /** SIF session */
 struct sif_sess {
-	/** Backing file */
+	/** Repository file */
 	FILE *f;
+	/** Repository file name */
+	char *fname;
 	/** Root node */
 	struct sif_node *root;
 };
