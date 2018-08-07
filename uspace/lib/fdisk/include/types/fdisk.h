@@ -172,6 +172,8 @@ typedef struct {
 	vol_fstype_t fstype;
 	/** Volume label */
 	char *label;
+	/** Service ID */
+	service_id_t svc_id;
 } fdisk_part_info_t;
 
 /** Free range iterator */

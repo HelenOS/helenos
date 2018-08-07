@@ -673,6 +673,7 @@ errno_t fdisk_part_get_info(fdisk_part_t *part, fdisk_part_info_t *info)
 	info->fstype = part->fstype;
 	info->pkind = part->pkind;
 	info->label = part->label;
+	info->svc_id = part->svc_id;
 	return EOK;
 }
 
