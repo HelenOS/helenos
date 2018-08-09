@@ -48,6 +48,9 @@
 #define AT_NUM_SCAN_CODE 0x77
 #define AT_SCROLL_SCAN_CODE 0x7E
 
+#define AT_KBD_ENABLE 0xF4
+#define AT_KBD_ACK 0xFA
+
 /* Set 2 scan codes (AT keyboard) */
 static const unsigned int scanmap_simple[] = {
 	[0x0e] = KC_BACKTICK,
@@ -402,6 +405,26 @@ errno_t at_kbd_init(at_kbd_t *kbd, ddf_dev_t *dev)
 		ddf_fun_unbind(kbd->kbd_fun);
 		ddf_fun_destroy(kbd->kbd_fun);
 		return ENOMEM;
+	}
+
+	uint8_t code = AT_KBD_ENABLE;
+	size_t bytes;
+	rc = chardev_write(kbd->chardev, &code, 1, &bytes);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed to enable keyboard.");
+		fibril_destroy(kbd->polling_fibril);
+		ddf_fun_unbind(kbd->kbd_fun);
+		ddf_fun_destroy(kbd->kbd_fun);
+		return EIO;
+	}
+	rc = chardev_read(kbd->chardev, &code, 1, &bytes);
+	if (rc != EOK || code != AT_KBD_ACK) {
+		ddf_msg(LVL_ERROR, "Failed to confirm keyboard enable: %hhx.",
+		    code);
+		fibril_destroy(kbd->polling_fibril);
+		ddf_fun_unbind(kbd->kbd_fun);
+		ddf_fun_destroy(kbd->kbd_fun);
+		return EIO;
 	}
 
 	fibril_add_ready(kbd->polling_fibril);
