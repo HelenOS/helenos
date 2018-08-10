@@ -85,7 +85,7 @@ SYMBOL(kernel_image_start)
 
 	# Initialize DCR
 
-	movl r10 = (DCR_DP_MASK | DCR_DK_MASK | DCR_DX_MASK | DCR_DR_MASK | DCR_DA_MASK | DCR_DD_MASK | DCR_LC_MASK)
+	movl r10 = (DCR_DM_MASK | DCR_DP_MASK | DCR_DK_MASK | DCR_DX_MASK | DCR_DR_MASK | DCR_DA_MASK | DCR_DD_MASK | DCR_LC_MASK)
 	mov r9 = cr.dcr
 	or r10 = r10, r9
 	mov cr.dcr = r10
