@@ -42,7 +42,6 @@
 #include <ipc/common.h>
 #include <fibril.h>
 #include <sys/time.h>
-#include <atomic.h>
 #include <stdbool.h>
 #include <abi/proc/task.h>
 #include <abi/ddi/irq.h>

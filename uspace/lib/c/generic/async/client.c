@@ -184,7 +184,7 @@ void __async_client_init(void)
 
 	list_initialize(&session_ns.exch_list);
 	fibril_mutex_initialize(&session_ns.mutex);
-	atomic_set(&session_ns.refcnt, 0);
+	session_ns.exchanges = 0;
 }
 
 /** Reply received callback.
@@ -604,7 +604,7 @@ async_sess_t *async_connect_me_to(async_exch_t *exch, iface_t iface,
 		return NULL;
 	}
 
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
 	if (sess == NULL) {
 		errno = ENOMEM;
 		return NULL;
@@ -626,11 +626,8 @@ async_sess_t *async_connect_me_to(async_exch_t *exch, iface_t iface,
 	sess->arg3 = arg3;
 
 	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
 
 	return sess;
 }
@@ -675,7 +672,7 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
 		return NULL;
 	}
 
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
 	if (sess == NULL) {
 		errno = ENOMEM;
 		return NULL;
@@ -697,11 +694,8 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
 	sess->arg3 = arg3;
 
 	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
 
 	return sess;
 }
@@ -711,7 +705,7 @@ async_sess_t *async_connect_me_to_blocking(async_exch_t *exch, iface_t iface,
  */
 async_sess_t *async_connect_kbox(task_id_t id)
 {
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
 	if (sess == NULL) {
 		errno = ENOMEM;
 		return NULL;
@@ -728,16 +722,10 @@ async_sess_t *async_connect_kbox(task_id_t id)
 	sess->iface = 0;
 	sess->mgmt = EXCHANGE_ATOMIC;
 	sess->phone = phone;
-	sess->arg1 = 0;
-	sess->arg2 = 0;
-	sess->arg3 = 0;
 
 	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
 
 	return sess;
 }
@@ -760,10 +748,9 @@ errno_t async_hangup(async_sess_t *sess)
 
 	assert(sess);
 
-	if (atomic_get(&sess->refcnt) > 0)
-		return EBUSY;
-
 	fibril_mutex_lock(&async_sess_mutex);
+
+	assert(sess->exchanges == 0);
 
 	errno_t rc = async_hangup_internal(sess->phone);
 
@@ -873,14 +860,13 @@ async_exch_t *async_exchange_begin(async_sess_t *sess)
 		}
 	}
 
+	if (exch != NULL)
+		sess->exchanges++;
+
 	fibril_mutex_unlock(&async_sess_mutex);
 
-	if (exch != NULL) {
-		atomic_inc(&sess->refcnt);
-
-		if (mgmt == EXCHANGE_SERIALIZE)
-			fibril_mutex_lock(&sess->mutex);
-	}
+	if (exch != NULL && mgmt == EXCHANGE_SERIALIZE)
+		fibril_mutex_lock(&sess->mutex);
 
 	return exch;
 }
@@ -902,12 +888,12 @@ void async_exchange_end(async_exch_t *exch)
 	if (sess->iface != 0)
 		mgmt = sess->iface & IFACE_EXCHANGE_MASK;
 
-	atomic_dec(&sess->refcnt);
-
 	if (mgmt == EXCHANGE_SERIALIZE)
 		fibril_mutex_unlock(&sess->mutex);
 
 	fibril_mutex_lock(&async_sess_mutex);
+
+	sess->exchanges--;
 
 	list_append(&exch->sess_link, &sess->exch_list);
 	list_append(&exch->global_link, &inactive_exch_list);

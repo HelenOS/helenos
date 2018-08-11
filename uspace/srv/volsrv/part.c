@@ -178,7 +178,7 @@ static vol_part_t *vol_part_new(void)
 		return NULL;
 	}
 
-	atomic_set(&part->refcnt, 1);
+	refcount_init(&part->refcnt);
 	link_initialize(&part->lparts);
 	part->parts = NULL;
 	part->pcnt = vpc_empty;
@@ -523,7 +523,7 @@ static errno_t vol_part_find_by_id_ref_locked(vol_parts_t *parts,
 	list_foreach(parts->parts, lparts, vol_part_t, part) {
 		if (part->svc_id == sid) {
 			/* Add reference */
-			atomic_inc(&part->refcnt);
+			refcount_up(&part->refcnt);
 			*rpart = part;
 			return EOK;
 		}
@@ -546,7 +546,7 @@ errno_t vol_part_find_by_id_ref(vol_parts_t *parts, service_id_t sid,
 
 void vol_part_del_ref(vol_part_t *part)
 {
-	if (atomic_predec(&part->refcnt) == 0)
+	if (refcount_down(&part->refcnt))
 		vol_part_delete(part);
 }
 

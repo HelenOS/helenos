@@ -243,13 +243,13 @@ static errno_t vbds_disk_by_svcid(service_id_t sid, vbds_disk_t **rdisk)
 static void vbds_part_add_ref(vbds_part_t *part)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_part_add_ref");
-	atomic_inc(&part->refcnt);
+	refcount_up(&part->refcnt);
 }
 
 static void vbds_part_del_ref(vbds_part_t *part)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG2, "vbds_part_del_ref");
-	if (atomic_predec(&part->refcnt) == 0) {
+	if (refcount_down(&part->refcnt)) {
 		log_msg(LOG_DEFAULT, LVL_DEBUG2, " - free part");
 		free(part);
 	}
@@ -327,7 +327,7 @@ static errno_t vbds_part_add(vbds_disk_t *disk, label_part_t *lpart,
 	part->svc_id = psid;
 	part->block0 = lpinfo.block0;
 	part->nblocks = lpinfo.nblocks;
-	atomic_set(&part->refcnt, 1);
+	refcount_init(&part->refcnt);
 
 	bd_srvs_init(&part->bds);
 	part->bds.ops = &vbds_bd_ops;

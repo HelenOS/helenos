@@ -35,7 +35,6 @@
  */
 
 #include <assert.h>
-#include <atomic.h>
 #include <mem.h>
 #include <stdlib.h>
 #include <str_error.h>
@@ -59,7 +58,7 @@ void endpoint_init(endpoint_t *ep, device_t *dev, const usb_endpoint_descriptors
 	assert(dev);
 	ep->device = dev;
 
-	atomic_set(&ep->refcnt, 0);
+	refcount_init(&ep->refcnt);
 	fibril_condvar_initialize(&ep->avail);
 
 	ep->endpoint = USB_ED_GET_EP(desc->endpoint);
@@ -90,7 +89,7 @@ static inline const bus_ops_t *get_bus_ops(endpoint_t *ep)
  */
 void endpoint_add_ref(endpoint_t *ep)
 {
-	atomic_inc(&ep->refcnt);
+	refcount_up(&ep->refcnt);
 }
 
 /**
@@ -114,9 +113,8 @@ static inline void endpoint_destroy(endpoint_t *ep)
  */
 void endpoint_del_ref(endpoint_t *ep)
 {
-	if (atomic_predec(&ep->refcnt) == 0) {
+	if (refcount_down(&ep->refcnt))
 		endpoint_destroy(ep);
-	}
 }
 
 /**

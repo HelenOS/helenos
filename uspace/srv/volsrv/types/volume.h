@@ -38,7 +38,7 @@
 #define TYPES_VOLUME_H_
 
 #include <adt/list.h>
-#include <atomic.h>
+#include <refcount.h>
 #include <fibril_synch.h>
 #include <sif.h>
 
@@ -49,7 +49,7 @@ typedef struct vol_volume {
 	/** Link to vol_volumes */
 	link_t lvolumes;
 	/** Reference count */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 	/** Volume label */
 	char *label;
 	/** Mount point */

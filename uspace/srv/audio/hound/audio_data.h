@@ -37,7 +37,7 @@
 #define AUDIO_DATA_H_
 
 #include <adt/list.h>
-#include <atomic.h>
+#include <refcount.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <pcm/format.h>
@@ -51,7 +51,7 @@ typedef struct {
 	/** Format of the audio data */
 	pcm_format_t format;
 	/** Reference counter */
-	atomic_t refcount;
+	atomic_refcount_t refcount;
 } audio_data_t;
 
 /** Audio data pipe structure */

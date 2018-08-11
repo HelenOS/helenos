@@ -34,12 +34,11 @@
 #include <stdio.h>
 #include <io/kio.h>
 #include <stdlib.h>
-#include <atomic.h>
 #include <stacktrace.h>
 #include <stdint.h>
 #include <task.h>
 
-static atomic_t failed_asserts = { 0 };
+__thread int failed_asserts = 0;
 
 void __helenos_assert_quick_abort(const char *cond, const char *file, unsigned int line)
 {
@@ -68,7 +67,8 @@ void __helenos_assert_abort(const char *cond, const char *file, unsigned int lin
 	/*
 	 * Check if this is a nested or parallel assert.
 	 */
-	if (atomic_postinc(&failed_asserts))
+	failed_asserts++;
+	if (failed_asserts > 0)
 		abort();
 
 	/*

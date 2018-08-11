@@ -33,7 +33,6 @@
 #include <context.h>
 #include <tls.h>
 #include <abi/proc/uarg.h>
-#include <atomic.h>
 #include <fibril.h>
 
 #include "./futex.h"

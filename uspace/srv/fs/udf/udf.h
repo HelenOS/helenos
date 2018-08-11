@@ -36,7 +36,6 @@
 
 #include <fibril_synch.h>
 #include <libfs.h>
-#include <atomic.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>

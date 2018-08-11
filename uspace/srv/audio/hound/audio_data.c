@@ -58,7 +58,7 @@ audio_data_t *audio_data_create(void *data, size_t size,
 		adata->data = data;
 		adata->size = size - overflow;
 		adata->format = format;
-		atomic_set(&adata->refcount, 1);
+		refcount_init(&adata->refcount);
 	}
 	return adata;
 }
@@ -70,8 +70,7 @@ audio_data_t *audio_data_create(void *data, size_t size,
 void audio_data_addref(audio_data_t *adata)
 {
 	assert(adata);
-	assert(atomic_get(&adata->refcount) > 0);
-	atomic_inc(&adata->refcount);
+	refcount_up(&adata->refcount);
 }
 
 /**
@@ -81,9 +80,7 @@ void audio_data_addref(audio_data_t *adata)
 void audio_data_unref(audio_data_t *adata)
 {
 	assert(adata);
-	assert(atomic_get(&adata->refcount) > 0);
-	atomic_count_t refc = atomic_predec(&adata->refcount);
-	if (refc == 0) {
+	if (refcount_down(&adata->refcount)) {
 		free(adata->data);
 		free(adata);
 	}

@@ -48,7 +48,6 @@
 #include <stdbool.h>
 #include <str.h>
 #include <as.h>
-#include <atomic.h>
 #include <macros.h>
 #include "vfs.h"
 

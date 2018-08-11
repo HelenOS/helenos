@@ -34,6 +34,7 @@
  */
 
 #include <assert.h>
+#include <atomic.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <stdlib.h>

@@ -40,7 +40,7 @@
 #include <ipc/devman.h>
 #include <ipc/loc.h>
 #include <fibril_synch.h>
-#include <atomic.h>
+#include <refcount.h>
 #include <async.h>
 
 #include "util.h"
@@ -114,7 +114,7 @@ typedef enum {
 /** Device node in the device tree. */
 struct dev_node {
 	/** Reference count */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 
 	/** The global unique identifier of the device. */
 	devman_handle_t handle;
@@ -154,7 +154,7 @@ typedef enum {
 /** Function node in the device tree. */
 struct fun_node {
 	/** Reference count */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 	/** State */
 	fun_state_t state;
 	/** Locked while performing reconfiguration operations */

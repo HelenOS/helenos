@@ -41,8 +41,8 @@
 #define LIBUSBHOST_HOST_ENDPOINT_H
 
 #include <adt/list.h>
-#include <atomic.h>
 #include <fibril_synch.h>
+#include <refcount.h>
 #include <stdbool.h>
 #include <sys/time.h>
 #include <usb/usb.h>
@@ -77,7 +77,7 @@ typedef struct endpoint {
 	/** USB device */
 	device_t *device;
 	/** Reference count. */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 
 	/** An inherited guard */
 	fibril_mutex_t *guard;

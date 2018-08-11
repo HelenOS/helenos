@@ -47,7 +47,7 @@ dev_node_t *create_dev_node(void)
 	if (dev == NULL)
 		return NULL;
 
-	atomic_set(&dev->refcnt, 0);
+	refcount_init(&dev->refcnt);
 	list_initialize(&dev->functions);
 	link_initialize(&dev->driver_devices);
 
@@ -73,7 +73,7 @@ void delete_dev_node(dev_node_t *dev)
  */
 void dev_add_ref(dev_node_t *dev)
 {
-	atomic_inc(&dev->refcnt);
+	refcount_up(&dev->refcnt);
 }
 
 /** Decrease device node reference count.
@@ -84,7 +84,7 @@ void dev_add_ref(dev_node_t *dev)
  */
 void dev_del_ref(dev_node_t *dev)
 {
-	if (atomic_predec(&dev->refcnt) == 0)
+	if (refcount_down(&dev->refcnt))
 		delete_dev_node(dev);
 }
 

@@ -90,7 +90,7 @@ udp_assoc_t *udp_assoc_new(inet_ep2_t *epp, udp_assoc_cb_t *cb, void *cb_arg)
 	fibril_mutex_initialize(&assoc->lock);
 
 	/* One for the user */
-	atomic_set(&assoc->refcnt, 1);
+	refcount_init(&assoc->refcnt);
 
 	/* Initialize receive queue */
 	list_initialize(&assoc->rcv_queue);
@@ -144,7 +144,7 @@ static void udp_assoc_free(udp_assoc_t *assoc)
 void udp_assoc_addref(udp_assoc_t *assoc)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: upd_assoc_addref(%p)", assoc->name, assoc);
-	atomic_inc(&assoc->refcnt);
+	refcount_up(&assoc->refcnt);
 }
 
 /** Remove reference from association.
@@ -157,7 +157,7 @@ void udp_assoc_delref(udp_assoc_t *assoc)
 {
 	log_msg(LOG_DEFAULT, LVL_DEBUG, "%s: udp_assoc_delref(%p)", assoc->name, assoc);
 
-	if (atomic_predec(&assoc->refcnt) == 0)
+	if (refcount_down(&assoc->refcnt))
 		udp_assoc_free(assoc);
 }
 

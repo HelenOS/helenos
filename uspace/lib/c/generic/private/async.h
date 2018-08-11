@@ -69,7 +69,7 @@ struct async_sess {
 	fibril_mutex_t mutex;
 
 	/** Number of opened exchanges */
-	atomic_t refcnt;
+	int exchanges;
 
 	/** Mutex for stateful connections */
 	fibril_mutex_t remote_state_mtx;

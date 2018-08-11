@@ -577,7 +577,7 @@ static void delete_function(ddf_fun_t *fun)
 /** Increase device reference count. */
 static void dev_add_ref(ddf_dev_t *dev)
 {
-	atomic_inc(&dev->refcnt);
+	refcount_up(&dev->refcnt);
 }
 
 /** Decrease device reference count.
@@ -586,7 +586,7 @@ static void dev_add_ref(ddf_dev_t *dev)
  */
 static void dev_del_ref(ddf_dev_t *dev)
 {
-	if (atomic_predec(&dev->refcnt) == 0)
+	if (refcount_down(&dev->refcnt))
 		delete_device(dev);
 }
 
@@ -599,7 +599,7 @@ static void dev_del_ref(ddf_dev_t *dev)
 static void fun_add_ref(ddf_fun_t *fun)
 {
 	dev_add_ref(fun->dev);
-	atomic_inc(&fun->refcnt);
+	refcount_up(&fun->refcnt);
 }
 
 /** Decrease function reference count.
@@ -610,7 +610,7 @@ static void fun_del_ref(ddf_fun_t *fun)
 {
 	ddf_dev_t *dev = fun->dev;
 
-	if (atomic_predec(&fun->refcnt) == 0)
+	if (refcount_down(&fun->refcnt))
 		delete_function(fun);
 
 	dev_del_ref(dev);

@@ -33,7 +33,6 @@
  */
 
 #include <assert.h>
-#include <atomic.h>
 #include <stdio.h>
 #include <errno.h>
 #include <abi/ddi/arg.h>

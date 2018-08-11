@@ -128,7 +128,7 @@ typedef struct {
 	ht_link_t link;
 
 	task_id_t in_task_id;
-	atomic_t refcnt;
+	int refcnt;
 	void *data;
 } client_t;
 
@@ -326,7 +326,7 @@ static client_t *async_client_get(task_id_t client_id, bool create)
 	ht_link_t *link = hash_table_find(&client_hash_table, &client_id);
 	if (link) {
 		client = hash_table_get_inst(link, client_t, link);
-		atomic_inc(&client->refcnt);
+		client->refcnt++;
 	} else if (create) {
 		// TODO: move the malloc out of critical section
 		/* malloc() is rmutex safe. */
@@ -335,7 +335,7 @@ static client_t *async_client_get(task_id_t client_id, bool create)
 			client->in_task_id = client_id;
 			client->data = async_client_data_create();
 
-			atomic_set(&client->refcnt, 1);
+			client->refcnt = 1;
 			hash_table_insert(&client_hash_table, &client->link);
 		}
 	}
@@ -350,7 +350,7 @@ static void async_client_put(client_t *client)
 
 	fibril_rmutex_lock(&client_mutex);
 
-	if (atomic_predec(&client->refcnt) == 0) {
+	if (--client->refcnt == 0) {
 		hash_table_remove(&client_hash_table, &client->in_task_id);
 		destroy = true;
 	} else
@@ -1573,7 +1573,7 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 		return NULL;
 	}
 
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
 	if (sess == NULL) {
 		async_answer_0(&call, ENOMEM);
 		return NULL;
@@ -1582,16 +1582,10 @@ async_sess_t *async_callback_receive(exch_mgmt_t mgmt)
 	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phandle;
-	sess->arg1 = 0;
-	sess->arg2 = 0;
-	sess->arg3 = 0;
 
 	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
 
 	/* Acknowledge the connected phone */
 	async_answer_0(&call, EOK);
@@ -1621,23 +1615,17 @@ async_sess_t *async_callback_receive_start(exch_mgmt_t mgmt, ipc_call_t *call)
 	    !CAP_HANDLE_VALID((phandle)))
 		return NULL;
 
-	async_sess_t *sess = (async_sess_t *) malloc(sizeof(async_sess_t));
+	async_sess_t *sess = calloc(1, sizeof(async_sess_t));
 	if (sess == NULL)
 		return NULL;
 
 	sess->iface = 0;
 	sess->mgmt = mgmt;
 	sess->phone = phandle;
-	sess->arg1 = 0;
-	sess->arg2 = 0;
-	sess->arg3 = 0;
 
 	fibril_mutex_initialize(&sess->remote_state_mtx);
-	sess->remote_state_data = NULL;
-
 	list_initialize(&sess->exch_list);
 	fibril_mutex_initialize(&sess->mutex);
-	atomic_set(&sess->refcnt, 0);
 
 	return sess;
 }

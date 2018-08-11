@@ -38,10 +38,10 @@
 #define TYPES_VBDS_H_
 
 #include <adt/list.h>
-#include <atomic.h>
 #include <bd_srv.h>
 #include <label/label.h>
 #include <loc.h>
+#include <refcount.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <types/label.h>
@@ -82,7 +82,7 @@ typedef struct {
 	/** Number of blocks */
 	aoff64_t nblocks;
 	/** Reference count */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 } vbds_part_t;
 
 /** Disk */

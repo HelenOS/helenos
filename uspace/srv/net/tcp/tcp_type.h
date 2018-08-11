@@ -40,6 +40,7 @@
 #include <stdbool.h>
 #include <fibril.h>
 #include <fibril_synch.h>
+#include <refcount.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <inet/addr.h>
@@ -247,7 +248,7 @@ struct tcp_conn {
 	/** Protects access to connection structure */
 	fibril_mutex_t lock;
 	/** Reference count */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 
 	/** Connection state */
 	tcp_cstate_t cstate;

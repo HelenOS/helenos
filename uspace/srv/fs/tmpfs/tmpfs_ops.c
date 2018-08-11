@@ -42,7 +42,6 @@
 #include <stdint.h>
 #include <async.h>
 #include <errno.h>
-#include <atomic.h>
 #include <stdlib.h>
 #include <str.h>
 #include <stdio.h>

@@ -37,8 +37,8 @@
 #ifndef LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 #define LIBUSBHOST_HOST_USB_TRANSFER_BATCH_H
 
-#include <atomic.h>
 #include <errno.h>
+#include <refcount.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <usb/dma_buffer.h>

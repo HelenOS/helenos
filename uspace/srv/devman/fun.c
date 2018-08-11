@@ -59,7 +59,7 @@ fun_node_t *create_fun_node(void)
 		return NULL;
 
 	fun->state = FUN_INIT;
-	atomic_set(&fun->refcnt, 0);
+	refcount_init(&fun->refcnt);
 	fibril_mutex_initialize(&fun->busy_lock);
 	link_initialize(&fun->dev_functions);
 	list_initialize(&fun->match_ids.ids);
@@ -88,7 +88,7 @@ void delete_fun_node(fun_node_t *fun)
  */
 void fun_add_ref(fun_node_t *fun)
 {
-	atomic_inc(&fun->refcnt);
+	refcount_up(&fun->refcnt);
 }
 
 /** Decrease function node reference count.
@@ -99,7 +99,7 @@ void fun_add_ref(fun_node_t *fun)
  */
 void fun_del_ref(fun_node_t *fun)
 {
-	if (atomic_predec(&fun->refcnt) == 0)
+	if (refcount_down(&fun->refcnt))
 		delete_fun_node(fun);
 }
 

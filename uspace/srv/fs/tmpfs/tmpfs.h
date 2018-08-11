@@ -34,7 +34,6 @@
 #define TMPFS_TMPFS_H_
 
 #include <libfs.h>
-#include <atomic.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <adt/hash_table.h>

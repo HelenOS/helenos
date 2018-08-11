@@ -40,6 +40,7 @@
 #include <fibril_synch.h>
 #include <inet/endpoint.h>
 #include <ipc/loc.h>
+#include <refcount.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <inet/addr.h>
@@ -113,7 +114,7 @@ typedef struct {
 	/** Protects access to association structure */
 	fibril_mutex_t lock;
 	/** Reference count */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 
 	/** Receive queue */
 	list_t rcv_queue;

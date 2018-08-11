@@ -127,7 +127,8 @@ tcp_conn_t *tcp_conn_new(inet_ep2_t *epp)
 		goto error;
 
 	/* One for the user, one for not being in closed state */
-	atomic_set(&conn->refcnt, 2);
+	refcount_init(&conn->refcnt);
+	refcount_up(&conn->refcnt);
 
 	/* Allocate receive buffer */
 	fibril_condvar_initialize(&conn->rcv_buf_cv);
@@ -237,9 +238,10 @@ static void tcp_conn_free(tcp_conn_t *conn)
  */
 void tcp_conn_addref(tcp_conn_t *conn)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_addref(%p) before=%zu",
-	    conn->name, conn, atomic_get(&conn->refcnt));
-	atomic_inc(&conn->refcnt);
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_addref(%p)",
+	    conn->name, conn);
+
+	refcount_up(&conn->refcnt);
 }
 
 /** Remove reference from connection.
@@ -250,10 +252,10 @@ void tcp_conn_addref(tcp_conn_t *conn)
  */
 void tcp_conn_delref(tcp_conn_t *conn)
 {
-	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_delref(%p) before=%zu",
-	    conn->name, conn, atomic_get(&conn->refcnt));
+	log_msg(LOG_DEFAULT, LVL_DEBUG2, "%s: tcp_conn_delref(%p)",
+	    conn->name, conn);
 
-	if (atomic_predec(&conn->refcnt) == 0)
+	if (refcount_down(&conn->refcnt))
 		tcp_conn_free(conn);
 }
 

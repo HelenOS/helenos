@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -45,7 +46,7 @@
 #include <as.h>
 #include <stdlib.h>
 
-#include <atomic.h>
+#include <refcount.h>
 #include <fibril_synch.h>
 #include <adt/prodcons.h>
 #include <adt/list.h>
@@ -92,7 +93,7 @@ static unsigned int filter_index = 1;
 
 typedef struct {
 	link_t link;
-	atomic_t ref_cnt;
+	atomic_refcount_t ref_cnt;
 	window_flags_t flags;
 	service_id_t in_dsid;
 	service_id_t out_dsid;
@@ -222,7 +223,7 @@ static window_t *window_create(void)
 		return NULL;
 
 	link_initialize(&win->link);
-	atomic_set(&win->ref_cnt, 0);
+	refcount_init(&win->ref_cnt);
 	prodcons_initialize(&win->queue);
 	transform_identity(&win->transform);
 	transform_translate(&win->transform, coord_origin, coord_origin);
@@ -239,18 +240,19 @@ static window_t *window_create(void)
 
 static void window_destroy(window_t *win)
 {
-	if ((win) && (atomic_get(&win->ref_cnt) == 0)) {
-		while (!list_empty(&win->queue.list)) {
-			window_event_t *event = (window_event_t *) list_first(&win->queue.list);
-			list_remove(&event->link);
-			free(event);
-		}
+	if (!win || !refcount_down(&win->ref_cnt))
+		return;
 
-		if (win->surface)
-			surface_destroy(win->surface);
-
-		free(win);
+	while (!list_empty(&win->queue.list)) {
+		window_event_t *event = (window_event_t *) list_first(&win->queue.list);
+		list_remove(&event->link);
+		free(event);
 	}
+
+	if (win->surface)
+		surface_destroy(win->surface);
+
+	free(win);
 }
 
 static bool comp_coord_to_client(sysarg_t x_in, sysarg_t y_in, transform_t win_trans,
@@ -987,10 +989,13 @@ static void client_connection(ipc_call_t *icall, void *arg)
 			break;
 		}
 	}
+
+	if (win)
+		refcount_up(&win->ref_cnt);
+
 	fibril_mutex_unlock(&window_list_mtx);
 
 	if (win) {
-		atomic_inc(&win->ref_cnt);
 		async_answer_0(icall, EOK);
 	} else {
 		async_answer_0(icall, EINVAL);
@@ -1004,7 +1009,6 @@ static void client_connection(ipc_call_t *icall, void *arg)
 
 			if (!IPC_GET_IMETHOD(call)) {
 				async_answer_0(&call, EOK);
-				atomic_dec(&win->ref_cnt);
 				window_destroy(win);
 				return;
 			}
@@ -1023,7 +1027,6 @@ static void client_connection(ipc_call_t *icall, void *arg)
 
 			if (!IPC_GET_IMETHOD(call)) {
 				comp_window_close(win, &call);
-				atomic_dec(&win->ref_cnt);
 				window_destroy(win);
 				return;
 			}

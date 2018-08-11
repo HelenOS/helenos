@@ -405,8 +405,6 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 			continue;
 		}
 
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "pass_devices_to_driver: dev->refcnt=%d\n",
-		    (int)atomic_get(&dev->refcnt));
 		dev_add_ref(dev);
 
 		/*

@@ -82,7 +82,7 @@ static vol_volume_t *vol_volume_new(void)
 		return NULL;
 	}
 
-	atomic_set(&volume->refcnt, 1);
+	refcount_init(&volume->refcnt);
 	link_initialize(&volume->lvolumes);
 	volume->volumes = NULL;
 
@@ -244,7 +244,7 @@ static errno_t vol_volume_lookup_ref_locked(vol_volumes_t *volumes,
 		if (str_cmp(volume->label, label) == 0 &&
 		    str_size(label) > 0) {
 			/* Add reference */
-			atomic_inc(&volume->refcnt);
+			refcount_up(&volume->refcnt);
 			*rvolume = volume;
 			return EOK;
 		}
@@ -308,7 +308,7 @@ static bool vol_volume_is_persist(vol_volume_t *volume)
  */
 void vol_volume_del_ref(vol_volume_t *volume)
 {
-	if (atomic_predec(&volume->refcnt) == 0) {
+	if (refcount_down(&volume->refcnt)) {
 		/* No more references. Check if volume is persistent. */
 		if (!vol_volume_is_persist(volume)) {
 			list_remove(&volume->lvolumes);

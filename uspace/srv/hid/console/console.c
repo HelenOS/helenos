@@ -33,6 +33,7 @@
  */
 
 #include <async.h>
+#include <atomic.h>
 #include <stdio.h>
 #include <adt/prodcons.h>
 #include <io/input.h>

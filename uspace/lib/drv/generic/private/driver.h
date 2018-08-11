@@ -37,6 +37,7 @@
 #define DDF_PRIVATE_DRIVER_H_
 
 #include <async.h>
+#include <refcount.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
 #include "dev_iface.h"
@@ -50,7 +51,7 @@ struct ddf_dev {
 	devman_handle_t handle;
 
 	/** Reference count */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 
 	/** Session with the parent device driver */
 	async_sess_t *parent_sess;
@@ -74,7 +75,7 @@ struct ddf_fun {
 	devman_handle_t handle;
 
 	/** Reference count */
-	atomic_t refcnt;
+	atomic_refcount_t refcnt;
 
 	/** Device which this function belogs to */
 	struct ddf_dev *dev;
