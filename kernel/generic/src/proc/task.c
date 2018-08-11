@@ -45,7 +45,7 @@
 #include <synch/spinlock.h>
 #include <synch/waitq.h>
 #include <arch.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <adt/avl.h>
 #include <adt/btree.h>
 #include <adt/list.h>

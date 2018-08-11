@@ -37,7 +37,7 @@
 
 #include <assert.h>
 #include <synch/rcu_types.h>
-#include <compiler/barrier.h>
+#include <barrier.h>
 
 
 /** Use to assign a pointer to newly initialized data to a rcu reader

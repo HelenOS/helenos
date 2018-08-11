@@ -43,7 +43,7 @@
 #include <stdbool.h>
 #include <debug.h>
 #include <arch/asm.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <arch/drivers/tick.h>
 #include <print.h>
 #include <arch.h>

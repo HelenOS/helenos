@@ -36,7 +36,7 @@
 #ifndef KERN_amd64_ATOMIC_H_
 #define KERN_amd64_ATOMIC_H_
 
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <preemption.h>
 #include <trace.h>
 

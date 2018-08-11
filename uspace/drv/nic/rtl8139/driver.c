@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <align.h>
 #include <byteorder.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <as.h>
 #include <ddf/log.h>
 #include <ddf/interrupt.h>

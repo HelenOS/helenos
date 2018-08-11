@@ -35,7 +35,7 @@
 #include <arch/mm/tsb.h>
 #include <arch/mm/tlb.h>
 #include <arch/mm/page.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <assert.h>
 #include <mm/as.h>
 #include <typedefs.h>

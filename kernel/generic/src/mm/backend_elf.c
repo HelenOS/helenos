@@ -50,7 +50,7 @@
 #include <mem.h>
 #include <macros.h>
 #include <arch.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 
 static bool elf_create(as_area_t *);
 static bool elf_resize(as_area_t *, size_t);

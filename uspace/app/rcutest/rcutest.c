@@ -45,7 +45,7 @@
 #include <async.h>
 #include <fibril.h>
 #include <fibril_synch.h>
-#include <compiler/barrier.h>
+#include <barrier.h>
 #include <str.h>
 
 #include <rcu.h>

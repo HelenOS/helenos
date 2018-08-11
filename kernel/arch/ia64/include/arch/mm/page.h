@@ -88,7 +88,7 @@
 #include <arch/mm/as.h>
 #include <arch/mm/frame.h>
 #include <arch/interrupt.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <arch/mm/asid.h>
 #include <typedefs.h>
 #include <debug.h>

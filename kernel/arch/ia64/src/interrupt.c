@@ -42,7 +42,7 @@
 #include <console/console.h>
 #include <typedefs.h>
 #include <arch/asm.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <arch/register.h>
 #include <arch.h>
 #include <syscall/syscall.h>

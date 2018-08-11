@@ -40,7 +40,7 @@
 #include <arch/register.h>
 #include <config.h>
 #include <arch/stack.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <trace.h>
 
 NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)

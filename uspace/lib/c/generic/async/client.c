@@ -110,7 +110,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <mem.h>

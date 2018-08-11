@@ -32,7 +32,7 @@
 #include <str_error.h>
 #include <align.h>
 #include <byteorder.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <stdbool.h>
 
 #include <as.h>

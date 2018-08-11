@@ -36,7 +36,7 @@
 #include <macros.h>
 
 #include <ddf/log.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 
 /** Allocate DMA buffers
  *

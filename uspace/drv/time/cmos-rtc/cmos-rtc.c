@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <ddi.h>
 #include <as.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <stdio.h>
 #include <ddf/driver.h>
 #include <ddf/log.h>

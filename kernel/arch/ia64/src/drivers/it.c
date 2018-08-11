@@ -38,7 +38,7 @@
 #include <arch/interrupt.h>
 #include <arch/register.h>
 #include <arch/asm.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <time/clock.h>
 #include <ddi/irq.h>
 #include <arch.h>

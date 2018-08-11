@@ -65,7 +65,7 @@
 #include <arch/mm/asid.h>
 #include <mm/as.h>
 #include <mm/frame.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <arch.h>

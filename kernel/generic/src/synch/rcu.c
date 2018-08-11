@@ -133,7 +133,7 @@
 #include <cpu/cpu_mask.h>
 #include <cpu.h>
 #include <smp/smp_call.h>
-#include <compiler/barrier.h>
+#include <barrier.h>
 #include <atomic.h>
 #include <arch.h>
 #include <macros.h>

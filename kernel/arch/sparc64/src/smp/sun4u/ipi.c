@@ -44,7 +44,7 @@
 #include <smp/smp_call.h>
 #include <arch/interrupt.h>
 #include <arch/trap/interrupt.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <preemption.h>
 #include <time/delay.h>
 #include <panic.h>

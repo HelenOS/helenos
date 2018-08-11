@@ -33,7 +33,7 @@
  */
 
 #include <arch/debugger.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <console/kconsole.h>
 #include <console/cmd.h>
 #include <print.h>

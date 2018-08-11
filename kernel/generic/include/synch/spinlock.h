@@ -36,7 +36,7 @@
 #define KERN_SPINLOCK_H_
 
 #include <stdbool.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <assert.h>
 #include <preemption.h>
 #include <atomic.h>

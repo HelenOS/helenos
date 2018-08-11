@@ -38,7 +38,7 @@
 #include <arch.h>
 #include <macros.h>
 #include <errno.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <synch/smc.h>
 #include <mm/as.h>
 

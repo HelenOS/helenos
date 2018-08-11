@@ -36,8 +36,7 @@
 #ifndef LIBURCU_RCU_H_
 #define LIBURCU_RCU_H_
 
-#include <compiler/barrier.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <stdbool.h>
 
 /** Use to assign a pointer to newly initialized data to a rcu reader

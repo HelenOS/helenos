@@ -46,7 +46,7 @@
 #include <arch/mm/mmu.h>
 #include <arch/mm/page.h>
 #include <arch/asm.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <typedefs.h>
 #include <arch/register.h>
 #include <arch/cpu.h>

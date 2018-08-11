@@ -37,7 +37,7 @@
 #define KERN_ia32_ATOMIC_H_
 
 #include <typedefs.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <preemption.h>
 #include <trace.h>
 

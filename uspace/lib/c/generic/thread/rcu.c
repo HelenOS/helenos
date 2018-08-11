@@ -70,12 +70,11 @@
 #include <fibril.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <compiler/barrier.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <macros.h>
 #include <async.h>
 #include <adt/list.h>
-#include <smp_memory_barrier.h>
+#include <barrier.h>
 #include <assert.h>
 #include <time.h>
 

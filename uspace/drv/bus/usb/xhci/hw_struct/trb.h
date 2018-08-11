@@ -39,7 +39,7 @@
 #define XHCI_TRB_H
 
 #include "common.h"
-#include <libarch/barrier.h>
+#include <barrier.h>
 
 /**
  * TRB types: section 6.4.6, table 139

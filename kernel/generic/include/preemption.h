@@ -37,7 +37,7 @@
 
 #include <arch.h>
 #include <assert.h>
-#include <compiler/barrier.h>
+#include <barrier.h>
 
 #define PREEMPTION_INC         (1 << 0)
 #define PREEMPTION_DISABLED    (PREEMPTION_INC <= THE->preemption)

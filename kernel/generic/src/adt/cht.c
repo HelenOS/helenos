@@ -291,8 +291,8 @@
 #include <adt/hash.h>
 #include <assert.h>
 #include <mm/slab.h>
-#include <arch/barrier.h>
-#include <compiler/barrier.h>
+#include <barrier.h>
+#include <barrier.h>
 #include <atomic.h>
 #include <synch/rcu.h>
 

@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_ATOMIC_H_
 #define KERN_sparc64_ATOMIC_H_
 
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <typedefs.h>
 #include <preemption.h>
 #include <trace.h>

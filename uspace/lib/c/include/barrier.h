@@ -26,12 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef KERN_COMPILER_BARRIER_H_
-#define KERN_COMPILER_BARRIER_H_
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
+
+#ifndef LIBC_COMPILER_BARRIER_H_
+#define LIBC_COMPILER_BARRIER_H_
+
+#include <libarch/barrier.h>
+
+extern void smp_memory_barrier(void);
 
 #define compiler_barrier() asm volatile ("" ::: "memory")
 
 /** Forces the compiler to access (ie load/store) the variable only once. */
 #define ACCESS_ONCE(var) (*((volatile typeof(var)*)&(var)))
 
-#endif /* KERN_COMPILER_BARRIER_H_ */
+#endif /* LIBC_COMPILER_BARRIER_H_ */

@@ -53,7 +53,7 @@
 #include <atomic.h>
 #include <proc/thread.h>
 #include <sysinfo/sysinfo.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <mm/frame.h>
 #include <ddi/ddi.h>
 #include <arch/cycle.h>

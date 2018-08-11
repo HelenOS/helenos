@@ -36,7 +36,7 @@
 #define KERN_abs32le_ATOMIC_H_
 
 #include <typedefs.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <preemption.h>
 #include <verify.h>
 #include <trace.h>

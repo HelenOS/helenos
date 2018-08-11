@@ -40,7 +40,7 @@
 #include <stdint.h>
 #include <debug.h>
 #include <arch/asm.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <log.h>
 #include <arch.h>
 #include <mm/tlb.h>

@@ -36,7 +36,7 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <stdint.h>
 #include <usb/debug.h>
 #include <usb/host/usb_transfer_batch.h>

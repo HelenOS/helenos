@@ -40,7 +40,7 @@
 #include <genarch/mm/page_ht.h>
 #include <genarch/mm/asid_fifo.h>
 #include <mm/asid.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 
 /** Architecture dependent address space init. */
 void as_arch_init(void)

@@ -89,7 +89,7 @@
 #ifndef __ASSEMBLER__
 
 #include <arch/asm.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <stdint.h>
 
 #if defined(US)

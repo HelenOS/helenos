@@ -31,7 +31,7 @@
 #include <ddi.h>
 #include <as.h>
 #include <align.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <usb/debug.h>
 #include "hw_struct/trb.h"
 #include "trb_ring.h"

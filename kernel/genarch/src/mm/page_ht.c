@@ -44,7 +44,7 @@
 #include <arch/mm/asid.h>
 #include <typedefs.h>
 #include <arch/asm.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <synch/spinlock.h>
 #include <arch.h>
 #include <assert.h>

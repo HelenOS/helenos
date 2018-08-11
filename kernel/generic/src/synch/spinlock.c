@@ -37,7 +37,7 @@
 
 #include <synch/spinlock.h>
 #include <atomic.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <arch.h>
 #include <preemption.h>
 #include <print.h>

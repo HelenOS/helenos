@@ -36,7 +36,7 @@
  */
 
 #include <smp/smp_call.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <arch/asm.h>  /* interrupt_disable */
 #include <arch.h>
 #include <assert.h>

@@ -39,7 +39,7 @@
 #include <arch/mm/frame.h>
 #include <mm/mm.h>
 #include <arch/exception.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <arch/cp15.h>
 #include <trace.h>
 

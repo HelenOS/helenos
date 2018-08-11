@@ -38,7 +38,7 @@
 #include <ddi.h>
 #include <device/hw_res.h>
 #include <libarch/ddi.h>
-#include <libarch/barrier.h>
+#include <barrier.h>
 #include <macros.h>
 #include <str_error.h>
 #include <audio_pcm_iface.h>

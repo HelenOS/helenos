@@ -32,7 +32,7 @@
 /** @file
  */
 
-#include <smp_memory_barrier.h>
+#include <barrier.h>
 #include <libc.h>
 
 void smp_memory_barrier(void)

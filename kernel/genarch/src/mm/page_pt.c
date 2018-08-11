@@ -43,7 +43,7 @@
 #include <mm/as.h>
 #include <arch/mm/page.h>
 #include <arch/mm/as.h>
-#include <arch/barrier.h>
+#include <barrier.h>
 #include <typedefs.h>
 #include <arch/asm.h>
 #include <mem.h>
