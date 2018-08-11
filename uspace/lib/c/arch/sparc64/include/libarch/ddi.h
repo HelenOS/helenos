@@ -33,15 +33,8 @@
 #ifndef LIBC_sparc64_DDI_H_
 #define LIBC_sparc64_DDI_H_
 
+#include <barrier.h>
 #include <ddi.h>
-
-static inline void memory_barrier(void)
-{
-	asm volatile (
-	    "membar #LoadLoad | #StoreStore\n"
-	    ::: "memory"
-	);
-}
 
 static inline void arch_pio_write_8(ioport8_t *port, uint8_t v)
 {
