@@ -35,7 +35,61 @@
 #ifndef LIBC_ATOMIC_H_
 #define LIBC_ATOMIC_H_
 
-#include <libarch/atomic.h>
+#include <stdatomic.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+typedef size_t atomic_count_t;
+typedef ssize_t atomic_signed_t;
+
+typedef struct atomic {
+	volatile atomic_size_t count;
+} atomic_t;
+
+static inline void atomic_set(atomic_t *val, atomic_count_t i)
+{
+	atomic_store(&val->count, i);
+}
+
+static inline atomic_count_t atomic_get(atomic_t *val)
+{
+	return atomic_load(&val->count);
+}
+
+static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+{
+	return atomic_compare_exchange_strong(&val->count, &ov, nv);
+}
+
+static inline atomic_count_t atomic_postinc(atomic_t *val)
+{
+	return atomic_fetch_add(&val->count, 1);
+}
+
+static inline atomic_count_t atomic_postdec(atomic_t *val)
+{
+	return atomic_fetch_sub(&val->count, 1);
+}
+
+static inline atomic_count_t atomic_preinc(atomic_t *val)
+{
+	return atomic_postinc(val) + 1;
+}
+
+static inline atomic_count_t atomic_predec(atomic_t *val)
+{
+	return atomic_postdec(val) - 1;
+}
+
+static inline void atomic_inc(atomic_t *val)
+{
+	atomic_postinc(val);
+}
+
+static inline void atomic_dec(atomic_t *val)
+{
+	atomic_postdec(val);
+}
 
 #endif
 

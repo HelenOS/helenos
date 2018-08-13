@@ -28,6 +28,7 @@
 #
 
 ARCH_SOURCES = \
+	arch/$(UARCH)/src/atomic.c \
 	arch/$(UARCH)/src/entryjmp.S \
 	arch/$(UARCH)/src/thread_entry.S \
 	arch/$(UARCH)/src/syscall.c \

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,28 +27,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcarm32
- * @{
- */
-/** @file
- *  @brief Atomic operations.
+/*
+ * Older ARMs don't have atomic instructions, so we need to define a bunch
+ * of symbols for GCC to use.
  */
 
-#ifndef LIBC_arm32_ATOMIC_H_
-#define LIBC_arm32_ATOMIC_H_
-
-#define LIBC_ARCH_ATOMIC_H_
-#define CAS
-
-#include <atomicdflt.h>
 #include <stdbool.h>
-#include <stdint.h>
 
-extern uintptr_t *ras_page;
+extern volatile unsigned *ras_page;
 
-static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
+bool __atomic_compare_exchange_4(volatile unsigned *mem, unsigned *expected, unsigned desired, bool weak, int success, int failure)
 {
-	atomic_count_t ret = 0;
+	(void) success;
+	(void) failure;
+	(void) weak;
+
+	unsigned ov = *expected;
+	unsigned ret;
 
 	/*
 	 * The following instructions between labels 1 and 2 constitute a
@@ -60,41 +56,35 @@ static inline bool cas(atomic_t *val, atomic_count_t ov, atomic_count_t nv)
 	    "	str %[ret], %[rp0]\n"
 	    "	adr %[ret], 2f\n"
 	    "	str %[ret], %[rp1]\n"
+
 	    "	ldr %[ret], %[addr]\n"
 	    "	cmp %[ret], %[ov]\n"
 	    "	streq %[nv], %[addr]\n"
 	    "2:\n"
-	    "	moveq %[ret], #1\n"
-	    "	movne %[ret], #0\n"
-	    : [ret] "+&r" (ret),
+	    : [ret] "=&r" (ret),
 	      [rp0] "=m" (ras_page[0]),
 	      [rp1] "=m" (ras_page[1]),
-	      [addr] "+m" (val->count)
+	      [addr] "+m" (*mem)
 	    : [ov] "r" (ov),
-	      [nv] "r" (nv)
+	      [nv] "r" (desired)
 	    : "memory"
 	);
 
 	ras_page[0] = 0;
-	asm volatile (
-	    "" ::: "memory"
-	);
 	ras_page[1] = 0xffffffff;
 
-	return ret != 0;
+	if (ret == ov)
+		return true;
+
+	*expected = ret;
+	return false;
 }
 
-/** Atomic addition.
- *
- * @param val Where to add.
- * @param i   Value to be added.
- *
- * @return Value after addition.
- *
- */
-static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
+unsigned __atomic_fetch_add_4(volatile unsigned *mem, unsigned val, int model)
 {
-	atomic_count_t ret = 0;
+	(void) model;
+
+	unsigned ret;
 
 	/*
 	 * The following instructions between labels 1 and 2 constitute a
@@ -111,94 +101,49 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 	    "	add %[ret], %[ret], %[imm]\n"
 	    "	str %[ret], %[addr]\n"
 	    "2:\n"
-	    : [ret] "+&r" (ret),
+	    : [ret] "=&r" (ret),
 	      [rp0] "=m" (ras_page[0]),
 	      [rp1] "=m" (ras_page[1]),
-	      [addr] "+m" (val->count)
-	    : [imm] "r" (i)
+	      [addr] "+m" (*mem)
+	    : [imm] "r" (val)
 	);
 
 	ras_page[0] = 0;
-	asm volatile (
-	    "" ::: "memory"
-	);
 	ras_page[1] = 0xffffffff;
 
-	return ret;
+	return ret - val;
 }
 
-
-/** Atomic increment.
- *
- * @param val Variable to be incremented.
- *
- */
-static inline void atomic_inc(atomic_t *val)
+unsigned __atomic_fetch_sub_4(volatile unsigned *mem, unsigned val, int model)
 {
-	atomic_add(val, 1);
+	return __atomic_fetch_add_4(mem, -val, model);
 }
 
-
-/** Atomic decrement.
- *
- * @param val Variable to be decremented.
- *
- */
-static inline void atomic_dec(atomic_t *val)
+void __sync_synchronize(void)
 {
-	atomic_add(val, -1);
+	// FIXME: Full memory barrier. We might need a syscall for this.
 }
 
-
-/** Atomic pre-increment.
- *
- * @param val Variable to be incremented.
- * @return    Value after incrementation.
- *
- */
-static inline atomic_count_t atomic_preinc(atomic_t *val)
+unsigned __sync_add_and_fetch_4(volatile void *vptr, unsigned val)
 {
-	return atomic_add(val, 1);
+	return __atomic_fetch_add_4(vptr, val, __ATOMIC_SEQ_CST) + val;
 }
 
-
-/** Atomic pre-decrement.
- *
- * @param val Variable to be decremented.
- * @return    Value after decrementation.
- *
- */
-static inline atomic_count_t atomic_predec(atomic_t *val)
+unsigned __sync_sub_and_fetch_4(volatile void *vptr, unsigned val)
 {
-	return atomic_add(val, -1);
+	return __atomic_fetch_sub_4(vptr, val, __ATOMIC_SEQ_CST) - val;
 }
 
-
-/** Atomic post-increment.
- *
- * @param val Variable to be incremented.
- * @return    Value before incrementation.
- *
- */
-static inline atomic_count_t atomic_postinc(atomic_t *val)
+bool __sync_bool_compare_and_swap_4(volatile void *ptr, unsigned old_val, unsigned new_val)
 {
-	return atomic_add(val, 1) - 1;
+	return __atomic_compare_exchange_4(ptr, &old_val, new_val, false,
+	    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 }
 
-
-/** Atomic post-decrement.
- *
- * @param val Variable to be decremented.
- * @return    Value before decrementation.
- *
- */
-static inline atomic_count_t atomic_postdec(atomic_t *val)
+unsigned __sync_val_compare_and_swap_4(volatile void *ptr, unsigned old_val, unsigned new_val)
 {
-	return atomic_add(val, -1) + 1;
+	__atomic_compare_exchange_4(ptr, &old_val, new_val, false,
+	    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+	return old_val;
 }
 
-
-#endif
-
-/** @}
- */

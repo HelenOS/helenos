@@ -128,7 +128,6 @@ GENERIC_SOURCES = \
 	generic/stdio/sscanf.c \
 	generic/stdio/sstream.c \
 	generic/stdio/vsprintf.c \
-	generic/thread/atomic.c \
 	generic/thread/fibril.c \
 	generic/thread/fibril_synch.c \
 	generic/thread/thread.c \
