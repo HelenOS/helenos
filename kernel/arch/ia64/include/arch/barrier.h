@@ -35,15 +35,7 @@
 #ifndef KERN_ia64_BARRIER_H_
 #define KERN_ia64_BARRIER_H_
 
-/*
- * TODO: Implement true IA-64 memory barriers for macros below.
- */
-#define CS_ENTER_BARRIER()	memory_barrier()
-#define CS_LEAVE_BARRIER()	memory_barrier()
-
-#define memory_barrier()	asm volatile ("mf\n" ::: "memory")
-#define read_barrier()		memory_barrier()
-#define write_barrier()		memory_barrier()
+#define mf()	asm volatile ("mf\n" ::: "memory")
 
 #define srlz_i()		\
 	asm volatile (";; srlz.i ;;\n" ::: "memory")
@@ -54,20 +46,6 @@
 	asm volatile ("fc.i %0\n" :: "r" ((a)) : "memory")
 #define sync_i()		\
 	asm volatile (";; sync.i\n" ::: "memory")
-
-#ifdef KERNEL
-
-#define FC_INVAL_MIN		32
-#define smc_coherence(a, l)		\
-{						\
-	unsigned long i;			\
-	for (i = 0; i < (l); i += FC_INVAL_MIN)	\
-		fc_i((void *)(a) + i);		\
-	sync_i();				\
-	srlz_i();				\
-}
-
-#endif	/* KERNEL */
 
 #endif
 

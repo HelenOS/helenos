@@ -78,6 +78,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/proc/task.c \
 	arch/$(KARCH)/src/proc/thread.c \
 	arch/$(KARCH)/src/userspace.c \
+	arch/$(KARCH)/src/smc.c \
 	arch/$(KARCH)/src/syscall.c
 
 ifeq ($(CONFIG_SMP),y)

@@ -76,6 +76,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/$(USARCH)/start.S \
 	arch/$(KARCH)/src/proc/$(USARCH)/scheduler.c \
 	arch/$(KARCH)/src/proc/thread.c \
+	arch/$(KARCH)/src/smc.c \
 	arch/$(KARCH)/src/trap/$(USARCH)/mmu.S \
 	arch/$(KARCH)/src/trap/$(USARCH)/trap_table.S \
 	arch/$(KARCH)/src/trap/trap.c \

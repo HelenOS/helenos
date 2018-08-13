@@ -37,47 +37,6 @@
 
 #include <trace.h>
 
-/*
- * Our critical section barriers are prepared for the weakest RMO memory model.
- */
-#define CS_ENTER_BARRIER() \
-	asm volatile ( \
-		"membar #LoadLoad | #LoadStore\n" \
-		::: "memory" \
-	)
-
-#define CS_LEAVE_BARRIER() \
-	asm volatile ( \
-		"membar #StoreStore\n" \
-		"membar #LoadStore\n" \
-		::: "memory" \
-	)
-
-#define memory_barrier() \
-	asm volatile ( \
-		"membar #LoadLoad | #StoreStore\n" \
-		::: "memory" \
-	)
-
-#define read_barrier() \
-	asm volatile ( \
-		"membar #LoadLoad\n" \
-		::: "memory" \
-	)
-
-#define write_barrier() \
-	asm volatile ( \
-		"membar #StoreStore\n" \
-		::: "memory" \
-	)
-
-#define flush(a) \
-	asm volatile ( \
-		"flush %[reg]\n" \
-		:: [reg] "r" ((a)) \
-		: "memory" \
-	)
-
 /** Flush Instruction pipeline. */
 NO_TRACE static inline void flush_pipeline(void)
 {
@@ -108,33 +67,6 @@ NO_TRACE static inline void membar(void)
 	    "membar #Sync\n"
 	);
 }
-
-#ifdef KERNEL
-
-#if defined(US)
-
-#define FLUSH_INVAL_MIN  4
-
-#define smc_coherence(a, l) \
-	do { \
-		unsigned long i; \
-		write_barrier(); \
-		\
-		for (i = 0; i < (l); i += FLUSH_INVAL_MIN) \
-			flush((void *)(a) + i); \
-	} while (0)
-
-#elif defined (US3)
-
-#define smc_coherence(a, l) \
-	do { \
-		write_barrier(); \
-		flush_pipeline(); \
-	} while (0)
-
-#endif  /* defined(US3) */
-
-#endif	/* KERNEL */
 
 #endif
 

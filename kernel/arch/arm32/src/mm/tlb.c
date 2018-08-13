@@ -40,6 +40,7 @@
 #include <typedefs.h>
 #include <arch/mm/page.h>
 #include <arch/cache.h>
+#include <arch/barrier.h>
 
 /** Invalidate all entries in TLB.
  *
@@ -58,8 +59,8 @@ void tlb_invalidate_all(void)
 	 * for those instructions."
 	 * ARM Architecture reference Manual ch. B3.10.1 p. B3-1374 B3-1375
 	 */
-	read_barrier();
-	inst_barrier();
+	dsb();
+	isb();
 }
 
 /** Invalidate all entries in TLB that belong to specified address space.
@@ -104,8 +105,8 @@ static inline void invalidate_page(uintptr_t page)
 	 * for those instructions."
 	 * ARM Architecture reference Manual ch. B3.10.1 p. B3-1374 B3-1375
 	 */
-	read_barrier();
-	inst_barrier();
+	dsb();
+	isb();
 }
 
 /** Invalidate TLB entries for specified page range belonging to specified

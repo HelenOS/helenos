@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <arch/barrier.h>
 #include <arch/interrupt.h>
 #include <arch/sparc64.h>
 #include <arch/trap/interrupt.h>

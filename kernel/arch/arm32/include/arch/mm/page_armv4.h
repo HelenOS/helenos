@@ -37,6 +37,8 @@
 #ifndef KERN_arm32_PAGE_armv4_H_
 #define KERN_arm32_PAGE_armv4_H_
 
+#include <arch/cache.h>
+
 #ifndef KERN_arm32_PAGE_H_
 #error "Do not include arch specific page.h directly use generic page.h instead"
 #endif

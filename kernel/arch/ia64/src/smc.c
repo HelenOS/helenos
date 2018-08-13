@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Martin Decky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup riscv64
- * @{
- */
-/** @file
- */
+#include <barrier.h>
+#include <arch/barrier.h>
 
-#ifndef KERN_riscv64_BARRIER_H_
-#define KERN_riscv64_BARRIER_H_
+#define FC_INVAL_MIN		32
 
-#include <trace.h>
+void smc_coherence(void *a, size_t l)
+{
+	unsigned long i;
+	for (i = 0; i < (l); i += FC_INVAL_MIN)
+		fc_i(a + i);
+	sync_i();
+	srlz_i();
+}
 
-// FIXME
-
-#define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
-
-#define memory_barrier()  asm volatile ("" ::: "memory")
-#define read_barrier()    asm volatile ("" ::: "memory")
-#define write_barrier()   asm volatile ("" ::: "memory")
-
-#ifdef KERNEL
-
-#define smc_coherence(addr, size)
-
-#endif /* KERNEL */
-
-#endif
-
-/** @}
- */

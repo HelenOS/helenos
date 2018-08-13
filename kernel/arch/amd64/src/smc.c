@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32
- * @{
- */
-/** @file
- */
+#include <barrier.h>
 
-#ifndef KERN_ppc32_BARRIER_H_
-#define KERN_ppc32_BARRIER_H_
-
-#include <trace.h>
-
-#define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
-
-#define memory_barrier()  asm volatile ("sync" ::: "memory")
-#define read_barrier()    asm volatile ("sync" ::: "memory")
-#define write_barrier()   asm volatile ("eieio" ::: "memory")
-
-#define instruction_barrier() \
-	asm volatile ( \
-		"sync\n" \
-		"isync\n" \
-	)
-
-#ifdef KERNEL
-
-#define COHERENCE_INVAL_MIN  4
-
-/*
- * The IMB sequence used here is valid for all possible cache models
- * on uniprocessor. SMP might require a different sequence.
- * See PowerPC Programming Environment for 32-Bit Microprocessors,
- * chapter 5.1.5.2
- */
-
-NO_TRACE static inline void smc_coherence(void *addr, unsigned int len)
+void smc_coherence(void *a, size_t l)
 {
-	unsigned int i;
-
-	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
-		asm volatile (
-		    "dcbst 0, %[addr]\n"
-		    :: [addr] "r" (addr + i)
-		);
-
-	memory_barrier();
-
-	for (i = 0; i < len; i += COHERENCE_INVAL_MIN)
-		asm volatile (
-		    "icbi 0, %[addr]\n"
-		    :: [addr] "r" (addr + i)
-		);
-
-	instruction_barrier();
+	compiler_barrier();
 }
 
-#endif	/* KERNEL */
-
-#endif
-
-/** @}
- */

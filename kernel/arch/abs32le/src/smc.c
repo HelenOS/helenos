@@ -26,33 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
- * @{
- */
-/** @file
- */
+#include <barrier.h>
 
-#ifndef KERN_abs32le_BARRIER_H_
-#define KERN_abs32le_BARRIER_H_
+void smc_coherence(void *a, size_t l)
+{
+	compiler_barrier();
+}
 
-/*
- * Provisions are made to prevent compiler from reordering instructions itself.
- */
-
-#define CS_ENTER_BARRIER()
-#define CS_LEAVE_BARRIER()
-
-#define memory_barrier()
-#define read_barrier()
-#define write_barrier()
-
-#ifdef KERNEL
-
-#define smc_coherence(addr, size)
-
-#endif	/* KERNEL*/
-
-#endif
-
-/** @}
- */

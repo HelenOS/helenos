@@ -57,6 +57,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/mm/vhpt.c \
 	arch/$(KARCH)/src/proc/scheduler.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
+	arch/$(KARCH)/src/smc.c \
 	arch/$(KARCH)/src/smp/smp.c \
 	arch/$(KARCH)/src/smp/smp_call.c \
 	arch/$(KARCH)/src/drivers/it.c

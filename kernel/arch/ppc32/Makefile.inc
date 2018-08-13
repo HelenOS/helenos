@@ -50,6 +50,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/proc/scheduler.c \
+	arch/$(KARCH)/src/smc.c \
 	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \

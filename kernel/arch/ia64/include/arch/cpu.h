@@ -37,6 +37,7 @@
 
 #include <arch/register.h>
 #include <arch/asm.h>
+#include <arch/barrier.h>
 #include <arch/bootinfo.h>
 #include <stdint.h>
 #include <trace.h>

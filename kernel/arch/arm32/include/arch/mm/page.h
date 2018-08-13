@@ -40,6 +40,7 @@
 #include <mm/mm.h>
 #include <arch/exception.h>
 #include <barrier.h>
+#include <arch/barrier.h>
 #include <arch/cp15.h>
 #include <trace.h>
 

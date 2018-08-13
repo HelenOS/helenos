@@ -26,32 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32
- * @{
- */
-/** @file
- */
+#include <barrier.h>
+#include <arch/barrier.h>
 
-#ifndef KERN_mips32_BARRIER_H_
-#define KERN_mips32_BARRIER_H_
+#if defined(US)
 
-/*
- * TODO: implement true MIPS memory barriers for macros below.
- */
-#define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
-#define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
+#define FLUSH_INVAL_MIN  4
 
-#define memory_barrier() asm volatile ("" ::: "memory")
-#define read_barrier()   asm volatile ("" ::: "memory")
-#define write_barrier()  asm volatile ("" ::: "memory")
+void smc_coherence(void *a, size_t l)
+{
+	asm volatile ("membar #StoreStore\n" ::: "memory");
 
-#ifdef KERNEL
+	for (size_t i = 0; i < l; i += FLUSH_INVAL_MIN) {
+		asm volatile (
+		    "flush %[reg]\n"
+		    :: [reg] "r" (a + i)
+		    : "memory"
+		);
+	}
+}
 
-#define smc_coherence(a, l)
+#elif defined (US3)
 
-#endif	/* KERNEL */
 
-#endif
+void smc_coherence(void *a, size_t l)
+{
+	asm volatile ("membar #StoreStore\n" ::: "memory");
 
-/** @}
- */
+	flush_pipeline();
+}
+
+#endif  /* defined(US3) */
+

@@ -46,6 +46,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/proc/thread.c \
 	arch/$(KARCH)/src/riscv64.c \
 	arch/$(KARCH)/src/userspace.c \
+	arch/$(KARCH)/src/smc.c \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/mm/km.c \
 	arch/$(KARCH)/src/mm/as.c \

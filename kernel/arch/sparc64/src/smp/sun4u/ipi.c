@@ -33,6 +33,7 @@
  */
 
 #include <smp/ipi.h>
+#include <arch/barrier.h>
 #include <arch/smp/sun4u/ipi.h>
 #include <assert.h>
 #include <cpu.h>
