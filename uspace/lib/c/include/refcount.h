@@ -39,22 +39,18 @@
 #ifndef LIBC_REFCOUNT_H_
 #define LIBC_REFCOUNT_H_
 
-// TODO: #include <stdatomic.h>
-
 #include <assert.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 
 /* Wrapped in a structure to prevent direct manipulation. */
 typedef struct atomic_refcount {
-	//volatile atomic_int __cnt;
-	atomic_t __cnt;
+	volatile atomic_int __cnt;
 } atomic_refcount_t;
 
 static inline void refcount_init(atomic_refcount_t *rc)
 {
-	//atomic_store_explicit(&rc->__cnt, 0, memory_order_relaxed);
-	atomic_set(&rc->__cnt, 0);
+	atomic_store_explicit(&rc->__cnt, 0, memory_order_relaxed);
 }
 
 /**
@@ -71,10 +67,8 @@ static inline void refcount_up(atomic_refcount_t *rc)
 	//      implies no ordering relationships. A reference-counted object
 	//      still needs to be synchronized independently of the refcount.
 
-	//int old = atomic_fetch_add_explicit(&rc->__cnt, 1,
-	//    memory_order_relaxed);
-
-	atomic_signed_t old = atomic_postinc(&rc->__cnt);
+	int old = atomic_fetch_add_explicit(&rc->__cnt, 1,
+	    memory_order_relaxed);
 
 	/* old < 0 indicates that the function is used incorrectly. */
 	assert(old >= 0);
@@ -93,20 +87,24 @@ static inline bool refcount_down(atomic_refcount_t *rc)
 {
 	// XXX: The decrementers don't need to synchronize with each other,
 	//      but they do need to synchronize with the one doing deallocation.
-	//int old = atomic_fetch_sub_explicit(&rc->__cnt, 1,
-	//    memory_order_release);
-
-	atomic_signed_t old = atomic_postdec(&rc->__cnt);
+	int old = atomic_fetch_sub_explicit(&rc->__cnt, 1,
+	    memory_order_release);
 
 	assert(old >= 0);
 
 	if (old == 0) {
 		// XXX: We are holding the last reference, so we must now
 		//      synchronize with all the other decrementers.
-		//int val = atomic_load_explicit(&rc->__cnt,
-		//    memory_order_acquire);
-		//assert(val == -1);
-		return true;
+
+		int val = atomic_load_explicit(&rc->__cnt,
+		    memory_order_acquire);
+		assert(val == -1);
+
+		/*
+		 * The compiler probably wouldn't optimize the memory barrier
+		 * away, but better safe than sorry.
+		 */
+		return val < 0;
 	}
 
 	return false;

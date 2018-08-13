@@ -44,7 +44,6 @@
 #include <task.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>
-#include <atomic.h>
 #include <stdarg.h>
 #include <str.h>
 #include "window.h"
@@ -693,7 +692,7 @@ static void term_connection(ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	if (atomic_postinc(&term->refcnt) == 0)
+	if (!atomic_flag_test_and_set(&term->refcnt))
 		chargrid_set_cursor_visibility(term->frontbuf, true);
 
 	con_conn(icall, &term->srvs);
@@ -706,7 +705,7 @@ bool init_terminal(terminal_t *term, widget_t *parent, const void *data,
 
 	link_initialize(&term->link);
 	fibril_mutex_initialize(&term->mtx);
-	atomic_set(&term->refcnt, 0);
+	atomic_flag_clear(&term->refcnt);
 
 	prodcons_initialize(&term->input_pc);
 	term->char_remains_len = 0;

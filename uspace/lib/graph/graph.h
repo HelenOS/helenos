@@ -39,7 +39,8 @@
 #include <stdbool.h>
 #include <loc.h>
 #include <async.h>
-#include <atomic.h>
+#include <stdatomic.h>
+#include <refcount.h>
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <io/mode.h>
@@ -120,7 +121,7 @@ typedef struct visualizer {
 	 * can be claimed only by a single client.
 	 * Field is fully managed by libgraph.
 	 */
-	atomic_t ref_cnt;
+	atomic_flag claimed;
 
 	/**
 	 * Visualizer ID assigned by some particular registration service
@@ -271,7 +272,7 @@ typedef struct renderer {
 	// TODO
 	link_t link;
 
-	atomic_t ref_cnt;
+	atomic_refcount_t ref_cnt;
 
 	sysarg_t reg_svc_handle;
 

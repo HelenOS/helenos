@@ -33,7 +33,6 @@
  */
 
 #include <async.h>
-#include <atomic.h>
 #include <stdio.h>
 #include <adt/prodcons.h>
 #include <io/input.h>
@@ -50,6 +49,7 @@
 #include <as.h>
 #include <task.h>
 #include <fibril_synch.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <str.h>
 #include "console.h"
@@ -60,7 +60,7 @@
 #define UTF8_CHAR_BUFFER_SIZE  (STR_BOUNDS(1) + 1)
 
 typedef struct {
-	atomic_t refcnt;      /**< Connection reference count */
+	atomic_flag refcnt;      /**< Connection reference count */
 	prodcons_t input_pc;  /**< Incoming keyboard events */
 
 	/**
@@ -523,7 +523,7 @@ static void client_connection(ipc_call_t *icall, void *arg)
 		return;
 	}
 
-	if (atomic_postinc(&cons->refcnt) == 0)
+	if (!atomic_flag_test_and_set(&cons->refcnt))
 		cons_set_cursor_vis(cons, true);
 
 	con_conn(icall, &cons->srvs);
@@ -611,7 +611,7 @@ static bool console_srv_init(char *input_svc, char *output_svc)
 	if (ccaps != 0) {
 		for (size_t i = 0; i < CONSOLE_COUNT; i++) {
 			consoles[i].index = i;
-			atomic_set(&consoles[i].refcnt, 0);
+			atomic_flag_clear(&consoles[i].refcnt);
 			fibril_mutex_initialize(&consoles[i].mtx);
 			prodcons_initialize(&consoles[i].input_pc);
 			consoles[i].char_remains_len = 0;

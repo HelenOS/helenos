@@ -36,13 +36,13 @@
 #define LIBC_FUTEX_H_
 
 #include <assert.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <errno.h>
 #include <libc.h>
 #include <time.h>
 
 typedef struct futex {
-	atomic_t val;
+	volatile atomic_int val;
 #ifdef CONFIG_DEBUG_FUTEX
 	void *owner;
 #endif
@@ -52,7 +52,7 @@ extern void futex_initialize(futex_t *futex, int value);
 
 #ifdef CONFIG_DEBUG_FUTEX
 
-#define FUTEX_INITIALIZE(val) {{ (val) }, NULL }
+#define FUTEX_INITIALIZE(val) { (val) , NULL }
 #define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 void __futex_assert_is_locked(futex_t *, const char *);
@@ -72,7 +72,7 @@ void __futex_give_to(futex_t *, void *, const char *);
 
 #else
 
-#define FUTEX_INITIALIZE(val) {{ (val) }}
+#define FUTEX_INITIALIZE(val) { (val) }
 #define FUTEX_INITIALIZER     FUTEX_INITIALIZE(1)
 
 #define futex_lock(fut)     (void) futex_down((fut))
@@ -106,8 +106,10 @@ static inline errno_t futex_down_composable(futex_t *futex,
 {
 	// TODO: Add tests for this.
 
-	if ((atomic_signed_t) atomic_predec(&futex->val) >= 0)
+	if (atomic_fetch_sub_explicit(&futex->val, 1, memory_order_acquire) > 0)
 		return EOK;
+
+	/* There wasn't any token. We must defer to the underlying semaphore. */
 
 	usec_t timeout;
 
@@ -128,7 +130,7 @@ static inline errno_t futex_down_composable(futex_t *futex,
 		assert(timeout > 0);
 	}
 
-	return __SYSCALL2(SYS_FUTEX_SLEEP, (sysarg_t) &futex->val.count, (sysarg_t) timeout);
+	return __SYSCALL2(SYS_FUTEX_SLEEP, (sysarg_t) futex, (sysarg_t) timeout);
 }
 
 /** Up the futex.
@@ -142,8 +144,8 @@ static inline errno_t futex_down_composable(futex_t *futex,
  */
 static inline errno_t futex_up(futex_t *futex)
 {
-	if ((atomic_signed_t) atomic_postinc(&futex->val) < 0)
-		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) &futex->val.count);
+	if (atomic_fetch_add_explicit(&futex->val, 1, memory_order_release) < 0)
+		return __SYSCALL1(SYS_FUTEX_WAKEUP, (sysarg_t) futex);
 
 	return EOK;
 }
@@ -151,40 +153,6 @@ static inline errno_t futex_up(futex_t *futex)
 static inline errno_t futex_down_timeout(futex_t *futex,
     const struct timespec *expires)
 {
-	if (expires && expires->tv_sec == 0 && expires->tv_nsec == 0) {
-		/* Nonblocking down. */
-
-		/*
-		 * Try good old CAS a few times.
-		 * Not too much though, we don't want to bloat the caller.
-		 */
-		for (int i = 0; i < 2; i++) {
-			atomic_signed_t old = atomic_get(&futex->val);
-			if (old <= 0)
-				return ETIMEOUT;
-
-			if (cas(&futex->val, old, old - 1))
-				return EOK;
-		}
-
-		// TODO: builtin atomics with relaxed ordering can make this
-		//       faster.
-
-		/*
-		 * If we don't succeed with CAS, we can't just return failure
-		 * because that would lead to spurious failures where
-		 * futex_down_timeout returns ETIMEOUT despite there being
-		 * available tokens. That could break some algorithms.
-		 * We also don't want to loop on CAS indefinitely, because
-		 * that would make the semaphore not wait-free, even when all
-		 * atomic operations and the underlying base semaphore are all
-		 * wait-free.
-		 * Instead, we fall back to regular down_timeout(), with
-		 * an already expired deadline. That way we delegate all these
-		 * concerns to the base semaphore.
-		 */
-	}
-
 	/*
 	 * This combination of a "composable" sleep followed by futex_up() on
 	 * failure is necessary to prevent breakage due to certain race
@@ -207,8 +175,17 @@ static inline errno_t futex_down_timeout(futex_t *futex,
 static inline bool futex_trydown(futex_t *futex)
 {
 	/*
-	 * down_timeout with an already expired deadline should behave like
-	 * trydown.
+	 * We can't just use CAS here.
+	 * If we don't succeed with CAS, we can't return failure
+	 * because that would lead to spurious failures where
+	 * futex_down_timeout returns ETIMEOUT despite there being
+	 * available tokens. That would break some algorithms.
+	 * We also don't want to loop on CAS indefinitely, because
+	 * that would make the semaphore not wait-free, even when all
+	 * atomic operations and the underlying base semaphore are all
+	 * wait-free.
+	 * It's much less trouble (and code bloat) to just do regular
+	 * down_timeout(), with an already expired deadline.
 	 */
 	struct timespec tv = { .tv_sec = 0, .tv_nsec = 0 };
 	return futex_down_timeout(futex, &tv) == EOK;

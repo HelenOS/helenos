@@ -43,7 +43,7 @@
 #include <io/con_srv.h>
 #include <adt/list.h>
 #include <adt/prodcons.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <str.h>
 #include "widget.h"
 
@@ -54,7 +54,7 @@ typedef struct terminal {
 
 	fibril_mutex_t mtx;
 	link_t link;
-	atomic_t refcnt;
+	atomic_flag refcnt;
 
 	prodcons_t input_pc;
 	char char_remains[UTF8_CHAR_BUFFER_SIZE];

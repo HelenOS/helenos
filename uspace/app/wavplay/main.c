@@ -34,7 +34,7 @@
  */
 
 #include <assert.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <errno.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
@@ -188,7 +188,7 @@ static errno_t hplay(const char *filename)
  */
 typedef struct {
 	hound_context_t *ctx;
-	atomic_t *count;
+	atomic_int *count;
 	const char *file;
 } fib_play_t;
 
@@ -202,7 +202,7 @@ static errno_t play_wrapper(void *arg)
 	assert(arg);
 	fib_play_t *p = arg;
 	const errno_t ret = hplay_ctx(p->ctx, p->file);
-	atomic_dec(p->count);
+	atomic_fetch_sub(p->count, 1);
 	free(arg);
 	return ret;
 }
@@ -278,8 +278,7 @@ int main(int argc, char *argv[])
 
 	/* Init parallel playback variables */
 	hound_context_t *hound_ctx = NULL;
-	atomic_t playcount;
-	atomic_set(&playcount, 0);
+	atomic_int playcount = 0;
 
 	/* Init parallel playback context if necessary */
 	if (parallel) {
@@ -331,7 +330,7 @@ int main(int argc, char *argv[])
 				data->count = &playcount;
 				data->ctx = hound_ctx;
 				fid_t fid = fibril_create(play_wrapper, data);
-				atomic_inc(&playcount);
+				atomic_fetch_add(&playcount, 1);
 				fibril_add_ready(fid);
 			} else {
 				hplay(file);
@@ -340,7 +339,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Wait for all fibrils to finish */
-	while (atomic_get(&playcount) > 0)
+	while (atomic_load(&playcount) > 0)
 		fibril_usleep(1000000);
 
 	/* Destroy parallel playback context, if initialized */

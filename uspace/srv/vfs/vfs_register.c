@@ -48,7 +48,7 @@
 #include <adt/list.h>
 #include <as.h>
 #include <assert.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <vfs/vfs.h>
 #include "vfs.h"
 
@@ -56,9 +56,7 @@ FIBRIL_CONDVAR_INITIALIZE(fs_list_cv);
 FIBRIL_MUTEX_INITIALIZE(fs_list_lock);
 LIST_INITIALIZE(fs_list);
 
-atomic_t fs_handle_next = {
-	.count = 1
-};
+static atomic_int fs_handle_next = 1;
 
 /** Verify the VFS info structure.
  *
@@ -235,7 +233,7 @@ void vfs_register(ipc_call_t *req)
 	 * In reply to the VFS_REGISTER request, we assign the client file
 	 * system a global file system handle.
 	 */
-	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
+	fs_info->fs_handle = atomic_fetch_add(&fs_handle_next, 1);
 	async_answer_1(req, EOK, (sysarg_t) fs_info->fs_handle);
 
 	fibril_condvar_broadcast(&fs_list_cv);

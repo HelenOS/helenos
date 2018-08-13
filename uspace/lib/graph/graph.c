@@ -69,7 +69,7 @@ renderer_t *graph_alloc_renderer(void)
 void graph_init_visualizer(visualizer_t *vs)
 {
 	link_initialize(&vs->link);
-	atomic_set(&vs->ref_cnt, 0);
+	atomic_flag_clear(&vs->claimed);
 	vs->notif_sess = NULL;
 	fibril_mutex_initialize(&vs->mode_mtx);
 	list_initialize(&vs->modes);
@@ -82,7 +82,7 @@ void graph_init_renderer(renderer_t *rnd)
 {
 	// TODO
 	link_initialize(&rnd->link);
-	atomic_set(&rnd->ref_cnt, 0);
+	refcount_init(&rnd->ref_cnt);
 }
 
 errno_t graph_register_visualizer(visualizer_t *vs)
@@ -172,6 +172,9 @@ renderer_t *graph_get_renderer(sysarg_t handle)
 		}
 	}
 
+	if (rnd)
+		refcount_up(&rnd->ref_cnt);
+
 	fibril_mutex_unlock(&renderer_list_mtx);
 
 	return rnd;
@@ -199,7 +202,7 @@ errno_t graph_unregister_renderer(renderer_t *rnd)
 
 void graph_destroy_visualizer(visualizer_t *vs)
 {
-	assert(atomic_get(&vs->ref_cnt) == 0);
+	assert(!atomic_flag_test_and_set(&vs->claimed));
 	assert(vs->notif_sess == NULL);
 	assert(!fibril_mutex_is_locked(&vs->mode_mtx));
 	assert(list_empty(&vs->modes));
@@ -213,9 +216,8 @@ void graph_destroy_visualizer(visualizer_t *vs)
 void graph_destroy_renderer(renderer_t *rnd)
 {
 	// TODO
-	assert(atomic_get(&rnd->ref_cnt) == 0);
-
-	free(rnd);
+	if (refcount_down(&rnd->ref_cnt))
+		free(rnd);
 }
 
 errno_t graph_notify_mode_change(async_sess_t *sess, sysarg_t handle, sysarg_t mode_idx)
@@ -492,7 +494,7 @@ static void vs_wakeup(visualizer_t *vs, ipc_call_t *icall)
 void graph_visualizer_connection(visualizer_t *vs, ipc_call_t *icall, void *arg)
 {
 	/* Claim the visualizer. */
-	if (!cas(&vs->ref_cnt, 0, 1)) {
+	if (atomic_flag_test_and_set(&vs->claimed)) {
 		async_answer_0(icall, ELIMIT);
 		return;
 	}
@@ -558,7 +560,7 @@ void graph_visualizer_connection(visualizer_t *vs, ipc_call_t *icall, void *arg)
 terminate:
 	async_hangup(vs->notif_sess);
 	vs->notif_sess = NULL;
-	atomic_set(&vs->ref_cnt, 0);
+	atomic_flag_clear(&vs->claimed);
 }
 
 void graph_renderer_connection(renderer_t *rnd, ipc_call_t *icall, void *arg)
@@ -566,7 +568,6 @@ void graph_renderer_connection(renderer_t *rnd, ipc_call_t *icall, void *arg)
 	// TODO
 
 	/* Accept the connection. */
-	atomic_inc(&rnd->ref_cnt);
 	async_answer_0(icall, EOK);
 
 	/* Enter command loop. */
@@ -587,7 +588,7 @@ void graph_renderer_connection(renderer_t *rnd, ipc_call_t *icall, void *arg)
 	}
 
 terminate:
-	atomic_dec(&rnd->ref_cnt);
+	graph_destroy_renderer(rnd);
 }
 
 void graph_client_connection(ipc_call_t *icall, void *arg)

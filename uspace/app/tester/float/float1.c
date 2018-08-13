@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <atomic.h>
+#include <stdatomic.h>
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <inttypes.h>
@@ -44,7 +44,7 @@
 #define PRECISION  100000000
 
 static FIBRIL_SEMAPHORE_INITIALIZE(threads_finished, 0);
-static atomic_t threads_fault;
+static atomic_int threads_fault;
 
 static errno_t e(void *data)
 {
@@ -59,7 +59,7 @@ static errno_t e(void *data)
 		}
 
 		if ((uint32_t) (e * PRECISION) != E_10E8) {
-			atomic_inc(&threads_fault);
+			atomic_fetch_add(&threads_fault, 1);
 			break;
 		}
 	}
@@ -70,9 +70,9 @@ static errno_t e(void *data)
 
 const char *test_float1(void)
 {
-	atomic_count_t total = 0;
+	int total = 0;
 
-	atomic_set(&threads_fault, 0);
+	atomic_store(&threads_fault, 0);
 	fibril_test_spawn_runners(THREADS);
 
 	TPRINTF("Creating threads");
@@ -91,12 +91,12 @@ const char *test_float1(void)
 
 	TPRINTF("\n");
 
-	for (unsigned int i = 0; i < total; i++) {
-		TPRINTF("Threads left: %" PRIua "\n", total - i);
+	for (int i = 0; i < total; i++) {
+		TPRINTF("Threads left: %d\n", total - i);
 		fibril_semaphore_down(&threads_finished);
 	}
 
-	if (atomic_get(&threads_fault) == 0)
+	if (atomic_load(&threads_fault) == 0)
 		return NULL;
 
 	return "Test failed";

@@ -80,6 +80,40 @@ bool __atomic_compare_exchange_4(volatile unsigned *mem, unsigned *expected, uns
 	return false;
 }
 
+unsigned short __atomic_fetch_add_2(volatile unsigned short *mem, unsigned short val, int model)
+{
+	(void) model;
+
+	unsigned short ret;
+
+	/*
+	 * The following instructions between labels 1 and 2 constitute a
+	 * Restartable Atomic Seqeunce. Should the sequence be non-atomic,
+	 * the kernel will restart it.
+	 */
+	asm volatile (
+	    "1:\n"
+	    "	adr %[ret], 1b\n"
+	    "	str %[ret], %[rp0]\n"
+	    "	adr %[ret], 2f\n"
+	    "	str %[ret], %[rp1]\n"
+	    "	ldrh %[ret], %[addr]\n"
+	    "	add %[ret], %[ret], %[imm]\n"
+	    "	strh %[ret], %[addr]\n"
+	    "2:\n"
+	    : [ret] "=&r" (ret),
+	      [rp0] "=m" (ras_page[0]),
+	      [rp1] "=m" (ras_page[1]),
+	      [addr] "+m" (*mem)
+	    : [imm] "r" (val)
+	);
+
+	ras_page[0] = 0;
+	ras_page[1] = 0xffffffff;
+
+	return ret - val;
+}
+
 unsigned __atomic_fetch_add_4(volatile unsigned *mem, unsigned val, int model)
 {
 	(void) model;

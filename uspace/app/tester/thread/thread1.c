@@ -30,7 +30,7 @@
 #define THREADS  20
 #define DELAY    10
 
-#include <atomic.h>
+#include <stdatomic.h>
 #include <errno.h>
 #include <fibril.h>
 #include <fibril_synch.h>
@@ -39,7 +39,7 @@
 #include <inttypes.h>
 #include "../tester.h"
 
-static atomic_t finish;
+static atomic_bool finish;
 
 static FIBRIL_SEMAPHORE_INITIALIZE(threads_finished, 0);
 
@@ -47,7 +47,7 @@ static errno_t threadtest(void *data)
 {
 	fibril_detach(fibril_get_id());
 
-	while (atomic_get(&finish))
+	while (!atomic_load(&finish))
 		fibril_usleep(100000);
 
 	fibril_semaphore_up(&threads_finished);
@@ -56,15 +56,14 @@ static errno_t threadtest(void *data)
 
 const char *test_thread1(void)
 {
-	unsigned int i;
-	atomic_count_t total = 0;
+	int total = 0;
 
-	atomic_set(&finish, 1);
+	atomic_store(&finish, false);
 
 	fibril_test_spawn_runners(THREADS);
 
 	TPRINTF("Creating threads");
-	for (i = 0; i < THREADS; i++) {
+	for (int i = 0; i < THREADS; i++) {
 		fid_t f = fibril_create(threadtest, NULL);
 		if (!f) {
 			TPRINTF("\nCould not create thread %u\n", i);
@@ -79,10 +78,9 @@ const char *test_thread1(void)
 	fibril_sleep(DELAY);
 	TPRINTF("\n");
 
-	atomic_set(&finish, 0);
-	for (i = 0; i < total; i++) {
-		TPRINTF("Threads left: %" PRIua "\n",
-		    total - i);
+	atomic_store(&finish, true);
+	for (int i = 0; i < total; i++) {
+		TPRINTF("Threads left: %d\n", total - i);
 		fibril_semaphore_down(&threads_finished);
 	}
 

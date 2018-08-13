@@ -87,7 +87,7 @@ static bool multithreaded = false;
 
 /* This futex serializes access to global data. */
 static futex_t fibril_futex = FUTEX_INITIALIZER;
-static futex_t ready_semaphore = FUTEX_INITIALIZE(0);
+static futex_t ready_semaphore;
 static long ready_st_count;
 
 static LIST_INITIALIZE(ready_list);
@@ -116,21 +116,6 @@ static inline void _ready_debug_check(void)
 #endif
 }
 
-static inline long _ready_count(void)
-{
-	/*
-	 * The number of available tokens is always equal to the number
-	 * of fibrils in the ready list + the number of free IPC buffer
-	 * buckets.
-	 */
-
-	if (multithreaded)
-		return atomic_get(&ready_semaphore.val);
-
-	_ready_debug_check();
-	return ready_st_count;
-}
-
 static inline void _ready_up(void)
 {
 	if (multithreaded) {
@@ -151,7 +136,7 @@ static inline errno_t _ready_down(const struct timespec *expires)
 	return EOK;
 }
 
-static atomic_t threads_in_ipc_wait = { 0 };
+static atomic_int threads_in_ipc_wait;
 
 /** Function that spans the whole life-cycle of a fibril.
  *
@@ -302,7 +287,8 @@ static fibril_t *_ready_list_pop(const struct timespec *expires, bool locked)
 		futex_lock(&fibril_futex);
 	fibril_t *f = list_pop(&ready_list, fibril_t, link);
 	if (!f)
-		atomic_inc(&threads_in_ipc_wait);
+		atomic_fetch_add_explicit(&threads_in_ipc_wait, 1,
+		    memory_order_relaxed);
 	if (!locked)
 		futex_unlock(&fibril_futex);
 
@@ -316,7 +302,8 @@ static fibril_t *_ready_list_pop(const struct timespec *expires, bool locked)
 	ipc_call_t call = { 0 };
 	rc = _ipc_wait(&call, expires);
 
-	atomic_dec(&threads_in_ipc_wait);
+	atomic_fetch_sub_explicit(&threads_in_ipc_wait, 1,
+	    memory_order_relaxed);
 
 	if (rc != EOK && rc != ENOENT) {
 		/* Return token. */
@@ -385,7 +372,7 @@ static void _ready_list_push(fibril_t *f)
 	list_append(&f->link, &ready_list);
 	_ready_up();
 
-	if (atomic_get(&threads_in_ipc_wait)) {
+	if (atomic_load_explicit(&threads_in_ipc_wait, memory_order_relaxed)) {
 		DPRINTF("Poking.\n");
 		/* Wakeup one thread sleeping in SYS_IPC_WAIT. */
 		ipc_poke();
@@ -810,7 +797,7 @@ int fibril_test_spawn_runners(int n)
 
 	if (!multithreaded) {
 		_ready_debug_check();
-		atomic_set(&ready_semaphore.val, ready_st_count);
+		futex_initialize(&ready_semaphore, ready_st_count);
 		multithreaded = true;
 	}
 

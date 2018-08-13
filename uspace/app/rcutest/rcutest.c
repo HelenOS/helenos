@@ -34,7 +34,7 @@
  * @file rcutest.c
  */
 
-#include <atomic.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -617,8 +617,8 @@ static bool wait_for_exiting_reader(test_info_t *test_info)
 /*--------------------------------------------------------------------*/
 
 typedef struct {
-	atomic_t time;
-	atomic_t max_start_time_of_done_sync;
+	atomic_size_t time;
+	atomic_size_t max_start_time_of_done_sync;
 
 	size_t total_workers;
 	size_t done_reader_cnt;
@@ -629,7 +629,7 @@ typedef struct {
 	size_t read_iters;
 	size_t upd_iters;
 
-	atomic_t seed;
+	atomic_size_t seed;
 	int failed;
 } seq_test_info_t;
 
@@ -650,8 +650,8 @@ static errno_t seq_reader(seq_test_info_t *arg)
 {
 	rcu_register_fibril();
 
-	size_t seed = (size_t) atomic_preinc(&arg->seed);
-	bool first = (seed == 1);
+	size_t seed = atomic_fetch_add(&arg->seed, 1);
+	bool first = (seed == 0);
 
 	for (size_t k = 0; k < arg->read_iters; ++k) {
 		/* Print progress if the first reader fibril. */
@@ -660,7 +660,7 @@ static errno_t seq_reader(seq_test_info_t *arg)
 		}
 
 		rcu_read_lock();
-		atomic_count_t start_time = atomic_preinc(&arg->time);
+		size_t start_time = atomic_fetch_add(&arg->time, 1);
 
 		/* Do some work. */
 		seed = next_rand(seed);
@@ -676,7 +676,7 @@ static errno_t seq_reader(seq_test_info_t *arg)
 		 * and, therefore, should have waited for this reader to exit
 		 * (but did not - since it already announced it completed).
 		 */
-		if (start_time <= atomic_get(&arg->max_start_time_of_done_sync)) {
+		if (start_time <= atomic_load(&arg->max_start_time_of_done_sync)) {
 			arg->failed = 1;
 		}
 
@@ -694,12 +694,12 @@ static errno_t seq_updater(seq_test_info_t *arg)
 	rcu_register_fibril();
 
 	for (size_t k = 0; k < arg->upd_iters; ++k) {
-		atomic_count_t start_time = atomic_get(&arg->time);
+		size_t start_time = atomic_load(&arg->time);
 		rcu_synchronize();
 
 		/* This is prone to a race but if it happens it errs to the safe side.*/
-		if (atomic_get(&arg->max_start_time_of_done_sync) < start_time) {
-			atomic_set(&arg->max_start_time_of_done_sync, start_time);
+		if (atomic_load(&arg->max_start_time_of_done_sync) < start_time) {
+			atomic_store(&arg->max_start_time_of_done_sync, start_time);
 		}
 	}
 
@@ -715,8 +715,8 @@ static bool seq_test(test_info_t *test_info)
 	size_t updater_cnt = test_info->thread_cnt;
 
 	seq_test_info_t info = {
-		.time = { 0 },
-		.max_start_time_of_done_sync = { 0 },
+		.time = 0,
+		.max_start_time_of_done_sync = 0,
 		.read_iters = 10 * 1000,
 		.upd_iters = 5 * 1000,
 		.total_workers = updater_cnt + reader_cnt,
@@ -724,7 +724,7 @@ static bool seq_test(test_info_t *test_info)
 		.done_updater_cnt = 0,
 		.done_cnt_mtx = FIBRIL_MUTEX_INITIALIZER(info.done_cnt_mtx),
 		.done_cnt_changed = FIBRIL_CONDVAR_INITIALIZER(info.done_cnt_changed),
-		.seed = { 0 },
+		.seed = 0,
 		.failed = 0,
 	};
 
