@@ -38,8 +38,6 @@
 
 #ifdef CONFIG_VERIFY_VCC
 
-#define ATOMIC         __specification_attr("atomic_inline", "")
-
 #define READS(ptr)     __specification(reads(ptr))
 #define WRITES(ptr)    __specification(writes(ptr))
 #define REQUIRES(...)  __specification(requires __VA_ARGS__)
@@ -54,8 +52,6 @@
 	REQUIRES(\mutable_array(ptr, nmemb))
 
 #else /* CONFIG_VERIFY_VCC */
-
-#define ATOMIC
 
 #define READS(ptr)
 #define WRITES(ptr)

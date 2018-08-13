@@ -35,7 +35,29 @@
 
 #include <synch/spinlock.h>
 #include <arch/barrier.h>
+#include <arch/asm.h>
 
+unsigned __atomic_fetch_add_4(volatile unsigned *mem, unsigned val, int model)
+{
+	/*
+	 * This implementation is for UP pre-ARMv6 systems where we do not have
+	 * the LDREX and STREX instructions.
+	 */
+	ipl_t ipl = interrupts_disable();
+	unsigned ret = *mem;
+	*mem += val;
+	interrupts_restore(ipl);
+	return ret;
+}
+
+unsigned __atomic_fetch_sub_4(volatile unsigned *mem, unsigned val, int model)
+{
+	ipl_t ipl = interrupts_disable();
+	unsigned ret = *mem;
+	*mem -= val;
+	interrupts_restore(ipl);
+	return ret;
+}
 
 IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(cas_lock, "arm-cas-lock");
 

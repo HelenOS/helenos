@@ -39,6 +39,7 @@
  */
 
 #include <assert.h>
+#include <atomic.h>
 #include <proc/scheduler.h>
 #include <proc/thread.h>
 #include <proc/task.h>

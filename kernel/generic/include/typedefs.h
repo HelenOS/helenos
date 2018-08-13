@@ -38,10 +38,6 @@
 #include <arch/types.h>
 #include <_bits/errno.h>
 
-typedef struct {
-	volatile atomic_count_t count;
-} atomic_t;
-
 typedef void (*function)(void);
 
 typedef uint32_t container_id_t;

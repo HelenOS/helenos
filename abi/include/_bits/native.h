@@ -54,13 +54,10 @@ typedef __UINTPTR_TYPE__ pfn_t;
 typedef __UINTPTR_TYPE__ ipl_t;
 typedef __UINTPTR_TYPE__ sysarg_t;
 typedef __INTPTR_TYPE__  native_t;
-typedef __UINTPTR_TYPE__ atomic_count_t;
-typedef __INTPTR_TYPE__  atomic_signed_t;
 
 #define PRIdn  __PRIdPTR__  /**< Format for native_t. */
 #define PRIun  __PRIuPTR__  /**< Format for sysarg_t. */
 #define PRIxn  __PRIxPTR__  /**< Format for hexadecimal sysarg_t. */
-#define PRIua  __PRIuPTR__  /**< Format for atomic_count_t. */
 
 #endif
 

@@ -35,35 +35,66 @@
 #ifndef KERN_ATOMIC_H_
 #define KERN_ATOMIC_H_
 
+#include <stdbool.h>
 #include <typedefs.h>
-#include <arch/atomic.h>
-#include <verify.h>
+#include <stdatomic.h>
 
-NO_TRACE ATOMIC static inline void atomic_set(atomic_t *val, atomic_count_t i)
-    WRITES(&val->count)
-    REQUIRES_EXTENT_MUTABLE(val)
+typedef size_t atomic_count_t;
+typedef ssize_t atomic_signed_t;
+
+#define PRIua  "zu"          /**< Format for atomic_count_t. */
+
+typedef struct {
+	volatile atomic_size_t count;
+} atomic_t;
+
+static inline void atomic_set(atomic_t *val, atomic_count_t i)
 {
-	val->count = i;
+	atomic_store(&val->count, i);
 }
 
-NO_TRACE ATOMIC static inline atomic_count_t atomic_get(atomic_t *val)
-    REQUIRES_EXTENT_MUTABLE(val)
+static inline atomic_count_t atomic_get(atomic_t *val)
 {
-	return val->count;
+	return atomic_load(&val->count);
 }
 
+static inline size_t atomic_predec(atomic_t *val)
+{
+	return atomic_fetch_sub(&val->count, 1) - 1;
+}
 
-/*
- * If the architecture does not provide operations that are atomic
- * only with respect to the local cpu (eg exception handlers) and
- * not other cpus, implement these cpu local atomic operations with
- * full blown smp-safe atomics.
- */
-#ifndef local_atomic_exchange
+static inline size_t atomic_preinc(atomic_t *val)
+{
+	return atomic_fetch_add(&val->count, 1) + 1;
+}
+
+static inline size_t atomic_postdec(atomic_t *val)
+{
+	return atomic_fetch_sub(&val->count, 1);
+}
+
+static inline size_t atomic_postinc(atomic_t *val)
+{
+	return atomic_fetch_add(&val->count, 1);
+}
+
+static inline void atomic_dec(atomic_t *val)
+{
+	atomic_fetch_sub(&val->count, 1);
+}
+
+static inline void atomic_inc(atomic_t *val)
+{
+	atomic_fetch_add(&val->count, 1);
+}
+
 #define local_atomic_exchange(var_addr, new_val) \
-	__atomic_exchange_n((var_addr), (new_val), __ATOMIC_RELAXED)
-#endif
+	atomic_exchange_explicit(var_addr, new_val, memory_order_relaxed)
 
+static inline bool test_and_set(atomic_t *val)
+{
+	return atomic_exchange(&val->count, 1);
+}
 
 
 #endif
