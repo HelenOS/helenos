@@ -212,7 +212,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 
 	/* Set breakpoint */
 	*((sysarg_t *) cur->address) = 0x0d;
-	smc_coherence(cur->address);
+	smc_coherence(cur->address, 4);
 
 	irq_spinlock_unlock(&bkpoint_lock, true);
 
@@ -245,9 +245,9 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 	}
 
 	((uint32_t *) cur->address)[0] = cur->instruction;
-	smc_coherence(((uint32_t *) cur->address)[0]);
+	smc_coherence(((uint32_t *) cur->address)[0], 4);
 	((uint32_t *) cur->address)[1] = cur->nextinstruction;
-	smc_coherence(((uint32_t *) cur->address)[1]);
+	smc_coherence(((uint32_t *) cur->address)[1], 4);
 
 	cur->address = (uintptr_t) NULL;
 
@@ -357,11 +357,11 @@ void debugger_bpoint(istate_t *istate)
 		if (cur->flags & BKPOINT_REINST) {
 			/* Set breakpoint on first instruction */
 			((uint32_t *) cur->address)[0] = 0x0d;
-			smc_coherence(((uint32_t *)cur->address)[0]);
+			smc_coherence(((uint32_t *)cur->address)[0], 4);
 
 			/* Return back the second */
 			((uint32_t *) cur->address)[1] = cur->nextinstruction;
-			smc_coherence(((uint32_t *) cur->address)[1]);
+			smc_coherence(((uint32_t *) cur->address)[1], 4);
 
 			cur->flags &= ~BKPOINT_REINST;
 			irq_spinlock_unlock(&bkpoint_lock, false);
@@ -379,7 +379,7 @@ void debugger_bpoint(istate_t *istate)
 
 		/* Return first instruction back */
 		((uint32_t *)cur->address)[0] = cur->instruction;
-		smc_coherence(cur->address);
+		smc_coherence(cur->address, 4);
 
 		if (!(cur->flags & BKPOINT_ONESHOT)) {
 			/* Set Breakpoint on next instruction */

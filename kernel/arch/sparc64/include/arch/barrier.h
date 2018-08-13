@@ -115,13 +115,7 @@ NO_TRACE static inline void membar(void)
 
 #define FLUSH_INVAL_MIN  4
 
-#define smc_coherence(a) \
-	do { \
-		write_barrier(); \
-		flush((a)); \
-	} while (0)
-
-#define smc_coherence_block(a, l) \
+#define smc_coherence(a, l) \
 	do { \
 		unsigned long i; \
 		write_barrier(); \
@@ -132,13 +126,7 @@ NO_TRACE static inline void membar(void)
 
 #elif defined (US3)
 
-#define smc_coherence(a) \
-	do { \
-		write_barrier(); \
-		flush_pipeline(); \
-	} while (0)
-
-#define smc_coherence_block(a, l) \
+#define smc_coherence(a, l) \
 	do { \
 		write_barrier(); \
 		flush_pipeline(); \

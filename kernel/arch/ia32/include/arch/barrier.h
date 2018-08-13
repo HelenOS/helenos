@@ -105,8 +105,7 @@ NO_TRACE static inline void cpuid_serialization(void)
  * queueing in the store buffer drain to the memory (even though it would be
  * sufficient for them to drain to the D-cache).
  */
-#define smc_coherence(a)           write_barrier()
-#define smc_coherence_block(a, l)  write_barrier()
+#define smc_coherence(a, l)  write_barrier()
 
 #endif	/* KERNEL */
 

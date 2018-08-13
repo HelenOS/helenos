@@ -120,11 +120,11 @@ void mips32_pre_mm_init(void)
 
 	/* Copy the exception vectors to the right places */
 	memcpy(TLB_EXC, (char *) tlb_refill_entry, EXCEPTION_JUMP_SIZE);
-	smc_coherence_block(TLB_EXC, EXCEPTION_JUMP_SIZE);
+	smc_coherence(TLB_EXC, EXCEPTION_JUMP_SIZE);
 	memcpy(NORM_EXC, (char *) exception_entry, EXCEPTION_JUMP_SIZE);
-	smc_coherence_block(NORM_EXC, EXCEPTION_JUMP_SIZE);
+	smc_coherence(NORM_EXC, EXCEPTION_JUMP_SIZE);
 	memcpy(CACHE_EXC, (char *) cache_error_entry, EXCEPTION_JUMP_SIZE);
-	smc_coherence_block(CACHE_EXC, EXCEPTION_JUMP_SIZE);
+	smc_coherence(CACHE_EXC, EXCEPTION_JUMP_SIZE);
 
 	/*
 	 * Switch to BEV normal level so that exception vectors point to the

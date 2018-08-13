@@ -333,7 +333,7 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 			memcpy((void *) kpage, (void *) (base + i * PAGE_SIZE),
 			    PAGE_SIZE);
 			if (entry->p_flags & PF_X) {
-				smc_coherence_block((void *) kpage, PAGE_SIZE);
+				smc_coherence((void *) kpage, PAGE_SIZE);
 			}
 			km_temporary_page_put(kpage);
 			dirty = true;
@@ -384,7 +384,7 @@ int elf_page_fault(as_area_t *area, uintptr_t upage, pf_access_t access)
 		    (void *) (base + i * PAGE_SIZE + pad_lo),
 		    PAGE_SIZE - pad_lo - pad_hi);
 		if (entry->p_flags & PF_X) {
-			smc_coherence_block((void *) (kpage + pad_lo),
+			smc_coherence((void *) (kpage + pad_lo),
 			    PAGE_SIZE - pad_lo - pad_hi);
 		}
 		memsetb((void *) kpage, pad_lo, 0);

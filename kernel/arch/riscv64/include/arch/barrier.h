@@ -48,8 +48,7 @@
 
 #ifdef KERNEL
 
-#define smc_coherence(addr)
-#define smc_coherence_block(addr, size)
+#define smc_coherence(addr, size)
 
 #endif /* KERNEL */
 

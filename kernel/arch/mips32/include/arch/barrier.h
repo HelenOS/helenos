@@ -47,8 +47,7 @@
 
 #ifdef KERNEL
 
-#define smc_coherence(a)
-#define smc_coherence_block(a, l)
+#define smc_coherence(a, l)
 
 #endif	/* KERNEL */
 

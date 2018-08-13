@@ -61,19 +61,7 @@
  * chapter 5.1.5.2
  */
 
-NO_TRACE static inline void smc_coherence(void *addr)
-{
-	asm volatile (
-	    "dcbst 0, %[addr]\n"
-	    "sync\n"
-	    "icbi 0, %[addr]\n"
-	    "sync\n"
-	    "isync\n"
-	    :: [addr] "r" (addr)
-	);
-}
-
-NO_TRACE static inline void smc_coherence_block(void *addr, unsigned int len)
+NO_TRACE static inline void smc_coherence(void *addr, unsigned int len)
 {
 	unsigned int i;
 

@@ -116,28 +116,23 @@
  * maintenance to other places than just smc.
  */
 
-#if defined PROCESSOR_ARCH_armv7_a | defined PROCESSOR_ARCH_armv6 | defined KERNEL
-//TODO might be PL1 only on armv5-
-#define smc_coherence(a) \
-do { \
-	dcache_clean_mva_pou(ALIGN_DOWN((uintptr_t) a, CP15_C7_MVA_ALIGN)); \
-	write_barrier();               /* Wait for completion */\
-	icache_invalidate();\
-	inst_barrier();                /* Wait for Inst refetch */\
-} while (0)
+#ifdef KERNEL
+
 /*
  * @note: Cache type register is not available in uspace. We would need
  * to export the cache line value, or use syscall for uspace smc_coherence
  */
-#define smc_coherence_block(a, l) \
+#define smc_coherence(a, l) \
 do { \
 	for (uintptr_t addr = (uintptr_t) a; addr < (uintptr_t) a + l; \
 	    addr += CP15_C7_MVA_ALIGN) \
-		smc_coherence(addr); \
+		dcache_clean_mva_pou(ALIGN_DOWN((uintptr_t) a, CP15_C7_MVA_ALIGN)); \
+	write_barrier();               /* Wait for completion */\
+	icache_invalidate();\
+	write_barrier();\
+	inst_barrier();                /* Wait for Inst refetch */\
 } while (0)
-#else
-#define smc_coherence(a)
-#define smc_coherence_block(a, l)
+
 #endif
 
 #endif	/* KERNEL */
