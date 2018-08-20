@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Jiri Svoboda
+ * Copyright (c) 2018 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <str.h>
 #include <str_error.h>
-#include <task.h>
 #include <vfs/vfs.h>
 #include <vol.h>
 
@@ -67,6 +66,7 @@
 
 /** HelenOS live CD volume label */
 #define CD_VOL_LABEL "HelenOS-CD"
+/** XXX Should get this from the volume server */
 #define CD_MOUNT_POINT "/vol/" CD_VOL_LABEL
 
 #define BOOT_FILES_SRC CD_MOUNT_POINT
@@ -272,7 +272,7 @@ static errno_t sysinst_copy_boot_blocks(const char *devp)
 	if (rc != EOK)
 		return EIO;
 
-	printf("sysinst_copy_boot_blocks: write boot block\n");
+	printf("sysinst_copy_boot_blocks: write core blocks\n");
 	/* XXX Must pad last block with zeros */
 	rc = block_write_direct(sid, core_start, core_blocks, core_img);
 	if (rc != EOK)
