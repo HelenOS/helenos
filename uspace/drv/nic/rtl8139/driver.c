@@ -312,7 +312,7 @@ static void rtl8139_wol_virtue_rem(nic_t *nic_data,
     const nic_wol_virtue_t *virtue);
 
 static errno_t rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
-    const struct timeval *period);
+    const struct timespec *period);
 static void rtl8139_poll(nic_t *nic_data);
 
 /** Network interface options for RTL8139 card driver */
@@ -2067,7 +2067,7 @@ static void rtl8139_wol_virtue_rem(nic_t *nic_data,
  *  @returns ENOTSUP if the mode is not supported
  */
 static errno_t rtl8139_poll_mode_change(nic_t *nic_data, nic_poll_mode_t mode,
-    const struct timeval *period)
+    const struct timespec *period)
 {
 	assert(nic_data);
 	errno_t rc = EOK;

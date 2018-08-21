@@ -36,6 +36,7 @@
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "private/libc.h"
 #include "private/scanf.h"
 #include "private/stdlib.h"

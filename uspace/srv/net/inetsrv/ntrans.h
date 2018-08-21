@@ -50,7 +50,7 @@ typedef struct {
 extern errno_t ntrans_add(addr128_t, addr48_t);
 extern errno_t ntrans_remove(addr128_t);
 extern errno_t ntrans_lookup(addr128_t, addr48_t);
-extern errno_t ntrans_wait_timeout(suseconds_t);
+extern errno_t ntrans_wait_timeout(usec_t);
 
 #endif
 

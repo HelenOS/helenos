@@ -40,6 +40,8 @@
 
 #include <_bits/NULL.h>
 
+#include "libc/time.h"
+
 #ifndef CLOCKS_PER_SEC
 #define CLOCKS_PER_SEC (1000000L)
 #endif
@@ -56,9 +58,20 @@ struct sigevent;
 #undef CLOCK_REALTIME
 #define CLOCK_REALTIME ((clockid_t) 0)
 
-struct timespec {
-	time_t tv_sec; /* Seconds. */
-	long tv_nsec; /* Nanoseconds. */
+#define DST_NONE  0
+
+#define ASCTIME_BUF_LEN  26
+
+typedef long suseconds_t;
+
+struct timeval {
+	time_t tv_sec;        /* seconds */
+	suseconds_t tv_usec;  /* microseconds */
+};
+
+struct timezone {
+	int tz_minuteswest;  /* minutes W of Greenwich */
+	int tz_dsttime;      /* type of dst correction */
 };
 
 struct itimerspec {
@@ -106,6 +119,7 @@ extern int clock_nanosleep(clockid_t clock_id, int flags,
 /* CPU Time */
 extern clock_t clock(void);
 
+extern int gettimeofday(struct timeval *, struct timezone *);
 
 #endif  // POSIX_TIME_H_
 

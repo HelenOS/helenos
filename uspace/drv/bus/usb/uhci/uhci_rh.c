@@ -33,7 +33,7 @@
 #include <errno.h>
 #include <macros.h>
 #include <mem.h>
-#include <sys/time.h>
+#include <time.h>
 
 #include <usb/debug.h>
 #include <usb/descriptor.h>

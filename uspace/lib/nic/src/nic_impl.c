@@ -120,7 +120,7 @@ errno_t nic_set_state_impl(ddf_fun_t *fun, nic_device_state_t state)
 		    &nic_data->default_mac);
 		nic_data->poll_mode = nic_data->default_poll_mode;
 		memcpy(&nic_data->poll_period, &nic_data->default_poll_period,
-		    sizeof(struct timeval));
+		    sizeof(struct timespec));
 		if (rc != EOK) {
 			/*
 			 * We have already ran the on stopped handler, even if we
@@ -713,12 +713,12 @@ errno_t nic_wol_virtue_get_caps_impl(ddf_fun_t *fun, nic_wv_type_t type, int *co
  * @return EPARTY	Error in communication protocol
  */
 errno_t nic_poll_get_mode_impl(ddf_fun_t *fun,
-    nic_poll_mode_t *mode, struct timeval *period)
+    nic_poll_mode_t *mode, struct timespec *period)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	fibril_rwlock_read_lock(&nic_data->main_lock);
 	*mode = nic_data->poll_mode;
-	memcpy(period, &nic_data->poll_period, sizeof(struct timeval));
+	memcpy(period, &nic_data->poll_period, sizeof(struct timespec));
 	fibril_rwlock_read_unlock(&nic_data->main_lock);
 	return EOK;
 }
@@ -736,7 +736,7 @@ errno_t nic_poll_get_mode_impl(ddf_fun_t *fun,
  * @return EPARTY	Error in communication protocol
  */
 errno_t nic_poll_set_mode_impl(ddf_fun_t *fun,
-    nic_poll_mode_t mode, const struct timeval *period)
+    nic_poll_mode_t mode, const struct timespec *period)
 {
 	nic_t *nic_data = nic_get_from_ddf_fun(fun);
 	/*
@@ -752,9 +752,9 @@ errno_t nic_poll_set_mode_impl(ddf_fun_t *fun,
 	if (mode == NIC_POLL_PERIODIC || mode == NIC_POLL_SOFTWARE_PERIODIC) {
 		if (period == NULL)
 			return EINVAL;
-		if (period->tv_sec == 0 && period->tv_usec == 0)
+		if (period->tv_sec == 0 && period->tv_nsec == 0)
 			return EINVAL;
-		if (period->tv_sec < 0 || period->tv_usec < 0)
+		if (period->tv_sec < 0 || period->tv_nsec < 0)
 			return EINVAL;
 	}
 	fibril_rwlock_write_lock(&nic_data->main_lock);

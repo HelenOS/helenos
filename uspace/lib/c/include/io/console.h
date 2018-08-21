@@ -35,7 +35,7 @@
 #ifndef LIBC_IO_CONSOLE_H_
 #define LIBC_IO_CONSOLE_H_
 
-#include <sys/time.h>
+#include <time.h>
 #include <io/concaps.h>
 #include <io/kbd_event.h>
 #include <io/cons_event.h>
@@ -84,7 +84,7 @@ extern void console_cursor_visibility(console_ctrl_t *, bool);
 extern errno_t console_get_color_cap(console_ctrl_t *, sysarg_t *);
 extern bool console_get_event(console_ctrl_t *, cons_event_t *);
 extern bool console_get_event_timeout(console_ctrl_t *, cons_event_t *,
-    suseconds_t *);
+    usec_t *);
 
 #endif
 

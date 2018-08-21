@@ -105,9 +105,9 @@ extern errno_t nic_offload_probe(async_sess_t *, uint32_t *, uint32_t *);
 extern errno_t nic_offload_set(async_sess_t *, uint32_t, uint32_t);
 
 extern errno_t nic_poll_get_mode(async_sess_t *, nic_poll_mode_t *,
-    struct timeval *);
+    struct timespec *);
 extern errno_t nic_poll_set_mode(async_sess_t *, nic_poll_mode_t,
-    const struct timeval *);
+    const struct timespec *);
 extern errno_t nic_poll_now(async_sess_t *);
 
 #endif

@@ -236,7 +236,8 @@ void usb_port_fini(usb_port_t *port)
 	fibril_mutex_unlock(&port->guard);
 }
 
-int usb_port_condvar_wait_timeout(usb_port_t *port, fibril_condvar_t *cv, suseconds_t timeout)
+int usb_port_condvar_wait_timeout(usb_port_t *port, fibril_condvar_t *cv,
+    usec_t timeout)
 {
 	assert(port);
 	assert(port->state == PORT_CONNECTING);

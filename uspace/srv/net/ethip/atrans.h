@@ -44,7 +44,7 @@
 extern errno_t atrans_add(addr32_t, addr48_t);
 extern errno_t atrans_remove(addr32_t);
 extern errno_t atrans_lookup(addr32_t, addr48_t);
-extern errno_t atrans_lookup_timeout(addr32_t, suseconds_t, addr48_t);
+extern errno_t atrans_lookup_timeout(addr32_t, usec_t, addr48_t);
 
 #endif
 

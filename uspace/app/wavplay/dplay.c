@@ -41,7 +41,7 @@
 #include <fibril_synch.h>
 #include <pcm/format.h>
 #include <as.h>
-#include <sys/time.h>
+#include <time.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -241,7 +241,8 @@ static void buffer_advance(playback_t *pb, size_t bytes)
 }
 
 #define DPRINTF(f, ...) \
-	printf("%.2lu:%.6lu   "f, time.tv_sec % 100, time.tv_usec, __VA_ARGS__)
+	printf("%.2lld:%.6lld   "f, time.tv_sec % 100, \
+	    NSEC2USEC(time.tv_nsec), __VA_ARGS__)
 
 /**
  * Start playback using buffer position api.
@@ -254,10 +255,10 @@ static void play(playback_t *pb)
 	pb->buffer.write_ptr = pb->buffer.base;
 	printf("Playing: %dHz, %s, %d channel(s).\n", pb->f.sampling_rate,
 	    pcm_sample_format_str(pb->f.sample_format), pb->f.channels);
-	useconds_t work_time = 50000; /* 50 ms */
+	usec_t work_time = 50000; /* 50 ms */
 	bool started = false;
 	size_t pos = 0;
-	struct timeval time = { 0 };
+	struct timespec time = { 0 };
 	getuptime(&time);
 	while (true) {
 		size_t available = buffer_avail(pb, pos);
@@ -302,13 +303,12 @@ static void play(playback_t *pb)
 			}
 		}
 		const size_t to_play = buffer_occupied(pb, pos);
-		const useconds_t usecs =
-		    pcm_format_size_to_usec(to_play, &pb->f);
+		const usec_t usecs = pcm_format_size_to_usec(to_play, &pb->f);
 
 		/* Compute delay time */
-		const useconds_t real_delay = (usecs > work_time) ?
+		const usec_t real_delay = (usecs > work_time) ?
 		    usecs - work_time : 0;
-		DPRINTF("POS %zu: %u usecs (%u) to play %zu bytes.\n",
+		DPRINTF("POS %zu: %lld usecs (%lld) to play %zu bytes.\n",
 		    pos, usecs, real_delay, to_play);
 		if (real_delay)
 			fibril_usleep(real_delay);

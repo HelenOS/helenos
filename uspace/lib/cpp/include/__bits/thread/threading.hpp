@@ -57,7 +57,7 @@ namespace std::aux
         using mutex_type        = hel::fibril_mutex_t;
         using thread_type       = hel::fid_t;
         using condvar_type      = hel::fibril_condvar_t;
-        using time_unit         = hel::suseconds_t;
+        using time_unit         = hel::usec_t;
         using shared_mutex_type = hel::fibril_rwlock_t;
 
         struct thread

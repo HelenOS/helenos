@@ -222,10 +222,10 @@ bool console_get_event(console_ctrl_t *ctrl, cons_event_t *event)
 }
 
 bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
-    suseconds_t *timeout)
+    usec_t *timeout)
 {
-	struct timeval t0;
-	gettimeofday(&t0, NULL);
+	struct timespec t0;
+	getuptime(&t0);
 
 	if (ctrl->input_aid == 0) {
 		async_exch_t *exch = async_exchange_begin(ctrl->input_sess);
@@ -256,9 +256,9 @@ bool console_get_event_timeout(console_ctrl_t *ctrl, cons_event_t *event,
 	}
 
 	/* Update timeout */
-	struct timeval t1;
-	gettimeofday(&t1, NULL);
-	*timeout -= tv_sub_diff(&t1, &t0);
+	struct timespec t1;
+	getuptime(&t1);
+	*timeout -= NSEC2USEC(ts_sub_diff(&t1, &t0));
 
 	return true;
 }

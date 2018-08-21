@@ -74,7 +74,7 @@ typedef struct rtc {
 	/** number of connected clients */
 	int clients_connected;
 	/** time at which the system booted */
-	struct timeval boot_time;
+	struct timespec boot_time;
 } rtc_t;
 
 static rtc_t *dev_rtc(ddf_dev_t *dev);
@@ -203,7 +203,7 @@ rtc_dev_initialize(rtc_t *rtc)
 	ddf_msg(LVL_DEBUG, "rtc_dev_initialize %s", ddf_dev_get_name(rtc->dev));
 
 	rtc->boot_time.tv_sec = 0;
-	rtc->boot_time.tv_usec = 0;
+	rtc->boot_time.tv_nsec = 0;
 	rtc->clients_connected = 0;
 
 	hw_resource_list_t hw_resources;
@@ -330,13 +330,13 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		 * device because it has already been cached.
 		 */
 
-		struct timeval curtime;
+		struct timespec curtime;
 
 		getuptime(&curtime);
-		tv_add(&curtime, &rtc->boot_time);
+		ts_add(&curtime, &rtc->boot_time);
 		fibril_mutex_unlock(&rtc->mutex);
 
-		return time_tv2tm(&curtime, t);
+		return time_ts2tm(&curtime, t);
 	}
 
 	/* Check if the RTC battery is OK */
@@ -345,8 +345,8 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 		return EIO;
 	}
 
-	/* Microseconds are below RTC's resolution, assume 0. */
-	t->tm_usec = 0;
+	/* Nanoseconds are below RTC's resolution, assume 0. */
+	t->tm_nsec = 0;
 
 	/* now read the registers */
 	do {
@@ -418,12 +418,12 @@ rtc_time_get(ddf_fun_t *fun, struct tm *t)
 	if (r < 0)
 		result = EINVAL;
 	else {
-		struct timeval uptime;
+		struct timespec uptime;
 
 		getuptime(&uptime);
 		rtc->boot_time.tv_sec = r;
-		rtc->boot_time.tv_usec = t->tm_usec;	/* normalized */
-		tv_sub(&rtc->boot_time, &uptime);
+		rtc->boot_time.tv_nsec = t->tm_nsec;	/* normalized */
+		ts_sub(&rtc->boot_time, &uptime);
 		result = EOK;
 	}
 
@@ -444,8 +444,8 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 {
 	bool bcd_mode;
 	time_t norm_time;
-	struct timeval uptime;
-	struct timeval ntv;
+	struct timespec uptime;
+	struct timespec ntv;
 	int  reg_b;
 	int  reg_a;
 	int  epoch;
@@ -456,10 +456,10 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 		return EINVAL;
 
 	ntv.tv_sec = norm_time;
-	ntv.tv_usec = t->tm_usec;
+	ntv.tv_nsec = t->tm_nsec;
 	getuptime(&uptime);
 
-	if (tv_gteq(&uptime, &ntv)) {
+	if (ts_gteq(&uptime, &ntv)) {
 		/* This is not acceptable */
 		return EINVAL;
 	}
@@ -473,7 +473,7 @@ rtc_time_set(ddf_fun_t *fun, struct tm *t)
 
 	/* boot_time must be recomputed */
 	rtc->boot_time.tv_sec = 0;
-	rtc->boot_time.tv_usec = 0;
+	rtc->boot_time.tv_nsec = 0;
 
 	/* Detect the RTC epoch */
 	if (rtc_register_read(rtc, RTC_YEAR) < 100)

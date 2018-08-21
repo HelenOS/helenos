@@ -39,7 +39,7 @@
 #include <adt/list.h>
 #include <fibril.h>
 #include <fibril_synch.h>
-#include <sys/time.h>
+#include <time.h>
 #include <stdbool.h>
 
 /** Session data */

@@ -38,7 +38,7 @@
 #include <fibril.h>
 #include <adt/list.h>
 #include <tls.h>
-#include <sys/time.h>
+#include <time.h>
 #include <stdbool.h>
 
 typedef struct {
@@ -137,7 +137,7 @@ typedef struct {
 	/** FID of fibril executing handler or 0 if handler is not running */
 	fid_t handler_fid;
 
-	suseconds_t delay;
+	usec_t delay;
 	fibril_timer_fun_t fun;
 	void *arg;
 } fibril_timer_t;
@@ -180,16 +180,16 @@ extern bool fibril_rwlock_is_locked(fibril_rwlock_t *);
 
 extern void fibril_condvar_initialize(fibril_condvar_t *);
 extern errno_t fibril_condvar_wait_timeout(fibril_condvar_t *, fibril_mutex_t *,
-    suseconds_t);
+    usec_t);
 extern void fibril_condvar_wait(fibril_condvar_t *, fibril_mutex_t *);
 extern void fibril_condvar_signal(fibril_condvar_t *);
 extern void fibril_condvar_broadcast(fibril_condvar_t *);
 
 extern fibril_timer_t *fibril_timer_create(fibril_mutex_t *);
 extern void fibril_timer_destroy(fibril_timer_t *);
-extern void fibril_timer_set(fibril_timer_t *, suseconds_t, fibril_timer_fun_t,
+extern void fibril_timer_set(fibril_timer_t *, usec_t, fibril_timer_fun_t,
     void *);
-extern void fibril_timer_set_locked(fibril_timer_t *, suseconds_t,
+extern void fibril_timer_set_locked(fibril_timer_t *, usec_t,
     fibril_timer_fun_t, void *);
 extern fibril_timer_state_t fibril_timer_clear(fibril_timer_t *);
 extern fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *);
@@ -197,14 +197,14 @@ extern fibril_timer_state_t fibril_timer_clear_locked(fibril_timer_t *);
 extern void fibril_semaphore_initialize(fibril_semaphore_t *, long);
 extern void fibril_semaphore_up(fibril_semaphore_t *);
 extern void fibril_semaphore_down(fibril_semaphore_t *);
-extern errno_t fibril_semaphore_down_timeout(fibril_semaphore_t *, suseconds_t);
+extern errno_t fibril_semaphore_down_timeout(fibril_semaphore_t *, usec_t);
 extern void fibril_semaphore_close(fibril_semaphore_t *);
 
 typedef struct mpsc mpsc_t;
 extern mpsc_t *mpsc_create(size_t);
 extern void mpsc_destroy(mpsc_t *);
 extern errno_t mpsc_send(mpsc_t *, const void *);
-extern errno_t mpsc_receive(mpsc_t *, void *, const struct timeval *);
+extern errno_t mpsc_receive(mpsc_t *, void *, const struct timespec *);
 extern void mpsc_close(mpsc_t *);
 
 #endif

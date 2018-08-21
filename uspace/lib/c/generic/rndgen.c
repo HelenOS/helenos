@@ -51,15 +51,15 @@
 errno_t rndgen_create(rndgen_t **rrndgen)
 {
 	rndgen_t *rndgen;
-	struct timeval tv;
+	struct timespec ts;
 
 	rndgen = calloc(1, sizeof(rndgen_t));
 	if (rndgen == NULL)
 		return ENOMEM;
 
 	/* XXX This is a rather poor way of generating random numbers */
-	gettimeofday(&tv, NULL);
-	rndgen->seed = tv.tv_sec ^ tv.tv_usec;
+	getuptime(&ts);
+	rndgen->seed = ts.tv_sec ^ ts.tv_nsec;
 
 	*rrndgen = rndgen;
 	return EOK;

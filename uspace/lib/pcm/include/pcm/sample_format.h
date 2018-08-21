@@ -166,7 +166,7 @@ static inline size_t pcm_sample_format_size_to_frames(size_t size,
  * @param format PCM sample format.
  * @return Number of useconds of audio data.
  */
-static inline useconds_t pcm_sample_format_size_to_usec(size_t size,
+static inline usec_t pcm_sample_format_size_to_usec(size_t size,
     unsigned sample_rate, unsigned channels, pcm_sample_format_t format)
 {
 	const unsigned long long frames =

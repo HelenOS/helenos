@@ -326,7 +326,7 @@ static errno_t e1000_get_cable_state(ddf_fun_t *fun, nic_cable_state_t *state)
 	return EOK;
 }
 
-static uint16_t e1000_calculate_itr_interval_from_usecs(suseconds_t useconds)
+static uint16_t e1000_calculate_itr_interval_from_usecs(usec_t useconds)
 {
 	return useconds * 4;
 }
@@ -1298,15 +1298,15 @@ static void e1000_poll(nic_t *nic)
 	e1000_interrupt_handler_impl(nic, icr);
 }
 
-/** Calculates ITR register interrupt from timeval structure
+/** Calculates ITR register interrupt from timespec structure
  *
  * @param period Period
  *
  */
-static uint16_t e1000_calculate_itr_interval(const struct timeval *period)
+static uint16_t e1000_calculate_itr_interval(const struct timespec *period)
 {
 	// TODO: use also tv_sec
-	return e1000_calculate_itr_interval_from_usecs(period->tv_usec);
+	return e1000_calculate_itr_interval_from_usecs(NSEC2USEC(period->tv_nsec));
 }
 
 /** Set polling mode
@@ -1320,7 +1320,7 @@ static uint16_t e1000_calculate_itr_interval(const struct timeval *period)
  *
  */
 static errno_t e1000_poll_mode_change(nic_t *nic, nic_poll_mode_t mode,
-    const struct timeval *period)
+    const struct timespec *period)
 {
 	assert(nic);
 
@@ -2181,9 +2181,9 @@ errno_t e1000_dev_add(ddf_dev_t *dev)
 	if (rc != EOK)
 		goto err_rx_structure;
 
-	struct timeval period;
+	struct timespec period;
 	period.tv_sec = 0;
-	period.tv_usec = E1000_DEFAULT_INTERRUPT_INTERVAL_USEC;
+	period.tv_nsec = USEC2NSEC(E1000_DEFAULT_INTERRUPT_INTERVAL_USEC);
 	rc = nic_report_poll_mode(nic, NIC_POLL_PERIODIC, &period);
 	if (rc != EOK)
 		goto err_rx_structure;

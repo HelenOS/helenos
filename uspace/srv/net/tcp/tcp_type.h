@@ -191,7 +191,7 @@ typedef struct {
 /** NCSim queue entry */
 typedef struct {
 	link_t link;
-	suseconds_t delay;
+	usec_t delay;
 	inet_ep2_t epp;
 	tcp_segment_t *seg;
 } tcp_squeue_entry_t;

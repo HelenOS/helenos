@@ -36,7 +36,7 @@
 #include <fibril.h>
 #include <async.h>
 #include <adt/list.h>
-#include <sys/time.h>
+#include <time.h>
 #include <errno.h>
 #include <assert.h>
 #include <stacktrace.h>
@@ -389,7 +389,7 @@ void fibril_condvar_initialize(fibril_condvar_t *fcv)
  */
 errno_t
 fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
-    suseconds_t timeout)
+    usec_t timeout)
 {
 	assert(fibril_mutex_is_locked(fm));
 
@@ -399,12 +399,12 @@ fibril_condvar_wait_timeout(fibril_condvar_t *fcv, fibril_mutex_t *fm,
 	awaiter_t wdata = AWAITER_INIT;
 	wdata.mutex = fm;
 
-	struct timeval tv;
-	struct timeval *expires = NULL;
+	struct timespec ts;
+	struct timespec *expires = NULL;
 	if (timeout) {
-		getuptime(&tv);
-		tv_add_diff(&tv, timeout);
-		expires = &tv;
+		getuptime(&ts);
+		ts_add_diff(&ts, USEC2NSEC(timeout));
+		expires = &ts;
 	}
 
 	futex_lock(&fibril_synch_futex);
@@ -556,7 +556,7 @@ void fibril_timer_destroy(fibril_timer_t *timer)
  * @param fun		Callback function
  * @param arg		Argument for @a fun
  */
-void fibril_timer_set(fibril_timer_t *timer, suseconds_t delay,
+void fibril_timer_set(fibril_timer_t *timer, usec_t delay,
     fibril_timer_fun_t fun, void *arg)
 {
 	fibril_mutex_lock(timer->lockp);
@@ -574,7 +574,7 @@ void fibril_timer_set(fibril_timer_t *timer, suseconds_t delay,
  * @param fun		Callback function
  * @param arg		Argument for @a fun
  */
-void fibril_timer_set_locked(fibril_timer_t *timer, suseconds_t delay,
+void fibril_timer_set_locked(fibril_timer_t *timer, usec_t delay,
     fibril_timer_fun_t fun, void *arg)
 {
 	assert(fibril_mutex_is_locked(timer->lockp));
@@ -727,7 +727,7 @@ void fibril_semaphore_down(fibril_semaphore_t *sem)
 	fibril_wait_for(&wdata.event);
 }
 
-errno_t fibril_semaphore_down_timeout(fibril_semaphore_t *sem, suseconds_t timeout)
+errno_t fibril_semaphore_down_timeout(fibril_semaphore_t *sem, usec_t timeout)
 {
 	if (timeout < 0)
 		return ETIMEOUT;
@@ -750,12 +750,12 @@ errno_t fibril_semaphore_down_timeout(fibril_semaphore_t *sem, suseconds_t timeo
 
 	futex_unlock(&fibril_synch_futex);
 
-	struct timeval tv;
-	struct timeval *expires = NULL;
+	struct timespec ts;
+	struct timespec *expires = NULL;
 	if (timeout) {
-		getuptime(&tv);
-		tv_add_diff(&tv, timeout);
-		expires = &tv;
+		getuptime(&ts);
+		ts_add_diff(&ts, USEC2NSEC(timeout));
+		expires = &ts;
 	}
 
 	errno_t rc = fibril_wait_timeout(&wdata.event, expires);

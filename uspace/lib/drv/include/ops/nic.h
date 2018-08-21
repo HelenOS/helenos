@@ -38,7 +38,7 @@
 
 #include <ipc/services.h>
 #include <nic/nic.h>
-#include <sys/time.h>
+#include <time.h>
 #include "../ddf/driver.h"
 
 typedef struct nic_iface {
@@ -103,9 +103,9 @@ typedef struct nic_iface {
 	errno_t (*offload_set)(ddf_fun_t *, uint32_t, uint32_t);
 
 	errno_t (*poll_get_mode)(ddf_fun_t *, nic_poll_mode_t *,
-	    struct timeval *);
+	    struct timespec *);
 	errno_t (*poll_set_mode)(ddf_fun_t *, nic_poll_mode_t,
-	    const struct timeval *);
+	    const struct timespec *);
 	errno_t (*poll_now)(ddf_fun_t *);
 } nic_iface_t;
 

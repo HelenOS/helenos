@@ -38,7 +38,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/time.h>
+#include <time.h>
 #include <byteorder.h>
 #include <abi/ddi/irq.h>
 #include <device/hw_res.h>
@@ -137,7 +137,7 @@ static inline uint64_t pio_read_be64(const ioport64_t *reg)
 }
 
 static inline uint8_t pio_change_8(ioport8_t *reg, uint8_t val, uint8_t mask,
-    useconds_t delay)
+    usec_t delay)
 {
 	uint8_t v = pio_read_8(reg);
 	udelay(delay);
@@ -146,7 +146,7 @@ static inline uint8_t pio_change_8(ioport8_t *reg, uint8_t val, uint8_t mask,
 }
 
 static inline uint16_t pio_change_16(ioport16_t *reg, uint16_t val,
-    uint16_t mask, useconds_t delay)
+    uint16_t mask, usec_t delay)
 {
 	uint16_t v = pio_read_16(reg);
 	udelay(delay);
@@ -155,7 +155,7 @@ static inline uint16_t pio_change_16(ioport16_t *reg, uint16_t val,
 }
 
 static inline uint32_t pio_change_32(ioport32_t *reg, uint32_t val,
-    uint32_t mask, useconds_t delay)
+    uint32_t mask, usec_t delay)
 {
 	uint32_t v = pio_read_32(reg);
 	udelay(delay);
@@ -164,7 +164,7 @@ static inline uint32_t pio_change_32(ioport32_t *reg, uint32_t val,
 }
 
 static inline uint64_t pio_change_64(ioport64_t *reg, uint64_t val,
-    uint64_t mask, useconds_t delay)
+    uint64_t mask, usec_t delay)
 {
 	uint64_t v = pio_read_64(reg);
 	udelay(delay);
@@ -172,36 +172,36 @@ static inline uint64_t pio_change_64(ioport64_t *reg, uint64_t val,
 	return v;
 }
 
-static inline uint8_t pio_set_8(ioport8_t *r, uint8_t v, useconds_t d)
+static inline uint8_t pio_set_8(ioport8_t *r, uint8_t v, usec_t d)
 {
 	return pio_change_8(r, v, 0, d);
 }
-static inline uint16_t pio_set_16(ioport16_t *r, uint16_t v, useconds_t d)
+static inline uint16_t pio_set_16(ioport16_t *r, uint16_t v, usec_t d)
 {
 	return pio_change_16(r, v, 0, d);
 }
-static inline uint32_t pio_set_32(ioport32_t *r, uint32_t v, useconds_t d)
+static inline uint32_t pio_set_32(ioport32_t *r, uint32_t v, usec_t d)
 {
 	return pio_change_32(r, v, 0, d);
 }
-static inline uint64_t pio_set_64(ioport64_t *r, uint64_t v, useconds_t d)
+static inline uint64_t pio_set_64(ioport64_t *r, uint64_t v, usec_t d)
 {
 	return pio_change_64(r, v, 0, d);
 }
 
-static inline uint8_t pio_clear_8(ioport8_t *r, uint8_t v, useconds_t d)
+static inline uint8_t pio_clear_8(ioport8_t *r, uint8_t v, usec_t d)
 {
 	return pio_change_8(r, 0, v, d);
 }
-static inline uint16_t pio_clear_16(ioport16_t *r, uint16_t v, useconds_t d)
+static inline uint16_t pio_clear_16(ioport16_t *r, uint16_t v, usec_t d)
 {
 	return pio_change_16(r, 0, v, d);
 }
-static inline uint32_t pio_clear_32(ioport32_t *r, uint32_t v, useconds_t d)
+static inline uint32_t pio_clear_32(ioport32_t *r, uint32_t v, usec_t d)
 {
 	return pio_change_32(r, 0, v, d);
 }
-static inline uint64_t pio_clear_64(ioport64_t *r, uint64_t v, useconds_t d)
+static inline uint64_t pio_clear_64(ioport64_t *r, uint64_t v, usec_t d)
 {
 	return pio_change_64(r, 0, v, d);
 }

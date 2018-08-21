@@ -37,6 +37,8 @@
 #ifndef LIBDRV_PCI_DEV_IFACE_H_
 #define LIBDRV_PCI_DEV_IFACE_H_
 
+#include <errno.h>
+
 #include "ddf/driver.h"
 
 #define PCI_VENDOR_ID	0x00

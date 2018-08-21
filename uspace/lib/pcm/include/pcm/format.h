@@ -79,8 +79,7 @@ static inline size_t pcm_format_size_to_frames(size_t size,
  * @param a pointer to a PCM format structure.
  * @return Number of microseconds.
  */
-static inline useconds_t pcm_format_size_to_usec(size_t size,
-    const pcm_format_t *a)
+static inline usec_t pcm_format_size_to_usec(size_t size, const pcm_format_t *a)
 {
 	return pcm_sample_format_size_to_usec(size, a->sampling_rate,
 	    a->channels, a->sample_format);

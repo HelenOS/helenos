@@ -35,6 +35,7 @@
 #define RTL8139_GENERAL_H_
 
 #include <stddef.h>
+#include <stdint.h>
 #include <time.h>
 
 /** Number of microseconds in second */
@@ -61,7 +62,7 @@ typedef struct {
 extern void *rtl8139_memcpy_wrapped(void *, const void *, size_t, size_t,
     size_t);
 extern errno_t rtl8139_timer_act_init(rtl8139_timer_act_t *, uint32_t,
-    const struct timeval *);
+    const struct timespec *);
 extern int rtl8139_timer_act_step(rtl8139_timer_act_t *, uint32_t *);
 
 #endif

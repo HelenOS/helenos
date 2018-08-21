@@ -59,8 +59,8 @@ extern void fibril_add_ready(fid_t);
 extern fid_t fibril_get_id(void);
 extern void fibril_yield(void);
 
-extern void fibril_usleep(suseconds_t);
-extern void fibril_sleep(unsigned int);
+extern void fibril_usleep(usec_t);
+extern void fibril_sleep(sec_t);
 
 extern void fibril_enable_multithreaded(void);
 extern int fibril_test_spawn_runners(int);

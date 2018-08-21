@@ -109,7 +109,7 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <errno.h>
-#include <sys/time.h>
+#include <time.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <mem.h>
@@ -915,17 +915,17 @@ errno_t async_event_task_unmask(event_task_type_t evno)
  *         the timeout expires prior to receiving a message.
  *
  */
-bool async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
+bool async_get_call_timeout(ipc_call_t *call, usec_t usecs)
 {
 	assert(call);
 	assert(fibril_connection);
 
-	struct timeval tv;
-	struct timeval *expires = NULL;
+	struct timespec ts;
+	struct timespec *expires = NULL;
 	if (usecs) {
-		getuptime(&tv);
-		tv_add_diff(&tv, usecs);
-		expires = &tv;
+		getuptime(&ts);
+		ts_add_diff(&ts, USEC2NSEC(usecs));
+		expires = &ts;
 	}
 
 	errno_t rc = mpsc_receive(fibril_connection->msg_channel,

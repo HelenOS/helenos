@@ -55,14 +55,13 @@
 #define MBYTE (1024*1024)
 
 typedef errno_t (*measure_func_t)(void *);
-typedef unsigned long umseconds_t; /* milliseconds */
 
 static void syntax_print(void);
 
-static errno_t measure(measure_func_t fn, void *data, umseconds_t *result)
+static errno_t measure(measure_func_t fn, void *data, msec_t *result)
 {
-	struct timeval start_time;
-	gettimeofday(&start_time, NULL);
+	struct timespec start_time;
+	getuptime(&start_time);
 
 	errno_t rc = fn(data);
 	if (rc != EOK) {
@@ -70,12 +69,11 @@ static errno_t measure(measure_func_t fn, void *data, umseconds_t *result)
 		return rc;
 	}
 
-	struct timeval final_time;
-	gettimeofday(&final_time, NULL);
+	struct timespec final_time;
+	getuptime(&final_time);
 
 	/* Calculate time difference in milliseconds */
-	*result = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
-	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
+	*result = NSEC2USEC(ts_sub_diff(&final_time, &start_time));
 	return EOK;
 }
 
@@ -132,7 +130,7 @@ static errno_t sequential_read_dir(void *data)
 int main(int argc, char **argv)
 {
 	errno_t rc;
-	umseconds_t milliseconds_taken = 0;
+	msec_t milliseconds_taken = 0;
 	char *path = NULL;
 	measure_func_t fn = NULL;
 	int iteration;
@@ -193,7 +191,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		printf("%s;%s;%s;%lu;ms\n", test_type, path, log_str, milliseconds_taken);
+		printf("%s;%s;%s;%lld;ms\n", test_type, path, log_str, milliseconds_taken);
 	}
 
 	return 0;

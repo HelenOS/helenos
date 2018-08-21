@@ -59,7 +59,7 @@
 /** Member of timeout_list. */
 typedef struct {
 	link_t link;
-	struct timeval expires;
+	struct timespec expires;
 	fibril_event_t *event;
 } _timeout_t;
 
@@ -141,7 +141,7 @@ static inline void _ready_up(void)
 	}
 }
 
-static inline errno_t _ready_down(const struct timeval *expires)
+static inline errno_t _ready_down(const struct timespec *expires)
 {
 	if (multithreaded)
 		return futex_down_timeout(&ready_semaphore, expires);
@@ -252,7 +252,7 @@ static fibril_t *_fibril_trigger_internal(fibril_event_t *event, fibril_t *reaso
 	return f;
 }
 
-static errno_t _ipc_wait(ipc_call_t *call, const struct timeval *expires)
+static errno_t _ipc_wait(ipc_call_t *call, const struct timespec *expires)
 {
 	if (!expires)
 		return ipc_wait(call, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE);
@@ -260,13 +260,14 @@ static errno_t _ipc_wait(ipc_call_t *call, const struct timeval *expires)
 	if (expires->tv_sec == 0)
 		return ipc_wait(call, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
 
-	struct timeval now;
+	struct timespec now;
 	getuptime(&now);
 
-	if (tv_gteq(&now, expires))
+	if (ts_gteq(&now, expires))
 		return ipc_wait(call, SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING);
 
-	return ipc_wait(call, tv_sub_diff(expires, &now), SYNCH_FLAGS_NONE);
+	return ipc_wait(call, NSEC2USEC(ts_sub_diff(expires, &now)),
+	    SYNCH_FLAGS_NONE);
 }
 
 /*
@@ -274,7 +275,7 @@ static errno_t _ipc_wait(ipc_call_t *call, const struct timeval *expires)
  * Returns NULL on timeout and may also return NULL if returning from IPC
  * wait after new ready fibrils are added.
  */
-static fibril_t *_ready_list_pop(const struct timeval *expires, bool locked)
+static fibril_t *_ready_list_pop(const struct timespec *expires, bool locked)
 {
 	if (locked) {
 		futex_assert_is_locked(&fibril_futex);
@@ -369,7 +370,7 @@ static fibril_t *_ready_list_pop(const struct timeval *expires, bool locked)
 
 static fibril_t *_ready_list_pop_nonblocking(bool locked)
 {
-	struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };
+	struct timespec tv = { .tv_sec = 0, .tv_nsec = 0 };
 	return _ready_list_pop(&tv, locked);
 }
 
@@ -392,7 +393,7 @@ static void _ready_list_push(fibril_t *f)
 }
 
 /* Blocks the current fibril until an IPC call arrives. */
-static errno_t _wait_ipc(ipc_call_t *call, const struct timeval *expires)
+static errno_t _wait_ipc(ipc_call_t *call, const struct timespec *expires)
 {
 	futex_assert_is_not_locked(&fibril_futex);
 
@@ -429,10 +430,10 @@ static errno_t _wait_ipc(ipc_call_t *call, const struct timeval *expires)
 }
 
 /** Fire all timeouts that expired. */
-static struct timeval *_handle_expired_timeouts(struct timeval *next_timeout)
+static struct timespec *_handle_expired_timeouts(struct timespec *next_timeout)
 {
-	struct timeval tv;
-	getuptime(&tv);
+	struct timespec ts;
+	getuptime(&ts);
 
 	futex_lock(&fibril_futex);
 
@@ -440,7 +441,7 @@ static struct timeval *_handle_expired_timeouts(struct timeval *next_timeout)
 		link_t *cur = list_first(&timeout_list);
 		_timeout_t *to = list_get_instance(cur, _timeout_t, link);
 
-		if (tv_gt(&to->expires, &tv)) {
+		if (ts_gt(&to->expires, &ts)) {
 			*next_timeout = to->expires;
 			futex_unlock(&fibril_futex);
 			return next_timeout;
@@ -534,9 +535,9 @@ static errno_t _helper_fibril_fn(void *arg)
 
 	(void) arg;
 
-	struct timeval next_timeout;
+	struct timespec next_timeout;
 	while (true) {
-		struct timeval *to = _handle_expired_timeouts(&next_timeout);
+		struct timespec *to = _handle_expired_timeouts(&next_timeout);
 		fibril_t *f = _ready_list_pop(to, false);
 		if (f) {
 			_fibril_switch_to(SWITCH_FROM_HELPER, f, false);
@@ -614,7 +615,7 @@ static void _insert_timeout(_timeout_t *timeout)
 	while (tmp != &timeout_list.head) {
 		_timeout_t *cur = list_get_instance(tmp, _timeout_t, link);
 
-		if (tv_gteq(&cur->expires, &timeout->expires))
+		if (ts_gteq(&cur->expires, &timeout->expires))
 			break;
 
 		tmp = tmp->next;
@@ -633,7 +634,8 @@ static void _insert_timeout(_timeout_t *timeout)
  *
  * @return ETIMEOUT if timed out. EOK otherwise.
  */
-errno_t fibril_wait_timeout(fibril_event_t *event, const struct timeval *expires)
+errno_t fibril_wait_timeout(fibril_event_t *event,
+    const struct timespec *expires)
 {
 	assert(fibril_self()->rmutex_locks == 0);
 
@@ -888,19 +890,19 @@ void __fibrils_init(void)
 	}
 }
 
-void fibril_usleep(suseconds_t timeout)
+void fibril_usleep(usec_t timeout)
 {
-	struct timeval expires;
+	struct timespec expires;
 	getuptime(&expires);
-	tv_add_diff(&expires, timeout);
+	ts_add_diff(&expires, USEC2NSEC(timeout));
 
 	fibril_event_t event = FIBRIL_EVENT_INIT;
 	fibril_wait_timeout(&event, &expires);
 }
 
-void fibril_sleep(unsigned int sec)
+void fibril_sleep(sec_t sec)
 {
-	struct timeval expires;
+	struct timespec expires;
 	getuptime(&expires);
 	expires.tv_sec += sec;
 
@@ -915,7 +917,7 @@ void fibril_ipc_poke(void)
 	ipc_poke();
 }
 
-errno_t fibril_ipc_wait(ipc_call_t *call, const struct timeval *expires)
+errno_t fibril_ipc_wait(ipc_call_t *call, const struct timespec *expires)
 {
 	return _wait_ipc(call, expires);
 }

@@ -33,8 +33,6 @@
 #ifndef POSIX_SYS_TIME_H_
 #define POSIX_SYS_TIME_H_
 
-#include "libc/sys/time.h"
-
 #endif
 
 /** @}

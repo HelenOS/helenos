@@ -48,7 +48,7 @@
 #include "libc/task.h"
 #include "libc/stats.h"
 #include "libc/stddef.h"
-#include "libc/sys/time.h"
+#include "libc/time.h"
 
 // TODO: test everything in this file
 
@@ -325,6 +325,17 @@ clock_t clock(void)
 	}
 
 	return total_cycles;
+}
+
+int gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+	struct timespec ts;
+
+	getrealtime(&ts);
+	tv->tv_sec = ts.tv_sec;
+	tv->tv_usec = NSEC2USEC(ts.tv_nsec);
+
+	return 0;
 }
 
 /** @}
