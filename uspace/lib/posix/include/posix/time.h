@@ -58,21 +58,7 @@ struct sigevent;
 #undef CLOCK_REALTIME
 #define CLOCK_REALTIME ((clockid_t) 0)
 
-#define DST_NONE  0
-
 #define ASCTIME_BUF_LEN  26
-
-typedef long suseconds_t;
-
-struct timeval {
-	time_t tv_sec;        /* seconds */
-	suseconds_t tv_usec;  /* microseconds */
-};
-
-struct timezone {
-	int tz_minuteswest;  /* minutes W of Greenwich */
-	int tz_dsttime;      /* type of dst correction */
-};
 
 struct itimerspec {
 	struct timespec it_interval; /* Timer period. */
@@ -118,8 +104,6 @@ extern int clock_nanosleep(clockid_t clock_id, int flags,
 
 /* CPU Time */
 extern clock_t clock(void);
-
-extern int gettimeofday(struct timeval *, struct timezone *);
 
 #endif  // POSIX_TIME_H_
 
