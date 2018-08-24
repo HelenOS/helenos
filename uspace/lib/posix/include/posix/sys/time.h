@@ -33,6 +33,8 @@
 #ifndef POSIX_SYS_TIME_H_
 #define POSIX_SYS_TIME_H_
 
+#include "libc/time.h"
+
 #define DST_NONE  0
 
 typedef long suseconds_t;

@@ -219,7 +219,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 	switch (clock_id) {
 	case CLOCK_REALTIME:
 		res->tv_sec = 0;
-		res->tv_nsec = 1000; /* Microsecond resolution. */
+		res->tv_nsec = USEC2NSEC(1); /* Microsecond resolution. */
 		return 0;
 	default:
 		errno = EINVAL;
@@ -244,7 +244,7 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
 	case CLOCK_REALTIME:
 		gettimeofday(&tv, NULL);
 		tp->tv_sec = tv.tv_sec;
-		tp->tv_nsec = tv.tv_usec * 1000;
+		tp->tv_nsec = USEC2NSEC(tv.tv_usec);
 		return 0;
 	default:
 		errno = EINVAL;
@@ -300,7 +300,7 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 			fibril_sleep(rqtp->tv_sec);
 		}
 		if (rqtp->tv_nsec != 0) {
-			fibril_usleep(rqtp->tv_nsec / 1000);
+			fibril_usleep(NSEC2USEC(rqtp->tv_nsec));
 		}
 		return 0;
 	default:
