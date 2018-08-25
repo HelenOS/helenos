@@ -265,7 +265,7 @@ static errno_t device_source_connection_callback(audio_source_t *source, bool ne
  */
 static void device_event_callback(ipc_call_t *icall, void *arg)
 {
-	struct timeval time1;
+	struct timespec time1;
 	errno_t ret;
 
 	/* Answer initial request */
@@ -285,10 +285,10 @@ static void device_event_callback(ipc_call_t *icall, void *arg)
 			audio_sink_mix_inputs(&dev->sink, dev->buffer.position,
 			    dev->buffer.fragment_size);
 			advance_buffer(dev, dev->buffer.fragment_size);
-			struct timeval time2;
+			struct timespec time2;
 			getuptime(&time2);
-			log_verbose("Time to mix sources: %li\n",
-			    tv_sub_diff(&time2, &time1));
+			log_verbose("Time to mix sources: %lld\n",
+			    NSEC2USEC(ts_sub_diff(&time2, &time1)));
 			break;
 		case PCM_EVENT_CAPTURE_TERMINATED:
 			log_verbose("Capture terminated");

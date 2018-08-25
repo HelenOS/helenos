@@ -34,7 +34,6 @@
 /** @file
  */
 
-#include <sys/time.h>
 #include <time.h>
 #include <stdbool.h>
 #include <barrier.h>
@@ -50,13 +49,14 @@
 #include <assert.h>
 #include <loc.h>
 #include <device/clock_dev.h>
+#include <stats.h>
 
 #define ASCTIME_BUF_LEN  26
 
 #define HOURS_PER_DAY  24
 #define MINS_PER_HOUR  60
 #define SECS_PER_MIN   60
-#define USECS_PER_SEC  1000000
+#define NSECS_PER_SEC  1000000000ll
 #define MINS_PER_DAY   (MINS_PER_HOUR * HOURS_PER_DAY)
 #define SECS_PER_HOUR  (SECS_PER_MIN * MINS_PER_HOUR)
 #define SECS_PER_DAY   (SECS_PER_HOUR * HOURS_PER_DAY)
@@ -69,6 +69,38 @@ struct {
 } *ktime = NULL;
 
 static async_sess_t *clock_conn = NULL;
+
+/**
+ * Get CPU time used since the process invocation.
+ *
+ * @return Consumed microseconds by this process or -1 if not available.
+ */
+clock_t clock(void)
+{
+	static_assert(CLOCKS_PER_SEC == 1000000);
+
+	size_t count;
+	stats_cpu_t *cpu_stats = stats_get_cpus(&count);
+	if (!cpu_stats)
+		return (clock_t) -1;
+	if (!cpu_stats->frequency_mhz) {
+		free(cpu_stats);
+		return (clock_t) -1;
+	}
+
+	clock_t total_usecs = -1;
+	if (cpu_stats) {
+		stats_task_t *task_stats = stats_get_task(task_get_id());
+		if (task_stats) {
+			total_usecs = (clock_t) (task_stats->kcycles +
+			    task_stats->ucycles) / cpu_stats->frequency_mhz;
+			free(task_stats);
+		}
+		free(cpu_stats);
+	}
+
+	return total_usecs;
+}
 
 /** Check whether the year is a leap year.
  *
@@ -251,18 +283,18 @@ static time_t day_of_week(time_t year, time_t mon, time_t mday)
  * Optionally add specified amount of seconds.
  *
  * @param tm Broken-down time to normalize.
- * @param tv Timeval to add.
+ * @param ts Timespec to add.
  *
  * @return 0 on success, -1 on overflow
  *
  */
-static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
+static int normalize_tm_ts(struct tm *tm, const struct timespec *ts)
 {
 	// TODO: DST correction
 
 	/* Set initial values. */
-	time_t usec = tm->tm_usec + tv->tv_usec;
-	time_t sec = tm->tm_sec + tv->tv_sec;
+	time_t nsec = tm->tm_nsec + ts->tv_nsec;
+	time_t sec = tm->tm_sec + ts->tv_sec;
 	time_t min = tm->tm_min;
 	time_t hour = tm->tm_hour;
 	time_t day = tm->tm_mday - 1;
@@ -270,8 +302,8 @@ static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 	time_t year = tm->tm_year;
 
 	/* Adjust time. */
-	sec += floor_div(usec, USECS_PER_SEC);
-	usec = floor_mod(usec, USECS_PER_SEC);
+	sec += floor_div(nsec, NSECS_PER_SEC);
+	nsec = floor_mod(nsec, NSECS_PER_SEC);
 	min += floor_div(sec, SECS_PER_MIN);
 	sec = floor_mod(sec, SECS_PER_MIN);
 	hour += floor_div(min, MINS_PER_HOUR);
@@ -320,7 +352,7 @@ static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 	tm->tm_wday = day_of_week(year, mon, day + 1);
 
 	/* And put the values back to the struct. */
-	tm->tm_usec = (int) usec;
+	tm->tm_nsec = (int) nsec;
 	tm->tm_sec = (int) sec;
 	tm->tm_min = (int) min;
 	tm->tm_hour = (int) hour;
@@ -339,12 +371,12 @@ static int normalize_tm_tv(struct tm *tm, const struct timeval *tv)
 
 static int normalize_tm_time(struct tm *tm, time_t time)
 {
-	struct timeval tv = {
+	struct timespec ts = {
 		.tv_sec = time,
-		.tv_usec = 0
+		.tv_nsec = 0
 	};
 
-	return normalize_tm_tv(tm, &tv);
+	return normalize_tm_ts(tm, &ts);
 }
 
 
@@ -455,132 +487,118 @@ static int mon_week_number(const struct tm *tm)
 	return (tm->tm_yday - first_day + 7) / 7;
 }
 
-static void tv_normalize(struct timeval *tv)
+static void ts_normalize(struct timespec *ts)
 {
-	while (tv->tv_usec > USECS_PER_SEC) {
-		tv->tv_sec++;
-		tv->tv_usec -= USECS_PER_SEC;
+	while (ts->tv_nsec >= NSECS_PER_SEC) {
+		ts->tv_sec++;
+		ts->tv_nsec -= NSECS_PER_SEC;
 	}
-	while (tv->tv_usec < 0) {
-		tv->tv_sec--;
-		tv->tv_usec += USECS_PER_SEC;
+	while (ts->tv_nsec < 0) {
+		ts->tv_sec--;
+		ts->tv_nsec += NSECS_PER_SEC;
 	}
 }
 
-/** Add microseconds to given timeval.
+/** Add nanoseconds to given timespec.
  *
- * @param tv    Destination timeval.
- * @param usecs Number of microseconds to add.
+ * @param ts     Destination timespec.
+ * @param nsecs  Number of nanoseconds to add.
  *
  */
-void tv_add_diff(struct timeval *tv, suseconds_t usecs)
+void ts_add_diff(struct timespec *ts, nsec_t nsecs)
 {
-	tv->tv_sec += usecs / USECS_PER_SEC;
-	tv->tv_usec += usecs % USECS_PER_SEC;
-	tv_normalize(tv);
+	ts->tv_sec += nsecs / NSECS_PER_SEC;
+	ts->tv_nsec += nsecs % NSECS_PER_SEC;
+	ts_normalize(ts);
 }
 
-/** Add two timevals.
+/** Add two timespecs.
  *
- * @param tv1 First timeval.
- * @param tv2 Second timeval.
+ * @param ts1  First timespec.
+ * @param ts2  Second timespec.
  */
-void tv_add(struct timeval *tv1, const struct timeval *tv2)
+void ts_add(struct timespec *ts1, const struct timespec *ts2)
 {
-	tv1->tv_sec += tv2->tv_sec;
-	tv1->tv_usec += tv2->tv_usec;
-	tv_normalize(tv1);
+	ts1->tv_sec += ts2->tv_sec;
+	ts1->tv_nsec += ts2->tv_nsec;
+	ts_normalize(ts1);
 }
 
-/** Subtract two timevals.
+/** Subtract two timespecs.
  *
- * @param tv1 First timeval.
- * @param tv2 Second timeval.
+ * @param ts1  First timespec.
+ * @param ts2  Second timespec.
  *
- * @return Difference between tv1 and tv2 (tv1 - tv2) in
- *         microseconds.
+ * @return  Difference between ts1 and ts2 (ts1 - ts2) in nanoseconds.
  *
  */
-suseconds_t tv_sub_diff(const struct timeval *tv1, const struct timeval *tv2)
+nsec_t ts_sub_diff(const struct timespec *ts1, const struct timespec *ts2)
 {
-	return (tv1->tv_usec - tv2->tv_usec) +
-	    ((tv1->tv_sec - tv2->tv_sec) * USECS_PER_SEC);
+	return (nsec_t) (ts1->tv_nsec - ts2->tv_nsec) +
+	    SEC2NSEC((ts1->tv_sec - ts2->tv_sec));
 }
 
-/** Subtract two timevals.
+/** Subtract two timespecs.
  *
- * @param tv1 First timeval.
- * @param tv2 Second timeval.
+ * @param ts1  First timespec.
+ * @param ts2  Second timespec.
  *
  */
-void tv_sub(struct timeval *tv1, const struct timeval *tv2)
+void ts_sub(struct timespec *ts1, const struct timespec *ts2)
 {
-	tv1->tv_sec -= tv2->tv_sec;
-	tv1->tv_usec -= tv2->tv_usec;
-	tv_normalize(tv1);
+	ts1->tv_sec -= ts2->tv_sec;
+	ts1->tv_nsec -= ts2->tv_nsec;
+	ts_normalize(ts1);
 }
 
-/** Decide if one timeval is greater than the other.
+/** Decide if one timespec is greater than the other.
  *
- * @param t1 First timeval.
- * @param t2 Second timeval.
+ * @param ts1  First timespec.
+ * @param ts2  Second timespec.
  *
- * @return True if tv1 is greater than tv2.
- * @return False otherwise.
+ * @return  True if ts1 is greater than ts2.
+ * @return  False otherwise.
  *
  */
-int tv_gt(const struct timeval *tv1, const struct timeval *tv2)
+bool ts_gt(const struct timespec *ts1, const struct timespec *ts2)
 {
-	if (tv1->tv_sec > tv2->tv_sec)
+	if (ts1->tv_sec > ts2->tv_sec)
 		return true;
 
-	if ((tv1->tv_sec == tv2->tv_sec) && (tv1->tv_usec > tv2->tv_usec))
+	if ((ts1->tv_sec == ts2->tv_sec) && (ts1->tv_nsec > ts2->tv_nsec))
 		return true;
 
 	return false;
 }
 
-/** Decide if one timeval is greater than or equal to the other.
+/** Decide if one timespec is greater than or equal to the other.
  *
- * @param tv1 First timeval.
- * @param tv2 Second timeval.
+ * @param ts1  First timespec.
+ * @param ts2  Second timespec.
  *
- * @return True if tv1 is greater than or equal to tv2.
- * @return False otherwise.
+ * @return  True if ts1 is greater than or equal to ts2.
+ * @return  False otherwise.
  *
  */
-int tv_gteq(const struct timeval *tv1, const struct timeval *tv2)
+bool ts_gteq(const struct timespec *ts1, const struct timespec *ts2)
 {
-	if (tv1->tv_sec > tv2->tv_sec)
+	if (ts1->tv_sec > ts2->tv_sec)
 		return true;
 
-	if ((tv1->tv_sec == tv2->tv_sec) && (tv1->tv_usec >= tv2->tv_usec))
+	if ((ts1->tv_sec == ts2->tv_sec) && (ts1->tv_nsec >= ts2->tv_nsec))
 		return true;
 
 	return false;
 }
 
-/** Get time of day.
+/** Get real time from a RTC service.
  *
- * The time variables are memory mapped (read-only) from kernel which
- * updates them periodically.
- *
- * As it is impossible to read 2 values atomically, we use a trick:
- * First we read the seconds, then we read the microseconds, then we
- * read the seconds again. If a second elapsed in the meantime, set
- * the microseconds to zero.
- *
- * This assures that the values returned by two subsequent calls
- * to gettimeofday() are monotonous.
- *
+ * @param[out] ts  Timespec to hold time read from the RTC service (if
+ *                 available). If no such service exists, the returned time
+ *                 corresponds to system uptime.
  */
-void gettimeofday(struct timeval *tv, struct timezone *tz)
+void getrealtime(struct timespec *ts)
 {
-	if (tz) {
-		tz->tz_minuteswest = 0;
-		tz->tz_dsttime = DST_NONE;
-	}
-
 	if (clock_conn == NULL) {
 		category_id_t cat_id;
 		errno_t rc = loc_category_get_id("clock", &cat_id, IPC_FLAG_BLOCKING);
@@ -619,16 +637,32 @@ void gettimeofday(struct timeval *tv, struct timezone *tz)
 	if (rc != EOK)
 		goto fallback;
 
-	tv->tv_usec = time.tm_usec;
-	tv->tv_sec = mktime(&time);
+	ts->tv_nsec = time.tm_nsec;
+	ts->tv_sec = mktime(&time);
 
 	return;
 
 fallback:
-	getuptime(tv);
+	getuptime(ts);
 }
 
-void getuptime(struct timeval *tv)
+/** Get system uptime.
+ *
+ * @param[out] ts  Timespec to hold time current uptime.
+ *
+ * The time variables are memory mapped (read-only) from kernel which
+ * updates them periodically.
+ *
+ * As it is impossible to read 2 values atomically, we use a trick:
+ * First we read the seconds, then we read the microseconds, then we
+ * read the seconds again. If a second elapsed in the meantime, set
+ * the microseconds to zero.
+ *
+ * This assures that the values returned by two subsequent calls
+ * to getuptime() are monotonous.
+ *
+ */
+void getuptime(struct timespec *ts)
 {
 	if (ktime == NULL) {
 		uintptr_t faddr;
@@ -653,36 +687,36 @@ void getuptime(struct timeval *tv)
 	sysarg_t s2 = ktime->seconds2;
 
 	read_barrier();
-	tv->tv_usec = ktime->useconds;
+	ts->tv_nsec = USEC2NSEC(ktime->useconds);
 
 	read_barrier();
 	sysarg_t s1 = ktime->seconds1;
 
 	if (s1 != s2) {
-		tv->tv_sec = max(s1, s2);
-		tv->tv_usec = 0;
+		ts->tv_sec = max(s1, s2);
+		ts->tv_nsec = 0;
 	} else
-		tv->tv_sec = s1;
+		ts->tv_sec = s1;
 
 	return;
 
 fallback:
-	tv->tv_sec = 0;
-	tv->tv_usec = 0;
+	ts->tv_sec = 0;
+	ts->tv_nsec = 0;
 }
 
 time_t time(time_t *tloc)
 {
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	struct timespec ts;
+	getrealtime(&ts);
 
 	if (tloc)
-		*tloc = tv.tv_sec;
+		*tloc = ts.tv_sec;
 
-	return tv.tv_sec;
+	return ts.tv_sec;
 }
 
-void udelay(useconds_t time)
+void udelay(sysarg_t time)
 {
 	(void) __SYSCALL1(SYS_THREAD_UDELAY, (sysarg_t) time);
 }
@@ -883,7 +917,7 @@ size_t strftime(char *restrict s, size_t maxsize,
 			RECURSE("%H:%M");
 			break;
 		case 's':
-			APPEND("%ld", secs_since_epoch(tm));
+			APPEND("%lld", secs_since_epoch(tm));
 			break;
 		case 'S':
 			APPEND("%02d", tm->tm_sec);
@@ -960,7 +994,7 @@ errno_t time_utc2tm(const time_t time, struct tm *restrict result)
 	assert(result != NULL);
 
 	/* Set result to epoch. */
-	result->tm_usec = 0;
+	result->tm_nsec = 0;
 	result->tm_sec = 0;
 	result->tm_min = 0;
 	result->tm_hour = 0;
@@ -1037,13 +1071,13 @@ void time_tm2str(const struct tm *restrict timeptr, char *restrict buf)
  * @return EOK on success or an error code.
  *
  */
-errno_t time_tv2tm(const struct timeval *tv, struct tm *restrict result)
+errno_t time_ts2tm(const struct timespec *ts, struct tm *restrict result)
 {
 	// TODO: Deal with timezones.
 	//       Currently assumes system and all times are in UTC
 
 	/* Set result to epoch. */
-	result->tm_usec = 0;
+	result->tm_nsec = 0;
 	result->tm_sec = 0;
 	result->tm_min = 0;
 	result->tm_hour = 0;
@@ -1051,7 +1085,7 @@ errno_t time_tv2tm(const struct timeval *tv, struct tm *restrict result)
 	result->tm_mon = 0;
 	result->tm_year = 70; /* 1970 */
 
-	if (normalize_tm_tv(result, tv) == -1)
+	if (normalize_tm_ts(result, ts) == -1)
 		return EOVERFLOW;
 
 	return EOK;
@@ -1069,12 +1103,12 @@ errno_t time_tv2tm(const struct timeval *tv, struct tm *restrict result)
  */
 errno_t time_local2tm(const time_t time, struct tm *restrict result)
 {
-	struct timeval tv = {
+	struct timespec ts = {
 		.tv_sec = time,
-		.tv_usec = 0
+		.tv_nsec = 0
 	};
 
-	return time_tv2tm(&tv, result);
+	return time_ts2tm(&ts, result);
 }
 
 /** Convert the calendar time to a NULL-terminated string.

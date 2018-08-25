@@ -38,7 +38,7 @@
 #include <async.h>
 #include <errno.h>
 #include <ipc/services.h>
-#include <sys/time.h>
+#include <time.h>
 #include <macros.h>
 
 #include "ops/nic.h"
@@ -1261,7 +1261,7 @@ errno_t nic_offload_set(async_sess_t *dev_sess, uint32_t mask, uint32_t active)
  *
  */
 errno_t nic_poll_get_mode(async_sess_t *dev_sess, nic_poll_mode_t *mode,
-    struct timeval *period)
+    struct timespec *period)
 {
 	assert(mode);
 
@@ -1279,7 +1279,7 @@ errno_t nic_poll_get_mode(async_sess_t *dev_sess, nic_poll_mode_t *mode,
 	*mode = (nic_poll_mode_t) _mode;
 
 	if (period != NULL)
-		rc = async_data_read_start(exch, period, sizeof(struct timeval));
+		rc = async_data_read_start(exch, period, sizeof(struct timespec));
 
 	async_exchange_end(exch);
 	return rc;
@@ -1295,7 +1295,7 @@ errno_t nic_poll_get_mode(async_sess_t *dev_sess, nic_poll_mode_t *mode,
  *
  */
 errno_t nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
-    const struct timeval *period)
+    const struct timespec *period)
 {
 	async_exch_t *exch = async_exchange_begin(dev_sess);
 
@@ -1304,7 +1304,7 @@ errno_t nic_poll_set_mode(async_sess_t *dev_sess, nic_poll_mode_t mode,
 
 	errno_t rc;
 	if (period)
-		rc = async_data_write_start(exch, period, sizeof(struct timeval));
+		rc = async_data_write_start(exch, period, sizeof(struct timespec));
 	else
 		rc = EOK;
 
@@ -2404,9 +2404,9 @@ static void remote_nic_poll_get_mode(ddf_fun_t *dev, void *iface,
 
 	nic_poll_mode_t mode = NIC_POLL_IMMEDIATE;
 	int request_data = IPC_GET_ARG2(*call);
-	struct timeval period = {
+	struct timespec period = {
 		.tv_sec = 0,
-		.tv_usec = 0
+		.tv_nsec = 0
 	};
 
 	errno_t rc = nic_iface->poll_get_mode(dev, &mode, &period);
@@ -2420,14 +2420,14 @@ static void remote_nic_poll_get_mode(ddf_fun_t *dev, void *iface,
 			return;
 		}
 
-		if (max_len != sizeof(struct timeval)) {
+		if (max_len != sizeof(struct timespec)) {
 			async_answer_0(&data, ELIMIT);
 			async_answer_0(call, ELIMIT);
 			return;
 		}
 
 		async_data_read_finalize(&data, &period,
-		    sizeof(struct timeval));
+		    sizeof(struct timespec));
 	}
 
 	async_answer_1(call, rc, (sysarg_t) mode);
@@ -2440,8 +2440,8 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
 
 	nic_poll_mode_t mode = IPC_GET_ARG2(*call);
 	int has_period = IPC_GET_ARG3(*call);
-	struct timeval period_buf;
-	struct timeval *period = NULL;
+	struct timespec period_buf;
+	struct timespec *period = NULL;
 	size_t length;
 
 	if (has_period) {
@@ -2452,7 +2452,7 @@ static void remote_nic_poll_set_mode(ddf_fun_t *dev, void *iface,
 			return;
 		}
 
-		if (length != sizeof(struct timeval)) {
+		if (length != sizeof(struct timespec)) {
 			async_answer_0(&data, ELIMIT);
 			async_answer_0(call, ELIMIT);
 			return;

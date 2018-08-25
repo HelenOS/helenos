@@ -133,7 +133,7 @@ static void atrans_lookup_timeout_handler(void *arg)
 	fibril_condvar_broadcast(&atrans_cv);
 }
 
-errno_t atrans_lookup_timeout(addr32_t ip_addr, suseconds_t timeout,
+errno_t atrans_lookup_timeout(addr32_t ip_addr, usec_t timeout,
     addr48_t mac_addr)
 {
 	fibril_timer_t *t;

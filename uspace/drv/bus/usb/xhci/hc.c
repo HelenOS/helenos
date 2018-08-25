@@ -228,9 +228,9 @@ errno_t hc_init_mmio(xhci_hc_t *hc, const hw_res_list_parsed_t *hw_res)
 	hc->csz = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_CSZ);
 	hc->max_slots = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_MAX_SLOTS);
 
-	struct timeval tv;
-	getuptime(&tv);
-	hc->wrap_time = tv.tv_sec * 1000000 + tv.tv_usec;
+	struct timespec ts;
+	getuptime(&ts);
+	hc->wrap_time = SEC2USEC(ts.tv_sec) + NSEC2USEC(ts.tv_nsec);
 	hc->wrap_count = 0;
 
 	unsigned ist = XHCI_REG_RD(hc->cap_regs, XHCI_CAP_IST);
@@ -590,11 +590,11 @@ errno_t hc_status(bus_t *bus, uint32_t *status)
 
 static errno_t xhci_handle_mfindex_wrap_event(xhci_hc_t *hc, xhci_trb_t *trb)
 {
-	struct timeval tv;
-	getuptime(&tv);
-	usb_log_debug("Microframe index wrapped (@%lu.%li, %" PRIu64 " total).",
-	    tv.tv_sec, tv.tv_usec, hc->wrap_count);
-	hc->wrap_time = ((uint64_t) tv.tv_sec) * 1000000 + ((uint64_t) tv.tv_usec);
+	struct timespec ts;
+	getuptime(&ts);
+	usb_log_debug("Microframe index wrapped (@%lld.%lld, %" PRIu64 " total).",
+	    ts.tv_sec, NSEC2USEC(ts.tv_nsec), hc->wrap_count);
+	hc->wrap_time = SEC2USEC(ts.tv_sec) + NSEC2USEC(ts.tv_nsec);
 	++hc->wrap_count;
 	return EOK;
 }

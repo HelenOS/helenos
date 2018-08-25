@@ -101,14 +101,15 @@ void __futex_give_to(futex_t *, void *, const char *);
  * @return Error code from <errno.h> otherwise.
  *
  */
-static inline errno_t futex_down_composable(futex_t *futex, const struct timeval *expires)
+static inline errno_t futex_down_composable(futex_t *futex,
+    const struct timespec *expires)
 {
 	// TODO: Add tests for this.
 
 	if ((atomic_signed_t) atomic_predec(&futex->val) >= 0)
 		return EOK;
 
-	suseconds_t timeout;
+	usec_t timeout;
 
 	if (!expires) {
 		/* No timeout. */
@@ -118,10 +119,10 @@ static inline errno_t futex_down_composable(futex_t *futex, const struct timeval
 			/* We can't just return ETIMEOUT. That wouldn't be composable. */
 			timeout = 1;
 		} else {
-			struct timeval tv;
+			struct timespec tv;
 			getuptime(&tv);
-			timeout = tv_gteq(&tv, expires) ? 1 :
-			    tv_sub_diff(expires, &tv);
+			timeout = ts_gteq(&tv, expires) ? 1 :
+			    NSEC2USEC(ts_sub_diff(expires, &tv));
 		}
 
 		assert(timeout > 0);
@@ -147,9 +148,10 @@ static inline errno_t futex_up(futex_t *futex)
 	return EOK;
 }
 
-static inline errno_t futex_down_timeout(futex_t *futex, const struct timeval *expires)
+static inline errno_t futex_down_timeout(futex_t *futex,
+    const struct timespec *expires)
 {
-	if (expires && expires->tv_sec == 0 && expires->tv_usec == 0) {
+	if (expires && expires->tv_sec == 0 && expires->tv_nsec == 0) {
 		/* Nonblocking down. */
 
 		/*
@@ -208,7 +210,7 @@ static inline bool futex_trydown(futex_t *futex)
 	 * down_timeout with an already expired deadline should behave like
 	 * trydown.
 	 */
-	struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };
+	struct timespec tv = { .tv_sec = 0, .tv_nsec = 0 };
 	return futex_down_timeout(futex, &tv) == EOK;
 }
 

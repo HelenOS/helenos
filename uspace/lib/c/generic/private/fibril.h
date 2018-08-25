@@ -80,10 +80,10 @@ extern fibril_t *fibril_self(void);
 extern void __fibrils_init(void);
 
 extern void fibril_wait_for(fibril_event_t *);
-extern errno_t fibril_wait_timeout(fibril_event_t *, const struct timeval *);
+extern errno_t fibril_wait_timeout(fibril_event_t *, const struct timespec *);
 extern void fibril_notify(fibril_event_t *);
 
-extern errno_t fibril_ipc_wait(ipc_call_t *, const struct timeval *);
+extern errno_t fibril_ipc_wait(ipc_call_t *, const struct timespec *);
 extern void fibril_ipc_poke(void);
 
 /**

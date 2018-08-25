@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	hound_context_t *hound;
 	console_ctrl_t *con;
 	cons_event_t event;
-	suseconds_t timeout;
+	usec_t timeout;
 	pcm_format_t format;
 	void *buffer;
 	size_t buffer_size;

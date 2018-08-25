@@ -112,7 +112,7 @@ static void isoch_reset_timer(void *ep)
 static void timer_schedule_reset(xhci_endpoint_t *ep)
 {
 	xhci_isoch_t *const isoch = ep->isoch;
-	const suseconds_t delay = isoch->buffer_count * ep->interval * 125 +
+	const usec_t delay = isoch->buffer_count * ep->interval * 125 +
 	    RESET_TIMER_DELAY;
 
 	fibril_timer_clear_locked(isoch->reset_timer);
@@ -209,9 +209,9 @@ static errno_t schedule_isochronous_trb(xhci_endpoint_t *ep, xhci_isoch_transfer
 
 static inline uint64_t get_system_time()
 {
-	struct timeval tv;
-	getuptime(&tv);
-	return ((uint64_t) tv.tv_sec) * 1000000 + ((uint64_t) tv.tv_usec);
+	struct timespec ts;
+	getuptime(&ts);
+	return SEC2USEC(ts.tv_sec) + NSEC2USEC(ts.tv_nsec);
 }
 
 static inline uint64_t get_current_microframe(const xhci_hc_t *hc)
@@ -313,7 +313,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 
 	while (isoch->transfers[isoch->hw_enqueue].state == ISOCH_FILLED) {
 		xhci_isoch_transfer_t *const it = &isoch->transfers[isoch->hw_enqueue];
-		suseconds_t delay;
+		usec_t delay;
 
 		assert(it->state == ISOCH_FILLED);
 
@@ -323,7 +323,7 @@ static void isoch_feed_out(xhci_endpoint_t *ep)
 		switch (wd.position) {
 		case WINDOW_TOO_SOON:
 			delay = wd.offset * 125;
-			usb_log_debug("[isoch] delaying feeding buffer %zu for %ldus",
+			usb_log_debug("[isoch] delaying feeding buffer %zu for %lldus",
 			    it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_out_timer, ep);
@@ -399,7 +399,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 
 	while (isoch->transfers[isoch->enqueue].state <= ISOCH_FILLED) {
 		xhci_isoch_transfer_t *const it = &isoch->transfers[isoch->enqueue];
-		suseconds_t delay;
+		usec_t delay;
 
 		/* IN buffers are "filled" with free space */
 		if (it->state == ISOCH_EMPTY) {
@@ -415,7 +415,7 @@ static void isoch_feed_in(xhci_endpoint_t *ep)
 		case WINDOW_TOO_SOON:
 			/* Not allowed to feed yet. Defer to later. */
 			delay = wd.offset * 125;
-			usb_log_debug("[isoch] delaying feeding buffer %zu for %ldus",
+			usb_log_debug("[isoch] delaying feeding buffer %zu for %lldus",
 			    it - isoch->transfers, delay);
 			fibril_timer_set_locked(isoch->feeding_timer, delay,
 			    isoch_feed_in_timer, ep);

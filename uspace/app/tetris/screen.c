@@ -74,7 +74,7 @@ static bool use_color;          /* true => use colors */
 
 static const struct shape *lastshape;
 
-static suseconds_t timeleft = 0;
+static usec_t timeleft = 0;
 
 console_ctrl_t *console;
 
@@ -339,7 +339,7 @@ void scr_msg(char *s, bool set)
  */
 void tsleep(void)
 {
-	suseconds_t timeout = fallrate;
+	usec_t timeout = fallrate;
 
 	while (timeout > 0) {
 		cons_event_t event;

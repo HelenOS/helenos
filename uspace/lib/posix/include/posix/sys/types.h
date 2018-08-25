@@ -37,7 +37,6 @@
 #define POSIX_SYS_TYPES_H_
 
 #include "libc/offset.h"
-#include "libc/sys/time.h"
 #include "libc/types/common.h"
 
 typedef unsigned int ino_t;
@@ -55,9 +54,9 @@ typedef unsigned int mode_t;
 typedef struct thread_attr thread_attr_t;
 
 /* Clock Types */
-typedef long clock_t;
 typedef int clockid_t;
 
+typedef long suseconds_t;
 
 #endif /* POSIX_SYS_TYPES_H_ */
 

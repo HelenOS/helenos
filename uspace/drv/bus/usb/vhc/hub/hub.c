@@ -63,8 +63,8 @@ static hub_port_t *get_hub_port(hub_t *, size_t);
 static void set_port_status_change(hub_port_t *, hub_status_change_t);
 static void clear_port_status_change(hub_port_t *, uint16_t);
 static errno_t set_port_state_delayed_fibril(void *);
-static void set_port_state_delayed(hub_t *, size_t, suseconds_t,
-    hub_port_state_t, hub_port_state_t);
+static void set_port_state_delayed(hub_t *, size_t, usec_t, hub_port_state_t,
+    hub_port_state_t);
 
 /** Convert hub port state to a char. */
 char hub_port_state_to_char(hub_port_state_t state)
@@ -443,7 +443,7 @@ static void clear_port_status_change(hub_port_t *port,
 /** Structure for automatic (delayed) port state change. */
 struct delay_port_state_change {
 	/** Delay in microseconds. */
-	suseconds_t delay;
+	usec_t delay;
 	/** Old state of the port. */
 	hub_port_state_t old_state;
 	/** New state of the port. */
@@ -495,15 +495,15 @@ static errno_t set_port_state_delayed_fibril(void *arg)
  * @param new_state New state of the port.
  */
 static void set_port_state_delayed(hub_t *hub, size_t port_index,
-    suseconds_t delay_time_ms,
-    hub_port_state_t old_state, hub_port_state_t new_state)
+    usec_t delay_time_ms, hub_port_state_t old_state,
+    hub_port_state_t new_state)
 {
 	struct delay_port_state_change *change =
 	    malloc(sizeof(struct delay_port_state_change));
 
 	change->hub = hub;
 	change->port = port_index;
-	change->delay = delay_time_ms * 1000;
+	change->delay = MSEC2USEC(delay_time_ms);
 	change->old_state = old_state;
 	change->new_state = new_state;
 	fid_t fibril = fibril_create(set_port_state_delayed_fibril, change);

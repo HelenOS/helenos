@@ -44,7 +44,7 @@
 #include <io/pixel.h>
 #include <io/style.h>
 #include <stdbool.h>
-#include <sys/time.h>
+#include <time.h>
 #include <stddef.h>
 
 typedef struct con_ops con_ops_t;
@@ -54,7 +54,7 @@ typedef struct {
 	con_ops_t *ops;
 	void *sarg;
 	/** Period to check for abort */
-	suseconds_t abort_timeout;
+	usec_t abort_timeout;
 	bool aborted;
 } con_srvs_t;
 

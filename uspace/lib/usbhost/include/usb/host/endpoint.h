@@ -44,7 +44,7 @@
 #include <fibril_synch.h>
 #include <refcount.h>
 #include <stdbool.h>
-#include <sys/time.h>
+#include <time.h>
 #include <usb/usb.h>
 #include <usb/host/bus.h>
 #include <usbhc_iface.h>
@@ -124,7 +124,7 @@ extern void endpoint_del_ref(endpoint_t *);
 extern void endpoint_set_online(endpoint_t *, fibril_mutex_t *);
 extern void endpoint_set_offline_locked(endpoint_t *);
 
-extern void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t);
+extern void endpoint_wait_timeout_locked(endpoint_t *ep, usec_t);
 extern int endpoint_activate_locked(endpoint_t *, usb_transfer_batch_t *);
 extern void endpoint_deactivate_locked(endpoint_t *);
 

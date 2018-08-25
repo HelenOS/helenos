@@ -53,7 +53,7 @@
  * Tetris scores.
  */
 
-#include <sys/time.h>
+#include <time.h>
 #include <str.h>
 
 #define MAXLOGNAME   16

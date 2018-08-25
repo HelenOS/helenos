@@ -140,7 +140,7 @@ static errno_t test_timeout_handler_fibril(void *arg)
 {
 	pcut_item_t *test = arg;
 	int timeout_sec = pcut_get_test_timeout(test);
-	suseconds_t timeout_us = (suseconds_t) timeout_sec * 1000 * 1000;
+	usec_t timeout_us = SEC2USEC(timeout_sec);
 
 	fibril_mutex_lock(&forced_termination_mutex);
 	if (!test_running) {

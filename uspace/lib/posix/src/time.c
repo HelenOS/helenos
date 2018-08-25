@@ -34,6 +34,8 @@
  */
 
 #include "internal/common.h"
+#include "posix/sys/types.h"
+#include "posix/sys/time.h"
 #include "posix/time.h"
 
 #include "posix/ctype.h"
@@ -46,9 +48,8 @@
 #include "libc/async.h"
 #include "libc/malloc.h"
 #include "libc/task.h"
-#include "libc/stats.h"
 #include "libc/stddef.h"
-#include "libc/sys/time.h"
+#include "libc/time.h"
 
 // TODO: test everything in this file
 
@@ -218,7 +219,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 	switch (clock_id) {
 	case CLOCK_REALTIME:
 		res->tv_sec = 0;
-		res->tv_nsec = 1000; /* Microsecond resolution. */
+		res->tv_nsec = USEC2NSEC(1); /* Microsecond resolution. */
 		return 0;
 	default:
 		errno = EINVAL;
@@ -243,7 +244,7 @@ int clock_gettime(clockid_t clock_id, struct timespec *tp)
 	case CLOCK_REALTIME:
 		gettimeofday(&tv, NULL);
 		tp->tv_sec = tv.tv_sec;
-		tp->tv_nsec = tv.tv_usec * 1000;
+		tp->tv_nsec = USEC2NSEC(tv.tv_usec);
 		return 0;
 	default:
 		errno = EINVAL;
@@ -299,7 +300,7 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 			fibril_sleep(rqtp->tv_sec);
 		}
 		if (rqtp->tv_nsec != 0) {
-			fibril_usleep(rqtp->tv_nsec / 1000);
+			fibril_usleep(NSEC2USEC(rqtp->tv_nsec));
 		}
 		return 0;
 	default:
@@ -308,23 +309,15 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 	}
 }
 
-/**
- * Get CPU time used since the process invocation.
- *
- * @return Consumed CPU cycles by this process or -1 if not available.
- */
-clock_t clock(void)
+int gettimeofday(struct timeval *tv, void *tz)
 {
-	clock_t total_cycles = -1;
-	stats_task_t *task_stats = stats_get_task(task_get_id());
-	if (task_stats) {
-		total_cycles = (clock_t) (task_stats->kcycles +
-		    task_stats->ucycles);
-		free(task_stats);
-		task_stats = 0;
-	}
+	struct timespec ts;
 
-	return total_cycles;
+	getrealtime(&ts);
+	tv->tv_sec = ts.tv_sec;
+	tv->tv_usec = NSEC2USEC(ts.tv_nsec);
+
+	return 0;
 }
 
 /** @}

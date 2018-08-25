@@ -71,14 +71,14 @@ static errno_t test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, us
 	errno_t rc = EOK;
 	uint32_t transfer_count = 0;
 
-	struct timeval start_time, final_time, stop_time;
-	gettimeofday(&start_time, NULL);
-	gettimeofday(&stop_time, NULL);
+	struct timespec start_time, final_time, stop_time;
+	getuptime(&start_time);
+	getuptime(&stop_time);
 
-	tv_add_diff(&stop_time, params->min_duration * 1000);
-	gettimeofday(&final_time, NULL);
+	ts_add_diff(&stop_time, MSEC2NSEC(params->min_duration));
+	getuptime(&final_time);
 
-	while (!tv_gt(&final_time, &stop_time)) {
+	while (!ts_gt(&final_time, &stop_time)) {
 		++transfer_count;
 
 		// Read device's response.
@@ -120,11 +120,11 @@ static errno_t test_in(usb_pipe_t *pipe, const usbdiag_test_params_t *params, us
 				break;
 		}
 
-		gettimeofday(&final_time, NULL);
+		getuptime(&final_time);
 	}
 
-	usbdiag_dur_t in_duration = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
-	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
+	usbdiag_dur_t in_duration = NSEC2MSEC(final_time.tv_nsec - start_time.tv_nsec) +
+	    SEC2MSEC(final_time.tv_sec - start_time.tv_sec);
 
 	usb_log_info("Test on %s IN endpoint completed in %lu ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 
@@ -169,14 +169,14 @@ static errno_t test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, u
 	errno_t rc = EOK;
 	uint32_t transfer_count = 0;
 
-	struct timeval start_time, final_time, stop_time;
-	gettimeofday(&start_time, NULL);
-	gettimeofday(&stop_time, NULL);
+	struct timespec start_time, final_time, stop_time;
+	getuptime(&start_time);
+	getuptime(&stop_time);
 
-	tv_add_diff(&stop_time, params->min_duration * 1000);
-	gettimeofday(&final_time, NULL);
+	ts_add_diff(&stop_time, MSEC2NSEC(params->min_duration));
+	getuptime(&final_time);
 
-	while (!tv_gt(&final_time, &stop_time)) {
+	while (!ts_gt(&final_time, &stop_time)) {
 		++transfer_count;
 
 		// Write buffer to device.
@@ -185,11 +185,11 @@ static errno_t test_out(usb_pipe_t *pipe, const usbdiag_test_params_t *params, u
 			break;
 		}
 
-		gettimeofday(&final_time, NULL);
+		getuptime(&final_time);
 	}
 
-	usbdiag_dur_t in_duration = ((final_time.tv_usec - start_time.tv_usec) / 1000) +
-	    ((final_time.tv_sec - start_time.tv_sec) * 1000);
+	usbdiag_dur_t in_duration = NSEC2MSEC(final_time.tv_nsec - start_time.tv_nsec) +
+	    SEC2MSEC(final_time.tv_sec - start_time.tv_sec);
 
 	usb_log_info("Test on %s OUT endpoint completed in %ld ms.", usb_str_transfer_type(pipe->desc.transfer_type), in_duration);
 

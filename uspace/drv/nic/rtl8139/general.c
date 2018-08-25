@@ -84,7 +84,7 @@ void *rtl8139_memcpy_wrapped(void *dest, const void *src, size_t src_offset,
  *  @return EOK if succeed, error code otherwise
  */
 errno_t rtl8139_timer_act_init(rtl8139_timer_act_t *ta, uint32_t timer_freq,
-    const struct timeval *time)
+    const struct timespec *time)
 {
 	if (!ta || timer_freq == 0 || !time)
 		return EINVAL;
@@ -94,20 +94,20 @@ errno_t rtl8139_timer_act_init(rtl8139_timer_act_t *ta, uint32_t timer_freq,
 	uint32_t seconds_in_reg = UINT32_MAX / (tics_per_ms * 1000);
 	ta->full_val = seconds_in_reg * tics_per_ms * 1000;
 
-	struct timeval remains = *time;
+	struct timespec remains = *time;
 	ta->full_skips = remains.tv_sec / seconds_in_reg;
 	remains.tv_sec = remains.tv_sec % seconds_in_reg;
 
-	if (remains.tv_usec > RTL8139_USEC_IN_SEC) {
-		remains.tv_sec += remains.tv_usec / RTL8139_USEC_IN_SEC;
-		remains.tv_usec = remains.tv_usec % RTL8139_USEC_IN_SEC;
+	if (NSEC2USEC(remains.tv_nsec) > RTL8139_USEC_IN_SEC) {
+		remains.tv_sec += NSEC2USEC(remains.tv_nsec) / RTL8139_USEC_IN_SEC;
+		remains.tv_nsec = NSEC2USEC(remains.tv_nsec) % RTL8139_USEC_IN_SEC;
 
 		/* it can be increased above seconds_in_reg again */
 		ta->full_skips += remains.tv_sec / seconds_in_reg;
 		remains.tv_sec = remains.tv_sec % seconds_in_reg;
 	}
 
-	ta->last_val = remains.tv_sec * 1000 + remains.tv_usec / 1000;
+	ta->last_val = SEC2MSEC(remains.tv_sec) + NSEC2MSEC(remains.tv_nsec);
 	ta->last_val *= tics_per_ms;
 
 	/* Force inital setting in the next step */

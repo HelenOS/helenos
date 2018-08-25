@@ -40,7 +40,7 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <errno.h>
-#include <sys/time.h>
+#include <time.h>
 #include <barrier.h>
 #include <stdbool.h>
 #include <stdlib.h>

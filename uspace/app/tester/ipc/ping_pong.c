@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
+#include <time.h>
 #include <ns.h>
 #include <async.h>
 #include <errno.h>
@@ -41,15 +41,15 @@ const char *test_ping_pong(void)
 {
 	TPRINTF("Pinging ns server for %d seconds...", DURATION_SECS);
 
-	struct timeval start;
-	gettimeofday(&start, NULL);
+	struct timespec start;
+	getuptime(&start);
 
 	uint64_t count = 0;
 	while (true) {
-		struct timeval now;
-		gettimeofday(&now, NULL);
+		struct timespec now;
+		getuptime(&now);
 
-		if (tv_sub_diff(&now, &start) >= DURATION_SECS * 1000000L)
+		if (NSEC2SEC(ts_sub_diff(&now, &start)) >= DURATION_SECS)
 			break;
 
 		size_t i;

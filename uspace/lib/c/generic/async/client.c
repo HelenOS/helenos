@@ -109,7 +109,7 @@
 #include <adt/list.h>
 #include <assert.h>
 #include <errno.h>
-#include <sys/time.h>
+#include <time.h>
 #include <barrier.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -341,7 +341,7 @@ void async_wait_for(aid_t amsgid, errno_t *retval)
  * @return Zero on success, ETIMEOUT if the timeout has expired.
  *
  */
-errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, suseconds_t timeout)
+errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, usec_t timeout)
 {
 	if (amsgid == 0) {
 		if (retval)
@@ -358,9 +358,9 @@ errno_t async_wait_timeout(aid_t amsgid, errno_t *retval, suseconds_t timeout)
 	if (timeout < 0)
 		timeout = 0;
 
-	struct timeval expires;
+	struct timespec expires;
 	getuptime(&expires);
-	tv_add_diff(&expires, timeout);
+	ts_add_diff(&expires, USEC2NSEC(timeout));
 
 	errno_t rc = fibril_wait_timeout(&msg->received, &expires);
 	if (rc != EOK)

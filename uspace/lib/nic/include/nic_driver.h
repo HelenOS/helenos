@@ -82,11 +82,11 @@ struct nic {
 	/** Current polling mode of the NIC */
 	nic_poll_mode_t poll_mode;
 	/** Polling period (applicable when poll_mode == NIC_POLL_PERIODIC) */
-	struct timeval poll_period;
+	struct timespec poll_period;
 	/** Current polling mode of the NIC */
 	nic_poll_mode_t default_poll_mode;
 	/** Polling period (applicable when default_poll_mode == NIC_POLL_PERIODIC) */
-	struct timeval default_poll_period;
+	struct timespec default_poll_period;
 	/** Software period fibrill information */
 	struct sw_poll_info sw_poll_info;
 	/**

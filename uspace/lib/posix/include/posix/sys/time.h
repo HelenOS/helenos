@@ -33,7 +33,14 @@
 #ifndef POSIX_SYS_TIME_H_
 #define POSIX_SYS_TIME_H_
 
-#include "libc/sys/time.h"
+#include "libc/time.h"
+
+struct timeval {
+	time_t tv_sec;        /* seconds */
+	suseconds_t tv_usec;  /* microseconds */
+};
+
+extern int gettimeofday(struct timeval *, void *);
 
 #endif
 

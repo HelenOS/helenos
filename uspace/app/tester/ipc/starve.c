@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
+#include <time.h>
 #include <io/console.h>
 #include <async.h>
 #include "../tester.h"
@@ -42,20 +42,20 @@ const char *test_starve_ipc(void)
 	if (console == NULL)
 		return "Failed to init connection with console.";
 
-	struct timeval start;
-	gettimeofday(&start, NULL);
+	struct timespec start;
+	getuptime(&start);
 
 	TPRINTF("Intensive computation shall be imagined (for %ds)...\n", DURATION_SECS);
 	TPRINTF("Press a key to terminate prematurely...\n");
 	while (true) {
-		struct timeval now;
-		gettimeofday(&now, NULL);
+		struct timespec now;
+		getuptime(&now);
 
-		if (tv_sub_diff(&now, &start) >= DURATION_SECS * 1000000L)
+		if (NSEC2SEC(ts_sub_diff(&now, &start)) >= DURATION_SECS)
 			break;
 
 		cons_event_t ev;
-		suseconds_t timeout = 0;
+		usec_t timeout = 0;
 		bool has_event = console_get_event_timeout(console, &ev, &timeout);
 		if (has_event && ev.type == CEV_KEY && ev.ev.key.type == KEY_PRESS) {
 			TPRINTF("Key %d pressed, terminating.\n", ev.ev.key.key);

@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <task.h>
-#include <sys/time.h>
+#include <time.h>
 #include <errno.h>
 #include <gsort.h>
 #include <str.h>
@@ -153,15 +153,15 @@ static const char *read_data(data_t *target)
 	target->table.fields = NULL;
 
 	/* Get current time */
-	struct timeval time;
-	gettimeofday(&time, NULL);
+	struct timespec time;
+	getrealtime(&time);
 
 	target->hours = (time.tv_sec % DAY) / HOUR;
 	target->minutes = (time.tv_sec % HOUR) / MINUTE;
 	target->seconds = time.tv_sec % MINUTE;
 
 	/* Get uptime */
-	struct timeval uptime;
+	struct timespec uptime;
 	getuptime(&uptime);
 
 	target->udays = uptime.tv_sec / DAY;

@@ -89,8 +89,7 @@ void usb_port_disabled(usb_port_t *, usb_port_remove_t);
 void usb_port_fini(usb_port_t *);
 
 /* And these are to be called from the connected handler. */
-int usb_port_condvar_wait_timeout(usb_port_t *port,
-    fibril_condvar_t *, suseconds_t);
+int usb_port_condvar_wait_timeout(usb_port_t *port, fibril_condvar_t *, usec_t);
 
 /**
  * Wait for the enabled event to come.

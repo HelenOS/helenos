@@ -41,7 +41,7 @@
 
 #include <ipc/common.h>
 #include <fibril.h>
-#include <sys/time.h>
+#include <time.h>
 #include <stdbool.h>
 #include <abi/proc/task.h>
 #include <abi/ddi/irq.h>
@@ -111,7 +111,7 @@ extern __noreturn void async_manager(void);
 #define async_get_call(data) \
 	async_get_call_timeout(data, 0)
 
-extern bool async_get_call_timeout(ipc_call_t *, suseconds_t);
+extern bool async_get_call_timeout(ipc_call_t *, usec_t);
 
 /*
  * User-friendly wrappers for async_send_fast() and async_send_slow(). The
@@ -139,7 +139,7 @@ extern aid_t async_send_slow(async_exch_t *, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, ipc_call_t *);
 
 extern void async_wait_for(aid_t, errno_t *);
-extern errno_t async_wait_timeout(aid_t, errno_t *, suseconds_t);
+extern errno_t async_wait_timeout(aid_t, errno_t *, usec_t);
 extern void async_forget(aid_t);
 
 extern void async_set_client_data_constructor(async_client_data_ctor_t);

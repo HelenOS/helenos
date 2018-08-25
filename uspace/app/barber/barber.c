@@ -129,7 +129,7 @@ static load_t get_load(void)
 	return load_val;
 }
 
-static void plan_frame_timer(suseconds_t render_time)
+static void plan_frame_timer(usec_t render_time)
 {
 	/*
 	 * Crank up the FPS unless we lack
@@ -138,7 +138,7 @@ static void plan_frame_timer(suseconds_t render_time)
 	 * a lower threshold.
 	 */
 
-	suseconds_t delta = 1000000 / fps;
+	usec_t delta = 1000000 / fps;
 	load_t load = get_load();
 
 	if ((delta >= render_time) && (load < MIN_LOAD))
@@ -189,7 +189,7 @@ static void led_timer_callback(void *data)
 
 static void frame_timer_callback(void *data)
 {
-	struct timeval prev;
+	struct timespec prev;
 	getuptime(&prev);
 
 	frame++;
@@ -198,10 +198,10 @@ static void frame_timer_callback(void *data)
 
 	update_canvas(frame_canvas, frames[frame]);
 
-	struct timeval cur;
+	struct timespec cur;
 	getuptime(&cur);
 
-	plan_frame_timer(tv_sub_diff(&cur, &prev));
+	plan_frame_timer(NSEC2USEC(ts_sub_diff(&cur, &prev)));
 }
 
 static void loc_callback(void *arg)
