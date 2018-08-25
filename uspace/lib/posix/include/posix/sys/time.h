@@ -35,19 +35,12 @@
 
 #include "libc/time.h"
 
-#define DST_NONE  0
-
 struct timeval {
 	time_t tv_sec;        /* seconds */
 	suseconds_t tv_usec;  /* microseconds */
 };
 
-struct timezone {
-	int tz_minuteswest;  /* minutes W of Greenwich */
-	int tz_dsttime;      /* type of dst correction */
-};
-
-extern int gettimeofday(struct timeval *, struct timezone *);
+extern int gettimeofday(struct timeval *, void *);
 
 #endif
 

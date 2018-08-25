@@ -329,7 +329,7 @@ clock_t clock(void)
 	return total_cycles;
 }
 
-int gettimeofday(struct timeval *tv, struct timezone *tz)
+int gettimeofday(struct timeval *tv, void *tz)
 {
 	struct timespec ts;
 
