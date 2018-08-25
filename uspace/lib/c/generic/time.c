@@ -716,7 +716,7 @@ time_t time(time_t *tloc)
 	return ts.tv_sec;
 }
 
-void udelay(usec_t time)
+void udelay(sysarg_t time)
 {
 	(void) __SYSCALL1(SYS_THREAD_UDELAY, (sysarg_t) time);
 }

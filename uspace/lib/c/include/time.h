@@ -151,7 +151,7 @@ extern errno_t time_ts2tm(const struct timespec *, struct tm *);
 extern errno_t time_local2tm(const time_t, struct tm *);
 extern errno_t time_local2str(const time_t, char *);
 
-extern void udelay(usec_t);
+extern void udelay(sysarg_t);
 
 #ifdef __cplusplus
 }
