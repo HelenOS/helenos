@@ -69,6 +69,15 @@ struct {
 
 static async_sess_t *clock_conn = NULL;
 
+/** Return processor time used by the program.
+ *
+ * @return -1  The processor time used is not available in this implementation.
+ */
+clock_t clock(void)
+{
+	return (clock_t) -1;
+}
+
 /** Check whether the year is a leap year.
  *
  * @param year Year since 1900 (e.g. for 1970, the value is 70).
