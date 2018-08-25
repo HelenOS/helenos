@@ -83,6 +83,10 @@ clock_t clock(void)
 	stats_cpu_t *cpu_stats = stats_get_cpus(&count);
 	if (!cpu_stats)
 		return (clock_t) -1;
+	if (!cpu_stats->frequency_mhz) {
+		free(cpu_stats);
+		return (clock_t) -1;
+	}
 
 	clock_t total_usecs = -1;
 	if (cpu_stats) {
