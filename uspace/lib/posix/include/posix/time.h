@@ -40,9 +40,7 @@
 
 #include <_bits/NULL.h>
 
-#ifndef CLOCKS_PER_SEC
-#define CLOCKS_PER_SEC (1000000L)
-#endif
+#include "libc/time.h"
 
 #ifndef __locale_t_defined
 #define __locale_t_defined
@@ -56,10 +54,7 @@ struct sigevent;
 #undef CLOCK_REALTIME
 #define CLOCK_REALTIME ((clockid_t) 0)
 
-struct timespec {
-	time_t tv_sec; /* Seconds. */
-	long tv_nsec; /* Nanoseconds. */
-};
+#define ASCTIME_BUF_LEN  26
 
 struct itimerspec {
 	struct timespec it_interval; /* Timer period. */
@@ -102,10 +97,6 @@ extern int clock_settime(clockid_t clock_id,
     const struct timespec *tp);
 extern int clock_nanosleep(clockid_t clock_id, int flags,
     const struct timespec *rqtp, struct timespec *rmtp);
-
-/* CPU Time */
-extern clock_t clock(void);
-
 
 #endif  // POSIX_TIME_H_
 

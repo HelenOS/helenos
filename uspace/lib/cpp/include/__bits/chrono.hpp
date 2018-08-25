@@ -610,11 +610,11 @@ namespace std::chrono
 
             static time_point now()
             {
-                hel::timeval tv{};
-                hel::gettimeofday(&tv, nullptr);
+                hel::timespec ts{};
+                hel::getrealtime(&ts);
 
-                rep time = tv.tv_usec;
-                time += (tv.tv_sec * 1'000'000ul);
+                rep time = NSEC2USEC(ts.tv_nsec);
+                time += (ts.tv_sec * 1'000'000ul);
 
                 return time_point{duration{time - epoch_usecs}};
             }
@@ -653,11 +653,11 @@ namespace std::chrono
 
             static time_point now()
             {
-                hel::timeval tv{};
-                hel::getuptime(&tv);
+                hel::timespec ts{};
+                hel::getuptime(&ts);
 
-                rep time = tv.tv_usec;
-                time += (tv.tv_sec * 1'000'000ul);
+                rep time = NSEC2USEC(ts.tv_nsec);
+                time += (ts.tv_sec * 1'000'000ul);
 
                 return time_point{duration{time}};
             }

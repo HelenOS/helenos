@@ -77,9 +77,9 @@ extern errno_t nic_wol_virtue_list_impl(ddf_fun_t *dev_fun, nic_wv_type_t type,
     size_t max_count, nic_wv_id_t *id_list, size_t *id_count);
 extern errno_t nic_wol_virtue_get_caps_impl(ddf_fun_t *, nic_wv_type_t, int *);
 extern errno_t nic_poll_get_mode_impl(ddf_fun_t *,
-    nic_poll_mode_t *, struct timeval *);
+    nic_poll_mode_t *, struct timespec *);
 extern errno_t nic_poll_set_mode_impl(ddf_fun_t *,
-    nic_poll_mode_t, const struct timeval *);
+    nic_poll_mode_t, const struct timespec *);
 extern errno_t nic_poll_now_impl(ddf_fun_t *);
 
 extern void nic_default_handler_impl(ddf_fun_t *dev_fun, ipc_call_t *call);

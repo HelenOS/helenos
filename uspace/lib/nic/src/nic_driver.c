@@ -383,7 +383,7 @@ void nic_frame_list_append(nic_frame_list_t *frames,
  *  @param period [out] The the period. Valid only if mode == NIC_POLL_PERIODIC
  *  @return Current polling mode of the controller
  */
-nic_poll_mode_t nic_query_poll_mode(nic_t *nic_data, struct timeval *period)
+nic_poll_mode_t nic_query_poll_mode(nic_t *nic_data, struct timespec *period)
 {
 	if (period)
 		*period = nic_data->poll_period;
@@ -399,7 +399,7 @@ nic_poll_mode_t nic_query_poll_mode(nic_t *nic_data, struct timeval *period)
  *  @return EINVAL
  */
 errno_t nic_report_poll_mode(nic_t *nic_data, nic_poll_mode_t mode,
-    struct timeval *period)
+    struct timespec *period)
 {
 	errno_t rc = EOK;
 	fibril_rwlock_write_lock(&nic_data->main_lock);
@@ -407,8 +407,8 @@ errno_t nic_report_poll_mode(nic_t *nic_data, nic_poll_mode_t mode,
 	nic_data->default_poll_mode = mode;
 	if (mode == NIC_POLL_PERIODIC) {
 		if (period) {
-			memcpy(&nic_data->default_poll_period, period, sizeof(struct timeval));
-			memcpy(&nic_data->poll_period, period, sizeof(struct timeval));
+			memcpy(&nic_data->default_poll_period, period, sizeof(struct timespec));
+			memcpy(&nic_data->poll_period, period, sizeof(struct timespec));
 		} else {
 			rc = EINVAL;
 		}
@@ -1029,9 +1029,9 @@ void nic_report_collisions(nic_t *nic_data, unsigned count)
  *  @returns Zero if the t is nonzero interval
  *  @returns Nonzero if t is zero interval
  */
-static int timeval_nonpositive(struct timeval t)
+static int timespec_nonpositive(struct timespec t)
 {
-	return (t.tv_sec <= 0) && (t.tv_usec <= 0);
+	return (t.tv_sec <= 0) && (t.tv_nsec <= 0);
 }
 
 /** Main function of software period fibrill
@@ -1050,17 +1050,17 @@ static errno_t period_fibril_fun(void *data)
 		fibril_rwlock_read_lock(&nic->main_lock);
 		int run = info->run;
 		int running = info->running;
-		struct timeval remaining = nic->poll_period;
+		struct timespec remaining = nic->poll_period;
 		fibril_rwlock_read_unlock(&nic->main_lock);
 
 		if (!running) {
 			remaining.tv_sec = 5;
-			remaining.tv_usec = 0;
+			remaining.tv_nsec = 0;
 		}
 
 		/* Wait the period (keep attention to overflows) */
-		while (!timeval_nonpositive(remaining)) {
-			suseconds_t wait = 0;
+		while (!timespec_nonpositive(remaining)) {
+			usec_t wait = 0;
 			if (remaining.tv_sec > 0) {
 				time_t wait_sec = remaining.tv_sec;
 				/*
@@ -1070,17 +1070,17 @@ static errno_t period_fibril_fun(void *data)
 				if (wait_sec > 5)
 					wait_sec = 5;
 
-				wait = (suseconds_t) wait_sec * 1000000;
+				wait = SEC2USEC(wait_sec);
 
 				remaining.tv_sec -= wait_sec;
 			} else {
-				wait = remaining.tv_usec;
+				wait = NSEC2USEC(remaining.tv_nsec);
 
 				if (wait > 5 * 1000000) {
 					wait = 5 * 1000000;
 				}
 
-				remaining.tv_usec -= wait;
+				remaining.tv_nsec -= USEC2NSEC(wait);
 			}
 			fibril_usleep(wait);
 

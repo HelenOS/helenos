@@ -144,7 +144,7 @@ void endpoint_set_offline_locked(endpoint_t *ep)
  * Wait until a transfer finishes. Can be used even when the endpoint is
  * offline (and is interrupted by the endpoint going offline).
  */
-void endpoint_wait_timeout_locked(endpoint_t *ep, suseconds_t timeout)
+void endpoint_wait_timeout_locked(endpoint_t *ep, usec_t timeout)
 {
 	assert(ep);
 	assert(fibril_mutex_is_locked(ep->guard));

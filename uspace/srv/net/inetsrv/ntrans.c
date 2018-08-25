@@ -155,7 +155,7 @@ errno_t ntrans_lookup(addr128_t ip_addr, addr48_t mac_addr)
  * @return ETIMEOUT if timed out
  *
  */
-errno_t ntrans_wait_timeout(suseconds_t timeout)
+errno_t ntrans_wait_timeout(usec_t timeout)
 {
 	fibril_mutex_lock(&ntrans_list_lock);
 	errno_t rc = fibril_condvar_wait_timeout(&ntrans_cv, &ntrans_list_lock,

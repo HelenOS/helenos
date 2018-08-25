@@ -195,7 +195,7 @@ typedef void (*wol_virtue_remove_handler)(nic_t *, const nic_wol_virtue_t *);
  * @return EINVAL	If this mode cannot be set up under no circumstances
  */
 typedef errno_t (*poll_mode_change_handler)(nic_t *,
-    nic_poll_mode_t, const struct timeval *);
+    nic_poll_mode_t, const struct timespec *);
 
 /**
  * Event handler called when the NIC should poll its buffers for a new frame
@@ -239,11 +239,11 @@ extern void *nic_get_specific(nic_t *);
 extern nic_device_state_t nic_query_state(nic_t *);
 extern void nic_set_tx_busy(nic_t *, int);
 extern errno_t nic_report_address(nic_t *, const nic_address_t *);
-extern errno_t nic_report_poll_mode(nic_t *, nic_poll_mode_t, struct timeval *);
+extern errno_t nic_report_poll_mode(nic_t *, nic_poll_mode_t, struct timespec *);
 extern void nic_query_address(nic_t *, nic_address_t *);
 extern void nic_received_frame(nic_t *, nic_frame_t *);
 extern void nic_received_frame_list(nic_t *, nic_frame_list_t *);
-extern nic_poll_mode_t nic_query_poll_mode(nic_t *, struct timeval *);
+extern nic_poll_mode_t nic_query_poll_mode(nic_t *, struct timespec *);
 
 /* Statistics updates */
 extern void nic_report_send_ok(nic_t *, size_t, size_t);

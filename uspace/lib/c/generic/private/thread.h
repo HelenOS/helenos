@@ -48,8 +48,8 @@ extern errno_t thread_create(void (*)(void *), void *, const char *,
 extern void thread_exit(int) __attribute__((noreturn));
 extern void thread_detach(thread_id_t);
 extern thread_id_t thread_get_id(void);
-extern int thread_usleep(useconds_t);
-extern unsigned int thread_sleep(unsigned int);
+extern void thread_usleep(usec_t);
+extern void thread_sleep(sec_t);
 
 #endif
 

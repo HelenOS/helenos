@@ -125,9 +125,9 @@ int main(int argc, char **argv)
 	offset = 0;
 	next_mark = 0;
 	last_mark = 0;
-	struct timeval prev_time;
-	struct timeval start_time;
-	gettimeofday(&start_time, NULL);
+	struct timespec prev_time;
+	struct timespec start_time;
+	getuptime(&start_time);
 	prev_time = start_time;
 
 	while (!feof(file)) {
@@ -151,8 +151,8 @@ int main(int argc, char **argv)
 		}
 
 		if (progress && offset >= next_mark) {
-			struct timeval cur_time;
-			gettimeofday(&cur_time, NULL);
+			struct timespec cur_time;
+			getuptime(&cur_time);
 
 			uint32_t last_run = cur_time.tv_sec - prev_time.tv_sec;
 			uint32_t total_time = cur_time.tv_sec - start_time.tv_sec;
@@ -169,8 +169,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	struct timeval final_time;
-	gettimeofday(&final_time, NULL);
+	struct timespec final_time;
+	getuptime(&final_time);
 
 	uint32_t total_run_time = final_time.tv_sec - start_time.tv_sec;
 	if (total_run_time > 0) {

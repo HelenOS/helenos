@@ -189,10 +189,10 @@ static void print_load(void)
 
 static void print_uptime(void)
 {
-	struct timeval uptime;
+	struct timespec uptime;
 	getuptime(&uptime);
 
-	printf("%s: Up %ld days, %ld hours, %ld minutes, %ld seconds\n",
+	printf("%s: Up %lld days, %lld hours, %lld minutes, %lld seconds\n",
 	    NAME, uptime.tv_sec / DAY, (uptime.tv_sec % DAY) / HOUR,
 	    (uptime.tv_sec % HOUR) / MINUTE, uptime.tv_sec % MINUTE);
 }

@@ -54,7 +54,7 @@ static volatile const char copyright[] =
     "@(#) Copyright (c) 1992, 1993\n"
     "\tThe Regents of the University of California.  All rights reserved.\n";
 
-#include <sys/time.h>
+#include <time.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -169,10 +169,10 @@ const struct shape *randshape(void)
 
 static void srandomdev(void)
 {
-	struct timeval tv;
+	struct timespec ts;
 
-	gettimeofday(&tv, NULL);
-	srand(tv.tv_sec + tv.tv_usec / 100000);
+	getrealtime(&ts);
+	srand(ts.tv_sec + ts.tv_nsec / 100000000);
 }
 
 static void tetris_menu_draw(int level)

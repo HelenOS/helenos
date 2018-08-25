@@ -48,15 +48,13 @@
 #include "screen.h"
 #include "top.h"
 
-#define USEC_COUNT  1000000
-
-static suseconds_t timeleft = 0;
+static usec_t timeleft = 0;
 
 console_ctrl_t *console;
 
 static sysarg_t warning_col = 0;
 static sysarg_t warning_row = 0;
-static suseconds_t warning_timeleft = 0;
+static usec_t warning_timeleft = 0;
 static char *warning_text = NULL;
 
 static void screen_style_normal(void)
@@ -178,7 +176,7 @@ static void print_string(const char *str)
 
 static inline void print_global_head(data_t *data)
 {
-	printf("top - %02lu:%02lu:%02lu up "
+	printf("top - %02lld:%02lld:%02lld up "
 	    "%" PRIun " days, %02" PRIun ":%02" PRIun ":%02" PRIun ", "
 	    "load average:",
 	    data->hours, data->minutes, data->seconds,
@@ -526,7 +524,7 @@ void show_warning(const char *fmt, ...)
 	vsnprintf(warning_text, warning_text_size, fmt, args);
 	va_end(args);
 
-	warning_timeleft = 2 * USEC_COUNT;
+	warning_timeleft = SEC2USEC(2);
 
 	screen_moveto(warning_col, warning_row);
 	print_warning();
@@ -536,14 +534,14 @@ void show_warning(const char *fmt, ...)
 /** Get char with timeout
  *
  */
-int tgetchar(unsigned int sec)
+int tgetchar(sec_t sec)
 {
 	/*
 	 * Reset timeleft whenever it is not positive.
 	 */
 
 	if (timeleft <= 0)
-		timeleft = sec * USEC_COUNT;
+		timeleft = SEC2USEC(sec);
 
 	/*
 	 * Wait to see if there is any input. If so, take it and

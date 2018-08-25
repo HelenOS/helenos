@@ -56,17 +56,17 @@ void help_cmd_sleep(unsigned int level)
 	return;
 }
 
-/** Convert string containing decimal seconds to useconds_t.
+/** Convert string containing decimal seconds to usec_t.
  *
  * @param nptr   Pointer to string.
  * @param result Result of the conversion.
  * @return EOK if conversion was successful.
  */
-static errno_t decimal_to_useconds(const char *nptr, useconds_t *result)
+static errno_t decimal_to_useconds(const char *nptr, usec_t *result)
 {
 	errno_t ret;
-	uint64_t whole_seconds;
-	uint64_t frac_seconds;
+	sec_t whole_seconds;
+	usec_t frac_seconds;
 	const char *endptr;
 
 	/* Check for whole seconds */
@@ -74,7 +74,7 @@ static errno_t decimal_to_useconds(const char *nptr, useconds_t *result)
 		whole_seconds = 0;
 		endptr = (char *)nptr;
 	} else {
-		ret = str_uint64_t(nptr, &endptr, 10, false, &whole_seconds);
+		ret = str_int64_t(nptr, &endptr, 10, false, &whole_seconds);
 		if (ret != EOK)
 			return ret;
 	}
@@ -86,7 +86,7 @@ static errno_t decimal_to_useconds(const char *nptr, useconds_t *result)
 		frac_seconds = 0;
 	} else if (*endptr == '.') {
 		nptr = endptr + 1;
-		ret = str_uint64_t(nptr, &endptr, 10, true, &frac_seconds);
+		ret = str_int64_t(nptr, &endptr, 10, true, &frac_seconds);
 		if (ret != EOK)
 			return ret;
 
@@ -100,8 +100,8 @@ static errno_t decimal_to_useconds(const char *nptr, useconds_t *result)
 	}
 
 	/* Check for overflow */
-	useconds_t total = whole_seconds * 1000000 + frac_seconds;
-	if (total / 1000000 != whole_seconds)
+	usec_t total = SEC2USEC(whole_seconds) + frac_seconds;
+	if (USEC2SEC(total) != whole_seconds)
 		return EOVERFLOW;
 
 	*result = total;
@@ -114,7 +114,7 @@ int cmd_sleep(char **argv)
 {
 	errno_t ret;
 	unsigned int argc;
-	useconds_t duration = 0;
+	usec_t duration = 0;
 
 	/* Count the arguments */
 	argc = cli_count_args(argv);

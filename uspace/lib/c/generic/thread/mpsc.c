@@ -145,7 +145,7 @@ errno_t mpsc_send(mpsc_t *q, const void *b)
  * @return ETIMEOUT if deadline expires, ENOENT if the queue is closed and
  * there is no message left in the queue.
  */
-errno_t mpsc_receive(mpsc_t *q, void *b, const struct timeval *expires)
+errno_t mpsc_receive(mpsc_t *q, void *b, const struct timespec *expires)
 {
 	mpsc_node_t *n;
 	mpsc_node_t *new_head;
