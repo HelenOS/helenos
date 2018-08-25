@@ -56,6 +56,8 @@ typedef struct thread_attr thread_attr_t;
 /* Clock Types */
 typedef int clockid_t;
 
+typedef long suseconds_t;
+
 #endif /* POSIX_SYS_TYPES_H_ */
 
 /** @}

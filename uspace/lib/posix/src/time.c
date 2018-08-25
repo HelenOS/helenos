@@ -34,6 +34,7 @@
  */
 
 #include "internal/common.h"
+#include "posix/sys/types.h"
 #include "posix/sys/time.h"
 #include "posix/time.h"
 
