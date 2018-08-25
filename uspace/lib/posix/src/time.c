@@ -48,7 +48,6 @@
 #include "libc/async.h"
 #include "libc/malloc.h"
 #include "libc/task.h"
-#include "libc/stats.h"
 #include "libc/stddef.h"
 #include "libc/time.h"
 
@@ -308,25 +307,6 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 		errno = EINVAL;
 		return -1;
 	}
-}
-
-/**
- * Get CPU time used since the process invocation.
- *
- * @return Consumed CPU cycles by this process or -1 if not available.
- */
-clock_t clock(void)
-{
-	clock_t total_cycles = -1;
-	stats_task_t *task_stats = stats_get_task(task_get_id());
-	if (task_stats) {
-		total_cycles = (clock_t) (task_stats->kcycles +
-		    task_stats->ucycles);
-		free(task_stats);
-		task_stats = 0;
-	}
-
-	return total_cycles;
 }
 
 int gettimeofday(struct timeval *tv, void *tz)

@@ -44,7 +44,7 @@ extern "C" {
 
 #include <_bits/NULL.h>
 
-#define CLOCKS_PER_SEC	((clock_t) 1)
+#define CLOCKS_PER_SEC	((clock_t) 1000000)
 
 #define TIME_UTC	1
 

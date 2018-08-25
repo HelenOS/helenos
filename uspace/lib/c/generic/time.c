@@ -49,6 +49,7 @@
 #include <assert.h>
 #include <loc.h>
 #include <device/clock_dev.h>
+#include <stats.h>
 
 #define ASCTIME_BUF_LEN  26
 
@@ -69,13 +70,32 @@ struct {
 
 static async_sess_t *clock_conn = NULL;
 
-/** Return processor time used by the program.
+/**
+ * Get CPU time used since the process invocation.
  *
- * @return -1  The processor time used is not available in this implementation.
+ * @return Consumed microseconds by this process or -1 if not available.
  */
 clock_t clock(void)
 {
-	return (clock_t) -1;
+	static_assert(CLOCKS_PER_SEC == 1000000);
+
+	size_t count;
+	stats_cpu_t *cpu_stats = stats_get_cpus(&count);
+	if (!cpu_stats)
+		return (clock_t) -1;
+
+	clock_t total_usecs = -1;
+	if (cpu_stats) {
+		stats_task_t *task_stats = stats_get_task(task_get_id());
+		if (task_stats) {
+			total_usecs = (clock_t) (task_stats->kcycles +
+			    task_stats->ucycles) / cpu_stats->frequency_mhz;
+			free(task_stats);
+		}
+		free(cpu_stats);
+	}
+
+	return total_usecs;
 }
 
 /** Check whether the year is a leap year.

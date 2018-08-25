@@ -42,9 +42,6 @@
 
 #include "libc/time.h"
 
-#undef CLOCKS_PER_SEC
-#define CLOCKS_PER_SEC (1000000L)
-
 #ifndef __locale_t_defined
 #define __locale_t_defined
 typedef struct __posix_locale *locale_t;
@@ -100,9 +97,6 @@ extern int clock_settime(clockid_t clock_id,
     const struct timespec *tp);
 extern int clock_nanosleep(clockid_t clock_id, int flags,
     const struct timespec *rqtp, struct timespec *rmtp);
-
-/* CPU Time */
-extern clock_t clock(void);
 
 #endif  // POSIX_TIME_H_
 
