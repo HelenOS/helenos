@@ -65,7 +65,9 @@ struct timespec {
 
 struct tm {
 	int tm_sec;
+#ifdef _HELENOS_SOURCE
 	int tm_nsec;
+#endif
 	int tm_min;
 	int tm_hour;
 	int tm_mday;
@@ -105,6 +107,9 @@ extern struct tm *localtime(const time_t *);
 
 /* ISO/IEC 9899:2011 7.27.3.5 (1) */
 extern size_t strftime(char *, size_t, const char *, const struct tm *);
+
+
+#ifdef _HELENOS_SOURCE
 
 /*
  * HelenOS specific extensions
@@ -152,6 +157,8 @@ extern errno_t time_local2tm(const time_t, struct tm *);
 extern errno_t time_local2str(const time_t, char *);
 
 extern void udelay(sysarg_t);
+
+#endif /* _HELENOS_SOURCE */
 
 #ifdef __cplusplus
 }
