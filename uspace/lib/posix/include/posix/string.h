@@ -47,8 +47,13 @@
 #include <_bits/size_t.h>
 
 #include "libc/mem.h"
+#ifdef _HELENOS_SOURCE
 #undef _HELENOS_SOURCE
 #include "libc/string.h"
+#define _HELENOS_SOURCE
+#else
+#include "libc/string.h"
+#endif
 
 /* Copying and Concatenation */
 extern char *stpcpy(char *__restrict__ dest, const char *__restrict__ src);
