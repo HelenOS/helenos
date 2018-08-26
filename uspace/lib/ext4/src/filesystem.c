@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
@@ -46,6 +47,7 @@
 #include "ext4/balloc.h"
 #include "ext4/bitmap.h"
 #include "ext4/block_group.h"
+#include "ext4/directory.h"
 #include "ext4/extent.h"
 #include "ext4/filesystem.h"
 #include "ext4/ialloc.h"
@@ -54,6 +56,10 @@
 #include "ext4/superblock.h"
 
 static errno_t ext4_filesystem_check_features(ext4_filesystem_t *, bool *);
+static errno_t ext4_filesystem_init_block_groups(ext4_filesystem_t *);
+static errno_t ext4_filesystem_alloc_this_inode(ext4_filesystem_t *,
+    uint32_t, ext4_inode_ref_t **, int);
+static uint32_t ext4_filesystem_inodes_per_block(ext4_superblock_t *);
 
 /** Initialize filesystem for opening.
  *
@@ -154,6 +160,212 @@ static void ext4_filesystem_fini(ext4_filesystem_t *fs)
 	/* Finish work with block library */
 	block_cache_fini(fs->device);
 	block_fini(fs->device);
+}
+
+/** Create lost+found directory.
+ *
+ * @param fs Filesystem
+ * @return EOK on success or error code
+ */
+static errno_t ext4_filesystem_create_lost_found(ext4_filesystem_t *fs,
+    ext4_inode_ref_t *root_dir_ref)
+{
+	errno_t rc;
+	ext4_inode_ref_t *inode_ref;
+
+	rc = ext4_filesystem_alloc_inode(fs, &inode_ref, L_DIRECTORY);
+	if (rc != EOK)
+		goto error;
+
+	rc = ext4_directory_add_entry(inode_ref, ".", inode_ref);
+	if (rc != EOK)
+		goto error;
+
+	rc = ext4_directory_add_entry(inode_ref, "..", root_dir_ref);
+	if (rc != EOK)
+		goto error;
+
+	rc = ext4_directory_add_entry(root_dir_ref, "lost+found", inode_ref);
+	if (rc != EOK)
+		goto error;
+
+	inode_ref->dirty = true;
+
+	uint16_t nlinks = ext4_inode_get_links_count(inode_ref->inode);
+	ext4_inode_set_links_count(inode_ref->inode, nlinks + 1);
+
+	rc = ext4_filesystem_put_inode_ref(inode_ref);
+	if (rc != EOK)
+		goto error;
+
+error:
+	return rc;
+}
+
+/** Create root directory.
+ *
+ * @param fs Filesystem
+ * @return EOK on success or error code
+ */
+static errno_t ext4_filesystem_create_root_dir(ext4_filesystem_t *fs)
+{
+	errno_t rc;
+	ext4_inode_ref_t *inode_ref;
+
+	rc = ext4_filesystem_get_inode_ref(fs, EXT4_INODE_ROOT_INDEX,
+	    &inode_ref);
+	if (rc != EOK)
+		goto error;
+
+	inode_ref->dirty = true;
+
+	rc = ext4_directory_add_entry(inode_ref, ".", inode_ref);
+	if (rc != EOK)
+		goto error;
+
+	rc = ext4_directory_add_entry(inode_ref, "..", inode_ref);
+	if (rc != EOK)
+		goto error;
+
+	uint16_t nlinks = ext4_inode_get_links_count(inode_ref->inode);
+	ext4_inode_set_links_count(inode_ref->inode, nlinks + 1);
+
+	rc = ext4_filesystem_create_lost_found(fs, inode_ref);
+	if (rc != EOK)
+		goto error;
+
+	nlinks = ext4_inode_get_links_count(inode_ref->inode);
+	ext4_inode_set_links_count(inode_ref->inode, nlinks + 1);
+
+	rc = ext4_filesystem_put_inode_ref(inode_ref);
+	if (rc != EOK)
+		goto error;
+
+error:
+	return rc;
+}
+
+/** Create new filesystem.
+ *
+ * @param service_id Block device where to create new filesystem
+ */
+errno_t ext4_filesystem_create(service_id_t service_id)
+{
+	errno_t rc;
+	ext4_superblock_t *superblock = NULL;
+	ext4_filesystem_t *fs = NULL;
+	size_t dev_bsize;
+	aoff64_t dev_nblocks;
+	ext4_inode_ref_t *inode_ref = NULL;
+	bool block_inited = false;
+	bool fs_inited = false;
+	uint32_t idx;
+
+	/* Initialize block library (4096 is size of communication channel) */
+	rc = block_init(service_id, 4096);
+	if (rc != EOK)
+		goto err;
+
+	block_inited = true;
+
+	/* Get device block size */
+	rc = block_get_bsize(service_id, &dev_bsize);
+	if (rc != EOK)
+		goto err;
+
+	/* Get device number of blocks */
+	rc = block_get_nblocks(service_id, &dev_nblocks);
+	if (rc != EOK)
+		goto err;
+
+	/* Create superblock */
+	rc = ext4_superblock_create(dev_bsize, dev_nblocks, &superblock);
+	if (rc != EOK)
+		goto err;
+
+	/* Write superblock to device */
+	rc = ext4_superblock_write_direct(service_id, superblock);
+	if (rc != EOK)
+		goto err;
+
+	block_fini(service_id);
+	block_inited = false;
+	ext4_superblock_release(superblock);
+	superblock = NULL;
+
+	fs = calloc(1, sizeof(ext4_filesystem_t));
+	if (fs == NULL)
+		goto err;
+
+	/* Open file system */
+	rc = ext4_filesystem_init(fs, service_id, CACHE_MODE_WT);
+	if (rc != EOK)
+		goto err;
+
+	fs_inited = true;
+
+	/* Init block groups */
+	rc = ext4_filesystem_init_block_groups(fs);
+	if (rc != EOK)
+		goto err;
+
+	/* Reserved i-nodes */
+	for (idx = 1; idx < EXT4_REV0_FIRST_INO; idx++) {
+		if (idx == EXT4_INODE_ROOT_INDEX) {
+			rc = ext4_filesystem_alloc_this_inode(fs, idx,
+			    &inode_ref, L_DIRECTORY);
+			if (rc != EOK)
+				goto error;
+
+			rc = ext4_filesystem_put_inode_ref(inode_ref);
+			if (rc != EOK)
+				goto error;
+		} else {
+			/* Allocate inode by allocation algorithm */
+			errno_t rc = ext4_ialloc_alloc_this_inode(fs, idx,
+			    false);
+			if (rc != EOK)
+				return rc;
+
+			rc = ext4_filesystem_get_inode_ref(fs, idx,
+			    &inode_ref);
+			if (rc != EOK)
+				goto error;
+
+			memset(inode_ref->inode, 0, ext4_superblock_get_inode_size(fs->superblock));
+			inode_ref->dirty = true;
+
+			rc = ext4_filesystem_put_inode_ref(inode_ref);
+			if (rc != EOK)
+				goto error;
+		}
+	}
+
+	/* Create root directory */
+	rc = ext4_filesystem_create_root_dir(fs);
+	if (rc != EOK)
+		goto err;
+
+	/* Write superblock to device */
+	rc = ext4_superblock_write_direct(service_id, fs->superblock);
+	if (rc != EOK)
+		goto err;
+
+	ext4_filesystem_fini(fs);
+	free(fs);
+	return EOK;
+err:
+	if (fs_inited)
+		ext4_filesystem_fini(fs);
+	if (fs != NULL)
+		free(fs);
+	if (superblock != NULL)
+		ext4_superblock_release(superblock);
+	if (block_inited)
+		block_fini(service_id);
+	return rc;
+error:
+	return rc;
 }
 
 /** Probe filesystem.
@@ -372,6 +584,139 @@ uint32_t ext4_filesystem_blockaddr2group(ext4_superblock_t *sb, uint64_t b)
 	return (b - first_block) / blocks_per_group;
 }
 
+/** Initialize block group structures
+ */
+static errno_t ext4_filesystem_init_block_groups(ext4_filesystem_t *fs)
+{
+	errno_t rc;
+	block_t *block;
+	aoff64_t b;
+	ext4_block_group_t *bg;
+	ext4_superblock_t *sb = fs->superblock;
+	ext4_block_group_ref_t *bg_ref;
+
+	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+	uint32_t desc_size = ext4_superblock_get_desc_size(fs->superblock);
+	/* Number of descriptors per block */
+	uint32_t descriptors_per_block =
+	    ext4_superblock_get_block_size(fs->superblock) / desc_size;
+	/* Block where block group descriptor (and first block group) starts */
+	aoff64_t block_id =
+	    ext4_superblock_get_first_data_block(fs->superblock) + 1;
+	/* Number of blocks containing descriptor table */
+	uint32_t dtable_blocks =
+	    (block_group_count + descriptors_per_block - 1) /
+	    descriptors_per_block;
+
+	uint32_t bg_index;
+	aoff64_t bg_block0;
+	uint32_t dcnt;
+	uint32_t i;
+	uint32_t now;
+
+	aoff64_t block_bitmap;
+	aoff64_t inode_bitmap;
+	aoff64_t inode_table;
+	uint32_t free_blocks;
+	uint32_t free_inodes;
+	uint32_t used_dirs;
+	uint32_t reserved;
+	uint32_t inode_table_blocks;
+
+	dcnt = block_group_count;
+
+	/* Fill in block descriptors */
+	b = block_id;
+	bg_index = 0;
+	bg_block0 = block_id;
+	while (dcnt > 0) {
+		rc = block_get(&block, fs->device, b, BLOCK_FLAGS_NOREAD);
+		if (rc != EOK)
+			return rc;
+
+		if (dcnt > descriptors_per_block)
+			now = descriptors_per_block;
+		else
+			now = dcnt;
+
+		memset(block->data, 0, block_size);
+
+		for (i = 0; i < now; i++) {
+			bg = (ext4_block_group_t *) (block->data + i *
+			    desc_size);
+
+			block_bitmap = bg_block0 + dtable_blocks;
+			inode_bitmap = block_bitmap + 1;
+			inode_table = inode_bitmap + 1;
+
+			free_blocks = ext4_superblock_get_blocks_in_group(sb,
+			    bg_index);
+
+			free_inodes =
+			    ext4_filesystem_bg_get_itable_size(sb, bg_index) *
+			    ext4_filesystem_inodes_per_block(sb);
+			used_dirs = 0;
+
+			ext4_block_group_set_block_bitmap(bg, sb, block_bitmap);
+			ext4_block_group_set_inode_bitmap(bg, sb, inode_bitmap);
+			ext4_block_group_set_inode_table_first_block(bg, sb,
+			    inode_table);
+			ext4_block_group_set_free_blocks_count(bg, sb,
+			    free_blocks);
+			ext4_block_group_set_free_inodes_count(bg, sb,
+			    free_inodes);
+			ext4_block_group_set_used_dirs_count(bg, sb,
+			    used_dirs);
+
+			/// XX Lazy
+			ext4_block_group_set_flag(bg,
+			    EXT4_BLOCK_GROUP_BLOCK_UNINIT);
+			ext4_block_group_set_flag(bg,
+			    EXT4_BLOCK_GROUP_INODE_UNINIT);
+
+			bg_index++;
+			bg_block0 += ext4_superblock_get_blocks_per_group(sb);
+		}
+
+		block->dirty = true;
+
+		rc = block_put(block);
+		if (rc != EOK)
+			return rc;
+
+		++b;
+		dcnt -= now;
+	}
+
+	/* This initializes the bitmaps and inode table */
+	for (bg_index = 0; bg_index < block_group_count; bg_index++) {
+		rc = ext4_filesystem_get_block_group_ref(fs, bg_index, &bg_ref);
+		if (rc != EOK)
+			return rc;
+
+		/*
+		 * Adjust number of free blocks
+		 */
+		free_blocks = ext4_superblock_get_blocks_in_group(sb, bg_index);
+		reserved = ext4_filesystem_bg_get_backup_blocks(bg_ref);
+		inode_table_blocks = ext4_filesystem_bg_get_itable_size(sb,
+		    bg_ref->index);
+		/* One for block bitmap one for inode bitmap */
+		free_blocks = free_blocks - reserved - 2 - inode_table_blocks;
+
+		ext4_block_group_set_free_blocks_count(bg_ref->block_group,
+		    sb, free_blocks);
+		bg_ref->dirty = true;
+
+		rc = ext4_filesystem_put_block_group_ref(bg_ref);
+		if (rc != EOK)
+			return rc;
+	}
+
+	return EOK;
+}
+
 /** Initialize block bitmap in block group.
  *
  * @param bg_ref Reference to block group
@@ -391,6 +736,9 @@ static errno_t ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 	    bg_ref->block_group, bg_ref->fs->superblock);
 	uint64_t bitmap_inode_addr = ext4_block_group_get_inode_bitmap(
 	    bg_ref->block_group, bg_ref->fs->superblock);
+	uint32_t blocks_group = ext4_superblock_get_blocks_per_group(sb);
+	uint32_t bg_blocks = ext4_superblock_get_blocks_in_group(sb,
+	    bg_ref->index);
 
 	block_t *bitmap_block;
 	errno_t rc = block_get(&bitmap_block, bg_ref->fs->device,
@@ -427,7 +775,7 @@ static errno_t ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 
 	itb = ext4_block_group_get_inode_table_first_block(bg_ref->block_group,
 	    sb);
-	sz = ext4_filesystem_bg_get_itable_size(sb, bg_ref);
+	sz = ext4_filesystem_bg_get_itable_size(sb, bg_ref->index);
 
 	for (i = 0; i < sz; ++i, ++itb) {
 		uint32_t gid = ext4_filesystem_blockaddr2group(sb, itb);
@@ -435,6 +783,11 @@ static errno_t ext4_filesystem_init_block_bitmap(ext4_block_group_ref_t *bg_ref)
 			ext4_bitmap_set_bit(bitmap,
 			    ext4_filesystem_blockaddr2_index_in_group(sb, itb));
 		}
+	}
+
+	/* For last group need to mark blocks which are outside of the FS */
+	for (uint32_t block = bg_blocks; block < blocks_group; block++) {
+		ext4_bitmap_set_bit(bitmap, block);
 	}
 
 	bitmap_block->dirty = true;
@@ -497,9 +850,8 @@ static errno_t ext4_filesystem_init_inode_table(ext4_block_group_ref_t *bg_ref)
 {
 	ext4_superblock_t *sb = bg_ref->fs->superblock;
 
-	uint32_t inode_size = ext4_superblock_get_inode_size(sb);
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
-	uint32_t inodes_per_block = block_size / inode_size;
+	uint32_t inodes_per_block = ext4_filesystem_inodes_per_block(sb);
 
 	uint32_t inodes_in_group =
 	    ext4_superblock_get_inodes_in_group(sb, bg_ref->index);
@@ -611,8 +963,11 @@ errno_t ext4_filesystem_get_block_group_ref(ext4_filesystem_t *fs, uint32_t bgid
 		if (!ext4_block_group_has_flag(newref->block_group,
 		    EXT4_BLOCK_GROUP_ITABLE_ZEROED)) {
 			rc = ext4_filesystem_init_inode_table(newref);
-			if (rc != EOK)
+			if (rc != EOK) {
+				block_put(newref->block);
+				free(newref);
 				return rc;
+			}
 
 			ext4_block_group_set_flag(newref->block_group,
 			    EXT4_BLOCK_GROUP_ITABLE_ZEROED);
@@ -675,13 +1030,13 @@ static uint16_t ext4_filesystem_bg_checksum(ext4_superblock_t *sb, uint32_t bgid
 
 /** Get the size of the block group's inode table
  *
- * @param sb     Pointer to the superblock
- * @param bg_ref Pointer to the block group reference
+ * @param sb       Pointer to the superblock
+ * @param bg_index Block group index
  *
- * @return       Size of the inode table in blocks.
+ * @return         Size of the inode table in blocks.
  */
 uint32_t ext4_filesystem_bg_get_itable_size(ext4_superblock_t *sb,
-    ext4_block_group_ref_t *bg_ref)
+    uint32_t bg_index)
 {
 	uint32_t itable_size;
 	uint32_t block_group_count = ext4_superblock_get_block_group_count(sb);
@@ -689,7 +1044,7 @@ uint32_t ext4_filesystem_bg_get_itable_size(ext4_superblock_t *sb,
 	uint32_t inodes_per_group = ext4_superblock_get_inodes_per_group(sb);
 	uint32_t block_size = ext4_superblock_get_block_size(sb);
 
-	if (bg_ref->index < block_group_count - 1) {
+	if (bg_index < block_group_count - 1) {
 		itable_size = inodes_per_group * inode_table_item_size;
 	} else {
 		/* Last block group could be smaller */
@@ -702,24 +1057,6 @@ uint32_t ext4_filesystem_bg_get_itable_size(ext4_superblock_t *sb,
 	return ROUND_UP(itable_size, block_size) / block_size;
 }
 
-/* Check if n is a power of p */
-static bool is_power_of(uint32_t n, unsigned p)
-{
-	if (p == 1 && n != p)
-		return false;
-
-	while (n != p) {
-		if (n < p)
-			return false;
-		else if ((n % p) != 0)
-			return false;
-
-		n /= p;
-	}
-
-	return true;
-}
-
 /** Get the number of blocks used by superblock + gdt + reserved gdt backups
  *
  * @param bg    Pointer to block group
@@ -728,75 +1065,8 @@ static bool is_power_of(uint32_t n, unsigned p)
  */
 uint32_t ext4_filesystem_bg_get_backup_blocks(ext4_block_group_ref_t *bg)
 {
-	uint32_t const idx = bg->index;
-	uint32_t r = 0;
-	bool has_backups = false;
-	ext4_superblock_t *sb = bg->fs->superblock;
-
-	/* First step: determine if the block group contains the backups */
-
-	if (idx <= 1)
-		has_backups = true;
-	else {
-		if (ext4_superblock_has_feature_compatible(sb,
-		    EXT4_FEATURE_COMPAT_SPARSE_SUPER2)) {
-			uint32_t g1, g2;
-
-			ext4_superblock_get_backup_groups_sparse2(sb,
-			    &g1, &g2);
-
-			if (idx == g1 || idx == g2)
-				has_backups = true;
-		} else if (!ext4_superblock_has_feature_read_only(sb,
-		    EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER)) {
-			/*
-			 * Very old fs were all block groups have
-			 * superblock and block descriptors backups.
-			 */
-			has_backups = true;
-		} else {
-			if ((idx & 1) && (is_power_of(idx, 3) ||
-			    is_power_of(idx, 5) || is_power_of(idx, 7)))
-				has_backups = true;
-		}
-	}
-
-	if (has_backups) {
-		uint32_t bg_count;
-		uint32_t bg_desc_sz;
-		uint32_t gdt_table; /* Size of the GDT in blocks */
-		uint32_t block_size = ext4_superblock_get_block_size(sb);
-
-		/*
-		 * Now we know that this block group has backups,
-		 * we have to compute how many blocks are reserved
-		 * for them
-		 */
-
-		if (idx == 0 && block_size == 1024) {
-			/*
-			 * Special case for first group were the boot block
-			 * resides
-			 */
-			r++;
-		}
-
-		/* This accounts for the superblock */
-		r++;
-
-		/* Add the number of blocks used for the GDT */
-		bg_count = ext4_superblock_get_block_group_count(sb);
-		bg_desc_sz = ext4_superblock_get_desc_size(sb);
-		gdt_table = ROUND_UP(bg_count * bg_desc_sz, block_size) /
-		    block_size;
-
-		r += gdt_table;
-
-		/* And now the number of reserved GDT blocks */
-		r += ext4_superblock_get_reserved_gdt_blocks(sb);
-	}
-
-	return r;
+	return ext4_superblock_get_group_backup_blocks(bg->fs->superblock,
+	    bg->index);
 }
 
 /** Put reference to block group.
@@ -926,16 +1196,17 @@ errno_t ext4_filesystem_put_inode_ref(ext4_inode_ref_t *ref)
 	return rc;
 }
 
-/** Allocate new i-node in the filesystem.
+/** Initialize newly allocated i-node in the filesystem.
  *
- * @param fs        Filesystem to allocated i-node on
+ * @param fs        Filesystem to initialize i-node on
+ * @param index     I-node index
  * @param inode_ref Output pointer to return reference to allocated i-node
  * @param flags     Flags to be set for newly created i-node
  *
  * @return Error code
  *
  */
-errno_t ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
+static errno_t ext4_filesystem_init_inode(ext4_filesystem_t *fs, uint32_t index,
     ext4_inode_ref_t **inode_ref, int flags)
 {
 	/* Check if newly allocated i-node will be a directory */
@@ -943,14 +1214,8 @@ errno_t ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	if (flags & L_DIRECTORY)
 		is_dir = true;
 
-	/* Allocate inode by allocation algorithm */
-	uint32_t index;
-	errno_t rc = ext4_ialloc_alloc_inode(fs, &index, is_dir);
-	if (rc != EOK)
-		return rc;
-
 	/* Load i-node from on-disk i-node table */
-	rc = ext4_filesystem_get_inode_ref(fs, index, inode_ref);
+	errno_t rc = ext4_filesystem_get_inode_ref(fs, index, inode_ref);
 	if (rc != EOK) {
 		ext4_ialloc_free_inode(fs, index, is_dir);
 		return rc;
@@ -1016,6 +1281,70 @@ errno_t ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
 	}
 
 	(*inode_ref)->dirty = true;
+
+	return EOK;
+}
+
+/** Allocate new i-node in the filesystem.
+ *
+ * @param fs        Filesystem to allocated i-node on
+ * @param inode_ref Output pointer to return reference to allocated i-node
+ * @param flags     Flags to be set for newly created i-node
+ *
+ * @return Error code
+ *
+ */
+errno_t ext4_filesystem_alloc_inode(ext4_filesystem_t *fs,
+    ext4_inode_ref_t **inode_ref, int flags)
+{
+	/* Check if newly allocated i-node will be a directory */
+	bool is_dir = false;
+	if (flags & L_DIRECTORY)
+		is_dir = true;
+
+	/* Allocate inode by allocation algorithm */
+	uint32_t index;
+	errno_t rc = ext4_ialloc_alloc_inode(fs, &index, is_dir);
+	if (rc != EOK)
+		return rc;
+
+	rc = ext4_filesystem_init_inode(fs, index, inode_ref, flags);
+	if (rc != EOK) {
+		ext4_ialloc_free_inode(fs, index, is_dir);
+		return rc;
+	}
+
+	return EOK;
+}
+
+/** Allocate specific i-node in the filesystem.
+ *
+ * @param fs        Filesystem to allocated i-node on
+ * @param index     Index of i-node to allocate
+ * @param inode_ref Output pointer to return reference to allocated i-node
+ * @param flags     Flags to be set for newly created i-node
+ *
+ * @return Error code
+ *
+ */
+static errno_t ext4_filesystem_alloc_this_inode(ext4_filesystem_t *fs,
+    uint32_t index, ext4_inode_ref_t **inode_ref, int flags)
+{
+	/* Check if newly allocated i-node will be a directory */
+	bool is_dir = false;
+	if (flags & L_DIRECTORY)
+		is_dir = true;
+
+	/* Allocate inode by allocation algorithm */
+	errno_t rc = ext4_ialloc_alloc_this_inode(fs, index, is_dir);
+	if (rc != EOK)
+		return rc;
+
+	rc = ext4_filesystem_init_inode(fs, index, inode_ref, flags);
+	if (rc != EOK) {
+		ext4_ialloc_free_inode(fs, index, is_dir);
+		return rc;
+	}
 
 	return EOK;
 }
@@ -1671,6 +2000,19 @@ errno_t ext4_filesystem_append_inode_block(ext4_inode_ref_t *inode_ref,
 	*iblock = new_block_idx;
 
 	return EOK;
+}
+
+/** Get the number of inodes per block.
+ *
+ * @param sb Superblock
+ * @return   Number of inodes per block
+ */
+static uint32_t ext4_filesystem_inodes_per_block(ext4_superblock_t *sb)
+{
+	uint32_t inode_size = ext4_superblock_get_inode_size(sb);
+	uint32_t block_size = ext4_superblock_get_block_size(sb);
+
+	return block_size / inode_size;
 }
 
 /**

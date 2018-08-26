@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
@@ -36,6 +37,7 @@
 
 #include <block.h>
 #include <stdint.h>
+#include <uuid.h>
 #include "ext4/types.h"
 
 extern uint32_t ext4_superblock_get_inodes_count(ext4_superblock_t *);
@@ -112,8 +114,8 @@ extern uint32_t ext4_superblock_get_features_read_only(ext4_superblock_t *);
 extern void ext4_superblock_set_features_read_only(ext4_superblock_t *,
     uint32_t);
 
-extern const uint8_t *ext4_superblock_get_uuid(ext4_superblock_t *);
-extern void ext4_superblock_set_uuid(ext4_superblock_t *, const uint8_t *);
+extern void ext4_superblock_get_uuid(ext4_superblock_t *, uuid_t *);
+extern void ext4_superblock_set_uuid(ext4_superblock_t *, uuid_t *);
 extern const char *ext4_superblock_get_volume_name(ext4_superblock_t *);
 extern void ext4_superblock_set_volume_name(ext4_superblock_t *, const char *);
 extern const char *ext4_superblock_get_last_mounted(ext4_superblock_t *);
@@ -160,6 +162,9 @@ extern uint32_t ext4_superblock_get_block_group_count(ext4_superblock_t *);
 extern uint32_t ext4_superblock_get_blocks_in_group(ext4_superblock_t *,
     uint32_t);
 extern uint32_t ext4_superblock_get_inodes_in_group(ext4_superblock_t *,
+    uint32_t);
+extern errno_t ext4_superblock_create(size_t, uint64_t, ext4_superblock_t **);
+extern uint32_t ext4_superblock_get_group_backup_blocks(ext4_superblock_t *,
     uint32_t);
 
 #endif

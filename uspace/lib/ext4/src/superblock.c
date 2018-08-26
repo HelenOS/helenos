@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
@@ -36,11 +37,13 @@
  * @brief Ext4 superblock operations.
  */
 
+#include <align.h>
 #include <block.h>
 #include <byteorder.h>
 #include <errno.h>
 #include <mem.h>
 #include <stdlib.h>
+#include <time.h>
 #include "ext4/superblock.h"
 
 /** Get number of i-nodes in the whole filesystem.
@@ -580,7 +583,7 @@ uint32_t ext4_superblock_get_last_check_time(ext4_superblock_t *sb)
  */
 void ext4_superblock_set_last_check_time(ext4_superblock_t *sb, uint32_t time)
 {
-	sb->state = host2uint32_t_le(time);
+	sb->last_check_time = host2uint32_t_le(time);
 }
 
 /** Get maximum time interval between two filesystem checks.
@@ -707,6 +710,9 @@ void ext4_superblock_set_def_resgid(ext4_superblock_t *sb, uint16_t gid)
  */
 uint32_t ext4_superblock_get_first_inode(ext4_superblock_t *sb)
 {
+	if (ext4_superblock_get_rev_level(sb) == 0)
+		return EXT4_REV0_FIRST_INO;
+
 	return uint32_t_le2host(sb->first_inode);
 }
 
@@ -852,20 +858,20 @@ void ext4_superblock_set_features_read_only(ext4_superblock_t *sb,
  * @return Pointer to UUID array
  *
  */
-const uint8_t *ext4_superblock_get_uuid(ext4_superblock_t *sb)
+void ext4_superblock_get_uuid(ext4_superblock_t *sb, uuid_t *uuid)
 {
-	return sb->uuid;
+	uuid_decode(sb->uuid, uuid);
 }
 
 /** Set UUID of the filesystem.
  *
  * @param sb   Superblock
- * @param uuid Pointer to UUID array
+ * @param uuid Pointer to UUID
  *
  */
-void ext4_superblock_set_uuid(ext4_superblock_t *sb, const uint8_t *uuid)
+void ext4_superblock_set_uuid(ext4_superblock_t *sb, uuid_t *uuid)
 {
-	memcpy(sb->uuid, uuid, sizeof(sb->uuid));
+	uuid_encode(uuid, sb->uuid);
 }
 
 /** Get name of the filesystem volume.
@@ -1344,6 +1350,253 @@ void ext4_superblock_set_reserved_gdt_blocks(ext4_superblock_t *sb,
     uint32_t n)
 {
 	sb->reserved_gdt_blocks = host2uint32_t_le(n);
+}
+
+/* Check if n is a power of p */
+static bool is_power_of(uint32_t n, unsigned p)
+{
+	if (p == 1 && n != p)
+		return false;
+
+	while (n != p) {
+		if (n < p)
+			return false;
+		else if ((n % p) != 0)
+			return false;
+
+		n /= p;
+	}
+
+	return true;
+}
+
+/** Get the number of blocks used by superblock + gdt + reserved gdt backups
+ *
+ * @param sb    Superblock
+ * @param idx   Block group index
+ *
+ * @return      Number of blocks
+ */
+uint32_t ext4_superblock_get_group_backup_blocks(ext4_superblock_t *sb,
+    uint32_t idx)
+{
+	uint32_t r = 0;
+	bool has_backups = false;
+
+	/* First step: determine if the block group contains the backups */
+
+	if (idx <= 1)
+		has_backups = true;
+	else {
+		if (ext4_superblock_has_feature_compatible(sb,
+		    EXT4_FEATURE_COMPAT_SPARSE_SUPER2)) {
+			uint32_t g1, g2;
+
+			ext4_superblock_get_backup_groups_sparse2(sb,
+			    &g1, &g2);
+
+			if (idx == g1 || idx == g2)
+				has_backups = true;
+		} else if (!ext4_superblock_has_feature_read_only(sb,
+		    EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER)) {
+			/*
+			 * Very old fs were all block groups have
+			 * superblock and block descriptors backups.
+			 */
+			has_backups = true;
+		} else {
+			if ((idx & 1) && (is_power_of(idx, 3) ||
+			    is_power_of(idx, 5) || is_power_of(idx, 7)))
+				has_backups = true;
+		}
+	}
+
+	if (has_backups) {
+		uint32_t bg_count;
+		uint32_t bg_desc_sz;
+		uint32_t gdt_table; /* Size of the GDT in blocks */
+		uint32_t block_size = ext4_superblock_get_block_size(sb);
+
+		/*
+		 * Now we know that this block group has backups,
+		 * we have to compute how many blocks are reserved
+		 * for them
+		 */
+
+		if (idx == 0 && block_size == 1024) {
+			/*
+			 * Special case for first group were the boot block
+			 * resides
+			 */
+			r++;
+		}
+
+		/* This accounts for the superblock */
+		r++;
+
+		/* Add the number of blocks used for the GDT */
+		bg_count = ext4_superblock_get_block_group_count(sb);
+		bg_desc_sz = ext4_superblock_get_desc_size(sb);
+		gdt_table = ROUND_UP(bg_count * bg_desc_sz, block_size) /
+		    block_size;
+
+		r += gdt_table;
+
+		/* And now the number of reserved GDT blocks */
+		r += ext4_superblock_get_reserved_gdt_blocks(sb);
+	}
+
+	return r;
+}
+
+
+/** Create superblock for new file system.
+ *
+ * @param dev_bsize Device block size
+ * @param dev_bcnt Device number of blocks
+ * @param rsb Place to store pointer to newly allocated superblock
+ * @return EOK on success or error code
+ */
+errno_t ext4_superblock_create(size_t dev_bsize, uint64_t dev_bcnt,
+    ext4_superblock_t **rsb)
+{
+	ext4_superblock_t *sb;
+	uuid_t uuid;
+	uint32_t cur_ts;
+	uint64_t first_block;
+	uint64_t fs_blocks;
+	uint32_t blocks_count;
+	uint32_t free_blocks;
+	uint32_t inodes_count;
+	uint64_t blocks_group;
+	uint64_t inodes_group;
+	uint32_t inodes_block;
+	uint32_t inode_table_blocks;
+	uint32_t res_blocks;
+	uint32_t ngroups;
+	uint32_t idx;
+	size_t fs_bsize;
+	errno_t rc;
+	struct timespec ts;
+
+	sb = calloc(1, sizeof(ext4_superblock_t));
+	if (sb == NULL)
+		return ENOMEM;
+
+	rc = uuid_generate(&uuid);
+	if (rc != EOK)
+		goto error;
+
+	/* Current UNIX time */
+	getrealtime(&ts); // XXX ISO C does not say what the epoch is
+	cur_ts = ts.tv_sec;
+
+	fs_bsize = 1024;
+	first_block = 1; /* 1 for 1k block size, 0 otherwise */
+
+	if (fs_bsize % dev_bsize == 0) {
+		/* Small device blocks */
+		fs_blocks = dev_bcnt / (fs_bsize / dev_bsize);
+	} else {
+		/* Large device blocks */
+		fs_blocks = dev_bcnt * (dev_bsize / fs_bsize);
+	}
+
+	/* FS blocks per group */
+	blocks_group = 8 * fs_bsize;
+
+	/* Inodes per group */
+	inodes_block = fs_bsize / EXT4_REV0_INODE_SIZE;
+	inodes_group = min((fs_blocks - first_block) / 8,
+	    blocks_group / 4);
+	if (inodes_group < 16)
+		inodes_group = 16;
+
+	/* Align up to multiple of inodes_block */
+	if (inodes_group % inodes_block != 0)
+		inodes_group += inodes_block - inodes_group % inodes_block;
+	inode_table_blocks = inodes_group / inodes_block;
+
+	/* Number of groups */
+	ngroups = ((fs_blocks - first_block) + blocks_group - 1) / blocks_group;
+
+	/* Count of all blocks in groups */
+	blocks_count = fs_blocks - first_block;
+
+	/* Count of all inodes */
+	inodes_count = ngroups * inodes_group;
+
+	/* Count of blocks reserved for superuser */
+	res_blocks = (blocks_count + 19) / 20;
+
+	free_blocks = blocks_count;
+
+	ext4_superblock_set_magic(sb, EXT4_SUPERBLOCK_MAGIC);
+	ext4_superblock_set_inodes_count(sb, inodes_count);
+	ext4_superblock_set_blocks_count(sb, blocks_count);
+	ext4_superblock_set_reserved_blocks_count(sb, res_blocks);
+	ext4_superblock_set_free_blocks_count(sb, free_blocks);
+	ext4_superblock_set_free_inodes_count(sb, inodes_count);
+	ext4_superblock_set_first_data_block(sb, first_block);
+	/* Block size will be 1024 bytes */
+	ext4_superblock_set_log_block_size(sb, 0);
+	/* Fragment size should be equal to block size */
+	ext4_superblock_set_log_frag_size(sb, 0);
+	ext4_superblock_set_blocks_per_group(sb, blocks_group);
+	/* Should be the same as blocks per group. */
+	ext4_superblock_set_frags_per_group(sb, blocks_group);
+	ext4_superblock_set_inodes_per_group(sb, inodes_group);
+	ext4_superblock_set_mount_time(sb, 0);
+	ext4_superblock_set_write_time(sb, cur_ts);
+	ext4_superblock_set_mount_count(sb, 0);
+	ext4_superblock_set_max_mount_count(sb, (uint16_t)-1);
+	ext4_superblock_set_state(sb, EXT4_SUPERBLOCK_STATE_VALID_FS);
+	ext4_superblock_set_errors(sb, EXT4_SUPERBLOCK_ERRORS_CONTINUE);
+	ext4_superblock_set_minor_rev_level(sb, 0); // XXX
+	ext4_superblock_set_last_check_time(sb, cur_ts);
+	ext4_superblock_set_check_interval(sb, 0);
+	ext4_superblock_set_creator_os(sb, EXT4_SUPERBLOCK_OS_LINUX);
+	ext4_superblock_set_rev_level(sb, EXT4_GOOD_OLD_REV);
+	ext4_superblock_set_def_resuid(sb, 0);
+	ext4_superblock_set_def_resgid(sb, 0);
+#if 0
+	/* Dynamic rev */
+	ext4_superblock_set_first_inode(sb, EXT4_REV0_FIRST_INO);
+	ext4_superblock_set_inode_size(sb, EXT4_REV0_INODE_SIZE);
+	ext4_superblock_set_block_group_index(sb, 0); // XXX
+	ext4_superblock_set_features_compatible(sb, 0);
+	ext4_superblock_set_features_incompatible(sb, 0);
+	ext4_superblock_set_features_read_only(sb, 0);
+
+	ext4_superblock_set_uuid(sb, &uuid);
+	/* 16-byte Latin-1 string padded with null characters */
+	ext4_superblock_set_volume_name(sb, "HelenOS-Ext4\0\0\0\0");
+	/* 64-byte Latin-1 string padded with null characters */
+	ext4_superblock_set_last_mounted(sb,
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+	    "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
+	sb->algorithm_usage_bitmap = 0;
+
+	/* Journalling */
+	ext4_superblock_set_desc_size(sb, EXT4_MAX_BLOCK_GROUP_DESCRIPTOR_SIZE);
+#endif
+
+	/* Compute free blocks */
+	free_blocks = blocks_count;
+	for (idx = 0; idx < ngroups; idx++) {
+		free_blocks -= ext4_superblock_get_group_backup_blocks(sb, idx);
+		/* One for block bitmap, one for inode bitamp */
+		free_blocks -= 2;
+		free_blocks -= inode_table_blocks;
+	}
+
+	ext4_superblock_set_free_blocks_count(sb, free_blocks);
+
+	*rsb = sb;
+	return EOK;
+error:
+	free(sb);
+	return rc;
 }
 
 /**

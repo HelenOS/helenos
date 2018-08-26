@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
  *
@@ -250,7 +251,8 @@ uint32_t ext4_balloc_get_first_data_block_in_group(ext4_superblock_t *sb,
 	uint32_t r;
 	uint64_t itable = ext4_block_group_get_inode_table_first_block(
 	    bg_ref->block_group, sb);
-	uint32_t itable_sz = ext4_filesystem_bg_get_itable_size(sb, bg_ref);
+	uint32_t itable_sz = ext4_filesystem_bg_get_itable_size(sb,
+	    bg_ref->index);
 
 	if (!ext4_superblock_has_feature_incompatible(sb,
 	    EXT4_FEATURE_INCOMPAT_FLEX_BG)) {

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
@@ -142,6 +143,9 @@ typedef struct ext4_superblock {
 } __attribute__((packed)) ext4_superblock_t;
 
 
+#define EXT4_GOOD_OLD_REV 0
+#define EXT4_DYNAMIC_REV 1
+
 #define EXT4_SUPERBLOCK_MAGIC   0xEF53
 #define EXT4_SUPERBLOCK_SIZE    1024
 #define EXT4_SUPERBLOCK_OFFSET  1024
@@ -275,6 +279,7 @@ typedef struct ext4_block_group_ref {
 #define EXT4_MIN_BLOCK_SIZE   1024   /* 1 KiB */
 #define EXT4_MAX_BLOCK_SIZE   65536  /* 64 KiB */
 #define EXT4_REV0_INODE_SIZE  128
+#define EXT4_REV0_FIRST_INO   11
 
 #define EXT4_INODE_BLOCK_SIZE  512
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2011 Martin Sucha
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
@@ -39,6 +40,7 @@
 #include "ext4/types.h"
 
 extern errno_t ext4_filesystem_probe(service_id_t);
+extern errno_t ext4_filesystem_create(service_id_t);
 extern errno_t ext4_filesystem_open(ext4_instance_t *, service_id_t,
     enum cache_mode, aoff64_t *, ext4_filesystem_t **);
 extern errno_t ext4_filesystem_close(ext4_filesystem_t *);
@@ -66,7 +68,7 @@ extern errno_t ext4_filesystem_append_inode_block(ext4_inode_ref_t *, uint32_t *
     uint32_t *);
 uint32_t ext4_filesystem_bg_get_backup_blocks(ext4_block_group_ref_t *bg);
 uint32_t ext4_filesystem_bg_get_itable_size(ext4_superblock_t *sb,
-    ext4_block_group_ref_t *bg_ref);
+    uint32_t);
 
 #endif
 

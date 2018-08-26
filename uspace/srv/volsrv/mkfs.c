@@ -119,6 +119,8 @@ errno_t volsrv_part_mkfs(service_id_t sid, vol_fstype_t fstype, const char *labe
 		cmd = "/app/mkmfs";
 		break;
 	case fs_ext4:
+		cmd = "/app/mkext4";
+		break;
 	case fs_cdfs:
 		cmd = NULL;
 		break;

@@ -60,6 +60,7 @@ DIRS = \
 	app/mixerctl \
 	app/mkfat \
 	app/mkexfat \
+	app/mkext4 \
 	app/mkmfs \
 	app/modplay \
 	app/netecho \

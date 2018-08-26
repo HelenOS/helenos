@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
  *
@@ -308,6 +309,101 @@ errno_t ext4_ialloc_alloc_inode(ext4_filesystem_t *fs, uint32_t *index, bool is_
 	}
 
 	return ENOSPC;
+}
+
+/** Allocate a specific I-node.
+ *
+ * @param fs     Filesystem to allocate i-node on
+ * @param inode  I-node to allocate
+ * @param is_dir Flag if allocated i-node will be file or directory
+ *
+ * @return Error code
+ *
+ */
+errno_t ext4_ialloc_alloc_this_inode(ext4_filesystem_t *fs, uint32_t inode,
+    bool is_dir)
+{
+	ext4_superblock_t *sb = fs->superblock;
+
+	uint32_t bgid = ext4_ialloc_get_bgid_of_inode(sb, inode);
+	uint32_t sb_free_inodes = ext4_superblock_get_free_inodes_count(sb);
+
+	/* Load block group */
+	ext4_block_group_ref_t *bg_ref;
+	errno_t rc = ext4_filesystem_get_block_group_ref(fs, bgid, &bg_ref);
+	if (rc != EOK)
+		return rc;
+
+	ext4_block_group_t *bg = bg_ref->block_group;
+
+	/* Read necessary values for algorithm */
+	uint32_t free_inodes = ext4_block_group_get_free_inodes_count(bg, sb);
+	uint32_t used_dirs = ext4_block_group_get_used_dirs_count(bg, sb);
+
+	/* Load block with bitmap */
+	uint32_t bitmap_block_addr = ext4_block_group_get_inode_bitmap(
+	    bg_ref->block_group, sb);
+
+	block_t *bitmap_block;
+	rc = block_get(&bitmap_block, fs->device, bitmap_block_addr,
+	    BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		ext4_filesystem_put_block_group_ref(bg_ref);
+		return rc;
+	}
+
+	/* Allocate i-node in the bitmap */
+	uint32_t index_in_group = ext4_ialloc_inode2index_in_group(sb, inode);
+	ext4_bitmap_set_bit(bitmap_block->data, index_in_group);
+
+	/* Save the bitmap */
+	bitmap_block->dirty = true;
+
+	rc = block_put(bitmap_block);
+	if (rc != EOK) {
+		ext4_filesystem_put_block_group_ref(bg_ref);
+		return rc;
+	}
+
+	/* Modify filesystem counters */
+	free_inodes--;
+	ext4_block_group_set_free_inodes_count(bg, sb, free_inodes);
+
+	/* Increment used directories counter */
+	if (is_dir) {
+		used_dirs++;
+		ext4_block_group_set_used_dirs_count(bg, sb, used_dirs);
+	}
+
+	/* Decrease unused inodes count */
+	if (ext4_block_group_has_flag(bg,
+	    EXT4_BLOCK_GROUP_ITABLE_ZEROED)) {
+		uint32_t unused =
+		    ext4_block_group_get_itable_unused(bg, sb);
+
+		uint32_t inodes_in_group =
+		    ext4_superblock_get_inodes_in_group(sb, bgid);
+
+		uint32_t free = inodes_in_group - unused;
+
+		if (index_in_group >= free) {
+			unused = inodes_in_group - (index_in_group + 1);
+			ext4_block_group_set_itable_unused(bg, sb, unused);
+		}
+	}
+
+	/* Save modified block group */
+	bg_ref->dirty = true;
+
+	rc = ext4_filesystem_put_block_group_ref(bg_ref);
+	if (rc != EOK)
+		return rc;
+
+	/* Update superblock */
+	sb_free_inodes--;
+	ext4_superblock_set_free_inodes_count(sb, sb_free_inodes);
+
+	return EOK;
 }
 
 /**

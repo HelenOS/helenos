@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2018 Jiri Svoboda
  * Copyright (c) 2012 Frantisek Princ
  * All rights reserved.
  *
@@ -37,6 +38,9 @@
 
 extern errno_t ext4_ialloc_free_inode(ext4_filesystem_t *, uint32_t, bool);
 extern errno_t ext4_ialloc_alloc_inode(ext4_filesystem_t *, uint32_t *, bool);
+extern errno_t ext4_ialloc_alloc_this_inode(ext4_filesystem_t *, uint32_t,
+    bool);
+
 
 #endif
 

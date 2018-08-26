@@ -107,6 +107,7 @@ uspace/app/logset/logset
 uspace/app/mixerctl/mixerctl
 uspace/app/mkbd/mkbd
 uspace/app/mkexfat/mkexfat
+uspace/app/mkext4/mkext4
 uspace/app/mkfat/mkfat
 uspace/app/mkmfs/mkmfs
 uspace/app/modplay/modplay
