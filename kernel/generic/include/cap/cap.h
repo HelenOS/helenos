@@ -136,6 +136,8 @@ extern kobject_t *cap_unpublish(struct task *, cap_handle_t, kobject_type_t);
 extern void cap_revoke(kobject_t *);
 extern void cap_free(struct task *, cap_handle_t);
 
+extern kobject_t *kobject_alloc(unsigned int);
+extern void kobject_free(kobject_t *);
 extern void kobject_initialize(kobject_t *, kobject_type_t, void *,
     kobject_ops_t *);
 extern kobject_t *kobject_get(struct task *, cap_handle_t, kobject_type_t);

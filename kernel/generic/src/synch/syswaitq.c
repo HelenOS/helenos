@@ -44,7 +44,6 @@
 #include <syscall/copy.h>
 
 #include <stdint.h>
-#include <stdlib.h>
 
 static slab_cache_t *waitq_cache;
 
@@ -95,7 +94,7 @@ sys_errno_t sys_waitq_create(cap_waitq_handle_t *whandle)
 		return (sys_errno_t) ENOMEM;
 	waitq_initialize(wq);
 
-	kobject_t *kobj = (kobject_t *) malloc(sizeof(kobject_t));
+	kobject_t *kobj = kobject_alloc(0);
 	if (!kobj) {
 		slab_free(waitq_cache, wq);
 		return (sys_errno_t) ENOMEM;
@@ -106,14 +105,14 @@ sys_errno_t sys_waitq_create(cap_waitq_handle_t *whandle)
 	errno_t rc = cap_alloc(TASK, &handle);
 	if (rc != EOK) {
 		slab_free(waitq_cache, wq);
-		free(kobj);
+		kobject_free(kobj);
 		return (sys_errno_t) rc;
 	}
 
 	rc = copy_to_uspace(whandle, &handle, sizeof(handle));
 	if (rc != EOK) {
 		cap_free(TASK, handle);
-		free(kobj);
+		kobject_free(kobj);
 		slab_free(waitq_cache, wq);
 		return (sys_errno_t) rc;
 	}

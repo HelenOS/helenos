@@ -92,6 +92,7 @@
 #define CAPS_LAST	(CAPS_SIZE - 1)
 
 static slab_cache_t *cap_cache;
+static slab_cache_t *kobject_cache;
 
 static size_t caps_hash(const ht_link_t *item)
 {
@@ -122,6 +123,8 @@ void caps_init(void)
 {
 	cap_cache = slab_cache_create("cap_t", sizeof(cap_t), 0, NULL,
 	    NULL, 0);
+	kobject_cache = slab_cache_create("kobject_t", sizeof(kobject_t), 0,
+	    NULL, NULL, 0);
 }
 
 /** Allocate the capability info structure
@@ -393,6 +396,16 @@ void cap_free(task_t *task, cap_handle_t handle)
 	mutex_unlock(&task->cap_info->lock);
 }
 
+kobject_t *kobject_alloc(unsigned int flags)
+{
+	return slab_alloc(kobject_cache, flags);
+}
+
+void kobject_free(kobject_t *kobj)
+{
+	slab_free(kobject_cache, kobj);
+}
+
 /** Initialize kernel object
  *
  * @param kobj  Kernel object to initialize.
@@ -461,7 +474,7 @@ void kobject_put(kobject_t *kobj)
 {
 	if (atomic_postdec(&kobj->refcnt) == 1) {
 		kobj->ops->destroy(kobj->raw);
-		free(kobj);
+		kobject_free(kobj);
 	}
 }
 

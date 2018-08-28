@@ -355,7 +355,7 @@ errno_t ipc_irq_subscribe(answerbox_t *box, inr_t inr, sysarg_t imethod,
 		return ENOMEM;
 	}
 
-	kobject_t *kobject = malloc(sizeof(kobject_t));
+	kobject_t *kobject = kobject_alloc(FRAME_ATOMIC);
 	if (!kobject) {
 		cap_free(TASK, handle);
 		slab_free(irq_cache, irq);
