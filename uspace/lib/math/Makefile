@@ -33,23 +33,7 @@ LIBRARY = libmath
 SOVERSION = 0.0
 
 SOURCES = \
-	generic/ceil.c \
-	generic/cosh.c \
-	generic/exp.c \
-	generic/fabs.c \
-	generic/floor.c \
 	generic/fmod.c \
-	generic/frexp.c \
-	generic/ldexp.c \
-	generic/log.c \
-	generic/log10.c \
-	generic/log2.c \
-	generic/modf.c \
-	generic/pow.c \
-	generic/sinh.c \
-	generic/sqrt.c \
-	generic/tan.c \
-	generic/tanh.c \
 	generic/trig.c \
 	generic/trunc.c
 
