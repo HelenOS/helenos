@@ -38,6 +38,7 @@ SOURCES = \
 	generic/__signbit.c \
 	generic/fabs.c \
 	generic/fmod.c \
+	generic/round.c \
 	generic/trig.c \
 	generic/trunc.c
 
