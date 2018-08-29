@@ -72,8 +72,8 @@
  */
 
 /**
- *     @cond ppc64
- *     @defgroup ppc64proc ppc64
+ *     @cond riscv64
+ *     @defgroup riscv64proc riscv64
  *     @ingroup proc
  *     @endcond
  */
@@ -148,8 +148,8 @@
  */
 
 /**
- *     @cond ppc64
- *     @defgroup ppc64mm ppc64
+ *     @cond riscv64
+ *     @defgroup riscv64mm riscv64
  *     @ingroup mm
  *     @endcond
  */
@@ -225,8 +225,8 @@
  */
 
 /**
- *     @cond ppc64
- *     @defgroup ppc64ddi ppc64
+ *     @cond riscv64
+ *     @defgroup riscv64ddi riscv64
  *     @ingroup ddi
  *     @endcond
  */
@@ -290,8 +290,8 @@
  */
 
 /**
- *     @cond ppc64
- *     @defgroup ppc64debug ppc64
+ *     @cond riscv64
+ *     @defgroup riscv64debug riscv64
  *     @ingroup debug
  *     @endcond
  */
@@ -354,8 +354,8 @@
  */
 
 /**
- *     @cond ppc64
- *     @defgroup ppc64interrupt ppc64
+ *     @cond riscv64
+ *     @defgroup riscv64interrupt riscv64
  *     @ingroup interrupt
  *     @endcond
  */
@@ -425,8 +425,8 @@
  */
 
 /**
- *     @cond ppc64
- *     @defgroup ppc64 ppc64
+ *     @cond riscv64
+ *     @defgroup riscv64 riscv64
  *     @ingroup others
  *     @endcond
  */
