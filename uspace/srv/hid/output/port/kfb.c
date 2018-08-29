@@ -28,7 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file
+/** @addtogroup output
+ * @{
  */
 
 #include <abi/fb/visuals.h>

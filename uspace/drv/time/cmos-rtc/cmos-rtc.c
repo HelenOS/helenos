@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup CMOS RTC driver.
- * @brief HelenOS RTC driver.
+ * @addtogroup cmos-rtc
  * @{
  */
 

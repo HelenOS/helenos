@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amdm37x
+/** @addtogroup amdm37x_dispc
  * @{
  */
 /**
@@ -346,3 +346,7 @@ static errno_t handle_damage(visualizer_t *vs,
 
 	return EOK;
 }
+
+/**
+ * @}
+ */

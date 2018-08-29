@@ -26,11 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fb
- * @ingroup fbs
+/** @addtogroup output
  * @{
- */
-/** @file
  */
 
 #ifndef FB_PORT_KFB_H_

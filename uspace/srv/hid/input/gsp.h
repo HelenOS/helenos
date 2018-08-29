@@ -27,11 +27,12 @@
  */
 
 /** @addtogroup inputgen generic
- * @brief	Generic scancode parser.
  * @ingroup  input
  * @{
  */
+
 /** @file
+ * @brief Generic scancode parser
  */
 
 #ifndef KBD_GSP_H_

@@ -28,8 +28,7 @@
  */
 
 /**
- * @defgroup loc Location Service.
- * @brief HelenOS location service.
+ * @addtogroup locsrv
  * @{
  */
 

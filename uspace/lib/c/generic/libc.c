@@ -26,14 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lc Libc
- * @brief HelenOS C library
- * @{
- * @}
- */
-
-/** @addtogroup libc generic
- * @ingroup lc
+/** @addtogroup libc
  * @{
  */
 

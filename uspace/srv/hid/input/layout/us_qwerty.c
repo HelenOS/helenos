@@ -27,8 +27,11 @@
  */
 
 /** @addtogroup input
- * @brief US QWERTY layout.
  * @{
+ */
+
+/** @file
+ * @brief US QWERTY layout
  */
 
 #include <errno.h>

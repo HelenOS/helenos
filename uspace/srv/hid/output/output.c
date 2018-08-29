@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup output
+ * @{
+ */
+
 #include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -492,3 +496,6 @@ int main(int argc, char *argv[])
 	/* Never reached */
 	return 0;
 }
+
+/** @}
+ */

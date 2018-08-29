@@ -28,8 +28,7 @@
  */
 
 /**
- * @defgroup msim MSIM platform driver.
- * @brief HelenOS MSIM platform driver.
+ * @addtogroup msim
  * @{
  */
 

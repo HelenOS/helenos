@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup icp IntegratorCP platform driver.
- * @brief HelenOS IntegratorCP platform driver.
+ * @addtogroup icp
  * @{
  */
 

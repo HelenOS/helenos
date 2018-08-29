@@ -28,8 +28,7 @@
  */
 
 /**
- * @defgroup devman Device manager.
- * @brief HelenOS device manager.
+ * @addtogroup devman
  * @{
  */
 

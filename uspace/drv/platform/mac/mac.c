@@ -28,8 +28,7 @@
  */
 
 /**
- * @defgroup mac Mac platform driver.
- * @brief HelenOS Mac platform driver.
+ * @addtogroup mac mac
  * @{
  */
 

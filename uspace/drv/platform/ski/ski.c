@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup ski platform driver.
- * @brief Ski platform driver.
+ * @addtogroup ski ski
  * @{
  */
 

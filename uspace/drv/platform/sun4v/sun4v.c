@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup sun4v platform driver.
- * @brief Sun4v platform driver.
+ * @addtogroup sun4v sun4v
  * @{
  */
 

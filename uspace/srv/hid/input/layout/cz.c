@@ -27,8 +27,11 @@
  */
 
 /** @addtogroup input
- * @brief Czech QWERTZ layout.
  * @{
+ */
+
+/** @file
+ * @brief Czech QWERTZ layout
  */
 
 #include <errno.h>

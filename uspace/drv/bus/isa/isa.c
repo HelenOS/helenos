@@ -29,8 +29,7 @@
  */
 
 /**
- * @defgroup isa ISA bus driver.
- * @brief HelenOS ISA bus driver.
+ * @addtogroup isa
  * @{
  */
 

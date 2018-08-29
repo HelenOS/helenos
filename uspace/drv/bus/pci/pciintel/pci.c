@@ -28,8 +28,7 @@
  */
 
 /**
- * @defgroup pciintel pci bus driver for intel method 1.
- * @brief HelenOS root pci bus driver for intel method 1.
+ * @addtogroup pciintel
  * @{
  */
 

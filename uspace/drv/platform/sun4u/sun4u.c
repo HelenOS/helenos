@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup sun4u sun4u platform driver.
- * @brief HelenOS sun4u platform driver.
+ * @addtogroup sun4u sun4u
  * @{
  */
 

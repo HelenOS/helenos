@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup amdm37x TI AM/DM37x platform driver.
- * @brief HelenOS TI AM/DM37x platform driver.
+ * @addtogroup amdm37x
  * @{
  */
 
@@ -423,3 +422,7 @@ errno_t amdm37x_usb_tll_init(amdm37x_t *device)
 	}
 	return EOK;
 }
+
+/**
+ * @}
+ */

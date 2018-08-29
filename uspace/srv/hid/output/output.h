@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup output
+ * @{
+ */
+
 #ifndef OUTPUT_OUTPUT_H_
 #define OUTPUT_OUTPUT_H_
 
@@ -71,3 +75,6 @@ typedef struct outdev {
 extern outdev_t *outdev_register(outdev_ops_t *, void *);
 
 #endif
+
+/** @}
+ */

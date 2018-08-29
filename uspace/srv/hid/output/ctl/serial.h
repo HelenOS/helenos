@@ -27,7 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file
+/** @addtogroup output
+ * @{
  */
 
 #ifndef OUTPUT_CTL_SERIAL_H_

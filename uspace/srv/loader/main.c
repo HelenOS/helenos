@@ -27,12 +27,10 @@
  */
 
 /** @addtogroup loader
- * @brief Loads and runs programs from VFS.
  * @{
  */
 /**
  * @file
- * @brief Loads and runs programs from VFS.
  *
  * The program loader is a special init binary. Its image is used
  * to create a new task upon a @c task_spawn syscall. The syscall

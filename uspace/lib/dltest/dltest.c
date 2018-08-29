@@ -27,7 +27,6 @@
  */
 
 /** @addtogroup libdltest
- * @brief Dynamic linking test library
  * @{
  */
 /** @file

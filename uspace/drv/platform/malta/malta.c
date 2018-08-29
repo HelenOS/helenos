@@ -28,8 +28,7 @@
  */
 
 /**
- * @defgroup malta Malta board platform driver.
- * @brief HelenOS Malta board platform driver.
+ * @addtogroup malta
  * @{
  */
 

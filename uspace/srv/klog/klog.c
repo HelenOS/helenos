@@ -27,8 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup klog KLog
- * @brief HelenOS KLog
+/** @addtogroup klog
  * @{
  */
 /**

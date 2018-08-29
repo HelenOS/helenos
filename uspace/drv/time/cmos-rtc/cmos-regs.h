@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup cmos-rtc
+ * @{
+ */
+
 #ifndef _CMOS_RTC_H_
 #define _CMOS_RTC_H_
 
@@ -50,3 +54,7 @@
 
 #endif
 
+
+/**
+ * @}
+ */

@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup libclui
+ * @{
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -1052,3 +1056,7 @@ static void tinput_key_unmod(tinput_t *ti, kbd_event_t *ev)
 		break;
 	}
 }
+
+/**
+ * @}
+ */

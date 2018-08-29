@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup logger Logging service.
- * @brief HelenOS logging service.
+ * @addtogroup logger
  * @{
  */
 

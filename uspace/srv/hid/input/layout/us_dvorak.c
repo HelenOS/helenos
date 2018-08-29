@@ -27,8 +27,11 @@
  */
 
 /** @addtogroup input
- * @brief US Dvorak Simplified Keyboard layout.
  * @{
+ */
+
+/** @file
+ * @brief US Dvorak Simplified Keyboard layout
  */
 
 #include <errno.h>

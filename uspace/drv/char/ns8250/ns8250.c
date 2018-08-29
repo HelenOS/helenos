@@ -28,8 +28,7 @@
  */
 
 /**
- * @defgroup ns8250 Serial port driver.
- * @brief HelenOS serial port driver.
+ * @addtogroup ns8250
  * @{
  */
 

@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup virt Root device driver for virtual devices.
+ * @addtogroup virt
  * @{
  */
 

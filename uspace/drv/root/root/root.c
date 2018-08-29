@@ -29,8 +29,7 @@
  */
 
 /**
- * @defgroup root Root device driver.
- * @brief HelenOS root device driver.
+ * @addtogroup root
  * @{
  */
 

@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file
+/** @addtogroup output
+ * @{
  */
 
 #ifndef OUTPUT_PROTO_VT100_H_

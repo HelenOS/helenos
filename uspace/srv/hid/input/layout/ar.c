@@ -28,8 +28,11 @@
  */
 
 /** @addtogroup input
- * @brief Arabic keyboard layout (Based on US QWERTY layout's code).
  * @{
+ */
+
+/** @file
+ * @brief Arabic keyboard layout (Based on US QWERTY layout's code)
  */
 
 #include <errno.h>

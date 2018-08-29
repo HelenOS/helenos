@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amdm37xdrvusbhostcm
+/** @addtogroup amdm37x
  * @{
  */
 /** @file

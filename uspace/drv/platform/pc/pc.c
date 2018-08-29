@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup pc PC platform driver.
- * @brief HelenOS PC platform driver.
+ * @addtogroup pc pc
  * @{
  */
 

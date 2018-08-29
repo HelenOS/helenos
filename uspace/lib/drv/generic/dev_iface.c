@@ -27,8 +27,7 @@
  */
 
 /**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+ * @addtogroup libdrv
  * @{
  */
 
