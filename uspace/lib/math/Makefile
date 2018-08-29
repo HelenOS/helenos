@@ -33,8 +33,6 @@ LIBRARY = libmath
 SOVERSION = 0.0
 
 SOURCES = \
-	generic/atan.c \
-	generic/atan2.c \
 	generic/ceil.c \
 	generic/cosh.c \
 	generic/exp.c \

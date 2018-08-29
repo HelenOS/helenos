@@ -36,8 +36,6 @@
 #ifndef LIBMATH_MATH_H_
 #define LIBMATH_MATH_H_
 
-#include <atan.h>
-#include <atan2.h>
 #include <ceil.h>
 #include <cosh.h>
 #include <exp.h>
@@ -60,26 +58,6 @@
 #include <trunc.h>
 
 #define HUGE_VAL FLOAT64_INF
-
-static inline float64_t atan_f64(float64_t val)
-{
-	return float64_atan(val);
-}
-
-static inline float32_t atan_f32(float32_t val)
-{
-	return float32_atan(val);
-}
-
-static inline float64_t atan2_f64(float64_t y, float64_t x)
-{
-	return float64_atan2(y, x);
-}
-
-static inline float32_t atan2_f32(float32_t y, float32_t x)
-{
-	return float32_atan2(y, x);
-}
 
 static inline float64_t ceil_f64(float64_t val)
 {
@@ -278,26 +256,6 @@ static inline float64_t trunc_f64(float64_t val)
 static inline float32_t trunc_f32(float32_t val)
 {
 	return float32_trunc(val);
-}
-
-static inline float64_t atan(float64_t val)
-{
-	return atan_f64(val);
-}
-
-static inline float32_t atanf(float32_t val)
-{
-	return atan_f32(val);
-}
-
-static inline float64_t atan2(float64_t y, float64_t x)
-{
-	return atan2_f64(y, x);
-}
-
-static inline float32_t atan2f(float32_t y, float32_t x)
-{
-	return atan2_f32(y, x);
 }
 
 static inline float64_t ceil(float64_t val)

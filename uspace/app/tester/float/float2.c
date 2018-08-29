@@ -42,11 +42,6 @@ static double arguments[OPERANDS] = {
 	3.5, -2.1, 100.0, 50.0, -1024.0, 0.0, 768.3156, 1080.499999, -600.0, 1.0
 };
 
-static double arguments_atan[OPERANDS] = {
-	3.5, 100.0, 50.0, 768.3156, 1080.499999, 1.0, 66.0,
-	2.718281828459045, 9.9, 0.001
-};
-
 static double arguments_exp[OPERANDS] = {
 	3.5, -2.1, 50.0, 0.0, 1.0, 13.2, -1.1, -5.5, 0.1, -66.0
 };
@@ -63,12 +58,6 @@ static double arguments_sqrt[OPERANDS] = {
 
 static double arguments_tanh[OPERANDS] = {
 	3.5, -2.1, 50.0, 0.0, 1.0, 13.2, -1.1, -5.5, 0.000001, -66000000.0
-};
-
-static double results_atan[OPERANDS] = {
-	1.292496667790, 1.560796660108, 1.550798992822, 1.569494779052,
-	1.569870829603, 0.785398163397, 1.555645970920, 1.218282905017,
-	1.470127674637, 0.000999999667
 };
 
 static double results_ceil[OPERANDS] = {
@@ -190,26 +179,6 @@ static bool cmp_double(double a, double b)
 const char *test_float2(void)
 {
 	bool fail = false;
-
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		double res = atan(arguments_atan[i]);
-
-		if (!cmp_double(res, results_atan[i])) {
-			TPRINTF("Double precision atan failed "
-			    "(%.12lf != %.12lf, arg %u)\n", res, results_atan[i], i);
-			fail = true;
-		}
-	}
-
-	for (unsigned int i = 0; i < OPERANDS; i++) {
-		float res = atanf(arguments_atan[i]);
-
-		if (!cmp_float(res, results_atan[i])) {
-			TPRINTF("Single precision atan failed "
-			    "(%f != %lf, arg %u)\n", res, results_atan[i], i);
-			fail = true;
-		}
-	}
 
 	for (unsigned int i = 0; i < OPERANDS; i++) {
 		double res = ceil(arguments[i]);
