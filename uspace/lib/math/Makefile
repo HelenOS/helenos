@@ -33,6 +33,10 @@ LIBRARY = libmath
 SOVERSION = 0.0
 
 SOURCES = \
+	generic/__fcompare.c \
+	generic/__fpclassify.c \
+	generic/__signbit.c \
+	generic/fabs.c \
 	generic/fmod.c \
 	generic/trig.c \
 	generic/trunc.c

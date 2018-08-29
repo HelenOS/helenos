@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Petr Koupy
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,56 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
+/** @addtogroup libmath
  * @{
  */
-/** @file Mathematical operations.
- *
- * The purpose of this file is only to provide prototypes of mathematical
- * functions defined by C standard and by POSIX.
- *
- * It is up to the application to correctly link with either libmath
- * (provided by HelenOS) or by some other math library (such as fdlibm).
+/** @file
  */
 
-#ifndef POSIX_MATH_H_
-#define POSIX_MATH_H_
+#include <math.h>
 
-#ifdef __GNUC__
-#define HUGE_VAL (__builtin_huge_val())
-#endif
+float fabsf(float val)
+{
+	return copysignf(val, 1.0f);
+}
 
-extern double ldexp(double, int);
-extern double frexp(double, int *);
-
-extern double fabs(double);
-extern double floor(double);
-extern double ceil(double);
-extern double modf(double, double *);
-extern double fmod(double, double);
-extern double pow(double, double);
-extern double exp(double);
-extern double frexp(double, int *);
-extern double expm1(double);
-extern double sqrt(double);
-extern double log(double);
-extern double log10(double);
-extern double sin(double);
-extern double sinh(double);
-extern double asin(double);
-extern double asinh(double);
-extern double cos(double);
-extern double cosh(double);
-extern double acos(double);
-extern double acosh(double);
-extern double tan(double);
-extern double tanh(double);
-extern double atan(double);
-extern double atanh(double);
-extern double atan2(double, double);
-extern double copysign(double, double);
-
-#endif /* POSIX_MATH_H_ */
+double fabs(double val)
+{
+	return copysign(val, 1.0);
+}
 
 /** @}
  */

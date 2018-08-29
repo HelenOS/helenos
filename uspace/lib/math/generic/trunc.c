@@ -33,8 +33,9 @@
 /** @file
  */
 
-#include <mathtypes.h>
-#include <trunc.h>
+#include <math.h>
+#include <float.h>
+#include <stdint.h>
 
 /** Truncate fractional part (round towards zero)
  *
@@ -51,31 +52,33 @@
  * @return Number rounded towards zero.
  *
  */
-float32_t float32_trunc(float32_t val)
+float truncf(float val)
 {
-	float32_u v;
-	int32_t exp;
+	/* If the input is a nan, return a canonical nan. */
+	if (isnan(val))
+		return __builtin_nanf("");
 
-	v.val = val;
-	exp = v.data.parts.exp - FLOAT32_BIAS;
+	const int exp_bias = FLT_MAX_EXP - 1;
+	const int mant_bits = FLT_MANT_DIG - 1;
+	const uint32_t mant_mask = (UINT32_C(1) << mant_bits) - 1;
 
-	if (exp < 0) {
-		/* -1 < val < 1 => result is +0 or -0 */
-		v.data.parts.exp = 0;
-		v.data.parts.fraction = 0;
-	} else if (exp >= FLOAT32_FRACTION_SIZE) {
-		if (exp == 1024) {
-			/* val is +inf, -inf or NaN => trigger an exception */
-			// FIXME TODO
-		}
+	union {
+		float f;
+		uint32_t i;
+	} u = { .f = fabsf(val) };
 
-		/* All bits in val are relevant for the result */
-	} else {
-		/* Truncate irrelevant fraction bits */
-		v.data.parts.fraction &= ~(UINT32_C(0x007fffff) >> exp);
-	}
+	int exp = (u.i >> mant_bits) - exp_bias;
 
-	return v.val;
+	/* If value is less than one, return zero with appropriate sign. */
+	if (exp < 0)
+		return copysignf(0.0f, val);
+
+	if (exp >= mant_bits)
+		return val;
+
+	/* Truncate irrelevant fraction bits */
+	u.i &= ~(mant_mask >> exp);
+	return copysignf(u.f, val);
 }
 
 /** Truncate fractional part (round towards zero)
@@ -93,31 +96,33 @@ float32_t float32_trunc(float32_t val)
  * @return Number rounded towards zero.
  *
  */
-float64_t float64_trunc(float64_t val)
+double trunc(double val)
 {
-	float64_u v;
-	int32_t exp;
+	/* If the input is a nan, return a canonical nan. */
+	if (isnan(val))
+		return __builtin_nan("");
 
-	v.val = val;
-	exp = v.data.parts.exp - FLOAT64_BIAS;
+	const int exp_bias = DBL_MAX_EXP - 1;
+	const int mant_bits = DBL_MANT_DIG - 1;
+	const uint64_t mant_mask = (UINT64_C(1) << mant_bits) - 1;
 
-	if (exp < 0) {
-		/* -1 < val < 1 => result is +0 or -0 */
-		v.data.parts.exp = 0;
-		v.data.parts.fraction = 0;
-	} else if (exp >= FLOAT64_FRACTION_SIZE) {
-		if (exp == 1024) {
-			/* val is +inf, -inf or NaN => trigger an exception */
-			// FIXME TODO
-		}
+	union {
+		double f;
+		uint64_t i;
+	} u = { .f = fabs(val) };
 
-		/* All bits in val are relevant for the result */
-	} else {
-		/* Truncate irrelevant fraction bits */
-		v.data.parts.fraction &= ~(UINT64_C(0x000fffffffffffff) >> exp);
-	}
+	int exp = ((int)(u.i >> mant_bits)) - exp_bias;
 
-	return v.val;
+	/* If value is less than one, return zero with appropriate sign. */
+	if (exp < 0)
+		return copysign(0.0, val);
+
+	if (exp >= mant_bits)
+		return val;
+
+	/* Truncate irrelevant fraction bits */
+	u.i &= ~(mant_mask >> exp);
+	return copysign(u.f, val);
 }
 
 /** @}

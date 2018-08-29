@@ -34,13 +34,12 @@
  */
 
 #include <math.h>
-#include <trig.h>
 
 #define TAYLOR_DEGREE_32 13
 #define TAYLOR_DEGREE_64 21
 
 /** Precomputed values for factorial (starting from 1!) */
-static float64_t factorials[TAYLOR_DEGREE_64] = {
+static double factorials[TAYLOR_DEGREE_64] = {
 	1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800,
 	479001600, 6227020800.0L, 87178291200.0L, 1307674368000.0L,
 	20922789888000.0L, 355687428096000.0L, 6402373705728000.0L,
@@ -59,10 +58,10 @@ static float64_t factorials[TAYLOR_DEGREE_64] = {
  * @return Sine value approximation.
  *
  */
-static float32_t taylor_sin_32(float32_t arg)
+static float taylor_sin_32(float arg)
 {
-	float32_t ret = 0;
-	float32_t nom = 1;
+	float ret = 0;
+	float nom = 1;
 
 	for (unsigned int i = 0; i < TAYLOR_DEGREE_32; i++) {
 		nom *= arg;
@@ -88,10 +87,10 @@ static float32_t taylor_sin_32(float32_t arg)
  * @return Sine value approximation.
  *
  */
-static float64_t taylor_sin_64(float64_t arg)
+static double taylor_sin_64(double arg)
 {
-	float64_t ret = 0;
-	float64_t nom = 1;
+	double ret = 0;
+	double nom = 1;
 
 	for (unsigned int i = 0; i < TAYLOR_DEGREE_64; i++) {
 		nom *= arg;
@@ -117,10 +116,10 @@ static float64_t taylor_sin_64(float64_t arg)
  * @return Cosine value approximation.
  *
  */
-static float32_t taylor_cos_32(float32_t arg)
+static float taylor_cos_32(float arg)
 {
-	float32_t ret = 1;
-	float32_t nom = 1;
+	float ret = 1;
+	float nom = 1;
 
 	for (unsigned int i = 0; i < TAYLOR_DEGREE_32; i++) {
 		nom *= arg;
@@ -146,10 +145,10 @@ static float32_t taylor_cos_32(float32_t arg)
  * @return Cosine value approximation.
  *
  */
-static float64_t taylor_cos_64(float64_t arg)
+static double taylor_cos_64(double arg)
 {
-	float64_t ret = 1;
-	float64_t nom = 1;
+	double ret = 1;
+	double nom = 1;
 
 	for (unsigned int i = 0; i < TAYLOR_DEGREE_64; i++) {
 		nom *= arg;
@@ -175,7 +174,7 @@ static float64_t taylor_cos_64(float64_t arg)
  * @return Sine value.
  *
  */
-static float32_t base_sin_32(float32_t arg)
+static float base_sin_32(float arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 
@@ -208,7 +207,7 @@ static float32_t base_sin_32(float32_t arg)
  * @return Sine value.
  *
  */
-static float64_t base_sin_64(float64_t arg)
+static double base_sin_64(double arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 
@@ -241,7 +240,7 @@ static float64_t base_sin_64(float64_t arg)
  * @return Cosine value.
  *
  */
-static float32_t base_cos_32(float32_t arg)
+static float base_cos_32(float arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 
@@ -274,7 +273,7 @@ static float32_t base_cos_32(float32_t arg)
  * @return Cosine value.
  *
  */
-static float64_t base_cos_64(float64_t arg)
+static double base_cos_64(double arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 
@@ -304,9 +303,9 @@ static float64_t base_cos_64(float64_t arg)
  * @return Sine value.
  *
  */
-float32_t float32_sin(float32_t arg)
+float sinf(float arg)
 {
-	float32_t base_arg = fmod_f32(arg, 2 * M_PI);
+	float base_arg = fmodf(arg, 2 * M_PI);
 
 	if (base_arg < 0)
 		return -base_sin_32(-base_arg);
@@ -323,9 +322,9 @@ float32_t float32_sin(float32_t arg)
  * @return Sine value.
  *
  */
-float64_t float64_sin(float64_t arg)
+double sin(double arg)
 {
-	float64_t base_arg = fmod_f64(arg, 2 * M_PI);
+	double base_arg = fmod(arg, 2 * M_PI);
 
 	if (base_arg < 0)
 		return -base_sin_64(-base_arg);
@@ -342,9 +341,9 @@ float64_t float64_sin(float64_t arg)
  * @return Cosine value.
  *
  */
-float32_t float32_cos(float32_t arg)
+float cosf(float arg)
 {
-	float32_t base_arg = fmod_f32(arg, 2 * M_PI);
+	float base_arg = fmodf(arg, 2 * M_PI);
 
 	if (base_arg < 0)
 		return base_cos_32(-base_arg);
@@ -361,9 +360,9 @@ float32_t float32_cos(float32_t arg)
  * @return Cosine value.
  *
  */
-float64_t float64_cos(float64_t arg)
+double cos(double arg)
 {
-	float64_t base_arg = fmod_f64(arg, 2 * M_PI);
+	double base_arg = fmod(arg, 2 * M_PI);
 
 	if (base_arg < 0)
 		return base_cos_64(-base_arg);

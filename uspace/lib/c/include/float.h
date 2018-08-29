@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Martin Decky
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,63 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libmath
- * @{
- */
-/** @file
- */
+#ifndef _FLOAT_H
+#define _FLOAT_H
 
-#include <math.h>
+// FIXME: <float.h> is freestanding. Just include the compiler-provided file.
 
-/** Remainder function (32-bit floating point)
- *
- * Calculate the modulo of dividend by divisor.
- *
- * This is a very basic implementation that uses
- * division and multiplication (instead of exact
- * arithmetics). Thus the result might be very
- * imprecise (depending on the magnitude of the
- * arguments).
- *
- * @param dividend Dividend.
- * @param divisor  Divisor.
- *
- * @return Modulo.
- *
- */
-float fmodf(float dividend, float divisor)
-{
-	// FIXME: replace with exact arithmetics
+#define FLT_MANT_DIG  __FLT_MANT_DIG__
+#define DBL_MANT_DIG  __DBL_MANT_DIG__
+#define FLT_MAX_EXP __FLT_MAX_EXP__
+#define DBL_MAX_EXP __DBL_MAX_EXP__
 
-	float quotient = truncf(dividend / divisor);
+#endif
 
-	return (dividend - quotient * divisor);
-}
-
-/** Remainder function (64-bit floating point)
- *
- * Calculate the modulo of dividend by divisor.
- *
- * This is a very basic implementation that uses
- * division and multiplication (instead of exact
- * arithmetics). Thus the result might be very
- * imprecise (depending on the magnitude of the
- * arguments).
- *
- * @param dividend Dividend.
- * @param divisor  Divisor.
- *
- * @return Modulo.
- *
- */
-double fmod(double dividend, double divisor)
-{
-	// FIXME: replace with exact arithmetics
-
-	double quotient = trunc(dividend / divisor);
-
-	return (dividend - quotient * divisor);
-}
-
-/** @}
- */
