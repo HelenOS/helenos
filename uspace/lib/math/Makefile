@@ -29,17 +29,10 @@
 USPACE_PREFIX = ../..
 ROOT_PATH = $(USPACE_PREFIX)/..
 
-CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
-
 LIBRARY = libmath
 SOVERSION = 0.0
 
-EXTRA_CFLAGS += -Iarch/$(UARCH)/include
-
--include $(CONFIG_MAKEFILE)
--include arch/$(UARCH)/Makefile.inc
-
-GENERIC_SOURCES = \
+SOURCES = \
 	generic/acos.c \
 	generic/asin.c \
 	generic/atan.c \
@@ -63,9 +56,5 @@ GENERIC_SOURCES = \
 	generic/tanh.c \
 	generic/trig.c \
 	generic/trunc.c
-
-SOURCES = \
-	$(GENERIC_SOURCES) \
-	$(ARCH_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common
