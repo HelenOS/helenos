@@ -36,8 +36,6 @@
 #ifndef LIBMATH_MATH_H_
 #define LIBMATH_MATH_H_
 
-#include <acos.h>
-#include <asin.h>
 #include <atan.h>
 #include <atan2.h>
 #include <ceil.h>
@@ -62,26 +60,6 @@
 #include <trunc.h>
 
 #define HUGE_VAL FLOAT64_INF
-
-static inline float64_t acos_f64(float64_t val)
-{
-	return float64_acos(val);
-}
-
-static inline float32_t acos_f32(float32_t val)
-{
-	return float32_acos(val);
-}
-
-static inline float64_t asin_f64(float64_t val)
-{
-	return float64_asin(val);
-}
-
-static inline float32_t asin_f32(float32_t val)
-{
-	return float32_asin(val);
-}
 
 static inline float64_t atan_f64(float64_t val)
 {
@@ -300,26 +278,6 @@ static inline float64_t trunc_f64(float64_t val)
 static inline float32_t trunc_f32(float32_t val)
 {
 	return float32_trunc(val);
-}
-
-static inline float64_t acos(float64_t val)
-{
-	return acos_f64(val);
-}
-
-static inline float32_t acosf(float32_t val)
-{
-	return acos_f32(val);
-}
-
-static inline float64_t asin(float64_t val)
-{
-	return asin_f64(val);
-}
-
-static inline float32_t asinf(float32_t val)
-{
-	return asin_f32(val);
 }
 
 static inline float64_t atan(float64_t val)
