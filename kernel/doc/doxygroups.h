@@ -30,6 +30,13 @@
 
 
 /**
+ *     @cond abs32le
+ *     @defgroup abs32leproc abs32le
+ *     @ingroup proc
+ *     @endcond
+ */
+
+/**
  *     @cond amd64
  *     @defgroup amd64proc amd64
  *     @ingroup proc
@@ -103,6 +110,13 @@
 /**
  *     @defgroup genarchmm genarch
  *     @ingroup mm
+ */
+
+/**
+ *     @cond abs32le
+ *     @defgroup abs32lemm abs32le
+ *     @ingroup mm
+ *     @endcond
  */
 
 /**
@@ -183,6 +197,13 @@
  */
 
 /**
+ *     @cond abs32le
+ *     @defgroup abs32leddi abs32le
+ *     @ingroup ddi
+ *     @endcond
+ */
+
+/**
  *     @cond amd64
  *     @defgroup amd64ddi amd64
  *     @ingroup ddi
@@ -248,6 +269,13 @@
  */
 
 /**
+ *     @cond abs32le
+ *     @defgroup abs32ledebug abs32le
+ *     @ingroup debug
+ *     @endcond
+ */
+
+/**
  *     @cond amd64
  *     @defgroup amd64debug ia32/amd64
  *     @ingroup debug
@@ -309,6 +337,13 @@
 /**
  *     @defgroup genericinterrupt generic
  *     @ingroup interrupt
+ */
+
+/**
+ *     @cond abs32le
+ *     @defgroup abs32leinterrupt abs32le
+ *     @ingroup interrupt
+ *     @endcond
  */
 
 /**
@@ -380,6 +415,13 @@
 /**
  *     @defgroup genarch genarch
  *     @ingroup others
+ */
+
+/**
+ *     @cond abs32le
+ *     @defgroup abs32le abs32le
+ *     @ingroup others
+ *     @endcond
  */
 
 /**
