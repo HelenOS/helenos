@@ -2,8 +2,8 @@
 /* Definitions of modules and its relations for generating Doxygen documentation */
 
 /**
- * @defgroup uspace Userspace
- * @brief All HelenOS userspace code
+ * @defgroup uspace uspace
+ * @brief HelenOS userspace
  */
 
 /**

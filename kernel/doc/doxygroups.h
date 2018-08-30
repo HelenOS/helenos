@@ -1,7 +1,8 @@
 
 /* Definitions of modules and its relations for generating Doxygen documentation */
 
-/** @defgroup kernel Kernel
+/** @defgroup kernel kernel
+ * @brief HelenOS kernel
  */
 
 /** @defgroup genericadt Data types
@@ -27,7 +28,6 @@
 /**    @defgroup genericproc generic
  *     @ingroup proc
  */
-
 
 /**
  *     @cond abs32le
@@ -175,8 +175,6 @@
  *     @endcond
  */
 
-
-
 /** @defgroup genericipc IPC
  * @ingroup kernel
  */
@@ -185,7 +183,6 @@
  * @brief Kernel character input/output facility
  * @ingroup genericconsole
  */
-
 
 /** @defgroup ddi Device Driver Interface
  * @ingroup kernel
@@ -479,3 +476,4 @@
  *     @ingroup others
  *     @endcond
  */
+

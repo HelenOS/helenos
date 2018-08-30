@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mouse
+/** @addtogroup s3c24xx_ts
  * @{
  */
 /**
  * @file
- * @brief Samsung Samsung S3C24xx on-chip ADC and touch-screen interface driver.
+ * @brief Samsung S3C24xx on-chip ADC and touch-screen interface driver.
  *
  * This interface is present on the Samsung S3C24xx CPU (on the gta02 platform).
  */

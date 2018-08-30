@@ -49,3 +49,7 @@
  * @ingroup libc
  */
 
+/**
+ * @addtogroup rtld rtld
+ * @ingroup libc
+ */

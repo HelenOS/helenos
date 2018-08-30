@@ -28,13 +28,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup fs
+/** @addtogroup exfat
  * @{
  */
 
 /**
  * @file	exfat.c
- * @brief	FAT file system driver for HelenOS.
+ * @brief	exFAT file system driver for HelenOS.
  */
 
 #include "exfat.h"

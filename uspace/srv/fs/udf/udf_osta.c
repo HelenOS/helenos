@@ -36,7 +36,7 @@
  * following source code.
  */
 
-/** @addtogroup fs
+/** @addtogroup udf
  * @{
  */
 /**
