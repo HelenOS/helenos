@@ -34,7 +34,8 @@ PCUT_INIT;
 
 PCUT_TEST_SUITE(rounding);
 
-static inline uint32_t fint(float x) {
+static inline uint32_t fint(float x)
+{
 	union {
 		float f;
 		uint32_t i;
@@ -42,7 +43,8 @@ static inline uint32_t fint(float x) {
 	return u.i;
 }
 
-static inline uint64_t dint(double x) {
+static inline uint64_t dint(double x)
+{
 	union {
 		double f;
 		uint64_t i;
@@ -1107,15 +1109,6 @@ static float float_results_nearbyint[FLOAT_CASES] = {
 	4.0, -2.0, 100.0, 50.0, -1024.0, 0.0, 768.0, 1080.0, -600.0, 1.0
 };
 
-#if 0
-static double double_arguments[DOUBLE_CASES] = {
-	0.0000000000000p0
-};
-
-static double double_results_trunc[DOUBLE_CASES] = {
-};
-#endif
-
 PCUT_TEST(identity)
 {
 	for (int i = 0; i < FLOAT_CASES; i++) {
@@ -1144,7 +1137,7 @@ PCUT_TEST(trunc)
 		uint64_t f1 = dint(trunc(float_arguments[i]));
 		uint64_t f2 = dint(float_results_trunc[i]);
 		if (f1 != f2) {
-			PCUT_ASSERTION_FAILED("case %d: 0x%016"PRIx64" != 0x%016"PRIx64"\n", i, f1, f2);
+			PCUT_ASSERTION_FAILED("case %d: 0x%016" PRIx64 " != 0x%016" PRIx64 "\n", i, f1, f2);
 		}
 	}
 
@@ -1168,7 +1161,7 @@ PCUT_TEST(round)
 		uint64_t f1 = dint(round(float_arguments[i]));
 		uint64_t f2 = dint(float_results_round[i]);
 		if (f1 != f2) {
-			PCUT_ASSERTION_FAILED("case %d: 0x%016"PRIx64" != 0x%016"PRIx64"\n", i, f1, f2);
+			PCUT_ASSERTION_FAILED("case %d: 0x%016" PRIx64 " != 0x%016" PRIx64 "\n", i, f1, f2);
 		}
 	}
 
@@ -1196,7 +1189,7 @@ PCUT_TEST(nearbyint)
 		uint64_t f1 = dint(nearbyint(float_arguments[i]));
 		uint64_t f2 = dint(float_results_nearbyint[i]);
 		if (f1 != f2) {
-			PCUT_ASSERTION_FAILED("case %d: 0x%016"PRIx64" != 0x%016"PRIx64"\n", i, f1, f2);
+			PCUT_ASSERTION_FAILED("case %d: 0x%016" PRIx64 " != 0x%016" PRIx64 "\n", i, f1, f2);
 		}
 	}
 
