@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 CZ.NIC, z.s.p.o.
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _FLOAT_H
-#define _FLOAT_H
+#include <stdio.h>
+#include <pcut/pcut.h>
 
-// FIXME: <float.h> is freestanding. Just include the compiler-provided file.
+PCUT_INIT;
 
-#define FLT_MIN __FLT_MIN__
-#define FLT_DENORM_MIN __FLT_DENORM_MIN__
-#define FLT_EPSILON __FLT_EPSILON__
+PCUT_IMPORT(rounding);
 
-#define FLT_MANT_DIG  __FLT_MANT_DIG__
-#define DBL_MANT_DIG  __DBL_MANT_DIG__
-#define FLT_MAX_EXP __FLT_MAX_EXP__
-#define DBL_MAX_EXP __DBL_MAX_EXP__
-
-#endif
+PCUT_MAIN();
 

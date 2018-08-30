@@ -38,8 +38,13 @@ SOURCES = \
 	generic/__signbit.c \
 	generic/fabs.c \
 	generic/fmod.c \
+	generic/nearbyint.c \
 	generic/round.c \
 	generic/trig.c \
 	generic/trunc.c
+
+TEST_SOURCES = \
+	test/rounding.c \
+	test/main.c
 
 include $(USPACE_PREFIX)/Makefile.common

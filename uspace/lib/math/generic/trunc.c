@@ -54,10 +54,6 @@
  */
 float truncf(float val)
 {
-	/* If the input is a nan, return a canonical nan. */
-	if (isnan(val))
-		return __builtin_nanf("");
-
 	const int exp_bias = FLT_MAX_EXP - 1;
 	const int mant_bits = FLT_MANT_DIG - 1;
 	const uint32_t mant_mask = (UINT32_C(1) << mant_bits) - 1;
@@ -98,10 +94,6 @@ float truncf(float val)
  */
 double trunc(double val)
 {
-	/* If the input is a nan, return a canonical nan. */
-	if (isnan(val))
-		return __builtin_nan("");
-
 	const int exp_bias = DBL_MAX_EXP - 1;
 	const int mant_bits = DBL_MANT_DIG - 1;
 	const uint64_t mant_mask = (UINT64_C(1) << mant_bits) - 1;

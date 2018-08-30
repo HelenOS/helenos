@@ -44,10 +44,6 @@
  */
 float roundf(float val)
 {
-	/* If the input is a nan, return a canonical nan. */
-	if (isnan(val))
-		return __builtin_nanf("");
-
 	const int exp_bias = FLT_MAX_EXP - 1;
 	const int mant_bits = FLT_MANT_DIG - 1;
 
@@ -77,10 +73,6 @@ float roundf(float val)
  */
 double round(double val)
 {
-	/* If the input is a nan, return a canonical nan. */
-	if (isnan(val))
-		return __builtin_nan("");
-
 	const int exp_bias = DBL_MAX_EXP - 1;
 	const int mant_bits = DBL_MANT_DIG - 1;
 

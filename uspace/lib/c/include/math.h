@@ -311,6 +311,10 @@ long double fmal(long double, long double, long double);
 #define copysignf __builtin_copysignf
 #define copysignl __builtin_copysignl
 
+#define nextafter __builtin_nextafter
+#define nextafterf __builtin_nextafterf
+#define nextafterl __builtin_nextafterl
+
 #endif
 
 #endif /* _MATH_H */

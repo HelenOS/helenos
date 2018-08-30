@@ -243,6 +243,7 @@ RD_TESTS = \
 	$(USPACE_PATH)/lib/posix/test-libposix \
 	$(USPACE_PATH)/lib/sif/test-libsif \
 	$(USPACE_PATH)/lib/uri/test-liburi \
+	$(USPACE_PATH)/lib/math/test-libmath \
 	$(USPACE_PATH)/drv/bus/usb/xhci/test-xhci \
 	$(USPACE_PATH)/app/bdsh/test-bdsh \
 	$(USPACE_PATH)/srv/net/tcp/test-tcp \
