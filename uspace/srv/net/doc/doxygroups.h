@@ -23,7 +23,7 @@
  *     @ingroup net
  */
 
-/**    @addtogroup nconfsrv nconfsrc
+/**    @addtogroup nconfsrv nconfsrv
  *     @brief Network configuration service
  *     @ingroup net
  */
@@ -48,7 +48,7 @@
  *     @ingroup net
  */
 
-/**    @addtogroup dnsres dnsres
+/**    @addtogroup dnsrsrv dnsrsrv
  *     @brief DNS resolution service
  *     @ingroup net
  */

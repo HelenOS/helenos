@@ -1,4 +1,4 @@
-/** @addtogroup logger logsrv
+/** @addtogroup logger logger
  * @ingroup srvs
  * @brief Logging service
  */

@@ -27,8 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester User space tester
- * @brief User space testing infrastructure.
+/** @addtogroup tester
  * @{
  */
 /**

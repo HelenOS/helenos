@@ -43,8 +43,7 @@
  *
  */
 
-/** @addtogroup tetris Tetris
- * @brief Tetris ported from OpenBSD
+/** @addtogroup tetris
  * @{
  */
 /** @file

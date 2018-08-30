@@ -27,7 +27,6 @@
  */
 
 /** @addtogroup fdisk
- * @brief Disk management tool
  * @{
  */
 /**

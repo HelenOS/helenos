@@ -27,11 +27,11 @@
  */
 
 /** @addtogroup tester
- * @brief Test the serial port driver - loopback test
  * @{
  */
 /**
  * @file
+ * @brief Test the serial port driver - loopback test
  */
 
 #include <async.h>

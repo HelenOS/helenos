@@ -28,7 +28,6 @@
  */
 
 /** @addtogroup stats
- * @brief Print system statistics.
  * @{
  */
 /**
