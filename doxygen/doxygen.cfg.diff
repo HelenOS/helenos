@@ -1,5 +1,5 @@
---- doxygen.cfg.gen	2018-08-29 14:43:41.122709974 +0200
-+++ doxygen.cfg	2018-08-29 16:54:48.567343308 +0200
+--- doxygen.cfg.gen	2018-08-29 17:07:57.439518972 +0200
++++ doxygen.cfg	2018-08-30 00:03:23.790524052 +0200
 @@ -32,7 +32,7 @@
  # title of most generated pages and in a few other places.
  # The default value is: My Project.
@@ -45,3 +45,12 @@
  
  # The EXCLUDE tag can be used to specify files and/or directories that should be
  # excluded from the INPUT source files. This way you can easily exclude a
+@@ -1468,7 +1468,7 @@
+ # The default value is: NO.
+ # This tag requires that the tag GENERATE_HTML is set to YES.
+ 
+-GENERATE_TREEVIEW      = NO
++GENERATE_TREEVIEW      = YES
+ 
+ # The ENUM_VALUES_PER_LINE tag can be used to set the number of enum values that
+ # doxygen will group on one line in the generated HTML documentation.
