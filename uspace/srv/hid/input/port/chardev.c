@@ -27,7 +27,7 @@
  */
 
 /** @addtogroup kbd_port
- * @ingroup kbd
+ * @ingroup input
  * @{
  */
 /** @file

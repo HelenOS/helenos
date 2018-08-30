@@ -27,6 +27,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup pl050
+ * @{
+ */
+
 /** @file
  */
 
@@ -388,3 +392,5 @@ int main(int argc, char *argv[])
 	return ddf_driver_main(&pl050_driver);
 }
 
+/** @}
+ */

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amdm73x_dispc
+/** @addtogroup amdm37x_dispc
  * @{
  */
 /**

@@ -26,10 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup pl050
+/** @addtogroup icp-ic
  * @{
- */
-/** @file ARM PrimeCell PS2 Keyboard/Mouse Interface (PL050) registers
  */
 
 #ifndef ICP_IC_HW_H

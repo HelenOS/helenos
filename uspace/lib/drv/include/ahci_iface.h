@@ -27,7 +27,6 @@
  */
 
 /** @addtogroup libdrv
- * @addtogroup ahci
  * @{
  */
 /** @file

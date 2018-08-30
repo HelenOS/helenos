@@ -29,7 +29,6 @@
 
 /**
  * @addtogroup drv_ne2k
- * @brief Novell NE2000 NIC driver
  * @{
  */
 /**

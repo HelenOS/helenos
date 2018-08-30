@@ -147,21 +147,23 @@
  */
 
 /**
- *     @defgroup drvusbuhci UHCI driver
+ *     @addtogroup drvusbuhci
  *     @ingroup usb
- *     @brief Drivers for USB UHCI host controller and root hub.
  */
 
 /**
- *     @defgroup drvusbohci OHCI driver
+ *     @addtogroup drvusbohci
  *     @ingroup usb
- *     @brief Driver for OHCI host controller.
  */
 
 /**
- *     @defgroup drvusbehci EHCI driver
+ *     @addtogroup drvusbehci
  *     @ingroup usb
- *     @brief Driver for EHCI host controller.
+ */
+
+/**
+ *     @addtogroup drvusbxhci
+ *     @ingroup usb
  */
 
 /**

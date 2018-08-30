@@ -28,8 +28,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kbd_port
- * @ingroup  kbd
+/** @addtogroup i8042
  * @{
  */
 

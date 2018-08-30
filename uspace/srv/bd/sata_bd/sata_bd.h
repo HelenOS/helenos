@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup bd
+/** @addtogroup sata_bd
  * @{
  */
 /** @file SATA block device driver definitions.

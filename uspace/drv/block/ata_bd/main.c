@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup ata_bd
+ * @{
+ */
+
 /** @file
  */
 
@@ -327,3 +331,6 @@ int main(int argc, char *argv[])
 	return ddf_driver_main(&ata_driver);
 }
 
+/**
+ * @}
+ */
