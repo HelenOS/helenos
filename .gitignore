@@ -375,6 +375,7 @@ uspace/lib/c/arch/sparc64/_link-shlib.ld
 uspace/lib/c/arch/sparc64/_link.ld
 uspace/lib/c/test-libc
 uspace/lib/label/test-liblabel
+uspace/lib/math/test-libmath
 uspace/lib/pcut/test-libpcut-*
 uspace/lib/posix/gcc.specs
 uspace/lib/posix/include/libc

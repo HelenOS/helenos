@@ -45,21 +45,21 @@ H_ARCH_CONFIG_OUTPUT_FILENAME=3
 
 h_get_arch_config_space() {
     cat <<'EOF_CONFIG_SPACE'
-amd64:amd64-unknown-elf:image.iso
-arm32/beagleboardxm:arm-linux-gnueabi:uImage.bin
-arm32/beaglebone:arm-linux-gnueabi:uImage.bin
-arm32/gta02:arm-linux-gnueabi:uImage.bin
-arm32/integratorcp:arm-linux-gnueabi:image.boot
-arm32/raspberrypi:arm-linux-gnueabi:uImage.bin
-ia32:i686-pc-linux-gnu:image.iso
-ia64/i460GX:ia64-pc-linux-gnu:image.boot
-ia64/ski:ia64-pc-linux-gnu:image.boot
-mips32/malta-be:mips-linux-gnu:image.boot
-mips32/malta-le:mipsel-linux-gnu:image.boot
-mips32/msim:mipsel-linux-gnu:image.boot
-ppc32:ppc-linux-gnu:image.iso
-sparc64/niagara:sparc64-linux-gnu:image.iso
-sparc64/ultra:sparc64-linux-gnu:image.iso
+amd64:amd64-helenos:image.iso
+arm32/beagleboardxm:arm-helenos:uImage.bin
+arm32/beaglebone:arm-helenos:uImage.bin
+arm32/gta02:arm-helenos:uImage.bin
+arm32/integratorcp:arm-helenos:image.boot
+arm32/raspberrypi:arm-helenos:uImage.bin
+ia32:i686-helenos:image.iso
+ia64/i460GX:ia64-helenos:image.boot
+ia64/ski:ia64-helenos:image.boot
+mips32/malta-be:mips-helenos:image.boot
+mips32/malta-le:mipsel-helenos:image.boot
+mips32/msim:mipsel-helenos:image.boot
+ppc32:ppc-helenos:image.iso
+sparc64/niagara:sparc64-helenos:image.iso
+sparc64/ultra:sparc64-helenos:image.iso
 EOF_CONFIG_SPACE
 }
 

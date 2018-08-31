@@ -177,8 +177,6 @@ def check_common(common, key):
 
 def get_target(config):
 	platform = None
-	gnu_target = None
-	helenos_target = None
 	target = None
 	cc_args = []
 
@@ -187,37 +185,30 @@ def get_target(config):
 		platform = config['CROSS_TARGET']
 
 		if (config['CROSS_TARGET'] == "arm32"):
-			gnu_target = "arm-linux-gnueabi"
-			helenos_target = "arm-helenos"
+			target = "arm-helenos"
 
 		if (config['CROSS_TARGET'] == "ia32"):
-			gnu_target = "i686-pc-linux-gnu"
-			helenos_target = "i686-helenos"
+			target = "i686-helenos"
 
 		if (config['CROSS_TARGET'] == "mips32"):
 			cc_args.append("-mabi=32")
-			gnu_target = "mipsel-linux-gnu"
-			helenos_target = "mipsel-helenos"
+			target = "mipsel-helenos"
 
 	if (config['PLATFORM'] == "amd64"):
 		platform = config['PLATFORM']
-		gnu_target = "amd64-unknown-elf"
-		helenos_target = "amd64-helenos"
+		target = "amd64-helenos"
 
 	if (config['PLATFORM'] == "arm32"):
 		platform = config['PLATFORM']
-		gnu_target = "arm-linux-gnueabi"
-		helenos_target = "arm-helenos"
+		target = "arm-helenos"
 
 	if (config['PLATFORM'] == "ia32"):
 		platform = config['PLATFORM']
-		gnu_target = "i686-pc-linux-gnu"
-		helenos_target = "i686-helenos"
+		target = "i686-helenos"
 
 	if (config['PLATFORM'] == "ia64"):
 		platform = config['PLATFORM']
-		gnu_target = "ia64-pc-linux-gnu"
-		helenos_target = "ia64-helenos"
+		target = "ia64-helenos"
 
 	if (config['PLATFORM'] == "mips32"):
 		check_config(config, "MACHINE")
@@ -225,13 +216,11 @@ def get_target(config):
 
 		if ((config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
 			platform = config['PLATFORM']
-			gnu_target = "mipsel-linux-gnu"
-			helenos_target = "mipsel-helenos"
+			target = "mipsel-helenos"
 
 		if ((config['MACHINE'] == "bmalta")):
 			platform = "mips32eb"
-			gnu_target = "mips-linux-gnu"
-			helenos_target = "mips-helenos"
+			target = "mips-helenos"
 
 	if (config['PLATFORM'] == "mips64"):
 		check_config(config, "MACHINE")
@@ -239,28 +228,19 @@ def get_target(config):
 
 		if (config['MACHINE'] == "msim"):
 			platform = config['PLATFORM']
-			gnu_target = "mips64el-linux-gnu"
-			helenos_target = "mips64el-helenos"
+			target = "mips64el-helenos"
 
 	if (config['PLATFORM'] == "ppc32"):
 		platform = config['PLATFORM']
-		gnu_target = "ppc-linux-gnu"
-		helenos_target = "ppc-helenos"
+		target = "ppc-helenos"
 
 	if (config['PLATFORM'] == "riscv64"):
 		platform = config['PLATFORM']
-		gnu_target = "riscv64-unknown-linux-gnu"
-		helenos_target = "riscv64-helenos"
+		target = "riscv64-helenos"
 
 	if (config['PLATFORM'] == "sparc64"):
 		platform = config['PLATFORM']
-		gnu_target = "sparc64-linux-gnu"
-		helenos_target = "sparc64-helenos"
-
-	if (config['COMPILER'] == "gcc_helenos"):
-		target = helenos_target
-	else:
-		target = gnu_target
+		target = "sparc64-helenos"
 
 	return (platform, cc_args, target)
 
@@ -278,6 +258,15 @@ def check_app(args, name, details):
 		             "is installed in your system (%s)." % details])
 
 	sys.stderr.write("ok\n")
+
+def check_path_gcc(target):
+	"Check whether GCC for a given target is present in $PATH."
+
+	try:
+		subprocess.Popen([ "%s-gcc" % target, "--version" ], stdout = subprocess.PIPE, stderr = subprocess.PIPE).wait()
+		return True
+	except:
+		return False
 
 def check_app_alternatives(alts, args, name, details):
 	"Check whether an application can be executed (use several alternatives)"
@@ -560,18 +549,6 @@ def main():
 	else:
 		cross_prefix = "/usr/local/cross"
 
-	# HelenOS cross-compiler prefix
-	if ('CROSS_HELENOS_PREFIX' in os.environ):
-		cross_helenos_prefix = os.environ['CROSS_HELENOS_PREFIX']
-	else:
-		cross_helenos_prefix = "/usr/local/cross-helenos"
-
-	# Prefix binutils tools on Solaris
-	if (os.uname()[0] == "SunOS"):
-		binutils_prefix = "g"
-	else:
-		binutils_prefix = ""
-
 	owd = sandbox_enter()
 
 	try:
@@ -592,26 +569,16 @@ def main():
 			print_error(["Unsupported compiler target.",
 				     "Please contact the developers of HelenOS."])
 
-		path = "%s/%s/bin" % (cross_prefix, target)
+		path = None
 
-		# Compatibility with earlier toolchain paths.
-		if not os.path.exists(path):
-			if (config['COMPILER'] == "gcc_helenos"):
-				check_path = "%s/%s/%s" % (cross_helenos_prefix, platform, target)
-				if not os.path.exists(check_path):
-					print_error(TOOLCHAIN_FAIL)
-				path = "%s/%s/bin" % (cross_helenos_prefix, platform)
-			else:
-				check_path = "%s/%s/%s" % (cross_prefix, platform, target)
-				if not os.path.exists(check_path):
-					print_error(TOOLCHAIN_FAIL)
-				path = "%s/%s/bin" % (cross_prefix, platform)
+		if not check_path_gcc(target):
+			path = "%s/bin" % cross_prefix
 
 		common['TARGET'] = target
 		prefix = "%s-" % target
 
 		# Compiler
-		if (config['COMPILER'] == "gcc_cross" or config['COMPILER'] == "gcc_helenos"):
+		if (config['COMPILER'] == "gcc_cross"):
 			check_gcc(path, prefix, common, PACKAGE_CROSS)
 			check_binutils(path, prefix, common, PACKAGE_CROSS)
 
@@ -621,14 +588,6 @@ def main():
 
 			check_common(common, "GXX")
 			common['CXX'] = common['GXX']
-
-		if (config['COMPILER'] == "gcc_native"):
-			check_gcc(None, "", common, PACKAGE_GCC)
-			check_binutils(None, binutils_prefix, common, PACKAGE_BINUTILS)
-
-			check_common(common, "GCC")
-			common['CC'] = common['GCC']
-			common['CC_AUTOGEN'] = common['CC']
 
 		if (config['COMPILER'] == "clang"):
 			check_binutils(path, prefix, common, PACKAGE_CROSS)
