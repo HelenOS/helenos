@@ -94,6 +94,7 @@ static errno_t ranges_map_and_apply(irq_pio_range_t *ranges, size_t rangecount,
 			continue;
 #endif
 		ranges[i].base = km_map(pbase[i], ranges[i].size,
+		    KM_NATURAL_ALIGNMENT,
 		    PAGE_READ | PAGE_WRITE | PAGE_KERNEL | PAGE_NOT_CACHEABLE);
 		if (!ranges[i].base) {
 			ranges_unmap(ranges, i);

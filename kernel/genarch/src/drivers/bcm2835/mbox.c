@@ -92,7 +92,7 @@ bool bcm2835_fb_init(fb_properties_t *prop)
 	MBOX_BUFF_ALLOC(fb_desc, bcm2835_fb_desc_t);
 
 	fb_mbox = (void *) km_map(BCM2835_MBOX0_ADDR, sizeof(bcm2835_mbox_t),
-	    PAGE_NOT_CACHEABLE);
+	    KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
 
 	fb_desc->width = 640;
 	fb_desc->height = 480;

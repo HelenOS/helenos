@@ -65,7 +65,7 @@ void vreg_init(void)
 	if (!frame)
 		panic("Cannot allocate VREG frame.");
 
-	page = (uint64_t *) km_map(frame, PAGE_SIZE,
+	page = (uint64_t *) km_map(frame, PAGE_SIZE, PAGE_SIZE,
 	    PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
 
 	write_msr(AMD_MSR_FS, (uintptr_t) page);

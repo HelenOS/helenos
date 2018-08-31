@@ -241,6 +241,7 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 		size_t size = 2 * PAGE_SIZE;
 
 		cuda_t *cuda = (cuda_t *) (km_map(aligned_addr, offset + size,
+		    KM_NATURAL_ALIGNMENT,
 		    PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
 
 		/* Initialize I/O controller */

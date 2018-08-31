@@ -87,16 +87,17 @@ struct arm_machine_ops bbone_machine_ops = {
 static void bbone_init(void)
 {
 	bbone.irc_addr = (void *) km_map(AM335x_IRC_BASE_ADDRESS,
-	    AM335x_IRC_SIZE, PAGE_NOT_CACHEABLE);
+	    AM335x_IRC_SIZE, KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
 
 	bbone.cm_per_addr = (void *) km_map(AM335x_CM_PER_BASE_ADDRESS,
-	    AM335x_CM_PER_SIZE, PAGE_NOT_CACHEABLE);
+	    AM335x_CM_PER_SIZE, KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
 
 	bbone.cm_dpll_addr = (void *) km_map(AM335x_CM_DPLL_BASE_ADDRESS,
-	    AM335x_CM_DPLL_SIZE, PAGE_NOT_CACHEABLE);
+	    AM335x_CM_DPLL_SIZE, KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
 
 	bbone.ctrl_module = (void *) km_map(AM335x_CTRL_MODULE_BASE_ADDRESS,
-	    AM335x_CTRL_MODULE_SIZE, PAGE_NOT_CACHEABLE);
+	    AM335x_CTRL_MODULE_SIZE, KM_NATURAL_ALIGNMENT,
+	    PAGE_NOT_CACHEABLE);
 
 	assert(bbone.irc_addr != NULL);
 	assert(bbone.cm_per_addr != NULL);

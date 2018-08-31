@@ -207,13 +207,15 @@ static inline void amdm37x_gpt_timer_ticks_init(
 	/* Set 32768 Hz clock as source */
 	// TODO find a nicer way to setup 32kHz clock source for timer1
 	// reg 0x48004C40 is CM_CLKSEL_WKUP see page 485 of the manual
-	ioport32_t *clksel = (void *) km_map(0x48004C40, 4, PAGE_NOT_CACHEABLE);
+	ioport32_t *clksel = (void *) km_map(0x48004C40, 4, PAGE_SIZE,
+	    PAGE_NOT_CACHEABLE);
 	*clksel &= ~1;
 	km_unmap((uintptr_t)clksel, 4);
 
 	assert(timer);
 	/* Map control register */
-	timer->regs = (void *) km_map(ioregs, iosize, PAGE_NOT_CACHEABLE);
+	timer->regs = (void *) km_map(ioregs, iosize, KM_NATURAL_ALIGNMENT,
+	    PAGE_NOT_CACHEABLE);
 
 	/* Reset the timer */
 	timer->regs->tiocp_cfg |= AMDM37x_GPT_TIOCP_CFG_SOFTRESET_FLAG;

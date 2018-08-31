@@ -55,8 +55,8 @@ void ras_init(void)
 	if (!frame)
 		frame = frame_alloc(1, FRAME_LOWMEM, 0);
 
-	ras_page = (uintptr_t *) km_map(frame,
-	    PAGE_SIZE, PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
+	ras_page = (uintptr_t *) km_map(frame, PAGE_SIZE, PAGE_SIZE,
+	    PAGE_READ | PAGE_WRITE | PAGE_USER | PAGE_CACHEABLE);
 
 	memsetb(ras_page, PAGE_SIZE, 0);
 	ras_page[RAS_START] = 0;

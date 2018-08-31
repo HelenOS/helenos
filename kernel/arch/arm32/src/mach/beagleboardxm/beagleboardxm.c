@@ -101,7 +101,7 @@ static void bbxm_init(void)
 	/* Initialize interrupt controller */
 	beagleboard.irc_addr =
 	    (void *) km_map(AMDM37x_IRC_BASE_ADDRESS, AMDM37x_IRC_SIZE,
-	    PAGE_NOT_CACHEABLE);
+	    KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
 	assert(beagleboard.irc_addr);
 	omap_irc_init(beagleboard.irc_addr);
 

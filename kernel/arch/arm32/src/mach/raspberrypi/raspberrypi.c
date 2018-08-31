@@ -102,14 +102,13 @@ static void raspberrypi_init(void)
 {
 	/* Initialize interrupt controller */
 	raspi.irc = (void *) km_map(BCM2835_IRC_ADDR, sizeof(bcm2835_irc_t),
-	    PAGE_NOT_CACHEABLE);
+	    KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
 	assert(raspi.irc);
 	bcm2835_irc_init(raspi.irc);
 
 	/* Initialize system timer */
 	raspi.timer = (void *) km_map(BCM2835_TIMER_ADDR,
-	    sizeof(bcm2835_timer_t),
-	    PAGE_NOT_CACHEABLE);
+	    sizeof(bcm2835_timer_t), KM_NATURAL_ALIGNMENT, PAGE_NOT_CACHEABLE);
 }
 
 static void raspberrypi_timer_irq_start(void)

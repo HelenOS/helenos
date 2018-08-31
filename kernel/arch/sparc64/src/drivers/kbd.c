@@ -118,7 +118,7 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 	size_t offset = pa - aligned_addr;
 
 	ioport8_t *ns16550 = (ioport8_t *) (km_map(aligned_addr, offset + size,
-	    PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
+	    KM_NATURAL_ALIGNMENT, PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
 
 	ns16550_instance_t *ns16550_instance = ns16550_init(ns16550, 0, inr, cir,
 	    cir_arg, NULL);

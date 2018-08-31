@@ -129,17 +129,19 @@ void km_page_free(uintptr_t page, size_t size)
 }
 
 static uintptr_t
-km_map_aligned(uintptr_t paddr, size_t size, unsigned int flags)
+km_map_aligned(uintptr_t paddr, size_t size, size_t align, unsigned int flags)
 {
 	uintptr_t vaddr;
-	size_t align;
 	uintptr_t offs;
+
+	if (align == KM_NATURAL_ALIGNMENT)
+		align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
 
 	assert(ALIGN_DOWN(paddr, FRAME_SIZE) == paddr);
 	assert(ALIGN_UP(size, FRAME_SIZE) == size);
+	assert(ispwr2(align));
 
-	/* Enforce natural or at least PAGE_SIZE alignment. */
-	align = ispwr2(size) ? size : (1U << (fnzb(size) + 1));
+	/* Enforce at least PAGE_SIZE alignment. */
 	vaddr = km_page_alloc(size, max(PAGE_SIZE, align));
 
 	page_table_lock(AS_KERNEL, true);
@@ -184,14 +186,14 @@ static void km_unmap_aligned(uintptr_t vaddr, size_t size)
  *
  * @return New virtual address mapped to paddr.
  */
-uintptr_t km_map(uintptr_t paddr, size_t size, unsigned int flags)
+uintptr_t km_map(uintptr_t paddr, size_t size, size_t align, unsigned int flags)
 {
 	uintptr_t page;
 	size_t offs;
 
 	offs = paddr - ALIGN_DOWN(paddr, FRAME_SIZE);
 	page = km_map_aligned(ALIGN_DOWN(paddr, FRAME_SIZE),
-	    ALIGN_UP(size + offs, FRAME_SIZE), flags);
+	    ALIGN_UP(size + offs, FRAME_SIZE), align, flags);
 
 	return page + offs;
 }
@@ -255,7 +257,7 @@ uintptr_t km_temporary_page_get(uintptr_t *framep, frame_flags_t flags)
 
 	frame = frame_alloc(1, FRAME_HIGHMEM | FRAME_ATOMIC | flags, 0);
 	if (frame) {
-		page = km_map(frame, PAGE_SIZE,
+		page = km_map(frame, PAGE_SIZE, PAGE_SIZE,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		if (!page) {
 			frame_free(frame, 1);

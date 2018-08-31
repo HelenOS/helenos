@@ -134,13 +134,14 @@ static inline void icp_irqc_unmask(uint32_t irq)
 /** Initializes icp.hw_map. */
 void icp_init(void)
 {
-	icp.hw_map.uart = km_map(ICP_UART, PAGE_SIZE,
+	icp.hw_map.uart = km_map(ICP_UART, PAGE_SIZE, PAGE_SIZE,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
-	icp.hw_map.kbd_ctrl = km_map(ICP_KBD, PAGE_SIZE, PAGE_NOT_CACHEABLE);
+	icp.hw_map.kbd_ctrl = km_map(ICP_KBD, PAGE_SIZE, PAGE_SIZE,
+	    PAGE_NOT_CACHEABLE);
 	icp.hw_map.kbd_stat = icp.hw_map.kbd_ctrl + ICP_KBD_STAT;
 	icp.hw_map.kbd_data = icp.hw_map.kbd_ctrl + ICP_KBD_DATA;
 	icp.hw_map.kbd_intstat = icp.hw_map.kbd_ctrl + ICP_KBD_INTR_STAT;
-	icp.hw_map.rtc = km_map(ICP_RTC, PAGE_SIZE,
+	icp.hw_map.rtc = km_map(ICP_RTC, PAGE_SIZE, PAGE_SIZE,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	icp.hw_map.rtc1_load = icp.hw_map.rtc + ICP_RTC1_LOAD_OFFSET;
 	icp.hw_map.rtc1_read = icp.hw_map.rtc + ICP_RTC1_READ_OFFSET;
@@ -149,14 +150,14 @@ void icp_init(void)
 	icp.hw_map.rtc1_bgload = icp.hw_map.rtc + ICP_RTC1_BGLOAD_OFFSET;
 	icp.hw_map.rtc1_intrstat = icp.hw_map.rtc + ICP_RTC1_INTRSTAT_OFFSET;
 
-	icp.hw_map.irqc = km_map(ICP_IRQC, PAGE_SIZE,
+	icp.hw_map.irqc = km_map(ICP_IRQC, PAGE_SIZE, PAGE_SIZE,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	icp.hw_map.irqc_mask = icp.hw_map.irqc + ICP_IRQC_MASK_OFFSET;
 	icp.hw_map.irqc_unmask = icp.hw_map.irqc + ICP_IRQC_UNMASK_OFFSET;
-	icp.hw_map.cmcr = km_map(ICP_CMCR, PAGE_SIZE,
+	icp.hw_map.cmcr = km_map(ICP_CMCR, PAGE_SIZE, PAGE_SIZE,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	icp.hw_map.sdramcr = icp.hw_map.cmcr + ICP_SDRAMCR_OFFSET;
-	icp.hw_map.vga = km_map(ICP_VGA, PAGE_SIZE,
+	icp.hw_map.vga = km_map(ICP_VGA, PAGE_SIZE, PAGE_SIZE,
 	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 
 	hw_map_init_called = true;

@@ -109,7 +109,7 @@ pci_t *pci_sabre_init(ofw_tree_node_t *node)
 	pci->model = PCI_SABRE;
 	pci->op = &pci_sabre_ops;
 	pci->reg = (uint64_t *) km_map(paddr, reg[SABRE_INTERNAL_REG].size,
-	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	    KM_NATURAL_ALIGNMENT, PAGE_WRITE | PAGE_NOT_CACHEABLE);
 
 	return pci;
 }
@@ -151,7 +151,7 @@ pci_t *pci_psycho_init(ofw_tree_node_t *node)
 	pci->model = PCI_PSYCHO;
 	pci->op = &pci_psycho_ops;
 	pci->reg = (uint64_t *) km_map(paddr, reg[PSYCHO_INTERNAL_REG].size,
-	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	    KM_NATURAL_ALIGNMENT, PAGE_WRITE | PAGE_NOT_CACHEABLE);
 
 	return pci;
 }

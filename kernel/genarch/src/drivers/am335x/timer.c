@@ -100,7 +100,8 @@ am335x_timer_init(am335x_timer_t *timer, am335x_timer_id_t id, unsigned hz,
 	base_addr = regs_map[id].base;
 	size = regs_map[id].size;
 
-	timer->regs = (void *) km_map(base_addr, size, PAGE_NOT_CACHEABLE);
+	timer->regs = (void *) km_map(base_addr, size, KM_NATURAL_ALIGNMENT,
+	    PAGE_NOT_CACHEABLE);
 	assert(timer->regs != NULL);
 
 	timer->id = id;

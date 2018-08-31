@@ -609,7 +609,7 @@ outdev_t *fb_init(fb_properties_t *props)
 	size_t glyphsize = FONT_GLYPHS * instance->glyphbytes;
 
 	instance->addr = (uint8_t *) km_map((uintptr_t) props->addr, fbsize,
-	    PAGE_WRITE | PAGE_NOT_CACHEABLE);
+	    KM_NATURAL_ALIGNMENT, PAGE_WRITE | PAGE_NOT_CACHEABLE);
 	if (!instance->addr) {
 		LOG("Unable to map framebuffer.");
 		free(instance);
