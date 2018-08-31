@@ -44,7 +44,7 @@ BASEDIR="`pwd`"
 SRCDIR="$(readlink -f $(dirname "$0"))"
 
 REAL_INSTALL=true
-USE_HELENOS_TARGET=false
+USE_HELENOS_TARGET=true
 
 check_error() {
 	if [ "$1" -ne "0" ] ; then
@@ -59,7 +59,7 @@ show_usage() {
 	echo "Cross-compiler toolchain build script"
 	echo
 	echo "Syntax:"
-	echo " $0 [--no-install] [--helenos-target] <platform>"
+	echo " $0 [--no-install] [--non-helenos-target] <platform>"
 	echo
 	echo "Possible target platforms are:"
 	echo " amd64      AMD64 (x86-64, x64)"
@@ -88,10 +88,9 @@ show_usage() {
 	echo "the actual root file system. That is only useful if you do"
 	echo "not want to run the script under the super user."
 	echo
-	echo "The --helenos-target will build HelenOS-specific toolchain"
-	echo "(i.e. it will use *-helenos triplet instead of *-linux-*)."
-	echo "Using the HelenOS-specific toolchain is still an experimental"
-	echo "feature that is not fully supported."
+	echo "The --non-helenos-target will build non-HelenOS-specific toolchain"
+	echo "(i.e. it will use *-linux-* triplet instead of *-helenos)."
+	echo "Using this toolchain for building HelenOS is not supported."
 	echo
 
 	exit 3
@@ -237,19 +236,9 @@ set_target_from_platform() {
 
 	HELENOS_TARGET="${GNU_ARCH}-helenos"
 
-	# TODO: Clean up this mess.
 	case "$1" in
-		"amd64")
-			LINUX_TARGET="${GNU_ARCH}-unknown-elf"
-			;;
-		"ia32" | "ia64")
-			LINUX_TARGET="${GNU_ARCH}-pc-linux-gnu"
-			;;
 		"arm32")
 			LINUX_TARGET="${GNU_ARCH}-linux-gnueabi"
-			;;
-		"riscv64")
-			LINUX_TARGET="${GNU_ARCH}-unknown-linux-gnu"
 			;;
 		*)
 			LINUX_TARGET="${GNU_ARCH}-linux-gnu"
@@ -282,7 +271,7 @@ build_target() {
 		JOBS=`nproc`
 	fi
 
-	PREFIX="${CROSS_PREFIX}/${TARGET}"
+	PREFIX="${CROSS_PREFIX}"
 
 	echo ">>> Removing previous content"
 	cleanup_dir "${WORKDIR}"
@@ -407,9 +396,8 @@ build_target() {
 
 	if $REAL_INSTALL ; then
 		echo ">>> Moving to the destination directory."
-		cleanup_dir "${PREFIX}"
-		echo mv "${INSTALL_DIR}/${PREFIX}" "${PREFIX}"
-		mv "${INSTALL_DIR}/${PREFIX}" "${PREFIX}"
+		echo cp -r -t "${PREFIX}" "${INSTALL_DIR}/${PREFIX}/"*
+		cp -r -t "${PREFIX}" "${INSTALL_DIR}/${PREFIX}/"*
 	fi
 
 	cd "${BASEDIR}"
@@ -428,8 +416,8 @@ while [ "$#" -gt 1 ] ; do
 			REAL_INSTALL=false
 			shift
 			;;
-		--helenos-target)
-			USE_HELENOS_TARGET=true
+		--non-helenos-target)
+			USE_HELENOS_TARGET=false
 			shift
 			;;
 		*)

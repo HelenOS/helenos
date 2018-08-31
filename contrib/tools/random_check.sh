@@ -49,8 +49,6 @@ while getopts n:j:x:hs option; do
 		echo "$OPTARG" | tr -d ' ' >>"$PRUNE_CONFIG_FILE"
 		;;
 	s)
-		echo "COMPILER=gcc_native" >>"$PRUNE_CONFIG_FILE"
-		echo "COMPILER=gcc_helenos" >>"$PRUNE_CONFIG_FILE"
 		;;
 	*|h)
 		echo "Usage: $0 [options]"
