@@ -248,7 +248,7 @@ void kinit(void *arg)
 		 * Create virtual memory mappings for init task images.
 		 */
 		uintptr_t page = km_map(init.tasks[i].paddr,
-		    init.tasks[i].size, KM_NATURAL_ALIGNMENT,
+		    init.tasks[i].size, PAGE_SIZE,
 		    PAGE_READ | PAGE_WRITE | PAGE_CACHEABLE);
 		assert(page);
 
