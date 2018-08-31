@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
- */
+#ifndef _FENV_H
+#define _FENV_H
 
-#ifndef POSIX_MATH_H_
-#define POSIX_MATH_H_
+// TODO
 
-/*
- * Just a pass-through to libc math.h
- */
-#include "libc/math.h"
+#define FE_TOWARDZERO  0
+#define FE_TONEAREST   1
+#define FE_UPWARD      2
+#define FE_DOWNWARD    3
+
+#define fegetround() FE_TONEAREST
 
 #endif
 
-/** @}
- */

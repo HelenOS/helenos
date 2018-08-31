@@ -680,6 +680,18 @@ int __aeabi_fcmpeq(float32_t a, float32_t b)
 	return is_float32_eq(ua.data, ub.data);
 }
 
+int __aeabi_fcmpun(float32_t a, float32_t b)
+{
+	float32_u ua;
+	ua.val = a;
+
+	float32_u ub;
+	ub.val = b;
+
+	// TODO: sigNaNs
+	return is_float32_nan(ua.data) || is_float32_nan(ub.data);
+}
+
 #endif
 
 #ifdef float64_t
@@ -917,6 +929,18 @@ int __aeabi_dcmple(float64_t a, float64_t b)
 		return 1;
 
 	return 0;
+}
+
+int __aeabi_dcmpun(float64_t a, float64_t b)
+{
+	float64_u ua;
+	ua.val = a;
+
+	float64_u ub;
+	ub.val = b;
+
+	// TODO: sigNaNs
+	return is_float64_nan(ua.data) || is_float64_nan(ub.data);
 }
 
 #endif

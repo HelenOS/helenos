@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
- */
+#ifndef _FLOAT_H
+#define _FLOAT_H
 
-#ifndef POSIX_MATH_H_
-#define POSIX_MATH_H_
+// FIXME: <float.h> is freestanding. Just include the compiler-provided file.
 
-/*
- * Just a pass-through to libc math.h
- */
-#include "libc/math.h"
+#define FLT_MIN __FLT_MIN__
+#define FLT_DENORM_MIN __FLT_DENORM_MIN__
+#define FLT_EPSILON __FLT_EPSILON__
+
+#define FLT_MANT_DIG  __FLT_MANT_DIG__
+#define DBL_MANT_DIG  __DBL_MANT_DIG__
+#define FLT_MAX_EXP __FLT_MAX_EXP__
+#define DBL_MAX_EXP __DBL_MAX_EXP__
 
 #endif
 
-/** @}
- */

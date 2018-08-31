@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
+#include <math.h>
+#include <stdarg.h>
+
+/**
+ * Fallback symbol used when code including <math.h> is compiled with something
+ * other than GCC or Clang. The function itself must be built with GCC or Clang.
  */
+int __fcompare(size_t sz1, size_t sz2, ...)
+{
+	va_list ap;
+	va_start(ap, sz2);
 
-#ifndef POSIX_MATH_H_
-#define POSIX_MATH_H_
+	long double val1;
+	long double val2;
 
-/*
- * Just a pass-through to libc math.h
- */
-#include "libc/math.h"
+	switch (sz1) {
+	case 4:
+		val1 = (long double) va_arg(ap, double);
+		break;
+	case 8:
+		val1 = (long double) va_arg(ap, double);
+		break;
+	default:
+		val1 = va_arg(ap, long double);
+		break;
+	}
 
-#endif
+	switch (sz2) {
+	case 4:
+		val2 = (long double) va_arg(ap, double);
+		break;
+	case 8:
+		val2 = (long double) va_arg(ap, double);
+		break;
+	default:
+		val2 = va_arg(ap, long double);
+		break;
+	}
 
-/** @}
- */
+	va_end(ap);
+
+	if (isgreaterequal(val1, val2)) {
+		if (isgreater(val1, val2))
+			return __FCOMPARE_GREATER;
+		else
+			return __FCOMPARE_EQUAL;
+	} else {
+		if (isless(val1, val2))
+			return __FCOMPARE_LESS;
+		else
+			return 0;
+	}
+}
+

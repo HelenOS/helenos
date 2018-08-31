@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2014 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
- */
+#include <stdio.h>
+#include <pcut/pcut.h>
 
-#ifndef POSIX_MATH_H_
-#define POSIX_MATH_H_
+PCUT_INIT;
 
-/*
- * Just a pass-through to libc math.h
- */
-#include "libc/math.h"
+PCUT_IMPORT(rounding);
 
-#endif
+PCUT_MAIN();
 
-/** @}
- */

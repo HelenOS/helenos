@@ -37,26 +37,15 @@
 #include <float.h>
 #include <stdint.h>
 
-/** Truncate fractional part (round towards zero)
- *
- * Truncate the fractional part of IEEE 754 single
- * precision floating point number by zeroing fraction
- * bits, effectively rounding the number towards zero
- * to the nearest whole number.
- *
- * If the argument is infinity or NaN, an exception
- * should be indicated. This is not implemented yet.
- *
- * @param val Floating point number.
- *
- * @return Number rounded towards zero.
- *
+/**
+ * Rounds its argument to the nearest integer value in floating-point format,
+ * rounding halfway cases away from zero, regardless of the current rounding
+ * direction.
  */
-float truncf(float val)
+float roundf(float val)
 {
 	const int exp_bias = FLT_MAX_EXP - 1;
 	const int mant_bits = FLT_MANT_DIG - 1;
-	const uint32_t mant_mask = (UINT32_C(1) << mant_bits) - 1;
 
 	union {
 		float f;
@@ -65,38 +54,27 @@ float truncf(float val)
 
 	int exp = (u.i >> mant_bits) - exp_bias;
 
-	/* If value is less than one, return zero with appropriate sign. */
-	if (exp < 0)
+	/* If value is less than 0.5, return zero with appropriate sign. */
+	if (exp < -1)
 		return copysignf(0.0f, val);
 
+	/* If exponent is exactly mant_bits, adding 0.5 could change the result. */
 	if (exp >= mant_bits)
 		return val;
 
-	/* Truncate irrelevant fraction bits */
-	u.i &= ~(mant_mask >> exp);
-	return copysignf(u.f, val);
+	/* Use trunc with adjusted value to do the rounding. */
+	return copysignf(truncf(u.f + 0.5), val);
 }
 
-/** Truncate fractional part (round towards zero)
- *
- * Truncate the fractional part of IEEE 754 double
- * precision floating point number by zeroing fraction
- * bits, effectively rounding the number towards zero
- * to the nearest whole number.
- *
- * If the argument is infinity or NaN, an exception
- * should be indicated. This is not implemented yet.
- *
- * @param val Floating point number.
- *
- * @return Number rounded towards zero.
- *
+/**
+ * Rounds its argument to the nearest integer value in floating-point format,
+ * rounding halfway cases away from zero, regardless of the current rounding
+ * direction.
  */
-double trunc(double val)
+double round(double val)
 {
 	const int exp_bias = DBL_MAX_EXP - 1;
 	const int mant_bits = DBL_MANT_DIG - 1;
-	const uint64_t mant_mask = (UINT64_C(1) << mant_bits) - 1;
 
 	union {
 		double f;
@@ -105,16 +83,16 @@ double trunc(double val)
 
 	int exp = ((int)(u.i >> mant_bits)) - exp_bias;
 
-	/* If value is less than one, return zero with appropriate sign. */
-	if (exp < 0)
+	/* If value is less than 0.5, return zero with appropriate sign. */
+	if (exp < -1)
 		return copysign(0.0, val);
 
+	/* If exponent is exactly mant_bits, adding 0.5 could change the result. */
 	if (exp >= mant_bits)
 		return val;
 
-	/* Truncate irrelevant fraction bits */
-	u.i &= ~(mant_mask >> exp);
-	return copysign(u.f, val);
+	/* Use trunc with adjusted value to do the rounding. */
+	return copysign(trunc(u.f + 0.5), val);
 }
 
 /** @}

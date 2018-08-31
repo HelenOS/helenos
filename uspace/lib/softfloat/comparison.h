@@ -92,6 +92,7 @@ extern int __aeabi_fcmplt(float32_t, float32_t);
 extern int __aeabi_fcmpge(float32_t, float32_t);
 extern int __aeabi_fcmple(float32_t, float32_t);
 extern int __aeabi_fcmpeq(float32_t, float32_t);
+extern int __aeabi_fcmpun(float32_t, float32_t);
 #endif
 
 #ifdef float64_t
@@ -108,6 +109,7 @@ extern int __aeabi_dcmpeq(float64_t, float64_t);
 extern int __aeabi_dcmpgt(float64_t, float64_t);
 extern int __aeabi_dcmpge(float64_t, float64_t);
 extern int __aeabi_dcmple(float64_t, float64_t);
+extern int __aeabi_dcmpun(float64_t, float64_t);
 #endif
 
 #ifdef float128_t

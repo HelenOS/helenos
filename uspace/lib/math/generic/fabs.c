@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jiri Svoboda
+ * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,40 +33,15 @@
  */
 
 #include <math.h>
-#include <fabs.h>
 
-/** Absolute value (32-bit floating point)
- *
- * Compute absolute value.
- *
- * @param arg Argument.
- *
- * @return Absolute value.
- *
- */
-float32_t float32_fabs(float32_t arg)
+float fabsf(float val)
 {
-	if (arg < 0.0)
-		return -arg;
-	else
-		return arg;
+	return copysignf(val, 1.0f);
 }
 
-/** Absolute value (64-bit floating point)
- *
- * Compute absolute value.
- *
- * @param arg Argument.
- *
- * @return Absolute value.
- *
- */
-float64_t float64_fabs(float64_t arg)
+double fabs(double val)
 {
-	if (arg < 0.0)
-		return -arg;
-	else
-		return arg;
+	return copysign(val, 1.0);
 }
 
 /** @}

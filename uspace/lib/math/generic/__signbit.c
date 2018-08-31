@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Jiri Svoboda
+ * Copyright (c) 2018 CZ.NIC, z.s.p.o.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libposix
- * @{
+#include <math.h>
+#include <stdarg.h>
+
+/**
+ * Fallback symbol used when code including <math.h> is compiled with something
+ * other than GCC or Clang. The function itself must be built with GCC or Clang.
  */
+int __signbit(size_t sz, ...)
+{
+	va_list ap;
+	va_start(ap, sz);
 
-#ifndef POSIX_MATH_H_
-#define POSIX_MATH_H_
+	int result;
 
-/*
- * Just a pass-through to libc math.h
- */
-#include "libc/math.h"
+	switch (sz) {
+	case 4:
+		result = signbit(va_arg(ap, double));
+		break;
+	case 8:
+		result = signbit(va_arg(ap, double));
+		break;
+	default:
+		result = signbit(va_arg(ap, long double));
+		break;
+	}
 
-#endif
+	va_end(ap);
+	return result;
+}
 
-/** @}
- */

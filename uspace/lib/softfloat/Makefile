@@ -29,7 +29,6 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libsoftfloat
-EXTRA_CFLAGS += $(LIBMATH_INCLUDES_FLAGS)
 
 SOURCES = \
 	common.c \
