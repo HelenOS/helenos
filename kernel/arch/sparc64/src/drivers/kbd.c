@@ -108,17 +108,8 @@ static bool kbd_ns16550_init(ofw_tree_node_t *node)
 		return false;
 	}
 
-	/*
-	 * We need to pass aligned address to hw_map().
-	 * However, the physical keyboard address can
-	 * be pretty much unaligned, depending on the
-	 * underlying controller.
-	 */
-	uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
-	size_t offset = pa - aligned_addr;
-
-	ioport8_t *ns16550 = (ioport8_t *) (km_map(aligned_addr, offset + size,
-	    KM_NATURAL_ALIGNMENT, PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
+	ioport8_t *ns16550 = (ioport8_t *) km_map(pa, size,
+	    KM_NATURAL_ALIGNMENT, PAGE_WRITE | PAGE_NOT_CACHEABLE);
 
 	ns16550_instance_t *ns16550_instance = ns16550_init(ns16550, 0, inr, cir,
 	    cir_arg, NULL);

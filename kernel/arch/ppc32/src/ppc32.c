@@ -236,13 +236,10 @@ static bool macio_register(ofw_tree_node_t *node, void *arg)
 
 #ifdef CONFIG_MAC_KBD
 		uintptr_t pa = assigned_address[0].addr + 0x16000;
-		uintptr_t aligned_addr = ALIGN_DOWN(pa, PAGE_SIZE);
-		size_t offset = pa - aligned_addr;
 		size_t size = 2 * PAGE_SIZE;
 
-		cuda_t *cuda = (cuda_t *) (km_map(aligned_addr, offset + size,
-		    KM_NATURAL_ALIGNMENT,
-		    PAGE_WRITE | PAGE_NOT_CACHEABLE) + offset);
+		cuda_t *cuda = (cuda_t *) km_map(pa, size, KM_NATURAL_ALIGNMENT,
+		    PAGE_WRITE | PAGE_NOT_CACHEABLE);
 
 		/* Initialize I/O controller */
 		cuda_instance_t *cuda_instance =
