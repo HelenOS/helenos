@@ -750,7 +750,10 @@ errno_t async_hangup(async_sess_t *sess)
 
 	fibril_mutex_lock(&async_sess_mutex);
 
-	assert(sess->exchanges == 0);
+	if (sess->exchanges > 0) {
+		fibril_mutex_unlock(&async_sess_mutex);
+		return EBUSY;
+	}
 
 	errno_t rc = async_hangup_internal(sess->phone);
 
