@@ -103,12 +103,6 @@ if [ -z "$H_CROSS_TARGET" ]; then
     exit 1
 fi
 
-
-# Custom CROSS_PREFIX
-if [ ."$CROSS_PREFIX" == . ]; then
-	export CROSS_PREFIX=/usr/local/cross-static/
-fi
-
 # Default Harbours repository
 if [ -z "$H_HARBOURS_REPOSITORY" ]; then
     H_HARBOURS_REPOSITORY="https://github.com/HelenOS/harbours.git"
@@ -134,16 +128,10 @@ if [ "$1" = "help" ]; then
 elif [ "$1" = "install" ]; then
     set -x
 
-    # Install dependencies
-    sudo apt-get -qq update || exit 1
-    sudo apt-get install -y genisoimage || exit 1
-
     # Fetch and install cross-compiler
-    wget "http://ci.helenos.org/download/helenos-cross-$H_CROSS_TARGET.static.tar.xz" -O "/tmp/cross-$H_CROSS_TARGET.static.tar.xz" || exit 1
-    sudo mkdir -p "$CROSS_PREFIX" || exit 1
-    sudo tar -xJ -C "$CROSS_PREFIX" -f "/tmp/cross-$H_CROSS_TARGET.static.tar.xz" || exit 1
+    wget "https://helenos.s3.amazonaws.com/toolchain/$H_CROSS_TARGET.tar.xz" -O "/tmp/$H_CROSS_TARGET.tar.xz" || exit 1
+    sudo tar -xJ -C "/" -f "/tmp/$H_CROSS_TARGET.tar.xz" || exit 1
     exit 0
-
 
 elif [ "$1" = "run" ]; then
     set -x

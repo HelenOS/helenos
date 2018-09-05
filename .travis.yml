@@ -34,10 +34,11 @@
 #
 
 language: c
+dist: trusty
 sudo: required
 env:
   global:
-    - CROSS_PREFIX=/usr/local/cross-static/
+    - CROSS_PREFIX=/usr/local/cross
   matrix:
     - H_CCHECK=true
     - H_ARCH=amd64
@@ -56,6 +57,8 @@ env:
     - H_ARCH=sparc64/niagara
     - H_ARCH=sparc64/ultra
 before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq genisoimage
   - ./tools/travis.sh install
 script:
   - ./tools/travis.sh run
@@ -65,7 +68,7 @@ notifications:
   irc:
     channels:
       - "chat.freenode.net#helenos"
-    use_notice: true
+    use_notice: false
     skip_join: true
     template:
       - "%{repository_name} (%{commit_message}): %{message}"
