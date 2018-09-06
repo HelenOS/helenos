@@ -156,25 +156,39 @@ enum {
 
 	/** Receive data from another address space over IPC.
 	 *
-	 * - ARG1 - destination virtual address in the source address space
-	 * - ARG2 - size of data to be received, may be cropped by the recipient
+	 * Sender:
+	 *  - uspace: arg1 .. sender's destination buffer address
+	 *            arg2 .. sender's destination buffer size
+	 *            arg3 .. flags (IPC_XF_RESTRICT)
+	 *            arg4 .. <unused>
+	 *            arg5 .. <unused>
 	 *
-	 * on answer, the recipient must set:
+	 * Recipient:
+	 *  - uspace: arg1 .. recipient's source buffer address
+	 *            arg2 .. recipient's source buffer size
+	 *            arg3 .. <unused>
+	 *            arg4 .. <unused>
+	 *            arg5 .. <unused>
 	 *
-	 * - ARG1 - source virtual address in the destination address space
-	 * - ARG2 - final size of data to be copied
 	 */
 	IPC_M_DATA_READ,
 
 	/** Send data to another address space over IPC.
 	 *
-	 * - ARG1 - source address space virtual address
-	 * - ARG2 - size of data to be copied, may be overriden by the recipient
+	 * Sender:
+	 *  - uspace: arg1 .. sender's source buffer address
+	 *            arg2 .. sender's source buffer size
+	 *            arg3 .. flags (IPC_XF_RESTRICT)
+	 *            arg4 .. <unused>
+	 *            arg5 .. <unused>
 	 *
-	 * on answer, the recipient must set:
+	 * Recipient:
+	 *  - uspace: arg1 .. recipient's destination buffer address
+	 *            arg2 .. recipient's destination buffer size
+	 *            arg3 .. <unused>
+	 *            arg4 .. <unused>
+	 *            arg5 .. <unused>
 	 *
-	 * - ARG1 - final destination address space virtual address
-	 * - ARG2 - final size of data to be copied
 	 */
 	IPC_M_DATA_WRITE,
 

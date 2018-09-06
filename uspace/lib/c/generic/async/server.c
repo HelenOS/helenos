@@ -1216,7 +1216,7 @@ bool async_share_in_receive(ipc_call_t *call, size_t *size)
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
- * @param call  IPC_M_DATA_READ call to answer.
+ * @param call  IPC_M_SHARE_IN call to answer.
  * @param src   Source address space base.
  * @param flags Flags to be used for sharing. Bits can be only cleared.
  *
@@ -1268,7 +1268,7 @@ bool async_share_out_receive(ipc_call_t *call, size_t *size,
  * calls so that the user doesn't have to remember the meaning of each IPC
  * argument.
  *
- * @param call IPC_M_DATA_WRITE call to answer.
+ * @param call IPC_M_SHARE_OUT call to answer.
  * @param dst  Address of the storage for the destination address space area
  *             base address.
  *
