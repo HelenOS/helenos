@@ -40,7 +40,6 @@
 #include <stdatomic.h>
 
 typedef size_t atomic_count_t;
-typedef ssize_t atomic_signed_t;
 typedef atomic_size_t atomic_t;
 
 static inline size_t atomic_predec(atomic_t *val)
@@ -75,12 +74,6 @@ static inline void atomic_inc(atomic_t *val)
 
 #define local_atomic_exchange(var_addr, new_val) \
 	atomic_exchange_explicit(var_addr, new_val, memory_order_relaxed)
-
-static inline bool test_and_set(atomic_t *val)
-{
-	return atomic_exchange(val, 1);
-}
-
 
 #endif
 

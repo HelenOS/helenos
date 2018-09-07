@@ -80,7 +80,7 @@ void __futex_give_to(futex_t *, void *, const char *);
 #define futex_unlock(fut)   (void) futex_up((fut))
 
 #define futex_give_to(fut, owner) ((void)0)
-#define futex_assert_is_locked(fut) assert((atomic_signed_t) (fut)->val.count <= 0)
+#define futex_assert_is_locked(fut) assert(atomic_load_explicit(&(fut)->val, memory_order_relaxed) <= 0)
 #define futex_assert_is_not_locked(fut) ((void)0)
 
 #endif
