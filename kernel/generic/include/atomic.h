@@ -42,8 +42,6 @@
 typedef size_t atomic_count_t;
 typedef ssize_t atomic_signed_t;
 
-#define PRIua  "zu"          /**< Format for atomic_count_t. */
-
 typedef struct {
 	volatile atomic_size_t count;
 } atomic_t;

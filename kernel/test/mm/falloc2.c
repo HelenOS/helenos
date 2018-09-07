@@ -130,7 +130,7 @@ const char *test_falloc2(void)
 	}
 
 	while (atomic_get(&thread_count) > 0) {
-		TPRINTF("Threads left: %" PRIua "\n",
+		TPRINTF("Threads left: %zu\n",
 		    atomic_get(&thread_count));
 		thread_sleep(1);
 	}
