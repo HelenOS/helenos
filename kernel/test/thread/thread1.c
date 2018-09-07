@@ -55,7 +55,7 @@ static void threadtest(void *data)
 const char *test_thread1(void)
 {
 	unsigned int i;
-	atomic_count_t total = 0;
+	size_t total = 0;
 
 	atomic_store(&finish, 1);
 	atomic_store(&threads_finished, 0);

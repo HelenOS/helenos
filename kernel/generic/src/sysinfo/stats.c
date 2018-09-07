@@ -763,7 +763,7 @@ static void *get_stats_load(struct sysinfo_item *item, size_t *size,
 /** Calculate load
  *
  */
-static inline load_t load_calc(load_t load, load_t exp, atomic_count_t ready)
+static inline load_t load_calc(load_t load, load_t exp, size_t ready)
 {
 	load *= exp;
 	load += (ready << LOAD_FIXED_SHIFT) * (LOAD_FIXED_1 - exp);
@@ -783,7 +783,7 @@ void kload(void *arg)
 	thread_detach(THREAD);
 
 	while (true) {
-		atomic_count_t ready = atomic_load(&nrdy);
+		size_t ready = atomic_load(&nrdy);
 
 		/* Mutually exclude with get_stats_load() */
 		mutex_lock(&load_lock);

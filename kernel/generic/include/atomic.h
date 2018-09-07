@@ -39,7 +39,6 @@
 #include <typedefs.h>
 #include <stdatomic.h>
 
-typedef size_t atomic_count_t;
 typedef atomic_size_t atomic_t;
 
 static inline size_t atomic_predec(atomic_t *val)

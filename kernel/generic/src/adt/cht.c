@@ -2121,7 +2121,7 @@ static inline void item_removed(cht_t *h)
 	bool missed_shrink = (items == h->max_load * bucket_cnt / 8);
 
 	if ((need_shrink || missed_shrink) && h->b->order > h->min_order) {
-		atomic_count_t resize_reqs = atomic_preinc(&h->resize_reqs);
+		size_t resize_reqs = atomic_preinc(&h->resize_reqs);
 		/* The first resize request. Start the resizer. */
 		if (1 == resize_reqs) {
 			workq_global_enqueue_noblock(&h->resize_work, resize_table);
@@ -2142,7 +2142,7 @@ static inline void item_inserted(cht_t *h)
 	bool missed_grow = (items == 2 * h->max_load * bucket_cnt);
 
 	if ((need_grow || missed_grow) && h->b->order < CHT_MAX_ORDER) {
-		atomic_count_t resize_reqs = atomic_preinc(&h->resize_reqs);
+		size_t resize_reqs = atomic_preinc(&h->resize_reqs);
 		/* The first resize request. Start the resizer. */
 		if (1 == resize_reqs) {
 			workq_global_enqueue_noblock(&h->resize_work, resize_table);
@@ -2177,7 +2177,7 @@ static void resize_table(work_t *arg)
 			shrink_table(h);
 		} else {
 			/* Table is just the right size. */
-			atomic_count_t reqs = atomic_predec(&h->resize_reqs);
+			size_t reqs = atomic_predec(&h->resize_reqs);
 			done = (reqs == 0);
 		}
 	} while (!done);

@@ -360,14 +360,14 @@ typedef struct {
 
 typedef struct {
 	rcu_item_t rcu;
-	atomic_count_t start_time;
+	size_t start_time;
 } seq_item_t;
 
 
 static errno_t seq_test_result = EOK;
 
 static atomic_t cur_time = { 1 };
-static atomic_count_t max_upd_done_time = { 0 };
+static size_t max_upd_done_time = { 0 };
 
 static void seq_cb(rcu_item_t *rcu_item)
 {
@@ -398,7 +398,7 @@ static void seq_func(void *arg)
 		/* Reader */
 		for (size_t i = 0; i < work->read_cnt; ++i) {
 			rcu_read_lock();
-			atomic_count_t start_time = atomic_postinc(&cur_time);
+			size_t start_time = atomic_postinc(&cur_time);
 
 			for (volatile size_t d = 0; d < 10 * i; ++d) {
 				/* no-op */

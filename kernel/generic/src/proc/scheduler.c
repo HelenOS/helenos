@@ -565,8 +565,8 @@ void scheduler_separated_stack(void)
  */
 void kcpulb(void *arg)
 {
-	atomic_count_t average;
-	atomic_count_t rdy;
+	size_t average;
+	size_t rdy;
 
 	/*
 	 * Detach kcpulb as nobody will call thread_join_timeout() on it.
@@ -592,7 +592,7 @@ not_satisfied:
 	if (average <= rdy)
 		goto satisfied;
 
-	atomic_count_t count = average - rdy;
+	size_t count = average - rdy;
 
 	/*
 	 * Searching least priority queues on all CPU's first and most priority

@@ -689,7 +689,7 @@ NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
 	 * We count up to original magazine count to avoid
 	 * endless loop
 	 */
-	atomic_count_t magcount = atomic_load(&cache->magazine_counter);
+	size_t magcount = atomic_load(&cache->magazine_counter);
 
 	slab_magazine_t *mag;
 	size_t frames = 0;
