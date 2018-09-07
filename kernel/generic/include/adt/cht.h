@@ -35,6 +35,7 @@
 #ifndef KERN_CONC_HASH_TABLE_H_
 #define KERN_CONC_HASH_TABLE_H_
 
+#include <atomic.h>
 #include <stdint.h>
 #include <adt/list.h>
 #include <synch/rcu_types.h>

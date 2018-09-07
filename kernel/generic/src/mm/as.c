@@ -162,7 +162,7 @@ as_t *as_create(unsigned int flags)
 	else
 		as->asid = ASID_INVALID;
 
-	atomic_set(&as->refcount, 0);
+	refcount_init(&as->refcount);
 	as->cpu_refcount = 0;
 
 #ifdef AS_PAGE_TABLE
@@ -189,7 +189,7 @@ void as_destroy(as_t *as)
 	DEADLOCK_PROBE_INIT(p_asidlock);
 
 	assert(as != AS);
-	assert(atomic_get(&as->refcount) == 0);
+	assert(refcount_unique(&as->refcount));
 
 	/*
 	 * Since there is no reference to this address space, it is safe not to
@@ -266,7 +266,7 @@ retry:
  */
 NO_TRACE void as_hold(as_t *as)
 {
-	atomic_inc(&as->refcount);
+	refcount_up(&as->refcount);
 }
 
 /** Release a reference to an address space.
@@ -274,12 +274,12 @@ NO_TRACE void as_hold(as_t *as)
  * The last one to release a reference to an address space
  * destroys the address space.
  *
- * @param asAddress space to be released.
+ * @param as Address space to be released.
  *
  */
 NO_TRACE void as_release(as_t *as)
 {
-	if (atomic_predec(&as->refcount) == 0)
+	if (refcount_down(&as->refcount))
 		as_destroy(as);
 }
 

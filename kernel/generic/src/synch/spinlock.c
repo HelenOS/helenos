@@ -55,7 +55,7 @@
  */
 void spinlock_initialize(spinlock_t *lock, const char *name)
 {
-	atomic_set(&lock->val, 0);
+	atomic_flag_clear_explicit(&lock->flag, memory_order_relaxed);
 #ifdef CONFIG_DEBUG_SPINLOCK
 	lock->name = name;
 #endif
@@ -78,7 +78,7 @@ void spinlock_lock_debug(spinlock_t *lock)
 	bool deadlock_reported = false;
 
 	preemption_disable();
-	while (test_and_set(&lock->val)) {
+	while (atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire)) {
 		/*
 		 * We need to be careful about particular locks
 		 * which are directly used to report deadlocks
@@ -114,11 +114,6 @@ void spinlock_lock_debug(spinlock_t *lock)
 
 	if (deadlock_reported)
 		printf("cpu%u: not deadlocked\n", CPU->id);
-
-	/*
-	 * Prevent critical section code from bleeding out this way up.
-	 */
-	CS_ENTER_BARRIER();
 }
 
 /** Unlock spinlock
@@ -131,12 +126,7 @@ void spinlock_unlock_debug(spinlock_t *lock)
 {
 	ASSERT_SPINLOCK(spinlock_locked(lock), lock);
 
-	/*
-	 * Prevent critical section code from bleeding out this way down.
-	 */
-	CS_LEAVE_BARRIER();
-
-	atomic_set(&lock->val, 0);
+	atomic_flag_clear_explicit(&lock->flag, memory_order_release);
 	preemption_enable();
 }
 
@@ -155,12 +145,7 @@ void spinlock_unlock_debug(spinlock_t *lock)
 bool spinlock_trylock(spinlock_t *lock)
 {
 	preemption_disable();
-	bool ret = !test_and_set(&lock->val);
-
-	/*
-	 * Prevent critical section code from bleeding out this way up.
-	 */
-	CS_ENTER_BARRIER();
+	bool ret = !atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire);
 
 	if (!ret)
 		preemption_enable();
@@ -175,7 +160,15 @@ bool spinlock_trylock(spinlock_t *lock)
  */
 bool spinlock_locked(spinlock_t *lock)
 {
-	return atomic_get(&lock->val) != 0;
+	// XXX: Atomic flag doesn't support simple atomic read (by design),
+	//      so instead we test_and_set and then clear if necessary.
+	//      This function is only used inside assert, so we don't need
+	//      any preemption_disable/enable here.
+
+	bool ret = atomic_flag_test_and_set_explicit(&lock->flag, memory_order_relaxed);
+	if (!ret)
+		atomic_flag_clear_explicit(&lock->flag, memory_order_relaxed);
+	return ret;
 }
 
 #endif
