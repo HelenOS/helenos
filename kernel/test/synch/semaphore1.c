@@ -114,9 +114,9 @@ const char *test_semaphore1(void)
 		thread_sleep(1);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 
-		while ((items_consumed.count != consumers) || (items_produced.count != producers)) {
+		while ((items_consumed != consumers) || (items_produced != producers)) {
 			TPRINTF("%zu consumers remaining, %zu producers remaining\n",
-			    consumers - items_consumed.count, producers - items_produced.count);
+			    consumers - items_consumed, producers - items_produced);
 			thread_sleep(1);
 		}
 	}

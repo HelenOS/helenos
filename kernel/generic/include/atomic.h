@@ -41,49 +41,46 @@
 
 typedef size_t atomic_count_t;
 typedef ssize_t atomic_signed_t;
-
-typedef struct {
-	volatile atomic_size_t count;
-} atomic_t;
+typedef atomic_size_t atomic_t;
 
 static inline void atomic_set(atomic_t *val, atomic_count_t i)
 {
-	atomic_store(&val->count, i);
+	atomic_store(val, i);
 }
 
 static inline atomic_count_t atomic_get(atomic_t *val)
 {
-	return atomic_load(&val->count);
+	return atomic_load(val);
 }
 
 static inline size_t atomic_predec(atomic_t *val)
 {
-	return atomic_fetch_sub(&val->count, 1) - 1;
+	return atomic_fetch_sub(val, 1) - 1;
 }
 
 static inline size_t atomic_preinc(atomic_t *val)
 {
-	return atomic_fetch_add(&val->count, 1) + 1;
+	return atomic_fetch_add(val, 1) + 1;
 }
 
 static inline size_t atomic_postdec(atomic_t *val)
 {
-	return atomic_fetch_sub(&val->count, 1);
+	return atomic_fetch_sub(val, 1);
 }
 
 static inline size_t atomic_postinc(atomic_t *val)
 {
-	return atomic_fetch_add(&val->count, 1);
+	return atomic_fetch_add(val, 1);
 }
 
 static inline void atomic_dec(atomic_t *val)
 {
-	atomic_fetch_sub(&val->count, 1);
+	atomic_fetch_sub(val, 1);
 }
 
 static inline void atomic_inc(atomic_t *val)
 {
-	atomic_fetch_add(&val->count, 1);
+	atomic_fetch_add(val, 1);
 }
 
 #define local_atomic_exchange(var_addr, new_val) \
@@ -91,7 +88,7 @@ static inline void atomic_inc(atomic_t *val)
 
 static inline bool test_and_set(atomic_t *val)
 {
-	return atomic_exchange(&val->count, 1);
+	return atomic_exchange(val, 1);
 }
 
 
