@@ -39,37 +39,32 @@
 #include <typedefs.h>
 #include <stdatomic.h>
 
+// TODO: Remove.
+// Before <stdatomic.h> was available, there was only one atomic type
+// equivalent to atomic_size_t. This means that in some places, atomic_t can
+// be replaced with a more appropriate type (e.g. atomic_bool for flags or
+// a signed type for potentially signed values).
+// So atomic_t should be replaced with the most appropriate type on a case by
+// case basis, and after there are no more uses, remove this type.
 typedef atomic_size_t atomic_t;
 
-static inline size_t atomic_predec(atomic_t *val)
-{
-	return atomic_fetch_sub(val, 1) - 1;
-}
+#define atomic_predec(val) \
+	(atomic_fetch_sub((val), 1) - 1)
 
-static inline size_t atomic_preinc(atomic_t *val)
-{
-	return atomic_fetch_add(val, 1) + 1;
-}
+#define atomic_preinc(val) \
+	(atomic_fetch_add((val), 1) + 1)
 
-static inline size_t atomic_postdec(atomic_t *val)
-{
-	return atomic_fetch_sub(val, 1);
-}
+#define atomic_postdec(val) \
+	atomic_fetch_sub((val), 1)
 
-static inline size_t atomic_postinc(atomic_t *val)
-{
-	return atomic_fetch_add(val, 1);
-}
+#define atomic_postinc(val) \
+	atomic_fetch_add((val), 1)
 
-static inline void atomic_dec(atomic_t *val)
-{
-	atomic_fetch_sub(val, 1);
-}
+#define atomic_dec(val) \
+	((void) atomic_fetch_sub(val, 1))
 
-static inline void atomic_inc(atomic_t *val)
-{
-	atomic_fetch_add(val, 1);
-}
+#define atomic_inc(val) \
+	((void) atomic_fetch_add(val, 1))
 
 #define local_atomic_exchange(var_addr, new_val) \
 	atomic_exchange_explicit(var_addr, new_val, memory_order_relaxed)
