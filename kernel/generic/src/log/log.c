@@ -62,7 +62,7 @@
 uint8_t log_buffer[LOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
-static atomic_t log_inited = { false };
+static atomic_bool log_inited = false;
 
 /** Position in the cyclic buffer where the first log entry starts */
 size_t log_start = 0;

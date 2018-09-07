@@ -52,6 +52,7 @@
 #include <syscall/copy.h>
 #include <errno.h>
 #include <str.h>
+#include <stdatomic.h>
 #include <abi/kio.h>
 #include <mm/frame.h> /* SIZE2FRAMES */
 #include <mm/slab.h>  /* malloc */
@@ -63,7 +64,7 @@
 wchar_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
-static atomic_t kio_inited = { false };
+static atomic_bool kio_inited = false;
 
 /** First kernel log characters */
 static size_t kio_start = 0;

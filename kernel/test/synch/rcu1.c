@@ -237,7 +237,7 @@ static bool do_long_readers(void)
 /*-------------------------------------------------------------------*/
 
 
-static atomic_t nop_callbacks_cnt = { 0 };
+static atomic_t nop_callbacks_cnt = 0;
 /* Must be even. */
 static const int nop_updater_iters = 10000;
 
@@ -366,7 +366,7 @@ typedef struct {
 
 static errno_t seq_test_result = EOK;
 
-static atomic_t cur_time = { 1 };
+static atomic_t cur_time = 1;
 static size_t max_upd_done_time = { 0 };
 
 static void seq_cb(rcu_item_t *rcu_item)
