@@ -93,7 +93,7 @@ void indev_push_character(indev_t *indev, wchar_t ch)
  */
 wchar_t indev_pop_character(indev_t *indev)
 {
-	if (atomic_get(&haltstate)) {
+	if (atomic_load(&haltstate)) {
 		/*
 		 * If we are here, we are hopefully on the processor that
 		 * issued the 'halt' command, so proceed to read the character

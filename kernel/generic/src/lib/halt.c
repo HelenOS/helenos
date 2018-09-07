@@ -55,7 +55,7 @@ void halt(void)
 #if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
 	bool rundebugger = false;
 
-	if (!atomic_get(&haltstate)) {
+	if (!atomic_load(&haltstate)) {
 		atomic_set(&haltstate, 1);
 		rundebugger = true;
 	}

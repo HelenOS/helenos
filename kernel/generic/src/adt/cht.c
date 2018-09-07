@@ -617,14 +617,14 @@ void cht_destroy(cht_t *h)
 	cht_destroy_unsafe(h);
 
 	/* You must clear the table of items. Otherwise cht_destroy will leak. */
-	assert(atomic_get(&h->item_cnt) == 0);
+	assert(atomic_load(&h->item_cnt) == 0);
 }
 
 /** Destroys a successfully created CHT but does no error checking. */
 void cht_destroy_unsafe(cht_t *h)
 {
 	/* Wait for resize to complete. */
-	while (0 < atomic_get(&h->resize_reqs)) {
+	while (0 < atomic_load(&h->resize_reqs)) {
 		rcu_barrier();
 	}
 
@@ -2159,7 +2159,7 @@ static void resize_table(work_t *arg)
 	assert(h->b);
 	/* Make resize_reqs visible. */
 	read_barrier();
-	assert(0 < atomic_get(&h->resize_reqs));
+	assert(0 < atomic_load(&h->resize_reqs));
 #endif
 
 	bool done = false;
@@ -2167,7 +2167,7 @@ static void resize_table(work_t *arg)
 	do {
 		/* Load the most recent h->item_cnt. */
 		read_barrier();
-		size_t cur_items = (size_t) atomic_get(&h->item_cnt);
+		size_t cur_items = (size_t) atomic_load(&h->item_cnt);
 		size_t bucket_cnt = (1 << h->b->order);
 		size_t max_items = h->max_load * bucket_cnt;
 

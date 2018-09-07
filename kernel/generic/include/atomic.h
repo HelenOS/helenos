@@ -48,11 +48,6 @@ static inline void atomic_set(atomic_t *val, atomic_count_t i)
 	atomic_store(val, i);
 }
 
-static inline atomic_count_t atomic_get(atomic_t *val)
-{
-	return atomic_load(val);
-}
-
 static inline size_t atomic_predec(atomic_t *val)
 {
 	return atomic_fetch_sub(val, 1) - 1;

@@ -619,7 +619,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 #ifdef __32_BITS__
 	if (*additional)
 		printf("%-8" PRIu64 " %9zu", task->taskid,
-		    atomic_get(&task->refcount));
+		    atomic_load(&task->refcount));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %10p %10p"
 		    " %9" PRIu64 "%c %9" PRIu64 "%c\n", task->taskid,
@@ -631,7 +631,7 @@ static bool task_print_walker(avltree_node_t *node, void *arg)
 	if (*additional)
 		printf("%-8" PRIu64 " %9" PRIu64 "%c %9" PRIu64 "%c "
 		    "%9zu\n", task->taskid, ucycles, usuffix, kcycles,
-		    ksuffix, atomic_get(&task->refcount));
+		    ksuffix, atomic_load(&task->refcount));
 	else
 		printf("%-8" PRIu64 " %-14s %-5" PRIu32 " %18p %18p\n",
 		    task->taskid, task->name, task->container, task, task->as);

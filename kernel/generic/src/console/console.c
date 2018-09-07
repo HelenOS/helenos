@@ -291,7 +291,7 @@ wchar_t getc(indev_t *indev)
 
 void kio_update(void *event)
 {
-	if (!atomic_get(&kio_inited))
+	if (!atomic_load(&kio_inited))
 		return;
 
 	spinlock_lock(&kio_lock);

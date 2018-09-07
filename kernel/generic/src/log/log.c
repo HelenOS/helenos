@@ -189,7 +189,7 @@ void log_end(void)
 
 static void log_update(void *event)
 {
-	if (!atomic_get(&log_inited))
+	if (!atomic_load(&log_inited))
 		return;
 
 	spinlock_lock(&log_lock);

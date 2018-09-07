@@ -45,7 +45,7 @@ static void threadtest(void *data)
 {
 	thread_detach(THREAD);
 
-	while (atomic_get(&finish)) {
+	while (atomic_load(&finish)) {
 		TPRINTF("%" PRIu64 " ", THREAD->tid);
 		thread_usleep(100000);
 	}
@@ -75,8 +75,8 @@ const char *test_thread1(void)
 	thread_sleep(10);
 
 	atomic_set(&finish, 0);
-	while (atomic_get(&threads_finished) < total) {
-		TPRINTF("Threads left: %zu\n", total - atomic_get(&threads_finished));
+	while (atomic_load(&threads_finished) < total) {
+		TPRINTF("Threads left: %zu\n", total - atomic_load(&threads_finished));
 		thread_sleep(1);
 	}
 

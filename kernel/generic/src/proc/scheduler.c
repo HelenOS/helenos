@@ -204,7 +204,7 @@ static thread_t *find_best_thread(void)
 
 loop:
 
-	if (atomic_get(&CPU->nrdy) == 0) {
+	if (atomic_load(&CPU->nrdy) == 0) {
 		/*
 		 * For there was nothing to run, the CPU goes to sleep
 		 * until a hardware interrupt or an IPI comes.
@@ -326,7 +326,7 @@ void scheduler(void)
 
 	ipl = interrupts_disable();
 
-	if (atomic_get(&haltstate))
+	if (atomic_load(&haltstate))
 		halt();
 
 	if (THREAD) {
@@ -530,7 +530,7 @@ void scheduler_separated_stack(void)
 	log(LF_OTHER, LVL_DEBUG,
 	    "cpu%u: tid %" PRIu64 " (priority=%d, ticks=%" PRIu64
 	    ", nrdy=%zu)", CPU->id, THREAD->tid, THREAD->priority,
-	    THREAD->ticks, atomic_get(&CPU->nrdy));
+	    THREAD->ticks, atomic_load(&CPU->nrdy));
 #endif
 
 	/*
@@ -586,8 +586,8 @@ not_satisfied:
 	 * passes. Each time get the most up to date counts.
 	 *
 	 */
-	average = atomic_get(&nrdy) / config.cpu_active + 1;
-	rdy = atomic_get(&CPU->nrdy);
+	average = atomic_load(&nrdy) / config.cpu_active + 1;
+	rdy = atomic_load(&CPU->nrdy);
 
 	if (average <= rdy)
 		goto satisfied;
@@ -615,7 +615,7 @@ not_satisfied:
 			if (CPU == cpu)
 				continue;
 
-			if (atomic_get(&cpu->nrdy) <= average)
+			if (atomic_load(&cpu->nrdy) <= average)
 				continue;
 
 			irq_spinlock_lock(&(cpu->rq[rq].lock), true);
@@ -677,8 +677,8 @@ not_satisfied:
 				log(LF_OTHER, LVL_DEBUG,
 				    "kcpulb%u: TID %" PRIu64 " -> cpu%u, "
 				    "nrdy=%ld, avg=%ld", CPU->id, t->tid,
-				    CPU->id, atomic_get(&CPU->nrdy),
-				    atomic_get(&nrdy) / config.cpu_active);
+				    CPU->id, atomic_load(&CPU->nrdy),
+				    atomic_load(&nrdy) / config.cpu_active);
 #endif
 
 				thread->stolen = true;
@@ -704,7 +704,7 @@ not_satisfied:
 		}
 	}
 
-	if (atomic_get(&CPU->nrdy)) {
+	if (atomic_load(&CPU->nrdy)) {
 		/*
 		 * Be a little bit light-weight and let migrated threads run.
 		 *
@@ -739,7 +739,7 @@ void sched_print_list(void)
 		irq_spinlock_lock(&cpus[cpu].lock, true);
 
 		printf("cpu%u: address=%p, nrdy=%zu, needs_relink=%zu\n",
-		    cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy),
+		    cpus[cpu].id, &cpus[cpu], atomic_load(&cpus[cpu].nrdy),
 		    cpus[cpu].needs_relink);
 
 		unsigned int i;

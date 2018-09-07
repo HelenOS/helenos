@@ -281,7 +281,7 @@ static bool do_nop_callbacks(void)
 
 	size_t loop_cnt = 0, max_loops = 15;
 
-	while (exp_cnt != atomic_get(&nop_callbacks_cnt) && loop_cnt < max_loops) {
+	while (exp_cnt != atomic_load(&nop_callbacks_cnt) && loop_cnt < max_loops) {
 		++loop_cnt;
 		TPRINTF(".");
 		thread_sleep(1);
@@ -839,7 +839,7 @@ static bool do_barrier(void)
 	rcu_call(&barrier->rcu_item, barrier_callback);
 	rcu_barrier();
 
-	if (1 == atomic_get(&barrier->done)) {
+	if (1 == atomic_load(&barrier->done)) {
 		free(barrier);
 		return true;
 	} else {

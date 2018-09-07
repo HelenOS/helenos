@@ -238,7 +238,7 @@ static void produce_stats_task(task_t *task, stats_task_t *stats_task)
 	str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
 	stats_task->virtmem = get_task_virtmem(task->as);
 	stats_task->resmem = get_task_resmem(task->as);
-	stats_task->threads = atomic_get(&task->refcount);
+	stats_task->threads = atomic_load(&task->refcount);
 	task_get_accounting(task, &(stats_task->ucycles),
 	    &(stats_task->kcycles));
 	stats_task->ipc_info = task->ipc_info;
@@ -783,7 +783,7 @@ void kload(void *arg)
 	thread_detach(THREAD);
 
 	while (true) {
-		atomic_count_t ready = atomic_get(&nrdy);
+		atomic_count_t ready = atomic_load(&nrdy);
 
 		/* Mutually exclude with get_stats_load() */
 		mutex_lock(&load_lock);

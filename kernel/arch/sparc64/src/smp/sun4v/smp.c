@@ -91,8 +91,8 @@ bool calculate_optimal_nrdy(exec_unit_t *exec_unit)
 {
 
 	/* calculate the number of threads the core will steal */
-	int avg = atomic_get(&nrdy) / exec_unit_count;
-	int to_steal = avg - atomic_get(&(exec_units->nrdy));
+	int avg = atomic_load(&nrdy) / exec_unit_count;
+	int to_steal = avg - atomic_load(&(exec_units->nrdy));
 	if (to_steal < 0) {
 		return true;
 	} else if (to_steal == 0) {
@@ -103,7 +103,7 @@ bool calculate_optimal_nrdy(exec_unit_t *exec_unit)
 	unsigned int k;
 	for (k = 0; k < exec_unit->strand_count; k++) {
 		exec_units->cpus[k]->arch.proposed_nrdy =
-		    atomic_get(&(exec_unit->cpus[k]->nrdy));
+		    atomic_load(&(exec_unit->cpus[k]->nrdy));
 	}
 
 	/* distribute the threads to be stolen to the core's CPUs */
@@ -337,7 +337,7 @@ static void init_cpuids(void)
 				continue;
 
 			cpus[cur_cpu].arch.exec_unit = &(exec_units[cur_core]);
-			atomic_add(&(exec_units[cur_core].nrdy), atomic_get(&(cpus[cur_cpu].nrdy)));
+			atomic_add(&(exec_units[cur_core].nrdy), atomic_load(&(cpus[cur_cpu].nrdy)));
 			cpus[cur_cpu].arch.id = exec_units[cur_core].cpuids[cur_core_strand];
 			exec_units[cur_core].cpus[cur_core_strand] = &(cpus[cur_cpu]);
 			cur_cpu++;

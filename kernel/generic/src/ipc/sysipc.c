@@ -340,7 +340,7 @@ ipc_req_internal(cap_phone_handle_t handle, ipc_data_t *data, sysarg_t priv)
  */
 static int check_call_limit(phone_t *phone)
 {
-	if (atomic_get(&phone->active_calls) >= IPC_MAX_ASYNC_CALLS)
+	if (atomic_load(&phone->active_calls) >= IPC_MAX_ASYNC_CALLS)
 		return -1;
 
 	return 0;

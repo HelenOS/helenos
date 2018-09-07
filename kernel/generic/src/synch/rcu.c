@@ -1476,7 +1476,7 @@ static void sample_local_cpu(void *arg)
 /** Waits for cpus delaying the current grace period if there are any. */
 static bool wait_for_delaying_cpus(void)
 {
-	int delaying_cpu_cnt = atomic_get(&rcu.delaying_cpu_cnt);
+	int delaying_cpu_cnt = atomic_load(&rcu.delaying_cpu_cnt);
 
 	for (int i = 0; i < delaying_cpu_cnt; ++i) {
 		if (!semaphore_down_interruptable(&rcu.remaining_readers))

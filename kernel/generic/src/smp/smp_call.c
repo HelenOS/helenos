@@ -270,7 +270,7 @@ static void call_wait(smp_call_t *call_info)
 		 * Also, speed up loading of call_info->pending.
 		 */
 		memory_barrier();
-	} while (atomic_get(&call_info->pending));
+	} while (atomic_load(&call_info->pending));
 }
 
 

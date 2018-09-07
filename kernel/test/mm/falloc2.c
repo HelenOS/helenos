@@ -129,13 +129,13 @@ const char *test_falloc2(void)
 		thread_ready(thrd);
 	}
 
-	while (atomic_get(&thread_count) > 0) {
+	while (atomic_load(&thread_count) > 0) {
 		TPRINTF("Threads left: %zu\n",
-		    atomic_get(&thread_count));
+		    atomic_load(&thread_count));
 		thread_sleep(1);
 	}
 
-	if (atomic_get(&thread_fail) == 0)
+	if (atomic_load(&thread_fail) == 0)
 		return NULL;
 
 	return "Test failed";
