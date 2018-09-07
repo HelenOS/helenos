@@ -35,9 +35,9 @@ const char *test_atomic1(void)
 {
 	atomic_t a;
 
-	atomic_set(&a, 10);
+	atomic_store(&a, 10);
 	if (atomic_load(&a) != 10)
-		return "Failed atomic_set()/atomic_load()";
+		return "Failed atomic_store()/atomic_load()";
 
 	if (atomic_postinc(&a) != 10)
 		return "Failed atomic_postinc()";

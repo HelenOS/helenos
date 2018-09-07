@@ -43,11 +43,6 @@ typedef size_t atomic_count_t;
 typedef ssize_t atomic_signed_t;
 typedef atomic_size_t atomic_t;
 
-static inline void atomic_set(atomic_t *val, atomic_count_t i)
-{
-	atomic_store(val, i);
-}
-
 static inline size_t atomic_predec(atomic_t *val)
 {
 	return atomic_fetch_sub(val, 1) - 1;

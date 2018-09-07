@@ -267,7 +267,7 @@ static void nop_updater(void *arg)
 
 static bool do_nop_callbacks(void)
 {
-	atomic_set(&nop_callbacks_cnt, 0);
+	atomic_store(&nop_callbacks_cnt, 0);
 
 	size_t exp_cnt = nop_updater_iters * get_thread_cnt();
 	size_t max_used_mem = sizeof(rcu_item_t) * exp_cnt;
@@ -447,7 +447,7 @@ static bool do_seq_check(void)
 {
 	seq_test_result = EOK;
 	max_upd_done_time = 0;
-	atomic_set(&cur_time, 1);
+	atomic_store(&cur_time, 1);
 
 	const size_t iters = 100;
 	const size_t total_cnt = 1000;
@@ -820,7 +820,7 @@ typedef struct {
 static void barrier_callback(rcu_item_t *item)
 {
 	barrier_t *b = member_to_inst(item, barrier_t, rcu_item);
-	atomic_set(&b->done, 1);
+	atomic_store(&b->done, 1);
 }
 
 static bool do_barrier(void)
@@ -834,7 +834,7 @@ static bool do_barrier(void)
 		return false;
 	}
 
-	atomic_set(&barrier->done, 0);
+	atomic_store(&barrier->done, 0);
 
 	rcu_call(&barrier->rcu_item, barrier_callback);
 	rcu_barrier();

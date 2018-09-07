@@ -311,7 +311,7 @@ void rcu_init(void)
 	rcu.preempt_blocking_det = false;
 
 	mutex_initialize(&rcu.barrier_mtx, MUTEX_PASSIVE);
-	atomic_set(&rcu.barrier_wait_cnt, 0);
+	atomic_store(&rcu.barrier_wait_cnt, 0);
 	waitq_initialize(&rcu.barrier_wq);
 
 	semaphore_initialize(&rcu.remaining_readers, 0);
@@ -321,7 +321,7 @@ void rcu_init(void)
 
 	rcu.req_gp_end_cnt = 0;
 	rcu.req_expedited_cnt = 0;
-	atomic_set(&rcu.delaying_cpu_cnt, 0);
+	atomic_store(&rcu.delaying_cpu_cnt, 0);
 #endif
 
 	rcu.detector_thr = NULL;
@@ -593,7 +593,7 @@ void rcu_barrier(void)
 	 * Ensure we queue a barrier callback on all cpus before the already
 	 * enqueued barrier callbacks start signaling completion.
 	 */
-	atomic_set(&rcu.barrier_wait_cnt, 1);
+	atomic_store(&rcu.barrier_wait_cnt, 1);
 
 	DEFINE_CPU_MASK(cpu_mask);
 	cpu_mask_active(cpu_mask);
@@ -1411,7 +1411,7 @@ static bool gp_sleep(void)
 /** Actively interrupts and checks the offending cpus for quiescent states. */
 static void interrupt_delaying_cpus(cpu_mask_t *cpu_mask)
 {
-	atomic_set(&rcu.delaying_cpu_cnt, 0);
+	atomic_store(&rcu.delaying_cpu_cnt, 0);
 
 	sample_cpus(cpu_mask, NULL);
 }

@@ -201,7 +201,7 @@ void kio_init(void)
 	sysinfo_set_item_val("kio.pages", NULL, KIO_PAGES);
 
 	event_set_unmask_callback(EVENT_KIO, kio_update);
-	atomic_set(&kio_inited, true);
+	atomic_store(&kio_inited, true);
 }
 
 void grab_console(void)

@@ -153,7 +153,7 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
 	list_initialize(&box->dispatched_calls);
 	list_initialize(&box->answers);
 	list_initialize(&box->irq_notifs);
-	atomic_set(&box->active_calls, 0);
+	atomic_store(&box->active_calls, 0);
 	box->task = task;
 }
 
@@ -203,7 +203,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
 	phone->caller = caller;
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
-	atomic_set(&phone->active_calls, 0);
+	atomic_store(&phone->active_calls, 0);
 	phone->kobject = NULL;
 }
 

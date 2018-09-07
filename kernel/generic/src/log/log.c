@@ -93,7 +93,7 @@ static void log_update(void *);
 void log_init(void)
 {
 	event_set_unmask_callback(EVENT_KLOG, log_update);
-	atomic_set(&log_inited, true);
+	atomic_store(&log_inited, true);
 }
 
 static size_t log_copy_from(uint8_t *data, size_t pos, size_t len)

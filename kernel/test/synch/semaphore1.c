@@ -81,8 +81,8 @@ const char *test_semaphore1(void)
 	for (i = 1; i <= 3; i++) {
 		thread_t *thrd;
 
-		atomic_set(&items_produced, 0);
-		atomic_set(&items_consumed, 0);
+		atomic_store(&items_produced, 0);
+		atomic_store(&items_consumed, 0);
 
 		consumers = i * CONSUMERS;
 		producers = (4 - i) * PRODUCERS;

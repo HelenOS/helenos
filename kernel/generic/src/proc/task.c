@@ -165,8 +165,8 @@ errno_t tsk_constructor(void *obj, unsigned int kmflags)
 	if (rc != EOK)
 		return rc;
 
-	atomic_set(&task->refcount, 0);
-	atomic_set(&task->lifecount, 0);
+	atomic_store(&task->refcount, 0);
+	atomic_store(&task->lifecount, 0);
 
 	irq_spinlock_initialize(&task->lock, "task_t_lock");
 

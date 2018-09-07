@@ -56,11 +56,11 @@ void halt(void)
 	bool rundebugger = false;
 
 	if (!atomic_load(&haltstate)) {
-		atomic_set(&haltstate, 1);
+		atomic_store(&haltstate, 1);
 		rundebugger = true;
 	}
 #else
-	atomic_set(&haltstate, 1);
+	atomic_store(&haltstate, 1);
 #endif
 
 	interrupts_disable();

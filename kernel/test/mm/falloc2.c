@@ -116,8 +116,8 @@ cleanup:
 
 const char *test_falloc2(void)
 {
-	atomic_set(&thread_count, THREADS);
-	atomic_set(&thread_fail, 0);
+	atomic_store(&thread_count, THREADS);
+	atomic_store(&thread_fail, 0);
 
 	for (unsigned int i = 0; i < THREADS; i++) {
 		thread_t *thrd = thread_create(falloc, NULL, TASK,

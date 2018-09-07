@@ -411,13 +411,13 @@ void debugger_bpoint(istate_t *istate)
 		 * - we generally do not want scheduler to be run from debug,
 		 *   so this is a good idea
 		 */
-		atomic_set(&haltstate, 1);
+		atomic_store(&haltstate, 1);
 		irq_spinlock_unlock(&bkpoint_lock, false);
 
 		kconsole("debug", "Debug console ready.\n", false);
 
 		irq_spinlock_lock(&bkpoint_lock, false);
-		atomic_set(&haltstate, 0);
+		atomic_store(&haltstate, 0);
 #endif
 	}
 

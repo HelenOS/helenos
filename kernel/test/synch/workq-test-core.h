@@ -148,7 +148,7 @@ static void reproduce(work_t *work_item)
 static const char *run_workq_core(bool end_prematurely)
 {
 	for (int i = 0; i < WAVES; ++i) {
-		atomic_set(&call_cnt[i], 0);
+		atomic_store(&call_cnt[i], 0);
 	}
 
 	test_work_t *work = nfmalloc(sizeof(test_work_t));

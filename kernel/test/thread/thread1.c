@@ -57,8 +57,8 @@ const char *test_thread1(void)
 	unsigned int i;
 	atomic_count_t total = 0;
 
-	atomic_set(&finish, 1);
-	atomic_set(&threads_finished, 0);
+	atomic_store(&finish, 1);
+	atomic_store(&threads_finished, 0);
 
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
@@ -74,7 +74,7 @@ const char *test_thread1(void)
 	TPRINTF("Running threads for 10 seconds...\n");
 	thread_sleep(10);
 
-	atomic_set(&finish, 0);
+	atomic_store(&finish, 0);
 	while (atomic_load(&threads_finished) < total) {
 		TPRINTF("Threads left: %zu\n", total - atomic_load(&threads_finished));
 		thread_sleep(1);

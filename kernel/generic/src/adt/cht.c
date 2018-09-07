@@ -536,8 +536,8 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load,
 	h->min_order = min_order;
 	h->new_b = NULL;
 	h->op = op;
-	atomic_set(&h->item_cnt, 0);
-	atomic_set(&h->resize_reqs, 0);
+	atomic_store(&h->item_cnt, 0);
+	atomic_store(&h->resize_reqs, 0);
 
 	if (NULL == op->remove_callback) {
 		h->op->remove_callback = dummy_remove_callback;
