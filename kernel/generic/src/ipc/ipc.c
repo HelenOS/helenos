@@ -153,7 +153,7 @@ void ipc_answerbox_init(answerbox_t *box, task_t *task)
 	list_initialize(&box->dispatched_calls);
 	list_initialize(&box->answers);
 	list_initialize(&box->irq_notifs);
-	atomic_set(&box->active_calls, 0);
+	atomic_store(&box->active_calls, 0);
 	box->task = task;
 }
 
@@ -203,7 +203,7 @@ void ipc_phone_init(phone_t *phone, task_t *caller)
 	phone->caller = caller;
 	phone->callee = NULL;
 	phone->state = IPC_PHONE_FREE;
-	atomic_set(&phone->active_calls, 0);
+	atomic_store(&phone->active_calls, 0);
 	phone->kobject = NULL;
 }
 
@@ -782,7 +782,7 @@ static bool phone_cap_cleanup_cb(cap_t *cap, void *arg)
 /** Wait for all answers to asynchronous calls to arrive. */
 static void ipc_wait_for_all_answered_calls(void)
 {
-	while (atomic_get(&TASK->answerbox.active_calls) != 0) {
+	while (atomic_load(&TASK->answerbox.active_calls) != 0) {
 		call_t *call = NULL;
 		if (ipc_wait_for_call(&TASK->answerbox,
 		    SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE, &call) == ENOENT)
@@ -872,7 +872,7 @@ void ipc_cleanup(void)
 	ipc_forget_all_active_calls();
 	ipc_wait_for_all_answered_calls();
 
-	assert(atomic_get(&TASK->answerbox.active_calls) == 0);
+	assert(atomic_load(&TASK->answerbox.active_calls) == 0);
 }
 
 /** Initilize IPC subsystem
@@ -927,7 +927,7 @@ static bool print_task_phone_cb(cap_t *cap, void *arg)
 	mutex_lock(&phone->lock);
 	if (phone->state != IPC_PHONE_FREE) {
 		printf("%-11d %7" PRIun " ", (int) CAP_HANDLE_RAW(cap->handle),
-		    atomic_get(&phone->active_calls));
+		    atomic_load(&phone->active_calls));
 
 		switch (phone->state) {
 		case IPC_PHONE_CONNECTING:
@@ -980,7 +980,7 @@ void ipc_print_task(task_id_t taskid)
 	irq_spinlock_lock(&task->answerbox.lock, false);
 
 	printf("Active calls: %" PRIun "\n",
-	    atomic_get(&task->answerbox.active_calls));
+	    atomic_load(&task->answerbox.active_calls));
 
 #ifdef __32_BITS__
 	printf("[call adr] [method] [arg1] [arg2] [arg3] [arg4] [arg5]"

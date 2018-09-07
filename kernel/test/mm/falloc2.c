@@ -116,8 +116,8 @@ cleanup:
 
 const char *test_falloc2(void)
 {
-	atomic_set(&thread_count, THREADS);
-	atomic_set(&thread_fail, 0);
+	atomic_store(&thread_count, THREADS);
+	atomic_store(&thread_fail, 0);
 
 	for (unsigned int i = 0; i < THREADS; i++) {
 		thread_t *thrd = thread_create(falloc, NULL, TASK,
@@ -129,13 +129,13 @@ const char *test_falloc2(void)
 		thread_ready(thrd);
 	}
 
-	while (atomic_get(&thread_count) > 0) {
-		TPRINTF("Threads left: %" PRIua "\n",
-		    atomic_get(&thread_count));
+	while (atomic_load(&thread_count) > 0) {
+		TPRINTF("Threads left: %zu\n",
+		    atomic_load(&thread_count));
 		thread_sleep(1);
 	}
 
-	if (atomic_get(&thread_fail) == 0)
+	if (atomic_load(&thread_fail) == 0)
 		return NULL;
 
 	return "Test failed";

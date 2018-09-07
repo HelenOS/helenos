@@ -239,7 +239,7 @@ void thread_init(void)
 {
 	THREAD = NULL;
 
-	atomic_set(&nrdy, 0);
+	atomic_store(&nrdy, 0);
 	thread_cache = slab_cache_create("thread_t", sizeof(thread_t), 0,
 	    thr_constructor, thr_destructor, 0);
 

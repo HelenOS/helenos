@@ -62,7 +62,7 @@
 uint8_t log_buffer[LOG_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
-static atomic_t log_inited = { false };
+static atomic_bool log_inited = false;
 
 /** Position in the cyclic buffer where the first log entry starts */
 size_t log_start = 0;
@@ -93,7 +93,7 @@ static void log_update(void *);
 void log_init(void)
 {
 	event_set_unmask_callback(EVENT_KLOG, log_update);
-	atomic_set(&log_inited, true);
+	atomic_store(&log_inited, true);
 }
 
 static size_t log_copy_from(uint8_t *data, size_t pos, size_t len)
@@ -189,7 +189,7 @@ void log_end(void)
 
 static void log_update(void *event)
 {
-	if (!atomic_get(&log_inited))
+	if (!atomic_load(&log_inited))
 		return;
 
 	spinlock_lock(&log_lock);

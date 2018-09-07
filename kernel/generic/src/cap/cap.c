@@ -352,7 +352,7 @@ void cap_free(task_t *task, cap_handle_t handle)
 void kobject_initialize(kobject_t *kobj, kobject_type_t type, void *raw,
     kobject_ops_t *ops)
 {
-	atomic_set(&kobj->refcnt, 1);
+	atomic_store(&kobj->refcnt, 1);
 	kobj->type = type;
 	kobj->raw = raw;
 	kobj->ops = ops;

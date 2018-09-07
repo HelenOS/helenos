@@ -72,8 +72,8 @@ static void consumer(void *arg)
 const char *test_semaphore1(void)
 {
 	int i, j, k;
-	atomic_count_t consumers;
-	atomic_count_t producers;
+	size_t consumers;
+	size_t producers;
 
 	waitq_initialize(&can_start);
 	semaphore_initialize(&sem, AT_ONCE);
@@ -81,13 +81,13 @@ const char *test_semaphore1(void)
 	for (i = 1; i <= 3; i++) {
 		thread_t *thrd;
 
-		atomic_set(&items_produced, 0);
-		atomic_set(&items_consumed, 0);
+		atomic_store(&items_produced, 0);
+		atomic_store(&items_consumed, 0);
 
 		consumers = i * CONSUMERS;
 		producers = (4 - i) * PRODUCERS;
 
-		TPRINTF("Creating %" PRIua " consumers and %" PRIua " producers...",
+		TPRINTF("Creating %zu consumers and %zu producers...",
 		    consumers, producers);
 
 		for (j = 0; j < (CONSUMERS + PRODUCERS) / 2; j++) {
@@ -114,9 +114,9 @@ const char *test_semaphore1(void)
 		thread_sleep(1);
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 
-		while ((items_consumed.count != consumers) || (items_produced.count != producers)) {
-			TPRINTF("%" PRIua " consumers remaining, %" PRIua " producers remaining\n",
-			    consumers - items_consumed.count, producers - items_produced.count);
+		while ((items_consumed != consumers) || (items_produced != producers)) {
+			TPRINTF("%zu consumers remaining, %zu producers remaining\n",
+			    consumers - items_consumed, producers - items_produced);
 			thread_sleep(1);
 		}
 	}

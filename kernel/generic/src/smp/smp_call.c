@@ -245,7 +245,7 @@ static void call_start(smp_call_t *call_info, smp_call_func_t func, void *arg)
 	 * the structure on one cpu and unlock it on another (without
 	 * messing up the preemption count).
 	 */
-	atomic_set(&call_info->pending, 1);
+	atomic_store(&call_info->pending, 1);
 
 	/* Let initialization complete before continuing. */
 	memory_barrier();
@@ -258,7 +258,7 @@ static void call_done(smp_call_t *call_info)
 	 * announcement of its completion.
 	 */
 	memory_barrier();
-	atomic_set(&call_info->pending, 0);
+	atomic_store(&call_info->pending, 0);
 }
 
 static void call_wait(smp_call_t *call_info)
@@ -270,7 +270,7 @@ static void call_wait(smp_call_t *call_info)
 		 * Also, speed up loading of call_info->pending.
 		 */
 		memory_barrier();
-	} while (atomic_get(&call_info->pending));
+	} while (atomic_load(&call_info->pending));
 }
 
 

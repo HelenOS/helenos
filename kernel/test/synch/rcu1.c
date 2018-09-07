@@ -237,7 +237,7 @@ static bool do_long_readers(void)
 /*-------------------------------------------------------------------*/
 
 
-static atomic_t nop_callbacks_cnt = { 0 };
+static atomic_t nop_callbacks_cnt = 0;
 /* Must be even. */
 static const int nop_updater_iters = 10000;
 
@@ -267,7 +267,7 @@ static void nop_updater(void *arg)
 
 static bool do_nop_callbacks(void)
 {
-	atomic_set(&nop_callbacks_cnt, 0);
+	atomic_store(&nop_callbacks_cnt, 0);
 
 	size_t exp_cnt = nop_updater_iters * get_thread_cnt();
 	size_t max_used_mem = sizeof(rcu_item_t) * exp_cnt;
@@ -281,7 +281,7 @@ static bool do_nop_callbacks(void)
 
 	size_t loop_cnt = 0, max_loops = 15;
 
-	while (exp_cnt != atomic_get(&nop_callbacks_cnt) && loop_cnt < max_loops) {
+	while (exp_cnt != atomic_load(&nop_callbacks_cnt) && loop_cnt < max_loops) {
 		++loop_cnt;
 		TPRINTF(".");
 		thread_sleep(1);
@@ -360,14 +360,14 @@ typedef struct {
 
 typedef struct {
 	rcu_item_t rcu;
-	atomic_count_t start_time;
+	size_t start_time;
 } seq_item_t;
 
 
 static errno_t seq_test_result = EOK;
 
-static atomic_t cur_time = { 1 };
-static atomic_count_t max_upd_done_time = { 0 };
+static atomic_t cur_time = 1;
+static size_t max_upd_done_time = { 0 };
 
 static void seq_cb(rcu_item_t *rcu_item)
 {
@@ -398,7 +398,7 @@ static void seq_func(void *arg)
 		/* Reader */
 		for (size_t i = 0; i < work->read_cnt; ++i) {
 			rcu_read_lock();
-			atomic_count_t start_time = atomic_postinc(&cur_time);
+			size_t start_time = atomic_postinc(&cur_time);
 
 			for (volatile size_t d = 0; d < 10 * i; ++d) {
 				/* no-op */
@@ -447,7 +447,7 @@ static bool do_seq_check(void)
 {
 	seq_test_result = EOK;
 	max_upd_done_time = 0;
-	atomic_set(&cur_time, 1);
+	atomic_store(&cur_time, 1);
 
 	const size_t iters = 100;
 	const size_t total_cnt = 1000;
@@ -820,7 +820,7 @@ typedef struct {
 static void barrier_callback(rcu_item_t *item)
 {
 	barrier_t *b = member_to_inst(item, barrier_t, rcu_item);
-	atomic_set(&b->done, 1);
+	atomic_store(&b->done, 1);
 }
 
 static bool do_barrier(void)
@@ -834,12 +834,12 @@ static bool do_barrier(void)
 		return false;
 	}
 
-	atomic_set(&barrier->done, 0);
+	atomic_store(&barrier->done, 0);
 
 	rcu_call(&barrier->rcu_item, barrier_callback);
 	rcu_barrier();
 
-	if (1 == atomic_get(&barrier->done)) {
+	if (1 == atomic_load(&barrier->done)) {
 		free(barrier);
 		return true;
 	} else {

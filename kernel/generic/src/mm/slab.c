@@ -689,7 +689,7 @@ NO_TRACE static size_t _slab_reclaim(slab_cache_t *cache, unsigned int flags)
 	 * We count up to original magazine count to avoid
 	 * endless loop
 	 */
-	atomic_count_t magcount = atomic_get(&cache->magazine_counter);
+	size_t magcount = atomic_load(&cache->magazine_counter);
 
 	slab_magazine_t *mag;
 	size_t frames = 0;
@@ -875,9 +875,9 @@ void slab_print_list(void)
 		size_t frames = cache->frames;
 		size_t size = cache->size;
 		size_t objects = cache->objects;
-		long allocated_slabs = atomic_get(&cache->allocated_slabs);
-		long cached_objs = atomic_get(&cache->cached_objs);
-		long allocated_objs = atomic_get(&cache->allocated_objs);
+		long allocated_slabs = atomic_load(&cache->allocated_slabs);
+		long cached_objs = atomic_load(&cache->cached_objs);
+		long allocated_objs = atomic_load(&cache->allocated_objs);
 		unsigned int flags = cache->flags;
 
 		irq_spinlock_unlock(&slab_cache_lock, true);

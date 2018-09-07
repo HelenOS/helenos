@@ -52,6 +52,7 @@
 #include <syscall/copy.h>
 #include <errno.h>
 #include <str.h>
+#include <stdatomic.h>
 #include <abi/kio.h>
 #include <mm/frame.h> /* SIZE2FRAMES */
 #include <mm/slab.h>  /* malloc */
@@ -63,7 +64,7 @@
 wchar_t kio[KIO_LENGTH] __attribute__((aligned(PAGE_SIZE)));
 
 /** Kernel log initialized */
-static atomic_t kio_inited = { false };
+static atomic_bool kio_inited = false;
 
 /** First kernel log characters */
 static size_t kio_start = 0;
@@ -201,7 +202,7 @@ void kio_init(void)
 	sysinfo_set_item_val("kio.pages", NULL, KIO_PAGES);
 
 	event_set_unmask_callback(EVENT_KIO, kio_update);
-	atomic_set(&kio_inited, true);
+	atomic_store(&kio_inited, true);
 }
 
 void grab_console(void)
@@ -291,7 +292,7 @@ wchar_t getc(indev_t *indev)
 
 void kio_update(void *event)
 {
-	if (!atomic_get(&kio_inited))
+	if (!atomic_load(&kio_inited))
 		return;
 
 	spinlock_lock(&kio_lock);

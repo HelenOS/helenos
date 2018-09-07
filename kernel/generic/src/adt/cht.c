@@ -536,8 +536,8 @@ bool cht_create(cht_t *h, size_t init_size, size_t min_size, size_t max_load,
 	h->min_order = min_order;
 	h->new_b = NULL;
 	h->op = op;
-	atomic_set(&h->item_cnt, 0);
-	atomic_set(&h->resize_reqs, 0);
+	atomic_store(&h->item_cnt, 0);
+	atomic_store(&h->resize_reqs, 0);
 
 	if (NULL == op->remove_callback) {
 		h->op->remove_callback = dummy_remove_callback;
@@ -617,14 +617,14 @@ void cht_destroy(cht_t *h)
 	cht_destroy_unsafe(h);
 
 	/* You must clear the table of items. Otherwise cht_destroy will leak. */
-	assert(atomic_get(&h->item_cnt) == 0);
+	assert(atomic_load(&h->item_cnt) == 0);
 }
 
 /** Destroys a successfully created CHT but does no error checking. */
 void cht_destroy_unsafe(cht_t *h)
 {
 	/* Wait for resize to complete. */
-	while (0 < atomic_get(&h->resize_reqs)) {
+	while (0 < atomic_load(&h->resize_reqs)) {
 		rcu_barrier();
 	}
 
@@ -2121,7 +2121,7 @@ static inline void item_removed(cht_t *h)
 	bool missed_shrink = (items == h->max_load * bucket_cnt / 8);
 
 	if ((need_shrink || missed_shrink) && h->b->order > h->min_order) {
-		atomic_count_t resize_reqs = atomic_preinc(&h->resize_reqs);
+		size_t resize_reqs = atomic_preinc(&h->resize_reqs);
 		/* The first resize request. Start the resizer. */
 		if (1 == resize_reqs) {
 			workq_global_enqueue_noblock(&h->resize_work, resize_table);
@@ -2142,7 +2142,7 @@ static inline void item_inserted(cht_t *h)
 	bool missed_grow = (items == 2 * h->max_load * bucket_cnt);
 
 	if ((need_grow || missed_grow) && h->b->order < CHT_MAX_ORDER) {
-		atomic_count_t resize_reqs = atomic_preinc(&h->resize_reqs);
+		size_t resize_reqs = atomic_preinc(&h->resize_reqs);
 		/* The first resize request. Start the resizer. */
 		if (1 == resize_reqs) {
 			workq_global_enqueue_noblock(&h->resize_work, resize_table);
@@ -2159,7 +2159,7 @@ static void resize_table(work_t *arg)
 	assert(h->b);
 	/* Make resize_reqs visible. */
 	read_barrier();
-	assert(0 < atomic_get(&h->resize_reqs));
+	assert(0 < atomic_load(&h->resize_reqs));
 #endif
 
 	bool done = false;
@@ -2167,7 +2167,7 @@ static void resize_table(work_t *arg)
 	do {
 		/* Load the most recent h->item_cnt. */
 		read_barrier();
-		size_t cur_items = (size_t) atomic_get(&h->item_cnt);
+		size_t cur_items = (size_t) atomic_load(&h->item_cnt);
 		size_t bucket_cnt = (1 << h->b->order);
 		size_t max_items = h->max_load * bucket_cnt;
 
@@ -2177,7 +2177,7 @@ static void resize_table(work_t *arg)
 			shrink_table(h);
 		} else {
 			/* Table is just the right size. */
-			atomic_count_t reqs = atomic_predec(&h->resize_reqs);
+			size_t reqs = atomic_predec(&h->resize_reqs);
 			done = (reqs == 0);
 		}
 	} while (!done);

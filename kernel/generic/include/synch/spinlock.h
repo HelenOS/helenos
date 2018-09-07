@@ -35,17 +35,16 @@
 #ifndef KERN_SPINLOCK_H_
 #define KERN_SPINLOCK_H_
 
-#include <stdbool.h>
-#include <barrier.h>
 #include <assert.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 #include <preemption.h>
-#include <atomic.h>
 #include <arch/asm.h>
 
 #ifdef CONFIG_SMP
 
 typedef struct spinlock {
-	atomic_t val;
+	atomic_flag flag;
 
 #ifdef CONFIG_DEBUG_SPINLOCK
 	const char *name;
@@ -69,13 +68,13 @@ typedef struct spinlock {
 #define SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
 	spinlock_t lock_name = { \
 		.name = desc_name, \
-		.val = { 0 } \
+		.flag = ATOMIC_FLAG_INIT \
 	}
 
 #define SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, desc_name) \
 	static spinlock_t lock_name = { \
 		.name = desc_name, \
-		.val = { 0 } \
+		.flag = ATOMIC_FLAG_INIT \
 	}
 
 #define ASSERT_SPINLOCK(expr, lock) \
@@ -88,12 +87,12 @@ typedef struct spinlock {
 
 #define SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
 	spinlock_t lock_name = { \
-		.val = { 0 } \
+		.flag = ATOMIC_FLAG_INIT \
 	}
 
 #define SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, desc_name) \
 	static spinlock_t lock_name = { \
-		.val = { 0 } \
+		.flag = ATOMIC_FLAG_INIT \
 	}
 
 #define ASSERT_SPINLOCK(expr, lock) \
@@ -125,12 +124,7 @@ extern bool spinlock_locked(spinlock_t *);
  */
 NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 {
-	/*
-	 * Prevent critical section code from bleeding out this way down.
-	 */
-	CS_LEAVE_BARRIER();
-
-	atomic_set(&lock->val, 0);
+	atomic_flag_clear_explicit(&lock->flag, memory_order_release);
 	preemption_enable();
 }
 
@@ -214,7 +208,7 @@ typedef struct {
 	irq_spinlock_t lock_name = { \
 		.lock = { \
 			.name = desc_name, \
-			.val = { 0 } \
+			.flag = ATOMIC_FLAG_INIT \
 		}, \
 		.guard = false, \
 		.ipl = 0 \
@@ -224,7 +218,7 @@ typedef struct {
 	static irq_spinlock_t lock_name = { \
 		.lock = { \
 			.name = desc_name, \
-			.val = { 0 } \
+			.flag = ATOMIC_FLAG_INIT \
 		}, \
 		.guard = false, \
 		.ipl = 0 \
@@ -235,7 +229,7 @@ typedef struct {
 #define IRQ_SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
 	irq_spinlock_t lock_name = { \
 		.lock = { \
-			.val = { 0 } \
+			.flag = ATOMIC_FLAG_INIT \
 		}, \
 		.guard = false, \
 		.ipl = 0 \
@@ -244,7 +238,7 @@ typedef struct {
 #define IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, desc_name) \
 	static irq_spinlock_t lock_name = { \
 		.lock = { \
-			.val = { 0 } \
+			.flag = ATOMIC_FLAG_INIT \
 		}, \
 		.guard = false, \
 		.ipl = 0 \

@@ -43,7 +43,7 @@
 #include <console/kconsole.h>
 
 /** Halt flag */
-atomic_t haltstate = { 0 };
+atomic_t haltstate = 0;
 
 /** Halt wrapper
  *
@@ -55,12 +55,12 @@ void halt(void)
 #if (defined(CONFIG_DEBUG)) && (defined(CONFIG_KCONSOLE))
 	bool rundebugger = false;
 
-	if (!atomic_get(&haltstate)) {
-		atomic_set(&haltstate, 1);
+	if (!atomic_load(&haltstate)) {
+		atomic_store(&haltstate, 1);
 		rundebugger = true;
 	}
 #else
-	atomic_set(&haltstate, 1);
+	atomic_store(&haltstate, 1);
 #endif
 
 	interrupts_disable();

@@ -148,7 +148,7 @@ static void reproduce(work_t *work_item)
 static const char *run_workq_core(bool end_prematurely)
 {
 	for (int i = 0; i < WAVES; ++i) {
-		atomic_set(&call_cnt[i], 0);
+		atomic_store(&call_cnt[i], 0);
 	}
 
 	test_work_t *work = nfmalloc(sizeof(test_work_t));
@@ -178,7 +178,7 @@ static const char *run_workq_core(bool end_prematurely)
 	size_t max_sleep_cnt = (max_sleep_secs * 1000) / MAIN_POLL_SLEEP_MS;
 
 	for (int i = 0; i < WAVES; ++i) {
-		while (atomic_get(&call_cnt[i]) < exp_call_cnt &&
+		while (atomic_load(&call_cnt[i]) < exp_call_cnt &&
 		    sleep_cnt < max_sleep_cnt) {
 			TPRINTF(".");
 			thread_usleep(MAIN_POLL_SLEEP_MS * 1000);
@@ -189,13 +189,13 @@ static const char *run_workq_core(bool end_prematurely)
 	bool success = true;
 
 	for (int i = 0; i < WAVES; ++i) {
-		if (atomic_get(&call_cnt[i]) == exp_call_cnt) {
-			TPRINTF("Ok: %" PRIua " calls in wave %d, as expected.\n",
-			    atomic_get(&call_cnt[i]), i);
+		if (atomic_load(&call_cnt[i]) == exp_call_cnt) {
+			TPRINTF("Ok: %zu calls in wave %d, as expected.\n",
+			    atomic_load(&call_cnt[i]), i);
 		} else {
 			success = false;
-			TPRINTF("Error: %" PRIua " calls in wave %d, but %zu expected.\n",
-			    atomic_get(&call_cnt[i]), i, exp_call_cnt);
+			TPRINTF("Error: %zu calls in wave %d, but %zu expected.\n",
+			    atomic_load(&call_cnt[i]), i, exp_call_cnt);
 		}
 	}
 
