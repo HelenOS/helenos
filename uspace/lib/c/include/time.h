@@ -106,7 +106,8 @@ extern struct tm *gmtime(const time_t *);
 extern struct tm *localtime(const time_t *);
 
 /* ISO/IEC 9899:2011 7.27.3.5 (1) */
-extern size_t strftime(char *, size_t, const char *, const struct tm *);
+extern size_t strftime(char *__restrict__, size_t, const char *__restrict__,
+    const struct tm *__restrict__);
 
 
 #ifdef _HELENOS_SOURCE
