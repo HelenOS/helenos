@@ -71,15 +71,16 @@
 #define ISTATE_OFFSET_CR_IIPA           0x228
 #define ISTATE_OFFSET_CR_IPSR           0x230
 #define ISTATE_OFFSET_CR_IIP            0x238
-#define ISTATE_OFFSET_PR                0x240
-#define ISTATE_OFFSET_SP                0x248
-#define ISTATE_OFFSET_IN0               0x250
-#define ISTATE_OFFSET_IN1               0x258
-#define ISTATE_OFFSET_IN2               0x260
-#define ISTATE_OFFSET_IN3               0x268
-#define ISTATE_OFFSET_IN4               0x270
-#define ISTATE_OFFSET_IN5               0x278
-#define ISTATE_OFFSET_IN6               0x280
+#define ISTATE_OFFSET_CR_IIM            0x240
+#define ISTATE_OFFSET_PR                0x248
+#define ISTATE_OFFSET_SP                0x250
+#define ISTATE_OFFSET_IN0               0x258
+#define ISTATE_OFFSET_IN1               0x260
+#define ISTATE_OFFSET_IN2               0x268
+#define ISTATE_OFFSET_IN3               0x270
+#define ISTATE_OFFSET_IN4               0x278
+#define ISTATE_OFFSET_IN5               0x280
+#define ISTATE_OFFSET_IN6               0x288
 #define ISTATE_SIZE                     0x290
 
 #ifndef __ASSEMBLER__
@@ -137,6 +138,7 @@ typedef struct istate {
 	uintptr_t cr_iipa;
 	psr_t cr_ipsr;
 	uintptr_t cr_iip;
+	uint64_t cr_iim;
 	uint64_t pr;
 	uintptr_t sp;
 

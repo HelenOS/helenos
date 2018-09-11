@@ -185,6 +185,9 @@ SYMBOL(heavyweight_handler)
 
 	st8 [r31] = r29, -STACK_ITEM_SIZE ;;	/* save predicate registers */
 
+	mov r29 = cr.iim ;;
+	st8 [r31] = r29, -STACK_ITEM_SIZE ;;	/* save cr.iim */
+
 	st8 [r31] = r24, -STACK_ITEM_SIZE ;;	/* save cr.iip */
 	st8 [r31] = r25, -STACK_ITEM_SIZE ;;	/* save cr.ipsr */
 	st8 [r31] = r26, -STACK_ITEM_SIZE ;;	/* save cr.iipa */
@@ -273,11 +276,13 @@ SYMBOL(heavyweight_handler)
 	ld8 r26 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.iipa */
 	ld8 r25 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.ipsr */
 	ld8 r24 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.iip */
+	ld8 r29 = [r31], +STACK_ITEM_SIZE ;;	/* load cr.iim */
 
 	mov cr.iip = r24;;
 	mov cr.iipa = r26
 	mov cr.isr = r27
 	mov cr.ifa = r28
+	mov cr.iim = r29
 
 	/* Set up FPU as in exception. */
 	mov r24 = psr

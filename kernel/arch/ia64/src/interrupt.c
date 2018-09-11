@@ -194,10 +194,20 @@ void disabled_fp_register(unsigned int n, istate_t *istate)
 #endif
 }
 
+
+#define BREAK_IMM_SYSCALL	0x40000U
+
 /** Handle syscall. */
 sysarg_t break_instruction(unsigned int n, istate_t *istate)
 {
 	sysarg_t ret;
+
+	if (istate->cr_iim != BREAK_IMM_SYSCALL) {
+		fault_if_from_uspace(istate, "Unknown software interrupt: %x",
+		    (uint32_t) istate->cr_iim);
+		panic_badtrap(istate, n, "Interruption: %#hx (%s).",
+		    (uint16_t) n, vector_to_string(n));
+	}
 
 	/*
 	 * Move to next instruction after BREAK.

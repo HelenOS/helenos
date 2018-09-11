@@ -28,15 +28,18 @@
 
 #include <abi/asmtool.h>
 
-/**
- * Immediate operand for break instruction.
- * Be carefull about the value as Ski simulator
- * is somewhat sensitive to its value.
+/*
+ * IA-64 Software Conventions and Runtime Architecture Guide mandates that
+ * the zero-extended imm21 operand of the BREAK instruction is used as follows:
  *
- * 0 will be confused with Ski breakpoint.
- * And higher values will be confused with SSC's.
+ * MSB | Purpose
+ * ----+--------
+ * 000 | Reserved for architected software interrupts
+ * 001 | Available for application use as software interrupts
+ * 01x | Reserved for debugger breakpoints
+ * 1xx | Reserved for definition by each ABI
  */
-#define SYSCALL_IMM	1
+#define SYSCALL_IMM	0x40000
 
 FUNCTION_BEGIN(__syscall)
 	alloc r14 = ar.pfs, 7, 0, 0, 0 ;;
