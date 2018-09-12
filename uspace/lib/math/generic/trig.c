@@ -34,6 +34,7 @@
  */
 
 #include <math.h>
+#include "internal.h"
 
 #define TAYLOR_DEGREE_32 13
 #define TAYLOR_DEGREE_64 21
@@ -174,7 +175,7 @@ static double taylor_cos_64(double arg)
  * @return Sine value.
  *
  */
-static float base_sin_32(float arg)
+float __math_base_sin_32(float arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 
@@ -207,7 +208,7 @@ static float base_sin_32(float arg)
  * @return Sine value.
  *
  */
-static double base_sin_64(double arg)
+double __math_base_sin_64(double arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 
@@ -240,7 +241,7 @@ static double base_sin_64(double arg)
  * @return Cosine value.
  *
  */
-static float base_cos_32(float arg)
+float __math_base_cos_32(float arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 
@@ -273,7 +274,7 @@ static float base_cos_32(float arg)
  * @return Cosine value.
  *
  */
-static double base_cos_64(double arg)
+double __math_base_cos_64(double arg)
 {
 	unsigned int period = arg / (M_PI / 4);
 
@@ -291,124 +292,6 @@ static double base_cos_64(double arg)
 		return taylor_sin_64(arg - 3 * M_PI / 2);
 	default:
 		return taylor_cos_64(arg - 2 * M_PI);
-	}
-}
-
-/** Sine (32-bit floating point)
- *
- * Compute sine value.
- *
- * @param arg Sine argument.
- *
- * @return Sine value.
- *
- */
-float sinf(float arg)
-{
-	float base_arg = fmodf(arg, 2 * M_PI);
-
-	if (base_arg < 0)
-		return -base_sin_32(-base_arg);
-
-	return base_sin_32(base_arg);
-}
-
-/** Sine (64-bit floating point)
- *
- * Compute sine value.
- *
- * @param arg Sine argument.
- *
- * @return Sine value.
- *
- */
-double sin(double arg)
-{
-	double base_arg = fmod(arg, 2 * M_PI);
-
-	if (base_arg < 0)
-		return -base_sin_64(-base_arg);
-
-	return base_sin_64(base_arg);
-}
-
-/** Cosine (32-bit floating point)
- *
- * Compute cosine value.
- *
- * @param arg Cosine argument.
- *
- * @return Cosine value.
- *
- */
-float cosf(float arg)
-{
-	float base_arg = fmodf(arg, 2 * M_PI);
-
-	if (base_arg < 0)
-		return base_cos_32(-base_arg);
-
-	return base_cos_32(base_arg);
-}
-
-/** Cosine (64-bit floating point)
- *
- * Compute cosine value.
- *
- * @param arg Cosine argument.
- *
- * @return Cosine value.
- *
- */
-double cos(double arg)
-{
-	double base_arg = fmod(arg, 2 * M_PI);
-
-	if (base_arg < 0)
-		return base_cos_64(-base_arg);
-
-	return base_cos_64(base_arg);
-}
-
-/**
- * Computes sine and cosine at the same time, which might be more efficient than
- * computing each separately.
- *
- * @param x  Input value.
- * @param s  Output sine value, *s = sinf(x).
- * @param c  Output cosine value, *c = cosf(x).
- */
-void sincosf(float x, float *s, float *c)
-{
-	float base_arg = fmodf(x, 2 * M_PI);
-
-	if (base_arg < 0) {
-		*s = -base_sin_32(-base_arg);
-		*c = base_cos_32(-base_arg);
-	} else {
-		*s = base_sin_32(base_arg);
-		*c = base_cos_32(base_arg);
-	}
-}
-
-/**
- * Computes sine and cosine at the same time, which might be more efficient than
- * computing each separately.
- *
- * @param x  Input value.
- * @param s  Output sine value, *s = sin(x).
- * @param c  Output cosine value, *c = cos(x).
- */
-void sincos(double x, double *s, double *c)
-{
-	double base_arg = fmod(x, 2 * M_PI);
-
-	if (base_arg < 0) {
-		*s = -base_sin_64(-base_arg);
-		*c = base_cos_64(-base_arg);
-	} else {
-		*s = base_sin_64(base_arg);
-		*c = base_cos_64(base_arg);
 	}
 }
 

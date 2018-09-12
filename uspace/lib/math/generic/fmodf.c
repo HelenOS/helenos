@@ -34,7 +34,7 @@
 
 #include <math.h>
 
-/** Remainder function (64-bit floating point)
+/** Remainder function (32-bit floating point)
  *
  * Calculate the modulo of dividend by divisor.
  *
@@ -50,11 +50,11 @@
  * @return Modulo.
  *
  */
-double fmod(double dividend, double divisor)
+float fmodf(float dividend, float divisor)
 {
 	// FIXME: replace with exact arithmetics
 
-	double quotient = trunc(dividend / divisor);
+	float quotient = truncf(dividend / divisor);
 
 	return (dividend - quotient * divisor);
 }

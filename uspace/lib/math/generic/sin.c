@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2015 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -33,30 +34,44 @@
  */
 
 #include <math.h>
+#include "internal.h"
 
-/** Remainder function (64-bit floating point)
+/** Sine (32-bit floating point)
  *
- * Calculate the modulo of dividend by divisor.
+ * Compute sine value.
  *
- * This is a very basic implementation that uses
- * division and multiplication (instead of exact
- * arithmetics). Thus the result might be very
- * imprecise (depending on the magnitude of the
- * arguments).
+ * @param arg Sine argument.
  *
- * @param dividend Dividend.
- * @param divisor  Divisor.
- *
- * @return Modulo.
+ * @return Sine value.
  *
  */
-double fmod(double dividend, double divisor)
+float sinf(float arg)
 {
-	// FIXME: replace with exact arithmetics
+	float base_arg = fmodf(arg, 2 * M_PI);
 
-	double quotient = trunc(dividend / divisor);
+	if (base_arg < 0)
+		return -__math_base_sin_32(-base_arg);
 
-	return (dividend - quotient * divisor);
+	return __math_base_sin_32(base_arg);
+}
+
+/** Sine (64-bit floating point)
+ *
+ * Compute sine value.
+ *
+ * @param arg Sine argument.
+ *
+ * @return Sine value.
+ *
+ */
+double sin(double arg)
+{
+	double base_arg = fmod(arg, 2 * M_PI);
+
+	if (base_arg < 0)
+		return -__math_base_sin_64(-base_arg);
+
+	return __math_base_sin_64(base_arg);
 }
 
 /** @}

@@ -38,9 +38,13 @@ SOURCES = \
 	generic/__signbit.c \
 	generic/fabs.c \
 	generic/fmod.c \
+	generic/fmodf.c \
 	generic/nearbyint.c \
 	generic/round.c \
 	generic/trig.c \
+	generic/sin.c \
+	generic/cos.c \
+	generic/sincos.c \
 	generic/trunc.c
 
 TEST_SOURCES = \

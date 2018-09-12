@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2015 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -26,38 +27,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libmath
- * @{
- */
-/** @file
- */
+#ifndef MATH_INTERNAL_H_
+#define MATH_INTERNAL_H_
 
-#include <math.h>
+float __math_base_sin_32(float);
+float __math_base_cos_32(float);
+double __math_base_sin_64(double);
+double __math_base_cos_64(double);
 
-/** Remainder function (64-bit floating point)
- *
- * Calculate the modulo of dividend by divisor.
- *
- * This is a very basic implementation that uses
- * division and multiplication (instead of exact
- * arithmetics). Thus the result might be very
- * imprecise (depending on the magnitude of the
- * arguments).
- *
- * @param dividend Dividend.
- * @param divisor  Divisor.
- *
- * @return Modulo.
- *
- */
-double fmod(double dividend, double divisor)
-{
-	// FIXME: replace with exact arithmetics
+#endif
 
-	double quotient = trunc(dividend / divisor);
-
-	return (dividend - quotient * divisor);
-}
-
-/** @}
- */

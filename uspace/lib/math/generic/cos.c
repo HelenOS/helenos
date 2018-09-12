@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2015 Jiri Svoboda
  * Copyright (c) 2014 Martin Decky
  * All rights reserved.
  *
@@ -33,30 +34,44 @@
  */
 
 #include <math.h>
+#include "internal.h"
 
-/** Remainder function (64-bit floating point)
+/** Cosine (32-bit floating point)
  *
- * Calculate the modulo of dividend by divisor.
+ * Compute cosine value.
  *
- * This is a very basic implementation that uses
- * division and multiplication (instead of exact
- * arithmetics). Thus the result might be very
- * imprecise (depending on the magnitude of the
- * arguments).
+ * @param arg Cosine argument.
  *
- * @param dividend Dividend.
- * @param divisor  Divisor.
- *
- * @return Modulo.
+ * @return Cosine value.
  *
  */
-double fmod(double dividend, double divisor)
+float cosf(float arg)
 {
-	// FIXME: replace with exact arithmetics
+	float base_arg = fmodf(arg, 2 * M_PI);
 
-	double quotient = trunc(dividend / divisor);
+	if (base_arg < 0)
+		return __math_base_cos_32(-base_arg);
 
-	return (dividend - quotient * divisor);
+	return __math_base_cos_32(base_arg);
+}
+
+/** Cosine (64-bit floating point)
+ *
+ * Compute cosine value.
+ *
+ * @param arg Cosine argument.
+ *
+ * @return Cosine value.
+ *
+ */
+double cos(double arg)
+{
+	double base_arg = fmod(arg, 2 * M_PI);
+
+	if (base_arg < 0)
+		return __math_base_cos_64(-base_arg);
+
+	return __math_base_cos_64(base_arg);
 }
 
 /** @}
