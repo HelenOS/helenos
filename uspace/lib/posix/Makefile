@@ -34,21 +34,16 @@ EXTRA_CFLAGS = -Iinclude/
 
 INCLUDE_LIBC = ./include/libc
 
-SPECS = gcc.specs
-
 EXPORT_FILES = \
 	../math/libmath.a \
 	../clui/libclui.a \
 	$(LIBC_PREFIX)/libc.a \
 	$(LIBC_PREFIX)/crt0.o \
 	$(LIBC_PREFIX)/crt1.o \
-	$(LIBRARY).a \
-	$(SPECS)
+	$(LIBRARY).a
 
 PRE_DEPEND = $(INCLUDE_LIBC)
 EXTRA_CLEAN = $(INCLUDE_LIBC)
-
-EXTRA_OUTPUT = $(SPECS)
 
 SOURCES = \
 	src/ctype.c \
@@ -81,8 +76,8 @@ TEST_SOURCES = \
 EXTRA_TEST_CFLAGS = -Wno-deprecated-declarations
 
 EXPORT_CPPFLAGS = \
-	-specs $$(HELENOS_EXPORT_ROOT)/lib/gcc.specs \
-	-isystem $$(HELENOS_EXPORT_ROOT)/include
+	-isystem $$(HELENOS_EXPORT_ROOT)/include \
+	$(COMMON_CPPFLAGS)
 
 EXPORT_LDFLAGS = \
 	-L$$(HELENOS_EXPORT_ROOT)/lib \
@@ -93,20 +88,9 @@ EXPORT_LDLIBS = \
 	-Wl,--start-group -lposix -lmath -lc -lgcc -Wl,--end-group
 
 EXPORT_CFLAGS = \
-	-specs $$(HELENOS_EXPORT_ROOT)/lib/gcc.specs
+	$(COMMON_CFLAGS)
 
 include $(USPACE_PREFIX)/Makefile.common
-
-$(SPECS): $(CONFIG_MAKEFILE)
-	echo '*self_spec:' > $@.new
-	echo '+ $(COMMON_CFLAGS)' >> $@.new
-	echo >> $@.new
-	echo '*cpp:' >> $@.new
-	echo '+ $(COMMON_CPPFLAGS)' >> $@.new
-	echo >> $@.new
-	echo '*lib:' >> $@.new
-	echo '$(EXPORT_LDLIBS)' >> $@.new
-	mv $@.new $@
 
 $(INCLUDE_LIBC): $(shell find ../c/include -name '*.h')
 	cp -r -L --remove-destination -T ../c/include $@
