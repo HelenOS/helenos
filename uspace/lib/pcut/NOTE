@@ -1,0 +1,22 @@
+Important notes for maintenance of this library
+-----------------------------------------------
+
+This directory contains PCUT [1], a library for simple unit testing of C
+code.
+
+If you want to update PCUT to the latest revision, run
+
+./update-from-master.sh really-overwrite
+
+and commit the changes.
+
+Please, never update sources here without updating them in upstream too.
+Especially, do not try to fix PCUT formatting and special pragmas to fit
+with the rest of HelenOS.  They are there for a reason ;-). And it makes
+reviewing the changes after updates really painful.
+
+If you do not have write access to upstream, please, open a pull-request
+or an issue on GitHub [2].
+
+[1] https://github.com/vhotspur/pcut/wiki
+[2] https://github.com/vhotspur/pcut/issues
