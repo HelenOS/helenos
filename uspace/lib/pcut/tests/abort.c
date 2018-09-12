@@ -29,11 +29,10 @@
 #include <pcut/pcut.h>
 #include <stdlib.h>
 
-PCUT_INIT;
+PCUT_INIT
 
-PCUT_TEST(access_null_pointer)
-{
+PCUT_TEST(access_null_pointer) {
 	abort();
 }
 
-PCUT_MAIN();
+PCUT_MAIN()

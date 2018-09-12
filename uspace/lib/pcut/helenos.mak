@@ -29,6 +29,7 @@
 SOURCES = \
 	src/os/helenos.c \
 	src/assert.c \
+	src/helper.c \
 	src/list.c \
 	src/main.c \
 	src/print.c \
@@ -37,6 +38,6 @@ SOURCES = \
 	src/report/xml.c \
 	src/run.c
 
-EXTRA_CFLAGS = -D__helenos__
+EXTRA_CFLAGS = -D__helenos__ -Wno-unknown-pragmas
 
 LIBRARY = libpcut

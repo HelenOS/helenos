@@ -28,9 +28,9 @@
 
 #include <pcut/pcut.h>
 
-PCUT_INIT;
+PCUT_INIT
 
 PCUT_IMPORT(intpow_suite);
 PCUT_IMPORT(intmin_suite);
 
-PCUT_MAIN();
+PCUT_MAIN()

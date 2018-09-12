@@ -31,8 +31,11 @@
  * Helper functions for working with list of items.
  */
 
+#pragma warning(push, 0)
 #include <assert.h>
 #include <stdlib.h>
+#pragma warning(pop)
+
 #include "internal.h"
 #include <pcut/pcut.h>
 
@@ -42,8 +45,7 @@
  * @param item Head of the list.
  * @return First item with actual content or NULL on end of list.
  */
-pcut_item_t *pcut_get_real_next(pcut_item_t *item)
-{
+pcut_item_t *pcut_get_real_next(pcut_item_t *item) {
 	if (item == NULL) {
 		return NULL;
 	}
@@ -64,8 +66,7 @@ pcut_item_t *pcut_get_real_next(pcut_item_t *item)
  * @param item Head of the list.
  * @return First item with actual content or NULL on end of list.
  */
-pcut_item_t *pcut_get_real(pcut_item_t *item)
-{
+pcut_item_t *pcut_get_real(pcut_item_t *item) {
 	if (item == NULL) {
 		return NULL;
 	}
@@ -82,8 +83,7 @@ pcut_item_t *pcut_get_real(pcut_item_t *item)
  *
  * @param nested Head of the nested list.
  */
-static void inline_nested_lists(pcut_item_t *nested)
-{
+static void inline_nested_lists(pcut_item_t *nested) {
 	pcut_item_t *first;
 
 	if (nested->kind != PCUT_KIND_NESTED) {
@@ -110,8 +110,7 @@ static void inline_nested_lists(pcut_item_t *nested)
  *
  * @param first List head.
  */
-static void set_ids(pcut_item_t *first)
-{
+static void set_ids(pcut_item_t *first) {
 	int id = 1;
 	pcut_item_t *it;
 
@@ -134,8 +133,7 @@ static void set_ids(pcut_item_t *first)
  *
  * @param first Head of the list.
  */
-static void detect_skipped_tests(pcut_item_t *first)
-{
+static void detect_skipped_tests(pcut_item_t *first) {
 	pcut_item_t *it;
 
 	assert(first != NULL);
@@ -171,8 +169,7 @@ static void detect_skipped_tests(pcut_item_t *first)
  * @param last Tail of the list.
  * @return Head of the fixed list.
  */
-pcut_item_t *pcut_fix_list_get_real_head(pcut_item_t *last)
-{
+pcut_item_t *pcut_fix_list_get_real_head(pcut_item_t *last) {
 	pcut_item_t *next, *it;
 
 	last->next = NULL;
@@ -200,8 +197,7 @@ pcut_item_t *pcut_fix_list_get_real_head(pcut_item_t *last)
  * @param it Head of the list.
  * @return Number of tests.
  */
-int pcut_count_tests(pcut_item_t *it)
-{
+int pcut_count_tests(pcut_item_t *it) {
 	int count = 0;
 	while (it != NULL) {
 		if (it->kind == PCUT_KIND_TEST) {

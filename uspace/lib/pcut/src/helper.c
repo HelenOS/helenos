@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 Vojtech Horky
+ * Copyright (c) 2018 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <pcut/pcut.h>
-#include "tested.h"
+/** @file
+ *
+ * Helper functions.
+ */
 
-PCUT_INIT
+#include "internal.h"
 
-static char *argv_patched[] = {
-	NULL, /* Will be patched at run-time. */
-	(char *) "-l",
-	NULL
-};
+#pragma warning(push, 0)
+#include <stdarg.h>
+#include <stdio.h>
+#pragma warning(pop)
 
-static void pre_init_hook(int *argc, char **argv[]) {
-	argv_patched[0] = (*argv)[0];
-	*argc = 2;
-	*argv = argv_patched;
+/*
+ * It seems that not all Unixes are the same and snprintf
+ * may not be always exported?
+ */
+#ifdef __unix
+extern int snprintf(char *, size_t, const char *, ...);
+#endif
+
+
+int pcut_snprintf(char *dest, size_t size, const char *format, ...) {
+	va_list args;
+	int ret;
+
+	va_start(args, format);
+
+	/*
+	 * Use sprintf_s in Windows but only with Microsoft compiler.
+	 * Namely, let MinGW use snprintf.
+	 */
+#if (defined(__WIN64) || defined(__WIN32) || defined(_WIN32)) && defined(_MSC_VER)
+	ret = _vsnprintf_s(dest, size, _TRUNCATE, format, args);
+#else
+	ret = vsnprintf(dest, size, format, args);
+#endif
+
+	va_end(args);
+
+	return ret;
 }
-
-PCUT_TEST(unreachable) {
-	PCUT_ASSERT_TRUE(0 && "unreachable code");
-}
-
-
-PCUT_CUSTOM_MAIN(
-	PCUT_MAIN_SET_PREINIT_HOOK(pre_init_hook)
-)
-

@@ -34,7 +34,10 @@
 #define PCUT_INTERNAL_H_GUARD
 
 #include <pcut/pcut.h>
+
+#pragma warning(push, 0)
 #include <stdlib.h>
+#pragma warning(pop)
 
 
 /** @def PCUT_DEBUG(msg, ...)
@@ -47,7 +50,9 @@
  * @param ... Extra arguments for printf.
  */
 #ifdef PCUT_DEBUG_BUILD
+#pragma warning(push, 0)
 #include <stdio.h>
+#pragma warning(pop)
 #define PCUT_DEBUG_INTERNAL(msg, ...) \
 	fprintf(stderr, "[PCUT %s:%d]: " msg "%s", __FILE__, __LINE__, __VA_ARGS__)
 #define PCUT_DEBUG(...) \
@@ -77,14 +82,6 @@
  * fatally (that is causing an unexpected program exit).
  */
 #define PCUT_RUN_MODE_SINGLE 2
-
-/*
- * Use sprintf_s in Windows but only with Microsoft compiler.
- * Namely, let MinGW use snprintf.
- */
-#if (defined(__WIN64) || defined(__WIN32) || defined(_WIN32)) && defined(_MSC_VER)
-#define snprintf sprintf_s
-#endif
 
 extern int pcut_run_mode;
 
@@ -124,7 +121,7 @@ struct pcut_report_ops {
 	void (*test_start)(pcut_item_t *);
 	/** Test completed. */
 	void (*test_done)(pcut_item_t *, int, const char *, const char *,
-	    const char *);
+		const char *);
 };
 
 void pcut_report_register_handler(pcut_report_ops_t *ops);
@@ -134,10 +131,10 @@ void pcut_report_suite_start(pcut_item_t *suite);
 void pcut_report_suite_done(pcut_item_t *suite);
 void pcut_report_test_start(pcut_item_t *test);
 void pcut_report_test_done(pcut_item_t *test, int outcome,
-    const char *error_message, const char *teardown_error_message,
-    const char *extra_output);
+		const char *error_message, const char *teardown_error_message,
+		const char *extra_output);
 void pcut_report_test_done_unparsed(pcut_item_t *test, int outcome,
-    const char *unparsed_output, size_t unparsed_output_size);
+		const char *unparsed_output, size_t unparsed_output_size);
 void pcut_report_done(void);
 
 /* OS-dependent functions. */
@@ -186,5 +183,9 @@ int pcut_str_to_int(const char *s);
  */
 char *pcut_str_find_char(const char *haystack, const char needle);
 
+/** Format string to a buffer.
+ *
+ */
+int pcut_snprintf(char *dest, size_t size, const char *format, ...);
 
 #endif

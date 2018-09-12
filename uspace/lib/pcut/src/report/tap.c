@@ -33,10 +33,17 @@
 
 #include "../internal.h"
 #include "report.h"
+
 #ifndef __helenos__
+#pragma warning(push, 0)
 #include <string.h>
+#pragma warning(pop)
 #endif
+
+#pragma warning(push, 0)
 #include <stdio.h>
+#pragma warning(pop)
+
 
 /** Counter of all run tests. */
 static int test_counter;
@@ -54,8 +61,7 @@ static int failed_tests_in_suite;
  *
  * @param all_items Start of the list with all items.
  */
-static void tap_init(pcut_item_t *all_items)
-{
+static void tap_init(pcut_item_t *all_items) {
 	int tests_total = pcut_count_tests(all_items);
 	test_counter = 0;
 	failed_test_counter = 0;
@@ -67,8 +73,7 @@ static void tap_init(pcut_item_t *all_items)
  *
  * @param suite Suite that just started.
  */
-static void tap_suite_start(pcut_item_t *suite)
-{
+static void tap_suite_start(pcut_item_t *suite) {
 	tests_in_suite = 0;
 	failed_tests_in_suite = 0;
 
@@ -79,14 +84,13 @@ static void tap_suite_start(pcut_item_t *suite)
  *
  * @param suite Suite that just ended.
  */
-static void tap_suite_done(pcut_item_t *suite)
-{
+static void tap_suite_done(pcut_item_t *suite) {
 	if (failed_tests_in_suite == 0) {
 		printf("#> Finished suite %s (passed).\n",
-		    suite->name);
+				suite->name);
 	} else {
 		printf("#> Finished suite %s (failed %d of %d).\n",
-		    suite->name, failed_tests_in_suite, tests_in_suite);
+				suite->name, failed_tests_in_suite, tests_in_suite);
 	}
 }
 
@@ -96,8 +100,7 @@ static void tap_suite_done(pcut_item_t *suite)
  *
  * @param test Test that is started.
  */
-static void tap_test_start(pcut_item_t *test)
-{
+static void tap_test_start(pcut_item_t *test) {
 	PCUT_UNUSED(test);
 
 	tests_in_suite++;
@@ -109,8 +112,7 @@ static void tap_test_start(pcut_item_t *test)
  * @param message Message to print.
  * @param prefix Prefix for each new line, such as comment character.
  */
-static void print_by_lines(const char *message, const char *prefix)
-{
+static void print_by_lines(const char *message, const char *prefix) {
 	char *next_line_start;
 	if ((message == NULL) || (message[0] == 0)) {
 		return;
@@ -136,9 +138,8 @@ static void print_by_lines(const char *message, const char *prefix)
  * @param extra_output Extra output from the test (stdout).
  */
 static void tap_test_done(pcut_item_t *test, int outcome,
-    const char *error_message, const char *teardown_error_message,
-    const char *extra_output)
-{
+		const char *error_message, const char *teardown_error_message,
+		const char *extra_output) {
 	const char *test_name = test->name;
 	const char *status_str = NULL;
 	const char *fail_error_str = NULL;
@@ -171,8 +172,7 @@ static void tap_test_done(pcut_item_t *test, int outcome,
 }
 
 /** Report testing done. */
-static void tap_done(void)
-{
+static void tap_done(void) {
 	if (failed_test_counter == 0) {
 		printf("#> Done: all tests passed.\n");
 	} else {

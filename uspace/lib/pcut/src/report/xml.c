@@ -33,10 +33,17 @@
 
 #include "../internal.h"
 #include "report.h"
+
 #ifndef __helenos__
+#pragma warning(push, 0)
 #include <string.h>
+#pragma warning(pop)
 #endif
+
+#pragma warning(push, 0)
 #include <stdio.h>
+#pragma warning(pop)
+
 
 /** Counter of all run tests. */
 static int test_counter;
@@ -51,8 +58,7 @@ static int failed_tests_in_suite;
  *
  * @param all_items Start of the list with all items.
  */
-static void xml_init(pcut_item_t *all_items)
-{
+static void xml_init(pcut_item_t *all_items) {
 	int tests_total = pcut_count_tests(all_items);
 	test_counter = 0;
 
@@ -64,8 +70,7 @@ static void xml_init(pcut_item_t *all_items)
  *
  * @param suite Suite that just started.
  */
-static void xml_suite_start(pcut_item_t *suite)
-{
+static void xml_suite_start(pcut_item_t *suite) {
 	tests_in_suite = 0;
 	failed_tests_in_suite = 0;
 
@@ -76,10 +81,9 @@ static void xml_suite_start(pcut_item_t *suite)
  *
  * @param suite Suite that just ended.
  */
-static void xml_suite_done(pcut_item_t *suite)
-{
+static void xml_suite_done(pcut_item_t *suite) {
 	printf("\t</suite><!-- %s: %d / %d -->\n", suite->name,
-	    failed_tests_in_suite, tests_in_suite);
+		failed_tests_in_suite, tests_in_suite);
 }
 
 /** Report that a test was started.
@@ -88,8 +92,7 @@ static void xml_suite_done(pcut_item_t *suite)
  *
  * @param test Test that is started.
  */
-static void xml_test_start(pcut_item_t *test)
-{
+static void xml_test_start(pcut_item_t *test) {
 	PCUT_UNUSED(test);
 
 	tests_in_suite++;
@@ -101,8 +104,7 @@ static void xml_test_start(pcut_item_t *test)
  * @param message Message to print.
  * @param element_name Wrapping XML element name.
  */
-static void print_by_lines(const char *message, const char *element_name)
-{
+static void print_by_lines(const char *message, const char *element_name) {
 	char *next_line_start;
 
 	if ((message == NULL) || (message[0] == 0)) {
@@ -134,9 +136,8 @@ static void print_by_lines(const char *message, const char *element_name)
  * @param extra_output Extra output from the test (stdout).
  */
 static void xml_test_done(pcut_item_t *test, int outcome,
-    const char *error_message, const char *teardown_error_message,
-    const char *extra_output)
-{
+		const char *error_message, const char *teardown_error_message,
+		const char *extra_output) {
 	const char *test_name = test->name;
 	const char *status_str = NULL;
 
@@ -157,7 +158,7 @@ static void xml_test_done(pcut_item_t *test, int outcome,
 	}
 
 	printf("\t\t<testcase name=\"%s\" status=\"%s\">\n", test_name,
-	    status_str);
+		status_str);
 
 	print_by_lines(error_message, "error-message");
 	print_by_lines(teardown_error_message, "error-message");
@@ -168,8 +169,7 @@ static void xml_test_done(pcut_item_t *test, int outcome,
 }
 
 /** Report testing done. */
-static void xml_done(void)
-{
+static void xml_done(void) {
 	printf("</report>\n");
 }
 

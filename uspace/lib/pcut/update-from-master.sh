@@ -42,12 +42,14 @@ if ! [ "$1" == "really-overwrite" ]; then
 	exit 1
 fi
 
-$RUN find -not -name update-from-master.sh -delete
+$RUN find -not -name update-from-master.sh -and -not -name doc -and -not -name 'doxygroups.h' -delete
 $RUN wget -q https://github.com/vhotspur/pcut/archive/master.zip -O pcut-master.zip
 $RUN unzip -q -u pcut-master.zip
-$RUN mv -f pcut-master/* .
+$RUN mv -f pcut-master/src .
+$RUN mv -f pcut-master/include .
+$RUN mv -f pcut-master/tests .
+$RUN mv -f pcut-master/helenos*.mak .
 $RUN rm -rf pcut-master pcut-master.zip
-$RUN rm -rf contrib doc
 $RUN rm -f CMakeLists.txt *.cmake run_test.sh
 
 cat >Makefile <<'EOF_MAKEFILE_HEAD'

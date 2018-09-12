@@ -30,22 +30,19 @@
 #include "tested.h"
 #include <stdio.h>
 
-PCUT_INIT;
+PCUT_INIT
 
-PCUT_TEST(print_to_stdout)
-{
+PCUT_TEST(print_to_stdout) {
 	printf("Printed from a test to stdout!\n");
 }
 
-PCUT_TEST(print_to_stderr)
-{
+PCUT_TEST(print_to_stderr) {
 	fprintf(stderr, "Printed from a test to stderr!\n");
 }
 
-PCUT_TEST(print_to_stdout_and_fail)
-{
+PCUT_TEST(print_to_stdout_and_fail) {
 	printf("Printed from a test to stdout!\n");
 	PCUT_ASSERT_NOT_NULL(0);
 }
 
-PCUT_MAIN();
+PCUT_MAIN()

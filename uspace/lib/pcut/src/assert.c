@@ -42,9 +42,13 @@
 #define _DEFAULT_SOURCE
 
 #include "internal.h"
+
+#pragma warning(push, 0)
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdio.h>
+#pragma warning(pop)
+
 
 /** Maximum length of failed-assert message. */
 #define MAX_MESSAGE_LENGTH 256
@@ -58,14 +62,13 @@ static char message_buffer[MESSAGE_BUFFER_COUNT][MAX_MESSAGE_LENGTH + 1];
 /** Currently active assertion buffer. */
 static int message_buffer_index = 0;
 
-void pcut_failed_assertion_fmt(const char *filename, int line, const char *fmt, ...)
-{
+void pcut_failed_assertion_fmt(const char *filename, int line, const char *fmt, ...) {
 	va_list args;
 	char *current_buffer = message_buffer[message_buffer_index];
 	size_t offset = 0;
 	message_buffer_index = (message_buffer_index + 1) % MESSAGE_BUFFER_COUNT;
 
-	snprintf(current_buffer, MAX_MESSAGE_LENGTH, "%s:%d: ", filename, line);
+	pcut_snprintf(current_buffer, MAX_MESSAGE_LENGTH, "%s:%d: ", filename, line);
 	offset = pcut_str_size(current_buffer);
 
 	if (offset + 1 < MAX_MESSAGE_LENGTH) {

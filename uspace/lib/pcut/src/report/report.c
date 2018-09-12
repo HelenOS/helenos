@@ -32,13 +32,19 @@
  */
 
 #include "../internal.h"
+
 #ifdef __helenos__
-#include <str.h>
+#include <mem.h>
 #else
+#pragma warning(push, 0)
 #include <string.h>
+#pragma warning(pop)
 #endif
-#include <stdbool.h>
+
+#pragma warning(push, 0)
 #include <stdio.h>
+#pragma warning(pop)
+
 
 /** Currently used report ops. */
 static pcut_report_ops_t *report_ops = NULL;
@@ -67,8 +73,7 @@ static pcut_report_ops_t *report_ops = NULL;
  *
  * @param msg The message to be printed.
  */
-void pcut_print_fail_message(const char *msg)
-{
+void pcut_print_fail_message(const char *msg) {
 	if (msg == NULL) {
 		return;
 	}
@@ -98,9 +103,8 @@ static char buffer_for_error_messages[BUFFER_SIZE];
  * @param error_buffer_size Size of @p error_buffer in bytes.
  */
 static void parse_command_output(const char *full_output, size_t full_output_size,
-    char *stdio_buffer, size_t stdio_buffer_size,
-    char *error_buffer, size_t error_buffer_size)
-{
+		char *stdio_buffer, size_t stdio_buffer_size,
+		char *error_buffer, size_t error_buffer_size) {
 	memset(stdio_buffer, 0, stdio_buffer_size);
 	memset(error_buffer, 0, error_buffer_size);
 
@@ -110,7 +114,7 @@ static void parse_command_output(const char *full_output, size_t full_output_siz
 		return;
 	}
 
-	while (true) {
+	while (1) {
 		size_t message_length;
 
 		/* First of all, count number of zero bytes before the text. */
@@ -156,8 +160,7 @@ static void parse_command_output(const char *full_output, size_t full_output_siz
  *
  * @param ops Functions to use.
  */
-void pcut_report_register_handler(pcut_report_ops_t *ops)
-{
+void pcut_report_register_handler(pcut_report_ops_t *ops) {
 	report_ops = ops;
 }
 
@@ -165,8 +168,7 @@ void pcut_report_register_handler(pcut_report_ops_t *ops)
  *
  * @param all_items List of all tests that could be run.
  */
-void pcut_report_init(pcut_item_t *all_items)
-{
+void pcut_report_init(pcut_item_t *all_items) {
 	REPORT_CALL(init, all_items);
 }
 
@@ -174,8 +176,7 @@ void pcut_report_init(pcut_item_t *all_items)
  *
  * @param suite Suite that was just started.
  */
-void pcut_report_suite_start(pcut_item_t *suite)
-{
+void pcut_report_suite_start(pcut_item_t *suite) {
 	REPORT_CALL(suite_start, suite);
 }
 
@@ -183,8 +184,7 @@ void pcut_report_suite_start(pcut_item_t *suite)
  *
  * @param suite Suite that just completed.
  */
-void pcut_report_suite_done(pcut_item_t *suite)
-{
+void pcut_report_suite_done(pcut_item_t *suite) {
 	REPORT_CALL(suite_done, suite);
 }
 
@@ -192,8 +192,7 @@ void pcut_report_suite_done(pcut_item_t *suite)
  *
  * @param test Test to be run just about now.
  */
-void pcut_report_test_start(pcut_item_t *test)
-{
+void pcut_report_test_start(pcut_item_t *test) {
 	REPORT_CALL(test_start, test);
 }
 
@@ -206,11 +205,10 @@ void pcut_report_test_start(pcut_item_t *test)
  * @param extra_output Extra output from the test (stdout).
  */
 void pcut_report_test_done(pcut_item_t *test, int outcome,
-    const char *error_message, const char *teardown_error_message,
-    const char *extra_output)
-{
+		const char *error_message, const char *teardown_error_message,
+		const char *extra_output) {
 	REPORT_CALL(test_done, test, outcome, error_message, teardown_error_message,
-	    extra_output);
+			extra_output);
 }
 
 /** Report that a test was completed with unparsed test output.
@@ -221,12 +219,11 @@ void pcut_report_test_done(pcut_item_t *test, int outcome,
  * @param unparsed_output_size Size of @p unparsed_output in bytes.
  */
 void pcut_report_test_done_unparsed(pcut_item_t *test, int outcome,
-    const char *unparsed_output, size_t unparsed_output_size)
-{
+		const char *unparsed_output, size_t unparsed_output_size) {
 
 	parse_command_output(unparsed_output, unparsed_output_size,
-	    buffer_for_extra_output, BUFFER_SIZE,
-	    buffer_for_error_messages, BUFFER_SIZE);
+			buffer_for_extra_output, BUFFER_SIZE,
+			buffer_for_error_messages, BUFFER_SIZE);
 
 	pcut_report_test_done(test, outcome, buffer_for_error_messages, NULL, buffer_for_extra_output);
 }
@@ -234,8 +231,7 @@ void pcut_report_test_done_unparsed(pcut_item_t *test, int outcome,
 /** Close the report.
  *
  */
-void pcut_report_done(void)
-{
+void pcut_report_done(void) {
 	REPORT_CALL_NO_ARGS(done);
 }
 
