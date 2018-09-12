@@ -39,7 +39,9 @@ srepcnt=0
 snorepcnt=0
 fcnt=0
 
-find abi kernel boot uspace -type f -regex '^.*\.[ch]$' | (
+find abi kernel boot uspace -type f -regex '^.*\.[ch]$' \
+  | grep -v -e '^uspace/lib/pcut/' \
+  | (
 while read fname; do
 	outfile="$(mktemp)"
 	$ccheck $opt $fname >"$outfile" 2>&1
