@@ -178,7 +178,6 @@ def check_common(common, key):
 def get_target(config):
 	platform = None
 	target = None
-	cc_args = []
 
 	if (config['PLATFORM'] == "abs32le"):
 		check_config(config, "CROSS_TARGET")
@@ -191,7 +190,6 @@ def get_target(config):
 			target = "i686-helenos"
 
 		if (config['CROSS_TARGET'] == "mips32"):
-			cc_args.append("-mabi=32")
 			target = "mipsel-helenos"
 
 	if (config['PLATFORM'] == "amd64"):
@@ -212,7 +210,6 @@ def get_target(config):
 
 	if (config['PLATFORM'] == "mips32"):
 		check_config(config, "MACHINE")
-		cc_args.append("-mabi=32")
 
 		if ((config['MACHINE'] == "msim") or (config['MACHINE'] == "lmalta")):
 			platform = config['PLATFORM']
@@ -224,7 +221,6 @@ def get_target(config):
 
 	if (config['PLATFORM'] == "mips64"):
 		check_config(config, "MACHINE")
-		cc_args.append("-mabi=64")
 
 		if (config['MACHINE'] == "msim"):
 			platform = config['PLATFORM']
@@ -242,7 +238,7 @@ def get_target(config):
 		platform = config['PLATFORM']
 		target = "sparc64-helenos"
 
-	return (platform, cc_args, target)
+	return (platform, target)
 
 def check_app(args, name, details):
 	"Check whether an application can be executed"
@@ -358,7 +354,7 @@ def decode_value(value):
 
 	return int(value, base)
 
-def probe_compiler(common, typesizes):
+def probe_compiler(cc, common, typesizes):
 	"Generate, compile and parse probing source"
 
 	check_common(common, "CC")
@@ -376,7 +372,7 @@ def probe_compiler(common, typesizes):
 	outf.write(PROBE_TAIL)
 	outf.close()
 
-	args = common['CC_AUTOGEN'].split(' ')
+	args = cc.split(' ')
 	args.extend(["-S", "-o", PROBE_OUTPUT, PROBE_SOURCE])
 
 	try:
@@ -563,7 +559,7 @@ def main():
 		check_app(["unzip"], "unzip utility", "usually part of zip/unzip utilities")
 		check_app(["tar", "--version"], "tar utility", "usually part of tar")
 
-		platform, cc_args, target = get_target(config)
+		platform, target = get_target(config)
 
 		if (platform is None) or (target is None):
 			print_error(["Unsupported compiler target.",
@@ -577,14 +573,16 @@ def main():
 		common['TARGET'] = target
 		prefix = "%s-" % target
 
+		cc_autogen = None
+
 		# Compiler
 		if (config['COMPILER'] == "gcc_cross"):
 			check_gcc(path, prefix, common, PACKAGE_CROSS)
 			check_binutils(path, prefix, common, PACKAGE_CROSS)
 
 			check_common(common, "GCC")
-			common['CC'] = " ".join([common['GCC']] + cc_args)
-			common['CC_AUTOGEN'] = common['CC']
+			common['CC'] = common['GCC']
+			cc_autogen = common['CC']
 
 			check_common(common, "GXX")
 			common['CXX'] = common['GXX']
@@ -594,8 +592,8 @@ def main():
 			check_clang(path, prefix, common, PACKAGE_CLANG)
 
 			check_common(common, "CLANG")
-			common['CC'] = " ".join([common['CLANG']] + cc_args)
-			common['CC_AUTOGEN'] = common['CC'] + " -no-integrated-as"
+			common['CC'] = common['CLANG']
+			cc_autogen = common['CC'] + " -no-integrated-as"
 
 			if (config['INTEGRATED_AS'] == "yes"):
 				common['CC'] += " -integrated-as"
@@ -609,7 +607,7 @@ def main():
 			if common['GENISOIMAGE'] == 'xorriso':
 				common['GENISOIMAGE'] += ' -as genisoimage'
 
-		probe = probe_compiler(common,
+		probe = probe_compiler(cc_autogen, common,
 			[
 				{'type': 'long long int', 'tag': 'LONG_LONG', 'sname': 'LLONG' },
 				{'type': 'long int', 'tag': 'LONG', 'sname': 'LONG' },
